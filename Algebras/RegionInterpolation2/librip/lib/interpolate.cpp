@@ -89,10 +89,9 @@ MFaces interpolate(vector<Face> *sregs, vector<Face> *dregs, int depth,
             }
 
             // and try to merge them into the cycle here (otherwise they are
-            // added as a hole)
+            // added as a hole). The result is a vector of moving faces,
+            // because the merge of a concavity can cause a face split.
             vector<MFace> splits = rp.mface.MergeConcavities();
-            // Now the resulting moving face is added to the return value
-            ret.AddMFace(rp.mface);
             for (unsigned int i = 0; i < splits.size(); i++)
                 ret.AddMFace(splits[i]);
         } else {

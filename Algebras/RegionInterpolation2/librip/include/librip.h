@@ -18,7 +18,8 @@ enum {
     NL_LIST = 1,
     NL_STRING,
     NL_DOUBLE,
-    NL_BOOL
+    NL_BOOL,
+    NL_SYM
 };
 
 
@@ -36,8 +37,10 @@ public:
     RList();
     void append(double nr);
     void append(std::string str);
+    void appendsym(std::string str);
     void append(bool val);
     void append(RList l);
+    void prepend(RList l);
     RList* point(double x, double y);
     void concat(RList l);
     double getNr () {
@@ -56,7 +59,9 @@ public:
         return type;
     }
     RList* nest();
+    static RList parse(std::istream &i);
     std::string ToString();
+    RList obj(std::string name, std::string type);
 };
 
 RList regioninterpolate(RList src, RList dst, std::string start, 

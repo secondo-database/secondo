@@ -77,7 +77,7 @@ bool MFace::SortCycle() {
 }
 
 /*
- 1.3 ~SortAndSplitCycle~
+ 1.3 ~SplitCycle~
 
  Sort the Moving Segments according to their position in the cycle. Split
  the cycle, if two independent cycles can be built from this cycle.
@@ -90,46 +90,42 @@ vector<MFace> MFace::SplitCycle() {
     DEBUG(4, "Called SplitCycle on " << this->ToString());
     
     do {
-        bool found = false;
-        for (unsigned int i = 0; i < ms.msegs.size(); i++) {
-            int next = ms.findNext(ms.msegs[i], 0, true);
-            if (next == -2) {
-                // We have found the startpoint of an ambiguous cycle!
-                MSeg cur = ms.msegs[i];
-                MSegs cycle;
-
-                DEBUG(4, "Start " << cur.ie.ToString() <<
-                        " / " << cur.fe.ToString());
-                next = ms.findNext(cur, 0, false);
-                int c = 0;
-                do {
-                    if ((next < 0) || (c++ > (int) ms.msegs.size()))
-                        return ret;
-                    DEBUG(4, "Cycle: " << ms.msegs[next].ToString());
-                    MSeg n = ms.msegs[next];
-                    cycle.AddMSeg(n);
-                    ms.msegs.erase(ms.msegs.begin() + next);
-                    if (n.ie == cur.ie && n.fe == cur.fe)
-                        break;
-                    next = ms.findNext(n, 0, false);
-                } while (1);
-                MFace f = MFace(cycle);
-                f.EliminateSpikes();
-                f.Check();
-                ret.push_back(f);
-                found = true;
-                break;
-            }
-        }
-        if (found == false)
-            break;
+	MSegs cycle;
+	MSeg n = ms.msegs[0];
+	MSeg cur = n;
+	cycle.AddMSeg(ms.msegs[0]);
+	ms.msegs.erase(ms.msegs.begin());
+        bool complete = false;
+	do {
+		int next = ms.findNexta(cur, 1);
+		if (next < 0) {
+			DEBUG(4, "Error: no successor found!");
+			break;
+		}
+		cur = ms.msegs[next];
+		cycle.AddMSeg(cur);
+		ms.msegs.erase(ms.msegs.begin() + next);
+		if (n.is == cur.ie && n.fs == cur.fe) {
+			complete = true;
+			break;
+		}
+	} while (1);
+	if (complete) {
+		DEBUG(4, "Cycle complete, " << cycle.msegs.size() << " segs");
+		MFace f = MFace(cycle);
+		f.EliminateSpikes();
+		f.Check();
+		f.face.calculateBBox();
+		if (f.face.msegs.size()>0)
+			ret.push_back(f);
+	}
     } while (ms.msegs.size() > 0);
-    
-    if (ret.size() > 0) {
-       ms.calculateBBox();
-       face = ms;
+
+    if (ret.size() == 1) {
+	    ret[0].holes = holes;
     }
-        
+    
+    DEBUG(4, "SplitCycle done, now " << ret.size() << " cycles");
     return ret;
 }
 
@@ -201,6 +197,7 @@ bool MFace::Check() {
         return true;
     
     if (!SortCycle()) {
+        DEBUG(3, "SortCycle failed!");
         ret = false;
     }
     
@@ -208,13 +205,15 @@ bool MFace::Check() {
     for (unsigned int i = 0; i < holes.size(); i++) {
         MFace h1(holes[i]);
         for (unsigned int j = 0; j < holes.size(); j++) {
-            if (holes[i].intersects(holes[j], false, false))
+            if (holes[i].intersects(holes[j], false, false)) {
+		    DEBUG(3, "Hole intersection!");
                 ret = false;
+	    }
         }
     }
     
     if (face.intersects(face, false, true)) {
-        DEBUG(3, "Intersection!");
+        DEBUG(3, "Self Intersection!");
         ret = false;
     }
 
@@ -284,19 +283,12 @@ vector<MFace> MFace::MergeConcavities() {
     // Check and see, if this cycle was split into several cycles due to the
     // merge. 
     vector<MFace> split = SplitCycle();
-    if (split.size() > 0) {
+    if (split.size() > 1) {
         DEBUG(3, "Cycle is ambiguous, splitted into ");
-        DEBUG(3, this->ToString());
         for (unsigned int i = 0; i < split.size(); i++) {
             DEBUG(3, split[i].ToString());
         }
     }
-
-    // Merging the concavity into the cycle was successful.
-    SortCycle();       // Sort the cycle 
-    EliminateSpikes(); // Eliminate empty spikes
-    Check();           // Check the validity of the resulting MFace
-
 
     return split;
 }

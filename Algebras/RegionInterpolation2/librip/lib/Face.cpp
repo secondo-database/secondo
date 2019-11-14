@@ -1032,3 +1032,38 @@ bool Face::Merge(Face m) {
     
     return found;
 }
+
+/*
+ 1.35 ~inside~ checks, if a given point is inside this face.
+      Uses the winding-number method.
+      Returns true, if the point is inside
+
+*/
+bool Face::inside (const Pt& p) const {
+	int wn = 0;
+        for (std::vector<Seg>::const_iterator seg = v.begin();
+			                  seg != v.end(); ++seg) {
+		if (seg->s.y <= p.y) {
+			if (seg->e.y > p.y) {
+				double sign = seg->sign(p);
+				if (sign > 0) {
+					wn++;
+				} else if (sign == 0) {
+					return true; // On segment
+				}
+			}
+		} else {
+			if (seg->e.y <= p.y) {
+				double sign = seg->sign(p);
+				if (sign < 0) {
+					wn--;
+				} else if (sign == 0) {
+					return true; // On segment
+				}
+			}
+		}
+	}
+
+	return (wn != 0);
+}
+

@@ -85,6 +85,22 @@ long double Seg::angle() const {
 }
 
 /*
+ 1.4 ~angle(Seg)~ calculates the angle of a Segment relative to a given segment and
+ returns it in degrees (0-360)
+ 
+*/
+long double Seg::angle(Seg seg) const {
+	double ret    = atan2(  s.y - e.y, s.x -   e.x) -
+		atan2(seg.e.y - seg.s.y, seg.e.x - seg.s.x);
+
+	ret = ret*360.0/M_PI/2;
+	if (ret < 0)
+		ret += 360.0;
+
+	return ret;
+}
+
+/*
  1.5 ~ToString~ generates a textual representation of this object for
  debugging purposes.
  
@@ -108,7 +124,7 @@ static inline bool isOnLine(Pt a, Pt b, Pt c) {
 
 // sign determines the order of the points a, b, c (clockwise, collinear or
 // counterclockwise)
-static inline int sign(Pt a, Pt b, Pt c) {
+static inline int _sign(Pt a, Pt b, Pt c) {
     double s = (b.y - a.y) * (c.x - b.x) - (b.x - a.x) * (c.y - b.y);
     return (s > 0) ? 1 : ((s < 0) ? -1 : 0);
 }
@@ -129,10 +145,10 @@ bool Seg::intersects(const Seg& a) const {
     if ((e == a.s) || (s == a.e) || (s == a.s) || (e == a.e))
         return false;
     
-    int s1 = sign(s, e, a.s);
-    int s2 = sign(s, e, a.e);
-    int s3 = sign(a.s, a.e, s);
-    int s4 = sign(a.s, a.e, e);
+    int s1 = _sign(s, e, a.s);
+    int s2 = _sign(s, e, a.e);
+    int s3 = _sign(a.s, a.e, s);
+    int s4 = _sign(a.s, a.e, e);
 
     if ((s1 != s2) && (s3 != s4)) {
         // The segments intersect
@@ -149,3 +165,12 @@ bool Seg::intersects(const Seg& a) const {
 
     return false; // no intersection otherwise
 }
+
+/*
+  1.7 ~sign~ determines the sign of this Segment with a point.
+ 
+*/
+double Seg::sign(const Pt& p) const {
+	return p.x*s.y - p.x*e.y - e.x*s.y - p.y*s.x + p.y*e.x + e.y*s.x;
+}
+

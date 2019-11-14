@@ -6,145 +6,57 @@
 */
 
 #include <iostream>
-#include <sstream>
+#include <fstream>
 #include <cstdlib>
 #include <stdio.h>
 #include <librip.h>
 
 using namespace std;
 
-#define NUM 257
-static double num;
+static RList file2rlist(char *fname) {
+   ifstream i1(fname, std::fstream::in);
+   RList ret = RList::parse(i1);
 
-#define SECONDO_STYLE // Output suitable for import into SECONDO
-
-// Get the next token from input file (simple lexer)
-static int getToken (FILE *f) {
-   char buf[1024], *ptr = buf;
-   
-   do {
-      int ch = fgetc(f);
-      switch (ch) {
-       case ')':
-       case '(':
-	 if (buf != ptr) {
-	    ungetc(ch, f);
-	    num = atof(buf);
-	    return NUM;
-	 }
-	 return ch;
-	 
-       case '-':
-       case '0':
-       case '1':
-       case '2':
-       case '3':
-       case '4':
-       case '5':
-       case '6':
-       case '7':
-       case '8':
-       case '9':
-       case '.':
-	 *ptr++ = ch;
-	 *ptr = '\0';
-	 break;
-	 
-       case ' ':
-       case '\r':
-       case '\n':
-       case '\t':
-	 if (buf != ptr) {
-	    num = atof(buf);
-	    return NUM;
-	 }
-	 break;
-	 
-       case EOF:
-	 return 0;
-	 
-       default:
-	 printf("Parse error: '%c'\n", ch);
-	 exit(EXIT_FAILURE);
-      }
-   } while (!feof(f));
-   
-   return 0;
-}
-
-// Parse the textual nested list and create a 
-// RList-object from it (a simple parser).
-static void parse (FILE *f, RList *nl) {
-   do {
-      int token = getToken(f);
-      switch (token) {
-       case '(':
-	 parse(f, nl->nest());
-	 break;
-       case NUM:
-	 nl->append(num);
-	 break;
-       case ')':
-	 return;
-	 
-      }
-   } while (1);
-}
-
-// Parse the given file with the textual representation
-// of a nested list of a region and return a corresponding
-// RList object
-static RList* parseFile (const char *filename) {
-   FILE *f;
-   
-   RList *ret = new RList();
-   
-   f = fopen(filename, "r");
-   if (getToken(f) != '(') {
-      printf("Parse error! (Beginning)\n");
-      exit(EXIT_FAILURE);
-   } else {
-      parse(f, ret);
-      if (getToken(f) != 0) {
-	 printf("Parse error! (End)\n");
-	 exit(EXIT_FAILURE);
-      }
-   }
-   
-   fclose(f);
-   
    return ret;
 }
-
 
 // Program entry point
 int main (int argc, char **argv) {
    const char *arg = "distance";
 
    if (argc < 5) {
-       cerr << "Usage:   rip <sregfile> <dregfile> <srctime> <dsttime> [args]\n"
-            << "          timeformat:  YYYY-MM-DD hh:mm:ss\n"
-            << "Example: rip box1 box2 \"2014-01-01 00:00\" "
-            << "\"2014-01-02 12:00\" Overlap:30\n\n";
+    cerr << "Usage:   rip <regfile> <time> <regfile> <time> ... [args]\n"
+         << "          timeformat:  YYYY-MM-DD hh:mm:ss\n"
+         << "Example: rip box1 \"2014-01-01 00:00\" "
+         << "box2 \"2014-01-02 12:00\" box3 \"2014-01-03 11:00\" Overlap:30\n";
+         << "\n"
       exit(1);
    }
-   if (argc == 6)
-     arg = argv[5];
-   RList *sreg = parseFile(argv[1]);
-   RList *dreg = parseFile(argv[2]);
-   
-   RList ret = regioninterpolate(*sreg, *dreg, argv[3], argv[4], arg);
-   
-   stringstream ss;
-#ifdef SECONDO_STYLE
-   ss << "(OBJECT obj () mregion ";
-#endif
-   ss << ret.ToString() << "\n";
-#ifdef SECONDO_STYLE
-   ss << ")\n";
-#endif
+   int nrregs = (argc - 1) / 2;
 
-   cout << ss.str();
+   if (argc%2==0) {
+	   arg = argv[argc-1];
+   }
+
+   RList ret;
+   for (int i = 0; i < nrregs-1; i++) {
+	   RList sreg = file2rlist(argv[i*2+1]);
+	   RList dreg = file2rlist(argv[i*2+3]);
+	   char *siv = argv[i*2+2];
+	   char *div = argv[i*2+4];
+       RList interp;
+       if (sreg.items[0].getType() == NL_SYM) {
+	       interp = regioninterpolate(sreg.items[4], dreg.items[4],
+			       siv, div, arg);
+       } else {
+	       interp = regioninterpolate(sreg, dreg, siv, div, arg);
+       }
+
+	   ret.append(interp.items[0]);
+
+   }
+   
+   cout << ret.obj("mregion", "mregion").ToString() << "\n";
    
    exit(0);
 }

@@ -180,7 +180,7 @@ static vector<pair<Face *, Face *> > matchFacesCriterion(vector<Face> *src,
     // Get source- and destination-transform-values
     pair<Pt, Pt> stf = getOffsetAndScale(src);
     pair<Pt, Pt> dtf = getOffsetAndScale(dst);
-    
+
     for (unsigned int i = 0; i < src->size(); i++) {
         for (unsigned int j = 0; j < dst->size(); j++) {
             Face s = (*src)[i], d = (*dst)[j];
@@ -188,7 +188,7 @@ static vector<pair<Face *, Face *> > matchFacesCriterion(vector<Face> *src,
             d.Transform(dtf.first, dtf.second);
             double val = fn(&s, &d);
             if (val < thres) {
-                mtab.push_back(matchItem(&((*src)[i]), &((*dst)[i]), val));
+                mtab.push_back(matchItem(&((*src)[i]), &((*dst)[j]), val));
             }
         }
     }
@@ -220,10 +220,10 @@ static double overlap (Face *src, Face *dst) {
     double ai = r1.IntersectionArea(r2); // Calculate the area
 
     // Calculate the average overlap percentage between a1 and a2
-    double ret = (ai*100/a1+ai*100/a2)/2;
+    double ret = (ai*100.0/a1+ai*100.0/a2)/2;
 
     // Subtract the value from 100, since matchFacesCriterion tries to minimize
-    return 100-ret;
+    return 100.0-ret;
 }
 
 /*
@@ -319,7 +319,7 @@ vector<pair<Face *, Face *> > matchFaces(
         vector<Face> *src, vector<Face> *dst, int depth,
         string args) {
     vector<pair<Face *, Face *> > pairs, ret;
-    
+
     // Mark all faces as unused and if they are from the source- or
     // destination-set.
     for (unsigned int i = 0; i < src->size(); i++) {

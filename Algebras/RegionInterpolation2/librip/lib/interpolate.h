@@ -103,8 +103,10 @@ public:
     
     // Methods
     long double angle() const; // calculates angle with x-axis
+    long double angle(Seg s) const; // calculates angle with a given segment
     void ChangeDir(); // changes the direction of the segment
     bool intersects(const Seg& seg) const; // checks for intersection with seg
+    double sign (const Pt& p) const; // calculate the sign of segment and point
     std::string ToString() const;
 };
 
@@ -161,6 +163,7 @@ public:
     void IntegrateHoles(); // Integrate holes into the cycle for triangulation
     void Transform (Pt off, Pt scale); // Transform by offset and scale factor
     bool Merge (Face m); // Merge two adjacent faces into one
+    bool inside (const Pt& p) const; // Point inside face test
     std::string ToString() const;
     Poly MakePoly (double offx, double offy, double scalex, double scaley,
                    bool withholes);
@@ -194,6 +197,7 @@ public:
     bool Split(MSeg& n, MSeg& m1, MSeg& m2); // Split MSeg on "n"
     void ChangeDirection(); // Change the orientation
     MSeg divide(double start, double end); // restrict interval
+    long double angle (MSeg ms); // Angle to another MSeg
     std::string ToString() const;
 };
 
@@ -217,6 +221,7 @@ public:
     Face CreateBorderFace(bool initial); // Create static mface from border
     int findNext(int index, bool check); // get successor of segment at index
     int findNext(MSeg cur, int start, bool check); // get successor of cur
+    int findNexta(MSeg cur, int start); // get successor of cur with small angle
     MSegs divide(double start, double end); // restrict the interval
     std::pair<MSegs, MSegs> kill(); // create pair of expanding/collapsing faces
     bool intersects(const MSegs& a, bool matchIdent, bool matchSegs) const;

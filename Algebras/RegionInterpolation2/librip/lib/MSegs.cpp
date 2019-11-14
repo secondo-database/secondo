@@ -279,6 +279,35 @@ int MSegs::findNext(MSeg cur, int start, bool check) {
     return ret;
 }
 
+/*
+ 1.8 ~findNexta~ tries to find the index of the next matching MSeg for the MSeg
+ ~cur~. If more than one moving segment matches, choose the one with the smallest
+ angle.
+ 
+*/
+int MSegs::findNexta(MSeg cur, int start) {
+    unsigned int nrsegs = msegs.size();
+    int ret = -1;
+    double angle = -1;
+
+    for (unsigned int i = 0; i < nrsegs; i++) {
+        int nindex = (i + start) % nrsegs;
+        MSeg *next = &msegs[nindex];
+        // We have found a successor, if the initial and final start-points
+        // match the initial and final endpoints of the current MSeg.
+        if (cur.ie == next->is && cur.fe == next->fs) {
+		double a = cur.angle(*next);
+		if (angle < 0 || a < angle) {
+			angle = a;
+			ret = nindex;
+		}
+        }
+    }
+
+    return ret;
+}
+
+
 int MSegs::findNext(int index, bool check) {
     return findNext(msegs[index], index, check);
 }

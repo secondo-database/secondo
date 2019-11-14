@@ -294,3 +294,10 @@ bool MSeg::Split(MSeg& n, MSeg& m1, MSeg& m2) {
 
     return true;
 }
+
+long double MSeg::angle (MSeg ms) {
+	Seg s1 = (is == ie) ? Seg(fs, fe) : Seg(is, ie);
+	Seg s2 = (ms.is == ms.ie) ? Seg(ms.fs, ms.fe) : Seg(ms.is, ms.ie);
+
+	return s1.angle(s2);
+}
