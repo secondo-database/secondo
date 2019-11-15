@@ -88,4 +88,6 @@
 
 -- WebSockets
 
-query readfromwebsocket("wss://ws.blockchain.info/inv", "Hello", "hi") count;
+query readfromwebsocket("wss://ws.blockchain.info/inv", "{\"op\":\"unconfirmed_sub\"}", "Name,string,$.name") count;
+
+query readfromwebsocket("wss://ws.blockchain.info/inv", "{\"op\":\"unconfirmed_sub\"}", "Name,string,$.name;Value,string,$.internal.value") consume;

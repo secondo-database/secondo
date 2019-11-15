@@ -26,10 +26,46 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "ReadFromKafkaOperator.h"
 #include "KafkaClient.h"
 #include "log.hpp"
+#include "Utils.h"
 
 using namespace std;
 
 namespace ws {
+
+    class AttributeDescription {
+    public:
+        AttributeDescription(basic_string<char> name,
+                             basic_string<char> type,
+                             basic_string<char> path) {
+            this->name = name;
+            this->type = type;
+            this->path = path;
+        }
+
+        string name;
+        string type;
+        string path;
+    };
+
+    std::vector<AttributeDescription>
+    parseAttributeDescriptions(const string &wsOperatorType) {
+        std::vector<AttributeDescription> result;
+
+        std::vector<std::string> attributes = kafka::split(wsOperatorType, ";");
+        for (std::string attribute : attributes) {
+            std::vector<std::string> parts = kafka::split(attribute, ",");
+            if (parts.size() != 3)
+                return result;
+
+            result.emplace_back(
+                    parts.at(0),
+                    parts.at(1),
+                    parts.at(2)
+            );
+        }
+        return result;
+    }
+
 
     ListExpr validateStringArg(ListExpr topicArg) {
         if (!nl->HasLength(topicArg, 2)) {
@@ -48,7 +84,9 @@ namespace ws {
         return 0;
     }
 
-    string buildSecondoType(string wsOperatorType);
+    string buildSecondoType(vector<AttributeDescription> wsOperatorType);
+
+    ListExpr validateAttributes(vector<AttributeDescription> vector);
 
     ListExpr ReadFromWebSocketTM(ListExpr args) {
         // check number of arguments
@@ -74,7 +112,17 @@ namespace ws {
             return error;
         string wsOperatorType = nl->StringValue(nl->Second(typeArg));
 
-        string secondoTypeString = buildSecondoType(wsOperatorType);
+        std::vector<AttributeDescription> attributes =
+                parseAttributeDescriptions(wsOperatorType);
+        error = validateAttributes(attributes);
+        if (error)
+            return error;
+
+        string secondoTypeString = buildSecondoType(attributes);
+        LOG(DEBUG) << "secondoTypeString:" << secondoTypeString;
+        if (secondoTypeString.empty())
+            return listutils::typeError("type string argument is invalid");
+
         ListExpr res = 0;
         if (!nl->ReadFromString(secondoTypeString, res)) {
             cout << "Error reading type line: " << secondoTypeString << endl;
@@ -82,8 +130,23 @@ namespace ws {
         return res;
     }
 
-    string buildSecondoType(string wsOperatorType) {
-        return "(stream (tuple ((Name string))))";
+    ListExpr validateAttributes(vector<AttributeDescription> attributes) {
+        if (attributes.size() == 0) {
+            return listutils::typeError("no attributes defined");
+        }
+        for (AttributeDescription attribute : attributes) {
+
+        }
+        return 0;
+    }
+
+
+    string buildSecondoType(vector<AttributeDescription> attributes) {
+        string result = "(stream (tuple (";
+        for (AttributeDescription attribute : attributes) {
+            result = result + "(" + attribute.name + " " + attribute.type + ")";
+        }
+        return result + ")))";
     }
 
     class WebSocketsSourceLI {
@@ -93,6 +156,9 @@ namespace ws {
                            CcString *typeArg) {
             def = typeArg->IsDefined();
             if (def) {
+                string wsOperatorType = typeArg->GetValue();
+                attributes = parseAttributeDescriptions(wsOperatorType);
+
             }
         }
 
@@ -115,7 +181,11 @@ namespace ws {
             ListExpr resultType = GetTupleResultType(s);
             TupleType *tupleType = new TupleType(nl->Second(resultType));
             Tuple *res = new Tuple(tupleType);
-            res->PutAttribute(0, new CcString(true, "Hello"));
+
+            int index = 0;
+            for (AttributeDescription attribute : attributes) {
+                res->PutAttribute(index++, new CcString(true, attribute.path));
+            }
             return res;
         }
 
@@ -123,6 +193,7 @@ namespace ws {
         string uri;
         bool def;
         int count = 0;
+        std::vector<AttributeDescription> attributes;
     };
 
     int ReadFromWebSocketsVM(Word *args, Word &result, int message,

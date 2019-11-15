@@ -26,11 +26,16 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #define KAFKA_UTILS_H
 
 #include <iostream>
+#include <vector>
 
 namespace kafka {
 
     std::string create_uuid();
+
     void sleepMS(int milliseconds);
+
+    std::vector<std::string> split(const std::string &str,
+                                   const std::string &delim);
 
 }
 
