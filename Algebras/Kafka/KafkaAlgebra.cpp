@@ -53,6 +53,7 @@ namespace kafka {
             AddOperator(&consoleConsumerOp);
 
             AddOperator(&ws::readFromWebSocketOp);
+            ws::readFromWebSocketOp.SetUsesArgsInTypeMapping();
         }
     };
 

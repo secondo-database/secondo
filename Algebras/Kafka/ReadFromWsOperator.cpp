@@ -33,8 +33,7 @@ namespace ws {
 
     ListExpr validateStringArg(ListExpr topicArg) {
         if (!nl->HasLength(topicArg, 2)) {
-            return listutils::typeError("internal error, "
-                                        "argument invalid");
+            return listutils::typeError("internal error: argument invalid");
         }
 
         if (!CcString::checkType(nl->First(topicArg))) {
@@ -106,24 +105,24 @@ namespace ws {
         // this function returns the next result or null if the input is
         // exhausted
         Tuple *getNext(Supplier s) {
-            if (!def) { return NULL; }
-            std::string source = "";
+            if (!def) {
+                return NULL;
+            }
+
+            if (count++ == 10)
+                return NULL;
 
             ListExpr resultType = GetTupleResultType(s);
             TupleType *tupleType = new TupleType(nl->Second(resultType));
             Tuple *res = new Tuple(tupleType);
-            res->ReadFromBinStr(0, source);
+            res->PutAttribute(0, new CcString(true, "Hello"));
             return res;
-        }
-
-        bool isContinuous() {
-            return continuous;
         }
 
     private:
         string uri;
         bool def;
-        bool continuous;
+        int count = 0;
     };
 
     int ReadFromWebSocketsVM(Word *args, Word &result, int message,
@@ -145,8 +144,6 @@ namespace ws {
                 LOG(TRACE) << "ReadFromWebSocketsVM request";
                 if (li) {
                     result.addr = li->getNext(s);
-                    if (li->isContinuous())
-                        return YIELD;
                     return result.addr ? YIELD : CANCEL;
                 } else {
                     result.addr = 0;
