@@ -85,3 +85,7 @@
 
  query readfromkafka("localhost", "roads1", FALSE) count;
 
+
+-- WebSockets
+
+query readfromwebsocket("wss://ws.blockchain.info/inv", "Hello", "hi") count;

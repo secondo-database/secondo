@@ -17,6 +17,8 @@ add_executable(Kafka
         WriteToKafkaOperator.h
         ReadFromKafkaOperator.cpp
         ReadFromKafkaOperator.h
+        ReadFromWsOperator.cpp
+        ReadFromWsOperator.h
         StreamStopping.cpp
         StreamStopping.h
         SignalingSockets.h

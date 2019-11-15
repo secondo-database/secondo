@@ -27,6 +27,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "ReadFromKafkaOperator.h"
 #include "StreamStopping.h"
 #include "ConsoleConsumerOperator.h"
+#include "ReadFromWsOperator.h"
 
 
 extern NestedList *nl;
@@ -50,6 +51,8 @@ namespace kafka {
             AddOperator(&signalFinishOp);
 
             AddOperator(&consoleConsumerOp);
+
+            AddOperator(&ws::readFromWebSocketOp);
         }
     };
 

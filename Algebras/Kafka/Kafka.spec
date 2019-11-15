@@ -1,4 +1,3 @@
-
 # postfix operator with an parameter
 operator writetokafka alias WRITETOKAFKA pattern _ op [_ ]
 
@@ -13,3 +12,6 @@ operator signalFinish alias SIGNALFINISH pattern op(_)
 
 # postfix operator with an parameter
 operator consoleConsumer alias CONSOLECONSUMER pattern _ op
+
+#simple prefix operator
+operator readfromwebsocket alias READFROMWEBSOCKET pattern op(_)

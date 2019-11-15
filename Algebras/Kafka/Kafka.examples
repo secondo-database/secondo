@@ -30,3 +30,9 @@ Number   : 0
 Signature   : stream -> stream
 Example  : query plz feed consoleConsumer count
 Result   : 40
+
+Operator : readfromwebsocket
+Number   : 1
+Signature: URI x Subscription x Type -> stream(tuple)
+Example  : query readfromwebsocket("wss://ws.blockchain.info/inv", "{\"op\":\"unconfirmed_sub\"}", "Name,string,$.name") count
+Result   : 7
