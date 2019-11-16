@@ -4,6 +4,7 @@ project(Kafka)
 set(CMAKE_CXX_STANDARD 14)
 
 include_directories(.
+        ./include
         ../../
         ../../include
         ../../Tools/ListsAndTables
@@ -27,4 +28,4 @@ add_executable(Kafka
         log.cpp
         log.hpp
         Utils.cpp
-        Utils.h)
+        Utils.h WebSocketClient.cpp WebSocketClient.h)

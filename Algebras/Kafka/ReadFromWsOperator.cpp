@@ -27,6 +27,11 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "KafkaClient.h"
 #include "log.hpp"
 #include "Utils.h"
+#include "WebSocketClient.h"
+
+#include <jsoncons/json.hpp>
+#include <jsoncons_ext/jsonpointer/jsonpointer.hpp>
+
 
 using namespace std;
 
@@ -156,15 +161,21 @@ namespace ws {
                            CcString *typeArg) {
             def = typeArg->IsDefined();
             if (def) {
+                // Types
                 string wsOperatorType = typeArg->GetValue();
+                LOG(DEBUG) << "WebSocketsSourceLI: mapping=" << wsOperatorType;
                 attributes = parseAttributeDescriptions(wsOperatorType);
 
+                // WS Client
+                webSocketClient.Open(uriArg->GetValue());
+                webSocketClient.Subscribe(subscribingArg->GetValue());
             }
         }
 
         // destructor
         ~WebSocketsSourceLI() {
             if (def) {
+                webSocketClient.Close();
             }
         }
 
@@ -178,22 +189,28 @@ namespace ws {
             if (count++ == 10)
                 return NULL;
 
+            std::string data = webSocketClient.ReadSting();
+            jsoncons::json jdata = jsoncons::json::parse(data);
+
             ListExpr resultType = GetTupleResultType(s);
             TupleType *tupleType = new TupleType(nl->Second(resultType));
             Tuple *res = new Tuple(tupleType);
 
             int index = 0;
             for (AttributeDescription attribute : attributes) {
-                res->PutAttribute(index++, new CcString(true, attribute.path));
+                std::string value = jsoncons::jsonpointer::get(
+                        jdata, attribute.path)
+                        .as<std::string>();
+                res->PutAttribute(index++, new CcString(true, value));
             }
             return res;
         }
 
     private:
-        string uri;
         bool def;
         int count = 0;
         std::vector<AttributeDescription> attributes;
+        WebSocketClient webSocketClient;
     };
 
     int ReadFromWebSocketsVM(Word *args, Word &result, int message,

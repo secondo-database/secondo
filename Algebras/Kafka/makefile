@@ -26,13 +26,17 @@
 # inlcude global definitions
 include ../../makefile.env
 
+
 CURRENT_ALGEBRA := KafkaAlgebra
 ALGEBRA_DEPENDENCIES := StandardAlgebra
 ALGEBRA_DEPENDENCIES += RelationAlgebra
 
 
 # expand compile flags if necessary
-CCFLAGS += -Werror 
+ADDINCLUDES := -I$(BUILDDIR)/Algebras/Kafka/include
+# or -I./include
+
+CCFLAGS += -Werror $(ADDINCLUDES)
 
 # create objects and algebra library. The values for the variables
 # OBJECTS and LIBOBJ are computed automatically by makefile.env 
