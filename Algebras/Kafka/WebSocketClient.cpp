@@ -34,12 +34,13 @@ void WebSocketClient::Open(std::string uri) {
     if (USE_MOCK_DATA)
         return;
 
-
-
 }
 
 void WebSocketClient::Subscribe(std::string body) {
     LOG(DEBUG) << "WebSocketClient: Sending subscribe request " << body;
+    if (USE_MOCK_DATA)
+        return;
+
 }
 
 
@@ -58,9 +59,15 @@ std::string data = R"(
 )";
 
 std::string WebSocketClient::ReadSting() {
-    return data;
+    if (USE_MOCK_DATA)
+        return data;
+
+
 }
 
 void WebSocketClient::Close() {
     LOG(DEBUG) << "WebSocketClient: Close connection";
+    if (USE_MOCK_DATA)
+        return;
+
 }

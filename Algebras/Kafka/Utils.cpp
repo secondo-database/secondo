@@ -23,6 +23,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 #include "Utils.h"
+#include "log.hpp"
 
 #include <zconf.h>
 #include <vector>
@@ -55,13 +56,42 @@ namespace kafka {
 #define MILLI_SECOND_MULTIPLIER  1000000
 
     void sleepMS(int milliseconds) {
-        // 1 millisecond = 1,000,000 Nanoseconds
-        const long INTERVAL_MS = milliseconds * MILLI_SECOND_MULTIPLIER;
-        timespec sleepValue = {0};
+        if (milliseconds <= 0)
+            LOG(ERROR) << "sleepMS: Invalid argument " << milliseconds;
 
-        sleepValue.tv_nsec = INTERVAL_MS;
-        nanosleep(&sleepValue, NULL);
+        int sec = milliseconds / 1000;
+        milliseconds = milliseconds % 1000;
+
+        // 1 millisecond = 1,000,000 Nanoseconds
+        const long INTERVAL_NS = milliseconds * MILLI_SECOND_MULTIPLIER;
+        if (INTERVAL_NS > 999999999)
+            LOG(WARN) << "INTERVAL_NS > 999999999 warn ";
+
+        timespec sleepValue = {0};
+        sleepValue.tv_sec = sec;
+        sleepValue.tv_nsec = INTERVAL_NS;
+
+        int rval = nanosleep(&sleepValue, NULL);
+        if (rval == 0)
+            LOG(TRACE) << "Sleep ok ";
+        else if (errno == EINTR)
+            LOG(ERROR) << "sleepMS: EINTR 4 Interrupted system call";
+        else if (errno == EINVAL)
+            LOG(ERROR) << "sleepMS: EINVAL 22 Invalid argument ";
+        else
+            LOG(ERROR) << "sleepMS: Sleep error " << errno ;
+
+//    nanosleep(&sleepValue, &sleepValue);
     }
+
+//    void sleepMS(int milliseconds) {
+//        // 1 millisecond = 1,000,000 Nanoseconds
+//        const long INTERVAL_MS = milliseconds * MILLI_SECOND_MULTIPLIER;
+//        timespec sleepValue = {0};
+//
+//        sleepValue.tv_nsec = INTERVAL_MS;
+//        nanosleep(&sleepValue, NULL);
+//    }
 
     std::vector<std::string> split(const std::string &str,
                                    const std::string &delim) {
