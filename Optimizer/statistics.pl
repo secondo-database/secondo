@@ -1076,7 +1076,7 @@ selectivityQueryJoin(Pred, Rel1, Rel2, QueryTime1, noBBox, _,
          extractSignature(ArgsTrees,ArgsTypeList),
          not(isBBoxOperator(OP,ArgsTypeList,_))
        )
-    ;  not(isBBoxPredicate(OP))
+    ;  true     % not(isBBoxPredicate(OP))
   ),
   ( optimizerOption(subqueries)
     -> ( streamName(txx1),
