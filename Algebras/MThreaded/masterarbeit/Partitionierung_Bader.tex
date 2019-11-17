@@ -1,0 +1,565 @@
+\RequirePackage[ngerman=ngerman-x-latest]{hyphsubst}
+\documentclass[a4paper,12pt,twoside]{article}
+
+\usepackage[ngerman]{babel}
+\usepackage{fancyhdr}
+\usepackage{graphicx}
+\setlength\abovecaptionskip{4pt}
+\usepackage[bookmarksopen=true,bookmarksnumbered=true]{hyperref}
+\usepackage[utf8]{inputenc}
+\usepackage[inner=2.5cm,outer=2cm,top=2.3cm,bottom=2cm,head=0.8cm,headsep=0.8cm,footskip=0cm,asymmetric]{geometry}
+\usepackage{setspace}
+\usepackage{courier}
+\usepackage{array}
+\usepackage{amsmath}
+\usepackage{amssymb}
+
+\usepackage[babel, german=quotes]{csquotes}
+
+\usepackage[backend=biber,style=apa,citestyle=authoryear-comp, language=autocite, doi=false, isbn=false]{biblatex}
+\DeclareLanguageMapping{ngerman}{ngerman-apa}
+\addbibresource{Partitionierung_Bader.bib}
+\bibliography{Partitionierung_Bader.bib}
+
+\newcommand{\Fachbegriff}[1]{\textit{#1}}
+
+\usepackage{listings}
+\usepackage[dvipsnames]{xcolor}
+\lstset{ % 
+  language=R,                % the language of the code 
+  frame=single,
+  basicstyle=\footnotesize,           % the size of the fonts that are used for the code 
+  numbers=left,                   % where to put the line-numbers 
+  numberstyle=\tiny\color{gray},  % the style that is used for the line-numbers 
+  stepnumber=2,                   % the step between two line-numbers. If it's 1, each line 
+                                  % will be numbered 
+  numbersep=5pt,                  % how far the line-numbers are from the code 
+  backgroundcolor=\color{white},      % choose the background color. You must add \usepackage{color} 
+  showspaces=false,               % show spaces adding particular underscores 
+  showstringspaces=false,         % underline spaces within strings 
+  showtabs=false,                 % show tabs within strings adding particular underscores 
+  rulecolor=\color{black},        % if not set, the frame-color may be changed on line-breaks within not-black text 
+  tabsize=2,                      % sets default tabsize to 2 spaces 
+  captionpos=b,                   % sets the caption-position to bottom 
+  breaklines=true,                % sets automatic line breaking 
+  breakatwhitespace=false,        % sets if automatic breaks should only happen at whitespace 
+  title=\lstname,                   % show the filename of files included with \lstinputlisting; 
+                                  % also try caption instead of title 
+  keywordstyle=\color{blue},          % keyword style 
+  commentstyle=\color{PineGreen},       % comment style 
+  stringstyle=\color{Orchid},         % string literal style 
+  escapeinside={\%*}{*)},            % if you want to add a comment within your code
+  aboveskip=20pt
+} 
+%\usepackage[german]{babel}
+
+% Nummer des Themas
+\newcommand{\No}{$14$}
+% Name des Themas
+\newcommand{\Theme}{Partitionierungsverfahren}
+% Name   
+\newcommand{\Name}{Ingo Bader}
+
+\onehalfspacing
+
+\nopagebreak
+
+\fancyhead[RE,LO]{\fontsize{9}{9}\selectfont\Theme}
+\fancyhead[LE,RO]{\fontsize{9}{9}\selectfont Seite \thepage}
+\fancyfoot{}
+
+\begin{document}
+
+
+% Titelseite
+\thispagestyle{empty}
+\pagestyle{empty}
+
+\begin{center}
+\begin{huge}
+\vspace*{3cm}
+%      \vspace*{\fill}
+    \begin{tabular}{m{1.2cm}@{\ \ }m{9cm}}
+      \includegraphics[width=1.2cm]{logo.eps} & {FernUniversität in Hagen}
+    \end{tabular}
+    \\
+    \vspace*{3cm}
+   Seminar 01912 / 19912 \\
+   Sommersemester 2019 \\[2em]
+   \glqq{}Data Mining\grqq{} \\[2cm]
+\end{huge}
+\begin{large}
+   Thema \No\\[1em]
+   \Theme\\[3cm]
+   \Name
+\end{large}
+\end{center}
+
+\clearpage
+\tableofcontents
+\clearpage
+\raggedbottom
+\thispagestyle{fancy}
+\pagestyle{fancy}
+\setcounter{page}{1}
+
+% Inhalt
+\section{Einleitung/Problemstellung}
+In der Datenanalyse stellt sich häufig die Frage nach Strukturen in Massendaten oder, anders formuliert, nach der Unterteilung eines Datensatzes anhand von Merkmalen bzgl. eines Distanzmaßes in Subsets, Partition genannt. Eine Partition einer Menge ist eine Zerlegung dieser Menge in nichtleere, paarweise disjunkte Teilmengen. Hier werden überwachte, zentrumsbasierte partitionierende Verfahren vorgestellt, von denen das wichtigste Verfahren \Fachbegriff{k-Means} ist.
+
+Aber was unterscheidet Partitionierungsverfahren von anderen Verfahren der Clusterbildung? Zuallererst unterscheidet man überwachte und nicht überwachte Clusterverfahren: Überwachte Verfahren geben die Anzahl der Cluster vor, wohingegen unüberwachte Verfahren wie beispielsweise \Fachbegriff{dbscan} die Anzahl der Cluster aus dem Datensatz ableiten. Der hier vorgestellte Ansatz ist ein zentrumsbasiertes partitionierendes Verfahren, d.\,h. es ordnet die Datenpunkte Voronoi-Zellen um Clusterzentren zu und partitioniert so den Ausgangsdatensatz. Von dieser Gruppe von Partitionsverfahren unterscheiden sich hierarchische Verfahren, die sukzessive Cluster finden, und dichtebasierte Verfahren, die auf Dichteverbundenheit basieren. Eine weitere Unterscheidung, für die Mitglieder beider Gruppen in diesem Artikel präsentiert werden, kann nach der Form der Gruppenbildung vorgenommen werden: Cluster können disjunkt sein, wie bei den meisten genannten Verfahren (\Fachbegriff{k-Means}), aber einzelne Datenpunkte können auch durch ein Proximitätsmaß mehreren Clustern zugeordnet werden (\Fachbegriff{fuzzy means}).  \autocite{Saket.2016}
+
+Die Unterschiede zwischen den Algorithmen werde ich anhand eines Beispieldatensatzes veranschaulichen, der häufig für eine Veranschaulichung unterschiedlicher Clusterverfahren verwendet wird. In dem Datensatz werden 150 Exemplare von drei Arten der Gattung \Fachbegriff{Iris} anhand von vier Merkmale der Blüte verglichen: Länge und Breite des Kelchblatts (\Fachbegriff{Sepalum}) und des Kronblatts (\Fachbegriff{Petalum}) in cm. Für jede Art liegen 50 Datensätze vor. \autocite{FISHER.1936, Wikipedia.}
+
+Zur Veranschaulichung der Algorithmen und für alle Abbildungen habe ich die Statistik-Pro"-grammier"-sprache \Fachbegriff{R} benutzt. In R existieren für die meisten Partitionierungsalgorithmen bereits fertige und umfangreich dokumentierte sowie konfigurierbare Pakete/Funktionen.  
+
+Zu Beginn des Artikels werde ich eine kurze Übersicht geben über verschiedene Gruppen von Anwendungsfällen für Partitionierungsverfahren. Dem folgend werde ich \Fachbegriff{k-Means} in der Standardimplemtierung von Lloyd und verschiedene Derivate vorstellen. Ein zweiter Ansatz der Portionierung ist \Fachbegriff{k-Medoids}. In einem Ausblick stelle ich kurz zwei wichtige Erweiterung vor: Einerseits einen Ansatz für eine überlappende Gruppenbildung - \Fachbegriff{fuzzy means}, der Datenpunkte nicht fest einem Cluster zuweist, sondern für jeden Datenpunkt lediglich ein Proximitätsmaß berechnet. Andererseits stelle ich mit dem \Fachbegriff{Silhouettenkoeffizienten} ein Verfahren vor, welches die Qualität der Clusterbildung bewertet und dazu geeignet ist, eine optimale Clusterzahl zu bestimmen.Im Anschluss nehme ich eine vergleichende Diskussion der verschiedenen Ansätze vor.
+
+\section{Anwendung}
+
+\subsection{Clusteranalyse}
+Ziel einer Clusteranalyse ist es, Datenpunkte so zu partitionieren, dass sie Clustermittelpunkten nach einer Ähnlichkeit von Merkmalen zugeordnet sind. Merkmale können in den hier vorgestellten Verfahren beliebig viele Dimensionen haben. Allerdings muss die Anzahl der Cluster vorher bekannt sein, auch wenn es Ansätze gibt, die Qualität der Ergebnisse mit unterschiedlicher Clusterzahl zu bewerten und somit eine sinnvolle Anzahl abzuleiten. \autocite[][284f]{DavidMacKay.2003}
+
+Das hier durchgehend verwendete Beispiel verschiedener Blütenmerkmale von drei Arten der Gattung Iris steht für eine Clusteranalyse. Weitere Einsatzgebiete sind z.\,B. eine Gruppenbildung in der Sozialstatistik oder eine Untergliederung von Kundendaten in Kundengruppen.
+
+\subsection{Maschinelles Lernen}
+Bzgl. maschinellem Lernen unterschiedet man zwischen überwachten und unüberwachten Verfahren: Überwachtes Lernen beschreibt das Trainieren von Modellen mit Trainingsdaten. Hier ist eine Klassifikation in den Trainingsdaten bereits vorher bekannt.
+\Fachbegriff{K-Means} wird in unüberwachtem maschinellen Lernen eingesetzt. Hier werden die Regeln erst aus den Trainingsdaten abgeleitet. Unüberwachtes Lernen identifiziert verborgene Strukturen und kann mit den daraus abgeleiteten Regeln Vorhersagen treffen. Für das Beispiel des Iris-Datensatzes bedeutet dies, aus den gefundenen Centroiden ableiten zu können, zu welcher Art neu vermessene Exemplare gehören (und evtl. anhand der neuen Daten das Modell sukzessive zu verbessern). \autocite[vergl.][460ff]{Coates.2012, DavidMacKay.2003, Hastie.2001}
+
+\subsection{Vektorquantifizierung/Computergrafik}
+Ihren Ursprung haben Partitionierungsverfahren und \Fachbegriff{k-Means} in der Signalverarbeitung. Der Standard-Algorithmus von Lloyd wurde für diesen Anwendungsfall entwickelt \autocite{Lloyd..1982}. Die Idee ist es, Datensätze in Merkmalsvektoren zusammenzufassen, ein \Fachbegriff{Vektorquantifizierung} genanntes Verfahren. Das Signal wird sozusagen komprimiert, indem jeder einzelne Wert einem Cluster zugeordnet wird, also das Signal in eine endliche Menge von Subsets unterteilt, und nur dieser übertragen wird.
+Ähnliche Anwendungen sind die Farbreduktion in der Computergrafik \autocite{Mikolov.2007}, allgemein (verlustbehaftete) Komprimierungsverfahren und die Spracherkennung. Hier findet über die Merkmalsvektoren eine Zuordnung des Signals zu Phonemen statt, die über eine bestimmte Folge von Vektoren definiert werden. In der Spracherkennung wird also über Ähnlichkeit von Merkmalsvektorfolgen verglichen, um Sprache dargestellt als Signalkurve zu interpretieren \autocite[][10f]{Jelinek.2001}.
+
+\section{Ansätze Partitionierung}
+
+\subsection{k-Means}
+
+\subsubsection{Konzept}
+Gegeben sind $n$ Datenpunkte in $\mathbb{R}^{d}$ und $k$ aus $\mathbb{N}$ als Zahl der Cluster. Es soll eine Partition $S=(S_1,\cdots,S_k)$ der gegebenen Punkte in disjunkte, nicht-leere Sets konstruiert werden und korrespondierende Center $C=(c_1,\cdots,c_k)$ gewählt werden, so dass folgende Formel minimiert wird \autocite{Arthur.}: 
+\begin{equation}
+\sum_{i=1}^{k} \sum_{x \in S_{i}} d(x,c_{i})^{2}
+\end{equation}
+In \Fachbegriff{k-Means}, zuerst von \autocite{MacQueen.1967} verwendet, werden also Centroide von Voronoi-Zellen so gewählt, dass die Varianz $d(x,c_{i}^{2})=||x_{j} - c_{i}||^{2}$ oder quadratische euklidische Distanz, von \textcite{Lloyd..1982} \glqq noise power \grqq (quadratischer Fehler) genannt, für alle Datenpunkte $x_{j}$ summiert minimiert wird. Datenpunkte sind dem nächsten Centroid zugeordnet. Diejenigen, die einem gleichen Cluster zugeordnet sind, haben ähnliche Merkmale und diejenigen, die verschiedenen Clustern zugeordnet sind, unterscheiden sich stärker. In der Sprache der Vektorquantifizierung, in der \Fachbegriff{k-Means} ursprünglich entwickelt worden ist, kann man es folgendermaßen formulieren: Der Prototypvektor soll die zugehörigen Vektoren möglichst genau approximieren.
+
+\begin{figure}
+	\centering
+	\includegraphics[width=0.75\textwidth]{kmeans_iter.png}
+	\caption{Konvergierender Algorithmus von Lloyd}
+	\label{img:kmeans_iter}
+\end{figure}
+
+Die Problemstellung ist allerdings NP-schwer \autocite{Mahajan.2009}. Deswegen wurden verschiedene heuristische Algorithmen entwickelt, um die oben genannte Gleichung zu minimieren. Die Algorithmen unterscheiden sich in Datenstruktur, Dichtefunktion, Initialisierung der Centroide und mathematischem Modell. Am bekanntesten ist der Algorithmus von \textcite{Lloyd..1982}, zuerst wurde der Begriff \Fachbegriff{k-Means} von \textcite{MacQueen.1967} verwendet. 
+
+\subsubsection{Standard-Algorithmus von Lloyd}
+
+\begin{figure}
+	\centering
+	\includegraphics[width=0.75\textwidth]{suboptimal.png}
+	\caption{Lokales Optimum Algorithmus von Lloyd}
+	\label{img:suboptimal}
+\end{figure}
+
+Nach einer initialen Bestimmung von Centroiden $c_1,\cdots,c_k$ iteriert der Algorithmus zwischen zwei Schritten, nämlich erstens der Zuweisung aller Datenpunkte zu jeweils dem Centroiden mit der geringsten quadratischen euklidischen Distanz (Zuweisungsschritt) und zweitens der Berechnung neuer Centroide (Updateschritt). Abbruchbedingung ist, wenn sich die Berechnung neuer Centroide nicht mehr ändert.
+Der Algorithmus wird initialisiert, indem jeder Datenpunkt einem zufälligen Cluster zugeordnet wird. Nach der Initialisierung erfolgt direkt der Updateschritt. Diese Initialisierungsmethode wird Zufallspartitionierung genannt.
+Der Zuweisungsschritt partitioniert die Datenpunkte anhand des Voronoi-Diagramme der Centroide, weist also jeden Datenpunkt dem Centroiden zu, zu dem er die geringste quadratische euklidische Distanz hat:
+\begin{equation}
+S_{i}^{(t)} = \lbrace x_{j} : || x_{j} - c_{i}^{(t)}||^{2} ~ \leq ~ || x_{j} - c_{i^{*}}^{(t)}||^{2} \quad \forall i^{*} = 1,{...},k\rbrace\rbrace
+\end{equation}
+
+Updateschritt:
+\begin{equation}
+c_{i}^{(t)}= \frac{1}{|S_{i}^{(t)}|} ~ \sum_{x_{j}~\in~S_{i}^{(t)}} x_{j}
+\end{equation}
+
+Dieser Algorithmus funktioniert, wenn er konvergiert, d.\,h. wenn sich nach einer endlichen Zahl von Iterationen die Portionierung, also die im Updateschritt bestimmten Centroide, nicht mehr ändern und in jedem Iterations-Durchlauf der quadratische Fehler sinkt oder sich nicht ändert (siehe \autoref{img:kmeans_iter}). Dies wird im Folgenden bewiesen. Damit ist allerdings noch nicht sichergestellt, dass auch das globale Optimum gefunden wird, was auch nicht zwingend der Fall ist (siehe \autoref{img:suboptimal}). \autocite[][131ff]{Lloyd..1982}
+
+Beim Beweis orientiere ich mich an \textcite{ChristianSchulz.2015} \autocite[vgl. auch][1282ff]{Tang.2011}.
+
+Folgende Kostenfunktion muss minimiert werden, also muss sie monoton fallend sein:
+
+\begin{equation}
+cost(S_1, \cdots, S_k, c_1, \cdots, c_k) = \sum_{i=1}^{k} \sum_{x \in S_{i}} d(x,c_{i})^{2}
+\end{equation}
+
+Also muss gezeigt werden:
+
+\begin{equation}
+cost(S_1^{(t+1)}, \cdots, S_k^{(t+1)}, c_1^{(t+1)}, \cdots, c_k^{(t+1)}) \leq cost(S_1^{(t)}, \cdots, S_k^{(t)}, c_1^{(t)}, \cdots, c_k^{(t)})
+\end{equation}
+
+Da im ersten Schritt der Iteration die Datenpunkte jeweils dem nächsten Centroiden zugeordnet werden, gilt:
+
+\begin{equation}
+cost(S_1^{(t+1)}, \cdots, S_k^{(t+1)}, c_1^{(t)}, \cdots, c_k^{(t)}) \leq cost(S_1^{(t)}, \cdots, S_k^{(t)}, c_1^{(t)}, \cdots, c_k^{(t)})
+\end{equation}
+
+In einem zweiten Schritt wird jedes Cluster um ein neu berechneten Centroid konstruiert: 
+
+\begin{equation}
+cost(S_1^{(t+1)}, \cdots, S_k^{(t+1)}, c_1^{(t+1)}, \cdots, c_k^{(t+1)}) \leq cost(S_1^{(t+1)}, \cdots, S_k^{(t+1)}, c_1^{(t)}, \cdots, c_k^{(t)})
+\end{equation}
+
+Diese Ungleichung gilt, wenn das arithmetische Mittel, also der Updateschritt, die Kostenfunktion eines Clusters $S$ mit dem Centroiden $c$ minimiert wird:
+
+\begin{equation}
+\frac{\partial}{\partial m_i} cost(S, c) = -2 \sum_{x \in S} (x_i - c_i) = 0
+\Leftrightarrow \sum_{x \in S} (x_i) - |S| c_i = 0
+\Leftrightarrow c_i = \frac{1}{|S|} \sum_{x \in S} (x_i)
+\end{equation}
+
+Also löst der Algorithmus das Minimierungsproblem. Er konvergiert also und findet ein, wenn auch evtl. lokales Minimum und zwar in endlich vielen Iterationen, da es endlich viele Möglichkeiten gibt, Centroide zu wählen.
+
+\begin{minipage}{\linewidth}
+\begin{lstlisting}[caption={Load Dataset und Loyd Algorithmus}, label=list:lloyd] 
+data(iris)
+icluster <- kmeans(iris[, 1:2], centers=3, iter.max = 10, nstart = 20, algorithm = "Lloyd")
+iris$cluster <- factor(icluster$cluster)
+centers <- as.data.frame(icluster$centers)
+ggplot(data = iris, aes(x = Sepal.Length, y = Sepal.Width)) 
+\end{lstlisting}
+\end{minipage}
+
+\subsubsection{Variation: Hartigan-Wong}
+\label{sec:hartigan}
+Neben dem Ansatz von Lloyd gibt es diverse weitere Algorithmen, die meist weniger häufig eingesetzt werden. Exemplarisch greife ich den Ansatz von \textcite{Hartigan.1979} heraus und umreiße ihn kurz, da dieser häufig eingesetzt wird und bessere Ergebnisse produziert als der Algorithmus von Lloyd \autocite{Slonim.2013}. Darüber hinaus existieren diverse Verbesserungen der Implementierungen, die meist aber nur eine Auswirkung auf das Laufzeitverhalten haben, aber gleiche Ergebnisse produzieren \autocite[z.\,B.][]{ERICWENGROWSKI.2014, Hamerly.04292010, Elkan.2003}.
+
+\begin{itemize}
+\item Algorithmus von \Fachbegriff{Hartigan-Wong}
+\begin{itemize}
+\item Init
+\begin{itemize}
+\item Zufallsauswahl oder siehe Kapitel \ref{sec:start}.
+\item Berechne nächsten und zweitnächsten Centroiden.
+\item Alle Cluster Live-Cluster.
+\end{itemize}
+\item Optimal Transfer
+\begin{itemize}
+\item Wenn im letzten Quick Transfer Cluster updatet, dann Live-Cluster 
+\item Wenn Objekt in Live-Cluster, dann Neuzuweisung, wenn $\underset{min}{R_{neu}} < R_{alt}$.
+\item Wenn Objekt nicht in Live-Cluster, dann $\underset{min}{R_{neu}}$ nur über Live-Cluster.
+\begin{equation}
+\begin{split}
+\underset{min}{R_{neu}} = \frac{C(L) d(x_i,L)^2}{C(L) + 1}; \quad C:= \text{Obj. in Cluster}, L:=\text{Cl. ohne bisheriges} \\\
+R_{alt}= \frac{C(L) d(x_i,L)^2}{C(L) - 1}; \quad C:= \text{Obj. in Cluster}, L:=\text{bisheriges Cl.}
+\end{split}
+\end{equation}
+\item Abbruch, wenn keine Live-Cluster vorhanden.
+\end{itemize}
+\item Quick Transfer
+\begin{itemize}
+\item Berechne für jeden Punkt nächsten und zweitnächster Centroiden.
+\item Berechne R für nächsten und zweitnächsten Centroiden.
+\item Tausche Cluster, wenn $R_n < R_{2.n}$.
+\item Wenn kein Transfer, gehe zu Optimal Transfer, sonst zu Quick Transfer.
+\end{itemize}
+\end{itemize}
+\end{itemize}
+
+Der Algorithmus von \textcite{Hartigan.1979} ist aufwändiger in der Berechnung als die Heuristik von Lloyd, findet aber deutlich besser ein globales Optimum \autocite{Slonim.2013}. 
+
+\subsubsection{Auswahl der Startpunkte: Zufallsauswahl, zufällige Partitionierung und k-Means++}
+\label{sec:start}
+Unter den Standardalgorithmen gibt es zwei Gruppen von Verfahren zur Initialisierung: Die Auswahl von zufälligen Centroiden (siehe \autoref{img:kmeanspp}: rot), im Spezialfall die ersten $k$ Elemente des Datensatzes, und die zufällige Partitionierung, die jedem Datenpunkt einen zufälligen Cluster zuweisen, aus denen dann in einem ersten Updateschritt die Centroide berechnet werden. Das Verfahren der zufälligen Partitionierung führt i.\,A. dazu, dass sich die initialen Centroide nah beieinander in der Mitte der Daten befinden (siehe \autoref{img:kmeanspp}: gelb). \textcite[][103]{Hartigan.1979} schlagen darüber hinaus ein Verfahren vor, welches Centroide so wählt, dass die gleiche Verteilung der Initialisierungs-Centroide bzgl. ihres Abstandes zum Mittelwert der Gesamtdaten sichergestellt ist. 
+
+\begin{lstlisting}[caption={Funktion Initialisierung Zufallpartitionierung in R}, label=list:random]
+random_init <- function (x, k) {
+  n <- nrow(x)
+  cluster <- numeric(n)
+  pr <- rep(1, k)
+  x$cluster <- sample.int(k,size=n, replace=TRUE, prob=pr)
+  centers <- list()
+  for (i in 1:k) {
+    sum_k <- 1/nrow(x[x[,3]==i,])
+    centers[[i]] <- sum_k*colSums(x[x[,3]==i,1:2])
+  }
+  return(do.call(rbind,centers))
+}
+\end{lstlisting}
+
+Der Initialisierungsschritt ist wichtig sowohl für das Ergebnis, da bei einer ungünstigen Wahl lediglich lokale Optima gefunden werden können, als auch für die Komplexität, die proportional abhängig ist von der Anzahl der Iterationen. Bei einer günstigen Initialisierung konvergieren die Centroide mit weniger Iterationen. 
+
+Während die Standard-Initialisierungsverfahren zufällige Initialisierungs-Centroide wählen, versucht \Fachbegriff{k-Means++} (siehe \autoref{img:kmeanspp}: blau) eine systematische Auswahl. Ziel des Algorithmus ist es, die initialen Centroide zu spreizen, einerseits, um die Chance zu verringern, dass lediglich ein lokales Maximum gefunden wird und andererseits, um die Anzahl der Iterationen zu verringern. \textcite{Arthur.2007} beweisen, dass dieser Algorithmus sowohl in Bezug auf Geschwindigkeit als auch in Bezug auf Genauigkeit dem Standard-Algorithmus überlegen ist. Die Grundidee ist, dass für Datenpunkte die Wahrscheinlichkeit als weiterer Centroid gewählt zu werden mit dem Abstand zu den bereits gewählten Centroiden wächst. 
+
+\begin{itemize}
+\item Wähle zufällig einen Centroiden $c_1$ aus $X$. 
+\item Wähle einen weiteren Centroiden $c_i \in X$ mit der Wahrscheinlichkeit $\frac{D(x)^2}{\sum_{x \in X} {D(x)^2}}$; $D(x)$ ist die kürzeste Entfernung eines Datenpunktes zu dem nächsten bereits gewählten Centroiden.
+\item Der vorherige Schritt wird so lange wiederholt, bis alle $k$ Centroiden gewählt worden sind.
+\end{itemize}
+
+\begin{minipage}{\linewidth}
+\begin{lstlisting}[caption={Initialisierung k-Means++ in R}, label=list:kmeansp2] 
+kmeansp2_init <- function(x, k) {
+  n <- nrow(x)
+  centers <- numeric(k)
+  distances <- matrix(numeric(n * (k - 1)), ncol = k - 1)
+  pr <- rep(1, n)
+  centers[1] <- sample.int(n, 1, prob = pr)
+  for (i in 1:(k-1)) {
+    distances[, i] <- (pointDistance(x, x[centers[i],],lonlat=FALSE))^2
+    sumdist <- sum(apply(distances[, 1:k-1],1,max))
+    pr <- (apply(distances[, 1:k-1],1,max)/sumdist)
+    centers[i+1] <- sample.int(n, 1, prob = pr)}
+  return(centers)}
+\end{lstlisting}
+\end{minipage}
+
+\begin{figure}
+	\centering
+	\includegraphics[width=0.75\textwidth]{kmeanspp.png}
+	\caption{Verschiedene Initialisierungs-Centroide (gelb: Zufallspartionierung, rot: Zufallscentroid, blau: k-Means++)}
+	\label{img:kmeanspp}
+\end{figure}
+
+\subsection{k-Medoids}
+\Fachbegriff {K-Means} ist empfindlich gegenüber Ausreißern, und die Centroide sind im Allgemeinen keine Datenpunkte, sondern beliebige Punkte. \Fachbegriff {K-Medoids} verhält sich deutlich besser gegenüber Ausreißern, da die Summe von paarweisen Verschiedenheiten minimiert wird und nicht der quadratische Fehler. Partitioniert wird um \Fachbegriff {Medoids} -- als diese werden diejenigen Punkte eines Datensatzes bezeichnet, deren durchschnittliche Unterschiedlichkeit zu den anderen Punkten eines Clusters am geringsten ist. Dem folgt, dass sie im Gegensatz zu den Centroiden Elemente des Datensatzes sind. Die Grundidee dieses Ansatzes ist es, die durchschnittliche Unterschiedlichkeit über eine gegebene Anzahl von Medoiden zu minimieren. Maß für die Unterschiedlichkeit sind für \Fachbegriff {k-Medoids} nicht die Varianzen, sondern Distanzen. Der Algorithmus kann also direkt mit unterschiedlichen Distanzfunktionen verwenden werden. \autocite{Kaufman.2009}
+
+Ich nutze hier allerdings wegen der Vergleichbarkeit auch die euklidische Distanz. 
+
+\begin{equation}
+d_{ij} = \sqrt{\sum_{a=1}^p (X_{ia}-X_{ja})^2}, \quad i=1,\cdots,n; j=1,\cdots,n
+\end{equation}
+
+In \Fachbegriff{R} wird der \Fachbegriff {k-Medoids}-Funktion direkt eine Distanzmatrix übergeben (siehe \autoref{list:kmeadoids}).
+
+\begin{minipage}{\linewidth}
+\begin{lstlisting}[caption={\Fachbegriff{K-Medoids} in \Fachbegriff{R}}, label=list:kmeadoids]
+dist <- daisy(iris[, 3:4], metric = "euclidean")
+iclusterPam <- pam(dist, diss = TRUE, k = 3)
+\end{lstlisting}
+\end{minipage}
+
+Ein erster Algorithmus wurde als \Fachbegriff {PAM} (Partitioning around Medoids) von \textcite{Kaufman.2009} vorgeschlagen, den ich hier skizziere. Inzwischen existieren einige heuristische Erweiterungen, die ihn beschleunigen \autocite[z.\,B.][] {Park.2009}, die im Gegensatz zu \Fachbegriff {PAM} auch effizient sind für große Datensätze \autocite[vgl. auch CLARA][]{Kaufman.2009}. Allerdings garantiert auch der hier skizzierte Algorithmus kein globales Minimum.
+
+Der \Fachbegriff {PAM}-Algorithmus besteht aus zwei Phasen, \Fachbegriff {Build} als Initialisierungsschritt und \Fachbegriff {Swap} als Optimierungsschritt, welcher iteriert, bis der Algorithmus konvergiert, und damit versucht, die initial gefunden Partitionierung zu verbessern. Häufig wird in der Beschreibung des Algorithmus eine zufällige Auswahl aller Initialisierungs-Medoide genannt, was sich aber nicht mit dem ursprünglich beschriebenen Algorithmus deckt.
+
+In der Beschreibung verwende ich 2 Mengen: $S$ ist Menge aller als Medoid ausgewählter Objekte, $U$ bezeichnet alle nicht gewählten Objekte, also $U=O_{gesamt} - S$. Darüber hinaus werden für jedes Objekt $p$ zwei Unterschiedlichkeitsmaße vorgehalten: $D_p$ ist die Unterschiedlichkeit zum nächsten Punkt in $S$, $E_p$ die zum zweitnächsten.
+
+\begin{itemize}
+\item BUILD
+\begin{itemize}
+\item Init $S$ mit Medoid $O_{gesamt}$.
+\item Zufallsobjekt $i \in U$ als Kandidat für $S$. 
+\item Berechne $D_j$ für ein $j \in U \setminus \lbrace i \rbrace$.
+\item Wenn $D_j > d(i,j)$, dann trägt $j$ zur Entscheidung $i$ zu wählen bei. $C_{ji} = max \lbrace D_j - d(j,i), 0\rbrace$.
+\item Berechne Gesamtgewinn, welcher durch das Zufügen von $i$ nach $S$ entstünde: $g_i = \sum_{j \in U} C_{ji}$.
+\item Wähle $i \mid \underset{i}{maximize}~g_i$. $S = S \cup {i}$ und $U = U \setminus \lbrace i \rbrace$.
+\item Iteriere, bis alle $k$ gefunden.
+\end{itemize}
+\end{itemize}
+
+\begin{minipage}{\linewidth}
+\begin{itemize}
+\item SWAP
+\begin{itemize}
+\item Betrachte alle Paare $(imh)\in S \times U$.
+\item Berechne den Anteil $K_{jih}$ am \Fachbegriff{Swap} für jedes $j \in U \setminus \lbrace h \rbrace$ 
+\begin{itemize}
+\item $d(j,h) > D_j \Rightarrow K_{jih} min \lbrace d(j,h) - D_j, 0 \rbrace$.
+\item $d(j,h) = D_j \Rightarrow K_{jih} min \lbrace d(j,h), E_j \rbrace -D_j$.
+\end{itemize}
+\item Berechne Gesamtresultat des Swaps $T_{ih} \sum_j \lbrace K_{jih}~|~j \in U \rbrace$.
+\item Wähle Paar $(i,h) \in S \times U: minimize~T_{ih}$ 
+\item Wenn $T_{ih} < 0$, führe den \Fachbegriff{Swap} aus. $D_p$ und $E_p$ wird für jedes Objekt $p$ aktualisiert und neue Iteration. Wenn $T_{ih} > 0$, terminiere Algorithmus.
+\end{itemize}
+\end{itemize}
+\end{minipage}
+
+%\begin{equation}
+%v_{j} = \sum_{i=1}^n \frac{d_{ij}}{\sum_{l=1}^n d_{il}}, \quad j=1,\cdots,n
+%\end{equation}
+
+\begin{figure}
+	\centering
+	\includegraphics[width=0.75\textwidth]{kmedoids.png}
+	\caption{\Fachbegriff{K-Medoids} des Iris-Datensatz}
+	\label{img:kmedoids}
+\end{figure}
+ 
+
+\subsection{Weiches Clustering: Fuzzy C-Means}
+\label{sec:weich}
+Partitioniert man den \Fachbegriff{Iris}-Datensatz nach Kelchblättern, fällt auf, dass sich 2 Arten in diesem Merkmal überschneiden. Hier erscheint es als eine sinnvolle Überlegung, die Objekte nicht fest einem Cluster zuzuordnen, sondern nur über eine Kennzahl den Grad der Zugehörigkeit zu bestimmen, um Objekte, die an der Grenze zwischen zwei Clustern liegen, besonders behandeln zu können. Auch für andere Fragestellungen kann es hilfreich sein, wenn Objekte einerseits mehreren Clustern zugeordnet sein können und wenn man andererseits in der Qualität der Zuordnung unterscheiden kann. Solch ein Clustering bezeichnet man als weich.
+
+Ein solcher Ansatz ist \Fachbegriff{fuzzy C-Means}, welcher ursprünglich von \textcite{Bezdek.1981, Bezdek.1973} entwickelt worden ist. In meiner Darstellung orientiere ich mich vor allem an der Implementierung im \Fachbegriff{R}-Paket \Fachbegriff{ppclust} \autocite{ZeynelCebeci.20190101}. Die \Fachbegriff{Fuzzy-Zahl}, die die Stärke der Bindung an ein Cluster angibt, kann Werte aus $[0\cdots1]$ annehmen und summiert sich für alle Cluster auf 1.
+
+\begin{minipage}{\linewidth}
+\begin{lstlisting}[caption={\Fachbegriff{Fuzzy C-Means} in \Fachbegriff{R}}, label=list:fuzzycmeans]
+icluster <- fcm(x=iris[,1:2], m=2, centers=3)
+\end{lstlisting}
+\end{minipage}
+
+\Fachbegriff{Fuzzy C-Means} ist ein Derivat von \Fachbegriff{k-Means}. Auch hier soll eine Lösung gefunden werden, die die Summe der Varianzen für $k$ Centroide minimiert, nur um einen Faktor, die \Fachbegriff{fuzzy Zahl}, ergänzt. $m$ ist der \Fachbegriff{fuzzifier} und beschreibt die Weichheit. 1 ergäbe harte Cluster und der Algorithmus hätte das gleiche Ergebnis wie \Fachbegriff{k-Means}.
+
+\begin{equation}
+cost_{FCM} (X;V;U) = \sum_{i=1}^n u_{ij}^m d^2 (\vec{x_i},\vec{v_i}) 
+\end{equation}
+
+Für die \Fachbegriff{Fuzzy-Zahl} gilt:
+
+\begin{equation}
+u_{ij} = \frac{1}{\sum_{i=1}^{k} (\frac{d^2 (\vec{x_i},\vec{v_j}}{d^2 (\vec{x_i},\vec{v_l}})^{\frac{1}{m-1}}}; 1 \leq i \leq n, 1 \leq l \leq k 
+\end{equation}
+
+\begin{equation}
+\vec{v_j} = \frac{\sum_{i=1}^n u_{ij}^m \vec{x_i}}{\sum_{i=1}^n u_{ij}^m}; 1 \leq j \leq k 
+\end{equation}
+
+\begin{figure}
+	\centering
+	\includegraphics[width=0.75\textwidth]{fuzzy_means.png}
+	\caption{\Fachbegriff{Fuzzy C-Means}, aller drei Cluster je mit Fuzzy-Zahl und Voronoi-Zellen}
+	\label{img:fuzzymeans}
+\end{figure}
+
+\autoref{img:fuzzymeans} zeigt den Algorithmus am Beispiel der Kelchblätter des \Fachbegriff{Iris}-Datensatzes. Eine sinnvolle Trennung der Arten ist mit dem Algorithmus nicht möglich. Nur bei einer Überlappung im Randbereich der Cluster wäre \Fachbegriff{fuzzy C-Means} hilfreich.
+
+\subsection{Bestimmung der Clusterzahl: Silhouettenkoeffizienten}
+
+Partitionierungsverfahren als unüberwachte Verfahren haben i.\,A. zwei Probleme. Einerseits muss die Anzahl der Cluster $k$ vorher bekannt sein, was häufig schwer möglich ist und genaue Kenntnisse über die Daten verlangt. Andererseits ist die Qualität des Ergebnisses abhängig von der Initialisierung, die meist zufällig ist. Hier ist beispielsweise in \Fachbegriff{R} in den meisten Partionierungsalgorithmen vorgesehen, diese mehrfach auszuführen und das beste Ergebnis auszuwählen.\footnote{Parameter \Fachbegriff{nstarts} in \Fachbegriff{kmeans}}. Ein häufig verwendetes Bewertungsverfahren für die Clusterqualität ist der \Fachbegriff{Silhouettenkoeffizient}, welcher im Folgenden vorgestellt wird \autocite[][83 ff]{Kaufman.2009}. Er bewertet die Zuordnung zu Clustern und kann zwischen -1 und 1 liegen. Ein Wert von 0 bedeutet hier, dass ein Objekt genau zwischen zwei Clustern liegt, ein Wert nahe 1 eine starke Zuordnung zu seinem Cluster und ein negativer Wert, dass das Objekt stärker zu einem anderen Cluster gehört als zu seinem zugewiesenen, also einem falschen Cluster zugeordnet worden ist.
+
+Zuerst wird für alle Objekte die durchschnittliche Unterschiedlichkeit zum eigenen Clustermittelpunkt berechnet:
+\begin{equation}
+dist(A,o) = \frac{1}{n_A} \sum_{a~\in~A} dist(a,o)
+\end{equation}
+
+In einem zweiten Schritt die durchschnittliche Unterschiedlichkeit zum zweit-nächsten Clustermittelpunkt: 
+\begin{equation}
+dist(B,o) = \underset{C\neq A}{min} ~ \frac{1}{n_C} \sum_{c~\in~C} dist(c,o)
+\end{equation}
+
+Die \Fachbegriff{Silhouette} eines Objekts bestimmt sich jetzt folgendermaßen:
+\begin{equation}
+S_{o} = \left\{
+\begin{array}{lr}
+0 & : dist(A,o) = dist(B,o)\\
+\frac{dist(B,o) - dist(A,o)}{max\lbrace dist(A,o),dist(B,o)\rbrace} & :\text{sonst}
+\end{array}
+\right.
+\end{equation}
+
+Der \Fachbegriff{Silhouettenkoeffizient} eines Clusters bestimmt sich durch seine \Fachbegriff{Silhouetten}. Analog berechnet sich der entsprechende Wert für das gesamte Clustering.
+\begin{equation}
+S_{C} = \frac{1}{n_{C}} ~ \sum_{o~\in~C} s(o)
+\end{equation}
+
+\begin{lstlisting}[caption={\Fachbegriff{Silhouettekoeffizient} in \Fachbegriff{R}}, label=list:silhouette]
+fviz_nbclust(iris, kmeans, method = "silhouette") #Plot optimale Cluster
+silhouette(icluster$cluster, dist(iris)) #Berechnung
+fviz_silhouette(sil) #grafische Darstellung
+\end{lstlisting}
+
+\autoref{img:silhouette} zeigt die Silhouettenkoeffizienten für $k=2, \cdots, 4$ für alle Objekte und Cluster im Detail sowie den Verlauf des durchschnittlichen Silhouettenkoeffizienten für $k=1,\cdots,10$ für ein \Fachbegriff{k-Means}-Clustering. Auch wenn drei Arten von \Fachbegriff{Iris} vorhanden sind, ist die optimale Clusteranzahl 2. Allerdings sind auch bei $k=3$, anders als bei $k=4$, die Cluster deutlich getrennt (Objekte zwischen beiden Clustern sind beiden Clustern ungefähr gleich zugeordnet und nicht auch stark dem anderen Cluster zugeordnet) und es treten noch keine falsch zugeordnete Objekte auf.
+  
+\begin{figure}
+	\centering
+	\includegraphics[width=0.75\textwidth]{silhouette.png}
+	\caption{\Fachbegriff{Silhouettenkoeffizient} im Verlauf und detaliert für $k=2:4$}
+	\label{img:silhouette}
+\end{figure}
+
+\subsection{Diskussion / Zusammenfassung}
+
+
+\subsubsection{Voraussetzungen}
+Zum Abschluss ist es sinnvoll zu rekapitulieren, was die Voraussetzungen dafür sind, mit \Fachbegriff{k-Means} bzw. allgemein mit der Gruppe der hier vorgestellten Partitionierungsverfahren sinnvolle Clustering-Ergebnisse produzieren zu können.
+
+\begin{figure}
+	\centering
+	\includegraphics[width=0.75\textwidth]{kmeans_vert.png}
+	\caption{Algorithmus von Lloyd, verschiedene Verteilungen}
+	\label{img:kmeans_vert}
+\end{figure}
+
+Zuallererst arbeiten die hier vorgestellten Verfahren mit Distanzen. Also müssen für die betrachteten Merkmale sinnvoll Distanzen berechnet werden können. Die meisten Metriken sind nur für numerische Merkmale einsetzbar. \Fachbegriff{K-Medoids} z.\,B. arbeitet aber genauer mit der Unterschiedlichkeit von Merkmalen -- hier kann beispielsweise auch die \Fachbegriff{gower}-Distanz eingesetzt werden, mit der auch Unterschiedlichkeiten zwischen ordinal-, binär- und Intervall-skalierten Merkmalen betrachtet werden können.
+ 
+Um die Qualität der Ergebnisse zu verbessern, müssen die Daten aufbereitet werden. Alle Verfahren können nicht mit \Fachbegriff{missing values} umgehen. Hier ist es also sinnvoll, die entsprechenden Objekte entweder zu entfernen oder zu interpolieren. In vielen Datensätzen treten Objekte auf, \Fachbegriff{Noise} genannt, die entweder fehlerhaft sind oder aus anderen Gründen nicht der allgemeinen Datenverteilung entsprechen, wie z.\,B. Ausreißer. Da in den hier besprochenen Verfahren alle Datenpunkte berücksichtigt werden, also keine automatische Entfernung der Störungen stattfindet, ist es sinnvoll, dies als vorbereitenden Schritt zu machen. Eine Möglichkeit ist es, sie über dichtebasierte Verfahren zu entfernen. Des Weiteren kann eine Normierung der Daten sinnvoll sein, wenn sich in verschiedenen Dimensionen die abgebildeten Intervalle deutlich unterscheiden, da die verschiedenen Merkmalsdimensionen sonst mit einer unterschiedlichen Gewichtung in die Distanzfunktion eingehen \autocite{Coates.2012}.
+
+
+\begin{table}
+\centering
+\begin{tabular}{|c|l|}
+  \hline 
+  a & 2 \Fachbegriff{Gauss}-Verteilungen gleicher Größe, Varianz und mit keiner Kovarianz \\ 
+  \hline 
+  b & 2 \Fachbegriff{Gauss}-Verteilungen mit unterschiedlichen Mittelwerten und Größen \\ 
+  \hline 
+  c & 2 \Fachbegriff{Gauss}-Verteilungen mit unterschiedlichen Mittelwerten und Varianzen \\ 
+  \hline 
+  d & 2 \Fachbegriff{Gauss}-Verteilungen mit unterschiedlichen Mittelwerten u. Kovarianzen $>$ 0 \\ 
+  \hline 
+  e & 2 \Fachbegriff{Gauss}-Verteil. mit unterschiedl.  Mittelwerten, Größen u. Kovarianzen $>$ 0 \\ 
+  \hline 
+  f & nicht konvex, Von \Fachbegriff{Mises-Fisher}-Verteilung \\ 
+  \hline 
+  g & nicht konvex, Spirale \\ 
+  \hline 
+  h & Mix gleichförmiger Daten \\ 
+  \hline 
+  i & keine Cluster \\ 
+  \hline
+\end{tabular}   
+  \caption{verschiedene Verteilungen}
+  \label{tab:gauss}
+\end{table}
+
+Jetzt stellt sich noch die Frage, welche Eigenschaften die aufbereiteten Daten haben müssen, damit partitionierende Verfahren sinnvoll Cluster erkennen können. Bevor ich ein mathematisches Modell vorschlage, dem die Verteilung der Daten gehorchen muss, um Daten in der hier vorgeschlagenen Form zu partitionieren, beginne ich mit einer Veranschaulichung des Problems. \autoref{img:kmeans_vert} zeigt verschiedene Verteilungen, die teils Ergebnisse liefern, die der Erwartung entsprechen, teils nicht \autocite[Datengenerierung in R:][]{StanislasMorbieu.2018}. Offensichtlich ist, dass eine Partitionierung gar nicht funktioniert bei Datensätzen, deren Cluster stark von einer runden Form abweichen (c) und insbesondere bei ringförmigen Clustern, die im Zentrum Löcher haben (f, g). Sehr gut klappt eine Partitionierung bei sphärischen Clustern mit einer ähnlichen Struktur (a). \autocite[vgl.][]{Robinson.2015}
+
+\autoref{tab:gauss} stellt die Eigenschaften der verschiedenen Verteilungen zusammen. a-e sind Mischverteilungen aus 2 normalverteilten Datensätzen, \Fachbegriff{gaussian mixture models} genannt, f sowie g 2 nicht konvexe Cluster und h sowie i gleichverteilte Daten.  Es folgt also für die Voraussetzungen von Partitionierungsverfahren an die Verteilung der Daten \autocite[vgl.][]{Rosenberg.2015}:
+\begin{itemize}
+\item Cluster müssen eine möglichst konvexe Form haben.
+\item Daten sollten einem \Fachbegriff{gaussian mixture model} gehorchen mit den Eigenschaften: gleiche Varianzen, Komponenten haben gleiche Kovarianz-Matrix, Kovarianz ist Null, gleiche Proportionen.
+\end{itemize}
+
+In \ref{sec:weich} habe ich bereits gezeigt, dass Partitionierungsalgorithmen nicht in der Lage sind, Cluster zu erkennen, die sich überlappen.
+
+\subsubsection{Probleme}
+Über seine Voraussetzungen hinaus haben Partitionierungsverfahren einige Nachteile, die ich hier noch einmal zusammenfasse:
+\begin{itemize}
+\item Die Anzahl der Cluster muss gewählt werden, auch wenn Verfahren existieren, unterschiedliche Clusterzahlen zu bewerten.
+\item Die Algorithmen sind stark abhängig von der initialen Zerlegung sowohl im Bezug auf Laufzeit (Zahl der notwendigen Iterationen bis zur Konvergenz)und auch bzgl. der Qualität des Ergebnisses (lokales Optimum).
+\item Die Algorithmen garantieren nicht, ein globales Optimum zu finden.
+\item Dem folgt, dass nicht zwingend jeder Lauf eines Partitionierungsalgorithmus bei gleichen Daten und Parametern ein identisches Ergebnis liefert. 
+\item Nicht in jeder Datenstruktur werden gleich gut sinnvolle Cluster gefunden. Allgemein sind die Algorithmen, wenn auch in unterschiedlichem Maße, anfällig für Rauschen und Ausreißer.
+\end{itemize}
+
+\subsubsection{Bewertung Ansätze/Algorithmen}
+Zum Abschluss fasse ich die Gemeinsamkeiten und Unterschiede der verschiedenen Verfahren und Algorithmen zusammen, beginnend mit einer Übersicht der Partitionierungsqualität anhand des \Fachbegriff{Silhouettenkoeffizienten} (siehe \autoref{tab:sil}). Angewandt auf den Beispieldatensatz fällt auf, dass sich alle \Fachbegriff{k-Means}-Derivate bzgl. des Ergebnisses nicht unterscheiden. Dies muss allerdings nicht in jedem Fall so sein, da  kein Algorithmus zwingend ein globales Optimum findet. Das Ergebnis kann von der Initialisierung abhängig sein. Leicht bessere Ergebnisse liefert allerdings \Fachbegriff{k-Medoids} und laut Literatur auch der Algorithmus von Hartigan-Wong (siehe \autoref{sec:hartigan}) -- dies ist hier nur nicht an den Daten erkennbar, da automatisch das beste Ergebnis mehrerer Durchläufe gewählt wurde, um nicht rein zufällige, schlechte Ergebnisse zu vergleichen. \autocite[vgl. auch][]{Saket.2016}
+
+\begin{table}
+\centering
+\begin{tabular}{|c|c|c|c|c|}
+\hline 
+Algorithmus & Cluster 1 & Cluster 2 & Cluster 3 & Avg \\ 
+\hline 
+Loyd & 0.5740971 & 0.4850074 & 0.9187719 & 0.66048 \\ 
+\hline 
+MacQueens & 0.5740971 & 0.4850074 & 0.9187719 & 0.66048 \\ 
+\hline 
+Hartigan-Wong & 0.4850074 & 0.9187719 & 0.5740971 & 0.66048 \\ 
+\hline 
+k-Means++ & 0.9187719 & 0.5740971 & 0.4850074  & 0.66048 \\ 
+\hline 
+k-Medoids & 0.9202805 & 0.5490104 & 0.5103691  & 0.6614323 \\ 
+\hline 
+\end{tabular}
+  \caption{Silhouetten-Koeffizienten verschiedener Algorithmen}
+  \label{tab:sil}
+\end{table}
+
+Warum also so viele Algorithmen? Wichtige Unterschiede liegen im Laufzeitverhalten, welches sehr stark von der Anzahl der Iterationen abhängt. Darüber hinaus werden üblicherweise die Partitionierungen mehrfach durchgeführt und lediglich das beste Ergebnis nicht verworfen, um nicht ein nur aufgrund einer ungünstigen Initialisierung gefundenes Ergebnis zu erhalten. Somit hat eine günstige Wahl der Initialisierungs-Clustermittelpunkte eine weitere Auswirkung auf die Laufzeit.
+
+\Fachbegriff{K-Medoids} unterscheidet sich allerdings nicht nur im  Laufzeitverhalten, sondern auch in den Anwendungsfällen und im Ergebnis von den \Fachbegriff{k-Means}-Derivaten.
+
+\begin{itemize}
+\item Die Distanzfunktion kann frei gewählt werden. Es existieren zwar auch \Fachbegriff{k-Means}-Derivate mit anderen Distanzfunktionen, die aber immer durch den entsprechenden Algorithmus vorgegeben ist.
+\item Da verschiedene Distanzfunktionen möglich sind, sind auch nicht-numerische Daten partitionierbar.
+\item Die Clusterzentren sind selbst Datenobjekte.
+\item \Fachbegriff{K-Medoids} ist weniger anfällig gegenüber Ausreißern und \Fachbegriff{Noise}.
+\item Allerdings ist die Performance von \Fachbegriff{K-Medoids} nur für kleine Datenmengen geeignet. Hier existieren jedoch neuere Algorithmen, die ein besseres Laufzeitverhalten haben.
+\end{itemize}
+
+\pagebreak 
+\printbibliography
+
+
+\end{document}
