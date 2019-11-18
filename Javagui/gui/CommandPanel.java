@@ -346,235 +346,6 @@ public class CommandPanel extends JScrollPane {
   }
 
 
-  /** finds a select clause within command
-    * the search starts at position first
-    * returns the interval of command containing the clause or
-    * null if not found one
-    */
-  private Interval findSelectClause(String command,int first){
-      int minpos=-1;
-      int maxpos=-1;
-      int length = command.length();
-      int curpos = first;
-
-      if(length-first <7){ // no chance to find a select clause ( too little characters)
-          return null;
-      }
-
-      command = command.toLowerCase();
-
-      int selectPos = command.indexOf("select",first);
-
-      if(selectPos < first) // no select contained
-         return null;
-
-      int sqlPos = command.indexOf("sql ",first);
-
-      if(selectPos==first | sqlPos==first){ // the whole command is a select clause
-          return new Interval(first,length);
-      }
-
-
-      // state 0: begin of a word
-      // state 1: within a double quoted string
-      // state 2: within a single quoted string
-      // state 3: after an open bracket
-      // states 4-9: read 'select'
-      // state 10: within a symbol 
-
-      int state = 0;
-      int noBrackets = 0;
-      int curPos = first;
-      int minPos = -1;
-      boolean selectFound = false;
-      boolean embraced = false;
-      while(curPos < length){
-        char c = command.charAt(curPos);
-        curPos++;
-        switch(state){
-           case 0 :  // search for select clause begin
-               if(c=='"'){ // begin of a double quoted string
-                  state = 1;
-               } else if(c=='\'') { // begin of a single quoted string
-                  state = 2;
-               } else if(c=='('){ // possible begin of an embraced select
-                  minPos = curPos; // minPOs directly after bracket
-                  state = 3;
-               } else if(c=='s'){
-                  embraced = false;
-                  minPos = curPos -1; // possible begin of a select
-                  state = 4;
-               } else if (isSymbolStart(c)){
-                  state = 10;
-               }
-               // by default, keep this state
-               break;
-
-           case 1: // within a double quoted string
-              if(c=='"'){
-                 if(!selectFound){
-                     state = 0;
-                 } else {
-                     state = 20; 
-                 }
-              }
-              // otherwise: do nothing
-              break;
-           case 2: // within a single quoted string
-              if(c=='\''){
-                 if(!selectFound){
-                     state = 0;
-                 } else {
-                     state = 20; 
-                 }
-              }
-              // otherwise: do nothing
-              break;
-           case 3 : // after a bracket possible  before select
-              if(c=='s'){
-                 embraced = true;
-                 state = 4;
-              } else if(c=='('){
-                 minPos = curPos;
-              } else if( isWhiteSpace(c)){
-
-              } else if(c=='"'){
-                 state = 1;
-              }  else if(c=='\''){
-                 state = 2;
-              } else if(isSymbolStart(c)){
-                 embraced = false;
-                 state = 10;
-              } else {
-                 state = 0;
-              }
-              break;
-           case 4:
-              if(c=='e'){
-                 state = 5; 
-              } else if(isSymbolElement(c)){
-                 state = 10;
-              } else if(c=='"'){
-                 state = 1;
-              }else if(c=='\''){
-                 state = 2;
-              } else {
-                 state = 0;
-              }
-              break;
-           case 5:
-              if(c=='l'){
-                 state = 6;
-              } else if(isSymbolElement(c)){
-                 state = 10;
-              } else  if(c=='"'){
-                 state = 1;
-              } else if(c=='\''){
-                 state = 2;
-              } else  {
-                 state = 0;
-              }
-              break;
-           case 6:
-              if(c=='e'){
-                 state = 7;
-              } else if(isSymbolElement(c)){
-                 state = 10;
-              } else  if(c=='"'){
-                 state = 1;
-              } else if(c=='\''){
-                state = 2;
-              } else  {
-                 state = 0;
-              }
-              break;
-           case 7:
-              if(c=='c'){
-                state = 8;
-              } else if(isSymbolElement(c)){
-                state = 10;
-              } else if(c=='"'){
-                state = 1;
-              } else if(c=='\''){
-                state = 2;
-              } else  {
-                state = 0;
-              }
-              break;
-           case 8:
-              if(c=='t'){
-                 state = 9;
-              } else if(isSymbolElement(c)){
-                 state = 10;
-              } else if(c=='"'){
-                state = 1;
-              } else if(c=='\''){
-                state = 2;
-              } else {
-                state = 0;
-              }
-              break;
-           case 9:
-              if(isWhiteSpace(c)) {
-                  selectFound = true;
-                  if(!embraced){
-                    return new Interval(minPos,length);
-                  } else { 
-                      noBrackets = 1;
-                      state = 20;
-                  }
-              } else if(isSymbolElement(c)){
-                  state = 10;
-              } else if(c=='"'){
-                  state = 1;  
-              } else if(c=='\''){
-                  state = 2;
-              } else {
-                  state = 0;
-              }
-              break;
-
-           case 10:
-              if(isSymbolElement(c)){
-                // keep this state
-              } else if(c=='"'){
-                 state = 1;
-              } else if(c=='\''){
-                 state = 2;
-              } else {
-                 state = 0;
-              }
-              break;
-           case 20: // after an enbraced select
-              if(c=='"') {
-                state = 1;
-              } else if(c=='\''){
-                state = 2;
-              } else if(c=='('){
-                noBrackets++;
-              } else if(c==')'){
-                noBrackets--;
-                if(noBrackets==0){
-                   return new Interval(minPos,curPos-1);
-                }
-              }
-        }
-      } // while
-
-      if(selectFound){
-        return new Interval(minPos,length);
-      } else {
-         return null;
-     }
-
-
-
-
-
-
-
-
-  } // findSelectClause
 
 
   /** Changes the format of error messages coming from the optimizer.
@@ -625,92 +396,73 @@ public class CommandPanel extends JScrollPane {
 
   */
 
+  private static char getClosing(char bracket){
+     if(bracket=='(') return ')';
+     if(bracket=='{') return '}';
+     if(bracket=='[') return ']';
+     return bracket;
+  }
+
 
   private boolean checkBrackets(String str, StringBuffer errMsg){
-    Stack<Integer> sb = new Stack<Integer>(); // stack of square brackets
-    Stack<Integer> b  = new Stack<Integer>(); // stack of normal brackets
-
-    int state = 0;  
+    Stack<Character> stack = new Stack<Character>();
+    int state = 0; // 0 : normal, 1 : double quoted string, 2: single quoted string
     int line = 1;
-    int pos = 0;
-
+    int pos = 0; // pos within line
     for(int i=0;i<str.length();i++){
        char c =  str.charAt(i);
+       pos++;
        if(c=='\n'){
          line++;
          pos = 0;
-       } else {
-         pos++;
-       }
-
+       } 
        switch(state){
-          case 0:
-             if(c=='"'){
-                state = 1;
-             } else if(c == '\''){
-                state = 2;
-             } else if( c== '('){
-                b.push(i);
-             } else if( c== '['){
-                sb.push(i);
-             } else if( c == ')'){
-                if(b.empty()){
-                   errMsg.append("in line " + line + " at position " + pos 
-                                 + "  is a closing bracket that is not opened before");
-                   return false;
-                }
-                int bpos = b.pop(); // bracket to close
-                if(!sb.empty()){
-                   int sbpos = sb.peek();
-                   if( sbpos > bpos ){
-                      errMsg.append(" in line " + line + " at position " + pos 
-                                    + " is a closing bracket, but unclosed square brackets");
-                      return false;                   
-                   }
-                }
-
-             } else if(c == ']'){
-                if(sb.empty()){
-                   errMsg.append("in line " + line + " at position " + pos 
-                                 + "  is a closing square bracket that is not opened before");
-                   return false;
-                }
-                int sbpos = sb.pop(); // bracket to close
-                if(!b.empty()){
-                   int bpos = b.peek();
-                   if( bpos > sbpos ){
-                      errMsg.append("in line " + line + "at position " + pos 
-                                    + " is a closing square bracket, but unclosed round brackets");
-                      return false;                   
-                   }
-                }
-
+         case 0 : 
+           if(c == '"'){
+             state = 1;
+           } else if (c== '\''){
+             state = 2;
+           } else if ( c == '(' || c == '{' || c == '['){
+             stack.push(getClosing(c));
+           } else if ( c == ')' || c == '}' || c == ']'){
+             if(stack.empty()){
+                errMsg.append("In line " +line + " at position " + pos +
+                              " is a closing bracket '" + c + "' that is not " +
+                              "opened before");
+                return false;
              }
-             break;
-          case 1:
-              if( c == '"'){
+             char t = stack.pop().charValue();
+             if(t!=c){
+                errMsg.append("In line " + line + " at position " + pos +
+                         " a '" + c + "' is found but '"+t + " is expected");
+                return false;
+             } 
+           }
+           break;
+         case 1 : {
+             if( c == '"'){
                 state = 0;
-              } 
-              break;
-
-          case 2:
-              if(c == '\''){
-                 state = 0;
-              }         
-              break;
+             }
+           }
+           break;
+         case 2 : {
+             if( c == '\''){
+                state = 0;
+             }
+           }
+           break;
        }
     }
-    if(!b.empty() || !sb.empty()){
-       errMsg.append("\n there are unclosed brackets\n");
+    if(!stack.empty()){
+       errMsg.append("There are unclosed brackets");
        return false;
     }
-    if(state!=0){
-       errMsg.append("\n the is an unclosed string\n");
-       return false;
+    if(state != 0){
+      errMsg.append("Unclosed string");
+      return false;
     }
     return true;
   }
-
 
 
   private  String rewriteForOptimizer(String str){
@@ -894,75 +646,87 @@ public class CommandPanel extends JScrollPane {
   }
 
 
-
   /** optimizes a command if optimizer is enabled */
   private String optimize(String command){
 
+   // check for secondo command
+   command = command.trim();
+
+   // special kernel commands
+   if(command.startsWith("(") || command.startsWith("{")) return command; // command in nl format or command sequence
+
+   StringTokenizer st = new StringTokenizer(command,  " \t\n\r\f([{=.,;");
+   if(!st.hasMoreTokens()){
+     return command;
+   }
+   String start = st.nextToken();
+   // check for kernel command
+   String[] keywords = {"query","let","derive","type","kill","if","while","open","close","begin","commit", "abort",
+                        "save", "restore","list"};
+   // note "update", "create", and "delete"  can be both, part of the kernel and part of the optimizer
+   for(int i=0;i<keywords.length;i++){
+     if(keywords[i].equals(start)){
+         return command;
+     }
+   }
+   if(start.equals("update") && !command.matches("update +[a-z][a-z,A-Z,0-9,_]* *set.*")){
+     return command;
+   }
+   if(start.equals("create") && !command.matches("create +table .*") && !command.matches("create +index .*")) {
+     return command;
+   }
+   if(start.equals("delete") && !command.matches("delete +from.*")){
+     return command;
+   }
+
+   // now is should be an optimizer command
+   if(!useOptimizer()){ // error select clause found but no optimizer enabled
+      appendText("optimizer not available");
+      showPrompt();
+      return "";
+   }
+
+
    IntObj Err = new IntObj();
 
-   // look for insert into, delete from and update rename 
-   boolean isOptUpdateCommand = false;
-   boolean isSelect = true;
    boolean catChanged = false;
 
-   if(command.trim().startsWith("sql ") || command.trim().startsWith("sql\n")){
-      isOptUpdateCommand = true;
-   } else if( command.matches("insert +into.*")){
-      isOptUpdateCommand = true;
-   } else if( command.matches("delete +from.*")){
-      isOptUpdateCommand = true;
-   } else if( command.matches("update +[a-z][a-z,A-Z,0-9,_]* *set.*")){
-      isOptUpdateCommand = true;
-   } else if(command.matches("create +table .*")){
-      isOptUpdateCommand = true;
-      isSelect = false;
+   // check whether the catalog is changed -> requires reopen of database (hotfix)
+   if(command.matches("create +table .*")){
       catChanged = true;
    } else if(command.matches("create +index .*")){
-      isOptUpdateCommand = true;
-      isSelect = false;
       catChanged = true;
    } else if(command.startsWith("drop ")){
-      isOptUpdateCommand = true;
-      isSelect = false;
       catChanged = true;
-   } else if(command.startsWith("select ")){
-      isOptUpdateCommand = true;
    } 
+
    
-   if(isOptUpdateCommand){
-     if(!useOptimizer()){ // error select clause found but no optimizer enabled
-        appendText("optimizer not available");
-        showPrompt();
-        return "";
-     }
-     //System.out.println(" Change command " + command);
-     command = rewriteForOptimizer(command);
-     StringBuffer buf = new StringBuffer();
+   command = rewriteForOptimizer(command);
+   StringBuffer buf = new StringBuffer();
 
+   if(!checkBrackets(command,buf)){
+      appendText("\n\n"+buf.toString());
+      showPrompt();
+      return "";
+   }
 
-     if(!checkBrackets(command,buf)){
-        appendText("\n\n"+buf.toString());
-        showPrompt();
-        return "";
-     }
-
-     //System.out.println("to " + command);
-     if(OpenedDatabase.length()==0){
-        appendText("\nno database open");
-        showPrompt();
-        return "";
-     }
-     String opt = OptInt.optimize_execute(command,OpenedDatabase,Err,false);
-     if(Err.value!=ErrorCodes.NO_ERROR){  // error in optimization
-        appendText("\nerror in optimization of this query");
-        showPrompt();
-        return "";
-      }else if(opt.startsWith("::ERROR::")){
-        appendText("\nproblem in optimization: \n");
-        appendText(formatOptimizerError(opt.substring(9))+"\n");
-        showPrompt();
-        return "";
-      } else if(catChanged){
+   //System.out.println("to " + command);
+   if(OpenedDatabase.length()==0){
+      appendText("\nno database open");
+      showPrompt();
+      return "";
+   }
+   String opt = OptInt.optimize_execute(command,OpenedDatabase,Err,false);
+   if(Err.value!=ErrorCodes.NO_ERROR){  // error in optimization
+      appendText("\nerror in optimization of this query");
+      showPrompt();
+      return "";
+   }else if(opt.startsWith("::ERROR::")){
+      appendText("\nproblem in optimization: \n");
+      appendText(formatOptimizerError(opt.substring(9))+"\n");
+      showPrompt();
+      return "";
+   } else if(catChanged){
         boolean ok = reopenDatabase();
         appendText("reopen database ");
         if(ok){
@@ -972,102 +736,9 @@ public class CommandPanel extends JScrollPane {
         }
         showPrompt();
         return "";
-      } else {
-        
-
-        if(isSelect){
-          return "query " + opt;
-        } else {
-          return opt;
-        }
-      }
+   } else {
+       return "query " + opt;
    }
-
-  // some more effort for select which can also be only a part within a query
-
-  if(command.length()<6) // command can't contain a select clause
-    return command;
-
-
-  String TmpCommand = "";
-  int First = 0;
-  Interval SelectClauseInterval=null;
-  String SelectClause="";
-  boolean isQuery = false;
-  int length = command.length();
-  while((SelectClauseInterval=findSelectClause(command,First))!=null){
-     if(!useOptimizer()){ // error select clause found but no optimizer enabled
-        appendText("optimizer not available");
-        showPrompt();
-        return "";
-     }
-
-     if(SelectClauseInterval.min==0 && SelectClauseInterval.max==length){
-         isQuery = true;
-     }
-     //  the text before the select clause
-     if(SelectClauseInterval.min>First) {
-        TmpCommand = TmpCommand + command.substring(First,SelectClauseInterval.min-1);
-     }
-     // extract the select-clause
-     SelectClause = command.substring(SelectClauseInterval.min,SelectClauseInterval.max);
-
-
-     //System.out.println("extracted select clause = \n" + SelectClause);
-     //System.out.println("Left : " + command.charAt(SelectClauseInterval.min-1));
-     //System.out.println("right : " + command.charAt(SelectClauseInterval.max));
-
-
-     // optimize the select-clause
-     long starttime=0;
-     if(tools.Environment.MEASURE_TIME)
-        starttime = System.currentTimeMillis();
-
-
-    //System.out.println("Original : " + SelectClause);
-
-     SelectClause = rewriteForOptimizer(SelectClause);
-
-     StringBuffer buf = new StringBuffer();
-
-     if(!checkBrackets(SelectClause,buf)){
-        appendText("\n\n"+buf.toString());
-        showPrompt();
-        return "";
-     }
-    // System.out.println("to LowerVars : " + SelectClause);
-
-
-     if(OpenedDatabase.length()==0){
-       appendText("\nno database open");
-       showPrompt();
-       return "";
-     }
-     String opt = OptInt.optimize_execute(SelectClause,OpenedDatabase,Err,false);
-     if(tools.Environment.MEASURE_TIME){
-        Reporter.writeInfo("used time to optimize query: "+(System.currentTimeMillis()-starttime)+" ms");
-     }
-     if(Err.value!=ErrorCodes.NO_ERROR){  // error in optimization
-        appendText("\nerror in optimization of this query");
-        showPrompt();
-        return "";
-      }else if(opt.startsWith("::ERROR::")){
-        appendText("\nproblem in optimization of this query\n");
-        appendText(opt.substring(9)+"\n");
-        showPrompt();
-        return "";
-      } else {
-        TmpCommand += isQuery ?  "query "+ opt : "( " + opt + " )";
-        First = SelectClauseInterval.max+1;
-      }
-   }// while
-
-   // append the rest of the command
-   if(First<command.length())
-      command = TmpCommand + command.substring(First,command.length());
-   else
-      command = TmpCommand;
-   return  command;
  }
 
 
@@ -1218,6 +889,7 @@ public class CommandPanel extends JScrollPane {
 
     // Executes the remote command.
     if(Secondointerface.isInitialized()){
+
          command = optimize(command);
          if(command.equals("")){
              if(!isTest){
