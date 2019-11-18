@@ -5225,7 +5225,11 @@ QueryProcessor::ReInitResultStorage( const Supplier s )
   ListExpr numType = tree->numTypeExpr;
 
   if(tree->u.op.isFun){
-      numType = nl->Third(numType);
+      // extract result type (last element in the list)
+      while(!nl->HasLength(numType,1)){
+        numType = nl->Rest(numType);
+      }
+      numType = nl->First(numType);
   }
 
   if ( (algId == 0) && (typeId == 0) )
