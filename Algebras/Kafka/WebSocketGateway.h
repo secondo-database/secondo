@@ -27,17 +27,28 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #define KAFKA_WEBSOCKETGATEWAY_H
 
 #include <iostream>
+#include <websocketpp/config/asio_client.hpp>
+#include "WebSocketClientPrototype.h"
+
+enum ClientType {
+    UNDEFINED,
+    MOCK,
+    NO_TLS,
+    TLS
+};
 
 class WebSocketGateway {
-private:
 public:
-    void Open(std::string uri);
+    ErrorCode Open(std::string uri);
     void Subscribe(std::string body);
 
     std::string ReadSting();
 
     void Close();
-
+private:
+    ClientType clientType;
+    WebsocketClientPPB<websocketpp::config::asio_tls_client> tls_client;
+    WebsocketClientPPB<websocketpp::config::asio_client> no_tls_client;
 };
 
 

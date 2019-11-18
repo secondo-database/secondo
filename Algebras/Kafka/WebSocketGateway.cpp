@@ -29,18 +29,37 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #define USE_MOCK_DATA 1
 
 
-void WebSocketGateway::Open(std::string uri) {
+ErrorCode WebSocketGateway::Open(std::string uri) {
     LOG(DEBUG) << "WebSocketGateway: Connecting to " << uri;
-    if (USE_MOCK_DATA)
-        return;
-
+    if (uri.rfind("mock://data", 0)==0) {
+        clientType = MOCK;
+        return OK;
+    } else if (uri.rfind("wss://", 0)==0) {
+        clientType = TLS;
+        return tls_client.connect(uri);
+    } else if (uri.rfind("ws://", 0)==0) {
+        clientType = NO_TLS;
+        return no_tls_client.connect(uri);
+    } else {
+        clientType = UNDEFINED;
+        return CONNECT_FAILED;
+    }
 }
 
 void WebSocketGateway::Subscribe(std::string body) {
     LOG(DEBUG) << "WebSocketGateway: Sending subscribe request " << body;
-    if (USE_MOCK_DATA)
-        return;
-
+    switch(clientType) {
+        case MOCK :
+            break;
+        case TLS :
+            tls_client.send(body);
+            break;
+        case NO_TLS :
+            no_tls_client.send(body);
+            break;
+        default:
+            break;
+    }
 }
 
 

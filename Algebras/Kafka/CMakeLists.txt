@@ -32,4 +32,5 @@ add_executable(Kafka
         WebSocketGateway.cpp
         WebSocketGateway.h
         WebSocketClientPrototype.cpp
+        WebSocketClientPrototype.h
         )

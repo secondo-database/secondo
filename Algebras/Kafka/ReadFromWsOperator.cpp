@@ -167,7 +167,10 @@ namespace ws {
                 attributes = parseAttributeDescriptions(wsOperatorType);
 
                 // WS Client
-                webSocketClient.Open(uriArg->GetValue());
+                ErrorCode errorCode = webSocketClient.Open(uriArg->GetValue());
+                if (errorCode != OK)
+                    LOG(ERROR) << "Connection response:" << errorCode;
+
                 webSocketClient.Subscribe(subscribingArg->GetValue());
             }
         }
