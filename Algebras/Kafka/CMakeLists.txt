@@ -28,4 +28,8 @@ add_executable(Kafka
         log.cpp
         log.hpp
         Utils.cpp
-        Utils.h WebSocketClient.cpp WebSocketClient.h)
+        Utils.h
+        WebSocketGateway.cpp
+        WebSocketGateway.h
+        WebSocketClientPrototype.cpp
+        )

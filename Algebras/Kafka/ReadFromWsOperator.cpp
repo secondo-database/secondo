@@ -27,7 +27,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "KafkaClient.h"
 #include "log.hpp"
 #include "Utils.h"
-#include "WebSocketClient.h"
+#include "WebSocketGateway.h"
 
 #include <jsoncons/json.hpp>
 #include <jsoncons_ext/jsonpointer/jsonpointer.hpp>
@@ -210,7 +210,7 @@ namespace ws {
         bool def;
         int count = 0;
         std::vector<AttributeDescription> attributes;
-        WebSocketClient webSocketClient;
+        WebSocketGateway webSocketClient;
     };
 
     int ReadFromWebSocketsVM(Word *args, Word &result, int message,

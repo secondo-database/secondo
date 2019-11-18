@@ -23,12 +23,12 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 
-#ifndef KAFKA_WEBSOCKETCLIENT_H
-#define KAFKA_WEBSOCKETCLIENT_H
+#ifndef KAFKA_WEBSOCKETGATEWAY_H
+#define KAFKA_WEBSOCKETGATEWAY_H
 
 #include <iostream>
 
-class WebSocketClient {
+class WebSocketGateway {
 private:
 public:
     void Open(std::string uri);
@@ -41,4 +41,4 @@ public:
 };
 
 
-#endif //KAFKA_WEBSOCKETCLIENT_H
+#endif //KAFKA_WEBSOCKETGATEWAY_H

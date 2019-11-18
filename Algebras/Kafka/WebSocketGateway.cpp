@@ -23,21 +23,21 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 
-#include "WebSocketClient.h"
+#include "WebSocketGateway.h"
 #include "log.hpp"
 
 #define USE_MOCK_DATA 1
 
 
-void WebSocketClient::Open(std::string uri) {
-    LOG(DEBUG) << "WebSocketClient: Connecting to " << uri;
+void WebSocketGateway::Open(std::string uri) {
+    LOG(DEBUG) << "WebSocketGateway: Connecting to " << uri;
     if (USE_MOCK_DATA)
         return;
 
 }
 
-void WebSocketClient::Subscribe(std::string body) {
-    LOG(DEBUG) << "WebSocketClient: Sending subscribe request " << body;
+void WebSocketGateway::Subscribe(std::string body) {
+    LOG(DEBUG) << "WebSocketGateway: Sending subscribe request " << body;
     if (USE_MOCK_DATA)
         return;
 
@@ -58,15 +58,15 @@ std::string data = R"(
     }
 )";
 
-std::string WebSocketClient::ReadSting() {
+std::string WebSocketGateway::ReadSting() {
     if (USE_MOCK_DATA)
         return data;
 
 
 }
 
-void WebSocketClient::Close() {
-    LOG(DEBUG) << "WebSocketClient: Close connection";
+void WebSocketGateway::Close() {
+    LOG(DEBUG) << "WebSocketGateway: Close connection";
     if (USE_MOCK_DATA)
         return;
 
