@@ -36,35 +36,25 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 static const int SLEEP_INTERVAL = 10;
 
 template<typename ConfigType>
-Connection<ConfigType>::Connection(websocketpp::connection_hdl hdl,
-                                   std::string uri)
-        : m_hdl(hdl), m_status("Connecting"), m_uri(uri),
-          m_server("N/A") {}
-
-template<typename ConfigType>
-void Connection<ConfigType>::on_open(websocketpp::client<ConfigType> *c,
-             websocketpp::connection_hdl hdl) {
+void WebsocketClientPPB<ConfigType>::on_open(websocketpp::connection_hdl hdl) {
     m_status = "Open";
-    m_server = c->get_con_from_hdl(hdl)->get_response_header("Server");
 }
 
 template<typename ConfigType>
-void Connection<ConfigType>::on_fail(websocketpp::client<ConfigType> *c,
-             websocketpp::connection_hdl hdl) {
+void WebsocketClientPPB<ConfigType>::on_fail(websocketpp::connection_hdl hdl) {
     m_status = "Failed";
 
     typename websocketpp::connection<ConfigType>::ptr con
-            = c->get_con_from_hdl(hdl);
-    m_server = con->get_response_header("Server");
+            = this->m_endpoint.get_con_from_hdl(hdl);
     m_error_reason = con->get_ec().message();
 }
 
 template<typename ConfigType>
-void Connection<ConfigType>::on_close(websocketpp::client<ConfigType> *c,
-              websocketpp::connection_hdl hdl) {
+void
+WebsocketClientPPB<ConfigType>::on_close(websocketpp::connection_hdl hdl) {
     m_status = "Closed";
     typename websocketpp::connection<ConfigType>::ptr con
-            = c->get_con_from_hdl(hdl);
+            = this->m_endpoint.get_con_from_hdl(hdl);
     std::stringstream s;
     s << "close code: " << con->get_remote_close_code() << " ("
       << websocketpp::close::status::get_string(
@@ -74,8 +64,10 @@ void Connection<ConfigType>::on_close(websocketpp::client<ConfigType> *c,
 }
 
 template<typename ConfigType>
-void Connection<ConfigType>::on_message(websocketpp::connection_hdl,
-                typename websocketpp::client<ConfigType>::message_ptr msg) {
+void WebsocketClientPPB<ConfigType>::on_message(
+        websocketpp::connection_hdl,
+        typename websocketpp::client<ConfigType>::message_ptr msg) {
+
     if (msg->get_opcode() == websocketpp::frame::opcode::text) {
         if (m_messages.size() > maxMsgSize) {
             std::cout << "Max buffer size exided" << std::endl;
@@ -153,7 +145,7 @@ template<typename ConfigType>
 WebsocketClientPPB<ConfigType>::~WebsocketClientPPB() {
     m_endpoint.stop_perpetual();
 
-    if (metadata_ptr != nullptr && metadata_ptr->get_status() == "Open") {
+    if (this->m_status.compare("Open") == 0) {
         this->close(websocketpp::close::status::going_away, "");
     }
 
@@ -164,7 +156,7 @@ WebsocketClientPPB<ConfigType>::~WebsocketClientPPB() {
 template<typename ConfigType>
 ErrorCode WebsocketClientPPB<ConfigType>::connect(std::string const &uri) {
 
-    if (metadata_ptr != nullptr)
+    if (m_status.compare("") != 0)
         return CONNECT_ALREADY_CALLED;
 
     websocketpp::lib::error_code ec;
@@ -178,30 +170,26 @@ ErrorCode WebsocketClientPPB<ConfigType>::connect(std::string const &uri) {
         return INIT_ERROR;
     }
 
-    metadata_ptr = websocketpp::lib::make_shared<Connection<ConfigType>>(
-            con->get_handle(), uri);
+    m_hdl = con->get_handle();
 
     con->set_open_handler(websocketpp::lib::bind(
-            &Connection<ConfigType>::on_open,
-            metadata_ptr,
-            &m_endpoint,
+            &WebsocketClientPPB<ConfigType>::on_open,
+            this,
             websocketpp::lib::placeholders::_1
     ));
     con->set_fail_handler(websocketpp::lib::bind(
-            &Connection<ConfigType>::on_fail,
-            metadata_ptr,
-            &m_endpoint,
+            &WebsocketClientPPB<ConfigType>::on_fail,
+            this,
             websocketpp::lib::placeholders::_1
     ));
     con->set_close_handler(websocketpp::lib::bind(
-            &Connection<ConfigType>::on_close,
-            metadata_ptr,
-            &m_endpoint,
+            &WebsocketClientPPB<ConfigType>::on_close,
+            this,
             websocketpp::lib::placeholders::_1
     ));
     con->set_message_handler(websocketpp::lib::bind(
-            &Connection<ConfigType>::on_message,
-            metadata_ptr,
+            &WebsocketClientPPB<ConfigType>::on_message,
+            this,
             websocketpp::lib::placeholders::_1,
             websocketpp::lib::placeholders::_2
     ));
@@ -209,13 +197,13 @@ ErrorCode WebsocketClientPPB<ConfigType>::connect(std::string const &uri) {
     m_endpoint.connect(con);
 
     int restTime = timeout;
-    while (metadata_ptr->get_status().compare("Connecting") == 0 &&
+    while (this->get_status().compare("Connecting") == 0 &&
            restTime > 0) {
         kafka::sleepMS(SLEEP_INTERVAL);
         restTime -= SLEEP_INTERVAL;
     }
 
-    if (metadata_ptr->get_status().compare("Open") == 0)
+    if (this->get_status().compare("Open") == 0)
         return OK;
     else
         return CONNECT_FAILED;
@@ -228,19 +216,19 @@ void WebsocketClientPPB<ConfigType>::close(
 
     std::cout << "> Closing connection " << std::endl;
 
-    if (metadata_ptr == nullptr) {
-        std::cout << "> No connection found" << std::endl;
-        return;
-    }
+//    if (this->m_hdl-> == 0) {
+//        std::cout << "> No connection found" << std::endl;
+//        return;
+//    }
 
-    m_endpoint.close(metadata_ptr->get_hdl(), code, reason, ec);
+    m_endpoint.close(this->m_hdl, code, reason, ec);
     if (ec) {
         std::cout << "> Error initiating close: " << ec.message()
                   << std::endl;
     }
 
     int restTime = timeout;
-    while (metadata_ptr->get_status().compare("Closed") != 0 &&
+    while (this->m_status.compare("Closed") != 0 &&
            restTime > 0) {
         kafka::sleepMS(SLEEP_INTERVAL);
         restTime -= SLEEP_INTERVAL;
@@ -251,7 +239,7 @@ template<typename ConfigType>
 void WebsocketClientPPB<ConfigType>::send(std::string message) {
     websocketpp::lib::error_code ec;
 
-    m_endpoint.send(metadata_ptr->get_hdl(), message,
+    m_endpoint.send(this->m_hdl, message,
                     websocketpp::frame::opcode::text, ec);
     if (ec) {
         std::cout << "> Error sending message: " << ec.message()
@@ -261,11 +249,39 @@ void WebsocketClientPPB<ConfigType>::send(std::string message) {
 }
 
 
-void prototypeTest() {
-//    std::string uri = "ws://localhost:9002";
+// No need to call this TemporaryFunctions() function,
+// it's just to avoid link error.
+void prototypeTestTLS() {
     std::string uri = "wss://ws.blockchain.info/inv";
-    typedef websocketpp::config::asio_tls_client ConfigTypeC;
-//    typedef websocketpp::config::asio_client ConfigTypeC;
+    typedef websocketpp::config::asio_tls_client ConfigTypeTLS;
+
+    WebsocketClientPPB<ConfigTypeTLS> endpoint;
+
+    ErrorCode code = endpoint.connect(uri);
+    if (code == OK) {
+        endpoint.send(R"({"op":"unconfirmed_sub"})");
+
+        // Wait
+        std::this_thread::sleep_for(std::chrono::milliseconds(2000));
+
+        while (endpoint.get_message_count() > 0) {
+            std::cout << endpoint.getFrontAndPop() << std::endl;
+        }
+
+        endpoint.close(websocketpp::close::status::normal, "Prosto tak");
+    } else {
+        std::cout << "Connection response:" << code << std::endl
+                  << " Connection status: " << endpoint.get_status()
+                  << std::endl
+                  << "Reason: " << endpoint.get_error_reason() << std::endl;
+    }
+}
+
+// No need to call this TemporaryFunctions() function,
+// it's just to avoid link error.
+void prototypeTestPlain() {
+    std::string uri = "ws://localhost:9002";
+    typedef websocketpp::config::asio_client ConfigTypeC;
 
     WebsocketClientPPB<ConfigTypeC> endpoint;
 
@@ -276,20 +292,15 @@ void prototypeTest() {
         // Wait
         std::this_thread::sleep_for(std::chrono::milliseconds(2000));
 
-        websocketpp::lib::shared_ptr<Connection<ConfigTypeC>> metadata
-                = endpoint.get_metadata();
-
-        while (metadata->m_messages.size() > 0) {
-            std::cout << metadata->m_messages.front() << std::endl;
-            metadata->m_messages.pop();
+        while (endpoint.get_message_count() > 0) {
+            std::cout << endpoint.getFrontAndPop() << std::endl;
         }
 
         endpoint.close(websocketpp::close::status::normal, "Prosto tak");
     } else {
-        std::cout << "Connection response:" << code << std::endl;
-        websocketpp::lib::shared_ptr<Connection<ConfigTypeC>> metadata
-                = endpoint.get_metadata();
-        std::cout << "Connection status:" << metadata->get_status() << std::endl
-                  << "Reason: " << metadata->m_error_reason << std::endl;
+        std::cout << "Connection response:" << code << std::endl
+                  << " Connection status: " << endpoint.get_status()
+                  << std::endl
+                  << "Reason: " << endpoint.get_error_reason() << std::endl;
     }
 }

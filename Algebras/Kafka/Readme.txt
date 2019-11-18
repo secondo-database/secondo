@@ -11,7 +11,7 @@
     Insert the 3 lines:
     ALGEBRA_DIRS += Kafka
     ALGEBRAS     += KafkaAlgebra
-    ALGEBRA_DEPS += rdkafka++
+    ALGEBRA_DEPS += rdkafka++ ssl crypto boost_system
 
     After that, insert a new entry in the file Algebras/Management/AlgebraList.i.cfg
     e.g: ALGEBRA_INCLUDE(160,KafkaAlgebra)

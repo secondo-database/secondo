@@ -26,7 +26,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "WebSocketGateway.h"
 #include "log.hpp"
 
-#define USE_MOCK_DATA 1
 
 
 ErrorCode WebSocketGateway::Open(std::string uri) {
@@ -57,6 +56,8 @@ void WebSocketGateway::Subscribe(std::string body) {
         case NO_TLS :
             no_tls_client.send(body);
             break;
+        case UNDEFINED :
+            break;
         default:
             break;
     }
@@ -78,15 +79,36 @@ std::string data = R"(
 )";
 
 std::string WebSocketGateway::ReadSting() {
-    if (USE_MOCK_DATA)
-        return data;
-
-
+    LOG(TRACE) << "WebSocketGateway: ReadSting";
+    switch(clientType) {
+        case MOCK :
+            return data;
+        case TLS :
+            return tls_client.getFrontAndPop();
+        case NO_TLS :
+            return no_tls_client.getFrontAndPop();
+        case UNDEFINED :
+            break;
+        default:
+            break;
+    }
+    return "Error";
 }
 
 void WebSocketGateway::Close() {
     LOG(DEBUG) << "WebSocketGateway: Close connection";
-    if (USE_MOCK_DATA)
-        return;
-
+    switch(clientType) {
+        case MOCK :
+            break;
+        case TLS :
+            tls_client.close(websocketpp::close::status::normal, "");
+            break;
+        case NO_TLS :
+            no_tls_client.close(websocketpp::close::status::normal, "");
+            break;
+        case UNDEFINED :
+            break;
+        default:
+            break;
+    }
 }
