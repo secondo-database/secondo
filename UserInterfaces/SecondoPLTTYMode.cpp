@@ -86,6 +86,7 @@ using namespace std;
 
 
 string blanks = " \t\n\r";
+string blanks2 = blanks + "[](){}?.,";
 
 
 /*
@@ -523,7 +524,7 @@ a bracket or a curly bracket
 
 */ 
 bool isDirectSecondoCommand(const string& cmd){
-   stringutils::StringTokenizer st(cmd, blanks, true);
+   stringutils::StringTokenizer st(cmd, blanks2, true);
    if(!st.hasNextToken()){
      return false;
    } 
@@ -756,7 +757,7 @@ informed about this.
 
 */
 bool catalogChanges(const string& cmd){
-   stringutils::StringTokenizer st(cmd, blanks, true);
+   stringutils::StringTokenizer st(cmd, blanks2, true);
    if(!st.hasNextToken()){
      return false;
    } 
@@ -1421,7 +1422,7 @@ bool isSqlCommand(string& cmd){
    string cmdcopy = cmd;
    stringutils::trim(cmdcopy);
    stringutils::toLower(cmdcopy);
-   stringutils::StringTokenizer st(cmdcopy, blanks, true);
+   stringutils::StringTokenizer st(cmdcopy, blanks2, true);
    if(!st.hasNextToken()){
      return false;
    }
