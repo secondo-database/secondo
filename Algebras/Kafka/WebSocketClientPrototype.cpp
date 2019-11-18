@@ -25,6 +25,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "Utils.h"
 #include "WebSocketClientPrototype.h"
+#include "log.hpp"
 
 #include <websocketpp/config/asio_client.hpp>
 #include <websocketpp/config/asio_no_tls_client.hpp>
@@ -34,6 +35,23 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <string>
 
 static const int SLEEP_INTERVAL = 10;
+
+
+std::string ErrorNames[] =
+        {
+                "OK",
+                "CONNECT_ALREADY_CALLED",
+                "INIT_ERROR",
+                "CONNECT_FAILED",
+        };
+
+std::ostream &operator<<(std::ostream &out, const ErrorCode value) {
+    return out << ErrorNames[value];
+}
+
+std::string getErrorText(ErrorCode const errorCode) {
+    return ErrorNames[errorCode];
+}
 
 template<typename ConfigType>
 void WebsocketClientPPB<ConfigType>::on_open(websocketpp::connection_hdl hdl) {
@@ -47,6 +65,9 @@ void WebsocketClientPPB<ConfigType>::on_fail(websocketpp::connection_hdl hdl) {
     typename websocketpp::connection<ConfigType>::ptr con
             = this->m_endpoint.get_con_from_hdl(hdl);
     m_error_reason = con->get_ec().message();
+
+    LOG(ERROR) << "WebsocketClientPPB connect failed with reason: "
+               << m_error_reason;
 }
 
 template<typename ConfigType>
@@ -78,20 +99,6 @@ void WebsocketClientPPB<ConfigType>::on_message(
         std::cout << "Not textual message, ignoring" << std::endl;
     }
 }
-
-
-std::string ErrorNames[] =
-        {
-                "OK",
-                "CONNECT_ALREADY_CALLED",
-                "INIT_ERROR",
-                "CONNECT_FAILED",
-        };
-
-std::ostream &operator<<(std::ostream &out, const ErrorCode value) {
-    return out << ErrorNames[value];
-}
-
 
 typedef std::shared_ptr<boost::asio::ssl::context> context_ptr;
 
@@ -155,12 +162,14 @@ WebsocketClientPPB<ConfigType>::~WebsocketClientPPB() {
 
 template<typename ConfigType>
 ErrorCode WebsocketClientPPB<ConfigType>::connect(std::string const &uri) {
+    LOG(DEBUG) << "WebsocketClientPPB: Connecting to " << uri;
 
     if (m_status.compare("") != 0)
         return CONNECT_ALREADY_CALLED;
 
-    websocketpp::lib::error_code ec;
+    m_status = "Connecting";
 
+    websocketpp::lib::error_code ec;
     typename websocketpp::connection<ConfigType>::ptr con
             = m_endpoint.get_connection(uri, ec);
 
@@ -203,10 +212,16 @@ ErrorCode WebsocketClientPPB<ConfigType>::connect(std::string const &uri) {
         restTime -= SLEEP_INTERVAL;
     }
 
+    if (this->get_status().compare("Connecting") == 0 &&
+        restTime <= 0)
+        LOG(ERROR) << "WebsocketClientPPB: Time out";
+
     if (this->get_status().compare("Open") == 0)
         return OK;
-    else
+    else {
+        LOG(ERROR) << "WebsocketClientPPB status: " << this->get_status();
         return CONNECT_FAILED;
+    }
 }
 
 template<typename ConfigType>

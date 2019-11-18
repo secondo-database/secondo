@@ -169,7 +169,8 @@ namespace ws {
                 // WS Client
                 ErrorCode errorCode = webSocketClient.Open(uriArg->GetValue());
                 if (errorCode != OK)
-                    LOG(ERROR) << "Connection response:" << errorCode;
+                    LOG(ERROR) << "Connection error code:" << errorCode
+                     << " - " << getErrorText(errorCode);
 
                 webSocketClient.Subscribe(subscribingArg->GetValue());
             }

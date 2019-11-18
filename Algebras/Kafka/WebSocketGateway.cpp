@@ -25,7 +25,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "WebSocketGateway.h"
 #include "log.hpp"
-
+#include "Utils.h"
 
 
 ErrorCode WebSocketGateway::Open(std::string uri) {
@@ -84,7 +84,13 @@ std::string WebSocketGateway::ReadSting() {
         case MOCK :
             return data;
         case TLS :
-            return tls_client.getFrontAndPop();
+            if (tls_client.get_message_count() > 0)
+                return tls_client.getFrontAndPop();
+            else {
+                // TODO: Implement some handling
+                kafka::sleepMS(5000);
+                return R"({"op":"dummy"})";
+            }
         case NO_TLS :
             return no_tls_client.getFrontAndPop();
         case UNDEFINED :

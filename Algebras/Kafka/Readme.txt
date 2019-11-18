@@ -27,3 +27,7 @@
 - Working with Kafka from secondo:
 
      open database berlintest;
+
+ - TODO:
+  Replace String with Text for mapping in readfromWebSocket
+  Handling for missing messages

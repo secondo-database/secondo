@@ -38,6 +38,8 @@ enum ErrorCode {
     CONNECT_FAILED,
 };
 
+std::string getErrorText(ErrorCode const errorCode);
+
 template<typename ConfigType>
 class WebsocketClientPPB {
 public:
