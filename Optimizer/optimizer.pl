@@ -10528,24 +10528,24 @@ mStreamOptimize(intersection [Term | Terms], Query, Cost) :-
   Cost is Cost1 + Cost2.
 
 mStreamOptimize(Term1 union Term2, Query, Cost) :-
-  streamOptimize(Term1, Plan1, Cost1),
-  streamOptimize(Term2, Plan2, Cost2),
+  mStreamOptimize(Term1, Plan1, Cost1),
+  mStreamOptimize(Term2, Plan2, Cost2),
   equalSchema(Term1, Term2, Plan1, Plan2, union),
   my_concat_atom([Plan1, ' sort rdup ', Plan2, ' sort rdup mergeunion '], '', 
     Query),
   Cost is Cost1 + Cost2.
 
 mStreamOptimize(Term1 intersection Term2, Query, Cost) :-
-  streamOptimize(Term1, Plan1, Cost1),
-  streamOptimize(Term2, Plan2, Cost2),
+  mStreamOptimize(Term1, Plan1, Cost1),
+  mStreamOptimize(Term2, Plan2, Cost2),
   equalSchema(Term1, Term2, Plan1, Plan2, intersection),
   my_concat_atom([Plan1, ' sort rdup ', Plan2, ' sort rdup mergesec '], '', 
     Query),
   Cost is Cost1 + Cost2.
 
 mStreamOptimize(Term1 minus Term2, Query, Cost) :-
-  streamOptimize(Term1, Plan1, Cost1),
-  streamOptimize(Term2, Plan2, Cost2),
+  mStreamOptimize(Term1, Plan1, Cost1),
+  mStreamOptimize(Term2, Plan2, Cost2),
   equalSchema(Term1, Term2, Plan1, Plan2, minus),
   my_concat_atom([Plan1, ' sort rdup ', Plan2, ' sort rdup mergediff '], '', 
     Query),
