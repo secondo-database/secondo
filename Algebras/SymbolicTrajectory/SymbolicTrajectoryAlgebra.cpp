@@ -38,6 +38,7 @@ This file contains the operators of the Symbolic Trajectory Algebra.
 
 // #include "Algorithms.h"
 #include "RestoreTraj.h"
+#include "PatternMining.h"
 
 extern NestedList* nl;
 extern QueryProcessor *qp;
@@ -6092,6 +6093,119 @@ struct restoreTrajInfo : OperatorInfo {
 };
 
 /*
+\section{Operator ~getPatterns~}
+
+\subsection{Type Mapping}
+
+*/
+ListExpr getPatternsTM(ListExpr args) {
+  if (!nl->HasLength(args, 5)) {
+    return listutils::typeError("Five arguments expected");
+  }
+  if (!Relation::checkType(nl->First(args))) {
+    return listutils::typeError("1st argument is not a relation");
+  }
+  if (!listutils::isSymbol(nl->Second(args))) {
+    return listutils::typeError("2nd argument is not an attribute name");
+  }
+  if (!listutils::isSymbol(nl->Third(args))) {
+    return listutils::typeError("3rd argument is not an attribute name");
+  }
+  ListExpr attrs = nl->Second(nl->Second(nl->First(args)));
+  string attrnameTextual = nl->SymbolValue(nl->Second(args));
+  string attrnameSpatial = nl->SymbolValue(nl->Third(args));
+  ListExpr type;
+  int indexTextual = listutils::findAttribute(attrs, attrnameTextual, type);
+  if (indexTextual == 0) {
+    return listutils::typeError("Attribute " + attrnameTextual + " not found");
+  }
+  int indexSpatial = listutils::findAttribute(attrs, attrnameSpatial, type);
+  if (indexSpatial == 0) {
+    return listutils::typeError("Attribute " + attrnameSpatial + " not found");
+  }
+  if (!CcReal::checkType(nl->Fourth(args))) {
+    return listutils::typeError("4th argument is not a real number");
+  }
+  if (!CcInt::checkType(nl->Fifth(args))) {
+    return listutils::typeError("5th argument is not an integer");
+  }
+  ListExpr outputAttrs = nl->TwoElemList(
+                       nl->TwoElemList(nl->SymbolAtom("Pattern"),
+                                       nl->SymbolAtom(FText::BasicType())),
+                       nl->TwoElemList(nl->SymbolAtom("Support"),
+                                       nl->SymbolAtom(CcReal::BasicType())));
+  return nl->ThreeElemList(
+           nl->SymbolAtom(Symbol::APPEND()),
+           nl->TwoElemList(nl->IntAtom(indexTextual - 1),
+                           nl->IntAtom(indexSpatial - 1)),
+           nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
+                           nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()),
+                                           outputAttrs)));
+}
+
+/*
+\subsection{Value Mapping}
+
+*/
+int getPatternsVM(Word* args, Word& result, int message, Word& local, 
+                  Supplier s) {
+  GetPatternsLI* li = (GetPatternsLI*)local.addr;
+  switch (message) {
+    case OPEN: {
+      if (li) {
+        delete li;
+        local.addr = 0;
+      }
+      Relation *rel = static_cast<Relation*>(args[0].addr);
+      CcReal *suppmin = static_cast<CcReal*>(args[3].addr);
+      CcInt *atomsmin = static_cast<CcInt*>(args[4].addr);
+      CcInt *indexTextual = static_cast<CcInt*>(args[5].addr);
+      CcInt *indexSpatial = static_cast<CcInt*>(args[6].addr);
+      if (suppmin->GetValue() > 0 && suppmin->GetValue() <= 1 
+       && atomsmin->GetValue() > 0) {
+        local.addr = new GetPatternsLI(rel, 
+          NewPair<int, int>(indexTextual->GetValue(), indexSpatial->GetValue()),
+          suppmin->GetValue(), atomsmin->GetValue());
+      }
+      else {
+        cout << "the minimum support has to be in (0,1], and the minimum number"
+                " of atoms must be at least 1"<< endl;
+      }
+      return 0;
+    }
+    case REQUEST: {
+      result.addr = li ? li->getNextResult() : 0;
+      return result.addr ? YIELD : CANCEL;
+    }
+    case CLOSE: {
+      if (li) {
+        delete li;
+        local.addr = 0;
+      }
+      return 0;
+    }
+  }
+  return 0;
+}
+
+/*
+\subsection{Operator Info}
+
+*/
+struct getPatternsInfo : OperatorInfo {
+  getPatternsInfo() {
+    name      = "getPatterns";
+    signature = "rel(tuple(X)) x ATTR x ATTR x real x int --> "
+                "stream(tuple(Pattern: text, Support: real))";
+    syntax    = "_ getPatterns[ _ , _ , _ , _ ]";
+    meaning   = "Computes patterns for spatio-textual attributes of movement "
+                "data (mpoint, mlabel). The numeric parameters represent the "
+                "patterns' minimum support and the minimum number of atoms for "
+                "each pattern, respectively.";
+  }
+};
+
+/*
 \section{Class ~SymbolicTrajectoryAlgebra~}
 
 */
@@ -6489,6 +6603,8 @@ class SymbolicTrajectoryAlgebra : public Algebra {
 //     derivegroupsVM<MPlaces>,0};
 //   AddOperator(derivegroupsInfo(), derivegroupsVMs, derivegroupsSelect,
 //               derivegroupsTM);
+
+  AddOperator(getPatternsInfo(), getPatternsVM, getPatternsTM);
   }
   
   ~SymbolicTrajectoryAlgebra() {}
