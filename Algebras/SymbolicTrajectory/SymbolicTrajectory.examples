@@ -595,18 +595,6 @@ Signature: rel(tuple(..., mlabel, ...)) x attrname -> invfile
 Example  : query Dotraj createtrie[Trajectory] wordCount["Innenstadt-Ost"]
 Result   : 14
 
-Operator  : createMaxspeedRaster
-Number    : 1
-Signature : sint x nrel(... (WayInfo (arel (tuple ((WayTagKey text) (WayTagValue text)))))) x rtree -> sint
-Example   : query maximum(createMaxspeedRaster([const sint value ((0.0 0.0 1.0) (1 1) (0 0 (1)))], RoadsBDo, RoadsBDo_Curve_rtree))
-Result    : 0
-
-Operator  : createTileAreas
-Number    : 1
-Signature : sint -> tileareas
-Example   : query tostring(createTileAreas(doHgt) getTypeNL)
-Result    : "tileareas"
-
 Operator  : getPatterns
 Number    : 1
 Signature : rel(tuple(X)) x ATTR x ATTR x real x int -> stream(tuple(Pattern: text, Support: real))

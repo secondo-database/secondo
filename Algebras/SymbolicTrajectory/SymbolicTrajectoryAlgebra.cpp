@@ -37,7 +37,7 @@ This file contains the operators of the Symbolic Trajectory Algebra.
 */
 
 // #include "Algorithms.h"
-#include "RestoreTraj.h"
+// #include "RestoreTraj.h"
 #include "PatternMining.h"
 
 extern NestedList* nl;
@@ -5851,74 +5851,74 @@ struct derivegroupsInfo : OperatorInfo {
 \subsection{Type Mapping}
 
 */
-ListExpr createMaxspeedRasterTM(ListExpr args) {
-  const std::string error_message = "expects the signature sint x nrel(... "
-    "(WayInfo (arel (tuple ((WayTagKey text) (WayTagValue text)))))) x rtree";
-  if (!nl->HasLength(args, 3)) {
-    return listutils::typeError(error_message);
-  }
-  if (!raster2::sint::checkType(nl->First(args))) {
-    return listutils::typeError("First argument must be an sint");
-  }
-  if (!RTree2TID::checkType(nl->Third(args))) {
-    return listutils::typeError("Third argument must be an rtree");
-  }
-  if (NestedRelation::checkType(nl->Second(args))) {
-    if (nl->HasLength(nl->Second(args), 2)) {
-      if (nl->HasLength(nl->Second(nl->Second(args)), 2)) {
-        ListExpr nrelAttrs = nl->Second(nl->Second(nl->Second(args)));
-        ListExpr arelAttrs = nl->Second(nl->Second(nl->Second(nl->Nth(
-                                       nl->ListLength(nrelAttrs), nrelAttrs))));
-        if (nl->ToString(nl->First(nl->First(arelAttrs))) == "WayTagKey"
-         && nl->ToString(nl->First(nl->Second(arelAttrs))) == "WayTagValue"
-         && FText::checkType(nl->Second(nl->First(arelAttrs)))
-         && FText::checkType(nl->Second(nl->Second(arelAttrs)))) {
-          return nl->SymbolAtom(raster2::sint::BasicType());
-        }
-      }
-    }
-  }
-  return listutils::typeError("Second argument must be an nrel(... (WayInfo "
-                      "(arel (tuple ((WayTagKey text) (WayTagValue text))))))");
-}
+// ListExpr createMaxspeedRasterTM(ListExpr args) {
+//   const std::string error_message = "expects the signature sint x nrel(... "
+//    "(WayInfo (arel (tuple ((WayTagKey text) (WayTagValue text)))))) x rtree";
+//   if (!nl->HasLength(args, 3)) {
+//     return listutils::typeError(error_message);
+//   }
+//   if (!raster2::sint::checkType(nl->First(args))) {
+//     return listutils::typeError("First argument must be an sint");
+//   }
+//   if (!RTree2TID::checkType(nl->Third(args))) {
+//     return listutils::typeError("Third argument must be an rtree");
+//   }
+//   if (NestedRelation::checkType(nl->Second(args))) {
+//     if (nl->HasLength(nl->Second(args), 2)) {
+//       if (nl->HasLength(nl->Second(nl->Second(args)), 2)) {
+//         ListExpr nrelAttrs = nl->Second(nl->Second(nl->Second(args)));
+//         ListExpr arelAttrs = nl->Second(nl->Second(nl->Second(nl->Nth(
+//                                     nl->ListLength(nrelAttrs), nrelAttrs))));
+//         if (nl->ToString(nl->First(nl->First(arelAttrs))) == "WayTagKey"
+//          && nl->ToString(nl->First(nl->Second(arelAttrs))) == "WayTagValue"
+//          && FText::checkType(nl->Second(nl->First(arelAttrs)))
+//          && FText::checkType(nl->Second(nl->Second(arelAttrs)))) {
+//           return nl->SymbolAtom(raster2::sint::BasicType());
+//         }
+//       }
+//     }
+//   }
+//   return listutils::typeError("Second argument must be an nrel(... (WayInfo "
+//                    "(arel (tuple ((WayTagKey text) (WayTagValue text))))))");
+// }
 
 /*
 \subsection{Value Mapping}
 
 */
-int createMaxspeedRasterVM(Word* args, Word& result, int message, Word& local, 
-                           Supplier s) {
-  result = qp->ResultStorage(s);
-  raster2::sint *hgt = static_cast<raster2::sint*>(args[0].addr);
-  NestedRelation *nrel = static_cast<NestedRelation*>(args[1].addr);
-  RTree2TID *rtree = static_cast<RTree2TID*>(args[2].addr);
-  MaxspeedRaster mr(hgt, nrel, rtree);
-  raster2::sint *res = static_cast<raster2::sint*>(result.addr);
-  res->setGrid(hgt->getGrid());
-  raster2::sint::storage_type& rs = hgt->getStorage();
-  for (raster2::sint::iter_type it = rs.begin(), e = rs.end(); it != e; ++it) {
-    raster2::RasterIndex<2> pos = it.getIndex();
-    int maxspeed = mr.getMaxspeed(pos);
-    res->set(pos, maxspeed);
-  }
-  return 0;
-}
+// int createMaxspeedRasterVM(Word* args, Word& result, int message,Word& local,
+//                            Supplier s) {
+//   result = qp->ResultStorage(s);
+//   raster2::sint *hgt = static_cast<raster2::sint*>(args[0].addr);
+//   NestedRelation *nrel = static_cast<NestedRelation*>(args[1].addr);
+//   RTree2TID *rtree = static_cast<RTree2TID*>(args[2].addr);
+//   MaxspeedRaster mr(hgt, nrel, rtree);
+//   raster2::sint *res = static_cast<raster2::sint*>(result.addr);
+//   res->setGrid(hgt->getGrid());
+//   raster2::sint::storage_type& rs = hgt->getStorage();
+//   for (raster2::sint::iter_type it = rs.begin(),e = rs.end(); it != e; ++it){
+//     raster2::RasterIndex<2> pos = it.getIndex();
+//     int maxspeed = mr.getMaxspeed(pos);
+//     res->set(pos, maxspeed);
+//   }
+//   return 0;
+// }
 
 /*
 \subsection{Operator Info}
 
 */
-struct createMaxspeedRasterInfo : OperatorInfo {
-  createMaxspeedRasterInfo() {
-    name      = "createMaxspeedRaster";
-    signature = raster2::sint::BasicType() + " x nrel(... (WayInfo (arel (tuple"
-                " ((WayTagKey text) (WayTagValue text)))))) x rtree" +  " -> "
-                + raster2::sint::BasicType();
-    syntax    = "createMaxspeedRaster( _ , _ , _ )";
-    meaning   = "Creates an sint raster where every tile holds the maximum"
-                "speed (kph) permitted on the roads inside the tile.";
-  }
-};
+// struct createMaxspeedRasterInfo : OperatorInfo {
+//   createMaxspeedRasterInfo() {
+//     name      = "createMaxspeedRaster";
+//     signature = raster2::sint::BasicType() + " x nrel(... (WayInfo (arel 
+//                 (tuple((WayTagKey text) (WayTagValue text)))))) x rtree" +  "
+//                 -> " + raster2::sint::BasicType();
+//     syntax    = "createMaxspeedRaster( _ , _ , _ )";
+//     meaning   = "Creates an sint raster where every tile holds the maximum"
+//                 "speed (kph) permitted on the roads inside the tile.";
+//   }
+// };
 
 /*
 \section{Operator ~createTileAreas~}
@@ -5926,43 +5926,43 @@ struct createMaxspeedRasterInfo : OperatorInfo {
 \subsection{Type Mapping}
 
 */
-ListExpr createTileAreasTM(ListExpr args) {
-  if (!nl->HasLength(args, 1)) {
-    return listutils::typeError("One argument expected");
-  }
-  if (!raster2::sint::checkType(nl->First(args))) {
-    return listutils::typeError("First argument must be an sint");
-  }
-  return nl->SymbolAtom(Tileareas::BasicType());
-}
+// ListExpr createTileAreasTM(ListExpr args) {
+//   if (!nl->HasLength(args, 1)) {
+//     return listutils::typeError("One argument expected");
+//   }
+//   if (!raster2::sint::checkType(nl->First(args))) {
+//     return listutils::typeError("First argument must be an sint");
+//   }
+//   return nl->SymbolAtom(Tileareas::BasicType());
+// }
 
 /*
 \subsection{Value Mapping}
 
 */
-int createTileAreasVM(Word* args, Word& result, int message, Word& local, 
-                      Supplier s) {
-  result = qp->ResultStorage(s);
-  raster2::sint *hgt = static_cast<raster2::sint*>(args[0].addr);
-  Tileareas *res = static_cast<Tileareas*>(result.addr);
-  res->retrieveAreas(hgt);
-  res->recordRoadCourses(hgt);
-  return 0;
-}
+// int createTileAreasVM(Word* args, Word& result, int message, Word& local, 
+//                       Supplier s) {
+//   result = qp->ResultStorage(s);
+//   raster2::sint *hgt = static_cast<raster2::sint*>(args[0].addr);
+//   Tileareas *res = static_cast<Tileareas*>(result.addr);
+//   res->retrieveAreas(hgt);
+//   res->recordRoadCourses(hgt);
+//   return 0;
+// }
 
 /*
 \subsection{Operator Info}
 
 */
-struct createTileAreasInfo : OperatorInfo {
-  createTileAreasInfo() {
-    name      = "createTileAreas";
-    signature = raster2::sint::BasicType() + " -> " + Tileareas::BasicType();
-    syntax    = "createTileAreas( _ )";
-    meaning   = "Stores all areas with tiles having the same value and all "
-                "possible transitions from one area to another.";
-  }
-};
+// struct createTileAreasInfo : OperatorInfo {
+//   createTileAreasInfo() {
+//     name      = "createTileAreas";
+//     signature = raster2::sint::BasicType() + " -> " + Tileareas::BasicType();
+//     syntax    = "createTileAreas( _ )";
+//     meaning   = "Stores all areas with tiles having the same value and all "
+//                 "possible transitions from one area to another.";
+//   }
+// };
 
 /*
 \section{Operator ~restoreTraj~}
@@ -5970,127 +5970,130 @@ struct createTileAreasInfo : OperatorInfo {
 \subsection{Type Mapping}
 
 */
-ListExpr restoreTrajTM(ListExpr args) {
-  if (!nl->HasLength(args, 10)) {
-    return listutils::typeError("Ten arguments expected.");
-  }
-  if (!BTree::checkType(nl->Second(args))) {
-    return listutils::typeError("Second argument must be a btree");
-  }
-  if (!RTree2TID::checkType(nl->Third(args))) {
-    return listutils::typeError("Third argument must be an rtree");
-  }
-  if (!raster2::sint::checkType(nl->Fourth(args))) { // elevation raster file
-    return listutils::typeError("Fourth argument must be an sint");
-  }
-  if (!nl->Equal(nl->SymbolAtom(Hash::BasicType()), nl->First(nl->Fifth(args)))
-      || !CcInt::checkType(nl->Third(nl->Fifth(args)))) {
-    return listutils::typeError("Fifth argument must be a hash file");
-  }
-  if (!raster2::sint::checkType(nl->Sixth(args))) { // maxspeed raster file
-    return listutils::typeError("Sixth argument must be an sint");
-  }
-  if (!Tileareas::checkType(nl->Seventh(args))) { // tileareas
-    return listutils::typeError("Seventh argument must be a tileareas");
-  }
-  for (int i = 8; i <= 10; i++) {
-    if (!MLabel::checkType(nl->Nth(i, args))) {
-      std::stringstream sstr;
-      sstr << "Argument " << i << " must be an mlabel";
-      return listutils::typeError(sstr.str());
-    }
-  }
-  if (Relation::checkType(nl->First(args))) { // extended edges relation
-    if (Tuple::checkType(nl->First(nl->Rest(nl->First(args))))) {
-      ListExpr attrList =
-               nl->First(nl->Rest(nl->First(nl->Rest(nl->First(args)))));
-      if (nl->ListLength(attrList) != 5) {
-        return listutils::typeError("Edges relation must have five attributes");
-      }
-      if (!LongInt::checkType(nl->Second(nl->First(attrList)))) {
-        return listutils::typeError("Edges: type error in first attribute");
-      }
-      if (!FText::checkType(nl->Second(nl->Second(attrList)))) {
-        return listutils::typeError("Edges: type error in second attribute");
-      }
-      if (!SimpleLine::checkType(nl->Second(nl->Third(attrList)))) {
-        return listutils::typeError("Edges: type error in third attribute");
-      }
-      if (!CcString::checkType(nl->Second(nl->Fourth(attrList)))) {
-        return listutils::typeError("Edges: type error in fourth attribute");
-      }
-      if (!CcInt::checkType(nl->Second(nl->Fifth(attrList)))) {
-        return listutils::typeError("Edges: type error in fifth attribute");
-      }
-      return nl->TwoElemList(listutils::basicSymbol<Stream<Rectangle<2> > >(),
-                             listutils::basicSymbol<Rectangle<2> >());
-    }
-  }
-  return listutils::typeError("Argument types must be rel(tuple(longint, text, "
-                              "sline, string, int)) x btree x rtree x sint x "
-                          "hash x sint x tileareas x mlabel x mlabel x mlabel");
-}
+// ListExpr restoreTrajTM(ListExpr args) {
+//   if (!nl->HasLength(args, 10)) {
+//     return listutils::typeError("Ten arguments expected.");
+//   }
+//   if (!BTree::checkType(nl->Second(args))) {
+//     return listutils::typeError("Second argument must be a btree");
+//   }
+//   if (!RTree2TID::checkType(nl->Third(args))) {
+//     return listutils::typeError("Third argument must be an rtree");
+//   }
+//   if (!raster2::sint::checkType(nl->Fourth(args))) { // elevation raster file
+//     return listutils::typeError("Fourth argument must be an sint");
+//   }
+//   if (!nl->Equal(nl->SymbolAtom(Hash::BasicType()), 
+//        nl->First(nl->Fifth(args)))
+//       || !CcInt::checkType(nl->Third(nl->Fifth(args)))) {
+//     return listutils::typeError("Fifth argument must be a hash file");
+//   }
+//   if (!raster2::sint::checkType(nl->Sixth(args))) { // maxspeed raster file
+//     return listutils::typeError("Sixth argument must be an sint");
+//   }
+//   if (!Tileareas::checkType(nl->Seventh(args))) { // tileareas
+//     return listutils::typeError("Seventh argument must be a tileareas");
+//   }
+//   for (int i = 8; i <= 10; i++) {
+//     if (!MLabel::checkType(nl->Nth(i, args))) {
+//       std::stringstream sstr;
+//       sstr << "Argument " << i << " must be an mlabel";
+//       return listutils::typeError(sstr.str());
+//     }
+//   }
+//   if (Relation::checkType(nl->First(args))) { // extended edges relation
+//     if (Tuple::checkType(nl->First(nl->Rest(nl->First(args))))) {
+//       ListExpr attrList =
+//                nl->First(nl->Rest(nl->First(nl->Rest(nl->First(args)))));
+//       if (nl->ListLength(attrList) != 5) {
+//         return listutils::typeError("Edges relation must have 5 attributes");
+//       }
+//       if (!LongInt::checkType(nl->Second(nl->First(attrList)))) {
+//         return listutils::typeError("Edges: type error in first attribute");
+//       }
+//       if (!FText::checkType(nl->Second(nl->Second(attrList)))) {
+//         return listutils::typeError("Edges: type error in second attribute");
+//       }
+//       if (!SimpleLine::checkType(nl->Second(nl->Third(attrList)))) {
+//         return listutils::typeError("Edges: type error in third attribute");
+//       }
+//       if (!CcString::checkType(nl->Second(nl->Fourth(attrList)))) {
+//         return listutils::typeError("Edges: type error in fourth attribute");
+//       }
+//       if (!CcInt::checkType(nl->Second(nl->Fifth(attrList)))) {
+//         return listutils::typeError("Edges: type error in fifth attribute");
+//       }
+//       return nl->TwoElemList(listutils::basicSymbol<Stream<Rectangle<2> > >
+//          (),
+//                              listutils::basicSymbol<Rectangle<2> >());
+//     }
+//   }
+//   return listutils::typeError("Argument types must be rel(tuple(longint, "
+//       text, "
+//                             "sline, string, int)) x btree x rtree x sint x "
+//                        "hash x sint x tileareas x mlabel x mlabel x mlabel");
+// }
 
 /*
 \subsection{Value Mapping}
 
 */
-int restoreTrajVM(Word* args, Word& result, int message, Word& local, 
-                  Supplier s) {
-  Relation *edgesRel = static_cast<Relation*>(args[0].addr);
-  BTree *heightBtree = static_cast<BTree*>(args[1].addr);
-  RTree2TID *segmentsRtree = static_cast<RTree2TID*>(args[2].addr);
-  raster2::sint *raster = static_cast<raster2::sint*>(args[3].addr);
-  Hash *rhash = static_cast<Hash*>(args[4].addr);
-  raster2::sint *maxspeedRaster = static_cast<raster2::sint*>(args[5].addr);
-  Tileareas *ta = static_cast<Tileareas*>(args[6].addr);
-  MLabel *direction = static_cast<MLabel*>(args[7].addr);
-  MLabel *height = static_cast<MLabel*>(args[8].addr);
-  MLabel *speed = static_cast<MLabel*>(args[9].addr);
-  RestoreTrajLI *li = static_cast<RestoreTrajLI*>(local.addr);
-  switch (message) {
-    case OPEN: {
-      if (li) {
-        delete li;
-        local.addr = 0;
-      }
-      li = new RestoreTrajLI(edgesRel, heightBtree, segmentsRtree, raster,
-                           rhash, maxspeedRaster, ta, height, direction, speed);
-      local.addr = li;
-      return 0;
-    }
-    case REQUEST: {
-      result.addr = li ? li->nextCandidate() : 0;
-      return result.addr ? YIELD : CANCEL;
-    }
-    case CLOSE: {
-      if (local.addr) {
-        li = (RestoreTrajLI*)local.addr;
-        delete li;
-        local.addr = 0;
-      }
-      return 0;
-    }
-  }
-
-  return 0;
-}
+// int restoreTrajVM(Word* args, Word& result, int message, Word& local, 
+//                   Supplier s) {
+//   Relation *edgesRel = static_cast<Relation*>(args[0].addr);
+//   BTree *heightBtree = static_cast<BTree*>(args[1].addr);
+//   RTree2TID *segmentsRtree = static_cast<RTree2TID*>(args[2].addr);
+//   raster2::sint *raster = static_cast<raster2::sint*>(args[3].addr);
+//   Hash *rhash = static_cast<Hash*>(args[4].addr);
+//   raster2::sint *maxspeedRaster = static_cast<raster2::sint*>(args[5].addr);
+//   Tileareas *ta = static_cast<Tileareas*>(args[6].addr);
+//   MLabel *direction = static_cast<MLabel*>(args[7].addr);
+//   MLabel *height = static_cast<MLabel*>(args[8].addr);
+//   MLabel *speed = static_cast<MLabel*>(args[9].addr);
+//   RestoreTrajLI *li = static_cast<RestoreTrajLI*>(local.addr);
+//   switch (message) {
+//     case OPEN: {
+//       if (li) {
+//         delete li;
+//         local.addr = 0;
+//       }
+//       li = new RestoreTrajLI(edgesRel, heightBtree, segmentsRtree, raster,
+//                        rhash, maxspeedRaster, ta, height, direction, speed);
+//       local.addr = li;
+//       return 0;
+//     }
+//     case REQUEST: {
+//       result.addr = li ? li->nextCandidate() : 0;
+//       return result.addr ? YIELD : CANCEL;
+//     }
+//     case CLOSE: {
+//       if (local.addr) {
+//         li = (RestoreTrajLI*)local.addr;
+//         delete li;
+//         local.addr = 0;
+//       }
+//       return 0;
+//     }
+//   }
+// 
+//   return 0;
+// }
 
 /*
 \subsection{Operator Info}
 
 */
-struct restoreTrajInfo : OperatorInfo {
-  restoreTrajInfo() {
-    name      = "restoreTraj";
-    signature = "rel(tuple(longint, text, sline, string, int)) x btree x rtree "
-                "x sint x hash x sint x mlabel x mlabel x mlabel";
-    syntax    = "restoreTraj( _ , _ , _ , _ , _ , _ , _ , _ , _)";
-    meaning   = "Restores the original trajectory (mpoint) from symbolic "
-                "direction, height, and speed information as well as a road "
-                "network with elevation data.";
-  }
-};
+// struct restoreTrajInfo : OperatorInfo {
+//   restoreTrajInfo() {
+//     name      = "restoreTraj";
+//     signature = "rel(tuple(longint,text,sline,string, int)) x btree x rtree "
+//                 "x sint x hash x sint x mlabel x mlabel x mlabel";
+//     syntax    = "restoreTraj( _ , _ , _ , _ , _ , _ , _ , _ , _)";
+//     meaning   = "Restores the original trajectory (mpoint) from symbolic "
+//                 "direction, height, and speed information as well as a road "
+//                 "network with elevation data.";
+//   }
+// };
 
 /*
 \section{Operator ~getPatterns~}
@@ -6269,7 +6272,7 @@ class SymbolicTrajectoryAlgebra : public Algebra {
   AddTypeConstructor(&tupleindex2TC);
   AddTypeConstructor(&classifierTC);
   
-  AddTypeConstructor(&tileareasTC);
+//   AddTypeConstructor(&tileareasTC);
 
   ValueMapping tolabelVMs[] = {tolabelVM<FText>, tolabelVM<CcString>, 0};
   AddOperator(tolabelInfo(), tolabelVMs, tolabelSelect, tolabelTM);
@@ -6591,10 +6594,10 @@ class SymbolicTrajectoryAlgebra : public Algebra {
                                 createtrieVM<MPlace>, createtrieVM<MPlaces>, 0};
   AddOperator(createtrieInfo(), createtrieVMs, createtrieSelect, createtrieTM);
   
-  AddOperator(createMaxspeedRasterInfo(), createMaxspeedRasterVM,
-              createMaxspeedRasterTM);
+//   AddOperator(createMaxspeedRasterInfo(), createMaxspeedRasterVM,
+//               createMaxspeedRasterTM);
   
-  AddOperator(createTileAreasInfo(), createTileAreasVM, createTileAreasTM);
+//   AddOperator(createTileAreasInfo(), createTileAreasVM, createTileAreasTM);
   
 //   AddOperator(restoreTrajInfo(), restoreTrajVM, restoreTrajTM);
   

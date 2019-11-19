@@ -38,12 +38,12 @@ namespace stj {
 void RelAgg::compute(Relation *rel, NewPair<int, int> indexes) {
   string label;
   for (int i = 0; i < rel->GetNoTuples(); i++) {
-//     Tuple *tuple = rel->GetTuple(i, false);
-//     MLabel *ml = tuple->GetAttribute(indexes.first);
-//     for (int j = 0; j < ml->GetNoComponents(); j++) {
-//       ml->GetBasic(j, label);
-//       
-//     }
+    Tuple *tuple = rel->GetTuple(i, false);
+    MLabel *ml = (MLabel*)(tuple->GetAttribute(indexes.first));
+    for (int j = 0; j < ml->GetNoComponents(); j++) {
+      ml->GetValue(j, label);
+      
+    }
   }
 }
 

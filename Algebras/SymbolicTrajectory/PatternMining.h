@@ -27,7 +27,7 @@ Started November 2019, Fabio Vald\'{e}s
 
 */
 
-#include "Tools.h"
+#include "Algorithms.h"
 
 namespace stj {
 
@@ -46,7 +46,7 @@ struct RelAgg {
   void clear() {contents.clear();}
   void compute(Relation *rel, NewPair<int, int> indexes);
   
-  std::vector<AggEntry> contents; // use set or map
+  std::set<AggEntry> contents;
 };
 
 struct GetPatternsLI {
