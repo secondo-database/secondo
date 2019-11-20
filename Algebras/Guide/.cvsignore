@@ -9,4 +9,7 @@
 *.log
 *.pdf
 *.tex
+*.doc
+*.ps
+
 
