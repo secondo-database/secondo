@@ -188,21 +188,21 @@ The XML file is processed by another class, called "DblpParser"[2].
           }
           error = true;
         }
-      } catch (Nr2aParserException e)
+      } catch (Nr2aParserException& e)
       {
         error = true;
         string msg("\nNR2A parser error(s): ");
         msg += e.what();
         cmsg.otherError(msg);
         cmsg.send();
-      } catch (Nr2aException e)
+      } catch (Nr2aException& e)
       {
         error = true;
         string msg("\nNR2A error(s): ");
         msg += e.what();
         cmsg.otherError(msg);
         cmsg.send();
-      } catch (exception e)
+      } catch (exception& e)
       {
         error = true;
         string msg("\nUnexpected error: ");

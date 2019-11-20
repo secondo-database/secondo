@@ -822,7 +822,7 @@ SecondoSystem::~SecondoSystem()
       ShutDown();
       shutdownOk = true;
     }
-    catch (SecondoException e)
+    catch (SecondoException& e)
     {
       string smiErrors;
       SmiEnvironment::GetLastErrorCode( smiErrors );

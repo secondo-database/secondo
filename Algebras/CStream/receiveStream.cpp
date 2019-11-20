@@ -132,7 +132,7 @@ class LocalInfoJSON : public LocalInfoBase {
                 TupleDescr* td = NULL;
                 try {
                     td = new TupleDescr(tds);
-                } catch (SecondoException e) {
+                } catch (SecondoException& e) {
                     LOG << "LocalInfoJSON: getNext() - Error: " 
                         << e.msg() << ENDL;
                     return NULL;
@@ -259,7 +259,7 @@ class LocalInfoAIS : public LocalInfoBase {
             TupleDescr* td = NULL;
             try {
                 td = new TupleDescr(tupleDescr);
-            } catch (SecondoException e) {
+            } catch (SecondoException& e) {
                 LOG << "LocalInfoAIS: getNext() - Error: " << e.msg() << ENDL;
                 return NULL;
             }

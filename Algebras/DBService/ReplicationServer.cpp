@@ -339,7 +339,7 @@ void ReplicationServer::applyFunctionAndCreateNewFile(
        traceWriter->write("ErrorCode", err);
        traceWriter->write("failed command " , command);
 
-   } catch(runtime_error qpe){
+   } catch(runtime_error& qpe){
        ok = false;
        traceWriter->write("Exception during query execution");
        traceWriter->write(qpe.what());

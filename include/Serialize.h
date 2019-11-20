@@ -31,7 +31,7 @@ template<class T>
 inline void ReadVar(T& value, char* state, size_t& offset) 
 {
   static size_t len = sizeof(T);
-  memcpy( &value, &state[offset], len );
+  memcpy( (void*) &value, &state[offset], len );
   offset += len;
 }
 

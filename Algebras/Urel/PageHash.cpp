@@ -178,7 +178,7 @@ to this bucket with ascendant order on OID.
 
       return found;
     }
-  catch (SecondoException e)
+  catch (SecondoException& e)
     {
       cerr << e.msg() << endl;
       return false;
@@ -256,7 +256,7 @@ bool PageHashTable::ChangeEntry(const Oid_t _oID,
         }
       return found;
     }
-  catch (SecondoException e)
+  catch (SecondoException& e)
     {
       cerr << e.msg() << endl;
       return false;

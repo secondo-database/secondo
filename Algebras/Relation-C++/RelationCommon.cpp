@@ -185,7 +185,7 @@ noAttributes(0), attrTypeArray(0),totalSize(0),refs(1),coreSize(0)
       offset += currentCoreSize;
     }
   }
-  catch (SecondoException e) {
+  catch (SecondoException& e) {
     cerr << e.msg() << endl;
     cerr << "Input list: " << nl->ToString(typeInfo) << endl;
     cerr << "Assuming list: "

@@ -681,7 +681,7 @@ struct CSProtocol {
     iosock << endFileData << std::endl;
     iosock.flush();
 
-  } catch (std::ios_base::failure) {
+  } catch (std::ios_base::failure&) {
      std::cerr << std::endl 
           << "Caught exception: I/O error on socket stream object!"
           << std::endl;

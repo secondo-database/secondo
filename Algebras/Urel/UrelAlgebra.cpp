@@ -273,7 +273,7 @@ Urel1::Urel1(int _rootPageNum, SmiSize _pageSize) :
                 + int2Str(__LINE__));
         }
     }
-  catch (SecondoException e)
+  catch (SecondoException& e)
     {
       cerr << e.msg() << endl;
       assert(false);
@@ -320,7 +320,7 @@ Urel1::Urel1(const Urel1& rhs) :
             + "Can't reopen an exist update file. Line "
             + int2Str(__LINE__));
     }
-  catch (SecondoException e)
+  catch (SecondoException& e)
     {
       cerr << e.msg() << endl;
       assert(false);
@@ -369,7 +369,7 @@ Urel1::Urel1(SmiFileId _fileID, SmiSize _pageSize, int _rootPageNum):
             + "Can't reopen an exist update file. Line "
             + int2Str(__LINE__));
     }
-  catch (SecondoException e)
+  catch (SecondoException& e)
     {
       cerr << e.msg() << endl;
       assert(false);
@@ -467,7 +467,7 @@ bool Urel1::AppendTuple(URel1Tuple newTuple)
       delete urPage;
       return true;
     }
-  catch (SecondoException e)
+  catch (SecondoException& e)
     {
       cerr << e.msg() << endl;
       return false;
@@ -513,7 +513,7 @@ int Urel1::GetTuplesInPage(const PageNo_t pageNo,
         }
       return tupleList.size() - oldNum;
     }
-  catch (SecondoException e)
+  catch (SecondoException& e)
     {
       cerr << e.msg() << endl;
       return -1;
@@ -561,7 +561,7 @@ URel1Tuple* Urel1::GetTuple(const Urel1IteratorMark& _itm)
       //delete filePage;
       return tuple;
     }
-  catch (SecondoException e)
+  catch (SecondoException& e)
     {
       cerr << e.msg() << endl;
       return 0;
@@ -639,7 +639,7 @@ PageNo_t Urel1::GetSuccessor(const PageNo_t pageno)
       PageNo_t succ = urPage.GetSuccessor();
       return succ;
     }
-  catch (SecondoException e)
+  catch (SecondoException& e)
     {
       cerr << e.msg() << endl;
       assert(false);
@@ -660,7 +660,7 @@ PageNo_t Urel1::GetLatestPageNo(const Oid_t _oID)
             + int2Str(__LINE__));
       return pageEntry.pageNo;
     }
-  catch (SecondoException e)
+  catch (SecondoException& e)
     {
       cerr << e.msg() << endl;
       return 0;
@@ -699,7 +699,7 @@ vector<URel1Tuple> Urel1::GetAllTuples(const Instant desTime)
                 + int2Str(__LINE__));
         }
     }
-  catch (SecondoException e)
+  catch (SecondoException& e)
     {
       cerr << e.msg() << endl;
     }

@@ -2058,7 +2058,7 @@ void TMatchIndexLI::storeIndexResult(const int atomNo, const int prevCrucial,
           indexResult[atomNo][pred]->succ = i; // refresh succ of pred
           if (indexResult[atomNo][i] == 0) {
             indexResult[atomNo][i] = new IndexRetrieval(pred, i, result[i]);
-            memset(indexResult[atomNo][i], 0, sizeof(void*));
+            memset((void*)indexResult[atomNo][i], 0, sizeof(void*));
             noResults++;
           }
           pred = i;
@@ -2076,7 +2076,7 @@ void TMatchIndexLI::storeIndexResult(const int atomNo, const int prevCrucial,
             indexResult[atomNo][pred]->succ = i; // refresh succ of pred
             if (indexResult[atomNo][i] == 0) {
               indexResult[atomNo][i] = new IndexRetrieval(pred, i, result[i]);
-              memset(indexResult[atomNo][i], 0, sizeof(void*));
+              memset((void*)indexResult[atomNo][i], 0, sizeof(void*));
               noResults++;
             }
             pred = i;

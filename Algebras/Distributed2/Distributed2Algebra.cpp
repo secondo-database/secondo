@@ -6725,7 +6725,7 @@ int createDArrayVMT(Word* args, Word& result, int message,
      }
      res->setKeepRemoteObjects(true);
      return 0;
-   } catch(SecondoException e){
+   } catch(SecondoException& e){
      if(trace){
         sendMessage(string("createDArray: Exception coourced") + e.what());
      }

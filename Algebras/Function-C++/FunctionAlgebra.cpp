@@ -308,7 +308,7 @@ ListExpr WithinTypeMap(ListExpr Args)
     );
   }
 
-  } catch ( NListErr e ) {
+  } catch ( NListErr& e ) {
     return NList::typeError( e.msg() );
   }
   // cout << ":::::::::::: " << mapResult << endl;
@@ -438,7 +438,7 @@ WithinSelect( ListExpr Args )
       return 0;
     }
 
-  } catch ( NListErr e ) {
+  } catch ( NListErr& e ) {
 
     NList::typeError( e.msg() );
     return -1;

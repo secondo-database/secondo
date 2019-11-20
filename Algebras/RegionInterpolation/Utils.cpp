@@ -215,10 +215,9 @@ int Utils :: indexOf(vector<LineWA*> array, LineWA obj)
     return(-1);
 }
 
-int Utils :: indexOf(LineWA *array, LineWA obj)
+int Utils :: indexOf(LineWA *array,  int arraylength, LineWA obj)
 {
     int a;
-    int arraylength = (sizeof(array) / sizeof(*(array)));
     for (a=0;a<arraylength;a++)
     {
       if (obj.equals(&array[a])) return(a);

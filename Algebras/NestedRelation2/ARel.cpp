@@ -442,7 +442,7 @@ function and then appends the read tuple to its storage.
     result.addr = NULL;
     cmsg.inFunError(e.what());
   }
-  catch (std::bad_alloc e)
+  catch (std::bad_alloc& e)
   {
     correct = false;
     result.addr = NULL;

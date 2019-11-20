@@ -89,7 +89,7 @@ class NewPair {
   template<class X>
   void copy2ndFrom(const X newValue) {
     assert(sizeof(S) == sizeof(X));
-    memcpy(&second, &newValue, sizeof(S));
+    memcpy((void*)&second, &newValue, sizeof(S));
   }
 };
 

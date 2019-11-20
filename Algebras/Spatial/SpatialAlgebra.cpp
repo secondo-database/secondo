@@ -3701,7 +3701,7 @@ static double maxDist(const vector<Point>& orig, // points
     }
     index = maxindex;
     return maxdist;
-  } catch (out_of_range){
+  } catch (out_of_range&){
       cerr << "min=" << min << " max=" << max << " size="
           << orig.size() << endl;
       assert(false);

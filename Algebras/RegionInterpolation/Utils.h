@@ -55,7 +55,7 @@ checks if the point p1 is left or right of the line from line1 to line 2
 these functions search for a LineWA in a given field. It returns the index.
 
 */     
-         static int indexOf(LineWA *array, LineWA obj);
+         static int indexOf(LineWA *array, int arraylength,  LineWA obj);
          static int indexOf(std::vector<LineWA*> array, LineWA obj);
 /*
  

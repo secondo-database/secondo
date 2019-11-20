@@ -9977,7 +9977,7 @@ into inputLists.
          findInputLists(tree,qpp);
          qpp.Destroy(tree,true);
        }
-     } catch(runtime_error err) {
+     } catch(runtime_error& err) {
         cerr << "ERROR" << err.what() << endl;
         cerr << "Query : " << query << endl << " --- " << endl;
      } catch(SI_Error err){
@@ -12999,7 +12999,7 @@ class executeScriptInfo{
                  if( !processCommand(cmd)){
                    errorFound = true;
                  }   
-              }   catch (SecondoException e) {
+              }   catch (SecondoException& e) {
                  cerr << "Exception caught: " << e.msg() << endl;
               }   
           } 

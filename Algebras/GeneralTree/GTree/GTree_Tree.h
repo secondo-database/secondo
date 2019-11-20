@@ -300,7 +300,7 @@ gtree::Tree<THeader, TTreeManager>::Tree(
     }
 
     // copy header
-    memcpy(&header, &tree.header, sizeof(THeader));
+    memcpy((void*)&header, &tree.header, sizeof(THeader));
 
     nodeMngr->copyPrototypes(tree.nodeMngr);
 
@@ -443,7 +443,7 @@ void gtree::Tree<THeader, TTreeManager>::readHeader()
     }
 
     // copy buffer to header
-    memcpy(&header, buffer, sizeof(THeader));
+    memcpy((void*)&header, buffer, sizeof(THeader));
 } // Tree::readHeader
 
 /*

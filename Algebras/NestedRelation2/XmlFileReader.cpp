@@ -158,7 +158,7 @@ int XmlFileReader::readXmlFile()
       {
         processXmlNode(reader);
       }
-      catch (Nr2aException e)
+      catch (Nr2aException& e)
       {
         int lineNumber = xmlTextReaderGetParserLineNumber(reader);
         throw Nr2aParserException(e.what(), lineNumber);

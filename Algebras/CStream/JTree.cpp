@@ -378,7 +378,7 @@ Tuple* JNode::buildTupleTree() {
     TupleDescr* td = NULL;
     try {
         td = new TupleDescr(createTupleDescrString(false));
-    } catch (SecondoException e) {
+    } catch (SecondoException& e) {
         LOG << "JNode: buildTupleTree() - Error: " << e.msg() << ENDL;
         return NULL;
     }

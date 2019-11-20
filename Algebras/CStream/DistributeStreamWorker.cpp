@@ -182,7 +182,7 @@ int DistributeStreamWorker::communicate() {
                         nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()),
                             _selTD->GetTupleTypeExpr())));
         }
-        catch(SecondoException) {
+        catch(SecondoException&) {
             DBService::CommunicationUtils::sendLine(io, 
                         DistributeStreamProtocol::confirmStream(
                             "Requested TupleDescr was not OK"));

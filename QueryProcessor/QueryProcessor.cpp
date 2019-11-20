@@ -3761,7 +3761,7 @@ the function in a database object.
   {
     list = AnnotateX( expr, defined );
   }
-  catch (runtime_error r)
+  catch (runtime_error& r)
   {
     cmsg.error() << r.what() << endl;
     cmsg.send();
@@ -4139,7 +4139,7 @@ QueryProcessor::EvalP( void* node,
   {
     Eval( node, result, OPEN );
   }
-  catch (runtime_error r)
+  catch (runtime_error& r)
   {
     cmsg.error() << r.what() << endl;
     cmsg.send();
@@ -4169,7 +4169,7 @@ QueryProcessor::EvalS( void* node,
   {
     Eval( node, result, OPEN );
   }
-  catch (runtime_error r)
+  catch (runtime_error& r)
   {
     cmsg.error() << r.what() << endl;
     cmsg.send();

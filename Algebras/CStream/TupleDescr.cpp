@@ -158,7 +158,7 @@ Word TupleDescr::In(const ListExpr typeInfo, const ListExpr instance,
         TupleDescr* td = NULL;
         try {
             td = new TupleDescr(s.c_str());
-        } catch (SecondoException e) {
+        } catch (SecondoException& e) {
             errorInfo = listutils::typeError(e.msg());
             correct = false;
             return SetWord(Address(0));

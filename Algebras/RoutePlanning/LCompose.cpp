@@ -896,10 +896,10 @@ namespace routeplanningalgebra {
                       lreal, true, end);
         position += walkDistance;
       } while (!end);
-    } catch (std::runtime_error e1) {
+    } catch (std::runtime_error& e1) {
       lreal->SetDefined(false);
       ERROR << "Exception when walking tin: " << e1.what() << "\r\n";
-    } catch (std::invalid_argument e2) {
+    } catch (std::invalid_argument& e2) {
       lreal->SetDefined(false);
       ERROR << "Exception when walking tin: " << e2.what() << "\r\n";
     }

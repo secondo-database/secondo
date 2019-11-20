@@ -1966,7 +1966,7 @@ static void GetWayTypesAndNamesForNodeIdNew(const int nodeIdNew,
         }
 
     }
-    catch(const std::exception ex){
+    catch(const std::exception& ex){
         //cout << "Result to relation conversion failed." << "\n";
     }
 
@@ -3672,7 +3672,7 @@ static void GetRelFromQueryString(string* inputQueryString,
 
 
     }
-    catch(const std::exception ex){
+    catch(const std::exception& ex){
         cout << "Result to relation conversion failed." << "\n";
     }
 }
@@ -4718,7 +4718,7 @@ int nodeRelToRegionVM (Word* args, Word& result, int message,
     try{
         GetWayTypesAndNamesForNodeIdNew(nodeIdNewPtr->GetIntval(), 
 wayTypes, wayNames, waysRelNamePtr);
-    } catch(const std::exception ex){ 
+    } catch(const std::exception& ex){ 
 cout<< "Failed: GetWayTypesAndNamesForNodeIdNew" << "\n"; }
 
     // Standard width and height of crossing area will 
@@ -4739,7 +4739,7 @@ cout<< "Failed: GetWayTypesAndNamesForNodeIdNew" << "\n"; }
         try{
             DetermineCrossingDimensions(wayTypes, width, 
                                 height,indexMostSignificant);
-        } catch(const std::exception ex){ 
+        } catch(const std::exception& ex){ 
 cout<< "Failed: DetermineCrossingDimensions" << "\n"; }
         //cout << "Width used: " << width << " , height: " << height << "\n";
              
@@ -4847,7 +4847,7 @@ int pointToRegionVM (Word* args, Word& result, int message,
     try{
         usedWidth = inWidthPtr->GetValue();
     }
-    catch(const std::exception ex){ 
+    catch(const std::exception& ex){ 
         cout<< "Failed: Width conversion for pointToRegion." << "\n";
         usedWidth = 8.0;
     }
@@ -5066,7 +5066,7 @@ int nodesToRegionNodesVM (Word* args, Word& result, int message,
               GetWayTypesAndNamesForNodeIdNew(
                     nodeIdNewPointer->GetIntval(), wayTypes, 
                     wayNames, li->waysRelNamePtr);
-          } catch(const std::exception ex){ 
+          } catch(const std::exception& ex){ 
               cout<< "Failed: GetWayTypesAndNamesForNodeIdNew" << "\n"; }
 
           // Standard width and height of crossing area will be replaced 
@@ -5092,7 +5092,7 @@ int nodesToRegionNodesVM (Word* args, Word& result, int message,
               try{
                   DetermineCrossingDimensions(
                         wayTypes, width, height, indexMostSignificant);
-              } catch(const std::exception ex){ 
+              } catch(const std::exception& ex){ 
                   cout<< "Failed: DetermineCrossingDimensions" << "\n"; }
              
 
@@ -5126,7 +5126,7 @@ int nodesToRegionNodesVM (Word* args, Word& result, int message,
                             wayNames[wayNames.size()-1] + "_" + wayNames[0];
                       }
                   }
-              } catch(const std::exception ex){ 
+              } catch(const std::exception& ex){ 
                   cout<< "Failed to determine mostSignificantWayName." << 
                             "\n"; }
 
@@ -5143,7 +5143,7 @@ int nodesToRegionNodesVM (Word* args, Word& result, int message,
                           mostSignificantWayType =wayTypes[wayTypes.size()-1];
                       }
                   }
-              } catch(const std::exception ex){ 
+              } catch(const std::exception& ex){ 
                   cout<< "Failed to determine mostSignificantWayType." << 
                         "\n"; }
 
@@ -5488,7 +5488,7 @@ int edgesToRegionNodesVM (Word* args, Word& result, int message,
               // Try to calculate the width depending on way type.
               try{
                   DetermineWayWidth(wayTypeCcStringPtr->toText(), width);
-              } catch(const std::exception ex){ 
+              } catch(const std::exception& ex){ 
                 cout<< "Failed: DetermineWayWidth" << "\n"; }
               //cout << "Width used: " << width  << "\n";
              
@@ -5706,7 +5706,7 @@ int sLineToRegionVM (Word* args, Word& result, int message,
     try{
         usedWidth = inWidthPtr->GetValue();
     }
-    catch(const std::exception ex){ 
+    catch(const std::exception& ex){ 
         cout<< "Failed: Width conversion for sLineToRegion." << "\n";
         usedWidth = 8.0;
     }
@@ -5818,7 +5818,7 @@ int sLineRelToRegionVM (Word* args, Word& result, int message,
     try{
         usedWidth = inWidthPtr->GetValue();
     }
-    catch(const std::exception ex){ 
+    catch(const std::exception& ex){ 
         cout<< "Failed: Width conversion for sLineToRegion." << "\n";
         usedWidth = 8.0;
     }
