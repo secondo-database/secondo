@@ -37,13 +37,15 @@ namespace stj {
 
 void RelAgg::compute(Relation *rel, NewPair<int, int> indexes) {
   string label;
-  for (int i = 0; i < rel->GetNoTuples(); i++) {
-    Tuple *tuple = rel->GetTuple(i, false);
+  GenericRelationIterator* it = rel->MakeScan();
+  Tuple *tuple = 0;
+  while ((tuple = it->GetNextTuple())) {
     MLabel *ml = (MLabel*)(tuple->GetAttribute(indexes.first));
     for (int j = 0; j < ml->GetNoComponents(); j++) {
       ml->GetValue(j, label);
       
     }
+    tuple->DeleteIfAllowed();
   }
 }
 
