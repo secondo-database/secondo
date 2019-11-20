@@ -30,13 +30,13 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 ErrorCode WebSocketGateway::Open(std::string uri) {
     LOG(DEBUG) << "WebSocketGateway: Connecting to " << uri;
-    if (uri.rfind("mock://data", 0)==0) {
+    if (uri.rfind("mock://data", 0) == 0) {
         clientType = MOCK;
         return OK;
-    } else if (uri.rfind("wss://", 0)==0) {
+    } else if (uri.rfind("wss://", 0) == 0) {
         clientType = TLS;
         return tls_client.connect(uri);
-    } else if (uri.rfind("ws://", 0)==0) {
+    } else if (uri.rfind("ws://", 0) == 0) {
         clientType = NO_TLS;
         return no_tls_client.connect(uri);
     } else {
@@ -47,7 +47,7 @@ ErrorCode WebSocketGateway::Open(std::string uri) {
 
 void WebSocketGateway::Subscribe(std::string body) {
     LOG(DEBUG) << "WebSocketGateway: Sending subscribe request " << body;
-    switch(clientType) {
+    switch (clientType) {
         case MOCK :
             break;
         case TLS :
@@ -80,19 +80,20 @@ std::string data = R"(
 
 std::string WebSocketGateway::ReadSting() {
     LOG(TRACE) << "WebSocketGateway: ReadSting";
-    switch(clientType) {
+    switch (clientType) {
         case MOCK :
             return data;
         case TLS :
             if (tls_client.get_message_count() > 0)
                 return tls_client.getFrontAndPop();
-            else {
-                // TODO: Implement some handling
-                kafka::sleepMS(5000);
-                return R"({"op":"dummy"})";
-            }
+            else
+                return "";
+
         case NO_TLS :
-            return no_tls_client.getFrontAndPop();
+            if (tls_client.get_message_count() > 0)
+                return no_tls_client.getFrontAndPop();
+            else
+                return "";
         case UNDEFINED :
             break;
         default:
@@ -103,7 +104,7 @@ std::string WebSocketGateway::ReadSting() {
 
 void WebSocketGateway::Close() {
     LOG(DEBUG) << "WebSocketGateway: Close connection";
-    switch(clientType) {
+    switch (clientType) {
         case MOCK :
             break;
         case TLS :

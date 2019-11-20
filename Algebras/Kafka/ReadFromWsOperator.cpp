@@ -89,6 +89,23 @@ namespace ws {
         return 0;
     }
 
+    ListExpr validateTextArg(ListExpr topicArg) {
+        if (!nl->HasLength(topicArg, 2)) {
+            return listutils::typeError("internal error: argument invalid");
+        }
+
+        if (!FText::checkType(nl->First(topicArg))) {
+            return listutils::typeError(
+                    "Text expected");
+        }
+
+        ListExpr fn = nl->Second(topicArg);
+        if (nl->AtomType(fn) != TextType) {
+            return listutils::typeError("value not constant");
+        }
+        return 0;
+    }
+
     string buildSecondoType(vector<AttributeDescription> wsOperatorType);
 
     ListExpr validateAttributes(vector<AttributeDescription> vector);
@@ -112,10 +129,10 @@ namespace ws {
         string subscribing = nl->StringValue(nl->Second(subscribingArg));
 
         ListExpr typeArg = nl->Third(args);
-        error = validateStringArg(typeArg);
+        error = validateTextArg(typeArg);
         if (error)
             return error;
-        string wsOperatorType = nl->StringValue(nl->Second(typeArg));
+        string wsOperatorType = nl->TextValue(nl->Second(typeArg));
 
         std::vector<AttributeDescription> attributes =
                 parseAttributeDescriptions(wsOperatorType);
@@ -158,7 +175,7 @@ namespace ws {
     public:
         // constructor: initializes the class from the string argument
         WebSocketsSourceLI(CcString *uriArg, CcString *subscribingArg,
-                           CcString *typeArg) {
+                           FText *typeArg) {
             def = typeArg->IsDefined();
             if (def) {
                 // Types
@@ -170,7 +187,7 @@ namespace ws {
                 ErrorCode errorCode = webSocketClient.Open(uriArg->GetValue());
                 if (errorCode != OK)
                     LOG(ERROR) << "Connection error code:" << errorCode
-                     << " - " << getErrorText(errorCode);
+                               << " - " << getErrorText(errorCode);
 
                 webSocketClient.Subscribe(subscribingArg->GetValue());
             }
@@ -193,9 +210,14 @@ namespace ws {
             if (count++ == 10)
                 return NULL;
 
+            // Get data
             std::string data = webSocketClient.ReadSting();
+            LOG(TRACE) << "WebSocketsSourceLI: DataSting=" << data;
+            if (data.empty())
+                return NULL;
             jsoncons::json jdata = jsoncons::json::parse(data);
 
+            // Prepare result
             ListExpr resultType = GetTupleResultType(s);
             TupleType *tupleType = new TupleType(nl->Second(resultType));
             Tuple *res = new Tuple(tupleType);
@@ -228,7 +250,7 @@ namespace ws {
                 }
                 local.addr = new WebSocketsSourceLI((CcString *) args[0].addr,
                                                     (CcString *) args[1].addr,
-                                                    (CcString *) args[2].addr
+                                                    (FText *) args[2].addr
                 );
                 LOG(DEBUG) << "ReadFromWebSocketsVM opened";
                 return 0;
@@ -236,7 +258,8 @@ namespace ws {
                 LOG(TRACE) << "ReadFromWebSocketsVM request";
                 if (li) {
                     result.addr = li->getNext(s);
-                    return result.addr ? YIELD : CANCEL;
+//                    return result.addr ? YIELD : CANCEL;
+                    return YIELD;
                 } else {
                     result.addr = 0;
                     return CANCEL;

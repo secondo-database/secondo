@@ -80,7 +80,7 @@ namespace kafka {
             }
             Tuple *k = stream.request();
             while (k == 0 && !signallingSocket.isSignalReceived()) {
-                LOG(DEBUG) << "Waiting for result";
+                LOG(TRACE) << "Waiting for result";
                 kafka::sleepMS(100);
                 k = stream.request();
             }
