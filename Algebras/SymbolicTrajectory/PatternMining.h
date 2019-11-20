@@ -31,28 +31,50 @@ Started November 2019, Fabio Vald\'{e}s
 
 namespace stj {
 
+
+
 struct AggEntry {
-  AggEntry(std::string l, std::set<int> ids, temporalalgebra::Periods p)
-    : label(l), tIds(ids), period(p) {}
+  AggEntry();
+  AggEntry(const TupleId id, const temporalalgebra::SecInterval& iv);
+
+  unsigned int getNoOccurrences(const TupleId& id) const;
+  datetime::DateTime getDuration() const {return duration;}
+  void computeAggregation() const;
+  std::string print(const TupleId& id = 0) const;
   
-  std::string label;
-  std::set<int> tIds;
-  temporalalgebra::Periods period;
+  
+  std::map<TupleId, temporalalgebra::Periods*> occurrences;
+  unsigned int noOccurrences;
+  datetime::DateTime duration;
 };
+
+/*
+
+The original mlabel objects are transformed into a map from a label onto a set
+of tuple ids (one for every tuple containing the label) together with a time
+period (the time period in which the label occurs for this tuple), the number
+of occurrences inside the tuple, and the total duration of its occurrences.
+
+*/
 
 struct RelAgg {
   RelAgg() {}
   
   void clear() {contents.clear();}
-  void compute(Relation *rel, NewPair<int, int> indexes);
+  void insert(const std::string& label, const TupleId& id, 
+              const temporalalgebra::SecInterval& iv);
+  void compute(Relation *rel, const NewPair<int, int> indexes);
+  std::string print(const std::string& label = "");
   
-  std::set<AggEntry> contents;
+  
+  std::map<std::string, AggEntry> contents;
 };
 
 struct GetPatternsLI {
-  GetPatternsLI(Relation *r, NewPair<int, int> i, double ms, int ma);
+  GetPatternsLI(Relation *r, const NewPair<int, int> i, double ms, int ma);
   
   Tuple *getNextResult();
+  
   
   Relation *rel;
   NewPair<int, int> indexes; // first: textual, second: spatial
