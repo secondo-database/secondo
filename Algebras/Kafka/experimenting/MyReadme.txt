@@ -94,6 +94,6 @@ query readfromwebsocket("mock://data", "hello", 'Name,string,/reputons/0/rated')
 
 query readfromwebsocket("wss://ws.blockchain.info/inv", "{\"op\":\"unconfirmed_sub\"}", 'Name,string,/op') finishStream[8080] consoleConsumer count;
 
-query readfromwebsocket("wss://ws.blockchain.info/inv", "{\"op\":\"unconfirmed_sub\"}", 'Size,string,/op;Size,string,/op/x/size;Name,string,/op/x/inputs/0/addr') finishStream[8080] consoleConsumer count;
+query readfromwebsocket("wss://ws.blockchain.info/inv", "{\"op\":\"unconfirmed_sub\"}", 'Name,string,/op;Size,string,/x/size;Addr,string,/x/inputs/0/prev_out/addr') finishStream[8080] consoleConsumer count;
 
 

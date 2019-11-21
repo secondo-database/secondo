@@ -215,7 +215,16 @@ namespace ws {
             LOG(TRACE) << "WebSocketsSourceLI: DataSting=" << data;
             if (data.empty())
                 return NULL;
-            jsoncons::json jdata = jsoncons::json::parse(data);
+
+            jsoncons::json jdata;
+            try {
+                jdata = jsoncons::json::parse(data);
+            } catch (const std::exception &e) {
+                LOG(ERROR)
+                        << "Parsing " << data << " error. \n"
+                        << "what(): " << e.what();
+                return NULL;
+            }
 
             // Prepare result
             ListExpr resultType = GetTupleResultType(s);
@@ -224,9 +233,18 @@ namespace ws {
 
             int index = 0;
             for (AttributeDescription attribute : attributes) {
-                std::string value = jsoncons::jsonpointer::get(
-                        jdata, attribute.path)
-                        .as<std::string>();
+                std::string value;
+                try {
+                    value = jsoncons::jsonpointer::get(
+                            jdata, attribute.path)
+                            .as<std::string>();
+                } catch (const std::exception &e) {
+                    LOG(ERROR)
+                            << "Geting pointer " << attribute.path << " from "
+                            << data << " error. \n"
+                            << "what(): " << e.what();
+                    value = "error";
+                }
                 res->PutAttribute(index++, new CcString(true, value));
             }
             return res;
