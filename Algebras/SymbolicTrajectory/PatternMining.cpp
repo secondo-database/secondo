@@ -37,6 +37,7 @@ namespace stj {
 
 AggEntry::AggEntry() {
   occurrences.clear();
+  noOccurrences = 0;
   duration.SetType(datetime::durationtype);
   duration.ReadFrom((int64_t)0);
 }
@@ -59,25 +60,21 @@ unsigned int AggEntry::getNoOccurrences(const TupleId& id) const {
   return it->second->GetNoComponents();
 }
 
-void AggEntry::computeAggregation() const {
-  
-  
-}
-  
 std::string AggEntry::print(const TupleId& id /* = 0 */) const {
   std::stringstream result;
   if (id == 0) { // print everything
     for (auto it : occurrences) {
-      result << "   TID " << it.first << ": " << *(it.second) << std::endl;
+      result << "   TID " << it.first << ": " << it.second->GetNoComponents() 
+             << " occurrences" << endl << "      " << *(it.second) << endl;
     }
   }
   else {
     auto it = occurrences.find(id);
     if (it == occurrences.end()) { // id not found
-      result << "   TID " << id << " not found" << std::endl;
+      result << "   TID " << id << " not found" << endl;
     }
     else {
-      result << "   TID " << id << ": " << *(it->second) << std::endl;
+      result << "   TID " << id << ": " << *(it->second) << endl;
     }
   }
   return result.str();
@@ -85,7 +82,7 @@ std::string AggEntry::print(const TupleId& id /* = 0 */) const {
 
 void RelAgg::insert(const std::string& label, const TupleId& id,
                     const temporalalgebra::SecInterval& iv) {
-  cout << "insert (" << label << ", " << id << ", " << iv << ")" << endl;
+//   cout << "insert (" << label << ", " << id << ", " << iv << ")" << endl;
   auto aggIt = contents.find(label);
   if (aggIt == contents.end()) { // new label
     AggEntry entry(id, iv);
@@ -99,14 +96,17 @@ void RelAgg::insert(const std::string& label, const TupleId& id,
       contents[label].occurrences.insert(make_pair(id, per));
     }
     else { // id already present for label
-      
+      contents[label].occurrences[id]->Add(iv);
     }
   }
+  contents[label].noOccurrences++;
+  contents[label].duration += iv.end - iv.start;
 }
 
 void RelAgg::compute(Relation *rel, const NewPair<int, int> indexes) {
   string label;
   SecInterval iv;
+  noTuples = rel->GetNoTuples();
   GenericRelationIterator* it = rel->MakeScan();
   Tuple *tuple = 0;
   while ((tuple = it->GetNextTuple())) {
@@ -120,11 +120,48 @@ void RelAgg::compute(Relation *rel, const NewPair<int, int> indexes) {
   }
 }
 
-std::string RelAgg::print(const std::string& label /* = "" */) {
+void RelAgg::sort() {
+  for (auto it : contents) {
+    sortedContents.push_back(it);
+  }
+  std::sort(sortedContents.begin(), sortedContents.end(), compareEntries());
+}
+
+void RelAgg::derivePatterns(const double minSupp, const int minNoAtoms) {
+  // retrieve patterns with one atom
+  double supp = 1.0;
+  for (auto it : sortedContents) {
+    string label = it.first;
+    string iv = "_"; // TODO: retrieve max. time interval
+    string pattern = "(" + iv + " \"" + label + "\")";
+    supp = double(it.second.occurrences.size()) / noTuples;
+    if (supp >= minSupp) {
+      results.push_back(make_pair(pattern, supp));
+    }
+    else {
+      return;
+    }
+  }
+}
+
+std::string RelAgg::print(const std::vector<std::pair<std::string, AggEntry> >&
+                                                         sortedContents) const {
+  std::stringstream result;
+  for (auto it : sortedContents) {
+    result << "\"" << it.first << "\" occurs " << it.second.noOccurrences
+           << " times with a total duration of " << it.second.duration << endl 
+           << "   " << it.second.print()
+           << endl << "-----------------------------------------------" << endl;
+  }
+  return result.str();
+}
+
+std::string RelAgg::print(const std::string& label /* = "" */) const {
   std::stringstream result;
   if (label == "") { // print everything
     for (auto it : contents) {
-      result << "\"" << it.first << "\" :" << it.second.print() << endl;
+      result << "\"" << it.first << "\" :" << it.second.print() << endl
+             << "-----------------------------------------------------" << endl;
     }
   }
   else {
@@ -142,14 +179,39 @@ std::string RelAgg::print(const std::string& label /* = "" */) {
 GetPatternsLI::GetPatternsLI(Relation *r, const NewPair<int,int> i, double ms, 
                              int ma)
   : rel(r), indexes(i), minSupp(ms), minNoAtoms(ma) {
+  tupleType = getTupleType();
   agg.clear();
   agg.compute(rel, indexes);
-  agg.print();
+  agg.sort();
+  cout << agg.print(agg.sortedContents) << endl;
+  agg.derivePatterns(minSupp, minNoAtoms);
 }
 
+TupleType* GetPatternsLI::getTupleType() const {
+  SecondoCatalog* sc = SecondoSystem::GetCatalog();
+  ListExpr resultTupleType = nl->TwoElemList(
+    nl->SymbolAtom(Tuple::BasicType()),
+    nl->TwoElemList(nl->TwoElemList(nl->SymbolAtom("Pattern"),
+                                    nl->SymbolAtom(FText::BasicType())),
+                    nl->TwoElemList(nl->SymbolAtom("Support"),
+                                    nl->SymbolAtom(CcReal::BasicType()))));
+  ListExpr numResultTupleType = sc->NumericType(resultTupleType);
+  return new TupleType(numResultTupleType);
+}
 
 Tuple* GetPatternsLI::getNextResult() {
-  return 0; // TODO: a lot
+  if (agg.results.empty()) {
+    return 0;
+  }
+  Tuple *tuple = new Tuple(tupleType);
+  pair<string, double> result;
+  result = agg.results.front();
+  agg.results.pop_front();
+  FText *pattern = new FText(true, result.first);
+  tuple->PutAttribute(0, pattern);
+  CcReal *support = new CcReal(true, result.second);
+  tuple->PutAttribute(1, support);
+  return tuple;
 }
 
 

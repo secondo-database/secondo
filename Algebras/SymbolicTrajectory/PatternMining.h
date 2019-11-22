@@ -39,13 +39,28 @@ struct AggEntry {
 
   unsigned int getNoOccurrences(const TupleId& id) const;
   datetime::DateTime getDuration() const {return duration;}
-  void computeAggregation() const;
   std::string print(const TupleId& id = 0) const;
   
   
   std::map<TupleId, temporalalgebra::Periods*> occurrences;
-  unsigned int noOccurrences;
-  datetime::DateTime duration;
+  unsigned int noOccurrences; // over all tuples
+  datetime::DateTime duration; // over all tuples
+};
+
+struct compareEntries {
+  bool operator()(std::pair<const std::string, AggEntry> const& left,
+                  std::pair<const std::string, AggEntry> const& right) const {
+      if (left.second.occurrences.size() != right.second.occurrences.size()) {
+        return left.second.occurrences.size() > right.second.occurrences.size();
+      }
+      if (left.second.duration != right.second.duration) {
+        return left.second.duration > right.second.duration;
+      }
+      if (left.second.noOccurrences != right.second.noOccurrences) {
+        return left.second.noOccurrences > right.second.noOccurrences;
+      }
+      return left.first < right.first;
+    }
 };
 
 /*
@@ -60,25 +75,34 @@ of occurrences inside the tuple, and the total duration of its occurrences.
 struct RelAgg {
   RelAgg() {}
   
-  void clear() {contents.clear();}
+  void clear() {contents.clear(); sortedContents.clear();}
   void insert(const std::string& label, const TupleId& id, 
               const temporalalgebra::SecInterval& iv);
   void compute(Relation *rel, const NewPair<int, int> indexes);
-  std::string print(const std::string& label = "");
+  void sort();
+  void derivePatterns(const double minSupp, const int minNoAtoms);
+  std::string print(const std::vector<std::pair<std::string, AggEntry> >&
+                                                          sortedContents) const;
+  std::string print(const std::string& label = "") const;
   
-  
+  unsigned int noTuples;
   std::map<std::string, AggEntry> contents;
+  std::vector<std::pair<std::string, AggEntry> > sortedContents;
+  std::list<std::pair<std::string, double> > results;
 };
 
 struct GetPatternsLI {
   GetPatternsLI(Relation *r, const NewPair<int, int> i, double ms, int ma);
+  ~GetPatternsLI() {tupleType->DeleteIfAllowed();}
   
+  TupleType *getTupleType() const;
   Tuple *getNextResult();
   
   
   Relation *rel;
+  TupleType *tupleType;
   NewPair<int, int> indexes; // first: textual, second: spatial
-  int minSupp;
+  double minSupp;
   int minNoAtoms;
   RelAgg agg;
 };
