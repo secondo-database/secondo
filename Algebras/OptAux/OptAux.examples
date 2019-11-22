@@ -14,9 +14,21 @@ Signature : X1,...,Xn x text -> Z, where text contains a fun: X1,...,Xn) -> Z, Z
 Example   : query eval(21,'fun(a : int) a + 21')
 Result    : 42
 
+Operator  : eval
+Number    : 2
+Signature : X1,...,Xn x text -> Z, where text contains a fun: X1,...,Xn) -> Z, Z in DATA
+Example   : query eval(ten, 'fun(a : AUTO) a count')
+Result    : 10
+
+
 Operator  : evalS
 Number    : 1
 Signature : X1,...,Xn x text -> stream(Z), where text contains a fun: X1,...,Xn) -> stream(Z)
 Example   : query evalS(42,'fun(a : int) intstream(1,a)') count
 Result    : 42
 
+Operator  : evalS
+Number    : 2
+Signature : X1,...,Xn x text -> Z, where text contains a fun: X1,...,Xn) -> Z, Z in DATA
+Example   : query evalS(ten, 'fun(a : AUTO) a feed ') count
+Result    : 10
