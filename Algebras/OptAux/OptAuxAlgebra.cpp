@@ -694,6 +694,7 @@ struct predcountsInfo : OperatorInfo {
 
 template<bool stream>
 ListExpr evalTM(ListExpr args){
+
   if(!nl->HasMinLength(args,1)){
      return  listutils::typeError("At least one argument expected");
   }
@@ -740,6 +741,39 @@ ListExpr evalTM(ListExpr args){
   funList = nl->Second(funList); // remove query
 
   funList = renameFunArgs(funList, "eval");
+
+ 
+  // replace AUTO-type by the type of the input arguments
+  int argsCount = nl->ListLength(arglist);
+  int expectedFunArgs = argsCount; // without the function
+  int funArgCount = nl->ListLength(funList) -2; // keyword fun, fun definition
+  if(expectedFunArgs != funArgCount){
+     return listutils::typeError("Number of provided arguments and "
+                            "number of function arguments differ");
+  } 
+
+
+  ListExpr fl2 = nl->OneElemList(nl->First(funList));
+  ListExpr lastfl = fl2;
+  funList = nl->Rest(funList); // ignore fun keyword 
+  ListExpr tmpargs = arglist;
+  while(!nl->HasLength(funList,1)){ // iterate over aguments
+     ListExpr funarg = nl->First(funList);
+     funList = nl->Rest(funList);
+     ListExpr provArg = nl->First(tmpargs);
+     tmpargs = nl->Rest(tmpargs);
+     if(!nl->HasLength(funarg,2)){
+        return listutils::typeError("invalid function argement");
+     }
+     ListExpr argType = nl->Second(funarg);
+     if(listutils::isSymbol(argType,"AUTO")){
+       funarg = nl->TwoElemList(nl->First(funarg),provArg);
+     } 
+     lastfl = nl->Append(lastfl, funarg);
+ 
+  }
+  lastfl = nl->Append(lastfl,nl->First(funList)); // function definition
+  funList = fl2;
 
   QueryProcessor qp2( nl, am ); 
   bool correct        = false;
@@ -790,11 +824,14 @@ ListExpr evalTM(ListExpr args){
      if(!listutils::isStream(funRes)){
         return listutils::typeError("The result is not a stream");
      }
-  } 
+  }  else {
+     if(listutils::isStream(funRes)){
+        return listutils::typeError("The function result must "
+                                    "not be a stream");
+     }
+  }
+  
 
-  //else if(!Attribute::checkType(funRes)){
-  //   return listutils::typeError("Function result is not in kind DATA");
-  //}
 
   ListExpr ret =  nl->ThreeElemList(
             nl->SymbolAtom(Symbols::APPEND()),
