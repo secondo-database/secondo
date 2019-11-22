@@ -768,6 +768,11 @@ ListExpr evalTM(ListExpr args){
      ListExpr argType = nl->Second(funarg);
      if(listutils::isSymbol(argType,"AUTO")){
        funarg = nl->TwoElemList(nl->First(funarg),provArg);
+     } else {
+       if(!nl->Equal(nl->Second(funarg),provArg)){
+          return listutils::typeError("provided argument types and types used "
+                    "in function definition differ");
+       }
      } 
      lastfl = nl->Append(lastfl, funarg);
  
