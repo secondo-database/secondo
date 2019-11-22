@@ -486,7 +486,7 @@ Remark    : under develeopment
 
 Operator  : areduce2
 Number    : 1
-Signature : dfmatrix(rel(x))  dfmatrix(rel(x)) x string x (fsrel(x) x fsrel(y) ->Z) x int -> d[f]array(Z)
+Signature : dfmatrix(rel(X)) x  dfmatrix(rel(Y)) x string x (fsrel(X) x fsrel(Y) ->Z) x int -> d[f]array(Z)
 Example   : query m8a m8b  areduce2["a9", . feed  ..  feed product count, 1236] getValue
 Result    : bug
 Remark    : under develeopment
