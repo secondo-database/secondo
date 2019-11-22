@@ -18427,15 +18427,14 @@ Specification
 */
 OperatorSpec areduce2Spec(
   "dfmatrix(rel(X)) x dfmatrix(rel(Y) x string x (fsrel(X) x "
-  "fsrel(Y) -> Z) x int -> d[f]array(Y)",
+  "fsrel(Y) -> Z) x int -> d[f]array(Z)",
   "_ _ areduce2[_,_,_] ",
   "Performs areduce function to two dfmatrices. The result type depends "
   "on the return type of the operation. If the result is a stream of tuples "
-  "or a relation, the rseult type will be a dfarray, otherwise a darray. "
-  "Streams of non-tuples are not alowed as the function result type. "
-  "The string argument specified the name of the result array. "
-  "The integer specified a port for transferring files between the workers. "
-  "On this port automatically a staticFileTransferator is started.",
+  "or a relation, the result type will be a dfarray, otherwise a darray. "
+  "Streams of non-tuples are not allowed as the function result type. "
+  "The string argument specifies the name of the result array. "
+  "The integer specifies a port for transferring files between the workers. ",
   "query dfm1 dfm2 areduce2[ \"molly\", . feed  .. feed product , 1236]"
 );
 
