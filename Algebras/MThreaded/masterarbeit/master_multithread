@@ -1,0 +1,16 @@
+% Encoding: UTF-8
+
+@InProceedings{10.1007/978-3-319-66917-5_15,
+  author    = {Garc{\'i}a-Garc{\'i}a, Francisco and Corral, Antonio and Iribarne, Luis and Mavrommatis, George and Vassilakopoulos, Michael},
+  title     = {A Comparison of Distributed Spatial Data Management Systems for Processing Distance Join Queries},
+  booktitle = {Advances in Databases and Information Systems},
+  year      = {2017},
+  editor    = {Kirikova, M{\={a}}r{\={\i}}te and N{\o}rv{\aa}g, Kjetil and Papadopoulos, George A.},
+  publisher = {Springer International Publishing},
+  isbn      = {978-3-319-66917-5},
+  pages     = {214--228},
+  abstract  = {Due to the ubiquitous use of spatial data applications and the large amounts of spatial data that these applications generate, the processing of large-scale distance joins in distributed systems is becoming increasingly popular. Two of the most studied distance join queries are the K Closest Pair Query (KCPQ) and the {\$}{\$}{\backslash}varepsilon {\$}{\$}Distance Join Query ({\$}{\$}{\backslash}varepsilon {\$}{\$}DJQ). The KCPQ finds the K closest pairs of points from two datasets and the {\$}{\$}{\backslash}varepsilon {\$}{\$}DJQ finds all the possible pairs of points from two datasets, that are within a distance threshold {\$}{\$}{\backslash}varepsilon {\$}{\$}of each other. Distributed cluster-based computing systems can be classified in Hadoop-based and Spark-based systems. Based on this classification, in this paper, we compare two of the most current and leading distributed spatial data management systems, namely SpatialHadoop and LocationSpark, by evaluating the performance of existing and newly proposed parallel and distributed distance join query algorithms in different situations with big real-world datasets. As a general conclusion, while SpatialHadoop is more mature and robust system, LocationSpark is the winner with respect to the total execution time.},
+  address   = {Cham},
+}
+
+@Comment{jabref-meta: databaseType:biblatex;}
