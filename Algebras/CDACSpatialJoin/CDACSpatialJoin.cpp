@@ -719,7 +719,7 @@ CDACLocalInfo::CDACLocalInfo(const OutputType outputType_,
       cout << "Output buffer: max. "
            << formatInt(outBufferTupleCountMax) << " tuples = "
            << formatInt(outBufferSize) << " bytes / "
-           << formatInt(emptyTupleMemSize) << " bytes per tuple." << endl;
+           << formatInt(outTupleAddSize) << " bytes per tuple." << endl;
 #endif
    }
 }
