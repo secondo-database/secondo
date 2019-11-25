@@ -51,6 +51,16 @@ AggEntry::AggEntry(const TupleId id, const temporalalgebra::SecInterval& iv) {
   duration.SetType(datetime::durationtype);
   duration.ReadFrom((int64_t)0); // durations are computed at the end
 }
+
+void AggEntry::clear() {
+  for (auto it : occurrences) {
+    it.second->DeleteIfAllowed();
+  }
+  occurrences.clear();
+  noOccurrences = 0;
+  duration.SetType(datetime::durationtype);
+  duration.ReadFrom((int64_t)0);
+}
   
 unsigned int AggEntry::getNoOccurrences(const TupleId& id) const {
   auto it = occurrences.find(id);
@@ -58,6 +68,83 @@ unsigned int AggEntry::getNoOccurrences(const TupleId& id) const {
     return 0;
   }
   return it->second->GetNoComponents();
+}
+
+void AggEntry::computeCommonTimeInterval(SecInterval& iv) const {
+  iv.start.SetType(instanttype);
+  iv.end.SetType(instanttype);
+  iv.start.ToMaximum();
+  iv.end.ToMinimum();
+  Instant first(1.0), last(1.0);
+  for (auto it : occurrences) {
+    if (it.second->IsDefined()) {
+      if (!it.second->IsEmpty()) {
+        it.second->Minimum(first);
+        it.second->Maximum(last);
+        if (first < iv.start) {
+          iv.start = first;
+        }
+        if (last > iv.end) {
+          iv.end = last;
+        }
+      }
+    }
+  }
+  if (iv.start.IsMinimum() || iv.end.IsMaximum()) {
+    iv.SetDefined(false);
+  }
+}
+
+void AggEntry::computeSemanticTimeSpec(string& semanticTimeSpec) const {
+  semanticTimeSpec.clear();
+  int month = 1; // {1, ..., 12}
+  int weekday = 0; // {0, ..., 6}
+  int daytime = 0; // {0, ..., 3}
+  Instant first(1.0), last(1.0);
+  for (map<TupleId, Periods*>::const_iterator it = occurrences.begin();
+       it != occurrences.end(); it++) {
+    if (it->second->IsDefined()) {
+      if (!it->second->IsEmpty()) {
+        it->second->Minimum(first);
+        it->second->Maximum(last);
+        if (it == occurrences.begin() && first.GetMonth() == last.GetMonth()) {
+          month = first.GetMonth();
+        }
+        else if (month != first.GetMonth() 
+              || first.GetMonth() != last.GetMonth()) {
+          month = -1;
+        }
+        if (it == occurrences.begin() 
+         && first.GetWeekday() == last.GetWeekday()) {
+          weekday = first.GetWeekday();
+        }
+        else if (weekday != first.GetWeekday()
+              || first.GetWeekday() != last.GetWeekday()) {
+          weekday = -1;
+        }
+        if (it == occurrences.begin()
+   && Tools::getDaytime(first.GetHour()) == Tools::getDaytime(last.GetHour())) {
+          daytime = Tools::getDaytime(first.GetHour());
+        }
+        else if (daytime != Tools::getDaytime(first.GetHour())
+              || Tools::getDaytime(first.GetMonth()) != 
+                 Tools::getDaytime(last.GetMonth())) {
+          daytime = -1;
+        }
+      }
+    }
+  }
+  if (month > -1) {
+    semanticTimeSpec = Tools::getMonthStr(month - 1);
+  }
+  if (weekday > -1) {
+    semanticTimeSpec += (semanticTimeSpec.empty() ? "" : ", ")
+                        + Tools::getWeekdayStr(weekday);
+  }
+  if (daytime > -1) {
+    semanticTimeSpec += (semanticTimeSpec.empty() ? "" : ", ")
+                        + Tools::getDaytimeStr(daytime);
+  }
 }
 
 std::string AggEntry::print(const TupleId& id /* = 0 */) const {
@@ -78,6 +165,14 @@ std::string AggEntry::print(const TupleId& id /* = 0 */) const {
     }
   }
   return result.str();
+}
+
+void RelAgg::clear() {
+  for (auto it : contents) {
+    it.second.clear();
+  }
+  contents.clear();
+  sortedContents.clear();
 }
 
 void RelAgg::insert(const std::string& label, const TupleId& id,
@@ -105,7 +200,7 @@ void RelAgg::insert(const std::string& label, const TupleId& id,
 
 void RelAgg::compute(Relation *rel, const NewPair<int, int> indexes) {
   string label;
-  SecInterval iv;
+  SecInterval iv(true);
   noTuples = rel->GetNoTuples();
   GenericRelationIterator* it = rel->MakeScan();
   Tuple *tuple = 0;
@@ -118,6 +213,7 @@ void RelAgg::compute(Relation *rel, const NewPair<int, int> indexes) {
     }
     tuple->DeleteIfAllowed();
   }
+  delete it;
 }
 
 void RelAgg::sort() {
@@ -129,11 +225,31 @@ void RelAgg::sort() {
 
 void RelAgg::derivePatterns(const double minSupp, const int minNoAtoms) {
   // retrieve patterns with one atom
+  SecInterval iv(true);
+  string timeSpec, semanticTimeSpec;
   double supp = 1.0;
   for (auto it : sortedContents) {
     string label = it.first;
-    string iv = "_"; // TODO: retrieve max. time interval
-    string pattern = "(" + iv + " \"" + label + "\")";
+    it.second.computeCommonTimeInterval(iv);
+    it.second.computeSemanticTimeSpec(semanticTimeSpec);
+    if (!semanticTimeSpec.empty()) {
+      if (iv.IsDefined()) {
+        timeSpec = "{" + iv.start.ToString() + "~" + iv.end.ToString() + ", "
+                 + semanticTimeSpec + "}";
+      }
+      else {
+        timeSpec = "{" + semanticTimeSpec + "}";
+      }
+    }
+    else {
+      if (iv.IsDefined()) {
+        timeSpec = iv.start.ToString() + "~" + iv.end.ToString();
+      }
+      else {
+        timeSpec = "_";
+      }
+    }
+    string pattern = "(" + timeSpec + " \"" + label + "\")";
     supp = double(it.second.occurrences.size()) / noTuples;
     if (supp >= minSupp) {
       results.push_back(make_pair(pattern, supp));
@@ -185,6 +301,11 @@ GetPatternsLI::GetPatternsLI(Relation *r, const NewPair<int,int> i, double ms,
   agg.sort();
   cout << agg.print(agg.sortedContents) << endl;
   agg.derivePatterns(minSupp, minNoAtoms);
+}
+
+GetPatternsLI::~GetPatternsLI() {
+  tupleType->DeleteIfAllowed();
+  agg.clear();
 }
 
 TupleType* GetPatternsLI::getTupleType() const {

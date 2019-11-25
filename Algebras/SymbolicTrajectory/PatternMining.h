@@ -37,8 +37,11 @@ struct AggEntry {
   AggEntry();
   AggEntry(const TupleId id, const temporalalgebra::SecInterval& iv);
 
+  void clear();
   unsigned int getNoOccurrences(const TupleId& id) const;
   datetime::DateTime getDuration() const {return duration;}
+  void computeCommonTimeInterval(temporalalgebra::SecInterval& iv) const;
+  void computeSemanticTimeSpec(std::string& semanticTimeSpec) const;
   std::string print(const TupleId& id = 0) const;
   
   
@@ -75,7 +78,7 @@ of occurrences inside the tuple, and the total duration of its occurrences.
 struct RelAgg {
   RelAgg() {}
   
-  void clear() {contents.clear(); sortedContents.clear();}
+  void clear();
   void insert(const std::string& label, const TupleId& id, 
               const temporalalgebra::SecInterval& iv);
   void compute(Relation *rel, const NewPair<int, int> indexes);
@@ -93,7 +96,7 @@ struct RelAgg {
 
 struct GetPatternsLI {
   GetPatternsLI(Relation *r, const NewPair<int, int> i, double ms, int ma);
-  ~GetPatternsLI() {tupleType->DeleteIfAllowed();}
+  ~GetPatternsLI();
   
   TupleType *getTupleType() const;
   Tuple *getNextResult();

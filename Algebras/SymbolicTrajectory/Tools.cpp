@@ -526,6 +526,33 @@ bool Tools::isSymbolicType(ListExpr type) {
      || (nl->ToString(type) == "mplace") || (nl->ToString(type) ==  "mplaces"));
 }
 
+string Tools::getWeekdayStr(const int weekday) {
+  if (weekday < 0 || weekday > 6) {
+    return string();
+  }
+  std::string weekdays[7] = {"monday", "tuesday", "wednesday", "thursday",
+                             "friday", "saturday", "sunday"};
+  return weekdays[weekday];
+}
+
+string Tools::getMonthStr(const int month) {
+  if (month < 0 || month > 11) {
+    return string();
+  }
+  static std::string months[12] = {"january", "february", "march", "april",
+                                   "may", "june", "july", "august", "september",
+                                   "october", "november", "december"};
+  return months[month];
+}
+
+string  Tools::getDaytimeStr(const int daytime) {
+  if (daytime < 0 || daytime > 3) {
+    return string();
+  }
+  static std::string daytimes[4] = {"morning", "afternoon", "evening", "night"};
+  return daytimes[daytime];
+}
+
 /*
 function ~extendDate~
 
@@ -642,24 +669,19 @@ of ~text~.
 */
 bool Tools::checkSemanticDate(const string &text, const SecInterval &uIv,
                               const bool eval) {
-  std::string weekdays[7] = {"monday", "tuesday", "wednesday", "thursday", 
-                             "friday", "saturday", "sunday"};
-  std::string months[12] = {"january", "february", "march", "april", "may", 
-      "june", "july", "august", "september", "october", "november", "december"};
-  std::string daytimes[4] = {"morning", "afternoon", "evening", "night"};
   Instant uStart = uIv.start;
   Instant uEnd = uIv.end;
   bool isSemanticDate = false;
   for (int i = 0; i < 12; i++) {
-    if (!text.compare(months[i])) {
+    if (!text.compare(getMonthStr(i))) {
       isSemanticDate = true;
     }
     else if (i < 7) {
-      if (!text.compare(weekdays[i])) {
+      if (!text.compare(getWeekdayStr(i))) {
         isSemanticDate = true;
       }
       else if (i < 4) {
-        if (!text.compare(daytimes[i])) {
+        if (!text.compare(getDaytimeStr(i))) {
           isSemanticDate = true;
         }
       }
@@ -672,18 +694,18 @@ bool Tools::checkSemanticDate(const string &text, const SecInterval &uIv,
     if ((uStart.GetYear() == uEnd.GetYear()) // year and month of start and end
          && (uStart.GetMonth() == uEnd.GetMonth())) { //must coincode for match
       for (int i = 0; i < 12; i++) { // handle months
-        if (!text.compare(months[i])) {
+        if (!text.compare(getMonthStr(i))) {
           return (i == uStart.GetMonth() - 1);
         }
       } // for weekdays and daytimes, start and end day have to coincide
       if (uStart.GetGregDay() == uEnd.GetGregDay()) {
         for (int i = 0; i < 7; i++) { // handle weekdays
-          if (!text.compare(weekdays[i])) {
+          if (!text.compare(getWeekdayStr(i))) {
             return (i == uStart.GetWeekday());
           }
         }
         for (int i = 0; i < 4; i++) { // handle daytimes
-          if (!text.compare(daytimes[i])) {
+          if (!text.compare(getDaytimeStr(i))) {
             switch (i) {
               case 0:
                 return (uStart.GetHour() >= 0) && (uEnd.GetHour() <= 11);
@@ -767,6 +789,22 @@ bool Tools::checkDaytime(const string& text, const SecInterval& uIv) {
   return false;
 }
 
+int Tools::getDaytime(const int hour) {
+  if (hour < 0 || hour > 23) {
+    return INT_MIN;
+  }
+  if (hour <= 11) {
+    return 0;
+  }
+  if (hour <= 16) {
+    return 1;
+  }
+  if (hour <= 20) {
+    return 2;
+  }
+  return 3;
+}
+
 /*
 \subsection{Function ~isInterval~}
 
@@ -805,11 +843,6 @@ bool Tools::isDaytime(const string& str) {
 */
 void Tools::semanticToTimePer(const string& spec, 
                       const NewPair<int64_t, int64_t> limits, Periods& result) {
-  std::string weekdays[7] = {"monday", "tuesday", "wednesday", "thursday", 
-                             "friday", "saturday", "sunday"};
-  std::string months[12] = {"january", "february", "march", "april", "may", 
-      "june", "july", "august", "september", "october", "november", "december"};
-  std::string daytimes[4] = {"morning", "afternoon", "evening", "night"};
   Periods tempResult(true);
   Instant leftLimit(limits.first), rightLimit(limits.second);
   Instant startTemp(instanttype), endTemp(instanttype);
@@ -818,7 +851,7 @@ void Tools::semanticToTimePer(const string& spec,
 //        << endl;
   bool found = false;
   for (int i = 0; i < 7 && !found; i++) {
-    if (spec == weekdays[i]) {
+    if (spec == getWeekdayStr(i)) {
       found = true;
       int firstDay;
       if (i >= leftLimit.GetWeekday()) {
@@ -835,7 +868,7 @@ void Tools::semanticToTimePer(const string& spec,
     }
   }
   for (int i = 0; i < 12 && !found; i++) {
-    if (spec == months[i]) {
+    if (spec == getMonthStr(i)) {
       found = true;
       for (int y = leftLimit.GetYear(); y <= rightLimit.GetYear(); y++) {
         startTemp.Set(y, i + 1, 1, 0, 0, 0, 0);
@@ -849,7 +882,7 @@ void Tools::semanticToTimePer(const string& spec,
     }
   }
   for (int i = 0; i < 4 && !found; i++) {
-    if (spec == daytimes[i]) {
+    if (spec == getDaytimeStr(i)) {
       int startHours[5] = {0, 12, 17, 20, 24};
       found = true;
       for (int d = leftLimit.GetDay(); d <= rightLimit.GetDay(); d++) {

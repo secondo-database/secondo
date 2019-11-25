@@ -223,6 +223,9 @@ class Tools {
   static int getNoComponents(Relation *rel, const TupleId tid, 
                              const std::string &type, const int attrno);
   static bool isSymbolicType(ListExpr typeList);
+  static std::string getWeekdayStr(const int weekday);
+  static std::string getMonthStr(const int month);
+  static std::string getDaytimeStr(const int daytime);
   static std::string extractVar(const std::string& input);
   static std::string extendDate(std::string input, const bool start);
   static bool checkSemanticDate(const std::string &text, 
@@ -230,6 +233,7 @@ class Tools {
                                 const bool resultNeeded);
   static bool checkDaytime(const std::string& text, 
                            const temporalalgebra::SecInterval& uIv);
+  static int getDaytime(const int hour);
   static bool isInterval(const std::string& str);
   static bool isDaytime(const std::string& str);
   static void stringToInterval(const std::string& str, 
