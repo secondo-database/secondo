@@ -189,3 +189,44 @@ Signature: t x t x t x ... -> multiset(t)
 Example  :  query create_multiset( 1 ,1 ,2 ,4, 5)
 Result   : ( (multiset int) ( (1 2) (2 1) (4 1) (5 1)))
 
+Operator  : collect_intset
+Number    : 1
+Signature : stream(int) x bool  -> intset
+Example   : query size(intstream(1,10) collect_intset[TRUE])
+Result    : 10
+
+Operator  : contains
+Number    : 3
+Signature : intset x int -> bool
+Example   : query [const intset value (1 2 7 6 9)] contains 2
+Result    : TRUE
+
+Operator  : size 
+Number    : 2 
+Signature : intset -> int
+Example   : query size( [const intset value (1 2 3 4 4 5 5)] )
+Result    : 5
+
+Operator  : feedIS
+Number    : 1
+Signature : intset -> stream(int)
+Example   : query [const intset value (1 2 3 4 4 5 5)] feedIS count 
+Result    : 5
+
+Operator  : union 
+Number    : 3
+Signature : intset x intset -> intset
+Example   : query size([const intset value (1 2 3 8 9 10)] union [const intset value (3 4 5 6 7 8 9)])
+Result    : 10
+
+Operator  : minus
+Number    : 1
+Signature : intset x intset -> intset
+Example   : query size([const intset value (1 2 3 8 9 10)] minus  [const intset value (3 4 5 6 7 8 9)])
+Result    : 3 
+
+Operator  : sdiff
+Number    : 1
+Signature : intset x intset -> intset
+Example   : query size([const intset value (1 2 3 8 9 10)] sdiff  [const intset value (3 4 5 6 7 8 9)])
+Result    : 7
