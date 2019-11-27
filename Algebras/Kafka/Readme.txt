@@ -4,6 +4,10 @@
 
     sudo apt install librdkafka-dev
 
+- Installing WebSocket libraries
+    ssl and boost are required, the easiest way to install all needed:
+
+    sudo apt-get install libcpprest-dev
 
 - Enable Algebra
 
@@ -28,5 +32,3 @@
 
      open database berlintest;
 
- - TODO:
-  Debug json extraction
