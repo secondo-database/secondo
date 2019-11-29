@@ -14209,11 +14209,12 @@ const string nthSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
      return listutils::typeError("one argument expected");
    }
 
-   string err = "stream(tuple) expected";
+   string err = "stream(tuple) or stream(DATA) expected";
 
    ListExpr stream = nl->First(args);
 
-   if( !Stream<Tuple>::checkType(stream) ) {
+   if( !Stream<Tuple>::checkType(stream)
+      && !Stream<Attribute>::checkType(stream) ) {
      return listutils::typeError(err);
    }
 
@@ -14224,25 +14225,33 @@ const string nthSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
 
  */
 
- int Exist(Word* args, Word& result, int message, Word& local, Supplier s) {
-	 Word tupleWord;
+ template<class Elem>
+ int ExistVMT(Word* args, Word& result, int message, Word& local, Supplier s) {
+	 Word sWord;
 
-	 if ( message <= CLOSE ) {
-		result = qp->ResultStorage(s);
-		CcBool* b = static_cast<CcBool*>( result.addr );
+  result = qp->ResultStorage(s);
+  CcBool* b = static_cast<CcBool*>( result.addr );
 
-		qp->Open(args[0].addr);
-		qp->Request(args[0].addr, tupleWord);
-		if(qp->Received(args[0].addr)) {
-			 b ->Set(true,true);
-		} else {
-			b ->Set(true,false);
-		}
+  qp->Open(args[0].addr);
+  qp->Request(args[0].addr, sWord);
+  if(qp->Received(args[0].addr)) {
+     b ->Set(true,true);
+     ((Elem*)sWord.addr)->DeleteIfAllowed();
+  } else {
+    b ->Set(true,false);
+  }
 
-		qp->Close(args[0].addr);
-	 }
+  qp->Close(args[0].addr);
 
-	 return 0;
+  return 0;
+}
+
+ ValueMapping ExistVM[] = {
+    ExistVMT<Tuple>, ExistVMT<Attribute>
+ };
+
+ int ExistSelect(ListExpr args){
+   return Stream<Attribute>::checkType(nl->First(args))?1:0;
  }
 
  /*
@@ -14252,7 +14261,7 @@ const string nthSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
  const string ExistSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                           "\"Example\" ) "
                           "( "
-                          "<text>stream(tuple) -> bool"
+                          "<text>stream(tuple) -> bool || stream(DATA) -> bool"
                           "</text--->"
                           "<text>_ exist</text--->"
                           "<text>Returns true, if the stream "
@@ -14262,6 +14271,8 @@ const string nthSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                           "</text--->"
                            ") )";
 
+ 
+
  /*
  2.120.5 Definition of operator ~exist~
 
@@ -14269,8 +14280,9 @@ const string nthSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
  Operator extrelexist (
           "exist",                 	// name
           ExistSpec,               	// specification
-          Exist,                  	// value mapping
-          Operator::SimpleSelect, 	// trivial selection function
+          2,
+          ExistVM,                  	// value mapping
+          ExistSelect, 	// trivial selection function
           ExistTypeMap             	// type mapping
  );
 
