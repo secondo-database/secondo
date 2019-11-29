@@ -282,4 +282,8 @@ private:
     QueryProcessor *qp;
     std::shared_ptr<DistributedJob> job;
     bool saveThreaded = false;
+
+    bool running;
+    boost::thread* mythread;
+
 };

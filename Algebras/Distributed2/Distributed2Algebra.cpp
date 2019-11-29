@@ -23358,6 +23358,13 @@ Distributed2Algebra::~Distributed2Algebra(){
    if(dfslogger){
      delete dfslogger;
    }
+#ifdef DPROGRESS
+   if(progressObserver){ 
+      delete progressObserver;
+      progressObserver = nullptr;
+   }
+#endif
+
 }
 
 } // end of namespace distributed2

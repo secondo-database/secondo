@@ -33,6 +33,8 @@ using namespace distributed2;
 
 ProgressObserver::ProgressObserver(QueryProcessor *qpRef)
 {
+    mythread = 0;
+    running = false;
     qp = qpRef;
     auto treeListener = std::make_shared<TreeListener>(qpRef, this);
     qpRef->registerNewTreeListener(treeListener);
@@ -41,7 +43,17 @@ ProgressObserver::ProgressObserver(QueryProcessor *qpRef)
     saveToJSONThreaded();
 }
 
-ProgressObserver::~ProgressObserver() {}
+ProgressObserver::~ProgressObserver() {
+   if(running){
+       if(mythread!=nullptr){
+          running = false;
+          mythread->join();
+          delete mythread;
+          mythread = nullptr;
+       }
+   }
+   delete jsonProcessor;
+}
 
 void ProgressObserver::observableNodesReadyCallback
 (std::unordered_map<int, Supplier> observableNodes,
@@ -375,8 +387,10 @@ std::string ProgressObserver::buildWorkerId(std::string host, int port, int num)
 
 void ProgressObserver::saveToJSONThreaded()
 {
-    boost::thread mythread([=] {
-        while (true)
+    if(running) return;
+    running = true;
+    mythread = new boost::thread([=] {
+        while (running)
         {
             boost::this_thread::sleep_for(boost::chrono::milliseconds(1000));
             if (saveThreaded)
