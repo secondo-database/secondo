@@ -63,6 +63,11 @@
     -- Start a consumer
     bin/kafka-console-consumer.sh --bootstrap-server localhost:9092 --topic test --from-beginning
 
+    -- Clean up
+    Stop server and zookeper
+    delete all in /home/grisha/work/kafka/kafka_2.12-2.2.0/logs
+    delete all in /tmp/kafka-logs (what is configured in server.properties under log.dirs=/tmp/kafka-logs)
+
 - Multiuser secondo
 
     cd $SECONDO_BUILD_DIR/bin

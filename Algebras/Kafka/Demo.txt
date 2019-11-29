@@ -1,0 +1,72 @@
+- Start Secondo
+    cd $SECONDO_BUILD_DIR/bin
+    SecondoTTYBDB
+
+- Start Kafka
+    cd /home/grisha/work/kafka/kafka_2.12-2.2.0/
+    bin/zookeeper-server-start.sh config/zookeeper.properties
+    bin/kafka-server-start.sh config/server.properties
+
+ - Opend DB
+    open database berlintest
+
+ - Write and read
+    query plz feed writetokafka["localhost","test"] count;
+    query readfromkafka("localhost", "test", FALSE) count;
+
+ - Continuous reading
+    -- Star other instance
+        open terminal
+        export SECONDO_CONFIG=${HOME}/work/thirdInstance/SecondoConfig.ini
+        SecondoTTYBDB
+        open database berlintest
+
+    first:  query readfromkafka("localhost", "test", TRUE) finishStream[8080] consoleConsumer count;
+    second: query plz feed filter [.Ort="Karlsruhe"] writetokafka["localhost","test"] consume;
+    second: query signalFinish("localhost", 8080);
+
+  - Big objects
+
+    open database NRW
+    list objects
+    query Buildings count -> 8 051 860
+    query Roads count -> 1 881 484
+
+    -- Write
+        query Roads feed writetokafka["localhost","roads1"] count;
+        -> 1 881 484 takes 5:01 min 3,5 GB
+        query Buildings feed writetokafka["localhost","buildings1"] count;
+        -> 8051860 takes 29:52min 17,0 GB
+    -- Read
+        query readfromkafka("localhost", "roads1", FALSE) count; -> 1881484 takes 9:15min
+
+ - WebSockets
+
+  --from mock data
+
+    {
+       "application": "hiking",
+       "reputons": [
+       {
+           "rater": "HikingAsylum",
+           "assertion": "advanced",
+           "rated": "Marilyn C",
+           "rating": 0.90
+         }
+       ]
+    }
+
+    query readfromwebsocket("mock://data", "hello", 'Name,string,/reputons/0/rated') finishStream[8080] head[10] consume;
+
+  -- One field
+
+    query readfromwebsocket("wss://ws.blockchain.info/inv", "{\"op\":\"unconfirmed_sub\"}", 'Name,string,/op') finishStream[8080] consoleConsumer head[10] count;
+
+  -- Many fields
+
+    query readfromwebsocket("wss://ws.blockchain.info/inv", "{\"op\":\"unconfirmed_sub\"}", 'Name,string,/op;Size,string,/x/size;Addr,string,/x/inputs/0/prev_out/addr') finishStream[8080] consoleConsumer head[10] count;
+
+  -- Continuous
+
+    first:      query readfromwebsocket("wss://ws.blockchain.info/inv", "{\"op\":\"unconfirmed_sub\"}", 'Name,string,/op;Size,string,/x/size;Addr,string,/x/inputs/0/prev_out/addr') finishStream[8080] consoleConsumer count;
+    secondo:    query signalFinish("localhost", 8080);
