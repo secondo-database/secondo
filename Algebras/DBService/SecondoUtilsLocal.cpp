@@ -225,7 +225,7 @@ SecondoUtilsLocal::createRelation(const string& queryAsString,
     QueryProcessor* queryProcessor = new QueryProcessor( nli,
             SecondoSystem::GetAlgebraManager(),
             DEFAULT_GLOBAL_MEMORY);
-    queryProcessor->SetDebugLevel(3);
+    //queryProcessor->SetDebugLevel(3);
     SecondoCatalog* catalog = SecondoSystem::GetCatalog();
 
     Word result = SetWord(Address(0));
@@ -310,7 +310,7 @@ bool SecondoUtilsLocal::executeQueryCommand(const string& queryAsString,
     QueryProcessor* queryProcessor = new QueryProcessor( nli,
             SecondoSystem::GetAlgebraManager(),
             DEFAULT_GLOBAL_MEMORY);
-    queryProcessor->SetDebugLevel(3);
+    //queryProcessor->SetDebugLevel(3);
     SecondoCatalog* catalog = SecondoSystem::GetCatalog();
 
     Word result = SetWord(Address(0));
