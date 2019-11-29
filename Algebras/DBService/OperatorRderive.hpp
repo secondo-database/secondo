@@ -47,14 +47,19 @@ struct RderiveInfo: OperatorInfo
 {
     RderiveInfo()
     {
-        name = "rderive";
-        signature = "rel(tuple) x fun -> stream(tuple)";
-        syntax = "read(rel, fun)";
-        meaning = "read a tuple stream from a relation and fall back to the "
-                  "replica provided by the DBService if necessary";
-        example = "let plz_Ort = plz rderive[\"plz_Ort\",. createIndex[Ort] ]";
-        remark = "requires a DBService system";
-        usesArgsInTypeMapping = true;
+      name = "rderive";
+      signature = "rel(X) x string x fun(rel(X) -> Y)  -> Y";
+      syntax    = "rel rderive[string, fun]";
+      meaning   = "Create an object derived from a relation stored " 
+                  "(replicated) by the DBService. The DBService "
+                  " determines the location of the replicas and "
+                  " creates the respective derived objects in "
+                  "the same locations. Useful for creating indexes on "
+                  "replicated relations. Relations with their indexes can then"
+                  " be accessed by read3 operations.";
+      example = "query plz rderive[\"plz_ort_btree\", . createbtree[Ort]]";
+      remark  = "requires a DBService system";
+      usesArgsInTypeMapping = true;
     }
 };
 

@@ -84,7 +84,7 @@ Remark    : Result depends on the presence of DBService configuration
 
 Operator : rderive
 Number   : 1
-Signature : rel x string x fun(rel->X) -> X
+Signature : rel x string x fun(rel->X) -> X 
 Example   : query plz rderive["plz_count", . count] = plz count
 Result    : TRUE
 Remark    : Requires running DBService
