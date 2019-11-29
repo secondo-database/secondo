@@ -44,4 +44,4 @@ operator size alias SIZE pattern op ( _ )
 operator feedIS alias FEEDIS pattern _ op
 operator collect_intset alias COLLECT_INTSET pattern _ op [_] 
 operator sdiff alias SDIFF pattern _ infixop _ 
-
+operator minCommon alias MINCOMMON pattern op (_,_)

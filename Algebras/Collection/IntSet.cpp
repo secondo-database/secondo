@@ -389,7 +389,6 @@ void IntSet::Rebuild(char* buffer, size_t sz) {
    }
 
 
-
    IntSet IntSet::intersection(const IntSet& is) const {
      if(!IsDefined() || !is.IsDefined()){
          IntSet res(false);
@@ -436,6 +435,28 @@ void IntSet::Rebuild(char* buffer, size_t sz) {
      return value[min] == i;
 
    }
+
+
+   bool IntSet::minCommon(const IntSet& is, int& result) const{
+     result = 0;
+     if(!IsDefined() || !is.IsDefined()){
+         return false;
+     }
+     size_t p1 = 0;
+     size_t p2 = 0;
+     while( p1 < size && p2 < is.size){
+         if(value[p1] < is.value[p2]){
+            p1++;
+         } else if(value[p1] > is.value[p2]){
+            p2++;
+         } else {
+            result = value[p1];
+            return true;
+         }
+     }
+     return false;
+   }
+
 
 } // end of namespace
 

@@ -201,10 +201,49 @@ class IntSet: public Attribute{
 
    void setTo(const std::set<int>& src);
 
+/*
+~add~
+
+Computes the usion of both sets.
+
+*/
    IntSet add(const IntSet& is) const;
+
+/*
+~minus~
+
+Computes the set difference.
+
+*/
    IntSet minus(const IntSet& is) const;
+
+/*
+~intersection~
+
+speaks for itself
+
+*/
    IntSet intersection(const IntSet& is) const;
+
+/*
+~sdiff~
+
+Symmetrioc difference.
+
+*/
    IntSet sdiff(const IntSet& is) const;
+
+/*
+~minCommon~
+
+Computes the minimum common element of both sets.
+If such an object does not exist. The return value will be
+false. Otherwise the value of the minimum object
+os returned in parameter result. Of course, this operator
+contains also an intersects predicate.
+
+*/
+   bool minCommon(const IntSet& is, int& result) const;
 
 
    bool contains( int i) const;

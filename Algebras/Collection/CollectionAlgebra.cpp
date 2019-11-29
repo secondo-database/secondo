@@ -1999,6 +1999,52 @@ Operator sdiffOp(
 );
 
 
+/*
+~minCommon~
+
+*/
+ListExpr minCommonTM(ListExpr args){
+  if(!nl->HasLength(args,2)){
+    return listutils::typeError("2 arguments expected");
+  }
+  if(   !IntSet::checkType(nl->First(args)) 
+     || !IntSet::checkType(nl->Second(args))) {
+    return listutils::typeError("intset x intset expected");
+  }
+  return listutils::basicSymbol<CcInt>();
+}
+
+int minCommonVM(Word* args, Word& result, int message, 
+                Word& local, Supplier s){
+   result = qp->ResultStorage(s);
+   IntSet* a1 = (IntSet*) args[0].addr;
+   IntSet* a2 = (IntSet*) args[1].addr;
+   CcInt* res = (CcInt*) result.addr;
+   int value;
+   bool intersects = a1->minCommon(*a2,value);
+   res->Set(intersects,value);
+   return 0;
+}
+
+OperatorSpec minCommonSpec(
+  "intset x intset -> int",
+  "minCommon(_,_)",
+  "Computes the minimum common element of both sets. "
+  "If such an element does not exist, an undefined value "
+  "is returned.",
+  "query minCommon(is1,is2)"
+);
+
+Operator minCommonOp(
+  "minCommon",
+  minCommonSpec.getStr(),
+  minCommonVM,
+  Operator::SimpleSelect,
+  minCommonTM
+);
+
+
+
 
 /*
 5 Implementation of class CollectionAlgebra, registration of TypeConstructors
@@ -2066,6 +2112,7 @@ class CollectionAlgebra : public Algebra {
       AddOperator(&minusOp);
       AddOperator(&intersectionOp2);
       AddOperator(&sdiffOp);
+      AddOperator(&minCommonOp);
 
     }
     ~CollectionAlgebra() {};
