@@ -49,7 +49,7 @@ void SecondoUtilsLocal::readFromConfigFile(string& resultValue,
         const char* key,
         const char* defaultValue)
 {
-    printFunction("SecondoUtilsLocal::readFromConfigFile");
+    printFunction("SecondoUtilsLocal::readFromConfigFile", std::cout);
     string secondoConfig = expandVar("$(SECONDO_CONFIG)");
     resultValue = SmiProfile::GetParameter(section,
             key, defaultValue, secondoConfig);
@@ -65,22 +65,22 @@ bool SecondoUtilsLocal::prepareQueryForProcessing(
             const string& queryAsString,
             string& queryAsPreparedNestedListString)
 {
-    printFunction("SecondoUtilsLocal::prepareQueryForProcessing");
-    print("queryAsString", queryAsString);
+    printFunction("SecondoUtilsLocal::prepareQueryForProcessing", std::cout);
+    print("queryAsString", queryAsString, std::cout);
     SecParser secondoParser;
     string queryAsNestedListString;
     if (secondoParser.Text2List(queryAsString, queryAsNestedListString) != 0)
     {
-        print("could not parse query");
+        print("could not parse query", std::cout);
         return false;
     }
-    print("query converted to nested list string");
-    print("queryAsNestedListString 1", queryAsNestedListString);
+    print("query converted to nested list string", std::cout);
+    print("queryAsNestedListString 1", queryAsNestedListString, std::cout);
 
     if(queryAsNestedListString.find("(query ") == 0)
     {
         queryAsNestedListString.erase(0, strlen("(query "));
-        print("queryAsNestedListString 2", queryAsNestedListString);
+        print("queryAsNestedListString 2", queryAsNestedListString, std::cout);
         queryAsPreparedNestedListString =
                 queryAsNestedListString.substr(
                         0, queryAsNestedListString.rfind(")"));
@@ -89,13 +89,13 @@ bool SecondoUtilsLocal::prepareQueryForProcessing(
         queryAsPreparedNestedListString = queryAsNestedListString;
     }
     print("queryAsPreparedNestedListString",
-            queryAsPreparedNestedListString);
+            queryAsPreparedNestedListString, std::cout);
     return true;
 }
 
 bool SecondoUtilsLocal::executeQuery2(const string& queryAsString)
 {
-    printFunction("SecondoUtilsLocal::executeQuery2");
+    printFunction("SecondoUtilsLocal::executeQuery2", std::cout);
     Word queryResult;
     string queryAsPreparedNestedListString;
     boost::lock_guard<boost::mutex> lock(utilsMutex);
@@ -117,29 +117,29 @@ bool SecondoUtilsLocal::executeQuery2(const string& queryAsString)
 bool SecondoUtilsLocal::executeQuery(const string& queryAsString,
                                      Word& queryResult)
 {
-    printFunction("SecondoUtilsLocal::executeQuery");
+    printFunction("SecondoUtilsLocal::executeQuery", std::cout);
     boost::lock_guard<boost::mutex> lock(utilsMutex);
-    print("queryAsString", queryAsString);
+    print("queryAsString", queryAsString, std::cout);
     SecParser secondoParser;
     string queryAsNestedListString;
     if (secondoParser.Text2List(queryAsString, queryAsNestedListString) != 0) {
-        print("could not parse query");
+        print("could not parse query", std::cout);
         return false;
     }
-    print("query converted to nested list string");
+    print("query converted to nested list string", std::cout);
 
     ListExpr queryAsNestedList;
     NestedList* nli = SecondoSystem::GetNestedList();
     if(!nli->ReadFromString(queryAsNestedListString,
             queryAsNestedList))
     {
-        print("could not read nested list from string");
+        print("could not read nested list from string", std::cout);
         return false;
     }
 
-    print("nested list string converted to nested list");
+    print("nested list string converted to nested list", std::cout);
 
-    print("queryAsNestedListString", queryAsNestedListString);
+    print("queryAsNestedListString", queryAsNestedListString, std::cout);
 
     bool success = true;
     bool correct, evaluable, defined, isFunction = false;
@@ -158,24 +158,24 @@ bool SecondoUtilsLocal::executeQuery(const string& queryAsString,
                 /*availableMemory*/);
     } catch(...)
     {
-        print("Caught exception during query execution");
+        print("Caught exception during query execution", std::cout);
         success = false;
-        print("errorString", errorString);
+        print("errorString", errorString, std::cout);
     }
-    print("success", success);
-    print("correct", correct);
-    print("evaluable", evaluable);
-    print("defined", defined);
-    print("isFunction", isFunction);
+    print("success", success, std::cout);
+    print("correct", correct, std::cout);
+    print("evaluable", evaluable, std::cout);
+    print("defined", defined, std::cout);
+    print("isFunction", isFunction, std::cout);
     return success;
 }
 
 bool SecondoUtilsLocal::adjustDatabase(const string& databaseName)
 {
-    printFunction("SecondoUtilsLocal::adjustDatabase");
+    printFunction("SecondoUtilsLocal::adjustDatabase", std::cout);
     const string currentDB = SecondoSystem::GetInstance()->GetDatabaseName();
-    print("current database name", currentDB);
-    print("requested database name", databaseName);
+    print("current database name", currentDB, std::cout);
+    print("requested database name", databaseName, std::cout);
 
     string databaseNameUppered(databaseName);
 
@@ -189,7 +189,7 @@ bool SecondoUtilsLocal::adjustDatabase(const string& databaseName)
             != databaseNameUppered)
     {
         boost::lock_guard<boost::mutex> lock(utilsMutex);
-        print("need to adjust database");
+        print("need to adjust database", std::cout);
         string queryClose("close database");
         SecondoUtilsLocal::executeQuery(queryClose);
 
@@ -205,7 +205,7 @@ bool SecondoUtilsLocal::adjustDatabase(const string& databaseName)
         return true;
     }else
     {
-        print("database name matches, no need to adjust");
+        print("database name matches, no need to adjust", std::cout);
     }
     return false;
 }
@@ -214,7 +214,7 @@ bool
 SecondoUtilsLocal::createRelation(const string& queryAsString,
         string& errorMessage)
 {
-    printFunction("SecondoUtilsLocal::createRelation");
+    printFunction("SecondoUtilsLocal::createRelation", std::cout);
     bool correct = false;
     bool evaluable = false;
     bool defined = false;
@@ -233,19 +233,19 @@ SecondoUtilsLocal::createRelation(const string& queryAsString,
 
     ListExpr resultType = nl->TheEmptyList();
 
-    print("queryAsString", queryAsString);
+    print("queryAsString", queryAsString, std::cout);
     SecParser secondoParser;
     string queryAsNestedListString;
     if (secondoParser.Text2List(queryAsString, queryAsNestedListString) != 0) {
-        print("could not parse query");
+        print("could not parse query", std::cout);
         return false;
     }
-    print("query converted to nested list string");
+    print("query converted to nested list string", std::cout);
     ListExpr queryAsNestedList;
     if (!nl->ReadFromString(queryAsNestedListString, queryAsNestedList)) {
-        print("could not convert string to list");
+        print("could not convert string to list", std::cout);
     }
-    print("nested list string converted to nested list");
+    print("nested list string converted to nested list", std::cout);
 
     string objectName = nl->SymbolValue(nl->Second(queryAsNestedList));
     ListExpr valueExpr = nl->Fourth(queryAsNestedList);
@@ -265,7 +265,7 @@ SecondoUtilsLocal::createRelation(const string& queryAsString,
         }
     } catch (...) {
 
-        print("caught error");
+        print("caught error", std::cout);
         queryProcessor->Destroy(tree, true);
     }
 
@@ -278,7 +278,7 @@ SecondoUtilsLocal::createRelation(const string& queryAsString,
 
 bool SecondoUtilsLocal::executeQueryCommand(const string& queryAsString)
 {
-    printFunction("SecondoUtilsLocal::executeQueryCommand (1 arg)");
+    printFunction("SecondoUtilsLocal::executeQueryCommand (1 arg)", std::cout);
     ListExpr resultList;
     string errorMessage;
     bool resultOk = SecondoUtilsLocal::executeQueryCommand(
@@ -287,19 +287,19 @@ bool SecondoUtilsLocal::executeQueryCommand(const string& queryAsString)
                                                     errorMessage);
     if(resultOk)
     {
-        print("query executed successfully");
-        print("resultList", resultList);
+        print("query executed successfully", std::cout);
+        print("resultList", resultList, std::cout);
     }else
     {
-        print("failed to execute query");
-        print("errorMessage", errorMessage);
+        print("failed to execute query", std::cout);
+        print("errorMessage", errorMessage, std::cout);
     }
     return resultOk;
 }
 
 bool SecondoUtilsLocal::executeQueryCommand(const string& queryAsString,
         ListExpr& resultList, string& errorMessage) {
-    printFunction("SecondoUtilsLocal::executeQueryCommand (2 args)");
+    printFunction("SecondoUtilsLocal::executeQueryCommand (2 args)", std::cout);
     bool correct = false;
     bool evaluable = false;
     bool defined = false;
@@ -318,28 +318,28 @@ bool SecondoUtilsLocal::executeQueryCommand(const string& queryAsString,
 
     ListExpr resultType = nl->TheEmptyList();
 
-    print("queryAsString", queryAsString);
+    print("queryAsString", queryAsString, std::cout);
     SecParser secondoParser;
     string queryAsNestedListString;
     if (secondoParser.Text2List(queryAsString, queryAsNestedListString) != 0) {
-        print("could not parse query");
+        print("could not parse query", std::cout);
         return false;
     }
-    print("query converted to nested list string");
-    print("queryAsNestedListString", queryAsNestedListString);
+    print("query converted to nested list string", std::cout);
+    print("queryAsNestedListString", queryAsNestedListString, std::cout);
 
     ListExpr queryAsNestedList;
     if (!nl->ReadFromString(queryAsNestedListString, queryAsNestedList)) {
-        print("could not convert string to list");
+        print("could not convert string to list", std::cout);
     }
-    print("nested list string converted to nested list");
-    print("queryAsNestedList", queryAsNestedList);
+    print("nested list string converted to nested list", std::cout);
+    print("queryAsNestedList", queryAsNestedList, std::cout);
 
     try {
-        print("queryProcessor->Construct");
+        print("queryProcessor->Construct", std::cout);
         queryProcessor->Construct(nl->Second(queryAsNestedList), correct,
                 evaluable, defined, isFunction, tree, resultType);
-        print("trying queryProcessor->Construct done");
+        print("trying queryProcessor->Construct done", std::cout);
         cout << "correct: " << correct << endl;
         cout << "evaluable: " << evaluable << endl;
         cout << "defined: " << defined << endl;
@@ -347,20 +347,20 @@ bool SecondoUtilsLocal::executeQueryCommand(const string& queryAsString,
 
         if (evaluable) {
             queryProcessor->EvalS(tree, result, 1);
-            print("queryProcessor->EvalP done");
+            print("queryProcessor->EvalP done", std::cout);
 
             ListExpr valueList = catalog->OutObject(resultType, result);
-            print("valueList done");
+            print("valueList done", std::cout);
 
             resultList = nl->TwoElemList(resultType, valueList);
-            print("resultList done");
+            print("resultList done", std::cout);
 
             queryProcessor->Destroy(tree, true);
-            print("queryProcessor->Destroy done");
+            print("queryProcessor->Destroy done", std::cout);
         }
 
     } catch (...) {
-        print("caught error");
+        print("caught error", std::cout);
         queryProcessor->Destroy(tree, true);
         return false;
     }
@@ -371,14 +371,14 @@ bool SecondoUtilsLocal::lookupDBServiceLocation(
             string& host,
             string& commPort)
 {
-    printFunction("DBServiceConnector::lookupDBServiceLocation");
+    printFunction("DBServiceConnector::lookupDBServiceLocation", std::cout);
     SecondoUtilsLocal::readFromConfigFile(host,
                                            "DBService",
                                            "DBServiceHost",
                                            "");
     if(host.length() == 0)
     {
-        print("could not find DBServiceHost in config file");
+        print("could not find DBServiceHost in config file", std::cout);
         return false;
     }
 
@@ -388,7 +388,7 @@ bool SecondoUtilsLocal::lookupDBServiceLocation(
                                        "");
     if(commPort.length() == 0)
     {
-        print("could not find DBServicePort in config file");
+        print("could not find DBServicePort in config file", std::cout);
         return false;
     }
     return true;

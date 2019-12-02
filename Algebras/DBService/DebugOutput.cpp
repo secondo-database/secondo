@@ -28,199 +28,202 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Algebras/DBService/DebugOutput.hpp"
 #include "Algebras/DBService/TraceSettings.hpp"
 
+#include <iostream>
+
 namespace DBService
 {
 
 using namespace std;
 
-void print(string& text)
+void print(string& text, std::ostream& out)
 {
     if(TraceSettings::getInstance()->isDebugTraceOn())
     {
-        cout << text << endl;
+        out << text << endl;
     }
 }
 
-void printFunction(const char* text)
+void printFunction(const char* text, std::ostream& out)
 {
     if(TraceSettings::getInstance()->isDebugTraceOn())
     {
-        cout << "********************************" << endl;
-        cout << text << endl;
+        out << "********************************" << endl;
+        out << text << endl;
     }
 }
 
-void printFunction(boost::thread::id tid, const char* text)
+void printFunction(boost::thread::id tid, const char* text, std::ostream& out)
 {
     if(TraceSettings::getInstance()->isDebugTraceOn())
     {
-        cout << "********************************" << endl;
-        cout << "[Thread " << tid << "] " << text << endl;
+        out << "********************************" << endl;
+        out << "[Thread " << tid << "] " << text << endl;
     }
 }
 
-void print(const string& text)
+void print(const string& text, std::ostream& out)
 {
     if(TraceSettings::getInstance()->isDebugTraceOn())
     {
-        cout << text << endl;
+        out << text << endl;
     }
 }
 
-void print(const char* text)
+void print(const char* text, std::ostream& out)
 {
     if(TraceSettings::getInstance()->isDebugTraceOn())
     {
-        cout << text << endl;
+        out << text << endl;
     }
 }
 
-void print(ListExpr nestedList)
+void print(ListExpr nestedList, std::ostream& out)
 {
     if(TraceSettings::getInstance()->isDebugTraceOn())
     {
-        cout << "length: " << nl->ListLength(nestedList) << endl;
-        cout << nl->ToString(nestedList) << endl;
+        out << "length: " << nl->ListLength(nestedList) << endl;
+        out << nl->ToString(nestedList) << endl;
     }
 }
 
-void print(int number)
+void print(int number, std::ostream& out)
 {
     if(TraceSettings::getInstance()->isDebugTraceOn())
     {
-        cout << number << endl;
+        out << number << endl;
     }
 }
 
-void print(const char* text, int number)
+void print(const char* text, int number, std::ostream& out)
 {
     if(TraceSettings::getInstance()->isDebugTraceOn())
     {
-        cout << text << endl;
-        cout << number << endl;
+        out << text << endl;
+        out << number << endl;
     }
 }
 
-void print(const char* text, ListExpr nestedList)
+void print(const char* text, ListExpr nestedList, std::ostream& out)
 {
     if(TraceSettings::getInstance()->isDebugTraceOn())
     {
-        cout << text << endl;
-        cout << "length: " << nl->ListLength(nestedList) << endl;
-        cout << nl->ToString(nestedList) << endl;
+        out << text << endl;
+        out << "length: " << nl->ListLength(nestedList) << endl;
+        out << nl->ToString(nestedList) << endl;
     }
 }
 
-void print(const char* text1, string& text2)
+void print(const char* text1, string& text2, std::ostream& out)
 {
     if(TraceSettings::getInstance()->isDebugTraceOn())
     {
-        cout << text1 <<  ": " << text2 << endl;
+        out << text1 <<  ": " << text2 << endl;
     }
 }
 
-void print(const char* text1, const string& text2)
+void print(const char* text1, const string& text2, std::ostream& out)
 {
     if(TraceSettings::getInstance()->isDebugTraceOn())
     {
-        cout << text1 <<  ": " << text2 << endl;
+        out << text1 <<  ": " << text2 << endl;
     }
 }
 
-void print(boost::thread::id tid, const char* text1, const string& text2)
+void print(boost::thread::id tid, const char* text1, const string& text2,
+           std::ostream& out)
 {
     if(TraceSettings::getInstance()->isDebugTraceOn())
     {
-        cout << "[Thread " << tid << "] " << text1 << ": " << text2 << endl;
+        out << "[Thread " << tid << "] " << text1 << ": " << text2 << endl;
     }
 }
 
-void print(const string& text1, const char* text2)
+void print(const string& text1, const char* text2, std::ostream& out)
 {
     if(TraceSettings::getInstance()->isDebugTraceOn())
     {
-        cout << text1 << endl;
-        cout << text2 << endl;
+        out << text1 << endl;
+        out << text2 << endl;
     }
 }
 
-void print(const LocationInfo& locationInfo)
+void print(const LocationInfo& locationInfo, std::ostream& out)
 {
     if(TraceSettings::getInstance()->isDebugTraceOn())
     {
-        cout << "LocationInfo:" << endl;
-        printLocationInfo(locationInfo);
+        out << "LocationInfo:" << endl;
+        printLocationInfo(locationInfo, out);
     }
 }
 
-void printLocationInfo(const LocationInfo& locationInfo)
+void printLocationInfo(const LocationInfo& locationInfo, std::ostream& out)
 {
-    cout << "Host:\t\t" << locationInfo.getHost() << endl;
-    cout << "Port:\t\t" << locationInfo.getPort() << endl;
-    cout << "Disk:\t\t" << locationInfo.getDisk() << endl;
-    cout << "CommPort:\t" << locationInfo.getCommPort() << endl;
-    cout << "TransferPort:\t" << locationInfo.getTransferPort() << endl;
+    out << "Host:\t\t" << locationInfo.getHost() << endl;
+    out << "Port:\t\t" << locationInfo.getPort() << endl;
+    out << "Disk:\t\t" << locationInfo.getDisk() << endl;
+    out << "CommPort:\t" << locationInfo.getCommPort() << endl;
+    out << "TransferPort:\t" << locationInfo.getTransferPort() << endl;
 }
 
-void print(const RelationInfo& relationInfo)
+void print(const RelationInfo& relationInfo, std::ostream& out)
 {
     if(TraceSettings::getInstance()->isDebugTraceOn())
     {
-        cout << "RelationInfo:" << endl;
-        printRelationInfo(relationInfo);
+        out << "RelationInfo:" << endl;
+        printRelationInfo(relationInfo, out);
     }
 }
 
 
-void print(const DerivateInfo& derivateInfo)
+void print(const DerivateInfo& derivateInfo, std::ostream& out)
 {
     if(TraceSettings::getInstance()->isDebugTraceOn())
     {
-        cout << "DerivateInfo:" << endl;
-        printDerivateInfo(derivateInfo);
+        out << "DerivateInfo:" << endl;
+        printDerivateInfo(derivateInfo, out);
     }
 }
 
-void printRelationInfo(const RelationInfo& relationInfo)
+void printRelationInfo(const RelationInfo& relationInfo, std::ostream& out)
 {
-    cout << "DatabaseName:\t" << relationInfo.getDatabaseName() << endl;
-    cout << "RelationName:\t" << relationInfo.getRelationName() << endl;
-    cout << "Host:\t\t" << relationInfo.getOriginalLocation().getHost() << endl;
-    cout << "Port:\t\t" << relationInfo.getOriginalLocation().getPort() << endl;
-    cout << "Disk:\t\t" << relationInfo.getOriginalLocation().getDisk() << endl;
+    out << "DatabaseName:\t" << relationInfo.getDatabaseName() << endl;
+    out << "RelationName:\t" << relationInfo.getRelationName() << endl;
+    out << "Host:\t\t" << relationInfo.getOriginalLocation().getHost() << endl;
+    out << "Port:\t\t" << relationInfo.getOriginalLocation().getPort() << endl;
+    out << "Disk:\t\t" << relationInfo.getOriginalLocation().getDisk() << endl;
     for(ReplicaLocations::const_iterator it
             = relationInfo.nodesBegin(); it != relationInfo.nodesEnd(); it++)
     {
-        cout << "Node:\t\t" << it->first << " (Replicated: " <<
+        out << "Node:\t\t" << it->first << " (Replicated: " <<
                 (it->second ? "TRUE" : "FALSE") << ")"
                 << endl;
     }
 }
 
 
-void printDerivateInfo(const DerivateInfo& derivateInfo)
+void printDerivateInfo(const DerivateInfo& derivateInfo, std::ostream& out)
 {
-    cout << "ObjectName:\t" << derivateInfo.getName() << endl;
-    cout << "DependsOn:\t" << derivateInfo.getSource() << endl;
-    cout << "Fun:\t\t"     << derivateInfo.getFun() << endl;
+    out << "ObjectName:\t" << derivateInfo.getName() << endl;
+    out << "DependsOn:\t" << derivateInfo.getSource() << endl;
+    out << "Fun:\t\t"     << derivateInfo.getFun() << endl;
     for(ReplicaLocations::const_iterator it
             = derivateInfo.nodesBegin(); it != derivateInfo.nodesEnd(); it++)
     {
-        cout << "Node:\t\t" << it->first << " (Replicated: " <<
+        out << "Node:\t\t" << it->first << " (Replicated: " <<
                 (it->second ? "TRUE" : "FALSE") << ")"
                 << endl;
     }
 }
 
-void print(const char* text, const vector<string>& values)
+void print(const char* text, const vector<string>& values, std::ostream& out)
 {
     if(TraceSettings::getInstance()->isDebugTraceOn())
     {
-       cout << text << endl << endl;
+       out << text << endl << endl;
        for(auto &t : values){
-          cout << t << endl;
+          out << t << endl;
        }
-       cout << "-----" << endl;
+       out << "-----" << endl;
     }  
 }
 

@@ -36,6 +36,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <memory>
 
 #include <boost/shared_ptr.hpp>
+#include <iostream>
 
 #include "Algebras/Distributed2/ConnectionInfo.h"
 
@@ -186,7 +187,7 @@ identified by the specified string.
 Debug method. prints all known derivates.
 
 */
-   void printDerivates() const;
+   void printDerivates(std::ostream& out) const;
 
 
 
@@ -332,7 +333,7 @@ This function prints all DBService metadata used for replica provisioning to
 the command line.
 
 */
-    void printMetadata();
+    void printMetadata(std::ostream& out);
 
 /*
 

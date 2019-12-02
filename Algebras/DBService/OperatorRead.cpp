@@ -45,7 +45,7 @@ namespace DBService {
 
 ListExpr OperatorRead::mapType(ListExpr nestedList)
 {
-    print(nestedList);
+    print(nestedList, std::cout);
 
     if(!nl->HasLength(nestedList, 1))
     {
@@ -58,20 +58,20 @@ ListExpr OperatorRead::mapType(ListExpr nestedList)
 
     bool relationLocallyAvailable = (feedTypeMapResult != nl->TypeError());
     print("relationLocallyAvailable",
-            string(relationLocallyAvailable ? "TRUE" : "FALSE"));
+            string(relationLocallyAvailable ? "TRUE" : "FALSE"), std::cout);
     string fileName;
     if(!relationLocallyAvailable)
     {
-        print("Trying to retrieve relation from DBService");
+        print("Trying to retrieve relation from DBService", std::cout);
         const string databaseName =
                 SecondoSystem::GetInstance()->GetDatabaseName();
         const string relationName = nl->ToString(nl->First(nestedList));
-        print("databaseName", databaseName);
-        print("relationName", relationName);
+        print("databaseName", databaseName, std::cout);
+        print("relationName", relationName, std::cout);
         vector<string> otherObjects;
         DBServiceClient* client = DBServiceClient::getInstance();
         if(!client){
-          print("could not create client");
+          print("could not create client", std::cout);
           return listutils::typeError("Could not create client, "
                                       "check dbs configuration");
         }
@@ -82,10 +82,10 @@ ListExpr OperatorRead::mapType(ListExpr nestedList)
                         string(""));
         if(fileName.empty())
         {
-            print("Did not receive file");
+            print("Did not receive file", std::cout);
             return listutils::typeError("File does not exist");
         }
-        print("fileName", fileName);
+        print("fileName", fileName, std::cout);
         ffeed5Info info(fileName);
         if(info.isOK()){
            feedTypeMapResult = nl->TwoElemList(
@@ -93,18 +93,18 @@ ListExpr OperatorRead::mapType(ListExpr nestedList)
                    nl->Second(info.getRelType()));
         }else
         {
-            print("Could not determine relation type from file");
+            print("Could not determine relation type from file", std::cout);
             return listutils::typeError("Unreadable file");
         }
     }
-    print("feedTypeMapResult", feedTypeMapResult);
+    print("feedTypeMapResult", feedTypeMapResult, std::cout);
 
     ListExpr readTypeMapResult = nl->ThreeElemList(
             nl->SymbolAtom(Symbols::APPEND()),
             nl->OneElemList((relationLocallyAvailable ?
                     nl->StringAtom("") : nl->StringAtom(fileName))),
                     feedTypeMapResult);
-    print("readTypeMapResult", readTypeMapResult);
+    print("readTypeMapResult", readTypeMapResult, std::cout);
     return readTypeMapResult;
 }
 
@@ -128,16 +128,16 @@ int OperatorRead::mapValue(Word* args,
             delete info;
             local.addr = 0;
         }
-        print("Reading tuple stream from file", fileName);
+        print("Reading tuple stream from file", fileName, std::cout);
         info = new ffeed5Info(fileName);
         if(!info->isOK())
         {
-            print("Could not read file");
+            print("Could not read file", std::cout);
             delete info;
             return 0;
         }
         ListExpr relType = info->getRelType();
-        print("relType", relType);
+        print("relType", relType, std::cout);
         if(!Relation::checkType(relType))
         {
             delete info;

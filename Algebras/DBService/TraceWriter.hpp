@@ -33,6 +33,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <fstream>
 #include <memory>
 #include <string>
+#include <iostream>
 
 #include <boost/thread.hpp>
 #include <boost/thread/mutex.hpp>
@@ -60,7 +61,7 @@ public:
 1.1.1.1 Constructor
 
 */
-    TraceWriter(std::string& context, int port);
+    TraceWriter(std::string& context, int port, std::ostream& out);
 
 /*
 
@@ -104,9 +105,9 @@ for all necessary data types.
     void write(const std::string& text,
                const std::vector<T>& value){
          
-         print(text);
+         print(text, *out);
          for(auto& v : value){
-           print(v);
+           print(v, *out);
          }
          if(TraceSettings::getInstance()->isFileTraceOn())
          {
@@ -127,6 +128,7 @@ Stores the name of the trace file
 */
 private:
     std::string fileName;
+    std::ostream* out;
 
 /*
 

@@ -44,12 +44,12 @@ Replicator::Replicator(
         ListExpr type)
 : runner(0), databaseName(dbName), relationName(relName), relType(type)
 {
-    printFunction("Replicator::Replicator");
+    printFunction("Replicator::Replicator", std::cout);
 }
 
 Replicator::~Replicator()
 {
-    printFunction("Replicator::~Replicator");
+    printFunction("Replicator::~Replicator", std::cout);
 }
 
 void Replicator::createReplica(
@@ -58,10 +58,10 @@ void Replicator::createReplica(
         const ListExpr relType,
         const bool async)
 {
-    printFunction("Replicator::createReplica");
-    print("databaseName", databaseName);
-    print("relationName", relationName);
-    print("async", string(async ? "TRUE" : "FALSE"));
+    printFunction("Replicator::createReplica", std::cout);
+    print("databaseName", databaseName, std::cout);
+    print("relationName", relationName, std::cout);
+    print("async", string(async ? "TRUE" : "FALSE"), std::cout);
 
     if(async)
     {
@@ -72,7 +72,7 @@ void Replicator::createReplica(
         SecondoCatalog* catalog = SecondoSystem::GetCatalog();
         if(!catalog->IsObjectName(relationName))
         {
-            print("not an object");
+            print("not an object", std::cout);
             return;
         }
 
@@ -80,7 +80,7 @@ void Replicator::createReplica(
         bool defined;
         do
         {
-            print("object not yet defined");
+            print("object not yet defined", std::cout);
             catalog->GetObject(relationName, value, defined);
         }while(!defined);
 
@@ -89,12 +89,12 @@ void Replicator::createReplica(
         if(!BinRelWriter::writeRelationToFile(rel, relType,
                 fileName))
         {
-            print("Could not write relation to file");
+            print("Could not write relation to file", std::cout);
             return;
         }
     }
 
-    print("Giving starting signal for replication");
+    print("Giving starting signal for replication", std::cout);
     string dbServiceHost;
     string dbServiceCommPort;
     SecondoUtilsLocal::lookupDBServiceLocation(
@@ -109,7 +109,7 @@ void Replicator::createReplica(
 
 void Replicator::run(const bool async)
 {
-    printFunction("Replicator::run");
+    printFunction("Replicator::run", std::cout);
     if(runner){
        runner->join();
        delete runner;

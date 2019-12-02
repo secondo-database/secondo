@@ -35,7 +35,7 @@ namespace DBService
 
 ListExpr OperatorUseIncrementalMetadataUpdate::mapType(ListExpr nestedList)
 {
-    print(nestedList);
+    print(nestedList, std::cout);
 
     if (!nl->HasLength(nestedList, 1))
     {
@@ -61,10 +61,10 @@ int OperatorUseIncrementalMetadataUpdate::mapValue(Word* args,
                                Supplier s)
 {
     bool currentValue = DBServiceManager::isUsingIncrementalMetadataUpdate();
-    print("currentValue", currentValue);
+    print("currentValue", currentValue, std::cout);
 
     bool newValue = static_cast<CcBool*>(args[0].addr)->GetValue();
-    print("newValue", newValue);
+    print("newValue", newValue, std::cout);
 
     if(currentValue != newValue)
     {

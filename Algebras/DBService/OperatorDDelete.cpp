@@ -43,7 +43,7 @@ namespace DBService
 
 ListExpr OperatorDDelete::mapType(ListExpr nestedList)
 {
-    print(nestedList);
+    print(nestedList, std::cout);
 
     if (!nl->HasLength(nestedList, 2) && !nl->HasLength(nestedList,3))
     {
@@ -95,9 +95,9 @@ int OperatorDDelete::mapValue(Word* args,
       deleteLocalRelation = static_cast<CcBool*>(args[2].addr)->GetValue();
     }
 
-    print("relationName", relationName);
-    print("derivateName", derivateName);
-    print("deleteLocalRelation", deleteLocalRelation);
+    print("relationName", relationName, std::cout);
+    print("derivateName", derivateName, std::cout);
+    print("deleteLocalRelation", deleteLocalRelation, std::cout);
 
     FileSystem::DeleteFileOrFolder(
             ReplicationUtils::getFileName(
@@ -120,7 +120,7 @@ int OperatorDDelete::mapValue(Word* args,
 
     if(deleteLocalRelation)
     {
-        print("deleting local relation");
+        print("deleting local relation", std::cout);
         SecondoCatalog* catalog = SecondoSystem::GetCatalog();
         if (!catalog->DeleteObject(relationName))
         {

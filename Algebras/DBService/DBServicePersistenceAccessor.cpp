@@ -45,9 +45,9 @@ bool DBServicePersistenceAccessor::deleteAndCreate(
         const RelationDefinition& rel,
         const vector<vector <string> >& values)
 {
-    printFunction("DBServicePersistenceAccessor::createOrInsert");
+    printFunction("DBServicePersistenceAccessor::createOrInsert", std::cout);
     string databaseName("dbservice");
-    print(relationName);
+    print(relationName, std::cout);
 
     SecondoUtilsLocal::adjustDatabase(databaseName);
 
@@ -58,7 +58,7 @@ bool DBServicePersistenceAccessor::deleteAndCreate(
 
     if(values.empty())
     {
-        print("Nothing to persist");
+        print("Nothing to persist", std::cout);
         return true;
     }
     return createOrInsert(relationName, rel, values);
@@ -69,9 +69,9 @@ bool DBServicePersistenceAccessor::createOrInsert(
         const RelationDefinition& rel,
         const vector<vector<string> >& values)
 {
-    printFunction("DBServicePersistenceAccessor::createOrInsert");
+    printFunction("DBServicePersistenceAccessor::createOrInsert", std::cout);
     string databaseName("dbservice");
-    print(relationName);
+    print(relationName, std::cout);
 
     SecondoUtilsLocal::adjustDatabase(databaseName);
 
@@ -80,7 +80,7 @@ bool DBServicePersistenceAccessor::createOrInsert(
 
     if(!SecondoSystem::GetCatalog()->IsObjectName(relationName))
     {
-        print("relation does not exist: ", relationName);
+        print("relation does not exist: ", relationName, std::cout);
 //        SecondoSystem::CommitTransaction(true);
 //        SecondoSystem::BeginTransaction();
         resultOk = SecondoUtilsLocal::createRelation(
@@ -92,19 +92,19 @@ bool DBServicePersistenceAccessor::createOrInsert(
         if(resultOk)
         {
 //            SecondoSystem::CommitTransaction(true);
-            print("created relation: ", relationName);
+            print("created relation: ", relationName, std::cout);
         }else
         {
 //            SecondoSystem::AbortTransaction(true);
-            print("failed to create relation: ", relationName);
+            print("failed to create relation: ", relationName, std::cout);
         }
         return resultOk;
     }
-    print("relation exists, trying insert command");
+    print("relation exists, trying insert command", std::cout);
 
     if(values.size() != 1)
     {
-        print("values has wrong format for insert, aborting");
+        print("values has wrong format for insert, aborting", std::cout);
         return false;
     }
 //    SecondoSystem::BeginTransaction();
@@ -117,11 +117,11 @@ bool DBServicePersistenceAccessor::createOrInsert(
     if(resultOk)
     {
 //        SecondoSystem::CommitTransaction(true);
-        print("insert successful");
+        print("insert successful", std::cout);
     }else
     {
 //        SecondoSystem::AbortTransaction(true);
-        print("insert failed");
+        print("insert failed", std::cout);
     }
     return resultOk;
 }
@@ -129,7 +129,8 @@ bool DBServicePersistenceAccessor::createOrInsert(
 bool DBServicePersistenceAccessor::persistLocationInfo(
         ConnectionID connID, LocationInfo& locationInfo)
 {
-    printFunction("DBServicePersistenceAccessor::persistLocationInfo");
+    printFunction("DBServicePersistenceAccessor::persistLocationInfo",
+                  std::cout);
 
     string relationName("locations_DBSP");
 
@@ -150,7 +151,8 @@ bool DBServicePersistenceAccessor::persistLocationInfo(
 bool DBServicePersistenceAccessor::persistRelationInfo(
         RelationInfo& relationInfo)
 {
-    printFunction("DBServicePersistenceAccessor::persistRelationInfo");
+    printFunction("DBServicePersistenceAccessor::persistRelationInfo",
+                  std::cout);
 
     string relationName("relations_DBSP");
 
@@ -168,14 +170,14 @@ bool DBServicePersistenceAccessor::persistRelationInfo(
             createOrInsert(relationName, relations, {value});
     if(resultOk)
     {
-        print("RelationInfo persisted");
+        print("RelationInfo persisted", std::cout);
         resultOk = persistLocationMapping(
                    relationInfo.toString(),
                    relationInfo.nodesBegin(),
                    relationInfo.nodesEnd());
     }else
     {
-        print("Could not persist RelationInfo. Skipping mapping.");
+        print("Could not persist RelationInfo. Skipping mapping.", std::cout);
     }
     return resultOk;
 }
@@ -185,7 +187,8 @@ bool DBServicePersistenceAccessor::persistLocationMapping(
         ReplicaLocations::const_iterator nodesBegin,
         ReplicaLocations::const_iterator nodesEnd)
 {
-    printFunction("DBServicePersistenceAccessor::persistLocationMapping");
+    printFunction("DBServicePersistenceAccessor::persistLocationMapping",
+                  std::cout);
 
     bool resultOk = true;
     for(ReplicaLocations::const_iterator it = nodesBegin;
@@ -205,12 +208,12 @@ bool DBServicePersistenceAccessor::persistLocationMapping(
                         relationName, mapping, {value});
         if(!resultOk)
         {
-            print("failed to persist location mapping");
+            print("failed to persist location mapping", std::cout);
         }
     }
     if(resultOk)
     {
-        print("location mapping persisted successfully");
+        print("location mapping persisted successfully", std::cout);
     }
     return resultOk;
 }
@@ -219,7 +222,7 @@ bool DBServicePersistenceAccessor::persistLocationMapping(
 bool DBServicePersistenceAccessor::persistDerivateInfo(
         DerivateInfo& derivateInfo)
 {
-    printFunction(__PRETTY_FUNCTION__);
+    printFunction(__PRETTY_FUNCTION__, std::cout);
 
     string relationName("derivate_DBSP");
 
@@ -234,14 +237,14 @@ bool DBServicePersistenceAccessor::persistDerivateInfo(
             createOrInsert(relationName, derivates, {value});
     if(resultOk)
     {
-        print("RelationInfo persisted");
+        print("RelationInfo persisted", std::cout);
         resultOk = persistLocationMapping(
                    derivateInfo.toString(),
                    derivateInfo.nodesBegin(),
                    derivateInfo.nodesEnd());
     }else
     {
-        print("Could not persist DerivateInfo. Skipping mapping.");
+        print("Could not persist DerivateInfo. Skipping mapping.", std::cout);
     }
     return resultOk;
 }
@@ -250,7 +253,8 @@ bool DBServicePersistenceAccessor::persistDerivateInfo(
 bool DBServicePersistenceAccessor::restoreLocationInfo(
         map<ConnectionID, LocationInfo>& locations)
 {
-    printFunction("DBServicePersistenceAccessor::restoreLocationInfo");
+    printFunction("DBServicePersistenceAccessor::restoreLocationInfo",
+                   std::cout);
     bool resultOk = true;
     if(SecondoSystem::GetCatalog()->IsObjectName(string("locations_DBSP")))
     {
@@ -261,18 +265,18 @@ bool DBServicePersistenceAccessor::restoreLocationInfo(
                 query, resultList, errorMessage);
         if(resultOk)
         {
-            print("resultList", resultList);
+            print("resultList", resultList, std::cout);
             ListExpr resultData = nl->Second(resultList);
-            print("resultData", resultData);
+            print("resultData", resultData, std::cout);
 
             int resultCount = nl->ListLength(resultData);
-            print(resultCount);
+            print(resultCount, std::cout);
 
             for(int i = 0; i < resultCount; i++)
             {
                 if(!nl->IsEmpty(resultData))
                 {
-                    print("resultData", resultData);
+                    print("resultData", resultData, std::cout);
                     ListExpr currentRow = nl->First(resultData);
                     ConnectionID conn(nl->IntValue(nl->First(currentRow)));
                     string host(nl->StringValue(nl->Second(currentRow)));
@@ -285,7 +289,7 @@ bool DBServicePersistenceAccessor::restoreLocationInfo(
 
                     LocationInfo location(
                             host, port, config, disk, commPort, transferPort);
-                    print(location);
+                    print(location, std::cout);
                     locations.insert(
                             pair<ConnectionID, LocationInfo>(conn, location));
                     resultData = nl->Rest(resultData);
@@ -293,11 +297,11 @@ bool DBServicePersistenceAccessor::restoreLocationInfo(
             }
         }else
         {
-            print(errorMessage);
+            print(errorMessage, std::cout);
         }
     }else
     {
-        print("locations_DBSP not found -> nothing to restore");
+        print("locations_DBSP not found -> nothing to restore", std::cout);
     }
     return resultOk;
 }
@@ -305,7 +309,8 @@ bool DBServicePersistenceAccessor::restoreLocationInfo(
 bool DBServicePersistenceAccessor::restoreRelationInfo(
         map<string, RelationInfo>& relations)
 {
-    printFunction("DBServicePersistenceAccessor::restoreRelationInfo");
+    printFunction("DBServicePersistenceAccessor::restoreRelationInfo",
+                  std::cout);
 
     bool resultOk = true;
     if(SecondoSystem::GetCatalog()->IsObjectName(string("relations_DBSP")))
@@ -317,18 +322,18 @@ bool DBServicePersistenceAccessor::restoreRelationInfo(
                 query, resultList, errorMessage);
         if(resultOk)
         {
-            print("resultList", resultList);
+            print("resultList", resultList, std::cout);
             ListExpr resultData = nl->Second(resultList);
-            print("resultData", resultData);
+            print("resultData", resultData, std::cout);
 
             int resultCount = nl->ListLength(resultData);
-            print(resultCount);
+            print(resultCount, std::cout);
 
             for(int i = 0; i < resultCount; i++)
             {
                 if(!nl->IsEmpty(resultData))
                 {
-                    print("resultData", resultData);
+                    print("resultData", resultData, std::cout);
                     ListExpr currentRow = nl->First(resultData);
                     string relID(nl->StringValue(nl->First(currentRow)));
                     string dbName(nl->StringValue(nl->Second(currentRow)));
@@ -338,7 +343,7 @@ bool DBServicePersistenceAccessor::restoreRelationInfo(
                     string disk(nl->Text2String(nl->Sixth(currentRow)));
                     RelationInfo relationInfo(
                             dbName, relName, host, port, disk);
-                    print(relationInfo);
+                    print(relationInfo, std::cout);
                     relations.insert(
                             pair<string, RelationInfo>(relID, relationInfo));
                     resultData = nl->Rest(resultData);
@@ -346,11 +351,11 @@ bool DBServicePersistenceAccessor::restoreRelationInfo(
             }
         }else
         {
-            print(errorMessage);
+            print(errorMessage, std::cout);
         }
     }else
     {
-        print("relations_DBSP not found -> nothing to restore");
+        print("relations_DBSP not found -> nothing to restore", std::cout);
     }
     return resultOk;
 }
@@ -359,7 +364,7 @@ bool DBServicePersistenceAccessor::restoreRelationInfo(
 bool DBServicePersistenceAccessor::restoreDerivateInfo(
         DBServiceDerivates& derivates)
 {
-    printFunction(__PRETTY_FUNCTION__);
+    printFunction(__PRETTY_FUNCTION__, std::cout);
 
     bool resultOk = true;
     string relName ("derivates_DBSP");
@@ -372,24 +377,24 @@ bool DBServicePersistenceAccessor::restoreDerivateInfo(
                 query, resultList, errorMessage);
         if(resultOk)
         {
-            print("resultList", resultList);
+            print("resultList", resultList, std::cout);
             ListExpr resultData = nl->Second(resultList);
-            print("resultData", resultData);
+            print("resultData", resultData, std::cout);
 
             int resultCount = nl->ListLength(resultData);
-            print(resultCount);
+            print(resultCount, std::cout);
 
             for(int i = 0; i < resultCount; i++)
             {
                 if(!nl->IsEmpty(resultData))
                 {
-                    print("resultData", resultData);
+                    print("resultData", resultData, std::cout);
                     ListExpr currentRow = nl->First(resultData);
                     string objectName(nl->StringValue(nl->First(currentRow)));
                     string source(nl->StringValue(nl->Second(currentRow)));
                     string fun(nl->TextValue(nl->Third(currentRow)));
                     DerivateInfo derivateInfo(objectName, source, fun);
-                    print(derivateInfo);
+                    print(derivateInfo, std::cout);
                     string did = derivateInfo.toString();
                     derivates.insert(
                             pair<string, DerivateInfo>(did, derivateInfo));
@@ -398,11 +403,11 @@ bool DBServicePersistenceAccessor::restoreDerivateInfo(
             }
         }else
         {
-            print(errorMessage);
+            print(errorMessage, std::cout);
         }
     }else
     {
-        print(relName + " not found -> nothing to restore");
+        print(relName + " not found -> nothing to restore", std::cout);
     }
     return resultOk;
 }
@@ -412,7 +417,8 @@ bool DBServicePersistenceAccessor::restoreDerivateInfo(
 bool DBServicePersistenceAccessor::restoreLocationMapping(
         queue<pair<string, pair<ConnectionID, bool> > >& mapping)
 {
-    printFunction("DBServicePersistenceAccessor::restoreLocationMapping");
+    printFunction("DBServicePersistenceAccessor::restoreLocationMapping",
+                   std::cout);
     bool resultOk = true;
     if(SecondoSystem::GetCatalog()->IsObjectName(string("mapping_DBSP")))
     {
@@ -423,25 +429,25 @@ bool DBServicePersistenceAccessor::restoreLocationMapping(
                 query, resultList, errorMessage);
         if(resultOk)
         {
-            print("resultList", resultList);
+            print("resultList", resultList, std::cout);
             ListExpr resultData = nl->Second(resultList);
-            print("resultData", resultData);
+            print("resultData", resultData, std::cout);
 
             int resultCount = nl->ListLength(resultData);
-            print(resultCount);
+            print(resultCount, std::cout);
 
             for(int i = 0; i < resultCount; i++)
             {
                 if(!nl->IsEmpty(resultData))
                 {
-                    print("resultData", resultData);
+                    print("resultData", resultData, std::cout);
                     ListExpr currentRow = nl->First(resultData);
                     string objectID(nl->StringValue(nl->First(currentRow)));
                     int conn = nl->IntValue(nl->Second(currentRow));
                     bool replicated = nl->BoolValue(nl->Third(currentRow));
-                    print("ObjectID: ", objectID);
-                    print("ConnectionID: ", conn);
-                    print("Replicated: ", replicated);
+                    print("ObjectID: ", objectID, std::cout);
+                    print("ConnectionID: ", conn, std::cout);
+                    print("Replicated: ", replicated, std::cout);
                     mapping.push(
                             pair<string, pair<ConnectionID, bool> >(
                                     objectID, make_pair(conn, replicated)));
@@ -450,11 +456,11 @@ bool DBServicePersistenceAccessor::restoreLocationMapping(
             }
         }else
         {
-            print(errorMessage);
+            print(errorMessage, std::cout);
         }
     }else
     {
-        print("mapping_DBSP not found -> nothing to restore");
+        print("mapping_DBSP not found -> nothing to restore", std::cout);
     }
     return resultOk;
 }
@@ -464,7 +470,8 @@ bool DBServicePersistenceAccessor::updateLocationMapping(
         ConnectionID connID,
         bool replicated)
 {
-    printFunction("DBServicePersistenceAccessor::updateLocationMapping");
+    printFunction("DBServicePersistenceAccessor::updateLocationMapping",
+                  std::cout);
 
     SecondoUtilsLocal::adjustDatabase(string("dbservice"));
 
@@ -488,7 +495,8 @@ bool DBServicePersistenceAccessor::updateLocationMapping(
 bool DBServicePersistenceAccessor::deleteRelationInfo(
         RelationInfo& relationInfo)
 {
-    printFunction("DBServicePersistenceAccessor::deleteRelationInfo");
+    printFunction("DBServicePersistenceAccessor::deleteRelationInfo",
+                   std::cout);
     string relationName("relations_DBSP");
 
   //    SecondoUtilsLocal::adjustDatabase(relationInfo.getDatabaseName());
@@ -506,8 +514,8 @@ bool DBServicePersistenceAccessor::deleteRelationInfo(
 
     if(!resultOk)
     {
-        print("Could not delete relation metadata");
-        print("ObjectID: ", relationID);
+        print("Could not delete relation metadata", std::cout);
+        print("ObjectID: ", relationID, std::cout);
     }
 
     return resultOk && deleteLocationMapping(
@@ -520,12 +528,13 @@ bool DBServicePersistenceAccessor::deleteDerivateInfo(
         DerivateInfo& derivateInfo,
         RelationInfo& source)
 {
-    printFunction("DBServicePersistenceAccessor::deleteRelationInfo");
+    printFunction("DBServicePersistenceAccessor::deleteRelationInfo",
+                  std::cout);
 
     if(derivateInfo.getSource() != source.toString()){
-        print("relationInfo is not the source of the derivate.");
-        print(derivateInfo);
-        print(source);
+        print("relationInfo is not the source of the derivate.", std::cout);
+        print(derivateInfo, std::cout);
+        print(source, std::cout);
         return false;
     }
 
@@ -548,8 +557,8 @@ bool DBServicePersistenceAccessor::deleteDerivateInfo(
 
     if(!resultOk)
     {
-        print("Could not delete  metadata");
-        print("ObjectName: ", objectName);
+        print("Could not delete  metadata", std::cout);
+        print("ObjectName: ", objectName, std::cout);
     }
     string objectId = derivateInfo.toString();
 
@@ -566,7 +575,8 @@ bool DBServicePersistenceAccessor::deleteLocationMapping(
         ReplicaLocations::const_iterator nodesBegin,
         ReplicaLocations::const_iterator nodesEnd)
 {
-    printFunction("DBServicePersistenceAccessor::deleteLocationMapping");
+    printFunction("DBServicePersistenceAccessor::deleteLocationMapping",
+                  std::cout);
     string relationName("mapping_DBSP");
     bool resultOk = true;
     for(ReplicaLocations::const_iterator it = nodesBegin;
@@ -585,9 +595,9 @@ bool DBServicePersistenceAccessor::deleteLocationMapping(
                         filterConditions));
         if(!resultOk)
         {
-            print("Could not delete mapping");
-            print("ObjectID: ", objectID);
-            print("ConnectionID: ", it->first);
+            print("Could not delete mapping", std::cout);
+            print("ObjectID: ", objectID, std::cout);
+            print("ConnectionID: ", it->first, std::cout);
         }
     }
     return resultOk;
@@ -596,7 +606,8 @@ bool DBServicePersistenceAccessor::deleteLocationMapping(
 bool DBServicePersistenceAccessor::persistAllLocations(
         DBServiceLocations dbsLocations)
 {
-    printFunction("DBServicePersistenceAccessor::persistAllLocations");
+    printFunction("DBServicePersistenceAccessor::persistAllLocations",
+                  std::cout);
     vector<vector<string> > values;
     if(!dbsLocations.empty())
     {
@@ -625,7 +636,8 @@ bool DBServicePersistenceAccessor::persistAllReplicas(
         DBServiceRelations dbsRelations,
         DBServiceDerivates dbsDerivates)
 {
-    printFunction("DBServicePersistenceAccessor::persistAllRelations");
+    printFunction("DBServicePersistenceAccessor::persistAllRelations",
+                  std::cout);
     vector<vector<string> > relationValues;
     vector<vector<string> > mappingValues;
     if(!dbsRelations.empty())
@@ -702,9 +714,9 @@ bool DBServicePersistenceAccessor::persistAllReplicas(
 
 size_t getRecordCount(const string& databaseName, const string& relationName)
 {
-    printFunction("DBServicePersistenceAccessor::getRecordCount");
-    print(databaseName);
-    print(relationName);
+    printFunction("DBServicePersistenceAccessor::getRecordCount", std::cout);
+    print(databaseName, std::cout);
+    print(relationName, std::cout);
 
    // seems to be wrong, waiting for answer
    // SecondoUtilsLocal::adjustDatabase(databaseName);

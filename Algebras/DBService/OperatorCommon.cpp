@@ -44,8 +44,8 @@ ListExpr OperatorCommon::getStreamType(
         ListExpr nestedList,
         bool& locallyAvailable)
 {
-    printFunction("OperatorCommon::getStreamType");
-    print(nestedList);
+    printFunction("OperatorCommon::getStreamType", std::cout);
+    print(nestedList, std::cout);
 
     if(!nl->HasMinLength(nestedList, 1))
     {
@@ -63,7 +63,7 @@ ListExpr OperatorCommon::getStreamType(
 
 
     locallyAvailable = false;
-    print("Relation not available locally");
+    print("Relation not available locally", std::cout);
     if(nl->AtomType(arg1)!=SymbolType)
     {
         ErrorReporter::ReportError(
@@ -71,11 +71,11 @@ ListExpr OperatorCommon::getStreamType(
                 return nl->TypeError();
     }
     const string relationName = nl->SymbolValue(arg1);
-    print("relationName", relationName);
+    print("relationName", relationName, std::cout);
     string nestedListString;
     DBServiceClient* dbsc = DBServiceClient::getInstance();
     if(!dbsc){
-       print("could not start dbs client, check configuration");
+       print("could not start dbs client, check configuration", std::cout);
     } else if(!DBServiceClient::getInstance()->getStreamType(
             SecondoSystem::GetInstance()->GetDatabaseName(),
             relationName,
@@ -86,15 +86,15 @@ ListExpr OperatorCommon::getStreamType(
                 return nl->TypeError();
     }
 
-    print("nestedListString", nestedListString);
+    print("nestedListString", nestedListString, std::cout);
     ListExpr result;
 
     if(!nl->ReadFromString(nestedListString, result))
     {
-        print("could not read nested list from string");
+        print("could not read nested list from string", std::cout);
         return nl->TypeError();
     }
-    print("result", result);
+    print("result", result, std::cout);
     return result;
 }
 
@@ -166,7 +166,7 @@ ListExpr OperatorCommon::getDerivedType(
     return listutils::typeError("Could not connect to DBService");
   }
 
-  print("nestedListString", nestedListString);
+  print("nestedListString", nestedListString, std::cout);
   ListExpr resultType;
   if(!nl->ReadFromString(nestedListString, resultType))
   {

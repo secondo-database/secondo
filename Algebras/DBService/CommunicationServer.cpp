@@ -56,7 +56,7 @@ CommunicationServer::CommunicationServer(int port) :
 {
     string context("CommunicationServer");
     traceWriter= unique_ptr<TraceWriter>
-    (new TraceWriter(context, port));
+    (new TraceWriter(context, port, std::cout));
 
     traceWriter->writeFunction("CommunicationServer::CommunicationServer");
     traceWriter->write("Initializing CommunicationServer");
@@ -402,13 +402,13 @@ bool CommunicationServer::handleProvideReplicaLocationRequest(
           randomReplicaLocation = possibleLocations.front(); 
        } else {
            traceWriter->write(tid, "No locations available");
-           dbService->printDerivates();
+           dbService->printDerivates( std::cout);
        }
        
     } catch(...)
     {
        traceWriter->write(tid, "Exception: No location found");
-       dbService->printDerivates();
+       dbService->printDerivates(std::cout);
     }
 
     queue<string> sendBuffer;

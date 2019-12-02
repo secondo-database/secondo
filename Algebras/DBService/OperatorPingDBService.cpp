@@ -38,8 +38,8 @@ namespace DBService
 
 ListExpr OperatorPingDBService::mapType(ListExpr nestedList)
 {
-    printFunction("OperatorPingDBService::mapType");
-    print(nestedList);
+    printFunction("OperatorPingDBService::mapType", std::cout);
+    print(nestedList, std::cout);
 
     if (!nl->HasLength(nestedList, 0))
     {
@@ -57,7 +57,7 @@ int OperatorPingDBService::mapValue(Word* args,
                               Word& local,
                               Supplier s)
 {
-    printFunction("OperatorPingDBService::mapValue");
+    printFunction("OperatorPingDBService::mapValue", std::cout);
     DBServiceClient* dbServiceClient = DBServiceClient::getInstance();
     bool isReachable = false;
     if(dbServiceClient){

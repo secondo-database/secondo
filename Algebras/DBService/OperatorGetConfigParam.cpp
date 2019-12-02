@@ -38,7 +38,7 @@ namespace DBService
 {
 ListExpr OperatorGetConfigParam::mapType(ListExpr nestedList)
 {
-    print(nestedList);
+    print(nestedList, std::cout);
 
     if (!nl->HasLength(nestedList, 2))
     {
@@ -82,7 +82,7 @@ ListExpr OperatorGetConfigParam::mapType(ListExpr nestedList)
             nl->SymbolAtom(Symbols::APPEND()), appendList,
             listutils::basicSymbol<CcString>());
 
-    print(typeMapResult);
+    print(typeMapResult, std::cout);
     return typeMapResult;
 }
 
@@ -95,8 +95,8 @@ int OperatorGetConfigParam::mapValue(Word* args,
     CcString* section = static_cast<CcString*>(args[0].addr);
     CcString* key = static_cast<CcString*>(args[1].addr);
 
-    print(section->GetValue());
-    print(key->GetValue());
+    print(section->GetValue(), std::cout);
+    print(key->GetValue(), std::cout);
 
     string resultValue;
     SecondoUtilsLocal::readFromConfigFile(resultValue,

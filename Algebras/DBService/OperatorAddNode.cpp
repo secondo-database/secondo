@@ -37,7 +37,7 @@ namespace DBService
 
 ListExpr OperatorAddNode::mapType(ListExpr nestedList)
 {
-    print(nestedList);
+    print(nestedList, std::cout);
 
     if (!nl->HasLength(nestedList, 3))
     {
@@ -80,9 +80,9 @@ int OperatorAddNode::mapValue(Word* args,
     CcInt* port = static_cast<CcInt*>(args[1].addr);
     CcString* config = static_cast<CcString*>(args[2].addr);
 
-    print(host->GetValue());
-    print(port->GetValue());
-    print(config->GetValue());
+    print(host->GetValue(), std::cout);
+    print(port->GetValue(), std::cout);
+    print(config->GetValue(), std::cout);
 
     DBServiceManager* dbsm = DBServiceManager::getInstance();
     bool success = false;

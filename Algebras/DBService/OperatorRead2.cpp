@@ -47,8 +47,8 @@ namespace DBService {
 
 ListExpr OperatorRead2::mapType(ListExpr nestedList)
 {
-    printFunction("OperatorRead2::mapType");
-    print(nestedList);
+    printFunction("OperatorRead2::mapType", std::cout);
+    print(nestedList, std::cout);
 
     if(!nl->HasLength(nestedList, 2)) // rel x fun
     {
@@ -66,8 +66,8 @@ ListExpr OperatorRead2::mapType(ListExpr nestedList)
     }
 
 
-    print("nl->First(nestedList)", nl->First(nestedList));
-    print("nl->Second(nestedList)", nl->Second(nestedList));
+    print("nl->First(nestedList)", nl->First(nestedList), std::cout);
+    print("nl->Second(nestedList)", nl->Second(nestedList), std::cout);
 
     ListExpr fun = nl->First(nl->Second(nestedList));
     if(!listutils::isMap<1>(fun))
@@ -84,19 +84,19 @@ ListExpr OperatorRead2::mapType(ListExpr nestedList)
 //                    nl->OneElemList(nl->First(nestedList)));
 
     bool relationLocallyAvailable;
-    print("nl->First(nestedList)", nl->First(nestedList));
+    print("nl->First(nestedList)", nl->First(nestedList), std::cout);
     ListExpr streamType = OperatorCommon::getStreamType(
             nl->OneElemList(nl->First(nl->First(nestedList))), 
                             relationLocallyAvailable);
-    print("relType ", streamType);
+    print("relType ", streamType, std::cout);
 
     print("relationLocallyAvailable",
-            string(relationLocallyAvailable ? "TRUE" : "FALSE"));
+            string(relationLocallyAvailable ? "TRUE" : "FALSE"), std::cout);
 
     string relationName;
     if(!relationLocallyAvailable)
     {
-        print("Relation not available locally");
+        print("Relation not available locally", std::cout);
         if(nl->AtomType(nl->First(nl->First(nestedList)))!=SymbolType)
         {
             ErrorReporter::ReportError(
@@ -104,7 +104,7 @@ ListExpr OperatorRead2::mapType(ListExpr nestedList)
             return nl->TypeError();
         }
         relationName = nl->SymbolValue(nl->First(nl->First(nestedList)));
-        print("relationName", relationName);
+        print("relationName", relationName, std::cout);
     } else {
       relationName = nl->SymbolValue(nl->Second(nl->First(nestedList)));
     }
@@ -146,7 +146,7 @@ ListExpr OperatorRead2::mapType(ListExpr nestedList)
                     : nl->StringAtom(relationName)),
                     nl->TextAtom(funtext)),
                     funres);
-    print("readTypeMapResult", readTypeMapResult);
+    print("readTypeMapResult", readTypeMapResult, std::cout);
     return readTypeMapResult;
 }
 
@@ -179,7 +179,7 @@ int OperatorRead2::mapValue(Word* args,
             qp->Construct(st, correct, evaluable,defined,isFunction,
                           tree,resType, true); 
             if(!correct){
-               print("could not create operator tree");
+               print("could not create operator tree", std::cout);
                return CANCEL;
             }
             Supplier fun = args[1].addr;
@@ -218,16 +218,16 @@ int OperatorRead2::mapValue(Word* args,
                 delete info;
                 local.addr = 0;
             }
-            print("Trying to retrieve relation from DBService");
+            print("Trying to retrieve relation from DBService", std::cout);
             const string databaseName =
                      SecondoSystem::GetInstance()->GetDatabaseName();
-            print("databaseName", databaseName);
-            print("relationName", relationName);
+            print("databaseName", databaseName, std::cout);
+            print("relationName", relationName, std::cout);
             string funText = ((FText*) args[3].addr)->GetValue();
             vector<string> otherobjects; 
             DBServiceClient* client = DBServiceClient::getInstance();
             if(!client){
-               print("could not create client");
+               print("could not create client", std::cout);
                return CANCEL;
             }
             string fileName =
@@ -239,14 +239,14 @@ int OperatorRead2::mapValue(Word* args,
                         funText);
             if(fileName.empty())
             {
-               print("Did not receive file");
+               print("Did not receive file", std::cout);
                return CANCEL; 
             }
-            print("Reading tuple stream from file", fileName);
+            print("Reading tuple stream from file", fileName, std::cout);
             info = new ffeed5Info(fileName);
             if(!info->isOK())
             {
-                print("Could not read file");
+                print("Could not read file", std::cout);
                 delete info;
                 return 0;
             }
@@ -259,7 +259,7 @@ int OperatorRead2::mapValue(Word* args,
             // check whether reltype in file and result type are equal
             ListExpr resType = qp->GetType(s);
             if(!nl->Equal(nl->Second(relType), nl->Second(resType))){
-               print("result type and type in file differ");
+               print("result type and type in file differ", std::cout);
                delete info;
                return 0;
             }

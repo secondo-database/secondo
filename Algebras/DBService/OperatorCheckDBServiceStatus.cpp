@@ -31,13 +31,15 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Algebras/DBService/DBServiceManager.hpp"
 #include "Algebras/DBService/OperatorCheckDBServiceStatus.hpp"
 #include "Algebras/DBService/DebugOutput.hpp"
+#include "Algebras/FText/FTextAlgebra.h"
+#include <sstream>
 
 namespace DBService
 {
 
 ListExpr OperatorCheckDBServiceStatus::mapType(ListExpr nestedList)
 {
-    print(nestedList);
+    print(nestedList, std::cout);
 
     if (!nl->HasLength(nestedList, 0))
     {
@@ -46,7 +48,7 @@ ListExpr OperatorCheckDBServiceStatus::mapType(ListExpr nestedList)
         return nl->TypeError();
     }
 
-    return listutils::basicSymbol<CcBool>();
+    return listutils::basicSymbol<FText>();
 }
 
 int OperatorCheckDBServiceStatus::mapValue(Word* args,
@@ -56,16 +58,22 @@ int OperatorCheckDBServiceStatus::mapValue(Word* args,
                               Supplier s)
 {
     bool dbServiceStarted = DBServiceManager::isActive();
+    std::string r;
     if(dbServiceStarted)
     {
         DBServiceManager* dbService = DBServiceManager::getInstance();
+        std::stringstream out;
         if(dbService){
-           dbService->printMetadata();
+           dbService->printMetadata(out);
+        } else {
+           out << "DBService is started, but instance not found." 
+               << endl; 
         }
+        r = out.str();
     }
 
     result = qp->ResultStorage(s);
-    static_cast<CcBool*>(result.addr)->Set(true,dbServiceStarted);
+    static_cast<FText*>(result.addr)->Set(dbServiceStarted,r);
     return 0;
 }
 

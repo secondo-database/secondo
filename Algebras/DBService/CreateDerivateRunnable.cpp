@@ -51,17 +51,17 @@ CreateDerivateRunnable::CreateDerivateRunnable(
  relname(_relname),
  fundef(_fundef)
 {
-    printFunction(__FUNCTION__);
+    printFunction(__FUNCTION__, std::cout);
 }
 
 CreateDerivateRunnable::~CreateDerivateRunnable()
 {
-    printFunction(__FUNCTION__);
+    printFunction(__FUNCTION__, std::cout);
 }
 
 void CreateDerivateRunnable::run()
 {
-    printFunction(__FUNCTION__);
+    printFunction(__FUNCTION__, std::cout);
     if(runner){
         runner->join();
         delete runner;
@@ -84,7 +84,7 @@ void CreateDerivateRunnable::createClient(
         std::string relname,
         std::string fundef)
 {
-    printFunction(__FUNCTION__);
+    printFunction(__FUNCTION__, std::cout);
     CommunicationClient client(dbServiceWorkerHost, dbServiceWorkerCommPort, 0);
     client.createDerivation(database, targetname, relname,fundef); 
     // TODO check return value

@@ -37,10 +37,11 @@ using namespace std;
 
 namespace DBService {
 
-TraceWriter::TraceWriter(string& context, int port)
+TraceWriter::TraceWriter(string& context, int port, ostream& _out)
 {
     std::time_t currentTime = std::time(0);
     stringstream fileName;
+    out = &_out;
 
     string host;
     SecondoUtilsLocal::readFromConfigFile(
@@ -68,7 +69,7 @@ TraceWriter::~TraceWriter()
 
 void TraceWriter::write(const string& text)
 {
-    print(text);
+    print(text, *out);
     if(TraceSettings::getInstance()->isFileTraceOn())
     {
         *traceFile << text << endl;
@@ -77,7 +78,7 @@ void TraceWriter::write(const string& text)
 
 void TraceWriter::write(const char* text)
 {
-    print(text);
+    print(text, *out);
     if(TraceSettings::getInstance()->isFileTraceOn())
     {
         *traceFile << text << endl;
@@ -86,7 +87,7 @@ void TraceWriter::write(const char* text)
 
 void TraceWriter::write(const boost::thread::id tid, const char* text)
 {
-    print(text);
+    print(text, *out);
     if(TraceSettings::getInstance()->isFileTraceOn())
     {
         *traceFile << "[Thread " << tid << "] " << text << endl;
@@ -95,7 +96,7 @@ void TraceWriter::write(const boost::thread::id tid, const char* text)
 
 void TraceWriter::write(const size_t text)
 {
-    print(text);
+    print(text, *out);
     if(TraceSettings::getInstance()->isFileTraceOn())
     {
         *traceFile << text << endl;
@@ -104,7 +105,7 @@ void TraceWriter::write(const size_t text)
 
 void TraceWriter::write(const LocationInfo& location)
 {
-    print(location);
+    print(location, *out);
     if(TraceSettings::getInstance()->isFileTraceOn())
     {
         *traceFile << location.getHost() << endl;
@@ -138,7 +139,7 @@ void TraceWriter::write(const RelationInfo& relationInfo)
 
 void TraceWriter::write(const char* description, const string& text)
 {
-    print(description, text);
+    print(description, text, *out);
     if(TraceSettings::getInstance()->isFileTraceOn())
     {
         *traceFile << description << ": " << text << endl;
@@ -150,7 +151,7 @@ void TraceWriter::write(
         const char* description,
         const string& text)
 {
-    print(tid, description, text);
+    print(tid, description, text, *out);
     if(TraceSettings::getInstance()->isFileTraceOn())
     {
         *traceFile << "[Thread " << tid << "] "
@@ -160,7 +161,7 @@ void TraceWriter::write(
 
 void TraceWriter::write(const char* description, int number)
 {
-    print(description, number);
+    print(description, number, *out);
     if(TraceSettings::getInstance()->isFileTraceOn())
     {
         *traceFile << description << ": " << number << endl;
@@ -169,7 +170,7 @@ void TraceWriter::write(const char* description, int number)
 
 void TraceWriter::writeFunction(const char* text)
 {
-    printFunction(text);
+    printFunction(text, *out);
     if(TraceSettings::getInstance()->isFileTraceOn())
     {
         *traceFile << "********************************" << endl;
@@ -179,7 +180,7 @@ void TraceWriter::writeFunction(const char* text)
 
 void TraceWriter::writeFunction(const boost::thread::id tid, const char* text)
 {
-    printFunction(tid, text);
+    printFunction(tid, text, *out);
     if(TraceSettings::getInstance()->isFileTraceOn())
     {
         boost::lock_guard<boost::mutex> lock(traceWriterMutex);
@@ -193,7 +194,7 @@ void TraceWriter::write(
         const char* text,
         ListExpr nestedList)
 {
-    print(text, nestedList);
+    print(text, nestedList, *out);
     if(TraceSettings::getInstance()->isFileTraceOn())
     {
         *traceFile << "[Thread " << tid << "] " << endl;
@@ -210,7 +211,7 @@ void TraceWriter::write(
         const bool value)
 {
     std::string v = value?"true":"false";
-    print(tid,text, v);
+    print(tid,text, v,*out);
     if(TraceSettings::getInstance()->isFileTraceOn())
     {
         *traceFile << "[Thread " << tid << "] " << endl;

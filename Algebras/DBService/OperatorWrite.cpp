@@ -46,8 +46,8 @@ namespace DBService
 
 ListExpr OperatorWrite::mapType(ListExpr nestedList)
 {
-    printFunction("OperatorWrite::mapType");
-    print("nestedList", nestedList);
+    printFunction("OperatorWrite::mapType", std::cout);
+    print("nestedList", nestedList, std::cout);
 
     if (nl->ListLength(nestedList) != 3)
     {
@@ -79,12 +79,12 @@ ListExpr OperatorWrite::mapType(ListExpr nestedList)
 
     ListExpr consumeTypeMapInput = nl->OneElemList(
             nl->First(nl->First(nestedList)));
-    print("consumeTypeMapInput", consumeTypeMapInput);
+    print("consumeTypeMapInput", consumeTypeMapInput, std::cout);
 
     ListExpr consumeTypeMapResult = OperatorConsume::ConsumeTypeMap<false>(
             consumeTypeMapInput);
 
-    print("consumeTypeMapResult", consumeTypeMapResult);
+    print("consumeTypeMapResult", consumeTypeMapResult, std::cout);
 
     
     return consumeTypeMapResult;
@@ -98,20 +98,20 @@ int OperatorWrite::mapValue(
         Supplier s)
 {
 
-    printFunction("OperatorWrite::mapValue");
+    printFunction("OperatorWrite::mapValue", std::cout);
 
     ListExpr tupleType = nl->Second(qp->GetType(s));
-    print("tupleType", tupleType);
+    print("tupleType", tupleType, std::cout);
 
     ListExpr relType = nl->TwoElemList(
             listutils::basicSymbol<Relation>(),
             tupleType);
-    print("relType", relType);
+    print("relType", relType, std::cout);
 
     const string databaseName =
             SecondoSystem::GetInstance()->GetDatabaseName();
     string relationName = static_cast<CcString*>(args[1].addr)->GetValue();
-    print("relationName", relationName);
+    print("relationName", relationName, std::cout);
 
     const string fileName =
             ReplicationUtils::getFileName(databaseName, relationName);
@@ -149,7 +149,7 @@ int OperatorWrite::mapValue(
     DBServiceClient* dbsc = DBServiceClient::getInstance();
 
     if(!dbsc){
-      print("DBS client could not be startet, check configuration");
+      print("DBS client could not be startet, check configuration", std::cout);
     } else {
       if(!dbsc->triggerReplication(
             databaseName,
@@ -157,7 +157,7 @@ int OperatorWrite::mapValue(
             relType,
             async))
       {
-         print("Replication could not be triggered");
+         print("Replication could not be triggered", std::cout);
          return 1;
       }
     }

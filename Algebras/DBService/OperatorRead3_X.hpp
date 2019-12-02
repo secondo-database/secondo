@@ -125,8 +125,8 @@ public:
 template<int X>
 ListExpr OperatorRead3_X<X>::mapType(ListExpr args)
 {
-    printFunction(__PRETTY_FUNCTION__);
-    print(args);
+    printFunction(__PRETTY_FUNCTION__, std::cout);
+    print(args, std::cout);
 
     if(!nl->HasLength(args, 2 + X )) // rel x Index^X x  fun
     {
@@ -368,14 +368,14 @@ int OperatorRead3_X<X>::mapValue(Word* args,
                         funText);
             if(fileName.empty())
             {
-               print("Did not receive file");
+               print("Did not receive file", std::cout);
                return CANCEL; 
             }
-            print("Reading tuple stream from file", fileName);
+            print("Reading tuple stream from file", fileName, std::cout);
             info = new ffeed5Info(fileName);
             if(!info->isOK())
             {
-                print("Could not read file");
+                print("Could not read file", std::cout);
                 delete info;
                 return 0;
             }
@@ -388,7 +388,7 @@ int OperatorRead3_X<X>::mapValue(Word* args,
             // check whether reltype in file and result type are equal
             ListExpr resType = qp->GetType(s);
             if(!nl->Equal(nl->Second(relType), nl->Second(resType))){
-               print("result type and type in file differ");
+               print("result type and type in file differ", std::cout);
                delete info;
                return 0;
             }

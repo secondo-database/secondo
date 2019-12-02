@@ -45,7 +45,7 @@ bool SecondoUtilsRemote::executeQuery(
         distributed2::ConnectionInfo* connectionInfo,
         const std::string& query)
 {
-    printFunction("SecondoUtilsRemote::executeQuery");
+    printFunction("SecondoUtilsRemote::executeQuery", std::cout);
     string result;
     return executeQuery(connectionInfo,
                                       query,
@@ -57,7 +57,7 @@ bool SecondoUtilsRemote::executeQuery(
         const std::string& query,
         std::string& result)
 {
-    printFunction("SecondoUtilsRemote::executeQuery");
+    printFunction("SecondoUtilsRemote::executeQuery", std::cout);
     int errorCode;
     string errorMessage;
     double runtime;
@@ -66,8 +66,8 @@ bool SecondoUtilsRemote::executeQuery(
             errorCode, errorMessage, result, false,
             runtime, false, commandLog);
     //TODO better error handling
-    print(errorCode);
-    print(errorMessage.c_str());
+    print(errorCode, std::cout);
+    print(errorMessage.c_str(), std::cout);
     return errorCode == 0;
 }
 

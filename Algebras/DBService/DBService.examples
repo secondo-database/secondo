@@ -17,8 +17,8 @@ Remark    : Result depends on the presemce of the DBServive
 
 Operator  : checkdbservicestatus
 Number    : 1
-Signature : -> bool
-Example   : query checkdbservicestatus()
+Signature : -> text
+Example   : query length(checkdbservicestatus()) > -1
 Result    : TRUE
 Remark    : None
 

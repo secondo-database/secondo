@@ -37,7 +37,7 @@ namespace DBService {
 
 ListExpr OperatorSetTraceLevel::mapType(ListExpr nestedList)
 {
-    print(nestedList);
+    print(nestedList, std::cout);
 
     if (!nl->HasLength(nestedList, 1))
     {
@@ -65,7 +65,7 @@ int OperatorSetTraceLevel::mapValue(Word* args,
     CcInt* traceLevel = static_cast<CcInt*>(args[0].addr);
 
     TraceLevel level = static_cast<TraceLevel>(traceLevel->GetValue());
-    print("requested trace level", level);
+    print("requested trace level", level, std::cout);
 
     bool valid = level >= TraceLevel::OFF && level <= TraceLevel::DEBUG;
 

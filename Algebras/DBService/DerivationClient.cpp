@@ -46,7 +46,7 @@ DerivationClient::DerivationClient(
          const std::string& _relName,
          const std::string& _fundef): DBName(_DBName), targetName(_targetName),
                                       relName(_relName), fundef(_fundef){
-    printFunction(__PRETTY_FUNCTION__);
+    printFunction(__PRETTY_FUNCTION__, std::cout);
     relIdOnWorker = ReplicationUtils::getRelNameOnDBServiceWorker(DBName,
                                                                   relName);
     rid = RelationInfo::getIdentifier(DBName, relName); 
@@ -56,7 +56,7 @@ DerivationClient::DerivationClient(
 
 void DerivationClient::start() {
 
-   printFunction(__PRETTY_FUNCTION__);
+   printFunction(__PRETTY_FUNCTION__, std::cout);
 
    try{
      SecondoCatalog* ctlg = SecondoSystem::GetCatalog();
@@ -137,11 +137,11 @@ void DerivationClient::start() {
 
 
 void DerivationClient::derivationFailed(const std::string& error){
-   print("derivation failed: " + error);
+   print("derivation failed: " + error, std::cout);
 }
 
 void DerivationClient::derivationSuccessful(){
-    printFunction(__PRETTY_FUNCTION__);
+    printFunction(__PRETTY_FUNCTION__, std::cout);
 
     std::string dbServiceHost;
     std::string dbServicePort;
@@ -149,7 +149,7 @@ void DerivationClient::derivationSuccessful(){
             dbServiceHost,
             dbServicePort))
     {
-        print("Error during lookupDBServiceLocation");
+        print("Error during lookupDBServiceLocation", std::cout);
         throw new SecondoException("Unable to connect to DBService");
     }
 
@@ -159,7 +159,7 @@ void DerivationClient::derivationSuccessful(){
             0);
     clientToDBServiceMaster.reportSuccessfulDerivation(
             targetId);
-    print("derivationSuccessful reported");
+    print("derivationSuccessful reported", std::cout);
 }
 
 

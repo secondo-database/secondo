@@ -46,8 +46,8 @@ namespace DBService {
 
 ListExpr OperatorDBSARG::mapType(ListExpr nestedList)
 {
-    printFunction("OperatorDBSARG::mapType");
-    print(nestedList);
+    printFunction("OperatorDBSARG::mapType", std::cout);
+    print(nestedList, std::cout);
 
     bool dummy;
     return OperatorCommon::getStreamType(nestedList, dummy);

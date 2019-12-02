@@ -47,7 +47,7 @@ CommunicationClient::CommunicationClient(
 {
     string context("CommunicationClient");
     traceWriter= unique_ptr<TraceWriter>
-    (new TraceWriter(context, port));
+    (new TraceWriter(context, port, std::cout));
 
     traceWriter->writeFunction("CommunicationClient::CommunicationClient");
     traceWriter->write("Connecting to server: ", server);

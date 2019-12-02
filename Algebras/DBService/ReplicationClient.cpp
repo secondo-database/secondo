@@ -61,7 +61,7 @@ ReplicationClient::ReplicationClient(
 {
     string context("ReplicationClient");
     traceWriter= unique_ptr<TraceWriter>
-    (new TraceWriter(context, port));
+    (new TraceWriter(context, port, std::cout));
 
     traceWriter->writeFunction("ReplicationClient::ReplicationClient");
     traceWriter->write("server", server);

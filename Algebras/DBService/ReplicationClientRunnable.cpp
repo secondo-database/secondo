@@ -43,17 +43,17 @@ ReplicationClientRunnable::ReplicationClientRunnable(
   databaseName(databaseName), relationName(relationName),
   runner(0)
 {
-    print("ReplicationClientRunnable::ReplicationClientRunnable");
+    print("ReplicationClientRunnable::ReplicationClientRunnable", std::cout);
 }
 
 ReplicationClientRunnable::~ReplicationClientRunnable()
 {
-    print("ReplicationClientRunnable::~ReplicationClientRunnable");
+    print("ReplicationClientRunnable::~ReplicationClientRunnable", std::cout);
 }
 
 void ReplicationClientRunnable::run()
 {
-    print("ReplicationClientRunnable::run");
+    print("ReplicationClientRunnable::run", std::cout);
     if(runner){
         runner->join();
         delete runner;
@@ -73,7 +73,7 @@ void ReplicationClientRunnable::create(
         string& databaseName,
         string& relationName)
 {
-    print("ReplicationClientRunnable::create");
+    print("ReplicationClientRunnable::create", std::cout);
 
     const string fileNameDBS =
             ReplicationUtils::getFileNameOnDBServiceWorker(

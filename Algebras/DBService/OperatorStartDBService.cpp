@@ -35,7 +35,7 @@ namespace DBService
 
 ListExpr OperatorStartDBService::mapType(ListExpr nestedList)
 {
-    print(nestedList);
+    print(nestedList, std::cout);
 
     if (!nl->HasLength(nestedList, 0))
     {

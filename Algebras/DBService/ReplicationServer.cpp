@@ -51,7 +51,7 @@ ReplicationServer::ReplicationServer(int port) :
 {
     string context("ReplicationServer");
     traceWriter= unique_ptr<TraceWriter>
-    (new TraceWriter(context, port));
+    (new TraceWriter(context, port, std::cout));
     traceWriter->writeFunction("ReplicationServer::ReplicationServer");
     traceWriter->write("port", port);
 }

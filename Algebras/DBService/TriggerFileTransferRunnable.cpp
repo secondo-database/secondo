@@ -50,17 +50,19 @@ TriggerFileTransferRunnable::TriggerFileTransferRunnable(
  dbServiceWorkerCommPort(dbServiceWorkerCommPort),
  databaseName(databaseName), relationName(relationName)
 {
-    printFunction("TriggerFileTransferRunnable::TriggerFileTransferRunnable");
+    printFunction("TriggerFileTransferRunnable::TriggerFileTransferRunnable",
+                  std::cout);
 }
 
 TriggerFileTransferRunnable::~TriggerFileTransferRunnable()
 {
-    printFunction("TriggerFileTransferRunnable::~TriggerFileTransferRunnable");
+    printFunction("TriggerFileTransferRunnable::~TriggerFileTransferRunnable",
+                  std::cout);
 }
 
 void TriggerFileTransferRunnable::run()
 {
-    printFunction("TriggerFileTransferRunnable::run");
+    printFunction("TriggerFileTransferRunnable::run", std::cout);
     if(runner){
         runner->join();
         delete runner;
@@ -83,7 +85,7 @@ void TriggerFileTransferRunnable::createClient(
         std::string databaseName,
         std::string relationName)
 {
-    printFunction("TriggerFileTransferRunnable::createClient");
+    printFunction("TriggerFileTransferRunnable::createClient", std::cout);
     CommunicationClient client(dbServiceWorkerHost, dbServiceWorkerCommPort, 0);
     client.triggerFileTransfer(sourceSystemHost,
                                stringutils::int2str(sourceSystemTransferPort),

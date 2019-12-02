@@ -50,18 +50,20 @@ TriggerReplicaDeletionRunnable::TriggerReplicaDeletionRunnable(
  derivate(_derivate)
 {
     printFunction(
-            "TriggerReplicaDeletionRunnable::TriggerReplicaDeletionRunnable");
+            "TriggerReplicaDeletionRunnable::TriggerReplicaDeletionRunnable",
+            std::cout);
 }
 
 TriggerReplicaDeletionRunnable::~TriggerReplicaDeletionRunnable()
 {
     printFunction(
-            "TriggerReplicaDeletionRunnable::~TriggerReplicaDeletionRunnable");
+            "TriggerReplicaDeletionRunnable::~TriggerReplicaDeletionRunnable",
+            std::cout);
 }
 
 void TriggerReplicaDeletionRunnable::run()
 {
-    printFunction("TriggerReplicaDeletionRunnable::run");
+    printFunction("TriggerReplicaDeletionRunnable::run", std::cout);
     if(runner){
         runner->join();
         delete runner;
@@ -83,7 +85,7 @@ void TriggerReplicaDeletionRunnable::createClient(
         const std::string& derivate
         )
 {
-    printFunction("TriggerReplicaDeletionRunnable::createClient");
+    printFunction("TriggerReplicaDeletionRunnable::createClient", std::cout);
     CommunicationClient client(dbServiceWorkerHost, dbServiceWorkerCommPort, 0);
     client.triggerReplicaDeletion(database, relationname, derivate); 
     // TODO check return value

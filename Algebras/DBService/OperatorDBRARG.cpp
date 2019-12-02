@@ -46,8 +46,8 @@ namespace DBService {
 
 ListExpr OperatorDBRARG::mapType(ListExpr nestedList)
 {
-    printFunction("OperatorDBRARG::mapType");
-    print(nestedList);
+    printFunction("OperatorDBRARG::mapType", std::cout);
+    print(nestedList, std::cout);
 
     bool dummy;
     return OperatorCommon::getRelType(nestedList, dummy);

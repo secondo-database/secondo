@@ -47,7 +47,7 @@ struct CheckDBServiceStatusInfo: OperatorInfo
     CheckDBServiceStatusInfo()
     {
         name = "checkdbservicestatus";
-        signature = "-> bool";
+        signature = "-> text";
         syntax = "checkdbservicestatus()";
         meaning = "check status of DBService and "
                 "print currently stored metadata to the command line";
