@@ -1244,7 +1244,7 @@
   file      = {:Performance Estimates of a Join.pdf:PDF},
 }
 
-@InProceedings{inproceedings,
+@InProceedings{Garcia2007,
   author = {Garcia, Philip and Korth, Henry},
   title  = {Pipelined hash-join on multithreaded architectures},
   year   = {2007},
@@ -1318,7 +1318,7 @@
   file      = {:Progressive Merge Join A Generic and Non-Blocking Sort-Based Join Algorithm.pdf:PDF},
 }
 
-@InProceedings{inproceedings,
+@InProceedings{Huber2009,
   author = {Huber, Frank and Freytag, Johann},
   title  = {Query Processing on Multi-Core Architectures.},
   year   = {2009},
@@ -1468,7 +1468,7 @@
   file   = {:Spatial Database Systems.pdf:PDF},
 }
 
-@Article{article,
+@Article{Mamoulis2000,
   author  = {Mamoulis, Nikos and Papadias, Dimitris},
   title   = {Integration of Spatial Join Algorithms for Processing Multiple Inputs},
   journal = {SIGMOD Record (ACM Special Interest Group on Management of Data)},
@@ -1542,9 +1542,10 @@
   url      = {https://doi.org/10.1023/B:PACS.0000049511.71586.e0},
   abstract = {The paper is devoted to the classification, design, and analysis of architectures of parallel database systems. A formalization of the notion ``parallel database system'' is suggested, which relies on a concept of a virtual machine. Based on this formalization, a new approach to the classification of architectures of parallel database systems is suggested. Requirements to parallel database systems are formulated, which serve as criteria for comparing various architectures. Various classes of architectures of parallel database systems are considered and compared.},
   day      = {01},
+  file     = {:Sokolinsky2004E.pdf:PDF},
 }
 
-@Article{article,
+@Article{Chang1998,
   author  = {Chang, Chialin and Acharya, Anurag and Sussman, Alan and Saltz, Joel},
   title   = {T2: A Customizable Parallel Database for Multi-Dimensional Data.},
   journal = {SIGMOD Record},
@@ -1611,7 +1612,7 @@
   file   = {:Theoretical Parallel Computing.pdf:PDF},
 }
 
-@Article{article,
+@Article{Vishkin2002,
   author = {Vishkin, Uzi},
   title  = {Thinking in Parallel: Some Basic Data-Parallel Algorithms and Techniques},
   year   = {2002},
@@ -1665,6 +1666,35 @@
   file      = {:Variations in Performance Measurements of Multi-Core Processors.pdf:PDF},
   issn      = {null},
   keywords  = {cache storage;input-output programs;microprocessor chips;multiprocessing systems;performance evaluation;quality of service;virtual machines;MCP cache architecture;I/O-intensive workload;mixed read-write workload;write operation handling;browse-only CPU-intensive workload;nonmonotonic scalability trend;quad-core dual-processor;intra MCP horizontal scalability;KVM;Xen;commercial hypervisor;mainstream hypervisors;MCP core mapping;performance drops;on-chip cache hit ratio;virtual CPU;QoS;quality-of-service predictability;n-tier application performance;multicore processors;performance measurements;Virtual machine monitors;Scalability;Multicore processing;Servers;Market research;Throughput;Hardware;virtualization; QoS; multi-core; scalability; cloud; hypervisor; performance comparison; RUBBoS; n-tier},
+}
+
+@Book{McCool:2012:SPP:2385466,
+  author    = {McCool, Michael and Reinders, James and Robison, Arch},
+  title     = {Structured Parallel Programming: Patterns for Efficient Computation},
+  year      = {2012},
+  edition   = {1st},
+  publisher = {Morgan Kaufmann Publishers Inc.},
+  isbn      = {9780123914439, 9780124159938},
+  address   = {San Francisco, CA, USA},
+  file      = {:Structured Parallel Programming.pdf:PDF},
+}
+
+@Article{article,
+  author  = {Ranok, Udom and Kittitornkun, Surin},
+  title   = {Parallel Partition and Merge QuickSort (PPMQSort) on Multicore CPUs},
+  journal = {The Journal of Supercomputing},
+  year    = {2016},
+  volume  = {72},
+  month   = feb,
+  doi     = {10.1007/s11227-016-1641-y},
+}
+
+@InProceedings{inproceedings,
+  author = {Rattanatranurak, Apisit},
+  title  = {Dual Parallel Partition Sorting Algorithm},
+  year   = {2019},
+  month  = jan,
+  file   = {:Dual Parallel Partition Sorting Algorithm.pdf:PDF},
 }
 
 @Comment{jabref-meta: databaseType:biblatex;}
