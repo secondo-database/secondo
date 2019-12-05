@@ -112,6 +112,26 @@ class FullOsmImport {
     std::map<Point, LongInt> pt2Id;
 };
 
+class ImportairspaceLI {
+ public:
+  ImportairspaceLI(std::string& fn);
+  ~ImportairspaceLI();
+  
+  bool openFile();
+  bool readAltlimit(const bool top, Tuple *tuple);
+  void string2region(std::string regstr, Region *result);
+  Tuple* getNextTuple();
+  static ListExpr getResultTypeList();
+  
+  bool correct;
+  SecondoCatalog* sc;
+  TupleType *resultType;
+  xmlTextReaderPtr reader;
+  std::string filename;
+  int read, next;
+};
+
+
 namespace osm {
 
 // OSM-algebra

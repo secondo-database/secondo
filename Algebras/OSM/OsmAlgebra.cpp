@@ -1071,7 +1071,7 @@ void FullOsmImport::processTag(xmlTextReaderPtr reader, entityKind kind) {
   next = xmlTextReaderNext(reader);
 }
 
-void FullOsmImport::fillRelations() {  
+void FullOsmImport::fillRelations() {
   xmlChar *subNameXml;
   node = new Tuple(nodeType);
   tag = new Tuple(nodeTagType);
@@ -1870,6 +1870,398 @@ Operator divide_osm3( "divide_osm3",
                 divide_osm3TM);
 
 
+/*
+\section{Operator ~importairspace~}
+
+Imports an ~aip~ file containing airspace information. Every item must have the
+following structure:
+
+<ASP CATEGORY="CTR">
+  <VERSION>5cc68cbb1ea6c44ca82b653c0a7efad43b32f5a1</VERSION>
+  <ID>276345</ID>
+  <COUNTRY>DE</COUNTRY>
+  <NAME>CTR Dortmund</NAME>
+  <ALTLIMIT_TOP REFERENCE="MSL">
+    <ALT UNIT="F">2500</ALT>
+  </ALTLIMIT_TOP>
+  <ALTLIMIT_BOTTOM REFERENCE="GND">
+    <ALT UNIT="F">0</ALT>
+  </ALTLIMIT_BOTTOM>
+  <GEOMETRY>
+    <POLYGON>7.3741666666667 51.493055555556, 7.7697222222222 51.632222222222, 
+    7.8463888888889 51.547777777778, 7.4519444444444 51.408333333333, 
+    7.3741666666667 51.493055555556</POLYGON>
+  </GEOMETRY>
+</ASP>
+
+
+\subsection{Type Mapping}
+
+*/
+ListExpr importairspaceTM(ListExpr args) {
+  const std::string errMsg = "Expecting a text argument (filename)";
+  if (!nl->HasLength(args, 1)) {
+    return listutils::typeError(errMsg);
+  }
+  if (!FText::checkType(nl->First(args))) {
+    return listutils::typeError(errMsg);
+  }
+  return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()), 
+                         ImportairspaceLI::getResultTypeList());
+}
+
+/*
+\subsection{Specification}
+
+*/
+const std::string importairspaceSpec =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "(<text> text -> bool</text--->"
+    "<text>importairspace( _ )</text--->"
+    "<text>Imports an XML file containing airspace data.</text--->"
+    "<text>query importairspace('openaip_airspace_germany_de.aip')</text--->))";
+
+/*
+\subsection{Implementation of Local Info class}
+
+*/
+ImportairspaceLI::ImportairspaceLI(std::string& fn) 
+  : correct(true), filename(fn) {
+  sc = SecondoSystem::GetCatalog();
+  ListExpr numResultTypeList = sc->NumericType(getResultTypeList());
+  resultType = new TupleType(numResultTypeList);
+  correct = openFile();
+}
+
+ImportairspaceLI::~ImportairspaceLI() {
+  xmlFreeTextReader(reader);
+  if (resultType != 0) {
+    resultType->DeleteIfAllowed();
+  }
+}
+
+bool ImportairspaceLI::openFile() {
+  // check whether the file can be opened and is an aip file
+  reader = xmlReaderForFile(filename.c_str(), NULL, 0);
+  if (reader == NULL) {
+    cout << "file " << filename << " cannot be opened" << endl;
+    return false;
+  }
+  read = xmlTextReaderRead(reader);
+  if (read < 1) {
+    cout << "file " << filename << " is empty" << endl;
+    xmlFreeTextReader(reader);
+    return false;
+  }
+  // strcmp(x1, x2) == 0  <==> x1 == x2
+  read = xmlTextReaderRead(reader);
+  if (strcmp((char *)xmlTextReaderConstName(reader), "OPENAIP")) {
+    cout << "root node of " << filename << " has to be \"OPENAIP\"" << endl;
+    cout << (char *)xmlTextReaderConstName(reader) << endl;
+    xmlFreeTextReader(reader);
+    return false;
+  }
+  read = xmlTextReaderRead(reader);
+  next = xmlTextReaderNext(reader);
+//   xmlChar *subNameXml;
+//   subNameXml = xmlTextReaderLocalName(reader);
+//   cout << "### " << (char *)subNameXml << endl;
+  if (strcmp((char *)xmlTextReaderConstName(reader), "AIRSPACES")) {
+    cout << "2nd node of " << filename << " has to be \"AIRSPACES\"" << endl;
+    cout << (char *)xmlTextReaderConstName(reader) << endl;
+    xmlFreeTextReader(reader);
+    return false;
+  }
+  cout << "file " << filename << " opened successfully" << endl;
+  return true;
+}
+
+Tuple* ImportairspaceLI::getNextTuple() {
+  std::string currentName = "";
+  xmlChar *subNameXml, *catXml, *idXml, *countryXml, *nameXml, *geometryXml;
+  read = xmlTextReaderRead(reader);
+  next = xmlTextReaderNext(reader);
+  if ((read != 1) || (next != 1)) {
+    return 0;
+  }
+  Tuple *tuple = new Tuple(resultType);
+  subNameXml = xmlTextReaderLocalName(reader);
+  currentName = (char*)subNameXml;
+  xmlFree(subNameXml);
+//   cout << "GENERAL TYPE is " << currentName << endl;
+  if (currentName != "ASP") {
+    return 0;
+  }
+  catXml = xmlTextReaderGetAttribute(reader, (xmlChar*)"CATEGORY");
+  if (catXml == NULL) {
+    return 0;
+  }
+//   cout << "CATEGORY: " << (char*)catXml << endl;
+  tuple->PutAttribute(0, new CcString(true, (char*)catXml));
+  xmlFree(catXml);
+  // start to read VERSION (skip)
+  read = xmlTextReaderRead(reader);
+  next = xmlTextReaderNext(reader);
+  read = xmlTextReaderRead(reader);
+  next = xmlTextReaderNext(reader);
+  subNameXml = xmlTextReaderLocalName(reader);
+  currentName = (char*)subNameXml;
+  xmlFree(subNameXml);
+//   cout << "currentName 1 is " << currentName << endl;
+  if (currentName != "VERSION") {
+    return 0;
+  }
+  // start to read ID
+  read = xmlTextReaderRead(reader);
+  next = xmlTextReaderNext(reader);
+  subNameXml = xmlTextReaderLocalName(reader);
+  currentName = (char*)subNameXml;
+//   cout << "currentName 2 is " << currentName << endl;
+  xmlFree(subNameXml);
+  if (currentName != "ID") {
+    return 0;
+  }
+  read = xmlTextReaderRead(reader);
+  idXml = xmlTextReaderValue(reader);
+//   cout << "   ID: \'" << (char*)idXml << "\'=" 
+//   << std::stoi((char*)idXml) << endl;
+  tuple->PutAttribute(1, new CcInt(true, std::stoi((char*)idXml)));
+  xmlFree(idXml);
+  // start to read COUNTRY
+  next = xmlTextReaderNext(reader);
+  read = xmlTextReaderRead(reader);
+  next = xmlTextReaderNext(reader);
+  subNameXml = xmlTextReaderLocalName(reader);
+  currentName = (char*)subNameXml;
+  xmlFree(subNameXml);
+//   cout << "currentName 3 is " << currentName << endl;
+  if (currentName != "COUNTRY") {
+    return 0;
+  }
+  read = xmlTextReaderRead(reader);
+  countryXml = xmlTextReaderValue(reader);
+//   cout << "   COUNTRY: " << (char*)countryXml << endl;
+  tuple->PutAttribute(2, new CcString(true, (char*)countryXml));
+  xmlFree(countryXml);
+  // start to read NAME
+  next = xmlTextReaderNext(reader);
+  read = xmlTextReaderRead(reader);
+  next = xmlTextReaderNext(reader);
+  subNameXml = xmlTextReaderLocalName(reader);
+  currentName = (char*)subNameXml;
+//   cout << "currentName 4 is " << currentName << endl;
+  xmlFree(subNameXml);
+  if (currentName != "NAME") {
+    return 0;
+  }
+  read = xmlTextReaderRead(reader);
+  nameXml = xmlTextReaderValue(reader);
+//   cout << "   NAME: " << (char*)nameXml << endl;
+  tuple->PutAttribute(3, new FText(true, (char*)nameXml));
+  xmlFree(nameXml);
+  // start to read ALTLIMIT_TOP
+  if (!readAltlimit(true, tuple)) {
+    return 0;
+  }
+  // start to read ALTLIMIT_BOTTOM
+  if (!readAltlimit(false, tuple)) {
+    return 0;
+  }
+  // start to read GEOMETRY
+  read = xmlTextReaderRead(reader);
+  next = xmlTextReaderNext(reader);
+  read = xmlTextReaderRead(reader);
+  next = xmlTextReaderNext(reader);
+  read = xmlTextReaderRead(reader);
+  subNameXml = xmlTextReaderLocalName(reader);
+  currentName = (char*)subNameXml;
+  xmlFree(subNameXml);
+//   cout << "currentName 7 is " << currentName << endl;
+  if (currentName != "GEOMETRY") {
+    return 0;
+  }
+  read = xmlTextReaderRead(reader);
+  read = xmlTextReaderRead(reader);
+  subNameXml = xmlTextReaderLocalName(reader);
+  currentName = (char*)subNameXml;
+  xmlFree(subNameXml);
+  if (currentName != "POLYGON") {
+    return 0;
+  }
+  read = xmlTextReaderRead(reader);
+  geometryXml = xmlTextReaderValue(reader);
+//   cout << "   POLYGON: " << (char*)geometryXml << endl << endl;
+  Region *reg = new Region(true);
+  string2region((char*)geometryXml, reg);
+  tuple->PutAttribute(10, reg);
+  xmlFree(geometryXml);
+  next = xmlTextReaderNext(reader);
+  next = xmlTextReaderNext(reader);
+  next = xmlTextReaderNext(reader);
+  next = xmlTextReaderNext(reader);
+  next = xmlTextReaderNext(reader);
+//   cout << "---------------------TUPLE COMPLETED--------------------" << endl;
+  return tuple;
+}
+
+void ImportairspaceLI::string2region(std::string regstr, Region *result) {
+  result->SetDefined(false);
+  std::istringstream iss(regstr);
+  std::string pstr;
+  std::vector<Point*> points;
+  double xcoord, ycoord;
+  bool first = true;
+  while (getline(iss, pstr, ' ')) {
+    if (first) {
+      xcoord = std::stod(pstr);
+      first = false;
+    }
+    else {
+      ycoord = std::stod(pstr.substr(0, pstr.find(',')));
+      points.push_back(new Point(true, xcoord, ycoord));
+      first = true;
+    }
+  }
+  Line *line = new Line(true);
+  line->StartBulkLoad();
+  Point *lastPt = 0;
+  for (auto it : points) {
+    if (!first) {
+      if (!AlmostEqual(*lastPt, *it)) {
+        HalfSegment hs(true, *lastPt, *it);
+        (*line) += hs;
+        hs.SetLeftDomPoint(!hs.IsLeftDomPoint());
+        (*line) += hs;
+      }
+      lastPt->DeleteIfAllowed();
+    }
+    lastPt = it;
+    first = false;
+  }
+  lastPt->DeleteIfAllowed();
+  line->EndBulkLoad();
+  line->Transform(*result);
+  line->DeleteIfAllowed();
+}
+
+bool ImportairspaceLI::readAltlimit(const bool top, Tuple *tuple) {
+  xmlChar *subNameXml, *altlimitrefXml, *altlimitunitXml, *altlimitvalueXml;
+  std::string currentName = "";
+  int attrNo = (top ? 4 : 7);
+  if (!top) {
+    next = xmlTextReaderNext(reader);
+    read = xmlTextReaderRead(reader);
+  }
+  next = xmlTextReaderNext(reader);
+  read = xmlTextReaderRead(reader);
+  next = xmlTextReaderNext(reader);
+  altlimitrefXml = xmlTextReaderGetAttribute(reader, (xmlChar*)"REFERENCE");
+  if (altlimitrefXml == NULL) {
+    return false;
+  }
+//   cout << "   REFERENCE: " << (char*)altlimitrefXml << endl;
+  tuple->PutAttribute(attrNo, new CcString(true, (char*)altlimitrefXml));
+  xmlFree(altlimitrefXml);
+  read = xmlTextReaderRead(reader);
+  next = xmlTextReaderNext(reader);
+  subNameXml = xmlTextReaderLocalName(reader);
+  currentName = (char*)subNameXml;
+//   cout << "currentName " << (top? "5": "6") << " is " << currentName << endl;
+  xmlFree(subNameXml);
+  if (currentName != "ALT") {
+    return false;
+  }
+  altlimitunitXml = xmlTextReaderGetAttribute(reader, (xmlChar*)"UNIT");
+  if (altlimitunitXml == NULL) {
+    return false;
+  }
+//   cout << "   UNIT: " << (char*)altlimitunitXml << endl;
+  tuple->PutAttribute(attrNo + 1, new CcString(true, (char*)altlimitunitXml));
+  xmlFree(altlimitunitXml);
+  read = xmlTextReaderRead(reader);
+  altlimitvalueXml = xmlTextReaderValue(reader);
+//   cout << "   ALTLIMIT_" << (top ? "TOP" : "BOTTOM") << "_VALUE: \'" 
+//        << (char*)altlimitvalueXml << "\'=" 
+//        << std::stoi((char*)altlimitvalueXml) << endl;
+  tuple->PutAttribute(attrNo + 2,
+                      new CcInt(true, std::stoi((char*)altlimitvalueXml)));
+  xmlFree(altlimitvalueXml);
+  return true;
+}
+
+ListExpr ImportairspaceLI::getResultTypeList() {
+  ListExpr attrs = nl->Cons(nl->TwoElemList(nl->SymbolAtom("Altlimit_top_ref"),
+                                      nl->SymbolAtom(CcString::BasicType())),
+      nl->SixElemList(nl->TwoElemList(nl->SymbolAtom("Altlimit_top_unit"),
+                                      nl->SymbolAtom(CcString::BasicType())),
+                      nl->TwoElemList(nl->SymbolAtom("Altlimit_top"), 
+                                      nl->SymbolAtom(CcInt::BasicType())),
+                      nl->TwoElemList(nl->SymbolAtom("Altlimit_bottom_ref"),
+                                      nl->SymbolAtom(CcString::BasicType())),
+                      nl->TwoElemList(nl->SymbolAtom("Altlimit_bottom_unit"),
+                                      nl->SymbolAtom(CcString::BasicType())),
+                      nl->TwoElemList(nl->SymbolAtom("Altlimit_bottom"), 
+                                      nl->SymbolAtom(CcInt::BasicType())),
+                      nl->TwoElemList(nl->SymbolAtom("Geometry"),
+                                      nl->SymbolAtom(Region::BasicType()))));
+  attrs = nl->Cons(nl->TwoElemList(nl->SymbolAtom("Name"), 
+                                nl->SymbolAtom(FText::BasicType())), attrs);
+  attrs = nl->Cons(nl->TwoElemList(nl->SymbolAtom("Country"),
+                                nl->SymbolAtom(CcString::BasicType())), attrs);
+  attrs = nl->Cons(nl->TwoElemList(nl->SymbolAtom("Id"),
+                                nl->SymbolAtom(CcInt::BasicType())), attrs);
+  attrs = nl->Cons(nl->TwoElemList(nl->SymbolAtom("Category"), 
+                                nl->SymbolAtom(CcString::BasicType())), attrs);
+  return nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()), attrs);
+}
+
+/*
+\subsection{Value Mapping}
+
+*/
+int importairspaceVM(Word* args, Word& result, int message, Word& local,
+                     Supplier s) {
+  if (!((FText*)args[0].addr)->IsDefined()) {
+    return 0;
+  }
+  std::string filename = ((FText*)args[0].addr)->GetValue();
+  ImportairspaceLI *li = static_cast<ImportairspaceLI*>(local.addr);
+  switch (message) {
+    case OPEN: {
+      if (li) {
+        li = 0;
+      }
+      li = new ImportairspaceLI(filename);
+      local.addr = li;
+      return 0;
+    }
+    case REQUEST: {
+      result.addr = li ? li->getNextTuple() : 0;
+      return result.addr ? YIELD : CANCEL;
+    }
+    case CLOSE: {
+      if (local.addr) {
+        li = (ImportairspaceLI*)local.addr;
+        delete li;
+        local.addr = 0;
+      }
+      return 0;
+    }
+  }
+  return 0;
+}
+
+/*
+\subsection{Operator instance}
+
+*/
+Operator importairspace( "importairspace",
+                importairspaceSpec,
+                importairspaceVM,
+                Operator::SimpleSelect,
+                importairspaceTM);
+
+
 // --- Constructors
 // Constructor
 osm::OsmAlgebra::OsmAlgebra () : Algebra ()
@@ -1894,6 +2286,7 @@ osm::OsmAlgebra::OsmAlgebra () : Algebra ()
     AddOperator(&divide_osm2);
     AddOperator(&divide_osm3);
 //     AddOperator(&convertstreets);
+    AddOperator(&importairspace);
 }
 
 // Destructor
