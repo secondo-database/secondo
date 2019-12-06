@@ -1898,7 +1898,7 @@ following structure:
 \subsection{Type Mapping}
 
 */
-ListExpr importairspaceTM(ListExpr args) {
+ListExpr importairspacesTM(ListExpr args) {
   const std::string errMsg = "Expecting a text argument (filename)";
   if (!nl->HasLength(args, 1)) {
     return listutils::typeError(errMsg);
@@ -1907,17 +1907,20 @@ ListExpr importairspaceTM(ListExpr args) {
     return listutils::typeError(errMsg);
   }
   return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()), 
-                         ImportairspaceLI::getResultTypeList());
+                         ImportairspacesLI::getResultTypeList());
 }
 
 /*
 \subsection{Specification}
 
 */
-const std::string importairspaceSpec =
+const std::string importairspacesSpec =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-    "(<text> text -> bool</text--->"
-    "<text>importairspace( _ )</text--->"
+    "(<text> text -> stream(tuple(Category: string, Version: text, Id: int, "
+    "Country: string, Name: string, Altlimit_top_ref: string, Altlimit_top_"
+    "unit: string, Altlimit_top: int, Altlimit_bottom_ref: string, Altlimit_"
+    "bottom_unit: string, Altlimit_bottom: int, Geometry: region))</text--->"
+    "<text>importairspaces( _ )</text--->"
     "<text>Imports an XML file containing airspace data.</text--->"
     "<text>query importairspace('openaip_airspace_germany_de.aip')</text--->))";
 
@@ -1925,7 +1928,7 @@ const std::string importairspaceSpec =
 \subsection{Implementation of Local Info class}
 
 */
-ImportairspaceLI::ImportairspaceLI(std::string& fn) 
+ImportairspacesLI::ImportairspacesLI(std::string& fn) 
   : correct(true), filename(fn) {
   sc = SecondoSystem::GetCatalog();
   ListExpr numResultTypeList = sc->NumericType(getResultTypeList());
@@ -1933,14 +1936,14 @@ ImportairspaceLI::ImportairspaceLI(std::string& fn)
   correct = openFile();
 }
 
-ImportairspaceLI::~ImportairspaceLI() {
+ImportairspacesLI::~ImportairspacesLI() {
   xmlFreeTextReader(reader);
   if (resultType != 0) {
     resultType->DeleteIfAllowed();
   }
 }
 
-bool ImportairspaceLI::openFile() {
+bool ImportairspacesLI::openFile() {
   // check whether the file can be opened and is an aip file
   reader = xmlReaderForFile(filename.c_str(), NULL, 0);
   if (reader == NULL) {
@@ -1976,9 +1979,10 @@ bool ImportairspaceLI::openFile() {
   return true;
 }
 
-Tuple* ImportairspaceLI::getNextTuple() {
+Tuple* ImportairspacesLI::getNextTuple() {
   std::string currentName = "";
-  xmlChar *subNameXml, *catXml, *idXml, *countryXml, *nameXml, *geometryXml;
+  xmlChar *subNameXml, *catXml, *versionXml, *idXml, *countryXml, *nameXml,
+     *geometryXml;
   read = xmlTextReaderRead(reader);
   next = xmlTextReaderNext(reader);
   if ((read != 1) || (next != 1)) {
@@ -2002,8 +2006,6 @@ Tuple* ImportairspaceLI::getNextTuple() {
   // start to read VERSION (skip)
   read = xmlTextReaderRead(reader);
   next = xmlTextReaderNext(reader);
-  read = xmlTextReaderRead(reader);
-  next = xmlTextReaderNext(reader);
   subNameXml = xmlTextReaderLocalName(reader);
   currentName = (char*)subNameXml;
   xmlFree(subNameXml);
@@ -2011,6 +2013,12 @@ Tuple* ImportairspaceLI::getNextTuple() {
   if (currentName != "VERSION") {
     return 0;
   }
+  read = xmlTextReaderRead(reader);
+  versionXml = xmlTextReaderValue(reader);
+//   cout << "   VERSION: " << (char*)versionXml << endl;
+  tuple->PutAttribute(1, new FText(true, (char*)versionXml));
+  xmlFree(versionXml);
+  next = xmlTextReaderNext(reader);
   // start to read ID
   read = xmlTextReaderRead(reader);
   next = xmlTextReaderNext(reader);
@@ -2025,7 +2033,7 @@ Tuple* ImportairspaceLI::getNextTuple() {
   idXml = xmlTextReaderValue(reader);
 //   cout << "   ID: \'" << (char*)idXml << "\'=" 
 //   << std::stoi((char*)idXml) << endl;
-  tuple->PutAttribute(1, new CcInt(true, std::stoi((char*)idXml)));
+  tuple->PutAttribute(2, new CcInt(true, std::stoi((char*)idXml)));
   xmlFree(idXml);
   // start to read COUNTRY
   next = xmlTextReaderNext(reader);
@@ -2041,7 +2049,7 @@ Tuple* ImportairspaceLI::getNextTuple() {
   read = xmlTextReaderRead(reader);
   countryXml = xmlTextReaderValue(reader);
 //   cout << "   COUNTRY: " << (char*)countryXml << endl;
-  tuple->PutAttribute(2, new CcString(true, (char*)countryXml));
+  tuple->PutAttribute(3, new CcString(true, (char*)countryXml));
   xmlFree(countryXml);
   // start to read NAME
   next = xmlTextReaderNext(reader);
@@ -2057,7 +2065,7 @@ Tuple* ImportairspaceLI::getNextTuple() {
   read = xmlTextReaderRead(reader);
   nameXml = xmlTextReaderValue(reader);
 //   cout << "   NAME: " << (char*)nameXml << endl;
-  tuple->PutAttribute(3, new FText(true, (char*)nameXml));
+  tuple->PutAttribute(4, new FText(true, (char*)nameXml));
   xmlFree(nameXml);
   // start to read ALTLIMIT_TOP
   if (!readAltlimit(true, tuple)) {
@@ -2093,7 +2101,7 @@ Tuple* ImportairspaceLI::getNextTuple() {
 //   cout << "   POLYGON: " << (char*)geometryXml << endl << endl;
   Region *reg = new Region(true);
   string2region((char*)geometryXml, reg);
-  tuple->PutAttribute(10, reg);
+  tuple->PutAttribute(11, reg);
   xmlFree(geometryXml);
   next = xmlTextReaderNext(reader);
   next = xmlTextReaderNext(reader);
@@ -2104,7 +2112,7 @@ Tuple* ImportairspaceLI::getNextTuple() {
   return tuple;
 }
 
-void ImportairspaceLI::string2region(std::string regstr, Region *result) {
+void ImportairspacesLI::string2region(std::string regstr, Region *result) {
   result->SetDefined(false);
   std::istringstream iss(regstr);
   std::string pstr;
@@ -2144,10 +2152,10 @@ void ImportairspaceLI::string2region(std::string regstr, Region *result) {
   line->DeleteIfAllowed();
 }
 
-bool ImportairspaceLI::readAltlimit(const bool top, Tuple *tuple) {
+bool ImportairspacesLI::readAltlimit(const bool top, Tuple *tuple) {
   xmlChar *subNameXml, *altlimitrefXml, *altlimitunitXml, *altlimitvalueXml;
   std::string currentName = "";
-  int attrNo = (top ? 4 : 7);
+  int attrNo = (top ? 5 : 8);
   if (!top) {
     next = xmlTextReaderNext(reader);
     read = xmlTextReaderRead(reader);
@@ -2189,7 +2197,7 @@ bool ImportairspaceLI::readAltlimit(const bool top, Tuple *tuple) {
   return true;
 }
 
-ListExpr ImportairspaceLI::getResultTypeList() {
+ListExpr ImportairspacesLI::getResultTypeList() {
   ListExpr attrs = nl->Cons(nl->TwoElemList(nl->SymbolAtom("Altlimit_top_ref"),
                                       nl->SymbolAtom(CcString::BasicType())),
       nl->SixElemList(nl->TwoElemList(nl->SymbolAtom("Altlimit_top_unit"),
@@ -2210,6 +2218,8 @@ ListExpr ImportairspaceLI::getResultTypeList() {
                                 nl->SymbolAtom(CcString::BasicType())), attrs);
   attrs = nl->Cons(nl->TwoElemList(nl->SymbolAtom("Id"),
                                 nl->SymbolAtom(CcInt::BasicType())), attrs);
+  attrs = nl->Cons(nl->TwoElemList(nl->SymbolAtom("Version"),
+                                nl->SymbolAtom(FText::BasicType())), attrs);
   attrs = nl->Cons(nl->TwoElemList(nl->SymbolAtom("Category"), 
                                 nl->SymbolAtom(CcString::BasicType())), attrs);
   return nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()), attrs);
@@ -2219,19 +2229,19 @@ ListExpr ImportairspaceLI::getResultTypeList() {
 \subsection{Value Mapping}
 
 */
-int importairspaceVM(Word* args, Word& result, int message, Word& local,
+int importairspacesVM(Word* args, Word& result, int message, Word& local,
                      Supplier s) {
   if (!((FText*)args[0].addr)->IsDefined()) {
     return 0;
   }
   std::string filename = ((FText*)args[0].addr)->GetValue();
-  ImportairspaceLI *li = static_cast<ImportairspaceLI*>(local.addr);
+  ImportairspacesLI *li = static_cast<ImportairspacesLI*>(local.addr);
   switch (message) {
     case OPEN: {
       if (li) {
         li = 0;
       }
-      li = new ImportairspaceLI(filename);
+      li = new ImportairspacesLI(filename);
       local.addr = li;
       return 0;
     }
@@ -2241,7 +2251,7 @@ int importairspaceVM(Word* args, Word& result, int message, Word& local,
     }
     case CLOSE: {
       if (local.addr) {
-        li = (ImportairspaceLI*)local.addr;
+        li = (ImportairspacesLI*)local.addr;
         delete li;
         local.addr = 0;
       }
@@ -2255,11 +2265,11 @@ int importairspaceVM(Word* args, Word& result, int message, Word& local,
 \subsection{Operator instance}
 
 */
-Operator importairspace( "importairspace",
-                importairspaceSpec,
-                importairspaceVM,
+Operator importairspaces( "importairspaces",
+                importairspacesSpec,
+                importairspacesVM,
                 Operator::SimpleSelect,
-                importairspaceTM);
+                importairspacesTM);
 
 
 // --- Constructors
@@ -2286,7 +2296,7 @@ osm::OsmAlgebra::OsmAlgebra () : Algebra ()
     AddOperator(&divide_osm2);
     AddOperator(&divide_osm3);
 //     AddOperator(&convertstreets);
-    AddOperator(&importairspace);
+    AddOperator(&importairspaces);
 }
 
 // Destructor

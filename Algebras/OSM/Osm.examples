@@ -73,8 +73,8 @@ Signature: text x int x int -> bool
 Example  : query divide_osm3('kirchditmold.osm', 10, 7)
 Result   : TRUE
 
-Operator : importairspace
+Operator : importairspaces
 Number   : 1
-Signature: text -> bool
-Example  : query importairspace('openaip_airspace_germany_de.aip') head[10] count
+Signature: text -> stream(tuple(Category: string, Version: text, Id: int, Country: string, Name: string, Altlimit_top_ref: string, Altlimit_top_unit: string, Altlimit_top: int, Altlimit_bottom_ref: string, Altlimit_bottom_unit: string, Altlimit_bottom: int, Geometry: region))
+Example  : query importairspaces('openaip_airspace_germany_de.aip') head[10] count
 Result   : 10

@@ -112,10 +112,10 @@ class FullOsmImport {
     std::map<Point, LongInt> pt2Id;
 };
 
-class ImportairspaceLI {
+class ImportairspacesLI {
  public:
-  ImportairspaceLI(std::string& fn);
-  ~ImportairspaceLI();
+  ImportairspacesLI(std::string& fn);
+  ~ImportairspacesLI();
   
   bool openFile();
   bool readAltlimit(const bool top, Tuple *tuple);
