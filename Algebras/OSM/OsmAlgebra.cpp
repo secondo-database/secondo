@@ -1871,7 +1871,7 @@ Operator divide_osm3( "divide_osm3",
 
 
 /*
-\section{Operator ~importairspace~}
+\section{Operator ~importairspaces~}
 
 Imports an ~aip~ file containing airspace information. Every item must have the
 following structure:
@@ -1895,55 +1895,18 @@ following structure:
 </ASP>
 
 
-\subsection{Type Mapping}
+\subsection{Implementation of base class and Local Info classes}
 
 */
-ListExpr importairspacesTM(ListExpr args) {
-  const std::string errMsg = "Expecting a text argument (filename)";
-  if (!nl->HasLength(args, 1)) {
-    return listutils::typeError(errMsg);
-  }
-  if (!FText::checkType(nl->First(args))) {
-    return listutils::typeError(errMsg);
-  }
-  return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()), 
-                         ImportairspacesLI::getResultTypeList());
-}
-
-/*
-\subsection{Specification}
-
-*/
-const std::string importairspacesSpec =
-    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-    "(<text> text -> stream(tuple(Category: string, Version: text, Id: int, "
-    "Country: string, Name: string, Altlimit_top_ref: string, Altlimit_top_"
-    "unit: string, Altlimit_top: int, Altlimit_bottom_ref: string, Altlimit_"
-    "bottom_unit: string, Altlimit_bottom: int, Geometry: region))</text--->"
-    "<text>importairspaces( _ )</text--->"
-    "<text>Imports an XML file containing airspace data.</text--->"
-    "<text>query importairspace('openaip_airspace_germany_de.aip')</text--->))";
-
-/*
-\subsection{Implementation of Local Info class}
-
-*/
-ImportairspacesLI::ImportairspacesLI(std::string& fn) 
-  : correct(true), filename(fn) {
+ImportXML::ImportXML(std::string& fn) : correct(true), filename(fn) {
   sc = SecondoSystem::GetCatalog();
-  ListExpr numResultTypeList = sc->NumericType(getResultTypeList());
-  resultType = new TupleType(numResultTypeList);
-  correct = openFile();
 }
 
-ImportairspacesLI::~ImportairspacesLI() {
+ImportXML::~ImportXML() {
   xmlFreeTextReader(reader);
-  if (resultType != 0) {
-    resultType->DeleteIfAllowed();
-  }
 }
 
-bool ImportairspacesLI::openFile() {
+bool ImportXML::openFile(std::string& category) {
   // check whether the file can be opened and is an aip file
   reader = xmlReaderForFile(filename.c_str(), NULL, 0);
   if (reader == NULL) {
@@ -1969,8 +1932,10 @@ bool ImportairspacesLI::openFile() {
 //   xmlChar *subNameXml;
 //   subNameXml = xmlTextReaderLocalName(reader);
 //   cout << "### " << (char *)subNameXml << endl;
-  if (strcmp((char *)xmlTextReaderConstName(reader), "AIRSPACES")) {
-    cout << "2nd node of " << filename << " has to be \"AIRSPACES\"" << endl;
+  std::string constName = (char *)xmlTextReaderConstName(reader);
+  if (constName != category) {
+    cout << "2nd node of " << filename << " has to be \"" << category << "\"" 
+         << endl;
     cout << (char *)xmlTextReaderConstName(reader) << endl;
     xmlFreeTextReader(reader);
     return false;
@@ -1979,7 +1944,24 @@ bool ImportairspacesLI::openFile() {
   return true;
 }
 
+ImportairspacesLI::ImportairspacesLI(std::string& fn) 
+  : ImportXML(fn) {
+  ListExpr numResultTypeList = sc->NumericType(getResultTypeList());
+  resultType = new TupleType(numResultTypeList);
+  std::string category = "AIRSPACES";
+  correct = openFile(category);
+}
+
+ImportairspacesLI::~ImportairspacesLI() {
+  if (resultType != 0) {
+    resultType->DeleteIfAllowed();
+  }
+}
+
 Tuple* ImportairspacesLI::getNextTuple() {
+  if (!correct) {
+    return 0;
+  }
   std::string currentName = "";
   xmlChar *subNameXml, *catXml, *versionXml, *idXml, *countryXml, *nameXml,
      *geometryXml;
@@ -2003,7 +1985,7 @@ Tuple* ImportairspacesLI::getNextTuple() {
 //   cout << "CATEGORY: " << (char*)catXml << endl;
   tuple->PutAttribute(0, new CcString(true, (char*)catXml));
   xmlFree(catXml);
-  // start to read VERSION (skip)
+  // start to read VERSION
   read = xmlTextReaderRead(reader);
   next = xmlTextReaderNext(reader);
   subNameXml = xmlTextReaderLocalName(reader);
@@ -2226,6 +2208,36 @@ ListExpr ImportairspacesLI::getResultTypeList() {
 }
 
 /*
+\subsection{Type Mapping}
+
+*/
+ListExpr importairspacesTM(ListExpr args) {
+  const std::string errMsg = "Expecting a text argument (filename)";
+  if (!nl->HasLength(args, 1)) {
+    return listutils::typeError(errMsg);
+  }
+  if (!FText::checkType(nl->First(args))) {
+    return listutils::typeError(errMsg);
+  }
+  return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()), 
+                         ImportairspacesLI::getResultTypeList());
+}
+
+/*
+\subsection{Specification}
+
+*/
+const std::string importairspacesSpec =
+   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+   "(<text> text -> stream(tuple(Category: string, Version: text, Id: int, "
+   "Country: string, Name: string, Altlimit_top_ref: string, Altlimit_top_"
+   "unit: string, Altlimit_top: int, Altlimit_bottom_ref: string, Altlimit_"
+   "bottom_unit: string, Altlimit_bottom: int, Geometry: region))</text--->"
+   "<text>importairspaces( _ )</text--->"
+   "<text>Imports an XML file containing airspace data.</text--->"
+   "<text>query importairspaces('openaip_airspace_germany_de.aip')</text--->))";
+
+/*
 \subsection{Value Mapping}
 
 */
@@ -2262,14 +2274,393 @@ int importairspacesVM(Word* args, Word& result, int message, Word& local,
 }
 
 /*
+Operator ~importnavaids~
+
+*/
+ImportnavaidsLI::ImportnavaidsLI(std::string& fn) 
+  : ImportXML(fn) {
+  ListExpr numResultTypeList = sc->NumericType(getResultTypeList());
+  resultType = new TupleType(numResultTypeList);
+  std::string category = "NAVAIDS";
+  correct = openFile(category);
+}
+
+ImportnavaidsLI::~ImportnavaidsLI() {
+  if (resultType != 0) {
+    resultType->DeleteIfAllowed();
+  }
+}
+
+Tuple* ImportnavaidsLI::getNextTuple() {
+  if (!correct) {
+    return 0;
+  }
+  std::string currentName = "";
+  xmlChar *subNameXml, *typeXml, *countryXml, *nameXml, *idXml, *latXml, 
+    *lonXml, *elevXml, *freqXml, *channelXml, *rangeXml, *declXml, *alignedXml;
+  read = xmlTextReaderRead(reader);
+  next = xmlTextReaderNext(reader);
+  if ((read != 1) || (next != 1)) {
+    return 0;
+  }
+  Tuple *tuple = new Tuple(resultType);
+  subNameXml = xmlTextReaderLocalName(reader);
+  currentName = (char*)subNameXml;
+  xmlFree(subNameXml);
+//   cout << "GENERAL TYPE is " << currentName << endl;
+  if (currentName != "NAVAID") {
+    return 0;
+  }
+  typeXml = xmlTextReaderGetAttribute(reader, (xmlChar*)"TYPE");
+  if (typeXml == NULL) {
+    return 0;
+  }
+//   cout << "TYPE: " << (char*)typeXml << endl;
+  tuple->PutAttribute(0, new CcString(true, (char*)typeXml));
+  xmlFree(typeXml);
+  // start to read COUNTRY
+  read = xmlTextReaderRead(reader);
+  next = xmlTextReaderNext(reader);
+  subNameXml = xmlTextReaderLocalName(reader);
+  currentName = (char*)subNameXml;
+  xmlFree(subNameXml);
+//   cout << "currentName 1 is " << currentName << endl;
+  if (currentName != "COUNTRY") {
+    return 0;
+  }
+  read = xmlTextReaderRead(reader);
+  countryXml = xmlTextReaderValue(reader);
+//   cout << "   COUNTRY: " << (char*)countryXml << endl;
+  tuple->PutAttribute(1, new CcString(true, (char*)countryXml));
+  xmlFree(countryXml);
+  next = xmlTextReaderNext(reader);
+  // start to read NAME
+  read = xmlTextReaderRead(reader);
+  next = xmlTextReaderNext(reader);
+  subNameXml = xmlTextReaderLocalName(reader);
+  currentName = (char*)subNameXml;
+//   cout << "currentName 2 is " << currentName << endl;
+  xmlFree(subNameXml);
+  if (currentName != "NAME") {
+    return 0;
+  }
+  read = xmlTextReaderRead(reader);
+  nameXml = xmlTextReaderValue(reader);
+//   cout << "   NAME: \'" << (char*)nameXml << "\'" << endl;
+  tuple->PutAttribute(2, new CcString(true, (char*)nameXml));
+  xmlFree(nameXml);
+  // start to read ID
+  next = xmlTextReaderNext(reader);
+  read = xmlTextReaderRead(reader);
+  next = xmlTextReaderNext(reader);
+  subNameXml = xmlTextReaderLocalName(reader);
+  currentName = (char*)subNameXml;
+  xmlFree(subNameXml);
+//   cout << "currentName 3 is " << currentName << endl;
+  if (currentName != "ID") {
+    return 0;
+  }
+  read = xmlTextReaderRead(reader);
+  idXml = xmlTextReaderValue(reader);
+//   cout << "   ID: " << (char*)idXml << endl;
+  tuple->PutAttribute(3, new CcString(true, (char*)idXml));
+  xmlFree(idXml);
+  // start to read LOCATION
+  read = xmlTextReaderRead(reader);
+  next = xmlTextReaderNext(reader);
+  read = xmlTextReaderRead(reader);
+  subNameXml = xmlTextReaderLocalName(reader);
+  currentName = (char*)subNameXml;
+  xmlFree(subNameXml);
+//   cout << "currentName 4 is " << currentName << endl;
+  if (currentName != "GEOLOCATION") {
+    return 0;
+  }
+  read = xmlTextReaderRead(reader);
+  read = xmlTextReaderRead(reader);
+  subNameXml = xmlTextReaderLocalName(reader);
+  currentName = (char*)subNameXml;
+  xmlFree(subNameXml);
+//   cout << "   subname 1 is " << currentName << endl;
+  if (currentName != "LAT") {
+    return 0;
+  }
+  read = xmlTextReaderRead(reader);
+  latXml = xmlTextReaderValue(reader);
+//   cout << "   LAT: " << (char*)latXml << endl;
+  next = xmlTextReaderNext(reader);
+  next = xmlTextReaderNext(reader);
+  next = xmlTextReaderNext(reader);
+  subNameXml = xmlTextReaderLocalName(reader);
+  currentName = (char*)subNameXml;
+  xmlFree(subNameXml);
+//   cout << "   subname 2 is " << currentName << endl;
+  if (currentName != "LON") {
+    return 0;
+  }
+  read = xmlTextReaderRead(reader);
+  lonXml = xmlTextReaderValue(reader);
+//   cout << "   LON: " << (char*)lonXml << endl;
+  tuple->PutAttribute(4, new Point(true, std::stod((char*)lonXml), 
+                                   std::stod((char*)latXml)));
+  xmlFree(latXml);
+  xmlFree(lonXml);
+  // start to read ELEVATION
+  next = xmlTextReaderNext(reader);
+  next = xmlTextReaderNext(reader);
+  next = xmlTextReaderNext(reader);
+  subNameXml = xmlTextReaderLocalName(reader);
+  currentName = (char*)subNameXml;
+  xmlFree(subNameXml);
+//   cout << "   subname 3 is " << currentName << endl;
+  if (currentName != "ELEV") {
+    return 0;
+  }
+  read = xmlTextReaderRead(reader);
+  elevXml = xmlTextReaderValue(reader);
+//   cout << "   ELEVATION: " << (char*)elevXml << endl;
+  tuple->PutAttribute(5, new CcReal(true, std::stod((char*)elevXml)));
+  xmlFree(elevXml);
+  // start to read RADIO FREQUENCY
+  next = xmlTextReaderNext(reader);
+  next = xmlTextReaderNext(reader);
+  next = xmlTextReaderNext(reader);
+  next = xmlTextReaderNext(reader);
+  next = xmlTextReaderNext(reader);
+  subNameXml = xmlTextReaderLocalName(reader);
+  currentName = (char*)subNameXml;
+  xmlFree(subNameXml);
+//   cout << "currentName 5 is " << currentName << endl;
+  if (currentName != "RADIO") {
+    return 0;
+  }
+  read = xmlTextReaderRead(reader);
+  next = xmlTextReaderNext(reader);
+  subNameXml = xmlTextReaderLocalName(reader);
+  currentName = (char*)subNameXml;
+  xmlFree(subNameXml);
+//   cout << "   subname 1 is " << currentName << endl;
+  if (currentName != "FREQUENCY") {
+    return 0;
+  }
+  read = xmlTextReaderRead(reader);
+  freqXml = xmlTextReaderValue(reader);
+//   cout << "   FREQUENCY: " << (char*)freqXml << endl;
+  CcReal *frequency = new CcReal(false);
+  if (freqXml != NULL) {
+    frequency->Set(true, std::stod((char*)freqXml));
+    xmlFree(freqXml);
+    next = xmlTextReaderNext(reader);
+  }
+  tuple->PutAttribute(6, frequency);
+  // start to read (optional) CHANNEL
+  next = xmlTextReaderNext(reader);
+  next = xmlTextReaderNext(reader);
+  subNameXml = xmlTextReaderLocalName(reader);
+  currentName = (char*)subNameXml;
+  xmlFree(subNameXml);
+  CcString *channel = new CcString(false);
+  if (currentName == "CHANNEL") {
+//     cout << "   subname 2 is " << currentName << endl;
+    read = xmlTextReaderRead(reader);
+    channelXml = xmlTextReaderValue(reader);
+//     cout << "   CHANNEL: " << (char*)channelXml << endl;
+    channel->Set(true, (char*)channelXml);
+    xmlFree(channelXml);
+    next = xmlTextReaderNext(reader);
+    next = xmlTextReaderNext(reader);
+    next = xmlTextReaderNext(reader);
+  }
+  tuple->PutAttribute(7, channel);
+  // start to read PARAMS
+  next = xmlTextReaderNext(reader);
+  next = xmlTextReaderNext(reader);
+  subNameXml = xmlTextReaderLocalName(reader);
+  currentName = (char*)subNameXml;
+  xmlFree(subNameXml);
+  if (currentName != "PARAMS") {
+    return 0;
+  }
+//   cout << "currentName 6 is " << currentName << endl;
+  // start to read RANGE
+  read = xmlTextReaderRead(reader);
+  read = xmlTextReaderRead(reader);
+  subNameXml = xmlTextReaderLocalName(reader);
+  currentName = (char*)subNameXml;
+  xmlFree(subNameXml);
+  if (currentName != "RANGE") {
+    return 0;
+  }
+//   cout << "   subname 1 is " << currentName << endl;
+  read = xmlTextReaderRead(reader);
+  rangeXml = xmlTextReaderValue(reader);
+//   cout << "   RANGE: " << (char*)rangeXml << endl;
+  tuple->PutAttribute(8, new CcInt(true, std::stoi((char*)rangeXml)));
+  xmlFree(rangeXml);
+  // start to read DECLINATION
+  next = xmlTextReaderNext(reader);
+  next = xmlTextReaderNext(reader);
+  next = xmlTextReaderNext(reader);
+  subNameXml = xmlTextReaderLocalName(reader);
+  currentName = (char*)subNameXml;
+  xmlFree(subNameXml);
+//   cout << "   subname 2 is " << currentName << endl;
+  if (currentName != "DECLINATION") {
+    return 0;
+  }
+  read = xmlTextReaderRead(reader);
+  declXml = xmlTextReaderValue(reader);
+//   cout << "   DECLINATION: " << (char*)declXml << endl;
+  CcReal *decl = new CcReal(false);
+  if (declXml != NULL) {
+    decl->Set(true, std::stod((char*)declXml));
+    xmlFree(declXml);
+    next = xmlTextReaderNext(reader);
+  }
+  tuple->PutAttribute(9, decl);
+  // start to read ALIGNEDTOTRUENORTH
+  next = xmlTextReaderNext(reader);
+  next = xmlTextReaderNext(reader);
+  subNameXml = xmlTextReaderLocalName(reader);
+  currentName = (char*)subNameXml;
+  xmlFree(subNameXml);
+//   cout << "   subname 3 is " << currentName << endl;
+  if (currentName != "ALIGNEDTOTRUENORTH") {
+    return 0;
+  }
+  read = xmlTextReaderRead(reader);
+  alignedXml = xmlTextReaderValue(reader);
+//   cout << "   ALIGNEDTOTRUENORTH: " << (char*)alignedXml << endl;
+  std::string alignedstr = (char*)alignedXml;
+  xmlFree(alignedXml);
+  CcBool *aligned = new CcBool(false);
+  if (alignedstr == "TRUE") {
+    aligned->Set(true, true);
+  }
+  else if (alignedstr == "FALSE") {
+    aligned->Set(true, false);
+  }
+  tuple->PutAttribute(10, aligned);
+  next = xmlTextReaderNext(reader);
+  next = xmlTextReaderNext(reader);
+  next = xmlTextReaderNext(reader);
+  next = xmlTextReaderNext(reader);
+  next = xmlTextReaderNext(reader);
+//   cout << "---------------------TUPLE COMPLETED--------------------" << endl;
+  return tuple;
+}
+
+ListExpr ImportnavaidsLI::getResultTypeList() {
+  ListExpr attrs = nl->Cons(nl->TwoElemList(nl->SymbolAtom("Location"),
+                                      nl->SymbolAtom(Point::BasicType())),
+      nl->SixElemList(nl->TwoElemList(nl->SymbolAtom("Elevation"),
+                                      nl->SymbolAtom(CcReal::BasicType())),
+                      nl->TwoElemList(nl->SymbolAtom("Frequency"), 
+                                      nl->SymbolAtom(CcReal::BasicType())),
+                      nl->TwoElemList(nl->SymbolAtom("Channel"),
+                                      nl->SymbolAtom(CcString::BasicType())),
+                      nl->TwoElemList(nl->SymbolAtom("Range"),
+                                      nl->SymbolAtom(CcInt::BasicType())),
+                      nl->TwoElemList(nl->SymbolAtom("Declination"), 
+                                      nl->SymbolAtom(CcReal::BasicType())),
+                      nl->TwoElemList(nl->SymbolAtom("AlignedToTrueNorth"),
+                                      nl->SymbolAtom(CcBool::BasicType()))));
+  attrs = nl->Cons(nl->TwoElemList(nl->SymbolAtom("Id"), 
+                                nl->SymbolAtom(CcString::BasicType())), attrs);
+  attrs = nl->Cons(nl->TwoElemList(nl->SymbolAtom("Name"),
+                                nl->SymbolAtom(CcString::BasicType())), attrs);
+  attrs = nl->Cons(nl->TwoElemList(nl->SymbolAtom("Country"),
+                                nl->SymbolAtom(CcString::BasicType())), attrs);
+  attrs = nl->Cons(nl->TwoElemList(nl->SymbolAtom("Type"),
+                                nl->SymbolAtom(CcString::BasicType())), attrs);
+  return nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()), attrs);
+}
+
+/*
 \subsection{Operator instance}
 
 */
-Operator importairspaces( "importairspaces",
+Operator importairspaces("importairspaces",
                 importairspacesSpec,
                 importairspacesVM,
                 Operator::SimpleSelect,
                 importairspacesTM);
+
+
+/*
+\subsection{Type Mapping}
+
+*/
+ListExpr importnavaidsTM(ListExpr args) {
+  const std::string errMsg = "Expecting a text argument (filename)";
+  if (!nl->HasLength(args, 1)) {
+    return listutils::typeError(errMsg);
+  }
+  if (!FText::checkType(nl->First(args))) {
+    return listutils::typeError(errMsg);
+  }
+  return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()), 
+                         ImportnavaidsLI::getResultTypeList());
+}
+
+/*
+\subsection{Specification}
+
+*/
+const std::string importnavaidsSpec =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "(<text> text -> stream(tuple(Type: string, Country: string, Name: string, "
+    "Id: int, Pos: point, Elevation: real, Frequency: real, Channel: string, "
+    "Range: int, Declination: real, AlignedToTrueNorth: bool))</text--->"
+    "<text>importnavaids( _ )</text--->"
+    "<text>Imports an XML file containing navigation aid data.</text--->"
+    "<text>query importnavaids('openaip_navaid_germany_de.aip')</text--->))";
+
+/*
+\subsection{Value Mapping}
+
+*/
+int importnavaidsVM(Word* args, Word& result, int message, Word& local,
+                    Supplier s) {
+  if (!((FText*)args[0].addr)->IsDefined()) {
+    return 0;
+  }
+  std::string filename = ((FText*)args[0].addr)->GetValue();
+  ImportnavaidsLI *li = static_cast<ImportnavaidsLI*>(local.addr);
+  switch (message) {
+    case OPEN: {
+      if (li) {
+        li = 0;
+      }
+      li = new ImportnavaidsLI(filename);
+      local.addr = li;
+      return 0;
+    }
+    case REQUEST: {
+      result.addr = li ? li->getNextTuple() : 0;
+      return result.addr ? YIELD : CANCEL;
+    }
+    case CLOSE: {
+      if (local.addr) {
+        li = (ImportnavaidsLI*)local.addr;
+        delete li;
+        local.addr = 0;
+      }
+      return 0;
+    }
+  }
+  return 0;
+}
+
+/*
+\subsection{Operator instance}
+
+*/
+Operator importnavaids("importnavaids",
+                importnavaidsSpec,
+                importnavaidsVM,
+                Operator::SimpleSelect,
+                importnavaidsTM);
 
 
 // --- Constructors
@@ -2297,6 +2688,7 @@ osm::OsmAlgebra::OsmAlgebra () : Algebra ()
     AddOperator(&divide_osm3);
 //     AddOperator(&convertstreets);
     AddOperator(&importairspaces);
+    AddOperator(&importnavaids);
 }
 
 // Destructor

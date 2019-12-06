@@ -78,3 +78,9 @@ Number   : 1
 Signature: text -> stream(tuple(Category: string, Version: text, Id: int, Country: string, Name: string, Altlimit_top_ref: string, Altlimit_top_unit: string, Altlimit_top: int, Altlimit_bottom_ref: string, Altlimit_bottom_unit: string, Altlimit_bottom: int, Geometry: region))
 Example  : query importairspaces('openaip_airspace_germany_de.aip') head[10] count
 Result   : 10
+
+Operator : importnavaids
+Number   : 1
+Signature: text -> stream(tuple(Type: string, Country: string, Name: string, Id: int, Pos: point, Elevation: real, Frequency: real, Channel: string, Range: int, Declination: real, AlignedToTrueNorth: bool))
+Example  : query importnavaids('openaip_navaid_germany_de.aip') head[10] count
+Result   : 10

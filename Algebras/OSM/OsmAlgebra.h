@@ -112,23 +112,47 @@ class FullOsmImport {
     std::map<Point, LongInt> pt2Id;
 };
 
-class ImportairspacesLI {
+class ImportXML {
+ public:
+  ImportXML(std::string& fn);
+  ~ImportXML();
+  
+  bool openFile(std::string& category);
+  
+  bool correct;
+  SecondoCatalog* sc;
+  int read, next;
+  std::string filename;
+  xmlTextReaderPtr reader;
+};
+
+class ImportairspacesLI : public ImportXML {
  public:
   ImportairspacesLI(std::string& fn);
   ~ImportairspacesLI();
   
-  bool openFile();
+  
   bool readAltlimit(const bool top, Tuple *tuple);
   void string2region(std::string regstr, Region *result);
   Tuple* getNextTuple();
   static ListExpr getResultTypeList();
   
-  bool correct;
-  SecondoCatalog* sc;
+  
   TupleType *resultType;
-  xmlTextReaderPtr reader;
-  std::string filename;
-  int read, next;
+};
+
+class ImportnavaidsLI : public ImportXML {
+ public:
+  ImportnavaidsLI(std::string& fn);
+  ~ImportnavaidsLI();
+  
+  
+//   bool readAltlimit(const bool top, Tuple *tuple);
+  Tuple* getNextTuple();
+  static ListExpr getResultTypeList();
+  
+  
+  TupleType *resultType;
 };
 
 
