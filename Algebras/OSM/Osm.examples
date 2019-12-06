@@ -84,3 +84,9 @@ Number   : 1
 Signature: text -> stream(tuple(Type: string, Country: string, Name: string, Id: int, Pos: point, Elevation: real, Frequency: real, Channel: string, Range: int, Declination: real, AlignedToTrueNorth: bool))
 Example  : query importnavaids('openaip_navaid_germany_de.aip') head[10] count
 Result   : 10
+
+Operator : importairports
+Number   : 1
+Signature: text x string x string -> stream(tuple(Type: string, Country: string, Name: string, ICAO: string, Pos: point, Elevation: real))
+Example  : query importairports('openaip_airports_germany_de.aip', "Radio", "Runways") head[10] count
+Result   : 0

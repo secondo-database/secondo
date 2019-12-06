@@ -124,36 +124,43 @@ class ImportXML {
   int read, next;
   std::string filename;
   xmlTextReaderPtr reader;
+  TupleType *resultType;
 };
 
 class ImportairspacesLI : public ImportXML {
  public:
   ImportairspacesLI(std::string& fn);
-  ~ImportairspacesLI();
-  
+  ~ImportairspacesLI() {}
   
   bool readAltlimit(const bool top, Tuple *tuple);
   void string2region(std::string regstr, Region *result);
   Tuple* getNextTuple();
   static ListExpr getResultTypeList();
-  
-  
-  TupleType *resultType;
 };
 
 class ImportnavaidsLI : public ImportXML {
  public:
   ImportnavaidsLI(std::string& fn);
-  ~ImportnavaidsLI();
+  ~ImportnavaidsLI() {}
   
-  
-//   bool readAltlimit(const bool top, Tuple *tuple);
   Tuple* getNextTuple();
   static ListExpr getResultTypeList();
-  
-  
-  TupleType *resultType;
 };
+
+class ImportairportsLI : public ImportXML {
+ public:
+  ImportairportsLI(std::string& fn, std::string& radiorelname, 
+                   std::string& runwayrelname);
+  ~ImportairportsLI() {}
+  
+  Tuple* getNextTuple();
+  static ListExpr getResultTypeList();
+  static ListExpr getRadioTypeList();
+  static ListExpr getRunwayTypeList();
+  
+
+};
+
 
 
 namespace osm {

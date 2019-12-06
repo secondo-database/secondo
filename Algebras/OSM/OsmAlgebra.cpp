@@ -1904,6 +1904,9 @@ ImportXML::ImportXML(std::string& fn) : correct(true), filename(fn) {
 
 ImportXML::~ImportXML() {
   xmlFreeTextReader(reader);
+  if (resultType != 0) {
+    resultType->DeleteIfAllowed();
+  }
 }
 
 bool ImportXML::openFile(std::string& category) {
@@ -1950,12 +1953,6 @@ ImportairspacesLI::ImportairspacesLI(std::string& fn)
   resultType = new TupleType(numResultTypeList);
   std::string category = "AIRSPACES";
   correct = openFile(category);
-}
-
-ImportairspacesLI::~ImportairspacesLI() {
-  if (resultType != 0) {
-    resultType->DeleteIfAllowed();
-  }
 }
 
 Tuple* ImportairspacesLI::getNextTuple() {
@@ -2274,6 +2271,16 @@ int importairspacesVM(Word* args, Word& result, int message, Word& local,
 }
 
 /*
+\subsection{Operator instance}
+
+*/
+Operator importairspaces("importairspaces",
+                importairspacesSpec,
+                importairspacesVM,
+                Operator::SimpleSelect,
+                importairspacesTM);
+
+/*
 Operator ~importnavaids~
 
 */
@@ -2283,12 +2290,6 @@ ImportnavaidsLI::ImportnavaidsLI(std::string& fn)
   resultType = new TupleType(numResultTypeList);
   std::string category = "NAVAIDS";
   correct = openFile(category);
-}
-
-ImportnavaidsLI::~ImportnavaidsLI() {
-  if (resultType != 0) {
-    resultType->DeleteIfAllowed();
-  }
 }
 
 Tuple* ImportnavaidsLI::getNextTuple() {
@@ -2577,17 +2578,6 @@ ListExpr ImportnavaidsLI::getResultTypeList() {
 }
 
 /*
-\subsection{Operator instance}
-
-*/
-Operator importairspaces("importairspaces",
-                importairspacesSpec,
-                importairspacesVM,
-                Operator::SimpleSelect,
-                importairspacesTM);
-
-
-/*
 \subsection{Type Mapping}
 
 */
@@ -2663,6 +2653,179 @@ Operator importnavaids("importnavaids",
                 importnavaidsTM);
 
 
+/*
+Operator ~importairports~
+
+*/
+ImportairportsLI::ImportairportsLI(std::string& fn, std::string& radiorelname, 
+                                   std::string& runwayrelname) 
+  : ImportXML(fn) {
+  ListExpr numResultTypeList = sc->NumericType(getResultTypeList());
+  resultType = new TupleType(numResultTypeList);
+  std::string category = "WAYPOINTS";
+  correct = openFile(category);
+}
+
+Tuple* ImportairportsLI::getNextTuple() {
+  return 0;
+}
+
+ListExpr ImportairportsLI::getResultTypeList() {
+  ListExpr attrs = nl->Cons(nl->TwoElemList(nl->SymbolAtom("Id"),
+                                      nl->SymbolAtom(CcInt::BasicType())),
+      nl->SixElemList(nl->TwoElemList(nl->SymbolAtom("Type"),
+                                      nl->SymbolAtom(CcString::BasicType())),
+                      nl->TwoElemList(nl->SymbolAtom("Country"), 
+                                      nl->SymbolAtom(CcString::BasicType())),
+                      nl->TwoElemList(nl->SymbolAtom("Name"),
+                                      nl->SymbolAtom(FText::BasicType())),
+                      nl->TwoElemList(nl->SymbolAtom("ICAO"),
+                                      nl->SymbolAtom(CcString::BasicType())),
+                      nl->TwoElemList(nl->SymbolAtom("Location"), 
+                                      nl->SymbolAtom(Point::BasicType())),
+                      nl->TwoElemList(nl->SymbolAtom("Elevation"),
+                                      nl->SymbolAtom(CcReal::BasicType()))));
+  return nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()), attrs);
+}
+
+ListExpr ImportairportsLI::getRadioTypeList() {
+  ListExpr attrs = nl->FiveElemList(nl->TwoElemList(nl->SymbolAtom("Category"),
+                                      nl->SymbolAtom(CcString::BasicType())),
+                      nl->TwoElemList(nl->SymbolAtom("Frequency"), 
+                                      nl->SymbolAtom(CcReal::BasicType())),
+                      nl->TwoElemList(nl->SymbolAtom("Type"),
+                                      nl->SymbolAtom(CcString::BasicType())),
+                      nl->TwoElemList(nl->SymbolAtom("Description"),
+                                      nl->SymbolAtom(FText::BasicType())),
+                      nl->TwoElemList(nl->SymbolAtom("AirportId"),
+                                      nl->SymbolAtom(CcInt::BasicType())));
+  return nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()), attrs);
+}
+
+ListExpr ImportairportsLI::getRunwayTypeList() {
+  ListExpr attrs = nl->Cons(nl->TwoElemList(nl->SymbolAtom("Strength_unit"),
+                                      nl->SymbolAtom(CcString::BasicType())),
+      nl->SixElemList(nl->TwoElemList(nl->SymbolAtom("Direction"),
+                                      nl->SymbolAtom(CcInt::BasicType())),
+                      nl->TwoElemList(nl->SymbolAtom("TORA"), 
+                                      nl->SymbolAtom(CcInt::BasicType())),
+                      nl->TwoElemList(nl->SymbolAtom("LDA"),
+                                      nl->SymbolAtom(CcInt::BasicType())),
+                      nl->TwoElemList(nl->SymbolAtom("ILS"),
+                                      nl->SymbolAtom(CcReal::BasicType())),
+                      nl->TwoElemList(nl->SymbolAtom("PAPI"), 
+                                      nl->SymbolAtom(CcBool::BasicType())),
+                      nl->TwoElemList(nl->SymbolAtom("AirportId"),
+                                      nl->SymbolAtom(CcInt::BasicType()))));
+  attrs = nl->Cons(nl->TwoElemList(nl->SymbolAtom("Strength"), 
+                                nl->SymbolAtom(CcReal::BasicType())), attrs);
+  attrs = nl->Cons(nl->TwoElemList(nl->SymbolAtom("Width"),
+                                nl->SymbolAtom(CcReal::BasicType())), attrs);
+  attrs = nl->Cons(nl->TwoElemList(nl->SymbolAtom("Length"),
+                                nl->SymbolAtom(CcReal::BasicType())), attrs);
+  attrs = nl->Cons(nl->TwoElemList(nl->SymbolAtom("SFC"),
+                                nl->SymbolAtom(CcString::BasicType())), attrs);
+  attrs = nl->Cons(nl->TwoElemList(nl->SymbolAtom("Name"), 
+                                nl->SymbolAtom(CcString::BasicType())), attrs);
+  attrs = nl->Cons(nl->TwoElemList(nl->SymbolAtom("Operations"), 
+                                nl->SymbolAtom(CcString::BasicType())), attrs);
+  return nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()), attrs);
+}
+
+
+/*
+\subsection{Type Mapping}
+
+*/
+ListExpr importairportsTM(ListExpr args) {
+  const std::string errMsg = "Expecting a text argument (filename) and two "
+                      "string arguments (names for Radio and Runway relations)";
+  if (!nl->HasLength(args, 3)) {
+    return listutils::typeError(errMsg);
+  }
+  if (!FText::checkType(nl->First(args))) {
+    return listutils::typeError(errMsg);
+  }
+  if (!CcString::checkType(nl->Second(args))) {
+    return listutils::typeError(errMsg);
+  }
+  if (!CcString::checkType(nl->Third(args))) {
+    return listutils::typeError(errMsg);
+  }
+  return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()), 
+                         ImportairportsLI::getResultTypeList());
+}
+
+/*
+\subsection{Specification}
+
+*/
+const std::string importairportsSpec =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "(<text> text x string x string -> stream(tuple(Type: string, Country: "
+    "string, Name: string, ICAO: string, Pos: point, Elevation: real))"
+    "</text--->"
+    "<text>importairports( _ , _ , _ )</text--->"
+    "<text>Imports an XML file containing airport data. Two relations are "
+    "created, and a tuple stream of airports is returned.</text--->"
+    "<text>query importairports('openaip_airports_germany_de.aip', \"Radio\", "
+                                "\"Runways\")</text--->))";
+
+/*
+\subsection{Value Mapping}
+
+*/
+int importairportsVM(Word* args, Word& result, int message, Word& local,
+                     Supplier s) {
+  if (!((FText*)args[0].addr)->IsDefined()) {
+    return 0;
+  }
+  if (!((CcString*)args[1].addr)->IsDefined()) {
+    return 0;
+  }
+  if (!((CcString*)args[2].addr)->IsDefined()) {
+    return 0;
+  }
+  std::string filename = ((FText*)args[0].addr)->GetValue();
+  std::string radiorelname = ((CcString*)args[1].addr)->GetValue();
+  std::string runwayrelname = ((CcString*)args[2].addr)->GetValue();
+  ImportairportsLI *li = static_cast<ImportairportsLI*>(local.addr);
+  switch (message) {
+    case OPEN: {
+      if (li) {
+        li = 0;
+      }
+      li = new ImportairportsLI(filename, radiorelname, runwayrelname);
+      local.addr = li;
+      return 0;
+    }
+    case REQUEST: {
+      result.addr = li ? li->getNextTuple() : 0;
+      return result.addr ? YIELD : CANCEL;
+    }
+    case CLOSE: {
+      if (local.addr) {
+        li = (ImportairportsLI*)local.addr;
+        delete li;
+        local.addr = 0;
+      }
+      return 0;
+    }
+  }
+  return 0;
+}
+
+/*
+\subsection{Operator instance}
+
+*/
+Operator importairports("importairports",
+                importairportsSpec,
+                importairportsVM,
+                Operator::SimpleSelect,
+                importairportsTM);
+
+
 // --- Constructors
 // Constructor
 osm::OsmAlgebra::OsmAlgebra () : Algebra ()
@@ -2689,6 +2852,7 @@ osm::OsmAlgebra::OsmAlgebra () : Algebra ()
 //     AddOperator(&convertstreets);
     AddOperator(&importairspaces);
     AddOperator(&importnavaids);
+    AddOperator(&importairports);
 }
 
 // Destructor
