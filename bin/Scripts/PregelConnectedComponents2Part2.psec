@@ -229,6 +229,8 @@ query remotePregelCommand(
 
 query createSDArray("NodesQ", Workers) dsummarize head[20] consume;
 
+let NodesQ = createSDArray("NodesQ", Workers) dsummarize consume;
+
 if isDBObject("Colors") then 
   update Colors := createSDArray("NodesQ", Workers) 
   dsummarize  sortby[Color] groupby[Color; Anzahl: group count] consume
