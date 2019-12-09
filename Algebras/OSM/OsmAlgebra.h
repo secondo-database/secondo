@@ -118,6 +118,9 @@ class ImportXML {
   ~ImportXML();
   
   bool openFile(std::string& category);
+  bool readSimpleEntry(const std::string& name, std::string& entry);
+  bool readGeolocationICAO(Point* location, CcReal* elevation, 
+                           CcString* icao = 0);
   
   bool correct;
   SecondoCatalog* sc;
@@ -154,11 +157,14 @@ class ImportairportsLI : public ImportXML {
   ~ImportairportsLI() {}
   
   Tuple* getNextTuple();
+  bool readRadioInfo();
+  Relation* createRelation(std::string& name, ListExpr& typeList);
   static ListExpr getResultTypeList();
   static ListExpr getRadioTypeList();
   static ListExpr getRunwayTypeList();
-  
 
+  Relation *radioRel, *runwayRel;
+  unsigned int counter;
 };
 
 
