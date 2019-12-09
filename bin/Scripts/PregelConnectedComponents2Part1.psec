@@ -205,8 +205,9 @@ let NoMessages = fun() NodesPersistent feed head[1]
 let Compute = fun (messages: stream(tuple([NodeId: int, 
     NodePartition: int, Message: string, Single: int, Value: int])))
   messages 
-  sortby[NodeId, Single] groupby[NodeId, Single, Message; 
-    Max: group feed max[Value]]
+  sortby[NodeId, Single] 
+  groupby[NodeId, Single, Message
+  ;  Max: group feed max[Value]]
   Nodes mfeed addid filter[.Active] mergejoin[NodeId, Id]
   loopsel[fun(t: TUPLE)
     attr(t, Message)
