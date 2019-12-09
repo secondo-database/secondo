@@ -203,8 +203,9 @@ JoinState::JoinState(const OutputType outputType_,
       }
       cout << " with " << setw(9) << formatInt(input->getCurrentTupleCount())
            << " " << tuplesName << " (last entry id:"
-           << setw(10) << formatInt(input->getPassTupleCount()) << ")"
-           << " from stream " << IOData::getSetName(set) << " ";
+           << setw(10) << formatInt(input->getPassTupleCount()) << ") from "
+           << (input->isReadingFromTempFile() ? "temp file" : "stream") << " "
+           << IOData::getSetName(set) << " ";
       if (input->isFullyLoaded()) {
          cout << "(fully loaded); ";
       } else if (set == SET::A && !inputB->isFullyLoaded()) {

@@ -62,6 +62,9 @@ enum JoinTask : unsigned {
    /* the task of merging the JoinEdges and reporting (or counting) the
     * intersections */
    merge,
+   /* the task of saving the input data of the "inner" stream from main memory
+    * to a temporary file */
+   saveToTempFile,
    /* the task of clearing the input stream memory (and destructing the
     * CDACLocalInfo class) */
    clearMemory

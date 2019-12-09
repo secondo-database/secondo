@@ -135,6 +135,35 @@ Rectangle<3> RectangleBlock::getRectangle3D(const RowIndex_t row) const {
    return Rectangle<3>(true, min, max);
 }
 
+Attribute* RectangleBlock::getRectangleAttr(RowIndex_t row) const {
+   if (dim == 2) {
+      if (row >= count)
+         return new Rectangle<2>(false);
+
+      // read x and y coordinates from the coordsXY vector
+      const PlainRect2& rect2 = coordsXY[row];
+
+      // construct the result Rectangle<2>
+      const double min[] { rect2.xMin, rect2.yMin };
+      const double max[] { rect2.xMax, rect2.yMax };
+      return new Rectangle<2>(true, min, max);
+   } else {
+      if (row >= count)
+         return new Rectangle<3>(false);
+
+      // read x and y coordinates from the coordsXY vector
+      const PlainRect2& rect2 = coordsXY[row];
+
+      // read z coordinates from the coordsZ vector
+      const PlainInterval& intervalZ = coordsZ[row];
+
+      // construct the result Rectangle<3>
+      const double min[] { rect2.xMin, rect2.yMin, intervalZ.zMin };
+      const double max[] { rect2.xMax, rect2.yMax, intervalZ.zMax };
+      return new Rectangle<3>(true, min, max);
+   }
+}
+
 Rectangle<3> RectangleBlock::getBbox() const {
    const bool defined = (count > 0);
    const double min[] { bboxXMin, bboxYMin, bboxZMin };

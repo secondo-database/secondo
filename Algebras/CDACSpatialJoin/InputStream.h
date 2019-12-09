@@ -36,11 +36,17 @@ either be a stream of tuple blocks (InputTBlockStream) or a stream of tuples
 (InputTupleStream).
 
 If the InputStream is used for the CDACSpatialJoin operator, the requested data
-is stored in a vector of TBlocks (input from tuple streams is being converted
-into TBlocks); if the InputStream is used for the CDACSpatialJoinCount operator,
-only the rectangles (bounding boxes) of the spatial join attributes are
-extracted and stored in a vector of RectangleBlocks, while all other tuple
-information is discarded from main memory.
+is stored in a vector of Tuples or TBlocks, depending on the required output
+type (for TBlock output, input from tuple streams is immediately being
+converted into TBlocks); if the InputStream is used for the
+CDACSpatialJoinCount operator, only the rectangles (bounding boxes) of the
+spatial join attributes are extracted and stored in a vector of
+RectangleBlocks, while all other tuple information is discarded from main
+memory.
+
+If neither InputStream fits into the main memory completely, the tuples or
+bounding boxes from the "inner" stream A are saved into a temporary tuple file
+and retrieved from there for all subsequent passes.
 
 1.1 InputStream base class
 
@@ -84,7 +90,7 @@ public:
    const uint64_t blockSizeInBytes;
 
    /* the TupleBlocks (TBlocks) received from this stream in the current
-    * chunk (in case full tuples are required) */
+    * chunk (in case the output should be a TBlock stream) */
    std::vector<CRelAlgebra::TBlock*> tBlocks;
 
    /* the tuples received from this stream in the current chunk (in case the
@@ -92,45 +98,59 @@ public:
    std::vector<Tuple*> tuples;
 
    /* the RectangleBlocks received from this stream in the current chunk
-    * (in case rectangles are required only) */
+    * (in case bounding boxes are required only for the CDACSpatialJoinCount
+    * operator) */
    std::vector<RectangleBlock*> rBlocks;
 
+   /* the tuple type used in tupleFile */
+   TupleType* tupleType;
+
+   /* a tuple file to temporarily store tuples if the stream needs to be
+    * passed more than once. tupleFile is also used to store the bounding
+    * boxes in rBlocks */
+   TupleFile* tupleFile;
+
+   /* an iterator over tupleFile */
+   TupleFileIterator* tupleFileIterator;
+
 private:
-   /* the memory currently used by tBlocks / rBlocks */
+   /* the memory currently used by tBlocks / tuples / rBlocks */
    uint64_t currentByteCount;
 
-   /* the number of tuples currently stored in tBlocks / rBlocks */
+   /* the number of tuples currently stored in tBlocks / tuples / rBlocks */
    uint64_t currentTupleCount;
 
    /* the number of tuples received so far in this pass of the stream */
    uint64_t passTupleCount;
 
    /* the total number of tuples provided by this stream. This value is only
-    * known after the stream was fully read once (i.e. when openCount > 0) */
+    * known after the stream was fully read once (i.e. when passCount > 1) */
    uint64_t totalTupleCount;
 
-   /* the total memory used by all tBlocks / rBlocks read from this stream.
-    * This value is only known after the stream was fully read once
-    * (i.e. when openCount > 0) */
+   /* the total memory used by all tBlocks / tuples / rBlocks read from this
+    * stream. This value is only known after the stream was fully read once
+    * (i.e. when passCount > 1) */
    uint64_t totalByteCount;
 
 protected:
-   /* the number of times this stream was opened or re-opened */
-   unsigned openCount;
+   /* the number of times the data of this stream was passed (1 during first
+    * pass from the original stream; 2 etc. during subsequent passes, reading
+    * from the temporary file) */
+   unsigned passCount;
 
-   /* 1 + the number of times clearMem was called after the stream was last
-    * opened or reopened */
+   /* 1 + the number of times clearMem was called after the stream was
+    * originally opened or it was reopened from the temporary file */
    unsigned currentChunkCount;
 
    /* the total number of chunks needed for this stream. This value is only
-    * known after the stream was fully read once (i.e. when openCount > 0) */
+    * known after the stream was fully read once (i.e. when passCount > 1) */
    unsigned chunksPerPass;
 
    /* true if all input has been read from the stream */
    bool done;
 
    /* true if all input could be read in the first chunk (i.e. without calling
-    * clearMem() in between */
+    * clearMem() in between) */
    bool fullyLoaded;
 
 public:
@@ -143,48 +163,53 @@ public:
 
    virtual ~InputStream();
 
-   /* Deletes all tuple blocks of this input stream and sets both the memory
-    * and tuple counters to zero */
+   /* Deletes all TBlocks / tuples / bounding boxes of this input stream and
+    * sets both the memory and tuple counters to zero */
    void clearMem();
 
-   /* Requests data from the underlying stream and stores it either in the
-    * TBlock vector (TBlocks with full tuple information) or the RectangleBlock
-    * vector (rectangles only) */
+   /* Requests data from the underlying stream and stores it in a TBlock /
+    * Tuple vector or a RectangleBlock vector (bounding boxes only). Returns
+    * true if any data was read. */
    bool request();
 
-   /* returns the number of RectangleBlocks (if only rectangles are kept) or
-    * TBlocks (if full tuple information is kept) */
+   /* returns the number of RectangleBlocks (if only bounding boxes are kept)
+    * or TBlocks (if full tuple information is kept) */
    size_t getBlockCount() const;
 
    /* returns true if no information has been read to main memory since
-    * construction (or since the last clearMem() call) */
+    * construction or since the last clearMem() call */
    bool empty() const;
 
-   /* returns the number of bytes currently used by the tBlocks / rBlocks */
+   /* returns the number of bytes currently used by the tBlocks / tuples /
+    * rBlocks */
    size_t getUsedMem() const;
 
    /* returns true if the stream is completed */
    inline bool isDone() const { return done; }
 
-   /* returns the number of tuples currently stored in the tBlocks / rBlocks */
+   /* returns the number of tuples currently stored in the tBlocks / tuples /
+    * rBlocks */
    inline size_t getCurrentTupleCount() const { return currentTupleCount; }
 
    /* returns the number of tuples received so far in this pass of the stream */
    inline size_t getPassTupleCount() const { return passTupleCount; }
 
-   /* returns the number of times this stream was opened or re-opened */
-   inline unsigned getOpenCount() const { return openCount; }
+   /* returns the number of times this stream was originally opened or
+    * re-opened from the temporary file */
+   inline unsigned getOpenCount() const { return passCount; }
 
-   /* returns the number of chunks since the stream was opened or re-opened */
+   /* returns the number of chunks since the stream was opened or re-opened
+    * from the temporary file */
    inline unsigned getChunkCount() const { return currentChunkCount; }
 
-   /* the total number of tuples provided by this stream. This value is only
-   * known after the stream was fully read once (i.e. when openCount > 0) */
+   /* returns the total number of tuples provided by this stream. This value is
+    * only known after the stream was fully read once (i.e. when
+    * passCount > 1) */
    uint64_t getTotalTupleCount() const;
 
-   /* the total memory used by all tBlocks / rBlocks read from this stream.
-    * This value is only known after the stream was fully read once
-    * (i.e. when openCount > 0) */
+   /* the total memory used by all tBlocks / tuples / rBlocks read from this
+    * stream. This value is only known after the stream was fully read once
+    * (i.e. when passCount > 1) */
    uint64_t getTotalByteCount() const;
 
    /* returns true if all input could be read to main memory in the first
@@ -198,6 +223,13 @@ public:
     * potentially enabling the other stream to contribute more tuples to a
     * chunk */
    bool isAverageTupleCountExceeded() const;
+
+   /* returns true if the input data is currently being read from a temporary
+    * file: If neither stream completely fits into the main memory, such a file
+    * is created during the first pass of the "inner" input stream. The
+    * "outer" stream is never passed more than once and will therefore
+    * always return false */
+   bool isReadingFromTempFile() const { return tupleFileIterator != nullptr; }
 
    /* returns the Rectangle<2> (i.e. the bounding box of a 2D spatial attribute)
     * for the entry at the given (block, row) position or an invalid Rectangle
@@ -213,34 +245,47 @@ public:
     * access but is not optimized for bulk access */
    Rectangle<3> getRectangle3D(BlockIndex_t block, RowIndex_t row) const;
 
-   /* closes and reopens the stream */
+   /* If applicable, saves the current chunk to a temporary file from which it
+    * can be read again later. Returns true if something was actually saved. */
+   bool saveToTempFile();
+
+   /* closes and reopens the stream from the temporary file */
    virtual void restart() = 0;
 
 protected:
-   /* returns a RectangleBlock to which at least one rectangle can be added;
-    * if necessary, a new RectangleBlock is created and returned */
+   /* returns a RectangleBlock to which at least one more rectangle can be
+    * added; if necessary, a new RectangleBlock is created and returned */
    RectangleBlock* getFreeRectangleBlock();
 
    /* must be called after the underlying stream was first opened or
-    * restarted */
+    * restarted from the temporary file */
    void streamOpened();
 
    /* must be called after requesting information from the underlying stream.
-    * Use tuplesAdded == 0 when the underlying stream is completed */
-   bool finishRequest(uint64_t bytesAdded, uint64_t tuplesAdded);
+    * Call with (0, 0, true) when the underlying stream is completed. */
+   bool finishRequest(uint64_t bytesAdded, uint64_t tuplesAdded,
+           bool isStreamExhausted);
+
+   /* creates a new RectangleBlock from the tuples or TBlocks which are either
+    * requested from the underlying input stream, or from the temporary file.
+    * Returns true if any data was read. */
+   virtual bool requestRectangles();
 
 private:
    /* requests a TBlock from the underlying stream (or creates a new TBlock
-    * from tuples requested from the underlying stream) */
+    * from tuples requested from the underlying stream). Returns true if any
+    * data was read. */
    virtual CRelAlgebra::TBlock* requestBlock() = 0;
 
    /* requests tuples from the underlying tuple stream until either the
-    * stream is exhausted, or blockSizeInBytes is exceeded */
+    * stream is exhausted, or blockSizeInBytes is exceeded. Returns true if any
+    * data was read. */
    virtual bool requestTuples() = 0;
 
-   /* creates a new RectangleBlock from tuples or TBlocks requested from the
-    * underlying stream */
-   virtual bool requestRectangles() = 0;
+   /* requests the next tuple from the temporary tupleFile (or, in the
+    * InputTupleStream subclass, from the input tuple stream, on first pass of
+    * the stream) */
+   virtual Tuple* requestTuple();
 };
 
 
@@ -261,11 +306,11 @@ public:
    void restart() override;
 
 private:
-   bool requestTuples() override { assert(false); return false; }
+   bool requestRectangles() override;
 
    CRelAlgebra::TBlock* requestBlock() override;
 
-   bool requestRectangles() override;
+   bool requestTuples() override { assert(false); return false; }
 };
 
 
@@ -296,11 +341,14 @@ public:
    void restart() override;
 
 private:
-   bool requestTuples() override;
+   // for requestRectangles(), the InputStream implementation can be used:
+   // only requestTuple() needs to be overridden
 
    CRelAlgebra::TBlock* requestBlock() override;
 
-   bool requestRectangles() override;
+   bool requestTuples() override;
+
+   Tuple* requestTuple() override;
 };
 
 } // end of namespace cdacspatialjoin

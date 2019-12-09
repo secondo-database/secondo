@@ -168,6 +168,10 @@ public:
     * be used for occasional access but is not optimized for bulk access */
    Rectangle<3> getRectangle3D(RowIndex_t row) const;
 
+   /* creates a new StandardSpatialAttribute instance from the Rectangle<2>
+    * or Rectangle<3> stored at the given position. */
+   Attribute* getRectangleAttr(RowIndex_t row) const;
+
    /* returns the 3-dimensional bounding box that contains all rectangles
     * stored in this RectangleBlock. If this instance was constructed for
     * 2-dimensional rectangles, the z interval of the bounding box is the

@@ -680,6 +680,7 @@ CDACLocalInfo::CDACLocalInfo(const OutputType outputType_,
          "sortSortEdges",
          "createJoinEdges",
          "merge",
+         "saveToTempFile",
          "clearMemory"
    } };
    timer = make_shared<Timer>(taskNames);
@@ -800,8 +801,10 @@ void CDACLocalInfo::requestInput() {
    uint64_t blockSize2 = inputB->blockSizeInBytes;
    while (true) {
       uint64_t usedMemory = getRequiredMemory();
-      bool deny1 = inputA->isDone() || usedMemory + blockSize1 >= memLimit;
-      bool deny2 = inputB->isDone() || usedMemory + blockSize2 >= memLimit;
+      bool deny1 = inputA->isDone() ||
+                  (!inputA->empty() && usedMemory + blockSize1 >= memLimit);
+      bool deny2 = inputB->isDone() ||
+                  (!inputB->empty() && usedMemory + blockSize2 >= memLimit);
 
       if (deny1 && deny2)
          break;
@@ -938,24 +941,39 @@ bool CDACLocalInfo::getNext() {
 #endif
          return false;
 
-      } else {
-         // neither first request nor join complete,
-         // i.e. the tuple data did not fit completely into the main memory;
-         // the tuples read so far were treated, now read and treat more data
+      // in all remaining cases: join is incomplete, i.e. the tuple data did
+      // not fit completely into the main memory; the tuples read so far were
+      // processed, now read and process more data
+      } else if (inputA->isFullyLoaded()) {
+         // continue reading from inputB
+         timer->start(JoinTask::clearMemory);
+         inputB->clearMem();
 
-         if (inputA->isFullyLoaded()) {
-            // continue reading from inputB
-            timer->start(JoinTask::clearMemory);
-            inputB->clearMem();
-
-            timer->start(JoinTask::requestData);
-            uint64_t blockSize2 = inputB->blockSizeInBytes;
-            do {
-               inputB->request();
-            } while (!inputB->isDone() &&
+         timer->start(JoinTask::requestData);
+         uint64_t blockSize2 = inputB->blockSizeInBytes;
+         do {
+            inputB->request();
+         } while (!inputB->isDone() &&
                   getRequiredMemory() + blockSize2 < memLimit);
-         } else if (!inputA->isDone()) {
-            // continue reading from inputA
+         // continue creating a JoinState below
+
+      } else {
+         // if neither stream fits into the main memory, then the data of the
+         // inner stream must be temporarily saved, if this is the first pass
+         if (!inputB->isFullyLoaded() && inputB->getChunkCount() == 1) {
+            timer->start(JoinTask::saveToTempFile);
+            if (inputA->saveToTempFile()) {
+#ifdef CDAC_SPATIAL_JOIN_REPORT_TO_CONSOLE
+               clock_t saveToTempFileTime = timer->stop();
+               cout << "- saved stream A, chunk " << inputA->getChunkCount()
+                    << " to temporary file ";
+               cout << "in " << formatMillis(saveToTempFileTime) << endl;
+#endif
+            }
+         }
+         // read more data
+         if (!inputA->isDone()) {
+            // continue reading from inputA (the inner stream)
             timer->start(JoinTask::clearMemory);
             inputA->clearMem();
 
@@ -964,7 +982,7 @@ bool CDACLocalInfo::getNext() {
             do {
                inputA->request();
             } while (!inputA->isDone() &&
-                  getRequiredMemory() + blockSize1 < memLimit);
+                     getRequiredMemory() + blockSize1 < memLimit);
          } else {
             // inputA is done, but inputB is not
             timer->start(JoinTask::clearMemory);

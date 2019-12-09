@@ -55,12 +55,15 @@ InputStream::InputStream(const OutputType outputType_,
             CRelAlgebra::TBlockTI::blockSizeFactor),
         tBlocks {},
         rBlocks {},
+        tupleType(nullptr),
+        tupleFile(nullptr),
+        tupleFileIterator(nullptr),
         currentByteCount(0),
         currentTupleCount(0),
         passTupleCount(0),
         totalTupleCount(0),
         totalByteCount(0),
-        openCount(0),
+        passCount(0),
         currentChunkCount(0),
         chunksPerPass(0),
         done(false),
@@ -69,6 +72,12 @@ InputStream::InputStream(const OutputType outputType_,
 
 InputStream::~InputStream() {
    clearMem();
+   delete tupleFileIterator;
+   delete tupleFile;
+   if (tupleType) {
+      tupleType->DeleteIfAllowed();
+      tupleType = nullptr;
+   }
 }
 
 void InputStream::clearMem() {
@@ -88,7 +97,7 @@ void InputStream::clearMem() {
    }
    tuples.clear();
 
-   if (openCount == 1 && currentTupleCount > 0) {
+   if (passCount == 1 && currentTupleCount > 0) {
       totalTupleCount += currentTupleCount;
       totalByteCount += currentByteCount;
       ++chunksPerPass;
@@ -110,11 +119,11 @@ bool InputStream::request() {
       case outputTBlockStream: {
          CRelAlgebra::TBlock* tupleBlock = nullptr;
          if (!(tupleBlock = this->requestBlock())) {
-            return finishRequest(0, 0);
+            return finishRequest(0, 0, true);
          } else {
             tBlocks.push_back(tupleBlock);
             return finishRequest(tupleBlock->GetSize(),
-                                 tupleBlock->GetRowCount());
+                                 tupleBlock->GetRowCount(), false);
          }
       }
       default:
@@ -122,18 +131,17 @@ bool InputStream::request() {
    }
 }
 
-bool InputStream::finishRequest(uint64_t bytesAdded, uint64_t tuplesAdded) {
-   if (tuplesAdded == 0) {
+bool InputStream::finishRequest(uint64_t bytesAdded, uint64_t tuplesAdded,
+        bool isStreamExhausted) {
+   currentByteCount += bytesAdded;
+   currentTupleCount += tuplesAdded;
+   passTupleCount += tuplesAdded;
+   if (isStreamExhausted) {
       done = true;
       if (currentChunkCount == 1)
          fullyLoaded = true;
-      return false;
-   } else {
-      currentByteCount += bytesAdded;
-      currentTupleCount += tuplesAdded;
-      passTupleCount += tuplesAdded;
-      return true;
    }
+   return (tuplesAdded > 0);
 }
 
 size_t InputStream::getBlockCount() const {
@@ -167,15 +175,15 @@ size_t InputStream::getUsedMem() const {
 }
 
 uint64_t InputStream::getTotalTupleCount() const {
-   return totalTupleCount + ((openCount == 1) ? currentTupleCount : 0);
+   return totalTupleCount + ((passCount == 1) ? currentTupleCount : 0);
 }
 
 uint64_t InputStream::getTotalByteCount() const {
-   return totalByteCount + ((openCount == 1) ? currentByteCount : 0);
+   return totalByteCount + ((passCount == 1) ? currentByteCount : 0);
 }
 
 bool InputStream::isAverageTupleCountExceeded() const {
-   if (openCount <= 1)
+   if (passCount <= 1)
       return false;
    return (currentTupleCount > totalTupleCount / chunksPerPass);
 }
@@ -198,7 +206,7 @@ Rectangle<2> InputStream::getRectangle2D(BlockIndex_t block, RowIndex_t row)
          const CRelAlgebra::TBlock* tBlock = tBlocks[block];
          if (row < tBlock->GetRowCount()) {
             return ((const CRelAlgebra::SpatialAttrArray<2>*)
-                    &tBlock->GetAt(attrIndex))->GetBoundingBox(row);
+                     &tBlock->GetAt(attrIndex))->GetBoundingBox(row);
          }
       }
    }
@@ -241,11 +249,121 @@ RectangleBlock* InputStream::getFreeRectangleBlock() {
 }
 
 void InputStream::streamOpened() {
-   ++openCount;
+   ++passCount;
    currentChunkCount = 1;
    passTupleCount = 0;
    done = false;
 }
+
+bool InputStream::saveToTempFile() {
+   // this method is called only if the this InputStream is the "inner" stream,
+   // and neither InputStream fits into the main memory. In this case, the data
+   // which is currently loaded into the main memory (tuples, tuple blocks, or
+   // bounding boxes, depending on the desired output type) must be saved to
+   // disk in order to allow reading it a second time for the next chunk of
+   // the "outer" stream.
+   if (outputType == outputTupleStream) {
+      if (tuples.empty())
+         return false; // nothing to save
+
+      // create a tupleFile for the tuples in memory, unless it already exists
+      // (only the first chunk of the InputStream creates the tupleFile)
+      if (!tupleFile) {
+         tupleType = tuples[0]->GetTupleType();
+         tupleType->IncReference();
+         tupleFile = new TupleFile(tupleType, 0);
+      }
+
+      // save the tuples to the tupleFile
+      for (Tuple* tuple : tuples) {
+         // tuple->PinAttributes();
+         // tupleFile->AppendTupleNoLOBs(tuple);
+         tupleFile->Append(tuple);
+      }
+      return true;
+
+   } else if (outputType == outputCount) {
+      if (rBlocks.empty())
+         return false; // nothing to save
+
+      // create a tupleFile for the bounding boxes, unless it already exists
+      // (only the first chunk of the InputStream creates the tupleFile)
+      if (!tupleFile) {
+         string rectType = (dim == 2) ? Rectangle<2>::BasicType()
+                                      : Rectangle<3>::BasicType();
+         ListExpr geoAttr = nl->TwoElemList(nl->SymbolAtom("BBox"),
+                                            nl->SymbolAtom(rectType));
+         ListExpr ttLE = nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()),
+                                         nl->OneElemList(geoAttr));
+         ListExpr ttNum = SecondoSystem::GetCatalog()->NumericType(ttLE);
+         tupleType = new TupleType(ttNum);
+         tupleFile = new TupleFile(tupleType, 0);
+      }
+
+      // save the rBlocks to the tupleFile, using its Rectangle<2/3> attribute
+      for (RectangleBlock* rBlock : rBlocks) {
+         size_t count = rBlock->getRectangleCount();
+         for (size_t row = 0; row < count; ++row) {
+            auto tuple = new Tuple(tupleType);
+            Attribute* geoAttr = rBlock->getRectangleAttr(row);
+            tuple->PutAttribute(0, geoAttr);
+            tupleFile->Append(tuple);
+            tuple->DeleteIfAllowed();
+         }
+      }
+      return true;
+
+   } else if (outputType == outputTBlockStream) {
+      // TODO: save TBlocks from memory to TBlock file
+   }
+   return false;
+}
+
+Tuple* InputStream::requestTuple() {
+   return tupleFileIterator->GetNextTuple();
+}
+
+bool InputStream::requestRectangles() {
+   // request next tuple from tupleFile or (in the overridden InputTupleStream
+   // implementation) from the underlying input tuple stream
+   Tuple* tuple = requestTuple();
+   if (!tuple)
+      return finishRequest(0, 0, true);
+
+   // if we are reading from the tupleFile, there is only one attribute with
+   // the bounding box at index 0. Otherwise, use the attrIndex that depends
+   // on the tuple type of the underlying input stream
+   const unsigned int curAttrIndex = tupleFileIterator ? 0 : this->attrIndex;
+
+   size_t tupleCount = 0;
+   RectangleBlock* rBlock = getFreeRectangleBlock();
+   if (dim == 2) {
+      do {
+         auto attr = dynamic_cast<StandardSpatialAttribute<2>*>(
+                 tuple->GetAttribute(curAttrIndex));
+         const Rectangle<2>& rec = attr->BoundingBox();
+         if (rec.IsDefined()) {
+            rBlock->add(rec);
+            ++tupleCount;
+         }
+         tuple->DeleteIfAllowed();
+      } while (!rBlock->isFull() && (tuple = requestTuple()) != nullptr);
+   } else {
+      do {
+         auto attr = dynamic_cast<StandardSpatialAttribute<3>*>(
+                 tuple->GetAttribute(curAttrIndex));
+         const Rectangle<3>& rec = attr->BoundingBox();
+         if (rec.IsDefined()) {
+            rBlock->add(rec);
+            ++tupleCount;
+         }
+         tuple->DeleteIfAllowed();
+      } while (!rBlock->isFull() && (tuple = requestTuple()) != nullptr);
+   }
+   uint64_t bytesAdded = RectangleBlock::getRequiredMemory(dim, tupleCount);
+   return finishRequest(bytesAdded, tupleCount, (tuple == nullptr));
+}
+
 
 /*
 1.2 InputTBlockStream  class
@@ -263,17 +381,23 @@ InputTBlockStream::InputTBlockStream(Word stream_, const OutputType outputType_,
 }
 
 InputTBlockStream::~InputTBlockStream() {
-   tBlockStream.close();
-}
-
-CRelAlgebra::TBlock* InputTBlockStream::requestBlock() {
-   return tBlockStream.request();
+   if (outputType == outputCount) {
+      if (passCount == 1) {
+         tBlockStream.close();
+      }
+   } else {
+      tBlockStream.close();
+   }
 }
 
 bool InputTBlockStream::requestRectangles() {
+   if (tupleFileIterator) {
+      return InputStream::requestRectangles();
+   }
+
    CRelAlgebra::TBlock* tupleBlock = nullptr;
    if (!(tupleBlock = this->requestBlock()))
-      return finishRequest(0, 0);
+      return finishRequest(0, 0, true);
 
    size_t tupleCount = 0;
    RectangleBlock* rBlock = getFreeRectangleBlock();
@@ -306,12 +430,35 @@ bool InputTBlockStream::requestRectangles() {
 
    uint64_t bytesAdded = RectangleBlock::getRequiredMemory(dim, tupleCount);
    tupleBlock->DecRef();
-   return finishRequest(bytesAdded, tupleCount);
+   return finishRequest(bytesAdded, tupleCount, false);
+}
+
+CRelAlgebra::TBlock* InputTBlockStream::requestBlock() {
+   // TODO: if (passCount > 1) read chunk from TBlock file; else:
+   return tBlockStream.request();
 }
 
 void InputTBlockStream::restart() {
-   tBlockStream.close();
-   tBlockStream.open();
+   switch(outputType) {
+      case outputTupleStream:
+         assert(false);
+         break;
+
+      case outputCount:
+         if (passCount == 1) {
+            tBlockStream.close();
+         }
+         assert(tupleFile);
+         delete tupleFileIterator;
+         tupleFileIterator = tupleFile->MakeScan();
+         break;
+
+      case outputTBlockStream:
+         // TODO: after first pass, read data from file!
+         tBlockStream.close();
+         tBlockStream.open();
+         break;
+   }
    streamOpened();
 }
 
@@ -332,22 +479,18 @@ InputTupleStream::InputTupleStream(Word stream_, const OutputType outputType_,
 }
 
 InputTupleStream::~InputTupleStream() {
-   tupleStream.close();
-}
-
-bool InputTupleStream::requestTuples() {
-   Tuple* tuple = nullptr;
-   uint64_t tupleCount = 0;
-   uint64_t sizeSum = 0;
-   while (sizeSum < blockSizeInBytes && (tuple = tupleStream.request())) {
-      tuples.push_back(tuple);
-      ++tupleCount;
-      sizeSum += sizeof(Tuple*) + tuple->GetMemSize();
+   if (outputType == outputTupleStream || outputType == outputCount) {
+      if (passCount == 1) {
+         tupleStream.close();
+      }
+   } else {
+      tupleStream.close();
    }
-   return finishRequest(sizeSum, tupleCount);
 }
 
 CRelAlgebra::TBlock* InputTupleStream::requestBlock() {
+   // TODO: if (passCount > 1) read chunk from TBlock file; else:
+
    // cp. Algebras/CRel/Operators/ToBlocks.cpp
    Tuple *tuple = tupleStream.request();
    if (!tuple)
@@ -362,42 +505,48 @@ CRelAlgebra::TBlock* InputTupleStream::requestBlock() {
    return block;
 }
 
-bool InputTupleStream::requestRectangles() {
-   Tuple *tuple = tupleStream.request();
-   if (!tuple)
-      return finishRequest(0, 0);
-
-   size_t tupleCount = 0;
-   RectangleBlock* rBlock = getFreeRectangleBlock();
-   if (dim == 2) {
-      do {
-         auto attr = dynamic_cast<StandardSpatialAttribute<2>*>(
-                 tuple->GetAttribute(attrIndex));
-         const Rectangle<2>& rec = attr->BoundingBox();
-         if (rec.IsDefined()) {
-            rBlock->add(rec);
-            ++tupleCount;
-         }
-         tuple->DeleteIfAllowed();
-      } while (!rBlock->isFull() && (tuple = tupleStream.request()) != nullptr);
-   } else {
-      do {
-         auto attr = dynamic_cast<StandardSpatialAttribute<3>*>(
-                 tuple->GetAttribute(attrIndex));
-         const Rectangle<3>& rec = attr->BoundingBox();
-         if (rec.IsDefined()) {
-            rBlock->add(rec);
-            ++tupleCount;
-         }
-         tuple->DeleteIfAllowed();
-      } while (!rBlock->isFull() && (tuple = tupleStream.request()) != nullptr);
+bool InputTupleStream::requestTuples() {
+   Tuple* tuple = nullptr;
+   uint64_t tupleCount = 0;
+   uint64_t sizeSum = 0;
+   while (sizeSum < blockSizeInBytes && (tuple = requestTuple())) {
+      tuples.push_back(tuple);
+      ++tupleCount;
+      sizeSum += sizeof(Tuple*) + tuple->GetMemSize();
    }
-   uint64_t bytesAdded = RectangleBlock::getRequiredMemory(dim, tupleCount);
-   return finishRequest(bytesAdded, tupleCount);
+   return finishRequest(sizeSum, tupleCount, (tuple == nullptr));
+}
+
+Tuple* InputTupleStream::requestTuple() {
+   if (tupleFileIterator) {
+      // after first pass: read tuples from the temporary tupleFile
+      return tupleFileIterator->GetNextTuple();
+   } else {
+      // first pass: read tuples from the input tuple stream
+      return tupleStream.request();
+   }
 }
 
 void InputTupleStream::restart() {
-   tupleStream.close();
-   tupleStream.open();
+   switch(outputType) {
+      case outputTupleStream:
+      case outputCount:
+         if (passCount == 1) {
+            tupleStream.close();
+         }
+
+         assert(tupleFile);
+         delete tupleFileIterator;
+         tupleFileIterator = tupleFile->MakeScan();
+         break;
+
+      case outputTBlockStream:
+         // TODO: after first pass, read data from TBlock file!
+
+         tupleStream.close();
+         tupleStream.open();
+         break;
+   }
+
    streamOpened();
 }
