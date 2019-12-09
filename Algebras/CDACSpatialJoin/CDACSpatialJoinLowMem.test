@@ -1,0 +1,98 @@
+## execute with
+## TestRunner -i /home/fapra/secondo/Algebras/CDACSpatialJoin/CDACSpatialJoinLowMem.test
+## TestRunner --valgrindlc -i /home/fapra/secondo/Algebras/CDACSpatialJoin/CDACSpatialJoinLowMem.test
+
+## This test should be used with GlobalMemory <= 32. 
+## In all test cases, cdacspatialjoin will then be forced to write the content of the first ("inner") stream A to disk
+## and read them from this temporary file in order to join them with further chunks of the second ("outer") stream B. 
+##
+## The results must, of course, be correct regardless of the GlobalMemory value with which the test is run. 
+## Depending on the output type, the contents to be saved will consist of Tuples, TBlocks, or Bounding Boxes;
+## the latter are saved as Tuples with an attribute of type Rectangle<2> or Rectangle<3>. 
+##
+## Activate "#define CDAC_SPATIAL_JOIN_REPORT_TO_CONSOLE" in Base.h, and check console output to verify what happens 
+## in the various JoinStates of a join. 
+
+########################################
+# INITIALIZATION
+########################################
+
+delete database CDACLowMemTest;
+
+#setup CDACSpatialJoinTest
+create database CDACLowMemTest;
+open database CDACLowMemTest;
+
+let RelA = createRectangles2D(100000, 1, 0.0001, 0.0001, 1) consume;
+let RelB = createRectangles2D(100000, 1, 0.0001, 0.0001, 2) consume;
+let RelC = createRectangles2D(500000, 1, 0.0001, 0.0001, 1) consume;
+let RelD = createRectangles2D(500000, 1, 0.0001, 0.0001, 2) consume;
+
+let crelA = RelA feed cconsume[10];
+let crelB = RelB feed cconsume[10];
+let crelC = RelC feed cconsume[10];
+let crelD = RelD feed cconsume[10];
+
+########################################
+# cdacspatialjoin
+########################################
+
+#testcase -1.1- input A/B: Tuple/Tuple; temp file: Tuples; output: Tuple 
+#yields (int 385)
+query RelA feed RelB feed {a} cdacspatialjoin[] count;
+
+#testcase -1.2- input A/B: Tuple/TBlock; temp file: Tuples; output: TBlock 
+#yields (longint 10012)
+query RelC feed crelD feed {a} cdacspatialjoin[] count;
+
+#testcase -1.3- input A/B: TBlock/Tuple; temp file: (TBlocks); output: TBlock 
+#yields (longint 10012)
+query crelC feed RelD feed {a} cdacspatialjoin[] count;
+
+#testcase -1.4- input A/B: TBlock/TBlock; temp file: (TBlocks); output: TBlock 
+#yields (longint 10012)
+query crelC feed crelD feed {a} cdacspatialjoin[] count;
+
+########################################
+# cdacspatialjoincount
+########################################
+
+#testcase -2.1- input A/B: Tuple/Tuple; temp file: Bbox-Tuples; output: count
+#yields (longint 10012)
+query RelC feed RelD feed {a} cdacspatialjoincount[]
+
+#testcase -2.2- input A/B: Tuple/TBlock; temp file: Bbox-Tuple; output: count
+#yields (longint 10012)
+query RelC feed crelD feed {a} cdacspatialjoincount[];
+
+#testcase -2.3- input A/B: TBlock/Tuple; temp file: Bbox-Tuple; output: count
+#yields (longint 10012)
+query crelC feed RelD feed {a} cdacspatialjoincount[]
+
+#testcase -2.4- input A/B: TBlock/TBlock; temp file: Bbox-Tuple; output: count
+#yields (longint 10012)
+query crelC feed crelD feed {a} cdacspatialjoincount[];
+
+########################################
+# cdacspatialjoin, input 2D/3D
+########################################
+
+#testcase -3.1- input A/B: Tuple 2D/Tuple 2D; temp file: Bbox-Tuples; output: count
+#yields (longint 10012)
+query createRectangles2D(500000, 1, 0.0001, 0.0001, 1) createRectangles2D(500000, 1, 0.0001, 0.0001, 2) {a} cdacspatialjoincount[];
+
+#testcase -3.2- input A/B: Tuple 2D/Tuple 3D; temp file: Bbox-Tuples; output: count
+#yields (longint 6521)
+query createRectangles2D(400000, 1, 0.0001, 0.0001, 1) createRectangles3D(400000, 1, 0.0001, 0.0001, 2) {a} cdacspatialjoincount[];
+
+#testcase -3.1- input A/B: Tuple 3D/Tuple 2D; temp file: Bbox-Tuples; output: count
+#yields (longint 6347)
+query createRectangles3D(400000, 1, 0.0001, 0.0001, 1) createRectangles2D(400000, 1, 0.0001, 0.0001, 2) {a} cdacspatialjoincount[];
+
+#testcase -3.2- input A/B: Tuple 3D/Tuple 3D; temp file: Bbox-Tuples; output: count
+#yields (longint 5750)
+query createRectangles3D(300000, 1, 0.002, 0.002, 1) createRectangles3D(300000, 1, 0.002, 0.002, 2) {a} cdacspatialjoincount[];
+
+#teardown
+close database;
+delete database CDACLowMemTest;
