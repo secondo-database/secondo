@@ -118,7 +118,8 @@ class ImportXML {
   ~ImportXML();
   
   bool openFile(std::string& category);
-  bool readSimpleEntry(const std::string& name, std::string& entry);
+  bool readSimpleEntry(const std::string& name, std::string& entry,
+                       CcString *attr = 0);
   bool readGeolocationICAO(Point* location, CcReal* elevation, 
                            CcString* icao = 0);
   
@@ -154,16 +155,19 @@ class ImportairportsLI : public ImportXML {
  public:
   ImportairportsLI(std::string& fn, std::string& radiorelname, 
                    std::string& runwayrelname);
-  ~ImportairportsLI() {}
+  ~ImportairportsLI();
   
   Tuple* getNextTuple();
-  bool readRadioInfo();
+  bool readDirectionInfo(const int attrno, Tuple *tuple);
+  bool readRadioInfo(std::string& currentName);
+  bool readRunwayInfo(std::string& currentName);
   Relation* createRelation(std::string& name, ListExpr& typeList);
   static ListExpr getResultTypeList();
   static ListExpr getRadioTypeList();
   static ListExpr getRunwayTypeList();
 
   Relation *radioRel, *runwayRel;
+  std::string radioRelName, runwayRelName;
   unsigned int counter;
 };
 

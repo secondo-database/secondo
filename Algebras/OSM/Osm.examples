@@ -89,4 +89,4 @@ Operator : importairports
 Number   : 1
 Signature: text x string x string -> stream(tuple(Type: string, Country: string, Name: string, ICAO: string, Pos: point, Elevation: real))
 Example  : query importairports('openaip_airports_germany_de.aip', "Radio", "Runways") head[10] count
-Result   : 1
+Result   : 2

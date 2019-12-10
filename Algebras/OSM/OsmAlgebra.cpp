@@ -1947,7 +1947,8 @@ bool ImportXML::openFile(std::string& category) {
   return true;
 }
 
-bool ImportXML::readSimpleEntry(const std::string& name, std::string& entry) {
+bool ImportXML::readSimpleEntry(const std::string& name, std::string& entry,
+                                CcString *attr /* = 0 */) {
   xmlChar *subNameXml, *entryXml;
   std::string currentName = "";
   read = xmlTextReaderRead(reader);
@@ -1955,14 +1956,25 @@ bool ImportXML::readSimpleEntry(const std::string& name, std::string& entry) {
   subNameXml = xmlTextReaderLocalName(reader);
   currentName = (char*)subNameXml;
   xmlFree(subNameXml);
-  cout << "currentName is " << currentName << endl;
+//   cout << "currentName is " << currentName << endl;
   if (currentName != name) {
     return false;
+  }
+  if (attr != 0) {
+    xmlChar *attrXml = (xmlChar*)((char*)attr->GetValue().c_str());
+    xmlChar *attrvalueXml = xmlTextReaderGetAttribute(reader, attrXml);
+    if (attrvalueXml == NULL) {
+      cout << "attr " << attr->GetValue() << " not found at " << name << endl;
+      return 0;
+    }
+    attr->Set(true, (char*)attrvalueXml);
+    cout << "attribute FOUND and set to " << attr->GetValue() << endl;
+    xmlFree(attrvalueXml);
   }
   read = xmlTextReaderRead(reader);
   entryXml = xmlTextReaderValue(reader);
   entry = (char*)entryXml;
-  cout << "   entry: " << entry << endl;
+//   cout << "   entry: " << entry << endl;
   xmlFree(entryXml);
   next = xmlTextReaderNext(reader);
   return true;
@@ -1978,8 +1990,16 @@ bool ImportXML::readGeolocationICAO(Point* location, CcReal* elevation,
   currentName = (char*)subNameXml;
   xmlFree(subNameXml);
   if (currentName == "ICAO") {
-    cout << "name is ICAO" << endl;
-    // TODO: read ICAO
+    read = xmlTextReaderRead(reader);
+    xmlChar *icaoXml = xmlTextReaderValue(reader);
+    cout << "   ICAO: " << (char*)icaoXml << endl;
+    icao->Set(true, (char*)icaoXml);
+    next = xmlTextReaderNext(reader);
+    next = xmlTextReaderNext(reader);
+    next = xmlTextReaderNext(reader);
+    subNameXml = xmlTextReaderLocalName(reader);
+    currentName = (char*)subNameXml;
+    xmlFree(subNameXml);
   }
   if (currentName != "GEOLOCATION") {
     cout << "name is not GEOLOCATION" << " * " << currentName << endl;
@@ -2651,7 +2671,8 @@ Operator ~importairports~
 */
 ImportairportsLI::ImportairportsLI(std::string& fn, std::string& radiorelname, 
                                    std::string& runwayrelname) 
-  : ImportXML(fn), radioRel(0), runwayRel(0), counter(1) {
+  : ImportXML(fn), radioRel(0), runwayRel(0), radioRelName(radiorelname),
+    runwayRelName(runwayrelname), counter(1) {
   ListExpr numResultTypeList = sc->NumericType(getResultTypeList());
   resultType = new TupleType(numResultTypeList);
   std::string category = "WAYPOINTS";
@@ -2660,6 +2681,23 @@ ImportairportsLI::ImportairportsLI(std::string& fn, std::string& radiorelname,
   radioRel = createRelation(radiorelname, radioTypeList);
   ListExpr runwayTypeList = getRunwayTypeList();
   runwayRel = createRelation(runwayrelname, runwayTypeList);
+  read = xmlTextReaderRead(reader);
+  next = xmlTextReaderNext(reader);
+  correct = ((read == 1) && (next == 1));
+}
+
+ImportairportsLI::~ImportairportsLI() {
+//   ListExpr type = nl->TwoElemList(nl->SymbolAtom(Relation::BasicType()),
+//                            nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType(),
+//                                               getRadioTypeList())));
+//   Word relWord;
+//   relWord.setAddr(radioRel);
+//   sc->InsertObject(radioRelName, "", type, relWord, true);
+//   type = nl->TwoElemList(nl->SymbolAtom(Relation::BasicType()),
+//                            nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType(),
+//                                               getRunwayTypeList())));
+//   relWord.setAddr(runwayRel);
+//   sc->InsertObject(runwayRelName, "", type, relWord, true);
 }
 
 Tuple* ImportairportsLI::getNextTuple() {
@@ -2668,8 +2706,6 @@ Tuple* ImportairportsLI::getNextTuple() {
   }
   std::string currentName = "", contents = "";
   xmlChar *subNameXml, *typeXml;
-  read = xmlTextReaderRead(reader);
-  next = xmlTextReaderNext(reader);
   if ((read != 1) || (next != 1)) {
     return 0;
   }
@@ -2679,7 +2715,7 @@ Tuple* ImportairportsLI::getNextTuple() {
   subNameXml = xmlTextReaderLocalName(reader);
   currentName = (char*)subNameXml;
   xmlFree(subNameXml);
-//   cout << "GENERAL TYPE is " << currentName << endl;
+  cout << "GENERAL TYPE is " << currentName << endl;
   if (currentName != "AIRPORT") {
     return 0;
   }
@@ -2697,7 +2733,7 @@ Tuple* ImportairportsLI::getNextTuple() {
     return 0;
   }
   tuple->PutAttribute(2, country);
-  CcString *name = new CcString(false);
+  FText *name = new FText(false);
   if (readSimpleEntry("NAME", contents)) {
     name->Set(true, contents);
   }
@@ -2718,23 +2754,174 @@ Tuple* ImportairportsLI::getNextTuple() {
   next = xmlTextReaderNext(reader);
   next = xmlTextReaderNext(reader);
   // TODO: create and append radios and runways to relations
-  if (!readRadioInfo()) {
-    return 0;
+  while (readRadioInfo(currentName)) {
+    cout << "after rRI, currentName = " << currentName << endl;
   }
-  tuple->Print(cout);
-  
-  
+  while (readRunwayInfo(currentName)) {
+    cout << "after rRI, currentName = " << currentName << endl;
+  }
   next = xmlTextReaderNext(reader);
   next = xmlTextReaderNext(reader);
   cout << "---------------------TUPLE COMPLETED--------------------" << endl;
-  tuple->Print(cout);
+//   tuple->Print(cout);
   counter++;
   return tuple;
 }
 
-bool ImportairportsLI::readRadioInfo() {
+bool ImportairportsLI::readRunwayInfo(std::string& currentName) {
+  xmlChar *subNameXml, *opXml;
+  std::string contents = "";
+  Tuple *tuple = new Tuple(runwayRel->GetTupleType());
+  subNameXml = xmlTextReaderLocalName(reader);
+  currentName = (char*)subNameXml;
+  xmlFree(subNameXml);
+  if (currentName != "RWY") {
+    cout << "name is not RWY but " << currentName << endl;
+    return false;
+  }
+  opXml = xmlTextReaderGetAttribute(reader, (xmlChar*)"OPERATIONS");
+  if (opXml == NULL) {
+    return false;
+  }
+  cout << "   OPERATIONS: " << (char*)opXml << endl;
+  tuple->PutAttribute(0, new CcString(true, (char*)opXml));
+  CcString *name = new CcString(false);
+  if (readSimpleEntry("NAME", contents)) {
+    name->Set(true, contents);
+  }
+  else {
+    name->DeleteIfAllowed();
+    return 0;
+  }
+  tuple->PutAttribute(1, name);
+  cout << "   NAME: " << name->GetValue() << endl;
+  CcString *sfc = new CcString(false);
+  if (readSimpleEntry("SFC", contents)) {
+    sfc->Set(true, contents);
+  }
+  else {
+    sfc->DeleteIfAllowed();
+    return 0;
+  }
+  tuple->PutAttribute(2, sfc);
+  cout << "   SFC: " << sfc->GetValue() << endl;
+  CcReal *length = new CcReal(false);
+  if (readSimpleEntry("LENGTH", contents)) {
+    length->Set(true, std::stod(contents));
+  }
+  else {
+    length->DeleteIfAllowed();
+    return 0;
+  }
+  tuple->PutAttribute(3, length);
+  cout << "   LENGTH: " << length->GetValue() << endl;
+  CcReal *width = new CcReal(false);
+  if (readSimpleEntry("WIDTH", contents)) {
+    width->Set(true, std::stod(contents));
+  }
+  else {
+    width->DeleteIfAllowed();
+    return 0;
+  }
+  tuple->PutAttribute(4, width);
+  cout << "   WIDTH: " << width->GetValue() << endl;
+  CcString *strength = new CcString(false);
+  CcString *strength_unit = new CcString(true, "UNIT");
+  if (readSimpleEntry("STRENGTH", contents, strength_unit)) {
+    strength->Set(true, contents);
+  }
+  else {
+    strength->DeleteIfAllowed();
+    strength_unit->DeleteIfAllowed();
+    return 0;
+  }
+  tuple->PutAttribute(5, strength_unit);
+  tuple->PutAttribute(6, strength);
+  cout << "   STRENGTH_UNIT: " << strength_unit->GetValue() << endl;
+  cout << "   STRENGTH: " << strength->GetValue() << endl;
+  if (!readDirectionInfo(7, tuple)) {
+    return false;
+  }
+  if (!readDirectionInfo(12, tuple)) {
+    return false;
+  }
+  tuple->PutAttribute(17, new CcInt(true, counter));
+  runwayRel->AppendTuple(tuple);
+//   return true;
+  return false;
+}
+
+bool ImportairportsLI::readDirectionInfo(const int attrno, Tuple *tuple) {
+  xmlChar *subNameXml, *dirXml;//, *toraXml, *ldaXml, *ilsXml, *papiXml;
+  std::string currentName = "", contents = "";
+  next = xmlTextReaderNext(reader);
+  read = xmlTextReaderRead(reader);
+  subNameXml = xmlTextReaderLocalName(reader);
+  currentName = (char*)subNameXml;
+  xmlFree(subNameXml);
+  if (currentName != "DIRECTION") {
+    cout << "name is not DIRECTION but " << currentName << endl;
+    return false;
+  }
+  dirXml = xmlTextReaderGetAttribute(reader, (xmlChar*)"TC");
+  if (dirXml == NULL) {
+    return false;
+  }
+  cout << "DIRECTIONTC: " << (char*)dirXml << endl;
+  tuple->PutAttribute(attrno, new CcInt(true, (char*)dirXml));
+  xmlFree(dirXml);
+  read = xmlTextReaderRead(reader);
+  read = xmlTextReaderRead(reader);
+  subNameXml = xmlTextReaderLocalName(reader);
+  currentName = (char*)subNameXml;
+  xmlFree(subNameXml);
+  if (currentName != "RUNS") {
+    cout << "name is not RUNS but " << currentName << endl;
+    return false;
+  }
+  CcInt *tora = new CcInt(false);
+  if (readSimpleEntry("TORA", contents)) {
+    tora->Set(true, std::stoi(contents));
+  }
+  else {
+    tora->DeleteIfAllowed();
+    return 0;
+  }
+  tuple->PutAttribute(attrno + 1, tora);
+  cout << "   TORA: " << tora->GetValue() << endl;
+  CcInt *lda = new CcInt(false);
+  if (readSimpleEntry("LDA", contents)) {
+    lda->Set(true, std::stoi(contents));
+  }
+  else {
+    lda->DeleteIfAllowed();
+    return 0;
+  }
+  tuple->PutAttribute(attrno + 2, lda);
+  cout << "   LDA: " << lda->GetValue() << endl;
+  read = xmlTextReaderRead(reader);
+  read = xmlTextReaderRead(reader);
+  read = xmlTextReaderRead(reader);
+  read = xmlTextReaderRead(reader);
+  subNameXml = xmlTextReaderLocalName(reader);
+  currentName = (char*)subNameXml;
+  xmlFree(subNameXml);
+  if (currentName == "DIRECTION") { // no LANDINGAIDS specified
+    tuple->PutAttribute(attrno + 3, new CcReal(false));
+    tuple->PutAttribute(attrno + 4, new CcBool(false));
+    return true;
+  }
+  else if (currentName == "LANDINGAIDS") { // read LANDINGAIDS
+    // TODO: read
+  }
+  else {
+    return false;
+  }
+  return true;
+}
+
+bool ImportairportsLI::readRadioInfo(std::string& currentName) {
   xmlChar *subNameXml, *catXml, *freqXml, *typeXml, *descXml;
-  std::string currentName;
   Tuple *tuple = new Tuple(radioRel->GetTupleType());
   next = xmlTextReaderNext(reader);
   read = xmlTextReaderRead(reader);
@@ -2743,11 +2930,11 @@ bool ImportairportsLI::readRadioInfo() {
   xmlFree(subNameXml);
   if (currentName != "RADIO") {
     cout << "name is not RADIO but " << currentName << endl;
-    return 0;
+    return false;
   }
   catXml = xmlTextReaderGetAttribute(reader, (xmlChar*)"CATEGORY");
   if (catXml == NULL) {
-    return 0;
+    return false;
   }
   cout << "CATEGORY: " << (char*)catXml << endl;
   tuple->PutAttribute(0, new CcString(true, (char*)catXml));
@@ -2759,7 +2946,7 @@ bool ImportairportsLI::readRadioInfo() {
   xmlFree(subNameXml);
   if (currentName != "FREQUENCY") {
     cout << "name is not FREQUENCY but " << currentName << endl;
-    return 0;
+    return false;
   }
   read = xmlTextReaderRead(reader);
   freqXml = xmlTextReaderValue(reader);
@@ -2774,7 +2961,7 @@ bool ImportairportsLI::readRadioInfo() {
   xmlFree(subNameXml);
   if (currentName != "TYPE") {
     cout << "name is not TYPE but " << currentName << endl;
-    return 0;
+    return false;
   }
   read = xmlTextReaderRead(reader);
   typeXml = xmlTextReaderValue(reader);
@@ -2789,15 +2976,22 @@ bool ImportairportsLI::readRadioInfo() {
   xmlFree(subNameXml);
   if (currentName != "DESCRIPTION") {
     cout << "name is not DESCRIPTION but " << currentName << endl;
-    return 0;
+    return false;
   }
   read = xmlTextReaderRead(reader);
   descXml = xmlTextReaderValue(reader);
   cout << "   DESCRIPTION: " << (char*)descXml << endl;
   tuple->PutAttribute(3, new FText(true, (char*)descXml));
   xmlFree(descXml);
+  next = xmlTextReaderNext(reader);
+  next = xmlTextReaderNext(reader);
+  next = xmlTextReaderNext(reader);
+  subNameXml = xmlTextReaderLocalName(reader);
+  currentName = (char*)subNameXml;
+  xmlFree(subNameXml);
   tuple->PutAttribute(4, new CcInt(true, counter));
   radioRel->AppendTuple(tuple);
+  tuple->Print(cout);
   return true;
 }
 
@@ -2854,22 +3048,32 @@ ListExpr ImportairportsLI::getRadioTypeList() {
 }
 
 ListExpr ImportairportsLI::getRunwayTypeList() {
-  ListExpr attrs = nl->Cons(nl->TwoElemList(nl->SymbolAtom("Strength_unit"),
-                                      nl->SymbolAtom(CcString::BasicType())),
-      nl->SixElemList(nl->TwoElemList(nl->SymbolAtom("Direction"),
+  ListExpr attrs = nl->SixElemList(nl->TwoElemList(nl->SymbolAtom("Direction2"),
                                       nl->SymbolAtom(CcInt::BasicType())),
-                      nl->TwoElemList(nl->SymbolAtom("TORA"), 
+                      nl->TwoElemList(nl->SymbolAtom("D2_TORA"), 
                                       nl->SymbolAtom(CcInt::BasicType())),
-                      nl->TwoElemList(nl->SymbolAtom("LDA"),
+                      nl->TwoElemList(nl->SymbolAtom("D2_LDA"),
                                       nl->SymbolAtom(CcInt::BasicType())),
-                      nl->TwoElemList(nl->SymbolAtom("ILS"),
+                      nl->TwoElemList(nl->SymbolAtom("D2_ILS"),
                                       nl->SymbolAtom(CcReal::BasicType())),
-                      nl->TwoElemList(nl->SymbolAtom("PAPI"), 
+                      nl->TwoElemList(nl->SymbolAtom("D2_PAPI"), 
                                       nl->SymbolAtom(CcBool::BasicType())),
                       nl->TwoElemList(nl->SymbolAtom("AirportId"),
-                                      nl->SymbolAtom(CcInt::BasicType()))));
-  attrs = nl->Cons(nl->TwoElemList(nl->SymbolAtom("Strength"), 
+                                      nl->SymbolAtom(CcInt::BasicType())));
+  attrs = nl->Cons(nl->TwoElemList(nl->SymbolAtom("Direction1"),
+                                nl->SymbolAtom(CcInt::BasicType())), attrs);
+  attrs = nl->Cons(nl->TwoElemList(nl->SymbolAtom("D1_TORA"), 
+                                nl->SymbolAtom(CcInt::BasicType())), attrs);
+  attrs = nl->Cons(nl->TwoElemList(nl->SymbolAtom("D1_LDA"),
+                                nl->SymbolAtom(CcInt::BasicType())), attrs);
+  attrs = nl->Cons(nl->TwoElemList(nl->SymbolAtom("D1_ILS"),
                                 nl->SymbolAtom(CcReal::BasicType())), attrs);
+  attrs = nl->Cons(nl->TwoElemList(nl->SymbolAtom("D1_PAPI"),
+                                nl->SymbolAtom(CcBool::BasicType())), attrs);
+  attrs = nl->Cons(nl->TwoElemList(nl->SymbolAtom("Strength"),
+                                nl->SymbolAtom(CcString::BasicType())), attrs);
+  attrs = nl->Cons(nl->TwoElemList(nl->SymbolAtom("Strength_unit"), 
+                                nl->SymbolAtom(CcString::BasicType())), attrs);
   attrs = nl->Cons(nl->TwoElemList(nl->SymbolAtom("Width"),
                                 nl->SymbolAtom(CcReal::BasicType())), attrs);
   attrs = nl->Cons(nl->TwoElemList(nl->SymbolAtom("Length"),
