@@ -122,6 +122,7 @@ class ImportXML {
                        CcString *attr = 0);
   bool readGeolocationICAO(Point* location, CcReal* elevation, 
                            CcString* icao = 0);
+  void string2ccbool(std::string& boolexpr, CcBool *result);
   
   bool correct;
   SecondoCatalog* sc;
@@ -158,7 +159,7 @@ class ImportairportsLI : public ImportXML {
   ~ImportairportsLI();
   
   Tuple* getNextTuple();
-  bool readDirectionInfo(const int attrno, Tuple *tuple);
+  bool readDirectionInfo(Tuple *tuple, const bool first);
   bool readRadioInfo(std::string& currentName);
   bool readRunwayInfo(std::string& currentName);
   Relation* createRelation(std::string& name, ListExpr& typeList);
