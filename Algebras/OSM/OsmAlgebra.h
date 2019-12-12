@@ -168,6 +168,7 @@ class ImportairportsLI : public ImportXML {
   static ListExpr getRunwayTypeList();
 
   Relation *radioRel, *runwayRel;
+  TupleType *radioTupleType, *runwayTupleType;
   std::string radioRelName, runwayRelName;
   unsigned int counter;
 };
