@@ -2704,11 +2704,14 @@ ImportairportsLI::ImportairportsLI(std::string& fn, std::string& radiorelname,
   radioRel = createRelation(radiorelname, radioTypeList);
   ListExpr runwayTypeList = getRunwayTypeList();
   runwayRel = createRelation(runwayrelname, runwayTypeList);
-  radioTupleType = radioRel->GetTupleType();
-  runwayTupleType = runwayRel->GetTupleType();
-  read = xmlTextReaderRead(reader);
-  next = xmlTextReaderNext(reader);
-  correct = ((read == 1) && (next == 1) && radioRel != 0 && runwayRel != 0);
+  correct = (radioRel != 0 && runwayRel != 0);
+  if (correct) {
+    radioTupleType = radioRel->GetTupleType();
+    runwayTupleType = runwayRel->GetTupleType();
+    read = xmlTextReaderRead(reader);
+    next = xmlTextReaderNext(reader);
+    correct = ((read == 1) && (next == 1));
+  }
 }
 
 ImportairportsLI::~ImportairportsLI() {
@@ -3136,8 +3139,12 @@ bool ImportairportsLI::readRadioInfo(std::string& currentName) {
 Relation* ImportairportsLI::createRelation(std::string& name, 
                                            ListExpr& typeList) {
   if (sc->IsObjectName(name)) {
-    cout << "ERROR: " << name << " is already defined" << endl;
-    return 0;
+    cout << "Object " << name << " is already defined and will be overwritten"
+         << endl;
+    if (!sc->DeleteObject(name)) {
+      cout << "ERROR: Object " << name << " could not be deleted" << endl;
+      return 0;
+    }
   }
   std::string errorMsg = "error";
   if (!sc->IsValidIdentifier(name, errorMsg, true)) {
