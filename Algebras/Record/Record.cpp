@@ -838,20 +838,25 @@ as there are the ~hashValue~, ~noElements~, current elements.
 ostream&
 Record::Print(ostream& os) const
 {
-  os << "Record["
-     << "addr=" << (void*) this
-     << ", hashValue=" << this->hashValue
-     << ", noElements=" << this->noElements;
+  os << "Record[" << endl;
+    //  << "addr=" << (void*) this
+    //  << ", hashValue=" << this->hashValue
+    //  << ", noElements=" << this->noElements;
 
   for (int pos = 0; pos < this->noElements; pos++) {
     // get element info by position
     ElemInfo  elemInfo;
     this->elemInfoArray.Get(pos, elemInfo);
-    // print record element
-    os << ", elem" << (pos + 1)
-       << "=(" << elemInfo.typeName
-       << " " << elemInfo.elemName
-       << ")";
+    Attribute* elem = GetElement(pos);
+    os << elemInfo.elemName << " : " ;
+    if(elem!=nullptr){
+        elem->Print(os);
+        elem->DeleteIfAllowed();
+    } else {
+      os << "null";
+    }
+    os << endl;
+
   }
 
   os << "]";
