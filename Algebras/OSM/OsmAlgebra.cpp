@@ -74,6 +74,7 @@ Including header-files
 #include "ScalingEngine.h"
 #include "OsmImportOperator.h"
 #include "SecondoCatalog.h"
+#include "DerivedObj.h"
 #include "XmlFileReader.h"
 #include "XmlParserInterface.h"
 #include "Element.h"
@@ -2799,7 +2800,6 @@ Tuple* ImportairportsLI::getNextTuple() {
 bool ImportairportsLI::readRunwayInfo(std::string& currentName) {
   xmlChar *subNameXml, *opXml;
   std::string contents = "";
-  Tuple *tuple = new Tuple(runwayTupleType);
   subNameXml = xmlTextReaderLocalName(reader);
   currentName = (char*)subNameXml;
   xmlFree(subNameXml);
@@ -2811,6 +2811,7 @@ bool ImportairportsLI::readRunwayInfo(std::string& currentName) {
   if (opXml == NULL) {
     return false;
   }
+  Tuple *tuple = new Tuple(runwayTupleType);
 //   cout << "   OPERATIONS: " << (char*)opXml << endl;
   tuple->PutAttribute(0, new CcString(true, (char*)opXml));
   xmlFree(opXml);
@@ -2820,6 +2821,7 @@ bool ImportairportsLI::readRunwayInfo(std::string& currentName) {
   }
   else {
     name->DeleteIfAllowed();
+    delete tuple;
     return false;
   }
   tuple->PutAttribute(1, name);
@@ -2830,6 +2832,7 @@ bool ImportairportsLI::readRunwayInfo(std::string& currentName) {
   }
   else {
     sfc->DeleteIfAllowed();
+    delete tuple;
     return false;
   }
   tuple->PutAttribute(2, sfc);
@@ -2840,6 +2843,7 @@ bool ImportairportsLI::readRunwayInfo(std::string& currentName) {
   }
   else {
     length->DeleteIfAllowed();
+    delete tuple;
     return false;
   }
   tuple->PutAttribute(3, length);
@@ -2850,6 +2854,7 @@ bool ImportairportsLI::readRunwayInfo(std::string& currentName) {
   }
   else {
     width->DeleteIfAllowed();
+    delete tuple;
     return false;
   }
   tuple->PutAttribute(4, width);
@@ -2867,9 +2872,11 @@ bool ImportairportsLI::readRunwayInfo(std::string& currentName) {
 //   cout << "   STRENGTH_UNIT: " << strength_unit->GetValue() << endl;
 //   cout << "   STRENGTH: " << strength->GetValue() << endl;
   if (!readDirectionInfo(tuple, true)) {
+    delete tuple;
     return false;
   }
   if (!readDirectionInfo(tuple, false)) {
+    delete tuple;
     return false;
   }
   tuple->PutAttribute(17, new CcInt(true, counter));
@@ -3045,7 +3052,7 @@ bool ImportairportsLI::readDirectionInfo(Tuple *tuple, const bool first) {
 
 bool ImportairportsLI::readRadioInfo(std::string& currentName) {
   xmlChar *subNameXml, *catXml, *freqXml, *typeXml, *descXml;
-  Tuple *tuple = new Tuple(radioTupleType);
+  
   next = xmlTextReaderNext(reader);
   read = xmlTextReaderRead(reader);
   subNameXml = xmlTextReaderLocalName(reader);
@@ -3059,6 +3066,7 @@ bool ImportairportsLI::readRadioInfo(std::string& currentName) {
   if (catXml == NULL) {
     return false;
   }
+  Tuple *tuple = new Tuple(radioTupleType);
 //   cout << "CATEGORY: " << (char*)catXml << endl;
   tuple->PutAttribute(0, new CcString(true, (char*)catXml));
   xmlFree(catXml);
@@ -3069,6 +3077,7 @@ bool ImportairportsLI::readRadioInfo(std::string& currentName) {
   xmlFree(subNameXml);
   if (currentName != "FREQUENCY") {
 //     cout << "name is not FREQUENCY but " << currentName << endl;
+    delete tuple;
     return false;
   }
   read = xmlTextReaderRead(reader);
@@ -3084,6 +3093,7 @@ bool ImportairportsLI::readRadioInfo(std::string& currentName) {
   xmlFree(subNameXml);
   if (currentName != "TYPE") {
 //     cout << "name is not TYPE but " << currentName << endl;
+    delete tuple;
     return false;
   }
   read = xmlTextReaderRead(reader);
@@ -3146,6 +3156,10 @@ Relation* ImportairportsLI::createRelation(std::string& name,
       return 0;
     }
   }
+  if (!sc->CleanUp(false, false)) {
+    cout << "ERROR: CleanUp failed" << endl;
+    return 0;
+  }
   std::string errorMsg = "error";
   if (!sc->IsValidIdentifier(name, errorMsg, true)) {
     cout << errorMsg << endl;
@@ -3158,7 +3172,9 @@ Relation* ImportairportsLI::createRelation(std::string& name,
   typeList = nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()), typeList);
   ListExpr numTypeList = sc->NumericType(typeList);
   TupleType *tupleType = new TupleType(numTypeList);
-  return new Relation(tupleType, false);
+  Relation *result = new Relation(tupleType, false);
+  tupleType->DeleteIfAllowed();
+  return result;
 }
 
 ListExpr ImportairportsLI::getResultTypeList() {
