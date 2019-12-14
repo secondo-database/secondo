@@ -118,7 +118,7 @@ Append node records, if neccessary (could only happen, if no records has been re
 
     // write node type-id to buffer
     NodeTypeId type = m_node->typeId();
-    memcpy(buffer + offset, &type, sizeof(size_t));
+    memcpy(buffer + offset, &type, sizeof(NodeTypeId));
     offset += sizeof(NodeTypeId);
 
     // write node to buffer
