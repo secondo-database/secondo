@@ -1373,12 +1373,14 @@ NestedList::GetBinaryType(const ListExpr list) const {
 
   case BoolType     : return  BIN_BOOLEAN;
   case IntType      : { long v = IntValue(list);
-                        if(v>=-128 && v<=127)
+                        if(   v>=numeric_limits<char>::min()
+                           && v<=numeric_limits<char>::max())
                            return BIN_BYTE;
-                        if(v>=-32768 && v<=32767)
+                        if(   v>=numeric_limits<short>::min() 
+                           && v<=numeric_limits<short>::max())
                            return BIN_SHORTINT;
                         return BIN_INTEGER;
-                      }
+                      } 
   case RealType     : return BIN_DOUBLE;
   case SymbolType   : { int len = SymbolValue(list).length();
                         if(len<256)
@@ -1763,7 +1765,11 @@ NestedList::WriteBinaryRec(ListExpr list, ostream& os) const {
                            os << (byte) value;
                            return true;
           }
-          case BIN_BYTE:
+          case BIN_BYTE: {
+              char value = (char) IntValue(list);
+              os.write(&value,1);
+              return true;
+          }
           case BIN_SHORTINT:
           case BIN_INTEGER:
           {
