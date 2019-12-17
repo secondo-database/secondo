@@ -1687,7 +1687,6 @@
   volume  = {72},
   month   = feb,
   doi     = {10.1007/s11227-016-1641-y},
-  file    = {:Parallel Partition and Merge QuickSort (PPMQSort) on Multicore CPUs.pdf:PDF},
 }
 
 @InProceedings{Rattanatranurak2019,
