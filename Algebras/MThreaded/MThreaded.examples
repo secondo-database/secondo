@@ -1,0 +1,21 @@
+Database: berlintest
+Restore: No
+
+Operator    : maxcore
+Number      : 1
+Signature   : -> int
+Example     : query maxcore()
+Result      : 6
+Tolerance   : 6
+
+Operator    : setcore
+Number      : 1
+Signature   : int -> bool
+Example     : query setcore(6)
+Result      : TRUE
+
+Operator    : getcore
+Number      : 1
+Signature   : -> int
+Example     : query getcore()
+Result      : 6
