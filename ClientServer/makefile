@@ -33,8 +33,6 @@ else
  CCFLAGS += -std=c++0x
 endif
 
-LD := g++
-
 LIBDIROBJECTS := $(LIBDIR)/SecondoInterfaceCS.$(OBJEXT) 
 
 ifneq ($(platform),win32)
