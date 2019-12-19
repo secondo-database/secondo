@@ -1,6 +1,12 @@
 #!/bin/bash
 
-g++ -o /dev/null $SECONDO_BUILD_DIR/CM-Scripts/recodetest.cpp 2>/dev/null
+if [ -z "$1" ]; then
+CC=g++
+else
+CC=$1
+fi
+
+$CC -o /dev/null $SECONDO_BUILD_DIR/CM-Scripts/recodetest.cpp 2>/dev/null
 
 OK=$?
 
