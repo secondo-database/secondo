@@ -587,11 +587,11 @@ void SecondoServer::CallGetLinearCostFun(){
 
 */
 void SecondoServer::CallCancelQuery() {
+    iostream& iosock = client->GetSocketStream();
 #ifdef SECONDO_WIN32
     // Canceling query is currently not supported on windows 
     iosock << "<NOT_SUPPORTED/>" << endl;
 #else 
-    iostream& iosock = client->GetSocketStream();
     string line;
     getline(iosock,line);
     debug_server(line);
