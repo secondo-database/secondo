@@ -6940,6 +6940,7 @@ int MPoint::IntervalRelation(Interval<Instant> &int_a_b,
   if(a <c && d <b) //a----c----d----b
     return 13;
   assert(false); //can not be other value
+  return 666;
 }
 
 /*
