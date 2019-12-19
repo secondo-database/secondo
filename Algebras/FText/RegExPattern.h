@@ -108,6 +108,7 @@ Must be nothing.  Never cal it outside the cast function.
       if(index==1) return &finalStates;
       if(index==2) return &src;
       assert(false);
+      return nullptr;
    }   
 
    size_t Sizeof() const{
