@@ -899,6 +899,7 @@ e.g. for segments having owner __first__ or __second__.
         case second: return insideAbove_second;
         default : assert(false);
       }
+      return false;
   }
 
 /*

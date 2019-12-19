@@ -822,6 +822,7 @@ double Point::Distance( const Point& p, const Geoid* geoid /* = 0 */ ) const
       return d;
     } else{
       assert(false);
+      return -1.0;
     }
   } else {
     double dx = p.x - x,
@@ -2529,6 +2530,7 @@ bool HalfSegment::Intersection( const HalfSegment& hs, Point& resp,
     lon3 = fmod2((lon3+M_PI),(2*M_PI)) - M_PI;  // normalise to -180..180º
     res.SetDefined( (errno == 0) );
     res.Set( radToDeg(lon3), radToDeg(lat3) );
+    return true;
   } else { // euclidean geometry
     double k = 0.0;
     double a = 0.0;
@@ -3095,6 +3097,7 @@ double HalfSegment::Distance( const HalfSegment& hs,
   } // else: spherical geometry
   cout << __PRETTY_FUNCTION__ << ": Spherical geometry not implemented." <<endl;
   assert(false); // TODO: Implement spherical geometry case.
+  return -1.0;
 }
 
 
@@ -3705,6 +3708,7 @@ static double maxDist(const vector<Point>& orig, // points
       cerr << "min=" << min << " max=" << max << " size="
           << orig.size() << endl;
       assert(false);
+      return -1.0;
   }
 }
 
@@ -16722,8 +16726,10 @@ Disc getDisc(const vector<Point>& R){
                     }
                     return d;
                   }
-         default: assert(false);
+         default: assert(false); 
       }
+      Disc d(false);
+      return d;
 }
 
 
@@ -16755,6 +16761,8 @@ Disc getDisc(const Point* R, const int Rsize){
                   }
          default: assert(false);
       }
+      Disc d(false);
+      return d;
 }
 
  /** originally, recursive method to compute the smallest enclosing disc **/
