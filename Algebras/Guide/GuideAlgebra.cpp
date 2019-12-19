@@ -385,7 +385,7 @@ Here, each include is commented with some functionality used.
 #include "FileSystem.h" // deletion of files
 
 
-#include <math.h>               // required for some operators
+#include <SecMath.h>               // required for some operators
 #include <stack>
 #include <limits>
 

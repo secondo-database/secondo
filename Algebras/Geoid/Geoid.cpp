@@ -49,6 +49,8 @@ The ~Geoid~ class represents geoids used for spherical geometry.
 #include "StandardTypes.h"
 #include "Geoid.h"
 
+#include "SecMath.h" 
+
 
 using namespace std;
 /*
