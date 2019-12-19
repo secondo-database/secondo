@@ -245,8 +245,7 @@ definitions of our four classes: ~CcInt~, ~CcReal~, ~CcBool~, ~CcString~.
 #include <sstream>
 #include <algorithm>
 
-#include <math.h>
-#include <cmath>
+#include "SecMath.h"
 #include <cstdlib>
 #include <unistd.h>
 #include <errno.h>
@@ -254,6 +253,8 @@ definitions of our four classes: ~CcInt~, ~CcReal~, ~CcBool~, ~CcString~.
 #include <time.h>       //needed for random number generator
 #include "LongInt.h"
 #include "RationalAttr.h"
+
+
 
 
 extern NestedList* nl;

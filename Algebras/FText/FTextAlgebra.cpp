@@ -101,7 +101,7 @@ October 2008, Christian D[ue]ntgen added operators ~sendtextUDP~ and
 #include "blowfish.h"
 #include "md5.h"
 #include "StringUtils.h"
-#include <math.h>
+#include "SecMath.h" 
 #include <time.h>
 #include <sys/timeb.h>
 #include <limits>
