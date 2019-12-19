@@ -892,7 +892,7 @@ int Use_TsN( Word* args, Word& result, int message,
 
      default: assert(false); // unknonwn message
   }
-
+  return -1;
 }
 
 
