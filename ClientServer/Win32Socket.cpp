@@ -44,6 +44,13 @@ For a description of the public interface see the ~SocketIO~ header file.
 #define MAX_HOST_NAME  256
 #define MILLISECOND   1000
 
+
+using std::string;
+using std::ios;
+using std::iostream;
+using std::cerr;
+using std::endl;
+
 static HANDLE watchDogMutex;
 
 /*
@@ -82,7 +89,10 @@ Socket::IsLibraryInitialized()
 1.1 Global Windows Sockets
 
 */
-Win32Socket::Win32Socket( const string& addr, const string& port )
+Win32Socket::Win32Socket( const string& addr, const string& port,
+	                  std::ostream* _traceInStream, 
+			  std::ostream* _traceOutStream,
+			  bool _destroyTrace)
 {
   hostAddress = addr;
   hostPort = port;
@@ -90,9 +100,15 @@ Win32Socket::Win32Socket( const string& addr, const string& port )
   s = INVALID_SOCKET;
   ioSocketBuffer = 0;
   ioSocketStream = 0;
+  traceInStream = _traceInStream;
+  traceOutStream = _traceOutStream;
+  destroyTrace = _destroyTrace;
 }
 
-Win32Socket::Win32Socket( SOCKET newSock )
+Win32Socket::Win32Socket( SOCKET newSock, 
+		          std::ostream* _traceInStream,
+	                  std::ostream* _traceOutStream,
+	                  bool _destroyTrace)
 {
   s = newSock;
   hostAddress = "";
@@ -102,6 +118,9 @@ Win32Socket::Win32Socket( SOCKET newSock )
   ioSocketBuffer = new SocketBuffer( *this );
   ioSocketStream = new iostream( ioSocketBuffer );
   ioSocketStream->clear();
+  traceInStream = _traceInStream;
+  traceOutStream = _traceOutStream;
+  destroyTrace = _destroyTrace;
 }
 
 Win32Socket::~Win32Socket()
@@ -117,6 +136,7 @@ Win32Socket::~Win32Socket()
     delete ioSocketBuffer;
     ioSocketBuffer = 0;
   }
+  removeTraces();
 }
 
 bool
@@ -467,7 +487,9 @@ Win32Socket::GetPeerAddress() const
 }
 
 Socket*
-Win32Socket::Accept()
+Win32Socket::Accept( std::ostream* traceInStream,
+		     std::ostream* traceOutStream,
+		     bool destroyTrace)
 {
   if ( state != SS_OPEN )
   {
@@ -500,7 +522,8 @@ Win32Socket::Accept()
       return (NULL);
     }
     lastError = EC_OK;
-    return (new Win32Socket( newSock ));
+    return (new Win32Socket( newSock, traceInStream, 
+			    traceOutStream, destroyTrace ));
   }
 }
 
@@ -575,9 +598,13 @@ Win32Socket::GetDescriptor()
 }
 
 Socket*
-Socket::CreateClient( const SocketDescriptor sd )
+Socket::CreateClient( const SocketDescriptor sd,
+	              std::ostream* traceInStream,
+	              std::ostream* traceOutStream,
+	              bool destroyTrace)
 {
-  Win32Socket* sock = new Win32Socket( sd );
+  Win32Socket* sock = new Win32Socket( sd, traceInStream, 
+		                       traceOutStream, destroyTrace );
   return (sock);
 }
 
@@ -621,9 +648,13 @@ Socket::GetHostname( const string& ipAddress )
 }
 
 Socket*
-Socket::CreateLocal( const string& address, const int listenQueueSize )
+Socket::CreateLocal( const string& address, const int listenQueueSize,
+	             std::ostream* traceInStream,
+	             std::ostream* traceOutStream,
+	             bool destroyTrace)
 {
-  LocalWin32Socket* sock = new LocalWin32Socket( address );
+  LocalWin32Socket* sock = new LocalWin32Socket( address, traceInStream, 
+		                          traceOutStream, destroyTrace );
   sock->Open( listenQueueSize );
   return (sock);
 }
@@ -631,9 +662,15 @@ Socket::CreateLocal( const string& address, const int listenQueueSize )
 Socket*
 Socket::CreateGlobal( const string& address,
                       const string& port,
-                      const int listenQueueSize )
+                      const int listenQueueSize,
+	              std::ostream* traceInStream,
+	              std::ostream* traceOutStream,
+	              bool destroyTrace)
 {
-  Win32Socket* sock = new Win32Socket( address, port );
+  Win32Socket* sock = new Win32Socket( address, port,
+		        traceInStream,
+		        traceOutStream, 
+		        destroyTrace);
   sock->Open( listenQueueSize, SOCK_STREAM );
   return (sock);
 }
@@ -641,19 +678,24 @@ Socket::CreateGlobal( const string& address,
 Socket*
 Socket::Connect( const string& address, const string& port,
                  const SocketDomain domain,
-                 const int maxAttempts, const time_t timeout )
+                 const int maxAttempts, const time_t timeout,
+	         std::ostream* traceInStream,
+	         std::ostream* traceOutStream,
+	         bool destroyTrace )
 {
   if ( domain == SockLocalDomain ||
       (domain == SockAnyDomain   &&
        (port.length() == 0 || address == "localhost")) )
   {
-    LocalWin32Socket* s = new LocalWin32Socket( address );
+    LocalWin32Socket* s = new LocalWin32Socket( address, traceInStream,
+		                                traceOutStream, destroyTrace );
     s->Connect( maxAttempts, timeout );
     return (s);
   }
   else
   {
-    Win32Socket* s = new Win32Socket( address, port );
+    Win32Socket* s = new Win32Socket( address, port, traceInStream,
+		                      traceOutStream, destroyTrace );
     s->Connect( maxAttempts, timeout );
     return (s);
   }
@@ -887,13 +929,19 @@ LocalWin32Socket::Write( const void* buf, size_t size )
 
 #define MAX_ADDRESS_LEN 64
 
-LocalWin32Socket::LocalWin32Socket( const string& address )
+LocalWin32Socket::LocalWin32Socket( const string& address,
+	                   std::ostream* _traceInStream,
+	                   std::ostream* _traceOutStream,
+	                   bool _destroyTrace)
 {
   localName = address;
   lastError = EC_NOT_OPENED;
   mutexHandle = NULL;
   ioSocketBuffer = 0;
   ioSocketStream = 0;
+  traceInStream = _traceInStream;
+  traceOutStream = _traceOutStream,
+  destroyTrace = _destroyTrace;
 }
 
 bool
@@ -953,12 +1001,18 @@ LocalWin32Socket::Open( int )
   return (true);
 }
 
-LocalWin32Socket::LocalWin32Socket()
+LocalWin32Socket::LocalWin32Socket( std::ostream* _traceInStream,
+		                    std::ostream* _traceOutStream,
+				    bool _destroyTrace)
 {
   int i;
   bufferHandle = NULL;
   mutexHandle = NULL;
   localName = "";
+  traceInStream = _traceInStream;
+  traceOutStream = _traceOutStream;
+  destroyTrace = _destroyTrace;
+
 
   for ( i = RD; i <= RTT; i++ )
   {
@@ -1025,7 +1079,9 @@ LocalWin32Socket::~LocalWin32Socket()
 }
 
 Socket*
-LocalWin32Socket::Accept()
+LocalWin32Socket::Accept( std::ostream* traceInStream,
+		          std::ostream* traceOutStream,
+			  bool destroyStreams)
 {
   HANDLE h[2];
 
@@ -1057,7 +1113,8 @@ LocalWin32Socket::Accept()
       return (NULL);
     }
   }
-  LocalWin32Socket* sock = new LocalWin32Socket();
+  LocalWin32Socket* sock = new LocalWin32Socket(traceInStream, 
+		                             traceOutStream, destroyTrace);
   sock->mutexHandle = ((ConnectData*) recvBuffer->dataBuf)->mutexHandle;
   AcceptData* adp = (AcceptData*) sendBuffer->dataBuf;
   adp->bufferHandle = sock->bufferHandle;

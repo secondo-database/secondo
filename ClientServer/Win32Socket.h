@@ -42,8 +42,12 @@ For a description of the public interface see the ~SocketIO~ header file.
 class Win32Socket : public Socket
 {
  public:
-  Win32Socket( const string& address, const string& port );
-  Win32Socket( SOCKET newSock );
+  Win32Socket( const std::string& address, const std::string& port,
+	       std::ostream* traceInStream, std::ostream* traceOutStream,
+	       bool destroyTrace );
+  Win32Socket( SOCKET newSock,
+	       std::ostream* traceInStream, std::ostream* traceOutStream,
+	       bool destroyTrace );
   ~Win32Socket();
   SocketDescriptor GetDescriptor();
   bool    Open( const int listenQueueSize,
@@ -54,20 +58,46 @@ class Win32Socket : public Socket
   bool    Read( void* buf, size_t size );
   bool    Write( void const* buf, size_t size );
   bool    IsOk();
-  string  GetErrorText();
-  string  GetSocketAddress() const;
-  string  GetPeerAddress() const;
-  Socket* Accept();
+  std::string  GetErrorText();
+  std::string  GetSocketAddress() const;
+  std::string  GetPeerAddress() const;
+  Socket* Accept( std::ostream* traceInStream,
+		  std::ostream* traceOutStream,
+		  bool destryTrace);
   bool    CancelAccept();
   bool    Close();
   bool    ShutDown();
+
+
+  void setTraceStreams( std::ostream* traceInStream,
+		        std::ostream* traceOutStream,
+			bool destroyTrace) {
+     
+  }
+
  protected:
-  void    SetStreamState( ios::iostate newState );
+  void    SetStreamState( std::ios::iostate newState );
 
   SOCKET  s;
   int     lastError;  // error code of last failed operation
-  string  hostAddress;
-  string  hostPort;
+  std::string  hostAddress;
+  std::string  hostPort;
+  std::ostream* traceInStream;
+  std::ostream* traceOutStream;
+  bool destroyTrace;
+
+  void removeTraces(){
+     if(traceInStream==traceOutStream){
+       traceOutStream = 0;
+     }
+     if(destroyTrace){
+        if(traceInStream) delete traceInStream;
+        if(traceOutStream) delete traceOutStream;
+     }
+     traceInStream = 0;
+     traceOutStream=0;
+  }
+
 
   enum ErrorCodes
   {
@@ -87,8 +117,13 @@ class Win32Socket : public Socket
 class LocalWin32Socket : public Socket
 {
  public:
-  LocalWin32Socket( const string& address );
-  LocalWin32Socket();
+  LocalWin32Socket( const std::string& address,
+		    std::ostream* traceInStream,
+		    std::ostream* traceOutStream,
+		    bool destroyStream );
+  LocalWin32Socket( std::ostream* traceInStream, 
+                    std::ostream* traceOutStream, 
+                    bool destroyStream );
   ~LocalWin32Socket();
   SocketDescriptor GetDescriptor();
   bool    Open( const int listenQueueSize );
@@ -97,16 +132,24 @@ class LocalWin32Socket : public Socket
   bool    Read( void* buf, size_t size );
   bool    Write( void const* buf, size_t size );
   bool    IsOk();
-  string  GetErrorText();
-  string  GetSocketAddress() const;
-  string  GetPeerAddress() const;
-  Socket* Accept();
+  std::string  GetErrorText();
+  std::string  GetSocketAddress() const;
+  std::string  GetPeerAddress() const;
+  Socket* Accept( std::ostream* traceInStream,
+		  std::ostream* traceOutStream,
+		  bool destroyTrace);
   bool    CancelAccept();
   bool    Close();
   bool    ShutDown();
 
+  void setTraceStreams( std::ostream* traceInStream,
+		        std::ostream* traceOutStream,
+			bool destroyTrace) {
+     
+  }
+
  protected:
-  void    SetStreamState( ios::iostate newState );
+  void    SetStreamState( std::ios::iostate newState );
 
   enum ErrorCodes
   {
@@ -158,7 +201,24 @@ class LocalWin32Socket : public Socket
   HANDLE      mutexHandle;
   HANDLE      bufferHandle;
   int         lastError;
-  string      localName;
+  std::string      localName;
+
+  std::ostream* traceInStream;
+  std::ostream* traceOutStream;
+  bool destroyTrace;
+  
+  void removeTraces(){
+     if(traceInStream==traceOutStream){
+       traceOutStream = 0;
+     }
+     if(destroyTrace){
+        if(traceInStream) delete traceInStream;
+        if(traceOutStream) delete traceOutStream;
+     }
+     traceInStream = 0;
+     traceOutStream=0;
+  }
+
 };
 
 #endif
