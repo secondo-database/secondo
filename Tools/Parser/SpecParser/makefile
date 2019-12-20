@@ -23,16 +23,14 @@
 #
 ########################################################################
 
+
+ifdef SECONDO_HOST_PLATFORM
+SECONDO_PLATFORM=$(SECONDO_HOST_PLATFORM)
+endif
 include ../../../makefile.env
 
 DEP_FILES += SpecParser.tab.dep
 
-ifeq ($(platform),android)
-CC := $(HOME)/toolchain-standalone/bin/arm-linux-androideabi-g++
-CCFLAGS += -I$(SECONDO_BUILD_DIR)/../flex/include
-else
-CC := g++
-endif
 
 OBJECTS := NestedText.o lex.yy.o lex2.yy.o 
 GENFILES := lex.yy.cpp lex2.yy.cpp SpecParser.tab.cpp SpecParser.tab.hpp

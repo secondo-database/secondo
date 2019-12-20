@@ -6,11 +6,17 @@
 # 31.03.2013 Jürgen Ehnes
 
 
+ifdef SECONDO_HOST_PLATFORM
+SECONDO_PLATFORM=$(SECONDO_HOST_PLATFORM)
+endif
 
 include ../../../../makefile.env
 
 DEP_FILES += ../SpecParser.tab.dep
-CC := g++
+
+ifdef SECONDO_HOST_CXX
+CC := $(SECONDO_HOST_CXX)
+endif
 
 
 OBJECTS := NestedText.o lex.yy.o lex2.yy.o

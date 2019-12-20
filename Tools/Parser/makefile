@@ -32,6 +32,7 @@
 # then be processed by the SecondoInterface::Secondo(). 
 #
 
+
 include ../../makefile.env
 
 CCFLAGS = $(DEFAULTCCFLAGS)
@@ -47,6 +48,9 @@ ifdef WINE
 PARSEREXT := .linux
 else
 PARSEREXT := $(EXEEXT) 
+ifdef SECONDO_HOST_EXEEXT
+ PARSEREXT := $(SECONDO_HOST_EXEEXT)
+endif
 endif
 
 OBJECTS =\
@@ -64,14 +68,6 @@ DEP_FILES += SecParser.tab.dep
 
 GENFILES := $(SCANNER_DEF) $(PARSER_DEF) $(TOKEN_DEF) $(SCANNER) $(PARSER) \
 	    lexrules tokens yaccrules1 yaccrules2 
-
-ifeq ($(platform),android)
-CC := $(HOME)/toolchain-standalone/bin/arm-linux-androideabi-g++
-CCFLAGS += -I$(SECONDO_BUILD_DIR)/../flex/include/
-else
-
-CC := g++
-endif
 
 
 SPECPARSER := SpecParser/Parser$(PARSEREXT)
