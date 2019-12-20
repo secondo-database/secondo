@@ -50,4 +50,4 @@ DLLEXT = dll
 DLLFLAGS = -s -shared
 
 # Set up default flags for the compiler
-DEFAULTCCFLAGS = -mconsole
+DEFAULTCCFLAGS += -mconsole
