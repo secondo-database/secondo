@@ -162,8 +162,8 @@ void JPEGPicture::CreateRGBBuffer(unsigned char *JPEGBuffer,
             jpeg_read_scanlines(&cinfo, line, 1);
 
             // die einzelnen Blöcke speichern
-            memcpy((unsigned char*)((unsigned long)m_pucImageBuffer + 
-                                     buffer_pos), line[0], row_stride);
+            memcpy((unsigned char*)((void*)(m_pucImageBuffer + 
+                                     buffer_pos)), line[0], row_stride);
             buffer_pos += row_stride;
       }
 

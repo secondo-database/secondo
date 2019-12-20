@@ -94,7 +94,7 @@ METHODDEF(boolean) mem_fill_input_buffer (j_decompress_ptr cinfo)
       }
 
       memcpy(src->buffer, 
-             (unsigned char*)((unsigned long)src->src_buffer + src->src_pos),
+             (unsigned char*)((void*)(src->src_buffer + src->src_pos)),
              nbytes);
       src->src_pos += nbytes;
 
@@ -322,7 +322,7 @@ METHODDEF(boolean) mem_empty_output_buffer (j_compress_ptr cinfo)
   copies the buffer in the dest buffer
 
 */
-  memcpy((unsigned char*)((unsigned long)dest->dest_buffer + dest->dest_size), 
+  memcpy((unsigned char*)((void*)(dest->dest_buffer + dest->dest_size)), 
        dest->buffer, 
        OUTPUT_BUF_SIZE);
   dest->dest_size += OUTPUT_BUF_SIZE;
@@ -355,8 +355,8 @@ METHODDEF(void) mem_term_destination (j_compress_ptr cinfo)
 */
   if (datacount > 0)
   {
-      memcpy((unsigned char*)((unsigned long)dest->dest_buffer + 
-             dest->dest_size), dest->buffer, datacount);
+      memcpy((unsigned char*)((void*)(dest->dest_buffer + 
+             dest->dest_size)), dest->buffer, datacount);
       dest->dest_size += datacount;
   }
 
