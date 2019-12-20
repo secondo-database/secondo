@@ -91,8 +91,6 @@ now be more compatible.
 #include "NestedList.h"
 #include "Messages.h"
 
-using namespace std;
-
 
 #ifdef SM_FILE_ID 
   // realize file id handling by shared memory instead
@@ -111,6 +109,7 @@ boost::interprocess::named_mutex SmiEnvironment::file_id_mutex(
 
 
 
+using namespace std;
 
 
 //static MessageCenter* smi_msg = MessageCenter::GetInstance();
@@ -1310,7 +1309,11 @@ bool SmiEnvironment::StartUp(const RunMode mode, const string& parmFile,
   DbEnv* dbenv = instance.impl->bdbEnv;
   assert(dbenv);
 
+#ifndef SECONDO_WIN32
   char* absoluteparm = realpath(parmFile.c_str(),0);
+#else
+  char* absoluteparm = _fullpath(0,parmFile.c_str(),1024);
+#endif
   if(absoluteparm){
      configFile = string(absoluteparm);
      free(absoluteparm);
