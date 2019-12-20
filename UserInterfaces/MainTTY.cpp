@@ -57,8 +57,11 @@ using namespace std;
 // forward declarations
 extern int SecondoTTYMode(const TTYParameter&);
 extern int SecondoTestRunner(const TTYParameter&);
+
+#ifndef NO_OPTIMIZER
 extern int SecondoPLMode(TTYParameter&);
 extern int SecondoPLTTYMode(TTYParameter&);
+#endif
 
 #ifndef SEC_TTYCS
 extern int SecondoServerMode( const int, const char**);
