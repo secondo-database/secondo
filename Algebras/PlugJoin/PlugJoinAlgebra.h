@@ -1098,6 +1098,7 @@ R_TreeNodePnJ<dim>::BoundingBoxOfEntry(const ArrayIndex& pointer) const
     }
     //should never reach this point
     assert ( 0 );
+    return BBox<dim> ( false );
   }
 }
 
