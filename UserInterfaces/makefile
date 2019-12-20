@@ -31,22 +31,18 @@ LIBXML2 :=
 SECONDOPLMODE1 := SecondoPLMode
 SECONDOPLMODE2 := SecondoPLTTYMode
 
-# SECONDOPLMODE := SecondoPLTTYMode   
 
 APPLOBJECTS := \
 	SecondoTTY.$(OBJEXT) \
 	SecondoTTYCS.$(OBJEXT) \
-	SecondoTTYREPLAY.$(OBJEXT) \
 	DisplayTTY.$(OBJEXT) \
 	MainTTY.$(OBJEXT) \
 	cmsg.$(OBJEXT) \
 	MainTTYCS.$(OBJEXT) \
-        MainTTYREPLAY.$(OBJEXT) \
   getCommand.$(OBJEXT)
 
 APPLICATIONS := $(BINDIR)/Secondo$(SMIUP) \
 		$(BINDIR)/SecondoCS \
-                $(BINDIR)/SecondoREPLAY
 
 # some optional objects and applications
 ifneq ($(smitype),ora)
@@ -82,7 +78,11 @@ endif
 
 BDB_OBJECTS :=   ../ClientServer/SecondoServer.$(OBJEXT)
 		 
-ALG_LIST    :=  SecondoInterfaceTTY.$(OBJEXT) SecondoPrologInterface.$(OBJEXT) SecondoInterfaceCS.$(OBJEXT) SecondoInterfaceREPLAY.$(OBJEXT) AlgebraList.$(OBJEXT) SecondoInterfaceGeneral.$(OBJEXT)
+ALG_LIST    :=  SecondoInterfaceTTY.$(OBJEXT) SecondoInterfaceCS.$(OBJEXT)  AlgebraList.$(OBJEXT) SecondoInterfaceGeneral.$(OBJEXT)
+
+ifeq ($(optimizer),"true")
+ALG_LIST += SecondoPrologInterface.$(OBJEXT)
+endif
 
 
 COMMON_OBJECTS := cmsg.$(OBJEXT) SecondoInterfaceGeneral.$(OBJEXT) DisplayTTY.$(OBJEXT)
@@ -93,7 +93,6 @@ FLOB := $(SECONDO_BUILD_DIR)/Tools/Flob/FlobManager.$(OBJEXT)
 
 CS_OBJECTS :=   MainTTYCS.$(OBJEXT)  SecondoInterfaceCS.$(OBJEXT) SecondoTTYCS.$(OBJEXT) TestRunnerCS.$(OBJEXT)
 
-REPLAY_OBJECTS := MainTTYREPLAY.$(OBJEXT) SecondoInterfaceCS.$(OBJEXT) SecondoInterfaceREPLAY.$(OBJEXT) SecondoTTYREPLAY.$(OBJEXT) TestRunnerREPLAY.$(OBJEXT)
 
 
 APP_LIB := ../lib/libappCommon.$(LIBEXT)
@@ -126,7 +125,7 @@ entropy:
 
 .PHONY: clean
 clean:
-	$(RM) *.dep $(APPLOBJECTS) $(APPLICATIONS) $(ENTROPY_OBJ) $(DEP_FILES) $(PLCSOBJ)  $(CS_OBJECTS) $(REPLAY_OBJECTS)
+	$(RM) *.dep $(APPLOBJECTS) $(APPLICATIONS) $(ENTROPY_OBJ) $(DEP_FILES) $(PLCSOBJ)  $(CS_OBJECTS) 
 	$(MAKE) -C InteractiveQueryEditor clean
 
 
@@ -141,10 +140,6 @@ MainTTYCS.$(OBJEXT): MainTTY.$(OBJEXT)
 MainTTYCS.$(OBJEXT): MainTTY.cpp
 	$(CC) -c -o $@ $< $(CCFLAGS) -DSEC_TTYCS 
 
-MainTTYREPLAY.$(OBJEXT): MainTTY.$(OBJEXT)
-MainTTYREPLAY.$(OBJEXT): MainTTY.cpp
-	$(CC) -c -o $@ $< $(CCFLAGS) -DSEC_TTYCS 
-
 SecondoPL.$(OBJEXT): $(ENTROPY_OBJ)
 %.$(OBJEXT): %.cpp
 	$(CC) -c -o $@ $< $(CCFLAGS) $(JNIINCLUDE) 
@@ -152,20 +147,11 @@ SecondoPL.$(OBJEXT): $(ENTROPY_OBJ)
 SecondoPLCS.$(OBJEXT): SecondoPL.cpp
 	$(CC) -c -DSECONDO_CLIENT_SERVER -o $@ $< $(CCFLAGS)  
 
-SecondoPLREPLAY.$(OBJEXT): SecondoPL.cpp
-	$(CC) -c -DREPLAY -o $@ $< $(CCFLAGS)  
-
 SecondoTTYCS.$(OBJEXT): SecondoTTY.cpp 
 	$(CC) -c -DSECONDO_CLIENT_SERVER -o $@ $< $(CCFLAGS) 
 
-SecondoTTYREPLAY.$(OBJEXT): SecondoTTY.cpp 
-	$(CC) -c -DREPLAY -o $@ $< $(CCFLAGS) 
-
 TestRunnerCS.$(OBJEXT): TestRunner.cpp 
 	$(CC) -c -DSECONDO_CLIENT_SERVER -o $@ $< $(CCFLAGS) 
-
-TestRunnerREPLAY.$(OBJEXT): TestRunner.cpp 
-	$(CC) -c -DREPLAY -o $@ $< $(CCFLAGS) 
 
 # Rules for linkage
 #
@@ -187,9 +173,6 @@ $(BINDIR)/SecondoCS$(EXEEXT): $(SECLIBFILES) $(FLOB)
 $(BINDIR)/SecondoCS$(EXEEXT): $(CS_OBJECTS) $(APP_LIB) $(PLCS_OBJECTS) $(FLOB)
 	$(LD) $(EXEFLAGS) $(LDFLAGS) $(PROFILERFLAGS) -o $@ $(filter %.o, $^) -lappCommon -lsdbutils $(OPTLIB_LIBS)   $(LD_LINK_LIBS) $(RL_LD_FLAG) $(PLLDFLAGS) $(COMMON_LD_FLAGS)
 
-$(BINDIR)/SecondoREPLAY$(EXEEXT): $(SECLIBFILES) $(FLOB)
-$(BINDIR)/SecondoREPLAY$(EXEEXT): $(REPLAY_OBJECTS) $(APP_LIB) $(PLCS_OBJECTS) $(FLOB)
-	$(LD) $(EXEFLAGS) $(LDFLAGS) $(PROFILERFLAGS) -o $@ $(filter %.o, $^) -lappCommon -lsdbutils $(OPTLIB_LIBS) $(LD_LINK_LIBS) $(RL_LD_FLAG) $(PLLDFLAGS) $(COMMON_LD_FLAGS)
 
 ifneq ($(MAKECMDGOALS),clean)
 include $(DEP_FILES:.cpp=.dep)
