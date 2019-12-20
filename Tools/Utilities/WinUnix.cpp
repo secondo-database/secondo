@@ -303,7 +303,7 @@ WinUnix::stacktrace(const char* appName, const char* stacktraceOutput)
 }
 #else
 void
-WinUnix::stacktrace(const string& fullAppName)
+WinUnix::stacktrace(const char* fullAppName, const char* stacktraceOutput)
 {
   cerr << "Sorry - stack trace not supported." << endl;
 }
@@ -312,7 +312,7 @@ WinUnix::stacktrace(const string& fullAppName)
 #endif
 #else
 void
-WinUnix::stacktrace(const string& fullAppName)
+WinUnix::stacktrace(const char* fullAppName, const char* stacktraceOutput)
 {
   cerr << "Sorry - stack trace under Android not supported." << endl;
 }

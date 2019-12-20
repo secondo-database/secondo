@@ -436,8 +436,8 @@ DWORD CBlowFish::Encode (BYTE * pInput, BYTE * pOutput, DWORD lSize)
         j = (int) (lOutSize - lSize) ;  // number of bytes to set to null
         for (i = 0 ; i < j ; i++)
           *po++ = 0 ;
-          Blowfish_encipher ((DWORD *) pInput,
-            (DWORD *) (pInput + 4)) ;
+        Blowfish_encipher ((DWORD *) pInput,
+        (DWORD *) (pInput + 4)) ;
        }
        pInput += 8 ;
     }

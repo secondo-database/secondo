@@ -350,8 +350,9 @@ FileSystem::Get_FileAttributes( const string& fileName )
   FileAttributes attribs = 0;
 #ifdef SECONDO_WIN32
   attribs = ::GetFileAttributes( fileName.c_str() );
-  if ( attribs == reinterpret_cast<FileAttributes>(INVALID_HANDLE_VALUE) )
+  if ( (void*) attribs == (void*)INVALID_HANDLE_VALUE ) {
     attribs = 0;
+  }
 #else
   struct stat filestatus;
   int rc = ::lstat( fileName.c_str(), &filestatus );
