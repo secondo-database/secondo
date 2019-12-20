@@ -73,7 +73,6 @@ ifndef file
 OBJECTS += libtdynlib1.$(DLLEXT) libtdynlib2.$(DLLEXT)
 endif
 
-CC := g++
 CCFLAGS := -I../StorageManager -I../Algebras/TupleIdentifier $(DEFAULTCCFLAGS) $(myflags)
 LIBS := ../UserInterfaces/cmsg.o $(LD_LINK_LIBS)
 
