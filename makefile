@@ -355,6 +355,7 @@ help:
 	@echo "*** The optional parameters or targets are explained below:"
 	@echo "*** ---------------------------------------------------------------------"
 	@echo "*** TTY       : Compile only a single user version of Secondo."
+	@echo "*** android   : Compile android version of Secondo."
 	@echo "*** optimizer : Create only SecondoPL, SecondoPLCS and OptServer." 
 	@echo "*** java      : The Java-GUI will be created."
 	@echo "*** TestRunner: Compile only the TestRunner, a tool to automate tests."
