@@ -87,6 +87,7 @@ This file contains the implementation import / export operators.
 #include "Stream.h"
 #include "aisdecode.h"
 #include "Base64.h"
+#include "WinUnix.h"
 
 
 extern NestedList* nl;
@@ -7261,7 +7262,7 @@ class shpCollectInfo{
                    ListExpr _tt):
      stream(_stream){
      outshp = new ofstream(fn.c_str(), ios::binary| ios::out );
-     char* p = realpath(fn.c_str(),0);
+     char* p = WinUnix::getAbsolutePath(fn.c_str());
      outabsolutepath = string(p);
      free(p);
      outbuf = new char[FILE_BUFFER_SIZE];
@@ -7368,7 +7369,7 @@ class shpCollectInfo{
     }
 
     Tuple* appendFile(Tuple* res, const string& fileName){
-      char* inpath = realpath(fileName.c_str(),0);
+      char* inpath = WinUnix::getAbsolutePath(fileName.c_str());
       string inp = string(inpath);
       free(inpath);
       if(inp == outabsolutepath){
@@ -7649,8 +7650,8 @@ class db3CollectInfo{
     db3CollectInfo(Word _stream, const string& _fileName,
                    ListExpr _tt): stream(_stream){
        tt = new TupleType(_tt);
-       char* outpath = (char*) malloc(PATH_MAX); 
-       if( realpath(_fileName.c_str(),outpath) == 0){
+       char* outpath; 
+       if( (outpath=WinUnix::getAbsolutePath(_fileName.c_str())) == 0){
           outabsolutepath = "";
        } else {
           outabsolutepath = string(outpath);
@@ -7722,7 +7723,7 @@ class db3CollectInfo{
 
 
     Tuple* processFile(Tuple* res, const string& name){
-       char* inpath = realpath(name.c_str(),0);
+       char* inpath = WinUnix::getAbsolutePath(name.c_str());
        string inabs = string(inpath);
        free(inpath);
        if(inabs==outabsolutepath){
