@@ -52,6 +52,10 @@ const double M_PI = acos( -1.0 );
 extern NestedList* nl;
 extern QueryProcessor* qp;
 
+
+namespace planesweep {
+
+
 enum realmkind { PLANESWEEP, QUADRATIC, OVERLAPPING };
 enum State {FIRST, SECOND, BOTH};
 
@@ -6747,6 +6751,8 @@ class PlaneSweepAlgebra : public Algebra
   ~PlaneSweepAlgebra() {};
 };
 
+} // end of namespace planesweep
+
 
 extern "C"
 Algebra*
@@ -6754,5 +6760,5 @@ InitializePlaneSweepAlgebra( NestedList* nlRef, QueryProcessor* qpRef )
 {
   nl = nlRef;
   qp = qpRef;
-  return (new PlaneSweepAlgebra());
+  return (new planesweep::PlaneSweepAlgebra());
 }
