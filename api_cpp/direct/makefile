@@ -6,7 +6,7 @@ BD=$(SECONDO_BUILD_DIR)
 INCL=$(BD)/include
 LAT=$(BD)/Tools/ListsAndTables
 
-Interface1=$(INCL)/SecondoInterface.h $(INCL)/SecondoInterfaceTTY.h $(INCL)/SecondoInterfaceCS.h $(INCL)/SecondoInterfaceREPLAY.h
+Interface1=$(INCL)/SecondoInterface.h $(INCL)/SecondoInterfaceTTY.h $(INCL)/SecondoInterfaceCS.h 
 Interface2=$(INCL)/Application.h
 
 
@@ -40,8 +40,12 @@ SECLIBS+=$(LIB2)
 
 
 # define object files
-SECOBJ:=$(LIBD)/SecondoInterfaceGeneral.o $(LIBD)/SecondoInterfaceTTY.o $(LIBD)/SecondoInterfaceCS.o $(LIBD)/SecondoInterfaceREPLAY.o
+SECOBJ:=$(LIBD)/SecondoInterfaceGeneral.o $(LIBD)/SecondoInterfaceTTY.o $(LIBD)/SecondoInterfaceCS.o 
 SECOBJ+=$(BD)/lib/AlgebraList.o
+
+
+
+
 
 .PHONY: all
 all: api
@@ -67,9 +71,11 @@ buildlib: lib lib/libsecondo.$(LIBEXT)
 lib:
 	mkdir lib
 
+
+
 lib/libsecondo.$(LIBEXT): $(SECLIBS)
-	ar -rs  lib/libsecondo.$(LIBEXT) $(SECOBJ) 
-	@./arlib $$PWD/lib/libsecondo.$(LIBEXT) $(SECOBJ)  $(SECLIBS)
+	$(AR) -rs  lib/libsecondo.$(LIBEXT) $(SECOBJ) 
+	@./arlib $(AR) $$PWD/lib/libsecondo.$(LIBEXT) $(SECOBJ)  $(SECLIBS)
 
 
 .PHONY:clean

@@ -1,4 +1,3 @@
-
 include ../../../makefile.env
 
 ifndef BDB_INCLUDE_DIR
@@ -29,7 +28,7 @@ Config.ini: $(SECONDO_BUILD_DIR)/bin/SecondoConfig.ini
 #ALGDEPFLAGS=$(addprefix -l, $(ALGEBRA_DEPS))
 
 
-LDFLAGS+=-L../lib/ -lsecondo  -ly  -lstdc++ $(ALGDEPS)  $(DEFAULTLIB) -L$(PL_LIB_DIR) -l$(PL_LIB)
+LDFLAGS+=-L../lib/ -lsecondo  -ly  -lstdc++ $(ALGDEPS)  $(DEFAULTLIB) 
 
 ifeq ($(readline),true)
   LDFLAGS+=-lreadline 
@@ -54,7 +53,7 @@ LDFLAGS += -lpthread
 
 
 app$(EXEEXT): Example.o
-	$(CPPC) -o app$(EXEEXT) Example.o $(LIBDIR)/SecondoPrologInterface.o $(LDFLAGS) $(COMMON_LD_FLAGS) 
+	$(CPPC) -o app$(EXEEXT) Example.o $(LDFLAGS) $(COMMON_LD_FLAGS) 
 	mkdir -p databases
 
 

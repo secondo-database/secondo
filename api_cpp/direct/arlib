@@ -1,10 +1,13 @@
 #!/bin/bash
 
 
-if [ $# -lt 2 ]; then
-  echo "Usage arlib <libfile>  <lib_1> ... <lib_n> "
+if [ $# -lt 3 ]; then
+  echo "Usage arlib <ar-tool> <libfile>  <lib_1> ... <lib_n> "
   exit 1
 fi
+
+AR=$1
+shift
 
 TARGET=$1
 shift
@@ -27,7 +30,7 @@ for S in $SOURCES; do
     DIRNAME=lib_$i
     mkdir  $DIRNAME 
     cd $DIRNAME 
-    ar x $S
+    $AR x $S
     cd ..
     i=$(expr $i + 1 )
   fi
@@ -36,27 +39,7 @@ done
 
 OBJ=$(find . -iname "*.o" )
 
-ar -qs $TARGET $OBJ
-
-# create a shared library
-
-#L=${#TARGET}
-#L=$(expr $L - 2)
-#SHLIB=$(expr substr $TARGET 1 $L).so
-
-
-#if [ "$SECONDO_PLATFORM" != "win32" ]; then
-# if [ "$SECONDO_PLATFORM" != "mac_osx" ]; then
-#  echo "create shared library" 
-#  gcc -shared -Wl,-soname,libsecondo.so -o $SHLIB $SRCOBJECTS  $OBJ 
-#  if [ $? != 0 ]; then
-#     echo "Error in creating share lib"
-#     exit 1
-#  fi
-#  echo "shared lib created" 
-# fi
-#fi
-
+$AR -qs $TARGET $OBJ
 
 
 cd ..
