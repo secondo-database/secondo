@@ -463,7 +463,7 @@ bool Cluster::ValueAt(const int pos) const{
        case 5 : return P5 & theByte;
        case 6 : return P6 & theByte;
        case 7 : return P7 & theByte;
-       default : assert(false);
+       default : assert(false); return false;
    }
 }
 
@@ -483,7 +483,7 @@ bool Cluster::ValueAt(const int pos,const unsigned char BitVector[64]){
        case 5 : return P5 & theByte;
        case 6 : return P6 & theByte;
        case 7 : return P7 & theByte;
-       default : assert(false);
+       default : assert(false); return false;
    }
 
 
