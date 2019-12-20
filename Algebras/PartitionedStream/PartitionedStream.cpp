@@ -2838,7 +2838,7 @@ static int pcreate_vm( Word* args, Word& result, int message,
       return 0;
     }
 
-    default : { assert(false); }
+    default : { assert(false); return 0; }
   }
 }
 
