@@ -319,6 +319,18 @@ WinUnix::stacktrace(const char* fullAppName, const char* stacktraceOutput)
 
 
 #endif
+
+char* WinUnix::getAbsolutePath(const char* relPath){
+#ifndef SECONDO_WIN32
+  return realpath(relPath,0);
+#else
+  return _fullpath(0,relPath,1024);
+#endif
+
+}
+
+
+
 /*
 Implementation of class ~CFile~
 
@@ -399,6 +411,9 @@ string CFile::getName() const
     removePrefix(path, name);
   return name;
 }
+
+
+
 
 
 

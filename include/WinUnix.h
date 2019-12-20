@@ -91,6 +91,9 @@ public:
    static uint16_t convertEndian(const uint16_t n);
    static uint64_t convertEndian(const uint64_t n);
 
+   static char* getAbsolutePath(const char* relPath);
+
+
 private:
    static const int endian_detect;
 };
