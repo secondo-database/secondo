@@ -120,6 +120,7 @@ int vectorSelect(const VectorTypeMaps& maps, const ListExpr args)
     if (type == toNListEncloseSingleAtom(maps[i].first))
       return i;
   assert(false);
+  return -1;
 }
 
 int vectorSelect(const NVectorTypeMaps& maps, const ListExpr args)
@@ -129,6 +130,7 @@ int vectorSelect(const NVectorTypeMaps& maps, const ListExpr args)
     if (type == maps[i].first)
       return i;
   assert(false);
+  return -1;
 }
 
 } //-- namespace mappings
