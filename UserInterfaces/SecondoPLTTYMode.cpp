@@ -67,7 +67,11 @@ prolog engine. All generated solutions are printed out.
 #include "DisplayTTY.h"
 
 #include <stdio.h>
+
+#ifndef SECONDO_WIN32
 #include <termios.h>
+#endif
+
 #include <unistd.h>
 
 #include "getCommand.h"
@@ -139,7 +143,7 @@ void ShowPrompt( const bool first ) {
 }
 
 
-
+#ifndef SECONDO_WIN32
 char getChar(){
    struct termios old,n;
    char res;
@@ -152,7 +156,23 @@ char getChar(){
    tcsetattr(fileno(stdin),TCSANOW,&old);
    return res;
 }
+#else
+char getChar(){
+   DWORD mode, cc;
+    HANDLE h = GetStdHandle( STD_INPUT_HANDLE );
 
+    if (h == NULL) {
+        return 0; // console not found
+    }
+
+    GetConsoleMode( h, &mode );
+    SetConsoleMode( h, mode & ~(ENABLE_LINE_INPUT | ENABLE_ECHO_INPUT) );
+    TCHAR c = 0;
+    ReadConsole( h, &c, 1, &cc, NULL );
+    SetConsoleMode( h, mode );
+    return c;
+}
+#endif
 
 
 
