@@ -1309,11 +1309,7 @@ bool SmiEnvironment::StartUp(const RunMode mode, const string& parmFile,
   DbEnv* dbenv = instance.impl->bdbEnv;
   assert(dbenv);
 
-#ifndef SECONDO_WIN32
-  char* absoluteparm = realpath(parmFile.c_str(),0);
-#else
-  char* absoluteparm = _fullpath(0,parmFile.c_str(),1024);
-#endif
+  char* absoluteparm = WinUnix::getAbsolutePath(parmFile.c_str());
   if(absoluteparm){
      configFile = string(absoluteparm);
      free(absoluteparm);
