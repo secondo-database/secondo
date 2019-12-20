@@ -4070,7 +4070,7 @@ reduce the number of units produced - but is this really a requirement?)
 
                 if (MRA_DEBUG)
                     cerr << "URegionEmb::RIAUP() pending="
-                         << (unsigned long) pending
+                         <<  pending
                          << endl;
 
                 return;
@@ -4093,7 +4093,7 @@ reduce the number of units produced - but is this really a requirement?)
 
                 if (MRA_DEBUG)
                     cerr << "URegionEmb::RIAUP() pending="
-                         << (unsigned long) pending
+                         <<  pending
                          << endl;
 
                 return;
@@ -4140,7 +4140,7 @@ reduce the number of units produced - but is this really a requirement?)
 
                     if (MRA_DEBUG)
                         cerr << "URegionEmb::RIAUP() pending="
-                             << (unsigned long) pending
+                             <<  pending
                              << endl;
 
                     return;
@@ -4154,7 +4154,7 @@ reduce the number of units produced - but is this really a requirement?)
     if (pending) {
         if (MRA_DEBUG)
             cerr << "URegionEmb::RIAUP() adding "
-                 << (unsigned long) pending
+                 <<  pending
                  << setprecision(12)
                  << " iv=["
                  << pending->timeInterval.start.ToDouble()
@@ -4182,7 +4182,7 @@ reduce the number of units produced - but is this really a requirement?)
 
     if (MRA_DEBUG)
         cerr << "URegionEmb::RIAUP() pending="
-             << (unsigned long) pending
+             <<  pending
              << endl;
 
 }
