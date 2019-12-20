@@ -155,8 +155,12 @@ transactions of errorneous queries were not aborted.
 #include "WinUnix.h"
 
 // Zugriff auf Transformationen für Prolog Syntax
+#ifndef NO_OPTIMIZER
 #include "SWI-Prolog.h"
 #include "SecondoPrologInterface.h"
+#endif
+
+
 
 #include "SystemTables.h"
 
@@ -197,7 +201,9 @@ OperatorUsageRel* operatorUsageRel = 0;
 extern AlgebraListEntry& GetAlgebraEntry( const int j );
 
 static SecondoSystem* ss = 0;
+#ifndef NO_OPTIMIZER
 SecondoPrologInterface prologInterface;
+#endif
 Symbols sym;
 
 
@@ -1558,7 +1564,10 @@ Command\_<name>.
 
     else if ( nl->IsEqual( first, "pquery" ) && (length == 2) )
     {
-	
+       #ifdef NO_OPTIMIZER
+          cmsg.info() << endl << "### TEST Parallel Query Command ###" << endl;
+          cmsg.info() << endl << "### Optimizer not available" << endl;  
+       #else
 	cmsg.info() << endl << "### TEST Parallel Query Command ###" << endl;
 	cmsg.send();
 	cmsg.info() << endl << "The Nested List: " << endl;
@@ -1576,10 +1585,15 @@ Command\_<name>.
 	
       	errorCode = 
           Command_Query(result, resultList, errorMessage, true);
+      #endif
     }
     else if ( nl->IsEqual( first, "pcompile" ) && (length == 2) )
     {
-
+       #ifdef NO_OPTIMIZER
+          cmsg.info() << endl << "### TEST Parallel Compile Command ###" 
+                      << endl;  
+	  cmsg.info() << endl << "### Optimizer not available" << endl;  
+       #else
 	cmsg.info() << endl << "### TEST Parallel Compile Command ###" << endl;
 	cmsg.send();
 	cmsg.info() << endl << "The Nested List: " << endl;
@@ -1594,6 +1608,7 @@ Command\_<name>.
 	nl->WriteListExpr(result, cmsg.info());
      	cmsg.info() << endl;
 	cmsg.send();
+        #endif
     }
 
     // --- Set command
