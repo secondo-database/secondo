@@ -733,7 +733,8 @@ OpNode(OpNodeType type, const datetime::DateTime& _queryTime) :
     case IndirectObject : { return "indObj"; }
     case Operator :       { return "op"; }
     default :
-    { assert( false ); }
+    { assert( false );
+      return "unknown"; }
   }
   }
 
@@ -2195,8 +2196,8 @@ function index.
         cerr << "Please contact the programmer of the used opertor to fix it"
              << endl;
         // constant value given as pointer
-        value = SetWord(
-          (void*)nl->IntValue(nl->Second(nl->Second(expr))));
+	unsigned long ptr = nl->IntValue(nl->Second(nl->Second(expr)));
+        value = SetWord( ptr);
         isPointer = true;
         correct = true;
       } else {
