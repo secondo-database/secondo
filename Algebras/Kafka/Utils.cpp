@@ -79,7 +79,7 @@ namespace kafka {
         else if (errno == EINVAL)
             LOG(ERROR) << "sleepMS: EINVAL 22 Invalid argument ";
         else
-            LOG(ERROR) << "sleepMS: Sleep error " << errno ;
+            LOG(ERROR) << "sleepMS: Sleep error " << errno;
 
 //    nanosleep(&sleepValue, &sleepValue);
     }
@@ -105,5 +105,64 @@ namespace kafka {
             prev = pos + delim.length();
         } while (pos < str.length() && prev < str.length());
         return tokens;
+    }
+
+
+    void removeMultipleSpaces(std::string &line) {
+        size_t pos;
+        while( ( pos = line.find( "  " ) )!=std::string::npos )
+            line = line.replace( pos, 2, " " );
+    }
+
+    // Deprecated
+// Function to in-place trim all spaces in the
+// string such that all words should contain only
+// a single space between them.
+    void removeSpaces1(std::string &str) {
+        std::cout << "removeSpaces from " << str;
+        // n is length of the original string
+        int n = str.length();
+
+        // i points to next position to be filled in
+        // output string/ j points to next character
+        // in the original string
+        int i = 0, j = -1;
+
+        // flag that sets to true is space is found
+        bool spaceFound = false;
+
+        // Handles leading spaces
+        while (++j < n && str[j] == ' ');
+
+        // read all characters of original string
+        while (j < n) {
+            // if current characters is non-space
+            if (str[j] != ' ') {
+                // copy current character at index i
+                // and increment both i and j
+                str[i++] = str[j++];
+
+                // set space flag to false when any
+                // non-space character is found
+                spaceFound = false;
+            }
+                // if current character is a space
+            else if (str[j++] == ' ') {
+                // If space is encountered for the first
+                // time after a word, put one space in the
+                // output and set space flag to true
+                if (!spaceFound) {
+                    str[i++] = ' ';
+                    spaceFound = true;
+                }
+            }
+        }
+
+        // Remove trailing spaces
+        if (i <= 1)
+            str.erase(str.begin() + i, str.end());
+        else
+            str.erase(str.begin() + i - 1, str.end());
+        std::cout << " res " << str << std::endl;
     }
 }

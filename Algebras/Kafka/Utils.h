@@ -34,6 +34,11 @@ namespace kafka {
 
     void sleepMS(int milliseconds);
 
+    /**
+     * Trims spaces and replaces multiple sequential spaces with one
+     * */
+    void removeMultipleSpaces(std::string &str);
+
     std::vector<std::string> split(const std::string &str,
                                    const std::string &delim);
 

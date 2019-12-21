@@ -56,9 +56,13 @@ namespace ws {
     parseAttributeDescriptions(const string &wsOperatorType) {
         std::vector<AttributeDescription> result;
 
-        std::vector<std::string> attributes = kafka::split(wsOperatorType, ";");
+        std::vector<std::string> attributes = kafka::split(wsOperatorType, ",");
         for (std::string attribute : attributes) {
-            std::vector<std::string> parts = kafka::split(attribute, ",");
+            // Normalize string
+            std::replace(std::begin(attribute),std::end(attribute),'\t',' ');
+            std::replace(std::begin(attribute),std::end(attribute),'\n',' ');
+            kafka::removeMultipleSpaces(attribute);
+            std::vector<std::string> parts = kafka::split(attribute, " ");
             if (parts.size() != 3)
                 return result;
 
