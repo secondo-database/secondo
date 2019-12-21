@@ -123,7 +123,7 @@ namespace kafka {
 
     OperatorSpec finishStreamSpec(
             " stream ( Tuple ) x Port -> stream ( Tuple ) ",
-            " _ finishStream[_]",
+            " _ finishStream[port]",
             " All tuples in the stream are written to the output, "
             "but stops by receiving stop signal from signalFinish ",
             " query kafkastream(\"localhost\", \"test\", TRUE) "

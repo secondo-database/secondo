@@ -300,10 +300,19 @@ namespace ws {
 
     OperatorSpec ReadFromWebSocketOpSpec(
             " string,string,string -> stream(tuple)",
-            " readfromwebsocket(_,_,_) ",
-            " Reads steam of tuples from web socket ",
+            " readfromwebsocket(uri,subscription,mapping) ",
+            " Reads steam of tuples from web socket on uri. "
+            "subscription - is a string sent to the server just after creating"
+            " a connection, can be used in the case the server requires a "
+            "subscription request. mapping - defines the list of result "
+            "attributes and JSON Pointer to populate this attributes ",
             R"( query readfromwebsocket("wss://ws.blockchain.info/inv",
-     "{\"op\":\"unconfirmed_sub\"}", "Name,string,$.name") count)"
+    "{\"op\":\"unconfirmed_sub\"}",
+   'Name string /op,
+    Size string /x/size,
+    Addr: string /x/inputs/0/prev_out/addr')
+   finishStream[8080] consoleConsumer head[10] count;
+)"
     );
 
     Operator readFromWebSocketOp(

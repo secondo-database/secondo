@@ -229,8 +229,14 @@ namespace kafka {
 
     OperatorSpec ReadFromKafkaOpSpec(
             " string,string,boolean -> stream(string)",
-            " readfromkafka(_,_,_) ",
-            " Reads steam of tuples from kafka topic ",
+            " readfromkafka(host,topic,continuousReading) ",
+            " Reads steam of tuples from kafka topic "
+            "Host - host name of Kafka broker eg. \"localhost\" or in case of "
+            "multiple brokers comma separated list of hosts, eg. "
+            "\"host1:port1,host2:port2,...\" "
+            "continuousReading  - if false, reading is stopped when the topic "
+            "is exhausted, otherwise the operator waits for new data to arive "
+            "into the topic",
             " query  readfromkafka(\"localhost\", \"KM\", false) count"
     );
 
