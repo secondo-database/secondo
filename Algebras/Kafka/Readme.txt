@@ -28,6 +28,12 @@
         bin/zookeeper-server-start.sh config/zookeeper.properties
         bin/kafka-server-start.sh config/server.properties
 
+    Or set KAFKA_HOME variable and execute bin/Scripts/kafkaStartup.sh from secondo directory
+    Example:
+        export KAFKA_HOME=/home/grisha/work/kafka/kafka_2.12-2.2.0
+        bin/Scripts/kafkaStartup.sh
+     To stop use bin/Scripts/kafkaStartup.sh stop
+
 - Working with Kafka from secondo:
 
      open database berlintest;
