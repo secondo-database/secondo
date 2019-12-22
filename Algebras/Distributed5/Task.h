@@ -87,6 +87,8 @@ public:
     distributed2::DArrayElement GetDArrayElement();
     std::string getName();
     size_t getSlot();
+    std::string getServer();
+    int getPort();
     int getWorker();
     bool isLeaf();
     void setLeaf(bool leaf);

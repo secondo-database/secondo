@@ -83,4 +83,57 @@ Operator ARRAYORTASKSFUNARG1Op(
     0,
     Operator::SimpleSelect,
     ARRAYORTASKSFUNARG_TM<1>);
+
+OperatorSpec ARRAYORTASKSFUNARG2Spec(
+    "darray(X) x ... -> X, stream(task(X)) x ... -> X",
+    "ARRAYORTASKSFUNARG2(_)",
+    "Type mapping operator.",
+    "query df1 df2 dmapS2 [\"df3\" . count]");
+
+Operator ARRAYORTASKSFUNARG2Op(
+    "ARRAYORTASKSFUNARG2",
+    ARRAYORTASKSFUNARG2Spec.getStr(),
+    0,
+    Operator::SimpleSelect,
+    ARRAYORTASKSFUNARG_TM<2>);
+
+
+OperatorSpec ARRAYORTASKSFUNARG3Spec(
+    "darray(X) x ... -> X, stream(task(X)) x ... -> X",
+    "ARRAYORTASKSFUNARG3(_)",
+    "Type mapping operator.",
+    "query df1 df2 df3 dmapS3 [\"df3\" . count]");
+
+Operator ARRAYORTASKSFUNARG3Op(
+    "ARRAYORTASKSFUNARG3",
+    ARRAYORTASKSFUNARG3Spec.getStr(),
+    0,
+    Operator::SimpleSelect,
+    ARRAYORTASKSFUNARG_TM<3>);
+
+OperatorSpec ARRAYORTASKSFUNARG4Spec(
+    "darray(X) x ... -> X, stream(task(X)) x ... -> X",
+    "ARRAYORTASKSFUNARG4(_)",
+    "Type mapping operator.",
+    "query df1 df2 df3 df4 dmapS4 [\"df4\" . count]");
+
+Operator ARRAYORTASKSFUNARG4Op(
+    "ARRAYORTASKSFUNARG4",
+    ARRAYORTASKSFUNARG4Spec.getStr(),
+    0,
+    Operator::SimpleSelect,
+    ARRAYORTASKSFUNARG_TM<4>);
+
+OperatorSpec ARRAYORTASKSFUNARG5Spec(
+    "darray(X) x ... -> X, stream(task(X)) x ... -> X",
+    "ARRAYORTASKSFUNARG5(_)",
+    "Type mapping operator.",
+    "query df1 df2 df3 df4 df5 dmapS5 [\"df5\" . count]");
+
+Operator ARRAYORTASKSFUNARG5Op(
+    "ARRAYORTASKSFUNARG5",
+    ARRAYORTASKSFUNARG5Spec.getStr(),
+    0,
+    Operator::SimpleSelect,
+    ARRAYORTASKSFUNARG_TM<5>);
 } // namespace distributed5

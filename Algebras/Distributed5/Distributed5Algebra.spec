@@ -18,5 +18,9 @@
 #Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 operator dmapS alias dmapS pattern  _ op[_,fun] implicit parameter dmapelem type ARRAYORTASKSFUNARG1
+operator dmapS2 alias DMAPS2 pattern _ _ op[_,fun] implicit parameters elem1, elem2 types ARRAYORTASKSFUNARG1, ARRAYORTASKSFUNARG2
+operator dmapS3 alias DMAPS3 pattern _ _ _ op[_,fun] implicit parameters elem1, elem2, elem3 types ARRAYORTASKSFUNARG1, ARRAYORTASKSFUNARG2, ARRAYORTASKSFUNARG3
+operator dmapS4 alias DMAPS4 pattern _ _ _ _ op[_,fun] implicit parameters elem1, elem2, elem3, elem4 types ARRAYORTASKSFUNARG1, ARRAYORTASKSFUNARG2, ARRAYORTASKSFUNARG3, ARRAYORTASKSFUNARG4
+operator dmapS5 alias DMAPS5 pattern _ _ _ _ _ op[_,fun] implicit parameters elem1, elem2, elem3, elem4, elem5 types ARRAYORTASKSFUNARG1, ARRAYORTASKSFUNARG2, ARRAYORTASKSFUNARG3, ARRAYORTASKSFUNARG4, ARRAYORTASKSFUNARG5
 operator schedule alias schedule pattern  _ op
 operator tasks2tuples alias tasks2tuples pattern  _ op

@@ -76,17 +76,7 @@ ListExpr scheduleTM(ListExpr args)
 
 class Scheduler
 {
-
 public:
-    void scheduleTask(Task *task)
-    {
-        boost::lock_guard<boost::recursive_mutex> lock(mutex);
-        allThreads.push_back(
-            new boost::thread(
-                boost::bind(
-                    &Scheduler::runTask, this, task)));
-    }
-
     void join()
     {
         mutex.lock();
@@ -104,16 +94,37 @@ public:
         mutex.unlock();
     }
 
-    void addWaitingTask(Task *task)
+    void receiveTask(Task *task)
     {
         boost::lock_guard<boost::recursive_mutex> lock(mutex);
-        allTasksWaiting.push_back(task);
+        //if incoming task can be started...
+        if (task->taskCanBeStarted())
+        {
+            scheduleTask(task);
+        }
+        else
+        {
+            addWaitingTask(task);
+        }
     }
 
     vector<DArrayElement> myResult;
     string dArrayName;
 
 private:
+    void scheduleTask(Task *task)
+    {
+        allThreads.push_back(
+            new boost::thread(
+                boost::bind(
+                    &Scheduler::runTask, this, task)));
+    }
+
+    void addWaitingTask(Task *task)
+    {
+        allTasksWaiting.push_back(task);
+    }
+
     void runTask(Task *task)
     {
         task->run();
@@ -190,15 +201,7 @@ int scheduleVM(Word *args, Word &result, int message,
     //As long as there are still incoming tasks...
     while ((task = stream.request()))
     {
-        //if incoming task can be started...
-        if (task->taskCanBeStarted())
-        {
-            scheduler.scheduleTask(task);
-        }
-        else
-        {
-            scheduler.addWaitingTask(task);
-        }
+        scheduler.receiveTask(task);
     }
 
     scheduler.join();

@@ -7,6 +7,17 @@ Signature: darray(X) x ... -> X | stream(task(darray(X))) x ... -> X
 Example  : query Kinos feed ddistribute3["Kino3", 8, TRUE, Workers4] dmapS["", .] dmapS["", . count] schedule getValue tie[. + ..]
 Result   : 83
 
+Operator : ARRAYORTASKSFUNARG2
+Number   : 1
+Signature: darray(X) x ... -> X | stream(task(darray(X))) x ... -> X
+Example  : query Kinos count 
+Result   : 83
+
+Operator : ARRAYORTASKSFUNARG3
+Number   : 1
+Signature: darray(X) x ... -> X | stream(task(darray(X))) x ... -> X
+Example  : query Kinos count 
+Result   : 83
 
 Operator : dmapS
 Number   : 1
@@ -14,6 +25,29 @@ Signature: darray(X)/stream(task(darray(X))) x string x fun -> stream(task(darra
 Example  : query Kinos feed ddistribute3["Kino3", 8, TRUE, Workers4] dmapS["", .] dmapS["", . count] schedule getValue tie[. + ..]
 Result   : 83
 
+Operator : dmapS2
+Number   : 1
+Signature: darray(X)/stream(task(darray(X))) x darray(X)/stream(task(darray(X))) x string x fun -> stream(task(darray(Y)))
+Example  : query Kinos feed ddistribute3["Kino3", 8, TRUE, Workers4] Kinos feed ddistribute3["Kino3", 8, TRUE, Workers4] dmapS2["", . count + .. count] schedule getValue tie[. + ..]
+Result   : 166
+
+Operator : dmapS3
+Number   : 1
+Signature: darray(X)/stream(task(darray(X))) x darray(X)/stream(task(darray(X))) x darray(X)/stream(task(darray(X))) x string x fun -> stream(task(darray(Y)))
+Example  : query Kinos feed ddistribute3["Kino3", 8, TRUE, Workers4] Kinos feed ddistribute3["Kino3", 8, TRUE, Workers4] Kinos feed ddistribute3["Kino3", 8, TRUE, Workers4] dmapS3["", . count + .. count + $3 count] schedule getValue tie[. + ..]
+Result   : 249
+
+Operator : dmapS4
+Number   : 1
+Signature: darray(X)/stream(task(darray(X))) x darray(X)/stream(task(darray(X))) x darray(X)/stream(task(darray(X))) x darray(X)/stream(task(darray(X))) x string x fun -> stream(task(darray(Y)))
+Example  : query Kinos feed ddistribute3["Kino3", 8, TRUE, Workers4] Kinos feed ddistribute3["Kino3", 8, TRUE, Workers4] Kinos feed ddistribute3["Kino3", 8, TRUE, Workers4] Kinos feed ddistribute3["Kino3", 8, TRUE, Workers4] dmapS4["", . count + .. count + $3 count + $4 count] schedule getValue tie[. + ..]
+Result   : 332
+
+Operator : dmapS5
+Number   : 1
+Signature: darray(X)/stream(task(darray(X))) x darray(X)/stream(task(darray(X))) x darray(X)/stream(task(darray(X))) x darray(X)/stream(task(darray(X))) x darray(X)/stream(task(darray(X))) x string x fun -> stream(task(darray(Y)))
+Example  : query Kinos feed ddistribute3["Kino3", 8, TRUE, Workers4] Kinos feed ddistribute3["Kino3", 8, TRUE, Workers4] Kinos feed ddistribute3["Kino3", 8, TRUE, Workers4] Kinos feed ddistribute3["Kino3", 8, TRUE, Workers4] Kinos feed ddistribute3["Kino3", 8, TRUE, Workers4] dmapS5["", . count + .. count + $3 count + $4 count+ $5 count] schedule getValue tie[. + ..]
+Result   : 415
 
 Operator : schedule
 Number   : 1
@@ -25,4 +59,4 @@ Operator : tasks2tuples
 Number   : 1
 Signature: stream(task(X)) -> stream(tuples(X))
 Example  : query CabsId dmapS["", . feed filter[.Id = 1039] project[Id] consume] tasks2tuples consume
-Result   : 
+Result   : 83

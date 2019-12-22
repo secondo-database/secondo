@@ -105,7 +105,9 @@ public:
             tuple->PutAttribute(2, new FText(true, "N/A"));
             tuple->PutAttribute(
                 3,
-                new FText(true, std::to_string(task->getWorker())));
+                new FText(true, task->getServer() + ":" +
+                                    std::to_string(task->getPort()) + " @ " +
+                                    std::to_string(task->getWorker())));
             tuple->PutAttribute(
                 4,
                 new FText(true, std::to_string(task->getSlot())));

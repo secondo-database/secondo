@@ -55,77 +55,128 @@ Input Parameter can be a stream of tasks coming from a previous dmap\_S Operator
 
 */
 
+template <int x>
 ListExpr dmapSTM(ListExpr args)
 {
     string err =
         "{{darray(X) / stream(task(darray(X)))}  x string x fun} expected";
 
-    //ensure that exactly 3 argument comes into dmapS
-    if (!nl->HasLength(args, 3))
+    //ensure that exactly 2 + x argument comes into dmapS
+    if (!nl->HasLength(args, 2 + x))
     {
         return listutils::typeError(err + " (wrong number of args)");
     }
 
+    ListExpr argInputs[x];
+    for (int i = 0; i < x; i++)
+    {
+        argInputs[i] = nl->First(args);
+        args = nl->Rest(args);
+
+        // check for internal correctness
+        if (!nl->HasLength(argInputs[i], 2))
+        {
+            return listutils::typeError("internal error");
+        }
+    }
+    ListExpr argName = nl->First(args);
+    ListExpr argFun = nl->Second(args);
+
     // check for internal correctness (uses Args in type mapping)
-    if (!nl->HasLength(nl->First(args), 2) ||
-        !nl->HasLength(nl->Second(args), 2) ||
-        !nl->HasLength(nl->Third(args), 2))
+    if (!nl->HasLength(argName, 2) ||
+        !nl->HasLength(argFun, 2))
     {
         return listutils::typeError("internal error");
     }
 
-    ListExpr arg1Type = nl->First(nl->First(args));
-    ListExpr arg2Type = nl->First(nl->Second(args));
-    ListExpr arg3Type = nl->First(nl->Third(args));
+    ListExpr argInputType[x];
+    ListExpr appendValues = 0;
+    ListExpr lastAppendValue;
+    for (int i = 0; i < x; i++)
+    {
+        argInputType[i] = nl->First(argInputs[i]);
 
-    // i.e. arg1Type = (darray int) or (stream (task (darray int)))
-    bool arg1Ok = DArray::checkType(arg1Type) ||
-                  (Stream<Task>::checkType(arg1Type) &&
-                   DArray::checkType(Task::innerType(nl->Second(arg1Type))));
+        // i.e. argInputType[i] = (darray int) or (stream (task (darray int)))
+        bool inputIsDArray = DArray::checkType(argInputType[i]);
+        bool inputIsStream = Stream<Task>::checkType(argInputType[i]) &&
+                             DArray::checkType(
+                                 Task::innerType(nl->Second(argInputType[i])));
+        if (appendValues == 0)
+        {
+            appendValues = nl->OneElemList(nl->BoolAtom(inputIsStream));
+            lastAppendValue = appendValues;
+        }
+        else
+        {
+            lastAppendValue = nl->Append(lastAppendValue,
+                                         nl->BoolAtom(inputIsStream));
+        }
+        bool inputOk = inputIsDArray || inputIsStream;
+        if (!inputOk)
+        {
+            return listutils::typeError(err);
+        }
+    }
+    ListExpr argNameType = nl->First(argName);
+    ListExpr argFunType = nl->First(argFun);
 
     if (
-        !arg1Ok ||
-        !CcString::checkType(arg2Type) ||
-        !listutils::isMap<1>(arg3Type))
+        !CcString::checkType(argNameType) ||
+        !listutils::isAnyMap(argFunType) ||
+        !nl->HasLength(argFunType, x + 2))
     {
         return listutils::typeError(err);
     }
 
-    //Function argument type
-    ListExpr funArg = nl->Second(arg3Type);
-    //Function return type
-    ListExpr funRes = nl->Third(arg3Type);
-    //expected Function Argument type
-    ListExpr expFunArg = Stream<Task>::checkType(arg1Type)
-                             ? Task::resultType(nl->Second(arg1Type))
-                             : nl->Second(arg1Type);
+    ListExpr funArgs[x];
+    ListExpr expFunArgs[x];
 
-    if (!nl->Equal(expFunArg, funArg))
+    ListExpr argFunTypeArgs = nl->Rest(argFunType);
+
+    for (int i = 0; i < x; i++)
     {
-        stringstream ss;
-        ss << "type mismatch between function argument and "
-           << " subtype of dfarray" << endl
-           << "subtype is " << nl->ToString(expFunArg) << endl
-           << "funarg is " << nl->ToString(funArg) << endl;
+        //Function argument type
+        funArgs[i] = nl->First(argFunTypeArgs);
+        argFunTypeArgs = nl->Rest(argFunTypeArgs);
 
-        return listutils::typeError(ss.str());
+        //expected Function Argument type
+        expFunArgs[i] = Stream<Task>::checkType(argInputType[i])
+                            ? Task::resultType(nl->Second(argInputType[i]))
+                            : nl->Second(argInputType[i]);
+
+        if (!nl->Equal(expFunArgs[i], funArgs[i]))
+        {
+            stringstream ss;
+            ss << "type mismatch between function argument " << (i + 1)
+               << " and subtype of dfarray" << endl
+               << "subtype is " << nl->ToString(expFunArgs[i]) << endl
+               << "funarg is " << nl->ToString(funArgs[i]) << endl;
+
+            return listutils::typeError(ss.str());
+        }
     }
 
+    //Function return type
+    ListExpr funRes = nl->First(argFunTypeArgs);
+
     // the function definition
-    ListExpr funq = nl->Second(nl->Third(args));
+    ListExpr funq = nl->Second(argFun);
 
     // we have to replace the given function arguments
     // by the real function arguments because the
     // given function argument may be a TypeMapOperator
-    ListExpr funargs = nl->Second(funq);
-    ListExpr rfunargs = nl->TwoElemList(
-        nl->First(funargs),
-        funArg);
-
-    ListExpr rfun = nl->ThreeElemList(
-        nl->First(funq),
-        rfunargs,
-        nl->Third(funq));
+    ListExpr rfun = nl->OneElemList(nl->First(funq));
+    ListExpr funqRest = nl->Rest(funq);
+    ListExpr last = rfun;
+    for (int i = 0; i < x; i++)
+    {
+        ListExpr funarg = nl->First(funqRest);
+        funqRest = nl->Rest(funqRest);
+        last = nl->Append(last, nl->TwoElemList(
+                                    nl->First(funarg),
+                                    funArgs[i]));
+    }
+    last = nl->Append(last, nl->First(funqRest));
 
     // allowed result types are streams of tuples and
     // non-stream objects
@@ -159,11 +210,16 @@ ListExpr dmapSTM(ListExpr args)
                 listutils::basicSymbol<DArray>(),
                 funRes)));
 
+    lastAppendValue = nl->Append(lastAppendValue,
+                                 nl->TextAtom(nl->ToString(rfun)));
+    lastAppendValue = nl->Append(lastAppendValue,
+                                 nl->BoolAtom(isRel));
+    lastAppendValue = nl->Append(lastAppendValue,
+                                 nl->BoolAtom(isStream));
+
     return nl->ThreeElemList(
         nl->SymbolAtom(Symbols::APPEND()),
-        nl->ThreeElemList(nl->TextAtom(nl->ToString(rfun)),
-                          nl->BoolAtom(isRel),
-                          nl->BoolAtom(isStream)),
+        appendValues,
         resType);
 }
 
@@ -173,35 +229,41 @@ ListExpr dmapSTM(ListExpr args)
 
 */
 
+template <int x>
 class dmapSLI
 {
 public:
     //constructor of the dmapS Local Information
     //string is the Function text
     //remoteName is the name of the relation in the slots
-    dmapSLI(string t, string remoteName)
+    dmapSLI(string dmapFunction, string remoteName)
     {
-        this->stream = 0;
-        this->dmapFunction = t;
-        this->remoteName = remoteName;
-    }
-
-    dmapSLI(Word stream, string dmapFunction, string remoteName)
-    {
-        this->stream = new Stream<Task>(stream);
+        for (int i = 0; i < x; i++)
+        {
+            this->inputStreams[i] = 0;
+        }
         this->dmapFunction = dmapFunction;
         this->remoteName = remoteName;
-        this->stream->open();
     }
 
     ~dmapSLI()
     {
-        if (stream)
+        for (int i = 0; i < x; i++)
         {
-            stream->close();
-            delete stream;
-            stream = 0;
+            if (inputStreams[i])
+            {
+                inputStreams[i]->close();
+                delete inputStreams[i];
+                inputStreams[i] = 0;
+            }
         }
+    }
+
+    void setStream(Word stream, int inputIndex)
+    {
+        int i = inputIndex;
+        this->inputStreams[i] = new Stream<Task>(stream);
+        this->inputStreams[i]->open();
     }
 
     //adds the task t to the list of all tasks
@@ -211,59 +273,84 @@ public:
     //the task can just be forwarded.
     //if task is the leaf, the next incoming task is the successor of the
     // task and visa versa.
-    void addTask(Task *t)
+    void addTask(Task *t, int inputIndex)
     {
         if (!t->isLeaf())
         {
-            allTasks.push_back(t);
+            outputTasks.push_back(t);
         }
         else
         {
-            t->setLeaf(false);
-            Task *a = new Task(dmapFunction, remoteName);
-            a->setLeaf(true);
-            t->addSuccessorTask(a);
-            a->addPredecessorTask(t);
-            allTasks.push_back(t);
-            allTasks.push_back(a);
+            inputLeafQueues[inputIndex].push_back(t);
         }
     }
 
-    //returns the next task for the successor operator
-    Task *getNext()
+    // TODO
+    bool combineOutputTaskOrRequestFromInputStream()
     {
-        if (allTasks.empty())
+        for (int i = 0; i < x; i++)
         {
-            if (stream)
+            if (inputLeafQueues[i].empty())
             {
+                Stream<Task> *stream = inputStreams[i];
+                if (stream == 0)
+                {
+                    return false;
+                }
                 Task *task = stream->request();
                 if (task)
                 {
-                    addTask(task);
+                    addTask(task, i);
+                    return true;
                 }
                 else
                 {
                     stream->close();
                     delete stream;
-                    stream = 0;
-                    return 0;
+                    inputStreams[i] = 0;
+                    return false;
                 }
             }
-            else
+        }
+
+        Task *a = new Task(dmapFunction, remoteName);
+        a->setLeaf(true);
+
+        for (int i = 0; i < x; i++)
+        {
+            Task *t = inputLeafQueues[i].front();
+            inputLeafQueues[i].pop_front();
+            t->setLeaf(false);
+            t->addSuccessorTask(a);
+            a->addPredecessorTask(t);
+            outputTasks.push_back(t);
+        }
+
+        outputTasks.push_back(a);
+        return true;
+    }
+
+    //returns the next task for the successor operator
+    Task *getNext()
+    {
+        while (outputTasks.empty())
+        {
+            if (!combineOutputTaskOrRequestFromInputStream())
             {
                 return 0;
             }
         }
 
-        Task *res = allTasks.front();
-        allTasks.pop_front();
+        Task *res = outputTasks.front();
+        outputTasks.pop_front();
 
         return res;
     }
 
 private:
-    std::deque<Task *> allTasks;
-    Stream<Task> *stream;
+    std::deque<Task *> outputTasks;
+    Stream<Task> *inputStreams[x];
+    std::deque<Task *> inputLeafQueues[x];
     string dmapFunction;
     string remoteName;
 };
@@ -276,19 +363,20 @@ private:
 dmap\_S Value Mapping when a DARRAY comes as in put
 
 */
-int dmapSVM_DArray(Word *args,
-                   Word &result,
-                   int message,
-                   Word &local,
-                   Supplier s)
+template <int x>
+int dmapSVM(Word *args,
+            Word &result,
+            int message,
+            Word &local,
+            Supplier s)
 {
 
-    dmapSLI *li = (dmapSLI *)local.addr;
-    DArray *incomingDArray;
+    dmapSLI<x> *li = (dmapSLI<x> *)local.addr;
 
     FText *incomingFunction;
     CcString *incomingRemoteName;
     string remoteName;
+    int i;
 
     switch (message)
     {
@@ -297,10 +385,12 @@ int dmapSVM_DArray(Word *args,
         {
             delete li;
         }
-        incomingDArray = (DArray *)args[0].addr;
-        incomingRemoteName = (CcString *)args[1].addr;
-
-        incomingFunction = (FText *)args[3].addr;
+        // Arguments are:
+        // a, b, c, remoteName, fn*, aIsStream, bIsStream, cIsStream,
+        // |--x--|                   |--------------x--------------|
+        // functionText, isRel, isStream
+        incomingRemoteName = (CcString *)args[x].addr;
+        incomingFunction = (FText *)args[2 * x + 2].addr;
 
         // create a new name for the result array
         if (!incomingRemoteName->IsDefined() ||
@@ -319,16 +409,30 @@ int dmapSVM_DArray(Word *args,
         }
 
         local.addr = li =
-            new dmapSLI(incomingFunction->GetValue(), remoteName);
+            new dmapSLI<x>(incomingFunction->GetValue(), remoteName);
 
-        for (size_t i = 0; i < incomingDArray->getSize(); i++)
+        for (i = 0; i < x; i++)
         {
-            //create list of Data Tasks
-            li->addTask(
-                new Task(
-                    incomingDArray->getWorkerForSlot(i),
-                    incomingDArray->getName(), i));
+            bool isStream = ((CcBool *)args[x + 2 + i].addr)->GetValue();
+            if (isStream)
+            {
+                li->setStream(args[i], i);
+            }
+            else
+            {
+                DArray *incomingDArray = (DArray *)args[i].addr;
+                for (size_t j = 0; j < incomingDArray->getSize(); j++)
+                {
+                    //create list of Data Tasks
+                    li->addTask(
+                        new Task(
+                            incomingDArray->getWorkerForSlot(j),
+                            incomingDArray->getName(), j),
+                        i);
+                }
+            }
         }
+
         return 0;
 
     case REQUEST:
@@ -345,96 +449,6 @@ int dmapSVM_DArray(Word *args,
     }
 
     return 0;
-}
-
-/*
-
-1.3 Value Mapping for Task Stream
-
-dmap\_S Value Mapping when a stream of tasks comes as in put
-
-*/
-int dmapSVM_Task(Word *args,
-                 Word &result,
-                 int message,
-                 Word &local,
-                 Supplier s)
-{
-
-    dmapSLI *li = (dmapSLI *)local.addr;
-    Word incomingStream;
-
-    FText *incomingFunction;
-    CcString *incomingRemoteName;
-    string remoteName;
-
-    switch (message)
-    {
-    case OPEN:
-        if (li)
-        {
-            delete li;
-        }
-        incomingStream = args[0];
-        incomingRemoteName = (CcString *)args[1].addr;
-        incomingFunction = (FText *)args[3].addr;
-
-        // create a new name for the result array
-        if (!incomingRemoteName->IsDefined() ||
-            incomingRemoteName->GetValue().length() == 0)
-        {
-            remoteName = algInstance->getTempName();
-        }
-        else
-        {
-            remoteName = incomingRemoteName->GetValue();
-        }
-        // check whether the name is valid
-        if (!stringutils::isIdent(remoteName))
-        {
-            return 0;
-        }
-
-        local.addr = li =
-            new dmapSLI(incomingStream,
-                        incomingFunction->GetValue(),
-                        remoteName);
-        return 0;
-
-    case REQUEST:
-        result.addr = li ? li->getNext() : 0;
-        return result.addr ? YIELD : CANCEL;
-
-    case CLOSE:
-        if (li)
-        {
-            delete li;
-            local.addr = 0;
-        }
-        return 0;
-    }
-
-    return 0;
-}
-
-ValueMapping dmapSVM[] = {
-    dmapSVM_DArray,
-    dmapSVM_Task};
-
-//Checks which type of Value Mapping is required.  DArray vs. Task Stream
-int dmapSSelect(ListExpr args)
-{
-    if (DArray::checkType(nl->First(args)))
-    {
-        return 0;
-    }
-    if (
-        Stream<Task>::checkType(nl->First(args)) &&
-        Task::checkType(nl->Second(nl->First(args))))
-    {
-        return 1;
-    }
-    return -1;
 }
 
 OperatorSpec dmapSSpec(
@@ -446,8 +460,35 @@ OperatorSpec dmapSSpec(
 Operator dmapSOp(
     "dmapS",
     dmapSSpec.getStr(),
-    2,
-    dmapSVM,
-    dmapSSelect,
-    dmapSTM);
+    dmapSVM<1>,
+    Operator::SimpleSelect,
+    dmapSTM<1>);
+
+Operator dmapS2Op(
+    "dmapS2",
+    dmapSSpec.getStr(),
+    dmapSVM<2>,
+    Operator::SimpleSelect,
+    dmapSTM<2>);
+
+Operator dmapS3Op(
+    "dmapS3",
+    dmapSSpec.getStr(),
+    dmapSVM<3>,
+    Operator::SimpleSelect,
+    dmapSTM<3>);
+
+Operator dmapS4Op(
+    "dmapS4",
+    dmapSSpec.getStr(),
+    dmapSVM<4>,
+    Operator::SimpleSelect,
+    dmapSTM<4>);
+
+Operator dmapS5Op(
+    "dmapS5",
+    dmapSSpec.getStr(),
+    dmapSVM<5>,
+    Operator::SimpleSelect,
+    dmapSTM<5>);
 } // namespace distributed5

@@ -53,6 +53,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 namespace distributed5{
 
 extern Operator dmapSOp;
+extern Operator dmapS2Op;
+extern Operator dmapS3Op;
+extern Operator dmapS4Op;
+extern Operator dmapS5Op;
 
 }
 #endif

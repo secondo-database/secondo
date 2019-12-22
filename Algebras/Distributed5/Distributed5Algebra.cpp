@@ -46,11 +46,23 @@ public:
     {
         AddOperator(&dmapSOp);
         dmapSOp.SetUsesArgsInTypeMapping();
+        AddOperator(&dmapS2Op);
+        dmapS2Op.SetUsesArgsInTypeMapping();
+        AddOperator(&dmapS3Op);
+        dmapS3Op.SetUsesArgsInTypeMapping();
+        AddOperator(&dmapS4Op);
+        dmapS4Op.SetUsesArgsInTypeMapping();
+        AddOperator(&dmapS5Op);
+        dmapS5Op.SetUsesArgsInTypeMapping();
         AddOperator(&scheduleOp);
         AddTypeConstructor(&TaskTC);
         TaskTC.AssociateKind(Kind::SIMPLE());
         AddOperator(&tasks2tuplesOp);
         AddOperator(&ARRAYORTASKSFUNARG1Op);
+        AddOperator(&ARRAYORTASKSFUNARG2Op);
+        AddOperator(&ARRAYORTASKSFUNARG3Op);
+        AddOperator(&ARRAYORTASKSFUNARG4Op);
+        AddOperator(&ARRAYORTASKSFUNARG5Op);
     }
 };
 

@@ -52,6 +52,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 namespace distributed5{
 
 extern Operator ARRAYORTASKSFUNARG1Op;
+extern Operator ARRAYORTASKSFUNARG2Op;
+extern Operator ARRAYORTASKSFUNARG3Op;
+extern Operator ARRAYORTASKSFUNARG4Op;
+extern Operator ARRAYORTASKSFUNARG5Op;
 
 }
 

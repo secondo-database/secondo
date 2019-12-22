@@ -242,39 +242,47 @@ void Task::run()
         //task and make current
         //task to data task (root of all tasks of the
         // dependency graph for this slot)
-        Task *previousDataTask = this->listOfPre.front();
-
-        if (previousDataTask->taskType == TaskType::Error)
+        //creates the function of the fun arguments
+        vector<string> funargs;
+        for (auto t = listOfPre.begin(); t != listOfPre.end(); ++t)
         {
-            this->taskType = TaskType::Error;
-            return;
+            Task *previousDataTask = *t;
+            if (previousDataTask->taskType == TaskType::Error)
+            {
+                this->taskType = TaskType::Error;
+                return;
+            }
+            if (t == listOfPre.begin())
+            {
+                this->server = previousDataTask->server;
+                this->port = previousDataTask->port;
+                this->config = previousDataTask->config;
+                this->slot = previousDataTask->slot;
+                this->worker = previousDataTask->worker;
+            }
+            funargs.push_back(previousDataTask->name + "_" +
+                              std::to_string(slot) + " ");
         }
-        this->server = previousDataTask->server;
-        this->port = previousDataTask->port;
-        this->config = previousDataTask->config;
-        this->slot = previousDataTask->slot;
-        this->worker = previousDataTask->worker;
 
         //get dbname
         string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
         //set name2 from the previous task
         string name2 = resultName + "_" +
-                       stringutils::int2str(previousDataTask->slot);
-
-        std::stringstream name_slot;
-        name_slot << previousDataTask->name << "_" << slot;
+                       stringutils::int2str(this->slot);
 
         //get worker connection for this slot
         ConnectionInfo *ci = algInstance->getWorkerConnection(
             DArrayElement(server, port, worker, config), dbname);
 
-        //creates the function of the fun arguments
-        vector<string> funargs;
-        funargs.push_back(name_slot.str() + " ");
         ListExpr funCmdList = fun2cmd(dmapFunction, funargs);
 
         funCmdList = replaceWrite(funCmdList, "write2", name2);
-        funCmdList = replaceWrite(funCmdList, "write3", name_slot.str());
+        if (listOfPre.size() == 1)
+        {
+            string name_slot = listOfPre.front()->name + "_" +
+                               std::to_string(slot);
+            funCmdList = replaceWrite(funCmdList, "write3", name_slot);
+        }
         string funcmd = nl->ToString(funCmdList);
 
         string cmd = "(let " + name2 + " = " + funcmd + ")";
@@ -295,8 +303,11 @@ void Task::run()
 
         if ((err != 0))
         {
+            std::cout << "ERROR FROM TASK\n";
             showError(ci, cmd, err, errMsg);
+            std::cout << "\nLOG FROM TASK\n";
             writeLog(ci, cmd, errMsg);
+            std::cout << "\nfeddisch\n";
             this->taskType = TaskType::Error;
             return;
         }
@@ -373,6 +384,18 @@ size_t Task::getSlot()
     return slot;
 }
 
+//returns the server on which the task has to start
+std::string Task::getServer()
+{
+    return server;
+}
+
+//returns the port on which the task has to start
+int Task::getPort()
+{
+    return port;
+}
+
 //returns the worker on which the task has to start
 int Task::getWorker()
 {
@@ -396,26 +419,27 @@ void Task::setLeaf(bool leaf)
     this->leaf = leaf;
 }
 
-
 //returns the task as a string - needed for debugging...
-string Task::getFunction(){
+string Task::getFunction()
+{
     return dmapFunction;
 }
 
 //returns the task as a string - needed for debugging...
-std::vector<Task *> Task::getSuccessors(){
+std::vector<Task *> Task::getSuccessors()
+{
     return listOfSucc;
 }
 
-std::vector<Task *> Task::getPredecessor(){
+std::vector<Task *> Task::getPredecessor()
+{
     return listOfPre;
 }
 
-int Task::getId(){
+int Task::getId()
+{
     return id;
 }
-
-
 
 //returns the task as a string - needed for debugging...
 string Task::toString()
