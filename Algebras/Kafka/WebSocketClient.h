@@ -23,8 +23,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 
-#ifndef KAFKA_WEBSOCKETCLIENTPROTOTYPE_H
-#define KAFKA_WEBSOCKETCLIENTPROTOTYPE_H
+#ifndef KAFKA_WEBSOCKETCLIENT_H
+#define KAFKA_WEBSOCKETCLIENT_H
 
 #include <queue>
 #include <websocketpp/client.hpp>
@@ -94,4 +94,4 @@ private:
 };
 
 
-#endif //KAFKA_WEBSOCKETCLIENTPROTOTYPE_H
+#endif //KAFKA_WEBSOCKETCLIENT_H

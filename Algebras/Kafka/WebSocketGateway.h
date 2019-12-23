@@ -28,7 +28,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include <iostream>
 #include <websocketpp/config/asio_client.hpp>
-#include "WebSocketClientPrototype.h"
+#include "WebSocketClient.h"
 
 enum ClientType {
     UNDEFINED,
