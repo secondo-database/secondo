@@ -42,37 +42,38 @@ template <int pos>
 ListExpr ARRAYORTASKSFUNARG_TM(ListExpr args)
 {
 
-  if (!nl->HasMinLength(args, pos))
-  {
-    return listutils::typeError("too less arguments");
-  }
-  for (int i = 1; i < pos; i++)
-  {
-    args = nl->Rest(args);
-  }
-  ListExpr arg = nl->First(args);
-  // i.e. arg = (darray int) or (stream (task (darray int)))
+    if (!nl->HasMinLength(args, pos))
+    {
+        return listutils::typeError("too few arguments");
+    }
+    for (int i = 1; i < pos; i++)
+    {
+        args = nl->Rest(args);
+    }
+    ListExpr arg = nl->First(args);
+    // i.e. arg = (darray int) or (stream (task (darray int)))
 
-  // i.e. arg = (darray int)
-  if (DArray::checkType(arg))
-  {
-    // i.e. return int;
-    return nl->Second(arg);
-  }
+    // i.e. arg = (darray int)
+    if (DArray::checkType(arg) || DFArray::checkType(arg))
+    {
+        // i.e. return int;
+        return nl->Second(arg);
+    }
 
-  // i.e. arg = (stream (task (darray int)))
-  if (Stream<Task>::checkType(arg) &&
-      DArray::checkType(Task::innerType(nl->Second(arg))))
-  {
-    // i.e. return int;
-    return Task::resultType(nl->Second(arg));
-  }
+    // i.e. arg = (stream (task (darray int)))
+    if (Stream<Task>::checkType(arg) &&
+        (DArray::checkType(Task::innerType(nl->Second(arg))) ||
+         DFArray::checkType(Task::innerType(nl->Second(arg)))))
+    {
+        // i.e. return int;
+        return Task::resultType(nl->Second(arg));
+    }
 
-  return listutils::typeError("Invalid type found");
+    return listutils::typeError("Invalid type found");
 }
 
 OperatorSpec ARRAYORTASKSFUNARG1Spec(
-    "darray(X) x ... -> X, stream(task(X)) x ... -> X",
+    "d(f)array(X) x ... -> X, stream(task(X)) x ... -> X",
     "ARRAYORTASKSFUNARG1(_)",
     "Type mapping operator.",
     "query df1 dmap_S [\"df3\" . count]");
@@ -85,7 +86,7 @@ Operator ARRAYORTASKSFUNARG1Op(
     ARRAYORTASKSFUNARG_TM<1>);
 
 OperatorSpec ARRAYORTASKSFUNARG2Spec(
-    "darray(X) x ... -> X, stream(task(X)) x ... -> X",
+    "d(f)array(X) x ... -> X, stream(task(X)) x ... -> X",
     "ARRAYORTASKSFUNARG2(_)",
     "Type mapping operator.",
     "query df1 df2 dmapS2 [\"df3\" . count]");
@@ -97,9 +98,8 @@ Operator ARRAYORTASKSFUNARG2Op(
     Operator::SimpleSelect,
     ARRAYORTASKSFUNARG_TM<2>);
 
-
 OperatorSpec ARRAYORTASKSFUNARG3Spec(
-    "darray(X) x ... -> X, stream(task(X)) x ... -> X",
+    "d(f)array(X) x ... -> X, stream(task(X)) x ... -> X",
     "ARRAYORTASKSFUNARG3(_)",
     "Type mapping operator.",
     "query df1 df2 df3 dmapS3 [\"df3\" . count]");
@@ -112,7 +112,7 @@ Operator ARRAYORTASKSFUNARG3Op(
     ARRAYORTASKSFUNARG_TM<3>);
 
 OperatorSpec ARRAYORTASKSFUNARG4Spec(
-    "darray(X) x ... -> X, stream(task(X)) x ... -> X",
+    "d(f)array(X) x ... -> X, stream(task(X)) x ... -> X",
     "ARRAYORTASKSFUNARG4(_)",
     "Type mapping operator.",
     "query df1 df2 df3 df4 dmapS4 [\"df4\" . count]");
@@ -125,7 +125,7 @@ Operator ARRAYORTASKSFUNARG4Op(
     ARRAYORTASKSFUNARG_TM<4>);
 
 OperatorSpec ARRAYORTASKSFUNARG5Spec(
-    "darray(X) x ... -> X, stream(task(X)) x ... -> X",
+    "d(f)array(X) x ... -> X, stream(task(X)) x ... -> X",
     "ARRAYORTASKSFUNARG5(_)",
     "Type mapping operator.",
     "query df1 df2 df3 df4 df5 dmapS5 [\"df5\" . count]");

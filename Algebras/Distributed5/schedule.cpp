@@ -49,7 +49,7 @@ The operator schedule\_S is responsible for distributing the tasks from a tuple 
 ListExpr scheduleTM(ListExpr args)
 {
 
-    string err = "stream(task(darray)) expected";
+    string err = "stream(task(d[f]array)) expected";
 
     //ensure that exactly 1 argument comes into schedule
     if (!nl->HasLength(args, 1))
@@ -66,9 +66,9 @@ ListExpr scheduleTM(ListExpr args)
 
     //ensure that the stream is of type Tasks
     ListExpr taskType = Task::innerType(nl->Second(arg1Type));
-    if (!DArray::checkType(taskType))
+    if (!(DArray::checkType(taskType) || DFArray::checkType(taskType)))
     {
-        return listutils::typeError(err + " (darray expected)");
+        return listutils::typeError(err + " (d[f]array expected)");
     }
 
     return taskType;
@@ -195,7 +195,7 @@ int scheduleVM(Word *args, Word &result, int message,
     Stream<Task> stream(args[0]);
     stream.open();
     Task *task;
-    DArray *res = (DArray *)result.addr;
+    DArrayBase *res = (DArrayBase *)result.addr;
     Scheduler scheduler;
 
     //As long as there are still incoming tasks...

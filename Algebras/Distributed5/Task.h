@@ -46,6 +46,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Algebras/Distributed2/DArray.h"
 #include "Algebras/Distributed2/Distributed2Algebra.h"
 #include "Algebras/Distributed2/ConnectionInfo.h"
+#include "Algebras/Distributed2/DFSType.h"
 
 #include <boost/bind.hpp>
 #include <boost/ref.hpp>
@@ -69,8 +70,12 @@ public:
     Task(TaskType taskType);
     Task(distributed2::DArrayElement dArrayElement,
          std::string name,
-         size_t slot);
-    Task(std::string dmapFunction, std::string resultName);
+         size_t slot,
+         distributed2::arrayType dArrayType,
+         ListExpr aType);
+    Task(std::string dmapFunction,
+         std::string resultName,
+         bool isRel);
     ~Task();
     static const std::string BasicType();
     static const bool checkType(const ListExpr list);
@@ -98,7 +103,6 @@ public:
     static int nextId;
     std::vector<Task *> getSuccessors();
     std::vector<Task *> getPredecessor();
-    
 
     static const ListExpr innerType(const ListExpr list)
     {
@@ -116,7 +120,6 @@ private:
     int numberOfRemainingTasks = 0;
     std::vector<Task *> listOfSucc;
     std::vector<Task *> listOfPre;
-    std::string slotID;
     TaskType taskType;
 
     //Relevant information for TaskType Data:
@@ -126,14 +129,17 @@ private:
     size_t slot;
     std::string config;
     int worker;
+    distributed2::arrayType dArrayType;
+    ListExpr aType;
 
     //Relevant information for TasksType Function:
     std::string dmapFunction;
     std::string resultName;
+    bool isRel;
+
     //task attributes
     bool leaf = true;
     int id;
-    
 };
 
 extern TypeConstructor TaskTC;

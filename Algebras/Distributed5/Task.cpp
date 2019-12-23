@@ -43,6 +43,8 @@ namespace distributed2
 // Algebra instance
 extern Distributed2Algebra *algInstance;
 
+extern DFSType *filesystem;
+
 extern ListExpr replaceWrite(ListExpr list, const string &writeVer,
                              const string &name);
 
@@ -150,7 +152,12 @@ Task::Task(TaskType taskType)
  Only outgoing tasks    
 
 */
-Task::Task(DArrayElement dArrayElement, string name, size_t slot)
+Task::Task(
+    DArrayElement dArrayElement,
+    string name,
+    size_t slot,
+    distributed2::arrayType dArrayType,
+    ListExpr aType)
 {
     this->taskType = Data;
     this->name = name;
@@ -159,6 +166,8 @@ Task::Task(DArrayElement dArrayElement, string name, size_t slot)
     this->config = dArrayElement.getConfig();
     this->worker = dArrayElement.getNum();
     this->slot = slot;
+    this->dArrayType = dArrayType;
+    this->aType = aType;
     nextId++;
     id = nextId;
 }
@@ -169,11 +178,12 @@ Task::Task(DArrayElement dArrayElement, string name, size_t slot)
 this task can have incoming function or data tasks and outgoing function tasks
 
 */
-Task::Task(string dmapFunction, string resultName)
+Task::Task(string dmapFunction, string resultName, bool isRel)
 {
     this->taskType = Function;
     this->dmapFunction = dmapFunction;
     this->resultName = resultName;
+    this->isRel = isRel;
     nextId++;
     id = nextId;
 }
@@ -238,6 +248,11 @@ void Task::run()
 {
     if (this->taskType == TaskType::Function)
     {
+        //get dbname
+        string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
+        ConnectionInfo *ci;
+        bool showCommands = false;
+
         //Get Data Information from Previous Task to current
         //task and make current
         //task to data task (root of all tasks of the
@@ -259,20 +274,42 @@ void Task::run()
                 this->config = previousDataTask->config;
                 this->slot = previousDataTask->slot;
                 this->worker = previousDataTask->worker;
+                this->dArrayType = previousDataTask->dArrayType;
+
+                //get worker connection for this slot
+                ci = algInstance->getWorkerConnection(
+                    DArrayElement(server, port, worker, config), dbname);
             }
-            funargs.push_back(previousDataTask->name + "_" +
-                              std::to_string(slot) + " ");
+            switch (previousDataTask->dArrayType)
+            {
+            case arrayType::DARRAY:
+                funargs.push_back(previousDataTask->name + "_" +
+                                  std::to_string(slot) + " ");
+                break;
+            case arrayType::DFARRAY:
+            {
+                string fname1 = ci->getSecondoHome(
+                                    showCommands, commandLog) +
+                                "/dfarrays/" + dbname + "/" +
+                                previousDataTask->name + "/" +
+                                previousDataTask->name + "_" +
+                                std::to_string(slot) + ".bin";
+                ListExpr frelType = nl->TwoElemList(
+                    listutils::basicSymbol<frel>(),
+                    nl->Second(nl->Second(previousDataTask->aType)));
+
+                funargs.push_back("(" + nl->ToString(frelType) +
+                                  " '" + fname1 + "' )" + " ");
+                break;
+            }
+            default:
+                throw std::invalid_argument("Not implemented");
+            }
         }
 
-        //get dbname
-        string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
         //set name2 from the previous task
         string name2 = resultName + "_" +
                        stringutils::int2str(this->slot);
-
-        //get worker connection for this slot
-        ConnectionInfo *ci = algInstance->getWorkerConnection(
-            DArrayElement(server, port, worker, config), dbname);
 
         ListExpr funCmdList = fun2cmd(dmapFunction, funargs);
 
@@ -285,13 +322,76 @@ void Task::run()
         }
         string funcmd = nl->ToString(funCmdList);
 
-        string cmd = "(let " + name2 + " = " + funcmd + ")";
+        string cmd;
+
+        switch (listOfPre.front()->dArrayType)
+        {
+        case arrayType::DARRAY:
+        {
+            cmd = "(let " + name2 + " = " + funcmd + ")";
+            break;
+        }
+        case arrayType::DFARRAY:
+        {
+            // create the target directory
+            string targetDir = ci->getSecondoHome(
+                                   showCommands, commandLog) +
+                               "/dfarrays/" + dbname + "/" + resultName + "/";
+
+            string cd = "query createDirectory('" + targetDir + "', TRUE)";
+            int err;
+            string errMsg;
+            string r;
+            double runtime;
+            ci->simpleCommand(cd, err, errMsg, r, false, runtime,
+                              showCommands, commandLog, false,
+                              algInstance->getTimeout());
+            if (err)
+            {
+                cerr << "creating directory failed, cmd = " << cd << endl;
+                cerr << "message : " << errMsg << endl;
+                cerr << "code : " << err << endl;
+                cerr << "meaning : " << SecondoInterface::GetErrorMessage(err)
+                     << endl;
+                writeLog(ci, cd, errMsg);
+                this->taskType = TaskType::Error;
+                return;
+            }
+            string fname2 = targetDir +
+                            resultName + "_" + std::to_string(slot) + ".bin";
+
+            // if the result of the function is a relation, we feed it
+            // into a stream to fconsume it
+            // if there is a non-temp-name and a dfs is avaiable,
+            // we extend the fconsume arguments by boolean values
+            // first : create dir, always true
+            // second : put result to dfs
+            string aa = "";
+            if (filesystem)
+            {
+                aa = " TRUE TRUE ";
+            }
+            if (this->isRel)
+            {
+                cmd = "(query (count (fconsume5 (feed " + funcmd + " )'" +
+                      fname2 + "' " + aa + ")))";
+            }
+            else
+            {
+                cmd = "(query (count (fconsume5 " + funcmd + " '" +
+                      fname2 + "'" + aa + " )))";
+            }
+
+            break;
+        }
+        default:
+            throw std::invalid_argument("Not implemented");
+        }
 
         int err = 0;
         string errMsg;
         string r;
         double runtime;
-        bool showCommands = false;
         if (!ci)
         {
             return;
@@ -313,7 +413,6 @@ void Task::run()
         }
         this->taskType = TaskType::Data;
         this->name = this->resultName;
-        ;
     }
 }
 

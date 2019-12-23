@@ -89,6 +89,8 @@ ListExpr dmapSTM(ListExpr args)
         return listutils::typeError("internal error");
     }
 
+    ListExpr resultType;
+
     ListExpr argInputType[x];
     ListExpr appendValues = 0;
     ListExpr lastAppendValue;
@@ -96,11 +98,22 @@ ListExpr dmapSTM(ListExpr args)
     {
         argInputType[i] = nl->First(argInputs[i]);
 
-        // i.e. argInputType[i] = (darray int) or (stream (task (darray int)))
+        // i.e. argInputType[i] =
+        //   (darray int) or
+        //   (dfarray int) or
+        //   (stream (task (darray int))) or
+        //   (stream (task (dfarray int)))
         bool inputIsDArray = DArray::checkType(argInputType[i]);
-        bool inputIsStream = Stream<Task>::checkType(argInputType[i]) &&
-                             DArray::checkType(
-                                 Task::innerType(nl->Second(argInputType[i])));
+        bool inputIsDFArray = DFArray::checkType(argInputType[i]);
+        bool inputIsDTaskStream = Stream<Task>::checkType(argInputType[i]) &&
+                                  DArray::checkType(
+                                      Task::innerType(
+                                          nl->Second(argInputType[i])));
+        bool inputIsDFTaskStream = Stream<Task>::checkType(argInputType[i]) &&
+                                   DFArray::checkType(
+                                       Task::innerType(
+                                           nl->Second(argInputType[i])));
+        bool inputIsStream = inputIsDTaskStream || inputIsDFTaskStream;
         if (appendValues == 0)
         {
             appendValues = nl->OneElemList(nl->BoolAtom(inputIsStream));
@@ -111,10 +124,19 @@ ListExpr dmapSTM(ListExpr args)
             lastAppendValue = nl->Append(lastAppendValue,
                                          nl->BoolAtom(inputIsStream));
         }
-        bool inputOk = inputIsDArray || inputIsStream;
+        bool inputOk = inputIsDArray ||
+                       inputIsDFArray ||
+                       inputIsDTaskStream ||
+                       inputIsDFTaskStream;
         if (!inputOk)
         {
             return listutils::typeError(err);
+        }
+        if (i == 0)
+        {
+            resultType = inputIsDArray || inputIsDTaskStream
+                             ? listutils::basicSymbol<DArray>()
+                             : listutils::basicSymbol<DFArray>();
         }
     }
     ListExpr argNameType = nl->First(argName);
@@ -200,14 +222,13 @@ ListExpr dmapSTM(ListExpr args)
     // determine the result array type
     // if the origin function result is a tuple stream,
     // the result will be a dfarray, otherwise a darray
-    // ----We only support DARRAY---
     // i.e. (stream (task (darray int)))
     ListExpr resType = nl->TwoElemList(
         listutils::basicSymbol<Stream<Task>>(),
         nl->TwoElemList(
             listutils::basicSymbol<Task>(),
             nl->TwoElemList(
-                listutils::basicSymbol<DArray>(),
+                resultType,
                 funRes)));
 
     lastAppendValue = nl->Append(lastAppendValue,
@@ -236,7 +257,7 @@ public:
     //constructor of the dmapS Local Information
     //string is the Function text
     //remoteName is the name of the relation in the slots
-    dmapSLI(string dmapFunction, string remoteName)
+    dmapSLI(string dmapFunction, string remoteName, bool isRel)
     {
         for (int i = 0; i < x; i++)
         {
@@ -244,6 +265,7 @@ public:
         }
         this->dmapFunction = dmapFunction;
         this->remoteName = remoteName;
+        this->isRel = isRel;
     }
 
     ~dmapSLI()
@@ -313,7 +335,7 @@ public:
             }
         }
 
-        Task *a = new Task(dmapFunction, remoteName);
+        Task *a = new Task(dmapFunction, remoteName, isRel);
         a->setLeaf(true);
 
         for (int i = 0; i < x; i++)
@@ -353,14 +375,15 @@ private:
     std::deque<Task *> inputLeafQueues[x];
     string dmapFunction;
     string remoteName;
+    bool isRel;
 };
 
 /*
 
-1.2 Value Mapping for DArray
+1.2 Value Mapping for dmap
 
 
-dmap\_S Value Mapping when a DARRAY comes as in put
+dmap\_S Value Mapping
 
 */
 template <int x>
@@ -376,6 +399,7 @@ int dmapSVM(Word *args,
     FText *incomingFunction;
     CcString *incomingRemoteName;
     string remoteName;
+    bool isRel;
     int i;
 
     switch (message)
@@ -391,6 +415,7 @@ int dmapSVM(Word *args,
         // functionText, isRel, isStream
         incomingRemoteName = (CcString *)args[x].addr;
         incomingFunction = (FText *)args[2 * x + 2].addr;
+        isRel = ((CcBool *)args[2 * x + 3].addr)->GetValue();
 
         // create a new name for the result array
         if (!incomingRemoteName->IsDefined() ||
@@ -409,7 +434,7 @@ int dmapSVM(Word *args,
         }
 
         local.addr = li =
-            new dmapSLI<x>(incomingFunction->GetValue(), remoteName);
+            new dmapSLI<x>(incomingFunction->GetValue(), remoteName, isRel);
 
         for (i = 0; i < x; i++)
         {
@@ -420,14 +445,17 @@ int dmapSVM(Word *args,
             }
             else
             {
-                DArray *incomingDArray = (DArray *)args[i].addr;
+                DArrayBase *incomingDArray = (DArrayBase *)args[i].addr;
                 for (size_t j = 0; j < incomingDArray->getSize(); j++)
                 {
                     //create list of Data Tasks
                     li->addTask(
                         new Task(
                             incomingDArray->getWorkerForSlot(j),
-                            incomingDArray->getName(), j),
+                            incomingDArray->getName(),
+                            j,
+                            incomingDArray->getType(),
+                            qp->GetType(qp->GetSon(s, i))),
                         i);
                 }
             }
