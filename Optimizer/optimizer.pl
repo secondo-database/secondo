@@ -10975,8 +10975,8 @@ finishUpdate([], Stream2, Stream2) :-
   !.
 
 finishUpdate(insert into Rel, Stream, Stream3) :-
-  updateAttrNamesForInsert(Stream, Rel, Stream2),
-  updateIndex(insert, Rel, insert(Rel, Stream2), Stream3),
+%  updateAttrNamesForInsert(Stream, Rel, Stream2),
+  updateIndex(insert, Rel, insert(Rel, Stream), Stream3),
   !.
 
 finishUpdate(delete from Rel, Stream2, Stream3) :-
