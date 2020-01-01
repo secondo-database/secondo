@@ -1708,6 +1708,44 @@
   file        = {:DistributedQueryProcessinginSecondo.pdf:PDF},
 }
 
+@Article{Elseidy:2014:SAO:2732279.2732281,
+  author     = {Elseidy, Mohammed and Elguindy, Abdallah and Vitorovic, Aleksandar and Koch, Christoph},
+  title      = {Scalable and Adaptive Online Joins},
+  journal    = {Proc. VLDB Endow.},
+  year       = {2014},
+  volume     = {7},
+  number     = {6},
+  month      = feb,
+  pages      = {441--452},
+  issn       = {2150-8097},
+  doi        = {10.14778/2732279.2732281},
+  url        = {http://dx.doi.org/10.14778/2732279.2732281},
+  acmid      = {2732281},
+  file       = {:Scalable and Adaptive Online Joins.pdf:PDF},
+  issue_date = {February 2014},
+  numpages   = {12},
+  publisher  = {VLDB Endowment},
+}
+
+@InProceedings{Lin:2015:SDS:2723372.2746485,
+  author    = {Lin, Qian and Ooi, Beng Chin and Wang, Zhengkui and Yu, Cui},
+  title     = {Scalable Distributed Stream Join Processing},
+  booktitle = {Proceedings of the 2015 ACM SIGMOD International Conference on Management of Data},
+  year      = {2015},
+  series    = {SIGMOD '15},
+  publisher = {ACM},
+  location  = {Melbourne, Victoria, Australia},
+  isbn      = {978-1-4503-2758-9},
+  pages     = {811--825},
+  doi       = {10.1145/2723372.2746485},
+  url       = {http://doi.acm.org/10.1145/2723372.2746485},
+  acmid     = {2746485},
+  address   = {New York, NY, USA},
+  file      = {:Scalable Distributed Stream Join Processing.pdf:PDF},
+  keywords  = {data streams, distributed system, stream join},
+  numpages  = {15},
+}
+
 @Comment{jabref-meta: databaseType:biblatex;}
 
 @Comment{jabref-meta: fileDirectory:/home/ingo/Dokumente/master;}
