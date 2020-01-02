@@ -24,7 +24,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 #include "ReadFromKafkaOperator.h"
-#include "KafkaClient.h"
 #include "log.hpp"
 #include "Utils.h"
 #include "WebSocketGateway.h"
@@ -60,6 +59,7 @@ namespace ws {
         for (std::string attribute : attributes) {
             // Normalize string
             std::replace(std::begin(attribute), std::end(attribute), '\t', ' ');
+            std::replace(std::begin(attribute), std::end(attribute), ':', ' ');
             std::replace(std::begin(attribute), std::end(attribute), '\n', ' ');
             kafka::removeMultipleSpaces(attribute);
             std::vector<std::string> parts = kafka::split(attribute, " ");
@@ -73,24 +73,6 @@ namespace ws {
             );
         }
         return result;
-    }
-
-
-    ListExpr validateStringArg(ListExpr topicArg) {
-        if (!nl->HasLength(topicArg, 2)) {
-            return listutils::typeError("internal error: argument invalid");
-        }
-
-        if (!CcString::checkType(nl->First(topicArg))) {
-            return listutils::typeError(
-                    "String expected");
-        }
-
-        ListExpr fn = nl->Second(topicArg);
-        if (nl->AtomType(fn) != StringType) {
-            return listutils::typeError("value not constant");
-        }
-        return 0;
     }
 
     ListExpr validateTextArg(ListExpr topicArg) {
@@ -121,16 +103,16 @@ namespace ws {
         }
 
         ListExpr uriArg = nl->First(args);
-        ListExpr error = validateStringArg(uriArg);
+        ListExpr error = validateTextArg(uriArg);
         if (error)
             return error;
-        string uri = nl->StringValue(nl->Second(uriArg));
+        string uri = nl->TextValue(nl->Second(uriArg));
 
         ListExpr subscribingArg = nl->Second(args);
-        error = validateStringArg(subscribingArg);
+        error = validateTextArg(subscribingArg);
         if (error)
             return error;
-        string subscribing = nl->StringValue(nl->Second(subscribingArg));
+        string subscribing = nl->TextValue(nl->Second(subscribingArg));
 
         ListExpr typeArg = nl->Third(args);
         error = validateTextArg(typeArg);
@@ -179,7 +161,7 @@ namespace ws {
     class WebSocketsSourceLI {
     public:
         // constructor: initializes the class from the string argument
-        WebSocketsSourceLI(CcString *uriArg, CcString *subscribingArg,
+        WebSocketsSourceLI(FText *uriArg, FText *subscribingArg,
                            FText *typeArg) {
             def = typeArg->IsDefined();
             if (def) {
@@ -203,16 +185,6 @@ namespace ws {
             if (def) {
                 webSocketClient.Close();
             }
-        }
-
-        bool parseBoolean(string basicString) {
-            std::string str = websocketpp::utility::to_lower(basicString);
-            if (str == "true" || str == "t")
-                return true;
-            if (str == "false" || str == "f")
-                return false;
-
-            return std::stoi(str);
         }
 
 // this function returns the next result or null if the input is
@@ -263,13 +235,13 @@ namespace ws {
                 if (attribute.type == "string")
                     res->PutAttribute(index++, new CcString(true, value));
                 else if (attribute.type == "real") {
-                    double dValue = std::stod(value);
+                    double dValue = kafka::parseDouble(value);
                     res->PutAttribute(index++, new CcReal(true, dValue));
                 } else if (attribute.type == "int") {
-                    int iValue = std::stoi(value);
+                    int iValue = kafka::parseInt(value);
                     res->PutAttribute(index++, new CcInt(true, iValue));
                 } else if (attribute.type == "bool") {
-                    bool bValue = parseBoolean(value);
+                    bool bValue = kafka::parseBoolean(value);
                     res->PutAttribute(index++, new CcBool(true, bValue));
                 } else
                     res->PutAttribute(index++,
@@ -277,6 +249,7 @@ namespace ws {
             }
             return res;
         }
+
 
     private:
         bool def;
@@ -294,8 +267,8 @@ namespace ws {
                 if (li) {
                     delete li;
                 }
-                local.addr = new WebSocketsSourceLI((CcString *) args[0].addr,
-                                                    (CcString *) args[1].addr,
+                local.addr = new WebSocketsSourceLI((FText *) args[0].addr,
+                                                    (FText *) args[1].addr,
                                                     (FText *) args[2].addr
                 );
                 LOG(DEBUG) << "ReadFromWebSocketsVM opened";

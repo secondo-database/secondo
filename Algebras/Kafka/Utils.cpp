@@ -27,6 +27,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include <zconf.h>
 #include <vector>
+#include <websocketpp/utilities.hpp>
 
 namespace kafka {
 
@@ -165,4 +166,36 @@ namespace kafka {
             str.erase(str.begin() + i - 1, str.end());
         std::cout << " res " << str << std::endl;
     }
+
+    int parseInt(const std::string &value) {
+        try {
+            return stoi(value);
+        } catch (const std::exception &e) {
+            LOG(ERROR)
+                    << "parseInt: Error parsing  " << value;
+            return 0;
+        }
+    }
+
+    double parseDouble(const std::string &value) {
+        try {
+            return stod(value);
+        } catch (const std::exception &e) {
+            LOG(ERROR)
+                    << "parseDouble: Error parsing  " << value;
+            return 0;
+        }
+    }
+
+    bool parseBoolean(std::string basicString) {
+        std::string str = websocketpp::utility::to_lower(basicString);
+        if (str == "true" || str == "t")
+            return true;
+        if (str == "false" || str == "f")
+            return false;
+
+        return std::stoi(str);
+    }
+
+
 }

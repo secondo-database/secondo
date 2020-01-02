@@ -105,9 +105,27 @@ query readfromwebsocket("wss://ws.blockchain.info/inv", "{\"op\":\"unconfirmed_s
     Addr string /x/inputs/0/prev_out/addr')
     finishStream[8080] consoleConsumer head[10] count;
 
-query readfromwebsocket("wss://ws.blockchain.info/inv", "{\"op\":\"unconfirmed_sub\"}",
+query readfromwebsocket('wss://ws.blockchain.info/inv', '{"op":"unconfirmed_sub"}',
     'Name string /op,
     Size int /x/size,
     Addr string /x/inputs/0/prev_out/addr')
     finishStream[8080] consoleConsumer head[10] count;
+
+Ships:
+query readfromwebsocket('https://demos-safe-software.fmecloud.com:7078/websocket', '{"ws_op":"open","ws_stream_id":"sd_ship"}',
+    'Name : string /vessel_name,
+     Latitude : real /latitude,
+     Longitude : real /longitude')
+    finishStream[8080] consoleConsumer head[10] count;
+
+
+
+let tempships = [ const rel(tuple([Name : string, Latitude : real, Longitude : real])) value () ];
+query readfromwebsocket('https://demos-safe-software.fmecloud.com:7078/websocket', '{"ws_op":"open","ws_stream_id":"sd_ship"}',
+    'Name : string /vessel_name,
+     Latitude : real /latitude,
+     Longitude : real /longitude')
+    finishStream[8080] consoleConsumer head[10] tempships insert count;
+
+query tempships;
 

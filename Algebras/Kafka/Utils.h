@@ -42,6 +42,9 @@ namespace kafka {
     std::vector<std::string> split(const std::string &str,
                                    const std::string &delim);
 
+    int parseInt(const std::string &value);
+    double parseDouble(const std::string &value);
+    bool parseBoolean(std::string basicString);
 }
 
 #endif //KAFKA_UTILS_H

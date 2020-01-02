@@ -25,7 +25,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "WebSocketGateway.h"
 #include "log.hpp"
-#include "Utils.h"
 
 
 ErrorCode WebSocketGateway::Open(std::string uri) {
@@ -33,10 +32,10 @@ ErrorCode WebSocketGateway::Open(std::string uri) {
     if (uri.rfind("mock://data", 0) == 0) {
         clientType = MOCK;
         return OK;
-    } else if (uri.rfind("wss://", 0) == 0) {
+    } else if (uri.rfind("wss://", 0) == 0 || uri.rfind("https://", 0) == 0) {
         clientType = TLS;
         return tls_client.connect(uri);
-    } else if (uri.rfind("ws://", 0) == 0) {
+    } else if (uri.rfind("ws://", 0) == 0 || uri.rfind("http://", 0) == 0) {
         clientType = NO_TLS;
         return no_tls_client.connect(uri);
     } else {
