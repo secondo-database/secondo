@@ -5,12 +5,12 @@
 ########################################################################
 # 31.03.2013 Jürgen Ehnes
 
+include ../../../../makefile.env
 
 ifdef SECONDO_HOST_PLATFORM
 SECONDO_PLATFORM=$(SECONDO_HOST_PLATFORM)
 endif
 
-include ../../../../makefile.env
 
 DEP_FILES += ../SpecParser.tab.dep
 
@@ -42,11 +42,11 @@ SpecParser.tab.cpp SpecParser.tab.hpp: ../SpecParser.y
 	$(YACC) -d -o $@ $<
 
 Parser$(EXEEXT): SpecParser.tab.o lex.yy.o NestedText.o
-	$(CC) -o Parser$(EXEEXT) $^ $(DEFAULTCCFLAGS) $(COMMON_LD_FLAGS)
+	$(CXX) -o Parser$(EXEEXT) $^ $(DEFAULTCCFLAGS) $(COMMON_LD_FLAGS)
 	$(CP) $@ ../$@ 
 
 Parser2$(EXEEXT): SpecParser.tab.o lex2.yy.o NestedText.o
-	$(CC) -o Parser2$(EXEEXT) $^ $(DEFAULTCCFLAGS) $(COMMON_LD_FLAGS)
+	$(CXX) -o Parser2$(EXEEXT) $^ $(DEFAULTCCFLAGS) $(COMMON_LD_FLAGS) 
 	$(CP) $@ ../$@
 
 ifneq ($(MAKECMDGOALS),clean)
