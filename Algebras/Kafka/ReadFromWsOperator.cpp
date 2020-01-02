@@ -59,8 +59,8 @@ namespace ws {
         std::vector<std::string> attributes = kafka::split(wsOperatorType, ",");
         for (std::string attribute : attributes) {
             // Normalize string
-            std::replace(std::begin(attribute),std::end(attribute),'\t',' ');
-            std::replace(std::begin(attribute),std::end(attribute),'\n',' ');
+            std::replace(std::begin(attribute), std::end(attribute), '\t', ' ');
+            std::replace(std::begin(attribute), std::end(attribute), '\n', ' ');
             kafka::removeMultipleSpaces(attribute);
             std::vector<std::string> parts = kafka::split(attribute, " ");
             if (parts.size() != 3)
@@ -68,7 +68,7 @@ namespace ws {
 
             result.emplace_back(
                     parts.at(0),
-                    parts.at(1),
+                    websocketpp::utility::to_lower(parts.at(1)),
                     parts.at(2)
             );
         }
@@ -110,9 +110,9 @@ namespace ws {
         return 0;
     }
 
-    string buildSecondoType(vector<AttributeDescription> wsOperatorType);
+    string buildSecondoType(const vector<AttributeDescription> &attributes);
 
-    ListExpr validateAttributes(vector<AttributeDescription> vector);
+    ListExpr validateAttributes(const vector<AttributeDescription> &attributes);
 
     ListExpr ReadFromWebSocketTM(ListExpr args) {
         // check number of arguments
@@ -156,8 +156,9 @@ namespace ws {
         return res;
     }
 
-    ListExpr validateAttributes(vector<AttributeDescription> attributes) {
-        if (attributes.size() == 0) {
+    ListExpr
+    validateAttributes(const vector<AttributeDescription> &attributes) {
+        if (attributes.empty()) {
             return listutils::typeError("no attributes defined");
         }
         for (AttributeDescription attribute : attributes) {
@@ -167,9 +168,9 @@ namespace ws {
     }
 
 
-    string buildSecondoType(vector<AttributeDescription> attributes) {
+    string buildSecondoType(const vector<AttributeDescription> &attributes) {
         string result = "(stream (tuple (";
-        for (AttributeDescription attribute : attributes) {
+        for (const AttributeDescription &attribute : attributes) {
             result = result + "(" + attribute.name + " " + attribute.type + ")";
         }
         return result + ")))";
@@ -204,21 +205,31 @@ namespace ws {
             }
         }
 
-        // this function returns the next result or null if the input is
+        bool parseBoolean(string basicString) {
+            std::string str = websocketpp::utility::to_lower(basicString);
+            if (str == "true" || str == "t")
+                return true;
+            if (str == "false" || str == "f")
+                return false;
+
+            return std::stoi(str);
+        }
+
+// this function returns the next result or null if the input is
         // exhausted
         Tuple *getNext(Supplier s) {
             if (!def) {
-                return NULL;
+                return nullptr;
             }
 
             if (count++ == 10)
-                return NULL;
+                return nullptr;
 
             // Get data
             std::string data = webSocketClient.ReadSting();
             LOG(TRACE) << "WebSocketsSourceLI: DataSting=" << data;
             if (data.empty())
-                return NULL;
+                return nullptr;
 
             jsoncons::json jdata;
             try {
@@ -227,7 +238,7 @@ namespace ws {
                 LOG(ERROR)
                         << "Parsing " << data << " error. \n"
                         << "what(): " << e.what();
-                return NULL;
+                return nullptr;
             }
 
             // Prepare result
@@ -236,7 +247,7 @@ namespace ws {
             Tuple *res = new Tuple(tupleType);
 
             int index = 0;
-            for (AttributeDescription attribute : attributes) {
+            for (const AttributeDescription &attribute : attributes) {
                 std::string value;
                 try {
                     value = jsoncons::jsonpointer::get(
@@ -247,9 +258,22 @@ namespace ws {
                             << "Geting pointer " << attribute.path << " from "
                             << data << " error. \n"
                             << "what(): " << e.what();
-                    value = "error";
+                    value = "json error";
                 }
-                res->PutAttribute(index++, new CcString(true, value));
+                if (attribute.type == "string")
+                    res->PutAttribute(index++, new CcString(true, value));
+                else if (attribute.type == "real") {
+                    double dValue = std::stod(value);
+                    res->PutAttribute(index++, new CcReal(true, dValue));
+                } else if (attribute.type == "int") {
+                    int iValue = std::stoi(value);
+                    res->PutAttribute(index++, new CcInt(true, iValue));
+                } else if (attribute.type == "bool") {
+                    bool bValue = parseBoolean(value);
+                    res->PutAttribute(index++, new CcBool(true, bValue));
+                } else
+                    res->PutAttribute(index++,
+                                      new CcString(true, "type error"));
             }
             return res;
         }
@@ -283,14 +307,14 @@ namespace ws {
 //                    return result.addr ? YIELD : CANCEL;
                     return YIELD;
                 } else {
-                    result.addr = 0;
+                    result.addr = nullptr;
                     return CANCEL;
                 }
             case CLOSE:
                 LOG(DEBUG) << "ReadFromWebSocketsVM closing";
                 if (li) {
                     delete li;
-                    local.addr = 0;
+                    local.addr = nullptr;
                 }
                 LOG(DEBUG) << "ReadFromWebSocketsVM closed";
                 return 0;

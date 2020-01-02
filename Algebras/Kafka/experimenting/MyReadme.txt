@@ -94,11 +94,20 @@
 -- WebSockets
 query signalFinish("localhost", 8080);
 
-query readfromwebsocket("mock://data", "hello", 'Name,string,/reputons/0/rated') finishStream[8080] consoleConsumer count;
-query readfromwebsocket("mock://data", "hello", 'Name,string,/reputons/0/rated') finishStream[8080] head[10] consume;
+query readfromwebsocket("mock://data", "hello", 'Name string /reputons/0/rated') finishStream[8080] consoleConsumer count;
+query readfromwebsocket("mock://data", "hello", 'Name string /reputons/0/rated') finishStream[8080] head[10] consume;
 
-query readfromwebsocket("wss://ws.blockchain.info/inv", "{\"op\":\"unconfirmed_sub\"}", 'Name,string,/op') finishStream[8080] consoleConsumer count;
+query readfromwebsocket("wss://ws.blockchain.info/inv", "{\"op\":\"unconfirmed_sub\"}", 'Name string /op') finishStream[8080] consoleConsumer count;
 
-query readfromwebsocket("wss://ws.blockchain.info/inv", "{\"op\":\"unconfirmed_sub\"}", 'Name,string,/op;Size,string,/x/size;Addr,string,/x/inputs/0/prev_out/addr') finishStream[8080] consoleConsumer count;
+query readfromwebsocket("wss://ws.blockchain.info/inv", "{\"op\":\"unconfirmed_sub\"}",
+    'Name string /op,
+    Size string /x/size,
+    Addr string /x/inputs/0/prev_out/addr')
+    finishStream[8080] consoleConsumer head[10] count;
 
+query readfromwebsocket("wss://ws.blockchain.info/inv", "{\"op\":\"unconfirmed_sub\"}",
+    'Name string /op,
+    Size int /x/size,
+    Addr string /x/inputs/0/prev_out/addr')
+    finishStream[8080] consoleConsumer head[10] count;
 
