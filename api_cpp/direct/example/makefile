@@ -50,10 +50,15 @@ endif
 
 LDFLAGS += -lpthread
 
+ifdef PL_INCLUDE_DIR
+LDFLAGS +=  -L$(PL_LIB_DIR) -l$(PL_LIB)
+PLOBJECT :=  $(LIBDIR)/SecondoPrologInterface.o
+endif
+
 
 
 app$(EXEEXT): Example.o
-	$(CPPC) -o app$(EXEEXT) Example.o $(LDFLAGS) $(COMMON_LD_FLAGS) 
+	$(CPPC) -o app$(EXEEXT) Example.o $(PLOBJECT) $(LDFLAGS) $(COMMON_LD_FLAGS) 
 	mkdir -p databases
 
 
