@@ -26,6 +26,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 #include "dmapS.h"
+#include "DInputConsumer.h"
 
 using namespace std;
 using namespace distributed2;
@@ -49,7 +50,11 @@ namespace distributed5
 1 dmapS Operator
 
 Creates a stream of tasks. 
-Input Parameter can be a stream of tasks coming from a previous dmap\_S Operator or a DArray.
+Input Parameter can be
+
+  * a stream of tasks
+  
+  * D[F]Array
 
 1.1 Type Mapping 
 
@@ -59,7 +64,7 @@ template <int x>
 ListExpr dmapSTM(ListExpr args)
 {
     string err =
-        "{{darray(X) / stream(task(darray(X)))}  x string x fun} expected";
+        "{{d[f]array(X) / stream(task(d[f]array(X)))} x string x fun} expected";
 
     //ensure that exactly 2 + x argument comes into dmapS
     if (!nl->HasLength(args, 2 + x))
@@ -88,8 +93,6 @@ ListExpr dmapSTM(ListExpr args)
     {
         return listutils::typeError("internal error");
     }
-
-    ListExpr resultType;
 
     ListExpr argInputType[x];
     ListExpr appendValues = 0;
@@ -132,12 +135,6 @@ ListExpr dmapSTM(ListExpr args)
         {
             return listutils::typeError(err);
         }
-        if (i == 0)
-        {
-            resultType = inputIsDArray || inputIsDTaskStream
-                             ? listutils::basicSymbol<DArray>()
-                             : listutils::basicSymbol<DFArray>();
-        }
     }
     ListExpr argNameType = nl->First(argName);
     ListExpr argFunType = nl->First(argFun);
@@ -161,10 +158,21 @@ ListExpr dmapSTM(ListExpr args)
         funArgs[i] = nl->First(argFunTypeArgs);
         argFunTypeArgs = nl->Rest(argFunTypeArgs);
 
+        ListExpr darrayType = Stream<Task>::checkType(argInputType[i])
+                                  ? Task::innerType(nl->Second(argInputType[i]))
+                                  : argInputType[i];
+
         //expected Function Argument type
-        expFunArgs[i] = Stream<Task>::checkType(argInputType[i])
-                            ? Task::resultType(nl->Second(argInputType[i]))
-                            : nl->Second(argInputType[i]);
+        if (DFArray::checkType(darrayType))
+        {
+            expFunArgs[i] = nl->TwoElemList(
+                listutils::basicSymbol<frel>(),
+                nl->Second(nl->Second(darrayType)));
+        }
+        else
+        {
+            expFunArgs[i] = nl->Second(darrayType);
+        }
 
         if (!nl->Equal(expFunArgs[i], funArgs[i]))
         {
@@ -222,6 +230,10 @@ ListExpr dmapSTM(ListExpr args)
     // determine the result array type
     // if the origin function result is a tuple stream,
     // the result will be a dfarray, otherwise a darray
+    ListExpr resultType = isStream || isRel
+                              ? listutils::basicSymbol<DFArray>()
+                              : listutils::basicSymbol<DArray>();
+
     // i.e. (stream (task (darray int)))
     ListExpr resType = nl->TwoElemList(
         listutils::basicSymbol<Stream<Task>>(),
@@ -246,7 +258,7 @@ ListExpr dmapSTM(ListExpr args)
 
 /*
 
-1.1 Local Information Class for the dmap\_S Operator
+1.2 Local Information Class for the dmapS Operator
 
 */
 
@@ -254,100 +266,81 @@ template <int x>
 class dmapSLI
 {
 public:
-    //constructor of the dmapS Local Information
-    //string is the Function text
-    //remoteName is the name of the relation in the slots
-    dmapSLI(string dmapFunction, string remoteName, bool isRel)
+    // constructor of the dmapS Local Information
+    // inputs is a vector of DInputConsumer
+    //      (could be a d[f]array or a stream of tasks)
+    // string is the Function text
+    // remoteName is the name of the relation in the slots
+    // isStream is a boolean - is required for the result of the dmapS
+    dmapSLI(std::vector<DInputConsumer> &&inputs,
+            string dmapFunction, string remoteName, ListExpr contentType,
+            bool isRel, bool isStream)
+        : inputs(std::move(inputs)),
+          dmapFunction(dmapFunction),
+          remoteName(remoteName), contentType(contentType),
+          isRel(isRel), isStream(isStream)
     {
         for (int i = 0; i < x; i++)
         {
-            this->inputStreams[i] = 0;
+            this->inputLeafs[i] = 0;
         }
-        this->dmapFunction = dmapFunction;
-        this->remoteName = remoteName;
-        this->isRel = isRel;
     }
 
+    //destructor of dmapSLI
     ~dmapSLI()
     {
         for (int i = 0; i < x; i++)
         {
-            if (inputStreams[i])
+            if (inputLeafs[i])
             {
-                inputStreams[i]->close();
-                delete inputStreams[i];
-                inputStreams[i] = 0;
+                delete inputLeafs[i];
+                inputLeafs[i] = 0;
             }
         }
     }
 
-    void setStream(Word stream, int inputIndex)
-    {
-        int i = inputIndex;
-        this->inputStreams[i] = new Stream<Task>(stream);
-        this->inputStreams[i]->open();
-    }
-
-    //adds the task t to the list of all tasks
-    //manages also the predecessor and successor tasks of this tasks
-    //if task is not a leaf (so there are some other
-    // dmapS operators in between),
-    //the task can just be forwarded.
-    //if task is the leaf, the next incoming task is the successor of the
-    // task and visa versa.
-    void addTask(Task *t, int inputIndex)
-    {
-        if (!t->isLeaf())
-        {
-            outputTasks.push_back(t);
-        }
-        else
-        {
-            inputLeafQueues[inputIndex].push_back(t);
-        }
-    }
-
-    // TODO
+    //This methode is called for analysing the incoming tasks.
+    //This is done in a while loop, as long as the return value is true.
+    //When the incoming task queue is empty, further tasks are requested from
+    //the previous task.
+    //When all previous tasks for this task are availible, the task can be
+    //created and the previous tasks can be set.
     bool combineOutputTaskOrRequestFromInputStream()
     {
         for (int i = 0; i < x; i++)
         {
-            if (inputLeafQueues[i].empty())
+            if (inputLeafs[i] == 0)
             {
-                Stream<Task> *stream = inputStreams[i];
-                if (stream == 0)
-                {
-                    return false;
-                }
-                Task *task = stream->request();
+                DInputConsumer &input = inputs[i];
+                Task *task = input.request();
                 if (task)
                 {
-                    addTask(task, i);
+                    if (task->isLeaf())
+                    {
+                        task->setLeaf(false);
+                        inputLeafs[i] = task;
+                    }
+                    outputTasks.push_back(task);
                     return true;
                 }
                 else
                 {
-                    stream->close();
-                    delete stream;
-                    inputStreams[i] = 0;
                     return false;
                 }
             }
         }
-
-        Task *a = new Task(dmapFunction, remoteName, isRel);
+        //create new leaf task for this operator
+        Task *a = new Task(TaskType::Function_DMAPSX, dmapFunction,
+                           remoteName, contentType, isRel, isStream);
         a->setLeaf(true);
 
+        //check is all previous tasks for this operator are availible
         for (int i = 0; i < x; i++)
         {
-            Task *t = inputLeafQueues[i].front();
-            inputLeafQueues[i].pop_front();
-            t->setLeaf(false);
-            t->addSuccessorTask(a);
+            Task *t = inputLeafs[i];
+            inputLeafs[i] = 0;
             a->addPredecessorTask(t);
-            outputTasks.push_back(t);
         }
-
         outputTasks.push_back(a);
         return true;
     }
@@ -371,19 +364,18 @@ public:
 
 private:
     std::deque<Task *> outputTasks;
-    Stream<Task> *inputStreams[x];
-    std::deque<Task *> inputLeafQueues[x];
+    std::vector<DInputConsumer> inputs;
+    Task *inputLeafs[x];
     string dmapFunction;
     string remoteName;
+    ListExpr contentType;
     bool isRel;
+    bool isStream;
 };
 
 /*
 
-1.2 Value Mapping for dmap
-
-
-dmap\_S Value Mapping
+1.3 Value Mapping for dmapS
 
 */
 template <int x>
@@ -396,15 +388,10 @@ int dmapSVM(Word *args,
 
     dmapSLI<x> *li = (dmapSLI<x> *)local.addr;
 
-    FText *incomingFunction;
-    CcString *incomingRemoteName;
-    string remoteName;
-    bool isRel;
-    int i;
-
     switch (message)
     {
     case OPEN:
+    {
         if (li)
         {
             delete li;
@@ -413,11 +400,13 @@ int dmapSVM(Word *args,
         // a, b, c, remoteName, fn*, aIsStream, bIsStream, cIsStream,
         // |--x--|                   |--------------x--------------|
         // functionText, isRel, isStream
-        incomingRemoteName = (CcString *)args[x].addr;
-        incomingFunction = (FText *)args[2 * x + 2].addr;
-        isRel = ((CcBool *)args[2 * x + 3].addr)->GetValue();
+        CcString *incomingRemoteName = (CcString *)args[x].addr;
+        FText *incomingFunction = (FText *)args[2 * x + 2].addr;
+        bool isRel = ((CcBool *)args[2 * x + 3].addr)->GetValue();
+        bool isStream = ((CcBool *)args[2 * x + 4].addr)->GetValue();
 
         // create a new name for the result array
+        std::string remoteName;
         if (!incomingRemoteName->IsDefined() ||
             incomingRemoteName->GetValue().length() == 0)
         {
@@ -433,36 +422,33 @@ int dmapSVM(Word *args,
             return 0;
         }
 
-        local.addr = li =
-            new dmapSLI<x>(incomingFunction->GetValue(), remoteName, isRel);
-
-        for (i = 0; i < x; i++)
+        //check for all previous tasks
+        std::vector<DInputConsumer> inputs;
+        for (int i = 0; i < x; i++)
         {
             bool isStream = ((CcBool *)args[x + 2 + i].addr)->GetValue();
             if (isStream)
             {
-                li->setStream(args[i], i);
+                inputs.push_back(DInputConsumer(args[i]));
             }
             else
             {
                 DArrayBase *incomingDArray = (DArrayBase *)args[i].addr;
-                for (size_t j = 0; j < incomingDArray->getSize(); j++)
-                {
-                    //create list of Data Tasks
-                    li->addTask(
-                        new Task(
-                            incomingDArray->getWorkerForSlot(j),
-                            incomingDArray->getName(),
-                            j,
-                            incomingDArray->getType(),
-                            qp->GetType(qp->GetSon(s, i))),
-                        i);
-                }
+                inputs.push_back(DInputConsumer(
+                    incomingDArray,
+                    nl->Second(qp->GetType(qp->GetSon(s, i)))));
             }
         }
 
-        return 0;
+        local.addr = li =
+            new dmapSLI<x>(std::move(inputs),
+                           incomingFunction->GetValue(),
+                           remoteName,
+                           Task::resultType(nl->Second(qp->GetType(s))),
+                           isRel, isStream);
 
+        return 0;
+    }
     case REQUEST:
         result.addr = li ? li->getNext() : 0;
         return result.addr ? YIELD : CANCEL;
@@ -480,7 +466,7 @@ int dmapSVM(Word *args,
 }
 
 OperatorSpec dmapSSpec(
-    "darray(X)/tasks(darray(X)) x string x fun -> tasks(darray(Y))",
+    "d[f]array(X)/tasks(d[f]array(X)) x string x fun -> tasks(d[f]array(Y))",
     "_ dmapS[_,_]",
     "Creates a stream of tasks",
     "");

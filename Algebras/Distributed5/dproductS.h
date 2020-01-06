@@ -26,8 +26,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 
-#ifndef ARRAYORTASKSFUNARG_H
-#define ARRAYORTASKSFUNARG_H
+#ifndef DISTRIBUTE5_DPRODUCTS_H
+#define DISTRIBUTE5_DPRODUCTS_H
+
 #include "Attribute.h"
 #include "Algebra.h"
 #include "NestedList.h"
@@ -40,25 +41,17 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Algebras/Distributed2/CommandLogger.h"
 #include "Algebras/Array/ArrayAlgebra.h"
 #include "SocketIO.h"
-#include "Task.h"
 #include "Algebras/Distributed2/FileRelations.h"
 #include "Algebras/Distributed2/fsrel.h"
 #include "Stream.h"
 #include "Algebras/Distributed2/DArray.h"
 #include "Algebras/Distributed2/Distributed2Algebra.h"
 #include "Algebras/FText/FTextAlgebra.h"
+#include "Algebras/Distributed5/Task.h"
 
 namespace distributed5
 {
 
-extern Operator ARRAYORTASKSFUNARG1Op;
-extern Operator ARRAYORTASKSFUNARG2Op;
-extern Operator ARRAYORTASKSFUNARG3Op;
-extern Operator ARRAYORTASKSFUNARG4Op;
-extern Operator ARRAYORTASKSFUNARG5Op;
-
-extern Operator ARRAYORTASKSFUNFSARG2Op;
-
-} // namespace distributed5
-
+extern Operator dproductSOp;
+}
 #endif

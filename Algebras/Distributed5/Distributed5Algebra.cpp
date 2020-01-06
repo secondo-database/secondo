@@ -29,6 +29,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Algebras/Distributed5/schedule.h"
 #include "Algebras/Distributed5/Task.h"
 #include "Algebras/Distributed5/dmapS.h"
+#include "Algebras/Distributed5/dproductS.h"
 #include "Algebras/Distributed5/tasks2tuples.h"
 #include "Algebras/Distributed5/ARRAYORTASKSFUNARG.h"
 #include <boost/bind.hpp>
@@ -37,7 +38,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 using namespace std;
 using namespace distributed2;
 
-namespace distributed5{
+namespace distributed5
+{
 
 class Distributed5Algebra : public Algebra
 {
@@ -55,6 +57,8 @@ public:
         AddOperator(&dmapS5Op);
         dmapS5Op.SetUsesArgsInTypeMapping();
         AddOperator(&scheduleOp);
+        dproductSOp.SetUsesArgsInTypeMapping();
+        AddOperator(&dproductSOp);
         AddTypeConstructor(&TaskTC);
         TaskTC.AssociateKind(Kind::SIMPLE());
         AddOperator(&tasks2tuplesOp);
@@ -63,6 +67,7 @@ public:
         AddOperator(&ARRAYORTASKSFUNARG3Op);
         AddOperator(&ARRAYORTASKSFUNARG4Op);
         AddOperator(&ARRAYORTASKSFUNARG5Op);
+        AddOperator(&ARRAYORTASKSFUNFSARG2Op);
     }
 };
 

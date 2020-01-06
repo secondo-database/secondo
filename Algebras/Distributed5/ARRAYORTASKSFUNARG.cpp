@@ -38,7 +38,7 @@ namespace distributed5
 1 TypeMapOperators ARRAYORTASKSFUNARG1, ARRAYORTASKSFUNARG2 up to ARRAYORTASKSFUNARG8
 
 */
-template <int pos>
+template <int pos, bool convertToFsrel>
 ListExpr ARRAYORTASKSFUNARG_TM(ListExpr args)
 {
 
@@ -53,23 +53,45 @@ ListExpr ARRAYORTASKSFUNARG_TM(ListExpr args)
     ListExpr arg = nl->First(args);
     // i.e. arg = (darray int) or (stream (task (darray int)))
 
+    ListExpr innerType;
+
+    // unpack stream
+    if (Stream<Task>::checkType(arg))
+    {
+        arg = Task::innerType(nl->Second(arg));
+    }
+
     // i.e. arg = (darray int)
-    if (DArray::checkType(arg) || DFArray::checkType(arg))
+    if (DArray::checkType(arg))
     {
         // i.e. return int;
-        return nl->Second(arg);
+        innerType = nl->Second(arg);
     }
-
-    // i.e. arg = (stream (task (darray int)))
-    if (Stream<Task>::checkType(arg) &&
-        (DArray::checkType(Task::innerType(nl->Second(arg))) ||
-         DFArray::checkType(Task::innerType(nl->Second(arg)))))
+    // i.e. arg = (dfarray (rel ...))
+    else if (DFArray::checkType(arg))
     {
         // i.e. return int;
-        return Task::resultType(nl->Second(arg));
+        innerType = nl->TwoElemList(listutils::basicSymbol<frel>(),
+                                    nl->Second(nl->Second(arg)));
+    }
+    else
+    {
+        return listutils::typeError("Invalid type found");
     }
 
-    return listutils::typeError("Invalid type found");
+    if (convertToFsrel)
+    {
+        if (!Relation::checkType(innerType) && !frel::checkType(innerType))
+        {
+            return listutils::typeError("subtype type is not a relation");
+        }
+        return nl->TwoElemList(listutils::basicSymbol<fsrel>(),
+                               nl->Second(innerType));
+    }
+    else
+    {
+        return innerType;
+    }
 }
 
 OperatorSpec ARRAYORTASKSFUNARG1Spec(
@@ -83,7 +105,7 @@ Operator ARRAYORTASKSFUNARG1Op(
     ARRAYORTASKSFUNARG1Spec.getStr(),
     0,
     Operator::SimpleSelect,
-    ARRAYORTASKSFUNARG_TM<1>);
+    ARRAYORTASKSFUNARG_TM<1, false>);
 
 OperatorSpec ARRAYORTASKSFUNARG2Spec(
     "d(f)array(X) x ... -> X, stream(task(X)) x ... -> X",
@@ -96,7 +118,7 @@ Operator ARRAYORTASKSFUNARG2Op(
     ARRAYORTASKSFUNARG2Spec.getStr(),
     0,
     Operator::SimpleSelect,
-    ARRAYORTASKSFUNARG_TM<2>);
+    ARRAYORTASKSFUNARG_TM<2, false>);
 
 OperatorSpec ARRAYORTASKSFUNARG3Spec(
     "d(f)array(X) x ... -> X, stream(task(X)) x ... -> X",
@@ -109,7 +131,7 @@ Operator ARRAYORTASKSFUNARG3Op(
     ARRAYORTASKSFUNARG3Spec.getStr(),
     0,
     Operator::SimpleSelect,
-    ARRAYORTASKSFUNARG_TM<3>);
+    ARRAYORTASKSFUNARG_TM<3, false>);
 
 OperatorSpec ARRAYORTASKSFUNARG4Spec(
     "d(f)array(X) x ... -> X, stream(task(X)) x ... -> X",
@@ -122,7 +144,7 @@ Operator ARRAYORTASKSFUNARG4Op(
     ARRAYORTASKSFUNARG4Spec.getStr(),
     0,
     Operator::SimpleSelect,
-    ARRAYORTASKSFUNARG_TM<4>);
+    ARRAYORTASKSFUNARG_TM<4, false>);
 
 OperatorSpec ARRAYORTASKSFUNARG5Spec(
     "d(f)array(X) x ... -> X, stream(task(X)) x ... -> X",
@@ -135,5 +157,19 @@ Operator ARRAYORTASKSFUNARG5Op(
     ARRAYORTASKSFUNARG5Spec.getStr(),
     0,
     Operator::SimpleSelect,
-    ARRAYORTASKSFUNARG_TM<5>);
+    ARRAYORTASKSFUNARG_TM<5, false>);
+
+OperatorSpec ARRAYORTASKSFUNFSARG2Spec(
+    "d(f)array(X) x ... -> X, stream(task(X)) x ... -> X",
+    "ARRAYORTASKSFUNFSARG2(_)",
+    "Type mapping operator.",
+    "query df1 df2 dproduct_S [\"df3\" . count]");
+
+Operator ARRAYORTASKSFUNFSARG2Op(
+    "ARRAYORTASKSFUNFSARG2",
+    ARRAYORTASKSFUNFSARG2Spec.getStr(),
+    0,
+    Operator::SimpleSelect,
+    ARRAYORTASKSFUNARG_TM<2, true>);
+
 } // namespace distributed5

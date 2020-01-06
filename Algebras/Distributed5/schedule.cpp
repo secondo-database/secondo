@@ -35,24 +35,25 @@ namespace distributed5
 {
 
 /*
-1 schedule
+1 schedule Operator
 
-The operator schedule\_S is responsible for distributing the tasks from a tuple stream to the worker.
-*/
+The operator schedule is responsible for distributing the tasks from a tuple 
+stream to the worker.
 
-/*
 
 1.1 Type Mapping
+
+Type Mapping for the schedule Operator.
 
 */
 
 ListExpr scheduleTM(ListExpr args)
 {
 
-    string err = "stream(task(d[f]array)) expected";
+    string err = "stream(task(d[f]array), int) expected";
 
-    //ensure that exactly 1 argument comes into schedule
-    if (!nl->HasLength(args, 1))
+    //ensure that exactly 2 arguments comes into schedule
+    if (!nl->HasLength(args, 2))
     {
         return listutils::typeError(err + " (wrong number of arguments)");
     }
@@ -71,12 +72,30 @@ ListExpr scheduleTM(ListExpr args)
         return listutils::typeError(err + " (d[f]array expected)");
     }
 
+    // ensure that second argument is a port number
+    ListExpr arg2Type = nl->Second(args);
+    if (!CcInt::checkType(arg2Type))
+    {
+        return listutils::typeError(err + " (port number expected)");
+    }
+
     return taskType;
 }
+
+struct TaskScheduleInfo
+{
+public:
+    bool completed = false;
+    int incompletePrecessors = 0;
+    std::vector<Task *> successors;
+};
 
 class Scheduler
 {
 public:
+    Scheduler(int fileTransferPort) : context(fileTransferPort) {}
+
+    //joins all running threads
     void join()
     {
         mutex.lock();
@@ -94,17 +113,30 @@ public:
         mutex.unlock();
     }
 
+    //When a new task is recieved
+    //this methode checks if the task can be started or
+    //has to be added to the queue of waiting tasks
     void receiveTask(Task *task)
     {
         boost::lock_guard<boost::recursive_mutex> lock(mutex);
+
+        // update task schedule info structures
+        TaskScheduleInfo &info = taskInfo[task];
+        std::vector<Task *> &predecessors = task->getPredecessor();
+        for (auto it = predecessors.begin(); it != predecessors.end(); it++)
+        {
+            TaskScheduleInfo &preInfo = taskInfo[*it];
+            if (!preInfo.completed)
+            {
+                info.incompletePrecessors++;
+                preInfo.successors.push_back(task);
+            }
+        }
+
         //if incoming task can be started...
-        if (task->taskCanBeStarted())
+        if (info.incompletePrecessors == 0)
         {
             scheduleTask(task);
-        }
-        else
-        {
-            addWaitingTask(task);
         }
     }
 
@@ -112,6 +144,7 @@ public:
     string dArrayName;
 
 private:
+    //schedules the task
     void scheduleTask(Task *task)
     {
         allThreads.push_back(
@@ -120,40 +153,26 @@ private:
                     &Scheduler::runTask, this, task)));
     }
 
-    void addWaitingTask(Task *task)
-    {
-        allTasksWaiting.push_back(task);
-    }
-
+    //executes the task
     void runTask(Task *task)
     {
-        task->run();
+        task->run(context);
         boost::lock_guard<boost::recursive_mutex> lock(mutex);
-        //For all successor task, decrease the number of remaining tasks
-        task->decNumberOfRemainingTasksForSuccessors();
-        //check if there are now possible tasks which can be started.
-        //If that is the case, check, if this task came already
-        //in the schedule stream.
-        //If that is the case, add this task to the queue of task,
-        //which can possibly be started.
-        //If that is not the case - the task will came in later and
-        // will be checked if it can be started.
-        //This is needed, because the tasks themselve are connected.
-        //So it can be, that a task is finished, and because they
-        //are connected over their successor list, a task should be started,
-        //but the task has not came into the schedule operator.
-        vector<Task *> tasksPossibleToStart =
-            task->checkSuccessorsTasksToStart();
-        for (size_t i = 0; i < tasksPossibleToStart.size(); i++)
-        {
-            std::vector<Task *>::iterator foundPlace =
-                std::find(allTasksWaiting.begin(), allTasksWaiting.end(),
-                          tasksPossibleToStart[i]);
 
-            if (foundPlace != allTasksWaiting.end())
+        TaskScheduleInfo &info = taskInfo[task];
+        info.completed = true;
+        //For all successor task, decrease the number of remaining tasks
+        std::vector<Task *> &successors = info.successors;
+        for (auto it = successors.begin(); it != successors.end(); it++)
+        {
+            Task *succTask = *it;
+            TaskScheduleInfo &succInfo = taskInfo[succTask];
+            succInfo.incompletePrecessors--;
+
+            //check if there are now possible tasks which can be started.
+            if (succInfo.incompletePrecessors == 0)
             {
-                scheduleTask(tasksPossibleToStart[i]);
-                allTasksWaiting.erase(foundPlace);
+                scheduleTask(succTask);
             }
         }
         //If the task is a leaf the result of the
@@ -164,6 +183,7 @@ private:
             if (tt == TaskType::Error)
             {
                 //ToDo Add Errorhandling
+                cout << "Leaf task at slot " << task->getSlot() << " is Error";
                 dArrayName = "Error";
             }
             else
@@ -173,18 +193,29 @@ private:
                 {
                     myResult.push_back(DArrayElement("", 0, 0, ""));
                 }
-                myResult[task->getSlot()] = task->GetDArrayElement();
+                // TODO Error when already set (multiple leaf tasks)
+                DArrayElement &resultItem = myResult[task->getSlot()];
+                if (resultItem.getHost() != "")
+                {
+                    cout << "Multiple leaf tasks for slot " << task->getSlot()
+                         << endl;
+                }
+                resultItem = task->GetDArrayElement();
             }
         }
     }
     deque<boost::thread *> allThreads;
-    vector<Task *> allTasksWaiting;
     boost::recursive_mutex mutex;
+    TaskExecutionContext context;
+
+    std::map<Task *, TaskScheduleInfo> taskInfo;
 };
 
 /*
 
 1.2 Value Mapping
+
+Value Mapping for schedule Operator.
 
 */
 
@@ -194,17 +225,18 @@ int scheduleVM(Word *args, Word &result, int message,
     result = qp->ResultStorage(s);
     Stream<Task> stream(args[0]);
     stream.open();
+    int port = ((CcInt *)args[1].addr)->GetValue();
     Task *task;
     DArrayBase *res = (DArrayBase *)result.addr;
-    Scheduler scheduler;
+    Scheduler scheduler(port);
 
-    //As long as there are still incoming tasks...
-    while ((task = stream.request()))
+    while ((task = stream.request()) != 0)
     {
         scheduler.receiveTask(task);
     }
 
     scheduler.join();
+    // TODO delete all tasks
     res->set(scheduler.dArrayName, scheduler.myResult);
     stream.close();
 
@@ -212,8 +244,8 @@ int scheduleVM(Word *args, Word &result, int message,
 }
 
 OperatorSpec scheduleSpec(
-    "tasks(darray(X)) -> darray(X)",
-    "_ schedule",
+    "tasks(darray(X), int) -> darray(X)",
+    "_ schedule[_]",
     "Computes the result of the query.",
     "");
 

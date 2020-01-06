@@ -26,8 +26,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 
-#ifndef ARRAYORTASKSFUNARG_H
-#define ARRAYORTASKSFUNARG_H
+#ifndef DISTRIBUTE5_DINPUT_CONSUMER_H
+#define DISTRIBUTE5_DINPUT_CONSUMER_H
 #include "Attribute.h"
 #include "Algebra.h"
 #include "NestedList.h"
@@ -37,28 +37,37 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "StandardTypes.h"
 #include "Symbols.h"
 #include "ListUtils.h"
-#include "Algebras/Distributed2/CommandLogger.h"
 #include "Algebras/Array/ArrayAlgebra.h"
 #include "SocketIO.h"
-#include "Task.h"
-#include "Algebras/Distributed2/FileRelations.h"
-#include "Algebras/Distributed2/fsrel.h"
 #include "Stream.h"
+#include "Task.h"
 #include "Algebras/Distributed2/DArray.h"
 #include "Algebras/Distributed2/Distributed2Algebra.h"
-#include "Algebras/FText/FTextAlgebra.h"
+
+#include <boost/bind.hpp>
+#include <boost/ref.hpp>
+#include <boost/thread.hpp>
 
 namespace distributed5
 {
+class DInputConsumer
+{
+public:
+    DInputConsumer(DInputConsumer &&move);
+    DInputConsumer(DInputConsumer &copy) = delete;
+    DInputConsumer(distributed2::DArrayBase *dArray, ListExpr contentType);
+    DInputConsumer(Word &stream);
+    ~DInputConsumer();
 
-extern Operator ARRAYORTASKSFUNARG1Op;
-extern Operator ARRAYORTASKSFUNARG2Op;
-extern Operator ARRAYORTASKSFUNARG3Op;
-extern Operator ARRAYORTASKSFUNARG4Op;
-extern Operator ARRAYORTASKSFUNARG5Op;
+    Task *request();
 
-extern Operator ARRAYORTASKSFUNFSARG2Op;
-
+private:
+    distributed2::DArrayBase *dArray;
+    Stream<Task> *stream;
+    size_t index;
+    DataStorageType storageType;
+    ListExpr contentType;
+};
 } // namespace distributed5
 
 #endif

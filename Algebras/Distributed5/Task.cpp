@@ -34,7 +34,7 @@ using namespace distributed2;
 extern boost::mutex nlparsemtx;
 /*
 
-0 Functions from distributed2Algebras
+0 Functions from distributed2Algebra
 
 */
 namespace distributed2
@@ -120,18 +120,78 @@ int Task::nextId = 0;
 
 /*
 
-1.1 Default Task Constructor
+1.1 Default TaskExecutionContext Constructor
 
 */
-Task::Task()
+TaskExecutionContext::TaskExecutionContext(int _fileTransferPort)
+    : fileTransferPort(_fileTransferPort)
 {
-    this->taskType = undefined;
+}
+
+std::optional<boost::unique_lock<boost::recursive_mutex>>
+TaskExecutionContext::checkOpenFileTransferator(ConnectionInfo *ci)
+{
+    boost::recursive_mutex *mutex;
+    {
+        boost::lock_guard<boost::recursive_mutex> lock(
+            openFileTransferatorsMutex);
+        auto it = openFileTransferators.find(ci);
+        if (it == openFileTransferators.end())
+        {
+            // this creates a new mutex and locks it
+            return std::optional<boost::unique_lock<boost::recursive_mutex>>(
+                std::in_place,
+                openFileTransferators[ci]);
+        }
+        mutex = &it->second;
+    }
+    // this waits until the mutex is unlocked
+    boost::lock_guard<boost::recursive_mutex> wait(*mutex);
+    return std::optional<boost::unique_lock<boost::recursive_mutex>>();
+}
+
+std::pair<std::optional<boost::unique_lock<boost::recursive_mutex>>, Task *>
+TaskExecutionContext::checkFileAvailable(
+    Task *dataTask, std::string server, Task *resultTask)
+{
+    std::pair<Task *, std::string> key = make_pair(dataTask, server);
+    boost::recursive_mutex *mutex;
+    {
+        boost::lock_guard<boost::recursive_mutex> lock(
+            fileDataAvailableMutex);
+        auto it = fileDataAvailable.find(key);
+        if (it == fileDataAvailable.end())
+        {
+            auto &pair = fileDataAvailable[key];
+            pair.second = resultTask;
+            // this creates a new mutex and locks it
+            return make_pair(
+                std::optional<boost::unique_lock<boost::recursive_mutex>>(
+                    std::in_place,
+                    pair.first),
+                resultTask);
+        }
+        mutex = &it->second.first;
+        resultTask = it->second.second;
+    }
+    // this waits until the mutex is unlocked
+    boost::lock_guard<boost::recursive_mutex> wait(*mutex);
+    return make_pair(
+        std::optional<boost::unique_lock<boost::recursive_mutex>>(),
+        resultTask);
+}
+
+void TaskExecutionContext::debug(std::string message)
+{
+    boost::lock_guard<boost::recursive_mutex> lock(debugMutex);
+    cout << message << endl;
 }
 
 /*
 
-1.2 Constructor for specific Task Type
-    Creates a specific Task according to the Task Type
+2.1 Constructor for specific Task Type
+    
+Creates a specific Task according to the Task Type
 
 */
 
@@ -144,11 +204,14 @@ Task::Task(TaskType taskType)
 
 /*
 
-1.3 Constructor for Data Task Type
+2.2 Constructor for Data Task Type
 
- creates a  Data Task Type
- Root task of each slot
+ Creates a  Data Task Type
+ 
+ Root task for each slot
+ 
  This task has no incoming task
+ 
  Only outgoing tasks    
 
 */
@@ -156,8 +219,8 @@ Task::Task(
     DArrayElement dArrayElement,
     string name,
     size_t slot,
-    distributed2::arrayType dArrayType,
-    ListExpr aType)
+    DataStorageType storageType,
+    ListExpr contentType)
 {
     this->taskType = Data;
     this->name = name;
@@ -166,31 +229,36 @@ Task::Task(
     this->config = dArrayElement.getConfig();
     this->worker = dArrayElement.getNum();
     this->slot = slot;
-    this->dArrayType = dArrayType;
-    this->aType = aType;
+    this->storageType = storageType;
+    this->contentType = contentType;
     nextId++;
     id = nextId;
 }
 
 /*
 
-1.4 Function Task Type
-this task can have incoming function or data tasks and outgoing function tasks
+2.3 Function Task Type
+
+This task can have incoming function or data tasks and outgoing function tasks
 
 */
-Task::Task(string dmapFunction, string resultName, bool isRel)
+Task::Task(TaskType taskType, string mapFunction,
+           string resultName, ListExpr resultContentType,
+           bool isRel, bool isStream)
 {
-    this->taskType = Function;
-    this->dmapFunction = dmapFunction;
+    this->taskType = taskType;
+    this->mapFunction = mapFunction;
     this->resultName = resultName;
     this->isRel = isRel;
+    this->isStream = isStream;
+    this->resultContentType = resultContentType;
     nextId++;
     id = nextId;
 }
 
 /*
 
-1.5 Default Task Destructor
+2.4 Default Task Destructor
 
 */
 Task::~Task()
@@ -199,14 +267,14 @@ Task::~Task()
 
 /*
 
-1.5 Basic Type - Task
+2.5 Basic Type - Task
 
 */
 const string Task::BasicType() { return "task"; }
 
 /*
 
-1.6 Check Type for Type - Task
+2.6 Check Type for Type - Task
 
 */
 const bool Task::checkType(const ListExpr list)
@@ -222,36 +290,119 @@ const bool Task::checkType(const ListExpr list)
     return true;
 }
 
-//Adds a task to the list of successor tasks
-void Task::addSuccessorTask(Task *t)
-{
-    listOfSucc.push_back(t);
-    t->incNumberOfRemainingTasks();
-}
-
 //Adds a task to the list of predecessor tasks
 void Task::addPredecessorTask(Task *t)
 {
     listOfPre.push_back(t);
 }
 
-//returns the number of the remaining function tasks before
-//this task can be executed
-//if the number is 0 this task can be executed
-int Task::getNumberOfRemainingTasks()
-{
-    return numberOfRemainingTasks;
-}
-
 //executes a function task
-void Task::run()
+void Task::run(TaskExecutionContext &context)
 {
-    if (this->taskType == TaskType::Function)
+    switch (this->taskType)
     {
-        //get dbname
-        string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
-        ConnectionInfo *ci;
-        bool showCommands = false;
+    case TaskType::Error:
+    case TaskType::Data:
+        // nothing to do
+        break;
+    case TaskType::PrepareDataForCopy:
+    {
+        Task *task = listOfPre.front();
+        convertToData(task);
+
+        ConnectionInfo *ci = getWorkerConnection();
+
+        // Save Object in a file
+        if (storageType == DataStorageType::Object)
+        {
+            storageType = DataStorageType::File;
+            string oname = getObjectName();
+            string fname = getFilePath();
+            string cmd = "query " + oname +
+                         " saveObjectToFile['" + fname + "']";
+            if (!runCommand(ci, cmd, "save object to file"))
+                return;
+        }
+
+        {
+            auto lock = context.checkOpenFileTransferator(ci);
+            if (lock)
+            {
+                string cmd = "query staticFileTransferator(" +
+                             std::to_string(context.getFileTransferPort()) +
+                             ",10)";
+                runCommand(ci, cmd, "open file transferator", false, true);
+            }
+        }
+        break;
+    }
+    case TaskType::CopyData:
+    {
+        Task *contentTask = listOfPre.front();
+        Task *targetTask = listOfPre.back();
+        // Data from contentTask should be made available
+        // to targetTask's worker
+
+        // Check if content worker is target worker
+        if (contentTask->worker == targetTask->worker)
+        {
+            convertToData(contentTask);
+            break;
+        }
+
+        // Check if content is already addressable from target
+        // Lock mutex for this content-ip-pair to handle parallelity
+        auto pair = context.checkFileAvailable(
+            contentTask, targetTask->getServer(), this);
+        if (!pair.first)
+        {
+            // Data is already available in second arguments task
+            convertToData(pair.second);
+            return;
+        }
+
+        // Check if data is on the same server
+        // We can reference the data from the other worker
+        // via file reference
+        if (contentTask->server == targetTask->server)
+        {
+            convertToData(contentTask);
+            return;
+        }
+
+        // Copy location info from targetTask and
+        // data info from contentTask
+        convertToData(targetTask);
+        name = contentTask->name;
+        slot = contentTask->slot;
+        storageType = DataStorageType::File; // copied data is always a file
+        contentType = contentTask->contentType;
+
+        // Need to copy content to target
+        // TODO choose target via round-robin
+        // TODO check if file already exists, e. g. by prev copy
+        ConnectionInfo *targetCI = targetTask->getWorkerConnection();
+        ConnectionInfo *sourceCI = contentTask->getWorkerConnection();
+
+        string cmd = string("query getFileTCP(") +
+                     "'" + contentTask->getFilePath() + "', " +
+                     "'" + sourceCI->getHost() + "', " +
+                     std::to_string(context.getFileTransferPort()) + ", " +
+                     "TRUE, " +
+                     "'" + getFilePath() + "')";
+        if (!runCommand(targetCI, cmd, "transfer file"))
+            return;
+        break;
+    }
+    case TaskType::Function_DMAPSX:
+    {
+        string resultName = this->resultName;
+
+        Task *firstTask = listOfPre.front();
+        convertToData(firstTask);
+
+        //get worker connection for this slot
+        ConnectionInfo *ci = getWorkerConnection();
 
         //Get Data Information from Previous Task to current
         //task and make current
@@ -267,200 +418,52 @@ void Task::run()
                 this->taskType = TaskType::Error;
                 return;
             }
-            if (t == listOfPre.begin())
-            {
-                this->server = previousDataTask->server;
-                this->port = previousDataTask->port;
-                this->config = previousDataTask->config;
-                this->slot = previousDataTask->slot;
-                this->worker = previousDataTask->worker;
-                this->dArrayType = previousDataTask->dArrayType;
-
-                //get worker connection for this slot
-                ci = algInstance->getWorkerConnection(
-                    DArrayElement(server, port, worker, config), dbname);
-            }
-            switch (previousDataTask->dArrayType)
-            {
-            case arrayType::DARRAY:
-                funargs.push_back(previousDataTask->name + "_" +
-                                  std::to_string(slot) + " ");
-                break;
-            case arrayType::DFARRAY:
-            {
-                string fname1 = ci->getSecondoHome(
-                                    showCommands, commandLog) +
-                                "/dfarrays/" + dbname + "/" +
-                                previousDataTask->name + "/" +
-                                previousDataTask->name + "_" +
-                                std::to_string(slot) + ".bin";
-                ListExpr frelType = nl->TwoElemList(
-                    listutils::basicSymbol<frel>(),
-                    nl->Second(nl->Second(previousDataTask->aType)));
-
-                funargs.push_back("(" + nl->ToString(frelType) +
-                                  " '" + fname1 + "' )" + " ");
-                break;
-            }
-            default:
-                throw std::invalid_argument("Not implemented");
-            }
+            funargs.push_back(previousDataTask->getValueArgument() + " ");
         }
 
         //set name2 from the previous task
-        string name2 = resultName + "_" +
-                       stringutils::int2str(this->slot);
+        string name2 = getResultObjectName();
 
-        ListExpr funCmdList = fun2cmd(dmapFunction, funargs);
+        ListExpr funCmdList = fun2cmd(mapFunction, funargs);
 
         funCmdList = replaceWrite(funCmdList, "write2", name2);
         if (listOfPre.size() == 1)
         {
-            string name_slot = listOfPre.front()->name + "_" +
-                               std::to_string(slot);
+            string name_slot = firstTask->getObjectName();
             funCmdList = replaceWrite(funCmdList, "write3", name_slot);
         }
         string funcmd = nl->ToString(funCmdList);
 
-        string cmd;
-
-        switch (listOfPre.front()->dArrayType)
-        {
-        case arrayType::DARRAY:
-        {
-            cmd = "(let " + name2 + " = " + funcmd + ")";
-            break;
-        }
-        case arrayType::DFARRAY:
-        {
-            // create the target directory
-            string targetDir = ci->getSecondoHome(
-                                   showCommands, commandLog) +
-                               "/dfarrays/" + dbname + "/" + resultName + "/";
-
-            string cd = "query createDirectory('" + targetDir + "', TRUE)";
-            int err;
-            string errMsg;
-            string r;
-            double runtime;
-            ci->simpleCommand(cd, err, errMsg, r, false, runtime,
-                              showCommands, commandLog, false,
-                              algInstance->getTimeout());
-            if (err)
-            {
-                cerr << "creating directory failed, cmd = " << cd << endl;
-                cerr << "message : " << errMsg << endl;
-                cerr << "code : " << err << endl;
-                cerr << "meaning : " << SecondoInterface::GetErrorMessage(err)
-                     << endl;
-                writeLog(ci, cd, errMsg);
-                this->taskType = TaskType::Error;
-                return;
-            }
-            string fname2 = targetDir +
-                            resultName + "_" + std::to_string(slot) + ".bin";
-
-            // if the result of the function is a relation, we feed it
-            // into a stream to fconsume it
-            // if there is a non-temp-name and a dfs is avaiable,
-            // we extend the fconsume arguments by boolean values
-            // first : create dir, always true
-            // second : put result to dfs
-            string aa = "";
-            if (filesystem)
-            {
-                aa = " TRUE TRUE ";
-            }
-            if (this->isRel)
-            {
-                cmd = "(query (count (fconsume5 (feed " + funcmd + " )'" +
-                      fname2 + "' " + aa + ")))";
-            }
-            else
-            {
-                cmd = "(query (count (fconsume5 " + funcmd + " '" +
-                      fname2 + "'" + aa + " )))";
-            }
-
-            break;
-        }
-        default:
-            throw std::invalid_argument("Not implemented");
-        }
-
-        int err = 0;
-        string errMsg;
-        string r;
-        double runtime;
-        if (!ci)
-        {
+        if (!store(ci, funcmd, "dmapS"))
             return;
-        }
-        //executes the simple command
-        ci->simpleCommandFromList(cmd, err, errMsg, r, false, runtime,
-                                  showCommands, commandLog, false,
-                                  algInstance->getTimeout());
+        break;
+    }
+    case TaskType::Function_DPRODUCT:
+    {
+        Task *first = listOfPre.front();
+        Task *last = listOfPre.back();
 
-        if ((err != 0))
+        convertToData(first);
+
+        ConnectionInfo *ci = first->getWorkerConnection();
+        string arg1 = first->getValueArgument();
+        ListExpr fsrelType = nl->TwoElemList(
+            listutils::basicSymbol<fsrel>(),
+            nl->Second(last->contentType));
+        string arg2 = "(" + nl->ToString(fsrelType) + "( ";
+        for (auto it = listOfPre.begin() + 1; it != listOfPre.end(); it++)
         {
-            std::cout << "ERROR FROM TASK\n";
-            showError(ci, cmd, err, errMsg);
-            std::cout << "\nLOG FROM TASK\n";
-            writeLog(ci, cmd, errMsg);
-            std::cout << "\nfeddisch\n";
-            this->taskType = TaskType::Error;
+            Task *t = *it;
+            arg2 += "'" + t->getFilePath() + "' ";
+        }
+        arg2 += "))";
+        string funcall = "( " + mapFunction + " " + arg1 + " " + arg2 + ")";
+
+        if (!store(ci, funcall, "dproductS"))
             return;
-        }
-        this->taskType = TaskType::Data;
-        this->name = this->resultName;
+        break;
     }
-}
-
-//increases the number or remaining tasks
-//when a predecessor task is added this function is needed
-void Task::incNumberOfRemainingTasks()
-{
-    numberOfRemainingTasks = numberOfRemainingTasks + 1;
-}
-
-//decreases the number or remaining tasks
-//when a predecessor task is executed this function is needed
-void Task::decNumberOfRemainingTasks()
-{
-    numberOfRemainingTasks = numberOfRemainingTasks - 1;
-}
-
-//decreases the number of remaining tasks for all successor tasks
-//this is needed when the task is finished  an all successor tasks
-//needs to be informed, that this task is finished.
-void Task::decNumberOfRemainingTasksForSuccessors()
-{
-    for (size_t i = 0; i < listOfSucc.size(); i++)
-    {
-        listOfSucc[i]->decNumberOfRemainingTasks();
     }
-}
-
-//checks if a successor task can be started
-//this is needed when the task is finished.
-//All successor tasks need to be checked if they can be started.
-vector<Task *> Task::checkSuccessorsTasksToStart()
-{
-    vector<Task *> allPossibleSuccessorTasksToStart;
-    for (size_t i = 0; i < listOfSucc.size(); i++)
-    {
-        if (listOfSucc[i]->numberOfRemainingTasks == 0)
-        {
-            allPossibleSuccessorTasksToStart.push_back(listOfSucc[i]);
-        }
-    }
-    return allPossibleSuccessorTasksToStart;
-}
-
-//checks if this task can be started.
-bool Task::taskCanBeStarted()
-{
-    return (numberOfRemainingTasks == 0);
 }
 
 //returns the DArray information.
@@ -483,6 +486,17 @@ size_t Task::getSlot()
     return slot;
 }
 
+DataStorageType Task::getStorageType()
+{
+    return storageType;
+}
+
+//returns the task as a string - needed for debugging...
+string Task::getFunction()
+{
+    return mapFunction;
+}
+
 //returns the server on which the task has to start
 std::string Task::getServer()
 {
@@ -499,6 +513,11 @@ int Task::getPort()
 int Task::getWorker()
 {
     return worker;
+}
+
+ListExpr Task::getContentType()
+{
+    return contentType;
 }
 
 //returns if the task is a leaf
@@ -518,23 +537,13 @@ void Task::setLeaf(bool leaf)
     this->leaf = leaf;
 }
 
-//returns the task as a string - needed for debugging...
-string Task::getFunction()
-{
-    return dmapFunction;
-}
-
-//returns the task as a string - needed for debugging...
-std::vector<Task *> Task::getSuccessors()
-{
-    return listOfSucc;
-}
-
-std::vector<Task *> Task::getPredecessor()
+//returns the list of predecessor tasks
+std::vector<Task *> &Task::getPredecessor()
 {
     return listOfPre;
 }
 
+//returns the id of the task
 int Task::getId()
 {
     return id;
@@ -550,8 +559,8 @@ string Task::toString()
     case TaskType::Data:
         ss << "Data " << name << " " << slot << " on " << worker;
         break;
-    case TaskType::Function:
-        ss << "Function " << resultName << " " << dmapFunction;
+    case TaskType::Function_DMAPSX:
+        ss << "Function_DMAPSX " << resultName << " " << mapFunction;
         break;
     case TaskType::Error:
         ss << "Error ";
@@ -561,6 +570,177 @@ string Task::toString()
         break;
     }
     return ss.str();
+}
+
+std::string Task::getFilePath()
+{
+    ConnectionInfo *ci = getWorkerConnection();
+    string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
+    return ci->getSecondoHome(false, commandLog) +
+           "/dfarrays/" + dbname + "/" +
+           name + "/" +
+           name + "_" +
+           std::to_string(slot) + ".bin";
+}
+
+std::string Task::getResultFileDir(ConnectionInfo *ci)
+{
+    string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
+    return ci->getSecondoHome(false, commandLog) +
+           "/dfarrays/" + dbname + "/" +
+           resultName + "/";
+}
+
+std::string Task::getResultFilePath(ConnectionInfo *ci)
+{
+    return getResultFileDir(ci) +
+           resultName + "_" +
+           std::to_string(slot) + ".bin";
+}
+
+std::string Task::getValueArgument()
+{
+    switch (storageType)
+    {
+    case DataStorageType::Object:
+        return getObjectName();
+    case DataStorageType::File:
+    {
+        string fname1 = getFilePath();
+        ListExpr frelType = nl->TwoElemList(
+            listutils::basicSymbol<frel>(),
+            nl->Second(contentType));
+
+        return "(" + nl->ToString(frelType) +
+               " '" + fname1 + "' )";
+        break;
+    }
+    default:
+        throw std::invalid_argument("not implemented storage type");
+    }
+}
+
+bool Task::runCommand(ConnectionInfo *ci,
+                      std::string cmd,
+                      std::string description,
+                      bool nestedListFormat,
+                      bool ignoreFailure)
+{
+    bool showCommands = false;
+    int err;
+    string errMsg;
+    string r;
+    double runtime;
+    if (nestedListFormat)
+    {
+        ci->simpleCommandFromList(cmd, err, errMsg, r, false, runtime,
+                                  showCommands, commandLog, false,
+                                  algInstance->getTimeout());
+    }
+    else
+    {
+        ci->simpleCommand(cmd, err, errMsg, r, false, runtime,
+                          showCommands, commandLog, false,
+                          algInstance->getTimeout());
+    }
+    if (err)
+    {
+        cerr << description << " failed, cmd = " << cmd << endl;
+        cerr << "message : " << errMsg << endl;
+        cerr << "code : " << err << endl;
+        cerr << "meaning : " << SecondoInterface::GetErrorMessage(err) << endl;
+        writeLog(ci, cmd, errMsg);
+        this->taskType = TaskType::Error;
+        this->errorMessage = errMsg;
+        return false;
+    }
+    if (!ignoreFailure && r == "(bool FALSE)")
+    {
+        cerr << description << " failed, cmd = " << cmd << endl;
+        cerr << "command returned FALSE" << endl;
+        writeLog(ci, cmd, "returned FALSE");
+        this->taskType = TaskType::Error;
+        this->errorMessage = "returned FALSE";
+        return false;
+    }
+    return true;
+}
+
+bool Task::store(ConnectionInfo *ci, std::string value, std::string description)
+{
+    string name2 = getResultObjectName();
+    string cmd;
+
+    storageType = this->isStream || this->isRel
+                      ? DataStorageType::File
+                      : DataStorageType::Object;
+
+    switch (storageType)
+    {
+    case DataStorageType::Object:
+    {
+        if (this->isStream)
+        {
+            cmd = "(let " + name2 + " = (consume " + value + "))";
+        }
+        else
+        {
+            cmd = "(let " + name2 + " = " + value + ")";
+        }
+        break;
+    }
+    case DataStorageType::File:
+    {
+        // create the target directory
+        string targetDir = getResultFileDir(ci);
+
+        string cd = "query createDirectory('" + targetDir + "', TRUE)";
+        runCommand(ci, cd, "create directory for file", false, true);
+
+        string fname2 = getResultFilePath(ci);
+
+        // if the result of the function is a relation, we feed it
+        // into a stream to fconsume it
+        // if there is a non-temp-name and a dfs is avaiable,
+        // we extend the fconsume arguments by boolean values
+        // first : create dir, always true
+        // second : put result to dfs
+        string aa = "";
+        if (filesystem)
+        {
+            aa = " TRUE TRUE ";
+        }
+        if (this->isStream)
+        {
+            cmd = "(query (count (fconsume5 " + value + " '" +
+                  fname2 + "'" + aa + " )))";
+        }
+        else
+        {
+            cmd = "(query (count (fconsume5 (feed " + value + " )'" +
+                  fname2 + "' " + aa + ")))";
+        }
+
+        break;
+    }
+    default:
+        throw std::invalid_argument("not implemented storage type");
+    }
+
+    if (!runCommand(ci, cmd, description, true))
+        return false;
+
+    this->name = resultName;
+    this->contentType = resultContentType;
+
+    return true;
+}
+
+ConnectionInfo *Task::getWorkerConnection()
+{
+    string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
+    return algInstance->getWorkerConnection(
+        DArrayElement(server, port, worker, config), dbname);
 }
 
 //these functions are needed for the type constructor
@@ -598,7 +778,7 @@ bool TaskTypeCheck(ListExpr type, ListExpr &errorInfo)
 Word CreateTask(const ListExpr typeInfo)
 {
     Word w;
-    w.addr = (new Task());
+    w.addr = (new Task(TaskType::Error));
     return w;
 }
 

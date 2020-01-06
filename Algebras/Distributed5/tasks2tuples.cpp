@@ -34,6 +34,16 @@ using namespace distributed2;
 namespace distributed5
 {
 
+/*
+
+1 tasks2tuples Operator
+
+Converts a stream of tasks to tuples.
+
+1.1 Type Mapping
+
+*/
+
 ListExpr tasks2tuplesTM(ListExpr args)
 {
     string err = "stream(tasks(darray)) expected";
@@ -54,26 +64,33 @@ ListExpr tasks2tuplesTM(ListExpr args)
     ListExpr attrList = nl->Cons(
         nl->TwoElemList(nl->SymbolAtom("ID"),
                         listutils::basicSymbol<FText>()),
-        nl->SixElemList(
+        nl->Cons(
             nl->TwoElemList(nl->SymbolAtom("TaskType"),
                             listutils::basicSymbol<FText>()),
-            nl->TwoElemList(nl->SymbolAtom("TaskFunction"),
-                            listutils::basicSymbol<FText>()),
-            nl->TwoElemList(nl->SymbolAtom("Worker"),
-                            listutils::basicSymbol<FText>()),
-            nl->TwoElemList(nl->SymbolAtom("Slot"),
-                            listutils::basicSymbol<FText>()),
-            nl->TwoElemList(nl->SymbolAtom("SuccessorTasks"),
-                            listutils::basicSymbol<FText>()),
-            nl->TwoElemList(nl->SymbolAtom("PredecessorTasks"),
-                            listutils::basicSymbol<FText>())));
+            nl->FiveElemList(
+                nl->TwoElemList(nl->SymbolAtom("TaskFunction"),
+                                listutils::basicSymbol<FText>()),
+                nl->TwoElemList(nl->SymbolAtom("Worker"),
+                                listutils::basicSymbol<FText>()),
+                nl->TwoElemList(nl->SymbolAtom("Location"),
+                                listutils::basicSymbol<FText>()),
+                nl->TwoElemList(nl->SymbolAtom("ContentType"),
+                                listutils::basicSymbol<FText>()),
+                nl->TwoElemList(nl->SymbolAtom("PredecessorTasks"),
+                                listutils::basicSymbol<FText>()))));
 
     return Stream<Tuple>::wrap(Tuple::wrap(attrList));
 }
 
+/*
+
+1.2 Class for Local Information Service
+
+*/
 class tasks2tuplesLI
 {
 public:
+    //constructor for tasks2tuplesLi
     tasks2tuplesLI(Word arg, ListExpr tupleTypeExpr)
         : stream(arg),
           tupleType(new TupleType(tupleTypeExpr))
@@ -81,12 +98,14 @@ public:
         stream.open();
     }
 
+    //destructor
     ~tasks2tuplesLI()
     {
         stream.close();
         tupleType->DeleteIfAllowed();
     }
 
+    //Operator for getting the next Task of the stream
     Tuple *getNext()
     {
         Task *task = stream.request();
@@ -101,6 +120,17 @@ public:
         switch (taskType)
         {
         case TaskType::Data:
+        {
+            std::string storageType = "?";
+            switch (task->getStorageType())
+            {
+            case DataStorageType::Object:
+                storageType = "object";
+                break;
+            case DataStorageType::File:
+                storageType = "file";
+                break;
+            }
             tuple->PutAttribute(1, new FText(true, "Data Task"));
             tuple->PutAttribute(2, new FText(true, "N/A"));
             tuple->PutAttribute(
@@ -110,36 +140,50 @@ public:
                                     std::to_string(task->getWorker())));
             tuple->PutAttribute(
                 4,
-                new FText(true, std::to_string(task->getSlot())));
+                new FText(true, task->getName() + " @ " +
+                                    std::to_string(task->getSlot()) + " as " +
+                                    storageType));
+            tuple->PutAttribute(
+                5,
+                new FText(true, nl->ToString(task->getContentType())));
             break;
-        case TaskType::Function:
-            tuple->PutAttribute(1, new FText(true, "Function Task"));
+        }
+        case TaskType::Function_DMAPSX:
+            tuple->PutAttribute(1, new FText(true, "Function DMAPSX Task"));
             tuple->PutAttribute(2, new FText(true, task->getFunction()));
             tuple->PutAttribute(3, new FText(true, "N/A"));
             tuple->PutAttribute(4, new FText(true, "N/A"));
+            tuple->PutAttribute(5, new FText(true, "N/A"));
+            break;
+        case TaskType::Function_DPRODUCT:
+            tuple->PutAttribute(1, new FText(true, "Function DPRODUCT Task"));
+            tuple->PutAttribute(2, new FText(true, task->getFunction()));
+            tuple->PutAttribute(3, new FText(true, "N/A"));
+            tuple->PutAttribute(4, new FText(true, "N/A"));
+            tuple->PutAttribute(5, new FText(true, "N/A"));
+            break;
+        case TaskType::PrepareDataForCopy:
+            tuple->PutAttribute(1, new FText(true, "Prepare for Copy Task"));
+            tuple->PutAttribute(2, new FText(true, "N/A"));
+            tuple->PutAttribute(3, new FText(true, "N/A"));
+            tuple->PutAttribute(4, new FText(true, "N/A"));
+            tuple->PutAttribute(5, new FText(true, "N/A"));
+            break;
+        case TaskType::CopyData:
+            tuple->PutAttribute(1, new FText(true, "Copy Data Task"));
+            tuple->PutAttribute(2, new FText(true, "N/A"));
+            tuple->PutAttribute(3, new FText(true, "N/A"));
+            tuple->PutAttribute(4, new FText(true, "N/A"));
+            tuple->PutAttribute(5, new FText(true, "N/A"));
             break;
         case TaskType::Error:
             tuple->PutAttribute(1, new FText(true, "Error Task"));
             tuple->PutAttribute(2, new FText(true, "-"));
             tuple->PutAttribute(3, new FText(true, "-"));
             tuple->PutAttribute(4, new FText(true, "-"));
+            tuple->PutAttribute(5, new FText(true, "-"));
             break;
-        default:
-            tuple->PutAttribute(1, new FText(true, ""));
-            tuple->PutAttribute(2, new FText(true, ""));
-            tuple->PutAttribute(3, new FText(true, ""));
-            tuple->PutAttribute(4, new FText(true, ""));
         }
-
-        string listOfSuccString = "";
-
-        std::vector<Task *> listOfSucc = task->getSuccessors();
-        for (size_t i = 0; i < listOfSucc.size(); i++)
-        {
-            listOfSuccString = listOfSuccString.append(
-                std::to_string(listOfSucc[i]->getId()) + " ");
-        }
-        tuple->PutAttribute(5, new FText(true, listOfSuccString));
 
         string listOfPreString = "";
 
@@ -159,6 +203,11 @@ private:
     TupleType *tupleType;
 };
 
+/*
+
+1.2 Value Mapping
+
+*/
 int tasks2tuplesVM(Word *args, Word &result, int message,
                    Word &local, Supplier s)
 {
