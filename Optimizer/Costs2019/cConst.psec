@@ -226,7 +226,7 @@ Roads feedproject[Code] count,
 
 
 /*
-Evaluation "per byte``:
+Evaluation ``per byte'':
 to evaluate this factor the script queries the relation Roads with two different attributes and subtracts the runtime as well as their sizes to determine the constant.
 
 ----	
