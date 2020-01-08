@@ -94,38 +94,21 @@
 -- WebSockets
 query signalFinish("localhost", 8080);
 
-query readfromwebsocket("mock://data", "hello", 'Name string /reputons/0/rated') finishStream[8080] consoleConsumer count;
-query readfromwebsocket("mock://data", "hello", 'Name string /reputons/0/rated') finishStream[8080] head[10] consume;
+query readfromwebsocket('mock://data', 'hello', 'Name string /reputons/0/rated') finishStream[8080] consoleConsumer count;
+query readfromwebsocket('mock://data', 'hello', 'Name string /reputons/0/rated') finishStream[8080] head[10] consume;
 
-query readfromwebsocket("wss://ws.blockchain.info/inv", "{\"op\":\"unconfirmed_sub\"}", 'Name string /op') finishStream[8080] consoleConsumer count;
-
-query readfromwebsocket("wss://ws.blockchain.info/inv", "{\"op\":\"unconfirmed_sub\"}",
-    'Name string /op,
-    Size string /x/size,
-    Addr string /x/inputs/0/prev_out/addr')
-    finishStream[8080] consoleConsumer head[10] count;
+query readfromwebsocket('wss://ws.blockchain.info/inv', '{"op":"unconfirmed_sub"}', 'Name string /op') finishStream[8080] consoleConsumer count;
 
 query readfromwebsocket('wss://ws.blockchain.info/inv', '{"op":"unconfirmed_sub"}',
-    'Name string /op,
-    Size int /x/size,
-    Addr string /x/inputs/0/prev_out/addr')
+    'Operation : string /op,
+    Size : int /x/size,
+    Addr : string /x/inputs/0/prev_out/addr')
     finishStream[8080] consoleConsumer head[10] count;
 
-Ships:
-query readfromwebsocket('https://demos-safe-software.fmecloud.com:7078/websocket', '{"ws_op":"open","ws_stream_id":"sd_ship"}',
-    'Name : string /vessel_name,
-     Latitude : real /latitude,
-     Longitude : real /longitude')
-    finishStream[8080] consoleConsumer head[10] count;
+query readfromwebsocket('wss://ws-feed.pro.coinbase.com', '{"type":"subscribe","product_ids":["ETH-USD","ETH-EUR"],"channels":["level2"]}',
+    'Product : string /product_id,
+    Operation : string /changes/0/0,
+    Amount : string /changes/0/1')
+    finishStream[8080] head[10] consume
 
-
-
-let tempships = [ const rel(tuple([Name : string, Latitude : real, Longitude : real])) value () ];
-query readfromwebsocket('https://demos-safe-software.fmecloud.com:7078/websocket', '{"ws_op":"open","ws_stream_id":"sd_ship"}',
-    'Name : string /vessel_name,
-     Latitude : real /latitude,
-     Longitude : real /longitude')
-    finishStream[8080] consoleConsumer head[10] tempships insert count;
-
-query tempships;
 
