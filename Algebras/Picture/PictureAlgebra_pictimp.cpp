@@ -921,10 +921,10 @@ ListExpr PictureExportTypeMap(ListExpr args) {
                 "expected 'picture' as first argument but received '"
                 +lexpr
                 +"'");
-        } else if (!nl->IsEqual(nl->Second(args), CcString::BasicType())) {
+        } else if (!nl->IsEqual(nl->Second(args), FText::BasicType())) {
             nl->WriteToString(lexpr, nl->Second(args));
             ErrorReporter::ReportError(
-                "expected 'string' as second argument but received '"
+                "expected 'FText' as second argument but received '"
                 +lexpr
                 +"'");
         } else
@@ -1129,13 +1129,15 @@ int PictureExportValueMap(Word* args,
     if (PA_DEBUG) cerr << "PictureExportValueMap() called" << endl;
 
     Picture* p = (Picture*) args[0].addr;
-    CcString* str = (CcString*) args[1].addr;
+    FText* str  = static_cast<FText*>(args[1].addr);
+    string name = str->GetValue();
+    char* cstr = &name[0];
 
     result = qp->ResultStorage(s);
 
     if (p->IsDefined())
         ((CcBool*) result.addr)->Set(true,
-                                     p->Export((char*) str->GetStringval()));
+                                     p->Export(cstr));
     else
         ((CcBool*) result.addr)->Set(false, false);
 
