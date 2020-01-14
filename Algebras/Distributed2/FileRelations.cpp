@@ -191,7 +191,7 @@ ffeed5Info::ffeed5Info(const std::string& filename){
 bool ffeed5Info::openFile(const std::string& filename){
 
   in.open(filename.c_str(), std::ios::in | std::ios::binary);
-  bool ok = in.good();
+  ok = in.good();
   // file locally not present, try to get it from 
   // distributed file system and open it again
   if(!ok){
