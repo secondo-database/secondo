@@ -315,9 +315,9 @@ public:
                 Task *task = input.request();
                 if (task)
                 {
-                    if (task->isLeaf())
+                    if (task->hasFlag(Output))
                     {
-                        task->setLeaf(false);
+                        task->clearFlag(Output);
                         inputLeafs[i] = task;
                     }
                     outputTasks.push_back(task);
@@ -330,9 +330,12 @@ public:
             }
         }
         //create new leaf task for this operator
-        Task *a = new Task(TaskType::Function_DMAPSX, dmapFunction,
-                           remoteName, contentType, isRel, isStream);
-        a->setLeaf(true);
+        Task *a = new DmapFunctionTask(dmapFunction,
+                                       remoteName,
+                                       contentType,
+                                       isRel,
+                                       isStream);
+        a->setFlag(Output);
 
         //check is all previous tasks for this operator are availible
         for (int i = 0; i < x; i++)

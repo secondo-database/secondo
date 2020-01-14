@@ -61,23 +61,18 @@ ListExpr tasks2tuplesTM(ListExpr args)
         return listutils::typeError(err + " (tasks expected)");
     }
 
-    ListExpr attrList = nl->Cons(
-        nl->TwoElemList(nl->SymbolAtom("ID"),
-                        listutils::basicSymbol<FText>()),
-        nl->Cons(
+    ListExpr attrList =
+        nl->FiveElemList(
+            nl->TwoElemList(nl->SymbolAtom("ID"),
+                            listutils::basicSymbol<FText>()),
             nl->TwoElemList(nl->SymbolAtom("TaskType"),
                             listutils::basicSymbol<FText>()),
-            nl->FiveElemList(
-                nl->TwoElemList(nl->SymbolAtom("TaskFunction"),
-                                listutils::basicSymbol<FText>()),
-                nl->TwoElemList(nl->SymbolAtom("Worker"),
-                                listutils::basicSymbol<FText>()),
-                nl->TwoElemList(nl->SymbolAtom("Location"),
-                                listutils::basicSymbol<FText>()),
-                nl->TwoElemList(nl->SymbolAtom("ContentType"),
-                                listutils::basicSymbol<FText>()),
-                nl->TwoElemList(nl->SymbolAtom("PredecessorTasks"),
-                                listutils::basicSymbol<FText>()))));
+            nl->TwoElemList(nl->SymbolAtom("TaskInfo"),
+                            listutils::basicSymbol<FText>()),
+            nl->TwoElemList(nl->SymbolAtom("Flags"),
+                            listutils::basicSymbol<FText>()),
+            nl->TwoElemList(nl->SymbolAtom("PredecessorTasks"),
+                            listutils::basicSymbol<FText>()));
 
     return Stream<Tuple>::wrap(Tuple::wrap(attrList));
 }
@@ -113,87 +108,36 @@ public:
             return 0;
         Tuple *tuple = new Tuple(tupleType);
 
-        TaskType taskType = task->getTaskType();
+        string flags = "";
+
+        flags += task->hasFlag(Output) ? "Output" : "Intermediate";
+        if (task->hasFlag(CopyArguments))
+            flags += ", CopyArguments";
+        if (task->hasFlag(RunOnPreferedWorker))
+            flags += ", RunOnPreferedWorker";
+        if (task->hasFlag(RunOnPreferedServer))
+            flags += ", RunOnPreferedServer";
+        if (task->hasFlag(RunOnReceive))
+            flags += ", RunOnReceive";
+        if (task->hasFlag(PreferSlotWorker))
+            flags += ", PreferSlotWorker";
+        if (task->hasFlag(PreferSlotServer))
+            flags += ", PreferSlotServer";
 
         tuple->PutAttribute(0, new FText(true, std::to_string(task->getId())));
-
-        switch (taskType)
-        {
-        case TaskType::Data:
-        {
-            std::string storageType = "?";
-            switch (task->getStorageType())
-            {
-            case DataStorageType::Object:
-                storageType = "object";
-                break;
-            case DataStorageType::File:
-                storageType = "file";
-                break;
-            }
-            tuple->PutAttribute(1, new FText(true, "Data Task"));
-            tuple->PutAttribute(2, new FText(true, "N/A"));
-            tuple->PutAttribute(
-                3,
-                new FText(true, task->getServer() + ":" +
-                                    std::to_string(task->getPort()) + " @ " +
-                                    std::to_string(task->getWorker())));
-            tuple->PutAttribute(
-                4,
-                new FText(true, task->getName() + " @ " +
-                                    std::to_string(task->getSlot()) + " as " +
-                                    storageType));
-            tuple->PutAttribute(
-                5,
-                new FText(true, nl->ToString(task->getContentType())));
-            break;
-        }
-        case TaskType::Function_DMAPSX:
-            tuple->PutAttribute(1, new FText(true, "Function DMAPSX Task"));
-            tuple->PutAttribute(2, new FText(true, task->getFunction()));
-            tuple->PutAttribute(3, new FText(true, "N/A"));
-            tuple->PutAttribute(4, new FText(true, "N/A"));
-            tuple->PutAttribute(5, new FText(true, "N/A"));
-            break;
-        case TaskType::Function_DPRODUCT:
-            tuple->PutAttribute(1, new FText(true, "Function DPRODUCT Task"));
-            tuple->PutAttribute(2, new FText(true, task->getFunction()));
-            tuple->PutAttribute(3, new FText(true, "N/A"));
-            tuple->PutAttribute(4, new FText(true, "N/A"));
-            tuple->PutAttribute(5, new FText(true, "N/A"));
-            break;
-        case TaskType::PrepareDataForCopy:
-            tuple->PutAttribute(1, new FText(true, "Prepare for Copy Task"));
-            tuple->PutAttribute(2, new FText(true, "N/A"));
-            tuple->PutAttribute(3, new FText(true, "N/A"));
-            tuple->PutAttribute(4, new FText(true, "N/A"));
-            tuple->PutAttribute(5, new FText(true, "N/A"));
-            break;
-        case TaskType::CopyData:
-            tuple->PutAttribute(1, new FText(true, "Copy Data Task"));
-            tuple->PutAttribute(2, new FText(true, "N/A"));
-            tuple->PutAttribute(3, new FText(true, "N/A"));
-            tuple->PutAttribute(4, new FText(true, "N/A"));
-            tuple->PutAttribute(5, new FText(true, "N/A"));
-            break;
-        case TaskType::Error:
-            tuple->PutAttribute(1, new FText(true, "Error Task"));
-            tuple->PutAttribute(2, new FText(true, "-"));
-            tuple->PutAttribute(3, new FText(true, "-"));
-            tuple->PutAttribute(4, new FText(true, "-"));
-            tuple->PutAttribute(5, new FText(true, "-"));
-            break;
-        }
+        tuple->PutAttribute(1, new FText(true, task->getTaskType()));
+        tuple->PutAttribute(2, new FText(true, task->toString()));
+        tuple->PutAttribute(3, new FText(true, flags));
 
         string listOfPreString = "";
 
-        std::vector<Task *> listOfPre = task->getPredecessor();
+        std::vector<Task *> listOfPre = task->getPredecessors();
         for (size_t i = 0; i < listOfPre.size(); i++)
         {
             listOfPreString = listOfPreString.append(
                 std::to_string(listOfPre[i]->getId()) + " ");
         }
-        tuple->PutAttribute(6, new FText(true, listOfPreString));
+        tuple->PutAttribute(4, new FText(true, listOfPreString));
 
         return tuple;
     }

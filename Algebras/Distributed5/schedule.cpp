@@ -88,29 +88,65 @@ public:
     bool completed = false;
     int incompletePrecessors = 0;
     std::vector<Task *> successors;
+    TaskDataItem *result;
+    optional<pair<WorkerLocation, int>> reservation;
+};
+
+template <typename K>
+class OnlyOnceMutexMap
+{
+public:
+    std::optional<boost::unique_lock<boost::mutex>> check(K key)
+    {
+        boost::mutex *mutex;
+        {
+            boost::lock_guard<boost::mutex> lock(mapMutex);
+            auto it = map.find(key);
+            if (it == map.end())
+            {
+                // this creates a new mutex and locks it
+                return std::optional<boost::unique_lock<boost::mutex>>(
+                    std::in_place,
+                    map[key]);
+            }
+            mutex = &it->second;
+        }
+        // this waits until the mutex is unlocked
+        boost::lock_guard<boost::mutex> wait(*mutex);
+        return std::optional<boost::unique_lock<boost::mutex>>();
+    }
+
+private:
+    boost::mutex mapMutex;
+    std::map<K, boost::mutex> map;
 };
 
 class Scheduler
 {
 public:
-    Scheduler(int fileTransferPort) : context(fileTransferPort) {}
+    Scheduler(int fileTransferPort, bool resultInObjectForm)
+        : fileTransferPort(fileTransferPort),
+          resultInObjectForm(resultInObjectForm) {}
 
     //joins all running threads
     void join()
     {
-        mutex.lock();
-        while (!allThreads.empty())
+        boost::unique_lock<boost::mutex> lock(mutex);
+        stopWorkers(true);
+        while (runningThreads > 0)
         {
-
-            boost::thread *a = allThreads.front();
-            allThreads.pop_front();
-            mutex.unlock();
-            a->join();
-            delete a;
-            mutex.lock();
+            threadSignal.wait(lock);
         }
 
-        mutex.unlock();
+        // all threads have finished working
+        // join them to wait for cleanup
+        for (auto &threadPair : threads)
+        {
+            auto thread = threadPair.second;
+            thread->join();
+            delete thread;
+        }
+        threads.clear();
     }
 
     //When a new task is recieved
@@ -118,11 +154,35 @@ public:
     //has to be added to the queue of waiting tasks
     void receiveTask(Task *task)
     {
-        boost::lock_guard<boost::recursive_mutex> lock(mutex);
+        // Create a ResultTask for output tasks
+        if (task->hasFlag(Output))
+        {
+            task->clearFlag(Output);
+            receiveTask(task);
+
+            ResultTask *result = new ResultTask(*this);
+            result->setFlag(RunOnPreferedWorker);
+            result->setFlag(CopyArguments);
+            result->addPredecessorTask(task);
+            receiveTask(result);
+
+            return;
+        }
+
+        boost::lock_guard<boost::mutex> lock(mutex);
+
+        if (task->hasFlag(RunOnReceive))
+        {
+            WorkerLocation emptyLocation("", 0, "", -1);
+            vector<TaskDataItem *> emptyArgs;
+            TaskDataItem *result = task->run(emptyLocation, emptyArgs);
+            setTaskResult(task, result);
+            return;
+        }
 
         // update task schedule info structures
         TaskScheduleInfo &info = taskInfo[task];
-        std::vector<Task *> &predecessors = task->getPredecessor();
+        std::vector<Task *> &predecessors = task->getPredecessors();
         for (auto it = predecessors.begin(); it != predecessors.end(); it++)
         {
             TaskScheduleInfo &preInfo = taskInfo[*it];
@@ -132,7 +192,6 @@ public:
                 preInfo.successors.push_back(task);
             }
         }
-
         //if incoming task can be started...
         if (info.incompletePrecessors == 0)
         {
@@ -140,28 +199,293 @@ public:
         }
     }
 
-    vector<DArrayElement> myResult;
-    string dArrayName;
-
-private:
-    //schedules the task
-    void scheduleTask(Task *task)
+    vector<WorkerLocation> getWorkers()
     {
-        allThreads.push_back(
-            new boost::thread(
-                boost::bind(
-                    &Scheduler::runTask, this, task)));
+        vector<WorkerLocation> workers;
+        for (auto &pair : threads)
+        {
+            workers.push_back(pair.first);
+        }
+        return workers;
     }
 
-    //executes the task
-    void runTask(Task *task)
-    {
-        task->run(context);
-        boost::lock_guard<boost::recursive_mutex> lock(mutex);
+    vector<DArrayElement> myResult;
+    string dArrayName;
+    bool isError = false;
+    string errorMessage;
 
+private:
+    // schedules the task
+    // mutex must already be locked
+    void scheduleTask(Task *task)
+    {
+        workPool.push_back(task);
+        workPoolSignal.notify_all();
+    }
+
+    // makes sure a worker thread for this location is running
+    // mutex must already be locked
+    void ensureWorker(const WorkerLocation &location)
+    {
+        auto &slot = threads[location];
+        if (slot == 0)
+        {
+            runningThreads++;
+            workerWorking++;
+            slot =
+                new boost::thread(
+                    boost::bind(
+                        &Scheduler::worker, this, WorkerLocation(location)));
+        }
+    }
+
+    // mutex must already be locked
+    void stopWorkers(bool waitForWorkDone)
+    {
+        if (waitForWorkDone)
+            stopWorkersWhenWorkDone = true;
+        else
+            killWorkers = true;
+        workPoolSignal.notify_all();
+    }
+
+    void ensureFileTransferrator(WorkerLocation &location)
+    {
+        auto lock = fileTransferrators.check(location.getServer());
+        if (lock)
+        {
+            string cmd = "query staticFileTransferator(" +
+                         std::to_string(fileTransferPort) +
+                         ",10)";
+            Task::runCommand(location.getWorkerConnection(),
+                             cmd, "open file transferator", false, true);
+        }
+    }
+
+    class WorkerJob
+    {
+    public:
+        WorkerJob(WorkerLocation &location, Scheduler &scheduler)
+            : location(location), scheduler(scheduler) {}
+        virtual ~WorkerJob() {}
+
+        virtual bool run(boost::unique_lock<boost::mutex> &lock) = 0;
+
+    protected:
+        WorkerLocation &location;
+        Scheduler &scheduler;
+    };
+
+    class ExecuteWorkerJob : public WorkerJob
+    {
+    public:
+        ExecuteWorkerJob(WorkerLocation &location,
+                         Scheduler &scheduler,
+                         Task *task,
+                         vector<TaskDataItem *> args,
+                         list<Task *>::const_iterator workPoolIterator)
+            : WorkerJob(location, scheduler),
+              task(task), args(args), workPoolIterator(workPoolIterator) {}
+        virtual ~ExecuteWorkerJob() {}
+
+        virtual bool run(boost::unique_lock<boost::mutex> &lock)
+        {
+            // remove task from the pool
+            scheduler.workPool.erase(workPoolIterator);
+
+            lock.unlock();
+
+            // Execute
+            TaskDataItem *result;
+            try
+            {
+                result = task->run(location, args);
+            }
+            catch (exception &e)
+            {
+                string message = string(e.what()) + "\n" +
+                                 "while running " + task->toString();
+                int i = 0;
+                for (auto arg : args)
+                {
+                    message += string("\narg ") + std::to_string(i++) +
+                               " = " + arg->toString();
+                }
+                lock.lock();
+                scheduler.addError(message);
+                return false;
+            }
+
+            lock.lock();
+
+            scheduler.setTaskResult(task, result);
+            return true;
+        }
+
+    private:
+        Task *task;
+        vector<TaskDataItem *> args;
+        list<Task *>::const_iterator workPoolIterator;
+    };
+
+    class TransferDataWorkerJob : public WorkerJob
+    {
+    public:
+        TransferDataWorkerJob(WorkerLocation &location,
+                              Scheduler &scheduler,
+                              Task *task,
+                              int taskCost,
+                              TaskDataItem *data,
+                              TaskDataLocation sourceLocation)
+            : WorkerJob(location, scheduler),
+              task(task), taskCost(taskCost),
+              data(data), sourceLocation(sourceLocation) {}
+        virtual ~TransferDataWorkerJob() {}
+
+        virtual bool run(boost::unique_lock<boost::mutex> &lock)
+        {
+            string sourceServer = sourceLocation.getServer();
+
+            // set reservation
+            scheduler.taskInfo[task].reservation =
+                make_pair(location, taskCost);
+
+            // set active transfer and upcoming location
+            TaskDataLocation loc(location, File, true);
+            data->addUpcomingLocation(loc);
+            scheduler.activeTransferrators[sourceServer].second++;
+
+            lock.unlock();
+
+            try
+            {
+                ConnectionInfo *targetCI = location.getWorkerConnection();
+
+                string cmd = string("query getFileTCP(") +
+                             "'" + sourceLocation.getFilePath(data) + "', " +
+                             "'" + sourceServer + "', " +
+                             std::to_string(scheduler.fileTransferPort) + ", " +
+                             "TRUE, " +
+                             "'" + location.getFilePath(data) + "')";
+                Task::runCommand(targetCI, cmd, "transfer file");
+            }
+            catch (exception &e)
+            {
+                lock.lock();
+                scheduler.addError(string(e.what()) + "\n" +
+                                   "while copying " + data->toString() +
+                                   "\n - from " + sourceLocation.toString() +
+                                   "\n - to " + location.toString());
+                return false;
+            }
+
+            lock.lock();
+
+            scheduler.activeTransferrators[sourceServer].second--;
+            data->addLocation(loc);
+
+            // unreserve when still reserved by this worker
+            auto &reservation = scheduler.taskInfo[task].reservation;
+            if (reservation && reservation->first == location)
+            {
+                reservation.reset();
+            }
+            scheduler.workPoolSignal.notify_all();
+
+            return true;
+        }
+
+    private:
+        Task *task;
+        int taskCost;
+        TaskDataItem *data;
+        TaskDataLocation sourceLocation;
+    };
+
+    class ConvertToFileWorkerJob : public WorkerJob
+    {
+    public:
+        ConvertToFileWorkerJob(WorkerLocation &location,
+                               Scheduler &scheduler,
+                               TaskDataItem *data)
+            : WorkerJob(location, scheduler),
+              data(data) {}
+        virtual ~ConvertToFileWorkerJob() {}
+
+        virtual bool run(boost::unique_lock<boost::mutex> &lock)
+        {
+            // set active transfer and upcoming location
+            TaskDataLocation loc(location, File, true);
+            data->addUpcomingLocation(loc);
+
+            lock.unlock();
+
+            try
+            {
+                ConnectionInfo *ci = location.getWorkerConnection();
+                // Save Object in a file
+                string oname = data->getObjectName();
+                string fname = location.getFilePath(data);
+                string cmd = "query " + oname +
+                             " saveObjectToFile['" + fname + "']";
+                Task::runCommand(ci, cmd, "save object to file");
+            }
+            catch (exception &e)
+            {
+                lock.lock();
+                scheduler.addError(string(e.what()) + "\n" +
+                                   "while converting " + data->toString() +
+                                   " to file form on " + location.toString());
+                return false;
+            }
+
+            lock.lock();
+
+            data->addLocation(loc);
+
+            scheduler.workPoolSignal.notify_all();
+
+            return true;
+        }
+
+    private:
+        TaskDataItem *data;
+    };
+
+    class WaitForTransferCompletedWorkerJob : public WorkerJob
+    {
+    public:
+        WaitForTransferCompletedWorkerJob(WorkerLocation &location,
+                                          Scheduler &scheduler)
+            : WorkerJob(location, scheduler) {}
+        virtual ~WaitForTransferCompletedWorkerJob() {}
+
+        virtual bool run(boost::unique_lock<boost::mutex> &lock)
+        {
+            scheduler.workPoolSignal.wait(lock);
+            return true;
+        }
+    };
+
+    void addError(string message)
+    {
+        isError = true;
+        if (!errorMessage.empty())
+            errorMessage += "\n\n";
+        errorMessage += message;
+    }
+
+    void setTaskResult(Task *task, TaskDataItem *result)
+    {
+        // make sure a worker is running for the location of the result
+        ensureWorker(result->getFirstLocation().getWorkerLocation());
+
+        // store result
         TaskScheduleInfo &info = taskInfo[task];
+        info.result = result;
         info.completed = true;
-        //For all successor task, decrease the number of remaining tasks
+
+        // For all successor task, decrease the number of remaining tasks
         std::vector<Task *> &successors = info.successors;
         for (auto it = successors.begin(); it != successors.end(); it++)
         {
@@ -169,44 +493,382 @@ private:
             TaskScheduleInfo &succInfo = taskInfo[succTask];
             succInfo.incompletePrecessors--;
 
-            //check if there are now possible tasks which can be started.
+            // scheck if there are now possible tasks which can be started.
             if (succInfo.incompletePrecessors == 0)
             {
                 scheduleTask(succTask);
             }
         }
-        //If the task is a leaf the result of the
-        //schedule operator is the result of the query for this slot.
-        if (task->isLeaf())
+    }
+
+    vector<TaskDataItem *> getTaskArguments(Task *task)
+    {
+        vector<TaskDataItem *> args;
+        for (auto t : task->getPredecessors())
         {
-            TaskType tt = task->getTaskType();
-            if (tt == TaskType::Error)
+            auto info = taskInfo[t];
+            args.push_back(info.result);
+        }
+        return args;
+    }
+
+    // the worker thread
+    void worker(WorkerLocation location)
+    {
+        // Connect to the worker
+        location.getWorkerConnection();
+
+        // Ensure file transferrator is open
+        ensureFileTransferrator(location);
+
+        boost::unique_lock<boost::mutex> lock(mutex);
+
+        auto &transferrator = activeTransferrators[location.getServer()];
+        if (!transferrator.first)
+        {
+            transferrator.first = true;
+            workPoolSignal.notify_all();
+        }
+
+        while (true)
+        {
+            if (killWorkers)
+                break;
+            // TODO check exit
+            WorkerJob *job = selectJob(location);
+            if (job != 0)
             {
-                //ToDo Add Errorhandling
-                cout << "Leaf task at slot " << task->getSlot() << " is Error";
-                dArrayName = "Error";
+                if (!job->run(lock))
+                {
+                    stopWorkers(false);
+                    break;
+                }
             }
             else
             {
-                dArrayName = task->getName();
-                while (myResult.size() <= task->getSlot())
+                // check for end of work
+                if (workerWorking == 1)
                 {
-                    myResult.push_back(DArrayElement("", 0, 0, ""));
+                    if (stopWorkersWhenWorkDone && workPool.empty())
+                    {
+                        workPoolSignal.notify_all();
+                        break;
+                    }
                 }
-                // TODO Error when already set (multiple leaf tasks)
-                DArrayElement &resultItem = myResult[task->getSlot()];
-                if (resultItem.getHost() != "")
-                {
-                    cout << "Multiple leaf tasks for slot " << task->getSlot()
-                         << endl;
-                }
-                resultItem = task->GetDArrayElement();
+
+                workerWorking--;
+
+                // Go into sleep mode
+                workPoolSignal.wait(lock);
+
+                workerWorking++;
             }
         }
+
+        workerWorking--;
+        runningThreads--;
+        threadSignal.notify_all();
     }
-    deque<boost::thread *> allThreads;
-    boost::recursive_mutex mutex;
-    TaskExecutionContext context;
+
+    // mutex must already be locked
+    int computeTaskCost(Task *task, vector<TaskDataItem *> args,
+                        WorkerLocation &location)
+    {
+        int cost = 0;
+        int i = 0;
+        for (auto arg : args)
+        {
+            int dist = arg->getDistance(location);
+            cost += dist * CostWeightArgument;
+            if (i == 0)
+            {
+                if (task->hasFlag(PreferSlotServer))
+                {
+                    if (location.getServer() !=
+                        arg->getPreferredLocation().getServer())
+                    {
+                        cost += CostNotPreferredServer;
+                    }
+                }
+                if (task->hasFlag(PreferSlotWorker))
+                {
+                    if (location != arg->getPreferredLocation())
+                    {
+                        cost += CostNotPreferredWorker;
+                    }
+                }
+            }
+            i++;
+        }
+        return cost;
+    }
+
+    static bool checkBetter(optional<pair<WorkerJob *, int>> &best, int cost)
+    {
+        if (!best)
+            return true;
+        if (best->second > cost)
+        {
+            delete best->first;
+            best.reset();
+            return true;
+        }
+        return false;
+    }
+
+    // mutex must already be locked
+    WorkerJob *selectJob(WorkerLocation &location)
+    {
+        optional<pair<WorkerJob *, int>> best;
+        for (auto it = workPool.begin(); it != workPool.end(); it++)
+        {
+            auto task = *it;
+            vector<TaskDataItem *> args = getTaskArguments(task);
+
+            int cost = computeTaskCost(task, args, location);
+
+            bool wrongWorker =
+                task->hasFlag(RunOnPreferedWorker) &&
+                args.front()->getPreferredLocation() != location;
+            bool wrongServer =
+                task->hasFlag(RunOnPreferedServer) &&
+                args.front()->getPreferredLocation().getServer() !=
+                    location.getServer();
+            bool forceFileArguments = task->hasFlag(FileArguments);
+
+            bool canExecute = true;
+            bool isHelping = false;
+
+            if (wrongWorker || wrongServer || forceFileArguments)
+            {
+                for (auto data : args)
+                {
+                    if (!data->hasFileLocation(location))
+                    {
+                        if (forceFileArguments)
+                        {
+                            canExecute = false;
+                        }
+                        if (data->hasLocation(location))
+                        {
+                            if (checkBetter(best, cost))
+                            {
+                                best = make_pair(
+                                    new ConvertToFileWorkerJob(
+                                        location, *this, data),
+                                    cost);
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (wrongServer)
+            {
+                continue;
+            }
+
+            if (wrongWorker)
+            {
+                if (args.front()->getPreferredLocation().getServer() !=
+                    location.getServer())
+                {
+                    continue;
+                }
+                isHelping = true;
+            }
+
+            // check if there is already a reservation for this task
+            optional<pair<WorkerLocation, int>> reservation =
+                taskInfo[task].reservation;
+            if (reservation)
+            {
+                int resCost = reservation->second;
+                // it's only allowed to seal a reservation
+                // when the cost is smaller
+                if (cost >= resCost)
+                {
+                    // When by this server reserved
+                    // We can help to copy files
+                    if (reservation->first.getServer() != location.getServer())
+                    {
+                        continue;
+                    }
+                    isHelping = true;
+                }
+                cost += CostReservation;
+            }
+
+            for (auto data : args)
+            {
+                if (!data->hasLocation(location))
+                {
+                    canExecute = false;
+                    if (task->hasFlag(CopyArguments))
+                    {
+                        if (data->hasUpcomingLocation(location))
+                        {
+                            int waitingCost = cost + CostWaitingOnTransfer;
+                            if (!isHelping && checkBetter(best, waitingCost))
+                            {
+                                best = make_pair(
+                                    new WaitForTransferCompletedWorkerJob(
+                                        location, *this),
+                                    waitingCost);
+                            }
+                        }
+                        else
+                        {
+                            try
+                            {
+                                auto source =
+                                    data->findTransferSourceLocation(
+                                        activeTransferrators);
+                                int transferCost =
+                                    cost +
+                                    source.second * CostActiveTransfers;
+                                if (checkBetter(best, transferCost))
+                                {
+                                    best = make_pair(
+                                        new TransferDataWorkerJob(
+                                            location, *this,
+                                            task, cost, data, source.first),
+                                        transferCost);
+                                }
+                            }
+                            catch (NoSourceLocationException &)
+                            {
+                                // this can happen when file transferrator is
+                                // not ready yet, or data is in object form,
+                                // skip this task for now,
+                                // as it can't be transferred
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (canExecute && !isHelping)
+            {
+                if (checkBetter(best, cost))
+                {
+                    best = make_pair(
+                        new ExecuteWorkerJob(location, *this, task, args, it),
+                        cost);
+                }
+            }
+        }
+
+        return best ? best->first : 0;
+    }
+
+    class ResultTask : public Task
+    {
+    public:
+        ResultTask(Scheduler &scheduler)
+            : Task(scheduler.resultInObjectForm
+                       ? RunOnPreferedWorker | CopyArguments
+                       : RunOnPreferedServer | CopyArguments),
+              scheduler(scheduler) {}
+
+        virtual std::string getTaskType() const { return "result"; }
+
+        virtual TaskDataItem *run(
+            WorkerLocation &location,
+            std::vector<TaskDataItem *> args)
+        {
+            TaskDataItem *result = args.front();
+
+            TaskDataLocation storedLocation = result->findLocation(location);
+            WorkerLocation preferredLocation = result->getPreferredLocation();
+
+            if (scheduler.resultInObjectForm)
+            {
+                if (storedLocation.getStorageType() != Object)
+                {
+                    ConnectionInfo *ci = location.getWorkerConnection();
+                    // materialize file content as object
+                    if (Relation::checkType(result->getContentType()))
+                    {
+                        Task::runCommand(
+                            ci,
+                            "(let " + result->getObjectName() +
+                                " = (consume (feed" +
+                                storedLocation.getValueArgument(result) + ")))",
+                            "store file relation as object",
+                            true);
+                    }
+                    else
+                    {
+                        Task::runCommand(
+                            ci,
+                            "(let " + result->getObjectName() + " = " +
+                                storedLocation.getValueArgument(result) + ")",
+                            "store file value as object",
+                            true);
+                    }
+                }
+            }
+            else
+            {
+                if (storedLocation.getWorkerLocation() != preferredLocation)
+                {
+                    ConnectionInfo *ci = location.getWorkerConnection();
+                    // copy file into worker
+                    Task::runCommand(
+                        ci,
+                        string("query createDirectory(") +
+                            "'" + preferredLocation.getFileDirectory(result) +
+                            "', TRUE)",
+                        "create directory");
+                    Task::runCommand(
+                        ci,
+                        string("query copyFile(") +
+                            "'" + storedLocation.getFilePath(result) + "', " +
+                            "'" + preferredLocation.getFilePath(result) + "')",
+                        "copy file to correct worker");
+                }
+            }
+
+            scheduler.dArrayName = result->getName();
+            while (scheduler.myResult.size() <= result->getSlot())
+            {
+                scheduler.myResult.push_back(DArrayElement("", 0, 0, ""));
+            }
+            // TODO Error when already set (multiple leaf tasks)
+            DArrayElement &resultItem = scheduler.myResult[result->getSlot()];
+            if (resultItem.getHost() != "")
+            {
+                cout << "Multiple leaf tasks for slot " << result->getSlot()
+                     << endl;
+            }
+            resultItem = preferredLocation.getDArrayElement();
+
+            return result;
+        }
+
+    private:
+        Scheduler &scheduler;
+    };
+
+    int fileTransferPort;
+    bool resultInObjectForm;
+
+    boost::mutex mutex;
+
+    std::map<WorkerLocation, boost::thread *> threads;
+    size_t runningThreads = 0;
+    boost::condition_variable threadSignal;
+
+    std::list<Task *> workPool;
+    size_t workerWorking = 0;
+    bool stopWorkersWhenWorkDone = false;
+    bool killWorkers = false;
+    boost::condition_variable workPoolSignal;
+
+    OnlyOnceMutexMap<std::string> fileTransferrators;
+
+    std::map<string, pair<bool, int>> activeTransferrators;
 
     std::map<Task *, TaskScheduleInfo> taskInfo;
 };
@@ -228,18 +890,47 @@ int scheduleVM(Word *args, Word &result, int message,
     int port = ((CcInt *)args[1].addr)->GetValue();
     Task *task;
     DArrayBase *res = (DArrayBase *)result.addr;
-    Scheduler scheduler(port);
+    bool resultInObjectForm =
+        DArray::checkType(
+            Task::innerType(nl->Second(qp->GetType(qp->GetSon(s, 0)))));
+    Scheduler scheduler(port, resultInObjectForm);
 
-    while ((task = stream.request()) != 0)
+    while ((task = stream.request()) != 0 && !scheduler.isError)
     {
         scheduler.receiveTask(task);
     }
 
     scheduler.join();
-    // TODO delete all tasks
-    res->set(scheduler.dArrayName, scheduler.myResult);
     stream.close();
-
+    // TODO delete all tasks
+    if (scheduler.isError)
+    {
+        cout << "schedule failed: " << scheduler.errorMessage << endl;
+        // TODO report error
+    }
+    else
+    {
+        vector<uint32_t> mapping;
+        vector<DArrayElement> workers;
+        map<DArrayElement, optional<uint32_t>> workersMap;
+        for (auto &worker : scheduler.getWorkers())
+        {
+            auto element = worker.getDArrayElement();
+            workersMap.emplace(element, workers.size());
+            workers.push_back(element);
+        }
+        for (auto &element : scheduler.myResult)
+        {
+            auto &entry = workersMap[element];
+            if (!entry)
+            {
+                entry.emplace(workers.size());
+                workers.push_back(element);
+            }
+            mapping.push_back(entry.value());
+        }
+        res->set(mapping, scheduler.dArrayName, workers);
+    }
     return 0;
 }
 

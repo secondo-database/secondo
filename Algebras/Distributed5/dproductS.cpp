@@ -269,9 +269,9 @@ public:
                 // end of stream
                 return 0;
             }
-            if (task->isLeaf())
+            if (task->hasFlag(Output))
             {
-                task->setLeaf(false);
+                task->clearFlag(Output);
                 input1Leaf = task;
             }
             return task;
@@ -284,12 +284,12 @@ public:
             Task *task = input2.request();
             if (task != 0)
             {
-                if (task->isLeaf())
+                if (task->hasFlag(Output))
                 {
-                    task->setLeaf(false);
+                    task->clearFlag(Output);
                     // Prepare Task for copy
-                    Task *prepareTask = new Task(TaskType::PrepareDataForCopy);
-                    prepareTask->setLeaf(false);
+                    Task *prepareTask = new ConvertToFileTask();
+                    prepareTask->clearFlag(Output);
                     prepareTask->addPredecessorTask(task);
                     preparedTasks.push_back(prepareTask);
                     outputTasks.push_back(prepareTask);
@@ -308,27 +308,14 @@ public:
 
         // Final step: combine prepared tasks with leaf task from input1
 
-        // create copy tasks for all slots
-        std::vector<Task *> allSlots;
-        for (auto it = preparedTasks.begin(); it != preparedTasks.end(); it++)
-        {
-            Task *task = *it;
-            Task *copyTask = new Task(TaskType::CopyData);
-            copyTask->setLeaf(false);
-            copyTask->addPredecessorTask(task);
-            copyTask->addPredecessorTask(input1Leaf);
-            allSlots.push_back(copyTask);
-            outputTasks.push_back(copyTask);
-        }
-
         // create a dproduct task
-        Task *dproductTask = new Task(TaskType::Function_DPRODUCT,
-                                      dproductFunction, remoteName,
-                                      contentType, isRel, isStream);
+        Task *dproductTask = new DproductFunctionTask(
+            dproductFunction, remoteName, contentType, isRel, isStream);
+        dproductTask->setFlag(Output);
         dproductTask->addPredecessorTask(input1Leaf);
-        for (auto it = allSlots.begin(); it != allSlots.end(); it++)
+        for (Task *t : preparedTasks)
         {
-            dproductTask->addPredecessorTask(*it);
+            dproductTask->addPredecessorTask(t);
         }
         outputTasks.push_back(dproductTask);
 

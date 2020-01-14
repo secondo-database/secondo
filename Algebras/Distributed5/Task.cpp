@@ -120,90 +120,6 @@ int Task::nextId = 0;
 
 /*
 
-1.1 Default TaskExecutionContext Constructor
-
-*/
-TaskExecutionContext::TaskExecutionContext(int _fileTransferPort)
-    : fileTransferPort(_fileTransferPort)
-{
-}
-
-std::optional<boost::unique_lock<boost::recursive_mutex>>
-TaskExecutionContext::checkOpenFileTransferator(ConnectionInfo *ci)
-{
-    boost::recursive_mutex *mutex;
-    {
-        boost::lock_guard<boost::recursive_mutex> lock(
-            openFileTransferatorsMutex);
-        auto it = openFileTransferators.find(ci);
-        if (it == openFileTransferators.end())
-        {
-            // this creates a new mutex and locks it
-            return std::optional<boost::unique_lock<boost::recursive_mutex>>(
-                std::in_place,
-                openFileTransferators[ci]);
-        }
-        mutex = &it->second;
-    }
-    // this waits until the mutex is unlocked
-    boost::lock_guard<boost::recursive_mutex> wait(*mutex);
-    return std::optional<boost::unique_lock<boost::recursive_mutex>>();
-}
-
-std::pair<std::optional<boost::unique_lock<boost::recursive_mutex>>, Task *>
-TaskExecutionContext::checkFileAvailable(
-    Task *dataTask, std::string server, Task *resultTask)
-{
-    std::pair<Task *, std::string> key = make_pair(dataTask, server);
-    boost::recursive_mutex *mutex;
-    {
-        boost::lock_guard<boost::recursive_mutex> lock(
-            fileDataAvailableMutex);
-        auto it = fileDataAvailable.find(key);
-        if (it == fileDataAvailable.end())
-        {
-            auto &pair = fileDataAvailable[key];
-            pair.second = resultTask;
-            // this creates a new mutex and locks it
-            return make_pair(
-                std::optional<boost::unique_lock<boost::recursive_mutex>>(
-                    std::in_place,
-                    pair.first),
-                resultTask);
-        }
-        mutex = &it->second.first;
-        resultTask = it->second.second;
-    }
-    // this waits until the mutex is unlocked
-    boost::lock_guard<boost::recursive_mutex> wait(*mutex);
-    return make_pair(
-        std::optional<boost::unique_lock<boost::recursive_mutex>>(),
-        resultTask);
-}
-
-void TaskExecutionContext::debug(std::string message)
-{
-    boost::lock_guard<boost::recursive_mutex> lock(debugMutex);
-    cout << message << endl;
-}
-
-/*
-
-2.1 Constructor for specific Task Type
-    
-Creates a specific Task according to the Task Type
-
-*/
-
-Task::Task(TaskType taskType)
-{
-    this->taskType = taskType;
-    nextId++;
-    id = nextId;
-}
-
-/*
-
 2.2 Constructor for Data Task Type
 
  Creates a  Data Task Type
@@ -215,45 +131,34 @@ Task::Task(TaskType taskType)
  Only outgoing tasks    
 
 */
-Task::Task(
-    DArrayElement dArrayElement,
+DataTask::DataTask(
+    const DArrayElement dArrayElement,
     string name,
     size_t slot,
     DataStorageType storageType,
     ListExpr contentType)
+    : Task(RunOnReceive),
+      dataItem(name, slot, contentType,
+               TaskDataLocation(dArrayElement.getHost(),
+                                dArrayElement.getPort(),
+                                dArrayElement.getConfig(),
+                                dArrayElement.getNum(),
+                                storageType,
+                                false),
+               WorkerLocation(dArrayElement.getHost(),
+                              dArrayElement.getPort(),
+                              dArrayElement.getConfig(),
+                              dArrayElement.getNum()))
 {
-    this->taskType = Data;
-    this->name = name;
-    this->server = dArrayElement.getHost();
-    this->port = dArrayElement.getPort();
-    this->config = dArrayElement.getConfig();
-    this->worker = dArrayElement.getNum();
-    this->slot = slot;
-    this->storageType = storageType;
-    this->contentType = contentType;
-    nextId++;
-    id = nextId;
 }
 
-/*
-
-2.3 Function Task Type
-
-This task can have incoming function or data tasks and outgoing function tasks
-
-*/
-Task::Task(TaskType taskType, string mapFunction,
-           string resultName, ListExpr resultContentType,
-           bool isRel, bool isStream)
+WorkerTask::WorkerTask(
+    const DArrayElement dArrayElement)
+    : WorkerTask(WorkerLocation(dArrayElement.getHost(),
+                                dArrayElement.getPort(),
+                                dArrayElement.getConfig(),
+                                dArrayElement.getNum()))
 {
-    this->taskType = taskType;
-    this->mapFunction = mapFunction;
-    this->resultName = resultName;
-    this->isRel = isRel;
-    this->isStream = isStream;
-    this->resultContentType = resultContentType;
-    nextId++;
-    id = nextId;
 }
 
 /*
@@ -296,249 +201,88 @@ void Task::addPredecessorTask(Task *t)
     listOfPre.push_back(t);
 }
 
-//executes a function task
-void Task::run(TaskExecutionContext &context)
+TaskDataItem *DataTask::run(
+    WorkerLocation &location,
+    std::vector<TaskDataItem *> args)
 {
-    switch (this->taskType)
+    return new TaskDataItem(dataItem);
+}
+
+TaskDataItem *DmapFunctionTask::run(
+    WorkerLocation &location,
+    std::vector<TaskDataItem *> args)
+{
+    string resultName = this->resultName;
+
+    TaskDataItem *firstArg = args.front();
+    size_t slot = firstArg->getSlot();
+
+    //Get Data Information from Previous Task to current
+    //task and make current
+    //task to data task (root of all tasks of the
+    // dependency graph for this slot)
+    //creates the function of the fun arguments
+    vector<string> funargs;
+    for (auto arg : args)
     {
-    case TaskType::Error:
-    case TaskType::Data:
-        // nothing to do
-        break;
-    case TaskType::PrepareDataForCopy:
+        auto loc = arg->findLocation(location);
+        funargs.push_back(loc.getValueArgument(arg) + " ");
+    }
+
+    ListExpr funCmdList = fun2cmd(mapFunction, funargs);
+
+    funCmdList = replaceWrite(funCmdList, "write2",
+                              resultName + "_" + std::to_string(slot));
+    if (args.size() == 1)
     {
-        Task *task = listOfPre.front();
-        convertToData(task);
-
-        ConnectionInfo *ci = getWorkerConnection();
-
-        // Save Object in a file
-        if (storageType == DataStorageType::Object)
-        {
-            storageType = DataStorageType::File;
-            string oname = getObjectName();
-            string fname = getFilePath();
-            string cmd = "query " + oname +
-                         " saveObjectToFile['" + fname + "']";
-            if (!runCommand(ci, cmd, "save object to file"))
-                return;
-        }
-
-        {
-            auto lock = context.checkOpenFileTransferator(ci);
-            if (lock)
-            {
-                string cmd = "query staticFileTransferator(" +
-                             std::to_string(context.getFileTransferPort()) +
-                             ",10)";
-                runCommand(ci, cmd, "open file transferator", false, true);
-            }
-        }
-        break;
+        string name_slot = firstArg->getObjectName();
+        funCmdList = replaceWrite(funCmdList, "write3", name_slot);
     }
-    case TaskType::CopyData:
+    string funcmd = nl->ToString(funCmdList);
+
+    return store(location, firstArg->getPreferredLocation(),
+                 slot, funcmd, "dmapS");
+}
+
+TaskDataItem *DproductFunctionTask::run(
+    WorkerLocation &location,
+    std::vector<TaskDataItem *> args)
+{
+    TaskDataItem *first = args.front();
+    TaskDataItem *last = args.back();
+
+    TaskDataLocation firstLoc = first->findLocation(location);
+    size_t slot = first->getSlot();
+
+    string arg1 = firstLoc.getValueArgument(first);
+    ListExpr fsrelType = nl->TwoElemList(
+        listutils::basicSymbol<fsrel>(),
+        nl->Second(last->getContentType()));
+    string arg2 = "(" + nl->ToString(fsrelType) + "( ";
+    for (auto arg : args)
     {
-        Task *contentTask = listOfPre.front();
-        Task *targetTask = listOfPre.back();
-        // Data from contentTask should be made available
-        // to targetTask's worker
-
-        // Check if content worker is target worker
-        if (contentTask->worker == targetTask->worker)
-        {
-            convertToData(contentTask);
-            break;
-        }
-
-        // Check if content is already addressable from target
-        // Lock mutex for this content-ip-pair to handle parallelity
-        auto pair = context.checkFileAvailable(
-            contentTask, targetTask->getServer(), this);
-        if (!pair.first)
-        {
-            // Data is already available in second arguments task
-            convertToData(pair.second);
-            return;
-        }
-
-        // Check if data is on the same server
-        // We can reference the data from the other worker
-        // via file reference
-        if (contentTask->server == targetTask->server)
-        {
-            convertToData(contentTask);
-            return;
-        }
-
-        // Copy location info from targetTask and
-        // data info from contentTask
-        convertToData(targetTask);
-        name = contentTask->name;
-        slot = contentTask->slot;
-        storageType = DataStorageType::File; // copied data is always a file
-        contentType = contentTask->contentType;
-
-        // Need to copy content to target
-        // TODO choose target via round-robin
-        // TODO check if file already exists, e. g. by prev copy
-        ConnectionInfo *targetCI = targetTask->getWorkerConnection();
-        ConnectionInfo *sourceCI = contentTask->getWorkerConnection();
-
-        string cmd = string("query getFileTCP(") +
-                     "'" + contentTask->getFilePath() + "', " +
-                     "'" + sourceCI->getHost() + "', " +
-                     std::to_string(context.getFileTransferPort()) + ", " +
-                     "TRUE, " +
-                     "'" + getFilePath() + "')";
-        if (!runCommand(targetCI, cmd, "transfer file"))
-            return;
-        break;
+        if (arg == first)
+            continue;
+        TaskDataLocation loc = arg->findFileLocation(location);
+        arg2 += "'" + loc.getFilePath(arg) + "' ";
     }
-    case TaskType::Function_DMAPSX:
-    {
-        string resultName = this->resultName;
+    arg2 += "))";
+    string funcall = "( " + mapFunction + " " + arg1 + " " + arg2 + ")";
 
-        Task *firstTask = listOfPre.front();
-        convertToData(firstTask);
-
-        //get worker connection for this slot
-        ConnectionInfo *ci = getWorkerConnection();
-
-        //Get Data Information from Previous Task to current
-        //task and make current
-        //task to data task (root of all tasks of the
-        // dependency graph for this slot)
-        //creates the function of the fun arguments
-        vector<string> funargs;
-        for (auto t = listOfPre.begin(); t != listOfPre.end(); ++t)
-        {
-            Task *previousDataTask = *t;
-            if (previousDataTask->taskType == TaskType::Error)
-            {
-                this->taskType = TaskType::Error;
-                return;
-            }
-            funargs.push_back(previousDataTask->getValueArgument() + " ");
-        }
-
-        //set name2 from the previous task
-        string name2 = getResultObjectName();
-
-        ListExpr funCmdList = fun2cmd(mapFunction, funargs);
-
-        funCmdList = replaceWrite(funCmdList, "write2", name2);
-        if (listOfPre.size() == 1)
-        {
-            string name_slot = firstTask->getObjectName();
-            funCmdList = replaceWrite(funCmdList, "write3", name_slot);
-        }
-        string funcmd = nl->ToString(funCmdList);
-
-        if (!store(ci, funcmd, "dmapS"))
-            return;
-        break;
-    }
-    case TaskType::Function_DPRODUCT:
-    {
-        Task *first = listOfPre.front();
-        Task *last = listOfPre.back();
-
-        convertToData(first);
-
-        ConnectionInfo *ci = first->getWorkerConnection();
-        string arg1 = first->getValueArgument();
-        ListExpr fsrelType = nl->TwoElemList(
-            listutils::basicSymbol<fsrel>(),
-            nl->Second(last->contentType));
-        string arg2 = "(" + nl->ToString(fsrelType) + "( ";
-        for (auto it = listOfPre.begin() + 1; it != listOfPre.end(); it++)
-        {
-            Task *t = *it;
-            arg2 += "'" + t->getFilePath() + "' ";
-        }
-        arg2 += "))";
-        string funcall = "( " + mapFunction + " " + arg1 + " " + arg2 + ")";
-
-        if (!store(ci, funcall, "dproductS"))
-            return;
-        break;
-    }
-    }
+    return store(location, first->getPreferredLocation(),
+                 slot, funcall, "dproductS");
 }
 
 //returns the DArray information.
 //These informations are:
 //server, port, slot and the config
-DArrayElement Task::GetDArrayElement()
+DArrayElement WorkerLocation::getDArrayElement() const
 {
     return DArrayElement(server, port, worker, config);
 }
 
-//returns the name of the relation in this slot
-string Task::getName()
-{
-    return name;
-}
-
-//returns the slot on which the task has to start
-size_t Task::getSlot()
-{
-    return slot;
-}
-
-DataStorageType Task::getStorageType()
-{
-    return storageType;
-}
-
-//returns the task as a string - needed for debugging...
-string Task::getFunction()
-{
-    return mapFunction;
-}
-
-//returns the server on which the task has to start
-std::string Task::getServer()
-{
-    return server;
-}
-
-//returns the port on which the task has to start
-int Task::getPort()
-{
-    return port;
-}
-
-//returns the worker on which the task has to start
-int Task::getWorker()
-{
-    return worker;
-}
-
-ListExpr Task::getContentType()
-{
-    return contentType;
-}
-
-//returns if the task is a leaf
-bool Task::isLeaf()
-{
-    return leaf;
-}
-
-//returns task type
-TaskType Task::getTaskType()
-{
-    return this->taskType;
-}
-//sets the attribute leaf on the task
-void Task::setLeaf(bool leaf)
-{
-    this->leaf = leaf;
-}
-
 //returns the list of predecessor tasks
-std::vector<Task *> &Task::getPredecessor()
+std::vector<Task *> &Task::getPredecessors()
 {
     return listOfPre;
 }
@@ -549,33 +293,12 @@ int Task::getId()
     return id;
 }
 
-//returns the task as a string - needed for debugging...
-string Task::toString()
-{
-    stringstream ss;
-
-    switch (taskType)
-    {
-    case TaskType::Data:
-        ss << "Data " << name << " " << slot << " on " << worker;
-        break;
-    case TaskType::Function_DMAPSX:
-        ss << "Function_DMAPSX " << resultName << " " << mapFunction;
-        break;
-    case TaskType::Error:
-        ss << "Error ";
-        break;
-    default:
-        ss << "???";
-        break;
-    }
-    return ss.str();
-}
-
-std::string Task::getFilePath()
+std::string WorkerLocation::getFilePath(TaskDataItem *data) const
 {
     ConnectionInfo *ci = getWorkerConnection();
     string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
+    string name = data->getName();
+    size_t slot = data->getSlot();
     return ci->getSecondoHome(false, commandLog) +
            "/dfarrays/" + dbname + "/" +
            name + "/" +
@@ -583,44 +306,47 @@ std::string Task::getFilePath()
            std::to_string(slot) + ".bin";
 }
 
-std::string Task::getResultFileDir(ConnectionInfo *ci)
+std::string WorkerLocation::getFileDirectory(TaskDataItem *data) const
 {
+    ConnectionInfo *ci = getWorkerConnection();
     string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
+    string name = data->getName();
     return ci->getSecondoHome(false, commandLog) +
            "/dfarrays/" + dbname + "/" +
-           resultName + "/";
+           name + "/";
 }
 
-std::string Task::getResultFilePath(ConnectionInfo *ci)
-{
-    return getResultFileDir(ci) +
-           resultName + "_" +
-           std::to_string(slot) + ".bin";
-}
-
-std::string Task::getValueArgument()
+std::string TaskDataLocation::getValueArgument(TaskDataItem *data) const
 {
     switch (storageType)
     {
     case DataStorageType::Object:
-        return getObjectName();
+        return data->getObjectName();
     case DataStorageType::File:
     {
-        string fname1 = getFilePath();
-        ListExpr frelType = nl->TwoElemList(
-            listutils::basicSymbol<frel>(),
-            nl->Second(contentType));
+        string fname1 = getFilePath(data);
 
-        return "(" + nl->ToString(frelType) +
-               " '" + fname1 + "' )";
-        break;
+        ListExpr contentType = data->getContentType();
+        if (Relation::checkType(contentType))
+        {
+            ListExpr frelType = nl->TwoElemList(
+                listutils::basicSymbol<frel>(),
+                nl->Second(contentType));
+
+            return "(" + nl->ToString(frelType) +
+                   " '" + fname1 + "' )";
+        }
+        else
+        {
+            return "(getObjectFromFile '" + fname1 + "')";
+        }
     }
     default:
         throw std::invalid_argument("not implemented storage type");
     }
 }
 
-bool Task::runCommand(ConnectionInfo *ci,
+void Task::runCommand(ConnectionInfo *ci,
                       std::string cmd,
                       std::string description,
                       bool nestedListFormat,
@@ -645,35 +371,39 @@ bool Task::runCommand(ConnectionInfo *ci,
     }
     if (err)
     {
-        cerr << description << " failed, cmd = " << cmd << endl;
-        cerr << "message : " << errMsg << endl;
-        cerr << "code : " << err << endl;
-        cerr << "meaning : " << SecondoInterface::GetErrorMessage(err) << endl;
         writeLog(ci, cmd, errMsg);
-        this->taskType = TaskType::Error;
-        this->errorMessage = errMsg;
-        return false;
+        throw RemoteException(
+            description,
+            errMsg +
+                " (code: " + std::to_string(err) + " " +
+                SecondoInterface::GetErrorMessage(err) + ")",
+            cmd);
     }
     if (!ignoreFailure && r == "(bool FALSE)")
     {
-        cerr << description << " failed, cmd = " << cmd << endl;
-        cerr << "command returned FALSE" << endl;
         writeLog(ci, cmd, "returned FALSE");
-        this->taskType = TaskType::Error;
-        this->errorMessage = "returned FALSE";
-        return false;
+        throw RemoteException(
+            description,
+            "command returned FALSE",
+            cmd);
     }
-    return true;
 }
 
-bool Task::store(ConnectionInfo *ci, std::string value, std::string description)
+TaskDataItem *FunctionTask::store(
+    const WorkerLocation &location, const WorkerLocation &preferredLocation,
+    size_t slot, std::string value, std::string description)
 {
-    string name2 = getResultObjectName();
-    string cmd;
+    DataStorageType storageType =
+        this->isStream || this->isRel || location != preferredLocation
+            ? DataStorageType::File
+            : DataStorageType::Object;
 
-    storageType = this->isStream || this->isRel
-                      ? DataStorageType::File
-                      : DataStorageType::Object;
+    ConnectionInfo *ci = location.getWorkerConnection();
+    TaskDataItem result(resultName, slot, resultContentType,
+                        TaskDataLocation(location, storageType, true),
+                        preferredLocation);
+    string name2 = result.getObjectName();
+    string cmd;
 
     switch (storageType)
     {
@@ -692,12 +422,12 @@ bool Task::store(ConnectionInfo *ci, std::string value, std::string description)
     case DataStorageType::File:
     {
         // create the target directory
-        string targetDir = getResultFileDir(ci);
+        string targetDir = location.getFileDirectory(&result);
 
         string cd = "query createDirectory('" + targetDir + "', TRUE)";
         runCommand(ci, cd, "create directory for file", false, true);
 
-        string fname2 = getResultFilePath(ci);
+        string fname2 = location.getFilePath(&result);
 
         // if the result of the function is a relation, we feed it
         // into a stream to fconsume it
@@ -715,10 +445,14 @@ bool Task::store(ConnectionInfo *ci, std::string value, std::string description)
             cmd = "(query (count (fconsume5 " + value + " '" +
                   fname2 + "'" + aa + " )))";
         }
-        else
+        else if (this->isRel)
         {
             cmd = "(query (count (fconsume5 (feed " + value + " )'" +
                   fname2 + "' " + aa + ")))";
+        }
+        else
+        {
+            cmd = "(query (saveObjectToFile " + value + " '" + fname2 + "'))";
         }
 
         break;
@@ -727,20 +461,208 @@ bool Task::store(ConnectionInfo *ci, std::string value, std::string description)
         throw std::invalid_argument("not implemented storage type");
     }
 
-    if (!runCommand(ci, cmd, description, true))
-        return false;
+    runCommand(ci, cmd, description, true);
 
-    this->name = resultName;
-    this->contentType = resultContentType;
-
-    return true;
+    return new TaskDataItem(result);
 }
 
-ConnectionInfo *Task::getWorkerConnection()
+ConnectionInfo *WorkerLocation::getWorkerConnection() const
 {
     string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
-    return algInstance->getWorkerConnection(
-        DArrayElement(server, port, worker, config), dbname);
+    ConnectionInfo *ci = algInstance->getWorkerConnection(
+        getDArrayElement(), dbname);
+    if (ci == 0)
+    {
+        throw new RemoteException(
+            "connect to worker",
+            "ConnectionInfo == NULL",
+            "(" + toString() + ").getWorkerConnection()");
+    }
+    return ci;
+}
+
+DataDistance TaskDataItem::getDistance(
+    WorkerLocation const &location) const
+{
+    boost::lock_guard<boost::mutex> lock(mutex);
+    DataDistance bestDistance = MemoryOverNetwork;
+    for (auto &loc : locations)
+    {
+        DataDistance dist = loc.getDistance(location);
+        if (dist < bestDistance)
+        {
+            bestDistance = dist;
+        }
+    }
+    return bestDistance;
+}
+
+DataDistance TaskDataItem::getUpcomingDistance(
+    WorkerLocation const &location) const
+{
+    DataDistance bestDistance = getDistance(location);
+    boost::lock_guard<boost::mutex> lock(mutex);
+    for (auto &loc : upcomingLocations)
+    {
+        DataDistance dist = loc.getDistance(location);
+        if (dist < bestDistance)
+        {
+            bestDistance = dist;
+        }
+    }
+    return bestDistance;
+}
+
+pair<TaskDataLocation, int> TaskDataItem::findTransferSourceLocation(
+    std::map<std::string, pair<bool, int>> activeTransferrators) const
+{
+    const TaskDataLocation *bestLoc = 0;
+    int bestCount = 0;
+    for (auto &loc : locations)
+    {
+        if (loc.getStorageType() != File)
+            continue;
+        auto transferrator = activeTransferrators[loc.getServer()];
+        if (!transferrator.first)
+            continue;
+        int count = transferrator.second;
+        if (bestLoc == 0 || count < bestCount)
+        {
+            bestLoc = &loc;
+            bestCount = count;
+        }
+    }
+    if (bestLoc == 0)
+        throw NoSourceLocationException(this);
+    return make_pair(*bestLoc, bestCount);
+}
+
+TaskDataLocation TaskDataItem::findLocation(WorkerLocation const &nearby) const
+{
+    boost::lock_guard<boost::mutex> lock(mutex);
+    const TaskDataLocation *bestLoc = 0;
+    DataDistance bestDistance = (DataDistance)(FileOnServer + 1);
+    for (auto &loc : locations)
+    {
+        if (loc.getWorkerLocation() == nearby)
+            return loc;
+        DataDistance dist = loc.getDistance(nearby);
+        if (dist < bestDistance)
+        {
+            bestLoc = &loc;
+            bestDistance = dist;
+        }
+    }
+    if (bestLoc == 0)
+        throw NoNearbyLocationException(this, nearby);
+    return *bestLoc;
+}
+
+bool TaskDataItem::hasLocation(WorkerLocation const &nearby) const
+{
+    boost::lock_guard<boost::mutex> lock(mutex);
+    for (auto &loc : locations)
+    {
+        DataDistance dist = loc.getDistance(nearby);
+        if (dist <= FileOnServer)
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool TaskDataItem::hasFileLocation(WorkerLocation const &nearby) const
+{
+    boost::lock_guard<boost::mutex> lock(mutex);
+    for (auto &loc : locations)
+    {
+        DataDistance dist = loc.getDistance(nearby);
+        if (dist == FileOnServer)
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool TaskDataItem::hasUpcomingLocation(WorkerLocation const &nearby) const
+{
+    boost::lock_guard<boost::mutex> lock(mutex);
+    for (auto &loc : upcomingLocations)
+    {
+        DataDistance dist = loc.getDistance(nearby);
+        if (dist <= FileOnServer)
+        {
+            return true;
+        }
+    }
+    for (auto &loc : locations)
+    {
+        DataDistance dist = loc.getDistance(nearby);
+        if (dist <= FileOnServer)
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
+TaskDataLocation TaskDataItem::findUpcomingLocation(
+    WorkerLocation const &nearby) const
+{
+    boost::lock_guard<boost::mutex> lock(mutex);
+    const TaskDataLocation *bestLoc = 0;
+    DataDistance bestDistance = (DataDistance)(FileOnServer + 1);
+    for (auto &loc : upcomingLocations)
+    {
+        DataDistance dist = loc.getDistance(nearby);
+        if (dist < bestDistance)
+        {
+            bestLoc = &loc;
+            bestDistance = dist;
+        }
+    }
+    for (auto &loc : locations)
+    {
+        DataDistance dist = loc.getDistance(nearby);
+        if (dist < bestDistance)
+        {
+            bestLoc = &loc;
+            bestDistance = dist;
+        }
+    }
+    if (bestLoc == 0)
+        throw NoNearbyLocationException(this, nearby);
+    return *bestLoc;
+}
+
+TaskDataLocation TaskDataItem::findFileLocation(
+    WorkerLocation const &nearby) const
+{
+    boost::lock_guard<boost::mutex> lock(mutex);
+    const TaskDataLocation *bestLoc = 0;
+    DataDistance bestDistance = (DataDistance)(FileOnServer + 1);
+    for (auto &loc : locations)
+    {
+        if (loc.getStorageType() != File)
+            continue;
+        DataDistance dist = loc.getDistance(nearby);
+        if (dist < bestDistance)
+        {
+            bestLoc = &loc;
+            bestDistance = dist;
+        }
+    }
+    if (bestLoc == 0)
+        throw NoNearbyLocationException(this, nearby);
+    return *bestLoc;
+}
+
+TaskDataLocation TaskDataItem::getFirstLocation() const
+{
+    boost::lock_guard<boost::mutex> lock(mutex);
+    return locations[0];
 }
 
 //these functions are needed for the type constructor
@@ -778,7 +700,7 @@ bool TaskTypeCheck(ListExpr type, ListExpr &errorInfo)
 Word CreateTask(const ListExpr typeInfo)
 {
     Word w;
-    w.addr = (new Task(TaskType::Error));
+    w.addr = (new ErrorTask());
     return w;
 }
 

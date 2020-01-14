@@ -36,10 +36,13 @@ namespace distributed5
 
 DInputConsumer::DInputConsumer(DInputConsumer &&move)
 {
+    workers = move.workers;
+    move.workers = 0;
     dArray = move.dArray;
     move.dArray = 0;
     stream = move.stream;
     move.stream = 0;
+    workerIndex = move.workerIndex;
     index = move.index;
     storageType = move.storageType;
     contentType = move.contentType;
@@ -48,6 +51,8 @@ DInputConsumer::DInputConsumer(DInputConsumer &&move)
 DInputConsumer::DInputConsumer(DArrayBase *dArray, ListExpr contentType)
 {
     this->stream = 0;
+    this->workers = &dArray->getWorker();
+    workerIndex = 0;
     this->dArray = dArray;
     this->contentType = contentType;
     index = 0;
@@ -58,6 +63,7 @@ DInputConsumer::DInputConsumer(DArrayBase *dArray, ListExpr contentType)
 
 DInputConsumer::DInputConsumer(Word &stream)
 {
+    this->workers = 0;
     this->dArray = 0;
     this->stream = new Stream<Task>(stream);
     this->stream->open();
@@ -74,14 +80,25 @@ DInputConsumer::~DInputConsumer()
 
 Task *DInputConsumer::request()
 {
+    if (workers)
+    {
+        Task *result = new WorkerTask((*workers)[workerIndex]);
+        workerIndex++;
+        if (workerIndex >= workers->size())
+        {
+            workers = 0;
+        }
+        return result;
+    }
     if (dArray)
     {
-        Task *result = new Task(
+        Task *result = new DataTask(
             dArray->getWorkerForSlot(index),
             dArray->getName(),
             index,
             storageType,
             contentType);
+        result->setFlag(Output);
         index++;
         if (index >= dArray->getSize())
         {

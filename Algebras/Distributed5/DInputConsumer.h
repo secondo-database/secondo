@@ -62,9 +62,11 @@ public:
     Task *request();
 
 private:
+    const std::vector<distributed2::DArrayElement> *workers;
+    size_t workerIndex;
     distributed2::DArrayBase *dArray;
-    Stream<Task> *stream;
     size_t index;
+    Stream<Task> *stream;
     DataStorageType storageType;
     ListExpr contentType;
 };
