@@ -34,5 +34,5 @@ Result   : 40
 Operator : readfromwebsocket
 Number   : 1
 Signature: URI x Subscription x Type -> stream(tuple)
-Example  : query readfromwebsocket("wss://ws.blockchain.info/inv", "{\"op\":\"unconfirmed_sub\"}", "Name,string,$.name") count
+Example  : query readfromwebsocket('wss://ws.blockchain.info/inv', '{"op":"unconfirmed_sub"}', 'Operation : string /op') finishStream[8080] head[10] consume
 Result   : 7

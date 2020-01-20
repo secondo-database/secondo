@@ -111,4 +111,20 @@ query readfromwebsocket('wss://ws-feed.pro.coinbase.com', '{"type":"subscribe","
     Amount : string /changes/0/1')
     finishStream[8080] head[10] consume
 
+query readfromwebsocket('https://demos-safe-software.fmecloud.com:7078/websocket',
+ '{"ws_op":"open","ws_stream_id":"sd_ship"}',
+    'Name : string /vessel_name,
+     Latitude : real /latitude,
+     Longitude : real /longitude')
+    finishStream[8080] consoleConsumer count;
+
+query readfromwebsocket('wss://streams.smartcolumbusos.com/socket/websocket',
+     '{"topic":"streaming:central_ohio_transit_authority__cota_stream","event":"phx_join","payload":{},"ref":1}',
+     'Label : string /payload/vehicle/vehicle/label,
+      Id : string /payload/vehicle/vehicle/id,
+      Latitude : real /payload/vehicle/position/latitude,
+      Longitude : real /payload/vehicle/position/longitude')
+     finishStream[8080] consoleConsumer head[100] consume;
+
+
 
