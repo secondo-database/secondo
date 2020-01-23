@@ -201,8 +201,7 @@ class Convex: public Attribute{
 
    void setTo(const std::vector<std::tuple<double, double>>& src);
 
-
-
+   
 
  
 
@@ -213,7 +212,7 @@ class Convex: public Attribute{
      Convex(size_t size, Point* value): Attribute(true), 
             value(value),size(size) {}
 
-     void setTo(const std::vector<Point>& sortedVector);
+     
 
 };
 

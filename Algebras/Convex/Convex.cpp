@@ -35,6 +35,12 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <tuple>
 #include <vector> 
 #include <algorithm> 
+#include "ListUtils.h"
+#include "NList.h"
+#include "StandardTypes.h"
+#include "Stream.h"
+#include "Algebras/FText/FTextAlgebra.h"
+
 using namespace std; 
 
 
@@ -60,8 +66,8 @@ Convex::Convex(Convex&& src): Attribute(src),
    src.value = 0;
 }
 
-Convex::Convex(const std::vector
-  <std::tuple <double, double>>& src):Attribute(true), value(0){
+Convex::Convex(const std::vector<std::tuple 
+                <double, double>>& src):Attribute(true), value(0){
    setTo(src);
 }
 
@@ -181,59 +187,12 @@ bool sortxupydown (const tuple<double, double>& a,
 
 
 
-int Convex::Compare(const Convex& arg) const {
-   if(!IsDefined()){
-      return arg.IsDefined()?-1:0;
-   }
-   if(!arg.IsDefined()){
-      return 1;
-   }
-   if(size != arg.size){
-     return size < arg.size ? -1 : 1;
-   }
-   for(size_t i=0;i<size;i++){
-     if(value[i].GetX() < arg.value[i].GetX()) return -1;
-     if(value[i].GetX() > arg.value[i].GetY()) return 1;
-     if(value[i].GetX() == arg.value[i].GetX()
-        &&
-       (value[i].GetY() < arg.value[i].GetY())) return -1;
-     
-     
-   }
-   return 0;
-}
-
-
-
-
-size_t Convex::HashValue() const {
-  if(!IsDefined() ) return 0;
-  if(value==nullptr) return 42;
-
-  unsigned int step = size / 2;
-  if(step<1) step = 1;
-  size_t pos = 0;
-  size_t res = 0;
-  while(pos < size){
-    res = res + value[pos].HashValue();
-    pos += step;
-  }
-  return res;
-}
-
-
-
-
-
-Word Convex::In(const ListExpr typeInfo, const ListExpr le1,
-                const int errorPos, ListExpr& errorInfo, bool& correct) {
-
-   ListExpr le = le1; 
-   ListExpr f, fxpoi, fypoi;
+bool checkme(std::vector<std::tuple <double, double>>& src){
+      
+      
    
+   std::vector<std::tuple<double, double>> finalcheckedvec;
    std::vector<std::tuple<double, double>> tmp;
-   std::vector<std::tuple<double, double>> finalvec;
-   
    
    std::vector<std::tuple <double, double>> xysortedvecasc;
    std::vector<std::tuple <double, double>> yxsortedvecasc;
@@ -260,147 +219,68 @@ Word Convex::In(const ListExpr typeInfo, const ListExpr le1,
    
    
    
-   
+   unsigned int iter, count, sectorflag;
    unsigned int  aboveleftsize;
    unsigned int  aboverightsize;
    unsigned int  belowleftsize;
    unsigned int  belowrightsize;
-  
+   unsigned int  tmpsize;
    
-  
    bool okflag = true;
    bool firstperpend = false;
    bool secondperpend = false;
    bool setfperflag = false;
    bool firstmflag = false;
    
-   unsigned int iter, count, sectorflag;
-   string lexprstr;
    double m, b, mlast, mnew;
    
    
-  
-   //Word res((void*)0);
-   Word res = SetWord(Address(0));
    
-   
-   if(listutils::isSymbolUndefined(le)){
-      res.addr = new Convex(false);
-      correct = true;
-      return res;
-   }
-   
-  
-   
-   if(nl->ListLength(le) <= 2){
-     correct = false;
-     ErrorReporter::ReportError(
-                "You need more than 2 values to define a polygon"); 
-     
-     return res;
-   }
-   
-            
-
-   while(!nl->IsEmpty(le)){
-     f = nl->First(le);
-     le = nl->Rest(le);
-     
-     if (nl->ListLength(f) != 2) {
-               
-      correct = false;
-      
-      nl->WriteToString(lexprstr, f);
-      
-        
-      ErrorReporter::ReportError(
-                "A pair of coordinates consist only of 2 arguments: '" 
-                +lexprstr+ "'");
-     return res;
-      
-     }    
-     
-     
-     fxpoi = nl->First(f);
-     fypoi = nl->Second(f);
-     
-      
-      
-     if ( ( nl->IsAtom(fxpoi) && nl->IsAtom(fypoi))       
-         == false)
-     
-      {
-      correct = false;
-     
-      nl->WriteToString(lexprstr, f);  
-      ErrorReporter::ReportError(
-                "Coordinates must bei atoms: '" 
-                +lexprstr+ "'");    
-      return res;
-     }    
-     
-    
-     if ( (  (nl->IsAtom(fxpoi) && nl->IsAtom(fypoi)) &&
-          (  (nl->AtomType(fxpoi) == RealType) &&
-             (nl->AtomType(fypoi) == RealType) ) 
-          == false))
-     
-      {
-      correct = false;
-     
-      nl->WriteToString(lexprstr, f);  
-      ErrorReporter::ReportError(
-                "Only values of type real are accepted: '" 
-                +lexprstr+ "'");
-     
-     
-      return res;
-     }    
-     
-          
-     
-     if ( (  (nl->IsAtom(fxpoi) && nl->IsAtom(fypoi)) &&
-          (  (nl->AtomType(fxpoi) == RealType) && 
-             (nl->AtomType(fypoi) == RealType) ) 
-            == false))
-     
-      {
-      correct = false;
-      return res;
-     }    
-     
-   //contructing the vektor of tuples       
-   
-   
-   tmp.push_back(std::make_tuple(nl->RealValue(fxpoi), nl->RealValue(fypoi)));
-   
-   
+   if (src.size() <= 2) {
+       return false;
        
-   } //end of while
+     }
+       
+       
    
    
+   tmp = src;
+ 
    xysortedvecasc = tmp;
    yxsortedvecasc = tmp;
-         
+   
+   
+  
+    
+
+      
   // sorting vecs by x resp. y coord 
          
        sort(xysortedvecasc.begin(), xysortedvecasc.end(), sortxupyup); 
        sort(yxsortedvecasc.begin(), yxsortedvecasc.end(), sortyupxdown); 
        
-        //eliminate redundant points 
+       
+         
+    
+    
+    
+    //eliminate redundant points 
     count = 0;
-    for (unsigned int i = 0; i < xysortedvecasc.size() - 1; i++) { 
-        if ( (get<0>(xysortedvecasc[i]) == get<0>(xysortedvecasc[i+1]))&&
+    for (unsigned int i = 0; i < xysortedvecasc.size() - 1; i++)
+       { if ( (get<0>(xysortedvecasc[i]) == get<0>(xysortedvecasc[i+1]))&&
               (get<1>(xysortedvecasc[i]) == get<1>(xysortedvecasc[i+1]))) { 
           
            xysortedvecasc.erase(xysortedvecasc.begin()+count);
            
-           }
+         }
          count++;
          }
     
        
-          
+    
+       
+       
+       
        
     // get leftpoint and right point of polygon
     
@@ -408,6 +288,7 @@ Word Convex::In(const ListExpr typeInfo, const ListExpr le1,
     rightpoint = xysortedvecasc[xysortedvecasc.size() - 1];
     downpoint = yxsortedvecasc[0];
     uppoint = yxsortedvecasc[yxsortedvecasc.size() - 1];
+   
    
     
    
@@ -418,8 +299,10 @@ Word Convex::In(const ListExpr typeInfo, const ListExpr le1,
     m = (get<1>(rightpoint) - get<1>(leftpoint)) / 
         (get<0>(rightpoint) - get<0>(leftpoint));
     
-    b =  get<1>(rightpoint) - (m * get<0>(rightpoint));   
+    b =  get<1>(rightpoint) - (m * get<0>(rightpoint));
     
+    
+   
     
     
     for (unsigned int i = 0; i < xysortedvecasc.size(); i++)  {
@@ -442,19 +325,22 @@ Word Convex::In(const ListExpr typeInfo, const ListExpr le1,
         
         } //end of for 
        
-            
+        
+   
+      
           
           
-   //move points above and below to aboveleft, aboveright,
-   //belowleft and belowright.
+          
+          
+   //move points above and below to 
+   //aboveleft, aboveright, belowleft and belowright.
    // using the "line" from downpoint to uppoint
     
     
      
-   //get points above and below the imagenary "line" 
-   //from downpoint to uppoint
+   //get points above and below the imagenary "line" from downpoint to uppoint
     
-   //first: testing for if point are perpendicular
+   //first: testing if point are perpendicular
     
     
     
@@ -463,11 +349,11 @@ Word Convex::In(const ListExpr typeInfo, const ListExpr le1,
     m = (get<1>(uppoint) - get<1>(downpoint)) / 
         (get<0>(uppoint) - get<0>(downpoint));
     
-    b =  get<1>(uppoint) - (m * get<0>(uppoint));   
+    b =  get<1>(uppoint) - (m * get<0>(uppoint));
+    
+    
     
       }
-      
-      
   
    if (get<0>(uppoint) != get<0>(downpoint)) {
   
@@ -498,7 +384,7 @@ Word Convex::In(const ListExpr typeInfo, const ListExpr le1,
      for (unsigned int i = 0; i < below.size(); i++)  {
         
         
-      if ( ((m * get<0>(below[i])) + b) >  get<1>(below[i]) ) {
+        if ( ((m * get<0>(below[i])) + b) >  get<1>(below[i]) ) {
             
             
         belowright.push_back (below[i]);
@@ -515,7 +401,7 @@ Word Convex::In(const ListExpr typeInfo, const ListExpr le1,
         } //end of for 
         
         
-        if (m < 0) {
+     if (m < 0) {
          
          temp1 = aboveright;
          temp2 = belowright;
@@ -525,11 +411,13 @@ Word Convex::In(const ListExpr typeInfo, const ListExpr le1,
          
          aboveleft = temp1;
          belowleft = temp2;
-              
-         }
+         
+         
+         
+     }
         
         
-       } //end of if
+     } //end of if
      
    
    
@@ -602,7 +490,13 @@ Word Convex::In(const ListExpr typeInfo, const ListExpr le1,
   
   sort(belowleft.begin(), belowleft.end(), sortxdownyup); 
   
-   
+  
+       
+  
+    
+  
+    
+    
     
    //constructing the final vector
    
@@ -612,18 +506,19 @@ Word Convex::In(const ListExpr typeInfo, const ListExpr le1,
    aboverightsize = aboveright.size();
    belowleftsize = belowleft.size();
    belowrightsize = belowright.size();
-  
+   tmpsize = tmp.size();
+   
       
   for (unsigned int i = 0; i < aboveleftsize; i++) {
     
-    finalvec.push_back(aboveleft[i]);
+    finalcheckedvec.push_back(aboveleft[i]);
        
    }
   
   
   for (unsigned int i = 0; i < aboverightsize; i++) {
     
-    finalvec.push_back(aboveright[i]);
+    finalcheckedvec.push_back(aboveright[i]);
        
    }
     
@@ -632,7 +527,7 @@ Word Convex::In(const ListExpr typeInfo, const ListExpr le1,
   
  for (unsigned int i = 0; i < belowrightsize; i++) {
     
-    finalvec.push_back(belowright[i]);
+    finalcheckedvec.push_back(belowright[i]);
        
    }
    
@@ -641,17 +536,32 @@ Word Convex::In(const ListExpr typeInfo, const ListExpr le1,
     
  for (int i = belowleftsize-1; i >= 0; i--) {
     
-    finalvec.push_back(belowleft[i]);
+    finalcheckedvec.push_back(belowleft[i]);
        
    }
     
  
  
+ if (tmpsize == finalcheckedvec.size()) {
+  
+     
+     
+     } 
+ 
+ 
+ 
+  
+  
+ 
+ 
+    
+    
    
-  // put left point at the end of the final vec for testing for purposes 
+   
+  // put left point at the end of the final vec for testing purposes 
    
    
-   finalvec.push_back(leftpoint);
+   finalcheckedvec.push_back(leftpoint);
    
    actpoint = leftpoint; 
    intermpoint = uppoint;
@@ -660,16 +570,14 @@ Word Convex::In(const ListExpr typeInfo, const ListExpr le1,
    iter = 1;
    
    
-   // testing for double vertical at the beginning 
-   
-   if ((get<0>(leftpoint) == get<0>(finalvec[iter])) &&
-       (get<0>(leftpoint) == get<0>(finalvec[iter+1]))) {
+   if ((get<0>(leftpoint) == get<0>(finalcheckedvec[iter])) &&
+       (get<0>(leftpoint) == get<0>(finalcheckedvec[iter+1]))) {
        
-   
-    correct = false;
+    
+    
     ErrorReporter::ReportError(
                 "The coordinates do not form a convex polygon");  
-   return res;  
+   return false;  
        
        
    }
@@ -677,22 +585,27 @@ Word Convex::In(const ListExpr typeInfo, const ListExpr le1,
    
    
    
-   if ((get<0>(leftpoint) == get<0>(finalvec[iter])) &&
-       (get<0>(leftpoint) != get<0>(finalvec[iter+1]))) {
+   if ((get<0>(leftpoint) == get<0>(finalcheckedvec[iter])) &&
+       (get<0>(leftpoint) != get<0>(finalcheckedvec[iter+1]))) {
        
    firstperpend = true; 
    setfperflag = true;
   
-   // set mlast > mnew just as start value;
+   // set mlast > mnew as start value;
    mlast = 1;
    mnew = 0;   
+   
+   
+   
    }
    
-   else { // first gradient
+   else {
     
-   mlast = (get<1>(finalvec[iter] ) - get<1>(leftpoint)) / 
-           (get<0>(finalvec[iter]) - get<0>(leftpoint));       
+   mlast = (get<1>(finalcheckedvec[iter] ) - get<1>(leftpoint)) /
+           (get<0>(finalcheckedvec[iter]) - get<0>(leftpoint));       
        
+  
+   
    firstmflag = true;
    
    mnew = mlast - 1; // just a dummy value
@@ -703,14 +616,15 @@ Word Convex::In(const ListExpr typeInfo, const ListExpr le1,
    
    
    
- while ( (iter < finalvec.size()) && (okflag == true))  {
+ while ( (iter < finalcheckedvec.size()) && (okflag == true))  {
      
      
      
      
      // begin sector 2 case
       
-         
+       
+    
         
     if (actpoint == uppoint)    {
         
@@ -725,51 +639,54 @@ Word Convex::In(const ListExpr typeInfo, const ListExpr le1,
         
    if (sectorflag == 2) {
        
-      // testing for double verticals 
-      if ( (iter+1 <= finalvec.size()) &&  
-           (get<0>(actpoint) == get<0>(finalvec[iter])) &&
-           (get<0>(actpoint) == get<0>(finalvec[iter+1]))) {
+      
+    
+      if ( (iter+1 <= finalcheckedvec.size()) &&
+           (get<0>(actpoint) == get<0>(finalcheckedvec[iter])) &&
+           (get<0>(actpoint) == get<0>(finalcheckedvec[iter+1]))) {
           
-              
-          correct = false;
+          
+                    
           ErrorReporter::ReportError(
                 "The coordinates do not form a convex polygon");  
-          return res;  
+          return false;  
       
       }
       
       
-        //testing for single vertical
-     if (get<0>(actpoint) == get<0>(finalvec[iter]) && 
+       
+     if (get<0>(actpoint) == get<0>(finalcheckedvec[iter]) &&
          (actpoint != rightpoint) ) {
         
-        correct = false;
+        
         ErrorReporter::ReportError(
                 "The coordinates do not form a convex polygon");  
-          return res;  
-               
+          return false;  
+      
+         
+      
         }
    
           
       
       
-      if (get<0>(actpoint) != get<0>(finalvec[iter]) 
-          && actpoint == uppoint)  {              
+      if (get<0>(actpoint) != get<0>(finalcheckedvec[iter]) && 
+         actpoint == uppoint)
+          
+             {
+    
+            
                  
-             mlast = (get<1>(finalvec[iter] ) -  // first gradient
-                     get<1>(uppoint)) / 
-                     (get<0>(finalvec[iter]) - get<0>(uppoint));       
+                 
+             mlast = (get<1>(finalcheckedvec[iter] ) - get<1>(uppoint)) /
+                     (get<0>(finalcheckedvec[iter]) - get<0>(uppoint));       
        
-             
              firstmflag = true;
    
-             mnew = mlast - 1; // just a dummy value
+              mnew = mlast - 1; // just a dummy value
        
              }   
-             
     }  // end of sectorflag == 2 case
-      
-      
       
       
       
@@ -789,42 +706,51 @@ Word Convex::In(const ListExpr typeInfo, const ListExpr le1,
         
     if (sectorflag == 3) { 
         
+        
+   
      
     
-    if ( (iter+1 <= finalvec.size()) &&  //testing for double verticals
-         (get<0>(actpoint) == get<0>(finalvec[iter])) &&
-         (get<0>(actpoint) == get<0>(finalvec[iter+1])) &&
-         (actpoint == rightpoint) ) {     
+   if ( (iter+1 <= finalcheckedvec.size()) &&
+           (get<0>(actpoint) == get<0>(finalcheckedvec[iter])) &&
+           (get<0>(actpoint) == get<0>(finalcheckedvec[iter+1])) &&
+           (actpoint == rightpoint) ) {     
           
-          correct = false;
+          
+          
           ErrorReporter::ReportError(
                 "The coordinates do not form a convex polygon");  
-          return res;  
+          return false;  
       
       }
       
-       
+        
    
-   if ((iter+1 <= finalvec.size()) && //testing for single vertical
-          (get<0>(rightpoint) == get<0>(finalvec[iter])) &&
-          (get<0>(rightpoint) != get<0>(finalvec[iter+1])) &&
-          (actpoint == rightpoint) )  {
+   
+   
+   
+   
+  if ((iter+1 <= finalcheckedvec.size()) &&
+         (get<0>(rightpoint) == get<0>(finalcheckedvec[iter])) &&
+         (get<0>(rightpoint) != get<0>(finalcheckedvec[iter+1])) &&
+         (actpoint == rightpoint) )  {
        
    firstperpend = true; 
    setfperflag = true;
   
-   // set mlast > mnew just as start value;
+   // set mlast > mnew as start value;
    mlast = 1;
    mnew = 0;   
    
-     }
    
-   else if (actpoint == rightpoint) { // first gradient
+   }
+   
+   else if (actpoint == rightpoint) {
     
-   mlast = (get<1>(finalvec[iter] ) - get<1>(rightpoint)) / 
-           (get<0>(finalvec[iter]) - get<0>(rightpoint));       
+   mlast = (get<1>(finalcheckedvec[iter] ) - get<1>(rightpoint)) /
+           (get<0>(finalcheckedvec[iter]) - get<0>(rightpoint));       
        
-   firstmflag = true; 
+      
+   firstmflag = true;
    
    mnew = mlast - 1; // just a dummy value
        
@@ -849,42 +775,51 @@ Word Convex::In(const ListExpr typeInfo, const ListExpr le1,
        
     
     
-    if ( (sectorflag == 4) && (actpoint != leftpoint) )  { 
-        
-       //testing for double verticals
-        if ( (iter+1 <= finalvec.size()) && 
-           (get<0>(actpoint) == get<0>(finalvec[iter])) &&
-           (get<0>(actpoint) == get<0>(finalvec[iter+1]))) {
-                   
-          correct = false;
+    if ( (sectorflag == 4) && (actpoint != leftpoint) )  {
+       
+      
+    
+      if ( (iter+1 <= finalcheckedvec.size()) &&
+           (get<0>(actpoint) == get<0>(finalcheckedvec[iter])) &&
+           (get<0>(actpoint) == get<0>(finalcheckedvec[iter+1]))) {
+          
+          
+                    
           ErrorReporter::ReportError(
                 "The coordinates do not form a convex polygon");  
-          return res;  
+          return false;  
       
       }
       
       
-       // testing for single vertical
-     if (get<0>(actpoint) == get<0>(finalvec[iter]) && 
+       
+     if (get<0>(actpoint) == get<0>(finalcheckedvec[iter]) &&
          (actpoint != uppoint) ) {
-        correct = false;
+        
+       
         ErrorReporter::ReportError(
                 "The coordinates do not form a convex polygon");  
-          return res;  
-            
+          return false;  
+      
+         
+          
         }
    
           
       
       
-      if (get<0>(actpoint) != get<0>(finalvec[iter]) 
-          && actpoint == downpoint)  {
+      if (get<0>(actpoint) != get<0>(finalcheckedvec[iter]) && 
+          actpoint == downpoint)
           
-          //first gradient
-          mlast = (get<1>(finalvec[iter] ) - get<1>(uppoint)) /    
-                  (get<0>(finalvec[iter]) - get<0>(uppoint))  ;       
-       
+             {
+    
             
+                 
+                 
+             mlast = (get<1>(finalcheckedvec[iter] ) - get<1>(uppoint)) / 
+                     (get<0>(finalcheckedvec[iter]) - get<0>(uppoint));       
+       
+             
              firstmflag = true;
    
               mnew = mlast - 1; // just a dummy value
@@ -895,64 +830,80 @@ Word Convex::In(const ListExpr typeInfo, const ListExpr le1,
     }
     
     
-          
+    
+   
+       
+       
        
     switch (sectorflag) {
         
         case 1: {
               
                
-              if  (get<0>(actpoint) == get<0>(finalvec[iter])&&
-                  (setfperflag == false) )  {
+              if  (get<0>(actpoint) == get<0>(finalcheckedvec[iter])&&
+                  (setfperflag == false) )
                   
-                  secondperpend = true;   
+               {secondperpend = true;
+                
+                
                
-                      
-                   }
+                
+               }
          
          
-              if (! ( (get<0>(actpoint) <= get<0>(finalvec[iter])) &&
-                      (get<1>(actpoint) <= get<1>(finalvec[iter])) ) ||
+              if (! ( (get<0>(actpoint) <= get<0>(finalcheckedvec[iter])) &&
+                      (get<1>(actpoint) <= get<1>(finalcheckedvec[iter])) ) ||
                       (setfperflag == false && secondperpend == true) ||
-                      mlast <= mnew)   {
+                      mlast <= mnew)
+              {
                  
                  okflag = false;    
-                 break; 
-                          
-                }
+                 break; }
                  
                  
                  
                  if ((firstperpend == true) && (setfperflag == true) &&
-                     (get<0>(finalvec[iter+1]) != get<0>(finalvec[iter])))   {
+                     (get<0>(finalcheckedvec[iter+1]) != 
+                      get<0>(finalcheckedvec[iter])))   {
                      
-                   
-                   actpoint = finalvec[iter];
-                   mnew = (get<1>(finalvec[iter+1] ) - get<1>(actpoint)) / 
-                          (get<0>(finalvec[iter+1]) - get<0>(actpoint));       
+                  
+                   actpoint = finalcheckedvec[iter];
+                   mnew = (get<1>(finalcheckedvec[iter+1] ) - 
+                           get<1>(actpoint)) / 
+                          (get<0>(finalcheckedvec[iter+1]) - 
+                           get<0>(actpoint));     
+                          
                    mlast = mnew + 1;
+                 
                    setfperflag = false;   
                     
                   }
                  
                  else {
                      
-                  actpoint = finalvec[iter];
+                  
+                   actpoint = finalcheckedvec[iter];
                    
-                  if (get<0>(finalvec[iter+1]) != get<0>(actpoint) &&
+                  if (get<0>(finalcheckedvec[iter+1]) != get<0>(actpoint) &&
                       (firstmflag == false) ) {
                      
                      mlast = mnew; 
-                     mnew = (get<1>(finalvec[iter+1] ) - get<1>(actpoint)) / 
-                            (get<0>(finalvec[iter+1]) - get<0>(actpoint));      
+                  
+                     mnew = (get<1>(finalcheckedvec[iter+1] ) - 
+                             get<1>(actpoint)) / 
+                            (get<0>(finalcheckedvec[iter+1]) - 
+                             get<0>(actpoint));      
                         
                     }
                     
                     else {
                         
                       // mlast ist the first m value  
-                     mnew = (get<1>(finalvec[iter+1] ) - get<1>(actpoint)) / 
-                            (get<0>(finalvec[iter+1]) - get<0>(actpoint));      
+                      mnew = (get<1>(finalcheckedvec[iter+1] ) - 
+                              get<1>(actpoint)) / 
+                             (get<0>(finalcheckedvec[iter+1]) - 
+                              get<0>(actpoint));      
+                             
                       firstmflag = false; 
                                             
                     }
@@ -965,30 +916,39 @@ Word Convex::In(const ListExpr typeInfo, const ListExpr le1,
         case 2:{ 
                 
            
-            if (! ((get<0>(actpoint) <= get<0>(finalvec[iter])) &&
-                   (get<1>(actpoint) >= get<1>(finalvec[iter])) ) ||
+            if (! ((get<0>(actpoint) <= get<0>(finalcheckedvec[iter])) &&
+                   (get<1>(actpoint) >= get<1>(finalcheckedvec[iter])) ) ||
                      mlast <= mnew ) {
                     
-                       
+                    
                    okflag = false;    
                    break; }
                 
                 
                
-                if (get<0>(finalvec[iter+1]) != get<0>(actpoint) &&
+                if (get<0>(finalcheckedvec[iter+1]) != get<0>(actpoint) &&
                      (firstmflag == true) ) {
-                      actpoint = finalvec[iter];
-                      mnew = (get<1>(finalvec[iter+1] ) - get<1>(actpoint)) / 
-                             (get<0>(finalvec[iter+1]) - get<0>(actpoint));   
+                    
+                      actpoint = finalcheckedvec[iter];
+                      
+                      mnew = (get<1>(finalcheckedvec[iter+1] ) - 
+                              get<1>(actpoint)) /
+                             (get<0>(finalcheckedvec[iter+1]) - 
+                              get<0>(actpoint));   
+                             
                       firstmflag = false;
                         
                     }  
                 
                  else {
-                    actpoint = finalvec[iter];
+                    actpoint = finalcheckedvec[iter];
+                    
                      mlast = mnew; 
-                     mnew = (get<1>(finalvec[iter+1] ) - get<1>(actpoint)) / 
-                            (get<0>(finalvec[iter+1]) - get<0>(actpoint));      
+                     
+                     mnew = (get<1>(finalcheckedvec[iter+1] ) - 
+                             get<1>(actpoint)) / 
+                            (get<0>(finalcheckedvec[iter+1]) - 
+                             get<0>(actpoint));      
                         
                  }
                 
@@ -1001,35 +961,42 @@ Word Convex::In(const ListExpr typeInfo, const ListExpr le1,
         
         case 3:{
             
-             
             
-             if  (get<0>(actpoint) == get<0>(finalvec[iter])&&
-                 (setfperflag == false) )  {
-                   secondperpend = true;      
+            
+             if  (get<0>(actpoint) == get<0>(finalcheckedvec[iter])&&
+                  (setfperflag == false) )  {
+                 
+                 secondperpend = true;
+                                             
                 
                }
          
          
-              if (! ( (get<0>(actpoint) >= get<0>(finalvec[iter])) &&
-                      (get<1>(actpoint) >= get<1>(finalvec[iter])) ) ||
+              if (! ( (get<0>(actpoint) >= get<0>(finalcheckedvec[iter])) &&
+                      (get<1>(actpoint) >= get<1>(finalcheckedvec[iter])) ) ||
                       (setfperflag == false && secondperpend == true) ||
-                      mlast <= mnew)  {
-                
+                      mlast <= mnew)
+              {
+                 
                  okflag = false;    
-                 break; 
-                          
-                }
+                 break; }
                  
                  
                  
                  if ((firstperpend == true) && (setfperflag == true) &&
-                     (get<0>(finalvec[iter+1]) != get<0>(finalvec[iter])))   {
+                     (get<0>(finalcheckedvec[iter+1]) != 
+                      get<0>(finalcheckedvec[iter])))   {
                      
-                  
-                   actpoint = finalvec[iter];
-                   mnew = (get<1>(finalvec[iter+1] ) - get<1>(actpoint)) / 
-                          (get<0>(finalvec[iter+1]) - get<0>(actpoint));       
+                   
+                   actpoint = finalcheckedvec[iter];
+                 
+                   mnew = (get<1>(finalcheckedvec[iter+1] ) - 
+                           get<1>(actpoint)) / 
+                          (get<0>(finalcheckedvec[iter+1]) - 
+                           get<0>(actpoint));       
+                          
                    mlast = mnew + 1;
+                 
                    setfperflag = false;   
                     
                   }
@@ -1037,36 +1004,40 @@ Word Convex::In(const ListExpr typeInfo, const ListExpr le1,
                  else {
                      
                    
-                   actpoint = finalvec[iter];
+                   actpoint = finalcheckedvec[iter];
                    
-                  if (get<0>(finalvec[iter+1]) != get<0>(actpoint) &&
+                  if (get<0>(finalcheckedvec[iter+1]) != get<0>(actpoint) &&
                       (firstmflag == false) ) {
                      
                      mlast = mnew; 
-                     mnew = (get<1>(finalvec[iter+1] ) - get<1>(actpoint)) / 
-                            (get<0>(finalvec[iter+1]) - get<0>(actpoint));      
+                  
+                     mnew = (get<1>(finalcheckedvec[iter+1] ) -
+                             get<1>(actpoint)) / 
+                            (get<0>(finalcheckedvec[iter+1]) - 
+                             get<0>(actpoint));      
                      
                     }
                     
                     else {
                         
                       // mlast ist the first m value  
-                      if  (get<0>(finalvec[iter+1]) != get<0>(actpoint)) {
+                      if  (get<0>(finalcheckedvec[iter+1]) != 
+                           get<0>(actpoint)) {
                           
-                      mnew = (get<1>(finalvec[iter+1] ) - get<1>(actpoint)) / 
-                             (get<0>(finalvec[iter+1]) - get<0>(actpoint));   
+                      mnew = (get<1>(finalcheckedvec[iter+1] ) - 
+                              get<1>(actpoint)) / 
+                            (get<0>(finalcheckedvec[iter+1]) - 
+                             get<0>(actpoint));   
                       }
                       
-                      
+                     
                       firstmflag = false; 
                                             
                     }
                  
-                 } //end of else
+                 }
                  
-                 break;
-            
-                }
+                 break;}
             
             
             
@@ -1075,72 +1046,267 @@ Word Convex::In(const ListExpr typeInfo, const ListExpr le1,
         case 4: {
             
             
-          
+            
            
-            if (! ((get<0>(actpoint) >= get<0>(finalvec[iter])) &&
-                   (get<1>(actpoint) <= get<1>(finalvec[iter])) ) ||
+            if (! ((get<0>(actpoint) >= get<0>(finalcheckedvec[iter])) &&
+                   (get<1>(actpoint) <= get<1>(finalcheckedvec[iter])) ) ||
                      mlast <= mnew ) {
                     
-                       
+                  
                    okflag = false;    
-                   break;
-                         
-                    }
+                   break; }
                 
                 
                
-                if (get<0>(finalvec[iter+1]) != get<0>(actpoint) &&
+                if (get<0>(finalcheckedvec[iter+1]) != get<0>(actpoint) &&
                      (firstmflag == true) ) {
-                      actpoint = finalvec[iter];
-                      mnew = (get<1>(finalvec[iter+1] ) - get<1>(actpoint)) / 
-                             (get<0>(finalvec[iter+1]) - get<0>(actpoint));   
+                    
+                      actpoint = finalcheckedvec[iter];
+                      
+                      mnew = (get<1>(finalcheckedvec[iter+1] ) -
+                              get<1>(actpoint)) / 
+                             (get<0>(finalcheckedvec[iter+1]) - 
+                              get<0>(actpoint));  
+                             
                       firstmflag = false;
                         
                     }  
                 
                  else {
-                    actpoint = finalvec[iter];
+                    actpoint = finalcheckedvec[iter];
+                    
                      mlast = mnew; 
-                     mnew = (get<1>(finalvec[iter+1] ) - get<1>(actpoint)) / 
-                            (get<0>(finalvec[iter+1]) - get<0>(actpoint));      
+                     
+                     mnew = (get<1>(finalcheckedvec[iter+1] ) - 
+                             get<1>(actpoint)) / 
+                            (get<0>(finalcheckedvec[iter+1]) -
+                             get<0>(actpoint));      
                         
                  }
                 
                 
                 
-                break;
-            
-        } 
+                break;} 
         
-            
-            
-           
+   
+   
        
        
    
   
-    }
+    } //end of switch
+    
+    
+    
+     
    if  (okflag == false) break; 
    iter++; 
-   }	
+   
+   }//end of while	
+   
+   
+   
+    finalcheckedvec.pop_back();
+   
+   src = finalcheckedvec;   
+   
+   
 	
     
     
-    
+  if (okflag == true) 
+      
+      return true;
+      
+      else 
+          return false;
   
     
-       
+  
+     
+
+ } //the end of checkme
+
+
+
+ 
+ 
+
+int Convex::Compare(const Convex& arg) const {
+   if(!IsDefined()){
+      return arg.IsDefined()?-1:0;
+   }
+   if(!arg.IsDefined()){
+      return 1;
+   }
+   if(size != arg.size){
+     return size < arg.size ? -1 : 1;
+   }
+   for(size_t i=0;i<size;i++){
+     if(value[i].GetX() < arg.value[i].GetX()) return -1;
+     if(value[i].GetX() > arg.value[i].GetY()) return 1;
+     if(value[i].GetX() == arg.value[i].GetX()
+        &&
+       (value[i].GetY() < arg.value[i].GetY())) return -1;
+     
+     
+   }
+   return 0;
+}
+
+
+
+
+size_t Convex::HashValue() const {
+  if(!IsDefined() ) return 0;
+  if(value==nullptr) return 42;
+
+  unsigned int step = size / 2;
+  if(step<1) step = 1;
+  size_t pos = 0;
+  size_t res = 0;
+  while(pos < size){
+    res = res + value[pos].HashValue();
+    pos += step;
+  }
+  return res;
+}
+
+
+
+
+
+Word Convex::In(const ListExpr typeInfo, const ListExpr le1,
+                const int errorPos, ListExpr& errorInfo, bool& correct) {
+
+   ListExpr le = le1; 
+   ListExpr f, fxpoi, fypoi;
+   std::vector<std::tuple<double, double>> tmpo;
+   
+   bool checkokflag = true;
+     
+   string lexprstr;
+  
+   
+  
+   //Word res((void*)0);
+   Word res = SetWord(Address(0));
+   
+   
+   
+   if(listutils::isSymbolUndefined(le)){
+     
+      res.addr = new Convex(false);
+      correct = true;
+      return res;
+   }
+   
+  
+   
+   if(nl->ListLength(le) <= 2){
+     correct = false;
+     ErrorReporter::ReportError(
+                "You need more than 2 values to define a polygon"); 
+     
+     return res;
+   }
+   
+            
+
+   while(!nl->IsEmpty(le)){
+     f = nl->First(le);
+     le = nl->Rest(le);
     
-    
-    
-    
-    
-    
-    //checking if concave scenarios have been found     
-    //give back the result
-    
+     
+     if(nl->ListLength(f) != 2) 
+     
+     {
+               
+      correct = false;
       
-  if (okflag == false) {
+      nl->WriteToString(lexprstr, f);
+      
+        
+      ErrorReporter::ReportError(
+                "A pair of coordinates consist only of 2 arguments: '" 
+                +lexprstr+ "'");
+     return res;
+      
+     }    
+     
+     fxpoi = nl->First(f);
+     fypoi = nl->Second(f);
+     
+      
+      
+     if ( ( nl->IsAtom(fxpoi) && nl->IsAtom(fypoi))       
+         == false)
+     
+      {
+      correct = false;
+     
+      nl->WriteToString(lexprstr, f);  
+      ErrorReporter::ReportError(
+                "Coordinates must bei atoms: '" 
+                +lexprstr+ "'");
+     
+     
+      return res;
+     }    
+     
+    
+     if ( (  (nl->IsAtom(fxpoi) && nl->IsAtom(fypoi)) &&
+          (  (nl->AtomType(fxpoi) == RealType) && 
+             (nl->AtomType(fypoi) == RealType) ) 
+        == false))
+     
+      {
+      correct = false;
+     
+      nl->WriteToString(lexprstr, f);  
+      ErrorReporter::ReportError(
+                "Only values of type real are accepted: '" 
+                +lexprstr+ "'");
+     
+     
+      return res;
+     }    
+     
+     
+     
+    
+     
+     
+     if ( (  (nl->IsAtom(fxpoi) && nl->IsAtom(fypoi)) &&
+          (  (nl->AtomType(fxpoi) == RealType) && 
+            (nl->AtomType(fypoi) == RealType) ) 
+         == false))
+     
+      {
+      correct = false;
+      return res;
+     }    
+     
+   //contructing the vektor of tuples       
+   
+   
+   tmpo.push_back(std::make_tuple(nl->RealValue(fxpoi), nl->RealValue(fypoi)));
+   
+   
+       
+   } //end of while
+   
+   
+   
+   //HIER AUFRUF CHECKME
+   
+   
+   checkokflag = checkme(tmpo);
+   
+  
+   
+   if (checkokflag == false) {
+    
        
     correct = false;
     ErrorReporter::ReportError(
@@ -1149,8 +1315,8 @@ Word Convex::In(const ListExpr typeInfo, const ListExpr le1,
    }   
       
   else { 
-   finalvec.pop_back();
-   Convex* r = new Convex(finalvec);
+   
+   Convex* r = new Convex(tmpo);
    res.addr = r;
    correct = true; 
    return res;
@@ -1159,54 +1325,50 @@ Word Convex::In(const ListExpr typeInfo, const ListExpr le1,
    
    
 }
-
-
-
-
-
-
-
+   
+   
+   
 ListExpr Convex::Out(const ListExpr typeInfo, Word value) {
   
   Convex* is = (Convex*) value.addr;
   
-  Point point = is->value[0];
- 
-    
+  Point point = is->value[0];  
+  
+  
   
   if(!is->IsDefined()){
-     
+    
      return listutils::getUndefined();
   }
   
   
   
   if(is->size == 0){
-     
+      
      return nl->TheEmptyList();
   }
   
   
-  ListExpr res =  nl->OneElemList( nl->TwoElemList( 
-                      nl->RealAtom(is->value[0].GetX()),
-                      nl->RealAtom(is->value[0].GetY()) ));
+  ListExpr res =  nl->OneElemList( 
+                      nl->TwoElemList( nl->RealAtom(is->value[0].GetX()),
+                                       nl->RealAtom(is->value[0].GetY()) ));
   
-  
-  
-  
+   
   
   
   ListExpr last = res;
   for(unsigned int i=1;i<is->size;i++){
     
     last = nl->Append( last,                       
-                        nl->TwoElemList ( 
-                          nl->RealAtom(is->value[i].GetX()),
-                          nl->RealAtom(is->value[i].GetY()) ) );
+                        nl->TwoElemList ( nl->RealAtom(is->value[i].GetX()),
+                                          nl->RealAtom(is->value[i].GetY()) ) );
   }
   
   return res;
 }
+
+
+
 
 
 
@@ -1293,7 +1455,7 @@ bool Convex::Save(SmiRecord& valueRecord, size_t& offset,
          
          
      // converting the right tuple vector into point sequence    
-         
+        
       
          while(it!=src.end()) {
            
@@ -1303,14 +1465,16 @@ bool Convex::Save(SmiRecord& valueRecord, size_t& offset,
          
          poi.Set(true, tempxval, tempyval);
          value[pos] = poi;          
-           
-         it++;
-         pos++;
+              
+           it++;
+           pos++;
          }
       }
    }
 
    
+   
+     
    
 std::ostream& Convex::Print( std::ostream& os ) const {
     if(!IsDefined()){
@@ -1331,6 +1495,127 @@ std::ostream& Convex::Print( std::ostream& os ) const {
 
 
 
+//Type Mapping Funtions
+
+
+
+ListExpr createconvextypemap( ListExpr args)
+{ 
+  
+    
+  if(!nl->HasLength(args,1))
+   {
+    return listutils::typeError("only one  arguments expected");
+   }
+   
+  ListExpr arg1 = nl->First(args);
+  
+  if(!Stream<Point>::checkType(arg1))
+    
+   {
+    return listutils::typeError("first argument must be a stream of points");
+   }
+   
+  
+  return nl->SymbolAtom(Convex::BasicType());
+      
+  
+}
+
+
+
+
+//Value Mapping Functions
+
+
+int createconvexVM (Word* args, Word& result,
+                   int message, Word& local, Supplier s) 
+
+
+{ 
+    
+ result = qp->ResultStorage(s);
+ Stream<Point> stream(args[0]);
+ Convex* res = static_cast<Convex*>(result.addr);  
+ Point* elem; 
+ vector<Point> points;
+ std::vector<std::tuple<double, double>> temp;
+ bool checkgood;
+ 
+ 
+ stream.open();
+ 
+     
+ 
+ while ( (elem = stream.request() ) ){
+     
+  
+     
+   if (!elem->IsDefined()) {
+     res->SetDefined(false);
+     return 0;
+   }
+   
+  
+        
+   //contructing the vektor of tuples       
+   
+   
+   temp.push_back(std::make_tuple(elem->GetX(), elem->GetY()));
+   
+  }
+
+  
+  
+  
+checkgood = checkme(temp);  
+
+if (checkgood == true) {
+
+  
+ res->setTo(temp);
+ stream.close(); 
+ return 0;    
+ }
+
+ 
+ 
+ 
+ else {
+ stream.close();
+ return 0;    
+ }
+      
+}    
+    
+
+
+
+//Specification for createconvex
+
+
+const string createconvexSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text>stream(points)  -> convex </text--->"
+    "<text>createconvex(streamofpoints) </text--->"
+    "<text>Creates a convex polygon in form of a point sequence "
+    "starting from the leftpoint in clockwise order."    
+    "The input points sequence has not to be ordered in that way"
+    "Returns the ordered  point sequence forming the convex polygon "
+    "if the input points form a convex polygon"
+    "or error  if the stream of points does not form a convex polygon or " 
+    "any other error occurs </text--->"    
+    "<text> query createconvex('sreamofpoints') </text--->"
+    ") )";
+    
+
+
+
+
+
+
+
+//Registration of Types
 
 
 
@@ -1345,6 +1630,21 @@ TypeConstructor ConvexTC(
 
 
 
+//Registration of operators
+
+Operator createconvex ( "createconvex",
+                   createconvexSpec,
+                   createconvexVM,
+                   Operator::SimpleSelect,
+                   createconvextypemap );
+         
+
+
+
+
+
+
+
   
 //Implementation of the Algebra Class
 
@@ -1352,7 +1652,7 @@ class ConvexAlgebra : public Algebra
 {
  public:
   ConvexAlgebra() : Algebra()
-  
+   
 
 //Registration of Types
 
@@ -1367,7 +1667,8 @@ class ConvexAlgebra : public Algebra
 
 // Registration of operators
  
-    
+    AddOperator( &createconvex);
+  
  
     
   }
