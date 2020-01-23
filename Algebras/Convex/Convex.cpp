@@ -1337,8 +1337,6 @@ ListExpr Convex::Out(const ListExpr typeInfo, Word value) {
   }
   
  
-  Point point = is->value[0];  
-  
   
   
   if(!is->IsDefined()){
