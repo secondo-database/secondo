@@ -1277,15 +1277,7 @@ Word Convex::In(const ListExpr typeInfo, const ListExpr le1,
     
      
      
-     if ( (  (nl->IsAtom(fxpoi) && nl->IsAtom(fypoi)) &&
-          (  (nl->AtomType(fxpoi) == RealType) && 
-            (nl->AtomType(fypoi) == RealType) ) 
-         == false))
-     
-      {
-      correct = false;
-      return res;
-     }    
+    
      
    //contructing the vektor of tuples       
    
@@ -1308,11 +1300,16 @@ Word Convex::In(const ListExpr typeInfo, const ListExpr le1,
    if (checkokflag == false) {
     
        
-    correct = false;
+   
     ErrorReporter::ReportError(
                 "The coordinates do not form a convex polygon");  
-   return res;   
-   }   
+   
+   
+   correct = false; 
+   return res;
+    
+   
+    }   
       
   else { 
    
@@ -1326,12 +1323,20 @@ Word Convex::In(const ListExpr typeInfo, const ListExpr le1,
    
 }
    
+ 
+   
    
    
 ListExpr Convex::Out(const ListExpr typeInfo, Word value) {
   
   Convex* is = (Convex*) value.addr;
   
+ 
+  if(!is->IsDefined()){
+     return listutils::getUndefined();
+  }
+  
+ 
   Point point = is->value[0];  
   
   
