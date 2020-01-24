@@ -1337,15 +1337,7 @@ ListExpr Convex::Out(const ListExpr typeInfo, Word value) {
   }
   
  
-  
-  
-  if(!is->IsDefined()){
     
-     return listutils::getUndefined();
-  }
-  
-  
-  
   if(is->size == 0){
       
      return nl->TheEmptyList();
@@ -1600,15 +1592,17 @@ if (checkgood == true) {
 const string createconvexSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
     "( <text>stream(points)  -> convex </text--->"
-    "<text>createconvex(streamofpoints) </text--->"
+    "<text>_ createconvex </text--->"
     "<text>Creates a convex polygon in form of a point sequence "
-    "starting from the leftpoint in clockwise order."    
-    "The input points sequence has not to be ordered in that way"
-    "Returns the ordered  point sequence forming the convex polygon "
-    "if the input points form a convex polygon"
-    "or error  if the stream of points does not form a convex polygon or " 
+    "starting from the left point in clockwise order."    
+    "The input point sequence does not have to be ordered in that way. "
+    "Returns the polygon "
+    "if the input point sequence form a convex polygon. "
+    "Otherwise undef is returned either if the point stream "
+    "does not form a convex polygon or " 
     "any other error occurs </text--->"    
-    "<text> query createconvex('sreamofpoints') </text--->"
+    "<text> query Kinos feed head [3] projecttransformstream[GeoData] "
+    "createconvex </text--->"
     ") )";
     
 

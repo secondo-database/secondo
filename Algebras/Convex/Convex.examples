@@ -5,7 +5,7 @@ Restore  : NO
 Operator : createconvex
 Number   : 1
 Signature: stream(points) -> convex
-Example  : query createconvex (Kinos feed head [3] projecttransformstream[GeoData])
+Example  : query Kinos feed head [3] projecttransformstream[GeoData] createconvex
 Result   : (convex ( (4648.0 5318.0) (5271.0 10652.0) (17564.0 5438.0))) 
 Remark   : 
 
