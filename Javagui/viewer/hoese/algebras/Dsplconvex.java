@@ -13,17 +13,13 @@ import java.io.*;
 public class Dsplconvex extends DisplayGraph  {
 
 
-    private Path2D.Double conv;
+   private Path2D.Double conv;
            
     
-    
-   
-    
-    
+       
    public boolean ScanValue (ListExpr value) {
       
-   System.out.println("SCANVALUE"); 
-    
+  
     boolean firstval = true;
     ListExpr f, s, ss, fs, ff, sf;
     Double newx = 42.0;
@@ -34,8 +30,7 @@ public class Dsplconvex extends DisplayGraph  {
     boolean firstvalsetdone = false;
    
    
-   System.out.println("VALUE Lenght");
-   System.out.println(value.listLength()  ); 
+   
    
    
     if(isUndefined(value)){
@@ -76,23 +71,14 @@ public class Dsplconvex extends DisplayGraph  {
     conv.moveTo(tx1, ty1);
     conv.lineTo(tx2, ty2);
     
-    System.out.println("move to " +" "+ tx1 + " : " + ty1);
-    System.out.println("lineTo " +" "+ tx2 + " : " + ty2);
     
     value = value.rest();
     value = value.rest();
    
-    
-    
-    
-    
-    
-    
+       
     
     while (!value.isEmpty()) {
-    
-     System.out.println("Iterration");
-    
+           
      f = value.first();
     ff = f.first();
     fs = f.second();
@@ -106,18 +92,12 @@ public class Dsplconvex extends DisplayGraph  {
     
     conv.lineTo(tx2, ty2);
     
-    System.out.println("lineTo " +" "+ tx2 + " : " + ty2);
+    
+        
      
+    value = value.rest();
+      
      
-     
-      value = value.rest();
-      System.out.println("value rest");
-      System.out.println(value.listLength()  ); 
-      System.out.println(" ");
-      
-      
-      //System.out.println(conv.toString)");
-      
       
     }
     
