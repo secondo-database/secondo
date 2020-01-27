@@ -123,9 +123,9 @@ public class Dsplconvex extends DisplayGraph  {
     
     public Shape getRenderObject (int num,AffineTransform at) {
     
-        System.out.println("getRender IN");
+        
         if (num<1) {
-        System.out.println("getRender return");
+        
             return conv;
         }
         
