@@ -534,11 +534,13 @@ bool checkme(std::vector<std::tuple <double, double>>& src){
    
  
     
- for (int i = belowleftsize-1; i >= 0; i--) {
+  for (unsigned int i = 0; i < belowleftsize; i++) {
     
     finalcheckedvec.push_back(belowleft[i]);
        
    }
+    
+ 
     
  
  
