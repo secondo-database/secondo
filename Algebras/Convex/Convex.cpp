@@ -242,8 +242,7 @@ bool checkme(std::vector<std::tuple <double, double>>& src){
      }
        
        
-   
-   
+      
    tmp = src;
  
    xysortedvecasc = tmp;
@@ -1189,27 +1188,32 @@ Word Convex::In(const ListExpr typeInfo, const ListExpr le1,
      
    string lexprstr;
   
-   
+   Convex* co = new Convex(false);
   
    //Word res((void*)0);
    Word res = SetWord(Address(0));
    
    
-   
-   if(listutils::isSymbolUndefined(le)){
-     
-      res.addr = new Convex(false);
+    if(listutils::isSymbolUndefined(le)){
+      
+      
+      
+      co->SetDefined(false);
+      res.addr = co;      
       correct = true;
       return res;
    }
    
+   
   
    
    if(nl->ListLength(le) <= 2){
-     correct = false;
-     ErrorReporter::ReportError(
-                "You need more than 2 values to define a polygon"); 
+     correct = true;
+   //  ErrorReporter::ReportError(
+   //             "You need more than 2 values to define a polygon"); 
      
+      co->SetDefined(false);
+      res.addr = co;      
      return res;
    }
    
@@ -1224,14 +1228,17 @@ Word Convex::In(const ListExpr typeInfo, const ListExpr le1,
      
      {
                
-      correct = false;
+      correct = true;
       
       nl->WriteToString(lexprstr, f);
       
         
-      ErrorReporter::ReportError(
-                "A pair of coordinates consist only of 2 arguments: '" 
-                +lexprstr+ "'");
+     // ErrorReporter::ReportError(
+     //           "A pair of coordinates consist only of 2 arguments: '" 
+     //           +lexprstr+ "'");
+      
+      co->SetDefined(false);
+      res.addr = co;      
      return res;
       
      }    
@@ -1245,14 +1252,15 @@ Word Convex::In(const ListExpr typeInfo, const ListExpr le1,
          == false)
      
       {
-      correct = false;
+      correct = true;
      
-      nl->WriteToString(lexprstr, f);  
-      ErrorReporter::ReportError(
-                "Coordinates must bei atoms: '" 
-                +lexprstr+ "'");
+    //  nl->WriteToString(lexprstr, f);  
+    //  ErrorReporter::ReportError(
+    //            "Coordinates must bei atoms: '" 
+    //            +lexprstr+ "'");
      
-     
+      co->SetDefined(false);
+      res.addr = co;      
       return res;
      }    
      
@@ -1263,14 +1271,15 @@ Word Convex::In(const ListExpr typeInfo, const ListExpr le1,
         == false))
      
       {
-      correct = false;
+      correct = true;
      
-      nl->WriteToString(lexprstr, f);  
-      ErrorReporter::ReportError(
-                "Only values of type real are accepted: '" 
-                +lexprstr+ "'");
+    //  nl->WriteToString(lexprstr, f);  
+    //  ErrorReporter::ReportError(
+    //            "Only values of type real are accepted: '" 
+    //            +lexprstr+ "'");
      
-     
+      co->SetDefined(false);
+      res.addr = co;      
       return res;
      }    
      
@@ -1431,7 +1440,9 @@ bool Convex::Save(SmiRecord& valueRecord, size_t& offset,
 }
 
 
+ 
 
+   
 
 
  void Convex::setTo(const std::vector<std::tuple <double, double>>& src){
@@ -1569,8 +1580,10 @@ checkgood = checkme(temp);
 
 if (checkgood == true) {
 
-  
- res->setTo(temp);
+ 
+
+ res -> setTo(temp);; 
+ 
  stream.close(); 
  return 0;    
  }
