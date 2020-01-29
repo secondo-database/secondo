@@ -98,6 +98,8 @@ class Convex: public Attribute{
        *this = *((Convex*) arg);
     }   
     Attribute* Clone() const{
+       
+        
        return new Convex(*this);
     }
    //functions supporting the embedding into secondo
@@ -139,6 +141,7 @@ class Convex: public Attribute{
      w.addr = 0;
    }
    static Word Clone(const ListExpr typeInfo, const Word& w){
+     
       Convex* v = (Convex*) w.addr;
       Word res;
       res.addr = new Convex(*v);
@@ -185,11 +188,16 @@ class Convex: public Attribute{
       offset += sizeof(size_t);
       if(size > 0){
         memcpy(buffer+offset, value, size*sizeof(Point));
-        offset += size*sizeof(int);
+        offset += size*sizeof(Point);
       }
    }
 
-   //inline virtual void Rebuild(char* buffer, size_t sz);
+   inline virtual void Rebuild(char* buffer, size_t sz);
+   
+   
+   
+   
+   
 
    virtual size_t GetMemSize() {
      return sizeof(*this) + size * sizeof(Point);

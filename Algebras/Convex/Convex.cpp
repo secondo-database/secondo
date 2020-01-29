@@ -1500,7 +1500,29 @@ std::ostream& Convex::Print( std::ostream& os ) const {
 
 
 
-
+void Convex::Rebuild(char* buffer, size_t sz) {
+   if(value!=nullptr){
+     delete[] value;
+     value = nullptr;
+   }
+   size = 0;
+   bool def;
+   size_t offset = 0;
+   memcpy(&def,buffer + offset, sizeof(bool));
+   offset += sizeof(bool);
+   if(!def){
+      SetDefined(false);
+      return;
+   }       
+   SetDefined(true);
+   memcpy(&size, buffer+offset, sizeof(size_t));
+   offset += sizeof(size_t);
+   if(size > 0){
+     value = new Point[size];
+     memcpy(value, buffer+offset, size * sizeof(Point));
+     offset += size * sizeof(Point);
+   }
+}
 
 
 //Type Mapping Funtions
