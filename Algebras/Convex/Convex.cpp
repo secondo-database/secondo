@@ -817,8 +817,8 @@ bool checkme(std::vector<std::tuple <double, double>>& src){
             
                  
                  
-             mlast = (get<1>(finalcheckedvec[iter] ) - get<1>(uppoint)) / 
-                     (get<0>(finalcheckedvec[iter]) - get<0>(uppoint));       
+             mlast = (get<1>(finalcheckedvec[iter] ) - get<1>(downpoint)) / 
+                     (get<0>(finalcheckedvec[iter]) - get<0>(downpoint));       
        
              
              firstmflag = true;
