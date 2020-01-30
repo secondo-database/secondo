@@ -1563,8 +1563,11 @@ int createconvexVM (Word* args, Word& result,
 
 
 { 
-    
+ 
+ qp->ReInitResultStorage(s);
  result = qp->ResultStorage(s);
+ 
+ 
  Stream<Point> stream(args[0]);
  Convex* res = static_cast<Convex*>(result.addr);  
  Point* elem; 
