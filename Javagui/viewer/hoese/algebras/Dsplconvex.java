@@ -13,23 +13,23 @@ import java.io.*;
 public class Dsplconvex extends DisplayGraph  {
 
 
-   private Path2D.Double conv;
-           
+   private  Path2D.Double conv;
+            Area areas;
+   
     
        
    public boolean ScanValue (ListExpr value) {
       
   
-    boolean firstval = true;
+    
     ListExpr f, s, ss, fs, ff, sf;
     Double newx = 42.0;
     Double newy = 42.0;
     Double lastx = 42.0;
     Double lasty = 42.0;
-    double tx1 ,ty1, tx2, ty2;    
-    boolean firstvalsetdone = false;
-   
-   
+    double tx1 ,ty1, tx2, ty2, txx2, tyy2;
+    boolean empty = true;
+    float  tx1f,  ty1f, tx2f, ty2f, txx2f, tyy2f;
    
    
    
@@ -47,9 +47,8 @@ public class Dsplconvex extends DisplayGraph  {
             return false;
         }
     
-    
     conv = new Path2D.Double();
-    
+   
     f = value.first();
     ff = f.first();
     fs = f.second();
@@ -68,17 +67,28 @@ public class Dsplconvex extends DisplayGraph  {
     tx2 = newx.doubleValue();
     ty2 = newy.doubleValue();
         
-    conv.moveTo(tx1, ty1);
+    
     if(!ProjectionManager.project(tx1,ty1,aPoint)){
           err = true;
           }
       else{
       
+     tx1f = (float) aPoint.x;    
+     ty1f = (float) aPoint.y;
+     
+     conv.moveTo(tx1f, ty1f);
+     empty = false;
+      
+      
        if(!ProjectionManager.project(tx2,ty2,aPoint)) {
              err = true;
              }
           else {
-            conv.lineTo(tx2, ty2);
+          
+            tx2f = (float) aPoint.x;
+            ty2f = (float) aPoint.y;
+            
+            conv.lineTo(tx2f, ty2f);
             }
         }
       
@@ -98,15 +108,20 @@ public class Dsplconvex extends DisplayGraph  {
     fs = f.second();
     newx = LEUtils.readNumeric(ff);
     newy = LEUtils.readNumeric(fs);
-    tx2 = newx.doubleValue();
-    ty2 = newy.doubleValue();
+    txx2 = newx.doubleValue();
+    tyy2 = newy.doubleValue();
         
     
     
-    if(!ProjectionManager.project(tx2,ty2,aPoint))
+    if(!ProjectionManager.project(txx2,tyy2, aPoint)) {
           err = true;
-      else  conv.lineTo(tx2, ty2);
-    
+          }
+      else {
+      txx2f = (float) aPoint.x;
+      tyy2f = (float) aPoint.y;
+         
+      conv.lineTo(txx2f, tyy2f);
+     }
     
         
      
@@ -120,32 +135,28 @@ public class Dsplconvex extends DisplayGraph  {
         
             
     conv.closePath();
+    
+     if(!empty) 
+        areas= new Area(conv);
+     else
+        areas= null;
+    
     return true;
   }
 
     
-    
-    
-      
-    
-    
-
-    public int numberOfShapes(){
+   public int numberOfShapes(){
         return 1;
     }
     
     
-    
-    public Shape getRenderObject (int num,AffineTransform at) {
-    
-        
-        if (num<1) {
-        
-            return conv;
-        }
-        
-        return null;
+   public Shape getRenderObject(int num,AffineTransform at){
+    if(num<1){
+       return areas;
+    } else{
+       return null;
     }
+  }
     
     
     
@@ -178,15 +189,5 @@ public class Dsplconvex extends DisplayGraph  {
    
    
    
-    public boolean mayBeDefined() {
-        return true;
-    }
-
-    public double getMinRenderValue() {
-        return 3;
-    }
-
-    public double getMaxRenderValue() {
-        return 1000;
-    }
+   
 }
