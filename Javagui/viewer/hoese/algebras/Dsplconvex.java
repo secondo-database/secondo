@@ -69,7 +69,21 @@ public class Dsplconvex extends DisplayGraph  {
     ty2 = newy.doubleValue();
         
     conv.moveTo(tx1, ty1);
-    conv.lineTo(tx2, ty2);
+    if(!ProjectionManager.project(tx1,ty1,aPoint)){
+          err = true;
+          }
+      else{
+      
+       if(!ProjectionManager.project(tx2,ty2,aPoint)) {
+             err = true;
+             }
+          else {
+            conv.lineTo(tx2, ty2);
+            }
+        }
+      
+    
+    
     
     
     value = value.rest();
@@ -89,8 +103,9 @@ public class Dsplconvex extends DisplayGraph  {
         
     
     
-    
-    conv.lineTo(tx2, ty2);
+    if(!ProjectionManager.project(tx2,ty2,aPoint))
+          err = true;
+      else  conv.lineTo(tx2, ty2);
     
     
         
