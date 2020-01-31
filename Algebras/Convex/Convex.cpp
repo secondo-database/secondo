@@ -1564,6 +1564,7 @@ int createconvexVM (Word* args, Word& result,
 
 { 
  
+ qp->DeleteResultStorage(s);
  qp->ReInitResultStorage(s);
  result = qp->ResultStorage(s);
  
