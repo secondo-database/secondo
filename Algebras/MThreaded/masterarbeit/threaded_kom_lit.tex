@@ -1,0 +1,373 @@
+\RequirePackage[ngerman=ngerman-x-latest]{hyphsubst}
+\documentclass[a4paper,12pt,twoside]{article}
+\usepackage[ngerman]{babel}
+\usepackage{fancyhdr}
+\usepackage{graphicx}
+\setlength\abovecaptionskip{4pt}
+\usepackage[bookmarksopen=true,bookmarksnumbered=true]{hyperref}
+\usepackage[utf8]{inputenc}
+\usepackage[inner=2.5cm,outer=2cm,top=2.3cm,bottom=2cm,head=0.8cm,headsep=0.8cm,footskip=0cm,asymmetric]{geometry}
+\usepackage{setspace}
+\usepackage{courier}
+\usepackage{array}
+\usepackage{amsmath}
+\usepackage{amssymb}
+
+\usepackage[babel,german=quotes]{csquotes}
+
+\usepackage[backend=biber, texencoding=auto, bibencoding=auto, safeinputenc=true, citestyle=alphabetic, bibstyle=alphabetic, maxbibnames=99, isbn=false, doi=false, url=false]{biblatex}
+\addbibresource{master.bib}
+%\bibliography{master.bib}
+
+
+\begin{document}
+
+\section*{Multi-threaded Query Processing II}
+
+\section{Kommentierte Literaturliste}
+
+\subsection{Parallele Algorithmen 4}
+
+
+
+\textbf{\fullcite{Bengel2008}}
+
+eng/loose gekoppelt. gemeinsamer Speicher? Programmiermodell gemeinsamer Speicher. Ausführungsmodell OpenMP
+
+Parallelisierung: Inhärent versus Pipeline. Datenzerlegung: Master-Worker. Methodisches Vorgehen Zerlegung: Paritionierung, Kommunikation und Agglomeration, Mapping (viel oder wenig Kommunikation - gleicher Prozessor oder verteilt). Unterschiede verteilte/zentrale Algorithmen; kein globaler Zustand. keine gemeinsame Zeit. unvorhersehbare Abläufe. Rechenlastverteilung: statisch/dynamisch. 
+
+
+\textbf{\fullcite{Rauber2013}}
+
+Architektur von Multiprozessor-Systemen. Standard Desktop Prozessor hierarchisches Design. L1/L2 Cache und shared L3. Allgemein zu Cache und Multiprozessing. 
+
+Übersicht Parallel Programmiermodelle: Task kleinste Einheit Parallelisierung.  Partitionierung, Scheduling, Mapping. Level Parallelisierung: Instruktion, Data, Loop, Funktionale. Parallele Programmiermuster: Fork Join, Parbegin-parend, SPMD/SIMD, Master/Worker, Pipelining: Kette von Threads in der Verarbeitung. Producer/Consumer,
+
+Allgemein zu Performance-Analyse. Kosten, Beschleunigung, Effizienz. Performance-Verhalten bei wachsender Anzahl von Prozessoren: Scalability. PRAM-Modell (Parallel RAM)
+
+Progammieren mit Messages. Deadlocks. Programmieren mit Threads: Kreieren und Wiedervereinigen von Threads. Lock Mechanismen. Parallelisieren mit Pipelines: Koordinierung mit conditional Variablen. 
+
+\textbf{\fullcite{McCool2012}}
+
+Ausführlich zur Performance-Theorie. Fallstricke (Race Konditionen, Gegenseitiger Ausschluss und Locks, Deadlocks, abgewürkte Skalierung, unausgeglichener Lastverteilung, Overhead). Übersicht über die Programmiermuster sehr detailiert (mehr als Rauber).
+
+Paralleler Merge-Sort: Beispiel warum es besser ist neuen Algorithmus zu suchen anstatt einen seriellen zu Parallelisieren. Devide und Conquer Alternative zum üblichen seriellen Algorithmus. TBB Parallel Merge: Fork-Join. Merge Sort in CILK Plus. 
+
+\textbf{\fullcite{Vitter2008}}
+
+externe Algorithmen. Cache und geteilter Speicher. I/O Operationen. Lokalität mit nur einer HD. 
+
+Externes Sortieren: durch Distribution oder Merge. Wie mehrere Disks verwenden. Algorithmen vor allem diesbzgl. Interessant für einen Ausblick.
+
+\subsection{Parallele Datenbanken 5}
+\textbf{\fullcite{Yu1998}}
+
+Konzepte: Shared Memory/Shared Disk Architektur
+
+Parallelität von Datenbankabfragen:
+
+Partitioning (Round Robin über mod, Range, Hash)
+
+Paraller binärerer Merge Sort: 2 Phase, jeder Kern sortiert mit beliebigem Sortierverfahren und zweite Phase fügt diese sortierten Relationen zusammen mit abnehmender Kernzahl. Letzte Subphase nutzt nur noch einen Kern.
+
+Block Bitonic kurz angerissen. 
+
+Sort Merge Join: Trivial nur Sort parallel. Es gibt aber einige Algorithmen, bei denen beide Phase parallel sind, von denen einer sehr kurz umrissen wird: Partitioniere R mit Hash-Funktion und sortiere lokal in Thread. S genauso und zu entsprechendem Thread senden. Dort auch lokal sortieren. Merge Join für jedes Fragment. Zusammen setzen.
+
+Hash Join: Simple, Grace und Habrid kurz erläutert. Nutze für Hash kleinere Relation. Problem Overflow: Partitioniere weiter auf jedem Kern und speichere nicht behandelte Tuple temporär. Grace: Overflow wird versucht zu verhindern und nicht erst reagiert wie simple Hash. Grace 2 Phasen: finde disjunkte Fragmente und speichere diese. Fragment Joining Phase parallele Hash Joins auf jedem Paar von Fragmenten. Jedes Fragment passt in den Speicher. Hybrid: Versucht I/O-Traffic zu minimieren, indem beide Phasen des Grace-Joins nicht völig getrennt sind.
+
+Vergleich Join Algorithmen: Sort Merge nicht so anfällig auf Zahl Kerne. Bei Hash Habrid am Besten.
+
+Allgemein einiges zu Optimierung. Fragen Anzahl Kerne z.B.
+
+\textbf{\fullcite{Mach2007}} ?
+
+Im Kontext Grid-Computing. Anschließend an Bitton Modell für Binäres Merge-Sort, Bitonic Sort, Sort Merge Join.
+
+Kommunikationskosten: I/O
+
+Merge Sort Join mit Bitonic Sort bessere Performance als mit Binärem Merge Sort und besser als Nested-Loop Join.
+
+Hash Join: Auswirkung Speicher Allocierung. Round Robin: Besser als Random, aber Verteilung der Last im System wird nicht beachtet
+
+\textbf{\fullcite{Reuter1999}} ?
+
+Übersicht verschiedene Arten der Parallelität: Inter-Transaction, unter Operationen, direkt einer Operation, Zugriff auf gespeicherte Daten.
+
+Parallele Joins: Während des Sortierens Daten über Verteilung, um Partitionen gleicher Größe für Merge zu erreichen (Sort Join). Hash Join: 2 Phasen. Lese R parallel und schicke an Hash entsprechenden Prozessor. Probing Phase: S Mapped bei gleicher Hash Funktion.
+
+\textbf{\fullcite{Cieslewicz2006}} ?
+
+Auswirkung von Parallelität auf einem Chip für Parallisierung von Datenbankoperationen. 
+
+\textbf{\fullcite{Lu1994}}
+
+Aufsatzsammlung, aber auch Kapitelüberblicke zu Sortieren, Joins, Load Balancing.
+
+Sortieren. 2 Gruppen. Merge-based (k-Wege Merge Sorts oder Sortiernetzwerke) und Partitionierungsbasierendes Sortieren: Bereichspartitionierung. Finde den besten Aufteilungsvektor (Näherung oder Genau)
+
+Parallele Joins: Vorstellung der wichtigen einkern Algorithmen inkl. Pseudo-Code: Nested-Loops Join, Sort-Merge und Hash (Basic, Hybrid, Grace und Simple). Parallelisierung Sort-Merge zuerst nur Sort. Hier Fragment und Replicate Methode für Merge (siehe Richardson). Partitionierung der beiden Tabellen. 2 Möglichkeiten: Jede sortierte Parition der Basistabellen aus R wird mit jeder aus S merge-joined. Oder: kleinere Relation wird erst gemerged. Stärkere Parallelisierung, aber schlechtere Performance, da Annäherung an Loop Join.
+
+Andere Methode: Paritionierung in k Fragmente mit je Join-Attribute kleiner als nächstes Fragment. Paare werden dann gejoined. Oder: Iyer e.all Verfahren mit Range-Partitionierung und Ermittlung idealer Partitionierung.
+
+Sort Merge erhält order und weiterer Vorteil, wenn Relationen bereits sortiert.
+
+Hash-basiertend: besser geeignet für Parallelisierung. Partition-Phase und Join Phase kann parallesiert werden. In shared all globale Hash-Tabelle. Gleichzeitiges Testen aus Gleichheit. Alle Einprozessor-Algorithmen können auf diese Art und Weise parallelisiert werden. Problem: Hash-Funktion ungünstig. Größe der Hash-Tabellen
+
+Task-Generierung: Subrelationen (Frage ob überlappend oder vollständig geteilt), Anzahl der Tasks (bei Hash-Joins zb für jeden Kern einen, Grace teils auch mehr), Formierung der Tasks nach Aufteilung, welche Statistik notwendig? Load Balancing (first fit oder best fit Strategie), dynamic und statisches Load Balancing. 
+
+
+
+
+\subsection{Partitionierung 7}
+
+\textbf{\fullcite{Ghandeharizadeh1998}} ? evtl. raus
+
+Versucht Mittelweg Range und Load-Balancing von Round Robin und Hash. Clusterung in eine große Anzahl kleiner logischer Segmente mit bestimmtem Wertebereich. vor allem für Optimierer: lohnt sich Parallelisierung?
+
+\textbf{\fullcite{Hua1990AnAD}} ?
+
+Balance Workload während Anfrage-Bearbeitung
+
+\textbf{\fullcite{Hofmann2011}}
+
+Verteilung Balancing für Sortieren
+
+
+\textbf{\fullcite{Frias2008}}
+
+Parallele Partitionierung von Arrays um einen Ankerpunkt. Phasen: Sequentielle Setup der Arbeit jedes Kerns, parallel Hauptphase und seq. Clean-up. 
+
+Strided Algorithmus: Setup Partitionierung jeder p. Wert für Kern p., Hauptphase: Bestimmung Splitting Position. Cleanup
+
+F&A Algorithmus: Setup: jeder Kern 2 Blöcke vom Ende und Anfang des Arrays. Hauptphase: jeder Kern neuralisierungsmethode: 
+
+Neu parallele Clean-up Phase. 
+
+\textbf{\fullcite{Devine2006}}?
+
+Traditionelle Ansätze Graphen versus geometrischer Partitionierung. Recursives koordinaten Bisection (z.B. Cutting Planes), Space-Filling curve (SFC). Ansätze für Spezialanwendung, wenig hilfreich für mich
+
+\subsection{Sort 3}
+\textbf{\fullcite{Bitton1983}}
+
+vergleiche binary merge sort und block bitonic.
+Binärer MergeSort: 3 Phasen (Suboptimal, Optimal, Postoptimal)
+Suboptimal Merging bis Anzahl der Kerne (Parallel, aber eigene Daten), Postoptimal weniger Files als Kerne, aber Prozessornutzung über Pipelining
+Laufzeit:
+\[ \underbrace{\frac{n}{2p} \log \left( \frac{n}{2p} \right)}_{suboptimal} + \underbrace{\frac{n}{2p}}_{optimal} + \underbrace{\log p - 1 + \frac{n}{2}}_{postoptimal} \]
+Block Bitonic Sort: $n$ Zahlen werden in $\frac{n}{2}$ Vergleichsmodulen in $\frac{1}{2} \log n (\log n +1)$ Schritten sortiert. Jeder Schritt besteht aus parallelen Vergleichs-Austauschen und Transfers. Die  Module sind in einem Mischschema verbunden. Module können als Prozessoren/Kerne begriffen werden. Verallgemeinert als externer Algorithmus: Jedes Modul macht externen 2-Wege-Merge-Sort. Da der Algorithmus höchtens $2p$ Blöcke sortieren kann, braucht es eine vorbereitende Phase. Beispielsweise paralleler 2-Wege-Merge-Sort. Oder mehrere Phasen, bis Blockgröße für finalen Schritt erreicht. Merge Sort ist bei großen $n$ und kleiner Kernzahl $p$ ungefähr 2 mal so schnell. Bitonic Sort ist schneller.
+Join: Merge Sort wird hier Merge Schritt nicht parallel gemacht, sondern nur Sort mit Bitonic. 
+
+\textbf{\fullcite{Bitton1984}}
+
+Übersicht über parallele Sortieralgorithmen (intern und extern). 2 grundsätzlich verschiedene Ansätze: Ungleich/gleich und Bitonic. Sortieren großer Dateien über Bubble Memories. VLSI Sorting.
+
+Kurze Geschichte der Sortieralgorithmen. Umfangreich Bitonic Sort. 
+
+Extern am Besten Paralleler binärer Merge mit Pipelining. 
+
+\textbf{\fullcite{Knuth1973}}
+
+Grundlegende externe Algorithmen: Mehrwege-Merging und Ersetzungsauswahl: erster Schritt. Längere Läufe als Arbeitsspeicher. Wettbewerbsbaum. 
+
+\subsubsection{Mergesort/Fastsort 9}
+\textbf{\fullcite{Tsukerman1986}}
+
+Fastsort als Weiterentwicklung von MergeSort. Parallel.
+Wettrennen in Sortierbaum. Round Robin Distribution.
+Multi-Phasen Sort (Daten>Speicher): 
+
+\textbf{\fullcite{Salzberg1990}}
+
+Single Input Single Output, round robin subsort, merge sorted subsubsorts, uses replacement selection for subsort
+
+\textbf{\fullcite{Taniar2000}}
+
+Taxonomie für Sortiere auf Multiprozessorsystemen: P. Merge-all Sort, binärer Mergesort, Verteilungs binärer Merge Sort und partitionierender Sort. Die letzten 3 auf partitionieren bzw. verteile basiered hier neu vorgestellt
+
+Merge-All: lokales sortieren und finales Mergen. Load Balancing über Round Robin. Problem ist, dass finale Phase nur 1 Prozessor. k-Wege-Merge Sort. Nachteil. Viele Dateien gleichzeitig geöffnet.
+
+Binärer Mergesort wie Bitton: Merging Phase wird gepiplinend. Vorteil wie vorheriger: einfaches Load Balancing.
+
+Vorgeschlagene 3 Alternativen:
+
+Parallel Neuverteilungs B-Merge Sort: Parallelität auf alle Stufen durch Pipelining. 1. Schritt lokaler Sort auf $p$ Prozessoren. 2. Neuverteilung der Daten auf gleiche Anzahl Prozessoren. 3. Schritt vereinigung der Ergebnisse. Neuverteilung kann sehr ungleich sein (Range Redistribution).
+
+das gleiche als Merge all: reduziert Höhe des Baums.
+
+Parallel Partionierender Sort: Zuerst Range Partitionierung. Kein Overhead durch Pipelining. Kein Flaschenhals durch Merging
+
+\textbf{\fullcite{Bahig2016}}
+
+\textbf{\fullcite{Marszalek2017}}
+
+\textbf{\fullcite{Cormen2009}}
+
+\textbf{\fullcite{Hao2009}}
+
+\textbf{\fullcite{Beck1988}}
+
+\textbf{\fullcite{Ghaffari2019}}
+
+Trivialer Ansatz Parallel Merge Sort: $O(n log^{2} n)$. Ansatz für $O(n log n)$ plus Faktor: 2 sortierte Arrays $\sqrt{nm}$ paarweise Vergleiche. Gleiche Anzahl Kerne, Vergleich $O(1)$ in Concurrent Read Exlusive Write Modell. Finde für jedes $\alpha_i$ $j$, so dass $B[\beta_j] \leq A[\beta_i] \leq B[\beta_{j+1}]$. Vergleiche parallel alle $A[\beta_i]$ zu allen $\sqrt{m}$ Elementen in $B[\beta_j\ldots\beta_{j+1}]$. Dann weiß man den genauen Rang im Merge von $\alpha_i$. Braucht $O(log log n)$ Rekursionen.
+Parallel Merge Sort mithilfe diesem Improved Merging. Weitere Verbesserung durch das Pipelinig der Merges. 
+
+Zusätzlich einiges allgemein zu parallel Algorithmen.
+
+%\textbf{\fullcite{Marszalek2018}}
+
+\subsubsection{Bitonic Sort 2}
+\textbf{\fullcite{Menon1986}}
+
+Modified Block Bitonic Sort als externer paralleler Algorithmus. Schnellster Algorithmus intern Bitonic Sort. Nutzung für internes Sortieren bei externen Algorithmen. Dazu Pipelining.
+
+Kurze Vorstellung intern Bitonic und extern Merge. Pipelining beschleunigt Merge, aber nicht Bitonic. Internes Sortieren bringt etwas gegenüber mehrfach Merge. Pipelining lohnt sich vor allem, wenn es eine große Anzahl von Merge-Steps gibt. Modified: Use of internal Sorting. 
+
+\subsection{Join 4}
+\textbf{\fullcite{Mishra1992}}
+
+Übersicht über Joins in Datenbanken, aber nicht explizit parallel. Sort Merge Join und diverse Hash Join mit Simple Hash, Hash-Partionierte Joins (gut für parallelisierung): simple Partition, Grace oder Hybrid, Grace dynamisches Clustern (auch parallel, Partitioning und Matching Phase). Hybrid: Hash Table so, dass passt in Speicher - nicht alle Partitionen werden auf HD geschrieben.
+
+Vorteile diverser Indexe: T-Baum, kd-, Bc. 
+
+Multiprozessor am besten Partitionierung.
+
+Problem Partitionstabelle fliesst über: mehr Partitionen als notwendig mögliche Lösung, oder hash split. Grace bucket tuning:  
+
+
+
+
+\textbf{\fullcite{Valduriez1984}}
+
+
+\textbf{\fullcite{Richardson1987}}
+auch sort. 
+
+
+\subsubsection{Hash-Join 9}
+\textbf{\fullcite{DeWitt1985}}
+
+
+\textbf{\fullcite{Garcia2006}}
+
+
+\textbf{\fullcite{Yadan2009}}
+
+
+\textbf{\fullcite{Garcia2007}}
+
+
+\textbf{\fullcite{Schneider1989}}
+
+
+\textbf{\fullcite{Lu1990}}
+
+
+\textbf{\fullcite{Qadah1988}}
+
+
+\textbf{\fullcite{Lakshmi1990}}
+
+
+\textbf{\fullcite{Omiecinski1991}}
+
+\textbf{\fullcite{Gerber1986}}
+
+problem der überläufe. vorstellung aller hash algorithmen auch parallel. speziel GAMMA Datenbank-Engine.
+
+\subsubsection{Sort-Mege-Join 4}
+\textbf{\fullcite{Dittrich2002}}
+
+
+\textbf{\fullcite{Albutiu2012}}
+
+
+\textbf{\fullcite{Chen1995}}
+
+
+\textbf{\fullcite{Boral1980}}
+
+\textbf{\fullcite{Wolf1990}}
+
+\textbf{\fullcite{Iyer1989}}
+
+\subsubsection{Spatial Join 18}
+
+\textbf{\fullcite{Rigaux2001}}!
+
+Allgemeine Einführung in räumliche DB. Vorstellung der topologischen Beziehungen ADTs. Räumliche Prädikate. Nützliche Algorithmen für topologische Beziehungen: Sweep-Line Rechteck Intersektion. Punkt in Polygon. Polygon-Schnitt (sweep line). Windowing: Boolsche Operation, ob Schnittpunkt existiert.
+
+Räumliche Indexe: R/R*-Baum. Räumlicher Zugriff über Grid-Datei mit B+-Baum. Raum-orientierte vs. Daten-orientiere Zugriffsmethoden. 
+
+Externe Algorithmen z.B. Rechteck-Schnittpunkte. Ausführlich Spatial Join mit MBB. Filterschritt (MBB) und Verfeinerungs-Schritt:  Geometrische Operation. Typen: Z-Ordnungs-SJ. R-Tree-SJ, externer Plane-Sweep Algorithmus. Spatial Hash-Join (sinnvoll, wenn kein räumlicher Index existiert)
+
+\textbf{\fullcite{Zhou1998}}!
+
+Verbesserung der Partitionierung für parallele Spatial Joins. Hashing oder Sorting für SASJ (Single Assignment, single join - SASJ). Räumliche Paritionsmethode entweder mehrfachzuweisung, single join (MASJ) oder einfachzuweisung, mehrfach-join (SAMJ). Partition basiert üblicherweise auf räumlicher Dekompensition. R-Baum SAMJ, R+ und Z-Wert MASJ. Hier nur binärer Polygon-Überlappung, aber Erweiterung einfach denkbar. 2 Ansätze, unausgeglichene Arbeitsverteilung zu begegnen: Top-Down und Bottom-up. Hier Bottom-up. hier shared nothing Architektur.
+
+Filter und Verfeinerungs Strategie. 1) Partitionierung über Mapping zwischen Objekt und Zelle. Bucket Merger Algorithm, um kleine Buckets zusammenzufassen. 2) Key-Pointer Redistribution. 3) Parallels Filtern: Kandidaten. MBR Schnitt Algorithmus 4) Kandidatenneuverteilung 5) Verfeinerungs-Neuzusammensetzung inkl. Rebalanzierung Workload. 6) Verteilung ganzer Objekte 7) Parallele Verfeinerung. Dublikate werden i.A. dort entfernt, wo sie entstehen. ausführliche Vorstellung der Algorithmen für jeden Schritt, von denen die Performance abhängt - Kostenanalyse. Zum Testen: Sequoia Datensatz. Merging Buckets: 3 Algorithmen vorgeschlagen. Round Robin, Z Order Greedy (normal und verbessert). 3 am Besten. 
+
+\textbf{\fullcite{Luo2002}}!
+
+
+
+\textbf{\fullcite{Brinkhoff1996}}!
+
+
+\textbf{\fullcite{Jacox2007}}!
+
+\textbf{\fullcite{Tsitsigkos2019}}!
+
+\textbf{\fullcite{Bouros2019}}!
+
+\textbf{\fullcite{Bouros2019}}!
+
+
+\textbf{\fullcite{Hoel1994}}!
+
+
+\textbf{\fullcite{Singh2017}}?
+
+
+\textbf{\fullcite{Puri2013}}
+
+
+\textbf{\fullcite{Tan2000}}
+
+
+
+
+
+\textbf{\fullcite{Jacox2003}}
+
+
+
+
+
+\textbf{\fullcite{Lo2000}}
+
+
+
+
+
+\textbf{\fullcite{Rigaux2001}}
+
+
+\textbf{\fullcite{Garcia-Garcia2017}}
+k-Closest Pair Query und$\epsilon$ Distance Query.
+
+
+\textbf{\fullcite{Kang2002}}
+Distributed
+
+\textbf{\fullcite{Shin2003}}
+
+
+\textbf{\fullcite{Arge1998}}
+
+
+%\pagebreak 
+%\printbibliography
+
+\end{document}
