@@ -26,6 +26,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 
 
+
 #include "Convex.h"
 #include "Attribute.h"
 #include <set>
@@ -642,7 +643,7 @@ bool checkme(std::vector<std::tuple <double, double>>& src){
        
       
     
-      if ( (iter+1 <= finalcheckedvec.size()) &&
+      if ( (iter+1 <  finalcheckedvec.size()) &&
            (get<0>(actpoint) == get<0>(finalcheckedvec[iter])) &&
            (get<0>(actpoint) == get<0>(finalcheckedvec[iter+1]))) {
           
@@ -711,10 +712,10 @@ bool checkme(std::vector<std::tuple <double, double>>& src){
    
      
     
-   if ( (iter+1 <= finalcheckedvec.size()) &&
-           (get<0>(actpoint) == get<0>(finalcheckedvec[iter])) &&
-           (get<0>(actpoint) == get<0>(finalcheckedvec[iter+1])) &&
-           (actpoint == rightpoint) ) {     
+   if ( (iter+1 <  finalcheckedvec.size()) &&
+        (get<0>(actpoint) == get<0>(finalcheckedvec[iter])) &&
+        (get<0>(actpoint) == get<0>(finalcheckedvec[iter+1])) &&
+        (actpoint == rightpoint) ) {     
           
           
           
@@ -730,7 +731,7 @@ bool checkme(std::vector<std::tuple <double, double>>& src){
    
    
    
-  if ((iter+1 <= finalcheckedvec.size()) &&
+  if ((iter+1 <  finalcheckedvec.size()) &&
          (get<0>(rightpoint) == get<0>(finalcheckedvec[iter])) &&
          (get<0>(rightpoint) != get<0>(finalcheckedvec[iter+1])) &&
          (actpoint == rightpoint) )  {
@@ -780,7 +781,7 @@ bool checkme(std::vector<std::tuple <double, double>>& src){
        
       
     
-      if ( (iter+1 <= finalcheckedvec.size()) &&
+      if ( (iter+1 <  finalcheckedvec.size()) &&
            (get<0>(actpoint) == get<0>(finalcheckedvec[iter])) &&
            (get<0>(actpoint) == get<0>(finalcheckedvec[iter+1]))) {
           
@@ -863,7 +864,9 @@ bool checkme(std::vector<std::tuple <double, double>>& src){
                  
                  
                  
-                 if ((firstperpend == true) && (setfperflag == true) &&
+                 if ((iter+1 <  finalcheckedvec.size()) &&
+                     
+                     (firstperpend == true) && (setfperflag == true) &&
                      (get<0>(finalcheckedvec[iter+1]) != 
                       get<0>(finalcheckedvec[iter])))   {
                      
@@ -885,7 +888,10 @@ bool checkme(std::vector<std::tuple <double, double>>& src){
                   
                    actpoint = finalcheckedvec[iter];
                    
-                  if (get<0>(finalcheckedvec[iter+1]) != get<0>(actpoint) &&
+                  if ( (iter+1 <  finalcheckedvec.size() ) &&
+                      
+                      (get<0>(finalcheckedvec[iter+1]) != get<0>(actpoint))&&
+                    
                       (firstmflag == false) ) {
                      
                      mlast = mnew; 
@@ -927,8 +933,12 @@ bool checkme(std::vector<std::tuple <double, double>>& src){
                 
                 
                
-                if (get<0>(finalcheckedvec[iter+1]) != get<0>(actpoint) &&
-                     (firstmflag == true) ) {
+                if ( (iter+1 <  finalcheckedvec.size() ) &&
+                    
+                    (get<0>(finalcheckedvec[iter+1]) != get<0>(actpoint)) &&
+                     
+                                         
+                      (firstmflag == true) ) {
                     
                       actpoint = finalcheckedvec[iter];
                       
@@ -984,7 +994,11 @@ bool checkme(std::vector<std::tuple <double, double>>& src){
                  
                  
                  
-                 if ((firstperpend == true) && (setfperflag == true) &&
+                 if ((iter+1 < finalcheckedvec.size() ) &&                     
+                     
+                     (firstperpend == true) && 
+                     (setfperflag == true) &&                    
+                     
                      (get<0>(finalcheckedvec[iter+1]) != 
                       get<0>(finalcheckedvec[iter])))   {
                      
@@ -1007,7 +1021,11 @@ bool checkme(std::vector<std::tuple <double, double>>& src){
                    
                    actpoint = finalcheckedvec[iter];
                    
-                  if (get<0>(finalcheckedvec[iter+1]) != get<0>(actpoint) &&
+                  if ((iter+1 < finalcheckedvec.size()) &&                      
+                      
+                      (get<0>(finalcheckedvec[iter+1]) !=
+                       get<0>(actpoint)) &&
+                       
                       (firstmflag == false) ) {
                      
                      mlast = mnew; 
@@ -1059,21 +1077,29 @@ bool checkme(std::vector<std::tuple <double, double>>& src){
                 
                 
                
-                if (get<0>(finalcheckedvec[iter+1]) != get<0>(actpoint) &&
+                if ( (iter+1 <  finalcheckedvec.size() ) &&
+                    
+                    (get<0>(finalcheckedvec[iter+1]) != get<0>(actpoint)) &&
+                    
                      (firstmflag == true) ) {
                     
                       actpoint = finalcheckedvec[iter];
-                      
+                     
                       mnew = (get<1>(finalcheckedvec[iter+1] ) -
                               get<1>(actpoint)) / 
                              (get<0>(finalcheckedvec[iter+1]) - 
                               get<0>(actpoint));  
                              
+                      
+                                 
+                             
                       firstmflag = false;
                         
                     }  
                 
-                 else {
+                 else if (iter+1 <  finalcheckedvec.size())
+                 
+                 {
                     actpoint = finalcheckedvec[iter];
                     
                      mlast = mnew; 
@@ -1188,7 +1214,7 @@ Word Convex::In(const ListExpr typeInfo, const ListExpr le1,
      
    string lexprstr;
   
-   Convex* co = new Convex(false);
+  
   
    //Word res((void*)0);
    Word res = SetWord(Address(0));
@@ -1197,7 +1223,7 @@ Word Convex::In(const ListExpr typeInfo, const ListExpr le1,
     if(listutils::isSymbolUndefined(le)){
       
       
-      
+      Convex* co = new Convex(false);
       co->SetDefined(false);
       res.addr = co;      
       correct = true;
@@ -1208,6 +1234,7 @@ Word Convex::In(const ListExpr typeInfo, const ListExpr le1,
   
    
    if(nl->ListLength(le) <= 2){
+     Convex* co = new Convex(false);
      correct = true;
    //  ErrorReporter::ReportError(
    //             "You need more than 2 values to define a polygon"); 
@@ -1232,7 +1259,7 @@ Word Convex::In(const ListExpr typeInfo, const ListExpr le1,
       
       nl->WriteToString(lexprstr, f);
       
-        
+      Convex* co = new Convex(false);
      // ErrorReporter::ReportError(
      //           "A pair of coordinates consist only of 2 arguments: '" 
      //           +lexprstr+ "'");
@@ -1252,6 +1279,7 @@ Word Convex::In(const ListExpr typeInfo, const ListExpr le1,
          == false)
      
       {
+      Convex* co = new Convex(false);
       correct = true;
      
     //  nl->WriteToString(lexprstr, f);  
@@ -1271,6 +1299,8 @@ Word Convex::In(const ListExpr typeInfo, const ListExpr le1,
         == false))
      
       {
+          
+      Convex* co = new Convex(false);
       correct = true;
      
     //  nl->WriteToString(lexprstr, f);  
@@ -1284,7 +1314,7 @@ Word Convex::In(const ListExpr typeInfo, const ListExpr le1,
      }    
      
      
-     
+      
     
      
      
@@ -1481,8 +1511,7 @@ bool Convex::Save(SmiRecord& valueRecord, size_t& offset,
    }
 
    
-   
-     
+        
    
 std::ostream& Convex::Print( std::ostream& os ) const {
     if(!IsDefined()){
