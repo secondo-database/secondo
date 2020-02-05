@@ -25,8 +25,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 
-
-
 #include "Convex.h"
 #include "Attribute.h"
 #include <set>
@@ -43,7 +41,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Algebras/FText/FTextAlgebra.h"
 
 using namespace std; 
-
 
 
 extern NestedList* nl;
