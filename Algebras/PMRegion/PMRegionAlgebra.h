@@ -69,6 +69,21 @@ pmr::RList NL2RList (ListExpr l);
 
 namespace pmregion {
 
+class PMPoint {
+	public:
+		double x, y, z;
+		PMPoint (double x, double y, double z) : x(x), y(y), z(z) {}
+		PMPoint () {}
+};
+
+class PMFace {
+	public:
+		int p1, p2, p3;
+		PMFace (int p1, int p2, int p3) : p1(p1), p2(p2), p3(p3) {}
+		PMFace () {}
+};
+
+
 /*
 4 Class ~PMRegion~
 
@@ -78,7 +93,11 @@ polyhedra
 */
 class PMRegion : public Attribute {
 public:
-    PMRegion();
+    DbArray<PMPoint> points;
+    DbArray<PMFace> faces;
+
+    PMRegion() : _pmr(NULL) { cerr << "created pmregion" << endl; };
+    PMRegion(bool dummy);
     ~PMRegion();
     
     size_t Sizeof() const { return sizeof(*this); }
@@ -86,15 +105,25 @@ public:
     bool Adjacent(const Attribute *) const { return false; }
     PMRegion* Clone () const;
     size_t HashValue () const { return 1; }
-    void CopyFrom (const Attribute *right) { *this = *( (PMRegion*) right); }
+    void CopyFrom (const Attribute *right) {
+	    *this = *( (PMRegion*) right);
+	    this->_pmr = NULL;
+    }
+    Flob* GetFLOB(const int i);
+    void UpdateFLOBs();
+    void UpdateFLOBs(pmr::RList& _rl);
+    int NumOfFLOBs() const { return 2; }
 
     static const std::string BasicType() { return "pmregion"; }
     static const bool checkType(const ListExpr list){
         return listutils::isSymbol(list, BasicType());
     } 
     
-    pmr::PMRegion *pmr; // The native libpmregion PMRegion object
+    pmr::PMRegion* pmr();
+    void pmr(pmr::PMRegion *p) {if ( _pmr) delete _pmr; _pmr = p;}
+    void pmr(pmr::PMRegion& p) {if (!_pmr) _pmr=new pmr::PMRegion(); *_pmr=p;}
 private:
+    pmr::PMRegion *_pmr; // The native libpmregion PMRegion object
 };
 
 /*

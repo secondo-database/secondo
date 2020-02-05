@@ -67,6 +67,7 @@ PMRegion PMRegion::operator- (PMRegion &reg) {
 static Arrangement zplanecut (Polyhedron ph, Kernel::FT z) {
     // Build an AABB tree from the polyhedron
     Tree tree(faces(ph).first, faces(ph).second, ph);
+    tree.accelerate_distance_queries();
     // Create the cutting plane
     Plane pl(Point3d(0, 0, z), Vector(0, 0, 1));
     std::list<Plane_intersection> pis;

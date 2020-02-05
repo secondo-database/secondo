@@ -144,7 +144,7 @@ ListExpr OutPMRegion(ListExpr typeInfo, Word value) {
     PMRegion *pmr = (PMRegion *) value.addr;
 
     // RList is the interal format of the libpmregion
-    RList rl = pmr->pmr->toRList();
+    RList rl = pmr->pmr()->toRList();
 
     // RList2NL converts RList to a Secondo NestedList
     return RList2NL(rl.items[4]);
@@ -159,13 +159,12 @@ ListExpr OutPMRegion(ListExpr typeInfo, Word value) {
 */
 Word InPMRegion(const ListExpr typeInfo, const ListExpr instance,
         const int errorPos, ListExpr& errorInfo, bool& correct) {
-    PMRegion *pmr = new PMRegion();
+    PMRegion *pmr = new PMRegion(true);
 
     // Convert a Secondo NestedList to the libpmregion RList
     RList rl = NL2RList(instance);
+    pmr->UpdateFLOBs(rl);
     // Construct a native libpmregion object from the RList
-    pmr->pmr = new pmr::PMRegion();
-    *pmr->pmr = pmr::PMRegion::fromRList(rl.obj("pmregion", "pmregion"));
 
     correct = true;
 
@@ -179,7 +178,7 @@ Word InPMRegion(const ListExpr typeInfo, const ListExpr instance,
 
 */
 Word CreatePMRegion(const ListExpr typeInfo) {
-    PMRegion* pmr = new PMRegion();
+    PMRegion* pmr = new PMRegion(true);
 
     return SetWord(pmr);
 }
@@ -192,6 +191,7 @@ Word CreatePMRegion(const ListExpr typeInfo) {
 */
 void DeletePMRegion(const ListExpr typeInfo, Word& w) {
     PMRegion* pmr = (PMRegion*) w.addr;
+    w.addr = 0;
 
     delete pmr;
 }
@@ -204,6 +204,8 @@ void DeletePMRegion(const ListExpr typeInfo, Word& w) {
 */
 void ClosePMRegion(const ListExpr typeInfo, Word& w) {
     PMRegion* pmr = (PMRegion*) w.addr;
+    w.addr = 0;
+
     delete pmr;
 }
 
@@ -253,7 +255,9 @@ TypeConstructor pmregion(
         OutPMRegion, InPMRegion,
         0, 0,
         CreatePMRegion, DeletePMRegion,
-        0, 0, ClosePMRegion,
+        0, 0,
+//        OpenAttribute<PMRegion>, SaveAttribute<PMRegion>,
+	ClosePMRegion,
         ClonePMRegion, CastPMRegion,
         SizeOfPMRegion, CheckPMRegion
         );
@@ -265,11 +269,9 @@ TypeConstructor pmregion(
 
 */
 PMRegion* PMRegion::Clone() const {
-    PMRegion *pmr = new PMRegion();
-    if (this->pmr != NULL) {
-        pmr->pmr = new pmr::PMRegion();
-        *(pmr->pmr) = *(this->pmr);
-    }
+    PMRegion *pmr = new PMRegion(true);
+    *pmr = *this;
+    pmr->pmr(NULL);
 
     return pmr;
 }
@@ -280,8 +282,7 @@ PMRegion* PMRegion::Clone() const {
    Creates an empty PMRegion object
 
 */
-PMRegion::PMRegion() {
-    this->pmr = NULL;
+PMRegion::PMRegion(bool dummy) : points(10000), faces(10000), _pmr(NULL) {
 }
 
 /*
@@ -291,8 +292,7 @@ PMRegion::PMRegion() {
 
 */
 PMRegion::~PMRegion() {
-    if (this->pmr)
-        delete this->pmr;
+	if (_pmr) delete _pmr;
 }
 
 /*
@@ -344,7 +344,7 @@ int atinstantvalmap(Word *args, Word& result,
     double instant = (it->ToDouble()+10959)*86400000;
 
     // Calculate the projected region in libpmregion
-    RList region = pmr->pmr->atinstant(instant);
+    RList region = pmr->pmr()->atinstant(instant);
     // and convert the result to a Secondo nested list
     ListExpr regle = RList2NL(region.items[4]);
 
@@ -411,7 +411,7 @@ int perimetervalmap(Word *args, Word& result,
     PMRegion *pmr = static_cast<PMRegion*> (args[0].addr);
 
     // Calculate the perimeter in libpmregion
-    pmr::MReal mreal = pmr->pmr->perimeter();
+    pmr::MReal mreal = pmr->pmr()->perimeter();
     // and convert the result to a Secondo nested list
     ListExpr le = RList2NL(mreal.rl.items[4]);
 
@@ -478,7 +478,7 @@ int areavalmap(Word *args, Word& result,
     PMRegion *pmr = static_cast<PMRegion*> (args[0].addr);
 
     // Calculate the area in libpmregion
-    pmr::MReal mreal = pmr->pmr->area();
+    pmr::MReal mreal = pmr->pmr()->area();
     // and convert the result to a Secondo nested list
     ListExpr le = RList2NL(mreal.rl.items[4]);
 
@@ -544,7 +544,7 @@ int traversedareavalmap(Word *args, Word& result,
     PMRegion *pmr = static_cast<PMRegion*> (args[0].addr);
 
     // Calculate the traversed area in libpmregion
-    RList region = pmr->pmr->traversedarea();
+    RList region = pmr->pmr()->traversedarea();
     // and convert the result to a Secondo nested list
     ListExpr le = RList2NL(region.items[4]);
 
@@ -607,12 +607,11 @@ int coverdurationvalmap(Word *args, Word& result,
     result = qp->ResultStorage(s);
 
     PMRegion *pmr1 = static_cast<PMRegion*> (args[0].addr);
-    PMRegion *pmr = new PMRegion();
-    pmr->pmr = new pmr::PMRegion();
-
+    PMRegion *pmr = new PMRegion(true);
 
     // Calculate the coverduration in libpmregion
-    *pmr->pmr = pmr1->pmr->coverduration2();
+    pmr::PMRegion tmp = pmr1->pmr()->coverduration2();
+    pmr->pmr(tmp);
     result = pmr;
 
     return 0;
@@ -677,7 +676,7 @@ int mpointinsidevalmap(Word *args, Word& result,
     PMRegion *pmr = static_cast<PMRegion*> (args[1].addr);
 
     // Calculate the inside operation in libpmregion
-    pmr::MBool mbool = pmr->pmr->mpointinside(mprl);
+    pmr::MBool mbool = pmr->pmr()->mpointinside(mprl);
     // and convert the result to a Secondo nested list
     ListExpr le = RList2NL(mbool.rl.items[4]);
 
@@ -749,10 +748,10 @@ int unionvalmap(Word *args, Word& result,
     PMRegion *pmr2 = static_cast<PMRegion*> (args[1].addr);
 
     // Create the result object
-    PMRegion *pmr = new PMRegion();
-    pmr->pmr = new pmr::PMRegion();
+    PMRegion *pmr = new PMRegion(true);
     // Calculate the union of the two pmregions
-    *pmr->pmr = *pmr1->pmr + *pmr2->pmr;
+    pmr::PMRegion u = *pmr1->pmr() + *pmr2->pmr();
+    pmr->pmr(u);
 
     result = pmr;
 
@@ -816,10 +815,10 @@ int minusvalmap(Word *args, Word& result,
     PMRegion *pmr2 = static_cast<PMRegion*> (args[1].addr);
 
     // Create the result object
-    PMRegion *pmr = new PMRegion();
-    pmr->pmr = new pmr::PMRegion();
+    PMRegion *pmr = new PMRegion(true);
     // Calculate the difference of the two pmregions
-    *pmr->pmr = *pmr1->pmr - *pmr2->pmr;
+    pmr::PMRegion diff = *pmr1->pmr() - *pmr2->pmr();
+    pmr->pmr(diff);
 
     result = pmr;
 
@@ -883,10 +882,10 @@ int intersectionvalmap(Word *args, Word& result,
     PMRegion *pmr2 = static_cast<PMRegion*> (args[1].addr);
 
     // Create the result object
-    PMRegion *pmr = new PMRegion();
-    pmr->pmr = new pmr::PMRegion();
+    PMRegion *pmr = new PMRegion(true);
     // Calculate the intersection of the two pmregions
-    *pmr->pmr = *pmr1->pmr * *pmr2->pmr;
+    pmr::PMRegion is = *pmr1->pmr() * *pmr2->pmr();
+    pmr->pmr(is);
 
     result = pmr;
 
@@ -950,7 +949,7 @@ int intersectsvalmap(Word *args, Word& result,
     PMRegion *pmr2 = static_cast<PMRegion*> (args[1].addr);
 
     // Perform the "intersects" operation
-    pmr::MBool mbool = pmr1->pmr->intersects(*(pmr2->pmr));
+    pmr::MBool mbool = pmr1->pmr()->intersects(*(pmr2->pmr()));
 
     // Convert the result to a Secondo nested list
     ListExpr le = RList2NL(mbool.rl.items[4]);
@@ -1017,7 +1016,7 @@ int pmreg2mregvalmap(Word *args, Word& result,
     PMRegion *pmr = static_cast<PMRegion*> (args[0].addr);
 
     // Perform the conversion to an mregion
-    RList mregion = pmr->pmr->toMRegion();
+    RList mregion = pmr->pmr()->toMRegion();
 
     // Create a Secondo nested list from the result
     ListExpr le = RList2NL(mregion.items[4]);
@@ -1086,11 +1085,11 @@ int mreg2pmregvalmap(Word *args, Word& result,
     RList mregion = NL2RList(OutMRegion(nl->Empty(), mr));
 
     // Create the result object
-    PMRegion *pmr = new PMRegion();
-    pmr->pmr = new pmr::PMRegion();
+    PMRegion *pmr = new PMRegion(true);
     // Create a pmregion from the mregion
-    *pmr->pmr = pmr::PMRegion::fromMRegion(
+    pmr::PMRegion c = pmr::PMRegion::fromMRegion(
             mregion.obj("mregion", "mregion"));
+    pmr->pmr(c);
 
     result = pmr;
 
@@ -1173,13 +1172,14 @@ int translatevalmap(Word *args, Word& result,
 
 
     // Create the result object
-    PMRegion *pmr2 = new PMRegion();
-    pmr2->pmr = new pmr::PMRegion();
-    // Create a pmregion from the mregion
-    *pmr2->pmr = *pmr->pmr;
-    pmr2->pmr->translate(tx->GetRealval(), 
+    PMRegion *pmr2 = new PMRegion(true);
+
+    pmr::PMRegion *pmt = new pmr::PMRegion();
+    *pmt = *pmr->pmr();
+    pmt->translate(tx->GetRealval(), 
             ty->GetRealval(),
             tz->GetRealval());
+    pmr2->pmr(pmt);
 
     result = pmr2;
 
@@ -1214,6 +1214,8 @@ Operator translate("translate",
 */
 PMRegionAlgebra::PMRegionAlgebra() : Algebra() {
     AddTypeConstructor(&pmregion);
+//    pmregion.AssociateKind(Kind::SPATIAL3D());
+    pmregion.AssociateKind(Kind::DATA());
     AddOperator(&atinstant);
     AddOperator(&translate);
     AddOperator(&perimeter);
@@ -1282,6 +1284,7 @@ ListExpr RList2NL(RList r) {
 
     return ret;
 }
+
 /*
    5.2 ~NL2RList~
 
@@ -1313,3 +1316,76 @@ RList NL2RList(ListExpr l) {
 
     return ret;
 }
+
+void pmregion::PMRegion::UpdateFLOBs() {
+	RList rl = pmr()->toRList().items[4];
+	UpdateFLOBs(rl);
+}
+
+void pmregion::PMRegion::UpdateFLOBs(RList& _rl) {
+	RList rl = _rl.items[0];
+	points.clean();
+	points.resize(rl.items.size());
+	for (unsigned int j = 0; j < rl.items.size(); j++) {
+		RList point = rl.items[j];
+		PMPoint p(point.items[0].getNr(),
+			  point.items[1].getNr(),
+			  point.items[2].getNr());
+		points.Append(p);
+	}
+
+	rl = _rl.items[1];
+	faces.clean();
+	faces.resize(rl.items.size());
+	for (unsigned int j = 0; j < rl.items.size(); j++) {
+		RList face = rl.items[j];
+		PMFace f(face.items[0].getNr(),
+			 face.items[1].getNr(),
+			 face.items[2].getNr());
+		faces.Append(f);
+	}
+}
+
+pmr::PMRegion* pmregion::PMRegion::pmr() {
+	if (_pmr == NULL) {
+		RList rpoints, rfaces;
+		for (int i = 0; i < points.Size(); i++) {
+			RList point;
+			PMPoint p(0, 0, 0);
+			points.Get(i, p);
+			point.append(p.x);
+			point.append(p.y);
+			point.append(p.z);
+			rpoints.append(point);
+		}
+		for (int i = 0; i < faces.Size(); i++) {
+			RList face;
+			PMFace p(0, 0, 0);
+			faces.Get(i, p);
+			face.append((double)p.p1);
+			face.append((double)p.p2);
+			face.append((double)p.p3);
+			rfaces.append(face);
+		}
+		RList pmrlist;
+		pmrlist.append(rpoints);
+		pmrlist.append(rfaces);
+		_pmr = new pmr::PMRegion();
+                *_pmr = pmr::PMRegion::fromRList(
+                          pmrlist.obj("pmregion", "pmregion"));
+	}
+
+	return _pmr;
+}
+
+
+Flob *pmregion::PMRegion::GetFLOB(const int i) {
+	if (i == 0) {
+		return &points;
+	} else if (i == 1) {
+		return &faces;
+	}
+
+	return NULL;
+}
+
