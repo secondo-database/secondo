@@ -1,19 +1,13 @@
 package viewer.hoese.algebras.pmregion;
 
-import java.awt.Polygon;
 import java.awt.Shape;
 import java.awt.geom.AffineTransform;
 import java.awt.geom.Area;
 import java.awt.geom.Rectangle2D;
 import java.util.Vector;
 import sj.lang.ListExpr;
-import viewer.hoese.Interval;
 import viewer.hoese.QueryResult;
 import viewer.hoese.algebras.DisplayTimeGraph;
-import viewer.hoese.algebras.fixedmregion.Face;
-import viewer.hoese.algebras.fixedmregion.NL;
-import viewer.hoese.algebras.fixedmregion.Region;
-import viewer.hoese.algebras.fixedmregion.Seg;
 
 /**
  *
@@ -22,56 +16,42 @@ import viewer.hoese.algebras.fixedmregion.Seg;
  * @author Florian Heinz <fh@sysv.de>
  */
 public class DisplayPMRegion extends DisplayTimeGraph {
-    /** The fmregion to display */
+    /** The pmregion to display */
     private PMRegion pmregion;
     /** The bounds of this PMRegion */
     private Rectangle2D.Double bounds;
     
+    private double cachetime = Double.NaN;
+    private Region cache;
+    
+    private void updateCache () {
+        double t = (RefLayer.getActualTime()+10959f)*86400000f;
+        if (cachetime != t && pmregion != null) {
+            cache = pmregion.project(t);
+            cachetime = t;
+        }
+    }
+    
     @Override
     public int numberOfShapes() {
-        return 1;
+        updateCache();
+        if (cache != null)
+            return cache.getFaces().size();
+        else
+            return 0;
     }
 
     @Override
     public Shape getRenderObject(int num, AffineTransform at) {
-        double t = (RefLayer.getActualTime()+10959)*86400000;
-        if (pmregion == null)
-            return null;
-        Region r = pmregion.project(t);
-	r.fixTopology();
-        Area a = new Area();
-        if (r != null) {
-            for (int i = 0; i < r.getFaces().size(); i++) {
-                a.add(getAreaFromFace(r.getFaces().get(i)));
-            }
-        }
+        updateCache();
         
-        return a;
+        return cache.getFaces().get(num).getAreaObj();
     }
     
-    /**
-     * Constructs a displayable Area object from a face.
-     * 
-     * @param face The face to construct the area from
-     * @return The Area to display
-     */
-    private Area getAreaFromFace(Face face) {
-        Polygon p = new Polygon();
-        
-        for (Seg s : face.getSegments()) {
-            p.addPoint((int)s.s.x, (int)s.s.y);
-        }
-        Area a = new Area(p);
-        for (Face h : face.getHoles()) {
-            p = new Polygon();
-            for (Seg s : h.getSegments()) {
-                p.addPoint((int)s.s.x, (int)s.s.y);
-            }
-            a.subtract(new Area(p));
-        }
-        
-        return a;
-    }
+//    @Override
+//    public Shape getRenderObject(int num, AffineTransform at) {
+//        
+//    }
     
     @Override
     public void init (String name, int nameWidth, int indent, ListExpr type, 
@@ -82,8 +62,8 @@ public class DisplayPMRegion extends DisplayTimeGraph {
         
         qr.addEntry(this);
         viewer.hoese.Interval iv = new 
-               viewer.hoese.Interval(pmregion.min/86400000 - 10959,
-                                     pmregion.max/86400000 - 10959, true, true
+               viewer.hoese.Interval(pmregion.min/86400000f - 10959f,
+                                     pmregion.max/86400000f - 10959f, true, true
                );
 	setBoundingInterval(iv);
         Vector intervals = new Vector();

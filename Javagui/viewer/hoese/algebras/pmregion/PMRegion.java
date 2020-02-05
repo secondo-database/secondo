@@ -1,71 +1,60 @@
 package viewer.hoese.algebras.pmregion;
 
-import java.util.LinkedList;
+import java.util.ArrayList;
 import java.util.List;
-import viewer.hoese.algebras.fixedmregion.Face;
-import viewer.hoese.algebras.fixedmregion.NL;
-import viewer.hoese.algebras.fixedmregion.Point;
-import viewer.hoese.algebras.fixedmregion.Region;
-import viewer.hoese.algebras.fixedmregion.Seg;
 
 /**
  *
  * @author Florian Heinz <fh@sysv.de>
  */
 public class PMRegion {
-    private List<Triangle> triangles = new LinkedList();
+    private List<Triangle> triangles = new ArrayList();
     private Seg bb;
     public Double min, max;
     
     Region project (double t) {
-        List<Seg> segs = new LinkedList();
+        SegSet ss = new SegSet();
+        
         for (Triangle tri : triangles) {
             Seg s = tri.project(t);
             if (s != null)
-                segs.add(s);
+                ss.add(s);
         }
         
         int faces = 0;
         Region reg = new Region();
-        while (!segs.isEmpty()) {
-            Seg prev = segs.get(0);
+        while (!ss.isEmpty()) {
+            Seg prev = ss.getSomeSeg();
             Point start = prev.s, last = null;
             Face f = new Face();
             f.addPoint(prev.e);
-            segs.remove(prev);
-            while (!segs.isEmpty()) {
-                boolean found = false;
-                for (int i = 0; i < segs.size(); i++) {
-                    Seg cur = segs.get(i);
-                    if (cur.s.equals(prev.e)) {
-                        f.addPoint(cur.e);
-                        prev = cur;
-                        segs.remove(cur);
-                        found = true;
-                        last = cur.e;
-                    } else if (cur.e.equals(prev.e)) {
-                        f.addPoint(cur.s);
-                        prev = new Seg(cur.e, cur.s);
-                        segs.remove(cur);
-                        found = true;
-                        last = cur.s;
-                    }
-                }
-                if (!found) {
+            while (!ss.isEmpty()) {
+                Seg cur = ss.getSuccessor(prev);
+                if (cur == null) {
                     System.err.println("ERROR: No successor found!");
-                    return null;
-                }
-                if (start.equals(last)) {
-                    f.close();
-                    reg.addFace(f);
-                    faces++;
                     break;
                 }
+            
+                f.addPoint(cur.e);
+                if (start.equals(cur.e)) {
+                    f.close();
+//                    if (bb != null && f.getBoundingBox().overlaps(bb)) {
+//                        f.ccw();
+                        reg.addFace(f);
+                        faces++;
+//                    }
+                    break;
+                } else {
+                }
+                prev = cur;
             }
         }
-        
+        System.out.println("Rendered "+faces+" faces");
+
+//        reg.fixHoles(); // FIXME!
         return reg;
     }
+    
     
     static PMRegion deserialize (NL nl) {
         PMRegion ret = new PMRegion();
@@ -73,7 +62,7 @@ public class PMRegion {
         NL facelist = nl.get(1);
         Point3D[] points = new Point3D[pointslist.size()];
         
-       ret.bb = null;
+        ret.bb = null;
         
         for (int i = 0; i < pointslist.size(); i++) {
             NL pl = pointslist.get(i);

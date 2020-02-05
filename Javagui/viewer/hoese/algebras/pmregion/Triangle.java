@@ -7,8 +7,6 @@ package viewer.hoese.algebras.pmregion;
 
 import java.util.Arrays;
 import java.util.Comparator;
-import viewer.hoese.algebras.fixedmregion.Point;
-import viewer.hoese.algebras.fixedmregion.Seg;
 
 /**
  *
