@@ -74,7 +74,7 @@ query readfromwebsocket("wss://ws.blockchain.info/inv", "{\"op\":\"unconfirmed_s
    Addr: string /x/inputs/0/prev_out/addr') 
   finishStream[8080] consoleConsumer head[10] count;
 
-# right:
+# right (text arguments):
 
 query readfromwebsocket('wss://ws.blockchain.info/inv', '{\"op\":\"unconfirmed_sub\"}', 
   'Name: string /op,
