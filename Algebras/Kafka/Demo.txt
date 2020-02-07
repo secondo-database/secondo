@@ -7,7 +7,7 @@
     bin/zookeeper-server-start.sh config/zookeeper.properties
     bin/kafka-server-start.sh config/server.properties
 
- - Opend DB
+ - Open DB
     open database berlintest
 
  - Write and read
@@ -64,7 +64,24 @@
 
   -- Many fields
 
-    query readfromwebsocket("wss://ws.blockchain.info/inv", "{\"op\":\"unconfirmed_sub\"}", 'Name,string,/op;Size,string,/x/size;Addr,string,/x/inputs/0/prev_out/addr') finishStream[8080] consoleConsumer head[10] count;
+    query readfromwebsocket("wss://ws.blockchain.info/inv", "{\"op\":\"unconfirmed_sub\"}", 'Op, string, /op;   Size, string, /x/size;    Addr, string, /x/inputs/0/prev_out/addr') finishStream[8080] consoleConsumer head[10] count;
+
+# wrong:
+
+query readfromwebsocket("wss://ws.blockchain.info/inv", "{\"op\":\"unconfirmed_sub\"}", 
+  'Name: string /op,
+   Size: string /x/size, 
+   Addr: string /x/inputs/0/prev_out/addr') 
+  finishStream[8080] consoleConsumer head[10] count;
+
+# right:
+
+query readfromwebsocket('wss://ws.blockchain.info/inv', '{\"op\":\"unconfirmed_sub\"}', 
+  'Name: string /op,
+   Size: string /x/size, 
+   Addr: string /x/inputs/0/prev_out/addr') 
+  finishStream[8080] consoleConsumer head[10] count;
+
 
   -- Continuous
 
