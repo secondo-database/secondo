@@ -28,6 +28,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "StreamStopping.h"
 #include "ConsoleConsumerOperator.h"
 #include "ReadFromWsOperator.h"
+#include "LocalKafkaManagement.h"
 
 
 extern NestedList *nl;
@@ -46,6 +47,10 @@ namespace kafka {
             writeToKafkaOp.SetUsesArgsInTypeMapping();
             AddOperator(&readFromKafkaOp);
             readFromKafkaOp.SetUsesArgsInTypeMapping();
+
+//            AddOperator(&startLocalKafkaOp);
+//            AddOperator(&stopLocalKafkaOp);
+//            AddOperator(&statusLocalKafkaOp);
 
             AddOperator(&finishStreamOp);
             AddOperator(&signalFinishOp);

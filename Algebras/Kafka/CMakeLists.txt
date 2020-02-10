@@ -33,4 +33,5 @@ add_executable(Kafka
         WebSocketGateway.h
         WebSocketClient.cpp
         WebSocketClient.h
-        )
+        LocalKafkaManagement.cpp
+        LocalKafkaManagement.h)
