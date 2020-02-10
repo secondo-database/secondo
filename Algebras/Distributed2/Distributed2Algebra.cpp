@@ -14729,6 +14729,7 @@ class dproductInfo{
                                                                  dbname,
                                                                  slot);
                string cmd = "query " + oname + " saveObjectToFile['"+fname+"']";
+	       cout << "Save object to " << fname << endl;
                int errCode;
                string errMsg;
                double rt;
@@ -16506,7 +16507,9 @@ class fileCopy{
       // create directory if not exist
       string pf = FileSystem::GetParentFolder(local);
       if(!FileSystem::CreateFolderEx(pf)){
-         cerr <<  "could not create directory "  << pf;
+	 if(!FileSystem::IsDirectory(pf)){     
+             cerr <<  "could not create directory "  << pf;
+	 }
       }
 
       ofstream out(local.c_str(), ios::binary|ios::trunc);
@@ -16573,16 +16576,19 @@ class fileCopy{
            out.write(buffer,r);
            length -= r;  
       }
+      ok = ok && io.good();
       out.close();
-      getline(io,line);
-      socket->Close();
-      delete socket;
-      if(line != FileTransferKeywords::EndData()){
-         errMsg = "protocol error";
-         return false;
+      if(ok) {
+         getline(io,line);
+         socket->Close();
+         delete socket;
+         if(line != FileTransferKeywords::EndData()){
+            errMsg = "protocol error";
+            return false;
+         }
       }
-      errMsg = "";
-      return true;
+      errMsg = ok ? "" : "Error during receiving file";
+      return ok;
    }
 
   private:
