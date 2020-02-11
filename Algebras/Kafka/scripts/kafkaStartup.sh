@@ -29,9 +29,9 @@ echo "KAFKA_HOME is ${KAFKA_HOME}"
 cd ${KAFKA_HOME}
 
 
-zookeeper_pid=`ps ax | grep -i -w 'org.apache.zookeeper.server' | grep -v grep | awk '{print $1}'`
-kafka_servers_pids=`ps ax | grep -i -w 'kafka.Kafka' | grep -v grep | awk '{print $1}'`
-start_kafka_loops_pids=`ps ax | grep -i -w 'start_kafka_loop.sh' | grep -v grep | awk '{print $1}'`
+zookeeper_pid=`ps axww | grep -i -w 'org.apache.zookeeper.server' | grep -v grep | awk '{print $1}'`
+kafka_servers_pids=`ps axww | grep -i -w 'kafka.Kafka' | grep -v grep | awk '{print $1}'`
+start_kafka_loops_pids=`ps axww | grep -i -w 'start_kafka_loop.sh' | grep -v grep | awk '{print $1}'`
 
 print_usage () {
   echo "Usage:"
@@ -84,7 +84,7 @@ start_cluster () {
 #  nohup bin/kafka-server-start.sh config/server-1.properties >kafka-1.log 2>&1 &
 #  nohup bin/kafka-server-start.sh config/server-2.properties >kafka-2.log 2>&1 &
   nohup bin/kafka-server-start.sh config/server.properties >kafka.log 2>&1 &
-  echo "Zookeper and Kafka startup initialized. Check nohup.out, startClusterLogs/zookeeper.log and startClusterLogs/kafka-x.log in ${KAFKA_HOME} for sucessful startup"
+  echo "Zookeper and Kafka startup initialized. Check zookeeper.log and kafka.log in ${KAFKA_HOME} for sucessful startup"
 }
 
 stop_cluster () {

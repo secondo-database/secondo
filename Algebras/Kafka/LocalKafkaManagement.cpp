@@ -72,6 +72,8 @@ namespace kafka {
     }
 
     std::string exec(const char *cmd) {
+        LOG(INFO) << "Sarting " << cmd;
+
         std::array<char, 128> buffer;
         std::string result;
         std::unique_ptr<FILE, decltype(&pclose)> pipe(popen(cmd, "r"), pclose);
@@ -80,7 +82,9 @@ namespace kafka {
         }
         while (fgets(buffer.data(), buffer.size(), pipe.get()) != nullptr) {
             result += buffer.data();
+            std::cout << buffer.data() << std::flush;
         }
+//        std::cout << std::endl;
         return result;
     }
 
@@ -106,7 +110,7 @@ namespace kafka {
             scriptFile += " start";
 
             const std::string &output = exec(scriptFile.c_str());
-            std::cout << output << std::endl;
+//            std::cout << output << std::endl;
         }
 
         // TODO: Remove when the result in signalFinishTM is fixed
@@ -117,8 +121,59 @@ namespace kafka {
         return 0;
     }
 
+    int stopLocalKafkaVM(Word *args, Word &result, int message,
+                          Word &local, Supplier s) {
+        LOG(DEBUG) << "startLocalKafkaVM called";
+
+        std::string scriptFile = getScriptFile(
+                "/Algebras/Kafka/scripts/kafkaStartup.sh");
+        if (!scriptFile.empty()) {
+            scriptFile += " stop";
+
+            const std::string &output = exec(scriptFile.c_str());
+        }
+
+        // TODO: Remove when the result in signalFinishTM is fixed
+        result = qp->ResultStorage(s);
+        CcReal *res = (CcReal *) result.addr;
+        res->Set(true, 0);
+
+        return 0;
+    }
+
+    int statusLocalKafkaVM(Word *args, Word &result, int message,
+                           Word &local, Supplier s) {
+        LOG(DEBUG) << "statusLocalKafkaVM called";
+
+        std::string scriptFile = getScriptFile(
+                "/Algebras/Kafka/scripts/kafkaStartup.sh");
+        if (!scriptFile.empty()) {
+            scriptFile += " status";
+
+            const std::string &output = exec(scriptFile.c_str());
+        }
+
+        // TODO: Remove when the result in signalFinishTM is fixed
+        result = qp->ResultStorage(s);
+        CcReal *res = (CcReal *) result.addr;
+        res->Set(true, 0);
+
+        return 0;
+    }
 
     OperatorSpec startLocalKafkaSpec(
+            " empty -> empty? ",
+            " signalFinish(host, port)",
+            " Sends finish signal to finishStream operator ",
+            " query signalFinish(\"127.0.0.1\", 8080)"
+    );
+    OperatorSpec statusLocalKafkaSpec(
+            " empty -> empty? ",
+            " signalFinish(host, port)",
+            " Sends finish signal to finishStream operator ",
+            " query signalFinish(\"127.0.0.1\", 8080)"
+    );
+    OperatorSpec stopLocalKafkaSpec(
             " empty -> empty? ",
             " signalFinish(host, port)",
             " Sends finish signal to finishStream operator ",
@@ -143,18 +198,23 @@ namespace kafka {
 
     Operator stopLocalKafkaOp(
             "stopLocalKafka",
-            startLocalKafkaSpec.getStr(),
-            startLocalKafkaVM,
+            stopLocalKafkaSpec.getStr(),
+            stopLocalKafkaVM,
             Operator::SimpleSelect,
             scriptCallingTM
     );
 
     Operator statusLocalKafkaOp(
             "statusLocalKafka",
-            startLocalKafkaSpec.getStr(),
-            startLocalKafkaVM,
+            statusLocalKafkaSpec.getStr(),
+            statusLocalKafkaVM,
             Operator::SimpleSelect,
             scriptCallingTM
     );
 
+    // TODO:
+    // operator to list queues and stophard as general LocalKafka('stophard')
+    // and LocalKafka('topics')
+
+    // describe
 }

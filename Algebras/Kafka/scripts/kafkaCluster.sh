@@ -23,9 +23,9 @@ echo "KAFKA_HOME is ${KAFKA_HOME}"
 cd ${KAFKA_HOME}
 
 
-zookeeper_pid=`ps ax | grep -i -w 'org.apache.zookeeper.server' | grep -v grep | awk '{print $1}'`
-kafka_servers_pids=`ps ax | grep -i -w 'kafka.Kafka' | grep -v grep | awk '{print $1}'`
-start_kafka_loops_pids=`ps ax | grep -i -w 'start_kafka_loop.sh' | grep -v grep | awk '{print $1}'`
+zookeeper_pid=`ps axww | grep -i -w 'org.apache.zookeeper.server' | grep -v grep | awk '{print $1}'`
+kafka_servers_pids=`ps axww | grep -i -w 'kafka.Kafka' | grep -v grep | awk '{print $1}'`
+start_kafka_loops_pids=`ps axww | grep -i -w 'start_kafka_loop.sh' | grep -v grep | awk '{print $1}'`
 
 print_usage () {
   echo "Usage:"
