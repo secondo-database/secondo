@@ -33,6 +33,8 @@
         export KAFKA_HOME=/home/grisha/work/kafka/kafka_2.12-2.2.0
         bin/Scripts/kafkaStartup.sh
      To stop use bin/Scripts/kafkaStartup.sh stop
+     chmod a+x *.sh
+
 
 - Working with WebSockets from secondo:
 

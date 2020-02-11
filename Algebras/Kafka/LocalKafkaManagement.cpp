@@ -62,6 +62,7 @@ namespace kafka {
 
     int startLocalKafkaVM(Word *args, Word &result, int message,
                           Word &local, Supplier s) {
+        cout << "startLocalKafkaVM called" << endl;
 
         // TODO: Remove when the result in signalFinishTM is fixed
         result = qp->ResultStorage(s);
@@ -77,6 +78,14 @@ namespace kafka {
             " signalFinish(host, port)",
             " Sends finish signal to finishStream operator ",
             " query signalFinish(\"127.0.0.1\", 8080)"
+    );
+
+    Operator installLocalKafkaOp(
+            "installLocalKafka",
+            startLocalKafkaSpec.getStr(),
+            startLocalKafkaVM,
+            Operator::SimpleSelect,
+            startLocalKafkaTM
     );
 
     Operator startLocalKafkaOp(

@@ -15,3 +15,16 @@ operator consoleConsumer alias CONSOLECONSUMER pattern _ op
 
 #simple prefix operator
 operator readfromwebsocket alias READFROMWEBSOCKET pattern op(_)
+
+#simple prefix operator
+operator installLocalKafka alias INSTALLLOCALKAFKA pattern op(_)
+
+#simple prefix operator
+operator startLocalKafka alias STARTLOCALKAFKA pattern op(_)
+
+#simple prefix operator
+operator stopLocalKafka alias STOPLOCALKAFKA pattern op(_)
+
+#simple prefix operator
+operator statusLocalKafka alias STATUSLOCALKAFKA pattern op(_)
+

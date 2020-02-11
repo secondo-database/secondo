@@ -48,9 +48,10 @@ namespace kafka {
             AddOperator(&readFromKafkaOp);
             readFromKafkaOp.SetUsesArgsInTypeMapping();
 
-//            AddOperator(&startLocalKafkaOp);
-//            AddOperator(&stopLocalKafkaOp);
-//            AddOperator(&statusLocalKafkaOp);
+            AddOperator(&installLocalKafkaOp);
+            AddOperator(&startLocalKafkaOp);
+            AddOperator(&stopLocalKafkaOp);
+            AddOperator(&statusLocalKafkaOp);
 
             AddOperator(&finishStreamOp);
             AddOperator(&signalFinishOp);

@@ -28,8 +28,12 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "Algebra.h"
 
-extern Operator startLocalKafkaOp;
-extern Operator stopLocalKafkaOp;
-extern Operator statusLocalKafkaOp;
+namespace kafka {
 
+    extern Operator installLocalKafkaOp;
+    extern Operator startLocalKafkaOp;
+    extern Operator stopLocalKafkaOp;
+    extern Operator statusLocalKafkaOp;
+
+}
 #endif //KAFKA_LOCALKAFKAMANAGEMENT_H

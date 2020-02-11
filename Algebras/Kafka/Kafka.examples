@@ -36,3 +36,27 @@ Number   : 1
 Signature: URI x Subscription x Type -> stream(tuple)
 Example  : query readfromwebsocket('wss://ws.blockchain.info/inv', '{"op":"unconfirmed_sub"}', 'Operation : string /op') finishStream[8080] head[10] consume
 Result   : 7
+
+Operator : installLocalKafka
+Number   : 0
+Signature: installLocalKafka
+Example  : query installLocalKafka()
+Result   : 0
+
+Operator : startLocalKafka
+Number   : 0
+Signature: startLocalKafka
+Example  : query startLocalKafka()
+Result   : 0
+
+Operator : stopLocalKafka
+Number   : 0
+Signature: stopLocalKafka
+Example  : query stopLocalKafka()
+Result   : 0
+
+Operator : statusLocalKafka
+Number   : 0
+Signature: statusLocalKafka
+Example  : query statusLocalKafka()
+Result   : 0
