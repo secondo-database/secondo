@@ -33,27 +33,63 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Algebras/Relation-C++/RelationAlgebra.h" // use of tuples
 #include "log.hpp"
 
+#include <iostream>
+#include <memory>
+
 namespace kafka {
 
-    void doIt() {
-        const char *env_p = std::getenv("SECONDO_BUILD_DIR");
-        if (env_p == nullptr) {
-            cout
+    bool exists_test1(const std::string &name) {
+        if (FILE *file = fopen(name.c_str(), "r")) {
+            fclose(file);
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    std::string getScriptFile(std::string scriptSubPath) {
+        const char *secondoDir = std::getenv("SECONDO_BUILD_DIR");
+        if (secondoDir == nullptr) {
+            std::cout
                     << "The environment variable SECONDO_BUILD_DIR is not set."
-                       " This variable is needed to find the starting script";
-            return;
+                       " This variable is needed to find the starting script"
+                    << std::endl;
+            return "";
         }
 
         std::string fileName = "";
-        std::system("./prog");
+        fileName += secondoDir;
+        fileName += scriptSubPath;
 
+        if (!exists_test1(fileName)) {
+            std::cout
+                    << "Script file to run local Kafka not found. "
+                       "Should be under "
+                    << fileName << std::endl;
+            return "";
+        }
+        return fileName;
     }
 
-    ListExpr startLocalKafkaTM(ListExpr args) {
-        cout << "startLocalKafkaTM called" << endl;
+    std::string exec(const char *cmd) {
+        std::array<char, 128> buffer;
+        std::string result;
+        std::unique_ptr<FILE, decltype(&pclose)> pipe(popen(cmd, "r"), pclose);
+        if (!pipe) {
+            throw std::runtime_error("popen() failed!");
+        }
+        while (fgets(buffer.data(), buffer.size(), pipe.get()) != nullptr) {
+            result += buffer.data();
+        }
+        return result;
+    }
+
+    ListExpr scriptCallingTM(ListExpr args) {
+        LOG(DEBUG) << "scriptCallingTM called";
         if (!nl->HasLength(args, 0)) {
             return listutils::typeError(
-                    "Operator startLocalKafka has no arguments ");
+                    "Operators calling scripts like startLocalKafka"
+                    " have no arguments ");
         }
 
         // TODO: Some empty result
@@ -62,7 +98,16 @@ namespace kafka {
 
     int startLocalKafkaVM(Word *args, Word &result, int message,
                           Word &local, Supplier s) {
-        cout << "startLocalKafkaVM called" << endl;
+        LOG(DEBUG) << "startLocalKafkaVM called";
+
+        std::string scriptFile = getScriptFile(
+                "/Algebras/Kafka/scripts/kafkaStartup.sh");
+        if (!scriptFile.empty()) {
+            scriptFile += " start";
+
+            const std::string &output = exec(scriptFile.c_str());
+            std::cout << output << std::endl;
+        }
 
         // TODO: Remove when the result in signalFinishTM is fixed
         result = qp->ResultStorage(s);
@@ -85,7 +130,7 @@ namespace kafka {
             startLocalKafkaSpec.getStr(),
             startLocalKafkaVM,
             Operator::SimpleSelect,
-            startLocalKafkaTM
+            scriptCallingTM
     );
 
     Operator startLocalKafkaOp(
@@ -93,7 +138,7 @@ namespace kafka {
             startLocalKafkaSpec.getStr(),
             startLocalKafkaVM,
             Operator::SimpleSelect,
-            startLocalKafkaTM
+            scriptCallingTM
     );
 
     Operator stopLocalKafkaOp(
@@ -101,7 +146,7 @@ namespace kafka {
             startLocalKafkaSpec.getStr(),
             startLocalKafkaVM,
             Operator::SimpleSelect,
-            startLocalKafkaTM
+            scriptCallingTM
     );
 
     Operator statusLocalKafkaOp(
@@ -109,7 +154,7 @@ namespace kafka {
             startLocalKafkaSpec.getStr(),
             startLocalKafkaVM,
             Operator::SimpleSelect,
-            startLocalKafkaTM
+            scriptCallingTM
     );
 
 }
