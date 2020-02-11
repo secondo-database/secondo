@@ -37,6 +37,7 @@ print_usage () {
   echo "Usage:"
   echo "${scriptName} start"
   echo "${scriptName} stop"
+  echo "${scriptName} stophard"
   echo "${scriptName} status"
 }
 
@@ -87,25 +88,19 @@ start_cluster () {
 }
 
 stop_cluster () {
+
+        kill_op=$1
+
         echo "Shutting down loop scripts";
         if [ -n "${start_kafka_loops_pids}" ]
           then
             while read pid ; do
               echo "Killing loop script with pid ${pid}"
-              kill -9 "${pid}"
+              kill ${kill_op} "${pid}"
             done <<< ${start_kafka_loops_pids}
             sleep 1
         else
           echo "Loop scripts were not Running"
-        fi
-
-        echo "Shutting down Zookeeper";
-        if [ -n "${zookeeper_pid}" ]
-          then
-            echo "killing Zookeeper ${zookeeper_pid}"
-            kill -9 "${zookeeper_pid}"
-        else
-          echo "Zookeeper was not Running"
         fi
 
         echo "Shutting down Kafka servers";
@@ -113,10 +108,20 @@ stop_cluster () {
           then
             while read pid ; do
               echo "Killing kafka server with pid ${pid}"
-              kill -9 "${pid}"
+              kill ${kill_op} "${pid}"
             done <<< ${kafka_servers_pids}
+            sleep 10
         else
           echo "Kafka was not Running"
+        fi
+
+        echo "Shutting down Zookeeper";
+        if [ -n "${zookeeper_pid}" ]
+          then
+            echo "killing Zookeeper ${zookeeper_pid}"
+            kill ${kill_op} "${zookeeper_pid}"
+        else
+          echo "Zookeeper was not Running"
         fi
 
         exit 0
@@ -129,6 +134,9 @@ case "$1" in
     ;;
   stop)
     stop_cluster
+    ;;
+  stophard)
+    stop_cluster "-9"
     ;;
   status)
     print_status
