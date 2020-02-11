@@ -14,11 +14,11 @@ fi
 mkdir kafka
 cd kafka
 
-# https://www.apache.org/dist/kafka/2.1.1/kafka_2.11-2.1.1.tgz
-# https://www.apache.org/dist/kafka/2.4.0/kafka_2.12-2.4.0.tgz
-# http://apache.mirror.digionline.de/kafka/2.4.0/kafka_2.12-2.4.0.tgz
-wget http://apache.mirror.digionline.de/kafka/2.4.0/kafka_2.12-2.4.0.tgz
-
+wget http://apache.mirror.digionline.de/kafka/2.2.0/kafka_2.12-2.2.0.tgz
 mkdir kafka_dist
-tar -xvzf kafka_2.12-2.4.0.tgz --directory kafka_dist --strip 1
+tar -xvzf kafka_2.12-2.2.0.tgz --directory kafka_dist --strip 1
+
+#wget http://apache.mirror.digionline.de/kafka/2.4.0/kafka_2.12-2.4.0.tgz
+#mkdir kafka_dist
+#tar -xvzf kafka_2.12-2.4.0.tgz --directory kafka_dist --strip 1
 
