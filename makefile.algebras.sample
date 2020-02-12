@@ -355,6 +355,9 @@ ALGEBRAS      += AuxiliaryAlgebra
 #DEFAULTCCFLAGS += -pthread -DTHREAD_SAFE
 #CCFLAGS += -pthread -DTHREAD_SAFE
 #COMMON_LD_FLAGS += -lboost_thread -lboost_system
+# On systems that have boost::chrono compiled without header-only 
+# option, the following line is required
+#COMMON_LD_FLAGS += -lboost_chrono
 
 # note if you want to enable thread save compilation the first time
 # on your system, goto into Secondo's home directory and enter:
