@@ -1,0 +1,131 @@
+open database pgraph1;
+
+# OBJECTS
+
+delete Author;
+delete Play;
+delete Production;
+delete Company;
+delete User;
+delete Review;
+delete Performance;
+delete Venue;
+delete Street;
+delete City;
+delete Country;
+
+let Author = [ const rel(tuple([Id : int, Firstname : string, Lastname : string])) value () ];
+query Author inserttuple[1, "William", "Shakespeare"] count;
+query Author inserttuple[2, "Caryl", "Churchill"] count;
+query Author inserttuple[3, "George Bernard", "Shaw"] count;
+
+let Play = [ const rel(tuple([Id : int, Title : string])) value () ];
+query Play inserttuple[1, "The Tempest"] count;
+query Play inserttuple[2, "Julius Caesar"] count;
+query Play inserttuple[3, "The After Dinner Joke"] count;
+query Play inserttuple[4, "The Playboy of the Western World"] count;
+
+let Production = [ const rel(tuple([Id : int, Name : string])) value () ];
+query Production inserttuple[1, "The Tempest"] count;
+query Production inserttuple[2, "Julius Caesar"] count;
+query Production inserttuple[3, "The After Dinner Joke"] count;
+
+let Company = [ const rel(tuple([Id : int, Name : string])) value () ];
+query Company inserttuple[1, "RSC"] count;
+
+let User = [ const rel(tuple([Id : int, Name : string])) value () ];
+query User inserttuple[1, "Billy"] count;
+
+let Review = [ const rel(tuple([Id : int, Rating : int, Review:string])) value () ];
+query Review inserttuple[1, 5, "This was great!"] count;
+
+let Performance = [ const rel(tuple([Id : int, Date : string])) value () ];
+query Performance inserttuple[1, "20061121"] count;
+query Performance inserttuple[2, "20120729"] count;
+
+let Venue = [ const rel(tuple([Id : int, Name : string])) value () ];
+query Venue inserttuple[1, "Theatre Royal"] count;
+
+let Street = [ const rel(tuple([Id : int, Name : string])) value () ];
+query Street inserttuple[1, "Grey Street"] count;
+
+let City = [ const rel(tuple([Id : int, Name : string])) value () ];
+query City inserttuple[1, "Stratford upon Avon"] count;
+query City inserttuple[2, "Newcastle"] count;
+
+let Country = [ const rel(tuple([Id : int, Name : string])) value () ];
+query Country inserttuple[1, "England"] count;
+query Country inserttuple[2, "Tyne and Wear"] count;
+
+# RELATIONS
+
+delete WROTE_PLAY;
+delete PRODUCTION_OF;
+delete PRODUCED;
+delete PERFORMANCE_OF;
+delete VENUE;
+delete STREET;
+delete CITY;
+delete COUNTRY;
+delete BASED_IN;
+delete WROTE_REVIEW;
+delete REVIEW_OF;
+
+# Author->Play
+let WROTE_PLAY = [ const rel(tuple([IdFrom : int, IdTo : int, Year : int])) value () ];
+query WROTE_PLAY inserttuple[1, 1, 1610] count;
+query WROTE_PLAY inserttuple[1, 2, 1599] count;
+query WROTE_PLAY inserttuple[2, 3, 1844] count;
+query WROTE_PLAY inserttuple[3, 4, 1890] count;
+
+# Production->Play
+let PRODUCTION_OF = [ const rel(tuple([IdFrom : int, IdTo : int])) value () ];
+query PRODUCTION_OF inserttuple[1, 1] count;
+query PRODUCTION_OF inserttuple[2, 2] count;
+query PRODUCTION_OF inserttuple[3, 3] count;
+
+# Company->Production
+let PRODUCED = [ const rel(tuple([IdFrom : int, IdTo : int])) value () ];
+query PRODUCED inserttuple[1, 1] count;
+query PRODUCED inserttuple[1, 2] count;
+
+# Performance->Production
+let PERFORMANCE_OF = [ const rel(tuple([IdFrom : int, IdTo : int])) value () ];
+query PERFORMANCE_OF inserttuple[1, 1] count;
+query PERFORMANCE_OF inserttuple[2, 2] count;
+
+# Performance->Venue
+let VENUE = [ const rel(tuple([IdFrom : int, IdTo : int])) value () ];
+query VENUE inserttuple[1, 1] count;
+query VENUE inserttuple[2, 1] count;
+
+# Venue->Street
+let STREET = [ const rel(tuple([IdFrom : int, IdTo : int])) value () ];
+query STREET inserttuple[1, 1] count;
+
+# Street->City
+let CITY = [ const rel(tuple([IdFrom : int, IdTo : int])) value () ];
+query CITY inserttuple[1, 2] count;
+
+# City->Country
+let COUNTRY = [ const rel(tuple([IdFrom : int, IdTo : int])) value () ];
+query COUNTRY inserttuple[1, 1] count;
+query COUNTRY inserttuple[2, 2] count;
+
+# Company->City
+let BASED_IN = [ const rel(tuple([IdFrom : int, IdTo : int])) value () ];
+query BASED_IN inserttuple[1, 1] count;
+
+# User->Review
+let WROTE_REVIEW = [ const rel(tuple([IdFrom : int, IdTo : int])) value () ];
+query WROTE_REVIEW inserttuple[1, 1] count;
+
+# Review->Performance
+let REVIEW_OF = [ const rel(tuple([IdFrom : int, IdTo : int])) value () ];
+query REVIEW_OF inserttuple[1, 2] count;
+
+#
+delete idx_Author;
+derive idx_Author = Author createbtree[Lastname];
+
+

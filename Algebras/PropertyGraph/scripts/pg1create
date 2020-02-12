@@ -1,0 +1,30 @@
+open database pgraph1;
+
+delete p1;
+let p1=createpgraph("pg1");
+
+query p1 addnodesrel["Author"];
+query p1 addnodesrel["Play"];
+query p1 addnodesrel["Production"];
+query p1 addnodesrel["Company"];
+query p1 addnodesrel["User"];
+query p1 addnodesrel["Review"];
+query p1 addnodesrel["Performance"];
+query p1 addnodesrel["Venue"];
+query p1 addnodesrel["Street"];
+query p1 addnodesrel["City"];
+query p1 addnodesrel["Country"];
+
+query p1 addnodeindex["Author","Lastname","idx_Author"];
+
+query p1 addedgesrel["WROTE_PLAY","IdFrom=Author.Id","IdTo=Play.Id"];
+query p1 addedgesrel["PRODUCTION_OF","IdFrom=Production.Id","IdTo=Play.Id"];
+query p1 addedgesrel["PRODUCED","IdFrom=Company.Id","IdTo=Production.Id"];
+query p1 addedgesrel["PERFORMANCE_OF","IdFrom=Performance.Id","IdTo=Production.Id"];
+query p1 addedgesrel["VENUE","IdFrom=Performance.Id","IdTo=Venue.Id"];
+query p1 addedgesrel["STREET","IdFrom=Venue.Id","IdTo=Street.Id"];
+query p1 addedgesrel["CITY","IdFrom=Street.Id","IdTo=City.Id"];
+query p1 addedgesrel["COUNTRY","IdFrom=City.Id","IdTo=Country.Id"];
+query p1 addedgesrel["WROTE_REVIEW","IdFrom=User.Id","IdTo=Review.Id"];
+query p1 addedgesrel["REVIEW_OF","IdFrom=Review.Id","IdTo=Performance.Id"];
+

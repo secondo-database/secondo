@@ -1,0 +1,15 @@
+open database pgraph1;
+
+query p1 loadgraph;
+
+query p1 
+match3 ['
+    MATCH 
+      (theater: Venue {Name: "Theatre Royal"}),
+      (newcastle: City {Name: "Newcastle"}),
+      (bard: Author {Lastname: "Shakespeare"}),
+      (newcastle)<-[:CITY]-(street)<-[:STREET]-(theater)<-[:VENUE]-()-[:PERFORMANCE_OF]->()-[:PRODUCTION_OF]->(play)<-[w:WROTE_PLAY]-(bard)
+    WHERE w.Year > 1608
+    RETURN  play.Title AS Play
+', '((log 10) (dumpgraph tree_graph))' ] consume;
+

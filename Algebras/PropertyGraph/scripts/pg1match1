@@ -1,0 +1,41 @@
+open database pgraph1;
+
+query p1 loadgraph;
+
+query p1 
+      Author feed filter[.Id>0] 
+match1 ['
+(  
+   (theater Venue ( (Name "Theatre Royal") ))
+   STREET 
+   ( s
+     CITY
+     (
+        (newcastle City ( (Name "Newcastle") ))
+     )
+   )
+   VENUE <-
+   ( perf
+     PERFORMANCE_OF
+     ( 
+       prod 
+       PRODUCTION_OF
+       ( 
+         play 
+         w WROTE_PLAY <-
+         ( 
+	    (bard Author ( (Lastname "Shakespeare") ))
+         )
+       )
+     )           
+   )
+)',
+'( ((w Year) > 1608) )',
+'( ((theater Name) Name)  ((newcastle Name) CityName) ((bard Lastname) BardName)  ((w Year) Year ) )',
+'((log 10) (dumpgraph tree))'
+] consume;
+
+
+
+
+
