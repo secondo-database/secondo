@@ -84,7 +84,7 @@ namespace kafka {
             result += buffer.data();
             std::cout << buffer.data() << std::flush;
         }
-//        std::cout << std::endl;
+        std::cout << std::endl;
         return result;
     }
 
@@ -100,6 +100,39 @@ namespace kafka {
         return listutils::basicSymbol<CcReal>();
     }
 
+    ListExpr scriptCallingWithOneParameterTM(ListExpr args) {
+        LOG(DEBUG) << "scriptCallingWithOneParameterTM called";
+        if (!nl->HasLength(args, 1)) {
+            return listutils::typeError(
+                    "Operators requires one string argument");
+        }
+
+        // TODO: Some empty result
+        return listutils::basicSymbol<CcReal>();
+    }
+
+    void builResult(Word &result,
+                    Supplier &s) {
+        // TODO: Remove when the result in signalFinishTM is fixed
+        result = qp->ResultStorage(s);
+        CcReal *res = (CcReal *) result.addr;
+        res->Set(true, 0);
+    }
+
+    int installLocalKafkaVM(Word *args, Word &result, int message,
+                            Word &local, Supplier s) {
+        LOG(DEBUG) << "startLocalKafkaVM called";
+
+        std::string scriptFile = getScriptFile(
+                "/Algebras/Kafka/scripts/installKafka.sh");
+        if (!scriptFile.empty()) {
+            exec(scriptFile.c_str());
+        }
+
+        builResult(result, s);
+        return 0;
+    }
+
     int startLocalKafkaVM(Word *args, Word &result, int message,
                           Word &local, Supplier s) {
         LOG(DEBUG) << "startLocalKafkaVM called";
@@ -108,36 +141,25 @@ namespace kafka {
                 "/Algebras/Kafka/scripts/kafkaStartup.sh");
         if (!scriptFile.empty()) {
             scriptFile += " start";
-
-            const std::string &output = exec(scriptFile.c_str());
-//            std::cout << output << std::endl;
+            exec(scriptFile.c_str());
         }
 
-        // TODO: Remove when the result in signalFinishTM is fixed
-        result = qp->ResultStorage(s);
-        CcReal *res = (CcReal *) result.addr;
-        res->Set(true, 0);
-
+        builResult(result, s);
         return 0;
     }
 
     int stopLocalKafkaVM(Word *args, Word &result, int message,
-                          Word &local, Supplier s) {
+                         Word &local, Supplier s) {
         LOG(DEBUG) << "startLocalKafkaVM called";
 
         std::string scriptFile = getScriptFile(
                 "/Algebras/Kafka/scripts/kafkaStartup.sh");
         if (!scriptFile.empty()) {
             scriptFile += " stop";
-
-            const std::string &output = exec(scriptFile.c_str());
+            exec(scriptFile.c_str());
         }
 
-        // TODO: Remove when the result in signalFinishTM is fixed
-        result = qp->ResultStorage(s);
-        CcReal *res = (CcReal *) result.addr;
-        res->Set(true, 0);
-
+        builResult(result, s);
         return 0;
     }
 
@@ -149,41 +171,89 @@ namespace kafka {
                 "/Algebras/Kafka/scripts/kafkaStartup.sh");
         if (!scriptFile.empty()) {
             scriptFile += " status";
-
-            const std::string &output = exec(scriptFile.c_str());
+            exec(scriptFile.c_str());
         }
 
-        // TODO: Remove when the result in signalFinishTM is fixed
-        result = qp->ResultStorage(s);
-        CcReal *res = (CcReal *) result.addr;
-        res->Set(true, 0);
-
+        builResult(result, s);
         return 0;
     }
 
+    int localKafkaVM(Word *args, Word &result, int message,
+                     Word &local, Supplier s) {
+        LOG(DEBUG) << "localKafkaVM called";
+        CcString *commandArg = (CcString *) args[0].addr;
+
+        std::string scriptFile = getScriptFile(
+                "/Algebras/Kafka/scripts/kafkaStartup.sh");
+        if (!scriptFile.empty()) {
+            scriptFile += commandArg->GetValue();
+            exec(scriptFile.c_str());
+        }
+        builResult(result, s);
+        return 0;
+    }
+
+    OperatorSpec installLocalKafkaSpec(
+            " installLocalKafka() ",
+            " installLocalKafka() ",
+            "Downloads Apache Kafka version 2.2.0 from one of the "
+            "mirrors in internet and install it into folder "
+            "${HOME}/kafka/kafka_dist(/home/<user>/kafka/kafka_dist). "
+            "It is recommended to install and start the Kafka cluster by "
+            "following the instruction on https://kafka.apache.org/quickstart. "
+            "This has the advantage of installing more recent versions, "
+            "additionally mirrors are available. "
+            "Nevertheless we provide this operator here for convenient usage "
+            "of Kafka technology for users inexperienced with Apache Kafka "
+            "setup. ",
+            " query installLocalKafka()"
+    );
     OperatorSpec startLocalKafkaSpec(
-            " empty -> empty? ",
-            " signalFinish(host, port)",
-            " Sends finish signal to finishStream operator ",
-            " query signalFinish(\"127.0.0.1\", 8080)"
+            " startLocalKafkaSpec() ",
+            " startLocalKafkaSpec() ",
+            " Starts a local instance of Zookeeper and Kafka Server "
+            "in ${KAFKA_HOME} or if not set in "
+            "${HOME}/kafka/kafka_dist(/home/<user>/kafka/kafka_dist) folder "
+            "with configuration files config/zookeeper.properties "
+            "zookeeper.log. "
+            "The output logs of Zookeeper and Kafka Server are redirected to "
+            "${KAFKA_HOME}/zookeeper.log and ${KAFKA_HOME}/kafka.log "
+            "correspondingly. "
+            "To check the status after start, use the operator "
+            "statusLocalKafka "
+            "The operator is implemented as a bash script "
+            "${SECONDO_BUILD_DIR}/Algebras/Kafka/scripts/kafkaStartup.sh "
+            "It is recommended to install and start the Kafka cluster by "
+            "following the instruction on https://kafka.apache.org/quickstart. "
+            "Nevertheless we provide this operator here for convenient usage "
+            "of Kafka technology for users inexperienced with Apache Kafka "
+            "setup. ",
+            " query startLocalKafkaSpec()"
     );
     OperatorSpec statusLocalKafkaSpec(
-            " empty -> empty? ",
-            " signalFinish(host, port)",
-            " Sends finish signal to finishStream operator ",
-            " query signalFinish(\"127.0.0.1\", 8080)"
+            " statusLocalKafka() ",
+            " statusLocalKafka() ",
+            " .. ",
+            " query statusLocalKafka()"
     );
     OperatorSpec stopLocalKafkaSpec(
-            " empty -> empty? ",
-            " signalFinish(host, port)",
-            " Sends finish signal to finishStream operator ",
-            " query signalFinish(\"127.0.0.1\", 8080)"
+            " stopLocalKafkaSpec() ",
+            " stopLocalKafkaSpec()",
+            " .. ",
+            " query stopLocalKafkaSpec()"
+    );
+    OperatorSpec localKafkaSpec(
+            " command -> empty ",
+            " localKafka(command)",
+            " start status stop stophard topics "
+            " ",
+            " query localKafka(\"topics\")"
     );
 
     Operator installLocalKafkaOp(
             "installLocalKafka",
-            startLocalKafkaSpec.getStr(),
-            startLocalKafkaVM,
+            installLocalKafkaSpec.getStr(),
+            installLocalKafkaVM,
             Operator::SimpleSelect,
             scriptCallingTM
     );
@@ -212,9 +282,12 @@ namespace kafka {
             scriptCallingTM
     );
 
-    // TODO:
-    // operator to list queues and stophard as general LocalKafka('stophard')
-    // and LocalKafka('topics')
+    Operator localKafkaOp(
+            "localKafka",
+            localKafkaSpec.getStr(),
+            localKafkaVM,
+            Operator::SimpleSelect,
+            scriptCallingWithOneParameterTM
+    );
 
-    // describe
 }

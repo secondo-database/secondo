@@ -39,6 +39,7 @@ print_usage () {
   echo "${scriptName} stop"
   echo "${scriptName} stophard"
   echo "${scriptName} status"
+  echo "${scriptName} topics"
 }
 
 
@@ -127,6 +128,10 @@ stop_cluster () {
         exit 0
 }
 
+list_topics () {
+  bin/kafka-topics.sh --list --bootstrap-server localhost:9092
+}
+
 # https://stackoverflow.com/questions/34512287/how-to-automatically-start-kafka-upon-system-startup-in-ubuntu
 case "$1" in
   start)
@@ -140,6 +145,9 @@ case "$1" in
     ;;
   status)
     print_status
+    ;;
+  topics)
+    list_topics
     ;;
   *)
     print_usage

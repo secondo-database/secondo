@@ -34,6 +34,7 @@ namespace kafka {
     extern Operator startLocalKafkaOp;
     extern Operator stopLocalKafkaOp;
     extern Operator statusLocalKafkaOp;
+    extern Operator localKafkaOp;
 
 }
 #endif //KAFKA_LOCALKAFKAMANAGEMENT_H

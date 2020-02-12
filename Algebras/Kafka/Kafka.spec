@@ -28,3 +28,5 @@ operator stopLocalKafka alias STOPLOCALKAFKA pattern op(_)
 #simple prefix operator
 operator statusLocalKafka alias STATUSLOCALKAFKA pattern op(_)
 
+#simple prefix operator
+operator localKafka alias LOCALKAFKA pattern op(_)

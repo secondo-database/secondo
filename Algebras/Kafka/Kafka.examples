@@ -60,3 +60,9 @@ Number   : 0
 Signature: statusLocalKafka
 Example  : query statusLocalKafka()
 Result   : 0
+
+Operator : localKafka
+Number   : 1
+Signature: localKafka("command")
+Example  : query localKafka("topics")
+Result   : 0

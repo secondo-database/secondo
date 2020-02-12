@@ -52,6 +52,7 @@ namespace kafka {
             AddOperator(&startLocalKafkaOp);
             AddOperator(&stopLocalKafkaOp);
             AddOperator(&statusLocalKafkaOp);
+            AddOperator(&localKafkaOp);
 
             AddOperator(&finishStreamOp);
             AddOperator(&signalFinishOp);
