@@ -317,6 +317,7 @@ public:
     std::pair<TaskDataLocation, int> findTransferSourceLocation(
         std::map<std::string, std::pair<bool, int>> activeTransferrators) const;
     TaskDataLocation getFirstLocation() const;
+    std::vector<TaskDataLocation> getLocations() const;
 
     DataDistance getDistance(WorkerLocation const &location) const;
     DataDistance getUpcomingDistance(WorkerLocation const &location) const;
@@ -333,6 +334,21 @@ public:
             {
                 upcomingLocations.erase(it);
                 break;
+            }
+        }
+    }
+
+    void persistLocation(TaskDataLocation location)
+    {
+        boost::lock_guard<boost::mutex> lock(mutex);
+        for (auto it = locations.begin(); it != locations.end(); it++)
+        {
+            if (*it == location)
+            {
+                *it = TaskDataLocation(
+                    location.getWorkerLocation(),
+                    location.getStorageType(), false);
+                return;
             }
         }
     }

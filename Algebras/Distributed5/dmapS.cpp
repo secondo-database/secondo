@@ -267,7 +267,7 @@ class dmapSLI
 {
 public:
     // constructor of the dmapS Local Information
-    // inputs is a vector of DInputConsumer
+    // inputs are a vector of DInputConsumer
     //      (could be a d[f]array or a stream of tasks)
     // string is the Function text
     // remoteName is the name of the relation in the slots

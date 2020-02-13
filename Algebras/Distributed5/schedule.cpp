@@ -220,7 +220,17 @@ private:
     void scheduleTask(Task *task)
     {
         workPool.push_back(task);
-        workPoolSignal.notify_all();
+        poolSignal.notify_all();
+    }
+
+    void scheduleGarbage(TaskDataItem *data)
+    {
+        for (auto loc : data->getLocations())
+        {
+            if (loc.isTemporary())
+                garbagePool.push_back(make_pair(data, loc));
+        }
+        poolSignal.notify_all();
     }
 
     // makes sure a worker thread for this location is running
@@ -246,7 +256,7 @@ private:
             stopWorkersWhenWorkDone = true;
         else
             killWorkers = true;
-        workPoolSignal.notify_all();
+        poolSignal.notify_all();
     }
 
     void ensureFileTransferrator(WorkerLocation &location)
@@ -390,7 +400,7 @@ private:
             {
                 reservation.reset();
             }
-            scheduler.workPoolSignal.notify_all();
+            scheduler.poolSignal.notify_all();
 
             return true;
         }
@@ -443,7 +453,7 @@ private:
 
             data->addLocation(loc);
 
-            scheduler.workPoolSignal.notify_all();
+            scheduler.poolSignal.notify_all();
 
             return true;
         }
@@ -462,12 +472,71 @@ private:
 
         virtual bool run(boost::unique_lock<boost::mutex> &lock)
         {
-            scheduler.workPoolSignal.wait(lock);
+            scheduler.poolSignal.wait(lock);
             return true;
         }
     };
 
-    void addError(string message)
+    class RemoveDataWorkerJob : public WorkerJob
+    {
+    public:
+        RemoveDataWorkerJob(WorkerLocation &location, Scheduler &scheduler,
+                            TaskDataItem *data, TaskDataLocation dataLocation)
+            : WorkerJob(location, scheduler),
+              data(data), dataLocation(dataLocation) {}
+        virtual ~RemoveDataWorkerJob() {}
+
+        virtual bool run(boost::unique_lock<boost::mutex> &lock)
+        {
+            lock.unlock();
+
+            try
+            {
+                ConnectionInfo *ci = location.getWorkerConnection();
+                switch (dataLocation.getStorageType())
+                {
+                case File:
+                {
+                    string file = dataLocation.getFilePath(data);
+                    Task::runCommand(
+                        ci,
+                        "query removeFile('" + file + "')",
+                        "remove temporary data file",
+                        false, true);
+                    break;
+                }
+                case Object:
+                {
+                    string objectName = data->getObjectName();
+                    Task::runCommand(
+                        ci,
+                        "delete " + objectName,
+                        "remove temporary data object",
+                        false, true);
+                    break;
+                }
+                }
+            }
+            catch (exception &e)
+            {
+                lock.lock();
+                scheduler.addError(string(e.what()) + "\n" +
+                                   "while removing " + data->toString() +
+                                   " from " + dataLocation.toString());
+                return false;
+            }
+
+            lock.lock();
+            return true;
+        }
+
+    private:
+        TaskDataItem *data;
+        TaskDataLocation dataLocation;
+    };
+
+    void
+    addError(string message)
     {
         isError = true;
         if (!errorMessage.empty())
@@ -480,24 +549,45 @@ private:
         // make sure a worker is running for the location of the result
         ensureWorker(result->getFirstLocation().getWorkerLocation());
 
+        // TODO when data with the same name has already been referenced
+        // merge both data items to one item to keep only a single data item
+        // per name
+
         // store result
         TaskScheduleInfo &info = taskInfo[task];
         info.result = result;
         info.completed = true;
 
-        // For all successor task, decrease the number of remaining tasks
-        std::vector<Task *> &successors = info.successors;
-        for (auto it = successors.begin(); it != successors.end(); it++)
+        // For all precessor tasks, decrease the number of remaining tasks
+        for (auto preTask : task->getPredecessors())
         {
-            Task *succTask = *it;
+            TaskScheduleInfo &preInfo = taskInfo[preTask];
+            if (--dataReferences[preInfo.result] == 0)
+            {
+                scheduleGarbage(preInfo.result);
+            }
+        }
+
+        // For all successor tasks, decrease the number of remaining tasks
+        for (Task *succTask : info.successors)
+        {
             TaskScheduleInfo &succInfo = taskInfo[succTask];
             succInfo.incompletePrecessors--;
+
+            // each successor keeps a reference to the result
+            dataReferences[result]++;
 
             // scheck if there are now possible tasks which can be started.
             if (succInfo.incompletePrecessors == 0)
             {
                 scheduleTask(succTask);
             }
+        }
+
+        // When nobody references the result, garbagge collect it
+        if (dataReferences[result] == 0)
+        {
+            scheduleGarbage(result);
         }
     }
 
@@ -527,7 +617,7 @@ private:
         if (!transferrator.first)
         {
             transferrator.first = true;
-            workPoolSignal.notify_all();
+            poolSignal.notify_all();
         }
 
         while (true)
@@ -549,9 +639,10 @@ private:
                 // check for end of work
                 if (workerWorking == 1)
                 {
-                    if (stopWorkersWhenWorkDone && workPool.empty())
+                    if (stopWorkersWhenWorkDone &&
+                        workPool.empty() && garbagePool.empty())
                     {
-                        workPoolSignal.notify_all();
+                        poolSignal.notify_all();
                         break;
                     }
                 }
@@ -559,7 +650,7 @@ private:
                 workerWorking--;
 
                 // Go into sleep mode
-                workPoolSignal.wait(lock);
+                poolSignal.wait(lock);
 
                 workerWorking++;
             }
@@ -759,7 +850,23 @@ private:
             }
         }
 
-        return best ? best->first : 0;
+        if (best)
+            return best->first;
+
+        // nothing productive to do
+        // collect some garbage
+        for (auto it = garbagePool.begin(); it != garbagePool.end(); it++)
+        {
+            auto data = *it;
+            if (data.second.getWorkerLocation() == location)
+            {
+                garbagePool.erase(it);
+                return new RemoveDataWorkerJob(location, *this,
+                                               data.first, data.second);
+            }
+        }
+
+        return 0;
     }
 
     class ResultTask : public Task
@@ -807,6 +914,12 @@ private:
                             "store file value as object",
                             true);
                     }
+                    result->addLocation(
+                        TaskDataLocation(location, Object, false));
+                }
+                else
+                {
+                    result->persistLocation(storedLocation);
                 }
             }
             else
@@ -827,6 +940,12 @@ private:
                             "'" + storedLocation.getFilePath(result) + "', " +
                             "'" + preferredLocation.getFilePath(result) + "')",
                         "copy file to correct worker");
+                    result->addLocation(
+                        TaskDataLocation(preferredLocation, File, false));
+                }
+                else
+                {
+                    result->persistLocation(storedLocation);
                 }
             }
 
@@ -861,14 +980,17 @@ private:
     boost::condition_variable threadSignal;
 
     std::list<Task *> workPool;
+    std::list<std::pair<TaskDataItem *, TaskDataLocation>> garbagePool;
     size_t workerWorking = 0;
     bool stopWorkersWhenWorkDone = false;
     bool killWorkers = false;
-    boost::condition_variable workPoolSignal;
+    boost::condition_variable poolSignal;
 
     OnlyOnceMutexMap<std::string> fileTransferrators;
 
     std::map<string, pair<bool, int>> activeTransferrators;
+
+    std::map<TaskDataItem *, int> dataReferences;
 
     std::map<Task *, TaskScheduleInfo> taskInfo;
 };

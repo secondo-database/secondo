@@ -216,30 +216,29 @@ TaskDataItem *DmapFunctionTask::run(
 
     TaskDataItem *firstArg = args.front();
     size_t slot = firstArg->getSlot();
-
-    //Get Data Information from Previous Task to current
-    //task and make current
-    //task to data task (root of all tasks of the
-    // dependency graph for this slot)
-    //creates the function of the fun arguments
     vector<string> funargs;
+
+    // for all input arguments
     for (auto arg : args)
     {
+        // find shortest distance location
         auto loc = arg->findLocation(location);
         funargs.push_back(loc.getValueArgument(arg) + " ");
     }
-
+    // create function comand
     ListExpr funCmdList = fun2cmd(mapFunction, funargs);
 
     funCmdList = replaceWrite(funCmdList, "write2",
                               resultName + "_" + std::to_string(slot));
+
+    // for dmapSX X == 1
     if (args.size() == 1)
     {
         string name_slot = firstArg->getObjectName();
         funCmdList = replaceWrite(funCmdList, "write3", name_slot);
     }
     string funcmd = nl->ToString(funCmdList);
-
+    // store result on the running worker
     return store(location, firstArg->getPreferredLocation(),
                  slot, funcmd, "dmapS");
 }
@@ -663,6 +662,12 @@ TaskDataLocation TaskDataItem::getFirstLocation() const
 {
     boost::lock_guard<boost::mutex> lock(mutex);
     return locations[0];
+}
+
+std::vector<TaskDataLocation> TaskDataItem::getLocations() const
+{
+    boost::lock_guard<boost::mutex> lock(mutex);
+    return locations;
 }
 
 //these functions are needed for the type constructor
