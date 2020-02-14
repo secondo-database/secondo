@@ -23,7 +23,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //paragraph [1] Title: [{\Large \bf \begin {center}] [\end {center}}]
 //[TOC] [\tableofcontents]
 
-[1] Implementation of the Fixed Moving Region Algebra (FixedMRAlgebra)
+[1] Implementation of the Polyhedral Moving Region Algebra (PMRegionAlgebra)
 
 June, 2018. Florian Heinz <fh@sysv.de>
 
@@ -64,15 +64,17 @@ using namespace temporalalgebra;
 using namespace pmregion;
 using namespace pmr;
 
+Region* buildRegion(vector< vector<Point> >& cycles);
+
 
 namespace temporalalgebra {
     Word InUReal( const ListExpr typeInfo, const ListExpr instance,
-		  const int errorPos, ListExpr& errorInfo, bool& correct );
+          const int errorPos, ListExpr& errorInfo, bool& correct );
     Word InMRegion(const ListExpr typeInfo,
-		    const ListExpr instance,
-		    const int errorPos,
-		    ListExpr& errorInfo,
-		    bool& correct);
+            const ListExpr instance,
+            const int errorPos,
+            ListExpr& errorInfo,
+            bool& correct);
     ListExpr OutMRegion(ListExpr typeInfo, Word instance);
 }
 
@@ -147,7 +149,8 @@ ListExpr OutPMRegion(ListExpr typeInfo, Word value) {
     RList rl = pmr->pmr()->toRList();
 
     // RList2NL converts RList to a Secondo NestedList
-    return RList2NL(rl.items[4]);
+    ListExpr ret = RList2NL(rl.items[4]);
+    return ret;
 }
 
 /*
@@ -257,7 +260,7 @@ TypeConstructor pmregion(
         CreatePMRegion, DeletePMRegion,
         0, 0,
 //        OpenAttribute<PMRegion>, SaveAttribute<PMRegion>,
-	ClosePMRegion,
+    ClosePMRegion,
         ClonePMRegion, CastPMRegion,
         SizeOfPMRegion, CheckPMRegion
         );
@@ -292,7 +295,7 @@ PMRegion::PMRegion(bool dummy) : points(10000), faces(10000), _pmr(NULL) {
 
 */
 PMRegion::~PMRegion() {
-	if (_pmr) delete _pmr;
+    if (_pmr) delete _pmr;
 }
 
 /*
@@ -343,16 +346,44 @@ int atinstantvalmap(Word *args, Word& result,
     // Convert secondo instant to ms since unix epoch
     double instant = (it->ToDouble()+10959)*86400000;
 
+    cout << "Calculating atinstant" << endl;
     // Calculate the projected region in libpmregion
-    RList region = pmr->pmr()->atinstant(instant);
+    RList region = pmr->pmr()->atinstant2(instant);
+
+
+    cout << "Building region..." << endl;
+#if 1
     // and convert the result to a Secondo nested list
     ListExpr regle = RList2NL(region.items[4]);
 
     // Create an IRegion from the result and return it
     bool correct;
     ListExpr errorInfo;
+    cout << "Calling InRegion..." << endl;
     Word regp = InRegion(nl->Empty(), regle, 0, errorInfo, correct);
     Region *reg = static_cast<Region*> (regp.addr);
+#else
+    vector<vector<Point> > cyc;
+    RList faces = region.items[4];
+    for (unsigned int i = 0; i < faces.items.size(); i++) {
+        RList cycles = faces.items[i];
+        for (unsigned int j = 0; j < cycles.items.size(); j++) {
+            vector<Point> c;
+            RList points = cycles.items[j];
+            for (unsigned int k = 0; k < points.items.size(); k++) {
+                RList point = points.items[k];
+                c.push_back(Point(true, point.items[0].getNr(),
+                            point.items[1].getNr()));
+            }
+            cyc.push_back(c);
+        }
+    }
+    cout << "Calling buildRegion..." << endl;
+    Region *reg = buildRegion(cyc);
+
+
+#endif
+    cout << "Done" << endl;
     result.setAddr(new temporalalgebra::IRegion(*it, *reg));
 
     return 0;
@@ -1318,74 +1349,74 @@ RList NL2RList(ListExpr l) {
 }
 
 void pmregion::PMRegion::UpdateFLOBs() {
-	RList rl = pmr()->toRList().items[4];
-	UpdateFLOBs(rl);
+    RList rl = pmr()->toRList().items[4];
+    UpdateFLOBs(rl);
 }
 
 void pmregion::PMRegion::UpdateFLOBs(RList& _rl) {
-	RList rl = _rl.items[0];
-	points.clean();
-	points.resize(rl.items.size());
-	for (unsigned int j = 0; j < rl.items.size(); j++) {
-		RList point = rl.items[j];
-		PMPoint p(point.items[0].getNr(),
-			  point.items[1].getNr(),
-			  point.items[2].getNr());
-		points.Append(p);
-	}
+    RList rl = _rl.items[0];
+    points.clean();
+    points.resize(rl.items.size());
+    for (unsigned int j = 0; j < rl.items.size(); j++) {
+        RList point = rl.items[j];
+        PMPoint p(point.items[0].getNr(),
+              point.items[1].getNr(),
+              point.items[2].getNr());
+        points.Append(p);
+    }
 
-	rl = _rl.items[1];
-	faces.clean();
-	faces.resize(rl.items.size());
-	for (unsigned int j = 0; j < rl.items.size(); j++) {
-		RList face = rl.items[j];
-		PMFace f(face.items[0].getNr(),
-			 face.items[1].getNr(),
-			 face.items[2].getNr());
-		faces.Append(f);
-	}
+    rl = _rl.items[1];
+    faces.clean();
+    faces.resize(rl.items.size());
+    for (unsigned int j = 0; j < rl.items.size(); j++) {
+        RList face = rl.items[j];
+        PMFace f(face.items[0].getNr(),
+             face.items[1].getNr(),
+             face.items[2].getNr());
+        faces.Append(f);
+    }
 }
 
 pmr::PMRegion* pmregion::PMRegion::pmr() {
-	if (_pmr == NULL) {
-		RList rpoints, rfaces;
-		for (int i = 0; i < points.Size(); i++) {
-			RList point;
-			PMPoint p(0, 0, 0);
-			points.Get(i, p);
-			point.append(p.x);
-			point.append(p.y);
-			point.append(p.z);
-			rpoints.append(point);
-		}
-		for (int i = 0; i < faces.Size(); i++) {
-			RList face;
-			PMFace p(0, 0, 0);
-			faces.Get(i, p);
-			face.append((double)p.p1);
-			face.append((double)p.p2);
-			face.append((double)p.p3);
-			rfaces.append(face);
-		}
-		RList pmrlist;
-		pmrlist.append(rpoints);
-		pmrlist.append(rfaces);
-		_pmr = new pmr::PMRegion();
+    if (_pmr == NULL) {
+        RList rpoints, rfaces;
+        for (int i = 0; i < points.Size(); i++) {
+            RList point;
+            PMPoint p(0, 0, 0);
+            points.Get(i, p);
+            point.append(p.x);
+            point.append(p.y);
+            point.append(p.z);
+            rpoints.append(point);
+        }
+        for (int i = 0; i < faces.Size(); i++) {
+            RList face;
+            PMFace p(0, 0, 0);
+            faces.Get(i, p);
+            face.append((double)p.p1);
+            face.append((double)p.p2);
+            face.append((double)p.p3);
+            rfaces.append(face);
+        }
+        RList pmrlist;
+        pmrlist.append(rpoints);
+        pmrlist.append(rfaces);
+        _pmr = new pmr::PMRegion();
                 *_pmr = pmr::PMRegion::fromRList(
                           pmrlist.obj("pmregion", "pmregion"));
-	}
+    }
 
-	return _pmr;
+    return _pmr;
 }
 
 
 Flob *pmregion::PMRegion::GetFLOB(const int i) {
-	if (i == 0) {
-		return &points;
-	} else if (i == 1) {
-		return &faces;
-	}
+    if (i == 0) {
+        return &points;
+    } else if (i == 1) {
+        return &faces;
+    }
 
-	return NULL;
+    return NULL;
 }
 

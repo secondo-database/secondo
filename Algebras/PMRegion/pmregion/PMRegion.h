@@ -29,7 +29,8 @@ class PMRegion {
         PMRegion operator+(PMRegion& pmr);
         PMRegion operator-(PMRegion& pmr);
         PMRegion operator*(PMRegion& pmr);
-        RList atinstant(double instant);
+        RList atinstant(Kernel::FT instant);
+        RList atinstant2(Kernel::FT instant);
         MBool mpointinside(RList& mpoint);
         MBool intersects(PMRegion& pmr);
         MReal perimeter();
@@ -41,6 +42,7 @@ class PMRegion {
         Kernel::FT thickness(Point_2 p);
         Plane calculate_plane(Polygon p);
         void translate (Kernel::FT x, Kernel::FT y, Kernel::FT z);
+	vector<Polygon_with_holes_2> projectxy ();
 
         static PMRegion fromRList(RList rl);
         RList toRList();
@@ -68,6 +70,7 @@ class RList {
 
         RList();
         void append(double nr);
+        void append(Kernel::FT nr) { append(CGAL::to_double(nr)); }
         void append(string str);
         void appendsym(string str);
         void append(bool val);
