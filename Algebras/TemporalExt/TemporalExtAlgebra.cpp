@@ -2083,6 +2083,62 @@ class SplitAtSpeedLI {
 };
 
 /*
+\subsection{Local Info Class for ~splitAtLength~}
+
+*/
+class SplitAtLengthLI {
+ public:
+  SplitAtLengthLI(MPoint *src, double maxlength, Geoid *geoid) : counter(0) {
+    UPoint unit(true);
+    CcReal length(true, 0.0);
+    MPoint *res = new MPoint(true);
+    if (src->IsEmpty()) {
+      result.push_back(res);
+      return;
+    }
+    for (int i = 0; i < src->GetNoComponents(); i++) {
+      src->Get(i, unit);
+      if (geoid != 0) {
+        unit.Length(*geoid, length);
+      }
+      else {
+        unit.Length(length);
+      }
+      if (!length.IsDefined()) {
+        if (!res->IsEmpty()) { // split if length is undefined
+          result.push_back(res);
+          res = new MPoint(true);
+        }
+      }
+      else {
+        if (length.GetValue() <= maxlength) {
+          res->MergeAdd(unit);
+        }
+        else {
+          if (!res->IsEmpty()) { // split if maxlength is exceeded
+            result.push_back(res);
+            res = new MPoint(true);
+          }
+        }
+      }
+    }
+    result.push_back(res);
+  }
+  
+  MPoint* nextResult() {
+    counter++;
+    if (counter - 1 >= result.size()) {
+      return 0;
+    }
+    return result[counter - 1];
+  }
+
+ private:
+  vector<MPoint*> result;
+  size_t counter;
+};
+
+/*
 4 Auxiliary Functions
 
 4.1 Aux. Function ~CheckURealDerivable~
@@ -3065,13 +3121,13 @@ ListExpr splitatgapsTM(ListExpr args) {
 }
 
 /*
-\subsubsection{Type Mapping for ~splitAtSpeed~}
+\subsubsection{Type Mapping for ~splitAtSpeed~ and ~splitAtLength~}
 
 signature:
   mpoint x real (x geoid) -> stream(mpoint)
 
 */
-ListExpr splitatspeedTM(ListExpr args) {
+ListExpr splitatspeedlengthTM(ListExpr args) {
   if (!(nl->HasLength(args, 2) || nl->HasLength(args, 3))) {
     return listutils::typeError("Either two or three arguments expected");
   }
@@ -5090,7 +5146,51 @@ int splitatspeedVM(Word* args, Word& result, int message, Word& local,
       return -1;
     }
   }
+}
 
+int splitatlengthVM(Word* args, Word& result, int message, Word& local,
+                   Supplier s) {
+  SplitAtLengthLI *li = (SplitAtLengthLI*)local.addr;
+  switch (message) {
+    case OPEN: {
+      if (li) {
+        delete li;
+        li = 0;
+        local.addr = 0;
+      }
+      MPoint *src = (MPoint*)args[0].addr;
+      CcReal *cclength = (CcReal*)args[1].addr;
+      if (!src->IsDefined() || !cclength->IsDefined()) {
+        return 0;
+      }
+      if (cclength->GetValue() < 0) {
+        cout << "length limit must be a non-negative value" << endl;
+        return 0;
+      }
+      Geoid *geoid = 0;
+      if (qp->GetNoSons(s) == 3) {
+        geoid = (Geoid*)args[2].addr;
+        if (!geoid->IsDefined()) {
+          return 0;
+        }
+      }
+      local.addr = new SplitAtLengthLI(src, cclength->GetValue(), geoid);
+    }
+    case REQUEST: {
+      result.addr = li ? li->nextResult() : 0;
+      return result.addr ? YIELD : CANCEL;
+    }
+    case CLOSE: {
+      if (li) {
+        delete li;
+        local.addr = 0;
+      }
+      return 0;
+    }
+    default: {
+      return -1;
+    }
+  }
 }
 
 /*
@@ -5543,6 +5643,16 @@ const string splitatspeedSpec =
   "<text>query splitAtSpeed(train7, 0.1) count</text--->"
   ") )";
 
+const string splitatlengthSpec =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text>mpoint x real (x geoid) -> stream(mpoint) </text---> "
+  "<text> splitAtLength( _ , _ , _ ) </text--->"
+  "<text>Splits an mpoint at units with a length exceeding the second "
+  "argument </text--->"
+  "<text>query splitAtLength(train7, 5.0) count</text--->"
+  ") )";
+
+
 struct EverNearerThanInfo : OperatorInfo {
 
   EverNearerThanInfo() : OperatorInfo()
@@ -5803,9 +5913,14 @@ Operator splitatspeed(
     splitatspeedSpec,
     splitatspeedVM,
     Operator::SimpleSelect,
-    splitatspeedTM);
+    splitatspeedlengthTM);
 
-
+Operator splitatlength(
+    "splitAtLength",
+    splitatlengthSpec,
+    splitatlengthVM,
+    Operator::SimpleSelect,
+    splitatspeedlengthTM);
 
 
 /*
@@ -6374,6 +6489,7 @@ class TemporalExtAlgebra : public Algebra
         AddOperator(&berlin2wgs_lifted);
         AddOperator(&splitatgaps);
         AddOperator(&splitatspeed);
+        AddOperator(&splitatlength);
 
         AddOperator(CyclicBulkloadInfo(), CyclicBulkloadVM, CyclicBulkloadTM);
 

@@ -399,6 +399,11 @@ Signature: mpoint x real (x geoid) -> stream(mpoint)
 Example  : query splitAtSpeed(train1first, 0.1) count
 Result   : 23
 
+Operator : splitAtLength
+Number   : 1
+Signature: mpoint x real (x geoid) -> stream(mpoint)
+Example  : query splitAtLength(train1first, 500.0) count
+Result   : 7
 
 Operator : cyclicbulkload
 Number  : 1 

@@ -48,5 +48,6 @@ operator everNearerThan alias EVERNEARERTHAN pattern op( _, _, _ )
 operator inside alias INSIDE pattern _ infixop _
 operator splitAtGaps alias SPLITATGAPS pattern op ( _ , _ )
 operator splitAtSpeed alias SPLITATSPEED pattern op ( _ , _ , _ )
+operator splitAtLength alias SPLITATLENGTH pattern op ( _ , _ , _ )
 operator cyclicbulkload alias CYCLICBULKLOAD pattern _  op [ _, _, _, _ ]
 
