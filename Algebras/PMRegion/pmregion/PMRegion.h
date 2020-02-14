@@ -42,7 +42,7 @@ class PMRegion {
         Kernel::FT thickness(Point_2 p);
         Plane calculate_plane(Polygon p);
         void translate (Kernel::FT x, Kernel::FT y, Kernel::FT z);
-	vector<Polygon_with_holes_2> projectxy ();
+        vector<Polygon_with_holes_2> projectxy ();
 
         static PMRegion fromRList(RList rl);
         RList toRList();
