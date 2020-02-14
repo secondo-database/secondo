@@ -285,7 +285,7 @@ static void SetPartnerNo(DbArray<HalfSegment>& segs){
          cerr << "p1 : " << cycle[i] << endl;
          cerr << "p2 : " << cycle[i+1] << endl;
          cerr << "the complete cycle is " << endl;
-         for(int j=0;i<cycle.size();j++){
+         for(unsigned int j=0;j<cycle.size();j++){
             cerr << "p["<<j<<"] = " << cycle[j] << endl;
          }
          cerr << "-------------------------------" << endl;
