@@ -288,11 +288,7 @@ public:
                 {
                     task->clearFlag(Output);
                     // Prepare Task for copy
-                    Task *prepareTask = new ConvertToFileTask();
-                    prepareTask->clearFlag(Output);
-                    prepareTask->addPredecessorTask(task);
-                    preparedTasks.push_back(prepareTask);
-                    outputTasks.push_back(prepareTask);
+                    preparedTasks.push_back(task);
                 }
                 return task;
             }
@@ -390,13 +386,15 @@ int dproductSVM(Word *args, Word &result, int message,
                 ? DInputConsumer(args[0])
                 : DInputConsumer(
                       (DArrayBase *)args[0].addr,
-                      nl->Second(qp->GetType(qp->GetSon(s, 0)))));
+                      DInputConsumer::getContentType(
+                          qp->GetType(qp->GetSon(s, 0)))));
         DInputConsumer b(
             bIsStream
                 ? DInputConsumer(args[1])
                 : DInputConsumer(
                       (DArrayBase *)args[1].addr,
-                      nl->Second(qp->GetType(qp->GetSon(s, 1)))));
+                      DInputConsumer::getContentType(
+                          qp->GetType(qp->GetSon(s, 1)))));
 
         local.addr = li =
             new dproductSLI(std::move(a), std::move(b),

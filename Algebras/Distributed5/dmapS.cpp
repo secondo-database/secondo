@@ -96,7 +96,7 @@ ListExpr dmapSTM(ListExpr args)
 
     ListExpr argInputType[x];
     ListExpr appendValues = 0;
-    ListExpr lastAppendValue;
+    ListExpr lastAppendValue = 0;
     for (int i = 0; i < x; i++)
     {
         argInputType[i] = nl->First(argInputs[i]);
@@ -439,7 +439,8 @@ int dmapSVM(Word *args,
                 DArrayBase *incomingDArray = (DArrayBase *)args[i].addr;
                 inputs.push_back(DInputConsumer(
                     incomingDArray,
-                    nl->Second(qp->GetType(qp->GetSon(s, i)))));
+                    DInputConsumer::getContentType(
+                        qp->GetType(qp->GetSon(s, i)))));
             }
         }
 

@@ -61,6 +61,24 @@ public:
 
     Task *request();
 
+    static ListExpr getContentType(ListExpr darrayType)
+    {
+        if (distributed2::DArray::checkType(darrayType))
+        {
+            return nl->Second(darrayType);
+        }
+        else if (distributed2::DFArray::checkType(darrayType))
+        {
+            return nl->TwoElemList(
+                listutils::basicSymbol<distributed2::frel>(),
+                nl->Second(nl->Second(darrayType)));
+        }
+        else
+        {
+            throw std::invalid_argument("darrayType is not an valid array");
+        }
+    }
+
 private:
     const std::vector<distributed2::DArrayElement> *workers;
     size_t workerIndex;

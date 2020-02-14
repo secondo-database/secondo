@@ -72,19 +72,27 @@ enum WorkerDistance
 
 enum DataDistance : int
 {
-    MemoryOnWorker = 1,
-    FileOnServer = 2,
-    FileOverNetwork = 100,
-    MemoryOnServer = 200,
-    MemoryOverNetwork = 1000,
+    MemoryOnWorker = 10,
+    FileOnServer = 20,
+    AccessibleWithCorrectType = 21,
+    MemoryOnWorkerButNeedFile = 500,
+    Accessible = 501,
+    FileOverNetwork = 1000,
+    MemoryOnServer = 2000,
+    MemoryOverNetwork = 10000,
+    FarAway = 10001
 };
 
-#define CostWeightArgument 10
 #define CostNotPreferredServer 2000
 #define CostNotPreferredWorker 100
+#define CostMissingArgument 10000
+#define CostReservation 1500
+
+#define CostConvertToFile 0
+#define CostTransfer 1000
 #define CostActiveTransfers 1
-#define CostWaitingOnTransfer 900
-#define CostReservation 10
+#define CostConvertToObject 1100
+#define CostWaitingOnTransfer 1500
 
 class TaskDataItem;
 
@@ -113,9 +121,9 @@ public:
 
     distributed2::ConnectionInfo *getWorkerConnection() const;
 
-    std::string getFilePath(TaskDataItem *data) const;
+    std::string getFilePath(const TaskDataItem *data) const;
 
-    std::string getFileDirectory(TaskDataItem *data) const;
+    std::string getFileDirectory(const TaskDataItem *data) const;
 
     bool operator==(WorkerLocation const &other) const
     {
@@ -196,7 +204,8 @@ public:
 
     std::string toString() const
     {
-        return (storageType == Object ? "object " : "file ") +
+        return std::string(storageType == Object ? "object " : "file ") +
+               (temporary ? "T " : "P ") +
                workerLocation.toString();
     }
 
@@ -205,19 +214,20 @@ public:
         return workerLocation.getWorkerConnection();
     }
 
-    std::string getFilePath(TaskDataItem *data) const
+    std::string getFilePath(const TaskDataItem *data) const
     {
         return workerLocation.getFilePath(data);
     }
 
-    std::string getFileDirectory(TaskDataItem *data) const
+    std::string getFileDirectory(const TaskDataItem *data) const
     {
         return workerLocation.getFileDirectory(data);
     }
 
-    std::string getValueArgument(TaskDataItem *data) const;
+    std::string getValueArgument(const TaskDataItem *data) const;
 
-    DataDistance getDistance(WorkerLocation const &loc) const
+    DataDistance getDistance(WorkerLocation const &loc,
+                             bool needFile) const
     {
         WorkerDistance dist = workerLocation.getDistance(loc);
         switch (storageType)
@@ -226,6 +236,8 @@ public:
             switch (dist)
             {
             case SameProcess:
+                if (needFile)
+                    return DataDistance::MemoryOnWorkerButNeedFile;
                 return DataDistance::MemoryOnWorker;
             case SameServer:
                 return DataDistance::MemoryOnServer;
@@ -275,25 +287,41 @@ public:
         : preferredLocation(preferredLocation),
           name(name), slot(slot), contentType(contentType)
     {
+        auto &locations = locationsByServer[location.getServer()];
         locations.push_back(location);
+        objectLocations = location.getStorageType() == Object ? 1 : 0;
+        fileLocations = location.getStorageType() == File ? 1 : 0;
+        objectRelation = Relation::checkType(contentType);
+        fileRelation = distributed2::frel::checkType(contentType);
     }
 
     TaskDataItem(const distributed5::TaskDataItem &copy)
-        : preferredLocation(copy.preferredLocation), locations(copy.locations),
-          name(copy.name), slot(copy.slot), contentType(copy.contentType) {}
+        : preferredLocation(copy.preferredLocation),
+          locationsByServer(copy.locationsByServer),
+          objectLocations(copy.objectLocations),
+          fileLocations(copy.fileLocations),
+          name(copy.name), slot(copy.slot), contentType(copy.contentType),
+          fileRelation(copy.fileRelation),
+          objectRelation(copy.objectRelation) {}
 
     std::string getName() const { return name; }
     size_t getSlot() const { return slot; }
     ListExpr getContentType() const { return contentType; }
+
+    bool isFileRelation() const { return fileRelation; }
+    bool isObjectRelation() const { return objectRelation; }
 
     std::string toString() const
     {
         boost::lock_guard<boost::mutex> lock(mutex);
         std::string str = name + " _ " + std::to_string(slot) +
                           " <3 " + preferredLocation.toString();
-        for (auto location : locations)
+        for (auto &locations : locationsByServer)
         {
-            str += " @[" + location.toString() + "]";
+            for (auto &location : locations.second)
+            {
+                str += " @[" + location.toString() + "]";
+            }
         }
         return str;
     }
@@ -312,8 +340,12 @@ public:
     bool hasLocation(WorkerLocation const &nearby) const;
     TaskDataLocation findUpcomingLocation(WorkerLocation const &nearby) const;
     bool hasUpcomingLocation(WorkerLocation const &nearby) const;
-    bool hasFileLocation(WorkerLocation const &nearby) const;
-    TaskDataLocation findFileLocation(WorkerLocation const &nearby) const;
+    bool hasUpcomingLocation(WorkerLocation const &nearby,
+                             DataStorageType storageType) const;
+    bool hasLocation(WorkerLocation const &nearby,
+                     DataStorageType storageType) const;
+    TaskDataLocation findLocation(WorkerLocation const &nearby,
+                                  DataStorageType storageType) const;
     std::pair<TaskDataLocation, int> findTransferSourceLocation(
         std::map<std::string, std::pair<bool, int>> activeTransferrators) const;
     TaskDataLocation getFirstLocation() const;
@@ -322,9 +354,53 @@ public:
     DataDistance getDistance(WorkerLocation const &location) const;
     DataDistance getUpcomingDistance(WorkerLocation const &location) const;
 
+    std::string getValueArgument(WorkerLocation const &nearby) const
+    {
+        if (isObjectRelation())
+        {
+            auto loc = findLocation(nearby, DataStorageType::Object);
+            return loc.getValueArgument(this);
+        }
+        else if (isFileRelation())
+        {
+            auto loc = findLocation(nearby, DataStorageType::File);
+            return loc.getValueArgument(this);
+        }
+        else
+        {
+            auto loc = findLocation(nearby);
+            return loc.getValueArgument(this);
+        }
+    }
+
+    void merge(TaskDataItem *other);
+
+    void removeLocation(TaskDataLocation location)
+    {
+        boost::lock_guard<boost::mutex> lock(mutex);
+        auto &locations = locationsByServer[location.getServer()];
+        for (auto it = locations.begin(); it != locations.end(); it++)
+        {
+            if (*it == location)
+            {
+                if (location.getStorageType() == File)
+                    fileLocations--;
+                if (location.getStorageType() == Object)
+                    objectLocations--;
+                locations.erase(it);
+                return;
+            }
+        }
+    }
+
     void addLocation(TaskDataLocation location)
     {
         boost::lock_guard<boost::mutex> lock(mutex);
+        auto &locations = locationsByServer[location.getServer()];
+        if (location.getStorageType() == File)
+            fileLocations++;
+        if (location.getStorageType() == Object)
+            objectLocations++;
         locations.push_back(location);
         for (auto it = upcomingLocations.begin();
              it != upcomingLocations.end();
@@ -341,6 +417,7 @@ public:
     void persistLocation(TaskDataLocation location)
     {
         boost::lock_guard<boost::mutex> lock(mutex);
+        auto &locations = locationsByServer[location.getServer()];
         for (auto it = locations.begin(); it != locations.end(); it++)
         {
             if (*it == location)
@@ -362,11 +439,16 @@ public:
 private:
     mutable boost::mutex mutex;
     WorkerLocation preferredLocation;
-    std::vector<TaskDataLocation> locations;
+    mutable std::map<std::string, std::vector<TaskDataLocation>>
+        locationsByServer;
+    int objectLocations;
+    int fileLocations;
     std::list<TaskDataLocation> upcomingLocations;
     std::string name;
     size_t slot;
     ListExpr contentType;
+    bool fileRelation;
+    bool objectRelation;
 };
 
 enum TaskFlag : int
@@ -375,14 +457,19 @@ enum TaskFlag : int
     Output = 0x1,
 
     CopyArguments = 0x2,
-    FileArguments = 0x4,
+    ConvertArguments = 0x4,
 
-    RunOnPreferedWorker = 0x10,
-    RunOnPreferedServer = 0x20,
-    RunOnReceive = 0x40,
+    PrimaryArgumentAsFile = 0x10,
+    SecondaryArgumentsAsFile = 0x20,
+    PrimaryArgumentAsObject = 0x40,
+    SecondaryArgumentsAsObject = 0x80,
 
-    PreferSlotWorker = 0x100,
-    PreferSlotServer = 0x200,
+    RunOnPreferedWorker = 0x100,
+    RunOnPreferedServer = 0x200,
+    RunOnReceive = 0x400,
+
+    PreferSlotWorker = 0x1000,
+    PreferSlotServer = 0x2000,
 };
 
 class Task
@@ -426,7 +513,8 @@ public:
                            std::string cmd,
                            std::string description,
                            bool nestedListFormat = false,
-                           bool ignoreFailure = false);
+                           bool ignoreFailure = false,
+                           bool ignoreError = false);
 
 private:
     std::vector<Task *> listOfPre;
@@ -488,30 +576,18 @@ private:
     WorkerLocation location;
 };
 
-class ConvertToFileTask : public Task
-{
-public:
-    ConvertToFileTask() : Task(FileArguments) {}
-
-    virtual std::string getTaskType() const { return "convert to file"; }
-
-    virtual TaskDataItem *run(
-        WorkerLocation &location,
-        std::vector<TaskDataItem *> args)
-    {
-        return args.front();
-    }
-};
-
 class FunctionTask : public Task
 {
 protected:
-    FunctionTask(std::string mapFunction,
+    FunctionTask(int additonalFlags,
+                 std::string mapFunction,
                  std::string resultName,
                  ListExpr resultContentType,
                  bool isRel,
                  bool isStream)
-        : Task(CopyArguments | PreferSlotWorker | PreferSlotServer),
+        : Task(CopyArguments | ConvertArguments |
+               PreferSlotWorker | PreferSlotServer |
+               additonalFlags),
           mapFunction(mapFunction),
           resultName(resultName),
           resultContentType(resultContentType),
@@ -547,7 +623,8 @@ public:
                      ListExpr resultContentType,
                      bool isRel,
                      bool isStream)
-        : FunctionTask(mapFunction,
+        : FunctionTask(0,
+                       mapFunction,
                        resultName,
                        resultContentType,
                        isRel,
@@ -568,13 +645,13 @@ public:
                          ListExpr resultContentType,
                          bool isRel,
                          bool isStream)
-        : FunctionTask(mapFunction,
+        : FunctionTask(SecondaryArgumentsAsFile,
+                       mapFunction,
                        resultName,
                        resultContentType,
                        isRel,
                        isStream)
     {
-        setFlag(FileArguments);
     }
 
     virtual std::string getTaskType() const { return "dproduct"; }

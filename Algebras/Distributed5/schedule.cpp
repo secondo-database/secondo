@@ -31,6 +31,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 using namespace std;
 using namespace distributed2;
 
+// #define DEBUG_JOB_SELECTION
+
 namespace distributed5
 {
 
@@ -86,9 +88,8 @@ struct TaskScheduleInfo
 {
 public:
     bool completed = false;
-    int incompletePrecessors = 0;
-    std::vector<Task *> successors;
-    TaskDataItem *result;
+    int successors = 0;
+    TaskDataItem *result = 0;
     optional<pair<WorkerLocation, int>> reservation;
 };
 
@@ -181,22 +182,17 @@ public:
         }
 
         // update task schedule info structures
-        TaskScheduleInfo &info = taskInfo[task];
         std::vector<Task *> &predecessors = task->getPredecessors();
         for (auto it = predecessors.begin(); it != predecessors.end(); it++)
         {
             TaskScheduleInfo &preInfo = taskInfo[*it];
-            if (!preInfo.completed)
+            preInfo.successors++;
+            if (preInfo.completed)
             {
-                info.incompletePrecessors++;
-                preInfo.successors.push_back(task);
+                dataReferences[preInfo.result]++;
             }
         }
-        //if incoming task can be started...
-        if (info.incompletePrecessors == 0)
-        {
-            scheduleTask(task);
-        }
+        scheduleTask(task);
     }
 
     vector<WorkerLocation> getWorkers()
@@ -220,16 +216,6 @@ private:
     void scheduleTask(Task *task)
     {
         workPool.push_back(task);
-        poolSignal.notify_all();
-    }
-
-    void scheduleGarbage(TaskDataItem *data)
-    {
-        for (auto loc : data->getLocations())
-        {
-            if (loc.isTemporary())
-                garbagePool.push_back(make_pair(data, loc));
-        }
         poolSignal.notify_all();
     }
 
@@ -279,6 +265,8 @@ private:
             : location(location), scheduler(scheduler) {}
         virtual ~WorkerJob() {}
 
+        virtual string toString() const = 0;
+
         virtual bool run(boost::unique_lock<boost::mutex> &lock) = 0;
 
     protected:
@@ -298,6 +286,18 @@ private:
               task(task), args(args), workPoolIterator(workPoolIterator) {}
         virtual ~ExecuteWorkerJob() {}
 
+        virtual string toString() const
+        {
+            string message = string("execute ") + task->toString();
+            int i = 0;
+            for (auto arg : args)
+            {
+                message += string("\narg ") + std::to_string(i++) +
+                           " = " + arg->toString();
+            }
+            return message;
+        }
+
         virtual bool run(boost::unique_lock<boost::mutex> &lock)
         {
             // remove task from the pool
@@ -314,7 +314,8 @@ private:
             catch (exception &e)
             {
                 string message = string(e.what()) + "\n" +
-                                 "while running " + task->toString();
+                                 "while running " + task->toString() +
+                                 " on " + location.toString();
                 int i = 0;
                 for (auto arg : args)
                 {
@@ -351,6 +352,12 @@ private:
               task(task), taskCost(taskCost),
               data(data), sourceLocation(sourceLocation) {}
         virtual ~TransferDataWorkerJob() {}
+
+        virtual string toString() const
+        {
+            return "transfer " + data->toString() +
+                   " from " + sourceLocation.toString();
+        }
 
         virtual bool run(boost::unique_lock<boost::mutex> &lock)
         {
@@ -412,6 +419,114 @@ private:
         TaskDataLocation sourceLocation;
     };
 
+    class ConvertToObjectWorkerJob : public WorkerJob
+    {
+    public:
+        ConvertToObjectWorkerJob(WorkerLocation &location,
+                                 Scheduler &scheduler,
+                                 Task *task,
+                                 int taskCost,
+                                 TaskDataItem *data)
+            : WorkerJob(location, scheduler),
+              task(task), taskCost(taskCost),
+              data(data) {}
+        virtual ~ConvertToObjectWorkerJob() {}
+
+        virtual string toString() const
+        {
+            return "convert to object " + data->toString();
+        }
+
+        virtual bool run(boost::unique_lock<boost::mutex> &lock)
+        {
+            TaskDataLocation sourceLocation =
+                data->findLocation(location, File);
+
+            // set reservation
+            scheduler.taskInfo[task].reservation =
+                make_pair(location, taskCost);
+
+            // set active transfer and upcoming location
+            TaskDataLocation loc(location, Object, true);
+            data->addUpcomingLocation(loc);
+
+            lock.unlock();
+
+            try
+            {
+                ConnectionInfo *ci = location.getWorkerConnection();
+                string cmd;
+                string description;
+
+                if (data->isObjectRelation() || data->isFileRelation())
+                {
+                    cmd = "(let " + data->getObjectName() +
+                          " = (consume (feed" +
+                          sourceLocation.getValueArgument(data) + ")))";
+                    description = "store file relation as object";
+                }
+                else
+                {
+                    cmd = "(let " + data->getObjectName() + " = " +
+                          sourceLocation.getValueArgument(data) + ")";
+                    description = "store file value as object";
+                }
+
+                try
+                {
+                    Task::runCommand(
+                        ci,
+                        cmd,
+                        description,
+                        true);
+                }
+                catch (RemoteException &e)
+                {
+                    // Failed, maybe variable already exists
+                    // delete variable and retry
+                    Task::runCommand(
+                        ci,
+                        "(delete " + data->getObjectName() + ")",
+                        "delete existing object",
+                        true, true, true);
+
+                    Task::runCommand(
+                        ci,
+                        cmd,
+                        description,
+                        true);
+                }
+            }
+            catch (exception &e)
+            {
+                lock.lock();
+                scheduler.addError(string(e.what()) + "\n" +
+                                   "while converting " + data->toString() +
+                                   " to object form on " + location.toString());
+                return false;
+            }
+
+            lock.lock();
+
+            data->addLocation(loc);
+
+            // unreserve when still reserved by this worker
+            auto &reservation = scheduler.taskInfo[task].reservation;
+            if (reservation && reservation->first == location)
+            {
+                reservation.reset();
+            }
+            scheduler.poolSignal.notify_all();
+
+            return true;
+        }
+
+    private:
+        Task *task;
+        int taskCost;
+        TaskDataItem *data;
+    };
+
     class ConvertToFileWorkerJob : public WorkerJob
     {
     public:
@@ -421,6 +536,11 @@ private:
             : WorkerJob(location, scheduler),
               data(data) {}
         virtual ~ConvertToFileWorkerJob() {}
+
+        virtual string toString() const
+        {
+            return "convert to file " + data->toString();
+        }
 
         virtual bool run(boost::unique_lock<boost::mutex> &lock)
         {
@@ -470,6 +590,11 @@ private:
             : WorkerJob(location, scheduler) {}
         virtual ~WaitForTransferCompletedWorkerJob() {}
 
+        virtual string toString() const
+        {
+            return "wait for tranfer completed";
+        }
+
         virtual bool run(boost::unique_lock<boost::mutex> &lock)
         {
             scheduler.poolSignal.wait(lock);
@@ -486,8 +611,15 @@ private:
               data(data), dataLocation(dataLocation) {}
         virtual ~RemoveDataWorkerJob() {}
 
+        virtual string toString() const
+        {
+            return "remove " + dataLocation.toString() +
+                   " from " + data->toString();
+        }
+
         virtual bool run(boost::unique_lock<boost::mutex> &lock)
         {
+            data->removeLocation(dataLocation);
             lock.unlock();
 
             try
@@ -510,9 +642,9 @@ private:
                     string objectName = data->getObjectName();
                     Task::runCommand(
                         ci,
-                        "delete " + objectName,
+                        "(delete " + objectName + ")",
                         "remove temporary data object",
-                        false, true);
+                        true, true);
                     break;
                 }
                 }
@@ -549,46 +681,43 @@ private:
         // make sure a worker is running for the location of the result
         ensureWorker(result->getFirstLocation().getWorkerLocation());
 
-        // TODO when data with the same name has already been referenced
+        // when data with the same name has already been referenced
         // merge both data items to one item to keep only a single data item
         // per name
+        string oname = result->getObjectName();
+        TaskDataItem *existing = dataItems[oname];
+        if (existing != 0)
+        {
+            if (existing != result)
+            {
+                existing->merge(result);
+                delete result;
+                result = existing;
+            }
+        }
+        else
+        {
+            dataItems[oname] = result;
+        }
 
         // store result
         TaskScheduleInfo &info = taskInfo[task];
         info.result = result;
         info.completed = true;
 
+        // each successor keeps a reference to the result
+        dataReferences[result] += info.successors;
+
         // For all precessor tasks, decrease the number of remaining tasks
         for (auto preTask : task->getPredecessors())
         {
             TaskScheduleInfo &preInfo = taskInfo[preTask];
-            if (--dataReferences[preInfo.result] == 0)
-            {
-                scheduleGarbage(preInfo.result);
-            }
+            dataReferences[preInfo.result]--;
         }
 
-        // For all successor tasks, decrease the number of remaining tasks
-        for (Task *succTask : info.successors)
-        {
-            TaskScheduleInfo &succInfo = taskInfo[succTask];
-            succInfo.incompletePrecessors--;
-
-            // each successor keeps a reference to the result
-            dataReferences[result]++;
-
-            // scheck if there are now possible tasks which can be started.
-            if (succInfo.incompletePrecessors == 0)
-            {
-                scheduleTask(succTask);
-            }
-        }
-
-        // When nobody references the result, garbagge collect it
-        if (dataReferences[result] == 0)
-        {
-            scheduleGarbage(result);
-        }
+        // A new result may unlock other tasks
+        // Decreased data references may unlock garbagged collecting
+        poolSignal.notify_all();
     }
 
     vector<TaskDataItem *> getTaskArguments(Task *task)
@@ -624,7 +753,6 @@ private:
         {
             if (killWorkers)
                 break;
-            // TODO check exit
             WorkerJob *job = selectJob(location);
             if (job != 0)
             {
@@ -639,8 +767,7 @@ private:
                 // check for end of work
                 if (workerWorking == 1)
                 {
-                    if (stopWorkersWhenWorkDone &&
-                        workPool.empty() && garbagePool.empty())
+                    if (stopWorkersWhenWorkDone && workPool.empty())
                     {
                         poolSignal.notify_all();
                         break;
@@ -669,8 +796,12 @@ private:
         int i = 0;
         for (auto arg : args)
         {
-            int dist = arg->getDistance(location);
-            cost += dist * CostWeightArgument;
+            if (arg == 0)
+            {
+                cost += CostMissingArgument;
+                continue;
+            }
+            cost += arg->getDistance(location);
             if (i == 0)
             {
                 if (task->hasFlag(PreferSlotServer))
@@ -711,96 +842,138 @@ private:
     WorkerJob *selectJob(WorkerLocation &location)
     {
         optional<pair<WorkerJob *, int>> best;
+        int lastCost = 0;
+        list<Task *>::iterator last;
         for (auto it = workPool.begin(); it != workPool.end(); it++)
         {
             auto task = *it;
+            auto taskIt = it;
             vector<TaskDataItem *> args = getTaskArguments(task);
 
             int cost = computeTaskCost(task, args, location);
 
-            bool wrongWorker =
-                task->hasFlag(RunOnPreferedWorker) &&
-                args.front()->getPreferredLocation() != location;
-            bool wrongServer =
-                task->hasFlag(RunOnPreferedServer) &&
-                args.front()->getPreferredLocation().getServer() !=
-                    location.getServer();
-            bool forceFileArguments = task->hasFlag(FileArguments);
-
-            bool canExecute = true;
-            bool isHelping = false;
-
-            if (wrongWorker || wrongServer || forceFileArguments)
+            if (cost < lastCost)
             {
-                for (auto data : args)
-                {
-                    if (!data->hasFileLocation(location))
-                    {
-                        if (forceFileArguments)
-                        {
-                            canExecute = false;
-                        }
-                        if (data->hasLocation(location))
-                        {
-                            if (checkBetter(best, cost))
-                            {
-                                best = make_pair(
-                                    new ConvertToFileWorkerJob(
-                                        location, *this, data),
-                                    cost);
-                            }
-                        }
-                    }
-                }
+                // Swap items
+                *it = *last;
+                *last = task;
+                taskIt = last;
             }
-
-            if (wrongServer)
+            else
             {
+                lastCost = cost;
+            }
+            last = it;
+
+            // Skip early when there is already a better job
+            if (best && cost > best->second)
                 continue;
-            }
 
-            if (wrongWorker)
-            {
-                if (args.front()->getPreferredLocation().getServer() !=
-                    location.getServer())
-                {
-                    continue;
-                }
-                isHelping = true;
-            }
+            TaskDataItem *firstArg = args.front();
 
-            // check if there is already a reservation for this task
-            optional<pair<WorkerLocation, int>> reservation =
-                taskInfo[task].reservation;
-            if (reservation)
+            bool validWorker =
+                !task->hasFlag(RunOnPreferedWorker) ||
+                (firstArg != 0 &&
+                 firstArg->getPreferredLocation() == location);
+            bool validServer =
+                (!task->hasFlag(RunOnPreferedWorker) &&
+                 !task->hasFlag(RunOnPreferedServer)) ||
+                (firstArg != 0 &&
+                 firstArg->getPreferredLocation().getServer() ==
+                     location.getServer());
+
+            bool argumentsAvailable = true;
+
+            if (validServer)
             {
-                int resCost = reservation->second;
-                // it's only allowed to seal a reservation
-                // when the cost is smaller
-                if (cost >= resCost)
+                // check if there is already a reservation for this task
+                optional<pair<WorkerLocation, int>> reservation =
+                    taskInfo[task].reservation;
+                if (reservation)
                 {
-                    // When by this server reserved
-                    // We can help to copy files
-                    if (reservation->first.getServer() != location.getServer())
-                    {
+                    int resCost = reservation->second;
+                    // it's only allowed to seal a reservation
+                    // when the cost is smaller
+                    cost += CostReservation;
+
+                    // Skip early when there is already a better job
+                    if (best && cost > best->second)
                         continue;
+
+                    if (cost >= resCost)
+                    {
+                        // When by this server reserved
+                        // We can help to copy files
+                        string server = reservation->first.getServer();
+                        if (server != location.getServer())
+                        {
+                            validServer = false;
+                        }
+                        validWorker = false;
                     }
-                    isHelping = true;
                 }
-                cost += CostReservation;
             }
 
+            int i = 0;
             for (auto data : args)
             {
-                if (!data->hasLocation(location))
+                bool primaryArgument = i == 0;
+                i++;
+
+                if (data == 0)
                 {
-                    canExecute = false;
-                    if (task->hasFlag(CopyArguments))
+                    // When arguments are missing
+                    // this task can't be executed yet
+                    argumentsAvailable = false;
+                    continue;
+                }
+
+                bool hasFile = data->hasLocation(location,
+                                                 DataStorageType::File);
+                bool hasObject = data->hasLocation(location,
+                                                   DataStorageType::Object);
+
+                bool forceFile =
+                    task->hasFlag(primaryArgument
+                                      ? PrimaryArgumentAsFile
+                                      : SecondaryArgumentsAsFile);
+                bool forceObject =
+                    task->hasFlag(primaryArgument
+                                      ? PrimaryArgumentAsObject
+                                      : SecondaryArgumentsAsObject);
+
+                if (!forceFile && data->isObjectRelation())
+                {
+                    forceObject = true;
+                }
+                if (!forceObject && data->isFileRelation())
+                {
+                    forceFile = true;
+                }
+
+                if ((forceFile && !hasFile) ||
+                    (forceObject && !hasObject) ||
+                    !data->hasLocation(location))
+                {
+                    // Data is not at the correct location
+                    // this can't be executed
+                    argumentsAvailable = false;
+                }
+
+                // Is Copy allowed?
+                if (task->hasFlag(CopyArguments))
+                {
+                    // This is a valid server for execution
+                    // and the data is not yet available
+                    if (validServer &&
+                        !hasFile && !hasObject)
                     {
-                        if (data->hasUpcomingLocation(location))
+                        // Check if data is already being transferred here
+                        if (data->hasUpcomingLocation(location, File))
                         {
+                            // The correct worker can wait for the data transfer
                             int waitingCost = cost + CostWaitingOnTransfer;
-                            if (!isHelping && checkBetter(best, waitingCost))
+                            if (validWorker && checkBetter(best, waitingCost))
                             {
                                 best = make_pair(
                                     new WaitForTransferCompletedWorkerJob(
@@ -810,6 +983,7 @@ private:
                         }
                         else
                         {
+                            // Transfer the data to the server
                             try
                             {
                                 auto source =
@@ -817,6 +991,7 @@ private:
                                         activeTransferrators);
                                 int transferCost =
                                     cost +
+                                    CostTransfer +
                                     source.second * CostActiveTransfers;
                                 if (checkBetter(best, transferCost))
                                 {
@@ -837,32 +1012,106 @@ private:
                         }
                     }
                 }
+
+                // Is Convert allowed?
+                if (task->hasFlag(TaskFlag::ConvertArguments))
+                {
+                    // Convert from file to object when data need to be in
+                    // object form
+                    if (validWorker &&
+                        forceObject &&
+                        !hasObject && hasFile)
+                    {
+                        int convertCost = cost + CostConvertToObject;
+                        if (checkBetter(best, convertCost))
+                        {
+                            best = make_pair(
+                                new ConvertToObjectWorkerJob(
+                                    location, *this,
+                                    task, cost, data),
+                                convertCost);
+                        }
+                    }
+                    // Convert from object to file when data need to be in
+                    // file form
+                    if (validServer &&
+                        forceFile &&
+                        !hasFile && hasObject)
+                    {
+                        int convertCost = cost + CostConvertToFile;
+                        if (checkBetter(best, convertCost))
+                        {
+                            best = make_pair(
+                                new ConvertToFileWorkerJob(
+                                    location, *this, data),
+                                convertCost);
+                        }
+                    }
+                    // Convert from object to file so other worker can copy it
+                    // This helps other workers to execute the task
+                    // So we reverse task cost logic in a way that far away
+                    // tasks will get their data converted first, as their as
+                    // at least likely to be executed by this worker
+                    if (hasObject && !hasFile)
+                    {
+                        int convertCost = INT_MAX - cost;
+                        if (checkBetter(best, convertCost))
+                        {
+                            best = make_pair(
+                                new ConvertToFileWorkerJob(
+                                    location, *this, data),
+                                convertCost);
+                        }
+                    }
+                }
             }
 
-            if (canExecute && !isHelping)
+            if (argumentsAvailable && validWorker)
             {
                 if (checkBetter(best, cost))
                 {
                     best = make_pair(
-                        new ExecuteWorkerJob(location, *this, task, args, it),
+                        new ExecuteWorkerJob(location, *this,
+                                             task, args, taskIt),
                         cost);
                 }
             }
         }
 
         if (best)
+        {
+#ifdef DEBUG_JOB_SELECTION
+            cout << location.toString() << " (cost: " << best->second << ")"
+                 << " -> " << best->first->toString() << endl;
+#endif
             return best->first;
+        }
+
+        if (!stopWorkersWhenWorkDone)
+            return 0;
 
         // nothing productive to do
         // collect some garbage
-        for (auto it = garbagePool.begin(); it != garbagePool.end(); it++)
+        for (auto pair : dataReferences)
         {
-            auto data = *it;
-            if (data.second.getWorkerLocation() == location)
+            if (pair.second == 0)
             {
-                garbagePool.erase(it);
-                return new RemoveDataWorkerJob(location, *this,
-                                               data.first, data.second);
+                TaskDataItem *data = pair.first;
+                for (auto loc : data->getLocations())
+                {
+                    if (loc.isTemporary() &&
+                        loc.getWorkerLocation() == location)
+                    {
+                        WorkerJob *job =
+                            new RemoveDataWorkerJob(location, *this,
+                                                    data, loc);
+#ifdef DEBUG_JOB_SELECTION
+                        cout << location.toString() << " -> " << job->toString()
+                             << endl;
+#endif
+                        return job;
+                    }
+                }
             }
         }
 
@@ -873,9 +1122,10 @@ private:
     {
     public:
         ResultTask(Scheduler &scheduler)
-            : Task(scheduler.resultInObjectForm
-                       ? RunOnPreferedWorker | CopyArguments
-                       : RunOnPreferedServer | CopyArguments),
+            : Task(CopyArguments | ConvertArguments |
+                   (scheduler.resultInObjectForm
+                        ? RunOnPreferedWorker | PrimaryArgumentAsObject
+                        : RunOnPreferedServer | PrimaryArgumentAsFile)),
               scheduler(scheduler) {}
 
         virtual std::string getTaskType() const { return "result"; }
@@ -886,41 +1136,15 @@ private:
         {
             TaskDataItem *result = args.front();
 
-            TaskDataLocation storedLocation = result->findLocation(location);
+            TaskDataLocation storedLocation =
+                result->findLocation(
+                    location,
+                    scheduler.resultInObjectForm ? Object : File);
             WorkerLocation preferredLocation = result->getPreferredLocation();
 
             if (scheduler.resultInObjectForm)
             {
-                if (storedLocation.getStorageType() != Object)
-                {
-                    ConnectionInfo *ci = location.getWorkerConnection();
-                    // materialize file content as object
-                    if (Relation::checkType(result->getContentType()))
-                    {
-                        Task::runCommand(
-                            ci,
-                            "(let " + result->getObjectName() +
-                                " = (consume (feed" +
-                                storedLocation.getValueArgument(result) + ")))",
-                            "store file relation as object",
-                            true);
-                    }
-                    else
-                    {
-                        Task::runCommand(
-                            ci,
-                            "(let " + result->getObjectName() + " = " +
-                                storedLocation.getValueArgument(result) + ")",
-                            "store file value as object",
-                            true);
-                    }
-                    result->addLocation(
-                        TaskDataLocation(location, Object, false));
-                }
-                else
-                {
-                    result->persistLocation(storedLocation);
-                }
+                result->persistLocation(storedLocation);
             }
             else
             {
@@ -933,7 +1157,8 @@ private:
                         string("query createDirectory(") +
                             "'" + preferredLocation.getFileDirectory(result) +
                             "', TRUE)",
-                        "create directory");
+                        "create directory",
+                        false, true);
                     Task::runCommand(
                         ci,
                         string("query copyFile(") +
@@ -980,7 +1205,6 @@ private:
     boost::condition_variable threadSignal;
 
     std::list<Task *> workPool;
-    std::list<std::pair<TaskDataItem *, TaskDataLocation>> garbagePool;
     size_t workerWorking = 0;
     bool stopWorkersWhenWorkDone = false;
     bool killWorkers = false;
@@ -991,6 +1215,7 @@ private:
     std::map<string, pair<bool, int>> activeTransferrators;
 
     std::map<TaskDataItem *, int> dataReferences;
+    std::map<std::string, TaskDataItem *> dataItems;
 
     std::map<Task *, TaskScheduleInfo> taskInfo;
 };
