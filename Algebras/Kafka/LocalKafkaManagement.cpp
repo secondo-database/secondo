@@ -203,7 +203,7 @@ namespace kafka {
             "It is recommended to install and start the Kafka cluster by "
             "following the instruction on https://kafka.apache.org/quickstart. "
             "This has the advantage of installing more recent versions, "
-            "additionally mirrors are available. "
+            "also additionall mirrors are available. "
             "Nevertheless we provide this operator here for convenient usage "
             "of Kafka technology for users inexperienced with Apache Kafka "
             "setup. ",
