@@ -7,7 +7,7 @@ current_dir=`pwd`
 
 if [[ -d "kafka" ]]
 then
-    echo "Folder ${current_dir}/kafka exists on your filesystem. Installation can not be continued."
+    echo "ERROR: Folder ${current_dir}/kafka exists on your filesystem. Installation can not be continued."
     exit 1
 fi
 

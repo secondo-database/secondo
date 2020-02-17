@@ -43,16 +43,16 @@ namespace kafka {
     class KafkaAlgebra : public Algebra {
     public:
         KafkaAlgebra() : Algebra() {
-            AddOperator(&writeToKafkaOp);
-            writeToKafkaOp.SetUsesArgsInTypeMapping();
-            AddOperator(&readFromKafkaOp);
-            readFromKafkaOp.SetUsesArgsInTypeMapping();
-
             AddOperator(&installLocalKafkaOp);
             AddOperator(&startLocalKafkaOp);
             AddOperator(&stopLocalKafkaOp);
             AddOperator(&statusLocalKafkaOp);
             AddOperator(&localKafkaOp);
+
+            AddOperator(&writeToKafkaOp);
+            writeToKafkaOp.SetUsesArgsInTypeMapping();
+            AddOperator(&readFromKafkaOp);
+            readFromKafkaOp.SetUsesArgsInTypeMapping();
 
             AddOperator(&finishStreamOp);
             AddOperator(&signalFinishOp);
