@@ -4983,37 +4983,40 @@ void MPoint::removeNoise(const double maxspeed, const double maxdist,
   Instant starttime(instanttype);
   CcReal speed(true), length(true);
   bool lc(true);
-  int exceeded = 0;
+  int noExceeded = 0;
   for (int i = 0; i < GetNoComponents(); i++) {
     Get(i, up);
-    Instant mid = up.timeInterval.start 
-                  + ((up.timeInterval.end - up.timeInterval.start) / 2);
-    up.USpeed(urspeed, geoid);
-    urspeed.TemporalFunction(mid, speed);
-    if (geoid != 0) {
-      up.Length(*geoid, length);
-    }
-    else {
-      up.Length(length);
-    }
-    if (speed.GetValue() > maxspeed || length.GetValue() > maxdist) {
-      if (!exceeded) { // first exceeded unit, store start pos and time
-        startpos = up.p0;
-        starttime = up.timeInterval.start;
-        lc = up.timeInterval.lc;
+    if (geoid == 0 || 
+        (up.p0.checkGeographicCoord() && up.p1.checkGeographicCoord())) {
+      Instant mid = up.timeInterval.start 
+                    + ((up.timeInterval.end - up.timeInterval.start) / 2);
+      up.USpeed(urspeed, geoid);
+      urspeed.TemporalFunction(mid, speed);
+      if (geoid != 0) {
+        up.Length(*geoid, length);
       }
-      exceeded++;
-    }
-    else {
-      if (exceeded > 1) { // sequence of at least 2 too fast units ends
-        up.p0 = startpos;
-        up.timeInterval.start = starttime;
-        up.timeInterval.lc = lc;
+      else {
+        up.Length(length);
       }
-      if (exceeded == 0 || exceeded > 1) {
-        result.Add(up);
+      if (speed.GetValue() > maxspeed || length.GetValue() > maxdist) {
+        if (noExceeded == 0) { // first exceeded unit, store start pos and time
+          startpos = up.p0;
+          starttime = up.timeInterval.start;
+          lc = up.timeInterval.lc;
+        }
+        noExceeded++;
       }
-      exceeded = 0;
+      else { // correct unit
+        if (noExceeded > 1) { // sequence of at least 2 too fast units ends
+          up.p0 = startpos;
+          up.timeInterval.start = starttime;
+          up.timeInterval.lc = lc;
+        }
+        if (noExceeded == 0 || noExceeded > 1) {
+          result.Add(up);
+        }
+        noExceeded = 0;
+      }
     }
   }
 }
