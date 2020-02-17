@@ -89,10 +89,10 @@ enum DataDistance : int
 #define CostReservation 1500
 
 #define CostConvertToFile 0
+#define CostConvertToObject 100
 #define CostTransfer 1000
 #define CostActiveTransfers 1
-#define CostConvertToObject 1100
-#define CostWaitingOnTransfer 1500
+#define CostWaitingOnTransfer 10000
 
 class TaskDataItem;
 
@@ -472,6 +472,56 @@ enum TaskFlag : int
     PreferSlotServer = 0x2000,
 };
 
+class TaskStatistics
+{
+public:
+    class Entry
+    {
+    public:
+        double value;
+        int count;
+    };
+
+    static void report(std::string name, double value)
+    {
+        auto &entry = local.values[name];
+        entry.value += value;
+        entry.count++;
+    }
+
+    static TaskStatistics &getThreadLocal()
+    {
+        return local;
+    }
+
+    void merge(TaskStatistics other)
+    {
+        for (auto pair : other.values)
+        {
+            auto &entry = values[pair.first];
+            entry.value += pair.second.value;
+            entry.count += pair.second.count;
+        }
+    }
+
+    std::string toString()
+    {
+        std::string buf;
+        for (auto pair : values)
+        {
+            buf += pair.first + ": mean: " +
+                   std::to_string(pair.second.value / pair.second.count) +
+                   ", count: " + std::to_string(pair.second.count) +
+                   ", total: " + std::to_string(pair.second.value) + "\n";
+        }
+        return buf;
+    }
+
+private:
+    std::map<std::string, Entry> values;
+    static thread_local TaskStatistics local;
+};
+
 class Task
 {
 public:
@@ -509,12 +559,12 @@ public:
         return nl->Second(nl->Second(list));
     }
 
-    static void runCommand(distributed2::ConnectionInfo *ci,
-                           std::string cmd,
-                           std::string description,
-                           bool nestedListFormat = false,
-                           bool ignoreFailure = false,
-                           bool ignoreError = false);
+    static double runCommand(distributed2::ConnectionInfo *ci,
+                             std::string cmd,
+                             std::string description,
+                             bool nestedListFormat = false,
+                             bool ignoreFailure = false,
+                             bool ignoreError = false);
 
 private:
     std::vector<Task *> listOfPre;

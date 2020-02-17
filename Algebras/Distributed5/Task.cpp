@@ -117,6 +117,7 @@ namespace distributed5
 
 CommandLog commandLog;
 int Task::nextId = 0;
+thread_local TaskStatistics TaskStatistics::local;
 
 /*
 
@@ -352,12 +353,12 @@ std::string TaskDataLocation::getValueArgument(const TaskDataItem *data) const
     }
 }
 
-void Task::runCommand(ConnectionInfo *ci,
-                      std::string cmd,
-                      std::string description,
-                      bool nestedListFormat,
-                      bool ignoreFailure,
-                      bool ignoreError)
+double Task::runCommand(ConnectionInfo *ci,
+                        std::string cmd,
+                        std::string description,
+                        bool nestedListFormat,
+                        bool ignoreFailure,
+                        bool ignoreError)
 {
     bool showCommands = false;
     int err;
@@ -379,7 +380,7 @@ void Task::runCommand(ConnectionInfo *ci,
     if (err)
     {
         if (ignoreError)
-            return;
+            return 0;
         writeLog(ci, cmd, errMsg);
         throw RemoteException(
             description,
@@ -396,10 +397,7 @@ void Task::runCommand(ConnectionInfo *ci,
             "command returned FALSE",
             cmd);
     }
-    /*cout
-        << "---------\n"
-        << cmd << "\n"
-        << "---------\n";*/
+    return runtime;
 }
 
 TaskDataItem *FunctionTask::store(
@@ -474,7 +472,8 @@ TaskDataItem *FunctionTask::store(
         throw std::invalid_argument("not implemented storage type");
     }
 
-    runCommand(ci, cmd, description, true);
+    double duration = runCommand(ci, cmd, description, true);
+    TaskStatistics::report(description, duration);
 
     return new TaskDataItem(result);
 }
