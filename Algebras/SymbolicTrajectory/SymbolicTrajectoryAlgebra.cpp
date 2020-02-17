@@ -2097,9 +2097,9 @@ int makemvalueSymbolicVM(Word* args, Word& result, int message,
 //       Unit unit(*((Unit*)curAttr));
       m->MergeAdd(*unit); // in contrast to makemvalue2
     }
-    else {
-      cerr << endl << __PRETTY_FUNCTION__ << ": Dropping undef unit. " << endl;
-    }
+//     else {
+//     cerr << endl << __PRETTY_FUNCTION__ << ": Dropping undef unit. " << endl;
+//     }
     curTuple->DeleteIfAllowed();
     qp->Request(args[0].addr, curTupleWord);
   }
