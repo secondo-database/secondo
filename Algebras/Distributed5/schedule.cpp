@@ -430,10 +430,10 @@ private:
             auto start = std::chrono::high_resolution_clock::now();
             WorkerJob *job = selectJob(location);
             auto duration =
-                std::chrono::duration_cast<std::chrono::milliseconds>(
+                std::chrono::duration_cast<std::chrono::microseconds>(
                     std::chrono::high_resolution_clock::now() - start);
             TaskStatistics::report("selecting job",
-                                   ((double)duration.count()) / 1000);
+                                   ((double)duration.count()) / 1000000);
             if (job != 0)
             {
                 if (!job->run(lock))
@@ -460,10 +460,10 @@ private:
                 auto start = std::chrono::high_resolution_clock::now();
                 poolSignal.wait(lock);
                 auto duration =
-                    std::chrono::duration_cast<std::chrono::milliseconds>(
+                    std::chrono::duration_cast<std::chrono::microseconds>(
                         std::chrono::high_resolution_clock::now() - start);
                 TaskStatistics::report("worker idle",
-                                       ((double)duration.count()) / 1000);
+                                       ((double)duration.count()) / 1000000);
 
                 workerWorking++;
             }
@@ -984,10 +984,10 @@ public:
         auto start = std::chrono::high_resolution_clock::now();
         scheduler.waitForPoolUpdate(lock);
         auto duration =
-            std::chrono::duration_cast<std::chrono::milliseconds>(
+            std::chrono::duration_cast<std::chrono::microseconds>(
                 std::chrono::high_resolution_clock::now() - start);
         TaskStatistics::report("wait for transfer",
-                               ((double)duration.count()) / 1000);
+                               ((double)duration.count()) / 1000000);
         return true;
     }
 };
@@ -1308,10 +1308,10 @@ WorkerJob *Scheduler::selectJob(WorkerLocation &location)
         TaskStatistics::report("selectJob execute",
                                ((double)duration.count()) / 1000000);
     }
-    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(
+    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(
         std::chrono::high_resolution_clock::now() - start);
     TaskStatistics::report("selectJob loop1",
-                           ((double)duration.count()) / 1000);
+                           ((double)duration.count()) / 1000000);
     start = std::chrono::high_resolution_clock::now();
 
     for (auto pair : transferables)
@@ -1364,10 +1364,10 @@ WorkerJob *Scheduler::selectJob(WorkerLocation &location)
             }
         }
     }
-    duration = std::chrono::duration_cast<std::chrono::milliseconds>(
+    duration = std::chrono::duration_cast<std::chrono::microseconds>(
         std::chrono::high_resolution_clock::now() - start);
     TaskStatistics::report("selectJob loop2",
-                           ((double)duration.count()) / 1000);
+                           ((double)duration.count()) / 1000000);
 
     if (best)
     {
