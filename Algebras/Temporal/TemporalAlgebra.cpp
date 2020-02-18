@@ -4998,8 +4998,11 @@ void MPoint::removeNoise(const double maxspeed, const double maxdist,
       else {
         up.Length(length);
       }
+      cout << up.timeInterval.start << ": " << up.p0 << " ---> " << up.p1
+           << "  |" << noExceeded << "| " << speed.GetValue() << "  ###  " 
+           << length.GetValue() << endl;
       if (speed.GetValue() > maxspeed || length.GetValue() > maxdist) {
-        if (noExceeded == 0) { // first exceeded unit, store start pos and time
+        if (noExceeded == 0 && !result.IsEmpty()) { // first exceeded unit
           startpos = up.p0;
           starttime = up.timeInterval.start;
           lc = up.timeInterval.lc;
@@ -5007,16 +5010,34 @@ void MPoint::removeNoise(const double maxspeed, const double maxdist,
         noExceeded++;
       }
       else { // correct unit
-        if (noExceeded > 1) { // sequence of at least 2 too fast units ends
-          up.p0 = startpos;
-          up.timeInterval.start = starttime;
-          up.timeInterval.lc = lc;
+        if (noExceeded > 1 && !result.IsEmpty()) { // after >= 2 invalid units
+          if (length.GetValue() > 0) {
+            up.p0 = startpos;
+            up.timeInterval.start = starttime;
+            up.timeInterval.lc = lc;
+            up.USpeed(urspeed, geoid);
+            mid = up.timeInterval.start 
+                    + ((up.timeInterval.end - up.timeInterval.start) / 2);
+            urspeed.TemporalFunction(mid, speed);
+            if (geoid != 0) {
+              up.Length(*geoid, length);
+            }
+            else {
+              up.Length(length);
+            }
+//             cout << "      speed: " << speed.GetValue() << ", length "
+//                  << length.GetValue() << endl;
+            if (speed.GetValue() <= maxspeed && length.GetValue() <= maxdist) {
+              result.MergeAdd(up);
+            }
+            noExceeded = 0;
+          }
         }
-        if (noExceeded == 0 || noExceeded > 1) {
-          result.Add(up);
+        else if (noExceeded == 0) {
+          result.MergeAdd(up);
         }
-        noExceeded = 0;
       }
+//       cout << "stored startpos: " << startpos << endl;
     }
   }
 }
