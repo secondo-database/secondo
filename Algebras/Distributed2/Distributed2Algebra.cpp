@@ -43,6 +43,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Algebras/Array/ArrayAlgebra.h"
 #include "FileAttribute.h"
 #include "SecParser.h"
+#include "Bash.h"
 
 
 #include <boost/bind.hpp>
@@ -948,6 +949,13 @@ bool Distributed2Algebra::serverExists(int s){
       string config = worker.getConfig();
       ConnectionInfo* ci = ConnectionInfo::createConnection(host, port, config, 
                                                             timeout, heartbeat);
+
+      if(ci == nullptr){
+         Bash::setFGColor(Red);
+         cout << "Connection to Server " << host << "@" << port 
+              << " failed" << endl;
+         Bash::normalColors();
+      }
       res.first="";
       res.second = ci;
       return ci!=0;
@@ -14506,7 +14514,9 @@ class dproductInfo{
                       if(source->getType()==DFARRAY){//no transfer, just access
                          pos.push_back(make_pair(false,sourceHome));
                       } else {  
-                         pos.push_back(make_pair(false, home));
+                         // DArrays are stored as DFArray, also just access
+                         pos.push_back(make_pair(false, sourceHome));
+                         //pos.push_back(make_pair(true, home));
                       }
                    }
                    sourceInfo->deleteIfAllowed();
@@ -14729,7 +14739,6 @@ class dproductInfo{
                                                                  dbname,
                                                                  slot);
                string cmd = "query " + oname + " saveObjectToFile['"+fname+"']";
-	       cout << "Save object to " << fname << endl;
                int errCode;
                string errMsg;
                double rt;
@@ -14740,7 +14749,8 @@ class dproductInfo{
                if(errCode){
                   showError(ci, cmd, errCode, errMsg);
                   writeLog(ci,cmd,errMsg);
-               }
+               } 
+
             }
 
    };
@@ -14950,7 +14960,7 @@ class dproductInfo{
           dirRemover(ConnectionInfo* _ci, string& _dir): ci(_ci), dir(_dir){
              ci->copy();
              runner = new boost::thread(&dirRemover::run, this);
-             cout << "remove " << dir << " on " << ci->getHost() << endl;
+             //cout << "remove " << dir << " on " << ci->getHost() << endl;
           }
           ~dirRemover(){
               runner->join();
@@ -15055,8 +15065,6 @@ class dproductInfo{
               DArrayElement source = pi->arg1->getWorkerForSlot(slot);
               return  "'" + pi->arg1->getFilePath(dir , pi->dbname, slot) + "'";
            }
-
-
     };
 
 
@@ -16819,7 +16827,9 @@ class fsfeed5Info{
               if(fn->IsDefined()){
                  fi = new ffeed5Info(fn->GetValue(),tt);
                  if(!fi->isOK()){
+                     Bash::setFGColor(Red);
                      cerr << "ignore file" << fn->GetValue() << endl;
+                     Bash::normalColors();
                      delete fi;
                      fi = 0;
                  }
@@ -20788,14 +20798,14 @@ class deleteRemoteDatabasesInfo{
                   string dir = home + "/dfarrays/"+name;
                   cmd = "query removeDirectory('"+dir+"', TRUE)";
 
-                  cout << "remove directory " << dir << " at " 
-                       << si->getConnectionInfo() << endl;
+                  //cout << "remove directory " << dir << " at " 
+                  //     << si->getConnectionInfo() << endl;
                   si->Secondo(cmd,resList,err);
                   // remove temporarly file transfer folders
                   dir = si->getRequestFilePath();
                   cmd = "query removeDirectory('"+dir+"', TRUE)";
-                  cout << "remove directory " << dir << " at " 
-                       << si->getConnectionInfo() << endl;
+                  //cout << "remove directory " << dir << " at " 
+                  //     << si->getConnectionInfo() << endl;
                   si->Secondo(cmd,resList,err);
                } else {
                  cerr << "query secondoHome() returns unexpected result" 
