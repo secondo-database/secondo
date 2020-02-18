@@ -4998,9 +4998,9 @@ void MPoint::removeNoise(const double maxspeed, const double maxdist,
       else {
         up.Length(length);
       }
-      cout << up.timeInterval.start << ": " << up.p0 << " ---> " << up.p1
-           << "  |" << noExceeded << "| " << speed.GetValue() << "  ###  " 
-           << length.GetValue() << endl;
+//       cout << up.timeInterval.start << ": " << up.p0 << " ---> " << up.p1
+//            << "  |" << noExceeded << "| " << speed.GetValue() << "  ###  " 
+//            << length.GetValue() << endl;
       if (speed.GetValue() > maxspeed || length.GetValue() > maxdist) {
         if (noExceeded == 0 && !result.IsEmpty()) { // first exceeded unit
           startpos = up.p0;
