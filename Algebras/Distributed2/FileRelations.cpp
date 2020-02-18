@@ -38,6 +38,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "DFSType.h"
 #include "DFSTools.h"
 #include "SecondoSystem.h"
+#include "Bash.h"
+#include "FileSystem.h"
 
 
 boost::mutex nlparsemtx;
@@ -167,7 +169,14 @@ ffeed5Info::ffeed5Info(const std::string& filename, const ListExpr _tt){
     in.rdbuf()->pubsetbuf(inBuffer, FILE_BUFFER_SIZE);
     readHeader(tt);
   } else {
-    // cout << "could not open file " << filename << std::endl;
+    /*
+    Bash::setFGColor(Red);
+    cout << "could not open file " << filename << std::endl;
+    if(!FileSystem::FileOrFolderExists(filename)){
+      cout << "File does not exist" << endl;
+    }
+    Bash::normalColors();
+    */
   }
 }
 
@@ -205,7 +214,14 @@ bool ffeed5Info::openFile(const std::string& filename){
     in.rdbuf()->pubsetbuf(inBuffer, FILE_BUFFER_SIZE);
     readHeader(tt);
   }else{
-    std::cerr << "could not open file " << filename << std::endl; 
+    /*
+    Bash::setFGColor(Red);
+    cout << "could not open file " << filename << std::endl;
+    if(!FileSystem::FileOrFolderExists(filename)){
+      cout << "File does not exist" << endl;
+    }
+    Bash::normalColors();
+    */
   }
   return ok;
 }
