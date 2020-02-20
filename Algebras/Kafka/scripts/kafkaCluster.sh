@@ -15,6 +15,11 @@ scriptDir="$(dirname $(readlink -f $0))"
 
 if [[ -z ${KAFKA_HOME} ]];
 then
+  KAFKA_HOME=${HOME}/kafka/kafka_dist
+fi
+
+if [[ -z ${KAFKA_HOME} ]];
+then
     echo "Error: variable KAFKA_HOME is not set"
     echo "Example: export KAFKA_HOME=/home/myuser/work/kafka/kafka_2.12-2.2.0"
     exit 1
@@ -23,7 +28,7 @@ echo "KAFKA_HOME is ${KAFKA_HOME}"
 cd ${KAFKA_HOME}
 
 
-zookeeper_pid=`ps axww | grep -i -w 'org.apache.zookeeper.server' | grep -v grep | awk '{print $1}'`
+zookeeper_pid=`ps axww | grep -i -w 'org.apache.zookeeper.server' | grep ${HOME} | grep -v grep | awk '{print $1}'`
 kafka_servers_pids=`ps axww | grep -i -w 'kafka.Kafka' | grep -v grep | awk '{print $1}'`
 start_kafka_loops_pids=`ps axww | grep -i -w 'start_kafka_loop.sh' | grep -v grep | awk '{print $1}'`
 
