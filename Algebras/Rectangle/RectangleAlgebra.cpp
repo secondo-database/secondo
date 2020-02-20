@@ -46,6 +46,7 @@ struct ~Rectangle~, and the definitions of the type constructur
 #include "NestedList.h"
 #include "QueryProcessor.h"
 #include "RectangleAlgebra.h"
+#include "IrregularGrid2D.h"
 #include "StandardTypes.h"
 #include "ListUtils.h"
 #include "Symbols.h"
@@ -57,7 +58,7 @@ struct ~Rectangle~, and the definitions of the type constructur
 #include <math.h>
 
 #ifndef M_PI
-#define M_PI   3.14159265358979323846  
+#define M_PI   3.14159265358979323846
 #endif
 
 
@@ -68,11 +69,11 @@ extern QueryProcessor* qp;
 
 
 
-double geoDistance(const Rectangle<2>& r1, const Rectangle<2>& r2, 
+double geoDistance(const Rectangle<2>& r1, const Rectangle<2>& r2,
                    const Geoid* geoid){
 
      // in this case dim is two
-     // step one: determine the position of r 
+     // step one: determine the position of r
      //   Q1 |  Q2  | Q3
      //   ---------------
      //   Q4 |  Q5  | Q6
@@ -128,8 +129,8 @@ double geoDistance(const Rectangle<2>& r1, const Rectangle<2>& r2,
      }
      bool valid;
      if(Q==1 || Q == 3){ // above but not direct
-        double d1 = geodist::getDist(xmin1, ymax1, xmax1, ymax1, 
-                                     xmin2, ymin2,geoid);         
+        double d1 = geodist::getDist(xmin1, ymax1, xmax1, ymax1,
+                                     xmin2, ymin2,geoid);
         double d2 = geodist::getDist(xmin1, ymax1, xmax1, ymax1,
                                      xmax2, ymin2, geoid);
         return std::min(d1,d2);
@@ -162,7 +163,7 @@ double geoDistance(const Rectangle<2>& r1, const Rectangle<2>& r2,
 
      // get the y value farther from the aquator to
      // minimize the distance
-     double y = abs(ymin) > abs(ymax) ? ymin : ymax; 
+     double y = abs(ymin) > abs(ymax) ? ymin : ymax;
 
 
      if(Q==4){
@@ -171,7 +172,7 @@ double geoDistance(const Rectangle<2>& r1, const Rectangle<2>& r2,
        double d2 = geoid->DistanceOrthodrome(xmin2,y, xmax1,y, valid);
        if(!valid) return -1;
        return std::min(d1,d2);
-     }  
+     }
      if(Q==6){
         double d1 = geoid->DistanceOrthodrome(xmax1, y, xmin2, y, valid);
         if(!valid) return -1;
@@ -180,7 +181,7 @@ double geoDistance(const Rectangle<2>& r1, const Rectangle<2>& r2,
         if(!valid) return -1;
 
         return std::min(d1,d2);
-     }  
+     }
      assert(false); // forgetten case
      return -1;
 }
@@ -1378,27 +1379,55 @@ GridCell2Rect_TM( ListExpr args )
   return l.typeError("gridcell2rect: Unknown typemapproblem.");
 }
 
+/*
+4.1.22 Type mapping function ~IrGrid2dTypeMap~
+
+It is used for the ~create\_irgrid2d~ operator.
+
+*/
+ListExpr IrGrid2dTypeMap( ListExpr args )
+{
+  if(nl->HasLength(args, 4)) {
+    ListExpr first = nl->First(args);
+    ListExpr second = nl->Second(args);
+    ListExpr third = nl->Third(args);
+    ListExpr fourth = nl->Fourth(args);
+
+    if (Stream<Rectangle<2>>::checkType(first) 
+      && Rectangle<2>::checkType(second) 
+      && CcInt::checkType(third)
+      && CcInt::checkType(fourth)) {
+
+       return nl->SymbolAtom(IrregularGrid2D::BasicType());
+    }
+  }
+
+  const string errMsg = "The following four arguments are expected:"
+      " stream(rect) x rect x int x int";
+
+  return  listutils::typeError(errMsg);
+}
 
 
 //4.1.22 Type mapping for operator ~report~
 
 ListExpr
 reportTM(ListExpr args )
-{ 
+{
   NList l(args);
-  int len = l.length();  
-  
+  int len = l.length();
+
   if(len==2){
     if(!listutils::isSymbol(nl->First(args), CcInt::BasicType()) ||
        !listutils::isSymbol(nl->Second(args), CcInt::BasicType())){
       return listutils::typeError("two int values expected");
        }
       }
-     else {          
+     else {
            return listutils::typeError("only two int values expected");
-          } 
-  
-   
+          }
+
+
     return nl->SymbolAtom(CcBool::BasicType());
   }
 
@@ -1620,6 +1649,30 @@ int RectangleMinMaxDSelect( ListExpr args )
      am->CheckKind(Kind::SPATIAL8D(), arg1, errorInfo) ) return 3;
   if(nl->IsEqual(arg1, Rectangle<1>::BasicType()) ||
      am->CheckKind(Kind::SPATIAL1D(), arg1, errorInfo) ) return 4;
+
+  return -1; // should never occur
+}
+
+
+/*
+
+4.3.4 Selection function ~IrGrid2dSelect~
+
+Is used for the ~create\_irgrid2d~ operator.
+
+*/
+int IrGrid2dSelect( ListExpr args )
+{
+  ListExpr first = nl->First(args);
+  ListExpr second = nl->Second(args);
+  ListExpr third = nl->Third(args);
+  ListExpr fourth = nl->Fourth(args);
+
+  if (Stream<Rectangle<2>>::checkType(first) && Rectangle<2>::checkType(second)
+      && CcInt::checkType(third) && CcInt::checkType(fourth)) {
+
+      return 0;
+  }
 
   return -1; // should never occur
 }
@@ -2139,64 +2192,64 @@ int RectangleToprightclassValueMap ( Word* args, Word& result, int message,
   r2 = (Rectangle<dim> *) args[1].addr;
   int value = 0;
 
-  if ( r1->MaxD(0) >= r2->MaxD(0) ) 
+  if ( r1->MaxD(0) >= r2->MaxD(0) )
    {value++;}
   if ( r1->MaxD(1) >= r2->MaxD(1) ) {
-    value += 2;} 
+    value += 2;}
 
-  res->Set( true, value); 
-  return 0;  
+  res->Set( true, value);
+  return 0;
 }
-  
 
-// 4.4.14 Value Mapping for operator ~report~  
 
-  
+// 4.4.14 Value Mapping for operator ~report~
+
+
 
 int reportVM ( Word* args, Word& result, int message,
                                Word& local, Supplier s )
-{ 
+{
   result = qp->ResultStorage( s );
   CcBool *res = (CcBool*) result.addr;
   CcInt* firstarg = static_cast<CcInt*>(args[0].addr);
-  CcInt* secondarg = static_cast<CcInt*>(args[1].addr);  
+  CcInt* secondarg = static_cast<CcInt*>(args[1].addr);
   bool boolval = false;
   int value;
-  
-  if ( (!firstarg->IsDefined()) || 
+
+  if ( (!firstarg->IsDefined()) ||
        (!secondarg->IsDefined()) )
      {
         res->SetDefined(false);
         return 0;
      }
-  
-  
+
+
   int first = firstarg->GetIntval();
   int second = secondarg->GetIntval();
-    
-  
+
+
   value = first & second;
-  
+
   if (value == 0)
-   {boolval = true; 
-    res->Set( true, boolval); 
-    return 0;  
-     
+   {boolval = true;
+    res->Set( true, boolval);
+    return 0;
+
    }
-  
-    
-  res->Set( true, boolval); 
+
+
+  res->Set( true, boolval);
   return 0;
 
-  
+
 }
-  
-  
-  
-  
-  
-  
-  
+
+
+
+
+
+
+
 /*
 4.4.4.1 Value mapping functions of operator ~bboxintersects~
 
@@ -2790,6 +2843,34 @@ int gridcell2rect_vm(Word* args, Word& result,
   return 0;
 }
 
+/*
+4.4.15 Value mapping functions of operator ~create\_irgrid2d~
+
+*/
+int IrGrid2dValueMap( Word* args, Word& result, int message,
+                        Word& local, Supplier s ) {
+  Stream<Rectangle<2>> input_rect_ptr(args[0]);
+  Rectangle<2> *bbox_ptr = static_cast<Rectangle<2>*>( args[1].addr );
+  CcInt *row_cnt_ptr =  static_cast<CcInt*>( args[2].addr );
+  CcInt *cell_cnt_ptr =  static_cast<CcInt*>( args[3].addr );
+
+  result = qp->ResultStorage(s);
+
+  if (bbox_ptr != nullptr
+      && row_cnt_ptr != nullptr && cell_cnt_ptr != nullptr) {
+    int row_cnt = row_cnt_ptr->GetIntval();
+    int cell_cnt = cell_cnt_ptr->GetIntval();
+
+    if (row_cnt >  0 && cell_cnt > 0) {
+      ((IrregularGrid2D*)result.addr)->Set(
+        input_rect_ptr, *bbox_ptr, row_cnt, cell_cnt);
+
+      return 0;
+    }
+  }
+
+  return (0);
+}
 
 /*
 4.5 Definition of operators
@@ -2842,7 +2923,7 @@ ValueMapping rectangleintersectionmap[] = { RectangleIntersection<2>,
                                             RectangleIntersection<3>,
                                             RectangleIntersection<4>,
                                             RectangleIntersection<4> };
-                                            
+
 ValueMapping rectanglerectangle1map[] = { RectangleValueMap<CcInt, 1>,
                                           RectangleValueMap<CcReal, 1> };
 
@@ -2862,20 +2943,20 @@ ValueMapping rectangletoprightclassmap[] = { RectangleToprightclassValueMap<2>,
                                           RectangleToprightclassValueMap<3>,
                                           RectangleToprightclassValueMap<4>,
                                           RectangleToprightclassValueMap<8>};
-                                        
-                            
-                                     
-                                          
-                                        
-                                        
+
+
+
+
+
+
  ValueMapping rectangledistancemap[] = { RectangleDistanceValueMap<2>,
                                         RectangleDistanceValueMap<3>,
                                         RectangleDistanceValueMap<4>,
                                         RectangleDistanceValueMap<8> };
-                                                                               
-                                        
-                                        
-                                        
+
+
+
+
 
 ValueMapping rectanglerectprojectmap[] =
 {
@@ -2957,6 +3038,8 @@ ValueMapping GridCell2Rect_VM[] = {
   gridcell2rect_vm<3>
 };
 
+ValueMapping irgdrid2dcreatemap[] = { IrGrid2dValueMap };
+
 /*
 4.5.2 Definition of specification strings
 
@@ -3035,7 +3118,7 @@ const string RectangleSpecRectangle1  =
         "<text>The sequence of parameters must be "
         "(minx, maxx) with (minx < maxx)</text--->"
         ") )";
-    
+
 const string RectangleSpecRectangle2  =
         "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" \"Remarks\")"
         "( <text>(int x int x int x int -> rect) or"
@@ -3203,7 +3286,7 @@ const string RectangleSpecBboxIntersects  =
         "<text>query rect1 bboxintersects rect</text--->"
         ") )";
 
-    
+
 
 const string RectangleSpecToprightclass  =
         "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" \"Remarks\")"
@@ -3211,23 +3294,32 @@ const string RectangleSpecToprightclass  =
         "<text>toprightclass( _ , _ )</text--->"
         "<text>returns the Top-Right-Class Value of two rectangles. "
         "whereat the first rect references the second one: "
-        "Scoring 2 if the first rect intersects the Top-Edge " 
-        "of the second rect," 
-        "scoring 1 for Right-Edge intersection," 
-        "scoring 3 for both " 
-        "and scoring 0 for none of this.</text--->"        
+        "Scoring 2 if the first rect intersects the Top-Edge "
+        "of the second rect,"
+        "scoring 1 for Right-Edge intersection,"
+        "scoring 3 for both "
+        "and scoring 0 for none of this.</text--->"
         "<text>query toprightclass(rect1, rect2)</text--->"
         "<text></text--->"
         ") )";
-    
 
-    
+const string createIrGrid2dSpec  =
+        "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" \"Remarks\")"
+        "( <text>(stream(rect) x rect x int x int) -> irgrid2d "
+    "</text--->"
+        "<text>_ create_irgrid2d[_, _, _]</text--->"
+        "<text>creates a two-dimensional irregular grid "
+    "from the given parameters.</text--->"
+        ") )";
 
-  
-    
-    
-    
-    
+
+
+
+
+
+
+
+
 /*
 4.5.3 Definition of the operators
 
@@ -3404,6 +3496,13 @@ Operator rectanglebboxintersects( "bboxintersects",
                               RectangleBinarySelect1,
                               RectangleTypeMapBool2 );
 
+Operator createirgrid2d( "create_irgrid2d",
+    createIrGrid2dSpec,
+    1,
+    irgdrid2dcreatemap,
+    IrGrid2dSelect,
+    IrGrid2dTypeMap );
+
 struct cellnumber_Info : OperatorInfo {
 
   cellnumber_Info() : OperatorInfo()
@@ -3521,7 +3620,7 @@ ListExpr partitionRectTM(ListExpr args){
 /*
 3.27.2 Value Mapping
 
-The value mapping is more generic than the type mapping. It can anly any 
+The value mapping is more generic than the type mapping. It can anly any
 dimension.
 
 3.27.2.1 LocalInfo
@@ -3558,7 +3657,7 @@ class PartitionRectInfo{
     if(rect==0){
        delete[] numbers;
        numbers = 0;
-       return;  
+       return;
      }
      currentNumbers = new int[dim];
      for(int i=0;i<dim;i++){
@@ -3569,7 +3668,7 @@ class PartitionRectInfo{
   ~PartitionRectInfo(){
       if(numbers){
          delete[] numbers;
-      } 
+      }
       if(currentNumbers){
         delete[] currentNumbers;
       }
@@ -3587,8 +3686,8 @@ class PartitionRectInfo{
      double min[dim];
      double max[dim];
      for(int i=0;i<dim;i++){
-        min[i] = getPos(i,currentNumbers[i] , numbers[i]);    
-        max[i] = getPos(i,currentNumbers[i] + 1, numbers[i]);  
+        min[i] = getPos(i,currentNumbers[i] , numbers[i]);
+        max[i] = getPos(i,currentNumbers[i] + 1, numbers[i]);
      }
      Rectangle<dim>* result = new Rectangle<dim>(true,min,max);
      // increase the numbers
@@ -3638,7 +3737,7 @@ int partitionRectVM(Word* args, Word& result,
               if(li){
                  delete li;
                }
-              local.addr = new 
+              local.addr = new
                    PartitionRectInfo<dim>((Rectangle<dim>*)args[0].addr,
                                                           &args[1]);
               return 0;
@@ -3693,8 +3792,8 @@ Operator partitionRect( "partitionRect",
 /*
 28 Operator ~extendGeo~
 
-This operator extends an rectangle with about x meters if the rectangle 
-is given in geo coordinates. 
+This operator extends an rectangle with about x meters if the rectangle
+is given in geo coordinates.
 
 */
 ListExpr extendGeoTM(ListExpr args){
@@ -3703,8 +3802,8 @@ ListExpr extendGeoTM(ListExpr args){
    if(!nl->HasLength(args,2) && !nl->HasLength(args,3)){
      return listutils::typeError(err+" (invalid number of args)");
    }
-   
-   if(  !CcInt::checkType(nl->Second(args)) 
+
+   if(  !CcInt::checkType(nl->Second(args))
       &&!CcReal::checkType(nl->Second(args))){
      return listutils::typeError(err + " (invalid type in 2nd arg.)");
    }
@@ -3720,12 +3819,12 @@ ListExpr extendGeoTM(ListExpr args){
                                  "of type rect or rect3");
    }
    if(nl->HasLength(args,3)){
-     if(  !CcInt::checkType(nl->Third(args)) 
+     if(  !CcInt::checkType(nl->Third(args))
         &&!CcReal::checkType(nl->Third(args))){
         return listutils::typeError(err + " (invalid type in 3nd arg.)");
      }
      return nl->First(args);
-   } 
+   }
    // rect3 with one further argument
    return nl->ThreeElemList(nl->SymbolAtom(Symbols::APPEND()),
                             nl->OneElemList(nl->RealAtom(0.0)),
@@ -3761,7 +3860,7 @@ int extendGeoVMT(Word* args, Word& result,
    }
    double eps = Eps->GetValue();
 
-   // the distances in y-direction are proportional to the 
+   // the distances in y-direction are proportional to the
    // latitude, 1 degree has earthperimeter / 360 meter
 
    double dy = (360 * eps) / earthperimeter;
@@ -3774,7 +3873,7 @@ int extendGeoVMT(Word* args, Word& result,
    }
 
    // take the y-value nearer to the aquator
-   
+
    double ay = std::abs(minY) < std::abs(maxY)? minY : maxY;
 
    ay = (ay * M_PI)/180.0;
@@ -3817,7 +3916,7 @@ int extendGeoVMT(Word* args, Word& result,
    double Min[] = {minX,minY,minZ};
    double Max[] = {maxX,maxY,maxZ};
    res->Set(true,Min,Max);
-   return 0; 
+   return 0;
 }
 
 
@@ -3840,7 +3939,7 @@ int extendGeoSelect(ListExpr args){
    int n2 = 1;  // default for not present value is real
    if(nl->HasLength(args,3)){
      n2 = CcInt::checkType(nl->Third(args))?0:1;
-   } 
+   }
    return offset +  n1 + n2;
 }
 
@@ -3969,7 +4068,7 @@ ValueMapping scaleVM[] = {
 int scaleSelect(ListExpr args){
   int n1 = -100;
   int n2 = CcInt::checkType(nl->Second(args))?0:1;
-  ListExpr a1 = nl->First(args); 
+  ListExpr a1 = nl->First(args);
   if( Rectangle<1>::checkType(a1)) n1 = 0;
   else if(Rectangle<2>::checkType(a1)) n1 = 2;
   else if(Rectangle<3>::checkType(a1)) n1 = 4;
@@ -3995,6 +4094,31 @@ Operator scaleOp(
   scaleTM
 );
 
+/*
+Creation of the type constructor ~irgrid2d~
+
+*/
+TypeConstructor irgrid2d(
+  // name of the type in SECONDO
+  IrregularGrid2D::BasicType(),
+  // property function describing signature
+  IrregularGrid2D::PropertyIrGrid2D,
+  // Out and In functions
+  IrregularGrid2D::OutIrGrid2D, IrregularGrid2D::InIrGrid2D,
+  // SaveToList, RestoreFromList functions
+  0, 0,
+  // object creation and deletion
+  IrregularGrid2D::CreateIrGrid2D, IrregularGrid2D::DeleteIrGrid2D,
+  // object open, save
+  0, 0,
+  // object close and clone
+  IrregularGrid2D::CloseIrGrid2D, IrregularGrid2D::CloneIrGrid2D,
+  // cast function
+  0,
+  // sizeof function
+  IrregularGrid2D::SizeOfIrGrid2D,
+  // kind checking function
+  IrregularGrid2D::KindCheckIrGrid2D );
 
 /*
 5 Creating the Algebra
@@ -4009,7 +4133,7 @@ class RectangleAlgebra : public Algebra
     AddTypeConstructor( &rect1 );
     rect1.AssociateKind(Kind::DATA());
     rect1.AssociateKind(Kind::SPATIAL1D());
-    
+
     AddTypeConstructor( &rect );
     rect.AssociateKind(Kind::DATA());
     rect.AssociateKind(Kind::SPATIAL2D());
@@ -4027,6 +4151,9 @@ class RectangleAlgebra : public Algebra
     AddTypeConstructor( &rect8 );
     rect8.AssociateKind(Kind::DATA());
     rect8.AssociateKind(Kind::SPATIAL8D());
+
+    AddTypeConstructor( &irgrid2d );
+    irgrid2d.AssociateKind(Kind::SIMPLE());
 
     AddOperator( &rectangleisempty );
     AddOperator( &rectangleequal );
@@ -4052,16 +4179,17 @@ class RectangleAlgebra : public Algebra
     AddOperator( &rectanglesize );
     AddOperator( &scalerect);
     AddOperator( &rectanglebboxintersects );
+    AddOperator( &createirgrid2d );
     AddOperator(cellnumber_Info(), cellNumberVM, cellNumberTM);
     AddOperator(gridintersects_Info(), gridIntersectsVM, gridIntersectsTM);
     AddOperator( &gridcell2rect);
     AddOperator( &partitionRect);
     AddOperator( &extendGeoOp);
     AddOperator( &perimeterOp);
-    AddOperator( &scaleOp);    
+    AddOperator( &scaleOp);
     AddOperator (report_Info(), reportVM, reportTM);
-    
-    
+
+
   }
   ~RectangleAlgebra() {};
 };

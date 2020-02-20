@@ -294,4 +294,8 @@ Example   : query bbox(thecenter) scale[2.0]
 Result    : (rect (9502.516131467568 31236.4015984216 13074.63538364394 32964.13148758004) )
 Tolerance : 0.001
 
-
+Operator : create_irgrid2d
+Number   : 1
+Signature: stream(rect) x rect x int x int -> irgrid2d
+Example  : query [const rect value (0.1 0.4 0.1 0.4)] feed [const rect value (0.15 0.45 0.15 0.45)] feed concat feed [const rect value (0.5 0.9 0.5 0.9)] feed concat feed [const rect value (1.15 1.6 0.3 0.35)] feed concat feed [const rect value (0.1 0.3 1.2 1.5)] feed concat feed [const rect value (0.15 0.35 1.25 1.7)] feed concat create_irgrid2d [rectangle2(0.0, 2.0, 0.0, 2.0),2,2]
+Result   : (irgrid2d ((0.0 2.0 0.0 2.0)((0.0 0.45)((0.0 0.4 1 3)(0.4 2.0 2 4))(0.45 2.0)((0.0 0.3 3 -1)(0.3 2.0 4 -1)))))
