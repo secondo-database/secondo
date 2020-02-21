@@ -48,6 +48,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "AlgebraManager.h"
 #include "StandardTypes.h"
 #include "Algebras/TupleIdentifier/TupleIdentifier.h"
+#include "Algebras/FText/FTextAlgebra.h"
 #include "RTuple.h"
 #include "Symbols.h"
 #include "ListUtils.h"
@@ -100,11 +101,8 @@ Secondo.
 */
 class LocalInfoJSON : public LocalInfoBase {
     public:
-        LocalInfoJSON(CcString* arg): filename("") {
-            if(arg->IsDefined()) {
-                filename = arg->GetValue();
-                fin.open(filename, ios::in);
-            }
+        LocalInfoJSON(string filename): filename(filename) {
+             fin.open(filename, ios::in);
         }
         ~LocalInfoJSON() {}
 
@@ -217,19 +215,13 @@ Heavily builds on top of aisdecode.h.
 */
 class LocalInfoAIS : public LocalInfoBase {
     public: 
-        LocalInfoAIS(CcString* arg): filename("") {
-            if(arg->IsDefined()) {
-                filename = arg->GetValue();
-                
-                ifstream f(filename.c_str());
-                if (f.good()) {
-                    f.close();
-                    aisd = new aisdecode::aisdecoder(filename);
-                } else {
-                    f.close();
-                    aisd = NULL;
-                }
+        LocalInfoAIS(string filename): filename(filename) {
+            ifstream f(filename.c_str());
+            if (f.good()) {
+                f.close();
+                aisd = new aisdecode::aisdecoder(filename);
             } else {
+                f.close();
                 aisd = NULL;
             }
             for(int i=0;i<27;i++){
@@ -512,22 +504,19 @@ switch(msg->getType()) {
 
 class LocalInfoTestTuple : public LocalInfoBase {
     public:
-        LocalInfoTestTuple(CcString* arg) {
+        LocalInfoTestTuple(string whichTuple) {
             tt = new TestTuples();
 
             whichTuple = "1";
             maxTuple = 5;
             countTuple = 0;
 
-            if(arg->IsDefined()) {
-                whichTuple = arg->GetValue();
 
-                if (whichTuple.find("*") != std::string::npos) {
-                    maxTuple = atoi(whichTuple.substr(0, 
-                        whichTuple.find("*")).c_str());
-                    whichTuple = whichTuple.substr(
-                        whichTuple.find("*")+1, whichTuple.length());
-                }
+            if (whichTuple.find("*") != std::string::npos) {
+                 maxTuple = atoi(whichTuple.substr(0, 
+                     whichTuple.find("*")).c_str());
+                 whichTuple = whichTuple.substr(
+                     whichTuple.find("*")+1, whichTuple.length());
             }
         }
         ~LocalInfoTestTuple() {}
@@ -573,11 +562,11 @@ ListExpr ReceiveStream_TM(ListExpr args) {
     if (nl->ListLength(args) != 2)
         return listutils::typeError("two argument expected");
 
-    // 1. argument: filename (STRING)
+    // 1. argument: filename (FTEXT)
     ListExpr arg1 = nl->First(nl->First(args));
     
-    if (!CcString::checkType(arg1))
-        return listutils::typeError("file name as string expected");
+    if (!FText::checkType(arg1))
+        return listutils::typeError("file name as ftext expected");
 
     // 2. argument: format (STRING)
     ListExpr arg2 = nl->First(nl->Second(args));
@@ -607,10 +596,21 @@ int ReceiveStream_VM(Word* args, Word& result, int message,
         case OPEN: {
             LOG << "OPEN" << ENDL;
 
-            CcString* filename = (CcString*) args[0].addr;
+            FText* filenameFText = (FText*) args[0].addr;
             CcString* datatype = (CcString*) args[1].addr;
-            
+           
+            if(! filenameFText ->IsDefined()) {
+                cout << "Error: Filename is undefined" << endl;
+                return 0;
+            }
+
+            if(! datatype ->IsDefined()) {
+                cout << "Error: datatype is undefined" << endl;
+                return 0;
+            }
+ 
             std::string type = datatype->GetValue();
+            std::string filename = filenameFText->GetValue();
             boost::to_upper(type);
 
             if (li) {
@@ -618,14 +618,13 @@ int ReceiveStream_VM(Word* args, Word& result, int message,
             }
 
             if (type == "AIS") {
-                LOG << "(AIS) File: " << filename->GetValue() << ENDL;
+                LOG << "(AIS) File: " << filename << ENDL;
                 local.addr = new LocalInfoAIS( filename );
-
             } else if (type == "JSON") {
-                LOG << "(JSON) File: " << filename->GetValue() << ENDL;
+                LOG << "(JSON) File: " << filename << ENDL;
                 local.addr = new LocalInfoJSON( filename );
             }  else if (type == "TEST") {
-                LOG << "(TEST) TestTuple: " << filename->GetValue() << ENDL;
+                LOG << "(TEST) TestTuple: " << filename << ENDL;
                 local.addr = new LocalInfoTestTuple( filename );
             } // else if (type == "CSV") {
               //  LOG << "(JSON) File: " << filename->GetValue() << ENDL;
@@ -676,7 +675,7 @@ const std::string ReceiveStream_Spec =
 "</text--->"
 "<text>receiveStream(_, _)</text--->"
 "<text>Converts a file of JSON or AIS data to a stream of VTuples.</text--->"
-"<text>receiveStream(\"somefile.json\", \"json\")</text--->"
+"<text>receiveStream('somefile.json', \"json\")</text--->"
 ") )";
 
 /*
