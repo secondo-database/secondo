@@ -3306,10 +3306,10 @@ const string RectangleSpecToprightclass  =
 const string createIrGrid2dSpec  =
         "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" \"Remarks\")"
         "( <text>(stream(rect) x rect x int x int) -> irgrid2d "
-    "</text--->"
+        "</text--->"
         "<text>_ create_irgrid2d[_, _, _]</text--->"
         "<text>creates a two-dimensional irregular grid "
-    "from the given parameters.</text--->"
+        "from the given parameters.</text--->"
         ") )";
 
 

@@ -80,8 +80,6 @@ class VCell : public Cell {
     std::vector<HCell> row {};
 };
 
-
-
 //Represents a point of a rectangle corner
 struct RPoint {
   double x;
@@ -90,15 +88,14 @@ struct RPoint {
 
 class IrregularGrid2D {
   public:
+    // Do not use the standard constructor
+    IrregularGrid2D();
+    // The first constructor.
+      IrregularGrid2D(Rectangle<2> &bounding_box,
+        int rowCount, int cellCount);
 
-  // Do not use the standard constructor
-  IrregularGrid2D();
-  // The first constructor.
-    IrregularGrid2D(Rectangle<2> &bounding_box,
-      int rowCount, int cellCount);
-
-  // The copy constructor.
-  IrregularGrid2D( const IrregularGrid2D& g );
+    // The copy constructor.
+    IrregularGrid2D( const IrregularGrid2D& g );
 
     Rectangle<2> * getBoundingBox();
     int getRowCount();
@@ -110,7 +107,7 @@ class IrregularGrid2D {
         int rowCount, int cellCount);
     void setColumnVector(std::vector<VCell> column_vect);
 
-  // Algebra supporting functions
+    // Algebra supporting functions
 
     static ListExpr PropertyIrGrid2D();
 
@@ -148,7 +145,7 @@ class IrregularGrid2D {
   Rectangle<2> * boundingBox;
   // number of rows and cells per row
   int rowCount, cellCount;
-  // column (Y-axis) vector with access to the section vectors (X-axes)
+  // column (y-axis) vector with access to the section vectors (x-axes)
   std::vector<VCell> columnVector {};
 
   void createIrgrid2D(Stream<Rectangle<2>> rStream);

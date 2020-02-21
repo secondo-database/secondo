@@ -195,8 +195,7 @@ IrregularGrid2D::buildGrid() {
       tmp_row_points.push_back(rp);
       point_counter ++;
 
-      if ((point_counter == pointsPerRow) ||
-          (dp_idx == points.size()-1)) {
+      if ((point_counter == pointsPerRow) || (dp_idx == points.size()-1)) {
         // adjust y-boundaries
 
         if (colIdx > 0) {
@@ -215,34 +214,36 @@ IrregularGrid2D::buildGrid() {
         point_counter = 0;
 
         // adjust x-boundaries
-        std::sort(tmp_row_points.begin(), tmp_row_points.end(),
-            pointComparisonX);
+        std::sort(tmp_row_points.begin(), tmp_row_points.end(), 
+          pointComparisonX);
+
         std::vector<HCell> c_row =  columnVector[colIdx].getRow();
         int pointsPerCell = ceil(tmp_row_points.size() / cellCount);
 
         int tmpPointIdx = 0;
 
         for(int h = 0; h < cellCount; h++) {
-          std::vector<HCell>* hcel_vec_ptr =
-              &columnVector[colIdx].getRow();
+          std::vector<HCell>* hcel_vec_ptr = &columnVector[colIdx].getRow();
 
           for(size_t tmp_rp_idx = tmpPointIdx;
               tmp_rp_idx < tmp_row_points.size(); tmp_rp_idx++) {
+
             RPoint rp_t = tmp_row_points[tmp_rp_idx];
             point_counter ++;
 
-            if((point_counter == pointsPerCell) ||
-                (tmp_rp_idx == tmp_row_points.size()-1) ||
-                (h == cellCount-1)) {
+            if((point_counter == pointsPerCell) 
+              || (tmp_rp_idx == tmp_row_points.size()-1) 
+              || (h == cellCount-1)) {
+              
               if (h > 0) {
                 hcel_vec_ptr->at(h).setValFrom(
                   hcel_vec_ptr->at(h-1).getValTo());
               }
 
               double new_val_to_x;
-              if ((tmp_rp_idx == tmp_row_points.size()-1)
+              if ((tmp_rp_idx == tmp_row_points.size()-1)  
                   || (h == cellCount-1)) {
-                 new_val_to_x = bb_right;
+                new_val_to_x = bb_right;
               } else {
                  new_val_to_x = rp_t.x;
               }
@@ -278,19 +279,15 @@ IrregularGrid2D::buildGrid() {
   // update cell pointer
   if (rowCount > 1 && cellCount > 0) {
     for(int c = 0; c < rowCount-1; c++) {
-      std::vector<HCell>* row_lower 
-        = &getColumnVector().at(c).getRow();
-
-      std::vector<HCell>* row_upper
-       = &getColumnVector().at(c+1).getRow();
+      std::vector<HCell>* row_lower = &getColumnVector().at(c).getRow();
+      std::vector<HCell>* row_upper = &getColumnVector().at(c+1).getRow();
 
       int pointToCellIdx = 0;
       for(int h = 0; h < cellCount; h++) {
         HCell* lower_cell_ptr = &row_lower->at(h);
         HCell* upper_cell_ptr = &row_upper->at(pointToCellIdx);
 
-        if (lower_cell_ptr->getValFrom() <=
-            upper_cell_ptr->getValTo()) {
+        if (lower_cell_ptr->getValFrom() <= upper_cell_ptr->getValTo()) {
           lower_cell_ptr->setUpper(upper_cell_ptr);
         } else {
           HCell* next_upper_cell_ptr;
@@ -298,8 +295,8 @@ IrregularGrid2D::buildGrid() {
             pointToCellIdx ++;
             next_upper_cell_ptr = &row_upper->at(pointToCellIdx);
             lower_cell_ptr->setUpper(next_upper_cell_ptr);
-          } while (lower_cell_ptr->getValFrom() >=
-              next_upper_cell_ptr->getValTo());
+          } while (lower_cell_ptr->getValFrom() 
+              >= next_upper_cell_ptr->getValTo());
         }
       }
     }
@@ -391,10 +388,11 @@ IrregularGrid2D::OutIrGrid2D( ListExpr typeInfo, Word value ) {
 
   if (irgrid2d != nullptr) {
     Rectangle<2> * b_box = irgrid2d->getBoundingBox();
-    ListExpr bboxLstExpr = nl->FourElemList(nl->RealAtom(b_box->getMinX()),
-        nl->RealAtom(b_box->getMaxX()),
-        nl->RealAtom(b_box->getMinY()),
-        nl->RealAtom(b_box->getMaxY()));
+    ListExpr bboxLstExpr = nl->FourElemList(
+      nl->RealAtom(b_box->getMinX()),
+      nl->RealAtom(b_box->getMaxX()),
+      nl->RealAtom(b_box->getMinY()),
+      nl->RealAtom(b_box->getMaxY()));
 
     std::vector<VCell>* col = &irgrid2d->getColumnVector();
 
@@ -409,7 +407,7 @@ IrregularGrid2D::OutIrGrid2D( ListExpr typeInfo, Word value ) {
               nl->RealAtom(vcell->getValTo())));
         } else {
           rowLstExpr =  nl->OneElemList(
-              nl->TwoElemList(nl->RealAtom(vcell->getValFrom()),
+            nl->TwoElemList(nl->RealAtom(vcell->getValFrom()),
             nl->RealAtom(vcell->getValTo())));
           lastRowLstExpr = rowLstExpr;
         }
@@ -418,14 +416,12 @@ IrregularGrid2D::OutIrGrid2D( ListExpr typeInfo, Word value ) {
         if (row_vect->size() > 0) {
           ListExpr cellLstExpr;
           ListExpr lastCellLstExpr;
-          for(size_t rowIdx = 0; rowIdx < row_vect->size();
-              rowIdx++) {
+          for(size_t rowIdx = 0; rowIdx < row_vect->size(); rowIdx++) {
             HCell* row_cell = &row_vect->at(rowIdx);
 
             if (rowIdx > 0) {
               lastCellLstExpr = nl->Append(lastCellLstExpr,
-                  nl->FourElemList(nl->RealAtom
-                      (row_cell->getValFrom()),
+                  nl->FourElemList(nl->RealAtom(row_cell->getValFrom()),
                   nl->RealAtom(row_cell->getValTo()),
                   nl->IntAtom(row_cell->getCellId()),
                   nl->IntAtom((row_cell->getUpper() != nullptr 
@@ -516,16 +512,16 @@ IrregularGrid2D::InIrGrid2D( const ListExpr typeInfo, const ListExpr instance,
         ListExpr lstElem = nl->First(rowLstExpr);
 
         if ((nl->ListLength(lstElem)) == 2
-            && (nl->IsAtom(nl->First(lstElem)) &&
-                nl->IsAtom(nl->Second(lstElem))) ) {
+            && (nl->IsAtom(nl->First(lstElem)) 
+            && nl->IsAtom(nl->Second(lstElem))) ) {
           // a two-element double list initiates a new row
           row_cnt ++;
 
           ListExpr fLst = nl->First(lstElem);
           ListExpr tLst = nl->Second(lstElem);
 
-          if ( nl->AtomType(fLst) == RealType &&
-              nl->AtomType(tLst) == RealType) {
+          if ( nl->AtomType(fLst) == RealType 
+                && nl->AtomType(tLst) == RealType) {
             vc = VCell();
 
             vc.setValFrom(nl->RealValue(fLst));
@@ -600,8 +596,7 @@ IrregularGrid2D::InIrGrid2D( const ListExpr typeInfo, const ListExpr instance,
     }
 
     correct = true;
-    IrregularGrid2D* irgrid = new IrregularGrid2D(*bbox, row_cnt,
-        cell_cnt);
+    IrregularGrid2D* irgrid = new IrregularGrid2D(*bbox, row_cnt, cell_cnt);
     irgrid->setColumnVector(column_vec);
 
     w.addr = irgrid;
@@ -652,7 +647,6 @@ IrregularGrid2D::DeleteIrGrid2D( const ListExpr typeInfo, Word& w )
   delete (IrregularGrid2D *)w.addr;
   w.addr = 0;
 }
-
 
 // SizeOf function
 int
