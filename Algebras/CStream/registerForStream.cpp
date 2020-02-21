@@ -72,10 +72,9 @@ int registerForStream_VM(Word* args, Word& result, int message,
               Word& local, Supplier s) 
 {
 
-LOG << " registerForStream: ValueMapping: Entering " << ENDL;
+    LOG << " registerForStream: ValueMapping: Entering " << ENDL;
 
     Word streamWord(Address(0));
-    TupleDescr* tdType = 0;
     
     RegisterForStreamClient* registerForStreamClient = 
         (RegisterForStreamClient*) local.addr;
@@ -86,38 +85,59 @@ LOG << " registerForStream: ValueMapping: Entering " << ENDL;
         case OPEN:
         {
             LOG << " registerForStream: ValueMapping: OPEN " << ENDL;
-            CcString* hostname = (CcString*)args[0].addr;
-            CcInt* port = (CcInt*)args[1].addr;
-            tdType = (TupleDescr*)(args[2].addr);
-            FText* filterFunction = (FText*)args[4].addr;
+   
+            CcString* hostname = (CcString*) args[0].addr;
+            CcInt* port = (CcInt*) args[1].addr;
+            TupleDescr* tdType = (TupleDescr*) args[2].addr;
+            FText* filterFunction = (FText*) args[4].addr;
+
+            LOG << " filterFunction is = " 
+                << filterFunction->GetValue() << ENDL;   
+      
             registerForStreamClient = 
                 new RegisterForStreamClient(hostname->GetValue(),
                                             port->GetIntval(),
                                             tdType, filterFunction->GetValue());
-             LOG << " filterFunction = "  
-             << filterFunction->GetValue() << ENDL;   
                 
-            if(!registerForStreamClient->start()) {
-                // Fehlerbehandlung
+            local.addr = registerForStreamClient;
+            int startRet = registerForStreamClient->start();
+
+            if(startRet) {
+                LOG << " registerForStream: got start error=" 
+                    << startRet << ENDL;
+                return 0;
             }
             
-            local.addr = registerForStreamClient;
             return 0;
         }
 
         case REQUEST:
         {
             LOG << " registerForStream: ValueMapping: REQUEST " << ENDL;
-            
-            //received tuple          
-            Tuple* tuple;
-
-            if ((tuple = registerForStreamClient->receiveTuple())) {
-                LOG << "Tuple received" << ENDL;
-                result = tuple;
-                return YIELD;
+          
+            // Operator not ready
+            if(! registerForStreamClient) {
+                LOG << " registerForStream: Operator not ready" << ENDL;
+                result.addr = 0;
+                return CANCEL;
             }
-            else {
+
+            bool connectionOk = registerForStreamClient->connectionOK();
+           
+            if(! connectionOk) {
+                LOG << " registerForStream: Conenction is not ok" << ENDL;
+                result.addr = 0;
+                return CANCEL;
+            }
+
+            // Everything is ok, try to fetch a tuple from the server        
+            Tuple* tuple = registerForStreamClient->receiveTuple();
+
+            if (tuple) {
+                LOG << "Tuple received" << ENDL;
+                result.addr = tuple;
+                return YIELD;
+            } else {
                 LOG << "No more Tuples" << ENDL;
                 result.addr = 0;
                 return CANCEL;
@@ -128,11 +148,12 @@ LOG << " registerForStream: ValueMapping: Entering " << ENDL;
         {
             LOG << " registerForStream: ValueMapping: CLOSE " << ENDL;
             
-            if (local.addr != 0)  {
-                local.setAddr(0);
+            // Delete local operator state
+            if (registerForStreamClient) {
+                delete registerForStreamClient;
+                local.setAddr(NULL);
             }
-            delete registerForStreamClient;
-            local.addr = 0;
+
             return 0;
         }
     }
@@ -180,12 +201,11 @@ ListExpr registerForStream_TM(ListExpr args) {
     if(!TupleDescr::CheckType(nl->First(nl->Second(nl->Third(args))))) 
         return listutils::typeError(" tupledescr error 4");
                 
-   // Check fourth argument (filterfunction)
+    // Check fourth argument (filterfunction)
     if (!nl->HasLength(nl->Fourth(args), 2)) 
         return listutils::typeError(" map of tupledescr values are expected");
     if(!listutils::isMap<1>(nl->First(nl->Fourth(args)))) 
-return listutils::typeError(
-    "map oftupledescr values are expected");             
+        return listutils::typeError("map oftupledescr values are expected");
 
     LOG << "target type: " << ENDL;
     LOG << 
@@ -229,7 +249,6 @@ return listutils::typeError(
     }
 
     // replace function argument type (may be TTYPE3) by the real type   
-
     ListExpr funArgType = nl->Second(nl->First(nl->Fourth(args)));
  
     // Init of filterfunction as ListExpr for global use, e.g. in VM
@@ -237,6 +256,7 @@ return listutils::typeError(
     if(!nl->HasLength(funFilterFunktionList,3)){
         return listutils::typeError("Invalid function definition");
     }
+
     ListExpr origArg = nl->Second(funFilterFunktionList);
     if(!nl->HasLength(origArg,2)){ // name type
         return listutils::typeError("Invalid function definition");
