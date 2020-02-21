@@ -208,6 +208,8 @@ ListExpr generateUserFilter_TM(ListExpr userFilter) {
 */
 ListExpr generateType_TM(ListExpr expression) {
 
+    LOG << "   -> Expression is " << nl->ToString(expression) << ENDL;
+
     // we need some variables for feeding the ExecuteQuery function
     Word queryResult;
     std::string typeString = "";
@@ -278,14 +280,11 @@ ListExpr registerForStream_TM(ListExpr args) {
     
     // Check third argument (types of tupledescr)
     // e.g. (tupledescr (tupledescr '((PLZ int) (Ort string))'))
+    // e.g. (tupledescr plztype)
     if (!nl->HasLength(nl->Third(args), 2)) 
         return listutils::typeError(" Could not determine tupledescr-error 1");
     if(!TupleDescr::CheckType(nl->First(nl->Third(args)))) 
         return listutils::typeError(" Could not determine tupledescr-error 2");
-    if (!nl->HasLength(nl->Second(nl->Third(args)), 2)) 
-        return listutils::typeError(" Could not determine tupledescr-error 3");
-    if(!TupleDescr::CheckType(nl->First(nl->Second(nl->Third(args))))) 
-        return listutils::typeError(" Could not determine tupledescr-error 4");
                 
     // Check fourth argument (filterfunction)
     if (!nl->HasLength(nl->Fourth(args), 2)) 
