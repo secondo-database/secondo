@@ -39,11 +39,52 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "StandardTypes.h"
 #include "Stream.h"
 #include "Algebras/FText/FTextAlgebra.h"
+#include <cstdio>
+
+
+#include <boost/polygon/voronoi.hpp>
+using boost::polygon::voronoi_builder;
+using boost::polygon::voronoi_diagram;
+using boost::polygon::x;
+using boost::polygon::y;
+using boost::polygon::low;
+using boost::polygon::high;
+using boost::polygon::construct_voronoi;
+
+
+namespace boost {
+  namespace polygon {
+
+
+    struct VoronoiPoint {
+      double a;
+      double b;
+      VoronoiPoint(double x, double y) : a(x), b(y) {}
+    };   
+    
+
+    template<>
+    struct geometry_concept<VoronoiPoint>{typedef point_concept type;};
+
+    template <>
+    struct point_traits<VoronoiPoint> {
+      typedef double coordinate_type;
+
+      static inline coordinate_type get(
+          const VoronoiPoint& point, orientation_2d orient) {
+        return (orient == HORIZONTAL) ? point.a : point.b;
+      }
+    };
+
+
+
+}}
 
 using namespace std; 
 
 
 extern NestedList* nl;
+using boost::polygon::VoronoiPoint;
 
 
 namespace convex { 
@@ -250,19 +291,22 @@ bool checkme(std::vector<std::tuple <double, double>>& src){
   
     
 
-      
-  // sorting vecs by x resp. y coord 
-         
-       sort(xysortedvecasc.begin(), xysortedvecasc.end(), sortxupyup); 
-       sort(yxsortedvecasc.begin(), yxsortedvecasc.end(), sortyupxdown); 
+// sorting vecs by x resp. y coord 
+
+
+sort(xysortedvecasc.begin(), xysortedvecasc.end(), sortxupyup); 
+sort(yxsortedvecasc.begin(), yxsortedvecasc.end(), sortyupxdown); 
        
        
          
     
-    
-    
-    //eliminate redundant points 
-    count = 0;
+ 
+/*
+eliminate redundant points 
+
+*/
+       
+       count = 0;
     for (unsigned int i = 0; i < xysortedvecasc.size() - 1; i++)
        { if ( (get<0>(xysortedvecasc[i]) == get<0>(xysortedvecasc[i+1]))&&
               (get<1>(xysortedvecasc[i]) == get<1>(xysortedvecasc[i+1]))) { 
@@ -279,8 +323,11 @@ bool checkme(std::vector<std::tuple <double, double>>& src){
        
        
        
-    // get leftpoint and right point of polygon
-    
+   /* get leftpoint and right point of polygon
+ 
+   */
+
+
     leftpoint = xysortedvecasc[0];
     rightpoint = xysortedvecasc[xysortedvecasc.size() - 1];
     downpoint = yxsortedvecasc[0];
@@ -289,9 +336,10 @@ bool checkme(std::vector<std::tuple <double, double>>& src){
    
     
    
-    //get points above and below the imagenary "line" 
-    //from leftpoint to rightpoint
-   
+   /* get points above and below the imagenary "line" 
+    from leftpoint to rightpoint
+
+   */   
     
     m = (get<1>(rightpoint) - get<1>(leftpoint)) / 
         (get<0>(rightpoint) - get<0>(leftpoint));
@@ -329,16 +377,16 @@ bool checkme(std::vector<std::tuple <double, double>>& src){
           
           
           
-   //move points above and below to 
-   //aboveleft, aboveright, belowleft and belowright.
-   // using the "line" from downpoint to uppoint
+   /* move points above and below to 
+aboveleft, aboveright, belowleft and belowright.
+using the "line" from downpoint to uppoint
     
     
      
-   //get points above and below the imagenary "line" from downpoint to uppoint
+get points above and below the imagenary "line" from downpoint to uppoint
     
-   //first: testing if point are perpendicular
-    
+first: testing if point are perpendicular
+  */    
     
     
   if (get<0>(uppoint) != get<0>(downpoint) ){   
@@ -418,8 +466,9 @@ bool checkme(std::vector<std::tuple <double, double>>& src){
      
    
    
-   // uppoint and downpoint are perpendicular
-   
+  /* uppoint and downpoint are perpendicular
+  */
+
    if (get<0>(uppoint) == get<0>(downpoint) ) {
        
        for (unsigned int i = 0; i < above.size(); i++)  {
@@ -468,23 +517,24 @@ bool checkme(std::vector<std::tuple <double, double>>& src){
      
      
     
-   // sorting aboveleft, ab aboveright, belowright and belowleft...
+   /* sorting aboveleft, ab aboveright, belowright and belowleft...
+   */
    
-   
-   // aboveleft is already sorted: x up , y up 
+   /* aboveleft is already sorted: x up , y up 
+   */
    
    sort(aboveleft.begin(), aboveleft.end(), sortxupyup);
    
-   // sorting aboveright: x up, y down
-    
+   /* sorting aboveright: x up, y down
+   */ 
   sort(aboveright.begin(), aboveright.end(), sortxupydown); 
        
-  // sorting belowright: x down, y down
-  
+  /* sorting belowright: x down, y down
+  */
   sort(belowright.begin(), belowright.end(), sortxdownydown); 
     
-  //sorting belowleft: x down,  y up
-  
+  /* sorting belowleft: x down,  y up
+  */
   sort(belowleft.begin(), belowleft.end(), sortxdownyup); 
   
   
@@ -495,8 +545,8 @@ bool checkme(std::vector<std::tuple <double, double>>& src){
     
     
     
-   //constructing the final vector
-   
+   /*constructing the final vector
+   */
   
      
    aboveleftsize  = aboveleft.size();
@@ -557,8 +607,8 @@ bool checkme(std::vector<std::tuple <double, double>>& src){
     
    
    
-  // put left point at the end of the final vec for testing purposes 
-   
+  /* put left point at the end of the final vec for testing purposes 
+  */ 
    
    finalcheckedvec.push_back(leftpoint);
    
@@ -1316,9 +1366,9 @@ Word Convex::In(const ListExpr typeInfo, const ListExpr le1,
      
      
     
-     
-   //contructing the vektor of tuples       
-   
+   /* 
+   contructing the vektor of tuples       
+   */
    
    tmpo.push_back(std::make_tuple(nl->RealValue(fxpoi), nl->RealValue(fypoi)));
    
@@ -1328,8 +1378,8 @@ Word Convex::In(const ListExpr typeInfo, const ListExpr le1,
    
    
    
-   //HIER AUFRUF CHECKME
-   
+   /*CHECKME Call
+   */
    
    checkokflag = checkme(tmpo);
    
@@ -1489,8 +1539,8 @@ bool Convex::Save(SmiRecord& valueRecord, size_t& offset,
     
          
          
-     // converting the right tuple vector into point sequence    
-        
+     /* converting the right tuple vector into point sequence    
+     */   
       
          while(it!=src.end()) {
            
@@ -1551,8 +1601,12 @@ void Convex::Rebuild(char* buffer, size_t sz) {
 }
 
 
-//Type Mapping Funtions
 
+
+
+
+  /*Type Mapping Funtions
+  */
 
 
 ListExpr createconvextypemap( ListExpr args)
@@ -1581,7 +1635,135 @@ ListExpr createconvextypemap( ListExpr args)
 
 
 
-//Value Mapping Functions
+
+
+
+ListExpr voronoitypemapping ( ListExpr args)
+
+{   
+    ListExpr extendconv, stream, namenewattr, attrtype;
+    ListExpr second, third, secondname, thirdname;
+    string secondnamestr, thirdnamestr;
+    int posit1, posit2;
+    
+   
+    if(nl->ListLength(args)!=3){
+    ErrorReporter::ReportError("three args expected");
+    return nl->TypeError();
+  }
+    
+    
+    
+     if(nl->AtomType(nl->Second(args))!=SymbolType){
+      return listutils::typeError("second arg does not represent a valid "
+                                  "attribute name");
+    }    
+    
+    
+     if(nl->AtomType(nl->Third(args))!=SymbolType){
+      return listutils::typeError("third arg does not represent a valid "
+                                  "attribute name");
+    }    
+    
+    second = nl->Second(args); 
+    third = nl->Third(args);
+    
+    if ((nl->ListLength(second) != -1 ) 
+       || (nl->ListLength(third)  != -1) ) {
+  
+  
+    ErrorReporter::ReportError("two attribute name arguments expected");
+    return nl->TypeError();
+   }
+
+    
+    
+    
+    if(!IsStreamDescription(nl->First(args))){
+    ErrorReporter::ReportError("first argument is not a tuple stream");
+    return nl->TypeError();
+  }
+
+    
+    stream = nl->First(args);
+    namenewattr = nl->Third(args);
+    
+    
+     // copy attrlist to newattrlist
+  ListExpr attrList = nl->Second(nl->Second(stream));
+  ListExpr newAttrList = nl->OneElemList(nl->First(attrList));
+  ListExpr lastlistn = newAttrList;
+  attrList = nl->Rest(attrList);
+  
+  
+  while (!(nl->IsEmpty(attrList)))
+  {
+     lastlistn = nl->Append(lastlistn,nl->First(attrList));
+     attrList = nl->Rest(attrList);
+  }
+
+  // reset attrList
+  attrList = nl->Second(nl->Second(stream));
+  
+  
+  secondname =  second;
+  secondnamestr = nl->SymbolValue(secondname);
+  
+  thirdname = third;
+  thirdnamestr = nl->SymbolValue(thirdname);
+  
+  
+  
+  posit1 = FindAttribute(attrList,secondnamestr,attrtype);
+  
+  if(posit1==0){
+       ErrorReporter::ReportError("Attribute "+ secondnamestr +
+                                  " must be a member of the tuple");
+       return nl->TypeError();
+    }
+  
+  
+  
+  posit2 = FindAttribute(attrList,thirdnamestr,attrtype);
+ if(posit2!=0){
+       ErrorReporter::ReportError("Attribute "+ thirdnamestr +
+                                  " is already a member of the tuple");
+       return nl->TypeError();
+    }
+ 
+  
+    
+    
+    
+  extendconv = nl->SymbolAtom(Convex::BasicType());
+  
+  lastlistn = nl->Append(lastlistn, (nl->TwoElemList(namenewattr, extendconv)));
+  
+  
+  
+  return 
+   
+   nl->ThreeElemList(            
+        nl->SymbolAtom(Symbol::APPEND()),
+        nl->OneElemList(nl->IntAtom(posit1)),  
+        nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
+                        nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()),
+				        newAttrList)));
+  
+    
+}
+
+
+
+
+
+
+
+
+
+
+  /* Value Mapping Functions
+  */
 
 
 int createconvexVM (Word* args, Word& result,
@@ -1651,9 +1833,102 @@ if (checkgood == true) {
 }    
     
 
+    
+
+    
+    
+    
+struct voronoiInfo {
+ 
+
+map<std::tuple<double, double>, Convex> tuple2conv;
+    
+
+};
+   
+     
 
 
-//Specification for createconvex
+
+
+
+
+
+    
+int voronoiVM (Word* args, Word& result,
+                   int message, Word& local, Supplier s) 
+{
+    
+    
+   qp->DeleteResultStorage(s);
+   qp->ReInitResultStorage(s);  
+   result = qp->ResultStorage(s);
+
+
+
+   voronoiInfo*  localInfo = (voronoiInfo*) qp->GetLocal2(s).addr;
+   localInfo = new voronoiInfo;
+   qp->GetLocal2(s).addr = localInfo;        
+    
+   Stream<Tuple> stream(args[0]);
+ 
+   stream.open();
+ 
+  
+   /*contructing the vektor of points */   
+   std::vector<VoronoiPoint> voropoints; 
+   int pointpos = ((CcInt*)args[3].addr)->GetIntval();
+
+   Tuple* tup;
+   while ( (tup = stream.request() ) ){
+      Point* pointval = static_cast<Point*>(tup->GetAttribute(pointpos-1));
+      if(pointval->IsDefined()){		       
+        double xval = pointval->GetX(); 
+        double yval = pointval->GetY();
+        voropoints.push_back(VoronoiPoint(xval, yval));
+      }
+      tup->DeleteIfAllowed();     
+   }
+
+   stream.close();
+
+ 
+  /*constructing the voronoi diagramm using the boost library */
+  voronoi_diagram<double> vorodiag;
+
+  construct_voronoi(voropoints.begin(), voropoints.end(), &vorodiag);
+  
+ 
+  /* constructing stream output */    
+    
+    
+  return 0;    
+}    
+    
+ 
+ 
+ 
+ 
+    
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+
+  //Specification for createconvex
 
 
 const string createconvexSpec  =
@@ -1674,12 +1949,36 @@ const string createconvexSpec  =
     
 
 
+    
+ const string voronoiSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text>((stream (tuple (..., (ak1 point),...))) x ak1 x ak2 "
+    "-> (stream (tuple (..., (ak1 point),..., (ak2 convex))))) "
+    "<text>__ voronoi [ list ] </text--->"
+    "<text>Expands each tuple of the relation with a convex polygon "
+    " representing the voronoi cell that belongs to the "
+    "centerpoint specified "    
+    " with point value of the attribute ak1.  The complete voronoi "
+    " diagramm is set up with "
+    " all points of ak1 from all tuples, in other words with "
+    "all points of the "
+    " ak1 column of the relation </text--->"    
+    "<text> query testrel feed voronoi [p, conv ] </text--->" 
+    ") )";
+    
+    
+    
+    
+
+    
+    
+    
 
 
 
 
 
-//Registration of Types
+  //Registration of Types
 
 
 
@@ -1694,7 +1993,7 @@ TypeConstructor ConvexTC(
 
 
 
-//Registration of operators
+  //Registration of operators
 
 Operator createconvex ( "createconvex",
                    createconvexSpec,
@@ -1710,7 +2009,7 @@ Operator createconvex ( "createconvex",
 
 
   
-//Implementation of the Algebra Class
+  //Implementation of the Algebra Class
 
 class ConvexAlgebra : public Algebra
 {
@@ -1718,7 +2017,7 @@ class ConvexAlgebra : public Algebra
   ConvexAlgebra() : Algebra()
    
 
-//Registration of Types
+   //Registration of Types
 
   
   
@@ -1729,7 +2028,7 @@ class ConvexAlgebra : public Algebra
     ConvexTC.AssociateKind(Kind::DATA() );   
    
 
-// Registration of operators
+  // Registration of operators
  
     AddOperator( &createconvex);
   
@@ -1745,7 +2044,7 @@ class ConvexAlgebra : public Algebra
 } //end of namespace
 
 
-//Initialization 
+  //Initialization 
 
 
 
