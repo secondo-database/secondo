@@ -178,7 +178,9 @@ ListExpr TupleDescr::Out(ListExpr typeInfo, Word value) {
     std::string s = td->GetString();
     std::string error;
     td->BuildTree(error);
-    return nl->TextAtom(s);
+    ListExpr resultList;
+    nl->ReadFromString(s, resultList);
+    return resultList;
 }
 
 ListExpr TupleDescr::Out(TupleDescr* td) {
