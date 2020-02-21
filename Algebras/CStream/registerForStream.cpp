@@ -203,6 +203,50 @@ ListExpr generateUserFilter_TM(ListExpr userFilter) {
 }
 
 /*
+1.2 Tupledescr type calculation
+
+*/
+ListExpr generateType_TM(ListExpr expression) {
+
+    // we need some variables for feeding the ExecuteQuery function
+    Word queryResult;
+    std::string typeString = "";
+    std::string errorString = "";
+    bool correct;
+    bool evaluable;
+    bool defined;
+    bool isFunction;
+
+    // use the queryprocessor for executing the expression
+    qp->ExecuteQuery(expression, queryResult, 
+                    typeString, errorString, correct, 
+                    evaluable, defined, isFunction);
+
+    // check correctness of the expression
+    if(!correct || !evaluable || !defined || isFunction) {
+        assert(queryResult.addr == 0);
+        return listutils::typeError("could not extract tupledescr");
+    }
+
+    TupleDescr* td = (TupleDescr*) queryResult.addr;
+    assert(td);
+    if(!td->IsDefined()) {
+        return listutils::typeError("tupledescr undefined");
+    }
+
+    // Create the target stream of tuples from the tupledescr
+    ListExpr tdList;
+    if(!nl->ReadFromString(td->GetString(), tdList)) {
+        return listutils::typeError("Error in tupledescr");
+    }
+
+    return nl->TwoElemList(
+          listutils::basicSymbol<Stream<Tuple>>(),
+             nl->TwoElemList(listutils::basicSymbol<Tuple>(), tdList)
+          );
+}
+
+/*
 1.2 Operation registerForStream TypeMapping
 
 */
@@ -248,49 +292,10 @@ ListExpr registerForStream_TM(ListExpr args) {
         return listutils::typeError(" map of tupledescr values are expected");
     if(!listutils::isMap<1>(nl->First(nl->Fourth(args)))) 
         return listutils::typeError(" map of tupledescr values are expected");
+   
+    // Evaluate tuple type / tupledescr 
+    ListExpr targetList = generateType_TM(nl->Second(nl->Third(args)));
     
-    ListExpr arg2Value = nl->Second(nl->Third(args));
-
-    // we need to get the value of the second argument (tupledescr)
-    ListExpr expression = arg2Value;
-
-    // we need some variables for feeding the ExecuteQuery function
-    Word queryResult;
-    std::string typeString = "";
-    std::string errorString = "";
-    bool correct;
-    bool evaluable;
-    bool defined;
-    bool isFunction;
-
-    // use the queryprocessor for executing the expression
-    qp->ExecuteQuery(expression, queryResult, 
-                    typeString, errorString, correct, 
-                    evaluable, defined, isFunction);
-
-    // check correctness of the expression
-    if(!correct || !evaluable || !defined || isFunction) {
-        assert(queryResult.addr == 0);
-        return listutils::typeError("could not extract tupledescr");
-    }
-
-    TupleDescr* td = (TupleDescr*) queryResult.addr;
-    assert(td);
-    if(!td->IsDefined()) {
-        return listutils::typeError("tupledescr undefined");
-    }
-
-    // Create the target stream of tuples from the tupledescr
-    ListExpr tdList;
-    if(!nl->ReadFromString(td->GetString(), tdList)) {
-        return listutils::typeError("Error in tupledescr");
-    }
-
-    ListExpr targetList = nl->TwoElemList(
-          listutils::basicSymbol<Stream<Tuple>>(),
-             nl->TwoElemList(listutils::basicSymbol<Tuple>(), tdList)
-          );
-
     LOG << " registerForStream: TypeMapping: target type: "
         << nl->ToString(targetList) << ENDL;
 
