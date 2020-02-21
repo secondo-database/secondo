@@ -161,6 +161,48 @@ int registerForStream_VM(Word* args, Word& result, int message,
 }
 
 /*
+1.2 convert a list to a symbol atom
+
+*/
+ListExpr convertListToSymbol(ListExpr input) {
+    return nl->OneElemList(nl->TextAtom(nl->ToString(input)));
+}
+
+/*
+1.2 User filter function type mapping
+
+*/
+ListExpr generateUserFilter_TM(ListExpr userFilter) {
+
+    ListExpr funFilterFunktionList = nl->Second(userFilter);
+    if(!nl->HasLength(funFilterFunktionList,3)){
+        return listutils::typeError("Invalid function definition");
+    }
+
+    // No filter should be used
+    std::string filterString = nl->ToString(nl->Third(funFilterFunktionList));
+    if(filterString.compare("TRUE") == 0){
+        LOG << "  No filter is used" << ENDL;
+        return convertListToSymbol(nl->TheEmptyList());
+    }
+
+    ListExpr origArg = nl->Second(funFilterFunktionList);
+    if(!nl->HasLength(origArg,2)){ // name type
+        return listutils::typeError("Invalid function definition");
+    }
+
+    // replace function argument type (may be TTYPE3) by the real type
+    ListExpr funArgType = nl->Second(nl->First(userFilter)); 
+    ListExpr finalFunArgType = nl->TwoElemList(nl->First(origArg), funArgType);
+    ListExpr fixedFuncList = nl->ThreeElemList(
+                      nl->First(funFilterFunktionList),
+                      finalFunArgType,
+                      nl->Third(funFilterFunktionList));
+
+    return convertListToSymbol(fixedFuncList);
+}
+
+/*
 1.2 Operation registerForStream TypeMapping
 
 */
@@ -193,30 +235,25 @@ ListExpr registerForStream_TM(ListExpr args) {
     // Check third argument (types of tupledescr)
     // e.g. (tupledescr (tupledescr '((PLZ int) (Ort string))'))
     if (!nl->HasLength(nl->Third(args), 2)) 
-        return listutils::typeError(" tupledescr error 1");
+        return listutils::typeError(" Could not determine tupledescr-error 1");
     if(!TupleDescr::CheckType(nl->First(nl->Third(args)))) 
-        return listutils::typeError(" tupledescr error 2");
+        return listutils::typeError(" Could not determine tupledescr-error 2");
     if (!nl->HasLength(nl->Second(nl->Third(args)), 2)) 
-        return listutils::typeError(" tupledescr error 3");
+        return listutils::typeError(" Could not determine tupledescr-error 3");
     if(!TupleDescr::CheckType(nl->First(nl->Second(nl->Third(args))))) 
-        return listutils::typeError(" tupledescr error 4");
+        return listutils::typeError(" Could not determine tupledescr-error 4");
                 
     // Check fourth argument (filterfunction)
     if (!nl->HasLength(nl->Fourth(args), 2)) 
         return listutils::typeError(" map of tupledescr values are expected");
     if(!listutils::isMap<1>(nl->First(nl->Fourth(args)))) 
-        return listutils::typeError("map oftupledescr values are expected");
-
-    LOG << "target type: " << ENDL;
-    LOG << 
-        nl->ToString(nl->TwoElemList(listutils::basicSymbol<Stream<Tuple> >(),
-                nl->OneElemList(listutils::basicSymbol<Tuple>())))
-        << ENDL;
-
+        return listutils::typeError(" map of tupledescr values are expected");
+    
     ListExpr arg2Value = nl->Second(nl->Third(args));
 
     // we need to get the value of the second argument (tupledescr)
     ListExpr expression = arg2Value;
+
     // we need some variables for feeding the ExecuteQuery function
     Word queryResult;
     std::string typeString = "";
@@ -230,6 +267,7 @@ ListExpr registerForStream_TM(ListExpr args) {
     qp->ExecuteQuery(expression, queryResult, 
                     typeString, errorString, correct, 
                     evaluable, defined, isFunction);
+
     // check correctness of the expression
     if(!correct || !evaluable || !defined || isFunction) {
         assert(queryResult.addr == 0);
@@ -248,36 +286,25 @@ ListExpr registerForStream_TM(ListExpr args) {
         return listutils::typeError("Error in tupledescr");
     }
 
-    // replace function argument type (may be TTYPE3) by the real type   
-    ListExpr funArgType = nl->Second(nl->First(nl->Fourth(args)));
- 
-    // Init of filterfunction as ListExpr for global use, e.g. in VM
-    ListExpr funFilterFunktionList = nl->Second(nl->Fourth(args));
-    if(!nl->HasLength(funFilterFunktionList,3)){
-        return listutils::typeError("Invalid function definition");
-    }
+    ListExpr targetList = nl->TwoElemList(
+          listutils::basicSymbol<Stream<Tuple>>(),
+             nl->TwoElemList(listutils::basicSymbol<Tuple>(), tdList)
+          );
 
-    ListExpr origArg = nl->Second(funFilterFunktionList);
-    if(!nl->HasLength(origArg,2)){ // name type
-        return listutils::typeError("Invalid function definition");
-    }   
-    funArgType = nl->TwoElemList(nl->First(origArg),funArgType);
+    LOG << " registerForStream: TypeMapping: target type: "
+        << nl->ToString(targetList) << ENDL;
 
-    funFilterFunktionList = nl->ThreeElemList(
-                      nl->First(funFilterFunktionList),
-                      funArgType,
-                      nl->Third(funFilterFunktionList));
+    // Create filter funtion
+    ListExpr filterFuncForTM = generateUserFilter_TM(nl->Fourth(args));
 
+    LOG << " registerForStream: TypeMapping: filterFunc: "
+        << nl->ToString(filterFuncForTM) << ENDL;
+    
+    // Build final list
     return nl->ThreeElemList(
-            nl->SymbolAtom(Symbol::APPEND()),
-            nl->OneElemList(nl->TextAtom(nl->ToString(
-               nl->ThreeElemList(
-                      nl->First(funFilterFunktionList),
-                      funArgType,
-                      nl->Third(funFilterFunktionList))))),
-            nl->TwoElemList(listutils::basicSymbol<Stream<Tuple> >(),
-               nl->TwoElemList(listutils::basicSymbol<Tuple>(),
-               tdList)));
+               nl->SymbolAtom(Symbol::APPEND()), 
+               filterFuncForTM, 
+               targetList);
 }
 
 /*
