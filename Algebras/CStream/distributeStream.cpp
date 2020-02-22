@@ -299,12 +299,14 @@ int distributeStream_Select(ListExpr args) {
 
 const std::string distributeStreamOpSpec = 
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-"( <text>(stream (tuple([a1:d1, ... ,an:dn])) x int x bool)"
-" -> (stream (tuple([a1:d1, ... ,an:dn]))))"
-"</text--->"
+"( <text>(stream (TTYPE([a1:d1, ... ,an:dn])) x int x bool)"
+" -> (stream (TTYPE([a1:d1, ... ,an:dn])))), "
+" TTYPE in {vtuple, tuple} </text--->"
 "<text>_ distributeStream [ _, _ ]</text--->"
 "<text>Distribute a stream of tuple oder vtuple to"
-" a given portnumber</text--->"
+" a given portnumber. The bool parameter determines"
+" the tuple format for the transfer. true means"
+" binary, false means nested list.</text--->"
 "<text>query ten feed distributeStream"
 "[81, FALSE] consume</text--->"
 ") )";
