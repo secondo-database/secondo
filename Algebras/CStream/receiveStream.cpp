@@ -670,12 +670,12 @@ int ReceiveStream_VM(Word* args, Word& result, int message,
 */
 const std::string ReceiveStream_Spec = 
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-"( <text>(text symbol)"
+"( <text>(text string)"
 " -> (stream (vtuple))"
 "</text--->"
 "<text>receiveStream(_, _)</text--->"
 "<text>Converts a file of JSON or AIS data to a stream of VTuples.</text--->"
-"<text>receiveStream('somefile.json', \"json\")</text--->"
+"<text>receivestring(\'somefile.json\', \"json\")</text--->"
 ") )";
 
 /*

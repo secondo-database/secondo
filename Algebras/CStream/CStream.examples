@@ -3,8 +3,8 @@ Restore  : NO
 
 Operator : receiveStream
 Number   : 1
-Signature: string x symbol -> stream(vtuple)
-Example  : query receiveStream("somefile.ais", "ais") count
+Signature: text x symbol -> stream(vtuple)
+Example  : query receiveStream('somefile.ais', "ais") count
 Result   : 0
 
 Operator : distributeStream
