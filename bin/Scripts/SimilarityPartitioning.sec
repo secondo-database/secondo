@@ -1,6 +1,3 @@
-# Similarity Partitioning
-#
-# A sample relation SS with position attribute Pos must be present. Adapt parameter k.
 
 
 let k = 50;
@@ -15,7 +12,6 @@ let Balls = SS feed
       SSm_Pos_mtree SSm mdistScan[attr(t, Pos)] head[k] tail[1] extract[Pos])]
   mconsume
 
-
 let maxRadius = Balls mfeed max[Radius]
 
 let PCm = Balls mfeed head[0] mconsume;
@@ -27,7 +23,7 @@ query Balls mfeed filter[fun(t: TUPLE)
       count = 0]
   minsert[PCm]
   minsertmtree[PCm_Pos_mtree, Pos]
-  count
+  consume
 
 let PC = PCm mfeed project[Osm_id, Pos, Radius] addcounter[N, 0]
   extend[C: circle(.Pos, .Radius, 20)] 
