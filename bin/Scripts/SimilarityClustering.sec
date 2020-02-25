@@ -74,9 +74,8 @@ let Wm_Pos_mtree = Wm dmap["Wm_Pos_mtree", . mcreatemtree[Pos, wgs84]];
 let Neighbors = X Wm_Pos_mtree Wm 
   dmap3["Neighbors", $1 feed filter[.N # .N2] 
     loopsel[fun(t: TUPLE) $2 $3 mdistRange[attr(t, Pos), Eps] 
-      projectextend[; 
-        P: . Osm_id, PosP: .Pos,  CID0: .CID0, CIDp: .CID, IsCoreP: .IsCore, 
-        Np: .N, Q: attr(t, Osm_id), QPos: attr(t, Pos)]] 
+      projectextend[; P: . Osm_id, PosP: .Pos,  CID0: .CID0, CIDp: .CID, 
+        IsCoreP: .IsCore, Np: .N, Q: attr(t, Osm_id), QPos: attr(t, Pos)]] 
     consume, myPort
   ]
 
