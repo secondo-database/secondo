@@ -59,6 +59,8 @@ extern Operator ARRAYORTASKSFUNARG5Op;
 
 extern Operator ARRAYORTASKSFUNFSARG2Op;
 
+extern Operator ARRAYORTASKSFUNARGPARTITIONFOp;
+
 } // namespace distributed5
 
 #endif

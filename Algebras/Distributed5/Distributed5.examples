@@ -55,6 +55,18 @@ Signature: d[f]array(rel(X))/tasks(d[f]array(rel(X))) x d[f]array(rel(Y))/tasks(
 Example  : query KinosB KinosB dproductS["", . feed {a} loopjoin[.. feed {b}] ] schedule[1238] getValue
 Result   : 123
 
+Operator : partitionFS
+Number   : 1
+Signature: d[f]array(rel(X))/tasks(d[f]array(rel(X))) x string x ([f]rel(X) -> stream(Y)) x (Y -> int) x int -> tasks(dfmatrix(Y))
+Example  : query Landstrassen feed ddistribute3["Landstrassen3", 8, TRUE, Workers4] partitionFS["", . feed, hash(.Typ), 8] collectS[""] schedule[1238] getValue
+Result   : 123
+
+Operator : collectS
+Number   : 1
+Signature: dfmatrix(X)/tasks(dfmatrix(X)) x string -> tasks(dfarray(X))
+Example  : query Landstrassen feed ddistribute3["Landstrassen3", 8, TRUE, Workers4] partitionFS["", . feed, hash(.Typ), 8] collectS[""] schedule[1238] getValue
+Result   : 123
+
 Operator : schedule
 Number   : 1
 Signature: stream(task(darray(X))) -> darray(X)

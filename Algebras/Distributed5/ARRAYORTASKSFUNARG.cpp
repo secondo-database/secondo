@@ -37,11 +37,17 @@ namespace distributed5
 
 1 TypeMapOperators ARRAYORTASKSFUNARG1, ARRAYORTASKSFUNARG2 up to ARRAYORTASKSFUNARG8
 
+
 */
-template <int pos, bool convertToFsrel>
+template <int pos, int mode>
+// mode = 0: get rel (DArray) resp. frel (DFArray) of array
+// mode = 1: get fsrel of array
+// mode = 2: partitionF mode:
+//          pos args: normal operation,
+//          pos + 1 args: get tuple type of fun at pos + 1
+
 ListExpr ARRAYORTASKSFUNARG_TM(ListExpr args)
 {
-
     if (!nl->HasMinLength(args, pos))
     {
         return listutils::typeError("too few arguments");
@@ -52,6 +58,29 @@ ListExpr ARRAYORTASKSFUNARG_TM(ListExpr args)
     }
     ListExpr arg = nl->First(args);
     // i.e. arg = (darray int) or (stream (task (darray int)))
+
+    if (mode == 2)
+    {
+        if (nl->HasLength(args, 3))
+        {
+            ListExpr fun = nl->Third(args);
+            if (!listutils::isMap<1>(fun))
+            {
+                return listutils::typeError("prev arg is not a function");
+            }
+            ListExpr result = nl->Third(fun);
+            if (!Stream<Tuple>::checkType(result))
+            {
+                return listutils::typeError(
+                    "prev args result is not a tuple stream");
+            }
+            return nl->Second(result);
+        }
+        else if (!nl->HasLength(args, 2))
+        {
+            return listutils::typeError("too many arguments");
+        }
+    }
 
     ListExpr innerType;
 
@@ -79,7 +108,7 @@ ListExpr ARRAYORTASKSFUNARG_TM(ListExpr args)
         return listutils::typeError("Invalid type found");
     }
 
-    if (convertToFsrel)
+    if (mode == 1)
     {
         if (!Relation::checkType(innerType) && !frel::checkType(innerType))
         {
@@ -88,10 +117,7 @@ ListExpr ARRAYORTASKSFUNARG_TM(ListExpr args)
         return nl->TwoElemList(listutils::basicSymbol<fsrel>(),
                                nl->Second(innerType));
     }
-    else
-    {
-        return innerType;
-    }
+    return innerType;
 }
 
 OperatorSpec ARRAYORTASKSFUNARG1Spec(
@@ -105,7 +131,7 @@ Operator ARRAYORTASKSFUNARG1Op(
     ARRAYORTASKSFUNARG1Spec.getStr(),
     0,
     Operator::SimpleSelect,
-    ARRAYORTASKSFUNARG_TM<1, false>);
+    ARRAYORTASKSFUNARG_TM<1, 0>);
 
 OperatorSpec ARRAYORTASKSFUNARG2Spec(
     "d(f)array(X) x ... -> X, stream(task(X)) x ... -> X",
@@ -118,7 +144,7 @@ Operator ARRAYORTASKSFUNARG2Op(
     ARRAYORTASKSFUNARG2Spec.getStr(),
     0,
     Operator::SimpleSelect,
-    ARRAYORTASKSFUNARG_TM<2, false>);
+    ARRAYORTASKSFUNARG_TM<2, 0>);
 
 OperatorSpec ARRAYORTASKSFUNARG3Spec(
     "d(f)array(X) x ... -> X, stream(task(X)) x ... -> X",
@@ -131,7 +157,7 @@ Operator ARRAYORTASKSFUNARG3Op(
     ARRAYORTASKSFUNARG3Spec.getStr(),
     0,
     Operator::SimpleSelect,
-    ARRAYORTASKSFUNARG_TM<3, false>);
+    ARRAYORTASKSFUNARG_TM<3, 0>);
 
 OperatorSpec ARRAYORTASKSFUNARG4Spec(
     "d(f)array(X) x ... -> X, stream(task(X)) x ... -> X",
@@ -144,7 +170,7 @@ Operator ARRAYORTASKSFUNARG4Op(
     ARRAYORTASKSFUNARG4Spec.getStr(),
     0,
     Operator::SimpleSelect,
-    ARRAYORTASKSFUNARG_TM<4, false>);
+    ARRAYORTASKSFUNARG_TM<4, 0>);
 
 OperatorSpec ARRAYORTASKSFUNARG5Spec(
     "d(f)array(X) x ... -> X, stream(task(X)) x ... -> X",
@@ -157,7 +183,7 @@ Operator ARRAYORTASKSFUNARG5Op(
     ARRAYORTASKSFUNARG5Spec.getStr(),
     0,
     Operator::SimpleSelect,
-    ARRAYORTASKSFUNARG_TM<5, false>);
+    ARRAYORTASKSFUNARG_TM<5, 0>);
 
 OperatorSpec ARRAYORTASKSFUNFSARG2Spec(
     "d(f)array(X) x ... -> X, stream(task(X)) x ... -> X",
@@ -170,6 +196,20 @@ Operator ARRAYORTASKSFUNFSARG2Op(
     ARRAYORTASKSFUNFSARG2Spec.getStr(),
     0,
     Operator::SimpleSelect,
-    ARRAYORTASKSFUNARG_TM<2, true>);
+    ARRAYORTASKSFUNARG_TM<2, 1>);
+
+OperatorSpec ARRAYORTASKSFUNARGPARTITIONFSpec(
+    "{d(f)array(X), stream(task(X))} -> X, Y x (Z -> stream(tuple(X))) "
+    "-> tuple(X)",
+    "ARRAYORTASKSFUNARGPARTITIONF(_)",
+    "Type mapping operator.",
+    "query df1 partitionFS [\"df2\" ., hash(.Name), 8]");
+
+Operator ARRAYORTASKSFUNARGPARTITIONFOp(
+    "ARRAYORTASKSFUNARGPARTITIONF",
+    ARRAYORTASKSFUNARGPARTITIONFSpec.getStr(),
+    0,
+    Operator::SimpleSelect,
+    ARRAYORTASKSFUNARG_TM<1, 2>);
 
 } // namespace distributed5

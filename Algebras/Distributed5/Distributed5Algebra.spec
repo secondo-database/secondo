@@ -23,5 +23,7 @@ operator dmapS3 alias DMAPS3 pattern _ _ _ op[_,fun] implicit parameters elem1, 
 operator dmapS4 alias DMAPS4 pattern _ _ _ _ op[_,fun] implicit parameters elem1, elem2, elem3, elem4 types ARRAYORTASKSFUNARG1, ARRAYORTASKSFUNARG2, ARRAYORTASKSFUNARG3, ARRAYORTASKSFUNARG4
 operator dmapS5 alias DMAPS5 pattern _ _ _ _ _ op[_,fun] implicit parameters elem1, elem2, elem3, elem4, elem5 types ARRAYORTASKSFUNARG1, ARRAYORTASKSFUNARG2, ARRAYORTASKSFUNARG3, ARRAYORTASKSFUNARG4, ARRAYORTASKSFUNARG5
 operator dproductS alias DPRODUCTS pattern _ _ op[_,fun] implicit parameters elem1, elem2 types ARRAYORTASKSFUNARG1, ARRAYORTASKSFUNFSARG2
-operator schedule alias schedule pattern  _ op[_]
-operator tasks2tuples alias tasks2tuples pattern  _ op
+operator partitionFS alias PARTITIONFS pattern  _ op[_,fun,fun,_] implicit parameter arg type ARRAYORTASKSFUNARGPARTITIONF
+operator collectS alias COLLECTS pattern  _ op[_]
+operator schedule alias SCHEDULE pattern  _ op[_]
+operator tasks2tuples alias TASKS2TUPLES pattern  _ op

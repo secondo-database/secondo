@@ -121,6 +121,8 @@ public:
 
     distributed2::ConnectionInfo *getWorkerConnection() const;
 
+    std::string getFileBase(const TaskDataItem *data) const;
+
     std::string getFilePath(const TaskDataItem *data) const;
 
     std::string getFileDirectory(const TaskDataItem *data) const;
@@ -214,6 +216,11 @@ public:
         return workerLocation.getWorkerConnection();
     }
 
+    std::string getFileBase(const TaskDataItem *data) const
+    {
+        return workerLocation.getFileBase(data);
+    }
+
     std::string getFilePath(const TaskDataItem *data) const
     {
         return workerLocation.getFilePath(data);
@@ -284,8 +291,15 @@ class TaskDataItem
 public:
     TaskDataItem(std::string name, size_t slot, ListExpr contentType,
                  TaskDataLocation location, WorkerLocation preferredLocation)
+        : TaskDataItem(name, slot, 0, contentType,
+                       location, preferredLocation) {}
+
+    TaskDataItem(std::string name,
+                 size_t slot, size_t vslot,
+                 ListExpr contentType,
+                 TaskDataLocation location, WorkerLocation preferredLocation)
         : preferredLocation(preferredLocation),
-          name(name), slot(slot), contentType(contentType)
+          name(name), slot(slot), vslot(vslot), contentType(contentType)
     {
         auto &locations = locationsByServer[location.getServer()];
         locations.push_back(location);
@@ -300,12 +314,15 @@ public:
           locationsByServer(copy.locationsByServer),
           objectLocations(copy.objectLocations),
           fileLocations(copy.fileLocations),
-          name(copy.name), slot(copy.slot), contentType(copy.contentType),
+          name(copy.name),
+          slot(copy.slot), vslot(copy.vslot),
+          contentType(copy.contentType),
           fileRelation(copy.fileRelation),
           objectRelation(copy.objectRelation) {}
 
     std::string getName() const { return name; }
     size_t getSlot() const { return slot; }
+    size_t getVerticalSlot() const { return vslot; }
     ListExpr getContentType() const { return contentType; }
 
     bool isFileRelation() const { return fileRelation; }
@@ -314,7 +331,12 @@ public:
     std::string toString() const
     {
         boost::lock_guard<boost::mutex> lock(mutex);
-        std::string str = name + " _ " + std::to_string(slot) +
+        std::string slotInfo =
+            vslot != 0
+                ? " _ " + std::to_string(slot) +
+                      " _ " + std::to_string(vslot - 1)
+                : " _ " + std::to_string(slot);
+        std::string str = name + slotInfo +
                           " <3 " + preferredLocation.toString();
         for (auto &locations : locationsByServer)
         {
@@ -328,6 +350,11 @@ public:
 
     std::string getObjectName() const
     {
+        if (vslot != 0)
+        {
+            return name + "_" + std::to_string(slot) +
+                   "_" + std::to_string(vslot - 1);
+        }
         return name + "_" + std::to_string(slot);
     }
 
@@ -446,6 +473,7 @@ private:
     std::list<TaskDataLocation> upcomingLocations;
     std::string name;
     size_t slot;
+    size_t vslot;
     ListExpr contentType;
     bool fileRelation;
     bool objectRelation;
@@ -455,9 +483,10 @@ enum TaskFlag : int
 {
     None = 0x0,
     Output = 0x1,
+    VerticalSlot = 0x2,
 
-    CopyArguments = 0x2,
-    ConvertArguments = 0x4,
+    CopyArguments = 0x4,
+    ConvertArguments = 0x8,
 
     PrimaryArgumentAsFile = 0x10,
     SecondaryArgumentsAsFile = 0x20,
@@ -480,6 +509,7 @@ public:
     public:
         double value;
         int count;
+        std::list<double> values;
     };
 
     static void report(std::string name, double value)
@@ -487,6 +517,8 @@ public:
         auto &entry = local.values[name];
         entry.value += value;
         entry.count++;
+        if (entry.count < 10000)
+            entry.values.push_back(value);
     }
 
     static TaskStatistics &getThreadLocal()
@@ -501,6 +533,11 @@ public:
             auto &entry = values[pair.first];
             entry.value += pair.second.value;
             entry.count += pair.second.count;
+            if (entry.count < 10000)
+            {
+                for (double value : pair.second.values)
+                    entry.values.push_back(value);
+            }
         }
     }
 
@@ -509,10 +546,38 @@ public:
         std::string buf;
         for (auto pair : values)
         {
-            buf += pair.first + ": mean: " +
-                   std::to_string(pair.second.value / pair.second.count) +
-                   ", count: " + std::to_string(pair.second.count) +
-                   ", total: " + std::to_string(pair.second.value) + "\n";
+            int count = pair.second.count;
+            bool few = count < 10000;
+            double mean = pair.second.value / count;
+            double variance = 0;
+            double max = 0;
+            double min = pair.second.value;
+            if (few)
+            {
+                for (double value : pair.second.values)
+                {
+                    double d = value - mean;
+                    variance += d * d;
+                    if (value > max)
+                        max = value;
+                    if (value < min)
+                        min = value;
+                }
+            }
+            buf += pair.first +
+                   ": total: " + std::to_string(pair.second.value) +
+                   ", count: " + std::to_string(pair.second.count);
+            if (few)
+            {
+                buf += ", min: " + std::to_string(min) +
+                       ", max: " + std::to_string(max);
+            }
+            buf += ", mean: " + std::to_string(mean);
+            if (few)
+            {
+                buf += ", stdev: " + std::to_string(sqrt(variance));
+            }
+            buf += "\n";
         }
         return buf;
     }
@@ -556,7 +621,14 @@ public:
     }
     static const ListExpr resultType(const ListExpr list)
     {
-        return nl->Second(nl->Second(list));
+        ListExpr arrayType = nl->Second(list);
+        if (distributed2::DArray::checkType(arrayType))
+        {
+            return nl->Second(arrayType);
+        }
+        return nl->TwoElemList(
+            listutils::basicSymbol<distributed2::frel>(),
+            nl->Second(nl->Second(arrayType)));
     }
 
     static double runCommand(distributed2::ConnectionInfo *ci,
@@ -630,7 +702,6 @@ class FunctionTask : public Task
 {
 protected:
     FunctionTask(int additonalFlags,
-                 std::string mapFunction,
                  std::string resultName,
                  ListExpr resultContentType,
                  bool isRel,
@@ -638,23 +709,19 @@ protected:
         : Task(CopyArguments | ConvertArguments |
                PreferSlotWorker | PreferSlotServer |
                additonalFlags),
-          mapFunction(mapFunction),
           resultName(resultName),
           resultContentType(resultContentType),
           isRel(isRel),
           isStream(isStream) {}
 
 public:
-    std::string getFunction() { return mapFunction; }
-
     virtual std::string toString() const
     {
-        return getTaskType() + "[" + resultName + ", " + mapFunction + "] => " +
+        return getTaskType() + "[" + resultName + "] => " +
                nl->ToString(resultContentType);
     }
 
 protected:
-    std::string mapFunction;
     std::string resultName;
     ListExpr resultContentType;
     bool isRel;
@@ -674,17 +741,26 @@ public:
                      bool isRel,
                      bool isStream)
         : FunctionTask(0,
-                       mapFunction,
                        resultName,
                        resultContentType,
                        isRel,
-                       isStream) {}
+                       isStream),
+          mapFunction(mapFunction) {}
 
     virtual std::string getTaskType() const { return "dmap"; }
+
+    virtual std::string toString() const
+    {
+        return getTaskType() + "[" + resultName + ", " + mapFunction + "] => " +
+               nl->ToString(resultContentType);
+    }
 
     virtual TaskDataItem *run(
         WorkerLocation &location,
         std::vector<TaskDataItem *> args);
+
+protected:
+    std::string mapFunction;
 };
 
 class DproductFunctionTask : public FunctionTask
@@ -696,19 +772,119 @@ public:
                          bool isRel,
                          bool isStream)
         : FunctionTask(SecondaryArgumentsAsFile,
-                       mapFunction,
                        resultName,
                        resultContentType,
                        isRel,
-                       isStream)
+                       isStream),
+          mapFunction(mapFunction)
     {
     }
 
     virtual std::string getTaskType() const { return "dproduct"; }
 
+    virtual std::string toString() const
+    {
+        return getTaskType() + "[" + resultName + ", " + mapFunction + "] => " +
+               nl->ToString(resultContentType);
+    }
+
     virtual TaskDataItem *run(
         WorkerLocation &location,
         std::vector<TaskDataItem *> args);
+
+protected:
+    std::string mapFunction;
+};
+
+class PartitionFunctionTask : public FunctionTask
+{
+public:
+    PartitionFunctionTask(std::string mapFunction,
+                          std::string partitionFunction,
+                          std::string resultName,
+                          int vslots,
+                          ListExpr resultContentType)
+        : FunctionTask(0,
+                       resultName,
+                       resultContentType,
+                       isRel,
+                       isStream),
+          mapFunction(mapFunction),
+          partitionFunction(partitionFunction),
+          vslots(vslots)
+    {
+    }
+
+    virtual std::string getTaskType() const { return "partition"; }
+
+    virtual TaskDataItem *run(
+        WorkerLocation &location,
+        std::vector<TaskDataItem *> args);
+
+    virtual std::string toString() const
+    {
+        return getTaskType() + "[" + resultName + ", " + mapFunction + ", " +
+               partitionFunction + ", " + std::to_string(vslots) +
+               "] => " + nl->ToString(resultContentType);
+    }
+
+protected:
+    std::string mapFunction;
+    std::string partitionFunction;
+    int vslots;
+};
+
+class CollectFunctionTask : public FunctionTask
+{
+public:
+    CollectFunctionTask(std::string resultName, ListExpr resultContentType)
+        : FunctionTask(SecondaryArgumentsAsFile,
+                       resultName, resultContentType, true, false) {}
+
+    virtual std::string getTaskType() const { return "collect"; }
+
+    virtual TaskDataItem *run(
+        WorkerLocation &location,
+        std::vector<TaskDataItem *> args);
+
+    virtual std::string toString() const
+    {
+        return getTaskType() + "[" + resultName + "] => " +
+               nl->ToString(resultContentType);
+    }
+};
+
+class VSlotTask : public Task
+{
+public:
+    VSlotTask(size_t vslot) : vslot(vslot) {}
+
+    virtual std::string getTaskType() const { return "vslot"; }
+
+    virtual std::string toString() const
+    {
+        return getTaskType() + "[" + std::to_string(vslot - 1) + "]";
+    }
+
+    virtual TaskDataItem *run(
+        WorkerLocation &location,
+        std::vector<TaskDataItem *> args)
+    {
+        TaskDataItem *main = args[0];
+        if (vslot == 0)
+            return main;
+        TaskDataLocation loc = main->getFirstLocation();
+        return new TaskDataItem(main->getName(),
+                                main->getSlot(), vslot,
+                                main->getContentType(),
+                                TaskDataLocation(
+                                    loc.getWorkerLocation(),
+                                    DataStorageType::File, true),
+                                main->getPreferredLocation());
+    }
+
+private:
+    size_t vslot;
 };
 
 class ErrorTask : public Task
@@ -719,7 +895,7 @@ class ErrorTask : public Task
         WorkerLocation &location,
         std::vector<TaskDataItem *> args)
     {
-        throw std::invalid_argument("Error task should not exit in stream");
+        throw std::invalid_argument("Error task should not exist in stream");
     }
 };
 

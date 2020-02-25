@@ -26,9 +26,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 
-
-#ifndef DISTRIBUTE5_DMAP_H
-#define DISTRIBUTE5_DMAP_H
+#ifndef DISTRIBUTED5_DMAPS_H
+#define DISTRIBUTED5_DMAPS_H
 
 #include "Attribute.h"
 #include "Algebra.h"
@@ -50,7 +49,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Algebras/FText/FTextAlgebra.h"
 #include "Algebras/Distributed5/Task.h"
 
-namespace distributed5{
+namespace distributed5
+{
 
 extern Operator dmapSOp;
 extern Operator dmapS2Op;
@@ -58,5 +58,5 @@ extern Operator dmapS3Op;
 extern Operator dmapS4Op;
 extern Operator dmapS5Op;
 
-}
+} // namespace distributed5
 #endif

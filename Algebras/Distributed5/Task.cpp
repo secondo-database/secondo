@@ -275,6 +275,75 @@ TaskDataItem *DproductFunctionTask::run(
                  slot, funcall, "dproductS");
 }
 
+TaskDataItem *PartitionFunctionTask::run(
+    WorkerLocation &location,
+    std::vector<TaskDataItem *> args)
+{
+    TaskDataItem *arg = args.front();
+
+    size_t slot = arg->getSlot();
+
+    TaskDataItem result(resultName, slot, resultContentType,
+                        TaskDataLocation(
+                            location, DataStorageType::File, false),
+                        arg->getPreferredLocation());
+
+    string path = location.getFileBase(&result);
+    string argValue = arg->getValueArgument(location);
+    string tupleStream = "( " + mapFunction + " " + argValue + ")";
+    string distribute = "(fdistribute7 " + tupleStream + " " +
+                        "'" + path + "' " +
+                        partitionFunction + " " +
+                        std::to_string(vslots) + " TRUE" +
+                        ")";
+    string cmd = "(query (count " + distribute + "))";
+    string description = "partitionFS";
+
+    auto *ci = location.getWorkerConnection();
+
+    // create the target directory
+    string targetDir = location.getFileDirectory(&result);
+
+    string cd = "query createDirectory('" + targetDir + "', TRUE)";
+    runCommand(ci, cd, "create directory for file", false, true);
+
+    double duration = runCommand(ci, cmd, description, true);
+    TaskStatistics::report(description, duration);
+
+    return new TaskDataItem(result);
+}
+
+TaskDataItem *CollectFunctionTask::run(
+    WorkerLocation &location,
+    std::vector<TaskDataItem *> args)
+{
+    TaskDataItem *first = args.front();
+    TaskDataItem *last = args.back();
+
+    size_t slot = first->getVerticalSlot() - 1;
+
+    ListExpr fsrelType = nl->TwoElemList(
+        listutils::basicSymbol<fsrel>(),
+        nl->Second(last->getContentType()));
+    string argQuery = "(" + nl->ToString(fsrelType) + "( ";
+    bool isFirst = true;
+    for (auto arg : args)
+    {
+        if (isFirst)
+        {
+            isFirst = false;
+            continue;
+        }
+        TaskDataLocation loc = arg->findLocation(location,
+                                                 DataStorageType::File);
+        argQuery += "'" + loc.getFilePath(arg) + "' ";
+    }
+    argQuery += "))";
+
+    return store(location, first->getPreferredLocation(),
+                 slot, argQuery, "collectS");
+}
+
 //returns the DArray information.
 //These informations are:
 //server, port, slot and the config
@@ -295,17 +364,27 @@ int Task::getId()
     return id;
 }
 
-std::string WorkerLocation::getFilePath(const TaskDataItem *data) const
+std::string WorkerLocation::getFileBase(const TaskDataItem *data) const
 {
     ConnectionInfo *ci = getWorkerConnection();
     string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
     string name = data->getName();
     size_t slot = data->getSlot();
+    size_t vslot = data->getVerticalSlot();
+    string slotPrefix =
+        vslot != 0
+            ? "_" + std::to_string(slot) +
+                  "_" + std::to_string(vslot - 1)
+            : "_" + std::to_string(slot);
     return ci->getSecondoHome(false, commandLog) +
            "/dfarrays/" + dbname + "/" +
            name + "/" +
-           name + "_" +
-           std::to_string(slot) + ".bin";
+           name + slotPrefix;
+}
+
+std::string WorkerLocation::getFilePath(const TaskDataItem *data) const
+{
+    return getFileBase(data) + ".bin";
 }
 
 std::string WorkerLocation::getFileDirectory(const TaskDataItem *data) const
@@ -420,14 +499,7 @@ TaskDataItem *FunctionTask::store(
     {
     case DataStorageType::Object:
     {
-        if (this->isStream)
-        {
-            cmd = "(let " + name2 + " = (consume " + value + "))";
-        }
-        else
-        {
-            cmd = "(let " + name2 + " = " + value + ")";
-        }
+        cmd = "(let " + name2 + " = " + value + ")";
         break;
     }
     case DataStorageType::File:

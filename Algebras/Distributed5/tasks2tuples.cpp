@@ -46,7 +46,7 @@ Converts a stream of tasks to tuples.
 
 ListExpr tasks2tuplesTM(ListExpr args)
 {
-    string err = "stream(tasks(darray)) expected";
+    string err = "stream(tasks({d[f]array, dfmatrix})) expected";
 
     //ensure that exactly 1 argument comes into schedule
     if (!nl->HasLength(args, 1))
@@ -111,8 +111,12 @@ public:
         string flags = "";
 
         flags += task->hasFlag(Output) ? "Output" : "Intermediate";
+        if (task->hasFlag(VerticalSlot))
+            flags += ", VerticalSlot";
         if (task->hasFlag(CopyArguments))
             flags += ", CopyArguments";
+        if (task->hasFlag(ConvertArguments))
+            flags += ", ConvertArguments";
         if (task->hasFlag(RunOnPreferedWorker))
             flags += ", RunOnPreferedWorker";
         if (task->hasFlag(RunOnPreferedServer))
@@ -187,7 +191,7 @@ int tasks2tuplesVM(Word *args, Word &result, int message,
 }
 
 OperatorSpec tasks2tuplesSpec(
-    "task -> tuples",
+    "stream(task(X)) -> tuples",
     "_ tasks2tuples",
     "Makes tuples from a task stream.",
     "query CabsId dmapS["

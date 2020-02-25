@@ -32,6 +32,8 @@ using namespace std;
 using namespace distributed2;
 
 // #define DEBUG_JOB_SELECTION
+// #define REPORT_WORKER_STATS
+#define REPORT_TOTAL_STATS
 
 namespace distributed5
 {
@@ -183,8 +185,10 @@ public:
         }
         threads.clear();
 
+#ifdef REPORT_TOTAL_STATS
         cout << "=== Total ===\n"
              << stats.toString();
+#endif
     }
 
     //When a new task is recieved
@@ -319,6 +323,11 @@ public:
         info.result = result;
         info.completed = true;
 
+#ifdef DEBUG_JOB_SELECTION
+        cout << "Got result from " << task->getId() << ": "
+             << result->toString() << endl;
+#endif
+
         // each successor keeps a reference to the result
         dataReferences[result] += info.successors;
 
@@ -334,6 +343,7 @@ public:
         poolSignal.notify_all();
     }
 
+    boost::mutex resultMutex;
     vector<DArrayElement> myResult;
     string dArrayName;
     bool isError = false;
@@ -445,6 +455,7 @@ private:
             else
             {
                 // check for end of work
+                selectJob(location);
                 if (workerWorking == 1)
                 {
                     if (stopWorkersWhenWorkDone && workPool.empty())
@@ -469,10 +480,14 @@ private:
             }
         }
 
+#ifdef REPORT_WORKER_STATS
         cout << "=== " << location.toString() << " ===\n"
              << TaskStatistics::getThreadLocal().toString();
+#endif
 
+#ifdef REPORT_TOTAL_STATS
         stats.merge(TaskStatistics::getThreadLocal());
+#endif
 
         workerWorking--;
         runningThreads--;
@@ -598,6 +613,7 @@ private:
                 }
             }
 
+            boost::lock_guard<boost::mutex> lock(scheduler.resultMutex);
             scheduler.dArrayName = result->getName();
             while (scheduler.myResult.size() <= result->getSlot())
             {
@@ -643,7 +659,9 @@ private:
 
     std::unordered_map<Task *, TaskScheduleInfo> taskInfo;
 
+#ifdef REPORT_TOTAL_STATS
     TaskStatistics stats;
+#endif
 };
 
 /*
@@ -668,7 +686,8 @@ public:
 
     virtual string toString() const
     {
-        string message = string("execute ") + task->toString();
+        string message = string("execute ") +
+                         std::to_string(task->getId()) + " " + task->toString();
         int i = 0;
         for (auto arg : args)
         {
@@ -1378,7 +1397,7 @@ WorkerJob *Scheduler::selectJob(WorkerLocation &location)
         return best->first;
     }
 
-    if (!stopWorkersWhenWorkDone)
+    if (!stopWorkersWhenWorkDone || isError)
         return 0;
 
     // nothing productive to do

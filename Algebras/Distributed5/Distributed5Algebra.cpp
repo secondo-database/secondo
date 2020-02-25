@@ -30,6 +30,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Algebras/Distributed5/Task.h"
 #include "Algebras/Distributed5/dmapS.h"
 #include "Algebras/Distributed5/dproductS.h"
+#include "Algebras/Distributed5/partitionFS.h"
+#include "Algebras/Distributed5/collectS.h"
 #include "Algebras/Distributed5/tasks2tuples.h"
 #include "Algebras/Distributed5/ARRAYORTASKSFUNARG.h"
 #include <boost/bind.hpp>
@@ -59,6 +61,10 @@ public:
         AddOperator(&scheduleOp);
         dproductSOp.SetUsesArgsInTypeMapping();
         AddOperator(&dproductSOp);
+        partitionFSOp.SetUsesArgsInTypeMapping();
+        AddOperator(&partitionFSOp);
+        collectSOp.SetUsesArgsInTypeMapping();
+        AddOperator(&collectSOp);
         AddTypeConstructor(&TaskTC);
         TaskTC.AssociateKind(Kind::SIMPLE());
         AddOperator(&tasks2tuplesOp);
@@ -68,6 +74,7 @@ public:
         AddOperator(&ARRAYORTASKSFUNARG4Op);
         AddOperator(&ARRAYORTASKSFUNARG5Op);
         AddOperator(&ARRAYORTASKSFUNFSARG2Op);
+        AddOperator(&ARRAYORTASKSFUNARGPARTITIONFOp);
     }
 };
 
