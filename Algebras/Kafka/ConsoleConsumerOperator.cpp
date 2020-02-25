@@ -96,10 +96,10 @@ namespace kafka {
 
 
     OperatorSpec consoleConsumerSpec(
-            " stream(Tuple) -> stream(Tuple) ",
-            " _ consoleConsumer ",
-            " All tuples in the stream are written to the output "
-            "and to the console",
+            "stream(Tuple) -> stream(Tuple) ",
+            "_ consoleConsumer ",
+            "All tuples in the stream are written to the output "
+            "and to the console.",
             "query plz feed consoleConsumer count"
     );
 

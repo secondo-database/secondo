@@ -168,13 +168,13 @@ namespace kafka {
 
 
     OperatorSpec writeToKafkaOpSpec(
-            " stream ( Tuple ) x Brokers x KafkaTopic -> stream ( Topic ) ",
-            " _ writetokafka[host,topic]",
-            " All tuples in the stream are written out to Kafka topic. "
+            "stream ( Tuple ) x Brokers x KafkaTopic -> stream ( Topic ) ",
+            "_ writetokafka[host,topic]",
+            "All tuples in the stream are written out to Kafka topic. "
             "Host - host name of Kafka broker eg. \"localhost\" or in case of "
-            "multiple brokers comma separated list of hosts, "
+            "multiple brokers comma-separated list of hosts, "
             "eg. \"host1:port1,host2:port2,...\" ",
-            " query plz feed writetokafka(\"localhost\",\"KT\") count "
+            "query plz feed writetokafka(\"localhost\",\"KT\") count "
     );
 
     Operator writeToKafkaOp(

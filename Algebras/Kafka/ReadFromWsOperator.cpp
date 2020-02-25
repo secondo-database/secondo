@@ -296,13 +296,13 @@ namespace ws {
     }
 
     OperatorSpec ReadFromWebSocketOpSpec(
-            " string,string,string -> stream(tuple)",
-            " readfromwebsocket(uri,subscription,mapping) ",
-            " Reads steam of tuples from web socket on uri. "
+            "string,string,string -> stream(tuple)",
+            "readfromwebsocket(uri,subscription,mapping) ",
+            "Reads steam of tuples from web socket on uri. "
             "subscription - is a string sent to the server just after creating"
             " a connection, can be used in the case the server requires a "
-            "subscription request. mapping - defines the list of result "
-            "attributes and JSON Pointer to populate this attributes ",
+            "subscription request. Mapping - defines the list of result "
+            "attributes and JSON Pointer to populate these attributes ",
             R"( query readfromwebsocket("wss://ws.blockchain.info/inv",
     "{\"op\":\"unconfirmed_sub\"}",
    'Name string /op,

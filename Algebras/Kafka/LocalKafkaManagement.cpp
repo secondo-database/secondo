@@ -198,13 +198,13 @@ namespace kafka {
             "installLocalKafka()",
             "installLocalKafka()",
             "Downloads Apache Kafka version 2.2.0 from one of the "
-            "mirrors in internet and install it into folder "
+            "mirrors on the internet and install it into folder "
             "${HOME}/kafka/kafka_dist(/home/<user>/kafka/kafka_dist). "
             "It is recommended to install and start the Kafka cluster by "
             "following the instruction on https://kafka.apache.org/quickstart. "
             "This has the advantage of installing more recent versions, "
             "also additionall mirrors are available. "
-            "Nevertheless we provide this operator here for convenient usage "
+            "Nevertheless, we provide this operator here for convenient usage "
             "of Kafka technology for users inexperienced with Apache Kafka "
             "setup. ",
             "query installLocalKafka()"
@@ -220,13 +220,13 @@ namespace kafka {
             "The output logs of Zookeeper and Kafka Server are redirected to "
             "${KAFKA_HOME}/zookeeper.log and ${KAFKA_HOME}/kafka.log "
             "correspondingly. "
-            "To check the status after start, use the operator "
-            "statusLocalKafka "
+            "To check the status after the start, use the operator "
+            "statusLocalKafka. "
             "The operator is implemented as a bash script "
-            "${SECONDO_BUILD_DIR}/Algebras/Kafka/scripts/kafkaStartup.sh "
+            "${SECONDO_BUILD_DIR}/Algebras/Kafka/scripts/kafkaStartup.sh. "
             "It is recommended to install and start the Kafka cluster by "
             "following the instruction on https://kafka.apache.org/quickstart. "
-            "Nevertheless we provide this operator here for convenient usage "
+            "Nevertheless, we provide this operator here for convenient usage "
             "of Kafka technology for users inexperienced with Apache Kafka "
             "setup. ",
             "query startLocalKafka()"
@@ -234,9 +234,9 @@ namespace kafka {
     OperatorSpec statusLocalKafkaSpec(
             "statusLocalKafka() ",
             "statusLocalKafka() ",
-            "Display the Zookeeper and Kafka Server process ids. Can "
-            "be used to see which Kafka processes are running on the host. "
-            "Display not just processes started by startLocalKafka operator, "
+            "Displays the Zookeeper and Kafka Server process ids. It "
+            "can be used to see which Kafka processes are running on the host. "
+            "Displays not just processes started by startLocalKafka operator, "
             "but also the manually or in other way started processes.",
             "query statusLocalKafka()"
     );
@@ -244,9 +244,9 @@ namespace kafka {
             "stopLocalKafka()",
             "stopLocalKafka()",
             "Stops all Zookeeper and Kafka Server processes on local "
-            "host. Stop not just processes started by startLocalKafka "
+            "host. Stops not just processes started by startLocalKafka "
             "operator, but also the manually or in other way started "
-            "processes. Tpo see the list of processes which will be affected, "
+            "processes. To see the list of processes that will be affected, "
             "use the statusLocalKafka operator",
             "query stopLocalKafka()"
     );
@@ -256,12 +256,12 @@ namespace kafka {
             "run the "
             "${SECONDO_BUILD_DIR}/Algebras/Kafka/scripts/kafkaStartup.sh "
             "script with one argument - \"command\". Supported commands are: "
-            "start - same as startLocalKafka operator\n"
-            "status - same as statusLocalKafka operator\n"
-            "stop  - same as stopLocalKafka operator\n"
-            "stophard - similar to stop, but uses kill -9"
-            "topics - list the topics available on the local host. Can be used "
-            "\tas test for functioning Kafka cluster ",
+            "start - same as startLocalKafka operator,\n"
+            "status - same as statusLocalKafka operator,\n"
+            "stop  - same as stopLocalKafka operato,r\n"
+            "stophard - similar to stop, but uses kill -9(SIGKILL),"
+            "topics - list the topics available on the local host. It can be "
+            "\t used as test for functioning Kafka cluster. ",
             "query localKafka(\"topics\")"
     );
 

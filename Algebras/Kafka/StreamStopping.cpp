@@ -122,11 +122,11 @@ namespace kafka {
     }
 
     OperatorSpec finishStreamSpec(
-            " stream ( Tuple ) x Port -> stream ( Tuple ) ",
-            " _ finishStream[port]",
-            " All tuples in the stream are written to the output, "
-            "but stops by receiving stop signal from signalFinish ",
-            " query kafkastream(\"localhost\", \"test\", TRUE) "
+            "stream ( Tuple ) x Port -> stream ( Tuple ) ",
+            "_ finishStream[port]",
+            "All tuples in the stream are written to the output, "
+            "but stops by receiving stop signal from signalFinish. ",
+            "query kafkastream(\"localhost\", \"test\", TRUE) "
             "finishStream[8080] consoleConsumer count; "
     );
 
@@ -173,10 +173,10 @@ namespace kafka {
     }
 
     OperatorSpec signalFinishSpec(
-            " host x Port -> empty? ",
-            " signalFinish(host, port)",
-            " Sends finish signal to finishStream operator ",
-            " query signalFinish(\"127.0.0.1\", 8080)"
+            "host x Port -> empty? ",
+            "signalFinish(host, port)",
+            "Sends finish signal to finishStream operator. ",
+            "query signalFinish(\"127.0.0.1\", 8080)"
     );
 
     Operator signalFinishOp(
