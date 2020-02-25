@@ -4853,6 +4853,78 @@ Operator ccoprelcount( "relcount", CCSpecRelcount, 1, ccoprelcountmap,
 Operator ccoprelcount2( "relcount2", CCSpecRelcount2, 1, ccoprelcountmap2,
                         Operator::SimpleSelect, relcountTM );
 
+
+ListExpr toTextTM(ListExpr args){
+   if(!nl->HasLength(args,1) ){
+     return listutils::typeError("1 argument required");
+   }
+   if(!Tuple::checkType(nl->First(args))){
+     return listutils::typeError("First argument must be a tuple");
+   }
+   vector<string> names;
+   size_t maxLength = 0;
+   ListExpr attrList = nl->Second(nl->First(args));
+   while(!nl->IsEmpty(attrList)){
+      string name = nl->SymbolValue(nl->First(nl->First(attrList)));
+      names.push_back(name);
+      maxLength = name.length()>maxLength?name.length():maxLength;
+      attrList = nl->Rest(attrList);
+   }
+   for(size_t i=0;i<names.size();i++){
+      string name = names[i];
+      while(name.length() < maxLength){
+        name += " ";
+      }
+      name += " : ";
+      names[i] = name;
+   }
+   ListExpr appendList = nl->OneElemList(nl->StringAtom(names[0]));
+   ListExpr last = appendList;
+   for(size_t i=1; i< names.size();i++){
+       last = nl->Append(last, nl->StringAtom(names[i]));     
+   }
+   return nl->ThreeElemList( nl->SymbolAtom(Symbols::APPEND()),
+                     appendList,
+                 listutils::basicSymbol<FText>());
+}
+
+
+int toTextVM( Word* args, Word& result, int message, Word& local, Supplier s ){
+   Tuple* tuple = (Tuple*) args[0].addr;
+   result = qp->ResultStorage(s);
+   FText* res = (FText*) result.addr;
+   vector<string> names;
+   for(int i=1;i<qp->GetNoSons(s);i++){
+      names.push_back( ((CcString*) args[i].addr)->GetValue());
+   }
+   stringstream ss;
+   for(size_t i=0;i<names.size();i++){
+     Attribute* attr = tuple->GetAttribute(i);
+     ss << names[i] ;
+     attr->Print(ss);
+     ss << endl;
+   }
+   res->Set(true,ss.str());
+   return 0;
+}
+
+OperatorSpec toTextSpec(
+   "tuple -> text",
+   "toText(_)",
+   "Converts a tuple into a text",
+   "query plz feed extend[ TT : toText(.) ] count"
+);
+
+
+Operator toTextOP( "toText",
+               toTextSpec.getStr(),
+               toTextVM,
+               Operator::SimpleSelect, 
+               toTextTM );
+
+
+
+
 /*
 
 6 Class ~RelationAlgebra~
@@ -4950,6 +5022,7 @@ class RelationAlgebra : public Algebra
     ccopifthenelse2.SetRequestsArguments();
     AddOperator( &ccoprelcount );
     AddOperator( &ccoprelcount2 );
+    AddOperator( &toTextOP);
 
 
 /*

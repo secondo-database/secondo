@@ -263,3 +263,8 @@ Example  : query "ten" relcount2
 Result   : 10
 
 
+Operator : toText 
+Number   : 1
+Signature: tuple -> text
+Example  : query plz feed extend[TT : toText(.) ] count
+Result   : 41267
