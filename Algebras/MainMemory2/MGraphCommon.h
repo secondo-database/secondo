@@ -346,6 +346,24 @@ Returns the number of predecessors of a node.
         return graph[v].second.size();
      }
 
+
+/*
+2.17 ~removeAllEdges~
+
+Removes all Edges from Source to target.
+
+*/
+     void removeAllEdges(int source, int target){
+       if(source< 0 || source >= (int) graph.size()) return;
+       if(target< 0 || target >= (int) graph.size()) return;
+       removeTarget(graph[source].first,target);
+       removeSource(graph[target].second,source);
+     }
+   
+
+
+
+
 /*
 2.17. ~disconnect~
 

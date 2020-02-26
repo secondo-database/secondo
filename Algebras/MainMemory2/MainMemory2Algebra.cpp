@@ -18256,6 +18256,83 @@ Operator mg2disconnectOp(
   mgdisconnectTM<MGraph2>
 );
 
+
+/*
+deleteEdges
+
+*/
+template<class G>
+ListExpr mgdeleteEdgesTM(ListExpr args){
+  if(!nl->HasLength(args,3)){
+    return listutils::typeError("three arguments expected");
+  }
+  ListExpr g;
+  if(!getMemSubType(nl->First(args),g)){
+   return listutils::typeError("first arg is not a memory object");
+  }
+  if(!G::checkType(g)){
+    return listutils::typeError("argument is not a " + G::BasicType());
+  }
+  if(!CcInt::checkType(nl->Second(args))){
+    return listutils::typeError("second argument is not an int");
+  }
+  if(!CcInt::checkType(nl->Third(args))){
+    return listutils::typeError("third argument is not an int");
+  }
+  return listutils::basicSymbol<CcBool>();
+}
+
+
+template<class GN, class Graph>
+int mgdeleteEdgesVMT(Word* args, Word& result, int message,
+                 Word& local, Supplier s){
+  result = qp->ResultStorage(s);
+  CcBool*  res = (CcBool*) result.addr;
+  Graph* g = getMemObject<Graph>((GN*) args[0].addr);
+  if(!g){
+     res->SetDefined(false);
+     return 0;
+  }
+  CcInt* source = (CcInt*) args[1].addr;
+  CcInt* target = (CcInt*) args[2].addr;
+  if(!source->IsDefined() || !target->IsDefined()){
+     res->SetDefined(false);
+     return 0;
+  }
+  g->removeAllEdges(source->GetValue(), target->GetValue());
+  res->Set(true,true);
+  return 0;
+}
+
+
+ValueMapping mg2deleteEdgesVM[] = {
+   mgdeleteEdgesVMT<Mem, MGraph2>,
+   mgdeleteEdgesVMT<MPointer, MGraph2>
+};
+
+int mgdeleteEdgesSelect(ListExpr args){
+  return Mem::checkType(nl->First(args))?0:1;
+}
+
+
+OperatorSpec mg2deleteEdgesSpec(
+  "MGRAPH2 x int x int -> bool",
+  "graph  mg2deleteEdges[source, target]",
+  "Removes all edges from source to target in graph.",
+  "query mg2 mg2deleteEdges[2,7] "
+);
+
+
+Operator mg2deleteEdgesOp(
+  "mg2deleteEdges",
+  mg2deleteEdgesSpec.getStr(),
+  2,
+  mg2deleteEdgesVM,
+  mgdeleteEdgesSelect,
+  mgdeleteEdgesTM<MGraph2>
+);
+
+
 /*
 11 Operators for mgraph3
 
@@ -18601,8 +18678,6 @@ ValueMapping mg3disconnectVM[] = {
    mgdisconnectVMT<MPointer, MGraph3>
 };
 
-
-
 OperatorSpec mg3disconnectSpec(
   "MGRAPH3 x int -> bool",
   "_ mg3disconnect[_]",
@@ -18619,6 +18694,36 @@ Operator mg3disconnectOp(
   mgdisconnectSelect,
   mgdisconnectTM<MGraph3>
 );
+
+
+/*
+mg3deleteEdges
+
+*/
+
+ValueMapping mg3deleteEdgesVM[] = {
+   mgdeleteEdgesVMT<Mem, MGraph3>,
+   mgdeleteEdgesVMT<MPointer, MGraph3>
+};
+
+
+OperatorSpec mg3deleteEdgesSpec(
+  "MGRAPH3 x int x int -> bool",
+  "graph  mg3deleteEdges[source, target]",
+  "Removes all edges from source to target in graph.",
+  "query mg3 mg3deleteEdges[2,7] "
+);
+
+
+Operator mg3deleteEdgesOp(
+  "mg3deleteEdges",
+  mg3deleteEdgesSpec.getStr(),
+  2,
+  mg3deleteEdgesVM,
+  mgdeleteEdgesSelect,
+  mgdeleteEdgesTM<MGraph3>
+);
+
 
 
 /*
@@ -20429,6 +20534,7 @@ class MainMemory2Algebra : public Algebra {
           AddOperator(&mg2numsuccessorsOp);
           AddOperator(&mg2numpredecessorsOp);
           AddOperator(&mg2disconnectOp);
+          AddOperator(&mg2deleteEdgesOp);
           AddOperator(&mg2contractOp);
           AddOperator(&mg2minPathCostOp);
           AddOperator(&mg2exportddsgOp);
@@ -20449,6 +20555,7 @@ class MainMemory2Algebra : public Algebra {
           AddOperator(&mg3numsuccessorsOp);
           AddOperator(&mg3numpredecessorsOp);
           AddOperator(&mg3disconnectOp);
+          AddOperator(&mg3deleteEdgesOp);
           AddOperator(&mg3connectedcomponentsOp);
           mg3connectedcomponentsOp.enableInitFinishSupport();
           AddOperator(&mg3connectedcomponentsNOp);

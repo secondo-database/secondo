@@ -1018,6 +1018,12 @@ Signature: MGRAPH2 x {string,text} x {int,real} -> bool
 Example  : query mgraph2 mg2exportddsg['mgraph2.ddsg', 1000]
 Result   : TRUE
 
+Operator  : mg2deleteEdges
+Number    : 918 
+Signature : MGRAPH2 x int x int -> bool
+Example   : query mgraph2_1 mg2deleteEdges[2,3] 
+Result    : TRUE
+
 
 Operator  : createmgraph3
 Number    : 1000
@@ -1110,6 +1116,12 @@ Number   : 1014
 Signature: MGRAPH3 x {string,text} x {int,real} -> bool
 Example  : query mgraph3_1 mg3exportddsg['mgraph3_1.ddsg', 1000]
 Result   : TRUE
+
+Operator  : mg3deleteEdges
+Number    : 1015 
+Signature : MGRAPH3 x int x int -> bool
+Example   : query mgraph3_1 mg3deleteEdges[2,3] 
+Result    : TRUE
 
 Operator  : mwrap2
 Number    : 1100
