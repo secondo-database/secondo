@@ -1264,6 +1264,13 @@ Example  : query errorMessage(0)
 Result   : 'Secondo: No Error!'
 
 
+Operator : simpleMessage
+Number   : 1
+Signature : X -> X , X in DATA
+Example   : query simpleMessage("this is a message");
+Result    : "this is a message"
+
+
 Operator : text2filepath 
 Number : 1
 Signature : text -> filepath

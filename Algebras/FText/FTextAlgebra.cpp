@@ -11786,6 +11786,93 @@ Operator messageTestOP(
 
 
 /*
+4.40 simpleMessage
+ 
+*/
+ListExpr simpleMessageTM(ListExpr args){
+   if(!nl->HasLength(args,1)){
+     return listutils::typeError("one argument required");
+   }
+   ListExpr arg = nl->First(args);
+   if(!Attribute::checkType(arg)){
+     return listutils::typeError("Argument not in kind DATA");
+   }
+   return arg;
+}
+
+template<class T>
+int simpleMessageVMT( Word* args, Word& result, int message,
+                 Word& local, Supplier s ){
+
+   MessageCenter* msg = MessageCenter::GetInstance();
+   stringstream ss;
+   Attribute* arg = (Attribute*) args[0].addr;
+   ss << ((T*)arg)->GetValue();
+   result = qp->ResultStorage(s);
+   Attribute* res = (Attribute*) result.addr;
+   res->CopyFrom(arg);
+   ListExpr se = nl->TwoElemList(nl->SymbolAtom("simple2"), 
+                                 nl->TextAtom(ss.str()));
+   msg->Send(nl,se);
+   msg->Flush();
+   nl->Destroy(se);
+   return 0;
+}
+
+int simpleMessageVMA( Word* args, Word& result, int message,
+                 Word& local, Supplier s ){
+
+   MessageCenter* msg = MessageCenter::GetInstance();
+   stringstream ss;
+   Attribute* arg = (Attribute*) args[0].addr;
+   arg->Print(ss);
+   result = qp->ResultStorage(s);
+   Attribute* res = (Attribute*) result.addr;
+   res->CopyFrom(arg);
+   ListExpr se = nl->TwoElemList(nl->SymbolAtom("simple2"), 
+                                 nl->TextAtom(ss.str()));
+   msg->Send(nl,se);
+   msg->Flush();
+   nl->Destroy(se);
+   return 0;
+}
+
+int simpleMessageSelect(ListExpr args){
+  ListExpr a1 = nl->First(args);
+  if(CcString::checkType(a1)) return 0;
+  if(FText::checkType(a1)) return 1;
+  return 2;
+}
+
+ValueMapping simpleMessageVM [] = {
+   simpleMessageVMT<CcString>,
+   simpleMessageVMT<FText>,
+   simpleMessageVMA
+};
+
+
+
+
+OperatorSpec simpleMessageSpec(
+  "X -> X , where X in DATA",
+  "simpleMessage(_))",
+  " Sends a message to the user."
+  " The message is a string representation of the argument.",
+  "query plt feed replaceattr[Plz : simpleMessage(.Plz)] count"
+);
+
+
+Operator simpleMessageOP(
+  "simpleMessage",
+  simpleMessageSpec.getStr(),
+  3,
+  simpleMessageVM,
+  simpleMessageSelect,
+  simpleMessageTM
+);
+
+
+/*
 4.41 Operator ~errorMessage~
 
 This operator decodes error codes used internally in Secondo
@@ -13937,6 +14024,7 @@ Operator findLastNotOfOp(
 
       AddOperator(&messageTestOP);
       AddOperator(&errorMessageOP);
+      AddOperator(&simpleMessageOP);
 
       AddOperator(&filepath2textOP);
       AddOperator(&text2filepathOP);
