@@ -67,6 +67,53 @@ extern int SecondoPLTTYMode(TTYParameter&);
 extern int SecondoServerMode( const int, const char**);
 #endif
 
+
+class Simple2Handler : public MessageHandler {
+
+  public:
+  virtual bool handleMsg(NestedList* nl, ListExpr list, 
+                         int source __attribute__((unused))){
+     #ifdef THREAD_SAFE
+     boost::lock_guard<boost::mutex> guard(mtx);
+     #endif
+
+     if(!nl->HasMinLength(list,2)){
+       return false;
+     }
+     if(!nl->IsEqual(nl->First(list),"simple2")){
+        return false;
+     }
+     list = nl->Rest(list);
+     if(nl->HasLength(list,1)){
+	 list = nl->First(list);
+         switch(nl->AtomType(list)){
+            case SymbolType : 	 std::cout << nl->SymbolValue(list);
+			         break;
+            case StringType : 	 std::cout << nl->SymbolValue(list);
+			         break;
+
+            case TextType : 	 std::cout << nl->TextValue(list);
+			         break;
+            case IntType : 	 std::cout << nl->IntValue(list);
+			         break;
+            case RealType : 	 std::cout << nl->RealValue(list);
+			         break;
+            default : std::cout << nl->ToString(list);
+         }			      
+     } else {
+         std::cout << nl->ToString(list);
+     }
+     std::cout << endl;
+     return true;
+  }
+ 
+  Simple2Handler() {};
+  ~Simple2Handler() {};
+ 
+}; 
+
+
+
 int
 main( const int argc, char* argv[] )
 {
@@ -87,6 +134,9 @@ main( const int argc, char* argv[] )
   // count2 demonstrates how to send messages.
   SimpleHandler* sh = new SimpleHandler();
   msg->AddHandler(sh);
+  
+  Simple2Handler* s2h = new Simple2Handler();
+  msg->AddHandler(s2h);
 
   ProgMesHandler* pmh = new ProgMesHandler();
   msg->AddHandler(pmh);
