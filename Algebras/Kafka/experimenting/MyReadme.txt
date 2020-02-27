@@ -32,8 +32,8 @@
 
      query readfromkafka("localhost", "test", FALSE) count;
      query readfromkafka("newton1.fernuni-hagen.de:9093", "test", FALSE) count;
-     % query readfromkafka("localhost", "test", TRUE) count;
 
+---
      query readfromkafka("localhost", "test", TRUE) finishStream[8080] consume;
      query signalFinish("localhost", 8080);
 
