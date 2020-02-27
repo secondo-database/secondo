@@ -80,7 +80,6 @@ has 28 days.
 
 #include "Attribute.h"
 
-using namespace std;
 
 #include "Algebra.h"
 #include "NestedList.h"
@@ -93,6 +92,7 @@ using namespace std;
 #include <string>
 #include <stdio.h>
 
+using namespace std;
 extern NestedList* nl;
 extern QueryProcessor *qp;
 extern AlgebraManager *am;
@@ -500,7 +500,7 @@ Date* Date::Clone() const
 }
 
 ostream& Date::Print(ostream &os) const
-{
+{ if(!IsDefined()) return os << "undef";
   return (os << day << "." << month << "." << year);
 }
 

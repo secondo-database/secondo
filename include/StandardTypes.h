@@ -509,7 +509,7 @@ CcInt operator--(int){
 
   virtual std::string getCsvStr() const{
     if(!IsDefined()){
-       return "-";
+       return "";
     } else {
        std::stringstream o;
        o << intval;
@@ -845,7 +845,7 @@ class CcReal : public Attribute
 
   virtual std::string getCsvStr() const{
     if(!IsDefined()){
-       return "-";
+       return "";
     } else {
        std::stringstream o;
        o << realval;
@@ -1054,7 +1054,7 @@ class CcBool : public Attribute
 
   virtual std::string getCsvStr() const{
     if(!IsDefined()){
-       return "-";
+       return "";
     } else {
       return boolval?"true":"false";
     }
@@ -1302,7 +1302,7 @@ class CcString : public Attribute
 
   virtual std::string getCsvStr() const{
     if(!IsDefined()){
-       return "-";
+       return "";
     } else {
       return stringval;
     }
@@ -1580,7 +1580,7 @@ class CcString : public Attribute
 
   virtual std::string getCsvStr() const{
     if(!IsDefined()){
-       return "-";
+       return "";
     } else {
       return stringval;
     }

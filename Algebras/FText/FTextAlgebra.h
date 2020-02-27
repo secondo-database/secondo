@@ -144,6 +144,7 @@ public:
   }
 
   virtual std::string getCsvStr() const {
+    if(!IsDefined()) return "";	  
     return GetValue();
   }
 /*
