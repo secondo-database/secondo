@@ -69,3 +69,6 @@ operator printStreamMessages alias PRINTSTREAMMESSAGES pattern _ op
 operator contains alias CONTAINS pattern _ infixop _
 operator some alias SOME pattern _ op[_]
 
+operator sideEffect alias SideEffect  pattern _ op [fun] implicit parameters countelem1, streamelem2 types STREAMELEM, int
+
+

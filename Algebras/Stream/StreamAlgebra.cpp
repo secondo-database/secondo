@@ -6970,6 +6970,115 @@ Operator someOp(
   someTM
 );
 
+/*
+Operator ~sideEffect~
+
+*/
+
+ListExpr sideEffectTM(ListExpr args){
+  if(!nl->HasLength(args,2)){
+    return listutils::typeError("2 arguments expected");
+  }
+  if(!listutils::isStream(nl->First(args))){
+    return  listutils::typeError("first argument is not a stream");
+  }
+  ListExpr streamElem = nl->Second(nl->First(args));
+  if(!listutils::isMap<2>(nl->Second(args))){
+     return listutils::typeError("second argument is not a binary function");
+  }
+  ListExpr fun = nl->Second(args);
+  ListExpr fa1 = nl->Second(fun);
+  ListExpr fa2 = nl->Third(fun);
+  ListExpr funres = nl->Fourth(fun);
+  if(!nl->Equal(streamElem, fa1)){
+     return listutils::typeError("types of stream and first "
+                                 "function argument differ");
+  }
+  if(!CcInt::checkType(fa2)){
+     return listutils::typeError("second function arguemnt is not an int");
+  }
+  if(!Attribute::checkType(funres)){
+    return listutils::typeError("function result not in kind data");
+  }
+  return nl->First(args);
+}
+
+
+class sideEffectInfo{
+
+public:  
+   sideEffectInfo(Word& _stream, Word& _fun): 
+                   stream(_stream), fun(_fun), count(0) {
+      funargs = qp->Argument(fun.addr);
+      qp->Open(stream.addr);
+      (*funargs)[1] = SetWord(new CcInt(true,0));
+   } 
+   ~sideEffectInfo(){
+      ((CcInt*) (*funargs)[1].addr)->DeleteIfAllowed();
+      qp->Close(stream.addr);
+   }
+   
+   void* next(){
+      qp->Request(stream.addr, elem);
+      if(!qp->Received(stream.addr)) {
+        return 0;
+      }
+      (*funargs)[0] = elem;
+      ((CcInt*)((*funargs)[1].addr))->Set(true,++count); 
+      qp->Request(fun.addr,funres);
+      return elem.addr;
+   }
+
+
+
+private:
+   Word stream;
+   Word fun;
+   size_t count;
+   ArgVectorPointer funargs;
+   Word funres;
+   Word elem;
+};
+
+
+int sideEffectVM(Word* args, Word& result,
+                 int message, Word& local, Supplier s){
+
+  sideEffectInfo* li = (sideEffectInfo*) local.addr;
+  switch(message){
+    case OPEN: if(li) delete li;
+               local.addr = new sideEffectInfo(args[0], args[1]);
+               return 0;
+    case REQUEST: result.addr = li?li->next():0;
+                  return result.addr?YIELD:CANCEL;
+    case CLOSE : if(li){
+                   delete li;
+                   local.addr = 0;
+                 }
+                 return 0;
+  }
+  return -1;
+}
+
+OperatorSpec sideEffectSpec(
+   "stream(X) x fun(X x int -> a) -> stream(X)  , a in DATA",
+   "_ sideEffect[_] ",
+   "Evaluates a function for each element in the stream ignoring the result. "
+   "The second function arguemnt is set automatically to the number of "
+   "the current elements (counting starts with 1)",
+   "query plz feed sideEffect[ 1 echo[.Plz]  ] count "
+);
+
+Operator sideEffectOp{
+  "sideEffect",
+  sideEffectSpec.getStr(),
+  sideEffectVM,
+  Operator::SimpleSelect,
+  sideEffectTM
+};
+
+
+
 
 /*
 7 Creating the Algebra
@@ -7029,6 +7138,8 @@ public:
     AddOperator(&printStreamMessagesOp);
     AddOperator(&containsOp);
     AddOperator(&someOp);
+
+    AddOperator(&sideEffectOp); 
 
 #ifdef USE_PROGRESS
     streamcount.EnableProgress();
