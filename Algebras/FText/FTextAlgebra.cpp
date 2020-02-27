@@ -11807,7 +11807,11 @@ int simpleMessageVMT( Word* args, Word& result, int message,
    MessageCenter* msg = MessageCenter::GetInstance();
    stringstream ss;
    Attribute* arg = (Attribute*) args[0].addr;
-   ss << ((T*)arg)->GetValue();
+   if(arg->IsDefined()){
+        ss << ((T*)arg)->GetValue();
+   } else {
+        ss << "UNDEFINED" ;
+   }
    result = qp->ResultStorage(s);
    Attribute* res = (Attribute*) result.addr;
    res->CopyFrom(arg);
@@ -13887,6 +13891,44 @@ Operator findLastNotOfOp(
 );
 
 
+/*
+Operator endl
+
+*/
+ListExpr endlTM(ListExpr args){
+  if(!nl->IsEmpty(args)){
+    return listutils::typeError("no arguments expected");
+  }
+  return listutils::basicSymbol<CcString>();
+}
+
+int endlVM( Word* args, Word& result, int message, 
+                 Word& local, Supplier s ) {
+
+  result= qp->ResultStorage(s);
+  CcString* res = (CcString*) result.addr;
+  stringstream ss;
+  ss << endl;
+  res->Set(true, ss.str());
+  return 0;
+}
+
+OperatorSpec endlSpec(
+  " -> string",
+  "endl() ",
+  "returns the end of line symbol",
+  "query endl()  "
+);
+
+Operator endlOp(
+  "endl",
+  endlSpec.getStr(),
+  endlVM,
+  Operator::SimpleSelect,
+  endlTM
+);
+
+
 
 /*
 5 Creating the algebra
@@ -14052,6 +14094,7 @@ Operator findLastNotOfOp(
       AddOperator(&findLastOfOp);
       AddOperator(&findFirstNotOfOp);
       AddOperator(&findLastNotOfOp);
+      AddOperator(&endlOp);
 
 #ifdef RECODE
       AddOperator(&recode);

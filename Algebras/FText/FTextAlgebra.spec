@@ -135,5 +135,6 @@ operator dbobjects alias DBOBJECTS pattern op(_,_)
 
 operator queryTime alias QUERYTIME pattern op()
 
+operator endl alias ENDL pattern op()
 
 

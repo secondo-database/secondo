@@ -1410,3 +1410,10 @@ Example   : query findLastNotOf('abcdce',"abce")
 Result    : 4
 
 
+Operator  : endl
+Number    : 1
+Signature : -> string
+Example   : query length("hello" + endl() + "world") > 0
+Result    : TRUE
+
+
