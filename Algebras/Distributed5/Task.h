@@ -330,7 +330,7 @@ public:
 
     std::string toString() const
     {
-        boost::lock_guard<boost::mutex> lock(mutex);
+        boost::shared_lock_guard<boost::shared_mutex> lock(mutex);
         std::string slotInfo =
             vslot != 0
                 ? " _ " + std::to_string(slot) +
@@ -362,6 +362,8 @@ public:
     {
         return preferredLocation;
     }
+
+    bool hasLocation(TaskDataLocation const &location) const;
 
     TaskDataLocation findLocation(WorkerLocation const &nearby) const;
     bool hasLocation(WorkerLocation const &nearby) const;
@@ -404,7 +406,7 @@ public:
 
     void removeLocation(TaskDataLocation location)
     {
-        boost::lock_guard<boost::mutex> lock(mutex);
+        boost::lock_guard<boost::shared_mutex> lock(mutex);
         auto &locations = locationsByServer[location.getServer()];
         for (auto it = locations.begin(); it != locations.end(); it++)
         {
@@ -422,7 +424,7 @@ public:
 
     void addLocation(TaskDataLocation location)
     {
-        boost::lock_guard<boost::mutex> lock(mutex);
+        boost::lock_guard<boost::shared_mutex> lock(mutex);
         auto &locations = locationsByServer[location.getServer()];
         if (location.getStorageType() == File)
             fileLocations++;
@@ -443,7 +445,7 @@ public:
 
     void persistLocation(TaskDataLocation location)
     {
-        boost::lock_guard<boost::mutex> lock(mutex);
+        boost::lock_guard<boost::shared_mutex> lock(mutex);
         auto &locations = locationsByServer[location.getServer()];
         for (auto it = locations.begin(); it != locations.end(); it++)
         {
@@ -459,14 +461,14 @@ public:
 
     void addUpcomingLocation(TaskDataLocation location)
     {
-        boost::lock_guard<boost::mutex> lock(mutex);
+        boost::lock_guard<boost::shared_mutex> lock(mutex);
         upcomingLocations.push_back(location);
     }
 
 private:
-    mutable boost::mutex mutex;
+    mutable boost::shared_mutex mutex;
     WorkerLocation preferredLocation;
-    mutable std::map<std::string, std::vector<TaskDataLocation>>
+    std::map<std::string, std::vector<TaskDataLocation>>
         locationsByServer;
     int objectLocations;
     int fileLocations;
@@ -514,7 +516,12 @@ public:
 
     static void report(std::string name, double value)
     {
-        auto &entry = local.values[name];
+        local.addValue(name, value);
+    }
+
+    void addValue(std::string name, double value)
+    {
+        auto &entry = values[name];
         entry.value += value;
         entry.count++;
         if (entry.count < 10000)
@@ -528,6 +535,7 @@ public:
 
     void merge(TaskStatistics other)
     {
+        auto start = std::chrono::high_resolution_clock::now();
         for (auto pair : other.values)
         {
             auto &entry = values[pair.first];
@@ -539,6 +547,11 @@ public:
                     entry.values.push_back(value);
             }
         }
+        auto duration =
+            std::chrono::duration_cast<std::chrono::microseconds>(
+                std::chrono::high_resolution_clock::now() - start);
+        addValue("merge stats",
+                 ((double)duration.count()) / 1000000);
     }
 
     std::string toString()

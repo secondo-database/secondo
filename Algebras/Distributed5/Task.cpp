@@ -305,10 +305,11 @@ TaskDataItem *PartitionFunctionTask::run(
     string targetDir = location.getFileDirectory(&result);
 
     string cd = "query createDirectory('" + targetDir + "', TRUE)";
-    runCommand(ci, cd, "create directory for file", false, true);
+    double duration = runCommand(ci, cd,
+                                 "create directory for file", false, true);
 
-    double duration = runCommand(ci, cmd, description, true);
-    TaskStatistics::report(description, duration);
+    duration += runCommand(ci, cmd, description, true);
+    TaskStatistics::report("remote " + description, duration);
 
     return new TaskDataItem(result);
 }
@@ -495,6 +496,8 @@ TaskDataItem *FunctionTask::store(
     string name2 = result.getObjectName();
     string cmd;
 
+    double duration = 0;
+
     switch (storageType)
     {
     case DataStorageType::Object:
@@ -508,7 +511,8 @@ TaskDataItem *FunctionTask::store(
         string targetDir = location.getFileDirectory(&result);
 
         string cd = "query createDirectory('" + targetDir + "', TRUE)";
-        runCommand(ci, cd, "create directory for file", false, true);
+        duration += runCommand(ci, cd,
+                               "create directory for file", false, true);
 
         string fname2 = location.getFilePath(&result);
 
@@ -544,8 +548,8 @@ TaskDataItem *FunctionTask::store(
         throw std::invalid_argument("not implemented storage type");
     }
 
-    double duration = runCommand(ci, cmd, description, true);
-    TaskStatistics::report(description, duration);
+    duration += runCommand(ci, cmd, description, true);
+    TaskStatistics::report("remote " + description, duration);
 
     return new TaskDataItem(result);
 }
@@ -568,7 +572,7 @@ ConnectionInfo *WorkerLocation::getWorkerConnection() const
 DataDistance TaskDataItem::getDistance(
     WorkerLocation const &location) const
 {
-    boost::lock_guard<boost::mutex> lock(mutex);
+    boost::shared_lock_guard<boost::shared_mutex> lock(mutex);
     DataDistance bestDistance = FarAway;
     if (fileLocations > 0)
     {
@@ -578,13 +582,16 @@ DataDistance TaskDataItem::getDistance(
     {
         bestDistance = DataDistance::MemoryOverNetwork;
     }
-    auto &locations = locationsByServer[location.getServer()];
-    for (auto &loc : locations)
+    auto locations = locationsByServer.find(location.getServer());
+    if (locations != locationsByServer.end())
     {
-        DataDistance dist = loc.getDistance(location, isFileRelation());
-        if (dist < bestDistance)
+        for (auto &loc : locations->second)
         {
-            bestDistance = dist;
+            DataDistance dist = loc.getDistance(location, isFileRelation());
+            if (dist < bestDistance)
+            {
+                bestDistance = dist;
+            }
         }
     }
     return bestDistance;
@@ -594,7 +601,7 @@ DataDistance TaskDataItem::getUpcomingDistance(
     WorkerLocation const &location) const
 {
     DataDistance bestDistance = getDistance(location);
-    boost::lock_guard<boost::mutex> lock(mutex);
+    boost::shared_lock_guard<boost::shared_mutex> lock(mutex);
     for (auto &loc : upcomingLocations)
     {
         DataDistance dist = loc.getDistance(location, isFileRelation());
@@ -638,19 +645,22 @@ pair<TaskDataLocation, int> TaskDataItem::findTransferSourceLocation(
 
 TaskDataLocation TaskDataItem::findLocation(WorkerLocation const &nearby) const
 {
-    boost::lock_guard<boost::mutex> lock(mutex);
+    boost::shared_lock_guard<boost::shared_mutex> lock(mutex);
     const TaskDataLocation *bestLoc = 0;
     DataDistance bestDistance = DataDistance::AccessibleWithCorrectType;
-    auto &locations = locationsByServer[nearby.getServer()];
-    for (auto &loc : locations)
+    auto locations = locationsByServer.find(nearby.getServer());
+    if (locations != locationsByServer.end())
     {
-        if (loc.getWorkerLocation() == nearby)
-            return loc;
-        DataDistance dist = loc.getDistance(nearby, isFileRelation());
-        if (dist < bestDistance)
+        for (auto &loc : locations->second)
         {
-            bestLoc = &loc;
-            bestDistance = dist;
+            if (loc.getWorkerLocation() == nearby)
+                return loc;
+            DataDistance dist = loc.getDistance(nearby, isFileRelation());
+            if (dist < bestDistance)
+            {
+                bestLoc = &loc;
+                bestDistance = dist;
+            }
         }
     }
     if (bestLoc == 0)
@@ -658,16 +668,34 @@ TaskDataLocation TaskDataItem::findLocation(WorkerLocation const &nearby) const
     return *bestLoc;
 }
 
+bool TaskDataItem::hasLocation(TaskDataLocation const &location) const
+{
+    boost::shared_lock_guard<boost::shared_mutex> lock(mutex);
+    auto locations = locationsByServer.find(location.getServer());
+    if (locations != locationsByServer.end())
+    {
+        for (auto &loc : locations->second)
+        {
+            if (loc == location)
+                return true;
+        }
+    }
+    return false;
+}
+
 bool TaskDataItem::hasLocation(WorkerLocation const &nearby) const
 {
-    boost::lock_guard<boost::mutex> lock(mutex);
-    auto &locations = locationsByServer[nearby.getServer()];
-    for (auto &loc : locations)
+    boost::shared_lock_guard<boost::shared_mutex> lock(mutex);
+    auto locations = locationsByServer.find(nearby.getServer());
+    if (locations != locationsByServer.end())
     {
-        DataDistance dist = loc.getDistance(nearby, isFileRelation());
-        if (dist <= DataDistance::AccessibleWithCorrectType)
+        for (auto &loc : locations->second)
         {
-            return true;
+            DataDistance dist = loc.getDistance(nearby, isFileRelation());
+            if (dist <= DataDistance::AccessibleWithCorrectType)
+            {
+                return true;
+            }
         }
     }
     return false;
@@ -676,16 +704,19 @@ bool TaskDataItem::hasLocation(WorkerLocation const &nearby) const
 bool TaskDataItem::hasLocation(WorkerLocation const &nearby,
                                DataStorageType storageType) const
 {
-    boost::lock_guard<boost::mutex> lock(mutex);
-    auto &locations = locationsByServer[nearby.getServer()];
-    for (auto &loc : locations)
+    boost::shared_lock_guard<boost::shared_mutex> lock(mutex);
+    auto locations = locationsByServer.find(nearby.getServer());
+    if (locations != locationsByServer.end())
     {
-        if (loc.getStorageType() != storageType)
-            continue;
-        DataDistance dist = loc.getDistance(nearby, isFileRelation());
-        if (dist <= DataDistance::Accessible)
+        for (auto &loc : locations->second)
         {
-            return true;
+            if (loc.getStorageType() != storageType)
+                continue;
+            DataDistance dist = loc.getDistance(nearby, isFileRelation());
+            if (dist <= DataDistance::Accessible)
+            {
+                return true;
+            }
         }
     }
     return false;
@@ -693,7 +724,7 @@ bool TaskDataItem::hasLocation(WorkerLocation const &nearby,
 
 bool TaskDataItem::hasUpcomingLocation(WorkerLocation const &nearby) const
 {
-    boost::lock_guard<boost::mutex> lock(mutex);
+    boost::shared_lock_guard<boost::shared_mutex> lock(mutex);
     for (auto &loc : upcomingLocations)
     {
         DataDistance dist = loc.getDistance(nearby, isFileRelation());
@@ -702,13 +733,16 @@ bool TaskDataItem::hasUpcomingLocation(WorkerLocation const &nearby) const
             return true;
         }
     }
-    auto &locations = locationsByServer[nearby.getServer()];
-    for (auto &loc : locations)
+    auto locations = locationsByServer.find(nearby.getServer());
+    if (locations != locationsByServer.end())
     {
-        DataDistance dist = loc.getDistance(nearby, isFileRelation());
-        if (dist <= DataDistance::AccessibleWithCorrectType)
+        for (auto &loc : locations->second)
         {
-            return true;
+            DataDistance dist = loc.getDistance(nearby, isFileRelation());
+            if (dist <= DataDistance::AccessibleWithCorrectType)
+            {
+                return true;
+            }
         }
     }
     return false;
@@ -717,7 +751,7 @@ bool TaskDataItem::hasUpcomingLocation(WorkerLocation const &nearby) const
 bool TaskDataItem::hasUpcomingLocation(WorkerLocation const &nearby,
                                        DataStorageType storageType) const
 {
-    boost::lock_guard<boost::mutex> lock(mutex);
+    boost::shared_lock_guard<boost::shared_mutex> lock(mutex);
     for (auto &loc : upcomingLocations)
     {
         if (loc.getStorageType() != storageType)
@@ -728,15 +762,18 @@ bool TaskDataItem::hasUpcomingLocation(WorkerLocation const &nearby,
             return true;
         }
     }
-    auto &locations = locationsByServer[nearby.getServer()];
-    for (auto &loc : locations)
+    auto locations = locationsByServer.find(nearby.getServer());
+    if (locations != locationsByServer.end())
     {
-        if (loc.getStorageType() != storageType)
-            continue;
-        DataDistance dist = loc.getDistance(nearby, isFileRelation());
-        if (dist <= DataDistance::Accessible)
+        for (auto &loc : locations->second)
         {
-            return true;
+            if (loc.getStorageType() != storageType)
+                continue;
+            DataDistance dist = loc.getDistance(nearby, isFileRelation());
+            if (dist <= DataDistance::Accessible)
+            {
+                return true;
+            }
         }
     }
     return false;
@@ -745,7 +782,7 @@ bool TaskDataItem::hasUpcomingLocation(WorkerLocation const &nearby,
 TaskDataLocation TaskDataItem::findUpcomingLocation(
     WorkerLocation const &nearby) const
 {
-    boost::lock_guard<boost::mutex> lock(mutex);
+    boost::shared_lock_guard<boost::shared_mutex> lock(mutex);
     const TaskDataLocation *bestLoc = 0;
     DataDistance bestDistance = DataDistance::AccessibleWithCorrectType;
     for (auto &loc : upcomingLocations)
@@ -757,14 +794,17 @@ TaskDataLocation TaskDataItem::findUpcomingLocation(
             bestDistance = dist;
         }
     }
-    auto &locations = locationsByServer[nearby.getServer()];
-    for (auto &loc : locations)
+    auto locations = locationsByServer.find(nearby.getServer());
+    if (locations != locationsByServer.end())
     {
-        DataDistance dist = loc.getDistance(nearby, isFileRelation());
-        if (dist < bestDistance)
+        for (auto &loc : locations->second)
         {
-            bestLoc = &loc;
-            bestDistance = dist;
+            DataDistance dist = loc.getDistance(nearby, isFileRelation());
+            if (dist < bestDistance)
+            {
+                bestLoc = &loc;
+                bestDistance = dist;
+            }
         }
     }
     if (bestLoc == 0)
@@ -778,17 +818,20 @@ TaskDataLocation TaskDataItem::findLocation(
 {
     const TaskDataLocation *bestLoc = 0;
     DataDistance bestDistance = DataDistance::Accessible;
-    boost::lock_guard<boost::mutex> lock(mutex);
-    auto &locations = locationsByServer[nearby.getServer()];
-    for (auto &loc : locations)
+    boost::shared_lock_guard<boost::shared_mutex> lock(mutex);
+    auto locations = locationsByServer.find(nearby.getServer());
+    if (locations != locationsByServer.end())
     {
-        if (loc.getStorageType() != storageType)
-            continue;
-        DataDistance dist = loc.getDistance(nearby, isFileRelation());
-        if (dist < bestDistance)
+        for (auto &loc : locations->second)
         {
-            bestLoc = &loc;
-            bestDistance = dist;
+            if (loc.getStorageType() != storageType)
+                continue;
+            DataDistance dist = loc.getDistance(nearby, isFileRelation());
+            if (dist < bestDistance)
+            {
+                bestLoc = &loc;
+                bestDistance = dist;
+            }
         }
     }
     if (bestLoc == 0)
@@ -798,7 +841,7 @@ TaskDataLocation TaskDataItem::findLocation(
 
 TaskDataLocation TaskDataItem::getFirstLocation() const
 {
-    boost::lock_guard<boost::mutex> lock(mutex);
+    boost::shared_lock_guard<boost::shared_mutex> lock(mutex);
     for (auto &locations : locationsByServer)
         if (!locations.second.empty())
             return locations.second[0];
@@ -807,7 +850,7 @@ TaskDataLocation TaskDataItem::getFirstLocation() const
 
 std::vector<TaskDataLocation> TaskDataItem::getLocations() const
 {
-    boost::lock_guard<boost::mutex> lock(mutex);
+    boost::shared_lock_guard<boost::shared_mutex> lock(mutex);
     std::vector<TaskDataLocation> allLocations;
     for (auto &locations : locationsByServer)
     {
@@ -819,7 +862,7 @@ std::vector<TaskDataLocation> TaskDataItem::getLocations() const
 
 void TaskDataItem::merge(TaskDataItem *other)
 {
-    boost::lock_guard<boost::mutex> lock(mutex);
+    boost::lock_guard<boost::shared_mutex> lock(mutex);
     for (auto otherLocations : other->locationsByServer)
     {
         auto ownLocations = locationsByServer[otherLocations.first];
