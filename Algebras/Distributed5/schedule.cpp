@@ -98,17 +98,28 @@ struct pair_hash
     }
 };
 
+struct tuple3_hash
+{
+    template <class T1, class T2, class T3>
+    std::size_t operator()(const std::tuple<T1, T2, T3> &tuple) const
+    {
+        return std::hash<T1>()(std::get<0>(tuple)) ^
+               std::hash<T2>()(std::get<1>(tuple)) ^
+               std::hash<T3>()(std::get<2>(tuple));
+    }
+};
+
 struct TaskScheduleInfo
 {
 public:
     boost::shared_mutex mutex;
-    std::unordered_set<pair<TaskScheduleInfo *, size_t>, pair_hash> successors;
+    std::unordered_set<tuple<size_t, TaskScheduleInfo *, size_t>, tuple3_hash>
+        successors;
     vector<TaskDataItem *> arguments;
-    TaskDataItem *result = 0;
-    // end of mutex protected
-
+    optional<vector<TaskDataItem *>> results;
     optional<pair<WorkerLocation, int>> reservation;
     bool started = false;
+    // end of mutex protected
 };
 
 template <typename K>
@@ -185,11 +196,29 @@ public:
     //joins all running threads
     void join()
     {
-        boost::unique_lock<boost::mutex> lock(threadsMutex);
         stopWorkers(true);
-        while (runningThreads > 0)
+        bool running = true;
+        while (running)
         {
-            threadSignal.wait(lock);
+            {
+                boost::unique_lock<boost::mutex>
+                    lock(threadsMutex);
+                if (runningThreads > 0)
+                {
+                    threadSignal.timed_wait(
+                        lock, boost::posix_time::seconds(1));
+                }
+                else
+                {
+                    running = false;
+                }
+            }
+            size_t remainingTasks;
+            {
+                boost::shared_lock_guard<boost::shared_mutex> lock(poolMutex);
+                remainingTasks = workPool.size();
+            }
+            printProgress(remainingTasks);
         }
 
         // all threads have finished working
@@ -241,31 +270,41 @@ public:
         {
             WorkerLocation emptyLocation("", 0, "", -1);
             vector<TaskDataItem *> emptyArgs;
-            TaskDataItem *result = task->run(emptyLocation, emptyArgs);
-            setTaskResult(task, result);
+            vector<TaskDataItem *> result = task->run(emptyLocation, emptyArgs);
+            setTaskResult(task, result, emptyArgs);
             return;
         }
 
-        std::vector<Task *> &predecessors = task->getPredecessors();
-        std::vector<TaskScheduleInfo *> preInfos;
+        totalNumberOfTasks++;
+
+        vector<pair<Task *, size_t>> &arguments = task->getArguments();
+        vector<pair<TaskScheduleInfo *, size_t>> preInfos;
         {
             boost::shared_lock_guard<boost::shared_mutex> lock(poolMutex);
-            for (Task *task : predecessors)
+            for (auto pair : arguments)
             {
-                preInfos.push_back(&taskInfo[task]);
+                preInfos.emplace_back(&taskInfo[pair.first], pair.second);
             }
         }
 
-        // "info" doesn't need locking as it's not yet in the workPool
-        // and receiveTask is only called single-threaded
-        for (auto preInfo : preInfos)
+        for (auto pair : preInfos)
         {
+            auto &preInfo = pair.first;
+            size_t pos = pair.second;
             TaskDataItem *result;
             {
                 boost::lock_guard<boost::shared_mutex> lock(preInfo->mutex);
-                result = preInfo->result;
+                result = preInfo->results ? (*preInfo->results)[pos] : 0;
+
+                // Here two mutexes are locked, but order of locking is
+                // always in direction of result flow
+                // So no deadlock can occur
+                boost::lock_guard<boost::shared_mutex> lock2(info->mutex);
                 if (result == 0)
-                    preInfo->successors.emplace(info, info->arguments.size());
+                {
+                    preInfo->successors.emplace(
+                        pos, info, info->arguments.size());
+                }
                 info->arguments.push_back(result);
             }
             if (result != 0)
@@ -275,12 +314,28 @@ public:
                 dataReferences[result]++;
             }
         }
+        size_t remainingTasks = 0;
         {
             boost::lock_guard<boost::shared_mutex> lock(poolMutex);
             workPool.push_back(task);
+            if (totalNumberOfTasks % 100 == 0)
+                remainingTasks = workPool.size();
             workGeneration++;
         }
         poolSignal.notify_all();
+        if (remainingTasks != 0)
+        {
+            printProgress(remainingTasks);
+        }
+    }
+
+    void printProgress(size_t remainingTasks)
+    {
+        size_t completedTasks = totalNumberOfTasks - remainingTasks;
+        size_t percent = completedTasks * 100 / totalNumberOfTasks;
+        cout << "  " << percent << "% (" << completedTasks << "/"
+             << totalNumberOfTasks << ")\r";
+        cout.flush();
     }
 
     vector<WorkerLocation> getWorkers()
@@ -402,32 +457,38 @@ public:
         activeTransferrators[server].second += update;
     }
 
-    void setTaskResult(Task *task, TaskDataItem *result)
+    void setTaskResult(Task *task, vector<TaskDataItem *> results,
+                       vector<TaskDataItem *> args)
     {
         // make sure a worker is running for the location of the result
-        ensureWorker(result->getFirstLocation().getWorkerLocation());
+        if (results.size() > 0)
+            ensureWorker(results[0]->getFirstLocation().getWorkerLocation());
 
-        string oname = result->getObjectName();
-        TaskDataItem *existing = 0;
+        for (size_t i = 0; i < results.size(); i++)
         {
-            boost::lock_guard<boost::mutex> lock(dataItemsMutex);
-
-            // when data with the same name has already been referenced
-            // merge both data items to one item to keep only a single data item
-            // per name
-            auto pair = dataItems.emplace(oname, result);
-            if (!pair.second)
+            TaskDataItem *&result = results[i];
+            string oname = result->getObjectName();
+            TaskDataItem *existing = 0;
             {
-                existing = pair.first->second;
+                boost::lock_guard<boost::mutex> lock(dataItemsMutex);
+
+                // when data with the same name has already been referenced
+                // merge both data items to one item to keep only a single data
+                // item per name
+                auto pair = dataItems.emplace(oname, result);
+                if (!pair.second)
+                {
+                    existing = pair.first->second;
+                }
             }
-        }
-        if (existing != 0)
-        {
-            if (existing != result)
+            if (existing != 0)
             {
-                existing->merge(result);
-                delete result;
-                result = existing;
+                if (existing != result)
+                {
+                    existing->merge(result);
+                    delete result;
+                    result = existing;
+                }
             }
         }
 
@@ -442,37 +503,27 @@ public:
              << result->toString() << endl;
 #endif
 
-        size_t refs = 0;
+        vector<size_t> refs;
+        refs.assign(results.size(), 0);
         {
             boost::lock_guard<boost::shared_mutex> lock(info->mutex);
 
             // store result
-            info->result = result;
+            info->results = results;
 
             // update the arguments of successors
-            for (auto pair : info->successors)
+            for (auto tuple : info->successors)
             {
-                refs++;
+                size_t pos = get<0>(tuple);
+                TaskScheduleInfo *succInfo = get<1>(tuple);
+                size_t targetPos = get<2>(tuple);
+                refs[pos]++;
 
                 // Here two mutexes are locked, but order of locking is
                 // always in direction of result flow
                 // So no deadlock can occur
-                boost::lock_guard<boost::shared_mutex> lock(pair.first->mutex);
-                pair.first->arguments[pair.second] = result;
-            }
-        }
-
-        // For all precessor tasks, decrease the number of remaining tasks
-        // First collect all results from pre tasks
-        vector<TaskDataItem *> preResults;
-        {
-            boost::shared_lock_guard<boost::shared_mutex> lock(poolMutex);
-            for (auto preTask : task->getPredecessors())
-            {
-                TaskScheduleInfo &preInfo = taskInfo[preTask];
-                // Here no locking is needed as result is always set
-                // and won't change when set once
-                preResults.push_back(preInfo.result);
+                boost::lock_guard<boost::shared_mutex> lock(succInfo->mutex);
+                succInfo->arguments[targetPos] = results[pos];
             }
         }
 
@@ -480,10 +531,13 @@ public:
             boost::lock_guard<boost::shared_mutex> lock(dataReferencesMutex);
 
             // each successor keeps a reference to the result
-            dataReferences[result] += refs;
+            for (size_t i = 0; i < results.size(); i++)
+            {
+                dataReferences[results[i]] += refs[i];
+            }
 
-            // Then update data references from pre tasks
-            for (auto preResult : preResults)
+            // For all arguments, decrease the number of remaining tasks
+            for (auto preResult : args)
             {
                 dataReferences[preResult]--;
             }
@@ -606,9 +660,14 @@ private:
     // poolMutex already need to be locked
     vector<TaskDataItem *> getTaskArguments(Task *task)
     {
-        auto &info = taskInfo[task];
-        boost::shared_lock_guard<boost::shared_mutex> lock(info.mutex);
-        return info.arguments;
+        TaskScheduleInfo *info;
+        {
+            boost::shared_lock_guard<boost::shared_mutex> lock(poolMutex);
+            info = &taskInfo[task];
+        }
+        boost::shared_lock_guard<boost::shared_mutex> lock(info->mutex);
+        vector<TaskDataItem *> vec = info->arguments;
+        return vec;
     }
 
     // the worker thread
@@ -630,10 +689,6 @@ private:
                 break;
             auto start = std::chrono::high_resolution_clock::now();
             WorkerJob *job = selectJob(location);
-            if (job == 0 && shouldStopWorkersWhenWorkDone() && !isErrored())
-            {
-                job = selectGarbaggeJob(location);
-            }
             auto duration =
                 std::chrono::duration_cast<std::chrono::microseconds>(
                     std::chrono::high_resolution_clock::now() - start);
@@ -652,8 +707,17 @@ private:
                         std::chrono::high_resolution_clock::now() - start);
                 TaskStatistics::report("run job " + job->getType(),
                                        ((double)duration.count()) / 1000000);
+                continue;
             }
-            else if (startWorkGeneration == getWorkGeneration())
+
+            if (shouldStopWorkersWhenWorkDone() && !isErrored())
+            {
+                // nothing productive to do
+                // collect some garbage
+                collectGarbagge(location);
+            }
+
+            if (startWorkGeneration == getWorkGeneration())
             {
                 // Go into sleep mode
                 auto start = std::chrono::high_resolution_clock::now();
@@ -774,7 +838,7 @@ private:
         int cost, Task *task,
         optional<pair<WorkerJob *, int>> &best);
     WorkerJob *selectJob(WorkerLocation &location);
-    WorkerJob *selectGarbaggeJob(WorkerLocation &location);
+    bool collectGarbagge(WorkerLocation &location);
 
     class ResultTask : public Task
     {
@@ -788,7 +852,9 @@ private:
 
         virtual std::string getTaskType() const { return "result"; }
 
-        virtual TaskDataItem *run(
+        virtual size_t getNumberOfResults() const { return 0; }
+
+        virtual vector<TaskDataItem *> run(
             WorkerLocation &location,
             std::vector<TaskDataItem *> args)
         {
@@ -847,7 +913,7 @@ private:
             }
             resultItem = preferredLocation.getDArrayElement();
 
-            return result;
+            return vector<TaskDataItem *>();
         }
 
     private:
@@ -856,6 +922,8 @@ private:
 
     int fileTransferPort;
     bool resultInObjectForm;
+
+    size_t totalNumberOfTasks = 0;
 
     boost::mutex threadsMutex;
     std::map<WorkerLocation, boost::thread *> threads;
@@ -930,10 +998,13 @@ public:
     virtual bool run()
     {
         if (!scheduler.startExecutingTask(task))
+        {
+            TaskStatistics::report("execute invalid", 0);
             return true;
+        }
 
         // Execute
-        TaskDataItem *result;
+        vector<TaskDataItem *> result;
         try
         {
             result = task->run(location, args);
@@ -953,7 +1024,7 @@ public:
             return false;
         }
 
-        scheduler.setTaskResult(task, result);
+        scheduler.setTaskResult(task, result, args);
         return true;
     }
 
@@ -1233,74 +1304,6 @@ public:
 
 private:
     TaskDataItem *data;
-};
-
-class RemoveDataWorkerJob : public WorkerJob
-{
-public:
-    RemoveDataWorkerJob(WorkerLocation &location, Scheduler &scheduler,
-                        TaskDataItem *data, TaskDataLocation dataLocation)
-        : WorkerJob(location, scheduler),
-          data(data), dataLocation(dataLocation) {}
-    virtual ~RemoveDataWorkerJob() {}
-
-    virtual string getType() const { return "remove"; }
-
-    virtual string toString() const
-    {
-        return "remove " + dataLocation.toString() +
-               " from " + data->toString();
-    }
-
-    virtual bool run()
-    {
-        data->removeLocation(dataLocation);
-
-        try
-        {
-            ConnectionInfo *ci = location.getWorkerConnection();
-            switch (dataLocation.getStorageType())
-            {
-            case File:
-            {
-                string file = dataLocation.getFilePath(data);
-                double duration = Task::runCommand(
-                    ci,
-                    "query removeFile('" + file + "')",
-                    "remove temporary data file",
-                    false, true);
-                TaskStatistics::report("remote remove file", duration);
-
-                break;
-            }
-            case Object:
-            {
-                string objectName = data->getObjectName();
-                double duration = Task::runCommand(
-                    ci,
-                    "(delete " + objectName + ")",
-                    "remove temporary data object",
-                    true, true);
-                TaskStatistics::report("remote remove object", duration);
-
-                break;
-            }
-            }
-        }
-        catch (exception &e)
-        {
-            scheduler.addError(string(e.what()) + "\n" +
-                               "while removing " + data->toString() +
-                               " from " + dataLocation.toString());
-            return false;
-        }
-
-        return true;
-    }
-
-private:
-    TaskDataItem *data;
-    TaskDataLocation dataLocation;
 };
 
 void Scheduler::valueJobsForTask(WorkerLocation &location, Task *task,
@@ -1644,36 +1647,169 @@ WorkerJob *Scheduler::selectJob(WorkerLocation &location)
     return 0;
 }
 
-WorkerJob *Scheduler::selectGarbaggeJob(WorkerLocation &location)
+class RemoveDataWorkerJob : public WorkerJob
 {
-    boost::shared_lock_guard<boost::shared_mutex> lock(dataReferencesMutex);
+public:
+    RemoveDataWorkerJob(WorkerLocation &location, Scheduler &scheduler,
+                        TaskDataItem *data, TaskDataLocation dataLocation)
+        : WorkerJob(location, scheduler),
+          data(data), dataLocation(dataLocation) {}
+    virtual ~RemoveDataWorkerJob() {}
 
-    // nothing productive to do
-    // collect some garbage
-    for (auto pair : dataReferences)
+    virtual string getType() const { return "remove"; }
+
+    virtual string toString() const
     {
-        if (pair.second == 0)
+        return "remove " + dataLocation.toString() +
+               " from " + data->toString();
+    }
+
+    virtual bool run()
+    {
+        data->removeLocation(dataLocation);
+
+        try
         {
-            TaskDataItem *data = pair.first;
-            for (auto loc : data->getLocations())
+            ConnectionInfo *ci = location.getWorkerConnection();
+            switch (dataLocation.getStorageType())
             {
-                if (loc.isTemporary() &&
-                    loc.getWorkerLocation() == location)
-                {
-                    WorkerJob *job =
-                        new RemoveDataWorkerJob(location, *this,
-                                                data, loc);
-#ifdef DEBUG_JOB_SELECTION
-                    cout << location.toString() << " -> " << job->toString()
-                         << endl;
-#endif
-                    return job;
-                }
+            case File:
+            {
+                string file = dataLocation.getFilePath(data);
+                double duration = Task::runCommand(
+                    ci,
+                    "query removeFile('" + file + "')",
+                    "remove temporary data file",
+                    false, true);
+                TaskStatistics::report("remote remove file", duration);
+
+                break;
+            }
+            case Object:
+            {
+                string objectName = data->getObjectName();
+                double duration = Task::runCommand(
+                    ci,
+                    "(delete " + objectName + ")",
+                    "remove temporary data object",
+                    true, true);
+                TaskStatistics::report("remote remove object", duration);
+
+                break;
+            }
+            }
+        }
+        catch (exception &e)
+        {
+            scheduler.addError(string(e.what()) + "\n" +
+                               "while removing " + data->toString() +
+                               " from " + dataLocation.toString());
+            return false;
+        }
+
+        return true;
+    }
+
+private:
+    TaskDataItem *data;
+    TaskDataLocation dataLocation;
+};
+
+bool Scheduler::collectGarbagge(WorkerLocation &location)
+{
+    vector<TaskDataItem *> notReferencedData;
+    vector<pair<TaskDataItem *, TaskDataLocation>> garbagge;
+
+    {
+        boost::shared_lock_guard<boost::shared_mutex> lock(dataReferencesMutex);
+
+        for (auto pair : dataReferences)
+        {
+            if (pair.second == 0)
+            {
+                notReferencedData.push_back(pair.first);
             }
         }
     }
 
-    return 0;
+    if (notReferencedData.size() == 0)
+        return false;
+
+    for (auto data : notReferencedData)
+    {
+        for (auto loc : data->getLocations())
+        {
+            if (loc.isTemporary() &&
+                loc.getWorkerLocation() == location)
+            {
+                garbagge.emplace_back(data, loc);
+            }
+        }
+    }
+
+    if (garbagge.size() == 0)
+        return false;
+
+    vector<string> objectsList;
+    string filesList = "";
+    for (auto pair : garbagge)
+    {
+        auto data = pair.first;
+        auto &loc = pair.second;
+        switch (loc.getStorageType())
+        {
+        case Object:
+            objectsList.push_back(data->getObjectName());
+            break;
+        case File:
+            filesList += "('" + loc.getFilePath(data) + "') ";
+            break;
+        }
+        data->removeLocation(loc);
+    }
+
+    try
+    {
+        if (!filesList.empty())
+        {
+            ConnectionInfo *ci = location.getWorkerConnection();
+
+            string removeQuery = "query [const rel(tuple([X: text])) value (" +
+                                 filesList +
+                                 ")] feed extend[ OK: removeFile(.X) ] count";
+            double duration = Task::runCommand(
+                ci,
+                removeQuery,
+                "remove temporary files",
+                false, true);
+            TaskStatistics::report("remote remove files", duration);
+        }
+
+        if (objectsList.size() > 0)
+        {
+            ConnectionInfo *ci = location.getWorkerConnection();
+
+            for (auto objName : objectsList)
+            {
+                string removeQuery = "delete " + objName;
+                double duration = Task::runCommand(
+                    ci,
+                    removeQuery,
+                    "remove temporary object",
+                    false, true);
+                TaskStatistics::report("remote remove object", duration);
+            }
+        }
+    }
+    catch (exception &e)
+    {
+        addError(string(e.what()) + "\n" +
+                 "while collecting garbagge" +
+                 " on " + location.toString());
+        return false;
+    }
+
+    return true;
 }
 
 thread_local optional<set<WorkerLocation>>

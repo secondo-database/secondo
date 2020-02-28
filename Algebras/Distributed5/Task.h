@@ -613,16 +613,23 @@ public:
     void setFlag(TaskFlag flag) { flags = flags | flag; }
     void clearFlag(TaskFlag flag) { flags = flags & ~flag; }
 
-    void addPredecessorTask(Task *t);
-    std::vector<Task *> &getPredecessors();
+    void addPredecessorTask(Task *t) { addArgument(t, 0); }
+    void addArgument(Task *task, size_t pos);
+    std::vector<Task *> getPredecessors();
+    std::vector<std::pair<Task *, size_t>> &getArguments();
 
     virtual std::string toString() const
     {
         return getTaskType() + " task";
     };
 
+    virtual size_t getNumberOfResults() const
+    {
+        return 1;
+    }
+
     virtual std::string getTaskType() const = 0;
-    virtual TaskDataItem *run(
+    virtual std::vector<TaskDataItem *> run(
         WorkerLocation &location,
         std::vector<TaskDataItem *> args) = 0;
 
@@ -652,10 +659,9 @@ public:
                              bool ignoreError = false);
 
 private:
-    std::vector<Task *> listOfPre;
+    std::vector<std::pair<Task *, size_t>> arguments;
 
     int flags;
-    size_t slot;
     static int nextId;
     int id;
 };
@@ -674,7 +680,7 @@ public:
 
     virtual std::string getTaskType() const { return "data"; }
 
-    virtual TaskDataItem *run(
+    virtual std::vector<TaskDataItem *> run(
         WorkerLocation &location,
         std::vector<TaskDataItem *> args);
 
@@ -698,13 +704,14 @@ public:
         return "worker " + location.toString();
     }
 
-    virtual TaskDataItem *run(
+    virtual std::vector<TaskDataItem *> run(
         WorkerLocation &location,
         std::vector<TaskDataItem *> args)
     {
-        return new TaskDataItem(std::string(""), 0, nl->TheEmptyList(),
-                                TaskDataLocation(this->location, Object, false),
-                                this->location);
+        return std::vector{
+            new TaskDataItem(std::string(""), 0, nl->TheEmptyList(),
+                             TaskDataLocation(this->location, Object, false),
+                             this->location)};
     }
 
 private:
@@ -740,7 +747,7 @@ protected:
     bool isRel;
     bool isStream;
 
-    TaskDataItem *store(
+    std::vector<TaskDataItem *> store(
         const WorkerLocation &location, const WorkerLocation &preferredLocation,
         size_t slot, std::string value, std::string description);
 };
@@ -768,7 +775,7 @@ public:
                nl->ToString(resultContentType);
     }
 
-    virtual TaskDataItem *run(
+    virtual std::vector<TaskDataItem *> run(
         WorkerLocation &location,
         std::vector<TaskDataItem *> args);
 
@@ -801,7 +808,7 @@ public:
                nl->ToString(resultContentType);
     }
 
-    virtual TaskDataItem *run(
+    virtual std::vector<TaskDataItem *> run(
         WorkerLocation &location,
         std::vector<TaskDataItem *> args);
 
@@ -815,7 +822,7 @@ public:
     PartitionFunctionTask(std::string mapFunction,
                           std::string partitionFunction,
                           std::string resultName,
-                          int vslots,
+                          size_t vslots,
                           ListExpr resultContentType)
         : FunctionTask(0,
                        resultName,
@@ -830,7 +837,9 @@ public:
 
     virtual std::string getTaskType() const { return "partition"; }
 
-    virtual TaskDataItem *run(
+    virtual size_t getNumberOfResults() const { return vslots; }
+
+    virtual std::vector<TaskDataItem *> run(
         WorkerLocation &location,
         std::vector<TaskDataItem *> args);
 
@@ -844,7 +853,7 @@ public:
 protected:
     std::string mapFunction;
     std::string partitionFunction;
-    int vslots;
+    size_t vslots;
 };
 
 class CollectFunctionTask : public FunctionTask
@@ -856,7 +865,7 @@ public:
 
     virtual std::string getTaskType() const { return "collect"; }
 
-    virtual TaskDataItem *run(
+    virtual std::vector<TaskDataItem *> run(
         WorkerLocation &location,
         std::vector<TaskDataItem *> args);
 
@@ -867,44 +876,11 @@ public:
     }
 };
 
-class VSlotTask : public Task
-{
-public:
-    VSlotTask(size_t vslot) : vslot(vslot) {}
-
-    virtual std::string getTaskType() const { return "vslot"; }
-
-    virtual std::string toString() const
-    {
-        return getTaskType() + "[" + std::to_string(vslot - 1) + "]";
-    }
-
-    virtual TaskDataItem *run(
-        WorkerLocation &location,
-        std::vector<TaskDataItem *> args)
-    {
-        TaskDataItem *main = args[0];
-        if (vslot == 0)
-            return main;
-        TaskDataLocation loc = main->getFirstLocation();
-        return new TaskDataItem(main->getName(),
-                                main->getSlot(), vslot,
-                                main->getContentType(),
-                                TaskDataLocation(
-                                    loc.getWorkerLocation(),
-                                    DataStorageType::File, true),
-                                main->getPreferredLocation());
-    }
-
-private:
-    size_t vslot;
-};
-
 class ErrorTask : public Task
 {
     virtual std::string getTaskType() const { return "error"; }
 
-    virtual TaskDataItem *run(
+    virtual std::vector<TaskDataItem *> run(
         WorkerLocation &location,
         std::vector<TaskDataItem *> args)
     {

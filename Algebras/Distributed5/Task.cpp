@@ -197,19 +197,19 @@ const bool Task::checkType(const ListExpr list)
 }
 
 //Adds a task to the list of predecessor tasks
-void Task::addPredecessorTask(Task *t)
+void Task::addArgument(Task *task, size_t pos)
 {
-    listOfPre.push_back(t);
+    arguments.emplace_back(task, pos);
 }
 
-TaskDataItem *DataTask::run(
+vector<TaskDataItem *> DataTask::run(
     WorkerLocation &location,
     std::vector<TaskDataItem *> args)
 {
-    return new TaskDataItem(dataItem);
+    return vector{new TaskDataItem(dataItem)};
 }
 
-TaskDataItem *DmapFunctionTask::run(
+vector<TaskDataItem *> DmapFunctionTask::run(
     WorkerLocation &location,
     std::vector<TaskDataItem *> args)
 {
@@ -242,7 +242,7 @@ TaskDataItem *DmapFunctionTask::run(
                  slot, funcmd, "dmapS");
 }
 
-TaskDataItem *DproductFunctionTask::run(
+vector<TaskDataItem *> DproductFunctionTask::run(
     WorkerLocation &location,
     std::vector<TaskDataItem *> args)
 {
@@ -275,7 +275,7 @@ TaskDataItem *DproductFunctionTask::run(
                  slot, funcall, "dproductS");
 }
 
-TaskDataItem *PartitionFunctionTask::run(
+vector<TaskDataItem *> PartitionFunctionTask::run(
     WorkerLocation &location,
     std::vector<TaskDataItem *> args)
 {
@@ -311,10 +311,21 @@ TaskDataItem *PartitionFunctionTask::run(
     duration += runCommand(ci, cmd, description, true);
     TaskStatistics::report("remote " + description, duration);
 
-    return new TaskDataItem(result);
+    vector<TaskDataItem *> results;
+
+    for (size_t i = 0; i < vslots; i++)
+    {
+        results.push_back(new TaskDataItem(
+            resultName, slot, i + 1,
+            resultContentType,
+            TaskDataLocation(location, DataStorageType::File, true),
+            arg->getPreferredLocation()));
+    }
+
+    return results;
 }
 
-TaskDataItem *CollectFunctionTask::run(
+vector<TaskDataItem *> CollectFunctionTask::run(
     WorkerLocation &location,
     std::vector<TaskDataItem *> args)
 {
@@ -354,9 +365,18 @@ DArrayElement WorkerLocation::getDArrayElement() const
 }
 
 //returns the list of predecessor tasks
-std::vector<Task *> &Task::getPredecessors()
+std::vector<Task *> Task::getPredecessors()
 {
-    return listOfPre;
+    vector<Task *> list;
+    for (auto arg : getArguments())
+        list.push_back(arg.first);
+    return list;
+}
+
+//returns the list of predecessor tasks
+std::vector<pair<Task *, size_t>> &Task::getArguments()
+{
+    return arguments;
 }
 
 //returns the id of the task
@@ -480,7 +500,7 @@ double Task::runCommand(ConnectionInfo *ci,
     return runtime;
 }
 
-TaskDataItem *FunctionTask::store(
+vector<TaskDataItem *> FunctionTask::store(
     const WorkerLocation &location, const WorkerLocation &preferredLocation,
     size_t slot, std::string value, std::string description)
 {
@@ -551,7 +571,7 @@ TaskDataItem *FunctionTask::store(
     duration += runCommand(ci, cmd, description, true);
     TaskStatistics::report("remote " + description, duration);
 
-    return new TaskDataItem(result);
+    return vector{new TaskDataItem(result)};
 }
 
 ConnectionInfo *WorkerLocation::getWorkerConnection() const
