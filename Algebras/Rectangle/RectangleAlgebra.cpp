@@ -1409,10 +1409,10 @@ ListExpr IrGrid2dTypeMap( ListExpr args )
 }
 
 
-//4.1.22 Type mapping for operator ~report~
+//4.1.22 Type mapping for operator ~toprightreport~
 
 ListExpr
-reportTM(ListExpr args )
+toprightreportTM(ListExpr args )
 {
   NList l(args);
   int len = l.length();
@@ -2202,11 +2202,11 @@ int RectangleToprightclassValueMap ( Word* args, Word& result, int message,
 }
 
 
-// 4.4.14 Value Mapping for operator ~report~
+// 4.4.14 Value Mapping for operator ~toprightreport~
 
 
 
-int reportVM ( Word* args, Word& result, int message,
+int toprightreportVM ( Word* args, Word& result, int message,
                                Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -3562,14 +3562,14 @@ Operator gridcell2rect(  GridCell2Rect_INFO,
 );
 
 
-struct report_Info : OperatorInfo {
+struct toprightreport_Info : OperatorInfo {
 
-  report_Info() : OperatorInfo()
+  toprightreport_Info() : OperatorInfo()
   {
-    name = "report";
+    name = "toprightreport";
     signature =
         "int x int -> bool\n";
-    syntax = "report(int1, int2)";
+    syntax = "toprightreport(int1, int2)";
     meaning = "Return TRUE if the bitwise logical and "
     "of the two integers is false for all bit positions. "
     "Otherwise FALSE is returned.";
@@ -4187,7 +4187,7 @@ class RectangleAlgebra : public Algebra
     AddOperator( &extendGeoOp);
     AddOperator( &perimeterOp);
     AddOperator( &scaleOp);
-    AddOperator (report_Info(), reportVM, reportTM);
+    AddOperator (toprightreport_Info(), toprightreportVM, toprightreportTM);
 
 
   }

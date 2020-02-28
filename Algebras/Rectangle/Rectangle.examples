@@ -118,16 +118,6 @@ Example  : query rectproject([const rect3 value (1.0 2.0 3.0 4.0 5.0 6.0) ], 1, 
 Result   : (rect (1.0 2.0 5.0 6.0))
 
 
-Operator : report
-Number   : 1
-Signature: (int x int ) -> bool 
-Example  : query report(2, 1)
-Result   : TRUE
-
-
-
-
-
 Operator : translate
 Number   : 1
 Signature: (rect (real real)) -> rect (rect3 (real real real)) -> rect3 (rect4 (real real real real)) -> rect4
@@ -140,6 +130,14 @@ Number   : 1
 Signature: (rect<d> x rect<d>) -> int
 Example  : query toprightclass([const rect value (3.0 5.0 3.0 5.0)], [const rect value (2.0 7.0 1.0 4.0)])
 Result   : 2
+
+
+Operator : toprightreport
+Number   : 1
+Signature: (int x int ) -> bool 
+Example  : query toprightreport(2, 1)
+Result   : TRUE
+
 
 
 Operator : union
