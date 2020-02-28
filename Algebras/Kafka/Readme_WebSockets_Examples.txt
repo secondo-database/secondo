@@ -1,4 +1,4 @@
-Working with WebSockets from secondo
+Examples: Subscribing data from WebSockets servers in internet
 
  For all tests, first open some database, e.g.:
      open database berlintest;

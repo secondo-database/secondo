@@ -1,4 +1,4 @@
-Working with Kafka from secondo
+Examples: Writing and reading Secondo streams to and from Kafka
 
  For all tests, first open some database, e.g.:
      open database berlintest;
