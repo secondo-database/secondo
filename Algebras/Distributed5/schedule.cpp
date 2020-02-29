@@ -290,6 +290,9 @@ public:
         dataReferences.clear();
         dataItems.clear();
 
+        // clear line from progress output
+        cout << "\x1b[2K\r" << flush;
+
 #ifdef REPORT_TOTAL_STATS
         cout << "=== Total ===\n"
              << stats.toString();
@@ -414,8 +417,7 @@ public:
         size_t completedTasks = totalNumberOfTasks - remainingTasks;
         size_t percent = completedTasks * 100 / totalNumberOfTasks;
         cout << "  " << percent << "% (" << completedTasks << "/"
-             << totalNumberOfTasks << ")\r";
-        cout.flush();
+             << totalNumberOfTasks << ")\r" << flush;
     }
 
     vector<WorkerLocation> getWorkers()
@@ -1234,7 +1236,8 @@ public:
             "value (" + tuples + ")]";
         string port = std::to_string(scheduler.getFileTransferPort());
         string cmd = "query " + relation + " feed extend[ " +
-                     "OK: getFileTCP(.P, .S, " + port + ", TRUE, .T) ] count";
+                     "OK: getFileTCP(.P, .S, " + port + ", TRUE, .T) ] " +
+                     "count + 1";
 
         double duration = 0;
 
@@ -1883,7 +1886,8 @@ bool Scheduler::collectGarbagge(WorkerLocation &location)
 
             string removeQuery = "query [const rel(tuple([X: text])) value (" +
                                  filesList +
-                                 ")] feed extend[ OK: removeFile(.X) ] count";
+                                 ")] feed extend[ OK: removeFile(.X) ] " +
+                                 "count + 1";
             double duration = Task::runCommand(
                 ci,
                 removeQuery,
