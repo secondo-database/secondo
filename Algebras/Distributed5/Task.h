@@ -510,6 +510,8 @@ public:
     {
     public:
         double value;
+        double min = std::numeric_limits<double>::infinity();
+        double max = -std::numeric_limits<double>::infinity();
         int count;
         std::list<double> values;
     };
@@ -523,6 +525,10 @@ public:
     {
         auto &entry = values[name];
         entry.value += value;
+        if (value > entry.max)
+            entry.max = value;
+        if (value < entry.min)
+            entry.min = value;
         entry.count++;
         if (entry.count < 10000)
             entry.values.push_back(value);
@@ -540,6 +546,10 @@ public:
         {
             auto &entry = values[pair.first];
             entry.value += pair.second.value;
+            if (pair.second.max > entry.max)
+                entry.max = pair.second.max;
+            if (pair.second.min < entry.min)
+                entry.min = pair.second.min;
             entry.count += pair.second.count;
             if (entry.count < 10000)
             {
@@ -563,29 +573,20 @@ public:
             bool few = count < 10000;
             double mean = pair.second.value / count;
             double variance = 0;
-            double max = 0;
-            double min = pair.second.value;
             if (few)
             {
                 for (double value : pair.second.values)
                 {
                     double d = value - mean;
                     variance += d * d;
-                    if (value > max)
-                        max = value;
-                    if (value < min)
-                        min = value;
                 }
             }
             buf += pair.first +
                    ": total: " + std::to_string(pair.second.value) +
-                   ", count: " + std::to_string(pair.second.count);
-            if (few)
-            {
-                buf += ", min: " + std::to_string(min) +
-                       ", max: " + std::to_string(max);
-            }
-            buf += ", mean: " + std::to_string(mean);
+                   ", count: " + std::to_string(pair.second.count) +
+                   ", min: " + std::to_string(pair.second.min) +
+                   ", max: " + std::to_string(pair.second.max) +
+                   ", mean: " + std::to_string(mean);
             if (few)
             {
                 buf += ", stdev: " + std::to_string(sqrt(variance));

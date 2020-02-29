@@ -112,6 +112,7 @@ struct tuple3_hash
 struct TaskScheduleInfo
 {
 public:
+    Task *task;
     boost::shared_mutex mutex;
     std::unordered_set<tuple<size_t, TaskScheduleInfo *, size_t>, tuple3_hash>
         successors;
@@ -179,6 +180,54 @@ protected:
     Scheduler &scheduler;
 };
 
+class WorkPool
+{
+public:
+    WorkPool() : tasks(new std::unordered_set<Task *>()) {}
+    void addTask(Task *task)
+    {
+        boost::lock_guard lock(mutex);
+        makePrivate();
+        tasks->emplace(task);
+    }
+    void removeTask(Task *task)
+    {
+        boost::lock_guard lock(mutex);
+        makePrivate();
+        tasks->erase(task);
+    }
+    bool empty()
+    {
+        boost::lock_guard lock(mutex);
+        return tasks->empty();
+    }
+    size_t size()
+    {
+        boost::lock_guard lock(mutex);
+        return tasks->size();
+    }
+    std::shared_ptr<std::unordered_set<Task *>> getTasks()
+    {
+        boost::lock_guard lock(mutex);
+        isPublic = true;
+        return tasks;
+    }
+
+private:
+    void makePrivate()
+    {
+        if (!isPublic)
+            return;
+        std::shared_ptr<std::unordered_set<Task *>> newTasks(
+            new std::unordered_set<Task *>(*tasks));
+        tasks = newTasks;
+        isPublic = false;
+    }
+    boost::mutex mutex;
+    std::shared_ptr<std::unordered_set<Task *>> tasks;
+    bool isPublic = false;
+};
+
 /*
 1.2 Scheduler
 
@@ -213,12 +262,7 @@ public:
                     running = false;
                 }
             }
-            size_t remainingTasks;
-            {
-                boost::shared_lock_guard<boost::shared_mutex> lock(poolMutex);
-                remainingTasks = workPool.size();
-            }
-            printProgress(remainingTasks);
+            printProgress(workPool.size());
         }
 
         // all threads have finished working
@@ -264,6 +308,7 @@ public:
             // be added
             boost::lock_guard<boost::shared_mutex> lock(poolMutex);
             info = &taskInfo[task];
+            info->task = task;
         }
 
         if (task->hasFlag(RunOnReceive))
@@ -287,6 +332,8 @@ public:
             }
         }
 
+        optional<WorkerLocation> preferredLocation;
+        bool first = true;
         for (auto pair : preInfos)
         {
             auto &preInfo = pair.first;
@@ -305,6 +352,10 @@ public:
                     preInfo->successors.emplace(
                         pos, info, info->arguments.size());
                 }
+                else if (first)
+                {
+                    preferredLocation = result->getPreferredLocation();
+                }
                 info->arguments.push_back(result);
             }
             if (result != 0)
@@ -313,13 +364,27 @@ public:
                     lock(dataReferencesMutex);
                 dataReferences[result]++;
             }
+            first = false;
+        }
+        // Add Task to the global work pool
+        workPool.addTask(task);
+
+        // Add Task to the local work pool
+        // if preferred location is already known
+        if (preferredLocation)
+        {
+            WorkPool *localWorkPool;
+            {
+                boost::lock_guard<boost::shared_mutex> lock(poolMutex);
+                localWorkPool = &localWorkPools[*preferredLocation];
+            }
+            localWorkPool->addTask(task);
         }
         size_t remainingTasks = 0;
+        if (totalNumberOfTasks % 100 == 0)
+            remainingTasks = workPool.size();
         {
             boost::lock_guard<boost::shared_mutex> lock(poolMutex);
-            workPool.push_back(task);
-            if (totalNumberOfTasks % 100 == 0)
-                remainingTasks = workPool.size();
             workGeneration++;
         }
         poolSignal.notify_all();
@@ -396,8 +461,7 @@ public:
             }
             info->started = true;
         }
-        boost::lock_guard<boost::shared_mutex> lock(poolMutex);
-        workPool.remove(task);
+        workPool.removeTask(task);
         return true;
     }
 
@@ -503,8 +567,8 @@ public:
              << result->toString() << endl;
 #endif
 
-        vector<size_t> refs;
-        refs.assign(results.size(), 0);
+        map<TaskDataItem *, size_t> refs;
+        vector<pair<WorkerLocation, Task *>> tasksForLocalWorkPools;
         {
             boost::lock_guard<boost::shared_mutex> lock(info->mutex);
 
@@ -517,13 +581,21 @@ public:
                 size_t pos = get<0>(tuple);
                 TaskScheduleInfo *succInfo = get<1>(tuple);
                 size_t targetPos = get<2>(tuple);
-                refs[pos]++;
+                TaskDataItem *result = results[pos];
+
+                refs[result]++;
+
+                if (targetPos == 0)
+                {
+                    tasksForLocalWorkPools.emplace_back(
+                        result->getPreferredLocation(), succInfo->task);
+                }
 
                 // Here two mutexes are locked, but order of locking is
                 // always in direction of result flow
                 // So no deadlock can occur
                 boost::lock_guard<boost::shared_mutex> lock(succInfo->mutex);
-                succInfo->arguments[targetPos] = results[pos];
+                succInfo->arguments[targetPos] = result;
             }
         }
 
@@ -531,9 +603,9 @@ public:
             boost::lock_guard<boost::shared_mutex> lock(dataReferencesMutex);
 
             // each successor keeps a reference to the result
-            for (size_t i = 0; i < results.size(); i++)
+            for (auto pair : refs)
             {
-                dataReferences[results[i]] += refs[i];
+                dataReferences[pair.first] += pair.second;
             }
 
             // For all arguments, decrease the number of remaining tasks
@@ -541,6 +613,21 @@ public:
             {
                 dataReferences[preResult]--;
             }
+        }
+
+        vector<pair<WorkPool *, Task *>> tasksForLocalWorkPools2;
+        {
+            boost::shared_lock_guard lock(poolMutex);
+            for (auto pair : tasksForLocalWorkPools)
+            {
+                tasksForLocalWorkPools2.emplace_back(
+                    &localWorkPools[pair.first], pair.second);
+            }
+        }
+
+        for (auto pair : tasksForLocalWorkPools2)
+        {
+            pair.first->addTask(pair.second);
         }
 
         // A new result may unlock other tasks
@@ -575,6 +662,16 @@ private:
             !ensureWorkerCheckedLocations->emplace(location).second)
             return;
         {
+            boost::shared_lock_guard lock(poolMutex);
+            if (localWorkPools.find(location) != localWorkPools.end())
+                return;
+        }
+        WorkPool *localWorkPool;
+        {
+            boost::lock_guard lock(poolMutex);
+            localWorkPool = &localWorkPools[location];
+        }
+        {
             boost::lock_guard<boost::mutex> lock(threadsMutex);
             auto &slot = threads[location];
             if (slot != 0)
@@ -583,7 +680,10 @@ private:
             slot =
                 new boost::thread(
                     boost::bind(
-                        &Scheduler::worker, this, WorkerLocation(location)));
+                        &Scheduler::worker,
+                        this,
+                        WorkerLocation(location),
+                        boost::ref(*localWorkPool)));
         }
         {
             boost::lock_guard<boost::shared_mutex> lock(poolMutex);
@@ -671,7 +771,7 @@ private:
     }
 
     // the worker thread
-    void worker(WorkerLocation location)
+    void worker(WorkerLocation location, WorkPool &localWorkPool)
     {
         // enable ensureWorker caching for this worker
         ensureWorkerCheckedLocations.emplace();
@@ -688,12 +788,22 @@ private:
             if (shouldKillWorkers())
                 break;
             auto start = std::chrono::high_resolution_clock::now();
-            WorkerJob *job = selectJob(location);
+            WorkerJob *job = selectJob(location, localWorkPool);
             auto duration =
                 std::chrono::duration_cast<std::chrono::microseconds>(
                     std::chrono::high_resolution_clock::now() - start);
-            TaskStatistics::report("selecting job",
+            TaskStatistics::report("selecting local job",
                                    ((double)duration.count()) / 1000000);
+            if (job == 0)
+            {
+                start = std::chrono::high_resolution_clock::now();
+                job = selectJob(location, workPool);
+                duration =
+                    std::chrono::duration_cast<std::chrono::microseconds>(
+                        std::chrono::high_resolution_clock::now() - start);
+                TaskStatistics::report("selecting global job",
+                                       ((double)duration.count()) / 1000000);
+            }
             if (job != 0)
             {
                 auto start = std::chrono::high_resolution_clock::now();
@@ -837,7 +947,7 @@ private:
         bool validWorker,
         int cost, Task *task,
         optional<pair<WorkerJob *, int>> &best);
-    WorkerJob *selectJob(WorkerLocation &location);
+    WorkerJob *selectJob(WorkerLocation &location, WorkPool &workPool);
     bool collectGarbagge(WorkerLocation &location);
 
     class ResultTask : public Task
@@ -933,7 +1043,8 @@ private:
 
     boost::shared_mutex poolMutex;
     size_t workGeneration = 0;
-    std::list<Task *> workPool;
+    WorkPool workPool;
+    std::map<WorkerLocation, WorkPool> localWorkPools;
     size_t workerWorking = 0;
     bool stopWorkersWhenWorkDone = false;
     bool killWorkers = false;
@@ -1556,43 +1667,41 @@ void Scheduler::valueJobsForTransferable(
     }
 }
 
-WorkerJob *Scheduler::selectJob(WorkerLocation &location)
+WorkerJob *Scheduler::selectJob(WorkerLocation &location, WorkPool &workPool)
 {
     unordered_map<pair<TaskDataItem *, bool>, pair<int, Task *>, pair_hash>
         transferables;
 
     auto start = std::chrono::high_resolution_clock::now();
 
-    vector<Task *> workPoolCopy;
+    std::shared_ptr<unordered_set<Task *>> workPoolCopy = workPool.getTasks();
     std::map<string, pair<bool, int>> activeTransferratorsCopy;
-
     {
         boost::shared_lock_guard<boost::shared_mutex> lock(poolMutex);
 
         // copy the work pool
         // Tasks may be removed from the work pool
         // All jobs handle this by validation check when they start running
-        workPoolCopy.reserve(workPool.size());
-        std::copy(std::begin(workPool), std::end(workPool),
-                  std::back_inserter(workPoolCopy));
         for (auto &pair : activeTransferrators)
             activeTransferratorsCopy[pair.first] = pair.second;
     }
 
-    if (workPoolCopy.empty())
+    if (workPoolCopy->empty())
         return 0;
 
     optional<pair<WorkerJob *, int>> best;
 
     // start at a random position
-    size_t index = rand() % workPoolCopy.size();
-    for (size_t i = index; i < workPoolCopy.size(); i++)
+    size_t index = rand() % workPoolCopy->size();
+    auto it = workPoolCopy->begin();
+    std::advance(it, index);
+    for (; it != workPoolCopy->end(); it++)
     {
-        valueJobsForTask(location, workPoolCopy[i], best, transferables);
+        valueJobsForTask(location, *it, best, transferables);
     }
-    for (size_t i = 0; i < index; i++)
+    for (auto it = workPoolCopy->begin(); index > 0; it++, index--)
     {
-        valueJobsForTask(location, workPoolCopy[i], best, transferables);
+        valueJobsForTask(location, *it, best, transferables);
     }
 
     auto duration = std::chrono::duration_cast<std::chrono::microseconds>(
