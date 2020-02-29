@@ -461,6 +461,12 @@ public:
         return fileTransferPort;
     }
 
+    map<string, pair<bool, int>> getActiveTransferrators()
+    {
+        boost::shared_lock_guard lock(poolMutex);
+        return activeTransferrators;
+    }
+
     bool startExecutingTask(Task *task)
     {
         TaskScheduleInfo *info;
@@ -951,17 +957,8 @@ private:
     // mutex must already be locked
     void valueJobsForTask(WorkerLocation &location, Task *task,
                           optional<pair<WorkerJob *, int>> &best,
-                          unordered_map<
-                              pair<TaskDataItem *, bool>,
-                              pair<int, Task *>,
-                              pair_hash> &transferables);
-    void valueJobsForTransferable(
-        WorkerLocation &location,
-        std::map<string, pair<bool, int>> activeTransferrators,
-        TaskDataItem *data,
-        bool validWorker,
-        int cost, Task *task,
-        optional<pair<WorkerJob *, int>> &best);
+                          unordered_map<TaskDataItem *, bool>
+                              &hasUpcomingLocationCache);
     WorkerJob *selectJob(WorkerLocation &location, WorkPool &workPool);
     bool collectGarbagge(WorkerLocation &location);
 
@@ -1166,19 +1163,18 @@ public:
                           Scheduler &scheduler,
                           Task *task,
                           int taskCost,
-                          TaskDataItem *data,
-                          TaskDataLocation sourceLocation)
+                          vector<TaskDataItem *> dataItems)
         : WorkerJob(location, scheduler),
           task(task), taskCost(taskCost),
-          data(data), sourceLocation(sourceLocation) {}
+          dataItems(dataItems) {}
     virtual ~TransferDataWorkerJob() {}
 
     virtual string getType() const { return "transfer"; }
 
     virtual string toString() const
     {
-        return "transfer " + data->toString() +
-               " from " + sourceLocation.toString();
+        return "transfer " + std::to_string(dataItems.size()) +
+               " data items from " + task->toString();
     }
 
     virtual bool run()
@@ -1187,12 +1183,58 @@ public:
         if (!scheduler.reserveTask(task, location, taskCost))
             return true;
 
-        string sourceServer = sourceLocation.getServer();
-
-        // set active transfer and upcoming location
         TaskDataLocation loc(location, File, true);
-        data->addUpcomingLocation(loc);
-        scheduler.updateActiveFileTransfers(sourceServer, 1);
+
+        auto activeTransferrators = scheduler.getActiveTransferrators();
+
+        string tuples = "";
+
+        map<string, int> transfersPerServer;
+        vector<TaskDataItem *> usedDataItems;
+
+        for (auto data : dataItems)
+        {
+            try
+            {
+                auto pair =
+                    data->findTransferSourceLocation(activeTransferrators);
+                // set upcoming location
+                if (data->addUpcomingLocation(loc))
+                {
+                    auto sourceLocation = pair.first;
+                    string sourceServer = sourceLocation.getServer();
+
+                    // set active transfer
+                    transfersPerServer[sourceServer]++;
+                    activeTransferrators[sourceServer].second++;
+
+                    usedDataItems.push_back(data);
+
+                    tuples += "('" + sourceLocation.getFilePath(data) + "' " +
+                              "'" + sourceServer + "' " +
+                              "'" + location.getFilePath(data) + "') ";
+                }
+            }
+            catch (NoSourceLocationException &)
+            {
+                // this can happen when file transferrator is
+                // not ready yet, or data is in object form,
+                // skip this task for now,
+                // as it can't be transferred
+            }
+        }
+
+        for (auto pair : transfersPerServer)
+        {
+            scheduler.updateActiveFileTransfers(pair.first, pair.second);
+        }
+
+        string relation =
+            string("[const rel(tuple([P: text, S: text, T: text])) ") +
+            "value (" + tuples + ")]";
+        string port = std::to_string(scheduler.getFileTransferPort());
+        string cmd = "query " + relation + " feed extend[ " +
+                     "OK: getFileTCP(.P, .S, " + port + ", TRUE, .T) ] count";
 
         double duration = 0;
 
@@ -1200,27 +1242,32 @@ public:
         {
             ConnectionInfo *targetCI = location.getWorkerConnection();
 
-            string cmd = string("query getFileTCP(") +
-                         "'" + sourceLocation.getFilePath(data) + "', " +
-                         "'" + sourceServer + "', " +
-                         std::to_string(scheduler.getFileTransferPort()) +
-                         ", TRUE, " +
-                         "'" + location.getFilePath(data) + "')";
             duration = Task::runCommand(targetCI, cmd, "transfer file");
         }
         catch (exception &e)
         {
+            string list = "";
+            for (auto data : usedDataItems)
+            {
+                list += " - " + data->toString() + "\n";
+            }
             scheduler.addError(string(e.what()) + "\n" +
-                               "while copying " + data->toString() +
-                               "\n - from " + sourceLocation.toString() +
-                               "\n - to " + location.toString());
+                               "while copying\n" + list +
+                               "to " + location.toString());
             return false;
         }
 
-        TaskStatistics::report("remote transfer file", duration);
+        TaskStatistics::report("remote transfer files", duration);
 
-        scheduler.updateActiveFileTransfers(sourceServer, -1);
-        data->addLocation(loc);
+        for (auto pair : transfersPerServer)
+        {
+            scheduler.updateActiveFileTransfers(pair.first, -pair.second);
+        }
+
+        for (auto data : usedDataItems)
+        {
+            data->addLocation(loc);
+        }
 
         // unreserve when still reserved by this worker
         scheduler.unreserveTask(task, location, taskCost);
@@ -1233,8 +1280,7 @@ public:
 private:
     Task *task;
     int taskCost;
-    TaskDataItem *data;
-    TaskDataLocation sourceLocation;
+    vector<TaskDataItem *> dataItems;
 };
 
 class ConvertToObjectWorkerJob : public WorkerJob
@@ -1434,10 +1480,8 @@ private:
 
 void Scheduler::valueJobsForTask(WorkerLocation &location, Task *task,
                                  optional<pair<WorkerJob *, int>> &best,
-                                 unordered_map<
-                                     pair<TaskDataItem *, bool>,
-                                     pair<int, Task *>,
-                                     pair_hash> &transferables)
+                                 unordered_map<TaskDataItem *, bool>
+                                     &hasUpcomingLocationCache)
 {
     vector<TaskDataItem *> args = getTaskArguments(task);
 
@@ -1502,6 +1546,9 @@ void Scheduler::valueJobsForTask(WorkerLocation &location, Task *task,
         }
     }
 
+    vector<TaskDataItem *> needTransfer;
+    TaskDataItem *needWait = 0;
+
     int i = 0;
     for (auto data : args)
     {
@@ -1554,13 +1601,26 @@ void Scheduler::valueJobsForTask(WorkerLocation &location, Task *task,
             if (validServer &&
                 !hasFile && !hasObject)
             {
-                auto &bestTransferable =
-                    transferables[make_pair(data, validWorker)];
-                if (bestTransferable.second == 0 ||
-                    bestTransferable.first > cost)
+                // Check if data is already being transferred here
+                bool hasUpcomingLocation = false;
+                auto cacheEntry = hasUpcomingLocationCache.find(data);
+                if (cacheEntry == hasUpcomingLocationCache.end())
                 {
-                    bestTransferable.first = cost;
-                    bestTransferable.second = task;
+                    hasUpcomingLocation =
+                        data->hasUpcomingLocation(location, File);
+                    hasUpcomingLocationCache[data] = hasUpcomingLocation;
+                }
+                else
+                {
+                    hasUpcomingLocation = cacheEntry->second;
+                }
+                if (hasUpcomingLocation)
+                {
+                    needWait = data;
+                }
+                else
+                {
+                    needTransfer.push_back(data);
                 }
             }
         }
@@ -1620,6 +1680,7 @@ void Scheduler::valueJobsForTask(WorkerLocation &location, Task *task,
 
     if (argumentsAvailable && validWorker)
     {
+        // Execute the task
         if (checkBetter(best, cost))
         {
             best = make_pair(
@@ -1628,136 +1689,58 @@ void Scheduler::valueJobsForTask(WorkerLocation &location, Task *task,
                 cost);
         }
     }
-}
-
-void Scheduler::valueJobsForTransferable(
-    WorkerLocation &location,
-    std::map<string, pair<bool, int>> activeTransferrators,
-    TaskDataItem *data, bool validWorker,
-    int cost, Task *task,
-    optional<pair<WorkerJob *, int>> &best)
-{
-    // Check if data is already being transferred here
-    if (data->hasUpcomingLocation(location, File))
+    else if (!needTransfer.empty())
+    {
+        // Transfer the data to the server
+        int transferCost =
+            cost +
+            CostTransfer;
+        if (checkBetter(best, transferCost))
+        {
+            best = make_pair(
+                new TransferDataWorkerJob(
+                    location, *this,
+                    task, cost, needTransfer),
+                transferCost);
+        }
+    }
+    else if (validWorker && needWait != 0)
     {
         // The correct worker can wait for the data transfer
         int waitingCost = cost + CostWaitingOnTransfer;
-        if (validWorker && checkBetter(best, waitingCost))
+        if (checkBetter(best, waitingCost))
         {
             best = make_pair(
                 new WaitForTransferCompletedWorkerJob(
                     location, *this,
-                    data),
+                    needWait),
                 waitingCost);
-        }
-    }
-    else
-    {
-        // Transfer the data to the server
-        try
-        {
-            auto source =
-                data->findTransferSourceLocation(
-                    activeTransferrators);
-            int transferCost =
-                cost +
-                CostTransfer +
-                source.second * CostActiveTransfers;
-            if (checkBetter(best, transferCost))
-            {
-                best = make_pair(
-                    new TransferDataWorkerJob(
-                        location, *this,
-                        task, cost, data, source.first),
-                    transferCost);
-            }
-        }
-        catch (NoSourceLocationException &)
-        {
-            // this can happen when file transferrator is
-            // not ready yet, or data is in object form,
-            // skip this task for now,
-            // as it can't be transferred
         }
     }
 }
 
 WorkerJob *Scheduler::selectJob(WorkerLocation &location, WorkPool &workPool)
 {
-    unordered_map<pair<TaskDataItem *, bool>, pair<int, Task *>, pair_hash>
-        transferables;
+    std::shared_ptr<unordered_set<Task *>> tasks = workPool.getTasks();
 
-    auto start = std::chrono::high_resolution_clock::now();
-
-    std::shared_ptr<unordered_set<Task *>> workPoolCopy = workPool.getTasks();
-    std::map<string, pair<bool, int>> activeTransferratorsCopy;
-    {
-        boost::shared_lock_guard<boost::shared_mutex> lock(poolMutex);
-
-        // copy the work pool
-        // Tasks may be removed from the work pool
-        // All jobs handle this by validation check when they start running
-        for (auto &pair : activeTransferrators)
-            activeTransferratorsCopy[pair.first] = pair.second;
-    }
-
-    if (workPoolCopy->empty())
+    if (tasks->empty())
         return 0;
+
+    unordered_map<TaskDataItem *, bool> hasUpcomingLocationCache;
 
     optional<pair<WorkerJob *, int>> best;
 
     // start at a random position
-    size_t index = rand() % workPoolCopy->size();
-    auto it = workPoolCopy->begin();
+    size_t index = rand() % tasks->size();
+    auto it = tasks->begin();
     std::advance(it, index);
-    for (; it != workPoolCopy->end(); it++)
+    for (; it != tasks->end(); it++)
     {
-        valueJobsForTask(location, *it, best, transferables);
+        valueJobsForTask(location, *it, best, hasUpcomingLocationCache);
     }
-    for (auto it = workPoolCopy->begin(); index > 0; it++, index--)
+    for (auto it = tasks->begin(); index > 0; it++, index--)
     {
-        valueJobsForTask(location, *it, best, transferables);
-    }
-
-    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(
-        std::chrono::high_resolution_clock::now() - start);
-    TaskStatistics::report("selectJob valueJobsForTask",
-                           ((double)duration.count()) / 1000000);
-
-    if (transferables.size() > 0)
-    {
-        start = std::chrono::high_resolution_clock::now();
-        vector<pair<pair<TaskDataItem *, bool>, pair<int, Task *>>> transVec;
-
-        std::copy(std::begin(transferables), std::end(transferables),
-                  std::back_inserter(transVec));
-
-        // start at a random position
-        index = rand() % transVec.size();
-        for (size_t i = index; i < transVec.size(); i++)
-        {
-            auto &pair = transVec[i];
-            valueJobsForTransferable(
-                location,
-                activeTransferratorsCopy,
-                pair.first.first, pair.first.second,
-                pair.second.first, pair.second.second,
-                best);
-        }
-        for (size_t i = 0; i < index; i++)
-        {
-            auto &pair = transVec[i];
-            valueJobsForTransferable(
-                location,
-                activeTransferratorsCopy,
-                pair.first.first, pair.first.second,
-                pair.second.first, pair.second.second,
-                best);
-        }
-        duration = std::chrono::duration_cast<std::chrono::microseconds>(
-            std::chrono::high_resolution_clock::now() - start);
-        TaskStatistics::report("selectJob valueJobsForTransferable",
-                               ((double)duration.count()) / 1000000);
+        valueJobsForTask(location, *it, best, hasUpcomingLocationCache);
     }
 
     if (best)

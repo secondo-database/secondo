@@ -459,11 +459,7 @@ public:
         }
     }
 
-    void addUpcomingLocation(TaskDataLocation location)
-    {
-        boost::lock_guard<boost::shared_mutex> lock(mutex);
-        upcomingLocations.push_back(location);
-    }
+    bool addUpcomingLocation(TaskDataLocation location);
 
 private:
     mutable boost::shared_mutex mutex;

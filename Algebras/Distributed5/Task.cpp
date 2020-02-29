@@ -799,6 +799,27 @@ bool TaskDataItem::hasUpcomingLocation(WorkerLocation const &nearby,
     return false;
 }
 
+bool TaskDataItem::addUpcomingLocation(TaskDataLocation location)
+{
+    boost::lock_guard<boost::shared_mutex> lock(mutex);
+    for (auto &loc : upcomingLocations)
+    {
+        if (loc == location)
+            return false;
+    }
+    auto locations = locationsByServer.find(location.getServer());
+    if (locations != locationsByServer.end())
+    {
+        for (auto &loc : locations->second)
+        {
+            if (loc == location)
+                return false;
+        }
+    }
+    upcomingLocations.push_back(location);
+    return true;
+}
+
 TaskDataLocation TaskDataItem::findUpcomingLocation(
     WorkerLocation const &nearby) const
 {
