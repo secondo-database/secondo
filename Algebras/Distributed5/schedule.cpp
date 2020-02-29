@@ -275,6 +275,21 @@ public:
         }
         threads.clear();
 
+        // delete all tasks
+        for (auto &pair : taskInfo)
+        {
+            delete pair.first;
+        }
+        taskInfo.clear();
+
+        // delete all data
+        for (auto &pair : dataReferences)
+        {
+            delete pair.first;
+        }
+        dataReferences.clear();
+        dataItems.clear();
+
 #ifdef REPORT_TOTAL_STATS
         cout << "=== Total ===\n"
              << stats.toString();
@@ -1953,7 +1968,6 @@ int scheduleVM(Word *args, Word &result, int message,
 
     scheduler.join();
     stream.close();
-    // TODO delete all tasks
     if (scheduler.isError)
     {
         cout << "schedule failed: " << scheduler.errorMessage << endl;
