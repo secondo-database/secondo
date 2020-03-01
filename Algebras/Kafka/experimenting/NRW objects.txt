@@ -1,0 +1,901 @@
+Secondo => open database NRW
+Secondo ->
+command
+'open database NRW'
+started at: Sun Mar  1 18:41:02 2020
+
+Total runtime ...   Times (elapsed / cpu): 0.039921sec / 0.02sec = 1.99605
+
+=> []
+Secondo => list objects
+Secondo ->
+command
+'list objects'
+started at: Sun Mar  1 18:41:18 2020
+
+Total runtime ...   Times (elapsed / cpu): 0.020329sec / 0.01sec = 2.0329
+
+ complete list
+
+(OBJECTS
+    (OBJECT Buildings
+        ()
+        (
+            (rel
+                (tuple
+                    (
+                        (Osm_id string)
+                        (Code int)
+                        (Fclass string)
+                        (Name text)
+                        (Type string)
+                        (GeoData region))))))
+    (OBJECT Buildings_GeoData_rtree
+        ()
+        (
+            (rtree
+                (tuple
+                    (
+                        (Osm_id string)
+                        (Code int)
+                        (Fclass string)
+                        (Name text)
+                        (Type string)
+                        (GeoData region)))
+                region
+                FALSE)))
+    (OBJECT Buildings_sample_j
+        ()
+        (
+            (rel
+                (tuple
+                    (
+                        (Osm_id string)
+                        (Code int)
+                        (Fclass string)
+                        (Name text)
+                        (Type string)
+                        (GeoData region))))))
+    (OBJECT Buildings_sample_s
+        ()
+        (
+            (rel
+                (tuple
+                    (
+                        (Osm_id string)
+                        (Code int)
+                        (Fclass string)
+                        (Name text)
+                        (Type string)
+                        (GeoData region))))))
+    (OBJECT DIR
+        ()
+        (text))
+    (OBJECT Landuse
+        ()
+        (
+            (rel
+                (tuple
+                    (
+                        (Osm_id string)
+                        (Code int)
+                        (Fclass string)
+                        (Name text)
+                        (GeoData region))))))
+    (OBJECT Landuse_sample_j
+        ()
+        (
+            (rel
+                (tuple
+                    (
+                        (Osm_id string)
+                        (Code int)
+                        (Fclass string)
+                        (Name text)
+                        (GeoData region))))))
+    (OBJECT Landuse_sample_s
+        ()
+        (
+            (rel
+                (tuple
+                    (
+                        (Osm_id string)
+                        (Code int)
+                        (Fclass string)
+                        (Name text)
+                        (GeoData region))))))
+    (OBJECT Natural
+        ()
+        (
+            (rel
+                (tuple
+                    (
+                        (Osm_id string)
+                        (Code int)
+                        (Fclass string)
+                        (Name text)
+                        (GeoData point))))))
+    (OBJECT NaturalA
+        ()
+        (
+            (rel
+                (tuple
+                    (
+                        (Osm_id string)
+                        (Code int)
+                        (Fclass string)
+                        (Name text)
+                        (GeoData region))))))
+    (OBJECT NaturalA_sample_j
+        ()
+        (
+            (rel
+                (tuple
+                    (
+                        (Osm_id string)
+                        (Code int)
+                        (Fclass string)
+                        (Name text)
+                        (GeoData region))))))
+    (OBJECT NaturalA_sample_s
+        ()
+        (
+            (rel
+                (tuple
+                    (
+                        (Osm_id string)
+                        (Code int)
+                        (Fclass string)
+                        (Name text)
+                        (GeoData region))))))
+    (OBJECT Natural_sample_j
+        ()
+        (
+            (rel
+                (tuple
+                    (
+                        (Osm_id string)
+                        (Code int)
+                        (Fclass string)
+                        (Name text)
+                        (GeoData point))))))
+    (OBJECT Natural_sample_s
+        ()
+        (
+            (rel
+                (tuple
+                    (
+                        (Osm_id string)
+                        (Code int)
+                        (Fclass string)
+                        (Name text)
+                        (GeoData point))))))
+    (OBJECT Places
+        ()
+        (
+            (rel
+                (tuple
+                    (
+                        (Osm_id string)
+                        (Code int)
+                        (Fclass string)
+                        (Population int)
+                        (Name text)
+                        (GeoData point))))))
+    (OBJECT PlacesA
+        ()
+        (
+            (rel
+                (tuple
+                    (
+                        (Osm_id string)
+                        (Code int)
+                        (Fclass string)
+                        (Population int)
+                        (Name text)
+                        (GeoData region))))))
+    (OBJECT PlacesA_sample_j
+        ()
+        (
+            (rel
+                (tuple
+                    (
+                        (Osm_id string)
+                        (Code int)
+                        (Fclass string)
+                        (Population int)
+                        (Name text)
+                        (GeoData region))))))
+    (OBJECT PlacesA_sample_s
+        ()
+        (
+            (rel
+                (tuple
+                    (
+                        (Osm_id string)
+                        (Code int)
+                        (Fclass string)
+                        (Population int)
+                        (Name text)
+                        (GeoData region))))))
+    (OBJECT Places_sample_j
+        ()
+        (
+            (rel
+                (tuple
+                    (
+                        (Osm_id string)
+                        (Code int)
+                        (Fclass string)
+                        (Population int)
+                        (Name text)
+                        (GeoData point))))))
+    (OBJECT Places_sample_s
+        ()
+        (
+            (rel
+                (tuple
+                    (
+                        (Osm_id string)
+                        (Code int)
+                        (Fclass string)
+                        (Population int)
+                        (Name text)
+                        (GeoData point))))))
+    (OBJECT Pofw
+        ()
+        (
+            (rel
+                (tuple
+                    (
+                        (Osm_id string)
+                        (Code int)
+                        (Fclass string)
+                        (Name text)
+                        (GeoData point))))))
+    (OBJECT PofwA
+        ()
+        (
+            (rel
+                (tuple
+                    (
+                        (Osm_id string)
+                        (Code int)
+                        (Fclass string)
+                        (Name text)
+                        (GeoData region))))))
+    (OBJECT PofwA_sample_j
+        ()
+        (
+            (rel
+                (tuple
+                    (
+                        (Osm_id string)
+                        (Code int)
+                        (Fclass string)
+                        (Name text)
+                        (GeoData region))))))
+    (OBJECT PofwA_sample_s
+        ()
+        (
+            (rel
+                (tuple
+                    (
+                        (Osm_id string)
+                        (Code int)
+                        (Fclass string)
+                        (Name text)
+                        (GeoData region))))))
+    (OBJECT Pofw_sample_j
+        ()
+        (
+            (rel
+                (tuple
+                    (
+                        (Osm_id string)
+                        (Code int)
+                        (Fclass string)
+                        (Name text)
+                        (GeoData point))))))
+    (OBJECT Pofw_sample_s
+        ()
+        (
+            (rel
+                (tuple
+                    (
+                        (Osm_id string)
+                        (Code int)
+                        (Fclass string)
+                        (Name text)
+                        (GeoData point))))))
+    (OBJECT Points
+        ()
+        (
+            (rel
+                (tuple
+                    (
+                        (Osm_id string)
+                        (Code int)
+                        (Fclass string)
+                        (Name text)
+                        (GeoData point))))))
+    (OBJECT PointsA
+        ()
+        (
+            (rel
+                (tuple
+                    (
+                        (Osm_id string)
+                        (Code int)
+                        (Fclass string)
+                        (Name text)
+                        (GeoData region))))))
+    (OBJECT PointsA_sample_j
+        ()
+        (
+            (rel
+                (tuple
+                    (
+                        (Osm_id string)
+                        (Code int)
+                        (Fclass string)
+                        (Name text)
+                        (GeoData region))))))
+    (OBJECT PointsA_sample_s
+        ()
+        (
+            (rel
+                (tuple
+                    (
+                        (Osm_id string)
+                        (Code int)
+                        (Fclass string)
+                        (Name text)
+                        (GeoData region))))))
+    (OBJECT Points_sample_j
+        ()
+        (
+            (rel
+                (tuple
+                    (
+                        (Osm_id string)
+                        (Code int)
+                        (Fclass string)
+                        (Name text)
+                        (GeoData point))))))
+    (OBJECT Points_sample_s
+        ()
+        (
+            (rel
+                (tuple
+                    (
+                        (Osm_id string)
+                        (Code int)
+                        (Fclass string)
+                        (Name text)
+                        (GeoData point))))))
+    (OBJECT Railways
+        ()
+        (
+            (rel
+                (tuple
+                    (
+                        (Osm_id string)
+                        (Code int)
+                        (Fclass string)
+                        (Name text)
+                        (GeoData line))))))
+    (OBJECT Railways_sample_j
+        ()
+        (
+            (rel
+                (tuple
+                    (
+                        (Osm_id string)
+                        (Code int)
+                        (Fclass string)
+                        (Name text)
+                        (GeoData line))))))
+    (OBJECT Railways_sample_s
+        ()
+        (
+            (rel
+                (tuple
+                    (
+                        (Osm_id string)
+                        (Code int)
+                        (Fclass string)
+                        (Name text)
+                        (GeoData line))))))
+    (OBJECT Roads
+        ()
+        (
+            (rel
+                (tuple
+                    (
+                        (Osm_id string)
+                        (Code int)
+                        (Fclass string)
+                        (Name text)
+                        (Ref string)
+                        (Oneway string)
+                        (Maxspeed int)
+                        (Layer int)
+                        (Bridge string)
+                        (Tunnel string)
+                        (GeoData line))))))
+    (OBJECT Roads_Name_btree
+        ()
+        (
+            (btree
+                (tuple
+                    (
+                        (Osm_id string)
+                        (Code int)
+                        (Fclass string)
+                        (Name text)
+                        (Ref string)
+                        (Oneway string)
+                        (Maxspeed int)
+                        (Layer int)
+                        (Bridge string)
+                        (Tunnel string)
+                        (GeoData line)))
+                text)))
+    (OBJECT Roads_sample_j
+        ()
+        (
+            (rel
+                (tuple
+                    (
+                        (Osm_id string)
+                        (Code int)
+                        (Fclass string)
+                        (Name text)
+                        (Ref string)
+                        (Oneway string)
+                        (Maxspeed int)
+                        (Layer int)
+                        (Bridge string)
+                        (Tunnel string)
+                        (GeoData line))))))
+    (OBJECT Roads_sample_s
+        ()
+        (
+            (rel
+                (tuple
+                    (
+                        (Osm_id string)
+                        (Code int)
+                        (Fclass string)
+                        (Name text)
+                        (Ref string)
+                        (Oneway string)
+                        (Maxspeed int)
+                        (Layer int)
+                        (Bridge string)
+                        (Tunnel string)
+                        (GeoData line))))))
+    (OBJECT SEC_DERIVED_OBJ
+        ()
+        (
+            (rel
+                (tuple
+                    (
+                        (Name string)
+                        (Value text)
+                        (UsedObjs text))))))
+    (OBJECT Traffic
+        ()
+        (
+            (rel
+                (tuple
+                    (
+                        (Osm_id string)
+                        (Code int)
+                        (Fclass string)
+                        (Name text)
+                        (GeoData point))))))
+    (OBJECT TrafficA
+        ()
+        (
+            (rel
+                (tuple
+                    (
+                        (Osm_id string)
+                        (Code int)
+                        (Fclass string)
+                        (Name text)
+                        (GeoData region))))))
+    (OBJECT TrafficA_sample_j
+        ()
+        (
+            (rel
+                (tuple
+                    (
+                        (Osm_id string)
+                        (Code int)
+                        (Fclass string)
+                        (Name text)
+                        (GeoData region))))))
+    (OBJECT TrafficA_sample_s
+        ()
+        (
+            (rel
+                (tuple
+                    (
+                        (Osm_id string)
+                        (Code int)
+                        (Fclass string)
+                        (Name text)
+                        (GeoData region))))))
+    (OBJECT Traffic_sample_j
+        ()
+        (
+            (rel
+                (tuple
+                    (
+                        (Osm_id string)
+                        (Code int)
+                        (Fclass string)
+                        (Name text)
+                        (GeoData point))))))
+    (OBJECT Traffic_sample_s
+        ()
+        (
+            (rel
+                (tuple
+                    (
+                        (Osm_id string)
+                        (Code int)
+                        (Fclass string)
+                        (Name text)
+                        (GeoData point))))))
+    (OBJECT Transport
+        ()
+        (
+            (rel
+                (tuple
+                    (
+                        (Osm_id string)
+                        (Code int)
+                        (Fclass string)
+                        (Name text)
+                        (GeoData point))))))
+    (OBJECT TransportA
+        ()
+        (
+            (rel
+                (tuple
+                    (
+                        (Osm_id string)
+                        (Code int)
+                        (Fclass string)
+                        (Name text)
+                        (GeoData region))))))
+    (OBJECT TransportA_sample_j
+        ()
+        (
+            (rel
+                (tuple
+                    (
+                        (Osm_id string)
+                        (Code int)
+                        (Fclass string)
+                        (Name text)
+                        (GeoData region))))))
+    (OBJECT TransportA_sample_s
+        ()
+        (
+            (rel
+                (tuple
+                    (
+                        (Osm_id string)
+                        (Code int)
+                        (Fclass string)
+                        (Name text)
+                        (GeoData region))))))
+    (OBJECT Transport_sample_j
+        ()
+        (
+            (rel
+                (tuple
+                    (
+                        (Osm_id string)
+                        (Code int)
+                        (Fclass string)
+                        (Name text)
+                        (GeoData point))))))
+    (OBJECT Transport_sample_s
+        ()
+        (
+            (rel
+                (tuple
+                    (
+                        (Osm_id string)
+                        (Code int)
+                        (Fclass string)
+                        (Name text)
+                        (GeoData point))))))
+    (OBJECT Water
+        ()
+        (
+            (rel
+                (tuple
+                    (
+                        (Osm_id string)
+                        (Code int)
+                        (Fclass string)
+                        (Name text)
+                        (GeoData region))))))
+    (OBJECT Water_sample_j
+        ()
+        (
+            (rel
+                (tuple
+                    (
+                        (Osm_id string)
+                        (Code int)
+                        (Fclass string)
+                        (Name text)
+                        (GeoData region))))))
+    (OBJECT Water_sample_s
+        ()
+        (
+            (rel
+                (tuple
+                    (
+                        (Osm_id string)
+                        (Code int)
+                        (Fclass string)
+                        (Name text)
+                        (GeoData region))))))
+    (OBJECT Waterways
+        ()
+        (
+            (rel
+                (tuple
+                    (
+                        (Osm_id string)
+                        (Code int)
+                        (Fclass string)
+                        (Width int)
+                        (Name text)
+                        (GeoData line))))))
+    (OBJECT Waterways_sample_j
+        ()
+        (
+            (rel
+                (tuple
+                    (
+                        (Osm_id string)
+                        (Code int)
+                        (Fclass string)
+                        (Width int)
+                        (Name text)
+                        (GeoData line))))))
+    (OBJECT Waterways_sample_s
+        ()
+        (
+            (rel
+                (tuple
+                    (
+                        (Osm_id string)
+                        (Code int)
+                        (Fclass string)
+                        (Width int)
+                        (Name text)
+                        (GeoData line))))))
+    (OBJECT SEC2CACHEINFO
+        ()
+        (
+            (trel
+                (tuple
+                    (
+                        (CStatNr int)
+                        (Bytes int)
+                        (RegSize int)
+                        (Hits int)
+                        (Misses int)
+                        (Pages_New int)
+                        (Pages_In int)
+                        (Pages_Out int)
+                        (Pages_All int))))))
+    (OBJECT SEC2COMMANDS
+        ()
+        (
+            (trel
+                (tuple
+                    (
+                        (CmdNr int)
+                        (CmdStr text)
+                        (ElapsedTime real)
+                        (CpuTime real)
+                        (CommitTime real)
+                        (QueryReal real)
+                        (QueryCPU real)
+                        (OutObjReal real)
+                        (CopyReal real))))))
+    (OBJECT SEC2COUNTERS
+        ()
+        (
+            (trel
+                (tuple
+                    (
+                        (CtrNr int)
+                        (CtrStr string)
+                        (Value int))))))
+    (OBJECT SEC2FILEINFO
+        ()
+        (
+            (trel
+                (tuple
+                    (
+                        (FStatNr int)
+                        (File text)
+                        (PageSize int)
+                        (Hits int)
+                        (Misses int)
+                        (Pages_New int)
+                        (Pages_In int)
+                        (Pages_Out int))))))
+    (OBJECT SEC2OPERATORINFO
+        ()
+        (
+            (trel
+                (tuple
+                    (
+                        (Name string)
+                        (Algebra string)
+                        (Signature text)
+                        (Syntax text)
+                        (Meaning text)
+                        (Example text)
+                        (Result text)
+                        (Remark text)
+                        (SupportsProgress bool))))))
+    (OBJECT SEC2OPERATORUSAGE
+        ()
+        (
+            (trel
+                (tuple
+                    (
+                        (Algebra string)
+                        (Operator string)
+                        (ValueMap int)
+                        (Calls int))))))
+    (OBJECT SEC2PJOIN
+        ()
+        (
+            (trel
+                (tuple
+                    (
+                        (Id int)
+                        (Join string)
+                        (Arg1_guess int)
+                        (Arg1_value int)
+                        (Arg1_error int)
+                        (Arg2_guess int)
+                        (Arg2_value int)
+                        (Arg2_error int)
+                        (Result_guess int)
+                        (Result_value int)
+                        (Result_error int)
+                        (Sel_guess real)
+                        (Sel_value real)
+                        (Sel_error int)
+                        (Probe_Result int)
+                        (Probe_Seconds real)
+                        (Probe_CPU_Ops int)
+                        (Probe_Arg1 int)
+                        (Probe_Arg2 int)
+                        (Used_Function string))))))
+    (OBJECT SEC2PJOINCOST
+        ()
+        (
+            (trel
+                (tuple
+                    (
+                        (Id int)
+                        (Param_arg1_card int)
+                        (Param_arg2_card int)
+                        (Param_res_card int)
+                        (Param_arg1_pages int)
+                        (Param_arg2_pages int)
+                        (Param_join_sel real)
+                        (Cost_name string)
+                        (Cost_write int)
+                        (Cost_read int)
+                        (Cost_cpu int)
+                        (Cost_value real)
+                        (Real_write int)
+                        (Real_read int)
+                        (Real_cpu int)
+                        (Real_runtime real))))))
+    (OBJECT SEC2TYPEINFO
+        ()
+        (
+            (trel
+                (tuple
+                    (
+                        (Type string)
+                        (Algebra string)
+                        (Signature text)
+                        (TypeListExample text)
+                        (ListRep text)
+                        (ValueListExample text)
+                        (CppClassSize int)
+                        (NumOfFlobs int)
+                        (PersistencyMode string)
+                        (Remark text)))))))
+---------------
+ short list
+
+  * Buildings
+  * Buildings_GeoData_rtree
+  * Buildings_sample_j
+  * Buildings_sample_s
+  * DIR
+  * Landuse
+  * Landuse_sample_j
+  * Landuse_sample_s
+  * Natural
+  * NaturalA
+  * NaturalA_sample_j
+  * NaturalA_sample_s
+  * Natural_sample_j
+  * Natural_sample_s
+  * Places
+  * PlacesA
+  * PlacesA_sample_j
+  * PlacesA_sample_s
+  * Places_sample_j
+  * Places_sample_s
+  * Pofw
+  * PofwA
+  * PofwA_sample_j
+  * PofwA_sample_s
+  * Pofw_sample_j
+  * Pofw_sample_s
+  * Points
+  * PointsA
+  * PointsA_sample_j
+  * PointsA_sample_s
+  * Points_sample_j
+  * Points_sample_s
+  * Railways
+  * Railways_sample_j
+  * Railways_sample_s
+  * Roads
+  * Roads_Name_btree
+  * Roads_sample_j
+  * Roads_sample_s
+  * SEC_DERIVED_OBJ
+  * Traffic
+  * TrafficA
+  * TrafficA_sample_j
+  * TrafficA_sample_s
+  * Traffic_sample_j
+  * Traffic_sample_s
+  * Transport
+  * TransportA
+  * TransportA_sample_j
+  * TransportA_sample_s
+  * Transport_sample_j
+  * Transport_sample_s
+  * Water
+  * Water_sample_j
+  * Water_sample_s
+  * Waterways
+  * Waterways_sample_j
+  * Waterways_sample_s
+  * SEC2CACHEINFO
+  * SEC2COMMANDS
+  * SEC2COUNTERS
+  * SEC2FILEINFO
+  * SEC2OPERATORINFO
+  * SEC2OPERATORUSAGE
+  * SEC2PJOIN
+  * SEC2PJOINCOST
+  * SEC2TYPEINFO
+

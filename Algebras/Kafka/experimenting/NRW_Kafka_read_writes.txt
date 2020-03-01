@@ -1,0 +1,124 @@
+Secondo => query Places feed writetokafka["localhost","Places"] count;
+command
+'query Places feed writetokafka["localhost","Places"] count'
+started at: Sun Mar  1 19:10:25 2020
+
+typeString: (stream (tuple ((Osm_id string) (Code int) (Fclass string) (Population int) (Name text) (GeoData point))))
+[INFO ][Δ 00:00:16:000195] 2020-03-01 19:10:25:453 KafkaReaderClient::Open. Created consumer kafka secondo client#consumer-1
+topicTypeString:
+[INFO ][Δ 00:00:04:422251] 2020-03-01 19:10:29:875 Writing Type Sting: (stream (tuple ((Osm_id string) (Code int) (Fclass string) (Population int) (Name text) (GeoData point)))) to topic Places
+noMemoryOperators = 0
+perOperator = 0
+..Total runtime ...   Times (elapsed / cpu): 8.06256sec / 0.43sec = 18.7501
+
+20108
+Secondo => query readfromkafka("localhost", "Places", FALSE) count;
+command
+'query readfromkafka("localhost", "Places", FALSE) count'
+started at: Sun Mar  1 19:11:21 2020
+
+[INFO ][Δ 00:00:51:475574] 2020-03-01 19:11:21:351 KafkaReaderClient::Open. Created consumer kafka secondo client#consumer-4
+noMemoryOperators = 0
+perOperator = 0
+[INFO ][Δ 00:00:00:184429] 2020-03-01 19:11:21:535 KafkaReaderClient::Open. Created consumer kafka secondo client#consumer-5
+..Total runtime ...   Times (elapsed / cpu): 1.17716sec / 0.8sec = 1.47145
+
+20108
+Secondo =>
+
+
+
+
+Filesystem     1K-blocks      Used Available Use% Mounted on
+/dev/sda1        96G   59G   33G  65% /
+/dev/sda1      100659272  61787492  33735456  65% /
+
+Secondo => query Buildings feed writetokafka["localhost","Buildings1"] count;
+command
+'query Buildings feed writetokafka["localhost","Buildings1"] count'
+started at: Sun Mar  1 19:17:06 2020
+
+typeString: (stream (tuple ((Osm_id string) (Code int) (Fclass string) (Name text) (Type string) (GeoData region))))
+[INFO ][Δ 00:00:51:425669] 2020-03-01 19:17:06:110 KafkaReaderClient::Open. Created consumer kafka secondo client#consumer-11
+topicTypeString:
+[INFO ][Δ 00:00:02:247935] 2020-03-01 19:17:08:358 Writing Type Sting: (stream (tuple ((Osm_id string) (Code int) (Fclass string) (Name text) (Type string) (GeoData region)))) to topic Buildings1
+noMemoryOperators = 0
+perOperator = 0
+....................................................................................................................................................................DbEnv: BDB2055 Lock table is out of available lock entries
+DbEnv: BDB2055 Lock table is out of available lock entries
+Total runtime ...   Times (elapsed / cpu): 3:59min (238.693sec) /206.62sec = 1.15523
+Error: The error list has not the expected format!
+Received list:
+
+(int 1644999)
+
+---------------------------
+  Secondo-SMI Error Stack
+---------------------------
+E_SMI_BDBCannot allocate memory -> [bdbFile.cpp:1622]
+E_SMI_BDBCannot allocate memory -> [bdbKeyedFile.cpp:170]
+
+
+
+Secondo: Unexpected fatal system error.
+=> []
+Secondo =>
+
+/dev/sda1        96G   63G   29G  69% /
+/dev/sda1      100659272  65526192  29996756  69% /
+
+Sie sollten in SecondoConfig.ini in der Section zu BerkeleyDB die Anzahl der verfügbaren Locks heraufsetzen, z.B. auf 10000000
+
+
+
+bin/kafka-topics.sh --list --bootstrap-server localhost:9092
+bin/kafka-topics.sh --zookeeper localhost:2181 --delete --topic Places
+
+/dev/sda1      100659272  64309116  31213832  68% /
+/dev/sda1        96G   62G   30G  68% /
+
+Secondo => query Buildings feed writetokafka["localhost","Buildings"] count;
+command
+'query Buildings feed writetokafka["localhost","Buildings"] count'
+started at: Sun Mar  1 19:41:38 2020
+
+typeString: (stream (tuple ((Osm_id string) (Code int) (Fclass string) (Name text) (Type string) (GeoData region))))
+[INFO ][Δ 00:03:53:750736] 2020-03-01 19:41:38:228 KafkaReaderClient::Open. Created consumer kafka secondo client#consumer-1
+topicTypeString:
+[INFO ][Δ 00:00:02:320552] 2020-03-01 19:41:40:548 Writing Type Sting: (stream (tuple ((Osm_id string) (Code int) (Fclass string) (Name text) (Type string) (GeoData region)))) to topic Buildings
+noMemoryOperators = 0
+perOperator = 0
+..........................................................................................................................................................................................................................................................................................................................................................................................................................................................%3|1583088701.887|FAIL|rdkafka#producer-3| [thrd:localhost:9092/bootstrap]: localhost:9092/bootstrap: Receive failed: Disconnected
+%3|1583088701.887|ERROR|rdkafka#producer-3| [thrd:localhost:9092/bootstrap]: localhost:9092/bootstrap: Receive failed: Disconnected
+...........................................................................................................................................................................................................................................................................................................................................................................Total runtime ...   Times (elapsed / cpu): 18:37min (1117.27sec) /1000.75sec = 1.11644
+
+8051860
+Secondo =>
+
+/dev/sda1      100659272  81043312  14479636  85% /
+/dev/sda1        96G   78G   14G  85% /
+
+grisha@grisha-VirtualBox:/tmp/kafka-logs$ du Buildings-0/ -sh
+16G	Buildings-0/
+grisha@grisha-VirtualBox:/tmp/kafka-logs$ du Buildings-0/ -s
+16456280	Buildings-0/
+
+Secondo => query readfromkafka("localhost", "Buildings", FALSE) count;
+command
+'query readfromkafka("localhost", "Buildings", FALSE) count'
+started at: Sun Mar  1 20:03:29 2020
+
+[INFO ][Δ 00:21:49:053865] 2020-03-01 20:03:29:602 KafkaReaderClient::Open. Created consumer kafka secondo client#consumer-4
+noMemoryOperators = 0
+perOperator = 0
+[INFO ][Δ 00:00:00:169933] 2020-03-01 20:03:29:772 KafkaReaderClient::Open. Created consumer kafka secondo client#consumer-5
+.................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................%3|1583090609.975|FAIL|kafka secondo client#consumer-5| [thrd:localhost:9092/bootstrap]: localhost:9092/bootstrap: Receive failed: Disconnected
+%3|1583090609.975|ERROR|kafka secondo client#consumer-5| [thrd:localhost:9092/bootstrap]: localhost:9092/bootstrap: Receive failed: Disconnected
+....................................................................................................................................................................................................................................................................................Total runtime ...   Times (elapsed / cpu): 29:49min (1788.72sec) /1798.11sec = 0.994779
+
+8051860
+Secondo =>
+
+
+
+

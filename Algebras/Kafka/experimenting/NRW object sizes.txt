@@ -1,0 +1,199 @@
+Secondo => query Buildings count
+Secondo ->
+command
+'query Buildings count'
+started at: Sun Mar  1 18:42:31 2020
+
+noMemoryOperators = 0
+perOperator = 0
+Total runtime ...   Times (elapsed / cpu): 0.016983sec / 0sec = inf
+
+8051860
+Secondo => query Buildings_GeoData_rtree count
+Secondo ->
+command
+'query Buildings_GeoData_rtree count'
+started at: Sun Mar  1 18:45:19 2020
+
+Total runtime ...   Times (elapsed / cpu): 0.014795sec / 0sec = inf
+
+Type map error for operator count!
+----------------------------------------------------------------------
+Input:        ((rtree (tuple ((Osm_id string) (Code int) (Fclass string)
+       (Name text) (Type string) (GeoData region))) region FALSE))
+       ---------------------------------------------------------------
+       -------
+Short:        (rtree)
+----------------------------------------------------------------------
+Error Message(s):
+----------------------------------------------------------------------
+RelationAlgebra:                  rel(tuple(...)), orel(tuple(...),(...)),
+    (trel(tuple(...)) or stream(tuple(...)) expected
+StreamAlgebra:                stream(DATA) expected
+NestedRelationAlgebra:                        nreel expected
+MainMemory2Algebra:                     arg not of type mpointer or mem
+
+----------------------------------------------------------------------
+
+Secondo: Error in (query) expression.
+=> []
+Secondo => query Buildings_sample_s count
+Secondo ->
+command
+'query Buildings_sample_s count'
+started at: Sun Mar  1 18:45:53 2020
+
+noMemoryOperators = 0
+perOperator = 0
+Total runtime ...   Times (elapsed / cpu): 0.015133sec / 0.01sec = 1.5133
+
+40259
+Secondo =>
+
+Secondo =>
+Secondo => query Landuse count
+Secondo ->
+command
+'query Landuse count'
+started at: Sun Mar  1 18:46:56 2020
+
+noMemoryOperators = 0
+perOperator = 0
+Total runtime ...   Times (elapsed / cpu): 0.00668sec / 0sec = inf
+
+702258
+Secondo =>
+Secondo => query Natural count
+Secondo ->
+command
+'query Natural count'
+started at: Sun Mar  1 18:47:20 2020
+
+noMemoryOperators = 0
+perOperator = 0
+Total runtime ...   Times (elapsed / cpu): 0.014393sec / 0sec = inf
+
+246694
+Secondo =>
+
+Secondo => query Places count
+Secondo ->
+command
+'query Places count'
+started at: Sun Mar  1 18:48:14 2020
+
+noMemoryOperators = 0
+perOperator = 0
+Total runtime ...   Times (elapsed / cpu): 0.005247sec / 0.01sec = 0.5247
+
+20108
+Secondo => query Pofw count
+Secondo ->
+command
+'query Pofw count'
+started at: Sun Mar  1 18:48:32 2020
+
+noMemoryOperators = 0
+perOperator = 0
+Total runtime ...   Times (elapsed / cpu): 0.004849sec / 0sec = inf
+
+3067
+Secondo => query Points count
+Secondo ->
+command
+'query Points count'
+started at: Sun Mar  1 18:48:47 2020
+
+noMemoryOperators = 0
+perOperator = 0
+Total runtime ...   Times (elapsed / cpu): 0.007205sec / 0.01sec = 0.7205
+
+321817
+Secondo => query Railways count
+Secondo ->
+command
+'query Railways count'
+started at: Sun Mar  1 18:49:05 2020
+
+noMemoryOperators = 0
+perOperator = 0
+Total runtime ...   Times (elapsed / cpu): 0.014278sec / 0.01sec = 1.4278
+
+50364
+Secondo => query Roads count
+Secondo ->
+command
+'query Roads count'
+started at: Sun Mar  1 18:49:59 2020
+
+noMemoryOperators = 0
+perOperator = 0
+Total runtime ...   Times (elapsed / cpu): 0.0162sec / 0sec = inf
+
+1881484
+Secondo => query Traffic count
+Secondo ->
+command
+'query Traffic count'
+started at: Sun Mar  1 18:50:18 2020
+
+noMemoryOperators = 0
+perOperator = 0
+Total runtime ...   Times (elapsed / cpu): 0.013612sec / 0sec = inf
+
+253389
+Secondo => query Transport count
+Secondo ->
+command
+'query Transport count'
+started at: Sun Mar  1 18:50:33 2020
+
+noMemoryOperators = 0
+perOperator = 0
+Total runtime ...   Times (elapsed / cpu): 0.013914sec / 0sec = inf
+
+78615
+Secondo => query Water count
+Secondo ->
+command
+'query Water count'
+started at: Sun Mar  1 18:50:48 2020
+
+noMemoryOperators = 0
+perOperator = 0
+Total runtime ...   Times (elapsed / cpu): 0.014942sec / 0.01sec = 1.4942
+
+46828
+Secondo => query Waterways count
+Secondo ->
+command
+'query Waterways count'
+started at: Sun Mar  1 18:51:05 2020
+
+noMemoryOperators = 0
+perOperator = 0
+Total runtime ...   Times (elapsed / cpu): 0.013141sec / 0sec = inf
+
+116384
+Secondo =>
+
+Buildings   8051860
+Buildings_sample_s  40259
+Landuse     702258
+Natural     246694
+Places      20108
+Pofw        3067
+Points      321817
+Railways    50364
+Roads       1881484
+Traffic     253389
+Transport   78615
+Water       46828
+Waterways   116384
+
+query Places feed writetokafka["localhost","Places"] count;
+query readfromkafka("localhost", "Places", FALSE) count;
+
+query Buildings feed writetokafka["localhost","Buildings"] count;
+query readfromkafka("localhost", "Buildings", FALSE) count;
+
