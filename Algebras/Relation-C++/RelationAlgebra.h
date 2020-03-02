@@ -727,6 +727,22 @@ the objects.
       return listutils::isTupleDescription(type);
     }
 
+    static std::vector<std::string> getAttrNames(const ListExpr type){
+      std::vector<std::string> result;
+      if(!checkType(type)){
+        return result;
+      }
+      ListExpr attrList = nl->Second(type);
+      while(!nl->IsEmpty(attrList)){
+        result.push_back(nl->SymbolValue(nl->First(nl->First(attrList))));
+        attrList = nl->Rest(attrList);
+      }
+      return result;
+    }
+
+    std::ostream& PrintWithNames(std::ostream& out, 
+                                 std::vector<std::string>& names);
+
     static ListExpr wrap(const ListExpr attrList, bool check = true);
 
     size_t HashValue() const;

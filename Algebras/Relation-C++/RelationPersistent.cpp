@@ -1543,6 +1543,21 @@ size_t Tuple::HashValue() const {
    return hash;
 }
 
+std::ostream& Tuple::PrintWithNames(ostream& out, 
+                    std::vector<std::string>& names){
+   if(GetNoAttributes() != (int) names.size()){
+      out << "invalid call of Tupple::PrintWithNames" << endl;
+      return out;
+   }
+   for(size_t i=0;i<names.size();i++){
+      out << names[i] << " : ";
+      GetAttribute(i)->PrintFormatted(out);
+      out << endl;
+   }
+   return out;
+}
+
+
 
 
 TupleFileIterator::TupleFileIterator(TupleFile& f)
