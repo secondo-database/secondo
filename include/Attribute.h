@@ -431,6 +431,11 @@ functions.
     {
       return os << "< No Print()-function for this datatype! >";
     }
+    
+    inline virtual std::ostream& PrintFormatted( std::ostream& os ) const
+    {
+      return this->Print(os);
+    }
 
 /*
 Prints the attribute. Used for debugging purposes.
