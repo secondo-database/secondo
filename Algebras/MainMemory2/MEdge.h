@@ -74,6 +74,26 @@ class MEdge{
      return *this;
    }
 
+
+   std::ostream& print(std::ostream& out, std::vector<std::string>* names){
+     out << source << "  ";
+     out << "--- ";
+     out << costs;
+     out << " --> ";
+     out << target;
+     out << std::endl;
+     if(names!= nullptr){ 
+       if(info==nullptr){
+          cout << "No edge info";
+       } else {
+          info->PrintWithNames(out,*names);
+       }
+       out << endl;
+     }
+     return out; 
+   }
+
+
   int source;
   int target;
   double costs;

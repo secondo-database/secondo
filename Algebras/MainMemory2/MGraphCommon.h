@@ -547,14 +547,58 @@ hops and the forbidden node, then the search spans the whole graph.
      }
 
 
+     std::ostream& print(std::ostream& out, std::vector<std::string>* names, 
+                         bool printBackward){
+
+       out << "Graph " << endl;
+       if(names != nullptr){
+          out << "sourcePos : " << sourcePos << endl;
+          out << "targetPos : " << targetPos << endl;
+          out << "costPost  : " << costPos   << endl;
+       }
+       for(size_t node = 0; node < graph.size() ; node++){
+          printNode(out, node, graph[node], names, printBackward); 
+       }
+       return out;
+     }
+
 
   protected:
-    std::vector<alist> graph;
+    std::vector<alist> graph; // the graph representation
     TupleType* tt;
-    int sourcePos;
+    int sourcePos;      // positions within the tuples
     int targetPos;
     int costPos;
-    std::vector<int> nodeOrder;
+    std::vector<int> nodeOrder; // for contraction
+
+
+    static void printNode(std::ostream& out, size_t nodeNumber,
+                          alist& edges, std::vector<std::string>* names,
+                          bool backward){
+
+       out << " --- Node " << nodeNumber << " --- " << endl;
+       auto fit = edges.first.begin();
+       if(backward){
+           out << "   --- outgoing edges " << endl;
+       }
+       while( fit != edges.first.end()){
+          fit->print(out, names);
+          fit++;
+          out << endl;
+       }
+       if(backward){
+          out << endl;  
+          out << "   --- incoming  edges " << endl;
+          auto bit = edges.second.begin();
+          while(bit != edges.second.end()){
+            bit->print(out,names);
+            bit++;
+            out << endl;
+          }
+       }
+       out << endl;
+   }
+
 
 
 /*

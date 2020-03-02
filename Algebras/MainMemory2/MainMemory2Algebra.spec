@@ -198,6 +198,9 @@ operator mg3contract alias MG3CONTRACT pattern op(_,_,_,_)
 operator mg3minPathCost alias MG3MINPATHCOST pattern op(_,_,_,_,_)
 operator mg3exportddsg alias MG3EXPORTDDSG pattern _ op[_,_]
 
+operator mgraphPrint alias MGRAPHPRINT pattern _ op[_,_]
+operator mgraph2text alias MGRAPH2TEXT pattern _ op[_,_]
+
 operator memgroupby alias MEMGROUPBY pattern _ op [list; funlist] implicit parameter mgroup type MGROUP
 
 operator importCH alias IMPORTCH pattern op(_,_)

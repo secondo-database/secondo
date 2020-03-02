@@ -695,8 +695,28 @@ M* getMemObject(S* qN){
    return (M*)catalog->getMMObject(qn);
 }
 
+
+// same function but without type checking of the graph
+template<class M, class S>
+M* getMemObject2(S* qN){
+   if(!qN->IsDefined()){
+      return 0;
+   }
+   string qn = qN->GetValue();
+   if(!catalog->isMMOnlyObject(qn) || !catalog->isAccessible(qn)){
+      return 0;
+   }
+   return (M*)catalog->getMMObject(qn);
+}
+
+
 template<class M>
 M* getMemObject(MPointer* t){
+   return (M*) ((*t)());
+}
+
+template<class M>
+M* getMemObject2(MPointer* t){
    return (M*) ((*t)());
 }
 
@@ -19411,6 +19431,204 @@ Operator mg3exportddsgOp(
 );
 
 
+/*
+mgraphPrint
+
+*/
+ListExpr mgraphPrintTM(ListExpr args){
+   if(!nl->HasLength(args,3)){
+     return listutils::typeError("three argument expected");
+   }
+   ListExpr graph;
+   if(!getMemSubType(nl->First(args), graph)){
+     return listutils::typeError("first arg is not a memory object");
+   }
+   if(!MGraph2::checkType(graph) && !MGraph3::checkType(graph)){
+     return listutils::typeError("argument not of type mgraph2 or mgraph3");
+   }
+   if(!CcBool::checkType(nl->Second(args))){
+     return listutils::typeError("second arg not of type bool");
+   }
+   if(!CcBool::checkType(nl->Third(args))){
+     return listutils::typeError("third arg not of type bool");
+   }
+   return listutils::basicSymbol<CcBool>();
+}
+
+template< class GN>
+int mgraphPrintVMT(Word* args, Word& result, int message,
+                Word& local, Supplier s){
+  
+  MGraphCommon* g = getMemObject2<MGraphCommon>((GN*) args[0].addr);
+  CcBool* printInfo = (CcBool*) args[1].addr;
+  CcBool* printBackward = (CcBool*) args[2].addr;
+  result = qp->ResultStorage(s);
+  CcBool* res = (CcBool*) result.addr;
+  if(!printInfo->IsDefined() || !printBackward->IsDefined()){
+    res->SetDefined(false);
+    return 0; 
+  }
+  res->Set(true,true);
+  std::vector<std::string>* names = nullptr;
+  if(printInfo->GetValue()){
+    ListExpr gT = qp->GetType(qp->GetSon(s,0));
+    if(nl->HasLength(gT,2) && nl->IsEqual(nl->First(gT),MPointer::BasicType())){
+      gT = nl->Second(gT);
+    } // remove potential mpointer
+    if(nl->HasLength(gT,2) && nl->IsEqual(nl->First(gT),Mem::BasicType())){
+      gT = nl->Second(gT);
+    } // remove mem
+    if(nl->HasLength(gT,2) ){
+      gT = nl->Second(gT);
+    } // remove mgraphX -> tupleType left 
+
+    names = new std::vector<std::string>(Tuple::getAttrNames(gT));
+    // bring all names to the same length
+    size_t m=0;
+    for(size_t i=0;i<names->size();i++){
+      if(m< (*names)[i].length()) m = (*names)[i].length();
+    }
+    for(size_t i=0;i<names->size();i++){
+       while((*names)[i].length() < m){
+         (*names)[i] += " ";
+       }
+    }
+  }
+  g->print(cout, names, printBackward->GetValue());
+  if(names != nullptr){
+     delete names;
+  }
+  return 0;
+}
+
+ValueMapping mgraphPrintVM[] = {
+   mgraphPrintVMT<Mem>,
+   mgraphPrintVMT<MPointer>
+};
+
+int mgraphPrintSelect(ListExpr args){
+   return Mem::checkType(nl->First(args))?0:1;
+}
+
+OperatorSpec mgraphPrintSpec(
+   "MGRAPH x bool x bool -> bool ",
+   "_ mgraphPrint[_,_] ",
+   "Prints out the graph that is given as the first argument. "
+   "The second argument specifies whether the tuple info of "
+   " each edge should be printed out. The third argment specifies "
+   "whether backward edges should be printed out. ",
+   "query mg2 print[FALSE,FALSE] "
+);
+
+Operator mgraphPrintOp(
+   "mgraphPrint",
+   mgraphPrintSpec.getStr(),
+   2,
+   mgraphPrintVM,
+   mgraphPrintSelect,
+   mgraphPrintTM   
+);
+
+
+/*
+mgraph2text
+
+*/
+ListExpr mgraph2textTM(ListExpr args){
+   if(!nl->HasLength(args,3)){
+     return listutils::typeError("three argument expected");
+   }
+   ListExpr graph;
+   if(!getMemSubType(nl->First(args), graph)){
+     return listutils::typeError("first arg is not a memory object");
+   }
+   if(!MGraph2::checkType(graph) && !MGraph3::checkType(graph)){
+     return listutils::typeError("argument not of type mgraph2 or mgraph3");
+   }
+   if(!CcBool::checkType(nl->Second(args))){
+     return listutils::typeError("second arg not of type bool");
+   }
+   if(!CcBool::checkType(nl->Third(args))){
+     return listutils::typeError("third arg not of type bool");
+   }
+   return listutils::basicSymbol<FText>();
+}
+
+template< class GN>
+int mgraph2textVMT(Word* args, Word& result, int message,
+                Word& local, Supplier s){
+  
+  MGraphCommon* g = getMemObject2<MGraphCommon>((GN*) args[0].addr);
+  CcBool* printInfo = (CcBool*) args[1].addr;
+  CcBool* printBackward = (CcBool*) args[2].addr;
+  result = qp->ResultStorage(s);
+  FText* res = (FText*) result.addr;
+  if(!printInfo->IsDefined() || !printBackward->IsDefined()){
+    res->SetDefined(false);
+    return 0; 
+  }
+  stringstream ss;
+  std::vector<std::string>* names = nullptr;
+  if(printInfo->GetValue()){
+    ListExpr gT = qp->GetType(qp->GetSon(s,0));
+    if(nl->HasLength(gT,2) && nl->IsEqual(nl->First(gT),MPointer::BasicType())){
+      gT = nl->Second(gT);
+    } // remove potential mpointer
+    if(nl->HasLength(gT,2) && nl->IsEqual(nl->First(gT),Mem::BasicType())){
+      gT = nl->Second(gT);
+    } // remove mem
+    if(nl->HasLength(gT,2) ){
+      gT = nl->Second(gT);
+    } // remove mgraphX -> tupleType left 
+
+    names = new std::vector<std::string>(Tuple::getAttrNames(gT));
+    // bring all names to the same length
+    size_t m=0;
+    for(size_t i=0;i<names->size();i++){
+      if(m< (*names)[i].length()) m = (*names)[i].length();
+    }
+    for(size_t i=0;i<names->size();i++){
+       while((*names)[i].length() < m){
+         (*names)[i] += " ";
+       }
+    }
+  }
+  g->print(ss, names, printBackward->GetValue());
+  if(names != nullptr){
+     delete names;
+  }
+  res->Set(true, ss.str());
+  return 0;
+}
+
+ValueMapping mgraph2textVM[] = {
+   mgraph2textVMT<Mem>,
+   mgraph2textVMT<MPointer>
+};
+
+int mgraph2textSelect(ListExpr args){
+   return Mem::checkType(nl->First(args))?0:1;
+}
+
+OperatorSpec mgraph2textSpec(
+   "MGRAPH x bool x bool -> bool ",
+   "_ mgraph2text[_,_] ",
+   "Converts a main memory grapg to a text. "
+   "The second argument specifies whether the tuple info of "
+   " each edge should be part of the result. The third argment specifies "
+   "whether backward edges should be in the result. ",
+   "query mgraph2text[FALSE,FALSE] "
+);
+
+Operator mgraph2textOp(
+   "mgraph2text",
+   mgraph2textSpec.getStr(),
+   2,
+   mgraph2textVM,
+   mgraph2textSelect,
+   mgraph2textTM   
+);
+
 
 ListExpr MGroupTM(ListExpr args)
 {
@@ -20564,6 +20782,9 @@ class MainMemory2Algebra : public Algebra {
           AddOperator(&mg3contractOp);
           AddOperator(&mg3minPathCostOp);
           AddOperator(&mg3exportddsgOp);
+
+          AddOperator(&mgraphPrintOp);
+          AddOperator(&mgraph2textOp);
 
           AddOperator(&mgroupOp);
           AddOperator(&memgroupbyOp);

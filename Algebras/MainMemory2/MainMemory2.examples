@@ -1123,6 +1123,19 @@ Signature : MGRAPH3 x int x int -> bool
 Example   : query mgraph3_1 mg3deleteEdges[2,3] 
 Result    : TRUE
 
+
+Operator  : mgraphPrint
+Number    : 1016
+Signature : MGRAPH x bool x bool -> bool
+Example   : query mgraph3_1 mgraphPrint[FALSE,FALSE] 
+Result    : TRUE
+
+Operator  : mgraph2text
+Number    : 1017
+Signature : MGRAPH x bool x bool -> text
+Example   : query length(mgraph3_1 mgraph2text[FALSE,FALSE] ) > 0
+Result    : TRUE
+
 Operator  : mwrap2
 Number    : 1100
 Signature : text x string -> mem(X)
