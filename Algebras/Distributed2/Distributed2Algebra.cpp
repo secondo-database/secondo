@@ -12074,7 +12074,7 @@ ListExpr dmapTM(ListExpr args){
          && !DArray::checkType(arg1Type)
          && !SDArray::checkType(arg1Type))
      ||!CcString::checkType(arg2Type)
-     ||!listutils::isMap<1>(arg3Type)){
+     ||!listutils::isMap<2>(arg3Type)){
     return listutils::typeError(err);
   }
 
@@ -12085,42 +12085,49 @@ ListExpr dmapTM(ListExpr args){
                    nl->Second(nl->Second(arg1Type)));
   }
 
-  ListExpr funArg = nl->Second(arg3Type);
+  ListExpr funArg1 = nl->Second(arg3Type);
 
-  ListExpr expFunArg =   DArray::checkType(arg1Type)
+  ListExpr expFunArg1 =   DArray::checkType(arg1Type)
                       || SDArray::checkType(arg1Type)
                       ? nl->Second(arg1Type)
                       : frelt; 
 
 
-  if(!nl->Equal(expFunArg,funArg)){
+  if(!nl->Equal(expFunArg1,funArg1)){
      stringstream ss;
      ss << "type mismatch between function argument and "
         << " subtype of dfarray" << endl
-        << "subtype is " << nl->ToString(expFunArg) << endl
-        << "funarg is " << nl->ToString(funArg) << endl;
+        << "subtype is " << nl->ToString(expFunArg1) << endl
+        << "funarg is " << nl->ToString(funArg1) << endl;
     
      return listutils::typeError(ss.str());
   }
+  ListExpr funArg2 =  nl->Third(arg3Type);
+  if(!CcInt::checkType(funArg2)){
+    return listutils::typeError("last function argument must be of type int");
+  }
+
 
   // the function definition
   ListExpr funq = nl->Second(nl->Third(args));
 
-  // we have to replace the given function arguments 
-  // by the real function arguments because the 
-  // given function argument may be a TypeMapOperator
-  ListExpr funargs = nl->Second(funq);
-  ListExpr rfunargs = nl->TwoElemList(
-                         nl->First(funargs),
-                          funArg);
 
-  ListExpr rfun = nl->ThreeElemList(
-                    nl->First(funq),
-                    rfunargs,
-                    nl->Third(funq)
+  // we have to replace the given  
+  // function argument tyoes by there real tyoes sue to
+  // usage of type map operators 
+  ListExpr rfunarg1 = nl->TwoElemList( nl->First(nl->Second(funq)), funArg1);
+  ListExpr rfunarg2 = nl->TwoElemList( nl->First(nl->Third(funq)), funArg2);
+
+  ListExpr rfun = nl->FourElemList(
+                    nl->First(funq),  // symbol fun
+                    rfunarg1,
+                    rfunarg2,
+                    nl->Fourth(funq) 
                   );
 
-  ListExpr funRes = nl->Third(arg3Type);
+
+
+  ListExpr funRes = nl->Fourth(arg3Type);
 
   // allowed result types are streams of tuples and
   // non-stream objects
@@ -12479,6 +12486,7 @@ Class for sending the commands to produce a dfarray.
 
              vector<string> args;
              args.push_back(funarg);
+             args.push_back(stringutils::int2str(nr));
              // we convert the function into a usual commando
              ListExpr cmdList = fun2cmd(fun, args);
              // we replace write3 symbols in the commando for dbservice support
@@ -12568,7 +12576,7 @@ Class for sending the commands to produce a dfarray.
       private:
         ConnectionInfo* ci;
         string dbname;
-        size_t nr;
+        size_t nr;   //slot number
         Mapper* mapper;
 
     };
@@ -12648,6 +12656,7 @@ Class for sending the commands to produce a dfarray.
               // convert function to command
               vector<string> funargs;
               funargs.push_back(funarg);
+              funargs.push_back(stringutils::int2str(nr));
               ListExpr funCmdList = fun2cmd(fundef, funargs);
             
               funCmdList = replaceWrite(funCmdList, "write2",name2);
@@ -12705,6 +12714,7 @@ int dmapVMT(Word* args, Word& result, int message,
 #endif
    // ignore original fun at args[2];
   FText* funText = (FText*) args[3].addr;
+
   bool isRel = ((CcBool*) args[4].addr)->GetValue();
   bool isStream = ((CcBool*) args[5].addr)->GetValue();
   Mapper<A> mapper(array, qp->GetType(qp->GetSon(s,0)), name, funText, 
@@ -13021,8 +13031,8 @@ ListExpr dmapXTM(ListExpr args){
     return listutils::typeError("too few argumnets");
  }
  string err = "d[f]array(X_i) ^" + stringutils::int2str(x) + " x string x "
-              "fun : (X_0 x X_1 x ...X_" + stringutils::int2str(x)+
-              " -> Z) x int expected";
+              "fun : (X_0 x X_1 x ...X_t" + stringutils::int2str(x)+
+              " ,int-> Z) x int expected";
 
  ListExpr ac = args;
 
@@ -13070,7 +13080,7 @@ ListExpr dmapXTM(ListExpr args){
    return  listutils::typeError(err + " (name (string) not found at "
                                       "expected position)");
  }
- if(!listutils::isMapX(x,fun)){
+ if(!listutils::isMapX(x+1,fun)){
    return listutils::typeError(err + " (function not found at "
                                         "expected position)");
  }
@@ -13082,18 +13092,19 @@ ListExpr dmapXTM(ListExpr args){
  // builds an array of expected function arguments
  // for a DFarray, we use an frel as argument, for a 
  // DArray the darray's subtype is used 
- ListExpr efunargs[x];
+ ListExpr efunargs[x+1];
  for(int i=0;i<x;i++){
    efunargs[i] = DFArray::checkType(arrays[i])
                     ? nl->TwoElemList( listutils::basicSymbol<frel>(),
                                        nl->Second(nl->Second(arrays[i])))
                     : nl->Second(arrays[i]);
  }
+ efunargs[x] = listutils::basicSymbol<CcInt>();
 
  // check whether function arguments fit to the expected one from the arrays
  ListExpr funargs = fun;
  funargs = nl->Rest(funargs);
- for(int i=0;i<x;i++){
+ for(int i=0;i<x+1;i++){
     if(!nl->Equal(efunargs[i], nl->First(funargs))){
       return listutils::typeError("type mismatch between darray subtype and "
                                   "function argument at position "
@@ -13132,7 +13143,7 @@ ListExpr dmapXTM(ListExpr args){
  ListExpr last = rfun;
 
  funQ = nl->Rest(funQ);
- for(int i=0;i<x;i++){
+ for(int i=0;i<x+1;i++){
     last = nl->Append(last,
                 nl->TwoElemList(
                    nl->First(nl->First(funQ)),
@@ -13864,6 +13875,7 @@ Creates the command for computing the result for this slot.
           }
           funCall += " )";
           */
+          funargs.push_back(stringutils::int2str(slot));
           ListExpr funCallList  = fun2cmd(funText, funargs);
           string resultName = info->res->getObjectNameForSlot(slot);
           funCallList = replaceWrite(funCallList, "write2", resultName);

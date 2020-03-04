@@ -42,28 +42,28 @@ operator dloop alias DLOOP pattern _ op[_,fun] implicit parameter darrayelem typ
 operator dloop2 alias DLOOP2 pattern _ _ op[_,fun] implicit parameters elem1, elem2 types DARRAYELEM, DARRAYELEM2
 
 
-operator dmap alias DMAP pattern _ op[_,fun] implicit parameter dmapelem type ARRAYFUNARG1
-operator pdmap alias PDMAP pattern _ _ op[_,fun] implicit parameter dmapelem type ARRAYFUNARG2
+operator dmap alias DMAP pattern _ op[_,fun] implicit parameters dmapelem, dmapslotno types ARRAYFUNARG1, int
+operator pdmap alias PDMAP pattern _ _ op[_,fun] implicit parameters dmapelem, dmapslotno types ARRAYFUNARG2, int
 
 
-operator dmap2n alias DMAP2n pattern _ _ op[_,fun,_] implicit parameters elem1, elem2 types ARRAYFUNARG1, ARRAYFUNARG2
+operator dmap2n alias DMAP2n pattern _ _ op[_,fun,_] implicit parameters elem1, elem2, dmapslotno  types ARRAYFUNARG1, ARRAYFUNARG2, int
 
 
-operator dmap2 alias DMAP2 pattern _ _ op[_,fun,_] implicit parameters elem1, elem2 types ARRAYFUNARG1, ARRAYFUNARG2
-operator dmap3 alias DMAP3 pattern _ _ _ op[_,fun,_] implicit parameters elem1, elem2, elem3  types ARRAYFUNARG1, ARRAYFUNARG2, ARRAYFUNARG3
-operator dmap4 alias DMAP4 pattern _ _ _ _ op[_,fun,_] implicit parameters elem1, elem2, elem3, elem4  types ARRAYFUNARG1, ARRAYFUNARG2, ARRAYFUNARG3, ARRAYFUNARG4
-operator dmap5 alias DMAP5 pattern _ _ _ _ _ op[_,fun,_] implicit parameters elem1, elem2, elem3, elem4 , elem5  types ARRAYFUNARG1, ARRAYFUNARG2, ARRAYFUNARG3, ARRAYFUNARG4, ARRAYFUNARG5
-operator dmap6 alias DMAP6 pattern _ _ _ _ _ _ op[_,fun,_] implicit parameters elem1, elem2, elem3, elem4, elem5, elem6  types ARRAYFUNARG1, ARRAYFUNARG2, ARRAYFUNARG3, ARRAYFUNARG4, ARRAYFUNARG5, ARRAYFUNARG6
-operator dmap7 alias DMAP7 pattern _ _ _ _ _ _ _ op[_,fun,_] implicit parameters elem1, elem2, elem3, elem4, elem5, elem6, elem7  types ARRAYFUNARG1, ARRAYFUNARG2, ARRAYFUNARG3, ARRAYFUNARG4, ARRAYFUNARG5, ARRAYFUNARG6, ARRAYFUNARG7
-operator dmap8 alias DMAP8 pattern _ _ _ _ _ _ _ _ op[_,fun,_] implicit parameters elem1, elem2, elem3, elem4, elem5, elem6, elem7, elem8  types ARRAYFUNARG1, ARRAYFUNARG2, ARRAYFUNARG3, ARRAYFUNARG4, ARRAYFUNARG5, ARRAYFUNARG6, ARRAYFUNARG7, ARRAYFUNARG8
+operator dmap2 alias DMAP2 pattern _ _ op[_,fun,_] implicit parameters elem1, elem2,dmslotno types ARRAYFUNARG1, ARRAYFUNARG2, int
+operator dmap3 alias DMAP3 pattern _ _ _ op[_,fun,_] implicit parameters elem1, elem2, elem3,dmslotno  types ARRAYFUNARG1, ARRAYFUNARG2, ARRAYFUNARG3, int
+operator dmap4 alias DMAP4 pattern _ _ _ _ op[_,fun,_] implicit parameters elem1, elem2, elem3, elem4,dmslotno  types ARRAYFUNARG1, ARRAYFUNARG2, ARRAYFUNARG3, ARRAYFUNARG4, int
+operator dmap5 alias DMAP5 pattern _ _ _ _ _ op[_,fun,_] implicit parameters elem1, elem2, elem3, elem4 , elem5i,dmslotno  types ARRAYFUNARG1, ARRAYFUNARG2, ARRAYFUNARG3, ARRAYFUNARG4, ARRAYFUNARG5, int
+operator dmap6 alias DMAP6 pattern _ _ _ _ _ _ op[_,fun,_] implicit parameters elem1, elem2, elem3, elem4, elem5, elem6,dmslotno  types ARRAYFUNARG1, ARRAYFUNARG2, ARRAYFUNARG3, ARRAYFUNARG4, ARRAYFUNARG5, ARRAYFUNARG6, int
+operator dmap7 alias DMAP7 pattern _ _ _ _ _ _ _ op[_,fun,_] implicit parameters elem1, elem2, elem3, elem4, elem5, elem6, elem7, dmslotno  types ARRAYFUNARG1, ARRAYFUNARG2, ARRAYFUNARG3, ARRAYFUNARG4, ARRAYFUNARG5, ARRAYFUNARG6, ARRAYFUNARG7, int
+operator dmap8 alias DMAP8 pattern _ _ _ _ _ _ _ _ op[_,fun,_] implicit parameters elem1, elem2, elem3, elem4, elem5, elem6, elem7, elem8, dmslotno  types ARRAYFUNARG1, ARRAYFUNARG2, ARRAYFUNARG3, ARRAYFUNARG4, ARRAYFUNARG5, ARRAYFUNARG6, ARRAYFUNARG7, ARRAYFUNARG8, int
 
-operator pdmap2 alias PDMAP2 pattern _ _ _ op[_,fun,_] implicit parameters elem1, elem2 types ARRAYFUNARG2, ARRAYFUNARG3
-operator pdmap3 alias PDMAP3 pattern _ _ _ _ op[_,fun,_] implicit parameters elem1, elem2, elem3  types ARRAYFUNARG2, ARRAYFUNARG3, ARRAYFUNARG4
-operator pdmap4 alias PDMAP4 pattern _ _ _ _ _ op[_,fun,_] implicit parameters elem1, elem2, elem3, elem4  types ARRAYFUNARG2, ARRAYFUNARG3, ARRAYFUNARG4, ARRAYFUNARG5
-operator pdmap5 alias PDMAP5 pattern _ _ _ _ _ _ op[_,fun,_] implicit parameters elem1, elem2, elem3, elem4 , elem5  types ARRAYFUNARG2, ARRAYFUNARG3, ARRAYFUNARG4, ARRAYFUNARG5, ARRAYFUNARG6
-operator pdmap6 alias PDMAP6 pattern _ _ _ _ _ _ _ op[_,fun,_] implicit parameters elem1, elem2, elem3, elem4, elem5, elem6  types ARRAYFUNARG2, ARRAYFUNARG3, ARRAYFUNARG4, ARRAYFUNARG5, ARRAYFUNARG6, ARRAYFUNARG7
-operator pdmap7 alias PDMAP7 pattern _ _ _ _ _ _ _ _ op[_,fun,_] implicit parameters elem1, elem2, elem3, elem4, elem5, elem6, elem7  types ARRAYFUNARG2, ARRAYFUNARG3, ARRAYFUNARG4, ARRAYFUNARG5, ARRAYFUNARG6, ARRAYFUNARG7, ARRAYFUNARG8
-operator pdmap8 alias PDMAP8 pattern _ _ _ _ _ _ _ _ _ op[_,fun,_] implicit parameters elem1, elem2, elem3, elem4, elem5, elem6, elem7, elem8  types ARRAYFUNARG2, ARRAYFUNARG3, ARRAYFUNARG4, ARRAYFUNARG5, ARRAYFUNARG6, ARRAYFUNARG7, ARRAYFUNARG8, ARRAYFUNARG9
+operator pdmap2 alias PDMAP2 pattern _ _ _ op[_,fun,_] implicit parameters elem1, elem2, dmslotno types ARRAYFUNARG2, ARRAYFUNARG3, int
+operator pdmap3 alias PDMAP3 pattern _ _ _ _ op[_,fun,_] implicit parameters elem1, elem2, elem3,dmslotno  types ARRAYFUNARG2, ARRAYFUNARG3, ARRAYFUNARG4, int
+operator pdmap4 alias PDMAP4 pattern _ _ _ _ _ op[_,fun,_] implicit parameters elem1, elem2, elem3, elem4i, dmslotno  types ARRAYFUNARG2, ARRAYFUNARG3, ARRAYFUNARG4, ARRAYFUNARG5, int
+operator pdmap5 alias PDMAP5 pattern _ _ _ _ _ _ op[_,fun,_] implicit parameters elem1, elem2, elem3, elem4 , elem5i, dmslotno  types ARRAYFUNARG2, ARRAYFUNARG3, ARRAYFUNARG4, ARRAYFUNARG5, ARRAYFUNARG6, int
+operator pdmap6 alias PDMAP6 pattern _ _ _ _ _ _ _ op[_,fun,_] implicit parameters elem1, elem2, elem3, elem4, elem5, elem6,dmslotno  types ARRAYFUNARG2, ARRAYFUNARG3, ARRAYFUNARG4, ARRAYFUNARG5, ARRAYFUNARG6, ARRAYFUNARG7, int
+operator pdmap7 alias PDMAP7 pattern _ _ _ _ _ _ _ _ op[_,fun,_] implicit parameters elem1, elem2, elem3, elem4, elem5, elem6, elem7,dmslotno  types ARRAYFUNARG2, ARRAYFUNARG3, ARRAYFUNARG4, ARRAYFUNARG5, ARRAYFUNARG6, ARRAYFUNARG7, ARRAYFUNARG8, int
+operator pdmap8 alias PDMAP8 pattern _ _ _ _ _ _ _ _ _ op[_,fun,_] implicit parameters elem1, elem2, elem3, elem4, elem5, elem6, elem7, elem8,dmslotno  types ARRAYFUNARG2, ARRAYFUNARG3, ARRAYFUNARG4, ARRAYFUNARG5, ARRAYFUNARG6, ARRAYFUNARG7, ARRAYFUNARG8, ARRAYFUNARG9, int
 
 
 operator dsummarize alias DSUMMARIZE pattern _ op
