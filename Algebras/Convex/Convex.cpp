@@ -52,6 +52,14 @@ using boost::polygon::high;
 using boost::polygon::construct_voronoi;
 
 
+/*
+ 
+  1.1 boost definitions needed for constructing the voronoi diag
+  
+*/
+  
+
+
 namespace boost {
   namespace polygon {
 
@@ -88,6 +96,12 @@ using boost::polygon::VoronoiPoint;
 
 
 namespace convex { 
+
+/*
+ 
+   2.1 constructors
+  
+*/
     
 
 Convex::Convex(const Convex& src):Attribute(src),value(0),size(src.size){
@@ -140,6 +154,57 @@ Convex& Convex::operator=(Convex&& src) {
    src.value = 0;
    return *this;
 }
+
+
+
+
+
+void Convex::setTo(const std::vector<std::tuple <double, double>>& src){
+      
+      clear();
+      SetDefined(true);
+      if(src.size()>0){
+         size = src.size();
+         value = new Point[size];
+         auto it = src.begin();
+         size_t pos = 0;
+         std::tuple<double, double> temptup;
+         double tempxval;
+         double tempyval;
+         Point poi;
+            
+    
+         
+         
+     /* converting the right tuple vector into point sequence  */   
+      
+         while(it!=src.end()) {
+           
+         temptup = *it;
+         tempxval = std::get<0>(temptup);
+         tempyval = std::get<1>(temptup);
+         
+         poi.Set(true, tempxval, tempyval);
+         value[pos] = poi;          
+              
+           it++;
+           pos++;
+         }
+      }
+   }
+
+
+
+
+
+
+
+/*
+ 
+  3.1 auxillary  functions
+  
+*/
+
 
 
 bool sortyupxup(const tuple<double, double>& a,  
@@ -224,7 +289,11 @@ bool sortxupydown (const tuple<double, double>& a,
          
 } 
 
-
+/*
+ 
+  3.2 checkme function
+  
+*/
 
 bool checkme(std::vector<std::tuple <double, double>>& src){
       
@@ -291,7 +360,7 @@ bool checkme(std::vector<std::tuple <double, double>>& src){
   
     
 
-// sorting vecs by x resp. y coord 
+/* sorting vecs by x resp. y coord */ 
 
 
 sort(xysortedvecasc.begin(), xysortedvecasc.end(), sortxupyup); 
@@ -301,12 +370,11 @@ sort(yxsortedvecasc.begin(), yxsortedvecasc.end(), sortyupxdown);
          
     
  
-/*
-eliminate redundant points 
-
-*/
+/* eliminate redundant points */
        
        count = 0;
+       
+    
     for (unsigned int i = 0; i < xysortedvecasc.size() - 1; i++)
        { if ( (get<0>(xysortedvecasc[i]) == get<0>(xysortedvecasc[i+1]))&&
               (get<1>(xysortedvecasc[i]) == get<1>(xysortedvecasc[i+1]))) { 
@@ -318,14 +386,15 @@ eliminate redundant points
          }
     
        
-    
+    if ( xysortedvecasc.size() <= 2) {
+       return false;
+       
+     }
        
        
        
        
-   /* get leftpoint and right point of polygon
- 
-   */
+   /* get leftpoint and right point of polygon  */
 
 
     leftpoint = xysortedvecasc[0];
@@ -368,7 +437,7 @@ eliminate redundant points
         }
         
         
-        } //end of for 
+        } 
        
         
    
@@ -377,16 +446,15 @@ eliminate redundant points
           
           
           
-   /* move points above and below to 
+ /* 
+move points above and below to 
 aboveleft, aboveright, belowleft and belowright.
 using the "line" from downpoint to uppoint
-    
-    
      
 get points above and below the imagenary "line" from downpoint to uppoint
     
 first: testing if point are perpendicular
-  */    
+ */    
     
     
   if (get<0>(uppoint) != get<0>(downpoint) ){   
@@ -420,8 +488,7 @@ first: testing if point are perpendicular
         }
         
         
-        } //end of for 
-        
+        } 
         
         
         
@@ -443,7 +510,7 @@ first: testing if point are perpendicular
         }
         
         
-        } //end of for 
+        } 
         
         
      if (m < 0) {
@@ -462,12 +529,11 @@ first: testing if point are perpendicular
      }
         
         
-     } //end of if
+     } 
      
    
    
-  /* uppoint and downpoint are perpendicular
-  */
+  /* uppoint and downpoint are perpendicular   */
 
    if (get<0>(uppoint) == get<0>(downpoint) ) {
        
@@ -488,7 +554,7 @@ first: testing if point are perpendicular
         }
         
         
-        } //end of for 
+        }
         
         
         
@@ -510,31 +576,26 @@ first: testing if point are perpendicular
         }
         
         
-        } //end of for 
+        } 
        
        
-   } //end of if     
+   } 
      
      
     
-   /* sorting aboveleft, ab aboveright, belowright and belowleft...
-   */
+   /* sorting aboveleft, ab aboveright, belowright and belowleft... */
    
-   /* aboveleft is already sorted: x up , y up 
-   */
+   /* aboveleft is already sorted: x up , y up  */
    
    sort(aboveleft.begin(), aboveleft.end(), sortxupyup);
    
-   /* sorting aboveright: x up, y down
-   */ 
+   /* sorting aboveright: x up, y down  */ 
   sort(aboveright.begin(), aboveright.end(), sortxupydown); 
        
-  /* sorting belowright: x down, y down
-  */
+  /* sorting belowright: x down, y down  */
   sort(belowright.begin(), belowright.end(), sortxdownydown); 
     
-  /* sorting belowleft: x down,  y up
-  */
+  /* sorting belowleft: x down,  y up  */
   sort(belowleft.begin(), belowleft.end(), sortxdownyup); 
   
   
@@ -545,8 +606,7 @@ first: testing if point are perpendicular
     
     
     
-   /*constructing the final vector
-   */
+   /* constructing the final vector */
   
      
    aboveleftsize  = aboveleft.size();
@@ -607,8 +667,7 @@ first: testing if point are perpendicular
     
    
    
-  /* put left point at the end of the final vec for testing purposes 
-  */ 
+  /* put left point at the end of the final vec for testing purposes */ 
    
    finalcheckedvec.push_back(leftpoint);
    
@@ -640,7 +699,7 @@ first: testing if point are perpendicular
    firstperpend = true; 
    setfperflag = true;
   
-   // set mlast > mnew as start value;
+   /* set mlast > mnew as start value; */
    mlast = 1;
    mnew = 0;   
    
@@ -670,7 +729,7 @@ first: testing if point are perpendicular
      
      
      
-     // begin sector 2 case
+     /* begin sector 2 case */
       
        
     
@@ -735,11 +794,12 @@ first: testing if point are perpendicular
               mnew = mlast - 1; // just a dummy value
        
              }   
-    }  // end of sectorflag == 2 case
+    }  
+    /* end of sectorflag == 2 case */
       
       
       
-   // begin sector 3 case
+   /* begin sector 3 case */
       
      if (actpoint == rightpoint){
         intermpoint = downpoint;
@@ -786,7 +846,8 @@ first: testing if point are perpendicular
    firstperpend = true; 
    setfperflag = true;
   
-   // set mlast > mnew as start value;
+   /* set mlast > mnew as start value; */
+   
    mlast = 1;
    mnew = 0;   
    
@@ -801,17 +862,20 @@ first: testing if point are perpendicular
       
    firstmflag = true;
    
-   mnew = mlast - 1; // just a dummy value
+   mnew = mlast - 1; 
+   /* just a dummy value */
        
   }
    
        
       
-    } //  end of    sectorflag == 3 case
+    } 
+    
+    /*  end of    sectorflag == 3 case */
       
       
       
-     // begin sector 4 case
+     /* begin sector 4 case */
         
         
         
@@ -871,10 +935,12 @@ first: testing if point are perpendicular
              
              firstmflag = true;
    
-              mnew = mlast - 1; // just a dummy value
+              mnew = mlast - 1; 
+              /* just a dummy value */
        
-             }   //end of sector 4 case
-    
+             }   
+             
+             /* end of sector 4 case */
     
     }
     
@@ -952,7 +1018,8 @@ first: testing if point are perpendicular
                     
                     else {
                         
-                      // mlast ist the first m value  
+                      /* mlast ist the first m value */
+                      
                       mnew = (get<1>(finalcheckedvec[iter+1] ) - 
                               get<1>(actpoint)) / 
                              (get<0>(finalcheckedvec[iter+1]) - 
@@ -1086,7 +1153,8 @@ first: testing if point are perpendicular
                     
                     else {
                         
-                      // mlast ist the first m value  
+                      /* mlast ist the first m value */
+                      
                       if  (get<0>(finalcheckedvec[iter+1]) != 
                            get<0>(actpoint)) {
                           
@@ -1168,7 +1236,8 @@ first: testing if point are perpendicular
        
    
   
-    } //end of switch
+    } 
+    /* end of switch */
     
     
     
@@ -1176,7 +1245,8 @@ first: testing if point are perpendicular
    if  (okflag == false) break; 
    iter++; 
    
-   }//end of while	
+   }
+   /* end of while	*/
    
    
    
@@ -1199,10 +1269,16 @@ first: testing if point are perpendicular
   
      
 
- } //the end of checkme
+ } 
+ 
+ /* the end of checkme */
 
 
-
+/*
+ 
+  4.1   Compare and HasValue 
+  
+*/
  
  
 
@@ -1248,7 +1324,11 @@ size_t Convex::HashValue() const {
 
 
 
-
+/*
+ 
+  5.1 In functions
+  
+*/
 
 Word Convex::In(const ListExpr typeInfo, const ListExpr le1,
                 const int errorPos, ListExpr& errorInfo, bool& correct) {
@@ -1263,8 +1343,7 @@ Word Convex::In(const ListExpr typeInfo, const ListExpr le1,
   
   
   
-   //Word res((void*)0);
-   Word res = SetWord(Address(0));
+    Word res = SetWord(Address(0));
    
    
     if(listutils::isSymbolUndefined(le)){
@@ -1283,9 +1362,7 @@ Word Convex::In(const ListExpr typeInfo, const ListExpr le1,
    if(nl->ListLength(le) <= 2){
      Convex* co = new Convex(false);
      correct = true;
-   //  ErrorReporter::ReportError(
-   //             "You need more than 2 values to define a polygon"); 
-     
+       
       co->SetDefined(false);
       res.addr = co;      
      return res;
@@ -1307,10 +1384,7 @@ Word Convex::In(const ListExpr typeInfo, const ListExpr le1,
       nl->WriteToString(lexprstr, f);
       
       Convex* co = new Convex(false);
-     // ErrorReporter::ReportError(
-     //           "A pair of coordinates consist only of 2 arguments: '" 
-     //           +lexprstr+ "'");
-      
+   
       co->SetDefined(false);
       res.addr = co;      
      return res;
@@ -1328,12 +1402,7 @@ Word Convex::In(const ListExpr typeInfo, const ListExpr le1,
       {
       Convex* co = new Convex(false);
       correct = true;
-     
-    //  nl->WriteToString(lexprstr, f);  
-    //  ErrorReporter::ReportError(
-    //            "Coordinates must bei atoms: '" 
-    //            +lexprstr+ "'");
-     
+        
       co->SetDefined(false);
       res.addr = co;      
       return res;
@@ -1349,12 +1418,7 @@ Word Convex::In(const ListExpr typeInfo, const ListExpr le1,
           
       Convex* co = new Convex(false);
       correct = true;
-     
-    //  nl->WriteToString(lexprstr, f);  
-    //  ErrorReporter::ReportError(
-    //            "Only values of type real are accepted: '" 
-    //            +lexprstr+ "'");
-     
+ 
       co->SetDefined(false);
       res.addr = co;      
       return res;
@@ -1374,12 +1438,13 @@ Word Convex::In(const ListExpr typeInfo, const ListExpr le1,
    
    
        
-   } //end of while
+   } 
+   
+   /* end of while */
    
    
    
-   /*CHECKME Call
-   */
+   /* CHECKME Call  */
    
    checkokflag = checkme(tmpo);
    
@@ -1412,7 +1477,11 @@ Word Convex::In(const ListExpr typeInfo, const ListExpr le1,
 }
    
  
-   
+/*
+ 
+  5.1 Out function
+  
+*/
    
    
 ListExpr Convex::Out(const ListExpr typeInfo, Word value) {
@@ -1452,7 +1521,11 @@ ListExpr Convex::Out(const ListExpr typeInfo, Word value) {
 
 
 
-
+/*
+ 
+  6.1 Open and save function
+  
+*/
 
 
 
@@ -1517,62 +1590,6 @@ bool Convex::Save(SmiRecord& valueRecord, size_t& offset,
 }
 
 
- 
-
-   
-
-
- void Convex::setTo(const std::vector<std::tuple <double, double>>& src){
-      
-      clear();
-      SetDefined(true);
-      if(src.size()>0){
-         size = src.size();
-         value = new Point[size];
-         auto it = src.begin();
-         size_t pos = 0;
-         std::tuple<double, double> temptup;
-         double tempxval;
-         double tempyval;
-         Point poi;
-            
-    
-         
-         
-     /* converting the right tuple vector into point sequence    
-     */   
-      
-         while(it!=src.end()) {
-           
-         temptup = *it;
-         tempxval = std::get<0>(temptup);
-         tempyval = std::get<1>(temptup);
-         
-         poi.Set(true, tempxval, tempyval);
-         value[pos] = poi;          
-              
-           it++;
-           pos++;
-         }
-      }
-   }
-
-   
-        
-   
-std::ostream& Convex::Print( std::ostream& os ) const {
-    if(!IsDefined()){
-       os << "undefined";
-       return os;
-    } 
-    os << "{";
-    for(size_t i=0;i<size;i++){
-      if(i>0) os << ", ";
-      os << value[i]; 
-    }
-    os << "}";
-    return os;
-}
 
 
 
@@ -1602,11 +1619,43 @@ void Convex::Rebuild(char* buffer, size_t sz) {
 
 
 
+/*
+ 
+  7.1 Auxillary print function 
+  
+*/
+
+
+std::ostream& Convex::Print( std::ostream& os ) const {
+    if(!IsDefined()){
+       os << "undefined";
+       return os;
+    } 
+    os << "{";
+    for(size_t i=0;i<size;i++){
+      if(i>0) os << ", ";
+      os << value[i]; 
+    }
+    os << "}";
+    return os;
+}
 
 
 
-  /*Type Mapping Funtions
-  */
+/*
+
+8 Operator Definitions
+
+*/
+
+
+/*
+
+8.1 TypeMapping Definitions
+
+*/
+
+
 
 
 ListExpr createconvextypemap( ListExpr args)
@@ -1638,7 +1687,7 @@ ListExpr createconvextypemap( ListExpr args)
 
 
 
-ListExpr voronoitypemapping ( ListExpr args)
+ListExpr voronoitypemap ( ListExpr args)
 
 {   
     ListExpr extendconv, stream, namenewattr, attrtype;
@@ -1689,7 +1738,7 @@ ListExpr voronoitypemapping ( ListExpr args)
     namenewattr = nl->Third(args);
     
     
-     // copy attrlist to newattrlist
+     /* copy attrlist to newattrlist */
   ListExpr attrList = nl->Second(nl->Second(stream));
   ListExpr newAttrList = nl->OneElemList(nl->First(attrList));
   ListExpr lastlistn = newAttrList;
@@ -1702,7 +1751,7 @@ ListExpr voronoitypemapping ( ListExpr args)
      attrList = nl->Rest(attrList);
   }
 
-  // reset attrList
+  /* reset attrList */
   attrList = nl->Second(nl->Second(stream));
   
   
@@ -1760,10 +1809,15 @@ ListExpr voronoitypemapping ( ListExpr args)
 
 
 
+/*
+
+8.2 ValueMapping Definitions
+
+*/
 
 
-  /* Value Mapping Functions
-  */
+
+
 
 
 int createconvexVM (Word* args, Word& result,
@@ -1800,7 +1854,7 @@ int createconvexVM (Word* args, Word& result,
    
   
         
-   //contructing the vektor of tuples       
+   /* contructing the vektor of tuples */   
    
    
    temp.push_back(std::make_tuple(elem->GetX(), elem->GetY()));
@@ -1841,8 +1895,17 @@ if (checkgood == true) {
 struct voronoiInfo {
  
 
-map<std::tuple<double, double>, Convex> tuple2conv;
-    
+map<std::tuple<double, double>, 
+std::vector<std::tuple<double, double>> > center2vorpoi;
+
+   
+TupleBuffer *rel;
+
+GenericRelationIterator *reliter;
+
+int attrcount;
+
+int pointposition;
 
 };
    
@@ -1855,80 +1918,397 @@ map<std::tuple<double, double>, Convex> tuple2conv;
 
 
     
-int voronoiVM (Word* args, Word& result,
-                   int message, Word& local, Supplier s) 
+int voronoiVM (Word* args, Word& result, int message, Word& local, Supplier s)
 {
-    
-    
-   qp->DeleteResultStorage(s);
-   qp->ReInitResultStorage(s);  
-   result = qp->ResultStorage(s);
-
-
-
-   voronoiInfo*  localInfo = (voronoiInfo*) qp->GetLocal2(s).addr;
-   localInfo = new voronoiInfo;
-   qp->GetLocal2(s).addr = localInfo;        
-    
-   Stream<Tuple> stream(args[0]);
- 
-   stream.open();
- 
+  Word tee;
   
-   /*contructing the vektor of points */   
-   std::vector<VoronoiPoint> voropoints; 
-   int pointpos = ((CcInt*)args[3].addr)->GetIntval();
-
-   Tuple* tup;
-   while ( (tup = stream.request() ) ){
-      Point* pointval = static_cast<Point*>(tup->GetAttribute(pointpos-1));
-      if(pointval->IsDefined()){		       
-        double xval = pointval->GetX(); 
-        double yval = pointval->GetY();
-        voropoints.push_back(VoronoiPoint(xval, yval));
-      }
-      tup->DeleteIfAllowed();     
-   }
-
-   stream.close();
-
- 
-  /*constructing the voronoi diagramm using the boost library */
+  Tuple* tup;
+  
+  
+      
+  voronoiInfo*  localInfo = (voronoiInfo*) qp->GetLocal2(s).addr;
+  
+  std::vector<VoronoiPoint> voropoints; 
+  
   voronoi_diagram<double> vorodiag;
-
-  construct_voronoi(voropoints.begin(), voropoints.end(), &vorodiag);
+   
+  double xval, yval;
   
  
-  /* constructing stream output */    
+  
+  
+  
+switch (message)
+  
+{
+      
+   
+      
+ case OPEN : {
+        
+           
+       localInfo = new voronoiInfo;
+       qp->GetLocal2(s).addr = localInfo;    
+          
+       ListExpr resultType = GetTupleResultType(s);
+       TupleType *tupleType = new TupleType(nl->Second(resultType));
+       local.addr = tupleType;
     
+       ListExpr attrsave = qp->GetType(qp->GetSon(s,0));
+       ListExpr attrsave2 = nl->Second(nl->Second(attrsave));
+       
+             
+       int counter = 0; 
+       int counttup = 0;
+             
+       localInfo->reliter = 0;
+       
+       int pointpos = ((CcInt*)args[3].addr)->GetIntval();       
+        
+       std::tuple<double, double> center;
+       std::vector<std::tuple<double, double>> voropoi;
+       
+   
+       
+   /* storing pointpos in localInfo */
+   
+   localInfo->pointposition = pointpos;
+   
+       
+  while (!(nl->IsEmpty(attrsave2)))
+     {
+     
+     attrsave2 = nl->Rest(attrsave2);
+     
+     /* counting the attributes*/ 
+     counter++;
+     }
+     
+     /*Init localInfo */
+     localInfo->attrcount = counter;     
+     
+           
     
-  return 0;    
-}    
-    
+     qp->Open(args[0].addr);
+     qp->Request(args[0].addr, tee);
+     
+
+     
+     if(qp->Received(args[0].addr))
+      {
+        localInfo->rel = new TupleBuffer( );
+      }
+      else
+      {
+        localInfo->rel = 0;
+      }
+      
+      
+   while(qp->Received(args[0].addr))
+      { 
  
- 
- 
- 
-    
+        /* storing tuples in localInfo*/
+        Tuple *tup2 = (Tuple*)tee.addr;
+        localInfo->rel->AppendTuple( tup2 );
+        
+        counttup++;
+        
+        /*Setting up the VoroPoint vector */
+     Point* pointval = static_cast<Point*>(tup2->GetAttribute(pointpos-1));
+        
+     if(pointval->IsDefined()) {
+         
+        xval = pointval->GetX(); 
+        yval = pointval->GetY();
+        voropoints.push_back(VoronoiPoint(xval, yval));
+        
+        
+       }
+        
+        tup2->DeleteIfAllowed();
+        qp->Request(args[0].addr, tee);
+      }
 
     
+        
+  
+     if( localInfo->rel)
+      {
+        localInfo->reliter = localInfo->rel->MakeScan();
+      }
+      else
+      {
+        localInfo->reliter = 0;
+      }
+       
+       
+       
+     /*constructing the voronoi diagramm using the boost library */
+     construct_voronoi(voropoints.begin(), voropoints.end(), &vorodiag);
+     
+     
+  
+    unsigned int cell_index = 0;
+    for (voronoi_diagram<double>::const_cell_iterator it =
+         vorodiag.cells().begin();
+         it != vorodiag.cells().end(); ++it) {
+      if (it->contains_point()) {
+        if (it->source_category() ==
+            boost::polygon::SOURCE_CATEGORY_SINGLE_POINT) {
+          std::size_t index = it->source_index();
+          VoronoiPoint p = voropoints[index];
+
+        
+          center =  std::make_tuple(x(p), y(p));
+        
+                   const voronoi_diagram<double>::cell_type& cell = *it;
+          const voronoi_diagram<double>::edge_type* edge = cell.incident_edge();
+
+
+    //  iterate edges around Voronoi cell.
+
+
+  do {
+      if (true) {
+
+      
+      
+
+      if( (edge->vertex0() != NULL) && 
+          (edge->vertex1() != NULL))  {
+        
+       voropoi.push_back(std::make_tuple((edge->vertex0())->x(),
+                                         (edge->vertex0())->y()));
+       voropoi.push_back(std::make_tuple((edge->vertex1())->x(),
+                                         (edge->vertex1())->y()));
+ 
+      }
+
+
+      if( (edge->vertex0() != NULL) && 
+          (edge->vertex1() == NULL))  {
+       
+       voropoi.push_back(std::make_tuple((edge->vertex0())->x(), 
+                                         (edge->vertex0())->y()));
+   
+       }
+
+ 
+      if( (edge->vertex1() != NULL) && 
+          (edge->vertex0() == NULL))  {
+
+        voropoi.push_back(std::make_tuple((edge->vertex1())->x(), 
+                                          (edge->vertex1())->y()));
+               
+       }
+
+
+      
+
+          }
+      edge = edge->next();
+
+
+    } while (edge != cell.incident_edge());
+
+
+
+    }
+
+
+
+      ++cell_index;
+    }
+    
+   localInfo->center2vorpoi.insert
+   (pair<std::tuple<double, double>,  std::vector<std::tuple<double, double>>>
+   (center, voropoi));
+ 
+   
+     voropoi.clear();    
+     
+    }
+  
+      return 0;
+      
+    }
+    
+   
+  
+   
+ case REQUEST: {
+  
+   TupleType *tupleType = (TupleType*)local.addr;
+   Tuple *newTuple = new Tuple( tupleType );
+   
+   map<std::tuple<double, double>,  std::vector<std::tuple<double, double>>>::
+   iterator iter=localInfo->center2vorpoi.begin();   
+   
+   int maxattrpos = 0;
+   std::vector<std::tuple<double, double>> tmpo;
+   std::vector<std::tuple<double, double>> dummy;
+   
+   bool checkokflag;
+   
+   double xv, yv;
+   
+   int pointposit = localInfo->pointposition;
+
+   std::tuple<double, double> search;
+   
+    /*calculate max attribute position*/            
+    maxattrpos = localInfo->attrcount - 1;
+    
+    Convex* conv2;
+       
+    
+        
+   
+  if ((tup = localInfo->reliter->GetNextTuple()) != 0 ) {
+     
+   Point* pointval = static_cast<Point*>(tup->GetAttribute(pointposit-1));
+        
+     if(pointval->IsDefined()) {
+         
+        xv = pointval->GetX(); 
+        yv = pointval->GetY();
+     }
+     
+     
+              
+     search =  std::make_tuple(xv, yv);
+     
+     iter = localInfo->center2vorpoi.find(search);
+         
+  
+   
+   if (iter !=localInfo->center2vorpoi.end())   {
+       
+       
+        
+   /* setting up the new tuple*/
+   
+   tmpo = localInfo->center2vorpoi.at(search);   
+   
+   checkokflag = checkme(tmpo);
+   
+   if (checkokflag == true) {
+    
+   Convex* conv = new Convex(tmpo);
+   
+   conv2 = conv;
+   
+      
+   }
+   
+  else { 
+      
+      
+     Convex* conv = new Convex(false);
+     conv2 = conv;
+     
+  }
+   
+   
+   
+   for( int i = 0; i < tup->GetNoAttributes(); i++ ) {
+   
+        newTuple->CopyAttribute( i, tup, i );
+       }
+        
+    
+   newTuple->PutAttribute(maxattrpos+1, conv2);        
+  
+   result = SetWord(newTuple);
+   
+  
+   
+   return YIELD;
+   
+   }
+   
+   else { // not possible
+       
+       
+         
+   Convex* conv2 = new Convex(false);
+   
+   
+   for( int i = 0; i < tup->GetNoAttributes(); i++ ) {
+   
+        newTuple->CopyAttribute( i, tup, i );
+       }
+        
+    
+    newTuple->PutAttribute(maxattrpos+1, conv2);        
+  
+    result = SetWord(newTuple);       
+       
+   return YIELD;
+   
+   }
+   
+   
+   return YIELD; //never happens
+    
+   }
+   
+   else return CANCEL; 
+   
+   return 0;
+ }
     
     
     
+ case CLOSE : {
     
     
+    if(localInfo){
+        if( localInfo->reliter != 0 )
+          delete localInfo->reliter;
+        
+         if( localInfo->rel )  {
+          localInfo->rel->Clear();
+          delete localInfo->rel;
+           }
+        delete localInfo;
+         qp->GetLocal2(s).addr=0;
+      }
+        
+      qp->Close(args[0].addr);
+      
+      if (local.addr)
+      {
+        ((TupleType*)local.addr)->DeleteIfAllowed();
+        local.setAddr(0);
+      
+      }
+     
+ return 0;    
+ }
+ 
+ 
+
+      
+ } 
+ 
+ return 0;
+}
+  
+    
+ 
+ 
     
     
-    
-    
-    
-    
-    
-    
-    
+/*
+
+8.3 Specifications
+
+*/
+
+
     
 
-  //Specification for createconvex
 
 
 const string createconvexSpec  =
@@ -1952,33 +2332,36 @@ const string createconvexSpec  =
     
  const string voronoiSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-    "( <text>((stream (tuple (..., (ak1 point),...))) x ak1 x ak2 "
-    "-> (stream (tuple (..., (ak1 point),..., (ak2 convex))))) "
+    "( <text>((stream (tuple (..., (ak1 Tk1),...))) x ak1 x ak2 "
+    "-> (stream (tuple (..., (ak1 Tk1),..., (ak2 Tk2))))) "
     "<text>__ voronoi [ list ] </text--->"
     "<text>Expands each tuple of the relation with a convex polygon "
     " representing the voronoi cell that belongs to the "
     "centerpoint specified "    
-    " with point value of the attribute ak1.  The complete voronoi "
+    " with point value Tk1 of the attribute ak1.  The complete voronoi "
     " diagramm is set up with "
     " all points of ak1 from all tuples, in other words with "
     "all points of the "
-    " ak1 column of the relation </text--->"    
+    " ak1 column of the relation. "
+    "The value of ak2 ist the type convex forming a convex polygon "
+    "representing the voronoi region "
+    "that is corresponding to the point value of ak1 </text--->"    
     "<text> query testrel feed voronoi [p, conv ] </text--->" 
     ") )";
     
     
+/*
+ 
+10 Registration an initialization
+
+*/   
     
     
+/*
+ 
+10.1 Registration of Types
 
-    
-    
-    
-
-
-
-
-
-  //Registration of Types
+*/
 
 
 
@@ -1993,7 +2376,11 @@ TypeConstructor ConvexTC(
 
 
 
-  //Registration of operators
+/*
+  
+10.2 Operator instances
+
+*/
 
 Operator createconvex ( "createconvex",
                    createconvexSpec,
@@ -2003,21 +2390,30 @@ Operator createconvex ( "createconvex",
          
 
 
-
+Operator voronoi  ( "voronoi",
+                   voronoiSpec,
+                   voronoiVM,
+                   Operator::SimpleSelect,
+                   voronoitypemap );
+         
 
 
 
 
   
-  //Implementation of the Algebra Class
+/*
+  
+10.3 Creating the Algebra 
 
-class ConvexAlgebra : public Algebra
+*/
+
+class ConvexAlgebra : public Algebra 
 {
  public:
   ConvexAlgebra() : Algebra()
    
 
-   //Registration of Types
+  /* Registration of Types */
 
   
   
@@ -2028,9 +2424,10 @@ class ConvexAlgebra : public Algebra
     ConvexTC.AssociateKind(Kind::DATA() );   
    
 
-  // Registration of operators
+  /* Registration of operators */
  
     AddOperator( &createconvex);
+    AddOperator( &voronoi);
   
  
     
@@ -2041,13 +2438,17 @@ class ConvexAlgebra : public Algebra
 
 
     
-} //end of namespace
+} 
+ /* end of namespace */
 
 
-  //Initialization 
 
 
+/*
+  
+10.4 Initialization
 
+*/ 
 
 extern "C"
 Algebra*
