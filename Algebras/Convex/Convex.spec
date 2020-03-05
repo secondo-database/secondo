@@ -19,3 +19,4 @@
 
 
 operator createconvex alias CREATECONVEX  pattern  _ op
+operator voronoi alias VORONOI pattern _op[ _, _]
