@@ -4867,7 +4867,11 @@ void MPoint::SquaredDistance( const MPoint& p, MReal& result,
   result.EndBulkLoad();
 }
 
-double MPoint::DistanceStartEnd(const MPoint& p, const Geoid* geoid) const {
+double MPoint::DistanceStartEnd(const MPoint& p, const int geoDistFun,
+                                const Geoid* geoid /* = 0 */) const {
+  if (geoDistFun < 0 || geoDistFun > 2) {
+    return -1.0;
+  }
   if (!IsDefined() && !p.IsDefined()) {
     return 0.0;
   }
@@ -4884,17 +4888,29 @@ double MPoint::DistanceStartEnd(const MPoint& p, const Geoid* geoid) const {
     return std::numeric_limits<double>::max();
   }
   UPoint u1(true), u2(true);
-  Get(0, u1);
-  p.Get(0, u2);
-  double startdist = u1.p0.Distance(u2.p0, geoid);
-  if (GetNoComponents() > 1) {
+  if (geoDistFun == 2) {
+    Get(0, u1);
+    p.Get(0, u2);
+    double startdist = u1.p0.Distance(u2.p0, geoid);
+    if (GetNoComponents() > 1) {
+      Get(GetNoComponents() - 1, u1);
+    }
+    if (p.GetNoComponents() > 1) {
+      p.Get(p.GetNoComponents() - 1, u2);
+    }
+    double enddist = u1.p1.Distance(u2.p1, geoid);
+    return (startdist + enddist) / 2;
+  }
+  if (geoDistFun == 0) {
+    Get(0, u1);
+    p.Get(0, u2);
+    return u1.p0.Distance(u2.p0, geoid);
+  }
+  else {
     Get(GetNoComponents() - 1, u1);
-  }
-  if (p.GetNoComponents() > 1) {
     p.Get(p.GetNoComponents() - 1, u2);
+    return u1.p1.Distance(u2.p1, geoid);
   }
-  double enddist = u1.p1.Distance(u2.p1, geoid);
-  return (startdist + enddist) / 2;
 }
 
 void MPoint::getPointSequence(std::vector<Point>& result) const {

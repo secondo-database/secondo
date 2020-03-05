@@ -4232,7 +4232,8 @@ This operator returns a copy of the mpoint's restriction to a given region
 Invoked by operator ~hybriddistance~ for a simplified distance computation.
 
 */
-    double DistanceStartEnd(const MPoint& p, const Geoid* geoid = 0) const;
+    double DistanceStartEnd(const MPoint& p, const int geoDistFun,
+                            const Geoid* geoid = 0) const;
 
 /*
 3.10.5.11 ~frechetDistance~ operator (TemporalLiftedAlgebra)
