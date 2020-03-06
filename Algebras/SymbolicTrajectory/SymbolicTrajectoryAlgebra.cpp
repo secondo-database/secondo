@@ -1549,10 +1549,11 @@ int hybriddistanceVM(Word* args, Word& result, int message, Word& local,
     double symdist = sym1->Distance(*sym2, hdp.distFun, hdp.labelFun);
     if (symdist <= hdp.threshold) {
       double geodist = -1.0;
-      if (hdp.geoDistFun == GEO_FIRST_LAST) { // TODO: extend to switch - case
-        geodist = mp1->DistanceStartEnd(*mp2, hdp.geoid) / hdp.scaleFactor;
+      if (hdp.geoDistFun >= 0 && hdp.geoDistFun < 3) {
+        geodist = mp1->DistanceStartEnd(*mp2, hdp.geoDistFun, hdp.geoid) 
+                  / hdp.scaleFactor;
       }
-      else {
+      else if (hdp.geoDistFun == 3) {
         geodist = mp1->FrechetDistance(mp2, hdp.geoid) / hdp.scaleFactor;
       }
       if (geodist < 0.0) { // error case
