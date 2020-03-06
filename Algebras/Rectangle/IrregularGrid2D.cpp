@@ -26,6 +26,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 
 #include "IrregularGrid2D.h"
+#include "Algebras/Relation-C++/RelationAlgebra.h"
 #include <map>
 #include <iterator>
 
@@ -124,6 +125,32 @@ IrregularGrid2D::Set(Stream<Rectangle<2>> rStream,
   createIrgrid2D(rStream);
 }
 
+std::vector<CellInfo*>
+IrregularGrid2D::getCellInfoVector(IrregularGrid2D *in_irgrid2d) {
+  std::vector<CellInfo*> cell_info_vect {};
+
+  std::vector<VCell>* col = &in_irgrid2d->getColumnVector();
+  for(size_t colIdx = 0; colIdx < col->size(); colIdx++) {
+    VCell* vcell = &col->at(colIdx);
+    double vf = vcell->getValFrom();
+    double vt = vcell->getValTo();
+
+    std::vector<HCell>* row_vect = &vcell->getRow();
+
+    for(size_t cellIdx = 0; cellIdx < row_vect->size(); cellIdx++) {
+      HCell* cell = &row_vect->at(cellIdx);
+      int cid = cell->getCellId();
+      double hf = cell->getValFrom();
+      double ht = cell->getValTo();
+
+      CellInfo* ci = new CellInfo(cid, hf, ht, vf, vt);
+      cell_info_vect.push_back(ci);
+    }
+  }
+
+  return cell_info_vect;
+}
+
 void
 IrregularGrid2D::createIrgrid2D(Stream<Rectangle<2>> rStream) {
   // sort input points by y-coordinates
@@ -172,7 +199,7 @@ IrregularGrid2D::buildGrid() {
       hcell_id++;
 
       // will be determined later
-      hcell.upper = nullptr; 
+      hcell.upper = nullptr;
 
       vcell.getRow().push_back(hcell);
 
@@ -182,7 +209,8 @@ IrregularGrid2D::buildGrid() {
 
   // adjust boundaries by point distribution
   int nbrOfPoints = points.size();
-  int pointsPerRow = ceil(nbrOfPoints / rowCount);
+  //int pointsPerRow = ceil(nbrOfPoints / rowCount);
+  int pointsPerRow = round(nbrOfPoints / rowCount);
 
   std::vector<RPoint> tmp_row_points {};
 
@@ -214,11 +242,12 @@ IrregularGrid2D::buildGrid() {
         point_counter = 0;
 
         // adjust x-boundaries
-        std::sort(tmp_row_points.begin(), tmp_row_points.end(), 
+        std::sort(tmp_row_points.begin(), tmp_row_points.end(),
           pointComparisonX);
 
         std::vector<HCell> c_row =  columnVector[colIdx].getRow();
-        int pointsPerCell = ceil(tmp_row_points.size() / cellCount);
+        //int pointsPerCell = ceil(tmp_row_points.size() / cellCount);
+        int pointsPerCell = round(tmp_row_points.size() / cellCount);
 
         int tmpPointIdx = 0;
 
@@ -231,17 +260,17 @@ IrregularGrid2D::buildGrid() {
             RPoint rp_t = tmp_row_points[tmp_rp_idx];
             point_counter ++;
 
-            if((point_counter == pointsPerCell) 
-              || (tmp_rp_idx == tmp_row_points.size()-1) 
+            if((point_counter == pointsPerCell)
+              || (tmp_rp_idx == tmp_row_points.size()-1)
               || (h == cellCount-1)) {
-              
+
               if (h > 0) {
                 hcel_vec_ptr->at(h).setValFrom(
                   hcel_vec_ptr->at(h-1).getValTo());
               }
 
               double new_val_to_x;
-              if ((tmp_rp_idx == tmp_row_points.size()-1)  
+              if ((tmp_rp_idx == tmp_row_points.size()-1)
                   || (h == cellCount-1)) {
                 new_val_to_x = bb_right;
               } else {
@@ -263,7 +292,7 @@ IrregularGrid2D::buildGrid() {
         point_counter = 0;
 
         // one row up
-        break; 
+        break;
       }
     }
   }
@@ -295,7 +324,7 @@ IrregularGrid2D::buildGrid() {
             pointToCellIdx ++;
             next_upper_cell_ptr = &row_upper->at(pointToCellIdx);
             lower_cell_ptr->setUpper(next_upper_cell_ptr);
-          } while (lower_cell_ptr->getValFrom() 
+          } while (lower_cell_ptr->getValFrom()
               >= next_upper_cell_ptr->getValTo());
         }
       }
@@ -308,16 +337,27 @@ pointComparisonY(RPoint p1, RPoint p2) {
   return p1.y < p2.y;
 }
 
+RPoint
+getRectangleCentre(Rectangle<2>* r) {
+  double a = (r->getMaxY() - r->getMinY()) / (double)2;
+  double b = (r->getMaxX() - r->getMinX()) / (double)2;
+
+  RPoint r_c { (r->getMinX())+b, (r->getMinY())+a };
+
+  return r_c;
+}
+
 void
 IrregularGrid2D::processInput(Stream<Rectangle<2>> rStream) {
   rStream.open();
   Rectangle<2>* next = rStream.request();
 
   while(next != 0){
-    RPoint p_b { next->getMinX(), next->getMinY() };
-    RPoint p_t { next->getMaxX(), next->getMaxY() };
-    points.push_back(p_b);
-    points.push_back(p_t);
+    //RPoint p_b { next->getMinX(), next->getMinY() };
+    //RPoint p_t { next->getMaxX(), next->getMaxY() };
+    //points.push_back(p_b);
+    //points.push_back(p_t);
+    points.push_back(getRectangleCentre(next));
     next = rStream.request();
   }
   rStream.close();
@@ -424,14 +464,14 @@ IrregularGrid2D::OutIrGrid2D( ListExpr typeInfo, Word value ) {
                   nl->FourElemList(nl->RealAtom(row_cell->getValFrom()),
                   nl->RealAtom(row_cell->getValTo()),
                   nl->IntAtom(row_cell->getCellId()),
-                  nl->IntAtom((row_cell->getUpper() != nullptr 
+                  nl->IntAtom((row_cell->getUpper() != nullptr
                     ? row_cell->getUpper()->getCellId() : -1))));
             } else {
               cellLstExpr = nl->OneElemList(nl->FourElemList
                   (nl->RealAtom(row_cell->getValFrom()),
                   nl->RealAtom(row_cell->getValTo()),
                   nl->IntAtom(row_cell->getCellId()),
-                  nl->IntAtom((row_cell->getUpper() != nullptr 
+                  nl->IntAtom((row_cell->getUpper() != nullptr
                     ? row_cell->getUpper()->getCellId() : -1))));
               lastCellLstExpr = cellLstExpr;
             }
@@ -512,7 +552,7 @@ IrregularGrid2D::InIrGrid2D( const ListExpr typeInfo, const ListExpr instance,
         ListExpr lstElem = nl->First(rowLstExpr);
 
         if ((nl->ListLength(lstElem)) == 2
-            && (nl->IsAtom(nl->First(lstElem)) 
+            && (nl->IsAtom(nl->First(lstElem))
             && nl->IsAtom(nl->Second(lstElem))) ) {
           // a two-element double list initiates a new row
           row_cnt ++;
@@ -520,7 +560,7 @@ IrregularGrid2D::InIrGrid2D( const ListExpr typeInfo, const ListExpr instance,
           ListExpr fLst = nl->First(lstElem);
           ListExpr tLst = nl->Second(lstElem);
 
-          if ( nl->AtomType(fLst) == RealType 
+          if ( nl->AtomType(fLst) == RealType
                 && nl->AtomType(tLst) == RealType) {
             vc = VCell();
 
@@ -653,4 +693,140 @@ int
 IrregularGrid2D::SizeOfIrGrid2D()
 {
   return sizeof(IrregularGrid2D);
+}
+
+/*
+Type mapping function ~IrGrid2dFeedTypeMap~
+
+It is used for the ~feed~ operator.
+
+*/
+ListExpr
+IrregularGrid2D::IrGrid2dFeedTypeMap( ListExpr args )
+{
+  if(nl->HasLength(args, 1)) {
+
+    ListExpr first = nl->First(args);
+    if (IrregularGrid2D::checkType(first)) {
+      ListExpr resAttrList = nl->TwoElemList(
+          nl->TwoElemList(
+            nl->SymbolAtom("Id"),
+            nl->SymbolAtom(CcInt::BasicType())),
+          nl->TwoElemList(
+            nl->SymbolAtom("Cell"),
+            nl->SymbolAtom(Rectangle<2>::BasicType())));
+
+      return nl->TwoElemList(listutils::basicSymbol<Stream<Tuple>>(),
+        nl->TwoElemList(
+          listutils::basicSymbol<Tuple>(),
+          resAttrList));
+
+      }
+  }
+
+  const std::string errMsg = "The following argument is expected:"
+      " irgrid2d";
+
+  return  listutils::typeError(errMsg);
+}
+
+// for value mapping function of ~feed~ operator
+struct IrGridTupleInfo
+{
+  std::vector<CellInfo*> cell_info_vect;
+  unsigned int currentTupleIdx;
+  ListExpr numTupleTypeList;
+
+  void init(IrregularGrid2D *irgrid2d_in) {
+    currentTupleIdx = 0;
+    cell_info_vect = IrregularGrid2D::getCellInfoVector(irgrid2d_in);
+
+    ListExpr tupleTypeLst = nl->TwoElemList(
+      nl->SymbolAtom(Tuple::BasicType()),
+      nl->TwoElemList(
+        nl->TwoElemList(
+          nl->SymbolAtom("Id"),
+          nl->SymbolAtom(CcInt::BasicType())),
+        nl->TwoElemList(
+          nl->SymbolAtom("Cell"),
+          nl->SymbolAtom(Rectangle<2>::BasicType()))));
+
+    SecondoCatalog* sc = SecondoSystem::GetCatalog();
+    numTupleTypeList = sc->NumericType(tupleTypeLst);
+  }
+
+  TupleType* getTupleType() {
+    TupleType *tupleType = new TupleType(numTupleTypeList);
+
+    return tupleType;
+  }
+
+  Tuple* getNext(TupleType *ttype) {
+    if (currentTupleIdx < cell_info_vect.size()) {
+      CellInfo * cell_info = cell_info_vect.at(currentTupleIdx);
+      int tp_p1 = cell_info->cellId;
+      Rectangle<2> tp_p2 = *cell_info->cell;
+
+      Tuple *tuple = new Tuple(ttype);
+      tuple->PutAttribute(0, new CcInt(true, tp_p1));
+      tuple->PutAttribute(1, new Rectangle<2> (tp_p2));
+
+      currentTupleIdx++;
+      return tuple;
+    } else {
+      return nullptr;
+    }
+  }
+};
+
+/*
+Value mapping function of operator ~feed~
+
+*/
+int
+IrregularGrid2D::IrGrid2dValueMapFeed( Word* args, Word& result, int message,
+                        Word& local, Supplier s ) {
+  IrregularGrid2D *input_irgrid2d_ptr =
+    static_cast<IrregularGrid2D*>( args[0].addr );
+
+  IrGridTupleInfo* tp_info = static_cast<IrGridTupleInfo*>(local.addr);
+  TupleType* tupleType = nullptr;
+  Tuple* tuple = nullptr;
+
+  switch (message) {
+    case OPEN: {
+      tp_info = new IrGridTupleInfo();
+      tp_info->init(input_irgrid2d_ptr);
+      local.addr = tp_info;
+
+      return 0;
+    }
+    case REQUEST: {
+      if (local.addr) {
+        tp_info = ((IrGridTupleInfo*)local.addr);
+        tupleType = tp_info->getTupleType();
+      } else {
+        return CANCEL;
+      }
+      // get next tuple
+      tuple = tp_info->getNext(tupleType);
+      if (tuple != nullptr) {
+          result.addr = tuple;
+          return YIELD;
+      } else {
+        result.addr = 0;
+        return CANCEL;
+      }
+    }
+    case CLOSE: {
+      if (local.addr) {
+        tp_info = ((IrGridTupleInfo*)local.addr);
+        delete tp_info;
+        local.addr = 0;
+      }
+      return 0;
+    }
+  }
+
+  return -1;
 }

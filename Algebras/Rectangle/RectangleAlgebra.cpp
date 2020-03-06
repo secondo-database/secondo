@@ -186,8 +186,6 @@ double geoDistance(const Rectangle<2>& r1, const Rectangle<2>& r2,
      return -1;
 }
 
-
-
 namespace rectangle{
 
 /*
@@ -1380,12 +1378,12 @@ GridCell2Rect_TM( ListExpr args )
 }
 
 /*
-4.1.22 Type mapping function ~IrGrid2dTypeMap~
+4.1.22 Type mapping function ~IrGrid2dCreateTypeMap~
 
 It is used for the ~create\_irgrid2d~ operator.
 
 */
-ListExpr IrGrid2dTypeMap( ListExpr args )
+ListExpr IrGrid2dCreateTypeMap( ListExpr args )
 {
   if(nl->HasLength(args, 4)) {
     ListExpr first = nl->First(args);
@@ -1393,8 +1391,8 @@ ListExpr IrGrid2dTypeMap( ListExpr args )
     ListExpr third = nl->Third(args);
     ListExpr fourth = nl->Fourth(args);
 
-    if (Stream<Rectangle<2>>::checkType(first) 
-      && Rectangle<2>::checkType(second) 
+    if (Stream<Rectangle<2>>::checkType(first)
+      && Rectangle<2>::checkType(second)
       && CcInt::checkType(third)
       && CcInt::checkType(fourth)) {
 
@@ -1407,7 +1405,6 @@ ListExpr IrGrid2dTypeMap( ListExpr args )
 
   return  listutils::typeError(errMsg);
 }
-
 
 //4.1.22 Type mapping for operator ~toprightreport~
 
@@ -1656,12 +1653,12 @@ int RectangleMinMaxDSelect( ListExpr args )
 
 /*
 
-4.3.4 Selection function ~IrGrid2dSelect~
+4.3.4 Selection function ~IrGrid2dCreateSelect~
 
 Is used for the ~create\_irgrid2d~ operator.
 
 */
-int IrGrid2dSelect( ListExpr args )
+int IrGrid2dCreateSelect( ListExpr args )
 {
   ListExpr first = nl->First(args);
   ListExpr second = nl->Second(args);
@@ -1674,6 +1671,25 @@ int IrGrid2dSelect( ListExpr args )
       return 0;
   }
 
+  return -1; // should never occur
+}
+
+/*
+
+4.3.5 Selection function ~IrGrid2dFeedSelect~
+
+Is used for the ~feed~ operator.
+
+*/
+int IrGrid2dFeedSelect( ListExpr args )
+{
+  if (nl->ListLength(args) == 1) {
+    ListExpr first = nl->First(args);
+
+    if (IrregularGrid2D::checkType(first)) {
+        return 0;
+    }
+  }
   return -1; // should never occur
 }
 
@@ -2847,7 +2863,7 @@ int gridcell2rect_vm(Word* args, Word& result,
 4.4.15 Value mapping functions of operator ~create\_irgrid2d~
 
 */
-int IrGrid2dValueMap( Word* args, Word& result, int message,
+int IrGrid2dValueMapCreate( Word* args, Word& result, int message,
                         Word& local, Supplier s ) {
   Stream<Rectangle<2>> input_rect_ptr(args[0]);
   Rectangle<2> *bbox_ptr = static_cast<Rectangle<2>*>( args[1].addr );
@@ -3038,7 +3054,8 @@ ValueMapping GridCell2Rect_VM[] = {
   gridcell2rect_vm<3>
 };
 
-ValueMapping irgdrid2dcreatemap[] = { IrGrid2dValueMap };
+ValueMapping irgdrid2dCreateMap[] = { IrGrid2dValueMapCreate };
+ValueMapping irgdrid2dFeedMap[] = { IrregularGrid2D::IrGrid2dValueMapFeed };
 
 /*
 4.5.2 Definition of specification strings
@@ -3312,6 +3329,15 @@ const string createIrGrid2dSpec  =
         "from the given parameters.</text--->"
         ") )";
 
+const string feedIrGrid2dSpec  =
+        "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" \"Remarks\")"
+        "( <text>irgrid2d -> stream(tuple(Id : int , Cell : rect)) "
+        "</text--->"
+        "<text>_ feed</text--->"
+        "<text>creates a tuple stream "
+        "from irgrid2d.</text--->"
+        ") )";
+
 
 
 
@@ -3499,9 +3525,16 @@ Operator rectanglebboxintersects( "bboxintersects",
 Operator createirgrid2d( "create_irgrid2d",
     createIrGrid2dSpec,
     1,
-    irgdrid2dcreatemap,
-    IrGrid2dSelect,
-    IrGrid2dTypeMap );
+    irgdrid2dCreateMap,
+    IrGrid2dCreateSelect,
+    IrGrid2dCreateTypeMap );
+
+Operator feedirgrid2d( "feed",
+    feedIrGrid2dSpec,
+    1,
+    irgdrid2dFeedMap,
+    IrGrid2dFeedSelect,
+    IrregularGrid2D::IrGrid2dFeedTypeMap );
 
 struct cellnumber_Info : OperatorInfo {
 
@@ -4180,6 +4213,7 @@ class RectangleAlgebra : public Algebra
     AddOperator( &scalerect);
     AddOperator( &rectanglebboxintersects );
     AddOperator( &createirgrid2d );
+    AddOperator( &feedirgrid2d );
     AddOperator(cellnumber_Info(), cellNumberVM, cellNumberTM);
     AddOperator(gridintersects_Info(), gridIntersectsVM, gridIntersectsTM);
     AddOperator( &gridcell2rect);

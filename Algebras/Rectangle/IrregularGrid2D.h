@@ -86,6 +86,25 @@ struct RPoint {
   double y;
 };
 
+// Represents a row cell as rectangle
+struct CellInfo {
+  int cellId;
+  Rectangle<2>* cell;
+
+  CellInfo (int c_id, double left, double right,
+    double bottom, double top) {
+    cellId = c_id;
+
+    double min[2], max[2];
+    min[0] = left;
+    min[1] = bottom;
+    max[0] = right;
+    max[1] = top;
+
+    cell = new Rectangle<2>(true, min, max);
+  }
+};
+
 class IrregularGrid2D {
   public:
     // Do not use the standard constructor
@@ -105,7 +124,14 @@ class IrregularGrid2D {
     // Auxiliary functions for In or/and Value mapping functions
     void Set(Stream<Rectangle<2>> rStream, Rectangle<2> &bounding_box,
         int rowCount, int cellCount);
+    static std::vector<CellInfo*> getCellInfoVector(
+      IrregularGrid2D *in_irgrid2d);
     void setColumnVector(std::vector<VCell> column_vect);
+
+    // operator relevant functions
+    static ListExpr IrGrid2dFeedTypeMap( ListExpr args );
+    static int IrGrid2dValueMapFeed( Word* args, Word& result, int message,
+      Word& local, Supplier s );
 
     // Algebra supporting functions
 
