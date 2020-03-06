@@ -209,8 +209,8 @@ IrregularGrid2D::buildGrid() {
 
   // adjust boundaries by point distribution
   int nbrOfPoints = points.size();
-  //int pointsPerRow = ceil(nbrOfPoints / rowCount);
-  int pointsPerRow = round(nbrOfPoints / rowCount);
+  int pointsPerRow = ceil(nbrOfPoints / rowCount);
+  //int pointsPerRow = round(nbrOfPoints / rowCount);
 
   std::vector<RPoint> tmp_row_points {};
 
@@ -246,8 +246,8 @@ IrregularGrid2D::buildGrid() {
           pointComparisonX);
 
         std::vector<HCell> c_row =  columnVector[colIdx].getRow();
-        //int pointsPerCell = ceil(tmp_row_points.size() / cellCount);
-        int pointsPerCell = round(tmp_row_points.size() / cellCount);
+        int pointsPerCell = ceil(tmp_row_points.size() / cellCount);
+        //int pointsPerCell = round(tmp_row_points.size() / cellCount);
 
         int tmpPointIdx = 0;
 
