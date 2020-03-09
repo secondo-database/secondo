@@ -396,7 +396,7 @@ The size is extracted from the mapping.
 
 
 /*
-3.14 Some setters
+3.14 Some setters and getters
 
 */
 

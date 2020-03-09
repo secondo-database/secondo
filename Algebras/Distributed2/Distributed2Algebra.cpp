@@ -18505,9 +18505,11 @@ class slotGetter{
     slotGetter(int _myNumber, string& _sname, string& _tname,
                int _size, 
                const vector<ConnectionInfo*>& _workers, int _port,
+               DFArray *resultArray,
                string _constrel ):
        myNumber(_myNumber), sname(_sname), tname(_tname),
-       size(_size), workers(_workers), port(_port), constrel(_constrel){
+       size(_size), workers(_workers), port(_port), 
+       resArray(resultArray), constrel(_constrel){
       
        runner = new boost::thread(&slotGetter::run, this);
      }
@@ -18527,6 +18529,7 @@ class slotGetter{
      int   size;     // size of the array
      const vector<ConnectionInfo*>& workers; // all workers
      int port; // where listen the transferators
+     DFArray* resArray;
      boost::thread* runner;
      string constrel;
 
@@ -18575,7 +18578,7 @@ class slotGetter{
 
        // get all slots managed by worker with mynumber  from all workers
        for(size_t w=0;w<workers.size();w++){
-          getFilesFromWorker(w, dir, ci);
+          getFilesFromWorker(w, dir, ci, resArray);
        } 
 
 #ifdef DPROGRESS      
@@ -18593,11 +18596,12 @@ class slotGetter{
                            workers[myNumber]->getNum(),
                            "part_2")); 
 #endif
-       int slot = myNumber;
-       while(slot < size){
-          createSlot(slot, dir,tdir, ci);
-          slot += workers.size(); 
-       }
+       for(size_t slot=0;slot<resArray->getSize(); slot++){
+          int wfs = resArray->getWorkerIndexForSlot(slot);
+          if(wfs == myNumber){
+             createSlot(slot, dir,tdir, ci);
+          }
+       } 
 
        cmd = "query  removeDirectory('"+dir+"', TRUE)";
        ci->simpleCommand(cmd, err, errMsg, res, false, runtime,
@@ -18628,7 +18632,8 @@ class slotGetter{
 
 
      void getFilesFromWorker(size_t worker, const string& myDir, 
-                             ConnectionInfo* ci){
+                             ConnectionInfo* ci,
+                             DFArray* resArray){
 
            
          int err;
@@ -18644,14 +18649,17 @@ class slotGetter{
                             + sname+"_";
          string frel = "[const rel(tuple([S : text, T:text])) value (";
     
-         int slot = myNumber;
          string ws = stringutils::int2str(worker);
 
-         while(slot<size){
-            string n = stringutils::int2str(slot);
-            frel += "( '"+ sbasename + n+".bin'  '"+myDir+"s_"+n+"_"+ws+"')";
-            slot += workers.size();
+         for(size_t slot=0;slot<resArray->getSize();slot++){
+            int wfs = resArray->getWorkerIndexForSlot(slot);
+            if(wfs==myNumber){
+               string n = stringutils::int2str(slot);
+               frel += "( '"+ sbasename + n+".bin'  '"+myDir+"s_"+n+"_"+ws+"')";
+            }
          }
+
+
          frel += ")]";
  
          string cmd = "query  "+ frel + " feed extend[ OK : getFileTCP(.S, '" 
@@ -18727,6 +18735,8 @@ int collect2VM(Word* args, Word& result, int message,
    string constRel = "[ const " + getUDRelType(relType)+" value ()]";
 
 
+   res->setStdMap(matrix->getSize());
+
    // step 1 create base for file transfer 
    startFileTransferators(matrix,p);
    // copy slots parts from other workers to target worker
@@ -18747,8 +18757,10 @@ int collect2VM(Word* args, Word& result, int message,
 #endif
 
    for(size_t i=0;i<cis.size();i++){
+      // worker number, source name, target name, size, 
+      // connection infos, port, template relation
       slotGetter* getter = new slotGetter(i, sname,n, matrix->getSize(), 
-                                          cis, p, constRel);
+                                          cis, p, res,  constRel);
       getters.push_back(getter);
    }
 
@@ -18757,7 +18769,6 @@ int collect2VM(Word* args, Word& result, int message,
       cis[i]->deleteIfAllowed();
    }
 
-   res->setStdMap(matrix->getSize());
 
    return 0;
 }
