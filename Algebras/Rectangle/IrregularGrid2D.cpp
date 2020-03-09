@@ -34,6 +34,7 @@ Cell::Cell() {
   cellId = -1;
   valFrom = -1;
   valTo = -1;
+  nbrPoints = -1;
 }
 
 void
@@ -64,6 +65,16 @@ Cell::setValTo(double val_to) {
 double
 Cell::getValTo() {
   return valTo;
+}
+
+int
+Cell::getNbrOfPoints() {
+  return nbrPoints;
+}
+
+void
+Cell::setNbrOfPoints(int nbr_points) {
+  nbrPoints = nbr_points;
 }
 
 Cell::~Cell() { }
@@ -140,10 +151,11 @@ IrregularGrid2D::getCellInfoVector(IrregularGrid2D *in_irgrid2d) {
     for(size_t cellIdx = 0; cellIdx < row_vect->size(); cellIdx++) {
       HCell* cell = &row_vect->at(cellIdx);
       int cid = cell->getCellId();
+      int np = cell->getNbrOfPoints();
       double hf = cell->getValFrom();
       double ht = cell->getValTo();
 
-      CellInfo* ci = new CellInfo(cid, hf, ht, vf, vt);
+      CellInfo* ci = new CellInfo(cid, np, hf, ht, vf, vt);
       cell_info_vect.push_back(ci);
     }
   }
@@ -209,14 +221,11 @@ IrregularGrid2D::buildGrid() {
 
   // adjust boundaries by point distribution
   int nbrOfPoints = points.size();
-  int pointsPerRow = ceil(nbrOfPoints / rowCount);
-  //int pointsPerRow = round(nbrOfPoints / rowCount);
-
+  int pointsPerRow = nbrOfPoints / rowCount;
   std::vector<RPoint> tmp_row_points {};
 
   int pointIdx = 0;
   int point_counter = 0;
-
   for(int colIdx = 0; colIdx < rowCount; colIdx++) {
     for(size_t dp_idx = pointIdx; dp_idx < points.size(); dp_idx++) {
       RPoint rp = points[dp_idx];
@@ -238,6 +247,7 @@ IrregularGrid2D::buildGrid() {
           new_val_to_y = rp.y;
         }
         getColumnVector()[colIdx].setValTo(new_val_to_y);
+        getColumnVector()[colIdx].setNbrOfPoints(point_counter);
 
         point_counter = 0;
 
@@ -246,11 +256,9 @@ IrregularGrid2D::buildGrid() {
           pointComparisonX);
 
         std::vector<HCell> c_row =  columnVector[colIdx].getRow();
-        int pointsPerCell = ceil(tmp_row_points.size() / cellCount);
-        //int pointsPerCell = round(tmp_row_points.size() / cellCount);
+        int pointsPerCell = tmp_row_points.size() / cellCount;
 
         int tmpPointIdx = 0;
-
         for(int h = 0; h < cellCount; h++) {
           std::vector<HCell>* hcel_vec_ptr = &columnVector[colIdx].getRow();
 
@@ -262,7 +270,7 @@ IrregularGrid2D::buildGrid() {
 
             if((point_counter == pointsPerCell)
               || (tmp_rp_idx == tmp_row_points.size()-1)
-              || (h == cellCount-1)) {
+              /* || (h == cellCount-1 ) */) {
 
               if (h > 0) {
                 hcel_vec_ptr->at(h).setValFrom(
@@ -279,6 +287,14 @@ IrregularGrid2D::buildGrid() {
               hcel_vec_ptr->at(h).setValTo(new_val_to_x);
 
               tmpPointIdx = tmp_rp_idx + 1;
+              hcel_vec_ptr->at(h).setNbrOfPoints(point_counter);
+
+              // Smoothing in case of odd number of points per cell
+              if (h+1 < cellCount) {
+                pointsPerCell = (tmp_row_points.size()-tmpPointIdx)
+                  / (cellCount-1-h);
+              }
+
               point_counter = 0;
 
               // next cell
@@ -289,6 +305,13 @@ IrregularGrid2D::buildGrid() {
 
         tmp_row_points.clear();
         pointIdx = dp_idx + 1;
+
+        // Smoothing in case of odd number of points per row
+        if (colIdx+1 < rowCount) {
+          pointsPerRow = (points.size()-pointIdx)
+            / (rowCount-1-colIdx);
+        }
+
         point_counter = 0;
 
         // one row up
@@ -708,9 +731,12 @@ IrregularGrid2D::IrGrid2dFeedTypeMap( ListExpr args )
 
     ListExpr first = nl->First(args);
     if (IrregularGrid2D::checkType(first)) {
-      ListExpr resAttrList = nl->TwoElemList(
+      ListExpr resAttrList = nl->ThreeElemList(
           nl->TwoElemList(
             nl->SymbolAtom("Id"),
+            nl->SymbolAtom(CcInt::BasicType())),
+          nl->TwoElemList(
+            nl->SymbolAtom("Count"),
             nl->SymbolAtom(CcInt::BasicType())),
           nl->TwoElemList(
             nl->SymbolAtom("Cell"),
@@ -743,9 +769,12 @@ struct IrGridTupleInfo
 
     ListExpr tupleTypeLst = nl->TwoElemList(
       nl->SymbolAtom(Tuple::BasicType()),
-      nl->TwoElemList(
+      nl->ThreeElemList(
         nl->TwoElemList(
           nl->SymbolAtom("Id"),
+          nl->SymbolAtom(CcInt::BasicType())),
+        nl->TwoElemList(
+          nl->SymbolAtom("Count"),
           nl->SymbolAtom(CcInt::BasicType())),
         nl->TwoElemList(
           nl->SymbolAtom("Cell"),
@@ -765,11 +794,13 @@ struct IrGridTupleInfo
     if (currentTupleIdx < cell_info_vect.size()) {
       CellInfo * cell_info = cell_info_vect.at(currentTupleIdx);
       int tp_p1 = cell_info->cellId;
-      Rectangle<2> tp_p2 = *cell_info->cell;
+      int tp_p2 = cell_info->statNbrOfPoints;
+      Rectangle<2> tp_p3 = *cell_info->cell;
 
       Tuple *tuple = new Tuple(ttype);
       tuple->PutAttribute(0, new CcInt(true, tp_p1));
-      tuple->PutAttribute(1, new Rectangle<2> (tp_p2));
+      tuple->PutAttribute(1, new CcInt(true, tp_p2));
+      tuple->PutAttribute(2, new Rectangle<2> (tp_p3));
 
       currentTupleIdx++;
       return tuple;

@@ -3331,8 +3331,8 @@ const string createIrGrid2dSpec  =
 
 const string feedIrGrid2dSpec  =
         "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" \"Remarks\")"
-        "( <text>irgrid2d -> stream(tuple(Id : int , Cell : rect)) "
-        "</text--->"
+        "( <text>irgrid2d -> stream(tuple(Id : int , Count : int , "
+        "Cell : rect))</text--->"
         "<text>_ feed</text--->"
         "<text>creates a tuple stream "
         "from irgrid2d.</text--->"

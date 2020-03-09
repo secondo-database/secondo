@@ -40,6 +40,8 @@ class Cell {
     double getValFrom();
     void setValTo(double valTo);
     double getValTo();
+    int getNbrOfPoints();
+    void setNbrOfPoints(int nbrPoints);
 
     // Auxiliary functions for In or/and Value mapping functions
     void setCellId(int cell_id);
@@ -50,6 +52,7 @@ class Cell {
     int cellId;
     double valFrom;
     double valTo;
+    int nbrPoints;
 };
 
 class HCell : public Cell {
@@ -90,10 +93,12 @@ struct RPoint {
 struct CellInfo {
   int cellId;
   Rectangle<2>* cell;
+  int statNbrOfPoints;
 
-  CellInfo (int c_id, double left, double right,
-    double bottom, double top) {
+  CellInfo (int c_id, int nbr_points,
+    double left, double right, double bottom, double top) {
     cellId = c_id;
+    statNbrOfPoints = nbr_points;
 
     double min[2], max[2];
     min[0] = left;
