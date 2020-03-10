@@ -370,16 +370,34 @@ getRectangleCentre(Rectangle<2>* r) {
   return r_c;
 }
 
+// check if a point is inside the irgrid2d bounding box
+bool
+insideBoundingBox(Rectangle<2>* bbox, Rectangle<2>* r) {
+  double le = bbox->getMinX();
+  double ri = bbox->getMaxX();
+  double bo = bbox->getMinY();
+  double to = bbox->getMaxY();
+
+  if (r->getMinX() >= le && r->getMaxX() <= ri
+      && r->getMinY() >= bo && r->getMaxY() <=to) {
+    return true;
+  }
+
+  return false;
+}
+
 void
 IrregularGrid2D::processInput(Stream<Rectangle<2>> rStream) {
   rStream.open();
   Rectangle<2>* next = rStream.request();
 
   while(next != 0){
-    //RPoint p_b { next->getMinX(), next->getMinY() };
-    //RPoint p_t { next->getMaxX(), next->getMaxY() };
-    //points.push_back(p_b);
-    //points.push_back(p_t);
+    if (!insideBoundingBox(boundingBox, next)) {
+      // point outside the bounding box is discarded
+      next = rStream.request();
+      continue;
+    }
+
     points.push_back(getRectangleCentre(next));
     next = rStream.request();
   }
