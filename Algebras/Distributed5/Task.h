@@ -47,6 +47,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Algebras/Distributed2/Distributed2Algebra.h"
 #include "Algebras/Distributed2/ConnectionInfo.h"
 #include "Algebras/Distributed2/DFSType.h"
+#include <chrono>
 
 #include <boost/bind.hpp>
 #include <boost/ref.hpp>
