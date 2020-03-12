@@ -34,7 +34,7 @@ using namespace distributed2;
 
 // #define DEBUG_JOB_SELECTION
 // #define REPORT_WORKER_STATS
-#define REPORT_TOTAL_STATS
+// #define REPORT_TOTAL_STATS
 
 namespace distributed5
 {

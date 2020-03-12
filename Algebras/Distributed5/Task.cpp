@@ -286,18 +286,29 @@ vector<TaskDataItem *> PartitionFunctionTask::run(
     WorkerLocation &location,
     std::vector<TaskDataItem *> args)
 {
-    TaskDataItem *arg = args.front();
+    TaskDataItem *first = args.front();
 
-    size_t slot = arg->getSlot();
+    size_t slot = first->getSlot();
 
     TaskDataItem result(resultName, slot, resultContentType,
                         TaskDataLocation(
                             location, DataStorageType::File, false),
-                        arg->getPreferredLocation());
+                        first->getPreferredLocation());
 
     string path = location.getFileBase(&result);
-    string argValue = arg->getValueArgument(location);
-    string tupleStream = "( " + mapFunction + " " + argValue + ")";
+    ListExpr fsrelType = nl->TwoElemList(
+        listutils::basicSymbol<fsrel>(),
+        nl->Second(first->getContentType()));
+    string argExpr = "(" + nl->ToString(fsrelType) + "( ";
+    for (auto arg : args)
+    {
+        TaskDataLocation loc = arg->findLocation(location,
+                                                 DataStorageType::File);
+        argExpr += "'" + loc.getFilePath(arg) + "' ";
+    }
+    argExpr += "))";
+
+    string tupleStream = "( " + mapFunction + " " + argExpr + ")";
     string distribute = "(fdistribute7 " + tupleStream + " " +
                         "'" + path + "' " +
                         partitionFunction + " " +
@@ -327,7 +338,7 @@ vector<TaskDataItem *> PartitionFunctionTask::run(
             resultName, slot, i + 1,
             resultContentType,
             TaskDataLocation(location, DataStorageType::File, true),
-            arg->getPreferredLocation()));
+            first->getPreferredLocation()));
     }
 
     return results;

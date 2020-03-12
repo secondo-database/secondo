@@ -42,7 +42,7 @@ template <int pos, int mode>
 // mode = 0: get rel (DArray) resp. frel (DFArray) of array
 // mode = 1: get fsrel of array
 // mode = 2: partitionF mode:
-//          pos args: normal operation,
+//          pos args: get fsrel of array
 //          pos + 1 args: get tuple type of fun at pos + 1
 
 ListExpr ARRAYORTASKSFUNARG_TM(ListExpr args)
@@ -107,7 +107,7 @@ ListExpr ARRAYORTASKSFUNARG_TM(ListExpr args)
         return listutils::typeError("Invalid type found");
     }
 
-    if (mode == 1)
+    if (mode == 1 || mode == 2)
     {
         if (!Relation::checkType(innerType) && !frel::checkType(innerType))
         {

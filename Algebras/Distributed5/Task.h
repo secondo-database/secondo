@@ -822,7 +822,7 @@ public:
                           std::string resultName,
                           size_t vslots,
                           ListExpr resultContentType)
-        : FunctionTask(0,
+        : FunctionTask(PrimaryArgumentAsFile | PrimaryArgumentAsObject,
                        resultName,
                        resultContentType,
                        isRel,

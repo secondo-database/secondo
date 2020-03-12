@@ -64,7 +64,7 @@ ListExpr partitionFSTM(ListExpr args)
 {
     string err =
         "{{d[f]array(rel(X)) / stream(task(d[f]array(rel(X))))} x string x "
-        "([f]rel(X) -> stream(tuple(Y))) x "
+        "(fsrel(X) -> stream(tuple(Y))) x "
         "(tuple(Y) -> int) x "
         "int} expected";
 
@@ -154,17 +154,9 @@ ListExpr partitionFSTM(ListExpr args)
     ListExpr funMapArg = nl->Second(argFunMapType);
 
     //expected Function Argument type
-    ListExpr expFunMapArg;
-    if (DFArray::checkType(darrayType))
-    {
-        expFunMapArg = nl->TwoElemList(
-            listutils::basicSymbol<frel>(),
-            nl->Second(nl->Second(darrayType)));
-    }
-    else
-    {
-        expFunMapArg = nl->Second(darrayType);
-    }
+    ListExpr expFunMapArg = nl->TwoElemList(
+        listutils::basicSymbol<fsrel>(),
+        nl->Second(nl->Second(darrayType)));
 
     if (!nl->Equal(expFunMapArg, funMapArg))
     {
@@ -281,34 +273,42 @@ public:
     //returns the next task for the successor operator
     Task *getNext()
     {
-        if (!outputTasks.empty())
+        if (!inputConsumed)
         {
-            Task *res = outputTasks.front();
-            outputTasks.pop_front();
-
-            return res;
+            Task *inputTask = input.request();
+            if (inputTask != 0)
+            {
+                if (inputTask->getTaskType() == "worker")
+                    workerCount++;
+                if (inputTask->hasFlag(Output))
+                {
+                    inputTask->clearFlag(Output);
+                    collectedTasks.push_back(inputTask);
+                }
+                return inputTask;
+            }
+            inputConsumed = true;
         }
-
-        Task *inputTask = input.request();
-        if (inputTask == 0)
+        if (currentWorker > workerCount)
             return 0;
-
-        if (inputTask->hasFlag(Output))
+        auto *partitionTask = new PartitionFunctionTask(
+            mapFunction, partitionFunction,
+            remoteName, vslots, contentType);
+        partitionTask->setFlag(Output);
+        size_t len = collectedTasks.size();
+        for (size_t i = currentWorker; i < len; i += workerCount)
         {
-            inputTask->clearFlag(Output);
-
-            auto *partitionTask = new PartitionFunctionTask(
-                mapFunction, partitionFunction,
-                remoteName, vslots, contentType);
-            partitionTask->setFlag(Output);
-            partitionTask->addPredecessorTask(inputTask);
-            outputTasks.push_back(partitionTask);
+            partitionTask->addPredecessorTask(collectedTasks[i]);
         }
-        return inputTask;
+        currentWorker++;
+        return partitionTask;
     }
 
 private:
-    std::deque<Task *> outputTasks;
+    bool inputConsumed = false;
+    size_t workerCount = 0;
+    size_t currentWorker = 0;
+    std::vector<Task *> collectedTasks;
     DInputConsumer input;
     string mapFunction;
     string partitionFunction;
