@@ -477,6 +477,14 @@ Example   : query size(s7 partition["m7", hashvalue(.Attr,23),  0]  collect2["my
 Result    : bug
 Remark    : requires a remote server
 
+
+Operator  : collect2
+Number    : 1
+Signature : dfmatrix x string x int  x vector(int) -> dfarray
+Example   : query size(s7 partition["m7", hashvalue(.Attr,23),  0]  collectD["mys7", 1238, Mapping] )
+Result    : bug
+Remark    : requires a remote server
+
 Operator  : areduce
 Number    : 1
 Signature : dfmatrix(rel(x))  x string x (fsrel(x)-Y) x int -> d[f]array

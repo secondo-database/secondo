@@ -41,6 +41,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "FileRelations.h"
 #include "FileSystem.h"
 #include "Algebras/Array/ArrayAlgebra.h"
+#include "Algebras/Collection/CollectionAlgebra.h"
 #include "FileAttribute.h"
 #include "SecParser.h"
 #include "Bash.h"
@@ -18499,6 +18500,31 @@ ListExpr collect2TM(ListExpr args){
 }
 
 
+ListExpr collectCTM(ListExpr args){
+  string err = "dfmatrix x string x int x vector(int) expected";
+  if(!nl->HasLength(args,4)){
+    return listutils::typeError(err+" (wrong number of args)");
+  }
+  if(   !DFMatrix::checkType(nl->First(args))
+     || !CcString::checkType(nl->Second(args))
+     || !CcInt::checkType(nl->Third(args))){
+     return  listutils::typeError(err);
+  }
+  if(!Vector::checkType(nl->Fourth(args))){
+     return  listutils::typeError(err);
+  }
+  ListExpr vsub = nl->Second(nl->Fourth(args));
+  if(!CcInt::checkType(vsub)){
+     return  listutils::typeError(err);
+  }
+  return nl->TwoElemList( 
+              listutils::basicSymbol<DFArray>(),
+              nl->Second(nl->First(args)));
+}
+
+
+
+
 class slotGetter{
 
   public:
@@ -18703,6 +18729,49 @@ class slotGetter{
 };
 
 
+class StdSlotDistributor{
+ public: 
+  static bool distribute(Word* args, DFArray* res) {
+     DFMatrix* matrix = (DFMatrix*) args[0].addr;
+     res->setStdMap(matrix->getSize());
+     return true;
+  }
+};
+
+
+class VectorSlotDistributor{
+ public: 
+  static bool distribute(Word* args, DFArray* res) {
+     DFMatrix* matrix = (DFMatrix*) args[0].addr;
+     collection::Collection*  col = (collection::Collection*) args[3].addr;
+     vector<uint32_t> mapping;
+     for(int i=0;i<col->GetNoUniqueComponents(); i++){
+        CcInt* W = (CcInt*) col->GetComponent(i);
+        if(!W->IsDefined()){
+           W->DeleteIfAllowed();
+           return false;
+        }
+        int w = W->GetValue();
+        if(w<0 || w > (int)matrix->numOfWorkers()){
+            return false;
+        }
+        // w now represents a valid worker number
+        for(int s = 0 ; s < col->GetComponentCount(i) ; s++){
+           mapping.push_back(w);
+        } 
+     }
+     if(mapping.size() != matrix->getSize()){
+        return false;
+     }
+     res->set(mapping, res->getName(), res->getWorkers());
+      
+     return true;
+  }
+};
+
+
+
+template<class SlotDistributor>
 int collect2VM(Word* args, Word& result, int message,
              Word& local, Supplier s ){
 
@@ -18734,8 +18803,10 @@ int collect2VM(Word* args, Word& result, int message,
 
    string constRel = "[ const " + getUDRelType(relType)+" value ()]";
 
-
-   res->setStdMap(matrix->getSize());
+   if(!SlotDistributor::distribute(args, res)){
+     res->makeUndefined();
+     return 0;
+   }
 
    // step 1 create base for file transfer 
    startFileTransferators(matrix,p);
@@ -18788,11 +18859,31 @@ OperatorSpec collect2Spec(
 Operator collect2Op(
   "collect2",
   collect2Spec.getStr(),
-  collect2VM,
+  collect2VM<StdSlotDistributor>,
   Operator::SimpleSelect,
   collect2TM
 );
 
+OperatorSpec collectCSpec(
+  "dfmatrix x string x int x vector(int) -> dfarray",
+  " _ collectC[ _ , _, _] ",
+  "Collects the slots of a matrix into a "
+  " dfarray. The string is the name of the "
+  "resulting array, the int value specified a "
+  "port for file transfer. The port value can be any "
+  "port usable on all workers. A corresponding file transfer "
+  "server is started automatically. The vector determines the "
+  "mapping from the slots to the workers",
+  "query m8 collectC[\"a8\",1238, mapping]"
+);
+
+Operator collectCOp(
+  "collectC",
+  collectCSpec.getStr(),
+  collect2VM<VectorSlotDistributor>,
+  Operator::SimpleSelect,
+  collectCTM
+);
 
 /*
 10.29 Operator saveAttr
@@ -23281,6 +23372,7 @@ Distributed2Algebra::Distributed2Algebra(){
 
 
    AddOperator(&collect2Op);
+   AddOperator(&collectCOp);
 
 
    AddOperator(&SUBTYPE1OP);
