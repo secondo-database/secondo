@@ -18752,6 +18752,7 @@ class VectorSlotDistributor{
            return false;
         }
         int w = W->GetValue();
+        W->DeleteIfAllowed();
         if(w<0 || w > (int)matrix->numOfWorkers()){
             return false;
         }
