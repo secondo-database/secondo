@@ -48,6 +48,10 @@ class Distributed5Algebra : public Algebra
 public:
     Distributed5Algebra() : Algebra()
     {
+        /*
+        1 Add Operator to Distributed5Algebra
+        
+        */
         AddOperator(&dmapSOp);
         dmapSOp.SetUsesArgsInTypeMapping();
         AddOperator(&dmapS2Op);

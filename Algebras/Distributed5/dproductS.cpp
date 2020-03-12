@@ -235,6 +235,12 @@ ListExpr dproductSTM(ListExpr args)
                              streamResType);
 }
 
+/*
+
+1.2 Local Info Class for dproductS 
+
+*/
+
 class dproductSLI
 {
 public:
@@ -339,6 +345,12 @@ private:
     bool isStream;
 };
 
+/*
+
+1.3 Value Mapping for dproductS 
+
+*/
+
 int dproductSVM(Word *args, Word &result, int message,
                 Word &local, Supplier s)
 {
@@ -421,6 +433,12 @@ int dproductSVM(Word *args, Word &result, int message,
     return 0;
 }
 
+/*
+
+1.4 Specification for dproductS 
+
+*/
+
 OperatorSpec dproductSSpec(
     "d[f]array(rel(X))/tasks(d[f]array(rel(X))) x "
     "d[f]array(rel(Y))/tasks(d[f]array(rel(Y))) x "
@@ -429,6 +447,11 @@ OperatorSpec dproductSSpec(
     "Creates a stream of tasks",
     "");
 
+/*
+
+1.5 Operator dproductS 
+
+*/
 Operator dproductSOp(
     "dproductS",
     dproductSSpec.getStr(),

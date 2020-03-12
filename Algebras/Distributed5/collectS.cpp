@@ -282,6 +282,11 @@ int collectSVM(Word *args,
 
     return 0;
 }
+/*
+
+1.4 Specification for collectS
+
+*/
 
 OperatorSpec collectSSpec(
     "dfmatrix(X)/tasks(dfmatrix(X)) x string -> tasks(dfarray(X))",
@@ -291,6 +296,11 @@ OperatorSpec collectSSpec(
     "resulting array.",
     "");
 
+/*
+
+1.5 Operator for collectS
+
+*/
 Operator collectSOp(
     "collectS",
     collectSSpec.getStr(),

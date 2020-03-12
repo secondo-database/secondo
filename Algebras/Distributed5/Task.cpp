@@ -121,17 +121,15 @@ thread_local TaskStatistics TaskStatistics::local;
 
 /*
 
-2.2 Constructor for Data Task Type
+1 Constructor for Data Task Type
 
- Creates a  Data Task Type
- 
- Root task for each slot
- 
- This task has no incoming task
- 
- Only outgoing tasks    
+Creates a  Data Task Type
+Root task for each slot
+This task has no incoming task
+Only outgoing tasks
 
 */
+
 DataTask::DataTask(
     const DArrayElement dArrayElement,
     string name,
@@ -152,6 +150,11 @@ DataTask::DataTask(
                               dArrayElement.getNum()))
 {
 }
+/*
+
+2 Worker Task
+
+*/
 
 WorkerTask::WorkerTask(
     const DArrayElement dArrayElement)
@@ -162,27 +165,12 @@ WorkerTask::WorkerTask(
 {
 }
 
-/*
-
-2.4 Default Task Destructor
-
-*/
 Task::~Task()
 {
 }
 
-/*
-
-2.5 Basic Type - Task
-
-*/
 const string Task::BasicType() { return "task"; }
 
-/*
-
-2.6 Check Type for Type - Task
-
-*/
 const bool Task::checkType(const ListExpr list)
 {
     if (!nl->HasLength(list, 2))
@@ -196,12 +184,16 @@ const bool Task::checkType(const ListExpr list)
     return true;
 }
 
-//Adds a task to the list of predecessor tasks
 void Task::addArgument(Task *task, size_t pos)
 {
     arguments.emplace_back(task, pos);
 }
 
+/*
+
+2.3 Run methode for Data Task
+
+*/
 vector<TaskDataItem *> DataTask::run(
     WorkerLocation &location,
     std::vector<TaskDataItem *> args)
@@ -209,6 +201,11 @@ vector<TaskDataItem *> DataTask::run(
     return vector{new TaskDataItem(dataItem)};
 }
 
+/*
+
+2.4 Run methode for dmap function task
+
+*/
 vector<TaskDataItem *> DmapFunctionTask::run(
     WorkerLocation &location,
     std::vector<TaskDataItem *> args)
@@ -242,6 +239,11 @@ vector<TaskDataItem *> DmapFunctionTask::run(
                  slot, funcmd, "dmapS");
 }
 
+/*
+
+2.5 Run methode for dproduct function task
+
+*/
 vector<TaskDataItem *> DproductFunctionTask::run(
     WorkerLocation &location,
     std::vector<TaskDataItem *> args)
@@ -275,6 +277,11 @@ vector<TaskDataItem *> DproductFunctionTask::run(
                  slot, funcall, "dproductS");
 }
 
+/*
+
+2.6 Run methode for partition function task
+
+*/
 vector<TaskDataItem *> PartitionFunctionTask::run(
     WorkerLocation &location,
     std::vector<TaskDataItem *> args)
@@ -306,9 +313,10 @@ vector<TaskDataItem *> PartitionFunctionTask::run(
 
     string cd = "query createDirectory('" + targetDir + "', TRUE)";
     double duration = runCommand(ci, cd,
-                                 "create directory for file", false, true);
+                                 "create directory for file", false, "");
 
-    duration += runCommand(ci, cmd, description, true);
+    duration += runCommand(ci, cmd, description, true,
+                           "");
     TaskStatistics::report("remote " + description, duration);
 
     vector<TaskDataItem *> results;
@@ -324,7 +332,11 @@ vector<TaskDataItem *> PartitionFunctionTask::run(
 
     return results;
 }
+/*
 
+2.7 Run methode for collect function task
+
+*/
 vector<TaskDataItem *> CollectFunctionTask::run(
     WorkerLocation &location,
     std::vector<TaskDataItem *> args)
@@ -457,7 +469,7 @@ double Task::runCommand(ConnectionInfo *ci,
                         std::string cmd,
                         std::string description,
                         bool nestedListFormat,
-                        bool ignoreFailure,
+                        string expectResult,
                         bool ignoreError)
 {
     bool showCommands = false;
@@ -489,17 +501,26 @@ double Task::runCommand(ConnectionInfo *ci,
                 SecondoInterface::GetErrorMessage(err) + ")",
             cmd);
     }
-    if (!ignoreFailure && r == "(bool FALSE)")
+    if (expectResult != "" && r != expectResult)
     {
-        writeLog(ci, cmd, "returned FALSE");
+        writeLog(ci, cmd, "returned " + r + " but expected " + expectResult);
         throw RemoteException(
             description,
-            "command returned FALSE",
+            "command returned " + r + " but expected " + expectResult,
             cmd);
     }
     return runtime;
 }
 
+/*
+
+3.1.1 store methode 
+
+Executes run methode on worker
+
+Wraps value for secondo query so that output value is in correct format
+
+*/
 vector<TaskDataItem *> FunctionTask::store(
     const WorkerLocation &location, const WorkerLocation &preferredLocation,
     size_t slot, std::string value, std::string description)
@@ -530,10 +551,6 @@ vector<TaskDataItem *> FunctionTask::store(
         // create the target directory
         string targetDir = location.getFileDirectory(&result);
 
-        string cd = "query createDirectory('" + targetDir + "', TRUE)";
-        duration += runCommand(ci, cd,
-                               "create directory for file", false, true);
-
         string fname2 = location.getFilePath(&result);
 
         // if the result of the function is a relation, we feed it
@@ -545,17 +562,17 @@ vector<TaskDataItem *> FunctionTask::store(
         string aa = "";
         if (filesystem)
         {
-            aa = " TRUE TRUE ";
+            aa = " TRUE";
         }
         if (this->isStream)
         {
             cmd = "(query (count (fconsume5 " + value + " '" +
-                  fname2 + "'" + aa + " )))";
+                  fname2 + "' TRUE" + aa + " )))";
         }
         else if (this->isRel)
         {
             cmd = "(query (count (fconsume5 (feed " + value + " )'" +
-                  fname2 + "' " + aa + ")))";
+                  fname2 + "' TRUE" + aa + ")))";
         }
         else
         {
@@ -568,7 +585,7 @@ vector<TaskDataItem *> FunctionTask::store(
         throw std::invalid_argument("not implemented storage type");
     }
 
-    duration += runCommand(ci, cmd, description, true);
+    duration += runCommand(ci, cmd, description, true, "");
     TaskStatistics::report("remote " + description, duration);
 
     return vector{new TaskDataItem(result)};
@@ -589,6 +606,13 @@ ConnectionInfo *WorkerLocation::getWorkerConnection() const
     return ci;
 }
 
+/*
+
+4.1.1 getDistance
+
+calculates Data Distance for a data slot for this worker
+
+*/
 DataDistance TaskDataItem::getDistance(
     WorkerLocation const &location) const
 {
@@ -663,6 +687,13 @@ pair<TaskDataLocation, int> TaskDataItem::findTransferSourceLocation(
     return make_pair(*bestLoc, bestCount);
 }
 
+/*
+
+5.1.1 findLocation
+
+returns a worker location with the smallest dataDistance
+
+*/
 TaskDataLocation TaskDataItem::findLocation(WorkerLocation const &nearby) const
 {
     boost::shared_lock_guard<boost::shared_mutex> lock(mutex);

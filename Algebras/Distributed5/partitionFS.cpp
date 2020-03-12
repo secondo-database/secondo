@@ -406,12 +406,23 @@ int partitionFSVM(Word *args,
     return 0;
 }
 
+/*
+
+1.4 Specification for partitionFS
+
+*/
 OperatorSpec partitionFSSpec(
     "d[f]array(X)/tasks(d[f]array(X)) x string x fun x fun x int "
     "-> tasks(dfmatrix(Y))",
     "_ partitionFS[_,_]",
     "Partitions distributed data across a vertical partitioning schema",
     "");
+
+/*
+
+1.5 Operator partitionFS
+
+*/
 
 Operator partitionFSOp(
     "partitionFS",

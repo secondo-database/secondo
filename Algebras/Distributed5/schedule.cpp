@@ -42,7 +42,7 @@ namespace distributed5
 /*
 1 schedule Operator
 
-The operator schedule is responsible for distributing the tasks from a tuple 
+The schedule operator is responsible for distributing the tasks from a tuple 
 stream to the worker.
 */
 
@@ -123,6 +123,12 @@ public:
     // end of mutex protected
 };
 
+/*
+2. Class OnlyOnceMutexMap
+
+This class is responsible for mutexing
+
+*/
 template <typename K>
 class OnlyOnceMutexMap
 {
@@ -152,13 +158,15 @@ private:
     std::map<K, boost::mutex> map;
 };
 
+/*
+3. Class Scheduler
+
+*/
 class Scheduler;
 
 /*
 
-1.3 WorkerJob
-
-A worker job.
+4. Class WorkerJob
 
 */
 
@@ -180,6 +188,13 @@ protected:
     Scheduler &scheduler;
 };
 
+/*
+
+4. Class WorkerPool
+
+The WorkerPool coordinates the WorkerPool for the schedule operator
+
+*/
 class WorkPool
 {
 public:
@@ -229,9 +244,11 @@ private:
 };
 
 /*
-1.2 Scheduler
+5. Class Scheduler
 
-Scheduler.
+Is called from the schedule operator.
+
+Distributes the tasks to the worker.
 
 */
 
@@ -764,7 +781,7 @@ private:
                                  cmd,
                                  "open file transferator",
                                  false,
-                                 true);
+                                 "");
 
             TaskStatistics::report("remote open file transferator", duration);
         }
@@ -962,7 +979,7 @@ private:
                           unordered_map<TaskDataItem *, bool>
                               &hasUpcomingLocationCache);
     WorkerJob *selectJob(WorkerLocation &location, WorkPool &workPool);
-    bool collectGarbagge(WorkerLocation &location);
+    void collectGarbagge(WorkerLocation &location);
 
     class ResultTask : public Task
     {
@@ -1006,7 +1023,7 @@ private:
                             "'" + preferredLocation.getFileDirectory(result) +
                             "', TRUE)",
                         "create directory",
-                        false, true);
+                        false, "");
                     Task::runCommand(
                         ci,
                         string("query copyFile(") +
@@ -1088,9 +1105,9 @@ private:
 
 /*
 
-1.3 ExecuteWorkerJob
+6. Class ExecuteWorkerJob
 
-ExecuteWorkerJob.
+Executes the operator job on the worker
 
 */
 
@@ -1158,6 +1175,13 @@ private:
     vector<TaskDataItem *> args;
 };
 
+/*
+
+8. Class TransferDataWorkerJob
+
+Transfers the input data to the worker
+
+*/
 class TransferDataWorkerJob : public WorkerJob
 {
 public:
@@ -1190,6 +1214,7 @@ public:
         auto activeTransferrators = scheduler.getActiveTransferrators();
 
         string tuples = "";
+        int count = 0;
 
         map<string, int> transfersPerServer;
         vector<TaskDataItem *> usedDataItems;
@@ -1215,6 +1240,7 @@ public:
                     tuples += "('" + sourceLocation.getFilePath(data) + "' " +
                               "'" + sourceServer + "' " +
                               "'" + location.getFilePath(data) + "') ";
+                    count++;
                 }
             }
             catch (NoSourceLocationException &)
@@ -1245,7 +1271,9 @@ public:
         {
             ConnectionInfo *targetCI = location.getWorkerConnection();
 
-            duration = Task::runCommand(targetCI, cmd, "transfer file");
+            duration = Task::runCommand(
+                targetCI, cmd, "transfer file", false,
+                "(int " + std::to_string(count + 1) + ")");
         }
         catch (exception &e)
         {
@@ -1285,6 +1313,14 @@ private:
     int taskCost;
     vector<TaskDataItem *> dataItems;
 };
+
+/*
+
+9. Class ConvertToObjectWorkerJob
+
+Converts the input data to objects
+
+*/
 
 class ConvertToObjectWorkerJob : public WorkerJob
 {
@@ -1347,7 +1383,8 @@ public:
                     ci,
                     cmd,
                     description,
-                    true);
+                    true,
+                    "()");
             }
             catch (RemoteException &e)
             {
@@ -1357,13 +1394,14 @@ public:
                     ci,
                     "(delete " + data->getObjectName() + ")",
                     "delete existing object",
-                    true, true, true);
+                    true, "", true);
 
                 duration += Task::runCommand(
                     ci,
                     cmd,
                     description,
-                    true);
+                    true,
+                    "()");
             }
         }
         catch (exception &e)
@@ -1391,6 +1429,14 @@ private:
     int taskCost;
     TaskDataItem *data;
 };
+
+/*
+
+11. Class ConvertToFileWorkerJob
+
+Converts the input data to file
+
+*/
 
 class ConvertToFileWorkerJob : public WorkerJob
 {
@@ -1425,7 +1471,8 @@ public:
             string fname = location.getFilePath(data);
             string cmd = "query " + oname +
                          " saveObjectToFile['" + fname + "']";
-            duration = Task::runCommand(ci, cmd, "save object to file");
+            duration = Task::runCommand(ci, cmd, "save object to file",
+                                        false, "");
         }
         catch (exception &e)
         {
@@ -1447,6 +1494,14 @@ public:
 private:
     TaskDataItem *data;
 };
+
+/*
+
+12. Class WaitForTransferCompletedWorkerJob
+
+Waits until another job is completed.
+
+*/
 
 class WaitForTransferCompletedWorkerJob : public WorkerJob
 {
@@ -1757,78 +1812,9 @@ WorkerJob *Scheduler::selectJob(WorkerLocation &location, WorkPool &workPool)
     return 0;
 }
 
-class RemoveDataWorkerJob : public WorkerJob
-{
-public:
-    RemoveDataWorkerJob(WorkerLocation &location, Scheduler &scheduler,
-                        TaskDataItem *data, TaskDataLocation dataLocation)
-        : WorkerJob(location, scheduler),
-          data(data), dataLocation(dataLocation) {}
-    virtual ~RemoveDataWorkerJob() {}
-
-    virtual string getType() const { return "remove"; }
-
-    virtual string toString() const
-    {
-        return "remove " + dataLocation.toString() +
-               " from " + data->toString();
-    }
-
-    virtual bool run()
-    {
-        data->removeLocation(dataLocation);
-
-        try
-        {
-            ConnectionInfo *ci = location.getWorkerConnection();
-            switch (dataLocation.getStorageType())
-            {
-            case File:
-            {
-                string file = dataLocation.getFilePath(data);
-                double duration = Task::runCommand(
-                    ci,
-                    "query removeFile('" + file + "')",
-                    "remove temporary data file",
-                    false, true);
-                TaskStatistics::report("remote remove file", duration);
-
-                break;
-            }
-            case Object:
-            {
-                string objectName = data->getObjectName();
-                double duration = Task::runCommand(
-                    ci,
-                    "(delete " + objectName + ")",
-                    "remove temporary data object",
-                    true, true);
-                TaskStatistics::report("remote remove object", duration);
-
-                break;
-            }
-            }
-        }
-        catch (exception &e)
-        {
-            scheduler.addError(string(e.what()) + "\n" +
-                               "while removing " + data->toString() +
-                               " from " + dataLocation.toString());
-            return false;
-        }
-
-        return true;
-    }
-
-private:
-    TaskDataItem *data;
-    TaskDataLocation dataLocation;
-};
-
-bool Scheduler::collectGarbagge(WorkerLocation &location)
+void Scheduler::collectGarbagge(WorkerLocation &location)
 {
     vector<TaskDataItem *> notReferencedData;
-    vector<pair<TaskDataItem *, TaskDataLocation>> garbagge;
 
     {
         boost::shared_lock_guard<boost::shared_mutex> lock(dataReferencesMutex);
@@ -1843,84 +1829,96 @@ bool Scheduler::collectGarbagge(WorkerLocation &location)
     }
 
     if (notReferencedData.size() == 0)
-        return false;
+        return;
 
-    for (auto data : notReferencedData)
+    bool hasMore = true;
+    while (hasMore)
     {
-        for (auto loc : data->getLocations())
+        vector<pair<TaskDataItem *, TaskDataLocation>> garbagge;
+        hasMore = false;
+        for (auto data : notReferencedData)
         {
-            if (loc.isTemporary() &&
-                loc.getWorkerLocation() == location)
+            for (auto loc : data->getLocations())
             {
-                garbagge.emplace_back(data, loc);
+                if (loc.isTemporary() &&
+                    loc.getWorkerLocation() == location)
+                {
+                    garbagge.emplace_back(data, loc);
+                }
+            }
+            // Limit the number of items removed in a batch
+            // otherwise remote server crashes
+            if (garbagge.size() >= 500)
+            {
+                hasMore = true;
+                break;
             }
         }
-    }
 
-    if (garbagge.size() == 0)
-        return false;
+        if (garbagge.size() == 0)
+            return;
 
-    vector<string> objectsList;
-    string filesList = "";
-    for (auto pair : garbagge)
-    {
-        auto data = pair.first;
-        auto &loc = pair.second;
-        switch (loc.getStorageType())
+        vector<string> objectsList;
+        string filesList = "";
+        for (auto pair : garbagge)
         {
-        case Object:
-            objectsList.push_back(data->getObjectName());
-            break;
-        case File:
-            filesList += "('" + loc.getFilePath(data) + "') ";
-            break;
-        }
-        data->removeLocation(loc);
-    }
-
-    try
-    {
-        if (!filesList.empty())
-        {
-            ConnectionInfo *ci = location.getWorkerConnection();
-
-            string removeQuery = "query [const rel(tuple([X: text])) value (" +
-                                 filesList +
-                                 ")] feed extend[ OK: removeFile(.X) ] " +
-                                 "count + 1";
-            double duration = Task::runCommand(
-                ci,
-                removeQuery,
-                "remove temporary files",
-                false, true);
-            TaskStatistics::report("remote remove files", duration);
-        }
-
-        if (objectsList.size() > 0)
-        {
-            ConnectionInfo *ci = location.getWorkerConnection();
-
-            for (auto objName : objectsList)
+            auto data = pair.first;
+            auto &loc = pair.second;
+            switch (loc.getStorageType())
             {
-                string removeQuery = "delete " + objName;
+            case Object:
+                objectsList.push_back(data->getObjectName());
+                break;
+            case File:
+                filesList += "('" + loc.getFilePath(data) + "') ";
+                break;
+            }
+            data->removeLocation(loc);
+        }
+
+        try
+        {
+            if (!filesList.empty())
+            {
+                ConnectionInfo *ci = location.getWorkerConnection();
+
+                string removeQuery =
+                    "query [const rel(tuple([X: text])) value (" +
+                    filesList +
+                    ")] feed extend[ OK: removeFile(.X) ] " +
+                    "count + 1";
                 double duration = Task::runCommand(
                     ci,
                     removeQuery,
-                    "remove temporary object",
-                    false, true);
-                TaskStatistics::report("remote remove object", duration);
+                    "remove temporary files",
+                    false, "");
+                TaskStatistics::report("remote remove files", duration);
+            }
+
+            if (objectsList.size() > 0)
+            {
+                ConnectionInfo *ci = location.getWorkerConnection();
+
+                for (auto objName : objectsList)
+                {
+                    string removeQuery = "delete " + objName;
+                    double duration = Task::runCommand(
+                        ci,
+                        removeQuery,
+                        "remove temporary object",
+                        false, "");
+                    TaskStatistics::report("remote remove object", duration);
+                }
             }
         }
+        catch (exception &e)
+        {
+            addError(string(e.what()) + "\n" +
+                     "while collecting garbagge" +
+                     " on " + location.toString());
+            return;
+        }
     }
-    catch (exception &e)
-    {
-        addError(string(e.what()) + "\n" +
-                 "while collecting garbagge" +
-                 " on " + location.toString());
-        return false;
-    }
-
-    return true;
 }
 
 thread_local optional<set<WorkerLocation>>

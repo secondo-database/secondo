@@ -653,7 +653,7 @@ public:
                              std::string cmd,
                              std::string description,
                              bool nestedListFormat = false,
-                             bool ignoreFailure = false,
+                             std::string expectResult = "(bool TRUE)",
                              bool ignoreError = false);
 
 private:

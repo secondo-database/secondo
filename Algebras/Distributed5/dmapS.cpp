@@ -469,12 +469,23 @@ int dmapSVM(Word *args,
     return 0;
 }
 
+/*
+
+1.4 Specification for dmapS
+
+*/
+
 OperatorSpec dmapSSpec(
     "d[f]array(X)/tasks(d[f]array(X)) x string x fun -> tasks(d[f]array(Y))",
     "_ dmapS[_,_]",
     "Creates a stream of tasks",
     "");
 
+/*
+
+1.5 Operator dmapS to dmapS8
+
+*/
 Operator dmapSOp(
     "dmapS",
     dmapSSpec.getStr(),

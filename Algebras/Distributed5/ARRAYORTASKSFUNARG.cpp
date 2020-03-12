@@ -34,9 +34,8 @@ using namespace distributed2;
 namespace distributed5
 {
 /*
-
-1 TypeMapOperators ARRAYORTASKSFUNARG1, ARRAYORTASKSFUNARG2 up to ARRAYORTASKSFUNARG8
-
+1 TypeMapOperators ARRAYORTASKSFUNARG1, ARRAYORTASKSFUNARG2 up to 
+ARRAYORTASKSFUNARG8
 
 */
 template <int pos, int mode>
@@ -120,6 +119,11 @@ ListExpr ARRAYORTASKSFUNARG_TM(ListExpr args)
     return innerType;
 }
 
+/*
+2 Specification for ARRAYORTASKSFUNARG1, ARRAYORTASKSFUNARG2 up to 
+ARRAYORTASKSFUNARG8
+
+*/
 OperatorSpec ARRAYORTASKSFUNARG1Spec(
     "d(f)array(X) x ... -> X, stream(task(X)) x ... -> X",
     "ARRAYORTASKSFUNARG1(_)",

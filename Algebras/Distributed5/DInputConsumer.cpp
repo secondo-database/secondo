@@ -33,6 +33,12 @@ using namespace distributed2;
 
 namespace distributed5
 {
+/*
+1 DInputConsumer 
+
+1.1 Constructor
+
+*/
 
 DInputConsumer::DInputConsumer(DInputConsumer &&move)
 {
@@ -78,6 +84,10 @@ DInputConsumer::~DInputConsumer()
     }
 }
 
+/*
+1.2 request Methode
+
+*/
 Task *DInputConsumer::request()
 {
     if (workers)

@@ -153,7 +153,7 @@ private:
 
 /*
 
-1.2 Value Mapping
+1.2 Value Mapping for tasks2tuples 
 
 */
 int tasks2tuplesVM(Word *args, Word &result, int message,
@@ -190,6 +190,11 @@ int tasks2tuplesVM(Word *args, Word &result, int message,
     return 0;
 }
 
+/*
+
+1.3 Specification for tasks2tuples 
+
+*/
 OperatorSpec tasks2tuplesSpec(
     "stream(task(X)) -> tuples",
     "_ tasks2tuples",
@@ -197,6 +202,11 @@ OperatorSpec tasks2tuplesSpec(
     "query CabsId dmapS["
     ", . feed filter[.Id = 1039] project[Id] consume] tasks2tuples consume");
 
+/*
+
+1.4 Operator tasks2tuples 
+
+*/
 Operator tasks2tuplesOp(
     "tasks2tuples",
     tasks2tuplesSpec.getStr(),
