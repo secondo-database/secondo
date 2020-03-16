@@ -477,7 +477,7 @@ IrregularGrid2D::OutIrGrid2D( ListExpr typeInfo, Word value ) {
 
     std::vector<VCell>* col = &irgrid2d->getColumnVector();
 
-    ListExpr rowLstExpr;
+    ListExpr rowLstExpr = nl->Empty();
     ListExpr lastRowLstExpr;
     if (col->size() > 0) {
       for(size_t colIdx = 0; colIdx < col->size(); colIdx++) {
