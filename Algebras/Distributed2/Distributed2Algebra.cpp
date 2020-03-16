@@ -18773,7 +18773,7 @@ class VectorSlotDistributor{
 
 
 template<class SlotDistributor>
-int collect2VM(Word* args, Word& result, int message,
+int collect2VMT(Word* args, Word& result, int message,
              Word& local, Supplier s ){
 
    result = qp->ResultStorage(s);
@@ -18845,6 +18845,14 @@ int collect2VM(Word* args, Word& result, int message,
    return 0;
 }
 
+
+
+
+int collect2VM(Word* args, Word& result, int message,
+             Word& local, Supplier s ){
+  return collect2VMT<StdSlotDistributor>(args,result,message, local,s);
+}
+
 OperatorSpec collect2Spec(
   "dfmatrix x string x int -> dfarray",
   " _ collect2[ _ , _] ",
@@ -18860,7 +18868,7 @@ OperatorSpec collect2Spec(
 Operator collect2Op(
   "collect2",
   collect2Spec.getStr(),
-  collect2VM<StdSlotDistributor>,
+  collect2VMT<StdSlotDistributor>,
   Operator::SimpleSelect,
   collect2TM
 );
@@ -18881,7 +18889,7 @@ OperatorSpec collectCSpec(
 Operator collectCOp(
   "collectC",
   collectCSpec.getStr(),
-  collect2VM<VectorSlotDistributor>,
+  collect2VMT<VectorSlotDistributor>,
   Operator::SimpleSelect,
   collectCTM
 );
