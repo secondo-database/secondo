@@ -59,6 +59,8 @@ let V = T
   collect2["V", myPort]
 
 
+
+
 # Step 5
 
 let ControlN = createintdarray("ControlN", Workers, n);
@@ -93,6 +95,10 @@ let NeighborsByQ = Neighbors partition["", hashvalue(.Q, 999997), 0]
 # Step 7
 
 query T dcommand['query memclear()'] filter[.Ok] count;
+query T dcommand['query meminit(3600)'] consume;
+
+
+
 
 let Pairs = NeighborsByQ NeighborsByP 
   dmap2["Pairs", . feed {n1} .. feed {n2} itHashJoin[Q_n1, P_n2] mconsume, myPort]
