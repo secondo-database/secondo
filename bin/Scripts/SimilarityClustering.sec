@@ -4,7 +4,11 @@
 # Distributed array T with attribute Pos of type point must be present. 
 # Workers relation must be present.
 
-# Variable myPort must be set to an exclusively used port.
+# restore Workers from WorkersNewton
+# let S = 'S' ffeed5 consume
+# let T = S feed ddistribute3["T", 160, TRUE, Workers];
+
+# Variable myPort must be set below to an exclusively used port.
 
 
 
@@ -38,6 +42,7 @@ query share("n", TRUE, Workers);
 # Step 4
 
 query memclear();
+query T dcommand['query memclear()'] consume;
 query T dcommand['query meminit(3600)'] consume;
 
 query T dlet["PCm", 'PC feed mconsume'] consume;
