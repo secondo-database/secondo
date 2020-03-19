@@ -53,7 +53,7 @@ public:
    std::string Alias="";
    std::string TypeName="";
 
-   list<QueryFilter*> Filters;
+   std::list<QueryFilter*> Filters;
 
 };
 
@@ -76,33 +76,38 @@ public:
 class QueryGraph
 {
 public:
-   PGraphQueryProcessor *queryproc;
+   RelationRegistry *RelRegistry;
    int NextNodeID=0, NextEdgeID=0;
 
    // constructors and destructors
-   QueryGraph(PGraphQueryProcessor *qp);
+   QueryGraph(RelationRegistry *relreg);
    ~QueryGraph();
 
-   list<QueryGraphEdge>  Edges;
-   list<QueryGraphNode>  Nodes;
+   std::list<QueryGraphEdge>  Edges;
+   std::list<QueryGraphNode>  Nodes;
+   QueryAliasList             AliasList;
 
    QueryGraphNode* addNode(std::string alias, std::string typename_,  
       ListExpr *props);
-   void addEdge(string edegelias, std::string typename_,string alias, 
-      string alias2, ListExpr *props);
-   void readFilters(std::list<QueryFilter*> &filters, ListExpr list, 
-      RelationInfo *relinfo);
+   void addEdge(std::string edegelias, std::string typename_,std::string alias, 
+      std::string alias2, ListExpr *props);
+   void readFilters(std::list<QueryFilter*> &filters, ListExpr list);
 
    QueryTree *CreateQueryTree(QueryGraphNode *n);
-   QueryTree *CreateOptimalQueryTree();
+   QueryTree *CreateOptimalQueryTree(std::string forcealias="");
 
    QueryGraphNode *GetOptimalStartNode();
 
-   bool IsConnectedAndCycleFree();
+   bool IsConnected();
+   void CompleteTypes();
 
-   void ReadQueryGraph(ListExpr list);
+   void ReadQueryGraph(std::string slist);
+   void ReadQueryGraph(ListExpr alist);
+
    void DumpGraph();
    void DumpGraphDot(std::string fn);
+
+   void Validate();
 
 };
 

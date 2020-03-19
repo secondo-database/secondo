@@ -26,8 +26,12 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #ifndef PGRAPH_UTILS_H_
 #define PGRAPH_UTILS_H_
 
-#include "../MainMemory2/MPointer.h"
-#include "../MainMemory2/Mem.h"
+#include "../MainMemory2/MainMemoryExt.h"
+#include "MPointer.h"
+#include "Mem.h"
+#include "MemoryObject.h"
+#include "MemCatalog.h"
+
 #include "../Relation-C++/RelationAlgebra.h"
 #include "AlgebraTypes.h"
 
@@ -37,13 +41,13 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 namespace pgraph
 {
 
-
 const bool LOG_COLORED=true;
-const std:string LOGOP_COL = LOG_COLORED?"\033[32m":"";  
-const std:string LOGOP_COL_ERR = LOG_COLORED?"\033[91m":"";  
-const std:string LOG_COL_OFF = LOG_COLORED?"\033[0m":"";  
+const std::string LOGOP_COL = LOG_COLORED?"\033[32m":"";  
+const std::string LOGOP_COL_ERR = LOG_COLORED?"\033[91m":"";  
+const std::string LOG_COL_OFF = LOG_COLORED?"\033[0m":"";  
 
 extern int debugLevel;
+void setDebugLevel(int level);
 
 //------------------------------------------------------------------
 inline void LOG_() {};
@@ -107,9 +111,17 @@ void LOGOP(int level, const std::string source, const Args&... args )
 }
 //------------------------------------------------------------------
 
-ListExpr GetArg_FTEXT_AS_LIST(Address a);
+std::string GetArg_STRING(Address a);
+ListExpr    GetArg_FTEXT_AS_LIST(Address a);
 std::string GetArg_FTEXT_AS_STRING(Address a);
+ListExpr    ParseString(std::string s);
+void        CheckArgCount(ListExpr args, int min, int max);
+void        CheckArgType(ListExpr args, int pos, std::string typename_);
+void        CheckArgTypeIsTupleStream(ListExpr args, int pos);
+std::string GetArgValue(ListExpr args, int pos);
+int         GetArgCount(ListExpr args);
 
+//------------------------------------------------------------------
 bool DefOpen(InObject infunc, SmiRecord& valueRecord,
                 size_t& offset, const ListExpr typeInfo,
                 Word& value );
@@ -121,16 +133,20 @@ bool DefSave(OutObject outfunc, SmiRecord& valueRecord,
 std::string getDBname();
 
 int GetNextListIndex(ListExpr list);
-bool firstUpper(const string& word);
-
 ListExpr GetTupleDefFromObject(std::string name);
-void ReplaceStringInPlace(std::string& subject, const std::string& 
-   search, const std::string& replace);
 
 int QueryRelationCount(std::string relname);
-Relation* QueryRelation(std::string relname); 
-Relation* QueryRelation(std::string relname, ListExpr &relinfo); 
+Relation* OpenRelation(std::string relname); 
+Relation* OpenRelation(std::string relname, ListExpr &relinfo); 
+mm2algebra::MemoryRelObject* QueryMemRelation(std::string relname); 
 bool queryValueDouble(std::string cmd, double &val);
+Relation* ExecuteQuery(std::string query); 
+void DoLet(std::string objName, std::string  commandText);
+//------------------------------------------------------------------
+void ReplaceStringInPlace(std::string& subject, const std::string& 
+   search, const std::string& replace);
+bool FirstUpper(const std::string& word);
+double round(double x, int n);
 
 //------------------------------------------------------------------
 class PGraphException : public std::exception {
@@ -151,6 +167,7 @@ class PGraphException : public std::exception {
   protected:
     std::string msgStr;
 };
+
 } // namespace
 
 #endif // PGRAPH_UTILS_H_

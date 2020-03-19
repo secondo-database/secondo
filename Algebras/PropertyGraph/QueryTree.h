@@ -30,7 +30,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "ListUtils.h"
 #include "NList.h"
 #include <list> 
-#include "PGraphMem.h"
+#include "PropertyGraphMem.h"
 #include "QueryOutputFields.h"
 #include "QueryFilterFields.h"
 
@@ -51,7 +51,7 @@ class QueryFilter
 public:
    std::string Name="";
    std::string Value="";
-   std::string Index="";
+   bool Indexed=false;
 
    QueryFilter* Clone();
 };
@@ -64,7 +64,7 @@ public:
 
    std::string Alias="";
    std::string TypeName="";
-   double Cost=0;
+   double Cost=-1;
 
    std::list<QueryFilter*> Filters;
 
@@ -81,7 +81,7 @@ public:
    int current_nodeid=-1;
 
    int _uid; 
-   list<QueryTreeEdge*> Edges;
+   std::list<QueryTreeEdge*> Edges;
 
    double CalcCost();
 
@@ -101,6 +101,8 @@ public:
    QueryTreeNode *FromNode;
    QueryTreeNode *ToNode;
    bool   Reverse=false;
+
+   double  CalcCost();
 };
 
 //-----------------------------------------------------------------------------
@@ -112,13 +114,19 @@ public:
    QueryTree() {}
    ~QueryTree();
 
+   double CalcCost();
+
    QueryTreeMatchStateEnum state=QueryTreeMatchStateEnum::NOT_INITIALIZED;
 
    QueryTreeNode *Root=NULL;
    QueryOutputFields outputFields;
    QueryFilterFields filterList;
 
-   void ReadQueryTree(ListExpr list);
+   QueryAliasList AliasList;
+
+   void ReadQueryTree(std::string slist);
+   void ReadQueryTree(ListExpr alist);
+
    void ReadFilterList(ListExpr list);
    void ReadOutputFieldList(ListExpr list);
 
@@ -126,18 +134,17 @@ public:
 
    void Reset();
 
-   void aliasList(std::list<std::string> *list);
-
    void Clear();
-   void DumpTree(QueryTreeNode *n=NULL, int level=0);
+   std::string DumpTreeAsList(QueryTreeNode *n=NULL, int level=0,
+                              std::ostringstream *data=NULL);
    void DumpTreeDot(QueryTreeNode *n, std::string fn, 
        std::ostringstream *data=NULL);
 
    // static helpers
-   static QueryTreeNode* ReadNode(ListExpr list);
-   static QueryTreeNode* ReadNodeInfo(ListExpr list);
-   static void ReadEdges(QueryTreeNode *n, ListExpr list);
-   static void ReadFilters(list<QueryFilter*> &filters, ListExpr list);
+   QueryTreeNode* ReadNode(ListExpr list);
+   QueryTreeNode* ReadNodeInfo(ListExpr list);
+   void ReadEdges(QueryTreeNode *n, ListExpr list);
+   void ReadFilters(std::list<QueryFilter*> &filters, ListExpr list);
 };
 
 } // namespace

@@ -1,0 +1,24 @@
+# open database pgraph2;
+query meminit (1524);
+
+query isdefined(deleteObject("p2")); 
+let p2=createpgraph("p2");
+query p2 cfg["log","20"];
+query p2 cfg["dotquery","1"];
+
+query p2 addnodesrel["Document","Docid"];
+query p2 addnodesrel["Author","Authorid"];
+query p2 addnodesrel["Keyword","Id"];
+query p2 addnodesrel["Publisher","Id"];
+query p2 addnodesrel["Conference","Id"];
+query p2 addnodesrel["Collection","Id"];
+
+query p2 addedgesrel["AUTHOR_OF","Authorid=Author.Authorid","Docid=Document.Docid"];
+query p2 addedgesrel["KEYWORD_OF","Wordid=Keyword.Wordid","Docid=Document.Docid"];
+query p2 addedgesrel["PUBLISHED_BY","Docid=Document.Docid","Publisherid=Publisher.Id"];
+query p2 addedgesrel["PUBLISHED_AT","Docid=Document.Docid","Conferenceid=Conference.Id"];
+query p2 addedgesrel["PART_OF","Docid=Document.Docid","Collectionid=Collection.Id"];
+
+query p2 addindex["Author","Name"];
+
+query p2 info;

@@ -22,7 +22,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
 */
-
+#include "Algebras/FText/FTextAlgebra.h"
 #include "../Relation-C++/RelationAlgebra.h"
 
 #include <string>
@@ -37,6 +37,9 @@ namespace pgraph
 //----------------------------------------------------------------------------
 string AttrInfo::GetStringVal(Tuple *tuple)
 {
+      if (TypeName=="text")  {
+         return ((FText*)tuple->GetAttribute(Index))->GetValue();
+      }
       if (TypeName=="string")  {
          return ((CcString*)tuple->GetAttribute(Index))->GetValue();
       }
@@ -49,6 +52,13 @@ string AttrInfo::GetStringVal(Tuple *tuple)
 //----------------------------------------------------------------------------
 RelationSchemaInfo::RelationSchemaInfo()
 {
+}
+
+//----------------------------------------------------------------------------
+RelationSchemaInfo::~RelationSchemaInfo()
+{
+   for(auto&& o : Attributes) delete o;
+   Attributes.clear();      
 }
 
 //----------------------------------------------------------------------------

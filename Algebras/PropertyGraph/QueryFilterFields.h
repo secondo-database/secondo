@@ -50,7 +50,7 @@ public:
 class QueryFilterFields
 {
 public:
-   list<QueryFilterField*> Fields;
+   std::list<QueryFilterField*> Fields;
 
    void ReadFromList(ListExpr list);
    bool Matches(std::string typname, RelationSchemaInfo *schema, Tuple *tuple);

@@ -28,7 +28,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "NestedList.h"
 #include "ListUtils.h"
 #include "Utils.h"
-#include "PGraphQueryProcessor.h"
+#include "PropertyGraphQueryProcessor.h"
+
+using namespace std;
 
 namespace pgraph {
 
@@ -38,6 +40,7 @@ QueryFilter* QueryFilter::Clone()
    QueryFilter* f=new QueryFilter();
    f->Name=Name;
    f->Value=Value;
+   f->Indexed=Indexed;
    return f;
 }
 
@@ -51,10 +54,10 @@ QueryTreeNode::QueryTreeNode()
 //----------------------------------------------------------------------------
 double QueryTreeNode::CalcCost()
 {
-   double c=Cost;
+   double c=1;
    for(auto&& edge : Edges) 
    {
-       c = c * edge->Cost * edge->ToNode->CalcCost();
+       c = c * edge->CalcCost();
    }
    return c;
 }
@@ -93,6 +96,12 @@ void QueryTreeNode::GetPosVector(vector<QueryTreeEdge*> *posvector)
 }
 
 //----------------------------------------------------------------------------
+double QueryTreeEdge::CalcCost()
+{
+   return  Cost * ToNode->CalcCost();
+}
+
+//----------------------------------------------------------------------------
 QueryTreeNode* QueryTree::ReadNodeInfo(ListExpr list)
 {
     QueryTreeNode *n = new QueryTreeNode();
@@ -100,7 +109,7 @@ QueryTreeNode* QueryTree::ReadNodeInfo(ListExpr list)
     auto getAliasOrTypeName = [](QueryTreeNode *n, ListExpr atom) 
     { 
        string s=nl->ToString(atom);
-       if (firstUpper(s))
+       if (FirstUpper(s))
           n->TypeName=s;
        else
           n->Alias=s;
@@ -125,32 +134,9 @@ QueryTreeNode* QueryTree::ReadNodeInfo(ListExpr list)
          }
     }
 
+    AliasList.AddNode(n->Alias, n->TypeName);
+
     return n;
-}
-
-
-//----------------------------------------------------------------------------
-void collectAliasRec(list<string> *list, QueryTreeNode *n)
-{
-    if (n->Alias!="")
-    {
-       
-       std::list<std::string>::iterator  it = std::find(list->begin(), 
-           list->end(), n->Alias);
-       if (it==list->end())
-          list->push_back(n->Alias);
-    }
-    for (auto&& e:n->Edges)
-    {
-       collectAliasRec(list, e->ToNode);
-    }
-}
-
-//----------------------------------------------------------------------------
-void  QueryTree::aliasList(list<string> *list)
-{
-   if (Root==NULL) return;
-   collectAliasRec(list, Root);
 }
 
 //----------------------------------------------------------------------------
@@ -161,55 +147,48 @@ QueryTree::~QueryTree()
 }
 
 //----------------------------------------------------------------------------
-void QueryTree::DumpTree(QueryTreeNode *n, int level)
+string QueryTree::DumpTreeAsList(QueryTreeNode *n, int level, 
+   ostringstream *data)
 {
-    if (n==NULL)  {
-        if (Root!=NULL)  {
-            DumpTree(Root, 1);
-            return;
-        }
-        else
-        {
-            cout << "NO TREE" << endl;
-            return;
-        }
-    }
-            
-    //
-    string indent="";
-    for(int i=0; i<level; i++) indent+="  ";
+   if (n==NULL)  {
+      if (Root!=NULL)   {
+         ostringstream os;
+         DumpTreeAsList(Root, level, &os);
+         return os.str();
+      }
+      return "";
+   }
 
-    //
-    cout << indent << "NODE" << endl;
-    cout << indent << "- Alias:" << n->Alias << endl;
-    list <QueryFilter*> :: iterator itf; 
-    for(itf = n->Filters.begin(); itf != n->Filters.end(); ++itf) 
-         cout << indent << "- Filter: " <<  (*itf)->Name <<" = " << 
-             (*itf)->Value << endl;
-    indent+="  ";
-    list <QueryTreeEdge*> :: iterator it; 
-    for(it = n->Edges.begin(); it != n->Edges.end(); ++it) 
-    {
-        cout << indent << "EDGE:" << endl;
-        cout << indent << "- TYPE: " << (*it)->TypeName  << endl;
-        cout << indent << "- REVERSE: " << ((*it)->Reverse?"Y":"N")  << endl;
-        if ((*it)->ToNode!=NULL)
-          DumpTree((*it)->ToNode,level+2);
-    }
+   //
+   string indent="";
+   for(int i=0; i<level; i++) indent+="  ";
+            
+   *data << "(" << n->Alias << n->TypeName << ")" << "\n";
+   for(auto&& e : n->Edges) 
+   {
+       *data << e->Alias << e-> TypeName << "\n";
+       DumpTreeAsList(e->ToNode,level+2, data);
+   }
+   
+   return "";
 }
 
 //----------------------------------------------------------------------------
 void QueryTree::ReadFilters(list<QueryFilter*> &filters, ListExpr list)
 {
-      while(!nl->IsEmpty(list))
-      {
-         QueryFilter *f=new QueryFilter();
-         filters.push_back(f);
-         f->Name = nl->ToString(nl->First(nl->First(list)));
-         f->Value = nl->ToString(nl->Second(nl->First(list)));
-         ReplaceStringInPlace(f->Value, "\"","");
-         list=nl->Rest(list);
-      }
+   while(!nl->IsEmpty(list))
+   {
+      if (nl->ListLength(nl->First(list))!=2)
+         throw PGraphException("Node filter expects a list of (name value) "
+          "lists!");
+
+      QueryFilter *f=new QueryFilter();
+      filters.push_back(f);
+      f->Name = nl->ToString(nl->First(nl->First(list)));
+      f->Value = nl->ToString(nl->Second(nl->First(list)));
+      ReplaceStringInPlace(f->Value, "\"","");
+      list=nl->Rest(list);
+   }
 }
 
 //----------------------------------------------------------------------------
@@ -231,33 +210,34 @@ void QueryTree::DumpTreeDot(QueryTreeNode *n, string fn, ostringstream *data)
     *data <<"n"<<n->_uid<<+"[label=<"+n->Alias;
     if (n->TypeName!="")
         *data<<"<BR/>:"<<n->TypeName  ;
-    *data<<"<BR/>(COST:"<<n->Cost << ")<BR/>";
+    if (n->Cost>-1) *data<<"<BR/>(COST:"<<round(n->Cost,4) << ")<BR/>";
+    
     
     list <QueryFilter*> :: iterator itf;         
-    for(itf = n->Filters.begin(); itf != n->Filters.end(); ++itf) 
-        *data << (*itf)->Name <<" = " << (*itf)->Value << "<BR/>\n";
+    for(auto&& item : n->Filters) 
+        *data << (item->Indexed?"(INDEXED)":"") << item->Name <<" = " 
+              << item->Value << "<BR/>\n";
 
     *data<<">]\n";    
 
     //
-    list <QueryTreeEdge*> :: iterator it; 
-    for(it = n->Edges.begin(); it != n->Edges.end(); ++it) 
+    for(auto&& e : n->Edges) 
     {
-        if ((*it)->ToNode!=NULL)
+        if (e->ToNode!=NULL)
         {
            //if (!(*it)->Reverse)
-              *data << "n"<<(*it)->FromNode->_uid<<"->n"<<
-                  (*it)->ToNode->_uid<<"\n";
-           if ((*it)->Reverse) *data<<"[dir=back]";
+              *data << "n"<<e->FromNode->_uid<<"->n"<<
+                  e->ToNode->_uid<<"\n";
+           if (e->Reverse) *data<<"[dir=back]";
            *data << " [label=<";
-           if ((*it)->Alias!="")
-              *data<<(*it)->Alias;
-           if ((*it)->TypeName!="")
-              *data<<":"<<(*it)->TypeName;
-           *data<<"<BR/>(COST:"<<(*it)->Cost << ")<BR/>";
+           if (e->Alias!="")
+              *data<<e->Alias;
+           if (e->TypeName!="")
+              *data<<":"<<e->TypeName;
+           if (e->Cost>-1) *data<<"<BR/>(COST:"<<round(e->Cost,4) << ")<BR/>";
            *data<<">]\n";    
 
-           DumpTreeDot((*it)->ToNode, fn, data);
+           DumpTreeDot(e->ToNode, fn, data);
         }
     }
 
@@ -274,7 +254,7 @@ void QueryTree::DumpTreeDot(QueryTreeNode *n, string fn, ostringstream *data)
 //----------------------------------------------------------------------------
 void QueryTree::ReadEdges(QueryTreeNode *n, ListExpr list)
 {
-    LOGOP(10, "QueryTree::ReadEdges", nl->ToString(list));
+    LOGOP(20, "QueryTree::ReadEdges", nl->ToString(list));
 
     while(true)
     {    
@@ -300,7 +280,7 @@ void QueryTree::ReadEdges(QueryTreeNode *n, ListExpr list)
             if (s=="<-") 
                edge->Reverse=true;
             else
-               if (firstUpper(s)) 
+               if (FirstUpper(s)) 
                   edge->TypeName=s;
                else
                   edge->Alias=s;
@@ -308,12 +288,13 @@ void QueryTree::ReadEdges(QueryTreeNode *n, ListExpr list)
            idx--;
        }
       n->Edges.push_back(edge);
+      AliasList.AddNode(edge->Alias, edge->TypeName);
 
       //  read node
       ListExpr nodeinfo= nl->First(list);
       list=nl->Rest(list);
 
-      edge->ToNode=QueryTree::ReadNode(nodeinfo);
+      edge->ToNode=ReadNode(nodeinfo);
 
     }
     if (!nl->IsEmpty(list)) {
@@ -335,7 +316,7 @@ void  QueryTree::Clear()
 //----------------------------------------------------------------------------
 void QueryTree::ReadFilterList(ListExpr list)
 {
-   LOGOP(100, "QueryTree::ReadFilterList", nl->ToString(list));
+   LOGOP(20, "QueryTree::ReadFilterList", nl->ToString(list));
    filterList.ReadFromList(list);
 }
 
@@ -364,22 +345,45 @@ void QueryTree::Reset()
 //----------------------------------------------------------------------------
 void QueryTree::ReadOutputFieldList(ListExpr list)
 {
-   LOGOP(100, "QueryTree::ReadOutputFieldList", nl->ToString(list));
+   LOGOP(20, "QueryTree::ReadOutputFieldList", nl->ToString(list));
    outputFields.ReadFromList(list);
 }
 
 //----------------------------------------------------------------------------
-void QueryTree::ReadQueryTree(ListExpr list)
+void QueryTree::ReadQueryTree(string slist)
+{
+   ListExpr alist=0;
+   nl->ReadFromString(slist, alist);
+   try
+      {
+         ReadQueryTree(alist);
+   }
+      catch(...)
+   {
+      nl->Destroy(alist);  
+      throw;
+   }
+   nl->Destroy(alist);
+}
+
+//----------------------------------------------------------------------------
+double QueryTree::CalcCost()
+{
+   return Root->Cost * Root->CalcCost();
+}
+
+//----------------------------------------------------------------------------
+void QueryTree::ReadQueryTree(ListExpr alist)
 {
     Clear();
 
     try
     {
-        if (nl->ListLength(list)==0)
+        if (nl->ListLength(alist)==0)
         throw PGraphException("At least a list with at least on node "
         "is required");
 
-        Root=QueryTree::ReadNode(list);
+        Root=QueryTree::ReadNode(alist);
     }
     catch(PGraphException &e)
     {

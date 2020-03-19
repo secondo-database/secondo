@@ -27,6 +27,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #define RELATIONINFO_H_
 
 #include <string>
+#include <vector>
 
 #include "NestedList.h"
 
@@ -34,20 +35,11 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 namespace pgraph
 {
 
-class IndexInfo
-{
-public:
-   std::string NodeType;
-   std::string PropName;
-   std::string IndexName;
-};
-
-
-//------------------------------------------------------------------
 class AttrInfo
 {
 public:
     int    Index=-1;
+    bool   Indexed=false;
     std::string Name;    
     std::string TypeName;
     std::string GetStringVal(Tuple *tuple);
@@ -56,8 +48,9 @@ public:
 //------------------------------------------------------------------
 class RelationSchemaInfo
 {
-    vector<AttrInfo*> Attributes;
+    std::vector<AttrInfo*> Attributes;
 public:    
+    ~RelationSchemaInfo();
     RelationSchemaInfo();
     RelationSchemaInfo(ListExpr relation);
     void LoadFromList(ListExpr relation);

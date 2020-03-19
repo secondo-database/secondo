@@ -40,6 +40,17 @@ ifneq ($(MAKECMDGOALS),clean)
 include $(DEP_FILES)
 endif
 
+# helper for generate docs needs to be renamed, because tex will not use filenames like "*.cpp.pdf"
+define generate_docfile
+	pd2pdf $(1)
+	$(eval fn=$(1).pdf)
+	$(eval fn=$(subst .flex.,-flex.,$(fn)) )
+	$(eval fn=$(subst .cpp.,-cpp.,$(fn)) )
+	echo $(fn)
+	mv $(1).pdf $(fn) 
+endef
+	
+
 # generic rule for creating a library
 $(LIBOBJ): $(OBJECTS)
 	$(create-lib)
@@ -49,8 +60,13 @@ $(LIBOBJ): $(OBJECTS)
 clean:
 	$(clean-algebra)
 	rm -f CypherParser.cpp CypherParser.h CypherScanner.h CypherScanner.cpp  position.hh location.hh stack.hh 
+	rm -f *.aux
+	rm -f *.dvi
+	rm -f *.log
+	rm -f *.tex
+	rm -f *.pdf
 
-#generate_parser: cypherscanner.cpp cypherparser.cpp
+PropertyGraphAlgebra.cpp: CypherScanner.cpp CypherParser.cpp  
 
 CypherLang.cpp: CypherScanner.cpp CypherParser.cpp 
 
@@ -59,4 +75,9 @@ CypherScanner.h CypherScanner.cpp: Cypher.flex
 
 CypherParser.h CypherParser.cpp: Cypher.bison
 	bison  Cypher.bison
+
+
+makedocs:
+	$(call generate_docfile, Cypher.flex)
+	$(call generate_docfile, PropertyGraphAlgebra.cpp)
 

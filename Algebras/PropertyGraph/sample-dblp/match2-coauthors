@@ -1,0 +1,23 @@
+open database pgraph2;
+query meminit (1524);
+query p2 loadgraph;
+
+# Queries the top 5 co-authors of "Ralf Hartmut Gueting" of 
+# publications in 2017. The results will be grouped and show
+# the Authors with the sum of joint publications.
+
+query p2 
+match2 ['
+(
+   ( a2 ( (Name "Ralf Hartmut Gueting") ))
+   ( a )
+   (doc Document)
+   (a2  AUTHOR_OF doc)
+   (a  AUTHOR_OF doc)
+)',
+'(  ((a Name) <> "Ralf Hartmut Gueting")  ) ',
+'(  ((a Name) Name)  )'
+,'doc'] 
+sortby[Name] groupby[Name; Cnt:group count] sortby[Cnt:desc] head[5] consume;
+
+

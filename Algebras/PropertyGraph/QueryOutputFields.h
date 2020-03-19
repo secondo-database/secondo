@@ -34,6 +34,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 namespace pgraph {
 
+class MemoryGraphObject;
+enum AliasType { AliasIsNode, AliasIsEdge };
+
 //-----------------------------------------------------------------------------
 class QueryOutputField
 {
@@ -46,14 +49,35 @@ public:
 };
 
 //-----------------------------------------------------------------------------
+class QueryAliasInfo
+{
+public:
+   AliasType Type=AliasIsNode;
+   std::string AliasName="";
+   std::string TypeName="";
+};
+
+//-----------------------------------------------------------------------------
+class QueryAliasList
+{
+public:
+   std::list<QueryAliasInfo> list;
+
+   void AddNode(std::string aliasname, std::string typename_);
+   void AddEdge(std::string aliasname, std::string typename_);
+   void Update(std::string aliasname, std::string typename_);
+};
+
+//-----------------------------------------------------------------------------
 class QueryOutputFields
 {
 public:
-   list<QueryOutputField*> Fields;
+   std::list<QueryOutputField*> Fields;
 
    void ReadFromList(std::string list);
    void ReadFromList(ListExpr list);
-   ListExpr StreamTypeDefinition();
+   ListExpr StreamTypeDefinition(QueryAliasList *aliaslist, 
+       MemoryGraphObject *pgmem);
 };
 
 

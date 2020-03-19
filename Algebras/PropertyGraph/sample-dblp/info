@@ -1,0 +1,8 @@
+ open database pgraph2;
+query meminit (1524);
+query p2 cfg["log","10"];
+query p2 clearstat;
+ query p2 loadgraph;
+
+query p2 info;
+

@@ -23,10 +23,17 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 
-#include "../MainMemory2/MPointer.h"
-#include "../MainMemory2/Mem.h"
+#include "MPointer.h"
+#include "Mem.h"
 #include "../Relation-C++/RelationAlgebra.h"
 #include "../FText/FTextAlgebra.h"
+#include "Stream.h"
+
+#include "../MainMemory2/MainMemoryExt.h"
+#include "MPointer.h"
+#include "Mem.h"
+#include "MemoryObject.h"
+#include "MemCatalog.h"
 
 #include <string>
 #include <Utils.h>
@@ -36,8 +43,14 @@ using namespace std;
 namespace pgraph
 {
 
-   int debugLevel = 0;
+   int debugLevel = 0;   
+       // The default loglevel - the first step in the typemapping functions
+       // will be quiet until the point where the log option is processed.
+       // this makes it perhaps necesssary to adjust the default value here.
 
+   void setDebugLevel(int level) { debugLevel=level; }
+
+//------------------------------------------------------------------
    string getDBname()
    {
       SecondoSystem *sys = SecondoSystem::GetInstance();
@@ -131,9 +144,26 @@ int GetNextListIndex(ListExpr list)
 }
 
 //----------------------------------------------------------------------------
-bool firstUpper(const string& word) 
+bool FirstUpper(const string& word) 
 { 
       return word.size() && std::isupper(word[0]); 
+}
+
+//-----------------------------------------------------------------------------
+ListExpr ParseString(string s)
+{
+   ListExpr list = 0;
+   nl->ReadFromString(s,list);
+   return list;
+}
+
+//-----------------------------------------------------------------------------
+string GetArgValue(ListExpr args, int pos)
+{
+   NList list(args);
+   return list.elem(pos).second().str();
+  //return nl->Text2String(nl->Second(nl->Nth(pos, args))); 
+  // above failed as it will not respect different string types
 }
 
 //-----------------------------------------------------------------------------
@@ -155,6 +185,50 @@ string GetArg_FTEXT_AS_STRING(Address a)
 }
 
 //-----------------------------------------------------------------------------
+string GetArg_STRING(Address a)
+{
+   if (a==NULL) return "";
+   CcString *text = static_cast<CcString*>( a);
+   if (text==NULL) return "";
+   return text->GetValue();
+}
+
+//-----------------------------------------------------------------------------
+int  GetArgCount(ListExpr args)
+{
+   return nl->ListLength(args);
+}
+
+//-----------------------------------------------------------------------------
+void CheckArgCount(ListExpr args, int min, int max)
+{
+   if ( nl->ListLength(args)<min || nl->ListLength(args)>max )  
+   {
+      if (min==max)
+         throw PGraphException("Expecting "+ to_string(min)+" arguments ");
+      else
+         throw PGraphException("Expecting "+ to_string(min)+"-"+
+                 to_string(max)+" arguments ");
+   }
+}
+
+//-----------------------------------------------------------------------------
+void CheckArgType(ListExpr args, int pos, string typename_)
+{
+   if ( nl->ToString(nl->First(nl->Nth(pos,args))) != typename_ ) 
+      throw PGraphException("Argument #"+to_string(pos)+" has to be of type "+
+          typename_);
+}
+
+//-----------------------------------------------------------------------------
+void CheckArgTypeIsTupleStream(ListExpr args, int pos)
+{
+   if (!Stream<Tuple>::checkType( nl->First(nl->Nth(pos,args)) )) 
+      throw PGraphException("Argument #"+to_string(pos)+
+          " has to be a tuple stream");
+}
+
+//-----------------------------------------------------------------------------
 int QueryRelationCount(string relname) 
 {
   string querystring = "(count (feed " + relname + "))";
@@ -168,19 +242,13 @@ int QueryRelationCount(string relname)
       cout << " count: "<< i<< "\n";
       ((CcInt*)resultWord.addr)->DeleteIfAllowed();
     }
-    else cout << "Error in executing  query: " << querystring << endl;
+    else
+       throw PGraphException("Error in executing  query: "+querystring);
 
 
   return i;
 }
 
-//-----------------------------------------------------------------------------
-
-Relation* QueryRelation(string relname) 
-{
-   ListExpr s;
-   return QueryRelation(relname, s);
-}
 
 //-----------------------------------------------------------------------------
 //
@@ -201,42 +269,146 @@ bool queryValueDouble(string cmd, double &val){
 }
 
 //-----------------------------------------------------------------------------
+double round(double x, int n) {
+   int d = 0;
+   if((x * pow(10, n + 1)) - (floor(x * pow(10, n))) > 4) d = 1;
+   x = (floor(x * pow(10, n)) + d) / pow(10, n);
+   return x;
+   }
 
-Relation* QueryRelation(string relname, ListExpr &reltype) 
+//-----------------------------------------------------------------------------
+mm2algebra::MemoryRelObject* QueryMemRelation(string relname) 
 {
-   // query Street feed addcounter[Gid,1] consume
-  string querystring = "(consume (feed " + relname + "))";
-  //string querystring = "(consume (addcounter (feed  "+relname+") Gid 1))";
+   mm2algebra::MemCatalog *memCatalog = 
+       mm2algebra::MemCatalog::getInstance();
+
+   if (memCatalog->isObject(relname)) {
+      mm2algebra::MemoryObject *mo=memCatalog->getMMObject(relname);
+      //string s=mo->getObjectTypeExpr();
+      return (mm2algebra::MemoryRelObject*) mo;
+   }
+   
+   throw PGraphException("Error reading relation : "+relname);
+}
+
+//-----------------------------------------------------------------------------
+Relation* OpenRelation(string relname) 
+{
+   ListExpr s;
+   return OpenRelation(relname, s);
+}
+
+//-----------------------------------------------------------------------------
+Relation* OpenRelation(string relname, ListExpr &reltype) 
+{
+   SecondoCatalog* catalog = SecondoSystem::GetCatalog();
+   reltype=catalog->GetObjectTypeExpr(relname);
+  
+   if (catalog->IsObjectName(relname)) {
+      bool defined;
+      Word word;
+      catalog->GetObject(relname, word, defined);
+      return (Relation*) word.addr;
+   }
+   throw PGraphException("Error reading relation : "+relname);
+}
+
+//-----------------------------------------------------------------------------
+Relation*  ExecuteQuery(string query) 
+{
   
    Word resultWord;
    
-    Word queryResult;
-    std::string typeString = "";
-    std::string errorString = "";
-    bool correct;
-    bool evaluable;
-    bool defined;
-    bool isFunction;
-
-    // use the queryprocessor for executing the expression
-   ListExpr queryList;
-    nl->ReadFromString( querystring, queryList );
-
-    qp->ExecuteQuery(queryList, queryResult, 
+   Word queryResult;
+   std::string typeString = "";
+   std::string errorString = "";
+   bool correct;
+   bool evaluable;
+   bool defined;
+   bool isFunction;
+   ListExpr q;
+   nl->ReadFromString(query,q);
+   if (qp->ExecuteQuery(q, queryResult, 
                     typeString, errorString, correct, 
-                    evaluable, defined, isFunction);
-
-
-   if ( QueryProcessor::ExecuteQuery(querystring, resultWord ) )
+                    evaluable, defined, isFunction))
    {
-      nl->ReadFromString(typeString, reltype);
-      //cout << "type: " << typeString << endl;
-      
-      return ( Relation * ) resultWord.addr;    
+      //nl->ReadFromString(typeString, reltype);
+      return ( Relation* ) queryResult.addr;    
    }
-   else cout << "Error in executing  query: " << querystring << endl;
-
-  return NULL;
+   throw PGraphException("Error executing query : "+query);
 }
+
+//-----------------------------------------------------------------------------
+//TODO move to utils
+void DoLet(string objName, string  commandText)
+// see QueryProcessor/SecondointerfaceTTY.cpp
+{
+   ListExpr valueExpr = nl->TheEmptyList();
+  if ( !nl->ReadFromString( commandText, valueExpr ) )
+      throw PGraphException("[DoLet] Parsing commandtext");
+
+
+   QueryProcessor& qp = *SecondoSystem::GetQueryProcessor();
+   SecondoCatalog& ctlg = *SecondoSystem::GetCatalog();
+  
+   NestedList& nl = *SecondoSystem::GetNestedList();
+   bool correct = false;
+   bool evaluable = false;
+   bool defined = false;
+   bool isFunction = false;
+   ListExpr resultType = nl.TheEmptyList();
+   OpTree tree = 0;
+   Word result = SetWord( Address(0) );
+
+   try {
+   qp.Construct( valueExpr, correct, evaluable, defined,
+                      isFunction, tree, resultType );
+
+        if ( evaluable || isFunction )
+        {
+          //cout << "DoLet eval or function\n";
+          string typeName = "";
+          ctlg.CreateObject(objName, typeName, resultType, 0);
+        }
+        if ( evaluable )
+        {
+          qp.EvalP( tree, result, 1 );
+
+          if( IsRootObject( tree ) && !IsConstantObject( tree ) )
+          {
+            //cout << "DoLet root\n";
+            ctlg.CloneObject( objName, result );
+            qp.Destroy( tree, true );
+          }
+          else
+          {
+            //cout << "DoLet nonroot\n";
+            ctlg.UpdateObject( objName, result );
+            qp.Destroy( tree, false );
+          }
+        }
+        else if ( isFunction ) // abstraction or function object
+        {
+          //cout << "DoLet isfunction\n";
+          if ( nl.IsAtom( valueExpr ) )  // function object
+          {
+             ListExpr functionList = ctlg.GetObjectValue(
+                                            nl.SymbolValue( valueExpr ) );
+             ctlg.UpdateObject( objName, SetWord( functionList ) );
+          }
+          else
+          {
+             ctlg.UpdateObject( objName, SetWord( valueExpr ) );
+          }
+          qp.Destroy( tree, true );
+        }
+        //cout << "DoLet x\n";
+      } catch (SI_Error err) {
+        // errorCode = err;
+        throw PGraphException("SI_Error DoLet");
+         qp.Destroy( tree, true );
+      }  
+}
+
 
 } // namespace pgraph

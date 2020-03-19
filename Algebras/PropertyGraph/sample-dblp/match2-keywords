@@ -1,0 +1,24 @@
+#open database pgraph2;
+#query meminit (1524);
+#query p2 loadgraph;
+
+# Queries the conferences and publication titles
+# where "Ralf Hartmut Gueting" presenets a paper that is
+# indexed with a keyword containing "tempo"
+
+# 
+
+query p2 
+match2 ['
+(
+   (doc Document)
+   (a ( (Name "Ralf Hartmut Gueting") ))
+   (doc p PUBLISHED_AT conf)
+   (k  KEYWORD_OF doc)
+   (a AUTHOR_OF  doc)
+)',
+'(  ((k Word) contains "tempo")  ) ',
+'(  ((conf Name) Name)  ((p Year) Year)  ((doc Title) Title) )'
+] consume;
+
+

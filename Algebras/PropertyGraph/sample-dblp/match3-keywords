@@ -1,0 +1,22 @@
+#open database pgraph2;
+#query meminit (1524);
+#query p2 loadgraph;
+
+#  Queries the conferences and publication titles
+#  where "Ralf Hartmut Gueting" presenets a paper that is
+#  indexed with a keyword containing "tempo"
+
+#  In this sample, the cypher query is expressed by two pathes, that
+#  are combined by the node alias 'doc'. Also the node types
+#  of the aliases 'k', 'a' and 'doc' are derived from the edge types.
+
+query p2 
+match3 ['
+    MATCH 
+      (conf)<-[p:_PUBLISHED_AT]-(doc:Document)<-[:KEYWORD_OF]-(k),
+      (doc)<-[AUTHOR_OF]-(a{Name:"Ralf Hartmut Gueting"}) 
+     WHERE k.Word contains "tempo"
+    RETURN  conf.Name, p.Year, doc.Title
+'] consume;
+
+

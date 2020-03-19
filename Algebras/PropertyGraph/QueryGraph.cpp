@@ -28,15 +28,17 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "NestedList.h"
 #include "ListUtils.h"
 #include "Utils.h"
-#include "PGraphQueryProcessor.h"
+#include "PropertyGraphQueryProcessor.h"
 #include <set>
+
+using namespace std;
 
 namespace pgraph {
 
 //----------------------------------------------------------------------------
-QueryGraph::QueryGraph(PGraphQueryProcessor *qp)
+QueryGraph::QueryGraph(RelationRegistry *relreg)
 {
-   queryproc=qp;
+   RelRegistry=relreg;
 }
 
 //----------------------------------------------------------------------------
@@ -69,7 +71,7 @@ void QueryGraph::DumpGraph()
 //----------------------------------------------------------------------------
 void QueryGraph::DumpGraphDot(string fn)
 {
-   LOGOP(10,"QueryGraph::DumpGraphDot");
+   LOGOP(20,"QueryGraph::DumpGraphDot");
    ostringstream data;
    data << "digraph g {\n";
 
@@ -79,13 +81,15 @@ void QueryGraph::DumpGraphDot(string fn)
       if (n.TypeName!="")
          data<<"<BR/>:"<<n.TypeName;
        
-      data<<"<BR/> COST: "<<n.Cost<<"<BR/>";   
+      data<<"<BR/> CARD: "<<n.Cost<<"<BR/>";   
 
       list <QueryFilter*> :: iterator itf;         
-      for(itf = n.Filters.begin(); itf != n.Filters.end(); ++itf) 
+      for(auto&& item : n.Filters) 
       {
-         data << (((*itf)->Index!="")?"(INDEX)":"") << (*itf)->Name <<" = " 
-              << (*itf)->Value << "<BR/>\n";
+         
+         data << ((item->Indexed)?"(INDEXED) ":"");
+         data << item->Name <<" = " 
+              << item->Value << "<BR/>\n";
       }
 
       data<<">]\n";    
@@ -100,7 +104,7 @@ void QueryGraph::DumpGraphDot(string fn)
          data<<e.Alias;
       if (e.TypeName!="")
          data<<":"<<e.TypeName;
-      data<<"<BR/>COST: "<<e.CostFw<<"/"<<e.CostBw<<"<BR/>";      
+      data<<"<BR/>AVG: "<<round(e.CostFw,4)<<"/"<<round(e.CostBw,4)<<"<BR/>"; 
       data<<">]\n";    
     }
    data<<"}\n";
@@ -109,7 +113,7 @@ void QueryGraph::DumpGraphDot(string fn)
    outfile.open(fn, std::ios_base::trunc);
    outfile << data.str();     
     
-    LOGOP(10,"/QueryGraph::DumpGraphDot");
+    LOGOP(20,"/QueryGraph::DumpGraphDot");
 }
 
 //----------------------------------------------------------------------------
@@ -122,20 +126,16 @@ QueryGraphNode::QueryGraphNode()
 QueryGraphNode* QueryGraph::addNode(string alias, string typename_, 
     ListExpr *props)
 {
-   LOGOP(10,"ADDNODE ",alias, (props==NULL?"":" PROPS") );
+   LOGOP(30,"ADDNODE ",alias,":",typename_, (props==NULL?"":" PROPS") );
    QueryGraphNode n;
    n.ID=NextNodeID;
    n.Alias=alias;
    n.TypeName=typename_;
 
-   // will not be available in operator typemapping
-   RelationInfo *relinfo = (queryproc==NULL)?NULL:queryproc->pgraphMem
-        ->RelRegistry.GetRelationInfo(n.TypeName);
-   if (relinfo!=NULL)
-      n.Cost=relinfo->statistics->cardinality;
+   AliasList.AddNode(n.Alias, n.TypeName);
 
    if (props!=NULL)
-      readFilters(n.Filters, *props, relinfo);
+      readFilters(n.Filters, *props);
 
    Nodes.push_back(n);
 
@@ -148,7 +148,7 @@ QueryGraphNode* QueryGraph::addNode(string alias, string typename_,
 void QueryGraph::addEdge(string edgelias, string typename_,string alias, 
     string alias2, ListExpr *props)
 {
-   LOGOP(10, "ADDEDGE ", alias, " -[",edgelias,":", typename_, "]-> ", 
+   LOGOP(30, "ADDEDGE ", alias, " -[",edgelias,":", typename_, "]-> ", 
        alias2, (props==NULL?"":" PROPS") );
 
    QueryGraphEdge e;
@@ -162,8 +162,9 @@ void QueryGraph::addEdge(string edgelias, string typename_,string alias,
       if (n.Alias==alias2)
          e.ToNode=&n;
 
-   RelationInfo *relinfo = (queryproc==NULL)?NULL:queryproc->pgraphMem->
-      RelRegistry.GetRelationInfo(e.TypeName);
+   AliasList.AddEdge(e.Alias, e.TypeName);
+
+   RelationInfo *relinfo = RelRegistry->GetRelationInfo(e.TypeName);
    if (relinfo!=NULL) {
       e.CostFw=relinfo->statistics->avgcardForward;
       e.CostBw=relinfo->statistics->avgcardBackward;;
@@ -178,7 +179,7 @@ void QueryGraph::addEdge(string edgelias, string typename_,string alias,
 
 
    if (props!=NULL)
-      readFilters(e.Filters, *props, relinfo);
+      readFilters(e.Filters, *props);
 
    Edges.push_back(e);
 
@@ -200,7 +201,46 @@ void dfs(vector<int> adj[], bool *vis, int x)
     }
 }  
 
-bool QueryGraph::IsConnectedAndCycleFree() 
+//----------------------------------------------------------------------------
+void QueryGraph::Validate() 
+{
+   CompleteTypes();
+
+   if (!IsConnected())
+        throw PGraphException("query graph is not connected and cycle free");
+
+   for (auto&& n : Nodes) 
+   {
+      if (n.TypeName=="") throw PGraphException("missing node type"+
+         (n.Alias!=""?" for alias "+n.Alias:""));
+
+      RelationInfo *relinfo = RelRegistry->GetRelationInfo(n.TypeName);
+
+      // mark filters as indexed
+      for(auto&& fi:n.Filters)
+      {
+         if (RelRegistry->IsIndexed(relinfo->Name, fi->Name))
+            fi->Indexed=true;
+      }
+
+      // get statistics
+      if (relinfo!=NULL) {
+         n.Cost=relinfo->statistics->cardinality;
+      }
+
+   }
+   for (auto&& e : Edges) 
+   {
+      if (e.TypeName=="") throw PGraphException("missing edge type"+
+          (e.Alias!=""?" for alias "+e.Alias:""));
+   }
+
+
+
+}
+
+//----------------------------------------------------------------------------
+bool QueryGraph::IsConnected() 
 { 
    // prepare adjacency-lists (double sided!)  
    vector<int> grFw[Nodes.size()], grBw[Nodes.size()]; 
@@ -234,23 +274,27 @@ bool QueryGraph::IsConnectedAndCycleFree()
 } 
 
 //----------------------------------------------------------------------------
-QueryTree *QueryGraph::CreateOptimalQueryTree()
+QueryTree *QueryGraph::CreateOptimalQueryTree(string forcealias)
 {
     //TODO
     if (Nodes.size()==0)
       throw PGraphException("no QueryGraph!");
 
    QueryTree *bestSoFar=NULL;
+   QueryTree *forced=NULL;
    double minCost=0;
 
    for (auto&& n : Nodes)
    {
       if (n.TypeName=="") continue;
       QueryTree *t = CreateQueryTree(&n);
-
-      double cost=t->Root->CalcCost();
+      
+      double cost=t->CalcCost();
       LOGOP(10, "QueryGraph::CreateOptimalQueryTree", " COST FROM ",n.Alias, 
-          ":",n.TypeName,"  :", cost);
+          ":",n.TypeName,"  :", int(cost));
+
+      if (forcealias!="" && (forcealias==n.Alias))
+         forced=t;
 
       if (bestSoFar==NULL)
       {  
@@ -264,6 +308,13 @@ QueryTree *QueryGraph::CreateOptimalQueryTree()
             bestSoFar=t;
          }
       }
+   }
+
+   if (forced!=NULL)
+   {
+       LOGOP(10, "QueryGraph::CreateOptimalQueryTree", " forced ", forced->Root
+       ->Alias,":",forced->Root->TypeName);
+       return forced;
    }
 
    LOGOP(10, "QueryGraph::CreateOptimalQueryTree", " taking ", bestSoFar->Root
@@ -285,12 +336,17 @@ void CreateQueryTree_rec(set<QueryGraphNode*> *visited, QueryGraph *qg,
    tn->Alias=n->Alias;
    tn->TypeName=n->TypeName;
    tn->Cost=n->Cost;
-
+ 
    // take filters   
-   for(auto&& f: n->Filters)
+   int idx=0;
+   for(auto&& f: n->Filters) {
       tn->Filters.push_back(f->Clone() );
+      if (f->Indexed) idx++;
+   }
 
-   LOGOP(20,"CreateQueryTree_rec", n->Alias);
+   // use cost = 1 for indexed properties
+   if (n->Filters.size()==1 && idx==1)
+      tn->Cost=1;
 
    if (tree->Root==NULL)
    {
@@ -336,8 +392,7 @@ QueryTree *QueryGraph::CreateQueryTree(QueryGraphNode *n)
 
 
 //----------------------------------------------------------------------------
-void QueryGraph::readFilters(list<QueryFilter*> &filters, ListExpr list, 
-    RelationInfo *relinfo)
+void QueryGraph::readFilters(list<QueryFilter*> &filters, ListExpr list)
 {
       while(!nl->IsEmpty(list))
       {
@@ -346,19 +401,88 @@ void QueryGraph::readFilters(list<QueryFilter*> &filters, ListExpr list,
          f->Name = nl->ToString(nl->First(nl->First(list)));
          f->Value = nl->ToString(nl->Second(nl->First(list)));
 
-         // check if property is indexed
-         if (relinfo!=NULL) {
-            for(auto&& idx:relinfo->Indexes)
-            {
-                  if (idx.second->FieldName==f->Name)
-                     f->Index=idx.second->IndexName;
-            }
-         }
-
          ReplaceStringInPlace(f->Value, "\"","");
          list=nl->Rest(list);
       }
 }
+
+//----------------------------------------------------------------------------
+void QueryGraph::ReadQueryGraph(string slist)
+{
+    ListExpr alist=0;
+    nl->ReadFromString(slist, alist);
+    try
+    {
+       ReadQueryGraph(alist);
+    }
+    catch(...)
+   {
+    nl->Destroy(alist);  
+    throw;
+   }
+    nl->Destroy(alist);
+
+}
+
+//----------------------------------------------------------------------------
+void checkOrcompleteType(QueryAliasList *aliaslist, string typename_, 
+   QueryGraphNode *n)
+{
+   if (n->TypeName=="") 
+   {
+      LOGOP(20,"QueryGraph::CompleteTypes","completed:"+n->Alias+":"+typename_);
+      n->TypeName=typename_;
+      aliaslist->Update(n->Alias, n->TypeName);
+   }
+   else
+   {
+      if (n->TypeName!=typename_)
+         throw PGraphException("Type conflict: "+n->TypeName+" != "+typename_);
+   }
+}
+
+void QueryGraph::CompleteTypes()
+ {
+    // derive typenames from edge relations, if any
+   for(auto&& e:Edges)
+   { 
+      LOGOP(20,"checking",e.Alias+":"+e.TypeName);  
+      RelationInfo *ri = NULL;
+      if (e.TypeName!="") ri=RelRegistry->GetRelationInfo(e.TypeName);
+      
+      for(auto&& n : Nodes)
+      {
+         if (e.FromNode==&n)
+            if (ri!=NULL) 
+               checkOrcompleteType(&AliasList, ri->FromName, e.FromNode);
+
+         if (e.ToNode==&n)
+            if (ri!=NULL) 
+               checkOrcompleteType(&AliasList, ri->ToName, e.ToNode);
+      }
+
+      for(auto&& e : Edges)
+      {
+         if (e.TypeName=="")
+         {
+            // search if any edge relation is matching
+            for(auto&& ri: RelRegistry->RelationInfos )
+            {
+                 if (ri->roleType==RoleEdge)
+                 {
+                     if ((e.FromNode->TypeName==ri->FromName) 
+                        && (e.ToNode->TypeName==ri->ToName))
+                     {
+                        e.TypeName=ri->Name;
+                        AliasList.Update(e.Alias, e.TypeName);
+                     }
+                 }
+            }
+         }
+      }
+   }
+ }
+
 //----------------------------------------------------------------------------
 void QueryGraph::ReadQueryGraph(ListExpr alist)
 {
@@ -393,7 +517,7 @@ void QueryGraph::ReadQueryGraph(ListExpr alist)
                if (count>2) s3=nl->ToString(nl->Third(item));
                if (count>3) s4=nl->ToString(nl->Fourth(item));
 
-               if ( (count==1) || (count==2 && firstUpper(s2)) ) 
+               if ( (count==1) || (count==2 && FirstUpper(s2)) ) 
                {
                   // node 
                   if (pass==1)
@@ -404,6 +528,9 @@ void QueryGraph::ReadQueryGraph(ListExpr alist)
                   // or edge
                   if (pass==2)
                   {
+                     if (count==2) {
+                        addEdge( "", "", s1, s2 , hasPropList?&proplist:NULL);
+                     }
                      if (count==3) {
                         addEdge( "", s2, s1, s3 , hasPropList?&proplist:NULL);
                      }
@@ -420,5 +547,6 @@ void QueryGraph::ReadQueryGraph(ListExpr alist)
         throw;
     }
 }
+
 
 } // namespace

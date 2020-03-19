@@ -31,6 +31,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Utils.h"
 #include "RelationInfo.h"
 
+using namespace std;
+
 namespace pgraph {
 
 
@@ -43,17 +45,37 @@ bool QueryFilterFields::Matches(string typname,RelationSchemaInfo *schema,
        if (f->NodeAlias==typname)
        {
            AttrInfo *ai=schema->GetAttrInfo(f->PropertyName);
-           if (ai!=NULL)
-           {
-              string val=ai->GetStringVal(tuple);
-              if (f->Operator=="=")
-                 if (val!=f->FilterValue) return false;
-              if (f->Operator==">")
-                 if (!(std::stoi(val) > std::stoi(f->FilterValue))) 
-                    return false;
-              if (f->Operator=="<")
-                 if (!(std::stoi(val) < std::stoi(f->FilterValue))) 
-                    return false;
+            if (ai!=NULL)
+            {
+               string val=ai->GetStringVal(tuple);
+
+               // all types
+               if (f->Operator=="=")
+                  if (val!=f->FilterValue) return false;
+               if (f->Operator=="<>")
+                  if (val == f->FilterValue) 
+                        return false;
+
+               // type specific
+               if (ai->TypeName=="int")
+               {
+                  if (f->Operator==">")
+                     if (!(std::stoi(val) > std::stoi(f->FilterValue))) 
+                        return false;
+                  if (f->Operator=="<")
+                     if (!(std::stoi(val) < std::stoi(f->FilterValue))) 
+                        return false;
+               }
+               // type specific
+               if (ai->TypeName=="string")
+               {
+                  if (f->Operator=="startswith")
+                     if (!val.rfind(f->FilterValue,0)==0)
+                        return false;
+                  if (f->Operator=="contains")
+                     if (val.find(f->FilterValue) == string::npos)
+                        return false;
+               } 
            }
        }
 
@@ -64,7 +86,7 @@ bool QueryFilterFields::Matches(string typname,RelationSchemaInfo *schema,
 //----------------------------------------------------------------------------
 void QueryFilterFields::ReadFromList(ListExpr list)
 {
-    LOGOP(10, "QueryFilterFields::ReadFromList","arg: ",nl->ToString(list));
+    LOGOP(20, "QueryFilterFields::ReadFromList","arg: ",nl->ToString(list));
     int index=0;
     while(true)
     {
