@@ -175,6 +175,13 @@ void RelAgg::clear() {
   sortedContents.clear();
 }
 
+/*
+  Class ~RelAgg~, Function ~insert~
+  
+  Insert new labels into map structure, update structure for existing labels
+ 
+*/
+
 void RelAgg::insert(const std::string& label, const TupleId& id,
                     const temporalalgebra::SecInterval& iv) {
 //   cout << "insert (" << label << ", " << id << ", " << iv << ")" << endl;
@@ -197,6 +204,13 @@ void RelAgg::insert(const std::string& label, const TupleId& id,
   contents[label].noOccurrences++;
   contents[label].duration += iv.end - iv.start;
 }
+
+/*
+  Class ~RelAgg~, Function ~compute~
+  
+  Scan relation, call ~insert~ for all labels of mlabel attribute
+ 
+*/
 
 void RelAgg::compute(Relation *rel, const NewPair<int, int> indexes) {
   string label;
@@ -233,7 +247,7 @@ void RelAgg::derivePatterns(const double minSupp, const int minNoAtoms) {
     it.second.computeCommonTimeInterval(iv);
     it.second.computeSemanticTimeSpec(semanticTimeSpec);
     if (!semanticTimeSpec.empty()) {
-      if (iv.IsDefined()) {
+      if (iv.start.IsDefined() && iv.end.IsDefined()) {
         timeSpec = "{" + iv.start.ToString() + "~" + iv.end.ToString() + ", "
                  + semanticTimeSpec + "}";
       }
@@ -299,7 +313,7 @@ GetPatternsLI::GetPatternsLI(Relation *r, const NewPair<int,int> i, double ms,
   agg.clear();
   agg.compute(rel, indexes);
   agg.sort();
-  cout << agg.print(agg.sortedContents) << endl;
+//   cout << agg.print(agg.sortedContents) << endl;
   agg.derivePatterns(minSupp, minNoAtoms);
 }
 
