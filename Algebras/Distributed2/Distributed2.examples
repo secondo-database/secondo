@@ -478,10 +478,10 @@ Result    : bug
 Remark    : requires a remote server
 
 
-Operator  : collect2
+Operator  : collectC
 Number    : 1
 Signature : dfmatrix x string x int  x vector(int) -> dfarray
-Example   : query size(s7 partition["m7", hashvalue(.Attr,23),  0]  collectD["mys7", 1238, Mapping] )
+Example   : query size(s7 partition["m7", hashvalue(.Attr,23),  0]  collectC["mys7", 1238, Mapping] )
 Result    : bug
 Remark    : requires a remote server
 
@@ -863,6 +863,13 @@ Operator  : dcommand
 Number    : 1
 Signature : d[f]array x {string,text} -> stream(tuple)
 Example   : query darray1 dcommand['let x = 23'] consume
+Result    : unpredictable
+Remark    : required the presence of a distributed secondo
+
+Operator  : dcommand2
+Number    : 1
+Signature : d[f]array x {string,text} -> d[f]array
+Example   : query darray1 dcommand2['let x = 23'] 
 Result    : unpredictable
 Remark    : required the presence of a distributed secondo
 

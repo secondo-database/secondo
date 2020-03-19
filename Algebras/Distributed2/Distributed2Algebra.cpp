@@ -21850,13 +21850,16 @@ class dcommandInfo{
 
   public:
      dcommandInfo(A* array, string cmd,
-                  TupleType* tt){
+                  TupleType* tt, bool useResult){
        this->array = array;
        this->cmd = cmd;
        this->tt = tt;
        tt->IncReference();
        if(array->IsDefined()){
+        if(useResult)
           compute();
+        else
+          computeWOResult();
        }
      }
 
@@ -21904,6 +21907,26 @@ class dcommandInfo{
             cons[i]->deleteIfAllowed();
           }
       }
+      
+      void computeWOResult(){
+          vector<boost::thread*> runners;
+          vector<ConnectionInfo*> cons;
+          string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
+          for(size_t i=0;i<array->numOfWorkers(); i++){
+             DArrayElement elem = array->getWorker(i);
+             ConnectionInfo* ci = algInstance->getWorkerConnection(elem,
+                                                                 dbname);
+             boost::thread* r = new boost::thread(
+                boost::bind(&dcommandInfo::runWOResult,this,ci));
+             runners.push_back(r);
+             cons.push_back(ci);
+          }
+          for(size_t i=0;i<runners.size();i++){
+            runners[i]->join();
+            delete runners[i];
+            cons[i]->deleteIfAllowed();
+          }
+      }
  
      void insert(Tuple* tuple){
         boost::lock_guard<boost::mutex> guard(mtx);
@@ -21932,6 +21955,16 @@ class dcommandInfo{
           r->PutAttribute(5,new CcReal(true,rt));
           insert(r);    
       }       
+
+
+     void runWOResult(ConnectionInfo* ci){
+          int err;
+          string res;
+          double rt;
+          string errmsg;
+          ci->simpleCommand(cmd,err,errmsg, res, false,rt,false,commandLog,true,
+                            algInstance->getTimeout());
+      }       
 };
 
 template<class A, class C>
@@ -21951,7 +21984,7 @@ int dcommandVMT(Word* args, Word& result, int message,
            }
            TupleType* tt = new TupleType( nl->Second(GetTupleResultType(s)));
            local.addr = new dcommandInfo<A>((A*) args[0].addr,
-                                         cmd->GetValue(), tt);
+                                         cmd->GetValue(), tt,true);
            tt->DeleteIfAllowed();
            return 0;
            }
@@ -22011,6 +22044,71 @@ Operator dcommandOp(
   dcommandTM
 );
 
+ListExpr dcommand2TM(ListExpr args){
+   if(!nl->HasLength(args,2)){
+      return listutils::typeError("d[f]array x {string,text} expected");
+   }
+   ListExpr a1 = nl->First(args);
+   if(!DArray::checkType(a1) && !DFArray::checkType(a1)
+     &&!SDArray::checkType(a1)){
+     return listutils::typeError("first argument is not a "
+                                 "d[f]array or sdarray");
+   }
+   ListExpr a2 = nl->Second(args);
+   if(!CcString::checkType(a2) && !FText::checkType(a2)){
+     return listutils::typeError("second arg is not a string or a text");
+   }
+   return a1;
+}
+
+template<class A, class C>
+int dcommand2VMT(Word* args, Word& result, int message,
+                      Word& local, Supplier s) {
+     result = qp->ResultStorage(s);
+     A* res = (A*) result.addr;
+     C* cmd = (C*) args[1].addr;
+     if(!cmd->IsDefined()){
+        res->makeUndefined();
+        return 0;
+     }
+     A* arg = (A*) args[0].addr;
+     (*res) = *arg;
+     dcommandInfo<A>* di  = new dcommandInfo<A>(arg, cmd->GetValue(), 0,false);
+     delete di;
+     arg->setKeepRemoteObjects(true);
+     if(qp->IsObjectNode(qp->GetSon(s,0))){
+        res->setKeepRemoteObjects(true);
+     } 
+     arg->setKeepRemoteObjects(true);
+     return 0;
+}
+
+ValueMapping dcommand2VM[] = {
+    dcommand2VMT<DArray,CcString>,
+    dcommand2VMT<DArray,FText>,
+    dcommand2VMT<DFArray,CcString>,
+    dcommand2VMT<DFArray,FText>,
+    dcommand2VMT<SDArray,CcString>,
+    dcommand2VMT<SDArray,FText>
+};
+
+OperatorSpec dcommand2Spec(
+   " {d[f]array, sdarray} x {string, text} -> d[f]array",
+   " array dcommandw[ command ] ",
+   " Executes a command on all workers that are stored "
+   " an array. May be useful for deriving objects from "
+   " shared objects. The result is the first argument.",
+   " query array1 dcommand2['let x = 23']"
+);
+
+Operator dcommand2Op(
+  "dcommand2",
+  dcommand2Spec.getStr(),
+  6,
+  dcommand2VM,
+  dcommandSelect,
+  dcommand2TM
+);
 
 /*
 Operator ~dlet~
@@ -23454,6 +23552,7 @@ Distributed2Algebra::Distributed2Algebra(){
 
    AddOperator(&createintdarrayOp);
    AddOperator(&dcommandOp);
+   AddOperator(&dcommand2Op);
    AddOperator(&dletOp);
 
 
