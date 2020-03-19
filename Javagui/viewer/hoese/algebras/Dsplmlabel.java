@@ -1,7 +1,6 @@
-
 //This file is part of SECONDO.
 
-//Copyright (C) 2013, University in Hagen, Department of Computer Science, 
+//Copyright (C) 2004, University in Hagen, Department of Computer Science, 
 //Database Systems for New Applications.
 
 //SECONDO is free software; you can redistribute it and/or modify
@@ -18,45 +17,177 @@
 //along with SECONDO; if not, write to the Free Software
 //Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-package viewer.hoese.algebras;
+package  viewer.hoese.algebras;
 
-import sj.lang.ListExpr;
-import viewer.*;
+import  sj.lang.ListExpr;
+import  viewer.*;
 import viewer.hoese.*;
-import java.util.*;
-import javax.swing.*;
-import java.awt.*;
+import  java.util.*;
+import  javax.swing.*;
+import  java.awt.*;
+import  javax.swing.border.*;
 import tools.Reporter;
 
-/**
- * This class displays mlabel objects.
- */
-public class Dsplmlabel extends DsplGeneric {
 
-  public void init(String name, int nameWidth, int indent, ListExpr type,
-                   ListExpr value, QueryResult qr) {
-    String T = name;
-    T = extendString(T, nameWidth, indent);
-    if (isUndefined(value)) {
-      qr.addEntry(T + " : undefined");
+/**
+ * A displayclass for the mlabel-type (SymbolicTrajectoryAlgebra), alphanumeric with TimePanel
+ */
+public class Dsplmlabel extends DsplGeneric implements Timed,LabelAttribute {
+  protected Vector Intervals = new Vector(10, 5);
+  protected Vector Strings = new Vector(10, 5);
+  protected Interval TimeBounds;
+  protected boolean defined;
+  protected String entry;
+  protected boolean err=true; 
+
+  /**
+   * A method of the Timed-Interface to render the content of the TimePanel
+   * @param PixelTime pixel per hour
+   * @return A JPanel component with the renderer
+   * @see <a href="Dsplmlabelsrc.html#getTimeRenderer">Source</a>
+   */
+  public JPanel getTimeRenderer (double PixelTime) {
+    if(!defined){
+      return new JPanel();
     }
-    else {
-      qr.addEntry(T + " :");
-      while (!value.isEmpty()) {
-        if (!value.first().isEmpty()) { // unit
-          if (value.first().listLength() == 2) { // (interval label)
-            Interval iv = LEUtils.readInterval(value.first().first());
-            String startStr = SymbolicValues.intervalStartToString(iv);
-            String labelStr = SymbolicValues.labelToString(
-                                                        value.first().second());
-            qr.addEntry(startStr + "    " + labelStr);
-            if (!SymbolicValues.areIntervalsAdjacent(iv, value.rest())) {
-              qr.addEntry(SymbolicValues.intervalEndToString(iv));
-            }
-          }
-        }
-        value = value.rest();
-      }
+    JPanel jp = new JPanel(null);
+    if (Intervals == null)
+      return  null;
+    ListIterator li = Intervals.listIterator();
+    int cnt = 0;
+    while (li.hasNext()) {
+      Interval in = (Interval)li.next();
+      int start = (int)((in.getStart() - TimeBounds.getStart())*PixelTime);
+      int end = (int)((in.getEnd() - TimeBounds.getStart())*PixelTime);
+      String bs = Strings.elementAt(cnt++).toString();
+      JLabel jc = new JLabel(bs);
+      jc.setFont(new Font("Dialog", Font.PLAIN, 12));
+      jc.setOpaque(true);
+      jc.setForeground(Color.black);
+      jc.setBackground(Color.yellow);
+      jc.setPreferredSize(new Dimension(1, 18));
+      jc.setBorder(new MatteBorder(2, (in.isLeftclosed()) ? 2 : 0, 2, (in.isRightclosed()) ?
+          2 : 0, Color.black));
+      Dimension d = jc.getPreferredSize();
+      jc.setBounds(start, (int)d.getHeight()*0 + 7, end - start, (int)d.getHeight());
+      jc.setToolTipText(LEUtils.convertTimeToString(in.getStart()) + "..." + 
+          LEUtils.convertTimeToString(in.getEnd()) + "=" + bs);
+      jp.setPreferredSize(new Dimension((int)((TimeBounds.getEnd() - TimeBounds.getStart())*PixelTime), 
+          25));
+      jp.add(jc);
     }
+    return  jp;
   }
+
+  /** Returns the label at the given time **/
+  public String getLabel(double time){
+    if(err | !defined){
+      return null;
+    }
+    int index = IntervalSearch.getTimeIndex(time,Intervals);
+    if(index<0){
+      return null;
+    }
+    return Strings.get(index).toString();
+ }
+
+  /** returns the bounds of the interval **/
+  public Interval getBoundingInterval(){
+     return TimeBounds;
+  }
+
+  /**
+   * Scans the representation of a mlabel datatype 
+   * @param v A list of time-intervals with a label value
+   * @see sj.lang.ListExpr
+   * @see <a href="Dsplmlabelsrc.html#ScanValue">Source</a>
+   */
+  public String getString (ListExpr v) {
+    if(isUndefined(v)){
+        err=false;
+        defined=false;
+        return "undefined";
+    }
+    if(v.atomType()!=ListExpr.NO_ATOM){
+       err=true;
+       defined=false;
+       return "<error>";
+    }
+
+
+    while (!v.isEmpty()) {
+      ListExpr le = v.first();
+      if (le.listLength() != 2){
+        err=true;
+        defined=false;
+        return "<error>";
+      }
+      Interval in = LEUtils.readInterval(le.first()) ;
+      if (in == null){
+        defined=false;
+        err=true;
+        return "<error>";
+      }
+      Intervals.add(in);
+      if (le.second().atomType() != ListExpr.STRING_ATOM){
+        defined=false;
+        err=true;
+        return "<error>";
+
+      }
+      Strings.add(le.second().stringValue());
+      v = v.rest();
+    }
+    err = false;
+    defined=true;
+    return getType();
+    
+  }
+
+  public String getType(){
+     return "mlabel";
+  }
+
+   public void init (String name, int nameWidth, int indent, ListExpr type, ListExpr value, QueryResult qr)
+  {
+     String T = extendString(name, nameWidth, indent);
+     String V = getString(value);
+     entry=(T + " : " + V);
+     if(err){
+        qr.addEntry(entry);
+     }else{
+        qr.addEntry(this);
+     } 
+     // compute the bounding interval
+     TimeBounds = null;
+     for(int i=0;i<Intervals.size();i++){
+       Interval in = (Interval) Intervals.get(i);
+       if(!in.isInfinite()){
+         if(TimeBounds==null){
+            TimeBounds = in.copy();
+         }else{
+            TimeBounds.unionInternal(in);
+         }
+       }
+
+     }
+  }
+
+
+  /** The text representation of this object 
+   * @see <a href="Dsplmlabelsrc.html#toString">Source</a>
+   */
+  public String toString () {
+    return  entry;
+  }
+  /** A method of the Timed-Interface
+   * @return The Vector representation of the time intervals this instance is defined at 
+   * @see <a href="Dsplmlabelsrc.html#getIntervals">Source</a>
+   */
+  public Vector getIntervals(){
+    return Intervals;
+    } 
 }
+
+
+
