@@ -31,8 +31,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "ListUtils.h"
 #include "NList.h"
 
-#include "../MainMemory2/MPointer.h"
-#include "../MainMemory2/MemoryObject.h"
+#include "MPointer.h"
+#include "MemoryObject.h"
 
 #include "RelationInfo.h"
 #include "Utils.h"
@@ -59,36 +59,42 @@ public:
 class RelationRegistry
 {
    int Counter=0;
-   map<string,int>  RelationIds;
+   std::map<std::string,int>  RelationIds;
    
 public:
-   vector<RelationInfo*>  RelationInfos;
+   std::vector<RelationInfo*>  RelationInfos;
 
-   RelationInfo*  AddRelation(string name, RelationRoleType role);
-   int  GetRelationId(string name);
-   RelationInfo* GetRelationInfo(string name);
+   RelationInfo*  AddRelation(std::string name, RelationRoleType role);
+   int  GetRelationId(std::string name);
+   RelationInfo* GetRelationInfo(std::string name);
    RelationInfo* GetRelationInfo(int id);
+   bool          IsIndexed(std::string relation,std::string attr);
+
+   void Clear();
 };
 
 class RelIndexInfo
 {
 public:
-   string FieldName;
-   string IndexName;
+   std::string FieldName;
+   std::string IndexName;
 };
 
 class RelationInfo
 {
 public:
-   RelStatistics   *statistics;
+   ~RelationInfo();
+
+   RelStatistics   *statistics=NULL;
    RelationRoleType roleType=RelationRoleType::RoleEdge;
-   string FromName=""; // only for edges - helps to tell the direction
-   string ToName=""; // only for edges - helps to tell the direction
-   string Name;
+   std::string FromName=""; // only for edges - helps to tell the direction
+   std::string ToName=""; // only for edges - helps to tell the direction
+   std::string Name;
+   std::string IdFieldName;
    int RelId;
-   map<string,RelIndexInfo*> Indexes;
+   int FromAttrIndex=0;   // faster access to id field
    RelationSchemaInfo RelSchema;
-   map<int,int> IdTranslationTable;
+   std::map<int,int> IdTranslationTable;
    void InitRelSchema(ListExpr TupleInfo);
    void AddGlobalIndex(int global, int id);
 };
@@ -110,58 +116,60 @@ public:
    int NodeGlobalCounter=0;
    
    // both use the same index to get to the relId for further metadata
-   vector<Tuple*> NodeList;
-   vector<int> NodeRelIdList;
+   std::vector<Tuple*> NodeList;
+   std::vector<int> NodeRelIdList;
 
    //
-   vector<vector<int>> OutgoingRels;
-   vector<vector<int>> InGoingRels;
+   std::vector<std::vector<int>> OutgoingRels;
+   std::vector<std::vector<int>> InGoingRels;
 
    // both use the same index to get to the relId for further metadata
    int EdgeGlobalCounter=0;
-   vector<Tuple*> EdgeList;
-   vector<Edge*> EdgeInfo;
+   std::vector<Tuple*> EdgeList;
+   std::vector<Edge*> EdgeInfo;
 
    void AddNodeTuple(int relId, Tuple *tuple);
    void AddEdgeTuple(int relId, Tuple *tuple, RelationInfo *fromrel, 
       int fromID, RelationInfo *torel, int toID);
    
+   void Clear();
 };
 
 
-class MemoryGraphObject : public mm2algebra::MemoryObject {
+class MemoryGraphObject : public mm2algebra::MemoryObject 
+{
+   public:
+      MemoryGraphObject(){
+         LOG(10, "MemoryObject constructor");
+      }
 
-    public:
-        MemoryGraphObject(){
-          LOG(10, "MemoryObject constructor");
-        }
-
-      MemoryGraphObject (string _type, string db)
+      MemoryGraphObject (std::string _type, std::string db)
          :MemoryObject(false, db, _type) {
       };
 
-        static std::string BasicType(){
-           return "mpgraph";
-        }
-
-        static bool checkType( ListExpr list){
-           if(!nl->HasLength(list,1)){
+      static std::string BasicType(){
+         return "mpgraph";
+      }
+      static bool checkType( ListExpr list){
+         if(!nl->HasLength(list,1)){
              return false;
-           }
-           if(!listutils::isSymbol(nl->First(list),BasicType())){
-              return false;
-           }
-        }
+         }
+         if(!listutils::isSymbol(nl->First(list),BasicType())){
+            return false;
+         }
+      }
           
-        MemoryObject* clone(){
-          LOG(10, "MemoryObject* clone");
-          return new MemoryGraphObject(objectTypeExpr, getDatabase());
-        }
+      MemoryObject* clone(){
+         LOG(10, "MemoryObject* clone");
+         return new MemoryGraphObject(objectTypeExpr, getDatabase());
+      }
 
+      std::string name;
+      std::string mrelprefix;
 
-    private:
-    protected:
-      
+   private:
+   protected:
+     
         ~MemoryGraphObject();
 
 public:
@@ -169,18 +177,19 @@ public:
    RelationRegistry RelRegistry;
 
    int initstate=0;
-   string DumpInfo();
-   void   DumpGraphDot(string filename);
+   std::string DumpInfo();
+   void   DumpGraphDot(std::string filename);
 
-   void   LoadData(PGraph *pg);
-   void   LoadNodeRelation(NodeRelInfo *relinfo, 
-             map<string,IndexInfo*> &indexinfo);
-   void   LoadEdgeRelation(EdgeRelInfo *relinfo);
+   void   Clear();
 
+   int    IsLoaded() { return initstate==1; }
 
+   void   LoadData(PGraph *pg, bool forcerebuildStatistics);
+   void   LoadNodeRelation(std::string memrelname, NodeRelInfo *relinfo, 
+                           bool rebuildStatistics);
+   void   LoadEdgeRelation(std::string memrelname, EdgeRelInfo *relinfo,
+                           bool rebuildStatistics);
 };
-
-
 }
 
 

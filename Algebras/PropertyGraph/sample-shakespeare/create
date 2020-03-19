@@ -1,7 +1,7 @@
-open database pgraph1;
+#open database pgraph1;
 
-delete p1;
-let p1=createpgraph("pg1");
+query isdefined(deleteObject("p1"));
+let p1=createpgraph("p1");
 
 query p1 addnodesrel["Author"];
 query p1 addnodesrel["Play"];
@@ -14,8 +14,6 @@ query p1 addnodesrel["Venue"];
 query p1 addnodesrel["Street"];
 query p1 addnodesrel["City"];
 query p1 addnodesrel["Country"];
-
-query p1 addnodeindex["Author","Lastname","idx_Author"];
 
 query p1 addedgesrel["WROTE_PLAY","IdFrom=Author.Id","IdTo=Play.Id"];
 query p1 addedgesrel["PRODUCTION_OF","IdFrom=Production.Id","IdTo=Play.Id"];

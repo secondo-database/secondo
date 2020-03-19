@@ -1,18 +1,18 @@
-open database pgraph1;
+#open database pgraph1;
 
 # OBJECTS
 
-delete Author;
-delete Play;
-delete Production;
-delete Company;
-delete User;
-delete Review;
-delete Performance;
-delete Venue;
-delete Street;
-delete City;
-delete Country;
+query isdefined(deleteObject("Author"));
+query isdefined(deleteObject("Play"));
+query isdefined(deleteObject("Production"));
+query isdefined(deleteObject("Company"));
+query isdefined(deleteObject("User"));
+query isdefined(deleteObject("Review"));
+query isdefined(deleteObject("Performance"));
+query isdefined(deleteObject("Venue"));
+query isdefined(deleteObject("Street"));
+query isdefined(deleteObject("City"));
+query isdefined(deleteObject("Country"));
 
 let Author = [ const rel(tuple([Id : int, Firstname : string, Lastname : string])) value () ];
 query Author inserttuple[1, "William", "Shakespeare"] count;
@@ -59,17 +59,17 @@ query Country inserttuple[2, "Tyne and Wear"] count;
 
 # RELATIONS
 
-delete WROTE_PLAY;
-delete PRODUCTION_OF;
-delete PRODUCED;
-delete PERFORMANCE_OF;
-delete VENUE;
-delete STREET;
-delete CITY;
-delete COUNTRY;
-delete BASED_IN;
-delete WROTE_REVIEW;
-delete REVIEW_OF;
+query isdefined(deleteObject("WROTE_PLAY"));
+query isdefined(deleteObject("PRODUCTION_OF"));
+query isdefined(deleteObject("PRODUCED"));
+query isdefined(deleteObject("PERFORMANCE_OF"));
+query isdefined(deleteObject("VENUE"));
+query isdefined(deleteObject("STREET"));
+query isdefined(deleteObject("CITY"));
+query isdefined(deleteObject("COUNTRY"));
+query isdefined(deleteObject("BASED_IN"));
+query isdefined(deleteObject("WROTE_REVIEW"));
+query isdefined(deleteObject("REVIEW_OF"));
 
 # Author->Play
 let WROTE_PLAY = [ const rel(tuple([IdFrom : int, IdTo : int, Year : int])) value () ];
@@ -125,7 +125,7 @@ let REVIEW_OF = [ const rel(tuple([IdFrom : int, IdTo : int])) value () ];
 query REVIEW_OF inserttuple[1, 2] count;
 
 #
-delete idx_Author;
+query isdefined(deleteObject("idx_Author"));
 derive idx_Author = Author createbtree[Lastname];
 
 

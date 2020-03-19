@@ -33,7 +33,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "../Relation-C++/RelationAlgebra.h"
 
 #include "QueryTree.h"
-#include "PGraphMem.h"
+#include "PropertyGraphMem.h"
 
 
 namespace pgraph {
@@ -50,32 +50,27 @@ class PGraphQueryProcessor
 
    QueryTree *tree=NULL;
 
-   std::string OptionForceStartNode="";
 
 public:
 
-   bool OptionDumpQueryTree=false;
-   bool OptionDumpQueryGraph=false;
-   
-
-   std::map<string,QueryTreeBase*> aliases;
+   std::map<std::string,QueryTreeBase*> aliases;
    std::vector<QueryTreeEdge*> poslist;
 
    TupleType *_OutputTupleType;
    InputStreamStateEnum InputStreamState;
    MemoryGraphObject *pgraphMem;
+   PGraph *pg;
           
    ListExpr _InputTupleType;
    Address  _InputStreamAddress=NULL;
    GenericRelationIterator *_InputRelationIterator=NULL;
 
-   PGraphQueryProcessor();
+   PGraphQueryProcessor(PGraph *apg, MemoryGraphObject *pgm);
    ~PGraphQueryProcessor();
 
    void SetInputTupleType(ListExpr inputstreamtype);
-   void ReadOptionsFromString(string options);
    void SetInputStream(Address stream);
-   void SetInputRelation(std::string relname);
+   void SetInputRelation(QueryTree *tree);
 
    void SetQueryTree(QueryTree *tree);
 

@@ -36,13 +36,13 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "TypeMapUtils.h"
 #include "Symbols.h"
 
-#include "../MainMemory2/MPointer.h"
-#include "../MainMemory2/Mem.h"
-#include "../MainMemory2/MemoryObject.h"
-#include "../MainMemory2/MemCatalog.h"
+#include "MPointer.h"
+#include "Mem.h"
+#include "MemoryObject.h"
+#include "MemCatalog.h"
 
 #include "Utils.h"
-#include "PGraph.h"
+#include "PropertyGraph.h"
 
 using namespace std;
 
@@ -62,7 +62,7 @@ PGraph::~PGraph()
 Word PGraph::Create( const ListExpr typeInfo )
 {
    LOG(20,"PGraph::Create");
-   PGraph* pg=new PGraph( 0 );
+   PGraph* pg=new PGraph(  );
    return (SetWord( pg ));
 }
 
@@ -87,49 +87,61 @@ Word PGraph::In( const ListExpr typeInfo, const ListExpr instance,
      return result;
    }
 
-  // maxsize
-   int ms =100;
-   NList maxsize = list.second();
-   if ( maxsize.isInt() ) 
-      ms = maxsize.intval();
-   else 
-      cout << "PGraph::In - second argument not an integer\n";
-
    // create PGraph
-   PGraph* pg = new PGraph(ms);
+   PGraph* pg = new PGraph();
    result.addr = pg;
 
-   pg->name=list.third().str();
+   pg->name=list.second().str();
 
    // read node relationnames
-   NList noderels = list.fourth().second();
+   NList noderels = list.third().second();
    for(Cardinal i=0; i<noderels.length(); i++)
    {
       NList tableinfo=noderels.elem(i+1);
-      pg->AddNodesRel( tableinfo.first().str(), tableinfo.second().str() );
+      NodeRelInfo*nri= pg->AddNodesRel( tableinfo.first().str(), 
+           tableinfo.second().str() );
+      nri->StatCardinality=tableinfo.third().intval();
    }
    // read node relationnames
-   NList edgerels = list.fifth().second();
+   NList edgerels = list.fourth().second();
    for(Cardinal i=0; i<edgerels.length(); i++)
    {
       NList tableinfo=edgerels.elem(i+1);
-      pg->AddEdgeRel( tableinfo.first().str(), 
+      EdgeRelInfo *eri = pg->AddEdgeRel( tableinfo.first().str(), 
                       tableinfo.second().first().str(),
                       tableinfo.second().second().str(),
                       tableinfo.second().third().str(),
                       tableinfo.third().first().str(),
                       tableinfo.third().second().str(),
                       tableinfo.third().third().str() );
+      eri->StatAvgForward =tableinfo.fourth().first().realval();
+      eri->StatAvgBackward =tableinfo.fourth().second().realval();
    }
-   // read node indexes
-   NList indexes = list.sixth().second();
+   // read indexes
+   NList indexes = list.fifth().second();
    for(Cardinal i=0; i<indexes.length(); i++)
    {
       NList indexinfo=indexes.elem(i+1);
-      pg->AddNodeIndex( indexinfo.first().str(), 
-                      indexinfo.second().str(),
-                      indexinfo.third().str() );
+      pg->AddIndex( 
+            indexinfo.first().str(), 
+            indexinfo.second().str());
+   }   
+   //
+   pg->dumpGraph=false;
+   pg->dumpQueryTree=false;
+   NList options = list.sixth().second();
+   for(Cardinal i=0; i<options.length(); i++)
+   {
+      NList option=options.elem(i+1);  
+
+      if (option.first().str()=="log")
+         debugLevel=option.second().intval();
+      if (option.first().str()=="dotquery")
+         pg->dumpQueryTree=option.second().intval()==1;
+      if (option.first().str()=="dotgraph")
+         pg->dumpGraph=option.second().intval()==1;
    }
+
 
    //
    correct = true;
@@ -143,46 +155,51 @@ ListExpr PGraph::Out( ListExpr typeInfo, Word value )
    
    NList nodetables=NList();
    NList edgetables=NList();
-   NList nodeindexes=NList();
+   NList options=NList();
+   NList indexes=NList();
    
-   for(std::map<string, NodeRelInfo*>::iterator 
-        itr = pg->_nodeRelations.begin(); 
-       itr != pg->_nodeRelations.end(); itr++)
+   for(auto&& item : pg->_nodeRelations)
    {
-      NList tableinfo= NList(  itr->second->name ,itr->second->idattr  );
+      NList tableinfo= NList(  item.second->name ,item.second->idattr, 
+          item.second->StatCardinality  );
       nodetables.append( tableinfo );
    }
 
-   for(std::map<string, EdgeRelInfo*>::iterator 
-        itr = pg->_edgeRelations.begin(); 
-        itr != pg->_edgeRelations.end(); itr++)
+   for(auto&& item : pg->_edgeRelations)
    {
-      NList tableinfo= NList(  itr->second->EdgeRelName ,
-                               NList(itr->second->FromIdName,
-                                 itr->second->FromRelName,
-                                 itr->second->FromRelKeyName),
-                               NList(itr->second->ToIdName,
-                               itr->second->ToRelName,
-                               itr->second->ToRelKeyName)  );
+      NList tableinfo= NList(  item.second->EdgeRelName ,
+                               NList(item.second->FromIdName,
+                                 item.second->FromRelName,
+                                 item.second->FromRelKeyName),
+                               NList(item.second->ToIdName,
+                               item.second->ToRelName,
+                               item.second->ToRelKeyName),
+                               NList( NList(item.second->StatAvgForward),
+                                  NList(item.second->StatAvgBackward))
+                               );
       edgetables.append( tableinfo );
    }
 
-   for(std::map<string, IndexInfo*>::iterator itr = pg->_nodeIndexes.begin(); 
-       itr != pg->_nodeIndexes.end(); itr++)
+   for(auto&& item : pg->_Indexes)
    {
-      NList indexinfo= NList(  itr->second->NodeType ,
-                               itr->second->PropName,
-                               itr->second->IndexName );
-      nodeindexes.append( indexinfo );
+      NList indexinfo= NList(  item.second->name ,item.second->attr);
+      indexes.append( indexinfo );
    }
-   NList res(
 
+
+   //
+   options.append( NList("log", to_string(debugLevel)));
+   if (pg->dumpQueryTree) options.append(NList(string("dotquery"),string("1")));
+   if (pg->dumpGraph) options.append( NList(string("dotgraph"),string("1")));
+
+   //  
+   NList res(
       NList(0),
-      NList( pg->GetMaxSize()   ) ,
       NList( pg->name  ) ,
       NList( NList("nodetables"),  nodetables  ), 
       NList( NList("edgetables"),  edgetables  ), 
-      NList( NList("nodeindexes"),  nodeindexes  ) 
+      NList( NList("indexes"),  indexes  ), 
+      NList( NList("options"),  options  )
    );
 
    LOGOP(20, "PGraph::Out ", res);
@@ -194,7 +211,7 @@ bool PGraph::Open( SmiRecord& valueRecord,
                   size_t& offset, const ListExpr typeInfo,
                   Word& value )
 {
-   LOG(20,"PGraph::Open");
+   LOG(30,"PGraph::Open");
    return DefOpen(PGraph::In, valueRecord, offset, typeInfo, value);
 }
 
@@ -203,7 +220,7 @@ bool PGraph::Open( SmiRecord& valueRecord,
 bool PGraph::Save( SmiRecord& valueRecord, size_t& offset,
                   const ListExpr typeInfo, Word& value)
 {
-  LOG(20,"PGraph::Save");
+  LOG(30,"PGraph::Save");
 
    ListExpr valueList;
    string valueString;
@@ -223,8 +240,9 @@ bool PGraph::Save( SmiRecord& valueRecord, size_t& offset,
 }
 
 //-----------------------------------------------------------------------------
-void PGraph::AddEdgeRel(string edgerelname, string fieldfrom, string relfrom, 
-       string keyrelfrom, string fieldto, string relto, string keyrelto)
+EdgeRelInfo *PGraph::AddEdgeRel(string edgerelname, string fieldfrom, 
+     string relfrom,string keyrelfrom, string fieldto, string relto, 
+     string keyrelto)
 {
   EdgeRelInfo *ei = new EdgeRelInfo();
   ei->EdgeRelName = edgerelname;
@@ -235,26 +253,38 @@ void PGraph::AddEdgeRel(string edgerelname, string fieldfrom, string relfrom,
   ei->ToRelName = relto;
   ei->ToRelKeyName = keyrelto;
    _edgeRelations[edgerelname] = ei;
+   return ei;
 }
 
 //-----------------------------------------------------------------------------
-void PGraph::AddNodeIndex(string noderelname, string propfieldname, 
-      string indexname)
-{
-  IndexInfo *ei = new IndexInfo();
-  ei->NodeType = noderelname;
-  ei->PropName = propfieldname;  
-  ei->IndexName = indexname;
-   _nodeIndexes[ei->NodeType+"."+ei->PropName] = ei;
-}
-
-//-----------------------------------------------------------------------------
-void PGraph::AddNodesRel(string relname, string idattrname)
+NodeRelInfo* PGraph::AddNodesRel(string relname, string idattrname)
 {
   NodeRelInfo *ni = new NodeRelInfo();
   ni->name=relname;
   ni->idattr=idattrname;
   _nodeRelations[relname] = ni;
+  return ni;
+}
+
+//-----------------------------------------------------------------------------
+IndexInfo* PGraph::AddIndex(std::string relname, std::string attrname)
+{
+  IndexInfo *ni = new IndexInfo();
+  ni->name=relname;
+  ni->attr=attrname;
+  _Indexes[relname+"."+attrname] = ni;
+  return ni;
+}
+
+//------------------------------------------------------------------------------
+void PGraph::ClearStat()
+{
+   for(auto&& r : _nodeRelations) 
+      r.second->StatCardinality=-1;
+   for(auto&& r : _edgeRelations)  {
+      r.second->StatAvgForward=-1;
+      r.second->StatAvgBackward=-1;
+   }
 }
 
 //------------------------------------------------------------------------------
@@ -273,34 +303,44 @@ string PGraph::DumpInfo(MemoryGraphObject *pgm)
 {
    string info="PGRAPH Information\n";
    info += " - name    : "+name + "\n";
-   info += " - maxsize : "+std::to_string(GetMaxSize()) + "\n";
    info += " - node relations \n";
-   for(std::map<string, NodeRelInfo*>::iterator itr = _nodeRelations.begin(); 
-        itr != _nodeRelations.end(); itr++)
+   for(auto && item:_nodeRelations)
    {
-      info += "    - " + itr->second->name  + " ("+itr->second->idattr+")"+"\n";
+      info += "    - " + item.second->name  + " ("+item.second->idattr+")";
+      if (item.second->StatCardinality>-1) 
+                   info+= " [Stat:"+to_string(item.second->StatCardinality)+"]";
+      info += "\n";
    }
    info += " - edge relations \n";
-   for(std::map<string, EdgeRelInfo*>::iterator itr = _edgeRelations.begin(); 
-        itr != _edgeRelations.end(); itr++)
+   for(auto&& item: _edgeRelations)
    {
-      info += "    - " + itr->second->EdgeRelName  + 
-         "    (FROM "+itr->second->FromIdName+"=>"+itr->second->FromRelName+
-                    "."+itr->second->FromRelKeyName+")"+"\n";
-         "    (TO   "+itr->second->ToIdName+"=>"+itr->second->ToRelName+
-                "."+itr->second->ToRelKeyName+")"+"\n";
+      info += "    - " + item.second->EdgeRelName  + 
+         "    (FROM "+item.second->FromIdName+"=>"+item.second->FromRelName+
+                    "."+item.second->FromRelKeyName+"; "+
+         "TO   "+item.second->ToIdName+"=>"+item.second->ToRelName+
+                "."+item.second->ToRelKeyName+")";
+      if (item.second->StatAvgForward>-1 && item.second->StatAvgBackward>-1) 
+         info+= "\n      [Stat:"+to_string(item.second->StatAvgForward)+
+                ";"+to_string(item.second->StatAvgBackward)+"]";
+      info += "\n";
    }
-   info += " - node indexes \n";
-   for(std::map<string, IndexInfo*>::iterator itr = _nodeIndexes.begin(); 
-        itr != _nodeIndexes.end(); itr++)
+   info += " - indexes \n";
+   for(auto && item:_Indexes)
    {
-      info += "    - " + itr->second->NodeType +"."+ itr->second->PropName 
-           +" <- "+ itr->second->IndexName +"\n" ;
+      info += "    - " + item.second->name  + "."+ item.second->attr;
+      info += "\n";
    }
 
    // add information dfomfrom memory object
-   info += "Memory object information: \n";
-   if (pgm==NULL)
+   info += "\nConfiguration: \n";
+   info += " - Loglevel "+to_string(debugLevel)+"\n";
+   info += string(" - dump dot file:  querytree:") 
+           + (dumpQueryTree ? "yes":"-") 
+           + " ; graph:"+(dumpGraph?"yes":"-")+"\n";
+
+   // add information dfomfrom memory object
+   info += "\nMemory object information: \n";
+   if (pgm==NULL || !pgm->IsLoaded())
    {
       info+="!NOT LOADED\n";
    }

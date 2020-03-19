@@ -22,12 +22,15 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
 */
+#include "Algebras/FText/FTextAlgebra.h"
 
-#include "PGraphQueryProcessor.h"
+#include "PropertyGraphQueryProcessor.h"
 
 #include "NestedList.h"
 #include "ListUtils.h"
 #include "Utils.h"
+
+using namespace std;
 
 namespace pgraph {
 
@@ -43,71 +46,49 @@ PGraphQueryProcessor::~PGraphQueryProcessor()
 }
 
 //----------------------------------------------------------------------------
-PGraphQueryProcessor::PGraphQueryProcessor()
+PGraphQueryProcessor::PGraphQueryProcessor(PGraph *apg, MemoryGraphObject *pgm)
 {
     InputStreamState = InputStreamStateEnum::Closed;
+    pg=apg;
+    pgraphMem=pgm;
 }
 
 //----------------------------------------------------------------------------
-void  PGraphQueryProcessor::ReadOptionsFromString(string options)
+void PGraphQueryProcessor::SetInputRelation(QueryTree *tree)
 {
-   if (options=="") return;
-   ListExpr argslist=0;
-   nl->ReadFromString(options, argslist);
+   string relname = tree->Root->TypeName;
 
-   LOGOP(10, "PGraphQueryProcessor::ReadOptionsFromString","arg: ",
-      nl->ToString(argslist));
-
-   while(true)
+   LOGOP(30,"PGraphQueryProcessor::SetInputRelation","relname: ", relname);
+   Relation* rel=NULL;
+   // node can be found by index directly
+   if (tree->Root->Filters.size()==1 && (tree->Root->Filters.front()->Indexed))
    {
-      if (nl->IsEmpty(argslist)) break;
-      ListExpr item=nl->First(argslist);
-      argslist=nl->Rest(argslist);
-
-      string name= nl->ToString(nl->First(item));
-      string value= nl->ToString(nl->Second(item));
-
-      if (name=="log")
-         debugLevel=stoi(value);
-
-      if (name=="dumpgraph") {
-         OptionDumpQueryGraph = (value.find("graph") != string::npos);
-         OptionDumpQueryTree = (value.find("tree") != string::npos);
-      }
-
-      if (name=="forcestart")
-         OptionForceStartNode=value;
-
+      QueryFilter *qf=tree->Root->Filters.front();
+      string idxname=pgraphMem->name+"_idx_"+tree->Root->TypeName+"_"+qf->Name;
+      string memtabname=pgraphMem->name+"_rel_"+tree->Root->TypeName;
+      LOGOP(10,"PGraphQueryProcessor::SetInputRelation","use index : "+idxname);
+      string query="(consume (matchbelow "+idxname+" "+memtabname+" \""+
+         qf->Value+"\"))";
+      rel=ExecuteQuery(query);
    }
-}
-
-//----------------------------------------------------------------------------
-void PGraphQueryProcessor::SetInputRelation(string relname)
-{
-   LOGOP(10,"PGraphQueryProcessor::SetInputRelation","relname: ", relname);
-   // open start node relation
-   RelationInfo *ri = pgraphMem->RelRegistry.GetRelationInfo(relname);
-   if (ri==NULL)
-         throw PGraphException("relation not defined");
-   ListExpr reltype= SecondoSystem::GetCatalog()->GetObjectTypeExpr(ri->Name);
-   if (nl->IsEmpty(reltype))
-         throw PGraphException("relation not found");
-   ListExpr relinfo;  
-   LOGOP(10,"PGraphQueryProcessor::SetInputRelation","relnodes: ", ri->Name);
-   Relation* rel= QueryRelation(ri->Name, relinfo);
+   else
+   {
+      // open start node relation
+      RelationInfo *ri = pgraphMem->RelRegistry.GetRelationInfo(relname);
+      if (ri==NULL)
+            throw PGraphException("relation not defined");
+      ListExpr reltype=SecondoSystem::GetCatalog()->GetObjectTypeExpr(ri->Name);
+      if (nl->IsEmpty(reltype))
+            throw PGraphException("relation not found");
+      ListExpr relinfo;  
+      LOGOP(10,"PGraphQueryProcessor::SetInputRelation","open relation : ", 
+         ri->Name);
+      rel= OpenRelation(ri->Name, relinfo);
+   } 
 
    InputStreamState=InputStreamStateEnum::Reading;
    _InputRelationIterator = rel->MakeScan();
-   SetInputTupleType(relinfo);
   
-}
-
-//----------------------------------------------------------------------------
-void PGraphQueryProcessor::SetInputTupleType(ListExpr inputstreamtype)
-{
-   LOGOP(10, "PGraphQueryProcessor::SetInputTupleType", "input tupletype:",   
-       nl->ToString(inputstreamtype) );
-    _InputTupleType=inputstreamtype;
 }
 
 //----------------------------------------------------------------------------
@@ -133,7 +114,7 @@ bool PGraphQueryProcessor::MatchesFilters(QueryTreeBase *item,
       if (ai!=NULL)
       {
          string val=ai->GetStringVal(tuple);
-      LOGOP(10, "check filter:",f->Name ," ",f->Value,"=",val);
+      LOGOP(30, "check filter:",f->Name ," ",f->Value,"=",val);
          if (val!=f->Value) return false;
       }
    }
@@ -156,13 +137,13 @@ bool PGraphQueryProcessor::NextEdge(QueryTreeEdge *queryedge)
    for(uint i=queryedge->current_edgeindex+1; i<edgelist->size(); i++)
    {
       Edge *einfo=pgraphMem->AdjList.EdgeInfo[edgelist->at(i)];
-      LOGOP(10,"PGraphQueryProcessor::NextEdge", "checking edge index ",
+      LOGOP(30,"PGraphQueryProcessor::NextEdge", "checking edge index ",
           queryedge->current_edgeindex, " -> ",i);
 
       bool ok=CheckEdge(queryedge, einfo) ;
 
       if (ok) {
-         LOGOP(10,"PGraphQueryProcessor::NextEdge", "next found edgeid:",
+         LOGOP(30,"PGraphQueryProcessor::NextEdge", "next found edgeid:",
              einfo->EdgeId);
          int nodeid=queryedge->Reverse ? einfo->FromNodeId : einfo->ToNodeId;
          queryedge->current_edgeindex=i;
@@ -179,7 +160,7 @@ bool PGraphQueryProcessor::NextEdge(QueryTreeEdge *queryedge)
 //----------------------------------------------------------------------------
 bool PGraphQueryProcessor::MatchEdge(QueryTreeEdge *queryedge)
 {
-   LOGOP(10,"PGraphQueryProcessor::MatchEdge", "entering for node ", 
+   LOGOP(30,"PGraphQueryProcessor::MatchEdge", "entering for node ", 
        queryedge->FromNode->current_nodeid, " Direction: ", 
        (queryedge->Reverse?"reverse":"forward"));
 
@@ -197,7 +178,7 @@ bool PGraphQueryProcessor::MatchEdge(QueryTreeEdge *queryedge)
    {
       Edge *einfo=pgraphMem->AdjList.EdgeInfo[edgelist->at(i)];
 
-      LOGOP(10,"PGraphQueryProcessor::MatchEdge", "checking edge index ",i, 
+      LOGOP(30,"PGraphQueryProcessor::MatchEdge", "checking edge index ",i, 
          " [",einfo->FromNodeId," -> ",einfo->ToNodeId, "]");
       bool ok=CheckEdge(queryedge, einfo) ;
 
@@ -225,7 +206,7 @@ bool PGraphQueryProcessor::MatchEdge(QueryTreeEdge *queryedge)
 //----------------------------------------------------------------------------
 bool PGraphQueryProcessor::CheckEdge(QueryTreeEdge *queryedge, Edge* edge)
 {
-   LOGOP(10,"PGraphQueryProcessor::CheckEdge");
+   LOGOP(30,"PGraphQueryProcessor::CheckEdge");
 
    
    RelationInfo* ri = pgraphMem->RelRegistry.GetRelationInfo(edge->RelId);
@@ -256,7 +237,7 @@ bool PGraphQueryProcessor::CheckEdge(QueryTreeEdge *queryedge, Edge* edge)
 //----------------------------------------------------------------------------
 bool PGraphQueryProcessor::CheckNode(int nodeid, QueryTreeNode *node)
 {
-   LOGOP(10,"PGraphQueryProcessor::CheckNode",nodeid);
+   LOGOP(30,"PGraphQueryProcessor::CheckNode",nodeid);
 
    //
    RelationInfo* ri = pgraphMem->RelRegistry.GetRelationInfo(
@@ -264,8 +245,10 @@ bool PGraphQueryProcessor::CheckNode(int nodeid, QueryTreeNode *node)
    Tuple *tuple=pgraphMem->AdjList.NodeList[nodeid];
 
    // node type name matches
-   if ((node->TypeName!="") && (node->TypeName!=ri->Name))
+   if ((node->TypeName!="") && (node->TypeName!=ri->Name)) {
+      LOGOP(30,"Type not expected");
       return false;
+   }
 
    // check node filters
    if (!MatchesFilters(node, &ri->RelSchema, tuple)) return false;
@@ -289,7 +272,7 @@ bool PGraphQueryProcessor::CheckNode(int nodeid, QueryTreeNode *node)
 //----------------------------------------------------------------------------
 bool PGraphQueryProcessor::NextNode()
 {
-   LOGOP(10,"PGraphQueryProcessor::NextNode");
+   LOGOP(30,"PGraphQueryProcessor::NextNode");
 
    bool found=false;
    int index=poslist.size()-1;
@@ -299,9 +282,9 @@ bool PGraphQueryProcessor::NextNode()
       if (index<0) break;
 
       //
-      LOGOP(10,"PGraphQueryProcessor::NextNode","increasing pos ",index);
+      LOGOP(30,"PGraphQueryProcessor::NextNode","increasing pos ",index);
       found = NextEdge(poslist.at(index));
-      LOGOP(10,"PGraphQueryProcessor::NextNode","pos ",index, "increased: ",
+      LOGOP(30,"PGraphQueryProcessor::NextNode","pos ",index, "increased: ",
          found?"true":"false");
       if (found) break;
       
@@ -314,7 +297,7 @@ bool PGraphQueryProcessor::NextNode()
    {
       for(uint i=index+1;i<poslist.size(); i++)
       {
-         LOGOP(10,"PGraphQueryProcessor::NextNode","reset pos ",i);
+         LOGOP(30,"PGraphQueryProcessor::NextNode","reset pos ",i);
          MatchEdge(poslist.at(i));
       }
    }
@@ -327,16 +310,16 @@ bool PGraphQueryProcessor::NextNode()
 //----------------------------------------------------------------------------
 bool PGraphQueryProcessor::MatchNode(int nodeid, QueryTreeNode *node)
 {
-   LOGOP(10,"PGraphQueryProcessor::MatchNode",nodeid);
+   LOGOP(30,"PGraphQueryProcessor::MatchNode",nodeid);
 
    // current node already set
-   if (node->current_nodeid==nodeid) return true;
+   //if (node->current_nodeid==nodeid) return true;
 
    //
    bool ok=CheckNode(nodeid, node);
    if (ok)
    {
-      LOGOP(10,"QueryTreeNode::Match","ok for ",nodeid, "(Type:",node->TypeName,
+      LOGOP(30,"QueryTreeNode::Match","ok for ",nodeid, "(Type:",node->TypeName,
           ")","(Alias:",node->Alias,")");
 
       // try to match all edges
@@ -345,7 +328,7 @@ bool PGraphQueryProcessor::MatchNode(int nodeid, QueryTreeNode *node)
          bool edgefound = MatchEdge(queryedge);
          if (!edgefound)
          {
-            LOGOP(10,"QueryTreeNode::Match"," no matching edge found !");
+            LOGOP(30,"QueryTreeNode::Match"," no matching edge found !");
             return false;
          }
       }
@@ -355,7 +338,7 @@ bool PGraphQueryProcessor::MatchNode(int nodeid, QueryTreeNode *node)
    }
    else
    {
-      LOGOP(10,"QueryTreeNode::Match"," node filter failed");
+      LOGOP(30,"QueryTreeNode::Match"," node filter failed");
       return false;
    }
 
@@ -367,13 +350,13 @@ void PGraphQueryProcessor::SetQueryTree(QueryTree *qtree)
    tree=qtree;
    tree->state=QueryTreeMatchStateEnum::NO_FURTHER_MATCH;
 
-   LOGOP(10, "PGraphQueryProcessor::SetQueryTree", "tn:",qtree->Root->TypeName, 
+   LOGOP(30, "PGraphQueryProcessor::SetQueryTree", "tn:",qtree->Root->TypeName, 
     "alias:",qtree->Root->Alias);
 
     tree->Root->GetPosVector(&poslist);
     for (auto&& n:poslist)
     {
-      LOGOP(10, "PGraphQueryProcessor::SetQueryTree", "tn:",n->TypeName, 
+      LOGOP(30, "PGraphQueryProcessor::SetQueryTree", "tn:",n->TypeName, 
          "alias:",n->Alias);
     }
 }
@@ -381,7 +364,7 @@ void PGraphQueryProcessor::SetQueryTree(QueryTree *qtree)
 //----------------------------------------------------------------------------
 void PGraphQueryProcessor::PrepareQueryTreeNextMatch()
 {
-    LOGOP(10, "PGraphQueryProcessor::PrepareQueryTreeNextMatch");
+    LOGOP(30, "PGraphQueryProcessor::PrepareQueryTreeNextMatch");
 
    bool res= NextNode();
    if (res)
@@ -394,9 +377,9 @@ void PGraphQueryProcessor::PrepareQueryTreeNextMatch()
 //----------------------------------------------------------------------------
 void PGraphQueryProcessor::PrepareQueryTree(int id)
 {
-   LOGOP(10, "PGraphQueryProcessor::PrepareQueryTree","id:",id);
+   LOGOP(30, "PGraphQueryProcessor::PrepareQueryTree","id:",id);
    // 
-
+  
    bool res=MatchNode(id, tree->Root);
    if (res)
       tree->state=QueryTreeMatchStateEnum::MATCH_AVAILABLE;
@@ -409,7 +392,7 @@ void PGraphQueryProcessor::PrepareQueryTreeForNextInputNode()
 {
    Word rec;
 
-   LOGOP(10, "PGraphQueryProcessor::PrepareQueryTreeForNextInputNode");
+   LOGOP(30, "PGraphQueryProcessor::PrepareQueryTreeForNextInputNode");
 
    Tuple *tuple = NULL;
 
@@ -438,10 +421,10 @@ void PGraphQueryProcessor::PrepareQueryTreeForNextInputNode()
       if (ri==NULL)
           throw PGraphException("query root node needs a type name!");
 
-      CcInt *vi=(CcInt*)tuple->GetAttribute(0 );
+      CcInt *vi=(CcInt*)tuple->GetAttribute( ri->FromAttrIndex );
       
       int id=ri->IdTranslationTable[vi->GetValue()];
-      LOGOP(10, "PGraphQueryProcessor::PrepareQueryTreeForNextInputNode", 
+      LOGOP(30, "PGraphQueryProcessor::PrepareQueryTreeForNextInputNode", 
          "Input Node: ",ri->Name,"  local:",vi->GetValue()," glob: ",id );
 
       PrepareQueryTree(id);
@@ -456,11 +439,11 @@ Tuple *PGraphQueryProcessor::ReadNextResultTuple()
 {
 
    Tuple* res=NULL;
-   LOGOP(10,"PGraphQueryProcessor::ReadNextResultTuple");
+   LOGOP(30,"PGraphQueryProcessor::ReadNextResultTuple");
 
    if (tree->state==QueryTreeMatchStateEnum::NOT_INITIALIZED)
    {
-       LOGOP(10,"PGraphQueryProcessor::ReadNextResultTuple","NOT INITIALIZED");
+       LOGOP(30,"PGraphQueryProcessor::ReadNextResultTuple","NOT INITIALIZED");
        return NULL;
    }
 
@@ -478,13 +461,13 @@ Tuple *PGraphQueryProcessor::ReadNextResultTuple()
          // no further start node in input stream
          if (InputStreamState==InputStreamStateEnum::Closed)
          {
-            LOGOP(10,"PGraphQueryProcessor::ReadNextResultTuple",
+            LOGOP(30,"PGraphQueryProcessor::ReadNextResultTuple",
                "input stream closed");
             return NULL;
          }
          else 
          {
-            LOGOP(10,"PGraphQueryProcessor::ReadNextResultTuple",
+            LOGOP(30,"PGraphQueryProcessor::ReadNextResultTuple",
                "next input node");
             // continue with next match on existing node
             PrepareQueryTreeForNextInputNode();
@@ -499,10 +482,11 @@ Tuple *PGraphQueryProcessor::ReadNextResultTuple()
 
    // return tuple
    //TODO who releases these tuples
-   LOGOP(10,"PGraphQueryProcessor::ReadNextResultTuple","creating tuple");
+   LOGOP(30,"PGraphQueryProcessor::ReadNextResultTuple","creating tuple");
    res = new Tuple(_OutputTupleType);
    for (auto&& outfield : tree->outputFields.Fields)
    {
+      LOGOP(30,"prop:",outfield->PropertyName);
       AttrInfo *ainfo=NULL;
       Tuple *aliastuple=NULL;
       QueryTreeBase *item= aliases[outfield->NodeAlias];
@@ -526,14 +510,28 @@ Tuple *PGraphQueryProcessor::ReadNextResultTuple()
       }
       if (ainfo!=NULL)
       {
-         res->PutAttribute(outfield->index, new CcString( true, 
-            ainfo->GetStringVal(aliastuple) ));    
+         if (ainfo->TypeName=="text")
+         {
+            res->PutAttribute(outfield->index, new FText( true, 
+               ainfo->GetStringVal(aliastuple) ));    
+         }
+         if (ainfo->TypeName=="int")
+         {
+            res->PutAttribute(outfield->index, new CcInt( true, 
+               std::stoi(ainfo->GetStringVal(aliastuple)) ));    
+         }
+         if (ainfo->TypeName=="string")
+         {
+            res->PutAttribute(outfield->index, new CcString( true, 
+               ainfo->GetStringVal(aliastuple) ));    
+         }
       }
       else
       {
          res->PutAttribute(outfield->index, new CcString( true,"???" ));    
       }
    }
+   LOGOP(30,"/PGraphQueryProcessor::ReadNextResultTuple");
    return res;
 }
 

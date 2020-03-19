@@ -1,0 +1,5 @@
+#open database pgraph1;
+#query p1 loadgraph;
+
+query p1 info;
+

@@ -1,0 +1,301 @@
+/*
+----
+This file is part of SECONDO.
+
+Copyright (C) 2012, University in Hagen
+Faculty of Mathematic and Computer Science,
+Database Systems for New Applications.
+
+SECONDO is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or
+(at your option) any later version.
+
+SECONDO is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with SECONDO; if not, write to the Free Software
+Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+----
+
+\tableofcontents
+
+\newpage
+
+1 Overview
+
+The following example is taken from [RWE15]. 
+
+\begin{figure}[h]
+    \centerline{
+        \includegraphics[width=0.7\textwidth]{graph.eps}}
+\end{figure}
+
+
+2 Prepare data 
+
+2.1 Create database
+
+Create a SECONDO database named "pgraph1" and enter it.
+
+*/
+   SECONDO> create database pgraph1; 
+   SECONDO> open database pgraph1; 
+/*
+
+
+2.2 Create relations and insert data
+
+The script ~createrels~ will create all node and edge relations and insert
+the data to reflect the graph shown above.
+
+*/
+   SECONDO> @../Algebras/PropertyGraph/sample-shakespeare/createrels 
+/*
+
+This script uses operators from ~RelationAlgebra~ and ~UpdateRelation~.
+Edge relations names are in uppercase, as node relations are using only 
+the first character in uppercase. (This convention is used by the PropertyGraphAlgebra)
+
+3 Creating a property graph 
+
+A property graph has to be defined before matching operators can be
+used to query the graph. This is done be registering the node and edge
+relations. (This could be seen as the schema of the graph)
+
+*/
+   SECONDO> @../Algebras/PropertyGraph/sample-shakespeare/create
+/*
+
+At first a PropertyGraph object is created. The argument "p1" is 
+used to prefix objects in the memory catalog to keep the data
+of multiple graphs separated. 
+
+*/
+
+let p1=createpgraph("p1");
+
+/*
+
+To define the schema of the graph, the script ~create~ uses the 
+following operators to register the property graph:
+
+  * ~createpgraph(name)~ to create a property graph object
+
+  * ~addnodesrel[relname,fromclause,toclause]~ to register node relations
+
+  * ~addedgesrel[relanme,propertyname, indexname]~ to register edge relations
+
+  * ~addnodeindex[relanme]~ to register node property indexes
+
+This configuration will be saved in the database and will 
+be available between sessions.
+
+To get information about the configuration of a property graph 
+objects, use the ~info~ operator.
+
+*/
+   SECONDO> query p1 info;
+
+  (SECONDO> @../Algebras/PropertyGraph/sample-shakespeare/info)
+/*
+
+This will print the following information to the console:
+
+*/
+PGRAPH Information
+ - name    : p1
+ - node relations 
+    - Author (Id)
+    - City (Id)
+    - Company (Id)
+    - Country (Id)
+    ...
+ - edge relations 
+    - CITY    (FROM IdFrom=>Street.Id)
+    - COUNTRY    (FROM IdFrom=>City.Id)
+    - PERFORMANCE_OF    (FROM IdFrom=>Performance.Id)
+    - PRODUCED    (FROM IdFrom=>Company.Id)
+    ...
+ - node indexes 
+Memory object information: 
+!NOT LOADED
+/*
+
+4 Loading the property graph
+
+To be able to query the property graph, it needs to be loaded.
+This will load all configured data into memory and create
+additional structures to support the match operators.
+Using loadgraph the fist time will also gather some statistics
+that will be stored in the graph object for later reuse, so 
+loading will be faster the next time.
+
+*/
+   SECONDO> query p1 loadgraph;
+/*
+
+5 Querying the property graph
+
+There are different matching operators available.
+All operators are returning a stream of tuples defined by the 
+particular output field list.
+
+
+5.1 Querying by giving a full querytree (match1)
+
+The operator will find all subgraphs that are described
+by the querytree by having the same typed node and edge structure 
+and passing all filter criteria. Nodes and edges having
+an alias (like theater) can be referenced to define the
+output field list and in the filter criteria list.
+The seach for subgraph matches is done along the query 
+tree - so the query tree can be seen as query plan.
+
+This operator has the following arguments:
+
+  1 The property graph object
+
+  2 A stream of nodes that will be the starting positions for a subgraph match
+
+  3 A query tree in list form. This tree describes a subtree that
+    should be matched.
+
+  4 Additional filter criteria
+
+  5 Output field list
+
+*/
+SECONDO> query p1 
+      Author feed filter[.Id>1] 
+match1 ['
+(  
+   (theater Venue ( (Name "Theatre Royal") ))
+   STREET 
+   ( s
+     CITY
+     (
+        (newcastle City ( (Name "Newcastle") ))
+     )
+   )
+   VENUE <-
+   ( perf
+     PERFORMANCE_OF
+     ( 
+       prod 
+       PRODUCTION_OF
+       ( 
+         play 
+         w WROTE_PLAY <-
+         ( 
+	    (bard Author ( (Lastname "Shakespeare") ))
+         )
+       )
+     )           
+   )
+)',
+'( ((w Year) > 1608) )',
+'( ((theater Name) Name)  ((newcastle Name) CityName) ((bard Lastname) BardName)  ((w Year) Year ) )'
+] consume;
+/*
+
+This query is available in file ~match1~:
+
+*/
+   SECONDO> @../Algebras/PropertyGraph/sample-shakespeare/match1
+/*
+
+
+5.2 Querying by giving a querytree (match2)
+
+This operator is not using a query tree anymore. It is given
+the subgraph pattern as a graph. The starting point - and so 
+the query plan - will be choosen automatically by taking 
+statistical data into account. The operator will open the 
+corresponding edge list automatically - no node stream is necessary 
+anymore.
+
+This operator has the following arguments:
+
+  1 The property graph object
+
+  2 The query graph in list form
+  
+  3 Additional filter criteria
+
+  4 Output field list
+
+*/
+SECONDO> query p1 match2 ['
+(  
+   (theater Venue ( (Name "Theatre Royal") ))
+   (newcastle City ( (Name "Newcastle") ))
+   (bard Author ( (Lastname "Shakespeare") ))
+   (s Street )
+   (prod Production ) 
+   (theater STREET s)
+   (s CITY newcastle)
+   (perf VENUE theater)
+   (perf PERFORMANCE_OF prod)
+   (prod PRODUCTION_OF play)
+   (bard  w WROTE_PLAY play)
+)',
+'( ((w Year) > 1608 ) )',
+'( ((theater Name) Name)  ((s Name) StreetName) ((prod Name) ProdName) ((w Year) Year) )',
+'( (log 10) (dumpgraph tree_graph) )'
+] consume;
+/*
+
+This query is available in file ~match2~:
+
+*/
+   SECONDO> @../Algebras/PropertyGraph/sample-shakespeare/match2
+/*
+
+
+5.3 Using Cypher language for querying (match3)
+
+The readability of the previous expression as list is limited for
+complex queries. The graph query language cypher tries to improve that by
+having a syntax that is very intuitive and "whiteboard friendly".
+(See [CYP20] for more details)
+Nodes and edges are drawn like (x)--$>$(y) with some annotations.
+
+This operator has the following arguments:
+
+  1 The property graph object
+
+  2 The query coded as cypher expression
+
+
+*/
+SECONDO> query p1 match3 ['
+    MATCH 
+      (theater: Venue {Name: "Theatre Royal"}),
+      (newcastle: City {Name: "Newcastle"}),
+      (play: Play ),
+      (bard: Author {Lastname: "Shakespeare"}),
+      (newcastle)<-[:CITY]-(street)<-[:STREET]-(theater)<-[:VENUE]-()-[:PERFORMANCE_OF]->()-[:PRODUCTION_OF]->(play)<-[w:WROTE_PLAY]-(bard)
+    WHERE w.Year > 1608
+    RETURN  w.Year, play.Title AS Play
+'] consume;
+/*
+
+This query is available in file ~match3~:
+
+*/
+   SECONDO> @../Algebras/PropertyGraph/sample-shakespeare/match3
+/*
+   
+
+6 References
+
+  [RWE15] Ian Robinson, Jim Webber, and Emil Eifrem: \emph{Graph Databases}, O'Reilly Media, Inc., 2015.
+
+  [CYP20] https://neo4j.com/docs/cypher-manual/current/
+
+*/
+

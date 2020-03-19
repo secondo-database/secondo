@@ -31,27 +31,43 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "ListUtils.h"
 #include "NList.h"
 
-#include "PGraphMem.h"
+#include "PropertyGraphMem.h"
 
 namespace pgraph {
 
- class NodeRelInfo
+class StatInfo
 {
    public: 
-      string name;
-      string idattr;
+      double value;
+};
+
+class NodeRelInfo
+{
+   public: 
+      std::string name;
+      std::string idattr;
+      int StatCardinality=-1;
+};
+
+class IndexInfo
+{
+   public: 
+      std::string name;
+      std::string attr;
 };
 
 class EdgeRelInfo
 {
 public:
-   string EdgeRelName;
-   string FromIdName;
-   string FromRelName;
-   string FromRelKeyName;
-   string ToIdName;
-   string ToRelName;
-   string ToRelKeyName;
+   std::string EdgeRelName;
+   std::string FromIdName;
+   std::string FromRelName;
+   std::string FromRelKeyName;
+   std::string ToIdName;
+   std::string ToRelName;
+   std::string ToRelKeyName;
+   double StatAvgForward=-1;
+   double StatAvgBackward=-1;
 };
 
 
@@ -62,18 +78,7 @@ class PGraph
       // constructors and destructors
    PGraph() {}
 
-   PGraph(int maxsize){ _maxsize=maxsize; }
-
-   PGraph( const PGraph& pg )
-   {
-      _maxsize = pg._maxsize;
-   }
-
    ~PGraph(); 
-
-
-   // auxiliary functions
-   int GetMaxSize() const { return _maxsize; }
 
 
    // lifecycle
@@ -94,7 +99,7 @@ class PGraph
                         const ListExpr typeInfo, Word& w );
 
    // type name and checking
-   static const string BasicType() { return "pgraph"; }
+   static const std::string BasicType() { return "pgraph"; }
 
    static const bool checkType(const ListExpr type){
       return listutils::isSymbol(type, BasicType());
@@ -107,11 +112,12 @@ class PGraph
 public:
 
    // private data
-   int _maxsize;
-   string name;
-   std::map<string, NodeRelInfo*> _nodeRelations;
-   std::map<string, EdgeRelInfo*> _edgeRelations;
-   std::map<string, IndexInfo*> _nodeIndexes;
+   bool dumpQueryTree=false;
+   bool dumpGraph=false;
+   std::string name;
+   std::map<std::string, NodeRelInfo*> _nodeRelations;
+   std::map<std::string, EdgeRelInfo*> _edgeRelations;
+   std::map<std::string, IndexInfo*> _Indexes;
 
 public:
 
@@ -119,15 +125,17 @@ public:
    friend struct  ConstructorFunctions<PGraph>;
 
    // auxiliary functions
-   void AddNodesRel(string relname, string idattrname="");
-   void AddEdgeRel(string edgerelname, string fieldfrom, string relfrom, 
-         string keyrelfrom, 
-         string fieldto, string relto, string keyrelto);
-   void AddNodeIndex(string noderelname, string propfieldname, 
-        string indexname);
+   NodeRelInfo* AddNodesRel(std::string relname, std::string idattrname="");
+   EdgeRelInfo *AddEdgeRel(std::string edgerelname, std::string fieldfrom, 
+         std::string relfrom, 
+         std::string keyrelfrom, 
+         std::string fieldto, std::string relto, std::string keyrelto);
+   IndexInfo* AddIndex(std::string relname, std::string attrname);
 
    void   ClearRelInfos();
-   string DumpInfo(MemoryGraphObject* pgm = NULL);
+   void   ClearStat();
+   
+   std::string DumpInfo(MemoryGraphObject* pgm = NULL);
 };
 
 
@@ -140,9 +148,9 @@ struct pgraphInfo : ConstructorInfo {
     name         = PGraph::BasicType();
     signature    = "-> " + Kind::SIMPLE();
     typeExample  = PGraph::BasicType();
-    listRep      =  "(<maxsize>)";
-    valueExample = "(1000)";
-    remarks      = "max size of adjacency list";
+    listRep      =  "(name)";
+    valueExample = "(\"p2\")";
+    remarks      = "name of property graph";
   }
 };
 

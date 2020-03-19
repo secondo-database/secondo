@@ -1,13 +1,15 @@
 
 operator info alias INFO pattern _ op 
 
-operator test1 alias TEST1 pattern _ op 
-
 operator loadgraph alias LOADGRAPH pattern _ op 
+operator unload alias UNLOAD pattern _ op 
+operator clearstat alias CLEARSTAT pattern _ op 
+
+operator cfg alias CFG pattern _ op [_,_]
 
 operator addnodesrel alias ADDNODESREL pattern _ op[_]
 operator addedgesrel alias ADDEDGESREL pattern _ op[_,_,_]
-operator addnodeindex alias ADDNODEINDEX pattern _ op[_,_,_]
+operator addindex alias ADDNODEINDEX pattern _ op[_,_]
 
 operator createpgraph alias CREATEPGRAPH pattern op (_)
 

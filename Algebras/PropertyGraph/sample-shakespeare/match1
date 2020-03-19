@@ -1,6 +1,5 @@
-open database pgraph1;
-
-query p1 loadgraph;
+# open database pgraph1;
+# query p1 loadgraph;
 
 query p1 
       Author feed filter[.Id>0] 
@@ -31,9 +30,8 @@ match1 ['
    )
 )',
 '( ((w Year) > 1608) )',
-'( ((theater Name) Name)  ((newcastle Name) CityName) ((bard Lastname) BardName)  ((w Year) Year ) )',
-'((log 10) (dumpgraph tree))'
-] consume;
+'( ((theater Name) Name)  ((newcastle Name) CityName) ((bard Lastname) BardName)  ((w Year) Year ) )'
+]    consume;
 
 
 

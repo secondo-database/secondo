@@ -1,6 +1,5 @@
-open database pgraph1;
-
-query p1 loadgraph;
+# open database pgraph1;
+# query p1 loadgraph;
 
 query p1 match2 ['
 (  
@@ -15,8 +14,7 @@ query p1 match2 ['
    (bard  w WROTE_PLAY play)
 )',
 '( ((w Year) > 1608 ) )',
-'( ((theater Name) Name)  ((s Name) StreetName) ((prod Name) ProdName) ((w Year) Year) )',
-'( (log 10) (dumpgraph tree_graph) )'
+'( ((theater Name) Name)  ((s Name) StreetName) ((prod Name) ProdName) ((w Year) Year) )'
 ] consume;
 
 
