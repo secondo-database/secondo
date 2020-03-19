@@ -230,47 +230,82 @@ void RelAgg::compute(Relation *rel, const NewPair<int, int> indexes) {
   delete it;
 }
 
-void RelAgg::sort() {
+/*
+  Class ~RelAgg~, Function ~sort~
+  
+  Sort contents by comparison function ~compareEntries~; keep only entries with
+  supp >= minSupp
+ 
+*/
+
+void RelAgg::sort(const double ms) {
+  minSupp = ms;
+  double supp = 1.0;
   for (auto it : contents) {
-    sortedContents.push_back(it);
+    supp = double(it.second.occurrences.size()) / noTuples;
+    if (supp >= minSupp) {
+      sortedContents.push_back(it);
+    }
   }
   std::sort(sortedContents.begin(), sortedContents.end(), compareEntries());
 }
 
-void RelAgg::derivePatterns(const double minSupp, const int minNoAtoms) {
-  // retrieve patterns with one atom
+/*
+  Class ~RelAgg~, Function ~buildAtomWithSupp~
+  
+  Build a string representing a pattern atom from an entry of the sortedContents
+  vector and compute its support
+ 
+*/
+
+void RelAgg::buildAtomWithSupp(pair<string, AggEntry> sortedContentsEntry,
+                               string& atom, double& supp) {
   SecInterval iv(true);
   string timeSpec, semanticTimeSpec;
+  string label = sortedContentsEntry.first;
+  sortedContentsEntry.second.computeCommonTimeInterval(iv);
+  sortedContentsEntry.second.computeSemanticTimeSpec(semanticTimeSpec);
+  if (!semanticTimeSpec.empty()) {
+    if (iv.start.IsDefined() && iv.end.IsDefined()) {
+      timeSpec = "{" + iv.start.ToString() + "~" + iv.end.ToString() + ", "
+                + semanticTimeSpec + "}";
+    }
+    else {
+      timeSpec = "{" + semanticTimeSpec + "}";
+    }
+  }
+  else {
+    if (iv.IsDefined()) {
+      timeSpec = iv.start.ToString() + "~" + iv.end.ToString();
+    }
+    else {
+      timeSpec = "_";
+    }
+  }
+  supp = double(sortedContentsEntry.second.occurrences.size()) / noTuples;
+  atom = "(" + timeSpec + " \"" + label + "\")";
+}
+
+/*
+  Class ~RelAgg~, Function ~derivePatterns~
+  
+  Scan sorted representation in order to retrieve patterns
+ 
+*/
+
+void RelAgg::derivePatterns(const int minNoAtoms) {
+  // retrieve patterns with one atom, guarantee to fulfill minSupp
+  string pattern, atom;
   double supp = 1.0;
   for (auto it : sortedContents) {
-    string label = it.first;
-    it.second.computeCommonTimeInterval(iv);
-    it.second.computeSemanticTimeSpec(semanticTimeSpec);
-    if (!semanticTimeSpec.empty()) {
-      if (iv.start.IsDefined() && iv.end.IsDefined()) {
-        timeSpec = "{" + iv.start.ToString() + "~" + iv.end.ToString() + ", "
-                 + semanticTimeSpec + "}";
-      }
-      else {
-        timeSpec = "{" + semanticTimeSpec + "}";
-      }
-    }
-    else {
-      if (iv.IsDefined()) {
-        timeSpec = iv.start.ToString() + "~" + iv.end.ToString();
-      }
-      else {
-        timeSpec = "_";
-      }
-    }
-    string pattern = "(" + timeSpec + " \"" + label + "\")";
-    supp = double(it.second.occurrences.size()) / noTuples;
-    if (supp >= minSupp) {
-      results.push_back(make_pair(pattern, supp));
-    }
-    else {
-      return;
-    }
+    buildAtomWithSupp(it, atom, supp);
+//     supp = double(it.szecond.occurrences.size()) / noTuples;
+    pattern = atom;
+    results.push_back(make_pair(pattern, supp));
+  }
+  // retrieve patterns with two atoms
+  for (auto it : results) {
+    
   }
 }
 
@@ -308,13 +343,13 @@ std::string RelAgg::print(const std::string& label /* = "" */) const {
 
 GetPatternsLI::GetPatternsLI(Relation *r, const NewPair<int,int> i, double ms, 
                              int ma)
-  : rel(r), indexes(i), minSupp(ms), minNoAtoms(ma) {
+  : rel(r), indexes(i), minNoAtoms(ma) {
   tupleType = getTupleType();
   agg.clear();
   agg.compute(rel, indexes);
-  agg.sort();
+  agg.sort(ms);
 //   cout << agg.print(agg.sortedContents) << endl;
-  agg.derivePatterns(minSupp, minNoAtoms);
+  agg.derivePatterns(minNoAtoms);
 }
 
 GetPatternsLI::~GetPatternsLI() {

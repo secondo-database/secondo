@@ -82,8 +82,10 @@ struct RelAgg {
   void insert(const std::string& label, const TupleId& id, 
               const temporalalgebra::SecInterval& iv);
   void compute(Relation *rel, const NewPair<int, int> indexes);
-  void sort();
-  void derivePatterns(const double minSupp, const int minNoAtoms);
+  void sort(const double ms);
+  void buildAtomWithSupp(std::pair<std::string, AggEntry> sortedContentsEntry,
+                         std::string& atom, double& supp);
+  void derivePatterns(const int minNoAtoms);
   std::string print(const std::vector<std::pair<std::string, AggEntry> >&
                                                           sortedContents) const;
   std::string print(const std::string& label = "") const;
@@ -92,6 +94,7 @@ struct RelAgg {
   std::map<std::string, AggEntry> contents;
   std::vector<std::pair<std::string, AggEntry> > sortedContents;
   std::list<std::pair<std::string, double> > results;
+  double minSupp;
 };
 
 struct GetPatternsLI {
@@ -105,7 +108,6 @@ struct GetPatternsLI {
   Relation *rel;
   TupleType *tupleType;
   NewPair<int, int> indexes; // first: textual, second: spatial
-  double minSupp;
   int minNoAtoms;
   RelAgg agg;
 };
