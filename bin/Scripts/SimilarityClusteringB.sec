@@ -6,11 +6,12 @@
 
 # Variable myPort must be set below to an exclusively used port.
 
-restore Workers from Workers12;
-let S = 'S' ffeed5 consume;
-let T = S feed ddistribute3["T", 40, TRUE, Workers];
+# restore Workers from Workers12;
+# let S = 'S' ffeed5 consume;
+# let T = S feed ddistribute3["T", 40, TRUE, Workers];
 
-
+# let T = CityNodesB0 dmap["T", . feed 
+  projectextend[NodeId; Pos: makepoint(.Lon, .Lat)]]
 
 # Step 1
 
@@ -26,7 +27,7 @@ let n = PC count;
 let MinPts = 10;
 let Eps = 100.0;
 let wgs84 = create_geoid("WGS1984");
-let myPort = 1238;
+let myPort = 61239;
 
 
 # Step 3
@@ -105,7 +106,7 @@ let V = Va collectC["V", myPort, AssignmentV]
 
 let X = V 
   dmap["X", $1 feed extend[Pos2: gk(.Pos)] dbscanM[Pos2, CID0, Eps, MinPts]
-    extend[CID: (.CID0 * n) + $2] consume
+    extend[CID: (.CID0 * n) + $2] 
   ]
 
 
@@ -121,7 +122,7 @@ let Neighbors = X Wm_Pos_mtree Wm
     loopsel[fun(t: TUPLE) $2 $3 mdistRange[attr(t, Pos), Eps] 
       projectextend[; P: .Osm_id, PosP: .Pos,  CID0: .CID0, CIDp: .CID, 
         IsCoreP: .IsCore, Np: .N, Q: attr(t, Osm_id), QPos: attr(t, Pos)]] 
-    consume, myPort
+    , myPort
   ]
 
 query T dcommand['query memclear()'] filter[.Ok] count;
@@ -136,7 +137,7 @@ let NeighborsByQ = Neighbors partition["", hashvalue(.Q, 999997), 0]
 let Merge = NeighborsByQ NeighborsByP 
   dmap2["Merge", . feed {n1} .. feed {n2} itHashJoin[Q_n1, P_n2] 
     filter[.IsCoreP_n1 and .IsCoreP_n2] 
-    project[CIDp_n1, CIDp_n2] sort rdup consume, myPort
+    project[CIDp_n1, CIDp_n2] sort rdup, myPort
   ]
 
 let Assignments = NeighborsByQ NeighborsByP 
@@ -146,7 +147,7 @@ let Assignments = NeighborsByQ NeighborsByP
       projectextend[; P: .P_n2, N: .Np_n2,  CID: .CIDp_n1]
     . feed filter[.IsCoreP_n2 and not(.IsCoreP_n1)] 
       projectextend[; P: .P_n1, N: .Np_n1, CID: .CIDp_n2]
-    concat sort krdup[P] consume
+    concat sort krdup[P]
   ]
   partition["", .N, 0]
   collect2["Assignments", myPort]
@@ -184,6 +185,10 @@ query X
   getValue tie[. + ..]
 
 
+
+
+
+let Commands = SEC2COMMANDS feed consume
 
 
 
