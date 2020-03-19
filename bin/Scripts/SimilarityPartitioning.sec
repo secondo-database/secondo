@@ -1,6 +1,6 @@
 
 
-let k = 50;
+# let k = 50;
 query memclear();
 
 let SSm = SS feed mconsume;
