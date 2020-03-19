@@ -6,12 +6,28 @@
 
 # Variable myPort must be set below to an exclusively used port.
 
-# restore Workers from Workers12;
-# let S = 'S' ffeed5 consume;
-# let T = S feed ddistribute3["T", 40, TRUE, Workers];
+# Parameter k below may be adapted (default 50)
+# sample size in step 1 may be adapted
 
-# let T = CityNodesB0 dmap["T", . feed 
-  projectextend[NodeId; Pos: makepoint(.Lon, .Lat)]]
+
+
+restore Workers from WorkersNewton;
+let S = 'S' ffeed5 consume;
+# 4:60 min
+
+let T = S feed ddistribute3["T", 160, TRUE, Workers];
+# 1:37 min
+
+  
+# prepare cost measurements
+
+let ControlWorkers = createintdarray("ControlWorkers", Workers, Workers count)
+
+@%Scripts/DistCost.sec
+  
+  
+let myPort = ... ;
+  
 
 # Step 1
 
@@ -22,12 +38,13 @@ let SS = T dmap["", . feed some[10000 div sizeT]] dsummarize consume
 
 # Step 2
 
+let k = 50;
 @&Scripts/SimilarityPartitioning.sec;
 let n = PC count;
 let MinPts = 10;
 let Eps = 100.0;
 let wgs84 = create_geoid("WGS1984");
-let myPort = 61239;
+
 
 
 # Step 3
@@ -103,11 +120,15 @@ let V = Va collectC["V", myPort, AssignmentV]
 
 # Step 5
 
+update LastCommand := distCostReset(ControlWorkers)
 
 let X = V 
   dmap["X", $1 feed extend[Pos2: gk(.Pos)] dbscanM[Pos2, CID0, Eps, MinPts]
-    extend[CID: (.CID0 * n) + $2] 
+    extend[CID: (.CID0 * n) + $2] consume
   ]
+  
+let Cost1 = distCostSave(ControlWorkers);
+update LastCommand := distCostReset(ControlWorkers)
 
 
 # Step 6
@@ -124,12 +145,18 @@ let Neighbors = X Wm_Pos_mtree Wm
         IsCoreP: .IsCore, Np: .N, Q: attr(t, Osm_id), QPos: attr(t, Pos)]] 
     , myPort
   ]
+  
+let Cost2 = distCostSave(ControlWorkers);
+update LastCommand := distCostReset(ControlWorkers)
 
 query T dcommand['query memclear()'] filter[.Ok] count;
 let NeighborsByP = Neighbors partition["", hashvalue(.P, 999997), 0]
   collect2["NeighborsByP", myPort];
 let NeighborsByQ = Neighbors partition["", hashvalue(.Q, 999997), 0]
   collect2["NeighborsByQ", myPort];
+  
+let Cost3 = distCostSave(ControlWorkers);
+update LastCommand := distCostReset(ControlWorkers)
 
 
 # Step 7
@@ -139,6 +166,9 @@ let Merge = NeighborsByQ NeighborsByP
     filter[.IsCoreP_n1 and .IsCoreP_n2] 
     project[CIDp_n1, CIDp_n2] sort rdup, myPort
   ]
+  
+let Cost4 = distCostSave(ControlWorkers);
+update LastCommand := distCostReset(ControlWorkers)
 
 let Assignments = NeighborsByQ NeighborsByP 
   dmap2["", . feed {n1} .. feed {n2} itHashJoin[Q_n1, P_n2], myPort]
@@ -151,6 +181,9 @@ let Assignments = NeighborsByQ NeighborsByP
   ]
   partition["", .N, 0]
   collect2["Assignments", myPort]
+  
+let Cost5 = distCostSave(ControlWorkers);
+update LastCommand := distCostReset(ControlWorkers)
 
 
 # Step 8
@@ -172,11 +205,17 @@ query share("Renumber", TRUE, Workers);
 
 # Step 11
 
+update LastCommand := distCostReset(ControlWorkers)
+
+
 query X Assignments 
   dmap2["",  $1 feed addid filter[.N = .N2] $2 feed sort krdup[P] {a} 
     itHashJoin[Osm_id, P_a] $1 updatedirect2[TID; CID: .CID_a] count, myPort
   ] 
   getValue tie[. + ..]
+  
+let Cost6 = distCostSave(ControlWorkers);
+update LastCommand := distCostReset(ControlWorkers)
 
 query X 
   dmap["", $1 feed addid filter[.N = .N2] Renumber feed sort krdup[CID] {a} 
@@ -184,7 +223,8 @@ query X
   ] 
   getValue tie[. + ..]
 
-
+let Cost7 = distCostSave(ControlWorkers);
+update LastCommand := distCostReset(ControlWorkers)
 
 
 
