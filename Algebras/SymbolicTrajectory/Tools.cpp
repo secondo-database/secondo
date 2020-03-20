@@ -1878,4 +1878,18 @@ bool Tools::getRectFromOrel(const std::string& relName, const unsigned int ref,
   return true;
 }
 
+void Tools::subset(vector<string> source, int left, int index,
+                   set<string>& labelSet, set<set<string> >& result) {
+  if (left == 0) {
+    result.insert(labelSet);
+    return;
+  }
+  for (unsigned int i = index; i < source.size(); i++) {
+    labelSet.insert(labelSet.end(), source[i]);
+    subset(source, left - 1, i + 1, labelSet, result);
+    set<string>::iterator it = --labelSet.end();
+    labelSet.erase(it);
+  }
+}
+
 }
