@@ -1694,6 +1694,27 @@ int IrGrid2dFeedSelect( ListExpr args )
 }
 
 /*
+
+4.3.6 Selection function ~IrGrid2dCellnosSelect~
+
+Is used for the ~cellnumbersI~ operator.
+
+*/
+int IrGrid2dCellnosSelect( ListExpr args )
+{
+  if (nl->ListLength(args) == 2) {
+    ListExpr first = nl->First(args);
+    ListExpr second = nl->Second(args);
+
+    if (IrregularGrid2D::checkType(first)
+      && Rectangle<2>::checkType(second)) {
+        return 0;
+    }
+  }
+  return -1; // should never occur
+}
+
+/*
 4.4 Value mapping functions
 
 A value mapping function implements an operator's main functionality: it takes
@@ -3056,6 +3077,8 @@ ValueMapping GridCell2Rect_VM[] = {
 
 ValueMapping irgdrid2dCreateMap[] = { IrGrid2dValueMapCreate };
 ValueMapping irgdrid2dFeedMap[] = { IrregularGrid2D::IrGrid2dValueMapFeed };
+ValueMapping irgdrid2dCellnosMap[]
+  = { IrregularGrid2D::IrGrid2dValueMapCellnos };
 
 /*
 4.5.2 Definition of specification strings
@@ -3338,7 +3361,13 @@ const string feedIrGrid2dSpec  =
         "from irgrid2d.</text--->"
         ") )";
 
-
+const string cellnosIrGrid2dSpec  =
+        "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" \"Remarks\")"
+        "( <text>(irgrid2d x rect) -> intset</text--->"
+        "<text>cellnos_ir(_, _)</text--->"
+        "<text>get the ids of the irregular grid cells "
+        "covered by the given rectangle.</text--->"
+        ") )";
 
 
 
@@ -3535,6 +3564,13 @@ Operator feedirgrid2d( "feed",
     irgdrid2dFeedMap,
     IrGrid2dFeedSelect,
     IrregularGrid2D::IrGrid2dFeedTypeMap );
+
+Operator cellnosirgrid2d( "cellnos_ir",
+    cellnosIrGrid2dSpec,
+    1,
+    irgdrid2dCellnosMap,
+    IrGrid2dCellnosSelect,
+    IrregularGrid2D::IrGrid2dCellnosTypeMap );
 
 struct cellnumber_Info : OperatorInfo {
 
@@ -4214,6 +4250,7 @@ class RectangleAlgebra : public Algebra
     AddOperator( &rectanglebboxintersects );
     AddOperator( &createirgrid2d );
     AddOperator( &feedirgrid2d );
+    AddOperator( &cellnosirgrid2d );
     AddOperator(cellnumber_Info(), cellNumberVM, cellNumberTM);
     AddOperator(gridintersects_Info(), gridIntersectsVM, gridIntersectsTM);
     AddOperator( &gridcell2rect);

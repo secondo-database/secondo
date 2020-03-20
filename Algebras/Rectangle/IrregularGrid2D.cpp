@@ -27,6 +27,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "IrregularGrid2D.h"
 #include "Algebras/Relation-C++/RelationAlgebra.h"
+#include "Algebras/Collection/IntSet.h"
 #include <map>
 #include <iterator>
 
@@ -370,7 +371,7 @@ getRectangleCentre(Rectangle<2>* r) {
   return r_c;
 }
 
-// check if a point is inside the irgrid2d bounding box
+// check if a rectangle is inside the irgrid2d bounding box
 bool
 insideBoundingBox(Rectangle<2>* bbox, Rectangle<2>* r) {
   double le = bbox->getMinX();
@@ -393,7 +394,7 @@ IrregularGrid2D::processInput(Stream<Rectangle<2>> rStream) {
 
   while(next != 0){
     if (!insideBoundingBox(boundingBox, next)) {
-      // point outside the bounding box is discarded
+      // rectangle (partially) outside the bounding box is discarded
       next = rStream.request();
       continue;
     }
@@ -877,5 +878,144 @@ IrregularGrid2D::IrGrid2dValueMapFeed( Word* args, Word& result, int message,
     }
   }
 
+  return -1;
+}
+
+/*
+Type mapping function ~IrGrid2dCellnosTypeMap~
+
+It is used for the ~cellnumbersI~ operator.
+
+*/
+ListExpr
+IrregularGrid2D::IrGrid2dCellnosTypeMap( ListExpr args )
+{
+  if(nl->HasLength(args, 2)) {
+    ListExpr first = nl->First(args);
+    ListExpr second = nl->Second(args);
+
+    if (IrregularGrid2D::checkType(first) && Rectangle<2>::checkType(second)) {
+      return nl->SymbolAtom(collection::IntSet::BasicType());
+    }
+  }
+
+  const std::string errMsg = "The following two arguments are expected:"
+      " irgrid2d x rect";
+
+  return  listutils::typeError(errMsg);
+}
+
+template <class C>
+bool
+InCell(C cell, double val) {
+  return (val >= cell.getValFrom()
+    && val < cell.getValTo());
+}
+
+template <class C>
+bool
+GtCell(C cell, double val) {
+  return (cell.getValFrom() >= val);
+}
+
+template <class C>
+int
+CellBS(const std::vector<C>* c_vec, int start, int end, const double val) {
+  if (start > end) {
+    return -1;
+  }
+
+  const int mid = start + ((end - start) / 2);
+
+  if (InCell(c_vec->at(mid), val)) {
+    return mid;
+  } else if (GtCell(c_vec->at(mid), val)) {
+    return CellBS(c_vec, start, mid-1, val);
+  }
+
+  return CellBS(c_vec, mid+1, end, val);
+}
+
+/*
+Value mapping function of operator ~cellnumbersI~
+
+*/
+int
+IrregularGrid2D::IrGrid2dValueMapCellnos( Word* args, Word& result, int message,
+    Word& local, Supplier s ) {
+  IrregularGrid2D *input_irgrid2d_ptr
+    = static_cast<IrregularGrid2D*>( args[0].addr );
+
+  Rectangle<2> *search_window_ptr
+    = static_cast<Rectangle<2>*>( args[1].addr );
+
+  if (input_irgrid2d_ptr != nullptr && search_window_ptr != nullptr) {
+    std::set<int> cell_ids;
+
+    result = qp->ResultStorage(s);
+    collection::IntSet* res = (collection::IntSet*) result.addr;
+
+    Rectangle<2> * b_box = input_irgrid2d_ptr->getBoundingBox();
+    if (!search_window_ptr->Intersects(*b_box)) {
+      cell_ids.insert(0);
+      res->setTo(cell_ids);
+      return 0;
+    }
+
+    // 'truncate' search window in case of partial cutting
+    if (!b_box->Contains(*search_window_ptr)) {
+      search_window_ptr = new Rectangle<2>(
+        search_window_ptr->Intersection(*b_box));
+
+      cell_ids.insert(0);
+    }
+
+    std::vector<VCell>* col = &input_irgrid2d_ptr->getColumnVector();
+
+    double le = search_window_ptr->getMinX();
+    double ri = search_window_ptr->getMaxX();
+    double bo = search_window_ptr->getMinY();
+    double to = search_window_ptr->getMaxY();
+
+    int pos_bo = CellBS(col, 0, col->size(), bo);
+    if (pos_bo != -1) {
+      VCell vCell = col->at(pos_bo);
+      std::vector<HCell>* row = &vCell.getRow();
+
+      int pos_le = CellBS(row, 0, row->size(), le);
+      if (pos_le != -1) {
+
+        // collect ids
+        unsigned int cellIdx = pos_le;
+        while (cellIdx < row->size()) {
+          HCell i = row->at(cellIdx);
+          cell_ids.insert(i.getCellId());
+
+          if ((ri >= i.getValFrom() && ri < i.getValTo())
+            || (cellIdx == row->size()-1  && ri >= i.getValFrom()))  {
+              HCell fi = row->at(pos_le);
+              if (to >= vCell.getValTo() && fi.getUpper() != nullptr) {
+                vCell = col->at(++pos_bo);
+                row = &vCell.getRow();
+
+                HCell * u = fi.getUpper();
+                int nbr_cpr = input_irgrid2d_ptr->getCellCount();
+                int cid_pos = (u->getCellId()) % nbr_cpr;
+                pos_le = cid_pos == 0 ? nbr_cpr-1 : cid_pos-1;
+
+                cellIdx = pos_le-1;
+            } else if (to <= vCell.getValTo() || fi.getUpper() == nullptr) {
+              break;
+            }
+          }
+          cellIdx++;
+        }
+
+        res->setTo(cell_ids);
+
+        return 0;
+      }
+    }
+  }
   return -1;
 }

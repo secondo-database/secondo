@@ -115,8 +115,8 @@ class IrregularGrid2D {
     // Do not use the standard constructor
     IrregularGrid2D();
     // The first constructor.
-      IrregularGrid2D(Rectangle<2> &bounding_box,
-        int rowCount, int cellCount);
+    IrregularGrid2D(Rectangle<2> &bounding_box,
+      int rowCount, int cellCount);
 
     // The copy constructor.
     IrregularGrid2D( const IrregularGrid2D& g );
@@ -136,6 +136,10 @@ class IrregularGrid2D {
     // operator relevant functions
     static ListExpr IrGrid2dFeedTypeMap( ListExpr args );
     static int IrGrid2dValueMapFeed( Word* args, Word& result, int message,
+      Word& local, Supplier s );
+
+    static ListExpr IrGrid2dCellnosTypeMap( ListExpr args );
+    static int IrGrid2dValueMapCellnos( Word* args, Word& result, int message,
       Word& local, Supplier s );
 
     // Algebra supporting functions

@@ -49,3 +49,4 @@ operator toprightreport alias TOPRIGHTREPORT  pattern op ( _ , _ )
 
 operator create_irgrid2d alias CREATE_IRGRID2D pattern _ op [_, _, _]
 operator feed alias FEED pattern _ op
+operator cellnos_ir alias CELLNOS_IR pattern op(_, _)
