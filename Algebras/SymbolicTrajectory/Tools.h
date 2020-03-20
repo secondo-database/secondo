@@ -299,7 +299,8 @@ class Tools {
   static bool getRectFromOrel(const std::string& relName,const unsigned int ref,
                               Rectangle<2>& box);
   static void subset(std::vector<std::string> source, int left, int index,
-     std::set<std::string>& labelSet, std::set<std::set<std::string> >& result);
+                     std::vector<std::string>& labelVec, 
+                     std::set<std::vector<std::string> >& result);
   
   
   
