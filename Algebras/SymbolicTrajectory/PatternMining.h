@@ -50,6 +50,18 @@ struct AggEntry {
   datetime::DateTime duration; // over all tuples
 };
 
+/*
+
+Comparison function; sort by
+
+  * number of tuples with at least one occurrence (support * noTuples)
+  * total duration
+  * total number of occurrences (>= support * noTuples)
+  * lexicographical order of labels
+
+*/
+
+
 struct compareEntries {
   bool operator()(std::pair<const std::string, AggEntry> const& left,
                   std::pair<const std::string, AggEntry> const& right) const {
@@ -81,24 +93,34 @@ struct RelAgg {
   void clear();
   void insert(const std::string& label, const TupleId& id, 
               const temporalalgebra::SecInterval& iv);
-  void compute(Relation *rel, const NewPair<int, int> indexes);
+  void compute(Relation *rel, const NewPair<int, int> attrPos);
   void sort(const double ms);
   void buildAtomWithSupp(std::pair<std::string, AggEntry> sortedContentsEntry,
                          std::string& atom, double& supp);
-  void derivePatterns(const int minNoAtoms);
+  void retrieveLabelCombs(const unsigned int size, 
+                          std::vector<std::string> source, 
+                          std::set<std::vector<std::string > >& result);
+  double sequenceSupp(std::vector<std::string> labelSeq);
+  void derivePatterns(const int ma, Relation *rel, NewPair<int, int> attrPos);
   std::string print(const std::vector<std::pair<std::string, AggEntry> >&
                                                           sortedContents) const;
+  std::string print(const std::map<TupleId, std::vector<std::string> > 
+                                                          frequentLabels) const;
+  std::string print(const std::set<std::vector<std::string> > labelCombs) const;
+  std::string print(const std::set<TupleId> tidSet) const;
   std::string print(const std::string& label = "") const;
   
   unsigned int noTuples;
   std::map<std::string, AggEntry> contents;
   std::vector<std::pair<std::string, AggEntry> > sortedContents;
+//   std::map<TupleId, std::vector<std::string> > frequentLabels;
   std::list<std::pair<std::string, double> > results;
   double minSupp;
+  int minNoAtoms;
 };
 
 struct GetPatternsLI {
-  GetPatternsLI(Relation *r, const NewPair<int, int> i, double ms, int ma);
+  GetPatternsLI(Relation *r, const NewPair<int, int> ap, double ms, int ma);
   ~GetPatternsLI();
   
   TupleType *getTupleType() const;
@@ -107,8 +129,7 @@ struct GetPatternsLI {
   
   Relation *rel;
   TupleType *tupleType;
-  NewPair<int, int> indexes; // first: textual, second: spatial
-  int minNoAtoms;
+  NewPair<int, int> attrPos; // first: textual, second: spatial
   RelAgg agg;
 };
   
