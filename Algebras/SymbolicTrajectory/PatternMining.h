@@ -104,6 +104,8 @@ struct RelAgg {
                                  std::set<TupleId>& intersection);
   double sequenceSupp(std::vector<std::string>& labelSeq,
                       std::set<TupleId>& intersection);
+  void combineApriori(std::set<std::vector<std::string > > frequentLabelCombs,
+                      std::set<std::vector<std::string > > labelCombs);
   void derivePatterns(const int ma, Relation *rel);
   std::string print(const std::vector<std::pair<std::string, AggEntry> >&
                                                           sortedContents) const;

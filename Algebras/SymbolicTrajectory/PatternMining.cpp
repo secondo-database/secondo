@@ -342,37 +342,55 @@ bool RelAgg::canIntersectionBeFrequent(vector<string>& labelSeq,
 
 double RelAgg::sequenceSupp(vector<string>& labelSeq, 
                             set<TupleId>& intersection) {
-  Instant firstStart, firstEnd, secondStart, secondEnd;
-  int counter[2] = {0, 0};
+  Instant firstStart, secondEnd;
+  int counter = 0;
   for (auto itInt : intersection) {
-    if (contents[labelSeq[0]].occurrences.find(itInt) == 
-        contents[labelSeq[0]].occurrences.end()) {
-//       cout << "  No Periods for " << labelSeq[0] << ", id " << itInt << endl;
-      return 0.0;
-    }
+    if (contents[labelSeq[0]].occurrences.find(itInt) != 
+        contents[labelSeq[0]].occurrences.end()
+     && contents[labelSeq[1]].occurrences.find(itInt) != 
+        contents[labelSeq[1]].occurrences.end()) { // both labels found
 //     cout << "Compute Minimum for " << labelSeq[0] << ", id " << itInt << ": "
 //          << *(contents[labelSeq[0]].occurrences[itInt]) << endl;
-    contents[labelSeq[0]].occurrences[itInt]->Minimum(firstStart);
-    contents[labelSeq[0]].occurrences[itInt]->Maximum(firstEnd);
-    if (contents[labelSeq[1]].occurrences.find(itInt) == 
-        contents[labelSeq[1]].occurrences.end()) {
-//       cout << "  no periods for " << labelSeq[1] << ", id " << itInt << endl;
-      return 0.0;
-    }
+      contents[labelSeq[0]].occurrences[itInt]->Minimum(firstStart);
+//       contents[labelSeq[0]].occurrences[itInt]->Maximum(firstEnd);
 //     cout << "compute minimum for " << labelSeq[1] << ", id " << itInt << ": "
 //         << *(contents[labelSeq[1]].occurrences[itInt]) << endl;
-    contents[labelSeq[1]].occurrences[itInt]->Minimum(secondStart);
-    contents[labelSeq[1]].occurrences[itInt]->Maximum(secondEnd);
-    if (firstStart < secondEnd) {
-      counter[0]++;
+//       contents[labelSeq[1]].occurrences[itInt]->Minimum(secondStart);
+      contents[labelSeq[1]].occurrences[itInt]->Maximum(secondEnd);
+      if (firstStart < secondEnd) {
+        counter++;
+      }
+//       if (secondStart < firstEnd) {
+//         counter[1]++;
+//       }
     }
-    if (secondStart < firstEnd) {
-      counter[1]++;
-    }
+//     if (contents[labelSeq[0]].occurrences.find(itInt) == 
+//         contents[labelSeq[0]].occurrences.end()) {
+//       cout << "  No Periods for " << labelSeq[0] << ", id " << itInt << endl;
+//     }
+//     if (contents[labelSeq[1]].occurrences.find(itInt) == 
+//         contents[labelSeq[1]].occurrences.end()) {
+//       cout << "  no periods for " << labelSeq[1] << ", id " << itInt << endl;
+//     }
   }
 //   cout << "support of sequence <" << labelSeq[0] << ", " << labelSeq[1] 
 //        << "> is " << counter[0] << " / " << noTuples << endl;
-  return double(counter[0]) / noTuples;
+  return double(counter) / noTuples;
+}
+
+/*
+  Class ~RelAgg~, Function ~combineApriori~
+  
+  Combine sets of $k$ frequent labels to sets of $k+1$ labels, similarly to
+  Apriori algorithm, e.g. {a,b,c} combined with {a,b,d} yields {a,b,c,d}
+ 
+*/
+
+void RelAgg::combineApriori(set<vector<string > > frequentLabelCombs,
+                            set<vector<string > > labelCombs) {
+  for (auto it : frequentLabelCombs) {
+    
+  }
 }
 
 /*
@@ -391,8 +409,10 @@ void RelAgg::derivePatterns(const int ma, Relation *rel) {
   for (auto it : sortedContents) {
     buildAtom(it, atom);
     pattern = atom;
-    supp = double(it.second.occurrences.size()) / noTuples;
-    results.push_back(make_pair(pattern, supp));
+    if (minNoAtoms == 1) {
+      supp = double(it.second.occurrences.size()) / noTuples;
+      results.push_back(make_pair(pattern, supp));
+    }
     label2atom.insert(make_pair(it.first, atom));
   }
   // retrieve patterns with two atoms
@@ -416,14 +436,17 @@ void RelAgg::derivePatterns(const int ma, Relation *rel) {
       if (supp >= minSupp) {
         // build complete 2-pattern
         pattern = label2atom[labelComb[0]] + " " + label2atom[labelComb[1]];
-        results.push_back(make_pair(pattern, supp));
+        if (minNoAtoms <= 2) {
+          results.push_back(make_pair(pattern, supp));
+        }
         frequentLabelCombs.insert(frequentLabelCombs.end(), labelComb);
       }
     }
   }
   // retrieve patterns with three atoms
   if (!frequentLabelCombs.empty()) {
-    
+    labelCombs.clear();
+    combineApriori(frequentLabelCombs, labelCombs);
   }
 }
 
