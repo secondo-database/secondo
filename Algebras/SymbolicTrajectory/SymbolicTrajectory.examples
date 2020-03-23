@@ -599,4 +599,4 @@ Operator  : getPatterns
 Number    : 1
 Signature : rel(tuple(X)) x ATTR x ATTR x real x int -> stream(tuple(Pattern: text, Support: real))
 Example   : query Dotraj feed extend[X: [const mpoint value undef]] consume getPatterns[Trajectory, X, 0.09, 1] count
-Result    : 12
+Result    : 14

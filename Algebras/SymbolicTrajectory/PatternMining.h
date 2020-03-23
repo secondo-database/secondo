@@ -95,25 +95,28 @@ struct RelAgg {
               const temporalalgebra::SecInterval& iv);
   void compute(Relation *rel, const NewPair<int, int> attrPos);
   void sort(const double ms);
-  void buildAtomWithSupp(std::pair<std::string, AggEntry> sortedContentsEntry,
-                         std::string& atom, double& supp);
+  void buildAtom(std::pair<std::string, AggEntry>& sortedContentsEntry,
+                 std::string& atom);
   void retrieveLabelCombs(const unsigned int size, 
-                          std::vector<std::string> source, 
+                          std::vector<std::string>& source, 
                           std::set<std::vector<std::string > >& result);
-  double sequenceSupp(std::vector<std::string> labelSeq);
-  void derivePatterns(const int ma, Relation *rel, NewPair<int, int> attrPos);
+  bool canIntersectionBeFrequent(std::vector<std::string>& labelSeq,
+                                 std::set<TupleId>& intersection);
+  double sequenceSupp(std::vector<std::string>& labelSeq,
+                      std::set<TupleId>& intersection);
+  void derivePatterns(const int ma, Relation *rel);
   std::string print(const std::vector<std::pair<std::string, AggEntry> >&
                                                           sortedContents) const;
-  std::string print(const std::map<TupleId, std::vector<std::string> > 
+  std::string print(const std::map<TupleId, std::vector<std::string> >& 
                                                           frequentLabels) const;
-  std::string print(const std::set<std::vector<std::string> > labelCombs) const;
-  std::string print(const std::set<TupleId> tidSet) const;
+  std::string print(const std::set<std::vector<std::string> >& labelCombs) 
+                                                                          const;
+  std::string print(const std::set<TupleId>& tidSet) const;
   std::string print(const std::string& label = "") const;
   
   unsigned int noTuples;
   std::map<std::string, AggEntry> contents;
   std::vector<std::pair<std::string, AggEntry> > sortedContents;
-//   std::map<TupleId, std::vector<std::string> > frequentLabels;
   std::list<std::pair<std::string, double> > results;
   double minSupp;
   int minNoAtoms;

@@ -1881,7 +1881,9 @@ bool Tools::getRectFromOrel(const std::string& relName, const unsigned int ref,
 void Tools::subset(vector<string> source, int left, int index,
                    vector<string>& labelVec, set<vector<string> >& result) {
   if (left == 0) {
-    result.insert(labelVec);
+    do {
+      result.insert(labelVec);
+    } while (std::next_permutation(labelVec.begin(), labelVec.end()));
     return;
   }
   for (unsigned int i = index; i < source.size(); i++) {

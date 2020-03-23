@@ -269,8 +269,8 @@ void RelAgg::sort(const double ms) {
  
 */
 
-void RelAgg::buildAtomWithSupp(pair<string, AggEntry> sortedContentsEntry,
-                               string& atom, double& supp) {
+void RelAgg::buildAtom(pair<string, AggEntry>& sortedContentsEntry, 
+                       string& atom) {
   SecInterval iv(true);
   string timeSpec, semanticTimeSpec;
   string label = sortedContentsEntry.first;
@@ -293,20 +293,44 @@ void RelAgg::buildAtomWithSupp(pair<string, AggEntry> sortedContentsEntry,
       timeSpec = "_";
     }
   }
-  supp = double(sortedContentsEntry.second.occurrences.size()) / noTuples;
   atom = "(" + timeSpec + " \"" + label + "\")";
 }
 
 /*
   Class ~RelAgg~, Function ~retrieveLabelSets~
   
-  Computes all sets of size ~size~ for a tuple
+  Computes all label combinations of size ~size~ for a tuple
   
 */
-void RelAgg::retrieveLabelCombs(const unsigned int size, vector<string> source,
+void RelAgg::retrieveLabelCombs(const unsigned int size, vector<string>& source,
                                 set<vector<string > >& result) {
   vector<string> labelVec;
   Tools::subset(source, size, 0, labelVec, result);
+}
+
+/*
+  Class ~RelAgg~, Function ~canIntersectionBeFrequent~
+  
+  Computes the fraction of tuples in which all strings of ~labelSeq~ occur
+  
+*/
+bool RelAgg::canIntersectionBeFrequent(vector<string>& labelSeq,
+                                       set<TupleId>& intersection) {
+  set<TupleId> firstOccs, secondOccs;
+  for (auto it : contents[labelSeq[0]].occurrences) {
+    firstOccs.insert(it.first);
+  }
+  for (auto it : contents[labelSeq[1]].occurrences) {
+    secondOccs.insert(it.first);
+  }
+  set_intersection(firstOccs.begin(), firstOccs.end(), secondOccs.begin(), 
+                secondOccs.end(), inserter(intersection, intersection.begin()));
+  // check support of intersection; if it is below ~minSupp~, there is no chance
+  // for a frequent 2-pattern
+//   cout << "support of " << print(intersection) << " equals "
+//        << double(intersection.size()) / noTuples << " ==> "
+//        << (double(intersection.size()) / noTuples >= minSupp) << endl;
+  return (double(intersection.size()) / noTuples >= minSupp);
 }
 
 /*
@@ -316,27 +340,27 @@ void RelAgg::retrieveLabelCombs(const unsigned int size, vector<string> source,
   
 */
 
-double RelAgg::sequenceSupp(vector<string> labelSeq) {
-  set<TupleId> firstOccs, secondOccs, intersec;
-  for (auto it : contents[labelSeq[0]].occurrences) {
-    firstOccs.insert(it.first);
-  }
-  for (auto it : contents[labelSeq[1]].occurrences) {
-    secondOccs.insert(it.first);
-  }
-  set_intersection(firstOccs.begin(), firstOccs.end(), secondOccs.begin(), 
-                   secondOccs.end(), inserter(intersec, intersec.begin()));
-  // check support of intersection; if it is below ~minSupp~, there is no chance
-  // for a frequent 2-pattern
-  if (double(intersec.size()) / noTuples < minSupp) {
-    return -1.0;
-  }
-  // otherwise, check support of possible sequence
+double RelAgg::sequenceSupp(vector<string>& labelSeq, 
+                            set<TupleId>& intersection) {
   Instant firstStart, firstEnd, secondStart, secondEnd;
   int counter[2] = {0, 0};
-  for (auto itInt : intersec) {
+  for (auto itInt : intersection) {
+    if (contents[labelSeq[0]].occurrences.find(itInt) == 
+        contents[labelSeq[0]].occurrences.end()) {
+//       cout << "  No Periods for " << labelSeq[0] << ", id " << itInt << endl;
+      return 0.0;
+    }
+//     cout << "Compute Minimum for " << labelSeq[0] << ", id " << itInt << ": "
+//          << *(contents[labelSeq[0]].occurrences[itInt]) << endl;
     contents[labelSeq[0]].occurrences[itInt]->Minimum(firstStart);
     contents[labelSeq[0]].occurrences[itInt]->Maximum(firstEnd);
+    if (contents[labelSeq[1]].occurrences.find(itInt) == 
+        contents[labelSeq[1]].occurrences.end()) {
+//       cout << "  no periods for " << labelSeq[1] << ", id " << itInt << endl;
+      return 0.0;
+    }
+//     cout << "compute minimum for " << labelSeq[1] << ", id " << itInt << ": "
+//         << *(contents[labelSeq[1]].occurrences[itInt]) << endl;
     contents[labelSeq[1]].occurrences[itInt]->Minimum(secondStart);
     contents[labelSeq[1]].occurrences[itInt]->Maximum(secondEnd);
     if (firstStart < secondEnd) {
@@ -346,8 +370,8 @@ double RelAgg::sequenceSupp(vector<string> labelSeq) {
       counter[1]++;
     }
   }
-//   cout << first << "  before  " << second << "  :  " << counter[0] << endl;
-//   cout << second << "  before  " << first << "  :  " << counter[1] << endl;
+//   cout << "support of sequence <" << labelSeq[0] << ", " << labelSeq[1] 
+//        << "> is " << counter[0] << " / " << noTuples << endl;
   return double(counter[0]) / noTuples;
 }
 
@@ -358,20 +382,22 @@ double RelAgg::sequenceSupp(vector<string> labelSeq) {
  
 */
 
-void RelAgg::derivePatterns(const int ma, Relation *rel, 
-                            NewPair<int, int> attrPos) {
+void RelAgg::derivePatterns(const int ma, Relation *rel) {
   minNoAtoms = ma;
-  // retrieve patterns with one atom, guarantee to fulfill minSupp
+  // retrieve patterns with one atom, guaranteed to fulfill minSupp
   string pattern, atom;
+  map<string, string> label2atom;
   double supp = 1.0;
   for (auto it : sortedContents) {
-    buildAtomWithSupp(it, atom, supp);
+    buildAtom(it, atom);
     pattern = atom;
+    supp = double(it.second.occurrences.size()) / noTuples;
     results.push_back(make_pair(pattern, supp));
+    label2atom.insert(make_pair(it.first, atom));
   }
   // retrieve patterns with two atoms
   string label;
-  set<vector<string > > labelCombs;
+  set<vector<string > > labelCombs, frequentLabelCombs;
   SecInterval iv(true);
   vector<string> frequentLabels;
   // scan ~contents~; only atoms whose corresponding 1-patterns fulfill
@@ -380,13 +406,23 @@ void RelAgg::derivePatterns(const int ma, Relation *rel,
     frequentLabels.push_back(it.first);
   }
   retrieveLabelCombs(2, frequentLabels, labelCombs);
-  cout << print(labelCombs) << endl;
+//   cout << print(labelCombs) << endl;
   // check all combinations for their support
+  string atom1, atom2;
+  set<TupleId> intersection;
   for (auto labelComb : labelCombs) {
-    if (sequenceSupp(labelComb) >= minSupp) {
-      // TODO: build complete 2-pattern
+    if (canIntersectionBeFrequent(labelComb, intersection)) {
+      supp = sequenceSupp(labelComb, intersection);
+      if (supp >= minSupp) {
+        // build complete 2-pattern
+        pattern = label2atom[labelComb[0]] + " " + label2atom[labelComb[1]];
+        results.push_back(make_pair(pattern, supp));
+        frequentLabelCombs.insert(frequentLabelCombs.end(), labelComb);
+      }
     }
-    
+  }
+  // retrieve patterns with three atoms
+  if (!frequentLabelCombs.empty()) {
     
   }
 }
@@ -403,7 +439,7 @@ string RelAgg::print(const vector<pair<string, AggEntry> >&
   return result.str();
 }
 
-string RelAgg::print(const map<TupleId, vector<string> > frequentLabels) const {
+string RelAgg::print(const map<TupleId,vector<string> >& frequentLabels) const {
   stringstream result;
   for (auto it : frequentLabels) {
     result << "TID " << it.first << ": ";
@@ -415,7 +451,7 @@ string RelAgg::print(const map<TupleId, vector<string> > frequentLabels) const {
   return result.str();
 }
 
-string RelAgg::print(const set<vector<string> > labelCombs) const {
+string RelAgg::print(const set<vector<string> >& labelCombs) const {
   stringstream result;
   result << "{" << endl;
   for (auto it : labelCombs) {
@@ -434,7 +470,7 @@ string RelAgg::print(const set<vector<string> > labelCombs) const {
   return result.str();
 }
 
-string RelAgg::print(const set<TupleId> tidSet) const {
+string RelAgg::print(const set<TupleId>& tidSet) const {
   stringstream result;
   result << "{";
   bool first = true;
@@ -443,7 +479,7 @@ string RelAgg::print(const set<TupleId> tidSet) const {
       result << ", ";
     }
     first = false;
-    result << "\"" << it << "\"";
+    result << it;
   }
   result << "}";
   return result.str();
@@ -477,7 +513,7 @@ GetPatternsLI::GetPatternsLI(Relation *r, const NewPair<int,int> ap, double ms,
   agg.compute(rel, attrPos);
   agg.sort(ms);
 //   cout << agg.print(agg.sortedContents) << endl;
-  agg.derivePatterns(ma, rel, attrPos);
+  agg.derivePatterns(ma, rel);
 }
 
 GetPatternsLI::~GetPatternsLI() {
