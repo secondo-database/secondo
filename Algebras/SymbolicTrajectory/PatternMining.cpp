@@ -448,6 +448,7 @@ void RelAgg::derivePatterns(const int ma, Relation *rel) {
     labelCombs.clear();
     combineApriori(frequentLabelCombs, labelCombs);
   }
+  std::sort(results.begin(), results.end(), comparePatternMiningResults());
 }
 
 string RelAgg::print(const vector<pair<string, AggEntry> >&
@@ -562,8 +563,8 @@ Tuple* GetPatternsLI::getNextResult() {
   }
   Tuple *tuple = new Tuple(tupleType);
   pair<string, double> result;
-  result = agg.results.front();
-  agg.results.pop_front();
+  result = agg.results.back();
+  agg.results.pop_back();
   FText *pattern = new FText(true, result.first);
   tuple->PutAttribute(0, pattern);
   CcReal *support = new CcReal(true, result.second);

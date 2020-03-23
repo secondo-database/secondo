@@ -78,6 +78,13 @@ struct compareEntries {
     }
 };
 
+struct comparePatternMiningResults {
+  bool operator()(std::pair<std::string, double> res1,
+                  std::pair<std::string, double> res2) {
+    return (res1.second < res2.second); // ascending order
+  }
+};
+
 /*
 
 The original mlabel objects are transformed into a map from a label onto a set
@@ -119,7 +126,7 @@ struct RelAgg {
   unsigned int noTuples;
   std::map<std::string, AggEntry> contents;
   std::vector<std::pair<std::string, AggEntry> > sortedContents;
-  std::list<std::pair<std::string, double> > results;
+  std::vector<std::pair<std::string, double> > results;
   double minSupp;
   int minNoAtoms;
 };
