@@ -1697,7 +1697,7 @@ int IrGrid2dFeedSelect( ListExpr args )
 
 4.3.6 Selection function ~IrGrid2dCellnosSelect~
 
-Is used for the ~cellnumbersI~ operator.
+Is used for the ~cellnos\_ir~ operator.
 
 */
 int IrGrid2dCellnosSelect( ListExpr args )

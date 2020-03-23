@@ -884,7 +884,7 @@ IrregularGrid2D::IrGrid2dValueMapFeed( Word* args, Word& result, int message,
 /*
 Type mapping function ~IrGrid2dCellnosTypeMap~
 
-It is used for the ~cellnumbersI~ operator.
+It is used for the ~cellnos\_ir~ operator.
 
 */
 ListExpr
@@ -937,7 +937,7 @@ CellBS(const std::vector<C>* c_vec, int start, int end, const double val) {
 }
 
 /*
-Value mapping function of operator ~cellnumbersI~
+Value mapping function of operator ~cellnos\_ir~
 
 */
 int
@@ -1004,7 +1004,7 @@ IrregularGrid2D::IrGrid2dValueMapCellnos( Word* args, Word& result, int message,
                 pos_le = cid_pos == 0 ? nbr_cpr-1 : cid_pos-1;
 
                 cellIdx = pos_le-1;
-            } else if (to <= vCell.getValTo() || fi.getUpper() == nullptr) {
+            } else if (to < vCell.getValTo() || fi.getUpper() == nullptr) {
               break;
             }
           }
