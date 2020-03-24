@@ -136,7 +136,13 @@ DataTask::DataTask(
     size_t slot,
     DataStorageType storageType,
     ListExpr contentType)
-    : Task(RunOnReceive),
+    : Task(
+#ifdef TASK_VERIFY_COUNTS
+          0
+#else
+          RunOnReceive
+#endif
+          ),
       dataItem(name, slot, contentType,
                TaskDataLocation(dArrayElement.getHost(),
                                 dArrayElement.getPort(),
@@ -198,7 +204,13 @@ vector<TaskDataItem *> DataTask::run(
     WorkerLocation &location,
     std::vector<TaskDataItem *> args)
 {
-    return vector{new TaskDataItem(dataItem)};
+    TaskDataItem *data = new TaskDataItem(dataItem);
+#ifdef TASK_VERIFY_COUNTS
+    TaskDataLocation loc = data->getFirstLocation();
+    size_t count = loc.getValueCount(data);
+    data->setCount(count);
+#endif
+    return vector{data};
 }
 
 /*
@@ -220,6 +232,14 @@ vector<TaskDataItem *> DmapFunctionTask::run(
     for (auto arg : args)
     {
         funargs.push_back(arg->getValueArgument(location) + " ");
+#ifdef TASK_VERIFY_COUNTS
+        if (arg->getCount() > 0)
+        {
+            auto loc = arg->findLocation(location);
+            size_t count = loc.getValueCount(arg);
+            arg->verifyCount(count);
+        }
+#endif
     }
     // create function comand
     ListExpr funCmdList = fun2cmd(mapFunction, funargs);
@@ -326,20 +346,43 @@ vector<TaskDataItem *> PartitionFunctionTask::run(
     double duration = runCommand(ci, cd,
                                  "create directory for file", false, "");
 
+    string countResult;
     duration += runCommand(ci, cmd, description, true,
-                           "");
+                           "", false, &countResult);
     TaskStatistics::report("remote " + description, duration);
+
+#ifdef TASK_VERIFY_COUNTS
+    string compareCmd = "(query (count " + tupleStream + "))";
+    string compareCountResult;
+    runCommand(ci, compareCmd, "partitionFS map only", true,
+               "", false, &compareCountResult);
+    size_t compareCount = TaskDataItem::parseCount(compareCountResult);
+    TaskDataItem::verifyCount(
+        TaskDataItem::parseCount(countResult),
+        compareCount);
+    size_t countSumOfFragments = 0;
+#endif
 
     vector<TaskDataItem *> results;
 
     for (size_t i = 0; i < vslots; i++)
     {
-        results.push_back(new TaskDataItem(
+        auto *data = new TaskDataItem(
             resultName, slot, i + 1,
             resultContentType,
             TaskDataLocation(location, DataStorageType::File, true),
-            first->getPreferredLocation()));
+            first->getPreferredLocation());
+#ifdef TASK_VERIFY_COUNTS
+        size_t count = data->getFirstLocation().getValueCount(data);
+        data->setCount(count);
+        countSumOfFragments += count;
+#endif
+        results.push_back(data);
     }
+
+#ifdef TASK_VERIFY_COUNTS
+    TaskDataItem::verifyCount(countSumOfFragments, compareCount);
+#endif
 
     return results;
 }
@@ -357,6 +400,10 @@ vector<TaskDataItem *> CollectFunctionTask::run(
 
     size_t slot = first->getVerticalSlot() - 1;
 
+#ifdef TASK_VERIFY_COUNTS
+    size_t inputCount = 0;
+#endif
+
     ListExpr fsrelType = nl->TwoElemList(
         listutils::basicSymbol<fsrel>(),
         nl->Second(last->getContentType()));
@@ -372,11 +419,20 @@ vector<TaskDataItem *> CollectFunctionTask::run(
         TaskDataLocation loc = arg->findLocation(location,
                                                  DataStorageType::File);
         argQuery += "'" + loc.getFilePath(arg) + "' ";
+#ifdef TASK_VERIFY_COUNTS
+        inputCount += arg->getCount();
+#endif
     }
     argQuery += "))";
 
     return store(location, first->getPreferredLocation(),
-                 slot, argQuery, "collectS");
+                 slot, argQuery, "collectS",
+#ifdef TASK_VERIFY_COUNTS
+                 inputCount
+#else
+                 0
+#endif
+    );
 }
 
 //returns the DArray information.
@@ -476,12 +532,51 @@ std::string TaskDataLocation::getValueArgument(const TaskDataItem *data) const
     }
 }
 
+#ifdef TASK_VERIFY_COUNTS
+
+size_t TaskDataLocation::getValueCount(const TaskDataItem *data) const
+{
+    auto *ci = getWorkerConnection();
+    std::string result;
+    try
+    {
+        Task::runCommand(
+            ci, "(query (count (feed " + getValueArgument(data) + ")))",
+            "count data items", true, "", false, &result);
+        return TaskDataItem::parseCount(result);
+    }
+    catch (exception &e)
+    {
+        return 0;
+    }
+}
+
+string TaskDataLocation::getValue(const TaskDataItem *data) const
+{
+    auto *ci = getWorkerConnection();
+    std::string result;
+    try
+    {
+        Task::runCommand(
+            ci, "(query " + getValueArgument(data) + ")",
+            "get value", true, "", false, &result);
+        return result;
+    }
+    catch (exception &e)
+    {
+        return "";
+    }
+}
+
+#endif
+
 double Task::runCommand(ConnectionInfo *ci,
                         std::string cmd,
                         std::string description,
                         bool nestedListFormat,
                         string expectResult,
-                        bool ignoreError)
+                        bool ignoreError,
+                        string *result)
 {
     bool showCommands = false;
     int err;
@@ -520,6 +615,8 @@ double Task::runCommand(ConnectionInfo *ci,
             "command returned " + r + " but expected " + expectResult,
             cmd);
     }
+    if (result != 0)
+        *result = r;
     return runtime;
 }
 
@@ -534,7 +631,8 @@ Wraps value for secondo query so that output value is in correct format
 */
 vector<TaskDataItem *> FunctionTask::store(
     const WorkerLocation &location, const WorkerLocation &preferredLocation,
-    size_t slot, std::string value, std::string description)
+    size_t slot, std::string value, std::string description,
+    size_t expectedCount)
 {
     DataStorageType storageType =
         this->isStream || this->isRel || location != preferredLocation
@@ -596,10 +694,20 @@ vector<TaskDataItem *> FunctionTask::store(
         throw std::invalid_argument("not implemented storage type");
     }
 
-    duration += runCommand(ci, cmd, description, true, "");
+    string countResult;
+    duration += runCommand(ci, cmd, description, true, "", false, &countResult);
     TaskStatistics::report("remote " + description, duration);
 
-    return vector{new TaskDataItem(result)};
+    TaskDataItem *data = new TaskDataItem(result);
+
+#ifdef TASK_VERIFY_COUNTS
+    size_t count = TaskDataItem::parseCount(countResult);
+    if (expectedCount > 0)
+        TaskDataItem::verifyCount(count, expectedCount);
+    data->setCount(count);
+#endif
+
+    return vector{data};
 }
 
 ConnectionInfo *WorkerLocation::getWorkerConnection() const

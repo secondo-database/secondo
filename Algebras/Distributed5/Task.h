@@ -56,6 +56,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <set>
 #include <optional>
 
+// #define TASK_VERIFY_COUNTS
+
 namespace distributed5
 {
 enum DataStorageType
@@ -281,6 +283,11 @@ public:
         return !(*this == other);
     }
 
+#ifdef TASK_VERIFY_COUNTS
+    size_t getValueCount(const TaskDataItem *data) const;
+    std::string getValue(const TaskDataItem *data) const;
+#endif
+
 private:
     WorkerLocation workerLocation;
     DataStorageType storageType;
@@ -328,6 +335,52 @@ public:
 
     bool isFileRelation() const { return fileRelation; }
     bool isObjectRelation() const { return objectRelation; }
+
+#ifdef TASK_VERIFY_COUNTS
+    size_t getCount() const
+    {
+        boost::shared_lock_guard<boost::shared_mutex> lock(mutex);
+        return count;
+    }
+
+    void setCount(size_t currentCount)
+    {
+        boost::lock_guard<boost::shared_mutex> lock(mutex);
+        count = currentCount;
+    }
+
+    static void verifyCount(size_t currentCount, size_t expectedCount)
+    {
+        if (expectedCount != currentCount)
+        {
+            std::cout << "Got count " << currentCount
+                      << ", but expected " << expectedCount << endl;
+        }
+    }
+
+    void verifyCount(size_t currentCount) const
+    {
+        boost::shared_lock_guard<boost::shared_mutex> lock(mutex);
+        verifyCount(currentCount, count);
+    }
+
+    void verifyCount(std::string currentCount, size_t offset = 0) const
+    {
+        size_t value = parseCount(currentCount) + offset;
+        boost::shared_lock_guard<boost::shared_mutex> lock(mutex);
+        verifyCount(value, count);
+    }
+
+    static size_t parseCount(std::string count)
+    {
+        if (count.substr(0, 5) == "(int " &&
+            count.substr(count.length() - 1, 1) == ")")
+        {
+            return std::stoi(count.substr(5, count.length() - 6));
+        }
+        return 0;
+    }
+#endif
 
     std::string toString() const
     {
@@ -476,6 +529,10 @@ private:
     ListExpr contentType;
     bool fileRelation;
     bool objectRelation;
+
+#ifdef TASK_VERIFY_COUNTS
+    size_t count = 0;
+#endif
 };
 
 enum TaskFlag : int
@@ -654,7 +711,8 @@ public:
                              std::string description,
                              bool nestedListFormat = false,
                              std::string expectResult = "(bool TRUE)",
-                             bool ignoreError = false);
+                             bool ignoreError = false,
+                             std::string *result = 0);
 
 private:
     std::vector<std::pair<Task *, size_t>> arguments;
@@ -747,7 +805,8 @@ protected:
 
     std::vector<TaskDataItem *> store(
         const WorkerLocation &location, const WorkerLocation &preferredLocation,
-        size_t slot, std::string value, std::string description);
+        size_t slot, std::string value, std::string description,
+        size_t expectedCount = 0);
 };
 
 class DmapFunctionTask : public FunctionTask
@@ -822,7 +881,7 @@ public:
                           std::string resultName,
                           size_t vslots,
                           ListExpr resultContentType)
-        : FunctionTask(PrimaryArgumentAsFile | PrimaryArgumentAsObject,
+        : FunctionTask(PrimaryArgumentAsFile | SecondaryArgumentsAsFile,
                        resultName,
                        resultContentType,
                        isRel,

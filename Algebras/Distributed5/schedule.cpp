@@ -1052,6 +1052,10 @@ private:
                 cout << "Multiple leaf tasks for slot " << result->getSlot()
                      << endl;
             }
+#ifdef TASK_VERIFY_COUNTS
+            auto loc = result->findLocation(preferredLocation);
+            cout << result->getSlot() << " = " << loc.getValue(result) << endl;
+#endif
             resultItem = preferredLocation.getDArrayElement();
 
             return vector<TaskDataItem *>();
@@ -1549,7 +1553,7 @@ void Scheduler::valueJobsForTask(WorkerLocation &location, Task *task,
     if (best && cost > best->second)
         return;
 
-    TaskDataItem *firstArg = args.front();
+    TaskDataItem *firstArg = args.size() > 0 ? args.front() : 0;
 
     bool validWorker =
         !task->hasFlag(RunOnPreferedWorker) ||

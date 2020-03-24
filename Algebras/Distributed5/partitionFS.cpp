@@ -289,7 +289,7 @@ public:
             }
             inputConsumed = true;
         }
-        if (currentWorker > workerCount)
+        if (currentWorker >= workerCount)
             return 0;
         auto *partitionTask = new PartitionFunctionTask(
             mapFunction, partitionFunction,
