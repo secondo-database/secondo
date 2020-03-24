@@ -40,7 +40,8 @@ struct AggEntry {
   void clear();
   unsigned int getNoOccurrences(const TupleId& id) const;
   datetime::DateTime getDuration() const {return duration;}
-  void computeCommonTimeInterval(temporalalgebra::SecInterval& iv) const;
+  void computeCommonTimeInterval(temporalalgebra::SecInterval& iv,
+                                 std::set<TupleId>& commonTupleIds);
   void computeSemanticTimeSpec(std::string& semanticTimeSpec) const;
   std::string print(const TupleId& id = 0) const;
   
@@ -102,8 +103,8 @@ struct RelAgg {
               const temporalalgebra::SecInterval& iv);
   void compute(Relation *rel, const NewPair<int, int> attrPos);
   void sort(const double ms);
-  void buildAtom(std::pair<std::string, AggEntry>& sortedContentsEntry,
-                 std::string& atom);
+  bool buildAtom(std::pair<std::string, AggEntry>& sortedContentsEntry,
+                 std::set<TupleId>& commonTupleIds, std::string& atom);
   void retrieveLabelCombs(const unsigned int size, 
                           std::vector<std::string>& source, 
                           std::set<std::vector<std::string > >& result);

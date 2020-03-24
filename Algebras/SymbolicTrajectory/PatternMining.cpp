@@ -70,22 +70,44 @@ unsigned int AggEntry::getNoOccurrences(const TupleId& id) const {
   return it->second->GetNoComponents();
 }
 
-void AggEntry::computeCommonTimeInterval(SecInterval& iv) const {
+void AggEntry::computeCommonTimeInterval(SecInterval& iv, 
+                                         set<TupleId>& commonTupleIds) {
   iv.start.SetType(instanttype);
   iv.end.SetType(instanttype);
   iv.start.ToMaximum();
   iv.end.ToMinimum();
   Instant first(1.0), last(1.0);
-  for (auto it : occurrences) {
-    if (it.second->IsDefined()) {
-      if (!it.second->IsEmpty()) {
-        it.second->Minimum(first);
-        it.second->Maximum(last);
-        if (first < iv.start) {
-          iv.start = first;
+  if (commonTupleIds.empty()) { // use all occurrences
+    for (auto it : occurrences) {
+      if (it.second->IsDefined()) {
+        if (!it.second->IsEmpty()) {
+          it.second->Minimum(first);
+          it.second->Maximum(last);
+          if (first < iv.start) {
+            iv.start = first;
+          }
+          if (last > iv.end) {
+            iv.end = last;
+          }
         }
-        if (last > iv.end) {
-          iv.end = last;
+      }
+    }
+  }
+  else { // use only entries occurring in the set
+    for (auto it : commonTupleIds) {
+      if (occurrences.find(it) != occurrences.end()) {
+        Periods* per = occurrences[it];
+        if (per->IsDefined()) {
+          if (!per->IsEmpty()) {
+            per->Minimum(first);
+            per->Maximum(last);
+            if (first < iv.start) {
+              iv.start = first;
+            }
+            if (last > iv.end) {
+              iv.end = last;
+            }
+          }
         }
       }
     }
@@ -269,12 +291,19 @@ void RelAgg::sort(const double ms) {
  
 */
 
-void RelAgg::buildAtom(pair<string, AggEntry>& sortedContentsEntry, 
-                       string& atom) {
+bool RelAgg::buildAtom(pair<string, AggEntry>& sortedContentsEntry, 
+                       set<TupleId>& commonTupleIds, string& atom) {
   SecInterval iv(true);
   string timeSpec, semanticTimeSpec;
-  string label = sortedContentsEntry.first;
-  sortedContentsEntry.second.computeCommonTimeInterval(iv);
+  if (commonTupleIds.empty()) {
+    cout << sortedContentsEntry.second.occurrences.size() 
+         << " occurrences for label " << sortedContentsEntry.first << endl;
+  }
+  else {
+    cout << commonTupleIds.size() 
+         << " common tuple ids for label " << sortedContentsEntry.first << endl;
+  }
+  sortedContentsEntry.second.computeCommonTimeInterval(iv, commonTupleIds);
   sortedContentsEntry.second.computeSemanticTimeSpec(semanticTimeSpec);
   if (!semanticTimeSpec.empty()) {
     if (iv.start.IsDefined() && iv.end.IsDefined()) {
@@ -290,10 +319,12 @@ void RelAgg::buildAtom(pair<string, AggEntry>& sortedContentsEntry,
       timeSpec = iv.start.ToString() + "~" + iv.end.ToString();
     }
     else {
-      timeSpec = "_";
+      atom.clear();
+      return false;
     }
   }
-  atom = "(" + timeSpec + " \"" + label + "\")";
+  atom = "(" + timeSpec + " \"" + sortedContentsEntry.first + "\")";
+  return true;
 }
 
 /*
@@ -316,6 +347,7 @@ void RelAgg::retrieveLabelCombs(const unsigned int size, vector<string>& source,
 */
 bool RelAgg::canIntersectionBeFrequent(vector<string>& labelSeq,
                                        set<TupleId>& intersection) {
+  intersection.clear();
   set<TupleId> firstOccs, secondOccs;
   for (auto it : contents[labelSeq[0]].occurrences) {
     firstOccs.insert(it.first);
@@ -405,9 +437,10 @@ void RelAgg::derivePatterns(const int ma, Relation *rel) {
   // retrieve patterns with one atom, guaranteed to fulfill minSupp
   string pattern, atom;
   map<string, string> label2atom;
+  set<TupleId> commonTupleIds;
   double supp = 1.0;
   for (auto it : sortedContents) {
-    buildAtom(it, atom);
+    buildAtom(it, commonTupleIds, atom);
     pattern = atom;
     if (minNoAtoms == 1) {
       supp = double(it.second.occurrences.size()) / noTuples;
@@ -429,14 +462,19 @@ void RelAgg::derivePatterns(const int ma, Relation *rel) {
 //   cout << print(labelCombs) << endl;
   // check all combinations for their support
   string atom1, atom2;
-  set<TupleId> intersection;
+  bool correct = false;
   for (auto labelComb : labelCombs) {
-    if (canIntersectionBeFrequent(labelComb, intersection)) {
-      supp = sequenceSupp(labelComb, intersection);
+    if (canIntersectionBeFrequent(labelComb, commonTupleIds)) {
+      supp = sequenceSupp(labelComb, commonTupleIds);
       if (supp >= minSupp) {
         // build complete 2-pattern
-        pattern = label2atom[labelComb[0]] + " " + label2atom[labelComb[1]];
-        if (minNoAtoms <= 2) {
+        pair<string, AggEntry> contentsEntry = 
+                                make_pair(labelComb[0], contents[labelComb[0]]);
+        correct = buildAtom(contentsEntry, commonTupleIds, atom1);
+        contentsEntry = make_pair(labelComb[1], contents[labelComb[1]]);
+        correct = correct && buildAtom(contentsEntry, commonTupleIds, atom2);
+        pattern = atom1 + " " + atom2;
+        if (correct && minNoAtoms <= 2) {
           results.push_back(make_pair(pattern, supp));
         }
         frequentLabelCombs.insert(frequentLabelCombs.end(), labelComb);
