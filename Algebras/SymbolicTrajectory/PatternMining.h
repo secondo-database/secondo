@@ -82,6 +82,9 @@ struct compareEntries {
 struct comparePatternMiningResults {
   bool operator()(std::pair<std::string, double> res1,
                   std::pair<std::string, double> res2) {
+    if (res1.second == res2.second) {
+      return (res1.first.length() > res2.first.length());
+    }
     return (res1.second < res2.second); // ascending order
   }
 };
@@ -125,12 +128,14 @@ struct RelAgg {
   void retrieveLabelCombs(const unsigned int size, 
                           std::vector<std::string>& source, 
                           std::set<std::vector<std::string > >& result);
-  bool canIntersectionBeFrequent(std::vector<std::string>& labelSeq,
+  bool canLabelsBeFrequent(std::vector<std::string>& labelSeq,
                                  std::set<TupleId>& intersection);
-  double sequenceSupp(std::vector<std::string>& labelSeq,
-                      std::set<TupleId>& intersection);
+  double sequenceSupp(std::vector<std::string> labelSeq,
+                      std::set<TupleId> intersection);
   void combineApriori(std::set<std::vector<std::string > >& frequentLabelCombs,
                       std::set<std::vector<std::string > >& labelCombs);
+  void retrievePermutations(std::vector<std::string>& labelComb,
+		            std::set<std::vector<std::string > >& labelPerms);
   void derivePatterns(const int ma, Relation *rel);
   std::string print(const std::vector<std::pair<std::string, AggEntry> >&
                                                           sortedContents) const;
@@ -139,7 +144,22 @@ struct RelAgg {
   std::string print(const std::vector<std::string>& labelComb) const;
   std::string print(const std::set<std::vector<std::string> >& labelCombs) 
                                                                           const;
-  std::string print(const std::set<TupleId>& tidSet) const;
+  template<class T>
+  std::string print(const std::set<T>& anySet) const {
+    std::stringstream result;
+    result << "{";
+    bool first = true;
+    for (auto it : anySet) {
+      if (!first) {
+        result << ", ";
+      }
+      first = false;
+      result << it;
+    }
+    result << "}";
+    return result.str();
+  }
+
   std::string print(const std::string& label = "") const;
   
   unsigned int noTuples;
