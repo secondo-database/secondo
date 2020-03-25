@@ -295,14 +295,6 @@ bool RelAgg::buildAtom(pair<string, AggEntry>& sortedContentsEntry,
                        set<TupleId>& commonTupleIds, string& atom) {
   SecInterval iv(true);
   string timeSpec, semanticTimeSpec;
-  if (commonTupleIds.empty()) {
-    cout << sortedContentsEntry.second.occurrences.size() 
-         << " occurrences for label " << sortedContentsEntry.first << endl;
-  }
-  else {
-    cout << commonTupleIds.size() 
-         << " common tuple ids for label " << sortedContentsEntry.first << endl;
-  }
   sortedContentsEntry.second.computeCommonTimeInterval(iv, commonTupleIds);
   sortedContentsEntry.second.computeSemanticTimeSpec(semanticTimeSpec);
   if (!semanticTimeSpec.empty()) {
@@ -414,14 +406,21 @@ double RelAgg::sequenceSupp(vector<string>& labelSeq,
   Class ~RelAgg~, Function ~combineApriori~
   
   Combine sets of $k$ frequent labels to sets of $k+1$ labels, similarly to
-  Apriori algorithm, e.g. {a,b,c} combined with {a,b,d} yields {a,b,c,d}
+  Apriori algorithm, e.g. {a,b,c} combined with {a,b,d} yields {a,b,c,d},
+  or {a,b,c} combined with {e,c,b} yields {
  
 */
 
-void RelAgg::combineApriori(set<vector<string > > frequentLabelCombs,
-                            set<vector<string > > labelCombs) {
-  for (auto it : frequentLabelCombs) {
-    
+void RelAgg::combineApriori(set<vector<string > >& frequentLabelCombs,
+                            set<vector<string > >& labelCombs) {
+  if (frequentLabelCombs.empty()) {
+    return;
+  }
+  unsigned int k = frequentLabelCombs[0].size();
+  for (auto it1 : frequentLabelCombs) {
+    for (auto it2 : frequentLabelCombs) {
+      
+    }
   }
 }
 
@@ -513,20 +512,26 @@ string RelAgg::print(const map<TupleId,vector<string> >& frequentLabels) const {
   return result.str();
 }
 
+string RelAgg::print(const vector<string>& labelComb) const {
+  stringstream result;
+  bool first = true;
+  result << "{";
+  for (auto it : labelComb) {
+    if (!first) {
+      result << ", ";
+    }
+    first = false;
+    result << "\"" << it << "\"";
+  }
+  result << "}" << endl;
+  return result.str();
+}
+
 string RelAgg::print(const set<vector<string> >& labelCombs) const {
   stringstream result;
   result << "{" << endl;
   for (auto it : labelCombs) {
-    bool first = true;
-    result << "  {";
-    for (auto it2 : it) {
-      if (!first) {
-        result << ", ";
-      }
-      first = false;
-      result << "\"" << it2 << "\"";
-    }
-    result << "}" << endl;
+    result << "  " << print(it);
   }
   result << "}" << endl;
   return result.str();

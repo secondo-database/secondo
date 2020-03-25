@@ -86,6 +86,23 @@ struct comparePatternMiningResults {
   }
 };
 
+// struct compareFrequentLabelCombs { // lexicographical order
+//   bool operator()(std::vector<std::string> flc1,
+//                   std::vector<std::string> flc2) {
+//     if (flc1.size() != flc2.size()) {
+//       return (flc1.size() < flc2.size());
+//     }
+//     unsigned int i = 0;
+//     while (i < flc1.size()) {
+//       if (flc1[i] != flc2[i]) {
+//         return (flc1[i] < flc2[i]);
+//       }
+//       i++;
+//     }
+//     return false;
+//   }
+// };
+
 /*
 
 The original mlabel objects are transformed into a map from a label onto a set
@@ -112,13 +129,14 @@ struct RelAgg {
                                  std::set<TupleId>& intersection);
   double sequenceSupp(std::vector<std::string>& labelSeq,
                       std::set<TupleId>& intersection);
-  void combineApriori(std::set<std::vector<std::string > > frequentLabelCombs,
-                      std::set<std::vector<std::string > > labelCombs);
+  void combineApriori(std::set<std::vector<std::string > >& frequentLabelCombs,
+                      std::set<std::vector<std::string > >& labelCombs);
   void derivePatterns(const int ma, Relation *rel);
   std::string print(const std::vector<std::pair<std::string, AggEntry> >&
                                                           sortedContents) const;
   std::string print(const std::map<TupleId, std::vector<std::string> >& 
                                                           frequentLabels) const;
+  std::string print(const std::vector<std::string>& labelComb) const;
   std::string print(const std::set<std::vector<std::string> >& labelCombs) 
                                                                           const;
   std::string print(const std::set<TupleId>& tidSet) const;
