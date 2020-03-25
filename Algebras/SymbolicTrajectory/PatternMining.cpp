@@ -416,7 +416,10 @@ void RelAgg::combineApriori(set<vector<string > >& frequentLabelCombs,
   if (frequentLabelCombs.empty()) {
     return;
   }
-  unsigned int k = frequentLabelCombs[0].size();
+  if ((frequentLabelCombs.begin())->empty()) {
+    return;
+  }
+  cout << "k = " << (*(frequentLabelCombs.begin()))[0].size() << endl;
   for (auto it1 : frequentLabelCombs) {
     for (auto it2 : frequentLabelCombs) {
       
