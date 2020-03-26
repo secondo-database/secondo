@@ -135,7 +135,7 @@ struct RelAgg {
   void combineApriori(std::set<std::vector<std::string > >& frequentLabelCombs,
                       std::set<std::vector<std::string > >& labelCombs);
   void retrievePermutations(std::vector<std::string>& labelComb,
-		            std::set<std::vector<std::string > >& labelPerms);
+                            std::set<std::vector<std::string > >& labelPerms);
   void derivePatterns(const int ma, Relation *rel);
   std::string print(const std::vector<std::pair<std::string, AggEntry> >&
                                                           sortedContents) const;
@@ -162,12 +162,11 @@ struct RelAgg {
 
   std::string print(const std::string& label = "") const;
   
-  unsigned int noTuples;
-  std::map<std::string, AggEntry> contents;
-  std::vector<std::pair<std::string, AggEntry> > sortedContents;
+  unsigned int noTuples, minNoAtoms;
+  std::map<std::string, AggEntry> contents; //TODO: use trie!
+  std::vector<std::pair<std::string, AggEntry> > sortedContents; //TODO: remove?
   std::vector<std::pair<std::string, double> > results;
   double minSupp;
-  int minNoAtoms;
 };
 
 struct GetPatternsLI {

@@ -375,46 +375,49 @@ bool RelAgg::canLabelsBeFrequent(vector<string>& labelSeq,
 /*
   Class ~RelAgg~, Function ~sequenceSupp~
   
-  Computes the support for a given sequence of two labels
+  Computes the support for a given sequence of labels
   
 */
 
 double RelAgg::sequenceSupp(vector<string> labelSeq, 
-		            set<TupleId> intersection) {
-  Instant firstStart, secondEnd;
-  int counter = 0;
-  for (auto itInt : intersection) {
-    if (contents[labelSeq[0]].occurrences.find(itInt) != 
-        contents[labelSeq[0]].occurrences.end()
-     && contents[labelSeq[1]].occurrences.find(itInt) != 
-        contents[labelSeq[1]].occurrences.end()) { // both labels found
-//     cout << "Compute Minimum for " << labelSeq[0] << ", id " << itInt << ": "
-//          << *(contents[labelSeq[0]].occurrences[itInt]) << endl;
-      contents[labelSeq[0]].occurrences[itInt]->Minimum(firstStart);
-//       contents[labelSeq[0]].occurrences[itInt]->Maximum(firstEnd);
-//     cout << "compute minimum for " << labelSeq[1] << ", id " << itInt << ": "
-//         << *(contents[labelSeq[1]].occurrences[itInt]) << endl;
-//       contents[labelSeq[1]].occurrences[itInt]->Minimum(secondStart);
-      contents[labelSeq[1]].occurrences[itInt]->Maximum(secondEnd);
-      if (firstStart < secondEnd) {
-        counter++;
-      }
-//       if (secondStart < firstEnd) {
-//         counter[1]++;
-//       }
-    }
-//     if (contents[labelSeq[0]].occurrences.find(itInt) == 
-//         contents[labelSeq[0]].occurrences.end()) {
-//       cout << "  No Periods for " << labelSeq[0] << ", id " << itInt << endl;
-//     }
-//     if (contents[labelSeq[1]].occurrences.find(itInt) == 
-//         contents[labelSeq[1]].occurrences.end()) {
-//       cout << "  no periods for " << labelSeq[1] << ", id " << itInt << endl;
-//     }
+                            set<TupleId> intersection) {
+  if (labelSeq.empty()) {
+    return 0.0;
   }
-//   cout << "support of sequence <" << labelSeq[0] << ", " << labelSeq[1] 
-//        << "> is " << counter[0] << " / " << noTuples << endl;
-  return double(counter) / noTuples;
+  Instant start, end;
+  int noOccurrences = 0;
+  for (auto id : intersection) {
+    // try to find all labels
+    start.ToMinimum();
+    end.ToMaximum();
+    bool sequenceFound = true;
+    unsigned int pos = 0;
+    while (sequenceFound && (pos < labelSeq.size())) {
+      if (contents[labelSeq[pos]].occurrences.find(id) != 
+          contents[labelSeq[pos]].occurrences.end()) {
+        contents[labelSeq[pos]].occurrences[id]->Maximum(end);
+        if (start < end) { // label found, correct order
+          // set start instant to begin of periods for current label
+          contents[labelSeq[pos]].occurrences[id]->Minimum(start);
+        }
+        else { // label found, but not in expected order
+//           cout << "WRONG ORDER: id " << id << ", \"" << labelSeq[pos]
+//                << "\" NOT after \"" << labelSeq[pos-1] << "\"" << endl;
+          sequenceFound = false;
+        }
+      }
+      else { // label not found in corresponding tuple
+//         cout << "NOT FOUND: id " << id << ", \"" << labelSeq[pos] << endl;
+        sequenceFound = false;
+      }
+      pos++;
+    }
+    if (sequenceFound) {
+//       cout << "SEQUENCE FOUND: id " << id << ", " << print(labelSeq) << endl;
+      noOccurrences++;
+    }
+  }
+  return double(noOccurrences) / noTuples;
 }
 
 /*
@@ -456,6 +459,7 @@ void RelAgg::combineApriori(set<vector<string > >& frequentLabelCombs,
 
 void RelAgg::retrievePermutations(vector<string>& labelComb,
 	                          set<vector<string > >& labelPerms) {
+  labelPerms.clear();
   vector<string> labels = labelComb;
   std::sort(labels.begin(), labels.end());
   do {
@@ -473,20 +477,17 @@ void RelAgg::retrievePermutations(vector<string>& labelComb,
 void RelAgg::derivePatterns(const int ma, Relation *rel) {
   minNoAtoms = ma;
   // retrieve patterns with one atom, guaranteed to fulfill minSupp
-  string pattern;
-  vector<string> atoms;
-  atoms.resize(2);
+  string pattern, atom;
   map<string, string> label2atom;
   set<TupleId> commonTupleIds;
   double supp = 1.0;
   for (auto it : sortedContents) {
-    buildAtom(it, commonTupleIds, atoms[0]);
-    pattern = atoms[0];
+    buildAtom(it, commonTupleIds, atom);
     if (minNoAtoms == 1) {
       supp = double(it.second.occurrences.size()) / noTuples;
-      results.push_back(make_pair(pattern, supp));
+      results.push_back(make_pair(atom, supp));
     }
-    label2atom.insert(make_pair(it.first, atoms[0]));
+    label2atom.insert(make_pair(it.first, atom));
   }
   // retrieve patterns with two atoms
   string label;
@@ -502,17 +503,19 @@ void RelAgg::derivePatterns(const int ma, Relation *rel) {
 //   cout << print(labelCombs) << endl;
   // check all combinations for their support
   bool correct = false;
+  pair<string, AggEntry> contentsEntry;
   for (auto labelComb : labelCombs) {
     if (canLabelsBeFrequent(labelComb, commonTupleIds)) {
       supp = sequenceSupp(labelComb, commonTupleIds);
       if (supp >= minSupp) {
+        pattern.clear();
         // build complete 2-pattern
-        pair<string, AggEntry> contentsEntry = 
-                                make_pair(labelComb[0], contents[labelComb[0]]);
-        correct = buildAtom(contentsEntry, commonTupleIds, atoms[0]);
+        contentsEntry = make_pair(labelComb[0], contents[labelComb[0]]);
+        correct = buildAtom(contentsEntry, commonTupleIds, atom);
+        pattern += atom + " ";
         contentsEntry = make_pair(labelComb[1], contents[labelComb[1]]);
-        correct = correct && buildAtom(contentsEntry, commonTupleIds, atoms[1]);
-        pattern = atoms[0] + " " + atoms[1];
+        correct = correct && buildAtom(contentsEntry, commonTupleIds, atom);
+        pattern += atom;
         if (correct && minNoAtoms <= 2) {
           results.push_back(make_pair(pattern, supp));
         }
@@ -520,36 +523,55 @@ void RelAgg::derivePatterns(const int ma, Relation *rel) {
       }
     }
   }
-  // retrieve patterns with three atoms
-  map<vector<string>, set<TupleId> > labelPermsWithCommonIds;
-  if (!frequentLabelCombs.empty()) {
+  // retrieve patterns with three or more atoms
+  unsigned int k = 3;
+  while (!frequentLabelCombs.empty()) { // abort if no k-pattern is frequent
+    map<vector<string>, set<TupleId> > labelPermsWithCommonIds;
     labelCombs.clear();
     combineApriori(frequentLabelCombs, labelCombs);
+    frequentLabelCombs.clear();
     for (auto labelComb : labelCombs) {
       if (canLabelsBeFrequent(labelComb, commonTupleIds)) {
-        cout << print(labelComb) << " can be frequent; occurs in " 
-             << print(commonTupleIds) << endl;
-	retrievePermutations(labelComb, labelPerms);
-	for (auto labelPerm : labelPerms) {
-	  if (labelPermsWithCommonIds.find(labelPerm) ==
-	      labelPermsWithCommonIds.end()) {
+  //         cout << print(labelComb) << " can be frequent; occurs in " 
+  //              << print(commonTupleIds) << endl;
+        retrievePermutations(labelComb, labelPerms);
+        for (auto labelPerm : labelPerms) {
+          if (labelPermsWithCommonIds.find(labelPerm) ==
+              labelPermsWithCommonIds.end()) {
             labelPermsWithCommonIds[labelPerm] = commonTupleIds;
-	  }
-	  else if (labelPermsWithCommonIds[labelPerm].size() <
-		   commonTupleIds.size()) {
-	    labelPermsWithCommonIds[labelPerm] = commonTupleIds;
-	  }
-	}
+          }
+          else if (labelPermsWithCommonIds[labelPerm].size() <
+                    commonTupleIds.size()) {
+            labelPermsWithCommonIds[labelPerm] = commonTupleIds;
+          }
+        }
       }
     }
-    cout << labelPerms.size() << " permutations found" << endl; 
-    for (map<vector<string>, set<TupleId> >::iterator it =
-   labelPermsWithCommonIds.begin(); it != labelPermsWithCommonIds.end(); it++) {
-      cout << "compute support for " << print(it->first)
-	   << " occurring in " << print(it->second) << endl;
-      supp = sequenceSupp(it->first, it->second); // TODO: extend this function
-      // TODO: remove memory leaks
+    for (auto it : labelPermsWithCommonIds) {
+  //       cout << print(it.first) << " occurs in " << print(it.second);
+      supp = sequenceSupp(it.first, it.second);
+  //       cout << ", supp is " << supp << endl;
+      if (supp >= minSupp) {
+        if (k >= minNoAtoms) {
+          pattern.clear();
+          correct = true;
+          unsigned int pos = 0;
+          while (correct && (pos < it.first.size())) {
+            contentsEntry = make_pair(it.first[pos], contents[it.first[pos]]);
+            correct = correct && buildAtom(contentsEntry, it.second, atom);
+            pattern += atom + " ";
+            pos++;
+          }
+          if (correct) {
+            results.push_back(make_pair(pattern, supp));
+          }
+        }
+        frequentLabelCombs.insert(frequentLabelCombs.end(), it.first);
+//         cout << "k = " << k << "; sequence " << print(it.first) 
+//              << " inserted" << endl;
+      }
     }
+    k++;
   }
   std::sort(results.begin(), results.end(), comparePatternMiningResults());
 }
