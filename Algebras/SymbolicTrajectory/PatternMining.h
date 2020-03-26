@@ -63,21 +63,21 @@ Comparison function; sort by
 */
 
 
-struct compareEntries {
-  bool operator()(std::pair<const std::string, AggEntry> const& left,
-                  std::pair<const std::string, AggEntry> const& right) const {
-      if (left.second.occurrences.size() != right.second.occurrences.size()) {
-        return left.second.occurrences.size() > right.second.occurrences.size();
-      }
-      if (left.second.duration != right.second.duration) {
-        return left.second.duration > right.second.duration;
-      }
-      if (left.second.noOccurrences != right.second.noOccurrences) {
-        return left.second.noOccurrences > right.second.noOccurrences;
-      }
-      return left.first < right.first;
-    }
-};
+// struct compareEntries {
+//   bool operator()(std::pair<const std::string, AggEntry> const& l,
+//                   std::pair<const std::string, AggEntry> const& r) const {
+//       if (l.second.occurrences.size() != r.second.occurrences.size()) {
+//         return l.second.occurrences.size() > r.second.occurrences.size();
+//       }
+//       if (l.second.duration != r.second.duration) {
+//         return l.second.duration > r.second.duration;
+//       }
+//       if (left.second.noOccurrences != r.second.noOccurrences) {
+//         return l.second.noOccurrences > r.second.noOccurrences;
+//       }
+//       return l.first < r.first;
+//     }
+// };
 
 struct comparePatternMiningResults {
   bool operator()(std::pair<std::string, double> res1,
@@ -122,8 +122,8 @@ struct RelAgg {
   void insert(const std::string& label, const TupleId& id, 
               const temporalalgebra::SecInterval& iv);
   void compute(Relation *rel, const NewPair<int, int> attrPos);
-  void sort(const double ms);
-  bool buildAtom(std::pair<std::string, AggEntry>& sortedContentsEntry,
+  void filter(const double ms);
+  bool buildAtom(std::pair<std::string, AggEntry> sortedContentsEntry,
                  std::set<TupleId>& commonTupleIds, std::string& atom);
   void retrieveLabelCombs(const unsigned int size, 
                           std::vector<std::string>& source, 
@@ -137,8 +137,7 @@ struct RelAgg {
   void retrievePermutations(std::vector<std::string>& labelComb,
                             std::set<std::vector<std::string > >& labelPerms);
   void derivePatterns(const int ma, Relation *rel);
-  std::string print(const std::vector<std::pair<std::string, AggEntry> >&
-                                                          sortedContents) const;
+  std::string print(const std::map<std::string, AggEntry>& contents) const;
   std::string print(const std::map<TupleId, std::vector<std::string> >& 
                                                           frequentLabels) const;
   std::string print(const std::vector<std::string>& labelComb) const;
@@ -164,7 +163,6 @@ struct RelAgg {
   
   unsigned int noTuples, minNoAtoms;
   std::map<std::string, AggEntry> contents; //TODO: use trie!
-  std::vector<std::pair<std::string, AggEntry> > sortedContents; //TODO: remove?
   std::vector<std::pair<std::string, double> > results;
   double minSupp;
 };
