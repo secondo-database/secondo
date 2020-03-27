@@ -189,51 +189,69 @@ std::string AggEntry::print(const TupleId& id /* = 0 */) const {
   return result.str();
 }
 
-void RelAgg::clear() {
-  for (auto it : contents) {
+/*
+  Class ~RelAgg~, Function ~clear~
+  
+  Deletes the periods values and, maybe, the inverted file
+ 
+*/
+
+void RelAgg::clear(const bool deleteInv) {
+  for (auto it : entriesMap) {
     it.second.clear();
   }
-  contents.clear();
+  if (deleteInv) {
+    delete inv;
+  }
 }
 
 /*
-  Class ~RelAgg~, Function ~insert~
+  Class ~RelAgg~, Function ~initialize~
+ 
+*/
+void RelAgg::initialize() {
+  inv = new InvertedFile();
+  inv->setParams(false, 1, "");
+}
+
+/*
+  Class ~RelAgg~, Function ~insertLabel~
   
   Insert new labels into map structure, update structure for existing labels
  
 */
 
-void RelAgg::insert(const std::string& label, const TupleId& id,
-                    const temporalalgebra::SecInterval& iv) {
+void RelAgg::insertLabel(const std::string& label, const TupleId& id,
+                         const temporalalgebra::SecInterval& iv) {
 //   cout << "insert (" << label << ", " << id << ", " << iv << ")" << endl;
-  auto aggIt = contents.find(label);
-  if (aggIt == contents.end()) { // new label
+  auto aggIt = entriesMap.find(label);
+  if (aggIt == entriesMap.end()) { // new label
     AggEntry entry(id, iv);
-    contents.insert(make_pair(label, entry));
+    entriesMap.insert(make_pair(label, entry));
   }
   else { // label already present
     auto entryIt = aggIt->second.occurrences.find(id);
     if (entryIt == aggIt->second.occurrences.end()) { // new id for label
       Periods *per = new Periods(1);
       per->Add(iv);
-      contents[label].occurrences.insert(make_pair(id, per));
+      entriesMap[label].occurrences.insert(make_pair(id, per));
     }
     else { // id already present for label
-      contents[label].occurrences[id]->Add(iv);
+      entriesMap[label].occurrences[id]->Add(iv);
     }
   }
-  contents[label].noOccurrences++;
-  contents[label].duration += iv.end - iv.start;
+  entriesMap[label].noOccurrences++;
+  entriesMap[label].duration += iv.end - iv.start;
 }
 
 /*
-  Class ~RelAgg~, Function ~compute~
+  Class ~RelAgg~, Function ~scanRelation~
   
   Scan relation, call ~insert~ for all labels of mlabel attribute
  
 */
 
-void RelAgg::compute(Relation *rel, const NewPair<int, int> attrPos) {
+void RelAgg::scanRelation(Relation *rel, const NewPair<int, int> attrPos) {
   string label;
   SecInterval iv(true);
   noTuples = rel->GetNoTuples();
@@ -244,7 +262,7 @@ void RelAgg::compute(Relation *rel, const NewPair<int, int> attrPos) {
     for (int j = 0; j < ml->GetNoComponents(); j++) {
       ml->GetValue(j, label);
       ml->GetInterval(j, iv);
-      insert(label, tuple->GetTupleId(), iv);
+      insertLabel(label, tuple->GetTupleId(), iv);
     }
     tuple->DeleteIfAllowed();
   }
@@ -258,19 +276,36 @@ void RelAgg::compute(Relation *rel, const NewPair<int, int> attrPos) {
  
 */
 
-void RelAgg::filter(const double ms) {
+void RelAgg::filter(const double ms, const size_t memSize) {
   minSupp = ms;
   double supp = 1.0;
-  // scan ~contents~; keep only frequent labels
-  for (auto it = contents.cbegin(); it != contents.cend();) {
-    supp = double(it->second.occurrences.size()) / noTuples;
-    if (supp < minSupp) {
-      it = contents.erase(it);
-    }
-    else {
-      ++it;
+  // scan ~entriesMap~; push entries for frequent labels into ~entries~ and
+  //   store every label and its entry's position inside ~entries~ in ~inv~
+  size_t maxMem = memSize * 16 * 1024 * 1024;
+  size_t trieCacheSize = maxMem / 20;
+  if (trieCacheSize < 4096) {
+    trieCacheSize = 4096;
+  }
+  size_t invCacheSize;
+  if (trieCacheSize + 4096 > maxMem) {
+    invCacheSize = 4096;
+  }
+  else {
+    invCacheSize = maxMem - trieCacheSize;
+  }
+  appendcache::RecordAppendCache* cache = inv->createAppendCache(invCacheSize);
+  TrieNodeCacheType* trieCache = inv->createTrieCache(trieCacheSize);
+  for (auto it : entriesMap) {
+    supp = double(it.second.occurrences.size()) / noTuples;
+    if (supp >= minSupp) {
+      inv->insertString(entries.size(), it.first, 0, 0, cache, trieCache);
+//       cout << "INSERTED: \"" << it.first << "\", POS " << entries.size()
+//            << " " << it.second.print() << endl;
+      entries.push_back(it);
     }
   }
+  delete trieCache;
+  delete cache;
 }
 
 /*
@@ -281,12 +316,12 @@ void RelAgg::filter(const double ms) {
  
 */
 
-bool RelAgg::buildAtom(pair<string, AggEntry> contentsEntry, 
+bool RelAgg::buildAtom(string label, AggEntry entry,
                        set<TupleId>& commonTupleIds, string& atom) {
   SecInterval iv(true);
   string timeSpec, semanticTimeSpec;
-  contentsEntry.second.computeCommonTimeInterval(iv, commonTupleIds);
-  contentsEntry.second.computeSemanticTimeSpec(semanticTimeSpec);
+  entry.computeCommonTimeInterval(iv, commonTupleIds);
+  entry.computeSemanticTimeSpec(semanticTimeSpec);
   if (!semanticTimeSpec.empty()) {
     if (iv.start.IsDefined() && iv.end.IsDefined()) {
       timeSpec = "{" + iv.start.ToString() + "~" + iv.end.ToString() + ", "
@@ -305,7 +340,7 @@ bool RelAgg::buildAtom(pair<string, AggEntry> contentsEntry,
       return false;
     }
   }
-  atom = "(" + timeSpec + " \"" + contentsEntry.first + "\")";
+  atom = "(" + timeSpec + " \"" + label + "\")";
   return true;
 }
 
@@ -320,6 +355,33 @@ void RelAgg::retrieveLabelCombs(const unsigned int size, vector<string>& source,
   result.clear();
   vector<string> labelVec;
   Tools::subset(source, size, 0, labelVec, result);
+}
+
+/*
+  Class ~RelAgg~, Function ~getLabelEntry~
+  
+  Retrieve the corresponding AggEntry instance for a label, using ~inv~
+  
+*/
+
+AggEntry* RelAgg::getLabelEntry(string label) {
+  uint32_t pos, wc, cc;
+  InvertedFile::exactIterator* eit = inv->getExactIterator(label, 16777216);
+  if (eit->next(pos, wc, cc)) {
+    if (pos >= entries.size()) {
+      cout << "pos " << pos << " does not exist; entries.size = " 
+           << entries.size() << endl;
+    }
+    else {
+      delete eit;
+//       cout << "FOUND label " << label << ", entry: " 
+//            << entries[pos].second.print() << endl;
+      return &(entries[pos].second);
+    }
+  }
+  delete eit;
+//   cout << "NOTHING FOUND for label \"" << label << "\"" << endl;
+  return 0;
 }
 
 /*
@@ -338,9 +400,12 @@ bool RelAgg::canLabelsBeFrequent(vector<string>& labelSeq,
   set<TupleId> intersection_temp;
   vector<set<TupleId> > occs;
   occs.resize(labelSeq.size());
+  AggEntry *entry = 0;
   // retrieve occurrences for every label
+//   cout << "check sequence " << print(labelSeq) << endl;
   for (unsigned int pos = 0; pos < labelSeq.size(); pos++) {
-    for (auto occ : contents[labelSeq[pos]].occurrences) {
+    entry = getLabelEntry(labelSeq[pos]);
+    for (auto occ : entry->occurrences) {
       occs[pos].insert(occ.first);
     }
   }
@@ -356,9 +421,9 @@ bool RelAgg::canLabelsBeFrequent(vector<string>& labelSeq,
   }
   // check support of intersection; if it is below ~minSupp~, there is no chance
   // for a frequent (k+1)-pattern
-  //cout << "support of " << print(intersection) << " equals "
-  //     << double(intersection.size()) / noTuples << " ==> "
-  //     << (double(intersection.size()) / noTuples >= minSupp) << endl;
+//   cout << "support of " << print(intersection) << " equals "
+//       << double(intersection.size()) / noTuples << " ==> "
+//       << (double(intersection.size()) / noTuples >= minSupp) << endl;
   return (double(intersection.size()) / noTuples >= minSupp);
 }
 
@@ -376,6 +441,7 @@ double RelAgg::sequenceSupp(vector<string> labelSeq,
   }
   Instant start(instanttype), end(instanttype);
   int noOccurrences = 0;
+  AggEntry *entry;
   for (auto id : intersection) {
     // try to find all labels
     start.ToMinimum();
@@ -383,12 +449,12 @@ double RelAgg::sequenceSupp(vector<string> labelSeq,
     bool sequenceFound = true;
     unsigned int pos = 0;
     while (sequenceFound && (pos < labelSeq.size())) {
-      if (contents[labelSeq[pos]].occurrences.find(id) != 
-          contents[labelSeq[pos]].occurrences.end()) {
-        contents[labelSeq[pos]].occurrences[id]->Maximum(end);
+      entry = getLabelEntry(labelSeq[pos]);
+      if (entry->occurrences.find(id) != entry->occurrences.end()) {
+        entry->occurrences[id]->Maximum(end);
         if (start < end) { // label found, correct order
           // set start instant to begin of periods for current label
-          contents[labelSeq[pos]].occurrences[id]->Minimum(start);
+          entry->occurrences[id]->Minimum(start);
         }
         else { // label found, but not in expected order
 //           cout << "WRONG ORDER: id " << id << ", \"" << labelSeq[pos]
@@ -429,7 +495,7 @@ void RelAgg::combineApriori(set<vector<string > >& frequentLabelCombs,
   }
   unsigned int k = (frequentLabelCombs.begin())->size();
   set<vector<string > >::iterator it2;
-  vector<string> union_k_inc;
+  set<string> union_k_inc;
   for (set<vector<string > >::iterator it1 = frequentLabelCombs.begin();
        it1 != frequentLabelCombs.end(); it1++) {
     it2 = it1;
@@ -438,8 +504,10 @@ void RelAgg::combineApriori(set<vector<string > >& frequentLabelCombs,
       set_union(it1->begin(), it1->end(), it2->begin(), it2->end(), 
                 inserter(union_k_inc, union_k_inc.begin()));
       if (union_k_inc.size() == k+1) {
-//        cout << k+1 << "   : " << print(union_k_inc) << endl;
-        labelCombs.insert(labelCombs.end(), union_k_inc);
+//         cout << print(*it1) << " and " << print(*it2) << " united to "
+//              << print(union_k_inc) << endl;
+        vector<string> unionvec(union_k_inc.begin(), union_k_inc.end());
+        labelCombs.insert(labelCombs.end(), unionvec);
       }
       it2++;
     }
@@ -464,47 +532,47 @@ void RelAgg::retrievePermutations(vector<string>& labelComb,
  
 */
 
-void RelAgg::derivePatterns(const int ma, Relation *rel) {
-  minNoAtoms = ma;
-  // retrieve patterns with one atom, guaranteed to fulfill minSupp
+void RelAgg::derivePatterns(const int mina, const int maxa, Relation *rel) {
+  minNoAtoms = mina;
+  maxNoAtoms = maxa;
+  // retrieve patterns with one atom, ~entries~ guaranteed to fulfill minSupp
   string pattern, atom;
-  map<string, string> label2atom;
   set<TupleId> commonTupleIds;
+  vector<string> frequentLabels;
   double supp = 1.0;
-  for (auto it : contents) {
-    buildAtom(it, commonTupleIds, atom);
+  for (auto it : entries) {
+    buildAtom(it.first, it.second, commonTupleIds, atom);
     if (minNoAtoms == 1) {
       supp = double(it.second.occurrences.size()) / noTuples;
       results.push_back(make_pair(atom, supp));
     }
-    label2atom.insert(make_pair(it.first, atom));
+    frequentLabels.push_back(it.first);
   }
   // retrieve patterns with two atoms
+  if (maxNoAtoms < 2) {
+    return;
+  }
   string label;
   set<vector<string > > labelCombs, frequentLabelCombs, labelPerms;
   SecInterval iv(true);
-  vector<string> frequentLabels;
+  AggEntry *entry;
   // scan ~contents~; only atoms whose corresponding 1-patterns fulfill
   // ~minSupp~ can be part of a frequent 2-pattern
-  for (auto it : contents) {
-    frequentLabels.push_back(it.first);
-  }
   retrieveLabelCombs(2, frequentLabels, labelCombs);
-//   cout << print(labelCombs) << endl;
   // check all combinations for their support
   bool correct = false;
-  pair<string, AggEntry> contentsEntry;
   for (auto labelComb : labelCombs) {
     if (canLabelsBeFrequent(labelComb, commonTupleIds)) {
       supp = sequenceSupp(labelComb, commonTupleIds);
       if (supp >= minSupp) {
         pattern.clear();
         // build complete 2-pattern
-        contentsEntry = make_pair(labelComb[0], contents[labelComb[0]]);
-        correct = buildAtom(contentsEntry, commonTupleIds, atom);
+        entry = getLabelEntry(labelComb[0]);
+        correct = buildAtom(labelComb[0], *entry, commonTupleIds, atom);
         pattern += atom + " ";
-        contentsEntry = make_pair(labelComb[1], contents[labelComb[1]]);
-        correct = correct && buildAtom(contentsEntry, commonTupleIds, atom);
+        entry = getLabelEntry(labelComb[1]);
+        correct = correct && buildAtom(labelComb[1], *entry, commonTupleIds, 
+                                       atom);
         pattern += atom;
         if (correct && minNoAtoms <= 2) {
           results.push_back(make_pair(pattern, supp));
@@ -515,7 +583,7 @@ void RelAgg::derivePatterns(const int ma, Relation *rel) {
   }
   // retrieve patterns with three or more atoms
   unsigned int k = 3;
-  while (!frequentLabelCombs.empty()) { // abort if no k-pattern is frequent
+  while (k <= maxNoAtoms && !frequentLabelCombs.empty()) { // no frequent k-pat
     map<vector<string>, set<TupleId> > labelPermsWithCommonIds;
     labelCombs.clear();
     combineApriori(frequentLabelCombs, labelCombs);
@@ -526,14 +594,7 @@ void RelAgg::derivePatterns(const int ma, Relation *rel) {
   //              << print(commonTupleIds) << endl;
         retrievePermutations(labelComb, labelPerms);
         for (auto labelPerm : labelPerms) {
-          if (labelPermsWithCommonIds.find(labelPerm) ==
-              labelPermsWithCommonIds.end()) {
-            labelPermsWithCommonIds[labelPerm] = commonTupleIds;
-          }
-          else if (labelPermsWithCommonIds[labelPerm].size() <
-                    commonTupleIds.size()) {
-            labelPermsWithCommonIds[labelPerm] = commonTupleIds;
-          }
+          labelPermsWithCommonIds[labelPerm] = commonTupleIds;
         }
       }
     }
@@ -547,8 +608,9 @@ void RelAgg::derivePatterns(const int ma, Relation *rel) {
           correct = true;
           unsigned int pos = 0;
           while (correct && (pos < it.first.size())) {
-            contentsEntry = make_pair(it.first[pos], contents[it.first[pos]]);
-            correct = correct && buildAtom(contentsEntry, it.second, atom);
+            entry = getLabelEntry(it.first[pos]);
+            correct = correct && buildAtom(it.first[pos], *entry, it.second, 
+                                           atom);
             pattern += atom + " ";
             pos++;
           }
@@ -561,14 +623,16 @@ void RelAgg::derivePatterns(const int ma, Relation *rel) {
 //              << " inserted" << endl;
       }
     }
+    cout << frequentLabelCombs.size() << " frequent " << k 
+         << "-patterns found" << endl;
     k++;
   }
   std::sort(results.begin(), results.end(), comparePatternMiningResults());
 }
 
-string RelAgg::print(const map<string, AggEntry>& contents) const {
+string RelAgg::print(const map<string, AggEntry>& entriesMap) const {
   stringstream result;
-  for (auto it : contents) {
+  for (auto it : entriesMap) {
     result << "\"" << it.first << "\" occurs " << it.second.noOccurrences
            << " times with a total duration of " << it.second.duration << endl 
            << "   " << it.second.print()
@@ -614,40 +678,40 @@ string RelAgg::print(const set<vector<string> >& labelCombs) const {
   return result.str();
 }
 
-string RelAgg::print(const string& label /* = "" */) const {
+string RelAgg::print(const string& label /* = "" */) {
   stringstream result;
   if (label == "") { // print everything
-    for (auto it : contents) {
+    for (auto it : entriesMap) {
       result << "\"" << it.first << "\" :" << it.second.print() << endl
              << "-----------------------------------------------------" << endl;
     }
   }
   else {
-    auto it = contents.find(label);
-    if (it == contents.end()) { // label not found
+    AggEntry *entry = getLabelEntry(label);
+    if (entry->occurrences.empty()) { // label not found
       result << "Label \"" << label << "\" not found" << endl;
     }
     else {
-      result << "\"" << label << "\" :" << it->second.print() << endl;
+      result << "\"" << label << "\" :" << entry->print() << endl;
     }
   }
   return result.str();
 }
 
 GetPatternsLI::GetPatternsLI(Relation *r, const NewPair<int,int> ap, double ms, 
-                             int ma)
+                             int mina, int maxa, const size_t mem)
   : rel(r), attrPos(ap) {
   tupleType = getTupleType();
-  agg.clear();
-  agg.compute(rel, attrPos);
-  agg.filter(ms);
-//   cout << agg.print(agg.sortedContents) << endl;
-  agg.derivePatterns(ma, rel);
+  agg.clear(false);
+  agg.initialize();
+  agg.scanRelation(rel, attrPos);
+  agg.filter(ms, mem);
+  agg.derivePatterns(mina, maxa, rel);
 }
 
 GetPatternsLI::~GetPatternsLI() {
   tupleType->DeleteIfAllowed();
-  agg.clear();
+  agg.clear(true);
 }
 
 TupleType* GetPatternsLI::getTupleType() const {

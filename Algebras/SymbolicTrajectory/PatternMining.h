@@ -118,16 +118,18 @@ of occurrences inside the tuple, and the total duration of its occurrences.
 struct RelAgg {
   RelAgg() {}
   
-  void clear();
-  void insert(const std::string& label, const TupleId& id, 
+  void clear(const bool deleteInv);
+  void initialize();
+  void insertLabel(const std::string& label, const TupleId& id, 
               const temporalalgebra::SecInterval& iv);
-  void compute(Relation *rel, const NewPair<int, int> attrPos);
-  void filter(const double ms);
-  bool buildAtom(std::pair<std::string, AggEntry> sortedContentsEntry,
+  void scanRelation(Relation *rel, const NewPair<int, int> attrPos);
+  void filter(const double ms, const size_t memSize);
+  bool buildAtom(std::string label, AggEntry entry,
                  std::set<TupleId>& commonTupleIds, std::string& atom);
   void retrieveLabelCombs(const unsigned int size, 
                           std::vector<std::string>& source, 
                           std::set<std::vector<std::string > >& result);
+  AggEntry* getLabelEntry(std::string label);
   bool canLabelsBeFrequent(std::vector<std::string>& labelSeq,
                                  std::set<TupleId>& intersection);
   double sequenceSupp(std::vector<std::string> labelSeq,
@@ -136,13 +138,15 @@ struct RelAgg {
                       std::set<std::vector<std::string > >& labelCombs);
   void retrievePermutations(std::vector<std::string>& labelComb,
                             std::set<std::vector<std::string > >& labelPerms);
-  void derivePatterns(const int ma, Relation *rel);
+  void derivePatterns(const int mina, const int maxa, Relation *rel);
   std::string print(const std::map<std::string, AggEntry>& contents) const;
   std::string print(const std::map<TupleId, std::vector<std::string> >& 
                                                           frequentLabels) const;
   std::string print(const std::vector<std::string>& labelComb) const;
   std::string print(const std::set<std::vector<std::string> >& labelCombs) 
                                                                           const;
+  std::string print(const std::string& label = "");
+  
   template<class T>
   std::string print(const std::set<T>& anySet) const {
     std::stringstream result;
@@ -158,17 +162,18 @@ struct RelAgg {
     result << "}";
     return result.str();
   }
-
-  std::string print(const std::string& label = "") const;
   
-  unsigned int noTuples, minNoAtoms;
-  std::map<std::string, AggEntry> contents; //TODO: use trie!
+  unsigned int noTuples, minNoAtoms, maxNoAtoms;
+  std::map<std::string, AggEntry> entriesMap; // only for initial insertions
+  std::vector<std::pair<std::string, AggEntry> > entries;
+  InvertedFile *inv; // leaves contain positions of vector ~entries~
   std::vector<std::pair<std::string, double> > results;
   double minSupp;
 };
 
 struct GetPatternsLI {
-  GetPatternsLI(Relation *r, const NewPair<int, int> ap, double ms, int ma);
+  GetPatternsLI(Relation *r, const NewPair<int, int> ap, double ms, int mina,
+                int maxa, const size_t mem);
   ~GetPatternsLI();
   
   TupleType *getTupleType() const;
