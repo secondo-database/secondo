@@ -63,7 +63,7 @@ a schema and to query the graph.
 #include "../FText/FTextAlgebra.h"
 
 #include "Utils.h"
-#include "RelationInfo.h"
+#include "RelationSchemaInfo.h"
 #include "PropertyGraph.h"
 #include "PropertyGraphMem.h"
 #include "QueryTree.h"
@@ -115,7 +115,7 @@ Insert and access the PropertyGraph In-Memory Part
       }
       else
       {
-         string memtypename = "";
+        string memtypename = "";
          ListExpr te = 
            memCatalog->getMMObjectTypeExpr(_inmemoryobj_catalogname);
          if (nl->ToString(te) != "(mem (mpgraph 0))")
@@ -129,6 +129,37 @@ Insert and access the PropertyGraph In-Memory Part
          return pgm;
       }
    }
+
+   void removePGraphMemoryParts(PGraph *pg)
+   {
+      mm2algebra::MemCatalog *memCatalog = 
+         mm2algebra::MemCatalog::getInstance();
+
+      //  remove memory objects frst, as it keeps pointers to tuples
+      string name=pg->name+"_MEMDATA";
+      LOGOP(20,"removePGraphMemoryParts","remove memory object: "+name);
+      memCatalog->deleteObject(name);
+
+      while(true)
+      {
+         int del=0;
+         std::map<std::string,mm2algebra::MemoryObject*>* list = 
+            memCatalog->getMemContent();   
+         for(auto&& item:*list)
+         {
+            if (item.first.rfind(pg->name+"_rel_",0) == 0)
+            {
+               LOGOP(20,"removePGraphMemoryParts","remove memory object: "+
+                  item.first);
+               memCatalog->deleteObject(item.first);
+               del++;
+               break;
+            }
+         }
+         if (del==0) break;
+      }
+   }
+
 
 /*
 
@@ -465,7 +496,6 @@ ListExpr addindex_OpTm( ListExpr args )
       if (ri.GetAttrInfo(attrName)==NULL)
          throw PGraphException("attrname not found!");
 
-
       // return result 
       ListExpr res = 
             nl->OneElemList(nl->SymbolAtom(CcBool::BasicType()) );
@@ -556,7 +586,6 @@ ListExpr loadgraph_OpTm( ListExpr args )
       NList(NList(0).enclose() ),  
       NList(CcBool::BasicType())
    );
-   LOGOP(30,"3");
    return res.listExpr();
 }
 
@@ -676,6 +705,7 @@ int unload_OpFun (Word* args, Word& result, int message,
       else
       {
          pgm->Clear();
+         removePGraphMemoryParts(pg);
       }
 
    }
@@ -751,10 +781,7 @@ int clearstat_OpFun (Word* args, Word& result, int message,
       PGraph *pg = static_cast<PGraph*>( args[0].addr );
 
       // unload
-      MemoryGraphObject *pgm = getPGraphMemoryObject(pg);
-      if (pgm!=NULL)
-         pgm->Clear();
-
+      removePGraphMemoryParts(pg);
       pg->ClearStat();
       // force save pgraph object
       qp->SetModified(qp->GetSon(s, 0));
@@ -991,7 +1018,10 @@ ListExpr match1_OpTm( ListExpr args )
       if (pgm==NULL || !pgm->IsLoaded())
          throw PGraphException("graph not loaded!");
 
-      return of.StreamTypeDefinition(&tree->AliasList, pgm);
+      ListExpr res; 
+      res=of.StreamTypeDefinition(&tree->AliasList, pgm);
+      LOGOP(30,"match1_OpTm", nl->ToString(res));
+      return res;
    }
    catch(PGraphException e)   
    {

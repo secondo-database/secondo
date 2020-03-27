@@ -139,9 +139,9 @@ To get information about the configuration of a property graph
 objects, use the ~info~ operator.
 
 */
-   SECONDO> query p1 info;
+   SECONDO> query p2 info;
 
-  (SECONDO> @../Algebras/PropertyGraph/sample-dblp/info)
+   SECONDO> @../Algebras/PropertyGraph/sample-dblp/info
 /*
 
 This will print the following information to the console:
@@ -174,7 +174,7 @@ that will be stored in the graph object for later reuse, so
 loading will be faster the next time.
 
 */
-   SECONDO> query p1 loadgraph;
+   SECONDO> query p2 loadgraph;
 /*
 
 After loading the graph, the following statistics are calculated:
@@ -213,10 +213,10 @@ The PropertyGraph Algebra defines three matching operators, namely
 
 5.1 Query 'coauthor'
 
-Queries the top 5 co-authors of "Ralf Hartmut Gueting" of publications in 2017.
+Queries the top 5 co-authors of publications of "Ralf Hartmut Gueting".
 In the following this query will be expressed by the three match-operators.
 
-The results will be grouped and show the Authors with the sum of joint publications.
+The results will be grouped and show the authors with the sum of joint publications.
 
 
 5.1.1 match1
@@ -249,7 +249,7 @@ match1
 Also available as sciptfile:
 
 */
-   SECONDO> @../Algebras/PropertyGraph/sample-dblp/match1-coauthors)
+   SECONDO> @../Algebras/PropertyGraph/sample-dblp/match1-coauthors
 /*
 
 5.1.2 match2
@@ -278,7 +278,15 @@ sortby[Name] groupby[Name; Cnt:group count] sortby[Cnt:desc] head[5] consume;
 Also available as sciptfile:
 
 */
-   SECONDO> @../Algebras/PropertyGraph/sample-dblp/match2-coauthors)
+   SECONDO> @../Algebras/PropertyGraph/sample-dblp/match2-coauthors
+/*
+
+NOTE:
+There is an additional script, that forces to choose an adverse strategy.
+It will take much more time to succeed.
+
+*/
+   SECONDO> @../Algebras/PropertyGraph/sample-dblp/match2-coauthors-slow
 /*
 
 5.1.3 match3
@@ -300,7 +308,7 @@ match3 ['
 Also available as sciptfile:
 
 */
-   SECONDO> @../Algebras/PropertyGraph/sample-dblp/match3-coauthors)
+   SECONDO> @../Algebras/PropertyGraph/sample-dblp/match3-coauthors
 /*
 
 5.2 Query 'keywords'
@@ -339,7 +347,7 @@ match1
 Also available as sciptfile:
 
 */
-   SECONDO> @../Algebras/PropertyGraph/sample-dblp/match1-keywords)
+   SECONDO> @../Algebras/PropertyGraph/sample-dblp/match1-keywords
 /*
 
 5.2.2 match2
@@ -369,7 +377,7 @@ match2 ['
 Also available as sciptfile:
 
 */
-   SECONDO> @../Algebras/PropertyGraph/sample-dblp/match2-keywords)
+   SECONDO> @../Algebras/PropertyGraph/sample-dblp/match2-keywords
 /*
 
 5.2.3 match3
@@ -395,7 +403,7 @@ match3 ['
 Also available as sciptfile:
 
 */
-   SECONDO> @../Algebras/PropertyGraph/sample-dblp/match3-keywords)
+   SECONDO> @../Algebras/PropertyGraph/sample-dblp/match3-keywords
 /*
 
 6 References

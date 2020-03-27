@@ -27,7 +27,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 1 Overview
 
-The following example is taken from [RWE15]. 
+The following is a slightly modified example taken from [RWE15]. 
 
 \begin{figure}[h]
     \centerline{
@@ -57,14 +57,14 @@ the data to reflect the graph shown above.
 /*
 
 This script uses operators from ~RelationAlgebra~ and ~UpdateRelation~.
-Edge relations names are in uppercase, as node relations are using only 
+Edge relations names are in uppercase, node relations are using only 
 the first character in uppercase. (This convention is used by the PropertyGraphAlgebra)
 
 3 Creating a property graph 
 
 A property graph has to be defined before matching operators can be
 used to query the graph. This is done be registering the node and edge
-relations. (This could be seen as the schema of the graph)
+relations. (This defines the schema of the graph)
 
 */
    SECONDO> @../Algebras/PropertyGraph/sample-shakespeare/create
@@ -100,7 +100,7 @@ objects, use the ~info~ operator.
 */
    SECONDO> query p1 info;
 
-  (SECONDO> @../Algebras/PropertyGraph/sample-shakespeare/info)
+   SECONDO> @../Algebras/PropertyGraph/sample-shakespeare/info
 /*
 
 This will print the following information to the console:

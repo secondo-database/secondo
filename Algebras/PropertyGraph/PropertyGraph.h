@@ -98,6 +98,9 @@ class PGraph
    static bool     Save( SmiRecord& valueRecord, size_t& offset,
                         const ListExpr typeInfo, Word& w );
 
+    static void    Deletion(const ListExpr typeInfo,  Word& object );
+
+
    // type name and checking
    static const std::string BasicType() { return "pgraph"; }
 
@@ -163,6 +166,7 @@ struct pgraphFunctions : ConstructorFunctions<PGraph> {
     create = PGraph::Create;
     in = PGraph::In;
     out = PGraph::Out;
+    deletion=PGraph::Deletion;
 
     open = PGraph::Open;
     save = PGraph::Save;

@@ -34,7 +34,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "MPointer.h"
 #include "MemoryObject.h"
 
-#include "RelationInfo.h"
+#include "RelationSchemaInfo.h"
 #include "Utils.h"
 
 namespace pgraph {
@@ -73,12 +73,6 @@ public:
    void Clear();
 };
 
-class RelIndexInfo
-{
-public:
-   std::string FieldName;
-   std::string IndexName;
-};
 
 class RelationInfo
 {
@@ -92,7 +86,9 @@ public:
    std::string Name;
    std::string IdFieldName;
    int RelId;
+   int IdAttrIndex=0;   // faster access to id field   
    int FromAttrIndex=0;   // faster access to id field
+   int ToAttrIndex=0;
    RelationSchemaInfo RelSchema;
    std::map<int,int> IdTranslationTable;
    void InitRelSchema(ListExpr TupleInfo);
@@ -120,7 +116,7 @@ public:
    std::vector<int> NodeRelIdList;
 
    //
-   std::vector<std::vector<int>> OutgoingRels;
+   std::vector<std::vector<int>> OutGoingRels;
    std::vector<std::vector<int>> InGoingRels;
 
    // both use the same index to get to the relId for further metadata

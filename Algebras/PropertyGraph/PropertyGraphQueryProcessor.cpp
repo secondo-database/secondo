@@ -127,7 +127,7 @@ bool PGraphQueryProcessor::NextEdge(QueryTreeEdge *queryedge)
    //
    vector<int> *edgelist=NULL;
    if (!queryedge->Reverse)
-      edgelist=&pgraphMem->AdjList.OutgoingRels.at(queryedge->FromNode
+      edgelist=&pgraphMem->AdjList.OutGoingRels.at(queryedge->FromNode
          ->current_nodeid);
    else   
       edgelist=&pgraphMem->AdjList.InGoingRels.at(queryedge->FromNode
@@ -167,7 +167,7 @@ bool PGraphQueryProcessor::MatchEdge(QueryTreeEdge *queryedge)
    // 
    vector<int> *edgelist=NULL;
    if (!queryedge->Reverse)
-      edgelist=&pgraphMem->AdjList.OutgoingRels[queryedge->FromNode
+      edgelist=&pgraphMem->AdjList.OutGoingRels[queryedge->FromNode
          ->current_nodeid];
    else   
       edgelist=&pgraphMem->AdjList.InGoingRels[queryedge->FromNode
@@ -421,7 +421,7 @@ void PGraphQueryProcessor::PrepareQueryTreeForNextInputNode()
       if (ri==NULL)
           throw PGraphException("query root node needs a type name!");
 
-      CcInt *vi=(CcInt*)tuple->GetAttribute( ri->FromAttrIndex );
+      CcInt *vi=(CcInt*)tuple->GetAttribute( ri->IdAttrIndex );
       
       int id=ri->IdTranslationTable[vi->GetValue()];
       LOGOP(30, "PGraphQueryProcessor::PrepareQueryTreeForNextInputNode", 

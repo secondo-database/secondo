@@ -6,8 +6,6 @@
 # where "Ralf Hartmut Gueting" presenets a paper that is
 # indexed with a keyword containing "tempo"
 
-# 
-
 query p2 
 match2 ['
 (

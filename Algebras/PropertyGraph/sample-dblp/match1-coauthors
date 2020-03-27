@@ -2,9 +2,9 @@
 #query meminit (1524);
 #query p2 loadgraph;
 
-# Queries the top 5 co-authors of "Ralf Hartmut Gueting" of 
-# publications in 2017. The results will be grouped and show
-# the Authors with the sum of joint publications.
+# Queries the top 5 co-authors publications of "Ralf Hartmut Gueting" 
+# The results will be grouped and show the Authors with the sum of
+# joint publications.
 
 # The starting nodes for the subgraph match are taken from the
 # tuple stream (first argument).

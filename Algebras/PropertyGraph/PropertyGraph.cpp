@@ -52,6 +52,9 @@ extern QueryProcessor *qp;
 
 namespace pgraph {
 
+// forward deklatation: part of PropertyGraphAlgebra.cpp
+void removePGraphMemoryParts(PGraph *pg);
+
 //-----------------------------------------------------------------------------
 PGraph::~PGraph()
 {
@@ -61,7 +64,7 @@ PGraph::~PGraph()
 //-----------------------------------------------------------------------------
 Word PGraph::Create( const ListExpr typeInfo )
 {
-   LOG(20,"PGraph::Create");
+   LOG(30,"PGraph::Create");
    PGraph* pg=new PGraph(  );
    return (SetWord( pg ));
 }
@@ -77,9 +80,9 @@ Word PGraph::In( const ListExpr typeInfo, const ListExpr instance,
    NList list(instance);
    NList typeinfo(typeInfo);
    
-   LOGOP(20,"PGraph::In");
-   LOG(20,"instance",list);
-   LOG(20,"typeinfo",typeinfo);
+   LOGOP(30,"PGraph::In");
+   LOG(30,"instance",list);
+   LOG(30,"typeinfo",typeinfo);
 
    // argument count
    if ( list.length() != 6 )  {
@@ -202,7 +205,7 @@ ListExpr PGraph::Out( ListExpr typeInfo, Word value )
       NList( NList("options"),  options  )
    );
 
-   LOGOP(20, "PGraph::Out ", res);
+   LOGOP(30, "PGraph::Out ", res);
    return res.listExpr();
 }
 
@@ -215,7 +218,13 @@ bool PGraph::Open( SmiRecord& valueRecord,
    return DefOpen(PGraph::In, valueRecord, offset, typeInfo, value);
 }
 
-
+//-----------------------------------------------------------------------------
+void  PGraph::Deletion(const ListExpr typeInfo,  Word& object )
+{
+   PGraph* pg = static_cast<PGraph*>( object.addr );
+   LOG(30,"PGraph::Deletion");
+   removePGraphMemoryParts(pg);
+}
 //-----------------------------------------------------------------------------
 bool PGraph::Save( SmiRecord& valueRecord, size_t& offset,
                   const ListExpr typeInfo, Word& value)

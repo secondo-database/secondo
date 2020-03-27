@@ -6,21 +6,22 @@
 # The results will be grouped and show the Authors with the sum of
 # joint publications.
 
-# As the node a2 is specifying a unique property (Name)m the corresponding
-# index will be used to the accelerate the query. For comparision see
-# match2-coauthors-slow not using the index. 
+# The last optional argument forces to choose the doc node as start point.
+# This will take a lot longer than match2-coauthors as this verson uses an index
+# to find a startnode.
 
 query p2 
 match2 ['
 (
-   ( a )
    ( a2 ( (Name "Ralf Hartmut Gueting") ))
+   ( a )
    (doc Document)
    (a2  AUTHOR_OF doc)
    (a  AUTHOR_OF doc)
 )',
 '(  ((a Name) <> "Ralf Hartmut Gueting")  ) ',
-'(  ((a Name) Name)  )'] 
+'(  ((a Name) Name)  )'
+,'doc']    
 sortby[Name] groupby[Name; Cnt:group count] sortby[Cnt:desc] head[5] consume;
 
 

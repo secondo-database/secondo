@@ -46,7 +46,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Utils.h"
 #include "PropertyGraphMem.h"
 #include "PropertyGraph.h"
-#include "RelationInfo.h"
+#include "RelationSchemaInfo.h"
 
 using namespace std;
 
@@ -126,6 +126,8 @@ void AdjacencyList::AddNodeTuple(int relId, Tuple *tuple)
 {
    LOGOP(30, "AdjacencyList::AddNodeTuple","relId ",relId);
 
+   tuple->IncReference();
+
    NodeList.push_back(tuple);
    NodeRelIdList.push_back(relId);
 
@@ -138,6 +140,8 @@ void AdjacencyList::AddEdgeTuple(int relId, Tuple *tuple,
 {
    LOGOP(30, "AdjacencyList::AddEdgeTuple","relId ",relId, " | ",
       fromID,"->",toID);
+
+   tuple->IncReference();
 
    // ignore if not exiting
    if (fromrel->IdTranslationTable.find(fromID)==fromrel->
@@ -160,7 +164,7 @@ void AdjacencyList::AddEdgeTuple(int relId, Tuple *tuple,
    vector<int> *list;
 
    //
-   list = &OutgoingRels[globfrom];
+   list = &OutGoingRels[globfrom];
    list->push_back(EdgeGlobalCounter);
 
    //
@@ -180,15 +184,16 @@ AdjacencyList::~AdjacencyList()
 //-----------------------------------------------------------------------------
 void AdjacencyList::Clear()
 {
+   LOGOP(30,"AdjacencyList::Clear");
    NodeGlobalCounter=0;
    EdgeGlobalCounter=0;
 
    NodeRelIdList.clear();
-   OutgoingRels.clear();
+   OutGoingRels.clear();
    InGoingRels.clear();
 
    //
-   for(auto&& tuple : NodeList) tuple->DeleteIfAllowed();
+   for(auto&& tuple : NodeList)  tuple->DeleteIfAllowed();
    NodeList.clear();      
 
     //
@@ -265,7 +270,7 @@ MemoryGraphObject::~MemoryGraphObject()
 void MemoryGraphObject::LoadNodeRelation(string memrelname, 
       NodeRelInfo *nrelinfo, bool rebuildStatistics)
 {
-   LOGOP(20,"MemoryGraphObject::LoadNodeRelation", "loading "+
+   LOGOP(10,"MemoryGraphObject::LoadNodeRelation", "loading "+
       nrelinfo->name);
 
    // get relation info
@@ -281,7 +286,7 @@ void MemoryGraphObject::LoadNodeRelation(string memrelname,
    relinfo->IdFieldName=nrelinfo->idattr;
 
    // 
-   relinfo->FromAttrIndex=
+   relinfo->IdAttrIndex=
       relinfo->RelSchema.GetAttrInfo(nrelinfo->idattr)->Index;
 
    //
@@ -292,8 +297,7 @@ void MemoryGraphObject::LoadNodeRelation(string memrelname,
    for(auto&& tuple : *relation->getmmrel() )
    {
       // get nodeid
-      int id=((CcInt*)tuple->GetAttribute(relinfo->RelSchema.
-         GetAttrInfo(nrelinfo->idattr)->Index))->GetValue();
+      int id=((CcInt*)tuple->GetAttribute(relinfo->IdAttrIndex))->GetValue();
 
       // add to adjacency list and put global id to translation table
       AdjList.AddNodeTuple(relinfo->RelId, tuple);
@@ -314,7 +318,7 @@ void MemoryGraphObject::LoadNodeRelation(string memrelname,
 void MemoryGraphObject::LoadEdgeRelation(string memrelname,  
        EdgeRelInfo *erelinfo, bool rebuildStatistics)
 {
-   LOGOP(20,"MemoryGraphObject::LoadEdgeRelation", "loading "+erelinfo
+   LOGOP(10,"MemoryGraphObject::LoadEdgeRelation", "loading "+erelinfo
          ->EdgeRelName);
 
    ListExpr reltype= SecondoSystem::GetCatalog()
@@ -341,27 +345,30 @@ void MemoryGraphObject::LoadEdgeRelation(string memrelname,
    mm2algebra::MemoryRelObject* relation=QueryMemRelation(memrelname);
    if (relation==NULL) PGraphException("could not open relation: "+memrelname);
 
+   relinfo->FromAttrIndex=
+      relinfo->RelSchema.GetAttrInfo(erelinfo->FromIdName)->Index;
+   relinfo->ToAttrIndex=
+      relinfo->RelSchema.GetAttrInfo(erelinfo->ToIdName)->Index;
+
    for(auto&& tuple : *relation->getmmrel() )
    {
       // get fromid
-      int fromid=((CcInt*)tuple->GetAttribute(relinfo->RelSchema
-            .GetAttrInfo(erelinfo->FromIdName)->Index))->GetValue();
-      int toid=((CcInt*)tuple->GetAttribute(relinfo->RelSchema
-            .GetAttrInfo(erelinfo->ToIdName)->Index))->GetValue();
+      int fromid=((CcInt*)
+         tuple->GetAttribute(relinfo->FromAttrIndex))->GetValue();
+      int toid=((CcInt*)tuple->GetAttribute(relinfo->ToAttrIndex))->GetValue();
 
       // add to adjacency list 
       // (from,toid are relative and need to be translated to global id)
       AdjList.AddEdgeTuple(relinfo->RelId, tuple, fromrel, fromid,
             torel, toid);
-
    }
    
-   //
+   // get persistent statistics
    relinfo->statistics=new RelStatistics();
    relinfo->statistics->avgcardForward=erelinfo->StatAvgForward;
    relinfo->statistics->avgcardBackward=erelinfo->StatAvgBackward;
 
-   // Loading statistics
+   // Loading statistics if necessary
    if(rebuildStatistics)
    {
       LOGOP(20,"MemoryGraphObject::LoadEdgeRelation","getting edge statistics");
@@ -372,7 +379,7 @@ void MemoryGraphObject::LoadEdgeRelation(string memrelname,
           fromrel->IdFieldName+"_n) ( (C (fun (t TUPLE) (agg int) "  
           " (ifthenelse (isempty (attr t "+erelinfo->FromIdName+"_e)) agg "
           "(+ agg 1)) ) 0 ) ) ) C) ";
-      LOGOP(20,"MemoryGraphObject::LoadEdgeRelation",
+      LOGOP(30,"MemoryGraphObject::LoadEdgeRelation",
          "getting avg of forward relations per "+fromrel->Name,query);
       if (!queryValueDouble(query,d))
       {
@@ -387,7 +394,7 @@ void MemoryGraphObject::LoadEdgeRelation(string memrelname,
          erelinfo->ToIdName+"_e) ("+torel->IdFieldName+
          "_n) ( (C (fun (t TUPLE) (agg int) (ifthenelse (isempty (attr t "+
          erelinfo->ToIdName+"_e)) agg (+ agg 1)) ) 0 ) ) ) C) ";
-      LOGOP(20,"MemoryGraphObject::LoadEdgeRelation",
+      LOGOP(30,"MemoryGraphObject::LoadEdgeRelation",
          "getting avg of backward relations per "+torel->Name,query);
       queryValueDouble(query,d);
       relinfo->statistics->avgcardBackward=d;
@@ -475,7 +482,7 @@ void MemoryGraphObject::LoadData(PGraph *pg, bool forcerebuildStatistics)
    // preallocate vectors
    LOGOP(10,"MemoryGraphObject::LoadData", " resize adjlist ", 
       AdjList.NodeGlobalCounter);
-   AdjList.OutgoingRels.resize( AdjList.NodeGlobalCounter );
+   AdjList.OutGoingRels.resize( AdjList.NodeGlobalCounter );
    AdjList.InGoingRels.resize( AdjList.NodeGlobalCounter );
    
    // load edge relations
@@ -531,9 +538,9 @@ void MemoryGraphObject::DumpGraphDot(string filename)
          ranks[relinfo->Name].push_back("n"+to_string(i));
 
          // outgoing 
-         for (unsigned int a=0; a<AdjList.OutgoingRels[i].size(); a++)
+         for (unsigned int a=0; a<AdjList.OutGoingRels[i].size(); a++)
          {
-            Edge *e= AdjList.EdgeInfo[AdjList.OutgoingRels[i].at(a)];
+            Edge *e= AdjList.EdgeInfo[AdjList.OutGoingRels[i].at(a)];
             *data<<"n"<<i<<" -> n"<< e->ToNodeId <<"\n";
             *data << " [label=<";
             RelationInfo *reledge=RelRegistry.GetRelationInfo(e->RelId);

@@ -3,7 +3,7 @@ query meminit (1524);
 
 query isdefined(deleteObject("p2")); 
 let p2=createpgraph("p2");
-query p2 cfg["log","20"];
+query p2 cfg["log","10"];
 query p2 cfg["dotquery","1"];
 
 query p2 addnodesrel["Document","Docid"];

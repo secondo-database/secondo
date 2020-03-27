@@ -124,8 +124,5 @@ query WROTE_REVIEW inserttuple[1, 1] count;
 let REVIEW_OF = [ const rel(tuple([IdFrom : int, IdTo : int])) value () ];
 query REVIEW_OF inserttuple[1, 2] count;
 
-#
-query isdefined(deleteObject("idx_Author"));
-derive idx_Author = Author createbtree[Lastname];
 
 
