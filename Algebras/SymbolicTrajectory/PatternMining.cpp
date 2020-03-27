@@ -374,7 +374,7 @@ double RelAgg::sequenceSupp(vector<string> labelSeq,
   if (labelSeq.empty()) {
     return 0.0;
   }
-  Instant start, end;
+  Instant start(instanttype), end(instanttype);
   int noOccurrences = 0;
   for (auto id : intersection) {
     // try to find all labels
