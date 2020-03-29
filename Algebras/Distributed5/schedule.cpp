@@ -120,6 +120,7 @@ public:
     optional<vector<TaskDataItem *>> results;
     optional<pair<WorkerLocation, int>> reservation;
     bool started = false;
+    bool inPool = false;
     // end of mutex protected
 };
 
@@ -327,9 +328,8 @@ public:
             task->clearFlag(Output);
             receiveTask(task);
 
-            ResultTask *result = new ResultTask(*this);
-            result->setFlag(RunOnPreferedWorker);
-            result->setFlag(CopyArguments);
+            ResultTask *result = new ResultTask(
+                task->getPreferredLocation(), *this);
             result->addPredecessorTask(task);
             receiveTask(result);
 
@@ -368,7 +368,7 @@ public:
         }
 
         optional<WorkerLocation> preferredLocation;
-        bool first = true;
+        bool hasResult = false;
         for (auto pair : preInfos)
         {
             auto &preInfo = pair.first;
@@ -387,31 +387,32 @@ public:
                     preInfo->successors.emplace(
                         pos, info, info->arguments.size());
                 }
-                else if (first)
+                else
                 {
-                    preferredLocation = result->getPreferredLocation();
+                    info->inPool = true;
                 }
                 info->arguments.push_back(result);
             }
             if (result != 0)
             {
+                hasResult = true;
                 boost::lock_guard<boost::shared_mutex>
                     lock(dataReferencesMutex);
                 dataReferences[result]++;
             }
-            first = false;
         }
         // Add Task to the global work pool
         workPool.addTask(task);
 
         // Add Task to the local work pool
         // if preferred location is already known
-        if (preferredLocation)
+        if (hasResult)
         {
+            WorkerLocation preferredLocation = task->getPreferredLocation();
             WorkPool *localWorkPool;
             {
                 boost::lock_guard<boost::shared_mutex> lock(poolMutex);
-                localWorkPool = &localWorkPools[*preferredLocation];
+                localWorkPool = &localWorkPools[preferredLocation];
             }
             localWorkPool->addTask(task);
         }
@@ -608,7 +609,7 @@ public:
 #endif
 
         map<TaskDataItem *, size_t> refs;
-        vector<pair<WorkerLocation, Task *>> tasksForLocalWorkPools;
+        vector<Task *> tasksForLocalWorkPools;
         {
             boost::lock_guard<boost::shared_mutex> lock(info->mutex);
 
@@ -625,17 +626,16 @@ public:
 
                 refs[result]++;
 
-                if (targetPos == 0)
-                {
-                    tasksForLocalWorkPools.emplace_back(
-                        result->getPreferredLocation(), succInfo->task);
-                }
-
                 // Here two mutexes are locked, but order of locking is
                 // always in direction of result flow
                 // So no deadlock can occur
                 boost::lock_guard<boost::shared_mutex> lock(succInfo->mutex);
                 succInfo->arguments[targetPos] = result;
+                if (!succInfo->inPool)
+                {
+                    succInfo->inPool = true;
+                    tasksForLocalWorkPools.push_back(succInfo->task);
+                }
             }
         }
 
@@ -658,10 +658,10 @@ public:
         vector<pair<WorkPool *, Task *>> tasksForLocalWorkPools2;
         {
             boost::shared_lock_guard lock(poolMutex);
-            for (auto pair : tasksForLocalWorkPools)
+            for (auto task : tasksForLocalWorkPools)
             {
                 tasksForLocalWorkPools2.emplace_back(
-                    &localWorkPools[pair.first], pair.second);
+                    &localWorkPools[task->getPreferredLocation()], task);
             }
         }
 
@@ -937,25 +937,22 @@ private:
                 continue;
             }
             cost += arg->getDistance(location);
-            if (i == 0)
-            {
-                if (task->hasFlag(PreferSlotServer))
-                {
-                    if (location.getServer() !=
-                        arg->getPreferredLocation().getServer())
-                    {
-                        cost += CostNotPreferredServer;
-                    }
-                }
-                if (task->hasFlag(PreferSlotWorker))
-                {
-                    if (location != arg->getPreferredLocation())
-                    {
-                        cost += CostNotPreferredWorker;
-                    }
-                }
-            }
             i++;
+        }
+        if (task->hasFlag(PreferSlotServer))
+        {
+            if (location.getServer() !=
+                task->getPreferredLocation().getServer())
+            {
+                cost += CostNotPreferredServer;
+            }
+        }
+        if (task->hasFlag(PreferSlotWorker))
+        {
+            if (location != task->getPreferredLocation())
+            {
+                cost += CostNotPreferredWorker;
+            }
         }
         return cost;
     }
@@ -984,11 +981,12 @@ private:
     class ResultTask : public Task
     {
     public:
-        ResultTask(Scheduler &scheduler)
-            : Task(CopyArguments | ConvertArguments |
-                   (scheduler.resultInObjectForm
-                        ? RunOnPreferedWorker | PrimaryArgumentAsObject
-                        : RunOnPreferedServer | PrimaryArgumentAsFile)),
+        ResultTask(WorkerLocation preferredLocation, Scheduler &scheduler)
+            : Task(preferredLocation,
+                   CopyArguments | ConvertArguments |
+                       (scheduler.resultInObjectForm
+                            ? RunOnPreferedWorker | PrimaryArgumentAsObject
+                            : RunOnPreferedServer | PrimaryArgumentAsFile)),
               scheduler(scheduler) {}
 
         virtual std::string getTaskType() const { return "result"; }
@@ -1005,7 +1003,7 @@ private:
                 result->findLocation(
                     location,
                     scheduler.resultInObjectForm ? Object : File);
-            WorkerLocation preferredLocation = result->getPreferredLocation();
+            WorkerLocation preferredLocation = getPreferredLocation();
 
             if (scheduler.resultInObjectForm)
             {
@@ -1553,18 +1551,13 @@ void Scheduler::valueJobsForTask(WorkerLocation &location, Task *task,
     if (best && cost > best->second)
         return;
 
-    TaskDataItem *firstArg = args.size() > 0 ? args.front() : 0;
-
     bool validWorker =
         !task->hasFlag(RunOnPreferedWorker) ||
-        (firstArg != 0 &&
-         firstArg->getPreferredLocation() == location);
+        task->getPreferredLocation() == location;
     bool validServer =
         (!task->hasFlag(RunOnPreferedWorker) &&
          !task->hasFlag(RunOnPreferedServer)) ||
-        (firstArg != 0 &&
-         firstArg->getPreferredLocation().getServer() ==
-             location.getServer());
+        task->getPreferredLocation().getServer() == location.getServer();
 
     bool argumentsAvailable = true;
 

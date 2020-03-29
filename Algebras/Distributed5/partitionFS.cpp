@@ -135,8 +135,8 @@ ListExpr partitionFSTM(ListExpr args)
     }
 
     if (
-        !listutils::isMap<1>(argFunMapType) ||
-        !listutils::isMap<1>(argFunPartitionType))
+        !listutils::isMap<2>(argFunMapType) ||
+        !listutils::isMap<2>(argFunPartitionType))
     {
         return listutils::typeError(err + " (fun type invalid)");
     }
@@ -151,26 +151,37 @@ ListExpr partitionFSTM(ListExpr args)
                               : argInputType;
 
     //Function argument type
-    ListExpr funMapArg = nl->Second(argFunMapType);
+    ListExpr funMapArg1 = nl->Second(argFunMapType);
+    ListExpr funMapArg2 = nl->Third(argFunMapType);
 
     //expected Function Argument type
     ListExpr expFunMapArg = nl->TwoElemList(
         listutils::basicSymbol<fsrel>(),
         nl->Second(nl->Second(darrayType)));
 
-    if (!nl->Equal(expFunMapArg, funMapArg))
+    if (!nl->Equal(expFunMapArg, funMapArg1))
     {
         stringstream ss;
         ss << "type mismatch between map function argument"
            << " and subtype of d[f]array" << endl
            << "subtype is " << nl->ToString(expFunMapArg) << endl
-           << "funarg is " << nl->ToString(funMapArg) << endl;
+           << "funarg is " << nl->ToString(funMapArg1) << endl;
+
+        return listutils::typeError(ss.str());
+    }
+    if (!nl->Equal(expFunMapArg, funMapArg2))
+    {
+        stringstream ss;
+        ss << "type mismatch between map function argument"
+           << " and subtype of d[f]array" << endl
+           << "subtype is " << nl->ToString(expFunMapArg) << endl
+           << "funarg is " << nl->ToString(funMapArg2) << endl;
 
         return listutils::typeError(ss.str());
     }
 
     //Function return type
-    ListExpr funMapRes = nl->Third(argFunMapType);
+    ListExpr funMapRes = nl->Fourth(argFunMapType);
 
     if (!Stream<Tuple>::checkType(funMapRes))
     {
@@ -184,30 +195,42 @@ ListExpr partitionFSTM(ListExpr args)
     // we have to replace the given function arguments
     // by the real function arguments because the
     // given function argument may be a TypeMapOperator
-    ListExpr rfunMap = nl->ThreeElemList(
+    ListExpr rfunMap = nl->FourElemList(
         nl->First(funMap),
-        nl->TwoElemList(nl->First(nl->Second(funMap)), funMapArg),
-        nl->Third(funMap));
+        nl->TwoElemList(nl->First(nl->Second(funMap)), expFunMapArg),
+        nl->TwoElemList(nl->First(nl->Third(funMap)), expFunMapArg),
+        nl->Fourth(funMap));
 
     // compute the subtype of the resulting array
     ListExpr tupleType = nl->Second(funMapRes);
     ListExpr relType = nl->TwoElemList(
         listutils::basicSymbol<Relation>(), tupleType);
 
-    ListExpr funPartitionArg = nl->Second(argFunPartitionType);
+    ListExpr funPartitionArg1 = nl->Second(argFunPartitionType);
+    ListExpr funPartitionArg2 = nl->Third(argFunPartitionType);
 
-    if (!nl->Equal(tupleType, funPartitionArg))
+    if (!nl->Equal(tupleType, funPartitionArg1))
     {
         stringstream ss;
         ss << "type mismatch between partition function argument"
            << " and result of map function" << endl
            << "result is " << nl->ToString(tupleType) << endl
-           << "funarg is " << nl->ToString(funPartitionArg) << endl;
+           << "funarg is " << nl->ToString(funPartitionArg1) << endl;
+
+        return listutils::typeError(ss.str());
+    }
+    if (!nl->Equal(tupleType, funPartitionArg2))
+    {
+        stringstream ss;
+        ss << "type mismatch between partition function argument"
+           << " and result of map function" << endl
+           << "result is " << nl->ToString(tupleType) << endl
+           << "funarg is " << nl->ToString(funPartitionArg2) << endl;
 
         return listutils::typeError(ss.str());
     }
 
-    ListExpr funPartitionRes = nl->Third(argFunPartitionType);
+    ListExpr funPartitionRes = nl->Fourth(argFunPartitionType);
 
     if (!CcInt::checkType(funPartitionRes))
     {
@@ -221,10 +244,25 @@ ListExpr partitionFSTM(ListExpr args)
     // we have to replace the given function arguments
     // by the real function arguments because the
     // given function argument may be a TypeMapOperator
-    ListExpr rfunPartition = nl->ThreeElemList(
+    ListExpr rfunPartition = nl->FourElemList(
         nl->First(funPartition),
-        nl->TwoElemList(nl->First(nl->Second(funPartition)), funPartitionArg),
-        nl->Third(funPartition));
+        nl->TwoElemList(nl->First(nl->Second(funPartition)), tupleType),
+        nl->TwoElemList(nl->First(nl->Third(funPartition)), tupleType),
+        nl->Fourth(funPartition));
+
+    // create a new function with a single argument which calls the
+    // real function, passing the argument to both arguments
+    // this allows the user to choice to use . (correct) or .. (deprecated)
+    ListExpr newArgument = nl->SymbolAtom(
+        nl->SymbolValue(nl->First(nl->Third(funPartition))) +
+        "_");
+    ListExpr rfunPartitionSingleArg = nl->ThreeElemList(
+        nl->First(funPartition),
+        nl->TwoElemList(newArgument, tupleType),
+        nl->ThreeElemList(
+            rfunPartition,
+            newArgument,
+            newArgument));
 
     // i.e. (stream (task (dfmatrix (rel ...))))
     ListExpr resType = nl->TwoElemList(
@@ -238,7 +276,7 @@ ListExpr partitionFSTM(ListExpr args)
     ListExpr appendValues = nl->ThreeElemList(
         nl->BoolAtom(inputIsStream),
         nl->TextAtom(nl->ToString(rfunMap)),
-        nl->TextAtom(nl->ToString(rfunPartition)));
+        nl->TextAtom(nl->ToString(rfunPartitionSingleArg)));
 
     return nl->ThreeElemList(
         nl->SymbolAtom(Symbols::APPEND()),
@@ -278,37 +316,40 @@ public:
             Task *inputTask = input.request();
             if (inputTask != 0)
             {
-                if (inputTask->getTaskType() == "worker")
-                    workerCount++;
                 if (inputTask->hasFlag(Output))
                 {
                     inputTask->clearFlag(Output);
-                    collectedTasks.push_back(inputTask);
+                    collectedTasks[inputTask->getPreferredLocation()]
+                        .push_back(inputTask);
                 }
                 return inputTask;
             }
+            if (vslots == 0)
+            {
+                for (auto &pair : collectedTasks)
+                    vslots += pair.second.size();
+            }
             inputConsumed = true;
         }
-        if (currentWorker >= workerCount)
+        if (collectedTasks.size() == 0)
             return 0;
+        auto pair = collectedTasks.begin();
         auto *partitionTask = new PartitionFunctionTask(
+            pair->first,
             mapFunction, partitionFunction,
             remoteName, vslots, contentType);
         partitionTask->setFlag(Output);
-        size_t len = collectedTasks.size();
-        for (size_t i = currentWorker; i < len; i += workerCount)
+        for (auto task : pair->second)
         {
-            partitionTask->addPredecessorTask(collectedTasks[i]);
+            partitionTask->addPredecessorTask(task);
         }
-        currentWorker++;
+        collectedTasks.erase(pair);
         return partitionTask;
     }
 
 private:
     bool inputConsumed = false;
-    size_t workerCount = 0;
-    size_t currentWorker = 0;
-    std::vector<Task *> collectedTasks;
+    map<WorkerLocation, vector<Task *>> collectedTasks;
     DInputConsumer input;
     string mapFunction;
     string partitionFunction;

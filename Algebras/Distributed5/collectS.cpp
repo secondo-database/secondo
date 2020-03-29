@@ -181,16 +181,13 @@ public:
         if (currentVSlot >= first->getNumberOfResults())
             return 0;
 
-        auto *collectTask = new CollectFunctionTask(remoteName, contentType);
-        collectTask->setFlag(Output);
         size_t vslot = currentVSlot++;
-        // The primary argument is the task where vslot == slot
-        // It only influences the preferred locations
-        // and it not part of the collecting process
-        collectTask->addArgument(
-            collectedTasks[vslot % collectedTasks.size()], vslot);
-        // The secondary arguments are collected
-        // and merged
+
+        auto *collectTask = new CollectFunctionTask(
+            collectedTasks[vslot % collectedTasks.size()]
+                ->getPreferredLocation(),
+            remoteName, contentType);
+        collectTask->setFlag(Output);
         for (Task *task : collectedTasks)
         {
             collectTask->addArgument(task, vslot);

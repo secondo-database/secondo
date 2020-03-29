@@ -312,6 +312,7 @@ public:
 
         // create a dproduct task
         Task *dproductTask = new DproductFunctionTask(
+            input1Leaf->getPreferredLocation(),
             dproductFunction, remoteName, contentType, isRel, isStream);
         dproductTask->setFlag(Output);
         dproductTask->addPredecessorTask(input1Leaf);

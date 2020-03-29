@@ -298,16 +298,15 @@ class TaskDataItem
 {
 public:
     TaskDataItem(std::string name, size_t slot, ListExpr contentType,
-                 TaskDataLocation location, WorkerLocation preferredLocation)
+                 TaskDataLocation location)
         : TaskDataItem(name, slot, 0, contentType,
-                       location, preferredLocation) {}
+                       location) {}
 
     TaskDataItem(std::string name,
                  size_t slot, size_t vslot,
                  ListExpr contentType,
-                 TaskDataLocation location, WorkerLocation preferredLocation)
-        : preferredLocation(preferredLocation),
-          name(name), slot(slot), vslot(vslot), contentType(contentType)
+                 TaskDataLocation location)
+        : name(name), slot(slot), vslot(vslot), contentType(contentType)
     {
         auto &locations = locationsByServer[location.getServer()];
         locations.push_back(location);
@@ -318,8 +317,7 @@ public:
     }
 
     TaskDataItem(const distributed5::TaskDataItem &copy)
-        : preferredLocation(copy.preferredLocation),
-          locationsByServer(copy.locationsByServer),
+        : locationsByServer(copy.locationsByServer),
           objectLocations(copy.objectLocations),
           fileLocations(copy.fileLocations),
           name(copy.name),
@@ -390,8 +388,7 @@ public:
                 ? " _ " + std::to_string(slot) +
                       " _ " + std::to_string(vslot - 1)
                 : " _ " + std::to_string(slot);
-        std::string str = name + slotInfo +
-                          " <3 " + preferredLocation.toString();
+        std::string str = name + slotInfo;
         for (auto &locations : locationsByServer)
         {
             for (auto &location : locations.second)
@@ -410,11 +407,6 @@ public:
                    "_" + std::to_string(vslot - 1);
         }
         return name + "_" + std::to_string(slot);
-    }
-
-    const WorkerLocation &getPreferredLocation() const
-    {
-        return preferredLocation;
     }
 
     bool hasLocation(TaskDataLocation const &location) const;
@@ -517,7 +509,6 @@ public:
 
 private:
     mutable boost::shared_mutex mutex;
-    WorkerLocation preferredLocation;
     std::map<std::string, std::vector<TaskDataLocation>>
         locationsByServer;
     int objectLocations;
@@ -658,8 +649,8 @@ private:
 class Task
 {
 public:
-    Task(int flags = 0)
-        : flags(flags), id(nextId++) {}
+    Task(WorkerLocation preferredLocation, int flags = 0)
+        : preferredLocation(preferredLocation), flags(flags), id(nextId++) {}
     virtual ~Task();
 
     int getId();
@@ -687,6 +678,11 @@ public:
     virtual std::vector<TaskDataItem *> run(
         WorkerLocation &location,
         std::vector<TaskDataItem *> args) = 0;
+
+    const WorkerLocation &getPreferredLocation() const
+    {
+        return preferredLocation;
+    }
 
     static const std::string BasicType();
     static const bool checkType(const ListExpr list);
@@ -716,6 +712,7 @@ public:
 
 private:
     std::vector<std::pair<Task *, size_t>> arguments;
+    WorkerLocation preferredLocation;
 
     int flags;
     static int nextId;
@@ -748,7 +745,7 @@ class WorkerTask : public Task
 {
 public:
     WorkerTask(const WorkerLocation location)
-        : Task(RunOnReceive),
+        : Task(location, RunOnReceive),
           location(location) {}
 
     WorkerTask(const distributed2::DArrayElement dArrayElement);
@@ -766,8 +763,7 @@ public:
     {
         return std::vector{
             new TaskDataItem(std::string(""), 0, nl->TheEmptyList(),
-                             TaskDataLocation(this->location, Object, false),
-                             this->location)};
+                             TaskDataLocation(this->location, Object, false))};
     }
 
 private:
@@ -777,14 +773,15 @@ private:
 class FunctionTask : public Task
 {
 protected:
-    FunctionTask(int additonalFlags,
+    FunctionTask(WorkerLocation preferredLocation,
+                 int additonalFlags,
                  std::string resultName,
                  ListExpr resultContentType,
                  bool isRel,
                  bool isStream)
-        : Task(CopyArguments | ConvertArguments |
-               PreferSlotWorker | PreferSlotServer |
-               additonalFlags),
+        : Task(preferredLocation, CopyArguments | ConvertArguments |
+                                      PreferSlotWorker | PreferSlotServer |
+                                      additonalFlags),
           resultName(resultName),
           resultContentType(resultContentType),
           isRel(isRel),
@@ -802,9 +799,10 @@ protected:
     ListExpr resultContentType;
     bool isRel;
     bool isStream;
+    bool storeRelAsObject = false;
 
     std::vector<TaskDataItem *> store(
-        const WorkerLocation &location, const WorkerLocation &preferredLocation,
+        const WorkerLocation &location,
         size_t slot, std::string value, std::string description,
         size_t expectedCount = 0);
 };
@@ -812,17 +810,22 @@ protected:
 class DmapFunctionTask : public FunctionTask
 {
 public:
-    DmapFunctionTask(std::string mapFunction,
+    DmapFunctionTask(WorkerLocation preferredLocation,
+                     std::string mapFunction,
                      std::string resultName,
                      ListExpr resultContentType,
                      bool isRel,
                      bool isStream)
-        : FunctionTask(0,
+        : FunctionTask(preferredLocation,
+                       0,
                        resultName,
                        resultContentType,
                        isRel,
                        isStream),
-          mapFunction(mapFunction) {}
+          mapFunction(mapFunction)
+    {
+        storeRelAsObject = true;
+    }
 
     virtual std::string getTaskType() const { return "dmap"; }
 
@@ -843,12 +846,14 @@ protected:
 class DproductFunctionTask : public FunctionTask
 {
 public:
-    DproductFunctionTask(std::string mapFunction,
+    DproductFunctionTask(WorkerLocation preferredLocation,
+                         std::string mapFunction,
                          std::string resultName,
                          ListExpr resultContentType,
                          bool isRel,
                          bool isStream)
-        : FunctionTask(SecondaryArgumentsAsFile,
+        : FunctionTask(preferredLocation,
+                       SecondaryArgumentsAsFile,
                        resultName,
                        resultContentType,
                        isRel,
@@ -876,12 +881,14 @@ protected:
 class PartitionFunctionTask : public FunctionTask
 {
 public:
-    PartitionFunctionTask(std::string mapFunction,
+    PartitionFunctionTask(WorkerLocation preferredLocation,
+                          std::string mapFunction,
                           std::string partitionFunction,
                           std::string resultName,
                           size_t vslots,
                           ListExpr resultContentType)
-        : FunctionTask(PrimaryArgumentAsFile | SecondaryArgumentsAsFile,
+        : FunctionTask(preferredLocation,
+                       PrimaryArgumentAsFile | SecondaryArgumentsAsFile,
                        resultName,
                        resultContentType,
                        isRel,
@@ -916,8 +923,10 @@ protected:
 class CollectFunctionTask : public FunctionTask
 {
 public:
-    CollectFunctionTask(std::string resultName, ListExpr resultContentType)
-        : FunctionTask(SecondaryArgumentsAsFile,
+    CollectFunctionTask(WorkerLocation preferredLocation,
+                        std::string resultName, ListExpr resultContentType)
+        : FunctionTask(preferredLocation,
+                       PrimaryArgumentAsFile | SecondaryArgumentsAsFile,
                        resultName, resultContentType, true, false) {}
 
     virtual std::string getTaskType() const { return "collect"; }
@@ -935,6 +944,9 @@ public:
 
 class ErrorTask : public Task
 {
+public:
+    ErrorTask() : Task(WorkerLocation("", 0, "", 0)) {}
+
     virtual std::string getTaskType() const { return "error"; }
 
     virtual std::vector<TaskDataItem *> run(

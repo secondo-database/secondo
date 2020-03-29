@@ -63,11 +63,13 @@ ListExpr ARRAYORTASKSFUNARG_TM(ListExpr args)
         if (nl->HasLength(args, 3))
         {
             ListExpr fun = nl->Third(args);
-            if (!listutils::isMap<1>(fun))
+            if (!listutils::isMap<1>(fun) && !listutils::isMap<2>(fun))
             {
                 return listutils::typeError("prev arg is not a function");
             }
-            ListExpr result = nl->Third(fun);
+            ListExpr result = listutils::isMap<1>(fun)
+                                  ? nl->Third(fun)
+                                  : nl->Fourth(fun);
             if (!Stream<Tuple>::checkType(result))
             {
                 return listutils::typeError(

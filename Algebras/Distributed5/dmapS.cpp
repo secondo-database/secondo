@@ -230,7 +230,7 @@ ListExpr dmapSTM(ListExpr args)
     // determine the result array type
     // if the origin function result is a tuple stream,
     // the result will be a dfarray, otherwise a darray
-    ListExpr resultType = isStream || isRel
+    ListExpr resultType = isStream
                               ? listutils::basicSymbol<DFArray>()
                               : listutils::basicSymbol<DArray>();
 
@@ -330,7 +330,8 @@ public:
             }
         }
         //create new leaf task for this operator
-        Task *a = new DmapFunctionTask(dmapFunction,
+        Task *a = new DmapFunctionTask(inputLeafs[0]->getPreferredLocation(),
+                                       dmapFunction,
                                        remoteName,
                                        contentType,
                                        isRel,

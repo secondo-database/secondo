@@ -136,24 +136,23 @@ DataTask::DataTask(
     size_t slot,
     DataStorageType storageType,
     ListExpr contentType)
-    : Task(
+    : Task(WorkerLocation(dArrayElement.getHost(),
+                          dArrayElement.getPort(),
+                          dArrayElement.getConfig(),
+                          dArrayElement.getNum()),
 #ifdef TASK_VERIFY_COUNTS
-          0
+           0
 #else
-          RunOnReceive
+           RunOnReceive
 #endif
-          ),
+           ),
       dataItem(name, slot, contentType,
                TaskDataLocation(dArrayElement.getHost(),
                                 dArrayElement.getPort(),
                                 dArrayElement.getConfig(),
                                 dArrayElement.getNum(),
                                 storageType,
-                                false),
-               WorkerLocation(dArrayElement.getHost(),
-                              dArrayElement.getPort(),
-                              dArrayElement.getConfig(),
-                              dArrayElement.getNum()))
+                                false))
 {
 }
 /*
@@ -255,8 +254,7 @@ vector<TaskDataItem *> DmapFunctionTask::run(
     }
     string funcmd = nl->ToString(funCmdList);
     // store result on the running worker
-    return store(location, firstArg->getPreferredLocation(),
-                 slot, funcmd, "dmapS");
+    return store(location, slot, funcmd, "dmapS");
 }
 
 /*
@@ -293,8 +291,7 @@ vector<TaskDataItem *> DproductFunctionTask::run(
     arg2 += "))";
     string funcall = "( " + mapFunction + " " + arg1 + " " + arg2 + ")";
 
-    return store(location, first->getPreferredLocation(),
-                 slot, funcall, "dproductS");
+    return store(location, slot, funcall, "dproductS");
 }
 
 /*
@@ -312,8 +309,7 @@ vector<TaskDataItem *> PartitionFunctionTask::run(
 
     TaskDataItem result(resultName, slot, resultContentType,
                         TaskDataLocation(
-                            location, DataStorageType::File, false),
-                        first->getPreferredLocation());
+                            location, DataStorageType::File, false));
 
     string path = location.getFileBase(&result);
     ListExpr fsrelType = nl->TwoElemList(
@@ -328,7 +324,8 @@ vector<TaskDataItem *> PartitionFunctionTask::run(
     }
     argExpr += "))";
 
-    string tupleStream = "( " + mapFunction + " " + argExpr + ")";
+    string tupleStream = "( " + mapFunction + " " +
+                         argExpr + " " + argExpr + ")";
     string distribute = "(fdistribute7 " + tupleStream + " " +
                         "'" + path + "' " +
                         partitionFunction + " " +
@@ -370,8 +367,7 @@ vector<TaskDataItem *> PartitionFunctionTask::run(
         auto *data = new TaskDataItem(
             resultName, slot, i + 1,
             resultContentType,
-            TaskDataLocation(location, DataStorageType::File, true),
-            first->getPreferredLocation());
+            TaskDataLocation(location, DataStorageType::File, true));
 #ifdef TASK_VERIFY_COUNTS
         size_t count = data->getFirstLocation().getValueCount(data);
         data->setCount(count);
@@ -408,14 +404,8 @@ vector<TaskDataItem *> CollectFunctionTask::run(
         listutils::basicSymbol<fsrel>(),
         nl->Second(last->getContentType()));
     string argQuery = "(" + nl->ToString(fsrelType) + "( ";
-    bool isFirst = true;
     for (auto arg : args)
     {
-        if (isFirst)
-        {
-            isFirst = false;
-            continue;
-        }
         TaskDataLocation loc = arg->findLocation(location,
                                                  DataStorageType::File);
         argQuery += "'" + loc.getFilePath(arg) + "' ";
@@ -425,8 +415,7 @@ vector<TaskDataItem *> CollectFunctionTask::run(
     }
     argQuery += "))";
 
-    return store(location, first->getPreferredLocation(),
-                 slot, argQuery, "collectS",
+    return store(location, slot, argQuery, "collectS",
 #ifdef TASK_VERIFY_COUNTS
                  inputCount
 #else
@@ -630,19 +619,21 @@ Wraps value for secondo query so that output value is in correct format
 
 */
 vector<TaskDataItem *> FunctionTask::store(
-    const WorkerLocation &location, const WorkerLocation &preferredLocation,
+    const WorkerLocation &location,
     size_t slot, std::string value, std::string description,
     size_t expectedCount)
 {
+    WorkerLocation preferredLocation = getPreferredLocation();
     DataStorageType storageType =
-        this->isStream || this->isRel || location != preferredLocation
+        isStream ||
+                (!storeRelAsObject && isRel) ||
+                location != preferredLocation
             ? DataStorageType::File
             : DataStorageType::Object;
 
     ConnectionInfo *ci = location.getWorkerConnection();
     TaskDataItem result(resultName, slot, resultContentType,
-                        TaskDataLocation(location, storageType, true),
-                        preferredLocation);
+                        TaskDataLocation(location, storageType, true));
     string name2 = result.getObjectName();
     string cmd;
 
