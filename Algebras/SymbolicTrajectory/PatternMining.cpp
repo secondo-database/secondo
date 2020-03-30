@@ -42,11 +42,13 @@ AggEntry::AggEntry() {
   duration.ReadFrom((int64_t)0);
 }
   
-AggEntry::AggEntry(const TupleId id, const temporalalgebra::SecInterval& iv) {
+AggEntry::AggEntry(const TupleId id, const temporalalgebra::SecInterval& iv,
+                   Rect& rect) {
   occurrences.clear();
   Periods *per = new Periods(1);
   per->Add(iv);
-  occurrences[id] = per;
+  occurrences[id].first = per;
+  occurrences[id].second = rect;
   noOccurrences = 0;
   duration.SetType(datetime::durationtype);
   duration.ReadFrom((int64_t)0); // durations are computed at the end
@@ -54,7 +56,7 @@ AggEntry::AggEntry(const TupleId id, const temporalalgebra::SecInterval& iv) {
 
 void AggEntry::clear() {
   for (auto it : occurrences) {
-    it.second->DeleteIfAllowed();
+    it.second.first->DeleteIfAllowed();
   }
   occurrences.clear();
   noOccurrences = 0;
@@ -67,11 +69,11 @@ unsigned int AggEntry::getNoOccurrences(const TupleId& id) const {
   if (it == occurrences.end()) {
     return 0;
   }
-  return it->second->GetNoComponents();
+  return it->second.first->GetNoComponents();
 }
 
-void AggEntry::computeCommonTimeInterval(SecInterval& iv, 
-                                         set<TupleId>& commonTupleIds) {
+void AggEntry::computeCommonTimeInterval(const set<TupleId>& commonTupleIds,
+                                         SecInterval& iv) {
   iv.start.SetType(instanttype);
   iv.end.SetType(instanttype);
   iv.start.ToMaximum();
@@ -79,10 +81,10 @@ void AggEntry::computeCommonTimeInterval(SecInterval& iv,
   Instant first(1.0), last(1.0);
   if (commonTupleIds.empty()) { // use all occurrences
     for (auto it : occurrences) {
-      if (it.second->IsDefined()) {
-        if (!it.second->IsEmpty()) {
-          it.second->Minimum(first);
-          it.second->Maximum(last);
+      if (it.second.first->IsDefined()) {
+        if (!it.second.first->IsEmpty()) {
+          it.second.first->Minimum(first);
+          it.second.first->Maximum(last);
           if (first < iv.start) {
             iv.start = first;
           }
@@ -96,7 +98,7 @@ void AggEntry::computeCommonTimeInterval(SecInterval& iv,
   else { // use only entries occurring in the set
     for (auto it : commonTupleIds) {
       if (occurrences.find(it) != occurrences.end()) {
-        Periods* per = occurrences[it];
+        Periods* per = occurrences[it].first;
         if (per->IsDefined()) {
           if (!per->IsEmpty()) {
             per->Minimum(first);
@@ -117,18 +119,45 @@ void AggEntry::computeCommonTimeInterval(SecInterval& iv,
   }
 }
 
+void AggEntry::computeCommonRect(const SecInterval& iv,
+                 const set<TupleId>& commonTupleIds, Geoid *geoid, Rect &rect) {
+  if (commonTupleIds.empty()) { // use all occurrences (for 1-patterns)
+    if (occurrences.empty()) {
+      return;
+    }
+    map<TupleId, NewPair<Periods*, Rect> >::iterator it = occurrences.begin();
+    Rect tempRect = it->second.second;
+    it++;
+    while (it != occurrences.end()) {
+      tempRect = it->second.second.Union(tempRect);
+      it++;
+    }
+    rect = tempRect;
+  }
+  else {
+    set<TupleId>::iterator it = commonTupleIds.begin();
+    Rect tempRect = occurrences[*it].second;
+    it++;
+    while (it != commonTupleIds.end()) {
+      tempRect = occurrences[*it].second.Union(tempRect);
+      it++;
+    }
+    rect = tempRect;
+  }
+}
+
 void AggEntry::computeSemanticTimeSpec(string& semanticTimeSpec) const {
   semanticTimeSpec.clear();
   int month = 1; // {1, ..., 12}
   int weekday = 0; // {0, ..., 6}
   int daytime = 0; // {0, ..., 3}
   Instant first(1.0), last(1.0);
-  for (map<TupleId, Periods*>::const_iterator it = occurrences.begin();
-       it != occurrences.end(); it++) {
-    if (it->second->IsDefined()) {
-      if (!it->second->IsEmpty()) {
-        it->second->Minimum(first);
-        it->second->Maximum(last);
+  for (map<TupleId, NewPair<Periods*, Rect> >::const_iterator it = 
+       occurrences.begin(); it != occurrences.end(); it++) {
+    if (it->second.first->IsDefined()) {
+      if (!it->second.first->IsEmpty()) {
+        it->second.first->Minimum(first);
+        it->second.first->Maximum(last);
         if (it == occurrences.begin() && first.GetMonth() == last.GetMonth()) {
           month = first.GetMonth();
         }
@@ -173,8 +202,9 @@ std::string AggEntry::print(const TupleId& id /* = 0 */) const {
   std::stringstream result;
   if (id == 0) { // print everything
     for (auto it : occurrences) {
-      result << "   TID " << it.first << ": " << it.second->GetNoComponents() 
-             << " occurrences" << endl << "      " << *(it.second) << endl;
+      result << "   TID " << it.first << ": " 
+             << it.second.first->GetNoComponents() 
+             << " occurrences:  " << *(it.second.first) << endl;
     }
   }
   else {
@@ -183,9 +213,16 @@ std::string AggEntry::print(const TupleId& id /* = 0 */) const {
       result << "   TID " << id << " not found" << endl;
     }
     else {
-      result << "   TID " << id << ": " << *(it->second) << endl;
+      result << "   TID " << id << ": " << *(it->second.first) << endl;
     }
   }
+  return result.str();
+}
+
+std::string AggEntry::print(const Rect& rect) const {
+  std::stringstream result;
+  result << "[" << rect.MinD(0) << " " << rect.MaxD(0) << " " << rect.MinD(1)
+         << " " << rect.MaxD(1) << "]";
   return result.str();
 }
 
@@ -209,7 +246,7 @@ void RelAgg::clear(const bool deleteInv) {
   Class ~RelAgg~, Function ~initialize~
  
 */
-void RelAgg::initialize() {
+void RelAgg::initializeInv() {
   inv = new InvertedFile();
   inv->setParams(false, 1, "");
 }
@@ -221,12 +258,12 @@ void RelAgg::initialize() {
  
 */
 
-void RelAgg::insertLabel(const std::string& label, const TupleId& id,
-                         const temporalalgebra::SecInterval& iv) {
+void RelAgg::insertLabelAndBbox(const std::string& label, const TupleId& id,
+                           const temporalalgebra::SecInterval& iv, Rect& rect) {
 //   cout << "insert (" << label << ", " << id << ", " << iv << ")" << endl;
   auto aggIt = entriesMap.find(label);
   if (aggIt == entriesMap.end()) { // new label
-    AggEntry entry(id, iv);
+    AggEntry entry(id, iv, rect);
     entriesMap.insert(make_pair(label, entry));
   }
   else { // label already present
@@ -234,10 +271,13 @@ void RelAgg::insertLabel(const std::string& label, const TupleId& id,
     if (entryIt == aggIt->second.occurrences.end()) { // new id for label
       Periods *per = new Periods(1);
       per->Add(iv);
-      entriesMap[label].occurrences.insert(make_pair(id, per));
+      entriesMap[label].occurrences.insert(
+                             make_pair(id, NewPair<Periods*, Rect>(per, rect)));
     }
     else { // id already present for label
-      entriesMap[label].occurrences[id]->Add(iv);
+      entriesMap[label].occurrences[id].first->MergeAdd(iv);
+      entriesMap[label].occurrences[id].second = 
+                           entriesMap[label].occurrences[id].second.Union(rect);
     }
   }
   entriesMap[label].noOccurrences++;
@@ -251,18 +291,31 @@ void RelAgg::insertLabel(const std::string& label, const TupleId& id,
  
 */
 
-void RelAgg::scanRelation(Relation *rel, const NewPair<int, int> attrPos) {
+void RelAgg::scanRelation(Relation *r, const NewPair<int, int> ap, Geoid *g) {
+  rel = r;
+  attrPos = ap;
+  geoid = g;
   string label;
   SecInterval iv(true);
   noTuples = rel->GetNoTuples();
   GenericRelationIterator* it = rel->MakeScan();
+  MLabel *ml = 0;
+  MPoint *mp = 0;
+  MPoint mpPart(true);
   Tuple *tuple = 0;
+  Periods per(true);
+  Rect rect(true);
   while ((tuple = it->GetNextTuple())) {
-    MLabel *ml = (MLabel*)(tuple->GetAttribute(attrPos.first));
+    ml = (MLabel*)(tuple->GetAttribute(attrPos.first));
+    mp = (MPoint*)(tuple->GetAttribute(attrPos.second));
     for (int j = 0; j < ml->GetNoComponents(); j++) {
       ml->GetValue(j, label);
       ml->GetInterval(j, iv);
-      insertLabel(label, tuple->GetTupleId(), iv);
+      per.Add(iv);
+      mp->AtPeriods(per, mpPart);
+      rect = mpPart.BoundingBoxSpatial();
+      per.Clear();
+      insertLabelAndBbox(label, tuple->GetTupleId(), iv, rect);
     }
     tuple->DeleteIfAllowed();
   }
@@ -317,10 +370,10 @@ void RelAgg::filter(const double ms, const size_t memSize) {
 */
 
 bool RelAgg::buildAtom(string label, AggEntry entry,
-                       set<TupleId>& commonTupleIds, string& atom) {
+                       const set<TupleId>& commonTupleIds, string& atom) {
   SecInterval iv(true);
   string timeSpec, semanticTimeSpec;
-  entry.computeCommonTimeInterval(iv, commonTupleIds);
+  entry.computeCommonTimeInterval(commonTupleIds, iv);
   entry.computeSemanticTimeSpec(semanticTimeSpec);
   if (!semanticTimeSpec.empty()) {
     if (iv.start.IsDefined() && iv.end.IsDefined()) {
@@ -340,7 +393,9 @@ bool RelAgg::buildAtom(string label, AggEntry entry,
       return false;
     }
   }
-  atom = "(" + timeSpec + " \"" + label + "\")";
+  Rect rect(true);
+  entry.computeCommonRect(iv, commonTupleIds, geoid, rect);
+  atom = "(" + timeSpec + " \"" + label + "\" " + entry.print(rect) + ")";
   return true;
 }
 
@@ -451,10 +506,10 @@ double RelAgg::sequenceSupp(vector<string> labelSeq,
     while (sequenceFound && (pos < labelSeq.size())) {
       entry = getLabelEntry(labelSeq[pos]);
       if (entry->occurrences.find(id) != entry->occurrences.end()) {
-        entry->occurrences[id]->Maximum(end);
+        entry->occurrences[id].first->Maximum(end);
         if (start < end) { // label found, correct order
           // set start instant to begin of periods for current label
-          entry->occurrences[id]->Minimum(start);
+          entry->occurrences[id].first->Minimum(start);
         }
         else { // label found, but not in expected order
 //           cout << "WRONG ORDER: id " << id << ", \"" << labelSeq[pos]
@@ -532,7 +587,7 @@ void RelAgg::retrievePermutations(vector<string>& labelComb,
  
 */
 
-void RelAgg::derivePatterns(const int mina, const int maxa, Relation *rel) {
+void RelAgg::derivePatterns(const int mina, const int maxa) {
   minNoAtoms = mina;
   maxNoAtoms = maxa;
   // retrieve patterns with one atom, ~entries~ guaranteed to fulfill minSupp
@@ -544,10 +599,11 @@ void RelAgg::derivePatterns(const int mina, const int maxa, Relation *rel) {
     buildAtom(it.first, it.second, commonTupleIds, atom);
     if (minNoAtoms == 1) {
       supp = double(it.second.occurrences.size()) / noTuples;
-      results.push_back(make_pair(atom, supp));
+      results.push_back(NewPair<string, double>(atom, supp));
     }
     frequentLabels.push_back(it.first);
   }
+  cout << frequentLabels.size() << " frequent 1-patterns found" << endl;
   // retrieve patterns with two atoms
   if (maxNoAtoms < 2) {
     return;
@@ -565,22 +621,25 @@ void RelAgg::derivePatterns(const int mina, const int maxa, Relation *rel) {
     if (canLabelsBeFrequent(labelComb, commonTupleIds)) {
       supp = sequenceSupp(labelComb, commonTupleIds);
       if (supp >= minSupp) {
-        pattern.clear();
-        // build complete 2-pattern
-        entry = getLabelEntry(labelComb[0]);
-        correct = buildAtom(labelComb[0], *entry, commonTupleIds, atom);
-        pattern += atom + " ";
-        entry = getLabelEntry(labelComb[1]);
-        correct = correct && buildAtom(labelComb[1], *entry, commonTupleIds, 
-                                       atom);
-        pattern += atom;
-        if (correct && minNoAtoms <= 2) {
-          results.push_back(make_pair(pattern, supp));
+        if (minNoAtoms <= 2) {
+          pattern.clear();
+          // build complete 2-pattern
+          entry = getLabelEntry(labelComb[0]);
+          correct = buildAtom(labelComb[0], *entry, commonTupleIds, atom);
+          pattern += atom + " ";
+          entry = getLabelEntry(labelComb[1]);
+          correct = correct && buildAtom(labelComb[1], *entry, commonTupleIds, 
+                                         atom);
+          pattern += atom;
+          if (correct) {
+            results.push_back(NewPair<string, double>(pattern, supp));
+          }
         }
         frequentLabelCombs.insert(frequentLabelCombs.end(), labelComb);
       }
     }
   }
+  cout << frequentLabelCombs.size() << " frequent 2-patterns found" << endl;
   // retrieve patterns with three or more atoms
   unsigned int k = 3;
   while (k <= maxNoAtoms && !frequentLabelCombs.empty()) { // no frequent k-pat
@@ -615,7 +674,7 @@ void RelAgg::derivePatterns(const int mina, const int maxa, Relation *rel) {
             pos++;
           }
           if (correct) {
-            results.push_back(make_pair(pattern, supp));
+            results.push_back(NewPair<string, double>(pattern, supp));
           }
         }
         frequentLabelCombs.insert(frequentLabelCombs.end(), it.first);
@@ -698,15 +757,14 @@ string RelAgg::print(const string& label /* = "" */) {
   return result.str();
 }
 
-GetPatternsLI::GetPatternsLI(Relation *r, const NewPair<int,int> ap, double ms, 
-                             int mina, int maxa, const size_t mem)
-  : rel(r), attrPos(ap) {
+GetPatternsLI::GetPatternsLI(Relation *r, const NewPair<int, int> ap, double ms,
+                             int mina, int maxa, Geoid *g, const size_t mem) {
   tupleType = getTupleType();
   agg.clear(false);
-  agg.initialize();
-  agg.scanRelation(rel, attrPos);
+  agg.initializeInv();
+  agg.scanRelation(r, ap, g);
   agg.filter(ms, mem);
-  agg.derivePatterns(mina, maxa, rel);
+  agg.derivePatterns(mina, maxa);
 }
 
 GetPatternsLI::~GetPatternsLI() {
@@ -731,7 +789,7 @@ Tuple* GetPatternsLI::getNextResult() {
     return 0;
   }
   Tuple *tuple = new Tuple(tupleType);
-  pair<string, double> result;
+  NewPair<string, double> result;
   result = agg.results.back();
   agg.results.pop_back();
   FText *pattern = new FText(true, result.first);

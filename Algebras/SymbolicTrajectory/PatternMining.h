@@ -35,18 +35,21 @@ namespace stj {
 
 struct AggEntry {
   AggEntry();
-  AggEntry(const TupleId id, const temporalalgebra::SecInterval& iv);
+  AggEntry(const TupleId id, const temporalalgebra::SecInterval& iv,
+           Rect& rect);
 
   void clear();
   unsigned int getNoOccurrences(const TupleId& id) const;
   datetime::DateTime getDuration() const {return duration;}
-  void computeCommonTimeInterval(temporalalgebra::SecInterval& iv,
-                                 std::set<TupleId>& commonTupleIds);
+  void computeCommonTimeInterval(const std::set<TupleId>& commonTupleIds,
+                                 temporalalgebra::SecInterval& iv);
+  void computeCommonRect(const temporalalgebra::SecInterval& iv,
+             const std::set<TupleId>& commonTupleIds, Geoid *geoid, Rect &rect);
   void computeSemanticTimeSpec(std::string& semanticTimeSpec) const;
   std::string print(const TupleId& id = 0) const;
+  std::string print(const Rect& rect) const;
   
-  
-  std::map<TupleId, temporalalgebra::Periods*> occurrences;
+  std::map<TupleId, NewPair<temporalalgebra::Periods*, Rect> > occurrences;
   unsigned int noOccurrences; // over all tuples
   datetime::DateTime duration; // over all tuples
 };
@@ -64,8 +67,8 @@ Comparison function; sort by
 
 
 // struct compareEntries {
-//   bool operator()(std::pair<const std::string, AggEntry> const& l,
-//                   std::pair<const std::string, AggEntry> const& r) const {
+//   bool operator()(NewPair<const std::string, AggEntry> const& l,
+//                   NewPair<const std::string, AggEntry> const& r) const {
 //       if (l.second.occurrences.size() != r.second.occurrences.size()) {
 //         return l.second.occurrences.size() > r.second.occurrences.size();
 //       }
@@ -80,8 +83,8 @@ Comparison function; sort by
 // };
 
 struct comparePatternMiningResults {
-  bool operator()(std::pair<std::string, double> res1,
-                  std::pair<std::string, double> res2) {
+  bool operator()(NewPair<std::string, double> res1,
+                  NewPair<std::string, double> res2) {
     if (res1.second == res2.second) {
       return (res1.first.length() > res2.first.length());
     }
@@ -119,13 +122,13 @@ struct RelAgg {
   RelAgg() {}
   
   void clear(const bool deleteInv);
-  void initialize();
-  void insertLabel(const std::string& label, const TupleId& id, 
-              const temporalalgebra::SecInterval& iv);
-  void scanRelation(Relation *rel, const NewPair<int, int> attrPos);
+  void initializeInv();
+  void insertLabelAndBbox(const std::string& label, const TupleId& id, 
+                          const temporalalgebra::SecInterval& iv, Rect& rect);
+  void scanRelation(Relation *rel, const NewPair<int, int> attrPos, Geoid *g);
   void filter(const double ms, const size_t memSize);
   bool buildAtom(std::string label, AggEntry entry,
-                 std::set<TupleId>& commonTupleIds, std::string& atom);
+                 const std::set<TupleId>& commonTupleIds, std::string& atom);
   void retrieveLabelCombs(const unsigned int size, 
                           std::vector<std::string>& source, 
                           std::set<std::vector<std::string > >& result);
@@ -138,7 +141,7 @@ struct RelAgg {
                       std::set<std::vector<std::string > >& labelCombs);
   void retrievePermutations(std::vector<std::string>& labelComb,
                             std::set<std::vector<std::string > >& labelPerms);
-  void derivePatterns(const int mina, const int maxa, Relation *rel);
+  void derivePatterns(const int mina, const int maxa);
   std::string print(const std::map<std::string, AggEntry>& contents) const;
   std::string print(const std::map<TupleId, std::vector<std::string> >& 
                                                           frequentLabels) const;
@@ -167,22 +170,23 @@ struct RelAgg {
   std::map<std::string, AggEntry> entriesMap; // only for initial insertions
   std::vector<std::pair<std::string, AggEntry> > entries;
   InvertedFile *inv; // leaves contain positions of vector ~entries~
-  std::vector<std::pair<std::string, double> > results;
+  std::vector<NewPair<std::string, double> > results;
   double minSupp;
+  Geoid *geoid;
+  Relation *rel;
+  NewPair<int, int> attrPos; // textual, spatial
 };
 
 struct GetPatternsLI {
   GetPatternsLI(Relation *r, const NewPair<int, int> ap, double ms, int mina,
-                int maxa, const size_t mem);
+                int maxa, Geoid *g, const size_t mem);
   ~GetPatternsLI();
   
   TupleType *getTupleType() const;
   Tuple *getNextResult();
   
   
-  Relation *rel;
   TupleType *tupleType;
-  NewPair<int, int> attrPos; // first: textual, second: spatial
   RelAgg agg;
 };
   

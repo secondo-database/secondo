@@ -6103,8 +6103,8 @@ struct derivegroupsInfo : OperatorInfo {
 
 */
 ListExpr getPatternsTM(ListExpr args) {
-  if (!nl->HasLength(args, 5) && !nl->HasLength(args, 6)) {
-    return listutils::typeError("Five or six arguments expected");
+  if (!nl->HasLength(args, 6) && !nl->HasLength(args, 7)) {
+    return listutils::typeError("Six or seven arguments expected");
   }
   if (!Relation::checkType(nl->First(args))) {
     return listutils::typeError("1st argument is not a relation");
@@ -6133,9 +6133,12 @@ ListExpr getPatternsTM(ListExpr args) {
   if (!CcInt::checkType(nl->Fifth(args))) {
     return listutils::typeError("5th argument is not an integer");
   }
-  if (nl->HasLength(args, 6)) {
-    if (!CcInt::checkType(nl->Sixth(args))) {
-      return listutils::typeError("6th argument is not an integer");
+  if (!CcInt::checkType(nl->Sixth(args))) {
+    return listutils::typeError("6th argument is not an integer");
+  }
+  if (nl->HasLength(args, 7)) {
+    if (!Geoid::checkType(nl->Seventh(args))) {
+      return listutils::typeError("7th argument is not a geoid");
     }
   }
   ListExpr outputAttrs = nl->TwoElemList(
@@ -6165,30 +6168,31 @@ int getPatternsVM(Word* args, Word& result, int message, Word& local,
         delete li;
         local.addr = 0;
       }
-      int maxNoAtoms = INT_MAX;
-      int maxNoAtomsSpecified = (qp->GetNoSons(s) == 8 ? 1 : 0);
+      Geoid *geoid = 0;
+      int geoidSpecified = (qp->GetNoSons(s) == 9 ? 1 : 0);
       Relation *rel = static_cast<Relation*>(args[0].addr);
       CcReal *suppmin = static_cast<CcReal*>(args[3].addr);
       CcInt *atomsmin = static_cast<CcInt*>(args[4].addr);
-      if (maxNoAtomsSpecified) {
-        CcInt *atomsmax = static_cast<CcInt*>(args[5].addr);
-        if (!atomsmax->IsDefined()) {
+      CcInt *atomsmax = static_cast<CcInt*>(args[5].addr);
+      if (geoidSpecified == 1) {
+        geoid = static_cast<Geoid*>(args[6].addr);
+        if (!geoid->IsDefined()) {
           return 0;
         }
-        maxNoAtoms = atomsmax->GetValue();
       }
-      CcInt *posTextual = static_cast<CcInt*>(args[5+maxNoAtomsSpecified].addr);
-      CcInt *posSpatial = static_cast<CcInt*>(args[6+maxNoAtomsSpecified].addr);
-      if (!suppmin->IsDefined() || !atomsmin->IsDefined()) {
+      CcInt *posTextual = static_cast<CcInt*>(args[6+geoidSpecified].addr);
+      CcInt *posSpatial = static_cast<CcInt*>(args[7+geoidSpecified].addr);
+      if (!suppmin->IsDefined() || !atomsmin->IsDefined() 
+       || !atomsmax->IsDefined()) {
         return 0;
       }
       if (suppmin->GetValue() > 0 && suppmin->GetValue() <= 1 
-                                  && atomsmin->GetValue() > 0 && maxNoAtoms > 0 
-                                  && atomsmin->GetValue() <= maxNoAtoms) {
+                         && atomsmin->GetValue() > 0 && atomsmax->GetValue() > 0
+                         && atomsmin->GetValue() <= atomsmax->GetValue()) {
         local.addr = new GetPatternsLI(rel, 
           NewPair<int, int>(posTextual->GetValue(), posSpatial->GetValue()),
-          suppmin->GetValue(), atomsmin->GetValue(), maxNoAtoms,
-          qp->GetMemorySize(s));
+          suppmin->GetValue(), atomsmin->GetValue(), atomsmax->GetValue(),
+          geoid, qp->GetMemorySize(s));
       }
       else {
         cout << "the minimum support has to be in (0,1], and the minimum number"
@@ -6220,11 +6224,11 @@ struct getPatternsInfo : OperatorInfo {
     name      = "getPatterns";
     signature = "rel(tuple(X)) x ATTR x ATTR x real x int --> "
                 "stream(tuple(Pattern: text, Support: real))";
-    syntax    = "_ getPatterns[ _ , _ , _ , _ ]";
+    syntax    = "_ getPatterns[ _ , _ , _ , _ , _ ]";
     meaning   = "Computes patterns for spatio-textual attributes of movement "
                 "data (mpoint, mlabel). The numeric parameters represent the "
-                "patterns' minimum support and the minimum number of atoms for "
-                "each pattern, respectively.";
+                "patterns' minimum support and the minimum and maximum number "
+                "of atoms for each pattern, respectively.";
   }
 };
 
@@ -6232,13 +6236,13 @@ const string getPatternsSpec =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text> rel(tuple(X)) x ATTR x ATTR x real x int --> \n"
   "stream(tuple(Pattern: text, Support: real))</text--->"
-  "<text> _ getPatterns[ _ , _ , _ , _ ] </text--->"
+  "<text> _ getPatterns[ _ , _ , _ , _ , _ ] </text--->"
   "<text> Computes patterns for spatio-textual attributes of movement data \n"
   "(mpoint, mlabel). The numeric parameters represent the patterns' minimum \n"
-  "support and the minimum number of atoms for each pattern, respectively.\n"
-  "</text--->"
+  "support and the minimum and maximum number of atoms for each pattern, \n"
+  "respectively.</text--->"
   "<text> query Dotraj feed extend[X: [const mpoint value undef]] consume \""
-  "getPatterns[Trajectory, X, 0.5, 1] count </text--->) )";
+  "getPatterns[Trajectory, X, 0.5, 1, 5] count </text--->) )";
 
 Operator getPatterns("getPatterns", getPatternsSpec, getPatternsVM, 
                      Operator::SimpleSelect, getPatternsTM);

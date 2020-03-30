@@ -53,7 +53,7 @@ template<class F, class S>
 class NewPair {
  public:
   NewPair() {}
-  NewPair(F f, S s) : first(f), second(s) {}
+  NewPair(const F f, const S s) : first(f), second(s) {}
    
   F first;
   S second;
@@ -67,18 +67,19 @@ class NewPair {
   }
   
   bool operator<(const NewPair& np) const {
-    if (first < np.first) {
-      return true;
-    }
     if (first == np.first) {
       return second < np.second;
     }
-    return false;
+    return first < np.first;
   }
   
   void set(const F& f, const S& s) {
     first = f;
     second = s;
+  }
+  
+  void operator=(const NewPair& np) {
+    set(np.first, np.second);
   }
   
   friend std::ostream& operator<<(std::ostream& os, const NewPair& np) {
