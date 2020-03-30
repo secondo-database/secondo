@@ -18534,7 +18534,8 @@ class slotGetter{
                DFArray *resultArray,
                string _constrel ):
        myNumber(_myNumber), sname(_sname), tname(_tname),
-       size(_size), workers(_workers), port(_port), 
+	   // size(_size),
+       workers(_workers), port(_port), 
        resArray(resultArray), constrel(_constrel){
       
        runner = new boost::thread(&slotGetter::run, this);
@@ -18552,7 +18553,7 @@ class slotGetter{
      int   myNumber; // workers number
      string sname;
      string tname;
-     int   size;     // size of the array
+     // int   size;     // size of the array
      const vector<ConnectionInfo*>& workers; // all workers
      int port; // where listen the transferators
      DFArray* resArray;
