@@ -204,6 +204,24 @@ void dfs(vector<int> adj[], bool *vis, int x)
 //----------------------------------------------------------------------------
 void QueryGraph::Validate() 
 {
+   // check if types are existing
+   for (auto&& n : Nodes) 
+   {
+      if (n.TypeName!="")  {
+         RelationInfo *relinfo = RelRegistry->GetRelationInfo(n.TypeName);
+         if (relinfo==NULL) throw PGraphException("undefined node type: "+
+            n.TypeName );
+      }
+   }
+   for (auto&& e : Edges) 
+   {
+      if (e.TypeName!="")  {
+         RelationInfo *relinfo = RelRegistry->GetRelationInfo(e.TypeName);
+         if (relinfo==NULL) throw PGraphException("undefined edge type: "+
+             e.TypeName );
+      }
+   }
+
    CompleteTypes();
 
    if (!IsConnected())
@@ -233,6 +251,11 @@ void QueryGraph::Validate()
    {
       if (e.TypeName=="") throw PGraphException("missing edge type"+
           (e.Alias!=""?" for alias "+e.Alias:""));
+
+      RelationInfo *relinfo = RelRegistry->GetRelationInfo(e.TypeName);
+      if (relinfo==NULL)
+         throw PGraphException("undefined edge type: "+e.TypeName );
+
    }
 
 
@@ -362,6 +385,9 @@ void CreateQueryTree_rec(set<QueryGraphNode*> *visited, QueryGraph *qg,
          e->TypeName=qe->TypeName;
          e->Reverse=reverse;
          e->Cost=(!reverse)?qe->CostFw:qe->CostBw;
+         for(auto&& f: qe->Filters) 
+            e->Filters.push_back(f->Clone() );
+
          parent->Edges.push_back(e);
    }
 
@@ -400,7 +426,6 @@ void QueryGraph::readFilters(list<QueryFilter*> &filters, ListExpr list)
          filters.push_back(f);
          f->Name = nl->ToString(nl->First(nl->First(list)));
          f->Value = nl->ToString(nl->Second(nl->First(list)));
-
          ReplaceStringInPlace(f->Value, "\"","");
          list=nl->Rest(list);
       }

@@ -78,7 +78,7 @@ public:
    ~QueryTreeNode();
 
    // state while matching
-   int current_nodeid=-1;
+   uint current_nodeid=-1;
 
    int _uid; 
    std::list<QueryTreeEdge*> Edges;
@@ -95,8 +95,8 @@ class QueryTreeEdge: public QueryTreeBase
 {
 public:
    // state while matching
-   int current_edgeindex=-1;
-   int current_edgeid=-1;
+   uint current_edgeindex=-1;
+   uint current_edgeid=-1;
 
    QueryTreeNode *FromNode;
    QueryTreeNode *ToNode;

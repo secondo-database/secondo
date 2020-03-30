@@ -95,8 +95,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 %%
 
-%start start;
-start:  MATCH matchpart RETURN returnpart
+%start cypherexpr;
+cypherexpr:  MATCH matchpart RETURN returnpart
         | MATCH matchpart WHERE wherepart RETURN returnpart
          ;
 
@@ -116,7 +116,7 @@ matchsinglepath:
 matchsinglepath2: 
         nodepart 
         |
-        nodepart nodepartconn matchsinglepath2     
+        nodepart connpart matchsinglepath2     
         ;
 
 nodepart:
@@ -135,7 +135,7 @@ nodepartinner:
         COLON typename proplist
         ;
 
-nodepartconn:
+connpart:
         DASH edgeinner DASH        { driver.matchEdgeDirection="";   
                                      driver.pushMatchEdge(); }
         |

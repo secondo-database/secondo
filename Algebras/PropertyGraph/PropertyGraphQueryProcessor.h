@@ -55,6 +55,7 @@ public:
 
    std::map<std::string,QueryTreeBase*> aliases;
    std::vector<QueryTreeEdge*> poslist;
+   std::set<int> UsedEdgesList;
 
    TupleType *_OutputTupleType;
    InputStreamStateEnum InputStreamState;
@@ -83,6 +84,8 @@ public:
    //
    bool NextEdge(QueryTreeEdge *queryedge);
    bool NextNode();
+
+   bool UsedEdgeAlready(QueryTreeEdge *queryedge, uint edgeid);
 
    // 
    bool  MatchNode(int nodeid, QueryTreeNode *node);

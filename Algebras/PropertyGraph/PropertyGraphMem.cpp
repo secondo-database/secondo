@@ -371,7 +371,7 @@ void MemoryGraphObject::LoadEdgeRelation(string memrelname,
    // Loading statistics if necessary
    if(rebuildStatistics)
    {
-      LOGOP(20,"MemoryGraphObject::LoadEdgeRelation","getting edge statistics");
+      LOGOP(10,"MemoryGraphObject::LoadEdgeRelation","getting edge statistics");
       double d=0;
       string query="(avg (groupby2 (smouterjoin (rename (mfeed "+mrelprefix+
           fromrel->Name+") n) (rename (mfeed "+mrelprefix+erelinfo->EdgeRelName+

@@ -34,6 +34,8 @@ using namespace std;
 
 namespace pgraph {
 
+#define NO_REPEATED_EDGE_SEMANTIC
+
 //----------------------------------------------------------------------------
 PGraphQueryProcessor::~PGraphQueryProcessor()
 {
@@ -114,11 +116,23 @@ bool PGraphQueryProcessor::MatchesFilters(QueryTreeBase *item,
       if (ai!=NULL)
       {
          string val=ai->GetStringVal(tuple);
-      LOGOP(30, "check filter:",f->Name ," ",f->Value,"=",val);
+         //LOGOP(30, "check filter:",f->Name ," ",f->Value,"=",val);
          if (val!=f->Value) return false;
       }
    }
    return true; 
+}
+
+//----------------------------------------------------------------------------
+bool PGraphQueryProcessor::UsedEdgeAlready(QueryTreeEdge *queryedge, 
+   uint edgeid)
+{
+   for(auto &&edge: poslist)
+   {
+      if (edge==queryedge) break;
+      if (edge->current_edgeid==edgeid) return true;
+   }
+   return false;
 }
 
 //----------------------------------------------------------------------------
@@ -136,11 +150,24 @@ bool PGraphQueryProcessor::NextEdge(QueryTreeEdge *queryedge)
    // find next edge
    for(uint i=queryedge->current_edgeindex+1; i<edgelist->size(); i++)
    {
+      //
       Edge *einfo=pgraphMem->AdjList.EdgeInfo[edgelist->at(i)];
       LOGOP(30,"PGraphQueryProcessor::NextEdge", "checking edge index ",
           queryedge->current_edgeindex, " -> ",i);
 
-      bool ok=CheckEdge(queryedge, einfo) ;
+      bool ok=true;
+
+      // no-repeated edge semantics neo4j
+#ifdef NO_REPEATED_EDGE_SEMANTIC
+      if (UsedEdgeAlready(queryedge, einfo->EdgeId)) 
+      {
+         LOGOP(30,"PGraphQueryProcessor::MatchEdge", "edge already taken",
+             einfo->EdgeId);
+         ok=false; 
+      }
+#endif
+
+      if (ok) ok=CheckEdge(queryedge, einfo) ;
 
       if (ok) {
          LOGOP(30,"PGraphQueryProcessor::NextEdge", "next found edgeid:",
@@ -174,13 +201,26 @@ bool PGraphQueryProcessor::MatchEdge(QueryTreeEdge *queryedge)
          ->current_nodeid];
 
    // try all edges
+   LOGOP(30,"PGraphQueryProcessor::MatchEdge", "edgelist size: ",
+      edgelist->size()); 
    for(uint i=0; i<edgelist->size(); i++)
    {
       Edge *einfo=pgraphMem->AdjList.EdgeInfo[edgelist->at(i)];
+      bool ok=true;
+
+      // no-repeated edge semantics neo4j
+#ifdef NO_REPEATED_EDGE_SEMANTIC
+      if (UsedEdgeAlready(queryedge, einfo->EdgeId)) 
+      {
+         LOGOP(30,"PGraphQueryProcessor::MatchEdge", "edge already taken",
+             einfo->EdgeId);
+         ok=false; 
+      }
+#endif
 
       LOGOP(30,"PGraphQueryProcessor::MatchEdge", "checking edge index ",i, 
          " [",einfo->FromNodeId," -> ",einfo->ToNodeId, "]");
-      bool ok=CheckEdge(queryedge, einfo) ;
+      if (ok) ok=CheckEdge(queryedge, einfo) ;
 
       // edge ok - go deeper
       if (ok) 
@@ -190,7 +230,6 @@ bool PGraphQueryProcessor::MatchEdge(QueryTreeEdge *queryedge)
          // memorize current edge index/id
          queryedge->current_edgeindex=i;
          queryedge->current_edgeid=einfo->EdgeId;
-
          bool nodematched=MatchNode(tonode, queryedge->ToNode);
 
          // found one
@@ -214,7 +253,10 @@ bool PGraphQueryProcessor::CheckEdge(QueryTreeEdge *queryedge, Edge* edge)
 
    // check edge type
    if ((queryedge->TypeName!="") && (queryedge->TypeName!=ri->Name))
+   {
+      LOGOP(30,"PGraphQueryProcessor::CheckEdge","typename failed");
       return false;
+   }
 
    // check node filters
    if (!MatchesFilters(queryedge, &ri->RelSchema, tuple)) return false;
@@ -379,7 +421,6 @@ void PGraphQueryProcessor::PrepareQueryTree(int id)
 {
    LOGOP(30, "PGraphQueryProcessor::PrepareQueryTree","id:",id);
    // 
-  
    bool res=MatchNode(id, tree->Root);
    if (res)
       tree->state=QueryTreeMatchStateEnum::MATCH_AVAILABLE;

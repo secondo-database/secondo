@@ -270,32 +270,49 @@ void splitEdgeEndExpr(string &expr, string &fromfield, string &relname,
 // typemapping
 ListExpr addedgesrel_OpTm( ListExpr args )
 {
-   NList type(args);
+   try
+   {
+      LOGOP(30,"addedgesrel_OpTm", "ARGS",nl->ToString(args));
 
-   LOGOP(30,"addedgesrel_OpTm", "ARGS",nl->ToString(args));
+      CheckArgCount(args,4,4);
+      CheckArgType(args,1,PGraph::BasicType());
+      CheckArgType(args,2,CcString::BasicType());
+      CheckArgType(args,3,CcString::BasicType());
+      CheckArgType(args,4,CcString::BasicType());
 
-   // check argument count and types
-   if (type.length() != 4) 
-      return NList::typeError("Expecting a PGraph and a relname ad from "
-           "and to expr ");
+      string relname = GetArgValue(args,2);
+      string fromclause = GetArgValue(args,3);
+      string toclause = GetArgValue(args,4);
 
-   if (!PGraph::checkType(type.first())) 
-      return NList::typeError("first argument is not a pgraph object");
+      // check from side
+      string fieldfrom,relfrom,keyrelfrom;
+      string fieldto,relto,keyrelto;
+      splitEdgeEndExpr(fromclause ,fieldfrom, relfrom, keyrelfrom );
+      splitEdgeEndExpr(toclause ,fieldto, relfrom, keyrelto );
 
-   // rough check only
-   if(!type.second().isSymbol())
-      return NList::typeError("Expecting from expression as second argument");
-   if(!type.third().isSymbol())
-      return NList::typeError("Expecting from expression as second argument");
-   if(!type.fourth().isSymbol())
-      return NList::typeError("Expecting from expression as second argument");
+      // check edge relation and foreign keys
+      ListExpr reltype= SecondoSystem::GetCatalog()->GetObjectTypeExpr(
+            relname);
+      if (nl->IsEmpty(reltype))
+         throw PGraphException("relation not found");
+      RelationSchemaInfo ri(reltype);
+      if (ri.GetAttrInfo(fieldfrom)==NULL)
+         throw PGraphException("from-name not found!");
+      if (ri.GetAttrInfo(fieldto)==NULL)
+         throw PGraphException("to-name not found!");
 
-   // return result 
-   ListExpr res = 
-         nl->OneElemList(nl->SymbolAtom(CcBool::BasicType()) );
-    
-   LOGOP(30,"addedgesrel_OpTm", "RES", nl->ToString(res));
-   return res;
+
+      // return result 
+      ListExpr res = 
+            nl->OneElemList(nl->SymbolAtom(CcBool::BasicType()) );
+      
+      LOGOP(30,"addedgesrel_OpTm", "RES", nl->ToString(res));
+      return res;
+    }
+   catch(PGraphException e)   
+   {
+      return NList::typeError("ERROR:  "+e.msg());
+   }   
 }
 
 // function
@@ -319,17 +336,6 @@ int addedgesrel_OpFun (Word* args, Word& result, int message,
    splitEdgeEndExpr(expr ,fieldfrom, relfrom, keyrelfrom );
    expr=toexpr->GetValue();
    splitEdgeEndExpr(expr ,fieldto, relto, keyrelto );
-
-   // check edge relation and foreign keys
-   ListExpr reltype= SecondoSystem::GetCatalog()->GetObjectTypeExpr(
-         relname->GetValue());
-   if (nl->IsEmpty(reltype))
-      throw SecondoException("relation not found");
-   RelationSchemaInfo ri(reltype);
-   if (ri.GetAttrInfo(fieldfrom)==NULL)
-      throw SecondoException("from-name not found!");
-   if (ri.GetAttrInfo(fieldto)==NULL)
-      throw SecondoException("to-name not found!");
    
    // add edge
    pg->AddEdgeRel(relname->GetValue(), fieldfrom, relfrom, keyrelfrom, fieldto,
@@ -1524,6 +1530,7 @@ public:
       op->SetUsesArgsInTypeMapping();
       op = AddOperator( addedgesrel_OpInfo(), 
                         addedgesrel_OpFun, addedgesrel_OpTm);
+      op->SetUsesArgsInTypeMapping();
       op = AddOperator( createpgraph_OpInfo(), createpgraph_OpFun, 
                         createpgraph_OpTm );
       op = AddOperator( loadgraph_OpInfo(), loadgraph_OpFun, loadgraph_OpTm );
