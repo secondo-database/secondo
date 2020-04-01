@@ -109,6 +109,55 @@ struct comparePatternMiningResults {
 //   }
 // };
 
+struct FPNode {
+  FPNode() {}
+  FPNode(const std::string& l) : label(l), frequency(1) {}
+  FPNode(const std::string& l, const unsigned f, 
+         const std::vector<unsigned int>& c, const unsigned int nl) :
+                            label(l), frequency(f), children(c), nodeLink(nl) {}
+  
+  ListExpr toListExpr() const;
+  
+  std::string label;
+  unsigned int frequency;
+  std::vector<unsigned int> children; // positions of all children
+  unsigned int nodeLink; // position of successor in node link
+};
+
+extern TypeConstructor fptreeTC;
+
+class FPTree {
+ public:
+  FPTree() {}
+  FPTree(FPTree *tree) : nodes(tree->nodes), nodeLinks(tree->nodeLinks) {}
+  
+  bool hasNodes() {return !nodes.empty();}
+  bool hasNodeLinks () {return !nodeLinks.empty();}
+  unsigned int getNoNodes() {return nodes.size();}
+  unsigned int getNoNodeLinks() {return nodeLinks.size();}
+  void insertNode();
+  
+  static const std::string BasicType() {return "fptree";}
+  static ListExpr Property();
+  static Word In(const ListExpr typeInfo, const ListExpr instance,
+                 const int errorPos, ListExpr& errorInfo, bool& correct);
+  static ListExpr Out(ListExpr typeInfo, Word value);
+  static Word Create(const ListExpr typeInfo);
+  static void Delete(const ListExpr typeInfo, Word& w);
+  static bool Save(SmiRecord& valueRecord, size_t& offset,
+                   const ListExpr typeInfo, Word& value);
+  static bool Open(SmiRecord& valueRecord, size_t& offset,
+                   const ListExpr typeInfo, Word& value);
+  static void Close(const ListExpr typeInfo, Word& w);
+  static Word Clone(const ListExpr typeInfo, const Word& w);
+  static int SizeOfObj();
+  static bool TypeCheck(ListExpr type, ListExpr& errorInfo);
+  
+ private:
+  std::vector<FPNode> nodes;
+  std::map<std::string, unsigned int> nodeLinks; // pointer to 1st node of link
+};
+
 /*
 
 The original mlabel objects are transformed into a map from a label onto a set
@@ -169,7 +218,7 @@ struct RelAgg {
   unsigned int noTuples, minNoAtoms, maxNoAtoms;
   std::map<std::string, AggEntry> entriesMap; // only for initial insertions
   std::vector<std::pair<std::string, AggEntry> > entries;
-  InvertedFile *inv; // leaves contain positions of vector ~entries~
+  InvertedFile *inv; // leaves contain positions of vector ~entries~ for a label
   std::vector<NewPair<std::string, double> > results;
   double minSupp;
   Geoid *geoid;

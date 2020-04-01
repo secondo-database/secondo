@@ -6310,6 +6310,7 @@ class SymbolicTrajectoryAlgebra : public Algebra {
   AddTypeConstructor(&tupleindexTC);
   AddTypeConstructor(&tupleindex2TC);
   AddTypeConstructor(&classifierTC);
+  AddTypeConstructor(&fptreeTC);
   
 //   AddTypeConstructor(&tileareasTC);
 

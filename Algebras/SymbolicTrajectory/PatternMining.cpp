@@ -204,7 +204,8 @@ std::string AggEntry::print(const TupleId& id /* = 0 */) const {
     for (auto it : occurrences) {
       result << "   TID " << it.first << ": " 
              << it.second.first->GetNoComponents() 
-             << " occurrences:  " << *(it.second.first) << endl;
+             << " occurrences:  " << *(it.second.first) << it.second.second
+             << endl;
     }
   }
   else {
@@ -221,10 +222,273 @@ std::string AggEntry::print(const TupleId& id /* = 0 */) const {
 
 std::string AggEntry::print(const Rect& rect) const {
   std::stringstream result;
+  if (!rect.IsDefined()) {
+    return "_";
+  }
   result << "[" << rect.MinD(0) << " " << rect.MaxD(0) << " " << rect.MinD(1)
          << " " << rect.MaxD(1) << "]";
   return result.str();
 }
+
+/*
+  Class ~FPNode~, Function ~toListExpr~
+
+*/
+ListExpr FPNode::toListExpr() const {
+  ListExpr childrenList;
+  if (!children.empty()) {
+    childrenList = nl->OneElemList(nl->IntAtom(children[0]));
+  }
+  ListExpr childList;
+  for (unsigned int i = 1; i < children.size(); i++) {
+    childList = nl->Append(childList, nl->IntAtom(children[i]));
+  }
+  return childrenList;
+}
+
+/*
+  Class ~FPTree~, Function ~insertNode~
+
+*/
+void FPTree::insertNode() {
+  
+}
+
+/*
+  Class ~FPTree~, functions for secondo data type
+
+*/
+ListExpr FPTree::Property() {
+  return (nl->TwoElemList(
+    nl->FourElemList(
+      nl->StringAtom("Signature"), nl->StringAtom("Example Type List"),
+      nl->StringAtom("List Rep"), nl->StringAtom("Example List")),
+    nl->FourElemList (
+      nl->StringAtom("-> SIMPLE"), 
+      nl->StringAtom(FPTree::BasicType()),
+      nl->StringAtom("no list representation"),
+      nl->StringAtom(""))));
+}
+
+Word FPTree::In(const ListExpr typeInfo, const ListExpr instance,
+                const int errorPos, ListExpr& errorInfo, bool& correct) {
+  correct = false;
+  return SetWord(Address(0));
+}
+
+ListExpr FPTree::Out(ListExpr typeInfo, Word value) {
+  FPTree *tree = (FPTree*)value.addr;
+  ListExpr nodesList(nl->Empty()), nodeList, nodeLinksList(nl->Empty()),
+           nodeLinkList;
+  if (tree->hasNodes()) {
+    nodesList = nl->OneElemList(tree->nodes[0].toListExpr());
+    nodeList = nodesList;
+  }
+  for (unsigned int i = 1; i < tree->nodes.size(); i++) {
+    nodeList = nl->Append(nodeList, tree->nodes[0].toListExpr());
+  }
+  map<string, unsigned int>::iterator it = tree->nodeLinks.begin();
+  if (tree->hasNodeLinks()) {
+    nodeLinksList = nl->OneElemList(nl->TwoElemList(nl->SymbolAtom(it->first),
+                                                    nl->IntAtom(it->second)));
+    nodeLinkList = nodeLinksList;
+  }
+  while (it != tree->nodeLinks.end()) {
+    nodeLinkList = nl->Append(nodeLinkList, 
+           nl->TwoElemList(nl->SymbolAtom(it->first), nl->IntAtom(it->second)));
+    it++;
+  }
+  return nl->TwoElemList(nodesList, nodeLinksList);
+}
+
+Word FPTree::Create(const ListExpr typeInfo) {
+  Word w;
+  w.addr = (new FPTree());
+  return w;
+}
+
+void FPTree::Delete(const ListExpr typeInfo, Word& w) {
+  FPTree *tree = (FPTree*)w.addr;
+  delete tree;
+  w.addr = 0;
+}
+
+bool FPTree::Save(SmiRecord& valueRecord, size_t& offset,
+                  const ListExpr typeInfo, Word& value) {
+  FPTree *tree = (FPTree*)value.addr;
+  unsigned int noNodes = tree->getNoNodes();
+  if (!valueRecord.Write(&noNodes, sizeof(unsigned int), offset)) {
+    return false;
+  }
+  offset += sizeof(unsigned int);
+  string label;
+  unsigned int labelLength, frequency, noChildren, child, nodeLink;
+  for (unsigned int i = 0; i < noNodes; i++) { // store nodes
+    label = tree->nodes[i].label;
+    labelLength = label.length();
+    if (!valueRecord.Write(&labelLength, sizeof(unsigned int), offset)) {
+      return false;
+    }
+    offset += sizeof(unsigned int);
+    if (!valueRecord.Write(&label, labelLength, offset)) {
+      return false;
+    }
+    offset += labelLength;
+    frequency = tree->nodes[i].frequency;
+    if (!valueRecord.Write(&frequency, sizeof(unsigned int), offset)) {
+      return false;
+    }
+    offset += sizeof(unsigned int);
+    noChildren = tree->nodes[i].children.size();
+    if (!valueRecord.Write(&noChildren, sizeof(unsigned int), offset)) {
+      return false;
+    }
+    offset += sizeof(unsigned int);
+    for (unsigned int j = 0; j < tree->nodes[i].children.size(); j++) {//childr.
+      child = tree->nodes[i].children[j];
+      if (!valueRecord.Write(&child, sizeof(unsigned int), offset)) {
+        return false;
+      }
+      offset += sizeof(unsigned int);
+    }
+    nodeLink = tree->nodes[i].nodeLink;
+    if (!valueRecord.Write(&nodeLink, sizeof(unsigned int), offset)) {
+      return false;
+    }
+    offset += sizeof(unsigned int);
+  }
+  unsigned int noNodeLinks = tree->getNoNodeLinks();
+  if (!valueRecord.Write(&noNodeLinks, sizeof(unsigned int), offset)) {
+    return false;
+  }
+  offset += sizeof(unsigned int);
+  for (map<string, unsigned int>::iterator it = tree->nodeLinks.begin();
+       it != tree->nodeLinks.end(); it++) { // store nodeLinks
+    label = it->first;
+    labelLength = label.length();
+    if (!valueRecord.Write(&labelLength, sizeof(unsigned int), offset)) {
+      return false;
+    }
+    offset += labelLength;
+    if (!valueRecord.Write(&label, sizeof(label), offset)) {
+      return false;
+    }
+    offset += sizeof(label);
+    nodeLink = it->second;
+    if (!valueRecord.Write(&nodeLink, sizeof(unsigned int), offset)) {
+      return false;
+    }
+    offset += sizeof(unsigned int);
+  }
+  return true;
+}
+
+bool FPTree::Open(SmiRecord& valueRecord, size_t& offset,
+                  const ListExpr typeInfo, Word& value) {
+  FPTree *tree = new FPTree();
+  string label;
+  unsigned int labelLength, noNodes, frequency, noChildren, child, nodeLink,
+               noNodeLinks;
+  if (!valueRecord.Read(&noNodes, sizeof(unsigned int), offset)) {
+    return false;
+  }
+  offset += sizeof(unsigned int);
+  for (unsigned int i = 0; i < noNodes; i++) { // read nodes
+    if (!valueRecord.Read(&labelLength, sizeof(unsigned int), offset)) {
+      return false;
+    }
+    offset += sizeof(unsigned int);
+    if (!valueRecord.Read(&label, labelLength, offset)) {
+      return false;
+    }
+    offset += labelLength;
+    if (!valueRecord.Read(&frequency, sizeof(unsigned int), offset)) {
+      return false;
+    }
+    offset += sizeof(unsigned int);
+    if (!valueRecord.Read(&noChildren, sizeof(unsigned int), offset)) {
+      return false;
+    }
+    offset += sizeof(unsigned int);
+    vector<unsigned int> children;
+    for (unsigned int j = 0; j < noChildren; j++) {
+      if (!valueRecord.Read(&child, sizeof(unsigned int), offset)) {
+        return false;
+      }
+      offset += sizeof(unsigned int);
+      children.push_back(child);
+    }
+    if (!valueRecord.Read(&nodeLink, sizeof(unsigned int), offset)) {
+      return false;
+    }
+    offset += sizeof(unsigned int);
+    FPNode node(label, frequency, children, nodeLink);
+    tree->nodes.push_back(node);
+  }
+  if (!valueRecord.Read(&noNodeLinks, sizeof(unsigned int), offset)) {
+    return false;
+  }
+  offset += sizeof(unsigned int);
+  for (unsigned int i = 0; i < noNodeLinks; i++) {
+    if (!valueRecord.Read(&labelLength, sizeof(unsigned int), offset)) {
+      return false;
+    }
+    offset += sizeof(unsigned int);
+    if (!valueRecord.Read(&label, labelLength, offset)) {
+      return false;
+    }
+    offset += labelLength;
+    if (!valueRecord.Read(&nodeLink, sizeof(unsigned int), offset)) {
+      return false;
+    }
+    offset += sizeof(unsigned int);
+    tree->nodeLinks.insert(tree->nodeLinks.begin(), make_pair(label, nodeLink));
+  }
+  return true;
+}
+
+void FPTree::Close(const ListExpr typeInfo, Word& w) {
+  FPTree *tree = (FPTree*)w.addr;
+  delete tree;
+  w.addr = 0;
+}
+
+Word FPTree::Clone(const ListExpr typeInfo, const Word& w) {
+  FPTree *tree = (FPTree*)w.addr;
+  Word res;
+  res.addr = new FPTree(*tree);
+  return res;
+}
+
+int FPTree::SizeOfObj() {
+  return sizeof(FPTree);
+}
+
+bool FPTree::TypeCheck(ListExpr type, ListExpr& errorInfo) {
+  return nl->IsEqual(type, BasicType());
+}
+
+
+/*
+  Type constructor for secondo type ~fptree~
+ 
+*/
+
+TypeConstructor fptreeTC(
+  FPTree::BasicType(),
+  FPTree::Property,
+  FPTree::Out,
+  FPTree::In,
+  0, 0,
+  FPTree::Create,
+  FPTree::Delete,
+  FPTree::Open,
+  FPTree::Save,
+  FPTree::Close,
+  FPTree::Clone,
+  0,
+  FPTree::SizeOfObj,
+  FPTree::TypeCheck);
 
 /*
   Class ~RelAgg~, Function ~clear~
@@ -261,6 +525,9 @@ void RelAgg::initializeInv() {
 void RelAgg::insertLabelAndBbox(const std::string& label, const TupleId& id,
                            const temporalalgebra::SecInterval& iv, Rect& rect) {
 //   cout << "insert (" << label << ", " << id << ", " << iv << ")" << endl;
+  if (label == "undefined") {
+    return;
+  }
   auto aggIt = entriesMap.find(label);
   if (aggIt == entriesMap.end()) { // new label
     AggEntry entry(id, iv, rect);
@@ -276,8 +543,10 @@ void RelAgg::insertLabelAndBbox(const std::string& label, const TupleId& id,
     }
     else { // id already present for label
       entriesMap[label].occurrences[id].first->MergeAdd(iv);
-      entriesMap[label].occurrences[id].second = 
+      if (rect.IsDefined()) {
+        entriesMap[label].occurrences[id].second = 
                            entriesMap[label].occurrences[id].second.Union(rect);
+      }
     }
   }
   entriesMap[label].noOccurrences++;
@@ -371,6 +640,8 @@ void RelAgg::filter(const double ms, const size_t memSize) {
 
 bool RelAgg::buildAtom(string label, AggEntry entry,
                        const set<TupleId>& commonTupleIds, string& atom) {
+//   cout << "bA: \"" << label << "\", " << entry.occurrences.size() << " occs" 
+//        << endl;
   SecInterval iv(true);
   string timeSpec, semanticTimeSpec;
   entry.computeCommonTimeInterval(commonTupleIds, iv);
@@ -385,7 +656,7 @@ bool RelAgg::buildAtom(string label, AggEntry entry,
     }
   }
   else {
-    if (iv.IsDefined()) {
+    if (iv.start.IsDefined() && iv.end.IsDefined()) {
       timeSpec = iv.start.ToString() + "~" + iv.end.ToString();
     }
     else {
