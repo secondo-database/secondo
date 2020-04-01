@@ -15255,6 +15255,224 @@ Operator addModCounterOp(
 );
 
 /*
+Operator ~rdup2~
+
+*/
+ListExpr
+Rdup2TypeMap( ListExpr args )
+{
+
+  NList type(args);
+  if ( !type.hasLength(1) )
+  {
+    return NList::typeError("Expecting one argument.");
+  }
+
+  NList first = type.first();
+  if (  
+    !first.hasLength(2)  ||
+    !first.first().isSymbol(Symbol::STREAM()) ||
+    !first.second().hasLength(2) ||
+    !first.second().first().isSymbol(Tuple::BasicType()) ||
+    !IsTupleDescription( first.second().second().listExpr() ) )
+  {
+    return NList::typeError("Error in first argument!");
+  }
+
+
+  return first.listExpr();
+}
+
+#define RDUP2_BUCKETS 1024
+
+/*
+5.1 Compare the attributes of two tuples
+
+*/
+bool CompareTuples(Tuple* a, Tuple* b)
+{
+
+  int attributes = a -> GetNoAttributes();
+
+  for(int i = 0; i < attributes; i++) {
+    if(!((Attribute*)a->GetAttribute(i))->IsDefined())
+    {
+      return -1;
+    }
+    if(!((Attribute*)b->GetAttribute(i))->IsDefined())
+    {
+      return 1;
+    }
+
+    if(((Attribute*)a->GetAttribute(i))->
+      Compare((Attribute*)b->GetAttribute(i)) != 0) {
+      return false;
+    }
+  }
+
+
+  return true;
+}
+
+
+int
+Rdup2Fun (Word* args, Word& result,
+                   int message, Word& local, Supplier s)
+{
+
+  switch( message )
+  {
+    case OPEN: {
+      qp->Open(args[0].addr);
+      TupleBuffer** buffer = new TupleBuffer* [RDUP2_BUCKETS];
+                   
+      size_t MAX_MEMORY = qp->GetMemorySize(s)*1024*1024; // in bytes
+
+      // init buffer
+      for(int i = 0; i < RDUP2_BUCKETS; i++) {
+          buffer[i] = new TupleBuffer(MAX_MEMORY / RDUP2_BUCKETS);
+      }
+
+      local.setAddr(buffer);
+      return 0;
+    }
+    case REQUEST: {
+      TupleBuffer** buffer = static_cast<TupleBuffer**>(local.addr);
+
+      // Loop over stream elements until the function yields true.
+      Word elem(Address(0));
+      qp->Request(args[0].addr, elem);
+
+      while ( qp->Received(args[0].addr) ) {
+        Tuple* currentTuple = static_cast<Tuple*>( elem.addr );
+
+        int attributes = currentTuple -> GetNoAttributes();
+        size_t hashValue = 0;
+
+        // calcuelate hash value over all attributes
+        for(int i = 0; i < attributes; i++) {
+          Attribute* attr = currentTuple->GetAttribute(i);
+          hashValue = hashValue + attr->HashValue();
+        }
+
+        //cout << "In Bucket " << (hashValue % RDUP2_BUCKETS) << endl;
+
+        bool isTupleKnown = false;
+        GenericRelationIterator *iter;
+        iter = buffer[hashValue % RDUP2_BUCKETS] -> MakeScan();
+
+        Tuple *t = iter->GetNextTuple();
+
+        // there is something in our bucket
+        while(t != 0) {
+
+          // oh, the tuple is already in our bucket
+          if(CompareTuples(t, currentTuple)) {
+            isTupleKnown = true;
+            t->DeleteIfAllowed();
+            break;
+          }
+
+          t->DeleteIfAllowed();
+          t = iter->GetNextTuple();
+        }
+
+        delete iter;
+
+        // The Tuple is unknown, put the tuple in our bucket
+        // and forward the tuple to the next operator
+        if(! isTupleKnown ) {
+          buffer[hashValue % RDUP2_BUCKETS]->AppendTuple(currentTuple);
+          currentTuple->IncReference();
+
+          result = elem;
+          return YIELD;
+        } else {
+
+          // delete the duplicate tuple and request
+          // a new tupple to process
+          currentTuple -> DeleteIfAllowed();
+
+          // Get next stream element
+          qp->Request(args[0].addr, elem);
+        }
+      }
+
+      // End of Stream reached
+      result.addr = 0;
+      return CANCEL;
+    }
+
+    case CLOSE: {
+
+      qp->Close(args[0].addr);
+      if(local.addr) {
+        TupleBuffer** buffer = static_cast<TupleBuffer**>(local.addr);
+
+        // Cleanup our buckets and free memory
+        for(int i = 0; i < RDUP2_BUCKETS; i++) {
+          TupleBuffer* myBuffer = buffer[i];
+
+          GenericRelationIterator *iter;
+          iter = myBuffer -> MakeScan();
+
+          Tuple *t = iter->GetNextTuple();
+
+          while(t != 0) {
+            // remove iterator reference and remove our private 
+            // reference of this tuple
+            t->DeleteIfAllowed();
+            t->DeleteIfAllowed();
+            t = iter->GetNextTuple();
+          }
+
+          delete iter;
+
+          myBuffer -> Clear();
+          delete buffer[i];
+          buffer[i] = 0;
+        }
+
+        delete[] buffer;
+        local.addr = 0;
+      }
+      return 0;
+    }
+    default: {
+      /* should not happen */
+      return -1;
+    }
+  }
+}
+
+
+const string rdup2Spec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                         "\"Example\" ) "
+                         "( <text>((stream (tuple(...))))"
+                         " -> (stream (tuple(...)))"
+                         "</text--->"
+                         "<text>_ rdup2</text--->"
+                         "<text>This operator removes duplicate tuples "
+                         " from a stream using a hashmap.</text--->"
+                         "<text>query Orte feed project[BevT] "
+                         "rdup2 count</text--->"
+                         ") )";
+
+/*
+2.9.4 Definition of operator ~rdup2~
+
+*/
+Operator extrelrdup2 (
+         "rdup2",             // name
+         rdup2Spec,           // specification
+         Rdup2Fun,            // value mapping
+         Operator::SimpleSelect,          // trivial selection function
+         Rdup2TypeMap         // type mapping
+);
+
+
+
+/*
 Operator ~swap~
 
 */
@@ -15506,6 +15724,9 @@ class ExtRelationAlgebra : public Algebra
     AddOperator(&extrelconcat);
     AddOperator(&extrelmin);
     AddOperator(&extrelmax);
+    AddOperator(&extrelrdup2);
+      extrelrdup2.SetUsesMemory();
+
 
     ValueMapping avgFuns[] = { AvgValueMapping<int,CcInt>,
                          AvgValueMapping<SEC_STD_REAL,CcReal>, 0 };
