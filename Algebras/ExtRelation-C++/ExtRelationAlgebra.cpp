@@ -15255,7 +15255,7 @@ Operator addModCounterOp(
 );
 
 /*
-Operator ~rdup2~
+Operator ~rduph~
 
 */
 ListExpr
@@ -15446,25 +15446,25 @@ Rdup2Fun (Word* args, Word& result,
 }
 
 
-const string rdup2Spec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+const string rduphSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                          "\"Example\" ) "
                          "( <text>((stream (tuple(...))))"
                          " -> (stream (tuple(...)))"
                          "</text--->"
-                         "<text>_ rdup2</text--->"
+                         "<text>_ rduph</text--->"
                          "<text>This operator removes duplicate tuples "
                          " from a stream using a hashmap.</text--->"
                          "<text>query Orte feed project[BevT] "
-                         "rdup2 count</text--->"
+                         "rduph count</text--->"
                          ") )";
 
 /*
-2.9.4 Definition of operator ~rdup2~
+2.9.4 Definition of operator ~rduph~
 
 */
-Operator extrelrdup2 (
-         "rdup2",             // name
-         rdup2Spec,           // specification
+Operator extrelrduph (
+         "rduph",             // name
+         rduphSpec,           // specification
          Rdup2Fun,            // value mapping
          Operator::SimpleSelect,          // trivial selection function
          Rdup2TypeMap         // type mapping
@@ -15724,8 +15724,8 @@ class ExtRelationAlgebra : public Algebra
     AddOperator(&extrelconcat);
     AddOperator(&extrelmin);
     AddOperator(&extrelmax);
-    AddOperator(&extrelrdup2);
-      extrelrdup2.SetUsesMemory();
+    AddOperator(&extrelrduph);
+      extrelrduph.SetUsesMemory();
 
 
     ValueMapping avgFuns[] = { AvgValueMapping<int,CcInt>,

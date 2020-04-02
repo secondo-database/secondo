@@ -191,10 +191,10 @@ Signature: ((stream (tuple([a1:d1, ... ,an:dn])))) -> (stream (tuple([a1:d1, ...
 Example  : query Orte feed project[BevT] sort_old rdup count
 Result   : 161
 
-Operator : rdup2
+Operator : rduph
 Number   : 1 
 Signature: ((stream (tuple([a1:d1, ... ,an:dn])))) -> (stream (tuple([a1:d1, ... ,an:dn])))
-Example  : query Orte feed project[BevT] rdup2 count
+Example  : query Orte feed project[BevT] rduph count
 Result   : 161 
 
 Operator : sample
