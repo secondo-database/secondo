@@ -15258,14 +15258,119 @@ Operator addModCounterOp(
 Operator ~rduph~
 
 */
+class rdupHInfo {
+
+   public:
+      rdupHInfo(const size_t _buckets, const size_t _maxMemory) 
+        : buckets(_buckets), maxMemory(_maxMemory) {
+
+         buffer = new TupleBuffer* [buckets];
+                   
+         // lazzy buffer init
+         for(size_t i = 0; i < buckets; i++) {
+             buffer[i] = NULL; 
+         }
+          
+         bufferMemory = maxMemory / buckets;
+
+         if(bufferMemory < 1024) {
+            cerr << endl;
+            cerr << "ERROR (rduph): Got less than 1kb of memory per slot"
+                 << " (" << bufferMemory << " byte)." << endl;
+            cerr << "ERROR: Please reduce buckets or increase memory."
+                 << endl;
+            cerr << "Assigning 1KB per slot. Operator might consume"
+                 << " more memory than expected." << endl;
+            cerr << endl;
+            bufferMemory = 1024;
+         } 
+      }
+
+      ~rdupHInfo() {
+
+        if(! buffer) {
+            return;
+        }
+
+        // Cleanup our buckets and free memory
+        for(size_t i = 0; i < buckets; i++) {
+          TupleBuffer* myBuffer = buffer[i];
+          
+          if(! myBuffer) {
+              continue;
+          }
+
+          GenericRelationIterator *iter;
+          iter = myBuffer -> MakeScan();
+
+          Tuple *t = iter->GetNextTuple();
+
+          while(t != 0) {
+            // Delete iterator and qp tuple reference
+            bool deleted = t->DeleteIfAllowed();
+
+            // Ref count is resetted when tupple is swapped out
+            if( ! deleted ) {
+                 t->DeleteIfAllowed();
+            }
+
+            t = iter->GetNextTuple();
+          }
+
+          delete iter;
+
+          myBuffer -> Clear();
+          delete buffer[i];
+          buffer[i] = NULL;
+        }
+   
+        delete[] buffer; 
+        buffer = NULL;
+      }
+
+      size_t getBuckets() {
+         return buckets;
+      }
+
+      TupleBuffer** getTupleBuffer() {
+          return buffer;
+      }
+
+      bool initBucketIfNeeded(size_t bucket) {
+          if(bucket >= buckets) {
+            cerr << "Can not init buffer " 
+                 << bucket << " of " << buckets
+                 << endl;
+            return false;
+          }
+
+          // Buffer is already init
+          if(buffer[bucket]) {
+              return false;
+          }
+          
+          buffer[bucket] = new TupleBuffer(bufferMemory);
+          return true;
+     }
+
+   private:
+       size_t buckets;
+       size_t maxMemory; // in bytes
+       size_t bufferMemory; // in bytes
+       TupleBuffer** buffer = NULL;
+}; 
+
+ 
+
 ListExpr
 Rdup2TypeMap( ListExpr args )
 {
 
   NList type(args);
-  if ( !type.hasLength(1) )
+  if ( ! (type.hasLength(1) || type.hasLength(2)) )
   {
-    return NList::typeError("Expecting one argument.");
+    return NList::typeError(
+        "Expecting one stream argument and a optional int (buckets).");
   }
 
   NList first = type.first();
@@ -15279,11 +15384,18 @@ Rdup2TypeMap( ListExpr args )
     return NList::typeError("Error in first argument!");
   }
 
+  // Check bucket parameter
+  if(type.hasLength(2)) {
+     if(!CcInt::checkType(nl->Second(args))) {
+       return NList::typeError("Error in second (buckets) argument!");
+     }
+  }
 
-  return first.listExpr();
+
+ return nl->ThreeElemList( nl->SymbolAtom(Symbols::APPEND()),
+                             nl->OneElemList(nl->IntAtom(-1)),
+                             first.listExpr()); // Stream type
 }
-
-#define RDUP2_BUCKETS 1024
 
 /*
 5.1 Compare the attributes of two tuples
@@ -15310,7 +15422,6 @@ bool CompareTuples(Tuple* a, Tuple* b)
     }
   }
 
-
   return true;
 }
 
@@ -15324,20 +15435,28 @@ Rdup2Fun (Word* args, Word& result,
   {
     case OPEN: {
       qp->Open(args[0].addr);
-      TupleBuffer** buffer = new TupleBuffer* [RDUP2_BUCKETS];
-                   
-      size_t MAX_MEMORY = qp->GetMemorySize(s)*1024*1024; // in bytes
 
-      // init buffer
-      for(int i = 0; i < RDUP2_BUCKETS; i++) {
-          buffer[i] = new TupleBuffer(MAX_MEMORY / RDUP2_BUCKETS);
+      CcInt* bucketParameter = ((CcInt*) args[1].addr);
+      size_t buckets = 999997;
+      if(bucketParameter->IsDefined() && bucketParameter->GetValue()>0){
+          buckets = bucketParameter->GetValue();
       }
+      
+      if(buckets > 9999997){
+         buckets = 9999997;
+      }
+    
+      size_t maxMemory = qp->GetMemorySize(s)*1024*1024; // in bytes
+      rdupHInfo* localInfo = new rdupHInfo(buckets, maxMemory);
 
-      local.setAddr(buffer);
+      local.setAddr(localInfo);
       return 0;
     }
     case REQUEST: {
-      TupleBuffer** buffer = static_cast<TupleBuffer**>(local.addr);
+      rdupHInfo* localInfo = static_cast<rdupHInfo*>(local.addr);
+      
+      TupleBuffer** buffer = localInfo -> getTupleBuffer();
+      size_t buckets = localInfo -> getBuckets(); 
 
       // Loop over stream elements until the function yields true.
       Word elem(Address(0));
@@ -15346,27 +15465,28 @@ Rdup2Fun (Word* args, Word& result,
       while ( qp->Received(args[0].addr) ) {
         Tuple* currentTuple = static_cast<Tuple*>( elem.addr );
 
-        int attributes = currentTuple -> GetNoAttributes();
+        size_t attributes = currentTuple -> GetNoAttributes();
         size_t hashValue = 0;
 
         // calcuelate hash value over all attributes
-        for(int i = 0; i < attributes; i++) {
+        for(size_t i = 0; i < attributes; i++) {
           Attribute* attr = currentTuple->GetAttribute(i);
-          hashValue = hashValue + attr->HashValue();
+          hashValue = hashValue + pow(attr->HashValue(), i+1);
         }
-
-        //cout << "In Bucket " << (hashValue % RDUP2_BUCKETS) << endl;
+        size_t bucket = hashValue % buckets;
 
         bool isTupleKnown = false;
         GenericRelationIterator *iter;
-        iter = buffer[hashValue % RDUP2_BUCKETS] -> MakeScan();
+       
+        localInfo -> initBucketIfNeeded(bucket);
+        iter = buffer[bucket] -> MakeScan();
 
         Tuple *t = iter->GetNextTuple();
 
         // there is something in our bucket
         while(t != 0) {
 
-          // oh, the tuple is already in our bucket
+          // the tuple is already in our bucket
           if(CompareTuples(t, currentTuple)) {
             isTupleKnown = true;
             t->DeleteIfAllowed();
@@ -15382,7 +15502,7 @@ Rdup2Fun (Word* args, Word& result,
         // The Tuple is unknown, put the tuple in our bucket
         // and forward the tuple to the next operator
         if(! isTupleKnown ) {
-          buffer[hashValue % RDUP2_BUCKETS]->AppendTuple(currentTuple);
+          buffer[bucket]->AppendTuple(currentTuple);
           currentTuple->IncReference();
 
           result = elem;
@@ -15407,35 +15527,15 @@ Rdup2Fun (Word* args, Word& result,
 
       qp->Close(args[0].addr);
       if(local.addr) {
-        TupleBuffer** buffer = static_cast<TupleBuffer**>(local.addr);
+        rdupHInfo* localInfo = static_cast<rdupHInfo*>(local.addr);
 
-        // Cleanup our buckets and free memory
-        for(int i = 0; i < RDUP2_BUCKETS; i++) {
-          TupleBuffer* myBuffer = buffer[i];
-
-          GenericRelationIterator *iter;
-          iter = myBuffer -> MakeScan();
-
-          Tuple *t = iter->GetNextTuple();
-
-          while(t != 0) {
-            // remove iterator reference and remove our private 
-            // reference of this tuple
-            t->DeleteIfAllowed();
-            t->DeleteIfAllowed();
-            t = iter->GetNextTuple();
-          }
-
-          delete iter;
-
-          myBuffer -> Clear();
-          delete buffer[i];
-          buffer[i] = 0;
+        if(localInfo) { 
+           delete localInfo;
+           localInfo = NULL;
+           local.addr = NULL;
         }
-
-        delete[] buffer;
-        local.addr = 0;
       }
+
       return 0;
     }
     default: {
@@ -15448,14 +15548,14 @@ Rdup2Fun (Word* args, Word& result,
 
 const string rduphSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                          "\"Example\" ) "
-                         "( <text>((stream (tuple(...))))"
+                         "( <text>((stream (tuple(...))) x int)"
                          " -> (stream (tuple(...)))"
                          "</text--->"
-                         "<text>_ rduph</text--->"
+                         "<text>_ rduph[buckets]</text--->"
                          "<text>This operator removes duplicate tuples "
                          " from a stream using a hashmap.</text--->"
                          "<text>query Orte feed project[BevT] "
-                         "rduph count</text--->"
+                         "rduph[999997] count</text--->"
                          ") )";
 
 /*

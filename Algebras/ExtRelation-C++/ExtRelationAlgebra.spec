@@ -31,7 +31,7 @@ operator stats alias STATS pattern _ op [ _ , _ ]
 operator concat alias CONCAT pattern _ _ op
 operator cancel alias CANCEL pattern _ op [ fun ] implicit parameter tuple type TUPLE
 operator rdup alias RDUP pattern _ op
-operator rduph alias RDUPH pattern _ op
+operator rduph alias RDUPH pattern _ op [_]
 operator krdup alias KRDUP pattern _ op [ list ]
 operator krduph alias KRDUPH pattern _ op [ _,_ ]
 operator sort_old alias SORTOLD pattern _ op

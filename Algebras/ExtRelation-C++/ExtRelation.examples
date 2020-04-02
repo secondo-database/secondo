@@ -193,8 +193,8 @@ Result   : 161
 
 Operator : rduph
 Number   : 1 
-Signature: ((stream (tuple([a1:d1, ... ,an:dn])))) -> (stream (tuple([a1:d1, ... ,an:dn])))
-Example  : query Orte feed project[BevT] rduph count
+Signature: ((stream (tuple([a1:d1, ... ,an:dn]))) x int) -> (stream (tuple([a1:d1, ... ,an:dn])))
+Example  : query Orte feed project[BevT] rduph[999997] count
 Result   : 161 
 
 Operator : sample
