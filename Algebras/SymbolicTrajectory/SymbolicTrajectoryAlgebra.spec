@@ -40,3 +40,4 @@ operator createMaxspeedRaster alias CREATEMAXSPEEDRASTER pattern op( _ , _ , _ )
 operator createTileAreas alias CREATETILEAREAS pattern op( _ )
 operator restoreTraj alias RESTORETRAJ pattern op ( _ , _ , _ , _ , _ , _ , _ , _ , _ )
 operator getPatterns alias GETPATTERNS pattern _ op [ _ , _ , _ , _ , _ ]
+operator createfptree alias CREATEFPTREE pattern _ op [ _ , _ , _ ]

@@ -6234,7 +6234,7 @@ struct getPatternsInfo : OperatorInfo {
 
 const string getPatternsSpec =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "( <text> rel(tuple(X)) x ATTR x ATTR x real x int --> \n"
+  "( <text> rel(tuple(X)) x ATTR x ATTR x real x int x int --> \n"
   "stream(tuple(Pattern: text, Support: real))</text--->"
   "<text> _ getPatterns[ _ , _ , _ , _ , _ ] </text--->"
   "<text> Computes patterns for spatio-textual attributes of movement data \n"
@@ -6246,6 +6246,109 @@ const string getPatternsSpec =
 
 Operator getPatterns("getPatterns", getPatternsSpec, getPatternsVM, 
                      Operator::SimpleSelect, getPatternsTM);
+
+/*
+\section{Operator ~createfptree~}
+
+\subsection{Type Mapping}
+
+*/
+ListExpr createfptreeTM(ListExpr args) {
+  if (!nl->HasLength(args, 4) && !nl->HasLength(args, 5)) {
+    return listutils::typeError("Four or five arguments expected");
+  }
+  if (!Relation::checkType(nl->First(args))) {
+    return listutils::typeError("1st argument is not a relation");
+  }
+  if (!listutils::isSymbol(nl->Second(args))) {
+    return listutils::typeError("2nd argument is not an attribute name");
+  }
+  if (!listutils::isSymbol(nl->Third(args))) {
+    return listutils::typeError("3rd argument is not an attribute name");
+  }
+  ListExpr attrs = nl->Second(nl->Second(nl->First(args)));
+  string attrnameTextual = nl->SymbolValue(nl->Second(args));
+  string attrnameSpatial = nl->SymbolValue(nl->Third(args));
+  ListExpr type;
+  int indexTextual = listutils::findAttribute(attrs, attrnameTextual, type);
+  if (indexTextual == 0) {
+    return listutils::typeError("Attribute " + attrnameTextual + " not found");
+  }
+  int indexSpatial = listutils::findAttribute(attrs, attrnameSpatial, type);
+  if (indexSpatial == 0) {
+    return listutils::typeError("Attribute " + attrnameSpatial + " not found");
+  }
+  if (!CcReal::checkType(nl->Fourth(args))) {
+    return listutils::typeError("4th argument is not a real number");
+  }
+  if (nl->HasLength(args, 5)) {
+    if (!Geoid::checkType(nl->Seventh(args))) {
+      return listutils::typeError("5th argument is not a geoid");
+    }
+  }
+  return nl->ThreeElemList(
+           nl->SymbolAtom(Symbol::APPEND()),
+           nl->TwoElemList(nl->IntAtom(indexTextual - 1),
+                           nl->IntAtom(indexSpatial - 1)),
+           nl->SymbolAtom(FPTree::BasicType()));
+}
+
+/*
+\subsection{Value Mapping}
+
+*/
+int createfptreeVM(Word* args, Word& result, int message, Word& local,
+                   Supplier s) {
+  result = qp->ResultStorage(s);
+  FPTree *tree = (FPTree*)result.addr;
+  tree->clear();
+  Geoid *geoid = 0;
+  int geoidSpecified = (qp->GetNoSons(s) == 7 ? 1 : 0);
+  Relation *rel = static_cast<Relation*>(args[0].addr);
+  CcReal *suppmin = static_cast<CcReal*>(args[3].addr);
+  if (geoidSpecified == 1) {
+    geoid = static_cast<Geoid*>(args[4].addr);
+    if (!geoid->IsDefined()) {
+      return 0;
+    }
+  }
+  CcInt *posTextual = static_cast<CcInt*>(args[4+geoidSpecified].addr);
+  CcInt *posSpatial = static_cast<CcInt*>(args[5+geoidSpecified].addr);
+  if (!suppmin->IsDefined()) {
+    return 0;
+  }
+  if (suppmin->GetValue() <= 0 || suppmin->GetValue() > 1) {
+    cout << "the minimum support has to be in (0,1]" << endl;
+  }
+  else {
+    RelAgg *agg = new RelAgg();
+    agg->clear(false);
+    agg->initializeInv();
+    agg->scanRelation(rel, NewPair<int, int>(posTextual->GetValue(), 
+                                             posSpatial->GetValue()), geoid);
+    agg->filter(suppmin->GetValue(), qp->GetMemorySize(s));
+    tree->initialize();
+    tree->construct(agg);
+    delete agg;
+  }
+  return 0;
+}
+
+/*
+ \subsection{Operator Info}
+
+*/
+const string createfptreeSpec =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text> rel(tuple(X)) x ATTR x ATTR x real --> fptree</text--->"
+  "<text> _ createfptree[ _ , _ , _ ] </text--->"
+  "<text> Computes an FP-tree from a relation, two attribute names, and a \n"
+  "real number (minimum support).</text--->"
+  "<text> query Dotraj feed createfptree[Trajectory, X, 0.5] getTypeNL\n"
+  "</text--->) )";
+
+Operator createfptree("createfptree", createfptreeSpec, createfptreeVM, 
+                     Operator::SimpleSelect, createfptreeTM);
 
 /*
 \section{Class ~SymbolicTrajectoryAlgebra~}
@@ -6649,8 +6752,11 @@ class SymbolicTrajectoryAlgebra : public Algebra {
 
   AddOperator(&getPatterns);
   getPatterns.SetUsesMemory();
-  }
   
+  AddOperator(&createfptree);
+  createfptree.SetUsesMemory();
+  
+  }
   ~SymbolicTrajectoryAlgebra() {}
 };
 
