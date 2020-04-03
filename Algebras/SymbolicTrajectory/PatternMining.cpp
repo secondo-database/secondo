@@ -235,23 +235,125 @@ std::string AggEntry::print(const Rect& rect) const {
 
 */
 ListExpr FPNode::toListExpr() const {
-  ListExpr childrenList;
+  ListExpr childrenList = nl->Empty();
   if (!children.empty()) {
     childrenList = nl->OneElemList(nl->IntAtom(children[0]));
   }
-  ListExpr childList;
+  ListExpr childList = childrenList;
   for (unsigned int i = 1; i < children.size(); i++) {
     childList = nl->Append(childList, nl->IntAtom(children[i]));
   }
-  return childrenList;
+  ListExpr result = nl->FourElemList(nl->SymbolAtom(label), 
+                   nl->IntAtom(frequency), childrenList, nl->IntAtom(nodeLink));
+  return result;
 }
 
 /*
-  Class ~FPTree~, Function ~insertNode~
+  Class ~FPTree~, Function ~isChildOf~
 
 */
-void FPTree::insertNode() {
-  
+bool FPTree::isChildOf(string& label, unsigned int pos, unsigned int& nextPos) {
+  for (auto it : nodes[pos].children) {
+    if (nodes[it].label == label) {
+      nextPos = it;
+      return true;
+    }
+  }
+  nextPos = UINT_MAX;
+  return false;
+}
+
+/*
+  Class ~FPTree~, Function ~updateNodeLink~
+
+*/
+void FPTree::updateNodeLink(string& label, unsigned int targetPos) {
+  map<string, unsigned int>::iterator it = nodeLinks.find(label);
+  if (it == nodeLinks.end()) { // no existing node link
+    nodeLinks.insert(make_pair(label, targetPos));
+  }
+  else { // node link for label exists
+    unsigned int link = it->second;
+    unsigned int currentPos = 0;
+    while (link != UINT_MAX) { // find end of node link
+      currentPos = link;
+      link = nodes[link].nodeLink;
+    }
+    nodes[currentPos].nodeLink = targetPos;
+  }
+}
+
+/*
+  Class ~FPTree~, Function ~insertLabelVector~
+
+*/
+void FPTree::insertLabelVector(const vector<string>& labelsOrdered) {
+  cout << "insert: | ";
+  for (auto it : labelsOrdered) {
+    cout << it << " | ";
+  }
+  cout << endl;
+  unsigned int nodePos(0), nextPos(0);
+  for (auto it : labelsOrdered) {
+    if (isChildOf(it, nodePos, nextPos)) {
+      nodes[nextPos].frequency++;
+      cout << "  \"" << it << "\" is child of \"" << nodes[nodePos].label 
+           << "\", frequency = " << nodes[nextPos].frequency << endl;
+      nodePos = nextPos;
+    }
+    else {
+      FPNode node(it);
+      nodes.push_back(node);
+      nodes[nodePos].children.push_back(nodes.size() - 1);
+      updateNodeLink(it, nodes.size() - 1);
+      cout << "  new node for \"" << it << "\" at pos " << nodes.size() - 1
+           << ", now child of " << nodePos << endl;
+      nodePos = nodes.size() - 1;
+    }
+  }
+  cout << ">>> SUCCESSFULLY inserted" << endl;
+}
+
+/*
+  Class ~FPTree~, Function ~construct~
+
+*/
+void FPTree::construct(RelAgg *agg) {
+  GenericRelationIterator* it = agg->rel->MakeScan();
+  MLabel *ml = 0;
+  Tuple *tuple = 0;
+  string label;
+  set<NewPair<string, double>, compareLabelsWithSupp> labelsWithSupp;
+  vector<string> labelsOrdered;
+  while ((tuple = it->GetNextTuple())) {
+    labelsWithSupp.clear();
+    labelsOrdered.clear();
+    ml = (MLabel*)(tuple->GetAttribute(agg->attrPos.first));
+    for (int j = 0; j < ml->GetNoComponents(); j++) {
+      ml->GetValue(j, label);
+      NewPair<string, double> labelWithSupp(label, 
+                                            agg->getSuppForFreqLabel(label));
+      if (labelWithSupp.second >= agg->minSupp) {
+        labelsWithSupp.insert(labelWithSupp);
+      }
+    }
+    for (auto it : labelsWithSupp) {
+      labelsOrdered.push_back(it.first);
+    }
+    insertLabelVector(labelsOrdered);
+    tuple->DeleteIfAllowed();
+  }
+  delete it;
+}
+
+/*
+  Class ~FPTree~, Function ~initialize~
+
+*/
+void FPTree::initialize() {
+  FPNode node("<ROOT>");
+  node.frequency = 0;
+  nodes.push_back(node); // create dummy node for root
 }
 
 /*
@@ -276,6 +378,18 @@ Word FPTree::In(const ListExpr typeInfo, const ListExpr instance,
   return SetWord(Address(0));
 }
 
+ListExpr FPTree::getNodeLinksList(string label) {
+  unsigned int link = nodeLinks[label];
+  ListExpr result = nl->OneElemList(nl->IntAtom(link));
+  ListExpr nodeLinkList = result;
+  link = nodes[link].nodeLink;
+  while (link != UINT_MAX) {
+    nodeLinkList = nl->Append(nodeLinkList, nl->IntAtom(link));
+    link = nodes[link].nodeLink;
+  }
+  return result;
+}
+
 ListExpr FPTree::Out(ListExpr typeInfo, Word value) {
   FPTree *tree = (FPTree*)value.addr;
   ListExpr nodesList(nl->Empty()), nodeList, nodeLinksList(nl->Empty()),
@@ -285,17 +399,19 @@ ListExpr FPTree::Out(ListExpr typeInfo, Word value) {
     nodeList = nodesList;
   }
   for (unsigned int i = 1; i < tree->nodes.size(); i++) {
-    nodeList = nl->Append(nodeList, tree->nodes[0].toListExpr());
+    nodeList = nl->Append(nodeList, tree->nodes[i].toListExpr());
   }
   map<string, unsigned int>::iterator it = tree->nodeLinks.begin();
   if (tree->hasNodeLinks()) {
     nodeLinksList = nl->OneElemList(nl->TwoElemList(nl->SymbolAtom(it->first),
-                                                    nl->IntAtom(it->second)));
+                                            tree->getNodeLinksList(it->first)));
     nodeLinkList = nodeLinksList;
   }
+  it++;
   while (it != tree->nodeLinks.end()) {
     nodeLinkList = nl->Append(nodeLinkList, 
-           nl->TwoElemList(nl->SymbolAtom(it->first), nl->IntAtom(it->second)));
+                              nl->TwoElemList(nl->SymbolAtom(it->first), 
+                                            tree->getNodeLinksList(it->first)));
     it++;
   }
   return nl->TwoElemList(nodesList, nodeLinksList);
@@ -422,6 +538,8 @@ bool FPTree::Open(SmiRecord& valueRecord, size_t& offset,
       return false;
     }
     offset += sizeof(unsigned int);
+    cout << "create node: " << label << ", " << frequency << ", " 
+         << children.size() << ", " << nodeLink << endl;
     FPNode node(label, frequency, children, nodeLink);
     tree->nodes.push_back(node);
   }
@@ -708,6 +826,16 @@ AggEntry* RelAgg::getLabelEntry(string label) {
   delete eit;
 //   cout << "NOTHING FOUND for label \"" << label << "\"" << endl;
   return 0;
+}
+
+double RelAgg::getSuppForFreqLabel(string& label) {
+  AggEntry *entry = getLabelEntry(label);
+//   cout << "|" << label << "|" << double(entry->occurrences.size()) / noTuples
+//        << endl;
+  if (entry == 0) {
+    return 0;
+  }
+  return double(entry->occurrences.size()) / noTuples;
 }
 
 /*
@@ -1040,7 +1168,6 @@ GetPatternsLI::GetPatternsLI(Relation *r, const NewPair<int, int> ap, double ms,
 
 GetPatternsLI::~GetPatternsLI() {
   tupleType->DeleteIfAllowed();
-  agg.clear(true);
 }
 
 TupleType* GetPatternsLI::getTupleType() const {
