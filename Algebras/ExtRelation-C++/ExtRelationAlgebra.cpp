@@ -2471,12 +2471,17 @@ ListExpr krduphTM(ListExpr args){
       last = nl->Append(last, nl->IntAtom(positions[i]));
    }
 
-
-   return nl->ThreeElemList( nl->SymbolAtom(Symbols::APPEND()),
+ 
+   ListExpr resultList = nl->ThreeElemList( 
+                             nl->SymbolAtom(Symbols::APPEND()),
                              appendList,
                              stream);
 
+   cout << nl->ToString(resultList) << endl;
+
+   return resultList;
 }
+// TODO
 
 /*
 2.10.2 LocalInfo
@@ -15258,113 +15263,7 @@ Operator addModCounterOp(
 Operator ~rduph~
 
 */
-class rdupHInfo {
-
-   public:
-      rdupHInfo(const size_t _buckets, const size_t _maxMemory) 
-        : buckets(_buckets), maxMemory(_maxMemory) {
-
-         buffer = new TupleBuffer* [buckets];
-                   
-         // lazzy buffer init
-         for(size_t i = 0; i < buckets; i++) {
-             buffer[i] = NULL; 
-         }
-          
-         bufferMemory = maxMemory / buckets;
-
-         if(bufferMemory < 1024) {
-            cerr << endl;
-            cerr << "ERROR (rduph): Got less than 1kb of memory per slot"
-                 << " (" << bufferMemory << " byte)." << endl;
-            cerr << "ERROR: Please reduce buckets or increase memory."
-                 << endl;
-            cerr << "Assigning 1KB per slot. Operator might consume"
-                 << " more memory than expected." << endl;
-            cerr << endl;
-            bufferMemory = 1024;
-         } 
-      }
-
-      ~rdupHInfo() {
-
-        if(! buffer) {
-            return;
-        }
-
-        // Cleanup our buckets and free memory
-        for(size_t i = 0; i < buckets; i++) {
-          TupleBuffer* myBuffer = buffer[i];
-          
-          if(! myBuffer) {
-              continue;
-          }
-
-          GenericRelationIterator *iter;
-          iter = myBuffer -> MakeScan();
-
-          Tuple *t = iter->GetNextTuple();
-
-          while(t != 0) {
-            // Delete iterator and qp tuple reference
-            bool deleted = t->DeleteIfAllowed();
-
-            // Ref count is resetted when tupple is swapped out
-            if( ! deleted ) {
-                 t->DeleteIfAllowed();
-            }
-
-            t = iter->GetNextTuple();
-          }
-
-          delete iter;
-
-          myBuffer -> Clear();
-          delete buffer[i];
-          buffer[i] = NULL;
-        }
-   
-        delete[] buffer; 
-        buffer = NULL;
-      }
-
-      size_t getBuckets() {
-         return buckets;
-      }
-
-      TupleBuffer** getTupleBuffer() {
-          return buffer;
-      }
-
-      bool initBucketIfNeeded(size_t bucket) {
-          if(bucket >= buckets) {
-            cerr << "Can not init buffer " 
-                 << bucket << " of " << buckets
-                 << endl;
-            return false;
-          }
-
-          // Buffer is already init
-          if(buffer[bucket]) {
-              return false;
-          }
-          
-          buffer[bucket] = new TupleBuffer(bufferMemory);
-          return true;
-     }
-
-   private:
-       size_t buckets;
-       size_t maxMemory; // in bytes
-       size_t bufferMemory; // in bytes
-       TupleBuffer** buffer = NULL;
-}; 
-
- 
-
-ListExpr
-Rdup2TypeMap( ListExpr args )
-{
+ListExpr Rdup2TypeMap( ListExpr args ) {
 
   NList type(args);
   if ( ! (type.hasLength(1) || type.hasLength(2)) )
@@ -15384,167 +15283,54 @@ Rdup2TypeMap( ListExpr args )
     return NList::typeError("Error in first argument!");
   }
 
+  bool bucketsGiven = false;
+
   // Check bucket parameter
   if(type.hasLength(2)) {
      if(!CcInt::checkType(nl->Second(args))) {
        return NList::typeError("Error in second (buckets) argument!");
      }
+
+     bucketsGiven = true;
   }
 
+   ListExpr stream = first.listExpr();
+   ListExpr attrList = nl->Second(nl->Second(stream));
+   ListExpr appendList;
+   ListExpr last;
 
- return nl->ThreeElemList( nl->SymbolAtom(Symbols::APPEND()),
-                             nl->OneElemList(nl->IntAtom(-1)),
-                             first.listExpr()); // Stream type
+   // TODO: 
+
+   // Append all attribute positions for krdup tm
+   for(int i = 0; i < nl->ListLength(attrList); i++) {
+      if(i == 0){
+        appendList = nl->OneElemList(nl->IntAtom(i));
+        last = appendList;
+      } else {
+        last = nl->Append(last,nl->IntAtom(i));
+      }
+   }
+
+   if(bucketsGiven) {
+        last = nl->Append(last,nl->IntAtom(0));
+   } else {
+        last = nl->Append(last,nl->IntAtom(-1));
+   }
+
+   // Append all attribute positions for krdup tm
+   for(int i = 0; i < nl->ListLength(attrList); i++) {
+        last = nl->Append(last,nl->IntAtom(i));
+   }
+
+   ListExpr resultList = nl->ThreeElemList( 
+                             nl->SymbolAtom(Symbols::APPEND()),
+                             appendList,
+                             stream);
+
+   cout << nl->ToString(resultList) << endl;
+
+   return resultList;
 }
-
-/*
-5.1 Compare the attributes of two tuples
-
-*/
-bool CompareTuples(Tuple* a, Tuple* b)
-{
-
-  int attributes = a -> GetNoAttributes();
-
-  for(int i = 0; i < attributes; i++) {
-    if(!((Attribute*)a->GetAttribute(i))->IsDefined())
-    {
-      return -1;
-    }
-    if(!((Attribute*)b->GetAttribute(i))->IsDefined())
-    {
-      return 1;
-    }
-
-    if(((Attribute*)a->GetAttribute(i))->
-      Compare((Attribute*)b->GetAttribute(i)) != 0) {
-      return false;
-    }
-  }
-
-  return true;
-}
-
-
-int
-Rdup2Fun (Word* args, Word& result,
-                   int message, Word& local, Supplier s)
-{
-
-  switch( message )
-  {
-    case OPEN: {
-      qp->Open(args[0].addr);
-
-      CcInt* bucketParameter = ((CcInt*) args[1].addr);
-      size_t buckets = 999997;
-      if(bucketParameter->IsDefined() && bucketParameter->GetValue()>0){
-          buckets = bucketParameter->GetValue();
-      }
-      
-      if(buckets > 9999997){
-         buckets = 9999997;
-      }
-    
-      size_t maxMemory = qp->GetMemorySize(s)*1024*1024; // in bytes
-      rdupHInfo* localInfo = new rdupHInfo(buckets, maxMemory);
-
-      local.setAddr(localInfo);
-      return 0;
-    }
-    case REQUEST: {
-      rdupHInfo* localInfo = static_cast<rdupHInfo*>(local.addr);
-      
-      TupleBuffer** buffer = localInfo -> getTupleBuffer();
-      size_t buckets = localInfo -> getBuckets(); 
-
-      // Loop over stream elements until the function yields true.
-      Word elem(Address(0));
-      qp->Request(args[0].addr, elem);
-
-      while ( qp->Received(args[0].addr) ) {
-        Tuple* currentTuple = static_cast<Tuple*>( elem.addr );
-
-        size_t attributes = currentTuple -> GetNoAttributes();
-        size_t hashValue = 0;
-
-        // calcuelate hash value over all attributes
-        for(size_t i = 0; i < attributes; i++) {
-          Attribute* attr = currentTuple->GetAttribute(i);
-          hashValue = hashValue + pow(attr->HashValue(), i+1);
-        }
-        size_t bucket = hashValue % buckets;
-
-        bool isTupleKnown = false;
-        GenericRelationIterator *iter;
-       
-        localInfo -> initBucketIfNeeded(bucket);
-        iter = buffer[bucket] -> MakeScan();
-
-        Tuple *t = iter->GetNextTuple();
-
-        // there is something in our bucket
-        while(t != 0) {
-
-          // the tuple is already in our bucket
-          if(CompareTuples(t, currentTuple)) {
-            isTupleKnown = true;
-            t->DeleteIfAllowed();
-            break;
-          }
-
-          t->DeleteIfAllowed();
-          t = iter->GetNextTuple();
-        }
-
-        delete iter;
-
-        // The Tuple is unknown, put the tuple in our bucket
-        // and forward the tuple to the next operator
-        if(! isTupleKnown ) {
-          buffer[bucket]->AppendTuple(currentTuple);
-          currentTuple->IncReference();
-
-          result = elem;
-          return YIELD;
-        } else {
-
-          // delete the duplicate tuple and request
-          // a new tupple to process
-          currentTuple -> DeleteIfAllowed();
-
-          // Get next stream element
-          qp->Request(args[0].addr, elem);
-        }
-      }
-
-      // End of Stream reached
-      result.addr = 0;
-      return CANCEL;
-    }
-
-    case CLOSE: {
-
-      qp->Close(args[0].addr);
-      if(local.addr) {
-        rdupHInfo* localInfo = static_cast<rdupHInfo*>(local.addr);
-
-        if(localInfo) { 
-           delete localInfo;
-           localInfo = NULL;
-           local.addr = NULL;
-        }
-      }
-
-      return 0;
-    }
-    default: {
-      /* should not happen */
-      return -1;
-    }
-  }
-}
-
 
 const string rduphSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                          "\"Example\" ) "
@@ -15565,7 +15351,7 @@ const string rduphSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
 Operator extrelrduph (
          "rduph",             // name
          rduphSpec,           // specification
-         Rdup2Fun,            // value mapping
+         krduphVM,            // value mapping (reuse krduph operator)
          Operator::SimpleSelect,          // trivial selection function
          Rdup2TypeMap         // type mapping
 );
@@ -15824,9 +15610,6 @@ class ExtRelationAlgebra : public Algebra
     AddOperator(&extrelconcat);
     AddOperator(&extrelmin);
     AddOperator(&extrelmax);
-    AddOperator(&extrelrduph);
-      extrelrduph.SetUsesMemory();
-
 
     ValueMapping avgFuns[] = { AvgValueMapping<int,CcInt>,
                          AvgValueMapping<SEC_STD_REAL,CcReal>, 0 };
@@ -15909,6 +15692,9 @@ class ExtRelationAlgebra : public Algebra
     AddOperator(&krduph);
     krduph.enableInitFinishSupport();
     krduph.SetUsesMemory();
+    AddOperator(&extrelrduph);
+    extrelrduph.SetUsesMemory();
+    extrelrduph.enableInitFinishSupport();
     AddOperator(&extreladdcounter);
     extreladdcounter.enableInitFinishSupport();
     AddOperator(&ksmallest);
