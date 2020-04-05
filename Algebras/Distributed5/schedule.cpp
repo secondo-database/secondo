@@ -1551,13 +1551,16 @@ void Scheduler::valueJobsForTask(WorkerLocation &location, Task *task,
     if (best && cost > best->second)
         return;
 
+    bool preferredWorker = task->getPreferredLocation() == location;
+    bool preferredServer = task->getPreferredLocation().getServer() ==
+                           location.getServer();
     bool validWorker =
-        !task->hasFlag(RunOnPreferedWorker) ||
-        task->getPreferredLocation() == location;
+        (!task->hasFlag(RunOnPreferedWorker) || preferredWorker) &&
+        (!task->hasFlag(RunOnPreferedServer) || preferredServer);
     bool validServer =
         (!task->hasFlag(RunOnPreferedWorker) &&
          !task->hasFlag(RunOnPreferedServer)) ||
-        task->getPreferredLocation().getServer() == location.getServer();
+        preferredServer;
 
     bool argumentsAvailable = true;
 
