@@ -40,6 +40,11 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Stream.h"
 #include "Algebras/FText/FTextAlgebra.h"
 #include <cstdio>
+#include "AlmostEqual.h"
+#include <limits>
+#include "math.h"
+
+
 
 
 #include <boost/polygon/voronoi.hpp>
@@ -289,13 +294,39 @@ bool sortxupydown (const tuple<double, double>& a,
          
 } 
 
+
+
+
+void rmvredundpoints (std::vector<std::tuple<double, double>>& ppoi) {
+   
+    std::set <std::tuple<double, double>> setme;
+    std::set <std::tuple<double, double>> tempvec;
+    
+   for (unsigned int i = 0; i < ppoi.size(); i++)
+       {
+           setme.insert(ppoi[i]);          
+    } 
+    
+    ppoi.assign(setme.begin(), setme.end());
+    sort(ppoi.begin(), ppoi.end(), sortxupyup); 
+    
+}
+
+
+
+
+
+
+
+
+
 /*
  
   3.2 checkme function
   
 */
 
-bool checkme(std::vector<std::tuple <double, double>>& src){
+int checkme(std::vector<std::tuple <double, double>>& src, bool checkactive){
       
       
    
@@ -327,7 +358,7 @@ bool checkme(std::vector<std::tuple <double, double>>& src){
    
    
    
-   unsigned int iter, count, sectorflag;
+   unsigned int iter, sectorflag;
    unsigned int  aboveleftsize;
    unsigned int  aboverightsize;
    unsigned int  belowleftsize;
@@ -342,10 +373,10 @@ bool checkme(std::vector<std::tuple <double, double>>& src){
    
    double m, b, mlast, mnew;
    
-   
+  
    
    if (src.size() <= 2) {
-       return false;
+       return 0;
        
      }
        
@@ -362,34 +393,17 @@ bool checkme(std::vector<std::tuple <double, double>>& src){
 
 /* sorting vecs by x resp. y coord */ 
 
+//sort(xysortedvecasc.begin(), xysortedvecasc.end(), sortxupyup); 
+//sorting will be done in rmvredundpoints(xysortedvecasc); 
 
-sort(xysortedvecasc.begin(), xysortedvecasc.end(), sortxupyup); 
-sort(yxsortedvecasc.begin(), yxsortedvecasc.end(), sortyupxdown); 
-       
-       
-         
+
+sort(yxsortedvecasc.begin(), yxsortedvecasc.end(), sortyupxdown);          
     
  
 /* eliminate redundant points */
        
-       count = 0;
-       
-    
-    for (unsigned int i = 0; i < xysortedvecasc.size() - 1; i++)
-       { if ( (get<0>(xysortedvecasc[i]) == get<0>(xysortedvecasc[i+1]))&&
-              (get<1>(xysortedvecasc[i]) == get<1>(xysortedvecasc[i+1]))) { 
-          
-           xysortedvecasc.erase(xysortedvecasc.begin()+count);
-           
-         }
-         count++;
-         }
-    
-       
-    if ( xysortedvecasc.size() <= 2) {
-       return false;
-       
-     }
+     rmvredundpoints(xysortedvecasc);  
+     
        
        
        
@@ -403,7 +417,7 @@ sort(yxsortedvecasc.begin(), yxsortedvecasc.end(), sortyupxdown);
     uppoint = yxsortedvecasc[yxsortedvecasc.size() - 1];
    
    
-    
+        
    
    /* get points above and below the imagenary "line" 
     from leftpoint to rightpoint
@@ -415,15 +429,16 @@ sort(yxsortedvecasc.begin(), yxsortedvecasc.end(), sortyupxdown);
     
     b =  get<1>(rightpoint) - (m * get<0>(rightpoint));
     
-    
+    below.clear();
+    above.clear();
    
     
     
     for (unsigned int i = 0; i < xysortedvecasc.size(); i++)  {
+        double fuval = (m * get<0>(xysortedvecasc[i])) + b;
         
-        
-        if ( ((m * get<0>(xysortedvecasc[i])) + b) > 
-              get<1>(xysortedvecasc[i]) ) {
+        if ( fuval > get<1>(xysortedvecasc[i]) &&
+            !(AlmostEqual (fuval, get<1>(xysortedvecasc[i]))))  {
             
             
         below.push_back (xysortedvecasc[i]);
@@ -440,11 +455,6 @@ sort(yxsortedvecasc.begin(), yxsortedvecasc.end(), sortyupxdown);
         } 
        
         
-   
-      
-          
-          
-          
           
  /* 
 move points above and below to 
@@ -456,6 +466,13 @@ get points above and below the imagenary "line" from downpoint to uppoint
 first: testing if point are perpendicular
  */    
     
+  belowright.clear();
+  aboveright.clear();
+  belowleft.clear();
+  aboveleft.clear();
+   
+ 
+ 
     
   if (get<0>(uppoint) != get<0>(downpoint) ){   
     
@@ -468,20 +485,31 @@ first: testing if point are perpendicular
     
       }
   
-   if (get<0>(uppoint) != get<0>(downpoint)) {
   
   
+  
+     
+  
+  
+  
+  
+   if (get<0>(uppoint) != get<0>(downpoint)) { 
+    
+   
+       
      for (unsigned int i = 0; i < above.size(); i++)  {
         
+        double fval = (m * get<0>(above[i])) + b;
         
-        if ( ((m * get<0>(above[i])) + b) >  get<1>(above[i]) ) {
-            
+        if ( (fval >  get<1>(above[i]))  && 
+           !(AlmostEqual (fval, get<1>(above[i]))))
+        {
             
         aboveright.push_back (above[i]);
         
         }
                 
-        else {
+        else {     
          
          aboveleft.push_back (above[i]);
             
@@ -540,7 +568,7 @@ first: testing if point are perpendicular
        for (unsigned int i = 0; i < above.size(); i++)  {
         
         
-        if ( (get<0>(above[i])) >=  get<0>(uppoint)) {
+        if ( (get<0>(above[i])) > get<0>(uppoint)) {
             
             
         aboveright.push_back (above[i]);
@@ -599,15 +627,10 @@ first: testing if point are perpendicular
   sort(belowleft.begin(), belowleft.end(), sortxdownyup); 
   
   
-       
-  
-    
-  
-    
-    
-    
+   
+      
    /* constructing the final vector */
-  
+   finalcheckedvec.clear();
      
    aboveleftsize  = aboveleft.size();
    aboverightsize = aboveright.size();
@@ -660,10 +683,15 @@ first: testing if point are perpendicular
  
  
   
-  
+   
  
  
-    
+  if (checkactive == false)
+    { 
+                
+         src = finalcheckedvec;      
+        
+        return 2;}
     
    
    
@@ -684,8 +712,8 @@ first: testing if point are perpendicular
     
     
     ErrorReporter::ReportError(
-                "The coordinates do not form a convex polygon");  
-   return false;  
+                "2The coordinates do not form a convex polygon");  
+   return 0;  
        
        
    }
@@ -753,11 +781,11 @@ first: testing if point are perpendicular
            (get<0>(actpoint) == get<0>(finalcheckedvec[iter])) &&
            (get<0>(actpoint) == get<0>(finalcheckedvec[iter+1]))) {
           
-          
+                 
                     
-          ErrorReporter::ReportError(
-                "The coordinates do not form a convex polygon");  
-          return false;  
+                ErrorReporter::ReportError(
+                "3The coordinates do not form a convex polygon");  
+          return 0;  
       
       }
       
@@ -766,10 +794,10 @@ first: testing if point are perpendicular
      if (get<0>(actpoint) == get<0>(finalcheckedvec[iter]) &&
          (actpoint != rightpoint) ) {
         
-        
-        ErrorReporter::ReportError(
-                "The coordinates do not form a convex polygon");  
-          return false;  
+                 
+          ErrorReporter::ReportError(
+                "4The coordinates do not form a convex polygon");  
+          return 0;;  
       
          
       
@@ -824,11 +852,10 @@ first: testing if point are perpendicular
         (get<0>(actpoint) == get<0>(finalcheckedvec[iter+1])) &&
         (actpoint == rightpoint) ) {     
           
-          
-          
+       
           ErrorReporter::ReportError(
-                "The coordinates do not form a convex polygon");  
-          return false;  
+                "4The coordinates do not form a convex polygon");  
+          return 0;;  
       
       }
       
@@ -896,11 +923,10 @@ first: testing if point are perpendicular
            (get<0>(actpoint) == get<0>(finalcheckedvec[iter])) &&
            (get<0>(actpoint) == get<0>(finalcheckedvec[iter+1]))) {
           
-          
-                    
+                               
           ErrorReporter::ReportError(
-                "The coordinates do not form a convex polygon");  
-          return false;  
+                "5The coordinates do not form a convex polygon");  
+          return 0;;  
       
       }
       
@@ -909,10 +935,10 @@ first: testing if point are perpendicular
      if (get<0>(actpoint) == get<0>(finalcheckedvec[iter]) &&
          (actpoint != uppoint) ) {
         
-       
+                 
         ErrorReporter::ReportError(
-                "The coordinates do not form a convex polygon");  
-          return false;  
+                "6The coordinates do not form a convex polygon");  
+          return 0;;  
       
          
           
@@ -1041,7 +1067,7 @@ first: testing if point are perpendicular
                    (get<1>(actpoint) >= get<1>(finalcheckedvec[iter])) ) ||
                      mlast <= mnew ) {
                     
-                    
+                   
                    okflag = false;    
                    break; }
                 
@@ -1102,7 +1128,7 @@ first: testing if point are perpendicular
                       (setfperflag == false && secondperpend == true) ||
                       mlast <= mnew)
               {
-                 
+                
                  okflag = false;    
                  break; }
                  
@@ -1252,7 +1278,7 @@ first: testing if point are perpendicular
    
     finalcheckedvec.pop_back();
    
-   src = finalcheckedvec;   
+    src = finalcheckedvec;   
    
    
 	
@@ -1260,10 +1286,10 @@ first: testing if point are perpendicular
     
   if (okflag == true) 
       
-      return true;
+      return 1;
       
       else 
-          return false;
+          return 0;;
   
     
   
@@ -1337,7 +1363,7 @@ Word Convex::In(const ListExpr typeInfo, const ListExpr le1,
    ListExpr f, fxpoi, fypoi;
    std::vector<std::tuple<double, double>> tmpo;
    
-   bool checkokflag = true;
+   int checkokflag;
      
    string lexprstr;
   
@@ -1446,16 +1472,16 @@ Word Convex::In(const ListExpr typeInfo, const ListExpr le1,
    
    /* CHECKME Call  */
    
-   checkokflag = checkme(tmpo);
+   checkokflag = checkme(tmpo, true);
    
   
    
-   if (checkokflag == false) {
+   if (checkokflag == 0) {
     
        
    
     ErrorReporter::ReportError(
-                "The coordinates do not form a convex polygon");  
+                "1The coordinates do not form a convex polygon");  
    
    
    correct = false; 
@@ -1662,12 +1688,13 @@ ListExpr createconvextypemap( ListExpr args)
 { 
   
     
-  if(!nl->HasLength(args,1))
+  if(!nl->HasLength(args,2))
    {
-    return listutils::typeError("only one  arguments expected");
+    return listutils::typeError("two  arguments expected");
    }
    
   ListExpr arg1 = nl->First(args);
+  ListExpr arg2 = nl->Second(args);
   
   if(!Stream<Point>::checkType(arg1))
     
@@ -1675,6 +1702,15 @@ ListExpr createconvextypemap( ListExpr args)
     return listutils::typeError("first argument must be a stream of points");
    }
    
+  
+  
+  if(!CcBool::checkType(arg2))
+    
+   {
+    return listutils::typeError("second argument must be a Bool Value");
+   }
+   
+  
   
   return nl->SymbolAtom(Convex::BasicType());
       
@@ -1696,8 +1732,8 @@ ListExpr voronoitypemap ( ListExpr args)
     int posit1, posit2;
     
    
-    if(nl->ListLength(args)!=3){
-    ErrorReporter::ReportError("three args expected");
+    if(nl->ListLength(args)!=5){
+    ErrorReporter::ReportError("five args expected");
     return nl->TypeError();
   }
     
@@ -1714,8 +1750,24 @@ ListExpr voronoitypemap ( ListExpr args)
                                   "attribute name");
     }    
     
+     
+     
+   if(!Rectangle<2>::checkType(nl->Fourth(args))){
+    return listutils::typeError("fourth arg is not a rectangle");
+    
+   }
+    
+   if(!CcBool::checkType(nl->Fifth(args))){
+    return listutils::typeError("fifth arg is not a Bool value");
+    
+   }
+   
     second = nl->Second(args); 
     third = nl->Third(args);
+    
+    
+    
+   
     
     if ((nl->ListLength(second) != -1 ) 
        || (nl->ListLength(third)  != -1) ) {
@@ -1836,9 +1888,18 @@ int createconvexVM (Word* args, Word& result,
  Point* elem; 
  vector<Point> points;
  std::vector<std::tuple<double, double>> temp;
- bool checkgood;
+ int checkgood;
+ CcBool* checkonp = ((CcBool*)args[1].addr);
  
+   
+ if (!checkonp->IsDefined()) {
+      res->SetDefined(false);
+     return 0;
+     
+    }
  
+ bool checkon = checkonp->GetBoolval(); 
+  
  stream.open();
  
      
@@ -1862,11 +1923,23 @@ int createconvexVM (Word* args, Word& result,
   }
 
   
-  
-  
-checkgood = checkme(temp);  
+ if (checkon == true) {
+      
+    
+  checkgood = checkme(temp, true);  
 
-if (checkgood == true) {
+ }
+
+ else {
+     
+  checkgood = checkme(temp, false);
+ 
+ }
+ 
+ 
+ 
+
+if ((checkgood == 1) || (checkgood == 2)) {
 
  
 
@@ -1907,6 +1980,8 @@ int attrcount;
 
 int pointposition;
 
+bool checkon;
+
 };
    
      
@@ -1934,7 +2009,7 @@ int voronoiVM (Word* args, Word& result, int message, Word& local, Supplier s)
    
   double xval, yval;
   
- 
+  
   
   
   
@@ -1957,24 +2032,129 @@ switch (message)
        ListExpr attrsave = qp->GetType(qp->GetSon(s,0));
        ListExpr attrsave2 = nl->Second(nl->Second(attrsave));
        
-             
+       //int count;      
        int counter = 0; 
        int counttup = 0;
              
        localInfo->reliter = 0;
        
-       int pointpos = ((CcInt*)args[3].addr)->GetIntval();       
-        
-       std::tuple<double, double> center;
-       std::vector<std::tuple<double, double>> voropoi;
+              
+       int pointpos = ((CcInt*)args[5].addr)->GetIntval();     
+       Rectangle<2>* rectme = (Rectangle<2>*) args[3].addr;
        
+      double belowleftx,belowlefty, belowrightx, belowrighty, aboveleftx, 
+             abovelefty, aboverightx, aboverighty, miny, minx, maxx, maxy;
+             
+   
+      double stretchx = 0; 
+      double stretchy = 0;
+      double diaglenght;
+      double testpointstretch;
+        
+       
+       std::tuple<double, double> center;
+       std::tuple<double, double> testcenter;
+       std::vector<std::tuple<double, double>> voropoi;
+       std::vector<std::tuple<double, double>> allpoints;
+       std::vector<std::tuple<double, double>> infedgecenter;      
+       std::vector<std::tuple<double, double>> voropoitemp;
+       std::vector<std::tuple<double, double>> infedgepoints;   
+       std::vector<std::tuple<double, double>> normaledgecenter;   
+       std::vector<std::tuple<double, double>> normaledgepoints;   
+       
+       
+       map<std::tuple<double, double>, 
+           std::tuple<double, double>>  infedgepoi2firstcenter;
+          
+          
+          
+       map<std::tuple<double, double>, 
+           std::tuple<double, double>>  infedgepoi2secondcenter;
+           
+       map<std::tuple<double, double>, 
+           std::tuple<double, double>>  infcenter2firstinfedgepoi;
+          
+          
+       map<std::tuple<double, double>, 
+           std::tuple<double, double>>  infcenter2secondinfedgepoi;
+           
+       map<std::tuple<double, double>, 
+           std::tuple<double, double>>  infedgepoi2linepoint;
+             
+       map<std::tuple<double, double>, 
+           std::tuple<double, double>>  infedgepoi2lineparam;
+           
+           
+           
+       map<std::tuple<double, double>, 
+           std::vector<std::tuple<double, double>> > infcenter2neighborcenters; 
+           
+           
+      map<std::tuple<double, double>, 
+           std::vector<std::tuple<double, double>>>
+                    normaledgepoints2normalcenters; 
+           
+               
+           
+           
+           
+       std::tuple<double, double>  aboveleft, aboveright, belowleft, belowright;
+       std::tuple<double, double> testpoint1, testpoint2;
+       std::tuple<double, double> newpoint1, newpoint2;
+       
+       
+       map<std::tuple<double, double>,  
+       std::vector<std::tuple<double, double>>>::
+       iterator iterone = normaledgepoints2normalcenters.begin();   
+   
+       
+       
+      
+           /*
+          
+      map<std::tuple<double, double>,  std::tuple<double, double>>::
+       iterator infedgepoiiterfirst = infedgepoi2firstcenter.begin(); 
+       
+      
+      map<std::tuple<double, double>,  std::tuple<double, double>>::
+       iterator infedgepoiitersecond = infedgepoi2secondcenter.begin(); 
+       
+       
+       
+       
+       map<std::tuple<double, double>,  std::tuple<double, double>>::
+       iterator centeriterfirst = infcenter2firstinfedgepoi.begin(); 
+       
+      
+      map<std::tuple<double, double>,  std::tuple<double, double>>::
+       iterator centeritersecond = infcenter2secondinfedgepoi.begin(); 
+       
+       
+       
+       */
+       
+    
    
        
    /* storing pointpos in localInfo */
    
    localInfo->pointposition = pointpos;
    
+   
+   if (!((CcBool*)args[4].addr)->IsDefined()) {
+       localInfo->checkon = true;
+         
+    }
+   
+   else {
+   
+    /* storing bool pn localInfo */
+     localInfo->checkon = ((CcBool*)args[4].addr)->GetBoolval(); 
+   }
        
+  
+  
+  
   while (!(nl->IsEmpty(attrsave2)))
      {
      
@@ -2021,7 +2201,7 @@ switch (message)
         xval = pointval->GetX(); 
         yval = pointval->GetY();
         voropoints.push_back(VoronoiPoint(xval, yval));
-        
+        allpoints.push_back(std::make_tuple(xval, yval));
         
        }
         
@@ -2029,6 +2209,7 @@ switch (message)
         qp->Request(args[0].addr, tee);
       }
 
+   
     
         
   
@@ -2047,27 +2228,38 @@ switch (message)
      construct_voronoi(voropoints.begin(), voropoints.end(), &vorodiag);
      
      
+         
+     
+    int contzell = 0;   
   
     unsigned int cell_index = 0;
     for (voronoi_diagram<double>::const_cell_iterator it =
          vorodiag.cells().begin();
          it != vorodiag.cells().end(); ++it) {
+        
+        contzell++;        
+              
       if (it->contains_point()) {
+          
         if (it->source_category() ==
             boost::polygon::SOURCE_CATEGORY_SINGLE_POINT) {
           std::size_t index = it->source_index();
           VoronoiPoint p = voropoints[index];
 
-        
+                 
           center =  std::make_tuple(x(p), y(p));
+          voropoitemp.push_back ( std::make_tuple(x(p), y(p)));
         
-                   const voronoi_diagram<double>::cell_type& cell = *it;
+        
+          const voronoi_diagram<double>::cell_type& cell = *it;
           const voronoi_diagram<double>::edge_type* edge = cell.incident_edge();
 
 
-    //  iterate edges around Voronoi cell.
+    /* iterate edges around voronoi cell */
 
 
+  
+  
   do {
       if (true) {
 
@@ -2082,36 +2274,200 @@ switch (message)
        voropoi.push_back(std::make_tuple((edge->vertex1())->x(),
                                          (edge->vertex1())->y()));
  
+       allpoints.push_back(std::make_tuple((edge->vertex0())->x(),
+                                           (edge->vertex0())->y()));
+       allpoints.push_back(std::make_tuple((edge->vertex1())->x(),
+                                           (edge->vertex1())->y()));
+       
+       
+       std::tuple<double, double> edgecentertemp = std::make_tuple(x(p), y(p));
+       
+       std::vector<std::tuple<double, double>> vectemp;
+       
+       std::tuple<double, double>  
+       edgepoitemp1 = std::make_tuple((edge->vertex0())->x(),
+                                      (edge->vertex0())->y());
+        
+        
+       std::tuple<double, double> 
+       edgepoitemp2  = std::make_tuple((edge->vertex1())->x(),
+                                       (edge->vertex1())->y());
+        
+        
+       normaledgecenter.push_back(edgecentertemp);      
+       normaledgepoints.push_back(edgepoitemp1);
+       normaledgepoints.push_back(edgepoitemp2);
+       
+        
+       vectemp.push_back (edgecentertemp);
+       
+        
+        
+        
+        
+        
+       
+        iterone = normaledgepoints2normalcenters.find(edgepoitemp1);
+      
+        
+        
+        /* edgepoint not set yet*/
+        if (iterone == normaledgepoints2normalcenters.end())   {
+            
+                    
+        normaledgepoints2normalcenters.insert
+        (pair<std::tuple<double, double>, 
+        std::vector<std::tuple<double, double>>>
+        (edgepoitemp1, vectemp));
+        
+                    
+            
+          }
+             
+        /* edgepoint entry exists already*/
+        
+        
+           else {
+               
+           normaledgepoints2normalcenters.at(edgepoitemp1).push_back(
+               edgecentertemp);
+           
+           rmvredundpoints(normaledgepoints2normalcenters.at(edgepoitemp1));
+               
+                  }
+        
+        
+        
+        iterone = normaledgepoints2normalcenters.find(edgepoitemp2);
+      
+         /* edgepoint not set yet*/
+        if (iterone == normaledgepoints2normalcenters.end())   {
+            
+                    
+        normaledgepoints2normalcenters.insert
+        (pair<std::tuple<double, double>,
+        std::vector<std::tuple<double, double>>>
+        (edgepoitemp2, vectemp));
+        
+                    
+            
+          }
+             
+        /* edgepoint entry exists already*/
+        
+        
+           else {
+               
+           normaledgepoints2normalcenters.at(edgepoitemp2).push_back
+           (edgecentertemp);
+           
+           rmvredundpoints(normaledgepoints2normalcenters.at(edgepoitemp2));
+               
+                  }
+        
+        
+        
+        
+       
       }
 
 
-      if( (edge->vertex0() != NULL) && 
-          (edge->vertex1() == NULL))  {
+      if ( (edge->vertex0() != NULL) && 
+           (edge->vertex1() == NULL))  {
        
-       voropoi.push_back(std::make_tuple((edge->vertex0())->x(), 
-                                         (edge->vertex0())->y()));
-   
+      //oropoi.push_back(std::make_tuple((edge->vertex0())->x(), 
+      //                                 (edge->vertex0())->y()));
+          
+          
+     
+       allpoints.push_back(std::make_tuple((edge->vertex0())->x(), 
+                                           (edge->vertex0())->y()));
+       
+       infedgecenter.push_back
+           (std::make_tuple(x(p), y(p)));
+       
+       infedgepoints.push_back(
+           std::make_tuple((edge->vertex0())->x(), 
+                           (edge->vertex0())->y()));
+       
+       
+       
+    
+       
+        infedgepoi2firstcenter.insert
+        (pair<std::tuple<double, double>, 
+        std::tuple<double, double>>
+        (std::make_tuple((edge->vertex0())->x(), 
+                         (edge->vertex0())->y()), center));
+        
+        
+        infcenter2firstinfedgepoi.insert
+        (pair<std::tuple<double, double>,
+        std::tuple<double, double>>
+        (center, std::make_tuple((edge->vertex0())->x(), 
+                                 (edge->vertex0())->y())));
+        
+     
+               
+           
        }
 
  
       if( (edge->vertex1() != NULL) && 
           (edge->vertex0() == NULL))  {
 
-        voropoi.push_back(std::make_tuple((edge->vertex1())->x(), 
-                                          (edge->vertex1())->y()));
+      //voropoi.push_back(std::make_tuple((edge->vertex1())->x(), 
+      //                                  (edge->vertex1())->y()));
+        
+          
+          
+         allpoints.push_back(
+             std::make_tuple((edge->vertex1())->x(), 
+                             (edge->vertex1())->y()));
                
-       }
+         infedgecenter.push_back(std::make_tuple(x(p), y(p)));
+         
+         
+         infedgepoints.push_back(
+             std::make_tuple((edge->vertex1())->x(), 
+                             (edge->vertex1())->y()));
+         
+       
+     
+       
+        
+        infedgepoi2secondcenter.insert
+        (pair<std::tuple<double, double>, 
+        std::tuple<double, double>>
+        (std::make_tuple((edge->vertex1())->x(), 
+                         (edge->vertex1())->y()), center));
+       
+     
+        
+        infcenter2secondinfedgepoi.insert
+        (pair<std::tuple<double, double>, 
+         std::tuple<double, double>>
+        (center, std::make_tuple((edge->vertex1())->x(), 
+                                 (edge->vertex1())->y())));
+        
+        
+        
+        
+        
+        }
 
 
       
 
           }
       edge = edge->next();
+     
+     
 
 
     } while (edge != cell.incident_edge());
 
-
+  
 
     }
 
@@ -2120,15 +2476,772 @@ switch (message)
       ++cell_index;
     }
     
+   
+   rmvredundpoints(voropoi);
+   
+   
+   
+   
    localInfo->center2vorpoi.insert
-   (pair<std::tuple<double, double>,  std::vector<std::tuple<double, double>>>
+   (pair<std::tuple<double, double>, 
+   std::vector<std::tuple<double, double>>>
    (center, voropoi));
  
    
-     voropoi.clear();    
+     voropoi.clear();    //cleared for the next cell
      
-    }
+    }  
+   
+ 
+    
+     /* setting up border handling of the voronoi cells  */
+     
+     
+     
+     /* remove redundant points*/
+   
+    
+    rmvredundpoints(allpoints);
+      
+    rmvredundpoints(infedgecenter);
+        
+    rmvredundpoints(infedgepoints);
+    
+    rmvredundpoints(normaledgecenter);
+    
+    rmvredundpoints(normaledgepoints);
+    
+      
   
+   
+    
+    
+     
+    /* constructing center2neighborcenters map */
+    
+    
+    
+    for (unsigned int i = 0; i <  infedgecenter.size(); i++)  {
+         
+                 
+        std::vector<std::tuple<double, double>> neighborcenters;   
+       
+                 
+        std::tuple<double, double> nedge1 =
+        infcenter2firstinfedgepoi.at(infedgecenter[i]);
+        
+                     
+        std::tuple<double, double> nedge2 =
+        infcenter2secondinfedgepoi.at(infedgecenter[i]);  
+               
+                      
+        std::tuple<double, double> ncentercand1 =
+        infedgepoi2firstcenter.at(nedge1);  
+        
+         std::tuple<double, double> ncentercand2 =
+        infedgepoi2secondcenter.at(nedge1);  
+        
+         
+        std::tuple<double, double> ncentercand3 =
+        infedgepoi2firstcenter.at(nedge2);  
+        
+        std::tuple<double, double> ncentercand4 =
+        infedgepoi2secondcenter.at(nedge2);  
+        
+               
+        if (ncentercand1 != infedgecenter[i])
+            neighborcenters.push_back (ncentercand1);
+        
+        if (ncentercand2 != infedgecenter[i]) 
+            neighborcenters.push_back (ncentercand2);
+        
+        if (ncentercand3 != infedgecenter[i]) 
+            neighborcenters.push_back (ncentercand3);
+        
+        if (ncentercand4 != infedgecenter[i]) 
+            neighborcenters.push_back (ncentercand4);
+       
+        
+        infcenter2neighborcenters.insert
+        (pair<std::tuple<double, double>, 
+        std::vector<std::tuple<double, double>>>
+        (infedgecenter[i], neighborcenters));
+        
+        
+   
+    }
+    
+    
+    
+     
+    /* compute minx, maxx, miny and maxy from allpoints*/
+    
+     
+  
+    
+    sort(allpoints.begin(), allpoints.end(), sortyupxup); 
+    
+    miny = get<1>(allpoints[0]);
+    maxy = get<1>(allpoints[allpoints.size()-1]);
+    
+    
+    sort(allpoints.begin(), allpoints.end(), sortxupyup); 
+      
+    minx = get<0>(allpoints[0]);
+    maxx = get<0>(allpoints[allpoints.size()-1]);
+    
+   
+    
+    
+  /* Voronoi Border handling */   
+    
+    
+   
+    
+  /* testing if box is fitting and rectangle value defined*/ 
+    
+   if ( (rectme->IsDefined()) &&  
+       
+       ( (rectme->MinD(0) < minx) && (rectme->MaxD(0) > maxx) &&
+         (rectme->MinD(1) < miny) && (rectme->MaxD(1) > maxy) )  ) {
+       
+     
+   /* receiving box points from rectangle*/        
+           
+     belowleftx = rectme->MinD(0);
+     belowlefty = rectme->MinD(1);
+   
+     belowrightx = rectme->MaxD(0);
+     belowrighty = rectme->MinD(1);
+   
+     aboveleftx = rectme->MinD(0);
+     abovelefty = rectme->MaxD(1);
+   
+     aboverightx = rectme->MaxD(0);
+     aboverighty = rectme->MaxD(1);
+     
+     
+   }
+     
+    /*
+    use the dafault box if box is not fitting  or 
+    if rectangle value is undefined 
+    */ 
+       
+      
+    else {
+        
+     stretchx = (abs(maxx - minx)) / 4;
+     stretchy = (abs(maxy - miny)) / 4;
+        
+        
+     belowleftx = minx - stretchx;
+     belowlefty = miny - stretchy;
+     
+     belowrightx = maxx + stretchx;
+     belowrighty = miny - stretchy;
+   
+     aboveleftx = minx - stretchx;
+     abovelefty = maxy + stretchy;
+   
+     aboverightx = maxx + stretchx; 
+     aboverighty = maxy + stretchy;
+        
+           
+    }
+      
+      
+   
+    
+    
+  /* construct box points */ 
+   
+   
+  aboveleft = std::make_tuple(aboveleftx, abovelefty);
+  aboveright = std::make_tuple(aboverightx, aboverighty);
+  belowright = std::make_tuple(belowrightx, belowrighty);
+  belowleft = std::make_tuple(belowleftx, belowlefty);
+  
+  
+  
+ diaglenght = sqrt (pow (get<0>(belowleft) - get<0>(aboveright), 2) +
+                    pow (get<1>(belowleft) - get<1>(aboveright), 2));
+        
+  
+  
+  
+    
+    /* 
+    constructing a point and the corresponding 
+    straight line equation for infinite edges
+    */
+    
+    
+    
+    for (unsigned int i = 0; i <  infedgepoints.size(); i++)  {
+         
+         std::tuple<double, double> infovec5 =
+        infedgepoi2firstcenter.at(infedgepoints[i]);
+                               
+        std::tuple<double, double> infovec6 =
+        infedgepoi2secondcenter.at(infedgepoints[i]);  
+        
+       
+              
+        
+        double xfirst = get<0>(infovec5);
+        double xsecond = get<0>(infovec6);
+        double yfirst = get<1>(infovec5);
+        double ysecond = get<1>(infovec6);
+         
+          
+        /*
+         The result point lies on the corresponding 
+         straight line equation of the infinite edge
+        */
+        
+        double resultx = (xfirst + xsecond) / 2;
+        double resulty = (yfirst + ysecond) / 2;
+        
+        
+                  
+        infedgepoi2linepoint.insert
+        (pair<std::tuple<double, double>, 
+        std::tuple<double, double>>
+        (infedgepoints[i], std::make_tuple(resultx, resulty)));
+        
+        
+        
+        if ( !(xfirst == xsecond) &&
+             !(AlmostEqual(xfirst, xsecond)) &&
+             
+            !(yfirst == ysecond) &&
+            !(AlmostEqual(yfirst, ysecond)) )  {
+        
+        /*
+         m and b are the straight line equation parameters  for the line
+         that goes through the 2 center points. f(x) = m*x + b 
+         We only need the gradient m here.
+        */
+        
+        
+        double  m = (ysecond - yfirst) / (xsecond - xfirst);
+    
+        
+        
+        /*
+         mm and bb are the straight line equation parameters  for the line
+         that goes through the infinte edge between the 2 centers
+         The two straight lines are always perpendicular to each other, 
+         so you can determine  mm from m.        
+        */
+              
+        double mm = - 1/m;
+        double bb = resulty - (mm * resultx);
+        
+        
+        infedgepoi2lineparam.insert
+        (pair<std::tuple<double, double>,
+        std::tuple<double, double>>
+        (infedgepoints[i], std::make_tuple(mm, bb)));
+        
+       
+         
+        
+        }   
+            /* the 2 centers form a straight line with gradient 0 */
+                      
+         else if ( (yfirst == ysecond) || (AlmostEqual(yfirst, ysecond)) ) {
+         
+        
+         double dummy = std::numeric_limits<double>::infinity();
+         
+         
+             
+         /* just pushing an infinty value for identification purposes*/ 
+         
+        infedgepoi2lineparam.insert
+        (pair<std::tuple<double, double>, std::tuple<double, double>>
+        (infedgepoints[i], std::make_tuple(dummy, dummy)));
+        
+             
+             
+        }
+         
+         else {
+         
+        
+             
+         /* the two centers are perpendicular */
+         
+         double mmm = 0;
+         double bbb = resulty - (mmm * resultx);
+         
+        infedgepoi2lineparam.insert
+        (pair<std::tuple<double, double>, std::tuple<double, double>>
+        (infedgepoints[i], std::make_tuple(mmm, bbb)));
+        
+          
+         
+         }
+             
+    
+    
+    }
+    
+    
+  
+    for (unsigned int i = 0; i <  infedgepoints.size(); i++)  {
+  
+         
+        std::tuple<double, double> lineinfo =
+        infedgepoi2lineparam.at(infedgepoints[i]);
+        
+        double m = get<0>(lineinfo);
+        double t = get<1>(lineinfo);
+        
+        
+        
+        std::tuple<double, double> center1 =
+        infedgepoi2firstcenter.at(infedgepoints[i]);
+        
+        
+        
+                               
+        std::tuple<double, double> center2 =
+        infedgepoi2secondcenter.at(infedgepoints[i]);  
+        
+       
+       
+        /* normaledgepoints2normalcenters output*/
+        
+    iterone = normaledgepoints2normalcenters.find(infedgepoints[i]); 
+    
+   if (iterone !=  normaledgepoints2normalcenters.end()) {
+    
+    std::vector<std::tuple<double, double>> centerinfovec =
+    normaledgepoints2normalcenters.at(infedgepoints[i]);
+        
+    for (unsigned int j = 0; j < centerinfovec.size(); j++) {
+        
+        if ((centerinfovec[j] != center1) &&  (centerinfovec[j] != center2)) {
+            
+            testcenter = centerinfovec[j];
+                
+         }
+     
+     }
+            
+  }    
+         
+         
+         
+       
+        
+        testpointstretch = diaglenght/50;
+        
+        
+        if (isinf(m) && isinf(t)) {
+            
+         testpoint1 =  std::make_tuple(get<0>(infedgepoints[i]),
+                                       get<1>(infedgepoints[i]) + 
+                                       testpointstretch);
+         
+         testpoint2 =  std::make_tuple(get<0>(infedgepoints[i]), 
+                                       get<1>(infedgepoints[i]) - 
+                                       testpointstretch);
+        
+        }
+        
+        
+        else if (m==0) {
+           
+                testpoint1 =  std::make_tuple(get<0>(infedgepoints[i]) + 
+                              testpointstretch, get<1>(infedgepoints[i]));
+                
+                testpoint2 =  std::make_tuple(get<0>(infedgepoints[i]) - 
+                              testpointstretch, get<1>(infedgepoints[i]));
+           }
+        
+          else {
+              
+              testpoint1 =  std::make_tuple(get<0>(infedgepoints[i]) + 
+                                            testpointstretch*2, 
+                                            m * (get<0>(infedgepoints[i]) + 
+                                            testpointstretch*2) + t);
+              
+              testpoint2 =  std::make_tuple(get<0>(infedgepoints[i]) - 
+                                            testpointstretch*2, 
+                                            m * (get<0>(infedgepoints[i]) - 
+                                            testpointstretch*2) + t); 
+              
+               }
+        
+        
+        
+        /*Euklidien distance to  testcenter*/
+        
+        double distinfedgpoitotestcenter = sqrt 
+                                           (pow (get<0>(infedgepoints[i]) - 
+                                            get<0>(testcenter), 2) +
+                                            pow (get<1>(infedgepoints[i]) - 
+                                            get<1>(testcenter), 2));
+        
+       
+              
+        
+         double distinfedgpoitotestpoint1 = sqrt
+                                            (pow (get<0>(testpoint1) - 
+                                            get<0>(testcenter), 2) +
+                                            pow (get<1>(testpoint1) - 
+                                            get<1>(testcenter), 2));
+        
+        
+         double distinfedgpoitotestpoint2 = sqrt 
+                                            (pow (get<0>(testpoint2) - 
+                                            get<0>(testcenter), 2) +
+                                            pow (get<1>(testpoint2) - 
+                                            get<1>(testcenter), 2));
+        
+           
+               
+        
+        
+        
+        
+        /*looking for points added to center voropoints */
+        
+        
+      if ( (distinfedgpoitotestpoint1 >  distinfedgpoitotestcenter) )   {
+          
+         
+       
+          if (isinf(m) && isinf(t)) {
+             
+             newpoint1 =  std::make_tuple(get<0>(infedgepoints[i]), 
+                                          aboverighty);
+           }
+           
+           
+            else if (m==0) {
+                
+                
+                 newpoint1 =  std::make_tuple(belowrightx,
+                                              get<1>(infedgepoints[i]));
+                        
+             }
+            
+              /* case m<0 */
+              
+              else if (m<0)   {
+                  
+                  
+                    std::tuple<double, double> newpoint1cand1;
+                    std::tuple<double, double> newpoint1cand2;
+                    double newxval = (belowrighty - t) / m;
+                    double newyval = (m * belowrightx) + t;
+                     
+                      newpoint1cand1 = std::make_tuple(belowrightx, newyval);
+                      newpoint1cand2 = std::make_tuple(newxval, belowrighty);
+                      
+                      
+                      if ( ((belowrightx ==  newxval) && 
+                            (belowrighty == newyval)) ||
+                           (AlmostEqual (belowrightx, newxval) && 
+                            AlmostEqual (belowrighty, newyval)) ) {
+                          
+                          newpoint1 = std::make_tuple (belowrightx,
+                                                       belowrighty);
+                                          
+                       }
+                       
+                      
+                      if ((newxval > belowrightx) && (newyval > belowrighty) &&
+                          (newyval < aboverighty) ) {
+                          
+                          newpoint1 =  newpoint1cand1;
+                                      
+                         }
+                         
+                         
+                       else if   ((newyval < belowrighty) && 
+                                  (newxval < belowrightx) &&
+                                  (newxval > belowleftx) ) {
+                          
+                                    newpoint1 =  newpoint1cand2;
+                                      
+                                     }
+                                     
+                                     
+                 }              
+                                     
+                   
+                /* case m>0 */      
+               
+                
+                else 
+                    
+                {                   
+                    std::tuple<double, double> newpoint1cand1;
+                    std::tuple<double, double> newpoint1cand2;
+                    double newxval = (aboverighty - t) / m;
+                    double newyval = (m * aboverightx) + t;
+                     
+                      newpoint1cand1 = std::make_tuple(aboverightx, newyval);
+                      newpoint1cand2 = std::make_tuple(newxval, aboverighty);
+                      
+                      
+                      if ( ((aboverightx ==  newxval) && 
+                            (aboverighty == newyval)) ||
+                           (AlmostEqual (aboverightx, newxval) && 
+                            AlmostEqual (aboverighty, newyval)) ) {
+                          
+                          newpoint1 = std::make_tuple (aboverightx, 
+                                                       aboverighty);
+                                          
+                       }
+                       
+                      
+                      if ((newxval > aboverightx) && 
+                          (newyval > belowrighty) &&
+                          (newyval < aboverighty) ) {
+                          
+                          newpoint1 =  newpoint1cand1;
+                                      
+                         }
+                         
+                         
+                       else if   ((newyval > aboverighty) && 
+                                  (newxval < belowrightx) &&
+                                  (newxval > belowleftx) ) {
+                          
+                                    newpoint1 =  newpoint1cand2;
+                                      
+                                     }
+                                     
+                        
+                }
+                  
+                 
+            
+         localInfo->center2vorpoi.at(center1).push_back (newpoint1);
+         localInfo->center2vorpoi.at(center2).push_back (newpoint1);
+         
+         
+         }   
+         
+         
+         
+         
+         
+         
+         
+        
+        else if (distinfedgpoitotestpoint2 >   distinfedgpoitotestcenter)    {
+            
+            
+              
+               
+               if (isinf(m) && isinf(t)) {
+                  
+                  newpoint2 =  std::make_tuple(get<0>(infedgepoints[i]), 
+                                               belowrighty);
+                }
+                
+               
+                 else if (m==0) {                
+                        
+                       newpoint2 =  std::make_tuple(belowleftx, 
+                                                    get<1>(infedgepoints[i]));
+                        
+                     }
+                
+                
+                
+                    else if (m<0) {                        
+                        
+                      std::tuple<double, double> newpoint1cand1;
+                      std::tuple<double, double> newpoint1cand2;
+                      double newxval = (abovelefty - t) / m;
+                      double newyval = (m * aboveleftx) + t;
+                     
+                      newpoint1cand1 = std::make_tuple(aboveleftx, newyval);
+                      newpoint1cand2 = std::make_tuple(newxval, abovelefty);
+                      
+                      
+                      if ( ((aboveleftx ==  newxval) && 
+                            (abovelefty == newyval)) ||
+                           (AlmostEqual (aboveleftx, newxval) && 
+                            AlmostEqual (abovelefty, newyval)) ) {
+                          
+                          newpoint2 = std::make_tuple (aboveleftx, abovelefty);
+                                          
+                       }
+                       
+                      
+                      if ((newxval < aboveleftx) && (newyval > belowlefty) &&
+                          (newyval < abovelefty) ) {
+                          
+                          newpoint2 =  newpoint1cand1;
+                                      
+                         }
+                         
+                         
+                       else if   ((newyval > abovelefty) && 
+                                  (newxval < belowrightx) &&
+                                  (newxval > belowleftx) ) {
+                          
+                                    newpoint2 =  newpoint1cand2;
+                                      
+                                     } 
+                        
+                        
+                        
+
+                        
+                        
+                        
+                       
+                        
+                    }
+                
+                
+                
+                else {
+                    
+                    std::tuple<double, double> newpoint1cand1;
+                    std::tuple<double, double> newpoint1cand2;
+                    double newxval = (belowlefty - t) / m;
+                    double newyval = (m * belowleftx) + t;
+                     
+                      newpoint1cand1 = std::make_tuple(belowleftx, newyval);
+                      newpoint1cand2 = std::make_tuple(newxval, belowlefty);
+                      
+                      
+                      if ( ((belowleftx ==  newxval) && 
+                           (belowlefty == newyval)) ||
+                           (AlmostEqual (belowleftx, newxval) && 
+                            AlmostEqual (belowlefty, newyval)) ) {
+                          
+                          newpoint2 = std::make_tuple (belowleftx, belowlefty);
+                                          
+                       }
+                       
+                      
+                      if ((newxval < belowleftx) && 
+                          (newyval > belowlefty) &&
+                          (newyval < abovelefty) ) {
+                          
+                          newpoint2 =  newpoint1cand1;
+                                      
+                         }
+                         
+                         
+                       else if   ((newyval < belowlefty) && 
+                                  (newxval < belowrightx) &&
+                                  (newxval > belowleftx) ) {
+                          
+                                    newpoint2 =  newpoint1cand2;
+                                      
+                                     }
+                  }
+                
+                
+            
+         localInfo->center2vorpoi.at(center1).push_back (newpoint2);
+         localInfo->center2vorpoi.at(center2).push_back (newpoint2);
+                
+                
+         
+            
+                
+           }
+                
+                
+      /*nothing is done here */ 
+                 
+            
+     } 
+        
+     /*end of for*/
+             
+      
+        
+        
+           
+        
+        
+        
+    /* distribute the 4 box edge points to the right voronoicells*/   
+        
+    
+    
+    
+    
+    for (unsigned int i = 0; i < infedgecenter.size(); i++)  {
+         int countymaxvals = 0; 
+         int countyminvals = 0;
+         int countxminvals = 0;
+         int countxmaxvals = 0;
+         
+         
+        
+         std::vector<std::tuple<double, double>> infovec =
+         localInfo->center2vorpoi.at(infedgecenter[i]);
+        
+        
+       for (unsigned int j = 0; j < infovec.size(); j++) {
+       
+       
+       
+         if (get<0>(infovec[j]) == belowleftx) countxminvals++;
+         
+         if (get<0>(infovec[j]) == belowrightx) countxmaxvals++;      
+         
+         if (get<1>(infovec[j]) == belowlefty) countyminvals++;
+         
+         if (get<1>(infovec[j]) == abovelefty) countymaxvals++;    
+        
+            
+         }
+         
+        
+         
+         
+         if ((countxminvals == 1) && (countyminvals == 1)) {
+             
+          localInfo->center2vorpoi.at(infedgecenter[i]).push_back
+                                                      (belowleft);
+          
+         }
+          
+         else if ((countxminvals == 1) && (countymaxvals == 1)) {
+                        
+             localInfo->center2vorpoi.at(infedgecenter[i]).push_back
+                                                         (aboveleft);
+             
+              }
+         
+         else if ((countxmaxvals == 1) && (countymaxvals == 1)) {
+                
+              localInfo->center2vorpoi.at(infedgecenter[i]).push_back
+                                                         (aboveright);         
+             
+               }
+             
+         
+         else if ((countxmaxvals == 1) && (countyminvals == 1)) {
+             
+               localInfo->center2vorpoi.at(infedgecenter[i]).push_back
+                                                        (belowright);}
+         
+         
+              }     
+    
+    
+    
+      
+        
       return 0;
       
     }
@@ -2137,7 +3250,9 @@ switch (message)
   
    
  case REQUEST: {
-  
+     
+    
+       
    TupleType *tupleType = (TupleType*)local.addr;
    Tuple *newTuple = new Tuple( tupleType );
    
@@ -2148,7 +3263,7 @@ switch (message)
    std::vector<std::tuple<double, double>> tmpo;
    std::vector<std::tuple<double, double>> dummy;
    
-   bool checkokflag;
+   int checkokflag;
    
    double xv, yv;
    
@@ -2159,8 +3274,7 @@ switch (message)
     /*calculate max attribute position*/            
     maxattrpos = localInfo->attrcount - 1;
     
-    Convex* conv2;
-       
+    
     
         
    
@@ -2175,11 +3289,13 @@ switch (message)
      }
      
      
-              
+    
      search =  std::make_tuple(xv, yv);
      
      iter = localInfo->center2vorpoi.find(search);
-         
+      
+    
+     
   
    
    if (iter !=localInfo->center2vorpoi.end())   {
@@ -2188,40 +3304,40 @@ switch (message)
         
    /* setting up the new tuple*/
    
-   tmpo = localInfo->center2vorpoi.at(search);   
-   
-   checkokflag = checkme(tmpo);
-   
-   if (checkokflag == true) {
-    
-   Convex* conv = new Convex(tmpo);
-   
-   conv2 = conv;
-   
-      
-   }
-   
-  else { 
-      
-      
-     Convex* conv = new Convex(false);
-     conv2 = conv;
-     
-  }
-   
-   
-   
    for( int i = 0; i < tup->GetNoAttributes(); i++ ) {
    
         newTuple->CopyAttribute( i, tup, i );
        }
-        
+   
     
-   newTuple->PutAttribute(maxattrpos+1, conv2);        
+   tmpo = localInfo->center2vorpoi.at(search);   
+   
+   
+   
+   
+  checkokflag = checkme(tmpo, localInfo->checkon);
   
+   
+   
+   if ((checkokflag == 1) || (checkokflag == 2)) {
+    
+   Convex* conv = new Convex(tmpo);
+   newTuple->PutAttribute(maxattrpos+1, conv);        
    result = SetWord(newTuple);
    
-  
+      
+   }
+   
+     else { 
+      
+      
+    Convex* conv = new Convex(false);
+    newTuple->PutAttribute(maxattrpos+1, conv);        
+    result = SetWord(newTuple);
+   
+     
+    }
+   
    
    return YIELD;
    
@@ -2229,7 +3345,7 @@ switch (message)
    
    else { // not possible
        
-       
+   
          
    Convex* conv2 = new Convex(false);
    
@@ -2313,7 +3429,7 @@ switch (message)
 
 const string createconvexSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-    "( <text>stream(points)  -> convex </text--->"
+    "( <text>stream(points) x bool -> convex </text--->"
     "<text>_ createconvex </text--->"
     "<text>Creates a convex polygon in form of a point sequence "
     "starting from the left point in clockwise order."    
@@ -2322,9 +3438,11 @@ const string createconvexSpec  =
     "if the input point sequence form a convex polygon. "
     "Otherwise undef is returned either if the point stream "
     "does not form a convex polygon or " 
-    "any other error occurs </text--->"    
+    "any other error occurs. With the bool parameter, you can switch on/off "
+    " the convex test. Be sure that your data form convex polygons when "
+    "you switch it to FALSE. With TRUE the test is enabled </text--->"    
     "<text> query Kinos feed head [3] projecttransformstream[GeoData] "
-    "createconvex </text--->"
+    "createconvex[TRUE] </text--->"
     ") )";
     
 
@@ -2332,21 +3450,34 @@ const string createconvexSpec  =
     
  const string voronoiSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-    "( <text>((stream (tuple (..., (ak1 Tk1),...))) x ak1 x ak2 "
-    "-> (stream (tuple (..., (ak1 Tk1),..., (ak2 Tk2))))) "
-    "<text>__ voronoi [ list ] </text--->"
+    "( <text>((stream (tuple (..., (ak1 Tk1),...))) x ak1 x ak2 x rect x bool"
+    "-> (stream (tuple (..., (ak1 Tk1),..., "
+    "(ak2 Tk2))))) </text--->"
+    "<text>_ voronoi [ list ] </text--->"
     "<text>Expands each tuple of the relation with a convex polygon "
     " representing the voronoi cell that belongs to the "
     "centerpoint specified "    
-    " with point value Tk1 of the attribute ak1.  The complete voronoi "
+    " with point value Tk1 of the attribute ak1. The complete voronoi "
     " diagramm is set up with "
     " all points of ak1 from all tuples, in other words with "
     "all points of the "
     " ak1 column of the relation. "
     "The value of ak2 ist the type convex forming a convex polygon "
     "representing the voronoi region "
-    "that is corresponding to the point value of ak1 </text--->"    
-    "<text> query testrel feed voronoi [p, conv ] </text--->" 
+    "that is corresponding to the point value of ak1. "     
+    "The rect paramater specifies a rectangle "
+    " forming the bounding box of the voronoi diagram. If the diagram fits "
+    "in the box the rectangle values are used. The sequence of parameters "
+    "for the rectangle values must be (minx, maxx, miny, maxy). "
+    " If the diagram do not fit in the rectangle box, a default box is used "
+    " derived from the expansion of the voronoi diagram." 
+    " With the last parameter you can switch on/off the convex polygon test. "
+    " When TRUE is set the contructed polygons are explicit tested "
+    " if they are convex. Choose FALSE, when you are sure about "
+    "that property and "
+    " you want to leave out the test.</text--->"    
+    "<text> query testrel feed voronoi [p, conv, "
+    "[const rect value (-10 9 2 )], TRUE] </text--->" 
     ") )";
     
     
