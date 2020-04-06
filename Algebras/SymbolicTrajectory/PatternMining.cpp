@@ -275,7 +275,7 @@ void FPTree::updateNodeLink(string& label, unsigned int targetPos) {
   else { // node link for label exists
     unsigned int link = it->second;
     unsigned int currentPos = 0;
-    while (link != UINT_MAX) { // find end of node link
+    while (link != 0) { // find end of node link
       currentPos = link;
       link = nodes[link].nodeLink;
     }
@@ -311,7 +311,7 @@ void FPTree::insertLabelVector(const vector<string>& labelsOrdered) {
       nodePos = nodes.size() - 1;
     }
   }
-  cout << ">>> SUCCESSFULLY inserted" << endl;
+  cout << "   ... SUCCESSFULLY inserted" << endl;
 }
 
 /*
@@ -383,7 +383,7 @@ ListExpr FPTree::getNodeLinksList(string label) {
   ListExpr result = nl->OneElemList(nl->IntAtom(link));
   ListExpr nodeLinkList = result;
   link = nodes[link].nodeLink;
-  while (link != UINT_MAX) {
+  while (link != 0) {
     nodeLinkList = nl->Append(nodeLinkList, nl->IntAtom(link));
     link = nodes[link].nodeLink;
   }
@@ -446,10 +446,13 @@ bool FPTree::Save(SmiRecord& valueRecord, size_t& offset,
       return false;
     }
     offset += sizeof(unsigned int);
-    if (!valueRecord.Write(&label, labelLength, offset)) {
+    char labelArray[labelLength + 1]; 
+    strcpy(labelArray, label.c_str()); 
+//     const char* labelPtr = label.c_str();
+    if (!valueRecord.Write(&labelArray, labelLength + 1, offset)) {
       return false;
     }
-    offset += labelLength;
+    offset += labelLength + 1;
     frequency = tree->nodes[i].frequency;
     if (!valueRecord.Write(&frequency, sizeof(unsigned int), offset)) {
       return false;
@@ -485,11 +488,13 @@ bool FPTree::Save(SmiRecord& valueRecord, size_t& offset,
     if (!valueRecord.Write(&labelLength, sizeof(unsigned int), offset)) {
       return false;
     }
-    offset += labelLength;
-    if (!valueRecord.Write(&label, sizeof(label), offset)) {
+    offset += sizeof(unsigned int);
+    char labelArray[labelLength + 1]; 
+    strcpy(labelArray, label.c_str()); 
+    if (!valueRecord.Write(&labelArray, labelLength + 1, offset)) {
       return false;
     }
-    offset += sizeof(label);
+    offset += labelLength + 1;
     nodeLink = it->second;
     if (!valueRecord.Write(&nodeLink, sizeof(unsigned int), offset)) {
       return false;
@@ -502,7 +507,6 @@ bool FPTree::Save(SmiRecord& valueRecord, size_t& offset,
 bool FPTree::Open(SmiRecord& valueRecord, size_t& offset,
                   const ListExpr typeInfo, Word& value) {
   FPTree *tree = new FPTree();
-  string label;
   unsigned int labelLength, noNodes, frequency, noChildren, child, nodeLink,
                noNodeLinks;
   if (!valueRecord.Read(&noNodes, sizeof(unsigned int), offset)) {
@@ -514,10 +518,13 @@ bool FPTree::Open(SmiRecord& valueRecord, size_t& offset,
       return false;
     }
     offset += sizeof(unsigned int);
-    if (!valueRecord.Read(&label, labelLength, offset)) {
+    char labelArray[labelLength + 1];
+    if (!valueRecord.Read(&labelArray, labelLength + 1, offset)) {
       return false;
     }
-    offset += labelLength;
+    string label(labelArray);
+    offset += labelLength + 1;
+    strcpy(labelArray, label.c_str()); 
     if (!valueRecord.Read(&frequency, sizeof(unsigned int), offset)) {
       return false;
     }
@@ -538,8 +545,8 @@ bool FPTree::Open(SmiRecord& valueRecord, size_t& offset,
       return false;
     }
     offset += sizeof(unsigned int);
-    cout << "create node: " << label << ", " << frequency << ", " 
-         << children.size() << ", " << nodeLink << endl;
+//     cout << "create node: " << label << ", " << frequency << ", " 
+//          << children.size() << ", " << nodeLink << endl;
     FPNode node(label, frequency, children, nodeLink);
     tree->nodes.push_back(node);
   }
@@ -552,16 +559,20 @@ bool FPTree::Open(SmiRecord& valueRecord, size_t& offset,
       return false;
     }
     offset += sizeof(unsigned int);
-    if (!valueRecord.Read(&label, labelLength, offset)) {
+    char labelArray[labelLength + 1];
+    if (!valueRecord.Read(&labelArray, labelLength + 1, offset)) {
       return false;
     }
-    offset += labelLength;
+    string label(labelArray);
+    offset += labelLength + 1;
     if (!valueRecord.Read(&nodeLink, sizeof(unsigned int), offset)) {
       return false;
     }
     offset += sizeof(unsigned int);
+//     cout << "create nodeLink: " << label << " --> " << nodeLink << endl;
     tree->nodeLinks.insert(tree->nodeLinks.begin(), make_pair(label, nodeLink));
   }
+  value.setAddr(tree);
   return true;
 }
 

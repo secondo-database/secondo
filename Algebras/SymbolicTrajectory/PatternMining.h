@@ -124,7 +124,7 @@ struct compareLabelsWithSupp {
 
 struct FPNode {
   FPNode() {}
-  FPNode(const std::string& l) : label(l), frequency(1), nodeLink(UINT_MAX) {}
+  FPNode(const std::string& l) : label(l), frequency(1), nodeLink(0) {}
   FPNode(const std::string& l, const unsigned f, 
          const std::vector<unsigned int>& c, const unsigned int nl) :
                             label(l), frequency(f), children(c), nodeLink(nl) {}
@@ -134,7 +134,7 @@ struct FPNode {
   std::string label;
   unsigned int frequency;
   std::vector<unsigned int> children; // positions of all children
-  unsigned int nodeLink; // position of successor in node link
+  unsigned int nodeLink; // position of successor in node link; 0 means no link
 };
 
 extern TypeConstructor fptreeTC;
