@@ -23,6 +23,98 @@
                     (2.0 0.0)) 
                 ("Oiart" 4242 
                     (4.0 -4.0)))) 
+        (OBJECT convtest2 
+            () 
+            (rel 
+                (tuple 
+                    (
+                        (Name string) 
+                        (Matrn int) 
+                        (Punkt point)))) 
+            (
+                ("Hans" 1221 
+                    (0.0 0.0)) 
+                ("Karl" 1121 
+                    (4.0 4.0)) 
+                ("Kuil" 2121 
+                    (-4.0 4.0)) 
+                ("Huop" 1222 
+                    (-4.0 -4.0)) 
+                ("Kaal" 9128 
+                    (2.0 0.0)) 
+                ("Hhaal" 9128 
+                    (-6.0 8.0)) 
+                ("Oiart" 4242 
+                    (4.0 -4.0)))) 
+        (OBJECT convtest3 
+            () 
+            (rel 
+                (tuple 
+                    (
+                        (Name string) 
+                        (Matrn int) 
+                        (Punkt point)))) 
+            (
+                ("Hans" 1221 
+                    (0.0 0.0)) 
+                ("Karl" 1121 
+                    (4.0 4.0)) 
+                ("Kuil" 2121 
+                    (-4.0 4.0)) 
+                ("Huop" 1222 
+                    (-4.0 -4.0)) 
+                ("Kaal" 9128 
+                    (2.0 0.0)) 
+                ("Hhaal" 9128 
+                    (6.0 8.0)) 
+                ("Oiart" 4242 
+                    (4.0 -4.0)))) 
+        (OBJECT convtest4 
+            () 
+            (rel 
+                (tuple 
+                    (
+                        (Name string) 
+                        (Matrn int) 
+                        (Punkt point)))) 
+            (
+                ("Hans" 1221 
+                    (0.0 0.0)) 
+                ("Karl" 1121 
+                    (4.0 4.0)) 
+                ("Kuil" 2121 
+                    (-4.0 4.0)) 
+                ("Huop" 1222 
+                    (-4.0 -4.0)) 
+                ("Kaal" 9128 
+                    (2.0 0.0)) 
+                ("Hhaal" 9128 
+                    (6.0 -8.0)) 
+                ("Oiart" 4242 
+                    (4.0 -4.0)))) 
+        (OBJECT convtest5 
+            () 
+            (rel 
+                (tuple 
+                    (
+                        (Name string) 
+                        (Matrn int) 
+                        (Punkt point)))) 
+            (
+                ("Hans" 1221 
+                    (0.0 0.0)) 
+                ("Karl" 1121 
+                    (4.0 4.0)) 
+                ("Kuil" 2121 
+                    (-4.0 4.0)) 
+                ("Huop" 1222 
+                    (-4.0 -4.0)) 
+                ("Kaal" 9128 
+                    (2.0 0.0)) 
+                ("Hhaal" 9128 
+                    (-6.0 -8.0)) 
+                ("Oiart" 4242 
+                    (4.0 -4.0)))) 
         (OBJECT findop 
             () 
             (map string 
@@ -47,4 +139,30 @@
                             (streamelem_1 STREAMELEM) 
                             (contains 
                                 (attr streamelem_1 Name) 
+                                arg)))))) 
+        (OBJECT findtype 
+            () 
+            (map string 
+                (rel 
+                    (tuple 
+                        (
+                            (Type string) 
+                            (Algebra string) 
+                            (Signature text) 
+                            (TypeListExample text) 
+                            (ListRep text) 
+                            (ValueListExample text) 
+                            (CppClassSize int) 
+                            (NumOfFlobs int) 
+                            (PersistencyMode string) 
+                            (Remark text))))) 
+            (fun 
+                (arg string) 
+                (consume 
+                    (filter 
+                        (feed SEC2TYPEINFO) 
+                        (fun 
+                            (streamelem_1 STREAMELEM) 
+                            (contains 
+                                (attr streamelem_1 Type) 
                                 arg))))))))
