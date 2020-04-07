@@ -2059,9 +2059,7 @@ switch (message)
        std::vector<std::tuple<double, double>> infedgecenter;      
        std::vector<std::tuple<double, double>> voropoitemp;
        std::vector<std::tuple<double, double>> infedgepoints;   
-       std::vector<std::tuple<double, double>> normaledgecenter;   
-       std::vector<std::tuple<double, double>> normaledgepoints;   
-       
+            
        
        map<std::tuple<double, double>, 
            std::tuple<double, double>>  infedgepoi2firstcenter;
@@ -2108,31 +2106,8 @@ switch (message)
        iterator iterone = normaledgepoints2normalcenters.begin();   
    
        
-       
-      
-           /*
-          
-      map<std::tuple<double, double>,  std::tuple<double, double>>::
-       iterator infedgepoiiterfirst = infedgepoi2firstcenter.begin(); 
-       
-      
-      map<std::tuple<double, double>,  std::tuple<double, double>>::
-       iterator infedgepoiitersecond = infedgepoi2secondcenter.begin(); 
-       
-       
-       
-       
-       map<std::tuple<double, double>,  std::tuple<double, double>>::
-       iterator centeriterfirst = infcenter2firstinfedgepoi.begin(); 
-       
-      
-      map<std::tuple<double, double>,  std::tuple<double, double>>::
-       iterator centeritersecond = infcenter2secondinfedgepoi.begin(); 
-       
-       
-       
-       */
-       
+             
+    
     
    
        
@@ -2292,20 +2267,11 @@ switch (message)
        std::tuple<double, double> 
        edgepoitemp2  = std::make_tuple((edge->vertex1())->x(),
                                        (edge->vertex1())->y());
-        
-        
-       normaledgecenter.push_back(edgecentertemp);      
-       normaledgepoints.push_back(edgepoitemp1);
-       normaledgepoints.push_back(edgepoitemp2);
-       
+         
         
        vectemp.push_back (edgecentertemp);
        
-        
-        
-        
-        
-        
+              
        
         iterone = normaledgepoints2normalcenters.find(edgepoitemp1);
       
@@ -2416,9 +2382,7 @@ switch (message)
       if( (edge->vertex1() != NULL) && 
           (edge->vertex0() == NULL))  {
 
-      //voropoi.push_back(std::make_tuple((edge->vertex1())->x(), 
-      //                                  (edge->vertex1())->y()));
-        
+     
           
           
          allpoints.push_back(
@@ -2507,9 +2471,7 @@ switch (message)
         
     rmvredundpoints(infedgepoints);
     
-    rmvredundpoints(normaledgecenter);
     
-    rmvredundpoints(normaledgepoints);
     
       
   
@@ -3358,8 +3320,10 @@ switch (message)
     
     newTuple->PutAttribute(maxattrpos+1, conv2);        
   
-    result = SetWord(newTuple);       
-       
+    result = SetWord(newTuple);    
+    
+    
+  
    return YIELD;
    
    }
@@ -3369,7 +3333,13 @@ switch (message)
     
    }
    
-   else return CANCEL; 
+   else {
+        
+        delete newTuple;
+        return CANCEL; 
+   }
+       
+       
    
    return 0;
  }
