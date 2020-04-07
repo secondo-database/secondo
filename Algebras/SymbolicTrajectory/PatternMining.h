@@ -39,6 +39,7 @@ struct AggEntry {
            Rect& rect);
 
   void clear();
+  ListExpr toListExpr();
   unsigned int getNoOccurrences(const TupleId& id) const;
   datetime::DateTime getDuration() const {return duration;}
   void computeCommonTimeInterval(const std::set<TupleId>& commonTupleIds,
@@ -139,46 +140,6 @@ struct FPNode {
 
 extern TypeConstructor fptreeTC;
 
-struct RelAgg;
-
-class FPTree {
- public:
-  FPTree() {}
-  FPTree(FPTree *tree) : nodes(tree->nodes), nodeLinks(tree->nodeLinks) {}
-  
-  void clear() {nodes.clear(); nodeLinks.clear();}
-  bool hasNodes() {return !nodes.empty();}
-  bool hasNodeLinks () {return !nodeLinks.empty();}
-  unsigned int getNoNodes() {return nodes.size();}
-  unsigned int getNoNodeLinks() {return nodeLinks.size();}
-  bool isChildOf(std::string& label, unsigned int pos, unsigned int& nextPos);
-  void updateNodeLink(std::string& label, unsigned int targetPos);
-  void insertLabelVector(const std::vector<std::string>& labelsOrdered);
-  void construct(RelAgg *agg);
-  void initialize();
-  
-  static const std::string BasicType() {return "fptree";}
-  static ListExpr Property();
-  static Word In(const ListExpr typeInfo, const ListExpr instance,
-                 const int errorPos, ListExpr& errorInfo, bool& correct);
-  ListExpr getNodeLinksList(std::string label);
-  static ListExpr Out(ListExpr typeInfo, Word value);
-  static Word Create(const ListExpr typeInfo);
-  static void Delete(const ListExpr typeInfo, Word& w);
-  static bool Save(SmiRecord& valueRecord, size_t& offset,
-                   const ListExpr typeInfo, Word& value);
-  static bool Open(SmiRecord& valueRecord, size_t& offset,
-                   const ListExpr typeInfo, Word& value);
-  static void Close(const ListExpr typeInfo, Word& w);
-  static Word Clone(const ListExpr typeInfo, const Word& w);
-  static int SizeOfObj();
-  static bool TypeCheck(ListExpr type, ListExpr& errorInfo);
-  
- private:
-  std::vector<FPNode> nodes; // nodes[0] represents root
-  std::map<std::string, unsigned int> nodeLinks; // pointer to 1st node of link
-};
-
 /*
 
 The original mlabel objects are transformed into a map from a label onto a set
@@ -247,6 +208,48 @@ struct RelAgg {
   Geoid *geoid;
   Relation *rel;
   NewPair<int, int> attrPos; // textual, spatial
+};
+
+class FPTree {
+ public:
+  FPTree() {}
+  FPTree(FPTree *tree) : 
+    minSupp(tree->minSupp), nodes(tree->nodes), nodeLinks(tree->nodeLinks) {}
+  
+  void clear() {nodes.clear(); nodeLinks.clear();}
+  bool hasNodes() {return !nodes.empty();}
+  bool hasNodeLinks() {return !nodeLinks.empty();}
+  bool hasAggEntries() {return !agg->entries.empty();}
+  unsigned int getNoNodes() {return nodes.size();}
+  unsigned int getNoNodeLinks() {return nodeLinks.size();}
+  bool isChildOf(std::string& label, unsigned int pos, unsigned int& nextPos);
+  void updateNodeLink(std::string& label, unsigned int targetPos);
+  void insertLabelVector(const std::vector<std::string>& labelsOrdered);
+  void construct();
+  void initialize(const double ms, RelAgg *ra);
+  
+  static const std::string BasicType() {return "fptree";}
+  static ListExpr Property();
+  static Word In(const ListExpr typeInfo, const ListExpr instance,
+                 const int errorPos, ListExpr& errorInfo, bool& correct);
+  ListExpr getNodeLinksList(std::string label);
+  static ListExpr Out(ListExpr typeInfo, Word value);
+  static Word Create(const ListExpr typeInfo);
+  static void Delete(const ListExpr typeInfo, Word& w);
+  static bool Save(SmiRecord& valueRecord, size_t& offset,
+                   const ListExpr typeInfo, Word& value);
+  static bool Open(SmiRecord& valueRecord, size_t& offset,
+                   const ListExpr typeInfo, Word& value);
+  static void Close(const ListExpr typeInfo, Word& w);
+  static Word Clone(const ListExpr typeInfo, const Word& w);
+  static int SizeOfObj();
+  static bool TypeCheck(ListExpr type, ListExpr& errorInfo);
+  
+ private:
+  double minSupp;
+  std::vector<FPNode> nodes; // nodes[0] represents root
+  std::map<std::string, unsigned int> nodeLinks; // pointer to 1st node of link
+  RelAgg *agg;
 };
 
 struct GetPatternsLI {

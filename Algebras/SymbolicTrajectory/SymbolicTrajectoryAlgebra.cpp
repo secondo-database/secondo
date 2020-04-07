@@ -6327,9 +6327,8 @@ int createfptreeVM(Word* args, Word& result, int message, Word& local,
     agg->scanRelation(rel, NewPair<int, int>(posTextual->GetValue(), 
                                              posSpatial->GetValue()), geoid);
     agg->filter(suppmin->GetValue(), qp->GetMemorySize(s));
-    tree->initialize();
-    tree->construct(agg);
-    delete agg;
+    tree->initialize(suppmin->GetValue(), agg);
+    tree->construct();
   }
   return 0;
 }
@@ -6349,6 +6348,24 @@ const string createfptreeSpec =
 
 Operator createfptree("createfptree", createfptreeSpec, createfptreeVM, 
                      Operator::SimpleSelect, createfptreeTM);
+
+
+// TODO: operator minefptree
+// /*
+//  \subsection{Operator Info}
+// 
+// */
+// const string minefptreeSpec =
+//   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+//   "( <text> rel(tuple(X)) x ATTR x ATTR x fptree x int x int --> </text--->"
+//   "<text> _ createfptree[ _ , _ , _ ] </text--->"
+//   "<text> Computes an FP-tree from a relation, two attribute names, and a \n"
+//   "real number (minimum support).</text--->"
+//   "<text> query Dotraj feed createfptree[Trajectory, X, 0.5] getTypeNL\n"
+//   "</text--->) )";
+// 
+// Operator minefptree("minefptree", minefptreeSpec, minefptreeVM, 
+//                      Operator::SimpleSelect, minefptreeTM);
 
 /*
 \section{Class ~SymbolicTrajectoryAlgebra~}
@@ -6755,6 +6772,9 @@ class SymbolicTrajectoryAlgebra : public Algebra {
   
   AddOperator(&createfptree);
   createfptree.SetUsesMemory();
+  
+//   AddOperator(&minefptree);
+//   minefptree.SetUsesMemory();
   
   }
   ~SymbolicTrajectoryAlgebra() {}

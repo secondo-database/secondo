@@ -63,6 +63,32 @@ void AggEntry::clear() {
   duration.SetType(datetime::durationtype);
   duration.ReadFrom((int64_t)0);
 }
+
+ListExpr AggEntry::toListExpr() {
+  ListExpr occsList(nl->Empty()), occList(nl->Empty());
+  map<TupleId, NewPair<temporalalgebra::Periods*, Rect> >::iterator it =
+                                                            occurrences.begin();
+  Word perWord, rectWord;
+  if (it != occurrences.end()) {
+    perWord.addr = it->second.first;
+    rectWord.addr = &(it->second.second);
+    occsList = nl->OneElemList(nl->ThreeElemList(nl->IntAtom(it->first),
+                           OutRange<Instant, OutDateTime>(nl->Empty(), perWord),
+                           OutRectangle<2>(nl->Empty(), rectWord)));
+    occList = occsList;
+  }
+  it++;
+  while (it != occurrences.end()) {
+    perWord.addr = it->second.first;
+    rectWord.addr = &(it->second.second);
+    occList = nl->Append(occList, nl->ThreeElemList(nl->IntAtom(it->first),
+                           OutRange<Instant, OutDateTime>(nl->Empty(), perWord),
+                           OutRectangle<2>(nl->Empty(), rectWord)));
+    it++;
+  }
+  return nl->ThreeElemList(nl->IntAtom(noOccurrences), 
+                           duration.ToListExpr(false), occsList);
+}
   
 unsigned int AggEntry::getNoOccurrences(const TupleId& id) const {
   auto it = occurrences.find(id);
@@ -318,7 +344,7 @@ void FPTree::insertLabelVector(const vector<string>& labelsOrdered) {
   Class ~FPTree~, Function ~construct~
 
 */
-void FPTree::construct(RelAgg *agg) {
+void FPTree::construct() {
   GenericRelationIterator* it = agg->rel->MakeScan();
   MLabel *ml = 0;
   Tuple *tuple = 0;
@@ -333,7 +359,7 @@ void FPTree::construct(RelAgg *agg) {
       ml->GetValue(j, label);
       NewPair<string, double> labelWithSupp(label, 
                                             agg->getSuppForFreqLabel(label));
-      if (labelWithSupp.second >= agg->minSupp) {
+      if (labelWithSupp.second >= minSupp) {
         labelsWithSupp.insert(labelWithSupp);
       }
     }
@@ -350,10 +376,12 @@ void FPTree::construct(RelAgg *agg) {
   Class ~FPTree~, Function ~initialize~
 
 */
-void FPTree::initialize() {
+void FPTree::initialize(const double ms, RelAgg *ra) {
+  minSupp = ms;
   FPNode node("<ROOT>");
   node.frequency = 0;
   nodes.push_back(node); // create dummy node for root
+  agg = ra;
 }
 
 /*
@@ -392,8 +420,11 @@ ListExpr FPTree::getNodeLinksList(string label) {
 
 ListExpr FPTree::Out(ListExpr typeInfo, Word value) {
   FPTree *tree = (FPTree*)value.addr;
-  ListExpr nodesList(nl->Empty()), nodeList, nodeLinksList(nl->Empty()),
-           nodeLinkList;
+  ListExpr nodesList(nl->Empty()), nodeList(nl->Empty()),
+           nodeLinksList(nl->Empty()), nodeLinkList(nl->Empty()), 
+           relAggList(nl->Empty()), relAggsList(nl->Empty());
+  ListExpr minSuppList = nl->TwoElemList(nl->SymbolAtom("minSupp"),
+                                         nl->RealAtom(tree->minSupp));
   if (tree->hasNodes()) {
     nodesList = nl->OneElemList(tree->nodes[0].toListExpr());
     nodeList = nodesList;
@@ -414,7 +445,18 @@ ListExpr FPTree::Out(ListExpr typeInfo, Word value) {
                                             tree->getNodeLinksList(it->first)));
     it++;
   }
-  return nl->TwoElemList(nodesList, nodeLinksList);
+  if (tree->hasAggEntries()) {
+    relAggsList = nl->OneElemList(nl->TwoElemList(
+                                  nl->SymbolAtom(tree->agg->entries[0].first),
+                                  tree->agg->entries[0].second.toListExpr()));
+    relAggList = relAggsList;
+  }
+  for (unsigned int i = 1; i < tree->agg->entries.size(); i++) {
+    relAggList = nl->Append(relAggList, nl->TwoElemList(
+                                   nl->SymbolAtom(tree->agg->entries[i].first),
+                                   tree->agg->entries[i].second.toListExpr()));
+  }
+  return nl->FourElemList(minSuppList, nodesList, nodeLinksList, relAggsList);
 }
 
 Word FPTree::Create(const ListExpr typeInfo) {
@@ -432,13 +474,21 @@ void FPTree::Delete(const ListExpr typeInfo, Word& w) {
 bool FPTree::Save(SmiRecord& valueRecord, size_t& offset,
                   const ListExpr typeInfo, Word& value) {
   FPTree *tree = (FPTree*)value.addr;
+  // store minSupp
+  if (!valueRecord.Write(&tree->minSupp, sizeof(double), offset)) {
+    return false;
+  }
+  offset += sizeof(double);
+  // store noNodes
   unsigned int noNodes = tree->getNoNodes();
   if (!valueRecord.Write(&noNodes, sizeof(unsigned int), offset)) {
     return false;
   }
   offset += sizeof(unsigned int);
+  // store nodes
   string label;
-  unsigned int labelLength, frequency, noChildren, child, nodeLink;
+  unsigned int labelLength, frequency, noChildren, child, nodeLink, noOccs;
+  double durD;
   for (unsigned int i = 0; i < noNodes; i++) { // store nodes
     label = tree->nodes[i].label;
     labelLength = label.length();
@@ -448,7 +498,6 @@ bool FPTree::Save(SmiRecord& valueRecord, size_t& offset,
     offset += sizeof(unsigned int);
     char labelArray[labelLength + 1]; 
     strcpy(labelArray, label.c_str()); 
-//     const char* labelPtr = label.c_str();
     if (!valueRecord.Write(&labelArray, labelLength + 1, offset)) {
       return false;
     }
@@ -476,11 +525,13 @@ bool FPTree::Save(SmiRecord& valueRecord, size_t& offset,
     }
     offset += sizeof(unsigned int);
   }
+  // store noNodeLinks
   unsigned int noNodeLinks = tree->getNoNodeLinks();
   if (!valueRecord.Write(&noNodeLinks, sizeof(unsigned int), offset)) {
     return false;
   }
   offset += sizeof(unsigned int);
+  // store nodeLinks
   for (map<string, unsigned int>::iterator it = tree->nodeLinks.begin();
        it != tree->nodeLinks.end(); it++) { // store nodeLinks
     label = it->first;
@@ -501,14 +552,86 @@ bool FPTree::Save(SmiRecord& valueRecord, size_t& offset,
     }
     offset += sizeof(unsigned int);
   }
+  // store ~entries~ and ~inv~ from relAgg
+  unsigned int noAggEntries = tree->agg->entries.size();
+  if (!valueRecord.Write(&noAggEntries, sizeof(unsigned int), offset)) {
+    return false;
+  }
+  offset += sizeof(unsigned int);
+  Word perVal;
+  SecondoCatalog *sc = SecondoSystem::GetCatalog();
+  ListExpr ptList = sc->NumericType(nl->SymbolAtom(Periods::BasicType()));
+  for (unsigned int i = 0; i < noAggEntries; i++) {
+    label = tree->agg->entries[i].first;
+    labelLength = label.length();
+    if (!valueRecord.Write(&labelLength, sizeof(unsigned int), offset)) {
+      return false;
+    }
+    offset += sizeof(unsigned int);
+    char labelArray[labelLength + 1];
+    strcpy(labelArray, label.c_str());
+    if (!valueRecord.Write(&labelArray, labelLength + 1, offset)) {
+      return false;
+    }
+    offset += labelLength + 1;
+    if (!valueRecord.Write(&tree->agg->entries[i].second.noOccurrences,
+                           sizeof(unsigned int), offset)) {
+      return false;
+    }
+    offset += sizeof(unsigned int);
+    durD = tree->agg->entries[i].second.duration.ToDouble();
+    if (!valueRecord.Write(&durD, sizeof(double), offset)) {
+      return false;
+    }
+    offset += sizeof(double);
+    noOccs = tree->agg->entries[i].second.occurrences.size();
+    if (!valueRecord.Write(&noOccs, sizeof(unsigned int), offset)) {
+      return false;
+    }
+    offset += sizeof(unsigned int);
+    for (auto it : tree->agg->entries[i].second.occurrences) {
+      unsigned int tid = it.first;
+      if (!valueRecord.Write(&tid, sizeof(unsigned int), offset)) {
+        return false;
+      }
+      offset += sizeof(unsigned int);
+      perVal.addr = it.second.first;
+      if (!temporalalgebra::SaveRange<Instant>(valueRecord, offset, ptList,
+                                               perVal)) {
+        return false;
+      }
+      double coords[] = {it.second.second.MinD(0), it.second.second.MaxD(0),
+                         it.second.second.MinD(1), it.second.second.MaxD(1)};
+      for (int c = 0; c < 4; c++) {
+        if (!valueRecord.Write(&coords[c], sizeof(double), offset)) {
+          return false;
+        }
+        offset += sizeof(double);
+      }
+    }
+  }
+  // store inv
+  Word invVal;
+  invVal.addr = tree->agg->inv;
+  ListExpr itList = sc->NumericType(nl->SymbolAtom(InvertedFile::BasicType()));
+  if (!triealg::SaveInvfile<unsigned int, unsigned int>(valueRecord, offset,
+                                                        itList, invVal)) {
+    return false;
+  }
   return true;
 }
 
 bool FPTree::Open(SmiRecord& valueRecord, size_t& offset,
                   const ListExpr typeInfo, Word& value) {
   FPTree *tree = new FPTree();
+  // read minSupp
+  if (!valueRecord.Read(&tree->minSupp, sizeof(double), offset)) {
+    return false;
+  }
+  offset += sizeof(double);
   unsigned int labelLength, noNodes, frequency, noChildren, child, nodeLink,
-               noNodeLinks;
+               noNodeLinks, noOccs;
+  // read nodes
   if (!valueRecord.Read(&noNodes, sizeof(unsigned int), offset)) {
     return false;
   }
@@ -550,6 +673,7 @@ bool FPTree::Open(SmiRecord& valueRecord, size_t& offset,
     FPNode node(label, frequency, children, nodeLink);
     tree->nodes.push_back(node);
   }
+  // read nodeLinks
   if (!valueRecord.Read(&noNodeLinks, sizeof(unsigned int), offset)) {
     return false;
   }
@@ -572,6 +696,83 @@ bool FPTree::Open(SmiRecord& valueRecord, size_t& offset,
 //     cout << "create nodeLink: " << label << " --> " << nodeLink << endl;
     tree->nodeLinks.insert(tree->nodeLinks.begin(), make_pair(label, nodeLink));
   }
+  // read ~entries~
+  unsigned int noAggEntries = tree->agg->entries.size();
+  if (!valueRecord.Write(&noAggEntries, sizeof(unsigned int), offset)) {
+    return false;
+  }
+  offset += sizeof(unsigned int);
+  Word perVal;
+  SecondoCatalog *sc = SecondoSystem::GetCatalog();
+  ListExpr ptList = sc->NumericType(nl->SymbolAtom(Periods::BasicType()));
+  double durD;
+  Periods *per;
+  for (unsigned int i = 0; i < noAggEntries; i++) {
+    AggEntry entry;
+    if (!valueRecord.Read(&labelLength, sizeof(unsigned int), offset)) {
+      return false;
+    }
+    offset += sizeof(unsigned int);
+    char labelArray[labelLength + 1];
+    if (!valueRecord.Read(&labelArray, labelLength + 1, offset)) {
+      return false;
+    }
+    offset += labelLength + 1;
+    string label(labelArray);
+    if (!valueRecord.Read(&entry.noOccurrences, sizeof(unsigned int), offset)) {
+      return false;
+    }
+    offset += sizeof(unsigned int);
+    if (!valueRecord.Read(&durD, sizeof(double), offset)) {
+      return false;
+    }
+    offset += sizeof(double);
+    entry.duration.ReadFrom(durD);
+    if (!valueRecord.Read(&noOccs, sizeof(unsigned int), offset)) {
+      return false;
+    }
+    offset += sizeof(unsigned int);
+    TupleId tid;
+    for (unsigned int j = 0; j < noOccs; j++) {
+      if (!valueRecord.Read(&tid, sizeof(unsigned int), offset)) {
+        return false;
+      }
+      offset += sizeof(unsigned int);
+      if (!temporalalgebra::OpenRange<Instant>(valueRecord, offset, ptList,
+                                               perVal)) {
+        return false;
+      }
+      per = (Periods*)perVal.addr;
+      double *min = new double[2];
+      for (int c = 1; c < 2; c++) {
+        if (!valueRecord.Read(&min[c], sizeof(double), offset)) {
+          return false;
+        }
+        offset += sizeof(double);
+      }
+      double *max = new double[2];
+      for (int c = 1; c < 2; c++) {
+        if (!valueRecord.Read(&min[c], sizeof(double), offset)) {
+          return false;
+        }
+        offset += sizeof(double);
+      }
+      Rect rect(true, min, max);
+      delete[] min;
+      delete[] max;
+      NewPair<Periods*, Rect> pr(per, rect);
+      entry.occurrences.insert(entry.occurrences.end(), make_pair(tid, pr));
+    }
+    tree->agg->entries.push_back(make_pair(label, entry));
+  }
+  // read inv
+  ListExpr itList = sc->NumericType(nl->SymbolAtom(InvertedFile::BasicType()));
+  Word invVal;
+  if (!triealg::OpenInvfile<unsigned int, unsigned int>(valueRecord, offset, 
+                                                        itList, invVal)) {
+    return false;
+  }
+  tree->agg->inv = (InvertedFile*)invVal.addr;
   value.setAddr(tree);
   return true;
 }
