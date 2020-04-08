@@ -6196,12 +6196,12 @@ int getPatternsVM(Word* args, Word& result, int message, Word& local,
       }
       else {
         cout << "the minimum support has to be in (0,1], and the minimum number"
-                " of atoms must be at least 1"<< endl;
+                " of atoms must be at least 1" << endl;
       }
       return 0;
     }
     case REQUEST: {
-      result.addr = li ? li->getNextResult() : 0;
+      result.addr = li ? li->getNextResult(li->agg, li->tupleType) : 0;
       return result.addr ? YIELD : CANCEL;
     }
     case CLOSE: {
@@ -6343,29 +6343,101 @@ const string createfptreeSpec =
   "<text> _ createfptree[ _ , _ , _ ] </text--->"
   "<text> Computes an FP-tree from a relation, two attribute names, and a \n"
   "real number (minimum support).</text--->"
-  "<text> query Dotraj feed createfptree[Trajectory, X, 0.5] getTypeNL\n"
+  "<text> query Dotraj feed extend[X: [const mpoint value undef]] consume \n"
+  "createfptree[Trajectory, X, 0.5] getTypeNL\n"
   "</text--->) )";
 
 Operator createfptree("createfptree", createfptreeSpec, createfptreeVM, 
                      Operator::SimpleSelect, createfptreeTM);
 
+/*
+\section{Operator ~minefptree~}
 
-// TODO: operator minefptree
-// /*
-//  \subsection{Operator Info}
-// 
-// */
-// const string minefptreeSpec =
-//   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-//   "( <text> rel(tuple(X)) x ATTR x ATTR x fptree x int x int --> </text--->"
-//   "<text> _ createfptree[ _ , _ , _ ] </text--->"
-//   "<text> Computes an FP-tree from a relation, two attribute names, and a \n"
-//   "real number (minimum support).</text--->"
-//   "<text> query Dotraj feed createfptree[Trajectory, X, 0.5] getTypeNL\n"
-//   "</text--->) )";
-// 
-// Operator minefptree("minefptree", minefptreeSpec, minefptreeVM, 
-//                      Operator::SimpleSelect, minefptreeTM);
+\subsection{Type Mapping}
+
+*/
+ListExpr minefptreeTM(ListExpr args) {
+  if (!nl->HasLength(args, 3)) {
+    return listutils::typeError("Three arguments expected");
+  }
+  if (!FPTree::checkType(nl->First(args))) {
+    return listutils::typeError("1st argument is not an FP-tree");
+  }
+  if (!CcInt::checkType(nl->Second(args))) {
+    return listutils::typeError("2nd argument is not an integer");
+  }
+  if (!CcInt::checkType(nl->Third(args))) {
+    return listutils::typeError("3rd argument is not an integer");
+  }
+  ListExpr outputAttrs = nl->TwoElemList(
+                       nl->TwoElemList(nl->SymbolAtom("Pattern"),
+                                       nl->SymbolAtom(FText::BasicType())),
+                       nl->TwoElemList(nl->SymbolAtom("Support"),
+                                       nl->SymbolAtom(CcReal::BasicType())));
+  return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
+              nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()), outputAttrs));
+}
+
+/*
+\subsection{Value Mapping}
+
+*/
+int minefptreeVM(Word* args, Word& result, int message, Word& local, 
+                  Supplier s) {
+  MineFPTreeLI* li = (MineFPTreeLI*)local.addr;
+  switch (message) {
+    case OPEN: {
+      if (li) {
+        delete li;
+        local.addr = 0;
+      }
+      FPTree *tree = static_cast<FPTree*>(args[0].addr);
+      CcInt *amin = static_cast<CcInt*>(args[1].addr);
+      CcInt *amax = static_cast<CcInt*>(args[2].addr);
+      if (!amin->IsDefined() || !amax->IsDefined()) {
+        return 0;
+      }
+      if (amin->GetValue() > 0 && amax->GetValue() > 0
+       && amin->GetValue() <= amax->GetValue()) {
+        local.addr = new MineFPTreeLI(tree, amin->GetValue(), amax->GetValue());
+      }
+      else {
+        cout << "condition 0 < minNoAtoms <= maxNoAtoms not fulfilled" << endl;
+      }
+      return 0;
+    }
+    case REQUEST: {
+      result.addr = li ? GetPatternsLI::getNextResult(*(li->tree->agg), 
+                                                      li->tupleType) : 0;
+      return result.addr ? YIELD : CANCEL;
+    }
+    case CLOSE: {
+      if (li) {
+        delete li;
+        local.addr = 0;
+      }
+      return 0;
+    }
+  }
+  return 0;
+}
+
+/*
+ \subsection{Operator Info}
+
+*/
+const string minefptreeSpec =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text> fptree x int x int --> stream(tuple(Pattern: text, Support: real\n"
+  "))</text--->"
+  "<text> _ minefptree[ _ , _ ] </text--->"
+  "<text> Retrieves the frequent patterns from an FP-tree.</text--->"
+  "<text> query Dotraj feed extend[X: [const mpoint value undef]] consume \n"
+  "createfptree[Trajectory, X, 0.5] minefptree[1, 5] count\n"
+  "</text--->) )";
+
+Operator minefptree("minefptree", minefptreeSpec, minefptreeVM, 
+                     Operator::SimpleSelect, minefptreeTM);
 
 /*
 \section{Class ~SymbolicTrajectoryAlgebra~}
@@ -6773,8 +6845,8 @@ class SymbolicTrajectoryAlgebra : public Algebra {
   AddOperator(&createfptree);
   createfptree.SetUsesMemory();
   
-//   AddOperator(&minefptree);
-//   minefptree.SetUsesMemory();
+  AddOperator(&minefptree);
+  minefptree.SetUsesMemory();
   
   }
   ~SymbolicTrajectoryAlgebra() {}

@@ -83,7 +83,7 @@ Comparison function; sort by
 //     }
 // };
 
-struct comparePatternMiningResults {
+struct comparePMResults {
   bool operator()(NewPair<std::string, double> res1,
                   NewPair<std::string, double> res2) {
     if (res1.second == res2.second) {
@@ -106,38 +106,6 @@ struct compareLabelsWithSupp {
   }
 };
 
-// struct compareFrequentLabelCombs { // lexicographical order
-//   bool operator()(std::vector<std::string> flc1,
-//                   std::vector<std::string> flc2) {
-//     if (flc1.size() != flc2.size()) {
-//       return (flc1.size() < flc2.size());
-//     }
-//     unsigned int i = 0;
-//     while (i < flc1.size()) {
-//       if (flc1[i] != flc2[i]) {
-//         return (flc1[i] < flc2[i]);
-//       }
-//       i++;
-//     }
-//     return false;
-//   }
-// };
-
-struct FPNode {
-  FPNode() {}
-  FPNode(const std::string& l) : label(l), frequency(1), nodeLink(0) {}
-  FPNode(const std::string& l, const unsigned f, 
-         const std::vector<unsigned int>& c, const unsigned int nl) :
-                            label(l), frequency(f), children(c), nodeLink(nl) {}
-  
-  ListExpr toListExpr() const;
-  
-  std::string label;
-  unsigned int frequency;
-  std::vector<unsigned int> children; // positions of all children
-  unsigned int nodeLink; // position of successor in node link; 0 means no link
-};
-
 extern TypeConstructor fptreeTC;
 
 /*
@@ -150,7 +118,7 @@ of occurrences inside the tuple, and the total duration of its occurrences.
 */
 
 struct RelAgg {
-  RelAgg() {}
+  RelAgg() : geoid(0), rel(0) {}
   ~RelAgg() {clear(true);}
   
   void clear(const bool deleteInv);
@@ -161,6 +129,9 @@ struct RelAgg {
   void filter(const double ms, const size_t memSize);
   bool buildAtom(std::string label, AggEntry entry,
                  const std::set<TupleId>& commonTupleIds, std::string& atom);
+  void subset(std::vector<std::string> source, int left, int index,
+              std::vector<std::string>& labelVec, 
+              std::set<std::vector<std::string> >& result);
   void retrieveLabelCombs(const unsigned int size, 
                           std::vector<std::string>& source, 
                           std::set<std::vector<std::string > >& result);
@@ -210,6 +181,24 @@ struct RelAgg {
   NewPair<int, int> attrPos; // textual, spatial
 };
 
+struct FPNode {
+  FPNode() {}
+  FPNode(const std::string& l, const unsigned int a) : 
+                             label(l), frequency(1), nodeLink(0), ancestor(a) {}
+  FPNode(const std::string& l, const unsigned f, 
+         const std::vector<unsigned int>& c, const unsigned int nl, 
+         const unsigned int a) :
+               label(l), frequency(f), children(c), nodeLink(nl), ancestor(a) {}
+  
+  ListExpr toListExpr() const;
+  
+  std::string label;
+  unsigned int frequency;
+  std::vector<unsigned int> children; // positions of all children
+  unsigned int nodeLink; // position of successor in node link; 0 means no link
+  unsigned int ancestor; // pos of ancestor node
+};
+
 class FPTree {
  public:
   FPTree() {}
@@ -227,6 +216,18 @@ class FPTree {
   void insertLabelVector(const std::vector<std::string>& labelsOrdered);
   void construct();
   void initialize(const double ms, RelAgg *ra);
+  bool isOnePathTree();
+  void sortNodeLinks(std::vector<std::string>& result);
+  void collectPatternsFromSeq(std::vector<std::string>& labelSeq,
+                  const unsigned int minNoAtoms, const unsigned int maxNoAtoms);
+  void computeReducedPatternBase(std::string& label, 
+                                 std::set<std::vector<std::string> >& result);
+  FPTree* constructReducedTree(std::set<std::vector<std::string> >& 
+                                                                reducedPatBase);
+  void mineTree(std::set<std::string>& initLabels, 
+                const unsigned int minNoAtoms, const unsigned int maxNoAtoms);
+  void retrievePatterns(const unsigned int minNoAtoms, 
+                        const unsigned int maxNoAtoms);
   
   static const std::string BasicType() {return "fptree";}
   static ListExpr Property();
@@ -244,8 +245,8 @@ class FPTree {
   static Word Clone(const ListExpr typeInfo, const Word& w);
   static int SizeOfObj();
   static bool TypeCheck(ListExpr type, ListExpr& errorInfo);
+  static bool checkType(ListExpr t) {return listutils::isSymbol(t,BasicType());}
   
- private:
   double minSupp;
   std::vector<FPNode> nodes; // nodes[0] represents root
   std::map<std::string, unsigned int> nodeLinks; // pointer to 1st node of link
@@ -257,12 +258,21 @@ struct GetPatternsLI {
                 int maxa, Geoid *g, const size_t mem);
   ~GetPatternsLI();
   
-  TupleType *getTupleType() const;
-  Tuple *getNextResult();
+  static TupleType *getTupleType();
+  static Tuple *getNextResult(RelAgg& agg, TupleType *tt);
   
   
   TupleType *tupleType;
   RelAgg agg;
+};
+
+struct MineFPTreeLI {
+  MineFPTreeLI(FPTree *t, int mina, int maxa);
+  ~MineFPTreeLI();
+    
+  FPTree *tree;
+  unsigned int minNoAtoms, maxNoAtoms;
+  TupleType *tupleType;
 };
   
   

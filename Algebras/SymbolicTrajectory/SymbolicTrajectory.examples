@@ -606,3 +606,9 @@ Number    : 1
 Signature : rel(tuple(X)) x ATTR x ATTR x real -> fptree
 Example   : query Dotraj feed extend[X: [const mpoint value undef]] consume createfptree[Trajectory, X, 0.5] getTypeNL
 Result    : 'fptree'
+
+Operator  : minefptree
+Number    : 1
+Signature : fptree x int x int -> stream(tuple(Pattern: text, Support: real))
+Example   : query Dotraj feed extend[X: [const mpoint value undef]] consume createfptree[Trajectory, X, 0.5] minefptree[1, 5] count
+Result    : 6
