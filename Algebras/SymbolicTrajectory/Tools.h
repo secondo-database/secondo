@@ -298,9 +298,6 @@ class Tools {
                              const bool bbox, Word& geo, std::string& type);
   static bool getRectFromOrel(const std::string& relName,const unsigned int ref,
                               Rectangle<2>& box);
-  static void subset(std::vector<std::string> source, int left, int index,
-                     std::vector<std::string>& labelVec, 
-                     std::set<std::vector<std::string> >& result);
   
   
   
