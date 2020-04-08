@@ -43,7 +43,7 @@ These Operators are:
 */
 #include <thread>
 #include "opBasicOperators.h"
-#include "../MThreadedAux.h"
+//#include "../MThreadedAux.h"
 
 #include "Attribute.h"          // implementation of attribute types
 #include "Algebra.h"            // definition of the algebra
@@ -130,14 +130,9 @@ int op_setcore::setcoreVM(Word* args, Word& result, int message,
     CcInt* cores = static_cast<CcInt*>(args[0].addr);
     result = qp->ResultStorage(s);
     CcBool* res = static_cast<CcBool*>(result.addr);
-    if ((unsigned )cores->GetValue() <= std::thread::hardware_concurrency() ) {
-         MThreadedSingleton::setCoresToUse(cores->GetValue());
-         res -> Set(true,true);
-    }
-    else
-    {
-       res -> Set(true,false);
-    }
+    MThreadedSingleton::setCoresToUse(cores->GetValue());
+    res -> Set(true,true);
+    
     return 0;
 }
 
