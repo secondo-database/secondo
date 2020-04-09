@@ -83,7 +83,7 @@ class NewPair {
   }
   
   friend std::ostream& operator<<(std::ostream& os, const NewPair& np) {
-    os << np.first << ", " << np.second;
+    os << "(" << np.first << ", " << np.second << ")";
     return os;
   }
   

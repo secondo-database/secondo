@@ -118,7 +118,7 @@ of occurrences inside the tuple, and the total duration of its occurrences.
 */
 
 struct RelAgg {
-  RelAgg() : geoid(0), rel(0) {}
+  RelAgg();
   ~RelAgg() {clear(true);}
   
   void clear(const bool deleteInv);
@@ -149,10 +149,25 @@ struct RelAgg {
   std::string print(const std::map<std::string, AggEntry>& contents) const;
   std::string print(const std::map<TupleId, std::vector<std::string> >& 
                                                           frequentLabels) const;
-  std::string print(const std::vector<std::string>& labelComb) const;
   std::string print(const std::set<std::vector<std::string> >& labelCombs) 
                                                                           const;
   std::string print(const std::string& label = "");
+  
+  template<class T>
+  std::string print(const std::vector<T>& anyVec) const {
+    std::stringstream result;
+    bool first = true;
+    result << "<";
+    for (auto it : anyVec) {
+      if (!first) {
+        result << ", ";
+      }
+      first = false;
+      result << it;
+    }
+    result << ">";
+    return result.str();
+  }
   
   template<class T>
   std::string print(const std::set<T>& anySet) const {
@@ -183,8 +198,8 @@ struct RelAgg {
 
 struct FPNode {
   FPNode() {}
-  FPNode(const std::string& l, const unsigned int a) : 
-                             label(l), frequency(1), nodeLink(0), ancestor(a) {}
+  FPNode(const std::string& l, const unsigned int f, const unsigned int a) : 
+                             label(l), frequency(f), nodeLink(0), ancestor(a) {}
   FPNode(const std::string& l, const unsigned f, 
          const std::vector<unsigned int>& c, const unsigned int nl, 
          const unsigned int a) :
@@ -205,6 +220,8 @@ class FPTree {
   FPTree(FPTree *tree) : 
     minSupp(tree->minSupp), nodes(tree->nodes), nodeLinks(tree->nodeLinks) {}
   
+  ~FPTree() {}
+  
   void clear() {nodes.clear(); nodeLinks.clear();}
   bool hasNodes() {return !nodes.empty();}
   bool hasNodeLinks() {return !nodeLinks.empty();}
@@ -213,18 +230,19 @@ class FPTree {
   unsigned int getNoNodeLinks() {return nodeLinks.size();}
   bool isChildOf(std::string& label, unsigned int pos, unsigned int& nextPos);
   void updateNodeLink(std::string& label, unsigned int targetPos);
-  void insertLabelVector(const std::vector<std::string>& labelsOrdered);
+  void insertLabelVector(const std::vector<std::string>& labelsOrdered,
+                         const unsigned int freq);
   void construct();
   void initialize(const double ms, RelAgg *ra);
   bool isOnePathTree();
   void sortNodeLinks(std::vector<std::string>& result);
   void collectPatternsFromSeq(std::vector<std::string>& labelSeq,
                   const unsigned int minNoAtoms, const unsigned int maxNoAtoms);
-  void computeReducedPatternBase(std::string& label, 
-                                 std::set<std::vector<std::string> >& result);
-  FPTree* constructReducedTree(std::set<std::vector<std::string> >& 
-                                                                reducedPatBase);
-  void mineTree(std::set<std::string>& initLabels, 
+  void computeCondPatternBase(std::vector<std::string>& labelSeq, 
+         std::vector<NewPair<std::vector<std::string>, unsigned int> >& result);
+  FPTree* constructCondTree(
+         std::vector<NewPair<std::vector<std::string>, unsigned int> >& condPB);
+  void mineTree(std::vector<std::string>& initLabels, 
                 const unsigned int minNoAtoms, const unsigned int maxNoAtoms);
   void retrievePatterns(const unsigned int minNoAtoms, 
                         const unsigned int maxNoAtoms);
@@ -248,6 +266,7 @@ class FPTree {
   static bool checkType(ListExpr t) {return listutils::isSymbol(t,BasicType());}
   
   double minSupp;
+  unsigned int minSuppCnt; // \ceil{noTuples * minSupp}
   std::vector<FPNode> nodes; // nodes[0] represents root
   std::map<std::string, unsigned int> nodeLinks; // pointer to 1st node of link
   RelAgg *agg;

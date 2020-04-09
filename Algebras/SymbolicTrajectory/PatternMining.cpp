@@ -257,6 +257,13 @@ std::string AggEntry::print(const Rect& rect) const {
 }
 
 /*
+  Class ~RelAgg~, Constructor
+  
+*/
+RelAgg::RelAgg() : noTuples(0), minNoAtoms(0), maxNoAtoms(0), inv(0),
+                   minSupp(0.0), geoid(0), rel(0) {}
+
+/*
   Class ~RelAgg~, Function ~clear~
   
   Deletes the periods values and, maybe, the inverted file
@@ -267,7 +274,7 @@ void RelAgg::clear(const bool deleteInv) {
   for (auto it : entriesMap) {
     it.second.clear();
   }
-  if (deleteInv) {
+  if (deleteInv && inv != 0) {
     delete inv;
   }
 }
@@ -774,21 +781,6 @@ string RelAgg::print(const map<TupleId,vector<string> >& frequentLabels) const {
   return result.str();
 }
 
-string RelAgg::print(const vector<string>& labelComb) const {
-  stringstream result;
-  bool first = true;
-  result << "{";
-  for (auto it : labelComb) {
-    if (!first) {
-      result << ", ";
-    }
-    first = false;
-    result << "\"" << it << "\"";
-  }
-  result << "}" << endl;
-  return result.str();
-}
-
 string RelAgg::print(const set<vector<string> >& labelCombs) const {
   stringstream result;
   result << "{" << endl;
@@ -875,27 +867,28 @@ void FPTree::updateNodeLink(string& label, unsigned int targetPos) {
   Class ~FPTree~, Function ~insertLabelVector~
 
 */
-void FPTree::insertLabelVector(const vector<string>& labelsOrdered) {
+void FPTree::insertLabelVector(const vector<string>& labelsOrdered,
+                               const unsigned int freq) {
   cout << "insert: | ";
   for (auto it : labelsOrdered) {
     cout << it << " | ";
   }
   cout << endl;
   unsigned int nodePos(0), nextPos(0);
-  for (auto it : labelsOrdered) {
-    if (isChildOf(it, nodePos, nextPos)) {
-      nodes[nextPos].frequency++;
-      cout << "  \"" << it << "\" is child of \"" << nodes[nodePos].label 
+  for (auto label : labelsOrdered) {
+    if (isChildOf(label, nodePos, nextPos)) {
+      nodes[nextPos].frequency += freq;
+      cout << "  \"" << label << "\" is child of \"" << nodes[nodePos].label 
            << "\", frequency = " << nodes[nextPos].frequency << endl;
       nodePos = nextPos;
     }
     else {
-      FPNode node(it, nodePos);
+      FPNode node(label, freq, nodePos);
       nodes.push_back(node);
       nodes[nodePos].children.push_back(nodes.size() - 1);
-      updateNodeLink(it, nodes.size() - 1);
-      cout << "  new node for \"" << it << "\" at pos " << nodes.size() - 1
-           << ", now child of " << nodePos << endl;
+      updateNodeLink(label, nodes.size() - 1);
+      cout << "  new node for \"" << label << "\" at pos " 
+           << nodes.size() - 1 << ", now child of " << nodePos << endl;
       nodePos = nodes.size() - 1;
     }
   }
@@ -925,10 +918,10 @@ void FPTree::construct() {
         labelsWithSupp.insert(labelWithSupp);
       }
     }
-    for (auto it : labelsWithSupp) {
-      labelsOrdered.push_back(it.first);
+    for (auto itl : labelsWithSupp) {
+      labelsOrdered.push_back(itl.first);
     }
-    insertLabelVector(labelsOrdered);
+    insertLabelVector(labelsOrdered, 1);
     tuple->DeleteIfAllowed();
   }
   delete it;
@@ -940,10 +933,10 @@ void FPTree::construct() {
 */
 void FPTree::initialize(const double ms, RelAgg *ra) {
   minSupp = ms;
-  FPNode node("<ROOT>", 0);
-  node.frequency = 0;
+  FPNode node("<ROOT>", 0, 0);
   nodes.push_back(node); // create dummy node for root
   agg = ra;
+  minSuppCnt = (unsigned int)std::ceil(minSupp * ra->noTuples);
 }
 
 /*
@@ -1029,47 +1022,94 @@ void FPTree::collectPatternsFromSeq(vector<string>& labelSeq,
 }
 
 /*
-  Class ~FPTree~, Function ~computeReducedPatternBase~
+  Class ~FPTree~, Function ~computeReducedCondBase~
 
 */
-void FPTree::computeReducedPatternBase(string& label, 
-                                       set<vector<string> >& result) {
+void FPTree::computeCondPatternBase(vector<string>& labelSeq, 
+                       vector<NewPair<vector<string>, unsigned int> >& result) {
   result.clear();
-  vector<string> labelSeq;
-  unsigned int link = nodeLinks[label];
-  unsigned int anc;
+  NewPair<vector<string>, unsigned int> labelPathWithSuppCnt;
+  unsigned int link = nodeLinks[*(labelSeq.rbegin())];
+  unsigned int anc, freq;
   while (link != 0) {
     anc = nodes[link].ancestor;
+    freq = nodes[link].frequency;
     while (anc != 0) { // retrieve whole branch above ~label~ node
-      labelSeq.push_back(nodes[anc].label);
+      labelPathWithSuppCnt.first.push_back(nodes[anc].label);
       anc = nodes[anc].ancestor;
     }
-    std::reverse(labelSeq.begin(), labelSeq.end());
-    result.insert(labelSeq);
-    labelSeq.clear();
+    labelPathWithSuppCnt.second = freq;
+    if (!labelPathWithSuppCnt.first.empty()) {
+      std::reverse(labelPathWithSuppCnt.first.begin(), 
+                   labelPathWithSuppCnt.first.end());
+      result.push_back(labelPathWithSuppCnt);
+      labelPathWithSuppCnt.first.clear();
+    }
     link = nodes[link].nodeLink;
   }
 }
 
 /*
-  Class ~FPTree~, Function ~constructReducedTree~
+  Class ~FPTree~, Function ~constructCondTree~
 
 */
-FPTree* FPTree::constructReducedTree(set<vector<string> >& reducedPatBase) {
-  return 0;
+FPTree* FPTree::constructCondTree(
+                       vector<NewPair<vector<string>, unsigned int> >& condPB) {
+  if (condPB.empty()) {
+    return 0;
+  }
+  FPTree *condFPTree = new FPTree();
+  condFPTree->initialize(minSupp, agg);
+  map<string, unsigned int> labelsToSuppCnt;
+  map<string, unsigned int>::iterator mapIt;
+  // build map: label --> suppCnt
+  for (auto labelSeqWithSuppCnt : condPB) {
+    for (auto label : labelSeqWithSuppCnt.first) {
+      mapIt = labelsToSuppCnt.find(label);
+      if (mapIt != labelsToSuppCnt.end()) { // label found; increase suppCnt
+        mapIt->second += labelSeqWithSuppCnt.second;
+      }
+      else { // label not found; insert
+        labelsToSuppCnt[label] = labelSeqWithSuppCnt.second;
+      }
+    }
+  }
+  // keep only labels having suppCnt >= minSuppCnt
+  vector<NewPair<vector<string>, unsigned int> > freqCondPB;
+  vector<string> labelSeq;
+  for (auto labelSeqWithSuppCnt : condPB) {
+    for (auto label : labelSeqWithSuppCnt.first) {
+      if (labelsToSuppCnt[label] >= condFPTree->minSuppCnt) {
+        labelSeq.push_back(label);
+      }
+    }
+    if (!labelSeq.empty()) {
+      freqCondPB.push_back(NewPair<vector<string>, unsigned int>(labelSeq,
+                                                   labelSeqWithSuppCnt.second));
+      labelSeq.clear();
+    }
+  }
+  if (freqCondPB.empty()) {
+    delete condFPTree;
+    return 0;
+  }
+  for (auto it : freqCondPB) {
+    condFPTree->insertLabelVector(it.first, it.second);
+  }
+  return condFPTree;
 }
 
 /*
   Class ~FPTree~, Function ~mineTree~
 
 */
-void FPTree::mineTree(set<string>& initLabels, const unsigned int minNoAtoms, 
+void FPTree::mineTree(vector<string>& initLabels, const unsigned int minNoAtoms,
                       const unsigned int maxNoAtoms) {
   if (!hasNodes()) {
     return;
   }
   if (isOnePathTree()) {
-    set<string> freqLabels = initLabels;
+    set<string> freqLabels(initLabels.begin(), initLabels.end());
     for (unsigned int i = 1; i < nodes.size(); i++) {
       freqLabels.insert(nodes[i].label);
     }
@@ -1080,14 +1120,28 @@ void FPTree::mineTree(set<string>& initLabels, const unsigned int minNoAtoms,
     vector<string> labelsSortedByFrequency, 
                    labelSeq(initLabels.begin(), initLabels.end());
     sortNodeLinks(labelsSortedByFrequency);
-    set<vector<string> > reducedPatBase;
+    vector<NewPair<vector<string>, unsigned int> > condPatBase;
     for (auto label : labelsSortedByFrequency) {
       labelSeq.push_back(label);
       if (labelSeq.size() > 1) {
         collectPatternsFromSeq(labelSeq, minNoAtoms, maxNoAtoms);
       }
-      computeReducedPatternBase(label, reducedPatBase);
-      // TODO build reduced FP-tree rfptree, invoke rfptree->mineTree(labelSeq);
+      computeCondPatternBase(labelSeq, condPatBase);
+      cout << "rPB for " << agg->print(labelSeq) << " has " 
+           << condPatBase.size() << " elems: ";
+      for (auto it : condPatBase) {
+        cout << "   " << agg->print(it.first) << ", freq=" << it.second << endl;
+      }
+      FPTree *condFPTree = constructCondTree(condPatBase);
+      if (condFPTree != 0) {
+//         Word fptval;
+//         fptval.addr = condFPTree;
+//         SecondoCatalog* sc = SecondoSystem::GetCatalog();
+//         cout << nl->ToString(FPTree::Out(sc->NumericType(nl->SymbolAtom(
+//                                           BasicType())), fptval)) << endl;
+        condFPTree->mineTree(labelSeq, minNoAtoms, maxNoAtoms);
+        delete condFPTree;
+      }
       labelSeq.pop_back();
     }
   }
@@ -1112,7 +1166,7 @@ void FPTree::retrievePatterns(const unsigned int minNoAtoms,
     }
     cout << frequentLabels.size() << " frequent 1-patterns found" << endl;
   }
-  set<string> initialLabels;
+  vector<string> initialLabels;
   mineTree(initialLabels, minNoAtoms, maxNoAtoms);
   std::sort(agg->results.begin(), agg->results.end(), comparePMResults());
 }
