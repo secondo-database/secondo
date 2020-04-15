@@ -152,9 +152,17 @@ void AggEntry::computeCommonRect(const SecInterval& iv,
       return;
     }
     map<TupleId, NewPair<Periods*, Rect> >::iterator it = occurrences.begin();
+    if (!it->second.second.IsDefined()) {
+      rect.SetDefined(false);
+      return;
+    }
     Rect tempRect = it->second.second;
     it++;
     while (it != occurrences.end()) {
+      if (!it->second.second.IsDefined()) {
+        rect.SetDefined(false);
+        return;
+      }
       tempRect = it->second.second.Union(tempRect);
       it++;
     }
@@ -162,9 +170,17 @@ void AggEntry::computeCommonRect(const SecInterval& iv,
   }
   else {
     set<TupleId>::iterator it = commonTupleIds.begin();
+    if (!occurrences[*it].second.IsDefined()) {
+      rect.SetDefined(false);
+      return;
+    }
     Rect tempRect = occurrences[*it].second;
     it++;
     while (it != commonTupleIds.end()) {
+      if (!occurrences[*it].second.IsDefined()) {
+        rect.SetDefined(false);
+        return;
+      }
       tempRect = occurrences[*it].second.Union(tempRect);
       it++;
     }
@@ -401,6 +417,15 @@ void RelAgg::filter(const double ms, const size_t memSize) {
   }
   delete trieCache;
   delete cache;
+//   for (auto k : entries) {
+//     if (k.first == "Piazza Venezia") {
+//       for (auto l : k.second.occurrences) {
+//         if (!l.second.second.IsDefined()) {
+//           cout << "TID " << l.first << "; ";
+//         }
+//       }
+//     }
+//   }
 }
 
 /*
@@ -617,6 +642,11 @@ void RelAgg::combineApriori(set<vector<string > >& frequentLabelCombs,
   if ((frequentLabelCombs.begin())->empty()) {
     return;
   }
+//   cout << "Frequent label combs for k = 2:" << endl;
+//   for (auto it : frequentLabelCombs) {
+//     cout << print(it) << endl;
+//   }
+//   cout << endl;
   unsigned int k = (frequentLabelCombs.begin())->size();
   set<vector<string > >::iterator it2;
   set<string> union_k_inc;
@@ -633,6 +663,7 @@ void RelAgg::combineApriori(set<vector<string > >& frequentLabelCombs,
         vector<string> unionvec(union_k_inc.begin(), union_k_inc.end());
         labelCombs.insert(labelCombs.end(), unionvec);
       }
+      union_k_inc.clear();
       it2++;
     }
     union_k_inc.clear();
@@ -718,8 +749,8 @@ void RelAgg::derivePatterns(const int mina, const int maxa) {
     frequentLabelCombs.clear();
     for (auto labelComb : labelCombs) {
       if (canLabelsBeFrequent(labelComb, commonTupleIds)) {
-  //         cout << print(labelComb) << " can be frequent; occurs in " 
-  //              << print(commonTupleIds) << endl;
+//           cout << print(labelComb) << " can be frequent; occurs in " 
+//                << print(commonTupleIds) << endl;
         retrievePermutations(labelComb, labelPerms);
         for (auto labelPerm : labelPerms) {
           labelPermsWithCommonIds[labelPerm] = commonTupleIds;
@@ -869,17 +900,17 @@ void FPTree::updateNodeLink(string& label, unsigned int targetPos) {
 */
 void FPTree::insertLabelVector(const vector<string>& labelsOrdered,
                                const unsigned int freq) {
-  cout << "insert: | ";
-  for (auto it : labelsOrdered) {
-    cout << it << " | ";
-  }
-  cout << endl;
+//   cout << "insert: | ";
+//   for (auto it : labelsOrdered) {
+//     cout << it << " | ";
+//   }
+//   cout << endl;
   unsigned int nodePos(0), nextPos(0);
   for (auto label : labelsOrdered) {
     if (isChildOf(label, nodePos, nextPos)) {
       nodes[nextPos].frequency += freq;
-      cout << "  \"" << label << "\" is child of \"" << nodes[nodePos].label 
-           << "\", frequency = " << nodes[nextPos].frequency << endl;
+//       cout << "  \"" << label << "\" is child of \"" << nodes[nodePos].label 
+//            << "\", frequency = " << nodes[nextPos].frequency << endl;
       nodePos = nextPos;
     }
     else {
@@ -887,12 +918,12 @@ void FPTree::insertLabelVector(const vector<string>& labelsOrdered,
       nodes.push_back(node);
       nodes[nodePos].children.push_back(nodes.size() - 1);
       updateNodeLink(label, nodes.size() - 1);
-      cout << "  new node for \"" << label << "\" at pos " 
-           << nodes.size() - 1 << ", now child of " << nodePos << endl;
+//       cout << "  new node for \"" << label << "\" at pos " 
+//            << nodes.size() - 1 << ", now child of " << nodePos << endl;
       nodePos = nodes.size() - 1;
     }
   }
-  cout << "   ... SUCCESSFULLY inserted" << endl;
+//   cout << "   ... SUCCESSFULLY inserted" << endl;
 }
 
 /*
@@ -937,6 +968,7 @@ void FPTree::initialize(const double ms, RelAgg *ra) {
   nodes.push_back(node); // create dummy node for root
   agg = ra;
   minSuppCnt = (unsigned int)std::ceil(minSupp * ra->noTuples);
+  agg->checkedSeqs.resize(agg->maxNoAtoms + 1);
 }
 
 /*
@@ -987,7 +1019,7 @@ void FPTree::sortNodeLinks(vector<string>& result) {
 */
 void FPTree::collectPatternsFromSeq(vector<string>& labelSeq,
                  const unsigned int minNoAtoms, const unsigned int maxNoAtoms) {
-  set<vector<string > > labelPerms;
+  set<vector<string> > labelPerms;
   unsigned int minSetSize = max(minNoAtoms, (unsigned int)2);
   set<TupleId> commonTupleIds;
   string atom, pattern;
@@ -999,23 +1031,27 @@ void FPTree::collectPatternsFromSeq(vector<string>& labelSeq,
   // find all subsets of label sequence, having a suitable number of elements
   for (unsigned int setSize = minSetSize; setSize <= maxNoAtoms; setSize++) {
     agg->retrieveLabelCombs(setSize, labelSeq, labelPerms);
-    cout << labelPerms.size() << " permutations of size " << setSize 
-         << " retrieved" << endl;
-    for (auto perm : labelPerms) {
-      if (agg->canLabelsBeFrequent(perm, commonTupleIds)) {
-        supp = agg->sequenceSupp(perm, commonTupleIds);
-        if (supp >= minSupp) {
-          for (unsigned int i = 0; i < perm.size(); i++) {
-            if (!agg->buildAtom(perm[i], *(entriesMap[perm[i]]), 
-                                                    commonTupleIds, atom)) {
-              cout << "Error in buildAtom for " << perm[i] << endl;
-              return;
+//     cout << labelPerms.size() << " permutations of size " << setSize 
+//          << " retrieved:" << endl;
+    for (auto perm : labelPerms) { // check only unchecked sequences
+      if (agg->checkedSeqs[setSize].find(perm) == 
+                                              agg->checkedSeqs[setSize].end()) {
+        if (agg->canLabelsBeFrequent(perm, commonTupleIds)) {
+          supp = agg->sequenceSupp(perm, commonTupleIds);
+          if (supp >= minSupp) {
+            for (unsigned int i = 0; i < perm.size(); i++) {
+              if (!agg->buildAtom(perm[i], *(entriesMap[perm[i]]), 
+                                                      commonTupleIds, atom)) {
+                cout << "Error in buildAtom for " << perm[i] << endl;
+                return;
+              }
+              pattern += atom + " ";
             }
-            pattern += atom + " ";
+            agg->results.push_back(NewPair<string, double>(pattern, supp));
+            pattern.clear();
           }
-          agg->results.push_back(NewPair<string, double>(pattern, supp));
-          pattern.clear();
         }
+        agg->checkedSeqs[setSize].insert(perm);
       }
     }
   }
@@ -1127,11 +1163,11 @@ void FPTree::mineTree(vector<string>& initLabels, const unsigned int minNoAtoms,
         collectPatternsFromSeq(labelSeq, minNoAtoms, maxNoAtoms);
       }
       computeCondPatternBase(labelSeq, condPatBase);
-      cout << "rPB for " << agg->print(labelSeq) << " has " 
-           << condPatBase.size() << " elems: ";
-      for (auto it : condPatBase) {
-        cout << "   " << agg->print(it.first) << ", freq=" << it.second << endl;
-      }
+//       cout << "rPB for " << agg->print(labelSeq) << " has " 
+//            << condPatBase.size() << " elems: ";
+//       for (auto it : condPatBase) {
+//         cout << "-" << agg->print(it.first) << ",freq=" << it.second << endl;
+//       }
       FPTree *condFPTree = constructCondTree(condPatBase);
       if (condFPTree != 0) {
 //         Word fptval;
@@ -1152,13 +1188,13 @@ void FPTree::mineTree(vector<string>& initLabels, const unsigned int minNoAtoms,
 
 */
 void FPTree::retrievePatterns(const unsigned int minNoAtoms, 
-                              const unsigned int maxNoAtoms){
+                              const unsigned int maxNoAtoms) {
   if (minNoAtoms == 1) {
     string pattern, atom;
     set<TupleId> commonTupleIds;
     vector<string> frequentLabels;
     double supp = 1.0;
-    for (auto it : agg->entries) {
+    for (auto it : agg->entries) { // retrieve 1-patterns
       agg->buildAtom(it.first, it.second, commonTupleIds, atom);
       supp = double(it.second.occurrences.size()) / agg->noTuples;
       agg->results.push_back(NewPair<string, double>(atom, supp));
@@ -1167,6 +1203,7 @@ void FPTree::retrievePatterns(const unsigned int minNoAtoms,
     cout << frequentLabels.size() << " frequent 1-patterns found" << endl;
   }
   vector<string> initialLabels;
+  agg->checkedSeqs.resize(maxNoAtoms + 1);
   mineTree(initialLabels, minNoAtoms, maxNoAtoms);
   std::sort(agg->results.begin(), agg->results.end(), comparePMResults());
 }
@@ -1401,14 +1438,19 @@ bool FPTree::Save(SmiRecord& valueRecord, size_t& offset,
                                                perVal)) {
         return false;
       }
-      double coords[] = {it.second.second.MinD(0), it.second.second.MaxD(0),
-                         it.second.second.MinD(1), it.second.second.MaxD(1)};
+      double coords[] = {it.second.second.MinD(0), it.second.second.MinD(1),
+                         it.second.second.MaxD(0), it.second.second.MaxD(1)};
       for (int c = 0; c < 4; c++) {
         if (!valueRecord.Write(&coords[c], sizeof(double), offset)) {
           return false;
         }
         offset += sizeof(double);
       }
+      bool isdefined = it.second.second.IsDefined();
+      if (!valueRecord.Write(&isdefined, sizeof(bool), offset)) {
+        return false;
+      }
+      offset += sizeof(bool);
     }
   }
   // store inv
@@ -1567,7 +1609,12 @@ bool FPTree::Open(SmiRecord& valueRecord, size_t& offset,
         }
         offset += sizeof(double);
       }
-      Rect rect(true, min, max);
+      bool isdefined;
+      if (!valueRecord.Read(&isdefined, sizeof(bool), offset)) {
+        return false;
+      }
+      offset += sizeof(bool);
+      Rect rect(isdefined, min, max);
       delete[] min;
       delete[] max;
       NewPair<Periods*, Rect> pr(per, rect);

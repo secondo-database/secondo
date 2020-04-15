@@ -106,6 +106,20 @@ struct compareLabelsWithSupp {
   }
 };
 
+struct compareLabelSeqs {
+  bool operator()(std::vector<std::string> seq1, std::vector<std::string> seq2){
+    if (seq1.size() == seq2.size()) {
+      for (unsigned int i = 0; i < seq1.size(); i++) {
+        if (seq1[i] != seq2[i]) {
+          return seq1[i] < seq2[i];
+        }
+      }
+      return false;
+    }
+    return seq1.size() < seq2.size();
+  }
+};
+
 extern TypeConstructor fptreeTC;
 
 /*
@@ -194,6 +208,8 @@ struct RelAgg {
   Geoid *geoid;
   Relation *rel;
   NewPair<int, int> attrPos; // textual, spatial
+  std::vector<std::set<std::vector<std::string>,compareLabelSeqs> > checkedSeqs;
+  // only for fp,pos represents k, avoids repeated supp computations and results
 };
 
 struct FPNode {
