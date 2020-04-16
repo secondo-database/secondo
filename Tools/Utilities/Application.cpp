@@ -165,14 +165,23 @@ Application::Application( int argc, const char** argv )
   // Store stacktrace output filenanme for later 
   // use. If the application crashes, it's not ensured that the 
   // env variabes can be accessed. 
-  char *output = getenv ("SEGFAULT_OUTPUT_NAME");
+
+  char* localStacktrace = getenv("SECONDO_LOCAL_STACKTRACE");
+  if(localStacktrace == 0){
+    char *output = getenv ("SEGFAULT_OUTPUT_NAME");
     if(output != NULL && output[0] != '\0') {
      int ret = access (output, R_OK | W_OK);
  
      if(ret == 0 || (ret == -1 && errno == ENOENT)) {
        Application::stacktraceOutput = strdup(output);
      }
+    }
+  }else {
+     stringstream st;
+     st << "secondo_stacktrace." << WinUnix::getpid();
+     Application::stacktraceOutput = strdup(st.str().c_str());
   }
+
 
   // --- Trap all signals that would terminate the program by default anyway.
   signalStr[SIGHUP] = "SIGINT";
