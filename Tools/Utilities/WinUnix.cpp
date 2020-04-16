@@ -258,6 +258,11 @@ WinUnix::stacktrace(const char* appName, const char* stacktraceOutput)
          }
          
          backtrace_symbols_fd(stacktrace, entries, fd);
+         
+         if (outputfd != -1) {
+            close(outputfd);
+         }
+
      } else {
          string2stdout("No stacktrace output file defined, ");
          string2stdout("dumping stacktrace to stdout\n");
