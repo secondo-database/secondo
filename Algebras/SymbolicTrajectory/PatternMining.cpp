@@ -468,13 +468,25 @@ bool RelAgg::buildAtom(string label, AggEntry entry,
   return true;
 }
 
-void RelAgg::subset(vector<string> source, int left, int index,
+void RelAgg::subsetperm(vector<string> source, int left, int index,
                    vector<string>& labelVec, set<vector<string> >& result) {
   if (left == 0) {
     do {
       result.insert(labelVec);
     } while (std::next_permutation(labelVec.begin(), labelVec.end()));
     return;
+  }
+  for (unsigned int i = index; i < source.size(); i++) {
+    labelVec.push_back(source[i]);
+    subset(source, left - 1, i + 1, labelVec, result);
+    labelVec.pop_back();
+  }
+}
+
+void RelAgg::subset(vector<string> source, int left, int index,
+                   vector<string>& labelVec, set<vector<string> >& result) {
+  if (left == 0) {
+    result.insert(labelVec);
   }
   for (unsigned int i = index; i < source.size(); i++) {
     labelVec.push_back(source[i]);
@@ -491,6 +503,17 @@ void RelAgg::subset(vector<string> source, int left, int index,
 */
 void RelAgg::retrieveLabelCombs(const unsigned int size, vector<string>& source,
                                 set<vector<string > >& result) {
+  result.clear();
+  vector<string> labelVec;
+  subsetperm(source, size, 0, labelVec, result);
+}
+
+/*
+  Class ~RelAgg~, Function ~retrieveLabelSubsets~
+
+*/
+void RelAgg::retrieveLabelSubsets(const unsigned int size, 
+                        vector<string>& source, set<vector<string > >& result) {
   result.clear();
   vector<string> labelVec;
   subset(source, size, 0, labelVec, result);
@@ -718,24 +741,29 @@ void RelAgg::derivePatterns(const int mina, const int maxa) {
   // check all combinations for their support
   bool correct = false;
   for (auto labelComb : labelCombs) {
-    if (canLabelsBeFrequent(labelComb, commonTupleIds)) {
-      supp = sequenceSupp(labelComb, commonTupleIds);
+    do {
+      labelPerms.insert(labelComb);
+    } while (std::next_permutation(labelComb.begin(), labelComb.end()));
+  }
+  for (auto labelPerm : labelPerms) {
+    if (canLabelsBeFrequent(labelPerm, commonTupleIds)) {
+      supp = sequenceSupp(labelPerm, commonTupleIds);
       if (supp >= minSupp) {
         if (minNoAtoms <= 2) {
           pattern.clear();
           // build complete 2-pattern
-          entry = getLabelEntry(labelComb[0]);
-          correct = buildAtom(labelComb[0], *entry, commonTupleIds, atom);
+          entry = getLabelEntry(labelPerm[0]);
+          correct = buildAtom(labelPerm[0], *entry, commonTupleIds, atom);
           pattern += atom + " ";
-          entry = getLabelEntry(labelComb[1]);
-          correct = correct && buildAtom(labelComb[1], *entry, commonTupleIds, 
+          entry = getLabelEntry(labelPerm[1]);
+          correct = correct && buildAtom(labelPerm[1], *entry, commonTupleIds, 
                                          atom);
           pattern += atom;
           if (correct) {
             results.push_back(NewPair<string, double>(pattern, supp));
           }
         }
-        frequentLabelCombs.insert(frequentLabelCombs.end(), labelComb);
+        frequentLabelCombs.insert(frequentLabelCombs.end(), labelPerm);
       }
     }
   }
@@ -1013,13 +1041,15 @@ void FPTree::sortNodeLinks(vector<string>& result) {
   }
 }
 
+
+
 /*
   Class ~FPTree~, Function ~collectPatternsFromSeq~
 
 */
 void FPTree::collectPatternsFromSeq(vector<string>& labelSeq,
                  const unsigned int minNoAtoms, const unsigned int maxNoAtoms) {
-  set<vector<string> > labelPerms;
+  set<vector<string> > labelSubsets, labelPerms;
   unsigned int minSetSize = max(minNoAtoms, (unsigned int)2);
   set<TupleId> commonTupleIds;
   string atom, pattern;
@@ -1030,28 +1060,47 @@ void FPTree::collectPatternsFromSeq(vector<string>& labelSeq,
   }
   // find all subsets of label sequence, having a suitable number of elements
   for (unsigned int setSize = minSetSize; setSize <= maxNoAtoms; setSize++) {
-    agg->retrieveLabelCombs(setSize, labelSeq, labelPerms);
-//     cout << labelPerms.size() << " permutations of size " << setSize 
-//          << " retrieved:" << endl;
-    for (auto perm : labelPerms) { // check only unchecked sequences
-      if (agg->checkedSeqs[setSize].find(perm) == 
-                                              agg->checkedSeqs[setSize].end()) {
-        if (agg->canLabelsBeFrequent(perm, commonTupleIds)) {
-          supp = agg->sequenceSupp(perm, commonTupleIds);
-          if (supp >= minSupp) {
-            for (unsigned int i = 0; i < perm.size(); i++) {
-              if (!agg->buildAtom(perm[i], *(entriesMap[perm[i]]), 
-                                                      commonTupleIds, atom)) {
-                cout << "Error in buildAtom for " << perm[i] << endl;
-                return;
-              }
-              pattern += atom + " ";
-            }
-            agg->results.push_back(NewPair<string, double>(pattern, supp));
-            pattern.clear();
-          }
+    if (labelSeq.size() == 7) {
+      cout << "   retrieve subsets of size " << setSize << endl;
+    }
+    agg->retrieveLabelSubsets(setSize, labelSeq, labelSubsets);
+    if (labelSeq.size() == 7) {
+      cout << "   ... found " << labelSubsets.size() << " subsets" << endl;
+    }
+    for (auto subset : labelSubsets) {
+      if (agg->nonfreqSets[setSize].find(subset) == 
+                                              agg->nonfreqSets[setSize].end()) {
+        bool isSetFreq = agg->freqSets[setSize].find(subset) != 
+                                                   agg->freqSets[setSize].end();
+        if (!isSetFreq) {
+          isSetFreq = agg->canLabelsBeFrequent(subset, commonTupleIds);
         }
-        agg->checkedSeqs[setSize].insert(perm);
+        if (isSetFreq) {
+          agg->freqSets[setSize].insert(subset);
+          labelPerms.clear();
+          do { // process all unchecked permutations of ~subset~
+            if (agg->checkedSeqs[setSize].find(subset) == 
+                                              agg->checkedSeqs[setSize].end()) {
+              supp = agg->sequenceSupp(subset, commonTupleIds);
+              if (supp >= minSupp) {
+                for (unsigned int i = 0; i < subset.size(); i++) {
+                  if (!agg->buildAtom(subset[i], *(entriesMap[subset[i]]), 
+                                                        commonTupleIds, atom)) {
+                    cout << "Error in buildAtom for " << subset[i] << endl;
+                    return;
+                  }
+                  pattern += atom + " ";
+                }
+                agg->results.push_back(NewPair<string, double>(pattern, supp));
+                pattern.clear();
+              }
+              agg->checkedSeqs[setSize].insert(subset);
+            }
+          } while (std::next_permutation(subset.begin(), subset.end()));
+        }
+        else {
+          agg->nonfreqSets[setSize].insert(subset);
+        }
       }
     }
   }
@@ -1095,6 +1144,7 @@ FPTree* FPTree::constructCondTree(
     return 0;
   }
   FPTree *condFPTree = new FPTree();
+//   cout << "new tree created... " << endl;
   condFPTree->initialize(minSupp, agg);
   map<string, unsigned int> labelsToSuppCnt;
   map<string, unsigned int>::iterator mapIt;
@@ -1132,6 +1182,7 @@ FPTree* FPTree::constructCondTree(
   for (auto it : freqCondPB) {
     condFPTree->insertLabelVector(it.first, it.second);
   }
+//   cout << " ... finished, " << condFPTree->getNoNodes() << " nodes" << endl;
   return condFPTree;
 }
 
@@ -1145,14 +1196,20 @@ void FPTree::mineTree(vector<string>& initLabels, const unsigned int minNoAtoms,
     return;
   }
   if (isOnePathTree()) {
+//     cout << "tree has ONE path, length " << nodes.size() << " ... " << endl;
     set<string> freqLabels(initLabels.begin(), initLabels.end());
     for (unsigned int i = 1; i < nodes.size(); i++) {
       freqLabels.insert(nodes[i].label);
     }
     vector<string> labels(freqLabels.begin(), freqLabels.end());
+    if (nodes.size() == 7) {
+      cout << agg->print(labels) << endl;
+    }
     collectPatternsFromSeq(labels, minNoAtoms, maxNoAtoms);
+//     cout << "... all patterns collected" << endl;
   }
   else { // tree has more than one path
+//     cout << "tree has SEVERAL paths" << endl;
     vector<string> labelsSortedByFrequency, 
                    labelSeq(initLabels.begin(), initLabels.end());
     sortNodeLinks(labelsSortedByFrequency);
@@ -1204,6 +1261,8 @@ void FPTree::retrievePatterns(const unsigned int minNoAtoms,
   }
   vector<string> initialLabels;
   agg->checkedSeqs.resize(maxNoAtoms + 1);
+  agg->freqSets.resize(maxNoAtoms + 1);
+  agg->nonfreqSets.resize(maxNoAtoms + 1);
   mineTree(initialLabels, minNoAtoms, maxNoAtoms);
   std::sort(agg->results.begin(), agg->results.end(), comparePMResults());
 }

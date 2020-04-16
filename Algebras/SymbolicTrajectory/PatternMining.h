@@ -143,12 +143,18 @@ struct RelAgg {
   void filter(const double ms, const size_t memSize);
   bool buildAtom(std::string label, AggEntry entry,
                  const std::set<TupleId>& commonTupleIds, std::string& atom);
+  void subsetperm(std::vector<std::string> source, int left, int index,
+                  std::vector<std::string>& labelVec, 
+                  std::set<std::vector<std::string> >& result);
   void subset(std::vector<std::string> source, int left, int index,
               std::vector<std::string>& labelVec, 
               std::set<std::vector<std::string> >& result);
   void retrieveLabelCombs(const unsigned int size, 
                           std::vector<std::string>& source, 
                           std::set<std::vector<std::string > >& result);
+  void retrieveLabelSubsets(const unsigned int size, 
+                            std::vector<std::string>& source, 
+                            std::set<std::vector<std::string > >& result);
   AggEntry* getLabelEntry(std::string label);
   double getSuppForFreqLabel(std::string& label);
   bool canLabelsBeFrequent(std::vector<std::string>& labelSeq,
@@ -208,7 +214,8 @@ struct RelAgg {
   Geoid *geoid;
   Relation *rel;
   NewPair<int, int> attrPos; // textual, spatial
-  std::vector<std::set<std::vector<std::string>,compareLabelSeqs> > checkedSeqs;
+  std::vector<std::set<std::vector<std::string>,compareLabelSeqs> > 
+    checkedSeqs, freqSets, nonfreqSets;
   // only for fp,pos represents k, avoids repeated supp computations and results
 };
 
