@@ -31,27 +31,27 @@ Started November 2019, Fabio Vald\'{e}s
 
 namespace stj {
 
-
-
 struct AggEntry {
   AggEntry();
   AggEntry(const TupleId id, const temporalalgebra::SecInterval& iv,
-           Rect& rect);
+           Rect& rect, const unsigned int noTuples);
 
   void clear();
   ListExpr toListExpr();
-  unsigned int getNoOccurrences(const TupleId& id) const;
+  unsigned int getNoOccs(const TupleId& id) const;
   datetime::DateTime getDuration() const {return duration;}
   void computeCommonTimeInterval(const std::set<TupleId>& commonTupleIds,
                                  temporalalgebra::SecInterval& iv);
   void computeCommonRect(const temporalalgebra::SecInterval& iv,
              const std::set<TupleId>& commonTupleIds, Geoid *geoid, Rect &rect);
-  void computeSemanticTimeSpec(std::string& semanticTimeSpec) const;
+  void computeSemanticTimeSpec(const std::set<TupleId>& commonTupleIds,
+                               std::string& semanticTimeSpec) const;
   std::string print(const TupleId& id = 0) const;
   std::string print(const Rect& rect) const;
   
-  std::map<TupleId, NewPair<temporalalgebra::Periods*, Rect> > occurrences;
-  unsigned int noOccurrences; // over all tuples
+  std::vector<std::tuple<TupleId, temporalalgebra::Periods*, Rect> > occs;
+  std::vector<unsigned int> occsPos; // maps tuple id to pos in occs vector
+  unsigned int noOccs; // over all tuples
   datetime::DateTime duration; // over all tuples
 };
 

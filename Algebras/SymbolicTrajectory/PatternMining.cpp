@@ -36,66 +36,65 @@ using namespace temporalalgebra;
 namespace stj {
 
 AggEntry::AggEntry() {
-  occurrences.clear();
-  noOccurrences = 0;
+  occs.clear();
+  occsPos.clear();
+  noOccs = 0;
   duration.SetType(datetime::durationtype);
   duration.ReadFrom((int64_t)0);
 }
   
 AggEntry::AggEntry(const TupleId id, const temporalalgebra::SecInterval& iv,
-                   Rect& rect) {
-  occurrences.clear();
+                   Rect& rect, const unsigned int noTuples) {
+  occs.clear();
+  occsPos.clear();
+  occsPos.resize(noTuples + 1, UINT_MAX);
   Periods *per = new Periods(1);
   per->Add(iv);
-  occurrences[id].first = per;
-  occurrences[id].second = rect;
-  noOccurrences = 0;
+  occsPos[id] = occs.size();
+  occs.push_back(make_tuple(id, per, rect));
+  noOccs = 0;
   duration.SetType(datetime::durationtype);
   duration.ReadFrom((int64_t)0); // durations are computed at the end
 }
 
 void AggEntry::clear() {
-  for (auto it : occurrences) {
-    it.second.first->DeleteIfAllowed();
+  for (auto it : occs) {
+    get<1>(it)->DeleteIfAllowed();
   }
-  occurrences.clear();
-  noOccurrences = 0;
+  occs.clear();
+  occsPos.clear();
+  noOccs = 0;
   duration.SetType(datetime::durationtype);
   duration.ReadFrom((int64_t)0);
 }
 
 ListExpr AggEntry::toListExpr() {
   ListExpr occsList(nl->Empty()), occList(nl->Empty());
-  map<TupleId, NewPair<temporalalgebra::Periods*, Rect> >::iterator it =
-                                                            occurrences.begin();
   Word perWord, rectWord;
-  if (it != occurrences.end()) {
-    perWord.addr = it->second.first;
-    rectWord.addr = &(it->second.second);
-    occsList = nl->OneElemList(nl->ThreeElemList(nl->IntAtom(it->first),
+  TupleId id;
+  if (occs.size() >= 1) {
+    id = get<0>(occs[0]);
+    perWord.addr = get<1>(occs[0]);
+    rectWord.addr = &(get<2>(occs[0]));
+    occsList = nl->OneElemList(nl->ThreeElemList(nl->IntAtom(id),
                            OutRange<Instant, OutDateTime>(nl->Empty(), perWord),
                            OutRectangle<2>(nl->Empty(), rectWord)));
     occList = occsList;
   }
-  it++;
-  while (it != occurrences.end()) {
-    perWord.addr = it->second.first;
-    rectWord.addr = &(it->second.second);
-    occList = nl->Append(occList, nl->ThreeElemList(nl->IntAtom(it->first),
+  for (unsigned int i = 1; i < occs.size(); i++) {
+    id = get<0>(occs[i]);
+    perWord.addr = get<1>(occs[i]);
+    rectWord.addr = &(get<2>(occs[i]));
+    occList = nl->Append(occList, nl->ThreeElemList(nl->IntAtom(id),
                            OutRange<Instant, OutDateTime>(nl->Empty(), perWord),
                            OutRectangle<2>(nl->Empty(), rectWord)));
-    it++;
   }
-  return nl->ThreeElemList(nl->IntAtom(noOccurrences), 
-                           duration.ToListExpr(false), occsList);
+  return nl->ThreeElemList(nl->IntAtom(noOccs), duration.ToListExpr(false), 
+                           occsList);
 }
   
-unsigned int AggEntry::getNoOccurrences(const TupleId& id) const {
-  auto it = occurrences.find(id);
-  if (it == occurrences.end()) {
-    return 0;
-  }
-  return it->second.first->GetNoComponents();
+unsigned int AggEntry::getNoOccs(const TupleId& id) const {
+  return get<1>(occs[occsPos[id]])->GetNoComponents();
 }
 
 void AggEntry::computeCommonTimeInterval(const set<TupleId>& commonTupleIds,
@@ -106,11 +105,11 @@ void AggEntry::computeCommonTimeInterval(const set<TupleId>& commonTupleIds,
   iv.end.ToMinimum();
   Instant first(1.0), last(1.0);
   if (commonTupleIds.empty()) { // use all occurrences
-    for (auto it : occurrences) {
-      if (it.second.first->IsDefined()) {
-        if (!it.second.first->IsEmpty()) {
-          it.second.first->Minimum(first);
-          it.second.first->Maximum(last);
+    for (auto it : occs) {
+      if (get<1>(it)->IsDefined()) {
+        if (!get<1>(it)->IsEmpty()) {
+          get<1>(it)->Minimum(first);
+          get<1>(it)->Maximum(last);
           if (first < iv.start) {
             iv.start = first;
           }
@@ -123,8 +122,8 @@ void AggEntry::computeCommonTimeInterval(const set<TupleId>& commonTupleIds,
   }
   else { // use only entries occurring in the set
     for (auto it : commonTupleIds) {
-      if (occurrences.find(it) != occurrences.end()) {
-        Periods* per = occurrences[it].first;
+      if (occsPos[it] != UINT_MAX) {
+        Periods* per = get<1>(occs[occsPos[it]]);
         if (per->IsDefined()) {
           if (!per->IsEmpty()) {
             per->Minimum(first);
@@ -148,83 +147,90 @@ void AggEntry::computeCommonTimeInterval(const set<TupleId>& commonTupleIds,
 void AggEntry::computeCommonRect(const SecInterval& iv,
                  const set<TupleId>& commonTupleIds, Geoid *geoid, Rect &rect) {
   if (commonTupleIds.empty()) { // use all occurrences (for 1-patterns)
-    if (occurrences.empty()) {
+    if (occs.empty()) {
       return;
     }
-    map<TupleId, NewPair<Periods*, Rect> >::iterator it = occurrences.begin();
-    if (!it->second.second.IsDefined()) {
+    if (!get<2>(occs[0]).IsDefined()) {
       rect.SetDefined(false);
       return;
     }
-    Rect tempRect = it->second.second;
-    it++;
-    while (it != occurrences.end()) {
-      if (!it->second.second.IsDefined()) {
+    Rect tempRect = get<2>(occs[0]);
+    for (unsigned int i = 1; i < occs.size(); i++) {
+      if (!get<2>(occs[i]).IsDefined()) {
         rect.SetDefined(false);
         return;
       }
-      tempRect = it->second.second.Union(tempRect);
-      it++;
+      tempRect = get<2>(occs[i]).Union(tempRect);
     }
     rect = tempRect;
   }
   else {
     set<TupleId>::iterator it = commonTupleIds.begin();
-    if (!occurrences[*it].second.IsDefined()) {
+    if (!get<2>(occs[occsPos[*it]]).IsDefined()) {
       rect.SetDefined(false);
       return;
     }
-    Rect tempRect = occurrences[*it].second;
-    it++;
+    Rect tempRect = get<2>(occs[occsPos[*it]]);
     while (it != commonTupleIds.end()) {
-      if (!occurrences[*it].second.IsDefined()) {
+      if (!get<2>(occs[occsPos[*it]]).IsDefined()) {
         rect.SetDefined(false);
         return;
       }
-      tempRect = occurrences[*it].second.Union(tempRect);
+      tempRect = get<2>(occs[occsPos[*it]]).Union(tempRect);
       it++;
     }
     rect = tempRect;
   }
 }
 
-void AggEntry::computeSemanticTimeSpec(string& semanticTimeSpec) const {
+void AggEntry::computeSemanticTimeSpec(const set<TupleId>& commonTupleIds,
+                                       string& semanticTimeSpec) const {
   semanticTimeSpec.clear();
   int month = 1; // {1, ..., 12}
   int weekday = 0; // {0, ..., 6}
   int daytime = 0; // {0, ..., 3}
   Instant first(1.0), last(1.0);
-  for (map<TupleId, NewPair<Periods*, Rect> >::const_iterator it = 
-       occurrences.begin(); it != occurrences.end(); it++) {
-    if (it->second.first->IsDefined()) {
-      if (!it->second.first->IsEmpty()) {
-        it->second.first->Minimum(first);
-        it->second.first->Maximum(last);
-        if (it == occurrences.begin() && first.GetMonth() == last.GetMonth()) {
-          month = first.GetMonth();
-        }
-        else if (month != first.GetMonth() 
-              || first.GetMonth() != last.GetMonth()) {
-          month = -1;
-        }
-        if (it == occurrences.begin() 
-         && first.GetWeekday() == last.GetWeekday()) {
-          weekday = first.GetWeekday();
-        }
-        else if (weekday != first.GetWeekday()
-              || first.GetWeekday() != last.GetWeekday()) {
-          weekday = -1;
-        }
-        if (it == occurrences.begin()
+  Periods *per = 0;
+  for (set<TupleId>::const_iterator it = commonTupleIds.begin(); 
+                                             it != commonTupleIds.end(); it++) {
+    per = get<1>(occs[occsPos[*it]]);
+    if (!per->IsDefined()) {
+      semanticTimeSpec = "";
+      return;
+    }
+    if (per->IsEmpty()) {
+      semanticTimeSpec = "";
+      return;
+    }
+    per->Minimum(first);
+    per->Maximum(last);
+    if (it == commonTupleIds.begin() && first.GetMonth() == last.GetMonth()) {
+      month = first.GetMonth();
+    }
+    else if (month != first.GetMonth() 
+          || first.GetMonth() != last.GetMonth()) {
+      month = -1;
+    }
+    if (it == commonTupleIds.begin() 
+      && first.GetWeekday() == last.GetWeekday()) {
+      weekday = first.GetWeekday();
+    }
+    else if (weekday != first.GetWeekday()
+          || first.GetWeekday() != last.GetWeekday()) {
+      weekday = -1;
+    }
+    if (it == commonTupleIds.begin()
    && Tools::getDaytime(first.GetHour()) == Tools::getDaytime(last.GetHour())) {
-          daytime = Tools::getDaytime(first.GetHour());
-        }
-        else if (daytime != Tools::getDaytime(first.GetHour())
-              || Tools::getDaytime(first.GetMonth()) != 
-                 Tools::getDaytime(last.GetMonth())) {
-          daytime = -1;
-        }
-      }
+      daytime = Tools::getDaytime(first.GetHour());
+    }
+    else if (daytime != Tools::getDaytime(first.GetHour())
+          || Tools::getDaytime(first.GetMonth()) != 
+              Tools::getDaytime(last.GetMonth())) {
+      daytime = -1;
+    }
+    if (month == -1 && weekday == -1 && daytime == -1) {
+      semanticTimeSpec = "";
+      return;
     }
   }
   if (month > -1) {
@@ -243,20 +249,20 @@ void AggEntry::computeSemanticTimeSpec(string& semanticTimeSpec) const {
 std::string AggEntry::print(const TupleId& id /* = 0 */) const {
   std::stringstream result;
   if (id == 0) { // print everything
-    for (auto it : occurrences) {
-      result << "   TID " << it.first << ": " 
-             << it.second.first->GetNoComponents() 
-             << " occurrences:  " << *(it.second.first) << it.second.second
-             << endl;
+    for (auto it : occs) {
+      result << "   TID " << get<0>(it) << ": " << get<1>(it)->GetNoComponents()
+             << " occs:  " << *(get<1>(it)) << get<2>(it) << endl;
     }
   }
   else {
-    auto it = occurrences.find(id);
-    if (it == occurrences.end()) { // id not found
+    if (occsPos[id] == UINT_MAX) { // id not found
       result << "   TID " << id << " not found" << endl;
     }
     else {
-      result << "   TID " << id << ": " << *(it->second.first) << endl;
+      result << "   TID " << id << ": " 
+             << get<1>(occs[occsPos[id]])->GetNoComponents() << " occs:  " 
+             << *(get<1>(occs[occsPos[id]])) << get<2>(occs[occsPos[id]]) 
+             << endl;
     }
   }
   return result.str();
@@ -334,26 +340,26 @@ void RelAgg::insertLabelAndBbox(const std::string& label, const TupleId& id,
   }
   auto aggIt = entriesMap.find(label);
   if (aggIt == entriesMap.end()) { // new label
-    AggEntry entry(id, iv, rect);
+    AggEntry entry(id, iv, rect, rel->GetNoTuples());
     entriesMap.insert(make_pair(label, entry));
   }
   else { // label already present
-    auto entryIt = aggIt->second.occurrences.find(id);
-    if (entryIt == aggIt->second.occurrences.end()) { // new id for label
+    if (aggIt->second.occsPos[id] == UINT_MAX) { // new id for label
       Periods *per = new Periods(1);
       per->Add(iv);
-      entriesMap[label].occurrences.insert(
-                             make_pair(id, NewPair<Periods*, Rect>(per, rect)));
+      entriesMap[label].occsPos[id] = entriesMap[label].occs.size();
+      entriesMap[label].occs.push_back(make_tuple(id, per, rect));
     }
     else { // id already present for label
-      entriesMap[label].occurrences[id].first->MergeAdd(iv);
+      get<1>(entriesMap[label].occs[entriesMap[label].occsPos[id]])->
+                                                                   MergeAdd(iv);
       if (rect.IsDefined()) {
-        entriesMap[label].occurrences[id].second = 
-                           entriesMap[label].occurrences[id].second.Union(rect);
+        get<2>(entriesMap[label].occs[entriesMap[label].occsPos[id]]) = 
+      get<2>(entriesMap[label].occs[entriesMap[label].occsPos[id]]).Union(rect);
       }
     }
   }
-  entriesMap[label].noOccurrences++;
+  entriesMap[label].noOccs++;
   entriesMap[label].duration += iv.end - iv.start;
 }
 
@@ -408,13 +414,16 @@ void RelAgg::filter(const double ms, const size_t memSize) {
   // scan ~entriesMap~; push entries for frequent labels into ~entries~ and
   //   store every label and its entry's position inside ~entries~ in ~inv~
   for (auto it : entriesMap) {
-    supp = double(it.second.occurrences.size()) / noTuples;
+    supp = double(it.second.occs.size()) / noTuples;
     if (supp >= minSupp) {
 //       cout << "INSERTED: \"" << it.first << "\", POS " << entries.size()
 //            << " " << it.second.print() << endl;
       entries.push_back(it.second);
       labelPos.insert(make_pair(it.first, freqLabels.size()));
       freqLabels.push_back(it.first);
+    }
+    else {
+      // TODO: delete periods
     }
   }
 //   for (unsigned int i = 0; i < freqLabels.size(); i++) {
@@ -442,7 +451,7 @@ bool RelAgg::buildAtom(unsigned int label, AggEntry entry,
   SecInterval iv(true);
   string timeSpec, semanticTimeSpec;
   entry.computeCommonTimeInterval(commonTupleIds, iv);
-  entry.computeSemanticTimeSpec(semanticTimeSpec);
+  entry.computeSemanticTimeSpec(commonTupleIds, semanticTimeSpec);
   if (!semanticTimeSpec.empty()) {
     if (iv.start.IsDefined() && iv.end.IsDefined()) {
       timeSpec = "{" + iv.start.ToString() + "~" + iv.end.ToString() + ", "
@@ -486,7 +495,10 @@ void RelAgg::subsetperm(vector<unsigned int> source, int left, int index,
 void RelAgg::subset(vector<unsigned int> source, int left, int index,
            vector<unsigned int>& labelVec, set<vector<unsigned int> >& result) {
   if (left == 0) {
-    result.insert(labelVec);
+//     if (nonfreqSets[labelVec.size()].find(labelVec) == 
+//                                         nonfreqSets[labelVec.size()].end()) {
+      result.insert(labelVec);
+//     }
   }
   for (unsigned int i = index; i < source.size(); i++) {
     labelVec.push_back(source[i]);
@@ -520,7 +532,7 @@ void RelAgg::retrieveLabelSubsets(const unsigned int size,
 }
 
 double RelAgg::getSupp(unsigned int label) {
-  return double(entries[label].occurrences.size()) / noTuples;
+  return double(entries[label].occs.size()) / noTuples;
 }
 
 /*
@@ -537,21 +549,21 @@ bool RelAgg::canLabelsBeFrequent(vector<unsigned int>& labelSeq,
     return false;
   }
   set<TupleId> intersection_temp;
-  vector<set<TupleId> > occs;
-  occs.resize(labelSeq.size());
+  vector<set<TupleId> > allOccs;
+  allOccs.resize(labelSeq.size());
   // retrieve occurrences for every label
 //   cout << "check sequence " << print(labelSeq) << endl;
   for (unsigned int pos = 0; pos < labelSeq.size(); pos++) {
-    for (auto occ : entries[labelSeq[pos]].occurrences) {
-      occs[pos].insert(occ.first);
+    for (auto occ : entries[labelSeq[pos]].occs) {
+      allOccs[pos].insert(get<0>(occ));
     }
   }
   // compute intersection of all id sets
-  set_intersection(occs[0].begin(), occs[0].end(), occs[1].begin(),    
-                   occs[1].end(), inserter(intersection, intersection.begin()));
+  set_intersection(allOccs[0].begin(), allOccs[0].end(), allOccs[1].begin(),
+                allOccs[1].end(), inserter(intersection, intersection.begin()));
   for (unsigned int pos = 2; pos < labelSeq.size(); pos++) {
     set_intersection(intersection.begin(), intersection.end(), 
-                     occs[pos].begin(), occs[pos].end(), 
+                     allOccs[pos].begin(), allOccs[pos].end(), 
                      inserter(intersection_temp, intersection_temp.begin()));
     intersection = intersection_temp;
     intersection_temp.clear();
@@ -578,7 +590,7 @@ double RelAgg::sequenceSupp(vector<unsigned int> labelSeq,
   }
   Instant start(instanttype), end(instanttype);
   int noOccurrences = 0;
-  AggEntry entry;
+  AggEntry *entry;
   for (auto id : intersection) {
     // try to find all labels
     start.ToMinimum();
@@ -586,12 +598,12 @@ double RelAgg::sequenceSupp(vector<unsigned int> labelSeq,
     bool sequenceFound = true;
     unsigned int pos = 0;
     while (sequenceFound && (pos < labelSeq.size())) {
-      entry = entries[labelSeq[pos]];
-      if (entry.occurrences.find(id) != entry.occurrences.end()) {
-        entry.occurrences[id].first->Maximum(end);
+      entry = &(entries[labelSeq[pos]]);
+      if (entry->occsPos[id] < UINT_MAX) {
+        get<1>(entry->occs[entry->occsPos[id]])->Maximum(end);
         if (start < end) { // label found, correct order
           // set start instant to begin of periods for current label
-          entry.occurrences[id].first->Minimum(start);
+          get<1>(entry->occs[entry->occsPos[id]])->Minimum(start);
         }
         else { // label found, but not in expected order
 //           cout << "WRONG ORDER: id " << id << ", \"" << labelSeq[pos]
@@ -685,7 +697,7 @@ void RelAgg::derivePatterns(const int mina, const int maxa) {
   for (unsigned int label = 0; label < entries.size(); label++) {
     buildAtom(label, entries[label], commonTupleIds, atom);
     if (minNoAtoms == 1) {
-      supp = double(entries[label].occurrences.size()) / noTuples;
+      supp = double(entries[label].occs.size()) / noTuples;
       results.push_back(NewPair<string, double>(atom, supp));
     }
   }
@@ -779,7 +791,7 @@ string RelAgg::print(const map<unsigned int, AggEntry>& contents) const {
   stringstream result;
   for (auto it : contents) {
     result << "\"" << freqLabels[it.first] << "\" occurs " 
-           << it.second.noOccurrences << " times with a total duration of " 
+           << it.second.noOccs << " times with a total duration of " 
            << it.second.duration << endl << "   " << it.second.print()
            << endl << "-----------------------------------------------" << endl;
   }
@@ -818,7 +830,7 @@ string RelAgg::print(const unsigned int label /* = UINT_MAX */) {
     }
   }
   else {
-    if (entries[label].occurrences.empty()) { // label not found
+    if (entries[label].occs.empty()) { // label not found
       result << "Label \"" << freqLabels[label] << "\" not found" << endl;
     }
     else {
@@ -1018,14 +1030,11 @@ void FPTree::collectPatternsFromSeq(vector<unsigned int>& labelSeq,
   string atom, pattern;
   double supp;
   // find all subsets of label sequence, having a suitable number of elements
-  for (unsigned int setSize = minSetSize; setSize <= maxNoAtoms; setSize++) {
-//     if (labelSeq.size() == 7) {
-//       cout << "   retrieve subsets of size " << setSize << endl;
-//     }
+  unsigned int setSize = minSetSize;
+  unsigned oldResultSize = 0;
+  bool freqkPatFound = true;
+  while (setSize <= maxNoAtoms && freqkPatFound) {
     agg->retrieveLabelSubsets(setSize, labelSeq, labelSubsets);
-//     if (labelSeq.size() == 7) {
-//       cout << "   ... found " << labelSubsets.size() << " subsets" << endl;
-//     }
     for (auto subset : labelSubsets) {
       if (agg->nonfreqSets[setSize].find(subset) == 
                                               agg->nonfreqSets[setSize].end()) {
@@ -1062,6 +1071,9 @@ void FPTree::collectPatternsFromSeq(vector<unsigned int>& labelSeq,
         }
       }
     }
+    freqkPatFound = (agg->results.size() > oldResultSize);
+    oldResultSize = agg->results.size();
+    setSize++;
   }
 }
 
@@ -1103,7 +1115,7 @@ FPTree* FPTree::constructCondTree(
     return 0;
   }
   FPTree *condFPTree = new FPTree();
-//   cout << "new tree created... " << endl;
+  cout << "new tree created... " << endl;
   condFPTree->initialize(minSupp, agg);
   map<unsigned int, unsigned int> labelsToSuppCnt;
   map<unsigned int, unsigned int>::iterator mapIt;
@@ -1141,7 +1153,7 @@ FPTree* FPTree::constructCondTree(
   for (auto it : freqCondPB) {
     condFPTree->insertLabelVector(it.first, it.second);
   }
-//   cout << " ... finished, " << condFPTree->getNoNodes() << " nodes" << endl;
+  cout << " ... filled, " << condFPTree->getNoNodes() << " nodes" << endl;
   return condFPTree;
 }
 
@@ -1155,17 +1167,20 @@ void FPTree::mineTree(vector<unsigned int>& initLabels,
     return;
   }
   if (isOnePathTree()) {
-//     cout << "tree has ONE path, length " << nodes.size() << " ... " << endl;
+//     cout << "  tree has ONE path, " << nodes.size() - 1 << " node(s) : <";
+//     for (auto it : initLabels) {
+//       cout << agg->freqLabels[it] << ", ";
+//     }
+//     cout << "| ";
     set<unsigned int> freqLabels(initLabels.begin(), initLabels.end());
     for (unsigned int i = 1; i < nodes.size(); i++) {
       freqLabels.insert(nodes[i].label);
+//       cout << agg->freqLabels[nodes[i].label] << ", ";
     }
+//     cout << ">" << endl;
     vector<unsigned int> labels(freqLabels.begin(), freqLabels.end());
-//     if (nodes.size() == 7) {
-//       cout << agg->print(labels) << endl;
-//     }
     collectPatternsFromSeq(labels, minNoAtoms, maxNoAtoms);
-//     cout << "... all patterns collected" << endl;
+//     cout << "  ... all patterns collected" << endl;
   }
   else { // tree has more than one path
 //     cout << "tree has SEVERAL paths" << endl;
@@ -1212,7 +1227,7 @@ void FPTree::retrievePatterns(const unsigned int minNoAtoms,
     double supp = 1.0;
     for (unsigned int l = 0; l < agg->entries.size(); l++) { // retrieve 1-pats
       agg->buildAtom(l, agg->entries[l], commonTupleIds, atom);
-      supp = double(agg->entries[l].occurrences.size()) / agg->noTuples;
+      supp = double(agg->entries[l].occs.size()) / agg->noTuples;
       agg->results.push_back(NewPair<string, double>(atom, supp));
       frequentLabels.push_back(l);
     }
@@ -1336,7 +1351,7 @@ bool FPTree::Save(SmiRecord& valueRecord, size_t& offset,
   // store nodes
   string label;
   unsigned int labelLength, numLabel, frequency, noChildren, child, nodeLink, 
-               noOccs, ancestor;
+               noOccs, noOccsPos, ancestor, tid;
   double durD;
   for (unsigned int i = 0; i < noNodes; i++) { // store nodes
     numLabel = tree->nodes[i].label;
@@ -1411,8 +1426,8 @@ bool FPTree::Save(SmiRecord& valueRecord, size_t& offset,
   SecondoCatalog *sc = SecondoSystem::GetCatalog();
   ListExpr ptList = sc->NumericType(nl->SymbolAtom(Periods::BasicType()));
   for (unsigned int i = 0; i < noAggEntries; i++) {
-    if (!valueRecord.Write(&tree->agg->entries[i].noOccurrences,
-                           sizeof(unsigned int), offset)) {
+    if (!valueRecord.Write(&tree->agg->entries[i].noOccs, sizeof(unsigned int), 
+                                                                      offset)) {
       return false;
     }
     offset += sizeof(unsigned int);
@@ -1421,35 +1436,47 @@ bool FPTree::Save(SmiRecord& valueRecord, size_t& offset,
       return false;
     }
     offset += sizeof(double);
-    noOccs = tree->agg->entries[i].occurrences.size();
+    noOccs = tree->agg->entries[i].occs.size();
     if (!valueRecord.Write(&noOccs, sizeof(unsigned int), offset)) {
       return false;
     }
     offset += sizeof(unsigned int);
-    for (auto it : tree->agg->entries[i].occurrences) {
-      unsigned int tid = it.first;
+    for (auto occ : tree->agg->entries[i].occs) {
+      tid = get<0>(occ);
       if (!valueRecord.Write(&tid, sizeof(unsigned int), offset)) {
         return false;
       }
       offset += sizeof(unsigned int);
-      perVal.addr = it.second.first;
+      perVal.addr = get<1>(occ);
       if (!temporalalgebra::SaveRange<Instant>(valueRecord, offset, ptList,
                                                perVal)) {
         return false;
       }
-      double coords[] = {it.second.second.MinD(0), it.second.second.MinD(1),
-                         it.second.second.MaxD(0), it.second.second.MaxD(1)};
+      double coords[] = {get<2>(occ).MinD(0), get<2>(occ).MinD(1),
+                         get<2>(occ).MaxD(0), get<2>(occ).MaxD(1)};
       for (int c = 0; c < 4; c++) {
         if (!valueRecord.Write(&coords[c], sizeof(double), offset)) {
           return false;
         }
         offset += sizeof(double);
       }
-      bool isdefined = it.second.second.IsDefined();
+      bool isdefined = get<2>(occ).IsDefined();
       if (!valueRecord.Write(&isdefined, sizeof(bool), offset)) {
         return false;
       }
       offset += sizeof(bool);
+    }
+    noOccsPos = tree->agg->entries[i].occsPos.size();
+    if (!valueRecord.Write(&noOccsPos, sizeof(unsigned int), offset)) {
+      return false;
+    }
+    offset += sizeof(unsigned int);
+    for (auto occPos : tree->agg->entries[i].occsPos) {
+      tid = occPos;
+      if (!valueRecord.Write(&tid, sizeof(unsigned int), offset)) {
+        return false;
+      }
+      offset += sizeof(unsigned int);
     }
   }
   for (unsigned int i = 0; i < noAggEntries; i++) {
@@ -1478,7 +1505,7 @@ bool FPTree::Open(SmiRecord& valueRecord, size_t& offset,
   }
   offset += sizeof(double);
   unsigned int labelLength, numLabel, noNodes, frequency, noChildren, child, 
-               nodeLink, ancestor, noNodeLinks, noOccs, noAggEntries;
+       nodeLink, ancestor, noNodeLinks, noOccs, noAggEntries, noOccsPos, occPos;
   // read nodes
   if (!valueRecord.Read(&noNodes, sizeof(unsigned int), offset)) {
     return false;
@@ -1554,7 +1581,7 @@ bool FPTree::Open(SmiRecord& valueRecord, size_t& offset,
   Periods *per;
   for (unsigned int i = 0; i < noAggEntries; i++) {
     AggEntry entry;
-    if (!valueRecord.Read(&entry.noOccurrences, sizeof(unsigned int), offset)) {
+    if (!valueRecord.Read(&entry.noOccs, sizeof(unsigned int), offset)) {
       return false;
     }
     offset += sizeof(unsigned int);
@@ -1600,8 +1627,18 @@ bool FPTree::Open(SmiRecord& valueRecord, size_t& offset,
       Rect rect(isdefined, min, max);
       delete[] min;
       delete[] max;
-      NewPair<Periods*, Rect> pr(per, rect);
-      entry.occurrences.insert(entry.occurrences.end(), make_pair(tid, pr));
+      entry.occs.push_back(make_tuple(tid, per, rect));
+    }
+    if (!valueRecord.Read(&noOccsPos, sizeof(unsigned int), offset)) {
+      return false;
+    }
+    offset += sizeof(unsigned int);
+    for (unsigned int j = 0; j < noOccsPos; j++) {
+      if (!valueRecord.Read(&occPos, sizeof(unsigned int), offset)) {
+        return false;
+      }
+      offset += sizeof(unsigned int);
+      entry.occsPos.push_back(occPos);
     }
     tree->agg->entries.push_back(entry);
   }
@@ -1717,8 +1754,5 @@ MineFPTreeLI::~MineFPTreeLI() {
   delete tree->agg;
   tupleType->DeleteIfAllowed();
 }
-
-
-
 
 }
