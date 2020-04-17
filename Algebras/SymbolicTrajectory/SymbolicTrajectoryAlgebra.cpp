@@ -6322,8 +6322,6 @@ int createfptreeVM(Word* args, Word& result, int message, Word& local,
   }
   else {
     RelAgg *agg = new RelAgg();
-    agg->clear(false);
-    agg->initializeInv();
     agg->scanRelation(rel, NewPair<int, int>(posTextual->GetValue(), 
                                              posSpatial->GetValue()), geoid);
     agg->filter(suppmin->GetValue(), qp->GetMemorySize(s));

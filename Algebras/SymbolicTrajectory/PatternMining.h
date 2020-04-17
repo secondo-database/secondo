@@ -97,8 +97,8 @@ struct comparePMResults {
 };
 
 struct compareLabelsWithSupp {
-  bool operator()(NewPair<std::string, double> lws1,
-                  NewPair<std::string, double> lws2) {
+  bool operator()(NewPair<unsigned int, double> lws1,
+                  NewPair<unsigned int, double> lws2) {
     if (lws1.second == lws2.second) {
       return (lws1.first < lws2.first);
     }
@@ -107,7 +107,8 @@ struct compareLabelsWithSupp {
 };
 
 struct compareLabelSeqs {
-  bool operator()(std::vector<std::string> seq1, std::vector<std::string> seq2){
+  bool operator()(std::vector<unsigned int> seq1, 
+                  std::vector<unsigned int> seq2) {
     if (seq1.size() == seq2.size()) {
       for (unsigned int i = 0; i < seq1.size(); i++) {
         if (seq1[i] != seq2[i]) {
@@ -133,45 +134,44 @@ of occurrences inside the tuple, and the total duration of its occurrences.
 
 struct RelAgg {
   RelAgg();
-  ~RelAgg() {clear(true);}
+  ~RelAgg() {clear();}
   
-  void clear(const bool deleteInv);
-  void initializeInv();
+  void clear();
+  void clearEntries();
   void insertLabelAndBbox(const std::string& label, const TupleId& id, 
                           const temporalalgebra::SecInterval& iv, Rect& rect);
   void scanRelation(Relation *rel, const NewPair<int, int> attrPos, Geoid *g);
   void filter(const double ms, const size_t memSize);
-  bool buildAtom(std::string label, AggEntry entry,
+  bool buildAtom(unsigned int label, AggEntry entry,
                  const std::set<TupleId>& commonTupleIds, std::string& atom);
-  void subsetperm(std::vector<std::string> source, int left, int index,
-                  std::vector<std::string>& labelVec, 
-                  std::set<std::vector<std::string> >& result);
-  void subset(std::vector<std::string> source, int left, int index,
-              std::vector<std::string>& labelVec, 
-              std::set<std::vector<std::string> >& result);
+  void subsetperm(std::vector<unsigned int> source, int left, int index,
+                  std::vector<unsigned int>& labelVec, 
+                  std::set<std::vector<unsigned int> >& result);
+  void subset(std::vector<unsigned int> source, int left, int index,
+              std::vector<unsigned int>& labelVec, 
+              std::set<std::vector<unsigned int> >& result);
   void retrieveLabelCombs(const unsigned int size, 
-                          std::vector<std::string>& source, 
-                          std::set<std::vector<std::string > >& result);
+                          std::vector<unsigned int>& source, 
+                          std::set<std::vector<unsigned int> >& result);
   void retrieveLabelSubsets(const unsigned int size, 
-                            std::vector<std::string>& source, 
-                            std::set<std::vector<std::string > >& result);
-  AggEntry* getLabelEntry(std::string label);
-  double getSuppForFreqLabel(std::string& label);
-  bool canLabelsBeFrequent(std::vector<std::string>& labelSeq,
+                            std::vector<unsigned int>& source, 
+                            std::set<std::vector<unsigned int> >& result);
+  double getSupp(unsigned int label);
+  bool canLabelsBeFrequent(std::vector<unsigned int>& labelSeq,
                                  std::set<TupleId>& intersection);
-  double sequenceSupp(std::vector<std::string> labelSeq,
+  double sequenceSupp(std::vector<unsigned int> labelSeq,
                       std::set<TupleId> intersection);
-  void combineApriori(std::set<std::vector<std::string > >& frequentLabelCombs,
-                      std::set<std::vector<std::string > >& labelCombs);
-  void retrievePermutations(std::vector<std::string>& labelComb,
-                            std::set<std::vector<std::string > >& labelPerms);
+  void combineApriori(std::set<std::vector<unsigned int> >& frequentLabelCombs,
+                      std::set<std::vector<unsigned int> >& labelCombs);
+  void retrievePermutations(std::vector<unsigned int>& labelComb,
+                            std::set<std::vector<unsigned int> >& labelPerms);
   void derivePatterns(const int mina, const int maxa);
-  std::string print(const std::map<std::string, AggEntry>& contents) const;
-  std::string print(const std::map<TupleId, std::vector<std::string> >& 
+  std::string print(const std::map<unsigned int, AggEntry>& contents) const;
+  std::string print(const std::map<TupleId, std::vector<unsigned int> >& 
                                                           frequentLabels) const;
-  std::string print(const std::set<std::vector<std::string> >& labelCombs) 
+  std::string print(const std::set<std::vector<unsigned int> >& labelCombs) 
                                                                           const;
-  std::string print(const std::string& label = "");
+  std::string print(const unsigned int label = UINT_MAX);
   
   template<class T>
   std::string print(const std::vector<T>& anyVec) const {
@@ -207,31 +207,31 @@ struct RelAgg {
   
   unsigned int noTuples, minNoAtoms, maxNoAtoms;
   std::map<std::string, AggEntry> entriesMap; // only for initial insertions
-  std::vector<std::pair<std::string, AggEntry> > entries;
-  InvertedFile *inv; // leaves contain positions of vector ~entries~ for a label
+  std::vector<AggEntry> entries;
+  std::vector<std::string> freqLabels; // id for each frequent label
+  std::map<std::string, unsigned int> labelPos; // label --> pos in freqLabels
   std::vector<NewPair<std::string, double> > results;
   double minSupp;
   Geoid *geoid;
   Relation *rel;
   NewPair<int, int> attrPos; // textual, spatial
-  std::vector<std::set<std::vector<std::string>,compareLabelSeqs> > 
+  std::vector<std::set<std::vector<unsigned int>, compareLabelSeqs> > 
     checkedSeqs, freqSets, nonfreqSets;
   // only for fp,pos represents k, avoids repeated supp computations and results
 };
 
 struct FPNode {
   FPNode() {}
-  FPNode(const std::string& l, const unsigned int f, const unsigned int a) : 
+  FPNode(const unsigned int l, const unsigned int f, const unsigned int a) : 
                              label(l), frequency(f), nodeLink(0), ancestor(a) {}
-  FPNode(const std::string& l, const unsigned f, 
+  FPNode(const unsigned int l, const unsigned f, 
          const std::vector<unsigned int>& c, const unsigned int nl, 
          const unsigned int a) :
                label(l), frequency(f), children(c), nodeLink(nl), ancestor(a) {}
   
-  ListExpr toListExpr() const;
+  ListExpr toListExpr(std::vector<std::string>& freqLabels) const;
   
-  std::string label;
-  unsigned int frequency;
+  unsigned int label, frequency;
   std::vector<unsigned int> children; // positions of all children
   unsigned int nodeLink; // position of successor in node link; 0 means no link
   unsigned int ancestor; // pos of ancestor node
@@ -251,21 +251,21 @@ class FPTree {
   bool hasAggEntries() {return !agg->entries.empty();}
   unsigned int getNoNodes() {return nodes.size();}
   unsigned int getNoNodeLinks() {return nodeLinks.size();}
-  bool isChildOf(std::string& label, unsigned int pos, unsigned int& nextPos);
-  void updateNodeLink(std::string& label, unsigned int targetPos);
-  void insertLabelVector(const std::vector<std::string>& labelsOrdered,
+  bool isChildOf(unsigned int label, unsigned int pos, unsigned int& nextPos);
+  void updateNodeLink(unsigned int label, unsigned int targetPos);
+  void insertLabelVector(const std::vector<unsigned int>& labelsOrdered,
                          const unsigned int freq);
   void construct();
   void initialize(const double ms, RelAgg *ra);
   bool isOnePathTree();
-  void sortNodeLinks(std::vector<std::string>& result);
-  void collectPatternsFromSeq(std::vector<std::string>& labelSeq,
+  void sortNodeLinks(std::vector<unsigned int>& result);
+  void collectPatternsFromSeq(std::vector<unsigned int>& labelSeq,
                   const unsigned int minNoAtoms, const unsigned int maxNoAtoms);
-  void computeCondPatternBase(std::vector<std::string>& labelSeq, 
-         std::vector<NewPair<std::vector<std::string>, unsigned int> >& result);
+  void computeCondPatternBase(std::vector<unsigned int>& labelSeq, 
+        std::vector<NewPair<std::vector<unsigned int>, unsigned int> >& result);
   FPTree* constructCondTree(
-         std::vector<NewPair<std::vector<std::string>, unsigned int> >& condPB);
-  void mineTree(std::vector<std::string>& initLabels, 
+        std::vector<NewPair<std::vector<unsigned int>, unsigned int> >& condPB);
+  void mineTree(std::vector<unsigned int>& initLabels, 
                 const unsigned int minNoAtoms, const unsigned int maxNoAtoms);
   void retrievePatterns(const unsigned int minNoAtoms, 
                         const unsigned int maxNoAtoms);
@@ -274,7 +274,7 @@ class FPTree {
   static ListExpr Property();
   static Word In(const ListExpr typeInfo, const ListExpr instance,
                  const int errorPos, ListExpr& errorInfo, bool& correct);
-  ListExpr getNodeLinksList(std::string label);
+  ListExpr getNodeLinksList(unsigned int label);
   static ListExpr Out(ListExpr typeInfo, Word value);
   static Word Create(const ListExpr typeInfo);
   static void Delete(const ListExpr typeInfo, Word& w);
@@ -291,7 +291,8 @@ class FPTree {
   double minSupp;
   unsigned int minSuppCnt; // \ceil{noTuples * minSupp}
   std::vector<FPNode> nodes; // nodes[0] represents root
-  std::map<std::string, unsigned int> nodeLinks; // pointer to 1st node of link
+  std::map<unsigned int, unsigned int> nodeLinks; // pointer to 1st node of link
+//   std::vector<std::string> freqLabels; // id for each frequent label
   RelAgg *agg;
 };
 
