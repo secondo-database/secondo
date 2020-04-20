@@ -290,7 +290,6 @@ cout << "Create: " << nl->ToString(typeInfo) << endl;
 #ifdef DEBUG
       cout << "  Statusbericht Create: ohne Subtyp!" << endl;
 #endif
-      cout << "  Statusbericht Create: ohne Subtyp!" << endl;
       collTypeInfo = typeInfo;
     } else {
       collTypeInfo = nl->First(typeInfo);
