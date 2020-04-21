@@ -1,0 +1,16 @@
+# ===================================================================
+create database germanyw40S;
+open database germanyw40S;
+
+restore Workers from WorkersNewton
+
+let Control160 = createintdarray("Control160", Workers, 160)
+
+
+@&Scripts/Newton/SimClustNewtonPrepGermany.sec;
+@&Scripts/Newton/SimilarityClusteringNewtonS.sec;
+
+close database;
+
+
+

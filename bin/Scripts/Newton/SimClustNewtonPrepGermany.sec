@@ -1,0 +1,17 @@
+let T = Control160 dmap["T",
+    [const rel(tuple([NodeId: longint, Lat: real, Lon: real])) value ()]
+    csvimport['/home/ralf/secondo/bin/CityNodes' + num2string(..), 0, ","]
+    projectextend[; Osm_id: .NodeId, Pos: makepoint(.Lon, .Lat)]
+  ]
+  
+# 5:54 min (10 workers)
+# 2:44 min (30 workers)
+
+query T dmap["", . feed count] getValue tie[. + ..];
+
+# 315113976
+  
+restore SS from '/home/ralf/secondo/bin/SSGermany';
+
+let k = 100;
+
