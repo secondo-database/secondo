@@ -132,7 +132,7 @@ int op_setcore::setcoreVM(Word* args, Word& result, int message,
     CcBool* res = static_cast<CcBool*>(result.addr);
     MThreadedSingleton::setCoresToUse(cores->GetValue());
     res -> Set(true,true);
-    
+
     return 0;
 }
 

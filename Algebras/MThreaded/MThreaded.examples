@@ -1,3 +1,4 @@
+Sequential: Yes
 Database: berlintest
 Restore: No
 
@@ -9,13 +10,37 @@ Result      : 6
 Tolerance   : 6
 
 Operator    : setcore
-Number      : 1
+Number      : 2
 Signature   : int -> bool
-Example     : query setcore(6)
+Example     : query setcore(3)
 Result      : TRUE
 
 Operator    : getcore
-Number      : 1
+Number      : 3
 Signature   : -> int
 Example     : query getcore()
-Result      : 6
+Result      : 3
+
+Operator    : mThreadedMergeSort
+Number      : 4
+Signature   : stream x (attr x bool ...) -> stream
+Example     : query strassen feed mThreadedMergeSort[GeoData] count
+Result      : 3212
+
+Operator    : mThreadedMergeSort
+Number      : 5
+Signature   : stream x (attr x bool ...) -> stream
+Example     : query strassen feed mThreadedMergeSort[GeoData] count
+Result      : 3212
+
+Operator    : mThreadedHybridJoin
+Number      : 6
+Signature   : stream x stream x attr x attr -> stream
+Example     : query Orte feed {o} plz feed {p} mThreadedHybridJoin[Ort_o, Ort_p] count
+Result      : 10052
+
+Operator    : mThreadedHybridJoin
+Number      : 7
+Signature   : stream x stream x attr x attr -> stream
+Example     : query strassen feed {o} Plaetze feed {p} mThreadedHybridJoin[Name_o, Name_p] count
+Result      : 15

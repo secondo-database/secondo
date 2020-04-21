@@ -69,7 +69,7 @@ class CompareByVector {
    ~CompareByVector() {}
 
    // Compare 2 tuples and return true of 1>=2
-   bool compTuple(Tuple* tuple1, Tuple* tuple2) const;
+   bool compTuple(Tuple* a, Tuple* b) const;
 };
 
 class TournamentTree {
@@ -93,8 +93,6 @@ class TournamentTree {
    std::vector<node> tree;
    std::shared_ptr<CompareByVector> compareClass;
 
-
-
    static constexpr size_t memInTree =
            2 * sizeof(void*) + 4 * sizeof(int) + 2 * sizeof(bool);
 
@@ -107,7 +105,7 @@ class TournamentTree {
            std::shared_ptr<CompareByVector> _compareClass,
            size_t _maxMem);
 
-   ~TournamentTree() {}
+   ~TournamentTree() {tree.clear();}
 
    // fill leaves
    void fillLeaves(Tuple* tuple);
@@ -151,7 +149,7 @@ class MergeFeeder {
                std::shared_ptr<CompareByVector> _compare,
                size_t _n);
 
-   ~MergeFeeder() {cout << "destruct merge!!" << endl;}
+   ~MergeFeeder() {}
 
    // Thread
    void operator()();
@@ -168,7 +166,7 @@ class NoMergeFeeder {
    NoMergeFeeder(std::shared_ptr<Buffer> _buf,
                size_t _n);
 
-   ~NoMergeFeeder() { cout << "destruct nomerge!!" << endl;}
+   ~NoMergeFeeder() {}
 
    // Thread
    void operator()();
@@ -185,7 +183,7 @@ class MergePipeline {
            std::shared_ptr<CompareByVector> _compare,
            size_t _feederNo, size_t _n);
 
-   ~MergePipeline() {cout << "destruct pipe!!" << endl;}
+   ~MergePipeline() {}
 
    // Thread
    void operator()();

@@ -49,8 +49,11 @@ along with SECONDO; if not, write to the Free Software
 #include "Algebra.h"
 #include "NestedList.h"
 #include "QueryProcessor.h"
+#include "thread"
+#include <Algebras/MThreaded/MThreadedAux.h>
 
 namespace mthreaded {
+
 class MThreadedAlgebra;
 }
 
