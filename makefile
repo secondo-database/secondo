@@ -127,7 +127,7 @@ endif
 
 .PHONY: API
 API:
-	$(MAKE) -C api_cpp
+	$(MAKE) -C apis
 
 
 .PHONY: show-vars
@@ -249,7 +249,7 @@ clean:
 	$(MAKE) -C OptServer clean
 	$(MAKE) -C OptParser clean
 	$(MAKE) -C Optimizer clean
-	$(MAKE) -C api_cpp clean
+	$(MAKE) -C apis clean
 	$(MAKE)	-C ParallelTransform clean
 	$(MAKE) -f ./makefile.libs clean
 	rm -f lib/*.a
