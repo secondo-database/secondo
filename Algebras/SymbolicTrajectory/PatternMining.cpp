@@ -28,10 +28,12 @@ Started November 2019, Fabio Vald\'{e}s
 */
 
 #include "PatternMining.h"
+#include <chrono>
 
 using namespace std;
 using namespace datetime;
 using namespace temporalalgebra;
+using namespace std::chrono; 
 
 namespace stj {
 
@@ -66,6 +68,12 @@ void AggEntry::clear() {
   noOccs = 0;
   duration.SetType(datetime::durationtype);
   duration.ReadFrom((int64_t)0);
+}
+
+void AggEntry::deletePeriods() {
+  for (auto it : occs) {
+    (get<1>(it))->DeleteIfAllowed();
+  }
 }
 
 ListExpr AggEntry::toListExpr() {
@@ -300,7 +308,7 @@ void RelAgg::clear() {
 
 void RelAgg::clearEntries() {
   for (auto it : entries) {
-    it.clear();
+    it.deletePeriods();
   }
   for (auto it : checkedSeqs) {
     for (auto it2 : it) {
@@ -423,7 +431,7 @@ void RelAgg::filter(const double ms, const size_t memSize) {
       freqLabels.push_back(it.first);
     }
     else {
-      // TODO: delete periods
+      it.second.deletePeriods();
     }
   }
 //   for (unsigned int i = 0; i < freqLabels.size(); i++) {
@@ -787,6 +795,48 @@ void RelAgg::derivePatterns(const int mina, const int maxa) {
   std::sort(results.begin(), results.end(), comparePMResults());
 }
 
+/*
+  Class ~RelAgg~, Function ~computeEntriesSize~
+  
+  Compute storage space in bytes for all entries:
+  
+  constant: noOccs, (noTuples + 1) * tid, noOccs, duration
+  in every occ: tid, per->noComponents * (start, lc, end, rc), 
+                min(0,1), max(0,1), isdefined
+
+*/
+unsigned long long int RelAgg::computeEntriesSize() const {
+  unsigned long long int constEntrySize = sizeof(unsigned int) + 
+                         (noTuples + 1) * sizeof(unsigned int) + 
+                         sizeof(unsigned int) + sizeof(double);
+  cout << "const entry size is " << constEntrySize << endl;
+  unsigned long long int result = entries.size() * constEntrySize;
+  for (auto entry : entries) {
+    for (auto occ : entry.occs) {
+      result += sizeof(unsigned int) + sizeof(unsigned int) +
+          get<1>(occ)->GetNoComponents() * (2 * (sizeof(double) + sizeof(bool)))
+          + 4 * sizeof(double) + sizeof(bool);
+    }
+  }
+  return result;
+}
+
+/*
+  Class ~RelAgg~, Function ~computeFreqLabelsSize~
+  
+  Compute storage space in bytes for ~freqLabels~:
+  
+  size + size * (wordlength + word)
+
+*/
+unsigned long long int RelAgg::computeFreqLabelsSize() const {
+  unsigned long long int result = sizeof(unsigned int);
+  for (auto label : freqLabels) {
+    result += label.size() + 1 + sizeof(unsigned int);
+  }
+  return result;
+}
+
 string RelAgg::print(const map<unsigned int, AggEntry>& contents) const {
   stringstream result;
   for (auto it : contents) {
@@ -1115,7 +1165,7 @@ FPTree* FPTree::constructCondTree(
     return 0;
   }
   FPTree *condFPTree = new FPTree();
-  cout << "new tree created... " << endl;
+//   cout << "new tree created... " << endl;
   condFPTree->initialize(minSupp, agg);
   map<unsigned int, unsigned int> labelsToSuppCnt;
   map<unsigned int, unsigned int>::iterator mapIt;
@@ -1153,7 +1203,7 @@ FPTree* FPTree::constructCondTree(
   for (auto it : freqCondPB) {
     condFPTree->insertLabelVector(it.first, it.second);
   }
-  cout << " ... filled, " << condFPTree->getNoNodes() << " nodes" << endl;
+//   cout << " ... filled, " << condFPTree->getNoNodes() << " nodes" << endl;
   return condFPTree;
 }
 
@@ -1239,6 +1289,37 @@ void FPTree::retrievePatterns(const unsigned int minNoAtoms,
   agg->nonfreqSets.resize(maxNoAtoms + 1);
   mineTree(initialLabels, minNoAtoms, maxNoAtoms);
   std::sort(agg->results.begin(), agg->results.end(), comparePMResults());
+}
+
+/*
+  Class ~FPTree~, Function ~computeNodesSize~
+  
+  Compute storage space in bytes for ~Nodes~:
+  
+  noNodes + noNodes * (label + freq + noChildren + noChildren * child + nodeLink
+          + anc)
+
+*/
+unsigned long long int FPTree::computeNodesSize() const {
+  unsigned long long int result = sizeof(unsigned int);
+  for (auto node : nodes) {
+    result += (5 + node.children.size()) * sizeof(unsigned int);
+  }
+  return result;
+}
+
+/*
+  Class ~FPTree~, Function ~computeNodeLinksSize~
+  
+  Compute storage space in bytes for ~NodeLinks~:
+  
+  noNL + noNL * (label + nodePos)
+
+*/
+unsigned long long int FPTree::computeNodeLinksSize() const {
+  unsigned long long int result = sizeof(unsigned int) +
+                                    nodeLinks.size() * 2 * sizeof(unsigned int);
+  return result;
 }
 
 /*
@@ -1351,8 +1432,9 @@ bool FPTree::Save(SmiRecord& valueRecord, size_t& offset,
   // store nodes
   string label;
   unsigned int labelLength, numLabel, frequency, noChildren, child, nodeLink, 
-               noOccs, noOccsPos, ancestor, tid;
-  double durD;
+               noOccs, ancestor, tid, noComponents;
+  double durD, start, end;
+  SecInterval iv(true);
   for (unsigned int i = 0; i < noNodes; i++) { // store nodes
     numLabel = tree->nodes[i].label;
     if (!valueRecord.Write(&numLabel, sizeof(unsigned int), offset)) {
@@ -1417,14 +1499,17 @@ bool FPTree::Save(SmiRecord& valueRecord, size_t& offset,
     return false;
   }
   offset += sizeof(unsigned int);
+  unsigned long long int entriesSize = tree->agg->computeEntriesSize();
+  cout << "size of entries is " << entriesSize << endl;
+  if (!valueRecord.Write(&entriesSize, sizeof(unsigned long long int), offset)){
+    return false;
+  }
+  offset += sizeof(unsigned long long int);
   unsigned int noAggEntries = tree->agg->entries.size();
   if (!valueRecord.Write(&noAggEntries, sizeof(unsigned int), offset)) {
     return false;
   }
   offset += sizeof(unsigned int);
-  Word perVal;
-  SecondoCatalog *sc = SecondoSystem::GetCatalog();
-  ListExpr ptList = sc->NumericType(nl->SymbolAtom(Periods::BasicType()));
   for (unsigned int i = 0; i < noAggEntries; i++) {
     if (!valueRecord.Write(&tree->agg->entries[i].noOccs, sizeof(unsigned int), 
                                                                       offset)) {
@@ -1447,10 +1532,31 @@ bool FPTree::Save(SmiRecord& valueRecord, size_t& offset,
         return false;
       }
       offset += sizeof(unsigned int);
-      perVal.addr = get<1>(occ);
-      if (!temporalalgebra::SaveRange<Instant>(valueRecord, offset, ptList,
-                                               perVal)) {
+      noComponents = get<1>(occ)->GetNoComponents();
+      if (!valueRecord.Write(&noComponents, sizeof(unsigned int), offset)) {
         return false;
+      }
+      offset += sizeof(unsigned int);
+      for (unsigned int j = 0; j < noComponents; j++) {
+        get<1>(occ)->Get(j, iv);
+        start = iv.start.ToDouble();
+        end = iv.end.ToDouble();
+        if (!valueRecord.Write(&start, sizeof(double), offset)) {
+          return false;
+        }
+        offset += sizeof(double);
+        if (!valueRecord.Write(&iv.lc, sizeof(bool), offset)) {
+          return false;
+        }
+        offset += sizeof(bool);
+        if (!valueRecord.Write(&end, sizeof(double), offset)) {
+          return false;
+        }
+        offset += sizeof(double);
+        if (!valueRecord.Write(&iv.rc, sizeof(bool), offset)) {
+          return false;
+        }
+        offset += sizeof(bool);
       }
       double coords[] = {get<2>(occ).MinD(0), get<2>(occ).MinD(1),
                          get<2>(occ).MaxD(0), get<2>(occ).MaxD(1)};
@@ -1466,11 +1572,6 @@ bool FPTree::Save(SmiRecord& valueRecord, size_t& offset,
       }
       offset += sizeof(bool);
     }
-    noOccsPos = tree->agg->entries[i].occsPos.size();
-    if (!valueRecord.Write(&noOccsPos, sizeof(unsigned int), offset)) {
-      return false;
-    }
-    offset += sizeof(unsigned int);
     for (auto occPos : tree->agg->entries[i].occsPos) {
       tid = occPos;
       if (!valueRecord.Write(&tid, sizeof(unsigned int), offset)) {
@@ -1504,8 +1605,14 @@ bool FPTree::Open(SmiRecord& valueRecord, size_t& offset,
     return false;
   }
   offset += sizeof(double);
+  double durD, start, end;
+  Periods *per;
   unsigned int labelLength, numLabel, noNodes, frequency, noChildren, child, 
-       nodeLink, ancestor, noNodeLinks, noOccs, noAggEntries, noOccsPos, occPos;
+       nodeLink, ancestor, noNodeLinks, noOccs, noAggEntries, occPos,
+       noComponents;
+  SecInterval iv(true);
+  iv.start.SetType(instanttype);
+  iv.end.SetType(instanttype);
   // read nodes
   if (!valueRecord.Read(&noNodes, sizeof(unsigned int), offset)) {
     return false;
@@ -1569,79 +1676,89 @@ bool FPTree::Open(SmiRecord& valueRecord, size_t& offset,
     return false;
   }
   offset += sizeof(unsigned int);
+  unsigned long long int entriesSize;
+  if (!valueRecord.Read(&entriesSize, sizeof(unsigned long long int), offset)) {
+    return false;
+  }
+  offset += sizeof(unsigned long long int);
+  cout << "size of entries is " << entriesSize << endl;
+  char* entriesChars = new char[entriesSize];
   // read ~entries~
   if (!valueRecord.Read(&noAggEntries, sizeof(unsigned int), offset)) {
     return false;
   }
   offset += sizeof(unsigned int);
-  Word perVal;
-  SecondoCatalog *sc = SecondoSystem::GetCatalog();
-  ListExpr ptList = sc->NumericType(nl->SymbolAtom(Periods::BasicType()));
-  double durD;
-  Periods *per;
+  if (!valueRecord.Read(entriesChars, entriesSize, offset)) {
+    return false;
+  }
+  offset += entriesSize;
+  size_t offsetEntries = 0;
   for (unsigned int i = 0; i < noAggEntries; i++) {
+//     auto measureStart = high_resolution_clock::now(); 
     AggEntry entry;
-    if (!valueRecord.Read(&entry.noOccs, sizeof(unsigned int), offset)) {
-      return false;
-    }
-    offset += sizeof(unsigned int);
-    if (!valueRecord.Read(&durD, sizeof(double), offset)) {
-      return false;
-    }
-    offset += sizeof(double);
+    memcpy(&entry.noOccs, entriesChars + offsetEntries, sizeof(unsigned int));
+    offsetEntries += sizeof(unsigned int);
+//     cout << "noOccs = " << entry.noOccs << endl;
+    memcpy(&durD, entriesChars + offsetEntries, sizeof(double));
+    offsetEntries += sizeof(double);
+//     offsetEntries += sizeof(double);
     entry.duration.ReadFrom(durD);
-    if (!valueRecord.Read(&noOccs, sizeof(unsigned int), offset)) {
-      return false;
-    }
-    offset += sizeof(unsigned int);
+//     cout << "duration is " << entry.duration << endl;
+    memcpy(&noOccs, entriesChars + offsetEntries, sizeof(unsigned int));
+    offsetEntries += sizeof(unsigned int);
     TupleId tid;
     for (unsigned int j = 0; j < noOccs; j++) {
-      if (!valueRecord.Read(&tid, sizeof(unsigned int), offset)) {
-        return false;
+      memcpy(&tid, entriesChars + offsetEntries, sizeof(unsigned int));
+      offsetEntries += sizeof(unsigned int);
+      memcpy(&noComponents, entriesChars + offsetEntries, sizeof(unsigned int));
+      offsetEntries += sizeof(unsigned int);
+      per = new Periods(true);
+      for (unsigned int k = 0; k < noComponents; k++) {
+        memcpy(&start, entriesChars + offsetEntries, sizeof(double));
+        offsetEntries += sizeof(double);
+        iv.start.ReadFrom(start);
+        memcpy(&iv.lc, entriesChars + offsetEntries, sizeof(bool));
+        offsetEntries += sizeof(bool);
+        memcpy(&end, entriesChars + offsetEntries, sizeof(double));
+        offsetEntries += sizeof(double);
+        iv.end.ReadFrom(end);
+        memcpy(&iv.rc, entriesChars + offsetEntries, sizeof(bool));
+        offsetEntries += sizeof(bool);
+        per->MergeAdd(iv);
       }
-      offset += sizeof(unsigned int);
-      if (!temporalalgebra::OpenRange<Instant>(valueRecord, offset, ptList,
-                                               perVal)) {
-        return false;
-      }
-      per = (Periods*)perVal.addr;
       double *min = new double[2];
       for (int c = 0; c < 2; c++) {
-        if (!valueRecord.Read(&min[c], sizeof(double), offset)) {
-          return false;
-        }
-        offset += sizeof(double);
+        memcpy(&min[c], entriesChars + offsetEntries, sizeof(double));
+        offsetEntries += sizeof(double);
       }
       double *max = new double[2];
       for (int c = 0; c < 2; c++) {
-        if (!valueRecord.Read(&max[c], sizeof(double), offset)) {
-          return false;
-        }
-        offset += sizeof(double);
+        memcpy(&max[c], entriesChars + offsetEntries, sizeof(double));
+        offsetEntries += sizeof(double);
       }
       bool isdefined;
-      if (!valueRecord.Read(&isdefined, sizeof(bool), offset)) {
-        return false;
-      }
-      offset += sizeof(bool);
+      memcpy(&isdefined, entriesChars + offsetEntries, sizeof(bool));
+      offsetEntries += sizeof(bool);
       Rect rect(isdefined, min, max);
       delete[] min;
       delete[] max;
+//       cout << "ENTRY: " << tid << " " << *per << rect << endl;
       entry.occs.push_back(make_tuple(tid, per, rect));
     }
-    if (!valueRecord.Read(&noOccsPos, sizeof(unsigned int), offset)) {
-      return false;
-    }
-    offset += sizeof(unsigned int);
-    for (unsigned int j = 0; j < noOccsPos; j++) {
-      if (!valueRecord.Read(&occPos, sizeof(unsigned int), offset)) {
-        return false;
-      }
-      offset += sizeof(unsigned int);
+    for (unsigned int j = 0; j <= tree->agg->noTuples; j++) {
+      memcpy(&occPos, entriesChars + offsetEntries, sizeof(unsigned int));
+      offsetEntries += sizeof(unsigned int);
       entry.occsPos.push_back(occPos);
+//       cout << "... pushed back occPos " << occPos << endl;
     }
     tree->agg->entries.push_back(entry);
+//     auto measureStop = high_resolution_clock::now();
+//     double ms = 
+//    (double)(duration_cast<milliseconds>(measureStop - measureStart).count());
+//     cout << "entry with " << entry.occs.size() << " occs read, took " << ms
+//          << " ms, equals " << ms / entry.noOccs << " ms per occ" << endl;
   }
+  delete[] entriesChars;
   // read ~freqLabels~
   for (unsigned int i = 0; i < noAggEntries; i++) {
     if (!valueRecord.Read(&labelLength, sizeof(unsigned int), offset)) {

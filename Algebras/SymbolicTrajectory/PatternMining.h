@@ -35,8 +35,10 @@ struct AggEntry {
   AggEntry();
   AggEntry(const TupleId id, const temporalalgebra::SecInterval& iv,
            Rect& rect, const unsigned int noTuples);
+  ~AggEntry() {}
 
   void clear();
+  void deletePeriods();
   ListExpr toListExpr();
   unsigned int getNoOccs(const TupleId& id) const;
   datetime::DateTime getDuration() const {return duration;}
@@ -134,7 +136,7 @@ of occurrences inside the tuple, and the total duration of its occurrences.
 
 struct RelAgg {
   RelAgg();
-  ~RelAgg() {clear();}
+  ~RelAgg() {clearEntries();}
   
   void clear();
   void clearEntries();
@@ -166,6 +168,8 @@ struct RelAgg {
   void retrievePermutations(std::vector<unsigned int>& labelComb,
                             std::set<std::vector<unsigned int> >& labelPerms);
   void derivePatterns(const int mina, const int maxa);
+  unsigned long long int computeEntriesSize() const;
+  unsigned long long int computeFreqLabelsSize() const;
   std::string print(const std::map<unsigned int, AggEntry>& contents) const;
   std::string print(const std::map<TupleId, std::vector<unsigned int> >& 
                                                           frequentLabels) const;
@@ -269,6 +273,8 @@ class FPTree {
                 const unsigned int minNoAtoms, const unsigned int maxNoAtoms);
   void retrievePatterns(const unsigned int minNoAtoms, 
                         const unsigned int maxNoAtoms);
+  unsigned long long int computeNodesSize() const;
+  unsigned long long int computeNodeLinksSize() const;
   
   static const std::string BasicType() {return "fptree";}
   static ListExpr Property();
