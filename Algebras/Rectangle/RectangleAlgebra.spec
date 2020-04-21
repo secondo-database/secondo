@@ -46,7 +46,3 @@ operator extendGeo alias EXTENDGEO pattern _ op [_,_]
 operator perimeter alias PERIMETER pattern op(_)
 operator scale alias SCALE pattern _ op [_,_]
 operator toprightreport alias TOPRIGHTREPORT  pattern op ( _ , _ )
-
-operator create_irgrid2d alias CREATE_IRGRID2D pattern _ op [_, _, _]
-operator feed alias FEED pattern _ op
-operator cellnos_ir alias CELLNOS_IR pattern op(_, _)
