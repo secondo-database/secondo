@@ -184,18 +184,16 @@ size_t HashJoinWorker::phase1(size_t &countOverflow) {
       tupleNextR = partBufferR[streamInNo]->dequeue();
       ++count;
    }
-   cout << "R in Thread: " << streamInNo << "Read: " << count << "countOverflow"
-        << countOverflow << endl;
+
    size_t hashMod = count / bucketNo;
    hashTablePersist->SetHashMod(hashMod);
    hashTablePersist->CalcS();
-
+   cout << "CalcS" << endl;
    count = 0;
    while (tupleNextS != nullptr) {
       size_t partNo =
               (tupleNextS->HashValue(joinAttr.second) / coreNoWorker) %
               bucketNo;
-      //cout<<"partNoS"<<partNo<<endl;
       if (partNo == 0) {
          // join?
          partNo = (tupleNextS->HashValue(joinAttr.second) / coreNoWorker /
@@ -204,10 +202,8 @@ size_t HashJoinWorker::phase1(size_t &countOverflow) {
             if (!bucketInMemR[partNo].empty()) {
                for (auto tupleR : bucketInMemR[partNo]) {
                   if (tupleEqual(tupleNextS, tupleR)) {
-                     //cout << "found couple" << endl;
                      auto* result = new Tuple(resultTupleType);
                      {
-                        //lock_guard<mutex> lock(hashJoinGlobal::mutexConcat_);
                         Concat(tupleR, tupleNextS, result);
                      }
                      tupleBuffer->enqueue(result);
@@ -245,8 +241,6 @@ size_t HashJoinWorker::phase1(size_t &countOverflow) {
 size_t HashJoinWorker::phase2(size_t hashMod, size_t pos) {
    vector<vector<Tuple*>> bucketInMemR(hashMod);
    size_t overflow = hashTablePersist->OpenRead(pos);
-   cout << "Thread: " << streamInNo << " overflow: " << overflow << " hashMod: "
-        << hashMod << endl;
    Tuple* tupleR = hashTablePersist->PullR(pos);
    size_t count = 0;
    size_t countOverflow = 0;
@@ -264,7 +258,7 @@ size_t HashJoinWorker::phase2(size_t hashMod, size_t pos) {
       tupleR = hashTablePersist->PullR(pos);
       ++count;
    }
-   cout << "read R " << streamInNo << "R" << pos << ": " << count << "##";
+   //cout << "read R " << streamInNo << "R" << pos << ": " << count << "##";
    count = 0;
    Tuple* tupleS = hashTablePersist->PullS(pos);
    while (tupleS != nullptr) {
@@ -284,7 +278,6 @@ size_t HashJoinWorker::phase2(size_t hashMod, size_t pos) {
          }
       }
       ++count;
-      //tupleS->DeleteIfAllowed();
       tupleS = hashTablePersist->PullS(pos);
    }
    for (size_t i = 0; i < hashMod; ++i) {
@@ -300,7 +293,7 @@ void HashJoinWorker::recursiveOverflow(shared_ptr<FileBuffer> overflowR,
                                        shared_ptr<FileBuffer> overflowS,
                                        size_t sizeR, size_t xMod) {
    // phase 1
-   cout << "phase1 recursive" << endl;
+   cout << "recursive" << endl;
 
    size_t inMemBucketNo = sizeR / bucketNo;
    if (inMemBucketNo == 0) {
@@ -311,7 +304,7 @@ void HashJoinWorker::recursiveOverflow(shared_ptr<FileBuffer> overflowR,
    size_t memR = maxMem;
    ++xMod;
 
-   cout << overflowR->getFname() << endl;
+   //cout << overflowR->getFname() << endl;
    overflowR->openRead();
    Tuple* tupleNextR = overflowR->readTuple();
    overflowS->openRead();
@@ -364,20 +357,18 @@ void HashJoinWorker::recursiveOverflow(shared_ptr<FileBuffer> overflowR,
       } else {
          recursiveHashTablePersist->PushR(tupleNextR, partNoBucket - 1);
       }
-      //cout << "before readN" << endl;
       tupleNextR = overflowR->readTuple();
-      //cout << "readNext" << tupleNextR->HashValue() << endl;
    }
    recursiveHashTablePersist->SetHashMod(hashMod);
    recursiveHashTablePersist->CalcS();
-   cout << "inMemBucketNo: " << inMemBucketNo << endl;
+   //cout << "inMemBucketNo: " << inMemBucketNo << endl;
    while (tupleNextS != nullptr) {
       size_t partNo = tupleNextS->HashValue(joinAttr.second) / coreNoWorker;
       for (size_t i = 0; i < xMod; ++i) {
          partNo /= bucketNo;
       }
       size_t partNoBucket = partNo % bucketNo;
-      cout << "Bucket: " << partNoBucket << endl;
+      //cout << "Bucket: " << partNoBucket << endl;
       if (partNoBucket == 0) {
          // join?
          partNo = partNo / bucketNo % hashMod;
@@ -403,7 +394,7 @@ void HashJoinWorker::recursiveOverflow(shared_ptr<FileBuffer> overflowR,
       tupleNextS = overflowS->readTuple();
    }
 
-   cout << "phase 1 rec ready" << endl;
+   //cout << "phase 1 rec ready" << endl;
    for (size_t i = 0; i < inMemBucketNo; ++i) {
       for (auto* tuple : bucketInMemR[i]) {
          tuple->DeleteIfAllowed();
@@ -414,8 +405,6 @@ void HashJoinWorker::recursiveOverflow(shared_ptr<FileBuffer> overflowR,
    recursiveOverflowBufferR->closeWrite();
    recursiveOverflowBufferS->closeWrite();
 
-   cout << "R rec start" << endl;
-
    // R0 recursive
    if (!recursiveOverflowBufferR->empty()) {
       cout << "rec again" << endl;
@@ -423,10 +412,10 @@ void HashJoinWorker::recursiveOverflow(shared_ptr<FileBuffer> overflowR,
                         countOverflow, xMod);
    }
 
-   cout << "phase 2 rec start" << endl;
-
    // phase 2
    for (size_t pos = 0; pos < bucketNo - 1; ++pos) {
+      recursiveOverflowBufferR = make_shared<FileBuffer>(
+              ttR);
       vector<vector<Tuple*>> bucketInMemR(inMemBucketNo);
       size_t overflow = recursiveHashTablePersist->OpenRead(pos);
       Tuple* tupleR = recursiveHashTablePersist->PullR(pos);
@@ -440,12 +429,12 @@ void HashJoinWorker::recursiveOverflow(shared_ptr<FileBuffer> overflowR,
          if (partNo < overflow) {
             bucketInMemR[partNo].emplace_back(tupleR);
          } else {
-            overflowBufferR->appendTuple(tupleR);
+            recursiveOverflowBufferR->appendTuple(tupleR);
             ++countOverflow;
          }
          tupleR = recursiveHashTablePersist->PullR(pos);
       }
-      cout << "bucketNo: " << pos << "overflows: " << countOverflow << endl;
+      //cout << "bucketNo: " << pos << "overflows: " << countOverflow << endl;
       Tuple* tupleS = recursiveHashTablePersist->PullS(pos);
       while (tupleS != nullptr) {
          size_t partNo = tupleS->HashValue(joinAttr.second) / coreNoWorker;
@@ -467,14 +456,14 @@ void HashJoinWorker::recursiveOverflow(shared_ptr<FileBuffer> overflowR,
          //tupleS->DeleteIfAllowed();
          tupleS = recursiveHashTablePersist->PullS(pos);
       }
-      cout << "part2 rec ready" << endl;
+      //cout << "part2 rec ready" << endl;
       for (size_t i = 0; i < inMemBucketNo; ++i) {
          for (auto* tuple : bucketInMemR[i]) {
             tuple->DeleteIfAllowed();
          }
       }
-      if (!overflowBufferR->empty()) {
-         recursiveOverflow(overflowBufferR,
+      if (!recursiveOverflowBufferR->empty()) {
+         recursiveOverflow(recursiveOverflowBufferR,
                            recursiveHashTablePersist->GetOverflowS(pos),
                            countOverflow, xMod);
       }
