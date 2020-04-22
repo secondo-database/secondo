@@ -218,7 +218,7 @@ HashTablePersist::HashTablePersist(size_t _bucketsNo, size_t _coreNoWorker,
                                    TupleType* _ttR, TupleType* _ttS,
                                    pair<size_t, size_t> _joinAttr) :
         bucketsNo(_bucketsNo), coreNoWorker(_coreNoWorker), maxMem(_maxMem),
-        ttR(_ttR), ttS(_ttS), joinAttr(_joinAttr){
+        ttR(_ttR), ttS(_ttS), joinAttr(_joinAttr) {
    hashBucketsR.reserve(bucketsNo - 1);
    hashBucketsS.reserve(bucketsNo - 1);
    for (size_t i = 0; i < bucketsNo - 1; ++i) {
@@ -244,12 +244,11 @@ void HashTablePersist::PushR(Tuple* tuple, size_t bucket) {
    if (bucket <= lastMemBufferR) {
       freeMem -= size;
    }
-   if (bucket <= lastMemBufferR) {
-      sizeR[bucket] += size;
-   }
+   sizeR[bucket] += size;
    hashBucketsR[bucket]->appendTuple(tuple);
    // no memory
-   if (freeMem > maxMem && lastMemBufferR <= bucket) {
+   if (freeMem > maxMem && lastMemBufferR <= bucket &&
+       lastMemBufferR < bucketsNo) {
       //cout << "write to disk R: " << lastMemBufferR << endl;
       if (!setSPersist) {
          for (size_t i = 0; i < bucketsNo - 1; ++i) {
@@ -278,15 +277,15 @@ void HashTablePersist::PushS(Tuple* tuple, size_t bucket) {
       freeMem -= size;
    }
    size_t partNo = tuple->HashValue(joinAttr.second) / coreNoWorker /
-                    bucketsNo % hashMod;
-   if (partNo > overflowBucketNo[bucket]) {
+                   bucketsNo % hashMod;
+   if (partNo >= overflowBucketNo[bucket]) {
       // save in overflow
       hashBucketsOverflowS[bucket]->appendTuple(tuple);
    } else {
       sizeS[bucket] += size;
       hashBucketsS[bucket]->appendTuple(tuple);
-      if (!setSPersist && freeMem > maxMem) {
-         //cout << "write to disk S" << endl;
+      if (!setSPersist && freeMem > maxMem && lastMemBufferS < bucketsNo) {
+         //cout << "write to disk S: " << lastMemBufferS << endl;
          shared_ptr<FileBuffer> tempFileBuffer = make_shared<FileBuffer>(ttS);
          Tuple* tupleNext = hashBucketsS[lastMemBufferS]->readTuple();
          while (tupleNext != nullptr) {
