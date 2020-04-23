@@ -28,10 +28,6 @@ Started July 2014, Fabio Vald\'{e}s
 */
 #include  "Tools.h"
 
-#ifdef RECODE
-#include <recode.h>
-#endif
-
 using namespace std;
 using namespace datetime;
 
@@ -41,41 +37,6 @@ namespace stj {
 /*
 \section{Implementation of class ~Tools~}
 
-\subsection{Function ~recode~}
-
-*/
-#ifdef RECODE
-bool Tools::recode(const string &src, const string &from, const string &to,
-                   string &result) {
-  string rs = trim(from)+".."+trim(to);
-  // use recode lib
-
-  RECODE_OUTER outer = recode_new_outer(true);
-  RECODE_REQUEST request = recode_new_request(outer);
-
-  bool success = recode_scan_request(request, rs.c_str());
-  if (!success) {
-    recode_delete_request(request);
-    recode_delete_outer(outer);
-    result.clear();
-    return false;
-  }
-  char* recoded = recode_string(request, src.c_str());
-
-  // make clean
-  recode_delete_request(request);
-  recode_delete_outer(outer);
-  if (recoded == 0) {
-    result.clear();
-    return false;
-  }
-  result = recoded;
-  free(recoded);
-  return true;
-}
-#endif
-
-/*
 \subsection{Function ~intersect~}
 
 */

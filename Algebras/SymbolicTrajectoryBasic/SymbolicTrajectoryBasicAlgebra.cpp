@@ -35,6 +35,9 @@ has been split from the SymbolicTrajectoryAlgebra in April 2020.
 
 */
 #include "SymbolicTrajectoryBasicAlgebra.h"
+#ifdef RECODE
+#include <recode.h>
+#endif
 
 using namespace std;
 using namespace temporalalgebra;
@@ -128,6 +131,41 @@ double BasicDistanceFuns::distance(set<pair<string, unsigned int> >& values1,
   }
   return distsum / (values1.size() * values2.size());
 }
+
+/*
+\subsection{Function ~recode~}
+
+*/
+#ifdef RECODE
+bool RecodeFun::recode(const string &src, const string &from, const string &to,
+                      string &result) {
+  string rs = trim(from)+".."+trim(to);
+  // use recode lib
+
+  RECODE_OUTER outer = recode_new_outer(true);
+  RECODE_REQUEST request = recode_new_request(outer);
+
+  bool success = recode_scan_request(request, rs.c_str());
+  if (!success) {
+    recode_delete_request(request);
+    recode_delete_outer(outer);
+    result.clear();
+    return false;
+  }
+  char* recoded = recode_string(request, src.c_str());
+
+  // make clean
+  recode_delete_request(request);
+  recode_delete_outer(outer);
+  if (recoded == 0) {
+    result.clear();
+    return false;
+  }
+  result = recoded;
+  free(recoded);
+  return true;
+}
+#endif
 
 /*
 \section{Implementation of class ~Label~}
@@ -651,7 +689,7 @@ bool Labels::Recode(const std::string& from, const std::string& to,
   string value, recoded;
   for (int i = 0; i < GetNoValues(); i++) {
     GetValue(i, value);
-    if (!Tools::recode(value, from, to, recoded)) {
+    if (!RecodeFun::recode(value, from, to, recoded)) {
       result.SetDefined(false);
       return false;
     }

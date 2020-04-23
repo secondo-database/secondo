@@ -150,6 +150,13 @@ struct BasicDistanceFuns {
                        unsigned int> >& values2, const LabelFunction lf = EDIT);
 };
 
+struct RecodeFun {
+  #ifdef RECODE
+  static bool recode(const std::string &src, const std::string &from,
+                     const std::string &to, std::string &result);
+  #endif
+};
+
 class Labels;
 
 /*
