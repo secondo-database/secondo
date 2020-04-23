@@ -165,7 +165,11 @@ void Suboptimal::replacementSelectionSort(shared_ptr<TournamentTree> sortTree) {
    sortTree->buildTree();
 
    count = 0;
-   runs1.emplace_back(make_shared<FileBuffer>(tt));
+   if (!streamStop) {
+      runs1.emplace_back(make_shared<FileBuffer>(tt));
+   } else {
+      runs1.emplace_back(make_shared<MemoryBuffer>(tt));
+   }
 
    if (!streamStop) {
       while (true) {
