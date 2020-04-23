@@ -109,8 +109,8 @@ struct compareLabelsWithSupp {
 };
 
 struct compareLabelSeqs {
-  bool operator()(const std::vector<unsigned int> seq1, 
-                  const std::vector<unsigned int> seq2) {
+  bool operator()(std::vector<unsigned int> seq1, 
+                  std::vector<unsigned int> seq2) const {
     if (seq1.size() == seq2.size()) {
       for (unsigned int i = 0; i < seq1.size(); i++) {
         if (seq1[i] != seq2[i]) {
