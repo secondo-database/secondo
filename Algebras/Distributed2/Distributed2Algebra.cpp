@@ -12036,7 +12036,6 @@ something other).
 
 */
 
-
 template<bool partial>
 ListExpr dmapTM(ListExpr args){
 
@@ -12069,7 +12068,15 @@ ListExpr dmapTM(ListExpr args){
   }
   ListExpr arg1Type = nl->First(nl->First(args));
   ListExpr arg2Type = nl->First(nl->Second(args));
-  ListExpr arg3Type = nl->First(nl->Third(args));
+  ListExpr arg3Type = nl->First(nl->Third(args)); // fun
+  bool addedFunArg= false;
+  if(listutils::isMap<1>(arg3Type)){
+     arg3Type = nl->FourElemList( nl->First(arg3Type),
+                            nl->Second(arg3Type),
+                            listutils::basicSymbol<CcInt>(), 
+                            nl->Third(arg3Type));
+     addedFunArg = true;
+  }
 
   if(  (    !DFArray::checkType(arg1Type) 
          && !DArray::checkType(arg1Type)
@@ -12111,6 +12118,18 @@ ListExpr dmapTM(ListExpr args){
 
   // the function definition
   ListExpr funq = nl->Second(nl->Third(args));
+
+  if(addedFunArg){
+    string a1name = nl->SymbolValue(nl->First(nl->Second(funq)));
+    string a2name = a1name + "_add42";
+    funq = nl->FourElemList(
+       nl->First(funq), // symbol fun
+       nl->Second(funq), // first argument
+       nl->TwoElemList( nl->SymbolAtom(a2name) , 
+                        listutils::basicSymbol<CcInt>()), // add arg
+       nl->Third(funq) // fundef
+    ); 
+  }
 
 
   // we have to replace the given  
@@ -13081,7 +13100,28 @@ ListExpr dmapXTM(ListExpr args){
    return  listutils::typeError(err + " (name (string) not found at "
                                       "expected position)");
  }
- if(!listutils::isMapX(x+1,fun)){
+ // add additional argument for function, if function has only x arguments
+ bool funargAdded = false;
+ if(listutils::isMapX(x,fun)){
+    funargAdded = true;
+    // fun type has form (map a1t a2t ... result)
+    // replace by (map a1t a2t ... int result)
+    ListExpr tmpFun = fun;
+    // copy map
+    ListExpr aFun = nl->OneElemList(nl->First(tmpFun));
+    tmpFun = nl->Rest(tmpFun);
+    ListExpr last = aFun;
+    // copy argument types
+    while(!nl->HasLength(tmpFun,1)) {
+       last = nl->Append(last, nl->First(tmpFun));
+       tmpFun = nl->Rest(tmpFun);
+    } 
+    // add missing int type
+    last = nl->Append(last, nl->AtomType(listutils::basicSymbol<CcInt>()));
+    // add result type
+    last = nl->Append(last, nl->First(tmpFun));
+    fun = aFun;
+ } else if(!listutils::isMapX(x+1,fun) ){
    return listutils::typeError(err + " (function not found at "
                                         "expected position)");
  }
@@ -13103,8 +13143,9 @@ ListExpr dmapXTM(ListExpr args){
  efunargs[x] = listutils::basicSymbol<CcInt>();
 
  // check whether function arguments fit to the expected one from the arrays
+ // and the last argument is an integer
  ListExpr funargs = fun;
- funargs = nl->Rest(funargs);
+ funargs = nl->Rest(funargs); // cut the leading "map"
  for(int i=0;i<x+1;i++){
     if(!nl->Equal(efunargs[i], nl->First(funargs))){
       return listutils::typeError("type mismatch between darray subtype and "
@@ -13113,7 +13154,7 @@ ListExpr dmapXTM(ListExpr args){
     }
     funargs = nl->Rest(funargs);
  }
- assert(nl->HasLength(funargs,1));
+ assert(nl->HasLength(funargs,1)); // result is remaining
 
  // check result of the function and derive result type from it
  ListExpr funres = nl->First(funargs);
@@ -13140,18 +13181,36 @@ ListExpr dmapXTM(ListExpr args){
  // this is required to replace type mapping operators by the 
  // corresponding types
 
- ListExpr rfun = nl->OneElemList(nl->First(funQ));
+ ListExpr rfun = nl->OneElemList(nl->First(funQ)); // fun symbol
  ListExpr last = rfun;
-
  funQ = nl->Rest(funQ);
- for(int i=0;i<x+1;i++){
+ string firstArgName="";
+ for(int i=0;i<x;i++){ // copy arguments withount the slot
     last = nl->Append(last,
                 nl->TwoElemList(
-                   nl->First(nl->First(funQ)),
-                   efunargs[i]
+                   nl->First(nl->First(funQ)), // argname
+                   efunargs[i] // real type
                 ));
-     funQ = nl->Rest(funQ);
+    if(i==0){
+       firstArgName=nl->SymbolValue(nl->First(nl->First(funQ)));
+    }
+    funQ = nl->Rest(funQ);
  }
+ if(!funargAdded){ // integer type was already there
+    last = nl->Append(last,
+                nl->TwoElemList(
+                   nl->First(nl->First(funQ)), // argname
+                   efunargs[x] // real type
+                ));
+    funQ = nl->Rest(funQ);
+ } else {
+    last = nl->Append(last,
+                nl->TwoElemList(
+                   nl->SymbolAtom(firstArgName+"_add42"), // argname
+                   efunargs[x] // real type
+                ));
+ }
+
  assert(nl->HasLength(funQ,1));
 
  last = nl->Append(last, nl->First(funQ));
