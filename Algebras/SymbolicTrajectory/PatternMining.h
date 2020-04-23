@@ -100,7 +100,7 @@ struct comparePMResults {
 
 struct compareLabelsWithSupp {
   bool operator()(NewPair<unsigned int, double> lws1,
-                  NewPair<unsigned int, double> lws2) {
+                  NewPair<unsigned int, double> lws2) const {
     if (lws1.second == lws2.second) {
       return (lws1.first < lws2.first);
     }

@@ -191,8 +191,11 @@ ALGEBRAS     += TemporalNetAlgebra
 ALGEBRA_DIRS += STPattern
 ALGEBRAS     += STPatternAlgebra
 
-ALGEBRA_DIRS += SymbolicTrajectory
-ALGEBRAS     += SymbolicTrajectoryAlgebra
+#ALGEBRA_DIRS += SymbolicTrajectory
+#ALGEBRAS     += SymbolicTrajectoryAlgebra
+
+ALGEBRA_DIRS += SymbolicTrajectoryBasic
+ALGEBRAS     += SymbolicTrajectoryBasicAlgebra
 
 ALGEBRA_DIRS += TrajectorySimilarity
 ALGEBRAS     += TrajectorySimilarityAlgebra

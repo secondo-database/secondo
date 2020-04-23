@@ -45,7 +45,8 @@ inclusion of header files concerning Secondo.
 #include "TemporalExtAlgebra.h"
 #include "Algebras/Temporal/RefinementStream.h"
 #include "Algebras/Geoid/Geoid.h"
-#include "Algebras/SymbolicTrajectory/Algorithms.h"
+#include "Algebras/SymbolicTrajectoryBasic/SymbolicTrajectoryBasicAlgebra.h"
+#include "Algebras/RTree/RTreeAlgebra.h"
 
 extern NestedList* nl;
 extern QueryProcessor *qp;
