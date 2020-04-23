@@ -109,8 +109,8 @@ struct compareLabelsWithSupp {
 };
 
 struct compareLabelSeqs {
-  bool operator()(std::vector<unsigned int> seq1, 
-                  std::vector<unsigned int> seq2) {
+  bool operator()(const std::vector<unsigned int> seq1, 
+                  const std::vector<unsigned int> seq2) {
     if (seq1.size() == seq2.size()) {
       for (unsigned int i = 0; i < seq1.size(); i++) {
         if (seq1[i] != seq2[i]) {
@@ -323,6 +323,15 @@ struct MineFPTreeLI {
   unsigned int minNoAtoms, maxNoAtoms;
   TupleType *tupleType;
 };
+
+struct PrefixSpanLI {
+  PrefixSpanLI(Relation *r, const NewPair<int, int> ap, double ms, int mina,
+                int maxa, Geoid *g, const size_t mem);
+  ~PrefixSpanLI();
   
+  
+  TupleType *tupleType;
+  RelAgg agg;
+}; 
   
 }

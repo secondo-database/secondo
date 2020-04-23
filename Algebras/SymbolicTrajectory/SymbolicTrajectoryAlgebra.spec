@@ -42,3 +42,4 @@ operator restoreTraj alias RESTORETRAJ pattern op ( _ , _ , _ , _ , _ , _ , _ , 
 operator getPatterns alias GETPATTERNS pattern _ op [ _ , _ , _ , _ , _ ]
 operator createfptree alias CREATEFPTREE pattern _ op [ _ , _ , _ ]
 operator minefptree alias MINEFPTREE pattern _ op [ _ , _ ]
+operator prefixSpan alias PREFIXSPAN pattern _ op [ _ , _ , _ , _ , _ ]

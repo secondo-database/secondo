@@ -6159,9 +6159,10 @@ ListExpr getPatternsTM(ListExpr args) {
 \subsection{Value Mapping}
 
 */
+template<class T>
 int getPatternsVM(Word* args, Word& result, int message, Word& local, 
                   Supplier s) {
-  GetPatternsLI* li = (GetPatternsLI*)local.addr;
+  T* li = (T*)local.addr;
   switch (message) {
     case OPEN: {
       if (li) {
@@ -6189,7 +6190,7 @@ int getPatternsVM(Word* args, Word& result, int message, Word& local,
       if (suppmin->GetValue() > 0 && suppmin->GetValue() <= 1 
                          && atomsmin->GetValue() > 0 && atomsmax->GetValue() > 0
                          && atomsmin->GetValue() <= atomsmax->GetValue()) {
-        local.addr = new GetPatternsLI(rel, 
+        local.addr = new T(rel, 
           NewPair<int, int>(posTextual->GetValue(), posSpatial->GetValue()),
           suppmin->GetValue(), atomsmin->GetValue(), atomsmax->GetValue(),
           geoid, qp->GetMemorySize(s));
@@ -6201,7 +6202,7 @@ int getPatternsVM(Word* args, Word& result, int message, Word& local,
       return 0;
     }
     case REQUEST: {
-      result.addr = li ? li->getNextResult(li->agg, li->tupleType) : 0;
+      result.addr = li ? GetPatternsLI::getNextResult(li->agg,li->tupleType) :0;
       return result.addr ? YIELD : CANCEL;
     }
     case CLOSE: {
@@ -6244,8 +6245,8 @@ const string getPatternsSpec =
   "<text> query Dotraj feed extend[X: [const mpoint value undef]] consume \""
   "getPatterns[Trajectory, X, 0.5, 1, 5] count </text--->) )";
 
-Operator getPatterns("getPatterns", getPatternsSpec, getPatternsVM, 
-                     Operator::SimpleSelect, getPatternsTM);
+Operator getPatterns("getPatterns", getPatternsSpec, 
+           getPatternsVM<GetPatternsLI>, Operator::SimpleSelect, getPatternsTM);
 
 /*
 \section{Operator ~createfptree~}
@@ -6436,6 +6437,32 @@ const string minefptreeSpec =
 
 Operator minefptree("minefptree", minefptreeSpec, minefptreeVM, 
                      Operator::SimpleSelect, minefptreeTM);
+
+/*
+\section{Operator ~prefixSpan~}
+
+\subsection{Type Mapping}
+
+See ~getPatternsTM~
+
+\subsection{Value Mapping}
+
+See ~getPatternsVM
+
+ \subsection{Operator Info}
+
+*/
+const string prefixSpanSpec =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text> rel x ATTR x ATTR x real x int x int --> \n"
+  "stream(tuple(Pattern: text, Support: real))</text--->"
+  "<text> _ prefixSpan[ _ , _ , _ , _ , _ ] </text--->"
+  "<text> Retrieves the frequent patterns from a relation.</text--->"
+  "<text> query Dotraj feed extend[X: [const mpoint value undef]] consume \n"
+  "prefixSpan[Trajectory, X, 0.5, 1, 2] count</text--->) )";
+
+Operator prefixSpan("prefixSpan", prefixSpanSpec, getPatternsVM<PrefixSpanLI>, 
+                     Operator::SimpleSelect, getPatternsTM);
 
 /*
 \section{Class ~SymbolicTrajectoryAlgebra~}
@@ -6845,6 +6872,9 @@ class SymbolicTrajectoryAlgebra : public Algebra {
   
   AddOperator(&minefptree);
   minefptree.SetUsesMemory();
+  
+  AddOperator(&prefixSpan);
+  prefixSpan.SetUsesMemory();
   
   }
   ~SymbolicTrajectoryAlgebra() {}
