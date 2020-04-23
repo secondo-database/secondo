@@ -123,7 +123,7 @@ Tuple* FileBuffer::readTuple() {
       cout << "position " << fileStreamIn->tellg() << endl;
       return nullptr; // error
    }
-   Tuple* res;
+   Tuple* res = nullptr;
    {
       std::lock_guard<mutex> lock(mthreadedGlobal::mutexRead_);
       res = new Tuple(tt);;
@@ -249,7 +249,7 @@ void HashTablePersist::PushR(Tuple* tuple, size_t bucket) {
    // no memory
    if (freeMem > maxMem && lastMemBufferR <= bucket &&
        lastMemBufferR < bucketsNo) {
-      //cout << "write to disk R: " << lastMemBufferR << endl;
+      cout << "write to disk R: " << lastMemBufferR << endl;
       if (!setSPersist) {
          for (size_t i = 0; i < bucketsNo - 1; ++i) {
             hashBucketsS[i] = make_shared<FileBuffer>(ttS);
