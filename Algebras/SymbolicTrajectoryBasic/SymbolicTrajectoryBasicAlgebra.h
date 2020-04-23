@@ -2239,7 +2239,7 @@ void MBasic<B>::Recode(const std::string& from, const std::string& to,
   for (int i = 0; i < GetNoComponents(); i++) {
     GetInterval(i, iv);
     GetValue(i, value);
-    if (!Tools::recode(value, from, to, recoded)) {
+    if (!RecodeFun::recode(value, from, to, recoded)) {
       result.SetDefined(false);
       return;
     }
