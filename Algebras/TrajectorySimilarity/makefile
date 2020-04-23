@@ -32,7 +32,7 @@ ALGEBRA_DEPENDENCIES := \
 	DateTimeAlgebra \
 	SpatialAlgebra \
 	TemporalAlgebra \
-	SymbolicTrajectoryAlgebra
+	SymbolicTrajectoryBasicAlgebra
 
 
 # Include global definitions.

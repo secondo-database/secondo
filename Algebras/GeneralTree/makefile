@@ -30,7 +30,7 @@ CURRENT_ALGEBRA := GeneralTreeAlgebra
 ALGEBRA_DEPENDENCIES := StandardAlgebra
 ALGEBRA_DEPENDENCIES += RelationAlgebra
 ALGEBRA_DEPENDENCIES += SpatialAlgebra
-ALGEBRA_DEPENDENCIES += SymbolicTrajectoryAlgebra
+ALGEBRA_DEPENDENCIES += SymbolicTrajectoryBasicAlgebra
 
 ifneq ($(platform),mac_osx)
   CCFLAGS += -std=c++0x
