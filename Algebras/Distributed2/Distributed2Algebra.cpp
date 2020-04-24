@@ -13107,17 +13107,17 @@ ListExpr dmapXTM(ListExpr args){
     // fun type has form (map a1t a2t ... result)
     // replace by (map a1t a2t ... int result)
     ListExpr tmpFun = fun;
-    // copy map
+    // copy map symbol
     ListExpr aFun = nl->OneElemList(nl->First(tmpFun));
     tmpFun = nl->Rest(tmpFun);
     ListExpr last = aFun;
     // copy argument types
-    while(!nl->HasLength(tmpFun,1)) {
+    while(!nl->HasLength(tmpFun,1)) { // keep result only
        last = nl->Append(last, nl->First(tmpFun));
        tmpFun = nl->Rest(tmpFun);
     } 
     // add missing int type
-    last = nl->Append(last, nl->AtomType(listutils::basicSymbol<CcInt>()));
+    last = nl->Append(last, listutils::basicSymbol<CcInt>());
     // add result type
     last = nl->Append(last, nl->First(tmpFun));
     fun = aFun;
