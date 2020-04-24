@@ -1509,7 +1509,59 @@ bool Places::ReadFrom(ListExpr LE, ListExpr typeInfo) {
   return true;
 }
 
+/*
+\section{Implementation of class ~MLabels~}
 
+\subsection{Function ~createML~}
+
+*/
+void MLabel::createML(const int size, const int number, vector<string>& labels){
+  if (size > 0) {
+    ULabel ul(1);
+    Instant start(1.0);
+    start.Set(2015, 1, 1);
+    time_t t;
+    time(&t);
+    srand((unsigned int)t);
+    Instant end(start);
+    SecInterval iv(true);
+    int labelStartPos = size * number;
+    for (int i = 0; i < size; i++) {
+      datetime::DateTime dur(0, rand() % 86400000 + 3600000, 
+                             datetime::durationtype);
+      end.Add(&dur);
+      ul.constValue.Set(true, labels[labelStartPos + i]);
+      iv.Set(start, end, true, false);
+      ul.timeInterval = iv;
+      Add(ul);
+      start = end;
+    }
+    units.TrimToSize();
+  }
+  else {
+    cout << "Invalid parameters for creation." << endl;
+    SetDefined(false);
+  }
+}
+
+/*
+\subsection{Function ~convertFromMString~}
+
+*/
+void MLabel::convertFromMString(const MString& source) {
+  Clear();
+  if (!IsDefined()) {
+    return;
+  }
+  SetDefined(true);
+  UString us(true);
+  for (int i = 0; i < source.GetNoComponents(); i++) {
+    source.Get(i, us);
+    ULabel ul(us.timeInterval, us.constValue.GetValue());
+    Add(ul);
+  }
+  units.TrimToSize();
+}
 
 /*
 \subsection{Type Constructors}
