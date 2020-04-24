@@ -556,7 +556,7 @@ of the form shown here.
 static int OpNodeIdCtr = 0;
 static map<void*, int> OpNodeAddr2Id;
 
-typedef Operator* OpPtr;
+typedef class Operator* OpPtr;
 
 enum OpNodeType { Pointer, Object, IndirectObject, Operator };
 
