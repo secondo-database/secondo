@@ -65,6 +65,7 @@ size_t MThreadedSingleton::cores_used = 1;
 
 FileBuffer::FileBuffer(TupleType* _tt) : tt(_tt) {
    fname = createFn() + ".tmp";
+   cout << fname << endl;
    fileStreamOut = make_shared<std::ofstream>(fname.c_str(), std::ios::binary |
                                                              std::ios::trunc);
    isEmpty = true;
@@ -139,7 +140,6 @@ void FileBuffer::closeWrite() {
 
 void FileBuffer::openRead() {
    fileStreamIn = make_shared<std::ifstream>(fname.c_str(), ios::binary);
-   //cout << "open Buffer" << fname << endl;
 }
 
 bool FileBuffer::empty() {
@@ -237,6 +237,7 @@ HashTablePersist::HashTablePersist(size_t _bucketsNo, size_t _coreNoWorker,
 HashTablePersist::~HashTablePersist() {
    hashBucketsR.clear();
    hashBucketsS.clear();
+   hashBucketsOverflowS.clear();
 }
 
 void HashTablePersist::PushR(Tuple* tuple, size_t bucket) {
