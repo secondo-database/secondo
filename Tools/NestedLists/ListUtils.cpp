@@ -889,7 +889,7 @@ Checks whether the list represents a stream.
 
 
    bool isMapX(int x, ListExpr map){
-    int a = x+2;
+    int a = x+2; // (map arg1 arg2 .. argx result)
 
 
     return nl->ListLength(map)==a &&
