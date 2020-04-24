@@ -22,8 +22,8 @@ Result   : 'Witsel'
 Operator : mstringtomlabel
 Number   : 1
 Signature: mstring -> mlabel
-Example  : query mstringtomlabel([const mstring value ((("2013-01-01" "2013-01-02" TRUE FALSE) "at_home"))]) matches '(_ at_home) *'
-Result   : TRUE
+Example  : query no_components(mstringtomlabel([const mstring value ((("2013-01-01" "2013-01-02" TRUE FALSE) "at_home"))]))
+Result   : 1
 
 Operator : tolabels
 Number   : 1
