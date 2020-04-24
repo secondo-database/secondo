@@ -110,7 +110,7 @@ class hybridHashJoinLI {
            Word _streamS,
            std::pair<size_t, size_t> _joinAttr,
            size_t _maxMem,
-           TupleType* _resultTupleType);
+           ListExpr resultType);
 
 
    //Destructor
