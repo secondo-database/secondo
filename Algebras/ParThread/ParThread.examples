@@ -1,0 +1,9 @@
+Database: berlintest
+Restore : No
+
+Operator : par
+Number   : 1
+Signature: stream(A) x int x string -> stream(A)
+Example  : query Orte feed par[1, Vorwahl] filter[.BevT > 500] par[3] count
+Result   : 13
+
