@@ -108,7 +108,6 @@ void ExecutionContext::InitExecutionContext(const int numOfParallelEntities,
       bufferSettings.InitialNumberOfTuplesPerBlock =
           m_settings.MaxNumberOfTuplesPerBlock;
       bufferSettings.TotalBufferSizeInBytes = m_settings.TotalBufferSizeInBytes;
-      bufferSettings.OnBufferChangedHandler = this;
       bufferSettings.MinMemoryPerTupleVector = 1000; //TODO in settings
       bufferSettings.TupleBlocksToRecycle =
           m_settings.QueueCapacityThreshold * 2;

@@ -67,7 +67,7 @@ September 2019, Fischer Thomas
 
 namespace parthread
 {
-class ExecutionContext : public IBufferSizeChangedHandler
+class ExecutionContext
 {
 
 public:
