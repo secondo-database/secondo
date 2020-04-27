@@ -1,0 +1,142 @@
+# This file is part of SECONDO.
+#
+# Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+# Database Systems for New Applications.
+#
+# SECONDO is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# SECONDO is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with SECONDO; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+#
+#
+
+# --- testqueries for the parthread algebra ---
+#
+# The run times of the serial run are executed with the same codebase but 
+# without par nodes in the query and therefore without multithreading 
+# support and output of the subtrees, but with progress support (this feature
+# can slowdown the overall query execution a bit)
+#
+# Every query is executed 5 times and the averange run time calculated.
+#
+# March 2020, Thomas Fischer
+
+# delete database parthread_lie
+# create database parthread_lie;
+# restore database parthread_lie from '$(SECONDO_BUILD_DIR)/Algebras/ParThread/Tests/TestData/parthread_lie';
+
+open database parthread_lie;
+
+let compareWayRel = [const rel(tuple([WayId : longint, NodeCounter : int])) value ()];
+
+
+#setup parThreadLieTest ParThreadAlgebra
+
+#testcase serialCount
+#yields (int 340107)
+query Osm_Ways feed head[30000] delayS[1] count;
+
+#testcase tc1_parOneCount
+#yields (int 340107)
+query Osm_Ways feed head[30000] delayS[1] par[1] count;
+
+
+
+#testcase serialFilter
+#yields (int 24979)
+query Osm_Ways feed filter[.NodeCounter=3] delayS[3] count;
+
+#testcase parOneFilter
+#yields (int 24979)
+query Osm_Ways feed par[1] filter[.NodeCounter=3] delayS[3] par[1] count;
+
+#testcase tc2_dataParThreeFilter
+#yields (int 24979)
+query Osm_Ways feed par[1] filter[.NodeCounter=3] delayS[3] par[3] count;
+
+#testcase tc3_parThreeWayIdFilter
+#yields (int 24979)
+query Osm_Ways feed par[1, WayId] filter[.NodeCounter=3] delayS[3] par[3] count;
+
+
+
+#testcase serialFilterProject
+#yields (int 253)
+query Osm_Ways feed filter[.NodeCounter=3] delayS[2] project[WayId, NodeCounter] delayS[2] count;
+
+#testcase tc4_parThreeWayIdFilterProject
+#yields *compareWayRel
+query Osm_Ways feed par[1, WayId] filter[.NodeCounter=3] delayS[2] filter[.NodeCounter=3] par[3] project[WayId, NodeCounter] delayS[2] par[3] count;
+
+
+
+#testcase tc5_parSingleSymmjoin
+#yields (int 688)
+query Osm_Ways feed head[1000] filter[.NodeCounter>3] {w} delayS[2] par[1] Osm_Nodes feed {n} par[1] symmjoin[.NodeRef_w = ..NodeId_n] par[1] count
+
+#testcase tc6_parDoubleSymmjoin
+#yields (int 3410)
+query Osm_Ways feed head[1000] filter[.NodeCounter>3] {w} delayS[2] par[1] Osm_Nodes feed {n} par[1] symmjoin[.NodeRef_w = ..NodeId_n] par[1] Osm_WayTags feed {t} symmjoin[.WayId_w = ..WayIdInTag_t] par[1] count
+
+#testcase tc7_parTripleSymmjoin
+#yields (int 11615)
+query Osm_Ways feed head[1000] filter[.NodeCounter>3] {w} delayS[2] par[1] Osm_Nodes feed {n} par[1] symmjoin[.NodeRef_w = ..NodeId_n] par[1] Osm_WayTags feed {t} symmjoin[.WayId_w = ..WayIdInTag_t] par[1] Osm_Relations feed {r} filter[.MemberType_r starts "way"] symmjoin[.WayId_w = ..MemberRef_r] par[1] count
+
+
+#testcase serialSingleHashjoin
+#yields (int 233976)
+query Osm_Ways feed filter[.NodeCounter=3] delayS[2] {w} Osm_Nodes feed {n} hashjoin[NodeRef_w, NodeId_n] count
+
+#testcase parSingleHashjoin
+#yields (int 233976)
+query Osm_Ways feed par[1] filter[.NodeCounter=3] delayS[2] {w} Osm_Nodes feed par[1] {n} hashjoin[NodeRef_w, NodeId_n] par[1] count
+
+#testcase tc8_dataParSingleHashjoin
+#yields (int 233976)
+query Osm_Ways feed par[1,NodeRef] filter[.NodeCounter=3] delayS[2] {w} Osm_Nodes feed par[1,NodeId] {n} hashjoin[NodeRef_w, NodeId_n] par[8] count
+
+
+
+#testcase serialDoubleHashjoin
+#yields (int 465556)
+query Osm_Ways feed filter[.NodeCounter=3] delayS[2] {w} Osm_Nodes feed {n} hashjoin[NodeRef_w, NodeId_n] Osm_WayTags feed {t} hashjoin[WayId_w, WayIdInTag_t] count
+
+#testcase parDoubleHashjoin
+#yields (int 465556)
+query Osm_Ways feed par[1] filter[.NodeCounter=3] delayS[2] {w} Osm_Nodes feed par[1] {n} hashjoin[NodeRef_w, NodeId_n] par[1] Osm_WayTags feed par[1] {t} hashjoin[WayId_w, WayIdInTag_t] par[1] count
+
+#testcase tc9_dataParDoubleHashjoin
+#yields (int 465556)
+query Osm_Ways feed par[1, NodeRef] filter[.NodeCounter=3] delayS[2] {w} Osm_Nodes feed par[1, NodeId] {n} hashjoin[NodeRef_w, NodeId_n] par[8, WayId_w] Osm_WayTags feed par[1, WayIdInTag] {t} hashjoin[WayId_w, WayIdInTag_t] par[8] count
+
+
+
+#testcase serialTripleHashjoin
+#yields (int 650300)
+query Osm_Ways feed filter[.NodeCounter=3] delayS[2] {w} Osm_Nodes feed {n} hashjoin[NodeRef_w, NodeId_n] Osm_WayTags feed {t}  hashjoin[WayId_w, WayIdInTag_t] Osm_Relations feed {r} filter[.MemberType_r starts "way"] hashjoin[WayId_w, MemberRef_r] count
+
+#testcase parTripleHashjoin
+#yields (int 650300)
+query Osm_Ways feed par[1] filter[.NodeCounter=3] delayS[2] {w} Osm_Nodes feed par[1] {n} hashjoin[NodeRef_w, NodeId_n] par[1] Osm_WayTags feed par[1] {t}  hashjoin[WayId_w, WayIdInTag_t] par[1] Osm_Relations feed par[1] {r} filter[.MemberType_r starts "way"] hashjoin[WayId_w, MemberRef_r] par[1] count
+
+##testcase tc10_dataParTripleHashjoin
+##yields (int 650300)
+query Osm_Ways feed par[1, NodeRef] filter[.NodeCounter=3] delayS[2] {w} Osm_Nodes feed par[1, NodeId] {n} hashjoin[NodeRef_w, NodeId_n] par[8, WayId_w] Osm_WayTags feed par[1, WayIdInTag] {t} hashjoin[WayId_w, WayIdInTag_t] par[8, WayId_w] Osm_Relations feed par[1, MemberRef] {r} filter[.MemberType_r starts "way"] hashjoin[WayId_w, MemberRef_r] par[8] count
+
+# the TEARDOWN directive is followed by commands which
+# should be executed after the execution of all TESTCASES
+#teardown
+
+delete compareWayRel;
+close database;
+# delete database parthread_lie;
+

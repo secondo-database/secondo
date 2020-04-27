@@ -1,0 +1,168 @@
+# Just used for debug runs
+#
+# The run times are measured in a debug environment with output of the 
+# subtrees as dot- files (in parallel mode with max. threads). Every query
+# was executed 5 times and the averange run time calculated.
+# 
+# The run times of the serial run are executed with the same codebase but 
+# without par nodes in the query and therefore without multithreading 
+# support and output of the subtrees, but with progress support (this feature
+# can slowdown the overall query execution a bit)
+#
+# Sep 2019, Thomas Fischer
+#
+
+#setup basic_cmd
+
+# if a command between the SETUP directive and the first
+# TESTCASE directive fails, then the whole test has failed
+# and we immediately skip to the teardown
+# (the whole test does not make sense anymore if the
+# SETUP has failed)
+
+#testcase open database
+#yields success
+open database parthread_lie;
+
+#yields success
+#DEBUG 0
+#DEBUG 3
+#DEBUG 7 includes node traced
+
+
+#1. working, execution time serial: 6 sec, execution time parallel: 7.249999sec
+#query Osm_Ways feed count;
+#query Osm_Ways feed par[1] count;
+#query Osm_Ways feed par[3, WayId] count;
+# result 340107
+
+#2. working, execution time serial: 6.55902, execution time parallel: 9.57982
+#query Osm_Ways feed filter[.NodeCounter>200] count;
+query Osm_Ways feed par[1] filter[.NodeCounter>200] par[3] printrefs count;
+# result 20179
+
+#3. working, execution time serial: 6.51108, execution time parallel: 8.61271
+#query Osm_Ways feed filter[.WayId = 781378607] filter[.NodeCounter = 1] consume;
+#query Osm_Ways feed par[1] filter[.WayId = 781378607] par[3] filter[.NodeCounter = 1] par[3] consume;
+#query Osm_Ways feed par[1] filter[.WayId = 781378607] par[3, NodeCounter] filter[.NodeCounter = 1] par[3] consume;
+# result
+#       WayId : 781378607
+# NodeCounter : 1
+#     NodeRef : 7295101713
+
+
+#4. working, execution time serial: 6.51108, execution time parallel: 8.61271
+#query Osm_Ways feed par[1] filter[.WayId = 781378607] par[3, NodeCounter] filter[.NodeCounter = 1] project[WayId, NodeCounter] par[3] consume;
+# result
+#       WayId : 781378607
+# NodeCounter : 1
+
+#query Osm_Ways feedNth[100, TRUE] par[1, WayId] filter[.NodeCounter = 190] par[3] project[WayId] par[3] rdup sort consume
+#query Osm_Ways feedNth[100, TRUE] par[1, WayId] filter[.NodeCounter = 190] par[3] project[WayId] rdup sort par[3] consume
+# result
+# WayId : 39164679
+#
+# WayId : 356382798
+
+
+#5. product is not data parallelizable
+#query Osm_Ways feed head[4] Osm_WayTags feed head[3] product project[WayId, WayTagKey] sort consume
+#query Osm_Ways feed head[4] par[1] Osm_WayTags feed head[3] par[1] product project[WayId, WayTagKey]  par[3] sort consume
+#query Osm_Ways feed head[4] par[1] Osm_WayTags feed head[3] par[1] product project[WayId, WayTagKey]  par[1] sort consume
+# result
+#     WayId : 4781367
+# WayTagKey : highway
+# 
+#     WayId : 4781367
+# WayTagKey : highway
+# 
+#     WayId : 4781367
+# WayTagKey : highway
+# 
+#     WayId : 4781367
+# WayTagKey : highway
+# 
+#     WayId : 4781367
+# WayTagKey : highway
+# 
+#     WayId : 4781367
+# WayTagKey : highway
+# 
+#     WayId : 4781367
+# WayTagKey : highway
+# 
+#     WayId : 4781367
+# WayTagKey : highway
+# 
+#     WayId : 4781367
+# WayTagKey : name
+# 
+#     WayId : 4781367
+# WayTagKey : name
+# 
+#     WayId : 4781367
+# WayTagKey : name
+# 
+#     WayId : 4781367
+# WayTagKey : name
+
+
+#testcase tc5_parSingleSymmjoin
+#yields (int 233)
+#query Osm_Ways feedNth[1000, TRUE] filter[.NodeCounter>3] {w} par[1] Osm_Nodes feed {n} par[1] symmjoin[.NodeRef_w = ..NodeId_n] par[1] count
+
+#testcase tc6_parDoubleSymmjoin
+#yields (int 486)
+#query Osm_Ways feedNth[1000, TRUE] filter[.NodeCounter>3] {w} par[1] Osm_Nodes feed {n} par[1] symmjoin[.NodeRef_w = ..NodeId_n] par[1] Osm_WayTags feed {t} symmjoin[.WayId_w = ..WayIdInTag_t] par[1] count
+
+#testcase tc7_parTripleSymmjoin
+#yields (int 431)
+#query Osm_Ways feedNth[1000, TRUE] filter[.NodeCounter>3] {w} par[1] Osm_Nodes feed {n} par[1] symmjoin[.NodeRef_w = ..NodeId_n] par[1] Osm_WayTags feed {t} symmjoin[.WayId_w = ..WayIdInTag_t] par[1] Osm_Relations feed {r} filter[.MemberType_r starts "way"] symmjoin[.WayId_w = ..MemberRef_r] par[1] count
+
+#testcase serialSingleHashjoin
+#yields (int 233976)
+#query Osm_Ways feed filter[.NodeCounter>3] {w} Osm_Nodes feed {n} hashjoin[NodeRef_w, NodeId_n] count
+
+#testcase parSingleHashjoin
+#yields (int 233976)
+#query Osm_Ways feed filter[.NodeCounter>3] {w} par[1] Osm_Nodes feed {n} par[1] hashjoin[NodeRef_w, NodeId_n] par[1] count
+
+#testcase tc8_dataParSingleHashjoin
+#yields (int 233976)
+#query Osm_Ways feed filter[.NodeCounter>3] {w} par[1,NodeRef_w] Osm_Nodes feed {n} par[1,NodeId_n] hashjoin[NodeRef_w, NodeId_n] par[8] count
+
+#testcase serialDoubleHashjoin
+#yields (int 465556)
+#query Osm_Ways feed filter[.NodeCounter>3] {w} Osm_Nodes feed {n} hashjoin[NodeRef_w, NodeId_n] Osm_WayTags feed {t} hashjoin[WayId_w, WayIdInTag_t] count
+
+#testcase parDoubleHashjoin
+#yields (int 465556)
+#query Osm_Ways feed filter[.NodeCounter>3] {w} par[1] Osm_Nodes feed {n} par[1] hashjoin[NodeRef_w, NodeId_n] par[1] Osm_WayTags feed {t} par[1] hashjoin[WayId_w, WayIdInTag_t] par[1] count
+
+#testcase tc9_dataParDoubleHashjoin
+#yields (int 465556)
+#query Osm_Ways feed filter[.NodeCounter>3] {w} par[1, NodeRef_w] Osm_Nodes feed {n} par[1, NodeId_n] hashjoin[NodeRef_w, NodeId_n] par[8, WayId_w] Osm_WayTags feed {t} par[1, WayIdInTag_t] hashjoin[WayId_w, WayIdInTag_t] par[8] count;
+
+#testcase serialTripleHashjoin
+#yields (int 650300)
+#query Osm_Ways feed filter[.NodeCounter>3] {w} Osm_Nodes feed {n} hashjoin[NodeRef_w, NodeId_n] Osm_WayTags feed {t}  hashjoin[WayId_w, WayIdInTag_t] Osm_Relations feed {r} filter[.MemberType_r starts "way"] hashjoin[WayId_w, MemberRef_r] count
+
+#testcase parTripleHashjoin
+#yields (int 650300)
+#query Osm_Ways feed filter[.NodeCounter>3] {w} par[1] Osm_Nodes feed {n} par[1] hashjoin[NodeRef_w, NodeId_n] par[1] Osm_WayTags feed {t} par[1] hashjoin[WayId_w, WayIdInTag_t] par[1] Osm_Relations feed {r} filter[.MemberType_r starts "way"] par[1, MemberRef_r] hashjoin[WayId_w, MemberRef_r] par[1] count
+
+##testcase tc10_dataParTripleHashjoin
+##yields (int 650300)
+query Osm_Ways feed filter[.NodeCounter>3] {w} par[1, NodeRef_w] Osm_Nodes feed {n} par[1, NodeId_n] hashjoin[NodeRef_w, NodeId_n] par[8, WayId_w] Osm_WayTags feed {t} par[1, WayIdInTag_t] hashjoin[WayId_w, WayIdInTag_t] par[8, WayId_w] Osm_Relations feed {r} filter[.MemberType_r starts "way"] par[1, MemberRef_r] hashjoin[WayId_w, MemberRef_r] par[8] count
+
+
+# complex filter predicate does not work
+#query Osm_Ways feedNth[100, TRUE] par[1] filter[(.NodeCounter > 190) and (.NodeCounter < 200)] par[2] project[WayId] par[1] consume
+#query Osm_Ways feedNth[100, TRUE] par[1, WayId] filter[(.NodeCounter > 190) and (.NodeCounter < 200)] par[3] project[WayId] rdup par[3] sort consume
+
+#TODO check some basic spatial operators
+#query Osm_Nodes feed head[20] par[3] extend[Geo: makepoint(.Lon, .Lat)] extend[Dist: distance(.Geo, [const point value(7.493611 51.376323)])] par[3] consume
+
+
+close database;
+
