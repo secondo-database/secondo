@@ -333,6 +333,269 @@ void RelAgg::clearEntries() {
   nonfreqSets.clear();
 }
 
+ListExpr RelAgg::entriesToListExpr() {
+  ListExpr resultList, tempList;
+  if (entries.empty() || labelPos.empty()) {
+    return nl->SymbolAtom("Empty Container");
+  }
+  auto it = labelPos.begin();
+  resultList = nl->OneElemList(nl->TwoElemList(nl->SymbolAtom(it->first),
+                                             entries[it->second].toListExpr()));
+  tempList = resultList;
+  it++;
+  while (it != labelPos.end()) {
+    tempList = nl->Append(tempList, nl->TwoElemList(nl->SymbolAtom(it->first),
+                                             entries[it->second].toListExpr()));
+    it++;
+  }
+  return resultList;
+}
+
+bool RelAgg::saveToRecord(RelAgg *agg, SmiRecord& valueRecord, size_t& offset) {
+  unsigned int noOccs, tid, labelLength, noComponents;
+  double durD, start, end;
+  string label;
+  SecInterval iv(true);
+  if (!valueRecord.Write(&agg->noTuples, sizeof(unsigned int), offset)) {
+    return false;
+  }
+  offset += sizeof(unsigned int);
+  unsigned long long int entriesSize = agg->computeEntriesSize();
+  cout << "size of entries is " << entriesSize << endl;
+  if (!valueRecord.Write(&entriesSize, sizeof(unsigned long long int), offset)){
+    return false;
+  }
+  offset += sizeof(unsigned long long int);
+  unsigned int noAggEntries = agg->entries.size();
+  if (!valueRecord.Write(&noAggEntries, sizeof(unsigned int), offset)) {
+    return false;
+  }
+  offset += sizeof(unsigned int);
+  char* entriesChars = new char[entriesSize];
+  size_t offsetEntries = 0;
+  for (unsigned int i = 0; i < noAggEntries; i++) {
+    memcpy(entriesChars + offsetEntries, &agg->entries[i].noOccs, 
+           sizeof(unsigned int));
+    offsetEntries += sizeof(unsigned int);
+    durD = agg->entries[i].duration.ToDouble();
+    memcpy(entriesChars + offsetEntries, &durD, sizeof(double));
+    offsetEntries += sizeof(double);
+    noOccs = agg->entries[i].occs.size();
+    memcpy(entriesChars + offsetEntries, &noOccs, sizeof(unsigned int));
+    offsetEntries += sizeof(unsigned int);
+    for (auto occ : agg->entries[i].occs) {
+      tid = get<0>(occ);
+      memcpy(entriesChars + offsetEntries, &tid, sizeof(unsigned int));
+      offsetEntries += sizeof(unsigned int);
+      noComponents = get<1>(occ)->GetNoComponents();
+      memcpy(entriesChars + offsetEntries, &noComponents, sizeof(unsigned int));
+      offsetEntries += sizeof(unsigned int);
+      for (unsigned int j = 0; j < noComponents; j++) {
+        get<1>(occ)->Get(j, iv);
+        start = iv.start.ToDouble();
+        end = iv.end.ToDouble();
+        memcpy(entriesChars + offsetEntries, &start, sizeof(double));
+        offsetEntries += sizeof(double);
+        memcpy(entriesChars + offsetEntries, &iv.lc, sizeof(bool));
+        offsetEntries += sizeof(bool);
+
+        memcpy(entriesChars + offsetEntries, &end, sizeof(double));
+        offsetEntries += sizeof(double);
+        memcpy(entriesChars + offsetEntries, &iv.rc, sizeof(bool));
+        offsetEntries += sizeof(bool);
+      }
+      double coords[] = {get<2>(occ).MinD(0), get<2>(occ).MinD(1),
+                         get<2>(occ).MaxD(0), get<2>(occ).MaxD(1)};
+      for (int c = 0; c < 4; c++) {
+        memcpy(entriesChars + offsetEntries, &coords[c], sizeof(double));
+        offsetEntries += sizeof(double);
+      }
+      bool isdefined = get<2>(occ).IsDefined();
+      memcpy(entriesChars + offsetEntries, &isdefined, sizeof(bool));
+      offsetEntries += sizeof(bool);
+    }
+    for (auto occPos : agg->entries[i].occsPos) {
+      tid = occPos;
+      memcpy(entriesChars + offsetEntries, &tid, sizeof(unsigned int));
+      offsetEntries += sizeof(unsigned int);
+    }
+  }
+  if (!valueRecord.Write(entriesChars, entriesSize, offset)) {
+    return false;
+  }
+  offset += entriesSize;
+  delete[] entriesChars;
+  unsigned long long int freqLabelsSize = agg->computeFreqLabelsSize();
+  cout << "size of freqLabels is " << freqLabelsSize << endl;
+  if (!valueRecord.Write(&freqLabelsSize, sizeof(unsigned long long int), 
+                         offset)) {
+    return false;
+  }
+  offset += sizeof(unsigned long long int);
+  char* freqLabelsChars = new char[freqLabelsSize];
+  size_t offsetFreqLabels = 0;
+  for (unsigned int i = 0; i < noAggEntries; i++) {
+    label = agg->freqLabels[i];
+    labelLength = label.length();
+    memcpy(freqLabelsChars + offsetFreqLabels, &labelLength, 
+           sizeof(unsigned int));
+    offsetFreqLabels += sizeof(unsigned int);
+    char labelArray[labelLength + 1];
+    strcpy(labelArray, label.c_str());
+    memcpy(freqLabelsChars + offsetFreqLabels, &labelArray, labelLength + 1);
+    offsetFreqLabels += labelLength + 1;
+  }
+  if (!valueRecord.Write(freqLabelsChars, freqLabelsSize, offset)) {
+    return false;
+  }
+  offset += freqLabelsSize;
+  delete[] freqLabelsChars;
+  return true;
+}
+
+bool RelAgg::readFromRecord(RelAgg *agg, SmiRecord& valueRecord, 
+                            size_t& offset) {
+  unsigned int noAggEntries, noOccs, noComponents, occPos, labelLength;
+  double durD, start, end;
+  Periods *per;
+  SecInterval iv(true);
+  // read ~noTuples~
+  if (!valueRecord.Read(&agg->noTuples, sizeof(unsigned int), offset)) {
+    return false;
+  }
+  offset += sizeof(unsigned int);
+  unsigned long long int entriesSize;
+  if (!valueRecord.Read(&entriesSize, sizeof(unsigned long long int), offset)) {
+    return false;
+  }
+  offset += sizeof(unsigned long long int);
+//   cout << "size of entries is " << entriesSize << endl;
+  char* entriesChars = new char[entriesSize];
+  // read ~entries~
+  if (!valueRecord.Read(&noAggEntries, sizeof(unsigned int), offset)) {
+    return false;
+  }
+  offset += sizeof(unsigned int);
+  if (!valueRecord.Read(entriesChars, entriesSize, offset)) {
+    return false;
+  }
+  offset += entriesSize;
+  size_t offsetEntries = 0;
+  for (unsigned int i = 0; i < noAggEntries; i++) {
+//     auto measureStart = high_resolution_clock::now(); 
+    AggEntry entry;
+    memcpy(&entry.noOccs, entriesChars + offsetEntries, sizeof(unsigned int));
+    offsetEntries += sizeof(unsigned int);
+//     cout << "noOccs = " << entry.noOccs << endl;
+    memcpy(&durD, entriesChars + offsetEntries, sizeof(double));
+    offsetEntries += sizeof(double);
+//     offsetEntries += sizeof(double);
+    entry.duration.ReadFrom(durD);
+//     cout << "duration is " << entry.duration << endl;
+    memcpy(&noOccs, entriesChars + offsetEntries, sizeof(unsigned int));
+    offsetEntries += sizeof(unsigned int);
+    TupleId tid;
+    for (unsigned int j = 0; j < noOccs; j++) {
+      memcpy(&tid, entriesChars + offsetEntries, sizeof(unsigned int));
+      offsetEntries += sizeof(unsigned int);
+      memcpy(&noComponents, entriesChars + offsetEntries, sizeof(unsigned int));
+      offsetEntries += sizeof(unsigned int);
+      per = new Periods(true);
+      for (unsigned int k = 0; k < noComponents; k++) {
+        memcpy(&start, entriesChars + offsetEntries, sizeof(double));
+        offsetEntries += sizeof(double);
+        iv.start.ReadFrom(start);
+        memcpy(&iv.lc, entriesChars + offsetEntries, sizeof(bool));
+        offsetEntries += sizeof(bool);
+        memcpy(&end, entriesChars + offsetEntries, sizeof(double));
+        offsetEntries += sizeof(double);
+        iv.end.ReadFrom(end);
+        memcpy(&iv.rc, entriesChars + offsetEntries, sizeof(bool));
+        offsetEntries += sizeof(bool);
+        per->MergeAdd(iv);
+      }
+      double *min = new double[2];
+      for (int c = 0; c < 2; c++) {
+        memcpy(&min[c], entriesChars + offsetEntries, sizeof(double));
+        offsetEntries += sizeof(double);
+      }
+      double *max = new double[2];
+      for (int c = 0; c < 2; c++) {
+        memcpy(&max[c], entriesChars + offsetEntries, sizeof(double));
+        offsetEntries += sizeof(double);
+      }
+      bool isdefined;
+      memcpy(&isdefined, entriesChars + offsetEntries, sizeof(bool));
+      offsetEntries += sizeof(bool);
+      Rect rect(isdefined, min, max);
+      delete[] min;
+      delete[] max;
+//       cout << "ENTRY: " << tid << " " << *per << rect << endl;
+      entry.occs.push_back(make_tuple(tid, per, rect));
+    }
+    for (unsigned int j = 0; j <= agg->noTuples; j++) {
+      memcpy(&occPos, entriesChars + offsetEntries, sizeof(unsigned int));
+      offsetEntries += sizeof(unsigned int);
+      entry.occsPos.push_back(occPos);
+//       cout << "... pushed back occPos " << occPos << endl;
+    }
+    agg->entries.push_back(entry);
+//     auto measureStop = high_resolution_clock::now();
+//     double ms = 
+//    (double)(duration_cast<milliseconds>(measureStop - measureStart).count());
+//     cout << "entry with " << entry.occs.size() << " occs read, took " << ms
+//          << " ms, equals " << ms / entry.noOccs << " ms per occ" << endl;
+  }
+  delete[] entriesChars;
+  // read ~freqLabels~
+  unsigned long long int freqLabelsSize = 0;
+  if (!valueRecord.Read(&freqLabelsSize, sizeof(unsigned long long int),
+                                                                      offset)) {
+    return false;
+  }
+  offset += sizeof(unsigned long long int);
+  char* freqLabelsChars = new char[freqLabelsSize];
+  size_t offsetFreqLabels = 0;
+  if (!valueRecord.Read(freqLabelsChars, freqLabelsSize, offset)) {
+    return false;
+  }
+  offset += freqLabelsSize;  
+  for (unsigned int i = 0; i < noAggEntries; i++) {
+    memcpy(&labelLength, freqLabelsChars + offsetFreqLabels, 
+           sizeof(unsigned int));
+    offsetFreqLabels += sizeof(unsigned int);
+    char labelArray[labelLength + 1];
+    memcpy(&labelArray, freqLabelsChars + offsetFreqLabels, labelLength + 1);
+    offsetFreqLabels += labelLength + 1;
+    string label(labelArray);
+    agg->freqLabels.push_back(label);
+  }
+  delete[] freqLabelsChars;
+  return true;
+}
+
+/*
+  Class ~RelAgg~, function ~getLabelSeqFromMLabel~
+
+*/
+void RelAgg::getLabelSeqFromMLabel(MLabel *ml, vector<unsigned int>& result) {
+  string label;
+  vector<bool> isPresent;
+  isPresent.resize(freqLabels.size() + 1, false);
+  result.clear();
+  auto it = labelPos.begin();
+  for (int j = 0; j < ml->GetNoComponents(); j++) {
+    ml->GetValue(j, label);
+    it = labelPos.find(label);
+    if (it != labelPos.end()) {
+      if (!isPresent[it->second]) {
+        result.push_back(it->second);
+        isPresent[it->second] = true;
+      }
+    }
+  }
+}
+
 /*
   Class ~RelAgg~, Function ~insertLabel~
   
@@ -994,7 +1257,7 @@ void FPTree::construct() {
     ml = (MLabel*)(tuple->GetAttribute(agg->attrPos.first));
     for (int j = 0; j < ml->GetNoComponents(); j++) {
       ml->GetValue(j, label);
-      unsigned labelPos = agg->labelPos[label];
+      unsigned int labelPos = agg->labelPos[label];
       NewPair<unsigned int, double> labelWithSupp(labelPos, 
                                                   agg->getSupp(labelPos));
       if (labelWithSupp.second >= minSupp) {
@@ -1359,7 +1622,6 @@ ListExpr FPTree::Out(ListExpr typeInfo, Word value) {
   FPTree *tree = (FPTree*)value.addr;
   ListExpr nodesList(nl->Empty()), nodeList(nl->Empty()),
            nodeLinksList(nl->Empty()), nodeLinkList(nl->Empty()); 
-//            relAggList(nl->Empty()), relAggsList(nl->Empty());
   ListExpr noTuplesList = nl->TwoElemList(nl->SymbolAtom("noTuples"),
                                           nl->IntAtom(tree->agg->noTuples));
   ListExpr minSuppList = nl->TwoElemList(nl->SymbolAtom("minSupp"),
@@ -1387,19 +1649,6 @@ ListExpr FPTree::Out(ListExpr typeInfo, Word value) {
     it++;
   }
   return nl->FourElemList(noTuplesList, minSuppList, nodesList, nodeLinksList);
-//   if (tree->hasAggEntries()) {
-//     relAggsList = nl->OneElemList(nl->TwoElemList(
-//                                  nl->SymbolAtom(tree->agg->entries[0].first),
-//                                  tree->agg->entries[0].second.toListExpr()));
-//     relAggList = relAggsList;
-//   }
-//   for (unsigned int i = 1; i < tree->agg->entries.size(); i++) {
-//     relAggList = nl->Append(relAggList, nl->TwoElemList(
-//                                  nl->SymbolAtom(tree->agg->entries[i].first),
-//                                  tree->agg->entries[i].second.toListExpr()));
-//   }
-//   return nl->FiveElemList(noTuplesList, minSuppList, nodesList,nodeLinksList,
-//                           relAggsList);
 }
 
 Word FPTree::Create(const ListExpr typeInfo) {
@@ -1435,10 +1684,7 @@ bool FPTree::Save(SmiRecord& valueRecord, size_t& offset,
   memcpy(nodesChars + offsetNodes, &noNodes, sizeof(unsigned int));
   offsetNodes += sizeof(unsigned int);
   string label;
-  unsigned int labelLength, numLabel, frequency, noChildren, child, nodeLink, 
-               noOccs, ancestor, tid, noComponents;
-  double durD, start, end;
-  SecInterval iv(true);
+  unsigned int numLabel, frequency, noChildren, child, nodeLink, ancestor;
   for (unsigned int i = 0; i < noNodes; i++) { // store nodes
     numLabel = tree->nodes[i].label;
     memcpy(nodesChars + offsetNodes, &numLabel, sizeof(unsigned int));
@@ -1495,101 +1741,9 @@ bool FPTree::Save(SmiRecord& valueRecord, size_t& offset,
   offset += nodeLinksSize;
   delete[] nodeLinksChars;
   // store ~noTuples~, ~entries~ and ~freqLabels~ from relAgg
-  if (!valueRecord.Write(&tree->agg->noTuples, sizeof(unsigned int), offset)) {
+  if (RelAgg::saveToRecord(tree->agg, valueRecord, offset)) {
     return false;
   }
-  offset += sizeof(unsigned int);
-  unsigned long long int entriesSize = tree->agg->computeEntriesSize();
-  cout << "size of entries is " << entriesSize << endl;
-  if (!valueRecord.Write(&entriesSize, sizeof(unsigned long long int), offset)){
-    return false;
-  }
-  offset += sizeof(unsigned long long int);
-  
-  unsigned int noAggEntries = tree->agg->entries.size();
-  if (!valueRecord.Write(&noAggEntries, sizeof(unsigned int), offset)) {
-    return false;
-  }
-  offset += sizeof(unsigned int);
-  char* entriesChars = new char[entriesSize];
-  size_t offsetEntries = 0;
-  for (unsigned int i = 0; i < noAggEntries; i++) {
-    memcpy(entriesChars + offsetEntries, &tree->agg->entries[i].noOccs, 
-           sizeof(unsigned int));
-    offsetEntries += sizeof(unsigned int);
-    durD = tree->agg->entries[i].duration.ToDouble();
-    memcpy(entriesChars + offsetEntries, &durD, sizeof(double));
-    offsetEntries += sizeof(double);
-    noOccs = tree->agg->entries[i].occs.size();
-    memcpy(entriesChars + offsetEntries, &noOccs, sizeof(unsigned int));
-    offsetEntries += sizeof(unsigned int);
-    for (auto occ : tree->agg->entries[i].occs) {
-      tid = get<0>(occ);
-      memcpy(entriesChars + offsetEntries, &tid, sizeof(unsigned int));
-      offsetEntries += sizeof(unsigned int);
-      noComponents = get<1>(occ)->GetNoComponents();
-      memcpy(entriesChars + offsetEntries, &noComponents, sizeof(unsigned int));
-      offsetEntries += sizeof(unsigned int);
-      for (unsigned int j = 0; j < noComponents; j++) {
-        get<1>(occ)->Get(j, iv);
-        start = iv.start.ToDouble();
-        end = iv.end.ToDouble();
-        memcpy(entriesChars + offsetEntries, &start, sizeof(double));
-        offsetEntries += sizeof(double);
-        memcpy(entriesChars + offsetEntries, &iv.lc, sizeof(bool));
-        offsetEntries += sizeof(bool);
-
-        memcpy(entriesChars + offsetEntries, &end, sizeof(double));
-        offsetEntries += sizeof(double);
-        memcpy(entriesChars + offsetEntries, &iv.rc, sizeof(bool));
-        offsetEntries += sizeof(bool);
-      }
-      double coords[] = {get<2>(occ).MinD(0), get<2>(occ).MinD(1),
-                         get<2>(occ).MaxD(0), get<2>(occ).MaxD(1)};
-      for (int c = 0; c < 4; c++) {
-        memcpy(entriesChars + offsetEntries, &coords[c], sizeof(double));
-        offsetEntries += sizeof(double);
-      }
-      bool isdefined = get<2>(occ).IsDefined();
-      memcpy(entriesChars + offsetEntries, &isdefined, sizeof(bool));
-      offsetEntries += sizeof(bool);
-    }
-    for (auto occPos : tree->agg->entries[i].occsPos) {
-      tid = occPos;
-      memcpy(entriesChars + offsetEntries, &tid, sizeof(unsigned int));
-      offsetEntries += sizeof(unsigned int);
-    }
-  }
-  if (!valueRecord.Write(entriesChars, entriesSize, offset)) {
-    return false;
-  }
-  offset += entriesSize;
-  delete[] entriesChars;
-  unsigned long long int freqLabelsSize = tree->agg->computeFreqLabelsSize();
-  cout << "size of freqLabels is " << freqLabelsSize << endl;
-  if (!valueRecord.Write(&freqLabelsSize, sizeof(unsigned long long int), 
-                         offset)) {
-    return false;
-  }
-  offset += sizeof(unsigned long long int);
-  char* freqLabelsChars = new char[freqLabelsSize];
-  size_t offsetFreqLabels = 0;
-  for (unsigned int i = 0; i < noAggEntries; i++) {
-    label = tree->agg->freqLabels[i];
-    labelLength = label.length();
-    memcpy(freqLabelsChars + offsetFreqLabels, &labelLength, 
-           sizeof(unsigned int));
-    offsetFreqLabels += sizeof(unsigned int);
-    char labelArray[labelLength + 1];
-    strcpy(labelArray, label.c_str());
-    memcpy(freqLabelsChars + offsetFreqLabels, &labelArray, labelLength + 1);
-    offsetFreqLabels += labelLength + 1;
-  }
-  if (!valueRecord.Write(freqLabelsChars, freqLabelsSize, offset)) {
-    return false;
-  }
-  offset += freqLabelsSize;
-  delete[] freqLabelsChars;
   return true;
 }
 
@@ -1601,11 +1755,8 @@ bool FPTree::Open(SmiRecord& valueRecord, size_t& offset,
     return false;
   }
   offset += sizeof(double);
-  double durD, start, end;
-  Periods *per;
-  unsigned int labelLength, numLabel, noNodes, frequency, noChildren, child, 
-       nodeLink, ancestor, noNodeLinks, noOccs, noAggEntries, occPos,
-       noComponents;
+  unsigned int numLabel, noNodes, frequency, noChildren, child, nodeLink, 
+               ancestor, noNodeLinks;
   SecInterval iv(true);
   iv.start.SetType(instanttype);
   iv.end.SetType(instanttype);
@@ -1673,118 +1824,9 @@ bool FPTree::Open(SmiRecord& valueRecord, size_t& offset,
   }
   delete[] nodeLinksChars;
   tree->agg = new RelAgg();
-  // read ~noTuples~
-  if (!valueRecord.Read(&tree->agg->noTuples, sizeof(unsigned int), offset)) {
+  if (!RelAgg::readFromRecord(tree->agg, valueRecord, offset)) {
     return false;
   }
-  offset += sizeof(unsigned int);
-  unsigned long long int entriesSize;
-  if (!valueRecord.Read(&entriesSize, sizeof(unsigned long long int), offset)) {
-    return false;
-  }
-  offset += sizeof(unsigned long long int);
-//   cout << "size of entries is " << entriesSize << endl;
-  char* entriesChars = new char[entriesSize];
-  // read ~entries~
-  if (!valueRecord.Read(&noAggEntries, sizeof(unsigned int), offset)) {
-    return false;
-  }
-  offset += sizeof(unsigned int);
-  if (!valueRecord.Read(entriesChars, entriesSize, offset)) {
-    return false;
-  }
-  offset += entriesSize;
-  size_t offsetEntries = 0;
-  for (unsigned int i = 0; i < noAggEntries; i++) {
-//     auto measureStart = high_resolution_clock::now(); 
-    AggEntry entry;
-    memcpy(&entry.noOccs, entriesChars + offsetEntries, sizeof(unsigned int));
-    offsetEntries += sizeof(unsigned int);
-//     cout << "noOccs = " << entry.noOccs << endl;
-    memcpy(&durD, entriesChars + offsetEntries, sizeof(double));
-    offsetEntries += sizeof(double);
-//     offsetEntries += sizeof(double);
-    entry.duration.ReadFrom(durD);
-//     cout << "duration is " << entry.duration << endl;
-    memcpy(&noOccs, entriesChars + offsetEntries, sizeof(unsigned int));
-    offsetEntries += sizeof(unsigned int);
-    TupleId tid;
-    for (unsigned int j = 0; j < noOccs; j++) {
-      memcpy(&tid, entriesChars + offsetEntries, sizeof(unsigned int));
-      offsetEntries += sizeof(unsigned int);
-      memcpy(&noComponents, entriesChars + offsetEntries, sizeof(unsigned int));
-      offsetEntries += sizeof(unsigned int);
-      per = new Periods(true);
-      for (unsigned int k = 0; k < noComponents; k++) {
-        memcpy(&start, entriesChars + offsetEntries, sizeof(double));
-        offsetEntries += sizeof(double);
-        iv.start.ReadFrom(start);
-        memcpy(&iv.lc, entriesChars + offsetEntries, sizeof(bool));
-        offsetEntries += sizeof(bool);
-        memcpy(&end, entriesChars + offsetEntries, sizeof(double));
-        offsetEntries += sizeof(double);
-        iv.end.ReadFrom(end);
-        memcpy(&iv.rc, entriesChars + offsetEntries, sizeof(bool));
-        offsetEntries += sizeof(bool);
-        per->MergeAdd(iv);
-      }
-      double *min = new double[2];
-      for (int c = 0; c < 2; c++) {
-        memcpy(&min[c], entriesChars + offsetEntries, sizeof(double));
-        offsetEntries += sizeof(double);
-      }
-      double *max = new double[2];
-      for (int c = 0; c < 2; c++) {
-        memcpy(&max[c], entriesChars + offsetEntries, sizeof(double));
-        offsetEntries += sizeof(double);
-      }
-      bool isdefined;
-      memcpy(&isdefined, entriesChars + offsetEntries, sizeof(bool));
-      offsetEntries += sizeof(bool);
-      Rect rect(isdefined, min, max);
-      delete[] min;
-      delete[] max;
-//       cout << "ENTRY: " << tid << " " << *per << rect << endl;
-      entry.occs.push_back(make_tuple(tid, per, rect));
-    }
-    for (unsigned int j = 0; j <= tree->agg->noTuples; j++) {
-      memcpy(&occPos, entriesChars + offsetEntries, sizeof(unsigned int));
-      offsetEntries += sizeof(unsigned int);
-      entry.occsPos.push_back(occPos);
-//       cout << "... pushed back occPos " << occPos << endl;
-    }
-    tree->agg->entries.push_back(entry);
-//     auto measureStop = high_resolution_clock::now();
-//     double ms = 
-//    (double)(duration_cast<milliseconds>(measureStop - measureStart).count());
-//     cout << "entry with " << entry.occs.size() << " occs read, took " << ms
-//          << " ms, equals " << ms / entry.noOccs << " ms per occ" << endl;
-  }
-  delete[] entriesChars;
-  // read ~freqLabels~
-  unsigned long long int freqLabelsSize = 0;
-  if (!valueRecord.Read(&freqLabelsSize, sizeof(unsigned long long int),
-                                                                      offset)) {
-    return false;
-  }
-  offset += sizeof(unsigned long long int);
-  char* freqLabelsChars = new char[freqLabelsSize];
-  size_t offsetFreqLabels = 0;
-  if (!valueRecord.Read(freqLabelsChars, freqLabelsSize, offset)) {
-    return false;
-  }
-  offset += freqLabelsSize;  
-  for (unsigned int i = 0; i < noAggEntries; i++) {
-    memcpy(&labelLength, freqLabelsChars + offsetFreqLabels, 
-           sizeof(unsigned int));
-    offsetFreqLabels += sizeof(unsigned int);
-    char labelArray[labelLength + 1];
-    memcpy(&labelArray, freqLabelsChars + offsetFreqLabels, labelLength + 1);
-    offsetFreqLabels += labelLength + 1;
-    string label(labelArray);
-    tree->agg->freqLabels.push_back(label);
-  }
-  delete[] freqLabelsChars;
   value.setAddr(tree);
   return true;
 }
@@ -1815,7 +1857,6 @@ bool FPTree::TypeCheck(ListExpr type, ListExpr& errorInfo) {
   Type constructor for secondo type ~fptree~
  
 */
-
 TypeConstructor fptreeTC(
   FPTree::BasicType(),
   FPTree::Property,
@@ -1831,6 +1872,276 @@ TypeConstructor fptreeTC(
   0,
   FPTree::SizeOfObj,
   FPTree::TypeCheck);
+
+/*
+  Class ~ProjectedDB~, function ~clear~
+
+*/
+
+void ProjectedDB::clear() {
+  
+}
+
+/*
+  Class ~ProjectedDB~, function ~initialize~
+
+*/
+void ProjectedDB::initialize(const double ms, RelAgg *ra) {
+  minSupp = ms;
+  agg = ra;
+  minSuppCnt = (unsigned int)std::ceil(minSupp * ra->noTuples);
+  agg->checkedSeqs.resize(agg->maxNoAtoms + 1);
+  projections.resize(agg->freqLabels.size() + 1);
+}
+
+/*
+  Class ~ProjectedDB~, function ~construct~
+
+*/
+void ProjectedDB::construct() {
+  GenericRelationIterator* it = agg->rel->MakeScan();
+  MLabel *ml = 0;
+  Tuple *tuple = 0;
+  string label;
+  vector<unsigned int> labelSeq, projection;
+  while ((tuple = it->GetNextTuple())) {
+    ml = (MLabel*)(tuple->GetAttribute(agg->attrPos.first));
+    agg->getLabelSeqFromMLabel(ml, labelSeq);
+    if (!labelSeq.empty()) {
+      cout << "found sequence " << agg->print(labelSeq) << endl;
+      for (unsigned int pos = 0; pos < labelSeq.size() - 1; pos++) {
+        projection.assign(labelSeq.begin() + pos + 1, labelSeq.end());
+        cout << "     projection " << agg->print(projection) << endl;
+        projections[labelSeq[pos]].push_back(projection);
+      }
+    }
+    tuple->DeleteIfAllowed();
+  }
+  delete it;
+  for (auto projForLabel : projections) {
+    if (projForLabel.size() < minSuppCnt) {
+      cout << "remove " << projForLabel.size() << " projections" << endl;
+      projForLabel.clear();
+    }
+  }
+}
+
+/*
+  Class ~ProjectedDB~, function ~retrievePatterns~
+
+*/
+void ProjectedDB::retrievePatterns(const unsigned int minNoAtoms, 
+                                   const unsigned int maxNoAtoms) {
+  
+}
+
+/*
+  Class ~ProjectedDB~, functions for secondo data type
+
+*/
+ListExpr ProjectedDB::seqToListExpr(vector<unsigned int>& seq) {
+  ListExpr seqList(nl->Empty()), seqListTemp;
+  if (!seq.empty()) {
+    seqList = nl->OneElemList(nl->IntAtom(seq[0]));
+    seqListTemp = seqList;
+  }
+  for (unsigned int i = 1; i < seq.size(); i++) {
+    seqListTemp = nl->Append(seqListTemp, nl->IntAtom(seq[i]));
+  }
+  return seqList;
+}
+
+ListExpr ProjectedDB::projToListExpr(vector<vector<unsigned int> >& proj) {
+  ListExpr projList(nl->Empty()), projListTemp;
+  if (!proj.empty()) {
+    projList = nl->OneElemList(seqToListExpr(proj[0]));
+    projListTemp = projList;
+  }
+  for (unsigned int i = 1; i < proj.size(); i++) {
+    projListTemp = nl->Append(projListTemp, seqToListExpr(proj[i]));
+  }
+  return projList;
+}
+
+ListExpr ProjectedDB::Out(ListExpr typeInfo, Word value) {
+  ProjectedDB *pdb = (ProjectedDB*)value.addr;
+  ListExpr noTuplesList = nl->TwoElemList(nl->SymbolAtom("noTuples"),
+                                               nl->IntAtom(pdb->agg->noTuples));
+  ListExpr minSuppList = nl->TwoElemList(nl->SymbolAtom("minSupp"),
+                                         nl->RealAtom(pdb->minSupp));
+  ListExpr projList(nl->Empty()), projsList(nl->Empty());
+  if (!pdb->projections.empty()) {
+    projsList = nl->OneElemList(pdb->projToListExpr(pdb->projections[0]));
+    projList = projsList;
+  }
+  for (unsigned int i = 1; i < pdb->projections.size(); i++) {
+    projList = nl->Append(projList, pdb->projToListExpr(pdb->projections[i]));
+  }
+  return nl->TwoElemList(noTuplesList, minSuppList, projsList);
+}
+
+ListExpr ProjectedDB::Property() {
+  return (nl->TwoElemList(
+    nl->FourElemList(
+      nl->StringAtom("Signature"), nl->StringAtom("Example Type List"),
+      nl->StringAtom("List Rep"), nl->StringAtom("Example List")),
+    nl->FourElemList (
+      nl->StringAtom("-> SIMPLE"), 
+      nl->StringAtom(ProjectedDB::BasicType()),
+      nl->StringAtom("no list representation"),
+      nl->StringAtom(""))));
+}
+
+Word ProjectedDB::In(const ListExpr typeInfo, const ListExpr instance,
+                     const int errorPos, ListExpr& errorInfo, bool& correct) {
+  correct = false;
+  return SetWord(Address(0));
+}
+
+Word ProjectedDB::Create(const ListExpr typeInfo) {
+  Word w;
+  w.addr = (new ProjectedDB());
+  return w;
+}
+
+void ProjectedDB::Delete(const ListExpr typeInfo, Word& w) {
+  ProjectedDB *pdb = (ProjectedDB*)w.addr;
+  delete pdb;
+  w.addr = 0;
+}
+
+bool ProjectedDB::Save(SmiRecord& valueRecord, size_t& offset,
+                       const ListExpr typeInfo, Word& value) {
+  ProjectedDB *pdb = (ProjectedDB*)value.addr;
+  // store minSupp
+  if (!valueRecord.Write(&pdb->minSupp, sizeof(double), offset)) {
+    return false;
+  }
+  offset += sizeof(double);
+  // store agg
+  if (!RelAgg::saveToRecord(pdb->agg, valueRecord, offset)) {
+    return false;
+  }
+  // store projections
+  unsigned int noProjections = pdb->projections.size();
+  unsigned int noSequences, noLabels, label;
+  if (!valueRecord.Write(&noProjections, sizeof(unsigned int), offset)) {
+    return false;
+  }
+  offset += sizeof(unsigned int);
+  for (unsigned int i = 0; i < noProjections; i++) {
+    noSequences = pdb->projections[i].size();
+    if (!valueRecord.Write(&noSequences, sizeof(unsigned int), offset)) {
+      return false;
+    }
+    offset += sizeof(unsigned int);
+    for (unsigned int j = 0; j < noSequences; j++) {
+      noLabels = pdb->projections[i][j].size();
+      if (!valueRecord.Write(&noLabels, sizeof(unsigned int), offset)) {
+        return false;
+      }
+      offset += sizeof(unsigned int);
+      for (unsigned int k = 0; k < noLabels; k++) {
+        label = pdb->projections[i][j][k];
+        if (!valueRecord.Write(&label, sizeof(unsigned int), offset)) {
+          return false;
+        }
+        offset += sizeof(unsigned int);
+      }
+    }
+  }
+  return true;
+}
+
+bool ProjectedDB::Open(SmiRecord& valueRecord, size_t& offset,
+                       const ListExpr typeInfo, Word& value) {
+  ProjectedDB *pdb = new ProjectedDB();
+  // read minSupp
+  if (!valueRecord.Read(&pdb->minSupp, sizeof(double), offset)) {
+    return false;
+  }
+  offset += sizeof(double);
+  pdb->agg = new RelAgg();
+  if (!RelAgg::readFromRecord(pdb->agg, valueRecord, offset)) {
+    return false;
+  }
+  // open projections
+  vector<vector<unsigned int> > projection;
+  vector<unsigned int> labelSeq;
+  pdb->projections.resize(pdb->agg->freqLabels.size() + 1);
+  unsigned int noProjections, noSequences, noLabels, label;
+  if (!valueRecord.Read(&noProjections, sizeof(unsigned int), offset)) {
+    return false;
+  }
+  offset += sizeof(unsigned int);
+  for (unsigned int i = 0; i < noProjections; i++) {
+    if (!valueRecord.Read(&noSequences, sizeof(unsigned int), offset)) {
+      return false;
+    }
+    offset += sizeof(unsigned int);
+    for (unsigned int j = 0; j < noSequences; j++) {
+      if (!valueRecord.Read(&noLabels, sizeof(unsigned int), offset)) {
+        return false;
+      }
+      offset += sizeof(unsigned int);
+      for (unsigned int k = 0; k < noLabels; k++) {
+        if (!valueRecord.Read(&label, sizeof(unsigned int), offset)) {
+          return false;
+        }
+        offset += sizeof(unsigned int);
+        labelSeq.push_back(label);
+      }
+      projection.push_back(labelSeq);
+      labelSeq.clear();
+    }
+    pdb->projections[i] = projection;
+    projection.clear();
+  }
+  value.setAddr(pdb);
+  return true;
+}
+
+void ProjectedDB::Close(const ListExpr typeInfo, Word& w) {
+  ProjectedDB *pdb = (ProjectedDB*)w.addr;
+  delete pdb;
+  w.addr = 0;
+}
+
+Word ProjectedDB::Clone(const ListExpr typeInfo, const Word& w) {
+  ProjectedDB *pdb = (ProjectedDB*)w.addr;
+  Word res;
+  res.addr = new ProjectedDB(*pdb);
+  return res;
+}
+
+int ProjectedDB::SizeOfObj() {
+  return sizeof(ProjectedDB);
+}
+
+bool ProjectedDB::TypeCheck(ListExpr type, ListExpr& errorInfo) {
+  return nl->IsEqual(type, BasicType());
+}
+
+/*
+  Type constructor for secondo type ~projecteddb~
+ 
+*/
+
+TypeConstructor projecteddbTC(
+  ProjectedDB::BasicType(),
+  ProjectedDB::Property,
+  ProjectedDB::Out,
+  ProjectedDB::In,
+  0, 0,
+  ProjectedDB::Create,
+  ProjectedDB::Delete,
+  ProjectedDB::Open,
+  ProjectedDB::Save,
+  ProjectedDB::Close,
+  ProjectedDB::Clone,
+  0,
+  ProjectedDB::SizeOfObj,
+  ProjectedDB::TypeCheck);
 
 GetPatternsLI::GetPatternsLI(Relation *r, const NewPair<int, int> ap, double ms,
                              int mina, int maxa, Geoid *g, const size_t mem) {
@@ -1884,17 +2195,22 @@ MineFPTreeLI::~MineFPTreeLI() {
   tupleType->DeleteIfAllowed();
 }
 
-PrefixSpanLI::PrefixSpanLI(Relation *r, const NewPair<int, int> ap, double ms,
-                             int mina, int maxa, Geoid *g, const size_t mem) {
+Tuple* MineFPTreeLI::getNextResult() {
+  return GetPatternsLI::getNextResult(*(tree->agg), tupleType);
+}
+
+PrefixSpanLI::PrefixSpanLI(ProjectedDB *db, int mina, int maxa) :
+                                   pdb(db), minNoAtoms(mina), maxNoAtoms(maxa) {
   tupleType = GetPatternsLI::getTupleType();
-  agg.clear();
-  agg.scanRelation(r, ap, g);
-  agg.filter(ms, mem);
-//   agg.derivePatterns(mina, maxa);
+  pdb->retrievePatterns(minNoAtoms, maxNoAtoms);
 }
 
 PrefixSpanLI::~PrefixSpanLI() {
   tupleType->DeleteIfAllowed();
+}
+
+Tuple* PrefixSpanLI::getNextResult() {
+  return GetPatternsLI::getNextResult(*(pdb->agg), tupleType);
 }
 
 }

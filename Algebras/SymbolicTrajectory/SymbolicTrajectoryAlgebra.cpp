@@ -3327,8 +3327,11 @@ Operator getPatterns("getPatterns", getPatternsSpec,
 
 \subsection{Type Mapping}
 
+Used for FP-tree and Projected Databases
+
 */
-ListExpr createfptreeTM(ListExpr args) {
+template<class T>
+ListExpr createMiningStructureTM(ListExpr args) {
   if (!nl->HasLength(args, 4) && !nl->HasLength(args, 5)) {
     return listutils::typeError("Four or five arguments expected");
   }
@@ -3365,18 +3368,19 @@ ListExpr createfptreeTM(ListExpr args) {
            nl->SymbolAtom(Symbol::APPEND()),
            nl->TwoElemList(nl->IntAtom(indexTextual - 1),
                            nl->IntAtom(indexSpatial - 1)),
-           nl->SymbolAtom(FPTree::BasicType()));
+           nl->SymbolAtom(T::BasicType()));
 }
 
 /*
 \subsection{Value Mapping}
 
 */
-int createfptreeVM(Word* args, Word& result, int message, Word& local,
+template<class T>
+int createMiningStructureVM(Word* args, Word& result, int message, Word& local,
                    Supplier s) {
   result = qp->ResultStorage(s);
-  FPTree *tree = (FPTree*)result.addr;
-  tree->clear();
+  T *resultPtr = (T*)result.addr;
+  resultPtr->clear();
   Geoid *geoid = 0;
   int geoidSpecified = (qp->GetNoSons(s) == 7 ? 1 : 0);
   Relation *rel = static_cast<Relation*>(args[0].addr);
@@ -3400,8 +3404,8 @@ int createfptreeVM(Word* args, Word& result, int message, Word& local,
     agg->scanRelation(rel, NewPair<int, int>(posTextual->GetValue(), 
                                              posSpatial->GetValue()), geoid);
     agg->filter(suppmin->GetValue(), qp->GetMemorySize(s));
-    tree->initialize(suppmin->GetValue(), agg);
-    tree->construct();
+    resultPtr->initialize(suppmin->GetValue(), agg);
+    resultPtr->construct();
   }
   return 0;
 }
@@ -3420,8 +3424,9 @@ const string createfptreeSpec =
   "createfptree[Trajectory, X, 0.5] getTypeNL\n"
   "</text--->) )";
 
-Operator createfptree("createfptree", createfptreeSpec, createfptreeVM, 
-                     Operator::SimpleSelect, createfptreeTM);
+Operator createfptree("createfptree", createfptreeSpec, 
+                      createMiningStructureVM<FPTree>, Operator::SimpleSelect,
+                      createMiningStructureTM<FPTree>);
 
 /*
 \section{Operator ~minefptree~}
@@ -3429,12 +3434,13 @@ Operator createfptree("createfptree", createfptreeSpec, createfptreeVM,
 \subsection{Type Mapping}
 
 */
-ListExpr minefptreeTM(ListExpr args) {
+template<class T>
+ListExpr mineStructureTM(ListExpr args) {
   if (!nl->HasLength(args, 3)) {
     return listutils::typeError("Three arguments expected");
   }
-  if (!FPTree::checkType(nl->First(args))) {
-    return listutils::typeError("1st argument is not an FP-tree");
+  if (!T::checkType(nl->First(args))) {
+    return listutils::typeError("1st argument is not a " + T::BasicType());
   }
   if (!CcInt::checkType(nl->Second(args))) {
     return listutils::typeError("2nd argument is not an integer");
@@ -3455,16 +3461,17 @@ ListExpr minefptreeTM(ListExpr args) {
 \subsection{Value Mapping}
 
 */
-int minefptreeVM(Word* args, Word& result, int message, Word& local, 
-                  Supplier s) {
-  MineFPTreeLI* li = (MineFPTreeLI*)local.addr;
+template<class T, class L>
+int mineStructureVM(Word* args, Word& result, int message, Word& local, 
+                    Supplier s) {
+  L* li = (L*)local.addr;
   switch (message) {
     case OPEN: {
       if (li) {
         delete li;
         local.addr = 0;
       }
-      FPTree *tree = static_cast<FPTree*>(args[0].addr);
+      T *structure = static_cast<T*>(args[0].addr);
       CcInt *amin = static_cast<CcInt*>(args[1].addr);
       CcInt *amax = static_cast<CcInt*>(args[2].addr);
       if (!amin->IsDefined() || !amax->IsDefined()) {
@@ -3472,7 +3479,7 @@ int minefptreeVM(Word* args, Word& result, int message, Word& local,
       }
       if (amin->GetValue() > 0 && amax->GetValue() > 0
        && amin->GetValue() <= amax->GetValue()) {
-        local.addr = new MineFPTreeLI(tree, amin->GetValue(), amax->GetValue());
+        local.addr = new L(structure, amin->GetValue(), amax->GetValue());
       }
       else {
         cout << "condition 0 < minNoAtoms <= maxNoAtoms not fulfilled" << endl;
@@ -3480,8 +3487,7 @@ int minefptreeVM(Word* args, Word& result, int message, Word& local,
       return 0;
     }
     case REQUEST: {
-      result.addr = li ? GetPatternsLI::getNextResult(*(li->tree->agg), 
-                                                      li->tupleType) : 0;
+      result.addr = li ? li->getNextResult() : 0;
       return result.addr ? YIELD : CANCEL;
     }
     case CLOSE: {
@@ -3509,8 +3515,32 @@ const string minefptreeSpec =
   "createfptree[Trajectory, X, 0.5] minefptree[1, 5] count\n"
   "</text--->) )";
 
-Operator minefptree("minefptree", minefptreeSpec, minefptreeVM, 
-                     Operator::SimpleSelect, minefptreeTM);
+Operator minefptree("minefptree", minefptreeSpec, 
+                    mineStructureVM<FPTree, MineFPTreeLI>, 
+                    Operator::SimpleSelect, mineStructureTM<FPTree>);
+
+/*
+\section{Operator ~createprojecteddb~}
+
+\subsection{Type Mapping}
+
+See ~createStructureTM~
+
+\subsection{Operator Info}
+
+*/
+const string createprojecteddbSpec =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text> rel x ATTR x ATTR x real ( x geoid) --> projecteddb </text--->"
+  "<text> _ createprojecteddb [ _ , _ , _ , _ ] </text--->"
+  "<text> Computes the auxiliary structure for PrefixSpan.</text--->"
+  "<text> query Dotraj feed extend[X: [const mpoint value undef]] consume \n"
+  "createprojecteddb[Trajectory, X, 0.5] getTypeNL</text--->) )";
+
+
+Operator createprojecteddb("createprojecteddb", createprojecteddbSpec,
+                   createMiningStructureVM<ProjectedDB>, Operator::SimpleSelect,
+                           createMiningStructureTM<ProjectedDB>);
 
 /*
 \section{Operator ~prefixSpan~}
@@ -3528,15 +3558,16 @@ See ~getPatternsVM
 */
 const string prefixSpanSpec =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "( <text> rel x ATTR x ATTR x real x int x int --> \n"
-  "stream(tuple(Pattern: text, Support: real))</text--->"
-  "<text> _ prefixSpan[ _ , _ , _ , _ , _ ] </text--->"
-  "<text> Retrieves the frequent patterns from a relation.</text--->"
+  "( <text> projecteddb x int x int --> stream(tuple(Pattern: text, \n"
+  "Support: real))</text--->"
+  "<text> _ prefixSpan[ _ , _ ] </text--->"
+  "<text> Retrieves the frequent patterns from a projecteddb.</text--->"
   "<text> query Dotraj feed extend[X: [const mpoint value undef]] consume \n"
-  "prefixSpan[Trajectory, X, 0.5, 1, 2] count</text--->) )";
+  "createprojecteddb[Trajectory, X, 0.5] prefixSpan[1, 2] count</text--->) )";
 
-Operator prefixSpan("prefixSpan", prefixSpanSpec, getPatternsVM<PrefixSpanLI>, 
-                     Operator::SimpleSelect, getPatternsTM);
+Operator prefixSpan("prefixSpan", prefixSpanSpec, 
+                    mineStructureVM<ProjectedDB, PrefixSpanLI>,
+                    Operator::SimpleSelect, mineStructureTM<ProjectedDB>);
 
 /*
 \section{Class ~SymbolicTrajectoryAlgebra~}
@@ -3552,6 +3583,7 @@ class SymbolicTrajectoryAlgebra : public Algebra {
   AddTypeConstructor(&tupleindex2TC);
   AddTypeConstructor(&classifierTC);
   AddTypeConstructor(&fptreeTC);
+  AddTypeConstructor(&projecteddbTC);
   
 //   AddTypeConstructor(&tileareasTC);
   
@@ -3691,6 +3723,9 @@ class SymbolicTrajectoryAlgebra : public Algebra {
   
   AddOperator(&minefptree);
   minefptree.SetUsesMemory();
+  
+  AddOperator(&createprojecteddb);
+  createprojecteddb.SetUsesMemory();
   
   AddOperator(&prefixSpan);
   prefixSpan.SetUsesMemory();

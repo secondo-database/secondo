@@ -124,6 +124,7 @@ struct compareLabelSeqs {
 };
 
 extern TypeConstructor fptreeTC;
+extern TypeConstructor projecteddbTC;
 
 /*
 
@@ -140,6 +141,10 @@ struct RelAgg {
   
   void clear();
   void clearEntries();
+  ListExpr entriesToListExpr();
+  static bool saveToRecord(RelAgg *agg, SmiRecord& valueRecord, size_t& offset);
+  static bool readFromRecord(RelAgg *agg,SmiRecord& valueRecord,size_t& offset);
+  void getLabelSeqFromMLabel(MLabel *ml, std::vector<unsigned int>& result);
   void insertLabelAndBbox(const std::string& label, const TupleId& id, 
                           const temporalalgebra::SecInterval& iv, Rect& rect);
   void scanRelation(Relation *rel, const NewPair<int, int> attrPos, Geoid *g);
@@ -318,20 +323,61 @@ struct GetPatternsLI {
 struct MineFPTreeLI {
   MineFPTreeLI(FPTree *t, int mina, int maxa);
   ~MineFPTreeLI();
+  
+  Tuple* getNextResult();
     
   FPTree *tree;
   unsigned int minNoAtoms, maxNoAtoms;
   TupleType *tupleType;
 };
 
+class ProjectedDB {
+ public:
+  ProjectedDB() {}
+  ProjectedDB(ProjectedDB *pdb) : minSupp(pdb->minSupp) {}
+  
+  ~ProjectedDB() {}
+  
+  void clear();
+  void initialize(const double ms, RelAgg *ra);
+  void construct();
+  void retrievePatterns(const unsigned int minNoAtoms, 
+                        const unsigned int maxNoAtoms);
+  
+  static ListExpr seqToListExpr(std::vector<unsigned int>& seq);
+  static ListExpr projToListExpr(std::vector<std::vector<unsigned int> >& proj);
+  static const std::string BasicType() {return "projecteddb";}
+  static ListExpr Property();
+  static Word In(const ListExpr typeInfo, const ListExpr instance,
+                 const int errorPos, ListExpr& errorInfo, bool& correct);
+  static ListExpr Out(ListExpr typeInfo, Word value);
+  static Word Create(const ListExpr typeInfo);
+  static void Delete(const ListExpr typeInfo, Word& w);
+  static bool Save(SmiRecord& valueRecord, size_t& offset,
+                   const ListExpr typeInfo, Word& value);
+  static bool Open(SmiRecord& valueRecord, size_t& offset,
+                   const ListExpr typeInfo, Word& value);
+  static void Close(const ListExpr typeInfo, Word& w);
+  static Word Clone(const ListExpr typeInfo, const Word& w);
+  static int SizeOfObj();
+  static bool TypeCheck(ListExpr type, ListExpr& errorInfo);
+  static bool checkType(ListExpr t) {return listutils::isSymbol(t,BasicType());}
+  
+  double minSupp;
+  unsigned int minSuppCnt; // \ceil{noTuples * minSupp}
+  RelAgg *agg;
+  std::vector<std::vector<std::vector<unsigned int> > > projections;
+};
+
 struct PrefixSpanLI {
-  PrefixSpanLI(Relation *r, const NewPair<int, int> ap, double ms, int mina,
-                int maxa, Geoid *g, const size_t mem);
+  PrefixSpanLI(ProjectedDB *db, int mina, int maxa);
   ~PrefixSpanLI();
   
+  Tuple* getNextResult();
   
+  ProjectedDB *pdb;
+  unsigned int minNoAtoms, maxNoAtoms;
   TupleType *tupleType;
-  RelAgg agg;
 }; 
   
 }
