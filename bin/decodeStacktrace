@@ -1,0 +1,39 @@
+
+runner=SecondoBDB
+stacktrace_output=$1
+
+# stacktrace_output was set, check content of the file
+if [ -n "$stacktrace_output" ] ; then
+
+   # Print stack trace, if secondo has crashed
+   if [ -s "$stacktrace_output" ] ; then
+
+      echo -e "\n"
+      echo "========"
+      echo "Decode stacktrace for SecondoBDB"
+      echo "========"
+      echo -e "\n"
+
+      stacktrace=$(cat $stacktrace_output | grep "0x")
+
+      # Convert addresses to lines if addr2line is available
+      if hash addr2line 2> /dev/null ; then
+         lines=""
+
+         # Extract and collect addresses
+         for line in $stacktrace; do
+           addr=$(echo $line | cut -d "[" -f 2 | sed s/]//g)
+           lines="$lines $addr"
+         done
+
+         addr2line --demangle=auto -p -fs -e $runner $lines
+
+      else 
+         echo $stacktrace
+      fi
+
+      echo "========"
+   fi
+
+fi
+
