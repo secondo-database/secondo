@@ -1283,9 +1283,8 @@ first: testing if point are perpendicular
    iter++; 
    
    }
-   /* end of while	*/
    
-   
+   /* end of while	*/   
    
     finalcheckedvec.pop_back();
    
