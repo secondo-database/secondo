@@ -50,8 +50,10 @@ worker having the smallest load.
 
 */
 
+#include <vector>
+#include <stdint.h> 
 
-std::vector<uint32_t> getMappingSimple(std::vector<size_t>& slotsizes,
-                                       uint32_t noWorkers);
-
+std::vector<uint32_t> getMapping(const std::vector<uint32_t>& slotsizes,
+                            uint32_t noWorkers,
+                            bool simple); 
 
