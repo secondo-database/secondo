@@ -1284,8 +1284,8 @@ first: testing if point are perpendicular
    
    }
    
-   /* end of while	*/   
-   
+    /* end of while */
+    
     finalcheckedvec.pop_back();
    
     src = finalcheckedvec;   
