@@ -1292,7 +1292,7 @@ first: testing if point are perpendicular
     src = finalcheckedvec;   
    
    
-	
+
     
     
   if (okflag == true) 
@@ -1860,7 +1860,7 @@ ListExpr voronoitypemap ( ListExpr args)
         nl->OneElemList(nl->IntAtom(posit1)),  
         nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
                         nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()),
-				        newAttrList)));
+                                        newAttrList)));
   
     
 }
