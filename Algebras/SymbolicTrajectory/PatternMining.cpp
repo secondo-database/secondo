@@ -579,19 +579,15 @@ bool RelAgg::readFromRecord(RelAgg *agg, SmiRecord& valueRecord,
 
 */
 void RelAgg::getLabelSeqFromMLabel(MLabel *ml, vector<unsigned int>& result) {
-  string label;
-  vector<bool> isPresent;
-  isPresent.resize(freqLabels.size() + 1, false);
+  string label, lastLabel("undefined");
   result.clear();
   auto it = labelPos.begin();
   for (int j = 0; j < ml->GetNoComponents(); j++) {
     ml->GetValue(j, label);
     it = labelPos.find(label);
-    if (it != labelPos.end()) {
-      if (!isPresent[it->second]) {
-        result.push_back(it->second);
-        isPresent[it->second] = true;
-      }
+    if (it != labelPos.end() && label != lastLabel) { // consider only freq lbs
+      result.push_back(it->second);
+      lastLabel = label;
     }
   }
 }
@@ -1891,7 +1887,7 @@ void ProjectedDB::initialize(const double ms, RelAgg *ra) {
   agg = ra;
   minSuppCnt = (unsigned int)std::ceil(minSupp * ra->noTuples);
   agg->checkedSeqs.resize(agg->maxNoAtoms + 1);
-  projections.resize(agg->freqLabels.size() + 1);
+  projections.resize(agg->freqLabels.size());
 }
 
 /*
@@ -1899,31 +1895,97 @@ void ProjectedDB::initialize(const double ms, RelAgg *ra) {
 
 */
 void ProjectedDB::construct() {
+  cout << "frequent labels: " << agg->print(agg->freqLabels) << endl;
   GenericRelationIterator* it = agg->rel->MakeScan();
   MLabel *ml = 0;
   Tuple *tuple = 0;
   string label;
   vector<unsigned int> labelSeq, projection;
+  vector<bool> projPresent;
+  projPresent.resize(agg->freqLabels.size(), false);
   while ((tuple = it->GetNextTuple())) {
     ml = (MLabel*)(tuple->GetAttribute(agg->attrPos.first));
     agg->getLabelSeqFromMLabel(ml, labelSeq);
     if (!labelSeq.empty()) {
       cout << "found sequence " << agg->print(labelSeq) << endl;
       for (unsigned int pos = 0; pos < labelSeq.size() - 1; pos++) {
-        projection.assign(labelSeq.begin() + pos + 1, labelSeq.end());
-        cout << "     projection " << agg->print(projection) << endl;
-        projections[labelSeq[pos]].push_back(projection);
+        if (!projPresent[labelSeq[pos]]) {
+          projection.assign(labelSeq.begin() + pos + 1, labelSeq.end());
+          cout << "     projection(<" << labelSeq[pos] << ">) : "
+               << agg->print(projection) << endl;
+          projections[labelSeq[pos]].push_back(projection);
+          projPresent[labelSeq[pos]] = true;
+        }
       }
     }
     tuple->DeleteIfAllowed();
+    projPresent.assign(projPresent.size(), false);
   }
   delete it;
-  for (auto projForLabel : projections) {
-    if (projForLabel.size() < minSuppCnt) {
-      cout << "remove " << projForLabel.size() << " projections" << endl;
-      projForLabel.clear();
+  for (unsigned int i = 0; i < projections.size(); i++) {
+    if (projections[i].size() < minSuppCnt) {
+      cout << "remove " << projections[i].size() << " projs for nonfreq label "
+           << agg->freqLabels[i] << endl;
+      projections[i].clear();
     }
   }
+}
+
+/*
+  Class ~ProjectedDB~, Function ~minePDB~
+
+*/
+void ProjectedDB::minePDB(vector<unsigned int>& prefix, unsigned int pos,
+                 const unsigned int minNoAtoms, const unsigned int maxNoAtoms) {
+  if (projections[pos].empty()) {
+    return;
+  }
+  // compute frequent labels
+  vector<unsigned int> labelCounter;
+  labelCounter.resize(agg->freqLabels.size(), 0);
+  vector<bool> hasBeenCounted;
+  hasBeenCounted.resize(agg->freqLabels.size(), false);
+  for (auto seq : projections[pos]) {
+    for (auto label : seq) {
+      if (!hasBeenCounted[label]) {
+        labelCounter[label]++;
+        hasBeenCounted[label] = true;
+      }
+    }
+    hasBeenCounted.assign(hasBeenCounted.size(), false);
+  }
+  cout << "freq labels for prefix " << agg->freqLabels[prefix[0]]
+       << " : " << agg->print(labelCounter) << endl;
+  vector<vector<unsigned int> > reducedSeqs;
+  vector<unsigned int> reducedSeq;
+  unsigned lastLabel = UINT_MAX;
+  for (auto seq : projections[pos]) {
+    for (auto label : seq) {
+      if (labelCounter[label] >= minSuppCnt && label != lastLabel) {
+        reducedSeq.push_back(label);
+        lastLabel = label;
+      }
+    }
+    if (!reducedSeq.empty()) {
+      reducedSeqs.push_back(reducedSeq);
+      reducedSeq.clear();
+    }
+    lastLabel = UINT_MAX;
+  }
+  cout << "reduced projections: ";
+  for (auto seq : reducedSeqs) {
+    cout << agg->print(seq) << ", ";
+  }
+  cout << endl;
+
+  // compute projected DB
+  
+//   ProjectedDB *pdb = new ProjectedDB(minSupp, minSuppCnt, agg);
+//   for (unsigned int i = 0; i < pdb->projections.size(); i++) {
+//     if (!pdb->projections[i].empty()) {
+//       pdb->minePDB(newPrefix, i, minNoAtoms, maxNoAtoms);
+//     }
+//   }
 }
 
 /*
@@ -1932,7 +1994,28 @@ void ProjectedDB::construct() {
 */
 void ProjectedDB::retrievePatterns(const unsigned int minNoAtoms, 
                                    const unsigned int maxNoAtoms) {
-  
+  if (minNoAtoms == 1) {
+    string pattern, atom;
+    set<TupleId> commonTupleIds;
+    double supp = 1.0;
+    for (unsigned int l = 0; l < agg->freqLabels.size(); l++) {
+      agg->buildAtom(l, agg->entries[l], commonTupleIds, atom);
+      supp = double(agg->entries[l].occs.size()) / agg->noTuples;
+      agg->results.push_back(NewPair<string, double>(atom, supp));
+    }
+    cout << agg->results.size() << " frequent 1-patterns found" << endl;
+  }
+  agg->checkedSeqs.resize(maxNoAtoms + 1);
+  agg->freqSets.resize(maxNoAtoms + 1);
+  agg->nonfreqSets.resize(maxNoAtoms + 1);
+  for (unsigned int i = 0; i < projections.size(); i++) {
+    if (!projections[i].empty()) {
+      vector<unsigned int> prefix;
+      prefix.push_back(i);
+      minePDB(prefix, i, minNoAtoms, maxNoAtoms);
+    }
+  }
+  std::sort(agg->results.begin(), agg->results.end(), comparePMResults());
 }
 
 /*
@@ -1971,13 +2054,16 @@ ListExpr ProjectedDB::Out(ListExpr typeInfo, Word value) {
                                          nl->RealAtom(pdb->minSupp));
   ListExpr projList(nl->Empty()), projsList(nl->Empty());
   if (!pdb->projections.empty()) {
-    projsList = nl->OneElemList(pdb->projToListExpr(pdb->projections[0]));
+    projsList = nl->OneElemList(nl->TwoElemList(nl->SymbolAtom(
+          pdb->agg->freqLabels[0]), pdb->projToListExpr(pdb->projections[0])));
     projList = projsList;
   }
   for (unsigned int i = 1; i < pdb->projections.size(); i++) {
-    projList = nl->Append(projList, pdb->projToListExpr(pdb->projections[i]));
+    projList = nl->Append(projList, 
+                        nl->TwoElemList(nl->SymbolAtom(pdb->agg->freqLabels[i]),
+                                     pdb->projToListExpr(pdb->projections[i])));
   }
-  return nl->TwoElemList(noTuplesList, minSuppList, projsList);
+  return nl->ThreeElemList(noTuplesList, minSuppList, projsList);
 }
 
 ListExpr ProjectedDB::Property() {
@@ -2068,7 +2154,7 @@ bool ProjectedDB::Open(SmiRecord& valueRecord, size_t& offset,
   // open projections
   vector<vector<unsigned int> > projection;
   vector<unsigned int> labelSeq;
-  pdb->projections.resize(pdb->agg->freqLabels.size() + 1);
+  pdb->projections.resize(pdb->agg->freqLabels.size());
   unsigned int noProjections, noSequences, noLabels, label;
   if (!valueRecord.Read(&noProjections, sizeof(unsigned int), offset)) {
     return false;

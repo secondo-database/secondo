@@ -335,12 +335,16 @@ class ProjectedDB {
  public:
   ProjectedDB() {}
   ProjectedDB(ProjectedDB *pdb) : minSupp(pdb->minSupp) {}
+  ProjectedDB(double ms, unsigned int msc, RelAgg *ra)
+    : minSupp(ms), minSuppCnt(msc), agg(ra) {}
   
   ~ProjectedDB() {}
   
   void clear();
   void initialize(const double ms, RelAgg *ra);
   void construct();
+  void minePDB(std::vector<unsigned int>& prefix, unsigned int pos,
+               const unsigned int minNoAtoms, const unsigned int maxNoAtoms);
   void retrievePatterns(const unsigned int minNoAtoms, 
                         const unsigned int maxNoAtoms);
   
