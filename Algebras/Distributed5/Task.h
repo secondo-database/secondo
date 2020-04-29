@@ -891,8 +891,8 @@ public:
                        PrimaryArgumentAsFile | SecondaryArgumentsAsFile,
                        resultName,
                        resultContentType,
-                       isRel,
-                       isStream),
+                       false,
+                       false),
           mapFunction(mapFunction),
           partitionFunction(partitionFunction),
           vslots(vslots)
