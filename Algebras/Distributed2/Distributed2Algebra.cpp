@@ -6424,6 +6424,30 @@ Operator feedOp(
    ffeed5TM
 );
 
+
+/*
+1.5 Operator ~fcount5~
+
+This operator returns the number of tuples within relation
+stored in a binary file
+
+*/
+ListExpr fcount5TM(ListExpr args){
+  string err = "string, text, or frel expected";
+  if(!nl->HasLength(args,1)){
+    return listutils::typeError(err + ", wrong number of args");
+  }
+  ListExpr arg1 = nl->First(args);
+  if(!frel::checkType(arg1) && !CcString::checkType(arg1)
+     && ! FText::checkType(arg1)){
+    return listutils::typeError(err);
+  }
+  return listutils::basicSymbol<CcInt>();
+}
+
+
+
+
 /*
 1.5 Operator create darray
 
