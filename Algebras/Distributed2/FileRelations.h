@@ -198,6 +198,26 @@ a further tuple.
 */
     Tuple* next();
 
+/*
+1.9 skip
+
+skips the next tuple. The return values indicates whether such a 
+tuple exist.
+
+*/
+    bool skip();
+
+/*
+1.10 countRemainingTuples
+
+Counts how many tuples are in the rest of the file.
+After that calling this function, the current file position will be eof.
+
+
+*/
+   uint32_t countRemainingTuples();
+
+
   private:
 
 /*

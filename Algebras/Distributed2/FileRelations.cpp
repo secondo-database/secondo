@@ -276,6 +276,38 @@ Tuple* ffeed5Info::next(){
   return res;
 }
 
+bool ffeed5Info::skip(){
+  if(!ok) {
+    return false;
+  }
+  if(!in.good() || in.eof()){
+    return false;
+  }
+  uint32_t size;
+  in.read( (char*) &size, sizeof(uint32_t));
+  if(size==0){
+    return false;
+  }
+  char* buffer = new char[size];
+  in.read(buffer, size);
+  if(!in.good()){
+    delete [] buffer;
+    return false;
+  }
+  delete[] buffer;
+  return true;
+}
+
+uint32_t ffeed5Info::countRemainingTuples(){
+   uint32_t count=0;
+   while(skip()){
+     count++;
+   }
+   return count;
+}
+
+
+
 
 void ffeed5Info::readHeader(TupleType* tt){
   char marker[4];
