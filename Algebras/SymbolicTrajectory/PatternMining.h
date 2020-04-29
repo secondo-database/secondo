@@ -336,12 +336,15 @@ class ProjectedDB {
   ProjectedDB() {}
   ProjectedDB(ProjectedDB *pdb) : minSupp(pdb->minSupp) {}
   ProjectedDB(double ms, unsigned int msc, RelAgg *ra)
-    : minSupp(ms), minSuppCnt(msc), agg(ra) {}
+    : minSupp(ms), minSuppCnt(msc), agg(ra) {
+    projections.resize(ra->freqLabels.size());
+  }
   
   ~ProjectedDB() {}
   
   void clear();
   void initialize(const double ms, RelAgg *ra);
+  void addProjections(std::vector<unsigned int>& labelSeq);
   void construct();
   void minePDB(std::vector<unsigned int>& prefix, unsigned int pos,
                const unsigned int minNoAtoms, const unsigned int maxNoAtoms);
@@ -371,6 +374,7 @@ class ProjectedDB {
   unsigned int minSuppCnt; // \ceil{noTuples * minSupp}
   RelAgg *agg;
   std::vector<std::vector<std::vector<unsigned int> > > projections;
+  std::vector<unsigned int> projPos; // non-empty positions of above vector
 };
 
 struct PrefixSpanLI {

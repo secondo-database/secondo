@@ -459,6 +459,8 @@ bool RelAgg::readFromRecord(RelAgg *agg, SmiRecord& valueRecord,
   double durD, start, end;
   Periods *per;
   SecInterval iv(true);
+  iv.start.SetType(instanttype);
+  iv.end.SetType(instanttype);
   // read ~noTuples~
   if (!valueRecord.Read(&agg->noTuples, sizeof(unsigned int), offset)) {
     return false;
@@ -1753,9 +1755,6 @@ bool FPTree::Open(SmiRecord& valueRecord, size_t& offset,
   offset += sizeof(double);
   unsigned int numLabel, noNodes, frequency, noChildren, child, nodeLink, 
                ancestor, noNodeLinks;
-  SecInterval iv(true);
-  iv.start.SetType(instanttype);
-  iv.end.SetType(instanttype);
   // read nodes
   unsigned long long int nodesSize;
   if (!valueRecord.Read(&nodesSize, sizeof(unsigned long long int), offset)) {
@@ -1891,6 +1890,29 @@ void ProjectedDB::initialize(const double ms, RelAgg *ra) {
 }
 
 /*
+  Class ~ProjectedDB~, function ~addProjections~
+
+*/
+void ProjectedDB::addProjections(vector<unsigned int>& labelSeq) {
+  if (labelSeq.empty()) {
+    return;
+  }
+  cout << "compute proj for seq " << agg->print(labelSeq) << endl;
+  vector<bool> projPresent;
+  vector<unsigned int> reducedSeq;
+  projPresent.resize(agg->freqLabels.size(), false);
+  for (unsigned int pos = 0; pos < labelSeq.size() - 1; pos++) {
+    if (!projPresent[labelSeq[pos]]) {
+      reducedSeq.assign(labelSeq.begin() + pos + 1, labelSeq.end());
+      cout << "     projection(<" << labelSeq[pos] << ">) : "
+            << agg->print(reducedSeq) << endl;
+      projections[labelSeq[pos]].push_back(reducedSeq);
+      projPresent[labelSeq[pos]] = true;
+    }
+  }
+}
+
+/*
   Class ~ProjectedDB~, function ~construct~
 
 */
@@ -1900,33 +1922,23 @@ void ProjectedDB::construct() {
   MLabel *ml = 0;
   Tuple *tuple = 0;
   string label;
-  vector<unsigned int> labelSeq, projection;
-  vector<bool> projPresent;
-  projPresent.resize(agg->freqLabels.size(), false);
+  vector<unsigned int> labelSeq;
+  vector<vector<unsigned int> > projection;
   while ((tuple = it->GetNextTuple())) {
     ml = (MLabel*)(tuple->GetAttribute(agg->attrPos.first));
     agg->getLabelSeqFromMLabel(ml, labelSeq);
-    if (!labelSeq.empty()) {
-      cout << "found sequence " << agg->print(labelSeq) << endl;
-      for (unsigned int pos = 0; pos < labelSeq.size() - 1; pos++) {
-        if (!projPresent[labelSeq[pos]]) {
-          projection.assign(labelSeq.begin() + pos + 1, labelSeq.end());
-          cout << "     projection(<" << labelSeq[pos] << ">) : "
-               << agg->print(projection) << endl;
-          projections[labelSeq[pos]].push_back(projection);
-          projPresent[labelSeq[pos]] = true;
-        }
-      }
-    }
+    addProjections(labelSeq);
     tuple->DeleteIfAllowed();
-    projPresent.assign(projPresent.size(), false);
   }
   delete it;
   for (unsigned int i = 0; i < projections.size(); i++) {
     if (projections[i].size() < minSuppCnt) {
-      cout << "remove " << projections[i].size() << " projs for nonfreq label "
+      cout << "  remove " << projections[i].size() << " projs for label "
            << agg->freqLabels[i] << endl;
       projections[i].clear();
+    }
+    else {
+      projPos.push_back(i);
     }
   }
 }
@@ -1937,11 +1949,13 @@ void ProjectedDB::construct() {
 */
 void ProjectedDB::minePDB(vector<unsigned int>& prefix, unsigned int pos,
                  const unsigned int minNoAtoms, const unsigned int maxNoAtoms) {
-  if (projections[pos].empty()) {
+  cout << "minePDB for prefix " << agg->print(prefix) << endl;
+  if (prefix.size() + 1 > maxNoAtoms || projections[pos].size() < minSuppCnt) {
     return;
   }
   // compute frequent labels
   vector<unsigned int> labelCounter;
+  set<unsigned int> newFreqLabels;
   labelCounter.resize(agg->freqLabels.size(), 0);
   vector<bool> hasBeenCounted;
   hasBeenCounted.resize(agg->freqLabels.size(), false);
@@ -1954,16 +1968,16 @@ void ProjectedDB::minePDB(vector<unsigned int>& prefix, unsigned int pos,
     }
     hasBeenCounted.assign(hasBeenCounted.size(), false);
   }
-  cout << "freq labels for prefix " << agg->freqLabels[prefix[0]]
-       << " : " << agg->print(labelCounter) << endl;
   vector<vector<unsigned int> > reducedSeqs;
   vector<unsigned int> reducedSeq;
   unsigned lastLabel = UINT_MAX;
+  // compute reduced sequences
   for (auto seq : projections[pos]) {
     for (auto label : seq) {
       if (labelCounter[label] >= minSuppCnt && label != lastLabel) {
         reducedSeq.push_back(label);
         lastLabel = label;
+        newFreqLabels.insert(label);
       }
     }
     if (!reducedSeq.empty()) {
@@ -1972,20 +1986,48 @@ void ProjectedDB::minePDB(vector<unsigned int>& prefix, unsigned int pos,
     }
     lastLabel = UINT_MAX;
   }
-  cout << "reduced projections: ";
+  cout << "   reduced projections for prefix " << agg->print(prefix) << ": ";
   for (auto seq : reducedSeqs) {
     cout << agg->print(seq) << ", ";
   }
-  cout << endl;
-
-  // compute projected DB
-  
-//   ProjectedDB *pdb = new ProjectedDB(minSupp, minSuppCnt, agg);
-//   for (unsigned int i = 0; i < pdb->projections.size(); i++) {
-//     if (!pdb->projections[i].empty()) {
-//       pdb->minePDB(newPrefix, i, minNoAtoms, maxNoAtoms);
-//     }
-//   }
+  cout << "; frequent labels: " << agg->print(newFreqLabels) << endl;
+  // build atoms for prefix
+  set<TupleId> commonTupleIds;
+  string atom, patPrefix;
+  ProjectedDB *pdb = new ProjectedDB(minSupp, minSuppCnt, agg);
+  for (unsigned int i = 0; i < prefix.size(); i++) {
+    agg->buildAtom(prefix[i], agg->entries[prefix[i]], commonTupleIds, atom);
+    patPrefix += atom + " ";
+  }
+  // complete patterns, recursion with extended prefixes, TODO: compute support
+  for (auto flabel : newFreqLabels) {
+    if (flabel != prefix[prefix.size() - 1]) {
+      cout << "   result sequence " << agg->print(prefix) << ", " << flabel
+          << " found" << endl;
+      agg->buildAtom(flabel, agg->entries[flabel], commonTupleIds, atom);
+      agg->results.push_back(NewPair<string, double>(patPrefix + atom, 0.0));
+      atom.clear();
+      if (prefix.size() + 1 < maxNoAtoms) {
+        prefix.push_back(flabel);
+        for (auto seq : reducedSeqs) {
+          pdb->addProjections(seq);
+        }
+        for (unsigned int i = 0; i < pdb->projections.size(); i++) {
+          if (pdb->projections[i].size() < pdb->minSuppCnt) {
+            cout << "  remove " << pdb->projections[i].size() 
+                << " projs for label " << pdb->agg->freqLabels[i] << endl;
+            pdb->projections[i].clear();
+          }
+          else {
+            pdb->projPos.push_back(i);
+          }
+        }
+        pdb->minePDB(prefix, flabel, minNoAtoms, maxNoAtoms);
+        prefix.pop_back();
+      }
+    }
+  }
+  delete pdb;
 }
 
 /*
@@ -2005,15 +2047,11 @@ void ProjectedDB::retrievePatterns(const unsigned int minNoAtoms,
     }
     cout << agg->results.size() << " frequent 1-patterns found" << endl;
   }
-  agg->checkedSeqs.resize(maxNoAtoms + 1);
-  agg->freqSets.resize(maxNoAtoms + 1);
-  agg->nonfreqSets.resize(maxNoAtoms + 1);
-  for (unsigned int i = 0; i < projections.size(); i++) {
-    if (!projections[i].empty()) {
-      vector<unsigned int> prefix;
-      prefix.push_back(i);
-      minePDB(prefix, i, minNoAtoms, maxNoAtoms);
-    }
+  vector<unsigned int> prefix;
+  for (unsigned int i = 0; i < projPos.size(); i++) {
+    prefix.push_back(projPos[i]);
+    minePDB(prefix, projPos[i], minNoAtoms, maxNoAtoms);
+    prefix.pop_back();
   }
   std::sort(agg->results.begin(), agg->results.end(), comparePMResults());
 }
@@ -2109,8 +2147,8 @@ bool ProjectedDB::Save(SmiRecord& valueRecord, size_t& offset,
     return false;
   }
   // store projections
-  unsigned int noProjections = pdb->projections.size();
-  unsigned int noSequences, noLabels, label;
+  unsigned int noProjections(pdb->projections.size()),
+          noProjPos(pdb->projPos.size()), noSequences, noLabels, label, projPos;
   if (!valueRecord.Write(&noProjections, sizeof(unsigned int), offset)) {
     return false;
   }
@@ -2136,6 +2174,17 @@ bool ProjectedDB::Save(SmiRecord& valueRecord, size_t& offset,
       }
     }
   }
+  if (!valueRecord.Write(&noProjPos, sizeof(unsigned int), offset)) {
+    return false;
+  }
+  offset += sizeof(unsigned int);
+  for (unsigned int i = 0; i < noProjPos; i++) {
+    projPos = pdb->projPos[i];
+    if (!valueRecord.Write(&projPos, sizeof(unsigned int), offset)) {
+      return false;
+    }
+    offset += sizeof(unsigned int);
+  }
   return true;
 }
 
@@ -2155,7 +2204,7 @@ bool ProjectedDB::Open(SmiRecord& valueRecord, size_t& offset,
   vector<vector<unsigned int> > projection;
   vector<unsigned int> labelSeq;
   pdb->projections.resize(pdb->agg->freqLabels.size());
-  unsigned int noProjections, noSequences, noLabels, label;
+  unsigned int noProjections, noSequences, noLabels, label, noProjPos, projPos;
   if (!valueRecord.Read(&noProjections, sizeof(unsigned int), offset)) {
     return false;
   }
@@ -2182,6 +2231,17 @@ bool ProjectedDB::Open(SmiRecord& valueRecord, size_t& offset,
     }
     pdb->projections[i] = projection;
     projection.clear();
+  }
+  if (!valueRecord.Read(&noProjPos, sizeof(unsigned int), offset)) {
+    return false;
+  }
+  offset += sizeof(unsigned int);
+  for (unsigned int i = 0; i < noProjPos; i++) {
+    if (!valueRecord.Read(&projPos, sizeof(unsigned int), offset)) {
+      return false;
+    }
+    offset += sizeof(unsigned int);
+    pdb->projPos.push_back(projPos);
   }
   value.setAddr(pdb);
   return true;
