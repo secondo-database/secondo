@@ -223,7 +223,7 @@ public: //methods
     InitializeIfNecessary();
 
     m_queryProcessor = queryProcessor;
-    m_settings.Logger->WriteDebugOutput("Start parallizing query plan");
+    m_settings.Logger->WriteDebugOutput("Start parallelizing query plan");
 
     //in case of incorrect settings or disabled concurrency fall back to
     //regular serial execution
@@ -306,7 +306,7 @@ public: //methods
     }
     analyzedContexts.clear();
 
-    m_settings.Logger->WriteDebugOutput("Finished parallizing query plan");
+    m_settings.Logger->WriteDebugOutput("Finished parallelizing query plan");
     if (m_settings.Logger->DebugMode())
     {
       fs::path outputPath(m_settings.Logger->LoggerDebugPath());

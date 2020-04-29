@@ -5812,26 +5812,42 @@ QueryProcessor::CopySupplierSubtree(const Supplier s,
   case IndirectObject:
     if (tree->u.iobj.funNumber > 0)
     {
-      //set pointer to new element in argVectors array. The argIndex within 
-      //the array should be identical for all instances.
-      functionno++;
-      AllocateArgVectors(functionno);
-      copiedNode->u.iobj.argIndex = tree->u.iobj.argIndex;
+      //check first if the function is used multiple times in the operator tree 
+      //and if it was already handled before
+      int functionNoCopy = -1;
 
-      //initialize new arg vector array
-      argVectors[functionno - 1] = (ArgVectorPointer) new ArgVector;
-      for (int i = 0; i < MAXARG; i++)
+      std::map<int, int>::iterator find = 
+      funNoMapping.find(tree->u.iobj.funNumber);
+      if(find == funNoMapping.end())
       {
-        (*argVectors[functionno - 1])[i].addr = 0;
+        //set pointer to new element in argVectors array. The argIndex within 
+        //the array should be identical for all instances.
+        functionno++;
+        functionNoCopy = functionno;
+        AllocateArgVectors(functionNoCopy);
+        copiedNode->u.iobj.argIndex = tree->u.iobj.argIndex;
+
+        //initialize new arg vector array
+        argVectors[functionNoCopy - 1] = (ArgVectorPointer) new ArgVector;
+        for (int i = 0; i < MAXARG; i++)
+        {
+          (*argVectors[functionNoCopy - 1])[i].addr = 0;
+        }
+
+        //create a mapping of the funNo of the existing node and the corres-
+        //ponding new funNo. This is necessary for the later application of 
+        //the function
+        funNoMapping[tree->u.iobj.funNumber] = functionNoCopy;
+      }
+      else
+      {
+        functionNoCopy = find->second;
       }
 
-      copiedNode->u.iobj.funNumber = functionno;
-      copiedNode->u.iobj.vector = argVectors[functionno - 1];
-
-      //create a mapping of the funNo of the existing node and the corresponding
-      //new funNo this is needed for a later application of the function
-      funNoMapping[tree->u.iobj.funNumber] = functionno;
+      copiedNode->u.iobj.funNumber = functionNoCopy;
+      copiedNode->u.iobj.vector = argVectors[functionNoCopy - 1];
     }
+    assert(tree->u.iobj.funNumber > 0);
     break;
   case Operator:
     for (int i = 0; i < tree->u.op.noSons; i++)
@@ -5882,34 +5898,34 @@ QueryProcessor::CopySupplierSubtree(const Supplier s,
     //represent constants. Every datatype in secondo is an object which has 
     //an intern state. if this state can change during evaluation, concurrent
     //access can lead to undefined behaviour.
-    if (tree->u.dobj.valNo > 0)
+
+    ValueInfo origValueInfo = values[tree->u.dobj.valNo];
+    ValueInfo copiedValueInfo = origValueInfo;
+
+    copiedValueInfo.value = 
+    algebraManager->CloneObj(origValueInfo.algId, origValueInfo.typeId)
+                            (origValueInfo.typeInfo, origValueInfo.value);
+
+    if (copiedValueInfo.value.addr != NULL)
     {
-      ValueInfo origValueInfo = values[tree->u.dobj.valNo];
-      ValueInfo copiedValueInfo = origValueInfo;
+      AllocateValues(valueno);
+      values[valueno] = copiedValueInfo;
 
-      copiedValueInfo.value = 
-      algebraManager->CloneObj(origValueInfo.algId, origValueInfo.typeId)
-                              (origValueInfo.typeInfo, origValueInfo.value);
-
-      if (copiedValueInfo.value.addr != NULL)
-      {
-        AllocateValues(valueno);
-        values[valueno] = copiedValueInfo;
-
-        copiedNode->u.dobj.valNo = valueno;
-        copiedNode->u.dobj.value = copiedValueInfo.value;
-        valueno++;
-      }
-      else
-      {
-        stringstream err;
-        err << "Error cloning the value for direct node with id: " << tree->id;
-        err << " of algebra: " 
-            << algebraManager->GetAlgebraName(origValueInfo.algId);
-        err << " and type: " << nl->ToString(origValueInfo.typeInfo);
-        throw qp_error(err.str());
-      }
+      copiedNode->u.dobj.valNo = valueno;
+      copiedNode->u.dobj.value = copiedValueInfo.value;
+      valueno++;
     }
+    else
+    {
+      stringstream err;
+      err << "Error cloning the value for direct node with id: " << tree->id;
+      err << " of algebra: " 
+          << algebraManager->GetAlgebraName(origValueInfo.algId);
+      err << " and type: " << nl->ToString(origValueInfo.typeInfo);
+      throw qp_error(err.str());
+    }
+
+    assert(tree->u.dobj.valNo > -1);
   }
   break;
   default:

@@ -191,8 +191,11 @@ ALGEBRAS     += TemporalNetAlgebra
 ALGEBRA_DIRS += STPattern
 ALGEBRAS     += STPatternAlgebra
 
-ALGEBRA_DIRS += SymbolicTrajectory
-ALGEBRAS     += SymbolicTrajectoryAlgebra
+#ALGEBRA_DIRS += SymbolicTrajectory
+#ALGEBRAS     += SymbolicTrajectoryAlgebra
+
+ALGEBRA_DIRS += SymbolicTrajectoryBasic
+ALGEBRAS     += SymbolicTrajectoryBasicAlgebra
 
 ALGEBRA_DIRS += TrajectorySimilarity
 ALGEBRAS     += TrajectorySimilarityAlgebra
@@ -355,6 +358,9 @@ ALGEBRAS      += AuxiliaryAlgebra
 #DEFAULTCCFLAGS += -pthread -DTHREAD_SAFE
 #CCFLAGS += -pthread -DTHREAD_SAFE
 #COMMON_LD_FLAGS += -lboost_thread -lboost_system
+# On systems that have boost::chrono compiled without header-only 
+# option, the following line is required
+#COMMON_LD_FLAGS += -lboost_chrono
 
 # note if you want to enable thread save compilation the first time
 # on your system, goto into Secondo's home directory and enter:
@@ -612,8 +618,14 @@ ALGEBRAS     += JNetAlgebra
 #ALGEBRA_DIRS += Precise2D
 #ALGEBRAS += Precise2DAlgebra
 
+#In order to build KafkaAlgebra, you may need the installation of
+#librdkafka and WebSocket libraries.
+#Under ubuntu linux, this can be done by running following statements
+#sudo apt install librdkafka-dev
+#sudo apt-get install libcpprest-dev
 #ALGEBRA_DIRS += Kafka
-#ALGEBRAS += KafkaAlgebra
+#ALGEBRAS     += KafkaAlgebra
+#ALGEBRA_DEPS += rdkafka++ ssl crypto boost_system
 
 #ALGEBRA_DIRS += Raster
 #ALGEBRAS += RasterAlgebra
