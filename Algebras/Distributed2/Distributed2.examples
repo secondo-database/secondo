@@ -138,6 +138,11 @@ Signature : stream(TUPLE) x {string, text} -> stream(TUPLE)
 Example   : query ten feed fconsume5['ten.bin'] count
 Result    : 10
 
+Operator  : fcount5
+Number    : 1
+Signature : {string, text, frel} -> int 
+Example   : query "ten.bin" fcount5
+Result    : 10
 
 Operator  : ffeed5
 Number    : 1

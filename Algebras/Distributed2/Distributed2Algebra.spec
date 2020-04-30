@@ -23,6 +23,8 @@ operator getWorkers alias getWorkers pattern op (_)
 
 operator fconsume5 alias FCONSUME5 pattern _ op [_]
 operator ffeed5 alias FFEED5 pattern _ op 
+operator fcount5 alias FCOUNT5 pattern _ op 
+
 
 operator createDArray alias CREATEDARRAY pattern _ op[_,_,_]
 

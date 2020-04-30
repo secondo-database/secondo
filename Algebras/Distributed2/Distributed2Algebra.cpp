@@ -23494,6 +23494,7 @@ Distributed2Algebra::Distributed2Algebra(){
    ffeed5Op.SetUsesArgsInTypeMapping();
    AddOperator(&feedOp);
    feedOp.SetUsesArgsInTypeMapping();
+   AddOperator(&fcount5Op);
 
    AddOperator(&createDArrayOp);
 
