@@ -138,20 +138,20 @@ CCFLAGS += $(DEFAULTCCFLAGS)
 
 MainTTYCS.$(OBJEXT): MainTTY.$(OBJEXT)
 MainTTYCS.$(OBJEXT): MainTTY.cpp
-	$(CC) -c -o $@ $< $(CCFLAGS) -DSEC_TTYCS 
+	$(CC) -c -o $@ $< $(CCFLAGS) -DSEC_TTYCS  $(CPPSTDOPTION)
 
 SecondoPL.$(OBJEXT): $(ENTROPY_OBJ)
 %.$(OBJEXT): %.cpp
-	$(CC) -c -o $@ $< $(CCFLAGS) $(JNIINCLUDE) 
+	$(CC) -c -o $@ $< $(CCFLAGS) $(JNIINCLUDE) $(CPPSTDOPTION) 
 
 SecondoPLCS.$(OBJEXT): SecondoPL.cpp
-	$(CC) -c -DSECONDO_CLIENT_SERVER -o $@ $< $(CCFLAGS)  
+	$(CC) -c -DSECONDO_CLIENT_SERVER -o $@ $< $(CCFLAGS)  $(CPPSTDOPTION) 
 
 SecondoTTYCS.$(OBJEXT): SecondoTTY.cpp 
-	$(CC) -c -DSECONDO_CLIENT_SERVER -o $@ $< $(CCFLAGS) 
+	$(CC) -c -DSECONDO_CLIENT_SERVER -o $@ $< $(CCFLAGS) $(CPPSTDOPTION) 
 
 TestRunnerCS.$(OBJEXT): TestRunner.cpp 
-	$(CC) -c -DSECONDO_CLIENT_SERVER -o $@ $< $(CCFLAGS) 
+	$(CC) -c -DSECONDO_CLIENT_SERVER -o $@ $< $(CCFLAGS)  $(CPPSTDOPTION)
 
 # Rules for linkage
 #
