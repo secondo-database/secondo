@@ -16,7 +16,8 @@
 # SECONDO; if not, write to the Free Software Foundation, Inc., 59 Temple
 # Place, Suite 330, Boston, MA  02111-1307  USA
 
-CPPFLAGS += -std=c++14 -Werror
+CPPFLAGS +=  -Werror
+CPPSTDOPTION = -std=c++14
 LDFLAGS += -lrt -lpthread
 
 .PHONY: all

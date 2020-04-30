@@ -29,7 +29,6 @@ include ../../makefile.env
 
 # expand compile flags if necessary
 CCFLAGS +=  -Werror
-CCFLAGS += -std=c++0x
 
 ifeq ($(platform),android)
 CCFLAGS += -I$(HOME)/jpeg-6b/

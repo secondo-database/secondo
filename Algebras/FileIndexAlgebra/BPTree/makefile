@@ -30,10 +30,6 @@ CURRENT_ALGEBRA := FileIndexAlgebra
 ALGEBRA_DEPENDENCIES := StandartAlgebra
 ALGEBRA_DEPENDENCIES += FileIndexAlgebra
 
-# expand compile flags if necessary
-CCFLAGS += $(shell cd $(BUILDDIR)/Algebras; find . -iname "*.h" -printf "-I../.%h\n" | uniq | tr "\n" " ")
-CCFLAGS += -std=c++11
-
 # create objects and algebra library. The values for the variables
 # OBJECTS and LIBOBJ are computed automatically by makefile.env
 .PHONY: all

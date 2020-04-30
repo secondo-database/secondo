@@ -32,9 +32,6 @@ ALGEBRA_DEPENDENCIES += RelationAlgebra
 ALGEBRA_DEPENDENCIES += SpatialAlgebra
 ALGEBRA_DEPENDENCIES += SymbolicTrajectoryBasicAlgebra
 
-ifneq ($(platform),mac_osx)
-  CCFLAGS += -std=c++0x
-endif
 
 DOCU_FILES = GeneralTreeAlgebra.pd \
 	GeneralTreeAlgebra.h \

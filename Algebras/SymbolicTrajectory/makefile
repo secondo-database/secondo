@@ -28,10 +28,7 @@ include ../../makefile.env
 
 # expand compile flags if necessary
 CCFLAGS += -Werror
-ifneq ($(platform),mac_osx)
-  CCFLAGS += -std=c++11
-  PARSEFLAGS = -std=c++11
-endif
+PARSEFLAGS = -std=c++11
 
 OBJECTS += scan.o parse.o PatternRegExParser.o PatternRegExScanner.o
 

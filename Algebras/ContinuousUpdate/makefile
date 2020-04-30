@@ -28,7 +28,6 @@ include ../../makefile.env
 
 # expand compile flags if necessary
 CCFLAGS += -Werror
-CCFLAGS += -std=c++11
 
 # create objects and algebra library. The values for the variables
 # OBJECTS and LIBOBJ are computed automatically by makefile.env 

@@ -30,7 +30,6 @@ ALGEBRA_DEPENDENCIES += Distributed2Algebra
 
 # expand compile flags if necessary
 #CCFLAGS += $(ALG_INC_DIRS) 
-CCFLAGS += -std=c++11
 CCFLAGS += -D BOOST_LOG_DYN_LINK
 CCFLAGS += -D GATHER_PREGEL_METRICS 
 

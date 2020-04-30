@@ -33,7 +33,7 @@ include ../../makefile.env
 ADDINCLUDES := -I$(BUILDDIR)/Algebras/OrderedRelation -I$(BUILDDIR)/Algebras/Stream
 
 # expand compile flags if necessary
-CCFLAGS += -Werror $(ADDINCLUDES) -std=c++11
+CCFLAGS += -Werror $(ADDINCLUDES) 
 
 DOCU_FILES =DBServiceAlgebra.hpp DBServiceAlgebra.cpp \
 			DBServiceManager.hpp DBServiceManager.cpp \

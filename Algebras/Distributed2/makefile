@@ -39,6 +39,7 @@ ALGEBRA_DEPENDENCIES += DFSAlgebra
 # include global definitions
 include ../../makefile.env
 
+
 # expand compile flags if necessary
 CCFLAGS += -Werror 
 

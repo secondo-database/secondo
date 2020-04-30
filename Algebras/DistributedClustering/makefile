@@ -29,8 +29,6 @@ CURRENT_ALGEBRA := DistributedClusteringAlgebra
 ALGEBRA_DEPENDENCIES := StandardAlgebra
 ALGEBRA_DEPENDENCIES += RelationAlgebra
 
-# expand compile flags if necessary
-CCFLAGS +=  -std=c++11
 
 # create objects and algebra library. The values for the variables
 # OBJECTS and LIBOBJ are computed automatically by makefile.env 

@@ -6445,6 +6445,59 @@ ListExpr fcount5TM(ListExpr args){
   return listutils::basicSymbol<CcInt>();
 }
 
+template<class A>
+int fcount5VMT(Word* args, Word& result, int message,
+          Word& local, Supplier s ){
+
+   A* arg = (A*) args[0].addr;
+   result = qp->ResultStorage(s);
+   CcInt* res = (CcInt*) result.addr;
+   if(!arg->IsDefined()){
+     res->SetDefined(false);
+     return 0;
+   }
+   std::string filename = arg->GetValue();
+   ffeed5Info info(filename);
+   if(!info.isOK()){
+      res->SetDefined(false);
+      return 0;
+   }
+   int noTuples = info.countRemainingTuples();
+   res->Set(true,noTuples);
+   return 0;
+}
+
+ValueMapping fcount5VM[] = {
+    fcount5VMT<CcString>,
+    fcount5VMT<FText>,
+    fcount5VMT<frel>
+};
+
+int fcount5Select(ListExpr args){
+   ListExpr a = nl->First(args);
+    if(CcString::checkType(a)) return 0;
+    if(FText::checkType(a)) return 1;
+    if(frel::checkType(a)) return 2;
+    return -1;
+}
+
+OperatorSpec fcount5Spec(
+   "{string,text,frel} -> int",
+   "_ fcount5 ",
+   "Returns the number of tuples stored in a binary "
+   "file containing a relation. ",
+   "query 'testrel.bin' fcount5"
+);
+
+Operator fcount5Op(
+   "fcount5",
+   fcount5Spec.getStr(),
+   3,
+   fcount5VM,
+   fcount5Select,
+   fcount5TM
+);
+
 
 
 

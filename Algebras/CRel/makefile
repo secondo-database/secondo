@@ -29,7 +29,6 @@ include ../../makefile.env
 # expand compile flags if necessary
 #CCFLAGS += -O
 #CCFLAGS += -O3 -finline-functions
-CCFLAGS += -std=c++0x
 
 TYPECONSTRUCTORSDEP = $(patsubst %.cpp, %.dep, $(wildcard TypeConstructors/*.cpp))
 TYPECONSTRUCTORSOBJECTS = $(patsubst %.dep, %.$(OBJEXT), $(TYPECONSTRUCTORSDEP))

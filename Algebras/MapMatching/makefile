@@ -40,7 +40,7 @@ include ../../makefile.env
 
 # expand compile flags if necessary
 CCFLAGS += -DWITH_LIBXML2_SUPPORT 
-CCFLAGS += -Werror -std=c++0x
+CCFLAGS += -Werror 
 
 # create objects and algebra library. The values for the variables
 # OBJECTS and LIBOBJ are computed automatically by makefile.env 

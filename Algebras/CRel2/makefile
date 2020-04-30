@@ -28,7 +28,6 @@ include ../../makefile.env
 
 # expand compile flags if necessary
 CCFLAGS += -Werror
-CCFLAGS += -std=c++0x
 # CCFLAGS += O3
 
 # create objects and algebra library. The values for the variables

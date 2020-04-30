@@ -4,7 +4,6 @@ CC := g++
 LD := g++
 
 CCFLAGS += -DUSE_SERIALIZATION
-CCFLAGS += -std=c++11
 
 #CCFLAGS += -I/e/Secondo/boost_1_57_0
 CCFLAGS += -I../../Rectangle

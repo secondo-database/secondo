@@ -34,7 +34,7 @@ ALGEBRA_DEPENDENCIES += MailAlgebra
 
 # expand compile flags if necessary
 CCFLAGS += $(ALG_INC_DIRS) 
-CCFLAGS += -Werror -std=c++11
+CCFLAGS += -Werror 
 
 # add aditional folders
 TCPDEP = $(patsubst %.cpp, %.dep, $(wildcard Tcp/*.cpp))

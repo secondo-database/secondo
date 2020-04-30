@@ -32,7 +32,7 @@ ALGEBRA_DEPENDENCIES := Distributed2Algebra
 # expand compile flags if necessary
 CCFLAGS += $(ALG_INC_DIRS) 
 
-CCFLAGS += -Werror -std=c++11
+CCFLAGS += -Werror 
 
 
 

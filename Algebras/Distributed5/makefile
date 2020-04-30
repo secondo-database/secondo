@@ -38,7 +38,8 @@ ALGEBRA_DEPENDENCIES += Distributed2Algebra
 include ../../makefile.env
 
 # expand compile flags if necessary
-CCFLAGS += -Werror -std=c++17
+CCFLAGS += -Werror 
+CPPSTDOPTION = -std=c++17
 
 # create objects and algebra library. The values for the variables
 # OBJECTS and LIBOBJ are computed automatically by makefile.env 

@@ -36,10 +36,6 @@ ALGEBRA_DEPENDENCIES += TupleIdentifierAlgebra
 # expand compile flags if necessary
 CCFLAGS += -Werror 
 
-#ifneq ($(platform),mac_osx)
-#  CCFLAGS += -std=c++0x
-#endif
-
 
 # create objects and algebra library. The values for the variables
 # OBJECTS and LIBOBJ are computed automatically by makefile.env 
