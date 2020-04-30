@@ -54,6 +54,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Tools/DFS/dfs/dfs.h"
 #include "DFSType.h"
 #include "DFSTools.h"
+#include "BalancedCollect.h"
 
 
 extern boost::mutex nlparsemtx;
@@ -18615,9 +18616,9 @@ Operator areduce2Op(
 /*
 29 collect2
 
+matrix , name , communication port
+
 */
-
-
 
 ListExpr collect2TM(ListExpr args){
   string err = "dfmatrix x string x int expected";
@@ -18635,6 +18636,14 @@ ListExpr collect2TM(ListExpr args){
               nl->Second(nl->First(args)));
 }
 
+
+/*
+CollectC
+
+does the same as collect2 but with a predefined 
+assigment from slots to workers.
+
+*/
 
 ListExpr collectCTM(ListExpr args){
   string err = "dfmatrix x string x int x vector(int) expected";
@@ -18659,6 +18668,17 @@ ListExpr collectCTM(ListExpr args){
 }
 
 
+/*
+~CollectB~
+
+Does the same as Collect but with a load balanced 
+assigmnet from slots to workers.
+
+*/
+ListExpr collectBTM(ListExpr args){
+   // short version: same type mapping as collect2.
+   return collect2TM(args);
+}
 
 
 class slotGetter{
@@ -18909,6 +18929,175 @@ class VectorSlotDistributor{
 
 
 
+class getTupleCount{
+ public:
+    getTupleCount(size_t _id,
+                  ConnectionInfo* _ci, 
+                  string& _filename):
+          id(_id),
+          ci(_ci), 
+          filename(_filename), count(-1){
+      runner = new boost::thread(&getTupleCount::run,this);
+    }
+
+    ~getTupleCount(){
+      runner->join();
+      delete runner;
+    }
+
+    int getResult(){
+       runner->join();
+       return count;
+    }
+
+    size_t getId() const{
+       return id;
+    }
+
+ private:
+    size_t id;;
+    ConnectionInfo* ci;
+    string filename;
+    int count;
+    boost::thread* runner;
+
+    void run(){
+      string query = "query '"+filename+"' fcount5";
+      int error;
+      string errMsg;
+      ListExpr resList = nl->TheEmptyList();
+      bool rewrite = false;
+      double runtime;
+      ci->simpleCommand(query,
+                        error,
+                        errMsg,
+                        resList,
+                        rewrite,
+                        runtime,
+                        showCommands,
+                        commandLog);
+       if(error!=0){
+         cerr << "problem in executing " << endl
+              << query << endl
+              << "on worker " << endl
+              << (*ci) << endl;
+       } else {
+         if(!nl->HasLength(resList,2)){
+           cerr << "command " << query << "returns unexpected result " << endl
+                << nl->ToString(resList) << endl;
+         } else {
+            ListExpr rv = nl->Second(resList);
+            if(nl->AtomType(rv) != IntType){
+              cerr << "command " << query << "returns unexpected result "
+                   << endl
+                   << nl->ToString(resList) << endl;
+            } else {
+               count = nl->IntValue(rv);
+            }
+         }
+       }
+    }
+};
+
+
+class matrixSlotSizes{
+
+public:
+  matrixSlotSizes(DFMatrix* _m) : matrix(_m){
+    if(matrix->IsDefined()){
+      start();
+      finish();
+    }
+  }
+  ~matrixSlotSizes() {
+     for( auto r : runners){
+        delete r;
+     }
+     for(auto c : cis){
+       c->deleteIfAllowed();
+     }
+     runners.clear();
+     slotSizes.clear();
+  }
+
+  vector<int> getSlotSizes(){
+    return slotSizes;
+  }
+
+private:
+  DFMatrix* matrix;
+  vector<int> slotSizes;
+  string dbname;
+  vector<getTupleCount*> runners;
+  vector<ConnectionInfo*> cis;
+
+  void finish(){
+     for( auto gtc : runners){
+        int tc = gtc->getResult();
+        if(tc >=0){
+            size_t slot = gtc->getId();
+            slotSizes[slot] += tc;
+        }  
+     }
+  }
+ 
+  void start(){
+     size_t noSlots = matrix->getSize();
+     slotSizes.clear();
+     for(size_t i=0;i<noSlots;i++){
+       slotSizes.push_back(0);
+     }
+     dbname = SecondoSystem::GetInstance()->GetDatabaseName();
+     for(size_t i=0;i<matrix->numOfWorkers(); i++){
+       startThreadsForWorker(i);
+     }
+     
+  }
+
+  void startThreadsForWorker(int worker){
+      DArrayElement w = matrix->getWorker(worker);
+      ConnectionInfo * ci = algInstance->getWorkerConnection(w, dbname);
+      cis.push_back(ci);
+      string name = matrix->getName();
+      string basename = ci->getSecondoHome(
+                 showCommands, commandLog) + "/dfarrays/" + dbname + "/"
+                            + name + "/" + stringutils::int2str(worker) + "/"
+                            + name+"_";
+      for(size_t slot=0; slot < matrix->getSize();slot++){
+         string fileName = basename + stringutils::int2str(slot)+".bin";
+         getTupleCount* r = new getTupleCount(slot,ci,fileName);
+         runners.push_back(r);
+      }
+  }
+
+};
+
+
+class BalancedSlotDistributor{
+ public: 
+  static bool distribute(Word* args, DFArray* res) {
+     DFMatrix* matrix = (DFMatrix*) args[0].addr;
+     vector<int> slotSizes = getSlotSizes(matrix);
+     vector<uint32_t> ss;
+     for(auto s : slotSizes){
+       ss.push_back(s>=0?s:0);
+     }
+     vector<uint32_t> mapping = loadbalance::getMapping(ss,
+                                                 matrix->numOfWorkers(),
+                                                 false);  
+     return true;
+  }
+
+private:
+  static vector<int> getSlotSizes(DFMatrix* m){
+    matrixSlotSizes sl(m);
+    return sl.getSlotSizes();
+  }
+
+};
+
+
+
 template<class SlotDistributor>
 int collect2VMT(Word* args, Word& result, int message,
              Word& local, Supplier s ){
@@ -19030,6 +19219,142 @@ Operator collectCOp(
   Operator::SimpleSelect,
   collectCTM
 );
+
+
+OperatorSpec collectBSpec(
+  "dfmatrix x string x int -> dfarray",
+  " _ collectB[ _ , _] ",
+  "Collects the slots of a matrix into a "
+  " dfarray. The string is the name of the "
+  "resulting array, the int value specified a "
+  "port for file transfer. The port value can be any "
+  "port usable on all workers. A corresponding file transfer "
+  "server is started automatically. The slots are collected "
+  "using a  sophisticated load balancing algorithm",
+  "query m8 collectB[\"a8\",1238]"
+);
+
+Operator collectBOp(
+  "collectB",
+  collectBSpec.getStr(),
+  collect2VMT<BalancedSlotDistributor>,
+  Operator::SimpleSelect,
+  collectBTM
+);
+
+
+
+/*
+Operator loadBalance
+
+TypeMapping : stream(int) x int x bool  -> stream(int)
+
+slotsizes, number of workers , simple
+
+*/
+ListExpr loadBalanceTM(ListExpr args){
+  if(!nl->HasLength(args,3)){
+     return listutils::typeError("3 args expected");
+  }
+  if(!Stream<CcInt>::checkType(nl->First(args))){
+     return listutils::typeError("fisrt argument must be stream of int");
+  }
+  if(!CcInt::checkType(nl->Second(args))){
+     return listutils::typeError("second arg is not an int");
+  }
+  if(!CcBool::checkType(nl->Third(args))){
+    return listutils::typeError("third arg is not a bool");
+  }
+  return nl->First(args);
+}
+
+class loadBalanceInfo{
+public:
+    loadBalanceInfo(Word* args) : stream(args[0]){
+       pos = 0;
+       CcInt* nw = (CcInt*) args[1].addr;
+       if(!nw->IsDefined()){
+          return;
+       }
+       int noWorkers = nw->GetValue();
+       if(noWorkers<1){
+          return;
+       }
+       CcBool* s = (CcBool*) args[2].addr;
+       if(!s->IsDefined()){
+         return;
+       }
+       bool simple = s->GetValue();
+       stream.open();
+       CcInt* v;
+       vector<uint32_t> slotSizes;
+       while( (v=stream.request()) != 0) {
+          if(v->IsDefined()){
+             int value = v->GetValue();
+             if(value >=0){
+                 slotSizes.push_back(value);
+             }
+          }
+          v->DeleteIfAllowed();
+       }
+       stream.close();
+       if(slotSizes.size()>0){
+          result = loadbalance::getMapping(slotSizes,noWorkers, simple); 
+       } 
+    }
+
+    CcInt* next(){
+       if(pos >= result.size()) return 0;
+       CcInt* res = new CcInt(true,result[pos]);
+       pos++;
+       return res;
+    }
+private:
+    Stream<CcInt> stream;
+    vector<uint32_t> result; 
+    size_t pos ;
+
+};
+
+
+int loadBalanceVM(Word* args, Word& result, int message,
+                  Word& local, Supplier s ){
+
+   loadBalanceInfo* li = (loadBalanceInfo*) local.addr;
+   switch(message){
+       case OPEN : if(li) delete li;
+                   local.addr = new loadBalanceInfo(args);
+                   return 0;
+       case REQUEST : result.addr = li?li->next():0;
+                      return result.addr?YIELD:CANCEL;
+       case CLOSE : if(li){
+                       delete li;
+                       local.addr = 0;
+                    }
+                    return 0;
+   }
+   return -1;
+};
+
+OperatorSpec loadBalanceSpec(
+   "stream(int) x int x bool -> stream(int) ",
+   " _ loadBalance[_,_] "
+   "Takes a stream of slotsizes (first argument)",
+   " a number of workers and a boolean  süpecifying whether "
+   "5 % reserve method should be used and returns the "
+   " mapping von slots to the workers. ",
+   " query intstream(1,10) loacBalance[3,FALSE] transformstream consume"
+);
+
+Operator loadBalanceOp(
+  "loadBalance",
+  loadBalanceSpec.getStr(),
+  loadBalanceVM,
+  Operator::SimpleSelect,
+  loadBalanceTM 
+);
+
+
 
 /*
 10.29 Operator saveAttr
@@ -23427,7 +23752,102 @@ ListExpr getFTM(ListExpr args){
 
 
 
+/*
+Operator slotsizes
 
+Returns the slotsizes of a dfmatrix as a stream of tuples.
+
+*/
+
+ListExpr slotSizesTM(ListExpr args){
+   if(!nl->HasLength(args,1)){
+     return listutils::typeError("one element expected");
+   }
+   if(!DFMatrix::checkType(nl->First(args))){
+     return listutils::typeError("dfmatrix expected");
+   }
+   ListExpr attrList = nl->TwoElemList(
+       nl->TwoElemList( nl->SymbolAtom("Slot"), 
+                        listutils::basicSymbol<CcInt>()),
+       nl->TwoElemList( nl->SymbolAtom("Size"), 
+                        listutils::basicSymbol<CcInt>()));
+
+   return Stream<Tuple>::wrap(
+             Tuple::wrap(attrList));
+
+}
+
+
+class slotSizesInfo{
+  public:
+     slotSizesInfo(DFMatrix* m, ListExpr _tt) {
+       matrixSlotSizes mss(m);
+       sizes = mss.getSlotSizes();
+       tt = new TupleType(_tt);
+       pos = 0;
+     }
+
+     ~slotSizesInfo(){
+         tt->DeleteIfAllowed();
+      }
+
+     Tuple* next(){
+       if(pos >= sizes.size()) return 0;
+       Tuple* res = createRes(pos,sizes[pos]);
+       pos++;
+       return res;
+     }
+
+  private:
+     TupleType* tt;
+     vector<int> sizes;
+     size_t pos;
+
+     Tuple* createRes(size_t pos, int size){
+        Tuple * res = new Tuple(tt);
+        res->PutAttribute(0,new CcInt(true,pos));
+        res->PutAttribute(1, new CcInt(true,size));
+        return res;
+     }
+};
+
+
+
+int slotSizesVM(Word* args, Word& result, int message,
+                Word& local, Supplier s) {
+  slotSizesInfo* li = (slotSizesInfo*) local.addr;
+  switch(message){
+     case OPEN:  if(li) delete li;
+                 local.addr= new slotSizesInfo(
+                                   (DFMatrix*) args[0].addr,
+                          nl->Second(GetTupleResultType(s)));
+                  return 0;
+     case REQUEST: result.addr = li?li->next():0;
+                   return result.addr?YIELD:CANCEL;
+     case CLOSE : if(li) {
+                     delete li;
+                     local.addr = 0;
+                  }
+                  return 0;
+  }
+  return -1; 
+}
+
+
+OperatorSpec slotSizesSpec(
+    "dfmatrix -> stream(tuple(Slot int)(Size int))",
+    " _ slotSizes ",
+    "returns the number of tuples in each slot aggregates over all workers",
+    " query dfm slotSizes consume"
+);
+
+Operator slotSizesOp(
+   "slotSizes",
+   slotSizesSpec.getStr(),
+   slotSizesVM,
+   Operator::SimpleSelect,
+   slotSizesTM
+);
 
 
 
@@ -23618,6 +24038,8 @@ Distributed2Algebra::Distributed2Algebra(){
 
    AddOperator(&collect2Op);
    AddOperator(&collectCOp);
+   AddOperator(&collectBOp);
+   AddOperator(&loadBalanceOp);
 
 
    AddOperator(&SUBTYPE1OP);
@@ -23698,6 +24120,8 @@ Distributed2Algebra::Distributed2Algebra(){
    AddOperator(&makeDArrayOp);
 
    AddOperator(&makeShortOp);
+
+   AddOperator(&slotSizesOp);
 
    //AddOperator(&keepRemoteObjectsOp);
 

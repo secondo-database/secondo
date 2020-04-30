@@ -482,6 +482,12 @@ Example   : query size(s7 partition["m7", hashvalue(.Attr,23),  0]  collect2["my
 Result    : bug
 Remark    : requires a remote server
 
+Operator  : collectB
+Number    : 1
+Signature : dfmatrix x string x int -> dfarray
+Example   : query size(s7 partition["m7", hashvalue(.Attr,23),  0]  collectB["mys7", 1238] )
+Result    : bug
+Remark    : requires a remote server
 
 Operator  : collectC
 Number    : 1
@@ -916,5 +922,21 @@ Result    : bug
 Remark    : presence of an distributed Secondo required
 
 
+Operator  : slotSizes
+Number    : 1
+Signature : dfmatrix -> stream(tuple)
+Example   : query dfm27 slotSizes consume 
+Result    : bug
+Remark   : presence of a distributed secondo required
+
+
+Operator  : loadBalance 
+Number    : 1
+Signature : stream(int) x int x bool -> stream(int)
+Example   : query intstream(201,400) loadBalance[40, FALSE] count 
+Result    : 200
+
+
+Remark   : presence of a distributed secondo required
 
 

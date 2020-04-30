@@ -40,6 +40,10 @@ This files realizes a balanced dsitribution of slots to workers.
 
 using namespace std;
 
+namespace distributed2 {
+
+namespace loadbalance {
+
 /*
 ~class Slot~
 
@@ -335,5 +339,9 @@ vector<uint32_t> getMapping(const vector<uint32_t>& slotsizes,
    return result;
 }
 
+} // end of namespace loadbalance
+
+
+}
 
 
