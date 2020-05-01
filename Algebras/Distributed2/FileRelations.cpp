@@ -288,6 +288,7 @@ bool ffeed5Info::skip(){
   if(size==0){
     return false;
   }
+  /*
   char* buffer = new char[size];
   in.read(buffer, size);
   if(!in.good()){
@@ -295,6 +296,9 @@ bool ffeed5Info::skip(){
     return false;
   }
   delete[] buffer;
+  */
+  in.seekg(size,std::ios_base::cur);
+
   return true;
 }
 
