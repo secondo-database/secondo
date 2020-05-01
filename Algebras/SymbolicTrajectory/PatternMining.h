@@ -344,7 +344,8 @@ class ProjectedDB {
   
   void clear();
   void initialize(const double ms, RelAgg *ra);
-  void addProjections(std::vector<unsigned int>& labelSeq);
+  void addProjections(std::vector<unsigned int>& labelSeq, 
+                      unsigned int label = UINT_MAX);
   void construct();
   void minePDB(std::vector<unsigned int>& prefix, unsigned int pos,
                const unsigned int minNoAtoms, const unsigned int maxNoAtoms);
