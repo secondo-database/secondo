@@ -489,6 +489,14 @@ Example   : query size(s7 partition["m7", hashvalue(.Attr,23),  0]  collectB["my
 Result    : bug
 Remark    : requires a remote server
 
+Operator  : collectD
+Number    : 1
+Signature : dfmatrix x string x int -> dfarray
+Example   : query size(s7 partition["m7", hashvalue(.Attr,23),  0]  collectB["mys7", 1238] )
+Result    : bug
+Remark    : requires a remote server
+
+
 Operator  : collectC
 Number    : 1
 Signature : dfmatrix x string x int  x vector(int) -> dfarray
@@ -935,8 +943,13 @@ Number    : 1
 Signature : stream(int) x int x bool -> stream(int)
 Example   : query intstream(201,400) loadBalance[40, FALSE] count 
 Result    : 200
-
-
 Remark   : presence of a distributed secondo required
+
+
+Operator  : fileSizes
+Number    : 1
+Signature : stream({string,text}) x bool -> stream(int)
+Example   : query "ten.bin" feed  fileSizes[FALSE] count
+Result    : 1 
 
 

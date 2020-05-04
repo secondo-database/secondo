@@ -18928,83 +18928,176 @@ class VectorSlotDistributor{
 };
 
 
+/*
+getTupleCounts
 
-class getTupleCount{
+Computes the counts of tupless for different sloots of a dfmatrix for
+a single worker. If the template argument is false, instead of the count of the 
+tuples, the filesize of the relation file is used.
+
+*/
+template<bool tupleCount>
+class getTupleCounts{
  public:
-    getTupleCount(size_t _id,
-                  ConnectionInfo* _ci, 
-                  string& _filename):
-          id(_id),
-          ci(_ci), 
-          filename(_filename), count(-1){
-      runner = new boost::thread(&getTupleCount::run,this);
+    getTupleCounts(DFMatrix* _matrix,
+                  int _wnumber, 
+                  const std::string& _dbname):
+             matrix(_matrix),wnumber(_wnumber), dbname(_dbname),
+             finished(false){
+          runner = new boost::thread(&getTupleCounts::run,this);
     }
 
-    ~getTupleCount(){
+    ~getTupleCounts(){
       runner->join();
+      finished= true;
       delete runner;
     }
 
-    int getResult(){
-       runner->join();
-       return count;
-    }
-
-    size_t getId() const{
-       return id;
+    int getResult(int slot){
+       if(!finished){
+           runner->join();
+           finished=true;
+       }
+       return counts[slot];
     }
 
  private:
-    size_t id;;
-    ConnectionInfo* ci;
-    string filename;
-    int count;
+    DFMatrix* matrix;
+    int wnumber;
+    string dbname;
+    bool finished;
+    vector<int> counts;
     boost::thread* runner;
+    
 
-    void run(){
-      string query = "query '"+filename+"' fcount5";
+    void run2() {
+      DArrayElement w = matrix->getWorker(wnumber);
+      ConnectionInfo * ci = algInstance->getWorkerConnection(w, dbname);
+      string name = matrix->getName();
+      string basename = ci->getSecondoHome( showCommands, commandLog) 
+                        + "/dfarrays/" + dbname + "/"
+                        + name + "/" + stringutils::int2str(wnumber) + "/"
+                        + name+"_";
       int error;
       string errMsg;
       ListExpr resList = nl->TheEmptyList();
       bool rewrite = false;
       double runtime;
-      ci->simpleCommand(query,
-                        error,
-                        errMsg,
-                        resList,
-                        rewrite,
-                        runtime,
-                        showCommands,
-                        commandLog);
+      for(size_t slot=0; slot < matrix->getSize();slot++){
+         string filename = basename + stringutils::int2str(slot)+".bin";
+         string query;
+         if(tupleCount) {
+           query  = "query '"+filename+"' fcount5";
+         } else {
+           query = "query fileSize('"+filename+"')";
+         }
+         ci->simpleCommand(query, error, errMsg, resList, rewrite,
+                        runtime, showCommands, commandLog);
+         int count = getCount(error,resList);         
+         counts.push_back(count);
+      }
+
+      ci->deleteIfAllowed();
+   }
+
+/*
+version using a single query
+
+*/
+
+    void run() {
+      DArrayElement w = matrix->getWorker(wnumber);
+      ConnectionInfo * ci = algInstance->getWorkerConnection(w, dbname);
+      string name = matrix->getName();
+      string basename = ci->getSecondoHome( showCommands, commandLog) 
+                        + "/dfarrays/" + dbname + "/"
+                        + name + "/" + stringutils::int2str(wnumber) + "/"
+                        + name+"_";
+      stringstream query ;
+      query  << "query ";
+      query  <<  "[const rel(tuple([FileName : text])) value (" ;
+      for(size_t slot=0; slot < matrix->getSize();slot++){
+        query << "('" << basename << slot<< ".bin') ";
+      }
+      query << ")]";
+      query << " feed transformstream fileSizes[";
+      query << (tupleCount?"TRUE":"FALSE");
+      query << "] transformstream tconsume";
+      int error;
+      string errMsg;
+      ListExpr resList = nl->TheEmptyList();
+      bool rewrite = false;
+      double runtime;
+      ci->simpleCommand(query.str(), error, errMsg, resList, rewrite,
+                        runtime, showCommands, commandLog);
+
+      //cerr << nl->ToString(resList); 
+
+      if(error!=0){
+        fill(-1);
+      } else if(!nl->HasLength(resList,2)) {
+        fill(-2);
+      } else {
+        ListExpr vList = nl->Second(resList);
+        if(nl->AtomType(vList)!=NoAtom){
+          fill(-3);
+        } else {
+           while(!nl->IsEmpty(vList)){
+             ListExpr first = nl->First(vList);
+             vList = nl->Rest(vList);
+             if(!nl->HasLength(first,1)){
+                counts.push_back(-4);
+             } else {
+                ListExpr v = nl->First(first);
+                if(nl->AtomType(v) != IntType){
+                   counts.push_back(-5);
+                } else {
+                   counts.push_back(nl->IntValue(v));
+                }
+             }
+           }
+        }
+      }
+      nl->Destroy(resList);
+      ci->deleteIfAllowed();
+   }
+
+   void fill(int value){
+     for(size_t i=0;i<matrix->getSize(); i++) {
+        counts.push_back(value);
+     }
+   }
+
+
+   int getCount(int error, ListExpr& resList){
+       int res = -1;
        if(error!=0){
-         cerr << "problem in executing " << endl
-              << query << endl
-              << "on worker " << endl
-              << (*ci) << endl;
+         cerr << "problem in executing query" << endl;
        } else {
          if(!nl->HasLength(resList,2)){
-           cerr << "command " << query << "returns unexpected result " << endl
-                << nl->ToString(resList) << endl;
+           cerr << " unexpected result " << endl;
          } else {
             ListExpr rv = nl->Second(resList);
             if(nl->AtomType(rv) != IntType){
-              cerr << "command " << query << "returns unexpected result "
-                   << endl
+              cerr << " unexpected result " << endl
                    << nl->ToString(resList) << endl;
             } else {
-               count = nl->IntValue(rv);
+               res = nl->IntValue(rv);
             }
          }
-       }
-    }
+      }
+      return res;
+   }
+
 };
 
-
+template<bool tupleSizes>
 class matrixSlotSizes{
 
 public:
   matrixSlotSizes(DFMatrix* _m) : matrix(_m){
     if(matrix->IsDefined()){
+      noSlots = matrix->getSize();
       start();
       finish();
     }
@@ -19012,9 +19105,6 @@ public:
   ~matrixSlotSizes() {
      for( auto r : runners){
         delete r;
-     }
-     for(auto c : cis){
-       c->deleteIfAllowed();
      }
      runners.clear();
      slotSizes.clear();
@@ -19026,53 +19116,39 @@ public:
 
 private:
   DFMatrix* matrix;
+  size_t noSlots;
   vector<int> slotSizes;
   string dbname;
-  vector<getTupleCount*> runners;
-  vector<ConnectionInfo*> cis;
+  vector<getTupleCounts<tupleSizes>*> runners;
 
   void finish(){
      for( auto gtc : runners){
-        int tc = gtc->getResult();
-        if(tc >=0){
-            size_t slot = gtc->getId();
-            slotSizes[slot] += tc;
-        }  
+        for(size_t i=0;i<noSlots;i++){
+          int t = gtc->getResult(i);
+          if(t>0){
+              slotSizes[i] += t;
+          }
+       }
      }
   }
  
   void start(){
-     size_t noSlots = matrix->getSize();
+     // init result
      slotSizes.clear();
      for(size_t i=0;i<noSlots;i++){
        slotSizes.push_back(0);
      }
      dbname = SecondoSystem::GetInstance()->GetDatabaseName();
      for(size_t i=0;i<matrix->numOfWorkers(); i++){
-       startThreadsForWorker(i);
+        getTupleCounts<tupleSizes>* r = 
+                     new getTupleCounts<tupleSizes>(matrix, i, dbname);
+        runners.push_back(r);
      }
      
   }
-
-  void startThreadsForWorker(int worker){
-      DArrayElement w = matrix->getWorker(worker);
-      ConnectionInfo * ci = algInstance->getWorkerConnection(w, dbname);
-      cis.push_back(ci);
-      string name = matrix->getName();
-      string basename = ci->getSecondoHome(
-                 showCommands, commandLog) + "/dfarrays/" + dbname + "/"
-                            + name + "/" + stringutils::int2str(worker) + "/"
-                            + name+"_";
-      for(size_t slot=0; slot < matrix->getSize();slot++){
-         string fileName = basename + stringutils::int2str(slot)+".bin";
-         getTupleCount* r = new getTupleCount(slot,ci,fileName);
-         runners.push_back(r);
-      }
-  }
-
 };
 
-
+template<bool tupleSizes>
 class BalancedSlotDistributor{
  public: 
   static bool distribute(Word* args, DFArray* res) {
@@ -19090,7 +19166,7 @@ class BalancedSlotDistributor{
 
 private:
   static vector<int> getSlotSizes(DFMatrix* m){
-    matrixSlotSizes sl(m);
+    matrixSlotSizes<tupleSizes> sl(m);
     return sl.getSlotSizes();
   }
 
@@ -19237,11 +19313,18 @@ OperatorSpec collectBSpec(
 Operator collectBOp(
   "collectB",
   collectBSpec.getStr(),
-  collect2VMT<BalancedSlotDistributor>,
+  collect2VMT<BalancedSlotDistributor<true> >,
   Operator::SimpleSelect,
   collectBTM
 );
 
+Operator collectDOp(
+  "collectD",
+  collectBSpec.getStr(),
+  collect2VMT<BalancedSlotDistributor<false> >,
+  Operator::SimpleSelect,
+  collectBTM
+);
 
 
 /*
@@ -23777,11 +23860,10 @@ ListExpr slotSizesTM(ListExpr args){
 
 }
 
-
 class slotSizesInfo{
   public:
      slotSizesInfo(DFMatrix* m, ListExpr _tt) {
-       matrixSlotSizes mss(m);
+       matrixSlotSizes<true> mss(m);      
        sizes = mss.getSlotSizes();
        tt = new TupleType(_tt);
        pos = 0;
@@ -23848,6 +23930,141 @@ Operator slotSizesOp(
    Operator::SimpleSelect,
    slotSizesTM
 );
+
+
+/*
+fileSizes
+
+type mapping:
+
+  fsrel x bool -> stream(int)
+
+*/
+ListExpr fileSizesTM(ListExpr args){
+   if(!nl->HasLength(args,2)){
+      return listutils::typeError("two args expected");
+   }
+   if(  ( !Stream<FText>::checkType(nl->First(args)) 
+         && !Stream<CcString>::checkType(nl->First(args)))  
+      || !CcBool::checkType(nl->Second(args))){
+     return listutils::typeError("{string,text} x bool expected");
+   } 
+   return Stream<CcInt>::wrap(listutils::basicSymbol<CcInt>());
+}
+
+template<class T>
+class fileSizesInfo{
+public:
+   fileSizesInfo(Word _stream, bool _tupleCount): 
+     stream(_stream), tc(_tupleCount) {
+     stream.open();
+   }
+
+   ~fileSizesInfo(){
+     stream.close();
+   }
+
+   CcInt* next(){
+      T* a = stream.request();
+      if(a==nullptr){
+        return nullptr;
+      }
+      if(!a->IsDefined()){
+         a->DeleteIfAllowed();
+         return new CcInt(false,0);
+      } 
+      string f = a->GetValue();
+      a->DeleteIfAllowed();
+      int r = tc?getTupleCount(f):getFileSize(f);
+      return new CcInt(true,r);
+   }
+
+
+private: 
+    Stream<T> stream;
+    bool tc;
+
+
+    int getTupleCount(const string& fileName){
+       ffeed5Info i(fileName);
+       if(!i.isOK()){
+           return -1;
+       }
+       return i.countRemainingTuples();
+    }
+
+    int getFileSize(const string& filename){
+       ifstream in(filename.c_str());
+       if(!in.good()){
+         return -1;
+       }
+       in.seekg(0,std::ios_base::end);
+       return (int) in.tellg();
+    }
+
+};
+
+
+template<class T>
+int fileSizesVMT(Word* args, Word& result, int message,
+                Word& local, Supplier s) {
+
+  fileSizesInfo<T>* li = (fileSizesInfo<T>*) local.addr;
+  switch(message){
+     case OPEN: {
+                    if(li) {
+                      delete li;
+                      local.addr = 0;
+                    }
+                    CcBool* a1 = (CcBool*) args[1].addr;
+                    if(a1->IsDefined()){
+                      local.addr = new fileSizesInfo<T>(args[0], 
+                                                   a1->GetValue());
+                    }
+                }
+                return 0;
+     case REQUEST: result.addr = li?li->next():0;
+                   return result.addr? YIELD:CANCEL;
+     case CLOSE:  if(li){
+                    delete li;
+                    local.addr = 0;
+                  }
+                  return 0;
+  }
+  return -1;
+}
+
+
+OperatorSpec fileSizesSpec(
+  "stream({string,text}) x bool -> stream(int) ",
+  "_ fileSizes[_]",
+  "Determines the size of the files contained in a stream."
+  "If the second argument is true, the size is the number of tuples "
+  "in each file, the fileSize otherwise. If there are problems in "
+  "getting the size, e.g., a missing file, the size for this file is 0.",
+  "query 'ten.bin' feed fileSizes[TRUE] count"
+);
+
+ValueMapping fileSizesVM[] = {
+    fileSizesVMT<CcString>,
+    fileSizesVMT<FText>
+};
+
+int fileSizesSelect(ListExpr args){
+  return Stream<CcString>::checkType(nl->First(args))?0:1;
+}
+
+
+Operator fileSizesOp(
+   "fileSizes",
+   fileSizesSpec.getStr(),
+   2,
+   fileSizesVM,
+   fileSizesSelect,
+   fileSizesTM
+);
+
+
 
 
 
@@ -24039,6 +24256,7 @@ Distributed2Algebra::Distributed2Algebra(){
    AddOperator(&collect2Op);
    AddOperator(&collectCOp);
    AddOperator(&collectBOp);
+   AddOperator(&collectDOp);
    AddOperator(&loadBalanceOp);
 
 
@@ -24122,6 +24340,7 @@ Distributed2Algebra::Distributed2Algebra(){
    AddOperator(&makeShortOp);
 
    AddOperator(&slotSizesOp);
+   AddOperator(&fileSizesOp);
 
    //AddOperator(&keepRemoteObjectsOp);
 

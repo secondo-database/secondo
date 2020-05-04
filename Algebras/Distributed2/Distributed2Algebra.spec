@@ -111,6 +111,9 @@ operator partitionF alias PARTITIONF pattern _ op[_,fun,fun,_] implicit paramete
 operator collect2 alias COLLECT2 pattern _ op[_,_]
 operator collectC alias COLLECTC pattern _ op[_,_,_]
 operator collectB alias COLLECTB pattern _ op[_,_]
+operator collectB alias COLLECTD pattern _ op[_,_]
+
+operator fileSizes alias FILESIZES pattern _ op[_]
 
 operator areduce alias AREDUCE pattern _ op [_ , fun, _] implicit parameter elem type AREDUCEARG1 
 operator areduce2 alias AREDUCE2 pattern _ _ op [_ , fun, _] implicit parameters elem1, elem2 types AREDUCEARG1 , AREDUCEARG2
