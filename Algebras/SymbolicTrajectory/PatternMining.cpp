@@ -1898,7 +1898,7 @@ void ProjectedDB::addProjections(vector<unsigned int>& labelSeq,
   if (labelSeq.empty()) {
     return;
   }
-  cout << "compute proj for seq " << agg->print(labelSeq) << endl;
+//   cout << "compute proj for seq " << agg->print(labelSeq) << endl;
   vector<bool> projPresent;
   vector<unsigned int> reducedSeq;
   projPresent.resize(agg->freqLabels.size(), false);
@@ -1906,16 +1906,9 @@ void ProjectedDB::addProjections(vector<unsigned int>& labelSeq,
     if (label == UINT_MAX || label == labelSeq[pos]) {
       if (!projPresent[labelSeq[pos]]) {
         reducedSeq.assign(labelSeq.begin() + pos + 1, labelSeq.end());
-        cout << "     projection(<" << labelSeq[pos] << ">) : "
-              << agg->print(reducedSeq) << endl;
+//         cout << "     projection(<" << labelSeq[pos] << ">) : "
+//               << agg->print(reducedSeq) << endl;
         projections[labelSeq[pos]].push_back(reducedSeq);
-        if (reducedSeq.size() == 3) {
-          if (reducedSeq[0] == 5 && reducedSeq[1] == 2 && reducedSeq[2] == 6) {
-            cout << "*** REDUCED seq <5 2 6> comes from seq " 
-                << agg->print(labelSeq) << ", pos " << pos << ", size " 
-                << projections[labelSeq[pos]].size() << endl;
-          }
-        }
         projPresent[labelSeq[pos]] = true;
       }
     }
@@ -1927,7 +1920,7 @@ void ProjectedDB::addProjections(vector<unsigned int>& labelSeq,
 
 */
 void ProjectedDB::construct() {
-  cout << "frequent labels: " << agg->print(agg->freqLabels) << endl;
+//   cout << "frequent labels: " << agg->print(agg->freqLabels) << endl;
   GenericRelationIterator* it = agg->rel->MakeScan();
   MLabel *ml = 0;
   Tuple *tuple = 0;
@@ -1942,8 +1935,8 @@ void ProjectedDB::construct() {
   delete it;
   for (unsigned int i = 0; i < projections.size(); i++) {
     if (projections[i].size() < minSuppCnt) {
-      cout << "  remove " << projections[i].size() << " projs for label "
-           << agg->freqLabels[i] << endl;
+//       cout << "  remove " << projections[i].size() << " projs for label "
+//            << agg->freqLabels[i] << endl;
       projections[i].clear();
     }
     else {
@@ -1958,7 +1951,8 @@ void ProjectedDB::construct() {
 */
 void ProjectedDB::minePDB(vector<unsigned int>& prefix, unsigned int pos,
                  const unsigned int minNoAtoms, const unsigned int maxNoAtoms) {
-  cout << "minePDB for prefix " << agg->print(prefix) << endl;
+//   cout << "minePDB for prefix " << agg->print(prefix) << "; "
+//        << projections[pos].size() << " projs for pos " << pos << endl;
   if (prefix.size() + 1 > maxNoAtoms || projections[pos].size() < minSuppCnt) {
     return;
   }
@@ -1995,43 +1989,44 @@ void ProjectedDB::minePDB(vector<unsigned int>& prefix, unsigned int pos,
     }
     lastLabel = UINT_MAX;
   }
-  cout << "   reduced projections for prefix " << agg->print(prefix) << ": ";
-  for (auto seq : reducedSeqs) {
-    cout << agg->print(seq) << ", ";
-  }
-  cout << "; frequent labels: " << agg->print(newFreqLabels) << endl;
+//   cout << "   reduced projections for prefix " << agg->print(prefix) << ": ";
+//   for (auto seq : reducedSeqs) {
+//     cout << agg->print(seq) << ", ";
+//   }
+//   cout << "; frequent labels: " << agg->print(newFreqLabels) << endl;
   // build atoms for prefix
   set<TupleId> commonTupleIds;
   string atom, patPrefix;
   ProjectedDB *pdb = new ProjectedDB(minSupp, minSuppCnt, agg);
-  cout << "### NEW pdb CREATED for prefix " << agg->print(prefix) << endl;
+//   cout << "### NEW pdb CREATED for prefix " << agg->print(prefix) << endl;
   for (unsigned int i = 0; i < prefix.size(); i++) {
     agg->buildAtom(prefix[i], agg->entries[prefix[i]], commonTupleIds, atom);
     patPrefix += atom + " ";
   }
-  // complete patterns, recursion with extended prefixes, TODO: compute support
+  // complete patterns, recursion with extended prefixes, TODO: use intersection
   for (auto flabel : newFreqLabels) {
     if (flabel != prefix[prefix.size() - 1]) {
-      cout << "   result sequence " << agg->print(prefix) << ", " << flabel
-          << " found" << endl;
+//       cout << "   result sequence " << agg->print(prefix) << ", " << flabel
+//           << " found" << endl;
       if (prefix.size() + 1 >= minNoAtoms) {
         agg->buildAtom(flabel, agg->entries[flabel], commonTupleIds, atom);
-        agg->results.push_back(NewPair<string, double>(patPrefix + atom, 0.0));
+        agg->results.push_back(NewPair<string, double>(patPrefix + atom,
+                                 (double)labelCounter[flabel] / agg->noTuples));
         atom.clear();
       }
       if (prefix.size() + 1 < maxNoAtoms) {
         prefix.push_back(flabel);
         for (auto seq : reducedSeqs) {
           pdb->addProjections(seq, flabel);
-          cout << "   //// projections for seq " << agg->print(seq)
-               << " added; projections[" << flabel << "] has "
-               << pdb->projections[flabel].size() << " elements, "
-               << reducedSeqs.size() << " rseqs total" << endl;
+//           cout << "   //// projections for seq " << agg->print(seq)
+//                << " added; projections[" << flabel << "] has "
+//                << pdb->projections[flabel].size() << " elements, "
+//                << reducedSeqs.size() << " rseqs total" << endl;
         }
         for (unsigned int i = 0; i < pdb->projections.size(); i++) {
           if (pdb->projections[i].size() < pdb->minSuppCnt) {
-            cout << "  remove " << pdb->projections[i].size() 
-                 << " projs for label " << pdb->agg->freqLabels[i] << endl;
+//             cout << "  remove " << pdb->projections[i].size() 
+//                  << " projs for label " << pdb->agg->freqLabels[i] << endl;
             pdb->projections[i].clear();
           }
           else {
@@ -2216,6 +2211,7 @@ bool ProjectedDB::Open(SmiRecord& valueRecord, size_t& offset,
   if (!RelAgg::readFromRecord(pdb->agg, valueRecord, offset)) {
     return false;
   }
+  pdb->minSuppCnt = (unsigned int)std::ceil(pdb->minSupp * pdb->agg->noTuples);
   // open projections
   vector<vector<unsigned int> > projection;
   vector<unsigned int> labelSeq;
