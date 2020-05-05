@@ -48,6 +48,7 @@ struct AggEntry {
              const std::set<TupleId>& commonTupleIds, Geoid *geoid, Rect &rect);
   void computeSemanticTimeSpec(const std::set<TupleId>& commonTupleIds,
                                std::string& semanticTimeSpec) const;
+  void sequentialJoin(AggEntry& entry1, AggEntry& entry2);
   std::string print(const TupleId& id = 0) const;
   std::string print(const Rect& rect) const;
   
@@ -125,6 +126,7 @@ struct compareLabelSeqs {
 
 extern TypeConstructor fptreeTC;
 extern TypeConstructor projecteddbTC;
+extern TypeConstructor verticaldbTC;
 
 /*
 
@@ -137,6 +139,7 @@ of occurrences inside the tuple, and the total duration of its occurrences.
 
 struct RelAgg {
   RelAgg();
+  RelAgg(RelAgg *ra);
   ~RelAgg() {clearEntries();}
   
   void clear();
@@ -175,6 +178,8 @@ struct RelAgg {
   void derivePatterns(const int mina, const int maxa);
   unsigned long long int computeEntriesSize() const;
   unsigned long long int computeFreqLabelsSize() const;
+  void combineFrom(std::vector<unsigned int>& prefix, RelAgg *ra, 
+                   unsigned int label, unsigned int minSuppCnt);
   std::string print(const std::map<unsigned int, AggEntry>& contents) const;
   std::string print(const std::map<TupleId, std::vector<unsigned int> >& 
                                                           frequentLabels) const;
@@ -387,6 +392,55 @@ struct PrefixSpanLI {
   ProjectedDB *pdb;
   unsigned int minNoAtoms, maxNoAtoms;
   TupleType *tupleType;
-}; 
+};
+
+class VerticalDB {
+ public:
+  VerticalDB() {}
+  VerticalDB(VerticalDB *vdb) : minSupp(vdb->minSupp) {}
+  VerticalDB(double ms, unsigned int msc, RelAgg *ra)
+    : minSupp(ms), minSuppCnt(msc), agg(ra) {}
+  
+  ~VerticalDB() {}
+  
+  void clear() {}
+  void initialize(const double ms, RelAgg *ra);
+  void construct();
+  void mineVerticalDB(std::vector<unsigned int>& prefix, RelAgg *ra,
+                  const unsigned int minNoAtoms, const unsigned int maxNoAtoms);
+  void retrievePatterns(const unsigned int minNoAtoms, 
+                        const unsigned int maxNoAtoms);
+  static const std::string BasicType() {return "verticaldb";}
+  static ListExpr Property();
+  static Word In(const ListExpr typeInfo, const ListExpr instance,
+                 const int errorPos, ListExpr& errorInfo, bool& correct);
+  static ListExpr Out(ListExpr typeInfo, Word value);
+  static Word Create(const ListExpr typeInfo);
+  static void Delete(const ListExpr typeInfo, Word& w);
+  static bool Save(SmiRecord& valueRecord, size_t& offset,
+                   const ListExpr typeInfo, Word& value);
+  static bool Open(SmiRecord& valueRecord, size_t& offset,
+                   const ListExpr typeInfo, Word& value);
+  static void Close(const ListExpr typeInfo, Word& w);
+  static Word Clone(const ListExpr typeInfo, const Word& w);
+  static int SizeOfObj();
+  static bool TypeCheck(ListExpr type, ListExpr& errorInfo);
+  static bool checkType(ListExpr t) {return listutils::isSymbol(t,BasicType());}
+  
+  double minSupp;
+  unsigned int minSuppCnt; // \ceil{noTuples * minSupp}
+  RelAgg *agg;
+};
+
+struct SpadeLI {
+  SpadeLI(VerticalDB *db, int mina, int maxa);
+  ~SpadeLI();
+  
+  Tuple* getNextResult();
+  
+  VerticalDB *vdb;
+  unsigned int minNoAtoms, maxNoAtoms;
+  TupleType *tupleType;
+};
   
 }

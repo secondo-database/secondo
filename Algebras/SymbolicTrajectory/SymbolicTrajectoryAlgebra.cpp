@@ -3570,6 +3570,55 @@ Operator prefixSpan("prefixSpan", prefixSpanSpec,
                     Operator::SimpleSelect, mineStructureTM<ProjectedDB>);
 
 /*
+\section{Operator ~createverticaldb~}
+
+\subsection{Type Mapping}
+
+See ~createStructureTM~
+
+\subsection{Operator Info}
+
+*/
+const string createverticaldbSpec =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text> rel x ATTR x ATTR x real ( x geoid) --> verticaldb </text--->"
+  "<text> _ createverticaldb [ _ , _ , _ , _ ] </text--->"
+  "<text> Computes the auxiliary structure for Spade.</text--->"
+  "<text> query Dotraj feed extend[X: [const mpoint value undef]] consume \n"
+  "createverticaldb[Trajectory, X, 0.5] getTypeNL</text--->) )";
+
+
+Operator createverticaldb("createverticaldb", createverticaldbSpec,
+                   createMiningStructureVM<VerticalDB>, Operator::SimpleSelect,
+                           createMiningStructureTM<VerticalDB>);
+
+/*
+\section{Operator ~spade~}
+
+\subsection{Type Mapping}
+
+See ~getPatternsTM~
+
+\subsection{Value Mapping}
+
+See ~getPatternsVM
+
+ \subsection{Operator Info}
+
+*/
+const string spadeSpec =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text> verticaldb x int x int --> stream(tuple(Pattern: text, \n"
+  "Support: real))</text--->"
+  "<text> _ spade[ _ , _ ] </text--->"
+  "<text> Retrieves the frequent patterns from a verticaldb.</text--->"
+  "<text> query Dotraj feed extend[X: [const mpoint value undef]] consume \n"
+  "createverticaldb[Trajectory, X, 0.5] spade[1, 2] count</text--->) )";
+
+Operator spade("spade", spadeSpec, mineStructureVM<VerticalDB, SpadeLI>,
+               Operator::SimpleSelect, mineStructureTM<VerticalDB>);
+
+/*
 \section{Class ~SymbolicTrajectoryAlgebra~}
 
 */
@@ -3584,6 +3633,7 @@ class SymbolicTrajectoryAlgebra : public Algebra {
   AddTypeConstructor(&classifierTC);
   AddTypeConstructor(&fptreeTC);
   AddTypeConstructor(&projecteddbTC);
+  AddTypeConstructor(&verticaldbTC);
   
 //   AddTypeConstructor(&tileareasTC);
   
@@ -3729,6 +3779,12 @@ class SymbolicTrajectoryAlgebra : public Algebra {
   
   AddOperator(&prefixSpan);
   prefixSpan.SetUsesMemory();
+  
+  AddOperator(&createverticaldb);
+  createverticaldb.SetUsesMemory();
+  
+  AddOperator(&spade);
+  spade.SetUsesMemory();
   
   }
   ~SymbolicTrajectoryAlgebra() {}

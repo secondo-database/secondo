@@ -287,11 +287,17 @@ std::string AggEntry::print(const Rect& rect) const {
 }
 
 /*
-  Class ~RelAgg~, Constructor
+  Class ~RelAgg~, Constructors
   
 */
 RelAgg::RelAgg() : noTuples(0), minNoAtoms(0), maxNoAtoms(0), minSupp(0.0), 
                    geoid(0), rel(0) {}
+
+RelAgg::RelAgg(RelAgg *ra) : noTuples(ra->noTuples), minNoAtoms(ra->minNoAtoms),
+                             maxNoAtoms(ra->maxNoAtoms), minSupp(ra->minSupp),
+                             geoid(ra->geoid), rel(ra->rel) {
+  freqLabels.resize(ra->freqLabels.size());
+}
 
 /*
   Class ~RelAgg~, Function ~clear~
@@ -741,6 +747,7 @@ bool RelAgg::buildAtom(unsigned int label, AggEntry entry,
   }
   Rect rect(true);
   entry.computeCommonRect(iv, commonTupleIds, geoid, rect);
+  cout << "frequent label # " << label << " is " << freqLabels[label] << endl;
   atom = "(" + timeSpec + " \"" + freqLabels[label] + "\" " + entry.print(rect)
          + ")";
   return true;
@@ -2364,11 +2371,305 @@ PrefixSpanLI::PrefixSpanLI(ProjectedDB *db, int mina, int maxa) :
 }
 
 PrefixSpanLI::~PrefixSpanLI() {
+  delete pdb->agg;
   tupleType->DeleteIfAllowed();
 }
 
 Tuple* PrefixSpanLI::getNextResult() {
   return GetPatternsLI::getNextResult(*(pdb->agg), tupleType);
+}
+
+/*
+  Class ~AggEntry~, function ~sequentialJoin~, applied by operator ~spade~
+
+*/
+void AggEntry::sequentialJoin(AggEntry& entry1, AggEntry& entry2) {
+  if (entry1.occs.empty() || entry2.occs.empty()) {
+    return;
+  }
+  unsigned int pos1(0), pos2(0);
+  SecInterval iv1(true), iv2(true);
+  iv1.start.SetType(instanttype);
+  iv2.end.SetType(instanttype);
+  Periods *per1(0), *per2(0);
+  TupleId id1(0), id2(0);
+  Rect rect(true);
+  while (pos1 < entry1.occs.size() && pos2 < entry2.occs.size()) {
+    id1 = get<0>(entry1.occs[pos1]);
+    id2 = get<0>(entry2.occs[pos2]);
+    if (id1 < id2) {
+      pos1++;
+    }
+    else if (id1 > id2) {
+      pos2++;
+    }
+    else { // tuple ids match
+      per1 = get<1>(entry1.occs[pos1]);
+      per2 = get<1>(entry2.occs[pos2]);
+      if (per1->IsDefined() && per2->IsDefined()) {
+        if (!per1->IsEmpty() && !per2->IsEmpty()) {
+          per1->Get(0, iv1);
+          per2->Get(per2->GetNoComponents() - 1, iv2);
+          if (iv1.start < iv2.end) {
+            Periods *per = new Periods(1);
+            per1->Union(*per2, *per);
+            rect = get<2>(entry1.occs[pos1]).Union(get<2>(entry2.occs[pos2]));
+            occsPos.push_back(occs.size());
+            occs.push_back(make_tuple(id1, per, rect));
+            noOccs++;
+            // TODO: update duration
+          }
+        }
+      }
+      pos1++;
+      pos2++;
+    }
+  }
+}
+
+/*
+  Class ~RelAgg~, function ~combineFrom~, applied by operator ~spade~
+
+*/
+void RelAgg::combineFrom(vector<unsigned int>& prefix, RelAgg *ra, 
+                                  unsigned int label, unsigned int minSuppCnt) {
+  for (unsigned int i = 0; i < ra->entries.size(); i++) {
+    AggEntry newEntry;
+    newEntry.sequentialJoin(ra->entries[prefix[prefix.size() - 1]],
+                            ra->entries[label]);
+    if (newEntry.occs.size() >= minSuppCnt) {
+      entries.push_back(newEntry);
+      labelPos.insert(make_pair(ra->freqLabels[i], label));
+      freqLabels[i] = ra->freqLabels[i];
+    }
+    else {
+      freqLabels[i] == "";
+    }
+  }
+}
+
+/*
+  Class ~VerticalDB~, function ~mineVerticalDB~
+
+*/
+void VerticalDB::mineVerticalDB(vector<unsigned int>& prefix, RelAgg *ra,
+                 const unsigned int minNoAtoms, const unsigned int maxNoAtoms) {
+  if (prefix.empty()) {
+    return;
+  }
+  string atom, patPrefix;
+  set<TupleId> commonTupleIds;
+  for (unsigned int i = 0; i < prefix.size(); i++) {
+    ra->buildAtom(prefix[i], agg->entries[prefix[i]], commonTupleIds, atom);
+    patPrefix += atom + " ";
+  }
+  for (auto label : ra->labelPos) { 
+    bool contained = false;
+    unsigned int prefixPos = 0;
+    while (!contained && prefixPos < prefix.size()) {
+      if (label.second == prefix[prefixPos]) {
+        contained = true;
+      }
+      prefixPos++;
+    }
+    if (!contained) {
+      RelAgg *newAgg = new RelAgg(ra);
+      newAgg->combineFrom(prefix, ra, label.second, minSuppCnt);
+      cout << "combineFrom completed for prefix " << ra->print(prefix)
+           << " and label " << label.second << endl;
+      if (newAgg->entries.size() >= minSuppCnt) {
+        cout << newAgg->entries.size() << " entries; try to access # " 
+             << label.second << endl;
+        newAgg->buildAtom(label.second, newAgg->entries[label.second],
+                          commonTupleIds, atom);
+        cout << "RESULT: " << patPrefix + atom << ", supp = "
+             << (double)newAgg->entries[label.second].occs.size() / 
+                newAgg->noTuples
+             << endl;
+        prefix.push_back(label.second);
+      
+      // mineVerticalDB(prefix, newAgg, minNoAtoms, maxNoAtoms);
+        prefix.pop_back();
+      }
+      delete newAgg;
+    }
+  }
+}
+
+/*
+  Class ~VerticalDB~, function ~retrievePatterns~
+
+*/
+void VerticalDB::retrievePatterns(const unsigned int minNoAtoms, 
+                                  const unsigned int maxNoAtoms) {
+  if (minNoAtoms == 1) {
+    string pattern, atom;
+    set<TupleId> commonTupleIds;
+    double supp = 1.0;
+    for (unsigned int l = 0; l < agg->freqLabels.size(); l++) {
+      agg->buildAtom(l, agg->entries[l], commonTupleIds, atom);
+      supp = double(agg->entries[l].occs.size()) / agg->noTuples;
+      agg->results.push_back(NewPair<string, double>(atom, supp));
+    }
+    cout << agg->results.size() << " frequent 1-patterns found" << endl;
+  }
+  vector<unsigned int> prefix;
+  for (auto pos : agg->labelPos) {
+    prefix.push_back(pos.second);
+    mineVerticalDB(prefix, agg, minNoAtoms, maxNoAtoms);
+    prefix.pop_back();
+  }
+  std::sort(agg->results.begin(), agg->results.end(), comparePMResults());
+}
+
+/*
+  Class ~VerticalDB~, function ~construct~
+
+*/
+void VerticalDB::construct() {
+  cout << "frequent labels: " << agg->print(agg->freqLabels) << endl;
+}
+
+/*
+  Class ~VerticalDB~, function ~initialize~
+
+*/
+void VerticalDB::initialize(const double ms, RelAgg *ra) {
+  minSupp = ms;
+  agg = ra;
+  minSuppCnt = (unsigned int)std::ceil(minSupp * ra->noTuples);
+}
+
+/*
+  Class ~VerticalDB~, functions for Secondo data type
+
+*/
+ListExpr VerticalDB::Property() {
+  return (nl->TwoElemList(
+    nl->FourElemList(
+      nl->StringAtom("Signature"), nl->StringAtom("Example Type List"),
+      nl->StringAtom("List Rep"), nl->StringAtom("Example List")),
+    nl->FourElemList (
+      nl->StringAtom("-> SIMPLE"), 
+      nl->StringAtom(VerticalDB::BasicType()),
+      nl->StringAtom("no list representation"),
+      nl->StringAtom(""))));
+}
+
+Word VerticalDB::In(const ListExpr typeInfo, const ListExpr instance,
+                     const int errorPos, ListExpr& errorInfo, bool& correct) {
+  correct = false;
+  return SetWord(Address(0));
+}
+
+ListExpr VerticalDB::Out(ListExpr typeInfo, Word value) {
+  VerticalDB *vdb = (VerticalDB*)value.addr;
+  ListExpr noTuplesList = nl->TwoElemList(nl->SymbolAtom("noTuples"),
+                                               nl->IntAtom(vdb->agg->noTuples));
+  ListExpr minSuppList = nl->TwoElemList(nl->SymbolAtom("minSupp"),
+                                         nl->RealAtom(vdb->minSupp));
+  return nl->TwoElemList(noTuplesList, minSuppList);
+}
+
+Word VerticalDB::Create(const ListExpr typeInfo) {
+  Word w;
+  w.addr = (new VerticalDB());
+  return w;
+}
+
+void VerticalDB::Delete(const ListExpr typeInfo, Word& w) {
+  VerticalDB *vdb = (VerticalDB*)w.addr;
+  delete vdb;
+  w.addr = 0;
+}
+
+bool VerticalDB::Save(SmiRecord& valueRecord, size_t& offset,
+                      const ListExpr typeInfo, Word& value) {
+  VerticalDB *vdb = (VerticalDB*)value.addr;
+  // store minSupp
+  if (!valueRecord.Write(&vdb->minSupp, sizeof(double), offset)) {
+    return false;
+  }
+  offset += sizeof(double);
+  // store agg
+  if (!RelAgg::saveToRecord(vdb->agg, valueRecord, offset)) {
+    return false;
+  }
+  return true;
+}
+
+bool VerticalDB::Open(SmiRecord& valueRecord, size_t& offset,
+                      const ListExpr typeInfo, Word& value) {
+  VerticalDB *vdb = new VerticalDB();
+  // read minSupp
+  if (!valueRecord.Read(&vdb->minSupp, sizeof(double), offset)) {
+    return false;
+  }
+  offset += sizeof(double);
+  vdb->agg = new RelAgg();
+  if (!RelAgg::readFromRecord(vdb->agg, valueRecord, offset)) {
+    return false;
+  }
+  vdb->minSuppCnt = (unsigned int)std::ceil(vdb->minSupp * vdb->agg->noTuples);
+  value.setAddr(vdb);
+  return true;
+}
+
+void VerticalDB::Close(const ListExpr typeInfo, Word& w) {
+  VerticalDB *vdb = (VerticalDB*)w.addr;
+  delete vdb;
+  w.addr = 0;
+}
+
+Word VerticalDB::Clone(const ListExpr typeInfo, const Word& w) {
+  VerticalDB *vdb = (VerticalDB*)w.addr;
+  Word res;
+  res.addr = new VerticalDB(*vdb);
+  return res;
+}
+
+int VerticalDB::SizeOfObj() {
+  return sizeof(VerticalDB);
+}
+
+bool VerticalDB::TypeCheck(ListExpr type, ListExpr& errorInfo) {
+  return nl->IsEqual(type, BasicType());
+}
+
+/*
+  Type constructor for secondo type ~projecteddb~
+ 
+*/
+
+TypeConstructor verticaldbTC(
+  VerticalDB::BasicType(),
+  VerticalDB::Property,
+  VerticalDB::Out,
+  VerticalDB::In,
+  0, 0,
+  VerticalDB::Create,
+  VerticalDB::Delete,
+  VerticalDB::Open,
+  VerticalDB::Save,
+  VerticalDB::Close,
+  VerticalDB::Clone,
+  0,
+  VerticalDB::SizeOfObj,
+  VerticalDB::TypeCheck);
+
+SpadeLI::SpadeLI(VerticalDB *db, int mina, int maxa) :
+                                   vdb(db), minNoAtoms(mina), maxNoAtoms(maxa) {
+  tupleType = GetPatternsLI::getTupleType();
+  vdb->retrievePatterns(minNoAtoms, maxNoAtoms);
+}
+
+SpadeLI::~SpadeLI() {
+  delete vdb->agg;
+  tupleType->DeleteIfAllowed();
+}
+
+Tuple* SpadeLI::getNextResult() {
+  return GetPatternsLI::getNextResult(*(vdb->agg), tupleType);
 }
 
 }
