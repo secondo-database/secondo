@@ -296,7 +296,12 @@ RelAgg::RelAgg() : noTuples(0), minNoAtoms(0), maxNoAtoms(0), minSupp(0.0),
 RelAgg::RelAgg(RelAgg *ra) : noTuples(ra->noTuples), minNoAtoms(ra->minNoAtoms),
                              maxNoAtoms(ra->maxNoAtoms), minSupp(ra->minSupp),
                              geoid(ra->geoid), rel(ra->rel) {
+  entries.clear();
   freqLabels.resize(ra->freqLabels.size());
+  labelPos.clear();
+  checkedSeqs.clear();
+  freqSets.clear();
+  nonfreqSets.clear();
 }
 
 /*
@@ -538,7 +543,6 @@ bool RelAgg::readFromRecord(RelAgg *agg, SmiRecord& valueRecord,
       Rect rect(isdefined, min, max);
       delete[] min;
       delete[] max;
-//       cout << "ENTRY: " << tid << " " << *per << rect << endl;
       entry.occs.push_back(make_tuple(tid, per, rect));
     }
     for (unsigned int j = 0; j <= agg->noTuples; j++) {
@@ -721,8 +725,6 @@ void RelAgg::filter(const double ms, const size_t memSize) {
 
 bool RelAgg::buildAtom(unsigned int label, AggEntry entry,
                        const set<TupleId>& commonTupleIds, string& atom) {
-//   cout << "bA: \"" << label << "\", " << entry.occurrences.size() << " occs" 
-//        << endl;
   SecInterval iv(true);
   string timeSpec, semanticTimeSpec;
   entry.computeCommonTimeInterval(commonTupleIds, iv);
@@ -747,7 +749,6 @@ bool RelAgg::buildAtom(unsigned int label, AggEntry entry,
   }
   Rect rect(true);
   entry.computeCommonRect(iv, commonTupleIds, geoid, rect);
-  cout << "frequent label # " << label << " is " << freqLabels[label] << endl;
   atom = "(" + timeSpec + " \"" + freqLabels[label] + "\" " + entry.print(rect)
          + ")";
   return true;
@@ -2382,6 +2383,8 @@ Tuple* PrefixSpanLI::getNextResult() {
 /*
   Class ~AggEntry~, function ~sequentialJoin~, applied by operator ~spade~
 
+  keep periods of ~entry2~ if occurring later than ~entry1~'s
+
 */
 void AggEntry::sequentialJoin(AggEntry& entry1, AggEntry& entry2) {
   if (entry1.occs.empty() || entry2.occs.empty()) {
@@ -2411,8 +2414,7 @@ void AggEntry::sequentialJoin(AggEntry& entry1, AggEntry& entry2) {
           per1->Get(0, iv1);
           per2->Get(per2->GetNoComponents() - 1, iv2);
           if (iv1.start < iv2.end) {
-            Periods *per = new Periods(1);
-            per1->Union(*per2, *per);
+            Periods *per = new Periods(*per2);
             rect = get<2>(entry1.occs[pos1]).Union(get<2>(entry2.occs[pos2]));
             occsPos.push_back(occs.size());
             occs.push_back(make_tuple(id1, per, rect));
@@ -2431,20 +2433,21 @@ void AggEntry::sequentialJoin(AggEntry& entry1, AggEntry& entry2) {
   Class ~RelAgg~, function ~combineFrom~, applied by operator ~spade~
 
 */
-void RelAgg::combineFrom(vector<unsigned int>& prefix, RelAgg *ra, 
+void RelAgg::combineEntries(unsigned int endOfPrefix, RelAgg *ra, 
                                   unsigned int label, unsigned int minSuppCnt) {
-  for (unsigned int i = 0; i < ra->entries.size(); i++) {
-    AggEntry newEntry;
-    newEntry.sequentialJoin(ra->entries[prefix[prefix.size() - 1]],
-                            ra->entries[label]);
-    if (newEntry.occs.size() >= minSuppCnt) {
-      entries.push_back(newEntry);
-      labelPos.insert(make_pair(ra->freqLabels[i], label));
-      freqLabels[i] = ra->freqLabels[i];
-    }
-    else {
-      freqLabels[i] == "";
-    }
+  AggEntry newEntry;
+  cout << "Join entries " << endOfPrefix << " and " << label << endl;
+  newEntry.sequentialJoin(ra->entries[endOfPrefix], ra->entries[label]);
+  if (newEntry.occs.size() >= minSuppCnt) {
+    labelPos.insert(make_pair(ra->freqLabels[label], entries.size()));
+    entries.push_back(newEntry);
+    freqLabels[label] = ra->freqLabels[label];
+    cout << "... pushed back entry #" << entries.size() << ", labelPos " 
+         << ra->freqLabels[label] << ", " << label << ", " << freqLabels[label] 
+         << " has " << newEntry.occs.size() << " occs" << endl;
+  }
+  else {
+    freqLabels[label] == "";
   }
 }
 
@@ -2452,17 +2455,18 @@ void RelAgg::combineFrom(vector<unsigned int>& prefix, RelAgg *ra,
   Class ~VerticalDB~, function ~mineVerticalDB~
 
 */
-void VerticalDB::mineVerticalDB(vector<unsigned int>& prefix, RelAgg *ra,
-                 const unsigned int minNoAtoms, const unsigned int maxNoAtoms) {
+void VerticalDB::mineVerticalDB(vector<unsigned int>& prefix, string& patPrefix,
+     RelAgg *ra, const unsigned int minNoAtoms, const unsigned int maxNoAtoms) {
   if (prefix.empty()) {
     return;
   }
-  string atom, patPrefix;
+  cout << "mVDB called with prefix " << ra->print(prefix) 
+       << ", frequent labels " << ra->print(ra->freqLabels) << endl;
+  string atom, patPrefixExt;
   set<TupleId> commonTupleIds;
-  for (unsigned int i = 0; i < prefix.size(); i++) {
-    ra->buildAtom(prefix[i], agg->entries[prefix[i]], commonTupleIds, atom);
-    patPrefix += atom + " ";
-  }
+  double supp = 0.0;
+  RelAgg *newAgg = new RelAgg(ra);
+  map<unsigned int, unsigned int> labelToEntryPos;
   for (auto label : ra->labelPos) { 
     bool contained = false;
     unsigned int prefixPos = 0;
@@ -2473,27 +2477,39 @@ void VerticalDB::mineVerticalDB(vector<unsigned int>& prefix, RelAgg *ra,
       prefixPos++;
     }
     if (!contained) {
-      RelAgg *newAgg = new RelAgg(ra);
-      newAgg->combineFrom(prefix, ra, label.second, minSuppCnt);
-      cout << "combineFrom completed for prefix " << ra->print(prefix)
-           << " and label " << label.second << endl;
-      if (newAgg->entries.size() >= minSuppCnt) {
+      newAgg->combineEntries(prefix[prefix.size() - 1], ra, label.second, 
+                                                                    minSuppCnt);
+      if (newAgg->labelPos.find(newAgg->freqLabels[label.second]) != 
+                                                       newAgg->labelPos.end()) {
+        unsigned int newPos= newAgg->labelPos[newAgg->freqLabels[label.second]];
+        cout << "isCombFrequent completed for prefix " << ra->print(prefix)
+            << " and label " << label.second << "; "
+            << ra->freqLabels[label.second] << " | " 
+            << newAgg->freqLabels[label.second] << " || " << newPos << " || "
+            << newAgg->entries[newPos].occs.size() << " occs found" << endl;
         cout << newAgg->entries.size() << " entries; try to access # " 
-             << label.second << endl;
-        newAgg->buildAtom(label.second, newAgg->entries[label.second],
-                          commonTupleIds, atom);
-        cout << "RESULT: " << patPrefix + atom << ", supp = "
-             << (double)newAgg->entries[label.second].occs.size() / 
-                newAgg->noTuples
-             << endl;
-        prefix.push_back(label.second);
-      
-      // mineVerticalDB(prefix, newAgg, minNoAtoms, maxNoAtoms);
-        prefix.pop_back();
+              << newPos << endl;
+        cout << "call bA for label " << label.second << " and entry #"
+                << newPos << endl;
       }
-      delete newAgg;
     }
   }
+  for (auto label : newAgg->labelPos) {
+    newAgg->buildAtom(label.second, newAgg->entries[label.second], 
+                      commonTupleIds, atom);
+    supp = (double)newAgg->entries[label.second].occs.size() / newAgg->noTuples;
+    patPrefixExt = patPrefix + atom;
+    cout << "RESULT: " << patPrefixExt << ", supp = " << supp << endl;
+    if (minNoAtoms <= prefix.size() + 1) {
+      agg->results.push_back(NewPair<string, double>(patPrefixExt, supp));
+    }
+    if (prefix.size() + 1 < maxNoAtoms) {
+      prefix.push_back(label.second);
+      mineVerticalDB(prefix, patPrefixExt, newAgg, minNoAtoms, maxNoAtoms);
+      prefix.pop_back();
+    }
+  }
+  delete newAgg;
 }
 
 /*
@@ -2502,21 +2518,19 @@ void VerticalDB::mineVerticalDB(vector<unsigned int>& prefix, RelAgg *ra,
 */
 void VerticalDB::retrievePatterns(const unsigned int minNoAtoms, 
                                   const unsigned int maxNoAtoms) {
-  if (minNoAtoms == 1) {
-    string pattern, atom;
-    set<TupleId> commonTupleIds;
-    double supp = 1.0;
-    for (unsigned int l = 0; l < agg->freqLabels.size(); l++) {
-      agg->buildAtom(l, agg->entries[l], commonTupleIds, atom);
+  vector<unsigned int> prefix;
+  string pattern, atom;
+  set<TupleId> commonTupleIds;
+  double supp = 1.0;
+  for (unsigned int l = 0; l < agg->freqLabels.size(); l++) {
+    agg->buildAtom(l, agg->entries[l], commonTupleIds, atom);
+    if (minNoAtoms == 1) {
       supp = double(agg->entries[l].occs.size()) / agg->noTuples;
       agg->results.push_back(NewPair<string, double>(atom, supp));
     }
-    cout << agg->results.size() << " frequent 1-patterns found" << endl;
-  }
-  vector<unsigned int> prefix;
-  for (auto pos : agg->labelPos) {
-    prefix.push_back(pos.second);
-    mineVerticalDB(prefix, agg, minNoAtoms, maxNoAtoms);
+    prefix.push_back(l);
+    atom += "";
+    mineVerticalDB(prefix, atom, agg, minNoAtoms, maxNoAtoms);
     prefix.pop_back();
   }
   std::sort(agg->results.begin(), agg->results.end(), comparePMResults());

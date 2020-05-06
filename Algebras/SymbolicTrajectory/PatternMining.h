@@ -178,8 +178,8 @@ struct RelAgg {
   void derivePatterns(const int mina, const int maxa);
   unsigned long long int computeEntriesSize() const;
   unsigned long long int computeFreqLabelsSize() const;
-  void combineFrom(std::vector<unsigned int>& prefix, RelAgg *ra, 
-                   unsigned int label, unsigned int minSuppCnt);
+  void combineEntries(unsigned int endOfPrefix, RelAgg *ra, 
+                      unsigned int label, unsigned int minSuppCnt);
   std::string print(const std::map<unsigned int, AggEntry>& contents) const;
   std::string print(const std::map<TupleId, std::vector<unsigned int> >& 
                                                           frequentLabels) const;
@@ -406,8 +406,9 @@ class VerticalDB {
   void clear() {}
   void initialize(const double ms, RelAgg *ra);
   void construct();
-  void mineVerticalDB(std::vector<unsigned int>& prefix, RelAgg *ra,
-                  const unsigned int minNoAtoms, const unsigned int maxNoAtoms);
+  void mineVerticalDB(std::vector<unsigned int>& prefix, std::string& patPrefix,
+                      RelAgg *ra, const unsigned int minNoAtoms, 
+                      const unsigned int maxNoAtoms);
   void retrievePatterns(const unsigned int minNoAtoms, 
                         const unsigned int maxNoAtoms);
   static const std::string BasicType() {return "verticaldb";}

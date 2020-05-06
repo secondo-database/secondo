@@ -191,4 +191,4 @@ Operator  : spade
 Number    : 1
 Signature : rel(tuple(X)) x ATTR x ATTR x real x int x int -> stream(tuple(Pattern: text, Support: real))
 Example   : query Dotraj feed extend[X: [const mpoint value undef]] consume createverticaldb[Trajectory, X, 0.5] spade[1, 5] count
-Result    : 6
+Result    : 8
