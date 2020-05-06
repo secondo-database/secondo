@@ -2976,7 +2976,7 @@ switch (message)
         double resulty = (yfirst + ysecond) / 2;
         
         
-        std::tuple<double, double> testp1 = std::make_tuple (resultx , resulty);
+        
         std::tuple<double, double> testp2 = infedgepoints[i];
         
         std::tuple<double, double> testpfinal = 
@@ -3065,9 +3065,9 @@ switch (message)
         */
         
         double distinfedgpoitotestcenter = sqrt 
-                                           (pow (get<0>( testpfinal) - 
+                                           (pow (get<0>(testpfinal) - 
                                             get<0>(testcenter), 2) +
-                                            pow (get<1>( testp1) - 
+                                            pow (get<1>(testpfinal) - 
                                             get<1>(testcenter), 2));
         
        
