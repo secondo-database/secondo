@@ -19161,6 +19161,7 @@ class BalancedSlotDistributor{
      vector<uint32_t> mapping = loadbalance::getMapping(ss,
                                                  matrix->numOfWorkers(),
                                                  false);  
+     res->set(mapping, res->getName(), res->getWorkers());
      return true;
   }
 
