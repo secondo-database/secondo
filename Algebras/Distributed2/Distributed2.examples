@@ -492,7 +492,7 @@ Remark    : requires a remote server
 Operator  : collectD
 Number    : 1
 Signature : dfmatrix x string x int -> dfarray
-Example   : query size(s7 partition["m7", hashvalue(.Attr,23),  0]  collectB["mys7", 1238] )
+Example   : query size(s7 partition["m7", hashvalue(.Attr,23),  0]  collectD["mys7", 1238] )
 Result    : bug
 Remark    : requires a remote server
 

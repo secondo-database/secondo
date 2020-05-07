@@ -19306,7 +19306,8 @@ OperatorSpec collectBSpec(
   "port for file transfer. The port value can be any "
   "port usable on all workers. A corresponding file transfer "
   "server is started automatically. The slots are collected "
-  "using a  sophisticated load balancing algorithm",
+  "using a  sophisticated load balancing algorithm based on"
+  "the number of tuples in each slot.",
   "query m8 collectB[\"a8\",1238]"
 );
 
@@ -19318,9 +19319,23 @@ Operator collectBOp(
   collectBTM
 );
 
+OperatorSpec collectDSpec(
+  "dfmatrix x string x int -> dfarray",
+  " _ collectD[ _ , _] ",
+  "Collects the slots of a matrix into a "
+  " dfarray. The string is the name of the "
+  "resulting array, the int value specified a "
+  "port for file transfer. The port value can be any "
+  "port usable on all workers. A corresponding file transfer "
+  "server is started automatically. The slots are collected "
+  "using a  sophisticated load balancing algorithm based on"
+  "the sum of the file's sizes belonging to a certain"
+  "slot in the matrix argument.",
+  "query m8 collectD[\"a8\",1238]"
+);
 Operator collectDOp(
   "collectD",
-  collectBSpec.getStr(),
+  collectDSpec.getStr(),
   collect2VMT<BalancedSlotDistributor<false> >,
   Operator::SimpleSelect,
   collectBTM
