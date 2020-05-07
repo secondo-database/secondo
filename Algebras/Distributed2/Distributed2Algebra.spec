@@ -111,7 +111,7 @@ operator partitionF alias PARTITIONF pattern _ op[_,fun,fun,_] implicit paramete
 operator collect2 alias COLLECT2 pattern _ op[_,_]
 operator collectC alias COLLECTC pattern _ op[_,_,_]
 operator collectB alias COLLECTB pattern _ op[_,_]
-operator collectB alias COLLECTD pattern _ op[_,_]
+operator collectD alias COLLECTD pattern _ op[_,_]
 
 operator fileSizes alias FILESIZES pattern _ op[_]
 
