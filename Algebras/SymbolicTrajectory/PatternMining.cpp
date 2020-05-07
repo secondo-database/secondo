@@ -296,7 +296,8 @@ RelAgg::RelAgg() : noTuples(0), minNoAtoms(0), maxNoAtoms(0), minSupp(0.0),
 RelAgg::RelAgg(RelAgg *ra) : noTuples(ra->noTuples), minNoAtoms(ra->minNoAtoms),
                              maxNoAtoms(ra->maxNoAtoms), minSupp(ra->minSupp),
                              geoid(ra->geoid), rel(ra->rel) {
-  entries.clear();
+  AggEntry dummy;
+  entries.resize(ra->entries.size(), dummy);
   freqLabels.resize(ra->freqLabels.size());
   labelPos.clear();
   checkedSeqs.clear();
@@ -466,6 +467,7 @@ bool RelAgg::saveToRecord(RelAgg *agg, SmiRecord& valueRecord, size_t& offset) {
 
 bool RelAgg::readFromRecord(RelAgg *agg, SmiRecord& valueRecord, 
                             size_t& offset) {
+//   auto measureStart = high_resolution_clock::now(); 
   unsigned int noAggEntries, noOccs, noComponents, occPos, labelLength;
   double durD, start, end;
   Periods *per;
@@ -495,7 +497,6 @@ bool RelAgg::readFromRecord(RelAgg *agg, SmiRecord& valueRecord,
   offset += entriesSize;
   size_t offsetEntries = 0;
   for (unsigned int i = 0; i < noAggEntries; i++) {
-//     auto measureStart = high_resolution_clock::now(); 
     AggEntry entry;
     memcpy(&entry.noOccs, entriesChars + offsetEntries, sizeof(unsigned int));
     offsetEntries += sizeof(unsigned int);
@@ -552,11 +553,6 @@ bool RelAgg::readFromRecord(RelAgg *agg, SmiRecord& valueRecord,
 //       cout << "... pushed back occPos " << occPos << endl;
     }
     agg->entries.push_back(entry);
-//     auto measureStop = high_resolution_clock::now();
-//     double ms = 
-//    (double)(duration_cast<milliseconds>(measureStop - measureStart).count());
-//     cout << "entry with " << entry.occs.size() << " occs read, took " << ms
-//          << " ms, equals " << ms / entry.noOccs << " ms per occ" << endl;
   }
   delete[] entriesChars;
   // read ~freqLabels~
@@ -580,9 +576,14 @@ bool RelAgg::readFromRecord(RelAgg *agg, SmiRecord& valueRecord,
     memcpy(&labelArray, freqLabelsChars + offsetFreqLabels, labelLength + 1);
     offsetFreqLabels += labelLength + 1;
     string label(labelArray);
+    agg->labelPos.insert(make_pair(label, agg->freqLabels.size()));
     agg->freqLabels.push_back(label);
   }
   delete[] freqLabelsChars;
+//   auto measureStop = high_resolution_clock::now();
+//   double ms = 
+//    (double)(duration_cast<milliseconds>(measureStop - measureStart).count());
+//     cout << "OPEN finished after " << ms << " ms" << endl;
   return true;
 }
 
@@ -1957,8 +1958,9 @@ void ProjectedDB::construct() {
   Class ~ProjectedDB~, Function ~minePDB~
 
 */
-void ProjectedDB::minePDB(vector<unsigned int>& prefix, unsigned int pos,
-                 const unsigned int minNoAtoms, const unsigned int maxNoAtoms) {
+void ProjectedDB::minePDB(vector<unsigned int>& prefix, string& patPrefix,
+                          unsigned int pos, const unsigned int minNoAtoms, 
+                          const unsigned int maxNoAtoms) {
 //   cout << "minePDB for prefix " << agg->print(prefix) << "; "
 //        << projections[pos].size() << " projs for pos " << pos << endl;
   if (prefix.size() + 1 > maxNoAtoms || projections[pos].size() < minSuppCnt) {
@@ -2004,24 +2006,25 @@ void ProjectedDB::minePDB(vector<unsigned int>& prefix, unsigned int pos,
 //   cout << "; frequent labels: " << agg->print(newFreqLabels) << endl;
   // build atoms for prefix
   set<TupleId> commonTupleIds;
-  string atom, patPrefix;
+  string atom, patPrefixExt;
   ProjectedDB *pdb = new ProjectedDB(minSupp, minSuppCnt, agg);
 //   cout << "### NEW pdb CREATED for prefix " << agg->print(prefix) << endl;
-  for (unsigned int i = 0; i < prefix.size(); i++) {
-    agg->buildAtom(prefix[i], agg->entries[prefix[i]], commonTupleIds, atom);
-    patPrefix += atom + " ";
-  }
+//   for (unsigned int i = 0; i < prefix.size(); i++) {
+//     agg->buildAtom(prefix[i], agg->entries[prefix[i]], commonTupleIds, atom);
+//     patPrefix += atom + " ";
+//   }
   // complete patterns, recursion with extended prefixes, TODO: use intersection
   for (auto flabel : newFreqLabels) {
     if (flabel != prefix[prefix.size() - 1]) {
 //       cout << "   result sequence " << agg->print(prefix) << ", " << flabel
 //           << " found" << endl;
+      agg->buildAtom(flabel, agg->entries[flabel], commonTupleIds, atom);
+      patPrefixExt = patPrefix + " " + atom;
       if (prefix.size() + 1 >= minNoAtoms) {
-        agg->buildAtom(flabel, agg->entries[flabel], commonTupleIds, atom);
-        agg->results.push_back(NewPair<string, double>(patPrefix + atom,
+        agg->results.push_back(NewPair<string, double>(patPrefixExt,
                                  (double)labelCounter[flabel] / agg->noTuples));
-        atom.clear();
       }
+      atom.clear();
       if (prefix.size() + 1 < maxNoAtoms) {
         prefix.push_back(flabel);
         for (auto seq : reducedSeqs) {
@@ -2041,7 +2044,7 @@ void ProjectedDB::minePDB(vector<unsigned int>& prefix, unsigned int pos,
             pdb->projPos.push_back(i);
           }
         }
-        pdb->minePDB(prefix, flabel, minNoAtoms, maxNoAtoms);
+        pdb->minePDB(prefix, patPrefixExt, flabel, minNoAtoms, maxNoAtoms);
         prefix.pop_back();
       }
     }
@@ -2055,24 +2058,53 @@ void ProjectedDB::minePDB(vector<unsigned int>& prefix, unsigned int pos,
 */
 void ProjectedDB::retrievePatterns(const unsigned int minNoAtoms, 
                                    const unsigned int maxNoAtoms) {
-  if (minNoAtoms == 1) {
-    string pattern, atom;
-    set<TupleId> commonTupleIds;
-    double supp = 1.0;
-    for (unsigned int l = 0; l < agg->freqLabels.size(); l++) {
-      agg->buildAtom(l, agg->entries[l], commonTupleIds, atom);
+  vector<string> atoms;
+  atoms.resize(agg->freqLabels.size(), "");
+  set<TupleId> commonTupleIds;
+  double supp = 1.0;
+  for (unsigned int l = 0; l < agg->freqLabels.size(); l++) {
+    agg->buildAtom(l, agg->entries[l], commonTupleIds, atoms[l]);
+    if (minNoAtoms == 1) {
       supp = double(agg->entries[l].occs.size()) / agg->noTuples;
-      agg->results.push_back(NewPair<string, double>(atom, supp));
+      agg->results.push_back(NewPair<string, double>(atoms[l], supp));
     }
-    cout << agg->results.size() << " frequent 1-patterns found" << endl;
   }
+  cout << agg->results.size() << " frequent 1-patterns found" << endl;
   vector<unsigned int> prefix;
   for (unsigned int i = 0; i < projPos.size(); i++) {
     prefix.push_back(projPos[i]);
-    minePDB(prefix, projPos[i], minNoAtoms, maxNoAtoms);
+    minePDB(prefix, atoms[projPos[i]], projPos[i], minNoAtoms, maxNoAtoms);
     prefix.pop_back();
   }
   std::sort(agg->results.begin(), agg->results.end(), comparePMResults());
+}
+
+/*
+  Class ~ProjectedDB~, Function ~computeProjSize~
+  
+  Compute storage space in bytes for all projections:
+
+*/
+unsigned long long int ProjectedDB::computeProjSize() const {
+  unsigned long long int result = sizeof(unsigned int);
+  for (unsigned int i = 0; i < projections.size(); i++) {
+    result += sizeof(unsigned int);
+    for (unsigned int j = 0; j < projections[i].size(); j++) {
+      result += sizeof(unsigned int) * (projections[i][j].size() + 1);
+    }
+  }
+  return result;
+}
+
+/*
+  Class ~ProjectedDB~, Function ~computeProjPosSize~
+  
+  Compute storage space in bytes for projPos:
+
+*/
+unsigned long long int ProjectedDB::computeProjPosSize() const {
+  unsigned long long int result = sizeof(unsigned int) * (projPos.size() + 1);
+  return result;
 }
 
 /*
@@ -2166,49 +2198,52 @@ bool ProjectedDB::Save(SmiRecord& valueRecord, size_t& offset,
     return false;
   }
   // store projections
+  unsigned long long int projSize = 
+                             pdb->computeProjSize() + pdb->computeProjPosSize();
+  cout << "size of projections & projPos is " << projSize << endl;
+  if (!valueRecord.Write(&projSize, sizeof(unsigned long long int), offset)) {
+    return false;
+  }
+  offset += sizeof(unsigned long long int);
+  char* projChars = new char[projSize];
+  size_t offsetProj = 0;
   unsigned int noProjections(pdb->projections.size()),
           noProjPos(pdb->projPos.size()), noSequences, noLabels, label, projPos;
-  if (!valueRecord.Write(&noProjections, sizeof(unsigned int), offset)) {
-    return false;
-  }
-  offset += sizeof(unsigned int);
+  memcpy(projChars + offsetProj, &noProjections, sizeof(unsigned int));
+  offsetProj += sizeof(unsigned int);
   for (unsigned int i = 0; i < noProjections; i++) {
     noSequences = pdb->projections[i].size();
-    if (!valueRecord.Write(&noSequences, sizeof(unsigned int), offset)) {
-      return false;
-    }
-    offset += sizeof(unsigned int);
+    memcpy(projChars + offsetProj, &noSequences, sizeof(unsigned int));
+    offsetProj += sizeof(unsigned int);
     for (unsigned int j = 0; j < noSequences; j++) {
       noLabels = pdb->projections[i][j].size();
-      if (!valueRecord.Write(&noLabels, sizeof(unsigned int), offset)) {
-        return false;
-      }
-      offset += sizeof(unsigned int);
+      memcpy(projChars + offsetProj, &noLabels, sizeof(unsigned int));
+      offsetProj += sizeof(unsigned int);
       for (unsigned int k = 0; k < noLabels; k++) {
         label = pdb->projections[i][j][k];
-        if (!valueRecord.Write(&label, sizeof(unsigned int), offset)) {
-          return false;
-        }
-        offset += sizeof(unsigned int);
+        memcpy(projChars + offsetProj, &label, sizeof(unsigned int));
+        offsetProj += sizeof(unsigned int);
       }
     }
   }
-  if (!valueRecord.Write(&noProjPos, sizeof(unsigned int), offset)) {
-    return false;
-  }
-  offset += sizeof(unsigned int);
+  memcpy(projChars + offsetProj, &noProjPos, sizeof(unsigned int));
+  offsetProj += sizeof(unsigned int);
   for (unsigned int i = 0; i < noProjPos; i++) {
     projPos = pdb->projPos[i];
-    if (!valueRecord.Write(&projPos, sizeof(unsigned int), offset)) {
-      return false;
-    }
-    offset += sizeof(unsigned int);
+    memcpy(projChars + offsetProj, &projPos, sizeof(unsigned int));
+    offsetProj += sizeof(unsigned int);
   }
+  if (!valueRecord.Write(projChars, projSize, offset)) {
+    return false;
+  }
+  offset += projSize;
+  delete[] projChars;
   return true;
 }
 
 bool ProjectedDB::Open(SmiRecord& valueRecord, size_t& offset,
                        const ListExpr typeInfo, Word& value) {
+  auto measureStart = high_resolution_clock::now(); 
   ProjectedDB *pdb = new ProjectedDB();
   // read minSupp
   if (!valueRecord.Read(&pdb->minSupp, sizeof(double), offset)) {
@@ -2220,30 +2255,39 @@ bool ProjectedDB::Open(SmiRecord& valueRecord, size_t& offset,
     return false;
   }
   pdb->minSuppCnt = (unsigned int)std::ceil(pdb->minSupp * pdb->agg->noTuples);
+  auto measureStop = high_resolution_clock::now();
+  double ms = 
+   (double)(duration_cast<milliseconds>(measureStop - measureStart).count());
+  cout << "relAgg read after " << ms << " ms" << endl;
   // open projections
+  measureStart = high_resolution_clock::now(); 
   vector<vector<unsigned int> > projection;
   vector<unsigned int> labelSeq;
   pdb->projections.resize(pdb->agg->freqLabels.size());
-  unsigned int noProjections, noSequences, noLabels, label, noProjPos, projPos;
-  if (!valueRecord.Read(&noProjections, sizeof(unsigned int), offset)) {
+  unsigned long long int projSize;
+  if (!valueRecord.Read(&projSize, sizeof(unsigned long long int), offset)) {
     return false;
   }
-  offset += sizeof(unsigned int);
+  offset += sizeof(unsigned long long int);
+//   cout << "size of projections & projPos is " << projSize << endl;
+  char* projChars = new char[projSize];
+  if (!valueRecord.Read(projChars, projSize, offset)) {
+    return false;
+  }
+  offset += projSize;
+  size_t offsetProj = 0;
+  unsigned int noProjections, noSequences, noLabels, label, noProjPos, projPos;
+  memcpy(&noProjections, projChars + offsetProj, sizeof(unsigned int));
+  offsetProj += sizeof(unsigned int);
   for (unsigned int i = 0; i < noProjections; i++) {
-    if (!valueRecord.Read(&noSequences, sizeof(unsigned int), offset)) {
-      return false;
-    }
-    offset += sizeof(unsigned int);
+    memcpy(&noSequences, projChars + offsetProj, sizeof(unsigned int));
+    offsetProj += sizeof(unsigned int);
     for (unsigned int j = 0; j < noSequences; j++) {
-      if (!valueRecord.Read(&noLabels, sizeof(unsigned int), offset)) {
-        return false;
-      }
-      offset += sizeof(unsigned int);
+      memcpy(&noLabels, projChars + offsetProj, sizeof(unsigned int));
+      offsetProj += sizeof(unsigned int);
       for (unsigned int k = 0; k < noLabels; k++) {
-        if (!valueRecord.Read(&label, sizeof(unsigned int), offset)) {
-          return false;
-        }
-        offset += sizeof(unsigned int);
+        memcpy(&label, projChars + offsetProj, sizeof(unsigned int));
+        offsetProj += sizeof(unsigned int);
         labelSeq.push_back(label);
       }
       projection.push_back(labelSeq);
@@ -2252,18 +2296,24 @@ bool ProjectedDB::Open(SmiRecord& valueRecord, size_t& offset,
     pdb->projections[i] = projection;
     projection.clear();
   }
-  if (!valueRecord.Read(&noProjPos, sizeof(unsigned int), offset)) {
-    return false;
-  }
-  offset += sizeof(unsigned int);
+  measureStop = high_resolution_clock::now();
+  ms = 
+   (double)(duration_cast<milliseconds>(measureStop - measureStart).count());
+  cout << "projections read after " << ms << " ms" << endl;
+  measureStart = high_resolution_clock::now();
+  memcpy(&noProjPos, projChars + offsetProj, sizeof(unsigned int));
+  offsetProj += sizeof(unsigned int);
   for (unsigned int i = 0; i < noProjPos; i++) {
-    if (!valueRecord.Read(&projPos, sizeof(unsigned int), offset)) {
-      return false;
-    }
-    offset += sizeof(unsigned int);
+    memcpy(&projPos, projChars + offsetProj, sizeof(unsigned int));
+    offsetProj += sizeof(unsigned int);
     pdb->projPos.push_back(projPos);
   }
   value.setAddr(pdb);
+  measureStop = high_resolution_clock::now();
+  ms = 
+   (double)(duration_cast<milliseconds>(measureStop - measureStart).count());
+  cout << "projPos read after " << ms << " ms" << endl;
+  delete[] projChars;
   return true;
 }
 
@@ -2436,15 +2486,15 @@ void AggEntry::sequentialJoin(AggEntry& entry1, AggEntry& entry2) {
 void RelAgg::combineEntries(unsigned int endOfPrefix, RelAgg *ra, 
                                   unsigned int label, unsigned int minSuppCnt) {
   AggEntry newEntry;
-  cout << "Join entries " << endOfPrefix << " and " << label << endl;
+//   cout << "Join entries " << endOfPrefix << " and " << label << endl;
   newEntry.sequentialJoin(ra->entries[endOfPrefix], ra->entries[label]);
   if (newEntry.occs.size() >= minSuppCnt) {
-    labelPos.insert(make_pair(ra->freqLabels[label], entries.size()));
-    entries.push_back(newEntry);
+    labelPos.insert(make_pair(ra->freqLabels[label], label));
+    entries[label] = newEntry;
     freqLabels[label] = ra->freqLabels[label];
-    cout << "... pushed back entry #" << entries.size() << ", labelPos " 
-         << ra->freqLabels[label] << ", " << label << ", " << freqLabels[label] 
-         << " has " << newEntry.occs.size() << " occs" << endl;
+//     cout << "... added entry # " << label << " for " 
+//          << ra->freqLabels[label] << ", has " << newEntry.occs.size() 
+//          << " occs" << endl;
   }
   else {
     freqLabels[label] == "";
@@ -2460,13 +2510,13 @@ void VerticalDB::mineVerticalDB(vector<unsigned int>& prefix, string& patPrefix,
   if (prefix.empty()) {
     return;
   }
-  cout << "mVDB called with prefix " << ra->print(prefix) 
-       << ", frequent labels " << ra->print(ra->freqLabels) << endl;
+//   cout << "mVDB called with prefix " << ra->print(prefix) 
+//        << ", " << ra->freqLabels.size() << " frequent labels and " 
+//        << ra->labelPos.size() << " label pos" << endl;
   string atom, patPrefixExt;
   set<TupleId> commonTupleIds;
   double supp = 0.0;
   RelAgg *newAgg = new RelAgg(ra);
-  map<unsigned int, unsigned int> labelToEntryPos;
   for (auto label : ra->labelPos) { 
     bool contained = false;
     unsigned int prefixPos = 0;
@@ -2479,19 +2529,13 @@ void VerticalDB::mineVerticalDB(vector<unsigned int>& prefix, string& patPrefix,
     if (!contained) {
       newAgg->combineEntries(prefix[prefix.size() - 1], ra, label.second, 
                                                                     minSuppCnt);
-      if (newAgg->labelPos.find(newAgg->freqLabels[label.second]) != 
-                                                       newAgg->labelPos.end()) {
-        unsigned int newPos= newAgg->labelPos[newAgg->freqLabels[label.second]];
-        cout << "isCombFrequent completed for prefix " << ra->print(prefix)
-            << " and label " << label.second << "; "
-            << ra->freqLabels[label.second] << " | " 
-            << newAgg->freqLabels[label.second] << " || " << newPos << " || "
-            << newAgg->entries[newPos].occs.size() << " occs found" << endl;
-        cout << newAgg->entries.size() << " entries; try to access # " 
-              << newPos << endl;
-        cout << "call bA for label " << label.second << " and entry #"
-                << newPos << endl;
-      }
+//       if (!newAgg->entries[label.second].occs.empty()) {
+//         cout << "isCombFrequent completed for prefix " << ra->print(prefix)
+//              << " and label " << label.second << "; "
+//              << ra->freqLabels[label.second] << " | " 
+//              << newAgg->freqLabels[label.second] << " || "
+//              << newAgg->entries[label.second].occs.size() << " occs" << endl;
+//       }
     }
   }
   for (auto label : newAgg->labelPos) {
@@ -2499,7 +2543,7 @@ void VerticalDB::mineVerticalDB(vector<unsigned int>& prefix, string& patPrefix,
                       commonTupleIds, atom);
     supp = (double)newAgg->entries[label.second].occs.size() / newAgg->noTuples;
     patPrefixExt = patPrefix + atom;
-    cout << "RESULT: " << patPrefixExt << ", supp = " << supp << endl;
+//     cout << "RESULT: " << patPrefixExt << ", supp = " << supp << endl;
     if (minNoAtoms <= prefix.size() + 1) {
       agg->results.push_back(NewPair<string, double>(patPrefixExt, supp));
     }
@@ -2528,10 +2572,12 @@ void VerticalDB::retrievePatterns(const unsigned int minNoAtoms,
       supp = double(agg->entries[l].occs.size()) / agg->noTuples;
       agg->results.push_back(NewPair<string, double>(atom, supp));
     }
-    prefix.push_back(l);
-    atom += "";
-    mineVerticalDB(prefix, atom, agg, minNoAtoms, maxNoAtoms);
-    prefix.pop_back();
+    if (maxNoAtoms > 1) {
+      prefix.push_back(l);
+      atom += "";
+      mineVerticalDB(prefix, atom, agg, minNoAtoms, maxNoAtoms);
+      prefix.pop_back();
+    }
   }
   std::sort(agg->results.begin(), agg->results.end(), comparePMResults());
 }
@@ -2614,6 +2660,7 @@ bool VerticalDB::Save(SmiRecord& valueRecord, size_t& offset,
 
 bool VerticalDB::Open(SmiRecord& valueRecord, size_t& offset,
                       const ListExpr typeInfo, Word& value) {
+  auto measureStart = high_resolution_clock::now(); 
   VerticalDB *vdb = new VerticalDB();
   // read minSupp
   if (!valueRecord.Read(&vdb->minSupp, sizeof(double), offset)) {
@@ -2626,6 +2673,10 @@ bool VerticalDB::Open(SmiRecord& valueRecord, size_t& offset,
   }
   vdb->minSuppCnt = (unsigned int)std::ceil(vdb->minSupp * vdb->agg->noTuples);
   value.setAddr(vdb);
+  auto measureStop = high_resolution_clock::now();
+  double ms = 
+   (double)(duration_cast<milliseconds>(measureStop - measureStart).count());
+    cout << "VDB OPEN finished after " << ms << " ms" << endl;
   return true;
 }
 

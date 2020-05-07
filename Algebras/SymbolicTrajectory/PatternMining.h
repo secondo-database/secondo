@@ -352,10 +352,13 @@ class ProjectedDB {
   void addProjections(std::vector<unsigned int>& labelSeq, 
                       unsigned int label = UINT_MAX);
   void construct();
-  void minePDB(std::vector<unsigned int>& prefix, unsigned int pos,
+  void minePDB(std::vector<unsigned int>& prefix, std::string& patPrefix,
+               unsigned int pos,
                const unsigned int minNoAtoms, const unsigned int maxNoAtoms);
   void retrievePatterns(const unsigned int minNoAtoms, 
                         const unsigned int maxNoAtoms);
+  unsigned long long int computeProjSize() const;
+  unsigned long long int computeProjPosSize() const;
   
   static ListExpr seqToListExpr(std::vector<unsigned int>& seq);
   static ListExpr projToListExpr(std::vector<std::vector<unsigned int> >& proj);
