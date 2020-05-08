@@ -1856,7 +1856,6 @@ bool FPTree::TypeCheck(ListExpr type, ListExpr& errorInfo) {
   return nl->IsEqual(type, BasicType());
 }
 
-
 /*
   Type constructor for secondo type ~fptree~
  
@@ -1925,6 +1924,35 @@ void ProjectedDB::addProjections(vector<unsigned int>& labelSeq,
 }
 
 /*
+  Class ~ProjectedDB~, function ~computeSMatrix~
+
+*/
+void ProjectedDB::computeSMatrix(vector<unsigned int>& freqLabels,
+                           vector<NewPair<unsigned int, unsigned int> >& fPos) {
+  cout << "freq Labels: " << agg->print(freqLabels) << endl;
+  smatrix.init(freqLabels.size());
+  vector<bool> counted;
+  counted.resize(freqLabels.size(), false);
+  for (unsigned int i = 0; i < freqLabels.size(); i++) {
+    freqLabelPos.push_back(freqLabels[i]);
+    if (!projections[i].empty()) {
+      for (auto seq : projections[i]) {
+        for (auto label : seq) {
+          if (!counted[label] && label != freqLabels[i]) {
+            smatrix.increment(i, label);
+            if (smatrix[i][label] == minSuppCnt) {
+              fPos.push_back(NewPair<unsigned int, unsigned int>(i, label));
+            }
+            counted[label] = true;
+          }
+        }
+        counted.assign(freqLabels.size(), false);
+      }
+    }
+  }
+}
+
+/*
   Class ~ProjectedDB~, function ~construct~
 
 */
@@ -1952,6 +1980,13 @@ void ProjectedDB::construct() {
       projPos.push_back(i);
     }
   }
+  vector<unsigned int> freqLabels;
+  for (unsigned int i = 0; i < agg->freqLabels.size(); i++) {
+    freqLabels.push_back(i);
+  }
+  computeSMatrix(freqLabels, freqPos);
+  cout << "flPos: " << agg->print(freqLabelPos) << endl << "S-Matrix:" << endl
+       << smatrix.print() << endl << "fPos = " << agg->print(freqPos) << endl;
 }
 
 /*
@@ -2028,7 +2063,9 @@ void ProjectedDB::minePDB(vector<unsigned int>& prefix, string& patPrefix,
       if (prefix.size() + 1 < maxNoAtoms) {
         prefix.push_back(flabel);
         for (auto seq : reducedSeqs) {
-          pdb->addProjections(seq, flabel);
+          if (!projections[flabel].empty()) { // Optimization 1 from PS paper
+            pdb->addProjections(seq, flabel);
+          }
 //           cout << "   //// projections for seq " << agg->print(seq)
 //                << " added; projections[" << flabel << "] has "
 //                << pdb->projections[flabel].size() << " elements, "
@@ -2056,6 +2093,20 @@ void ProjectedDB::minePDB(vector<unsigned int>& prefix, string& patPrefix,
   Class ~ProjectedDB~, function ~retrievePatterns~
 
 */
+void ProjectedDB::mineSMatrix(NewPair<unsigned int, unsigned int>& pos,
+                              string& patPrefix) {
+  string atom;
+  set<TupleId> commonTupleIds;
+  agg->buildAtom(freqLabelPos[pos.second], 
+                 agg->entries[freqLabelPos[pos.second]], commonTupleIds, atom);
+  agg->results.push_back(NewPair<string, double>(patPrefix + " " + atom,
+                       (double)smatrix(pos.first, pos.second) / agg->noTuples));
+}
+
+/*
+  Class ~ProjectedDB~, function ~retrievePatterns~
+
+*/
 void ProjectedDB::retrievePatterns(const unsigned int minNoAtoms, 
                                    const unsigned int maxNoAtoms) {
   vector<string> atoms;
@@ -2070,12 +2121,22 @@ void ProjectedDB::retrievePatterns(const unsigned int minNoAtoms,
     }
   }
   cout << agg->results.size() << " frequent 1-patterns found" << endl;
-  vector<unsigned int> prefix;
-  for (unsigned int i = 0; i < projPos.size(); i++) {
-    prefix.push_back(projPos[i]);
-    minePDB(prefix, atoms[projPos[i]], projPos[i], minNoAtoms, maxNoAtoms);
-    prefix.pop_back();
+  if (minNoAtoms <= 2 && maxNoAtoms >= 2) {
+    for (auto fPos : freqPos) {
+      mineSMatrix(fPos, atoms[freqLabelPos[fPos.first]]);
+    }
   }
+  if (maxNoAtoms >= 3) {
+    for (unsigned int i = 0; i < projPos.size(); i++) {
+      // TODO: minePDBSM
+    }
+  }
+//   vector<unsigned int> prefix;
+//   for (unsigned int i = 0; i < projPos.size(); i++) {
+//     prefix.push_back(projPos[i]);
+//     minePDB(prefix, atoms[projPos[i]], projPos[i], minNoAtoms, maxNoAtoms);
+//     prefix.pop_back();
+//   }
   std::sort(agg->results.begin(), agg->results.end(), comparePMResults());
 }
 

@@ -336,12 +336,71 @@ struct MineFPTreeLI {
   TupleType *tupleType;
 };
 
+struct MatrixSq {
+  MatrixSq(unsigned int s = 0) : size(s) {
+    init(size);
+  }
+  
+  ~MatrixSq() {
+    clear();
+  }
+  
+  void clear() {
+    if (size > 0) {
+      delete[] values;
+    }
+  }
+  
+  void init(unsigned int s) {
+    size = s;
+    if (size > 0) {
+      values = new unsigned int[size * size];
+      memset(values, 0, size * size * sizeof(unsigned int));
+    }
+  }
+  
+  unsigned int operator() (unsigned int i, unsigned int j) {
+    if (i >= size || j >= size) {
+      return UINT_MAX;
+    }
+    return values[i * size + j];
+  }
+  
+  unsigned int* operator[] (unsigned int i) {
+    if (i >= size) {
+      return 0;
+    }
+    return values + i * size;
+  }
+  
+  void increment(unsigned int i, unsigned int j) {
+    if (i >= size || j >= size) {
+      return;
+    }
+    values[i * size + j]++;
+  }
+  
+  std::string print() {
+    std::stringstream result;
+    for (unsigned int i = 0; i < size; i++) {
+      for (unsigned int j = 0; j < size; j++) {
+        result << values[i * size + j] << " ";
+      }
+      result << endl;
+    }
+    return result.str();
+  }
+  
+  unsigned int size;
+  unsigned int *values;
+};
+
 class ProjectedDB {
  public:
   ProjectedDB() {}
   ProjectedDB(ProjectedDB *pdb) : minSupp(pdb->minSupp) {}
   ProjectedDB(double ms, unsigned int msc, RelAgg *ra)
-    : minSupp(ms), minSuppCnt(msc), agg(ra) {
+                                       : minSupp(ms), minSuppCnt(msc), agg(ra) {
     projections.resize(ra->freqLabels.size());
   }
   
@@ -351,10 +410,14 @@ class ProjectedDB {
   void initialize(const double ms, RelAgg *ra);
   void addProjections(std::vector<unsigned int>& labelSeq, 
                       unsigned int label = UINT_MAX);
+  void computeSMatrix(std::vector<unsigned int>& freqLabels,
+                      std::vector<NewPair<unsigned int, unsigned int> >& fPos);
   void construct();
   void minePDB(std::vector<unsigned int>& prefix, std::string& patPrefix,
                unsigned int pos,
                const unsigned int minNoAtoms, const unsigned int maxNoAtoms);
+  void mineSMatrix(NewPair<unsigned int, unsigned int>& pos,
+                   std::string& patPrefix);
   void retrievePatterns(const unsigned int minNoAtoms, 
                         const unsigned int maxNoAtoms);
   unsigned long long int computeProjSize() const;
@@ -383,7 +446,10 @@ class ProjectedDB {
   unsigned int minSuppCnt; // \ceil{noTuples * minSupp}
   RelAgg *agg;
   std::vector<std::vector<std::vector<unsigned int> > > projections;
-  std::vector<unsigned int> projPos; // non-empty positions of above vector
+  std::vector<unsigned int> projPos; // non-empty positions inside projections
+  MatrixSq smatrix;
+  std::vector<unsigned int> freqLabelPos; // maps matrix pos to freqLabel
+  std::vector<NewPair<unsigned int, unsigned int> > freqPos;
 };
 
 struct PrefixSpanLI {
