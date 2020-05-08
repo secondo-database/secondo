@@ -19303,11 +19303,11 @@ OperatorSpec collectBSpec(
   " _ collectB[ _ , _] ",
   "Collects the slots of a matrix into a "
   " dfarray. The string is the name of the "
-  "resulting array, the int value specified a "
+  "resulting array, the int value specifies a "
   "port for file transfer. The port value can be any "
   "port usable on all workers. A corresponding file transfer "
   "server is started automatically. The slots are collected "
-  "using a  sophisticated load balancing algorithm based on"
+  "using a  sophisticated load balancing algorithm based on "
   "the number of tuples in each slot.",
   "query m8 collectB[\"a8\",1238]"
 );
@@ -19325,12 +19325,12 @@ OperatorSpec collectDSpec(
   " _ collectD[ _ , _] ",
   "Collects the slots of a matrix into a "
   " dfarray. The string is the name of the "
-  "resulting array, the int value specified a "
+  "resulting array, the int value specifies a "
   "port for file transfer. The port value can be any "
   "port usable on all workers. A corresponding file transfer "
   "server is started automatically. The slots are collected "
-  "using a  sophisticated load balancing algorithm based on"
-  "the sum of the file's sizes belonging to a certain"
+  "using a  sophisticated load balancing algorithm based on "
+  "the sum of the file's sizes belonging to a certain "
   "slot in the matrix argument.",
   "query m8 collectD[\"a8\",1238]"
 );
@@ -19383,7 +19383,7 @@ public:
        if(!s->IsDefined()){
          return;
        }
-       bool simple = s->GetValue();
+       bool complete = s->GetValue();
        stream.open();
        CcInt* v;
        vector<uint32_t> slotSizes;
@@ -19398,7 +19398,7 @@ public:
        }
        stream.close();
        if(slotSizes.size()>0){
-          result = loadbalance::getMapping(slotSizes,noWorkers, simple); 
+          result = loadbalance::getMapping(slotSizes,noWorkers, !complete); 
        } 
     }
 
@@ -19437,11 +19437,11 @@ int loadBalanceVM(Word* args, Word& result, int message,
 
 OperatorSpec loadBalanceSpec(
    "stream(int) x int x bool -> stream(int) ",
-   " _ loadBalance[_,_] "
-   "Takes a stream of slotsizes (first argument)",
-   " a number of workers and a boolean  süpecifying whether "
-   "5 % reserve method should be used and returns the "
-   " mapping von slots to the workers. ",
+   " _ loadBalance[_,_] ",
+   "Takes a stream of slotsizes (first argument),"
+   " a number of workers, and a boolean specifying whether "
+   "the 5 % reserve method should be used. It returns the "
+   " mapping from the slots to the workers.",
    " query intstream(1,10) loacBalance[3,FALSE] transformstream consume"
 );
 
