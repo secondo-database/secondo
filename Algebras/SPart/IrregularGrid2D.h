@@ -133,6 +133,13 @@ class IrregularGrid2D {
       IrregularGrid2D *in_irgrid2d);
     void setColumnVector(std::vector<VCell> column_vect);
 
+   // Auxiliary functions for use with vector input
+   void SetVector(std::vector<Rectangle<2>>* rVector,
+                  Rectangle<2> &bounding_box,
+                  int row_count, int cell_count);
+   void createIrgrid2DVector(std::vector<Rectangle<2>>* rVector);
+   void processInputVector(std::vector<Rectangle<2>>* rVector);
+
     // operator relevant functions
     static ListExpr IrGrid2dFeedTypeMap( ListExpr args );
     static int IrGrid2dValueMapFeed( Word* args, Word& result, int message,

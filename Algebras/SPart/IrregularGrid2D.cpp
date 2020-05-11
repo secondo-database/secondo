@@ -137,6 +137,17 @@ IrregularGrid2D::Set(Stream<Rectangle<2>> rStream,
   createIrgrid2D(rStream);
 }
 
+void
+IrregularGrid2D::SetVector(std::vector<Rectangle<2>>* rVector,
+                     Rectangle<2> &bounding_box,
+                     int row_count, int cell_count) {
+   boundingBox = &bounding_box;
+   rowCount = row_count;
+   cellCount = cell_count;
+
+   createIrgrid2DVector(rVector);
+}
+
 std::vector<CellInfo*>
 IrregularGrid2D::getCellInfoVector(IrregularGrid2D *in_irgrid2d) {
   std::vector<CellInfo*> cell_info_vect {};
@@ -170,6 +181,14 @@ IrregularGrid2D::createIrgrid2D(Stream<Rectangle<2>> rStream) {
   processInput(rStream);
   // create irregular grid 2d by point density
   buildGrid();
+}
+
+void
+IrregularGrid2D::createIrgrid2DVector(std::vector<Rectangle<2>>* rVector) {
+   // sort input points by y-coordinates
+   processInputVector(rVector);
+   // create irregular grid 2d by point density
+   buildGrid();
 }
 
 bool
@@ -406,6 +425,20 @@ IrregularGrid2D::processInput(Stream<Rectangle<2>> rStream) {
 
   // sort point vector by y-coordinates
   std::sort(points.begin(), points.end(), pointComparisonY);
+}
+
+void
+IrregularGrid2D::processInputVector(std::vector<Rectangle<2>>* rVector) {
+   for (Rectangle<2> bbox : *rVector) {
+      if (!insideBoundingBox(boundingBox, &bbox)) {
+         // rectangle (partially) outside the bounding box is discarded
+         continue;
+      }
+      points.push_back(getRectangleCentre(&bbox));
+   }
+
+   // sort point vector by y-coordinates
+   std::sort(points.begin(), points.end(), pointComparisonY);
 }
 
 Rectangle<2> *
