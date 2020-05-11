@@ -399,9 +399,9 @@ class ProjectedDB {
  public:
   ProjectedDB() {}
   ProjectedDB(ProjectedDB *pdb) : minSupp(pdb->minSupp) {}
-  ProjectedDB(double ms, unsigned int msc, RelAgg *ra)
+  ProjectedDB(double ms, unsigned int msc, RelAgg *ra, unsigned int projSize)
                                        : minSupp(ms), minSuppCnt(msc), agg(ra) {
-    projections.resize(ra->freqLabels.size());
+    projections.resize(projSize);
   }
   
   ~ProjectedDB() {}
@@ -416,8 +416,8 @@ class ProjectedDB {
   void minePDB(std::vector<unsigned int>& prefix, std::string& patPrefix,
                unsigned int pos,
                const unsigned int minNoAtoms, const unsigned int maxNoAtoms);
-  void mineSMatrix(NewPair<unsigned int, unsigned int>& pos,
-                   std::string& patPrefix);
+  void minePDBSMatrix(std::vector<unsigned int>& prefix, std::string& patPrefix,
+                      unsigned int minNoAtoms, unsigned int maxNoAtoms);
   void retrievePatterns(const unsigned int minNoAtoms, 
                         const unsigned int maxNoAtoms);
   unsigned long long int computeProjSize() const;
@@ -449,7 +449,7 @@ class ProjectedDB {
   std::vector<unsigned int> projPos; // non-empty positions inside projections
   MatrixSq smatrix;
   std::vector<unsigned int> freqLabelPos; // maps matrix pos to freqLabel
-  std::vector<NewPair<unsigned int, unsigned int> > freqPos;
+  std::vector<NewPair<unsigned int, unsigned int> > freqMatrixPos;
 };
 
 struct PrefixSpanLI {

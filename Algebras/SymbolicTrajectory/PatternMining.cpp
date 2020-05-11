@@ -1906,7 +1906,7 @@ void ProjectedDB::addProjections(vector<unsigned int>& labelSeq,
   if (labelSeq.empty()) {
     return;
   }
-//   cout << "compute proj for seq " << agg->print(labelSeq) << endl;
+//   cout lab<< "compute proj for seq " << agg->print(labelSeq) << endl;
   vector<bool> projPresent;
   vector<unsigned int> reducedSeq;
   projPresent.resize(agg->freqLabels.size(), false);
@@ -1984,9 +1984,10 @@ void ProjectedDB::construct() {
   for (unsigned int i = 0; i < agg->freqLabels.size(); i++) {
     freqLabels.push_back(i);
   }
-  computeSMatrix(freqLabels, freqPos);
+  computeSMatrix(freqLabels, freqMatrixPos);
   cout << "flPos: " << agg->print(freqLabelPos) << endl << "S-Matrix:" << endl
-       << smatrix.print() << endl << "fPos = " << agg->print(freqPos) << endl;
+       << smatrix.print() << endl << "fPos = " << agg->print(freqMatrixPos) 
+       << endl;
 }
 
 /*
@@ -2042,7 +2043,8 @@ void ProjectedDB::minePDB(vector<unsigned int>& prefix, string& patPrefix,
   // build atoms for prefix
   set<TupleId> commonTupleIds;
   string atom, patPrefixExt;
-  ProjectedDB *pdb = new ProjectedDB(minSupp, minSuppCnt, agg);
+  ProjectedDB *pdb = new ProjectedDB(minSupp, minSuppCnt, agg, 
+                                     agg->freqLabels.size());
 //   cout << "### NEW pdb CREATED for prefix " << agg->print(prefix) << endl;
 //   for (unsigned int i = 0; i < prefix.size(); i++) {
 //     agg->buildAtom(prefix[i], agg->entries[prefix[i]], commonTupleIds, atom);
@@ -2091,16 +2093,75 @@ void ProjectedDB::minePDB(vector<unsigned int>& prefix, string& patPrefix,
 
 /*
   Class ~ProjectedDB~, function ~retrievePatterns~
+  
+  compute projections, report frequent items, build S-matrix, report freq cells
 
 */
-void ProjectedDB::mineSMatrix(NewPair<unsigned int, unsigned int>& pos,
-                              string& patPrefix) {
+void ProjectedDB::minePDBSMatrix(vector<unsigned int>& prefix,
+          string& patPrefix, unsigned int minNoAtoms, unsigned int maxNoAtoms) {
+  unsigned int secondLast(prefix[prefix.size() - 2]), 
+               last(prefix[prefix.size() - 1]);
+  vector<unsigned int> labelCounter;
+  labelCounter.resize(freqLabelPos.size(), 0);
+  vector<bool> counted;
+  counted.resize(freqLabelPos.size(), false);
   string atom;
   set<TupleId> commonTupleIds;
-  agg->buildAtom(freqLabelPos[pos.second], 
-                 agg->entries[freqLabelPos[pos.second]], commonTupleIds, atom);
-  agg->results.push_back(NewPair<string, double>(patPrefix + " " + atom,
-                       (double)smatrix(pos.first, pos.second) / agg->noTuples));
+  vector<unsigned int> freqLabels;
+  if (secondLast == 0 && last == 5) { // TODO: remove this line
+    ProjectedDB *pdb = new ProjectedDB(minSupp, minSuppCnt, agg, 
+                                      freqLabelPos.size());
+    for (auto seq : projections[secondLast]) {
+      pdb->addProjections(seq, last);
+    }
+    cout << "Prefix " << agg->print(prefix) << " : " << endl;
+    for (unsigned int i = 0; i < pdb->projections.size(); i++) {
+      cout << "   pos " << i << " : " 
+          << nl->ToString(projToListExpr(pdb->projections[i])) << endl;
+    }
+    cout << "  last is " << last << "   " << endl;
+    for (auto seq : pdb->projections[last]) {
+      cout << "  count sequence " << agg->print(seq) << endl;
+      for (auto label : seq) {
+        if (!counted[label]) {
+          labelCounter[label]++;
+          counted[label] = true;
+        }
+      }
+      counted.resize(freqLabelPos.size(), false);
+    }
+    cout << "labelCounter: " << agg->print(labelCounter) << endl;
+    // build patterns for frequently occurring labels in projections
+    for (unsigned int i = 0; i < labelCounter.size(); i++) {
+      if (labelCounter[i] >= minSuppCnt) {
+        freqLabels.push_back(freqLabelPos[i]);
+        pdb->freqLabelPos.push_back(freqLabelPos[i]);
+        cout << "  pushed back " << freqLabelPos[i] << endl;
+        if (prefix.size() + 1 >= minNoAtoms) {
+          agg->buildAtom(freqLabelPos[i], agg->entries[freqLabelPos[i]],
+                        commonTupleIds, atom);
+          agg->results.push_back(NewPair<string, double>(patPrefix + " " + atom,
+            double(agg->entries[freqLabelPos[i]].occs.size()) / agg->noTuples));
+        }
+      }
+    }
+    // build S-matrix
+    pdb->smatrix.init(pdb->freqLabelPos.size());
+    cout << "build S-matrix for freqLabels " << agg->print(freqLabels) << endl;
+    for (auto seq : pdb->projections[last]) {
+      for (unsigned int i = 0; i < seq.size(); i++) {
+        if (labelCounter[seq[i]] >= minSuppCnt) {
+          for (unsigned int j = i + 1; j < seq.size(); j++) {
+            if (labelCounter[seq[j]] >= minSuppCnt) {
+              pdb->smatrix.increment(i, j);
+            }
+          }
+        }
+      }
+    }
+    cout << pdb->smatrix.print() << endl;
+    
+  } // TODO: remove this line
 }
 
 /*
@@ -2110,9 +2171,11 @@ void ProjectedDB::mineSMatrix(NewPair<unsigned int, unsigned int>& pos,
 void ProjectedDB::retrievePatterns(const unsigned int minNoAtoms, 
                                    const unsigned int maxNoAtoms) {
   vector<string> atoms;
+  string atom, patPrefix;
   atoms.resize(agg->freqLabels.size(), "");
   set<TupleId> commonTupleIds;
   double supp = 1.0;
+  vector<unsigned int> prefix;
   for (unsigned int l = 0; l < agg->freqLabels.size(); l++) {
     agg->buildAtom(l, agg->entries[l], commonTupleIds, atoms[l]);
     if (minNoAtoms == 1) {
@@ -2121,14 +2184,21 @@ void ProjectedDB::retrievePatterns(const unsigned int minNoAtoms,
     }
   }
   cout << agg->results.size() << " frequent 1-patterns found" << endl;
-  if (minNoAtoms <= 2 && maxNoAtoms >= 2) {
-    for (auto fPos : freqPos) {
-      mineSMatrix(fPos, atoms[freqLabelPos[fPos.first]]);
-    }
-  }
-  if (maxNoAtoms >= 3) {
-    for (unsigned int i = 0; i < projPos.size(); i++) {
-      // TODO: minePDBSM
+  if (maxNoAtoms >= 2) {
+    for (auto fPos : freqMatrixPos) {
+      agg->buildAtom(freqLabelPos[fPos.second], 
+                 agg->entries[freqLabelPos[fPos.second]], commonTupleIds, atom);
+      patPrefix = atoms[freqLabelPos[fPos.first]] + " " + atom;
+      if (minNoAtoms <= 2) {
+        agg->results.push_back(NewPair<string, double>(patPrefix,
+                     (double)smatrix(fPos.first, fPos.second) / agg->noTuples));
+      }
+      if (maxNoAtoms >= 3) {
+        prefix.push_back(fPos.first);
+        prefix.push_back(fPos.second);
+        minePDBSMatrix(prefix, patPrefix, minNoAtoms, maxNoAtoms);
+        prefix.clear();
+      }
     }
   }
 //   vector<unsigned int> prefix;
