@@ -1693,7 +1693,9 @@ std::ostream& Convex::Print( std::ostream& os ) const {
 */
 
 
-/* 8.1.1 createconvextypemap*/
+/* 8.1.1 createconvextypemap
+ 
+ */
 
 ListExpr createconvextypemap( ListExpr args)
 { 
@@ -1732,7 +1734,9 @@ ListExpr createconvextypemap( ListExpr args)
 
 
 
-/* 8.1.2 voronoitypemap*/
+/* 8.1.2 voronoitypemap
+ 
+ */
 
 ListExpr voronoitypemap ( ListExpr args)
 
