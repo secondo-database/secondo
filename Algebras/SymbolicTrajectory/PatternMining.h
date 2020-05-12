@@ -408,8 +408,8 @@ class ProjectedDB {
   
   void clear();
   void initialize(const double ms, RelAgg *ra);
-  void addProjections(std::vector<unsigned int>& labelSeq, 
-                      unsigned int label = UINT_MAX);
+  void addProjections(std::vector<unsigned int>& labelSeq, unsigned int label, 
+         const std::vector<unsigned int>& prefix = std::vector<unsigned int>());
   void computeSMatrix(std::vector<unsigned int>& freqLabels,
                       std::vector<NewPair<unsigned int, unsigned int> >& fPos);
   void construct();

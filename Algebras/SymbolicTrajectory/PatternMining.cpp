@@ -1901,8 +1901,8 @@ void ProjectedDB::initialize(const double ms, RelAgg *ra) {
   Class ~ProjectedDB~, function ~addProjections~
 
 */
-void ProjectedDB::addProjections(vector<unsigned int>& labelSeq, 
-                                          unsigned int label /* = UINT_MAX */) {
+void ProjectedDB::addProjections(vector<unsigned int>& labelSeq, unsigned int 
+     label, const vector<unsigned int>& prefix /* = vector<unsigned int>() */) {
   if (labelSeq.empty()) {
     return;
   }
@@ -1910,14 +1910,37 @@ void ProjectedDB::addProjections(vector<unsigned int>& labelSeq,
   vector<bool> projPresent;
   vector<unsigned int> reducedSeq;
   projPresent.resize(agg->freqLabels.size(), false);
-  for (unsigned int pos = 0; pos < labelSeq.size() - 1; pos++) {
-    if (label == UINT_MAX || label == labelSeq[pos]) {
-      if (!projPresent[labelSeq[pos]]) {
-        reducedSeq.assign(labelSeq.begin() + pos + 1, labelSeq.end());
-//         cout << "     projection(<" << labelSeq[pos] << ">) : "
-//               << agg->print(reducedSeq) << endl;
-        projections[labelSeq[pos]].push_back(reducedSeq);
-        projPresent[labelSeq[pos]] = true;
+  if (prefix.empty()) {
+    for (unsigned int pos = 0; pos < labelSeq.size() - 1; pos++) {
+      if (label == UINT_MAX || label == labelSeq[pos]) {
+        if (!projPresent[labelSeq[pos]]) {
+          reducedSeq.assign(labelSeq.begin() + pos + 1, labelSeq.end());
+  //         cout << "     projection(<" << labelSeq[pos] << ">) : "
+  //               << agg->print(reducedSeq) << endl;
+          projections[labelSeq[pos]].push_back(reducedSeq);
+          projPresent[labelSeq[pos]] = true;
+        }
+      }
+    }
+  }
+  else {
+    for (unsigned int pos = 0; pos < labelSeq.size() - 1; pos++) {
+      if (label == UINT_MAX || label == labelSeq[pos]) {
+        if (!projPresent[labelSeq[pos]]) {
+          for (unsigned int i = pos + 1; i < labelSeq.size(); i++) {
+            if (std::find(prefix.begin(), prefix.end(), labelSeq[i]) == 
+                                                                 prefix.end()) {
+              reducedSeq.push_back(labelSeq[i]);
+            }
+    //         cout << "     projection(<" << labelSeq[pos] << ">) : "
+    //               << agg->print(reducedSeq) << endl;
+          }
+          if (!reducedSeq.empty()) {
+            projections[labelSeq[pos]].push_back(reducedSeq);
+            projPresent[labelSeq[pos]] = true;
+            reducedSeq.clear();
+          }
+        }
       }
     }
   }
@@ -1966,7 +1989,7 @@ void ProjectedDB::construct() {
   while ((tuple = it->GetNextTuple())) {
     ml = (MLabel*)(tuple->GetAttribute(agg->attrPos.first));
     agg->getLabelSeqFromMLabel(ml, labelSeq);
-    addProjections(labelSeq);
+    addProjections(labelSeq, UINT_MAX); // add all available projections
     tuple->DeleteIfAllowed();
   }
   delete it;
@@ -1986,8 +2009,7 @@ void ProjectedDB::construct() {
   }
   computeSMatrix(freqLabels, freqMatrixPos);
   cout << "flPos: " << agg->print(freqLabelPos) << endl << "S-Matrix:" << endl
-       << smatrix.print() << endl << "fPos = " << agg->print(freqMatrixPos) 
-       << endl;
+       << smatrix.print() << endl;
 }
 
 /*
@@ -2105,63 +2127,95 @@ void ProjectedDB::minePDBSMatrix(vector<unsigned int>& prefix,
   labelCounter.resize(freqLabelPos.size(), 0);
   vector<bool> counted;
   counted.resize(freqLabelPos.size(), false);
-  string atom;
+  string atom, pattern;
+  vector<string> atoms;
   set<TupleId> commonTupleIds;
   vector<unsigned int> freqLabels;
-  if (secondLast == 0 && last == 5) { // TODO: remove this line
-    ProjectedDB *pdb = new ProjectedDB(minSupp, minSuppCnt, agg, 
-                                      freqLabelPos.size());
-    for (auto seq : projections[secondLast]) {
-      pdb->addProjections(seq, last);
-    }
-    cout << "Prefix " << agg->print(prefix) << " : " << endl;
-    for (unsigned int i = 0; i < pdb->projections.size(); i++) {
-      cout << "   pos " << i << " : " 
-          << nl->ToString(projToListExpr(pdb->projections[i])) << endl;
-    }
-    cout << "  last is " << last << "   " << endl;
-    for (auto seq : pdb->projections[last]) {
-      cout << "  count sequence " << agg->print(seq) << endl;
-      for (auto label : seq) {
-        if (!counted[label]) {
-          labelCounter[label]++;
-          counted[label] = true;
-        }
-      }
-      counted.resize(freqLabelPos.size(), false);
-    }
-    cout << "labelCounter: " << agg->print(labelCounter) << endl;
-    // build patterns for frequently occurring labels in projections
-    for (unsigned int i = 0; i < labelCounter.size(); i++) {
-      if (labelCounter[i] >= minSuppCnt) {
-        freqLabels.push_back(freqLabelPos[i]);
-        pdb->freqLabelPos.push_back(freqLabelPos[i]);
-        cout << "  pushed back " << freqLabelPos[i] << endl;
-        if (prefix.size() + 1 >= minNoAtoms) {
-          agg->buildAtom(freqLabelPos[i], agg->entries[freqLabelPos[i]],
-                        commonTupleIds, atom);
-          agg->results.push_back(NewPair<string, double>(patPrefix + " " + atom,
-            double(agg->entries[freqLabelPos[i]].occs.size()) / agg->noTuples));
-        }
+  ProjectedDB *pdb = new ProjectedDB(minSupp, minSuppCnt, agg, 
+                                    freqLabelPos.size());
+  for (auto seq : projections[secondLast]) {
+    pdb->addProjections(seq, last, prefix);
+  }
+  cout << "Prefix " << agg->print(prefix) << " : " << endl;
+  for (unsigned int i = 0; i < pdb->projections.size(); i++) {
+    cout << "   pos " << i << " : " 
+        << nl->ToString(projToListExpr(pdb->projections[i])) << endl;
+  }
+  for (auto seq : pdb->projections[last]) {
+    cout << "  count sequence " << agg->print(seq) << endl;
+    for (auto label : seq) {
+      if (!counted[label]) {
+        labelCounter[label]++;
+        counted[label] = true;
       }
     }
-    // build S-matrix
-    pdb->smatrix.init(pdb->freqLabelPos.size());
-    cout << "build S-matrix for freqLabels " << agg->print(freqLabels) << endl;
-    for (auto seq : pdb->projections[last]) {
-      for (unsigned int i = 0; i < seq.size(); i++) {
-        if (labelCounter[seq[i]] >= minSuppCnt) {
-          for (unsigned int j = i + 1; j < seq.size(); j++) {
-            if (labelCounter[seq[j]] >= minSuppCnt) {
-              pdb->smatrix.increment(i, j);
+    counted.assign(freqLabelPos.size(), false);
+  }
+  cout << "labelCounter: " << agg->print(labelCounter) << endl;
+  // build patterns for frequently occurring labels in projections
+  map<unsigned int, unsigned int> matrixPos;
+  for (unsigned int i = 0; i < labelCounter.size(); i++) {
+    if (labelCounter[i] >= minSuppCnt) {
+      freqLabels.push_back(freqLabelPos[i]);
+      matrixPos[freqLabels[freqLabels.size() - 1]] = freqLabels.size() - 1;
+      pdb->freqLabelPos.push_back(freqLabelPos[i]);
+      agg->buildAtom(freqLabelPos[i], agg->entries[freqLabelPos[i]],
+                     commonTupleIds, atom);
+      atoms.push_back(atom);
+      if (prefix.size() + 1 >= minNoAtoms) {
+        agg->results.push_back(NewPair<string, double>(patPrefix + " " + atom,
+                                      double(labelCounter[i]) / agg->noTuples));
+      }
+    }
+  }
+  if (prefix.size() + 2 > maxNoAtoms) {
+    return;
+  }
+  // build S-matrix
+  pdb->smatrix.init(pdb->freqLabelPos.size());
+  cout << "build S-matrix for freqLabels " << agg->print(freqLabels) << endl;
+  for (auto seq : pdb->projections[last]) {
+    for (unsigned int i = 0; i < seq.size(); i++) {
+      if (labelCounter[seq[i]] >= minSuppCnt) {
+        for (unsigned int j = i + 1; j < seq.size(); j++) {
+          if (labelCounter[seq[j]] >= minSuppCnt) {
+            pdb->smatrix.increment(matrixPos[seq[i]], matrixPos[seq[j]]);
+            if (pdb->smatrix(matrixPos[seq[i]], matrixPos[seq[j]]) == 
+                                                                   minSuppCnt) {
+              pdb->freqMatrixPos.push_back(NewPair<unsigned int, unsigned int>
+                                        (matrixPos[seq[i]], matrixPos[seq[j]]));
             }
           }
         }
       }
     }
-    cout << pdb->smatrix.print() << endl;
-    
-  } // TODO: remove this line
+  }
+  cout << pdb->smatrix.print() << " freqMatrixPos = {";
+  for (auto it : pdb->freqMatrixPos) {
+    cout << "(" << it.first << ", " << it.second << ") ";
+  }
+  cout << "}" << endl;
+  // report frequent matrix positions
+  for (auto fPos : pdb->freqMatrixPos) {
+    if (std::find(prefix.begin(), prefix.end(), 
+                  pdb->freqLabelPos[fPos.first]) == prefix.end() &&
+        std::find(prefix.begin(), prefix.end(), 
+                  pdb->freqLabelPos[fPos.second]) == prefix.end()) {
+      prefix.push_back(pdb->freqLabelPos[fPos.first]);
+      prefix.push_back(pdb->freqLabelPos[fPos.second]);
+      pattern = patPrefix + " " + atoms[fPos.first] + " " + atoms[fPos.second];
+      if (prefix.size() >= minNoAtoms) {
+        agg->results.push_back(NewPair<string, double>(pattern,
+                (double)pdb->smatrix(fPos.first, fPos.second) / agg->noTuples));
+      }
+      if (prefix.size() + 1 <= maxNoAtoms) {
+        pdb->minePDBSMatrix(prefix, pattern, minNoAtoms, maxNoAtoms);
+      }
+      prefix.pop_back();
+      prefix.pop_back();
+    }
+  }
+  delete pdb;
 }
 
 /*
