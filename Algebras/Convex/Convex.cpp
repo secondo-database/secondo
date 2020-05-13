@@ -108,8 +108,6 @@ namespace convex {
    2.1 constructors
   
 */
-    
-
 Convex::Convex(const Convex& src):Attribute(src),value(0),size(src.size){
   if(size>0){
      value = new Point[size];
@@ -182,8 +180,10 @@ void Convex::setTo(const std::vector<std::tuple <double, double>>& src){
     
          
          
-     /* converting the right tuple vector into point sequence  */   
+/*
+   converting the right tuple vector into point sequence  
       
+*/   
          while(it!=src.end()) {
            
          temptup = *it;
@@ -210,9 +210,6 @@ void Convex::setTo(const std::vector<std::tuple <double, double>>& src){
   3.1 auxillary  functions
   
 */
-
-
-
 bool sortyupxup(const tuple<double, double>& a,  
                    const tuple<double, double>& b) 
 { 
@@ -326,7 +323,6 @@ void rmvredundpoints (std::vector<std::tuple<double, double>>& ppoi) {
   3.2 checkme function
   
 */
-
 int checkme(std::vector<std::tuple <double, double>>& src, bool checkactive){
       
       
@@ -392,38 +388,33 @@ int checkme(std::vector<std::tuple <double, double>>& src, bool checkactive){
   
     
 
-/* sorting vecs by x resp. y coord */ 
-
-
- sort(yxsortedvecasc.begin(), yxsortedvecasc.end(), sortyupxdown);          
-
-
- /*eliminate redundant points */
-       
+/* 
+ sorting vecs by x resp. y coord  
+ 
+*/
+sort(yxsortedvecasc.begin(), yxsortedvecasc.end(), sortyupxdown);
+ 
+ /*
+  eliminate redundant points 
+  
+ */       
    rmvredundpoints(xysortedvecasc);  
      
-       
-       
-       
-       
-   /* 
-   get leftpoint and right point of polygon
-   */
-
-
+ /* 
+ get leftpoint and right point of polygon
+   
+ */
     leftpoint = xysortedvecasc[0];
     rightpoint = xysortedvecasc[xysortedvecasc.size() - 1];
     downpoint = yxsortedvecasc[0];
     uppoint = yxsortedvecasc[yxsortedvecasc.size() - 1];
-   
-   
-        
+    
    
    /* 
    get points above and below the imagenary "line" 
    from leftpoint to rightpoint
+   
    */   
-    
     m = (get<1>(rightpoint) - get<1>(leftpoint)) / 
         (get<0>(rightpoint) - get<0>(leftpoint));
     
@@ -456,7 +447,7 @@ int checkme(std::vector<std::tuple <double, double>>& src, bool checkactive){
        
         
           
- /* 
+/* 
 move points above and below to 
 aboveleft, aboveright, belowleft and belowright.
 using the "line" from downpoint to uppoint
@@ -464,8 +455,8 @@ using the "line" from downpoint to uppoint
 get points above and below the imagenary "line" from downpoint to uppoint
     
 first: testing if point are perpendicular
- */    
-    
+
+*/  
   belowright.clear();
   aboveright.clear();
   belowleft.clear();
@@ -485,13 +476,7 @@ first: testing if point are perpendicular
     
       }
   
-  
-  
-  
-     
-  
-  
-  
+    
   
    if (get<0>(uppoint) != get<0>(downpoint)) { 
     
@@ -561,10 +546,10 @@ first: testing if point are perpendicular
      
    
    
-  /* 
+/* 
   uppoint and downpoint are perpendicular 
-  */
-
+  
+*/
    if (get<0>(uppoint) == get<0>(downpoint) ) {
        
        for (unsigned int i = 0; i < above.size(); i++)  {
@@ -613,19 +598,33 @@ first: testing if point are perpendicular
      
      
     
-   /* sorting aboveleft, ab aboveright, belowright and belowleft... */
+/* 
+  sorting aboveleft, ab aboveright, belowright and belowleft... 
+    
+*/
    
-   /* aboveleft is already sorted: x up , y up  */
-   
+/* 
+ aboveleft is already sorted: x up , y up  
+    
+*/   
    sort(aboveleft.begin(), aboveleft.end(), sortxupyup);
    
-   /* sorting aboveright: x up, y down  */ 
+/* 
+  sorting aboveright: x up, y down 
+    
+*/ 
   sort(aboveright.begin(), aboveright.end(), sortxupydown); 
        
-  /* sorting belowright: x down, y down  */
+/* 
+  sorting belowright: x down, y down 
+   
+*/
   sort(belowright.begin(), belowright.end(), sortxdownydown); 
     
-  /* sorting belowleft: x down,  y up  */
+/*
+  sorting belowleft: x down,  y up  
+   
+*/
   sort(belowleft.begin(), belowleft.end(), sortxdownyup); 
   
   
@@ -633,6 +632,7 @@ first: testing if point are perpendicular
       
    /*
     constructing the final vector
+    
    */
    
    finalcheckedvec.clear();
@@ -686,11 +686,7 @@ first: testing if point are perpendicular
      } 
  
  
- 
   
-   
- 
- 
   if (checkactive == false)
     { 
                 
@@ -700,9 +696,10 @@ first: testing if point are perpendicular
     
    
    
-  /* 
-  put left point at the end of the final vec for testing purposes
-  */ 
+/* 
+ put left point at the end of the final vec for testing purposes
+  
+*/ 
    
    finalcheckedvec.push_back(leftpoint);
    
@@ -719,7 +716,7 @@ first: testing if point are perpendicular
     
     
     ErrorReporter::ReportError(
-                "2The coordinates do not form a convex polygon");  
+                "The coordinates do not form a convex polygon");  
    return 0;  
        
        
@@ -734,10 +731,10 @@ first: testing if point are perpendicular
    firstperpend = true; 
    setfperflag = true;
   
-   /*
-   set mlast > mnew as start value
-   */
+/*
+set mlast > mnew as start value
    
+*/   
    mlast = 1;
    mnew = 0;   
    
@@ -754,8 +751,11 @@ first: testing if point are perpendicular
    
    firstmflag = true;
    
-   mnew = mlast - 1; // just a dummy value
-       
+   mnew = mlast - 1; 
+/*
+just a dummy value
+     
+*/       
   }
    
    
@@ -767,9 +767,10 @@ first: testing if point are perpendicular
      
      
      
-     /*
-     begin sector 2 case
-     */
+/*
+ begin sector 2 case
+     
+*/
       
        
     
@@ -831,15 +832,25 @@ first: testing if point are perpendicular
        
              firstmflag = true;
    
-              mnew = mlast - 1; // just a dummy value
+              mnew = mlast - 1; 
+              
+/* 
+just a dummy value
+               
+*/
        
              }   
     }  
-    /* end of sectorflag == 2 case */
+/*
+end of sectorflag == 2 case
+     
+*/
       
-      
-      
-   /* begin sector 3 case */
+       
+/* 
+ begin sector 3 case 
+    
+*/
       
      if (actpoint == rightpoint){
         intermpoint = downpoint;
@@ -885,8 +896,10 @@ first: testing if point are perpendicular
    firstperpend = true; 
    setfperflag = true;
   
-   /* set mlast > mnew as start value; */
-   
+/* 
+set mlast > mnew as start value; 
+    
+*/  
    mlast = 1;
    mnew = 0;   
    
@@ -902,19 +915,27 @@ first: testing if point are perpendicular
    firstmflag = true;
    
    mnew = mlast - 1; 
-   /* just a dummy value */
-       
+/* 
+just a dummy value 
+    
+*/      
   }
    
        
       
     } 
     
-    /*  end of    sectorflag == 3 case */
+/*
+end of    sectorflag == 3 case
+     
+*/
       
       
       
-     /* begin sector 4 case */
+/*
+  begin sector 4 case
+      
+*/
         
         
         
@@ -974,12 +995,16 @@ first: testing if point are perpendicular
              firstmflag = true;
    
               mnew = mlast - 1; 
-              /* just a dummy value */
-       
+/* 
+just a dummy value 
+               
+*/       
              }   
              
-             /* end of sector 4 case */
-    
+/*
+  end of sector 4 case 
+              
+*/    
     }
     
     
@@ -1056,8 +1081,10 @@ first: testing if point are perpendicular
                     
                     else {
                         
-                      /* mlast ist the first m value */
-                      
+/* 
+mlast ist the first m value
+                       
+*/                      
                       mnew = (get<1>(finalcheckedvec[iter+1] ) - 
                               get<1>(actpoint)) / 
                              (get<0>(finalcheckedvec[iter+1]) - 
@@ -1191,8 +1218,10 @@ first: testing if point are perpendicular
                     
                     else {
                         
-                      /* mlast ist the first m value */
-                      
+/*
+  mlast ist the first m value 
+                       
+*/                      
                       if  (get<0>(finalcheckedvec[iter+1]) != 
                            get<0>(actpoint)) {
                           
@@ -1275,18 +1304,19 @@ first: testing if point are perpendicular
    
   
     } 
-    /* end of switch */
-    
-    
-    
+/*
+  end of switch 
      
+*/     
    if  (okflag == false) break; 
    iter++; 
    
    }
    
-    /* end of while */
-    
+/* 
+end of while 
+     
+*/    
     finalcheckedvec.pop_back();
    
     src = finalcheckedvec;   
@@ -1308,7 +1338,10 @@ first: testing if point are perpendicular
 
  } 
  
- /* the end of checkme */
+/* 
+ the end of checkme 
+  
+*/
 
 
 /*
@@ -1316,9 +1349,6 @@ first: testing if point are perpendicular
   4.1   Compare and HasValue 
   
 */
- 
- 
-
 int Convex::Compare(const Convex& arg) const {
    if(!IsDefined()){
       return arg.IsDefined()?-1:0;
@@ -1366,7 +1396,6 @@ size_t Convex::HashValue() const {
   5.1 In functions
   
 */
-
 Word Convex::In(const ListExpr typeInfo, const ListExpr le1,
                 const int errorPos, ListExpr& errorInfo, bool& correct) {
 
@@ -1467,22 +1496,27 @@ Word Convex::In(const ListExpr typeInfo, const ListExpr le1,
      
      
     
-   /* 
-   contructing the vektor of tuples       
-   */
+  /* 
+   contructing the vektor of tuples  
    
+  */   
    tmpo.push_back(std::make_tuple(nl->RealValue(fxpoi), nl->RealValue(fypoi)));
    
    
        
    } 
    
-   /* end of while */
+  /*
+    end of while 
+    
+  */
    
    
    
-   /* CHECKME Call  */
-   
+  /*
+  CHECKME Call 
+    
+  */   
    checkokflag = checkme(tmpo, true);
    
   
@@ -1518,9 +1552,7 @@ Word Convex::In(const ListExpr typeInfo, const ListExpr le1,
  
   5.1 Out function
   
-*/
-   
-   
+*/   
 ListExpr Convex::Out(const ListExpr typeInfo, Word value) {
   
   Convex* is = (Convex*) value.addr;
@@ -1563,9 +1595,6 @@ ListExpr Convex::Out(const ListExpr typeInfo, Word value) {
   6.1 Open and save function
   
 */
-
-
-
 bool Convex::Open( SmiRecord& valueRecord, size_t& offset, 
            const ListExpr typeInfo, Word& value){
 
@@ -1661,8 +1690,6 @@ void Convex::Rebuild(char* buffer, size_t sz) {
   7.1 Auxillary print function 
   
 */
-
-
 std::ostream& Convex::Print( std::ostream& os ) const {
     if(!IsDefined()){
        os << "undefined";
@@ -1693,10 +1720,10 @@ std::ostream& Convex::Print( std::ostream& os ) const {
 */
 
 
-/* 8.1.1 createconvextypemap
+/* 
+8.1.1 createconvextypemap
  
- */
-
+*/
 ListExpr createconvextypemap( ListExpr args)
 { 
   
@@ -1734,10 +1761,10 @@ ListExpr createconvextypemap( ListExpr args)
 
 
 
-/* 8.1.2 voronoitypemap
+/* 
+ 8.1.2 voronoitypemap
  
- */
-
+*/
 ListExpr voronoitypemap ( ListExpr args)
 
 {   
@@ -1805,7 +1832,10 @@ ListExpr voronoitypemap ( ListExpr args)
     namenewattr = nl->Third(args);
     
     
-     /* copy attrlist to newattrlist */
+ /*
+  copy attrlist to newattrlist
+      
+ */
   ListExpr attrList = nl->Second(nl->Second(stream));
   ListExpr newAttrList = nl->OneElemList(nl->First(attrList));
   ListExpr lastlistn = newAttrList;
@@ -1818,7 +1848,10 @@ ListExpr voronoitypemap ( ListExpr args)
      attrList = nl->Rest(attrList);
   }
 
-  /* reset attrList */
+ /* 
+   reset attrList 
+   
+ */
   attrList = nl->Second(nl->Second(stream));
   
   
@@ -1935,9 +1968,10 @@ int createconvexVM (Word* args, Word& result,
    
   
         
-   /* contructing the vektor of tuples */   
-   
-   
+/* 
+contructing the vektor of tuples
+    
+*/  
    temp.push_back(std::make_tuple(elem->GetX(), elem->GetY()));
    
   }
@@ -2041,8 +2075,10 @@ int voronoiVM (Word* args, Word& result, int message, Word& local, Supplier s)
 switch (message)
   
 {
-      
-   
+/*
+voronoiVM-open 
+        
+*/   
       case OPEN: { 
  
         
@@ -2057,7 +2093,7 @@ switch (message)
        ListExpr attrsave = qp->GetType(qp->GetSon(s,0));
        ListExpr attrsave2 = nl->Second(nl->Second(attrsave));
        
-       //int count;      
+       
        int counter = 0; 
        int counttup = 0;
              
@@ -2142,8 +2178,10 @@ switch (message)
    
    
        
-   /* storing pointpos in localInfo */
-   
+/*
+  storing pointpos in localInfo
+    
+*/   
    localInfo->pointposition = pointpos;
    
    
@@ -2154,7 +2192,10 @@ switch (message)
    
    else {
    
-    /* storing bool pn localInfo */
+/*
+storing bool in localInfo
+     
+*/
      localInfo->checkon = ((CcBool*)args[4].addr)->GetBoolval(); 
    }
        
@@ -2166,11 +2207,17 @@ switch (message)
      
      attrsave2 = nl->Rest(attrsave2);
      
-     /* counting the attributes*/ 
+/*
+counting the attributes
+      
+*/
      counter++;
      }
      
-     /*Init localInfo */
+/*
+  Init localInfo 
+      
+*/
      localInfo->attrcount = counter;     
      
            
@@ -2193,13 +2240,19 @@ switch (message)
    while(qp->Received(args[0].addr))
       { 
  
-        /* storing tuples in localInfo*/
+/*
+  storing tuples in localInfo
+         
+*/
         Tuple *tup2 = (Tuple*)tee.addr;
         localInfo->rel->AppendTuple( tup2 );
         
         counttup++;
         
-        /*Setting up the VoroPoint vector */
+ /*
+ Setting up the VoroPoint vector 
+         
+ */
      Point* pointval = static_cast<Point*>(tup2->GetAttribute(pointpos-1));
         
      if(pointval->IsDefined()) {
@@ -2230,7 +2283,10 @@ switch (message)
        
        
        
-     /*constructing the voronoi diagramm using the boost library */
+ /*
+ constructing the voronoi diagramm using the boost library
+      
+ */
      construct_voronoi(voropoints.begin(), voropoints.end(), &vorodiag);
      
      
@@ -2262,11 +2318,10 @@ switch (message)
           const voronoi_diagram<double>::edge_type* edge = cell.incident_edge();
 
 
-    /* iterate edges around voronoi cell */
-
-
-  
-  
+  /*
+    iterate edges around voronoi cell
+     
+  */  
   do {
       if (true) {
 
@@ -2312,7 +2367,10 @@ switch (message)
       
         
         
-        /* edgepoint not set yet*/
+   /*
+     edgepoint not set yet
+         
+   */
         if (iterone == normaledgepoints2normalcenters.end())   {
             
                     
@@ -2325,9 +2383,10 @@ switch (message)
             
           }
              
-        /* edgepoint entry exists already*/
-        
-        
+   /* 
+    edgepoint entry exists already
+         
+   */        
            else {
                
            normaledgepoints2normalcenters.at(edgepoitemp1).push_back(
@@ -2341,7 +2400,10 @@ switch (message)
         
         iterone = normaledgepoints2normalcenters.find(edgepoitemp2);
       
-         /* edgepoint not set yet*/
+   /*
+     edgepoint not set yet
+          
+   */
         if (iterone == normaledgepoints2normalcenters.end())   {
             
                     
@@ -2354,9 +2416,10 @@ switch (message)
             
           }
              
-        /* edgepoint entry exists already*/
-        
-        
+   /*
+     edgepoint entry exists already
+         
+    */        
            else {
                
            normaledgepoints2normalcenters.at(edgepoitemp2).push_back
@@ -2420,7 +2483,10 @@ switch (message)
       
         
         
-        /* edgepoint not set yet*/
+   /*
+     edgepoint not set yet
+         
+   */
         if (itedge == infedgepoints2centers.end())   {
          
          vectemp3.push_back(center);   
@@ -2437,9 +2503,10 @@ switch (message)
             
           }
              
-        /* edgepoint entry exists already*/
-        
-        
+   /*
+     edgepoint entry exists already
+         
+   */        
            else {
                
            infedgepoints2centers.at(edgepoitemp4).push_back(center);
@@ -2512,18 +2579,23 @@ switch (message)
    (center, voropoi));
  
    
-     voropoi.clear();    //cleared for the next cell
-     
+     voropoi.clear();    
+ /*
+   cleared for the next cell
+ */     
     }  
    
   
-     /* setting up border handling of the voronoi cells  */
+ /*
+   setting up border handling of the voronoi cells  
+      
+ */  
      
      
-     
-     /* remove redundant points*/
-   
-    
+ /*
+   remove redundant points
+      
+ */   
     rmvredundpoints(allpoints);
       
     rmvredundpoints(infedgecenter);
@@ -2536,11 +2608,10 @@ switch (message)
     
     
      
-    /* compute minx, maxx, miny and maxy from allpoints*/
-    
+ /*
+     compute minx, maxx, miny and maxy from allpoints
      
-  
-    
+ */   
     sort(allpoints.begin(), allpoints.end(), sortyupxup); 
     
     miny = get<1>(allpoints[0]);
@@ -2555,12 +2626,16 @@ switch (message)
    
     
     
-  /* Voronoi Border handling */   
-    
-    
+ /* 
+   Voronoi Border handling
+   
+ */   
    
     
-  /* testing if box is fitting and rectangle value defined*/ 
+ /*
+    testing if box is fitting and rectangle value defined
+   
+ */ 
     
    if ( (rectme->IsDefined()) &&  
        
@@ -2568,8 +2643,10 @@ switch (message)
          (rectme->MinD(1) < miny) && (rectme->MaxD(1) > maxy) )  ) {
        
      
-   /* receiving box points from rectangle*/        
-           
+ /*
+   receiving box points from rectangle
+   
+ */           
      belowleftx = rectme->MinD(0);
      belowlefty = rectme->MinD(1);
    
@@ -2585,12 +2662,11 @@ switch (message)
      
    }
      
-    /*
-    use the dafault box if box is not fitting  or 
-    if rectangle value is undefined 
-    */ 
-       
-      
+/*
+  use the dafault box if box is not fitting  or 
+  if rectangle value is undefined 
+        
+*/      
     else {
         
      stretchx = (abs(maxx - minx)) / 4;
@@ -2616,9 +2692,10 @@ switch (message)
    
     
     
-  /* construct box points */ 
+ /* 
+   construct box points
    
-   
+ */  
   aboveleft = std::make_tuple(aboveleftx, abovelefty);
   aboveright = std::make_tuple(aboverightx, aboverighty);
   belowright = std::make_tuple(belowrightx, belowrighty);
@@ -2634,13 +2711,11 @@ switch (message)
   
           
     
-    /* 
-    constructing a point and the corresponding 
-    straight line equation for infinite edges
-    */
+ /* 
+   constructing a point and the corresponding 
+   straight line equation for infinite edges
     
-     
-    
+ */   
     for (unsigned int i = 0; i <  infedgepoints.size(); i++)  {
         
               
@@ -2672,11 +2747,11 @@ switch (message)
         double ysecond = get<1>(infovec6);
          
           
-        /*
-         The result point lies on the corresponding 
-         straight line equation of the infinite edge
-        */
-        
+/*
+  The result point lies on the corresponding 
+  straight line equation of the infinite edge
+         
+*/        
         double resultx = (xfirst + xsecond) / 2;
         double resulty = (yfirst + ysecond) / 2;
         
@@ -2687,29 +2762,28 @@ switch (message)
              !(AlmostEqual(xfirst, xsecond)) &&
              
             !(yfirst == ysecond) &&
-            !(AlmostEqual(yfirst, ysecond)) )  {
-            
+            !(AlmostEqual(yfirst, ysecond)) )  {      
           
-        /*
-         m and b are the straight line equation parameters  for the line
-         that goes through the 2 center points. f(x) = m*x + b 
-         We only need the gradient m here.
-        */
-        
-        
-        double  m = (ysecond - yfirst) / (xsecond - xfirst);
+/*
+   m and b are the straight line equation parameters for the line
+   that goes through the 2 center points. 
+   We only need the gradient m here.   
+   
+*/ 
+
+  double  m = (ysecond - yfirst) / (xsecond - xfirst);
     
        
         
-        /*
-         mm and bb are the straight line equation parameters  for the line
-         that goes through the infinte edge between the 2 centers
-         The two straight lines are always perpendicular to each other, 
-         so you can determine  mm from m.        
-        */
-              
-        double mm = - 1/m;
-        double bb = resulty - (mm * resultx);
+/*
+   mm and bb are the straight line equation parameters  for the line
+   that goes through the infinte edge between the 2 centers
+   The two straight lines are always perpendicular to each other, 
+   so you can determine  mm from m.  
+         
+*/              
+       double mm = - 1/m;
+       double bb = resulty - (mm * resultx);
         
         
        
@@ -2721,7 +2795,10 @@ switch (message)
         itlineparam = infedgepoi2lineparam.find(infedgepoints[i]);
 
         
-         /* edgepointto param not set*/
+/*
+   edgepointto param not set
+        
+*/
         if (itlineparam == infedgepoi2lineparam.end())   {
          
          paramvec.push_back(param);   
@@ -2736,9 +2813,10 @@ switch (message)
             
           }
              
-        /* edgepoint entry exists already*/
-        
-        
+/*
+  edgepoint entry exists already
+         
+*/        
            else {
                
            infedgepoi2lineparam.at(infedgepoints[i]).push_back(param);
@@ -2756,8 +2834,10 @@ switch (message)
          
         
         }   
-            /* the 2 centers form a straight line with gradient 0 */
-                      
+/*
+   the 2 centers form a straight line with gradient 0 
+             
+*/                      
          else if ( (yfirst == ysecond) || (AlmostEqual(yfirst, ysecond)) ) {
          
         
@@ -2768,12 +2848,17 @@ switch (message)
          std::tuple<double, double> dummytup = std::make_tuple(dummy ,dummy);
           std::vector<std::tuple<double, double>> paramvec2; 
              
-         /* just pushing an infinty value for identification purposes*/ 
-         
+/*
+  just pushing an infinty value for identification purposes
+          
+*/         
         itlineparam = infedgepoi2lineparam.find(infedgepoints[i]);
 
         
-         /* edgepointto param not set*/
+/*
+   edgepointto param not set
+          
+*/
         if (itlineparam == infedgepoi2lineparam.end())   {
          
          paramvec2.push_back(dummytup);   
@@ -2788,9 +2873,10 @@ switch (message)
             
           }
              
-        /* edgepoint entry exists already*/
-        
-        
+/*
+  edgepoint entry exists already
+         
+*/        
            else {
                
            infedgepoi2lineparam.at(infedgepoints[i]).push_back(dummytup);
@@ -2807,8 +2893,10 @@ switch (message)
          else {
          
                          
-         /* the two centers are perpendicular */
-         
+/*
+ the two centers are perpendicular
+          
+*/         
          double mmm = 0;
          double bbb = resulty - (mmm * resultx);
          
@@ -2820,8 +2908,10 @@ switch (message)
          itlineparam = infedgepoi2lineparam.find(infedgepoints[i]);
          
          
-          /* edgepointto param not set*/
-       
+/* 
+ edgepointto param not set
+           
+*/       
          if (itlineparam == infedgepoi2lineparam.end())   {
          
          paramvec3.push_back(para);   
@@ -2838,9 +2928,10 @@ switch (message)
             
           }
              
-        /* edgepoint entry exists already*/
-        
-        
+/* 
+ edgepoint entry exists already
+         
+*/        
            else {
                
            infedgepoi2lineparam.at(infedgepoints[i]).push_back(para);
@@ -2856,31 +2947,36 @@ switch (message)
           
          
          }
-        // end of second for  
-             
+/*
+   end of second for
+         
+*/             
        }
-       // nothing has to be done here 
-       
+ /* 
+   nothing has to be done here 
+        
+ */        
        }
        
-       // no entry found, should not happen 
-      }
+ /* 
+    no entry found, should not happen 
+         
+ */
+        
+    }
     
-       // end of first for
+/* 
+  end of first for
+        
+*/ 
+        
+        
     
-    
-    
-    
-    
-    
-    
-    
-    
-    /* Calculating points on the border lines 
-       and the correpondending cells*/
-    
-    
-  
+/* 
+ Calculating points on the border lines 
+ and the correpondending cells
+       
+*/  
     for (unsigned int i = 0; i <  infedgepoints.size(); i++)  {
        
                
@@ -2908,18 +3004,14 @@ switch (message)
             
        std::vector<std::tuple<double, double>> vec =
            infedgepoints2centers.at(infedgepoints[i]);
-          
-        
-        /* the correspondening centers tp line parameters at vector position 
-           k are 2*k and 2*k +1
-        */
-        
-            
+           
+/* 
+ get center coords
+       
+*/      
         std::tuple<double, double> center1 = vec[2*j];
         
-        std::tuple<double, double> center2 = vec[(2*j) + 1]; 
-               
-             
+        std::tuple<double, double> center2 = vec[(2*j) + 1];       
                
         double xfirst = get<0>(center1);
         double xsecond = get<0>(center2);
@@ -2942,8 +3034,10 @@ switch (message)
         
         
        
-       /* normaledgepoints2normalcenters output */
+ /*
+   normaledgepoints2normalcenters output
         
+ */        
     iterone = normaledgepoints2normalcenters.find(infedgepoints[i]); 
     
    if (iterone !=  normaledgepoints2normalcenters.end()) {
@@ -2986,9 +3080,10 @@ switch (message)
        (get<1>(testp1) >= get<1>(testpfinal))) ); 
   
   
-  /*change testpfinal if necessary */
-  
-  
+ /*
+   change testpfinal if necessary 
+   
+ */   
   if (cond1 == true) {
                   
       testpfinal = testp1;
@@ -2998,7 +3093,17 @@ switch (message)
      }
        
        
+  if ( ((cond1 != true) && (get<0>(testcenter) > get<0>(testp1)) && 
+       (get<1>(testcenter) > get<1>(testp1))) ||
+        
+       ((cond1 != true) && (get<0>(testcenter) < get<0>(testp1)) && 
+       (get<1>(testcenter) < get<1>(testp1))) ) {
        
+       testpfinal = testp1;
+       scale = 30;
+       scalereset = true;     
+       }
+        
              
         testpointstretch = diaglenght/scale;
        
@@ -3045,8 +3150,10 @@ switch (message)
        
         
         
-        /*Euklidien distance to  testcenter*/
-        
+/*
+  Euklidien distance to  testcenter
+         
+*/        
         double distinfedgpoitotestcenter = sqrt 
                                            (pow (get<0>(testpfinal) - 
                                             get<0>(testcenter), 2) +
@@ -3074,9 +3181,10 @@ switch (message)
         
               
         
-        /*looking for points added to center voropoints */
-        
-        
+/*
+  looking for points added to center voropoints
+         
+*/        
       if ( (distinfedgpoitotestpoint1 >  distinfedgpoitotestcenter)  && 
            ( (distinfedgpoitotestpoint2 <=  distinfedgpoitotestcenter) ||
              (distinfedgpoitotestpoint1 >  distinfedgpoitotestpoint2)))   {
@@ -3097,8 +3205,10 @@ switch (message)
                         
              }
             
-              /* case m<0 */
-              
+/*
+ case m<0
+               
+*/              
               else if (m<0)   {
                   
                    
@@ -3142,9 +3252,10 @@ switch (message)
                  }              
                                      
                    
-                /* case m>0 */      
-               
-                
+/* 
+case m>0 
+                 
+*/          
                 else 
                     
                 {            
@@ -3201,10 +3312,11 @@ switch (message)
          
          
          
-         
-         
-        
-        else if  ( (distinfedgpoitotestpoint2 >  distinfedgpoitotestcenter)  && 
+/*
+ case m=0 
+                 
+*/
+       else if  ( (distinfedgpoitotestpoint2 >  distinfedgpoitotestcenter)  && 
            ( (distinfedgpoitotestpoint1 <=  distinfedgpoitotestcenter) ||
              (distinfedgpoitotestpoint2 >  distinfedgpoitotestpoint1)))    {
             
@@ -3223,9 +3335,10 @@ switch (message)
                                                     get<1>(infedgepoints[i]));
                         
                      }
-                
-                
-                
+/* 
+ case m<0 
+                 
+*/           
                     else if (m<0) {                        
                         
                       std::tuple<double, double> newpoint1cand1;
@@ -3273,8 +3386,10 @@ switch (message)
                         
                     }
                 
-                
-                
+/* 
+  case m>0 
+                 
+*/                
                 else {
                    
                     std::tuple<double, double> newpoint1cand1;
@@ -3324,29 +3439,34 @@ switch (message)
            }
                 
                 
-      /*nothing is done here */ 
-                 
-            
-      } //end of second for
-     
-    } //end of first if
-   
+/*
+   nothing is done here 
+       
+*/           
+      }
+      
+/*
+ end of second for
+      
+*/
+          
+    } 
+/*
+ end of first if
+    
+*/   
     } 
         
-     /*end of for*/
+/*
+  end of for
+      
+*/
              
       
-        
-      
-    
- 
-           
-        
-        
-        
-    /* distribute the 4 box edge points to the right voronoicells*/   
-        
-    
+/* 
+ distribute the 4 box edge points to the right voronoicells
+     
+*/   
     for (unsigned int i = 0; i < infedgecenter.size(); i++)  {
          int countymaxvals = 0; 
          int countyminvals = 0;
@@ -3356,8 +3476,13 @@ switch (message)
         
          std::vector<std::tuple<double, double>> infovec =
          localInfo->center2vorpoi.at(infedgecenter[i]);
-        
-        
+         
+         
+         
+/* 
+   counting the cases 
+         
+*/      
        for (unsigned int j = 0; j < infovec.size(); j++) {
        
        
@@ -3374,7 +3499,10 @@ switch (message)
          }
          
         
+/* 
+  distribute the new points 
          
+*/   
          
          
          if ((countxminvals == 1) && (countyminvals == 1)) {
@@ -3418,7 +3546,10 @@ switch (message)
                                                         
               }                                      
                                                         
-                                                        
+/* 
+special case
+         
+*/                                               
           else if ( (countyminvals == 1) && (countymaxvals == 1) &&
                     (get<0>(infedgecenter[i]) > 
                     ((belowleftx + belowrightx) / 2)) ) {
@@ -3432,7 +3563,12 @@ switch (message)
                                                         
                }                                      
        
-                                                            
+       
+              
+/* 
+ special case
+         
+*/                                                            
            else if ( (countyminvals == 1) && (countymaxvals == 1) &&
                      (get<0>(infedgecenter[i]) < 
                      ((belowleftx + belowrightx) / 2)) )   {
@@ -3447,7 +3583,10 @@ switch (message)
                }               
                
                
-               
+ /* 
+   special case
+      
+ */             
              else if ( (countxminvals == 1) && (countxmaxvals == 1) &&
                      (get<1>(infedgecenter[i]) < 
                      ((belowlefty + abovelefty) / 2)) )   {
@@ -3461,6 +3600,11 @@ switch (message)
                                                         
                }                 
                
+               
+/*
+  special case
+         
+*/              
              else if ( (countxminvals == 1) && (countxmaxvals == 1) &&
                      (get<1>(infedgecenter[i]) > 
                      ((belowlefty + abovelefty) / 2)) )   {
@@ -3486,12 +3630,11 @@ switch (message)
     
     
     
-    
-    
-   
- case REQUEST: {
-     
-    
+/* 
+  voronoiVM-request 
+        
+*/  
+ case REQUEST: {    
        
    TupleType *tupleType = (TupleType*)local.addr;
    Tuple *newTuple = new Tuple( tupleType );
@@ -3511,16 +3654,17 @@ switch (message)
 
    std::tuple<double, double> search;
    
-    /*
+ /*
     calculate max attribute position
-    */
     
-    maxattrpos = localInfo->attrcount - 1;
+ */
+  maxattrpos = localInfo->attrcount - 1;
     
     
+ /*    
+   get point coords
     
-        
-   
+ */   
   if ((tup = localInfo->reliter->GetNextTuple()) != 0 ) {
      
    Point* pointval = static_cast<Point*>(tup->GetAttribute(pointposit-1));
@@ -3545,10 +3689,10 @@ switch (message)
        
        
         
-   /*
-    setting up the new tuple
-   */
-   
+/*
+  setting up the new tuple
+    
+*/   
    for( int i = 0; i < tup->GetNoAttributes(); i++ ) {
    
         newTuple->CopyAttribute( i, tup, i );
@@ -3588,10 +3732,12 @@ switch (message)
    
    }
    
-   else { // not possible
+   else { 
        
+ /* 
+  not possible
    
-         
+ */   
    Convex* conv2 = new Convex(false);
    
    
@@ -3612,8 +3758,12 @@ switch (message)
    }
    
    
-   return YIELD; //never happens
-    
+   return YIELD; 
+   
+ /*
+  never happens
+   
+ */    
    }
    
    else {
@@ -3627,8 +3777,10 @@ switch (message)
    return 0;
  }
     
-    
-    
+/* 
+ voronoiVM-close
+        
+*/    
  case CLOSE : {
     
     
@@ -3656,17 +3808,12 @@ switch (message)
  return 0;    
  }
  
- 
-
-      
+       
  } 
  
  return 0;
 }
   
-    
- 
- 
     
     
 /*
@@ -3676,10 +3823,11 @@ switch (message)
 */
 
 
-    
+/*
 
+createconvexSpec
 
-
+*/
 const string createconvexSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
     "( <text>stream(points) x bool -> convex </text--->"
@@ -3699,8 +3847,11 @@ const string createconvexSpec  =
     ") )";
     
 
+/*
 
-    
+voronoiSpec
+
+*/    
  const string voronoiSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
     "( <text>((stream (tuple (..., (ak1 Tk1),...))) x ak1 x ak2 x rect x bool"
@@ -3758,14 +3909,11 @@ TypeConstructor ConvexTC(
 );
 
 
-
-
 /*
   
 10.2 Operator instances
 
 */
-
 Operator createconvex ( "createconvex",
                    createconvexSpec,
                    createconvexVM,
@@ -3781,23 +3929,22 @@ Operator voronoi  ( "voronoi",
                    voronoitypemap );
          
 
-
-
-
   
 /*
   
 10.3 Creating the Algebra 
 
 */
-
 class ConvexAlgebra : public Algebra 
 {
  public:
   ConvexAlgebra() : Algebra()
    
 
-  /* Registration of Types */
+/*
+  Registration of Types 
+   
+*/
 
   
   
@@ -3808,8 +3955,10 @@ class ConvexAlgebra : public Algebra
     ConvexTC.AssociateKind(Kind::DATA() );   
    
 
-  /* Registration of operators */
- 
+/* 
+ Registration of operators 
+   
+*/ 
     AddOperator( &createconvex);
     AddOperator( &voronoi);
   
@@ -3822,10 +3971,12 @@ class ConvexAlgebra : public Algebra
 
 
     
-} 
- /* end of namespace */
+}
 
-
+/*
+ end of namespace 
+  
+*/
 
 
 /*
