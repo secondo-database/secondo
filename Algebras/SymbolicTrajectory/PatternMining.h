@@ -380,6 +380,13 @@ struct MatrixSq {
     values[i * size + j]++;
   }
   
+  void set(unsigned int i, unsigned int j, unsigned int value) {
+    if (i >= size || j >= size) {
+      return;
+    }
+    values[i * size + j] = value;
+  }
+  
   std::string print() {
     std::stringstream result;
     for (unsigned int i = 0; i < size; i++) {
@@ -421,7 +428,9 @@ class ProjectedDB {
   void retrievePatterns(const unsigned int minNoAtoms, 
                         const unsigned int maxNoAtoms);
   unsigned long long int computeProjSize() const;
-  unsigned long long int computeProjPosSize() const;
+  unsigned long long int computeMatrixSize() const;
+  unsigned long long int computeFreqLabelPosSize() const;
+  unsigned long long int computeFreqMatrixPosSize() const;
   
   static ListExpr seqToListExpr(std::vector<unsigned int>& seq);
   static ListExpr projToListExpr(std::vector<std::vector<unsigned int> >& proj);
@@ -446,7 +455,7 @@ class ProjectedDB {
   unsigned int minSuppCnt; // \ceil{noTuples * minSupp}
   RelAgg *agg;
   std::vector<std::vector<std::vector<unsigned int> > > projections;
-  std::vector<unsigned int> projPos; // non-empty positions inside projections
+//   std::vector<unsigned int> projPos; // non-empty positions inside projs
   MatrixSq smatrix;
   std::vector<unsigned int> freqLabelPos; // maps matrix pos to freqLabel
   std::vector<NewPair<unsigned int, unsigned int> > freqMatrixPos;

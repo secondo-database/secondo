@@ -1952,7 +1952,7 @@ void ProjectedDB::addProjections(vector<unsigned int>& labelSeq, unsigned int
 */
 void ProjectedDB::computeSMatrix(vector<unsigned int>& freqLabels,
                            vector<NewPair<unsigned int, unsigned int> >& fPos) {
-  cout << "freq Labels: " << agg->print(freqLabels) << endl;
+//   cout << "computeSMatrix - freq Labels: " << agg->print(freqLabels) << endl;
   smatrix.init(freqLabels.size());
   vector<bool> counted;
   counted.resize(freqLabels.size(), false);
@@ -1999,17 +1999,17 @@ void ProjectedDB::construct() {
 //            << agg->freqLabels[i] << endl;
       projections[i].clear();
     }
-    else {
-      projPos.push_back(i);
-    }
+//     else { // TODO: activate if minePDB is invoked
+//       projPos.push_back(i);
+//     }
   }
   vector<unsigned int> freqLabels;
   for (unsigned int i = 0; i < agg->freqLabels.size(); i++) {
     freqLabels.push_back(i);
   }
   computeSMatrix(freqLabels, freqMatrixPos);
-  cout << "flPos: " << agg->print(freqLabelPos) << endl << "S-Matrix:" << endl
-       << smatrix.print() << endl;
+//   cout << "flPos: " << agg->print(freqLabelPos) << endl << "SMatrix:" << endl
+//        << smatrix.print() << endl;
 }
 
 /*
@@ -2101,9 +2101,9 @@ void ProjectedDB::minePDB(vector<unsigned int>& prefix, string& patPrefix,
 //                  << " projs for label " << pdb->agg->freqLabels[i] << endl;
             pdb->projections[i].clear();
           }
-          else {
-            pdb->projPos.push_back(i);
-          }
+//           else { TODO: restore this path if this function is invoked
+//             pdb->projPos.push_back(i);
+//           }
         }
         pdb->minePDB(prefix, patPrefixExt, flabel, minNoAtoms, maxNoAtoms);
         prefix.pop_back();
@@ -2124,25 +2124,25 @@ void ProjectedDB::minePDBSMatrix(vector<unsigned int>& prefix,
   unsigned int secondLast(prefix[prefix.size() - 2]), 
                last(prefix[prefix.size() - 1]);
   vector<unsigned int> labelCounter;
-  labelCounter.resize(freqLabelPos.size(), 0);
+  labelCounter.resize(freqLabelPos[freqLabelPos.size() - 1] + 1, 0);
   vector<bool> counted;
-  counted.resize(freqLabelPos.size(), false);
+  counted.resize(labelCounter.size(), false);
   string atom, pattern;
   vector<string> atoms;
   set<TupleId> commonTupleIds;
   vector<unsigned int> freqLabels;
   ProjectedDB *pdb = new ProjectedDB(minSupp, minSuppCnt, agg, 
-                                    freqLabelPos.size());
+                                     projections.size());
   for (auto seq : projections[secondLast]) {
     pdb->addProjections(seq, last, prefix);
   }
-  cout << "Prefix " << agg->print(prefix) << " : " << endl;
+//   cout << "Prefix " << agg->print(prefix) << " : " << endl;
   for (unsigned int i = 0; i < pdb->projections.size(); i++) {
-    cout << "   pos " << i << " : " 
-        << nl->ToString(projToListExpr(pdb->projections[i])) << endl;
+//     cout << "   pos " << i << " : " 
+//         << nl->ToString(projToListExpr(pdb->projections[i])) << endl;
   }
   for (auto seq : pdb->projections[last]) {
-    cout << "  count sequence " << agg->print(seq) << endl;
+//     cout << "  count sequence " << agg->print(seq) << endl;
     for (auto label : seq) {
       if (!counted[label]) {
         labelCounter[label]++;
@@ -2151,20 +2151,21 @@ void ProjectedDB::minePDBSMatrix(vector<unsigned int>& prefix,
     }
     counted.assign(freqLabelPos.size(), false);
   }
-  cout << "labelCounter: " << agg->print(labelCounter) << endl;
+//   cout << "labelCounter: " << agg->print(labelCounter) << endl 
+//        << "freqLabelPos: " << agg->print(freqLabelPos) << endl;
   // build patterns for frequently occurring labels in projections
   map<unsigned int, unsigned int> matrixPos;
-  for (unsigned int i = 0; i < labelCounter.size(); i++) {
-    if (labelCounter[i] >= minSuppCnt) {
-      freqLabels.push_back(freqLabelPos[i]);
-      matrixPos[freqLabels[freqLabels.size() - 1]] = freqLabels.size() - 1;
-      pdb->freqLabelPos.push_back(freqLabelPos[i]);
-      agg->buildAtom(freqLabelPos[i], agg->entries[freqLabelPos[i]],
-                     commonTupleIds, atom);
+  for (unsigned int label = 0; label < labelCounter.size(); label++) {
+    if (labelCounter[label] >= minSuppCnt) {
+      freqLabels.push_back(label);
+      matrixPos[label] = freqLabels.size() - 1;
+      pdb->freqLabelPos.push_back(label);
+      agg->buildAtom(label, agg->entries[label], commonTupleIds, atom);
       atoms.push_back(atom);
       if (prefix.size() + 1 >= minNoAtoms) {
+//         cout << "  RESULT " << agg->print(prefix) << " " << label << endl;
         agg->results.push_back(NewPair<string, double>(patPrefix + " " + atom,
-                                      double(labelCounter[i]) / agg->noTuples));
+                                  double(labelCounter[label]) / agg->noTuples));
       }
     }
   }
@@ -2173,7 +2174,7 @@ void ProjectedDB::minePDBSMatrix(vector<unsigned int>& prefix,
   }
   // build S-matrix
   pdb->smatrix.init(pdb->freqLabelPos.size());
-  cout << "build S-matrix for freqLabels " << agg->print(freqLabels) << endl;
+//   cout << "build S-matrix for freqLabels " << agg->print(freqLabels) << endl;
   for (auto seq : pdb->projections[last]) {
     for (unsigned int i = 0; i < seq.size(); i++) {
       if (labelCounter[seq[i]] >= minSuppCnt) {
@@ -2190,11 +2191,22 @@ void ProjectedDB::minePDBSMatrix(vector<unsigned int>& prefix,
       }
     }
   }
-  cout << pdb->smatrix.print() << " freqMatrixPos = {";
-  for (auto it : pdb->freqMatrixPos) {
-    cout << "(" << it.first << ", " << it.second << ") ";
+//   cout << pdb->smatrix.print() << " freqMatrixPos = {";
+//   for (auto it : pdb->freqMatrixPos) {
+//     cout << "(" << it.first << ", " << it.second << ") ";
+//   }
+//   cout << "}" << endl;
+  // prepare projections for longer prefix
+  if (prefix.size() + 1 <= maxNoAtoms) {
+    for (auto seq : pdb->projections[last]) {
+      pdb->addProjections(seq, UINT_MAX, prefix);
+    }
   }
-  cout << "}" << endl;
+  pdb->projections[last].clear();
+//   for (unsigned int i = 0; i < pdb->projections.size(); i++) {
+//     cout << "   ### pos " << i << " : " 
+//         << nl->ToString(projToListExpr(pdb->projections[i])) << endl;
+//   }
   // report frequent matrix positions
   for (auto fPos : pdb->freqMatrixPos) {
     if (std::find(prefix.begin(), prefix.end(), 
@@ -2282,13 +2294,37 @@ unsigned long long int ProjectedDB::computeProjSize() const {
 }
 
 /*
-  Class ~ProjectedDB~, Function ~computeProjPosSize~
+  Class ~ProjectedDB~, Function ~computeMatrixSize~
   
-  Compute storage space in bytes for projPos:
+  Compute storage space in bytes for smatrix:
 
 */
-unsigned long long int ProjectedDB::computeProjPosSize() const {
-  unsigned long long int result = sizeof(unsigned int) * (projPos.size() + 1);
+unsigned long long int ProjectedDB::computeMatrixSize() const {
+  unsigned long long int result = sizeof(unsigned int) * 
+                                              (smatrix.size * smatrix.size + 1);
+  return result;
+}
+
+/*
+  Class ~ProjectedDB~, Function ~computeFreqLabelPosSize~
+  
+  Compute storage space in bytes for freqLabelPos:
+
+*/
+unsigned long long int ProjectedDB::computeFreqLabelPosSize() const {
+  unsigned long long int result = sizeof(unsigned int)*(freqLabelPos.size()+1);
+  return result;
+}
+
+/*
+  Class ~ProjectedDB~, Function ~computeFreqMatrixPosSize~
+  
+  Compute storage space in bytes for freqMatrixPos:
+
+*/
+unsigned long long int ProjectedDB::computeFreqMatrixPosSize() const {
+  unsigned long long int result = sizeof(unsigned int) * 
+                                                 (2 * freqMatrixPos.size() + 1);
   return result;
 }
 
@@ -2382,53 +2418,80 @@ bool ProjectedDB::Save(SmiRecord& valueRecord, size_t& offset,
   if (!RelAgg::saveToRecord(pdb->agg, valueRecord, offset)) {
     return false;
   }
-  // store projections
-  unsigned long long int projSize = 
-                             pdb->computeProjSize() + pdb->computeProjPosSize();
-  cout << "size of projections & projPos is " << projSize << endl;
-  if (!valueRecord.Write(&projSize, sizeof(unsigned long long int), offset)) {
+  // prepare storing everything else in one record
+  unsigned long long int recordSize = pdb->computeProjSize() + 
+                     pdb->computeMatrixSize() + pdb->computeFreqLabelPosSize() +
+                     pdb->computeFreqMatrixPosSize();
+  cout << "size of record is " << recordSize << endl;
+  if (!valueRecord.Write(&recordSize, sizeof(unsigned long long int), offset)) {
     return false;
   }
   offset += sizeof(unsigned long long int);
-  char* projChars = new char[projSize];
-  size_t offsetProj = 0;
+  char* recordChars = new char[recordSize];
+  size_t recordOffset = 0;
   unsigned int noProjections(pdb->projections.size()),
-          noProjPos(pdb->projPos.size()), noSequences, noLabels, label, projPos;
-  memcpy(projChars + offsetProj, &noProjections, sizeof(unsigned int));
-  offsetProj += sizeof(unsigned int);
+               noFreqLabelPos(pdb->freqLabelPos.size()), 
+               noFreqMatrixPos(pdb->freqMatrixPos.size()), 
+               noSequences, noLabels, label, freqLabelPos;
+  // store projections
+  memcpy(recordChars + recordOffset, &noProjections, sizeof(unsigned int));
+  recordOffset += sizeof(unsigned int);
   for (unsigned int i = 0; i < noProjections; i++) {
     noSequences = pdb->projections[i].size();
-    memcpy(projChars + offsetProj, &noSequences, sizeof(unsigned int));
-    offsetProj += sizeof(unsigned int);
+    memcpy(recordChars + recordOffset, &noSequences, sizeof(unsigned int));
+    recordOffset += sizeof(unsigned int);
     for (unsigned int j = 0; j < noSequences; j++) {
       noLabels = pdb->projections[i][j].size();
-      memcpy(projChars + offsetProj, &noLabels, sizeof(unsigned int));
-      offsetProj += sizeof(unsigned int);
+      memcpy(recordChars + recordOffset, &noLabels, sizeof(unsigned int));
+      recordOffset += sizeof(unsigned int);
       for (unsigned int k = 0; k < noLabels; k++) {
         label = pdb->projections[i][j][k];
-        memcpy(projChars + offsetProj, &label, sizeof(unsigned int));
-        offsetProj += sizeof(unsigned int);
+        memcpy(recordChars + recordOffset, &label, sizeof(unsigned int));
+        recordOffset += sizeof(unsigned int);
       }
     }
   }
-  memcpy(projChars + offsetProj, &noProjPos, sizeof(unsigned int));
-  offsetProj += sizeof(unsigned int);
-  for (unsigned int i = 0; i < noProjPos; i++) {
-    projPos = pdb->projPos[i];
-    memcpy(projChars + offsetProj, &projPos, sizeof(unsigned int));
-    offsetProj += sizeof(unsigned int);
+  // store smatrix
+  memcpy(recordChars + recordOffset, &pdb->smatrix.size, sizeof(unsigned int));
+  recordOffset += sizeof(unsigned int);
+  memcpy(recordChars + recordOffset, pdb->smatrix.values,
+         pdb->smatrix.size * pdb->smatrix.size * sizeof(unsigned int));
+  recordOffset += pdb->smatrix.size * pdb->smatrix.size * sizeof(unsigned int);
+//   for (unsigned int i = 0; i < pdb->smatrix.size; i++) {
+//     for (unsigned int j = 0; j < pdb->smatrix.size; j++) {
+//       matrixEntry = pdb->smatrix(i, j);
+//       memcpy(recordChars + recordOffset, &matrixEntry, sizeof(unsigned int));
+//       recordOffset += sizeof(unsigned int);
+//     }
+//   }
+  // store freqLabelPos
+  memcpy(recordChars + recordOffset, &noFreqLabelPos, sizeof(unsigned int));
+  recordOffset += sizeof(unsigned int);
+  for (unsigned int i = 0; i < noFreqLabelPos; i++) {
+    freqLabelPos = pdb->freqLabelPos[i];
+    memcpy(recordChars + recordOffset, &freqLabelPos, sizeof(unsigned int));
+    recordOffset += sizeof(unsigned int);
   }
-  if (!valueRecord.Write(projChars, projSize, offset)) {
+  // store freqMatrixPos
+  memcpy(recordChars + recordOffset, &noFreqMatrixPos, sizeof(unsigned int));
+  recordOffset += sizeof(unsigned int);
+  for (auto freqPos : pdb->freqMatrixPos) {
+    memcpy(recordChars + recordOffset, &freqPos.first, sizeof(unsigned int));
+    recordOffset += sizeof(unsigned int);
+    memcpy(recordChars + recordOffset, &freqPos.second, sizeof(unsigned int));
+    recordOffset += sizeof(unsigned int);
+  }
+  if (!valueRecord.Write(recordChars, recordSize, offset)) {
     return false;
   }
-  offset += projSize;
-  delete[] projChars;
+  offset += recordSize;
+  delete[] recordChars;
   return true;
 }
 
 bool ProjectedDB::Open(SmiRecord& valueRecord, size_t& offset,
                        const ListExpr typeInfo, Word& value) {
-  auto measureStart = high_resolution_clock::now(); 
+//   auto measureStart = high_resolution_clock::now(); 
   ProjectedDB *pdb = new ProjectedDB();
   // read minSupp
   if (!valueRecord.Read(&pdb->minSupp, sizeof(double), offset)) {
@@ -2440,65 +2503,80 @@ bool ProjectedDB::Open(SmiRecord& valueRecord, size_t& offset,
     return false;
   }
   pdb->minSuppCnt = (unsigned int)std::ceil(pdb->minSupp * pdb->agg->noTuples);
-  auto measureStop = high_resolution_clock::now();
-  double ms = 
-   (double)(duration_cast<milliseconds>(measureStop - measureStart).count());
-  cout << "relAgg read after " << ms << " ms" << endl;
   // open projections
-  measureStart = high_resolution_clock::now(); 
   vector<vector<unsigned int> > projection;
   vector<unsigned int> labelSeq;
-  pdb->projections.resize(pdb->agg->freqLabels.size());
-  unsigned long long int projSize;
-  if (!valueRecord.Read(&projSize, sizeof(unsigned long long int), offset)) {
+  unsigned long long int recordSize;
+  if (!valueRecord.Read(&recordSize, sizeof(unsigned long long int), offset)) {
     return false;
   }
   offset += sizeof(unsigned long long int);
-//   cout << "size of projections & projPos is " << projSize << endl;
-  char* projChars = new char[projSize];
-  if (!valueRecord.Read(projChars, projSize, offset)) {
+//   cout << "size of record is " << recordSize << endl;
+  char* recordChars = new char[recordSize];
+  if (!valueRecord.Read(recordChars, recordSize, offset)) {
     return false;
   }
-  offset += projSize;
-  size_t offsetProj = 0;
-  unsigned int noProjections, noSequences, noLabels, label, noProjPos, projPos;
-  memcpy(&noProjections, projChars + offsetProj, sizeof(unsigned int));
-  offsetProj += sizeof(unsigned int);
+  offset += recordSize;
+  size_t recordOffset = 0;
+  unsigned int noProjections, noSequences, noLabels, label, noFreqLabelPos, 
+               matrixSize, freqLabelPos, noFreqMatrixPos;
+  memcpy(&noProjections, recordChars + recordOffset, sizeof(unsigned int));
+  recordOffset += sizeof(unsigned int);
   for (unsigned int i = 0; i < noProjections; i++) {
-    memcpy(&noSequences, projChars + offsetProj, sizeof(unsigned int));
-    offsetProj += sizeof(unsigned int);
+    memcpy(&noSequences, recordChars + recordOffset, sizeof(unsigned int));
+    recordOffset += sizeof(unsigned int);
     for (unsigned int j = 0; j < noSequences; j++) {
-      memcpy(&noLabels, projChars + offsetProj, sizeof(unsigned int));
-      offsetProj += sizeof(unsigned int);
+      memcpy(&noLabels, recordChars + recordOffset, sizeof(unsigned int));
+      recordOffset += sizeof(unsigned int);
       for (unsigned int k = 0; k < noLabels; k++) {
-        memcpy(&label, projChars + offsetProj, sizeof(unsigned int));
-        offsetProj += sizeof(unsigned int);
+        memcpy(&label, recordChars + recordOffset, sizeof(unsigned int));
+        recordOffset += sizeof(unsigned int);
         labelSeq.push_back(label);
       }
       projection.push_back(labelSeq);
       labelSeq.clear();
     }
-    pdb->projections[i] = projection;
+    pdb->projections.push_back(projection);
     projection.clear();
   }
-  measureStop = high_resolution_clock::now();
-  ms = 
-   (double)(duration_cast<milliseconds>(measureStop - measureStart).count());
-  cout << "projections read after " << ms << " ms" << endl;
-  measureStart = high_resolution_clock::now();
-  memcpy(&noProjPos, projChars + offsetProj, sizeof(unsigned int));
-  offsetProj += sizeof(unsigned int);
-  for (unsigned int i = 0; i < noProjPos; i++) {
-    memcpy(&projPos, projChars + offsetProj, sizeof(unsigned int));
-    offsetProj += sizeof(unsigned int);
-    pdb->projPos.push_back(projPos);
+  // read smatrix
+  memcpy(&matrixSize, recordChars + recordOffset, sizeof(unsigned int));
+  recordOffset += sizeof(unsigned int);
+  pdb->smatrix.init(matrixSize);
+  memcpy(pdb->smatrix.values, recordChars + recordOffset, 
+         pdb->smatrix.size * pdb->smatrix.size * sizeof(unsigned int));
+  recordOffset += pdb->smatrix.size * pdb->smatrix.size * sizeof(unsigned int);
+//   for (unsigned int i = 0; i < matrixSize; i++) {
+//     for (unsigned int j = 0; j < matrixSize; j++) {
+//       memcpy(&matrixEntry, recordChars + recordOffset, sizeof(unsigned int));
+//       recordOffset += sizeof(unsigned int);
+//       pdb->smatrix.set(i, j, matrixEntry);
+//     }
+//   }
+  // read freqLabelPos
+  memcpy(&noFreqLabelPos, recordChars + recordOffset, sizeof(unsigned int));
+  recordOffset += sizeof(unsigned int);
+  for (unsigned int i = 0; i < noFreqLabelPos; i++) {
+    memcpy(&freqLabelPos, recordChars + recordOffset, sizeof(unsigned int));
+    recordOffset += sizeof(unsigned int);
+    pdb->freqLabelPos.push_back(freqLabelPos);
   }
   value.setAddr(pdb);
-  measureStop = high_resolution_clock::now();
-  ms = 
-   (double)(duration_cast<milliseconds>(measureStop - measureStart).count());
-  cout << "projPos read after " << ms << " ms" << endl;
-  delete[] projChars;
+//   measureStop = high_resolution_clock::now();
+//   ms = 
+//    (double)(duration_cast<milliseconds>(measureStop - measureStart).count());
+  // read freqMatrixPos
+  memcpy(&noFreqMatrixPos, recordChars + recordOffset, sizeof(unsigned int));
+  recordOffset += sizeof(unsigned int);
+  NewPair<unsigned int, unsigned int> freqPos;
+  for (unsigned int i = 0; i < noFreqMatrixPos; i++) {
+    memcpy(&freqPos.first, recordChars + recordOffset, sizeof(unsigned int));
+    recordOffset += sizeof(unsigned int);
+    memcpy(&freqPos.second, recordChars + recordOffset, sizeof(unsigned int));
+    recordOffset += sizeof(unsigned int);
+    pdb->freqMatrixPos.push_back(freqPos);
+  }
+  delete[] recordChars;
   return true;
 }
 
