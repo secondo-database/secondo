@@ -618,11 +618,12 @@ ALGEBRAS     += JNetAlgebra
 #ALGEBRA_DIRS += Precise2D
 #ALGEBRAS += Precise2DAlgebra
 
-#In order to build KafkaAlgebra, you may need the installation of
+#In order to build the KafkaAlgebra, you may need the installation of
 #librdkafka and WebSocket libraries.
-#Under ubuntu linux, this can be done by running following statements
+#Under Ubuntu Linux, this can be done by running the following statements:
 #sudo apt install librdkafka-dev
 #sudo apt-get install libcpprest-dev
+#sudo apt-get install libwebsocketpp-dev
 #ALGEBRA_DIRS += Kafka
 #ALGEBRAS     += KafkaAlgebra
 #ALGEBRA_DEPS += rdkafka++ ssl crypto boost_system
