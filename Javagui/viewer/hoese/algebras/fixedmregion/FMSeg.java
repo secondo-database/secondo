@@ -151,7 +151,7 @@ public class FMSeg {
      * @return string representation of FMSeg
      */
     public String toString() {
-        return " ( " + getI() + " => " + v.toString() + "@" + rotate * 360 / (2 * Math.PI) + "° ) ";
+        return " ( " + getI() + " => " + v.toString() + "@" + rotate * 360 / (2 * Math.PI) + "\u00B0 ) ";
     }
 
     /**
