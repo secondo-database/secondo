@@ -4798,10 +4798,10 @@ int FTextValueMapReceiveTextStreamUDP( Word* args, Word& result, int message,
       li->globalTimeout = 0.0;
       li->localTimeout  = 0.0;
       li->globalTimeout = 0.0;
-      struct timeb tb;
-      ftime(&tb);                        // get current time
-      li->initial = tb.time;
-      li->final   = tb.time;
+      time_t now;
+      now = time(NULL);
+      li->initial = now;
+      li->final   = now;
       li->hasGlobalTimeout = false;
       li->hasLocalTimeout  = false;
 
@@ -4900,20 +4900,20 @@ int FTextValueMapReceiveTextStreamUDP( Word* args, Word& result, int message,
         return CANCEL;
       }
       // handle global and local timeouts
-      timeb now;
-      ftime(&now);                      // get current time
-      if(li->hasGlobalTimeout && (li->final <= now.time) ){
+      time_t now;
+      now = time(NULL);
+      if(li->hasGlobalTimeout && (li->final <= now) ){
         status << "Global Timeout.";
         li->finished = true;
         m_Ok = false;
       } else if(!li->hasGlobalTimeout && !li->hasLocalTimeout){
         timeoutSecs = 0.0; // blocking - wait forever
       } else if(li->hasGlobalTimeout && !li->hasLocalTimeout){
-        timeoutSecs = (li->final - now.time); // remainder of global timeout
+        timeoutSecs = (li->final - now); // remainder of global timeout
       } else if(!li->hasGlobalTimeout && li->hasLocalTimeout){
           timeoutSecs = li->localTimeout; // set local timeout;
       } else if(li->hasGlobalTimeout && li->hasLocalTimeout){
-        timeoutSecs = min( li->localTimeout, (li->final - now.time) );
+        timeoutSecs = min( li->localTimeout, (li->final - now) );
       } else {
         status << "ERROR: Something's wrong.";
         m_Ok = false;

@@ -812,9 +812,9 @@ ListExpr Urel1::Out(ListExpr typeInfo, Word value)
 {
   Urel1* rel = static_cast<Urel1*> (value.addr);
 
-  timeb _now;
-  ftime(&_now);
-  Instant NOW(int64_t(_now.time));
+  struct timeval _now;
+  gettimeofday(&_now, NULL);
+  Instant NOW(int64_t(_now.tv_sec));
   vector<URel1Tuple> tuples;
   tuples = rel->GetAllTuples(NOW);
 

@@ -124,8 +124,7 @@ This file contains the implementation of the stream operators.
 #include <errno.h>
 #include <utility>
 #include <unistd.h>
-#include <sys/timeb.h> 
-
+#include <sys/time.h>
 
 #include "CostEstimation.h"
 #include "NestedList.h"
@@ -6633,14 +6632,14 @@ class syncInfo{
        size_t minTime;
        ArgVectorPointer av;
        int elems;
-       timeb t;
+       struct timeval tp;
        size_t lastTime;
        Word result;
        Word funres;
        
     size_t getTime(){
-       ftime(&t);
-       return (size_t)t.time*1000+t.millitm;
+       gettimeofday(&tp, NULL);
+       return (size_t)tp.tv_sec*1000+tp.tv_usec/1000;
     }
 
     void check(Word& w){

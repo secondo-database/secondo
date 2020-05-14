@@ -126,9 +126,9 @@ string toString_ul(unsigned long i)
 //Creates an unique identifier for a new distributed array
 string getArrayName(int number)
 {
-  struct timeb t1;
-  ftime(&t1);
-  unsigned long tm = (t1.time * 1000) + t1.millitm;
+  struct timeval t1;
+  gettimeofday(&t1, NULL);
+  unsigned long tm = t1.tv_sec*1000+t1.tv_usec/1000; 
   string t = toString_ul(tm) + int2Str(number);
   return t;
 }

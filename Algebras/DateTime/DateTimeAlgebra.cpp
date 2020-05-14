@@ -276,12 +276,16 @@ Cannot be applied to a duration.
 */
 void DateTime::Now(){
   assert(type!=(durationtype));
-  timeb tb;
+  struct timeval tp;
+
   time_t now;
   int ms;
-  ftime(&tb);
-  now = tb.time;
-  ms = tb.millitm;
+  
+  gettimeofday(&tp, NULL);
+
+  now = tp.tv_sec;
+  ms = tp.tv_usec / 1000;
+  
   tm* time = localtime(&now);
   int64_t day = ToJulian(time->tm_year+1900,time->tm_mon+1,time->tm_mday);
   int64_t milliseconds = ((((time->tm_hour)*60)+time->tm_min)*

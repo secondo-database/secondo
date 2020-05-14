@@ -56,7 +56,6 @@ queries moving objects with transportation modes.
 #include "Indoor.h"
 #include "QueryTM.h"
 #include "RoadNetwork.h"
-#include <sys/timeb.h>
 #include "ListUtils.h"
 
 
@@ -69,10 +68,10 @@ using namespace std;
 extern NestedList* nl;
 extern QueryProcessor *qp;
 
-double TM_DiffTimeb(struct timeb* t1, struct timeb* t2)
+double TM_DiffTimeb(struct timeval* t1, struct timeval* t2)
 {
-  double dt1 = t1->time + (double)t1->millitm/1000.0;
-  double dt2 = t2->time + (double)t2->millitm/1000.0;
+  double dt1 = t1->tv_sec + (double)t1->tv_usec/1000.0;
+  double dt2 = t2->tv_sec + (double)t2->tv_usec/1000.0;
   return dt1 - dt2; 
 }
 
@@ -18872,9 +18871,9 @@ int OpTMTestBNNavigationValueMap(Word* args, Word& result, int message,
       clock_t start, finish;// the total CPU time 
       start = clock(); //the total CPU time
 
-      struct timeb t1;
-      struct timeb t2;
-      ftime(&t1);
+      struct timeval t1;
+      struct timeval t2;
+      gettimeofday(&t1, NULL);
 
       Tuple* bs2_tuple = rel2->GetTuple(j, false); 
       Bus_Stop* bs2 = (Bus_Stop*)bs2_tuple->GetAttribute(BusGraph::BG_NODE);
@@ -18946,7 +18945,7 @@ int OpTMTestBNNavigationValueMap(Word* args, Word& result, int message,
       }
       bs2_tuple->DeleteIfAllowed();
       finish = clock();
-      ftime(&t2);
+      gettimeofday(&t2, NULL);
 
       printf("CPU time :%.3f seconds: Real time: %.3f\n\n", 
             (double)(finish - start)/CLOCKS_PER_SEC, TM_DiffTimeb(&t2, &t1));
