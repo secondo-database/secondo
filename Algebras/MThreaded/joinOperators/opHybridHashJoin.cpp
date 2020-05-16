@@ -61,9 +61,9 @@ extern NestedList* nl;
 extern QueryProcessor* qp;
 
 namespace hashJoinGlobal {
-vector<shared_ptr<SafeQueue>> partBufferR;
-vector<shared_ptr<SafeQueue>> partBufferS;
-shared_ptr<SafeQueue> tupleBuffer;
+vector<shared_ptr<SafeQueue<Tuple*>>> partBufferR;
+vector<shared_ptr<SafeQueue<Tuple*>>> partBufferS;
+shared_ptr<SafeQueue<Tuple*>> tupleBuffer;
 mutex mutexEqual_;
 mutex mutexConcat_;
 size_t threadsDone;
@@ -302,8 +302,8 @@ void HashJoinWorker::recursiveOverflow(shared_ptr<FileBuffer> overflowR,
 
    shared_ptr<HashTablePersist> recursiveHashTablePersist =
            make_shared<HashTablePersist>(
-           bucketNo, coreNoWorker,
-           maxMem, ttR, ttS, joinAttr);
+                   bucketNo, coreNoWorker,
+                   maxMem, ttR, ttS, joinAttr);
 
    shared_ptr<FileBuffer> recursiveOverflowBufferR = make_shared<FileBuffer>(
            ttR);
@@ -506,11 +506,11 @@ void hybridHashJoinLI::Scheduler() {
    joinThreads.reserve(coreNoWorker);
    partBufferR.reserve(coreNoWorker);
    partBufferS.reserve(coreNoWorker);
-   tupleBuffer = make_shared<SafeQueue>(coreNoWorker);
+   tupleBuffer = make_shared<SafeQueue<Tuple*>>(coreNoWorker);
    threadsDone = coreNoWorker;
    for (size_t i = 0; i < coreNoWorker; ++i) {
-      partBufferR.push_back(make_shared<SafeQueue>(i));
-      partBufferS.push_back(make_shared<SafeQueue>(i));
+      partBufferR.push_back(make_shared<SafeQueue<Tuple*>>(i));
+      partBufferS.push_back(make_shared<SafeQueue<Tuple*>>(i));
 
       joinThreads.emplace_back(
               HashJoinWorker(maxMem / coreNoWorker, coreNoWorker, i,

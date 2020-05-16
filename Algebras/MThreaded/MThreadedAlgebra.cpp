@@ -38,13 +38,15 @@ Our MThreaded-Algebra has only a bunch of Operators.
 #include "AlgebraManager.h"
 #include "ListUtils.h"
 
+#include "basicOperators/opTypeOperators.h"
 #include "basicOperators/opBasicOperators.h"
 #include "sortOperators/opMergeSort.h"
 #include "joinOperators/opHybridHashJoin.h"
+#include "joinOperators/opSpatialJoin.h"
 #include "MThreadedAux.h"
 
-extern NestedList *nl;
-extern QueryProcessor *qp;
+extern NestedList* nl;
+extern QueryProcessor* qp;
 
 namespace mthreaded {
 
@@ -54,7 +56,16 @@ class MThreadedAlgebra : public Algebra {
 The shared-pointers are alive as long as the algebra-object lives in Secondo.
 (C++11-feature)
 
-1.1.1 Basic Operators
+1.1.1 Type Operators
+
+*/
+   std::shared_ptr<Operator> opTypeSpatial =
+           op_typeop_spatial().getOperator();
+   std::shared_ptr<Operator> opTypeSpatial2 =
+           op_typeop_spatial2().getOperator();
+
+/*
+1.1.2 Basic Operators
 
 */
    std::shared_ptr<Operator> opMaxCore = op_maxcore().getOperator();
@@ -62,43 +73,50 @@ The shared-pointers are alive as long as the algebra-object lives in Secondo.
    std::shared_ptr<Operator> opGetCore = op_getcore().getOperator();
 
 /*
-1.1.2 Sort Operators
+1.1.3 Sort Operators
 
 */
 
    std::shared_ptr<Operator> opMergeSort = op_mergeSort().getOperator();
 
 /*
-1.1.3 Join Operators
+1.1.4 Join Operators
 
 */
 
    std::shared_ptr<Operator> opHybridJoin = op_hybridHashJoin().getOperator();
+   std::shared_ptr<Operator> opSpatialJoin = op_spatialHashJoin().getOperator();
 
-   //MThreadedSingleton& mThreadedSingleton = MThreadedSingleton::instance();
 
    public:
    MThreadedAlgebra() : Algebra() {
 
+      // type operators
+      AddOperator(opTypeSpatial.get());
+      AddOperator(opTypeSpatial2.get());
+
       // basic operators
-      AddOperator( opMaxCore.get() );
-      AddOperator( opSetCore.get() );
-      AddOperator( opGetCore.get() );
+      AddOperator(opMaxCore.get());
+      AddOperator(opSetCore.get());
+      AddOperator(opGetCore.get());
 
       // sort operators
       opMergeSort.get()->SetUsesArgsInTypeMapping();
       opMergeSort.get()->SetUsesMemory();
-      AddOperator( opMergeSort.get() );
+      AddOperator(opMergeSort.get());
 
       // join operators
       opHybridJoin.get()->SetUsesMemory();
-      AddOperator( opHybridJoin.get() );
+      AddOperator(opHybridJoin.get());
+
+      opSpatialJoin.get()->SetUsesArgsInTypeMapping();
+      opSpatialJoin.get()->SetUsesMemory();
+      AddOperator(opSpatialJoin.get());
    }
 };
 }
 
 extern "C"
-Algebra* InitializeMThreadedAlgebra(NestedList* nlRef, QueryProcessor* qpRef)
-{
+Algebra* InitializeMThreadedAlgebra(NestedList* nlRef, QueryProcessor* qpRef) {
    return new mthreaded::MThreadedAlgebra;
 }

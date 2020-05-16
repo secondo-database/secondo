@@ -134,33 +134,56 @@ class MemoryBuffer : public Buffer {
 
 };
 
-
+template <typename T>
 class SafeQueue {
    public:
-   SafeQueue(size_t _n);
+   SafeQueue(size_t _n)
+           : q(), m(), c(), n(_n) {
+      stream = true;
+      dataReadyQueue = false;
+   }
 
-   ~SafeQueue() {}
+   ~SafeQueue() {};
 
-   bool empty();
+   bool empty() {
+      return q.empty();
+   }
 
    // Add an element to the queue.
-   void enqueue(Tuple* t);
+   void enqueue(T t) {
+      std::lock_guard<std::mutex> lock(m);
+      q.push(t);
+      dataReadyQueue = true;
+      c.notify_one();
+   }
 
    // Get the "front"-element.
    // If the queue is empty, wait till a element is avaiable.
-   Tuple* dequeue();
+   T dequeue() {
+      std::unique_lock<std::mutex> lock(m);
+      while (q.empty()) {
+         c.wait(lock, [&] { return dataReadyQueue; });
+         dataReadyQueue = false;
+      }
+//   if (stream) {
+      T val = q.front();
+      q.pop();
+      return val;
+   }
+
 
    //bool getStreamOnMerge();
    //void setStreamOff();
 
    private:
-   std::queue<Tuple*> q;
+   std::queue<T> q;
    bool stream;
    bool dataReadyQueue;
    mutable std::mutex m;
    std::condition_variable c;
    size_t n;
 };
+
 
 class HashTablePersist {
    public:

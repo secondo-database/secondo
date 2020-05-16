@@ -50,12 +50,15 @@ namespace mthreaded {
 
 constexpr size_t BUFFERSIZE = 10;
 
-   /*
-   1.1 The MThreaded MThreadedMergeSort Operator
-   stream x attr x const (desc, incr) -> stream
-   */
+/*
+1.1 The MThreaded MThreadedMergeSort Operator
+stream x attr x const (desc, incr) -> stream
 
-enum TupleEmpty {both, first, second};
+*/
+
+enum TupleEmpty {
+   both, first, second
+};
 
 class CompareByVector {
    private:
@@ -64,7 +67,7 @@ class CompareByVector {
    public:
    // Constructor: Set compare Vector
    explicit CompareByVector(std::vector<std::pair<size_t, bool>> _sortAttr)
-   : sortAttr(_sortAttr) {}
+           : sortAttr(_sortAttr) {}
 
    ~CompareByVector() {}
 
@@ -105,7 +108,7 @@ class TournamentTree {
            std::shared_ptr<CompareByVector> _compareClass,
            size_t _maxMem);
 
-   ~TournamentTree() {tree.clear();}
+   ~TournamentTree() { tree.clear(); }
 
    // fill leaves
    void fillLeaves(Tuple* tuple);
@@ -164,7 +167,7 @@ class NoMergeFeeder {
    public:
    // Constructor: 2 incoming Buffer
    NoMergeFeeder(std::shared_ptr<Buffer> _buf,
-               size_t _n);
+                 size_t _n);
 
    ~NoMergeFeeder() {}
 
@@ -201,7 +204,7 @@ class Suboptimal {
 
    public:
    explicit Suboptimal(
-           size_t  _maxMem,
+           size_t _maxMem,
            std::vector<Tuple*>::iterator _tupleBuffer,
            std::shared_ptr<CompareByVector> _compare,
            TupleType* _tt,
@@ -233,8 +236,8 @@ class mergeSortLI {
    Tuple* tupleNext1;
    Tuple* tupleNext2;
    TupleEmpty tupleEmpty;
-   std::shared_ptr<SafeQueue> tupleBufferIn1;
-   std::shared_ptr<SafeQueue> tupleBufferIn2;
+   std::shared_ptr<SafeQueue<Tuple*>> tupleBufferIn1;
+   std::shared_ptr<SafeQueue<Tuple*>> tupleBufferIn2;
 
    size_t maxMem;
    size_t coreNo;

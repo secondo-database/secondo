@@ -76,7 +76,7 @@ bool startThreads;
 size_t tupleRemoved = 0;
 
 vector<std::shared_ptr<Buffer>> bufferTransfer;
-vector<shared_ptr<SafeQueue>> mergeBuffer;
+vector<shared_ptr<SafeQueue<Tuple*>>> mergeBuffer;
 }
 
 using namespace mergeSortGlobal;
@@ -490,8 +490,7 @@ void mergeSortLI::DistributorCollector() {
          dataRemoved = false;
       }
       ++countStream;
-   }
-   while ((tupleBuffer[tupleRemoved] = stream.request()));
+   } while ((tupleBuffer[tupleRemoved] = stream.request()));
 
    // all tuples of stream processed
    {
@@ -520,7 +519,7 @@ void mergeSortLI::DistributorCollector() {
    // start feeder threads
    size_t mergeWorkerNo = 0;
    for (size_t i = 0; i < feedersSingle; ++i) {
-      mergeBuffer.push_back(make_shared<SafeQueue>(mergeWorkerNo));
+      mergeBuffer.push_back(make_shared<SafeQueue<Tuple*>>(mergeWorkerNo));
       thread tempThread(NoMergeFeeder((mergeFn[i]),
                                       mergeWorkerNo));
       sortThreads.push_back(std::move(tempThread));
@@ -530,7 +529,7 @@ void mergeSortLI::DistributorCollector() {
 
 
    for (size_t i = feedersSingle; i < feeders; ++i) {
-      mergeBuffer.push_back(make_shared<SafeQueue>(mergeWorkerNo));
+      mergeBuffer.push_back(make_shared<SafeQueue<Tuple*>>(mergeWorkerNo));
       auto compare = make_shared<CompareByVector>(sortAttr);
       thread tempThread(MergeFeeder((mergeFn[i * 2 - feedersSingle]),
                                     (mergeFn[i * 2 + 1 - feedersSingle]),
@@ -546,7 +545,7 @@ void mergeSortLI::DistributorCollector() {
       size_t pipeWorkerNo = 0;
       do {
          for (size_t i = mergeWorkerNo; i < mergeWorkerNo + pipes; ++i) {
-            mergeBuffer.push_back(make_shared<SafeQueue>(i));
+            mergeBuffer.push_back(make_shared<SafeQueue<Tuple*>>(i));
             auto compare = make_shared<CompareByVector>(sortAttr);
             thread tempThread(MergePipeline(
                     compare, pipeWorkerNo, i));
