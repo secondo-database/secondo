@@ -170,37 +170,39 @@ MemoryBuffer::MemoryBuffer(TupleType* _tt) : tt(_tt) {}
 
 MemoryBuffer::~MemoryBuffer() {}
 
-SafeQueue::SafeQueue(std::size_t _n)
-        : q(), m(), c(), n(_n) {
-   stream = true;
-   dataReadyQueue = false;
-}
+//template<typename T>  SafeQueue<T>::SafeQueue(std::size_t _n)
+//        : q(), m(), c(), n(_n) {
+//   stream = true;
+//   dataReadyQueue = false;
+//}
+//
+//template<typename T>  bool SafeQueue<T>::empty() {
+//   return q.empty();
+//}
+//
+//template<typename T>  void SafeQueue<T>::enqueue(T t) {
+//   std::lock_guard<std::mutex> lock(m);
+//   q.push(t);
+//   dataReadyQueue = true;
+//   c.notify_one();
+//}
+//
+//
+//// Get the "front"-element.
+//// If the queue is empty, wait till a element is available.
+//template<typename T> T SafeQueue<T>::dequeue() {
+//   std::unique_lock<std::mutex> lock(m);
+//   while (q.empty()) {
+//      c.wait(lock, [&] { return dataReadyQueue; });
+//      dataReadyQueue = false;
+//   }
+////   if (stream) {
+//   T val = q.front();
+//   q.pop();
+//   return val;
+//}
 
-bool SafeQueue::empty() {
-   return q.empty();
-}
-
-void SafeQueue::enqueue(Tuple* t) {
-   std::lock_guard<std::mutex> lock(m);
-   q.push(t);
-   dataReadyQueue = true;
-   c.notify_one();
-}
-
-
-// Get the "front"-element.
-// If the queue is empty, wait till a element is available.
-Tuple* SafeQueue::dequeue() {
-   std::unique_lock<std::mutex> lock(m);
-   while (q.empty()) {
-      c.wait(lock, [&] { return dataReadyQueue; });
-      dataReadyQueue = false;
-   }
-//   if (stream) {
-   Tuple* val = q.front();
-   q.pop();
-   return val;
-}
+//template class SafeQueue<Tuple>::SafeQueue<Tuple>;
 
 //void SafeQueue::setStreamOff() {
 //   std::unique_lock<std::mutex> lock(m);
