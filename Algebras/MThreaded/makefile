@@ -26,10 +26,12 @@
 
 
 CURRENT_ALGEBRA := MThreadedAlgebra
-ALGEBRA_DEPENDENCIES :=  StandardAlgebra
-ALGEBRA_DEPENDENCIES := StreamAlgebra
+ALGEBRA_DEPENDENCIES := StandardAlgebra
+ALGEBRA_DEPENDENCIES += StreamAlgebra
 ALGEBRA_DEPENDENCIES += RelationAlgebra
-#ALGEBRA_DEPENDENCIES += TupleIdentifierAlgebra
+ALGEBRA_DEPENDENCIES += SpatialAlgebra
+ALGEBRA_DEPENDENCIES += RectangleAlgebra
+ALGEBRA_DEPENDENCIES += SPartAlgebra
 
 # inlcude global definitions
 include ../../makefile.env

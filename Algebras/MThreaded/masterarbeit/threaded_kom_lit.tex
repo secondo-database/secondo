@@ -6,7 +6,7 @@
 \setlength\abovecaptionskip{4pt}
 \usepackage[bookmarksopen=true,bookmarksnumbered=true]{hyperref}
 \usepackage[utf8]{inputenc}
-\usepackage[inner=2.5cm,outer=2cm,top=2.3cm,bottom=2cm,head=0.8cm,headsep=0.8cm,footskip=0cm,asymmetric]{geometry}
+\usepackage[inner=2.5cm,outer=2cm,top=2.3cm,bottom=2cm,head=0.8cm,headsep=0.8cm,footskip=1cm,asymmetric]{geometry}
 \usepackage{setspace}
 \usepackage{courier}
 \usepackage{array}
@@ -15,7 +15,7 @@
 
 \usepackage[babel,german=quotes]{csquotes}
 
-\usepackage[backend=biber, texencoding=auto, bibencoding=auto, safeinputenc=true, citestyle=alphabetic, bibstyle=alphabetic, maxbibnames=10, maxcitenames=10, isbn=false, doi=false, url=false]{biblatex}
+\usepackage[backend=biber, texencoding=auto, bibencoding=auto, safeinputenc=true, style=apa,labeldate=year, maxbibnames=10, maxcitenames=10, isbn=false, doi=false, url=false]{biblatex}
 \addbibresource{master.bib}
 %\bibliography{master.bib}
 
@@ -28,13 +28,13 @@
 
 \subsection{Parallele Algorithmen}
 
-\textbf{\fullcite{Bengel2008}}
+\subsubsection*{\fullcite{Bengel2008}}
 
 Das Lehrbuch bietet eine allgemeine Einführung in parallele Systeme und stellt einige Aspekte dar, die für meine Masterarbeit relevant sind.  Beginnend wird in die Rechnerarchitektur paralleler und verteilter Systeme systematisch eingeführt. Sind die Prozessoren/Systeme eng oder lose gekoppelt, verfügen sie über einen gemeinsamen Speicher? Bezüglich Architekturen mit gemeinsamem Speicher werden Programmiermodelle vorgestellt und der Standard OpenMP.
 
-Eine kurze Einführung in parallele Algorithmen unterscheidet inhärente Parallelisierung und Pipelining. Beim Master-Worker Schema verteilt ein Master Datenbereiche an mehrere Worker und sammelt die Ergebnisse wieder ein. Der Weg von einer Zerlegung eines Problems zu einer Allokation der Teilprobleme auf Prozessoren kann in vier Schritten beschrieben werden: Partitionierung, Auslegung der Kommunikation, Agglomeration und Mapping. Unterschieden werden hier Ansätze mit viel oder wenig Kommunikation und Parallelisierung vs. Verteilung auf mehrere Rechner mit je eigenem Speicher und erhöhten Kommunikationskosten. Verteilte Algorithmen haben im Gegensatz zu zentrale keinen globalen Zustand und keine gemeinsame Zeit. Dementsprechend kann es zu unvorhersehbaren Abläufen kommen. Eine Rechenlastverteilung kann statisch oder dynamisch vorgenommen werden. 
+Eine kurze Einführung in parallele Algorithmen unterscheidet zwischen inhärenter Parallelisierung und Pipelining. Beim Master-Worker Schema verteilt ein Master Datenbereiche an mehrere Worker und sammelt die Ergebnisse wieder ein. Der Weg von einer Zerlegung eines Problems zu einer Allokation der Teilprobleme auf Prozessoren kann in vier Schritten beschrieben werden: Partitionierung, Auslegung der Kommunikation, Agglomeration und Mapping. Unterschieden werden hier Ansätze mit viel oder wenig Kommunikation und Parallelisierung vs. Verteilung auf mehrere Rechner mit je eigenem Speicher und erhöhten Kommunikationskosten. Verteilte Algorithmen haben im Gegensatz zu zentralen keinen globalen Zustand und keine gemeinsame Zeit. Dementsprechend kann es zu unvorhersehbaren Abläufen kommen. Eine Rechenlastverteilung kann statisch oder dynamisch vorgenommen werden. 
 
-\textbf{\fullcite{Rauber2013}}
+\subsubsection*{\fullcite{Rauber2013}}
 
 Dieses Buch bietet eine ausführliche Übersicht über die Architektur von Multiprozessor-Systemen, über parallele Programmier-Modelle und Fragen der Performance dieser Modelle.
 
@@ -46,21 +46,21 @@ In der Performance-Analyse wird unterschieden zwischen Kosten, Beschleunigung un
 
 Weitere Kapitel geben eine Übersicht über das Programmieren mit Nachrichten, mit Piplelines und mit Threads. Allgemein werden Lock-Mechanismen vorgestellt, Probleme mit Deadlock und lokale sowie globalen Variablen, die der Koordinierung dienen.
 
-\textbf{\fullcite{McCool2012}}
+\subsubsection*{\fullcite{McCool2012}}
 
-Hier wird die Performance-Theorie parallelem Programmierens ausführlich dargelegt, die Fallstricke paralleler Programme (Race Konditionen, gegenseitiger Ausschluss und Locks, Deadlocks, gedrosselte Skalierung, unausgeglichene Lastverteilung, Overhead). Die Übersicht über parallele Programmiermuster ist hier deutlich detaillierter als in den beiden erstgenannten Büchern.
+Hier wird die Performance-Theorie parallelen Programmierens ausführlich dargelegt und die Fallstricke paralleler Programmierung (Race Konditionen, gegenseitiger Ausschluss und Locks, Deadlocks, gedrosselte Skalierung, unausgeglichene Lastverteilung, Overhead). Die Übersicht paralleler Programmiermuster ist hier deutlich detaillierter als in den beiden erstgenannten Büchern.
 
 Am Beispiel eines parallelen (internen) Merge-Sort wird gezeigt, warum es oft besser ist, einen neuen parallelen Algorithmus zu suchen anstatt einen seriellen zu parallelisieren. Der Divide- und Conquer-Ansatz ist eine Alternative zum üblichen seriellen Algorithmus. Der TBB Parallel Merge-Sort verwendet das Fork-Join-Muster. Ein Algorithmus für Merge-Sort wird in CILK Plus vorgestellt. 
 
-\textbf{\fullcite{Vitter2008}}
+\subsubsection*{\fullcite{Vitter2008}}
 
-Dieses Buch bietet eine Einführung in externe Algorithmen und ihre Datenstrukturen, aber nicht explizit in einer parallelen Implementierung. In einer Übersicht wird die Bedeutung des Verhältnisses von Cache und geteiltem Speicher diskutiert und allgemein die Organisation externen Speichers und I/O-Operationen. Für meine Arbeit insbesondere relevant ist das Kapitel über Lokalitätsfragen bei nur einer Festplatte. 
+Dieses Buch bietet eine Einführung in externe Algorithmen und ihre Datenstrukturen, aber nicht explizit mit einer parallelen Implementierung. In einer Übersicht wird die Bedeutung des Verhältnisses von Cache und geteiltem Speicher diskutiert und allgemein die Organisation externen Speichers und I/O-Operationen. Für meine Arbeit insbesondere relevant ist das Kapitel über Lokalitätsfragen bei nur einer Festplatte. 
 
-Algorithmen für externes Sortieren werden in zwei Hauptgruppen unterteilt: Sortieren durch Distribution oder Merge. Bzgl. dieser Algorithmen wird diskutiert, wie mehrere Festplatten verwenden können. Da ich nur Algorithmen für eine Festplatte implementieren werde, ist dies vor allem für einen Ausblick interessant. Weitere Kapitel stellen externes Hashing vor und räumliche externe Datenstrukturen.
+Algorithmen für externes Sortieren werden in zwei Hauptgruppen unterteilt: Sortieren durch Distribution oder Merge. Bzgl. dieser Algorithmen wird diskutiert, wie mehrere Festplatten verwenden werden können. Da ich nur Algorithmen für eine Festplatte implementieren werde, ist dies vor allem für einen Ausblick interessant. Weitere Kapitel stellen externes Hashing vor und räumliche externe Datenstrukturen.
 
 \subsection{Parallele Datenbankensysteme}
 
-\textbf{\fullcite{Yu1998}}
+\subsubsection*{\fullcite{Yu1998}}
 
 Architekturen paralleler Datenbanksysteme werden gegliedert nach Nutzung gemeinsam geteilter oder nicht geteilter Speicher und Festplatten. Wichtig für die Parallelität von Datenbankabfragen ist die Partitionierung nach Round Robin, Bereichen (Range) oder Hash-Werten.
 
@@ -78,127 +78,129 @@ Als wichtigste Varianten des Hash-Join-Konzepts werden vorgestellt: Simple Hashi
 
 Sort-Merge-Join verbessert sich nur schwach mit der Anzahl der Prozessoren. Im Vergleich der Hash-Joins wird der Hybrid-Ansatz als am Besten bezeichnet.
 
-\textbf{\fullcite{Reuter1999}} ?
+\subsubsection*{\fullcite{Reuter1999}}
 
 Dieser Aufsatz bietet eine Übersicht über verschiedene Arten der Parallelität, deren Implikationen erläutert werden: eine zwischen Transaktionen, Operationen, die parallele Implementierung von Operationen, einem parallelem Zugriff auf gespeicherte Daten.
 
 Implementierungen paralleler Joins in Datenbanksystemen werden in zwei Gruppen eingeteilt, nämlich Verfahren über Sortieren und Hash-Joins. Merge-Sort-Implementierungen basieren auf einer Verteilung, um Partitionen gleicher Größe für den Merge-Schritt zu erreichen. Hash Joins laufen in 2 Phasen ab. Lese R parallel und schicke die Datem an den dem Hash-Wert entsprechenden Prozessor. In der Sondierungsphase wird S mit der gleichen Hash-Funktion zugeordnet.
 
-\textbf{\fullcite{Cieslewicz2006}}
+\subsubsection*{\fullcite{Cieslewicz2006}}
 
 Am Beispiel eines parallelen Hash-Joins wird die Auswirkung von Parallelität innerhalb eines Prozessors untersucht. Hash-Joins werden unter Zuhilfenahme von B+-Baum-Indexes vorgenommen. 
 
-\textbf{\fullcite{Lu1994}}
+\subsubsection*{\fullcite{Lu1994}}
 
 Texte unterschiedlicher Autoren dieser Aufsatzsammlung werden gesondert vorgestellt. Jedes Kapitel verfügt aber über eine eigene Einleitung, in der Konzepte und Algorithmen kurz vorgestellt werden, vor allem zu parallelem Sortieren, parallelen Joins und Lastenverteilung.
 
-Parallele externe Sortierverfahren lassen sich in zwei Gruppen aufteilen, einerseits in ein Merge-basierte Verfahren (k-Wege Merge-Sort und Sortiernetzwerke), andererseits in Partitionierungs-basierendes Sortieren, Bereichspartitionierung genannt. Hier ist das zentrale Probleme, in Näherungs\-verfahren oder genau berechnet den besten Aufteilungsvektor zu finden.
+Parallele externe Sortierverfahren lassen sich in zwei Gruppen aufteilen, einerseits in Merge-basierte Verfahren (k-Wege Merge-Sort und Sortiernetzwerke), anderer\-seits in Parti\-tionierungs-basiertes Sortieren, Bereichs\-partitionierung genannt. Hier ist das zentrale Probleme, in Näherungs\-verfahren oder genau berechnet den besten Aufteilungsvektor zu finden.
 
-In dem Abschnitt zu Joins werden die wichtigsten seriellen Algorithmen inkl. Pseudo-Code vorgestellt: Nested-Loops Join, Sort-Merge Join und Hash Join (in den Varianten Basic, Hybrid, Grace und Simple). Eine Parallelisierung des Sort-Merge-Algorithmus findet häufig nur im Sortier-Schritt statt. Ein Ansatz einer weitergehenden Parallelisierung wird mit der Fragment und Replicate Methode vorgestellt (vgl. Richardson 1987). Beide zu verschmelzende Tabellen werden partitioniert. Hier gibt es zwei Möglichkeiten: Jede sortierte Partition der Basistabellen aus R wird mit jeder aus S mit Merge-Join verbunden oder die kleinere Relation wird zuerst verschmolzen. Dieser Ansatz ermöglicht eine stärkere Parallelisierung, hat aber Probleme in der Performance, da er eine Annäherung an einen Loop Join darstellt. In einer anderen Methode findet eine Range-Partitionierung in k Fragmente statt. Die entsprechenden Paare können dann verschmolzen werden. Iyer u.a. (1989) schlägt ein Verfahren zur Ermittlung einer idealer Partitionierung vor. Die Sort-Merge-Join-Algorithmen erhalten die Reihenfolge der Relationen und haben Vorteile, wenn die Relationen bereits sortiert sind.
+Im Abschnitt über Joins werden die wichtigsten seriellen Algorithmen inkl. Pseudo-Code vorgestellt: Nested-Loops Join, Sort-Merge Join und Hash Join (in den Varianten Basic, Hybrid, Grace und Simple). Eine Parallelisierung des Sort-Merge-Algorithmus findet häufig nur im Sortier-Schritt statt. Ein Ansatz einer weitergehenden Parallelisierung wird mit der Fragment und Replicate Methode vorgestellt (vgl. Richardson 1987). Beide zu verschmelzenden Tabellen werden partitioniert. Hier gibt es zwei Möglichkeiten: Jede sortierte Partition der Basistabellen aus R wird mit jeder aus S mit Merge-Join verbunden oder die kleinere Relation wird zuerst verschmolzen. Dieser Ansatz ermöglicht eine stärkere Parallelisierung, hat aber Probleme in der Performance, da er eine Annäherung an einen Loop Join darstellt. In einer anderen Methode findet eine Range-Partitionierung in k Fragmente statt. Die entsprechenden Paare können dann verschmolzen werden. Iyer u.a. (1989) schlagen ein Verfahren zur Ermittlung einer idealen Partitionierung vor. Die Sort-Merge-Join-Algorithmen erhalten die Reihenfolge der Relationen und haben Vorteile, wenn die Relationen bereits sortiert sind.
 
-Hash-basiertende Join-Algorithmen sind besser geeignet für eine Parallelisierung. Beide Phasen, die Partitionierungs-Phase und Join-Phase, können parallelisiert werden. Für eine Shared-all-Architektur bietet sich eine globale Hash-Tabelle an. So kann gleichzeitig auf Gleichheit getestet werden. Alle Einprozessor-Algorithmen können auf diese Art und Weise parallelisiert werden. Probleme können auftreten bei ungünstigen Hash-Funktionen mit ungleicher Verteilung und beim Überlauf der Hash-Tabellen.
+Hash-basierte Join-Algorithmen sind besser geeignet für eine Parallelisierung. Beide Phasen, die Partitionierungs-Phase und Join-Phase, können parallelisiert werden. Für eine Shared-all-Architektur bietet sich eine globale Hash-Tabelle an. So kann gleichzeitig auf Gleichheit getestet werden. Alle Einprozessor-Algorithmen können auf diese Art und Weise parallelisiert werden. Probleme können bei ungünstigen Hash-Funktionen mit ungleicher Verteilung und beim Überlauf der Hash-Tabellen auftreten.
 
 In einem weiteren Abschnitt werden Fragen der Lastverteilung behandelt. Angesprochen ist hier die Task-Generierung, also ob Subrelationen überlappend oder vollständig geteilt werden, die Anzahl der Tasks (bei Hash-Joins z.~B., ob für jeden Kern ein Prozess gestartet wird oder nicht, beim Grace-Algorithmus teils auch mehrere pro Kern), die Formierung der Tasks nach der Aufteilung, welche Statistiken über die Verteilung notwendig sind und das Load Balancing (First-fit- oder Best-fit-Strategie, dynamisch oder statisch). 
 
 \subsection{Sortierungsalgorithmen}
 
-\textbf{\fullcite{Bitton1983}}
+\subsubsection*{\fullcite{Bitton1983}}
 
 Es werden diverse parallele Datenbank-Operatoren vorgestellt. Hilfreich für meine Masterarbeit ist vor allem der Vergleich des binäre Merge-Sort-Algorithmus mit dem Block Bitonic Sort.
 
-Der binärer Merge-Sort findet in drei Phasen statt, einer suboptimal genannten, einer optimal und einer postoptimal. Suboptimales Verschmelzen findet statt, bis so viel Läufe vorhanden sind wie Kerne (parallel, aber mit eigenen Daten), im postoptimalen Verschmelzen gibt es weniger Dateien als Kerne, aber eine Nutzung mehrerer Kerne findet über Pipelining statt. Die Laufzeit dieses Ansatzes ist wie folgt:
+Der binärer Merge-Sort findet in drei Phasen statt, einer suboptimal, einer optimal und einer postoptimal genannten Phase. Suboptimales Verschmelzen findet statt, bis so viele Läufe vorhanden sind wie Kerne (parallel, aber mit eigenen Daten), im postoptimalen Verschmelzen gibt es weniger Dateien als Kerne, aber eine Nutzung mehrerer Kerne findet über Pipelining statt. Die Laufzeit dieses Ansatzes ist wie folgt:
 
 \[ \underbrace{\frac{n}{2p} \log \left( \frac{n}{2p} \right)}_{suboptimal} + \underbrace{\frac{n}{2p}}_{optimal} + \underbrace{\log p - 1 + \frac{n}{2}}_{postoptimal} \]
 
-Beim Block Bitonic Sort werden $n$ Zahlen in $\frac{n}{2}$ Vergleichsmodulen in $\frac{1}{2} \log n (\log n +1)$ Schritten sortiert. Jeder Schritt besteht aus parallelen Vergleichs-Austauschen und Transfers. Die  Module sind in einem Mischschema verbunden. Module können als Prozessoren/Kerne begriffen werden. Verallgemeinert als externer Algorithmus bedeutet dies: Jedes Modul macht einen externen 2-Wege-Merge-Sort. Da der Algorithmus höchstens $2p$ Blöcke sortieren kann, braucht es eine vorbereitende Phase, beispielsweise mit einem parallelen 2-Wege-Merge-Sort, bis die Blockgröße für den finalen Schritt erreicht.
+Beim Block Bitonic Sort werden $n$ Zahlen in $\frac{n}{2}$ Vergleichsmodulen in $\frac{1}{2} \log n (\log n +1)$ Schritten sortiert. Jeder Schritt besteht aus parallelen Austauschs nach Vergleichen und Transfers. Die  Module sind in einem Mischschema verbunden. Module können als Prozessoren/Kerne begriffen werden. Verallgemeinert als externer Algorithmus bedeutet dies: Jedes Modul macht einen externen 2-Wege-Merge-Sort. Da der Algorithmus höchstens $2p$ Blöcke sortieren kann, braucht es eine vorbereitende Phase, beispielsweise mit einem parallelen 2-Wege-Merge-Sort, bis die Blockgröße für den finalen Schritt erreicht.
 
 Der binärer Merge-Sort-Algorithmus ist nur bei großen $n$ und kleiner Kernzahl $p$ schnell. Im Allgemeinen ist Block Bitonic Sort schneller.
 
 Bzgl. des Merge-Sort-Joins wird ein Algorithmus vorgeschlagen, in dem die Sortierphase mit Block Bitonic Sort ausgeführt wird, der Merge-Schritt aber nicht parallelisiert ist. 
 
-\textbf{\fullcite{Bitton1984}}
+\subsubsection*{\fullcite{Bitton1984}}
 
 Dieser Aufsatz stellt eine Taxonomie parallele sowohl interner als auch externer Sortier-Algorithmen vor. Es gibt zwei grundsätzlich verschiedene Ansätze, nämlich auf Ungleich/Gleich-Vergleichen basierende Verfahren und Bitonic-Sortiernetzwerke.
 
 Eine kurze Geschichte der Sortieralgorithmen wird dargelegt. Umfangreich wird Block Bitonic Sortieren erläutert. Für externes Sortieren eignet sich der parallele binäre Merge-Sort mit Pipelining am besten. 
 
-\textbf{\fullcite{Knuth1973}}
+\subsubsection*{\fullcite{Knuth1973}}
 
 Das Buch bietet eine sehr umfangreiche Übersicht über Sortier- sowie Suchverfahren und ihre Standard-Algorithmen. Als grundlegende externe Algorithmen werden Mehrwege-Merg-Sort und die Ersetzungsauswahl vorgestellt. Die Ersetzungsauswahl kann für den ersten Schritt im Merge-Sort genutzt werden zur Ausnutzung einer vorhandenen Sortierung und zur Erzeugung längerer Läufe als eigentlich im Arbeitsspeicher möglich. Eine Alternative hierzu stellt der Wettbewerbsbaum dar. 
 
-\subsubsection{Mergesort/Fastsort 8}
+\subsubsection{Mergesort/Fastsort}
 
-\textbf{\fullcite{Tsukerman1986}}
+\subsubsection*{\fullcite{Tsukerman1986}}
 
-Der technische Report von Tandem stellt Fastsort als Weiterentwicklung von Merge-Sort sehr ausführlich vor. Der Algorithmus ist parallel und sortiert in Phasen.
+Der technische Report von Tandem stellt FastSort als Weiterentwicklung von Merge-Sort sehr ausführlich vor. Der Algorithmus ist parallel und sortiert in Phasen.
 
 Erste Phase: Ein Wettrennen in Sortierbaum (replacement selection). Dieses Verfahren wird sehr ausführlich erläutert und ermöglicht längere Runs und gleichzeitige In- und Outputs in der ersten Phase. Eine Partitionierung findet nach einer Round Robin Verteilung statt.
-Sofern mehr Daten vorhanden sind als Speicher, findet ein Multi-Phasen-Sort statt. Die weiteren Phase verschmelzen Runs soweit, bis nur noch einer vorhanden ist.
+Sofern mehr Daten vorhanden sind als Speicher, findet ein Multi-Phasen-Sort statt. Die weiteren Phase verschmelzen die Runs soweit, bis nur noch einer vorhanden ist.
 
 Für den parallelen Fast-Sort-Algorithmus gibt es einen sog. Verteilungs-Kollektor: Er startet die Subsort-Prozesse, liest Input-Dateien und verteilt sie nach Round-Robin, verschmilzt die Outputs der Subsort und schreibt in den Output.
 
-\textbf{\fullcite{Salzberg1990}}
+\subsubsection*{\fullcite{Salzberg1990}}
 
-FastSort wird als Algorithmus für shared-nothing-Architekturen vorgestellt als Single Input und Single Output Algorithmus. Eine Verteilung auf die Subsortierungen findet nach Round Robin statt. Replacement Selection wird für das Sortieren im Speicher in der ersten Phase verwendet. Das FastSort-Verfahren ist ein Record-basierendes Sortierverfahren im Gegensatz zu Sortierverfahren, die nur Schlüssel sortieren (und ausgeben). Das Merging kombiniert alle Runs. Die Phase, die die Runs sortiert, ist durch die CPU limitiert, die Merge Phase durch I/O-Vorgänge. Dementsprechend rentieren sich hier mehrere HDs. 
+FastSort wird für Shared-nothing-Architekturen als Single Input und Single Output Algorithmus  vorgestellt. Eine Verteilung auf die Subsortierungen findet nach Round Robin statt. Replacement Selection wird für das Sortieren im Speicher in der ersten Phase verwendet. Das FastSort-Verfahren ist ein record-basiertes Sortierverfahren im Gegensatz zu Sortierverfahren, die nur Schlüssel sortieren (und ausgeben). Das Merging kombiniert alle Runs. Die Phase, die die Runs sortiert, ist durch die CPU limitiert, die Merge Phase durch I/O-Vorgänge. Dementsprechend rentieren sich hier mehrere HDs. 
 
-\textbf{\fullcite{Taniar2000}}
+\subsubsection*{\fullcite{Taniar2000}}
 
 Der Artikel stellt eine Taxonomie für Sortierverfahren auf Multiprozessorsystemen auf: Merge-all Sort, binärer Mergesort, paralleler Neuverteilungs binärer Merge Sort (auch als Merge-all-Version) und partitionierendes Sortieren. Die letzten drei Ansätze werden hier neu vorgestellt, die anderen sind ausführlich in älterer Literatur zu finden.
 
 Merge-All besteht aus lokalem Sortieren und einem finales Verschmelzen. Load Balancing findet über Round Robin statt. Das Problem dieses Ansatzes ist, dass die finale Phase nur einen Prozessor verwendet. Der k-Wege-Merge-Sort hat den Nachteil, dass viele Dateien gleichzeitig geöffnet sind (insbesondere in shared-all-Architekturen).
 
-Im binärer Mergesort nach Bitton wird die Verschmelzungsphase gepiplinet, also sind auch die letzten Verschmelzungsphasen parallelisiert. Ein Vorteil hat dieser Ansatz mit dem vorherigen gemeinsam, nämlich ein einfaches Load Balancing.
+Im binärer Mergesort nach Bitton wird die Verschmelzungsphase als Pipeline implementiert, also sind auch die letzten Verschmelzungsphasen parallelisiert. Einen Vorteil hat dieser Ansatz mit dem vorherigen gemeinsam, nämlich ein einfaches Load Balancing.
 
-Zu diesen beiden weit in der Literatur diskutierten Ansätzen werden drei Alternativen vorgeschlagen: Der parallele Neuverteilungs-B-Merge Sort ermöglicht Parallelität auf alle Stufen durch Pipelining. Der erste Schritt sortiert lokal auf $p$ Prozessoren. Im Zweiten werden Daten Bereichs-orientiert auf die gleiche Anzahl von Prozessoren verteilt. Der dritte Schritt vereinigt die Ergebnisse. Problem ist, dass die Neuverteilung sehr ungleichmäßig sein kann durch die Bereichs-Redistribution. Die Merge-All Version dieses Algorithmus reduziert die Höhe des Ablaufbaums. Die parallel-partionierende Sortierung nimmt zu Beginn eine Bereich-Partitionierung vor. Vorteil ist, dass es keinen Overhead geben kann durch Pipelining und keinen Flaschenhals im Verschmelzen.
+Zu diesen beiden weit in der Literatur diskutierten Ansätzen werden drei Alternativen vorgeschlagen: Der parallele Neuverteilungs-B-Merge Sort ermöglicht Parallelität auf alle Stufen durch Pipelining. Der erste Schritt sortiert lokal auf $p$ Prozessoren. Im Zweiten werden Daten bereichs-orientiert auf die gleiche Anzahl von Prozessoren verteilt. Der dritte Schritt vereinigt die Ergebnisse. Problem ist, dass die Neuverteilung sehr ungleichmäßig sein kann durch die Bereichs-Redistribution. Die Merge-All Version dieses Algorithmus reduziert die Höhe des Ablaufbaums. Die parallel-partionierende Sortierung nimmt zu Beginn eine Bereich-Partitionierung vor. Vorteil ist, dass es keinen Overhead geben kann durch Pipelining und keinen Flaschenhals im Verschmelzen.
 
-\textbf{\fullcite{Hao2009}}
+\subsubsection*{\fullcite{Hao2009}}
 
-Schwerpunkt dieses Artikels ist die optimale Verwendung des Prozessor-Caches. Verwendet wird ein Partition-Merge Sortier-Algorithmus. Im ersten Schritt findet eine Aufteilung in Blöcke statt, die in den L2-Cache passen. Der Algorithmus ist zweistufig. Er kombiniert ein Partitions-basiertes Sortieren im Cache und ein k-Wege Merge-Sort. Der Algorithmus hat eine geringe I/O Komplexität. Für das Sortieren der Blöcke im Cache wird ein Proben-basiertendes paralleles Sortieren mit einem detailierten Algorithmus vorgestellt. Auch der (interne) Merge-Sort wird mit Algorithmus vorgestellt. k-Wege Sortieren wird hier anstatt binärem verwendet, um das Cache-Verhalten zu optimieren.
+Schwerpunkt dieses Artikels ist die optimale Verwendung des Prozessor-Caches. Verwendet wird ein Partition-Merge Sortier-Algorithmus. Im ersten Schritt findet eine Aufteilung in Blöcke statt, die in den L2-Cache passen. Der Algorithmus ist zweistufig. Er kombiniert ein partitions-basiertes Sortieren im Cache und ein k-Wege Merge-Sort. Der Algorithmus hat eine geringe I/O Komplexität. Für das Sortieren der Blöcke im Cache wird ein Proben-basiertes paralleles Sortieren mit einem detailierten Algorithmus vorgestellt. Auch der (interne) Merge-Sort wird mit Algorithmus vorgestellt. k-Wege Sortieren wird hier anstatt binärem verwendet, um das Cache-Verhalten zu optimieren.
 
-\textbf{\fullcite{Beck1988}}
+\subsubsection*{\fullcite{Beck1988}}
 
-Einen externer N-Wege Merge-Sort-Algorithmus (in einer Architektur mit mehreren HDs) findet in zwei Phasen statt, nämlich Sortieren und Verschmelzen: Jeder Thread erzeugt sortierte Läufe fixer Länge mithilfe von Quicksort. Die Parallelisierung des Merge-Schritts findet über Pipelining statt. Ausführlich wird das Datei-Layout für beide Phasen diskutiert: Interleave in der Merge-Phase und kontinuierliche Dateien in der Sortierphase. Eine wichtige Optimierung ist das Überlappen von Berechnungen und R/W-Vorgängen. Im Algorithmus gibt es drei Ströme: Input, Disk-R/W und Merge. 
+Ein externer N-Wege Merge-Sort-Algorithmus (in einer Architektur mit mehreren HDs) findet in zwei Phasen statt, nämlich Sortieren und Verschmelzen: Jeder Thread erzeugt sortierte Läufe fixer Länge mithilfe von Quicksort. Die Parallelisierung des Merge-Schritts findet über Pipelining statt. Ausführlich wird das Datei-Layout für beide Phasen diskutiert: Interleave in der Merge-Phase und kontinuierliche Dateien in der Sortierphase. Eine wichtige Optimierung ist das Überlappen von Berechnungen und R/W-Vorgängen. Im Algorithmus gibt es drei Ströme: Input, Disk-R/W und Merge. 
 
-\textbf{\fullcite{Ghaffari2019}}
+\subsubsection*{\fullcite{Ghaffari2019}}
 
-Das bisher nur auf der Webseite als Draft veröffentlichte Buchkapitel ist eine Einführung in parallele Algorithmen und stellt neben deren grundlegender Konzepte eine parallele Version von Merge-Sort dar. Ein trivialer Ansatz eines parallelen Merge-Sorts hat ein $O(n log^{2} n)$ Laufzeitverhalten. Hier wird ein Ansatz vorgestellt mit $O(n log n)$ plus einen Faktor, der verbessertes rekursives Merging genannt wird, aber ein Ansatz ist, der im Speicher stattfindet. Durch Vergleiche kann die genaue Position eines Wertes im verschmolzenen Array festgestellt werden. Weitere Verbesserung sind möglich durch das Pipelining der Merges.
+Das bisher nur auf der Webseite als Draft veröffentlichte Buchkapitel ist eine Einführung in parallele Algorithmen und stellt neben deren grundlegender Konzepte eine parallele Version von Merge-Sort dar. Ein trivialer Ansatz eines parallelen Merge-Sorts hat ein $O(n log^{2} n)$ Laufzeitverhalten. Hier wird ein Ansatz vorgestellt mit $O(n log n)$ plus einem Faktor, der verbessertes rekursives Merging genannt wird, aber ein Ansatz ist, der im Speicher stattfindet. Durch Vergleiche kann die genaue Position eines Wertes im verschmolzenen Array festgestellt werden. Weitere Verbesserungen sind möglich durch das Pipelining der Merges.
 
-\textbf{\fullcite{Iyer1989}}
+\subsubsection*{\fullcite{Iyer1989}}
 
 Es wird ein Ansatz vorgestellt, der vermeidet, dass im letzten Schritt sequentiell verschmolzen wird. Es wird ein Algorithmus für eine ausgeglichene Lastverteilung im Merge-Schritt vorgestellt für eine shared Memory Architektur. Für eine bessere Bereichs-Partitionierung werden Proben genommen. Ein genauer Algorithmus für zwei gleiche große Listen wird vorgestellt. 
 
 \subsubsection{Bitonic Sort}
-\textbf{\fullcite{Menon1986}}
 
-Dieser Artikel stellt eine modifizierte Version des Block Bitonic Sort als externen parallelen Algorithmus vor. Der schnellste interne Algorithmus ist Bitonic Sort, der hier für internes Sortieren bei externen Algorithmen genutzt wird und mit Pipelining kombiniert wird. Der interne Bitonic Sort und das externe Verschmelzen wird kurz vorgestellt. Pipelining beschleunigt den Merge-Schritt, aber nicht Bitonic Sort. Internes Sortieren bringt einen Performance-Vorteil gegenüber mehrfachem Verschmelzen. Pipelining lohnt sich vor allem, wenn es eine große Anzahl von Merge-Steps gibt. Modified bezieht sich auf die Nutzung eines internen Sortierens. 
+\subsubsection*{\fullcite{Menon1986}}
+
+Dieser Artikel stellt eine modifizierte Version des Block Bitonic Sort als externen parallelen Algorithmus vor. Der schnellste interne Algorithmus ist Bitonic Sort, der hier für internes Sortieren bei externen Algorithmen genutzt und mit Pipelining kombiniert wird. Der interne Bitonic Sort und das externe Verschmelzen wird kurz vorgestellt. Pipelining beschleunigt den Merge-Schritt, aber nicht Bitonic Sort. Internes Sortieren bringt einen Performance-Vorteil gegenüber mehrfachem Verschmelzen. Pipelining lohnt sich vor allem, wenn es eine große Anzahl von Merge-Steps gibt. Modified bezieht sich auf die Nutzung eines internen Sortierens. 
 
 \subsection{Joins}
-\textbf{\fullcite{Mishra1992}}
 
-Der sehr umfangreiche Artikel bietet eine Übersicht über Joins in Datenbanken, die aber nicht explizit parallel sind. Vorgestellt werden der Sort-Merge-Join und diverse Hash Joins mit Simple Hash und Hash-partionierender Join (die gut für eine Parallelisierung geeignet sind wie Grace- und Hybrid-Join). Der Grace-Join arbeitet mit einer dynamischen Clusterung (parallelele Partitionierungs- und Matching-Phase). Der Hybrid-Join kalkuliert Hash-Tabellen so, dass sie in den Speicher passen, und nicht alle Partitionen werden auf HD geschrieben, sondern teils direkt behandelt.
+\subsubsection*{\fullcite{Mishra1992}}
+
+Der sehr umfangreiche Artikel bietet eine Übersicht über Joins in Datenbanken, die aber nicht explizit parallel sind. Vorgestellt werden der Sort-Merge-Join und diverse Hash Joins mit Simple Hash und Hash-partionierender Join (die gut für eine Parallelisierung geeignet sind wie Grace- und Hybrid-Join). Der Grace-Join arbeitet mit einer dynamischen Clusterung (parallelele Partitionierungs- und Matching-Phase). Der Hybrid-Join kalkuliert Hash-Tabellen so, dass sie in den Speicher passen. Nicht alle Partitionen werden auf HD geschrieben, sondern teils direkt behandelt.
 
 Es wird auf die Vorteile diverser Indexes eingegangen: T-Baum, kd-, Bc. Mehrkernprozessoren bringen am meisten Performance-Vorteile bei einer Partitionierung. Ausführlich wird auf das Problem überfließender Partitionstabellen eingegangen. Ein Lösung ist, von mehr Partitionen auszugehen als theoretisch notwendig sind, um einer ungleichen Datenverteilung vorzubeugen oder das nachträgliche Aufteilen der Hashtabellen.
 
-\textbf{\fullcite{Valduriez1984}}
+\subsubsection*{\fullcite{Valduriez1984}}
 
-Dieser Artikel vergleicht drei Join-Algorithmen, 2 Semijoins und 1 Non-equi Join, nämlich den Nested Loop Join, den Sort-Merge Join und einen Hashing Join. Bei den Algorithmen gibt es zwei Arten von I/O-Operationen: Seiten-Transfers von und zur HD und vom Cache-Speicher zum lokalen Speicher. Merge-Sort-Join hat hier einen finalen Schritt nur mit einem Prozessor und benutzt einen B-Wege-Merge Sort. Der Hash-Join nimmt eine Bool-Array-Datenstruktur zur Hilfe, um zu markieren, dass matchende Tupples existieren. Es wird ein detaillierter experimenteller Performance-Vergleich vorgenommen mit dem Ergebnis, dass Nested Loop-Joins bei einer sehr hoher Prozessor-Zahl am performantesten sind, Sort-Merge-Joins bei großen Relationen und Hash-Joins, wenn es eine vergleichsweise geringe Anzahl von Treffern gibt. Zu beachten ist aber, dass hier teils sehr einfache Varianten der Algorithmen verwendet werden.
+Dieser Artikel vergleicht drei Join-Algorithmen, zwei Semijoins und einen Non-equi Join, nämlich den Nested Loop Join, den Sort-Merge Join und einen Hashing Join. Bei den Algorithmen gibt es zwei Arten von I/O-Operationen: Seiten-Transfers von und zur HD und vom Cache-Speicher zum lokalen Speicher. Merge-Sort-Join hat hier einen finalen Schritt nur mit einem Prozessor und benutzt einen B-Wege-Merge Sort. Der Hash-Join nimmt eine Bool-Array-Datenstruktur zur Hilfe, um zu markieren, dass matchende Tupples existieren. Es wird ein detaillierter experimenteller Performance-Vergleich vorgenommen mit dem Ergebnis, dass Nested Loop-Joins bei einer sehr hoher Prozessor-Zahl die beste Performance haben, Sort-Merge-Joins bei großen Relationen und Hash-Joins, wenn es eine vergleichsweise geringe Anzahl von Treffern gibt. Zu beachten ist aber, dass hier teils sehr einfache Varianten der Algorithmen verwendet werden.
 
-\textbf{\fullcite{Richardson1987}}
+\subsubsection*{\fullcite{Richardson1987}}
 
-Sechs parallele Versionen Sort-Merge-Joins unter Verwendung von Pipelining und Hash Joins werden verglichen: zwei Versionen des Sort-Merge-Join-Algorithmus, zwei, die Hash- und Sort-Merge-Techniken kombinieren und zwei Varianten eines Hybrid-Joins. Hash-basierende Ansätze sind meistens performanter, da sie besser zu parallelisieren sind.
+Sechs parallele Joins werden verglichen: zwei Versionen des Sort-Merge-Join-Algorithmus unter Verwendung von Pipelining, zwei, die Hash- und Sort-Merge-Techniken kombinieren und zwei Varianten eines Hybrid-Joins. Hash-basierende Ansätze sind meistens performanter, da sie besser zu parallelisieren sind.
 
 \begin{itemize}
 	\item Einfacher Typ Sort-Merge-Join, in dem nur die Sortierphase parallelisiert ist.
 	\item Hier wird versucht ein Vorsortierten zu vermeiden, wenn keine Joins stattfinden. Phase 1: lokale Runs von R für jeden Kern, Phase 2: Merge in sorted R. Phase 3: Runs von S in jedem Kern mit Priority Queue. Direkter Merge-Join mit R.
 	\item Hash Partitionierter Sort Merge-Join: Erst eine Hash-Partitionierung und dann Sort-Merge lokal.
-	\item Variante von 3, die nur R Hash-partioniert.
-	\item Hybrid-Hash-Join spiegelbildlich zu 3.
-	\item Hybrid-Hash-Join spiegelbildlich zu 4.
+	\item Variante von Unterpunkt 3, die nur R Hash-partioniert.
+	\item Hybrid-Hash-Join analog zu 3.
+	\item Hybrid-Hash-Join analog zu 4.
 \end{itemize}
 
-Eine detaillierte experimentelle Analyse der Algorithmen wird vorgenommen, mit dem Ergebnis, dass die Hash-basierten Algorithmen am performantesten sind. Die Kommunikation zwischen den Clustern ist ein Flaschenhals.
+Eine detaillierte experimentelle Analyse der Algorithmen wird vorgenommen, mit dem Ergebnis, dass die Hash-basierten Algorithmen die beste Performance haben. Die Kommunikation zwischen den Clustern ist ein Flaschenhals.
 
-\textbf{\fullcite{Schneider1989}}
+\subsubsection*{\fullcite{Schneider1989}}
 
 Hier werden Grace-/Hybrid-Hash-Join, Simple Hash Join und Sort-Merge-Join verglichen, allerdings in einer shared-nothing Architektur.
 
@@ -213,89 +215,89 @@ Experimentelle Ergebnisse zeigen, dass Sort-Merge-Joins und Simple-Hash-Joins am
 
 \subsubsection{Hash-Joins}
 
-\textbf{\fullcite{DeWitt1985}}
+\subsubsection*{\fullcite{DeWitt1985}}
 
-Die verbreiteten Join-Algorithmen (Simple Hash, Grace, Hybrid und Sort-Merge) werden in ihrer Einprozessor-Version im Detail vorgestellt und miteinander verglichen. Bit-Vektor-Filterung bei Hash- und Sort-Merge-Joins bietet einen hohen Performancegewinn. Das Problem des Überfließens der Buckets bei den Hash-Joins wird mit einem rekursiven Partitionierungsprozess gelöst. 
+Die am häufigsten verwendeten Join-Algorithmen (Simple Hash, Grace, Hybrid und Sort-Merge) werden in ihrer Einprozessor-Version im Detail vorgestellt und miteinander verglichen. Bit-Vektor-Filterung bei Hash- und Sort-Merge-Joins bietet einen hohen Performance-Gewinn. Das Problem des Überfließens der Buckets bei den Hash-Joins wird mit einem rekursiven Partitionierungsprozess gelöst. 
 
 Den Schwerpunkt des Artikels stellen Multiprozessor-Versionen von Grace- und Hybrid-Hash-Join da, da diese sich besonders gut für eine Parallelisierung eignen.
 
 \begin{itemize}
-	\item Ansatz für Grace-Join: Unterschiedliche Prozessoren für Join und Partitionierungsphase. Nur Partitionierung unter Nutzung von HDs.
-	\item Beim Hybrid-Join werden für alle Phasen HDs genutzt.
+	\item Ansatz für Grace-Join: Unterschiedliche Prozessoren für Join und Partitionierungsphase. Nur Partitionierung unter Nutzung von mehreren HDs.
+	\item Beim Hybrid-Join werden für alle Phasen mehrere HDs genutzt.
 \end{itemize}
 
 Im Vergleich verursacht ein paralleler Hybrid-Join eine stärkere HD-Nutzung und eine geringere Prozessornutzung als der Grace-Join.
 
-\textbf{\fullcite{Lu1990}}
+\subsubsection*{\fullcite{Lu1990}}
 
-Hybrid-, Grace-, Simple-Hash-Join und Hash-based-Nested-Loop-Join werden in einer shared-memory-Architektur vergleichen und mit einer globalen Hash-Tabelle implementiert, die mit einem Lock-Mechanismus arbeitet. Die Join-Algorithmen werden danach Kategorisierung, ob eine Partitionierung von S und R vor dem Verbinden, on-the-fly oder gar nicht statt findet. 
+Hybrid-, Grace-, Simple-Hash-Join und Hash basierte Nested-Loop-Join werden in einer Shared-Memory-Architektur vergleichen und mit einer globalen Hash-Tabelle implementiert, die mit einem Lock-Mechanismus arbeitet. Die Join-Algorithmen werden danach Kategorisierung, ob eine Partitionierung von S und R vor dem Verbinden, on-the-fly oder gar nicht statt findet. 
 
-Der Hybrid-Join wird folgendermaßen implementiert: In einer Partitionierungsphase werden R und S in disjunkte Buckets aufgeteilt, wobei die Buckets von R möglichst gleich groß sind. Im Hybrid-Join passen alle Buckets in den Speicher und der erste Bucket pro Prozessor wird direkt verschmolzen, ohne ihn auf die Festplatte zu schreiben. Problematisch wird die Performance, wenn die Anzahl der Buckets klein im Vergleich zu der Anzahl an Kernen ist. Hierfür wird eine modifizierte Version des Algorithmus vorgestellt. Die Speichernutzung der Buckets bei Grace- und Hybrid-Joins wird verglichen.
+Der Hybrid-Join wird folgendermaßen implementiert: In einer Partitionierungsphase werden R und S in disjunkte Buckets aufgeteilt, wobei die Buckets von R möglichst gleich groß sind. Beim Hybrid-Join passen alle Buckets in den Speicher und der erste Bucket pro Prozessor wird direkt verschmolzen, ohne ihn auf die Festplatte zu schreiben. Problematisch wird die Performance, wenn die Anzahl der Buckets klein im Vergleich zu der Anzahl an Kernen ist. Für dieses Problem wird eine modifizierte Version des Algorithmus vorgestellt. Die Speichernutzung der Buckets bei Grace- und Hybrid-Joins wird verglichen.
 
-Beim Hash-based-Nested-Loop-Join wird über Hashing partitioniert und dann auf jedem Kern ein Nested Loop parallel durchgeführt. Wenn die R-Relation größer ist als der Arbeitsspeicher, gibt es mehrere Läufe.
+Beim Hash basierte Nested-Loop-Join wird über Hashing partitioniert und dann auf jedem Kern ein Nested Loop parallel durchgeführt. Wenn die R-Relation größer ist als der Arbeitsspeicher, gibt es mehrere Läufe.
 
-Der Modified-Hash schneidet am Besten ab, wenn R wesentlich größer ist als S. Bei gleicher Größe schneidet der Hash-basierende Loop-Join am Besten ab.
+Der Modified-Hash-Join schneidet am Besten ab, wenn R wesentlich größer ist als S. Bei gleicher Größe schneidet der Hash basierte Loop-Join am Besten ab.
 
-\textbf{\fullcite{Qadah1994}}
+\subsubsection*{\fullcite{Qadah1994}}
 
-Qadah vergleicht verschiedene parallele Join-Algorithmen in einer shared-memory-Architektur. Nicht unter allen Bedingungen ist der gleiche Algorithmus am Besten. Er stellt eine Systematik von Join-Algorithmen auf nach folgendenen Kriterien: globaler Tuple-Verteilung (globale Broatcast vs globale Hash Methode), lokaler Tuple-Verteilung (lokale Broatcast vs lokale Hash Methode) und Intra-Triplet Join Prozessing (R und Partition von S werden im gleichen Prozessor verschmolzen). 
+Qadah vergleicht verschiedene parallele Join-Algorithmen in einer Shared-Memory-Architektur. Nicht unter allen Bedingungen ist der gleiche Algorithmus am Besten. Er stellt eine Systematik von Join-Algorithmen nach folgendenen Kriterien auf: globale Tuple-Verteilung (globale Broatcast- vs. globale Hash-Methode), lokale Tuple-Verteilung (lokale Broatcast- vs. lokale Hash-Methode) und Intra-Triplet Join Prozessing (R und Partition von S werden im gleichen Prozessor verschmolzen). 
 
-\textbf{\fullcite{Lakshmi1990}}
+\subsubsection*{\fullcite{Lakshmi1990}}
 
-Effektivität von Multiprozessor-Algorithmen hängen davon ab, inwieweit gleiche Lastverteilung gelingt und Koordinierungs- und Synchronisierungs-Overhead minimal gehalten wird. Als Beispiel für die Diskussion möglicher Effizienzsteigerungen dient ein paralleler Hash-Join: Der Hybrid-Hash-Join wird detailliert beschrieben.
+Die Effektivität von Multiprozessor-Algorithmen hängt davon ab, inwieweit gleiche Lastverteilung gelingt und Koordinierungs- und Synchronisierungs-Overhead minimal gehalten werden kann. Als Beispiel für die Diskussion möglicher Effizienzsteigerungen dient ein paralleler Hash-Join: Der Hybrid-Hash-Join wird detailliert beschrieben.
 
 Neben einer ungünstigen Verteilung der Daten bzgl. der Hash-Funktion kann es weitere Gründe für eine unausgeglichene Auslastung der verschiedenen parallelen Prozesse geben wie z.~B. die Verteilung der Daten auf der Festplatte. Bei einer ungünstigen Verteilung der Daten lohnt sich evtl. eine Parallelisierung nicht.  
 
-\textbf{\fullcite{Omiecinski1991}}
+\subsubsection*{\fullcite{Omiecinski1991}}
 
-Hier wird eine Hash-Join-Implementierung vorgeschlagen, die an den Grace-Algorithmus angelehnt ist. Insbesondere wird das Load Balancing in einer shared-all-Architektur betrachtet. Es wird ein analytisches Modell für die Untersuchung der Effizienz vorgeschlagen für eine solche Architektur. Eine Besonderheit dieser Architektur ist es, dass die Anzahl der Buckets viel größer ist als die der Prozessoren, da es meist deutlich weniger Kerne gibt als in verteilten Systemen mit nicht geteiltem Speicher/Festplatten Prozessoren. 
+Hier wird eine Hash-Join-Implementierung vorgeschlagen, die an den Grace-Algorithmus angelehnt ist. Insbesondere wird das Load Balancing in einer Shared-all-Architektur betrachtet. Es wird ein analytisches Modell für die Untersuchung der Effizienz in einer solchen Architektur vorgeschlagen. Eine Besonderheit dieser Architektur ist es, dass die Anzahl der Buckets viel größer als die der Prozessoren ist, da es meist deutlich weniger Kerne als in verteilten Systemen mit nicht geteiltem Speicher/Festplatten Prozessoren gibt. 
 
-Grace-Join wird folgendermaßen implementiert:
+Der Grace-Join wird folgendermaßen implementiert:
 
 \begin{itemize}
 	\item Lese und partitioniere R in Buckets und schreibe diese in eine Datei.
 	\item Lese und partitioniere S in Buckets und schreibe diese in eine Datei.
-	\item Um sicher zu stellen, dass verschiedene Prozesse möglichst nicht gleichzeitig schreiben wird hier zur Vermeidung von Sperren ein interner Index-Array verwendet.
+	\item Um sicher zu stellen, dass verschiedene Prozesse möglichst nicht gleichzeitig schreiben, wird hier zur Vermeidung von Sperren ein interner Index-Array verwendet.
 	\item Eine Schedule-Phase vor der Join-Phase, die nur auf einem Prozessor ausgeführt wird, hilft beim Load Balancing. Sie verwendet einen globalen Array, der also für alle Threads zugänglich ist.
 	\item Join
 \end{itemize}
 
 Für ein besseren Vergleich wird in der Effizienz-Analyse eine Relation verwendet, in der die ungleiche Verteilung nur einen Bucket betrifft. Das hier verwendete Kostenmodel zeigt, dass der abgewandelte Grace-Join mit Scheduler eine deutlich bessere Performance aufweist. 
 
-\textbf{\fullcite{Gerber1986}}
+\subsubsection*{\fullcite{Gerber1986}}
 
-In diesem Aufsatz liegt der Schwerpunkt auf der Behandlung von Überläufen der Hash-Tabellen. Es werden die wichtigsten Hash-Join-Algorithmen vorgestellt, auch in ihrer parallelen Implementierung. Im Detail wird auf die Implementierung vom Hybrid-Hash-Join in einer GAMMA Datenbank-Engine eingegangen, aber auch vom Grace-Hash-Join. Es wird Intra-Query- und Intra-Operator-Parallelität gegenüber gestellt. Es wird versucht, die Frage zu beantworten, warum Grace- und Hybrid-Hash-Join am geeignetsten sind für Multiprozessor-Architekturen. Der Hybrid-Hash-Join schont den Festplatten-Traffic und hat wenig Overhead. 
+In diesem Aufsatz liegt der Schwerpunkt auf der Behandlung von Überläufen der Hash-Tabellen. Es werden die wichtigsten Hash-Join-Algorithmen vorgestellt, auch in ihrer parallelen Implementierung. Im Detail wird auf die Implementierung vom Hybrid-Hash-Join in einer GAMMA Datenbank-Engine eingegangen, aber auch von Grace-Hash-Join. Es wird Intra-Query- und Intra-Operator-Parallelität gegenüber gestellt. Es wird versucht, die Frage zu beantworten, warum Grace- und Hybrid-Hash-Join am geeignetsten für Multiprozessor-Architekturen sind. Der Hybrid-Hash-Join schont den Festplatten-Traffic und hat wenig Overhead. 
 
 \subsubsection{Sort-Mege-Joins}
 
-\textbf{\fullcite{Dittrich2002}}
+\subsubsection*{\fullcite{Dittrich2002}}
 
 Beispielsweise für Webanwendung ist es teils gewünscht, dass kontinuierlich Ströme ausgegeben werden, also nicht, wie bei der üblichen Implementierung eines Sort-Merge-Joins, die Sortierphase vollständig abgeschlossen sein muss, bevor erste Ergebnisse vorliegen. Solche Implementierungen nennt man nicht blockierende Algorithmen. Hier wird der Progressive Merge-Join-Algorithmus als eine solche Implementierung vorgeschlagen. Er erzeugt bereits Join-Ergebnisse, wenn die initialen Runs der Sortierphase erzeugt sind. Der hier vorgestellte Ansatz ist generische für unterschiedliche Joins.
 
 Ein Algorithmus in Pseudocode liegt vor. Initial werden so viele Daten wie möglich aus S und R in den Speicher gelesen und intern sortiert sowie mit einem internen Join verbunden. Die Ergebnisse werden direkt ausgegeben und die Runs temporär auf den externen Speicher geschrieben. In einem nächster Schritt wird genauso verfahren mit längeren Runs. In dem Algorithmus gibt es zwei Join-Phasen: Eine während der Run-Erzeugung, eine während des Merge. Der Algorithmus wird auf Vollständigkeit und Effizienz untersucht. Jedes Ergebnis wird nur einmal ausgegeben. 
 
-\textbf{\fullcite{Wolf1990}}
+\subsubsection*{\fullcite{Wolf1990}}
 
-Hier wird auf die Behandlung ungleicher Lastenverteilung in einem parallelen Sort-Merge-Join eingegangen. Parallelisierung über Devide \& Conquere ist die Antwort der Autoren aif dieses Problem. Es wird eine zusätzliche Scheduling-Phase vorgeschlagen. Der parallele Algorithmus versucht, die Outputs der Sort-Phase zu optimieren. Der Algorithmus führt parallele Teil-Joins aus, die Bereichs-partitioniert sind. Allerdings ist so der Sort-Merge-Join nur in der Lage, Equi-Joins auszuführen. Die Verteilung in dieser Partitionierung ist wichtig für die Effizienz. Hierfür werden zwei Verfahren vorgeschlagen: 
+Hier wird auf die Behandlung ungleicher Lastenverteilung in einem parallelen Sort-Merge-Join eingegangen. Parallelisierung über Devide \& Conquere ist die Antwort der Autoren auf dieses Problem. Es wird eine zusätzliche Scheduling-Phase vorgeschlagen. Der parallele Algorithmus versucht, die Outputs der Sort-Phase zu optimieren. Der Algorithmus führt parallele Teil-Joins aus, die bereichs-partitioniert sind. Allerdings ist so der Sort-Merge-Join nur in der Lage, Equi-Joins auszuführen. Die Verteilung in dieser Partitionierung ist wichtig für die Effizienz. Dementsprechend werden zwei Verfahren vorgeschlagen: 
 
 \begin{itemize}
-	\item über Load Balancing: Das Minum-Makespan oder Multiprozessor-Problem wird gelöst. Die Lösung ist np schwer, aber es gibt sehr schnelle Heurisitiken (LPT -- longest processing time first -- oder MULTIFIT).
-	\item Die Aufgabe wird geteilt mit dem GM -- Galil und Megiddo Algorithmus. Er findet die Elemente, die am stärksten für die Ungleichverteilung verantwortlich sind, und ist einfach zu parallelisieren.
+	\item über Load Balancing: Das Minum-Makespan oder Multiprozessor-Problem wird gelöst. Die Lösung ist np-schwer, aber es gibt sehr schnelle Heurisitiken (LPT -- longest processing time first -- oder MULTIFIT).
+	\item Die Aufgabe wird geteilt mit dem GM -- Galil und Megiddo Algorithmus. Er findet die Elemente, die am stärksten für die Ungleichverteilung verantwortlich sind und ist einfach zu parallelisieren.
 \end{itemize}
 
 \subsubsection{Spatial Joins}
 
-\textbf{\fullcite{Rigaux2001}}
+\subsubsection*{\fullcite{Rigaux2001}}
 
-Dieses Buch ist eine allgemeine Einführung in räumliche Datenbanken und gibt eine Übersicht über viele Themen, die jenseits einer direkten Implementiertung des Spatial Jons zu beachten sind. Es werden topologischen Beziehungen von ADTs vorgestellt und räumliche Prädikate. Hier werden viele für meine Masterarbeit nützliche Algorithmen für topologische Beziehungen im Detail dargestellt: Sweep-Line Rechteck-Intersektion, das Punkt in Polygon-Problem, der Polygon-Schnitt mit Sweep-Algorithmus und das Windowing (boolsche Operation, ob ein Schnittpunkt existiert).
+Dieses Buch ist eine allgemeine Einführung in räumliche Datenbanken und gibt eine Übersicht über viele Themen, die jenseits einer direkten Implementiertung des Spatial Jons zu beachten sind. Es werden topologischen Beziehungen von ADTs vorgestellt und räumliche Prädikate. Es werden viele für meine Masterarbeit nützliche Algorithmen für topologische Beziehungen im Detail vorgestellt: Sweep-Line Rechteck-Intersektion, das Punkt in Polygon-Problem, der Polygon-Schnitt mit Sweep-Algorithmus und das Windowing (boolsche Operation, ob ein Schnittpunkt existiert).
 
-Räumliche Indexe (R/R*-Baum) und der räumlicher Zugriff über Grid-Datei mit B+-Baum werden erläutert und Raum-orientierte vs. Daten-orientiere Zugriffsmethoden diskutiert. 
+Räumliche Indexe (R/R*-Baum) und der räumlicher Zugriff über Grid-Datei mit B+-Baum werden erläutert und Raum-orientierte vs. Daten-orientierte Zugriffsmethoden diskutiert. 
 
-Externe Algorithmen z.~B. für Rechteck-Schnittpunkte werden dargestellt. Ein Abschnitt stellt ausführlich Spatial-Joins mit MBBs vor, die aus einem Filterschritt (MBB) und einem Verfeinerungs-Schritt bestehen. Für den Verfeinerungsschritt sind geometrische Operation notwendig. Es gibt folgende Typen von Spatial Joins: Z-Ordnungs-SJs, R-Tree-SJs und externe Plane-Sweep Algorithmen. Spatial Hash-Joins sind sinnvoll, wenn kein räumlicher Indexes existieren.
+Externe Algorithmen z.~B. für Rechteck-Schnittpunkte werden dargestellt. Ein Abschnitt stellt ausführlich Spatial-Joins mit MBBs vor, die aus einem Filterschritt (MBB) und einem Verfeinerungs-Schritt bestehen. Für den Verfeinerungsschritt sind geometrische Operation notwendig. Es gibt folgende Typen von Spatial Joins: Z-Ordnungs-SJs, R-Tree-SJs und externe Plane-Sweep Algorithmen. Spatial-Hash-Joins sind sinnvoll, wenn kein räumlicher Indexes existieren.
 
-\textbf{\fullcite{Zhou1998}}
+\subsubsection*{\fullcite{Zhou1998}}
 
-Dieser Aufsatz diskutiert, inwieweit Techniken von Spatial Joins für eine parallele Implementierung geeignet sind, vor allem bzgl. Partitionierungsmethoden und Lastenverteilung. Es werden Daten\-partitionierungs\-techniken paralleler nicht-räumlicher Joins kombiniert mit einer explizit räumlichen Filter- und Verfeinerungsstrategie. Ein in nicht räumlichen Datenbanken üblicher SASJ-Ansatz (Single Assignment, single join - SASJ) kann hier nicht verwendet werden. Räumliche Paritionierungsmethode sind entweder Mehrfachzuweisungs-Single-Joins (MASJ) oder Einfachzuweisungs-Mehrfach-Joins (SAMJ). Eine Partitionierung basiert üblicherweise auf einer räumlichen Dekomposition. R-Bäume werden für SAMJ genutzt, R+-Bäume und der Z-Wert für MASJ. In diesem Aufsatz wird nur eine binäre Polygon-Überlappung behandelt, aber eine Erweiterung auf andere Topologien ist einfach denkbar. Zwei Ansätze werden vorgestellt, einer unausgeglichenen Lastverteilung zu begegnen: Ein Top-Down- und Bottom-up-Ansatz. In dem vorgestellten Algorithmus wird eine Bottom-up-Strategie verfolgt in einer shared-nothing-Architektur.
+Dieser Aufsatz diskutiert, inwieweit Techniken von Spatial-Joins für eine parallele Implementierung geeignet sind, vor allem bzgl. Partitionierungsmethoden und Lastenverteilung. Es werden Daten\-partitionierungs\-techniken paralleler nicht-räumlicher Joins mit einer explizit räumlichen Filter- und Verfeinerungsstrategie kombiniert. Ein in nicht räumlichen Datenbanken üblicher SASJ-Ansatz (single sssignment, single join) kann hier nicht verwendet werden. Räumliche Paritionierungsmethode sind entweder Mehrfachzuweisungs-Single-Joins (MASJ) oder Einfachzuweisungs-Mehrfach-Joins (SAMJ). Eine Partitionierung basiert üblicherweise auf einer räumlichen Dekomposition. R-Bäume werden für SAMJ genutzt, R+-Bäume und der Z-Wert für MASJ. In diesem Aufsatz wird nur eine binäre Polygon-Überlappung behandelt, aber eine Erweiterung auf andere Topologien ist einfach denkbar. Zwei Ansätze werden vorgestellt, einer unausgeglichenen Lastverteilung zu begegnen: Ein Top-Down- und Bottom-up-Ansatz. In dem vorgestellten Algorithmus wird eine Bottom-up-Strategie verfolgt in einer Shared-nothing-Architektur.
 
 Eine Filter- und Verfeinerungs-Strategie wird wie folgt umgesetzt:
 
@@ -309,45 +311,49 @@ Eine Filter- und Verfeinerungs-Strategie wird wie folgt umgesetzt:
 	 \item Parallele Verfeinerung.
  \end{itemize}
 
-	  Duplikate werden i.~A. dort entfernt, wo sie entstehen. Für jeden Schritt werden Algorithmen ausführliche vorgestellt inkl. einer Kostenanalyse. Zum Testen wird der Sequoia-Datensatz verwendet. Für das Bucket Merging  werden drei Algorithmen vorgeschlagen: Round Robin und Z-Order-Greedy (normal und verbessert). Der verbesserte Z-Order-Greedy-Algorithmus schneidet am besten ab. 
+Duplikate werden i.~A. dort entfernt, wo sie entstehen. Für jeden Schritt werden Algorithmen ausführlich inkl. einer Kostenanalyse vorgestellt. Zum Testen wird der Sequoia-Datensatz verwendet. Für das Bucket Merging werden drei Algorithmen vorgeschlagen: Round Robin und Z-Order-Greedy (normal und verbessert). Der verbesserte Z-Order-Greedy-Algorithmus schneidet am besten ab. 
 
-\textbf{\fullcite{Luo2002}}
+\subsubsection*{\fullcite{Luo2002}}
 
-Hier wird ein nicht-blockierender Spatial Join vorgestellt, der mit Duplikat-Vermeidung anstatt Ausschluss arbeitet, und der sogar nicht blockierend ist, wenn es zu einem Overflow kommt. Die Performance ist vergleichbar mit anderen Spatial Joins. Bisher wurden keine nicht blockierenden Algorithmen für Spatial Joins vorgeschlagen, da sie deutlich komplexer sind verglichen mit Standard-Joins und die Duplikatsvermeidung aufwändig ist.
+Hier wird ein nicht-blockierender Spatial Join vorgestellt, der mit Duplikat-Vermeidung anstatt -Ausschluss arbeitet, und der sogar nicht blockierend ist, wenn es zu einem Overflow kommt. Die Performance ist vergleichbar mit anderen Spatial Joins. Bisher wurden keine nicht blockierenden Algorithmen für Spatial Joins entwickelt, da sie verglichen mit Standard-Joins deutlich komplexer sind und die Duplikatsvermeidung aufwändig ist.
 
-Eine Partitionierung in rechteckige Kacheln wird mit Hashing vorgenommen mithilfe einer räumliche Verteilungsfunktion SPF. In jedem Knoten gibt es zwei im Speicher gehaltene R-Bäume. Eine erste Phase nimmt eine Wiederverteilung vor, eine zweite ein Disk ReRead. Ausführlich wird eine Strategie für die Behandlung eines Überfluss diskutiert und Methoden zur Duplikatsvermeidung. 
+Eine Partitionierung in rechteckige Kacheln wird mit Hashing vorgenommen mithilfe einer räumliche Verteilungsfunktion SPF. In jedem Knoten gibt es zwei im Speicher gehaltene R-Bäume. Eine erste Phase nimmt eine Wiederverteilung vor, eine zweite ein Disk ReRead. Ausführlich wird eine Strategie für die Behandlung vom Überflüssen diskutiert und Methoden zur Duplikatsvermeidung. 
 
-\textbf{\fullcite{Brinkhoff1996}}
+\subsubsection*{\fullcite{Brinkhoff1996}}
 
-Der hier vorgestellte Spatial-Joins-Algorithmus ist für eine Shared-Memory-Architektur konzipiert. Er arbeitet in drei Phasen: die Task Generierung, die Task Zuweisung und eine parallele Task Ausführung. Eine Lastenverteilung wird dynamisch vorgenommen. Er ist insbesondere dann performant, wenn er viele Festplatten gleichzeitig nutzt. Es wird ein sequentieller Spatial Join mit einem R-Baum-Filter-Schritt vorgestellt.
+Der hier vorgestellte Spatial-Joins-Algorithmus ist für eine Shared-Memory-Architektur konzipiert. Er arbeitet in drei Phasen: die Task Generierung, die Task Zuweisung und eine parallele Task Ausführung. Eine Lastenverteilung wird dynamisch vorgenommen. Er ist insbesondere dann performant, wenn er viele Festplatten gleichzeitig nutzt. Es wird ein sequentieller Spatial-Join mit einem R-Baum-Filter-Schritt vorgestellt.
 
-Partitionierungstechniken natürlicher Joins können nicht für räumliche Joins genutzt werden. Auch bei der Partitionierung wird ein paralleler Ansatz verfolgt. Der erste Filterschritt nutzt R*-Bäume. CPU-Kosten fallen vor allem an im Prädikattest, der im Verfeinerungsschritt vorgenommen wird. In einer parallelen Implementierung müssen auch Kommunikations- und Synchronisationskosten berücksichtigt werden. 
+Partitionierungstechniken natürlicher Joins können nicht für räumliche Joins genutzt werden. Auch bei der Partitionierung wird ein paralleler Ansatz verfolgt. Der erste Filterschritt nutzt R*-Bäume. CPU-Kosten fallen vor allem im Prädikattest an, der im Verfeinerungsschritt vorgenommen wird. In einer parallelen Implementierung müssen auch Kommunikations- und Synchronisationskosten berücksichtigt werden. 
 
-Es wird ein Satz von Tasks erzeugt, in denen der parallele Join mithilfe von R*-Baum vorgenommen wird. Die Anzahl an Tasks ist meist größer als die Kern-Zahl. Deshalb ist ein Algorithmus für die Aufgaben-Zuweisung notwendig. Diese werden ohne Kommunikation untereinander vollständig parallel ausgeführt. Es findet eine Partitionierung in Sub-Bäume statt. Zwei Kerne können auf dem gleichen Objekt gleichzeitig arbeiten. Es wird die Frage diskutiert, wie der Buffer organisieren werden soll. Für den shared-Memory-Fall kann ein globaler Buffer verwendet werden, auf den alle Prozesse zugreifen können. Load Balancing wird dynamisch vorgenommen: Frei gewordene Kerne helfen anderen Tasks.
+Es wird ein Satz von Tasks erzeugt, in denen die parallelen Joins mithilfe von R*-Bäumen vorgenommen werden. Die Anzahl an Tasks ist meist größer als die Kern-Zahl. Deshalb ist ein Algorithmus für die Aufgaben-Zuweisung notwendig. Die Tasks werden ohne Kommunikation untereinander vollständig parallel ausgeführt. Es findet eine Partitionierung in Sub-Bäume statt. Zwei Kerne können auf dem gleichen Objekt gleichzeitig arbeiten. Es wird die Frage diskutiert, wie der Buffer organisieren werden soll. Für den Shared-Memory-Fall kann ein globaler Buffer verwendet werden, auf den alle Prozesse zugreifen können. Load Balancing wird dynamisch vorgenommen: Frei gewordene Kerne helfen anderen Tasks.
 
 Experimente ergeben, dass ein globaler Buffer sowie ein Task Assignement die besten Strategien sind. Bei nur einer Festplatte lohnen sich unter den Testbedingungen nur 4 Kerne gleichzeitig. 
 
-\textbf{\fullcite{Jacox2007}}
+\subsubsection*{\fullcite{Jacox2007}}
 
-Dieser Aufsatz gibt eine Übersicht über verschiedene Ansätze eines Spatial Joins, gegliedert nach parallelen und nicht parallelen, externen und internen sowie Ansätzen mit Index und ohne.
+Dieser Aufsatz gibt eine Übersicht über verschiedene Ansätze, Spatial Joins zu implementieren, gegliedert nach parallelen und nicht parallelen, externen und internen sowie Ansätzen mit Index und ohne.
 
-Die verschiedenen Ansätze werden in ihren jeweiligen Schritten verglichen, um eine Neuzusammensetzung z.~B. für die Auswahl des Optimierers zu ermöglichen. Es wird eine Übersicht gegeben über verschiedene Ansätze zur Partitionierung inkl. der Algorithmen (Design Parameter, MBRs, lineare Orderings) und einer Diskussion der Duplikatsvermeidung, der Erweiterung des Filterschritts jenseits vom MBBs und eine Diskussion verschiedener Ansätze im Verfeinerungsschritt. Spezialfälle von Spatial Joins sind Mehrwege-SJs, parallele und verteilte Spatial Joins.
+Die verschiedenen Ansätze werden in ihren jeweiligen Schritten verglichen, um eine Neuzusammensetzung z.~B. für die Auswahl des Optimierers zu ermöglichen. Es wird eine Übersicht über verschiedene Ansätze zur Partitionierung gegeben inkl. der entsprechenden Algorithmen (Design Parameter, MBBs, lineare Orderings) und einer Diskussion der Duplikatsvermeidung, der Erweiterung des Filterschritts jenseits vom MBBs und eine Diskussion verschiedener Ansätze im Verfeinerungsschritt. Spezialfälle von Spatial Joins sind Mehrwege-SJs, parallele und verteilte Spatial Joins.
 
-Parallelisiert werden können sowohl der Filter- als auch der Verfeinerungs-Schritt. Hier werden vor allem zwei Ansätze genannt, nämlich der von Brinkhoff (Sub-R-Bäume und ein globaler Buffer) und der von Zhou (mit Kacheln). Hoel arbeitet auch mit R-Bäumen und mit quad-Bäumen mit einer Hyperwürfel-Architektur. Aber jeder Quell-Knoten wird mehreren Ziel-Knoten zugeteilt, was zu einem starker Anstieg der Kommunikation führt.
+Parallelisiert werden kann sowohl der Filter- als auch der Verfeinerungs-Schritt. Diesbzgl. werden vor allem zwei Ansätze genannt, nämlich der von Brinkhoff (Sub-R-Bäume und ein globaler Buffer) und der von Zhou (mit Kacheln). Hoel arbeitet auch mit R- und quad-Bäumen in einer Hyperwürfel-Architektur. Aber hier wird jeder Quell-Knoten mehreren Ziel-Knoten zugeteilt, was zu einem starker Anstieg der Kommunikation führt.
 
-\textbf{\fullcite{Tsitsigkos2019}}
+\subsubsection*{\fullcite{Tsitsigkos2019}}
 
-Spatial Joins werden hier im Speicher parallel ausgeführt. Eine Partitionierung findet anhand von Statistiken statt. Diskutiert wird eine Partitionierung sowohl für Schnitte als auch für $\epsilon$-Umgebungen. Grundlage der Diskussion ist ein Partitionierungs-basierender SJ anhand von Grids. 
+Spatial Joins werden hier im Speicher parallel ausgeführt. Eine Partitionierung findet anhand von Statistiken statt. Diskutiert wird eine Partitionierung sowohl für Schnitte als auch für $\epsilon$-Umgebungen. Grundlage der Diskussion ist ein partitionierungs-basierter SJ anhand von Grids. 
 
-\textbf{\fullcite{Bouros2019}}
+\subsubsection*{\fullcite{Bouros2019}}
 
-Der Aufsatz ist ein Übersichtsartikel über aktuelle Entwicklungen bei Spatial Joins. Die meisten Ansätze sind Algorithmen, die mit Daten arbeiten, die auf Festplatten liegen, und der wichtigste Faktor ist dementsprechend der I/O-Zugriff. Fokus des Aufsatzes sind interne parallele SJs. Folgende Topologien werden vor allem für Spatial Joins verwendet: Schnitt, in einer bestimmten Entfernung von und nächster Nachbar. Parallele Algorithmen nutzen R-Bäume und PBSM. Ein Spatial Join mit MapReduce für Cloud-Systeme stellte eine Addaption von PBSM dar. 
+Der Aufsatz ist ein Übersichtsartikel über aktuelle Entwicklungen im Forschungsfeld Spatial Joins. Die meisten Ansätze sind Algorithmen, die mit Daten arbeiten, die auf Festplatten liegen. Der wichtigste Faktor ist dementsprechend der I/O-Zugriff. Fokus des Aufsatzes sind interne parallele SJs. Folgende Topologien werden vor allem für Spatial Joins verwendet: Schnitt, in einer bestimmten Entfernung von und nächster Nachbar. Parallele Algorithmen nutzen R-Bäume und PBSM. Ein Spatial Join mit MapReduce für Cloud-Systeme stellte eine Addaption von PBSM dar. 
 
 Es wird eine Übersicht über Ansätze zur Verbesserung des Verfeinerungsschritts gegeben. Eine Alternative zu MBBs  ist z.~B. das True-Hit-Filtering. Distanz- oder nächste Nachbarn-Joins finden vor allem zwischen Punktdaten oder Punkt- und Polygondaten statt. Hierfür werden einige Ansätze zitiert.
 
-\textbf{\fullcite{Hoel1994}}!
+\subsubsection*{\fullcite{Hoel1994}}
 
-Hier werden verschiedene Algorithmen verglichen, die unterschiedliche räumliche Datenstrukturen nutzen (PMR Quad-Bäume, R-Bäume, R+-Bäume). Quadbäume sind am performantesten. Es wird ein Spatial Join Algorithmus vorgestellt, der auf PMR Quadbäumen beruht. Auf R- und R+-Bäumen basierende Join-Algorithmen funktionieren fast identisch. Eine detaillierte Untersuchung des Performanceverhaltens wird vorgenommen, einerseits für den Aufbau der Datenstruktur und andererseits für die Verschmelzungen.
+Hier werden verschiedene Algorithmen verglichen, die unterschiedliche räumliche Datenstrukturen nutzen (PMR Quad-Bäume, R-Bäume, R+-Bäume). Quadbäume zeigen die beste Performance. Es wird ein Spatial-Join-Algorithmus vorgestellt, der auf PMR-Quadbäumen beruht. Auf R- und R+-Bäumen basierende Join-Algorithmen funktionieren fast identisch. Eine detaillierte Untersuchung des Performanceverhaltens wird vorgenommen, einerseits für den Aufbau der Datenstruktur und andererseits für die Verschmelzungen.
+
+\subsubsection*\fullcite{Patel1996}}
+
+
 
 %\pagebreak 
 %\printbibliography
