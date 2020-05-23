@@ -53,21 +53,20 @@ namespace mthreaded {
 class RefinementWorker {
    private:
    size_t static constexpr DIM = 2;
-   QueryProcessor* qproc;
    size_t coreNoWorker;
    size_t streamInNo;
    //std::pair<size_t, size_t> joinAttr;
-
+   ListExpr funList;
    OpTree funct;
 
 
    public:
    RefinementWorker(
-           QueryProcessor* _qproc, size_t _coreNoWorker, size_t _streamInNo,
-           ListExpr funList);
+           size_t _coreNoWorker, size_t _streamInNo,
+           ListExpr _funList);
 
    RefinementWorker(
-           QueryProcessor* _qproc, size_t _coreNoWorker, size_t _streamInNo,
+           size_t _coreNoWorker, size_t _streamInNo,
            OpTree _fun);
 
    ~RefinementWorker();

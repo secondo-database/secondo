@@ -72,25 +72,15 @@ using namespace filterGlobal;
 
 
 RefinementWorker::RefinementWorker(
-        QueryProcessor* _qproc,
-        size_t _coreNoWorker, size_t _streamInNo, ListExpr funList) :
-        qproc(_qproc),
+        size_t _coreNoWorker, size_t _streamInNo, ListExpr _funList) :
         coreNoWorker(_coreNoWorker),
-        streamInNo(_streamInNo) {
-   bool correct = false;
-   bool evaluable = false;
-   bool defined = false;
-   bool isFunction = false;
-   ListExpr resultType;
-   qproc->Construct(funList, correct, evaluable, defined,
-           isFunction, funct,resultType, true);
-   cout << "new fun" << nl->ToString(qp->GetSimpleList(funct)) << endl;
+        streamInNo(_streamInNo),
+        funList(_funList) {
 }
 
 RefinementWorker::RefinementWorker(
-        QueryProcessor* _qproc,
         size_t _coreNoWorker, size_t _streamInNo, OpTree _fun) :
-        qproc(_qproc), coreNoWorker(_coreNoWorker), streamInNo(_streamInNo) {
+        coreNoWorker(_coreNoWorker), streamInNo(_streamInNo) {
    funct = _fun;
 }
 
@@ -101,6 +91,33 @@ RefinementWorker::~RefinementWorker() {
 
 // Thread
 void RefinementWorker::operator()() {
+   if (streamInNo == 0) {
+      refineQP();
+   } else {
+      refineNewQP();
+   }
+
+   cout << "Worker Candidate Nr. done " << streamInNo << endl;
+   --threadsDone;
+   if (threadsDone == 0) {
+      cout << "nullptr" << endl;
+      tupleBuffer->enqueue(nullptr);
+   }
+}
+
+void RefinementWorker::refineNewQP() {
+   QueryProcessor* qproc =
+           new QueryProcessor(SecondoSystem::GetNestedList(),
+                   SecondoSystem::GetAlgebraManager());
+   bool correct = false;
+   bool evaluable = false;
+   bool defined = false;
+   bool isFunction = false;
+   ListExpr resultType;
+   qproc->Construct(
+           funList, correct, evaluable, defined,isFunction,
+           funct,resultType, true);
+   cout << "new fun" << nl->ToString(qp->GetSimpleList(funct)) << endl;
    ArgVector &arguments = *qproc->Argument(funct);
    cout << arguments << "###" << streamInNo << endl;
    Tuple* tuple = partBuffer[streamInNo]->dequeue();
@@ -120,24 +137,30 @@ void RefinementWorker::operator()() {
       }
       tuple = partBuffer[streamInNo]->dequeue();
    }
-   cout << "Worker Candidate Nr. done " << streamInNo << endl;
-   --threadsDone;
-   if (threadsDone == 0) {
-      cout << "nullptr" << endl;
-      tupleBuffer->enqueue(nullptr);
-   }
-   if (streamInNo != 0) {
-      qproc->Destroy(funct, true);
-      delete qproc;
-   }
-}
-
-void RefinementWorker::refineNewQP() {
-
+   qproc->Destroy(funct, true);
+   delete qproc;
 }
 
 void RefinementWorker::refineQP() {
-
+   ArgVector &arguments = *qp->Argument(funct);
+   cout << arguments << "###" << streamInNo << endl;
+   Tuple* tuple = partBuffer[streamInNo]->dequeue();
+   size_t count = 0;
+   while (tuple != nullptr) {
+      ++count;
+      arguments[0].setAddr(tuple);
+      Word funres;
+      qp->Request(funct, funres);
+      bool res = ((CcBool*) funres.addr)->GetBoolval();
+      if (res) {
+         cout << "found" << streamInNo << endl;
+         //buffer->AppendTuple(tuple);
+         tupleBuffer->enqueue(tuple);
+      } else {
+         tuple->DeleteIfAllowed();
+      }
+      tuple = partBuffer[streamInNo]->dequeue();
+   }
 }
 
 //Constructor
@@ -178,19 +201,17 @@ void refinementLI::Scheduler() {
         << endl;
    partBuffer.push_back(make_shared<SafeQueue<Tuple*>>(0));
    joinThreads.emplace_back(
-           RefinementWorker(qp, coreNoWorker,
+           RefinementWorker(coreNoWorker,
                    0, (OpTree) args[1].addr));
-   //joinThreads.back().detach();
+   joinThreads.back().detach();
    for (size_t i = 1; i < coreNoWorker; ++i) {
       partBuffer.push_back(make_shared<SafeQueue<Tuple*>>(i));
       ListExpr funList;
       nl->ReadFromString(((FText*) args[2].addr)->GetValue(),
               funList);
       joinThreads.emplace_back(
-              RefinementWorker(
-                      new QueryProcessor(SecondoSystem::GetNestedList(),
-                                         SecondoSystem::GetAlgebraManager()),
-                      coreNoWorker, i, funList));
+              RefinementWorker(coreNoWorker, i, funList));
+      joinThreads.back().detach();
    }
 
    // Stream
@@ -210,7 +231,7 @@ void refinementLI::Scheduler() {
 
    for (size_t i = 0; i < coreNoWorker; ++i) {
       partBuffer[i]->enqueue(nullptr);
-      joinThreads[i].join();
+      //joinThreads[i].join();
    }
 
    cout << "Schedule Ready" << endl;
