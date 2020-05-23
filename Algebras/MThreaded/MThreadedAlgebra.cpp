@@ -43,6 +43,7 @@ Our MThreaded-Algebra has only a bunch of Operators.
 #include "sortOperators/opMergeSort.h"
 #include "joinOperators/opHybridHashJoin.h"
 #include "joinOperators/opSpatialJoin.h"
+#include "joinOperators/opFilter.h"
 #include "MThreadedAux.h"
 
 extern NestedList* nl;
@@ -86,6 +87,7 @@ The shared-pointers are alive as long as the algebra-object lives in Secondo.
 
    std::shared_ptr<Operator> opHybridJoin = op_hybridHashJoin().getOperator();
    std::shared_ptr<Operator> opSpatialJoin = op_spatialHashJoin().getOperator();
+   std::shared_ptr<Operator> oprefinement = op_refinement().getOperator();
 
 
    public:
@@ -112,6 +114,9 @@ The shared-pointers are alive as long as the algebra-object lives in Secondo.
       opSpatialJoin.get()->SetUsesArgsInTypeMapping();
       opSpatialJoin.get()->SetUsesMemory();
       AddOperator(opSpatialJoin.get());
+
+      oprefinement.get()->SetUsesArgsInTypeMapping();
+      AddOperator(oprefinement.get());
    }
 };
 }

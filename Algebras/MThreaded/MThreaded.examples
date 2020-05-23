@@ -12,36 +12,51 @@ Tolerance   : 6
 Operator    : setcore
 Number      : 2
 Signature   : int -> bool
-Example     : query setcore(6)
+Example     : query setcore(3)
 Result      : TRUE
 
 Operator    : getcore
 Number      : 3
 Signature   : -> int
 Example     : query getcore()
-Result      : 6
+Result      : 3
+
+Operator    : mThreadedFilter
+Number      : 4
+Signature   : stream x attr x attr -> stream
+Example     : query test1 mThreadedFilter[not(isempty(intersection1(.GeoData_o, .GeoData_p)))]  consume
+Result      : 34
+
+Operator    : mThreadedFilter
+Number      : 5
+Signature   : stream x attr x attr -> stream
+Example     : query WFlaechen feed {o} Plaetze feed {p} spatialjoin[GeoData_o, GeoData_p] mThreadedFilter[contains_rob(.GeoData_o, .GeoData_p)] project [Name_o, Name_p] consume
+Result      : 34
+
 
 Operator    : mThreadedMergeSort
-Number      : 4
+Number      : 6
 Signature   : stream x (attr x bool ...) -> stream
 Example     : query strassen feed mThreadedMergeSort[GeoData] count
 Result      : 3212
 
 Operator    : mThreadedHybridJoin
-Number      : 5
+Number      : 7
 Signature   : stream x stream x attr x attr -> stream
 Example     : query strassen feed {o} Plaetze feed {p} mThreadedHybridJoin[Name_o, Name_p] count
 Result      : 15
 
 Operator    : mThreadedSpatialJoin
-Number      : 6
+Number      : 8
 Signature   : stream x stream x attr x attr -> stream
 Example     : query strassen feed {o} Flaechen feed {p} mThreadedSpatialJoin[not(isempty(intersection1(.GeoData_o, ..GeoData_p)))] project [Name_o, Name_p] consume
 Result      : 34
 
 Operator    : mThreadedSpatialJoin
-Number      : 7
+Number      : 9
 Signature   : stream x stream x attr x attr -> stream
 Example     : query WFlaechen feed {o} Plaetze feed {p} mThreadedSpatialJoin[contains_rob(.GeoData_o, ..GeoData_p)] project [Name_o, Name_p] consume
 Result      : 34
+
+
 

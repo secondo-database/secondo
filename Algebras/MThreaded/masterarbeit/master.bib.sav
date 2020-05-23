@@ -1,19 +1,6 @@
 % Encoding: UTF-8
 
-@InProceedings{DBLP:conf/cidr/Narula15,
-  author    = {Neha Narula},
-  title     = {A Multicore Database is not a Distributed System},
-  booktitle = {CIDR 2015, Seventh Biennial Conference on Innovative Data Systems Research, Asilomar, CA, USA, January 4-7, 2015, Online Proceedings},
-  year      = {2015},
-  url       = {http://cidrdb.org/cidr2015/Papers/24\_Abstract77NN.pdf},
-  bibsource = {dblp computer science bibliography, https://dblp.org},
-  biburl    = {https://dblp.org/rec/bib/conf/cidr/Narula15},
-  crossref  = {DBLP:conf/cidr/2015},
-  file      = {:A Multicore Database Is Not a Distributed System.pdf:PDF},
-  timestamp = {Thu, 29 Jun 2017 19:21:38 +0200},
-}
-
-@InProceedings{DBLP:conf/cidr/HalsteadANT15,
+@InProceedings{Halstead2015,
   author    = {Robert J. Halstead and Ildar Absalyamov and Walid A. Najjar and Vassilis J. Tsotras},
   title     = {FPGA-based Multithreading for In-Memory Hash Joins},
   booktitle = {CIDR 2015, Seventh Biennial Conference on Innovative Data Systems Research, Asilomar, CA, USA, January 4-7, 2015, Online Proceedings},
@@ -21,12 +8,11 @@
   url       = {http://cidrdb.org/cidr2015/Papers/CIDR15\_Paper12.pdf},
   bibsource = {dblp computer science bibliography, https://dblp.org},
   biburl    = {https://dblp.org/rec/bib/conf/cidr/HalsteadANT15},
-  crossref  = {DBLP:conf/cidr/2015},
   file      = {:FPGA-based Multithreading for In-Memory Hash Joins.pdf:PDF},
   timestamp = {Thu, 29 Jun 2017 19:21:38 +0200},
 }
 
-@InProceedings{DBLP:conf/vldb/Dominico18,
+@InProceedings{Dominico2018,
   author    = {Simone Dominico},
   title     = {Multi-Core Allocation Model for Database Systems},
   booktitle = {Proceedings of the VLDB 2018 PhD Workshop co-located with the 44th International Conference on Very Large Databases (VLDB 2018), Rio de Janeiro, Brasil, Aug 27-31, 2018},
@@ -34,12 +20,11 @@
   url       = {http://ceur-ws.org/Vol-2175/paper08.pdf},
   bibsource = {dblp computer science bibliography, https://dblp.org},
   biburl    = {https://dblp.org/rec/bib/conf/vldb/Dominico18},
-  crossref  = {DBLP:conf/vldb/2018phd},
   file      = {:Multi-Core Allocation Model for Database Systems.pdf:PDF},
   timestamp = {Tue, 28 May 2019 16:23:39 +0200},
 }
 
-@InProceedings{10.1007/978-3-319-66917-5_15,
+@InProceedings{Garcia-Garcia2017,
   author    = {García-García, Francisco and Corral, Antonio and Iribarne, Luis and Mavrommatis, George and Vassilakopoulos, Michael},
   title     = {A Comparison of Distributed Spatial Data Management Systems for Processing Distance Join Queries},
   booktitle = {Advances in Databases and Information Systems},
@@ -51,23 +36,10 @@
   abstract  = {Due to the ubiquitous use of spatial data applications and the large amounts of spatial data that these applications generate, the processing of large-scale distance joins in distributed systems is becoming increasingly popular. Two of the most studied distance join queries are the K Closest Pair Query (KCPQ) and the varepsilon Distance Join Query (varepsilon DJQ). The KCPQ finds the K closest pairs of points from two datasets and the varepsilon DJQ finds all the possible pairs of points from two datasets, that are within a distance threshold varepsilon of each other. Distributed cluster-based computing systems can be classified in Hadoop-based and Spark-based systems. Based on this classification, in this paper, we compare two of the most current and leading distributed spatial data management systems, namely SpatialHadoop and LocationSpark, by evaluating the performance of existing and newly proposed parallel and distributed distance join query algorithms in different situations with big real-world datasets. As a general conclusion, while SpatialHadoop is more mature and robust system, LocationSpark is the winner with respect to the total execution time.},
   address   = {Cham},
   file      = {:A Comparison of Distributed Spatial Data Management Systems for Processing Distance Join Queries.pdf:PDF},
+  keywords  = {rank3},
 }
 
-@InProceedings{994786,
-  author    = {Gang Luo and J. F. Naughton and C. J. Ellmann},
-  title     = {A non-blocking parallel spatial join algorithm},
-  booktitle = {Proceedings 18th International Conference on Data Engineering},
-  year      = {2002},
-  month     = feb,
-  pages     = {697--705},
-  doi       = {10.1109/ICDE.2002.994786},
-  abstract  = {Interest in incremental and adaptive query processing has led to the investigation of equijoin evaluation algorithms that are non-blocking. This investigation has yielded a number of algorithms, including the symmetric hash join, the XJoin, the Ripple Join, and their variants. However, to our knowledge no one has proposed a nonblocking spatial join algorithm. In this paper, we propose a parallel non-blocking spatial join algorithm that uses duplicate avoidance rather than duplicate elimination. Results from a prototype implementation in a commercial parallel object-relational DBMS show that it generates answer tuples steadily even in the presence of memory overflow, and that its rate of producing answer tuples scales with the number of processors. Also, when allowed to run to completion, its performance is comparable with the state-of-the-art blocking parallel spatial join algorithm.},
-  file      = {:A Non-blocking Parallel Spatial Join Algorithm.pdf:PDF},
-  issn      = {1063-6382},
-  keywords  = {parallel algorithms;query processing;parallel databases;object-oriented databases;relational databases;nonblocking parallel spatial join algorithm;incremental query processing;adaptive query processing;equijoin evaluation algorithms;duplicate avoidance;parallel object-relational DBMS;answer tuples;memory overflow;Query processing;Data visualization;Concurrent computing;Prototypes;Data engineering},
-}
-
-@Article{KARYPIS199871,
+@Article{Karypis1998,
   author   = {George Karypis and Vipin Kumar},
   title    = {A Parallel Algorithm for Multilevel Graph Partitioning and Sparse Matrix Ordering},
   journal  = {Journal of Parallel and Distributed Computing},
@@ -83,7 +55,7 @@
   keywords = {parallel graph partitioning, multilevel partitioning methods, fill reducing ordering, numerical linear algebra.},
 }
 
-@Conference{sathe14sigspatial,
+@Conference{Sathe2014,
   author    = {Mihir Sathe and Knoblock, Craig A. and Yao-Yi Chiang and Aaron Harris},
   title     = {A Parallel Query Engine for Interactive Spatiotemporal Analysis},
   booktitle = {Proceedings of the 22nd ACM SIGSPATIAL International Conference on Advances in Geographic Information Systems},
@@ -92,7 +64,7 @@
   urlpaper  = {http://usc-isi-i2.github.io/papers/sathe14-sigspatial.pdf},
 }
 
-@InProceedings{10.1007/3-540-36109-X_17,
+@InProceedings{Kang2002,
   author    = {Kang, Myoung-Soo and Ko, Seung-Kyu and Koh, Kyun and Choy, Yoon-Chul},
   title     = {A Parallel Spatial Join Processing for Distributed Spatial Databases},
   booktitle = {Flexible Query Answering Systems},
@@ -104,9 +76,10 @@
   abstract  = {In recent years, there have been needs of accessing spatial data from distributed and preexisting spatial database systems interconnected through a network. In a distributed environment, spatial joins for two spatial relations residing at geographically separated sites are expensive in terms of computation and transmission cost because of the large size and complexity of spatial data. Previous distributed algorithm based on the spatial semijoin has accomplished performance improvements by eliminating objects before transmission to reduce both transmission and local processing costs. But with a widespread of a high bandwidth data transmission, the parallelism through data redistribution may improve the performance of spatial joins in spite of additional transmission costs. Hence, we propose a parallel spatial join processing for distributed spatial databases. We apply the task distribution method minimizing the data transmission and the solution for task distribution using a graph partitioning method. In experiments, we showed that the proposed method provides useful reductions in the cost of evaluating a join.},
   address   = {Berlin, Heidelberg},
   file      = {:A Parallel Spatial Join Processing for Distributed Spatial Databases.pdf:PDF},
+  keywords  = {rank3},
 }
 
-@Article{Li:2013:PMS:2487259.2487261,
+@Article{Li2013,
   author     = {Li, Guoliang and Deng, Dong and Feng, Jianhua},
   title      = {A Partition-based Method for String Similarity Joins with Edit-distance Constraints},
   journal    = {ACM Trans. Database Syst.},
@@ -128,7 +101,7 @@
   publisher  = {ACM},
 }
 
-@InProceedings{6063018,
+@InProceedings{Hofmann2011,
   author    = {M. Hofmann and G. Runger},
   title     = {A Partitioning Algorithm for Parallel Sorting on Distributed Memory Systems},
   booktitle = {2011 IEEE International Conference on High Performance Computing and Communications},
@@ -139,10 +112,10 @@
   abstract  = {Parallel sorting methods for distributed memory systems often use partitioning algorithms to prepare the redistribution of data items. This article proposes a partitioning algorithm that calculates a redistribution specified by the number of data items to be finally located on each process. This partitioning algorithm can also be used for data items with weights, which might express a computational load to be expected, and to produce a redistribution with an individual accumulated weight of data items specified for each process. Another important feature is that data sets with duplicated data keys can be handled. Parallel sorting with those properties is often needed for parallel scientific application codes, such as particle simulations, in which the dynamics of the simulated system may destroy locality and load balance required for an efficient computation. It is applied to random sample data and to a particle simulation code requiring a sorting. Performance results have been obtained on an IBM Blue Gene/P platform with up to 32768 cores. The results show that the proposed parallel sorting method performs well in comparison to other existing algorithms.},
   file      = {:A Partitioning Algorithm for Parallel Sorting on Distributed Memory Systems.pdf:PDF},
   issn      = {null},
-  keywords  = {data analysis;distributed memory systems;parallel algorithms;resource allocation;set theory;sorting;partitioning algorithm;parallel sorting method;IBM Blue Gene-P platform;particle simulation code;random sample data;load balance;parallel scientific application code;duplicated data key;data sets;individual accumulated weight;computational load;data item redistribution;distributed memory system;Sorting;Partitioning algorithms;Upper bound;Distributed databases;Load modeling;Process control;Load management;parallel sorting;data redistribution;particle simulations;load balancing;performance optimization},
+  keywords  = {data analysis;distributed memory systems;parallel algorithms;resource allocation;set theory;sorting;partitioning algorithm;parallel sorting method;IBM Blue Gene-P platform;particle simulation code;random sample data;load balance;parallel scientific application code;duplicated data key;data sets;individual accumulated weight;computational load;data item redistribution;distributed memory system;Sorting;Partitioning algorithms;Upper bound;Distributed databases;Load modeling;Process control;Load management;parallel sorting;data redistribution;particle simulations;load balancing;performance optimization, rank3},
 }
 
-@InProceedings{Jung:2013:SLM:2463676.2465271,
+@InProceedings{Jung2013,
   author    = {Jung, Hyungsoo and Han, Hyuck and Fekete, Alan D. and Heiser, Gernot and Yeom, Heon Y.},
   title     = {A Scalable Lock Manager for Multicores},
   booktitle = {Proceedings of the 2013 ACM SIGMOD International Conference on Management of Data},
@@ -161,7 +134,7 @@
   numpages  = {12},
 }
 
-@Article{Singh:2017:STM:3137586.3137590,
+@Article{Singh2017,
   author     = {Singh, Hari and Bawa, Seema},
   title      = {A Survey of Traditional and MapReduceBased Spatial Query Processing Approaches},
   journal    = {SIGMOD Rec.},
@@ -177,7 +150,7 @@
   address    = {New York, NY, USA},
   file       = {:A Survey of Traditional and MapReduce-Based Spatial Query Processing Approaches.pdf:PDF},
   issue_date = {June 2017},
-  keywords   = {Index, MapReduce, R-Tree, Spatial},
+  keywords   = {Index, MapReduce, R-Tree, Spatial, rank4},
   numpages   = {12},
   publisher  = {ACM},
 }
@@ -194,7 +167,7 @@
   file    = {:A Survey on Parallel Multicore Computing Performance & Improvement.pdf:PDF},
 }
 
-@InProceedings{Chatzopoulos:2017:AMT:3064176.3064194,
+@InProceedings{Chatzopoulos2017,
   author    = {Chatzopoulos, Georgios and Guerraoui, Rachid and Harris, Tim and Trigonakis, Vasileios},
   title     = {Abstracting Multi-Core Topologies with MCTOP},
   booktitle = {Proceedings of the Twelfth European Conference on Computer Systems},
@@ -212,7 +185,7 @@
   numpages  = {16},
 }
 
-@Article{Shin:2003:AIP:951848.951914,
+@Article{Shin2003,
   author     = {Shin, Hyoseop and Moon, Bongki and Lee, Sukho},
   title      = {Adaptive and Incremental Processing for Distance Join Queries},
   journal    = {IEEE Trans. on Knowl. and Data Eng.},
@@ -228,7 +201,7 @@
   address    = {Piscataway, NJ, USA},
   file       = {:Adaptive and Incremental Processing for Distance Join Queries.pdf:PDF},
   issue_date = {November 2003},
-  keywords   = {Spatial databases, adaptive query processing, estimating cutoff distance., incremental distance join, k-distance join, multistage query processing, plane sweeping, sweeping index},
+  keywords   = {Spatial databases, adaptive query processing, estimating cutoff distance., incremental distance join, k-distance join, multistage query processing, plane sweeping, sweeping index, rank3},
   numpages   = {18},
   publisher  = {IEEE Educational Activities Department},
 }
@@ -250,7 +223,7 @@
   file     = {:Alternative Strategies for Performing Spatial Joins on Web Sources.pdf:PDF},
 }
 
-@InProceedings{Schuh:2016:ECT:2882903.2882917,
+@InProceedings{Schuh2016,
   author    = {Schuh, Stefan and Chen, Xiao and Dittrich, Jens},
   title     = {An Experimental Comparison of Thirteen Relational Equi-Joins in Main Memory},
   booktitle = {Proceedings of the 2016 International Conference on Management of Data},
@@ -269,7 +242,7 @@
   numpages  = {16},
 }
 
-@InProceedings{Patel:2000:CJS:355274.355282,
+@InProceedings{Patel2000,
   author    = {Patel, Jignesh M. and DeWitt, David J.},
   title     = {Clone Join and Shadow Join: Two Parallel Spatial Join Algorithms},
   booktitle = {Proceedings of the 8th ACM International Symposium on Advances in Geographic Information Systems},
@@ -284,18 +257,18 @@
   acmid     = {355282},
   address   = {New York, NY, USA},
   file      = {:Clone Join and Shadow Join.pdf:PDF},
-  keywords  = {GIS, spatial declustering, spatial join},
+  keywords  = {GIS, spatial declustering, spatial join, rank5},
   numpages  = {8},
 }
 
-@Misc{Moir01concurrentdata,
+@Misc{Moir2001,
   author = {Mark Moir and Nir Shavit},
   title  = {Concurrent Data Structures},
   year   = {2001},
   file   = {:Concurrent Data Structures.pdf:PDF},
 }
 
-@InProceedings{inproceedings,
+@InProceedings{Wang2017,
   author = {Wang, Xiaotong and Fang, Junhua and Li, Yuming and Zhang, Rong and Zhou, Aoying},
   title  = {Cost-Effective Data Partition for Distributed Stream Processing System},
   year   = {2017},
@@ -320,9 +293,10 @@
   abstract = {The cost of spatial join processing can be very high because of the large sizes of spatial objects and the computation-intensive spatial operations. While parallel processing seems a natural solution to this problem, it is not clear how spatial data can be partitioned for this purpose. Various spatial data partitioning methods are examined in this paper. A framework combining the data-partitioning techniques used by most parallel join algorithms in relational databases and the filter-and-refine strategy for spatial operation processing is proposed for parallel spatial join processing. Object duplication caused by multi-assignment in spatial data partitioning can result in extra CPU cost as well as extra communication cost. We find that the key to overcome this problem is to preserve spatial locality in task decomposition. In this paper we show that a near-optimal speedup can be achieved for parallel spatial join processing using our new algorithms.},
   day      = {01},
   file     = {:Data Partitioning for Parallel Spatial Join Processing.pdf:PDF},
+  keywords = {rank5},
 }
 
-@InProceedings{Salomie:2011:DEM:1966445.1966448,
+@InProceedings{Salomie2011,
   author    = {Salomie, Tudor-Ioan and Subasu, Ionut Emanuel and Giceva, Jana and Alonso, Gustavo},
   title     = {Database Engines on Multicores, Why Parallelize when You Can Distribute?},
   booktitle = {Proceedings of the Sixth Conference on Computer Systems},
@@ -342,16 +316,17 @@
 }
 
 @InProceedings{Garcia2006,
-  author = {Garcia, Philip and Korth, Henry},
-  title  = {Database hash-join algorithms on multithreaded computer architectures},
-  year   = {2006},
-  month  = jan,
-  pages  = {241--252},
-  doi    = {10.1145/1128022.1128055},
-  file   = {:Database Hash-Join Algorithms on Multithreaded Computer Architectures.pdf:PDF},
+  author   = {Garcia, Philip and Korth, Henry},
+  title    = {Database hash-join algorithms on multithreaded computer architectures},
+  year     = {2006},
+  month    = jan,
+  pages    = {241--252},
+  doi      = {10.1145/1128022.1128055},
+  file     = {:Database Hash-Join Algorithms on Multithreaded Computer Architectures.pdf:PDF},
+  keywords = {rank4},
 }
 
-@Thesis{,
+@Thesis{Liknes2013,
   author      = {Liknes, Stian},
   title       = {Database Operations on Multi-Core Processors},
   type        = {Master thesis},
@@ -359,9 +334,10 @@
   year        = {2013},
   abstract    = {The focus of this thesis is on investigating efficient database algorithmsand methods for modern multi-core processors in main memory environments.We describe central features of modern processors in a historic perspectivebefore presenting a number of general design goals that should beconsidered when optimizing relational operators for multi-corearchitectures. Then, we introduce the skyline operator and relatedalgorithms, including two recent algorithms optimized for multi-coreprocessors. Furthermore, we develop a novel skyline algorithm using anangle-based partitioning scheme originally developed for parallel anddistributed database management systems. Finally, we perform a number ofexperiments in order to evaluate and compare current shared-memory skylinealgorithms.Our experiments reveals some interesting results. Despite of having anexpensive pre-processing step, the angle-based algorithm is able tooutperform current best-performers for multi-core skyline computation.In fact, we are able to outperform competing algorithms by a factor of5 or more for anti-correlated datasets with moderate to largecardinalities. Included algorithms exhibit similar performancecharacteristics for independent datasets, while the more basicalgorithms excel at processing correlated datasets. We observe similarperformance for two small real-life datasets. Whereas, the angle-basedalgorithm is more efficient for a work-intensive real-life datasetcontaining more than 2M 5-dimensional tuples.Based on our results we propose that database research targeted atshared-memory systems is focused not only on basic algorithms but alsomore sophisticated techniques proven effective for parallel anddistributed database management systems. Additionally, we emphasizethat modern processors have very fast inter-thread communicationmechanisms that can be exploited to achieve parallel speedup also forsynchronization-heavy algorithms.},
   file        = {:Database Operations on Multi-Core Processors.pdf:PDF},
+  keywords    = {rank3},
 }
 
-@Article{Hillis:1986:DPA:7902.7903,
+@Article{Hillis1986,
   author     = {Hillis, W. Daniel and Steele,Jr., Guy L.},
   title      = {Data Parallel Algorithms},
   journal    = {Commun. ACM},
@@ -381,7 +357,7 @@
   publisher  = {ACM},
 }
 
-@InProceedings{aaa0415090f148b8af60ca120d44f9a0,
+@InProceedings{Mu2019,
   author    = {Shuai Mu and Sebastian Angel and Dennis Shasha},
   title     = {Deferred runtime pipelining for contentious multicore software transactions},
   booktitle = {Proceedings of the 14th EuroSys Conference 2019},
@@ -396,7 +372,7 @@
   file      = {:Deferred Runtime Pipelining for contentious multicore software transactions.pdf:PDF},
 }
 
-@Conference{,
+@Conference{Cole2013,
   author = {Cole, Murray},
   title  = {Design and Analysis of Parallel Algorithms},
   year   = {2013},
@@ -413,7 +389,7 @@
   file   = {:Design and Evaluation of Main Memory Hash Join Algorithms for Multi-core CPUs.pdf:PDF},
 }
 
-@Article{BURGER201915,
+@Article{Buerger2019,
   author   = {Adrian Bürger and Clemens Zeile and Angelika Altmann-Dieses and Sebastian Sager and Moritz Diehl},
   title    = {Design, implementation and simulation of an MPC algorithm for switched nonlinear systems under combinatorial constraints},
   journal  = {Journal of Process Control},
@@ -428,7 +404,7 @@
   keywords = {Model predictive control, Switched dynamic systems, Mixed-integer nonlinear programming, Optimal control, Approximation methods and heuristics},
 }
 
-@Book{Foster:1995:DBP:527029,
+@Book{Foster1995,
   author    = {Foster, Ian},
   title     = {Designing and Building Parallel Programs: Concepts and Tools for Parallel Software Engineering},
   year      = {1995},
@@ -438,7 +414,7 @@
   file      = {:Designing and Building Parallel Programs.pdf:PDF},
 }
 
-@Article{,
+@Article{Barthels2017,
   author    = {C. Barthels and Gustavo Alonso and Torsten Hoefler},
   title     = {Designing Databases for Future High-Performance Networks},
   journal   = {IEEE Technical Committee on Data Engineering},
@@ -450,7 +426,7 @@
   publisher = {IEEE},
 }
 
-@Article{Barthels:2017:DJA:3055540.3055545,
+@Article{Barthels2017a,
   author     = {Barthels, Claude and Müller, Ingo and Schneider, Timo and Alonso, Gustavo and Hoefler, Torsten},
   title      = {Distributed Join Algorithms on Thousands of Cores},
   journal    = {Proc. VLDB Endow.},
@@ -469,7 +445,7 @@
   publisher  = {VLDB Endowment},
 }
 
-@Article{Negri:1991:DJN:115302.115299,
+@Article{Negri1991,
   author     = {Negri, M. and Pelagatti, G.},
   title      = {Distributive Join: A New Algorithm for Joining Relations},
   journal    = {ACM Trans. Database Syst.},
@@ -485,18 +461,19 @@
   address    = {New York, NY, USA},
   file       = {:Distributive Join A New Algorithm for Joining Relations.pdf:PDF},
   issue_date = {Dec. 1991},
-  keywords   = {buffer, hashing, join, merging scan, nested scan, sort},
+  keywords   = {buffer, hashing, join, merging scan, nested scan, sort, rank3},
   numpages   = {15},
   publisher  = {ACM},
 }
 
-@Article{Puri2013EfficientPA,
-  author  = {Satish Puri and Sushil K. Prasad},
-  title   = {Efficient Parallel and Distributed Algorithms for GIS Polygonal Overlay Processing},
-  journal = {2013 IEEE International Symposium on Parallel \& Distributed Processing, Workshops and Phd Forum},
-  year    = {2013},
-  pages   = {2238--2241},
-  file    = {:EFFICIENT PARALLEL AND DISTRIBUTED ALGORITHMS FOR GIS POLYGON OVERLAY PROCESSING.pdf:PDF},
+@Article{Puri2013,
+  author   = {Satish Puri and Sushil K. Prasad},
+  title    = {Efficient Parallel and Distributed Algorithms for GIS Polygonal Overlay Processing},
+  journal  = {2013 IEEE International Symposium on Parallel \& Distributed Processing, Workshops and Phd Forum},
+  year     = {2013},
+  pages    = {2238--2241},
+  file     = {:EFFICIENT PARALLEL AND DISTRIBUTED ALGORITHMS FOR GIS POLYGON OVERLAY PROCESSING.pdf:PDF},
+  keywords = {rank4},
 }
 
 @InBook{Laurent2012,
@@ -515,7 +492,7 @@
   file      = {:Efﬁcient parallel mining of gradual patterns on multicore processors.pdf:PDF},
 }
 
-@InProceedings{10.1007/978-3-540-24571-1_16,
+@InProceedings{Zimbrao2004,
   author    = {Zimbrão, Geraldo and de Souza, Jano Moreira and de Almeida, Victor Teixeira},
   title     = {Efficient Processing of Spatiotemporal Joins},
   booktitle = {Database Systems for Advanced Applications},
@@ -527,9 +504,10 @@
   abstract  = {Among other operations, a spatiotemporal DBMS should efficiently answer the spatiotemporal join. This paper presents an evaluation of spatiotemporal join algorithms using these new structures, particularly a partially persistent R-Tree called Temporal R-Tree and the 2+3D R-Tree. Starting from spatial join algorithms, we present algorithms for processing spatiotemporal joins over time instants and intervals on both spatiotemporal data structures. Finally, we implement and test these new algorithms with a couple of generated spatiotemporal data sets. Our experiments show that our algorithms' performance is good even in extreme cases, showing its good scalability -- especially for the TR-Tree.},
   address   = {Berlin, Heidelberg},
   file      = {:Efficient Processing of Spatiotemporal Joins.pdf:PDF},
+  keywords  = {rank3},
 }
 
-@Article{895802,
+@Article{Tan2000,
   author   = {Kian-Lee Tan and Beng Chin Ooi and D. J. Abel},
   title    = {Exploiting spatial indexes for semijoin-based join processing in distributed spatial databases},
   journal  = {IEEE Transactions on Knowledge and Data Engineering},
@@ -542,10 +520,10 @@
   doi      = {10.1109/69.895802},
   abstract = {In a distributed spatial database system, a user may issue a query that relates two spatial relations not stored at the same site. Because of the sheer volume and complexity of spatial data, spatial joins between two spatial relations at different sites are expensive in terms of computational and transmission costs. In this paper, we address the problems of processing spatial joins in a distributed environment. We propose a semijoin-like operator, called the spatial semijoin, to prune away objects that do not contribute to the join result. This operator also reduces both the transmission and local processing costs for a later join operation. However, the cost of the elimination process must be taken into account, and we consider approaches to minimize these overheads. We also study and compare two families of distributed join algorithms that are based on the spatial semijoin operator. The first is based on multi-dimensional approximations obtained from an index such as the R-tree, and the second is based on single-dimensional approximations obtained from object mapping. We have conducted experiments on real data sets and report the results in this paper.},
   file     = {:Exploiting Spatial Indexes for Semijoin-Based Join Processing in Distributed Spatial Databases.pdf:PDF},
-  keywords = {distributed databases;visual databases;database indexing;query processing;database theory;spatial indexes;semijoin-based join processing;distributed spatial databases;spatial relations;spatial joins;computational cost;transmission cost;distributed environment;spatial semijoin operator;object pruning;local processing cost;elimination process cost;overhead minimization;distributed join algorithms;multi-dimensional approximations;R-tree index;single-dimensional approximations;object mapping;locational keys;query processing;Spatial indexes;Distributed databases;Spatial databases;Costs;Database systems;Relational databases;Algorithm design and analysis;Computational efficiency;Multidimensional systems;Query processing},
+  keywords = {distributed databases;visual databases;database indexing;query processing;database theory;spatial indexes;semijoin-based join processing;distributed spatial databases;spatial relations;spatial joins;computational cost;transmission cost;distributed environment;spatial semijoin operator;object pruning;local processing cost;elimination process cost;overhead minimization;distributed join algorithms;multi-dimensional approximations;R-tree index;single-dimensional approximations;object mapping;locational keys;query processing;Spatial indexes;Distributed databases;Spatial databases;Costs;Database systems;Relational databases;Algorithm design and analysis;Computational efficiency;Multidimensional systems;Query processing, rank4},
 }
 
-@Article{Khayyat:2017:FSI:3051662.3056814,
+@Article{Khayyat2017,
   author     = {Khayyat, Zuhair and Lucia, William and Singh, Meghna and Ouzzani, Mourad and Papotti, Paolo and Quiané-Ruiz, Jorge-Arnulfo and Tang, Nan and Kalnis, Panos},
   title      = {Fast and Scalable Inequality Joins},
   journal    = {The VLDB Journal},
@@ -566,14 +544,16 @@
   publisher  = {Springer-Verlag New York, Inc.},
 }
 
-@InProceedings{Tsukerman1986FASTSORTAE,
-  author = {Alex Tsukerman and Jim Gray and Michael Stewart and Susan Uren and Bonnie Vaughan},
-  title  = {FASTSORT: AN EXTERNAL SORT USING PARALLEL PROCESSING},
-  year   = {1986},
-  file   = {:FastSort An External Sort Using Parallel Processing3.pdf:PDF},
+@TechReport{Tsukerman1986,
+  author      = {Alex Tsukerman and Jim Gray and Michael Stewart and Susan Uren and Bonnie Vaughan},
+  title       = {Fastsort: an external sort using parallel processing},
+  institution = {Tandem},
+  year        = {1986},
+  file        = {:FastSort An External Sort Using Parallel Processing3.pdf:PDF},
+  keywords    = {rank5},
 }
 
-@InProceedings{Chu:2015:TPE:2723372.2750545,
+@InProceedings{Chu2015,
   author    = {Chu, Shumo and Balazinska, Magdalena and Suciu, Dan},
   title     = {From Theory to Practice: Efficient Join Query Evaluation in a Parallel Database System},
   booktitle = {Proceedings of the 2015 ACM SIGMOD International Conference on Management of Data},
@@ -607,9 +587,10 @@
   abstract = {Several studies have repeatedly demonstrated that both the performance and scalability of a shared-nothing parallel database system depend on the physical layout of data across the processing nodes of the system. Today, data is allocated in these systems using horizontal partitioning strategies. This approach has a number of drawbacks. If a query involves the partitioning attribute, then typically only a small number of the processing nodes can be used to speedup the execution of this query. On the other hand, if the predicate of a selection query includes an attribute other than the partitioning attribute, then the entire data space must be searched. Again, this results in waste of computing resources. In recent years, several multidimensional data declustering techniques have been proposed to address these problems. However, these schemes are too restrictive (e.g., FX, ECC, etc.), or optimized for a certain type of queries (e.g., DM, HCAM, etc.). In this paper, we introduce a new technique which is flexible, and performs well for general queries. We prove its optimality properties, and present experimental results showing that our scheme outperforms DM and HCAM by a significant margin.},
   day      = {01},
   file     = {:GeMDA A Multidimensional Data Partitioning Technique for Multiprocessor Database Systems.pdf:PDF},
+  keywords = {rank3},
 }
 
-@InProceedings{10.1007/978-3-642-00887-0_26,
+@InProceedings{Yadan2009,
   author    = {Yadan, Deng and Ning, Jing and Wei, Xiong and Luo, Chen and Hongsheng, Chen},
   title     = {Hash Join Optimization Based on Shared Cache Chip Multi-processor},
   booktitle = {Database Systems for Advanced Applications},
@@ -621,9 +602,10 @@
   abstract  = {Chip Multi-Processor(CMP) allows multiple threads to execute simultaneously. Because threads share various resources of CMP, such as L2-Cache, CMP system is inherently different from multiprocessors system and, CMP is also different from simultaneous multithreading (SMT). It could support more than two threads to execute simultaneously, and some executing units are owned by each core. We present hash join optimization based on shared cache CMP. Firstly, we propose multithreaded hash join execution framework based on Radix-Join algorithm, then we analyze the factors which affect performance of multithreaded Radix-Join algorithm in CMP. Basing on this analysis, we optimize the performance of various threads and their shared-cache access performance in the framework, and then theoretic analysis of speedup in multithreaded cluster partition phase is presents which could give some advices to cluster partition thread optimization. All of our algorithms are implemented in EaseDB. In the experiments, we evaluate performance of the multithreaded hash join execution framework, and the results show that our algorithm could effectively resolve cache access conflict and load imbalance in multithreaded environment. Hash join performance is improved.},
   address   = {Berlin, Heidelberg},
   file      = {:Hash Join Optimization Based on Shared Cache Chip Multi-processor.pdf:PDF},
+  keywords  = {rank4},
 }
 
-@Article{Wang:2015:HPS:2766196.2766199,
+@Article{Wang2015,
   author     = {Wang, Fusheng and Aji, Ablimit and Vo, Hoang},
   title      = {High Performance Spatial Queries for Spatial Big Data: From Medical Imaging to GIS},
   journal    = {SIGSPATIAL Special},
@@ -643,7 +625,7 @@
   publisher  = {ACM},
 }
 
-@PhdThesis{,
+@PhdThesis{Blanas2013,
   author      = {Blanas, Spyridon},
   title       = {High-performance main memory database management systems},
   institution = {UNIVERSITY OF WISCONSIN–MADISON},
@@ -660,7 +642,7 @@
   file   = {:Highly Scalable Multiprocessing Algorithms for Preference-Based Database Retrieval.pdf:PDF},
 }
 
-@InProceedings{Ailamaki:2014:SUL:2588555.2588892,
+@InProceedings{Ailamaki2014,
   author    = {Ailamaki, Anastasia and Liarou, Erietta and Tözün, Pinar and Porobic, Danica and Psaroudakis, Iraklis},
   title     = {How to Stop Under-utilization and Love Multicores},
   booktitle = {Proceedings of the 2014 ACM SIGMOD International Conference on Management of Data},
@@ -679,7 +661,7 @@
   numpages  = {4},
 }
 
-@Article{Graefe:2006:ISD:1132960.1132964,
+@Article{Graefe2006,
   author     = {Graefe, Goetz},
   title      = {Implementing Sorting in Database Systems},
   journal    = {ACM Comput. Surv.},
@@ -699,7 +681,7 @@
   publisher  = {ACM},
 }
 
-@InProceedings{Zhou:2005:IDP:1083592.1083602,
+@InProceedings{Zhou2005,
   author    = {Zhou, Jingren and Cieslewicz, John and Ross, Kenneth A. and Shah, Mihir},
   title     = {Improving Database Performance on Simultaneous Multithreading Processors},
   booktitle = {Proceedings of the 31st International Conference on Very Large Data Bases},
@@ -712,47 +694,38 @@
   url       = {http://dl.acm.org/citation.cfm?id=1083592.1083602},
   acmid     = {1083602},
   file      = {:Improving Database Performance on Simultaneous Multithreading Processors.pdf:PDF},
+  keywords  = {rank3},
   numpages  = {12},
 }
 
-@Article{article,
-  author  = {Mamoulis, Nikos and Papadias, Dimitris},
-  title   = {Integration of Spatial Join Algorithms for Processing Multiple Inputs},
-  journal = {SIGMOD Record (ACM Special Interest Group on Management of Data)},
-  year    = {2000},
-  volume  = {28},
-  month   = oct,
-  doi     = {10.1145/304182.304183},
-  file    = {:Integration of Spatial Join Algorithms for Processing Multiple Inputs.pdf:PDF},
-}
-
-@Book{Cormen:2001:IA:580470,
+@Book{Cormen2001,
   author    = {Cormen, Thomas H. and Stein, Clifford and Rivest, Ronald L. and Leiserson, Charles E.},
   title     = {Introduction to Algorithms},
   year      = {2001},
-  edition   = {2nd},
+  edition   = {2},
   publisher = {McGraw-Hill Higher Education},
   isbn      = {0070131511},
   file      = {:Introduction to Algorithms 2.pdf:PDF},
 }
 
-@Book{Cormen:2009:IAT:1614191,
+@Book{Cormen2009,
   author    = {Cormen, Thomas H. and Leiserson, Charles E. and Rivest, Ronald L. and Stein, Clifford},
   title     = {Introduction to Algorithms, Third Edition},
   year      = {2009},
-  edition   = {3rd},
+  edition   = {3},
   publisher = {The MIT Press},
-  isbn      = {0262033844, 9780262033848},
   file      = {:introduction to algorithms 3rd.pdf:PDF},
+  keywords  = {rank4},
 }
 
-@Electronic{,
+@Electronic{Oregon,
+  author      = {University of Oregon},
   title       = {Lecture12 – Introduction to Parallel Algorithms},
   file        = {:lecture-5-patterns.pdf:PDF;:lecture-6-collective.pdf:PDF;:lecture-8-stencil.pdf:PDF;:lecture-9-fork-join.pdf:PDF;:lecture-10-pipeline.pdf:PDF;:lecture-11-mpi.pdf:PDF;:lecture-12-algorithms.pdf:PDF;:lecture-13-tools.pdf:PDF;:lecture-14-tools.pdf:PDF;:lecture-15-mpc.pdf:PDF;:lecture-16-spp.pdf:PDF},
   institution = {University of Oregon},
 }
 
-@Article{Jacox:2003:ISJ:937598.937600,
+@Article{Jacox2003,
   author     = {Jacox, Edwin H. and Samet, Hanan},
   title      = {Iterative Spatial Join},
   journal    = {ACM Trans. Database Syst.},
@@ -768,12 +741,12 @@
   address    = {New York, NY, USA},
   file       = {:Iterative Spatial Join.pdf:PDF},
   issue_date = {September 2003},
-  keywords   = {Spatial join, external memory algorithms, plane-sweep, spatial databases},
+  keywords   = {Spatial join, external memory algorithms, plane-sweep, spatial databases, rank4},
   numpages   = {27},
   publisher  = {ACM},
 }
 
-@Article{Mishra:1992:JPR:128762.128764,
+@Article{Mishra1992,
   author     = {Mishra, Priti and Eich, Margaret H.},
   title      = {Join Processing in Relational Databases},
   journal    = {ACM Comput. Surv.},
@@ -789,12 +762,12 @@
   address    = {New York, NY, USA},
   file       = {:Join Processing in Relational Databases.pdf:PDF},
   issue_date = {March 1992},
-  keywords   = {database machines, distributed processing, join, parallel processing, relational algebra},
+  keywords   = {database machines, distributed processing, join, parallel processing, relational algebra, rank5},
   numpages   = {51},
   publisher  = {ACM},
 }
 
-@InProceedings{10.1007/3-540-54132-2_47,
+@InProceedings{Bal1991,
   author    = {Bal, Henri E.},
   title     = {Languages for parallel programming},
   booktitle = {Parallel Database Systems},
@@ -808,7 +781,7 @@
   file      = {:Languages for Parallel Programming.pdf:PDF},
 }
 
-@InProceedings{7129541,
+@InProceedings{You2015,
   author    = {S. You and J. Zhang and L. Gruenwald},
   title     = {Large-scale spatial join query processing in Cloud},
   booktitle = {2015 31st IEEE International Conference on Data Engineering Workshops},
@@ -822,7 +795,7 @@
   keywords  = {cloud computing;geographic information systems;query processing;large-scale spatial join query processing;cloud computing;location data;large-scale spatial query;cloud deployment;SpatialSpark;Apache Spark;ISP-MC;Cloudera Impala;indexed spatial join;point-in-polygon test;point-to-polyline distance computation;taxi trip;Amazon EC2 cluster;Sparks;Spatial databases;Query processing;Hardware;Scalability;Data processing;Filtering;Spatial Join;Spark;Impala;Cloud Computing},
 }
 
-@Book{Greenlaw:1995:LPC:203244,
+@Book{Greenlaw1995,
   author    = {Greenlaw, Raymond and Hoover, H. James and Ruzzo, Walter L.},
   title     = {Limits to Parallel Computation: P-completeness Theory},
   year      = {1995},
@@ -843,7 +816,7 @@
   file    = {:M-Grid a distributed framework for multidimensional indexing and querying of location based data.pdf:PDF},
 }
 
-@Article{Balkesen2015MainMemoryHJ,
+@Article{Balkesen2015,
   author  = {Cagri Balkesen and Jens Teubner and Gustavo Alonso and M. Tamer Özsu},
   title   = {Main-Memory Hash Joins on Modern Processor Architectures},
   journal = {IEEE Transactions on Knowledge and Data Engineering},
@@ -853,13 +826,13 @@
   file    = {:Main-Memory Hash Joins on Modern Processor Architectures.pdf:PDF},
 }
 
-@Misc{,
+@Misc{Albutiu,
   author = {Albutiu, Martina Kemper, Alfons Neumann, Thomas},
   title  = {Massively Parallel Sort-Merge Joins (MPSM) in Main Memory Multi-Core Database Systems},
   file   = {:Massively Parallel Sort-Merge Joins (MPSM) in Main Memory Multi-Core Database Systems.pptx:PowerPoint 2007+},
 }
 
-@Article{Albutiu:2012:MPS:2336664.2336678,
+@Article{Albutiu2012,
   author     = {Albutiu, Martina-Cezara and Kemper, Alfons and Neumann, Thomas},
   title      = {Massively Parallel Sort-merge Joins in Main Memory Multi-core Database Systems},
   journal    = {Proc. VLDB Endow.},
@@ -874,21 +847,23 @@
   acmid      = {2336678},
   file       = {:Massively Parallel Sort-Merge Joins in Main Memory Multi-Core Database Systems.pdf:PDF},
   issue_date = {June 2012},
+  keywords   = {rank4},
   numpages   = {12},
   publisher  = {VLDB Endowment},
 }
 
-@Book{book,
-  author = {Bengel, Günther and Baun, Christian and Kunze, Marcel and Stucky, Karl-Uwe},
-  title  = {Masterkurs Parallele und Verteilte Systeme: Grundlagen und Programmierung von Multicoreprozessoren, Multiprozessoren, Cluster und Grid},
-  year   = {2008},
-  isbn   = {978-3-8348-0394-8},
-  doi    = {10.1007/978-3-8348-9516-5},
-  file   = {:Masterkurs Parallele Und Verteilte Systeme  (2008).pdf:PDF},
-  month  = jan,
+@Book{Bengel2008,
+  author   = {Bengel, Günther and Baun, Christian and Kunze, Marcel and Stucky, Karl-Uwe},
+  title    = {Masterkurs Parallele und Verteilte Systeme: Grundlagen und Programmierung von Multicoreprozessoren, Multiprozessoren, Cluster und Grid},
+  year     = {2008},
+  isbn     = {978-3-8348-0394-8},
+  doi      = {10.1007/978-3-8348-9516-5},
+  file     = {:Masterkurs Parallele Und Verteilte Systeme  (2008).pdf:PDF},
+  keywords = {rank3},
+  month    = jan,
 }
 
-@Article{Berzal:2013:SPP:2439976.2439995,
+@Article{Berzal2013,
   author     = {Berzal, Fernando},
   title      = {Structured Parallel Programming by Michael McCool, James Reinders \& Arch Robison},
   journal    = {SIGSOFT Softw. Eng. Notes},
@@ -904,11 +879,12 @@
   address    = {New York, NY, USA},
   file       = {:Merge Sort - Structured Parallel Programming,.pdf:PDF},
   issue_date = {March 2013},
+  keywords   = {rank3},
   numpages   = {5},
   publisher  = {ACM},
 }
 
-@Article{REUTER19992177,
+@Article{Reuter1999,
   author   = {Andreas Reuter},
   title    = {Methods for parallel execution of complex database queries},
   journal  = {Parallel Computing},
@@ -921,16 +897,17 @@
   url      = {http://www.sciencedirect.com/science/article/pii/S0167819199000666},
   abstract = {During the last decade, all commercial database systems have included features for parallel processing into their products. This development has been driven by the fact that databases grow in size at considerable rates. According to the results of the 1998 `very large database contest' the world’s largest databases, which have reached a size of over 10TB, double in size every year. At that speed, they outgrow the increase in processor speed and memory size, so additional measures are required to accommodate the effects of rapidly growing volumes of data. Parallelism is one of those options. It helps to keep processing times constant, even if the size of the database increases. That effect, which is often referred to as `scaleup' is important for loading, index creation, all kinds of administrative operations on the database, and of course for long batch-type applications. Parallelism is also employed to speed-up queries that otherwise would take days or weeks to process and thus would be useless for the application. This type of requirement: fast results of complex queries on large data sets is characteristic of decision support applications. In this overview we will explain how parallelism in databases can help to solve such problems.},
   file     = {:Methods for parallel execution of complex database queries.pdf:PDF},
+  keywords = {rank4},
 }
 
-@Misc{,
+@Misc{Barbic2006,
   author = {Barbic, Jernej},
   title  = {Multi-core architectures},
   year   = {2006},
   file   = {:Multi-core architectures.pdf:PDF},
 }
 
-@Article{Balkesen:2013:MMJ:2732219.2732227,
+@Article{Balkesen2013,
   author     = {Balkesen, Cagri and Alonso, Gustavo and Teubner, Jens and Özsu, M. Tamer},
   title      = {Multi-core, Main-memory Joins: Sort vs. Hash Revisited},
   journal    = {Proc. VLDB Endow.},
@@ -949,7 +926,7 @@
   publisher  = {VLDB Endowment},
 }
 
-@Unknown{unknown,
+@Unknown{Rattanatranurak2019a,
   author = {Rattanatranurak, Apisit and Kittitornkun, Surin},
   title  = {Multi-Stack Parallel Partition Algorithm for Sorting Applications},
   year   = {2019},
@@ -958,13 +935,13 @@
   file   = {:Multi-Stack Parallel Partition Algorithm for Sorting Applications.pdf:PDF},
 }
 
-@Misc{,
+@Misc{Silvasti,
   author = {Silvasti, Panu},
   title  = {Multicore support in databases},
   file   = {:Multicore support in databaes.pdf:PDF},
 }
 
-@Article{Mamoulis:2001:MSJ:503099.503101,
+@Article{Mamoulis2001,
   author     = {Mamoulis, Nikos and Papadias, Dimitris},
   title      = {Multiway Spatial Joins},
   journal    = {ACM Trans. Database Syst.},
@@ -985,7 +962,7 @@
   publisher  = {ACM},
 }
 
-@Article{Segev:1986:OJO:5236.5241,
+@Article{Segev1986,
   author     = {Segev, Arie},
   title      = {Optimization of Join Operations in Horizontally Partitioned Database Systems},
   journal    = {ACM Trans. Database Syst.},
@@ -1005,7 +982,7 @@
   publisher  = {ACM},
 }
 
-@InProceedings{Ke:2011:ODP:1991596.1991614,
+@InProceedings{Ke2011,
   author    = {Ke, Qifa and Prabhakaran, Vijayan and Xie, Yinglian and Yu, Yuan and Wu, Jingyue and Yang, Junfeng},
   title     = {Optimizing Data Partitioning for Data-parallel Computing},
   booktitle = {Proceedings of the 13th USENIX Conference on Hot Topics in Operating Systems},
@@ -1038,32 +1015,37 @@
   file     = {:Organization of Parallel Query Processing in Multiprocessor Database Machines with Hierarchical Architecture.pdf:PDF},
 }
 
-@Misc{,
-  title = {Parallel Algorithm Analysis and Design Parallel Algorithm Analysis and Design},
-  year  = {2018},
-  file  = {:Parallel Algorithm Analysis and Design.pdf:PDF},
+@Misc{College2018,
+  author = {Gordon College},
+  title  = {Parallel Algorithm Analysis and Design Parallel Algorithm Analysis and Design},
+  year   = {2018},
+  file   = {:Parallel Algorithm Analysis and Design.pdf:PDF},
 }
 
-@Misc{,
+@Misc{Wang2019,
   author = {Wang, Wei},
   title  = {Parallel Algorithm Design: Decomposition and Concurrency},
   year   = {2019},
   file   = {:Parallel Algorithm Design Decomposition and Concurrency.pdf:PDF},
 }
 
-@Misc{,
-  title = {Parallel algorithm design},
-  file  = {:Parallel algorithm design.pdf:PDF},
+@Online{Foster1995a,
+  author = {Ian Foster},
+  title  = {Parallel algorithm design},
+  year   = {1995},
+  file   = {:Parallel algorithm design.pdf:PDF},
 }
 
-@InBook{,
-  author = {Ghaffari, Mohsen},
-  title  = {Parallel Alogrithms},
-  year   = {2019},
-  file   = {:Parallel Algorithms Chapter 6.pdf:PDF},
+@Online{Ghaffari2019,
+  author   = {Ghaffari, Mohsen},
+  title    = {Parallel Alogrithms},
+  year     = {2019},
+  url      = {https://people.inf.ethz.ch/gmohsen/CHParallel18.pdf},
+  file     = {:Parallel Algorithms Chapter 6.pdf:PDF},
+  keywords = {rank4},
 }
 
-@InCollection{Blelloch:2010:PA:1882723.1882748,
+@InCollection{Blelloch2010,
   author    = {Blelloch, Guy E. and Maggs, Bruce M.},
   title     = {Algorithms and Theory of Computation Handbook},
   year      = {2010},
@@ -1078,13 +1060,13 @@
   numpages  = {1},
 }
 
-@Misc{,
+@Misc{Zhang,
   author = {Zhang, Jun},
   title  = {Parallel Computing, Chapter 7 Performance and Scalability},
   file   = {:Parallel Computing Chapter 7 Performance and Scalability.pdf:PDF},
 }
 
-@Article{Lee:2012:PDP:2094114.2094118,
+@Article{Lee2012,
   author     = {Lee, Kyong-Ha and Lee, Yoon-Joon and Choi, Hyunsik and Chung, Yon Dohn and Moon, Bongki},
   title      = {Parallel Data Processing with MapReduce: A Survey},
   journal    = {SIGMOD Rec.},
@@ -1104,7 +1086,7 @@
   publisher  = {ACM},
 }
 
-@InProceedings{10.1007/978-3-540-75444-2_25,
+@InProceedings{Mach2007,
   author    = {Mach, Werner and Schikuta, Erich},
   title     = {Parallel Database Sort and Join Operations Revisited on Grids},
   booktitle = {High Performance Computing and Communications},
@@ -1116,19 +1098,10 @@
   abstract  = {Based on the renowned method of Bitton et al. (see [1]) we develop a concise but comprehensive analytical model for the well-known Binary Merge Sort, Bitonic Sort, Nested-Loop Join and Sort Merge Join algorithm in a Grid Environment.},
   address   = {Berlin, Heidelberg},
   file      = {:Parallel Database Sort and Join Operations Revisited on Grids.pdf:PDF},
+  keywords  = {rank4},
 }
 
-@Article{Taniar2000SortingIP,
-  author  = {David Taniar and J. Wenny Rahayu},
-  title   = {Sorting in parallel database systems},
-  journal = {Proceedings Fourth International Conference/Exhibition on High Performance Computing in the Asia-Pacific Region},
-  year    = {2000},
-  volume  = {2},
-  pages   = {830-835 vol.2},
-  file    = {:Parallel database sorting.pdf:PDF},
-}
-
-@Online{,
+@Online{Roch1997,
   author   = {Roch, Jean-Louis},
   title    = {Parallel efficient algorithms and their programming},
   year     = {1997},
@@ -1136,7 +1109,7 @@
   file     = {:Parallel efﬁcient algorithms and their programming.pdf:PDF},
 }
 
-@InProceedings{7544757,
+@InProceedings{Song2016,
   author    = {W. Song and D. Koch and M. Luján and J. Garside},
   title     = {Parallel Hardware Merge Sorter},
   booktitle = {2016 IEEE 24th Annual International Symposium on Field-Programmable Custom Computing Machines (FCCM)},
@@ -1150,20 +1123,24 @@
   keywords  = {field programmable gate arrays;merging;parallel processing;sorting;tree data structures;parallel hardware merge sorter;data handling;high-speed solutions;low-energy solutions;partition algorithms;software systems;sequential sorters;speed scalability;area scalability;variable sorting rate;32-port parallel merge-tree;Virtex-7 FPGA;total sorting time reduction;multiple sorting threads;parallel sorting;Sorting;Hardware;Corporate acquisitions;Field programmable gate arrays;Servers;Software;Bandwidth;Merge sort;sorting network;parallel sorting;FPGA},
 }
 
-@InProceedings{,
+@InProceedings{Tsitsigkos2019,
   author    = {Dimitrios Tsitsigkos and Panagiotis Bouros and Nikos Mamoulis and Manolis Terrovitis},
   title     = {Parallel In-Memory Evaluation of Spatial Joins},
   booktitle = {27th ACM SIGSPATIAL International Conference on Advances in Geographic Information Systems},
   year      = {2019},
   file      = {:Parallel In-Memory Evaluation of Spatial Joins.pdf:PDF},
+  keywords  = {rank4},
 }
 
-@Online{,
-  title = {10. Parallel Methods for Data Sorting},
-  file  = {:Parallel Methods for Data Sorting.pdf:PDF},
+@Online{NiznhiNovgorod2001,
+  author = {State University of Niznhi Novgorod and Gergel P. Victor,},
+  title  = {10. Parallel Methods for Data Sorting},
+  year   = {2001},
+  url    = {http://www.hpcc.unn.ru/mskurs/LAB/ENG/DOC/Lab04.pdf},
+  file   = {:Parallel Methods for Data Sorting.pdf:PDF},
 }
 
-@InProceedings{Frias:2008:PPR:1788888.1788899,
+@InProceedings{Frias2008,
   author    = {Frias, Leonor and Petit, Jordi},
   title     = {Parallel Partition Revisited},
   booktitle = {Proceedings of the 7th International Conference on Experimental Algorithms},
@@ -1177,34 +1154,36 @@
   acmid     = {1788899},
   address   = {Berlin, Heidelberg},
   file      = {:Parallel Partition Revisited.pdf:PDF},
+  keywords  = {rank3},
   numpages  = {12},
 }
 
-@Online{,
+@Online{MehdiZargham1996,
   author   = {Mehdi Zargham,},
-  title    = {COMPUTER ARCHITECTURE},
+  title    = {Computer architecture},
   year     = {1996},
   subtitle = {7 Parallel Programming an d Parallel Algorithms },
   file     = {:Parallel Programming and Parallel Algorithms  ch7.pdf:PDF},
 }
 
-@Book{Rauber:2013:PPM:2517730,
-  author    = {Rauber, Thomas and Rnger, Gudula},
+@Book{Rauber2013,
+  author    = {Rauber, Thomas and Rünger, Gudula},
   title     = {Parallel Programming: For Multicore and Cluster Systems},
   year      = {2013},
-  edition   = {2nd},
-  publisher = {Springer Publishing Company, Incorporated},
+  edition   = {2},
+  publisher = {Springer Publishing Company Inc.},
   isbn      = {3642378005, 9783642378003},
   file      = {:Parallel Programming for Multicore and Cluster Systems.pdf:PDF},
+  keywords  = {rank3},
 }
 
-@Misc{,
+@Misc{Orlando,
   author = {Orlando , Salvatore},
   title  = {Parallel Programming Patterns},
   file   = {:Parallel Programming Patterns.pdf:PDF},
 }
 
-@InProceedings{Taniar:1999:PSJ:647296.723143,
+@InProceedings{Taniar1999,
   author    = {Taniar, David and Rahayu, J. Wenny},
   title     = {Parallel Sub-collection Join Query Algorithms for a High Performance Object-Oriented Database Architecture},
   booktitle = {Proceedings of the 4th International ACPC Conference Including Special Tracks on Parallel Numerics and Parallel Computing in Image Processing, Video Processing, and Multimedia: Parallel Computation},
@@ -1220,7 +1199,7 @@
   numpages  = {11},
 }
 
-@InBook{,
+@InBook{Devine2006,
   author     = {Karen Devine and Erik G. Boman and George Karypis},
   title      = {Partitioning and Load Balancing For Emerging Parallel Applications and Architectures},
   booktitle  = {Parallel Processing for Scientific Computing},
@@ -1228,9 +1207,10 @@
   bookauthor = {M. Heroux and P. Raghavan and H. D. Simon},
   publisher  = {SIAM},
   file       = {:Partitioning and Load Balancing for Emerging Parallel Applications and Architectures.pdf:PDF},
+  keywords   = {rank3},
 }
 
-@InProceedings{10.1007/3-540-54132-2_54,
+@InProceedings{Patel1991,
   author    = {Patel, Suresh},
   title     = {Performance estimates of a join},
   booktitle = {Parallel Database Systems},
@@ -1245,16 +1225,17 @@
 }
 
 @InProceedings{Garcia2007,
-  author = {Garcia, Philip and Korth, Henry},
-  title  = {Pipelined hash-join on multithreaded architectures},
-  year   = {2007},
-  month  = jan,
-  pages  = {1},
-  doi    = {10.1145/1363189.1363191},
-  file   = {:Pipelined Hash-Join on Multithreaded Architectures.pdf:PDF},
+  author   = {Garcia, Philip and Korth, Henry},
+  title    = {Pipelined hash-join on multithreaded architectures},
+  year     = {2007},
+  month    = jan,
+  pages    = {1},
+  doi      = {10.1145/1363189.1363191},
+  file     = {:Pipelined Hash-Join on Multithreaded Architectures.pdf:PDF},
+  keywords = {rank4},
 }
 
-@InProceedings{10.1007/11733836_24,
+@InProceedings{Zhou2006,
   author    = {Zhou, Yongluan and Yan, Ying and Yu, Feng and Zhou, Aoying},
   title     = {PMJoin: Optimizing Distributed Multi-way Stream Joins by Stream Partitioning},
   booktitle = {Database Systems for Advanced Applications},
@@ -1266,9 +1247,10 @@
   abstract  = {In emerging data stream applications, data sources are typically distributed. Evaluating multi-join queries over streams from different sources may incur large communication cost. As queries run continuously, the precious bandwidths would be aggressively consumed without careful optimization of operator ordering and placement. In this paper, we focus on the optimization of continuous multi-join queries over distributed streams. We observe that by partitioning streams into substreams we can significantly reduce the communication cost and hence propose a novel partition-based join scheme -- PMJoin. A few partitioning techniques are studied. To generate the query plan for each substream, a heuristic algorithm is proposed based on a rate-based model. Results from an extensive experimental study show that our techniques can sufficiently reduce the communication cost.},
   address   = {Berlin, Heidelberg},
   file      = {:PMJoin Optimizing Distributed Multi-way Stream Joins by Stream Partitioning.pdf:PDF},
+  keywords  = {rank4},
 }
 
-@InProceedings{10.1007/978-3-540-45072-6_9,
+@InProceedings{Ni2003,
   author    = {Ni, Jinfeng and Ravishankar, Chinya V. and Bhanu, Bir},
   title     = {Probabilistic Spatial Database Operations},
   booktitle = {Advances in Spatial and Temporal Databases},
@@ -1282,7 +1264,7 @@
   file      = {:Probabilistic Spatial Database Operations.pdf:PDF},
 }
 
-@Article{Blelloch:1996:PPA:227234.227246,
+@Article{Blelloch1996,
   author     = {Blelloch, Guy E.},
   title      = {Programming Parallel Algorithms},
   journal    = {Commun. ACM},
@@ -1302,10 +1284,10 @@
   publisher  = {ACM},
 }
 
-@InCollection{DITTRICH2002299,
+@InCollection{Dittrich2002,
   author    = {Jens-Peter Dittrich and Bernhard Seeger and David Scot Taylor and Peter Widmayer},
-  title     = {Chapter 27 - Progressive Merge Join: A Generic and Non-Blocking Sort-Based Join Algorithm**This work has been supported by grant no. SE 553/2-2 from DFG.},
-  booktitle = {VLDB '02: Proceedings of the 28th International Conference on Very Large Databases},
+  title     = {Progressive Merge Join: A Generic and Non-Blocking Sort-Based Join Algorithm},
+  booktitle = {Proceedings of the 28th International Conference on Very Large Databases},
   year      = {2002},
   editor    = {Philip A. Bernstein and Yannis E. Ioannidis and Raghu Ramakrishnan and Dimitris Papadias},
   publisher = {Morgan Kaufmann},
@@ -1316,6 +1298,7 @@
   abstract  = {Publisher Summary This chapter presents a generic technique called progressive merge join (PMJ) that eliminates the blocking behavior of sort-based join algorithms. The basic idea behind PMJ is to have the join produce results, as early as the external mergesort generates initial runs. Many state-of-the-art join techniques require the input relations to be almost fully sorted before the actual join processing starts. Thus, these techniques start producing first results only after a considerable time has passed. This blocking behavior is a serious problem when consequent operators have to stop processing in order to wait for first results of the join. Furthermore, this behavior is not acceptable if the result of the join is visualized or/and requires user interaction. These are typical scenarios for data mining applications. The off-time of existing techniques even increases with growing problem sizes.},
   address   = {San Francisco},
   file      = {:Progressive Merge Join A Generic and Non-Blocking Sort-Based Join Algorithm.pdf:PDF},
+  keywords  = {rank5},
 }
 
 @InProceedings{Huber2009,
@@ -1327,12 +1310,11 @@
   file   = {:Query Processing on Multi-Core Architectures.pdf:PDF},
 }
 
-@InProceedings{Cieslewicz:2006:RPD:1140402.1140408,
+@InProceedings{Cieslewicz2006,
   author    = {Cieslewicz, John and Berry, Jonathan and Hendrickson, Bruce and Ross, Kenneth A.},
   title     = {Realizing Parallelism in Database Operations: Insights from a Massively Multithreaded Architecture},
-  booktitle = {Proceedings of the 2Nd International Workshop on Data Management on New Hardware},
+  booktitle = {Proceedings of the 2nd International Workshop on Data Management on New Hardware},
   year      = {2006},
-  series    = {DaMoN '06},
   publisher = {ACM},
   location  = {Chicago, Illinois},
   isbn      = {1-59593-466-9},
@@ -1342,9 +1324,10 @@
   address   = {New York, NY, USA},
   articleno = {4},
   file      = {:Realizing Parallelism in Database Operations - Insights from a Massively Multithreaded Architecture.pdf:PDF},
+  keywords  = {rank3},
 }
 
-@InProceedings{10.1007/3-540-54132-2_48,
+@InProceedings{Bratbergsengen1991,
   author    = {Bratbergsengen, Kjell},
   title     = {Relational algebra operations},
   booktitle = {Parallel Database Systems},
@@ -1357,7 +1340,7 @@
   file      = {:Relational Algebra Operations.pdf:PDF},
 }
 
-@Article{,
+@Article{Kakalwar2018,
   author  = {Venkatesh Kakalwar and Dipanjan De and Arup Kumar Biswas and Sivanesan S},
   title   = {Relational Database with Multicore-Framework},
   journal = {International Journal of Advanced Research in Computer and Communication Engineering},
@@ -1368,7 +1351,7 @@
   file    = {:Relational Database with Multicore-Framework.pdf:PDF},
 }
 
-@Article{Jung:2017:SDL:3167892.3167894,
+@Article{Jung2017,
   author     = {Jung, Hyungsoo and Han, Hyuck and Kang, Sooyong},
   title      = {Scalable Database Logging for Multicores},
   journal    = {Proc. VLDB Endow.},
@@ -1387,7 +1370,7 @@
   publisher  = {VLDB Endowment},
 }
 
-@InProceedings{Bilidas2019ScalablePO,
+@InProceedings{Bilidas2019,
   author    = {Dimitris Bilidas and Manolis Koubarakis},
   title     = {Scalable Parallelization of RDF Joins on Multicore Architectures},
   booktitle = {EDBT},
@@ -1395,7 +1378,7 @@
   file      = {:Scalable Parallelization of RDF Joins on Multicore Processors.pdf:PDF},
 }
 
-@InProceedings{Arge:1998:SSS:645924.671340,
+@InProceedings{Arge1998,
   author    = {Arge, Lars and Procopiuc, Octavian and Ramaswamy, Sridhar and Suel, Torsten and Vitter, Jeffrey Scott},
   title     = {Scalable Sweeping-Based Spatial Join},
   booktitle = {Proceedings of the 24rd International Conference on Very Large Data Bases},
@@ -1407,11 +1390,13 @@
   url       = {http://dl.acm.org/citation.cfm?id=645924.671340},
   acmid     = {671340},
   address   = {San Francisco, CA, USA},
+  comment   = {Sweep based Filter Step},
   file      = {:Scalable Sweeping-Based Spatial Join.pdf:PDF},
+  keywords  = {rank3},
   numpages  = {12},
 }
 
-@InProceedings{Wang:2016:SMD:2882903.2882934,
+@InProceedings{Wang2016,
   author    = {Wang, Zhaoguo and Mu, Shuai and Cui, Yang and Yi, Han and Chen, Haibo and Li, Jinyang},
   title     = {Scaling Multicore Databases via Constrained Parallel Execution},
   booktitle = {Proceedings of the 2016 International Conference on Management of Data},
@@ -1447,50 +1432,28 @@
   file     = {:SCOPE parallel databases meet MapReduce.pdf:PDF},
 }
 
-@InProceedings{843555,
+@InProceedings{Taniar2000,
   author    = {D. Taniar and J. W. Rahayu},
   title     = {Sorting in parallel database systems},
   booktitle = {Proceedings Fourth International Conference/Exhibition on High Performance Computing in the Asia-Pacific Region},
   year      = {2000},
   volume    = {2},
   month     = may,
-  pages     = {830-835 vol.2},
+  pages     = {830--835},
   doi       = {10.1109/HPC.2000.843555},
   abstract  = {Sorting in database processing is frequently required through the use of Order By and Distinct clauses in SQL. Sorting is also widely known in the computer science community at large. Sorting in general covers internal and external sorting. Past published work has extensively focused on external sorting on uni-processors (serial external sorting), and internal sorting on multiprocessors (parallel internal sorting). External sorting on multiprocessors (parallel external sorting) has received surprisingly little attention; furthermore, the way current parallel database systems do sorting is far from optimal in many scenarios. The authors present a taxonomy for parallel sorting in parallel database systems, which covers five sorting methods: namely parallel merge-all sort, parallel binary-merge sort, parallel redistribution binary-merge sort, parallel redistribution merge-all sort, and parallel partitioned sort. The first two methods are previously proposed approaches to parallel external sorting which have been adopted as status quo of parallel database sorting, whereas the latter three methods which are based on redistribution and repartitioning are new, in that the have not been discussed in the literature of parallel external sorting.},
   file      = {:Sorting in Parallel Database Systems.pdf:PDF},
   issn      = {null},
-  keywords  = {parallel databases;sorting;merging;parallel database system sorting;database processing;SQL;external sorting;internal sorting;multiprocessors;parallel external sorting;sorting methods;parallel merge-all sort;parallel binary-merge sort;parallel redistribution binary-merge sort;parallel redistribution merge-all sort;parallel partitioned sort;redistribution;repartitioning;Sorting;Database systems;Computer science;Taxonomy;Merging;Australia;Data structures;Pipelines;Parallel processing},
+  keywords  = {parallel databases;sorting;merging;parallel database system sorting;database processing;SQL;external sorting;internal sorting;multiprocessors;parallel external sorting;sorting methods;parallel merge-all sort;parallel binary-merge sort;parallel redistribution binary-merge sort;parallel redistribution merge-all sort;parallel partitioned sort;redistribution;repartitioning;Sorting;Database systems;Computer science;Taxonomy;Merging;Australia;Data structures;Pipelines;Parallel processing, rank4},
 }
 
-@Misc{,
+@Misc{Gueting,
   author = {Güting, Ralf},
   title  = {Spatial Database Systems},
   file   = {:Spatial Database Systems.pdf:PDF},
 }
 
-@Article{Mamoulis2000,
-  author  = {Mamoulis, Nikos and Papadias, Dimitris},
-  title   = {Integration of Spatial Join Algorithms for Processing Multiple Inputs},
-  journal = {SIGMOD Record (ACM Special Interest Group on Management of Data)},
-  year    = {2000},
-  volume  = {28},
-  month   = oct,
-  doi     = {10.1145/304182.304183},
-  file    = {:Spatial Join Algorithms for Processing Multiple Inputs.pdf:PDF},
-}
-
-@Article{Jacox_spatialjoin,
-  author  = {Edwin H. Jacox and Hanan Samet},
-  title   = {Spatial Join Techniques},
-  journal = {Transactions on Database Systems},
-  year    = {2006},
-  volume  = {V},
-  number  = {N},
-  pages   = {1--45},
-  file    = {:Spatial Join Techniques.pdf:PDF},
-}
-
-@Article{Bouros:2019:SJW:3355491.3355494,
+@Article{Bouros2019,
   author     = {Bouros, Panagiotis and Mamoulis, Nikos},
   title      = {Spatial Joins: What's Next?},
   journal    = {SIGSPATIAL Special},
@@ -1506,11 +1469,12 @@
   address    = {New York, NY, USA},
   file       = {:Spatial Joins What’s next.pdf:PDF},
   issue_date = {March 2019},
+  keywords   = {rank4},
   numpages   = {9},
   publisher  = {ACM},
 }
 
-@InProceedings{Tu:2013:STM:2517349.2522713,
+@InProceedings{Tu2013,
   author    = {Tu, Stephen and Zheng, Wenting and Kohler, Eddie and Liskov, Barbara and Madden, Samuel},
   title     = {Speedy Transactions in Multicore In-memory Databases},
   booktitle = {Proceedings of the Twenty-Fourth ACM Symposium on Operating Systems Principles},
@@ -1557,7 +1521,7 @@
   file    = {:T2 A C ustomizable P arallel Database F or Multi-dimensional Data.pdf:PDF},
 }
 
-@Article{Balakrishnan:2005:IPA:1080695.1070012,
+@Article{Balakrishnan2005,
   author     = {Balakrishnan, Saisanthosh and Rajwar, Ravi and Upton, Mike and Lai, Konrad},
   title      = {The Impact of Performance Asymmetry in Emerging Multicore Architectures},
   journal    = {SIGARCH Comput. Archit. News},
@@ -1577,14 +1541,14 @@
   publisher  = {ACM},
 }
 
-@InProceedings{Chunyua2005THEKT,
+@InProceedings{Chun-yua2005,
   author = {ZHAO Chun-yua and ZHAO Yuan-chunb and MENG Ling-kuia and DENG Shi-juna},
   title  = {THE KEY TECHNOLOGIC ISSUES OF PARALLEL SPATIAL DATABASE MAMAGEMENT SYSTEM FOR PARALLEL GIS},
   year   = {2005},
   file   = {:THE KEY TECHNOLOGIC ISSUES OF PARALLEL SPATIAL DATABASE.pdf:PDF},
 }
 
-@Article{Ross:2014:MPD:2664631.2618403,
+@Article{Ross2014,
   author     = {Ross, Kenneth A.},
   title      = {Multicore Processors and Database Systems: The Multicore Transformation (Ubiquity Symposium)},
   journal    = {Ubiquity},
@@ -1605,7 +1569,7 @@
   publisher  = {ACM},
 }
 
-@Misc{,
+@Misc{Legrand2009,
   author = {Arnaud Legrand},
   title  = {Theoretical Parallel Computing},
   year   = {2009},
@@ -1620,7 +1584,7 @@
   file   = {:Thinking in Parallel - Some Basic Data-Parallel Algorithms and Techniques.pdf:PDF},
 }
 
-@InProceedings{10.1007/978-3-319-18123-3_15,
+@InProceedings{Xue2015,
   author    = {Xue, Zhong-Bin and Zhou, Xuan and Wang, Shan},
   title     = {TOF: A Throughput Oriented Framework for Spatial Queries Processing in Multi-core Environment},
   booktitle = {Database Systems for Advanced Applications},
@@ -1632,9 +1596,10 @@
   abstract  = {In this paper, we develop a Throughput Oriented Framework (TOF) for efficient processing of spatiotemporal queries in multi-core environment. Traditional approaches to spatial query processing were focused on reduction of query latency. In real world, most LBS applications emphasize throughput rather than query latency. TOF is designed to achieve maximum throughput. Instead of resorting to complex indexes, TOF chooses to execute a batch queries at each run, so it can maximize data locality and parallelism on multi-core platforms. Using TOF, we designed algorithms for processing range queries and kNN queries respectively. Experimental study shows that these algorithms outperform the existing approaches significantly in terms of throughput.},
   address   = {Cham},
   file      = {:TOF A Throughput Oriented Framework for Spatial Queries Processing in Multi-core Environment.pdf:PDF},
+  keywords  = {rank3},
 }
 
-@InProceedings{6270567,
+@InProceedings{Zhong2012,
   author    = {Y. Zhong and J. Han and T. Zhang and Z. Li and J. Fang and G. Chen},
   title     = {Towards Parallel Spatial Query Processing for Big Spatial Data},
   booktitle = {2012 IEEE 26th International Parallel and Distributed Processing Symposium Workshops PhD Forum},
@@ -1645,16 +1610,19 @@
   abstract  = {In recent years, spatial applications have become more and more important in both scientific research and industry. Spatial query processing is the fundamental functioning component to support spatial applications. However, the state-of-the-art techniques of spatial query processing are facing significant challenges as the data expand and user accesses increase. In this paper we propose and implement a novel scheme (named VegaGiStore) to provide efficient spatial query processing over big spatial data and numerous concurrent user queries. Firstly, a geography-aware approach is proposed to organize spatial data in terms of geographic proximity, and this approach can achieve high aggregate I/O throughput. Secondly, in order to improve data retrieval efficiency, we design a two-tier distributed spatial index for efficient pruning of the search space. Thirdly, we propose an "indexing + MapReduce'' data processing architecture to improve the computation capability of spatial query. Performance evaluations of the real-deployed VegaGiStore system confirm its effectiveness.},
   file      = {:Towards Parallel Spatial Query Processing for Big Spatial Data.pdf:PDF},
   issn      = {null},
-  keywords  = {geography;parallel processing;query processing;parallel spatial query processing;big spatial data;concurrent user queries;geography-aware approach;geographic proximity;I-O throughput aggregation;data retrieval;two-tier distributed spatial index;search space pruning;indexing-MapReduce data processing architecture;VegaGiStore system;Spatial databases;Query processing;Distributed databases;Spatial indexes;Parallel processing;Computer architecture;spatial data management;distributed storage;spatial index;spatial query;spatial applications},
+  keywords  = {geography;parallel processing;query processing;parallel spatial query processing;big spatial data;concurrent user queries;geography-aware approach;geographic proximity;I-O throughput aggregation;data retrieval;two-tier distributed spatial index;search space pruning;indexing-MapReduce data processing architecture;VegaGiStore system;Spatial databases;Query processing;Distributed databases;Spatial indexes;Parallel processing;Computer architecture;spatial data management;distributed storage;spatial index;spatial query;spatial applications, rank5},
 }
 
-@InBook{,
+@Online{Solanki2012,
+  author    = {Chetan Solanki},
   title     = {Parallel Algorithms},
+  year      = {2012},
+  url       = {https://chetsarena.files.wordpress.com/2012/10/2-1-parallel-algorithms.pdf},
   booktitle = {Parallel Algorithms \& Parallel Programming},
   file      = {:Unit 1 parallel-algorithms.pdf:PDF},
 }
 
-@InProceedings{6649713,
+@InProceedings{Park2013,
   author    = {J. Park and Q. Wang and D. Jayasinghe and J. Li and Y. Kanemasa and M. Matsubara and D. Yokoyama and M. Kitsuregawa and C. Pu},
   title     = {Variations in Performance Measurements of Multi-core Processors: A Study of n-Tier Applications},
   booktitle = {2013 IEEE International Conference on Services Computing},
@@ -1668,15 +1636,16 @@
   keywords  = {cache storage;input-output programs;microprocessor chips;multiprocessing systems;performance evaluation;quality of service;virtual machines;MCP cache architecture;I/O-intensive workload;mixed read-write workload;write operation handling;browse-only CPU-intensive workload;nonmonotonic scalability trend;quad-core dual-processor;intra MCP horizontal scalability;KVM;Xen;commercial hypervisor;mainstream hypervisors;MCP core mapping;performance drops;on-chip cache hit ratio;virtual CPU;QoS;quality-of-service predictability;n-tier application performance;multicore processors;performance measurements;Virtual machine monitors;Scalability;Multicore processing;Servers;Market research;Throughput;Hardware;virtualization; QoS; multi-core; scalability; cloud; hypervisor; performance comparison; RUBBoS; n-tier},
 }
 
-@Book{McCool:2012:SPP:2385466,
+@Book{McCool2012,
   author    = {McCool, Michael and Reinders, James and Robison, Arch},
   title     = {Structured Parallel Programming: Patterns for Efficient Computation},
   year      = {2012},
-  edition   = {1st},
+  edition   = {1},
   publisher = {Morgan Kaufmann Publishers Inc.},
   isbn      = {9780123914439, 9780124159938},
   address   = {San Francisco, CA, USA},
   file      = {:Structured Parallel Programming.pdf:PDF},
+  keywords  = {rank3},
 }
 
 @Article{Ranok2016,
@@ -1697,7 +1666,7 @@
   file   = {:Dual Parallel Partition Sorting Algorithm.pdf:PDF},
 }
 
-@Report{,
+@Report{Gueting2019,
   author      = {Ralf Hartmut Güting and Thomas Behr},
   title       = {Tutorial: Distributed Query Processing in S ECONDO},
   institution = {Fernuniversität Hagen, Faculty for Mathematics and Computer Sience Database Systems for New Applications},
@@ -1708,7 +1677,7 @@
   file        = {:DistributedQueryProcessinginSecondo.pdf:PDF},
 }
 
-@Article{Elseidy:2014:SAO:2732279.2732281,
+@Article{Elseidy2014,
   author     = {Elseidy, Mohammed and Elguindy, Abdallah and Vitorovic, Aleksandar and Koch, Christoph},
   title      = {Scalable and Adaptive Online Joins},
   journal    = {Proc. VLDB Endow.},
@@ -1727,7 +1696,7 @@
   publisher  = {VLDB Endowment},
 }
 
-@InProceedings{Lin:2015:SDS:2723372.2746485,
+@InProceedings{Lin2015,
   author    = {Lin, Qian and Ooi, Beng Chin and Wang, Zhengkui and Yu, Cui},
   title     = {Scalable Distributed Stream Join Processing},
   booktitle = {Proceedings of the 2015 ACM SIGMOD International Conference on Management of Data},
@@ -1744,6 +1713,749 @@
   file      = {:Scalable Distributed Stream Join Processing.pdf:PDF},
   keywords  = {data streams, distributed system, stream join},
   numpages  = {15},
+}
+
+@Book{Lu1994,
+  author    = {Lu, Hongjun and Tan, K. L. and Ooi, Beng-Chin},
+  title     = {Query Processing in Parallel Relational Database Systems},
+  year      = {1994},
+  publisher = {IEEE Computer Society Press},
+  isbn      = {081865452X},
+  address   = {Washington, DC, USA},
+}
+
+@InProceedings{Batcher1968,
+  author  = {Batcher, Kenneth},
+  title   = {Sorting networks and their applications},
+  year    = {1968},
+  volume  = {32},
+  month   = jan,
+  pages   = {307--314},
+  doi     = {10.1145/1468075.1468121},
+  journal = {Proceed. AFIPS Spring Joint Comput. Conf.},
+}
+
+@InBook{Pawlowski1993,
+  author    = {Pawlowski, Markus and Bayer, Rudolf},
+  title     = {Parallel Sorting of Large Data Volumes on Distributed Memory Multiprocessors},
+  booktitle = {Parallel Computer Architectures: Theory, Hardware, Software, Applications},
+  year      = {1993},
+  editor    = {Bode, Arndt and Dal Cin, Mario},
+  publisher = {Springer Berlin Heidelberg},
+  isbn      = {978-3-662-21577-7},
+  pages     = {246--264},
+  doi       = {10.1007/978-3-662-21577-7_18},
+  url       = {https://doi.org/10.1007/978-3-662-21577-7_18},
+  abstract  = {The use of multiprocessor architectures requires the parallelization of sorting algorithms. A parallel sorting algorithm based on horizontal parallelization is presented. This algorithm is suited for large data volumes (external sorting) and does not suffer from processing skew in presence of data skew. The core of the parallel sorting algorithm is a new adaptive partitioning method. The effect of data skew is remedied by taking samples representing the distribution of the input data. The parallel algorithm has been implemented on top of a shared disk multiprocessor architecture. The performance evaluation of the algorithm shows that it has linear speedup. Furthermore, the optimal degree of CPU parallelism is derived if I/O limitations are taken into account.},
+  address   = {Berlin, Heidelberg},
+  file      = {:Parallel Sorting of Large Data Volumes on Distributed Memory Multiprocessors.pdf:PDF},
+}
+
+@InProceedings{Menon1986,
+  author    = {Menon, Jaishankar},
+  title     = {A Study of Sort Algorithms for Multiprocessor Database Machines},
+  booktitle = {Proceedings of the 12th International Conference on Very Large Data Bases},
+  year      = {1986},
+  publisher = {Morgan Kaufmann Publishers Inc.},
+  isbn      = {0934613184},
+  pages     = {197--206},
+  address   = {San Francisco, CA, USA},
+  file      = {:A Study of Sort Algorithms for Multiprocessor Database Machines.PDF:PDF},
+  keywords  = {rank5},
+  numpages  = {10},
+}
+
+@Article{Bitton1983,
+  author     = {Bitton, Dina and Boral, Haran and DeWitt, David J. and Wilkinson, W. Kevin},
+  title      = {Parallel Algorithms for the Execution of Relational Database Operations},
+  journal    = {ACM Trans. Database Syst.},
+  year       = {1983},
+  volume     = {8},
+  number     = {3},
+  month      = sep,
+  pages      = {324--353},
+  issn       = {0362-5915},
+  doi        = {10.1145/319989.319991},
+  url        = {https://doi.org/10.1145/319989.319991},
+  address    = {New York, NY, USA},
+  file       = {:Parallel algorithms for the execution of relational database operations.pdf:PDF},
+  issue_date = {September 1983},
+  keywords   = {join operation, projection operator, aggregate operations, database machines, sorting, parallel processing, rank5},
+  numpages   = {30},
+  publisher  = {Association for Computing Machinery},
+}
+
+@InProceedings{Qi2013,
+  author    = {Qi, Shuyao and Bouros, Panagiotis and Mamoulis, Nikos},
+  title     = {Efficient Top-k Spatial Distance Joins},
+  booktitle = {Advances in Spatial and Temporal Databases},
+  year      = {2013},
+  editor    = {Nascimento, Mario A. and Sellis, Timos and Cheng, Reynold and Sander, Jörg and Zheng, Yu and Kriegel, Hans-Peter and Renz, Matthias and Sengstock, Christian},
+  publisher = {Springer Berlin Heidelberg},
+  isbn      = {978-3-642-40235-7},
+  pages     = {1--18},
+  abstract  = {Consider two sets of spatial objects R and S, where each object is assigned a score (e.g., ranking). Given a spatial distance threshold ∊ and an integer k, the top-k spatial distance join (k- SDJ) returns the k pairs of objects, which have the highest combined score (based on an aggregate function γ) among all object pairs in RS which have spatial distance at most ∊. Despite the practical application value of this query, it has not received adequate attention in the past. In this paper, we fill this gap by proposing methods that utilize both location and score information from the objects, enabling top-k join computation by accessing a limited number of objects. Extensive experiments demonstrate that a technique which accesses blocks of data from R and S ordered by the object scores and then joins them using an aR-tree based module performs best in practice and outperforms alternative solutions by a wide margin.},
+  address   = {Berlin, Heidelberg},
+  file      = {:Efficient Top-k Spatial Distance Joins.pdf:PDF},
+  keywords  = {rank3},
+}
+
+@Article{Lo2000,
+  author   = {Lo, Ming-Ling and Ravishankar, Chinya},
+  title    = {Spatial Hash-Joins},
+  journal  = {ACM SIGMOD Record},
+  year     = {2000},
+  volume   = {25},
+  month    = sep,
+  doi      = {10.1145/235968.233337},
+  file     = {:Spatial Hash-Joins.pdf:PDF},
+  keywords = {rank4},
+}
+
+@InProceedings{Luo2002,
+  author    = {Gang Luo and J. F. Naughton and C. J. Ellmann},
+  title     = {A non-blocking parallel spatial join algorithm},
+  booktitle = {Proceedings 18th International Conference on Data Engineering},
+  year      = {2002},
+  month     = feb,
+  pages     = {697--705},
+  doi       = {10.1109/ICDE.2002.994786},
+  abstract  = {Interest in incremental and adaptive query processing has led to the investigation of equijoin evaluation algorithms that are non-blocking. This investigation has yielded a number of algorithms, including the symmetric hash join, the XJoin, the Ripple Join, and their variants. However, to our knowledge no one has proposed a nonblocking spatial join algorithm. In this paper, we propose a parallel non-blocking spatial join algorithm that uses duplicate avoidance rather than duplicate elimination. Results from a prototype implementation in a commercial parallel object-relational DBMS show that it generates answer tuples steadily even in the presence of memory overflow, and that its rate of producing answer tuples scales with the number of processors. Also, when allowed to run to completion, its performance is comparable with the state-of-the-art blocking parallel spatial join algorithm.},
+  file      = {:A non-blocking parallel spatial join algorithm.pdf:PDF},
+  issn      = {1063-6382},
+  keywords  = {parallel algorithms;query processing;parallel databases;object-oriented databases;relational databases;nonblocking parallel spatial join algorithm;incremental query processing;adaptive query processing;equijoin evaluation algorithms;duplicate avoidance;parallel object-relational DBMS;answer tuples;memory overflow;Query processing;Data visualization;Concurrent computing;Prototypes;Data engineering, rank4},
+}
+
+@InProceedings{Brinkhoff1996,
+  author   = {Brinkhoff, Thomas and Kriegel, H.-P and Seeger, Bernhard},
+  title    = {Parallel processing of spatial joins using R-trees},
+  year     = {1996},
+  month    = jan,
+  isbn     = {0-8186-7240-4},
+  pages    = {258--265},
+  doi      = {10.1109/ICDE.1996.492114},
+  file     = {:Parallel processing of spatial joins using R-trees.pdf:PDF},
+  keywords = {rank4},
+}
+
+@Article{Jacox2007,
+  author     = {Jacox, Edwin H. and Samet, Hanan},
+  title      = {Spatial Join Techniques},
+  journal    = {ACM Trans. Database Syst.},
+  year       = {2007},
+  volume     = {32},
+  number     = {1},
+  month      = mar,
+  pages      = {1--70},
+  issn       = {0362-5915},
+  doi        = {10.1145/1206049.1206056},
+  url        = {https://doi.org/10.1145/1206049.1206056},
+  address    = {New York, NY, USA},
+  file       = {:Spatial join techniques.pdf:PDF},
+  issue_date = {March 2007},
+  keywords   = {External memory algorithms, plane-sweep, spatial join, rank4},
+  numpages   = {44},
+  publisher  = {Association for Computing Machinery},
+}
+
+@Book{Rigaux2001,
+  author    = {Rigaux, Philippe and Scholl, Michel and Voisard, Agnès},
+  title     = {Spatial Databases with Application to GIS},
+  year      = {2001},
+  publisher = {Morgan Kaufmann},
+  file      = {:SpatialDBsWithApplicationToGIS.pdf:PDF},
+  journal   = {SIGMOD Record},
+  keywords  = {rank4},
+  month     = jan,
+}
+
+@Book{Bhowmick2014,
+  author = {Bhowmick, Sourav and Dyreson, Curtis and Jensen, Christian and Lee, Mong and Muliantara, Agus and Thalheim, Bernhard},
+  title  = {Database Systems for Advanced Applications: 19th International Conference, DASFAA 2014, Bali, Indonesia, April 21-24, 2014. Proceedings, Part I},
+  year   = {2014},
+  volume = {8421},
+  isbn   = {978-3-319-05809-2},
+  doi    = {10.1007/978-3-319-05810-8},
+  month  = jan,
+}
+
+@Book{HernandezGarcia2017,
+  author       = {Hernández García, Ricardo},
+  title        = {ANSI C 3.0 - Grundlagen der Programmierung},
+  year         = {2017},
+  subtitle     = {HERDT BuchPlus},
+  language     = {ger},
+  edition      = {1},
+  publisher    = {HERDT},
+  isbn         = {978-3-86249-756-0},
+  pages        = {1},
+  url          = {https://herdt-campus.de/product/CANSI3},
+  address      = {Bodenheim},
+  file         = {:CANSIPP.pdf:PDF},
+  library      = {UB ; UW},
+  organization = {HERDT-Verlag für Bildungsmedien GmbH},
+}
+
+@Article{Nidzwetzki2017,
+  author   = {Nidzwetzki, Jan Kristof and Güting, Ralf Hartmut},
+  title    = {Distributed secondo: an extensible and scalable database management system},
+  journal  = {Distributed and Parallel Databases},
+  year     = {2017},
+  volume   = {35},
+  number   = {3},
+  month    = dec,
+  pages    = {197--248},
+  issn     = {1573-7578},
+  doi      = {10.1007/s10619-017-7198-9},
+  url      = {https://doi.org/10.1007/s10619-017-7198-9},
+  abstract = {This paper describes a novel method to couple a standalone database management system (DBMS) with a highly scalable key-value store. The system employs Apache Cassandra as data storage and the extensible DBMS Secondo as a query processing engine. The resulting system is a distributed, general-purpose DBMS which is highly scalable and fault tolerant. The logical ring of Cassandra is used to split up input data into smaller units of work (UOWs), which can be processed independently. A decentralized algorithm is responsible to assign the UOWs to query processing nodes. In case of a node failure, UOWs are recalculated on a different node. All the data models (e.g. relational, spatial and spatio-temporal) and functions (e.g. filter, aggregates, joins and spatial-joins) implemented in Secondo can be used in a scalable way without changing the implementation. Many aspects of the distribution are hidden from the user. Existing sequential queries can be easily converted into parallel ones.},
+  day      = {01},
+  file     = {:Nidzwetzki-Güting2017_Article_DistributedSecondoAnExtensible.pdf:PDF},
+  keywords = {rank3},
+}
+
+@Article{Safaei2010,
+  author   = {Safaei, Ali A. and Haghjoo, Mostafa S.},
+  title    = {Parallel processing of continuous queries over data streams},
+  journal  = {Distributed and Parallel Databases},
+  year     = {2010},
+  volume   = {28},
+  number   = {2},
+  month    = dec,
+  pages    = {93--118},
+  issn     = {1573-7578},
+  doi      = {10.1007/s10619-010-7066-3},
+  url      = {https://doi.org/10.1007/s10619-010-7066-3},
+  abstract = {In this paper, we propose parallel processing of continuous queries over data streams to handle the bottleneck of single processor DSMSs. Queries are executed in parallel over the logical machines in a multiprocessing environment. Scheduling parallel execution of operators is performed via finding the shortest path in a weighted graph called Query Mega Graph (QMG), which is a logical view of K machines. By lapse of time, number of tuples waiting in queues of different operators may be very different. When a queue becomes full, re-scheduling is done by updating weight of edges of QMG. In the new computed path, machines with more workload will be used less. The proposed system is formally presented and its correctness is proved. It is also modeled in PetriNets and its performance is evaluated and compared with serial query processing as well as the Min-Latency scheduling algorithm. The presented system is shown to outperform them w.r.t. tuple latency (response time), memory usage, throughput and also tuple loss- critical parameters in any data stream management systems.},
+  day      = {01},
+  file     = {:Safaei-Haghjoo2010_Article_ParallelProcessingOfContinuous.pdf:PDF},
+}
+
+@Article{Valduriez1993,
+  author   = {Valduriez, Patrick},
+  title    = {Parallel database systems: Open problems and new issues},
+  journal  = {Distributed and Parallel Databases},
+  year     = {1993},
+  volume   = {1},
+  number   = {2},
+  month    = apr,
+  pages    = {137--165},
+  issn     = {1573-7578},
+  doi      = {10.1007/BF01264049},
+  url      = {https://doi.org/10.1007/BF01264049},
+  abstract = {Parallel database systems attempt to exploit recent multiprocessor computer architectures in order to build high-performance and high-availability database servers at a much lower price than equivalent mainframe computers. Although there are commercial SQL-based products, a number of open problems hamper the full exploitation of the capabilities of parallel systems. These problems touch on issues ranging from those of parallel processing to distributed database management. Furthermore, it is still an open issue to decide which of the various architectures among shared-memory, shared-disk, and shared-nothing, is best for database management under various conditions. Finally, there are new issues raised by the introduction of higher functionality such as knowledge-based or object-oriented capabilities within a parallel database system.},
+  day      = {01},
+  file     = {:Valduriez1993_Article_ParallelDatabaseSystemsOpenPro.pdf:PDF},
+}
+
+@Article{Wilschut1993,
+  author   = {Wilschut, Annita N. and Apers, Peter M. G.},
+  title    = {Dataflow query execution in a parallel main-memory environment},
+  journal  = {Distributed and Parallel Databases},
+  year     = {1993},
+  volume   = {1},
+  number   = {1},
+  month    = jan,
+  pages    = {103--128},
+  issn     = {1573-7578},
+  doi      = {10.1007/BF01277522},
+  url      = {https://doi.org/10.1007/BF01277522},
+  abstract = {In this paper, the performance and characteristics of the execution of various join-trees on a parallel DBMS are studied. The results of this study are a step into the direction of the design of a query optimization strategy that is fit for parallel execution of complex queries.},
+  day      = {01},
+  file     = {:Wilschut-Apers1993_Article_DataflowQueryExecutionInAParal.pdf:PDF},
+}
+
+@Article{Yang1997,
+  author   = {Yang, Qi and Dao, Son and Yu, Clement and Rishe, Naphtali},
+  title    = {A Parallel Scheme Using the Divide-and-Conquer Method},
+  journal  = {Distributed and Parallel Databases},
+  year     = {1997},
+  volume   = {5},
+  number   = {4},
+  month    = oct,
+  pages    = {405--438},
+  issn     = {1573-7578},
+  doi      = {10.1023/A:1008688512013},
+  url      = {https://doi.org/10.1023/A:1008688512013},
+  abstract = {A parallel scheme using the divide-and-conquer method is developed. This partitions the input set of a problem into subsets, computes a partial result from each subset, and finally employs a merging function to obtain the final answer. Based on a linear recursive program as a tool for formalism, a precise characterization for problems to be parallelized by the divide-and-conquer method is obtained. The performance of the parallel scheme is analyzed, and a necessary and sufficient condition to achieve linear speedup is obtained. The parallel scheme is generalized to include parameters, and a real application, the fuzzy join problem, is discussed in detail using the generalized scheme.},
+  day      = {01},
+  file     = {:Yang1997_Article_AParallelSchemeUsingTheDivide-.pdf:PDF},
+  keywords = {rank3},
+}
+
+@Article{Kumar1995,
+  author   = {Kumar, Anil and Lee, Tony T. and Tsotras, Vassilis J.},
+  title    = {A load-balanced parallel sorting algorithm for shared-nothing architectures},
+  journal  = {Distributed and Parallel Databases},
+  year     = {1995},
+  volume   = {3},
+  number   = {1},
+  month    = jan,
+  pages    = {37--68},
+  issn     = {1573-7578},
+  doi      = {10.1007/BF01263656},
+  url      = {https://doi.org/10.1007/BF01263656},
+  abstract = {With the popularity of parallel database machines based on the shared-nothing architecture, it has become important to find external sorting algorithms which lead to a load-balanced computation, i.e., balanced execution, communication and output. If during the course of the sorting algorithm each processor is equally loaded, parallelism is fully exploited. Similarly, balanced communication will not congest the network traffic. Since sorting can be used to support a number of other relational operations (joins, duplicate elimination, building indexes etc.) data skew produced by sorting can further lead to execution skew at later stages of these operations. In this paper we present a load-balanced parallel sorting algorithm for shared-nothing architectures. It is a multiple-input multiple-output algorithm with four stages, based on a generalization of Batcher's odd-even merge. At each stage then keys are evenly distributed among thep processors (i.e., there is no final sequential merge phase) and the distribution of keys between stages ensures against network congestion. There is no assumption made on the key distribution and the algorithm performs equally well in the presence of duplicate keys. Hence our approach always guarantees its performance, as long asn is greater thanp3, which is the case of interest for sorting large relations. In addition, processors can be added incrementally.},
+  day      = {01},
+}
+
+@Book{Matloff2015,
+  author  = {Matloff, N.},
+  title   = {Parallel Computing for Data Science: With Examples in R, C++ and CUDA},
+  year    = {2015},
+  pages   = {1--311},
+  doi     = {10.1201/b18549},
+  file    = {:B2016 Parallel computing for data science  with examples in R, C++ and CUDA.pdf:PDF},
+  journal = {Parallel Computing for Data Science: With Examples in R, C++ and CUDA},
+  month   = jan,
+}
+
+@InProceedings{Hao2009,
+  author   = {Hao, Sophia and Du, Zhihui and Bader, David and Ye, Yin},
+  title    = {A Partition-Merge Based Cache-Conscious Parallel Sorting Algorithm for CMP with Shared Cache},
+  year     = {2009},
+  month    = sep,
+  pages    = {396--403},
+  doi      = {10.1109/ICPP.2009.26},
+  file     = {:A_Partition-Merge_Based_Cache-Conscious_Parallel_S.pdf:PDF},
+  keywords = {rank4},
+}
+
+@Article{Bahig2016,
+  author   = {Bahig, Hazem M and Khedr, Ahmed Y},
+  title    = {Parallelizing K-Way Merging},
+  journal  = {International Journal of Computer Science and Information Security},
+  year     = {2016},
+  volume   = {14},
+  number   = {4},
+  month    = jan,
+  doi      = {10.6084/M9.FIGSHARE.3362455},
+  file     = {:Parallelizing_K-Way_Merging.pdf:PDF},
+  keywords = {rank5},
+}
+
+@Article{Beck1988,
+  author   = {M. Beck and Bitton, Dina and Wilkinson, W. Kevin},
+  title    = {Sorting large files on a backend multiprocessor},
+  journal  = {IEEE Transactions on Computers},
+  year     = {1988},
+  volume   = {37},
+  number   = {7},
+  month    = jul,
+  pages    = {769--778},
+  issn     = {2326-3814},
+  doi      = {10.1109/12.2222},
+  abstract = {The authors investigate the feasibility and efficiency of a parallel sort-merge algorithm by considering its implementation of the JASMIN prototype, a backend multiprocessor built around a fast packet bus. They describe the design and implementation of a parallel sort utility and present and analyze the results of measurements corresponding to a range of file sizes and processor configurations. The results show that using current, off-the-shelf technology coupled with a streamlined distributed operating system, three- and five-microprocessor configurations, provide a very cost-effective sort of large files. The three-processor configuration sorts a 100-Mb file in 1 hr which compares well to commercial sort packages available on high-performance mainframes. In additional experiments, the authors investigate a model to tune their sort software and scale their results to higher processor and network capabilities.<>},
+  file     = {:Sorting large files on a backend multiprocessor.pdf:PDF},
+  keywords = {database management systems;multiprocessing systems;sorting;backend multiprocessor;parallel sort-merge algorithm;JASMIN prototype;fast packet bus;streamlined distributed operating system;Sorting;Bandwidth;Operating systems;Power measurement;Database systems;Concurrent computing;Prototypes;Size measurement;Packaging;Aggregates, rank4},
+}
+
+@InBook{Manolopoulos2000,
+  author    = {Manolopoulos, Yannis and Theodoridis, Yannis and Tsotras, Vassilis J.},
+  title     = {Parallel External Sorting},
+  booktitle = {Advanced Database Indexing},
+  year      = {2000},
+  publisher = {Springer US},
+  isbn      = {978-1-4419-8590-3},
+  pages     = {209--218},
+  doi       = {10.1007/978-1-4419-8590-3_10},
+  url       = {https://doi.org/10.1007/978-1-4419-8590-3_10},
+  abstract  = {One of the goals of computer science is to invent effective and efficient methods towards problem solving. However, even if the best method (time optimal) is applied to solve a particular problem, the results may not be satisfactory to use the method in a real-life situation. For example, even if we apply the best sorting algorithm on a set of 10,000,000 records, the real-time constraints that are posed by the application may not be satisfied. Therefore, apart from the design and implementation of efficient algorithms, the research community is still developed new techniques aiming at more efficient processing. One such technique is the exploitation of multiple resources (processors, disks) to reduce the processing costs.},
+  address   = {Boston, MA},
+  file      = {:Parallel External Sorting.pdf:PDF},
+}
+
+@InProceedings{Salzberg1990,
+  author    = {Salzberg, Betty and Tsukerman, Alex and Gray, Jim and Stuewart, Michael and Uren, Susan and Vaughan, Bonnie},
+  title     = {FastSort: A Distributed Single-Input Single-Output External Sort},
+  booktitle = {Proceedings of the 1990 ACM SIGMOD International Conference on Management of Data},
+  year      = {1990},
+  series    = {SIGMOD ’90},
+  publisher = {Association for Computing Machinery},
+  location  = {Atlantic City, New Jersey, USA},
+  isbn      = {0897913655},
+  pages     = {94--101},
+  doi       = {10.1145/93597.98719},
+  url       = {https://doi.org/10.1145/93597.98719},
+  address   = {New York, NY, USA},
+  file      = {:FastSort\: A Distributed Single-Input Single-Output External Sort.pdf:PDF},
+  keywords  = {rank4},
+  numpages  = {8},
+}
+
+@InProceedings{Marszalek2017,
+  author    = {Marszałek, Zbigniew},
+  title     = {Parallelization of Fast Sort Algorithm},
+  booktitle = {Information and Software Technologies},
+  year      = {2017},
+  editor    = {Damaševičius, Robertas and Mikašytė, Vilma},
+  publisher = {Springer International Publishing},
+  isbn      = {978-3-319-67642-5},
+  pages     = {408--421},
+  abstract  = {Sorting algorithms are widely used in databases and various information systems to organize and search for information. In this paper, author describes version of parallization of fast sort algorithm for large data sets. Examination of the paralization of fast sort algorithm performance was subject to performance tests, that showed validity.},
+  address   = {Cham},
+  file      = {:Parallelization of Fast Sort Algorithm.pdf:PDF},
+  keywords  = {rank5},
+}
+
+@InProceedings{Boral1980,
+  author    = {Boral, Haran and DeWitt, David J.},
+  title     = {Design Considerations for Data-Flow Database Machines},
+  booktitle = {Proceedings of the 1980 ACM SIGMOD International Conference on Management of Data},
+  year      = {1980},
+  series    = {SIGMOD ’80},
+  publisher = {Association for Computing Machinery},
+  location  = {Santa Monica, California},
+  isbn      = {0897910184},
+  pages     = {94--104},
+  doi       = {10.1145/582250.582266},
+  url       = {https://doi.org/10.1145/582250.582266},
+  address   = {New York, NY, USA},
+  file      = {:Design considerations for data-flow database machines.pdf:PDF},
+  keywords  = {rank3},
+  numpages  = {11},
+}
+
+@Book{Yu1998,
+  author    = {Yu, Clement T. and Meng, Weiyi},
+  title     = {Principles of Database Query Processing for Advanced Applications},
+  year      = {1998},
+  publisher = {Morgan Kaufmann Publishers Inc.},
+  isbn      = {1558604340},
+  url       = {https://www.amazon.com/Principles-Database-Processing-Applications-Management/dp/1558604340?SubscriptionId=AKIAIOBINVZYXZQZ2U3A&tag=chimbori05-20&linkCode=xm2&camp=2025&creative=165953&creativeASIN=1558604340},
+  address   = {San Francisco, CA, USA},
+  keywords  = {rank5},
+}
+
+@Article{Mamoulis2000a,
+  author  = {Mamoulis, Nikos and Papadias, Dimitris},
+  title   = {Integration of Spatial Join Algorithms for Processing Multiple Inputs},
+  journal = {SIGMOD Record (ACM Special Interest Group on Management of Data)},
+  year    = {2000},
+  volume  = {28},
+  month   = oct,
+  doi     = {10.1145/304182.304183},
+  file    = {:Integration of Spatial Join Algorithms for Processing Multiple Inputs.pdf:PDF},
+}
+
+@InProceedings{Ghandeharizadeh1998,
+  author    = {Shahram Ghandeharizadeh and David J. DeWitt},
+  title     = {Hybrid-Range Partitioning Strategy: A New Declustering Strategy for Multiprocessor Database Machines},
+  booktitle = {VLDB 1990},
+  year      = {1998},
+  file      = {:Hybrid-Range Partitioning Strategy.pdf:PDF},
+  keywords  = {rank4},
+}
+
+@InProceedings{Hua1990AnAD,
+  author    = {Kien A. Hua and Chiang Lee},
+  title     = {An Adaptive Data Placement Scheme for Parallel Database Computer Systems},
+  booktitle = {VLDB},
+  year      = {1990},
+  file      = {:An Adaptive Data Placement Scheme for Parallel Database Computer Systems.pdf:PDF},
+  keywords  = {rank4},
+}
+
+@Article{Chen1995,
+  author   = {Ming-Syan Chen and Ming-Ling Lo and Philip S. Yu and Honesty C. Young},
+  title    = {Applying Segmented Right-Deep Trees to Pipelining Multiple Hash Joins},
+  journal  = {IEEE Trans. Knowl. Data Eng.},
+  year     = {1995},
+  volume   = {7},
+  pages    = {656--668},
+  file     = {:Applying Segmented Right-Deep Trees to Pipelining Multiple Hash Joins.pdf:PDF},
+  keywords = {rank4},
+}
+
+@TechReport{Hong:M92/3,
+  author      = {Hong, W.},
+  title       = {Exploiting Inter-Operation Parallelism in XPRS},
+  institution = {EECS Department, University of California, Berkeley},
+  year        = {1992},
+  number      = {UCB/ERL M92/3},
+  month       = jan,
+  url         = {http://www2.eecs.berkeley.edu/Pubs/TechRpts/1992/1927.html},
+  abstract    = {In this paper, we study the scheduling and optimization problems of parallel query processing using inter-operation parallelism in a shared-memory environment and propose our solutions for XPRs. We first study the scheduling problem of a set or a continuous sequence of independent tasks that are either from a bushy tree plan of a single query or from the plans of multiple queries, and present a clean and simple scheduling algorithm. Our scheduling algorithm achieves maximum resource utilizations by running an IO-bound task and a CPU-bound task in parallel with carefully calculated degrees of parallelism and maintains the maximum resource utilizations by dynamically adjusting the degrees of parallelism of the tasks whenever necessary. Real performance figures are shown to confirm the effectiveness of our scheduling algorithm. We then revisit the optimization problem of parallel execution plans of a single query and extend our previous results to also consider inter-operation parallelism by introducing a new cost estimation method to the query optimizer based on our scheduling algorithm. *This research was sponsored by the National Science Foundation under contract MIP 8715235.},
+  file        = {:Exploiting Inter-Operation Parallelism in XPRS.pdf:PDF},
+  keywords    = {rank3},
+}
+
+@InProceedings{DeWitt1985,
+  author    = {DeWitt, David J. and Gerber, Robert H.},
+  title     = {Multiprocessor Hash-Based Join Algorithms},
+  booktitle = {Proceedings of the 11th International Conference on Very Large Data Bases - Volume 11},
+  year      = {1985},
+  publisher = {VLDB Endowment},
+  location  = {Stockholm, Sweden},
+  pages     = {151--164},
+  file      = {:Multiprocessor Hash-Based Join Algorithms.pdf:PDF},
+  keywords  = {rank5},
+  numpages  = {14},
+}
+
+@Article{Valduriez1984,
+  author     = {Valduriez, Patrick and Gardarin, Georges},
+  title      = {Join and Semijoin Algorithms for a Multiprocessor Database Machine},
+  journal    = {ACM Trans. Database Syst.},
+  year       = {1984},
+  volume     = {9},
+  number     = {1},
+  month      = mar,
+  pages      = {133--161},
+  issn       = {0362-5915},
+  doi        = {10.1145/348.318590},
+  url        = {https://doi.org/10.1145/348.318590},
+  address    = {New York, NY, USA},
+  file       = {:ValduriezTODS84.pdf:PDF},
+  issue_date = {March 1984},
+  keywords   = {rank4},
+  numpages   = {29},
+  publisher  = {Association for Computing Machinery},
+}
+
+@InProceedings{Mehta1995,
+  author    = {Mehta, Manish and DeWitt, David J.},
+  title     = {Managing Intra-Operator Parallelism in Parallel Database Systems},
+  booktitle = {Proceedings of the 21th International Conference on Very Large Data Bases},
+  year      = {1995},
+  series    = {VLDB ’95},
+  publisher = {Morgan Kaufmann Publishers Inc.},
+  isbn      = {1558603794},
+  pages     = {382--394},
+  address   = {San Francisco, CA, USA},
+  file      = {:Managing Intra-Operator Parallelism in Parallel Database Systems.pdf:PDF},
+  keywords  = {rank5},
+  numpages  = {13},
+}
+
+@Article{Schneider1989,
+  author     = {Schneider, Donovan A. and DeWitt, David J.},
+  title      = {A Performance Evaluation of Four Parallel Join Algorithms in a Shared-Nothing Multiprocessor Environment},
+  journal    = {SIGMOD Rec.},
+  year       = {1989},
+  volume     = {18},
+  number     = {2},
+  month      = jun,
+  pages      = {110--121},
+  issn       = {0163-5808},
+  doi        = {10.1145/66926.66937},
+  url        = {https://doi.org/10.1145/66926.66937},
+  address    = {New York, NY, USA},
+  issue_date = {June 1989},
+  numpages   = {12},
+  publisher  = {Association for Computing Machinery},
+}
+
+@InBook{Qadah1994,
+  author     = {Qadah, Ghassan and Irani, Keki},
+  title      = {The Join Algorithms on a Shared-Memory Multiprocessor Database Machine},
+  booktitle  = {Query Processing in Parallel Database Systems},
+  year       = {1994},
+  bookauthor = {Hongjun Lu and Beng-Chin Ooi and Kian-Lee Tan},
+  pages      = {199--214},
+  doi        = {10.1109/32.9054},
+  comment    = {Software Engineering, IEEE Transactions on},
+  journal    = {Software Engineering, IEEE Transactions on},
+}
+
+@InProceedings{Lu1990,
+  author    = {Lu, Hongjun and Tan, Kian-Lee and Shan, Ming-Chien},
+  title     = {Hash-Based Join Algorithms for Multiprocessor Computers},
+  booktitle = {Proceedings of the 16th International Conference on Very Large Data Bases},
+  year      = {1990},
+  publisher = {Morgan Kaufmann Publishers Inc.},
+  isbn      = {155860149X},
+  pages     = {198--209},
+  address   = {San Francisco, CA, USA},
+  file      = {:Hash-Based Join Algorithms for Multiprocessor Computers.PDF:PDF},
+  numpages  = {12},
+}
+
+@InProceedings{Richardson1987,
+  author    = {Richardson, James P. and Lu, Hongjun and Mikkilineni, Krishna},
+  title     = {Design and Evaluation of Parallel Pipelined Join Algorithms},
+  booktitle = {Proceedings of the 1987 ACM SIGMOD International Conference on Management of Data},
+  year      = {1987},
+  publisher = {Association for Computing Machinery},
+  location  = {San Francisco, California, USA},
+  isbn      = {0897912365},
+  pages     = {399--409},
+  doi       = {10.1145/38713.38756},
+  url       = {https://doi.org/10.1145/38713.38756},
+  address   = {New York, NY, USA},
+  numpages  = {11},
+}
+
+@Article{Lakshmi1990,
+  author        = {M. Seetha Lakshmi and P. S. Yu},
+  title         = {Effectiveness of parallel joins},
+  journal       = {IEEE Transactions on Knowledge and Data Engineering},
+  year          = {1990},
+  volume        = {2},
+  number        = {4},
+  month         = dec,
+  pages         = {410--424},
+  issn          = {2326-3865},
+  doi           = {10.1109/69.63253},
+  __markedentry = {[ingo:]},
+  abstract      = {The effectiveness of parallel processing of relational join operations is examined. The skew in the distribution of join attribute values and the stochastic nature of the task processing times are identified as the major factors that can affect the effective exploitation of parallelism. Expressions for the execution time of parallel hash join and semijoin are derived and their effectiveness analyzed. When many small processors are used in the parallel architecture, the skew can result in some processors becoming sources of bottleneck while other processors are being underutilized. Even in the absence of skew, the variations in the processing times of the parallel tasks belonging to a query can lead to high task synchronization delay and impact the maximum speedup achievable through parallel execution. For example, when the task processing time on each processor is exponential with the same mean, the speedup is proportional to P/ln(P) where P is the number of processors. Other factors such as memory size, communication bandwidth, etc., can lead to even lower speedup. These are quantified using analytical models.<>},
+  keywords      = {database theory;parallel programming;relational databases;storage management;parallel processing;relational join operations;skew;distribution;join attribute values;stochastic nature;task processing times;execution time;parallel hash join;semijoin;small processors;parallel architecture;high task synchronization delay;maximum speedup;parallel execution;Parallel architectures;Relational databases;Stochastic processes;Delay;Bandwidth;Analytical models;Database machines;Performance analysis;Parallel processing;Proposals},
+}
+
+@InProceedings{Omiecinski1991,
+  author    = {Omiecinski, Edward},
+  title     = {Performance Analysis of a Load Balancing Hash-Join Algorithm for a Shared Memory Multiprocessor},
+  booktitle = {Proceedings of the 17th International Conference on Very Large Data Bases},
+  year      = {1991},
+  publisher = {Morgan Kaufmann Publishers Inc.},
+  isbn      = {1558601503},
+  pages     = {375--385},
+  address   = {San Francisco, CA, USA},
+  file      = {:Performance Analysis of a Load Balancing Hash-Join Algorithm for a Shared Memory Multiprocessor.pdf:PDF},
+  numpages  = {11},
+}
+
+@Article{Alisa2018,
+  author = {Alisa, Zainab},
+  title  = {Parallel Computing for Sorting Algorithms},
+  year   = {2018},
+  month  = oct,
+  file   = {:ParallelComputingforSortingAlgorithms.pdf:PDF},
+}
+
+@Article{Mu2015,
+  author = {Mu, Qi and Cui, Liqing and Song, Yufei},
+  title  = {The implementation and optimization of Bitonic sort algorithm based on CUDA},
+  year   = {2015},
+  month  = jun,
+  file   = {:The implementation and optimization of Bitonic sort algorithm based on CUDA.pdf:PDF},
+}
+
+@Article{Bitton1984,
+  author     = {Bitton, Dina and DeWitt, David J. and Hsaio, David K. and Menon, Jaishankar},
+  title      = {A Taxonomy of Parallel Sorting},
+  journal    = {ACM Comput. Surv.},
+  year       = {1984},
+  volume     = {16},
+  number     = {3},
+  month      = sep,
+  pages      = {287--318},
+  issn       = {0360-0300},
+  doi        = {10.1145/2514.2516},
+  url        = {https://doi.org/10.1145/2514.2516},
+  address    = {New York, NY, USA},
+  file       = {:A Taxonomy of Parallel Sorting.pdf:PDF},
+  issue_date = {September 1984},
+  numpages   = {32},
+  publisher  = {Association for Computing Machinery},
+}
+
+@Book{Vitter2008,
+  author     = {Vitter, Jeffrey Scott},
+  title      = {Algorithms and Data Structures for External Memory},
+  year       = {2008},
+  volume     = {2},
+  number     = {4},
+  publisher  = {Now Publishers Inc.},
+  pages      = {305--474},
+  doi        = {10.1561/0400000014},
+  url        = {https://doi.org/10.1561/0400000014},
+  address    = {Hanover, MA, USA},
+  file       = {:Algorithms_and_Data_Structures_for_Exter.pdf:PDF},
+  issn       = {1551-305X},
+  issue_date = {January 2008},
+  journal    = {Found. Trends Theor. Comput. Sci.},
+  month      = jan,
+  numpages   = {170},
+}
+
+@Article{Marszalek2018,
+  author   = {Zbigniew Marszalek},
+  title    = {Parallel Fast Sort Algorithm for Secure Multiparty Computation},
+  journal  = {Journal of Universal Computer Science},
+  year     = {2018},
+  date     = {2018-04-28},
+  volume   = {24},
+  number   = {4},
+  pages    = {488--514},
+  abstract = {The use of encryption methods such as secure multiparty computation is an important issue in applications. Applications that use encryption of information require special algorithms of sorting data in order to preserve the secrecy of the information. This proposition is composed for parallel architectures. Presented algorithm works with a number of logical processors. Operations are flexibly distributed among them. Therefore sorting of data sets takes less time. Results of the experimental tests confirm the effectiveness of the proposed flexible division of tasks between logical processors and show that this proposition is a valuable method that can find many practical applications in high performance computing.},
+  file     = {:Parallel Fast Sort Algorithm for Secure Multiparty Computation.pdf:PDF},
+}
+
+@Book{Knuth1973,
+  author               = {Knuth, Donald E.},
+  title                = {The Art of Computer Programming. Volume III. Searching and Sorting},
+  year                 = {1973},
+  series               = {The Art of Computer Programming},
+  publisher            = {Addison-Wesley},
+  isbn                 = {020103803},
+  url                  = {http://www.worldcat.org/isbn/020103803},
+  added-at             = {2019-03-01T00:11:50.000+0100},
+  biburl               = {https://www.bibsonomy.org/bibtex/2554e11d3b5f21e9402bcf4c740f73fee/gdmcbain},
+  citeulike-article-id = {10018526},
+  citeulike-linkout-0  = {http://www.worldcat.org/isbn/020103803},
+  citeulike-linkout-1  = {http://books.google.com/books?vid=ISBN020103803},
+  citeulike-linkout-2  = {http://www.amazon.com/gp/search?keywords=020103803&index=books&linkCode=qs},
+  citeulike-linkout-3  = {http://www.librarything.com/isbn/020103803},
+  citeulike-linkout-4  = {http://www.worldcat.org/oclc/243693127},
+  file                 = {:The Art of Computer Programming (vol. 3_ Sorting and Searching) (2nd ed.) [Knuth 1998-05-04].pdf:PDF},
+  interhash            = {fba244d18e5837610f9e8ce3b63aa0c5},
+  intrahash            = {554e11d3b5f21e9402bcf4c740f73fee},
+  keywords             = {68p10-searching-and-sorting 68q15-complexity-classes 68w01-algorithms-general 68w32-algorithms-on-strings 68w40-analysis-of-algorithms},
+  posted-at            = {2011-11-12 09:14:17},
+  timestamp            = {2019-03-01T00:11:50.000+0100},
+}
+
+@InProceedings{Wolf1990,
+  author = {Wolf, J.L. and Dias, D.M. and Yu, Philip},
+  title  = {An effective algorithm for parallelizing sort merge joins in thepresence of data skew},
+  year   = {1990},
+  month  = aug,
+  isbn   = {0-8186-2052-8},
+  pages  = {103--115},
+  doi    = {10.1109/DPDS.1990.113702},
+  file   = {:An effective algorithm for parallelizing sort merge joins in thepresence of data skew.pdf:PDF},
+}
+
+@InProceedings{Iyer1989,
+  author    = {Balakrishna R. Iyer and Gary R. Ricard and Peter J. Varman},
+  title     = {Percentile Finding Algorithm for Multiple Sorted Runs},
+  booktitle = {Proceedings of the Fifteenth International Conference on Very Large Data Bases},
+  year      = {1989},
+  file      = {:Percentile Finding Algorithm for Multiple Sorted Runs.pdf:PDF},
+}
+
+@TechReport{Gerber1986,
+  author = {Robert H. Gerber},
+  title  = {Dataflow query processing using muttlprocessor hash-partitioned algorithms},
+  year   = {1986},
+  file   = {:Dataflow query processing using muttlprocessor hash-partitioned algorithms.pdf:PDF},
+}
+
+@InProceedings{Hoel1994,
+  author    = {Erik G. Hoel and Hanan Samet},
+  title     = {Performance of Data-Parallel Spatial Operations},
+  booktitle = {Proceedings of the 20th International Conference on Very Large Data Bases},
+  year      = {1994},
+  pages     = {156--167},
+  file      = {:Performance of Data-Parallel Spatial Operations.pdf:PDF},
+}
+
+@InProceedings{Patel1996,
+  author    = {Patel, Jignesh M. and DeWitt, David J.},
+  title     = {Partition Based Spatial-Merge Join},
+  booktitle = {Proceedings of the 1996 ACM SIGMOD International Conference on Management of Data},
+  year      = {1996},
+  series    = {SIGMOD ’96},
+  publisher = {Association for Computing Machinery},
+  location  = {Montreal, Quebec, Canada},
+  isbn      = {0897917944},
+  pages     = {259--270},
+  doi       = {10.1145/233269.233338},
+  url       = {https://doi.org/10.1145/233269.233338},
+  address   = {New York, NY, USA},
+  file      = {:spjoin.pdf:PDF},
+  numpages  = {12},
 }
 
 @Comment{jabref-meta: databaseType:biblatex;}
