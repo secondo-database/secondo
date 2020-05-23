@@ -117,44 +117,35 @@ void RefinementWorker::refineNewQP() {
    qproc->Construct(
            funList, correct, evaluable, defined,isFunction,
            funct,resultType, true);
-   cout << "new fun" << nl->ToString(qp->GetSimpleList(funct)) << endl;
    ArgVector &arguments = *qproc->Argument(funct);
-   cout << arguments << "###" << streamInNo << endl;
    Tuple* tuple = partBuffer[streamInNo]->dequeue();
-   size_t count = 0;
    while (tuple != nullptr) {
-      ++count;
       arguments[0].setAddr(tuple);
       Word funres;
       qproc->Request(funct, funres);
       bool res = ((CcBool*) funres.addr)->GetBoolval();
       if (res) {
          cout << "found" << streamInNo << endl;
-         //buffer->AppendTuple(tuple);
          tupleBuffer->enqueue(tuple);
       } else {
          tuple->DeleteIfAllowed();
       }
       tuple = partBuffer[streamInNo]->dequeue();
    }
-   qproc->Destroy(funct, true);
+   qproc->Destroy(funct, false);
    delete qproc;
 }
 
 void RefinementWorker::refineQP() {
    ArgVector &arguments = *qp->Argument(funct);
-   cout << arguments << "###" << streamInNo << endl;
    Tuple* tuple = partBuffer[streamInNo]->dequeue();
-   size_t count = 0;
    while (tuple != nullptr) {
-      ++count;
       arguments[0].setAddr(tuple);
       Word funres;
       qp->Request(funct, funres);
       bool res = ((CcBool*) funres.addr)->GetBoolval();
       if (res) {
          cout << "found" << streamInNo << endl;
-         //buffer->AppendTuple(tuple);
          tupleBuffer->enqueue(tuple);
       } else {
          tuple->DeleteIfAllowed();
@@ -175,7 +166,6 @@ refinementLI::refinementLI(Word* _args) : args(_args), stream(_args[0]) {
 
 //Destructor
 refinementLI::~refinementLI() {
-   cout << "destuctor info-class" << endl;
    partBuffer.clear();
 }
 
@@ -186,7 +176,6 @@ Tuple* refinementLI::getNext() {
    if (res != nullptr) {
       return res;
    }
-   cout << "endgetnext" << endl;
    return 0;
 }
 
@@ -196,14 +185,11 @@ void refinementLI::Scheduler() {
    partBuffer.reserve(coreNoWorker);
    tupleBuffer = make_shared<SafeQueue<Tuple*>>(coreNoWorker);
    threadsDone = coreNoWorker;
-   cout << "old fun"
-        << nl->ToString(qp->GetSimpleList((OpTree) args[1].addr))
-        << endl;
    partBuffer.push_back(make_shared<SafeQueue<Tuple*>>(0));
    joinThreads.emplace_back(
            RefinementWorker(coreNoWorker,
                    0, (OpTree) args[1].addr));
-   joinThreads.back().detach();
+   //joinThreads.back().detach();
    for (size_t i = 1; i < coreNoWorker; ++i) {
       partBuffer.push_back(make_shared<SafeQueue<Tuple*>>(i));
       ListExpr funList;
@@ -211,7 +197,7 @@ void refinementLI::Scheduler() {
               funList);
       joinThreads.emplace_back(
               RefinementWorker(coreNoWorker, i, funList));
-      joinThreads.back().detach();
+      //joinThreads.back().detach();
    }
 
    // Stream
@@ -231,7 +217,7 @@ void refinementLI::Scheduler() {
 
    for (size_t i = 0; i < coreNoWorker; ++i) {
       partBuffer[i]->enqueue(nullptr);
-      //joinThreads[i].join();
+      joinThreads[i].join();
    }
 
    cout << "Schedule Ready" << endl;

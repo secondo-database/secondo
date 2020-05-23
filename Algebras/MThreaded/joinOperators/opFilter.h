@@ -44,7 +44,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "condition_variable"
 #include "../MThreadedAlgebra.h"
 #include <utility>
-#include "TupleBuffer2.h"
 
 
 namespace mthreaded {
