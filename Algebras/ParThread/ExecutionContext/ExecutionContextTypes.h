@@ -54,6 +54,8 @@ September 2019, Fischer Thomas
 
 #include "DebugWriter.h"
 
+#include "boost/filesystem.hpp"
+
 #include <string>
 #include <memory>
 #include <vector>
@@ -62,148 +64,279 @@ September 2019, Fischer Thomas
 #include <map>
 #include <chrono>
 #include <assert.h>
+#include <fstream>
+
+namespace fs = boost::filesystem;
 
 namespace parthread
 {
   namespace sc = std::chrono;
 
-class ExecutionContextLogger
-{
-
-public: //types
-  enum class LoggerModes
+  class ExecutionContextLogger
   {
-    NoLogging = 0,
-    DebugOutput,
-    TraceOutput,
-    CompleteOutput = TraceOutput
-  };
 
-public: //methods
-  ExecutionContextLogger(LoggerModes mode, const std::string &outputPath)
-      : m_idGenerator(1), m_loggerMode(mode), m_loggerPath(outputPath)
-  {
-    m_startTime = sc::high_resolution_clock::now();
-  };
-
-  ~ExecutionContextLogger() = default;
-
-  bool DebugMode()
-  {
-    return m_loggerMode > LoggerModes::NoLogging;
-  }
-
-  bool TraceMode()
-  {
-    return m_loggerMode == LoggerModes::TraceOutput;
-  }
-
-  void WriteDebugOutput(const std::string &message)
-  {
-    if (DebugMode())
+  public: //types
+    enum class LoggerModes
     {
-      std::thread::id tid = std::this_thread::get_id();
-      sc::high_resolution_clock::time_point endTime = 
-      sc::high_resolution_clock::now();
-      int64_t ellapsedTimeInUs = 
-      sc::duration_cast<sc::microseconds>(endTime - m_startTime).count();
-      
-      std::stringstream debugText;
-      debugText << message << " after " << ellapsedTimeInUs << " us";
+      NoLogging = 0,
+      DebugOutput,
+      TraceOutput,
+      FullOutput = TraceOutput
+    };
 
-      m_writer.write(true, std::cout, &tid, 0, debugText.str());
-    }
-  };
-
-  int NextContextId()
-  {
-    return m_idGenerator++;
-  }
-
-  const std::string &LoggerDebugPath()
-  {
-    return m_loggerPath;
-  }
-
-private:
-  std::atomic_int m_idGenerator;
-  DebugWriter m_writer;
-  LoggerModes m_loggerMode;
-  std::mutex m_accessMtx;
-  std::string m_loggerPath;
-  sc::high_resolution_clock::time_point m_startTime;
-};
-
-enum class ExecutionContextStates
-{
-  Created = 0,
-  Initialized,
-  Opened,
-  Closed,
-  Canceled,
-  Finished
-};
-
-struct ExecutionContextSetting
-{
-  size_t QueueCapacityThreshold;
-  size_t MaxNumberOfConcurrentThreads;
-  size_t MaxNumberOfTuplesPerBlock;
-  size_t TotalBufferSizeInBytes;
-  size_t MaxDegreeOfDataParallelism;
-  bool UsePipelineParallelism;
-  bool UseOptimization;
-  std::shared_ptr<ExecutionContextLogger> Logger;
-  std::set<std::string> OperatorsSupportingDataParallelism;
-  std::set<std::string> OperatorsRetainingOrder;
-  std::set<std::string> OperatorsRequiringHashPartitioning;
-};
-
-class ExecutionContextGuard
-{
-public:
-  ExecutionContextGuard(const size_t numEntities)
-      : m_numEntities(numEntities){};
-
-  ~ExecutionContextGuard() = default;
-
-  void Reset()
-  {
-    std::unique_lock<std::mutex> lock(m_accessMtx);
-    m_stateMap.clear();
-  };
-
-  void SetState(const int id, ExecutionContextStates state)
-  {
-    std::unique_lock<std::mutex> lock(m_accessMtx);
-    m_stateMap[id] = state;
-  };
-
-  bool Pass(ExecutionContextStates state)
-  {
-    std::unique_lock<std::mutex> lock(m_accessMtx);
-    assert(m_stateMap.size() <= m_numEntities);
-    if (m_stateMap.size() < m_numEntities)
+    struct TaskTrace
     {
-      return false;
+      std::thread::id Tid;
+      int64_t Start;
+      int64_t End;
+      std::string TaskType;
+      int ContextNo;
+      int InstanceNo;
+      size_t ProcessedTuples;
+    };
+
+  public: //methods
+    ExecutionContextLogger(LoggerModes mode, const std::string &outputPath)
+        : m_loggerMode(mode), m_loggerPath(outputPath)
+    {
+      m_startTime = sc::high_resolution_clock::now();
+    };
+
+    ~ExecutionContextLogger()
+    {
+      WriteOutTrace();
     }
 
-    for (std::pair<int, ExecutionContextStates> keyValue : m_stateMap)
+    void ResetTimer()
     {
-      if (keyValue.second != state)
+      m_startTime = sc::high_resolution_clock::now();
+    }
+
+    bool DebugMode()
+    {
+      return m_loggerMode > LoggerModes::NoLogging;
+    }
+
+    bool TraceMode()
+    {
+      return m_loggerMode == LoggerModes::TraceOutput;
+    }
+
+    void WriteDebugOutput(const std::string &message)
+    {
+      if (DebugMode())
+      {
+        std::thread::id tid = std::this_thread::get_id();
+        sc::high_resolution_clock::time_point endTime =
+            sc::high_resolution_clock::now();
+        double ellapsedTime =
+            sc::duration_cast<sc::milliseconds>(endTime - m_startTime).count();
+
+        double ellapsedTimeInSec = ellapsedTime / 1E3;
+
+        std::stringstream debugText;
+        debugText << message << " after " << std::fixed << std::setprecision(4)
+                  << ellapsedTimeInSec << " sec";
+
+        m_writer.write(true, std::cout, &tid, 0, debugText.str());
+      }
+    };
+
+    void WriteTaskTrace(sc::_V2::high_resolution_clock::time_point &startT,
+                        const std::string &taskType, const int contextId,
+                        const size_t processedTuples, const int entityId)
+    {
+      if (TraceMode())
+      {
+        TaskTrace taskTrace;
+        taskTrace.Tid = std::this_thread::get_id();
+
+        taskTrace.Start =
+            sc::duration_cast<sc::microseconds>(startT - m_startTime).count();
+
+        sc::high_resolution_clock::time_point endTime =
+            sc::high_resolution_clock::now();
+
+        taskTrace.End =
+            sc::duration_cast<sc::microseconds>(endTime - m_startTime).count();
+
+        taskTrace.TaskType = taskType;
+        taskTrace.ContextNo = contextId;
+        taskTrace.InstanceNo = entityId;
+        taskTrace.ProcessedTuples = processedTuples;
+
+        m_accessMtx.lock();
+        m_taskTraces.push_back(taskTrace);
+        m_accessMtx.unlock();
+      }
+    }
+
+    void WriteOutTrace()
+    {
+      if (m_taskTraces.size() > 0)
+      {
+        fs::path outputPath(m_loggerPath);
+        outputPath /= "taskTrace.csv";
+
+        std::ofstream traceLogFile;
+        const std::string separator = "\t";
+        traceLogFile.open(outputPath.c_str());
+        traceLogFile << "thread" << separator
+                     << "start" << separator
+                     << "end" << separator
+                     << "context" << separator
+                     << "type" << separator
+                     << "numtuples" << std::endl;
+
+        int64_t graphStart = INT64_MAX;
+        for (const TaskTrace &taskTrace : m_taskTraces)
+        {
+          graphStart = std::min(graphStart, taskTrace.Start);
+        }
+
+        int asciiUpperLetter = 65; //start with "A"
+        std::map<std::thread::id, std::string> threadIdMapping;
+        for (const TaskTrace &taskTrace : m_taskTraces)
+        {
+          std::map<std::thread::id, std::string>::iterator
+              found = threadIdMapping.find(taskTrace.Tid);
+          std::string tid;
+
+          if (found == threadIdMapping.end())
+          {
+            threadIdMapping[taskTrace.Tid] = char(asciiUpperLetter);
+            asciiUpperLetter++;
+            tid = (char)asciiUpperLetter;
+          }
+          else
+          {
+            tid = found->second;
+          }
+
+          traceLogFile << "\"" << tid << "\"" << separator
+                       << taskTrace.Start - graphStart << separator
+                       << taskTrace.End - graphStart << separator
+                       << "\"" << taskTrace.ContextNo << "-"
+                       << taskTrace.InstanceNo << "\"" << separator
+                       << taskTrace.TaskType << separator
+                       << taskTrace.ProcessedTuples << std::endl;
+        }
+
+        traceLogFile.close();
+        m_taskTraces.clear();
+      }
+    }
+
+    const std::string &LoggerDebugPath()
+    {
+      return m_loggerPath;
+    }
+
+  private:
+    DebugWriter m_writer;
+    LoggerModes m_loggerMode;
+    std::mutex m_accessMtx;
+    std::string m_loggerPath;
+    sc::high_resolution_clock::time_point m_startTime;
+
+    std::list<TaskTrace> m_taskTraces;
+  };
+
+  enum class ExecutionContextStates
+  {
+    Created = 0,
+    Initialized,
+    Opened,
+    Closed,
+    Canceled,
+    Finished
+  };
+
+  struct ExecutionContextSetting
+  {
+    size_t QueueCapacityThreshold;
+    size_t MaxNumberOfConcurrentThreads;
+    size_t MaxNumberOfTuplesPerBlock;
+    size_t TotalBufferSizeInBytes;
+    size_t MaxDegreeOfDataParallelism;
+    clock_t TimeoutPerTaskInMicroSeconds;
+    bool UsePipelineParallelism;
+    bool UseOptimization;
+    std::shared_ptr<ExecutionContextLogger> Logger;
+    std::set<std::string> OperatorsSupportingDataParallelism;
+    std::set<std::string> OperatorsRetainingOrder;
+    std::set<std::string> OperatorsRequiringHashPartitioning;
+  };
+
+  class ExecutionContextGuard
+  {
+  public:
+    ExecutionContextGuard(const size_t numEntities)
+        : m_numEntities(numEntities){};
+
+    ~ExecutionContextGuard() = default;
+
+    void Reset()
+    {
+      std::unique_lock<std::mutex> lock(m_accessMtx);
+      m_stateMap.clear();
+    };
+
+    void SetState(const int id, ExecutionContextStates state)
+    {
+      std::unique_lock<std::mutex> lock(m_accessMtx);
+      m_stateMap[id] = state;
+    };
+
+    bool Pass(ExecutionContextStates state)
+    {
+      std::unique_lock<std::mutex> lock(m_accessMtx);
+      assert(m_stateMap.size() <= m_numEntities);
+      if (m_stateMap.size() < m_numEntities)
       {
         return false;
       }
-    }
-    return true;
+
+      for (std::pair<int, ExecutionContextStates> keyValue : m_stateMap)
+      {
+        if (keyValue.second != state)
+        {
+          return false;
+        }
+      }
+      return true;
+    };
+
+  private:
+    size_t m_numEntities;
+    typedef std::map<int, ExecutionContextStates> CtxStateMap;
+    CtxStateMap m_stateMap;
+    std::mutex m_accessMtx;
   };
 
-private:
-  size_t m_numEntities;
-  typedef std::map<int, ExecutionContextStates> CtxStateMap;
-  CtxStateMap m_stateMap;
-  std::mutex m_accessMtx;
-};
+  class ThreadSpecificStopWatch
+  {
+
+  public:
+    ThreadSpecificStopWatch()
+    {
+      clock_gettime(CLOCK_THREAD_CPUTIME_ID, &m_startTime);
+    }
+
+    time_t SpendTimeInMicroseconds()
+    {
+      timespec stopTime;
+      clock_gettime(CLOCK_THREAD_CPUTIME_ID, &stopTime);
+
+      time_t ms = (stopTime.tv_sec - m_startTime.tv_sec) * 1E6;
+      time_t us = (stopTime.tv_nsec - m_startTime.tv_nsec) / 1E3;
+
+      return ms + us;
+    }
+
+  private:
+    timespec m_startTime;
+  };
 
 } // namespace parthread
 #endif

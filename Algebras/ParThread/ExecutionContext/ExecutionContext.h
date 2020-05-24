@@ -71,19 +71,27 @@ class ExecutionContext
 {
 
 public:
-  ExecutionContext(QueryProcessor *qp, OpTree partialTree,
-                   ExecutionContextSetting settings);
+  ExecutionContext(int contextId, QueryProcessor *qp, OpTree partialTree,
+                   ExecutionContextSetting settings, 
+                   int numOfParallelEntities,
+                   int idxPartitionAttribute);
 
   virtual ~ExecutionContext();
 
   /*
+  Init 
+ 
   Initializes the execution context if not already done. All entities of this 
-  context are opened after the last entity of the parent context reaches
-  this method
+  context are opened after the first entity of the parent context reaches
+  this method. Then the state of the context is set to initialized. 
+  */
+  void Init();
+
+  /*
+
  
   */
-  void Open(ParNodeInfo *nodeInfo, const int numOfParallelEntities, 
-            const int idxPartitionAttribute);
+  void Open(ParNodeInfo *nodeInfo);
 
   /*
   2 Close 
@@ -111,7 +119,11 @@ public:
   /*
  
   */
-  ConcurrentTupleBufferWriter *GetTupleBufferWriter();
+
+
+  void ScheduleContextTask(tbb::task_group &taskGroup,
+                           ExecutionContextEntity *entity = NULL);
+
 
   int ContextId() const
   {
@@ -155,26 +167,15 @@ public:
     return m_rootNode;
   }
 
-  void ScheduleContextTask(tbb::task_group &taskGroup,
-                           ExecutionContextEntity *entity = NULL);
-
-  void ScheduleContextTaskOnAllEntitys(ExecutionContextStates state);
-
-  void OnBufferSizeChanged();
-
 private: //methods
-         /*
-  Init 
  
-  */
-  void InitExecutionContext(const int numOfParallelEntitys,
-                            const int idxPartitionAttribute);
-
   bool AllParentEntitiesAchievedState(ExecutionContextStates stateToBeReached,
                                       ExecutionContextEntity *entity);
 
   void ScheduleContextTaskRecursive(
       int message, std::vector<ExecutionContextEntity *> entities);
+
+  void OnBufferSizeChanged();
 
   void ScheduleContextTask(int message, ExecutionContextEntity *entity);
 
@@ -183,13 +184,15 @@ private: //methods
 
   void TriggerPufferChange();
 
-  int ExecuteRequestTask(ExecutionContextEntity *entity);
+  size_t ExecuteRequestTask(ExecutionContextEntity *entity);
 
 protected: //member
   int m_id;
   QueryProcessor *m_queryProcessor;
   OpTree m_rootNode;
   OpTree m_parNode;
+  int m_numOfParallelEntities;
+  int m_idxPartitionAttribute;
 
   //Status changes are made in a sequential order.
   ExecutionContextStates m_contextState;
