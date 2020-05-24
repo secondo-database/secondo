@@ -98,8 +98,12 @@ public: //methods
 
   size_t SizeOfPartition(int partitionIndex) const
   {
+    m_access.lock();
     assert(partitionIndex < (int)m_numPartitions);
-    return m_tupleBlockMatrix[partitionIndex]->size();
+    size_t sizeOfPartition = m_tupleBlockMatrix[partitionIndex]->size();
+    m_access.unlock();
+
+    return sizeOfPartition;
   }
 
 private:
@@ -135,7 +139,7 @@ private:
   void BufferSizeChanged();
 
 private: //methods
-  size_t DistributeMemory(const size_t minMemoryExpected);
+  int DistributeMemory(const size_t minMemoryExpected);
 
   void SwapExistingMemoryBlocks(int minMemoryToSwap,
                                 TupleBlockVector &tupleBlockVector);

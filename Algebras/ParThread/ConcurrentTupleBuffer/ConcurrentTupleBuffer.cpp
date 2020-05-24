@@ -40,8 +40,10 @@ ConcurrentTupleBuffer::ConcurrentTupleBuffer(
       m_numTupleBlocks(0)
 {
   assert(settings.TotalBufferSizeInBytes > 0);
-  m_defaultMemoryPerBlock = settings.TotalBufferSizeInBytes /
-                            m_settings.MemoryDistributionFactor;
+  //constrain the memory per block to the maximum of an int, because ints are
+  //used for the blocks memory counter
+  m_defaultMemoryPerBlock = std::min((settings.TotalBufferSizeInBytes /
+                         m_settings.MemoryDistributionFactor), (size_t)INT_MAX);
 
   //initialize block matrix
   m_tupleBlockMatrix = new TupleBlockQueuePtr[m_numPartitions];
@@ -100,7 +102,7 @@ bool ConcurrentTupleBuffer::AllocateTupleBlocks(
   //an already allocated tuple must be provided to the tuplebuffer
   assert(!tupleBlockVector.IsInitialized());
 
-  size_t blockVectorMemory = DistributeMemory(
+  int blockVectorMemory = DistributeMemory(
       m_settings.MinMemoryPerTupleVector);
   bool hasMemoryAllocated = blockVectorMemory > 0;
 
@@ -118,7 +120,7 @@ bool ConcurrentTupleBuffer::AllocateTupleBlocks(
   return hasMemoryAllocated;
 }
 
-size_t ConcurrentTupleBuffer::DistributeMemory(const size_t minMemoryExpected)
+int ConcurrentTupleBuffer::DistributeMemory(const size_t minMemoryExpected)
 {
   size_t blockVectorMemory =
       std::min(m_availableMemory, m_defaultMemoryPerBlock);
@@ -243,10 +245,8 @@ bool ConcurrentTupleBuffer::ConsumeNextTupleBlock(TupleBlockPtr &tupleBlock)
 void ConcurrentTupleBuffer::DeallocateTupleBlock(TupleBlockPtr &tupleBlock)
 {
   //deallocate memory of block
-  //m_memSizeChange.lock();
   m_access.lock();
   m_availableMemory += tupleBlock->UsedMemorySize();
-  //m_memSizeChange.unlock();
 
   //recycle tuple block or delete it
   m_blockPool.DestroyTupleBlock(tupleBlock);
