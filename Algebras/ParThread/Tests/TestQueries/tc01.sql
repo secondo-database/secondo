@@ -1,6 +1,7 @@
 open database parthread_lie;
 
-#testcase tc1_parOneCount
-query Osm_Ways feed delayS[1] par[1] count;
+#testcase TC1par2CtxOnlyPipelineNoDelay
+#yields (int 340107)
+query Osm_Ways feed par[1] count;
 
 close database;
