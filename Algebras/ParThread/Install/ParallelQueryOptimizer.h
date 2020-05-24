@@ -77,7 +77,10 @@ public: //methods
 
   ~ParallelQueryOptimizer();
 
-  void ParallelizeQueryPlan(QueryProcessor *queryProcessor, void *queryPlan);
+  void ParallelizeQueryPlan(QueryProcessor *queryProcessor, void *queryPlan,
+                            size_t memorySpent, int noMemoryOperators);
+
+  void WriteDebugOutput(const std::string message);
 
 private: //member
   std::unique_ptr<ParallelQueryOptimizerImpl> m_pImpl;
@@ -92,10 +95,16 @@ public: //methods
 
   ~ParallelQueryOptimizer() = default;
 
-  void ParallelizeQueryPlan(QueryProcessor *queryProcessor, void *queryPlan)
+  void ParallelizeQueryPlan(QueryProcessor *queryProcessor, void *queryPlan,
+                            size_t memorySpent, int noMemoryOperators)
   {
     //do nothing if ParThread-library is not loaded
   };
+
+  void WriteDebugOutput(const std::string message);
+  {
+    //do nothing if ParThread-library is not loaded
+  }
 };
 #endif // USE_MULTIHREADED_QUERY_PROCESSING
 

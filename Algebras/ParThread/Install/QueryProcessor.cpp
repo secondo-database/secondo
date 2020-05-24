@@ -238,7 +238,7 @@ to determine selectivities of predicates while processing a query. Furthermore s
 #include "Application.h"
 #include "NList.h"
 
-
+#include <chrono> 
 
 // force a failed assertion. This will imply to print a stack trace
 #define qp_assert if( RTFlag::isActive("QP:assert") ) assert(false)
@@ -2033,6 +2033,7 @@ function index.
           values[valueno].algId = algId;
           values[valueno].typeInfo = typeExpr;
           values[valueno].typeId = typeId;
+          values[valueno].name = expr;
 
           if ( !definedValue )
           {
@@ -3906,9 +3907,10 @@ the function in a database object.
   
 
   if(tree){
-     //Insert parallel-operator into the query tree to allow parallel 
+     //Insert par-operators into the query tree to allow parallel 
      //execution of the query. 
-     m_parallelQueryOptimizer.ParallelizeQueryPlan(this, tree);  
+     m_parallelQueryOptimizer.ParallelizeQueryPlan(this, tree, memorySpent,
+                                                   noMemoryOperators);  
      InitTree(tree);
   }
   for(auto listener : qp->newTreeListeners){
@@ -5789,13 +5791,15 @@ Supplier
 QueryProcessor::CopySupplier(const Supplier s)
 {
   std::map<int, int> funNoMapping;
+  std::map<int, int> valueInfoMapping;
 
-  return CopySupplierSubtree(s, funNoMapping);
+  return CopySupplierSubtree(s, funNoMapping, valueInfoMapping);
 }
 
 Supplier
 QueryProcessor::CopySupplierSubtree(const Supplier s, 
-                                    std::map<int, int> &funNoMapping)
+                                    std::map<int, int> &funNoMapping,
+                                    std::map<int, int> &valueInfoMapping)
 {
   OpTree tree = (OpTree)s;
   OpTree copiedNode = new OpNode(*tree);
@@ -5853,7 +5857,8 @@ QueryProcessor::CopySupplierSubtree(const Supplier s,
     for (int i = 0; i < tree->u.op.noSons; i++)
     {
       copiedNode->u.op.sons[i] = CopySupplierSubtree(tree->u.op.sons[i].addr, 
-                                                     funNoMapping);
+                                                     funNoMapping, 
+                                                     valueInfoMapping);
     }
 
     if (tree->u.op.costEstimation)
@@ -5902,27 +5907,78 @@ QueryProcessor::CopySupplierSubtree(const Supplier s,
     ValueInfo origValueInfo = values[tree->u.dobj.valNo];
     ValueInfo copiedValueInfo = origValueInfo;
 
-    copiedValueInfo.value = 
-    algebraManager->CloneObj(origValueInfo.algId, origValueInfo.typeId)
-                            (origValueInfo.typeInfo, origValueInfo.value);
-
-    if (copiedValueInfo.value.addr != NULL)
+    bool addToValuesArray = true;
+    std::map<int, int>::iterator find = 
+    valueInfoMapping.find(tree->u.dobj.valNo);
+    if(find != valueInfoMapping.end())
     {
-      AllocateValues(valueno);
-      values[valueno] = copiedValueInfo;
+      copiedNode->u.dobj.valNo = find->second;
+      copiedNode->u.dobj.value = values[find->second].value;
+      addToValuesArray = false;
+    }
+    else 
+    {
+      if (!nl->IsEmpty(values[tree->u.dobj.valNo].name) &&
+          copiedNode->u.dobj.isConstant == false)
+      {
+        //if the object is an database element, then search 
+        //for expression in catalog
+        std::string objectName, typeName;
+        bool definedValue, hasNamedType;
+        ListExpr typeExpr;
+        objectName = nl->SymbolValue( values[tree->u.dobj.valNo].name );
 
+        GetCatalog()->GetObjectExpr( objectName, typeName, typeExpr,
+                                     copiedValueInfo.value,
+                                     definedValue, hasNamedType );
+
+        copiedValueInfo.typeInfo = typeExpr;
+
+        copiedNode->u.dobj.valNo = valueno;
+        copiedNode->u.dobj.value = copiedValueInfo.value;
+      }
+      else
+      {
+        //in case of constants make a deep copy of the value
+        copiedValueInfo.value = 
+        algebraManager->CloneObj(origValueInfo.algId, origValueInfo.typeId)
+                                (origValueInfo.typeInfo, origValueInfo.value);
+
+        // using the nested list expression to copy objects does not work for
+        //  all kind of objects. It hangs somewhere in BigArray 
+        // 
+        //int errorPos = 0;
+        //ListExpr& errorInfo = nl->GetErrorList();
+        //bool correct = true;
+
+        //ListExpr expr = GetCatalog()->OutObject(origValueInfo.typeInfo, 
+        //                                          origValueInfo.value);
+
+        //copiedValueInfo.value  = GetCatalog()->InObject( 
+        //                                      origValueInfo.typeInfo,
+        //                                      expr, errorPos, errorInfo,
+        //                                      correct );
+      }
       copiedNode->u.dobj.valNo = valueno;
       copiedNode->u.dobj.value = copiedValueInfo.value;
-      valueno++;
     }
-    else
+
+    if (copiedValueInfo.value.addr == NULL)
     {
       stringstream err;
-      err << "Error cloning the value for direct node with id: " << tree->id;
+      err << "Error copying the value for direct node with id: " << tree->id;
       err << " of algebra: " 
           << algebraManager->GetAlgebraName(origValueInfo.algId);
       err << " and type: " << nl->ToString(origValueInfo.typeInfo);
       throw qp_error(err.str());
+    }
+
+    if (addToValuesArray)
+    {
+      AllocateValues(valueno);
+      values[valueno] = copiedValueInfo;
+      valueInfoMapping[tree->u.dobj.valNo] = copiedNode->u.dobj.valNo;
+      valueno++;
     }
 
     assert(tree->u.dobj.valNo > -1);
@@ -5946,7 +6002,9 @@ QueryProcessor::CopySupplierSubtree(const Supplier s,
 }
 
 Supplier 
-QueryProcessor::InsertParOperatorInTree(const Supplier s, const int sonIdx)
+QueryProcessor::InsertParOperatorInTree(const Supplier s, const int sonIdx,
+                                        int numInstances, 
+                                        int partitionAttributeIdx)
 {
   //TODO add parameter to set the number of instances.
   OpTree newParNode = NULL;
@@ -5969,7 +6027,7 @@ QueryProcessor::InsertParOperatorInTree(const Supplier s, const int sonIdx)
       ListExpr opIdList = nl->Empty();
 
       opIdList = GetCatalog()->GetOperatorIds(parName);
-      if(nl->IsEmpty(opIdList) && nl->HasMinLength(opIdList, 2))
+      if(nl->IsEmpty(opIdList) || nl->HasMinLength(opIdList, 2))
       {
         std::string opIdListString;
         nl->WriteToString(opIdListString, opIdList);
@@ -5981,6 +6039,8 @@ QueryProcessor::InsertParOperatorInTree(const Supplier s, const int sonIdx)
       }
 
       int algebraId = nl->IntValue(nl->First(nl->First(opIdList)));
+      
+      //
       parDesc = nl->TwoElemList(nl->FourElemList(nl->SymbolAtom(parName), 
                 nl->SymbolAtom("operator"), nl->IntAtom(algebraId), 
                 nl->IntAtom(0)), nl->TypeError());
@@ -5990,32 +6050,99 @@ QueryProcessor::InsertParOperatorInTree(const Supplier s, const int sonIdx)
     {
       //create a new par node and set properties dependend
       //of the operators position in the tree 
-      bool unused;
+      bool unused = true;
       datetime::DateTime queryTime;
       newParNode = Subtree(parDesc, unused, queryTime);
       newParNode->typeExpr = childNode->typeExpr;
-      newParNode->evaluable = 0;
+      newParNode->evaluable = false;
+      newParNode->isRoot = false;
       newParNode->numTypeExpr = childNode->numTypeExpr;
       newParNode->u.op.isStream = isStreamOp ? 1 : 0;
       newParNode->u.op.resultAlgId = childNode->u.op.resultAlgId;
       newParNode->u.op.resultTypeId = childNode->u.op.resultTypeId;
+      newParNode->u.symbol = nl->First(nl->First( parDesc ));
 
       //initialize memory for the result storage
       ReInitResultStorage( newParNode );
 
-      if (traceMode)
-      {
-        std::cout << *newParNode << std::endl;
-      }
+      //add constant containing the number of instances
+      Supplier numInstancesNode = CreateConstantIntNode(numInstances);
+
+      //add constant containing the partition attribute index
+      Supplier partAttributeIdxNode = 
+      CreateConstantIntNode(partitionAttributeIdx);
 
       //update pointer to connecting oparators
       Supplier orphanedChild = RemoveSon(parentNode, sonIdx);
       AddSon(parentNode, newParNode);
       AddSon(newParNode, orphanedChild);
+      AddSon(newParNode, numInstancesNode);
+      AddSon(newParNode, partAttributeIdxNode);
+
+      if (traceMode)
+      {
+        std::cout << *newParNode << std::endl;
+      }
     }
   }
 
   return newParNode;
+}
+
+Supplier 
+QueryProcessor::CreateConstantIntNode(int intValue)
+{
+  //create a new entry in the values array for the constant
+  AllocateValues(valueno);
+  int algId = 0, typeId = 0, errorPos = 0;
+  bool correct = true;
+  ListExpr& errorInfo = nl->GetErrorList();
+  GetCatalog()->GetTypeId(CcInt::BasicType(), algId, typeId );
+  Word value = GetCatalog()->InObject( nl->SymbolAtom(CcInt::BasicType()),
+                                  nl->IntAtom(intValue), errorPos, errorInfo,
+                                  correct );
+  if (value.addr == NULL || !correct)
+  {
+    std::stringstream errorMessage;
+    errorMessage << "Not possible to create value of int atom: " 
+    << errorInfo;
+    qp_error(errorMessage.str());
+  }
+  
+  values[valueno].value = value;
+  int constValNo = valueno;
+  valueno++;
+
+  //define the new nodes expression as list
+  //((intValue constant idxToValuesArray) int)
+  ListExpr constExpr = nl->TwoElemList(nl->ThreeElemList(
+            nl->IntAtom(intValue), nl->SymbolAtom("constant"), 
+            nl->IntAtom(constValNo)), 
+            nl->SymbolAtom(CcInt::BasicType()));
+
+  datetime::DateTime queryTime;
+  OpTree node =  Subtree(constExpr, correct, queryTime);
+  if (node == NULL)
+  {
+    std::stringstream errorMessage;
+    errorMessage << "Can't create constant node from expression : " 
+    << nl->ToString(constExpr);
+    qp_error(errorMessage.str());
+  }
+  node->evaluable = true;
+  node->isRoot = true;
+  node->typeExpr = nl->Second( constExpr );
+  node->numTypeExpr = GetCatalog()->NumericType(node->typeExpr);
+  node->u.dobj.isConstant = true;
+  node->u.dobj.valNo = constValNo;
+  node->u.dobj.value = value;
+
+  if (traceMode)
+  {
+    std::cout << *node << std::endl;
+  }
+
+  return node;
 }
 
 size_t 
@@ -6050,6 +6177,34 @@ QueryProcessor::GetParOperatorsNumberOfInstances(const Supplier s)
   }
   
   return (size_t)numOfInstances;
+}
+
+
+bool
+QueryProcessor::IsTupleStreamOperator(const Supplier s)
+{
+  OpTree node = (OpTree) s;
+
+  bool res = node->nodetype == Operator;
+  res = res && node->isStreamOp();
+  res = res && nl->IsEqual(nl->First(nl->Second(node->typeExpr)), 
+                                     "tuple", false );
+  return res;
+}
+
+void 
+QueryProcessor::SetMemorySize(const Supplier s, size_t memSize)
+{
+  OpTree tree = (OpTree) s;
+
+  //check if the parameter is a pointer to a par-operator
+  if (tree->nodetype != Operator)
+  {
+    throw qp_error("Not possible to assign memory to a non operator node");
+  }
+  
+  tree->u.op.usesMemory = memSize > 0;
+  tree->u.op.memorySize = memSize;
 }
 
 void 

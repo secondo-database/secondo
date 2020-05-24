@@ -826,7 +826,7 @@ types of the operator to which this function is a parameter.
   {
     ValueInfo(): isConstant(false), isList(false),
                 algId(-1), typeId(-1), typeInfo(0),
-                value(Address(0))
+                value(Address(0)), name(0)
     { }
     bool isConstant;
     bool isList;
@@ -835,6 +835,7 @@ types of the operator to which this function is a parameter.
     int  typeId;
     ListExpr typeInfo;
     Word value;
+    ListExpr name;
   };
 /*
 This ~ValueInfo~ structure will be stored in the ~values~ array defined 
@@ -875,23 +876,31 @@ subtree and call destroy to free its resources.
   Supplier CopySupplier( const Supplier s);
 
   Supplier CopySupplierSubtree( const Supplier s, 
-                                std::map<int,int> &funNoMapping);
+                                std::map<int,int> &funNoMapping,
+                                std::map<int, int> &valueInfoMapping);
 /*
 Copies the operator subtree ~s~ datastructure and assignes memory for the 
 result.
 
 */
 
-  Supplier InsertParOperatorInTree(const Supplier s, const int sonIdx);
+  Supplier InsertParOperatorInTree(const Supplier s, const int sonIdx,
+                                   int numInstances = 1, 
+                                   int partitionAttributeIdx = -1);
 /*
-Inserts a new par operator in the operator tree as child node of ~s~ before
-the currently connected son at index ~sonIdx~. The child of ~s~ must be an 
-operator supporting an output of type relation stream. It is mapped as son of 
-the new created par- operator. The par operator is connected as the 
-~sonIdx~th son of ~s~. The function returns the reference to the new par 
-operator or, in case of errors or incompatibility, the null pointer.
+Inserts a new par operator and constants necessary for the number of instances
+(degree of dataparallelism) and the optional partition attribute in the operator
+tree as child node of ~s~ before the currently connected son at index ~sonIdx~. 
+The child of ~s~ must be an operator supporting an output of type relation 
+stream. It is mapped as son of the new created par- operator. The par operator 
+is connected as the ~sonIdx~th son of ~s~. The function returns the reference 
+to the new par operator or, in case of errors or incompatibility, 
+the null pointer.
 
 */
+
+  Supplier CreateConstantIntNode(int value);
+
 
   size_t GetParOperatorsNumberOfInstances(const Supplier s);
 /*
@@ -899,6 +908,9 @@ Return the number of possible instances of the par-operator. This value is a
 constant of the par-operator referenced by ~s~. 
 
 */
+
+  void SetMemorySize(const Supplier s, size_t memSize);
+
 
   void ChangeParOperatorsNumberOfInstances(const Supplier s, 
                                            size_t numInstances);
@@ -909,6 +921,9 @@ If ~s~ doesn't reference a par-operator, the function throws an exception
 */
 
   int GetParOperatorsPartitoningAttrIdx(const Supplier s);
+
+
+  bool IsTupleStreamOperator(const Supplier s);
 
  private:
    std::vector<std::shared_ptr<NewTreeListener> > newTreeListeners;
