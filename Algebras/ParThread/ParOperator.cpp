@@ -134,29 +134,18 @@ int ParOperator::ParVMParallel(Word *args, Word &result, int message,
   {
   case INIT:
   {
-    //initialization of the execution context takes place in open state of the 
-    //operator because at this moment the arguments are available. All operators
-    //from the first par- operator to the leaves of the operator tree must be 
-    //initialized through the execution contexts entity manager.
+    //All operators from the first par- operator to the leaves of the operator 
+    //tree must be initialized through the execution contexts entity manager.
+    //This step is not parallelized.
+    if (context->ParentContext() == NULL)
+    {
+      context->Init();
+    }
     return 0;
   }
   case OPEN:
   {
-    // After removing the son the index of the arguments vector 
-    // is decreased by one. The new argument order is:
-    // args[0] : integer, number of parallel instances
-    // args[1] : [optional] attribute, name of the attribute used for 
-    //           partitioning
-    // args[2] : [optional] appended attribute number used for 
-    //           partitioning (1 based)
-    int numOfParallelInst = static_cast<CcInt *>(args[0].addr)->GetIntval();
-    int idxPartitionAttribute = -1;
-    if (args[2].addr != NULL)
-    {
-      idxPartitionAttribute = static_cast<CcInt *>(args[2].addr)->GetIntval()-1;
-      assert(idxPartitionAttribute>=0);
-    }
-    context->Open(nodeInfo, numOfParallelInst, idxPartitionAttribute);
+    context->Open(nodeInfo);
 
     return 0;
   }
@@ -169,10 +158,10 @@ int ParOperator::ParVMParallel(Word *args, Word &result, int message,
       result.setAddr(tuple);
 
       //decrement reference increased by tuple buffer
-      //if (context->ParentContext() == NULL)
-      //{
-      //  tuple->DeleteIfAllowed();
-      //}
+      if (context->ParentContext() == NULL)
+      {
+        tuple->DeleteIfAllowed();
+      }
 
       assert(tuple->GetNumOfRefs() > 0);
     }
@@ -221,6 +210,8 @@ int ParOperator::ParVMSerial(Word *args, Word &result, int message,
 
   switch (message)
   {
+  case INIT:
+    return 0;
   case OPEN:
     qp->Open(args[0].addr);
     return 0;
@@ -228,6 +219,8 @@ int ParOperator::ParVMSerial(Word *args, Word &result, int message,
     qp->Request(args[0].addr, result);
     return qp->Received(args[0].addr) ? YIELD : CANCEL;
   case CLOSE:
+    return 0;
+  case FINISH:
     return 0;
   }
 

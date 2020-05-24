@@ -65,7 +65,7 @@ OperatorSpec parSpec(
     "second context uses up to three instances of the containing 'filter'-"
     "operator partitioned by the attribute value 'Vorwahl'. The last context"
     "is executed serial again and feeds the stream with tuples from the 'Orte'"
-    "realtion.",
+    "relation.",
     "query Orte feed par[1, Vorwahl] filter[.BevT > 500] par[3] count");
 
 Operator parOp(
@@ -87,8 +87,9 @@ public:
   ParThreadAlgebra() : Algebra()
   {
     AddOperator(&parOp);
-    parOp.SetUsesMemory();
     parOp.enableInitFinishSupport();
+    //the par operator uses memory, but the memory is allocated 
+    //after static parallel optimization
   }
 
   ~ParThreadAlgebra(){};
