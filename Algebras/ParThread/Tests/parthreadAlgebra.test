@@ -21,13 +21,6 @@
 
 # --- testqueries for the parthread algebra ---
 #
-# The run times of the serial run are executed with the same codebase but 
-# without par nodes in the query and therefore without multithreading 
-# support and output of the subtrees, but with progress support (this feature
-# can slowdown the overall query execution a bit)
-#
-# Every query is executed 5 times and the averange run time calculated.
-#
 # March 2020, Thomas Fischer
 
 # delete database parthread_lie
@@ -36,107 +29,128 @@
 
 open database parthread_lie;
 
-let compareWayRel = [const rel(tuple([WayId : longint, NodeCounter : int])) value ()];
-
-
 #setup parThreadLieTest ParThreadAlgebra
 
-#testcase serialCount
+#testcase noCtx
 #yields (int 340107)
-query Osm_Ways feed head[30000] delayS[1] count;
+query Osm_Ways feed count;
 
-#testcase tc1_parOneCount
+#testcase TC1par2CtxOnlyPipelineNoDelay
 #yields (int 340107)
-query Osm_Ways feed head[30000] delayS[1] par[1] count;
+query Osm_Ways feed par[1] count;
+
+#testcase TC2par2CtxOnlyPipelineDelay1
+#yields (int 340107)
+query Osm_Ways feed par[1] delayS[1] count;
+
+#testcase HashPar2CtxOnlyPipeline
+#yields (int 340107)
+#query Osm_Ways feed par[3, WayId] count;
 
 
-
-#testcase serialFilter
+#testcase noCtx
 #yields (int 24979)
-query Osm_Ways feed filter[.NodeCounter=3] delayS[3] count;
+query Osm_Ways feed filter[.NodeCounter=3] count;
 
-#testcase parOneFilter
+#testcase TC4par3CtxFilterNoDelay
 #yields (int 24979)
-query Osm_Ways feed par[1] filter[.NodeCounter=3] delayS[3] par[1] count;
+query Osm_Ways feed par[1] filter[.NodeCounter=3] par[16] count;
 
-#testcase tc2_dataParThreeFilter
+#testcase TC5par3CtxFilterDelay1
 #yields (int 24979)
-query Osm_Ways feed par[1] filter[.NodeCounter=3] delayS[3] par[3] count;
+query Osm_Ways feed par[1] filter[.NodeCounter=3] delayS[1] par[16] count;
 
-#testcase tc3_parThreeWayIdFilter
+
+
+#testcase TC7parAttr3CtxFilterNoDelay
 #yields (int 24979)
-query Osm_Ways feed par[1, WayId] filter[.NodeCounter=3] delayS[3] par[3] count;
+query Osm_Ways feed par[1, WayId] filter[.NodeCounter=3] par[16] count;
+
+#testcase TC8parAttr3CtxFilterDelay1
+#yields (int 24979)
+query Osm_Ways feed par[1, WayId] filter[.NodeCounter=3] delayS[1] par[16] count;
 
 
 
-#testcase serialFilterProject
-#yields (int 253)
-query Osm_Ways feed filter[.NodeCounter=3] delayS[2] project[WayId, NodeCounter] delayS[2] count;
+#testcase TC10parAttr4CtxFilterProjectNoDelay
+#yields (int 24979)
+query Osm_Ways feed par[1, WayId] filter[.NodeCounter=3] par[16] project[WayId, NodeCounter] par[16] count;
 
-#testcase tc4_parThreeWayIdFilterProject
-#yields *compareWayRel
-query Osm_Ways feed par[1, WayId] filter[.NodeCounter=3] delayS[2] filter[.NodeCounter=3] par[3] project[WayId, NodeCounter] delayS[2] par[3] count;
-
-
-
-#testcase tc5_parSingleSymmjoin
-#yields (int 688)
-query Osm_Ways feed head[1000] filter[.NodeCounter>3] {w} delayS[2] par[1] Osm_Nodes feed {n} par[1] symmjoin[.NodeRef_w = ..NodeId_n] par[1] count
-
-#testcase tc6_parDoubleSymmjoin
-#yields (int 3410)
-query Osm_Ways feed head[1000] filter[.NodeCounter>3] {w} delayS[2] par[1] Osm_Nodes feed {n} par[1] symmjoin[.NodeRef_w = ..NodeId_n] par[1] Osm_WayTags feed {t} symmjoin[.WayId_w = ..WayIdInTag_t] par[1] count
-
-#testcase tc7_parTripleSymmjoin
-#yields (int 11615)
-query Osm_Ways feed head[1000] filter[.NodeCounter>3] {w} delayS[2] par[1] Osm_Nodes feed {n} par[1] symmjoin[.NodeRef_w = ..NodeId_n] par[1] Osm_WayTags feed {t} symmjoin[.WayId_w = ..WayIdInTag_t] par[1] Osm_Relations feed {r} filter[.MemberType_r starts "way"] symmjoin[.WayId_w = ..MemberRef_r] par[1] count
-
-
-#testcase serialSingleHashjoin
-#yields (int 233976)
-query Osm_Ways feed filter[.NodeCounter=3] delayS[2] {w} Osm_Nodes feed {n} hashjoin[NodeRef_w, NodeId_n] count
-
-#testcase parSingleHashjoin
-#yields (int 233976)
-query Osm_Ways feed par[1] filter[.NodeCounter=3] delayS[2] {w} Osm_Nodes feed par[1] {n} hashjoin[NodeRef_w, NodeId_n] par[1] count
-
-#testcase tc8_dataParSingleHashjoin
-#yields (int 233976)
-query Osm_Ways feed par[1,NodeRef] filter[.NodeCounter=3] delayS[2] {w} Osm_Nodes feed par[1,NodeId] {n} hashjoin[NodeRef_w, NodeId_n] par[8] count
+#testcase TC11parAttr4CtxFilterProjectDelay1
+#yields (int 24979)
+query Osm_Ways feed par[1, WayId] filter[.NodeCounter=3] delayS[1] par[16] project[WayId, NodeCounter] delayS[1] par[16] count;
 
 
 
-#testcase serialDoubleHashjoin
-#yields (int 465556)
-query Osm_Ways feed filter[.NodeCounter=3] delayS[2] {w} Osm_Nodes feed {n} hashjoin[NodeRef_w, NodeId_n] Osm_WayTags feed {t} hashjoin[WayId_w, WayIdInTag_t] count
+#testcase TC13par4CtxGeoDistanceNoDelay
+#yields (int 267587)
+query Osm_Nodes feed par[1] extend[Geo: makepoint(.Lon, .Lat)] par[16] extend[DistInKm: distanceOrthodrome(.Geo, [const point value(10.00 50.00)])/1000] par[16] count;
 
-#testcase parDoubleHashjoin
-#yields (int 465556)
-query Osm_Ways feed par[1] filter[.NodeCounter=3] delayS[2] {w} Osm_Nodes feed par[1] {n} hashjoin[NodeRef_w, NodeId_n] par[1] Osm_WayTags feed par[1] {t} hashjoin[WayId_w, WayIdInTag_t] par[1] count
-
-#testcase tc9_dataParDoubleHashjoin
-#yields (int 465556)
-query Osm_Ways feed par[1, NodeRef] filter[.NodeCounter=3] delayS[2] {w} Osm_Nodes feed par[1, NodeId] {n} hashjoin[NodeRef_w, NodeId_n] par[8, WayId_w] Osm_WayTags feed par[1, WayIdInTag] {t} hashjoin[WayId_w, WayIdInTag_t] par[8] count
+#testcase TC14par4CtxGeoDistanceDelay1
+#yields (int 267587)
+query Osm_Nodes feed par[1] delayS[1] extend[Geo: makepoint(.Lon, .Lat)] par[16] extend[DistInKm: distanceOrthodrome(.Geo, [const point value(10.00 50.00)])/1000] par[16] count;
 
 
 
-#testcase serialTripleHashjoin
-#yields (int 650300)
-query Osm_Ways feed filter[.NodeCounter=3] delayS[2] {w} Osm_Nodes feed {n} hashjoin[NodeRef_w, NodeId_n] Osm_WayTags feed {t}  hashjoin[WayId_w, WayIdInTag_t] Osm_Relations feed {r} filter[.MemberType_r starts "way"] hashjoin[WayId_w, MemberRef_r] count
+#testcase TC16par4CtxSingleSymmjoinNoDelay
+#yields (int 498)
+query Osm_Ways feedNth[50,TRUE] par[1,NodeRef] filter[.NodeCounter=3] {w} Osm_Nodes feed par[1,NodeId] {n} symmjoin[.NodeRef_w = ..NodeId_n] par[16] count;
 
-#testcase parTripleHashjoin
-#yields (int 650300)
-query Osm_Ways feed par[1] filter[.NodeCounter=3] delayS[2] {w} Osm_Nodes feed par[1] {n} hashjoin[NodeRef_w, NodeId_n] par[1] Osm_WayTags feed par[1] {t}  hashjoin[WayId_w, WayIdInTag_t] par[1] Osm_Relations feed par[1] {r} filter[.MemberType_r starts "way"] hashjoin[WayId_w, MemberRef_r] par[1] count
+#testcase TC17par4CtxSingleSymmjoinDelay1
+#yields (int 498)
+query Osm_Ways feedNth[50,TRUE] par[1,NodeRef] filter[.NodeCounter=3] {w} Osm_Nodes feed par[1,NodeId] {n} symmjoin[.NodeRef_w = ..NodeId_n] delayS[1] par[16] count;
 
-##testcase tc10_dataParTripleHashjoin
-##yields (int 650300)
-query Osm_Ways feed par[1, NodeRef] filter[.NodeCounter=3] delayS[2] {w} Osm_Nodes feed par[1, NodeId] {n} hashjoin[NodeRef_w, NodeId_n] par[8, WayId_w] Osm_WayTags feed par[1, WayIdInTag] {t} hashjoin[WayId_w, WayIdInTag_t] par[8, WayId_w] Osm_Relations feed par[1, MemberRef] {r} filter[.MemberType_r starts "way"] hashjoin[WayId_w, MemberRef_r] par[8] count
+#testcase TC18par6CtxDoubleSymmjoinDelay11
+#yields (int 1044)
+query Osm_Ways feedNth[50,TRUE] par[1,NodeRef] filter[.NodeCounter=3] {w} Osm_Nodes feed par[1,NodeId] {n} symmjoin[.NodeRef_w = ..NodeId_n] par[16, WayId_w] Osm_WayTags feed par[1, WayIdInTag] {t} symmjoin[.WayId_w = ..WayIdInTag_t] par[16] count;
+
+
+
+#testcase TC19parTripleSymmjoinSeqDelay111
+#yields (int 765)
+query Osm_Ways feedNth[50,TRUE] par[1,NodeRef] filter[.NodeCounter=3] {w} Osm_Nodes feed par[1,NodeId] {n} symmjoin[.NodeRef_w = ..NodeId_n] delayS[1] par[16, WayId_w] Osm_WayTags feed par[1, WayIdInTag] {t} symmjoin[.WayId_w = ..WayIdInTag_t] delayS[1] par[16, WayId_w] Osm_Relations feed par[1, MemberRef] {r} filter[.MemberType_r starts "way"] symmjoin[.WayId_w = ..MemberRef_r] delayS[1] par[16] count;
+
+#testcase TC20par8CtxTripleSymmjoinBushyDelay1
+#yields (int 0)
+query Osm_Ways feedNth[50,TRUE] par[1, WayId] filter[.NodeCounter=3] {w} Osm_WayTags feed par[1, WayIdInTag] {t} symmjoin[.WayId_w = ..WayIdInTag_t] delayS[1] par[16, NodeRef_w] Osm_Nodes feedNth[50,TRUE]  par[1, NodeId] {n} Osm_NodeTags feed par[1, NodeIdInTag] {t} symmjoin[.NodeId_n = ..NodeIdInTag_t] delayS[1] par[16, NodeId_n] symmjoin[.NodeRef_w = ..NodeId_n] delayS[1] par[16] count;
+
+
+
+#testcase TC21par4CtxSingleHashjoinNoDelay
+#yields (int 24979)
+query Osm_Ways feed par[1,NodeRef] filter[.NodeCounter=3] {w} Osm_Nodes feed par[1] {n} hashjoin[NodeRef_w, NodeId_n] par[16] count;
+
+#testcase TC22par4CtxSingleHashjoinDelay1
+#yields (int 24979)
+query Osm_Ways feed par[1,NodeRef] filter[.NodeCounter=3] {w} Osm_Nodes feed par[1,NodeId] {n} hashjoin[NodeRef_w, NodeId_n] delayS[1] par[16] count;
+
+
+#testcase TC23par6CtxDoubleHashjoinNoDelay
+#yields (int 56395)
+query Osm_Ways feed par[1, NodeRef] filter[.NodeCounter=3] {w} Osm_Nodes feed par[1, NodeId] {n} hashjoin[NodeRef_w, NodeId_n] par[16, WayId_w] Osm_WayTags feed par[1, WayIdInTag] {t} hashjoin[WayId_w, WayIdInTag_t] par[16] count;
+
+#testcase TC24par6CtxDoubleHashjoinDelay1
+#yields (int 56395)
+query Osm_Ways feed par[1, NodeRef] filter[.NodeCounter=3] {w} Osm_Nodes feed par[1, NodeId] {n} hashjoin[NodeRef_w, NodeId_n] delayS[1]  par[16, WayId_w] Osm_WayTags feed par[1, WayIdInTag] {t} hashjoin[WayId_w, WayIdInTag_t] delayS[1] par[16] count;
+
+
+#testcase TC25par8CtxTripleHashjoinNoDelay
+#yields (int 49351)
+query Osm_Ways feed par[1, NodeRef] filter[.NodeCounter=3] {w} Osm_Nodes feed par[1, NodeId] {n} hashjoin[NodeRef_w, NodeId_n] par[16, WayId_w] Osm_WayTags feed par[1, WayIdInTag] {t} hashjoin[WayId_w, WayIdInTag_t] par[16, WayId_w] Osm_Relations feed par[1, MemberRef] {r} filter[.MemberType_r starts "way"] hashjoin[WayId_w, MemberRef_r] par[16] count;
+
+#testcase TC26par8CtxTripleHashjoinSeqDelay1
+#yields (int 49351)
+query Osm_Ways feed par[1, NodeRef] filter[.NodeCounter=3] {w} Osm_Nodes feed par[1, NodeId] {n} hashjoin[NodeRef_w, NodeId_n] delayS[1] par[16, WayId_w] Osm_WayTags feed par[1, WayIdInTag] {t} hashjoin[WayId_w, WayIdInTag_t] delayS[1] par[16, WayId_w] Osm_Relations feed par[1, MemberRef] {r} filter[.MemberType_r starts "way"] hashjoin[WayId_w, MemberRef_r] delayS[1] par[16] count;
+
+#testcase TC27par8CtxTripleHashjoinBushyDelay1
+#yields (int 2807)
+query Osm_Ways feed par[1, WayId] filter[.NodeCounter=3] {w} Osm_WayTags feed par[1, WayIdInTag] {t} hashjoin[WayId_w, WayIdInTag_t]  delayS[1] par[16, NodeRef_w] Osm_Nodes feed par[1, NodeId] {n} Osm_NodeTags feed par[1, NodeIdInTag] {t} hashjoin[NodeId_n, NodeIdInTag_t] delayS[1] par[16, NodeId_n] hashjoin[NodeRef_w, NodeId_n] delayS[1] par[16] count;
+
 
 # the TEARDOWN directive is followed by commands which
 # should be executed after the execution of all TESTCASES
 #teardown
 
-delete compareWayRel;
 close database;
 # delete database parthread_lie;
 

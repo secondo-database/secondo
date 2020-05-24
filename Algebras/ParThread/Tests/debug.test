@@ -28,17 +28,18 @@ open database parthread_lie;
 #DEBUG 0
 #DEBUG 3
 #DEBUG 7 includes node traced
+DEBUG 7
 
 
 #1. working, execution time serial: 6 sec, execution time parallel: 7.249999sec
-#query Osm_Ways feed count;
+query Osm_Ways feed count;
 #query Osm_Ways feed par[1] count;
 #query Osm_Ways feed par[3, WayId] count;
 # result 340107
 
 #2. working, execution time serial: 6.55902, execution time parallel: 9.57982
-#query Osm_Ways feed filter[.NodeCounter>200] count;
-query Osm_Ways feed par[1] filter[.NodeCounter>200] par[3] printrefs count;
+#query Osm_Ways feed filter[.NodeCounter>200] printrefs count;
+#query Osm_Ways feed par[1] filter[.NodeCounter>200] par[2] printrefs par[1] count;
 # result 20179
 
 #3. working, execution time serial: 6.51108, execution time parallel: 8.61271
@@ -66,6 +67,10 @@ query Osm_Ways feed par[1] filter[.NodeCounter>200] par[3] printrefs count;
 
 
 #5. product is not data parallelizable
+
+#query Osm_Ways feed head[4] Osm_WayTags feed head[3] product project[WayId, WayTagKey] sort consume
+
+
 #query Osm_Ways feed head[4] Osm_WayTags feed head[3] product project[WayId, WayTagKey] sort consume
 #query Osm_Ways feed head[4] par[1] Osm_WayTags feed head[3] par[1] product project[WayId, WayTagKey]  par[3] sort consume
 #query Osm_Ways feed head[4] par[1] Osm_WayTags feed head[3] par[1] product project[WayId, WayTagKey]  par[1] sort consume
@@ -129,7 +134,7 @@ query Osm_Ways feed par[1] filter[.NodeCounter>200] par[3] printrefs count;
 
 #testcase tc8_dataParSingleHashjoin
 #yields (int 233976)
-#query Osm_Ways feed filter[.NodeCounter>3] {w} par[1,NodeRef_w] Osm_Nodes feed {n} par[1,NodeId_n] hashjoin[NodeRef_w, NodeId_n] par[8] count
+#query Osm_Ways feed par[1] filter[.NodeCounter>3] {w} par[3,NodeRef_w] Osm_Nodes feed {n} par[1,NodeId_n] hashjoin[NodeRef_w, NodeId_n] par[8] count
 
 #testcase serialDoubleHashjoin
 #yields (int 465556)
@@ -153,16 +158,42 @@ query Osm_Ways feed par[1] filter[.NodeCounter>200] par[3] printrefs count;
 
 ##testcase tc10_dataParTripleHashjoin
 ##yields (int 650300)
-query Osm_Ways feed filter[.NodeCounter>3] {w} par[1, NodeRef_w] Osm_Nodes feed {n} par[1, NodeId_n] hashjoin[NodeRef_w, NodeId_n] par[8, WayId_w] Osm_WayTags feed {t} par[1, WayIdInTag_t] hashjoin[WayId_w, WayIdInTag_t] par[8, WayId_w] Osm_Relations feed {r} filter[.MemberType_r starts "way"] par[1, MemberRef_r] hashjoin[WayId_w, MemberRef_r] par[8] count
+#query Osm_Ways feed par[1, NodeRef] filter[.NodeCounter=3] {w} Osm_Nodes feed par[1, NodeId] {n} hashjoin[NodeRef_w, NodeId_n] par[16, WayId_w] Osm_WayTags feed par[1, WayIdInTag] {t} hashjoin[WayId_w, WayIdInTag_t] par[16, WayId_w] Osm_Relations feed par[1, MemberRef] {r} filter[.MemberType_r starts "way"] hashjoin[WayId_w, MemberRef_r] par[16] count'
+
+#query Osm_Ways feed filter[.NodeCounter=3] {w} Osm_Nodes feed {n} hashjoin[NodeRef_w, NodeId_n] Osm_WayTags feed {t} hashjoin[WayId_w, WayIdInTag_t] Osm_Relations feed {r} filter[.MemberType_r starts "way"] hashjoin[WayId_w, MemberRef_r] count
 
 
-# complex filter predicate does not work
-#query Osm_Ways feedNth[100, TRUE] par[1] filter[(.NodeCounter > 190) and (.NodeCounter < 200)] par[2] project[WayId] par[1] consume
-#query Osm_Ways feedNth[100, TRUE] par[1, WayId] filter[(.NodeCounter > 190) and (.NodeCounter < 200)] par[3] project[WayId] rdup par[3] sort consume
+# using the extend operator
+#query Osm_Nodes feed extend[LonInt: .Lon * 1000000, LatInt: .Lat * 1000000] delayS[1] count
+#query Osm_Nodes feed par[1] extend[LonInt: .Lon * 1000000, LatInt: .Lat * 1000000] delayS[1] par[3] count
 
-#TODO check some basic spatial operators
-#query Osm_Nodes feed head[20] par[3] extend[Geo: makepoint(.Lon, .Lat)] extend[Dist: distance(.Geo, [const point value(7.493611 51.376323)])] par[3] consume
 
+
+# using complex filter predicates
+#query Osm_Ways feed filter[(.NodeCounter > 190) and (.NodeCounter < 200)] count
+#query Osm_Ways feed par[1] filter[(.NodeCounter > 190) and (.NodeCounter < 200)] par[3] count
+#query Osm_Ways feed par[1, WayId] filter[(.NodeCounter > 190) and (.NodeCounter < 200)] par[3] project[WayId] rdup par[3] sort consume
+
+
+# using spatial operator
+#query Osm_Nodes feed par[1] extend[Geo: makepoint(.Lon, .Lat)] delayS[1] par[3] count
+
+#query Osm_Nodes feed extend[LonInt: .Lon * 1000000, LatInt: .Lat * 1000000] extend[Geo: makepoint(.LonInt, .LatInt)] delayS[1] delayS[1] extend[Dist: distance(.Geo, [const point value(10000000 50000000)])] count
+
+
+##testcase tc10_dataParTripleHashjoin
+##yields (int 650300)
+#query Osm_Nodes feed par[1] extend[LonInt: .Lon * 1000000, LatInt: .Lat * 1000000] par[3] extend[Geo: makepoint(.LonInt, .LatInt)] delayS[1] par[3] delayS[1] extend[Dist: distance(.Geo, [const point value(10000000 50000000)])] par[3] head[2] consume
+
+#query Osm_Ways feed par[1] filter[.NodeCounter>3] par[16] count;
+
+#query Osm_Ways feed par[1] filter[.NodeCounter=3] delayS[1] par[16] count;
+
+#query Osm_Ways feed par[1, WayId] filter[.NodeCounter>3] par[16] count;
+
+#query Osm_Ways feed par[1, WayId] filter[.NodeCounter>3] par[16] project[WayId, NodeCounter] par[16] count;
+
+#query Osm_Nodes feed par[1] extend[Geo: makepoint(.Lon, .Lat)] extend[DistInKm: distanceOrthodrome(.Geo, [const point value(10.00 50.00)])/1000] par[16] count;
 
 close database;
 
