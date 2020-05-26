@@ -5740,7 +5740,8 @@ void ErrorReporter::GetErrorMessage(string& msg)
 
 /* Additional methods for ParallelQueryOptimizer part of parThread algebra */
 
-void QueryProcessor::AddSon(const Supplier parent, const Supplier son)
+void QueryProcessor::AddSon(const Supplier parent, const Supplier son, 
+                            bool insertAsFirstSon /*=false */)
 {
   OpTree tree = (OpTree) parent;
   if ( tree->nodetype != Operator )
@@ -5750,7 +5751,19 @@ void QueryProcessor::AddSon(const Supplier parent, const Supplier son)
 
   //set address of son node
   int numSons = tree->u.op.noSons;
-  tree->u.op.sons[numSons].addr = son;
+  if (insertAsFirstSon)
+  {
+    //move all sons, following the removed node, one index forward in array
+    for (int i = numSons-1; i >= 0; i--)
+    {
+      tree->u.op.sons[i+1] = tree->u.op.sons[i];
+    }
+    tree->u.op.sons[0].addr = son;
+  }
+  else
+  {
+    tree->u.op.sons[numSons].addr = son;
+  }
 
   //adjust increased number of sons
   tree->u.op.noSons++;
@@ -6039,8 +6052,7 @@ QueryProcessor::InsertParOperatorInTree(const Supplier s, const int sonIdx,
       }
 
       int algebraId = nl->IntValue(nl->First(nl->First(opIdList)));
-      
-      //
+
       parDesc = nl->TwoElemList(nl->FourElemList(nl->SymbolAtom(parName), 
                 nl->SymbolAtom("operator"), nl->IntAtom(algebraId), 
                 nl->IntAtom(0)), nl->TypeError());
@@ -6074,7 +6086,7 @@ QueryProcessor::InsertParOperatorInTree(const Supplier s, const int sonIdx,
 
       //update pointer to connecting oparators
       Supplier orphanedChild = RemoveSon(parentNode, sonIdx);
-      AddSon(parentNode, newParNode);
+      AddSon(parentNode, newParNode, true);
       AddSon(newParNode, orphanedChild);
       AddSon(newParNode, numInstancesNode);
       AddSon(newParNode, partAttributeIdxNode);
@@ -6108,8 +6120,15 @@ QueryProcessor::CreateConstantIntNode(int intValue)
     << errorInfo;
     qp_error(errorMessage.str());
   }
-  
+
+  //insert information for new value info
+  values[valueno].isConstant = true;
+  values[valueno].isPtr = false;
+  values[valueno].isList = false;
+  values[valueno].algId = algId;
+  values[valueno].typeId = typeId;
   values[valueno].value = value;
+  values[valueno].typeInfo = nl->SymbolAtom( CcInt::BasicType() );
   int constValNo = valueno;
   valueno++;
 
@@ -6197,7 +6216,7 @@ QueryProcessor::SetMemorySize(const Supplier s, size_t memSize)
 {
   OpTree tree = (OpTree) s;
 
-  //check if the parameter is a pointer to a par-operator
+  //check if the parameter is a pointer to an operator
   if (tree->nodetype != Operator)
   {
     throw qp_error("Not possible to assign memory to a non operator node");
@@ -6261,22 +6280,38 @@ QueryProcessor::GetParOperatorsPartitoningAttrIdx(const Supplier s)
     throw qp_error("The given supplier parent is no par-operator");
   }
 
-  //get the third child is the attributeindex. It should be a const value
+  //the third child is the attributeindex. It should be a const value
   if (GetNoSons(s) != 4)
   {
     return -1; //no partition attribute defined
   }
 
+  //get the value of the const node
   OpTree childNode = static_cast<OpTree>(GetSon(s, 3));
-  if (childNode->nodetype != Object ||
-      !childNode->u.dobj.isConstant)
-  {
-    return -1;
-  }
-
-  int idxPartitionAttribute = 
-              static_cast<CcInt *>(childNode->u.dobj.value.addr)->GetIntval()-1;
+  int idxPartitionAttribute = GetConstNodeIntValue(childNode) -1;
    
   return idxPartitionAttribute;
+}
+
+int 
+QueryProcessor::GetConstNodeIntValue(const Supplier s)
+{
+  OpTree childNode = static_cast<OpTree>(s);
+  if (!(childNode->nodetype == Object &&
+        childNode->u.dobj.isConstant))
+  {
+    throw qp_error("The given node has no constant value");
+  }
+
+  ListExpr typeInfo = values[childNode->u.dobj.valNo].typeInfo;
+  if (!nl->Equal(nl->SymbolAtom( CcInt::BasicType() ), typeInfo))
+  {
+    throw qp_error("The given constant node has no int value");
+  }
+  
+  int intVal = static_cast<CcInt *>(childNode->u.dobj.value.addr)->GetIntval();
+   
+  return intVal;
+
 }
 

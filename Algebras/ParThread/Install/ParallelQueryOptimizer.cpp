@@ -63,24 +63,6 @@ namespace parthread
     int PartitonAttributeIndex;
     std::vector<OpNode *> MemoryOperators;
 
-    ContextInformation *MergeWithParent()
-    {
-      if (ParentContext == NULL)
-      {
-        return this;
-      }
-
-      ParentContext->NumberOfOperators += NumberOfOperators;
-      ParentContext->MaxDegreeOfDataParallelism =
-          std::min(MaxDegreeOfDataParallelism,
-                   ParentContext->MaxDegreeOfDataParallelism);
-      ParentContext->IsValid = ParentContext->IsValid && IsValid;
-      ParentContext->IsHashPartitioned = ParentContext->IsHashPartitioned &&
-                                         IsHashPartitioned;
-
-      return ParentContext;
-    }
-
     ContextInformation *GetNextValidParent()
     {
       if (ParentContext == NULL)
@@ -298,9 +280,8 @@ namespace parthread
         //analyzed contexts
 
         //find first insert position of par-operator
-        CreateInsertionPoints(
-            queryProcessor, rootNode, 0, NULL,
-            analyzedContexts, analyzedContexts[0]);
+        CreateInsertionPoints(rootNode, 0, NULL, analyzedContexts,
+                              analyzedContexts[0]);
 
         if (analyzedContexts.size() > 1)
         {
@@ -523,18 +504,19 @@ namespace parthread
     }
 
     ContextInformation *CreateInsertionPoints(
-        QueryProcessor *queryProcessor,
         OpTree currentNode, int sonIndex, OpTree previousNode,
         std::vector<ContextInformation *> &analyzedContexts,
-        ContextInformation *infoOfCurrentContext)
+        ContextInformation *ctx,
+        bool foundFirstStreamOperator = false,
+        bool prevNodeIsBranchNode = false)
     {
       bool insertionPoint = false;
-      Operator *op = queryProcessor->GetOperator(currentNode);
+      Operator *op = m_queryProcessor->GetOperator(currentNode);
       if (op == NULL)
       {
         //this happens when the node is no operator or a function object
         // in this case skip investigation of the subtree
-        return infoOfCurrentContext;
+        return ctx;
       }
 
       std::string opName = op->GetName();
@@ -551,81 +533,118 @@ namespace parthread
       if (OperatorRetainsOrder(opName))
       {
         //found an operator relying on order of the datasets
-        //in this case remove all other insertion points before
-        ContextInformation *lastAnalyzedContext = infoOfCurrentContext;
-        lastAnalyzedContext->MaxDegreeOfDataParallelism = 1;
-        lastAnalyzedContext->IsHashPartitioned = false;
-        while (lastAnalyzedContext != NULL)
+        //in this case invalidate all found insertion points before
+        ContextInformation *lastAnalyzedContext = ctx;
+        do
         {
+          ctx = lastAnalyzedContext;
+          lastAnalyzedContext = ctx;
+          lastAnalyzedContext->MaxDegreeOfDataParallelism = 1;
+          lastAnalyzedContext->IsHashPartitioned = false;
           lastAnalyzedContext->IsValid = false;
-          lastAnalyzedContext = lastAnalyzedContext->MergeWithParent();
-        }
-      }
-      else if (analyzedContexts.size() == 1)
-      {
-        //find the first insertion point after the root node
-        insertionPoint = queryProcessor->IsTupleStreamOperator(currentNode);
+          lastAnalyzedContext = lastAnalyzedContext->ParentContext;
+        } while (lastAnalyzedContext != NULL);
       }
       else
       {
-        if (queryProcessor->IsTupleStreamOperator(currentNode))
+        if (m_queryProcessor->IsTupleStreamOperator(currentNode))
         {
-          //in case of the first operator set the context information
-          //otherwise check if another insertion point is necessary
+          foundFirstStreamOperator = true;
 
           //if the degree of dataparallelism changes, add another
           //insertion point
           bool contextSupportsDataparallelism =
-              infoOfCurrentContext->MaxDegreeOfDataParallelism > 1;
+              ctx->MaxDegreeOfDataParallelism > 1;
           insertionPoint = contextSupportsDataparallelism ^
                            OperatorSupportsDataparallelism(opName);
+
+          //set an insertion point if the operator requires hash partitioning
+          //and the context doesn't support hash partitioning yet
+          insertionPoint = insertionPoint ||
+                           (!ctx->IsHashPartitioned &&
+                            OperatorRequiresHashPartitioning(opName));
+          
+          //the last node branched more than one datastream
+          insertionPoint = insertionPoint || prevNodeIsBranchNode;
         }
-        else if (false)
-        {
-          //operator switch between Stream and Relation
-        }
-        else
+        else if (foundFirstStreamOperator)
         {
           //other type of operator, stop analysis of sub trees
-          return infoOfCurrentContext;
+          return ctx;
         }
       }
 
       if (insertionPoint)
       {
-        ContextInformation *ctx = new ContextInformation(previousNode);
-        ctx->SonIndex = sonIndex;
-        ctx->ParentContext = infoOfCurrentContext;
-        ctx->MaxDegreeOfDataParallelism = 1;
+        ContextInformation *newCtx = new ContextInformation(previousNode);
+        newCtx->SonIndex = sonIndex;
+        newCtx->ParentContext = ctx;
+        newCtx->MaxDegreeOfDataParallelism = 1;
         if (OperatorSupportsDataparallelism(opName))
         {
-          ctx->MaxDegreeOfDataParallelism =
-              m_settings.MaxDegreeOfDataParallelism;
+          newCtx->MaxDegreeOfDataParallelism =
+          m_settings.MaxDegreeOfDataParallelism;
         }
-        analyzedContexts.push_back(ctx);
-        infoOfCurrentContext = ctx;
+        
+        newCtx->IsHashPartitioned = OperatorRequiresHashPartitioning(opName);
+        if (prevNodeIsBranchNode && newCtx->ParentContext &&
+            newCtx->ParentContext->IsHashPartitioned)
+        {
+          newCtx->PartitonAttributeIndex = AttributeIndexOfNode(previousNode, 
+                                                                sonIndex);
+        }
+        analyzedContexts.push_back(newCtx);
+        ctx = newCtx;
       }
 
       if (op->UsesMemory())
       {
-        infoOfCurrentContext->MemoryOperators.push_back(currentNode);
+        ctx->MemoryOperators.push_back(currentNode);
       }
-      infoOfCurrentContext->NumberOfOperators++;
+      ctx->NumberOfOperators++;
 
       //for each son call analysis recursive
       int numSons = qp->GetNoSons(currentNode);
+      bool isBranchNode = numSons > 1 && IsBranchNode(numSons, currentNode);
       for (int i = 0; i < numSons; i++)
       {
         OpNode *son = static_cast<OpNode *>(qp->GetSon(currentNode, i));
 
         //ContextInformation *sonContext =
-        CreateInsertionPoints(
-            queryProcessor, son, i, currentNode, analyzedContexts,
-            infoOfCurrentContext);
+        CreateInsertionPoints(son, i, currentNode, analyzedContexts,
+                              ctx, foundFirstStreamOperator,
+                              isBranchNode);
       }
 
       //return the contextInfo of the last reached par-operator
-      return infoOfCurrentContext;
+      return ctx;
+    }
+
+    int AttributeIndexOfNode(OpNode *node, int sonIndex)
+    {
+      Operator *op = m_queryProcessor->GetOperator(node);
+
+      if (op->GetName() == "hashjoin" &&
+          (sonIndex == 0 || sonIndex == 1))
+      {
+        Supplier son = m_queryProcessor->GetSon(node, sonIndex+5);
+        return m_queryProcessor->GetConstNodeIntValue(son)-1;
+      }
+      return -1; 
+    }
+
+    bool IsBranchNode(int numSons, OpNode *node)
+    {
+      int numStreamSons = 0;
+      for (int i = 0; i < numSons; i++)
+      {
+        OpNode *son = static_cast<OpNode *>(qp->GetSon(node, i));
+        if (m_queryProcessor->IsTupleStreamOperator(son))
+        {
+          numStreamSons++;
+        }
+      }
+      return numStreamSons > 1;
     }
 
     bool OperatorSupportsDataparallelism(const std::string &opName)

@@ -856,11 +856,13 @@ of the type constructor associated with the ~value~.
    }
 
 
-  void AddSon(const Supplier parent, const Supplier son);
+  void AddSon(const Supplier parent, const Supplier son, 
+              bool insertAsFirstSon = false);
 /*
-~AddSon~ inserts a new ~son~ to the node ~parent~ after all existing
-child nodes. This creates a new connection between the tree containing ~parent~
-as leaf and the tree referenced by ~son~ as root node.
+~AddSon~ inserts a new ~son~ to the node ~parent~. If the insertAsFirstSon
+parameter is set, the son is inserted as first element, otherwise after all 
+existing child nodes. This creates a new connection between the tree containing 
+~parent~ as leaf and the tree referenced by ~son~ as root node. 
 
 */
 
@@ -921,9 +923,28 @@ If ~s~ doesn't reference a par-operator, the function throws an exception
 */
 
   int GetParOperatorsPartitoningAttrIdx(const Supplier s);
+/*
+Get the index of the partitioning attribute of the par-operator referenced by
+~s~. The index is 1-based and the function returns -1 if the operator does 
+not use a partition attribute. If ~s~ is no par-operator the function throws an
+exception.
 
+*/
 
   bool IsTupleStreamOperator(const Supplier s);
+/*
+Checks if the operator referenced by ~s~ is a stream operator. Otherwise the 
+function returns false.
+
+*/
+
+int GetConstNodeIntValue(const Supplier s);
+/*
+Returns the int value of the constant node represented by ~s~. If the node is 
+no constant or does not include an integer as value the function will throw an
+exception.
+
+*/
 
  private:
    std::vector<std::shared_ptr<NewTreeListener> > newTreeListeners;
