@@ -224,6 +224,7 @@ namespace parthread
         message << "Finished reader of entity "
                 << nodeInfo->CurrentEntity()->EntityIdx
                 << " related to context " << ContextId()
+                << " as " << reader->ToString()
                 << " with " << reader->NumReadTuples() << " read tuples";
 
         m_settings.Logger->WriteDebugOutput(message.str());
