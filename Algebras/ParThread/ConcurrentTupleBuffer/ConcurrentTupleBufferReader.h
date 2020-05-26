@@ -57,140 +57,157 @@ September 2019, Fischer Thomas
 namespace parthread
 {
 
-class ConcurrentTupleBufferReader
-{
-public:
-  /* Connects a new ~ConcurrentTupleBufferReader~ to the ~TupleBuffer~ and 
+  class ConcurrentTupleBufferReader
+  {
+  public:
+    /* Connects a new ~ConcurrentTupleBufferReader~ to the ~TupleBuffer~ and 
     allocates resources */
-  ConcurrentTupleBufferReader(ConcurrentTupleBuffer *buffer)
-      : m_buffer(buffer), m_currentTupleBlock(NULL), m_numReadTuples(0)
-  {
-  }
-
-  virtual ~ConcurrentTupleBufferReader()
-  {
-    Close();
-  };
-
-  bool IsEndOfDataReached()
-  {
-    if (ReadNextTupleBlockIfNecessary())
+    ConcurrentTupleBufferReader(ConcurrentTupleBuffer *buffer)
+        : m_buffer(buffer), m_currentTupleBlock(NULL), m_numReadTuples(0)
     {
-      return m_currentTupleBlock->Type() ==
-             TupleBlockType::EndOfDataStreamBlock;
     }
-    return false;
-  }
 
-  bool TryReadTuple(Tuple *&tuple)
-  {
-    //fetch next tuple from block
-    if (ReadNextTupleBlockIfNecessary() &&
-        m_currentTupleBlock->TryPull(tuple))
+    virtual ~ConcurrentTupleBufferReader()
     {
-      //if the tuple block is empty return it to the buffer
-      if (m_currentTupleBlock->IsEmpty())
+      Close();
+    };
+
+    bool IsEndOfDataReached()
+    {
+      if (ReadNextTupleBlockIfNecessary())
       {
-        m_buffer->DeallocateTupleBlock(m_currentTupleBlock);
+        return m_currentTupleBlock->Type() ==
+               TupleBlockType::EndOfDataStreamBlock;
+      }
+      return false;
+    }
+
+    bool TryReadTuple(Tuple *&tuple)
+    {
+      //fetch next tuple from block
+      if (ReadNextTupleBlockIfNecessary() &&
+          m_currentTupleBlock->TryPull(tuple))
+      {
+        //if the tuple block is empty return it to the buffer
+        if (m_currentTupleBlock->IsEmpty())
+        {
+          m_buffer->DeallocateTupleBlock(m_currentTupleBlock);
+        }
+
+        m_numReadTuples++;
+        return true;
       }
 
-      m_numReadTuples++;
+      return false;
+    }
+
+    size_t NumReadTuples()
+    {
+      return m_numReadTuples;
+    }
+
+    virtual std::string ToString() = 0;
+
+  protected: //methods
+    /*
+  returns true if a tuple block is available, otherwise false 
+  */
+    virtual bool ReadNextTupleBlockIfNecessary() = 0;
+
+    /* Disconnects the ~ConcurrentTupleBufferReader~ from the ~TupleBuffer~ 
+     and frees resources for other connected writers */
+    void Close()
+    {
+      if (m_buffer != NULL)
+      {
+        if (m_currentTupleBlock != NULL)
+        {
+          m_buffer->DeallocateTupleBlock(m_currentTupleBlock);
+        }
+
+        m_buffer->RemoveReader(this);
+        m_buffer = NULL;
+      }
+    }
+
+    bool ConsumeTupleBlockByPartition(TupleBlockPtr &tupleBlock,
+                                      const size_t partitionIdx)
+    {
+      return m_buffer->ConsumeTupleBlockByPartition(tupleBlock, partitionIdx);
+    }
+
+    bool ConsumeNextTupleBlock(TupleBlockPtr &tupleBlock)
+    {
+      return m_buffer->ConsumeNextTupleBlock(tupleBlock);
+    }
+
+    size_t NumPartitionsInBuffer()
+    {
+      return m_buffer->m_numPartitions;
+    }
+
+  protected: //member
+    ConcurrentTupleBuffer *m_buffer;
+    TupleBlockPtr m_currentTupleBlock;
+    size_t m_numReadTuples;
+  };
+
+  class ConcurrentTupleBufferSharedReader : public ConcurrentTupleBufferReader
+  {
+  public: //methods
+    ConcurrentTupleBufferSharedReader(ConcurrentTupleBuffer *buffer)
+        : ConcurrentTupleBufferReader(buffer)
+    {
+    }
+
+    virtual std::string ToString() override
+    {
+      return "ConcurrentTupleBufferSharedReader";
+    }
+
+  protected: //methods
+    virtual bool ReadNextTupleBlockIfNecessary() override
+    {
+      if (m_currentTupleBlock == NULL)
+      {
+        return ConsumeNextTupleBlock(m_currentTupleBlock);
+      }
+      return true;
+    }
+  };
+
+  class ConcurrentTupleBufferDedicatedReader
+      : public ConcurrentTupleBufferReader
+  {
+  public: //methods
+    ConcurrentTupleBufferDedicatedReader(ConcurrentTupleBuffer *buffer,
+                                         size_t partitionIdx)
+        : ConcurrentTupleBufferReader(buffer), m_partitionIdx(partitionIdx)
+    {
+    }
+
+    virtual std::string ToString() override
+    {
+      std::stringstream message;
+      message << "ConcurrentTupleBufferDedicatedReader, Partitionindex ";
+      message << m_partitionIdx;
+      return message.str();
+    }
+
+  protected: //methods
+    virtual bool ReadNextTupleBlockIfNecessary() override
+    {
+      if (m_currentTupleBlock == NULL)
+      {
+        return ConsumeTupleBlockByPartition(m_currentTupleBlock,
+                                            m_partitionIdx);
+      }
       return true;
     }
 
-    return false;
-  }
-
-  size_t NumReadTuples()
-  {
-    return m_numReadTuples;
-  }
-
-protected: //methods
-  /*
-  returns true if a tuple block is available, otherwise false 
-  */
-  virtual bool ReadNextTupleBlockIfNecessary() = 0;
-
-  /* Disconnects the ~ConcurrentTupleBufferReader~ from the ~TupleBuffer~ 
-     and frees resources for other connected writers */
-  void Close()
-  {
-    if (m_buffer != NULL)
-    {
-      if (m_currentTupleBlock != NULL)
-      {
-        m_buffer->DeallocateTupleBlock(m_currentTupleBlock);
-      }
-
-      m_buffer->RemoveReader(this);
-      m_buffer = NULL;
-    }
-  }
-
-  bool ConsumeTupleBlockByPartition(TupleBlockPtr &tupleBlock, 
-                                    const size_t partitionIdx)
-  {
-    return m_buffer->ConsumeTupleBlockByPartition(tupleBlock, partitionIdx);
-  }
-
-  bool ConsumeNextTupleBlock(TupleBlockPtr &tupleBlock)
-  {
-    return m_buffer->ConsumeNextTupleBlock(tupleBlock);
-  }
-
-  size_t NumPartitionsInBuffer()
-  {
-    return m_buffer->m_numPartitions;
-  }
-
-protected: //member
-  ConcurrentTupleBuffer *m_buffer;
-  TupleBlockPtr m_currentTupleBlock;
-  size_t m_numReadTuples;
-};
-
-class ConcurrentTupleBufferSharedReader : public ConcurrentTupleBufferReader
-{
-public: //methods
-  ConcurrentTupleBufferSharedReader(ConcurrentTupleBuffer *buffer)
-      : ConcurrentTupleBufferReader(buffer)
-  {
-  }
-
-protected: //methods
-  virtual bool ReadNextTupleBlockIfNecessary() override
-  {
-    if (m_currentTupleBlock == NULL)
-    {
-      return ConsumeNextTupleBlock(m_currentTupleBlock);
-    }
-    return true;
-  }
-};
-
-class ConcurrentTupleBufferDedicatedReader : public ConcurrentTupleBufferReader
-{
-public: //methods
-  ConcurrentTupleBufferDedicatedReader(ConcurrentTupleBuffer *buffer, 
-                                       size_t partitionIdx)
-      : ConcurrentTupleBufferReader(buffer), m_partitionIdx(partitionIdx)
-  {
-  }
-
-protected: //methods
-  virtual bool ReadNextTupleBlockIfNecessary() override
-  {
-    if (m_currentTupleBlock == NULL)
-    {
-      return ConsumeTupleBlockByPartition(m_currentTupleBlock, m_partitionIdx);
-    }
-    return true;
-  }
-
-private: //member
-  int m_partitionIdx;
-};
+  private: //member
+    int m_partitionIdx;
+  };
 
 } // namespace parthread
 #endif //SECONDO_PARTHREAD_CONCURRENT_TUPLE_BUFFER_READER_H
