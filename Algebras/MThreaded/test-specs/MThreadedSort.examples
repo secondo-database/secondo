@@ -1,0 +1,27 @@
+Sequential: Yes
+Database: berlintest
+Restore: No
+
+Operator : setoption
+Number   : 1
+Signature: string x int -> bool
+Example  : query setoption("MaxMemPerOperator", 10);
+Result   : (bool undefined)
+
+Operator    : setcore
+Number      : 2
+Signature   : int -> bool
+Example     : query setcore(6)
+Result      : TRUE
+
+Operator    : getcore
+Number      : 3
+Signature   : -> int
+Example     : query getcore()
+Result      : 6
+
+Operator    : mThreadedMergeSort
+Number      : 4
+Signature   : stream x (attr x bool ...) -> stream
+Example     : query strassen feed mThreadedMergeSort[Name] count
+Result      : 3212

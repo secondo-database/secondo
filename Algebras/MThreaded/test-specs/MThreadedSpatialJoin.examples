@@ -1,0 +1,28 @@
+Sequential: Yes
+Database: berlintest
+Restore: No
+
+Operator : setoption
+Number   : 1
+Signature: string x int -> bool
+Example  : query setoption("MaxMemPerOperator", 512*1024);
+Result   : (bool undefined)
+
+Operator    : setcore
+Number      : 2
+Signature   : int -> bool
+Example     : query setcore(3)
+Result      : TRUE
+
+Operator    : getcore
+Number      : 3
+Signature   : -> int
+Example     : query getcore()
+Result      : 3
+
+Operator    : mThreadedSpatialJoin
+Number      : 4
+Signature   : stream x stream x attr x attr -> stream
+Example     : query strassen feed {o} Flaechen feed {p} mThreadedSpatialJoin[GeoData_o, GeoData_p; 0.1] count
+Result      : 1285
+
