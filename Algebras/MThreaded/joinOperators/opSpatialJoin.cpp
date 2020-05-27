@@ -55,7 +55,8 @@ These Operators are:
 #include <random>
 #include "Algebras/Spatial/SpatialAlgebra.h"
 #include "Algebras/Rectangle/RectangleAlgebra.h"
-#include "Algebras/SPart/IrregularGrid2D.h"
+#include <time.h>
+
 
 
 using namespace mthreaded;
@@ -68,12 +69,15 @@ namespace spatialJoinGlobal {
 static constexpr double MEMFACTOR = 1.2;
 static const double BOX_EXPAND = FACTOR;
 constexpr unsigned int DIMENSIONS = 3;
-vector<shared_ptr<SafeQueue<Tuple*>>> partBufferR;
-vector<shared_ptr<SafeQueue<Tuple*>>> partBufferS;
-shared_ptr<SafeQueue<Tuple*>> tupleBuffer;
-shared_ptr<SafeQueue<std::pair<Tuple*, Tuple*>>> possiblePairBuffer;
-mutex mutexFun_;
-mutex mutexConcat_;
+vector<shared_ptr<SafeQueue<Tuple*>>> partBufferR {};
+vector<shared_ptr<SafeQueue<Tuple*>>> partBufferS {};
+shared_ptr<SafeQueue<Tuple*>> tupleBuffer = nullptr;
+condition_variable tbufferfull;
+mutex tbufferfull_;
+bool tbufferfullDone;
+condition_variable workers;
+mutex workersDone_;
+bool workersDone;
 size_t threadsDone;
 }
 
@@ -81,116 +85,109 @@ using namespace spatialJoinGlobal;
 
 CandidateWorker::CandidateWorker(
         size_t _maxMem, size_t _coreNoWorker, size_t _streamInNo,
-        pair<size_t, size_t> _joinAttr, Word _fun,
+        pair<size_t, size_t> _joinAttr,
         TupleType* _resultTupleType, const Rect* _gridcell) :
         maxMem(_maxMem),
         coreNoWorker(_coreNoWorker),
         streamInNo(_streamInNo),
         joinAttr(_joinAttr),
-        fun(_fun),
         resultTupleType(_resultTupleType),
-        gridcell(_gridcell),
-        bufferS(maxMem / 2) {
+        gridcell(_gridcell){
+        //bufferR(maxMem) {
 
    rtreeR = make_shared<mmrtree::RtreeT<DIM, TupleId>>(2, 4);
-   rtreeS = make_shared<mmrtree::RtreeT<DIM, TupleId>>(2, 4);
 }
 
 CandidateWorker::~CandidateWorker() {
    cout << "destruct candidate: " << streamInNo << endl;
+//   if (threadsDone == 0)
+//   {
+//      lock_guard<std::mutex> lock(workersDone_);
+//      workersDone = true;
+//      workers.notify_all();
+//   }
 }
 
 
 // Thread
 void CandidateWorker::operator()() {
    cout << "Worker Candidate Nr. " << streamInNo << endl;
+   workersDone = false;
 
    Tuple* tupleR = partBufferR[streamInNo]->dequeue();
-   size_t count = 0;
+   TupleId id = 0;
    while (tupleR != nullptr) {
-      bufferR.emplace_back(tupleR);
-      ++count;
+      bufferRMem.push_back(tupleR);
+      rtreeR->insert(((StandardSpatialAttribute<DIM>*)
+              tupleR->GetAttribute(joinAttr.first))->BoundingBox(), id);
+      ++id;
       tupleR = partBufferR[streamInNo]->dequeue();
    }
-   cout << "R in Thread: " << streamInNo << " # " << count << endl;
+   //ostream &objOstream = cout;
+   //if (streamInNo == 0) rtreeR->printAsRel(objOstream);
+   cout << "R in Thread: " << streamInNo << " # " << id << endl;
 
-   cout << "quicksort" << endl;
-   quickSort(bufferR, 0, bufferR.size() - 1);
 
    cout << "Read S" << endl;
    Tuple* tupleS = partBufferS[streamInNo]->dequeue();
-   count = 0;
+   size_t count = 0;
+   //bool firstBuffer = true;
    while (tupleS != nullptr) {
-      TupleId id = bufferS.AppendTuple(tupleS);
-      rtreeS->insert(((StandardSpatialAttribute<DIM>*)
-              tupleS->GetAttribute(joinAttr.second))->BoundingBox(), id);
+      Rect bboxS = ((StandardSpatialAttribute<DIM>*)
+              tupleS->GetAttribute(joinAttr.second))->BoundingBox();
+      mmrtree::RtreeT<DIM, TupleId>::iterator* it = rtreeR->find(bboxS);
+      const TupleId* id;
+      while ((id = it->next())) {
+         Tuple* tupleR = bufferRMem[(size_t)*id];
+         Rect bboxR = ((StandardSpatialAttribute<DIM>*)
+                 tupleR->GetAttribute(joinAttr.first))->BoundingBox();
+         if (reportTopright(topright(&bboxR), topright(&bboxS))) {
+            auto* result = new Tuple(resultTupleType);
+            Concat(tupleR, tupleS, result);
+            tupleBuffer->enqueue(result);
+//            if (firstBuffer) {
+//               lock_guard<std::mutex> lock(tbufferfull_);
+//               tbufferfullDone = true;
+//               tbufferfull.notify_all();
+//               firstBuffer = false;
+//            }
+         }
+      }
+      delete it;
+      cout << "NoRefS" << tupleS->GetNumOfRefs() << "--";
+      tupleS->DeleteIfAllowed();
       ++count;
       tupleS = partBufferS[streamInNo]->dequeue();
    }
 
-   cout << "S in Thread: " << streamInNo << " # " << count << endl;
+   cout << "clean" << streamInNo << endl;
 
-   cout << "R" << endl;
-   for (Tuple* tupleR : bufferR) {
-      Rect bboxR = ((StandardSpatialAttribute<DIM>*)
-              tupleR->GetAttribute(joinAttr.first))->BoundingBox();
-      mmrtree::RtreeT<DIM, TupleId>::iterator* it = rtreeS->find(bboxR);
-      const TupleId* id;
-      while ((id = it->next())) {
-         Tuple* tupleS = bufferS.GetTuple(*id);
-         Rect bboxS = ((StandardSpatialAttribute<DIM>*) tupleS->GetAttribute(
-                 joinAttr.second))->BoundingBox();
-         if (bboxS.Intersects(bboxR) &&
-             reportTopright(topright(&bboxR), topright(&bboxS))) {
-            auto* result = new Tuple(resultTupleType);
-            Concat(tupleR, tupleS, result);
-            tupleBuffer->enqueue(result);
-         }
-      }
+   for (Tuple* tupleR : bufferRMem) {
+      //cout << "NoRefR" << tupleR->GetNumOfRefs() << "--";
+      tupleR->DeleteIfAllowed();
    }
+   bufferRMem.clear();
+   rtreeR.reset();
 
-//   cout << "refinement" << endl;
-//   for (pair<Tuple*, Tuple*> possiblePair : possiblePairs) {
-//      assert(possiblePair.first != nullptr);
-//      assert(possiblePair.second != nullptr);
-//      ArgVector &arguments = *qp->Argument(fun.addr);
-//      Tuple* funarg0 = (possiblePair.first);
-//      Tuple* funarg1 = (possiblePair.second);
-//      if (!funarg0 || !funarg1) {
-//         cout << "arg invalid" << endl;
-//         return;
-//      }
-//      arguments[0].setAddr(funarg0);
-//      arguments[1].setAddr(funarg1);
-//      Word funres;
-//      bool res;
-//      {
-//         std::lock_guard<mutex> lock(spatialJoinGlobal::mutexFun_);
-//         qp->Request(fun.addr, funres);
-//         res = ((CcBool*) funres.addr)->GetBoolval();
-//      }
-//      if (res) {
-//         auto* result = new Tuple(resultTupleType);
-//         Concat(possiblePair.first, possiblePair.second, result);
-//         tupleBuffer->enqueue(result);
-//      }
-//   }
+   //cout << "S in Thread: " << streamInNo << " # " << count << endl;
 
    cout << "Worker Candidate Nr. done " << streamInNo << endl;
-
-   //for (Tuple* tupleR : bufferR) {
-   //tupleR->DeleteIfAllowed();
-   //}
-   bufferR.clear();
-   rtreeS.reset();
-
-   cout << "cleaned" << endl;
 
    --threadsDone;
    if (threadsDone == 0) {
       cout << "nullptr" << endl;
       tupleBuffer->enqueue(nullptr);
+      lock_guard<std::mutex> lock(workersDone_);
+      workersDone = true;
+      workers.notify_all();
+   } else {
+      cout << "wait" << endl;
+      std::unique_lock<std::mutex> lock(workersDone_);
+      workers.wait(lock, [&] { return workersDone; });
+      cout << "awake" << endl;
    }
+
+
 }
 
 void CandidateWorker::quickSort(vector<Tuple*> &A, size_t p, size_t q) {
@@ -219,7 +216,7 @@ size_t CandidateWorker::partition(vector<Tuple*> &A, size_t p, size_t q) {
    return i;
 }
 
-size_t CandidateWorker::topright(Rect* r1) {
+size_t CandidateWorker::topright(Rect* r1) const {
    size_t value = 0;
    if (r1->MaxD(0) >= gridcell->MaxD(0)) { value++; }
    if (r1->MaxD(1) >= gridcell->MaxD(1)) {
@@ -228,20 +225,22 @@ size_t CandidateWorker::topright(Rect* r1) {
    return value;
 }
 
-inline bool CandidateWorker::reportTopright(size_t r1, size_t r2) {
+inline bool CandidateWorker::reportTopright(size_t r1, size_t r2) const {
    return ((r1 & r2) == 0) || (r1 + r2 == 3);
 }
 
 
 //Constructor
-spatialHashJoinLI::spatialHashJoinLI(Word _streamR, Word _streamS, Word _fun,
+spatialJoinLI::spatialJoinLI(Word _streamR, Word _streamS,
                                      pair<size_t, size_t> _joinAttr,
                                      size_t _maxMem,
                                      ListExpr resultType) :
-        streamR(_streamR), streamS(_streamS), fun(_fun), joinAttr(_joinAttr),
+        streamR(_streamR), streamS(_streamS), joinAttr(_joinAttr),
         maxMem(_maxMem) {
    resultTupleType = new TupleType(nl->Second(resultType));
-   resultTupleType->IncReference();
+   //resultTupleType->IncReference();
+   vector<Tuple*> bufferR = {};
+   //cellInfoVec = {};
    coreNo = MThreadedSingleton::getCoresToUse();
    coreNoWorker = coreNo - 1;
    streamR.open();
@@ -251,40 +250,55 @@ spatialHashJoinLI::spatialHashJoinLI(Word _streamR, Word _streamS, Word _fun,
 
 
 //Destructor
-spatialHashJoinLI::~spatialHashJoinLI() {
+spatialJoinLI::~spatialJoinLI() {
    cout << "destuctor info-class" << endl;
-   partBufferR.clear();
-   partBufferS.clear();
+   streamR.close();
+   streamS.close();
+   //partBufferR.clear();
+   //partBufferS.clear();
+//   for (CellInfo* info : cellInfoVec){
+//      delete info;
+//   }
+//   cellInfoVec.clear();
    resultTupleType->DeleteIfAllowed();
 }
 
 //Output
-Tuple* spatialHashJoinLI::getNext() {
+Tuple* spatialJoinLI::getNext() {
    Tuple* res;
+   // terminates without this followed by count but not by consume
+   usleep(1);
    res = tupleBuffer->dequeue();
    if (res != nullptr) {
+      //cout << "hallo" << endl;
       return res;
    }
    return 0;
 }
 
-void spatialHashJoinLI::Scheduler() {
+void spatialJoinLI::Scheduler() {
    // build bbox
    // Stream R
+   workersDone = false;
+   tbufferfullDone = false;
    Tuple* tupleR = streamR.request();
    TupleType* ttR = tupleR->GetTupleType();
    ttR->IncReference();
+   std::vector<Tuple*> bufferR;
    size_t tupleSize = tupleR->GetMemSize(); // only first tuple
-   vector<Tuple*> bufferR;
-   //tupleR->GetTupleId();
    vector<Rectangle<2>> bboxRSample;
    Rect bboxSpan = ((StandardSpatialAttribute<2>*)
            tupleR->GetAttribute(joinAttr.first))->BoundingBox();
    mt19937 rng(chrono::steady_clock::now().time_since_epoch().count());
    size_t count = 0;
+   //auto rtree = make_shared<mmrtree::RtreeT<2, TupleId>>(2, 4);
+   //auto buffer = make_shared<TupleStore1>(maxMem);
    do {
-      tupleR->IncReference();
+      //tupleR->IncReference();
       bufferR.push_back(tupleR);
+      //TupleId id = buffer->AppendTuple(tupleR);
+      //rtree->insert(((StandardSpatialAttribute<2>*)
+      //        tupleR->GetAttribute(joinAttr.first))->BoundingBox(), id);
       size_t replaceNo = uniform_int_distribution<size_t>(0, count)(rng);
       if (count < bboxsample || replaceNo < bboxsample) {
          Rect bbox = ((StandardSpatialAttribute<2>*)
@@ -305,14 +319,9 @@ void spatialHashJoinLI::Scheduler() {
          bboxsample += BBOXSAMPLESTEPS;
       }
    } while ((tupleR = streamR.request()));
-   streamR.close();
+
    cout << bboxSpan.MinD(0) << "##" << bboxSpan.MaxD(0) << "Size: " << tupleSize
         << endl;
-//   cout << "bbox sample" << endl;
-//   for (Rect r : bboxRSample) {
-//      cout << r.MinD(0) << " - " << r.MaxD(0) << "##";
-//      cout << r.MinD(1) << " - " << r.MaxD(1) << endl;
-//   }
 
 
    // calc partition for worker to fit in memory
@@ -331,9 +340,10 @@ void spatialHashJoinLI::Scheduler() {
 
    auto* irrGrid2d = new IrregularGrid2D(bboxSpan, gridY, coreNoWorker);
    irrGrid2d->SetVector(&bboxRSample, bboxSpan, gridY, coreNoWorker);
-
-   vector<CellInfo*> cellInfoVec = IrregularGrid2D::getCellInfoVector(
+   std::vector<CellInfo*> cellInfoVec = IrregularGrid2D::getCellInfoVector(
            irrGrid2d);
+
+
    //resize cells at margin of grid to min/max
    size_t gridSize = cellInfoVec.size();
    for (CellInfo* cellInfo : cellInfoVec) {
@@ -370,10 +380,8 @@ void spatialHashJoinLI::Scheduler() {
    for (size_t i = 0; i < coreNoWorker; ++i) {
       partBufferR.push_back(make_shared<SafeQueue<Tuple*>>(i));
       partBufferS.push_back(make_shared<SafeQueue<Tuple*>>(i));
-      joinThreads.emplace_back(
-              CandidateWorker(maxMem / coreNoWorker, coreNoWorker, i,
-                              joinAttr, fun,
-                              resultTupleType, cellInfoVec[i]->cell));
+      joinThreads.emplace_back(CandidateWorker(maxMem, coreNoWorker, i,
+                              joinAttr, resultTupleType, cellInfoVec[i]->cell));
       joinThreads.back().detach();
    }
 
@@ -386,9 +394,12 @@ void spatialHashJoinLI::Scheduler() {
                  tuple->GetAttribute(joinAttr.first))->BoundingBox();
          for (CellInfo* cellInfo : cellInfoVec) {
             if ((cellInfo->cell)->Intersects(bbox)) {
+               tuple->IncReference();
                partBufferR[cellInfo->cellId - 1]->enqueue(tuple);
             }
          }
+         //cout << "Ref"<<tuple->GetNumOfRefs();
+         tuple->DeleteIfAllowed();
          ++count;
       }
    } else {
@@ -399,181 +410,174 @@ void spatialHashJoinLI::Scheduler() {
          for (CellInfo* cellInfo : cellInfoVec) {
             if ((cellInfo->cell)->Intersects(bbox)) {
                if (cellInfo->cellId < (int) coreNoWorker + 1) {
+                  tuple->IncReference();
                   partBufferR[cellInfo->cellId - 1]->enqueue(tuple);
                } else
                   overflowBufferR[cellInfo->cellId - coreNoWorker -
                                   1]->appendTuple(tuple);
             }
          }
+         tuple->DeleteIfAllowed();
          ++count;
       }
    }
-
+   bufferR.clear();
    for (size_t i = 0; i < coreNoWorker; ++i) {
       partBufferR[i]->enqueue(nullptr);
    }
-   bufferR.clear();
 
    cout << "Stream S" << endl;
    // grid partitioning S
    count = 0;
-   Tuple* tupleS = streamS.request();
-   do {
+   Tuple* tupleS;
+   while ((tupleS = streamS.request())) {
       Rect bbox = ((StandardSpatialAttribute<2>*)
               tupleS->GetAttribute(joinAttr.second))->BoundingBox();
       for (CellInfo* cellInfo : cellInfoVec) {
          if ((cellInfo->cell)->Intersects(bbox)) {
+            tupleS->IncReference();
             partBufferS[cellInfo->cellId - 1]->enqueue(tupleS);
          }
       }
+      tupleS->DeleteIfAllowed();
       ++count;
-   } while ((tupleS = streamS.request()));
+   }
+
+   // overflow
+
+   for (CellInfo* info : cellInfoVec) {
+      delete info;
+   }
+   cellInfoVec.clear();
+   delete irrGrid2d;
 
    for (size_t i = 0; i < coreNoWorker; ++i) {
       partBufferS[i]->enqueue(nullptr);
    }
-   //ttR->DeleteIfAllowed();
+
+   ttR->DeleteIfAllowed();
    cout << "Schedule Ready" << endl;
+//   std::unique_lock<std::mutex> lock(tbufferfull_);
+//   tbufferfull.wait(lock, [&] { return tbufferfullDone; });
+   //while (tupleBuffer->empty()) {}
+   cout << "tupbuffer init" << endl;
 }
 
 
-ListExpr op_spatialHashJoin::spatialHashJoinTM(ListExpr args) {
+ListExpr op_spatialJoin::spatialJoinTM(ListExpr args) {
 
    // mthreadedHybridJoin has 4 arguments
    // 1: StreamR of Tuple with spatial Attr
    // 2: StreamS of Tuple with spatial Attr
-   // 3: fun spatial predicate
-   // TODO 4: optional use existing bbox
-   // TODO 5: optional define extend of grid
+   // 3: Attr R
+   // 4: Attr S
+   // 5: optional define extend of grid
 
    if (MThreadedSingleton::getCoresToUse() < 3) {
       return listutils::typeError(" only works with >= 3 threads ");
    }
 
-   cout << "TM SJ: " << nl->ToString(args) << "##" << nl->ListLength(args)
-        << endl;
+   cout << "args: " << nl->ToString(args);
 
-   string err = "stream(tuple) x stream(tuple) x fun";
-   if (nl->ListLength(args) != 3) {
+   string err = "stream(tuple) x stream(tuple) x attr1 x "
+                "attr2 [ x real] expected";
+   if (!nl->HasLength(args, 4) && !nl->HasLength(args, 5)) {
       return listutils::typeError(err);
    }
-
-//   const ListExpr arg1 = nl->First(nl->First(args)); //tuple-stream
-//   ListExpr tupleAttr = nl->Second(args);
-//   ListExpr tupleValues = nl->Second(tupleAttr); //values
-//   tupleAttr = nl->First(tupleAttr); //attribute list and decr/incr
-
-   ListExpr stream1 = nl->First(nl->First(args));
-   ListExpr stream2 = nl->First(nl->Second(args));
-   ListExpr fun = nl->First(nl->Third(args));
-   cout << nl->ToString(stream1) << endl;
-   cout << nl->ToString(stream2) << endl;
-   cout << nl->ToString(fun) << endl;
+   ListExpr stream1 = nl->First(args);
+   ListExpr stream2 = nl->Second(args);
+   ListExpr attr1 = nl->Third(args);
+   ListExpr attr2 = nl->Fourth(args);
 
    if (!Stream<Tuple>::checkType(stream1)) {
       return listutils::typeError(err + " (first arg is not a tuple stream)");
    }
-   cout << "Stream" << endl;
    if (!Stream<Tuple>::checkType(stream2)) {
       return listutils::typeError(err + " (second arg is not a tuple stream)");
    }
-   cout << "Stream" << endl;
-   if (!listutils::isMap<2>(fun)) {
-      return listutils::typeError(err + "(no map with 2 arguments)");
+   if (!listutils::isSymbol(attr1)) {
+      return listutils::typeError(err + " (first attrname is not valid)");
    }
-   cout << "Map" << endl;
+   if (!listutils::isSymbol(attr2)) {
+      return listutils::typeError(err + " (second attrname is not valid)");
+   }
+   ListExpr optList = nl->Fifth(args);
+   if (!nl->IsEmpty(optList) && !CcReal::checkType(nl->First(optList)) &&
+       !CcInt::checkType(nl->First(optList))) {
+      return listutils::typeError(err + " (optional arg is not a real or int)");
+   }
 
    ListExpr attrList1 = nl->Second(nl->Second(stream1));
    ListExpr attrList2 = nl->Second(nl->Second(stream2));
-   cout << nl->ToString(attrList1) << endl;
-   cout << nl->ToString(attrList2) << endl;
-
-   ListExpr mapArg1 = nl->Second(fun);
-   ListExpr mapArg2 = nl->Third(fun);
-   cout << nl->ToString(mapArg1) << endl;
-   cout << nl->ToString(mapArg2) << endl;
-
-   if (!nl->Equal(nl->Second(mapArg1), attrList1)) {
-      return listutils::typeError(" is not an attribute of the first stream");
-   }
-
-   if (!nl->Equal(nl->Second(mapArg2), attrList2)) {
-      return listutils::typeError(" is not an attribute of the second stream");
-   }
-
-//   if(!listutils::disjointAttrNames(al1, al2)){
-//      return listutils::typeError("conflicting type names");
-//   }
-
-   ListExpr mapAttr = nl->Fourth(nl->Second(nl->Third(args)));
-   cout << nl->ToString(mapAttr) << endl;
-   while (nl->ListLength(mapAttr) != 3) {
-      mapAttr = nl->Second(mapAttr);
-   }
-   cout << nl->ToString(mapAttr) << endl;
-   string mapAttrName1 = nl->SymbolValue(nl->Third(nl->Second(mapAttr)));
-   string mapAttrName2 = nl->SymbolValue(nl->Third(nl->Third(mapAttr)));
-   cout << mapAttrName1 << "##" << mapAttrName2 << endl;
+   string attrname1 = nl->SymbolValue(attr1);
+   string attrname2 = nl->SymbolValue(attr2);
    ListExpr attrType1;
    ListExpr attrType2;
-   int index1 = listutils::findAttribute(attrList1, mapAttrName1, attrType1);
-   int index2 = listutils::findAttribute(attrList2, mapAttrName2, attrType2);
+
+   int index1 = listutils::findAttribute(attrList1, attrname1, attrType1);
+   if (index1 == 0) {
+      return listutils::typeError(attrname1 +
+                                  " is not an attribute of the first stream");
+   }
+
+   int index2 = listutils::findAttribute(attrList2, attrname2, attrType2);
+   if (index2 == 0) {
+      return listutils::typeError(attrname1 +
+                                  " is not an attribute of the second stream");
+   }
+
    if (!listutils::isSpatialType(attrType1)) {
       return listutils::typeError(" first attribute not spatial ");
    }
+
    if (!listutils::isSpatialType(attrType2)) {
       return listutils::typeError(" second attribute not spatial ");
    }
 
-   ListExpr funRes = nl->Fourth(fun);
-   cout << nl->ToString(funRes) << endl;
-   // result of the function must be an attribute again , e . g . in
-   // kind DATA
-   if (!CcBool::checkType(funRes)) {
-      return listutils::typeError(" map result is not a bool ");
-   }
-
    ListExpr resAttrList = listutils::concat(attrList1, attrList2);
+
    if (!listutils::isAttrList(resAttrList)) {
       return listutils::typeError("Name conflicts in attributes found");
    }
-   resAttrList = nl->TwoElemList(nl->SymbolAtom(Symbols::STREAM()),
-                                 nl->TwoElemList(
-                                         nl->SymbolAtom(Symbols::TUPLE()),
-                                         resAttrList));
 
-   ListExpr appendList = nl->TwoElemList(
+   ListExpr indexList = nl->TwoElemList(
            nl->IntAtom(index1 - 1),
            nl->IntAtom(index2 - 1));
 
-   cout << "result: " << nl->ToString(resAttrList) << endl;
-   cout << "append: " << nl->ToString(appendList) << endl;
-   nl->WriteListExpr(appendList);
-   cout << "fertig TM" << endl;
-   return nl->ThreeElemList(nl->SymbolAtom(Symbols::APPEND()), appendList,
-                            resAttrList);
+   cout << nl->ToString(indexList) << endl;
+
+   return nl->ThreeElemList(nl->SymbolAtom(Symbols::APPEND()),
+                            indexList,
+                            nl->TwoElemList(
+                                    nl->SymbolAtom(Stream<Tuple>::BasicType()),
+                                    nl->TwoElemList(
+                                            nl->SymbolAtom(Tuple::BasicType()),
+                                            resAttrList)));
 }
 
-// Operator SpatialJoin (firstArg = 1, param = false)
+// Operator SpatialJoin
 // args[0] : streamR
 // args[1] : streamS
-// args[2] : index of join attribute R
-// args[3] : index of join attribute S
+// args[5] : index of join attribute R
+// args[6] : index of join attribute S
 
-int op_spatialHashJoin::spatialHashJoinVM(Word* args, Word &result, int message,
+int op_spatialJoin::spatialJoinVM(Word* args, Word &result, int message,
                                           Word &local, Supplier s) {
 
+   //cout << "VM" << endl;
    //read append structure
-   //(attribute number, sort direction)
    std::pair<size_t, size_t> attr;
-   CcInt* attrR = static_cast<CcInt*>(args[3].addr);
-   CcInt* attrS = static_cast<CcInt*>(args[4].addr);
+   CcInt* attrR = static_cast<CcInt*>(args[5].addr);
+   CcInt* attrS = static_cast<CcInt*>(args[6].addr);
    attr = make_pair(attrR->GetIntval(), attrS->GetIntval());
+   //cout << attr.first << "##" << attr.second << endl;
+//   CcReal* resizeBox = static_cast<CcReal*>(args[4].addr);
+//   cout << resizeBox->GetRealval();
 
    // create result type
    ListExpr resultType = qp->GetNumType(s);
 
-   spatialHashJoinLI* li = (spatialHashJoinLI*) local.addr;
+   spatialJoinLI* li = (spatialJoinLI*) local.addr;
 
    switch (message) {
 
@@ -582,17 +586,16 @@ int op_spatialHashJoin::spatialHashJoinVM(Word* args, Word &result, int message,
             delete li;
          }
 
-         local.addr = new spatialHashJoinLI(args[0], args[1], args[2], attr,
+         local.addr = new spatialJoinLI(args[0], args[1], attr,
                                             qp->GetMemorySize(s) *
                                             1024 * 1024,
                                             resultType);
-         //resultTupleType->DeleteIfAllowed();
          return 0;
       case REQUEST:
          result.addr = li ? li->getNext() : 0;
          return result.addr ? YIELD : CANCEL;
       case CLOSE:
-         cout << "close" << endl;
+         cout << "CLOSE" << endl;
          if (li) {
             delete li;
             local.addr = 0;
@@ -602,7 +605,7 @@ int op_spatialHashJoin::spatialHashJoinVM(Word* args, Word &result, int message,
    return 0;
 }
 
-std::string op_spatialHashJoin::getOperatorSpec() {
+std::string op_spatialJoin::getOperatorSpec() {
    return OperatorSpec(
            " stream x stream x fun -> stream",
            " streamR streamS mThreadedSpatialJoin(fun)",
@@ -611,10 +614,10 @@ std::string op_spatialHashJoin::getOperatorSpec() {
    ).getStr();
 }
 
-shared_ptr<Operator> op_spatialHashJoin::getOperator() {
+shared_ptr<Operator> op_spatialJoin::getOperator() {
    return std::make_shared<Operator>("mThreadedSpatialJoin",
                                      getOperatorSpec(),
-                                     &op_spatialHashJoin::spatialHashJoinVM,
+                                     &op_spatialJoin::spatialJoinVM,
                                      Operator::SimpleSelect,
-                                     &op_spatialHashJoin::spatialHashJoinTM);
+                                     &op_spatialJoin::spatialJoinTM);
 }
