@@ -142,11 +142,11 @@ void FileBuffer::openRead() {
    fileStreamIn = make_shared<std::ifstream>(fname.c_str(), ios::binary);
 }
 
-bool FileBuffer::empty() {
+bool FileBuffer::empty() const {
    return isEmpty;
 }
 
-string FileBuffer::getFname() {
+string FileBuffer::getFname() const {
    return fname;
 }
 

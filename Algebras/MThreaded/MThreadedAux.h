@@ -98,9 +98,9 @@ class FileBuffer : public Buffer {
    // open for read
    void openRead() override;
 
-   bool empty();
+   bool empty() const;
 
-   std::string getFname();
+   std::string getFname() const;
 
    // Constructor FileBuffer
    explicit FileBuffer(TupleType* _tt);
@@ -145,7 +145,7 @@ class SafeQueue {
 
    ~SafeQueue() {};
 
-   bool empty() {
+   bool empty() const {
       return q.empty();
    }
 

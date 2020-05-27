@@ -86,7 +86,7 @@ The shared-pointers are alive as long as the algebra-object lives in Secondo.
 */
 
    std::shared_ptr<Operator> opHybridJoin = op_hybridHashJoin().getOperator();
-   std::shared_ptr<Operator> opSpatialJoin = op_spatialHashJoin().getOperator();
+   std::shared_ptr<Operator> opSpatialJoin = op_spatialJoin().getOperator();
    std::shared_ptr<Operator> oprefinement = op_refinement().getOperator();
 
 
@@ -111,7 +111,6 @@ The shared-pointers are alive as long as the algebra-object lives in Secondo.
       opHybridJoin.get()->SetUsesMemory();
       AddOperator(opHybridJoin.get());
 
-      opSpatialJoin.get()->SetUsesArgsInTypeMapping();
       opSpatialJoin.get()->SetUsesMemory();
       AddOperator(opSpatialJoin.get());
 

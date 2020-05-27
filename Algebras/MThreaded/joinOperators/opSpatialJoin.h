@@ -48,6 +48,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <utility>
 #include "MMRTree.h"
 #include "Algebras/MMRTree/TupleStore1.h"
+#include "Algebras/SPart/IrregularGrid2D.h"
 
 
 namespace mthreaded {
@@ -63,15 +64,18 @@ class CandidateWorker {
    Word fun;
    TupleType* resultTupleType;
    const Rect* gridcell;
+   std::shared_ptr<TupleStore1> buffer;
+   std::shared_ptr<mmrtree::RtreeT<2, TupleId>> rtree;
    std::shared_ptr<mmrtree::RtreeT<DIM, TupleId>> rtreeR;
-   std::shared_ptr<mmrtree::RtreeT<DIM, TupleId>> rtreeS;
-   std::vector<Tuple*> bufferR;
-   TupleStore1 bufferS;
+   //std::shared_ptr<mmrtree::RtreeT<DIM, TupleId>> rtreeS;
+   //TupleStore1 bufferR;
+   std::vector<Tuple*> bufferRMem;
+   //TupleStore1 bufferS;
 
    public:
    CandidateWorker(
            size_t _maxMem, size_t _coreNoWorker, size_t _streamInNo,
-           std::pair<size_t, size_t> _joinAttr, Word _fun,
+           std::pair<size_t, size_t> _joinAttr,
            TupleType* _resultTupleType, const Rect* _gridcell);
 
    ~CandidateWorker();
@@ -84,36 +88,36 @@ class CandidateWorker {
 
    size_t partition(std::vector<Tuple*> &A, size_t p, size_t q);
 
-   size_t topright(Rect* r1);
+   size_t topright(Rect* r1) const;
 
-   inline bool reportTopright(size_t r1, size_t r2);
+   inline bool reportTopright(size_t r1, size_t r2) const;
 };
 
 
-class spatialHashJoinLI {
+class spatialJoinLI {
    private:
    Stream<Tuple> streamR;
    Stream<Tuple> streamS;
-   Word fun;
    std::pair<size_t, size_t> joinAttr;
    std::vector<std::thread> joinThreads;
    size_t maxMem;
    size_t coreNo;
    size_t coreNoWorker;
    TupleType* resultTupleType;
+   //std::vector<CellInfo*> cellInfoVec;
    const size_t cores = MThreadedSingleton::getCoresToUse();
    size_t bboxsample = 100;
    constexpr static size_t BBOXSAMPLESTEPS = 10;
 
    public:
    //Constructor
-   spatialHashJoinLI(Word _streamR, Word _streamS, Word _fun,
+   spatialJoinLI(Word _streamR, Word _streamS,
                      std::pair<size_t, size_t> _joinAttr, size_t _maxMem,
                      ListExpr resultType);
 
 
    //Destructor
-   ~spatialHashJoinLI();
+   ~spatialJoinLI();
 
    //Output
    Tuple* getNext();
@@ -124,20 +128,20 @@ class spatialHashJoinLI {
 };
 
 
-class op_spatialHashJoin {
+class op_spatialJoin {
 
-   static ListExpr spatialHashJoinTM(ListExpr args);
+   static ListExpr spatialJoinTM(ListExpr args);
 
-   static int spatialHashJoinVM(Word* args, Word &result, int message,
+   static int spatialJoinVM(Word* args, Word &result, int message,
                                 Word &local, Supplier s);
 
    std::string getOperatorSpec();
 
    public:
 
-   explicit op_spatialHashJoin() = default;
+   explicit op_spatialJoin() = default;
 
-   ~op_spatialHashJoin() = default;
+   ~op_spatialJoin() = default;
 
    std::shared_ptr<Operator> getOperator();
 

@@ -117,9 +117,9 @@ void RefinementWorker::refineNewQP() {
    qproc->Construct(
            funList, correct, evaluable, defined,isFunction,
            funct,resultType, true);
-   ArgVector &arguments = *qproc->Argument(funct);
    Tuple* tuple = partBuffer[streamInNo]->dequeue();
    while (tuple != nullptr) {
+      ArgVector &arguments = *qproc->Argument(funct);
       arguments[0].setAddr(tuple);
       Word funres;
       qproc->Request(funct, funres);
@@ -132,14 +132,14 @@ void RefinementWorker::refineNewQP() {
       }
       tuple = partBuffer[streamInNo]->dequeue();
    }
-   qproc->Destroy(funct, false);
+   qproc->Destroy(funct, true);
    delete qproc;
 }
 
 void RefinementWorker::refineQP() {
-   ArgVector &arguments = *qp->Argument(funct);
    Tuple* tuple = partBuffer[streamInNo]->dequeue();
    while (tuple != nullptr) {
+      ArgVector &arguments = *qp->Argument(funct);
       arguments[0].setAddr(tuple);
       Word funres;
       qp->Request(funct, funres);

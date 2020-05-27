@@ -49,13 +49,13 @@ Result      : 15
 Operator    : mThreadedSpatialJoin
 Number      : 8
 Signature   : stream x stream x attr x attr -> stream
-Example     : query strassen feed {o} Flaechen feed {p} mThreadedSpatialJoin[not(isempty(intersection1(.GeoData_o, ..GeoData_p)))] project [Name_o, Name_p] consume
+Example     : query strassen feed {o} Flaechen feed {p} mThreadedSpatialJoin[GeoData_o, GeoData_p; 0.1] project [Name_o, Name_p] consume
 Result      : 34
 
 Operator    : mThreadedSpatialJoin
 Number      : 9
 Signature   : stream x stream x attr x attr -> stream
-Example     : query WFlaechen feed {o} Plaetze feed {p} mThreadedSpatialJoin[contains_rob(.GeoData_o, ..GeoData_p)] project [Name_o, Name_p] consume
+Example     : query WFlaechen feed {o} Plaetze feed {p} mThreadedSpatialJoin[GeoData_o, GeoData_p; 0.1] project [Name_o, Name_p] consume
 Result      : 34
 
 
