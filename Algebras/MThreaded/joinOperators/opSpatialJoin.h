@@ -65,11 +65,13 @@ class CandidateWorker {
    TupleType* resultTupleType;
    const Rect* gridcell;
    std::shared_ptr<TupleStore1> buffer;
-   std::shared_ptr<mmrtree::RtreeT<2, TupleId>> rtree;
+   //std::shared_ptr<mmrtree::RtreeT<2, TupleId>> rtree;
    std::shared_ptr<mmrtree::RtreeT<DIM, TupleId>> rtreeR;
    //std::shared_ptr<mmrtree::RtreeT<DIM, TupleId>> rtreeS;
    //TupleStore1 bufferR;
+   TupleType* ttR;
    std::vector<Tuple*> bufferRMem;
+   size_t countInMem;
    //TupleStore1 bufferS;
 
    public:
@@ -91,6 +93,17 @@ class CandidateWorker {
    size_t topright(Rect* r1) const;
 
    inline bool reportTopright(size_t r1, size_t r2) const;
+
+   inline void calcMem(Tuple* tuple);
+
+   void
+   calcRtree(Tuple* tuple, TupleId id, std::shared_ptr<Buffer> overflowBufferR,
+             bool &overflowR);
+
+   void calcResult(Tuple* tuple);
+
+   size_t
+   calcIterations(const size_t countOverflow, const size_t tupleSize) const;
 };
 
 
@@ -112,8 +125,8 @@ class spatialJoinLI {
    public:
    //Constructor
    spatialJoinLI(Word _streamR, Word _streamS,
-                     std::pair<size_t, size_t> _joinAttr, size_t _maxMem,
-                     ListExpr resultType);
+                 std::pair<size_t, size_t> _joinAttr, size_t _maxMem,
+                 ListExpr resultType);
 
 
    //Destructor
@@ -133,7 +146,7 @@ class op_spatialJoin {
    static ListExpr spatialJoinTM(ListExpr args);
 
    static int spatialJoinVM(Word* args, Word &result, int message,
-                                Word &local, Supplier s);
+                            Word &local, Supplier s);
 
    std::string getOperatorSpec();
 

@@ -696,7 +696,7 @@ void TournamentTree::makeActive() {
 }
 
 // DEBUG
-void TournamentTree::showTree() {
+void TournamentTree::showTree() const {
    auto it = tree.begin();
    size_t i = 0;
    cout << "Print Tree" << endl;
@@ -710,11 +710,11 @@ void TournamentTree::showTree() {
    cout << "Tree end" << endl;
 }
 
-bool TournamentTree::isActive() {
+bool TournamentTree::isActive() const {
    return tree.back().active;
 }
 
-bool TournamentTree::isEmpty() {
+bool TournamentTree::isEmpty() const {
    return (tree.back().tuple == nullptr);
 }
 

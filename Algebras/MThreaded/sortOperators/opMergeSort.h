@@ -123,18 +123,18 @@ class TournamentTree {
    void makeActive();
 
    // test if active
-   bool isActive();
+   bool isActive() const;
 
-   bool isEmpty();
+   bool isEmpty() const;
 
    // test if next tuple fits in memory
-   bool testMemSizeFill(Tuple* tuple);
+   bool testMemSizeFill(Tuple* tuple) ;
 
    // test if next tuple fits in memory
    bool testMemSizeExchange(Tuple* tuple);
 
    // DEBUG
-   void showTree();
+   void showTree() const;
 };
 
 class MergeFeeder {
