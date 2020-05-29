@@ -69,6 +69,8 @@ class Buffer {
 
    virtual void openRead() = 0;
 
+   virtual bool empty() const = 0;
+
    Buffer() = default;
 
    ~Buffer() = default;
@@ -98,7 +100,7 @@ class FileBuffer : public Buffer {
    // open for read
    void openRead() override;
 
-   bool empty() const;
+   bool empty() const override;
 
    std::string getFname() const;
 
@@ -127,6 +129,8 @@ class MemoryBuffer : public Buffer {
    void closeWrite() override {}
 
    void openRead() override {}
+
+   bool empty() const override {}
 
    explicit MemoryBuffer(TupleType* _tt);
 

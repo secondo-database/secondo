@@ -86,7 +86,9 @@ HashJoinWorker::HashJoinWorker(size_t _maxMem,
         resultTupleType(_resultTupleType) {
 }
 
-HashJoinWorker::~HashJoinWorker() {}
+HashJoinWorker::~HashJoinWorker() {
+
+}
 
 void HashJoinWorker::operator()() {
    // phase 1:
@@ -104,14 +106,15 @@ void HashJoinWorker::operator()() {
       countOverflow = phase2(hashMod, pos);
       // recursive overflow buckets >0
       if (!overflowBufferR->empty()) {
+         cout << "rekursiv" << endl;
          recursiveOverflow(overflowBufferR,
                            hashTablePersist->GetOverflowS(pos), countOverflow,
                            1);
       }
    }
-
    ttR->DeleteIfAllowed();
    ttS->DeleteIfAllowed();
+   resultTupleType->DeleteIfAllowed();
    --threadsDone;
    if (threadsDone == 0) {
       tupleBuffer->enqueue(nullptr);
@@ -119,7 +122,6 @@ void HashJoinWorker::operator()() {
 }
 
 size_t HashJoinWorker::phase1(size_t &countOverflow) {
-   cout << "phase1" << endl;
    vector<vector<Tuple*>> bucketInMemR(bucketsInMem1st);
    size_t memR = maxMem;
 
@@ -230,7 +232,6 @@ size_t HashJoinWorker::phase1(size_t &countOverflow) {
 }
 
 size_t HashJoinWorker::phase2(size_t hashMod, size_t pos) {
-   cout << "phase2" << endl;
    vector<vector<Tuple*>> bucketInMemR(hashMod);
    size_t overflow = hashTablePersist->OpenRead(pos);
    Tuple* tupleR = hashTablePersist->PullR(pos);
@@ -480,7 +481,7 @@ hybridHashJoinLI::hybridHashJoinLI(
         : streamR(_streamR), streamS(_streamS),
           joinAttr(_joinAttr), maxMem(_maxMem) {
    resultTupleType = new TupleType(nl->Second(resultType));
-   resultTupleType->IncReference();
+   //resultTupleType->IncReference();
    coreNo = MThreadedSingleton::getCoresToUse();
    coreNoWorker = coreNo - 1;
    streamR.open();
@@ -488,14 +489,21 @@ hybridHashJoinLI::hybridHashJoinLI(
    Scheduler();
 }
 
+hybridHashJoinLI::~hybridHashJoinLI() {
+   partBufferR.clear();
+   partBufferS.clear();
+   resultTupleType->DeleteIfAllowed();
+}
+
 
 Tuple* hybridHashJoinLI::getNext() {
    Tuple* res;
    res = tupleBuffer->dequeue();
    if (res != nullptr) {
-      ++count;
+      usleep(1);
       return res;
    }
+   cout << "endgetnext" << endl;
    return 0;
 }
 
@@ -511,7 +519,7 @@ void hybridHashJoinLI::Scheduler() {
    for (size_t i = 0; i < coreNoWorker; ++i) {
       partBufferR.push_back(make_shared<SafeQueue<Tuple*>>(i));
       partBufferS.push_back(make_shared<SafeQueue<Tuple*>>(i));
-
+      resultTupleType->IncReference();
       joinThreads.emplace_back(
               HashJoinWorker(maxMem / coreNoWorker, coreNoWorker, i,
                              joinAttr,
@@ -539,16 +547,16 @@ void hybridHashJoinLI::Scheduler() {
       ++count;
    }
 
+   cout << "stream close" << endl;
+   streamR.close();
+   streamS.close();
+
    for (size_t i = 0; i < coreNoWorker; ++i) {
       partBufferS[i]->enqueue(nullptr);
    }
 }
 
-hybridHashJoinLI::~hybridHashJoinLI() {
-   partBufferR.clear();
-   partBufferS.clear();
-   resultTupleType->DeleteIfAllowed();
-}
+
 
 
 /*
@@ -676,6 +684,7 @@ int op_hybridHashJoin::hybridHashJoinVM(Word* args, Word &result, int message,
          //resultTupleType->DeleteIfAllowed();
          return result.addr ? YIELD : CANCEL;
       case CLOSE:
+         cout << "close" << endl;
          if (li) {
             delete li;
             local.addr = 0;

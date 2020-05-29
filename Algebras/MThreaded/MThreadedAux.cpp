@@ -65,7 +65,7 @@ size_t MThreadedSingleton::cores_used = 1;
 
 FileBuffer::FileBuffer(TupleType* _tt) : tt(_tt) {
    fname = createFn() + ".tmp";
-   cout << fname << endl;
+   //cout << fname << endl;
    fileStreamOut = make_shared<std::ofstream>(fname.c_str(), std::ios::binary |
                                                              std::ios::trunc);
    isEmpty = true;
@@ -252,7 +252,7 @@ void HashTablePersist::PushR(Tuple* tuple, size_t bucket) {
    // no memory
    if (freeMem > maxMem && lastMemBufferR <= bucket &&
        lastMemBufferR < bucketsNo) {
-      cout << "write to disk R: " << lastMemBufferR << endl;
+      //cout << "write to disk R: " << lastMemBufferR << endl;
       if (!setSPersist) {
          for (size_t i = 0; i < bucketsNo - 1; ++i) {
             hashBucketsS[i] = make_shared<FileBuffer>(ttS);
@@ -268,9 +268,9 @@ void HashTablePersist::PushR(Tuple* tuple, size_t bucket) {
       hashBucketsR[lastMemBufferR] = move(tempFileBuffer);
       freeMem += sizeR[lastMemBufferR];
       --lastMemBufferR;
-      if (lastMemBufferR > bucketsNo) {
-         cout << "Overflow!!!!!!!!!!!!!!!!";
-      }
+      //if (lastMemBufferR > bucketsNo) {
+      //   cout << "Overflow!!!!!!!!!!!!!!!!";
+      //}
    }
 }
 
