@@ -2,12 +2,6 @@ Sequential: Yes
 Database: berlintest
 Restore: No
 
-Operator : setoption
-Number   : 1
-Signature: string x int -> bool
-Example  : query setoption("MaxMemPerOperator", 512*1024);
-Result   : (bool undefined)
-
 Operator    : setcore
 Number      : 2
 Signature   : int -> bool
@@ -23,7 +17,7 @@ Result      : 6
 Operator    : mThreadedHybridJoin
 Number      : 4
 Signature   : stream x stream x attr x attr -> stream
-Example     : query strassen feed {o} Plaetze feed {p} mThreadedHybridJoin[Name_o, Name_p] count
+Example     : query strassen feed {o} Plaetze feed {p} mThreadedHybridJoin[Name_o, Name_p] consume
 Result      : 15
 
 Operator    : mThreadedHybridJoin

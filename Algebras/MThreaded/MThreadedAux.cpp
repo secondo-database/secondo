@@ -153,6 +153,7 @@ string FileBuffer::getFname() const {
 // append single tuple into a file
 void MemoryBuffer::appendTuple(Tuple* tuple) {
    tupleBuffer.push(tuple);
+   isEmpty = false;
 }
 
 // read single tuple
@@ -166,7 +167,13 @@ Tuple* MemoryBuffer::readTuple() {
    }
 }
 
-MemoryBuffer::MemoryBuffer(TupleType* _tt) : tt(_tt) {}
+bool MemoryBuffer::empty() const {
+   return isEmpty;
+}
+
+MemoryBuffer::MemoryBuffer(TupleType* _tt) : tt(_tt) {
+   isEmpty = false;
+}
 
 MemoryBuffer::~MemoryBuffer() {}
 

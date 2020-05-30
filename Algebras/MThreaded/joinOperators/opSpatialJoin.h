@@ -58,8 +58,12 @@ class CandidateWorker {
    private:
    size_t static constexpr DIM = 2;
    size_t maxMem;
+   size_t* globalMem;
    size_t coreNoWorker;
    size_t streamInNo;
+   std::shared_ptr<SafeQueue<Tuple*>> tupleBuffer;
+   std::shared_ptr<SafeQueue<Tuple*>> partBufferR;
+   std::shared_ptr<SafeQueue<Tuple*>> partBufferS;
    std::pair<size_t, size_t> joinAttr;
    Word fun;
    TupleType* resultTupleType;
@@ -76,7 +80,11 @@ class CandidateWorker {
 
    public:
    CandidateWorker(
-           size_t _maxMem, size_t _coreNoWorker, size_t _streamInNo,
+           size_t _maxMem, size_t* _globalMem, size_t _coreNoWorker,
+           size_t _streamInNo,
+           std::shared_ptr<SafeQueue<Tuple*>> _tupleBuffer,
+           std::shared_ptr<SafeQueue<Tuple*>> _partBufferR,
+           std::shared_ptr<SafeQueue<Tuple*>> _partBufferS,
            std::pair<size_t, size_t> _joinAttr,
            TupleType* _resultTupleType, const Rect* _gridcell);
 
@@ -94,10 +102,11 @@ class CandidateWorker {
 
    inline bool reportTopright(size_t r1, size_t r2) const;
 
-   inline void calcMem(Tuple* tuple);
+   inline void calcMem(Tuple* tuple, size_t* globalMem);
 
    void
-   calcRtree(Tuple* tuple, TupleId id, std::shared_ptr<Buffer> overflowBufferR,
+   calcRtree(Tuple* tuple, TupleId id, size_t* globalMem,
+             std::shared_ptr<Buffer> overflowBufferR,
              bool &overflowR);
 
    void calcResult(Tuple* tuple);
@@ -119,8 +128,14 @@ class spatialJoinLI {
    TupleType* resultTupleType;
    //std::vector<CellInfo*> cellInfoVec;
    const size_t cores = MThreadedSingleton::getCoresToUse();
+   std::shared_ptr<SafeQueue<Tuple*>> tupleBuffer;
+   std::vector<std::shared_ptr<SafeQueue<Tuple*>>> partBufferR;
+   std::vector<std::shared_ptr<SafeQueue<Tuple*>>> partBufferS;
    size_t bboxsample = 100;
    constexpr static size_t BBOXSAMPLESTEPS = 10;
+   size_t globalMem;
+   IrregularGrid2D* irrGrid2d;
+   std::vector<CellInfo*> cellInfoVec;
 
    public:
    //Constructor

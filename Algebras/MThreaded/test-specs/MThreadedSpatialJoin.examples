@@ -23,6 +23,5 @@ Result      : 3
 Operator    : mThreadedSpatialJoin
 Number      : 4
 Signature   : stream x stream x attr x attr -> stream
-Example     : query strassen feed {o} Flaechen feed {p} mThreadedSpatialJoin[GeoData_o, GeoData_p; 0.1] count
+Example     : query strassen feed {o} Flaechen feed {p} mThreadedSpatialJoin[GeoData_o, GeoData_p; 0.1] project [Name_o, Name_p] count
 Result      : 1285
-

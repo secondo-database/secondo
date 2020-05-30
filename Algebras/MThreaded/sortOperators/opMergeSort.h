@@ -62,11 +62,11 @@ enum TupleEmpty {
 
 class CompareByVector {
    private:
-   std::vector<std::pair<size_t, bool>> sortAttr;
+   std::vector<std::pair<int, bool>> sortAttr;
 
    public:
    // Constructor: Set compare Vector
-   explicit CompareByVector(std::vector<std::pair<size_t, bool>> _sortAttr)
+   explicit CompareByVector(std::vector<std::pair<int, bool>> _sortAttr)
            : sortAttr(_sortAttr) {}
 
    ~CompareByVector() {}
@@ -226,7 +226,7 @@ class Suboptimal {
 class mergeSortLI {
    private:
    Stream<Tuple> stream;
-   std::vector<std::pair<size_t, bool>> sortAttr;
+   std::vector<std::pair<int, bool>> sortAttr;
    std::vector<std::shared_ptr<Buffer>> mergeFn;
    std::vector<Tuple*> tupleBuffer;
    size_t lastWorker;
@@ -250,7 +250,7 @@ class mergeSortLI {
    //Constructor
    mergeSortLI(
            Word _stream,
-           std::vector<std::pair<size_t, bool>> _sortAttr,
+           std::vector<std::pair<int, bool>> _sortAttr,
            size_t _maxMem);
 
 

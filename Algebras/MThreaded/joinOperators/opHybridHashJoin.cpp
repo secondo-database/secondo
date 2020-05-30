@@ -77,7 +77,7 @@ using namespace hashJoinGlobal;
 HashJoinWorker::HashJoinWorker(size_t _maxMem,
                                size_t _coreNoWorker,
                                size_t _streamInNo,
-                               pair<size_t, size_t> _joinAttr,
+                               pair<int, int> _joinAttr,
                                TupleType* _resultTupleType) :
         maxMem(_maxMem),
         coreNoWorker(_coreNoWorker),
@@ -475,7 +475,7 @@ bool HashJoinWorker::tupleEqual(Tuple* a, Tuple* b) const {
 hybridHashJoinLI::hybridHashJoinLI(
         Word _streamR,
         Word _streamS,
-        pair<size_t, size_t> _joinAttr,
+        pair<int, int> _joinAttr,
         size_t _maxMem,
         ListExpr resultType)
         : streamR(_streamR), streamS(_streamS),
@@ -655,7 +655,7 @@ int op_hybridHashJoin::hybridHashJoinVM(Word* args, Word &result, int message,
 
    //read append structure
    //(attribute number, sort direction)
-   std::pair<size_t, size_t> attr;
+   std::pair<int, int> attr;
    CcInt* attrR = static_cast<CcInt*>(args[4].addr);
    CcInt* attrS = static_cast<CcInt*>(args[5].addr);
    attr = make_pair(attrR->GetIntval(), attrS->GetIntval());

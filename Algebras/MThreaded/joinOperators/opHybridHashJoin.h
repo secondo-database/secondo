@@ -56,7 +56,7 @@ class HashJoinWorker {
    size_t streamInNo;
    size_t bucketNo = 20;
    size_t bucketsInMem1st = 300;
-   std::pair<size_t, size_t> joinAttr;
+   std::pair<int, int> joinAttr;
    TupleType* resultTupleType;
    std::shared_ptr<HashTablePersist> hashTablePersist;
    TupleType* ttR;
@@ -78,7 +78,7 @@ class HashJoinWorker {
    public:
    HashJoinWorker(
            size_t _maxMem, size_t _coreNoWorker, size_t _streamInNo,
-           std::pair<size_t, size_t> _joinAttr,
+           std::pair<int, int> _joinAttr,
            TupleType* resultTupleType);
 
    ~HashJoinWorker();
@@ -107,7 +107,7 @@ class hybridHashJoinLI {
    hybridHashJoinLI(
            Word _streamR,
            Word _streamS,
-           std::pair<size_t, size_t> _joinAttr,
+           std::pair<int, int> _joinAttr,
            size_t _maxMem,
            ListExpr resultType);
 

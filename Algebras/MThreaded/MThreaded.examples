@@ -21,42 +21,44 @@ Signature   : -> int
 Example     : query getcore()
 Result      : 3
 
-Operator    : mThreadedFilter
+Operator    : mThreadedSpatialJoin
 Number      : 4
+Signature   : stream x stream x attr x attr -> stream
+Example     : query strassen feed {o} Flaechen feed {p} mThreadedSpatialJoin[GeoData_o, GeoData_p; 0.1] project [Name_o, Name_p] consume
+Result      : 34
+
+Operator    : mThreadedSpatialJoin
+Number      : 5
+Signature   : stream x stream x attr x attr -> stream
+Example     : query WFlaechen feed {o} Plaetze feed {p} mThreadedSpatialJoin[GeoData_o, GeoData_p; 0.1] project [Name_o, Name_p] consume
+Result      : 34
+
+Operator    : mThreadedFilter
+Number      : 6
 Signature   : stream x attr x attr -> stream
 Example     : query test1 mThreadedFilter[not(isempty(intersection1(.GeoData_o, .GeoData_p)))]  consume
 Result      : 34
 
 Operator    : mThreadedFilter
-Number      : 5
+Number      : 7
 Signature   : stream x attr x attr -> stream
 Example     : query WFlaechen feed {o} Plaetze feed {p} spatialjoin[GeoData_o, GeoData_p] mThreadedFilter[contains_rob(.GeoData_o, .GeoData_p)] project [Name_o, Name_p] consume
 Result      : 34
 
 
 Operator    : mThreadedMergeSort
-Number      : 6
+Number      : 8
 Signature   : stream x (attr x bool ...) -> stream
 Example     : query strassen feed mThreadedMergeSort[GeoData] count
 Result      : 3212
 
 Operator    : mThreadedHybridJoin
-Number      : 7
+Number      : 9
 Signature   : stream x stream x attr x attr -> stream
 Example     : query strassen feed {o} Plaetze feed {p} mThreadedHybridJoin[Name_o, Name_p] count
 Result      : 15
 
-Operator    : mThreadedSpatialJoin
-Number      : 8
-Signature   : stream x stream x attr x attr -> stream
-Example     : query strassen feed {o} Flaechen feed {p} mThreadedSpatialJoin[GeoData_o, GeoData_p; 0.1] project [Name_o, Name_p] consume
-Result      : 34
 
-Operator    : mThreadedSpatialJoin
-Number      : 9
-Signature   : stream x stream x attr x attr -> stream
-Example     : query WFlaechen feed {o} Plaetze feed {p} mThreadedSpatialJoin[GeoData_o, GeoData_p; 0.1] project [Name_o, Name_p] consume
-Result      : 34
 
 
 

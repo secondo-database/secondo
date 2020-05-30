@@ -85,7 +85,7 @@ class FileBuffer : public Buffer {
    bool isEmpty;
 
    // fname from uuid
-   std::string createFn();
+   static std::string createFn();
 
    public:
    // append single tuple into a file
@@ -118,6 +118,7 @@ class MemoryBuffer : public Buffer {
    std::queue<Tuple*> tupleBuffer;
    size_t bufferSize;
    TupleType* tt;
+   bool isEmpty;
 
    public:
    // append single tuple into a file
@@ -130,7 +131,7 @@ class MemoryBuffer : public Buffer {
 
    void openRead() override {}
 
-   bool empty() const override {}
+   bool empty() const override;
 
    explicit MemoryBuffer(TupleType* _tt);
 
@@ -181,6 +182,58 @@ class SafeQueue {
 
    private:
    std::queue<T> q;
+   bool stream;
+   bool dataReadyQueue;
+   mutable std::mutex m;
+   std::condition_variable c;
+   size_t n;
+};
+
+template <typename T>
+class SafeQueuePersistent {
+   public:
+   SafeQueuePersistent (size_t _memory)
+           : q(), m(), c(), memory(_memory) {
+      stream = true;
+      dataReadyQueue = false;
+   }
+
+   ~SafeQueuePersistent () {};
+
+   bool empty() const {
+      return q.empty();
+   }
+
+   // Add an element to the queue.
+   void enqueue(T t) {
+      memory -= t->GetMemSize();
+      std::lock_guard<std::mutex> lock(m);
+      q.push(t);
+      dataReadyQueue = true;
+      c.notify_one();
+   }
+
+   // Get the "front"-element.
+   // If the queue is empty, wait till a element is avaiable.
+   T dequeue() {
+      std::unique_lock<std::mutex> lock(m);
+      while (q.empty()) {
+         c.wait(lock, [&] { return dataReadyQueue; });
+         dataReadyQueue = false;
+      }
+//   if (stream) {
+      T val = q.front();
+      q.pop();
+      return val;
+   }
+
+
+   //bool getStreamOnMerge();
+   //void setStreamOff();
+
+   private:
+   std::queue<T> q;
+   size_t memory;
    bool stream;
    bool dataReadyQueue;
    mutable std::mutex m;

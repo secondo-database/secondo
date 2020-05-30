@@ -396,7 +396,7 @@ void MergePipeline::operator()() {
 
 mergeSortLI::mergeSortLI(
         Word _stream,
-        std::vector<std::pair<size_t, bool>> _sortAttr,
+        std::vector<std::pair<int, bool>> _sortAttr,
         size_t _maxMem)
         : stream(_stream), sortAttr(std::move(_sortAttr)), maxMem(_maxMem) {
    coreNo = MThreadedSingleton::getCoresToUse();
@@ -637,7 +637,7 @@ void TournamentTree::exchange(Tuple* tuple, size_t pos, bool active) {
    }
 
    if (tree[tree[pos].leave_small].tuple == nullptr) {
-      swap(tree[pos].leave_large, tree[pos].leave_small);
+      std::swap(tree[pos].leave_large, tree[pos].leave_small);
       tree[pos].tuple = tree[tree[pos].leave_small].tuple;
       tree[pos].active = tree[tree[pos].leave_small].active;
       return;
@@ -652,7 +652,7 @@ void TournamentTree::exchange(Tuple* tuple, size_t pos, bool active) {
       if (compareClass->compTuple(tree[tree[pos].leave_large].tuple,
                                   tree[tree[pos].leave_small].tuple)) {
          tree[pos].tuple = tree[tree[pos].leave_large].tuple;
-         swap(tree[pos].leave_large, tree[pos].leave_small);
+         std::swap(tree[pos].leave_large, tree[pos].leave_small);
       } else {
          tree[pos].tuple = tree[tree[pos].leave_small].tuple;
       }
@@ -661,7 +661,7 @@ void TournamentTree::exchange(Tuple* tuple, size_t pos, bool active) {
       if (compareClass->compTuple(tree[tree[pos].leave_large].tuple,
                                   tree[tree[pos].leave_small].tuple)) {
          tree[pos].tuple = tree[tree[pos].leave_large].tuple;
-         swap(tree[pos].leave_large, tree[pos].leave_small);
+         std::swap(tree[pos].leave_large, tree[pos].leave_small);
       } else {
          tree[pos].tuple = tree[tree[pos].leave_small].tuple;
       }
@@ -670,7 +670,7 @@ void TournamentTree::exchange(Tuple* tuple, size_t pos, bool active) {
       tree[pos].tuple = tree[tree[pos].leave_small].tuple;
    } else {
       tree[pos].tuple = tree[tree[pos].leave_large].tuple;
-      swap(tree[pos].leave_large, tree[pos].leave_small);
+      std::swap(tree[pos].leave_large, tree[pos].leave_small);
    }
 }
 
@@ -895,7 +895,7 @@ int op_mergeSort::mergeSortVM(Word* args, Word &result, int message,
    //read append structure
    //(attribute number, sort direction)
    const int countIndex = static_cast<CcInt*>(args[2].addr)->GetIntval();
-   std::vector<std::pair<size_t, bool>> index(countIndex / 2);
+   std::vector<std::pair<int, bool>> index(countIndex / 2);
    index.clear();
    for (int i = 3; i < 3 + countIndex; i += 2) {
       CcInt* attr = static_cast<CcInt*>(args[i].addr);
