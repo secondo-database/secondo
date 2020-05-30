@@ -54,6 +54,9 @@ class HashJoinWorker {
    size_t maxMem;
    size_t coreNoWorker;
    size_t streamInNo;
+   std::shared_ptr<SafeQueue<Tuple*>> tupleBuffer;
+   std::shared_ptr<SafeQueue<Tuple*>> partBufferR;
+   std::shared_ptr<SafeQueue<Tuple*>> partBufferS;
    size_t bucketNo = 20;
    size_t bucketsInMem1st = 300;
    std::pair<int, int> joinAttr;
@@ -78,6 +81,9 @@ class HashJoinWorker {
    public:
    HashJoinWorker(
            size_t _maxMem, size_t _coreNoWorker, size_t _streamInNo,
+           std::shared_ptr<SafeQueue<Tuple*>> _tupleBuffer,
+           std::shared_ptr<SafeQueue<Tuple*>> _partBufferR,
+           std::shared_ptr<SafeQueue<Tuple*>> _partBufferS,
            std::pair<int, int> _joinAttr,
            TupleType* resultTupleType);
 
@@ -98,6 +104,9 @@ class hybridHashJoinLI {
    size_t coreNo;
    size_t coreNoWorker;
    TupleType* resultTupleType;
+   std::shared_ptr<SafeQueue<Tuple*>> tupleBuffer;
+   std::vector<std::shared_ptr<SafeQueue<Tuple*>>> partBufferR;
+   std::vector<std::shared_ptr<SafeQueue<Tuple*>>> partBufferS;
    const size_t cores = MThreadedSingleton::getCoresToUse();
 
    size_t count = 0;

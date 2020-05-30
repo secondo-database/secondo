@@ -61,11 +61,7 @@ extern NestedList* nl;
 extern QueryProcessor* qp;
 
 namespace hashJoinGlobal {
-vector<shared_ptr<SafeQueue<Tuple*>>> partBufferR;
-vector<shared_ptr<SafeQueue<Tuple*>>> partBufferS;
-shared_ptr<SafeQueue<Tuple*>> tupleBuffer;
 mutex mutexEqual_;
-mutex mutexConcat_;
 size_t threadsDone;
 }
 
@@ -77,11 +73,17 @@ using namespace hashJoinGlobal;
 HashJoinWorker::HashJoinWorker(size_t _maxMem,
                                size_t _coreNoWorker,
                                size_t _streamInNo,
+                               std::shared_ptr<SafeQueue<Tuple*>> _tupleBuffer,
+                               std::shared_ptr<SafeQueue<Tuple*>> _partBufferR,
+                               std::shared_ptr<SafeQueue<Tuple*>> _partBufferS,
                                pair<int, int> _joinAttr,
                                TupleType* _resultTupleType) :
         maxMem(_maxMem),
         coreNoWorker(_coreNoWorker),
         streamInNo(_streamInNo),
+        tupleBuffer(_tupleBuffer),
+        partBufferR(_partBufferR),
+        partBufferS(_partBufferS),
         joinAttr(_joinAttr),
         resultTupleType(_resultTupleType) {
 }
@@ -126,11 +128,11 @@ size_t HashJoinWorker::phase1(size_t &countOverflow) {
    size_t memR = maxMem;
 
    Tuple* tupleNextR;
-   tupleNextR = partBufferR[streamInNo]->dequeue();
+   tupleNextR = partBufferR->dequeue();
    ttR = tupleNextR->GetTupleType();
    ttR->IncReference();
    Tuple* tupleNextS;
-   tupleNextS = partBufferS[streamInNo]->dequeue();
+   tupleNextS = partBufferS->dequeue();
    ttS = tupleNextS->GetTupleType();
    ttS->IncReference();
 
@@ -176,7 +178,7 @@ size_t HashJoinWorker::phase1(size_t &countOverflow) {
       } else {
          hashTablePersist->PushR(tupleNextR, partNo - 1);
       }
-      tupleNextR = partBufferR[streamInNo]->dequeue();
+      tupleNextR = partBufferR->dequeue();
       ++count;
    }
 
@@ -214,7 +216,7 @@ size_t HashJoinWorker::phase1(size_t &countOverflow) {
          hashTablePersist->PushS(tupleNextS, partNo - 1);
       }
       ++count;
-      tupleNextS = partBufferS[streamInNo]->dequeue();
+      tupleNextS = partBufferS->dequeue();
    }
    for (size_t i = 0; i < inMemBucketNo; ++i) {
       for (auto* tuple : bucketInMemR[i]) {
@@ -522,6 +524,9 @@ void hybridHashJoinLI::Scheduler() {
       resultTupleType->IncReference();
       joinThreads.emplace_back(
               HashJoinWorker(maxMem / coreNoWorker, coreNoWorker, i,
+                             tupleBuffer,
+                             partBufferR.back(),
+                             partBufferS.back(),
                              joinAttr,
                              resultTupleType));
       joinThreads.back().detach();
@@ -555,8 +560,6 @@ void hybridHashJoinLI::Scheduler() {
       partBufferS[i]->enqueue(nullptr);
    }
 }
-
-
 
 
 /*

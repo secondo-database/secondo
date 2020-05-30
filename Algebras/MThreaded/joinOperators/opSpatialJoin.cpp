@@ -250,9 +250,8 @@ void CandidateWorker::calcRtree(Tuple* tuple, TupleId id, size_t* globalMem,
       {
          lock_guard<std::mutex> lock(globalMem_);
          *globalMem = *globalMem - rtreeR->usedMem();
-         cout << "TreeMemadd" << rtreeR->usedMem() << endl;
-         cout << "GlobalMemafterAdd " << *globalMem << endl;
       }
+      cout << "GlobalMemafterAdd " << *globalMem << endl;
       if (*globalMem > maxMem) {
          overflowR = true;
          countInMem = (size_t) id;
@@ -322,11 +321,11 @@ inline bool CandidateWorker::reportTopright(size_t r1, size_t r2) const {
 }
 
 inline void CandidateWorker::calcMem(Tuple* tuple, size_t* globalMem) {
-   lock_guard<std::mutex> lock(globalMem_);
-   *globalMem = *globalMem - tuple->GetMemSize() - sizeof(void*);
-   *globalMem += rtreeR->usedMem();
-   cout << "TupleMem: " << tuple->GetMemSize() + sizeof(void*) << " TreeMemSub"
-        << rtreeR->usedMem() << endl;
+   {
+      lock_guard<std::mutex> lock(globalMem_);
+      *globalMem = *globalMem - tuple->GetMemSize() - sizeof(void*) +
+                   rtreeR->usedMem();
+   }
 }
 
 size_t CandidateWorker::calcIterations(const size_t countOverflow,
