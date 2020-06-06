@@ -180,6 +180,11 @@ Tuple* refinementLI::getNext() {
 }
 
 void refinementLI::Scheduler() {
+//   vector<vector<Tuple*>::iterator> tupleIter;
+//   for (auto it = tupleBuffer.begin(); it != tupleBuffer.end(); ++it) {
+//      tupleIter.push_back(it);
+//   }
+//
    // start threads
    joinThreads.reserve(coreNoWorker);
    partBuffer.reserve(coreNoWorker);
