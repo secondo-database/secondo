@@ -156,18 +156,18 @@ string FileBufferRW::getFname() const {
 
 FileBuffer::FileBuffer(TupleType* _tt) : tt(_tt) {
    isEmpty = true;
+   it = nullptr;
 }
 
 FileBuffer::~FileBuffer() {
    //fileStreamIn->close();
    cout << "destroy F-Buffer" << endl;
-   if (!isEmpty) delete it;
+   delete it;
 }
 
 void FileBuffer::appendTuple(Tuple* tuple) {
    if (isEmpty) {
       tupleBuffer = std::make_shared<TupleFile>(tt, PAGESIZE);
-      it = nullptr;
    }
    tupleBuffer->Append(tuple);
    tuple->DeleteIfAllowed();
@@ -190,6 +190,7 @@ void FileBuffer::closeWrite() {
 
 void FileBuffer::openRead() {
    cout << "tbOpenRead" << endl;
+   delete it;
    it = tupleBuffer->MakeScan();
 }
 
@@ -335,7 +336,7 @@ MemoryBuffer::~MemoryBuffer() {}
 MultiBuffer::MultiBuffer(TupleType* _tt, const size_t _bufferSize) :
         tt(_tt), bufferSize(_bufferSize) {
    memoryBuffer = make_shared<MemoryBuffer>(tt);
-   overflowBuffer = make_shared<FileBuffer>(tt);
+   overflowBuffer = nullptr;
    bufferCounter = bufferSize;
    isEmpty = true;
    overflow = false;
@@ -349,6 +350,9 @@ void MultiBuffer::appendTuple(Tuple* tuple) {
    assert(tuple != nullptr);
    //cout << bufferCounter << "##";
    if (bufferCounter > bufferSize) {
+      if (!overflow) {
+         overflowBuffer = make_shared<FileBuffer>(tt);
+      }
       //cout << "MB Overflow" << endl;
       overflowBuffer->appendTuple(tuple);
       //tuple->DeleteIfAllowed();
@@ -356,6 +360,7 @@ void MultiBuffer::appendTuple(Tuple* tuple) {
    } else {
       bufferCounter -= tuple->GetSize() + sizeof(void*);
       memoryBuffer->appendTuple(tuple);
+      isEmpty = false;
    }
 }
 
@@ -367,6 +372,7 @@ Tuple* MultiBuffer::readTuple() {
    }
    if (overflow) {
       tuple = overflowBuffer->readTuple();
+      //tuple->DeleteIfAllowed();
    }
    return tuple;
 }
@@ -397,7 +403,7 @@ SafeQueuePersistent::SafeQueuePersistent(const size_t _bufferSize,
    dataReadyQueue = false;
    overflow = false;
    //bufferPersist = std::make_shared<FileBuffer>(tt);
-   tupleBuffer = std::make_shared<TupleFile>(tt, PAGESIZE);
+   tupleBuffer = nullptr;
 }
 
 SafeQueuePersistent::~SafeQueuePersistent() {
@@ -419,6 +425,7 @@ void SafeQueuePersistent::enqueue(Tuple* t) {
          bufferCounter -= t->GetMemSize() + sizeof(void*);
       }
       if (bufferCounter > bufferSize) {
+         tupleBuffer = std::make_shared<TupleFile>(tt, PAGESIZE);
          tupleBuffer->Open();
       }
       q.push(t);

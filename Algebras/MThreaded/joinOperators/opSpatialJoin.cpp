@@ -149,7 +149,7 @@ void CandidateWorker::operator()() {
    size_t tupleSize = tupleR->GetMemSize();
    TupleId id = 0;
    bool overflowR = false;
-   shared_ptr<Buffer> overflowBufferR = make_shared<MemoryBuffer>(ttR);
+   shared_ptr<FileBuffer> overflowBufferR = make_shared<FileBuffer>(ttR);
 
    while (tupleR != nullptr) {
       calcRtree(tupleR, id, globalMem, overflowBufferR, overflowR);
@@ -189,6 +189,7 @@ void CandidateWorker::operator()() {
 
    for (Tuple* tupleR : bufferRMem) {
       //cout << "NoRefR" << tupleR->GetNumOfRefs() << "--";
+      //cout << tupleR->GetNumOfRefs() << "+R+";
       tupleR->DeleteIfAllowed();
    }
    bufferRMem.clear();
@@ -217,6 +218,8 @@ void CandidateWorker::operator()() {
                                              : oneRun); ++id) {
             //cout << id << "##";
             Tuple* tupleR = overflowBufferR->readTuple();
+            //tupleR->DeleteIfAllowed();
+            //cout << "ReadOverflowR" << tupleR->GetNumOfRefs() << "--";
             assert(tupleR != nullptr);
             bufferRMem.push_back(tupleR);
             rtreeR->insert(((StandardSpatialAttribute<DIM>*)
@@ -277,7 +280,7 @@ void CandidateWorker::calcRtree(Tuple* tuple, TupleId id, size_t* globalMem,
          cout << "OVERFLOW!!!" << endl;
          overflowR = true;
          countInMem = (size_t) id;
-         overflowBufferR = make_shared<FileBuffer>(ttR);
+         //overflowBufferR = make_shared<FileBuffer>(ttR);
       }
    } else {
       overflowBufferR->appendTuple(tuple);
@@ -334,8 +337,8 @@ size_t CandidateWorker::partition(vector<Tuple*> &A, size_t p, size_t q) {
 
 size_t CandidateWorker::topright(Rect* r1) const {
    size_t value = 0;
-   if (r1->MaxD(0) > gridcell->MaxD(0)) { value++; }
-   if (r1->MaxD(1) > gridcell->MaxD(1)) {
+   if (r1->MaxD(0) >= gridcell->MaxD(0)) { value++; }
+   if (r1->MaxD(1) >= gridcell->MaxD(1)) {
       value += 2;
    }
    return value;
@@ -427,9 +430,15 @@ Tuple* spatialJoinLI::getNext() {
    Tuple* res;
    // terminates without this followed by count but not by consume
    ++countN;
+   usleep(1);
    res = tupleBuffer->dequeue();
    if (res != nullptr) {
-      //res->IncReference();
+      if (res->GetNumOfRefs() != 1) {
+         res->IncReference();
+      }
+      assert(res->GetNumOfRefs() == 1);
+      //
+      //cout << res->GetNumOfRefs() << "##";
       return res;
    }
    cout << "end result stream: " << countN << endl;
@@ -444,7 +453,7 @@ void spatialJoinLI::Scheduler() {
    Tuple* tupleR = streamR.request();
    TupleType* ttR = tupleR->GetTupleType();
    ttR->IncReference();
-   MultiBuffer bufferR = MultiBuffer(ttR, maxMem / coreNo);
+   MultiBuffer bufferR = MultiBuffer(ttR, maxMem);
    //size_t tupleSize = tupleR->GetMemSize(); // only first tuple
    vector<Rectangle<2>> bboxRSample;
    Rect bboxSpan = (*calcBbox)(tupleR, joinAttr.first);
@@ -563,17 +572,22 @@ void spatialJoinLI::Scheduler() {
       bufferR.openRead();
       Tuple* tuple = bufferR.readTuple();
       while (tuple != nullptr) {
+         //cout << tuple->GetNumOfRefs() << "++";
          Rect bbox = (*calcBbox)(tuple, joinAttr.first);
          //((StandardSpatialAttribute<2>*)
          //        tuple->GetAttribute(joinAttr.first))->BoundingBox();
+         bool refCount = false;
          for (CellInfo* cellInfo : cellInfoVec) {
             if ((cellInfo->cell)->Intersects(bbox)) {
-               tuple->IncReference();
+               if (refCount) {
+                  tuple->IncReference();
+               }
+               refCount = true;
                partBufferR[(cellInfo->cellId - 1)]->enqueue(tuple);
             }
          }
+         //cout << tuple->GetNumOfRefs() << "+R+";
          //cout << "Ref"<<tuple->GetNumOfRefs();
-         tuple->DeleteIfAllowed();
          tuple = bufferR.readTuple();
          ++count;
       }
@@ -614,6 +628,7 @@ void spatialJoinLI::Scheduler() {
          }
       }
       tupleS->DeleteIfAllowed();
+      //cout << tupleS->GetNumOfRefs() << "++";
       ++count;
    }
    streamS.close();
