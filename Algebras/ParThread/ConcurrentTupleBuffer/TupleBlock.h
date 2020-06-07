@@ -2,7 +2,7 @@
 ---- 
 This file is part of SECONDO.
 
-Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+Copyright (C) 2019, University in Hagen, Department of Computer Science, 
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -43,9 +43,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 September 2019, Fischer Thomas
 
-1.1 Overview
-
-1.2 Imports
+1.1 Imports and protoypes
 
 */
 
@@ -65,41 +63,93 @@ typedef Tuple *TuplePtr;
 
 class ConcurrentTupleBuffer;
 
+
+/*
+1.2 ConcurrentTupleBufferSettings
+
+This struct summarize a couple of settings used in the tuple buffer. Most of
+them are read from secondos configuration file.
+
+*/
+
 struct ConcurrentTupleBufferSettings
 {
-    //Initial tuple block size
     size_t InitialNumberOfTuplesPerBlock;
+/*
+Initial tuple block size. This setting is just used to initialize the vector 
+of the block, the block can increase in size during execution. The writer 
+controlls how many tuples are written to a single block, 
 
-    // Number of tuple blocks per partition a queue can store before
-    // a lock-based allocation takes place
-    size_t InitialQueueCapacity;
+*/
 
-    //The partitioning method to separate tuples to different queues
     IDataPartitionerPtr DataPartitioner;
+/*
+The partitioning method to separate tuples to different queues
 
-    //If the internal memory runs out of space, tuples are swapped to
-    //a file per tuple block of the given size
-    size_t PersistentBufferSizePerBlock;
+*/
 
-    //The size in bytes of the complete tuple buffer
     size_t TotalBufferSizeInBytes;
+/*
+The size in bytes available for the complete tuple buffer
 
-    //Devision factor used to distribute the available memory to the
-    //tuple blocks.
+*/
+
     size_t MemoryDistributionFactor;
+/*
+Division factor used to distribute the available memory to the tuple blocks.
 
-    //the minimum memory which is necessary to create a new set of tuple blocks
+*/
+
     size_t MinMemoryPerTupleVector;
+/*
+The minimum memory which is necessary to create a new set of tuple blocks.
 
-    //tuple blocks to recycle
+*/
+
     size_t TupleBlocksToRecycle;
+/*
+The already consumed tuple blocks can be reused to avoid overhead through 
+creation of memory tuple blocks. This variable set the maximum number of tuple 
+blocks to be recycled. 
+
+*/
 };
 
+
+/*
+1.3 TupleBlockType and the ITupleBlock interface
+
+It's possible to store different types of tuple blocks in the ConcurrentTupleBuffer.
+They all share the ~ITupleBlock~-interface to store and get tuples from a block. 
+
+A note on threadsavety: tuple blocks are intended to be used by one thread at a time.
+Each writer and reader of the tuple buffer is assigned to one execution context entity
+and processes the tuple blocks in sequential order. Therefore the methods of ~ITupleBlock~
+are not threadsave.
+ 
+*/
 enum class TupleBlockType
 {
     MemoryTupleBlock = 1,
+/*
+MemoryTupleBlocks store references of the tuple in memory.
+
+*/
+
     PersistentTupleBlock,
+/*
+PersistentTupleBlocks swaps memory to a relation file.
+
+*/
+
     EndOfDataStreamBlock,
+/*
+EndOfDataStreamBlock does not store tuples, it is just a dummy to indicate that
+the tuple stream is finished and there is no data to be expected from the 
+tuple buffer anymore.
+
+*/
+
     TupleBlockTypeSize = EndOfDataStreamBlock
 };
 
@@ -109,39 +159,84 @@ class ITupleBlock
 public: //methods
     virtual ~ITupleBlock(){};
 
-    //removes all tuple references and resets the datastructure to initial state
-    //without deallocating memory
     virtual void Initialize() = 0;
+/*
+Removes all existing tuple references and resets the datastructure to 
+initial state without deallocating memory
 
-    //shrink memory and set finalized state
+*/
+
     virtual void Finalize() = 0;
+/*
+Finalize state indicates that no tuples can be added to the block anymore.
+
+*/
 
     virtual TupleBlockType Type() const = 0;
+/*
+Returns the implementation type using this interface.
 
-    //returns the current free size of bytes of the reserved memory
+*/
+
+
     virtual int UsedMemorySize() const = 0;
+/*
+Returns the current used memory in bytes as sum of all tuple sizes.
+
+*/
 
     virtual size_t Count() const = 0;
+/*
+Returns the number of stored tuples in this block
+
+*/
 
     virtual bool IsFinalized() const = 0;
+/*
+Indicates if the block is finalized and can't store more tuples.
+
+*/
 
     virtual bool IsEmpty() const = 0;
+/*
+Returns ~true~ if the block contains no tuples.
+
+*/
 
     virtual void Push(Tuple *tuple) = 0;
+/*
+Adds a tuple at the end of the internal queue.
+
+*/
 
     virtual bool TryPull(Tuple *&tuple) = 0;
+/*
+Returns ~true~ if the block is not empty and has a tuple block to return to the
+out-parameter. 
+
+*/
 };
 
-//pointer to a single tuple block
+/*
+1.4 Typedefs related to pointer and arrays of tuple blocks
+
+*/
+
 typedef ITupleBlock *TupleBlockPtr;
 
-//pointer to a vector/array of blocks
 typedef TupleBlockPtr *TupleBlockVectorPtr;
 
-//typedef boost::lockfree::queue<TupleBlockPtr> TupleBlockQueue;
 typedef std::queue<TupleBlockPtr> TupleBlockQueue;
 typedef TupleBlockQueue *TupleBlockQueuePtr;
 
+
+/*
+1.5 MemoryTupleBlock
+
+Stores tuple references to a internal vector. The initialNoOfTuples parameter
+of the constructor sets the initial size of the vector.
+
+*/
 class MemoryTupleBlock : public ITupleBlock
 {
 
@@ -162,8 +257,6 @@ public: //methods
         return TupleBlockType::MemoryTupleBlock;
     }
 
-    //removes all tuple references (if any exists) and resets the 
-    //datastructure to initial state without deallocating memory
     void Initialize() override
     {
         m_lastReadIdx = 0;
@@ -172,14 +265,11 @@ public: //methods
         m_finalized = false;
     }
 
-    //Finalize state indicates that no tuples can be added
-    //to the block anymore.
     void Finalize() override
     {
         m_finalized = true;
     }
 
-    //returns the current free size of bytes of the reserved memory
     int UsedMemorySize() const override
     {
         return m_currentMemorySize;
@@ -237,6 +327,17 @@ private: //member
     std::vector<TuplePtr> m_tupleArray;
 };
 
+/*
+1.6 PersistentTupleBlock
+
+Stores the tuples to a relation file. The parameter ~maxDiskBufferSize~ passes 
+the size of the reserved memory used for buffering the data before writing it to 
+the file. This is also the value returned by the method ~UsedMemorySize~.
+
+The temporary file is removed in the destructor, so a recycling of the block is not
+possible.
+
+*/
 class PersistentTupleBlock : public ITupleBlock
 {
 
@@ -351,6 +452,17 @@ private: //member
     TupleFile *m_diskBuffer;
 };
 
+
+/*
+1.7 EndOfDataStreamBlock
+
+The ~EndOfDataStreamBlock~ is just a dummy block indicating that the end of the
+data stream is reached and no more data can be fetched from the ~ConcurrentDataBuffer~.
+
+The tuple block is finalized and empty by default. Therfore it's not possible to 
+push and pull tuples from this block. 
+
+*/
 class EndOfDataStreamBlock : public ITupleBlock
 {
 
@@ -407,7 +519,19 @@ public: //methods
     }
 };
 
-//not threadsave
+/*
+1.8 TupleBlockPool
+
+The ~TupleBlockPool~ is responsible to create and destroy tuple blocks. It acts
+as factory for the different types of tuple blocks and decides if a tuple block
+can be destroyed (~DestroyTupleBlock~). 
+
+The method ~TransformToPersistentTupleBlock~ allows a memory tuple block to be
+swapped to a persistent tuple block in case no more memory is available.  
+
+All method (except constructor and desctructor) are threadsave.
+
+*/
 class TupleBlockPool
 {
 public: //types
@@ -474,7 +598,7 @@ public: //methods
         switch (tupleBlock->Type())
         {
         case TupleBlockType::EndOfDataStreamBlock:
-            //this block type is a unique static object
+            //this block type is an unique static object
             return;
             break;
         case TupleBlockType::MemoryTupleBlock:
@@ -500,6 +624,20 @@ private: //member
     EndOfDataStreamBlock m_endOfDataStreamBlock;
 };
 
+
+/*
+1.9 TupleBlockVector
+
+The ~TupleBlockVector~ collects a tuple block for each partition of the 
+~ConcurrentTupleBuffer~. If a writer successfully allocates memory, it gets a 
+~TupleBlockVector~ with empty tuple blocks and a maximum size of the allocated 
+memory. This memory is shared between all tuple blocks.
+
+If the allocated memory of this ~TupleBlockVector~ is running out, it's still 
+possible to add new tuples. The missing allocating memory is compensated when
+returning the tuple blocks to the ~ConcurrentTupleBuffer~.
+
+*/
 class TupleBlockVector
 {
 public: //methods
@@ -531,31 +669,46 @@ public: //methods
         m_allocatedMemorySize = m_currentUsedMemorySize;
         return freeMemory;
     }
+/*
+Sets the allocated memory to the size of used memory for the tuples stored in 
+the blocks of this vector. This method is called by the ~ConcurrentTupleBuffer~.
+The return value can be posititve or negative. In the first case it increases 
+the tuple buffers pool of free memory, in the other case the buffer must reallocate 
+memory to store the block vector or swap the blocks to persistent tuple blocks. 
+
+*/
 
     bool IsEmpty() const
     {
         return UsedMemorySize() == 0;
     }
 
-    //returns the current free size of bytes of the reserved memory
-    //the value can be negative
     int FreeMemorySize() const
     {
         return m_allocatedMemorySize - m_currentUsedMemorySize;
     }
+/*
+Returns the current free size of bytes of the reserved memory
+the value can be negative
 
-    //the summarized memory of all tuples in this block. Can exceed the
-    //allocated memory
+*/
+
     int UsedMemorySize() const
     {
         return m_currentUsedMemorySize;
     }
 
-    //the initial allocated memory
     int AllocatedMemory() const
     {
         return m_allocatedMemorySize;
     }
+
+/*
+~UsedMemorySize~ returns the summarized memory of all tuples in this block. 
+This can exceed the allocated memory, which is set when calling 
+~SetTupleBlockByPartition~.
+
+*/
 
     const TupleBlockPtr BlockAtPartition(const size_t partitionIdx) const
     {
@@ -589,6 +742,11 @@ public: //methods
 
         tupleBlock->Finalize();
     }
+/*
+These methods are used to fill the vector with records and to access the
+different tuple blocks.
+
+*/
 
     void SetTupleBlockByPartition(TupleBlockPtr tupleBlock, 
                                   const size_t partitionIdx, 
@@ -602,6 +760,10 @@ public: //methods
 
         m_allocatedMemorySize = memory;
     }
+/*
+Adds new empty tuple blocks to the vector and sets the allocated memory.
+
+*/
 
 private: //member
     size_t m_numPartitions;

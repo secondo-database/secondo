@@ -902,7 +902,11 @@ the null pointer.
 */
 
   Supplier CreateConstantIntNode(int value);
+/*
+Returns the reference to a new constant int node with the ~value~ passed as
+parameter. The node has no connection to another node.
 
+*/
 
   size_t GetParOperatorsNumberOfInstances(const Supplier s);
 /*
@@ -912,12 +916,16 @@ constant of the par-operator referenced by ~s~.
 */
 
   void SetMemorySize(const Supplier s, size_t memSize);
+/*
+Change the number of possible instances of the par-operator referenced by ~s~. 
+If ~s~ doesn't reference a par-operator, the function throws an exception
 
+*/
 
   void ChangeParOperatorsNumberOfInstances(const Supplier s, 
                                            size_t numInstances);
 /*
-Change the number of possible instances of the par-operator referenced by ~s~. 
+Change the number of possible instances of the ~par~-operator referenced by ~s~. 
 If ~s~ doesn't reference a par-operator, the function throws an exception
 
 */
@@ -941,7 +949,7 @@ function returns false.
 int GetConstNodeIntValue(const Supplier s);
 /*
 Returns the int value of the constant node represented by ~s~. If the node is 
-no constant or does not include an integer as value the function will throw an
+no constant or does not include an integer as value, the function will throw an
 exception.
 
 */

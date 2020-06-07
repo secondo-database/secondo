@@ -2,7 +2,7 @@
 ---- 
 This file is part of SECONDO.
 
-Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+Copyright (C) 2019, University in Hagen, Department of Computer Science, 
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -45,6 +45,9 @@ September 2019, Fischer Thomas
 
 1.1 Overview
 
+The ~ConcurrentTupleBufferWriter~ is an interface for the ~ConcurrentTupleBuffer~
+to write tuples into tuple blocks. 
+
 1.2 Imports
 
 */
@@ -54,18 +57,18 @@ September 2019, Fischer Thomas
 
 #include "ConcurrentTupleBuffer.h"
 
-/**************************************************************************
-Forward declaration of several classes:
-
-*/
 namespace parthread
 {
 
 class ConcurrentTupleBufferWriter
 {
 public:
-  /* Connects a new ~ConcurrentTupleBufferWriter~ to the ~TupleBuffer~ and 
-    allocates resources */
+
+/*
+1.3 Initalization and destruction
+
+*/
+
   ConcurrentTupleBufferWriter(ConcurrentTupleBuffer *buffer,
                               DataPartitioner *partitioner)
       : m_buffer(buffer), m_tupleBlockVector(buffer->m_numPartitions),
@@ -74,9 +77,6 @@ public:
   {
   }
 
-  /* Disconnects the ~ConcurrentTupleBufferWriter~ from the ~TupleBuffer~ 
-     and frees resources for other connected writers.
-  */
   virtual ~ConcurrentTupleBufferWriter()
   {
     if (m_buffer != NULL)
@@ -93,6 +93,17 @@ public:
     }
   };
 
+/* 
+The constructor connects a new ~ConcurrentTupleBufferWriter~ to the 
+~TupleBuffer~. Additionally a copy of the partitioner needs to be passed to the 
+constructor. The disconnection from the buffer and the deletion of the partitioner
+occurs on destruction of the writer.
+
+1.4 Methods
+
+*/
+
+
   bool Allocate()
   {
     if (!m_hasMemoryAllocated)
@@ -103,18 +114,39 @@ public:
     return m_hasMemoryAllocated;
   }
 
+/* 
+Allocates memory from the buffer to store new tuples in the internal tuple blocks.
+The method returns ~false~ if there is already memory allocated or it's not possible
+for to get an empty vector of tuple blocks from the buffer.
+
+*/
+
   bool HasFreeMemory()
   {
     return m_tupleBlockVector.FreeMemorySize() > 0;
   }
 
+/* 
+Returns ~true~ if theres is memory left to store additional buffers, otherwise ~false~. 
+
+*/
+
+
   virtual void WriteTuple(Tuple *tuple)
   {
+    assert(m_hasMemoryAllocated);
+
     size_t partitionIdx = m_partitioner->DistributeValue(tuple);
 
     m_tupleBlockVector.AddTupleToPartition(tuple, partitionIdx);
     m_numWrittenTuples++;
   }
+/* 
+Write a single tuple to the vector of tuple blocks. The internal ~DataPartitioner~
+is responsible to choose the tuple block. The writer must allocate a new tuple
+vector before using this method.
+
+*/
 
   void Flush()
   {
@@ -124,11 +156,20 @@ public:
     }
     m_hasMemoryAllocated = false;
   }
+/* 
+Returns the tuple block back to the tuple buffer.
+
+*/
 
   size_t NumWrittenTuples()
   {
     return m_numWrittenTuples;
   }
+/* 
+Counts all tuples processed by this writer independent of the number of allocated
+blocks or used tasks. For debug pruposes.
+
+*/
 
 private: //methods
 private: //member

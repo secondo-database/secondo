@@ -2,7 +2,7 @@
 ----
 This file is part of SECONDO.
 
-Copyright (C) since 2009, University in Hagen, Faculty of Mathematics
+Copyright (C) since 2019, University in Hagen, Faculty of Mathematics
 and Computer Science, Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -142,6 +142,7 @@ bool ExecutionContextEntityManager::PinAvailableEntity(
     ExecutionContextEntity *&entity, MessageFilter allowedLastMessages,
     int entityIndexFilter)
 {
+  //non blocking, not threadsave, returns true if an entity is available
   entity = NULL;
 
   if (m_numOfAvailableEntities > 0)
@@ -236,8 +237,8 @@ void ExecutionContextEntityManager::FindParAndSetLocal2(
     if (copyNodeInfo)
     {
       //create a new parNodeInfo object as copy of the initial one
-      //to make sure that for each par node and entity is a unique
-      //pointer to a tuplereader possible
+      //This is necessary to make sure that for each par node and entity has 
+      //an independent pointer to a tuplereader
       nodeInfo = new ParNodeInfo(*nodeInfo);
 
       m_queryProcessor->GetLocal2(node).addr = nodeInfo;

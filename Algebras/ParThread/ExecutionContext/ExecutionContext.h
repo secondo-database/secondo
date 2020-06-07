@@ -2,7 +2,7 @@
 ---- 
 This file is part of SECONDO.
 
-Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+Copyright (C) 2019, University in Hagen, Department of Computer Science, 
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -45,6 +45,16 @@ September 2019, Fischer Thomas
 
 1.1 Overview
 
+The ~ExecutionContext~ describes a part of the operator tree that can be
+executed concurrently and independend from other execution contexts. 
+
+This class supports an interface for all stream messages called by the ~par~
+operator.  
+
+It is also the container for all entitities managed by the ~EntityManager~ a 
+member of this class and contains a tuple buffer to save tuples before they are 
+consumed by adjacent ~par~-operators.
+
 1.2 Imports
 
 */
@@ -67,148 +77,206 @@ September 2019, Fischer Thomas
 
 namespace parthread
 {
-class ExecutionContext
-{
-
-public:
-  ExecutionContext(int contextId, QueryProcessor *qp, OpTree partialTree,
-                   ExecutionContextSetting settings, 
-                   int numOfParallelEntities,
-                   int idxPartitionAttribute);
-
-  virtual ~ExecutionContext();
-
-  /*
-  Init 
- 
-  Initializes the execution context if not already done. All entities of this 
-  context are opened after the first entity of the parent context reaches
-  this method. Then the state of the context is set to initialized. 
-  */
-  void Init();
-
-  /*
-
- 
-  */
-  void Open(ParNodeInfo *nodeInfo);
-
-  /*
-  2 Close 
-
-  */
-  void Close(ParNodeInfo *entity);
-
-  /*
-  Fetches the next tuple from the ConcurrentTupleBuffer and returns 
-  YIELD if a tuple is available (and a reference to the tuple as out parameter).
-  If no tuple is available, but the tuple stream is not yet dried up, the 
-  method creates a new task. In this case the thread continues with the next 
-  child-context. Otherwise, if the stream is at the end the request returns 
-  CANCEL and NULL-pointer.
-
-  */
-  int Request(ParNodeInfo *nodeInfo, Tuple *&tuple);
-
-  /*
-  The method just hands on the command to all connected child contexts
-  and finish them in a serial order
-
-  */
-  void Finish();
-  /*
- 
-  */
-
-
-  void ScheduleContextTask(tbb::task_group &taskGroup,
-                           ExecutionContextEntity *entity = NULL);
-
-
-  int ContextId() const
+  class ExecutionContext
   {
-    return m_id;
-  }
 
-  void AddChildContexts(ExecutionContext *ctx);
+/*
+1.3 Initialization and destruction
 
-  const std::vector<ExecutionContext *> &ChildContexts() const
-  {
-    return m_childContexts;
-  }
+*/
 
-  void ParentContext(ExecutionContext *&parent)
-  {
-    m_parentContext = parent;
-  }
+  public:
+    ExecutionContext(int contextId, QueryProcessor *qp, OpTree partialTree,
+                     ExecutionContextSetting settings,
+                     int numOfParallelEntities,
+                     int idxPartitionAttribute);
 
-  ExecutionContext *ParentContext()
-  {
-    return m_parentContext;
-  }
+    virtual ~ExecutionContext();
 
-  ExecutionContextEntityManager *ContextEntities()
-  {
-    return m_entityManager.get();
-  }
+/*
+Execution context objects are created by the ~ParallelQueryOptimizer~. The 
+necessary parameters are as follows:
 
-  ExecutionContextStates Status()
-  {
-    return m_contextState;
-  }
+  * ~contextId~: an unique identifier used for debug purposes.
 
-  OpTree &PreviousParNode()
-  {
-    return m_parNode;
-  }
+  * ~qp~: reference to the query processor.
+   
+  * ~partialTree~: the separated subtree of the operator tree enclosed by this context.
+  
+  * ~settings~: information and configuration settings loaded from secondo-config.ini
+  (see the TestConfigs subdirectory for more information).
 
-  OpTree &ContextRootNode()
-  {
-    return m_rootNode;
-  }
+  * ~numOfParallelEntities~ and ~idxPartitionAttribute~ are the parameters of the 
+  ~par~-operator passed to the execution context.
 
-private: //methods
- 
-  bool AllParentEntitiesAchievedState(ExecutionContextStates stateToBeReached,
-                                      ExecutionContextEntity *entity);
+The constructor sets the context in state created. The only 
 
-  void ScheduleContextTaskRecursive(
-      int message, std::vector<ExecutionContextEntity *> entities);
+1.4 Stream message handler
 
-  void OnBufferSizeChanged();
+*/
 
-  void ScheduleContextTask(int message, ExecutionContextEntity *entity);
+    void Init();
+/*
+Setup the execution context for execution if not already done. All entities 
+of this context are initialized after the first entity of the parent context 
+reaches this method. The buffer is created here too. This handler sets the 
+state of the context is set to ~Initialized~. 
 
-  void ScheduleRequestTasks(
-      int entityIndex = ExecutionContextEntityManager::AllEntityIndices);
+*/
 
-  void TriggerPufferChange();
+    void Open(ParNodeInfo *nodeInfo);
+/*
+This method pins all entities of this context and calls the open messagen on 
+each of them. The precondition is that all parent entities reached this handler
+before. The method is responsible to create a tuple reader connected to the 
+execution contexts tuple buffer and assign it to the calling ~par~ node. 
 
-  size_t ExecuteRequestTask(ExecutionContextEntity *entity);
+Before the method finish the execution context state is set to ~Opened~
 
-protected: //member
-  int m_id;
-  QueryProcessor *m_queryProcessor;
-  OpTree m_rootNode;
-  OpTree m_parNode;
-  int m_numOfParallelEntities;
-  int m_idxPartitionAttribute;
+*/
 
-  //Status changes are made in a sequential order.
-  ExecutionContextStates m_contextState;
-  std::mutex m_stateMtx;
+    void Close(ParNodeInfo *entity);
+/*
+The close handler works in a similar way like the open-handler. It forwards the
+close message to all entities of this context. Finally it deletes the reader of
+the calling ~par~-node and sets the state to ~Closed~
 
-  std::mutex m_bufferSizeHandlerMtx;
+*/
 
-  ExecutionContext *m_parentContext;
-  std::vector<ExecutionContext *> m_childContexts;
+    int Request(ParNodeInfo *nodeInfo, Tuple *&tuple);
+/*
+Fetches the next tuple from the ConcurrentTupleBuffer and returns 
+~YIELD~ if a tuple is available as well a reference to the tuple as out 
+parameter.
+If no tuple is available, but the tuple stream is not yet dried up, the 
+method creates a new task. In this case the thread continues with the next 
+child-context. 
+Otherwise, if the stream is at the end the request returns ~CANCEL~ and 
+NULL-pointer instead of a tuple-reference.
 
-  ExecutionContextSetting m_settings;
-  ConcurrentTupleBufferPtr m_buffer;
+*/
 
-  std::unique_ptr<ExecutionContextEntityManager> m_entityManager;
-  std::unique_ptr<ExecutionContextGuard> m_contextGuard;
-};
+    void Finish();
+/*
+The method just hands on the command to all connected child contexts
+and finish them in a serial order. The state of the context is set to ~Finished~
+before the method ends.
+
+1.5 Properties
+
+*/
+
+    int ContextId() const
+    {
+      return m_id;
+    }
+/*
+The purpose of the ContextId is just to unique identify the context and needed
+for debug output.
+
+*/
+
+    void AddChildContexts(ExecutionContext *ctx);
+
+    const std::vector<ExecutionContext *> &ChildContexts() const
+    {
+      return m_childContexts;
+    }
+/*
+An execution context can have zero to many child context. This are adjacent 
+execution context which are connected by the ~par~-nodes of this contexts entities.
+
+The ~ParallelQueryOptimizer~ use the setter to build up this tree structure of
+contexts.
+
+*/
+
+    void ParentContext(ExecutionContext *&parent)
+    {
+      m_parentContext = parent;
+    }
+
+    ExecutionContext *ParentContext()
+    {
+      return m_parentContext;
+    }
+
+/*
+Every execution context has zero or one parent context. The first context following
+the root of the operator tree is the only context that has no parent and can be
+identified by this property.
+
+*/
+
+    ExecutionContextStates Status()
+    {
+      return m_contextState;
+    }
+
+/*
+Additional readonly getter to the status of the context. See the 
+~ExecutionContextStates~ class for detailed information about the context states.
+
+*/
+
+    OpTree &PreviousParNode()
+    {
+      return m_parNode;
+    }
+
+    OpTree &ContextRootNode()
+    {
+      return m_rootNode;
+    }
+
+/*
+The ~PreviousParNode~ is the reference to the node in the original operator-tree.
+~ContextRootNode~ gets a reference to the first node in the execution context, based
+on the original tree too.  
+
+*/
+
+  private: //methods
+    bool AllParentEntitiesAchievedState(ExecutionContextStates stateToBeReached,
+                                        ExecutionContextEntity *entity);
+
+    void ScheduleContextTaskRecursive(
+        int message, std::vector<ExecutionContextEntity *> entities);
+
+    void OnBufferSizeChanged();
+
+    void ScheduleContextTask(int message, ExecutionContextEntity *entity);
+
+    void ScheduleRequestTasks(
+        int entityIndex = ExecutionContextEntityManager::AllEntityIndices);
+
+    void TriggerPufferChange();
+
+    size_t ExecuteRequestTask(ExecutionContextEntity *entity);
+
+  protected: //member
+    int m_id;
+    QueryProcessor *m_queryProcessor;
+    OpTree m_rootNode;
+    OpTree m_parNode;
+    int m_numOfParallelEntities;
+    int m_idxPartitionAttribute;
+
+    //Status changes are made in a sequential order.
+    ExecutionContextStates m_contextState;
+    std::mutex m_stateMtx;
+
+    std::mutex m_bufferSizeHandlerMtx;
+
+    ExecutionContext *m_parentContext;
+    std::vector<ExecutionContext *> m_childContexts;
+
+    ExecutionContextSetting m_settings;
+    ConcurrentTupleBufferPtr m_buffer;
+
+    std::unique_ptr<ExecutionContextEntityManager> m_entityManager;
+    std::unique_ptr<ExecutionContextGuard> m_contextGuard;
+  };
 
 } // namespace parthread
 #endif

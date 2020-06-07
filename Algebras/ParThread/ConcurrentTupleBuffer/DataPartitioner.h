@@ -2,7 +2,7 @@
 ---- 
 This file is part of SECONDO.
 
-Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+Copyright (C) 2019, University in Hagen, Department of Computer Science, 
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -45,6 +45,9 @@ September 2019, Fischer Thomas
 
 1.1 Overview
 
+The ~DataPartitioner~ is part of a ~ConcurrentTupleBufferWriter~ and responsible
+to distribute the written tuple block to the queues of the ~ConcurrentTupleBuffer~.
+ 
 1.2 Imports
 
 */
@@ -57,6 +60,16 @@ September 2019, Fischer Thomas
 namespace parthread
 {
 
+/*
+1.3 DataPartitioner
+
+The ~ConcurrentTupleBuffer~ uses the ~DataPartitioner~ to decide which type of 
+~ConcurrentTupleReader~ is necessary to fetch the data from the buffer. 
+Partitioner distributing tuples to more than one partition in the buffer are 
+marked as "SharedPartitions". Otherwise they feed only one partition with tuple 
+blocks. In this case the distribution type is "DedicatedPartition".
+
+*/
 enum class DistributionTypes
 {
   SharedPartitions,
@@ -87,12 +100,39 @@ public:
 
   virtual size_t DistributeValue(Tuple *tuple) = 0;
 
+/*
+The ~Copy~-method is used to create a deep copy for each writer created by the
+tuple buffer. ~DistributeValue~ is abstract and returns the index to a tuple block
+in the writers block vector. It must be implemented with a distribution logic 
+dependent of the distribution type.
+
+*/
+
 private: //member
   size_t m_numPartitions;
   DistributionTypes m_distType;
 };
 
 typedef std::shared_ptr<DataPartitioner> IDataPartitionerPtr;
+
+
+/*
+1.3 HashDataPartitioner and RoundRobinDataPartitioner
+
+Both are implementations of ~DataPartitioner~ and differ in the way they distribute
+the tuples to the tuple blocks processed by the writer.  
+
+~HashDataPartitioner~ use an attribute of the tuple to calculate the hash-value. 
+The index of the attribute is passed as parameter to the constructor. ~DistributeValue~ 
+returns the index of the tuple block in the block vector (a value between 0 and 
+~numPartitions~) where the tuple reference should be stored. 
+
+~RoundRobinDataPartitioner~ uses all tuple blocks of the writer in an alternately 
+fashion. ~DistributeValue~ will return a different block index for each call. When
+the maximum number of blocks in the vector is reached it starts again with the first
+block (index 0).
+
+*/
 
 class HashDataPartitioner : public DataPartitioner
 {

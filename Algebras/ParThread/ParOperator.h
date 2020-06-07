@@ -2,7 +2,7 @@
 ---- 
 This file is part of SECONDO.
 
-Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+Copyright (C) 2019, University in Hagen, Department of Computer Science, 
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -45,7 +45,7 @@ September 2019, Fischer Thomas
 
 1.1 Overview
 
-The par- operator is the leaf of a query plan subtree. This subtree 
+The par- operator is a leaf of a query plan subtree. This subtree 
 describes an execution context, which is usually evaluated in a
 separate thread parallel with other execution contexts. 
 
@@ -63,10 +63,9 @@ This operator consumes a local tuple buffer which needs to be set by the
 namespace parThread
 {
 
-class ParOperator
-{
-public: //static methods
-
+    class ParOperator
+    {
+    public: //static methods
 /*
 1.3 Type mapping function of operator ~par~
 
@@ -75,36 +74,53 @@ Result type of filter operation:
 ----    (stream (tuple x) x int x [string] ) -> (stream (tuple x))
 ----
 
+The first parameter represents the number of used entities for the 
+connected context. The second parameter is optional and indicates that 
+the attribut with the name given by the parameter is used for hash-
+partitioning.
+
 */
-    static ListExpr ParTM(ListExpr args);
+        static ListExpr ParTM(ListExpr args);
 
 /*
 1.4 Value mapping function of operator ~par~
 
 */
+        static int ParVM(Word *args, Word &result, int message,
+                         Word &local, Supplier s);
 
-    static int ParVM(Word *args, Word &result, int message,
-                     Word &local, Supplier s);
-
-private: //static methods
+    private: //static methods
 /*
-1.5 Indicates that the operator has a valid local2- object 
+1.5 Support functions
+
+*/
+
+        static bool IsOptimizedForParallelQueryExecution(Supplier s);
+/*
+Indicates that the operator has a valid local2- object 
 that was set in the ParallelQueryOptimizer. The parallel query 
-optimizer adds automatically par operators which are part of the 
+optimizer adds automatically ~par~ operators which are part of the 
 ParThread- algebra. However the algebra can't be ruled out in the
 query language and every user can set additional par- operators,
 even if they can't be parallized in this context. In this case the 
 function will return ~false~ and the operator will not be parallized.
 
 */
-    static bool IsOptimizedForParallelQueryExecution(Supplier s);
 
-    static int ParVMSerial(Word *args, Word &result, int message,
-                           Word &local, Supplier s);
+        static int ParVMSerial(Word *args, Word &result, int message,
+                               Word &local, Supplier s);
 
-    static int ParVMParallel(Word *args, Word &result, int message,
-                             Word &local, Supplier s);
-};
+        static int ParVMParallel(Word *args, Word &result, int message,
+                                 Word &local, Supplier s);
+/*
+Different implementations of the value mapping function depending on the 
+state of the operator. ~ParVMSerial~ is used for a serial execution 
+without a valid ParNodeInfo-object set in local2 space. The 
+~ParVMParallel~ method uses the stream-handler of the ParNodeInfos execution 
+context reference to pass on stream messages.
+
+*/
+    };
 
 } // end namespace parThread
 

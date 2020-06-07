@@ -2,7 +2,7 @@
 ---- 
 This file is part of SECONDO.
 
-Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+Copyright (C) 2019, University in Hagen, Department of Computer Science, 
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -45,6 +45,9 @@ September 2019, Fischer Thomas
 
 1.1 Overview
 
+The ~ExecutionContextEntity~ class represents a single entitiy of exection 
+context. It is a composition of elements unique for this context.
+
 1.2 Imports
 
 */
@@ -65,10 +68,28 @@ public:
         : EntityIdx(entityIdx), LastSendMessage(INIT), Writer(NULL),
           PartialTree(partialTree){};
 
+/*
+1.3 Member
+
+*/
     int EntityIdx;
     int LastSendMessage;
     ConcurrentTupleBufferWriter *Writer;
     OpTree PartialTree;
+/*
+
+  * ~EntitiyIdx~: is an identifier for the entity used for debug purposes
+
+  * ~LastSendMessage~: the last message send to the partial tree of this entity
+ 
+  * ~Writer~: writer to the tuple buffer of the context. It is necessary that 
+    the same writer is related to the entity during the whole execution. For 
+    hash-partitioning it is necessary to trigger the correct entity in case of 
+    filled buffers.
+
+  * ~PartialTree~: a copy of the partial tree enclosed by the context
+
+*/
 };
 
 } // namespace parthread

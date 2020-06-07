@@ -2,7 +2,7 @@
 ---- 
 This file is part of SECONDO.
 
-Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+Copyright (C) 2019, University in Hagen, Department of Computer Science, 
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -45,6 +45,11 @@ September 2019, Fischer Thomas
 
 1.1 Overview
 
+The ~ConcurrentTupleBuffer~ temporary stores tuple blocks produced by execution
+contexts before they are consumed by an adjacent context. Access to write and 
+read methods is only possible through ~ConcurrentTupleBufferReader~ and 
+~ConcurrentTupleBufferWriter~.
+
 1.2 Imports
 
 */
@@ -64,10 +69,6 @@ September 2019, Fischer Thomas
 #include <set>
 #include <atomic>
 
-/**************************************************************************
-Forward declaration of several classes:
-
-*/
 namespace parthread
 {
 
@@ -78,22 +79,36 @@ class ConcurrentTupleBuffer
 {
 
 public: //methods
+/*
+1.3 Initalization and destruction
+
+*/
   ConcurrentTupleBuffer(const ConcurrentTupleBufferSettings settings);
 
   ~ConcurrentTupleBuffer();
+/*
+The ~ConcurrentTupleBuffer~ initializes an array of queues depending on the 
+number of partitions. Each queue can temporary store tuple blocks of different
+types sharing the ~ITupleBlock~ interface.
+
+
+1.4 Methods
+
+*/
 
   ConcurrentTupleBufferReader *GetTupleBufferReader(int partitionIdx = 0);
 
   ConcurrentTupleBufferWriter *GetTupleBufferWriter();
+/*
+These methods are used to create writers and readers to get access to the stored
+tuples or to add new tuples to the buffer. Every reader/writer has an reference to
+the created buffer and can access methods to allocate or provide tuple blocks.
+
+*/
 
   size_t Size() const
   {
     return m_numTupleBlocks;
-  }
-
-  size_t NumberOfPartitions() const
-  {
-    return m_numPartitions;
   }
 
   size_t SizeOfPartition(int partitionIndex) const
@@ -105,40 +120,69 @@ public: //methods
 
     return sizeOfPartition;
   }
+/*
+~Size~ and ~SizeOfPartition~ provide the number of stored tuples by partition or
+for the complete block. The buffer allows concurrent access, so it's possible that
+the returned size can change in the meantime if other threads access the puffer too.
 
-private:
-  /*blocks until there is a writer connected and tuples are available
-    if the tupleBuffer has no producing writers and signals that no new
-    writers are expected (TupleBuffer is closed), then the reader 
-    consumes the already queued tuples and returns ~false~ after the last
-    element was retrieved. 
-    */
+*/
+
+  size_t NumberOfPartitions() const
+  {
+    return m_numPartitions;
+  }
+
+
+private: //methods
+
   bool AllocateTupleBlocks(TupleBlockVector &tupleBlockVector);
+/*
+Reserves memory for the allocated tuple block vector. This method is called by
+writers.
+
+*/
 
   void ProvideTupleBlocks(TupleBlockVector &tupleBlockVector);
+/*
+Adds filled tuple blocks of the given ~TupleBlockVector~ to the queues of the 
+buffer. This method is called by writers.
+
+*/
 
   bool ConsumeTupleBlockByPartition(TupleBlockPtr &tupleBlock,
                                     const size_t partitionIdx);
+/*
+Gets the next tuple block available for the partition at ~partitionIdx~. If no
+tuple is available the method returns ~false~. This method is called by
+readers.
+
+*/
+
 
   bool ConsumeNextTupleBlock(TupleBlockPtr &tupleBlock);
+/*
+Similar to ~ConsumeTupleBlockByPartition~ but gets the tuple block from the 
+internal queue with the highest number of tuple blocks. This method is called by
+readers.
 
-  /* threadsave */
+*/
+
   void DeallocateTupleBlock(TupleBlockPtr &tupleBlock);
+/*
+Consumed tuple blocks needs to be deallocated and the reserved memory returns to
+the tuple puffers pool. This method is called by readers.
 
-  /* threadsave */
+*/
+
   void RemoveWriter(ConcurrentTupleBufferWriter *writer);
 
-  /* threadsave */
   void RemoveReader(ConcurrentTupleBufferReader *reader);
+/*
+The writer and reader are responsible to call the remove-methods and quit the 
+connection to the tuple buffer.
 
-  inline const size_t TotalMemorySize() const
-  {
-    return m_settings.TotalBufferSizeInBytes;
-  };
+*/
 
-  void BufferSizeChanged();
-
-private: //methods
   int DistributeMemory(const size_t minMemoryExpected);
 
   void SwapExistingMemoryBlocks(int minMemoryToSwap,

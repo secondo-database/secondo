@@ -2,7 +2,7 @@
 ---- 
 This file is part of SECONDO.
 
-Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+Copyright (C) 2019, University in Hagen, Department of Computer Science, 
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -39,21 +39,14 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[tilde] [\verb|~|]
 //[Contents] [\tableofcontents]
 
-1 Header File: ThreadManager
+1 Header File: ParNodeInfo
 
-May 2002, Ulrich Telle. Port to C++.
+September 2019, Fischer Thomas
 
 1.1 Overview
 
-This module manages a set of databases. A database consists of a set of 
-named types and a set of objects with given type name or type expressions. 
-Objects can be persistent or not. Persistent objects are implemented 
-by the ~Storage Management Interface~. When a database is opened, 
-a catalog with informations about types, type constructors, operators, 
-and objects of the database is loaded. Furthermore the catalog is loaded 
-into memory by calling the procedures of the module ~Algebra Manager~.
-
-1.2 Imports
+The ParNodeInfo is the data structure defined for the local2 space of the ~par~-
+operator.
 
 */
 
@@ -62,57 +55,88 @@ into memory by calling the procedures of the module ~Algebra Manager~.
 
 namespace parthread
 {
+/*
+1.2 Prototypes
 
-class ExecutionContext;
-class ExecutionContextEntity;
-class ConcurrentTupleBufferReader;
+*/
+    class ExecutionContext;
+    class ExecutionContextEntity;
+    class ConcurrentTupleBufferReader;
 
-class ParNodeInfo
-{
-public:
-    ParNodeInfo(parthread::ExecutionContext *connectedContext)
-        : m_reader(0), m_currentEntity(0), m_connectedContext(connectedContext)
+    class ParNodeInfo
     {
-    }
+    public:
+/*
+1.3 Initialization and destruction
 
-     //nothing to delete, other codeparts are responsible for deleting the 
-     //members
-    ~ParNodeInfo() = default;
-    
-    //reference to the context related to the current entity
-    ExecutionContext *ConnectedContext()
-    {
-        return m_connectedContext;
-    }
+The ParNodeInfo is initialized with the object of the connected  
+execution context. This allows the par-operator to call the 
+following subtree.
 
-    //gets or sets a reference to the current entity of this par node
-    ExecutionContextEntity *CurrentEntity()
-    {
-        return m_currentEntity;
-    }
+*/
+        ParNodeInfo(parthread::ExecutionContext *connectedContext)
+            : m_reader(0), m_currentEntity(0), 
+              m_connectedContext(connectedContext)
+        {
+        }
 
-    void CurrentEntity(ExecutionContextEntity *entity)
-    {
-        m_currentEntity = entity;
-    }
-    
-    //gets or sets the tuple reader for this par node and entity
-    ConcurrentTupleBufferReader *TupleReader()
-    {
-        return m_reader;
-    }
+        ~ParNodeInfo() = default;
+/*
+The destructor is not needed. Other codeparts are responsible for deleting 
+the members this data structure
 
-    void TupleReader(ConcurrentTupleBufferReader *reader)
-    {
-        m_reader = reader;
-    }
+1.4 Properties
 
-private:
-    ConcurrentTupleBufferReader *m_reader;
-    ExecutionContextEntity *m_currentEntity;
-    ExecutionContext *m_connectedContext;
+*/
 
-};
+        
+        ExecutionContext *ConnectedContext()
+        {
+            return m_connectedContext;
+        }
+/*
+Gets a reference to the execution context connected to this ~par~-node.
+The execution context is the same for all entities of this node.
+
+*/
+
+        ExecutionContextEntity *CurrentEntity()
+        {
+            return m_currentEntity;
+        }
+
+        void CurrentEntity(ExecutionContextEntity *entity)
+        {
+            m_currentEntity = entity;
+        }
+/*
+Gets and sets a reference to the entity containing the subtree where
+this par node is a leaf node. 
+
+*/
+
+        ConcurrentTupleBufferReader *TupleReader()
+        {
+            return m_reader;
+        }
+
+        void TupleReader(ConcurrentTupleBufferReader *reader)
+        {
+            m_reader = reader;
+        }
+/*
+Gets and sets the tuple reader. The reader is unique for this
+~par~ node and instance. It represents the connection to the tuple-
+buffer and is used by the par-operator to retrieve tuples from the 
+connected context. 
+
+*/
+
+    private:
+        ConcurrentTupleBufferReader *m_reader;
+        ExecutionContextEntity *m_currentEntity;
+        ExecutionContext *m_connectedContext;
+    };
 
 } // namespace parthread
 #endif

@@ -2,7 +2,7 @@
 ---- 
 This file is part of SECONDO.
 
-Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+Copyright (C) 2019, University in Hagen, Department of Computer Science, 
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -45,6 +45,11 @@ September 2019, Fischer Thomas
 
 1.1 Overview
 
+The ~ExecutionContextEntityManager~ is a collector for the entities of the 
+execution context. It creates entities and destroys them after execution.
+The manager is responsible that each entity is just used by one thread at a 
+time.
+
 1.2 Imports
 
 */
@@ -70,34 +75,62 @@ public: //types and static members
     static int AllEntityIndices;
 
 public: //methods
-    /*
-    The entity manager has controll over a fixed number of entities.
-    
-    */
+/*
+1.3 Initialization and destruction
+
+*/
     ExecutionContextEntityManager(size_t numEntities, OpTree partialTree,
                                   QueryProcessor *queryProcessor,
                                   int executionContextId,
                                   const ExecutionContextSetting &settings);
 
     virtual ~ExecutionContextEntityManager();
+/*
+The number of entities is fixed and must be known at initialization of the class.
+~partialTree~ is the original, but already separated part of the operator tree. 
+The manager uses methods from ~QueryProcessor~ to copy the tree to multiple instances.
 
-    //returns true if an entity is available
+During destruction all entities are pinned and ~destroy~ is called on each partial
+tree. 
+
+1.4 Methods
+
+All following methods are threadsave and can be called in a concurrent environment.
+
+*/
     bool PinSingleEntity(ExecutionContextEntity *&entity,
                          MessageFilter allowedLastMessages = AllMessages,
                          int entityIndexFilter = AllEntityIndices);
+/*
+Pins a single entity. The entity is returned as out parameter and the return 
+values indicates if the call was successfull. Optional the entities can be 
+restricted to the last called message or a certain index.
 
-    //reserves all entities and return them as vector. The method will block
-    //as long as all entitys are available and can be allocated
+*/
+
     bool PinAllEntities(std::vector<ExecutionContextEntity *> &entitys,
                         MessageFilter allowedLastMessages = AllMessages);
+/*
+Similar to the previous method, but reserves all entities and return them as 
+vector. The method will block as long as all entitys are available and can be 
+allocated. It is possible to constrain this to entities with a certain messages
 
-    //returns the passed entity to the pool
+*/
+
     void UnpinSingleEntity(ExecutionContextEntity *entity);
+/*
+Returns a single entity back to the managed pool of entities. After an entity was
+unpinned through this method it can be used by other threads.  
 
-    //returns true if all entities managed by this class achieved a given state
+*/
+
     bool AllEntitiesAchievedLastMessage(MessageFilter allowedLastMessages);
+/*
+Returns true if all entities managed by this class achieved a given state.
 
-    //returns true if at least one entity is available
+*/
+
+
     inline bool HasUnpinnedEntities()
     {
         boost::shared_lock<boost::shared_mutex> lock(m_access);
@@ -110,26 +143,42 @@ public: //methods
         return m_numOfAvailableEntities;
     };
 
-    //number of all entities managed by this pool
+/*
+Returns true if at least one entity is available or the number of available entities.
+This is no guarantee that a following call of ~UnpinSingleEntity~ will succeed 
+if more than one thread access the entity manager and should only be used for 
+debugging purposes.
+
+*/
+
     inline size_t NumberOfEntities()
     {
         boost::shared_lock<boost::shared_mutex> lock(m_access);
         return m_entityPool.size();
     };
+/*
+Gets the constant size of entities managed by this class.
+
+*/
+
 
 private: //methods
-    //not threadsave
+
     ExecutionContextEntity *CreateAndInitEntity(bool copyTemplate);
 
-    //not threadsave
-    //iterate through the tree and search for par nodes to set the current
-    //entity in local2 space. CopyNodeInfo indicates that the object must be
-    //copied for the par- node in the current entity
     void FindParAndSetLocal2(OpTree node, ExecutionContextEntity *entity,
                              bool copyNodeInfo);
 
-    //not threadsave
-    //non blocking, not threadsave, returns true if an entity is available
+/*
+Create a new entity call initialize to the partial tree. If ~copyTemplate~ is
+set the partial tree will be copied otherwise the original tree structure is used.
+
+The ~FindParAndSetLocal2~ iterates through the tree and search for par nodes to
+set the current entity in local2 space. CopyNodeInfo indicates that the object 
+must be copied for the par- node in the current entity
+
+*/
+
     bool PinAvailableEntity(ExecutionContextEntity *&entity,
                             MessageFilter allowedLastMessages,
                             int entityIndexFilter);

@@ -2,7 +2,7 @@
 ----
 This file is part of SECONDO.
 
-Copyright (C) since 2009, University in Hagen, Faculty of Mathematics
+Copyright (C) since 2019, University in Hagen, Faculty of Mathematics
 and Computer Science, Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -46,7 +46,7 @@ namespace parthread
         m_contextState(ExecutionContextStates::Created),
         m_parentContext(NULL), m_settings(setting)
   {
-    //the par operator has only one son, this is the rootnode of
+    //the first son of the par node is the rootnode of
     //the execution context
     m_parNode = parNodeRef;
     m_rootNode = (OpTree)qp->GetSon(parNodeRef, 0);
@@ -92,7 +92,6 @@ namespace parthread
               new RoundRobinDataPartitioner(parentNumberOfEntities));
         }
 
-        bufferSettings.InitialQueueCapacity = m_settings.QueueCapacityThreshold;
         bufferSettings.MemoryDistributionFactor =
             m_numOfParallelEntities *
             m_settings.QueueCapacityThreshold;
@@ -248,14 +247,13 @@ namespace parthread
       {
         if (reader->TryReadTuple(tuple))
         {
-          /* got a new tuple from reader,
-            break and return with yield*/
+          //got a new tuple from reader break and return with yield
           status = YIELD;
           break;
         }
         else
         {
-          /* found no new tuple, so trigger a buffer change*/
+          //found no new tuple, so trigger a buffer change
           TriggerPufferChange();
         }
       }
@@ -274,7 +272,7 @@ namespace parthread
     //do nothing if context is already destroyed
     if (Status() < ExecutionContextStates::Finished)
     {
-      //iterative finish all contexts of the contexttree
+      //iteratively finish all contexts of the context tree
       //beginning with the child nodes
       for (ExecutionContext *child : m_childContexts)
       {
@@ -457,7 +455,7 @@ namespace parthread
       entity->LastSendMessage = message;
 
       //release the entity
-      ContextEntities()->UnpinSingleEntity(entity);
+      m_entityManager->UnpinSingleEntity(entity);
     }
     else if (message == CLOSE)
     {
@@ -472,7 +470,7 @@ namespace parthread
       entity->LastSendMessage = message;
 
       //release the entity
-      ContextEntities()->UnpinSingleEntity(entity);
+      m_entityManager->UnpinSingleEntity(entity);
     }
 
     if (m_settings.Logger->DebugMode())
@@ -557,7 +555,7 @@ namespace parthread
     }
 
     //release the entity
-    ContextEntities()->UnpinSingleEntity(entity);
+    m_entityManager->UnpinSingleEntity(entity);
 
     return numProcessedTuples;
   };

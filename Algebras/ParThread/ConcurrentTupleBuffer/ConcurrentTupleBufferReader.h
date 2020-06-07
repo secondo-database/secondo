@@ -2,7 +2,7 @@
 ---- 
 This file is part of SECONDO.
 
-Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+Copyright (C) 2019, University in Hagen, Department of Computer Science, 
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -45,6 +45,11 @@ September 2019, Fischer Thomas
 
 1.1 Overview
 
+The abstract class ~ConcurrentTupleBufferReader~ allows the access to tuples 
+temporary stored in the related ~ConcurrentTupleBuffer~. It encapsulates the 
+tuple blocks retrieved from the buffer and supports an iterator interface to 
+fetch single tuples. 
+
 1.2 Imports
 
 */
@@ -60,8 +65,11 @@ namespace parthread
   class ConcurrentTupleBufferReader
   {
   public:
-    /* Connects a new ~ConcurrentTupleBufferReader~ to the ~TupleBuffer~ and 
-    allocates resources */
+
+/*
+1.3 Initalization and destruction
+
+*/
     ConcurrentTupleBufferReader(ConcurrentTupleBuffer *buffer)
         : m_buffer(buffer), m_currentTupleBlock(NULL), m_numReadTuples(0)
     {
@@ -72,6 +80,12 @@ namespace parthread
       Close();
     };
 
+/* 
+The constructor connects a new ~ConcurrentTupleBufferReader~ to the 
+~TupleBuffer~. The disconnection occurs on destruction of the reader.
+
+*/
+
     bool IsEndOfDataReached()
     {
       if (ReadNextTupleBlockIfNecessary())
@@ -81,6 +95,12 @@ namespace parthread
       }
       return false;
     }
+
+/* 
+This method indicates if the end of the data stream is reached. For this
+purpose it checks the current loaded tuple block if it is a ~EndOfDataStreamBlock~
+
+*/
 
     bool TryReadTuple(Tuple *&tuple)
     {
@@ -100,6 +120,14 @@ namespace parthread
 
       return false;
     }
+/* 
+~TryReadTuple~ allows access to a single tuple out of a tuple block. If all 
+records of the current tuple block are read, the block is passed to the associated 
+~ConcurrentTupleBuffer~ to be deleted. The next call of this method will 
+request a new block from the buffer. If no block is available it returns ~false~
+to notify the calling code.
+
+*/
 
     size_t NumReadTuples()
     {
@@ -109,13 +137,9 @@ namespace parthread
     virtual std::string ToString() = 0;
 
   protected: //methods
-    /*
-  returns true if a tuple block is available, otherwise false 
-  */
+
     virtual bool ReadNextTupleBlockIfNecessary() = 0;
 
-    /* Disconnects the ~ConcurrentTupleBufferReader~ from the ~TupleBuffer~ 
-     and frees resources for other connected writers */
     void Close()
     {
       if (m_buffer != NULL)
@@ -151,6 +175,20 @@ namespace parthread
     TupleBlockPtr m_currentTupleBlock;
     size_t m_numReadTuples;
   };
+
+
+/*
+1.3 ConcurrentTupleBufferDedicatedReader and ConcurrentTupleBufferSharedReader
+
+There are two implementations of the reader. Both implementations differ just 
+in the way they request new tuple blocks from the ~ConcurrentTupleBuffer~ . 
+
+The ~ConcurrentTupleBufferSharedReader~ access all queues of the tuple buffer 
+in a round robin fashion. The ~ConcurrentTupleBufferDedicatedReader~ only gets 
+the tuple blocks from a fixed queue determined at construction of the reader. 
+This kind of reader is used for hash-partitioning. 
+
+*/
 
   class ConcurrentTupleBufferSharedReader : public ConcurrentTupleBufferReader
   {

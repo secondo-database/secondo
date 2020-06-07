@@ -2,7 +2,7 @@
 ----
 This file is part of SECONDO.
 
-Copyright (C) since 2009, University in Hagen, Faculty of Mathematics
+Copyright (C) since 2019, University in Hagen, Faculty of Mathematics
 and Computer Science, Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -40,8 +40,8 @@ ConcurrentTupleBuffer::ConcurrentTupleBuffer(
       m_numTupleBlocks(0)
 {
   assert(settings.TotalBufferSizeInBytes > 0);
-  //constrain the memory per block to the maximum of an int, because ints are
-  //used for the blocks memory counter
+  //constrain the memory per block to the maximum of an int, because signed
+  //numeric types are used for the blocks memory counter
   m_defaultMemoryPerBlock = std::min((settings.TotalBufferSizeInBytes /
                          m_settings.MemoryDistributionFactor), (size_t)INT_MAX);
 
@@ -127,7 +127,6 @@ int ConcurrentTupleBuffer::DistributeMemory(const size_t minMemoryExpected)
 
   if (blockVectorMemory >= minMemoryExpected)
   {
-    //use the distributed tuple block memory
     m_availableMemory -= blockVectorMemory;
   }
   else

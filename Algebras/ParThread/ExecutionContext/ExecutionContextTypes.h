@@ -2,7 +2,7 @@
 ---- 
 This file is part of SECONDO.
 
-Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+Copyright (C) 2019, University in Hagen, Department of Computer Science, 
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -45,6 +45,8 @@ September 2019, Fischer Thomas
 
 1.1 Overview
 
+Helper classes and types used in the execution context scope 
+
 1.2 Imports
 
 */
@@ -71,6 +73,21 @@ namespace fs = boost::filesystem;
 namespace parthread
 {
   namespace sc = std::chrono;
+
+/*
+1.3 ExecutionContextLogger
+
+This class is used to write the messages to the command line and trace task states. 
+It has two modes:
+
+  1. ~DebugOutput~: only writes messages to the command line considering concurrent
+                   access.
+
+  2. ~TraceOutput~: writes the tasktrace to file. ~WriteTaskTrace~ creates a new 
+                    record to the file with information like the Tasks start time,
+                    context, entity ...
+
+*/
 
   class ExecutionContextLogger
   {
@@ -242,6 +259,15 @@ namespace parthread
     std::list<TaskTrace> m_taskTraces;
   };
 
+
+
+/*
+1.4 ExecutionContextStates
+
+Enum containing the different states the execution context goes through during
+execution. They have the same meaning like the stream messages.
+
+*/
   enum class ExecutionContextStates
   {
     Created = 0,
@@ -252,22 +278,116 @@ namespace parthread
     Finished
   };
 
+/*
+1.5 ExecutionContextSetting
+
+Settings read from secondos config file 
+
+*/
   struct ExecutionContextSetting
   {
     size_t QueueCapacityThreshold;
+/*
+The maximum capacity of tuple blocks in the queue to start producers tasks. 
+If the buffers capacity exceeds the threshold, no producers are triggered.  
+
+*/
     size_t MaxNumberOfConcurrentThreads;
+/*
+Number of working threads processing execution contexts in parallel. 
+The multithreaded query processing needs at least 2 threads. If the property is
+set to 1, the regular, single threaded query processing is used. All values < 1  
+let the query processor choose the number of concurrent threads depending on the 
+number of processors (cores) used by the system.
+
+*/
     size_t MaxNumberOfTuplesPerBlock;
+/*
+Maximum number of tuples stored in one data block. After a data block is 
+complete filled or the stream answered cancel, the block is submitted to the 
+shared buffer and is available for consuming par operators.
+
+*/
     size_t TotalBufferSizeInBytes;
+/*
+Maximum buffer size in MB for all execution contexts in total. If the value is set
+to 0, then the buffers size will be adjusted by the query processor as part of 
+the operator memory assignment. If the query processor assigned less memory to 
+the related par-Operator as the automatic memory distribution this setting is 
+ignored. 
+
+*/
     size_t MaxDegreeOfDataParallelism;
+
+/*
+A value of >1 enables the use of multiple threads to execute instances
+of the same execution context in parallel. Set to 1 indicates that only 
+independent and pipeline parallelism is used.
+
+*/
     clock_t TimeoutPerTaskInMicroSeconds;
+/*
+The maximum time in microseconds per request task. The timeout is checked after 
+every tuple block is completly filled. If set to 0 the timeout is not used and 
+the task ends after the first filled tuple block
+
+*/
+
     bool UsePipelineParallelism;
+/*
+A value of 1 enables the use of pipeline parallelism, otherwise it is deactivated
+
+*/
+
     bool UseOptimization;
+/*
+A value 1 enables the automatic integration of parallel oparators. Set to 0
+disables the parallel optimization, but all user defined parallel operators 
+will still be checked and removed if inappropriate inserted in the query 
+expression.
+
+*/
+
     std::shared_ptr<ExecutionContextLogger> Logger;
+/*
+The logger mechanism used to write information to the command line or 
+separate files.
+
+*/
+
     std::set<std::string> OperatorsSupportingDataParallelism;
+/*
+A set of operatornames. Only the operatores listed here can be part of a 
+dataparallized context. 
+
+*/
+
     std::set<std::string> OperatorsRetainingOrder;
+/*
+A set of operatornames. Operators which rely on a tuple order. All contexts 
+after such a operator can't use dataparallelism, because this can change the 
+order of tuples. Value is a list of operator names delimitered by spaces. 
+
+*/
+
     std::set<std::string> OperatorsRequiringHashPartitioning;
+/*
+A set of operatornames. Operators in this list need a partitioning by hashvalues 
+to work correct with dataparallelism.
+
+*/
   };
 
+
+/*
+1.6 ExecutionContextGuard
+
+A synchronisation mechanism to controll access to child contexts. The ~Pass~
+method returns ~true~ after a defined number of different entities passed the
+guard and reached a defined state. Entities are registered to the guard by 
+the ~SetState~ method.
+
+*/
   class ExecutionContextGuard
   {
   public:
@@ -314,6 +434,14 @@ namespace parthread
     std::mutex m_accessMtx;
   };
 
+/*
+1.7 ThreadSpecificStopWatch
+
+A helper class for time measurement. The stop watch only measures the cpu time
+for the thread creating the class. ~SpendTimeInMicroseconds~ returns the time
+span in micro seconds from initialization to the timepoint of the methodcall.
+
+*/
   class ThreadSpecificStopWatch
   {
 

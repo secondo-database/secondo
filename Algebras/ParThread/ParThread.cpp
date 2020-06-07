@@ -22,6 +22,16 @@ along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
+1 Code File: ParThread
+
+September 2019, Fischer Thomas
+
+1.1 Overview
+
+Initializes the ParThread-algebra and adds the par-operator to the algebra 
+
+1.2 Imports
+
 */
 
 #include "NestedList.h"
@@ -45,7 +55,7 @@ namespace parThread
 {
 
 /*
-1.1 Operator ~par~
+1.3 Operator ~par~
 
 This operator devides the query plan in execution contexts which can be
 evaluated independend with different threads.
@@ -77,7 +87,10 @@ Operator parOp(
 );
 
 /*
-6 Creating the Algebra
+1.4 Creating the Algebra 
+
+Adds the operator to the algebra-module. The ~par~-operator uses init- and 
+finish handler to set the internal state and free ressources after execution.
 
 */
 
@@ -88,17 +101,17 @@ public:
   {
     AddOperator(&parOp);
     parOp.enableInitFinishSupport();
-    //the par operator uses memory, but the memory is allocated 
-    //after static parallel optimization
+    //the par operator uses memory for the tuple puffer, but the memory is 
+    //allocated after static parallel optimization
   }
 
-  ~ParThreadAlgebra(){};
+  ~ParThreadAlgebra() = default;
 };
 
 } // namespace parThread
 
 /*
-7 Initialization
+1.5 Initialization
 
 Each algebra module needs an initialization function. The algebra manager
 has a reference to this function if this algebra is included in the list

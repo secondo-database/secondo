@@ -2,7 +2,7 @@
 ---- 
 This file is part of SECONDO.
 
-Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+Copyright (C) 2019, University in Hagen, Department of Computer Science, 
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -45,6 +45,11 @@ September 2019, Fischer Thomas
 
 1.1 Overview
 
+The ~ParallelQueryOptimizer~ is part of the ~QueryProcessor~ and responsible
+to parallelize parts of the query tree. This is realized by ~par~-operators, 
+which separate the operator tree in so called execution contexts. Each context
+can be executed concurrently with other contexts. 
+
 1.2 Imports
 
 */
@@ -60,10 +65,30 @@ class QueryProcessor;
 
 namespace parthread
 {
+/*
+1.3 ParallelQueryOptimizer
 
+There are two different implementations of the ~ParallelQueryOptimizer~. Which one 
+is used in the ~QueryProcessor~ depends if the ~parThread~-algebra is activated.
+The algebra uses the define bellow to switch between to code segments. 
 
+*/
 #ifdef USE_MULTIHREADED_QUERY_PROCESSING
 
+
+/*
+If the algebra is activated, the ~ParallelQueryOptimizer~ tries to read some 
+settings from secondos configuration file. This is done once. 
+
+For each new query, the ~QueryProcessor~ calls ~ParallelizeQueryPlan~ and passes
+the generated operator tree to the method. The method initializes the execution
+contexts by investigating and validating the par-operators. It is able to insert
+ ~par~ operators by simple rules.
+
+After ~ParallelQueryOptimizer~ modified the operator tree for parallel execution
+it is evaluated by the ~QueryProcessor~ in a usual way.
+
+*/
 class ParallelQueryOptimizer
 {
 public: //types
@@ -80,14 +105,17 @@ public: //methods
   void ParallelizeQueryPlan(QueryProcessor *queryProcessor, void *queryPlan,
                             size_t memorySpent, int noMemoryOperators);
 
-  void WriteDebugOutput(const std::string message);
-
 private: //member
   std::unique_ptr<ParallelQueryOptimizerImpl> m_pImpl;
 };
 
 #else
+/*
+If the ~parThread~-algebra is not activated the implementation is replaced by an
+empty ~ParallelizeQueryPlan~ method. The ~QueryProcessor~ passes the ~queryPlan~,
+but it is not changed and the regular, sequential execution is used. 
 
+*/
 class ParallelQueryOptimizer
 {
 public: //methods
@@ -101,10 +129,6 @@ public: //methods
     //do nothing if ParThread-library is not loaded
   };
 
-  void WriteDebugOutput(const std::string message);
-  {
-    //do nothing if ParThread-library is not loaded
-  }
 };
 #endif // USE_MULTIHREADED_QUERY_PROCESSING
 

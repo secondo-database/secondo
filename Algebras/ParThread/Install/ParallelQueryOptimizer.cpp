@@ -2,7 +2,7 @@
 ----
 This file is part of SECONDO.
 
-Copyright (C) since 2009, University in Hagen, Faculty of Mathematics
+Copyright (C) since 2019, University in Hagen, Faculty of Mathematics
 and Computer Science, Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -779,11 +779,6 @@ namespace parthread
   }
 
   ParallelQueryOptimizer::~ParallelQueryOptimizer() = default;
-
-  void ParallelQueryOptimizer::WriteDebugOutput(const std::string message)
-  {
-    m_pImpl->WriteDebugOutput(message);
-  }
 
   void ParallelQueryOptimizer::ParallelizeQueryPlan(
       QueryProcessor *queryProcessor, void *queryPlan,
