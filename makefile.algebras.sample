@@ -685,6 +685,9 @@ ALGEBRAS     += JNetAlgebra
 #ALGEBRA_DIRS += Conversion
 #ALGEBRAS     += ConversionAlgebra
 
+#ALGEBRA_DIRS += PropertyGraph
+#ALGEBRAS     += PropertyGraphAlgebra
+
 
 
 endif
