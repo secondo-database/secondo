@@ -70,7 +70,7 @@ bool QueryFilterFields::Matches(string typname,RelationSchemaInfo *schema,
                if (ai->TypeName=="string")
                {
                   if (f->Operator=="startswith")
-                     if (!val.rfind(f->FilterValue,0)==0)
+                     if (! (val.rfind(f->FilterValue,0)==0))
                         return false;
                   if (f->Operator=="contains")
                      if (val.find(f->FilterValue) == string::npos)

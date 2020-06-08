@@ -146,6 +146,7 @@ class MemoryGraphObject : public mm2algebra::MemoryObject
       static std::string BasicType(){
          return "mpgraph";
       }
+      
       static bool checkType( ListExpr list){
          if(!nl->HasLength(list,1)){
              return false;
@@ -153,6 +154,8 @@ class MemoryGraphObject : public mm2algebra::MemoryObject
          if(!listutils::isSymbol(nl->First(list),BasicType())){
             return false;
          }
+
+         return true;
       }
           
       MemoryObject* clone(){

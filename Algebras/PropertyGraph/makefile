@@ -29,6 +29,9 @@ include ../../makefile.env
 # expand compile flags if necessary
 CCFLAGS += -Werror
 
+# Needed for our clang / bison / yacc stack
+CCFLAGS += -Wno-deprecated-register
+
 # create objects and algebra library. The values for the variables
 # OBJECTS and LIBOBJ are computed automatically by makefile.env 
 OBJECTS := CypherScanner.o CypherParser.o $(OBJECTS)
