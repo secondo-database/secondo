@@ -1600,6 +1600,11 @@ bool ConnectionInfo::retrieveAnyFile(const std::string& remoteName,
         if (!nl->BoolValue(nl->Second(result)))
         {
             std::cerr << "copying file failed" << endl;
+            if(true) {
+               cout <<  "remote Server : " << (*this) << endl;
+               cout << "command " << endl << cmd << endl;
+               cout << "returned false" << endl;
+            }
             return false;
         }
 
