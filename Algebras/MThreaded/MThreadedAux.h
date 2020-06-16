@@ -212,7 +212,8 @@ class SafeQueue {
       dataReadyQueue = false;
    }
 
-   ~SafeQueue() {};
+   ~SafeQueue() {
+   };
 
    bool empty() const {
       return q.empty();
@@ -286,56 +287,8 @@ class SafeQueuePersistent {
 };
 
 
-class HashTablePersist {
-   public:
-   HashTablePersist(size_t _bucketsNo, size_t _coreNoWorker,
-                    size_t _maxMem, TupleType* _ttR, TupleType* _ttS,
-                    std::pair<size_t, size_t> _joinAttr);
 
-   ~HashTablePersist();
 
-   void PushR(Tuple* tuple, size_t bucket);
-
-   void PushS(Tuple* tuple, size_t bucket);
-
-   Tuple* PullR(size_t bucket);
-
-   Tuple* PullS(size_t bucket);
-
-   void CloseWrite();
-
-   size_t OpenRead(size_t bucket);
-
-   void UseMemHashTable(size_t usedMem);
-
-   void SetHashMod(size_t hashMod);
-
-   void CalcS();
-
-   std::shared_ptr<FileBuffer> GetOverflowS(size_t bucket);
-
-   size_t GetOverflowBucketNo(size_t bucket);
-
-   private:
-   std::vector<std::shared_ptr<Buffer>> hashBucketsS;
-   std::vector<std::shared_ptr<Buffer>> hashBucketsR;
-   std::vector<std::shared_ptr<FileBuffer>> hashBucketsOverflowS;
-   std::vector<size_t> sizeR;
-   std::vector<size_t> sizeS;
-   bool setSPersist;
-   size_t lastMemBufferR;
-   size_t lastMemBufferS;
-   size_t hashMod;
-   std::vector<size_t> overflowBucketNo;
-
-   size_t bucketsNo;
-   size_t coreNoWorker;
-   const size_t maxMem;
-   TupleType* ttR;
-   TupleType* ttS;
-   std::pair<size_t, size_t> joinAttr;
-   size_t freeMem;
-};
 
 
 }

@@ -49,14 +49,65 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 namespace mthreaded {
 
+class HashTablePersist {
+   public:
+   HashTablePersist(const size_t _bucketsNo, const size_t _coreNoWorker,
+                    const size_t _maxMem, TupleType* _ttR, TupleType* _ttS,
+                    const std::pair<size_t, size_t> _joinAttr);
+
+   ~HashTablePersist();
+
+   void PushR(Tuple* tuple, const size_t bucket);
+
+   void PushS(Tuple* tuple, const size_t bucket);
+
+   Tuple* PullR(const size_t bucket) const;
+
+   Tuple* PullS(const size_t bucket) const;
+
+   void CloseWrite();
+
+   size_t OpenRead(size_t bucket);
+
+   void UseMemHashTable(size_t usedMem);
+
+   void SetHashMod(size_t hashMod);
+
+   void CalcS();
+
+   std::shared_ptr<FileBuffer> GetOverflowS(const size_t bucket) const;
+
+   size_t GetOverflowBucketNo(const size_t bucket) const;
+
+   private:
+   std::vector<std::shared_ptr<Buffer>> hashBucketsS;
+   std::vector<std::shared_ptr<Buffer>> hashBucketsR;
+   std::vector<std::shared_ptr<FileBuffer>> hashBucketsOverflowS;
+   std::vector<size_t> sizeR;
+   std::vector<size_t> sizeS;
+   bool setSPersist;
+   size_t lastMemBufferR;
+   size_t lastMemBufferS;
+   size_t hashMod;
+   std::vector<size_t> overflowBucketNo;
+
+   const size_t bucketsNo;
+   const size_t coreNoWorker;
+   const size_t maxMem;
+   TupleType* ttR;
+   TupleType* ttS;
+   const std::pair<size_t, size_t> joinAttr;
+   size_t freeMem;
+};
+
 class HashJoinWorker {
    private:
    size_t maxMem;
    size_t coreNoWorker;
    size_t streamInNo;
-   std::shared_ptr<SafeQueue<Tuple*>> tupleBuffer;
-   std::shared_ptr<SafeQueue<Tuple*>> partBufferR;
-   std::shared_ptr<SafeQueue<Tuple*>> partBufferS;
+   std::shared_ptr<SafeQueuePersistent> tupleBuffer;
+   std::shared_ptr<SafeQueuePersistent> partBufferR;
+   std::shared_ptr<SafeQueuePersistent> partBufferS;
    size_t bucketNo = 20;
    size_t bucketsInMem1st = 300;
    std::pair<int, int> joinAttr;
@@ -81,9 +132,9 @@ class HashJoinWorker {
    public:
    HashJoinWorker(
            size_t _maxMem, size_t _coreNoWorker, size_t _streamInNo,
-           std::shared_ptr<SafeQueue<Tuple*>> _tupleBuffer,
-           std::shared_ptr<SafeQueue<Tuple*>> _partBufferR,
-           std::shared_ptr<SafeQueue<Tuple*>> _partBufferS,
+           std::shared_ptr<SafeQueuePersistent> tupleBuffer,
+           std::shared_ptr<SafeQueuePersistent> _partBufferR,
+           std::shared_ptr<SafeQueuePersistent> _partBufferS,
            std::pair<int, int> _joinAttr,
            TupleType* resultTupleType);
 
@@ -98,15 +149,15 @@ class hybridHashJoinLI {
    private:
    Stream<Tuple> streamR;
    Stream<Tuple> streamS;
-   std::pair<size_t, size_t> joinAttr;
+   const std::pair<size_t, size_t> joinAttr;
    std::vector<std::thread> joinThreads;
-   size_t maxMem;
-   size_t coreNo;
-   size_t coreNoWorker;
+   const size_t maxMem;
+   const size_t coreNo;
+   const size_t coreNoWorker;
    TupleType* resultTupleType;
-   std::shared_ptr<SafeQueue<Tuple*>> tupleBuffer;
-   std::vector<std::shared_ptr<SafeQueue<Tuple*>>> partBufferR;
-   std::vector<std::shared_ptr<SafeQueue<Tuple*>>> partBufferS;
+   std::shared_ptr<SafeQueuePersistent> tupleBuffer;
+   std::vector<std::shared_ptr<SafeQueuePersistent>> partBufferR;
+   std::vector<std::shared_ptr<SafeQueuePersistent>> partBufferS;
    const size_t cores = MThreadedSingleton::getCoresToUse();
 
    size_t count = 0;
@@ -116,8 +167,8 @@ class hybridHashJoinLI {
    hybridHashJoinLI(
            Word _streamR,
            Word _streamS,
-           std::pair<int, int> _joinAttr,
-           size_t _maxMem,
+           const std::pair<int, int> _joinAttr,
+           const size_t _maxMem,
            ListExpr resultType);
 
 

@@ -62,17 +62,17 @@ enum TupleEmpty {
 
 class CompareByVector {
    private:
-   std::vector<std::pair<int, bool>> sortAttr;
+   const std::vector<std::pair<int, bool>> sortAttr;
 
    public:
    // Constructor: Set compare Vector
-   explicit CompareByVector(std::vector<std::pair<int, bool>> _sortAttr)
+   explicit CompareByVector(const std::vector<std::pair<int, bool>> _sortAttr)
            : sortAttr(_sortAttr) {}
 
    ~CompareByVector() {}
 
    // Compare 2 tuples and return true of 1>=2
-   bool compTuple(Tuple* a, Tuple* b) const;
+   bool compTuple(const Tuple* a, const Tuple* b) const;
 };
 
 class TournamentTree {
@@ -100,7 +100,7 @@ class TournamentTree {
            2 * sizeof(void*) + 4 * sizeof(int) + 2 * sizeof(bool);
 
    // recursive insert tuple in complete tree
-   void exchange(Tuple* tuple, size_t pos, bool active);
+   void exchange(Tuple* tuple, const size_t pos, const bool active);
 
    public:
    // constructor
@@ -128,7 +128,7 @@ class TournamentTree {
    bool isEmpty() const;
 
    // test if next tuple fits in memory
-   bool testMemSizeFill(Tuple* tuple) ;
+   bool testMemSizeFill(const Tuple* tuple) ;
 
    // test if next tuple fits in memory
    bool testMemSizeExchange(Tuple* tuple);
@@ -226,7 +226,7 @@ class Suboptimal {
 class mergeSortLI {
    private:
    Stream<Tuple> stream;
-   std::vector<std::pair<int, bool>> sortAttr;
+   const std::vector<std::pair<int, bool>> sortAttr;
    std::vector<std::shared_ptr<Buffer>> mergeFn;
    std::vector<Tuple*> tupleBuffer;
    size_t lastWorker;
@@ -239,7 +239,7 @@ class mergeSortLI {
    std::shared_ptr<SafeQueue<Tuple*>> tupleBufferIn1;
    std::shared_ptr<SafeQueue<Tuple*>> tupleBufferIn2;
 
-   size_t maxMem;
+   const size_t maxMem;
    size_t coreNo;
    size_t coreNoWorker;
    const size_t cores = MThreadedSingleton::getCoresToUse();
@@ -250,8 +250,8 @@ class mergeSortLI {
    //Constructor
    mergeSortLI(
            Word _stream,
-           std::vector<std::pair<int, bool>> _sortAttr,
-           size_t _maxMem);
+           const std::vector<std::pair<int, bool>> _sortAttr,
+           const size_t _maxMem);
 
 
    //Destructor

@@ -185,7 +185,7 @@ Tuple* FileBuffer::readTuple() {
 
 void FileBuffer::closeWrite() {
    cout << "tbCWrite" << endl;
-   tupleBuffer->Close();
+   //tupleBuffer->Close();
 }
 
 void FileBuffer::openRead() {
@@ -402,6 +402,7 @@ SafeQueuePersistent::SafeQueuePersistent(const size_t _bufferSize,
    bufferCounter = bufferSize;
    dataReadyQueue = false;
    overflow = false;
+   it = nullptr;
    //bufferPersist = std::make_shared<FileBuffer>(tt);
    tupleBuffer = nullptr;
 }
@@ -439,6 +440,7 @@ void SafeQueuePersistent::enqueue(Tuple* t) {
       } else {
          cout << "free sqp enqueue" << endl;
          tupleBuffer->Close();
+         //delete it;
          it = tupleBuffer->MakeScan();
          dataReadyQueue = true;
          overflow = true;
@@ -472,141 +474,5 @@ Tuple* SafeQueuePersistent::dequeue() {
    return val;
 }
 
-HashTablePersist::HashTablePersist(size_t _bucketsNo, size_t _coreNoWorker,
-                                   size_t _maxMem,
-                                   TupleType* _ttR, TupleType* _ttS,
-                                   pair<size_t, size_t> _joinAttr) :
-        bucketsNo(_bucketsNo), coreNoWorker(_coreNoWorker), maxMem(_maxMem),
-        ttR(_ttR), ttS(_ttS), joinAttr(_joinAttr) {
-   hashBucketsR.reserve(bucketsNo - 1);
-   hashBucketsS.reserve(bucketsNo - 1);
-   for (size_t i = 0; i < bucketsNo - 1; ++i) {
-      hashBucketsR.push_back(make_shared<MemoryBuffer>(ttR));
-      hashBucketsS.push_back(make_shared<MemoryBuffer>(ttS));
-      sizeR.push_back(0);
-      sizeS.push_back(0);
-      hashBucketsOverflowS.push_back(make_shared<FileBuffer>(ttS));
-   }
-   freeMem = maxMem;
-   setSPersist = false;
-   lastMemBufferR = bucketsNo - 2;
-   lastMemBufferS = bucketsNo - 2;
-}
 
-HashTablePersist::~HashTablePersist() {
-   hashBucketsR.clear();
-   hashBucketsS.clear();
-   hashBucketsOverflowS.clear();
-}
-
-void HashTablePersist::PushR(Tuple* tuple, size_t bucket) {
-   size_t size = tuple->GetMemSize() + sizeof(void*);
-   if (bucket <= lastMemBufferR) {
-      freeMem -= size;
-   }
-   sizeR[bucket] += size;
-   hashBucketsR[bucket]->appendTuple(tuple);
-   // no memory
-   if (freeMem > maxMem && lastMemBufferR <= bucket &&
-       lastMemBufferR < bucketsNo) {
-      //cout << "write to disk R: " << lastMemBufferR << endl;
-      if (!setSPersist) {
-         for (size_t i = 0; i < bucketsNo - 1; ++i) {
-            hashBucketsS[i] = make_shared<FileBuffer>(ttS);
-         }
-         setSPersist = true;
-      }
-      shared_ptr<FileBuffer> tempFileBuffer = make_shared<FileBuffer>(ttR);
-      Tuple* tupleNext = hashBucketsR[lastMemBufferR]->readTuple();
-      while (tupleNext != nullptr) {
-         tempFileBuffer->appendTuple(tupleNext);
-         tupleNext = hashBucketsR[lastMemBufferR]->readTuple();
-      }
-      hashBucketsR[lastMemBufferR] = move(tempFileBuffer);
-      freeMem += sizeR[lastMemBufferR];
-      --lastMemBufferR;
-      //if (lastMemBufferR > bucketsNo) {
-      //   cout << "Overflow!!!!!!!!!!!!!!!!";
-      //}
-   }
-}
-
-void HashTablePersist::PushS(Tuple* tuple, size_t bucket) {
-   size_t size = tuple->GetMemSize() + sizeof(void*);
-   if (!setSPersist && bucket <= lastMemBufferS) {
-      freeMem -= size;
-   }
-   size_t partNo = tuple->HashValue(joinAttr.second) / coreNoWorker /
-                   bucketsNo % hashMod;
-   if (partNo >= overflowBucketNo[bucket]) {
-      // save in overflow
-      hashBucketsOverflowS[bucket]->appendTuple(tuple);
-   } else {
-      sizeS[bucket] += size;
-      hashBucketsS[bucket]->appendTuple(tuple);
-      if (!setSPersist && freeMem > maxMem && lastMemBufferS < bucketsNo) {
-         //cout << "write to disk S: " << lastMemBufferS << endl;
-         shared_ptr<FileBuffer> tempFileBuffer = make_shared<FileBuffer>(ttS);
-         Tuple* tupleNext = hashBucketsS[lastMemBufferS]->readTuple();
-         while (tupleNext != nullptr) {
-            tempFileBuffer->appendTuple(tupleNext);
-            tupleNext = hashBucketsS[lastMemBufferS]->readTuple();
-         }
-         hashBucketsS[lastMemBufferS] = move(tempFileBuffer);
-         freeMem += sizeS[lastMemBufferS];
-         --lastMemBufferS;
-      }
-   }
-}
-
-Tuple* HashTablePersist::PullR(size_t bucket) {
-   Tuple* tuple = hashBucketsR[bucket]->readTuple();
-   return tuple;
-}
-
-Tuple* HashTablePersist::PullS(size_t bucket) {
-   Tuple* tuple = hashBucketsS[bucket]->readTuple();
-   return tuple;
-}
-
-void HashTablePersist::UseMemHashTable(size_t usedMem) {
-   freeMem -= usedMem;
-}
-
-void HashTablePersist::SetHashMod(size_t hashMod) {
-   this->hashMod = hashMod;
-}
-
-void HashTablePersist::CalcS() {
-   for (size_t i = 0; i < bucketsNo - 1; ++i) {
-      if (sizeR[i] != 0) {
-         overflowBucketNo.emplace_back(
-                 (size_t) (maxMem * 0.8) / (sizeR[i] / hashMod));
-      } else {
-         overflowBucketNo.emplace_back();
-      }
-   }
-}
-
-shared_ptr<FileBuffer> HashTablePersist::GetOverflowS(size_t bucket) {
-   return hashBucketsOverflowS[bucket];
-}
-
-size_t HashTablePersist::GetOverflowBucketNo(size_t bucket) {
-   return overflowBucketNo[bucket];
-}
-
-void HashTablePersist::CloseWrite() {
-   for (size_t i = 0; i < bucketsNo - 1; ++i) {
-      hashBucketsR[i]->closeWrite();
-      hashBucketsS[i]->closeWrite();
-      hashBucketsOverflowS[i]->closeWrite();
-   }
-}
-
-size_t HashTablePersist::OpenRead(size_t bucket) {
-   hashBucketsR[bucket]->openRead();
-   hashBucketsS[bucket]->openRead();
-   return overflowBucketNo[bucket];
-}
 

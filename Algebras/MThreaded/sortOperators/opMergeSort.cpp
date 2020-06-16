@@ -173,6 +173,7 @@ void Suboptimal::replacementSelectionSort(shared_ptr<TournamentTree> sortTree) {
 
    if (!streamStop) {
       while (true) {
+         cout << "notinMem" << endl;
          Tuple* tuple;
          {
             std::unique_lock<std::mutex> lck(mutexPartition_);
@@ -396,8 +397,8 @@ void MergePipeline::operator()() {
 
 mergeSortLI::mergeSortLI(
         Word _stream,
-        std::vector<std::pair<int, bool>> _sortAttr,
-        size_t _maxMem)
+        const std::vector<std::pair<int, bool>> _sortAttr,
+        const size_t _maxMem)
         : stream(_stream), sortAttr(std::move(_sortAttr)), maxMem(_maxMem) {
    coreNo = MThreadedSingleton::getCoresToUse();
    coreNoWorker = coreNo - 1;
@@ -471,7 +472,7 @@ void mergeSortLI::DistributorCollector() {
    for (size_t i = 0; i < coreNoWorker; ++i) {
       auto compare = make_shared<CompareByVector>(sortAttr);
       thread tempThread(Suboptimal(
-              maxMem, tupleIter[i], compare, tt, i));
+              maxMem / coreNoWorker, tupleIter[i], compare, tt, i));
       sortThreads.push_back(std::move(tempThread));
    }
 
@@ -606,7 +607,8 @@ void TournamentTree::buildTree() {
       if (compareClass->compTuple(tree[i].tuple, tree[i + 1].tuple)) {
          tree.emplace_back(tree[i].tuple, i, i + 1, true);
       } else {
-         tree.emplace_back(tree[i + 1].tuple, i + 1, i, true);
+         tree.emplace_back(tree[i + 1].tuple,
+                 i + 1, i, true);
       }
       nodes += 2;
    }
@@ -618,7 +620,8 @@ void TournamentTree::buildTree() {
          if (compareClass->compTuple(tree[i].tuple, tree[i + 1].tuple)) {
             tree.emplace_back(tree[i].tuple, i, i + 1, true);
          } else {
-            tree.emplace_back(tree[i + 1].tuple, i + 1, i, true);
+            tree.emplace_back(tree[i + 1].tuple,
+                    i + 1, i, true);
          }
       }
       nodes += upLeaves;
@@ -626,7 +629,8 @@ void TournamentTree::buildTree() {
    }
 }
 
-void TournamentTree::exchange(Tuple* tuple, size_t pos, bool active) {
+void
+TournamentTree::exchange(Tuple* tuple, const size_t pos, const bool active) {
    //find leaf
    if (tree[pos].leave_small != ULONG_MAX) {
       exchange(tuple, tree[pos].leave_small, active);
@@ -718,7 +722,7 @@ bool TournamentTree::isEmpty() const {
    return (tree.back().tuple == nullptr);
 }
 
-bool TournamentTree::testMemSizeFill(Tuple* tuple) {
+bool TournamentTree::testMemSizeFill(const Tuple* tuple) {
    // reserve for tree and tuple
    size_t addMem = tuple->GetMemSize() + memInTree;
    if (addMem <= maxMem) {
@@ -739,8 +743,8 @@ bool TournamentTree::testMemSizeExchange(Tuple* tuple) {
 }
 
 // true a<b oder a=b
-bool CompareByVector::compTuple(Tuple* a, Tuple* b) const {
-   assert(a != nullptr && b != nullptr);
+bool CompareByVector::compTuple(const Tuple* a, const Tuple* b) const {
+   //assert(a != nullptr && b != nullptr);
    auto it = sortAttr.begin();
    while (it != sortAttr.end()) {
       int cmpValue;
