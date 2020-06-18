@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 #
 # March 2011, Jiamin Lu
 
