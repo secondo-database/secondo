@@ -105,9 +105,18 @@ Insert and access the PropertyGraph In-Memory Part
 
    MemoryGraphObject *getPGraphMemoryObject(PGraph *pg)
    {
+
+      if(pg == NULL)
+      {
+         LOGOP(10, "getPGraph is not defined!");
+         return NULL;
+      }
+
       string _inmemoryobj_catalogname = pg->name+"_MEMDATA";
+      
       mm2algebra::MemCatalog *memCatalog = 
         mm2algebra::MemCatalog::getInstance();
+      
       if (!memCatalog->isObject(_inmemoryobj_catalogname))
       {
          LOGOP(30, "getPGraphMemoryObject: not loaded!");
@@ -170,10 +179,18 @@ a typemapping function
 
    PGraph *getPGraphObject()
    {
-      if (qp->getValues().size()>0) {
-         if (nl->ToString(qp->getValues()[0].typeInfo)=="pgraph")
-            return static_cast<PGraph*>(qp->getValues()[0].value.addr);
-      }      
+      if (qp->getValues().size() <= 0) {
+            LOGOP(10, "getPGraphObject", "qp->getValues().size() is not > 0");
+            return NULL;
+      }
+
+      string elementType = nl->ToString(qp->getValues()[0].typeInfo);
+
+      if (elementType == "pgraph") {
+         return static_cast<PGraph*>(qp->getValues()[0].value.addr);
+      } 
+
+      LOGOP(10, "getPGraphObject", "Wrong type (pgraph): " + elementType);
       return NULL;
    }
 
