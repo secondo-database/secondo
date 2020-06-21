@@ -75,8 +75,8 @@ bool streamStop;
 bool startThreads;
 size_t tupleRemoved = 0;
 
-vector<std::shared_ptr<Buffer>> bufferTransfer;
-vector<shared_ptr<SafeQueue<Tuple*>>> mergeBuffer;
+//vector<std::shared_ptr<Buffer>> bufferTransfer;
+//vector<shared_ptr<SafeQueue<Tuple*>>> mergeBuffer;
 }
 
 using namespace mergeSortGlobal;
@@ -88,11 +88,13 @@ Suboptimal::Suboptimal(
         std::vector<Tuple*>::iterator _tupleBuffer,
         std::shared_ptr<CompareByVector> _compare,
         TupleType* _tt,
-        size_t _threadNumber) :
+        size_t _threadNumber,
+        std::shared_ptr<std::vector<std::shared_ptr<Buffer>>> _bufferTransfer) :
         maxMem(_maxMem),
         tupleBuffer(_tupleBuffer),
         tt(_tt),
-        threadNumber(_threadNumber) {
+        threadNumber(_threadNumber),
+        bufferTransfer(_bufferTransfer) {
    compare = std::move(_compare);
    cout << "maxMem" << maxMem << "thread: " << threadNumber << endl;
 }
@@ -126,7 +128,7 @@ void Suboptimal::operator()() {
    runs1.back()->closeWrite();
    {
       std::lock_guard<std::mutex> lck(mutexPartition_);
-      bufferTransfer.emplace_back(runs1.back());
+      bufferTransfer->operator[](threadNumber) = runs1.back();
    }
 }
 
@@ -229,9 +231,11 @@ shared_ptr<Buffer> Suboptimal::merge(
    while (true) {
       if (tupleEmpty == first || tupleEmpty == both) {
          run1Tuple = run1->readTuple();
+         //cout << run1Tuple->GetNumOfRefs() << "##";
       }
       if (tupleEmpty == second || tupleEmpty == both) {
          run2Tuple = run2->readTuple();
+         //cout << run2Tuple->GetNumOfRefs() << "##";
       }
       if (run1Tuple == nullptr || run2Tuple == nullptr) {
          break;
@@ -259,8 +263,8 @@ shared_ptr<Buffer> Suboptimal::merge(
 MergeFeeder::MergeFeeder(std::shared_ptr<Buffer> _buf1,
                          std::shared_ptr<Buffer> _buf2,
                          std::shared_ptr<CompareByVector> _compare,
-                         size_t _n)
-        : n(_n) {
+                         std::shared_ptr<SafeQueue<Tuple*>> _mergeBuffer)
+        : mergeBuffer(_mergeBuffer) {
    buf1 = move(_buf1);
    buf2 = move(_buf2);
    compare = move(_compare);
@@ -288,12 +292,18 @@ void MergeFeeder::operator()() {
       }
       if (compare->compTuple(run1Tuple, run2Tuple)) {
          {
-            mergeBuffer[n]->enqueue(run1Tuple);
+            if (run1Tuple->GetNumOfRefs() == 2) {
+               run1Tuple->DeleteIfAllowed();
+            }
+            mergeBuffer->enqueue(run1Tuple);
             runEmpty = first;
          }
       } else {
          {
-            mergeBuffer[n]->enqueue(run2Tuple);
+            if (run2Tuple->GetNumOfRefs() == 2) {
+               run2Tuple->DeleteIfAllowed();
+            }
+            mergeBuffer->enqueue(run2Tuple);
             runEmpty = second;
          }
       }
@@ -302,7 +312,10 @@ void MergeFeeder::operator()() {
    if (run2Tuple == nullptr) {
       while (run1Tuple != nullptr) {
          {
-            mergeBuffer[n]->enqueue(run1Tuple);
+            if (run1Tuple->GetNumOfRefs() == 2) {
+               run1Tuple->DeleteIfAllowed();
+            }
+            mergeBuffer->enqueue(run1Tuple);
          }
          run1Tuple = buf1->readTuple();
          ++count;
@@ -310,18 +323,21 @@ void MergeFeeder::operator()() {
    } else {
       while (run2Tuple != nullptr) {
          {
-            mergeBuffer[n]->enqueue(run2Tuple);
+            if (run2Tuple->GetNumOfRefs() == 2) {
+               run2Tuple->DeleteIfAllowed();
+            }
+            mergeBuffer->enqueue(run2Tuple);
          }
          run2Tuple = buf2->readTuple();
          ++count;
       }
    }
-   mergeBuffer[n]->enqueue(nullptr);
+   mergeBuffer->enqueue(nullptr);
 }
 
 NoMergeFeeder::NoMergeFeeder(std::shared_ptr<Buffer> _buf,
-                             size_t _n)
-        : n(_n) {
+                             std::shared_ptr<SafeQueue<Tuple*>> _mergeBuffer)
+        : mergeBuffer(_mergeBuffer) {
    buf = move(_buf);
 };
 
@@ -336,19 +352,27 @@ void NoMergeFeeder::operator()() {
    size_t count = 0;
    while (runTuple != nullptr) {
       {
-         mergeBuffer[n]->enqueue(runTuple);
+         if (runTuple->GetNumOfRefs() == 2) {
+            runTuple->DeleteIfAllowed();
+         }
+         mergeBuffer->enqueue(runTuple);
       }
       runTuple = buf->readTuple();
       ++count;
    }
    {
-      mergeBuffer[n]->enqueue(nullptr);
+      mergeBuffer->enqueue(nullptr);
    }
 }
 
 MergePipeline::MergePipeline(
-        std::shared_ptr<CompareByVector> _compare, size_t _feederNo, size_t _n)
-        : feederNo(_feederNo), n(_n) {
+        std::shared_ptr<CompareByVector> _compare,
+        std::shared_ptr<SafeQueue<Tuple*>> _mergeBuffer_f1,
+        std::shared_ptr<SafeQueue<Tuple*>> _mergeBuffer_f2,
+        std::shared_ptr<SafeQueue<Tuple*>> _mergeBuffer)
+        : mergeBuffer_f1(_mergeBuffer_f1),
+          mergeBuffer_f2(_mergeBuffer_f2),
+          mergeBuffer(_mergeBuffer) {
    compare = std::move(_compare);
 }
 
@@ -362,34 +386,34 @@ void MergePipeline::operator()() {
    TupleEmpty tupleEmpty = both;
    while (true) {
       if (tupleEmpty == first || tupleEmpty == both) {
-         tuple1 = mergeBuffer[feederNo]->dequeue();
+         tuple1 = mergeBuffer_f1->dequeue();
       }
 
       if (tupleEmpty == second || tupleEmpty == both) {
-         tuple2 = mergeBuffer[feederNo + 1]->dequeue();
+         tuple2 = mergeBuffer_f2->dequeue();
       }
       if (tuple1 != nullptr && tuple2 != nullptr) {
          // compare
          if (compare->compTuple(tuple1, tuple2)) {
-            mergeBuffer[n]->enqueue(tuple1);
+            mergeBuffer->enqueue(tuple1);
             tupleEmpty = first;
          } else {
-            mergeBuffer[n]->enqueue(tuple2);
+            mergeBuffer->enqueue(tuple2);
             tupleEmpty = second;
          }
       } else if (tuple1 == nullptr && tuple2 == nullptr) {
          break;
       } else if (tuple1 == nullptr) {
-         mergeBuffer[n]->enqueue(tuple2);
+         mergeBuffer->enqueue(tuple2);
          tupleEmpty = second;
       } else {
-         mergeBuffer[n]->enqueue(tuple1);
+         mergeBuffer->enqueue(tuple1);
          tupleEmpty = first;
       }
    }
 
    {
-      mergeBuffer[n]->enqueue(nullptr);
+      mergeBuffer->enqueue(nullptr);
    }
 }
 
@@ -403,7 +427,7 @@ mergeSortLI::mergeSortLI(
    coreNo = MThreadedSingleton::getCoresToUse();
    coreNoWorker = coreNo - 1;
    compareLI = std::make_shared<CompareByVector>(sortAttr);
-   mergeBuffer.clear();
+   //mergeBuffer.clear();
    dataReady = false;
    dataRemoved = false;
    streamStop = false;
@@ -412,6 +436,12 @@ mergeSortLI::mergeSortLI(
    DistributorCollector();
 }
 
+mergeSortLI::~mergeSortLI() {
+   //mergeBuffer.clear();
+   //bufferTransfer.clear();
+   tupleBuffer.clear();
+   tt->DeleteIfAllowed();
+}
 
 Tuple* mergeSortLI::getNext() {
    Tuple* res;
@@ -432,6 +462,7 @@ Tuple* mergeSortLI::getNext() {
          res = tupleNext2;
          tupleEmpty = second;
       }
+      if (res->GetNumOfRefs() == 2) cout << "##";
       return res;
    } else if (tupleNext1 == nullptr && tupleNext2 == nullptr) {
       return 0;
@@ -443,6 +474,7 @@ Tuple* mergeSortLI::getNext() {
          tupleEmpty = first;
          res = tupleNext1;
       }
+      if (res->GetNumOfRefs() == 2) cout << "--";
       return res;
    }
    return 0;
@@ -452,15 +484,19 @@ Tuple* mergeSortLI::getNext() {
 void mergeSortLI::DistributorCollector() {
 
    // generate FileBuffer, either in memory or extern
+   vector<shared_ptr<Buffer>> tempVec;
    for (size_t i = 0; i < coreNoWorker; ++i) {
       Tuple* tuple = stream.request();
       if (i == 0) {
          tt = tuple->GetTupleType();
          tt->IncReference();
       }
+      tempVec.emplace_back(make_shared<MemoryBuffer>(tt));
+      cout << "ini" << endl;
       tupleBuffer.emplace_back(tuple);
    }
-
+   mergeFn = make_shared<vector<shared_ptr<Buffer>>>(move(tempVec));
+   cout << "ini" << endl;
    vector<vector<Tuple*>::iterator> tupleIter;
    for (auto it = tupleBuffer.begin(); it != tupleBuffer.end(); ++it) {
       tupleIter.push_back(it);
@@ -472,7 +508,7 @@ void mergeSortLI::DistributorCollector() {
    for (size_t i = 0; i < coreNoWorker; ++i) {
       auto compare = make_shared<CompareByVector>(sortAttr);
       thread tempThread(Suboptimal(
-              maxMem / coreNoWorker, tupleIter[i], compare, tt, i));
+              maxMem / coreNoWorker, tupleIter[i], compare, tt, i, mergeFn));
       sortThreads.push_back(std::move(tempThread));
    }
 
@@ -509,7 +545,7 @@ void mergeSortLI::DistributorCollector() {
    sortThreads.clear();
    tupleIter.clear();
 
-   mergeFn = move(bufferTransfer);
+   //mergeFn = move(bufferTransfer);
 
    // init buffer
    size_t const feedersDouble = (coreNoWorker == 2) ? 0 : coreNoWorker / 2;
@@ -521,8 +557,8 @@ void mergeSortLI::DistributorCollector() {
    size_t mergeWorkerNo = 0;
    for (size_t i = 0; i < feedersSingle; ++i) {
       mergeBuffer.push_back(make_shared<SafeQueue<Tuple*>>(mergeWorkerNo));
-      thread tempThread(NoMergeFeeder((mergeFn[i]),
-                                      mergeWorkerNo));
+      thread tempThread(NoMergeFeeder((mergeFn->operator[](i)),
+                                      mergeBuffer[mergeWorkerNo]));
       sortThreads.push_back(std::move(tempThread));
       sortThreads.back().detach();
       ++mergeWorkerNo;
@@ -532,9 +568,10 @@ void mergeSortLI::DistributorCollector() {
    for (size_t i = feedersSingle; i < feeders; ++i) {
       mergeBuffer.push_back(make_shared<SafeQueue<Tuple*>>(mergeWorkerNo));
       auto compare = make_shared<CompareByVector>(sortAttr);
-      thread tempThread(MergeFeeder((mergeFn[i * 2 - feedersSingle]),
-                                    (mergeFn[i * 2 + 1 - feedersSingle]),
-                                    compare, mergeWorkerNo));
+      thread tempThread(
+              MergeFeeder((mergeFn->operator[](i * 2 - feedersSingle)),
+                          (mergeFn->operator[](i * 2 + 1 - feedersSingle)),
+                          compare, mergeBuffer[mergeWorkerNo]));
       sortThreads.push_back(std::move(tempThread));
       sortThreads.back().detach();
       ++mergeWorkerNo;
@@ -549,7 +586,9 @@ void mergeSortLI::DistributorCollector() {
             mergeBuffer.push_back(make_shared<SafeQueue<Tuple*>>(i));
             auto compare = make_shared<CompareByVector>(sortAttr);
             thread tempThread(MergePipeline(
-                    compare, pipeWorkerNo, i));
+                    compare, mergeBuffer[pipeWorkerNo],
+                    mergeBuffer[pipeWorkerNo + 1],
+                    mergeBuffer[i]));
             sortThreads.push_back(std::move(tempThread));
             sortThreads.back().detach();
             pipeWorkerNo += 2;
@@ -573,12 +612,6 @@ void mergeSortLI::DistributorCollector() {
    cout << "started threads" << endl;
 }
 
-mergeSortLI::~mergeSortLI() {
-   mergeBuffer.clear();
-   bufferTransfer.clear();
-   tupleBuffer.clear();
-   tt->DeleteIfAllowed();
-}
 
 TournamentTree::TournamentTree(shared_ptr<CompareByVector> _compareClass,
                                size_t _maxMem)
@@ -608,7 +641,7 @@ void TournamentTree::buildTree() {
          tree.emplace_back(tree[i].tuple, i, i + 1, true);
       } else {
          tree.emplace_back(tree[i + 1].tuple,
-                 i + 1, i, true);
+                           i + 1, i, true);
       }
       nodes += 2;
    }
@@ -621,7 +654,7 @@ void TournamentTree::buildTree() {
             tree.emplace_back(tree[i].tuple, i, i + 1, true);
          } else {
             tree.emplace_back(tree[i + 1].tuple,
-                    i + 1, i, true);
+                              i + 1, i, true);
          }
       }
       nodes += upLeaves;

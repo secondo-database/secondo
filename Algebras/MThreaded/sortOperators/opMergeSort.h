@@ -142,7 +142,8 @@ class MergeFeeder {
    std::shared_ptr<CompareByVector> compare;
    std::shared_ptr<Buffer> buf1;
    std::shared_ptr<Buffer> buf2;
-   size_t n;
+   std::shared_ptr<SafeQueue<Tuple*>> mergeBuffer;
+   //size_t n;
    TupleEmpty runEmpty;
 
    public:
@@ -150,7 +151,7 @@ class MergeFeeder {
    MergeFeeder(std::shared_ptr<Buffer> _buf1,
                std::shared_ptr<Buffer> _buf2,
                std::shared_ptr<CompareByVector> _compare,
-               size_t _n);
+               std::shared_ptr<SafeQueue<Tuple*>> _mergeBuffer);
 
    ~MergeFeeder() {}
 
@@ -162,12 +163,13 @@ class NoMergeFeeder {
    private:
    std::shared_ptr<Buffer> buf;
    //std::shared_ptr<boost::circular_buffer<Tuple*>> tupleBufferOut;
-   size_t n;
+   //size_t n;
+   std::shared_ptr<SafeQueue<Tuple*>> mergeBuffer;
 
    public:
    // Constructor: 2 incoming Buffer
    NoMergeFeeder(std::shared_ptr<Buffer> _buf,
-                 size_t _n);
+                 std::shared_ptr<SafeQueue<Tuple*>> _mergeBuffer);
 
    ~NoMergeFeeder() {}
 
@@ -178,13 +180,18 @@ class NoMergeFeeder {
 class MergePipeline {
    private:
    std::shared_ptr<CompareByVector> compare;
-   size_t feederNo;
-   size_t n;
+   std::shared_ptr<SafeQueue<Tuple*>> mergeBuffer_f1;
+   std::shared_ptr<SafeQueue<Tuple*>> mergeBuffer_f2;
+   std::shared_ptr<SafeQueue<Tuple*>> mergeBuffer;
+   //size_t feederNo;
+   //size_t n;
 
    public:
    MergePipeline(
            std::shared_ptr<CompareByVector> _compare,
-           size_t _feederNo, size_t _n);
+           std::shared_ptr<SafeQueue<Tuple*>> _mergeBuffer_f1,
+           std::shared_ptr<SafeQueue<Tuple*>> _mergeBuffer_f2,
+           std::shared_ptr<SafeQueue<Tuple*>> _mergeBuffer);
 
    ~MergePipeline() {}
 
@@ -201,6 +208,7 @@ class Suboptimal {
    std::vector<std::shared_ptr<Buffer>> runs1;
    std::vector<std::shared_ptr<Buffer>> runs2;
    size_t threadNumber;
+   std::shared_ptr<std::vector<std::shared_ptr<Buffer>>> bufferTransfer;
 
    public:
    explicit Suboptimal(
@@ -208,7 +216,9 @@ class Suboptimal {
            std::vector<Tuple*>::iterator _tupleBuffer,
            std::shared_ptr<CompareByVector> _compare,
            TupleType* _tt,
-           size_t _threadNumber);
+           size_t _threadNumber,
+           std::shared_ptr<std::vector<std::shared_ptr<Buffer>>>
+                   _bufferTransfer);
 
    ~Suboptimal();
 
@@ -227,7 +237,7 @@ class mergeSortLI {
    private:
    Stream<Tuple> stream;
    const std::vector<std::pair<int, bool>> sortAttr;
-   std::vector<std::shared_ptr<Buffer>> mergeFn;
+   std::shared_ptr<std::vector<std::shared_ptr<Buffer>>> mergeFn;
    std::vector<Tuple*> tupleBuffer;
    size_t lastWorker;
    TupleType* tt;
@@ -238,6 +248,8 @@ class mergeSortLI {
    TupleEmpty tupleEmpty;
    std::shared_ptr<SafeQueue<Tuple*>> tupleBufferIn1;
    std::shared_ptr<SafeQueue<Tuple*>> tupleBufferIn2;
+   //std::vector<std::shared_ptr<Buffer>> bufferTransfer;
+   std::vector<std::shared_ptr<SafeQueue<Tuple*>>> mergeBuffer;
 
    const size_t maxMem;
    size_t coreNo;
