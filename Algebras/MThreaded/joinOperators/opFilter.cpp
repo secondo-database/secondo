@@ -62,25 +62,104 @@ extern QueryProcessor* qp;
 
 namespace filterGlobal {
 constexpr unsigned int DIMENSIONS = 2;
-vector<shared_ptr<SafeQueue<Tuple*>>> partBuffer;
+//vector<shared_ptr<SafeQueue<Tuple*>>> partBuffer;
 shared_ptr<SafeQueue<Tuple*>> tupleBuffer;
 //shared_ptr<extrel2::TupleBuffer2> buffer;
 size_t threadsDone;
+bool startStream;
+bool startGetNext;
+bool endRefinement;
+bool endDestribut;
+std::mutex data_;
+std::mutex endThreads_;
+std::condition_variable dataC;
+std::condition_variable endThreadsC;
 }
 
 using namespace filterGlobal;
 
+DistributWorker::DistributWorker(
+        Stream<Tuple> _stream,
+        shared_ptr<vector<shared_ptr<SafeQueue<Tuple*>>>> _buffer,
+        size_t _coreNoWorker) :
+        stream(_stream), buffer(_buffer), coreNoWorker(_coreNoWorker) {
+   endDestribut = false;
+}
+
+
+DistributWorker::~DistributWorker() {
+   cout << "destruct distributer" << endl;
+}
+
+void DistributWorker::operator()() {
+   //stream.open();
+   Tuple* tuple = stream.request();
+   size_t countWorker = 0;
+   size_t fillCounter = 0;
+   do {
+      (buffer->operator[](countWorker))->enqueue(tuple);
+      if (countWorker == coreNoWorker - 1) {
+         countWorker = 0;
+      } else {
+         ++countWorker;
+      }
+      ++fillCounter;
+      // switch to getnext
+      if (fillCounter == 10 * coreNoWorker) {
+         // warte bis nachricht empty und informiere getnext
+         {
+            unique_lock<std::mutex> lock(data_);
+            startGetNext = true;
+            startStream = false;
+            //cout << "inform getnext from stream ##";
+            dataC.notify_all();
+            dataC.wait(lock, [&] { return startStream; });
+         }
+         fillCounter = 0;
+      }
+   } while ((tuple = stream.request()));
+   cout << "Stream close" << endl;
+   {
+      lock_guard<std::mutex> lock(data_);
+      startGetNext = true;
+      //cout << "stream closed";
+      dataC.notify_all();
+   }
+   cout << "Stream Ready1" << endl;
+   for (size_t i = 0; i < coreNoWorker; ++i) {
+      (buffer->operator[](i))->enqueue(nullptr);
+   }
+
+   {
+      unique_lock<std::mutex> lock(endThreads_);
+      cout << "waitD" << endl;
+      endThreadsC.wait(lock, [&] { return endDestribut; });
+   }
+   //stream.close();
+   cout << "Stream closed" << endl;
+}
+
 
 RefinementWorker::RefinementWorker(
-        size_t _coreNoWorker, size_t _streamInNo, ListExpr _funList) :
+        size_t _coreNoWorker,
+        size_t _streamInNo,
+        shared_ptr<SafeQueue<Tuple*>> _tupleBuffer,
+        shared_ptr<SafeQueue<Tuple*>> _partBuffer,
+        ListExpr _funList) :
         coreNoWorker(_coreNoWorker),
         streamInNo(_streamInNo),
+        tupleBuffer(_tupleBuffer), partBuffer(_partBuffer),
         funList(_funList) {
 }
 
 RefinementWorker::RefinementWorker(
-        size_t _coreNoWorker, size_t _streamInNo, OpTree _fun) :
-        coreNoWorker(_coreNoWorker), streamInNo(_streamInNo) {
+        size_t _coreNoWorker,
+        size_t _streamInNo,
+        shared_ptr<SafeQueue<Tuple*>> _tupleBuffer,
+        shared_ptr<SafeQueue<Tuple*>> _partBuffer,
+        OpTree _fun) :
+        coreNoWorker(_coreNoWorker), streamInNo(_streamInNo),
+        tupleBuffer(_tupleBuffer), partBuffer(_partBuffer) {
    funct = _fun;
 }
 
@@ -91,91 +170,172 @@ RefinementWorker::~RefinementWorker() {
 
 // Thread
 void RefinementWorker::operator()() {
+   cout << "refinment" << endl;
+   endRefinement = false;
    if (streamInNo == 0) {
       refineQP();
    } else {
       refineNewQP();
    }
+   cout << "ready" << endl;
 
-   cout << "Worker Candidate Nr. done " << streamInNo << endl;
    --threadsDone;
    if (threadsDone == 0) {
-      cout << "nullptr" << endl;
       tupleBuffer->enqueue(nullptr);
    }
+   {
+      unique_lock<std::mutex> lock(endThreads_);
+      cout << "wait" << endl;
+      endThreadsC.wait(lock, [&] { return endRefinement; });
+   }
+   tupleBuffer.reset();
 }
 
 void RefinementWorker::refineNewQP() {
    QueryProcessor* qproc =
            new QueryProcessor(SecondoSystem::GetNestedList(),
-                   SecondoSystem::GetAlgebraManager());
+                              SecondoSystem::GetAlgebraManager());
    bool correct = false;
    bool evaluable = false;
    bool defined = false;
    bool isFunction = false;
    ListExpr resultType;
    qproc->Construct(
-           funList, correct, evaluable, defined,isFunction,
-           funct,resultType, true);
-   Tuple* tuple = partBuffer[streamInNo]->dequeue();
+           funList, correct, evaluable, defined, isFunction,
+           funct, resultType, true);
+   Tuple* tuple = partBuffer->dequeue();
    while (tuple != nullptr) {
       ArgVector &arguments = *qproc->Argument(funct);
       arguments[0].setAddr(tuple);
       Word funres;
       qproc->Request(funct, funres);
-      bool res = ((CcBool*) funres.addr)->GetBoolval();
+      //if (qp->Received(funct)) {
+      bool res = false;
+      if (((Attribute*) funres.addr)->IsDefined()) {
+         //CcBool* resBool = (CcBool*) funres.addr;
+         res = ((CcBool*) funres.addr)->GetBoolval();
+      }
       if (res) {
-         cout << "found" << streamInNo << endl;
          tupleBuffer->enqueue(tuple);
       } else {
          tuple->DeleteIfAllowed();
       }
-      tuple = partBuffer[streamInNo]->dequeue();
+      if (partBuffer->empty() && !startStream) {
+         // inform getnext to stop and the distributor to start
+         lock_guard<std::mutex> lock(data_);
+         startGetNext = false;
+         startStream = true;
+         dataC.notify_all();
+      }
+      //}
+      //funres.addr = 0;
+      //delete (CcBool*)funres.addr;
+      tuple = partBuffer->dequeue();
    }
+   cout << "refinement ready" << endl;
    qproc->Destroy(funct, true);
    delete qproc;
+   //funct->addr = 0;
 }
 
 void RefinementWorker::refineQP() {
-   Tuple* tuple = partBuffer[streamInNo]->dequeue();
+   Tuple* tuple = partBuffer->dequeue();
    while (tuple != nullptr) {
       ArgVector &arguments = *qp->Argument(funct);
       arguments[0].setAddr(tuple);
       Word funres;
       qp->Request(funct, funres);
-      bool res = ((CcBool*) funres.addr)->GetBoolval();
+      //if (qp->Received(funct)) {
+      bool res = false;
+      if (((Attribute*) funres.addr)->IsDefined()) {
+         //CcBool* resBool = (CcBool*) funres.addr;
+         res = ((CcBool*) funres.addr)->GetBoolval();
+      }
       if (res) {
-         cout << "found" << streamInNo << endl;
          tupleBuffer->enqueue(tuple);
       } else {
          tuple->DeleteIfAllowed();
       }
-      tuple = partBuffer[streamInNo]->dequeue();
+      if (partBuffer->empty() && !startStream) {
+         // inform getnext to stop and the distributor to start
+         lock_guard<std::mutex> lock(data_);
+         startGetNext = false;
+         startStream = true;
+         //cout << "inform stream ##";
+         dataC.notify_all();
+      }
+      //}
+      //funres.addr = 0;
+      tuple = partBuffer->dequeue();
    }
+   cout << "refinement ready" << endl;
 }
 
 //Constructor
 refinementLI::refinementLI(Word* _args) : args(_args), stream(_args[0]) {
    coreNo = MThreadedSingleton::getCoresToUse();
    coreNoWorker = coreNo - 1;
+   tupleBuffer = make_shared<SafeQueue<Tuple*>>(0);
    stream.open();
-   //buffer = make_shared<extrel2::TupleBuffer2>();
    Scheduler();
 }
 
 
 //Destructor
 refinementLI::~refinementLI() {
-   partBuffer.clear();
+   //usleep(50);
+   //tupleBuffer.reset();
+   buffer->clear();
+   nl->Destroy(funList);
+   //usleep(500);
+   stream.close();
+   //usleep(500);
+   cout << "destruct LI" << endl;
 }
 
 //Output
 Tuple* refinementLI::getNext() {
+   if (!startGetNext) {
+      unique_lock<std::mutex> lock(data_);
+      dataC.wait(lock, [&] { return startGetNext; });
+   }
    Tuple* res;
    res = tupleBuffer->dequeue();
+   //cout << res->GetNumOfRefs() << "##";
    if (res != nullptr) {
       return res;
    }
+   cout << "join threads" << endl;
+   //stream.close();
+   //usleep(500);
+
+   //tupleBuffer.reset();
+   endDestribut = false;
+   endRefinement = false;
+
+
+   {
+      lock_guard<std::mutex> lock(endThreads_);
+      endDestribut = true;
+      endThreadsC.notify_all();
+   }
+   filterThreads[0].join();
+   cout << "distr joined" << endl;
+   //stream.close();
+
+   {
+      lock_guard<std::mutex> lock(endThreads_);
+      endRefinement = true;
+      endThreadsC.notify_all();
+   }
+   for (size_t i = 1; i <= coreNoWorker; ++i) {
+      filterThreads[i].join();
+   }
+
+   cout << "getnext free" << endl;
+   filterThreads.clear();
+   cout << "threads cleared" << endl;
+   cout << "stream closed" << endl;
    return 0;
 }
 
@@ -185,47 +345,38 @@ void refinementLI::Scheduler() {
 //      tupleIter.push_back(it);
 //   }
 //
+   // start distributor
+   filterThreads.reserve(coreNoWorker + 1);
+   buffer =
+           make_shared<vector<shared_ptr<SafeQueue<Tuple*>>>>();
+   filterThreads.emplace_back(DistributWorker(args[0],
+           buffer, coreNoWorker));
+   //filterThreads.back().detach();
+
    // start threads
-   joinThreads.reserve(coreNoWorker);
-   partBuffer.reserve(coreNoWorker);
-   tupleBuffer = make_shared<SafeQueue<Tuple*>>(coreNoWorker);
    threadsDone = coreNoWorker;
-   partBuffer.push_back(make_shared<SafeQueue<Tuple*>>(0));
-   joinThreads.emplace_back(
-           RefinementWorker(coreNoWorker,
-                   0, (OpTree) args[1].addr));
-   //joinThreads.back().detach();
+   buffer->push_back(make_shared<SafeQueue<Tuple*>>(0));
+//   ListExpr funList;
+//   nl->ReadFromString(((FText*) args[2].addr)->GetValue(),
+//                      funList);
+   filterThreads.emplace_back(
+           RefinementWorker(coreNoWorker, 0,
+                            tupleBuffer, buffer->back(),
+                   //funList));
+                            (OpTree) args[1].addr));
+   //ArgVector &arguments = *qp->Argument((OpTree) args[1].addr);
+   //filterThreads.back().detach();
    for (size_t i = 1; i < coreNoWorker; ++i) {
-      partBuffer.push_back(make_shared<SafeQueue<Tuple*>>(i));
-      ListExpr funList;
+      buffer->push_back(make_shared<SafeQueue<Tuple*>>(i));
       nl->ReadFromString(((FText*) args[2].addr)->GetValue(),
-              funList);
-      joinThreads.emplace_back(
-              RefinementWorker(coreNoWorker, i, funList));
-      //joinThreads.back().detach();
+                         funList);
+      filterThreads.emplace_back(
+              RefinementWorker(coreNoWorker, i, tupleBuffer,
+                      buffer->back(), funList));
+      //filterThreads.back().detach();
    }
 
-   // Stream
-   Tuple* tuple = stream.request();
-   size_t countWorker = 0;
-   do {
-      partBuffer[countWorker]->enqueue(tuple);
-      if (countWorker == coreNoWorker - 1) {
-         countWorker = 0;
-      } else {
-         ++countWorker;
-      }
-   } while ((tuple = stream.request()));
-   stream.close();
-
-   cout << "Stream Ready" << endl;
-
-   for (size_t i = 0; i < coreNoWorker; ++i) {
-      partBuffer[i]->enqueue(nullptr);
-      joinThreads[i].join();
-   }
-
-   cout << "Schedule Ready" << endl;
+   //cout << "Schedule Ready" << endl;
 }
 
 
@@ -258,7 +409,8 @@ ListExpr op_refinement::refinementTM(ListExpr args) {
 
    if (!Stream<Tuple>::checkType(stream)) {
       return
-              listutils::typeError(err + " (first arg is not a tuple stream)");
+              listutils::typeError(err
+              + " (first arg is not a tuple stream)");
    }
    cout << "Stream" << endl;
 
@@ -296,7 +448,8 @@ ListExpr op_refinement::refinementTM(ListExpr args) {
    cout << "index" << index1 << "##" << index2 << endl;
    if (index1 == -1 || index2 == -1) {
       return
-              listutils::typeError(" function attribute not in stream ");
+              listutils::typeError
+              (" function attribute not in stream ");
    }
    if (!listutils::isSpatialType(attrType1)) {
       return listutils::typeError(" first attribute not spatial ");
@@ -370,6 +523,9 @@ int op_refinement::refinementVM(Word* args, Word &result, int message,
             delete li;
             local.addr = 0;
          }
+         //qp->Close(args[0].addr);
+         cout << "closed" << endl;
+
          return 0;
    }
    return 0;

@@ -48,12 +48,33 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 namespace mthreaded {
 
+class DistributWorker {
+   private:
+   Stream<Tuple> stream;
+   std::shared_ptr<std::vector<std::shared_ptr<SafeQueue<Tuple*>>>> buffer;
+   size_t coreNoWorker;
+
+   public:
+   DistributWorker(
+           Stream<Tuple> _stream,
+           std::shared_ptr<std::vector<std::shared_ptr<SafeQueue<Tuple*>>>>
+           _buffer,
+           size_t _coreNoWorker);
+
+   ~DistributWorker();
+
+   // Thread
+   void operator()();
+};
+
 
 class RefinementWorker {
    private:
    size_t static constexpr DIM = 2;
    size_t coreNoWorker;
    size_t streamInNo;
+   std::shared_ptr<SafeQueue<Tuple*>> tupleBuffer;
+   std::shared_ptr<SafeQueue<Tuple*>> partBuffer;
    //std::pair<size_t, size_t> joinAttr;
    ListExpr funList;
    OpTree funct;
@@ -61,11 +82,17 @@ class RefinementWorker {
 
    public:
    RefinementWorker(
-           size_t _coreNoWorker, size_t _streamInNo,
+           size_t _coreNoWorker,
+           size_t _streamInNo,
+           std::shared_ptr<SafeQueue<Tuple*>> _tupleBuffer,
+           std::shared_ptr<SafeQueue<Tuple*>> _partBuffer,
            ListExpr _funList);
 
    RefinementWorker(
-           size_t _coreNoWorker, size_t _streamInNo,
+           size_t _coreNoWorker,
+           size_t _streamInNo,
+           std::shared_ptr<SafeQueue<Tuple*>> _tupleBuffer,
+           std::shared_ptr<SafeQueue<Tuple*>> _partBuffer,
            OpTree _fun);
 
    ~RefinementWorker();
@@ -87,10 +114,13 @@ class refinementLI {
    Word* args;
    Stream<Tuple> stream;
    //std::pair<size_t, size_t> joinAttr;
-   std::vector<std::thread> joinThreads;
+   std::vector<std::thread> filterThreads;
+   //std::thread distributor;
    size_t coreNo;
    size_t coreNoWorker;
    const size_t cores = MThreadedSingleton::getCoresToUse();
+   std::shared_ptr<std::vector<std::shared_ptr<SafeQueue<Tuple*>>>> buffer;
+   ListExpr funList;
    //extrel2::TupleBuffer2Iterator* tb2Iter;
 
    public:
