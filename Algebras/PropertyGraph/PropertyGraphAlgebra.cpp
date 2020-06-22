@@ -177,21 +177,36 @@ a typemapping function
 
 */
 
-   PGraph *getPGraphObject()
+   PGraph *getPGraphObject(ListExpr args)
    {
-      if (qp->getValues().size() <= 0) {
-            LOGOP(10, "getPGraphObject", "qp->getValues().size() is not > 0");
-            return NULL;
+
+      // ((pgraph dblp) ....)
+      ListExpr graphName = nl->First(args);
+      if(nl->ListLength(graphName) != 2) {
+         LOGOP(10, "getPGraphObject", "NL size != 2" 
+                   + nl->ToString(graphName));
+         return NULL;
       }
 
-      string elementType = nl->ToString(qp->getValues()[0].typeInfo);
+      string graphType = nl->ToString(nl->First(graphName));
+      string graphExpr = nl->ToString(nl->Second(graphName));
 
-      if (elementType == "pgraph") {
-         return static_cast<PGraph*>(qp->getValues()[0].value.addr);
-      } 
+      if (graphType != "pgraph") {
+         LOGOP(10, "getPGraphObject", "Wrong type (pgraph expected): " 
+                   + graphType);
+         return NULL;
+      }
+      
+      // Evaluate graphExpr to get the reference to the graph
+      Word res;
 
-      LOGOP(10, "getPGraphObject", "Wrong type (pgraph): " + elementType);
-      return NULL;
+      if(! QueryProcessor::ExecuteQuery(graphExpr, res)) {
+         LOGOP(10, "getPGraphObject", "Could not evaluate expression: " 
+                   + graphExpr);
+         return NULL;
+      }
+
+      return static_cast<PGraph*>(res.addr);
    }
 
 /*
@@ -1028,7 +1043,7 @@ ListExpr match1_OpTm( ListExpr args )
       CheckArgType(args,5,FText::BasicType());
 
       //   
-      PGraph *pg = getPGraphObject();
+      PGraph *pg = getPGraphObject(args);
 
       // get alias list from query tree
       QueryTree *tree=new QueryTree();
@@ -1186,7 +1201,7 @@ ListExpr match2_OpTm( ListExpr args )
       CheckArgType(args,4,FText::BasicType());
 
       //
-      PGraph *pg = getPGraphObject();
+      PGraph *pg = getPGraphObject(args);
       MemoryGraphObject *pgm = getPGraphMemoryObject(pg);
       if (pgm==NULL || !pgm->IsLoaded())
          throw PGraphException("graph not loaded!");
@@ -1341,7 +1356,7 @@ ListExpr match3_OpTm( ListExpr args )
    try
    {
       NList type(args);
-      LOGOP(20,"match3_OpTm", nl->ToString(args));
+      LOGOP(20, "match3_OpTm", nl->ToString(args));
 
       CheckArgCount(args,2,3);
       CheckArgType(args,1,PGraph::BasicType());
@@ -1353,7 +1368,7 @@ ListExpr match3_OpTm( ListExpr args )
 
       LOGOP(20, "match3_OpTm",options);
 
-      PGraph *pg = getPGraphObject();
+      PGraph *pg = getPGraphObject(args);
       MemoryGraphObject *pgm = getPGraphMemoryObject(pg);
 
       if (pgm==NULL || !pgm->IsLoaded())
