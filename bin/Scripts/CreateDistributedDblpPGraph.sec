@@ -18,11 +18,95 @@ open database dblpgraph0620;
 
 let Document_raw = '/home/ralf/Daten/dblp.xml' dblpimport['/home/ralf/Daten/Stopwords.txt']
 
+let Document_raw2 = Document_raw feed head[1000] addcounter[Docid, 1] consume
+
+# create small template graph on master
+
+{
+	let Document = Document_raw2 feed remove[AuthorsList, Keywords] consume
+|   let Keyword = Document_raw2 feed project[Keywords] unnest[Keywords] rduph[] 
+	  renameAttr[Word: Keyword]
+	  addcounter[Wordid, 1] consume
+|	let HAS_KEYWORD = Document_raw2 feed  project[Docid, Keywords] unnest[Keywords] {d}
+	  Keyword feed itHashJoin[Keyword_d, Word]
+	  projectextend[Wordid; Docid: .Docid_d]
+	  project[Docid, Wordid]
+	  consume
+|	let Author = Document_raw2 feed  project[AuthorsList] unnest[AuthorsList] rduph[] 
+	  addcounter[Authorid, 1] consume
+|	let WROTE = Document_raw2 feed project[Docid, AuthorsList] unnest[AuthorsList] {d}
+	  Author feed itHashJoin[Name_d, Name]
+	  projectextend[Authorid; Docid: .Docid_d]
+	  consume
+|	let Journals = Document_raw2 feed project[Journal] filter[.Journal # ""]
+	  renameAttr[Name: Journal]
+	  rduph[] 
+	  addcounter[Journalid, 1] consume
+|	let AT_JOURNAL = Document_raw2 feed filter[.Type = "article"] {d} project[Docid_d, Journal_d]
+	  Journals feed itHashJoin[Journal_d, Name]
+	  renameAttr[Docid: Docid_d]
+	  project[Docid, Journalid]
+	  consume
+|	let Conference = Document_raw2 feed filter[.Type = "inproceedings"] project[Booktitle] 
+	  renameAttr[Name: Booktitle]
+	  rduph[] 
+	  addcounter[Conferenceid, 1] consume
+|	let AT_CONF = Document_raw2 feed {d} project[Docid_d, Booktitle_d]
+	  Conference feed itHashJoin[Booktitle_d, Name]
+	  renameAttr[Docid: Docid_d]
+	  project[Docid, Conferenceid]
+	  consume
+|	let Publisher = Document_raw2 feed filter[isdefined(.Publisher)] project[Publisher] 
+	  renameAttr[Name: Publisher]
+	  rduph[] 
+	  addcounter[Publisherid, 1] consume
+|	let PUBLISHED_BY = Document_raw2 feed {d} project[Docid_d, Publisher_d]
+	  Publisher feed itHashJoin[Publisher_d, Name]
+	  renameAttr[Docid: Docid_d]
+	  project[Docid, Publisherid]
+	  consume
+}
+
+
+{
+let dblp =createpgraph("dblp")
+|
+query dblp cfg["log","10"]|
+query dblp cfg["dotquery","1"]
+|
+query dblp addnodesrel["Document", "Docid"]|
+query dblp addnodesrel["Author", "Authorid"]|
+query dblp addnodesrel["Keyword", "Wordid"]|
+query dblp addnodesrel["Journals", "Journalid"]|
+query dblp addnodesrel["Conference", "Conferenceid"]|
+query dblp addnodesrel["Publisher", "Publisherid"]
+|
+query dblp addedgesrel["AT_CONF", "Docid=Document.Docid", "Conferenceid=Conference.Conferenceid"] |
+query dblp addedgesrel["AT_JOURNAL", "Docid=Document.Docid", "Journalid=Journals.Journalid"] |
+query dblp addedgesrel["HAS_KEYWORD", "Docid=Document.Docid", "Wordid=Keyword.Wordid"] |
+query dblp addedgesrel["PUBLISHED_BY", "Docid=Document.Docid", "Publisherid=Publisher.Publisherid"] |
+query dblp addedgesrel["WROTE","Authorid=Author.Authorid","Docid=Document.Docid"] 
+|
+query dblp addindex["Author","Name"]   |
+query dblp addindex["Keyword","Word"]  |
+query dblp addindex["Journals","Name"] |
+query dblp addindex["Conference","Name"] 
+|
+query dblp info
+}
+
+
+# create distributed database
+
 restore Workers from WorkersNewton
 
-# Distribute data to 40 workers by Docid. Then convert darray to a simple darray (sdarray). In a simple darray, all fields on workers have the same names, for example, "Document" instead of "Document_28".
+let NWorkers = Workers count
 
-let DocumentB1 = Document_raw feed addcounter[Docid, 1] ddistribute2["DocumentB1", Docid, 40, Workers]
+query share("dblp", TRUE, Workers)
+
+# Distribute data to the workers by Docid. Then convert darray to a simple darray (sdarray). In a simple darray, all fields on workers have the same names, for example, "Document" instead of "Document_28".
+
+let DocumentB1 = Document_raw feed addcounter[Docid, 1] ddistribute2["DocumentB1", Docid, NWorkers, Workers]
 
 let DocumentB2 = DocumentB1 makeSimple[FALSE, "DocumentB2"];
 delete DocumentB1
@@ -34,7 +118,7 @@ delete DocumentB1
 
 query DocumentB2 dcommand['{
 	let Document = DocumentB2 feed remove[AuthorsList, Keywords] consume
-|   let Keyword = DocumentB2 feed project[Keywords] unnest[Keywords] rduph[] 
+|   	let Keyword = DocumentB2 feed project[Keywords] unnest[Keywords] rduph[] 
 	  renameAttr[Word: Keyword]
 	  addcounter[Wordid, 1] consume
 |	let HAS_KEYWORD = DocumentB2 feed project[Docid, Keywords] unnest[Keywords] {d}
@@ -48,12 +132,12 @@ query DocumentB2 dcommand['{
 	  Author feed itHashJoin[Name_d, Name]
 	  projectextend[Authorid; Docid: .Docid_d]
 	  consume
-|	let Journal = DocumentB2 feed project[Journal] filter[.Journal # ""]
+|	let Journals = DocumentB2 feed project[Journal] filter[.Journal # ""]
 	  renameAttr[Name: Journal]
 	  rduph[] 
 	  addcounter[Journalid, 1] consume
 |	let AT_JOURNAL = DocumentB2 feed filter[.Type = "article"] {d} project[Docid_d, Journal_d]
-	  Journal feed itHashJoin[Journal_d, Name]
+	  Journals feed itHashJoin[Journal_d, Name]
 	  renameAttr[Docid: Docid_d]
 	  project[Docid, Journalid]
 	  consume
@@ -79,108 +163,37 @@ query DocumentB2 dcommand['{
   consume
   
   
-query DocumentB2 dcommand['{
-let dblp=createpgraph("dblp")
-|
-query dblp cfg["log","10"]|
-query dblp cfg["dotquery","1"]
-|
-query dblp addnodesrel["Document", "Docid"]|
-query dblp addnodesrel["Author", "Authorid"]|
-query dblp addnodesrel["Keyword", "Wordid"]|
-query dblp addnodesrel["Journal", "Journalid"]|
-query dblp addnodesrel["Conference", "Conferenceid"]|
-query dblp addnodesrel["Publisher", "Publisherid"]
-|
-query dblp addedgesrel["AT_CONF", "Docid=Document.Docid", "Conferenceid=Conference.Conferenceid"] |
-query dblp addedgesrel["AT_JOURNAL", "Docid=Document.Docid", "Journalid=Journal.Journalid"] |
-query dblp addedgesrel["HAS_KEYWORD", "Docid=Document.Docid", "Wordid=Keyword.Wordid"] |
-query dblp addedgesrel["PUBLISHED_BY", "Docid=Document.Docid", "Publisherid=Publisher.Publisherid"] |
-query dblp addedgesrel["WROTE","Authorid=Author.Authorid","Docid=Document.Docid"] 
-|
-query dblp addindex["Author","Name"]   |
-query dblp addindex["Keyword","Word"]
-|
-query dblp info
-}'] 
-consume
 
-let dblp = createSDArray("dblp", Workers)
+let Control = createintdarray("Control", Workers, NWorkers)
   
-# Befory querying, the graph must be loaded into memory
+# Befory querying, the graph must be loaded into memory on master and workers
 
-query DocumentB2 dcommand['query meminit(3000)'] consume;
-query DocumentB2 dcommand['query dblp loadgraph'] consume
+query dblp loadgraph
+
+query Control dcommand['query memclear()'] filter[.Ok] count;
+query Control dcommand['query meminit(3600)'] filter[.Ok] count;
+query Control dcommand['query dblp loadgraph'] filter[.Ok] count
 
 # 59 seconds
 
-  
 # Example query
 
-let Symbolic = dblp dmap["", . match3['
-  MATCH
-    (doc)-[HAS_KEYWORD]->(w {Word: "symbolic"})
-  RETURN
-    doc.Authors, doc.Title, doc.Year
-'] consume]
-
-# crashes
-
-query dblp dmap["", . match3['
-  MATCH
-    (doc)-[HAS_KEYWORD]->(w {Word: "symbolic"})
-  RETURN
-    doc.Authors, doc.Title, doc.Year
-'] consume]
-dsummarize consume
-
-
-
-
-query dblp dmap["", . match3[query1] consume]
-dsummarize consume
-
-  
-
-
-# Examples for local queries on one worker
-
-open database dblpgraph0620;
-query meminit(3000);
-query dblp loadgraph;
-
 query dblp match3['
   MATCH
-    (doc)-[HAS_KEYWORD]->(w {Word: "symbolic"})
+    (doc)-[HAS_KEYWORD]->(w {Word: "Indoor"})
   RETURN
     doc.Authors, doc.Title, doc.Year
 '] consume
 
-query dblp match3['
-  MATCH
-    (doc)-[HAS_KEYWORD]->(w {Word: "symbolic"}),
-	(doc)-[AT_JOURNAL]->(journal)
-  RETURN
-    doc.Authors, doc.Title, doc.Year, journal.Name
-'] consume
 
-query dblp match3['
+query Control dmap["", dblp match3['
   MATCH
-    (journal: Journal {Name: "Comput. Math. Appl."}),
-	(doc)-[AT_JOURNAL]->(journal)
+    (doc)-[HAS_KEYWORD]->(w {Word: "Symbolic"}), (doc)-[HAS_KEYWORD]->(w2 {Word: "Trajectory"})
   RETURN
-    doc.Authors, doc.Title, doc.Year, doc.Volume, doc.Number, journal.Name
-'] sortby[Volume, Number] count
-  
-  
-query dblp match3['
-  MATCH
-    (author)-[WROTE]->(paper)-[AT_JOURNAL]->(journal: Journal {Name: "VLDB J."})
-  RETURN
-    author.Name
-'] sort rdup count
-  
-  
+    doc.Authors, doc.Title, doc.Year
+']]
+dsummarize consume
+
   
   
   
