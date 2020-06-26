@@ -146,7 +146,7 @@ namespace pregel {
      result_type *result;
      try {
       std::string response = runner->run();
-      delete runner;
+      //delete runner;
       result = mapper(response);
      } catch (RemoteExecutionException &e) {
       asynchExceptions = true;
