@@ -78,7 +78,8 @@ sendList(iostream& iosock, NestedList* nl, ListExpr list)
     //nl->WriteToString( resultStr, list );
     //iosock << resultStr << endl;
     // list.writeAsStringTo(iosock);  
-    nl->WriteListExpr(list, iosock);
+    nl->WriteListExpr(list, iosock, false);
+
     iosock << endl;
 
     LOGMSG( "Server:SendTimeMsg",

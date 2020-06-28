@@ -846,6 +846,7 @@ A wrapper for ~WriteToString~ which directly returns a string object.
 
   void WriteListExpr( const ListExpr list,
                       std::ostream& ostr = cout,
+                      const bool toScreen = true,
                       const int offset=4 );
 
 /*

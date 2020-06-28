@@ -1912,12 +1912,13 @@ Write ~list~ indented by level to standard output.
 void
 NestedList::WriteListExpr( const ListExpr list,
                            ostream& ostr  /*= cout*/,
+                           const bool toScreen, /*=true*/
                            const int offset /*= 4*/   )
 {
 #ifdef THREAD_SAFE
    boost::lock_guard<boost::recursive_mutex> guard1(mtx);
 #endif
-  WriteList( list, 0, false, true, ostr, offset );
+  WriteList( list, 0, false, toScreen, ostr, offset );
 }
 
 /*
