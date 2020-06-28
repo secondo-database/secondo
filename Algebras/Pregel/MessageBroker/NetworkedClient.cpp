@@ -43,7 +43,7 @@ This file defines the members of class NetworkedClient
 namespace pregel {
  NetworkedClient::NetworkedClient(const RemoteEndpoint &host) noexcept(false) {
   auto socket = Socket::Connect(host.host, std::to_string(host.port),
-                                Socket::SockAnyDomain, 10, 1);
+                                Socket::SockGlobalDomain, 10, 10);
   if (socket == nullptr) {
    BOOST_LOG_TRIVIAL(error) << "Couldn't connect to server.";
    throw std::exception();
