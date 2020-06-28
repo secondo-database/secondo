@@ -1,0 +1,39 @@
+<RCC>
+  <qresource prefix="icons">
+    <file>userdoc.png</file>
+    <file>addobject.png</file>
+    <file>shutdown.png</file>
+    <file>deleteobject.png</file>
+    <file>feu-logo_blau_2018.jpg</file>
+    <file>settings.png</file>
+    <file>query.png</file>
+    <file>objectother.png</file>
+    <file>objectarray.png</file>
+    <file>objectedge.png</file>
+    <file>objectstring.png</file>
+    <file>objectgraph.png</file>
+    <file>objectinstant.png</file>
+    <file>objectmap.png</file>
+    <file>objectmpoint.png</file>
+    <file>objectpoint.png</file>
+    <file>objectpoints.png</file>
+    <file>objectreal.png</file>
+    <file>objectregion.png</file>
+    <file>objectrel.png</file>
+    <file>lineobject.png</file>
+    <file>databaseopen.png</file>
+    <file>warning.png</file>
+    <file>folder.png</file>
+    <file>operator.png</file>
+    <file>adddatabase.png</file>
+    <file>algebra.png</file>
+    <file>connectserver.png</file>
+    <file>database.png</file>
+    <file>datatype.png</file>
+    <file>deletedatabase.png</file>
+    <file>refresh.png</file>
+    <file>mainwindow.png</file>
+    <file>connect.png</file>
+    <file>disconnect.png</file>
+  </qresource>
+</RCC>
