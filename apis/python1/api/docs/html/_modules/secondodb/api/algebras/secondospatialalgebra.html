@@ -1,0 +1,420 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>secondodb.api.algebras.secondospatialalgebra &#8212; pySecondo  documentation</title>
+    <link rel="stylesheet" href="../../../../_static/nature.css" type="text/css" />
+    <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+    <script id="documentation_options" data-url_root="../../../../" src="../../../../_static/documentation_options.js"></script>
+    <script src="../../../../_static/jquery.js"></script>
+    <script src="../../../../_static/underscore.js"></script>
+    <script src="../../../../_static/doctools.js"></script>
+    <script src="../../../../_static/language_data.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../../index.html">pySecondo  documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../../index.html" accesskey="U">Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">secondodb.api.algebras.secondospatialalgebra</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for secondodb.api.algebras.secondospatialalgebra</h1><div class="highlight"><pre>
+<span></span><span class="c1"># ----------------------------------------------------------------------------------------------------------------------</span>
+<span class="c1"># The Secondo Python API (pySecondo)</span>
+<span class="c1"># Victor Silva (victor.silva@posteo.de)</span>
+<span class="c1"># January 2020</span>
+<span class="c1"># ----------------------------------------------------------------------------------------------------------------------</span>
+<span class="c1"># Module</span>
+<span class="c1"># ----------------------------------------------------------------------------------------------------------------------</span>
+<span class="c1"># Secondo Spatial Algebra</span>
+<span class="c1"># secondospatialalgebra.py</span>
+<span class="c1"># ----------------------------------------------------------------------------------------------------------------------</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">The module Secondo Spatial Algebra implements the data types for the conversion of list expression objects with values</span>
+<span class="sd">of the types contained in the SpatialAlgebra of the |sec| system. The data types are implemented in Python</span>
+<span class="sd">using Data Classes. Data Classes are implemented in the API like normal classes without behaviour.</span>
+<span class="sd">Like regular classes their attributes can be called through the given names.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">dataclasses</span> <span class="kn">import</span> <span class="n">dataclass</span>
+<span class="kn">from</span> <span class="nn">secondodb.api.support.secondolistexpr</span> <span class="kn">import</span> <span class="n">ListExp</span>
+
+
+<div class="viewcode-block" id="Segment"><a class="viewcode-back" href="../../../../index.html#secondodb.api.algebras.secondospatialalgebra.Segment">[docs]</a><span class="nd">@dataclass</span>
+<span class="k">class</span> <span class="nc">Segment</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Implements a single segment of a line.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="vm">__slots__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;x1&quot;</span><span class="p">,</span> <span class="s2">&quot;y1&quot;</span><span class="p">,</span> <span class="s2">&quot;x2&quot;</span><span class="p">,</span> <span class="s2">&quot;y2&quot;</span><span class="p">]</span>
+
+    <span class="n">x1</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="n">y1</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="n">x2</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="n">y2</span><span class="p">:</span> <span class="nb">float</span></div>
+
+
+<div class="viewcode-block" id="Point"><a class="viewcode-back" href="../../../../index.html#secondodb.api.algebras.secondospatialalgebra.Point">[docs]</a><span class="nd">@dataclass</span>
+<span class="k">class</span> <span class="nc">Point</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Implements a single point expressing two coordinates X and Y.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="vm">__slots__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;x&quot;</span><span class="p">,</span> <span class="s2">&quot;y&quot;</span><span class="p">]</span>
+
+    <span class="n">x</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="n">y</span><span class="p">:</span> <span class="nb">float</span></div>
+
+
+<div class="viewcode-block" id="Line"><a class="viewcode-back" href="../../../../index.html#secondodb.api.algebras.secondospatialalgebra.Line">[docs]</a><span class="nd">@dataclass</span>
+<span class="k">class</span> <span class="nc">Line</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Implements a line as a list of single segments of the class Segment.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="vm">__slots__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;segments&quot;</span><span class="p">]</span>
+
+    <span class="n">segments</span><span class="p">:</span> <span class="p">[]</span></div>
+
+
+<div class="viewcode-block" id="Region"><a class="viewcode-back" href="../../../../index.html#secondodb.api.algebras.secondospatialalgebra.Region">[docs]</a><span class="nd">@dataclass</span>
+<span class="k">class</span> <span class="nc">Region</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Implements a region as a list of faces of the class Face.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="vm">__slots__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;faces&quot;</span><span class="p">]</span>
+
+    <span class="n">faces</span><span class="p">:</span>  <span class="p">[]</span></div>
+
+
+<div class="viewcode-block" id="Face"><a class="viewcode-back" href="../../../../index.html#secondodb.api.algebras.secondospatialalgebra.Face">[docs]</a><span class="nd">@dataclass</span>
+<span class="k">class</span> <span class="nc">Face</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Implements a single face of a region, containing an outercycle (list of single points) and holecycles (a list of</span>
+<span class="sd">    cycles, where each cycle is a list of points).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="vm">__slots__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;outercycle&quot;</span><span class="p">,</span> <span class="s2">&quot;holecycles&quot;</span><span class="p">]</span>
+
+    <span class="n">outercycle</span><span class="p">:</span> <span class="p">[]</span>
+    <span class="n">holecycles</span><span class="p">:</span> <span class="p">[]</span></div>
+
+
+<div class="viewcode-block" id="convert_point_to_list_exp_str"><a class="viewcode-back" href="../../../../index.html#secondodb.api.algebras.secondospatialalgebra.convert_point_to_list_exp_str">[docs]</a><span class="k">def</span> <span class="nf">convert_point_to_list_exp_str</span><span class="p">(</span><span class="n">point</span><span class="p">:</span> <span class="n">Point</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Converts a point object to a nested list in string format.</span>
+
+<span class="sd">    :param point: A point object.</span>
+<span class="sd">    :return: The nested list as string.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">point</span><span class="p">:</span> <span class="n">Point</span>
+
+    <span class="n">list_exp_str</span> <span class="o">=</span> <span class="s1">&#39;(&#39;</span> \
+                   <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">point</span><span class="o">.</span><span class="n">x</span><span class="p">)</span> \
+                   <span class="o">+</span> <span class="s1">&#39; &#39;</span> \
+                   <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">point</span><span class="o">.</span><span class="n">y</span><span class="p">)</span> \
+                   <span class="o">+</span> <span class="s1">&#39;)&#39;</span>
+    <span class="k">return</span> <span class="n">list_exp_str</span></div>
+
+
+<div class="viewcode-block" id="convert_points_to_list_exp_str"><a class="viewcode-back" href="../../../../index.html#secondodb.api.algebras.secondospatialalgebra.convert_points_to_list_exp_str">[docs]</a><span class="k">def</span> <span class="nf">convert_points_to_list_exp_str</span><span class="p">(</span><span class="n">points</span><span class="p">:</span> <span class="p">[])</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Converts a points object to a nested list in string format.</span>
+
+<span class="sd">    :param points: A points object.</span>
+<span class="sd">    :return: The nested list as string.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">list_exp_str</span> <span class="o">=</span> <span class="s1">&#39;(&#39;</span>
+
+    <span class="n">point_count</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="k">for</span> <span class="n">point</span> <span class="ow">in</span> <span class="n">points</span><span class="p">:</span>
+        <span class="n">point_le</span> <span class="o">=</span> <span class="n">convert_point_to_list_exp_str</span><span class="p">(</span><span class="n">point</span><span class="p">)</span>
+        <span class="n">list_exp_str</span> <span class="o">=</span> <span class="n">list_exp_str</span> <span class="o">+</span> <span class="n">point_le</span>
+        <span class="k">if</span> <span class="n">point_count</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">points</span><span class="p">):</span>
+            <span class="n">list_exp_str</span> <span class="o">=</span> <span class="n">list_exp_str</span> <span class="o">+</span> <span class="s1">&#39; &#39;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">list_exp_str</span> <span class="o">=</span> <span class="n">list_exp_str</span> <span class="o">+</span> <span class="s1">&#39;)&#39;</span>
+        <span class="n">point_count</span> <span class="o">+=</span> <span class="mi">1</span>
+
+    <span class="k">return</span> <span class="n">list_exp_str</span></div>
+
+
+<div class="viewcode-block" id="convert_line_to_list_exp_str"><a class="viewcode-back" href="../../../../index.html#secondodb.api.algebras.secondospatialalgebra.convert_line_to_list_exp_str">[docs]</a><span class="k">def</span> <span class="nf">convert_line_to_list_exp_str</span><span class="p">(</span><span class="n">line</span><span class="p">:</span> <span class="n">Line</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Converts a line object to a nested list in string format.</span>
+
+<span class="sd">    :param line: A line object.</span>
+<span class="sd">    :return: The nested list as string.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">line</span><span class="p">:</span> <span class="n">Line</span>
+
+    <span class="n">list_exp_str</span> <span class="o">=</span> <span class="s1">&#39;(&#39;</span>
+    <span class="n">segments</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">segments</span>
+
+    <span class="n">segment_count</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="k">for</span> <span class="n">segment</span> <span class="ow">in</span> <span class="n">segments</span><span class="p">:</span>
+        <span class="n">segment_str</span> <span class="o">=</span> <span class="s1">&#39;(&#39;</span> \
+                      <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">segment</span><span class="o">.</span><span class="n">x1</span><span class="p">)</span> \
+                      <span class="o">+</span> <span class="s1">&#39; &#39;</span> \
+                      <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">segment</span><span class="o">.</span><span class="n">y1</span><span class="p">)</span> \
+                      <span class="o">+</span> <span class="s1">&#39; &#39;</span> \
+                      <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">segment</span><span class="o">.</span><span class="n">x2</span><span class="p">)</span> \
+                      <span class="o">+</span> <span class="s1">&#39; &#39;</span> \
+                      <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">segment</span><span class="o">.</span><span class="n">y2</span><span class="p">)</span> \
+                      <span class="o">+</span> <span class="s1">&#39;)&#39;</span>
+        <span class="n">list_exp_str</span> <span class="o">=</span> <span class="n">list_exp_str</span> <span class="o">+</span> <span class="n">segment_str</span>
+        <span class="k">if</span> <span class="n">segment_count</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">segments</span><span class="p">):</span>
+            <span class="n">list_exp_str</span> <span class="o">=</span> <span class="n">list_exp_str</span> <span class="o">+</span> <span class="s1">&#39; &#39;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">list_exp_str</span> <span class="o">=</span> <span class="n">list_exp_str</span> <span class="o">+</span> <span class="s1">&#39;)&#39;</span>
+        <span class="n">segment_count</span> <span class="o">+=</span> <span class="mi">1</span>
+
+    <span class="k">return</span> <span class="n">list_exp_str</span></div>
+
+
+<div class="viewcode-block" id="convert_region_to_list_exp_str"><a class="viewcode-back" href="../../../../index.html#secondodb.api.algebras.secondospatialalgebra.convert_region_to_list_exp_str">[docs]</a><span class="k">def</span> <span class="nf">convert_region_to_list_exp_str</span><span class="p">(</span><span class="n">region</span><span class="p">:</span> <span class="n">Region</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Converts a region object to a nested list in string format.</span>
+
+<span class="sd">    :param region: A region object.</span>
+<span class="sd">    :return: The nested list as string.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">region</span><span class="p">:</span> <span class="n">Region</span>
+
+    <span class="n">face_str</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+    <span class="n">list_exp_str</span> <span class="o">=</span> <span class="s1">&#39;(&#39;</span>
+
+    <span class="n">face_count</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="k">for</span> <span class="n">face</span> <span class="ow">in</span> <span class="n">region</span><span class="o">.</span><span class="n">faces</span><span class="p">:</span>
+        <span class="n">face_str</span> <span class="o">=</span> <span class="s1">&#39;(&#39;</span>
+
+        <span class="n">outercycle_str</span> <span class="o">=</span> <span class="s1">&#39;(&#39;</span>
+        <span class="n">point_count</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="k">for</span> <span class="n">point</span> <span class="ow">in</span> <span class="n">face</span><span class="o">.</span><span class="n">outercycle</span><span class="p">:</span>
+
+            <span class="n">point_str</span> <span class="o">=</span> <span class="n">convert_point_to_list_exp_str</span><span class="p">(</span><span class="n">point</span><span class="p">)</span>
+            <span class="n">outercycle_str</span> <span class="o">=</span> <span class="n">outercycle_str</span> <span class="o">+</span> <span class="n">point_str</span>
+            <span class="k">if</span> <span class="n">point_count</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">face</span><span class="o">.</span><span class="n">outercycle</span><span class="p">):</span>
+                <span class="n">outercycle_str</span> <span class="o">=</span> <span class="n">outercycle_str</span> <span class="o">+</span> <span class="s1">&#39; &#39;</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">outercycle_str</span> <span class="o">=</span> <span class="n">outercycle_str</span> <span class="o">+</span> <span class="s1">&#39;)&#39;</span>
+            <span class="n">point_count</span> <span class="o">+=</span> <span class="mi">1</span>
+
+        <span class="n">face_str</span> <span class="o">=</span> <span class="n">face_str</span> <span class="o">+</span> <span class="n">outercycle_str</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">face</span><span class="o">.</span><span class="n">holecycles</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+
+            <span class="n">holecycle_count</span> <span class="o">=</span> <span class="mi">1</span>
+            <span class="k">for</span> <span class="n">holecycle</span> <span class="ow">in</span> <span class="n">face</span><span class="o">.</span><span class="n">holecycles</span><span class="p">:</span>
+
+                <span class="n">face_str</span> <span class="o">=</span> <span class="n">face_str</span> <span class="o">+</span> <span class="s1">&#39; &#39;</span>
+
+                <span class="n">holecycle_str</span> <span class="o">=</span> <span class="s1">&#39;(&#39;</span>
+                <span class="n">point_count</span> <span class="o">=</span> <span class="mi">1</span>
+                <span class="k">for</span> <span class="n">point</span> <span class="ow">in</span> <span class="n">holecycle</span><span class="p">:</span>
+                    <span class="n">point_str</span> <span class="o">=</span> <span class="n">convert_point_to_list_exp_str</span><span class="p">(</span><span class="n">point</span><span class="p">)</span>
+                    <span class="n">holecycle_str</span> <span class="o">=</span> <span class="n">holecycle_str</span> <span class="o">+</span> <span class="n">point_str</span>
+                    <span class="k">if</span> <span class="n">point_count</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">holecycle</span><span class="p">):</span>
+                        <span class="n">holecycle_str</span> <span class="o">=</span> <span class="n">holecycle_str</span> <span class="o">+</span> <span class="s1">&#39; &#39;</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">holecycle_str</span> <span class="o">=</span> <span class="n">holecycle_str</span> <span class="o">+</span> <span class="s1">&#39;)&#39;</span>
+                    <span class="n">point_count</span> <span class="o">+=</span> <span class="mi">1</span>
+
+                <span class="k">if</span> <span class="n">holecycle_count</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">face</span><span class="o">.</span><span class="n">holecycles</span><span class="p">):</span>
+                    <span class="n">face_str</span> <span class="o">=</span> <span class="n">face_str</span> <span class="o">+</span> <span class="n">holecycle_str</span> <span class="o">+</span> <span class="s1">&#39; &#39;</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">face_str</span> <span class="o">=</span> <span class="n">face_str</span> <span class="o">+</span> <span class="n">holecycle_str</span> <span class="o">+</span> <span class="s1">&#39;)&#39;</span>
+
+                <span class="n">holecycle_count</span> <span class="o">+=</span> <span class="mi">1</span>
+
+        <span class="k">else</span><span class="p">:</span>  <span class="c1"># no holes</span>
+            <span class="n">face_str</span> <span class="o">=</span> <span class="n">face_str</span> <span class="o">+</span> <span class="s1">&#39;)&#39;</span>
+
+        <span class="k">if</span> <span class="n">face_count</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">region</span><span class="o">.</span><span class="n">faces</span><span class="p">):</span>
+            <span class="n">list_exp_str</span> <span class="o">=</span> <span class="n">list_exp_str</span> <span class="o">+</span> <span class="n">face_str</span> <span class="o">+</span> <span class="s1">&#39; &#39;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">list_exp_str</span> <span class="o">=</span> <span class="n">list_exp_str</span> <span class="o">+</span> <span class="n">face_str</span> <span class="o">+</span> <span class="s1">&#39;)&#39;</span>
+
+        <span class="n">face_count</span> <span class="o">+=</span> <span class="mi">1</span>
+
+    <span class="k">return</span> <span class="n">list_exp_str</span></div>
+
+
+<div class="viewcode-block" id="parse_point"><a class="viewcode-back" href="../../../../index.html#secondodb.api.algebras.secondospatialalgebra.parse_point">[docs]</a><span class="k">def</span> <span class="nf">parse_point</span><span class="p">(</span><span class="n">list_expr</span><span class="p">:</span> <span class="n">ListExp</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Point</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Transforms a list expression object containing a point (point) to a named tuple.</span>
+
+<span class="sd">    :param list_expr: A list expression object containing a point (point).</span>
+<span class="sd">    :return: A named tuple with the point.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">x</span> <span class="o">=</span> <span class="n">list_expr</span><span class="o">.</span><span class="n">get_first_element</span><span class="p">()</span><span class="o">.</span><span class="n">value</span>
+    <span class="n">y</span> <span class="o">=</span> <span class="n">list_expr</span><span class="o">.</span><span class="n">get_second_element</span><span class="p">()</span><span class="o">.</span><span class="n">value</span>
+
+    <span class="k">return</span> <span class="n">Point</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="n">y</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="parse_points"><a class="viewcode-back" href="../../../../index.html#secondodb.api.algebras.secondospatialalgebra.parse_points">[docs]</a><span class="k">def</span> <span class="nf">parse_points</span><span class="p">(</span><span class="n">list_expr</span><span class="p">:</span> <span class="n">ListExp</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="p">[]:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Transforms a list expression object containing points (points) to a named tuple.</span>
+
+<span class="sd">    :param list_expr: A list expression object containing points (points).</span>
+<span class="sd">    :return: A named tuple with the points.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">points</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="n">next_element</span> <span class="o">=</span> <span class="n">list_expr</span>
+    <span class="k">while</span> <span class="n">next_element</span><span class="o">.</span><span class="n">next</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">point</span> <span class="o">=</span> <span class="n">parse_point</span><span class="p">(</span><span class="n">next_element</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+        <span class="n">points</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">point</span><span class="p">)</span>
+        <span class="n">next_element</span> <span class="o">=</span> <span class="n">next_element</span><span class="o">.</span><span class="n">next</span>
+
+    <span class="k">return</span> <span class="n">points</span></div>
+
+
+<div class="viewcode-block" id="parse_line"><a class="viewcode-back" href="../../../../index.html#secondodb.api.algebras.secondospatialalgebra.parse_line">[docs]</a><span class="k">def</span> <span class="nf">parse_line</span><span class="p">(</span><span class="n">list_expr</span><span class="p">:</span> <span class="n">ListExp</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Line</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Transforms a list expression object containing a line (line) to a named tuple.</span>
+
+<span class="sd">    :param list_expr: A list expression object containing a line (line).</span>
+<span class="sd">    :return: A named tuple with the line.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">segments</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">length</span> <span class="o">=</span> <span class="n">list_expr</span><span class="o">.</span><span class="n">get_list_length</span><span class="p">()</span>
+
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">length</span><span class="p">):</span>
+        <span class="n">segment</span> <span class="o">=</span> <span class="n">parse_segment</span><span class="p">(</span><span class="n">list_expr</span><span class="o">.</span><span class="n">get_the_n_element</span><span class="p">(</span><span class="n">i</span><span class="p">))</span>
+        <span class="n">segments</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">segment</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">Line</span><span class="p">(</span><span class="n">segments</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="parse_region"><a class="viewcode-back" href="../../../../index.html#secondodb.api.algebras.secondospatialalgebra.parse_region">[docs]</a><span class="k">def</span> <span class="nf">parse_region</span><span class="p">(</span><span class="n">list_expr</span><span class="p">:</span> <span class="n">ListExp</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Region</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Transforms a list expression object containing a region (region) to a named tuple.</span>
+
+<span class="sd">    :param list_expr: A list expression object containing a region (region).</span>
+<span class="sd">    :return: A named tuple with the region.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">qty_faces</span> <span class="o">=</span> <span class="n">list_expr</span><span class="o">.</span><span class="n">get_list_length</span><span class="p">()</span>
+
+    <span class="n">faces</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">qty_faces</span><span class="p">):</span>
+
+        <span class="n">face_le</span><span class="p">:</span> <span class="n">ListExp</span> <span class="o">=</span> <span class="n">list_expr</span><span class="o">.</span><span class="n">get_the_n_element</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+
+        <span class="n">cycles_count</span> <span class="o">=</span> <span class="n">face_le</span><span class="o">.</span><span class="n">get_list_length</span><span class="p">()</span>
+
+        <span class="n">outercycle_le</span> <span class="o">=</span> <span class="n">face_le</span><span class="o">.</span><span class="n">get_first_element</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="n">outercycle_le</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">outercycle</span> <span class="o">=</span> <span class="n">parse_points</span><span class="p">(</span><span class="n">outercycle_le</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">outercycle</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="n">holecycles</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">if</span> <span class="n">cycles_count</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+
+            <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="n">cycles_count</span><span class="p">):</span>
+
+                <span class="n">holecycle_le</span> <span class="o">=</span> <span class="n">face_le</span><span class="o">.</span><span class="n">get_the_n_element</span><span class="p">(</span><span class="n">j</span><span class="p">)</span>
+
+                <span class="k">if</span> <span class="n">holecycle_le</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">holecycle</span> <span class="o">=</span> <span class="n">parse_points</span><span class="p">(</span><span class="n">holecycle_le</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">holecycle</span> <span class="o">=</span> <span class="p">[]</span>
+
+                <span class="n">holecycles</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">holecycle</span><span class="p">)</span>
+
+        <span class="n">face</span> <span class="o">=</span> <span class="n">Face</span><span class="p">(</span><span class="n">outercycle</span><span class="p">,</span> <span class="n">holecycles</span><span class="p">)</span>
+
+        <span class="n">faces</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">face</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">Region</span><span class="p">(</span><span class="n">faces</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="parse_segment"><a class="viewcode-back" href="../../../../index.html#secondodb.api.algebras.secondospatialalgebra.parse_segment">[docs]</a><span class="k">def</span> <span class="nf">parse_segment</span><span class="p">(</span><span class="n">list_expr</span><span class="p">:</span> <span class="n">ListExp</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Segment</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Transforms a list expression object containing a segment (segment) to a named tuple.</span>
+
+<span class="sd">    :param list_expr: A list expression object containing a segment (segment).</span>
+<span class="sd">    :return: A named tuple with the segment.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">x1</span> <span class="o">=</span> <span class="n">list_expr</span><span class="o">.</span><span class="n">get_first_element</span><span class="p">()</span><span class="o">.</span><span class="n">value</span>
+    <span class="n">y1</span> <span class="o">=</span> <span class="n">list_expr</span><span class="o">.</span><span class="n">get_second_element</span><span class="p">()</span><span class="o">.</span><span class="n">value</span>
+    <span class="n">x2</span> <span class="o">=</span> <span class="n">list_expr</span><span class="o">.</span><span class="n">get_third_element</span><span class="p">()</span><span class="o">.</span><span class="n">value</span>
+    <span class="n">y2</span> <span class="o">=</span> <span class="n">list_expr</span><span class="o">.</span><span class="n">get_fourth_element</span><span class="p">()</span><span class="o">.</span><span class="n">value</span>
+
+    <span class="k">return</span> <span class="n">Segment</span><span class="p">(</span><span class="n">x1</span><span class="o">=</span><span class="n">x1</span><span class="p">,</span> <span class="n">y1</span><span class="o">=</span><span class="n">y1</span><span class="p">,</span> <span class="n">x2</span><span class="o">=</span><span class="n">x2</span><span class="p">,</span> <span class="n">y2</span><span class="o">=</span><span class="n">y2</span><span class="p">)</span></div>
+
+
+
+
+</pre></div>
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../../index.html">pySecondo  documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../../index.html" >Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">secondodb.api.algebras.secondospatialalgebra</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2019, Victor Silva.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 3.1.1.
+    </div>
+  </body>
+</html>

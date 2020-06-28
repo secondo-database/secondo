@@ -1,0 +1,756 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>secondodb.api.algebras.secondospatiotemporalalgebra &#8212; pySecondo  documentation</title>
+    <link rel="stylesheet" href="../../../../_static/nature.css" type="text/css" />
+    <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+    <script id="documentation_options" data-url_root="../../../../" src="../../../../_static/documentation_options.js"></script>
+    <script src="../../../../_static/jquery.js"></script>
+    <script src="../../../../_static/underscore.js"></script>
+    <script src="../../../../_static/doctools.js"></script>
+    <script src="../../../../_static/language_data.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../../index.html">pySecondo  documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../../index.html" accesskey="U">Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">secondodb.api.algebras.secondospatiotemporalalgebra</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for secondodb.api.algebras.secondospatiotemporalalgebra</h1><div class="highlight"><pre>
+<span></span><span class="c1"># ----------------------------------------------------------------------------------------------------------------------</span>
+<span class="c1"># The Secondo Python API (pySecondo)</span>
+<span class="c1"># Victor Silva (victor.silva@posteo.de)</span>
+<span class="c1"># January 2020</span>
+<span class="c1"># ----------------------------------------------------------------------------------------------------------------------</span>
+<span class="c1"># Module</span>
+<span class="c1"># ----------------------------------------------------------------------------------------------------------------------</span>
+<span class="c1"># Secondo Spatio-Temporal Algebra</span>
+<span class="c1"># secondospatiotemporalalgebra.py</span>
+<span class="c1"># ----------------------------------------------------------------------------------------------------------------------</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">The module Secondo Spatio-Temporal Algebra implements the data types for the conversion of list expression objects with</span>
+<span class="sd">values of the types contained in the TemporalAlgebra of the |sec| system. The data types are implemented in Python</span>
+<span class="sd">using Data Classes. Data Classes are implemented in the API like normal classes without behaviour.</span>
+<span class="sd">Like regular classes their attributes can be called through the given names.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">namedtuple</span>
+<span class="kn">from</span> <span class="nn">dataclasses</span> <span class="kn">import</span> <span class="n">dataclass</span>
+
+<span class="kn">from</span> <span class="nn">secondodb.api.support.secondolistexpr</span> <span class="kn">import</span> <span class="n">ListExp</span>
+<span class="kn">import</span> <span class="nn">secondodb.api.algebras.secondospatialalgebra</span> <span class="k">as</span> <span class="nn">spatial</span>
+<span class="kn">from</span> <span class="nn">datetime</span> <span class="kn">import</span> <span class="n">datetime</span>
+
+
+<div class="viewcode-block" id="Interval"><a class="viewcode-back" href="../../../../index.html#secondodb.api.algebras.secondospatiotemporalalgebra.Interval">[docs]</a><span class="nd">@dataclass</span>
+<span class="k">class</span> <span class="nc">Interval</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Implements a time interval.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="vm">__slots__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;start_time&quot;</span><span class="p">,</span> <span class="s2">&quot;end_time&quot;</span><span class="p">,</span> <span class="s2">&quot;close_left&quot;</span><span class="p">,</span> <span class="s2">&quot;close_right&quot;</span><span class="p">]</span>
+
+    <span class="n">start_time</span><span class="p">:</span> <span class="n">datetime</span>
+    <span class="n">end_time</span><span class="p">:</span> <span class="n">datetime</span>
+    <span class="n">close_left</span><span class="p">:</span> <span class="nb">bool</span>
+    <span class="n">close_right</span><span class="p">:</span> <span class="nb">bool</span></div>
+
+
+<div class="viewcode-block" id="MotionVector"><a class="viewcode-back" href="../../../../index.html#secondodb.api.algebras.secondospatiotemporalalgebra.MotionVector">[docs]</a><span class="nd">@dataclass</span>
+<span class="k">class</span> <span class="nc">MotionVector</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Implements a motion vector of a moving point.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="vm">__slots__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;x1&quot;</span><span class="p">,</span> <span class="s2">&quot;y1&quot;</span><span class="p">,</span> <span class="s2">&quot;x2&quot;</span><span class="p">,</span> <span class="s2">&quot;y2&quot;</span><span class="p">]</span>
+
+    <span class="n">x1</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="n">y1</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="n">x2</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="n">y2</span><span class="p">:</span> <span class="nb">float</span></div>
+
+
+<div class="viewcode-block" id="PointInInterval"><a class="viewcode-back" href="../../../../index.html#secondodb.api.algebras.secondospatiotemporalalgebra.PointInInterval">[docs]</a><span class="nd">@dataclass</span>
+<span class="k">class</span> <span class="nc">PointInInterval</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Implements a structure to store the time interval and the motion vector of a moving point.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="vm">__slots__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;interval&quot;</span><span class="p">,</span> <span class="s2">&quot;motion_vector&quot;</span><span class="p">]</span>
+
+    <span class="n">interval</span><span class="p">:</span> <span class="n">Interval</span>
+    <span class="n">motion_vector</span><span class="p">:</span> <span class="n">MotionVector</span></div>
+
+
+<div class="viewcode-block" id="MPoint"><a class="viewcode-back" href="../../../../index.html#secondodb.api.algebras.secondospatiotemporalalgebra.MPoint">[docs]</a><span class="nd">@dataclass</span>
+<span class="k">class</span> <span class="nc">MPoint</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Implements a moving point as a series of points in intervals.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="vm">__slots__</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;intervals&#39;</span><span class="p">]</span>
+
+    <span class="n">intervals</span><span class="p">:</span> <span class="p">[]</span></div>
+
+
+<div class="viewcode-block" id="MapPoint"><a class="viewcode-back" href="../../../../index.html#secondodb.api.algebras.secondospatiotemporalalgebra.MapPoint">[docs]</a><span class="nd">@dataclass</span>
+<span class="k">class</span> <span class="nc">MapPoint</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Implements a map point, i.e. a motion vector for a point of a moving region.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="vm">__slots__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;x1&quot;</span><span class="p">,</span> <span class="s2">&quot;y1&quot;</span><span class="p">,</span> <span class="s2">&quot;x2&quot;</span><span class="p">,</span> <span class="s2">&quot;y2&quot;</span><span class="p">]</span>
+
+    <span class="n">x1</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="n">y1</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="n">x2</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="n">y2</span><span class="p">:</span> <span class="nb">float</span></div>
+
+
+<div class="viewcode-block" id="RegionInInterval"><a class="viewcode-back" href="../../../../index.html#secondodb.api.algebras.secondospatiotemporalalgebra.RegionInInterval">[docs]</a><span class="nd">@dataclass</span>
+<span class="k">class</span> <span class="nc">RegionInInterval</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Implements a structure to store the time interval and the motion vector of a moving region.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="vm">__slots__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;interval&quot;</span><span class="p">,</span> <span class="s2">&quot;map_faces&quot;</span><span class="p">]</span>
+
+    <span class="n">interval</span><span class="p">:</span> <span class="n">Interval</span>
+    <span class="n">map_faces</span><span class="p">:</span> <span class="p">[]</span></div>
+
+
+<div class="viewcode-block" id="MRegion"><a class="viewcode-back" href="../../../../index.html#secondodb.api.algebras.secondospatiotemporalalgebra.MRegion">[docs]</a><span class="nd">@dataclass</span>
+<span class="k">class</span> <span class="nc">MRegion</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Implements a moving region as a series of regions in intervals.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="vm">__slots__</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;intervals&#39;</span><span class="p">]</span>
+
+    <span class="n">intervals</span><span class="p">:</span> <span class="p">[]</span></div>
+
+
+<div class="viewcode-block" id="MBool"><a class="viewcode-back" href="../../../../index.html#secondodb.api.algebras.secondospatiotemporalalgebra.MBool">[docs]</a><span class="nd">@dataclass</span>
+<span class="k">class</span> <span class="nc">MBool</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Implements a moving boolean as a series of booleans in intervals.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="vm">__slots__</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;intervals&#39;</span><span class="p">]</span>
+
+    <span class="n">intervals</span><span class="p">:</span> <span class="p">[]</span></div>
+
+
+<div class="viewcode-block" id="BoolInInterval"><a class="viewcode-back" href="../../../../index.html#secondodb.api.algebras.secondospatiotemporalalgebra.BoolInInterval">[docs]</a><span class="nd">@dataclass</span>
+<span class="k">class</span> <span class="nc">BoolInInterval</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Implements a structure to store the time interval and the value vector of a moving boolean.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="vm">__slots__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;interval&quot;</span><span class="p">,</span> <span class="s2">&quot;value_vector&quot;</span><span class="p">]</span>
+
+    <span class="n">interval</span><span class="p">:</span> <span class="n">Interval</span>
+    <span class="n">value_vector</span><span class="p">:</span> <span class="p">[]</span></div>
+
+
+<div class="viewcode-block" id="ValueVectorBool"><a class="viewcode-back" href="../../../../index.html#secondodb.api.algebras.secondospatiotemporalalgebra.ValueVectorBool">[docs]</a><span class="nd">@dataclass</span>
+<span class="k">class</span> <span class="nc">ValueVectorBool</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Implements the value vector for a moving boolean.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="vm">__slots__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;value&quot;</span><span class="p">]</span>
+
+    <span class="n">value</span><span class="p">:</span> <span class="nb">bool</span></div>
+
+
+<div class="viewcode-block" id="RealInInterval"><a class="viewcode-back" href="../../../../index.html#secondodb.api.algebras.secondospatiotemporalalgebra.RealInInterval">[docs]</a><span class="nd">@dataclass</span>
+<span class="k">class</span> <span class="nc">RealInInterval</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Implements a structure to store the time interval and the value vector of a moving real.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="vm">__slots__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;interval&quot;</span><span class="p">,</span> <span class="s2">&quot;value_vector&quot;</span><span class="p">]</span>
+
+    <span class="n">interval</span><span class="p">:</span> <span class="n">Interval</span>
+    <span class="n">value_vector</span><span class="p">:</span> <span class="p">[]</span></div>
+
+
+<div class="viewcode-block" id="ValueVectorReal"><a class="viewcode-back" href="../../../../index.html#secondodb.api.algebras.secondospatiotemporalalgebra.ValueVectorReal">[docs]</a><span class="nd">@dataclass</span>
+<span class="k">class</span> <span class="nc">ValueVectorReal</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Implements the value vector for a moving real.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="vm">__slots__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;start_value&quot;</span><span class="p">,</span> <span class="s2">&quot;end_value&quot;</span><span class="p">,</span> <span class="s2">&quot;boolean&quot;</span><span class="p">]</span>
+
+    <span class="n">start_value</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="n">end_value</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="n">boolean</span><span class="p">:</span> <span class="nb">bool</span></div>
+
+
+<div class="viewcode-block" id="MReal"><a class="viewcode-back" href="../../../../index.html#secondodb.api.algebras.secondospatiotemporalalgebra.MReal">[docs]</a><span class="nd">@dataclass</span>
+<span class="k">class</span> <span class="nc">MReal</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Implements a moving real as a series of real values in intervals.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="vm">__slots__</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;intervals&#39;</span><span class="p">]</span>
+
+    <span class="n">intervals</span><span class="p">:</span> <span class="p">[]</span></div>
+
+
+<div class="viewcode-block" id="MString"><a class="viewcode-back" href="../../../../index.html#secondodb.api.algebras.secondospatiotemporalalgebra.MString">[docs]</a><span class="nd">@dataclass</span>
+<span class="k">class</span> <span class="nc">MString</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Implements a moving string as a series of string values in intervals.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="vm">__slots__</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;intervals&#39;</span><span class="p">]</span>
+
+    <span class="n">intervals</span><span class="p">:</span> <span class="p">[]</span></div>
+
+
+<div class="viewcode-block" id="StringInInterval"><a class="viewcode-back" href="../../../../index.html#secondodb.api.algebras.secondospatiotemporalalgebra.StringInInterval">[docs]</a><span class="nd">@dataclass</span>
+<span class="k">class</span> <span class="nc">StringInInterval</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Implements a structure to store the time interval and the value vector of a moving string.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="vm">__slots__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;interval&quot;</span><span class="p">,</span> <span class="s2">&quot;value_vector&quot;</span><span class="p">]</span>
+
+    <span class="n">interval</span><span class="p">:</span> <span class="n">Interval</span>
+    <span class="n">value_vector</span><span class="p">:</span> <span class="p">[]</span></div>
+
+
+<div class="viewcode-block" id="ValueVectorString"><a class="viewcode-back" href="../../../../index.html#secondodb.api.algebras.secondospatiotemporalalgebra.ValueVectorString">[docs]</a><span class="nd">@dataclass</span>
+<span class="k">class</span> <span class="nc">ValueVectorString</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Implements the value vector for a moving string.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="vm">__slots__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;value&quot;</span><span class="p">]</span>
+
+    <span class="n">value</span><span class="p">:</span> <span class="nb">str</span></div>
+
+
+<div class="viewcode-block" id="MInt"><a class="viewcode-back" href="../../../../index.html#secondodb.api.algebras.secondospatiotemporalalgebra.MInt">[docs]</a><span class="nd">@dataclass</span>
+<span class="k">class</span> <span class="nc">MInt</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Implements a moving integer as a series of integer values in intervals.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="vm">__slots__</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;intervals&#39;</span><span class="p">]</span>
+
+    <span class="n">intervals</span><span class="p">:</span> <span class="p">[]</span></div>
+
+
+<div class="viewcode-block" id="IntInInterval"><a class="viewcode-back" href="../../../../index.html#secondodb.api.algebras.secondospatiotemporalalgebra.IntInInterval">[docs]</a><span class="nd">@dataclass</span>
+<span class="k">class</span> <span class="nc">IntInInterval</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Implements a structure to store the time interval and the value vector of a moving integer.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="vm">__slots__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;interval&quot;</span><span class="p">,</span> <span class="s2">&quot;value_vector&quot;</span><span class="p">]</span>
+
+    <span class="n">interval</span><span class="p">:</span> <span class="n">Interval</span>
+    <span class="n">value_vector</span><span class="p">:</span> <span class="p">[]</span></div>
+
+
+<div class="viewcode-block" id="ValueVectorInt"><a class="viewcode-back" href="../../../../index.html#secondodb.api.algebras.secondospatiotemporalalgebra.ValueVectorInt">[docs]</a><span class="nd">@dataclass</span>
+<span class="k">class</span> <span class="nc">ValueVectorInt</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Implements the value vector for a moving integer.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="vm">__slots__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;value&quot;</span><span class="p">]</span>
+
+    <span class="n">value</span><span class="p">:</span> <span class="nb">int</span></div>
+
+
+<div class="viewcode-block" id="IRegion"><a class="viewcode-back" href="../../../../index.html#secondodb.api.algebras.secondospatiotemporalalgebra.IRegion">[docs]</a><span class="nd">@dataclass</span>
+<span class="k">class</span> <span class="nc">IRegion</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Implements an instant region as a region for a specific instant.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="vm">__slots__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;instant&quot;</span><span class="p">,</span> <span class="s2">&quot;region&quot;</span><span class="p">]</span>
+
+    <span class="n">instant</span><span class="p">:</span> <span class="n">datetime</span>
+    <span class="n">region</span><span class="p">:</span> <span class="n">spatial</span><span class="o">.</span><span class="n">Region</span></div>
+
+
+<div class="viewcode-block" id="IPoint"><a class="viewcode-back" href="../../../../index.html#secondodb.api.algebras.secondospatiotemporalalgebra.IPoint">[docs]</a><span class="nd">@dataclass</span>
+<span class="k">class</span> <span class="nc">IPoint</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Implements an instant point as a point for a specific instant.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="vm">__slots__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;instant&quot;</span><span class="p">,</span> <span class="s2">&quot;point&quot;</span><span class="p">]</span>
+
+    <span class="n">instant</span><span class="p">:</span> <span class="n">datetime</span>
+    <span class="n">point</span><span class="p">:</span> <span class="n">spatial</span><span class="o">.</span><span class="n">Point</span></div>
+
+
+<div class="viewcode-block" id="parse_timestamp"><a class="viewcode-back" href="../../../../index.html#secondodb.api.algebras.secondospatiotemporalalgebra.parse_timestamp">[docs]</a><span class="k">def</span> <span class="nf">parse_timestamp</span><span class="p">(</span><span class="n">timestamp</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">datetime</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Parses a timestamp string using the Python module datetime.</span>
+
+<span class="sd">    Formats supported:</span>
+
+<span class="sd">    &#39;%Y-%m-%d-%H:%M&#39;</span>
+<span class="sd">    &#39;%Y-%m-%d-%H:%M:%S&#39;</span>
+<span class="sd">    &#39;%Y-%m-%d-%H:%M:%S.%f&#39;</span>
+
+<span class="sd">    :param timestamp: A string with a timestamp.</span>
+<span class="sd">    :return: A datetime object.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">timestamp_as_datetime</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">strptime</span><span class="p">(</span><span class="n">timestamp</span><span class="p">,</span> <span class="s1">&#39;%Y-%m-</span><span class="si">%d</span><span class="s1">-%H:%M&#39;</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+        <span class="k">pass</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">timestamp_as_datetime</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">timestamp_as_datetime</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">strptime</span><span class="p">(</span><span class="n">timestamp</span><span class="p">,</span> <span class="s1">&#39;%Y-%m-</span><span class="si">%d</span><span class="s1">-%H:%M:%S&#39;</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+        <span class="k">pass</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">timestamp_as_datetime</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">timestamp_as_datetime</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">strptime</span><span class="p">(</span><span class="n">timestamp</span><span class="p">,</span> <span class="s1">&#39;%Y-%m-</span><span class="si">%d</span><span class="s1">-%H:%M:%S.</span><span class="si">%f</span><span class="s1">&#39;</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+        <span class="k">pass</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">timestamp_as_datetime</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">timestamp_as_datetime</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">strptime</span><span class="p">(</span><span class="n">timestamp</span><span class="p">,</span> <span class="s1">&#39;%Y-%m-</span><span class="si">%d</span><span class="s1">&#39;</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+        <span class="k">pass</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">timestamp_as_datetime</span>
+
+    <span class="k">if</span> <span class="n">timestamp</span> <span class="o">==</span> <span class="s1">&#39;begin of time&#39;</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">timestamp_as_datetime</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">strptime</span><span class="p">(</span><span class="s1">&#39;1900-01-01&#39;</span><span class="p">,</span> <span class="s1">&#39;%Y-%m-</span><span class="si">%d</span><span class="s1">&#39;</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+            <span class="k">pass</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">timestamp_as_datetime</span>
+
+    <span class="k">if</span> <span class="n">timestamp</span> <span class="o">==</span> <span class="s1">&#39;end of time&#39;</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">timestamp_as_datetime</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">strptime</span><span class="p">(</span><span class="s1">&#39;9999-12-31&#39;</span><span class="p">,</span> <span class="s1">&#39;%Y-%m-</span><span class="si">%d</span><span class="s1">&#39;</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+            <span class="k">pass</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">timestamp_as_datetime</span></div>
+
+
+<div class="viewcode-block" id="parse_mpoint"><a class="viewcode-back" href="../../../../index.html#secondodb.api.algebras.secondospatiotemporalalgebra.parse_mpoint">[docs]</a><span class="k">def</span> <span class="nf">parse_mpoint</span><span class="p">(</span><span class="n">list_expr</span><span class="p">:</span> <span class="n">ListExp</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">MPoint</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Transforms a list expression object containing a moving point (mpoint) to a named tuple.</span>
+
+<span class="sd">    :param list_expr: A list expression object containing a moving point (mpoint).</span>
+<span class="sd">    :return: An object of the data class MPoint with the moving point.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">number_of_intervals</span> <span class="o">=</span> <span class="n">list_expr</span><span class="o">.</span><span class="n">get_list_length</span><span class="p">()</span>
+
+    <span class="n">intervals</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">number_of_intervals</span><span class="p">):</span>
+
+        <span class="n">point_in_interval_as_le</span><span class="p">:</span> <span class="n">ListExp</span> <span class="o">=</span> <span class="n">list_expr</span><span class="o">.</span><span class="n">get_the_n_element</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+
+        <span class="c1"># Parse interval</span>
+
+        <span class="n">interval_as_le</span><span class="p">:</span> <span class="n">ListExp</span> <span class="o">=</span> <span class="n">point_in_interval_as_le</span><span class="o">.</span><span class="n">get_first_element</span><span class="p">()</span>
+
+        <span class="n">start_time</span> <span class="o">=</span> <span class="n">parse_timestamp</span><span class="p">(</span><span class="n">interval_as_le</span><span class="o">.</span><span class="n">get_first_element</span><span class="p">()</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+        <span class="n">end_time</span> <span class="o">=</span> <span class="n">parse_timestamp</span><span class="p">(</span><span class="n">interval_as_le</span><span class="o">.</span><span class="n">get_second_element</span><span class="p">()</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+        <span class="n">close_left</span> <span class="o">=</span> <span class="n">interval_as_le</span><span class="o">.</span><span class="n">get_third_element</span><span class="p">()</span><span class="o">.</span><span class="n">value</span>
+        <span class="n">close_right</span> <span class="o">=</span> <span class="n">interval_as_le</span><span class="o">.</span><span class="n">get_fourth_element</span><span class="p">()</span><span class="o">.</span><span class="n">value</span>
+
+        <span class="n">interval</span> <span class="o">=</span> <span class="n">Interval</span><span class="p">(</span><span class="n">start_time</span><span class="o">=</span><span class="n">start_time</span><span class="p">,</span> <span class="n">end_time</span><span class="o">=</span><span class="n">end_time</span><span class="p">,</span> <span class="n">close_left</span><span class="o">=</span><span class="n">close_left</span><span class="p">,</span> <span class="n">close_right</span><span class="o">=</span><span class="n">close_right</span><span class="p">)</span>
+
+        <span class="c1"># Parse motion vector</span>
+
+        <span class="n">motion_vector_as_le</span><span class="p">:</span> <span class="n">ListExp</span> <span class="o">=</span> <span class="n">point_in_interval_as_le</span><span class="o">.</span><span class="n">get_second_element</span><span class="p">()</span>
+
+        <span class="n">x1</span> <span class="o">=</span> <span class="n">motion_vector_as_le</span><span class="o">.</span><span class="n">get_first_element</span><span class="p">()</span><span class="o">.</span><span class="n">value</span>
+        <span class="n">y1</span> <span class="o">=</span> <span class="n">motion_vector_as_le</span><span class="o">.</span><span class="n">get_second_element</span><span class="p">()</span><span class="o">.</span><span class="n">value</span>
+        <span class="n">x2</span> <span class="o">=</span> <span class="n">motion_vector_as_le</span><span class="o">.</span><span class="n">get_third_element</span><span class="p">()</span><span class="o">.</span><span class="n">value</span>
+        <span class="n">y2</span> <span class="o">=</span> <span class="n">motion_vector_as_le</span><span class="o">.</span><span class="n">get_fourth_element</span><span class="p">()</span><span class="o">.</span><span class="n">value</span>
+
+        <span class="n">motion_vector</span> <span class="o">=</span> <span class="n">MotionVector</span><span class="p">(</span><span class="n">x1</span><span class="o">=</span><span class="n">x1</span><span class="p">,</span> <span class="n">y1</span><span class="o">=</span><span class="n">y1</span><span class="p">,</span> <span class="n">x2</span><span class="o">=</span><span class="n">x2</span><span class="p">,</span> <span class="n">y2</span><span class="o">=</span><span class="n">y2</span><span class="p">)</span>
+
+        <span class="n">point_in_interval</span> <span class="o">=</span> <span class="n">PointInInterval</span><span class="p">(</span><span class="n">interval</span><span class="p">,</span> <span class="n">motion_vector</span><span class="p">)</span>
+
+        <span class="n">intervals</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">point_in_interval</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">MPoint</span><span class="p">(</span><span class="n">intervals</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="parse_mregion"><a class="viewcode-back" href="../../../../index.html#secondodb.api.algebras.secondospatiotemporalalgebra.parse_mregion">[docs]</a><span class="k">def</span> <span class="nf">parse_mregion</span><span class="p">(</span><span class="n">list_expr</span><span class="p">:</span> <span class="n">ListExp</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">MRegion</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Transforms a list expression object containing a moving region (mregion) to a named tuple.</span>
+
+<span class="sd">    :param list_expr: A list expression object containing a moving region (mregion).</span>
+<span class="sd">    :return: An object of the data class MRegion with the moving region.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">number_of_intervals</span> <span class="o">=</span> <span class="n">list_expr</span><span class="o">.</span><span class="n">get_list_length</span><span class="p">()</span>
+
+    <span class="n">intervals</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">number_of_intervals</span><span class="p">):</span>
+
+        <span class="n">region_in_interval_as_le</span><span class="p">:</span> <span class="n">ListExp</span> <span class="o">=</span> <span class="n">list_expr</span><span class="o">.</span><span class="n">get_the_n_element</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+
+        <span class="c1"># Parse interval</span>
+
+        <span class="n">interval_as_le</span><span class="p">:</span> <span class="n">ListExp</span> <span class="o">=</span> <span class="n">region_in_interval_as_le</span><span class="o">.</span><span class="n">get_first_element</span><span class="p">()</span>
+
+        <span class="n">start_time</span> <span class="o">=</span> <span class="n">parse_timestamp</span><span class="p">(</span><span class="n">interval_as_le</span><span class="o">.</span><span class="n">get_first_element</span><span class="p">()</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+        <span class="n">end_time</span> <span class="o">=</span> <span class="n">parse_timestamp</span><span class="p">(</span><span class="n">interval_as_le</span><span class="o">.</span><span class="n">get_second_element</span><span class="p">()</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+        <span class="n">close_left</span> <span class="o">=</span> <span class="n">interval_as_le</span><span class="o">.</span><span class="n">get_third_element</span><span class="p">()</span><span class="o">.</span><span class="n">value</span>
+        <span class="n">close_right</span> <span class="o">=</span> <span class="n">interval_as_le</span><span class="o">.</span><span class="n">get_fourth_element</span><span class="p">()</span><span class="o">.</span><span class="n">value</span>
+
+        <span class="n">interval</span> <span class="o">=</span> <span class="n">Interval</span><span class="p">(</span><span class="n">start_time</span><span class="o">=</span><span class="n">start_time</span><span class="p">,</span> <span class="n">end_time</span><span class="o">=</span><span class="n">end_time</span><span class="p">,</span> <span class="n">close_left</span><span class="o">=</span><span class="n">close_left</span><span class="p">,</span> <span class="n">close_right</span><span class="o">=</span><span class="n">close_right</span><span class="p">)</span>
+
+        <span class="c1"># Parse map faces</span>
+
+        <span class="n">map_faces_as_le</span><span class="p">:</span> <span class="n">ListExp</span> <span class="o">=</span> <span class="n">region_in_interval_as_le</span><span class="o">.</span><span class="n">get_second_element</span><span class="p">()</span>
+        <span class="n">number_of_map_faces</span> <span class="o">=</span> <span class="n">map_faces_as_le</span><span class="o">.</span><span class="n">get_list_length</span><span class="p">()</span>
+
+        <span class="n">map_faces</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">number_of_map_faces</span><span class="p">):</span>
+
+            <span class="n">map_face_as_le</span><span class="p">:</span> <span class="n">ListExp</span> <span class="o">=</span> <span class="n">map_faces_as_le</span><span class="o">.</span><span class="n">get_the_n_element</span><span class="p">(</span><span class="n">j</span><span class="p">)</span>
+
+            <span class="n">number_of_cycles</span> <span class="o">=</span> <span class="n">map_face_as_le</span><span class="o">.</span><span class="n">get_list_length</span><span class="p">()</span> <span class="o">-</span> <span class="mi">1</span>
+
+            <span class="k">if</span> <span class="n">number_of_cycles</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+
+                <span class="c1"># Parse outercycle</span>
+
+                <span class="n">outercycle_as_le</span><span class="p">:</span> <span class="n">ListExp</span> <span class="o">=</span> <span class="n">map_face_as_le</span><span class="o">.</span><span class="n">get_first_element</span><span class="p">()</span>
+                <span class="n">number_of_map_points</span> <span class="o">=</span> <span class="n">outercycle_as_le</span><span class="o">.</span><span class="n">get_list_length</span><span class="p">()</span>
+
+                <span class="n">map_points</span> <span class="o">=</span> <span class="p">[]</span>
+                <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">number_of_map_points</span><span class="p">):</span>
+
+                    <span class="n">map_point_as_le</span><span class="p">:</span> <span class="n">ListExp</span> <span class="o">=</span> <span class="n">outercycle_as_le</span><span class="o">.</span><span class="n">get_the_n_element</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
+                    <span class="n">x1</span> <span class="o">=</span> <span class="n">map_point_as_le</span><span class="o">.</span><span class="n">get_first_element</span><span class="p">()</span><span class="o">.</span><span class="n">value</span>
+                    <span class="n">y1</span> <span class="o">=</span> <span class="n">map_point_as_le</span><span class="o">.</span><span class="n">get_second_element</span><span class="p">()</span><span class="o">.</span><span class="n">value</span>
+                    <span class="n">x2</span> <span class="o">=</span> <span class="n">map_point_as_le</span><span class="o">.</span><span class="n">get_third_element</span><span class="p">()</span><span class="o">.</span><span class="n">value</span>
+                    <span class="n">y2</span> <span class="o">=</span> <span class="n">map_point_as_le</span><span class="o">.</span><span class="n">get_fourth_element</span><span class="p">()</span><span class="o">.</span><span class="n">value</span>
+                    <span class="n">map_points</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">MapPoint</span><span class="p">(</span><span class="n">x1</span><span class="o">=</span><span class="n">x1</span><span class="p">,</span> <span class="n">y1</span><span class="o">=</span><span class="n">y1</span><span class="p">,</span> <span class="n">x2</span><span class="o">=</span><span class="n">x2</span><span class="p">,</span> <span class="n">y2</span><span class="o">=</span><span class="n">y2</span><span class="p">))</span>
+
+                <span class="n">map_faces</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">spatial</span><span class="o">.</span><span class="n">Face</span><span class="p">(</span><span class="n">outercycle</span><span class="o">=</span><span class="n">map_points</span><span class="p">,</span> <span class="n">holecycles</span><span class="o">=</span><span class="p">[]))</span>
+
+            <span class="k">elif</span> <span class="n">number_of_cycles</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+
+                <span class="c1"># Parse outercycle</span>
+
+                <span class="n">outercycle_as_le</span><span class="p">:</span> <span class="n">ListExp</span> <span class="o">=</span> <span class="n">map_face_as_le</span><span class="o">.</span><span class="n">get_first_element</span><span class="p">()</span>
+                <span class="n">number_of_map_points</span> <span class="o">=</span> <span class="n">outercycle_as_le</span><span class="o">.</span><span class="n">get_list_length</span><span class="p">()</span>
+
+                <span class="n">outercycle</span> <span class="o">=</span> <span class="p">[]</span>
+                <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">number_of_map_points</span><span class="p">):</span>
+
+                    <span class="n">map_point_as_le</span><span class="p">:</span> <span class="n">ListExp</span> <span class="o">=</span> <span class="n">outercycle_as_le</span><span class="o">.</span><span class="n">get_the_n_element</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
+                    <span class="n">x1</span> <span class="o">=</span> <span class="n">map_point_as_le</span><span class="o">.</span><span class="n">get_first_element</span><span class="p">()</span><span class="o">.</span><span class="n">value</span>
+                    <span class="n">y1</span> <span class="o">=</span> <span class="n">map_point_as_le</span><span class="o">.</span><span class="n">get_second_element</span><span class="p">()</span><span class="o">.</span><span class="n">value</span>
+                    <span class="n">x2</span> <span class="o">=</span> <span class="n">map_point_as_le</span><span class="o">.</span><span class="n">get_third_element</span><span class="p">()</span><span class="o">.</span><span class="n">value</span>
+                    <span class="n">y2</span> <span class="o">=</span> <span class="n">map_point_as_le</span><span class="o">.</span><span class="n">get_fourth_element</span><span class="p">()</span><span class="o">.</span><span class="n">value</span>
+                    <span class="n">outercycle</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">MapPoint</span><span class="p">(</span><span class="n">x1</span><span class="o">=</span><span class="n">x1</span><span class="p">,</span> <span class="n">y1</span><span class="o">=</span><span class="n">y1</span><span class="p">,</span> <span class="n">x2</span><span class="o">=</span><span class="n">x2</span><span class="p">,</span> <span class="n">y2</span><span class="o">=</span><span class="n">y2</span><span class="p">))</span>
+
+                <span class="c1"># Parse holecycle</span>
+
+                <span class="n">holecycle_as_le</span><span class="p">:</span> <span class="n">ListExp</span> <span class="o">=</span> <span class="n">map_face_as_le</span><span class="o">.</span><span class="n">get_second_element</span><span class="p">()</span>
+                <span class="n">number_of_map_points</span> <span class="o">=</span> <span class="n">holecycle_as_le</span><span class="o">.</span><span class="n">get_list_length</span><span class="p">()</span>
+
+                <span class="n">holecycle</span> <span class="o">=</span> <span class="p">[]</span>
+                <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">number_of_map_points</span><span class="p">):</span>
+                    <span class="n">map_point</span> <span class="o">=</span> <span class="n">namedtuple</span><span class="p">(</span><span class="s1">&#39;map_point&#39;</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;x1&#39;</span><span class="p">,</span> <span class="s1">&#39;y1&#39;</span><span class="p">,</span> <span class="s1">&#39;x2&#39;</span><span class="p">,</span> <span class="s1">&#39;y2&#39;</span><span class="p">])</span>
+                    <span class="n">map_point_as_le</span><span class="p">:</span> <span class="n">ListExp</span> <span class="o">=</span> <span class="n">holecycle_as_le</span><span class="o">.</span><span class="n">get_the_n_element</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
+                    <span class="n">map_point</span><span class="o">.</span><span class="n">x1</span> <span class="o">=</span> <span class="n">map_point_as_le</span><span class="o">.</span><span class="n">get_first_element</span><span class="p">()</span><span class="o">.</span><span class="n">value</span>
+                    <span class="n">map_point</span><span class="o">.</span><span class="n">y1</span> <span class="o">=</span> <span class="n">map_point_as_le</span><span class="o">.</span><span class="n">get_second_element</span><span class="p">()</span><span class="o">.</span><span class="n">value</span>
+                    <span class="n">map_point</span><span class="o">.</span><span class="n">x2</span> <span class="o">=</span> <span class="n">map_point_as_le</span><span class="o">.</span><span class="n">get_third_element</span><span class="p">()</span><span class="o">.</span><span class="n">value</span>
+                    <span class="n">map_point</span><span class="o">.</span><span class="n">y2</span> <span class="o">=</span> <span class="n">map_point_as_le</span><span class="o">.</span><span class="n">get_fourth_element</span><span class="p">()</span><span class="o">.</span><span class="n">value</span>
+                    <span class="n">holecycle</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">map_point</span><span class="p">)</span>
+
+                <span class="n">map_faces</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">spatial</span><span class="o">.</span><span class="n">Face</span><span class="p">(</span><span class="n">outercycle</span><span class="o">=</span><span class="n">outercycle</span><span class="p">,</span> <span class="n">holecycles</span><span class="o">=</span><span class="p">[</span><span class="n">holecycle</span><span class="p">]))</span>
+
+            <span class="n">intervals</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">RegionInInterval</span><span class="p">(</span><span class="n">interval</span><span class="p">,</span> <span class="n">map_faces</span><span class="p">))</span>
+
+    <span class="k">return</span> <span class="n">MRegion</span><span class="p">(</span><span class="n">intervals</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="parse_mreal"><a class="viewcode-back" href="../../../../index.html#secondodb.api.algebras.secondospatiotemporalalgebra.parse_mreal">[docs]</a><span class="k">def</span> <span class="nf">parse_mreal</span><span class="p">(</span><span class="n">list_expr</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">MReal</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Transforms a list expression object containing a moving real (mreal) to a named tuple.</span>
+
+<span class="sd">    :param list_expr: A list expression object containing a moving real (mreal).</span>
+<span class="sd">    :return: An object of the data class MReal with the moving real.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">number_of_intervals</span> <span class="o">=</span> <span class="n">list_expr</span><span class="o">.</span><span class="n">get_list_length</span><span class="p">()</span>
+
+    <span class="n">intervals</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">number_of_intervals</span><span class="p">):</span>
+
+        <span class="n">real_in_interval_as_le</span><span class="p">:</span> <span class="n">ListExp</span> <span class="o">=</span> <span class="n">list_expr</span><span class="o">.</span><span class="n">get_the_n_element</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+
+        <span class="c1"># Parse interval</span>
+
+        <span class="n">interval_as_le</span><span class="p">:</span> <span class="n">ListExp</span> <span class="o">=</span> <span class="n">real_in_interval_as_le</span><span class="o">.</span><span class="n">get_first_element</span><span class="p">()</span>
+
+        <span class="n">start_time</span> <span class="o">=</span> <span class="n">parse_timestamp</span><span class="p">(</span><span class="n">interval_as_le</span><span class="o">.</span><span class="n">get_first_element</span><span class="p">()</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+        <span class="n">end_time</span> <span class="o">=</span> <span class="n">parse_timestamp</span><span class="p">(</span><span class="n">interval_as_le</span><span class="o">.</span><span class="n">get_second_element</span><span class="p">()</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+        <span class="n">close_left</span> <span class="o">=</span> <span class="n">interval_as_le</span><span class="o">.</span><span class="n">get_third_element</span><span class="p">()</span><span class="o">.</span><span class="n">value</span>
+        <span class="n">close_right</span> <span class="o">=</span> <span class="n">interval_as_le</span><span class="o">.</span><span class="n">get_fourth_element</span><span class="p">()</span><span class="o">.</span><span class="n">value</span>
+
+        <span class="n">interval</span> <span class="o">=</span> <span class="n">Interval</span><span class="p">(</span><span class="n">start_time</span><span class="o">=</span><span class="n">start_time</span><span class="p">,</span> <span class="n">end_time</span><span class="o">=</span><span class="n">end_time</span><span class="p">,</span> <span class="n">close_left</span><span class="o">=</span><span class="n">close_left</span><span class="p">,</span> <span class="n">close_right</span><span class="o">=</span><span class="n">close_right</span><span class="p">)</span>
+
+        <span class="c1"># Parse value vector</span>
+
+        <span class="n">motion_vector_as_le</span><span class="p">:</span> <span class="n">ListExp</span> <span class="o">=</span> <span class="n">real_in_interval_as_le</span><span class="o">.</span><span class="n">get_second_element</span><span class="p">()</span>
+
+        <span class="n">start_value</span> <span class="o">=</span> <span class="n">motion_vector_as_le</span><span class="o">.</span><span class="n">get_second_element</span><span class="p">()</span><span class="o">.</span><span class="n">value</span>
+        <span class="n">end_value</span> <span class="o">=</span> <span class="n">motion_vector_as_le</span><span class="o">.</span><span class="n">get_third_element</span><span class="p">()</span><span class="o">.</span><span class="n">value</span>
+        <span class="n">boolean</span> <span class="o">=</span> <span class="n">motion_vector_as_le</span><span class="o">.</span><span class="n">get_fourth_element</span><span class="p">()</span><span class="o">.</span><span class="n">value</span>
+
+        <span class="n">value_vector</span> <span class="o">=</span> <span class="n">ValueVectorReal</span><span class="p">(</span><span class="n">start_value</span><span class="o">=</span><span class="n">start_value</span><span class="p">,</span> <span class="n">end_value</span><span class="o">=</span><span class="n">end_value</span><span class="p">,</span> <span class="n">boolean</span><span class="o">=</span><span class="n">boolean</span><span class="p">)</span>
+
+        <span class="n">intervals</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">RealInInterval</span><span class="p">(</span><span class="n">interval</span><span class="o">=</span><span class="n">interval</span><span class="p">,</span> <span class="n">value_vector</span><span class="o">=</span><span class="n">value_vector</span><span class="p">))</span>
+
+    <span class="k">return</span> <span class="n">MReal</span><span class="p">(</span><span class="n">intervals</span><span class="o">=</span><span class="n">intervals</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="parse_mbool"><a class="viewcode-back" href="../../../../index.html#secondodb.api.algebras.secondospatiotemporalalgebra.parse_mbool">[docs]</a><span class="k">def</span> <span class="nf">parse_mbool</span><span class="p">(</span><span class="n">list_expr</span><span class="p">:</span> <span class="n">ListExp</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">MBool</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Transforms a list expression object containing a moving boolean (mbool) to a named tuple.</span>
+
+<span class="sd">    :param list_expr: A list expression object containing a moving boolean (mbool).</span>
+<span class="sd">    :return: An object of the data class MBool with the moving boolean.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">number_of_intervals</span> <span class="o">=</span> <span class="n">list_expr</span><span class="o">.</span><span class="n">get_list_length</span><span class="p">()</span>
+
+    <span class="n">intervals</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">number_of_intervals</span><span class="p">):</span>
+
+        <span class="n">bool_in_interval_as_le</span><span class="p">:</span> <span class="n">ListExp</span> <span class="o">=</span> <span class="n">list_expr</span><span class="o">.</span><span class="n">get_the_n_element</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+
+        <span class="c1"># Parse interval</span>
+
+        <span class="n">interval_as_le</span><span class="p">:</span> <span class="n">ListExp</span> <span class="o">=</span> <span class="n">bool_in_interval_as_le</span><span class="o">.</span><span class="n">get_first_element</span><span class="p">()</span>
+
+        <span class="n">start_time</span> <span class="o">=</span> <span class="n">parse_timestamp</span><span class="p">(</span><span class="n">interval_as_le</span><span class="o">.</span><span class="n">get_first_element</span><span class="p">()</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+        <span class="n">end_time</span> <span class="o">=</span> <span class="n">parse_timestamp</span><span class="p">(</span><span class="n">interval_as_le</span><span class="o">.</span><span class="n">get_second_element</span><span class="p">()</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+        <span class="n">close_left</span> <span class="o">=</span> <span class="n">interval_as_le</span><span class="o">.</span><span class="n">get_third_element</span><span class="p">()</span><span class="o">.</span><span class="n">value</span>
+        <span class="n">close_right</span> <span class="o">=</span> <span class="n">interval_as_le</span><span class="o">.</span><span class="n">get_fourth_element</span><span class="p">()</span><span class="o">.</span><span class="n">value</span>
+
+        <span class="n">interval</span> <span class="o">=</span> <span class="n">Interval</span><span class="p">(</span><span class="n">start_time</span><span class="o">=</span><span class="n">start_time</span><span class="p">,</span> <span class="n">end_time</span><span class="o">=</span><span class="n">end_time</span><span class="p">,</span> <span class="n">close_left</span><span class="o">=</span><span class="n">close_left</span><span class="p">,</span> <span class="n">close_right</span><span class="o">=</span><span class="n">close_right</span><span class="p">)</span>
+
+        <span class="c1"># Parse value vector</span>
+
+        <span class="n">value_vector_as_le</span><span class="p">:</span> <span class="n">ListExp</span> <span class="o">=</span> <span class="n">bool_in_interval_as_le</span><span class="o">.</span><span class="n">get_second_element</span><span class="p">()</span>
+
+        <span class="n">value</span> <span class="o">=</span> <span class="n">value_vector_as_le</span><span class="o">.</span><span class="n">value</span>
+
+        <span class="n">value_vector</span> <span class="o">=</span> <span class="n">ValueVectorBool</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="n">value</span><span class="p">)</span>
+
+        <span class="n">bool_in_interval</span> <span class="o">=</span> <span class="n">BoolInInterval</span><span class="p">(</span><span class="n">interval</span><span class="o">=</span><span class="n">interval</span><span class="p">,</span> <span class="n">value_vector</span><span class="o">=</span><span class="n">value_vector</span><span class="p">)</span>
+
+        <span class="n">intervals</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">bool_in_interval</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">MBool</span><span class="p">(</span><span class="n">intervals</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="parse_mstring"><a class="viewcode-back" href="../../../../index.html#secondodb.api.algebras.secondospatiotemporalalgebra.parse_mstring">[docs]</a><span class="k">def</span> <span class="nf">parse_mstring</span><span class="p">(</span><span class="n">list_expr</span><span class="p">:</span> <span class="n">ListExp</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">MString</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Transforms a list expression object containing a moving string (mstring) to a named tuple.</span>
+
+<span class="sd">    :param list_expr: A list expression object containing a moving string (mstring).</span>
+<span class="sd">    :return: An object of the data class MString with the moving string.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">number_of_intervals</span> <span class="o">=</span> <span class="n">list_expr</span><span class="o">.</span><span class="n">get_list_length</span><span class="p">()</span>
+
+    <span class="n">intervals</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">number_of_intervals</span><span class="p">):</span>
+
+        <span class="n">string_in_interval_as_le</span><span class="p">:</span> <span class="n">ListExp</span> <span class="o">=</span> <span class="n">list_expr</span><span class="o">.</span><span class="n">get_the_n_element</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+
+        <span class="c1"># Parse interval</span>
+
+        <span class="n">interval_as_le</span><span class="p">:</span> <span class="n">ListExp</span> <span class="o">=</span> <span class="n">string_in_interval_as_le</span><span class="o">.</span><span class="n">get_first_element</span><span class="p">()</span>
+
+        <span class="n">start_time</span> <span class="o">=</span> <span class="n">parse_timestamp</span><span class="p">(</span><span class="n">interval_as_le</span><span class="o">.</span><span class="n">get_first_element</span><span class="p">()</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+        <span class="n">end_time</span> <span class="o">=</span> <span class="n">parse_timestamp</span><span class="p">(</span><span class="n">interval_as_le</span><span class="o">.</span><span class="n">get_second_element</span><span class="p">()</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+        <span class="n">close_left</span> <span class="o">=</span> <span class="n">interval_as_le</span><span class="o">.</span><span class="n">get_third_element</span><span class="p">()</span><span class="o">.</span><span class="n">value</span>
+        <span class="n">close_right</span> <span class="o">=</span> <span class="n">interval_as_le</span><span class="o">.</span><span class="n">get_fourth_element</span><span class="p">()</span><span class="o">.</span><span class="n">value</span>
+
+        <span class="n">interval</span> <span class="o">=</span> <span class="n">Interval</span><span class="p">(</span><span class="n">start_time</span><span class="o">=</span><span class="n">start_time</span><span class="p">,</span> <span class="n">end_time</span><span class="o">=</span><span class="n">end_time</span><span class="p">,</span> <span class="n">close_left</span><span class="o">=</span><span class="n">close_left</span><span class="p">,</span> <span class="n">close_right</span><span class="o">=</span><span class="n">close_right</span><span class="p">)</span>
+
+        <span class="c1"># Parse value vector</span>
+
+        <span class="n">value_vector_as_le</span><span class="p">:</span> <span class="n">ListExp</span> <span class="o">=</span> <span class="n">string_in_interval_as_le</span><span class="o">.</span><span class="n">get_second_element</span><span class="p">()</span>
+
+        <span class="n">value_vector</span> <span class="o">=</span> <span class="n">ValueVectorString</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="n">value_vector_as_le</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+
+        <span class="n">string_in_interval</span> <span class="o">=</span> <span class="n">StringInInterval</span><span class="p">(</span><span class="n">interval</span><span class="o">=</span><span class="n">interval</span><span class="p">,</span> <span class="n">value_vector</span><span class="o">=</span><span class="n">value_vector</span><span class="p">)</span>
+
+        <span class="n">intervals</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">string_in_interval</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">MString</span><span class="p">(</span><span class="n">intervals</span><span class="o">=</span><span class="n">intervals</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="parse_mint"><a class="viewcode-back" href="../../../../index.html#secondodb.api.algebras.secondospatiotemporalalgebra.parse_mint">[docs]</a><span class="k">def</span> <span class="nf">parse_mint</span><span class="p">(</span><span class="n">list_expr</span><span class="p">:</span> <span class="n">ListExp</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">MInt</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Transforms a list expression object containing a moving integer (mint) to a named tuple.</span>
+
+<span class="sd">    :param list_expr: A list expression object containing a moving integer (mint).</span>
+<span class="sd">    :return: An object of the data class MInt with the moving integer.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">number_of_intervals</span> <span class="o">=</span> <span class="n">list_expr</span><span class="o">.</span><span class="n">get_list_length</span><span class="p">()</span>
+
+    <span class="n">intervals</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">number_of_intervals</span><span class="p">):</span>
+
+        <span class="n">int_in_interval_as_le</span><span class="p">:</span> <span class="n">ListExp</span> <span class="o">=</span> <span class="n">list_expr</span><span class="o">.</span><span class="n">get_the_n_element</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+
+        <span class="c1"># Parse interval</span>
+
+        <span class="n">interval_as_le</span><span class="p">:</span> <span class="n">ListExp</span> <span class="o">=</span> <span class="n">int_in_interval_as_le</span><span class="o">.</span><span class="n">get_first_element</span><span class="p">()</span>
+
+        <span class="n">start_time</span> <span class="o">=</span> <span class="n">parse_timestamp</span><span class="p">(</span><span class="n">interval_as_le</span><span class="o">.</span><span class="n">get_first_element</span><span class="p">()</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+        <span class="n">end_time</span> <span class="o">=</span> <span class="n">parse_timestamp</span><span class="p">(</span><span class="n">interval_as_le</span><span class="o">.</span><span class="n">get_second_element</span><span class="p">()</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+        <span class="n">close_left</span> <span class="o">=</span> <span class="n">interval_as_le</span><span class="o">.</span><span class="n">get_third_element</span><span class="p">()</span><span class="o">.</span><span class="n">value</span>
+        <span class="n">close_right</span> <span class="o">=</span> <span class="n">interval_as_le</span><span class="o">.</span><span class="n">get_fourth_element</span><span class="p">()</span><span class="o">.</span><span class="n">value</span>
+
+        <span class="n">interval</span> <span class="o">=</span> <span class="n">Interval</span><span class="p">(</span><span class="n">start_time</span><span class="o">=</span><span class="n">start_time</span><span class="p">,</span> <span class="n">end_time</span><span class="o">=</span><span class="n">end_time</span><span class="p">,</span> <span class="n">close_left</span><span class="o">=</span><span class="n">close_left</span><span class="p">,</span> <span class="n">close_right</span><span class="o">=</span><span class="n">close_right</span><span class="p">)</span>
+
+        <span class="c1"># Parse value vector</span>
+
+        <span class="n">value_vector_as_le</span><span class="p">:</span> <span class="n">ListExp</span> <span class="o">=</span> <span class="n">int_in_interval_as_le</span><span class="o">.</span><span class="n">get_second_element</span><span class="p">()</span>
+
+        <span class="n">value_vector</span> <span class="o">=</span> <span class="n">ValueVectorInt</span><span class="p">(</span><span class="n">value_vector_as_le</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+
+        <span class="n">int_in_interval</span> <span class="o">=</span> <span class="n">IntInInterval</span><span class="p">(</span><span class="n">interval</span><span class="o">=</span><span class="n">interval</span><span class="p">,</span> <span class="n">value_vector</span><span class="o">=</span><span class="n">value_vector</span><span class="p">)</span>
+
+        <span class="n">intervals</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">int_in_interval</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">MInt</span><span class="p">(</span><span class="n">intervals</span><span class="o">=</span><span class="n">intervals</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="parse_iregion"><a class="viewcode-back" href="../../../../index.html#secondodb.api.algebras.secondospatiotemporalalgebra.parse_iregion">[docs]</a><span class="k">def</span> <span class="nf">parse_iregion</span><span class="p">(</span><span class="n">list_expr</span><span class="p">:</span> <span class="n">ListExp</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">IRegion</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Transforms a list expression object containing an instant region (iregion) to a named tuple.</span>
+
+<span class="sd">    :param list_expr: A list expression object containing an instant region (iregion).</span>
+<span class="sd">    :return: An object of the data class IRegion with the instant region.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># Parse instant</span>
+
+    <span class="n">instant_as_le</span><span class="p">:</span> <span class="n">ListExp</span> <span class="o">=</span> <span class="n">list_expr</span><span class="o">.</span><span class="n">get_first_element</span><span class="p">()</span>
+    <span class="n">instant</span> <span class="o">=</span> <span class="n">parse_timestamp</span><span class="p">(</span><span class="n">instant_as_le</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+
+    <span class="c1"># Parse region</span>
+
+    <span class="n">region_as_le</span><span class="p">:</span> <span class="n">ListExp</span> <span class="o">=</span> <span class="n">list_expr</span><span class="o">.</span><span class="n">get_second_element</span><span class="p">()</span>
+    <span class="n">region</span> <span class="o">=</span> <span class="n">spatial</span><span class="o">.</span><span class="n">parse_region</span><span class="p">(</span><span class="n">region_as_le</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">IRegion</span><span class="p">(</span><span class="n">instant</span><span class="o">=</span><span class="n">instant</span><span class="p">,</span> <span class="n">region</span><span class="o">=</span><span class="n">region</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="parse_ipoint"><a class="viewcode-back" href="../../../../index.html#secondodb.api.algebras.secondospatiotemporalalgebra.parse_ipoint">[docs]</a><span class="k">def</span> <span class="nf">parse_ipoint</span><span class="p">(</span><span class="n">list_expr</span><span class="p">:</span> <span class="n">ListExp</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">IPoint</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Transforms a list expression object containing an instant point (ipoint) to a named tuple.</span>
+
+<span class="sd">    :param list_expr: A list expression object containing an instant region (ipoint).</span>
+<span class="sd">    :return: An object of the data class IPoint with the instant point.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># Parse instant</span>
+
+    <span class="n">instant_as_le</span><span class="p">:</span> <span class="n">ListExp</span> <span class="o">=</span> <span class="n">list_expr</span><span class="o">.</span><span class="n">get_first_element</span><span class="p">()</span>
+    <span class="n">instant</span> <span class="o">=</span> <span class="n">parse_timestamp</span><span class="p">(</span><span class="n">instant_as_le</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+
+    <span class="c1"># Parse point</span>
+
+    <span class="n">point_as_le</span><span class="p">:</span> <span class="n">ListExp</span> <span class="o">=</span> <span class="n">list_expr</span><span class="o">.</span><span class="n">get_second_element</span><span class="p">()</span>
+    <span class="n">point</span> <span class="o">=</span> <span class="n">spatial</span><span class="o">.</span><span class="n">parse_point</span><span class="p">(</span><span class="n">point_as_le</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">IPoint</span><span class="p">(</span><span class="n">instant</span><span class="o">=</span><span class="n">instant</span><span class="p">,</span> <span class="n">point</span><span class="o">=</span><span class="n">point</span><span class="p">)</span></div>
+
+
+
+</pre></div>
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../../index.html">pySecondo  documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../../index.html" >Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">secondodb.api.algebras.secondospatiotemporalalgebra</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2019, Victor Silva.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 3.1.1.
+    </div>
+  </body>
+</html>

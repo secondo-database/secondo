@@ -1,0 +1,459 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>secondodb.api.support.secondoinputhandler &#8212; pySecondo  documentation</title>
+    <link rel="stylesheet" href="../../../../_static/nature.css" type="text/css" />
+    <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+    <script id="documentation_options" data-url_root="../../../../" src="../../../../_static/documentation_options.js"></script>
+    <script src="../../../../_static/jquery.js"></script>
+    <script src="../../../../_static/underscore.js"></script>
+    <script src="../../../../_static/doctools.js"></script>
+    <script src="../../../../_static/language_data.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../../index.html">pySecondo  documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../../index.html" accesskey="U">Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">secondodb.api.support.secondoinputhandler</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for secondodb.api.support.secondoinputhandler</h1><div class="highlight"><pre>
+<span></span><span class="c1"># ----------------------------------------------------------------------------------------------------------------------</span>
+<span class="c1"># The Secondo Python API (pySecondo)</span>
+<span class="c1"># Victor Silva (victor.silva@posteo.de)</span>
+<span class="c1"># January 2020</span>
+<span class="c1"># ----------------------------------------------------------------------------------------------------------------------</span>
+<span class="c1"># Module</span>
+<span class="c1"># ----------------------------------------------------------------------------------------------------------------------</span>
+<span class="c1"># Secondo Input Handler</span>
+<span class="c1"># secondoinputhandler.py</span>
+<span class="c1"># ----------------------------------------------------------------------------------------------------------------------</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">The module Secondo Input Handler handles the conversion of different values from a socket stream in form of binary</span>
+<span class="sd">values. The implementation is based on the Java-Class MyInputStreamReader of the Secondo JavaGUI and supports the</span>
+<span class="sd">reception and construction of a list expression object originated through the response to an inquiry (or command) from</span>
+<span class="sd">the |sec| server.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">struct</span>
+<span class="kn">from</span> <span class="nn">socket</span> <span class="kn">import</span> <span class="n">socket</span>
+
+<span class="kn">import</span> <span class="nn">secondodb.api.secondoapi</span> <span class="k">as</span> <span class="nn">api</span>
+<span class="kn">import</span> <span class="nn">secondodb.api.support.secondocommands</span> <span class="k">as</span> <span class="nn">com</span>
+<span class="kn">import</span> <span class="nn">secondodb.api.support.secondolistexpr</span> <span class="k">as</span> <span class="nn">listexpr</span>
+
+<span class="n">encoding</span> <span class="o">=</span> <span class="s1">&#39;Latin-1&#39;</span>
+
+<span class="c1"># Constants describing codings for binary writing of a nested list</span>
+
+<span class="n">BIN_LONGLIST</span> <span class="o">=</span> <span class="mi">0</span>
+<span class="n">BIN_INTEGER</span> <span class="o">=</span> <span class="mi">1</span>
+<span class="n">BIN_REAL</span> <span class="o">=</span> <span class="mi">2</span>
+<span class="n">BIN_BOOLEAN</span> <span class="o">=</span> <span class="mi">3</span>
+<span class="n">BIN_LONGSTRING</span> <span class="o">=</span> <span class="mi">4</span>
+<span class="n">BIN_LONGSYMBOL</span> <span class="o">=</span> <span class="mi">5</span>
+<span class="n">BIN_LONGTEXT</span> <span class="o">=</span> <span class="mi">6</span>
+<span class="n">BIN_LIST</span> <span class="o">=</span> <span class="mi">10</span>
+<span class="n">BIN_SHORTLIST</span> <span class="o">=</span> <span class="mi">11</span>
+<span class="n">BIN_SHORTINT</span> <span class="o">=</span> <span class="mi">12</span>
+<span class="n">BIN_BYTE</span> <span class="o">=</span> <span class="mi">13</span>
+<span class="n">BIN_STRING</span> <span class="o">=</span> <span class="mi">14</span>
+<span class="n">BIN_SHORTSTRING</span> <span class="o">=</span> <span class="mi">15</span>
+<span class="n">BIN_SYMBOL</span> <span class="o">=</span> <span class="mi">16</span>
+<span class="n">BIN_SHORTSYMBOL</span> <span class="o">=</span> <span class="mi">17</span>
+<span class="n">BIN_TEXT</span> <span class="o">=</span> <span class="mi">18</span>
+<span class="n">BIN_SHORTTEXT</span> <span class="o">=</span> <span class="mi">19</span>
+<span class="n">BIN_DOUBLE</span> <span class="o">=</span> <span class="mi">20</span>
+
+
+<div class="viewcode-block" id="read_line_of_text"><a class="viewcode-back" href="../../../../index.html#secondodb.api.support.secondoinputhandler.read_line_of_text">[docs]</a><span class="k">def</span> <span class="nf">read_line_of_text</span><span class="p">(</span><span class="n">socket_object</span><span class="p">:</span> <span class="n">socket</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Returns a single text line from a response. The input stream will be read until the occurrence of a new line.</span>
+
+<span class="sd">    :param socket_object: A socket object.</span>
+<span class="sd">    :return: A string with a single text line.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">byte_array</span> <span class="o">=</span> <span class="nb">bytearray</span><span class="p">()</span>
+
+    <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+
+        <span class="n">byte</span> <span class="o">=</span> <span class="n">socket_object</span><span class="o">.</span><span class="n">recv</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">byte</span> <span class="o">!=</span> <span class="sa">b</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">:</span>
+                <span class="n">byte_array</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">byte</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">break</span>
+        <span class="k">except</span> <span class="ne">IndexError</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">api</span><span class="o">.</span><span class="n">OperationalError</span><span class="p">(</span><span class="s1">&#39;Error: Invalid response from server.&#39;</span><span class="p">)</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">string</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">byte_array</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="n">encoding</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">UnicodeDecodeError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">api</span><span class="o">.</span><span class="n">InterfaceError</span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">string</span></div>
+
+
+<div class="viewcode-block" id="read_string"><a class="viewcode-back" href="../../../../index.html#secondodb.api.support.secondoinputhandler.read_string">[docs]</a><span class="k">def</span> <span class="nf">read_string</span><span class="p">(</span><span class="n">socket_object</span><span class="p">:</span> <span class="n">socket</span><span class="p">,</span> <span class="n">size</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Reads a string of a specified size from a socket object.</span>
+
+<span class="sd">    :param socket_object: A socket object with the response from the |sec| server.</span>
+<span class="sd">    :param size: The size of the string.</span>
+<span class="sd">    :return: A string value.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">byte_array</span> <span class="o">=</span> <span class="nb">bytearray</span><span class="p">()</span>
+
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">size</span><span class="p">):</span>
+        <span class="n">byte</span> <span class="o">=</span> <span class="n">socket_object</span><span class="o">.</span><span class="n">recv</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">byte_array</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">byte</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">string</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">byte_array</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="n">encoding</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">UnicodeDecodeError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">api</span><span class="o">.</span><span class="n">InterfaceError</span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">string</span></div>
+
+
+<div class="viewcode-block" id="read_short"><a class="viewcode-back" href="../../../../index.html#secondodb.api.support.secondoinputhandler.read_short">[docs]</a><span class="k">def</span> <span class="nf">read_short</span><span class="p">(</span><span class="n">socket_object</span><span class="p">:</span> <span class="n">socket</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Reads a short value from the socket response. A short value takes 2 bytes to be built.</span>
+
+<span class="sd">    :param socket_object: A socket object with the response from the |sec| server.</span>
+<span class="sd">    :return: A short value.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">byte_vector</span> <span class="o">=</span> <span class="n">socket_object</span><span class="o">.</span><span class="n">recv</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+    <span class="n">short_value</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">struct</span><span class="o">.</span><span class="n">unpack</span><span class="p">(</span><span class="s1">&#39;&gt;H&#39;</span><span class="p">,</span> <span class="n">byte_vector</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="k">return</span> <span class="n">short_value</span></div>
+
+
+<div class="viewcode-block" id="read_byte"><a class="viewcode-back" href="../../../../index.html#secondodb.api.support.secondoinputhandler.read_byte">[docs]</a><span class="k">def</span> <span class="nf">read_byte</span><span class="p">(</span><span class="n">socket_object</span><span class="p">:</span> <span class="n">socket</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bytes</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Reads a single byte from the socket response.</span>
+
+<span class="sd">    :param socket_object: A socket object with the response from the |sec| server.</span>
+<span class="sd">    :return: A byte value.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">byte_value</span> <span class="o">=</span> <span class="n">socket_object</span><span class="o">.</span><span class="n">recv</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">byte_value</span></div>
+
+
+<div class="viewcode-block" id="read_int"><a class="viewcode-back" href="../../../../index.html#secondodb.api.support.secondoinputhandler.read_int">[docs]</a><span class="k">def</span> <span class="nf">read_int</span><span class="p">(</span><span class="n">socket_object</span><span class="p">:</span> <span class="n">socket</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Reads an integer value from the socket response. An integer value takes 4 bytes to be built.</span>
+
+<span class="sd">    :param socket_object: A socket object with the response from the |sec| server.</span>
+<span class="sd">    :return: An integer value.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">byte_vector</span> <span class="o">=</span> <span class="n">socket_object</span><span class="o">.</span><span class="n">recv</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span>
+    <span class="n">int_value</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">struct</span><span class="o">.</span><span class="n">unpack</span><span class="p">(</span><span class="s1">&#39;&gt;I&#39;</span><span class="p">,</span> <span class="n">byte_vector</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="k">return</span> <span class="n">int_value</span></div>
+
+
+<div class="viewcode-block" id="read_real"><a class="viewcode-back" href="../../../../index.html#secondodb.api.support.secondoinputhandler.read_real">[docs]</a><span class="k">def</span> <span class="nf">read_real</span><span class="p">(</span><span class="n">socket_object</span><span class="p">:</span> <span class="n">socket</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Reads a real value from the socket response.</span>
+
+<span class="sd">    :param socket_object: A socket object with the response from the |sec| server.</span>
+<span class="sd">    :return: A float representing the real value.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">byte_vector</span> <span class="o">=</span> <span class="n">socket_object</span><span class="o">.</span><span class="n">recv</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span>
+    <span class="n">real_value</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">struct</span><span class="o">.</span><span class="n">unpack</span><span class="p">(</span><span class="s1">&#39;&gt;f&#39;</span><span class="p">,</span> <span class="n">byte_vector</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="k">return</span> <span class="n">real_value</span></div>
+
+
+<div class="viewcode-block" id="read_bool"><a class="viewcode-back" href="../../../../index.html#secondodb.api.support.secondoinputhandler.read_bool">[docs]</a><span class="k">def</span> <span class="nf">read_bool</span><span class="p">(</span><span class="n">socket_object</span><span class="p">:</span> <span class="n">socket</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Reads a boolean value from the socket response.</span>
+
+<span class="sd">    :param socket_object: A socket object with the response from the |sec| server.</span>
+<span class="sd">    :return: A boolean value.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">int_value</span> <span class="o">=</span> <span class="n">read_byte</span><span class="p">(</span><span class="n">socket_object</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="n">int_value</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">False</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">True</span></div>
+
+
+<div class="viewcode-block" id="read_double"><a class="viewcode-back" href="../../../../index.html#secondodb.api.support.secondoinputhandler.read_double">[docs]</a><span class="k">def</span> <span class="nf">read_double</span><span class="p">(</span><span class="n">socket_object</span><span class="p">:</span> <span class="n">socket</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Reads a double value from the socket response.</span>
+
+<span class="sd">    :param socket_object: A socket object with the response from the |sec| server.</span>
+<span class="sd">    :return: A float representing the double value.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">byte_vector</span> <span class="o">=</span> <span class="n">socket_object</span><span class="o">.</span><span class="n">recv</span><span class="p">(</span><span class="mi">8</span><span class="p">)</span>
+    <span class="n">double_value</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">struct</span><span class="o">.</span><span class="n">unpack</span><span class="p">(</span><span class="s1">&#39;&gt;d&#39;</span><span class="p">,</span> <span class="n">byte_vector</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="k">return</span> <span class="n">double_value</span></div>
+
+
+<div class="viewcode-block" id="read_long"><a class="viewcode-back" href="../../../../index.html#secondodb.api.support.secondoinputhandler.read_long">[docs]</a><span class="k">def</span> <span class="nf">read_long</span><span class="p">(</span><span class="n">socket_object</span><span class="p">:</span> <span class="n">socket</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Reads a long value from the socket response.</span>
+
+<span class="sd">    :param socket_object: A socket object with the response from the |sec| server.</span>
+<span class="sd">    :return: A long (int) value.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">byte_vector</span> <span class="o">=</span> <span class="n">socket_object</span><span class="o">.</span><span class="n">recv</span><span class="p">(</span><span class="mi">8</span><span class="p">)</span>
+    <span class="n">long_value</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">struct</span><span class="o">.</span><span class="n">unpack</span><span class="p">(</span><span class="s1">&#39;&gt;Q&#39;</span><span class="p">,</span> <span class="n">byte_vector</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="k">return</span> <span class="n">long_value</span></div>
+
+
+<div class="viewcode-block" id="read_binary_record"><a class="viewcode-back" href="../../../../index.html#secondodb.api.support.secondoinputhandler.read_binary_record">[docs]</a><span class="k">def</span> <span class="nf">read_binary_record</span><span class="p">(</span><span class="n">socket_object</span><span class="p">:</span> <span class="n">socket</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">listexpr</span><span class="o">.</span><span class="n">ListExp</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Reads on each iteration a single buffered vector of bytes and translates it to the specified type. Some types</span>
+<span class="sd">    requiere the specification of the length for the buffer. The length is normally expressed as the first binary value</span>
+<span class="sd">    after the specification of the type integer.</span>
+
+<span class="sd">    :param socket_object: A socket object with the response from the |sec| server.</span>
+<span class="sd">    :return: None</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># Read byte from the socket to identify the type</span>
+
+    <span class="n">type_value</span> <span class="o">=</span> <span class="n">read_byte</span><span class="p">(</span><span class="n">socket_object</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">type_value</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">BIN_LONGLIST</span><span class="p">:</span>
+
+        <span class="n">length</span> <span class="o">=</span> <span class="n">read_int</span><span class="p">(</span><span class="n">socket_object</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">length</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">listexpr</span><span class="o">.</span><span class="n">ListExp</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">le_f</span> <span class="o">=</span> <span class="n">read_binary_record</span><span class="p">(</span><span class="n">socket_object</span><span class="p">)</span>
+            <span class="n">le_le</span> <span class="o">=</span> <span class="n">listexpr</span><span class="o">.</span><span class="n">one_element_list</span><span class="p">(</span><span class="n">le_f</span><span class="p">)</span>
+            <span class="n">le_last</span> <span class="o">=</span> <span class="n">le_le</span>
+
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">length</span><span class="p">):</span>
+                <span class="n">le_next</span> <span class="o">=</span> <span class="n">read_binary_record</span><span class="p">(</span><span class="n">socket_object</span><span class="p">)</span>
+                <span class="n">le_last</span> <span class="o">=</span> <span class="n">listexpr</span><span class="o">.</span><span class="n">append_to_last_element</span><span class="p">(</span><span class="n">le_last</span><span class="p">,</span> <span class="n">le_next</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">le_le</span>
+
+    <span class="k">elif</span> <span class="n">type_value</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">BIN_INTEGER</span><span class="p">:</span>
+
+        <span class="n">int_value</span> <span class="o">=</span> <span class="n">read_int</span><span class="p">(</span><span class="n">socket_object</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">listexpr</span><span class="o">.</span><span class="n">create_integer_atom</span><span class="p">(</span><span class="n">int_value</span><span class="p">)</span>
+
+    <span class="k">elif</span> <span class="n">type_value</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">BIN_REAL</span><span class="p">:</span>
+
+        <span class="n">real_value</span> <span class="o">=</span> <span class="n">read_real</span><span class="p">(</span><span class="n">socket_object</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">listexpr</span><span class="o">.</span><span class="n">create_real_atom</span><span class="p">(</span><span class="n">real_value</span><span class="p">)</span>
+
+    <span class="k">elif</span> <span class="n">type_value</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">BIN_BOOLEAN</span><span class="p">:</span>
+
+        <span class="n">bool_value</span> <span class="o">=</span> <span class="n">read_bool</span><span class="p">(</span><span class="n">socket_object</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">listexpr</span><span class="o">.</span><span class="n">create_bool_atom</span><span class="p">(</span><span class="n">bool_value</span><span class="p">)</span>
+
+    <span class="k">elif</span> <span class="n">type_value</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">BIN_LONGSTRING</span><span class="p">:</span>
+
+        <span class="n">length</span> <span class="o">=</span> <span class="n">read_int</span><span class="p">(</span><span class="n">socket_object</span><span class="p">)</span>
+        <span class="n">string_value</span> <span class="o">=</span> <span class="n">read_string</span><span class="p">(</span><span class="n">socket_object</span><span class="p">,</span> <span class="n">length</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">listexpr</span><span class="o">.</span><span class="n">create_string_atom</span><span class="p">(</span><span class="n">string_value</span><span class="p">)</span>
+
+    <span class="k">elif</span> <span class="n">type_value</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">BIN_LONGSYMBOL</span><span class="p">:</span>
+
+        <span class="n">length</span> <span class="o">=</span> <span class="n">read_int</span><span class="p">(</span><span class="n">socket_object</span><span class="p">)</span>
+        <span class="n">symbol_value</span> <span class="o">=</span> <span class="n">read_string</span><span class="p">(</span><span class="n">socket_object</span><span class="p">,</span> <span class="n">length</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">listexpr</span><span class="o">.</span><span class="n">create_symbol_atom</span><span class="p">(</span><span class="n">symbol_value</span><span class="p">)</span>
+
+    <span class="k">elif</span> <span class="n">type_value</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">BIN_LONGTEXT</span><span class="p">:</span>
+
+        <span class="n">length</span> <span class="o">=</span> <span class="n">read_int</span><span class="p">(</span><span class="n">socket_object</span><span class="p">)</span>
+        <span class="n">text</span> <span class="o">=</span> <span class="n">read_string</span><span class="p">(</span><span class="n">socket_object</span><span class="p">,</span> <span class="n">length</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">listexpr</span><span class="o">.</span><span class="n">create_text_atom</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
+
+    <span class="k">elif</span> <span class="n">type_value</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">BIN_LIST</span><span class="p">:</span>
+
+        <span class="n">length</span> <span class="o">=</span> <span class="n">read_short</span><span class="p">(</span><span class="n">socket_object</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">length</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">listexpr</span><span class="o">.</span><span class="n">ListExp</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">le_f</span> <span class="o">=</span> <span class="n">read_binary_record</span><span class="p">(</span><span class="n">socket_object</span><span class="p">)</span>
+            <span class="n">le_le</span> <span class="o">=</span> <span class="n">listexpr</span><span class="o">.</span><span class="n">one_element_list</span><span class="p">(</span><span class="n">le_f</span><span class="p">)</span>
+            <span class="n">le_last</span> <span class="o">=</span> <span class="n">le_le</span>
+
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">length</span><span class="p">):</span>
+                <span class="n">le_next</span> <span class="o">=</span> <span class="n">read_binary_record</span><span class="p">(</span><span class="n">socket_object</span><span class="p">)</span>
+                <span class="n">le_last</span> <span class="o">=</span> <span class="n">listexpr</span><span class="o">.</span><span class="n">append_to_last_element</span><span class="p">(</span><span class="n">le_last</span><span class="p">,</span> <span class="n">le_next</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">le_le</span>
+
+    <span class="k">elif</span> <span class="n">type_value</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">BIN_SHORTLIST</span><span class="p">:</span>
+
+        <span class="n">length</span> <span class="o">=</span> <span class="n">read_byte</span><span class="p">(</span><span class="n">socket_object</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="n">length</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">listexpr</span><span class="o">.</span><span class="n">ListExp</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">le_f</span> <span class="o">=</span> <span class="n">read_binary_record</span><span class="p">(</span><span class="n">socket_object</span><span class="p">)</span>
+            <span class="n">le_le</span> <span class="o">=</span> <span class="n">listexpr</span><span class="o">.</span><span class="n">one_element_list</span><span class="p">(</span><span class="n">le_f</span><span class="p">)</span>
+            <span class="n">le_last</span> <span class="o">=</span> <span class="n">le_le</span>
+
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">length</span><span class="p">):</span>
+                <span class="n">le_next</span> <span class="o">=</span> <span class="n">read_binary_record</span><span class="p">(</span><span class="n">socket_object</span><span class="p">)</span>
+                <span class="n">le_last</span> <span class="o">=</span> <span class="n">listexpr</span><span class="o">.</span><span class="n">append_to_last_element</span><span class="p">(</span><span class="n">le_last</span><span class="p">,</span> <span class="n">le_next</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">le_le</span>
+
+    <span class="k">elif</span> <span class="n">type_value</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">BIN_SHORTINT</span><span class="p">:</span>
+
+        <span class="n">short_int_value</span> <span class="o">=</span> <span class="n">read_short</span><span class="p">(</span><span class="n">socket_object</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">listexpr</span><span class="o">.</span><span class="n">create_integer_atom</span><span class="p">(</span><span class="n">short_int_value</span><span class="p">)</span>
+
+    <span class="k">elif</span> <span class="n">type_value</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">BIN_BYTE</span><span class="p">:</span>
+
+        <span class="k">return</span> <span class="n">listexpr</span><span class="o">.</span><span class="n">create_integer_atom</span><span class="p">(</span><span class="n">read_byte</span><span class="p">(</span><span class="n">socket_object</span><span class="p">)[</span><span class="mi">0</span><span class="p">])</span>
+
+    <span class="k">elif</span> <span class="n">type_value</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">BIN_STRING</span><span class="p">:</span>
+
+        <span class="n">length</span> <span class="o">=</span> <span class="n">read_short</span><span class="p">(</span><span class="n">socket_object</span><span class="p">)</span>
+        <span class="n">string</span> <span class="o">=</span> <span class="n">read_string</span><span class="p">(</span><span class="n">socket_object</span><span class="p">,</span> <span class="n">length</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">listexpr</span><span class="o">.</span><span class="n">create_string_atom</span><span class="p">(</span><span class="n">string</span><span class="p">)</span>
+
+    <span class="k">elif</span> <span class="n">type_value</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">BIN_SHORTSTRING</span><span class="p">:</span>
+
+        <span class="n">length</span> <span class="o">=</span> <span class="n">read_byte</span><span class="p">(</span><span class="n">socket_object</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">string_value</span> <span class="o">=</span> <span class="n">read_string</span><span class="p">(</span><span class="n">socket_object</span><span class="p">,</span> <span class="n">length</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">listexpr</span><span class="o">.</span><span class="n">create_string_atom</span><span class="p">(</span><span class="n">string_value</span><span class="p">)</span>
+
+    <span class="k">elif</span> <span class="n">type_value</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">BIN_SYMBOL</span><span class="p">:</span>
+
+        <span class="n">length</span> <span class="o">=</span> <span class="n">read_short</span><span class="p">(</span><span class="n">socket_object</span><span class="p">)</span>
+        <span class="n">symbol_value</span> <span class="o">=</span> <span class="n">read_string</span><span class="p">(</span><span class="n">socket_object</span><span class="p">,</span> <span class="n">length</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">listexpr</span><span class="o">.</span><span class="n">create_symbol_atom</span><span class="p">(</span><span class="n">symbol_value</span><span class="p">)</span>
+
+    <span class="k">elif</span> <span class="n">type_value</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">BIN_SHORTSYMBOL</span><span class="p">:</span>
+
+        <span class="n">length</span> <span class="o">=</span> <span class="n">read_byte</span><span class="p">(</span><span class="n">socket_object</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">symbol_value</span> <span class="o">=</span> <span class="n">read_string</span><span class="p">(</span><span class="n">socket_object</span><span class="p">,</span> <span class="n">length</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">listexpr</span><span class="o">.</span><span class="n">create_symbol_atom</span><span class="p">(</span><span class="n">symbol_value</span><span class="p">)</span>
+
+    <span class="k">elif</span> <span class="n">type_value</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">BIN_TEXT</span><span class="p">:</span>
+
+        <span class="n">length</span> <span class="o">=</span> <span class="n">read_short</span><span class="p">(</span><span class="n">socket_object</span><span class="p">)</span>
+        <span class="n">text</span> <span class="o">=</span> <span class="n">read_string</span><span class="p">(</span><span class="n">socket_object</span><span class="p">,</span> <span class="n">length</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">listexpr</span><span class="o">.</span><span class="n">create_text_atom</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
+
+    <span class="k">elif</span> <span class="n">type_value</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">BIN_SHORTTEXT</span><span class="p">:</span>
+
+        <span class="n">length</span> <span class="o">=</span> <span class="n">read_byte</span><span class="p">(</span><span class="n">socket_object</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">text</span> <span class="o">=</span> <span class="n">read_string</span><span class="p">(</span><span class="n">socket_object</span><span class="p">,</span> <span class="n">length</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">listexpr</span><span class="o">.</span><span class="n">create_text_atom</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
+
+    <span class="k">elif</span> <span class="n">type_value</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">BIN_DOUBLE</span><span class="p">:</span>
+
+        <span class="n">double_value</span> <span class="o">=</span> <span class="n">read_double</span><span class="p">(</span><span class="n">socket_object</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">listexpr</span><span class="o">.</span><span class="n">create_real_atom</span><span class="p">(</span><span class="n">double_value</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="build_list_expr_from_binary"><a class="viewcode-back" href="../../../../index.html#secondodb.api.support.secondoinputhandler.build_list_expr_from_binary">[docs]</a><span class="k">def</span> <span class="nf">build_list_expr_from_binary</span><span class="p">(</span><span class="n">socket_object</span><span class="p">:</span> <span class="n">socket</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">listexpr</span><span class="o">.</span><span class="n">ListExp</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This method builds a list expression object from a binary response from the |sec| server.</span>
+<span class="sd">    In javagui: readBinaryFrom()</span>
+
+<span class="sd">    :param socket_object:</span>
+<span class="sd">    :return: A list expression object with the contents of the nested list.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># Read and check signature string &#39;bnl&#39;</span>
+
+    <span class="n">signature</span> <span class="o">=</span> <span class="n">read_string</span><span class="p">(</span><span class="n">socket_object</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">signature</span> <span class="o">!=</span> <span class="n">com</span><span class="o">.</span><span class="n">SECONDO_VALIDITY_STRING</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">api</span><span class="o">.</span><span class="n">InterfaceError</span><span class="p">(</span><span class="s1">&#39;Wrong validity string&#39;</span><span class="p">)</span>
+
+    <span class="c1"># Read and check version</span>
+
+    <span class="n">version_1</span> <span class="o">=</span> <span class="n">read_short</span><span class="p">(</span><span class="n">socket_object</span><span class="p">)</span>  <span class="c1"># major</span>
+    <span class="n">version_2</span> <span class="o">=</span> <span class="n">read_short</span><span class="p">(</span><span class="n">socket_object</span><span class="p">)</span>  <span class="c1"># minor</span>
+
+    <span class="k">if</span> <span class="n">version_1</span> <span class="o">!=</span> <span class="mi">1</span> <span class="ow">or</span> <span class="p">(</span><span class="n">version_2</span> <span class="o">!=</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">version_2</span> <span class="o">!=</span> <span class="mi">1</span> <span class="ow">and</span> <span class="n">version_2</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="n">api</span><span class="o">.</span><span class="n">InterfaceError</span><span class="p">(</span><span class="s1">&#39;Wrong version number: &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">version_1</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;/&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">version_2</span><span class="p">))</span>
+
+    <span class="c1"># Create list expression from binary</span>
+
+    <span class="n">list_expr</span> <span class="o">=</span> <span class="n">read_binary_record</span><span class="p">(</span><span class="n">socket_object</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">list_expr</span></div>
+</pre></div>
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../../index.html">pySecondo  documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../../index.html" >Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">secondodb.api.support.secondoinputhandler</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2019, Victor Silva.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 3.1.1.
+    </div>
+  </body>
+</html>

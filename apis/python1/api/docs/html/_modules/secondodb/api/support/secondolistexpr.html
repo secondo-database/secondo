@@ -1,0 +1,576 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>secondodb.api.support.secondolistexpr &#8212; pySecondo  documentation</title>
+    <link rel="stylesheet" href="../../../../_static/nature.css" type="text/css" />
+    <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+    <script id="documentation_options" data-url_root="../../../../" src="../../../../_static/documentation_options.js"></script>
+    <script src="../../../../_static/jquery.js"></script>
+    <script src="../../../../_static/underscore.js"></script>
+    <script src="../../../../_static/doctools.js"></script>
+    <script src="../../../../_static/language_data.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../../index.html">pySecondo  documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../../index.html" accesskey="U">Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">secondodb.api.support.secondolistexpr</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for secondodb.api.support.secondolistexpr</h1><div class="highlight"><pre>
+<span></span> <span class="c1"># ----------------------------------------------------------------------------------------------------------------------</span>
+<span class="c1"># The Secondo Python API (pySecondo)</span>
+<span class="c1"># Victor Silva (victor.silva@posteo.de)</span>
+<span class="c1"># January 2020</span>
+<span class="c1"># ----------------------------------------------------------------------------------------------------------------------</span>
+<span class="c1"># Module</span>
+<span class="c1"># ----------------------------------------------------------------------------------------------------------------------</span>
+<span class="c1"># Secondo List Expression</span>
+<span class="c1"># secondolistexpr.py</span>
+<span class="c1"># ----------------------------------------------------------------------------------------------------------------------</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">The module Secondo List Expression implements methods for the reception and construction of a list expression object</span>
+<span class="sd">originated through the response of the |sec| server to an inquiry or a command. The implementation is based on the</span>
+<span class="sd">Java class ListExpr of the Secondo JavaGUI.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="c1"># Constants describing the atom types</span>
+
+<span class="n">NO_ATOM</span> <span class="o">=</span> <span class="mi">0</span>
+<span class="n">INT_ATOM</span> <span class="o">=</span> <span class="mi">1</span>
+<span class="n">REAL_ATOM</span> <span class="o">=</span> <span class="mi">2</span>
+<span class="n">BOOL_ATOM</span> <span class="o">=</span> <span class="mi">3</span>
+<span class="n">STRING_ATOM</span> <span class="o">=</span> <span class="mi">4</span>
+<span class="n">SYMBOL_ATOM</span> <span class="o">=</span> <span class="mi">5</span>
+<span class="n">TEXT_ATOM</span> <span class="o">=</span> <span class="mi">6</span>
+
+
+<div class="viewcode-block" id="append_to_last_element"><a class="viewcode-back" href="../../../../index.html#secondodb.api.support.secondolistexpr.append_to_last_element">[docs]</a><span class="k">def</span> <span class="nf">append_to_last_element</span><span class="p">(</span><span class="n">last_element</span><span class="p">,</span> <span class="n">new_node</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Appends a new element to a list expression object. The new element will be stored in the &quot;value&quot; variable of the</span>
+<span class="sd">    last element passed and stores an empty list in his &quot;next&quot; variable.</span>
+
+<span class="sd">    :param last_element: The list expression object to be extended.</span>
+<span class="sd">    :param new_node: The list expression object to be appended.</span>
+<span class="sd">    :return: The new list expression object with the new appended element.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">list_expr</span> <span class="o">=</span> <span class="n">ListExp</span><span class="p">()</span>
+    <span class="n">list_expr</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="n">new_node</span>
+    <span class="n">list_expr</span><span class="o">.</span><span class="n">next</span> <span class="o">=</span> <span class="n">ListExp</span><span class="p">()</span>
+    <span class="n">last_element</span><span class="o">.</span><span class="n">next</span> <span class="o">=</span> <span class="n">list_expr</span>
+    <span class="k">return</span> <span class="n">list_expr</span></div>
+
+
+<div class="viewcode-block" id="build_new_list_node"><a class="viewcode-back" href="../../../../index.html#secondodb.api.support.secondolistexpr.build_new_list_node">[docs]</a><span class="k">def</span> <span class="nf">build_new_list_node</span><span class="p">(</span><span class="n">left_list</span><span class="p">,</span> <span class="n">right_list</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Builds a new node for a list expression. A node is formed by a left and a right list. The right list, which will be</span>
+<span class="sd">    appended in the &quot;next&quot;-parameter, must not be an atom.</span>
+
+<span class="sd">    :param left_list: The left list expression object for the parameter &quot;value&quot;.</span>
+<span class="sd">    :param right_list:  The right list expression object for the parameter &quot;next&quot;.</span>
+<span class="sd">    :return: A list expression object.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">list_expr</span> <span class="o">=</span> <span class="n">ListExp</span><span class="p">()</span>
+    <span class="n">list_expr</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="n">left_list</span>
+    <span class="n">list_expr</span><span class="o">.</span><span class="n">next</span> <span class="o">=</span> <span class="n">right_list</span>
+
+    <span class="k">return</span> <span class="n">list_expr</span></div>
+
+
+<div class="viewcode-block" id="one_element_list"><a class="viewcode-back" href="../../../../index.html#secondodb.api.support.secondolistexpr.one_element_list">[docs]</a><span class="k">def</span> <span class="nf">one_element_list</span><span class="p">(</span><span class="n">element_1</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Creates a one element list expression. The left node contains the element value, and the right node an empty list.</span>
+
+<span class="sd">    :param element_1: A list expression object.</span>
+<span class="sd">    :return: A list expression object with one element.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">build_new_list_node</span><span class="p">(</span><span class="n">element_1</span><span class="p">,</span> <span class="n">ListExp</span><span class="p">())</span></div>
+
+
+<div class="viewcode-block" id="two_element_list"><a class="viewcode-back" href="../../../../index.html#secondodb.api.support.secondolistexpr.two_element_list">[docs]</a><span class="k">def</span> <span class="nf">two_element_list</span><span class="p">(</span><span class="n">element_1</span><span class="p">,</span> <span class="n">element_2</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Creates a two element list expression.</span>
+
+<span class="sd">    :param element_1: A list expression object.</span>
+<span class="sd">    :param element_2: A list expression object.</span>
+<span class="sd">    :return: A list expression object with two elements.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">build_new_list_node</span><span class="p">(</span><span class="n">element_1</span><span class="p">,</span>
+                               <span class="n">build_new_list_node</span><span class="p">(</span><span class="n">element_2</span><span class="p">,</span> <span class="n">ListExp</span><span class="p">()))</span></div>
+
+
+<div class="viewcode-block" id="three_element_list"><a class="viewcode-back" href="../../../../index.html#secondodb.api.support.secondolistexpr.three_element_list">[docs]</a><span class="k">def</span> <span class="nf">three_element_list</span><span class="p">(</span><span class="n">element_1</span><span class="p">,</span> <span class="n">element_2</span><span class="p">,</span> <span class="n">element_3</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Creates a three element list expression.</span>
+
+<span class="sd">    :param element_1: A list expression object.</span>
+<span class="sd">    :param element_2: A list expression object.</span>
+<span class="sd">    :param element_3: A list expression object.</span>
+<span class="sd">    :return: A list expression object with three elements.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">build_new_list_node</span><span class="p">(</span><span class="n">element_1</span><span class="p">,</span>
+                               <span class="n">build_new_list_node</span><span class="p">(</span><span class="n">element_2</span><span class="p">,</span>
+                                                   <span class="n">build_new_list_node</span><span class="p">(</span><span class="n">element_3</span><span class="p">,</span> <span class="n">ListExp</span><span class="p">())))</span></div>
+
+
+<div class="viewcode-block" id="four_element_list"><a class="viewcode-back" href="../../../../index.html#secondodb.api.support.secondolistexpr.four_element_list">[docs]</a><span class="k">def</span> <span class="nf">four_element_list</span><span class="p">(</span><span class="n">element_1</span><span class="p">,</span> <span class="n">element_2</span><span class="p">,</span> <span class="n">element_3</span><span class="p">,</span> <span class="n">element_4</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Creates a four element list expression.</span>
+
+<span class="sd">    :param element_1: A list expression object.</span>
+<span class="sd">    :param element_2: A list expression object.</span>
+<span class="sd">    :param element_3: A list expression object.</span>
+<span class="sd">    :param element_4: A list expression object.</span>
+<span class="sd">    :return: A list expression object with four elements.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">build_new_list_node</span><span class="p">(</span><span class="n">element_1</span><span class="p">,</span>
+                               <span class="n">build_new_list_node</span><span class="p">(</span><span class="n">element_2</span><span class="p">,</span>
+                                                   <span class="n">build_new_list_node</span><span class="p">(</span><span class="n">element_3</span><span class="p">,</span>
+                                                                       <span class="n">build_new_list_node</span><span class="p">(</span><span class="n">element_4</span><span class="p">,</span> <span class="n">ListExp</span><span class="p">()))))</span></div>
+
+
+<div class="viewcode-block" id="five_element_list"><a class="viewcode-back" href="../../../../index.html#secondodb.api.support.secondolistexpr.five_element_list">[docs]</a><span class="k">def</span> <span class="nf">five_element_list</span><span class="p">(</span><span class="n">element_1</span><span class="p">,</span> <span class="n">element_2</span><span class="p">,</span> <span class="n">element_3</span><span class="p">,</span> <span class="n">element_4</span><span class="p">,</span> <span class="n">element_5</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Creates a five element list expression.</span>
+
+<span class="sd">    :param element_1: A list expression object.</span>
+<span class="sd">    :param element_2: A list expression object.</span>
+<span class="sd">    :param element_3: A list expression object.</span>
+<span class="sd">    :param element_4: A list expression object.</span>
+<span class="sd">    :param element_5: A list expression object.</span>
+<span class="sd">    :return: A list expression object with five elements.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">build_new_list_node</span><span class="p">(</span><span class="n">element_1</span><span class="p">,</span>
+                               <span class="n">build_new_list_node</span><span class="p">(</span><span class="n">element_2</span><span class="p">,</span>
+                                                   <span class="n">build_new_list_node</span><span class="p">(</span><span class="n">element_3</span><span class="p">,</span>
+                                                                       <span class="n">build_new_list_node</span><span class="p">(</span><span class="n">element_4</span><span class="p">,</span>
+                               <span class="n">build_new_list_node</span><span class="p">(</span><span class="n">element_5</span><span class="p">,</span> <span class="n">ListExp</span><span class="p">())))))</span></div>
+
+
+<div class="viewcode-block" id="six_element_list"><a class="viewcode-back" href="../../../../index.html#secondodb.api.support.secondolistexpr.six_element_list">[docs]</a><span class="k">def</span> <span class="nf">six_element_list</span><span class="p">(</span><span class="n">element_1</span><span class="p">,</span> <span class="n">element_2</span><span class="p">,</span> <span class="n">element_3</span><span class="p">,</span> <span class="n">element_4</span><span class="p">,</span> <span class="n">element_5</span><span class="p">,</span> <span class="n">element_6</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Creates a six element list expression.</span>
+
+<span class="sd">    :param element_1: A list expression object.</span>
+<span class="sd">    :param element_2: A list expression object.</span>
+<span class="sd">    :param element_3: A list expression object.</span>
+<span class="sd">    :param element_4: A list expression object.</span>
+<span class="sd">    :param element_5: A list expression object.</span>
+<span class="sd">    :param element_6: A list expression object.</span>
+<span class="sd">    :return: A list expression object with six elements.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">build_new_list_node</span><span class="p">(</span><span class="n">element_1</span><span class="p">,</span>
+                               <span class="n">build_new_list_node</span><span class="p">(</span><span class="n">element_2</span><span class="p">,</span>
+                               <span class="n">build_new_list_node</span><span class="p">(</span><span class="n">element_3</span><span class="p">,</span>
+                               <span class="n">build_new_list_node</span><span class="p">(</span><span class="n">element_4</span><span class="p">,</span>
+                               <span class="n">build_new_list_node</span><span class="p">(</span><span class="n">element_5</span><span class="p">,</span>
+                               <span class="n">build_new_list_node</span><span class="p">(</span><span class="n">element_6</span><span class="p">,</span> <span class="n">ListExp</span><span class="p">()))))))</span></div>
+
+
+<div class="viewcode-block" id="check_if_atom"><a class="viewcode-back" href="../../../../index.html#secondodb.api.support.secondolistexpr.check_if_atom">[docs]</a><span class="k">def</span> <span class="nf">check_if_atom</span><span class="p">(</span><span class="n">in_list</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Verifies if the ListExpr object is an atom. The method verifies the type of the list object.</span>
+
+<span class="sd">    :param in_list: A ListExpr Object.</span>
+<span class="sd">    :return: True, if the list element is not an atom, otherwise false.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">in_list</span><span class="o">.</span><span class="n">type</span> <span class="o">!=</span> <span class="n">NO_ATOM</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">True</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">False</span></div>
+
+
+<div class="viewcode-block" id="create_text_atom"><a class="viewcode-back" href="../../../../index.html#secondodb.api.support.secondolistexpr.create_text_atom">[docs]</a><span class="k">def</span> <span class="nf">create_text_atom</span><span class="p">(</span><span class="n">value</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Creates a new text atom using a passed text as value.</span>
+
+<span class="sd">    :param value: A text.</span>
+<span class="sd">    :return: A ListExp object with the newly created text atom.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">new_text_atom</span> <span class="o">=</span> <span class="n">ListExp</span><span class="p">()</span>
+    <span class="n">new_text_atom</span><span class="o">.</span><span class="n">type</span> <span class="o">=</span> <span class="n">TEXT_ATOM</span>
+    <span class="n">new_text_atom</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">new_text_atom</span></div>
+
+
+<div class="viewcode-block" id="create_symbol_atom"><a class="viewcode-back" href="../../../../index.html#secondodb.api.support.secondolistexpr.create_symbol_atom">[docs]</a><span class="k">def</span> <span class="nf">create_symbol_atom</span><span class="p">(</span><span class="n">value</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Creates a new symbol atom using its identifier as value.</span>
+
+<span class="sd">    :param value: The identifier of the symbol (like DATABASE).</span>
+<span class="sd">    :return: A ListExp object with the newly created symbol atom.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">new_symbol_atom</span> <span class="o">=</span> <span class="n">ListExp</span><span class="p">()</span>
+    <span class="n">new_symbol_atom</span><span class="o">.</span><span class="n">type</span> <span class="o">=</span> <span class="n">SYMBOL_ATOM</span>
+    <span class="n">new_symbol_atom</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">new_symbol_atom</span></div>
+
+
+<div class="viewcode-block" id="create_string_atom"><a class="viewcode-back" href="../../../../index.html#secondodb.api.support.secondolistexpr.create_string_atom">[docs]</a><span class="k">def</span> <span class="nf">create_string_atom</span><span class="p">(</span><span class="n">value</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Creates a new string atom using a string as value.</span>
+
+<span class="sd">    :param value: A string.</span>
+<span class="sd">    :return: A ListExp object with the newly created string atom.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">new_string_atom</span> <span class="o">=</span> <span class="n">ListExp</span><span class="p">()</span>
+    <span class="n">new_string_atom</span><span class="o">.</span><span class="n">type</span> <span class="o">=</span> <span class="n">STRING_ATOM</span>
+    <span class="n">new_string_atom</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">new_string_atom</span></div>
+
+
+<div class="viewcode-block" id="create_integer_atom"><a class="viewcode-back" href="../../../../index.html#secondodb.api.support.secondolistexpr.create_integer_atom">[docs]</a><span class="k">def</span> <span class="nf">create_integer_atom</span><span class="p">(</span><span class="n">value</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Creates a new integer atom using an integer as value.</span>
+
+<span class="sd">    :param value: An integer.</span>
+<span class="sd">    :return: A ListExp object with the newly created integer atom.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">new_integer_atom</span> <span class="o">=</span> <span class="n">ListExp</span><span class="p">()</span>
+    <span class="n">new_integer_atom</span><span class="o">.</span><span class="n">type</span> <span class="o">=</span> <span class="n">INT_ATOM</span>
+
+    <span class="n">new_integer_atom</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">new_integer_atom</span></div>
+
+
+<div class="viewcode-block" id="create_real_atom"><a class="viewcode-back" href="../../../../index.html#secondodb.api.support.secondolistexpr.create_real_atom">[docs]</a><span class="k">def</span> <span class="nf">create_real_atom</span><span class="p">(</span><span class="n">value</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Creates a new real atom using an real as value.</span>
+
+<span class="sd">    :param value: A real value.</span>
+<span class="sd">    :return: A ListExp object with the newly created real atom.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">new_real_atom</span> <span class="o">=</span> <span class="n">ListExp</span><span class="p">()</span>
+    <span class="n">new_real_atom</span><span class="o">.</span><span class="n">type</span> <span class="o">=</span> <span class="n">REAL_ATOM</span>
+    <span class="n">new_real_atom</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">new_real_atom</span></div>
+
+
+<div class="viewcode-block" id="create_bool_atom"><a class="viewcode-back" href="../../../../index.html#secondodb.api.support.secondolistexpr.create_bool_atom">[docs]</a><span class="k">def</span> <span class="nf">create_bool_atom</span><span class="p">(</span><span class="n">value</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Creates a new boolean atom using a boolean as value.</span>
+
+<span class="sd">    :param value: A boolean.</span>
+<span class="sd">    :return: A ListExp object with the newly created boolean atom.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">new_boolean_atom</span> <span class="o">=</span> <span class="n">ListExp</span><span class="p">()</span>
+    <span class="n">new_boolean_atom</span><span class="o">.</span><span class="n">type</span> <span class="o">=</span> <span class="n">BOOL_ATOM</span>
+    <span class="n">new_boolean_atom</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">new_boolean_atom</span></div>
+
+
+<span class="c1"># def write_list_to_string(list_expr, str_rep, identation):</span>
+<span class="c1">#</span>
+<span class="c1">#     separator = &#39; &#39;</span>
+<span class="c1">#     has_sub_lists = False</span>
+<span class="c1">#     identation = identation + &quot;    &quot;</span>
+<span class="c1">#</span>
+<span class="c1">#     if not list_expr.is_atom():</span>
+<span class="c1">#         str_rep += &#39;(&#39;</span>
+<span class="c1">#</span>
+<span class="c1">#     while not list_expr.is_empty():</span>
+<span class="c1">#</span>
+<span class="c1">#         if list_expr.type == NO_ATOM:</span>
+<span class="c1">#             if not has_sub_lists and (not list_expr.value.is_empty() and list_expr.value.type == NO_ATOM):</span>
+<span class="c1">#                 has_sub_lists = True</span>
+<span class="c1">#                 separator = &quot;\n&quot; + identation</span>
+<span class="c1">#                 str_rep += separator</span>
+<span class="c1">#             str_rep = write_list_to_string(list_expr.value, str_rep, identation)</span>
+<span class="c1">#         elif list_expr.type == INT_ATOM:</span>
+<span class="c1">#             str_rep += str(list_expr.value)</span>
+<span class="c1">#             return str_rep</span>
+<span class="c1">#         elif list_expr.type == REAL_ATOM:</span>
+<span class="c1">#             str_rep += str(list_expr.value)</span>
+<span class="c1">#             return str_rep</span>
+<span class="c1">#         elif list_expr.type == BOOL_ATOM:</span>
+<span class="c1">#             str_rep += str(list_expr.value)</span>
+<span class="c1">#             return str_rep</span>
+<span class="c1">#         elif list_expr.type == STRING_ATOM:</span>
+<span class="c1">#             str_rep += str(list_expr.value)</span>
+<span class="c1">#             return str_rep</span>
+<span class="c1">#         elif list_expr.type == SYMBOL_ATOM:</span>
+<span class="c1">#             str_rep += str(list_expr.value)</span>
+<span class="c1">#             return str_rep</span>
+<span class="c1">#         elif list_expr.type == TEXT_ATOM:</span>
+<span class="c1">#             str_rep += str(list_expr.value)</span>
+<span class="c1">#             return str_rep</span>
+<span class="c1">#</span>
+<span class="c1">#         list_expr = list_expr.next</span>
+<span class="c1">#</span>
+<span class="c1">#         if not list_expr.is_empty():</span>
+<span class="c1">#             str_rep += separator</span>
+<span class="c1">#</span>
+<span class="c1">#     str_rep += &#39;)&#39;</span>
+<span class="c1">#     return str_rep</span>
+
+
+<span class="k">def</span> <span class="nf">write_list_to_string</span><span class="p">(</span><span class="n">list_expr</span><span class="p">,</span> <span class="n">str_list</span><span class="p">:</span> <span class="p">[],</span> <span class="n">identation</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="p">[]:</span>
+
+    <span class="n">separator</span> <span class="o">=</span> <span class="s1">&#39; &#39;</span>
+    <span class="n">has_sub_lists</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">identation</span> <span class="o">=</span> <span class="n">identation</span> <span class="o">+</span> <span class="s2">&quot;    &quot;</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">list_expr</span><span class="o">.</span><span class="n">is_atom</span><span class="p">():</span>
+        <span class="n">str_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;(&#39;</span><span class="p">)</span>
+
+    <span class="k">while</span> <span class="ow">not</span> <span class="n">list_expr</span><span class="o">.</span><span class="n">is_empty</span><span class="p">():</span>
+
+        <span class="k">if</span> <span class="n">list_expr</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="n">NO_ATOM</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">has_sub_lists</span> <span class="ow">and</span> <span class="p">(</span><span class="ow">not</span> <span class="n">list_expr</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">is_empty</span><span class="p">()</span> <span class="ow">and</span> <span class="n">list_expr</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="n">NO_ATOM</span><span class="p">):</span>
+                <span class="n">has_sub_lists</span> <span class="o">=</span> <span class="kc">True</span>
+                <span class="n">separator</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">+</span> <span class="n">identation</span>
+                <span class="n">str_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">separator</span><span class="p">)</span>
+            <span class="n">str_list</span> <span class="o">=</span> <span class="n">write_list_to_string</span><span class="p">(</span><span class="n">list_expr</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="n">str_list</span><span class="p">,</span> <span class="n">identation</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">str_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">list_expr</span><span class="o">.</span><span class="n">value</span><span class="p">))</span>
+            <span class="k">return</span> <span class="n">str_list</span>
+
+        <span class="n">list_expr</span> <span class="o">=</span> <span class="n">list_expr</span><span class="o">.</span><span class="n">next</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">list_expr</span><span class="o">.</span><span class="n">is_empty</span><span class="p">():</span>
+            <span class="n">str_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">separator</span><span class="p">)</span>
+
+    <span class="n">str_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;)&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">str_list</span>
+
+
+<span class="k">class</span> <span class="nc">ListExp</span><span class="p">:</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Constructor of the list expression for handling |sec| objects.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">type</span> <span class="o">=</span> <span class="n">NO_ATOM</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">next</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="k">def</span> <span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+
+        <span class="n">str_list</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">identation</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+
+        <span class="n">str_list</span> <span class="o">=</span> <span class="n">write_list_to_string</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">str_list</span><span class="p">,</span> <span class="n">identation</span><span class="p">)</span>
+        <span class="n">string</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">str_list</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">string</span>
+
+    <span class="k">def</span> <span class="nf">is_empty</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="n">NO_ATOM</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">value</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">next</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">True</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span>
+
+    <span class="k">def</span> <span class="nf">is_atom</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="n">NO_ATOM</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">True</span>
+
+    <span class="k">def</span> <span class="nf">end_of_list</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="n">NO_ATOM</span> <span class="ow">and</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_empty</span><span class="p">()</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">next</span><span class="o">.</span><span class="n">is_empty</span><span class="p">():</span>
+            <span class="k">return</span> <span class="kc">True</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span>
+
+    <span class="k">def</span> <span class="nf">get_the_n_element</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns the n element of the list.</span>
+
+<span class="sd">        :param n: The number of the n-element to be retrieved.</span>
+<span class="sd">        :return: A list expression object representing the requested n-element.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">i</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="n">tmp_le</span> <span class="o">=</span> <span class="bp">self</span>
+
+        <span class="k">while</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">n</span><span class="p">:</span>
+            <span class="n">tmp_le</span> <span class="o">=</span> <span class="n">tmp_le</span><span class="o">.</span><span class="n">next</span>
+            <span class="n">i</span> <span class="o">+=</span> <span class="mi">1</span>
+
+        <span class="k">return</span> <span class="n">tmp_le</span><span class="o">.</span><span class="n">value</span>
+
+    <span class="k">def</span> <span class="nf">get_first_element</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns the first element of the list.</span>
+
+<span class="sd">        :return: A ListExp object with the first element of the current list.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_the_n_element</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">get_second_element</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns the second element of the list.</span>
+
+<span class="sd">        :return: A ListExp object with the second element of the current list.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_the_n_element</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">get_third_element</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns the third element of the list.</span>
+
+<span class="sd">        :return: A ListExp object with the third element of the current list.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_the_n_element</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">get_fourth_element</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns the fourth element of the list.</span>
+
+<span class="sd">        :return: A ListExp object with the fourth element of the current list.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_the_n_element</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">get_fifth_element</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns the fifth element of the list.</span>
+
+<span class="sd">        :return: A ListExp object with the fifth element of the current list.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_the_n_element</span><span class="p">(</span><span class="mi">5</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">get_sixth_element</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns the sixth element of the list.</span>
+
+<span class="sd">        :return: A ListExp object with the sixth element of the current list.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_the_n_element</span><span class="p">(</span><span class="mi">6</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">get_list_length</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Determines the length of the current list.</span>
+
+<span class="sd">        :return: An integer with the depth of the list.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">i</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="n">tmp_le</span> <span class="o">=</span> <span class="bp">self</span>
+
+        <span class="k">while</span> <span class="n">tmp_le</span><span class="o">.</span><span class="n">next</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">tmp_le</span> <span class="o">=</span> <span class="n">tmp_le</span><span class="o">.</span><span class="n">next</span>
+            <span class="n">i</span> <span class="o">+=</span> <span class="mi">1</span>
+
+        <span class="k">return</span> <span class="n">i</span>
+
+    <span class="k">def</span> <span class="nf">get_last_node</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns the last node of the list expression object.</span>
+
+<span class="sd">        :return: The last node of the list expression object.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">last_node</span> <span class="o">=</span> <span class="bp">self</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">next</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">last_node</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">while</span> <span class="n">last_node</span><span class="o">.</span><span class="n">next</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">last_node</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">next</span>
+            <span class="k">return</span> <span class="n">last_node</span>
+
+    <span class="k">def</span> <span class="nf">add</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">in_list</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Adds a new node to the list.</span>
+
+<span class="sd">        :param in_list: A list expression object.</span>
+<span class="sd">        :return: The current instance of the list expression object.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_list_length</span><span class="p">()</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="n">NO_ATOM</span><span class="p">:</span>
+            <span class="c1"># The list has the original node only</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="n">in_list</span><span class="o">.</span><span class="n">value</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">type</span> <span class="o">=</span> <span class="n">in_list</span><span class="o">.</span><span class="n">value</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">next</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># The list has more than one node</span>
+            <span class="n">last_node</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_last_node</span><span class="p">()</span>
+            <span class="n">last_node</span><span class="o">.</span><span class="n">next</span> <span class="o">=</span> <span class="n">in_list</span>
+
+
+
+
+
+
+
+
+
+</pre></div>
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../../index.html">pySecondo  documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../../index.html" >Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">secondodb.api.support.secondolistexpr</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2019, Victor Silva.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 3.1.1.
+    </div>
+  </body>
+</html>

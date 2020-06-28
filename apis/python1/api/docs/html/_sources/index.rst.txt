@@ -1,0 +1,221 @@
+.. pySecondo documentation master file, created by
+   sphinx-quickstart on Fri Dec 13 18:44:52 2019.
+   You can adapt this file completely to your liking, but it should at least
+   contain the root `toctree` directive.
+
+.. |sec| replace:: :mod:`SECONDO`
+
+#################################################
+PySECONDO - Python DB-API 2.0 interface for |sec|
+#################################################
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Contents:
+
+|sec|-API Main Module
+=======================
+.. automodule:: secondodb.api.secondoapi
+   :members: connect
+
+Connection Class
+--------------------
+The Connection Class provides methods to handle the connection to a |sec| server and a stored database. The connection
+can be established in two levels:
+
+- **Server-only mode**
+
+   A TCP connection will be established with the |sec| server. At this point no connection will be established with a
+   specific stored database on the server. This mode is useful for administration tasks on the |sec| server, like
+   creating, deleting and restoring databases. These methods can as well be called in the Direct DB connection mode, but
+   the current connection with the last opened database will be closed.
+
+- **Direct DB connection mode**
+
+   Both a connection with the |sec| server and to a specific stored database will be established. The requisite for this
+   type of connection is the availability of the database and its specific login parameters (i.e. name of the database,
+   user name and password). A database may or not have login parameters (i.e. user name and password). Therefore, they
+   are optional parameters of the constructor method.
+
+**Example for establishing a connection to the Secondo server providing a host and a port:**
+
+.. code-block:: python
+
+   import secondodb.api as secondo
+
+   HOST = '127.0.0.1'   # The server's hostname or IP address
+   PORT = '1234'        # The port used by the server
+
+   connection = secondo.connect(HOST, PORT)
+
+**Example for establishing a connection to the Secondo server and to a specific stored database (BERLINTEST):**
+
+.. code-block:: python
+
+   import secondodb.api as secondo
+
+   HOST = '127.0.0.1'   # The server's hostname or IP address
+   PORT = '1234'        # The port used by the server
+
+   connection = secondo.connect(HOST, PORT, database='BERLINTEST')
+
+Basic Methods
++++++++++++++++++++
+.. autoclass:: secondodb.api.secondoapi.Connection
+   :members: open_database, close_database, create_database, restore_database, delete_database, close, cursor
+
+Transaction Methods
++++++++++++++++++++++++++
+.. autoclass:: secondodb.api.secondoapi.Connection
+   :members: commit, rollback
+
+Get-Methods
++++++++++++++++++
+Get-Methods can be used to retrieve different types of objects or information from a |sec| database.
+
+.. autoclass:: secondodb.api.secondoapi.Connection
+   :members: get_list_databases, get_list_objects, get_list_types, get_list_type_constructors, get_list_algebras, get_algebra
+
+Cursor Class
+----------------
+.. autoclass:: secondodb.api.secondoapi.Cursor
+   :members:
+
+Exceptions
+--------------
+.. automodule:: secondodb.api.secondoapi
+   :noindex:
+   :members: Warning, Error, InterfaceError, DatabaseError, DataError, OperationalError, IntegrityError, InternalError, ProgrammingError, NotSupportedError
+
+Support Modules
+=================
+
+|sec| Commands
+--------------------
+.. automodule:: secondodb.api.support.secondocommands
+   :members:
+
+**Available Secondo Commands:**
+
+.. code-block:: python
+
+   # ---- Basic commands ---- #
+
+   SECONDO_COM_QUERY = 'query {0}'
+   SECONDO_COM_LET = 'let {0} = {1}'
+   SECONDO_COM_DERIVE = 'derive {0} = {1}'
+   SECONDO_COM_UPDATE = 'update {0} := {1}'
+   SECONDO_COM_DELETE = 'delete {0}'
+   SECONDO_COM_TYPE = 'type {0} = {1}'
+   SECONDO_COM_DELETE_TYPE = 'delete type {0}'
+   SECONDO_COM_CREATE = 'create {0} : {1}'
+   SECONDO_COM_KILL = 'kill {0}'
+
+   # ---- Databases ----- #
+
+   SECONDO_COM_CREATE_DB = 'create database {0}'
+   SECONDO_COM_OPEN_DB = 'open database {0}'
+   SECONDO_COM_CLOSE_DB = 'close database'
+   SECONDO_COM_DELETE_DB = 'delete database {0}'
+   SECONDO_COM_RESTORE_DB = 'restore database {0}'
+
+   # ---- Transactions ----- #
+
+   SECONDO_COM_BEGIN_TR = 'begin transaction'
+   SECONDO_COM_COMMIT_TR = 'commit transaction'
+   SECONDO_COM_ABORT_TR = 'abort transaction'
+
+   # ---- Inquiries ----- #
+
+   SECONDO_COM_LIST_DB = 'list databases'
+   SECONDO_COM_LIST_TYPE_CONS = 'list type constructors'
+   SECONDO_COM_LIST_OPERATORS = 'list operators'
+   SECONDO_COM_LIST_ALGEBRAS = 'list algebras'
+   SECONDO_COM_LIST_ALGEBRA = 'list algebra {0}'
+   SECONDO_COM_LIST_TYPES = 'list types'
+   SECONDO_COM_LIST_OBJECTS = 'list objects'
+
+   # ---- Import and Export ----- #
+
+   SECONDO_COM_SAVE_DB = 'save database to {0}'
+   SECONDO_COM_RESTORE_DB_FROM = 'restore database {0} from {1}'
+   SECONDO_COM_SAVE_OBJECT = 'save {0} to {1}'
+   SECONDO_COM_RESTORE_OBJECT = 'restore {0} from {1}'
+
+|sec| Messages
+--------------------
+.. automodule:: secondodb.api.support.secondomessages
+   :members:
+
+**Available Secondo Messages:**
+
+.. code-block:: python
+
+   SECONDO_OK = '<SecondoOk/>'
+
+   SECONDO_INTRO_START = '<SecondoIntro>'
+   SECONDO_INTRO_END = '</SecondoIntro>'
+
+   SECONDO_ERROR_START = '<SecondoError>'
+   SECONDO_ERROR_END = '</SecondoError>'
+
+   SECONDO_CONNECT_START = '<Connect>'
+   SECONDO_CONNECT_END = '</Connect>'
+   SECONDO_DISCONNECT_END = '<Disconnect/>'
+
+   SECONDO_COMMAND_START = '<Secondo>'
+   SECONDO_COMMAND_END = '</Secondo>'
+
+   SECONDO_MESSAGE_START = '<Message>'
+   SECONDO_MESSAGE_END = '</Message>'
+
+   SECONDO_RESPONSE_START = '<SecondoResponse>'
+   SECONDO_RESPONSE_END = '</SecondoResponse>'
+
+   SECONDO_PROGRESS = 'progress'
+
+|sec| Parser
+------------------
+.. automodule:: secondodb.api.support.secondoparser
+   :members:
+
+|sec| Algebras
+--------------------
+
+**Data types for the Secondo Standard Algebra**
+
+.. automodule:: secondodb.api.algebras.secondostandardalgebra
+   :members:
+
+**Data types for the Secondo Spatial Algebra**
+
+.. automodule:: secondodb.api.algebras.secondospatialalgebra
+   :members:
+
+**Data types for the Secondo Spatio Temporal Algebra**
+
+.. automodule:: secondodb.api.algebras.secondospatiotemporalalgebra
+   :members:
+
+**Data types for the Secondo Relational Algebra**
+
+.. automodule:: secondodb.api.algebras.secondorelationalalgebra
+   :members:
+
+|sec| Input Handler
+-----------------------
+.. automodule:: secondodb.api.support.secondoinputhandler
+   :members:
+
+|sec| List Expression
+-----------------------
+
+.. automodule:: secondodb.api.support.secondolistexpr
+   :members:
+
+Indices and tables
+==================
+
+* :ref:`genindex`
+* :ref:`modindex`
+* :ref:`search`

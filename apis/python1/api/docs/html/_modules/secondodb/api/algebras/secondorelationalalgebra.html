@@ -1,0 +1,198 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>secondodb.api.algebras.secondorelationalalgebra &#8212; pySecondo  documentation</title>
+    <link rel="stylesheet" href="../../../../_static/nature.css" type="text/css" />
+    <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+    <script id="documentation_options" data-url_root="../../../../" src="../../../../_static/documentation_options.js"></script>
+    <script src="../../../../_static/jquery.js"></script>
+    <script src="../../../../_static/underscore.js"></script>
+    <script src="../../../../_static/doctools.js"></script>
+    <script src="../../../../_static/language_data.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../../index.html">pySecondo  documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../../index.html" accesskey="U">Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">secondodb.api.algebras.secondorelationalalgebra</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for secondodb.api.algebras.secondorelationalalgebra</h1><div class="highlight"><pre>
+<span></span><span class="c1"># ----------------------------------------------------------------------------------------------------------------------</span>
+<span class="c1"># The Secondo Python API (pySecondo)</span>
+<span class="c1"># Victor Silva (victor.silva@posteo.de)</span>
+<span class="c1"># March 2020</span>
+<span class="c1"># ----------------------------------------------------------------------------------------------------------------------</span>
+<span class="c1"># Module</span>
+<span class="c1"># ----------------------------------------------------------------------------------------------------------------------</span>
+<span class="c1"># Secondo Spatial Algebra</span>
+<span class="c1"># secondospatialalgebra.py</span>
+<span class="c1"># ----------------------------------------------------------------------------------------------------------------------</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">The module Secondo Relational Algebra implements the data types for the conversion of list expression objects with</span>
+<span class="sd">values of the types contained in the RelationalAlgebra of the |sec| system. The data types are implemented in Python</span>
+<span class="sd">using Data Classes. Data Classes are implemented in the API like normal classes without behaviour.</span>
+<span class="sd">Like regular classes their attributes can be called through the given names.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+
+<span class="kn">from</span> <span class="nn">dataclasses</span> <span class="kn">import</span> <span class="n">dataclass</span>
+
+<span class="kn">import</span> <span class="nn">secondodb.api.algebras.secondospatialalgebra</span> <span class="k">as</span> <span class="nn">spatial</span>
+<span class="kn">import</span> <span class="nn">secondodb.api.algebras.secondostandardalgebra</span> <span class="k">as</span> <span class="nn">standard</span>
+<span class="kn">import</span> <span class="nn">secondodb.api.algebras.secondospatiotemporalalgebra</span> <span class="k">as</span> <span class="nn">spatiotemporal</span>
+<span class="kn">from</span> <span class="nn">secondodb.api.algebras.secondogeneraldataclasses</span> <span class="kn">import</span> <span class="n">Attribute</span>
+<span class="kn">import</span> <span class="nn">secondodb.api.secondoapi</span> <span class="k">as</span> <span class="nn">api</span>
+<span class="kn">from</span> <span class="nn">secondodb.api.support.secondolistexpr</span> <span class="kn">import</span> <span class="n">ListExp</span>
+
+
+<div class="viewcode-block" id="Relation"><a class="viewcode-back" href="../../../../index.html#secondodb.api.algebras.secondorelationalalgebra.Relation">[docs]</a><span class="nd">@dataclass</span>
+<span class="k">class</span> <span class="nc">Relation</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Implements the type relation (rel) of the relational algebra of |sec|.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="vm">__slots__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;attributes&quot;</span><span class="p">,</span> <span class="s2">&quot;data&quot;</span><span class="p">]</span>
+
+    <span class="n">attributes</span><span class="p">:</span> <span class="p">[]</span>
+    <span class="n">data</span><span class="p">:</span> <span class="p">[]</span></div>
+
+
+<div class="viewcode-block" id="parse_relation"><a class="viewcode-back" href="../../../../index.html#secondodb.api.algebras.secondorelationalalgebra.parse_relation">[docs]</a><span class="k">def</span> <span class="nf">parse_relation</span><span class="p">(</span><span class="n">list_expr</span><span class="p">:</span> <span class="n">ListExp</span><span class="p">,</span> <span class="n">attr_list</span><span class="p">:</span> <span class="p">[])</span> <span class="o">-&gt;</span> <span class="n">Relation</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Parses a relation (rel) object. A relation named tuple with two attributes (attributes and data) will be returned.</span>
+<span class="sd">    The attribute &quot;attributes&quot; contains the fields and types of the relation. The attribute &quot;data&quot; contains the entries.</span>
+
+<span class="sd">    :param list_expr: A list expression object with a relation.</span>
+<span class="sd">    :param attr_list: The list of the attributes. Every attribute is an object of the class Attribute.</span>
+<span class="sd">    :return: An object of the class Relation with the data. Every entry of the relation data is a Python dictionary,</span>
+<span class="sd">             which allows to call the single fields of the tuple using the corresponding attribute name. The retrieval</span>
+<span class="sd">             of the value using an index (like in lists) is allowed as well.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">relation_data</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">while</span> <span class="n">list_expr</span><span class="o">.</span><span class="n">next</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+
+        <span class="n">single_row</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">single_row_as_le</span> <span class="o">=</span> <span class="n">list_expr</span><span class="o">.</span><span class="n">value</span>
+
+        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">attr_list</span><span class="p">)):</span>
+
+            <span class="n">single_attribute</span><span class="p">:</span> <span class="n">Attribute</span> <span class="o">=</span> <span class="n">attr_list</span><span class="p">[</span><span class="n">j</span><span class="p">]</span>
+
+            <span class="n">attr_name</span> <span class="o">=</span> <span class="n">single_attribute</span><span class="o">.</span><span class="n">attribute_name</span>
+
+            <span class="k">if</span> <span class="n">single_attribute</span><span class="o">.</span><span class="n">attribute_type</span> <span class="o">==</span> <span class="s1">&#39;string&#39;</span><span class="p">:</span>
+                <span class="n">attr_value</span> <span class="o">=</span> <span class="n">standard</span><span class="o">.</span><span class="n">parse_string</span><span class="p">(</span><span class="n">single_row_as_le</span><span class="o">.</span><span class="n">get_the_n_element</span><span class="p">(</span><span class="n">j</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span>
+
+            <span class="k">elif</span> <span class="n">single_attribute</span><span class="o">.</span><span class="n">attribute_type</span> <span class="o">==</span> <span class="s1">&#39;text&#39;</span><span class="p">:</span>
+                <span class="n">attr_value</span> <span class="o">=</span> <span class="n">standard</span><span class="o">.</span><span class="n">parse_string</span><span class="p">(</span><span class="n">single_row_as_le</span><span class="o">.</span><span class="n">get_the_n_element</span><span class="p">(</span><span class="n">j</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span>
+
+            <span class="k">elif</span> <span class="n">single_attribute</span><span class="o">.</span><span class="n">attribute_type</span> <span class="o">==</span> <span class="s1">&#39;int&#39;</span><span class="p">:</span>
+                <span class="n">attr_value</span> <span class="o">=</span> <span class="n">standard</span><span class="o">.</span><span class="n">parse_int</span><span class="p">(</span><span class="n">single_row_as_le</span><span class="o">.</span><span class="n">get_the_n_element</span><span class="p">(</span><span class="n">j</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span>
+
+            <span class="k">elif</span> <span class="n">single_attribute</span><span class="o">.</span><span class="n">attribute_type</span> <span class="o">==</span> <span class="s1">&#39;longint&#39;</span><span class="p">:</span>
+                <span class="n">attr_value</span> <span class="o">=</span> <span class="n">standard</span><span class="o">.</span><span class="n">parse_longint</span><span class="p">(</span><span class="n">single_row_as_le</span><span class="o">.</span><span class="n">get_the_n_element</span><span class="p">(</span><span class="n">j</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span>
+
+            <span class="k">elif</span> <span class="n">single_attribute</span><span class="o">.</span><span class="n">attribute_type</span> <span class="o">==</span> <span class="s1">&#39;real&#39;</span><span class="p">:</span>
+                <span class="n">attr_value</span> <span class="o">=</span> <span class="n">standard</span><span class="o">.</span><span class="n">parse_real</span><span class="p">(</span><span class="n">single_row_as_le</span><span class="o">.</span><span class="n">get_the_n_element</span><span class="p">(</span><span class="n">j</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span>
+
+            <span class="k">elif</span> <span class="n">single_attribute</span><span class="o">.</span><span class="n">attribute_type</span> <span class="o">==</span> <span class="s1">&#39;rational&#39;</span><span class="p">:</span>
+                <span class="n">attr_value</span> <span class="o">=</span> <span class="n">standard</span><span class="o">.</span><span class="n">parse_rational</span><span class="p">(</span><span class="n">single_row_as_le</span><span class="o">.</span><span class="n">get_the_n_element</span><span class="p">(</span><span class="n">j</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span>
+
+            <span class="k">elif</span> <span class="n">single_attribute</span><span class="o">.</span><span class="n">attribute_type</span> <span class="o">==</span> <span class="s1">&#39;bool&#39;</span><span class="p">:</span>
+                <span class="n">attr_value</span> <span class="o">=</span> <span class="n">standard</span><span class="o">.</span><span class="n">parse_bool</span><span class="p">(</span><span class="n">single_row_as_le</span><span class="o">.</span><span class="n">get_the_n_element</span><span class="p">(</span><span class="n">j</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span>
+
+            <span class="k">elif</span> <span class="n">single_attribute</span><span class="o">.</span><span class="n">attribute_type</span> <span class="o">==</span> <span class="s1">&#39;point&#39;</span><span class="p">:</span>
+                <span class="n">attr_value</span> <span class="o">=</span> <span class="n">spatial</span><span class="o">.</span><span class="n">parse_point</span><span class="p">(</span><span class="n">single_row_as_le</span><span class="o">.</span><span class="n">get_the_n_element</span><span class="p">(</span><span class="n">j</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span>
+
+            <span class="k">elif</span> <span class="n">single_attribute</span><span class="o">.</span><span class="n">attribute_type</span> <span class="o">==</span> <span class="s1">&#39;points&#39;</span><span class="p">:</span>
+                <span class="n">attr_value</span> <span class="o">=</span> <span class="n">spatial</span><span class="o">.</span><span class="n">parse_points</span><span class="p">(</span><span class="n">single_row_as_le</span><span class="o">.</span><span class="n">get_the_n_element</span><span class="p">(</span><span class="n">j</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span>
+
+            <span class="k">elif</span> <span class="n">single_attribute</span><span class="o">.</span><span class="n">attribute_type</span> <span class="o">==</span> <span class="s1">&#39;line&#39;</span><span class="p">:</span>
+                <span class="n">attr_value</span> <span class="o">=</span> <span class="n">spatial</span><span class="o">.</span><span class="n">parse_line</span><span class="p">(</span><span class="n">single_row_as_le</span><span class="o">.</span><span class="n">get_the_n_element</span><span class="p">(</span><span class="n">j</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span>
+
+            <span class="k">elif</span> <span class="n">single_attribute</span><span class="o">.</span><span class="n">attribute_type</span> <span class="o">==</span> <span class="s1">&#39;sline&#39;</span><span class="p">:</span>
+                <span class="n">attr_value</span> <span class="o">=</span> <span class="n">spatial</span><span class="o">.</span><span class="n">parse_line</span><span class="p">(</span><span class="n">single_row_as_le</span><span class="o">.</span><span class="n">get_the_n_element</span><span class="p">(</span><span class="n">j</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span>
+
+            <span class="k">elif</span> <span class="n">single_attribute</span><span class="o">.</span><span class="n">attribute_type</span> <span class="o">==</span> <span class="s1">&#39;region&#39;</span><span class="p">:</span>
+                <span class="n">attr_value</span> <span class="o">=</span> <span class="n">spatial</span><span class="o">.</span><span class="n">parse_region</span><span class="p">(</span><span class="n">single_row_as_le</span><span class="o">.</span><span class="n">get_the_n_element</span><span class="p">(</span><span class="n">j</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span>
+
+            <span class="k">elif</span> <span class="n">single_attribute</span><span class="o">.</span><span class="n">attribute_type</span> <span class="o">==</span> <span class="s1">&#39;mpoint&#39;</span><span class="p">:</span>
+                <span class="n">attr_value</span> <span class="o">=</span> <span class="n">spatiotemporal</span><span class="o">.</span><span class="n">parse_mpoint</span><span class="p">(</span><span class="n">single_row_as_le</span><span class="o">.</span><span class="n">get_the_n_element</span><span class="p">(</span><span class="n">j</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span>
+
+            <span class="k">elif</span> <span class="n">single_attribute</span><span class="o">.</span><span class="n">attribute_type</span> <span class="o">==</span> <span class="s1">&#39;mregion&#39;</span><span class="p">:</span>
+                <span class="n">attr_value</span> <span class="o">=</span> <span class="n">spatiotemporal</span><span class="o">.</span><span class="n">parse_mregion</span><span class="p">(</span><span class="n">single_row_as_le</span><span class="o">.</span><span class="n">get_the_n_element</span><span class="p">(</span><span class="n">j</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span>
+
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">api</span><span class="o">.</span><span class="n">InterfaceError</span><span class="p">(</span><span class="s1">&#39;Error: Attribute type &#39;</span> <span class="o">+</span> <span class="n">single_attribute</span><span class="o">.</span><span class="n">attribute_type</span> <span class="o">+</span> <span class="s1">&#39; not supported.&#39;</span><span class="p">)</span>
+
+            <span class="n">single_row</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="n">attr_name</span><span class="p">:</span> <span class="n">attr_value</span><span class="p">})</span>
+
+        <span class="n">relation_data</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">single_row</span><span class="p">)</span>
+        <span class="n">list_expr</span> <span class="o">=</span> <span class="n">list_expr</span><span class="o">.</span><span class="n">next</span>
+
+    <span class="k">return</span> <span class="n">Relation</span><span class="p">(</span><span class="n">attr_list</span><span class="p">,</span> <span class="n">relation_data</span><span class="p">)</span></div>
+
+</pre></div>
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../../index.html">pySecondo  documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../../index.html" >Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">secondodb.api.algebras.secondorelationalalgebra</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2019, Victor Silva.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 3.1.1.
+    </div>
+  </body>
+</html>

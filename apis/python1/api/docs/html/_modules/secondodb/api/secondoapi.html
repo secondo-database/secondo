@@ -1,0 +1,1526 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>secondodb.api.secondoapi &#8212; pySecondo  documentation</title>
+    <link rel="stylesheet" href="../../../_static/nature.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script src="../../../_static/jquery.js"></script>
+    <script src="../../../_static/underscore.js"></script>
+    <script src="../../../_static/doctools.js"></script>
+    <script src="../../../_static/language_data.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">pySecondo  documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" accesskey="U">Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">secondodb.api.secondoapi</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for secondodb.api.secondoapi</h1><div class="highlight"><pre>
+<span></span><span class="c1"># ----------------------------------------------------------------------------------------------------------------------</span>
+<span class="c1"># The Secondo Python API (pySecondo)</span>
+<span class="c1"># Victor Silva (victor.silva@posteo.de)</span>
+<span class="c1"># October 2019</span>
+<span class="c1"># ----------------------------------------------------------------------------------------------------------------------</span>
+<span class="c1"># Module</span>
+<span class="c1"># ----------------------------------------------------------------------------------------------------------------------</span>
+<span class="c1"># Secondo API</span>
+<span class="c1"># secondoapi.py</span>
+<span class="c1"># ----------------------------------------------------------------------------------------------------------------------</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">The module Secondo API implements the Application Programming Interface for Python for the interaction with a |sec|</span>
+<span class="sd">server. The API implements the Python Database API 2.0 Specification (PEP 249).</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">socket</span> <span class="kn">import</span> <span class="n">socket</span><span class="p">,</span> <span class="n">AF_INET</span><span class="p">,</span> <span class="n">SOCK_STREAM</span><span class="p">,</span> <span class="n">TCP_NODELAY</span><span class="p">,</span> <span class="n">IPPROTO_TCP</span>
+<span class="kn">import</span> <span class="nn">secondodb.api.support.secondoparser</span> <span class="k">as</span> <span class="nn">parser</span>
+<span class="kn">import</span> <span class="nn">secondodb.api.support.secondomessages</span> <span class="k">as</span> <span class="nn">messages</span>
+<span class="kn">import</span> <span class="nn">secondodb.api.support.secondocommands</span> <span class="k">as</span> <span class="nn">com</span>
+
+<span class="n">apilevel</span> <span class="o">=</span> <span class="s1">&#39;2.0&#39;</span>
+<span class="n">threadsafety</span> <span class="o">=</span> <span class="mi">1</span>
+<span class="n">paramstyle</span> <span class="o">=</span> <span class="s1">&#39;pyformat&#39;</span>
+<span class="n">encoding</span> <span class="o">=</span> <span class="s1">&#39;latin-1&#39;</span>
+<span class="n">error_encoding</span> <span class="o">=</span> <span class="s1">&#39;ignore&#39;</span>
+
+
+<div class="viewcode-block" id="connect"><a class="viewcode-back" href="../../../index.html#secondodb.api.secondoapi.connect">[docs]</a><span class="k">def</span> <span class="nf">connect</span><span class="p">(</span><span class="n">host</span><span class="p">,</span> <span class="n">port</span><span class="p">,</span> <span class="n">username</span><span class="o">=</span><span class="s1">&#39;username&#39;</span><span class="p">,</span> <span class="n">passwd</span><span class="o">=</span><span class="s1">&#39;passwd&#39;</span><span class="p">,</span> <span class="n">database</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Constructor for creating a connection to the |sec| server. If further data is provided (database and login data),</span>
+<span class="sd">    a connection to an existing database (if available on the server) will be established.</span>
+
+<span class="sd">    Returns a Connection Object.</span>
+
+<span class="sd">    :param host: The host of the |sec| server as IP-address or as qualified name (localhost).</span>
+<span class="sd">    :param port: The port of the |sec| server.</span>
+<span class="sd">    :param username: The username for the connection (optional).</span>
+<span class="sd">    :param passwd: The password for the connection (optional).</span>
+<span class="sd">    :param database: The name of the database (optional).</span>
+<span class="sd">    :return: A Connection Object.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># Check if minimum parameters for the connection are available and valid</span>
+
+    <span class="k">if</span> <span class="n">host</span> <span class="o">==</span> <span class="s1">&#39;&#39;</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">InterfaceError</span><span class="p">(</span><span class="s1">&#39;The host is not valid.&#39;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">port</span> <span class="o">==</span> <span class="s1">&#39;&#39;</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">InterfaceError</span><span class="p">(</span><span class="s1">&#39;The port is not valid.&#39;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">parser</span><span class="o">.</span><span class="n">check_port</span><span class="p">(</span><span class="n">port</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="n">InterfaceError</span><span class="p">(</span><span class="s1">&#39;The port has invalid characters.&#39;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">parser</span><span class="o">.</span><span class="n">check_identifier</span><span class="p">(</span><span class="n">username</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="n">InterfaceError</span><span class="p">(</span><span class="s1">&#39;The username is not valid.&#39;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">parser</span><span class="o">.</span><span class="n">check_identifier</span><span class="p">(</span><span class="n">passwd</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="n">InterfaceError</span><span class="p">(</span><span class="s1">&#39;The password is not valid.&#39;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">database</span> <span class="o">!=</span> <span class="s1">&#39;&#39;</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">parser</span><span class="o">.</span><span class="n">check_identifier</span><span class="p">(</span><span class="n">database</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="n">InterfaceError</span><span class="p">(</span><span class="s1">&#39;The database name is not valid.&#39;</span><span class="p">)</span>
+
+    <span class="n">port</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">port</span><span class="p">)</span>
+
+    <span class="c1"># Create Connection object</span>
+
+    <span class="n">connection</span> <span class="o">=</span> <span class="n">Connection</span><span class="p">(</span><span class="n">host</span><span class="p">,</span> <span class="n">port</span><span class="p">,</span> <span class="n">username</span><span class="p">,</span> <span class="n">passwd</span><span class="p">,</span> <span class="n">database</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">connection</span><span class="o">.</span><span class="n">initialized</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">connection</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">InterfaceError</span><span class="p">(</span><span class="s1">&#39;Connection refused.&#39;</span><span class="p">)</span></div>
+
+
+<span class="c1"># --- Exceptions ---</span>
+
+<div class="viewcode-block" id="Warning"><a class="viewcode-back" href="../../../index.html#secondodb.api.secondoapi.Warning">[docs]</a><span class="k">class</span> <span class="nc">Warning</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Exception raised for important warnings like data truncations while inserting, etc.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">message</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">message</span> <span class="o">=</span> <span class="n">message</span>
+        <span class="nb">super</span><span class="p">(</span><span class="ne">Warning</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">message</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Error"><a class="viewcode-back" href="../../../index.html#secondodb.api.secondoapi.Error">[docs]</a><span class="k">class</span> <span class="nc">Error</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Exception that is the base class of all other error exceptions.</span>
+<span class="sd">    You can use this to catch all errors with one single except statement.</span>
+<span class="sd">    Warnings are not considered errors and thus should not use this class as base.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">message</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">message</span> <span class="o">=</span> <span class="n">message</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">Error</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">message</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="InterfaceError"><a class="viewcode-back" href="../../../index.html#secondodb.api.secondoapi.InterfaceError">[docs]</a><span class="k">class</span> <span class="nc">InterfaceError</span><span class="p">(</span><span class="n">Error</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Exception raised for errors that are related to the database interface rather than the database itself.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">message</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">message</span> <span class="o">=</span> <span class="n">message</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">InterfaceError</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">message</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="DatabaseError"><a class="viewcode-back" href="../../../index.html#secondodb.api.secondoapi.DatabaseError">[docs]</a><span class="k">class</span> <span class="nc">DatabaseError</span><span class="p">(</span><span class="n">Error</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Exception raised for errors that are related to the database.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">message</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">message</span> <span class="o">=</span> <span class="n">message</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">DatabaseError</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">message</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="DataError"><a class="viewcode-back" href="../../../index.html#secondodb.api.secondoapi.DataError">[docs]</a><span class="k">class</span> <span class="nc">DataError</span><span class="p">(</span><span class="n">DatabaseError</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Exception raised for errors that are due to problems with the processed data like division by zero,</span>
+<span class="sd">    numeric value out of range, etc.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">message</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">message</span> <span class="o">=</span> <span class="n">message</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">DataError</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">message</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="OperationalError"><a class="viewcode-back" href="../../../index.html#secondodb.api.secondoapi.OperationalError">[docs]</a><span class="k">class</span> <span class="nc">OperationalError</span><span class="p">(</span><span class="n">DatabaseError</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Exception raised for errors that are related to the database&#39;s operation and not necessarily under</span>
+<span class="sd">    the control of the programmer, e.g. an unexpected disconnect occurs, the data source name is not found,</span>
+<span class="sd">    a transaction could not be processed, a memory allocation error occurred during processing, etc.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">message</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">message</span> <span class="o">=</span> <span class="n">message</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">OperationalError</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">message</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="IntegrityError"><a class="viewcode-back" href="../../../index.html#secondodb.api.secondoapi.IntegrityError">[docs]</a><span class="k">class</span> <span class="nc">IntegrityError</span><span class="p">(</span><span class="n">DatabaseError</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Exception raised when the relational integrity of the database is affected, e.g. a foreign key check fails.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">message</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">message</span> <span class="o">=</span> <span class="n">message</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">IntegrityError</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">message</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="InternalError"><a class="viewcode-back" href="../../../index.html#secondodb.api.secondoapi.InternalError">[docs]</a><span class="k">class</span> <span class="nc">InternalError</span><span class="p">(</span><span class="n">DatabaseError</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Exception raised when the database encounters an internal error, e.g. the cursor is not valid anymore,</span>
+<span class="sd">    the transaction is out of sync, etc.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">message</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">message</span> <span class="o">=</span> <span class="n">message</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">InternalError</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">message</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="ProgrammingError"><a class="viewcode-back" href="../../../index.html#secondodb.api.secondoapi.ProgrammingError">[docs]</a><span class="k">class</span> <span class="nc">ProgrammingError</span><span class="p">(</span><span class="n">DatabaseError</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Exception raised for programming errors, e.g. table not found or already exists, syntax error in the SQL statement,</span>
+<span class="sd">    wrong number of parameters specified, etc.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">message</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">message</span> <span class="o">=</span> <span class="n">message</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">ProgrammingError</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">message</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="NotSupportedError"><a class="viewcode-back" href="../../../index.html#secondodb.api.secondoapi.NotSupportedError">[docs]</a><span class="k">class</span> <span class="nc">NotSupportedError</span><span class="p">(</span><span class="n">DatabaseError</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Exception raised in case a method or database API was used which is not supported by the database,</span>
+<span class="sd">    e.g. requesting a .rollback() on a connection that does not support transaction or has transactions turned off.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">message</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">message</span> <span class="o">=</span> <span class="n">message</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">NotSupportedError</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">message</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">)</span></div>
+
+
+<span class="c1"># --- Connection Objects ---</span>
+
+<div class="viewcode-block" id="Connection"><a class="viewcode-back" href="../../../index.html#secondodb.api.secondoapi.Connection">[docs]</a><span class="k">class</span> <span class="nc">Connection</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This class implements the connection object of the |sec| API. The connection object manages all operations at server</span>
+<span class="sd">    level and provides access to the current connection instance with the server. The connection object provides the</span>
+<span class="sd">    cursor() method to create a cursor for the execution of operations at the database level.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">host</span><span class="p">,</span> <span class="n">port</span><span class="p">,</span> <span class="n">username</span><span class="p">,</span> <span class="n">passwd</span><span class="p">,</span> <span class="n">database</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Constructor of the Connection object.</span>
+
+<span class="sd">        :param host: The host of the |sec| Server as IP-address or as qualified name (localhost).</span>
+<span class="sd">        :param port: The port of the |sec| Server.</span>
+<span class="sd">        :param username: The username for the connection.</span>
+<span class="sd">        :param passwd: The password for the connection.</span>
+<span class="sd">        :param database: The name of the database.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">host</span> <span class="o">=</span> <span class="n">host</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">port</span> <span class="o">=</span> <span class="n">port</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">username</span> <span class="o">=</span> <span class="n">username</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">passwd</span> <span class="o">=</span> <span class="n">passwd</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">database</span> <span class="o">=</span> <span class="n">database</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">socket_object</span> <span class="o">=</span> <span class="n">socket</span><span class="p">(</span><span class="n">AF_INET</span><span class="p">,</span> <span class="n">SOCK_STREAM</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">socket_object</span><span class="o">.</span><span class="n">setsockopt</span><span class="p">(</span><span class="n">IPPROTO_TCP</span><span class="p">,</span> <span class="n">TCP_NODELAY</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">initialized</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">server_mode_only</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">transaction_init</span> <span class="o">=</span> <span class="kc">False</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">__initialize</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">__initialize</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Initializes the connection to the |sec| server.</span>
+
+<span class="sd">        :return: None</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># Connect to socket using the host and the port</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">socket_object</span><span class="o">.</span><span class="n">connect</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">host</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">port</span><span class="p">))</span>
+        <span class="k">except</span> <span class="ne">ConnectionRefusedError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">socket_object</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+            <span class="k">raise</span> <span class="n">InterfaceError</span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="n">args</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+        <span class="k">except</span> <span class="ne">OSError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">socket_object</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+            <span class="k">raise</span> <span class="n">InterfaceError</span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="n">args</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="s1">&#39; - Check connection parameters.&#39;</span><span class="p">)</span>
+
+        <span class="c1"># Receive initial data from socket</span>
+
+        <span class="n">intro_string</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">intro_string</span><span class="p">,</span> <span class="n">ok_message</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">receive_response</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">socket_object</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">OSError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">InterfaceError</span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="n">args</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+        <span class="k">except</span> <span class="n">OperationalError</span><span class="p">:</span>
+            <span class="k">raise</span>
+
+        <span class="k">if</span> <span class="n">intro_string</span> <span class="o">==</span> <span class="n">messages</span><span class="o">.</span><span class="n">SECONDO_OK</span><span class="p">:</span>
+
+            <span class="c1"># If Secondo accepted the token, proceed with the connection to the server</span>
+
+            <span class="n">conn_string</span> <span class="o">=</span> <span class="n">messages</span><span class="o">.</span><span class="n">SECONDO_CONNECT_START</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">username</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span> \
+                                                         <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">passwd</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span> \
+                                                         <span class="o">+</span> <span class="n">messages</span><span class="o">.</span><span class="n">SECONDO_CONNECT_END</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">socket_object</span><span class="o">.</span><span class="n">sendall</span><span class="p">(</span><span class="n">conn_string</span><span class="o">.</span><span class="n">encode</span><span class="p">())</span>
+
+            <span class="c1"># Get response list from socket</span>
+
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">intro_string</span><span class="p">,</span> <span class="n">success_message</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">receive_response</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">socket_object</span><span class="p">)</span>
+            <span class="k">except</span> <span class="n">OperationalError</span><span class="p">:</span>
+                <span class="k">raise</span>
+
+            <span class="c1"># Check intro string, print success message from the server</span>
+
+            <span class="k">if</span> <span class="n">intro_string</span> <span class="o">==</span> <span class="n">messages</span><span class="o">.</span><span class="n">SECONDO_INTRO_START</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">initialized</span> <span class="o">=</span> <span class="kc">True</span>
+                <span class="nb">print</span><span class="p">(</span><span class="n">success_message</span><span class="p">)</span>
+
+                <span class="c1"># If a database name was provided, connect to database</span>
+
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">database</span> <span class="o">!=</span> <span class="s1">&#39;&#39;</span><span class="p">:</span>
+                    <span class="k">try</span><span class="p">:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">open_database</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">database</span><span class="p">)</span>
+                    <span class="k">except</span> <span class="n">OperationalError</span><span class="p">:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">server_mode_only</span> <span class="o">=</span> <span class="kc">True</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">database</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">username</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">passwd</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">socket_object</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+                        <span class="k">raise</span>
+                    <span class="k">except</span> <span class="n">InterfaceError</span><span class="p">:</span>
+                        <span class="k">raise</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">server_mode_only</span> <span class="o">=</span> <span class="kc">False</span>
+                        <span class="k">return</span> <span class="kc">True</span>
+
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">server_mode_only</span> <span class="o">=</span> <span class="kc">True</span>
+                    <span class="k">return</span> <span class="kc">True</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">OperationalError</span><span class="p">(</span><span class="s1">&#39;Error: Bad server response.&#39;</span><span class="p">)</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">socket_object</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+            <span class="k">except</span> <span class="ne">OSError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">InterfaceError</span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="n">args</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">socket_object</span> <span class="o">=</span> <span class="kc">None</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">initialized</span> <span class="o">=</span> <span class="kc">False</span>
+                <span class="k">raise</span> <span class="n">InterfaceError</span><span class="p">(</span><span class="s1">&#39;Error: No response from Secondo server&#39;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Connection.close"><a class="viewcode-back" href="../../../index.html#secondodb.api.secondoapi.Connection.close">[docs]</a>    <span class="k">def</span> <span class="nf">close</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Close the connection now.</span>
+
+<span class="sd">        The connection will be unusable from this point forward; an InternalError exception will be raised if any</span>
+<span class="sd">        operation is attempted with the connection. The same applies to all cursor objects trying to use the connection.</span>
+<span class="sd">        Note that closing a connection without committing the changes first will cause an implicit rollback to be</span>
+<span class="sd">        performed.</span>
+
+<span class="sd">        :return: True, if the connection was closed successfully.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">initialized</span><span class="p">:</span>
+
+            <span class="c1"># Any pending transaction will be rolled back</span>
+
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">transaction_init</span><span class="p">:</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">rollback</span><span class="p">()</span>
+                <span class="k">except</span> <span class="n">OperationalError</span><span class="p">:</span>
+                    <span class="k">raise</span>
+                <span class="k">except</span> <span class="n">InterfaceError</span><span class="p">:</span>
+                    <span class="k">raise</span>
+
+            <span class="n">close_string</span> <span class="o">=</span> <span class="n">messages</span><span class="o">.</span><span class="n">SECONDO_DISCONNECT_END</span>
+
+            <span class="c1"># Close open databases</span>
+
+            <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">server_mode_only</span><span class="p">:</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">close_database</span><span class="p">()</span>
+                <span class="k">except</span> <span class="n">InterfaceError</span><span class="p">:</span>
+                    <span class="k">raise</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">socket_object</span><span class="o">.</span><span class="n">sendall</span><span class="p">(</span><span class="n">close_string</span><span class="o">.</span><span class="n">encode</span><span class="p">())</span>
+            <span class="k">except</span> <span class="ne">OSError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">OperationalError</span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="n">args</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">socket_object</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">socket_object</span> <span class="o">=</span> <span class="kc">None</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">initialized</span> <span class="o">=</span> <span class="kc">False</span>
+                <span class="k">return</span> <span class="kc">True</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">InterfaceError</span><span class="p">(</span><span class="s1">&#39;Error: The connection object is not initialized.&#39;</span><span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="nf">start_transaction</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Starts a transaction in the database.</span>
+
+<span class="sd">        :return: True, if the transaction was started successfully.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">initialized</span><span class="p">:</span>
+
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">server_mode_only</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">OperationalError</span><span class="p">(</span><span class="s1">&#39;No connection to a database available.&#39;</span><span class="p">)</span>
+
+            <span class="n">command_level</span> <span class="o">=</span> <span class="mi">1</span>
+            <span class="n">operation</span> <span class="o">=</span> <span class="n">com</span><span class="o">.</span><span class="n">SECONDO_COM_BEGIN_TR</span>
+            <span class="n">command_string</span> <span class="o">=</span> <span class="n">messages</span><span class="o">.</span><span class="n">SECONDO_COMMAND_START</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">command_level</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span> \
+                                                                <span class="o">+</span> <span class="n">operation</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span> \
+                                                                <span class="o">+</span> <span class="n">messages</span><span class="o">.</span><span class="n">SECONDO_COMMAND_END</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">socket_object</span><span class="o">.</span><span class="n">sendall</span><span class="p">(</span><span class="n">command_string</span><span class="o">.</span><span class="n">encode</span><span class="p">())</span>
+
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">response_string</span><span class="p">,</span> <span class="n">receive_list</span><span class="p">,</span> <span class="n">error_dict</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">receive_response</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">socket_object</span><span class="p">)</span>
+            <span class="k">except</span> <span class="n">OperationalError</span><span class="p">:</span>
+                <span class="k">raise</span>
+
+            <span class="k">if</span> <span class="n">error_dict</span><span class="p">[</span><span class="s1">&#39;code&#39;</span><span class="p">]</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">error_dict</span><span class="p">[</span><span class="s1">&#39;code&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">100</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="n">InterfaceError</span><span class="p">(</span><span class="s1">&#39;Secondo: Unexpected fatal system error.&#39;</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="n">InterfaceError</span><span class="p">(</span><span class="n">error_dict</span><span class="p">[</span><span class="s1">&#39;message&#39;</span><span class="p">])</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">transaction_init</span> <span class="o">=</span> <span class="kc">True</span>
+                <span class="k">return</span> <span class="kc">True</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">InterfaceError</span><span class="p">(</span><span class="s1">&#39;Error: The connection object is not initialized.&#39;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Connection.commit"><a class="viewcode-back" href="../../../index.html#secondodb.api.secondoapi.Connection.commit">[docs]</a>    <span class="k">def</span> <span class="nf">commit</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Commit any pending transaction to the database.</span>
+
+<span class="sd">        :return: True, if the current transaction was commit successfully.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">initialized</span><span class="p">:</span>
+
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">server_mode_only</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">InterfaceError</span><span class="p">(</span><span class="s1">&#39;No connection to a database available.&#39;</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">transaction_init</span><span class="p">:</span>
+
+                <span class="n">command_level</span> <span class="o">=</span> <span class="mi">1</span>
+                <span class="n">operation</span> <span class="o">=</span> <span class="n">com</span><span class="o">.</span><span class="n">SECONDO_COM_COMMIT_TR</span>
+                <span class="n">command_string</span> <span class="o">=</span> <span class="n">messages</span><span class="o">.</span><span class="n">SECONDO_COMMAND_START</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">command_level</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span> \
+                                                                <span class="o">+</span> <span class="n">operation</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span> \
+                                                                <span class="o">+</span> <span class="n">messages</span><span class="o">.</span><span class="n">SECONDO_COMMAND_END</span>
+
+                <span class="bp">self</span><span class="o">.</span><span class="n">socket_object</span><span class="o">.</span><span class="n">sendall</span><span class="p">(</span><span class="n">command_string</span><span class="o">.</span><span class="n">encode</span><span class="p">())</span>
+
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">response_string</span><span class="p">,</span> <span class="n">receive_list</span><span class="p">,</span> <span class="n">error_dict</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">receive_response</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">socket_object</span><span class="p">)</span>
+                <span class="k">except</span> <span class="n">OperationalError</span><span class="p">:</span>
+                    <span class="k">raise</span>
+
+                <span class="k">if</span> <span class="n">error_dict</span><span class="p">[</span><span class="s1">&#39;code&#39;</span><span class="p">]</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">error_dict</span><span class="p">[</span><span class="s1">&#39;code&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">100</span><span class="p">:</span>
+                        <span class="k">raise</span> <span class="n">InterfaceError</span><span class="p">(</span><span class="s1">&#39;Secondo: Unexpected fatal system error.&#39;</span><span class="p">)</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="k">raise</span> <span class="n">InterfaceError</span><span class="p">(</span><span class="n">error_dict</span><span class="p">[</span><span class="s1">&#39;message&#39;</span><span class="p">])</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">transaction_init</span> <span class="o">=</span> <span class="kc">False</span>
+                    <span class="k">return</span> <span class="kc">True</span>
+
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">InternalError</span><span class="p">(</span><span class="s1">&#39;No transactions were initiated.&#39;</span><span class="p">)</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">InterfaceError</span><span class="p">(</span><span class="s1">&#39;Error: The connection object is not initialized.&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Connection.rollback"><a class="viewcode-back" href="../../../index.html#secondodb.api.secondoapi.Connection.rollback">[docs]</a>    <span class="k">def</span> <span class="nf">rollback</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        In case a database does provide transactions this method causes the database to roll back to the start of any</span>
+<span class="sd">        pending transaction. Closing a connection without committing the changes first will cause an implicit rollback</span>
+<span class="sd">        to be performed.</span>
+
+<span class="sd">        :return: True, if the current transaction was rolled back successfully.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">initialized</span><span class="p">:</span>
+
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">server_mode_only</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">InterfaceError</span><span class="p">(</span><span class="s1">&#39;No connection to a database available.&#39;</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">transaction_init</span><span class="p">:</span>
+
+                <span class="n">command_level</span> <span class="o">=</span> <span class="mi">1</span>
+                <span class="n">operation</span> <span class="o">=</span> <span class="n">com</span><span class="o">.</span><span class="n">SECONDO_COM_ABORT_TR</span>
+                <span class="n">command_string</span> <span class="o">=</span> <span class="n">messages</span><span class="o">.</span><span class="n">SECONDO_COMMAND_START</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">command_level</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span> \
+                                                                <span class="o">+</span> <span class="n">operation</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span> \
+                                                                <span class="o">+</span> <span class="n">messages</span><span class="o">.</span><span class="n">SECONDO_COMMAND_END</span>
+
+                <span class="bp">self</span><span class="o">.</span><span class="n">socket_object</span><span class="o">.</span><span class="n">sendall</span><span class="p">(</span><span class="n">command_string</span><span class="o">.</span><span class="n">encode</span><span class="p">())</span>
+
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">response_string</span><span class="p">,</span> <span class="n">receive_list</span><span class="p">,</span> <span class="n">error_dict</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">receive_response</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">socket_object</span><span class="p">)</span>
+                <span class="k">except</span> <span class="n">OperationalError</span><span class="p">:</span>
+                    <span class="k">raise</span>
+
+                <span class="k">if</span> <span class="n">error_dict</span><span class="p">[</span><span class="s1">&#39;code&#39;</span><span class="p">]</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">error_dict</span><span class="p">[</span><span class="s1">&#39;code&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">100</span><span class="p">:</span>
+                        <span class="k">raise</span> <span class="n">InterfaceError</span><span class="p">(</span><span class="s1">&#39;Secondo: Unexpected fatal system error.&#39;</span><span class="p">)</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="k">raise</span> <span class="n">InterfaceError</span><span class="p">(</span><span class="n">error_dict</span><span class="p">[</span><span class="s1">&#39;message&#39;</span><span class="p">])</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">transaction_init</span> <span class="o">=</span> <span class="kc">False</span>
+                    <span class="k">return</span> <span class="kc">True</span>
+
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">OperationalError</span><span class="p">(</span><span class="s1">&#39;No transactions were initiated.&#39;</span><span class="p">)</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">InterfaceError</span><span class="p">(</span><span class="s1">&#39;Error: The connection object is not initialized.&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Connection.cursor"><a class="viewcode-back" href="../../../index.html#secondodb.api.secondoapi.Connection.cursor">[docs]</a>    <span class="k">def</span> <span class="nf">cursor</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Return a new Cursor Object using the connection.</span>
+
+<span class="sd">        If the database does not provide a direct cursor concept, the module will have to emulate cursors using other</span>
+<span class="sd">        means to the extent needed by this specification.</span>
+
+<span class="sd">        :return: A Cursor object.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">cursor</span> <span class="o">=</span> <span class="n">Cursor</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">cursor</span></div>
+
+<div class="viewcode-block" id="Connection.create_database"><a class="viewcode-back" href="../../../index.html#secondodb.api.secondoapi.Connection.create_database">[docs]</a>    <span class="k">def</span> <span class="nf">create_database</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">database_name</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Creates a database on the |sec| server. The database remains open after creation.</span>
+
+<span class="sd">        :param database_name: The name of the new database.</span>
+<span class="sd">        :return: True, if the database was created successfully.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">initialized</span><span class="p">:</span>
+
+            <span class="n">command_level</span> <span class="o">=</span> <span class="mi">1</span>
+            <span class="n">database_name</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+
+            <span class="k">if</span> <span class="n">parser</span><span class="o">.</span><span class="n">check_identifier</span><span class="p">(</span><span class="n">database_name</span><span class="p">):</span>
+
+                <span class="n">operation</span> <span class="o">=</span> <span class="n">com</span><span class="o">.</span><span class="n">SECONDO_COM_CREATE_DB</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">database_name</span><span class="p">)</span>
+                <span class="n">command_string</span> <span class="o">=</span> <span class="n">messages</span><span class="o">.</span><span class="n">SECONDO_COMMAND_START</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">command_level</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span> \
+                                                                <span class="o">+</span> <span class="n">operation</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span> \
+                                                                <span class="o">+</span> <span class="n">messages</span><span class="o">.</span><span class="n">SECONDO_COMMAND_END</span>
+
+                <span class="bp">self</span><span class="o">.</span><span class="n">socket_object</span><span class="o">.</span><span class="n">sendall</span><span class="p">(</span><span class="n">command_string</span><span class="o">.</span><span class="n">encode</span><span class="p">())</span>
+
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">response_string</span><span class="p">,</span> <span class="n">receive_list</span><span class="p">,</span> <span class="n">error_dict</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">receive_response</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">socket_object</span><span class="p">)</span>
+                <span class="k">except</span> <span class="n">OperationalError</span><span class="p">:</span>
+                    <span class="k">raise</span>
+
+                <span class="k">if</span> <span class="n">error_dict</span><span class="p">[</span><span class="s1">&#39;code&#39;</span><span class="p">]</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">error_dict</span><span class="p">[</span><span class="s1">&#39;code&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">701</span><span class="p">:</span>
+                        <span class="k">raise</span> <span class="n">OperationalError</span><span class="p">(</span><span class="s1">&#39;The database &#39;</span> <span class="o">+</span> <span class="n">database_name</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="o">+</span> <span class="s1">&#39; already exists.&#39;</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">error_dict</span><span class="p">[</span><span class="s1">&#39;code&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">100</span><span class="p">:</span>
+                        <span class="k">raise</span> <span class="n">InterfaceError</span><span class="p">(</span><span class="s1">&#39;Secondo: Unexpected fatal system error.&#39;</span><span class="p">)</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="k">raise</span> <span class="n">OperationalError</span><span class="p">(</span><span class="n">error_dict</span><span class="p">[</span><span class="s1">&#39;message&#39;</span><span class="p">])</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="kc">True</span>
+
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">OperationalError</span><span class="p">(</span><span class="s1">&#39;The database name has invalid characters.&#39;</span><span class="p">)</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">InterfaceError</span><span class="p">(</span><span class="s1">&#39;The connection has not been initialized.&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Connection.restore_database"><a class="viewcode-back" href="../../../index.html#secondodb.api.secondoapi.Connection.restore_database">[docs]</a>    <span class="k">def</span> <span class="nf">restore_database</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">database_name</span><span class="p">,</span> <span class="n">database_location</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Restores a database from a specific location into the |sec| server. After restoring the database will be</span>
+<span class="sd">        available for establish a connection.</span>
+
+<span class="sd">        :param database_name: The name of the database.</span>
+<span class="sd">        :param database_location: The location of the database.</span>
+<span class="sd">        :return: True, if the database was successfully restored.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">initialized</span><span class="p">:</span>
+
+            <span class="n">command_level</span> <span class="o">=</span> <span class="mi">1</span>
+
+            <span class="k">if</span> <span class="n">parser</span><span class="o">.</span><span class="n">check_identifier</span><span class="p">(</span><span class="n">database_name</span><span class="p">):</span>
+                <span class="n">operation</span> <span class="o">=</span> <span class="n">com</span><span class="o">.</span><span class="n">SECONDO_COM_RESTORE_DB_FROM</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">database_name</span><span class="p">,</span> <span class="n">database_location</span><span class="p">)</span>
+                <span class="n">command_string</span> <span class="o">=</span> <span class="n">messages</span><span class="o">.</span><span class="n">SECONDO_COMMAND_START</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">command_level</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span> \
+                                                                <span class="o">+</span> <span class="n">operation</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span> \
+                                                                <span class="o">+</span> <span class="n">messages</span><span class="o">.</span><span class="n">SECONDO_COMMAND_END</span>
+
+                <span class="bp">self</span><span class="o">.</span><span class="n">socket_object</span><span class="o">.</span><span class="n">sendall</span><span class="p">(</span><span class="n">command_string</span><span class="o">.</span><span class="n">encode</span><span class="p">())</span>
+
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">response_string</span><span class="p">,</span> <span class="n">receive_list</span><span class="p">,</span> <span class="n">error_dict</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">receive_response</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">socket_object</span><span class="p">)</span>
+                <span class="k">except</span> <span class="n">OperationalError</span><span class="p">:</span>
+                    <span class="k">raise</span>
+
+                <span class="k">if</span> <span class="n">error_dict</span><span class="p">[</span><span class="s1">&#39;code&#39;</span><span class="p">]</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">error_dict</span><span class="p">[</span><span class="s1">&#39;code&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">100</span><span class="p">:</span>
+                        <span class="k">raise</span> <span class="n">InterfaceError</span><span class="p">(</span><span class="s1">&#39;Secondo: Unexpected fatal system error.&#39;</span><span class="p">)</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="k">raise</span> <span class="n">InterfaceError</span><span class="p">(</span><span class="n">error_dict</span><span class="p">[</span><span class="s1">&#39;message&#39;</span><span class="p">])</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">try</span><span class="p">:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">close_database</span><span class="p">()</span>
+                    <span class="k">except</span> <span class="n">InterfaceError</span><span class="p">:</span>
+                        <span class="k">raise</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="k">return</span> <span class="kc">True</span>
+
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">OperationalError</span><span class="p">(</span><span class="s1">&#39;The database name has invalid characters.&#39;</span><span class="p">)</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">InterfaceError</span><span class="p">(</span><span class="s1">&#39;The connection has not been initialized.&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Connection.delete_database"><a class="viewcode-back" href="../../../index.html#secondodb.api.secondoapi.Connection.delete_database">[docs]</a>    <span class="k">def</span> <span class="nf">delete_database</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">database_name</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Deletes a database on the |sec| server. Before deletion, all opened databases on the Secondo server will be</span>
+<span class="sd">        closed. The connection object will be set to server-only mode.</span>
+
+<span class="sd">        :param database_name: The name of the database.</span>
+<span class="sd">        :return: True, if the database was deleted successfully.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">initialized</span><span class="p">:</span>
+
+            <span class="c1"># Close databases, if any of them are open</span>
+
+            <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">server_mode_only</span><span class="p">:</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">close_database</span><span class="p">()</span>
+                <span class="k">except</span> <span class="n">InterfaceError</span><span class="p">:</span>
+                    <span class="k">raise</span>
+
+            <span class="k">if</span> <span class="n">parser</span><span class="o">.</span><span class="n">check_identifier</span><span class="p">(</span><span class="n">database_name</span><span class="p">):</span>
+
+                <span class="n">command_level</span> <span class="o">=</span> <span class="mi">1</span>
+
+                <span class="n">database_name</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+                <span class="n">operation</span> <span class="o">=</span> <span class="n">com</span><span class="o">.</span><span class="n">SECONDO_COM_DELETE_DB</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">database_name</span><span class="p">)</span>
+                <span class="n">command_string</span> <span class="o">=</span> <span class="n">messages</span><span class="o">.</span><span class="n">SECONDO_COMMAND_START</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">command_level</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span> \
+                                                                <span class="o">+</span> <span class="n">operation</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span> \
+                                                                <span class="o">+</span> <span class="n">messages</span><span class="o">.</span><span class="n">SECONDO_COMMAND_END</span>
+
+                <span class="bp">self</span><span class="o">.</span><span class="n">socket_object</span><span class="o">.</span><span class="n">sendall</span><span class="p">(</span><span class="n">command_string</span><span class="o">.</span><span class="n">encode</span><span class="p">())</span>
+
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">response_string</span><span class="p">,</span> <span class="n">receive_list</span><span class="p">,</span> <span class="n">error_dict</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">receive_response</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">socket_object</span><span class="p">)</span>
+                <span class="k">except</span> <span class="n">OperationalError</span><span class="p">:</span>
+                    <span class="k">raise</span>
+
+                <span class="k">if</span> <span class="n">error_dict</span><span class="p">[</span><span class="s1">&#39;code&#39;</span><span class="p">]</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">error_dict</span><span class="p">[</span><span class="s1">&#39;code&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">100</span><span class="p">:</span>
+                        <span class="k">raise</span> <span class="n">InterfaceError</span><span class="p">(</span><span class="s1">&#39;Secondo: Unexpected fatal system error.&#39;</span><span class="p">)</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="k">raise</span> <span class="n">InterfaceError</span><span class="p">(</span><span class="n">error_dict</span><span class="p">[</span><span class="s1">&#39;message&#39;</span><span class="p">])</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="kc">True</span>
+
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">OperationalError</span><span class="p">(</span><span class="s1">&#39;The database name has invalid characters.&#39;</span><span class="p">)</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">InterfaceError</span><span class="p">(</span><span class="s1">&#39;The connection has not been initialized.&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Connection.get_list_databases"><a class="viewcode-back" href="../../../index.html#secondodb.api.secondoapi.Connection.get_list_databases">[docs]</a>    <span class="k">def</span> <span class="nf">get_list_databases</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns a list of the databases in the |sec| server.</span>
+
+<span class="sd">        :return: A Python list with the names of the available databases on the |sec| server.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">initialized</span><span class="p">:</span>
+
+            <span class="n">command_level</span> <span class="o">=</span> <span class="mi">1</span>
+            <span class="n">operation</span> <span class="o">=</span> <span class="n">com</span><span class="o">.</span><span class="n">SECONDO_COM_LIST_DB</span>
+            <span class="n">command_string</span> <span class="o">=</span> <span class="n">messages</span><span class="o">.</span><span class="n">SECONDO_COMMAND_START</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">command_level</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span> \
+                                                            <span class="o">+</span> <span class="n">operation</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span> \
+                                                            <span class="o">+</span> <span class="n">messages</span><span class="o">.</span><span class="n">SECONDO_COMMAND_END</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">socket_object</span><span class="o">.</span><span class="n">sendall</span><span class="p">(</span><span class="n">command_string</span><span class="o">.</span><span class="n">encode</span><span class="p">())</span>
+
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">response_string</span><span class="p">,</span> <span class="n">receive_list</span><span class="p">,</span> <span class="n">error_dict</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">receive_response</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">socket_object</span><span class="p">)</span>
+            <span class="k">except</span> <span class="n">OperationalError</span><span class="p">:</span>
+                <span class="k">raise</span>
+
+            <span class="k">if</span> <span class="n">error_dict</span><span class="p">[</span><span class="s1">&#39;code&#39;</span><span class="p">]</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">error_dict</span><span class="p">[</span><span class="s1">&#39;code&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">100</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="n">InterfaceError</span><span class="p">(</span><span class="s1">&#39;Secondo: Unexpected fatal system error.&#39;</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="n">InterfaceError</span><span class="p">(</span><span class="n">error_dict</span><span class="p">[</span><span class="s1">&#39;message&#39;</span><span class="p">])</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">databases</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse_inquiry_databases</span><span class="p">(</span><span class="n">receive_list</span><span class="p">)</span>
+                <span class="k">return</span> <span class="n">databases</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">InterfaceError</span><span class="p">(</span><span class="s1">&#39;The connection has not been initialized.&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Connection.get_list_objects"><a class="viewcode-back" href="../../../index.html#secondodb.api.secondoapi.Connection.get_list_objects">[docs]</a>    <span class="k">def</span> <span class="nf">get_list_objects</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns a list of the objects in the |sec| server.</span>
+
+<span class="sd">        :return: A Python list with the names available objects of the currently opened database.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">initialized</span><span class="p">:</span>
+            <span class="n">command_level</span> <span class="o">=</span> <span class="mi">1</span>
+            <span class="n">operation</span> <span class="o">=</span> <span class="n">com</span><span class="o">.</span><span class="n">SECONDO_COM_LIST_OBJECTS</span>
+            <span class="n">command_string</span> <span class="o">=</span> <span class="n">messages</span><span class="o">.</span><span class="n">SECONDO_COMMAND_START</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">command_level</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span> \
+                                                            <span class="o">+</span> <span class="n">operation</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span> \
+                                                            <span class="o">+</span> <span class="n">messages</span><span class="o">.</span><span class="n">SECONDO_COMMAND_END</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">socket_object</span><span class="o">.</span><span class="n">sendall</span><span class="p">(</span><span class="n">command_string</span><span class="o">.</span><span class="n">encode</span><span class="p">())</span>
+
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">response_string</span><span class="p">,</span> <span class="n">receive_list</span><span class="p">,</span> <span class="n">error_dict</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">receive_response</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">socket_object</span><span class="p">)</span>
+            <span class="k">except</span> <span class="n">OperationalError</span><span class="p">:</span>
+                <span class="k">raise</span>
+
+            <span class="k">if</span> <span class="n">error_dict</span><span class="p">[</span><span class="s1">&#39;code&#39;</span><span class="p">]</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">error_dict</span><span class="p">[</span><span class="s1">&#39;code&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">100</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="n">InterfaceError</span><span class="p">(</span><span class="s1">&#39;Secondo: Unexpected fatal system error.&#39;</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="n">InterfaceError</span><span class="p">(</span><span class="n">error_dict</span><span class="p">[</span><span class="s1">&#39;message&#39;</span><span class="p">])</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">objects</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse_inquiry_objects</span><span class="p">(</span><span class="n">receive_list</span><span class="p">)</span>
+                <span class="k">return</span> <span class="n">objects</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">InterfaceError</span><span class="p">(</span><span class="s1">&#39;The connection has not been initialized.&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Connection.get_list_types"><a class="viewcode-back" href="../../../index.html#secondodb.api.secondoapi.Connection.get_list_types">[docs]</a>    <span class="k">def</span> <span class="nf">get_list_types</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns a list of the types available in the current open database.</span>
+
+<span class="sd">        :return: A list expression object with the available types of the currently opened database.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">initialized</span><span class="p">:</span>
+            <span class="n">command_level</span> <span class="o">=</span> <span class="mi">1</span>
+            <span class="n">operation</span> <span class="o">=</span> <span class="n">com</span><span class="o">.</span><span class="n">SECONDO_COM_LIST_TYPES</span>
+            <span class="n">command_string</span> <span class="o">=</span> <span class="n">messages</span><span class="o">.</span><span class="n">SECONDO_COMMAND_START</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">command_level</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span> \
+                                                            <span class="o">+</span> <span class="n">operation</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span> \
+                                                            <span class="o">+</span> <span class="n">messages</span><span class="o">.</span><span class="n">SECONDO_COMMAND_END</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">socket_object</span><span class="o">.</span><span class="n">sendall</span><span class="p">(</span><span class="n">command_string</span><span class="o">.</span><span class="n">encode</span><span class="p">())</span>
+
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">response_string</span><span class="p">,</span> <span class="n">receive_list</span><span class="p">,</span> <span class="n">error_dict</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">receive_response</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">socket_object</span><span class="p">)</span>
+            <span class="k">except</span> <span class="n">OperationalError</span><span class="p">:</span>
+                <span class="k">raise</span>
+
+            <span class="k">if</span> <span class="n">error_dict</span><span class="p">[</span><span class="s1">&#39;code&#39;</span><span class="p">]</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">error_dict</span><span class="p">[</span><span class="s1">&#39;code&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">100</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="n">InterfaceError</span><span class="p">(</span><span class="s1">&#39;Secondo: Unexpected fatal system error.&#39;</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="n">InterfaceError</span><span class="p">(</span><span class="n">error_dict</span><span class="p">[</span><span class="s1">&#39;message&#39;</span><span class="p">])</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">types</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse_inquiry_types</span><span class="p">(</span><span class="n">receive_list</span><span class="p">)</span>
+                <span class="k">return</span> <span class="n">types</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">InterfaceError</span><span class="p">(</span><span class="s1">&#39;The connection has not been initialized.&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Connection.get_list_type_constructors"><a class="viewcode-back" href="../../../index.html#secondodb.api.secondoapi.Connection.get_list_type_constructors">[docs]</a>    <span class="k">def</span> <span class="nf">get_list_type_constructors</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns a list of the type constructors available in the |sec| server.</span>
+
+<span class="sd">        :return: A Python list with the constructors of the available types of the currently opened database.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">initialized</span><span class="p">:</span>
+            <span class="n">command_level</span> <span class="o">=</span> <span class="mi">1</span>
+            <span class="n">operation</span> <span class="o">=</span> <span class="n">com</span><span class="o">.</span><span class="n">SECONDO_COM_LIST_TYPE_CONS</span>
+            <span class="n">command_string</span> <span class="o">=</span> <span class="n">messages</span><span class="o">.</span><span class="n">SECONDO_COMMAND_START</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">command_level</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span> \
+                                                            <span class="o">+</span> <span class="n">operation</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span> \
+                                                            <span class="o">+</span> <span class="n">messages</span><span class="o">.</span><span class="n">SECONDO_COMMAND_END</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">socket_object</span><span class="o">.</span><span class="n">sendall</span><span class="p">(</span><span class="n">command_string</span><span class="o">.</span><span class="n">encode</span><span class="p">())</span>
+
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">response_string</span><span class="p">,</span> <span class="n">receive_list</span><span class="p">,</span> <span class="n">error_dict</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">receive_response</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">socket_object</span><span class="p">)</span>
+            <span class="k">except</span> <span class="n">OperationalError</span><span class="p">:</span>
+                <span class="k">raise</span>
+
+            <span class="k">if</span> <span class="n">error_dict</span><span class="p">[</span><span class="s1">&#39;code&#39;</span><span class="p">]</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">error_dict</span><span class="p">[</span><span class="s1">&#39;code&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">100</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="n">InterfaceError</span><span class="p">(</span><span class="s1">&#39;Secondo: Unexpected fatal system error.&#39;</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="n">InterfaceError</span><span class="p">(</span><span class="n">error_dict</span><span class="p">[</span><span class="s1">&#39;message&#39;</span><span class="p">])</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">type_constructors</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse_inquiry_type_constructors</span><span class="p">(</span><span class="n">receive_list</span><span class="p">)</span>
+                <span class="k">return</span> <span class="n">type_constructors</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">InterfaceError</span><span class="p">(</span><span class="s1">&#39;The connection has not been initialized.&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Connection.get_list_algebras"><a class="viewcode-back" href="../../../index.html#secondodb.api.secondoapi.Connection.get_list_algebras">[docs]</a>    <span class="k">def</span> <span class="nf">get_list_algebras</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns a list of the available algebras in the |sec| server.</span>
+
+<span class="sd">        :return: A Python list with the available algebras_1 on the |sec| server.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">initialized</span><span class="p">:</span>
+            <span class="n">command_level</span> <span class="o">=</span> <span class="mi">1</span>
+            <span class="n">operation</span> <span class="o">=</span> <span class="n">com</span><span class="o">.</span><span class="n">SECONDO_COM_LIST_ALGEBRAS</span>
+            <span class="n">command_string</span> <span class="o">=</span> <span class="n">messages</span><span class="o">.</span><span class="n">SECONDO_COMMAND_START</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">command_level</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span> \
+                                                            <span class="o">+</span> <span class="n">operation</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span> \
+                                                            <span class="o">+</span> <span class="n">messages</span><span class="o">.</span><span class="n">SECONDO_COMMAND_END</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">socket_object</span><span class="o">.</span><span class="n">sendall</span><span class="p">(</span><span class="n">command_string</span><span class="o">.</span><span class="n">encode</span><span class="p">())</span>
+
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">response_string</span><span class="p">,</span> <span class="n">receive_list</span><span class="p">,</span> <span class="n">error_dict</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">receive_response</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">socket_object</span><span class="p">)</span>
+            <span class="k">except</span> <span class="n">OperationalError</span><span class="p">:</span>
+                <span class="k">raise</span>
+
+            <span class="k">if</span> <span class="n">error_dict</span><span class="p">[</span><span class="s1">&#39;code&#39;</span><span class="p">]</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">error_dict</span><span class="p">[</span><span class="s1">&#39;code&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">100</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="n">InterfaceError</span><span class="p">(</span><span class="s1">&#39;Secondo: Unexpected fatal system error.&#39;</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="n">InterfaceError</span><span class="p">(</span><span class="n">error_dict</span><span class="p">[</span><span class="s1">&#39;message&#39;</span><span class="p">])</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">algebras</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse_inquiry_algebras</span><span class="p">(</span><span class="n">receive_list</span><span class="p">)</span>
+                <span class="k">return</span> <span class="n">algebras</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">InterfaceError</span><span class="p">(</span><span class="s1">&#39;The connection has not been initialized.&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Connection.get_algebra"><a class="viewcode-back" href="../../../index.html#secondodb.api.secondoapi.Connection.get_algebra">[docs]</a>    <span class="k">def</span> <span class="nf">get_algebra</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">algebra_name</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns the details for an algebra from the |sec| server.</span>
+
+<span class="sd">        :return: A Python list with the available algebras on the |sec| server.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">initialized</span><span class="p">:</span>
+            <span class="n">command_level</span> <span class="o">=</span> <span class="mi">1</span>
+            <span class="n">operation</span> <span class="o">=</span> <span class="n">com</span><span class="o">.</span><span class="n">SECONDO_COM_LIST_ALGEBRA</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">algebra_name</span><span class="p">)</span>
+            <span class="n">command_string</span> <span class="o">=</span> <span class="n">messages</span><span class="o">.</span><span class="n">SECONDO_COMMAND_START</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">command_level</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span> \
+                                                            <span class="o">+</span> <span class="n">operation</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span> \
+                                                            <span class="o">+</span> <span class="n">messages</span><span class="o">.</span><span class="n">SECONDO_COMMAND_END</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">socket_object</span><span class="o">.</span><span class="n">sendall</span><span class="p">(</span><span class="n">command_string</span><span class="o">.</span><span class="n">encode</span><span class="p">())</span>
+
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">response_string</span><span class="p">,</span> <span class="n">receive_list</span><span class="p">,</span> <span class="n">error_dict</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">receive_response</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">socket_object</span><span class="p">)</span>
+            <span class="k">except</span> <span class="n">OperationalError</span><span class="p">:</span>
+                <span class="k">raise</span>
+
+            <span class="k">if</span> <span class="n">error_dict</span><span class="p">[</span><span class="s1">&#39;code&#39;</span><span class="p">]</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">error_dict</span><span class="p">[</span><span class="s1">&#39;code&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">100</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="n">InterfaceError</span><span class="p">(</span><span class="s1">&#39;Secondo: Unexpected fatal system error.&#39;</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="n">InterfaceError</span><span class="p">(</span><span class="n">error_dict</span><span class="p">[</span><span class="s1">&#39;message&#39;</span><span class="p">])</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">algebra</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse_inquiry_algebra</span><span class="p">(</span><span class="n">receive_list</span><span class="p">)</span>
+                <span class="k">return</span> <span class="n">algebra</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">InterfaceError</span><span class="p">(</span><span class="s1">&#39;The connection has not been initialized.&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Connection.open_database"><a class="viewcode-back" href="../../../index.html#secondodb.api.secondoapi.Connection.open_database">[docs]</a>    <span class="k">def</span> <span class="nf">open_database</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">database_name</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Opens a database on the |sec| server. The server-only mode will be set to False.</span>
+
+<span class="sd">        :param database_name: The name of the database.</span>
+<span class="sd">        :return: True, if the database was opened successfully.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">initialized</span><span class="p">:</span>
+
+            <span class="n">command_level</span> <span class="o">=</span> <span class="mi">1</span>
+
+            <span class="n">operation</span> <span class="o">=</span> <span class="n">com</span><span class="o">.</span><span class="n">SECONDO_COM_OPEN_DB</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">database_name</span><span class="p">)</span>
+            <span class="n">command_string</span> <span class="o">=</span> <span class="n">messages</span><span class="o">.</span><span class="n">SECONDO_COMMAND_START</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">command_level</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span> \
+                                                            <span class="o">+</span> <span class="n">operation</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span> \
+                                                            <span class="o">+</span> <span class="n">messages</span><span class="o">.</span><span class="n">SECONDO_COMMAND_END</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">socket_object</span><span class="o">.</span><span class="n">sendall</span><span class="p">(</span><span class="n">command_string</span><span class="o">.</span><span class="n">encode</span><span class="p">())</span>
+
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">response_string</span><span class="p">,</span> <span class="n">receive_list</span><span class="p">,</span> <span class="n">error_dict</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">receive_response</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">socket_object</span><span class="p">)</span>
+            <span class="k">except</span> <span class="n">OperationalError</span><span class="p">:</span>
+                <span class="k">raise</span>
+
+            <span class="k">if</span> <span class="n">error_dict</span><span class="p">[</span><span class="s1">&#39;code&#39;</span><span class="p">]</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">error_dict</span><span class="p">[</span><span class="s1">&#39;code&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">100</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="n">InterfaceError</span><span class="p">(</span><span class="s1">&#39;Secondo: Unexpected fatal system error.&#39;</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="n">InterfaceError</span><span class="p">(</span><span class="n">error_dict</span><span class="p">[</span><span class="s1">&#39;message&#39;</span><span class="p">])</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">server_mode_only</span> <span class="o">=</span> <span class="kc">False</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">database</span> <span class="o">=</span> <span class="n">database_name</span>
+                <span class="k">return</span> <span class="kc">True</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">InterfaceError</span><span class="p">(</span><span class="s1">&#39;The connection has not been initialized.&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Connection.close_database"><a class="viewcode-back" href="../../../index.html#secondodb.api.secondoapi.Connection.close_database">[docs]</a>    <span class="k">def</span> <span class="nf">close_database</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Closes the currently opened database on the |sec| server. The connection object returns to the server-only</span>
+<span class="sd">        mode.</span>
+
+<span class="sd">        :return: True, if the database was closed successfully.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">initialized</span><span class="p">:</span>
+            <span class="n">command_level</span> <span class="o">=</span> <span class="mi">1</span>
+            <span class="n">operation</span> <span class="o">=</span> <span class="n">com</span><span class="o">.</span><span class="n">SECONDO_COM_CLOSE_DB</span>
+            <span class="n">command_string</span> <span class="o">=</span> <span class="n">messages</span><span class="o">.</span><span class="n">SECONDO_COMMAND_START</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">command_level</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span> \
+                                                                                 <span class="o">+</span> <span class="n">operation</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span> \
+                                                                                 <span class="o">+</span> <span class="n">messages</span><span class="o">.</span><span class="n">SECONDO_COMMAND_END</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">socket_object</span><span class="o">.</span><span class="n">sendall</span><span class="p">(</span><span class="n">command_string</span><span class="o">.</span><span class="n">encode</span><span class="p">())</span>
+
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">response_string</span><span class="p">,</span> <span class="n">receive_list</span><span class="p">,</span> <span class="n">error_dict</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">receive_response</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">socket_object</span><span class="p">)</span>
+            <span class="k">except</span> <span class="n">OperationalError</span><span class="p">:</span>
+                <span class="k">raise</span>
+
+            <span class="k">if</span> <span class="n">error_dict</span><span class="p">[</span><span class="s1">&#39;code&#39;</span><span class="p">]</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">error_dict</span><span class="p">[</span><span class="s1">&#39;code&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">100</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">server_mode_only</span> <span class="o">=</span> <span class="kc">True</span>
+                    <span class="k">raise</span> <span class="n">InterfaceError</span><span class="p">(</span><span class="s1">&#39;Secondo: Unexpected fatal system error.&#39;</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="n">InterfaceError</span><span class="p">(</span><span class="n">error_dict</span><span class="p">[</span><span class="s1">&#39;message&#39;</span><span class="p">])</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">server_mode_only</span> <span class="o">=</span> <span class="kc">True</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">database</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+                <span class="k">return</span> <span class="kc">True</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">InterfaceError</span><span class="p">(</span><span class="s1">&#39;The connection has not been initialized.&#39;</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="Cursor"><a class="viewcode-back" href="../../../index.html#secondodb.api.secondoapi.Cursor">[docs]</a><span class="k">class</span> <span class="nc">Cursor</span><span class="p">:</span>
+
+    <span class="n">description</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">rowcount</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">connection</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Constructor of the Cursor object. The database can be initialized during the initialization of the Connection</span>
+<span class="sd">        object or alternatively in the Cursor object through this constructor. It is important to set previously the</span>
+<span class="sd">        variable database in the Connection object, otherwise the database won´t be initialized. In that case, an</span>
+<span class="sd">        InterfaceError will be raised.</span>
+
+<span class="sd">        :param connection: A Connection object.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">connection</span> <span class="o">=</span> <span class="n">connection</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">initialized</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">result</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="c1"># If the connection to the database is not existent, connect to provided database</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">connection</span><span class="o">.</span><span class="n">server_mode_only</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">connection</span><span class="o">.</span><span class="n">database</span> <span class="o">!=</span> <span class="s1">&#39;&#39;</span><span class="p">:</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">connection</span><span class="o">.</span><span class="n">open_database</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">connection</span><span class="o">.</span><span class="n">database</span><span class="p">)</span>
+                <span class="k">except</span> <span class="n">OperationalError</span><span class="p">:</span>
+                    <span class="k">raise</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">initialized</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">OperationalError</span><span class="p">(</span><span class="s2">&quot;No database provided or initialized. The cursor couldn´t be created.&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">initialized</span> <span class="o">=</span> <span class="kc">True</span>
+
+<div class="viewcode-block" id="Cursor.close"><a class="viewcode-back" href="../../../index.html#secondodb.api.secondoapi.Cursor.close">[docs]</a>    <span class="k">def</span> <span class="nf">close</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Close the cursor now (rather than whenever __del__ is called).</span>
+
+<span class="sd">        The cursor will be unusable from this point forward; an InternalError exception will be raised if any</span>
+<span class="sd">        operation is attempted with the cursor.</span>
+
+<span class="sd">        :return: True, if the cursor was closed successfully.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">initialized</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">connection</span><span class="o">.</span><span class="n">close_database</span><span class="p">()</span>
+            <span class="k">except</span> <span class="n">InterfaceError</span><span class="p">:</span>
+                <span class="k">raise</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">connection</span><span class="o">.</span><span class="n">database</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">initialized</span> <span class="o">=</span> <span class="kc">False</span>
+                <span class="k">return</span> <span class="kc">True</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">OperationalError</span><span class="p">(</span><span class="s2">&quot;The cursor has not been initialized&quot;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Cursor.execute"><a class="viewcode-back" href="../../../index.html#secondodb.api.secondoapi.Cursor.execute">[docs]</a>    <span class="k">def</span> <span class="nf">execute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">operation</span><span class="p">,</span> <span class="n">parameters</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Prepare and execute a database operation (query or command).</span>
+
+<span class="sd">        Parameters may be provided as sequence or mapping and will be bound to variables in the operation. The</span>
+<span class="sd">        placeholders in the operation must use the following format: {i}, where i is an integer, which</span>
+<span class="sd">        specifies the position of the parameter in the list of parameters.</span>
+
+<span class="sd">        Example 1: Simple Query</span>
+
+<span class="sd">        Operation = query {0}</span>
+<span class="sd">        Parameter list = [&#39;mehringdamm&#39;]</span>
+<span class="sd">        Formatted operation = query mehringdamm</span>
+
+<span class="sd">        Example 2: Inserting Single Tuples</span>
+
+<span class="sd">        Operation = query {0} inserttuple[{1}, {2}] count;</span>
+<span class="sd">        Parameter list = [&#39;myfirstrel&#39;,&#39;&quot;Anna&quot;&#39;, &#39;27&#39;]</span>
+<span class="sd">        Formatted operation = query myfirstrel inserttuple[&quot;Anna&quot;, 27] count;</span>
+
+<span class="sd">        :param operation: A string with a |sec| command.</span>
+<span class="sd">        :param parameters: Further parameters for the execution of the command (currently not in use).</span>
+<span class="sd">        :return: A |sec| object, a list with |sec| objects or a |sec| response.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">description</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rowcount</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="c1"># Apply parameters, if some are supplied</span>
+
+        <span class="k">if</span> <span class="n">parameters</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">operation</span> <span class="o">=</span> <span class="n">com</span><span class="o">.</span><span class="n">apply_parameters_to_operation</span><span class="p">(</span><span class="n">operation</span><span class="p">,</span> <span class="n">parameters</span><span class="p">)</span>
+
+        <span class="c1"># Process operation</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">initialized</span><span class="p">:</span>
+
+            <span class="n">command_level</span> <span class="o">=</span> <span class="mi">1</span>
+            <span class="n">command_string</span> <span class="o">=</span> <span class="n">messages</span><span class="o">.</span><span class="n">SECONDO_COMMAND_START</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">command_level</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span> \
+                                                            <span class="o">+</span> <span class="n">operation</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span> \
+                                                            <span class="o">+</span> <span class="n">messages</span><span class="o">.</span><span class="n">SECONDO_COMMAND_END</span>
+
+            <span class="k">try</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">connection</span><span class="o">.</span><span class="n">socket_object</span><span class="o">.</span><span class="n">sendall</span><span class="p">(</span><span class="n">command_string</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="n">encoding</span><span class="p">,</span> <span class="n">error_encoding</span><span class="p">))</span>
+            <span class="k">except</span> <span class="ne">UnicodeEncodeError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">ProgrammingError</span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">response_string</span><span class="p">,</span> <span class="n">receive_list</span><span class="p">,</span> <span class="n">error_dict</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">receive_response</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">connection</span><span class="o">.</span><span class="n">socket_object</span><span class="p">)</span>
+                <span class="k">except</span> <span class="n">OperationalError</span><span class="p">:</span>
+                    <span class="k">raise</span>
+
+            <span class="k">if</span> <span class="n">error_dict</span><span class="p">[</span><span class="s1">&#39;code&#39;</span><span class="p">]</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">error_dict</span><span class="p">[</span><span class="s1">&#39;code&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">6</span><span class="p">:</span>  <span class="c1"># No database open</span>
+                    <span class="k">raise</span> <span class="n">InterfaceError</span><span class="p">(</span><span class="n">error_dict</span><span class="p">[</span><span class="s1">&#39;message&#39;</span><span class="p">])</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="n">ProgrammingError</span><span class="p">(</span><span class="n">error_dict</span><span class="p">[</span><span class="s1">&#39;message&#39;</span><span class="p">])</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">receive_list</span><span class="o">.</span><span class="n">get_list_length</span><span class="p">()</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                    <span class="k">try</span><span class="p">:</span>
+                        <span class="n">query_response</span><span class="p">,</span> <span class="n">object_type</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse_query</span><span class="p">(</span><span class="n">receive_list</span><span class="p">)</span>
+                    <span class="k">except</span> <span class="n">InterfaceError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                        <span class="k">raise</span> <span class="n">InterfaceError</span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">rowcount</span> <span class="o">=</span> <span class="mi">1</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">description</span> <span class="o">=</span> <span class="n">object_type</span>
+
+                        <span class="n">string_output</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">receive_list</span><span class="p">)</span>
+
+                        <span class="bp">self</span><span class="o">.</span><span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">query_response</span><span class="p">,</span> <span class="n">object_type</span><span class="p">,</span> <span class="n">string_output</span><span class="p">])</span>
+                        <span class="k">return</span> <span class="n">query_response</span><span class="p">,</span> <span class="n">object_type</span><span class="p">,</span> <span class="n">string_output</span>
+
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="s1">&#39;Success&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="s1">&#39;Success&#39;</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">InternalError</span><span class="p">(</span><span class="s1">&#39;The cursor has not been initialized or is already closed.&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Cursor.executemany"><a class="viewcode-back" href="../../../index.html#secondodb.api.secondoapi.Cursor.executemany">[docs]</a>    <span class="k">def</span> <span class="nf">executemany</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">operation</span><span class="p">,</span> <span class="n">seq_of_parameters</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Prepare a database operation (query or command) and then execute it against all parameter sequences or mappings</span>
+<span class="sd">        found in the sequence seq_of_parameters. Every entry of the list seq_of_parameters must be declared as a list,</span>
+<span class="sd">        even when just one parameter is being used.</span>
+
+<span class="sd">        The placeholders in the operation must use the following format: {i}, where i is an integer number, which</span>
+<span class="sd">        specifies the position of the parameter in the list of parameters.</span>
+
+<span class="sd">        Example 1: Simple Query</span>
+
+<span class="sd">        Operation = query {0}</span>
+<span class="sd">        Parameter list = [&#39;mehringdamm&#39;]</span>
+<span class="sd">        Formatted operation = query mehringdamm</span>
+
+<span class="sd">        Example 2: Inserting Single Tuples</span>
+
+<span class="sd">        Operation = query {0} inserttuple[{1}, {2}] count;</span>
+<span class="sd">        Parameter list = [&#39;myfirstrel&#39;,&#39;&quot;Anna&quot;&#39;, &#39;27&#39;]</span>
+<span class="sd">        Formatted operation = query myfirstrel inserttuple[&quot;Anna&quot;, 27] count;</span>
+
+<span class="sd">        :param operation: A |sec| command with placeholders.</span>
+<span class="sd">        :param seq_of_parameters: A list with further parameters for the execution of the commands of the list.</span>
+<span class="sd">        :return: A list with entries. Each entry is a list with an |sec| object, the type of the response and the list</span>
+<span class="sd">                 expression as string.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">response_list</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">description</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rowcount</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="c1"># Apply parameters to operation</span>
+
+        <span class="k">for</span> <span class="n">parameter_list</span> <span class="ow">in</span> <span class="n">seq_of_parameters</span><span class="p">:</span>
+
+            <span class="n">response</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">operation</span><span class="o">=</span><span class="n">operation</span><span class="p">,</span> <span class="n">parameters</span><span class="o">=</span><span class="n">parameter_list</span><span class="p">)</span>
+            <span class="n">response_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">response</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">rowcount</span> <span class="o">+=</span> <span class="mi">1</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">description</span> <span class="o">=</span> <span class="s1">&#39;response list&#39;</span>
+
+        <span class="k">return</span> <span class="n">response_list</span></div>
+
+<div class="viewcode-block" id="Cursor.fetchone"><a class="viewcode-back" href="../../../index.html#secondodb.api.secondoapi.Cursor.fetchone">[docs]</a>    <span class="k">def</span> <span class="nf">fetchone</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Fetch the next row of a query result set, returning a single sequence, or None when no more data is available.</span>
+
+<span class="sd">        An InterfaceError exception is raised if the previous call to .execute*() did not produce any result set or</span>
+<span class="sd">        no call was issued yet.</span>
+
+<span class="sd">        :return: A single row of a query result set.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">initialized</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">rowcount</span> <span class="o">&gt;=</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">one_row</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">result</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+                    <span class="k">return</span> <span class="n">one_row</span>
+                <span class="k">except</span> <span class="ne">IndexError</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="kc">None</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">InterfaceError</span><span class="p">(</span><span class="s1">&#39;Error: No rows in cursor available.&#39;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">InternalError</span><span class="p">(</span><span class="s1">&#39;The cursor has not been initialized or is already closed.&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Cursor.fetchmany"><a class="viewcode-back" href="../../../index.html#secondodb.api.secondoapi.Cursor.fetchmany">[docs]</a>    <span class="k">def</span> <span class="nf">fetchmany</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Fetch the next set of rows of a query result, returning a sequence of sequences (e.g. a list of tuples). An</span>
+<span class="sd">        empty sequence is returned when no more rows are available. If there are not enough rows to fulfil the size</span>
+<span class="sd">        parameter, only the available rows will be returned.</span>
+
+<span class="sd">        :param size: The number of the rows to be returned from the cursor.</span>
+<span class="sd">        :return: A list with the fetched elements.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">initialized</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">size</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">rowcount</span> <span class="o">&gt;=</span> <span class="mi">1</span><span class="p">:</span>
+
+                    <span class="n">qty_elements</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">result</span><span class="p">)</span>
+
+                    <span class="k">if</span> <span class="n">qty_elements</span> <span class="o">&gt;=</span> <span class="n">size</span><span class="p">:</span>
+                        <span class="k">try</span><span class="p">:</span>
+                            <span class="n">response_set</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">result</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="n">size</span><span class="p">]</span>
+                            <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">result</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="n">size</span><span class="p">]</span>
+                        <span class="k">except</span> <span class="ne">IndexError</span><span class="p">:</span>
+                            <span class="k">return</span> <span class="kc">None</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="k">return</span> <span class="n">response_set</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="k">try</span><span class="p">:</span>
+                            <span class="n">response_set</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">result</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="n">qty_elements</span><span class="p">]</span>
+                            <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">result</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="n">qty_elements</span><span class="p">]</span>
+                        <span class="k">except</span> <span class="ne">IndexError</span><span class="p">:</span>
+                            <span class="k">return</span> <span class="kc">None</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="k">return</span> <span class="n">response_set</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="n">InternalError</span><span class="p">(</span><span class="s1">&#39;Error: No rows in cursor available.&#39;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">InterfaceError</span><span class="p">(</span><span class="s1">&#39;Error: Invalid set size.&#39;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">InternalError</span><span class="p">(</span><span class="s1">&#39;The cursor has not been initialized or is already closed.&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Cursor.fetchall"><a class="viewcode-back" href="../../../index.html#secondodb.api.secondoapi.Cursor.fetchall">[docs]</a>    <span class="k">def</span> <span class="nf">fetchall</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Fetch all (remaining) rows of a query result, returning them as a sequence of sequences (e.g. a list of tuples).</span>
+<span class="sd">        An empty sequence is returned when no more rows are available.</span>
+
+<span class="sd">        An InterfaceError exception is raised if the previous call to .execute*() did not produce any result set or</span>
+<span class="sd">        no call was issued yet.</span>
+
+<span class="sd">        :return: A list with the fetched elements.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">initialized</span><span class="p">:</span>
+            <span class="n">qty_elements</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">result</span><span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">rowcount</span> <span class="o">&gt;=</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">qty_elements</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">fetchmany</span><span class="p">(</span><span class="n">qty_elements</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="p">[]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">InternalError</span><span class="p">(</span><span class="s1">&#39;Error: No rows in cursor available.&#39;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">InternalError</span><span class="p">(</span><span class="s1">&#39;The cursor has not been initialized or is already closed.&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Cursor.execute_create_empty_relation"><a class="viewcode-back" href="../../../index.html#secondodb.api.secondoapi.Cursor.execute_create_empty_relation">[docs]</a>    <span class="k">def</span> <span class="nf">execute_create_empty_relation</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">relation_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">list_attributes</span><span class="p">:</span> <span class="p">[]):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Creates an empty relation in the database. The list of the attributes must follow the following format:</span>
+
+<span class="sd">        list_attributes = [attr]</span>
+
+<span class="sd">        where</span>
+
+<span class="sd">        attr = [Name, type]</span>
+
+<span class="sd">        IMPORTANT: The name of the attributes must begin with an upper case character.</span>
+
+<span class="sd">        Example:</span>
+
+<span class="sd">        attr1 = [&#39;Att1&#39;, &#39;string&#39;]</span>
+<span class="sd">        attr2 = [&#39;Att2&#39;, &#39;string&#39;]</span>
+
+<span class="sd">        list_attributes = [attr1, attr2]</span>
+
+<span class="sd">        :param relation_name: The name of the relation.</span>
+<span class="sd">        :param list_attributes: A list with the attributes of the relation (please be aware of the format).</span>
+<span class="sd">        :return: The string &#39;Success&#39;, if the relation was successfully created, otherwise None.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">initialized</span><span class="p">:</span>
+
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">list_attributes</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">str_attr_list</span> <span class="o">=</span> <span class="s1">&#39;[&#39;</span>
+                <span class="n">counter</span> <span class="o">=</span> <span class="mi">0</span>
+                <span class="k">for</span> <span class="n">attr</span> <span class="ow">in</span> <span class="n">list_attributes</span><span class="p">:</span>
+
+                    <span class="k">if</span> <span class="n">attr</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                        <span class="n">str_attr_list</span> <span class="o">=</span> <span class="n">str_attr_list</span> <span class="o">+</span> <span class="n">attr</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="s1">&#39; : &#39;</span> <span class="o">+</span> <span class="n">attr</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+                        <span class="k">if</span> <span class="n">counter</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">list_attributes</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">:</span>
+                            <span class="n">str_attr_list</span> <span class="o">=</span> <span class="n">str_attr_list</span> <span class="o">+</span> <span class="s1">&#39;, &#39;</span>
+                        <span class="n">counter</span> <span class="o">+=</span> <span class="mi">1</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="k">raise</span> <span class="n">ProgrammingError</span><span class="p">(</span><span class="s1">&#39;The attribute at position &#39;</span>
+                                               <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">counter</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39; has no valid identifier.&#39;</span><span class="p">)</span>
+
+                <span class="n">str_attr_list</span> <span class="o">=</span> <span class="n">str_attr_list</span> <span class="o">+</span> <span class="s1">&#39;]&#39;</span>
+
+                <span class="n">command_string</span> <span class="o">=</span> <span class="n">com</span><span class="o">.</span><span class="n">SECONDO_COM_REL_CREATE_EMPTY</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">relation_name</span><span class="p">,</span> <span class="n">str_attr_list</span><span class="p">)</span>
+
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">response</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">command_string</span><span class="p">)</span>
+                    <span class="k">return</span> <span class="n">response</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="k">except</span> <span class="n">ProgrammingError</span><span class="p">:</span>
+                    <span class="k">raise</span>
+
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">ProgrammingError</span><span class="p">(</span><span class="s1">&#39;Error: List of attributes is empty.&#39;</span><span class="p">)</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">InternalError</span><span class="p">(</span><span class="s1">&#39;The cursor has not been initialized or is already closed.&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Cursor.execute_insert_tuple_into_relation"><a class="viewcode-back" href="../../../index.html#secondodb.api.secondoapi.Cursor.execute_insert_tuple_into_relation">[docs]</a>    <span class="k">def</span> <span class="nf">execute_insert_tuple_into_relation</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">relation_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">single_tuple</span><span class="p">:</span> <span class="p">[]):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Inserts a list of values into a relation.</span>
+
+<span class="sd">        :param relation_name: The name of the relation.</span>
+<span class="sd">        :param single_tuple: A single tuple of the relation. The single tuple is a list must contain two elements: the</span>
+<span class="sd">                             first element is a list with the values of the tuple, and the second element is a list with</span>
+<span class="sd">                             the types of the relation.</span>
+<span class="sd">        :return: The string &#39;Success&#39;, if the tuples were successfully added, otherwise None.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">initialized</span><span class="p">:</span>
+
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">single_tuple</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+
+                <span class="n">counter</span> <span class="o">=</span> <span class="mi">0</span>
+
+                <span class="n">str_value_list</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+
+                <span class="k">for</span> <span class="n">column</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">single_tuple</span><span class="p">[</span><span class="mi">0</span><span class="p">])):</span>
+
+                    <span class="n">field_type</span> <span class="o">=</span> <span class="n">single_tuple</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="n">column</span><span class="p">]</span>
+                    <span class="n">value</span> <span class="o">=</span> <span class="n">single_tuple</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="n">column</span><span class="p">]</span>
+
+                    <span class="n">const_value</span> <span class="o">=</span> <span class="n">com</span><span class="o">.</span><span class="n">SECONDO_COM_REL_CONST_VALUE</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">field_type</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+
+                    <span class="n">str_value_list</span> <span class="o">=</span> <span class="n">str_value_list</span> <span class="o">+</span> <span class="n">const_value</span>
+                    <span class="k">if</span> <span class="n">counter</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">single_tuple</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">-</span> <span class="mi">1</span><span class="p">:</span>
+                        <span class="n">str_value_list</span> <span class="o">=</span> <span class="n">str_value_list</span> <span class="o">+</span> <span class="s1">&#39;, &#39;</span>
+                    <span class="n">counter</span> <span class="o">+=</span> <span class="mi">1</span>
+
+                <span class="n">command_string</span> <span class="o">=</span> <span class="n">com</span><span class="o">.</span><span class="n">SECONDO_COM_REL_INSERT_TUPLE</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">relation_name</span><span class="p">,</span> <span class="n">str_value_list</span><span class="p">)</span>
+
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">response</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">command_string</span><span class="p">)</span>
+                    <span class="k">return</span> <span class="n">response</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="k">except</span> <span class="n">ProgrammingError</span><span class="p">:</span>
+                    <span class="k">raise</span>
+
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">ProgrammingError</span><span class="p">(</span><span class="s1">&#39;Error: List of values is empty.&#39;</span><span class="p">)</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">InternalError</span><span class="p">(</span><span class="s1">&#39;The cursor has not been initialized or is already closed.&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Cursor.execute_simple_query"><a class="viewcode-back" href="../../../index.html#secondodb.api.secondoapi.Cursor.execute_simple_query">[docs]</a>    <span class="k">def</span> <span class="nf">execute_simple_query</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value_expression</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Evaluates the given value expression and displays the result object.</span>
+
+<span class="sd">        :param value_expression: A value expression for the command &#39;query &lt;value expression&gt;&#39;</span>
+<span class="sd">        :return: A list expression object with the response from the |sec| server.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">initialized</span><span class="p">:</span>
+
+            <span class="n">command_string</span> <span class="o">=</span> <span class="n">com</span><span class="o">.</span><span class="n">SECONDO_COM_QUERY</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">value_expression</span><span class="p">)</span>
+
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">response</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">command_string</span><span class="p">)</span>
+            <span class="k">except</span> <span class="n">ProgrammingError</span><span class="p">:</span>
+                <span class="k">raise</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">response</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">InternalError</span><span class="p">(</span><span class="s1">&#39;The cursor has not been initialized or is already closed.&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Cursor.execute_let"><a class="viewcode-back" href="../../../index.html#secondodb.api.secondoapi.Cursor.execute_let">[docs]</a>    <span class="k">def</span> <span class="nf">execute_let</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">identifier</span><span class="p">,</span> <span class="n">value_expression</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        This command does almost the same as the query command. In contrast, the result of the &lt;value expression&gt; is not</span>
+<span class="sd">        displayed on the screen. Instead, the result is stored in an object with the name &lt;identifier&gt;. The command only</span>
+<span class="sd">        runs successfully if the object does not exist yet in the database; otherwise, an error message is displayed.</span>
+
+<span class="sd">        :param identifier: The identifier of the object.</span>
+<span class="sd">        :param value_expression: A value expression for the command &#39;let &lt;identifier&gt; = &lt;value expression&gt;&#39;</span>
+<span class="sd">        :return: A list expression object with the response from the |sec| server.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">initialized</span><span class="p">:</span>
+
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">parser</span><span class="o">.</span><span class="n">check_identifier</span><span class="p">(</span><span class="n">identifier</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="n">OperationalError</span><span class="p">(</span><span class="s1">&#39;Invalid identifier.&#39;</span><span class="p">)</span>
+
+            <span class="n">command_string</span> <span class="o">=</span> <span class="n">com</span><span class="o">.</span><span class="n">SECONDO_COM_LET</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">identifier</span><span class="p">,</span> <span class="n">value_expression</span><span class="p">)</span>
+
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">response</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">command_string</span><span class="p">)</span>
+            <span class="k">except</span> <span class="n">ProgrammingError</span><span class="p">:</span>
+                <span class="k">raise</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">response</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">InternalError</span><span class="p">(</span><span class="s1">&#39;The cursor has not been initialized or is already closed.&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Cursor.execute_derive"><a class="viewcode-back" href="../../../index.html#secondodb.api.secondoapi.Cursor.execute_derive">[docs]</a>    <span class="k">def</span> <span class="nf">execute_derive</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">identifier</span><span class="p">,</span> <span class="n">value_expression</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        This works basically in the same way as the let command. The difference is the handling of the created objects</span>
+<span class="sd">        during creating and restoring a database dump. The derive command should be used for objects that have no</span>
+<span class="sd">        external representation, e.g., indexes.</span>
+
+<span class="sd">        :param identifier: The identifier of the object.</span>
+<span class="sd">        :param value_expression: A value expression for the command &#39;derive &lt;identifier&gt; = &lt;value expression&gt;&#39;</span>
+<span class="sd">        :return: None</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">initialized</span><span class="p">:</span>
+
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">parser</span><span class="o">.</span><span class="n">check_identifier</span><span class="p">(</span><span class="n">identifier</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="n">OperationalError</span><span class="p">(</span><span class="s1">&#39;Invalid identifier.&#39;</span><span class="p">)</span>
+
+            <span class="n">command_string</span> <span class="o">=</span> <span class="n">com</span><span class="o">.</span><span class="n">SECONDO_COM_DERIVE</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">identifier</span><span class="p">,</span> <span class="n">value_expression</span><span class="p">)</span>
+
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">response</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">command_string</span><span class="p">)</span>
+            <span class="k">except</span> <span class="n">ProgrammingError</span><span class="p">:</span>
+                <span class="k">raise</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">response</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">InternalError</span><span class="p">(</span><span class="s1">&#39;The cursor has not been initialized or is already closed.&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Cursor.execute_update"><a class="viewcode-back" href="../../../index.html#secondodb.api.secondoapi.Cursor.execute_update">[docs]</a>    <span class="k">def</span> <span class="nf">execute_update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">identifier</span><span class="p">,</span> <span class="n">value_expression</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Assigns the result of the value expression to an existing object in the database.</span>
+
+<span class="sd">        :param identifier: The identifier of the object.</span>
+<span class="sd">        :param value_expression: A value expression for the command &#39;update &lt;identifier&gt; := &lt;value expression&gt;&#39;</span>
+<span class="sd">        :return: The string Success, if the object was updated successfully.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">initialized</span><span class="p">:</span>
+
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">parser</span><span class="o">.</span><span class="n">check_identifier</span><span class="p">(</span><span class="n">identifier</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="n">OperationalError</span><span class="p">(</span><span class="s1">&#39;Invalid identifier.&#39;</span><span class="p">)</span>
+
+            <span class="n">command_string</span> <span class="o">=</span> <span class="n">com</span><span class="o">.</span><span class="n">SECONDO_COM_UPDATE</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">identifier</span><span class="p">,</span> <span class="n">value_expression</span><span class="p">)</span>
+
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">response</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">command_string</span><span class="p">)</span>
+            <span class="k">except</span> <span class="n">ProgrammingError</span><span class="p">:</span>
+                <span class="k">raise</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">response</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">InternalError</span><span class="p">(</span><span class="s1">&#39;The cursor has not been initialized or is already closed.&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Cursor.execute_delete"><a class="viewcode-back" href="../../../index.html#secondodb.api.secondoapi.Cursor.execute_delete">[docs]</a>    <span class="k">def</span> <span class="nf">execute_delete</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">identifier</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Deletes the object with the name &lt;identifier&gt; from the currently opened database.</span>
+
+<span class="sd">        :param identifier: The identifier of the object.</span>
+<span class="sd">        :return: The string Success, if the object was deleted successfully.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">initialized</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">parser</span><span class="o">.</span><span class="n">check_identifier</span><span class="p">(</span><span class="n">identifier</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="n">OperationalError</span><span class="p">(</span><span class="s1">&#39;Invalid identifier.&#39;</span><span class="p">)</span>
+
+            <span class="n">command_string</span> <span class="o">=</span> <span class="n">com</span><span class="o">.</span><span class="n">SECONDO_COM_DELETE</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">identifier</span><span class="p">)</span>
+
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">response</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">command_string</span><span class="p">)</span>
+            <span class="k">except</span> <span class="n">ProgrammingError</span><span class="p">:</span>
+                <span class="k">raise</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">response</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">InternalError</span><span class="p">(</span><span class="s1">&#39;The cursor has not been initialized or is already closed.&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Cursor.execute_create_type"><a class="viewcode-back" href="../../../index.html#secondodb.api.secondoapi.Cursor.execute_create_type">[docs]</a>    <span class="k">def</span> <span class="nf">execute_create_type</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">identifier</span><span class="p">,</span> <span class="n">type_expression</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Creates a named type in the database.</span>
+
+<span class="sd">        :param identifier: The identifier of the type to be created.</span>
+<span class="sd">        :param type_expression: A type expression for the command &#39;type &lt;identifier&gt; = &lt;type expression&gt;&#39;</span>
+<span class="sd">        :return: The string Success, if the named type was created successfully.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">initialized</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">parser</span><span class="o">.</span><span class="n">check_identifier</span><span class="p">(</span><span class="n">identifier</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="n">OperationalError</span><span class="p">(</span><span class="s1">&#39;Invalid identifier.&#39;</span><span class="p">)</span>
+
+            <span class="n">command_string</span> <span class="o">=</span> <span class="n">com</span><span class="o">.</span><span class="n">SECONDO_COM_TYPE</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">identifier</span><span class="p">,</span> <span class="n">type_expression</span><span class="p">)</span>
+
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">response</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">command_string</span><span class="p">)</span>
+            <span class="k">except</span> <span class="n">ProgrammingError</span><span class="p">:</span>
+                <span class="k">raise</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">response</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">InternalError</span><span class="p">(</span><span class="s1">&#39;The cursor has not been initialized or is already closed.&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Cursor.execute_delete_type"><a class="viewcode-back" href="../../../index.html#secondodb.api.secondoapi.Cursor.execute_delete_type">[docs]</a>    <span class="k">def</span> <span class="nf">execute_delete_type</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">identifier</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Deletes a named type from the database.</span>
+
+<span class="sd">        :param identifier: The identifier of the type to be deleted.</span>
+<span class="sd">        :return: The string Success, if the named type was deleted successfully.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">initialized</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">parser</span><span class="o">.</span><span class="n">check_identifier</span><span class="p">(</span><span class="n">identifier</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="n">OperationalError</span><span class="p">(</span><span class="s1">&#39;Invalid identifier.&#39;</span><span class="p">)</span>
+
+            <span class="n">command_string</span> <span class="o">=</span> <span class="n">com</span><span class="o">.</span><span class="n">SECONDO_COM_DELETE_TYPE</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">identifier</span><span class="p">)</span>
+
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">response</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">command_string</span><span class="p">)</span>
+            <span class="k">except</span> <span class="n">ProgrammingError</span><span class="p">:</span>
+                <span class="k">raise</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">response</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">InternalError</span><span class="p">(</span><span class="s1">&#39;The cursor has not been initialized or is already closed.&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Cursor.execute_create"><a class="viewcode-back" href="../../../index.html#secondodb.api.secondoapi.Cursor.execute_create">[docs]</a>    <span class="k">def</span> <span class="nf">execute_create</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">identifier</span><span class="p">,</span> <span class="n">type_expression</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Creates an object of the given type with undefined value.</span>
+
+<span class="sd">        :param identifier: The identifier of the object to be created.</span>
+<span class="sd">        :param type_expression: A type expression for the command &#39;create &lt;identifier&gt; = &lt;type expression&gt;&#39;</span>
+<span class="sd">        :return: The string Success, if the object was created successfully.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">initialized</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">parser</span><span class="o">.</span><span class="n">check_identifier</span><span class="p">(</span><span class="n">identifier</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="n">OperationalError</span><span class="p">(</span><span class="s1">&#39;Invalid identifier.&#39;</span><span class="p">)</span>
+
+            <span class="n">command_string</span> <span class="o">=</span> <span class="n">com</span><span class="o">.</span><span class="n">SECONDO_COM_CREATE</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">identifier</span><span class="p">,</span> <span class="n">type_expression</span><span class="p">)</span>
+
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">response</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">command_string</span><span class="p">)</span>
+            <span class="k">except</span> <span class="n">ProgrammingError</span><span class="p">:</span>
+                <span class="k">raise</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">response</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">InternalError</span><span class="p">(</span><span class="s1">&#39;The cursor has not been initialized or is already closed.&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Cursor.execute_kill"><a class="viewcode-back" href="../../../index.html#secondodb.api.secondoapi.Cursor.execute_kill">[docs]</a>    <span class="k">def</span> <span class="nf">execute_kill</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">identifier</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Removes the object with the name &lt;identifier&gt; from the opened database catalog without removing its data</span>
+<span class="sd">        structures. Generally, the delete command should be used to remove database objects. The kill command should</span>
+<span class="sd">        only be used if the delete command crashes the database due to corrupted persistent data structures for this</span>
+<span class="sd">        object.</span>
+
+<span class="sd">        :param identifier: The identifier of the object to be &quot;killed&quot;.</span>
+<span class="sd">        :return: The string Success, if the object was &quot;killed&quot; successfully.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">initialized</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">parser</span><span class="o">.</span><span class="n">check_identifier</span><span class="p">(</span><span class="n">identifier</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="n">OperationalError</span><span class="p">(</span><span class="s1">&#39;Invalid identifier.&#39;</span><span class="p">)</span>
+
+            <span class="n">command_string</span> <span class="o">=</span> <span class="n">com</span><span class="o">.</span><span class="n">SECONDO_COM_KILL</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">identifier</span><span class="p">)</span>
+
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">response</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">command_string</span><span class="p">)</span>
+            <span class="k">except</span> <span class="n">ProgrammingError</span><span class="p">:</span>
+                <span class="k">raise</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">response</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">InternalError</span><span class="p">(</span><span class="s1">&#39;The cursor has not been initialized or is already closed.&#39;</span><span class="p">)</span></div></div>
+</pre></div>
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">pySecondo  documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" >Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">secondodb.api.secondoapi</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2019, Victor Silva.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 3.1.1.
+    </div>
+  </body>
+</html>

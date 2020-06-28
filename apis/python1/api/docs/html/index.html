@@ -1,0 +1,2185 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PySECONDO - Python DB-API 2.0 interface for SECONDO &#8212; pySecondo  documentation</title>
+    <link rel="stylesheet" href="_static/nature.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/doctools.js"></script>
+    <script src="_static/language_data.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="#">pySecondo  documentation</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">PySECONDO - Python DB-API 2.0 interface for <code class="xref py py-mod docutils literal notranslate"><span class="pre">SECONDO</span></code></a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="pysecondo-python-db-api-2-0-interface-for-sec">
+<h1>PySECONDO - Python DB-API 2.0 interface for <code class="xref py py-mod docutils literal notranslate"><span class="pre">SECONDO</span></code><a class="headerlink" href="#pysecondo-python-db-api-2-0-interface-for-sec" title="Permalink to this headline">¶</a></h1>
+<div class="toctree-wrapper compound">
+</div>
+<div class="section" id="module-secondodb.api.secondoapi">
+<span id="sec-api-main-module"></span><h2><code class="xref py py-mod docutils literal notranslate"><span class="pre">SECONDO</span></code>-API Main Module<a class="headerlink" href="#module-secondodb.api.secondoapi" title="Permalink to this headline">¶</a></h2>
+<p>The module Secondo API implements the Application Programming Interface for Python for the interaction with a <code class="xref py py-mod docutils literal notranslate"><span class="pre">SECONDO</span></code>
+server. The API implements the Python Database API 2.0 Specification (PEP 249).</p>
+<dl class="py function">
+<dt id="secondodb.api.secondoapi.connect">
+<code class="sig-name descname">connect</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">host</span></em>, <em class="sig-param"><span class="n">port</span></em>, <em class="sig-param"><span class="n">username</span><span class="o">=</span><span class="default_value">'username'</span></em>, <em class="sig-param"><span class="n">passwd</span><span class="o">=</span><span class="default_value">'passwd'</span></em>, <em class="sig-param"><span class="n">database</span><span class="o">=</span><span class="default_value">''</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/secondodb/api/secondoapi.html#connect"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#secondodb.api.secondoapi.connect" title="Permalink to this definition">¶</a></dt>
+<dd><p>Constructor for creating a connection to the <code class="xref py py-mod docutils literal notranslate"><span class="pre">SECONDO</span></code> server. If further data is provided (database and login data),
+a connection to an existing database (if available on the server) will be established.</p>
+<p>Returns a Connection Object.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>host</strong> – The host of the <code class="xref py py-mod docutils literal notranslate"><span class="pre">SECONDO</span></code> server as IP-address or as qualified name (localhost).</p></li>
+<li><p><strong>port</strong> – The port of the <code class="xref py py-mod docutils literal notranslate"><span class="pre">SECONDO</span></code> server.</p></li>
+<li><p><strong>username</strong> – The username for the connection (optional).</p></li>
+<li><p><strong>passwd</strong> – The password for the connection (optional).</p></li>
+<li><p><strong>database</strong> – The name of the database (optional).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A Connection Object.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<div class="section" id="connection-class">
+<h3>Connection Class<a class="headerlink" href="#connection-class" title="Permalink to this headline">¶</a></h3>
+<p>The Connection Class provides methods to handle the connection to a <code class="xref py py-mod docutils literal notranslate"><span class="pre">SECONDO</span></code> server and a stored database. The connection
+can be established in two levels:</p>
+<ul>
+<li><p><strong>Server-only mode</strong></p>
+<blockquote>
+<div><p>A TCP connection will be established with the <code class="xref py py-mod docutils literal notranslate"><span class="pre">SECONDO</span></code> server. At this point no connection will be established with a
+specific stored database on the server. This mode is useful for administration tasks on the <code class="xref py py-mod docutils literal notranslate"><span class="pre">SECONDO</span></code> server, like
+creating, deleting and restoring databases. These methods can as well be called in the Direct DB connection mode, but
+the current connection with the last opened database will be closed.</p>
+</div></blockquote>
+</li>
+<li><p><strong>Direct DB connection mode</strong></p>
+<blockquote>
+<div><p>Both a connection with the <code class="xref py py-mod docutils literal notranslate"><span class="pre">SECONDO</span></code> server and to a specific stored database will be established. The requisite for this
+type of connection is the availability of the database and its specific login parameters (i.e. name of the database,
+user name and password). A database may or not have login parameters (i.e. user name and password). Therefore, they
+are optional parameters of the constructor method.</p>
+</div></blockquote>
+</li>
+</ul>
+<p><strong>Example for establishing a connection to the Secondo server providing a host and a port:</strong></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">secondodb.api</span> <span class="k">as</span> <span class="nn">secondo</span>
+
+<span class="n">HOST</span> <span class="o">=</span> <span class="s1">&#39;127.0.0.1&#39;</span>   <span class="c1"># The server&#39;s hostname or IP address</span>
+<span class="n">PORT</span> <span class="o">=</span> <span class="s1">&#39;1234&#39;</span>        <span class="c1"># The port used by the server</span>
+
+<span class="n">connection</span> <span class="o">=</span> <span class="n">secondo</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="n">HOST</span><span class="p">,</span> <span class="n">PORT</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Example for establishing a connection to the Secondo server and to a specific stored database (BERLINTEST):</strong></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">secondodb.api</span> <span class="k">as</span> <span class="nn">secondo</span>
+
+<span class="n">HOST</span> <span class="o">=</span> <span class="s1">&#39;127.0.0.1&#39;</span>   <span class="c1"># The server&#39;s hostname or IP address</span>
+<span class="n">PORT</span> <span class="o">=</span> <span class="s1">&#39;1234&#39;</span>        <span class="c1"># The port used by the server</span>
+
+<span class="n">connection</span> <span class="o">=</span> <span class="n">secondo</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="n">HOST</span><span class="p">,</span> <span class="n">PORT</span><span class="p">,</span> <span class="n">database</span><span class="o">=</span><span class="s1">&#39;BERLINTEST&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="section" id="basic-methods">
+<h4>Basic Methods<a class="headerlink" href="#basic-methods" title="Permalink to this headline">¶</a></h4>
+<dl class="py class">
+<dt id="secondodb.api.secondoapi.Connection">
+<em class="property">class </em><code class="sig-name descname">Connection</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">host</span></em>, <em class="sig-param"><span class="n">port</span></em>, <em class="sig-param"><span class="n">username</span></em>, <em class="sig-param"><span class="n">passwd</span></em>, <em class="sig-param"><span class="n">database</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/secondodb/api/secondoapi.html#Connection"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#secondodb.api.secondoapi.Connection" title="Permalink to this definition">¶</a></dt>
+<dd><p>This class implements the connection object of the <code class="xref py py-mod docutils literal notranslate"><span class="pre">SECONDO</span></code> API. The connection object manages all operations at server
+level and provides access to the current connection instance with the server. The connection object provides the
+cursor() method to create a cursor for the execution of operations at the database level.</p>
+<dl class="py method">
+<dt id="secondodb.api.secondoapi.Connection.close">
+<code class="sig-name descname">close</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/secondodb/api/secondoapi.html#Connection.close"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#secondodb.api.secondoapi.Connection.close" title="Permalink to this definition">¶</a></dt>
+<dd><p>Close the connection now.</p>
+<p>The connection will be unusable from this point forward; an InternalError exception will be raised if any
+operation is attempted with the connection. The same applies to all cursor objects trying to use the connection.
+Note that closing a connection without committing the changes first will cause an implicit rollback to be
+performed.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>True, if the connection was closed successfully.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="secondodb.api.secondoapi.Connection.close_database">
+<code class="sig-name descname">close_database</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/secondodb/api/secondoapi.html#Connection.close_database"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#secondodb.api.secondoapi.Connection.close_database" title="Permalink to this definition">¶</a></dt>
+<dd><p>Closes the currently opened database on the <code class="xref py py-mod docutils literal notranslate"><span class="pre">SECONDO</span></code> server. The connection object returns to the server-only
+mode.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>True, if the database was closed successfully.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="secondodb.api.secondoapi.Connection.create_database">
+<code class="sig-name descname">create_database</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">database_name</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/secondodb/api/secondoapi.html#Connection.create_database"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#secondodb.api.secondoapi.Connection.create_database" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates a database on the <code class="xref py py-mod docutils literal notranslate"><span class="pre">SECONDO</span></code> server. The database remains open after creation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>database_name</strong> – The name of the new database.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>True, if the database was created successfully.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="secondodb.api.secondoapi.Connection.cursor">
+<code class="sig-name descname">cursor</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/secondodb/api/secondoapi.html#Connection.cursor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#secondodb.api.secondoapi.Connection.cursor" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a new Cursor Object using the connection.</p>
+<p>If the database does not provide a direct cursor concept, the module will have to emulate cursors using other
+means to the extent needed by this specification.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>A Cursor object.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="secondodb.api.secondoapi.Connection.delete_database">
+<code class="sig-name descname">delete_database</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">database_name</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/secondodb/api/secondoapi.html#Connection.delete_database"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#secondodb.api.secondoapi.Connection.delete_database" title="Permalink to this definition">¶</a></dt>
+<dd><p>Deletes a database on the <code class="xref py py-mod docutils literal notranslate"><span class="pre">SECONDO</span></code> server. Before deletion, all opened databases on the Secondo server will be
+closed. The connection object will be set to server-only mode.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>database_name</strong> – The name of the database.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>True, if the database was deleted successfully.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="secondodb.api.secondoapi.Connection.open_database">
+<code class="sig-name descname">open_database</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">database_name</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/secondodb/api/secondoapi.html#Connection.open_database"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#secondodb.api.secondoapi.Connection.open_database" title="Permalink to this definition">¶</a></dt>
+<dd><p>Opens a database on the <code class="xref py py-mod docutils literal notranslate"><span class="pre">SECONDO</span></code> server. The server-only mode will be set to False.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>database_name</strong> – The name of the database.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>True, if the database was opened successfully.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="secondodb.api.secondoapi.Connection.restore_database">
+<code class="sig-name descname">restore_database</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">database_name</span></em>, <em class="sig-param"><span class="n">database_location</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/secondodb/api/secondoapi.html#Connection.restore_database"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#secondodb.api.secondoapi.Connection.restore_database" title="Permalink to this definition">¶</a></dt>
+<dd><p>Restores a database from a specific location into the <code class="xref py py-mod docutils literal notranslate"><span class="pre">SECONDO</span></code> server. After restoring the database will be
+available for establish a connection.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>database_name</strong> – The name of the database.</p></li>
+<li><p><strong>database_location</strong> – The location of the database.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>True, if the database was successfully restored.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="transaction-methods">
+<h4>Transaction Methods<a class="headerlink" href="#transaction-methods" title="Permalink to this headline">¶</a></h4>
+<dl class="py class">
+<dt id="id0">
+<em class="property">class </em><code class="sig-name descname">Connection</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">host</span></em>, <em class="sig-param"><span class="n">port</span></em>, <em class="sig-param"><span class="n">username</span></em>, <em class="sig-param"><span class="n">passwd</span></em>, <em class="sig-param"><span class="n">database</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/secondodb/api/secondoapi.html#Connection"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#id0" title="Permalink to this definition">¶</a></dt>
+<dd><p>This class implements the connection object of the <code class="xref py py-mod docutils literal notranslate"><span class="pre">SECONDO</span></code> API. The connection object manages all operations at server
+level and provides access to the current connection instance with the server. The connection object provides the
+cursor() method to create a cursor for the execution of operations at the database level.</p>
+<dl class="py method">
+<dt id="secondodb.api.secondoapi.Connection.commit">
+<code class="sig-name descname">commit</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/secondodb/api/secondoapi.html#Connection.commit"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#secondodb.api.secondoapi.Connection.commit" title="Permalink to this definition">¶</a></dt>
+<dd><p>Commit any pending transaction to the database.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>True, if the current transaction was commit successfully.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="secondodb.api.secondoapi.Connection.rollback">
+<code class="sig-name descname">rollback</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/secondodb/api/secondoapi.html#Connection.rollback"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#secondodb.api.secondoapi.Connection.rollback" title="Permalink to this definition">¶</a></dt>
+<dd><p>In case a database does provide transactions this method causes the database to roll back to the start of any
+pending transaction. Closing a connection without committing the changes first will cause an implicit rollback
+to be performed.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>True, if the current transaction was rolled back successfully.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="get-methods">
+<h4>Get-Methods<a class="headerlink" href="#get-methods" title="Permalink to this headline">¶</a></h4>
+<p>Get-Methods can be used to retrieve different types of objects or information from a <code class="xref py py-mod docutils literal notranslate"><span class="pre">SECONDO</span></code> database.</p>
+<dl class="py class">
+<dt id="id1">
+<em class="property">class </em><code class="sig-name descname">Connection</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">host</span></em>, <em class="sig-param"><span class="n">port</span></em>, <em class="sig-param"><span class="n">username</span></em>, <em class="sig-param"><span class="n">passwd</span></em>, <em class="sig-param"><span class="n">database</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/secondodb/api/secondoapi.html#Connection"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#id1" title="Permalink to this definition">¶</a></dt>
+<dd><p>This class implements the connection object of the <code class="xref py py-mod docutils literal notranslate"><span class="pre">SECONDO</span></code> API. The connection object manages all operations at server
+level and provides access to the current connection instance with the server. The connection object provides the
+cursor() method to create a cursor for the execution of operations at the database level.</p>
+<dl class="py method">
+<dt id="secondodb.api.secondoapi.Connection.get_algebra">
+<code class="sig-name descname">get_algebra</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">algebra_name</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/secondodb/api/secondoapi.html#Connection.get_algebra"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#secondodb.api.secondoapi.Connection.get_algebra" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the details for an algebra from the <code class="xref py py-mod docutils literal notranslate"><span class="pre">SECONDO</span></code> server.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>A Python list with the available algebras on the <code class="xref py py-mod docutils literal notranslate"><span class="pre">SECONDO</span></code> server.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="secondodb.api.secondoapi.Connection.get_list_algebras">
+<code class="sig-name descname">get_list_algebras</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/secondodb/api/secondoapi.html#Connection.get_list_algebras"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#secondodb.api.secondoapi.Connection.get_list_algebras" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a list of the available algebras in the <code class="xref py py-mod docutils literal notranslate"><span class="pre">SECONDO</span></code> server.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>A Python list with the available algebras_1 on the <code class="xref py py-mod docutils literal notranslate"><span class="pre">SECONDO</span></code> server.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="secondodb.api.secondoapi.Connection.get_list_databases">
+<code class="sig-name descname">get_list_databases</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/secondodb/api/secondoapi.html#Connection.get_list_databases"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#secondodb.api.secondoapi.Connection.get_list_databases" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a list of the databases in the <code class="xref py py-mod docutils literal notranslate"><span class="pre">SECONDO</span></code> server.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>A Python list with the names of the available databases on the <code class="xref py py-mod docutils literal notranslate"><span class="pre">SECONDO</span></code> server.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="secondodb.api.secondoapi.Connection.get_list_objects">
+<code class="sig-name descname">get_list_objects</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/secondodb/api/secondoapi.html#Connection.get_list_objects"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#secondodb.api.secondoapi.Connection.get_list_objects" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a list of the objects in the <code class="xref py py-mod docutils literal notranslate"><span class="pre">SECONDO</span></code> server.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>A Python list with the names available objects of the currently opened database.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="secondodb.api.secondoapi.Connection.get_list_type_constructors">
+<code class="sig-name descname">get_list_type_constructors</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/secondodb/api/secondoapi.html#Connection.get_list_type_constructors"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#secondodb.api.secondoapi.Connection.get_list_type_constructors" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a list of the type constructors available in the <code class="xref py py-mod docutils literal notranslate"><span class="pre">SECONDO</span></code> server.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>A Python list with the constructors of the available types of the currently opened database.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="secondodb.api.secondoapi.Connection.get_list_types">
+<code class="sig-name descname">get_list_types</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/secondodb/api/secondoapi.html#Connection.get_list_types"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#secondodb.api.secondoapi.Connection.get_list_types" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a list of the types available in the current open database.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>A list expression object with the available types of the currently opened database.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+</div>
+<div class="section" id="cursor-class">
+<h3>Cursor Class<a class="headerlink" href="#cursor-class" title="Permalink to this headline">¶</a></h3>
+<dl class="py class">
+<dt id="secondodb.api.secondoapi.Cursor">
+<em class="property">class </em><code class="sig-name descname">Cursor</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">connection</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/secondodb/api/secondoapi.html#Cursor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#secondodb.api.secondoapi.Cursor" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="py method">
+<dt id="secondodb.api.secondoapi.Cursor.close">
+<code class="sig-name descname">close</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/secondodb/api/secondoapi.html#Cursor.close"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#secondodb.api.secondoapi.Cursor.close" title="Permalink to this definition">¶</a></dt>
+<dd><p>Close the cursor now (rather than whenever __del__ is called).</p>
+<p>The cursor will be unusable from this point forward; an InternalError exception will be raised if any
+operation is attempted with the cursor.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>True, if the cursor was closed successfully.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="secondodb.api.secondoapi.Cursor.execute">
+<code class="sig-name descname">execute</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">operation</span></em>, <em class="sig-param"><span class="n">parameters</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/secondodb/api/secondoapi.html#Cursor.execute"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#secondodb.api.secondoapi.Cursor.execute" title="Permalink to this definition">¶</a></dt>
+<dd><p>Prepare and execute a database operation (query or command).</p>
+<p>Parameters may be provided as sequence or mapping and will be bound to variables in the operation. The
+placeholders in the operation must use the following format: {i}, where i is an integer, which
+specifies the position of the parameter in the list of parameters.</p>
+<p>Example 1: Simple Query</p>
+<p>Operation = query {0}
+Parameter list = [‘mehringdamm’]
+Formatted operation = query mehringdamm</p>
+<p>Example 2: Inserting Single Tuples</p>
+<p>Operation = query {0} inserttuple[{1}, {2}] count;
+Parameter list = [‘myfirstrel’,‘“Anna”’, ‘27’]
+Formatted operation = query myfirstrel inserttuple[“Anna”, 27] count;</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>operation</strong> – A string with a <code class="xref py py-mod docutils literal notranslate"><span class="pre">SECONDO</span></code> command.</p></li>
+<li><p><strong>parameters</strong> – Further parameters for the execution of the command (currently not in use).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A <code class="xref py py-mod docutils literal notranslate"><span class="pre">SECONDO</span></code> object, a list with <code class="xref py py-mod docutils literal notranslate"><span class="pre">SECONDO</span></code> objects or a <code class="xref py py-mod docutils literal notranslate"><span class="pre">SECONDO</span></code> response.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="secondodb.api.secondoapi.Cursor.execute_create">
+<code class="sig-name descname">execute_create</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">identifier</span></em>, <em class="sig-param"><span class="n">type_expression</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/secondodb/api/secondoapi.html#Cursor.execute_create"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#secondodb.api.secondoapi.Cursor.execute_create" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates an object of the given type with undefined value.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>identifier</strong> – The identifier of the object to be created.</p></li>
+<li><p><strong>type_expression</strong> – A type expression for the command ‘create &lt;identifier&gt; = &lt;type expression&gt;’</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The string Success, if the object was created successfully.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="secondodb.api.secondoapi.Cursor.execute_create_empty_relation">
+<code class="sig-name descname">execute_create_empty_relation</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">relation_name</span></em>, <em class="sig-param"><span class="n">list_attributes</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/secondodb/api/secondoapi.html#Cursor.execute_create_empty_relation"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#secondodb.api.secondoapi.Cursor.execute_create_empty_relation" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates an empty relation in the database. The list of the attributes must follow the following format:</p>
+<p>list_attributes = [attr]</p>
+<p>where</p>
+<p>attr = [Name, type]</p>
+<p>IMPORTANT: The name of the attributes must begin with an upper case character.</p>
+<p>Example:</p>
+<p>attr1 = [‘Att1’, ‘string’]
+attr2 = [‘Att2’, ‘string’]</p>
+<p>list_attributes = [attr1, attr2]</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>relation_name</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>) – The name of the relation.</p></li>
+<li><p><strong>list_attributes</strong> (<em>[</em><em>]</em>) – A list with the attributes of the relation (please be aware of the format).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The string ‘Success’, if the relation was successfully created, otherwise None.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="secondodb.api.secondoapi.Cursor.execute_create_type">
+<code class="sig-name descname">execute_create_type</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">identifier</span></em>, <em class="sig-param"><span class="n">type_expression</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/secondodb/api/secondoapi.html#Cursor.execute_create_type"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#secondodb.api.secondoapi.Cursor.execute_create_type" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates a named type in the database.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>identifier</strong> – The identifier of the type to be created.</p></li>
+<li><p><strong>type_expression</strong> – A type expression for the command ‘type &lt;identifier&gt; = &lt;type expression&gt;’</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The string Success, if the named type was created successfully.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="secondodb.api.secondoapi.Cursor.execute_delete">
+<code class="sig-name descname">execute_delete</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">identifier</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/secondodb/api/secondoapi.html#Cursor.execute_delete"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#secondodb.api.secondoapi.Cursor.execute_delete" title="Permalink to this definition">¶</a></dt>
+<dd><p>Deletes the object with the name &lt;identifier&gt; from the currently opened database.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>identifier</strong> – The identifier of the object.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The string Success, if the object was deleted successfully.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="secondodb.api.secondoapi.Cursor.execute_delete_type">
+<code class="sig-name descname">execute_delete_type</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">identifier</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/secondodb/api/secondoapi.html#Cursor.execute_delete_type"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#secondodb.api.secondoapi.Cursor.execute_delete_type" title="Permalink to this definition">¶</a></dt>
+<dd><p>Deletes a named type from the database.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>identifier</strong> – The identifier of the type to be deleted.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The string Success, if the named type was deleted successfully.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="secondodb.api.secondoapi.Cursor.execute_derive">
+<code class="sig-name descname">execute_derive</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">identifier</span></em>, <em class="sig-param"><span class="n">value_expression</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/secondodb/api/secondoapi.html#Cursor.execute_derive"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#secondodb.api.secondoapi.Cursor.execute_derive" title="Permalink to this definition">¶</a></dt>
+<dd><p>This works basically in the same way as the let command. The difference is the handling of the created objects
+during creating and restoring a database dump. The derive command should be used for objects that have no
+external representation, e.g., indexes.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>identifier</strong> – The identifier of the object.</p></li>
+<li><p><strong>value_expression</strong> – A value expression for the command ‘derive &lt;identifier&gt; = &lt;value expression&gt;’</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="secondodb.api.secondoapi.Cursor.execute_insert_tuple_into_relation">
+<code class="sig-name descname">execute_insert_tuple_into_relation</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">relation_name</span></em>, <em class="sig-param"><span class="n">single_tuple</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/secondodb/api/secondoapi.html#Cursor.execute_insert_tuple_into_relation"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#secondodb.api.secondoapi.Cursor.execute_insert_tuple_into_relation" title="Permalink to this definition">¶</a></dt>
+<dd><p>Inserts a list of values into a relation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>relation_name</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>) – The name of the relation.</p></li>
+<li><p><strong>single_tuple</strong> (<em>[</em><em>]</em>) – A single tuple of the relation. The single tuple is a list must contain two elements: the
+first element is a list with the values of the tuple, and the second element is a list with
+the types of the relation.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The string ‘Success’, if the tuples were successfully added, otherwise None.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="secondodb.api.secondoapi.Cursor.execute_kill">
+<code class="sig-name descname">execute_kill</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">identifier</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/secondodb/api/secondoapi.html#Cursor.execute_kill"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#secondodb.api.secondoapi.Cursor.execute_kill" title="Permalink to this definition">¶</a></dt>
+<dd><p>Removes the object with the name &lt;identifier&gt; from the opened database catalog without removing its data
+structures. Generally, the delete command should be used to remove database objects. The kill command should
+only be used if the delete command crashes the database due to corrupted persistent data structures for this
+object.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>identifier</strong> – The identifier of the object to be “killed”.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The string Success, if the object was “killed” successfully.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="secondodb.api.secondoapi.Cursor.execute_let">
+<code class="sig-name descname">execute_let</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">identifier</span></em>, <em class="sig-param"><span class="n">value_expression</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/secondodb/api/secondoapi.html#Cursor.execute_let"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#secondodb.api.secondoapi.Cursor.execute_let" title="Permalink to this definition">¶</a></dt>
+<dd><p>This command does almost the same as the query command. In contrast, the result of the &lt;value expression&gt; is not
+displayed on the screen. Instead, the result is stored in an object with the name &lt;identifier&gt;. The command only
+runs successfully if the object does not exist yet in the database; otherwise, an error message is displayed.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>identifier</strong> – The identifier of the object.</p></li>
+<li><p><strong>value_expression</strong> – A value expression for the command ‘let &lt;identifier&gt; = &lt;value expression&gt;’</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A list expression object with the response from the <code class="xref py py-mod docutils literal notranslate"><span class="pre">SECONDO</span></code> server.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="secondodb.api.secondoapi.Cursor.execute_simple_query">
+<code class="sig-name descname">execute_simple_query</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">value_expression</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/secondodb/api/secondoapi.html#Cursor.execute_simple_query"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#secondodb.api.secondoapi.Cursor.execute_simple_query" title="Permalink to this definition">¶</a></dt>
+<dd><p>Evaluates the given value expression and displays the result object.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>value_expression</strong> – A value expression for the command ‘query &lt;value expression&gt;’</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A list expression object with the response from the <code class="xref py py-mod docutils literal notranslate"><span class="pre">SECONDO</span></code> server.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="secondodb.api.secondoapi.Cursor.execute_update">
+<code class="sig-name descname">execute_update</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">identifier</span></em>, <em class="sig-param"><span class="n">value_expression</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/secondodb/api/secondoapi.html#Cursor.execute_update"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#secondodb.api.secondoapi.Cursor.execute_update" title="Permalink to this definition">¶</a></dt>
+<dd><p>Assigns the result of the value expression to an existing object in the database.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>identifier</strong> – The identifier of the object.</p></li>
+<li><p><strong>value_expression</strong> – A value expression for the command ‘update &lt;identifier&gt; := &lt;value expression&gt;’</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The string Success, if the object was updated successfully.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="secondodb.api.secondoapi.Cursor.executemany">
+<code class="sig-name descname">executemany</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">operation</span></em>, <em class="sig-param"><span class="n">seq_of_parameters</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/secondodb/api/secondoapi.html#Cursor.executemany"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#secondodb.api.secondoapi.Cursor.executemany" title="Permalink to this definition">¶</a></dt>
+<dd><p>Prepare a database operation (query or command) and then execute it against all parameter sequences or mappings
+found in the sequence seq_of_parameters. Every entry of the list seq_of_parameters must be declared as a list,
+even when just one parameter is being used.</p>
+<p>The placeholders in the operation must use the following format: {i}, where i is an integer number, which
+specifies the position of the parameter in the list of parameters.</p>
+<p>Example 1: Simple Query</p>
+<p>Operation = query {0}
+Parameter list = [‘mehringdamm’]
+Formatted operation = query mehringdamm</p>
+<p>Example 2: Inserting Single Tuples</p>
+<p>Operation = query {0} inserttuple[{1}, {2}] count;
+Parameter list = [‘myfirstrel’,‘“Anna”’, ‘27’]
+Formatted operation = query myfirstrel inserttuple[“Anna”, 27] count;</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>operation</strong> – A <code class="xref py py-mod docutils literal notranslate"><span class="pre">SECONDO</span></code> command with placeholders.</p></li>
+<li><p><strong>seq_of_parameters</strong> – A list with further parameters for the execution of the commands of the list.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A list with entries. Each entry is a list with an <code class="xref py py-mod docutils literal notranslate"><span class="pre">SECONDO</span></code> object, the type of the response and the list
+expression as string.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="secondodb.api.secondoapi.Cursor.fetchall">
+<code class="sig-name descname">fetchall</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/secondodb/api/secondoapi.html#Cursor.fetchall"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#secondodb.api.secondoapi.Cursor.fetchall" title="Permalink to this definition">¶</a></dt>
+<dd><p>Fetch all (remaining) rows of a query result, returning them as a sequence of sequences (e.g. a list of tuples).
+An empty sequence is returned when no more rows are available.</p>
+<p>An InterfaceError exception is raised if the previous call to .execute*() did not produce any result set or
+no call was issued yet.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>A list with the fetched elements.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="secondodb.api.secondoapi.Cursor.fetchmany">
+<code class="sig-name descname">fetchmany</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">size</span><span class="o">=</span><span class="default_value">1</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/secondodb/api/secondoapi.html#Cursor.fetchmany"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#secondodb.api.secondoapi.Cursor.fetchmany" title="Permalink to this definition">¶</a></dt>
+<dd><p>Fetch the next set of rows of a query result, returning a sequence of sequences (e.g. a list of tuples). An
+empty sequence is returned when no more rows are available. If there are not enough rows to fulfil the size
+parameter, only the available rows will be returned.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>size</strong> – The number of the rows to be returned from the cursor.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A list with the fetched elements.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="secondodb.api.secondoapi.Cursor.fetchone">
+<code class="sig-name descname">fetchone</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/secondodb/api/secondoapi.html#Cursor.fetchone"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#secondodb.api.secondoapi.Cursor.fetchone" title="Permalink to this definition">¶</a></dt>
+<dd><p>Fetch the next row of a query result set, returning a single sequence, or None when no more data is available.</p>
+<p>An InterfaceError exception is raised if the previous call to .execute*() did not produce any result set or
+no call was issued yet.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>A single row of a query result set.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="exceptions">
+<h3>Exceptions<a class="headerlink" href="#exceptions" title="Permalink to this headline">¶</a></h3>
+<p>The module Secondo API implements the Application Programming Interface for Python for the interaction with a <code class="xref py py-mod docutils literal notranslate"><span class="pre">SECONDO</span></code>
+server. The API implements the Python Database API 2.0 Specification (PEP 249).</p>
+<dl class="py exception">
+<dt>
+<em class="property">exception </em><code class="sig-name descname">DataError</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">message</span></em>, <em class="sig-param"><span class="o">*</span><span class="n">args</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/secondodb/api/secondoapi.html#DataError"><span class="viewcode-link">[source]</span></a></dt>
+<dd><p>Exception raised for errors that are due to problems with the processed data like division by zero,
+numeric value out of range, etc.</p>
+</dd></dl>
+
+<dl class="py exception">
+<dt>
+<em class="property">exception </em><code class="sig-name descname">DatabaseError</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">message</span></em>, <em class="sig-param"><span class="o">*</span><span class="n">args</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/secondodb/api/secondoapi.html#DatabaseError"><span class="viewcode-link">[source]</span></a></dt>
+<dd><p>Exception raised for errors that are related to the database.</p>
+</dd></dl>
+
+<dl class="py exception">
+<dt>
+<em class="property">exception </em><code class="sig-name descname">Error</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">message</span></em>, <em class="sig-param"><span class="o">*</span><span class="n">args</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/secondodb/api/secondoapi.html#Error"><span class="viewcode-link">[source]</span></a></dt>
+<dd><p>Exception that is the base class of all other error exceptions.
+You can use this to catch all errors with one single except statement.
+Warnings are not considered errors and thus should not use this class as base.</p>
+</dd></dl>
+
+<dl class="py exception">
+<dt>
+<em class="property">exception </em><code class="sig-name descname">IntegrityError</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">message</span></em>, <em class="sig-param"><span class="o">*</span><span class="n">args</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/secondodb/api/secondoapi.html#IntegrityError"><span class="viewcode-link">[source]</span></a></dt>
+<dd><p>Exception raised when the relational integrity of the database is affected, e.g. a foreign key check fails.</p>
+</dd></dl>
+
+<dl class="py exception">
+<dt>
+<em class="property">exception </em><code class="sig-name descname">InterfaceError</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">message</span></em>, <em class="sig-param"><span class="o">*</span><span class="n">args</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/secondodb/api/secondoapi.html#InterfaceError"><span class="viewcode-link">[source]</span></a></dt>
+<dd><p>Exception raised for errors that are related to the database interface rather than the database itself.</p>
+</dd></dl>
+
+<dl class="py exception">
+<dt>
+<em class="property">exception </em><code class="sig-name descname">InternalError</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">message</span></em>, <em class="sig-param"><span class="o">*</span><span class="n">args</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/secondodb/api/secondoapi.html#InternalError"><span class="viewcode-link">[source]</span></a></dt>
+<dd><p>Exception raised when the database encounters an internal error, e.g. the cursor is not valid anymore,
+the transaction is out of sync, etc.</p>
+</dd></dl>
+
+<dl class="py exception">
+<dt>
+<em class="property">exception </em><code class="sig-name descname">NotSupportedError</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">message</span></em>, <em class="sig-param"><span class="o">*</span><span class="n">args</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/secondodb/api/secondoapi.html#NotSupportedError"><span class="viewcode-link">[source]</span></a></dt>
+<dd><p>Exception raised in case a method or database API was used which is not supported by the database,
+e.g. requesting a .rollback() on a connection that does not support transaction or has transactions turned off.</p>
+</dd></dl>
+
+<dl class="py exception">
+<dt>
+<em class="property">exception </em><code class="sig-name descname">OperationalError</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">message</span></em>, <em class="sig-param"><span class="o">*</span><span class="n">args</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/secondodb/api/secondoapi.html#OperationalError"><span class="viewcode-link">[source]</span></a></dt>
+<dd><p>Exception raised for errors that are related to the database’s operation and not necessarily under
+the control of the programmer, e.g. an unexpected disconnect occurs, the data source name is not found,
+a transaction could not be processed, a memory allocation error occurred during processing, etc.</p>
+</dd></dl>
+
+<dl class="py exception">
+<dt>
+<em class="property">exception </em><code class="sig-name descname">ProgrammingError</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">message</span></em>, <em class="sig-param"><span class="o">*</span><span class="n">args</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/secondodb/api/secondoapi.html#ProgrammingError"><span class="viewcode-link">[source]</span></a></dt>
+<dd><p>Exception raised for programming errors, e.g. table not found or already exists, syntax error in the SQL statement,
+wrong number of parameters specified, etc.</p>
+</dd></dl>
+
+<dl class="py exception">
+<dt>
+<em class="property">exception </em><code class="sig-name descname">Warning</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">message</span></em>, <em class="sig-param"><span class="o">*</span><span class="n">args</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/secondodb/api/secondoapi.html#Warning"><span class="viewcode-link">[source]</span></a></dt>
+<dd><p>Exception raised for important warnings like data truncations while inserting, etc.</p>
+</dd></dl>
+
+</div>
+</div>
+<div class="section" id="support-modules">
+<h2>Support Modules<a class="headerlink" href="#support-modules" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="module-secondodb.api.support.secondocommands">
+<span id="sec-commands"></span><h3><code class="xref py py-mod docutils literal notranslate"><span class="pre">SECONDO</span></code> Commands<a class="headerlink" href="#module-secondodb.api.support.secondocommands" title="Permalink to this headline">¶</a></h3>
+<p>The module Secondo Commands contains the strings of the commands to interact with the <code class="xref py py-mod docutils literal notranslate"><span class="pre">SECONDO</span></code> server and its objects.
+The strings can be formatted using the Python method format() to replace the placeholders (i.e. {0} or {1}).</p>
+<dl class="py function">
+<dt id="secondodb.api.support.secondocommands.apply_parameters_to_operation">
+<code class="sig-name descname">apply_parameters_to_operation</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">operation</span></em>, <em class="sig-param"><span class="n">parameter_list</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/secondodb/api/support/secondocommands.html#apply_parameters_to_operation"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#secondodb.api.support.secondocommands.apply_parameters_to_operation" title="Permalink to this definition">¶</a></dt>
+<dd><p>Replaces the placeholders of the operation with the parameters of the list.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>operation</strong> – A string with an operation, which includes placeholders for the parameters.</p></li>
+<li><p><strong>parameter_list</strong> – A list of parameters.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The formatted operation.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<p><strong>Available Secondo Commands:</strong></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># ---- Basic commands ---- #</span>
+
+<span class="n">SECONDO_COM_QUERY</span> <span class="o">=</span> <span class="s1">&#39;query </span><span class="si">{0}</span><span class="s1">&#39;</span>
+<span class="n">SECONDO_COM_LET</span> <span class="o">=</span> <span class="s1">&#39;let </span><span class="si">{0}</span><span class="s1"> = </span><span class="si">{1}</span><span class="s1">&#39;</span>
+<span class="n">SECONDO_COM_DERIVE</span> <span class="o">=</span> <span class="s1">&#39;derive </span><span class="si">{0}</span><span class="s1"> = </span><span class="si">{1}</span><span class="s1">&#39;</span>
+<span class="n">SECONDO_COM_UPDATE</span> <span class="o">=</span> <span class="s1">&#39;update </span><span class="si">{0}</span><span class="s1"> := </span><span class="si">{1}</span><span class="s1">&#39;</span>
+<span class="n">SECONDO_COM_DELETE</span> <span class="o">=</span> <span class="s1">&#39;delete </span><span class="si">{0}</span><span class="s1">&#39;</span>
+<span class="n">SECONDO_COM_TYPE</span> <span class="o">=</span> <span class="s1">&#39;type </span><span class="si">{0}</span><span class="s1"> = </span><span class="si">{1}</span><span class="s1">&#39;</span>
+<span class="n">SECONDO_COM_DELETE_TYPE</span> <span class="o">=</span> <span class="s1">&#39;delete type </span><span class="si">{0}</span><span class="s1">&#39;</span>
+<span class="n">SECONDO_COM_CREATE</span> <span class="o">=</span> <span class="s1">&#39;create </span><span class="si">{0}</span><span class="s1"> : </span><span class="si">{1}</span><span class="s1">&#39;</span>
+<span class="n">SECONDO_COM_KILL</span> <span class="o">=</span> <span class="s1">&#39;kill </span><span class="si">{0}</span><span class="s1">&#39;</span>
+
+<span class="c1"># ---- Databases ----- #</span>
+
+<span class="n">SECONDO_COM_CREATE_DB</span> <span class="o">=</span> <span class="s1">&#39;create database </span><span class="si">{0}</span><span class="s1">&#39;</span>
+<span class="n">SECONDO_COM_OPEN_DB</span> <span class="o">=</span> <span class="s1">&#39;open database </span><span class="si">{0}</span><span class="s1">&#39;</span>
+<span class="n">SECONDO_COM_CLOSE_DB</span> <span class="o">=</span> <span class="s1">&#39;close database&#39;</span>
+<span class="n">SECONDO_COM_DELETE_DB</span> <span class="o">=</span> <span class="s1">&#39;delete database </span><span class="si">{0}</span><span class="s1">&#39;</span>
+<span class="n">SECONDO_COM_RESTORE_DB</span> <span class="o">=</span> <span class="s1">&#39;restore database </span><span class="si">{0}</span><span class="s1">&#39;</span>
+
+<span class="c1"># ---- Transactions ----- #</span>
+
+<span class="n">SECONDO_COM_BEGIN_TR</span> <span class="o">=</span> <span class="s1">&#39;begin transaction&#39;</span>
+<span class="n">SECONDO_COM_COMMIT_TR</span> <span class="o">=</span> <span class="s1">&#39;commit transaction&#39;</span>
+<span class="n">SECONDO_COM_ABORT_TR</span> <span class="o">=</span> <span class="s1">&#39;abort transaction&#39;</span>
+
+<span class="c1"># ---- Inquiries ----- #</span>
+
+<span class="n">SECONDO_COM_LIST_DB</span> <span class="o">=</span> <span class="s1">&#39;list databases&#39;</span>
+<span class="n">SECONDO_COM_LIST_TYPE_CONS</span> <span class="o">=</span> <span class="s1">&#39;list type constructors&#39;</span>
+<span class="n">SECONDO_COM_LIST_OPERATORS</span> <span class="o">=</span> <span class="s1">&#39;list operators&#39;</span>
+<span class="n">SECONDO_COM_LIST_ALGEBRAS</span> <span class="o">=</span> <span class="s1">&#39;list algebras&#39;</span>
+<span class="n">SECONDO_COM_LIST_ALGEBRA</span> <span class="o">=</span> <span class="s1">&#39;list algebra </span><span class="si">{0}</span><span class="s1">&#39;</span>
+<span class="n">SECONDO_COM_LIST_TYPES</span> <span class="o">=</span> <span class="s1">&#39;list types&#39;</span>
+<span class="n">SECONDO_COM_LIST_OBJECTS</span> <span class="o">=</span> <span class="s1">&#39;list objects&#39;</span>
+
+<span class="c1"># ---- Import and Export ----- #</span>
+
+<span class="n">SECONDO_COM_SAVE_DB</span> <span class="o">=</span> <span class="s1">&#39;save database to </span><span class="si">{0}</span><span class="s1">&#39;</span>
+<span class="n">SECONDO_COM_RESTORE_DB_FROM</span> <span class="o">=</span> <span class="s1">&#39;restore database </span><span class="si">{0}</span><span class="s1"> from </span><span class="si">{1}</span><span class="s1">&#39;</span>
+<span class="n">SECONDO_COM_SAVE_OBJECT</span> <span class="o">=</span> <span class="s1">&#39;save </span><span class="si">{0}</span><span class="s1"> to </span><span class="si">{1}</span><span class="s1">&#39;</span>
+<span class="n">SECONDO_COM_RESTORE_OBJECT</span> <span class="o">=</span> <span class="s1">&#39;restore </span><span class="si">{0}</span><span class="s1"> from </span><span class="si">{1}</span><span class="s1">&#39;</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="module-secondodb.api.support.secondomessages">
+<span id="sec-messages"></span><h3><code class="xref py py-mod docutils literal notranslate"><span class="pre">SECONDO</span></code> Messages<a class="headerlink" href="#module-secondodb.api.support.secondomessages" title="Permalink to this headline">¶</a></h3>
+<p>The module Secondo Messages contains the start and end strings of the responses to an inquiry or a command from the
+<code class="xref py py-mod docutils literal notranslate"><span class="pre">SECONDO</span></code> server.</p>
+<p><strong>Available Secondo Messages:</strong></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">SECONDO_OK</span> <span class="o">=</span> <span class="s1">&#39;&lt;SecondoOk/&gt;&#39;</span>
+
+<span class="n">SECONDO_INTRO_START</span> <span class="o">=</span> <span class="s1">&#39;&lt;SecondoIntro&gt;&#39;</span>
+<span class="n">SECONDO_INTRO_END</span> <span class="o">=</span> <span class="s1">&#39;&lt;/SecondoIntro&gt;&#39;</span>
+
+<span class="n">SECONDO_ERROR_START</span> <span class="o">=</span> <span class="s1">&#39;&lt;SecondoError&gt;&#39;</span>
+<span class="n">SECONDO_ERROR_END</span> <span class="o">=</span> <span class="s1">&#39;&lt;/SecondoError&gt;&#39;</span>
+
+<span class="n">SECONDO_CONNECT_START</span> <span class="o">=</span> <span class="s1">&#39;&lt;Connect&gt;&#39;</span>
+<span class="n">SECONDO_CONNECT_END</span> <span class="o">=</span> <span class="s1">&#39;&lt;/Connect&gt;&#39;</span>
+<span class="n">SECONDO_DISCONNECT_END</span> <span class="o">=</span> <span class="s1">&#39;&lt;Disconnect/&gt;&#39;</span>
+
+<span class="n">SECONDO_COMMAND_START</span> <span class="o">=</span> <span class="s1">&#39;&lt;Secondo&gt;&#39;</span>
+<span class="n">SECONDO_COMMAND_END</span> <span class="o">=</span> <span class="s1">&#39;&lt;/Secondo&gt;&#39;</span>
+
+<span class="n">SECONDO_MESSAGE_START</span> <span class="o">=</span> <span class="s1">&#39;&lt;Message&gt;&#39;</span>
+<span class="n">SECONDO_MESSAGE_END</span> <span class="o">=</span> <span class="s1">&#39;&lt;/Message&gt;&#39;</span>
+
+<span class="n">SECONDO_RESPONSE_START</span> <span class="o">=</span> <span class="s1">&#39;&lt;SecondoResponse&gt;&#39;</span>
+<span class="n">SECONDO_RESPONSE_END</span> <span class="o">=</span> <span class="s1">&#39;&lt;/SecondoResponse&gt;&#39;</span>
+
+<span class="n">SECONDO_PROGRESS</span> <span class="o">=</span> <span class="s1">&#39;progress&#39;</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="module-secondodb.api.support.secondoparser">
+<span id="sec-parser"></span><h3><code class="xref py py-mod docutils literal notranslate"><span class="pre">SECONDO</span></code> Parser<a class="headerlink" href="#module-secondodb.api.support.secondoparser" title="Permalink to this headline">¶</a></h3>
+<p>The module Secondo Parser implements functions for parsing a response to an inquiry or a command from the <code class="xref py py-mod docutils literal notranslate"><span class="pre">SECONDO</span></code>
+server. A list expression object can be constructed through the function receive_response. A list expression object
+for a specific inquiry can be then converted to a Python structure (dictionary or list), which can be used to print or
+display the results in an ad-hoc format.</p>
+<dl class="py function">
+<dt id="secondodb.api.support.secondoparser.check_identifier">
+<code class="sig-name descname">check_identifier</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">identifier</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/secondodb/api/support/secondoparser.html#check_identifier"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#secondodb.api.support.secondoparser.check_identifier" title="Permalink to this definition">¶</a></dt>
+<dd><p>Checks the validity of a given value expression.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>identifier</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>) – </p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></p>
+</dd>
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>True, if the value expression is valid.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="secondodb.api.support.secondoparser.check_port">
+<code class="sig-name descname">check_port</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">port</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/secondodb/api/support/secondoparser.html#check_port"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#secondodb.api.support.secondoparser.check_port" title="Permalink to this definition">¶</a></dt>
+<dd><p>Checks the validity of a given port value.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>port</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>) – The number of the port as string.</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></p>
+</dd>
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>True, if the port value is valid.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="secondodb.api.support.secondoparser.check_validity_string">
+<code class="sig-name descname">check_validity_string</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">validity_string</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/secondodb/api/support/secondoparser.html#check_validity_string"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#secondodb.api.support.secondoparser.check_validity_string" title="Permalink to this definition">¶</a></dt>
+<dd><p>Checks the validity string of a <code class="xref py py-mod docutils literal notranslate"><span class="pre">SECONDO</span></code> response.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>validity_string</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>) – The string with the value ‘bnl’.</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></p>
+</dd>
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>True, if the string has the bnl-value. Otherwise a DataError will be raised.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="secondodb.api.support.secondoparser.parse_inquiry_algebra">
+<code class="sig-name descname">parse_inquiry_algebra</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">list_expr</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/secondodb/api/support/secondoparser.html#parse_inquiry_algebra"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#secondodb.api.support.secondoparser.parse_inquiry_algebra" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a list with the objects of a database.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>list_expr</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">ListExp</span></code>) – A response list.</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">Algebra</span></code></p>
+</dd>
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>An Algebra object.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="secondodb.api.support.secondoparser.parse_inquiry_algebras">
+<code class="sig-name descname">parse_inquiry_algebras</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">list_expr</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/secondodb/api/support/secondoparser.html#parse_inquiry_algebras"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#secondodb.api.support.secondoparser.parse_inquiry_algebras" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a list with the algebras of the server.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>list_expr</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">ListExp</span></code>) – A list expression object.</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>[]</p>
+</dd>
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>The list of the algebras.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="secondodb.api.support.secondoparser.parse_inquiry_databases">
+<code class="sig-name descname">parse_inquiry_databases</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">list_expr</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/secondodb/api/support/secondoparser.html#parse_inquiry_databases"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#secondodb.api.support.secondoparser.parse_inquiry_databases" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a list with the database names of a database inquiry.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>list_expr</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">ListExp</span></code>) – A List Expression object with a database inquiry.</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>[]</p>
+</dd>
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>A list with the database names.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="secondodb.api.support.secondoparser.parse_inquiry_objects">
+<code class="sig-name descname">parse_inquiry_objects</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">list_expr</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/secondodb/api/support/secondoparser.html#parse_inquiry_objects"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#secondodb.api.support.secondoparser.parse_inquiry_objects" title="Permalink to this definition">¶</a></dt>
+<dd><p>Parses an objects inquiry from a <code class="xref py py-mod docutils literal notranslate"><span class="pre">SECONDO</span></code> server response.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>list_expr</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">ListExp</span></code>) – A list expression object with the types of the response.</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>[]</p>
+</dd>
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>A list with objects of the class Object containing the types.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="secondodb.api.support.secondoparser.parse_inquiry_type_constructors">
+<code class="sig-name descname">parse_inquiry_type_constructors</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">list_expr</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/secondodb/api/support/secondoparser.html#parse_inquiry_type_constructors"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#secondodb.api.support.secondoparser.parse_inquiry_type_constructors" title="Permalink to this definition">¶</a></dt>
+<dd><p>Parses a types inquiry from a <code class="xref py py-mod docutils literal notranslate"><span class="pre">SECONDO</span></code> server response.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>list_expr</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">ListExp</span></code>) – A list expression object with the types of the response.</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>[]</p>
+</dd>
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>A list containing the type constructors.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="secondodb.api.support.secondoparser.parse_inquiry_types">
+<code class="sig-name descname">parse_inquiry_types</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">list_expr</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/secondodb/api/support/secondoparser.html#parse_inquiry_types"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#secondodb.api.support.secondoparser.parse_inquiry_types" title="Permalink to this definition">¶</a></dt>
+<dd><p>Parses a types inquiry from a <code class="xref py py-mod docutils literal notranslate"><span class="pre">SECONDO</span></code> server response.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>list_expr</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">ListExp</span></code>) – A list expression object with the types of the response.</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>[]</p>
+</dd>
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>A list with objects of the class Type containing the types.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="secondodb.api.support.secondoparser.parse_query">
+<code class="sig-name descname">parse_query</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">list_expr</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/secondodb/api/support/secondoparser.html#parse_query"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#secondodb.api.support.secondoparser.parse_query" title="Permalink to this definition">¶</a></dt>
+<dd><p>Converts the result of a query in list expression format into Python objects.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>list_expr</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">ListExp</span></code>) – A list expression object.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A Python object.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="secondodb.api.support.secondoparser.parse_type_definition">
+<code class="sig-name descname">parse_type_definition</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">list_expr</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/secondodb/api/support/secondoparser.html#parse_type_definition"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#secondodb.api.support.secondoparser.parse_type_definition" title="Permalink to this definition">¶</a></dt>
+<dd><p>Parses a type definition element from a <code class="xref py py-mod docutils literal notranslate"><span class="pre">SECONDO</span></code> server response.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>list_expr</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">ListExp</span></code>) – A list expression object with the type definition of the response.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A string value with the type and a list with the attributes, if the type corresponds to a relation.
+Otherwise the list parameter will be set to None. Every single attribute is an object of the class
+Attribute.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="secondodb.api.support.secondoparser.receive_response">
+<code class="sig-name descname">receive_response</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">socket_object</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/secondodb/api/support/secondoparser.html#receive_response"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#secondodb.api.support.secondoparser.receive_response" title="Permalink to this definition">¶</a></dt>
+<dd><p>This method handles the <code class="xref py py-mod docutils literal notranslate"><span class="pre">SECONDO</span></code> response from the server. After processing two parameters will be returned: The first
+parameter contains the opening string of the response (for example &lt;SecondoIntro&gt;). The second parameter depends on
+this string, as it can be a simple string with a message or a List Expression object with the result of an inquiry.</p>
+<p>In case of an error, a dictionary structure with the details (error code, position and message) will be returned. In
+any case, the returned result list corresponds to the fourth element of the obtained list expression object from the
+server response.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>socket_object</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">socket</span></code>) – A socket object with the response from the server.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The opening string of the response and a list or a message.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="section" id="sec-algebras">
+<h3><code class="xref py py-mod docutils literal notranslate"><span class="pre">SECONDO</span></code> Algebras<a class="headerlink" href="#sec-algebras" title="Permalink to this headline">¶</a></h3>
+<p><strong>Data types for the Secondo Standard Algebra</strong></p>
+<span class="target" id="module-secondodb.api.algebras.secondostandardalgebra"></span><p>The module Secondo Standard Algebra implements the data types for the conversion of list expression objects with values
+of the types contained in the StandardAlgebra of the <code class="xref py py-mod docutils literal notranslate"><span class="pre">SECONDO</span></code> system. The data types are implemented in Python
+using Data Classes. Data Classes are implemented in the API like normal classes without behaviour.
+Like regular classes their attributes can be called through the given names.</p>
+<dl class="py function">
+<dt id="secondodb.api.algebras.secondostandardalgebra.parse_bool">
+<code class="sig-name descname">parse_bool</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">list_expr</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/secondodb/api/algebras/secondostandardalgebra.html#parse_bool"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#secondodb.api.algebras.secondostandardalgebra.parse_bool" title="Permalink to this definition">¶</a></dt>
+<dd><p>Parses a list expression for a boolean object.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>list_expr</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">ListExp</span></code>) – A list expression object containing a boolean.</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></p>
+</dd>
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>A boolean.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="secondodb.api.algebras.secondostandardalgebra.parse_int">
+<code class="sig-name descname">parse_int</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">list_expr</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/secondodb/api/algebras/secondostandardalgebra.html#parse_int"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#secondodb.api.algebras.secondostandardalgebra.parse_int" title="Permalink to this definition">¶</a></dt>
+<dd><p>Parses a list expression for an integer object.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>list_expr</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">ListExp</span></code>) – A list expression object containing an integer.</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></p>
+</dd>
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>An integer.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="secondodb.api.algebras.secondostandardalgebra.parse_longint">
+<code class="sig-name descname">parse_longint</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">list_expr</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/secondodb/api/algebras/secondostandardalgebra.html#parse_longint"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#secondodb.api.algebras.secondostandardalgebra.parse_longint" title="Permalink to this definition">¶</a></dt>
+<dd><p>Parses a list expression for a long integer object.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>list_expr</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">ListExp</span></code>) – A list expression object containing a long integer.</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></p>
+</dd>
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>An integer.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="secondodb.api.algebras.secondostandardalgebra.parse_rational">
+<code class="sig-name descname">parse_rational</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">list_expr</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/secondodb/api/algebras/secondostandardalgebra.html#parse_rational"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#secondodb.api.algebras.secondostandardalgebra.parse_rational" title="Permalink to this definition">¶</a></dt>
+<dd><p>Parses a list expression for a rational object.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>list_expr</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">ListExp</span></code>) – A list expression object containing a rational.</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></p>
+</dd>
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>A float.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="secondodb.api.algebras.secondostandardalgebra.parse_real">
+<code class="sig-name descname">parse_real</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">list_expr</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/secondodb/api/algebras/secondostandardalgebra.html#parse_real"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#secondodb.api.algebras.secondostandardalgebra.parse_real" title="Permalink to this definition">¶</a></dt>
+<dd><p>Parses a list expression for a real object.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>list_expr</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">ListExp</span></code>) – A list expression object containing a real.</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></p>
+</dd>
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>A float.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="secondodb.api.algebras.secondostandardalgebra.parse_string">
+<code class="sig-name descname">parse_string</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">list_expr</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/secondodb/api/algebras/secondostandardalgebra.html#parse_string"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#secondodb.api.algebras.secondostandardalgebra.parse_string" title="Permalink to this definition">¶</a></dt>
+<dd><p>Parses a list expression for a string object.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>list_expr</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">ListExp</span></code>) – A list expression object containing a string.</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></p>
+</dd>
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>A string.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<p><strong>Data types for the Secondo Spatial Algebra</strong></p>
+<span class="target" id="module-secondodb.api.algebras.secondospatialalgebra"></span><p>The module Secondo Spatial Algebra implements the data types for the conversion of list expression objects with values
+of the types contained in the SpatialAlgebra of the <code class="xref py py-mod docutils literal notranslate"><span class="pre">SECONDO</span></code> system. The data types are implemented in Python
+using Data Classes. Data Classes are implemented in the API like normal classes without behaviour.
+Like regular classes their attributes can be called through the given names.</p>
+<dl class="py class">
+<dt id="secondodb.api.algebras.secondospatialalgebra.Face">
+<em class="property">class </em><code class="sig-name descname">Face</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">outercycle</span></em>, <em class="sig-param"><span class="n">holecycles</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/secondodb/api/algebras/secondospatialalgebra.html#Face"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#secondodb.api.algebras.secondospatialalgebra.Face" title="Permalink to this definition">¶</a></dt>
+<dd><p>Implements a single face of a region, containing an outercycle (list of single points) and holecycles (a list of
+cycles, where each cycle is a list of points).</p>
+</dd></dl>
+
+<dl class="py class">
+<dt id="secondodb.api.algebras.secondospatialalgebra.Line">
+<em class="property">class </em><code class="sig-name descname">Line</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">segments</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/secondodb/api/algebras/secondospatialalgebra.html#Line"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#secondodb.api.algebras.secondospatialalgebra.Line" title="Permalink to this definition">¶</a></dt>
+<dd><p>Implements a line as a list of single segments of the class Segment.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt id="secondodb.api.algebras.secondospatialalgebra.Point">
+<em class="property">class </em><code class="sig-name descname">Point</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">x</span></em>, <em class="sig-param"><span class="n">y</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/secondodb/api/algebras/secondospatialalgebra.html#Point"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#secondodb.api.algebras.secondospatialalgebra.Point" title="Permalink to this definition">¶</a></dt>
+<dd><p>Implements a single point expressing two coordinates X and Y.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt id="secondodb.api.algebras.secondospatialalgebra.Region">
+<em class="property">class </em><code class="sig-name descname">Region</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">faces</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/secondodb/api/algebras/secondospatialalgebra.html#Region"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#secondodb.api.algebras.secondospatialalgebra.Region" title="Permalink to this definition">¶</a></dt>
+<dd><p>Implements a region as a list of faces of the class Face.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt id="secondodb.api.algebras.secondospatialalgebra.Segment">
+<em class="property">class </em><code class="sig-name descname">Segment</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">x1</span></em>, <em class="sig-param"><span class="n">y1</span></em>, <em class="sig-param"><span class="n">x2</span></em>, <em class="sig-param"><span class="n">y2</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/secondodb/api/algebras/secondospatialalgebra.html#Segment"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#secondodb.api.algebras.secondospatialalgebra.Segment" title="Permalink to this definition">¶</a></dt>
+<dd><p>Implements a single segment of a line.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="secondodb.api.algebras.secondospatialalgebra.convert_line_to_list_exp_str">
+<code class="sig-name descname">convert_line_to_list_exp_str</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">line</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/secondodb/api/algebras/secondospatialalgebra.html#convert_line_to_list_exp_str"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#secondodb.api.algebras.secondospatialalgebra.convert_line_to_list_exp_str" title="Permalink to this definition">¶</a></dt>
+<dd><p>Converts a line object to a nested list in string format.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>line</strong> (<a class="reference internal" href="#secondodb.api.algebras.secondospatialalgebra.Line" title="secondodb.api.algebras.secondospatialalgebra.Line"><code class="xref py py-class docutils literal notranslate"><span class="pre">Line</span></code></a>) – A line object.</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></p>
+</dd>
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>The nested list as string.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="secondodb.api.algebras.secondospatialalgebra.convert_point_to_list_exp_str">
+<code class="sig-name descname">convert_point_to_list_exp_str</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">point</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/secondodb/api/algebras/secondospatialalgebra.html#convert_point_to_list_exp_str"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#secondodb.api.algebras.secondospatialalgebra.convert_point_to_list_exp_str" title="Permalink to this definition">¶</a></dt>
+<dd><p>Converts a point object to a nested list in string format.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>point</strong> (<a class="reference internal" href="#secondodb.api.algebras.secondospatialalgebra.Point" title="secondodb.api.algebras.secondospatialalgebra.Point"><code class="xref py py-class docutils literal notranslate"><span class="pre">Point</span></code></a>) – A point object.</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></p>
+</dd>
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>The nested list as string.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="secondodb.api.algebras.secondospatialalgebra.convert_points_to_list_exp_str">
+<code class="sig-name descname">convert_points_to_list_exp_str</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">points</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/secondodb/api/algebras/secondospatialalgebra.html#convert_points_to_list_exp_str"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#secondodb.api.algebras.secondospatialalgebra.convert_points_to_list_exp_str" title="Permalink to this definition">¶</a></dt>
+<dd><p>Converts a points object to a nested list in string format.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>points</strong> (<em>[</em><em>]</em>) – A points object.</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></p>
+</dd>
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>The nested list as string.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="secondodb.api.algebras.secondospatialalgebra.convert_region_to_list_exp_str">
+<code class="sig-name descname">convert_region_to_list_exp_str</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">region</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/secondodb/api/algebras/secondospatialalgebra.html#convert_region_to_list_exp_str"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#secondodb.api.algebras.secondospatialalgebra.convert_region_to_list_exp_str" title="Permalink to this definition">¶</a></dt>
+<dd><p>Converts a region object to a nested list in string format.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>region</strong> (<a class="reference internal" href="#secondodb.api.algebras.secondospatialalgebra.Region" title="secondodb.api.algebras.secondospatialalgebra.Region"><code class="xref py py-class docutils literal notranslate"><span class="pre">Region</span></code></a>) – A region object.</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></p>
+</dd>
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>The nested list as string.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="secondodb.api.algebras.secondospatialalgebra.parse_line">
+<code class="sig-name descname">parse_line</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">list_expr</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/secondodb/api/algebras/secondospatialalgebra.html#parse_line"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#secondodb.api.algebras.secondospatialalgebra.parse_line" title="Permalink to this definition">¶</a></dt>
+<dd><p>Transforms a list expression object containing a line (line) to a named tuple.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>list_expr</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">ListExp</span></code>) – A list expression object containing a line (line).</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p><a class="reference internal" href="#secondodb.api.algebras.secondospatialalgebra.Line" title="secondodb.api.algebras.secondospatialalgebra.Line"><code class="xref py py-class docutils literal notranslate"><span class="pre">Line</span></code></a></p>
+</dd>
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>A named tuple with the line.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="secondodb.api.algebras.secondospatialalgebra.parse_point">
+<code class="sig-name descname">parse_point</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">list_expr</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/secondodb/api/algebras/secondospatialalgebra.html#parse_point"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#secondodb.api.algebras.secondospatialalgebra.parse_point" title="Permalink to this definition">¶</a></dt>
+<dd><p>Transforms a list expression object containing a point (point) to a named tuple.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>list_expr</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">ListExp</span></code>) – A list expression object containing a point (point).</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p><a class="reference internal" href="#secondodb.api.algebras.secondospatialalgebra.Point" title="secondodb.api.algebras.secondospatialalgebra.Point"><code class="xref py py-class docutils literal notranslate"><span class="pre">Point</span></code></a></p>
+</dd>
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>A named tuple with the point.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="secondodb.api.algebras.secondospatialalgebra.parse_points">
+<code class="sig-name descname">parse_points</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">list_expr</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/secondodb/api/algebras/secondospatialalgebra.html#parse_points"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#secondodb.api.algebras.secondospatialalgebra.parse_points" title="Permalink to this definition">¶</a></dt>
+<dd><p>Transforms a list expression object containing points (points) to a named tuple.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>list_expr</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">ListExp</span></code>) – A list expression object containing points (points).</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>[]</p>
+</dd>
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>A named tuple with the points.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="secondodb.api.algebras.secondospatialalgebra.parse_region">
+<code class="sig-name descname">parse_region</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">list_expr</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/secondodb/api/algebras/secondospatialalgebra.html#parse_region"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#secondodb.api.algebras.secondospatialalgebra.parse_region" title="Permalink to this definition">¶</a></dt>
+<dd><p>Transforms a list expression object containing a region (region) to a named tuple.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>list_expr</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">ListExp</span></code>) – A list expression object containing a region (region).</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p><a class="reference internal" href="#secondodb.api.algebras.secondospatialalgebra.Region" title="secondodb.api.algebras.secondospatialalgebra.Region"><code class="xref py py-class docutils literal notranslate"><span class="pre">Region</span></code></a></p>
+</dd>
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>A named tuple with the region.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="secondodb.api.algebras.secondospatialalgebra.parse_segment">
+<code class="sig-name descname">parse_segment</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">list_expr</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/secondodb/api/algebras/secondospatialalgebra.html#parse_segment"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#secondodb.api.algebras.secondospatialalgebra.parse_segment" title="Permalink to this definition">¶</a></dt>
+<dd><p>Transforms a list expression object containing a segment (segment) to a named tuple.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>list_expr</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">ListExp</span></code>) – A list expression object containing a segment (segment).</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p><a class="reference internal" href="#secondodb.api.algebras.secondospatialalgebra.Segment" title="secondodb.api.algebras.secondospatialalgebra.Segment"><code class="xref py py-class docutils literal notranslate"><span class="pre">Segment</span></code></a></p>
+</dd>
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>A named tuple with the segment.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<p><strong>Data types for the Secondo Spatio Temporal Algebra</strong></p>
+<span class="target" id="module-secondodb.api.algebras.secondospatiotemporalalgebra"></span><p>The module Secondo Spatio-Temporal Algebra implements the data types for the conversion of list expression objects with
+values of the types contained in the TemporalAlgebra of the <code class="xref py py-mod docutils literal notranslate"><span class="pre">SECONDO</span></code> system. The data types are implemented in Python
+using Data Classes. Data Classes are implemented in the API like normal classes without behaviour.
+Like regular classes their attributes can be called through the given names.</p>
+<dl class="py class">
+<dt id="secondodb.api.algebras.secondospatiotemporalalgebra.BoolInInterval">
+<em class="property">class </em><code class="sig-name descname">BoolInInterval</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">interval</span></em>, <em class="sig-param"><span class="n">value_vector</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/secondodb/api/algebras/secondospatiotemporalalgebra.html#BoolInInterval"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#secondodb.api.algebras.secondospatiotemporalalgebra.BoolInInterval" title="Permalink to this definition">¶</a></dt>
+<dd><p>Implements a structure to store the time interval and the value vector of a moving boolean.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt id="secondodb.api.algebras.secondospatiotemporalalgebra.IPoint">
+<em class="property">class </em><code class="sig-name descname">IPoint</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">instant</span></em>, <em class="sig-param"><span class="n">point</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/secondodb/api/algebras/secondospatiotemporalalgebra.html#IPoint"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#secondodb.api.algebras.secondospatiotemporalalgebra.IPoint" title="Permalink to this definition">¶</a></dt>
+<dd><p>Implements an instant point as a point for a specific instant.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt id="secondodb.api.algebras.secondospatiotemporalalgebra.IRegion">
+<em class="property">class </em><code class="sig-name descname">IRegion</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">instant</span></em>, <em class="sig-param"><span class="n">region</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/secondodb/api/algebras/secondospatiotemporalalgebra.html#IRegion"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#secondodb.api.algebras.secondospatiotemporalalgebra.IRegion" title="Permalink to this definition">¶</a></dt>
+<dd><p>Implements an instant region as a region for a specific instant.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt id="secondodb.api.algebras.secondospatiotemporalalgebra.IntInInterval">
+<em class="property">class </em><code class="sig-name descname">IntInInterval</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">interval</span></em>, <em class="sig-param"><span class="n">value_vector</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/secondodb/api/algebras/secondospatiotemporalalgebra.html#IntInInterval"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#secondodb.api.algebras.secondospatiotemporalalgebra.IntInInterval" title="Permalink to this definition">¶</a></dt>
+<dd><p>Implements a structure to store the time interval and the value vector of a moving integer.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt id="secondodb.api.algebras.secondospatiotemporalalgebra.Interval">
+<em class="property">class </em><code class="sig-name descname">Interval</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">start_time</span></em>, <em class="sig-param"><span class="n">end_time</span></em>, <em class="sig-param"><span class="n">close_left</span></em>, <em class="sig-param"><span class="n">close_right</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/secondodb/api/algebras/secondospatiotemporalalgebra.html#Interval"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#secondodb.api.algebras.secondospatiotemporalalgebra.Interval" title="Permalink to this definition">¶</a></dt>
+<dd><p>Implements a time interval.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt id="secondodb.api.algebras.secondospatiotemporalalgebra.MBool">
+<em class="property">class </em><code class="sig-name descname">MBool</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">intervals</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/secondodb/api/algebras/secondospatiotemporalalgebra.html#MBool"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#secondodb.api.algebras.secondospatiotemporalalgebra.MBool" title="Permalink to this definition">¶</a></dt>
+<dd><p>Implements a moving boolean as a series of booleans in intervals.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt id="secondodb.api.algebras.secondospatiotemporalalgebra.MInt">
+<em class="property">class </em><code class="sig-name descname">MInt</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">intervals</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/secondodb/api/algebras/secondospatiotemporalalgebra.html#MInt"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#secondodb.api.algebras.secondospatiotemporalalgebra.MInt" title="Permalink to this definition">¶</a></dt>
+<dd><p>Implements a moving integer as a series of integer values in intervals.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt id="secondodb.api.algebras.secondospatiotemporalalgebra.MPoint">
+<em class="property">class </em><code class="sig-name descname">MPoint</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">intervals</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/secondodb/api/algebras/secondospatiotemporalalgebra.html#MPoint"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#secondodb.api.algebras.secondospatiotemporalalgebra.MPoint" title="Permalink to this definition">¶</a></dt>
+<dd><p>Implements a moving point as a series of points in intervals.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt id="secondodb.api.algebras.secondospatiotemporalalgebra.MReal">
+<em class="property">class </em><code class="sig-name descname">MReal</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">intervals</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/secondodb/api/algebras/secondospatiotemporalalgebra.html#MReal"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#secondodb.api.algebras.secondospatiotemporalalgebra.MReal" title="Permalink to this definition">¶</a></dt>
+<dd><p>Implements a moving real as a series of real values in intervals.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt id="secondodb.api.algebras.secondospatiotemporalalgebra.MRegion">
+<em class="property">class </em><code class="sig-name descname">MRegion</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">intervals</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/secondodb/api/algebras/secondospatiotemporalalgebra.html#MRegion"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#secondodb.api.algebras.secondospatiotemporalalgebra.MRegion" title="Permalink to this definition">¶</a></dt>
+<dd><p>Implements a moving region as a series of regions in intervals.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt id="secondodb.api.algebras.secondospatiotemporalalgebra.MString">
+<em class="property">class </em><code class="sig-name descname">MString</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">intervals</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/secondodb/api/algebras/secondospatiotemporalalgebra.html#MString"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#secondodb.api.algebras.secondospatiotemporalalgebra.MString" title="Permalink to this definition">¶</a></dt>
+<dd><p>Implements a moving string as a series of string values in intervals.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt id="secondodb.api.algebras.secondospatiotemporalalgebra.MapPoint">
+<em class="property">class </em><code class="sig-name descname">MapPoint</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">x1</span></em>, <em class="sig-param"><span class="n">y1</span></em>, <em class="sig-param"><span class="n">x2</span></em>, <em class="sig-param"><span class="n">y2</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/secondodb/api/algebras/secondospatiotemporalalgebra.html#MapPoint"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#secondodb.api.algebras.secondospatiotemporalalgebra.MapPoint" title="Permalink to this definition">¶</a></dt>
+<dd><p>Implements a map point, i.e. a motion vector for a point of a moving region.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt id="secondodb.api.algebras.secondospatiotemporalalgebra.MotionVector">
+<em class="property">class </em><code class="sig-name descname">MotionVector</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">x1</span></em>, <em class="sig-param"><span class="n">y1</span></em>, <em class="sig-param"><span class="n">x2</span></em>, <em class="sig-param"><span class="n">y2</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/secondodb/api/algebras/secondospatiotemporalalgebra.html#MotionVector"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#secondodb.api.algebras.secondospatiotemporalalgebra.MotionVector" title="Permalink to this definition">¶</a></dt>
+<dd><p>Implements a motion vector of a moving point.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt id="secondodb.api.algebras.secondospatiotemporalalgebra.PointInInterval">
+<em class="property">class </em><code class="sig-name descname">PointInInterval</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">interval</span></em>, <em class="sig-param"><span class="n">motion_vector</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/secondodb/api/algebras/secondospatiotemporalalgebra.html#PointInInterval"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#secondodb.api.algebras.secondospatiotemporalalgebra.PointInInterval" title="Permalink to this definition">¶</a></dt>
+<dd><p>Implements a structure to store the time interval and the motion vector of a moving point.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt id="secondodb.api.algebras.secondospatiotemporalalgebra.RealInInterval">
+<em class="property">class </em><code class="sig-name descname">RealInInterval</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">interval</span></em>, <em class="sig-param"><span class="n">value_vector</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/secondodb/api/algebras/secondospatiotemporalalgebra.html#RealInInterval"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#secondodb.api.algebras.secondospatiotemporalalgebra.RealInInterval" title="Permalink to this definition">¶</a></dt>
+<dd><p>Implements a structure to store the time interval and the value vector of a moving real.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt id="secondodb.api.algebras.secondospatiotemporalalgebra.RegionInInterval">
+<em class="property">class </em><code class="sig-name descname">RegionInInterval</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">interval</span></em>, <em class="sig-param"><span class="n">map_faces</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/secondodb/api/algebras/secondospatiotemporalalgebra.html#RegionInInterval"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#secondodb.api.algebras.secondospatiotemporalalgebra.RegionInInterval" title="Permalink to this definition">¶</a></dt>
+<dd><p>Implements a structure to store the time interval and the motion vector of a moving region.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt id="secondodb.api.algebras.secondospatiotemporalalgebra.StringInInterval">
+<em class="property">class </em><code class="sig-name descname">StringInInterval</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">interval</span></em>, <em class="sig-param"><span class="n">value_vector</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/secondodb/api/algebras/secondospatiotemporalalgebra.html#StringInInterval"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#secondodb.api.algebras.secondospatiotemporalalgebra.StringInInterval" title="Permalink to this definition">¶</a></dt>
+<dd><p>Implements a structure to store the time interval and the value vector of a moving string.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt id="secondodb.api.algebras.secondospatiotemporalalgebra.ValueVectorBool">
+<em class="property">class </em><code class="sig-name descname">ValueVectorBool</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">value</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/secondodb/api/algebras/secondospatiotemporalalgebra.html#ValueVectorBool"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#secondodb.api.algebras.secondospatiotemporalalgebra.ValueVectorBool" title="Permalink to this definition">¶</a></dt>
+<dd><p>Implements the value vector for a moving boolean.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt id="secondodb.api.algebras.secondospatiotemporalalgebra.ValueVectorInt">
+<em class="property">class </em><code class="sig-name descname">ValueVectorInt</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">value</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/secondodb/api/algebras/secondospatiotemporalalgebra.html#ValueVectorInt"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#secondodb.api.algebras.secondospatiotemporalalgebra.ValueVectorInt" title="Permalink to this definition">¶</a></dt>
+<dd><p>Implements the value vector for a moving integer.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt id="secondodb.api.algebras.secondospatiotemporalalgebra.ValueVectorReal">
+<em class="property">class </em><code class="sig-name descname">ValueVectorReal</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">start_value</span></em>, <em class="sig-param"><span class="n">end_value</span></em>, <em class="sig-param"><span class="n">boolean</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/secondodb/api/algebras/secondospatiotemporalalgebra.html#ValueVectorReal"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#secondodb.api.algebras.secondospatiotemporalalgebra.ValueVectorReal" title="Permalink to this definition">¶</a></dt>
+<dd><p>Implements the value vector for a moving real.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt id="secondodb.api.algebras.secondospatiotemporalalgebra.ValueVectorString">
+<em class="property">class </em><code class="sig-name descname">ValueVectorString</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">value</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/secondodb/api/algebras/secondospatiotemporalalgebra.html#ValueVectorString"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#secondodb.api.algebras.secondospatiotemporalalgebra.ValueVectorString" title="Permalink to this definition">¶</a></dt>
+<dd><p>Implements the value vector for a moving string.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="secondodb.api.algebras.secondospatiotemporalalgebra.parse_ipoint">
+<code class="sig-name descname">parse_ipoint</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">list_expr</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/secondodb/api/algebras/secondospatiotemporalalgebra.html#parse_ipoint"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#secondodb.api.algebras.secondospatiotemporalalgebra.parse_ipoint" title="Permalink to this definition">¶</a></dt>
+<dd><p>Transforms a list expression object containing an instant point (ipoint) to a named tuple.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>list_expr</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">ListExp</span></code>) – A list expression object containing an instant region (ipoint).</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p><a class="reference internal" href="#secondodb.api.algebras.secondospatiotemporalalgebra.IPoint" title="secondodb.api.algebras.secondospatiotemporalalgebra.IPoint"><code class="xref py py-class docutils literal notranslate"><span class="pre">IPoint</span></code></a></p>
+</dd>
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>An object of the data class IPoint with the instant point.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="secondodb.api.algebras.secondospatiotemporalalgebra.parse_iregion">
+<code class="sig-name descname">parse_iregion</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">list_expr</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/secondodb/api/algebras/secondospatiotemporalalgebra.html#parse_iregion"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#secondodb.api.algebras.secondospatiotemporalalgebra.parse_iregion" title="Permalink to this definition">¶</a></dt>
+<dd><p>Transforms a list expression object containing an instant region (iregion) to a named tuple.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>list_expr</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">ListExp</span></code>) – A list expression object containing an instant region (iregion).</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p><a class="reference internal" href="#secondodb.api.algebras.secondospatiotemporalalgebra.IRegion" title="secondodb.api.algebras.secondospatiotemporalalgebra.IRegion"><code class="xref py py-class docutils literal notranslate"><span class="pre">IRegion</span></code></a></p>
+</dd>
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>An object of the data class IRegion with the instant region.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="secondodb.api.algebras.secondospatiotemporalalgebra.parse_mbool">
+<code class="sig-name descname">parse_mbool</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">list_expr</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/secondodb/api/algebras/secondospatiotemporalalgebra.html#parse_mbool"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#secondodb.api.algebras.secondospatiotemporalalgebra.parse_mbool" title="Permalink to this definition">¶</a></dt>
+<dd><p>Transforms a list expression object containing a moving boolean (mbool) to a named tuple.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>list_expr</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">ListExp</span></code>) – A list expression object containing a moving boolean (mbool).</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p><a class="reference internal" href="#secondodb.api.algebras.secondospatiotemporalalgebra.MBool" title="secondodb.api.algebras.secondospatiotemporalalgebra.MBool"><code class="xref py py-class docutils literal notranslate"><span class="pre">MBool</span></code></a></p>
+</dd>
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>An object of the data class MBool with the moving boolean.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="secondodb.api.algebras.secondospatiotemporalalgebra.parse_mint">
+<code class="sig-name descname">parse_mint</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">list_expr</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/secondodb/api/algebras/secondospatiotemporalalgebra.html#parse_mint"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#secondodb.api.algebras.secondospatiotemporalalgebra.parse_mint" title="Permalink to this definition">¶</a></dt>
+<dd><p>Transforms a list expression object containing a moving integer (mint) to a named tuple.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>list_expr</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">ListExp</span></code>) – A list expression object containing a moving integer (mint).</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p><a class="reference internal" href="#secondodb.api.algebras.secondospatiotemporalalgebra.MInt" title="secondodb.api.algebras.secondospatiotemporalalgebra.MInt"><code class="xref py py-class docutils literal notranslate"><span class="pre">MInt</span></code></a></p>
+</dd>
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>An object of the data class MInt with the moving integer.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="secondodb.api.algebras.secondospatiotemporalalgebra.parse_mpoint">
+<code class="sig-name descname">parse_mpoint</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">list_expr</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/secondodb/api/algebras/secondospatiotemporalalgebra.html#parse_mpoint"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#secondodb.api.algebras.secondospatiotemporalalgebra.parse_mpoint" title="Permalink to this definition">¶</a></dt>
+<dd><p>Transforms a list expression object containing a moving point (mpoint) to a named tuple.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>list_expr</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">ListExp</span></code>) – A list expression object containing a moving point (mpoint).</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p><a class="reference internal" href="#secondodb.api.algebras.secondospatiotemporalalgebra.MPoint" title="secondodb.api.algebras.secondospatiotemporalalgebra.MPoint"><code class="xref py py-class docutils literal notranslate"><span class="pre">MPoint</span></code></a></p>
+</dd>
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>An object of the data class MPoint with the moving point.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="secondodb.api.algebras.secondospatiotemporalalgebra.parse_mreal">
+<code class="sig-name descname">parse_mreal</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">list_expr</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/secondodb/api/algebras/secondospatiotemporalalgebra.html#parse_mreal"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#secondodb.api.algebras.secondospatiotemporalalgebra.parse_mreal" title="Permalink to this definition">¶</a></dt>
+<dd><p>Transforms a list expression object containing a moving real (mreal) to a named tuple.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>list_expr</strong> – A list expression object containing a moving real (mreal).</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p><a class="reference internal" href="#secondodb.api.algebras.secondospatiotemporalalgebra.MReal" title="secondodb.api.algebras.secondospatiotemporalalgebra.MReal"><code class="xref py py-class docutils literal notranslate"><span class="pre">MReal</span></code></a></p>
+</dd>
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>An object of the data class MReal with the moving real.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="secondodb.api.algebras.secondospatiotemporalalgebra.parse_mregion">
+<code class="sig-name descname">parse_mregion</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">list_expr</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/secondodb/api/algebras/secondospatiotemporalalgebra.html#parse_mregion"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#secondodb.api.algebras.secondospatiotemporalalgebra.parse_mregion" title="Permalink to this definition">¶</a></dt>
+<dd><p>Transforms a list expression object containing a moving region (mregion) to a named tuple.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>list_expr</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">ListExp</span></code>) – A list expression object containing a moving region (mregion).</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p><a class="reference internal" href="#secondodb.api.algebras.secondospatiotemporalalgebra.MRegion" title="secondodb.api.algebras.secondospatiotemporalalgebra.MRegion"><code class="xref py py-class docutils literal notranslate"><span class="pre">MRegion</span></code></a></p>
+</dd>
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>An object of the data class MRegion with the moving region.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="secondodb.api.algebras.secondospatiotemporalalgebra.parse_mstring">
+<code class="sig-name descname">parse_mstring</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">list_expr</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/secondodb/api/algebras/secondospatiotemporalalgebra.html#parse_mstring"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#secondodb.api.algebras.secondospatiotemporalalgebra.parse_mstring" title="Permalink to this definition">¶</a></dt>
+<dd><p>Transforms a list expression object containing a moving string (mstring) to a named tuple.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>list_expr</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">ListExp</span></code>) – A list expression object containing a moving string (mstring).</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p><a class="reference internal" href="#secondodb.api.algebras.secondospatiotemporalalgebra.MString" title="secondodb.api.algebras.secondospatiotemporalalgebra.MString"><code class="xref py py-class docutils literal notranslate"><span class="pre">MString</span></code></a></p>
+</dd>
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>An object of the data class MString with the moving string.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="secondodb.api.algebras.secondospatiotemporalalgebra.parse_timestamp">
+<code class="sig-name descname">parse_timestamp</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">timestamp</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/secondodb/api/algebras/secondospatiotemporalalgebra.html#parse_timestamp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#secondodb.api.algebras.secondospatiotemporalalgebra.parse_timestamp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Parses a timestamp string using the Python module datetime.</p>
+<p>Formats supported:</p>
+<p>‘%Y-%m-%d-%H:%M’
+‘%Y-%m-%d-%H:%M:%S’
+‘%Y-%m-%d-%H:%M:%S.%f’</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>timestamp</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>) – A string with a timestamp.</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">datetime</span></code></p>
+</dd>
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>A datetime object.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<p><strong>Data types for the Secondo Relational Algebra</strong></p>
+<span class="target" id="module-secondodb.api.algebras.secondorelationalalgebra"></span><p>The module Secondo Relational Algebra implements the data types for the conversion of list expression objects with
+values of the types contained in the RelationalAlgebra of the <code class="xref py py-mod docutils literal notranslate"><span class="pre">SECONDO</span></code> system. The data types are implemented in Python
+using Data Classes. Data Classes are implemented in the API like normal classes without behaviour.
+Like regular classes their attributes can be called through the given names.</p>
+<dl class="py class">
+<dt id="secondodb.api.algebras.secondorelationalalgebra.Relation">
+<em class="property">class </em><code class="sig-name descname">Relation</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">attributes</span></em>, <em class="sig-param"><span class="n">data</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/secondodb/api/algebras/secondorelationalalgebra.html#Relation"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#secondodb.api.algebras.secondorelationalalgebra.Relation" title="Permalink to this definition">¶</a></dt>
+<dd><p>Implements the type relation (rel) of the relational algebra of <code class="xref py py-mod docutils literal notranslate"><span class="pre">SECONDO</span></code>.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="secondodb.api.algebras.secondorelationalalgebra.parse_relation">
+<code class="sig-name descname">parse_relation</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">list_expr</span></em>, <em class="sig-param"><span class="n">attr_list</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/secondodb/api/algebras/secondorelationalalgebra.html#parse_relation"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#secondodb.api.algebras.secondorelationalalgebra.parse_relation" title="Permalink to this definition">¶</a></dt>
+<dd><p>Parses a relation (rel) object. A relation named tuple with two attributes (attributes and data) will be returned.
+The attribute “attributes” contains the fields and types of the relation. The attribute “data” contains the entries.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>list_expr</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">ListExp</span></code>) – A list expression object with a relation.</p></li>
+<li><p><strong>attr_list</strong> (<em>[</em><em>]</em>) – The list of the attributes. Every attribute is an object of the class Attribute.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p><a class="reference internal" href="#secondodb.api.algebras.secondorelationalalgebra.Relation" title="secondodb.api.algebras.secondorelationalalgebra.Relation"><code class="xref py py-class docutils literal notranslate"><span class="pre">Relation</span></code></a></p>
+</dd>
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>An object of the class Relation with the data. Every entry of the relation data is a Python dictionary,
+which allows to call the single fields of the tuple using the corresponding attribute name. The retrieval
+of the value using an index (like in lists) is allowed as well.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="section" id="module-secondodb.api.support.secondoinputhandler">
+<span id="sec-input-handler"></span><h3><code class="xref py py-mod docutils literal notranslate"><span class="pre">SECONDO</span></code> Input Handler<a class="headerlink" href="#module-secondodb.api.support.secondoinputhandler" title="Permalink to this headline">¶</a></h3>
+<p>The module Secondo Input Handler handles the conversion of different values from a socket stream in form of binary
+values. The implementation is based on the Java-Class MyInputStreamReader of the Secondo JavaGUI and supports the
+reception and construction of a list expression object originated through the response to an inquiry (or command) from
+the <code class="xref py py-mod docutils literal notranslate"><span class="pre">SECONDO</span></code> server.</p>
+<dl class="py function">
+<dt id="secondodb.api.support.secondoinputhandler.build_list_expr_from_binary">
+<code class="sig-name descname">build_list_expr_from_binary</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">socket_object</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/secondodb/api/support/secondoinputhandler.html#build_list_expr_from_binary"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#secondodb.api.support.secondoinputhandler.build_list_expr_from_binary" title="Permalink to this definition">¶</a></dt>
+<dd><p>This method builds a list expression object from a binary response from the <code class="xref py py-mod docutils literal notranslate"><span class="pre">SECONDO</span></code> server.
+In javagui: readBinaryFrom()</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>socket_object</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">socket</span></code>) – </p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">ListExp</span></code></p>
+</dd>
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>A list expression object with the contents of the nested list.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="secondodb.api.support.secondoinputhandler.read_binary_record">
+<code class="sig-name descname">read_binary_record</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">socket_object</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/secondodb/api/support/secondoinputhandler.html#read_binary_record"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#secondodb.api.support.secondoinputhandler.read_binary_record" title="Permalink to this definition">¶</a></dt>
+<dd><p>Reads on each iteration a single buffered vector of bytes and translates it to the specified type. Some types
+requiere the specification of the length for the buffer. The length is normally expressed as the first binary value
+after the specification of the type integer.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>socket_object</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">socket</span></code>) – A socket object with the response from the <code class="xref py py-mod docutils literal notranslate"><span class="pre">SECONDO</span></code> server.</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">ListExp</span></code></p>
+</dd>
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="secondodb.api.support.secondoinputhandler.read_bool">
+<code class="sig-name descname">read_bool</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">socket_object</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/secondodb/api/support/secondoinputhandler.html#read_bool"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#secondodb.api.support.secondoinputhandler.read_bool" title="Permalink to this definition">¶</a></dt>
+<dd><p>Reads a boolean value from the socket response.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>socket_object</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">socket</span></code>) – A socket object with the response from the <code class="xref py py-mod docutils literal notranslate"><span class="pre">SECONDO</span></code> server.</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></p>
+</dd>
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>A boolean value.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="secondodb.api.support.secondoinputhandler.read_byte">
+<code class="sig-name descname">read_byte</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">socket_object</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/secondodb/api/support/secondoinputhandler.html#read_byte"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#secondodb.api.support.secondoinputhandler.read_byte" title="Permalink to this definition">¶</a></dt>
+<dd><p>Reads a single byte from the socket response.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>socket_object</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">socket</span></code>) – A socket object with the response from the <code class="xref py py-mod docutils literal notranslate"><span class="pre">SECONDO</span></code> server.</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">bytes</span></code></p>
+</dd>
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>A byte value.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="secondodb.api.support.secondoinputhandler.read_double">
+<code class="sig-name descname">read_double</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">socket_object</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/secondodb/api/support/secondoinputhandler.html#read_double"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#secondodb.api.support.secondoinputhandler.read_double" title="Permalink to this definition">¶</a></dt>
+<dd><p>Reads a double value from the socket response.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>socket_object</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">socket</span></code>) – A socket object with the response from the <code class="xref py py-mod docutils literal notranslate"><span class="pre">SECONDO</span></code> server.</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></p>
+</dd>
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>A float representing the double value.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="secondodb.api.support.secondoinputhandler.read_int">
+<code class="sig-name descname">read_int</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">socket_object</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/secondodb/api/support/secondoinputhandler.html#read_int"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#secondodb.api.support.secondoinputhandler.read_int" title="Permalink to this definition">¶</a></dt>
+<dd><p>Reads an integer value from the socket response. An integer value takes 4 bytes to be built.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>socket_object</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">socket</span></code>) – A socket object with the response from the <code class="xref py py-mod docutils literal notranslate"><span class="pre">SECONDO</span></code> server.</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></p>
+</dd>
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>An integer value.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="secondodb.api.support.secondoinputhandler.read_line_of_text">
+<code class="sig-name descname">read_line_of_text</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">socket_object</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/secondodb/api/support/secondoinputhandler.html#read_line_of_text"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#secondodb.api.support.secondoinputhandler.read_line_of_text" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a single text line from a response. The input stream will be read until the occurrence of a new line.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>socket_object</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">socket</span></code>) – A socket object.</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></p>
+</dd>
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>A string with a single text line.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="secondodb.api.support.secondoinputhandler.read_long">
+<code class="sig-name descname">read_long</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">socket_object</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/secondodb/api/support/secondoinputhandler.html#read_long"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#secondodb.api.support.secondoinputhandler.read_long" title="Permalink to this definition">¶</a></dt>
+<dd><p>Reads a long value from the socket response.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>socket_object</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">socket</span></code>) – A socket object with the response from the <code class="xref py py-mod docutils literal notranslate"><span class="pre">SECONDO</span></code> server.</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></p>
+</dd>
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>A long (int) value.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="secondodb.api.support.secondoinputhandler.read_real">
+<code class="sig-name descname">read_real</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">socket_object</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/secondodb/api/support/secondoinputhandler.html#read_real"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#secondodb.api.support.secondoinputhandler.read_real" title="Permalink to this definition">¶</a></dt>
+<dd><p>Reads a real value from the socket response.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>socket_object</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">socket</span></code>) – A socket object with the response from the <code class="xref py py-mod docutils literal notranslate"><span class="pre">SECONDO</span></code> server.</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></p>
+</dd>
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>A float representing the real value.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="secondodb.api.support.secondoinputhandler.read_short">
+<code class="sig-name descname">read_short</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">socket_object</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/secondodb/api/support/secondoinputhandler.html#read_short"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#secondodb.api.support.secondoinputhandler.read_short" title="Permalink to this definition">¶</a></dt>
+<dd><p>Reads a short value from the socket response. A short value takes 2 bytes to be built.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>socket_object</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">socket</span></code>) – A socket object with the response from the <code class="xref py py-mod docutils literal notranslate"><span class="pre">SECONDO</span></code> server.</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></p>
+</dd>
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>A short value.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="secondodb.api.support.secondoinputhandler.read_string">
+<code class="sig-name descname">read_string</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">socket_object</span></em>, <em class="sig-param"><span class="n">size</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/secondodb/api/support/secondoinputhandler.html#read_string"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#secondodb.api.support.secondoinputhandler.read_string" title="Permalink to this definition">¶</a></dt>
+<dd><p>Reads a string of a specified size from a socket object.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>socket_object</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">socket</span></code>) – A socket object with the response from the <code class="xref py py-mod docutils literal notranslate"><span class="pre">SECONDO</span></code> server.</p></li>
+<li><p><strong>size</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>) – The size of the string.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></p>
+</dd>
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>A string value.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="section" id="module-secondodb.api.support.secondolistexpr">
+<span id="sec-list-expression"></span><h3><code class="xref py py-mod docutils literal notranslate"><span class="pre">SECONDO</span></code> List Expression<a class="headerlink" href="#module-secondodb.api.support.secondolistexpr" title="Permalink to this headline">¶</a></h3>
+<p>The module Secondo List Expression implements methods for the reception and construction of a list expression object
+originated through the response of the <code class="xref py py-mod docutils literal notranslate"><span class="pre">SECONDO</span></code> server to an inquiry or a command. The implementation is based on the
+Java class ListExpr of the Secondo JavaGUI.</p>
+<dl class="py function">
+<dt id="secondodb.api.support.secondolistexpr.append_to_last_element">
+<code class="sig-name descname">append_to_last_element</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">last_element</span></em>, <em class="sig-param"><span class="n">new_node</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/secondodb/api/support/secondolistexpr.html#append_to_last_element"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#secondodb.api.support.secondolistexpr.append_to_last_element" title="Permalink to this definition">¶</a></dt>
+<dd><p>Appends a new element to a list expression object. The new element will be stored in the “value” variable of the
+last element passed and stores an empty list in his “next” variable.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>last_element</strong> – The list expression object to be extended.</p></li>
+<li><p><strong>new_node</strong> – The list expression object to be appended.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The new list expression object with the new appended element.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="secondodb.api.support.secondolistexpr.build_new_list_node">
+<code class="sig-name descname">build_new_list_node</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">left_list</span></em>, <em class="sig-param"><span class="n">right_list</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/secondodb/api/support/secondolistexpr.html#build_new_list_node"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#secondodb.api.support.secondolistexpr.build_new_list_node" title="Permalink to this definition">¶</a></dt>
+<dd><p>Builds a new node for a list expression. A node is formed by a left and a right list. The right list, which will be
+appended in the “next”-parameter, must not be an atom.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>left_list</strong> – The left list expression object for the parameter “value”.</p></li>
+<li><p><strong>right_list</strong> – The right list expression object for the parameter “next”.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A list expression object.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="secondodb.api.support.secondolistexpr.check_if_atom">
+<code class="sig-name descname">check_if_atom</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">in_list</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/secondodb/api/support/secondolistexpr.html#check_if_atom"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#secondodb.api.support.secondolistexpr.check_if_atom" title="Permalink to this definition">¶</a></dt>
+<dd><p>Verifies if the ListExpr object is an atom. The method verifies the type of the list object.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>in_list</strong> – A ListExpr Object.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>True, if the list element is not an atom, otherwise false.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="secondodb.api.support.secondolistexpr.create_bool_atom">
+<code class="sig-name descname">create_bool_atom</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">value</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/secondodb/api/support/secondolistexpr.html#create_bool_atom"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#secondodb.api.support.secondolistexpr.create_bool_atom" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates a new boolean atom using a boolean as value.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>value</strong> – A boolean.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A ListExp object with the newly created boolean atom.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="secondodb.api.support.secondolistexpr.create_integer_atom">
+<code class="sig-name descname">create_integer_atom</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">value</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/secondodb/api/support/secondolistexpr.html#create_integer_atom"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#secondodb.api.support.secondolistexpr.create_integer_atom" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates a new integer atom using an integer as value.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>value</strong> – An integer.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A ListExp object with the newly created integer atom.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="secondodb.api.support.secondolistexpr.create_real_atom">
+<code class="sig-name descname">create_real_atom</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">value</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/secondodb/api/support/secondolistexpr.html#create_real_atom"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#secondodb.api.support.secondolistexpr.create_real_atom" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates a new real atom using an real as value.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>value</strong> – A real value.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A ListExp object with the newly created real atom.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="secondodb.api.support.secondolistexpr.create_string_atom">
+<code class="sig-name descname">create_string_atom</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">value</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/secondodb/api/support/secondolistexpr.html#create_string_atom"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#secondodb.api.support.secondolistexpr.create_string_atom" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates a new string atom using a string as value.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>value</strong> – A string.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A ListExp object with the newly created string atom.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="secondodb.api.support.secondolistexpr.create_symbol_atom">
+<code class="sig-name descname">create_symbol_atom</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">value</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/secondodb/api/support/secondolistexpr.html#create_symbol_atom"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#secondodb.api.support.secondolistexpr.create_symbol_atom" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates a new symbol atom using its identifier as value.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>value</strong> – The identifier of the symbol (like DATABASE).</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A ListExp object with the newly created symbol atom.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="secondodb.api.support.secondolistexpr.create_text_atom">
+<code class="sig-name descname">create_text_atom</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">value</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/secondodb/api/support/secondolistexpr.html#create_text_atom"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#secondodb.api.support.secondolistexpr.create_text_atom" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates a new text atom using a passed text as value.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>value</strong> – A text.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A ListExp object with the newly created text atom.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="secondodb.api.support.secondolistexpr.five_element_list">
+<code class="sig-name descname">five_element_list</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">element_1</span></em>, <em class="sig-param"><span class="n">element_2</span></em>, <em class="sig-param"><span class="n">element_3</span></em>, <em class="sig-param"><span class="n">element_4</span></em>, <em class="sig-param"><span class="n">element_5</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/secondodb/api/support/secondolistexpr.html#five_element_list"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#secondodb.api.support.secondolistexpr.five_element_list" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates a five element list expression.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>element_1</strong> – A list expression object.</p></li>
+<li><p><strong>element_2</strong> – A list expression object.</p></li>
+<li><p><strong>element_3</strong> – A list expression object.</p></li>
+<li><p><strong>element_4</strong> – A list expression object.</p></li>
+<li><p><strong>element_5</strong> – A list expression object.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A list expression object with five elements.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="secondodb.api.support.secondolistexpr.four_element_list">
+<code class="sig-name descname">four_element_list</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">element_1</span></em>, <em class="sig-param"><span class="n">element_2</span></em>, <em class="sig-param"><span class="n">element_3</span></em>, <em class="sig-param"><span class="n">element_4</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/secondodb/api/support/secondolistexpr.html#four_element_list"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#secondodb.api.support.secondolistexpr.four_element_list" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates a four element list expression.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>element_1</strong> – A list expression object.</p></li>
+<li><p><strong>element_2</strong> – A list expression object.</p></li>
+<li><p><strong>element_3</strong> – A list expression object.</p></li>
+<li><p><strong>element_4</strong> – A list expression object.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A list expression object with four elements.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="secondodb.api.support.secondolistexpr.one_element_list">
+<code class="sig-name descname">one_element_list</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">element_1</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/secondodb/api/support/secondolistexpr.html#one_element_list"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#secondodb.api.support.secondolistexpr.one_element_list" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates a one element list expression. The left node contains the element value, and the right node an empty list.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>element_1</strong> – A list expression object.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A list expression object with one element.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="secondodb.api.support.secondolistexpr.six_element_list">
+<code class="sig-name descname">six_element_list</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">element_1</span></em>, <em class="sig-param"><span class="n">element_2</span></em>, <em class="sig-param"><span class="n">element_3</span></em>, <em class="sig-param"><span class="n">element_4</span></em>, <em class="sig-param"><span class="n">element_5</span></em>, <em class="sig-param"><span class="n">element_6</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/secondodb/api/support/secondolistexpr.html#six_element_list"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#secondodb.api.support.secondolistexpr.six_element_list" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates a six element list expression.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>element_1</strong> – A list expression object.</p></li>
+<li><p><strong>element_2</strong> – A list expression object.</p></li>
+<li><p><strong>element_3</strong> – A list expression object.</p></li>
+<li><p><strong>element_4</strong> – A list expression object.</p></li>
+<li><p><strong>element_5</strong> – A list expression object.</p></li>
+<li><p><strong>element_6</strong> – A list expression object.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A list expression object with six elements.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="secondodb.api.support.secondolistexpr.three_element_list">
+<code class="sig-name descname">three_element_list</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">element_1</span></em>, <em class="sig-param"><span class="n">element_2</span></em>, <em class="sig-param"><span class="n">element_3</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/secondodb/api/support/secondolistexpr.html#three_element_list"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#secondodb.api.support.secondolistexpr.three_element_list" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates a three element list expression.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>element_1</strong> – A list expression object.</p></li>
+<li><p><strong>element_2</strong> – A list expression object.</p></li>
+<li><p><strong>element_3</strong> – A list expression object.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A list expression object with three elements.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="secondodb.api.support.secondolistexpr.two_element_list">
+<code class="sig-name descname">two_element_list</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">element_1</span></em>, <em class="sig-param"><span class="n">element_2</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/secondodb/api/support/secondolistexpr.html#two_element_list"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#secondodb.api.support.secondolistexpr.two_element_list" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates a two element list expression.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>element_1</strong> – A list expression object.</p></li>
+<li><p><strong>element_2</strong> – A list expression object.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A list expression object with two elements.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+</div>
+<div class="section" id="indices-and-tables">
+<h2>Indices and tables<a class="headerlink" href="#indices-and-tables" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li><p><a class="reference internal" href="genindex.html"><span class="std std-ref">Index</span></a></p></li>
+<li><p><a class="reference internal" href="py-modindex.html"><span class="std std-ref">Module Index</span></a></p></li>
+<li><p><a class="reference internal" href="search.html"><span class="std std-ref">Search Page</span></a></p></li>
+</ul>
+</div>
+</div>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="#">Table of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">PySECONDO - Python DB-API 2.0 interface for <code class="xref py py-mod docutils literal notranslate"><span class="pre">SECONDO</span></code></a><ul>
+<li><a class="reference internal" href="#module-secondodb.api.secondoapi"><code class="xref py py-mod docutils literal notranslate"><span class="pre">SECONDO</span></code>-API Main Module</a><ul>
+<li><a class="reference internal" href="#connection-class">Connection Class</a><ul>
+<li><a class="reference internal" href="#basic-methods">Basic Methods</a></li>
+<li><a class="reference internal" href="#transaction-methods">Transaction Methods</a></li>
+<li><a class="reference internal" href="#get-methods">Get-Methods</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#cursor-class">Cursor Class</a></li>
+<li><a class="reference internal" href="#exceptions">Exceptions</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#support-modules">Support Modules</a><ul>
+<li><a class="reference internal" href="#module-secondodb.api.support.secondocommands"><code class="xref py py-mod docutils literal notranslate"><span class="pre">SECONDO</span></code> Commands</a></li>
+<li><a class="reference internal" href="#module-secondodb.api.support.secondomessages"><code class="xref py py-mod docutils literal notranslate"><span class="pre">SECONDO</span></code> Messages</a></li>
+<li><a class="reference internal" href="#module-secondodb.api.support.secondoparser"><code class="xref py py-mod docutils literal notranslate"><span class="pre">SECONDO</span></code> Parser</a></li>
+<li><a class="reference internal" href="#sec-algebras"><code class="xref py py-mod docutils literal notranslate"><span class="pre">SECONDO</span></code> Algebras</a></li>
+<li><a class="reference internal" href="#module-secondodb.api.support.secondoinputhandler"><code class="xref py py-mod docutils literal notranslate"><span class="pre">SECONDO</span></code> Input Handler</a></li>
+<li><a class="reference internal" href="#module-secondodb.api.support.secondolistexpr"><code class="xref py py-mod docutils literal notranslate"><span class="pre">SECONDO</span></code> List Expression</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#indices-and-tables">Indices and tables</a></li>
+</ul>
+</li>
+</ul>
+
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/index.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="#">pySecondo  documentation</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">PySECONDO - Python DB-API 2.0 interface for <code class="xref py py-mod docutils literal notranslate"><span class="pre">SECONDO</span></code></a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2019, Victor Silva.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 3.1.1.
+    </div>
+  </body>
+</html>
