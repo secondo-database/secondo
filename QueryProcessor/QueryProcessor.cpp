@@ -1382,7 +1382,7 @@ all objects mentioned in the expression have defined values.
   if ( debugMode )
   {
     cout << endl << "*** AnnotateX Begin ***" << endl;
-    nl->WriteListExpr( list, cout, 2 );
+    nl->WriteListExpr( list, cout, true, 2 );
     cout << endl << "*** AnnotateX End ***" << endl;
   }
   return (list);
@@ -1851,9 +1851,9 @@ function index.
   if ( traceMode )
   {
     cout << "Annotate applied to: " << endl;
-    nl->WriteListExpr( expr, cout, 2 );
+    nl->WriteListExpr( expr, cout, true,  2 );
     cout << endl << "argument types passed from father: " << endl;
-    nl->WriteListExpr( fatherargtypes, cout, 2 );
+    nl->WriteListExpr( fatherargtypes, cout, true, 2 );
     cout << endl;
     for ( int i=0; i<= valueno; i++ )
       cout << "values[" << i <<"]="
@@ -2347,9 +2347,9 @@ will be processed.
       {
         cout << "*** Some list exprs. after recursive calls ***" << endl;
         cout << "Value of variable list: " << endl;
-        nl->WriteListExpr( list, cout, 2 );
+        nl->WriteListExpr( list, cout, true, 2 );
         cout << "Value of variable typeList: " << endl;
-        nl->WriteListExpr( typeList, cout, 2 );
+        nl->WriteListExpr( typeList, cout, true, 2 );
         cout << endl;
       }
 
@@ -2459,10 +2459,10 @@ will be processed.
               if ( traceMode )
               {
                 cout << "function signature: ";
-                nl->WriteListExpr( signature, cout, 2 );
+                nl->WriteListExpr( signature, cout, true,2 );
                 cout << endl;
                 cout << "function typeList: ";
-                nl->WriteListExpr( typeList, cout, 2 );
+                nl->WriteListExpr( typeList, cout, true,2 );
                 cout << endl;
               }
               if ( nl->ListLength(signature) ==
@@ -2483,7 +2483,7 @@ will be processed.
                 if ( traceMode )
                 {
                   cout << "resultType: ";
-                  nl->WriteListExpr( resultType, cout, 2 );
+                  nl->WriteListExpr( resultType, cout, true,2 );
                   cout << endl;
                 }
                 result = nl->TwoElemList(
@@ -2495,7 +2495,7 @@ will be processed.
                 if ( traceMode )
                 {
                   cout << "result: ";
-                  nl->WriteListExpr( result, cout, 2 );
+                  nl->WriteListExpr( result, cout, true,2 );
                   cout << endl;
                 }
                 return (result);
@@ -2505,9 +2505,9 @@ will be processed.
                 if ( traceMode )
                 {
                   cout << "list: " << endl;
-                  nl->WriteListExpr( list, cout, 2 );
+                  nl->WriteListExpr( list, cout, true,2 );
                   cout << "expr: " << endl;
-                  nl->WriteListExpr( expr, cout, 2 );
+                  nl->WriteListExpr( expr, cout, true,2 );
                 }
                 return (nl->SymbolAtom( "exprerror" ));
               }
@@ -2521,10 +2521,10 @@ will be processed.
               if ( traceMode )
               {
                 cout << "Abstraction signature: ";
-                nl->WriteListExpr( signature, cout, 2 );
+                nl->WriteListExpr( signature, cout, true,2 );
                 cout << endl;
                 cout << "Abstraction typeList: ";
-                nl->WriteListExpr( typeList, cout, 2 );
+                nl->WriteListExpr( typeList, cout, true,2 );
                 cout << endl;
               }
               int expectedParams = nl->ListLength( signature ) - 1;
@@ -2576,9 +2576,9 @@ will be processed.
                 if ( traceMode )
                 {
                   cout << "list: " << endl;
-                  nl->WriteListExpr( list, cout, 2 );
+                  nl->WriteListExpr( list, cout, true,2 );
                   cout << "expr: " << endl;
-                  nl->WriteListExpr( expr, cout, 2 );
+                  nl->WriteListExpr( expr, cout, true,2 );
                 }
                 cmsg.error()
                    << "Type mismatch! Expecting " << expectedParams
@@ -2902,7 +2902,7 @@ arguments preceding this function argument in an operator application.
   if ( traceMode )
   {
     cout << fn << " applied to: " << endl;
-    nl->WriteListExpr( expr, cout, 2 );
+    nl->WriteListExpr( expr, cout, true,2 );
     cout << endl;
   }
   if ( nl->IsEmpty( expr ))
@@ -3149,7 +3149,7 @@ QueryProcessor::SubtreeX( const ListExpr expr, const datetime::DateTime& qt )
   {
     cout << endl << "*** SubtreeX Begin ***" << endl;
     ListExpr treeList = ListOfTree( resultTree, cerr );
-    nl->WriteListExpr( treeList, cout, 2 );
+    nl->WriteListExpr( treeList, cout, true,2 );
     nl->Destroy( treeList );
     cout << endl << "*** SubtreeX End ***" << endl;
   }
@@ -3198,9 +3198,9 @@ QueryProcessor::Subtree( const ListExpr expr,
   if ( traceMode )
   {
     cout << "subtree applied to: " << endl;
-    nl->WriteListExpr( expr, cout, 2 );
+    nl->WriteListExpr( expr, cout, true,2 );
     cout << endl << "TypeOfSymbol applied to <";
-    nl->WriteListExpr( nl->Second( nl->First( expr ) ), cout, 2 );
+    nl->WriteListExpr( nl->Second( nl->First( expr ) ), cout, true,2 );
     cout << ">" << endl;
   }
 
@@ -3599,7 +3599,7 @@ QueryProcessor::Subtree( const ListExpr expr,
     {
       cerr << "subtree: unexpected stuff in annotated expr" << endl;
       cerr << "The expression is: " << endl;
-      nl->WriteListExpr( expr, cout, 2 );
+      nl->WriteListExpr( expr, cout, true,2 );
       cout << endl;
       exit(1);
     }
@@ -4408,7 +4408,7 @@ Then call the operator's value mapping function.
                         cerr << fn <<
                         "*** Abstraction application " << endl;
                         nl->WriteListExpr( ListOfTree( tree, cerr ),
-                                cout, 2 );
+                                cout, true, 2 );
                         cerr << endl;
                         }
 

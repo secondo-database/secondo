@@ -3888,7 +3888,7 @@ the ~CEQueryProcessor~.
       cout << endl
            << "Annotated list from CE-Compiler:"
            << endl;
-      nl->WriteListExpr(ceAnnotateList, cout, 2);
+      nl->WriteListExpr(ceAnnotateList, cout, true,  2);
       cout << endl
            << "*** Compiled Expressions Algebra: Generate Query End ***"
            << endl;

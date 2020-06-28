@@ -120,10 +120,10 @@ ListExpr OperatorFilter::FilterTypeMap(ListExpr args)
   if ( showArguments ) {
         cout << "arguments to the filter operator:" << endl;
       cout << "first argument: ";
-    nl->WriteListExpr( nl->Second(nl->First(args)), cout, 2 );
+    nl->WriteListExpr( nl->Second(nl->First(args)), cout, true,2 );
     cout << endl;
       cout << "second argument: ";
-    nl->WriteListExpr( nl->Second(nl->Second(args)), cout, 2 );
+    nl->WriteListExpr( nl->Second(nl->Second(args)), cout, true,2 );
         cout << endl;
     cout << endl;
   }
