@@ -287,109 +287,111 @@ class ImportFeaturesFromQGISDialogModel:
 
                 column_count += 1
 
-            # Get the geometry of the feature
+            if with_geometry:
 
-            geometry: QgsGeometry = feature.geometry()
-            self.lineEditWkbType = QgsWkbTypes.displayString(geometry.wkbType())
+                # Get the geometry of the feature
 
-            if self.lineEditGeometry == 'Point':
+                geometry: QgsGeometry = feature.geometry()
+                self.lineEditWkbType = QgsWkbTypes.displayString(geometry.wkbType())
 
-                point = None
-                points = None
-                if self.lineEditWkbType == 'Point':
-                    point = qgisOutput.convert_point_to_point(geometry.asPoint())
-                elif self.lineEditWkbType == 'PointZ':
-                    point = qgisOutput.convert_point_to_point(geometry.asPoint())
-                elif self.lineEditWkbType == 'Point25D':
-                    point = qgisOutput.convert_point_to_point(geometry.asPoint())
-                elif self.lineEditWkbType == 'MultiPoint':
-                    points = qgisOutput.convert_multipoint_to_points(geometry.asMultiPoint())
+                if self.lineEditGeometry == 'Point':
+
+                    point = None
+                    points = None
+                    if self.lineEditWkbType == 'Point':
+                        point = qgisOutput.convert_point_to_point(geometry.asPoint())
+                    elif self.lineEditWkbType == 'PointZ':
+                        point = qgisOutput.convert_point_to_point(geometry.asPoint())
+                    elif self.lineEditWkbType == 'Point25D':
+                        point = qgisOutput.convert_point_to_point(geometry.asPoint())
+                    elif self.lineEditWkbType == 'MultiPoint':
+                        points = qgisOutput.convert_multipoint_to_points(geometry.asMultiPoint())
+                    else:
+                        error_flag = True
+                        self.qgis_interface.messageBar().pushMessage(
+                            "Error",
+                            "Geometry of WKB type " + self.lineEditWkbType + " is currently not supported.",
+                            level=Qgis.Critical, duration=5)
+
+                    if point is not None:
+                        list_exp = spatial.convert_point_to_list_exp_str(point)
+                        relation_values.append(list_exp)
+                        relation_types.append('point')
+                    elif points is not None:
+                        list_exp = spatial.convert_points_to_list_exp_str(points)
+                        relation_values.append(list_exp)
+                        relation_types.append('points')
+                    else:
+                        error_flag = True
+                        self.qgis_interface.messageBar().pushMessage(
+                            "Error",
+                            "Geometry of type line couldn't be created correctly.",
+                            level=Qgis.Critical, duration=5)
+
+                elif self.lineEditGeometry == 'Line':
+
+                    line = None
+
+                    if self.lineEditWkbType == 'LineString25D':
+                        line = qgisOutput.convert_polyline_to_line(geometry.asPolyline())
+                    elif self.lineEditWkbType == 'LineString':
+                        line = qgisOutput.convert_polyline_to_line(geometry.asPolyline())
+                    elif self.lineEditWkbType == 'LineStringZ':
+                        line = qgisOutput.convert_polyline_to_line(geometry.asPolyline())
+                    elif self.lineEditWkbType == 'MultiLineString':
+                        line = qgisOutput.convert_multipolyline_to_line(geometry.asMultiPolyline())
+                    elif self.lineEditWkbType == 'MultiLineStringZ':
+                        line = qgisOutput.convert_multipolyline_to_line(geometry.asMultiPolyline())
+                    else:
+                        error_flag = True
+                        self.qgis_interface.messageBar().pushMessage(
+                            "Error",
+                            "Geometry of WKB type " + self.lineEditWkbType + " is currently not supported.",
+                            level=Qgis.Critical, duration=5)
+
+                    if line is not None:
+                        list_exp = spatial.convert_line_to_list_exp_str(line)
+                        relation_values.append(list_exp)
+                        relation_types.append('line')
+                    else:
+                        error_flag = True
+                        self.qgis_interface.messageBar().pushMessage(
+                            "Error",
+                            "Geometry of type line couldn't be created correctly.",
+                            level=Qgis.Critical, duration=5)
+
+                elif self.lineEditGeometry == 'Region':
+
+                    region = None
+
+                    if self.lineEditWkbType == 'MultiPolygon':
+                        region = qgisOutput.convert_multi_polygon_to_region(geometry.asMultiPolygon())
+                    elif self.lineEditWkbType == 'Polygon':
+                        region = qgisOutput.convert_polygon_to_region(geometry.asPolygon())
+                    else:
+                        error_flag = True
+                        self.qgis_interface.messageBar().pushMessage(
+                            "Error",
+                            "Geometry of WKB type " + self.lineEditWkbType + " is currently not supported.",
+                            level=Qgis.Critical, duration=5)
+
+                    if region is not None:
+                        list_exp = spatial.convert_region_to_list_exp_str(region)
+                        relation_values.append(list_exp)
+                        relation_types.append('region')
+                    else:
+                        error_flag = True
+                        self.qgis_interface.messageBar().pushMessage(
+                            "Error",
+                            "Geometry of type region couldn't be created correctly.",
+                            level=Qgis.Critical, duration=5)
+
                 else:
                     error_flag = True
                     self.qgis_interface.messageBar().pushMessage(
                         "Error",
-                        "Geometry of WKB type " + self.lineEditWkbType + " is currently not supported.",
+                        "Geometry type " + self.lineEditGeometry + " is currently not supported.",
                         level=Qgis.Critical, duration=5)
-
-                if point is not None:
-                    list_exp = spatial.convert_point_to_list_exp_str(point)
-                    relation_values.append(list_exp)
-                    relation_types.append('point')
-                elif points is not None:
-                    list_exp = spatial.convert_points_to_list_exp_str(points)
-                    relation_values.append(list_exp)
-                    relation_types.append('points')
-                else:
-                    error_flag = True
-                    self.qgis_interface.messageBar().pushMessage(
-                        "Error",
-                        "Geometry of type line couldn't be created correctly.",
-                        level=Qgis.Critical, duration=5)
-
-            elif self.lineEditGeometry == 'Line':
-
-                line = None
-
-                if self.lineEditWkbType == 'LineString25D':
-                    line = qgisOutput.convert_polyline_to_line(geometry.asPolyline())
-                elif self.lineEditWkbType == 'LineString':
-                    line = qgisOutput.convert_polyline_to_line(geometry.asPolyline())
-                elif self.lineEditWkbType == 'LineStringZ':
-                    line = qgisOutput.convert_polyline_to_line(geometry.asPolyline())
-                elif self.lineEditWkbType == 'MultiLineString':
-                    line = qgisOutput.convert_multipolyline_to_line(geometry.asMultiPolyline())
-                elif self.lineEditWkbType == 'MultiLineStringZ':
-                    line = qgisOutput.convert_multipolyline_to_line(geometry.asMultiPolyline())
-                else:
-                    error_flag = True
-                    self.qgis_interface.messageBar().pushMessage(
-                        "Error",
-                        "Geometry of WKB type " + self.lineEditWkbType + " is currently not supported.",
-                        level=Qgis.Critical, duration=5)
-
-                if line is not None:
-                    list_exp = spatial.convert_line_to_list_exp_str(line)
-                    relation_values.append(list_exp)
-                    relation_types.append('line')
-                else:
-                    error_flag = True
-                    self.qgis_interface.messageBar().pushMessage(
-                        "Error",
-                        "Geometry of type line couldn't be created correctly.",
-                        level=Qgis.Critical, duration=5)
-
-            elif self.lineEditGeometry == 'Region':
-
-                region = None
-
-                if self.lineEditWkbType == 'MultiPolygon':
-                    region = qgisOutput.convert_multi_polygon_to_region(geometry.asMultiPolygon())
-                elif self.lineEditWkbType == 'Polygon':
-                    region = qgisOutput.convert_polygon_to_region(geometry.asPolygon())
-                else:
-                    error_flag = True
-                    self.qgis_interface.messageBar().pushMessage(
-                        "Error",
-                        "Geometry of WKB type " + self.lineEditWkbType + " is currently not supported.",
-                        level=Qgis.Critical, duration=5)
-
-                if region is not None:
-                    list_exp = spatial.convert_region_to_list_exp_str(region)
-                    relation_values.append(list_exp)
-                    relation_types.append('region')
-                else:
-                    error_flag = True
-                    self.qgis_interface.messageBar().pushMessage(
-                        "Error",
-                        "Geometry of type region couldn't be created correctly.",
-                        level=Qgis.Critical, duration=5)
-
-            else:
-                error_flag = True
-                self.qgis_interface.messageBar().pushMessage(
-                    "Error",
-                    "Geometry type " + self.lineEditGeometry + " is currently not supported.",
-                    level=Qgis.Critical, duration=5)
 
             # Append feature only if no errors
 

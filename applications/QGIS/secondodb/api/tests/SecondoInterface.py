@@ -15,14 +15,11 @@ pswd = 'passwd'
 connection = secondo.connect(HOST, PORT, database='berlintest')
 cursor = connection.cursor()
 
-start_time = datetime.datetime.now()
 result = cursor.execute_simple_query('msnow')
-end_time = datetime.datetime.now()
 
-delta_time = end_time - start_time
-print(str(delta_time.total_seconds() * 1000))
+print(result)
 
-test_mregion = 'let test_mregion = [const rel(tuple([Name: string, GeoData: mregion])) value ()]'
+# test_mregion = 'let test_mregion = [const rel(tuple([Name: string, GeoData: mregion])) value ()]'
 
 # print(result)
 
