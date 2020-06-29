@@ -60,6 +60,8 @@ if hasattr(QtCore.Qt, 'AA_EnableHighDpiScaling'):
 if hasattr(QtCore.Qt, 'AA_UseHighDpiPixmaps'):
     QApplication.setAttribute(QtCore.Qt.AA_UseHighDpiPixmaps, True)
 
+SUPPORTED_TYPES_FOR_REL = ['int', 'bool', 'string', 'real', 'point', 'points', 'line', 'region']
+
 
 class MainWindow(QMainWindow):
     """
@@ -862,6 +864,7 @@ class MainWindow(QMainWindow):
                 header.setSectionResizeMode(i, QHeaderView.ResizeToContents)
 
             self.dataViewerModel = model
+            spatial_widget.ui.pushButtonAddToLayer.setDisabled(False)
         else:
             self.handle_status_message("Fatal error: Object model couldn't be created.")
 
@@ -891,6 +894,7 @@ class MainWindow(QMainWindow):
         if model is not None:
             spatial_widget.ui.treeView.setModel(model)
             self.dataViewerModel = model
+            spatial_widget.ui.pushButtonAddToLayer.setDisabled(False)
         else:
             self.handle_status_message("Fatal error: Object model couldn't be created.")
 
@@ -925,6 +929,13 @@ class MainWindow(QMainWindow):
                 header.setSectionResizeMode(i, QHeaderView.ResizeToContents)
 
             self.dataViewerModel = model
+            relational_widget.ui.pushButtonAddToLayer.setDisabled(False)
+
+            # Check compatibility of attributes in relation for import
+
+            for attribute in data_object.attributes:
+                if attribute.attribute_type not in SUPPORTED_TYPES_FOR_REL:
+                    relational_widget.ui.pushButtonAddToLayer.setDisabled(True)
 
         else:
             self.handle_status_message("Fatal error: Object model couldn't be created.")
@@ -974,6 +985,7 @@ class MainWindow(QMainWindow):
                 header.setSectionResizeMode(i, QHeaderView.ResizeToContents)
 
             self.dataViewerModel = model
+            spatio_temporal_widget.ui.pushButtonAddToLayer.setDisabled(False)
 
         else:
             self.handle_status_message("Fatal error: Object model couldn't be created.")

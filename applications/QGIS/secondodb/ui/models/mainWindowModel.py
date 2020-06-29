@@ -26,6 +26,7 @@ from timeit import default_timer as timer
 
 SUPPORTED_OBJECTS = ['point', 'points', 'line', 'region', 'rel', 'mpoint', 'mregion']
 SPATIAL_OBJECTS = ['point', 'points', 'line', 'region']
+SPATIO_TEMPORAL_OBJECTS = ['mpoint', 'mregion']
 NO_ALGEBRA = True
 NO_TYPE_CONSTRUCTORS = True
 
@@ -176,6 +177,10 @@ def geometry_pretty_printer(geometry_type: str, geometry_value) -> str:
     elif geometry_type == 'region':
         quantity_faces = len(geometry_value.faces)
         return "Region " + "(" + str(quantity_faces) + " faces)"
+    elif geometry_type == 'mpoint':
+        return "MPoint"
+    elif geometry_type == 'mregion':
+        return "MRegion"
 
 
 def create_model_for_point_object(point_object) -> QStandardItemModel:
@@ -471,6 +476,11 @@ def create_model_for_rel_object(relation_object) -> QStandardItemModel:
             # stored as a named tuple, which can be called later using their attributes.
 
             if column_type in SPATIAL_OBJECTS:
+                geo_as_str = geometry_pretty_printer(column_type, field_value)
+                single_row.setIcon(get_icon_for_object(column_type))
+                single_row.setData(field_value, Qt.UserRole)
+                single_row.setText(geo_as_str)
+            if column_type in SPATIO_TEMPORAL_OBJECTS:
                 geo_as_str = geometry_pretty_printer(column_type, field_value)
                 single_row.setIcon(get_icon_for_object(column_type))
                 single_row.setData(field_value, Qt.UserRole)
@@ -984,63 +994,31 @@ class MainWindowModel(QtCore.QObject):
         else:
             self.handle_notifications('Object ' + object_name + ' loaded successfully.')
 
-            # TODO: TIME FOR EXPERIMENTS
-
-            start = timer()
-
             if object_type == 'point':
-
-                end = timer()
-                delta = end - start
-                # print('Display in plugin: ' + str(delta))
 
                 return create_model_for_point_object(query_results[0])
 
             if object_type == 'points':
 
-                end = timer()
-                delta = end - start
-                # print('Display in plugin: ' + str(delta))
-
                 return create_model_for_points_object(query_results[0])
 
             if object_type == 'line':
-
-                end = timer()
-                delta = end - start
-                # print('Display in plugin: ' + str(delta))
 
                 return create_model_for_line_object(query_results[0])
 
             if object_type == 'region':
 
-                end = timer()
-                delta = end - start
-                # print('Display in plugin: ' + str(delta))
-
                 return create_model_for_region_object(query_results[0])
 
             if object_type == 'rel':
-
-                end = timer()
-                delta = end - start
-                # print('Display in plugin: ' + str(delta))
 
                 return create_model_for_rel_object(query_results[0])
 
             if object_type == 'mpoint':
 
-                end = timer()
-                delta = end - start
-                # print('Display in plugin: ' + str(delta))
-
                 return create_model_for_mpoint_object(query_results[0])
 
             if object_type == 'mregion':
-
-                end = timer()
-                delta = end - start
-                # print('Display in plugin: ' + str(delta))
 
                 return create_model_for_mregion_object(query_results[0])
 
