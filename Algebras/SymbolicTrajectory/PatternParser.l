@@ -70,7 +70,7 @@ date {si}(-{ui}(-{ui}(-{ui}(\:{ui})(\:{ui}(\.{ui})?)?)?)?)?
 time {ui}\:{ui}(\:{ui}(\.{ui})?)?
 interval ({date}(\~{date})?)|\~{date}|{date}\~|([a-z_][a-zA-Z0-9_]*)|\~{time}|{time}\~|{time}\~{time}
 intervalset {interval}|(\{{interval}(\,[ ]*{interval})*\})
-label ([a-zA-Z_\-][a-zA-Z0-9_\-]*)|(\"|\')[a-zA-Z0-9\. \ß\ä\ö\ü\Ä\Ö\Ü\/\(\)\[\]\{\}_\-\*\:\ô\í\ó\à\á\ã\ê\é\ç\ó\õ\ú]*(\"|\')
+label ([a-zA-Z_\-][a-zA-Z0-9_\-]*)|(\"|\')[a-zA-Z0-9\. \ß\ä\ö\ü\Ä\Ö\Ü\/\(\)\[\]\{\}_\-\*\:\ô\í\ó\à\á\ã\ê\é\ç\ó\õ\ú\´\`]*(\"|\')
 value {label}|{const_op}|{numinterval}|{si}|\_
 labelset {label}|(({setrelation})?\{{label}(\,[ ]*{label})*\})
 valueset {value}|(({setrelation})?\{{value}(\,[ ]*{value})*\})

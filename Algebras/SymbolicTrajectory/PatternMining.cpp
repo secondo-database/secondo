@@ -1906,7 +1906,7 @@ void ProjectedDB::addProjections(vector<unsigned int>& labelSeq, unsigned int
   if (labelSeq.empty()) {
     return;
   }
-//   cout lab<< "compute proj for seq " << agg->print(labelSeq) << endl;
+//   cout << "compute proj for seq " << agg->print(labelSeq) << endl;
   vector<bool> projPresent;
   vector<unsigned int> reducedSeq;
   projPresent.resize(agg->freqLabels.size(), false);
@@ -1999,9 +1999,6 @@ void ProjectedDB::construct() {
 //            << agg->freqLabels[i] << endl;
       projections[i].clear();
     }
-//     else { // TODO: activate if minePDB is invoked
-//       projPos.push_back(i);
-//     }
   }
   vector<unsigned int> freqLabels;
   for (unsigned int i = 0; i < agg->freqLabels.size(); i++) {
@@ -2124,7 +2121,8 @@ void ProjectedDB::minePDBSMatrix(vector<unsigned int>& prefix,
   unsigned int secondLast(prefix[prefix.size() - 2]), 
                last(prefix[prefix.size() - 1]);
   vector<unsigned int> labelCounter;
-  labelCounter.resize(freqLabelPos[freqLabelPos.size() - 1] + 1, 0);
+//   cout << "FreqLabelPos: " << agg->print(freqLabelPos) << endl;
+  labelCounter.resize(agg->freqLabels.size(), 0);
   vector<bool> counted;
   counted.resize(labelCounter.size(), false);
   string atom, pattern;
@@ -2137,10 +2135,10 @@ void ProjectedDB::minePDBSMatrix(vector<unsigned int>& prefix,
     pdb->addProjections(seq, last, prefix);
   }
 //   cout << "Prefix " << agg->print(prefix) << " : " << endl;
-  for (unsigned int i = 0; i < pdb->projections.size(); i++) {
+//   for (unsigned int i = 0; i < pdb->projections.size(); i++) {
 //     cout << "   pos " << i << " : " 
 //         << nl->ToString(projToListExpr(pdb->projections[i])) << endl;
-  }
+//   }
   for (auto seq : pdb->projections[last]) {
 //     cout << "  count sequence " << agg->print(seq) << endl;
     for (auto label : seq) {
@@ -2149,7 +2147,7 @@ void ProjectedDB::minePDBSMatrix(vector<unsigned int>& prefix,
         counted[label] = true;
       }
     }
-    counted.assign(freqLabelPos.size(), false);
+    counted.assign(counted.size(), false);
   }
 //   cout << "labelCounter: " << agg->print(labelCounter) << endl 
 //        << "freqLabelPos: " << agg->print(freqLabelPos) << endl;
@@ -2370,7 +2368,7 @@ ListExpr ProjectedDB::Out(ListExpr typeInfo, Word value) {
   }
   for (unsigned int i = 1; i < pdb->projections.size(); i++) {
     projList = nl->Append(projList, 
-                        nl->TwoElemList(nl->SymbolAtom(pdb->agg->freqLabels[i]),
+                        nl->TwoElemList(nl->TextAtom(pdb->agg->freqLabels[i]),
                                      pdb->projToListExpr(pdb->projections[i])));
   }
   return nl->ThreeElemList(noTuplesList, minSuppList, projsList);
@@ -2923,7 +2921,7 @@ bool VerticalDB::Save(SmiRecord& valueRecord, size_t& offset,
 
 bool VerticalDB::Open(SmiRecord& valueRecord, size_t& offset,
                       const ListExpr typeInfo, Word& value) {
-  auto measureStart = high_resolution_clock::now(); 
+//   auto measureStart = high_resolution_clock::now(); 
   VerticalDB *vdb = new VerticalDB();
   // read minSupp
   if (!valueRecord.Read(&vdb->minSupp, sizeof(double), offset)) {
@@ -2936,10 +2934,10 @@ bool VerticalDB::Open(SmiRecord& valueRecord, size_t& offset,
   }
   vdb->minSuppCnt = (unsigned int)std::ceil(vdb->minSupp * vdb->agg->noTuples);
   value.setAddr(vdb);
-  auto measureStop = high_resolution_clock::now();
-  double ms = 
-   (double)(duration_cast<milliseconds>(measureStop - measureStart).count());
-    cout << "VDB OPEN finished after " << ms << " ms" << endl;
+//   auto measureStop = high_resolution_clock::now();
+//   double ms = 
+//    (double)(duration_cast<milliseconds>(measureStop - measureStart).count());
+//     cout << "VDB OPEN finished after " << ms << " ms" << endl;
   return true;
 }
 
