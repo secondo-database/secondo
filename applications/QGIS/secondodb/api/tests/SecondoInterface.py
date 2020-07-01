@@ -2,6 +2,7 @@
 import secondodb.api.secondoapi as secondo
 
 import secondodb.api.algebras.secondospatialalgebra as spatial
+import secondodb.api.support.secondolistexpr as le
 
 import datetime
 
@@ -15,9 +16,13 @@ pswd = 'passwd'
 connection = secondo.connect(HOST, PORT, database='berlintest')
 cursor = connection.cursor()
 
-result = cursor.execute_simple_query('msnow')
+result = cursor.execute('query test_mbool3')
 
 print(result)
+
+
+
+
 
 # test_mregion = 'let test_mregion = [const rel(tuple([Name: string, GeoData: mregion])) value ()]'
 

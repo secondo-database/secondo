@@ -606,6 +606,48 @@ class TestConnection(TestCase):
         with self.assertRaises(InterfaceError):
             Connection(HOST, PORT, user, pswd, db)
 
+    @patch("secondodb.api.secondoapi.socket")
+    @patch("secondodb.api.secondoapi.parser.receive_response")
+    def test_init_with_os_error(self, mocked_parser, mocked_socket):
+
+        HOST = '127.0.0.1'
+        PORT = 1234
+        user = ''
+        pswd = ''
+        db = ''
+
+        mock_socket_connect = Mock()
+        mock_socket_close = Mock()
+        mocked_socket.return_value.connect = mock_socket_connect
+        mocked_socket.return_value.close = mock_socket_close
+
+        mock_socket_connect.side_effect = OSError('test', 'test')
+
+        mocked_parser.return_value = ('not_secondo_ok', 'not_secondo_ok')
+
+        with self.assertRaises(InterfaceError):
+            Connection(HOST, PORT, user, pswd, db)
+
+    @patch("secondodb.api.secondoapi.socket")
+    @patch("secondodb.api.secondoapi.parser.receive_response")
+    def test_init_with_parse_operational_error(self, mocked_parser, mocked_socket):
+
+        HOST = '127.0.0.1'
+        PORT = 1234
+        user = ''
+        pswd = ''
+        db = ''
+
+        mock_socket_connect = Mock()
+        mock_socket_close = Mock()
+        mocked_socket.return_value.connect = mock_socket_connect
+        mocked_socket.return_value.close = mock_socket_close
+
+        mocked_parser.side_effect = OperationalError('test')
+
+        with self.assertRaises(OperationalError):
+            Connection(HOST, PORT, user, pswd, db)
+
     def test_get_list_databases_with_db(self):
         self.test_init_server_only()
         result = self.connection.get_list_databases()

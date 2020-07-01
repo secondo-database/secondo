@@ -78,3 +78,12 @@ class TestSpatioTemporalAlgebra(unittest.TestCase):
         self.assertIsInstance(response.intervals[0], spatiotemporal.RealInInterval)
         self.assertIsInstance(response.intervals[0].interval, spatiotemporal.Interval)
         self.assertIsInstance(response.intervals[0].value_vector, spatiotemporal.ValueVectorReal)
+
+    def test_parse_mbool(self):
+        response = self.cursor.execute_simple_query('test_mbool3')
+
+        self.assertIsInstance(response, spatiotemporal.MBool)
+        self.assertIsInstance(response.intervals, list)
+        self.assertIsInstance(response.intervals[0], spatiotemporal.BoolInInterval)
+        self.assertIsInstance(response.intervals[0].interval, spatiotemporal.Interval)
+        self.assertIsInstance(response.intervals[0].value_vector, spatiotemporal.ValueVectorBool)

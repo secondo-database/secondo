@@ -31,6 +31,23 @@ class TestRelationalAlgebra(unittest.TestCase):
         self.assertIsInstance(response.attributes, list)
         self.assertIsInstance(response.data, list)
 
+    def test_parse_relation_with_mpoint(self):
+        response = self.cursor.execute_simple_query('Trains')
+        self.assertIsInstance(response, object)
+        self.assertIsInstance(response.attributes, list)
+        self.assertIsInstance(response.data, list)
+
+    def test_parse_relation_with_real_and_text(self):
+        response = self.cursor.execute_simple_query('test_rel_3')
+        self.assertIsInstance(response, object)
+        self.assertIsInstance(response.attributes, list)
+        self.assertIsInstance(response.data, list)
+
+    def test_parse_relation_with_bool(self):
+        response = self.cursor.execute_simple_query('test_rel_bool')
+        self.assertIsInstance(response, object)
+        self.assertIsInstance(response.attributes, list)
+        self.assertIsInstance(response.data, list)
 
 
 

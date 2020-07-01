@@ -293,10 +293,9 @@ def parse_region(list_expr: ListExp) -> Region:
 
         outercycle_le = face_le.get_first_element()
 
+        outercycle = []
         if outercycle_le is not None:
             outercycle = parse_points(outercycle_le)
-        else:
-            outercycle = []
 
         holecycles = []
         if cycles_count > 1:
@@ -305,10 +304,9 @@ def parse_region(list_expr: ListExp) -> Region:
 
                 holecycle_le = face_le.get_the_n_element(j)
 
+                holecycle = []
                 if holecycle_le is not None:
                     holecycle = parse_points(holecycle_le)
-                else:
-                    holecycle = []
 
                 holecycles.append(holecycle)
 
@@ -333,7 +331,4 @@ def parse_segment(list_expr: ListExp) -> Segment:
     y2 = list_expr.get_fourth_element().value
 
     return Segment(x1=x1, y1=y1, x2=x2, y2=y2)
-
-
-
 

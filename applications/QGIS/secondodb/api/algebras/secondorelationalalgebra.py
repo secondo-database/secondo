@@ -72,14 +72,8 @@ def parse_relation(list_expr: ListExp, attr_list: []) -> Relation:
             elif single_attribute.attribute_type == 'int':
                 attr_value = standard.parse_int(single_row_as_le.get_the_n_element(j + 1))
 
-            elif single_attribute.attribute_type == 'longint':
-                attr_value = standard.parse_longint(single_row_as_le.get_the_n_element(j + 1))
-
             elif single_attribute.attribute_type == 'real':
                 attr_value = standard.parse_real(single_row_as_le.get_the_n_element(j + 1))
-
-            elif single_attribute.attribute_type == 'rational':
-                attr_value = standard.parse_rational(single_row_as_le.get_the_n_element(j + 1))
 
             elif single_attribute.attribute_type == 'bool':
                 attr_value = standard.parse_bool(single_row_as_le.get_the_n_element(j + 1))
@@ -91,9 +85,6 @@ def parse_relation(list_expr: ListExp, attr_list: []) -> Relation:
                 attr_value = spatial.parse_points(single_row_as_le.get_the_n_element(j + 1))
 
             elif single_attribute.attribute_type == 'line':
-                attr_value = spatial.parse_line(single_row_as_le.get_the_n_element(j + 1))
-
-            elif single_attribute.attribute_type == 'sline':
                 attr_value = spatial.parse_line(single_row_as_le.get_the_n_element(j + 1))
 
             elif single_attribute.attribute_type == 'region':

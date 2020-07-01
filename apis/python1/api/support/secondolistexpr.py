@@ -254,51 +254,6 @@ def create_bool_atom(value):
     return new_boolean_atom
 
 
-# def write_list_to_string(list_expr, str_rep, identation):
-#
-#     separator = ' '
-#     has_sub_lists = False
-#     identation = identation + "    "
-#
-#     if not list_expr.is_atom():
-#         str_rep += '('
-#
-#     while not list_expr.is_empty():
-#
-#         if list_expr.type == NO_ATOM:
-#             if not has_sub_lists and (not list_expr.value.is_empty() and list_expr.value.type == NO_ATOM):
-#                 has_sub_lists = True
-#                 separator = "\n" + identation
-#                 str_rep += separator
-#             str_rep = write_list_to_string(list_expr.value, str_rep, identation)
-#         elif list_expr.type == INT_ATOM:
-#             str_rep += str(list_expr.value)
-#             return str_rep
-#         elif list_expr.type == REAL_ATOM:
-#             str_rep += str(list_expr.value)
-#             return str_rep
-#         elif list_expr.type == BOOL_ATOM:
-#             str_rep += str(list_expr.value)
-#             return str_rep
-#         elif list_expr.type == STRING_ATOM:
-#             str_rep += str(list_expr.value)
-#             return str_rep
-#         elif list_expr.type == SYMBOL_ATOM:
-#             str_rep += str(list_expr.value)
-#             return str_rep
-#         elif list_expr.type == TEXT_ATOM:
-#             str_rep += str(list_expr.value)
-#             return str_rep
-#
-#         list_expr = list_expr.next
-#
-#         if not list_expr.is_empty():
-#             str_rep += separator
-#
-#     str_rep += ')'
-#     return str_rep
-
-
 def write_list_to_string(list_expr, str_list: [], identation) -> []:
 
     separator = ' '
@@ -465,6 +420,7 @@ class ListExp:
         else:
             while last_node.next is not None:
                 last_node = self.next
+                self.next = last_node.next
             return last_node
 
     def add(self, in_list):
@@ -484,12 +440,3 @@ class ListExp:
             # The list has more than one node
             last_node = self.get_last_node()
             last_node.next = in_list
-
-
-
-
-
-
-
-
-

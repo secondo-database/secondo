@@ -457,12 +457,6 @@ def parse_query(list_expr: ListExp):
     elif object_type == 'string':
         string_value = standardalgebra.parse_string(object_data)
         return string_value, object_type
-    elif object_type == 'longint':
-        longint_value = standardalgebra.parse_longint(object_data)
-        return longint_value, object_type
-    elif object_type == 'rational':
-        rational_value = standardalgebra.parse_rational(object_data)
-        return rational_value, object_type
 
     # ---------------------------------------------------- SPATIAL ALGEBRA
 
@@ -499,6 +493,9 @@ def parse_query(list_expr: ListExp):
     elif object_type == 'mint':
         mint = spatiotemporalalgebra.parse_mint(object_data)
         return mint, object_type
+    elif object_type == 'mbool':
+        mbool = spatiotemporalalgebra.parse_mbool(object_data)
+        return mbool, object_type
     elif object_type == 'mstring':
         mstring = spatiotemporalalgebra.parse_mstring(object_data)
         return mstring, object_type
@@ -573,7 +570,7 @@ def __progress_display(position, total, message):
 
 def __line_flush():
     """
-    Internal function for reseting a line of the Python console.
+    Internal function for resetting a line of the Python console.
 
     :return: None
     """
