@@ -37,15 +37,22 @@ namespace pgraph
 //----------------------------------------------------------------------------
 string AttrInfo::GetStringVal(Tuple *tuple)
 {
-      if (TypeName=="text")  {
+      if (! tuple->GetAttribute(Index)->IsDefined()) {
+          return "";
+      }
+
+      if (TypeName=="text") {
          return ((FText*)tuple->GetAttribute(Index))->GetValue();
       }
-      if (TypeName=="string")  {
+
+      if (TypeName=="string") {
          return ((CcString*)tuple->GetAttribute(Index))->GetValue();
       }
-      if (TypeName=="int")  {
+
+      if (TypeName=="int") {
          return to_string(((CcInt*)tuple->GetAttribute(Index))->GetValue());
       }
+
       return "";
 }
 
