@@ -69,7 +69,7 @@ void PGraphQueryProcessor::SetInputRelation(QueryTree *tree)
       string idxname=pgraphMem->name+"_idx_"+tree->Root->TypeName+"_"+qf->Name;
       string memtabname=pgraphMem->name+"_rel_"+tree->Root->TypeName;
       LOGOP(10,"PGraphQueryProcessor::SetInputRelation","use index : "+idxname);
-      string query="(consume (matchbelow "+idxname+" "+memtabname+" \""+
+      string query="(consume (mexactmatch "+idxname+" "+memtabname+" \""+
          qf->Value+"\"))";
       rel=ExecuteQuery(query);
    }
