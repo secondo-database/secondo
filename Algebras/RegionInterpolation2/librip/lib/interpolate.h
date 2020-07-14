@@ -31,7 +31,7 @@
 // This must match the nearlyEqual-method in SECONDOs MovingRegion-Algebra
 // to allow flawless imports.
 static inline bool _nearlyEqual(double a, double b) {
-        return abs(a-b) <= 0.0001;
+    return std::abs(a-b) <= 0.0001;
 }
 
 // Forward-declarations of the classes

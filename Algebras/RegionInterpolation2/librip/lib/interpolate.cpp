@@ -33,8 +33,10 @@ MFaces interpolate(vector<Face> *sregs, vector<Face> *dregs, int depth,
     
     DEBUG(2, "== Entering Interpolate depth " << depth << " ==");
     
-    if (sregs->empty() && dregs->empty()) // Nothing to do!
+    if (sregs->empty() && dregs->empty()) { // Nothing to do!
+        DEBUG(1, "Source and destination region empty");
         return ret;
+    }
     
     // Remember the original faces-lists from which the result was created.
     ret.sregs = sregs;
@@ -45,16 +47,10 @@ MFaces interpolate(vector<Face> *sregs, vector<Face> *dregs, int depth,
     // If we are in the evaporation (or condensation) phase, just try to match
     // equal faces by their lower left point.
     vector<pair<Face *, Face *> > matches;
-    if (depth == 0) {
-        cerr << "Primary matchFaces" << endl;
-    }
     if (!evap)
         matches = matchFaces(sregs, dregs, depth, args);
     else
         matches = matchFaces(sregs, dregs, depth, "lowerleft");
-    if (depth == 0) {
-        cerr << "Starting RP" << endl;
-    }
     
  
     for (unsigned int i = 0; i < matches.size(); i++) {
@@ -112,7 +108,6 @@ MFaces interpolate(vector<Face> *sregs, vector<Face> *dregs, int depth,
 
     // Toplevel-Intersections are still not handled yet, do that now.
     if (depth == 0) {
-        cerr << "Handle intersections" << endl;
         handleIntersections(ret, MFace(), evap);
     }
     

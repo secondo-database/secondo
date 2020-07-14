@@ -310,6 +310,7 @@ static int _parse (std::istream& f, RList *nl, int depth) {
 RList RList::parse (std::istream& f) {
 	RList nl;
 
+
 	int st = _parse(f, &nl, 0);
 	if (st != 0)
 		std::cerr << "Parse error!" << std::endl;

@@ -43,8 +43,9 @@ Face::Face(RList tle, bool withHoles) : cur(0), parent(NULL), ishole(false) {
         RList p = f.items[i];
         Pt pt(p.items[0].getNr() * SCALEIN, p.items[1].getNr() * SCALEIN);
         if (i > 0) {
-            if (Pt::nearlyEqual(prev, pt))
+            if (Pt::nearlyEqual(prev, pt)) {
                 continue;
+            }
             Seg s = Seg(prev, pt);
             AddSeg(s);
         }
@@ -487,8 +488,9 @@ vector<Face> Face::getFaces(RList nl) {
     
     for (unsigned int i = 0; i < nl.items.size(); i++) {
         Face r(nl.items[i], true);
-        if (r.isEmpty())
+        if (r.isEmpty()) {
             continue;
+        }
         ret.push_back(r);
     }
 
