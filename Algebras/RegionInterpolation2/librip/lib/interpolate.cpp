@@ -34,7 +34,6 @@ MFaces interpolate(vector<Face> *sregs, vector<Face> *dregs, int depth,
     DEBUG(2, "== Entering Interpolate depth " << depth << " ==");
     
     if (sregs->empty() && dregs->empty()) { // Nothing to do!
-        DEBUG(1, "Source and destination region empty");
         return ret;
     }
     
