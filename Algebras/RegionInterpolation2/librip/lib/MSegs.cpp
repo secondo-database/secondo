@@ -296,11 +296,11 @@ int MSegs::findNexta(MSeg cur, int start) {
         // We have found a successor, if the initial and final start-points
         // match the initial and final endpoints of the current MSeg.
         if (cur.ie == next->is && cur.fe == next->fs) {
-		double a = cur.angle(*next);
-		if (angle < 0 || a < angle) {
-			angle = a;
-			ret = nindex;
-		}
+        double a = cur.angle(*next);
+        if (angle < 0 || a < angle) {
+            angle = a;
+            ret = nindex;
+        }
         }
     }
 
@@ -387,3 +387,58 @@ void MSegs::updateBBox(MSeg& mseg) {
     bbox.first.valid = 1;
     bbox.second.valid = 1;
 }
+
+/*
+ 1.11 ~EliminateSpikes~
+ Try to find and eliminate empty spikes in the initial and/or final instant.
+      
+*/
+void MSegs::EliminateSpikes() {
+    unsigned int i = 0, sz = msegs.size(), prev = 0;
+    // Search spikes in the initial segments
+    // Iterate twice over the segments to handle spikes at the wraparound, too
+    while (i < 2*sz) {
+        unsigned int cur = i%sz; // Access the arrays modulo arraysize
+        if (msegs[cur].ie == msegs[prev].is) {
+            // We have found an empty spike
+            while (prev != cur) {
+                // Degenerate initial segment to the startpoint of the spike
+                msegs[prev].is = msegs[cur].ie;
+                msegs[prev].ie = msegs[cur].ie;
+                prev = (prev + 1)%sz;
+            }
+            msegs[cur].is = msegs[cur].ie; // also for current segment
+        } else if (!(msegs[cur].is == msegs[cur].ie)) {
+            // This was no spike, continue search from here
+            prev = cur;
+        }
+        i++;
+    }
+
+    // Repeat the same procedure for the final segments
+    i = 0; prev = 0;
+    while (i < 2*sz) {
+        unsigned int cur = i%sz;
+        if (msegs[cur].fe == msegs[prev].fs) {
+            while (prev != cur) {
+                msegs[prev].fs = msegs[cur].fe;
+                msegs[prev].fe = msegs[cur].fe;
+                prev = (prev + 1)%sz;
+            }
+            msegs[cur].fs = msegs[cur].fe;
+        } else if (!(msegs[cur].fs == msegs[cur].fe)) {
+            prev = cur;
+        }
+        i++;
+    }
+
+    // Now eliminate MSeg-Objects with degenerated initial and final segments
+    std::vector<MSeg>::iterator c = msegs.begin();
+    while (c != msegs.end()) {
+        if (c->is == c->ie && c->fs == c->fe)
+            c = msegs.erase(c);
+        else
+            c++;
+    }
+}
+

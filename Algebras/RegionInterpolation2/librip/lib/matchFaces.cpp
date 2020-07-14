@@ -144,7 +144,6 @@ static pair<Pt, Pt> getOffsetAndScale (vector<Face> *fcs) {
         bbox = Face::GetBoundingBox(*fcs);
     }
     
-    
     ret.first = -bbox.first;
         
     if ((bbox.second.x > bbox.first.x) &&
@@ -172,20 +171,25 @@ static pair<Pt, Pt> getOffsetAndScale (vector<Face> *fcs) {
  
 */
 static vector<pair<Face *, Face *> > matchFacesCriterion(vector<Face> *src,
-        vector<Face> *dst, int depth,
+        vector<Face> *dst, int depth, bool noscale,
         double (*fn)(Face *src, Face *dst), double thres) {
     vector<pair<Face *, Face *> > ret;
     vector<matchItem> mtab;
     
-    // Get source- and destination-transform-values
-    pair<Pt, Pt> stf = getOffsetAndScale(src);
-    pair<Pt, Pt> dtf = getOffsetAndScale(dst);
+    pair<Pt, Pt> stf, dtf;
+    if (!noscale) {
+        // Get source- and destination-transform-values
+        stf = getOffsetAndScale(src);
+        dtf = getOffsetAndScale(dst);
+    }
 
     for (unsigned int i = 0; i < src->size(); i++) {
         for (unsigned int j = 0; j < dst->size(); j++) {
             Face s = (*src)[i], d = (*dst)[j];
-            s.Transform(stf.first, stf.second);
-            d.Transform(dtf.first, dtf.second);
+            if (!noscale) {
+                s.Transform(stf.first, stf.second);
+                d.Transform(dtf.first, dtf.second);
+            }
             double val = fn(&s, &d);
             if (val < thres) {
                 mtab.push_back(matchItem(&((*src)[i]), &((*dst)[j]), val));
@@ -206,9 +210,23 @@ static vector<pair<Face *, Face *> > matchFacesCriterion(vector<Face> *src,
     return ret;
 }
 
+static vector<pair<Face *, Face *> > matchFacesCriterion(vector<Face> *src,
+        vector<Face> *dst, int depth,
+        double (*fn)(Face *src, Face *dst), double thres) {
+    return matchFacesCriterion(src, dst, depth, false, fn, thres);
+}
+
 // Helper-function for matchFacesOverlap below. Calculates a score from the
 // overlapping area of two faces.
 static double overlap (Face *src, Face *dst) {
+    pair<Pt, Pt> sbb = src->GetBoundingBox();
+    pair<Pt, Pt> dbb = dst->GetBoundingBox();
+    if ((sbb.first.x > dbb.second.x) || (dbb.first.x > sbb.second.x) ||
+            (sbb.first.y > dbb.second.y) || (dbb.first.y > sbb.second.y)) {
+        return 100.0;
+    }
+
+
     Poly r1 = src->MakePoly(false);
     Poly r2 = dst->MakePoly(false);
 
@@ -259,6 +277,15 @@ vector<pair<Face *, Face *> > matchFacesDistance(vector<Face> *src,
     return matchFacesCriterion(src, dst, depth, distance, 1000000);
 }
 
+vector<pair<Face *, Face *> > matchFacesWood(vector<Face> *src,
+        vector<Face> *dst, int depth, string args) {
+    if (depth == 0) {
+        return matchFacesCriterion(src, dst, depth, true, overlap, 91);
+    } else {
+        return matchFacesNull(src, dst, depth, "");
+    }
+}
+
 /*
  1.7 ~matchFacesMW~ tries to match Faces at the highest level by distance but
  then doesn't try to match concavities or holes. This is about what McKenney
@@ -288,6 +315,7 @@ static struct {
     { "null", matchFacesNull },
     { "simple", matchFacesSimple },
     { "mw", matchFacesMW },
+    { "wood", matchFacesWood },
     { "lowerleft", matchFacesLowerLeft }
 };
 

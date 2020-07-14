@@ -400,7 +400,7 @@ LUA_FUNCTION(bboverlap) {
     double intersectionarea;
     if ((sbb.first.x > dbb.second.x) || (dbb.first.x > sbb.second.x) ||
             (sbb.first.y > dbb.second.y) || (dbb.first.y > sbb.second.y)) {
-        // The boundingboxes are disjunct
+        // The boundingboxes are disjoint
         intersectionarea = 0;
     } else {
         // The boundingboxes overlap
@@ -432,6 +432,23 @@ LUA_FUNCTION(overlap) {
 
     Face *src = (Face*) lua_touserdata(L, 1);
     Face *dst = (Face*) lua_touserdata(L, 2);
+
+    // Check bounding box overlap first
+    pair<Pt, Pt> sbb = src->GetBoundingBox();
+    pair<Pt, Pt> dbb = dst->GetBoundingBox();
+    sbb.first = modPt(sbb.first, src->isdst);
+    sbb.second = modPt(sbb.second, src->isdst);
+    dbb.first = modPt(dbb.first, dst->isdst);
+    dbb.second = modPt(dbb.second, dst->isdst);
+    if ((sbb.first.x > dbb.second.x) || (dbb.first.x > sbb.second.x) ||
+            (sbb.first.y > dbb.second.y) || (dbb.first.y > sbb.second.y)) {
+        lua_pushnumber(L, 0);
+        lua_pushnumber(L, 0);
+        lua_pushnumber(L, 0);
+
+        return 3;
+    }
+
 
     // First point in the pair is the offset, the second second is the scale
     pair<Pt, Pt> srctransform = getOffAndScale(src->isdst);

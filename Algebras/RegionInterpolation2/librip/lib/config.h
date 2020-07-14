@@ -26,7 +26,7 @@
 #define LUASCRIPTNAME "matchFaces"
 
 // Values for testing and developing
-#define DEBUGLEVEL 0 // The current debug level (valid: 1-4, 0 means off)
+#define DEBUGLEVEL 1 // The current debug level (valid: 1-4, 0 means off)
 
 // scale-factor for region-import and (m)region-export
 #define SCALEIN  1   // Imported values are multiplied by SCALEIN
@@ -36,8 +36,9 @@
 // Must have the prototype:
 // bool TRAPEZIUMINTERSECTS(MSeg m, MSeg a, unsigned int &detailedResult);
 // currently valid values:
-// trapeziumIntersects : function defined in ointersect.cpp
-#define TRAPEZIUMINTERSECTS trapeziumIntersects
+// trapeziumIntersects  : function defined in ointersect.cpp
+// trapeziumIntersects2 : function defined in intersect.cpp
+#define TRAPEZIUMINTERSECTS trapeziumIntersects2
 #define STRICT 0
 
 #endif /* _INTERPOLATE_CONFIG_H */

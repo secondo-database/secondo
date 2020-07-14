@@ -90,98 +90,43 @@ vector<MFace> MFace::SplitCycle() {
     DEBUG(4, "Called SplitCycle on " << this->ToString());
     
     do {
-	MSegs cycle;
-	MSeg n = ms.msegs[0];
-	MSeg cur = n;
-	cycle.AddMSeg(ms.msegs[0]);
-	ms.msegs.erase(ms.msegs.begin());
+        MSegs cycle;
+        MSeg n = ms.msegs[0];
+        MSeg cur = n;
+        cycle.AddMSeg(ms.msegs[0]);
+        ms.msegs.erase(ms.msegs.begin());
         bool complete = false;
-	do {
-		int next = ms.findNexta(cur, 1);
-		if (next < 0) {
-			DEBUG(4, "Error: no successor found!");
-			break;
-		}
-		cur = ms.msegs[next];
-		cycle.AddMSeg(cur);
-		ms.msegs.erase(ms.msegs.begin() + next);
-		if (n.is == cur.ie && n.fs == cur.fe) {
-			complete = true;
-			break;
-		}
-	} while (1);
-	if (complete) {
-		DEBUG(4, "Cycle complete, " << cycle.msegs.size() << " segs");
-		MFace f = MFace(cycle);
-		f.EliminateSpikes();
-		f.Check();
-		f.face.calculateBBox();
-		if (f.face.msegs.size()>0)
-			ret.push_back(f);
-	}
+        do {
+            int next = ms.findNexta(cur, 1);
+            if (next < 0) {
+                DEBUG(4, "Error: no successor found!");
+                break;
+            }
+            cur = ms.msegs[next];
+            cycle.AddMSeg(cur);
+            ms.msegs.erase(ms.msegs.begin() + next);
+            if (n.is == cur.ie && n.fs == cur.fe) {
+                complete = true;
+                break;
+            }
+        } while (1);
+        if (complete) {
+            DEBUG(4, "Cycle complete, " << cycle.msegs.size() << " segs");
+            MFace f = MFace(cycle);
+            f.face.EliminateSpikes();
+            f.Check();
+            f.face.calculateBBox();
+            if (f.face.msegs.size()>0)
+                ret.push_back(f);
+        }
     } while (ms.msegs.size() > 0);
 
     if (ret.size() == 1) {
-	    ret[0].holes = holes;
+        ret[0].holes = holes;
     }
-    
+
     DEBUG(4, "SplitCycle done, now " << ret.size() << " cycles");
     return ret;
-}
-
-/*
- 1.4 ~EliminateSpikes~
-
- Try to find and eliminate empty spikes in the initial and/or final instant.
- 
-*/
-void MFace::EliminateSpikes() {
-    // Search spikes in the initial segments
-    unsigned int i = 0, sz = face.msegs.size(), prev = 0;
-    // Iterate twice over the segments to handle spikes at the wraparound, too
-    while (i < 2*sz) {
-        unsigned int cur = i%sz; // Access the arrays modulo arraysize
-        if (face.msegs[cur].ie == face.msegs[prev].is) {
-            // We have found an empty spike
-            while (prev != cur) {
-                // Degenerate initial segment to the startpoint of the spike
-                face.msegs[prev].is = face.msegs[cur].ie;
-                face.msegs[prev].ie = face.msegs[cur].ie;
-                prev = (prev + 1)%sz;
-            }
-            face.msegs[cur].is = face.msegs[cur].ie; // also for current segment
-        } else if (!(face.msegs[cur].is == face.msegs[cur].ie)) {
-            // This was no spike, continue search from here
-            prev = cur;
-        }
-        i++;
-    }
-    
-    // Repeat the same procedure for the final segments
-    i = 0; prev = 0;
-    while (i < 2*sz) {
-        unsigned int cur = i%sz;
-        if (face.msegs[cur].fe == face.msegs[prev].fs) {
-            while (prev != cur) {
-                face.msegs[prev].fs = face.msegs[cur].fe;
-                face.msegs[prev].fe = face.msegs[cur].fe;
-                prev = (prev + 1)%sz;
-            }
-            face.msegs[cur].fs = face.msegs[cur].fe;
-        } else if (!(face.msegs[cur].fs == face.msegs[cur].fe)) {
-            prev = cur;
-        }
-        i++;
-    }
-
-    // Now eliminate MSeg-Objects with degenerated initial and final segments
-    std::vector<MSeg>::iterator c = face.msegs.begin();
-    while (c != face.msegs.end()) {
-        if (c->is == c->ie && c->fs == c->fe)
-            c = face.msegs.erase(c);
-        else
-            c++;
-    }
 }
 
 /*
@@ -189,29 +134,28 @@ void MFace::EliminateSpikes() {
    Performs several sanity-checks on this object
 
 */
-
 bool MFace::Check() {
     bool ret = true;
-    
+
     if (isEmpty()) // an empty MFace is valid per definition
         return true;
-    
+
     if (!SortCycle()) {
         DEBUG(3, "SortCycle failed!");
         ret = false;
     }
-    
-    
+
+
     for (unsigned int i = 0; i < holes.size(); i++) {
         MFace h1(holes[i]);
         for (unsigned int j = 0; j < holes.size(); j++) {
             if (holes[i].intersects(holes[j], false, false)) {
-		    DEBUG(3, "Hole intersection!");
+                DEBUG(3, "Hole intersection!");
                 ret = false;
-	    }
+            }
         }
     }
-    
+
     if (face.intersects(face, false, true)) {
         DEBUG(3, "Self Intersection!");
         ret = false;
@@ -220,9 +164,9 @@ bool MFace::Check() {
     if (!ret) {
         DEBUG(2, "Error with MFace " << ToString());
     }
-    
+
     if (STRICT)
-       assert(ret);
+        assert(ret);
     else if (!ret)
         *this = MFace();
 
@@ -231,11 +175,11 @@ bool MFace::Check() {
 
 /*
    1.6 ~AddConcavity~
- 
+
    Add a new concavity or hole to this MFace-Object.
    The cycle will be integrated as a Concavity or hole when the function
    MergeConcavities is called afterwards.
- 
+
 */
 void MFace::AddConcavity(MFace c) {
     if (c.face.msegs.size() >= 3) // Ignore invalid or degenerated cycles
@@ -243,8 +187,8 @@ void MFace::AddConcavity(MFace c) {
 }
 
 /*
- 1.7 ~MergeConcavities~
- 
+   1.7 ~MergeConcavities~
+
  Merge the objects in the concavities-list into the current cycle.
  These will either be integrated into the cycle if possible, or otherwise be
  added as a hole.
@@ -304,8 +248,10 @@ static RList CycleToListExpr(MSegs face) {
         
     assert(face.msegs.size() > 0);
     
-    RList cy;
+    RList cy, empty;
     do {
+        if (cur < 0)
+            return empty;
         assert(cur >= 0);
         RList mseg;
         mseg.append(face.msegs[cur].ie.x / SCALEOUT);
@@ -328,12 +274,17 @@ static RList CycleToListExpr(MSegs face) {
 RList MFace::ToListExpr() {
     RList ret;
     
-    ret.append(CycleToListExpr(face));
+    RList f = CycleToListExpr(face);
+    if (f.empty())
+        return ret;
+    ret.append(f);
     
     for (unsigned int i = 0; i < holes.size(); i++) {
         if (holes[i].msegs.size() < 3)
             continue;
-        ret.append(CycleToListExpr(holes[i]));
+        RList h = CycleToListExpr(holes[i]);
+        if (!h.empty())
+            ret.append(h);
     }
 
     return ret;

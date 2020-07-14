@@ -9,17 +9,17 @@
 
 #define VERSION "1.3"
 
+#include <istream>
 #include <string>
 #include <vector>
 #include <cassert>
 
-
 enum {
     NL_LIST = 1,
     NL_STRING,
+    NL_SYM,
     NL_DOUBLE,
-    NL_BOOL,
-    NL_SYM
+    NL_BOOL
 };
 
 
@@ -43,6 +43,7 @@ public:
     void prepend(RList l);
     RList* point(double x, double y);
     void concat(RList l);
+    RList obj(std::string name, std::string type);
     double getNr () {
         assert(type == NL_DOUBLE);
         return nr;
@@ -55,17 +56,23 @@ public:
         assert(type == NL_STRING);
         return str;
     }
+    std::string getSym () {
+        assert(type == NL_SYM);
+        return str;
+    }
     int getType () {
         return type;
     }
     RList* nest();
-    static RList parse(std::istream &i);
+    bool empty () { return items.empty(); }
+
+    static RList parse(std::istream& f);
     std::string ToString();
-    RList obj(std::string name, std::string type);
 };
 
-RList regioninterpolate(RList src, RList dst, std::string start, 
-                        std::string end,
-                        std::string args);
+RList regioninterpolate(RList src, RList dst,
+        std::string start, std::string end, std::string args);
+
+void devtest (RList reg);
 
 #endif /* REGIONINTERPOLATE_HXX */

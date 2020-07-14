@@ -61,9 +61,9 @@ static double parsetime (string str) {
    tm.tm_sec = tm.tm_min = tm.tm_hour = tm.tm_isdst = msec = 0;
    
    sscanf(str.c_str(), "%u-%u-%u%c%u:%u:%u.%u",
-		 &tm.tm_year, &tm.tm_mon, &tm.tm_mday, &sep,
-		 &tm.tm_hour, &tm.tm_min, &tm.tm_sec,
-		 &msec);
+           &tm.tm_year, &tm.tm_mon, &tm.tm_mday, &sep,
+           &tm.tm_hour, &tm.tm_min, &tm.tm_sec,
+           &msec);
    
    tm.tm_year -= 1900; // struct tm expects years since 1900
    tm.tm_mon--; // struct tm expects months to be numbered from 0 - 11
@@ -104,3 +104,14 @@ Interval::Interval(string st, string en, bool lc, bool rc) : lc(lc), rc(rc) {
     start = parsetime(st);
     end = parsetime(en);
 }
+
+/*
+   1.6 ~ToString~ returns a textual representation of
+       the time interval.
+ 
+*/
+string Interval::ToString() {
+    return timestr(start) + " ; " + timestr(end);
+}
+
+

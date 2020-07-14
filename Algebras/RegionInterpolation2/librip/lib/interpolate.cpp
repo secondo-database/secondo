@@ -31,7 +31,7 @@ MFaces interpolate(vector<Face> *sregs, vector<Face> *dregs, int depth,
         bool evap, string args) {
     MFaces ret;
     
-    DEBUG(1, "== Entering Interpolate depth " << depth << " ==");
+    DEBUG(2, "== Entering Interpolate depth " << depth << " ==");
     
     if (sregs->empty() && dregs->empty()) // Nothing to do!
         return ret;
@@ -45,10 +45,16 @@ MFaces interpolate(vector<Face> *sregs, vector<Face> *dregs, int depth,
     // If we are in the evaporation (or condensation) phase, just try to match
     // equal faces by their lower left point.
     vector<pair<Face *, Face *> > matches;
+    if (depth == 0) {
+        cerr << "Primary matchFaces" << endl;
+    }
     if (!evap)
         matches = matchFaces(sregs, dregs, depth, args);
     else
         matches = matchFaces(sregs, dregs, depth, "lowerleft");
+    if (depth == 0) {
+        cerr << "Starting RP" << endl;
+    }
     
  
     for (unsigned int i = 0; i < matches.size(); i++) {
@@ -92,8 +98,9 @@ MFaces interpolate(vector<Face> *sregs, vector<Face> *dregs, int depth,
             // added as a hole). The result is a vector of moving faces,
             // because the merge of a concavity can cause a face split.
             vector<MFace> splits = rp.mface.MergeConcavities();
-            for (unsigned int i = 0; i < splits.size(); i++)
+            for (unsigned int i = 0; i < splits.size(); i++) {
                 ret.AddMFace(splits[i]);
+            }
         } else {
             // Our face doesn't have a partner, so the recursion stops here and
             // we collapse (or expand) the face together with its holes
@@ -105,10 +112,11 @@ MFaces interpolate(vector<Face> *sregs, vector<Face> *dregs, int depth,
 
     // Toplevel-Intersections are still not handled yet, do that now.
     if (depth == 0) {
+        cerr << "Handle intersections" << endl;
         handleIntersections(ret, MFace(), evap);
     }
     
-    DEBUG(1, "== Leaving Interpolate depth " << depth << " ==");
+    DEBUG(2, "== Leaving Interpolate depth " << depth << " ==");
 
     return ret;
 }
@@ -142,6 +150,8 @@ void handleIntersections(MFaces& children, MFace parent, bool evap) {
             MSegs *s2 = (j == 0) ? &parent.face : &children.faces[j - 1].face;
 
             if (s1->intersects(*s2, false, false)) {
+                DEBUG(2, "== Found intersection of " << s1->ToString()
+                        << " and " << s2->ToString());
                 // We have found two intersecting moving faces.
                 pair<MSegs, MSegs> ss;
                 if (!s1->iscollapsed && !evap) {
@@ -151,12 +161,14 @@ void handleIntersections(MFaces& children, MFace parent, bool evap) {
                     ss = s1->kill(); // Create the pair of MSegs
                     // Remove the original object from the list
                     children.faces.erase(children.faces.begin()+i);
+                    DEBUG(2, "== Collapse/Expand of s1 " << s1->ToString());
                 } else if (!s2->iscollapsed && (s2 != &parent.face)
                         && !evap) {
                     // s1 already was collapsed but s2 is not, so this is the
                     // victim now. Refuse to remove the parent.
                     ss = s2->kill();
                     children.faces.erase(children.faces.begin() + (j-1));
+                    DEBUG(2, "== Collapse/Expand of s2 " << s1->ToString());
                 } else {
                     // Both intersecting objects are already collapsing or
                     // expanding (or we are evaporating right now)
@@ -181,9 +193,13 @@ void handleIntersections(MFaces& children, MFace parent, bool evap) {
                             ms = rm->dreg.Evaporate(false);
                         }
                         // Insert the evaporation-cycles into the list
-                        children.faces.insert(children.faces.end(),
-                                              ms.begin(), ms.end());
-                        evp.insert(evp.end(), ms.begin(), ms.end());
+                        for (vector<MSegs>::iterator i = ms.begin();
+                                i != ms.end(); i++) {
+                            children.AddMFace(*i);
+                        }
+//                        children.faces.insert(children.faces.end(),
+//                                              ms.begin(), ms.end());
+//                        evp.insert(evp.end(), ms.begin(), ms.end());
                     } else {
                         // We are in the main interpolation and cannot
                         // compensate this intersection. Remove one offending
@@ -206,6 +222,7 @@ void handleIntersections(MFaces& children, MFace parent, bool evap) {
                     // Restart the checks with the last face, since we changed
                     // the lists
                     i--;
+                    j--;
                     break;
                 }
                 // Add the collapse- and expand-cycles
@@ -214,6 +231,7 @@ void handleIntersections(MFaces& children, MFace parent, bool evap) {
                 // Restart the checks one object earlier, since we removed
                 // the current object and the following objects filled the gap.
                 i-=2;
+                j-=2;
                 break;
             }
         }

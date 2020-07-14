@@ -91,7 +91,7 @@ RList MFaces::ToListExpr(Interval iv, double start, double end) {
         // No restrictions, so we can start the real work
         
         // Build the ListExpr for the time-interval
-        RList uregion, uregions;
+        RList uregion, uregions, empty;
         
         RList interval;
         interval.append(iv.startstr());
@@ -103,8 +103,13 @@ RList MFaces::ToListExpr(Interval iv, double start, double end) {
 
         // Now convert the mface-objects one by one and put them into one list
         for (unsigned int i = 0; i < faces.size(); i++) {
-            uregions.append(faces[i].ToListExpr());
+            RList f = faces[i].ToListExpr();
+            if (!f.empty())
+                uregions.append(f);
         }
+        if (uregions.empty())
+            return empty;
+
         uregion.append(uregions);
 
         return uregion;

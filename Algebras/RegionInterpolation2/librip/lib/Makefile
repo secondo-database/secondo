@@ -1,8 +1,8 @@
 CC=g++
-CPPFLAGS=-O2 -fPIC -Wall -I../include
+CPPFLAGS=-O2 -fPIC -Wall -I../include -ggdb
 #LIBS=-llua5.1
 LDFLAGS=$(LIBS) -shared
-OBJ=Face.o interpolate.o Interval.o lua.o matchFaces.o MFace.o MFaces.o MSeg.o MSegs.o RList.o ointersect.o Pt.o RotatingPlane.o Seg.o
+OBJ=Face.o interpolate.o Interval.o lua.o matchFaces.o MFace.o MFaces.o MSeg.o MSegs.o RList.o ointersect.o Pt.o RotatingPlane.o Seg.o intersect.o
 
 # Choose the polygon intersection function implementation here:
 # (run "make clean" after change!)

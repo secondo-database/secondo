@@ -25,6 +25,7 @@ Face::Face(RList tle, bool withHoles) : cur(0), parent(NULL), ishole(false) {
       f = tle;
    }
    
+#if 0
     // Construct segments from the points
     for (unsigned int i = 0; i < f.items.size()-1; i++) {
         RList pa = f.items[i];
@@ -36,6 +37,27 @@ Face::Face(RList tle, bool withHoles) : cur(0), parent(NULL), ishole(false) {
         Seg s = Seg(Pt(p1, p2), Pt(p3, p4));
         AddSeg(s);
     }
+#else
+    Pt prev;
+    for (unsigned int i = 0; i < f.items.size(); i++) {
+        RList p = f.items[i];
+        Pt pt(p.items[0].getNr() * SCALEIN, p.items[1].getNr() * SCALEIN);
+        if (i > 0) {
+            if (Pt::nearlyEqual(prev, pt))
+                continue;
+            Seg s = Seg(prev, pt);
+            AddSeg(s);
+        }
+        prev = pt;
+    }
+    while (v.size() > 1) {
+        unsigned int n = v.size();
+        if (Pt::nearlyEqual(v[0].s, v[n-1].e)) {
+            v.erase(v.begin());
+        } else
+            break;
+    }
+#endif
     if (v.size() < 2) {
         // Only one segment yet, this cannot be valid. Return an empty region.
         v.clear();
@@ -489,7 +511,13 @@ Pt Face::GetMiddle() {
 
 */
 double Face::GetArea() {
-    return this->MakePoly(false).Area();
+    double ret = 0;
+    for (unsigned int i = 0; i < v.size(); i++) {
+        ret += (v[i].s.x * v[i].e.y - v[i].e.x * v[i].s.y);
+    }
+
+    return ret/2;
+//    return this->MakePoly(false).Area();
 }
 
 /*
@@ -497,25 +525,29 @@ double Face::GetArea() {
  
 */
 Pt Face::GetCentroid() {
-    double area = GetArea();
-    double x = 0, y = 0;
+    unsigned int n = v.size();
     
     if (isEmpty()) // Return anything if this is an empty face
         return Pt(0,0);
+    if (n == 3) {
+        return Pt((v[0].s.x + v[1].s.x + v[2].s.x)/3,
+                  (v[0].s.y + v[1].s.y + v[2].s.y)/3);
+    }
+    double area = GetArea();
 
     // Just return some point of the face if the area is zero
     if (area == 0)
         return v[0].s;
 
     // Otherwise calculate the centroid by the common method
-    unsigned int n = v.size();
+    double x = 0, y = 0;
     for (unsigned int i = 0; i < n; i++) {
         double tmp = (v[i].s.x * v[i].e.y - v[i].e.x * v[i].s.y);
         x += (v[i].s.x + v[i].e.x) * tmp;
         y += (v[i].s.y + v[i].e.y) * tmp;
     }
-    x = x * (1 / (6 * area));
-    y = y * (1 / (6 * area));
+    x = x / area / 6;
+    y = y / area / 6;
 
     return Pt(x, y);
 }
@@ -642,6 +674,10 @@ Face Face::ClipEar() {
     } else {
         Pt a, b, c;
         unsigned int n = v.size();
+        for (unsigned int i = 0; i < n; i++) {
+            a = v[i].s;
+            b = v[(i+1)%n].s;
+        }
 
         // Go through the corner-points, which are sorted counter-clockwise
         for (unsigned int i = 0; i < n; i++) {
@@ -690,7 +726,7 @@ Face Face::ClipEar() {
     DEBUG(1, "No ear found on face " << this->ToString() << "\n");
     // If we are here it means we haven't found an ear. This shouldn't happen.
     // One reason could be that the face wasn't valid in the first place.
-    assert(false);
+//    assert(false);
     return ret;
 }
 
@@ -792,8 +828,12 @@ vector<MSegs> Face::Evaporate(bool close) {
     while (reg.v.size() > 3) {
         // Then, repeatedly clip an ear until only a triangle is left
         Face r = reg.ClipEar();
+        if (r.v.size() == 0)
+            break;
         // and collapse (or expand) the triangles towards its centroid.
         MSegs s = r.collapse(close, r.GetCentroid());
+        if (s.msegs.size() < 3) // No extent
+            continue;
         s.isevaporating = 1;
         ret.push_back(s);
     }
@@ -1040,30 +1080,30 @@ bool Face::Merge(Face m) {
 
 */
 bool Face::inside (const Pt& p) const {
-	int wn = 0;
-        for (std::vector<Seg>::const_iterator seg = v.begin();
-			                  seg != v.end(); ++seg) {
-		if (seg->s.y <= p.y) {
-			if (seg->e.y > p.y) {
-				double sign = seg->sign(p);
-				if (sign > 0) {
-					wn++;
-				} else if (sign == 0) {
-					return true; // On segment
-				}
-			}
-		} else {
-			if (seg->e.y <= p.y) {
-				double sign = seg->sign(p);
-				if (sign < 0) {
-					wn--;
-				} else if (sign == 0) {
-					return true; // On segment
-				}
-			}
-		}
-	}
+    int wn = 0;
+    for (std::vector<Seg>::const_iterator seg = v.begin();
+            seg != v.end(); ++seg) {
+        if (seg->s.y <= p.y) {
+            if (seg->e.y > p.y) {
+                double sign = seg->sign(p);
+                if (sign > 0) {
+                    wn++;
+                } else if (sign == 0) {
+                    return true; // On segment
+                }
+            }
+        } else {
+            if (seg->e.y <= p.y) {
+                double sign = seg->sign(p);
+                if (sign < 0) {
+                    wn--;
+                } else if (sign == 0) {
+                    return true; // On segment
+                }
+            }
+        }
+    }
 
-	return (wn != 0);
+    return (wn != 0);
 }
 

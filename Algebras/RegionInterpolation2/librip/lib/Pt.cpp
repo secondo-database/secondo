@@ -70,6 +70,14 @@ Pt Pt::operator*(const Pt& a) const {
     return Pt(x*a.x,y*a.y);
 }
 
+/*
+  1.5a ~cross product~ calculates the cross product of two points' coordinates
+     
+*/
+double Pt::cross(const Pt& a) const {
+    return x*a.y - y*a.x;
+}
+
 // Helper-function to sort the points by their (pre-calculated) polar
 // coordinates. If the angle is equal, then sort by descending (!) distance
 bool Pt::lessPolar(const Pt& a) const {
@@ -154,3 +162,5 @@ bool Pt::insideTriangle(const Pt& a, const Pt& b, const Pt& c, const Pt& x) {
 double Pt::distance(Pt p) {
     return sqrt((p.x-x)*(p.x-x)+(p.y-y)*(p.y-y));
 }
+
+

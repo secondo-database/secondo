@@ -28,6 +28,11 @@
                                 lua_setglobal(L, #FNAME)
 #endif
 
+// This must match the nearlyEqual-method in SECONDOs MovingRegion-Algebra
+// to allow flawless imports.
+static inline bool _nearlyEqual(double a, double b) {
+        return abs(a-b) <= 0.0001;
+}
 
 // Forward-declarations of the classes
 class Poly;
@@ -52,6 +57,7 @@ public:
     Interval() : start(0), end(0), lc(true), rc(true) {};
     std::string startstr(); // start in YYYY-mm-dd-HH:MM:ss.SSS
     std::string endstr();   // end   in YYYY-mm-dd-HH:MM:ss.SSS
+    std::string ToString(); // Convert to string
 };
 
 
@@ -79,12 +85,16 @@ public:
     bool lessPolar(const Pt& a) const;  // comparison by polar angle/distance
     void calcPolar(const Pt& pt); // calculates polar coordinates with origin p
     double distance(Pt p); // calculates the distance to p
+    double cross(const Pt& a) const;
     std::string ToString() const;
     
     // Static functions
     static double sign(const Pt& a, const Pt& b, const Pt& c); // checks order
     static bool insideTriangle(const Pt& a, const Pt& b, const Pt& c,
             const Pt& x); // checks if x is inside the triangle (a b c)
+    static bool nearlyEqual(const Pt& a, const Pt& b) {
+        return _nearlyEqual(a.x, b.x) && _nearlyEqual(a.y, b.y);
+    }
 };
 
 class Seg { // a segment
@@ -223,6 +233,7 @@ public:
     int findNext(MSeg cur, int start, bool check); // get successor of cur
     int findNexta(MSeg cur, int start); // get successor of cur with small angle
     MSegs divide(double start, double end); // restrict the interval
+    void EliminateSpikes();      // Eliminate empty spikes after merge
     std::pair<MSegs, MSegs> kill(); // create pair of expanding/collapsing faces
     bool intersects(const MSegs& a, bool matchIdent, bool matchSegs) const;
     std::string ToString() const;
@@ -246,7 +257,6 @@ public:
     bool Check();                // Check if this MFace is a valid cycle
     bool SortCycle();            // Sort this cycle
     std::vector<MFace> SplitCycle(); // Sort and split this cycle if possible
-    void EliminateSpikes();      // Eliminate empty spikes after merge
     void AddConcavity(MFace c);  // Add a concavity to this cycle
     std::vector<MFace> MergeConcavities();  //Merge previously added concavities
     RList ToListExpr();       // Create a list expression
