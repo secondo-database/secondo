@@ -40,31 +40,31 @@ static bool lineIntersectsMSeg(Pt ls, Pt le, MSeg ms) {
     if (isLeft(quad[0], quad[1], quad[2]) && // Check, if quad is in ccw-order
         isLeft(quad[1], quad[2], quad[3]) && // Multiple checks needed, since
         isLeft(quad[2], quad[3], quad[0])) { // two points can be equal
-	
+    
         bool ret = isLeft(quad[0], quad[1], ls) &&
                 isLeft(quad[1], quad[2], ls) &&
                 isLeft(quad[2], quad[3], ls) &&
                 isLeft(quad[3], quad[0], ls);
-	if (ret) {
+    if (ret) {
                   isLeft2(quad[0], quad[1], ls) &&
                   isLeft2(quad[1], quad[2], ls) &&
                   isLeft2(quad[2], quad[3], ls) &&
                   isLeft2(quad[3], quad[0], ls);
-	}
-	return ret;
+    }
+    return ret;
 
     } else {
         bool ret = isLeft(quad[1], quad[0], ls) &&
                    isLeft(quad[2], quad[1], ls) &&
                    isLeft(quad[3], quad[2], ls) &&
                    isLeft(quad[0], quad[3], ls);
-	if (ret) {
+    if (ret) {
                    isLeft3(quad[1], quad[0], ls) &&
                    isLeft3(quad[2], quad[1], ls) &&
                    isLeft3(quad[3], quad[2], ls) &&
                    isLeft3(quad[0], quad[3], ls);
-	}
-	return ret;
+    }
+    return ret;
     }
 }
 
@@ -108,7 +108,7 @@ bool trapeziumIntersects2(MSeg s1, MSeg s2, unsigned int& detailedResult) {
             ;
     
     if (res) {
-	    DEBUG(2, "Found intersection of " << s1.ToString() << " => " <<
+        DEBUG(2, "Found intersection of " << s1.ToString() << " => " <<
                 s2.ToString());
     }
 
