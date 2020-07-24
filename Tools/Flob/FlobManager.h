@@ -393,14 +393,14 @@ void resetStatistics() const;
 /*
 ~mutex member~
 
-If the implementation should be thread save, all accesses to 
+If the implementation should be thread save, all accesses to
 global instances (flob cashes) must be synchronized.
 
 */
 #ifdef THREAD_SAFE
-  boost::mutex ncmtx;
-  boost::mutex pcmtx;
-  boost::mutex omtx;  // access to other variables
+  boost::recursive_mutex ncmtx;
+  boost::recursive_mutex pcmtx;
+  boost::recursive_mutex omtx;  // access to other variables
 #endif
 
 
