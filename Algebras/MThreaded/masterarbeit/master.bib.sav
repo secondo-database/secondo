@@ -2458,6 +2458,23 @@
   numpages  = {12},
 }
 
+@InProceedings{10.1145/3139958.3140056,
+  author    = {Aghajarian, Danial and Prasad, Sushil K.},
+  title     = {A Spatial Join Algorithm Based on a Non-Uniform Grid Technique over GPGPU},
+  booktitle = {Proceedings of the 25th ACM SIGSPATIAL International Conference on Advances in Geographic Information Systems},
+  year      = {2017},
+  series    = {SIGSPATIAL ’17},
+  publisher = {Association for Computing Machinery},
+  location  = {Redondo Beach, CA, USA},
+  isbn      = {9781450354905},
+  doi       = {10.1145/3139958.3140056},
+  url       = {https://doi.org/10.1145/3139958.3140056},
+  address   = {New York, NY, USA},
+  articleno = {56},
+  file      = {:A Spatial Join Algorithm Based on a Non-uniform GridTechnique over GPGPU.pdf:PDF},
+  numpages  = {4},
+}
+
 @Comment{jabref-meta: databaseType:biblatex;}
 
 @Comment{jabref-meta: fileDirectory:/home/ingo/Dokumente/master;}
