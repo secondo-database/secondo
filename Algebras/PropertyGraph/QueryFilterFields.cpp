@@ -38,48 +38,51 @@ namespace pgraph {
 
 //-----------------------------------------------------------------------------
 bool QueryFilterFields::Matches(string typname,RelationSchemaInfo *schema, 
-    Tuple *tuple)
-{
-   for (auto&& f:Fields)
-   {
-       if (f->NodeAlias==typname)
-       {
-           AttrInfo *ai=schema->GetAttrInfo(f->PropertyName);
-            if (ai!=NULL)
-            {
-               string val=ai->GetStringVal(tuple);
+    Tuple *tuple) {
 
-               // all types
-               if (f->Operator=="=")
-                  if (val!=f->FilterValue) return false;
-               if (f->Operator=="<>")
-                  if (val == f->FilterValue) 
-                        return false;
+   for (auto&& f:Fields) {
+         
+      if (f->NodeAlias != typname) {
+         continue;
+      }
 
-               // type specific
-               if (ai->TypeName=="int")
-               {
-                  if (f->Operator==">")
-                     if (!(std::stoi(val) > std::stoi(f->FilterValue))) 
-                        return false;
-                  if (f->Operator=="<")
-                     if (!(std::stoi(val) < std::stoi(f->FilterValue))) 
-                        return false;
-               }
-               // type specific
-               if (ai->TypeName=="string")
-               {
-                  if (f->Operator=="startswith")
-                     if (! (val.rfind(f->FilterValue,0)==0))
-                        return false;
-                  if (f->Operator=="contains")
-                     if (val.find(f->FilterValue) == string::npos)
-                        return false;
-               } 
-           }
-       }
+      AttrInfo *ai=schema->GetAttrInfo(f->PropertyName);
+      
+      if(ai == NULL) {
+         cout << "Attr Info is NULL" << endl;
+         continue;
+      }
 
+      string val = ai->GetStringVal(tuple);
+
+      // all types
+      if (f->Operator=="=")
+         if (val!=f->FilterValue) return false;
+      if (f->Operator=="<>")
+         if (val == f->FilterValue) 
+               return false;
+
+      // type specific filters for int
+      if (ai->TypeName=="int") {
+         if (f->Operator==">")
+            if (!(std::stoi(val) > std::stoi(f->FilterValue))) 
+               return false;
+         if (f->Operator=="<")
+            if (!(std::stoi(val) < std::stoi(f->FilterValue))) 
+               return false;
+      }
+
+      // type specific for string and text
+      if (ai->TypeName == "string" || ai->TypeName == "text") {
+         if (f->Operator=="startswith")
+            if (! (val.rfind(f->FilterValue,0)==0))
+               return false;
+         if (f->Operator=="contains")
+            if (val.find(f->FilterValue) == string::npos)
+               return false;
+      }
    }
+
    return true; 
 }
 
