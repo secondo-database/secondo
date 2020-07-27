@@ -1,0 +1,119 @@
+Database : berlintest
+Restore  : No
+
+Operator  : write
+Number    : 1
+Signature : stream(tuple(X)) x string x bool -> rel(tuple(X))
+Example   : query strassen feed write["strassenFT", FALSE] count = strassen count
+Result    : TRUE
+Remark    : Requires a DBService system
+
+Operator  : addnode
+Number    : 1
+Signature : string x int x string -> bool
+Example   : query addnode("host", 1234, "config")
+Result    : unpredictable 
+Remark    : Result depends on the presemce of the DBServive
+
+Operator  : checkdbservicestatus
+Number    : 1
+Signature : -> text
+Example   : query length(checkdbservicestatus()) > -1
+Result    : TRUE
+Remark    : None
+
+Operator  : initdbserviceworker
+Number    : 1
+Signature : -> bool
+Example   : query initdbserviceworker()
+Result    : TRUE
+Remark    : For internal usage only
+
+Operator  : getconfigparam
+Number    : 1
+Signature : string x string -> string
+Example   : query getconfigparam("DBService", "DBServiceHost")
+Result    : unpredictable
+Remark    : Result depends on the content of the SecondoConfig.ini file
+
+Operator  : read
+Number    : 1
+Signature : rel(tuple(X)) -> stream(tuple(X))
+Example   : query read(plz) count = plz count
+Result    : TRUE
+
+Operator  : read2
+Number    : 1
+Signature : rel(tuple(X)) x map(stream(tuple(X)) -> stream(tuple(Y))  -> stream(tuple(Y))
+Example   : query plz read2[ . filter[.PLZ > 5000] project[Ort] ] = plz feed filter[.PLZ > 5000] project[Ort]
+Result    : TRUE
+
+Operator  : read3
+Number    : 1
+Signature : rel(tuple(X)) x map(rel(tuple(X)) -> stream(tuple(Y))  -> stream(tuple(Y))
+Example   : query plz read3[ . feed filter[.PLZ > 5000] project[Ort] ] = plz feed filter[.PLZ > 5000] project[Ort]
+Result    : TRUE
+
+Operator  : ddelete
+Number    : 1
+Signature : string x bool -> bool
+Example   : query ddelete("myRelation", TRUE)
+Result    : unpredictable 
+Remark    : Result depends on the presence of the DBService
+
+Operator  : settracelevel
+Number    : 1
+Signature : int -> bool
+Example   : query settracelevel(0)
+Result    : TRUE
+Remark    : None
+
+Operator  : pingdbservice
+Number    : 1
+Signature : -> bool
+Example   : query pingdbservice()
+Result    : unpredictable 
+Remark    : result depends on the presence of the db service
+
+Operator  : startdbservice
+Number    : 1
+Signature : -> bool
+Example   : query startdbservice()
+Result    : unpredictable
+Remark    : Result depends on the presence of DBService configuration
+
+Operator : rderive
+Number   : 1
+Signature : rel x string x fun(rel->X) -> X 
+Example   : query plz rderive["plz_count", . count] = plz count
+Result    : TRUE
+Remark    : Requires running DBService
+
+Operator  : read3_1
+Number    : 1
+Signature : rel x K x fun(rel x K -> stream(tuple(X))) -> stream(tuple(X))
+Example   : query (plz plz_PLZ_btree read3_1[.. . exactmatch[1000]] count) =  (plz feed filter[.PLZ=1000] count)
+Result    : TRUE
+
+Operator  : read3_2
+Number    : 1
+Signature : rel x K1 x K2 x fun(rel x K1 x K2 -> stream(tuple(X))) -> stream(tuple(X))
+Example   : query plz plz_PLZ plz_Ort read3_2[ .. leftrangeS[5000] sort $3 rightrangeS["G"] sort mergesec . gettuples] count
+Result    : 1447
+
+
+Operator : useincrementalmetadataupdate
+Number   : 1
+Signature : bool -> bool
+Example   : query useincrementalmetadataupdate(TRUE)
+Result    : unpredictable 
+Remark    : depends on default mode
+
+Operator : ddeleteDB
+Number   : 1
+Signature : -> bool | string -> bool
+Example   : query ddeleteDB("unknown");
+Result    : unpredictable
+Remark    : Result depends on the presence of a db service
+
+
