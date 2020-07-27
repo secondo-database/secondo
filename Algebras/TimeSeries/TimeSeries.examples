@@ -1,0 +1,102 @@
+Database: timeseriestest
+Restore : No
+
+Operator : tsdistance
+Number   : 1
+Signature: stream<tuple>(Time instant, V1 real ... Vn real) x stream<tuple>(Time instant, V1 real... Vn real) -> real
+Example  : query tsdistance(example, example)
+Result   : 0
+Tolerance : 0.01
+
+Operator : tsdistancefun
+Number   : 1
+Signature: stream<tuple>(Time instant, V1 real ... Vn real) x stream<tuple>(Time instant, V1 real... Vn real) x fun[attr1, ... attrn]-> real
+Example  : query example feed {a} example feed {b} tsdistancefun[fun (tuple1: TUPLE2, tuple2: TUPLE2) sqrt(pow(attr(tuple1, Value_a) -attr(tuple2, Value_b),2))]
+Result   : 0
+Tolerance: 0.01
+
+Operator : tsmotifbf
+Number   : 1
+Signature: orel(Time instant, V1 real ... Vn real) x int n x real R -> orel(V1 real ...Vn real)
+Example  : query example3 tsmotifbf[1, 0 ] count
+Result   : 1
+Tolerance: 0.01
+
+Operator : tsmotifbf
+Number   : 2
+Signature: orel(Time instant, V1 real ... Vn real) x int n x real R -> orel(V1 real ...Vn real)
+Example  : query example3 tsmotifbf[1, 0, fun (tuple1: TUPLE1, tuple2: TUPLE2) sqrt(pow(attr(tuple1, Value_a) - attr(tuple2, Value_b),2))] count
+Result   : 1
+Tolerance: 0.01
+
+Operator : tsdtw
+Number   : 1
+Signature: orel(Time instant, V1 real ... Vn real) x orel(Time instant, V1 real ... Vn real) -> orel(Time instant, V1 real ... Vn real)
+Example  : query tsdtw(example3, example3) count
+Result   : 5
+
+Operator    : tswhitenoise
+Number      : 1
+Signature   : orel(Time instant, V1 real ... Vn real) * real * real -> orel(Time instant, V1* real, ... Vn* real)
+Example     : query example3 tswhitenoise[0, 1] count
+Result      : 5
+
+Operator    : tsdif
+Number      : 1
+Signature   : orel(Time instant, V1 real ... Vn real) x int m -> orel(Time instant, V1+m real ... Vn real)
+Example     : query example3 tsdif[1] count
+Result      : 4
+
+Operator    : predictar
+Number      : 1
+Signature   : orel(Time instant, V1 real ... Vn real) * int * int -> orel(Time instant, V1* real, ... Vn* real)
+Example     : query example3 predictar[1,1] count
+Result      : 6
+
+Operator    : predictma
+Number      : 1
+Signature   : orel(Time instant, V1 real ... Vn real) * int * int -> orel(Time instant, V1* real, ... Vn* real)
+Example     : query example3 predictma[1,1] count
+Result      : 6
+
+Operator    : predictarma
+Number      : 1
+Signature   : orel(Time instant, V1 real ... Vn real) * int * int * int -> orel(Time instant, V1* real, ... Vn* real)
+Example     : query example3 predictarma[1,1,1] count
+Result      : 6
+
+Operator    : predictarima
+Number      : 1
+Signature   : orel(Time instant, V1 real ... Vn real) * int * int * int * int -> orel(Time instant, V1* real, ... Vn* real)
+Example     : query example3 predictarima[1,1,1,1] count
+Result      : 5
+
+Operator    : paa
+Number      : 1
+Signature   : orel(Time instant, V1 real ... Vn real) * int i -> orel(Time instant, V1* real, ... Vn*/i real)
+Example     : query example3 paa[5] count
+Result      : 1
+
+Operator    : dtwsc
+Number      : 1
+Signature   : orel(Time instant, V real) * orel(Time instant, V real)
+Example     : query dtwsc(example3, example3, 1) count
+Result      : 5
+
+Operator    : ddtw
+Number      : 1
+Signature   : orel(Time instant, V1 real ... Vn real) * orel(Time instant, V1 real ... Vm real)
+Example     : query ddtw(example3, example3) count
+Result      : 5
+
+Operator    : pacf
+Number      : 1
+Signature   : orel(Time instant, V1 real ... Vn real) * int -> int
+Example     : query example3 pacf[5] 
+Result      : 5
+
+Operator    : acf
+Number      : 1
+Signature   : orel(Time instant, V1 real ... Vn real) * int -> int
+Example     : query example3 acf[5] 
+Result      : 5
