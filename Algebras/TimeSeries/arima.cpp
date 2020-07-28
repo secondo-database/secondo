@@ -89,13 +89,13 @@ void Arima::durbin_levinson_algorithm()
 {
     int i,j;
 
-    vector<long double> nu(order_ma, 0);
+    vector<long double> nu(order_ar, 0);
     phi[0][0] = 1;
     phi[1][1] = gamma_hat(1) / gamma_hat(0);
     nu[0] = gamma_hat(0);
     nu[1] = gamma_hat(0) - phi[1][1] * gamma_hat(1);
 
-    for(i = 2; i < order_ma; ++i)
+    for(i = 2; i < order_ar; ++i)
     {
         long double sum_dividend = 0.0;
         long double sum_divisor = 0.0;
