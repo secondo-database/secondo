@@ -156,12 +156,7 @@ int ParOperator::ParVMParallel(Word *args, Word &result, int message,
     if (status == YIELD)
     {
       result.setAddr(tuple);
-
-      //decrement reference increased by the tuple buffer
-      if (context->ParentContext() == NULL)
-      {
-        tuple->DeleteIfAllowed();
-      }
+      tuple->DeleteIfAllowed();
 
       assert(tuple->GetNumOfRefs() > 0);
     }

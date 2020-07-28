@@ -566,8 +566,20 @@ enum OpNodeType { Pointer, Object, IndirectObject, Operator };
 struct OpNode
 {
   bool         evaluable;
+private:
   ListExpr     typeExpr;
   ListExpr     numTypeExpr;
+public:
+  ListExpr getTypeExpr() const{
+    return typeExpr;
+  }
+  ListExpr getNumTypeExpr() const{
+    return numTypeExpr;
+  }
+  void setTypeExpr(ListExpr te){
+     typeExpr = te;
+     numTypeExpr = SecondoSystem::GetCatalog()->NumericType(typeExpr);
+  }
   const OpNodeType   nodetype;
   datetime::DateTime queryTime;
   int          id;
@@ -774,8 +786,8 @@ ostream& operator<<(ostream& os, const OpNode& node) {
       << " - [Adress = " << (void*)(&node) << "]" << endl
       << "  Evaluable = " << node.evaluable
       << "  isRoot = " << node.isRoot << endl
-      << "  TypeExpr = " << nl->ToString(node.typeExpr) << endl
-      << "  numTypeExpr =" << nl->ToString(node.numTypeExpr) << endl;
+      << "  TypeExpr = " << nl->ToString(node.getTypeExpr()) << endl
+      << "  numTypeExpr =" << nl->ToString(node.getNumTypeExpr()) << endl;
 
 
    switch ( node.nodetype )
@@ -1143,7 +1155,7 @@ ostream& operator<<(ostream& os, const OpNode& node) {
           nl->Cons( nl->SymbolAtom( "Pointer" ),
             nl->SixElemList(
               nl->SymbolAtom( "type" ),
-              tree->typeExpr,
+              tree->getTypeExpr(),
               nl->SymbolAtom( "evaluable" ),
               nl->BoolAtom( tree->evaluable ),
               nl->SymbolAtom( "valNo" ),
@@ -1155,7 +1167,7 @@ ostream& operator<<(ostream& os, const OpNode& node) {
           nl->Cons( nl->SymbolAtom( "Object" ),
             nl->SixElemList(
             nl->SymbolAtom( "type" ),
-            tree->typeExpr,
+            tree->getTypeExpr(),
             nl->SymbolAtom( "evaluable" ),
             nl->BoolAtom( tree->evaluable ),
             nl->SymbolAtom( "valNo" ),
@@ -1194,7 +1206,7 @@ ostream& operator<<(ostream& os, const OpNode& node) {
                  nl->SymbolAtom( "Operator" ),
                  nl->TwoElemList(
                    nl->SymbolAtom( "type" ),
-                   tree->typeExpr ),
+                   tree->getTypeExpr() ),
                  nl->SixElemList(
                    nl->SymbolAtom( "evaluable" ),
                    nl->BoolAtom( tree->evaluable ),
@@ -1270,7 +1282,7 @@ ListExpr GetRootList(OpTree tree){
   // Build property list
   ListExpr propList = nl->OneElemList(
                             nl->TwoElemList(nl->SymbolAtom("typeExpr"),
-                                            tree->typeExpr));
+                                            tree->getTypeExpr()));
   ListExpr last = propList;
   last = nl->Append(last,nl->TwoElemList(nl->SymbolAtom("evaluable"), 
                                          nl->BoolAtom(tree->evaluable)));  
@@ -1405,7 +1417,7 @@ all objects mentioned in the expression have defined values.
   if ( debugMode )
   {
     cout << endl << "*** AnnotateX Begin ***" << endl;
-    nl->WriteListExpr( list, cout, 2 );
+    nl->WriteListExpr( list, cout, true, 2 );
     cout << endl << "*** AnnotateX End ***" << endl;
   }
   return (list);
@@ -1874,9 +1886,9 @@ function index.
   if ( traceMode )
   {
     cout << "Annotate applied to: " << endl;
-    nl->WriteListExpr( expr, cout, 2 );
+    nl->WriteListExpr( expr, cout, true,  2 );
     cout << endl << "argument types passed from father: " << endl;
-    nl->WriteListExpr( fatherargtypes, cout, 2 );
+    nl->WriteListExpr( fatherargtypes, cout, true, 2 );
     cout << endl;
     for ( int i=0; i<= valueno; i++ )
       cout << "values[" << i <<"]="
@@ -2371,9 +2383,9 @@ will be processed.
       {
         cout << "*** Some list exprs. after recursive calls ***" << endl;
         cout << "Value of variable list: " << endl;
-        nl->WriteListExpr( list, cout, 2 );
+        nl->WriteListExpr( list, cout, true, 2 );
         cout << "Value of variable typeList: " << endl;
-        nl->WriteListExpr( typeList, cout, 2 );
+        nl->WriteListExpr( typeList, cout, true, 2 );
         cout << endl;
       }
 
@@ -2483,10 +2495,10 @@ will be processed.
               if ( traceMode )
               {
                 cout << "function signature: ";
-                nl->WriteListExpr( signature, cout, 2 );
+                nl->WriteListExpr( signature, cout, true,2 );
                 cout << endl;
                 cout << "function typeList: ";
-                nl->WriteListExpr( typeList, cout, 2 );
+                nl->WriteListExpr( typeList, cout, true,2 );
                 cout << endl;
               }
               if ( nl->ListLength(signature) ==
@@ -2507,7 +2519,7 @@ will be processed.
                 if ( traceMode )
                 {
                   cout << "resultType: ";
-                  nl->WriteListExpr( resultType, cout, 2 );
+                  nl->WriteListExpr( resultType, cout, true,2 );
                   cout << endl;
                 }
                 result = nl->TwoElemList(
@@ -2519,7 +2531,7 @@ will be processed.
                 if ( traceMode )
                 {
                   cout << "result: ";
-                  nl->WriteListExpr( result, cout, 2 );
+                  nl->WriteListExpr( result, cout, true,2 );
                   cout << endl;
                 }
                 return (result);
@@ -2529,9 +2541,9 @@ will be processed.
                 if ( traceMode )
                 {
                   cout << "list: " << endl;
-                  nl->WriteListExpr( list, cout, 2 );
+                  nl->WriteListExpr( list, cout, true,2 );
                   cout << "expr: " << endl;
-                  nl->WriteListExpr( expr, cout, 2 );
+                  nl->WriteListExpr( expr, cout, true,2 );
                 }
                 return (nl->SymbolAtom( "exprerror" ));
               }
@@ -2545,10 +2557,10 @@ will be processed.
               if ( traceMode )
               {
                 cout << "Abstraction signature: ";
-                nl->WriteListExpr( signature, cout, 2 );
+                nl->WriteListExpr( signature, cout, true,2 );
                 cout << endl;
                 cout << "Abstraction typeList: ";
-                nl->WriteListExpr( typeList, cout, 2 );
+                nl->WriteListExpr( typeList, cout, true,2 );
                 cout << endl;
               }
               int expectedParams = nl->ListLength( signature ) - 1;
@@ -2600,9 +2612,9 @@ will be processed.
                 if ( traceMode )
                 {
                   cout << "list: " << endl;
-                  nl->WriteListExpr( list, cout, 2 );
+                  nl->WriteListExpr( list, cout, true,2 );
                   cout << "expr: " << endl;
-                  nl->WriteListExpr( expr, cout, 2 );
+                  nl->WriteListExpr( expr, cout, true,2 );
                 }
                 cmsg.error()
                    << "Type mismatch! Expecting " << expectedParams
@@ -2926,7 +2938,7 @@ arguments preceding this function argument in an operator application.
   if ( traceMode )
   {
     cout << fn << " applied to: " << endl;
-    nl->WriteListExpr( expr, cout, 2 );
+    nl->WriteListExpr( expr, cout, true,2 );
     cout << endl;
   }
   if ( nl->IsEmpty( expr ))
@@ -3161,7 +3173,7 @@ QueryProcessor::SubtreeX( const ListExpr expr, const datetime::DateTime& qt )
   {
     cout << endl << "*** SubtreeX Begin ***" << endl;
     ListExpr treeList = ListOfTree( resultTree, cerr );
-    nl->WriteListExpr( treeList, cout, 2 );
+    nl->WriteListExpr( treeList, cout, true,2 );
     nl->Destroy( treeList );
     cout << endl << "*** SubtreeX End ***" << endl;
   }
@@ -3210,9 +3222,9 @@ QueryProcessor::Subtree( const ListExpr expr,
   if ( traceMode )
   {
     cout << "subtree applied to: " << endl;
-    nl->WriteListExpr( expr, cout, 2 );
+    nl->WriteListExpr( expr, cout, true,2 );
     cout << endl << "TypeOfSymbol applied to <";
-    nl->WriteListExpr( nl->Second( nl->First( expr ) ), cout, 2 );
+    nl->WriteListExpr( nl->Second( nl->First( expr ) ), cout, true,2 );
     cout << ">" << endl;
   }
 
@@ -3230,8 +3242,7 @@ QueryProcessor::Subtree( const ListExpr expr,
     {
       node = new OpNode(Pointer,qt);
       node->evaluable = true;
-      node->typeExpr = nl->Second( expr );
-      node->numTypeExpr = GetCatalog()->NumericType(node->typeExpr);
+      node->setTypeExpr(nl->Second( expr ));
       node->isRoot = oldfirst;
       node->u.dobj.isConstant = true;
       node->u.dobj.valNo = nl->IntValue(nl->Third(nl->First(expr)));
@@ -3247,8 +3258,7 @@ QueryProcessor::Subtree( const ListExpr expr,
     {
       node = new OpNode(Object,qt);
       node->evaluable = true;
-      node->typeExpr = nl->Second( expr );
-      node->numTypeExpr = GetCatalog()->NumericType(node->typeExpr);
+      node->setTypeExpr(nl->Second( expr ));
       node->isRoot = oldfirst;
       node->u.dobj.isConstant = true;
       node->u.dobj.valNo = nl->IntValue(nl->Third(nl->First(expr)));
@@ -3264,8 +3274,7 @@ QueryProcessor::Subtree( const ListExpr expr,
     {
       node = new OpNode(Object,qt);
       node->evaluable = true;
-      node->typeExpr = nl->Second( expr );
-      node->numTypeExpr = GetCatalog()->NumericType(node->typeExpr);
+      node->setTypeExpr(nl->Second( expr ));
       node->isRoot = oldfirst;
       node->u.symbol = symbolForOperatorOrObject;
       node->u.dobj.valNo = nl->IntValue(nl->Third(nl->First(expr)));
@@ -3281,8 +3290,7 @@ QueryProcessor::Subtree( const ListExpr expr,
     {
       node = new OpNode(Operator,qt);
       node->evaluable = true;
-      node->typeExpr = nl->Second( expr );
-      node->numTypeExpr = GetCatalog()->NumericType(node->typeExpr);
+      node->setTypeExpr(nl->Second( expr ));
       node->isRoot = oldfirst;
       node->u.symbol = symbolForOperatorOrObject;
 
@@ -3331,8 +3339,7 @@ QueryProcessor::Subtree( const ListExpr expr,
     {
       node = new OpNode(IndirectObject,qt);
       node->evaluable = true;
-      node->typeExpr = nl->Second( expr );
-      node->numTypeExpr = GetCatalog()->NumericType(node->typeExpr);
+      node->setTypeExpr(nl->Second( expr ));
       node->isRoot = oldfirst;
       node->u.iobj.funNumber =
         nl->IntValue(nl->Fourth(nl->First(expr )));
@@ -3368,8 +3375,7 @@ QueryProcessor::Subtree( const ListExpr expr,
       node = Subtree(nl->First(nl->Third(nl->First(expr))),
                       first, qt, node );
       node->evaluable = true;
-      node->typeExpr = nl->Second( expr );
-      node->numTypeExpr = GetCatalog()->NumericType(node->typeExpr);
+      node->setTypeExpr(nl->Second( expr ));
       node->isRoot = oldfirst;
       // set the number of the function which was determined
       // by testing overloaded operators.
@@ -3441,7 +3447,7 @@ QueryProcessor::Subtree( const ListExpr expr,
       node->u.op.resultWord =
         (algebraManager->CreateObj
           ( node->u.op.resultAlgId, node->u.op.resultTypeId ))
-            ( node->numTypeExpr  );
+            ( node->getNumTypeExpr()  );
 
       if (traceNodes)
       {
@@ -3454,8 +3460,7 @@ QueryProcessor::Subtree( const ListExpr expr,
     {
       node = Subtree( nl->Third( nl->First( expr ) ), first, qt, node );
       node->evaluable = false;
-      node->typeExpr = nl->Second( expr );
-      node->numTypeExpr = GetCatalog()->NumericType(node->typeExpr);
+      node->setTypeExpr(nl->Second( expr ));
       node->isRoot = oldfirst;
       node->u.op.isFun = true;
       node->u.op.funNo = nl->IntValue(nl->Fourth(nl->First(expr)));
@@ -3471,8 +3476,7 @@ QueryProcessor::Subtree( const ListExpr expr,
     {
       node = new OpNode(Object,qt);
       node->evaluable = false;
-      node->typeExpr = nl->Second( expr );
-      node->numTypeExpr = GetCatalog()->NumericType(node->typeExpr);
+      node->setTypeExpr(nl->Second( expr ));
       node->isRoot = oldfirst;
       if (traceNodes)
       {
@@ -3484,8 +3488,7 @@ QueryProcessor::Subtree( const ListExpr expr,
     case QP_ARGLIST:
     {
       node = new OpNode(Operator,qt);
-      node->typeExpr = nl->Second( expr );
-      node->numTypeExpr = GetCatalog()->NumericType(node->typeExpr);
+      node->setTypeExpr(nl->Second( expr ));
       node->isRoot = oldfirst;
       /* special operator [0, 1] means arglist */
       node->u.op.algebraId = 0;
@@ -3524,8 +3527,7 @@ QueryProcessor::Subtree( const ListExpr expr,
     {
       node = new OpNode(Operator,qt);
       node->evaluable = true;
-      node->typeExpr = nl->Second( expr );
-      node->numTypeExpr = GetCatalog()->NumericType(node->typeExpr);
+      node->setTypeExpr(nl->Second( expr ));
       node->isRoot = oldfirst;
        /* special operator [0, 0] means
           application of an abstraction */
@@ -3611,7 +3613,7 @@ QueryProcessor::Subtree( const ListExpr expr,
     {
       cerr << "subtree: unexpected stuff in annotated expr" << endl;
       cerr << "The expression is: " << endl;
-      nl->WriteListExpr( expr, cout, 2 );
+      nl->WriteListExpr( expr, cout, true,2 );
       cout << endl;
       exit(1);
     }
@@ -4054,13 +4056,13 @@ Deletes an operator tree object.
           string typeName;
           int algebraId, typeId;
           if( tree->u.dobj.value.addr != 0 &&
-              GetCatalog()->LookUpTypeExpr( tree->typeExpr, typeName,
+              GetCatalog()->LookUpTypeExpr( tree->getTypeExpr(), typeName,
                                             algebraId, typeId ) )
           {
            // an object which has the map type contains the
            // result type as its value, so we have to change the
            // algebra id and type id from fun to its result type
-            ListExpr t = tree->typeExpr;
+            ListExpr t = tree->getTypeExpr();
             if(nl->HasMinLength(t,2) && 
                (nl->AtomType(nl->First(t))==SymbolType) && 
                (nl->SymbolValue(nl->First(t))=="map")){
@@ -4073,7 +4075,7 @@ Deletes an operator tree object.
 
             if( tree->u.dobj.isConstant ){
               (algebraManager->DeleteObj( algebraId, typeId ))
-                ( tree->numTypeExpr ,
+                ( tree->getNumTypeExpr() ,
                   tree->u.dobj.value );
             } else
             {
@@ -4087,7 +4089,7 @@ Deletes an operator tree object.
               else
               {
                 (algebraManager->CloseObj( algebraId, typeId ))
-                  ( tree->numTypeExpr ,
+                  ( tree->getNumTypeExpr() ,
                     tree->u.dobj.value );
               }
             }
@@ -4424,7 +4426,7 @@ Then call the operator's value mapping function.
                         cerr << fn <<
                         "*** Abstraction application " << endl;
                         nl->WriteListExpr( ListOfTree( tree, cerr ),
-                                cout, 2 );
+                                cout, true, 2 );
                         cerr << endl;
                         }
 
@@ -5211,13 +5213,13 @@ QueryProcessor::DeleteResultStorage( const Supplier s )
     if (!tree->u.op.deleteFun)
     {
       algebraManager->DeleteObj( algId, typeId)
-        ( tree->numTypeExpr ,
+        ( GetNumType(tree) ,
           tree->u.op.resultWord );
     }
     else
     {
       tree->u.op.deleteFun(
-        tree->numTypeExpr,
+        tree->getNumTypeExpr(),
         tree->u.op.resultWord );
     }
   }
@@ -5239,7 +5241,7 @@ QueryProcessor::ReInitResultStorage( const Supplier s )
 
   int algId = tree->u.op.resultAlgId;
   int typeId = tree->u.op.resultTypeId;
-  ListExpr numType = tree->numTypeExpr;
+  ListExpr numType = tree->getNumTypeExpr();
 
   if(tree->u.op.isFun){
       // extract result type (last element in the list)
@@ -5332,12 +5334,12 @@ QueryProcessor::GetType( const Supplier s )
     // the join is the root of the function's operator tree the
     // list (map ... R) will be returned
     // but in this case returning R is correct.
-    int n = nl->ListLength(tree->typeExpr);
-    return nl->Nth(n, tree->typeExpr);
+    int n = nl->ListLength(tree->getTypeExpr());
+    return nl->Nth(n, tree->getTypeExpr());
   }
   else
   {
-    return (tree->typeExpr);
+    return (tree->getTypeExpr());
   }
 }
 
@@ -5367,12 +5369,12 @@ QueryProcessor::GetNumType( const Supplier s )
     // the join is the root of the function's operator tree the
     // list (map ... R) will be returned
     // but in this case returning R is correct.
-    int n = nl->ListLength(tree->numTypeExpr);
-    return nl->Nth(n, tree->numTypeExpr);
+    int n = nl->ListLength(tree->getNumTypeExpr());
+    return nl->Nth(n, tree->getNumTypeExpr());
   }
   else
   {
-    return (tree->numTypeExpr);
+    return (tree->getNumTypeExpr());
   }
 }
 
@@ -5384,14 +5386,14 @@ ListExpr
 QueryProcessor::GetSupplierTypeExpr( const Supplier s )
 {
   OpTree tree = (OpTree) s;
-  return tree->typeExpr;
+  return tree->getTypeExpr();
 }
 
 ListExpr
 QueryProcessor::GetSupplierNumTypeExpr( const Supplier s )
 {
   OpTree tree = (OpTree) s;
-  return tree->numTypeExpr;
+  return tree->getNumTypeExpr();
 }
 
 const datetime::DateTime& QueryProcessor::GetQueryTime( const Supplier s){
@@ -5912,89 +5914,87 @@ QueryProcessor::CopySupplierSubtree(const Supplier s,
   case Pointer:
   case Object:
   {
-    //it is necessary to copy the entries in the values array, even if they
-    //represent constants. Every datatype in secondo is an object which has 
-    //an intern state. if this state can change during evaluation, concurrent
-    //access can lead to undefined behaviour.
+    if (!(tree->u.dobj.valNo == 0 &&
+          tree->u.dobj.value.addr == NULL))
+    {  
+      //it is necessary to copy the entries in the values array, even if they
+      //represent constants. Every datatype in secondo is an object which has 
+      //an intern state. if this state can change during evaluation, concurrent
+      //access can lead to undefined behaviour.
+      ValueInfo origValueInfo = values[tree->u.dobj.valNo];
+      ValueInfo copiedValueInfo = origValueInfo;
 
-    ValueInfo origValueInfo = values[tree->u.dobj.valNo];
-    ValueInfo copiedValueInfo = origValueInfo;
-
-    bool addToValuesArray = true;
-    std::map<int, int>::iterator find = 
-    valueInfoMapping.find(tree->u.dobj.valNo);
-    if(find != valueInfoMapping.end())
-    {
-      copiedNode->u.dobj.valNo = find->second;
-      copiedNode->u.dobj.value = values[find->second].value;
-      addToValuesArray = false;
-    }
-    else 
-    {
-      if (!nl->IsEmpty(values[tree->u.dobj.valNo].name) &&
-          copiedNode->u.dobj.isConstant == false)
+      bool addToValuesArray = true;
+      std::map<int, int>::iterator find = 
+      valueInfoMapping.find(tree->u.dobj.valNo);
+      if(find != valueInfoMapping.end())
       {
-        //if the object is an database element, then search 
-        //for expression in catalog
-        std::string objectName, typeName;
-        bool definedValue, hasNamedType;
-        ListExpr typeExpr;
-        objectName = nl->SymbolValue( values[tree->u.dobj.valNo].name );
+        copiedNode->u.dobj.valNo = find->second;
+        copiedNode->u.dobj.value = values[find->second].value;
+        addToValuesArray = false;
+      }
+      else 
+      {
+        if (!nl->IsEmpty(values[tree->u.dobj.valNo].name) &&
+            copiedNode->u.dobj.isConstant == false)
+        {
+          //if the object is an database element, then search 
+          //for expression in catalog
+          std::string objectName, typeName;
+          bool definedValue, hasNamedType;
+          ListExpr typeExpr;
+          objectName = nl->SymbolValue( values[tree->u.dobj.valNo].name );
 
-        GetCatalog()->GetObjectExpr( objectName, typeName, typeExpr,
-                                     copiedValueInfo.value,
-                                     definedValue, hasNamedType );
+          GetCatalog()->GetObjectExpr( objectName, typeName, typeExpr,
+                                      copiedValueInfo.value,
+                                      definedValue, hasNamedType );
+        }
+        else
+        {
+          //in case of constants make a deep copy of the value
+          copiedValueInfo.value = 
+          algebraManager->CloneObj(origValueInfo.algId, origValueInfo.typeId)
+                                  (origValueInfo.typeInfo, origValueInfo.value);
 
-        copiedValueInfo.typeInfo = typeExpr;
+          // using the nested list expression to copy objects does not work for
+          //  all kind of objects. It hangs somewhere in BigArray 
+          // 
+          //int errorPos = 0;
+          //ListExpr& errorInfo = nl->GetErrorList();
+          //bool correct = true;
 
+          //ListExpr expr = GetCatalog()->OutObject(origValueInfo.typeInfo, 
+          //                                          origValueInfo.value);
+
+          //copiedValueInfo.value  = GetCatalog()->InObject( 
+          //                                      origValueInfo.typeInfo,
+          //                                      expr, errorPos, errorInfo,
+          //                                      correct );
+        }
         copiedNode->u.dobj.valNo = valueno;
         copiedNode->u.dobj.value = copiedValueInfo.value;
       }
-      else
+
+      if (copiedValueInfo.value.addr == NULL)
       {
-        //in case of constants make a deep copy of the value
-        copiedValueInfo.value = 
-        algebraManager->CloneObj(origValueInfo.algId, origValueInfo.typeId)
-                                (origValueInfo.typeInfo, origValueInfo.value);
-
-        // using the nested list expression to copy objects does not work for
-        //  all kind of objects. It hangs somewhere in BigArray 
-        // 
-        //int errorPos = 0;
-        //ListExpr& errorInfo = nl->GetErrorList();
-        //bool correct = true;
-
-        //ListExpr expr = GetCatalog()->OutObject(origValueInfo.typeInfo, 
-        //                                          origValueInfo.value);
-
-        //copiedValueInfo.value  = GetCatalog()->InObject( 
-        //                                      origValueInfo.typeInfo,
-        //                                      expr, errorPos, errorInfo,
-        //                                      correct );
+        stringstream err;
+        err << "Error copying the value for direct node with id: " << tree->id;
+        err << " of algebra: " 
+            << algebraManager->GetAlgebraName(origValueInfo.algId);
+        err << " and type: " << nl->ToString(origValueInfo.typeInfo);
+        throw qp_error(err.str());
       }
-      copiedNode->u.dobj.valNo = valueno;
-      copiedNode->u.dobj.value = copiedValueInfo.value;
-    }
 
-    if (copiedValueInfo.value.addr == NULL)
-    {
-      stringstream err;
-      err << "Error copying the value for direct node with id: " << tree->id;
-      err << " of algebra: " 
-          << algebraManager->GetAlgebraName(origValueInfo.algId);
-      err << " and type: " << nl->ToString(origValueInfo.typeInfo);
-      throw qp_error(err.str());
-    }
+      if (addToValuesArray)
+      {
+        AllocateValues(valueno);
+        values[valueno] = copiedValueInfo;
+        valueInfoMapping[tree->u.dobj.valNo] = copiedNode->u.dobj.valNo;
+        valueno++;
+      }
 
-    if (addToValuesArray)
-    {
-      AllocateValues(valueno);
-      values[valueno] = copiedValueInfo;
-      valueInfoMapping[tree->u.dobj.valNo] = copiedNode->u.dobj.valNo;
-      valueno++;
+      assert(tree->u.dobj.valNo > -1);
     }
-
-    assert(tree->u.dobj.valNo > -1);
   }
   break;
   default:
@@ -6026,7 +6026,8 @@ QueryProcessor::InsertParOperatorInTree(const Supplier s, const int sonIdx,
   OpTree childNode = static_cast<OpTree>(GetSon(s,sonIdx));
 
   bool isStreamOp = childNode->isStreamOp();
-  bool resultsTuple = nl->IsEqual(nl->First(nl->Second(childNode->typeExpr)), 
+  bool resultsTuple = nl->IsEqual(nl->First(nl->Second(
+                                            childNode->getTypeExpr())), 
                                             "tuple", false );
 
   const char* parName = parthread::ParallelQueryOptimizer::ParOperatorName;
@@ -6065,10 +6066,12 @@ QueryProcessor::InsertParOperatorInTree(const Supplier s, const int sonIdx,
       bool unused = true;
       datetime::DateTime queryTime;
       newParNode = Subtree(parDesc, unused, queryTime);
-      newParNode->typeExpr = childNode->typeExpr;
+      newParNode->setTypeExpr(childNode->getTypeExpr());
       newParNode->evaluable = false;
       newParNode->isRoot = false;
-      newParNode->numTypeExpr = childNode->numTypeExpr;
+
+      //this should be set as part of setTypeExpr()
+      //newParNode->NumTypeExpr = childNode->numTypeExpr;
       newParNode->u.op.isStream = isStreamOp ? 1 : 0;
       newParNode->u.op.resultAlgId = childNode->u.op.resultAlgId;
       newParNode->u.op.resultTypeId = childNode->u.op.resultTypeId;
@@ -6150,8 +6153,10 @@ QueryProcessor::CreateConstantIntNode(int intValue)
   }
   node->evaluable = true;
   node->isRoot = true;
-  node->typeExpr = nl->Second( constExpr );
-  node->numTypeExpr = GetCatalog()->NumericType(node->typeExpr);
+  node->setTypeExpr(constExpr);
+
+  //this should be set as part of setTypeExpr()
+  //node->numTypeExpr = GetCatalog()->NumericType(node->typeExpr);
   node->u.dobj.isConstant = true;
   node->u.dobj.valNo = constValNo;
   node->u.dobj.value = value;
@@ -6206,7 +6211,7 @@ QueryProcessor::IsTupleStreamOperator(const Supplier s)
 
   bool res = node->nodetype == Operator;
   res = res && node->isStreamOp();
-  res = res && nl->IsEqual(nl->First(nl->Second(node->typeExpr)), 
+  res = res && nl->IsEqual(nl->First(nl->Second(node->getTypeExpr())), 
                                      "tuple", false );
   return res;
 }

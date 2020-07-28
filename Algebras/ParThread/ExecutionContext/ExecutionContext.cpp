@@ -503,8 +503,6 @@ namespace parthread
         //it into memory
         Tuple *tuple = static_cast<Tuple *>(currentResult.addr);
         tuple->IncReference();
-
-        //increment reference counter before adding tuple to buffer
         entity->Writer->WriteTuple(tuple);
         numProcessedTuples++;
         entity->LastSendMessage = YIELD;

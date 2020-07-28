@@ -271,6 +271,7 @@ namespace parthread
       std::vector<ContextInformation *> analyzedContexts;
       ContextInformation *beforeFirstParOpContext =
           new ContextInformation(NULL);
+      beforeFirstParOpContext->IsValid = false;
       analyzedContexts.push_back(beforeFirstParOpContext);
 
       bool needsAnalysis = true;
