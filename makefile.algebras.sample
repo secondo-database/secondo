@@ -688,6 +688,17 @@ ALGEBRAS     += JNetAlgebra
 #ALGEBRA_DIRS += PropertyGraph
 #ALGEBRAS     += PropertyGraphAlgebra
 
+#ALGEBRA_DIRS += ParThread
+#ALGEBRAS     += ParThreadAlgebra
+#the flag is used to activate code in QueryProcessor
+#to use the ParThreadAlgebra 
+#DEFAULTCCFLAGS += -DUSE_MULTIHREADED_QUERY_PROCESSING
+#DEFAULTCCFLAGS += -pthread -DTHREAD_SAFE
+#CCFLAGS += -pthread -DTHREAD_SAFE
+#COMMON_LD_FLAGS += -lboost_thread -lboost_system -lboost_filesystem
+#COMMON_LD_FLAGS += -L$(TBB_LIB_DIR) -ltbb
+#ALGEBRA_INCLUDE_DIRS += $(TBB_INCLUDE_DIR)
+
 
 
 endif
