@@ -236,6 +236,7 @@ int TsArima::tsARValueMap(Word *args, Word &result, int message,
                           Word &local, Supplier s)
 {
     OrderedRelation* timeseries = (OrderedRelation*) args[0].addr;
+
     result = qp->ResultStorage(s);
     OrderedRelation* predictedtimeseries = (OrderedRelation*) result.addr;
     int ar_order = ((CcInt*) args[1].addr)->GetValue();

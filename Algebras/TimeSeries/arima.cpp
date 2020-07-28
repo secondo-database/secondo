@@ -63,27 +63,27 @@ Arima::Arima(int p, int d, int q, int no_predictions,
 }
 
 
- // Computes the coefficients for an AR process using the OLS method.
-//Eigen::VectorXd Arima::compute_ar_coeffs()
-//{
-//    int i,k;
-//
-//  Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic> R(order_ar, order_ar);
-//  Eigen::Matrix<double, Eigen::Dynamic, 1> r(order_ar);
-//
-//    for(i = 0; i < order_ar; ++i)
-//    {
-//        for(k= 0; k < order_ar; ++k)
-//            R(i,k) = acf[i][k];
-//    }
-//
-//    for(i = 0; i < order_ar; ++i)
-//    {
-//        r(i) = acf[0][i+1];
-//    }
-//
-//    return R.colPivHouseholderQr().solve(r);
-//}
+//Computes the coefficients for an AR process using the OLS method.
+Eigen::VectorXd Arima::compute_ar_coeffs()
+{
+    int i,k;
+
+  Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic> R(order_ar, order_ar);
+  Eigen::Matrix<double, Eigen::Dynamic, 1> r(order_ar);
+
+    for(i = 0; i < order_ar; ++i)
+    {
+        for(k= 0; k < order_ar; ++k)
+            R(i,k) = acf[i][k];
+    }
+
+    for(i = 0; i < order_ar; ++i)
+    {
+        r(i) = acf[0][i+1];
+    }
+
+    return R.colPivHouseholderQr().solve(r);
+}
 
 void Arima::durbin_levinson_algorithm()
 {
@@ -125,27 +125,32 @@ vector<double> Arima::ar()
 
     //demean
 
-//  Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic> R(order_ar, order_ar);
-//    Eigen::Matrix<double, Eigen::Dynamic, 1> r(order_ar);
+  Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic> R(order_ar, order_ar);
+  Eigen::Matrix<double, Eigen::Dynamic, 1> r(order_ar);
 
-//    for(i = 0; i < order_ar; ++i)
-//    {
-//        for(k= 0; k < order_ar; ++k)
-//            R(i,k) = acf[i][k];
-//    }
+    for(i = 0; i < order_ar; ++i)
+    {
+        for(k= 0; k < order_ar; ++k)
+            R(i,k) = acf[i][k];
+    }
 
-//    for(i = 0; i < order_ar; ++i)
-//    {
-//        r(i) = acf[0][i+1];
-//    }
+    for(i = 0; i < order_ar; ++i)
+    {
+        r(i) = acf[0][i+1];
+    }
 
-//    Eigen::VectorXd phis = compute_ar_coeffs();
+    Eigen::VectorXd phis = compute_ar_coeffs();
     durbin_levinson_algorithm();
+
     cout << "Rhos: ";
     for(i = 0; i < order_ar; ++i)
     {
-        cout << to_string(phi[order_ar][i]);
-        //   cout << to_string(phis.coeff(i)) <<"; ";
+          cout << to_string(phis.coeff(i)) <<"; ";
+    }
+    cout << "Durbin-Levinson estimated coefficients:";
+    for(i = 0; i < order_ar; ++i)
+    {
+        cout << to_string(phi[order_ar-1][i]) <<"; ";
     }
     cout <<endl;
 
@@ -162,8 +167,8 @@ vector<double> Arima::ar()
         double predicted_value = 0;
         for(i = 0 ; i < order_ar; ++i)
         {
-            //double coeff = phis.coeff(i);
-            long double coeff = phi[order_ar][i];
+            double coeff = phis.coeff(i);
+
             if(k < nobs)
             {
                 predicted_value += coeff * demeaned_data[k -1 -i];
@@ -243,8 +248,8 @@ vector<double> Arima::forecast()
     m = max(order_ar, order_ma);
 
     innovations_algorithm();
-//    Eigen::VectorXd phis = compute_ar_coeffs();
-    vector<long double> phis = phi[order_ar];
+    Eigen::VectorXd phis = compute_ar_coeffs();
+
     if(order_differencing != 0)
         differencing();
 
@@ -289,8 +294,7 @@ vector<double> Arima::forecast()
             }
                 for(i = 0 ; i < order_ar; ++i)
                 {
-                    //double coeff = phis.coeff(i);
-                    long double coeff = phis[i];
+                    double coeff = phis.coeff(i);
                     if(n < nobs)
                     {
                         prediction_ar += coeff * centered_data[n -1 -i];
