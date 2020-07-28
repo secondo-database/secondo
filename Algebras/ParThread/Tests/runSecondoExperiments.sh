@@ -63,12 +63,13 @@ do
 
 		    runner="SecondoBDB -i $sl -c $cl"
 		    $runner 2>&1 | tee "$logdir/$logname"
-        done
 
-        cd "$basePath/TestResults"
-		mv *.log $logdir
-		mv *.gv $logdir
-		cd $basePath
+	        cd "$basePath/TestResults"
+			mv *.log $logdir
+			mv *.gv $logdir
+		    mv *.csv $logdir
+			cd $basePath
+        done
 
         #python analyzeLogFiles.py "$logdir/$logname" "$basePath/TestResults/runtimes.log"
     done
