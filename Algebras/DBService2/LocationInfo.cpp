@@ -89,7 +89,18 @@ bool LocationInfo::isSameWorker(
 bool LocationInfo::isSameHost(
         const std::string& cmpHost) const
 {
-    return host == cmpHost;
+    bool isIdentical = false;
+
+    string resolvedHost = resolveHostToIP(host);
+    string resolvedHostToCompare = resolveHostToIP(cmpHost);
+
+    // Only if both hosts can be resolved and are string-equal, they are 
+    // considered equal.
+    if (resolvedHost != "" && resolvedHostToCompare != ""
+        && (resolvedHost == resolvedHostToCompare))
+        isIdentical = true;        
+
+    return isIdentical;
 }
 
 bool LocationInfo::isSameDisk(
@@ -109,4 +120,46 @@ bool LocationInfo::isSameDisk(
     return disk.substr(0, slashPos).compare(cmpDisk.substr(0, slashPos)) == 0;
 }
 
+string LocationInfo::resolveHostToIP(std::string hostname) const
+{
+    string resolvedIP = "";
+
+    boost::asio::io_service io_service;
+
+    boost::asio::ip::tcp::resolver::query resolver_query(hostname, "", 
+        boost::asio::ip::tcp::resolver::query::numeric_service);
+
+    boost::asio::ip::tcp::resolver resolver(io_service);
+
+    boost::system::error_code error_code;
+
+    boost::asio::ip::tcp::resolver::iterator it = 
+        resolver.resolve(resolver_query, error_code);
+
+    // TODO Raise exception
+    if (error_code)
+    {
+        // TODO Raise exception       
+        //      << "Error code: " << error_code.value()
+        //      << ".\nMessage: " << error_code.message();
+
+        return "";
+    }
+
+    boost::asio::ip::tcp::resolver::iterator it_end;
+
+    // TODO make ipv6 ready
+    // Look for the first IPv4 address
+    for (; it != it_end; it++) {    
+        boost::asio::ip::tcp::endpoint ep = it->endpoint();
+        if ( !ep.address().is_v4() )
+            continue;
+        // std::cout << "Endpoint Address: " << ep.address();
+        resolvedIP = ep.address().to_string();
+    }
+
+    return resolvedIP;
+}
+
 } /* namespace DBService */
+

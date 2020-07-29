@@ -52,6 +52,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Algebras/DBService/ServerRunnable.hpp"
 #include "Algebras/DBService/ReplicationUtils.hpp"
 
+#include <boost/asio.hpp>
+
 using namespace std;
 using namespace distributed2;
 
@@ -574,26 +576,33 @@ void DBServiceManager::maintainSuccessfulReplication(
     boost::lock_guard<boost::mutex> lock(managerMutex);
     print("relID", relID, std::cout);
     print("replicaLocationHost", replicaLocationHost, std::cout);
-    print("replicaLocationPort", replicaLocationPort, std::cout);
+    print("replicaLocationPort", replicaLocationPort, std::cout);    
 
     try
     {
         RelationInfo& relInfo = getRelationInfo(relID);
 
+        print("RelationInfo Node Count:", relInfo.getNodeCount(), std::cout);
+
         for(ReplicaLocations::const_iterator it
                 = relInfo.nodesBegin(); it != relInfo.nodesEnd(); it++)
         {
-            LocationInfo& location = getLocation(it->first);
-            if(location.isSameWorker(replicaLocationHost, replicaLocationPort))
+            LocationInfo& location = getLocation(it->first);            
+            bool isSameWorker = location.isSameWorker(replicaLocationHost, 
+                replicaLocationPort);
+                        
+            if (isSameWorker)
             {
-                relInfo.updateReplicationStatus(it->first, true);
-//                if(!DBServicePersistenceAccessor::updateLocationMapping(
-//                        relID,
-//                        it->first,
-//                        true))
-//                {
-//                    print("Could not update location mapping");
-//                }
+                ConnectionID connectionId = it->first;
+                
+                relInfo.updateReplicationStatus(connectionId, true);
+                //    if(!DBServicePersistenceAccessor::updateLocationMapping(
+                //            relID,
+                //            it->first,
+                //            true))
+                //    {
+                //        print("Could not update location mapping", std::cout);
+                //    }
                 break;
             }
         }
@@ -629,13 +638,13 @@ void DBServiceManager::maintainSuccessfulDerivation(
             if(location.isSameWorker(replicaLocationHost, replicaLocationPort))
             {
                 derInfo.updateReplicationStatus(it->first, true);
-//                if(!DBServicePersistenceAccessor::updateLocationMapping(
-//                        objectID,
-//                        it->first,
-//                        true))
-//                {
-//                    print("Could not update location mapping");
-//                }
+            //    if(!DBServicePersistenceAccessor::updateLocationMapping(
+            //            objectID,
+            //            it->first,
+            //            true))
+            //    {
+            //        print("Could not update location mapping", std::cout);
+            //    }
                 break;
             }
         }

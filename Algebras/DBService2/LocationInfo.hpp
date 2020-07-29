@@ -33,6 +33,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #define ALGEBRAS_DBSERVICE_LOCATIONINFO_HPP_
 
 #include <string>
+#include <boost/asio.hpp>
 
 #include "MetadataObject.hpp"
 
@@ -148,7 +149,17 @@ This function returns whether the specified host is equal to the stored ones.
     bool isSameHost(
             const std::string& cmpHost) const;
 
-/*
+    /*
+
+1.1.1.1 \textit{resolveHostToIP}
+
+Resolve the given hostname to be sure to get to an IP address instead of a domain name.
+If the host can't be resolved the empty string "" is returned.
+
+*/
+    std::string resolveHostToIP(std::string hostname) const;
+
+    /*
 
 1.1.1.1 \textit{isSameDisk}
 
@@ -157,8 +168,7 @@ same disk as the data of the stored one.
 
 */
     bool isSameDisk(
-            const std::string& cmpHost, const std::string& cmpDisk) const;
-
+        const std::string &cmpHost, const std::string &cmpDisk) const;
 
     inline static std::string getIdentifier(const std::string& host,
                                             const std::string& disk)
