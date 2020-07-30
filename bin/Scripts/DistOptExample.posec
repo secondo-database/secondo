@@ -1,0 +1,226 @@
+/*
+//paragraph [10] title: [{\Large \bf ]  [}]
+//[star] [$*$]
+//[ue] [\"{u}]
+
+[10] Example for Using the Distributed Query Optimizer
+
+Ralf Hartmut G[ue]ting, 30.7.2012
+
+This script allows one to create a small distributed example database based on database ~opt~ and use the distributed query optimizer with it.
+
+1 Preliminaries
+
+1.1 Preparing the Optimizer
+
+Within the file ~calloptimizer.pl~ in directory ~secondo/Optimizer~ the loaded modules must be configured as shown here (currently line 827 ff). The standard configuration has [optimizerNewProperties] and [distributed] commented out. They must be loaded and [optimizer] commented out, as shown.
+
+----
+% The files for the standard optimization procedure will be
+% loaded by default!
+loadFiles(standard) :-
+  ( not(loadedModule(standard)),
+%    [optimizer],
+    [optimizerNewProperties],  % requires also distributed.pl
+    [costs2014],
+    [statistics],
+    [database],
+    [operators],
+    [boundary],
+    [searchtree],
+    [relations],
+    [testExamples],
+%    [operatorSQL],	% operatorSQL
+    [distributed],
+% Section:Start:loadFiles_1_i
+% Section:End:loadFiles_1_i
+    retractall(loadedModule(_)),
+    assert(loadedModule(standard))
+  )
+  ; true.
+----
+
+1.2 Preparing the Database
+
+  1 Database ~opt~ must be present.
+
+  2 Remote monitors have been started for a given ~Workers~ relation.
+
+The following steps must be done manually:
+
+----
+open database opt
+
+restore Workers from ...
+
+let myPort = ...
+----
+
+The ~Workers~ relation must fit the Cluster file for which monitors have been started.
+
+The variable ~myPort~ must be set to a port number exclusive to this user.
+
+
+Then run this script with the SecondoPLTTY interface from the Optimizer directory. This kind of script can be executed with
+
+----
+@%../bin/Scripts/DistOptExemple.posec
+----
+
+This is explained in the Secondo User Manual, Section 5.16.
+
+*/
+
+
+select count(*) from plz_d
+
+/*
+This leads to an error message because a distributed relation ~plz\_d~ is not yet known. However, it has triggered the distributed optimizer to create the three distributed relations
+
+  * SEC2DISTRIBUTED
+
+  * SEC2DISTINDEXES
+
+  * SEC2WORKERS
+
+which serve to provide the optimizer with information about distributed relations and indexes as well as the available workers.
+
+2 Describing Distributed Relations
+
+A distributed relation is described in the relation SEC2DISTRIBUTED with the following fields:
+
+  * ~RelName~: the name of the (logical) distributed relation on the master
+
+  * ~ArrayRef~: the name of the distributed array
+
+  * ~DistType~: the type of the distributed array. Allowed values are ~dfarray~
+(file based array) and ~darray~ (array stored in db).
+
+  * ~NSlots~: the number of slots of the distributed array
+
+  * ~PartType~: indicates the way how the relation is partitioned. Allowed values are 
+
+    * ~modulo~ (for d(f)distribute2), 
+
+    * ~random~ (d(f)distribute3), 
+
+    * ~function~ (d(f)distribute4), 
+
+    * ~share~ (replicated) 
+
+  * ~PartAttribute~: the attribute used to distribute the relation; for a random 
+distribution the value is always [star].
+
+  * ~PartParam~: an additional parameter to describe a partitioning such as the spatial grid object used. Ignored if not needed.
+
+All attributes are of type ~string~ except ~NSlots~ which is of type ~int~.
+
+
+
+3 Describing Distributed Indexes
+
+On each slot of a darray representing a distributed relation we can create an index. The optimizer currently supports B-tree and R-tree indexes.
+
+Such an index is decribed in the relation SEC2DISTINDEXES with fields:
+
+  * ~DistObj~: the d[f]array object representing the distributed relation
+
+  * ~Attr~: the indexed attribute
+
+  * ~IndexType~: the type of the index (~btree~ or ~rtree~)
+
+  * ~IndexObj~: the d[f]array reprsenting the distributed index
+
+All attributes are of type ~string~.
+
+4 Create Distributed Relations
+
+Each distributed relation created must be described in SEC2DISTRIBUTED to be recognized by the optimizer.
+
+*/
+
+update SEC2WORKERS := Workers;
+
+let plzDOrte = plz feed ddistribute4["plzDOrte", hashvalue(.Ort, 999997), 40, 
+  Workers]
+
+insert into SEC2DISTRIBUTED values
+  ["plz", "plzDOrte", "darray", 40, "function", "Ort", "*"]
+
+/*
+The query
+
+*/
+select count(*) from plz_d
+
+/*
+works already and executes the plan:
+
+----
+query plzDOrte dmap["", .  feed count] getValue tie[(.  + .. )]
+----
+
+*/
+
+let OrteDRandom = Orte feed ddistribute3["OrteDRandom", 40, TRUE, Workers]
+
+insert into SEC2DISTRIBUTED values
+  ["Orte", "OrteDRandom", "darray", 40, "random", "*", "*"]
+
+
+/*
+5 Some Example Queries
+
+Some example queries that can be run are the following:
+
+----
+select * from plz_d where Ort = "Hannover"
+
+select count(*) from [Orte_d as o, plz_d as p] where o.Ort = p.Ort
+
+select Ort from Orte_d
+
+select count(*) from plz_d
+
+select[Ort, min(plz) as Smallest, count(*) as Anzahl] from plz_d 
+where Ort starts "Mann" groupby Ort.
+
+select [Ort, Kennzeichen, BevT, count(*) as AnzahlPLZ, min(p.PLZ) as MinPLZ,
+  max(p.PLZ) as MaxPLZ, avg(p.PLZ) as DurchschnittsPLZ]
+from [Orte_d, plz_d as p]
+where Ort = p.Ort
+groupby [Ort, Kennzeichen, BevT]
+
+----
+
+
+6 Creating an Index
+
+Each distributed index created needs to be described in SEC2DISTINDEXES to be recognized by the optimizer.
+
+*/
+
+let plzDOrte_Ort = plzDOrte dmap["plzDOrte_Ort", . createbtree[Ort]] 
+
+insert into SEC2DISTINDEXES values
+  ["plzDOrte", "Ort", "btree", "plzDOrte_Ort"]
+
+
+/*
+7 Using an Index
+
+----
+select * from plz_d where Ort = "Unna"
+
+select * from plz_d where Ort starts "Hann"
+----
+
+*/
+
+
+
+
+
+
+
+
