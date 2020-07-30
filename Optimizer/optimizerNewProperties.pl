@@ -9530,7 +9530,7 @@ queryToPlan(drop index IndexList, [], 0) :-
 % fapra 2015/16 add distributed queries
 
 % case: count query
-% special case: just inquring the cardinality of a relation
+% special case: just inquiring the cardinality of a relation
 
 % distributed
 queryToPlan(select count(*) from Rel, 
@@ -9539,9 +9539,9 @@ queryToPlan(select count(*) from Rel,
   isDistributedQuery, 
   Rel = rel(R, _),
   distributedRels(rel(R, _), Object, DistType, _, PartType, _, _),
-  ( PartType = spatial 
+  ( PartType = "spatial"
     -> Access = filter(feed(dot), attr(original, 1, u)) 
-    ; ( DistType = darray -> Access = dot ; Access = feed(dot) ) 
+    ; ( DistType = "darray" -> Access = dot ; Access = feed(dot) ) 
   ),	
   not(is_nrel(R)),
   !.
