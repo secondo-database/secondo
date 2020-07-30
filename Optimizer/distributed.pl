@@ -294,7 +294,7 @@ distributedselect(Arg, pr(Cond, rel(_, Var))) translatesD
 % Use btree index for a starts predicate.
 distributedselect(arg(N), pr(Attr starts Val, rel(_, Var)))
   translatesD [dmap2(IndexObj, RelObj, value_expr(string, ""), 
-    Range2, 1238), 
+    Range2, myPort), 
     [distribution(DistType, DCDistAttr, DistParam), 
        distributedobjecttype(dfarray), disjointpartitioning]] :-
     argument(N, rel(DCName, _)),
@@ -311,8 +311,30 @@ distributedselect(arg(N), pr(Attr starts Val, rel(_, Var)))
     distributedIndex(RelObj, DCAttr, btree, IndexObj),
     renameStream(range(dot, dotdot, Val, increment(Val)),
       Var, Range),
-    renamedRelAttr(attr(original, 1, u), Var, Original).
+    renamedRelAttr(attr(original, 1, u), Var, Original),
+  !.
 
+% Use btree index for predicate =.
+distributedselect(arg(N), pr(Attr = Val, rel(_, Var)))
+  translatesD [dmap2(IndexObj, RelObj, value_expr(string, ""), 
+    Exactmatch2, myPort), 
+    [distribution(DistType, DCDistAttr, DistParam), 
+       distributedobjecttype(dfarray), disjointpartitioning]] :-
+    argument(N, rel(DCName, _)),
+    distributedRels(rel(DCName, _), RelObj, _, _,
+      DistType, DistAttr, DistParam),
+    ( DistType = spatial 
+      -> Exactmatch2 = filter(Exactmatch, Original)  % remove duplicates
+      ;  Exactmatch2 = Exactmatch
+    ),
+    downcase_atom(DistAttr, DCDistAttr),
+    attrnameDCAtom(Attr, DCAttr),
+   	write('we got here'), nl, nl, nl, 
+    % Lookup a btree index for the relation + attribute
+    distributedIndex(RelObj, DCAttr, btree, IndexObj),
+    renameStream(exactmatch(dot, dotdot, Val), Var, Exactmatch),
+    renamedRelAttr(attr(original, 1, u), Var, Original),
+  !.
 
 /*
 5.2.3 Using a Spatial Index
@@ -322,7 +344,7 @@ distributedselect(arg(N), pr(Attr starts Val, rel(_, Var)))
 % Use spatial index for an intersection predicate.
 distributedselect(arg(N), pr(Attr intersects Val, rel(_, Var)) )
   translatesD [dmap2(IndexObj, RelObj, value_expr(string, ""), 
-    filter(Intersection, Pred), 1238),
+    filter(Intersection, Pred), myPort),
     [distribution(DistType, DCDistAttr, DistParam), 
       distributedobjecttype(dfarray), disjointpartitioning]] :-
     argument(N, rel(DCName, _)),
@@ -355,7 +377,7 @@ distributedjoin(Arg1, Arg2, pr(Pred, rel(_, Var1), rel(_, Var2)))
     translatesD [Plan, P] :-
   Arg1 => [Arg1A, _],		% Arg1A = Arg1Array
   Arg2 => [Arg2A, _],
-  Plan = dproduct(Arg1A, Arg2A, e, symmjoin(Arg1S, Arg2S, Pred), 1238),
+  Plan = dproduct(Arg1A, Arg2A, e, symmjoin(Arg1S, Arg2S, Pred), myPort),
   P = [distribution(random, *, *), distributedobjecttype(dfarray)],
   feedRenameRelation2(Arg1, dot, Var1, Arg1S),	% Arg1S = Arg1Stream
   feedRenameRelation2(Arg2, dotdot, Var2, Arg2S).
@@ -364,7 +386,7 @@ distributedjoin(Arg1, Arg2, pr(Pred, rel(_, Var1), rel(_, Var2)))
     translatesD [Plan, P] :-
   Arg1 => [Arg1A, _],		 
   Arg2 => [Arg2A, _],
-  Plan = dproduct(Arg2A, Arg1A, e, symmjoin(Arg2S, Arg1S, Pred), 1238),
+  Plan = dproduct(Arg2A, Arg1A, e, symmjoin(Arg2S, Arg1S, Pred), myPort),
   P = [distribution(random, *, *), distributedobjecttype(dfarray)],
   feedRenameRelation2(Arg2, dot, Var2, Arg1S),		 
   feedRenameRelation2(Arg1, dotdot, Var1, Arg2S).
@@ -400,7 +422,7 @@ distributedjoin(Arg1, Arg2, pr(X = Y, rel(_, Var1), rel(_, Var2)))
     partitionF(Arg2A, value_expr(string, ""), feed(dot), 
         hashvalue(our_attrname(X), 999997), 0),
     value_expr(string, ""),
-    InnerPlan, 1238),
+    InnerPlan, myPort),
 	write('The plan is (areduce2): '), write(Plan), nl,
   P = [distribution(function, DCAttr1, hash), 
     distribution(function, DCAttr2, hash),
@@ -425,17 +447,17 @@ distributedjoin(Arg1, Arg2, pr(X = Y, rel(_, Var1), rel(_, Var2)))
     Arg1B = collect2(
       partitionF(Arg1A, value_expr(string, ""), feed(dot), 
         hashvalue(our_attrname(X), 999997), 0),
-      value_expr(string, ""), 1238)
+      value_expr(string, ""), myPort)
   ),
   ( member(distribution(_, DCAttr2, _), P2) -> Arg2B = Arg2A
     ;
     Arg2B = collect2(
       partitionF(Arg2A, value_expr(string, ""), feed(dot), 
         hashvalue(our_attrname(X), 999997), 0),
-      value_expr(string, ""), 1238)
+      value_expr(string, ""), myPort)
   ),
   InnerPlan = hashjoin(Arg1S, Arg2S, attrname(Attr1), attrname(Attr2), 999997),
-  Plan = dmap2(Arg1B, Arg2B, value_expr(string, ""), InnerPlan, 1238),
+  Plan = dmap2(Arg1B, Arg2B, value_expr(string, ""), InnerPlan, myPort),
   P = [distribution(function, DCAttr1, hash), 
     distribution(function, DCAttr2, hash),
     distributedobjecttype(dfarray)],
@@ -469,7 +491,7 @@ distributedjoin(Arg1, Arg2, pr(X intersects Y, rel(_, Var1), rel(_, Var2)))
         extendstream(feed(dot), field(attr(cell, 1, u), 
           cellnumber(bbox(Attr1u), grid))),
         CellDistAttr1, 0),
-      value_expr(string, ""), 1238)
+      value_expr(string, ""), myPort)
   ),
   ( member(distribution(_, DCAttr2, _), P2) -> Arg2B = Arg2A
     ;
@@ -478,7 +500,7 @@ distributedjoin(Arg1, Arg2, pr(X intersects Y, rel(_, Var1), rel(_, Var2)))
         extendstream(feed(dot), field(attr(cell, 2, u), 
           cellnumber(bbox(Attr2u), grid))),
         CellDistAttr2, 0),
-      value_expr(string, ""), 1238)
+      value_expr(string, ""), myPort)
   ),
   % rename the cell attribute if needed
   renamedRelAttr(attr(cell, 1, u), Var1, CellAttr1),
@@ -490,7 +512,7 @@ distributedjoin(Arg1, Arg2, pr(X intersects Y, rel(_, Var1), rel(_, Var2)))
       itSpatialJoin(Arg1S, Arg2S, attrname(Attr1), attrname(Attr2)),
       ((CellAttr1 = CellAttr2) and (X intersects Y)) and 
         gridintersects(grid, bbox(X), bbox(Y), CellAttr1) ),
-  Plan = dmap2(Arg1B, Arg2B, value_expr(string, ""), InnerPlan, 1238),
+  Plan = dmap2(Arg1B, Arg2B, value_expr(string, ""), InnerPlan, myPort),
   P = [distribution(spatial, DCAttr1, grid), 
     distribution(spatial, DCAttr2, grid),
     distributedobjecttype(dfarray)],
@@ -721,6 +743,13 @@ transform2DPlan(consume(Plan), DistPlan, consume(SeqPlan)) :-
   transform2DPlan(Plan, DistPlan, SeqPlan),
   !.
 
+% grouping may create new attributes in the distributed part, so we cannot 
+% move the projection in this case. It is also not needed, hence is ignored.
+transform2DPlan(project(Plan, _), DistPlan, SeqPlan) :-
+  Plan = groupby(_, _, _), 
+  transform2DPlan(Plan, DistPlan, SeqPlan),
+  !.
+
 transform2DPlan(project(Plan, Attrs), 
     dmap(DistPlan, value_expr(string, ""), project(feed(dot), Attrs)), 
     SeqPlan) :-
@@ -746,6 +775,15 @@ transform2DPlan(head(Plan, N),
   transform2DPlan(Plan, DistPlan, SeqPlan),
   !.
 
+transform2DPlan(groupby(sortby(Plan, Order), GroupAttrs, Fields),
+    dmap(DistPlan, value_expr(string, ""), 
+      groupby(sortby(feed(dot), Order), GroupAttrs, DistFields)),
+    groupby(sortby(SeqPlan, Order), GroupAttrs, SeqFields)) :-
+  transform2DPlan(Plan, DistPlan, SeqPlan),
+  transformDFields(Fields, SeqFields),
+  transformDFieldsDist(Fields, DistFields),
+  !.
+
 transform2DPlan(sortby(Plan, Args), DistPlan, sortby(SeqPlan, Args)) :-
   transform2DPlan(Plan, DistPlan, SeqPlan),
   !.
@@ -768,6 +806,87 @@ transform2DPlan(Plan, Plan, seqstart) :-
     ; Plan = areduce2(_, _, _, _, _)
   ),
   !.
+
+transform2DPlan(predinfo(Plan, _, _), DistPlan, SeqPlan) :-
+  transform2DPlan(Plan, DistPlan, SeqPlan),
+  !.
+
+transform2DPlan(dbotherobject(X), dbotherobject(X), seqstart) :-
+  !.
+
+transform2DPlan(Plan, Plan, mygoodness) :-
+  write('transform2DPlan. I cannot transform this: '), nl,
+  write(Plan),
+  !.
+
+
+
+transformDFields([Field], [Field2]) :-
+  transformDField(Field, Field2),
+  !.
+
+transformDFields([Field | Fields], [Field2, Fields2]) :-
+  transformDField(Field, Field2),
+  transformDFields(Fields, Fields2),
+  !.
+
+transformDField(
+  field(NewName, min(feed(group), _)),
+  field(NewName, min(feed(group), attrname(NewName)))) :-
+  !.
+
+transformDField(
+  field(NewName, max(feed(group), _)),
+  field(NewName, max(feed(group), attrname(NewName)))) :-
+  !.
+
+transformDField(
+  field(NewName, sum(feed(group), _)),
+  field(NewName, sum(feed(group), attrname(NewName)))) :-
+  !.
+
+transformDField(
+  field(NewName, count(feed(group))),
+  field(NewName, sum(feed(group), attrname(NewName)))) :-
+  !.
+
+transformDField(
+  field(NewName, avg(feed(group), _)),
+  field(NewName, sum(feed(group), attrname(NewNameSum)) / 
+    sum(feed(group), attrname(NewNameCnt))) ) :-
+  modify(NewName, 'Sum', NewNameSum),
+  modify(NewName, 'Cnt', NewNameCnt),
+  !.
+
+
+
+transformDFieldsDist(
+    [field(NewName, avg(feed(group), Attr)) | Fields],
+    [field(NewNameSum, sum(feed(group), Attr)), 
+      field(NewNameCnt, count(feed(group))) | Fields2]) :-
+  transformDFieldsDist(Fields, Fields2),
+  modify(NewName, 'Sum', NewNameSum),
+  modify(NewName, 'Cnt', NewNameCnt),
+  !.
+
+transformDFieldsDist( [Field | Fields], [Field | Fields2]) :-
+  transformDFieldsDist(Fields, Fields2),
+  !.
+  
+transformDFieldsDist(
+    [field(NewName, avg(feed(group), Attr))],
+    [field(NewNameSum, sum(feed(group), Attr)), 
+      field(NewNameCnt, count(feed(group)))]) :-
+  modify(NewName, 'Sum', NewNameSum),
+  modify(NewName, 'Cnt', NewNameCnt),
+  !.
+
+transformDFieldsDist([Field], [Field]) :-
+  !.
+
+modify(attr(Name, 0, u), X, attr(Name2, 0, u)) :-
+  atom_concat(Name, X, Name2).
+
 
 /*
 ----    combinePlans(+DistributedPlan, +SequentialPlan, -Plan) :-
@@ -1053,7 +1172,7 @@ attrValueEqualityPredicate(Pred, Value, Attr, Rel) :-
 ----
 
 Substituting ~Substituted~ for ~Substitute~ on ~OriginalTerm~ yields ~TermWithSubstitution~. We have a cut in every clause to remove unnecessary choice points
-during the search for planedges, which ois driven by meta predicates.
+during the search for planedges, which is driven by meta predicates.
 
 */
 
