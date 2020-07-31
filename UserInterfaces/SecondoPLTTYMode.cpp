@@ -303,7 +303,7 @@ string checkSQLCommand(const string& cmd, bool& correct, string& errMsg){
                                  return "";
                               }
                               break;
-                   case '}' : if (open!='}') {
+                   case '}' : if (open!='{') {
                                  errMsg = string("closing ") + c 
                                           + " was opened by " + open;
                                  correct = false;
@@ -864,14 +864,14 @@ bool updateOptCatalog(){
 Shows a nested list in a formatted manner.
 
 */
-void showResult(ListExpr res){
+void showResult(ListExpr res){ 
    if(!mnl->HasLength(res,2)){
-      mnl->WriteStringTo(res,cout);
+     mnl->WriteStringTo(res,cout);
    } else {
        if(!DisplayTTY::GetInstance().DisplayResult(mnl->First(res),
                          mnl->Second(res))){
          mnl->WriteStringTo(res,cout);
-       }
+       } 
    }
    cout << endl << endl;
 }
@@ -1145,13 +1145,13 @@ bool processDirectSecondoCommand(string cmd){
        si->Secondo(cmd, resList, err);
    }
    if(err.code==0){
+      // output of result
+      showResult(resList);
       // special treatment for optimizer
       if(catalogChanges(cmd)){
          cout << "Catalog has been changed" << endl;
          updateOptCatalog(); 
       }
-      // output of result
-      showResult(resList);
    } else {
       cout << "error in command " << cmd << endl;
       cout << "error code = " << err.code << endl;
