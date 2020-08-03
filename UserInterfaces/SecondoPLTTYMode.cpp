@@ -1442,6 +1442,12 @@ bool isSqlCommand(string& cmd){
    string cmdcopy = cmd;
    stringutils::trim(cmdcopy);
    stringutils::toLower(cmdcopy);
+   if(cmdcopy.length()==0){ // empty command
+     return false;
+   }
+   if(cmdcopy[0]=='{'){ // command sequence
+     return false;
+   }
    stringutils::StringTokenizer st(cmdcopy, blanks2, true);
    if(!st.hasNextToken()){
      return false;
