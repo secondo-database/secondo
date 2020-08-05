@@ -14,6 +14,7 @@ server. The API implements the Python Database API 2.0 Specification (PEP 249).
 """
 
 from socket import socket, AF_INET, SOCK_STREAM, TCP_NODELAY, IPPROTO_TCP
+# from secondodb.api.support import secondoparser as parser
 import secondodb.api.support.secondoparser as parser
 import secondodb.api.support.secondomessages as messages
 import secondodb.api.support.secondocommands as com

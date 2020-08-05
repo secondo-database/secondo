@@ -144,7 +144,7 @@ def convert_polygon_to_region(polygon: QgsPolygon):
     region = namedtuple('region', ['faces'])
     faces = []
 
-    face = namedtuple('face', ['outercycle', 'holecycle'])
+    face = namedtuple('face', ['outercycle', 'holecycles'])
 
     cycle_count = len(polygon)
 
@@ -163,6 +163,7 @@ def convert_polygon_to_region(polygon: QgsPolygon):
             outercycle.append(point_tuple)
 
         face.outercycle = outercycle
+        face.holecycles = []
 
     elif cycle_count == 2:
 
@@ -191,7 +192,7 @@ def convert_polygon_to_region(polygon: QgsPolygon):
             holecycle.append(point_tuple)
 
         face.outercycle = outercycle
-        face.holecycle = holecycle
+        face.holecycles = holecycle
 
     faces.append(face)
 

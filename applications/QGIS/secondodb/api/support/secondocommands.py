@@ -15,7 +15,8 @@ The strings can be formatted using the Python method format() to replace the pla
 
 # ---- Basic commands ---- #
 import re
-import secondodb.api.secondoapi as api
+# import secondodb.api.secondoapi as api
+from secondodb.api import secondoapi as api
 
 SECONDO_COM_QUERY = 'query {0}'
 SECONDO_COM_LET = 'let {0} = {1}'
