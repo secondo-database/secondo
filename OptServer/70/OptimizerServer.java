@@ -729,15 +729,7 @@ static {
        int pos = 1;
        String console_enc = "utf-8"; // standard
        while(pos<args.length){
-           if(args[pos].equals("-trace_methods")){
-               rt.traceMethodCalls(true); 
-               cout.println("enable method tracing");
-               pos++;
-           } else if(args[pos].equals("-trace_instructions")){
-               rt.traceInstructions(true);
-               cout.println("enable instruction tracing");
-               pos++;
-           } else if(args[pos].equals("-autoquit")){
+           if(args[pos].equals("-autoquit")){
                quitAfterDisconnect=true;
                cout.println("auto quit enabled");
                pos++;
