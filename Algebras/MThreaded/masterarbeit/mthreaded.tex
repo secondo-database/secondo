@@ -19,14 +19,14 @@
 \usepackage[backend=biber,style=apa,citestyle=authoryear-comp, language=autocite, doi=false, isbn=false]{biblatex}
 \DeclareLanguageMapping{ngerman}{ngerman-apa}
 \addbibresource{master.bib}
-\bibliography{master.bib}
+%\bibliography{master.bib}
 
 \newcommand{\Fb}[1]{\textit{#1}} %Fachbegriff
 
 \usepackage{listings}
 \usepackage[dvipsnames]{xcolor}
 \lstset{ % 
-  language=C++,                % the language of the code 
+  %language=C++,                % the language of the code 
   frame=single,
   basicstyle=\footnotesize,           % the size of the fonts that are used for the code 
   numbers=left,                   % where to put the line-numbers 
@@ -110,18 +110,11 @@ Die in Datenbanksystemen gespeicherten Daten werden immer umfangreicher und auch
 
 Dementsprechend liegen Ansätze nahe insbesondere für Nicht-Standard-Datenbankanwendungen, also welchen, deren Daten von den Standardtypen relationaler Datenbanksysteme abweichen, die Anfragen parallel bearbeiten, um die Rechenlast auf verschiedene Kerne, Prozessoren oder Systeme zu verteilen. Bereits in Secondo implementiert ist eine Algebra, die es ermöglicht, Anfragen auf verteilten Systemen auszuführen, also auf lose gekoppelten Systemen mit je eigenem Hauptspeicher und Festplatten. Innerhalb nur eines Computersystems sind zwei Herangehensweisen denkbar: Die einzelnen Operatoren eines Operatorenbaums können parallelisiert werden. Mit diesem Ansatz ist es möglich, entweder Operatoren in einer Pipeline-Parallität abzuarbeiten oder aber Daten mit expliziten Partitionierungs-Operatoren aufzuteilen und dann die entsprechenden Pakete parallel abzuarbeiten. Der Ansatz ist vergleichbar mit den verteilten Systemem, nur ist meist der Speicher geteilt, aber die Kommunikationskosten zwischen den einzelnen Prozessen fallen nicht so stark ins Gewicht. Vorteil dieser Herangehensweise ist es, dass sich für den Nutzer nicht unbedingt etwas ändern muss, sondern der Optimierer die Entscheidung übernehmen kann, wie parallelisiert wird. Auch kann der ganze Umfang von Algebras und Operatoren genutzt werden. In Secondo ist dieser Ansatz in der ParThread-Algebra umgesetzt.
   
-Hier soll eine anderer Herangehensweise verfolgt werden, Parallelität zu implementieren. In der hier entwickelten MThreaded-Agebra werden parallele Operatoren entworfen und implementiert. Dieser Ansatz verspricht einen größeren Performancegewinn, da explizit auf Parallelität optimierte Algorithmen entwickelt werden können. Verloren geht dagegen die Flexibilität des Ansatzes einer äußeren Integration paralleler Verarbeitung, da nur explizit parallel entworfene Operatoren für eine parallel Verarbeitung genutzt werden können. Auch wird eine parallele Verarbeitung nur innerhalb von Operatoren ausgenutzt, aber nicht für die Verarbeitung eines Operatorenbaums z.B. komplexer Anfragen.  
+Hier soll eine anderer Herangehensweise verfolgt werden, Parallelität zu implementieren. In der MThreaded-Agebra werden explizit parallele Operatoren entworfen und implementiert. Dieser Ansatz verspricht einen größeren Performancegewinn, da auf Parallelität optimierte Algorithmen entwickelt werden können. Konnten in dem anderen Verfahren nur eine äußere Partitionierung bzw. ein Pipelining eingesetzt werden, besteht mit diesem Ansatz die Möglichkeit, Lastenverteilung intern zu optimieren und enger gekoppelte parallele Operationen zu entwerfen. Verloren geht dagegen die Flexibilität des Ansatzes einer äußeren Integration paralleler Verarbeitung, da nur explizit parallel entworfene Operatoren für eine parallele Verarbeitung genutzt werden können. Auch ein paralleler Pipeline-Prozess ist mit diesem Ansatz nicht mehr möglich.
 
-Das Ziel ist wie bei Thema 136, eine parallele (multi-threaded) Auswertung von Anfragen
-zu ermöglichen. Bei diesem Thema wird allerdings der Ansatz verfolgt, neue Operatoren
-Operatoren, die sich für diesen Ansatz eignen, müssen zwei Bedingungen erfüllen. Es muss Algorithmen für die gewählten Operatoren geben, die sich für eine Parallelisierung eignen und die ausgeführten Berechnungen müssen eine Komplexität aufweisen, dass sich der Mehraufwand für die Verwaltung der Threads und die Datenaufteilung lohnt. Entschieden habe ich mich für einen Sort-Operator, einen Equi-Join und einen Spatial Join. Umgesetzt wird die Implementierung in dem Secondo-Datenbanksystem mit C++11. 
+Das Ziel dieser Arbeit ist es also, neue parallele Operatoren zu entwerfen. Um für diesen Ansatz geeignet zu sein, müssen Opertoren zwei Bedingungen erfüllen: Es muss Algorithmen für die gewählten Operatoren geben, die sich für eine Parallelisierung eignen und die ausgeführten Berechnungen müssen eine Komplexität aufweisen, dass sich der Mehraufwand für die Verwaltung der Threads und die Datenaufteilung lohnt. Entschieden habe ich mich dafür, einen Sort-Operator, einen Equi-Join und einen Spatial Join zu entwickelt, für die die genannten Bedingungen zutreffen und die zugleich häufig in Datenabfragen angewandt werden. Umgesetzt wird die Implementierung in dem Secondo-Datenbanksystem mit C++11, indem eine neue Algebra entworfen wird, die MThreadedAlgebra. 
 
-Aufgebaut ist meine Arbeit folgendermaßen: Ein Kaptitel 
-was die die aufgabenstellung, was für ein Ansatz
-Welche Operatoren und warum
-gliederung der arbeit
-Grundlagen
-In einem zweiten Teil 
+Beginnen werde ich mit einer Refexion des Forschungsstandes und werde dabei allgemein die Debatte um Parallelisierung bewerten, speziell auf deren Anwendung in Datenbanksystemen eingehen und Ansätze für eine Parallelisierung von Sort-, Join- und Spatiajoin-Operatoren bewerten. Ausgehend von dieser Aufbereitung der Fachdebatte werde ich bei der Entwicklung der genannten Operatoren in zwei Schritten vorgehen: Einem Entwurf der Operatoren zusammen mit einer Dikussion des verfolgten Ansatzes und dem folgend einer Reflexion der Implementierung der entsprechenden Operatoren. Eine Bewertung des Ergebnisses findet experimentell in mehreren Schritten statt: Eine gute Funktionsweise der Operatoren bedeutet Korrektheit, Robust und Effizienz. Zur Betrachtung der Effizienz findet ein Vergleich statt mit den Einkernversionen der Operatoren, aber auch anderen parallelen Implementierungen. Dem folgend wird das Verhalten der Opertoren bei einer Veränderung von Parametern wie Kernzahl, Arbeitsspeicher oder Verteilung innerhalb von Relationen betrachtet.
 
 
 
@@ -130,42 +123,36 @@ In einem zweiten Teil
 
 \subsection{Secondo} (1 S)
 
-In meiner Arbeit werde ich Konzepte und eine Implementierung paralleler Datenbankoperatoren vorstellen und ausgewählte Operatoren in dem Secondo-Datenbanksystem entwickeln. Secondo ist ein erweiterbares Datenbanksystem, das von der Fernuniversität Hagen entwickelt worden ist, um Datentypen zu implementieren und mit ihnen zu experimentieren, die keine Standard-Datentypen sind, vor allem räumliche und raum-zeitliche Typen. Der Secondo-Kernel ist die Schicht zwischen der Berkley-DB und GUI sowie Optimizer. Sie besteht aus Algebras, bestehend aus Typen und Operatoren, sowie dem Storage Manager als Schnittstelle mit der zugrundeliegenden Datenbank, einem Queryprozessor sowie -katalog und einem Command-Manager. Durch die offen gestaltete und klar definierte Schnittstelle zur Integration neuer Algebras hat Secondo eine sehr große Flexibilität gegenüber Datentypen und Funktionalitäten. Darüber hinaus ist es nicht auf einen Datenmodell festgelegt, auch wenn die meisten Implementierungen vor allem ein relationales bzw. objekt-relationales Datenmodell unterstützen.
+In meiner Arbeit werde ich Konzepte und eine Implementierung paralleler Datenbankoperatoren vorstellen und ausgewählte Operatoren in dem Secondo-Datenbanksystem entwickeln. Secondo {\autocite{Gueting2010}} ist ein erweiterbares Datenbanksystem, das von der Fernuniversität Hagen entwickelt worden ist, um Datentypen zu implementieren und mit ihnen zu experimentieren, die keine Standard-Datentypen sind, vor allem räumliche und raum-zeitliche Typen. Die Architektur von Secondo besteht aus drei zentralen Komponenten: dem Kernel, dem Optimizer und der GUI. Der Secondo-Kernel ist die Schicht zwischen der Berkley-DB, auf die Secondo aufsetzt, und GUI sowie Optimizer. Sie besteht aus Algebras bestehend aus Typen und Operatoren. Die Schichten, die zwischen GUI und den Algebras vermitteln, sind der Queryprozessor sowie -katalog und einem Command-Manager. Der Storage Manager und weitere Tools dienen als Schnittstelle zu der zugrundeliegenden Datenbank. Durch die offen gestaltete und klar definierte Schnittstelle zur Integration neuer Algebras bestehend aus Typkonstruktoren und dazugehörigen Operatoren hat Secondo eine sehr große Flexibilität gegenüber unterschiedlichen Datentypen und Funktionalitäten. Darüber hinaus ist es nicht auf einen Datenmodell festgelegt, auch wenn die meisten Implementierungen vor allem ein relationales bzw. objekt-relationales Datenmodell unterstützen. Der Optimizer unterstützt ausschließlich ein relationales Datenmodell. 
 
-TODO ADTs, topologische Prädikate
+\begin{figure}
+	\centering
+	\includegraphics[width=0.75\textwidth]{Bilder/secondo.png}
+	\caption{SECONDO Komponenten und Architektur des Kernels \autocite{Gueting2010}}
+	\label{img:secondo}
+\end{figure}
 
-Wichtig für die von mir zu entwickelnde Algebra sind mehrere Bestandteile von Secondo. Die RelationalAlgebra stellt das relationale Datenmodell zur Verfügung inklusive des Datentyps Tupel und Persistierungsstrukturen. Die Stromverarbeitung ermöglicht es, große Sätze von Daten in einer Pipeline zu verarbeiten, in meinem Fall Tupleströme. Fake Large Objects (FLOBs) ermöglichen, Instanzen von Typen mit variabler Größe zu implementiere, indem Abhängig von der Größe das Objekt entweder in den Speicher geladen wird oder persistiert bleibt. Für einen schnellen Zugriff werden z.~B. räumlicher Datentypen variabler Größe durch ihre minimale Bounding Box repräsentiert.
+Abstract Data Types (ADT) fassen Datentypen mit dazugehörigen Operationen zusammen und ermöglichen es, beispielsweise räumliche Datentypen gemeinsam mit den notwendigen Operationen zu entwerfen, ohne sich bereits über die Implementierung und detailierte Struktur der Datentypen Gedanken zu machen. {\textcite[S. 75ff]{Rigaux2001}} beschreibt, wie ADTs für räumliche Datentypen entworfen werden können. Secondo setzt dieses Konzept weitestgehend um. Die SpatialAlgebra bietet darüber hinaus ein ausreichendes Set topologischer Prädikate, um hinreichend räumliche Beziehungen zwischen Punkten, Sets von Punkten, Linien und Regionen/Polygonen zu beschrieben.
 
-Der Command-Manager bietet neben einer dem SQL-Standard entsprechenden Abfragesprache eine zweite, "executable" Abfragesprache genannte Sprachebene, die in ihrer Abstraktion zwischen SQL und einer Programmiersprache wie C++ steht.  Mit dieser Abfragesprache können Anfragen direkt an den Kernel gestellt werden und dementsprechend steht nur auf dieser Ebene der volle Funktionumfang des Kernels zur Verfügung. Allerdings ist SQL deutlich einfach benutzbar. 
+Wichtig für die von mir zu entwickelnde Algebra sind mehrere Bestandteile von Secondo. Die Relational-Algebra stellt das relationale Datenmodell inklusive des Datentyps Tupel und von Persistierungsstrukturen für Tuple zur Verfügung. Die Stromverarbeitung ermöglicht es, große Sätze von Daten in einer Pipeline zu verarbeiten, in meinem Fall in Tupleströmen. Fake Large Objects (FLOBs) ermöglichen, Instanzen von Typen mit variabler Größe zu implementiere, indem Abhängig von der Größe ein Objekt entweder Teil des Tuples ist oder sperat gespeichert wird. U.~a. für räumliche Datentypen sind solche Möglichkeiten essentiell. Für einen schnellen Zugriff werden z.~B. räumlicher Datentypen variabler Größe durch ihre minimale Bounding Box direkt im Tuple repräsentiert. Ein FLOB hat also immer eine Repräsentation in dem Teil des Tuples, der in den Hauptspeicher geladen wird, die aber im Gegensatz zu den beliebig großen Objekten klar begrenzt ist \autocite{Gueting2010}.
+
+Der Command-Manager bietet neben einer dem SQL-Standard entsprechenden Abfragesprache eine zweite, "executable" Abfragesprache genannte Sprachebene, die in ihrer Abstraktion zwischen SQL und einer Programmiersprache wie C++ steht.  Mit dieser Abfragesprache können Anfragen direkt an den Kernel gestellt werden und dementsprechend steht nur auf dieser Ebene der volle Funktionumfang des Kernels zur Verfügung. Allerdings ist SQL deutlich einfach benutzbar \autocite{Gueting2010}. 
  
-Bereits jetzt sind Ansätze paralleler Datenverarbeitung in Secondo integriert. Die Distributed Algebra ermöglicht eine Verarbeitung eines verteilten Anfrageprozesses, indem mehre Secondo-Instanzen auf einem oder mehreren Computern genutzt werden. Verteilte Datenverarbeitung ist so möglich, indem Anfragen partioniert werden und nach Verarbeitung die Teilergebnisse wieder zusammengeführt werden. Einen Schritt weiter geht die erst kürzlich implementierte ParThread-Algebra, die eine Parallelisierung innerhalb einer Instanz für den Benutzer verborgen vornimmt, indem der Operatorenbaum möglichst optimal für eine parallele Verarbeitung umgeformt wird.
+Bereits jetzt sind Ansätze paralleler Datenverarbeitung in Secondo integriert. Die Distributed Algebra {\autocite{Nidzwetzki2017}} ermöglicht eine Verarbeitung eines verteilten Anfrageprozesses, indem mehre Secondo-Instanzen auf einem oder mehreren Computern genutzt werden. Verteilte Datenverarbeitung ist so möglich, indem Anfragen partitioniert werden und nach Verarbeitung die Teilergebnisse wieder zusammengeführt werden. Einen Schritt weiter geht die erst kürzlich implementierte ParThread-Algebra, die eine Parallelisierung innerhalb einer Instanz für den Benutzer verborgen vornimmt, indem der Operatorenbaum möglichst optimal für eine parallele Verarbeitung umgeformt wird.
 
 \subsection{Multiprozessorsysteme} (2 S)
 
 Für eine späteres Verständnis des Performance-Verhaltens der von mir entworfenen Operatoren ist ein grundlegendes Verständnis der Funktionsweise und des Aufbaus von Mehrkernprozessoren notwendig. Multiprozessorsysteme grenze ich hier ab von verteilten Systemen. Während in ersteren die verschiedenen Kerne bzw. Prozessoren in einem Computer integriert sind und sich Speicher wie auch die anderen Komponenten teilen, bestehen verteilte Systeme aus unabhängigen Computer, die über ein Netzwerk miteinander verbunden sind. Man spricht auch von enger und loser Kopplung. Dementsprechend sind in verteilten Systemen die Kommunikationskosten zentral für die Bestimmung der Performance. Als weitgehend identisch betrachte ich für meine Fragestellung Mehrkern- und Mehrprozessorsysteme. Einziger Unterschied ist meist die Aufteilung des Caches auf mehrere Prozessoren bei Mehrprozessorsystemen, aber auch einzelne Komponenten können unabhängig voneinander sein. In älterer Literatur wird meist von Mehrprozessorsystemen gesprochen, da Mehrkernprozessoren eine relativ neue Entwicklung sind. Eingehen werde ich hier nur auf Mehrkernprozessoren.
 
-In der Flynn’sche Taxonomie der parallelen Architektur bzgl. globaler Kontrolle und resultierender Daten und Kontrollflüss entsprechen Mehrkern- und auch Mehrcomputersysteme einer Multiple Instruction, Multiple Data (MIMD) Rechnerarchitektur. Andere Architekturen sind beispielsweise für die parallele Bearbeitungvon Bilddaten auch in Desktopcomputern relevant.
+In der Flynn’sche Taxonomie paralleler Architekturen, die globale Kontrolle und resultierender Daten sowie Kontrollflüssen zwischen den Prozessen betrachtet, entsprechen Mehrkern- und auch Mehrcomputersysteme einer Multiple Instruction, Multiple Data (MIMD) Rechnerarchitektur {\autocite[S. 10f]{Rauber2013}}. Andere Architekturen sind beispielsweise für die parallele Bearbeitung von Bilddaten auch in Desktop-Computern relevant.
 
-Ab 2005 war eine Leistungssteigerung von Einkernprozessoren wegen der entstehenden Abwärme nicht mehr in großem Umfang technisch möglich. Anstatt vor allem auf die Steigerung des Prozessortakts zu setzen, wurden ab dieser Zeit Prozessoren mit mehreren unabhängigen Einheiten, Kerne genannt, entwickelt, die ab 2009 Standard in Desktopcomputersystemen wurden. Die CPU-Kerne haben eigene Registersätze und arithmetisch-logischer Einheiten (ALU), nur der Bus und einige Caches werden von mehreren Kernen geteilt. Die Leistungssteigerung von Computerprogrammen wurde dementsprechend abhängig von einer parallelen Ausführung von Programmeinheiten. Standard-Desktopprozessoren unterliegen einem hierarchisches Design. Für die Performance von Multiprozessor-Algorithmen ist eine optimale Nutzung der Kern-spezifischen L1/L2-Caches und dem geteilten L3-Cache wichtig {\autocite{Rauber2013}}. Der Cache enthält exakte Kopien von Daten und Befehlssätzen aus dem Hauptspeicher, die besonders häufig genutzt werden. Der L1-Cache ist am schnellsten, aber meistens nicht sehr groß. Befehls- und Datencache ist hier getrennt. In einigen Systemen hat nicht jeder Kern die vollständige Funktionalität eines Prozessors, sondern bestimmte Ressourcen, wie eine Gleitkommaeinheit, werden geteilt von zwei Kernen. Beispielsweise sind in der AMD-FX-Architektur 2 Kerne mit je eigener Integereinheit und eigenem L1-Cache zu einem Modul mit geteilter Gleitkommaeinheit und geteiltem L2-Cache zusammengefügt. Hyperthreading ist eine Technik, mehrere Threads auf einem Kern gleichzeitig auszuführen und so zu koordinieren, dass die Ausführung schneller ist, als wenn die Threads seriell ausgeführt würden. Diesen Ausführungen folgt, dass die Performance auch vollständig unabhängige Threads ohne Overhead nicht unbedingt linear wächst bei einer steigenden Anzahl von Kernen. 
+Ab 2005 war eine Leistungssteigerung von Einkernprozessoren wegen der entstehenden Abwärme nicht mehr in großem Umfang technisch möglich. Anstatt vor allem auf die Steigerung des Prozessortakts zu setzen, wurden ab dieser Zeit Prozessoren mit mehreren unabhängigen Einheiten, Kerne genannt, entwickelt, die ab 2009 Standard in Desktopcomputersystemen wurden. Die CPU-Kerne haben eigene Registersätze und arithmetisch-logischer Einheiten (ALU), nur der Bus und einige Caches werden von mehreren Kernen geteilt. Die Leistungssteigerung von Computerprogrammen wurde dementsprechend abhängig von einer parallelen Ausführung von Programmeinheiten. Standard-Desktopprozessoren unterliegen einem hierarchisches Design. Für die Performance von Multiprozessor-Algorithmen ist eine optimale Nutzung der Kern-spezifischen L1/L2-Caches und dem geteilten L3-Cache wichtig {\autocite{Rauber2013}}. Der Cache enthält exakte Kopien von Daten und Befehlssätzen aus dem Hauptspeicher, die besonders häufig genutzt werden. Der L1-Cache ist am schnellsten, aber meistens nicht sehr groß. Befehls- und Datencache ist hier getrennt. In einigen Systemen hat nicht jeder Kern die vollständige Funktionalität eines Prozessors, sondern bestimmte Ressourcen, wie eine Gleitkommaeinheit, werden geteilt von mehreren Kernen. Beispielsweise sind in der AMD-FX-Architektur zwei Kerne mit je eigener Integereinheit und eigenem L1-Cache zu einem Modul mit geteilter Gleitkommaeinheit und geteiltem L2-Cache zusammengefasst. Hyperthreading ist eine Technik, mehrere Threads auf einem Kern gleichzeitig auszuführen und so zu koordinieren, dass die Ausführung schneller ist, als wenn die Threads seriell ausgeführt würden. Diesen Ausführungen folgt, dass die Performance auch vollständig unabhängige Threads ohne Overhead nicht unbedingt linear wächst bei einer steigenden Anzahl von Kernen, da Kerne sich teils Ressourcen teilen.
 
-Was ist ein Thread -> eigener Kontrollfluss, Prozesse eigener Adressraum {\autocite[S. 95]{Rauber2013}}
-
-unabhängiger Registersatz inkl. Instruction Pointer,
-einen eigenen Stapel (Stack), jedoch meist im gemeinsamen Prozess-Adressraum.
-Als Besonderheit kann es Betriebsmittel geben, die nur von dem erzeugenden Thread benutzt werden können oder dürfen (Beispiel: Thread-local storage, Window-Handle).
-
-Andere Betriebsmittel werden von allen Threads gemeinsam verwendet. Durch die gemeinsame Nutzung von Betriebsmitteln kann es auch zu Konflikten kommen. Diese müssen durch den Einsatz von Synchronisationsmechanismen aufgelöst werden. 
-
-enge und lose koplung
-
-Parallelität auf verschiedenen Ebenen: Bit, Pipelinging, Multifunktionale Einheiten, Thread Level
-
-Shared/Distributed Memory, Adress Space
-
+Parallele Ausführungen kann es mit unterschiedlicher Kopplung geben. Man unterschiedet zwischen Threads und Prozessen. Threads sind über einen eigenen Kontrollfluss definiert. Sie haben einen unabhängiger Registersatz inkl. Instruction Pointer, einen eigenen Stack, aber im Gegensatz dazu verfügen Prozesse über einen eigenen Adressraum {\autocite[S. 95]{Rauber2013}}. Die meisten Betriebsmittel werden von allen Threads gemeinsam verwendet. Durch die gemeinsame Nutzung von Betriebsmitteln kann es auch zu Konflikten kommen. Diese müssen durch den Einsatz von Synchronisationsmechanismen aufgelöst werden.
 
 \subsection{Parallele Algorithmen} (2 S)
 
-Warum aber wird eine Parallelisierung nicht automatisch vorgenommen? Beispielsweise die ParThreaded-Algebra, die bereits in Secondo implementiert ist, verfolgt diesen Ansatz: Sie stellt Mittel zur Verfügung, vorhandene Operatoren parallel ausführen zu können. Am Beispiel eines parallelen (internen) Merge-Sort zeigt {\textcite{McCool2012}}, warum es oft besser ist, einen neuen parallelen Algorithmus zu suchen anstatt einen seriellen zu parallelisieren. Meistens lohnt es sich also, explizit parallel Operatoren zu entwerfen.
+Warum aber wird eine Parallelisierung nicht automatisch vorgenommen? Beispielsweise die ParThreaded-Algebra, die bereits in Secondo implementiert ist, verfolgt diesen Ansatz: Sie stellt Operatoren zur Verfügung, bereits implementierte Einkern-Operatoren parallel ausführen zu können. Am Beispiel eines parallelen (internen) Merge-Sort zeigt {\textcite{McCool2012}}, warum es oft besser ist, einen neuen parallelen Algorithmus zu suchen anstatt einen seriellen zu parallelisieren. Meistens lohnt es sich also, explizit parallel Operatoren zu entwerfen.
 
 {\textcite[S.104]{Rauber2013}} unterscheidet parallele Programmiermodelle nach folgenden Kriterien:
 
@@ -177,54 +164,41 @@ Warum aber wird eine Parallelisierung nicht automatisch vorgenommen? Beispielswe
 	\item Synchronisationsmechanismen
 \end{itemize} 
 
-Greifen sogenannte kritische Bereiche auf gleiche Daten zu, müssen die Zugriffe synchronisiert werden, da es zu Deadlocks oder zu kritischen Wettlaufsituation (race conditions) kommen kann.  Von einem Deadlock spricht man, wenn 2 Prozesse auf jeweils eine Sperre warten und jeweils die genau andere besitzen und es so zu einer Verklemmung kommt. Sofern in parallelen Algorithmen auf gemeinsame Daten zugegriffen wird, kann die Ausführungsreihenfolge das Ergebnis bestimmen, was als Wettlaufsituation bezeichnet wird. Locks stellen hierfür die Sperren zur Verfügung, sorgen also dafür, dass eine Aktion atomar ist, und Mutex sichern den ausschließlichen Zugriff auf kritische Daten, also das ein Zugriff atomar stattfindet {\autocite{Rauber2013}}. Eine Kommunikation zwischen den Threads findet entweder über Nachrichten oder globale Variablen statt. Mit diesen Mitteln kann eine Prozesssynchronisation vorgenommen werden und sichergestellt werden, dass die einzelnen Aktionen der Threads konsistenzerhaltend sind.
+Greifen sogenannte kritische Bereiche auf gleiche Daten zu, müssen die Zugriffe synchronisiert werden, da es zu Deadlocks oder zu kritischen Wettlaufsituation (race conditions) kommen kann.  Von einem Deadlock spricht man, wenn zwei Prozesse auf jeweils eine Sperre warten, aber die genau andere Sperre besitzen. So kommt es zu einer Verklemmung. Sofern in parallelen Algorithmen auf gemeinsame Daten zugegriffen wird, kann die Ausführungsreihenfolge das Ergebnis bestimmen, was als Wettlaufsituation bezeichnet wird. Locks stellen Sperren zur Verfügung, sorgen also dafür, dass eine Aktion atomar ist, und Mutexe sichern den ausschließlichen Zugriff auf kritische Daten, garantieren also, dass ein Zugriff atomar stattfindet {\autocite{Rauber2013}}. Eine Kommunikation zwischen den Threads findet entweder über Nachrichten oder globale Variablen statt. Mit diesen Mitteln kann eine Prozesssynchronisation vorgenommen und sichergestellt werden, dass die einzelnen Aktionen der Threads konsistenzerhaltend sind.
 
-Die Entwicklung einer parallelen Problemlösung wird beeinflusst von der Struktur des Problems und der Daten. Wenn sich ein Problem in Teilprobleme ohne funktionale Abhängigkeit zerlegen lässt, spricht man von inhärenten Parallelismus {\autocite[S. 321f]{Bengel2008}}. Da wenig Kommunikation zwischen den Prozessen notwendig ist, ist theoretisch ein nahezu lineare Performancegewinn möglich. Eine Zerlegung in Teilprobleme über eine Aufteilung der Daten stattfinden oder durch eine funktionale Zerlegung des Problems in mehre Arbeitsschritte, die nacheinander ausgeführt werden. Dann spricht man von einer Pipline {\autocite[S. 324]{Bengel2008}}. Verteilte Algorithmen haben im Gegensatz zu zentralen keinen globalen Zustand und keine gemeinsame Zeit. Dementsprechend kann es zu unvorhersehbaren Abläufen kommen. Eine Rechenlastverteilung kann statisch oder dynamisch vorgenommen werden {\autocite{Bengel2008}}.
+Die Entwicklung einer parallelen Problemlösung wird beeinflusst von der Struktur des Problems und der Daten. Wenn sich ein Problem in Teilprobleme ohne funktionale Abhängigkeit zerlegen lässt, spricht man von inhärenten Parallelismus {\autocite[S. 321f]{Bengel2008}}. Da in diesem Fall wenig Kommunikation zwischen den Prozessen notwendig ist, wird theoretisch ein nahezu lineare Performancegewinn ermöglicht. Eine Zerlegung in Teilprobleme kann über eine Aufteilung der Daten stattfinden, also über eine Partitionierung. Bei einer funktionalen Zerlegung eines Problems in mehre Arbeitsschritte, die nacheinander ausgeführt werden, spricht man von Piplining {\autocite[S. 324]{Bengel2008}}. Verteilte bzw. parallele Algorithmen haben im Gegensatz zu zentralen keinen globalen Zustand und keine gemeinsame Zeit. Dementsprechend kann es zu unvorhersehbaren Abläufen kommen. Eine Rechenlastverteilung kann statisch oder dynamisch vorgenommen werden {\autocite{Bengel2008}}.
 
-Im Folgendem beschreibe ich einige Architekturmuster, die häufig Anwendung im Entwurf paralleler Problemlösungen Anwendung finden. Im Fork-Join-Muster werden Threads für bestimmte Aufgaben erzeugt und hinterher wieder zusammengefügt {\autocite[S. 109]{Rauber2013}}. Im Master-Worker-Schema verteilt ein Master Teilbereiche von Daten an mehrere Worker und sammelt die Ergebnisse wieder ein. Im Der Master übernimmt also ein Scheduling im Gegensatz zum Fork-Join-Muster, welches ohne eine zentrale Instanz auskommt. Der Weg von einer Zerlegung eines Problems zu einer Allokation der Teilprobleme auf Prozessoren kann in vier Schritten beschrieben werden: Partitionierung, Auslegung der Kommunikation, Agglomeration und Mapping. Unterschieden werden hier Ansätze mit viel oder wenig Kommunikation und Parallelisierung {\autocite[S. 326f]{Bengel2008}}. Im bereits erwähnten Pipelining-Archtitekturmuster findet eine funktionale Zergliederung des Problems statt und die Daten werden nacheinander von Threads bearbeitet {\autocite[S. 111]{Rauber2013}}. Im Producer-Consumer-Muster gibt es mehrere Threads, die Daten erzeugen, und mehrere, die Daten erhalten. Eine Kommunikation findet über Buffer statt  {\autocite[S. 112]{Rauber2013}}.
+Im Folgendem beschreibe ich einige Architekturmuster, die häufig im Entwurf paralleler Problemlösungen Anwendung finden. Im Fork-Join-Muster werden Threads für bestimmte Aufgaben erzeugt und hinterher wieder zusammengefügt {\autocite[S. 109]{Rauber2013}}. Im Master-Worker-Schema verteilt ein Master Teilbereiche von Daten an mehrere Worker und sammelt die Ergebnisse wieder ein. Der Master übernimmt also ein Scheduling im Gegensatz zum Fork-Join-Muster, welches ohne eine zentrale Instanz auskommt. Der Weg von einer Zerlegung eines Problems zu einer Allokation der Teilprobleme auf Prozessoren kann in vier Schritten beschrieben werden: Partitionierung, Auslegung der Kommunikation, Agglomeration und Mapping. Unterschieden werden hier Ansätze mit viel oder wenig Kommunikation und Parallelisierung {\autocite[S. 326f]{Bengel2008}}. Im bereits erwähnten Pipelining-Archtitekturmuster findet eine funktionale Zergliederung des Problems statt und die Daten werden nacheinander in einer Kette von Threads verarbeitet {\autocite[S. 111]{Rauber2013}}. Im Producer-Consumer-Muster gibt es mehrere Threads, die Daten erzeugen, und mehrere, die Daten erhalten. Eine Kommunikation findet über Buffer statt  {\autocite[S. 112]{Rauber2013}}.
 
 In der Performance-Analyse wird unterschieden zwischen Kosten, Beschleunigung und Effizienz unter Verwendung des PRAM-Modells (paralleler RAM). Das Performance-Verhalten bei wachsender Anzahl von Prozessoren wird Skalierbarkeit genannt {\cite{Rauber2013}}. Beschleunigung beschreibt den Faktor, um den eine Ausführung auf mehreren Workern schneller wäre als auf einem, Effizienz die Beschleunigung pro Worker {\autocite[S. 56]{McCool2012}}. Fallstricke paralleler Programmierung liegen in einer gedrosselten Skalierung, also einem nicht-linearen Anstieg der Performance mit der Anzahl genutzter Kerne verursacht unter anderem durch eine unausgeglichene Lastenverteilung durch eine ungünstige Lastenverteilung oder durch einen großen Overhead für die Verwaltung der parallelen Prozesse {\autocite[S. 74]{McCool2012}}.
 
 \subsection{Parallele Datenbankensysteme} (3 S)
+\label{P_DBS} 
 
-Trotz einer gewissen Verwandtschaft müssen von den parallelen Datenbanksystemen verteilte Datenbanksysteme abgegrenzt werden, auch wenn es Überschneidungen in den angewandten Techniken gibt. Parallele Datenbanksysteme sind räumlich integriert und die Parallelisierung ist innerhalb einer Instanz eines Datenbanksystems implementiert. In verteilte Datenbanksysteme findet eine Parallelisierung zwischen verschiedenen Instanzen unter Umständen auch unterschiedlicher Datenbanksysteme statt, die häufig räumlich getrennt sind, aber auch innerhalb eines Rechner laufen können. Dementsprechend werden in beiden Datenbanksysteme Daten von verschiedenen Prozessen gleichzeitig verarbeitet, nur sind die Kommunikationskosten in verteilten Systemen deutlich höher, da sie nur über externe Schnittstellen der Datenbanksysteme stattfinden kann und meist über Netzwerkverbindungen stattfindet und nicht direkt über geteilte Bereiche des Hauptspeichers. Die Kopplung in verteilten Systemen ist lose und die eingesetzten Datenbanksysteme können heterogen sein. Dagegen sind parallele Datenbanksysteme eng gekoppelt.
+Trotz einer gewissen Verwandtschaft müssen von den parallelen Datenbanksystemen verteilte Datenbanksysteme abgegrenzt werden, auch wenn es Überschneidungen in den angewandten Techniken gibt. Parallele Datenbanksysteme sind räumlich integriert und die Parallelisierung ist innerhalb einer Instanz eines Datenbanksystems implementiert. In verteilte Datenbanksysteme findet eine Parallelisierung zwischen verschiedenen Instanzen unter Umständen auch unterschiedlicher Datenbanksysteme statt, die häufig räumlich getrennt sind, aber auch innerhalb eines Rechner ablaufen können. Dementsprechend werden in beiden Typen von Datenbanksysteme Daten durch verschiedenen Prozessen gleichzeitig verarbeitet, nur sind die Kommunikationskosten in verteilten Systemen deutlich höher, da sie nur über externe Schnittstellen der Datenbanksysteme meist über Netzwerkverbindungen stattfinden kann. Eine Kommunikation überüber geteilte Bereiche des Hauptspeichers ist wesentlich effizienter. Die Kopplung in verteilten Systemen wird als lose bezeichnet. Die eingesetzten Datenbanksysteme können heterogen sein. Dem entgegenstehend sind parallele Datenbanksysteme eng gekoppelt.
 
 Die Architekturen paralleler Datenbanksysteme werden danach untergliedert, ob diese sich gemeinsamen Speicher bzw. Permanentspeicher teilen: Es können drei grundsätzliche Architekturen unterschieden werden, nämlich shared-all-Architekturen, Architekturen mit nur geteiltem Permanentspeicher oder nur geteiltem Speicher {\autocite{Yu1998}}. Datenbanksystemen, die auf Desktop- oder Serversystemen laufen, gehören meist der shared-all Architektur an oder nutzen für jeden Prozess gemeinsamen Speicher, aber unterschiedliche permanente Speicher. In dieser Arbeit werde ich mich auf eine shared-all Architektur beschränken. Allerdings wäre durch eine parallele Nutzung mehrerer Festplatten ein deutlicher Performancegewinn denkbar, da häufig die I/O-Operationen den Performance-Flaschenhals darstellen.
 
-Parallelität kann in Datenbanken auf verschiedene Art und Weise erreicht werden. Unterschieden wird zwischen einer Parallelität zwischen Transaktionen, zwischen Operationen, einer Implementierung paralleler Operationen und einem parallelem Zugriff auf gespeicherte Daten {\autocite{Reuter1999}}. {\textcite [S. 1]{Yu1998}} unterscheidet zwischen Inter- und Intra-Operator-Parallelität.  
+Parallelität kann in Datenbanken auf verschiedene Art und Weise erreicht werden. Unterschieden wird zwischen einer Parallelität zwischen Transaktionen, zwischen Operationen, einer direkte Implementierung paralleler Operationen und einem parallelem Zugriff auf gespeicherte Daten {\autocite{Reuter1999}}. {\textcite [S. 1]{Yu1998}} unterscheiden zwischen Inter- und Intra-Operator-Parallelität. Auf der Ebene der Architektur grenzen {\textcite{Yu1998}} unabhängige Parallelität, Pipelined-Parallelität und partitionierte Parallelität voneinander ab. Während in der unabhängigen Parallelität verschiedene Aufgaben gleichzeitig ausgeführt werden, findet in einer Pipeline ein Datenfluss durch mehrere verschiedene Operationen statt und in der partitionierten Parallelität werden die Daten aufgeteilt in Pakete, die von gleiche Operationen verarbeitet werden {\autocite{DeWitt1992}}.
 
+Die Effektivität von Multiprozessor-Algorithmen hängt davon ab, inwieweit eine gleiche Lastverteilung gelingt und der Koordinierungs- und Synchronisierungs-Overhead minimal gehalten werden kann {\autocite{Lakshmi1990}}. Die Kosten für parallele Datenbankoperationen werden nach I/O-Kosten, CPU-Kosten und Kommunikationskosten unterschieden {\autocite [S. 23]{Yu1998}}. Kommunikationskosten und das notwendige Scheduling, d.~h. die Aufteilung der Daten und Zusammenführung der Ergebnisse, sind dafür verantwortlich, dass die Performance von parallelen Operatoren nicht mit der Threadzahl linear wächst. Ein Load Balancing kann statisch und dynamisch vorgenommen werden, wobei ein dynamisches Load Balancing zwar besser auf unterschiedliche Charakteristika der zu prozessierenden Daten reagieren kann, aber den Overhead erhöht. Allerdings gibt es meist nur Heuristiken für eine optimale Berechnungs- wie Datenpartitionierung.
 
-3 Arten der Parallelität, Independent, Pipelined, Partitioned {\cite{Yu1998}}
-
-
-
-
-Kosten: IO CPU Communucation {\cite [S. 23]{Yu1998}}
-
-Load Balancing: Berechnungspartitionierung <-> Datenpartitionierung: Kerne (physikalische Ressourcen) und Taks (optimal np schwer) -> Heutristik
-
-Die Effektivität von Multiprozessor-Algorithmen hängt davon ab, inwieweit gleiche Lastverteilung gelingt und Koordinierungs- und Synchronisierungs-Overhead minimal gehalten
-werden kann. {\autocite{Lakshmi1990}}
-
-
-Parallel query optimierung, 
-
-
-Wichtig für die Parallelität von Datenbankabfragen ist die Partitionierung nach Round Robin, Bereichen (Range) oder Hash-Werten. {\cite{Yu1998}}
-zuerst 3 algorithmen: hash, zufall
-range, hash, round-robin/Block
-
-noch: räumliche Daten: R-Baum, 
-
-Load Balancing, scheduling cost
-
+Wichtig für die Parallelität von Datenbankabfragen ist die Partitionierung der Daten. Hier sind vor allem drei Strategien relevant: Round Robin verteilt die Daten abwechselnd gleichmäßig auf die Prozesse, eine Bereichspartionierung unterteilt den Wertebereich und eine Hashpartionierung verteilt nach einer Hashfunktion in Buckets {\autocite{Yu1998}}. Sowohl eine Bereichs- als auch eine Hashpartionierung kann, insbesondere wenn keine Statistiken über die Daten vorliegen, zu einer Ungleichverteilung führen. Dagegen führt Round Robin zwar zu einer gleichmäßigen Verteilung, allerdings nicht zu unterschiedlichen Eigenschaften der Daten innerhalb einer Partitionen, die evtl. für eine Implementierung ausgenutzt werden können. Deutlich komplexer ist eine Partitionierung von Standard-Datentypen. Auf Ansätze zur Partitionierung von räumlichen Daten werde ich im \autoref{Spatial Join} detailliert eingehen. 
 
 
 \subsection{Parallele Datenbankoperatoren}
 
 \subsubsection{Sort} (2 S)
+\label{Sort} 
 
 Damit Sortierverfahren für den Einsatz in Datenbanksystemen infrage kommen, müssen sie in der Lage sein, Daten auch zu sortieren, wenn sie nicht vollständig in den Hauptspeicher passen, also externe Sortierverfahren sein. Das bekannteste dieser externen Sortierverfahren ist Merge-Sort. Das optimale Laufzeitverhalten für externe Sortierverfahren ist $ n \log n $. Für eine optimale Parallelisierung ist also $ \frac{n \log n} {k-Zahl} $ zu erwarten, sofern keine zusätzlicher Verwaltungsaufwand anfällt. Eingehen werde ich hier nur auf record-basierende Sortierverfahren, die ganze Tuple sortieren im Gegensatz zu lediglich Schlüsseln (und auch nur Schlüssel ausgeben) {\autocite{Salzberg1990}}.Unter den externen Sortierverfahren eigenen sich vor allem zwei Ansätze für eine parallele Implementierung: vom Merge-Sort abgeleitete Verfahren und Sortiernetzwerke. {\textcite[S. 831ff]{Taniar2000}} stellt in einem Übersichtsartikel fünf Algorithmen vor, die sich insbesondere gut für eine parallele Implementierung eignen. {\textcite[S. 9ff] {Bitton1984}} ergänzend darüber hinaus in seiner Taxanomie paralleler Sortiertverfahren die Sortiernetzwerke, als deren Beispiel ich auf das Bitonic-Sortiernetzwerk eingehen werde.
+
+\begin{figure}
+	\centering
+	\includegraphics[width=0.5\textwidth, angle =90]{Bilder/b-merge-sort.png}
+	\caption{Paralleler binärer Merge-Sort \autocite[S. 334]{Bitton1983}}
+	\label{img:mergesort}
+\end{figure}
 
 Parallele Merge-All Sorts {\autocite[S. 831f]{Taniar2000}} setzen sich aus zwei Phasen zusammen. In einer lokalen Sortierphase wird mit einem seriellen externen Sortierverfahren sortiert. Der finale Mergeschritt wird von einem Prozess ausgeführt. Nachteil dieses Verfahrens ist ein sehr umfangreicher letzter Schritt, der nur in einem Prozess stattfindet. Im Unterschied dazu teilt der binäre Merge-Sort {\autocite[S. 832f]{Taniar2000}} die finale Merge-Phase in eine Pipeline von Merge-Schritten auf, in der je zwei Läufe zusammengefügt werden. Die Idee des parallelen Redistribution Binary-Merge-Sort {\autocite[S. 833]{Taniar2000}} ist es, auf allen Ebenen der Merge-Pipeline-Hierarchie alle Kerne zu nutzen. Mithilfe einer Range-basierten Aufteilung zwischen intermediären und finalen Merge-Schritten kann gewährleistet werden, dass in jedem Merge-Schritt gleich viele Kerne genutzt werden. Dagegen reduziert der parallele Merge-All Sort {\autocite[S. 833f]{Taniar2000}} die höhe des Merge-Baumes, indem der Sortierprozess auf zwei Schritte reduziert wird: eime lokale Sortier- und eine finale Mergephase. Der parallele verteilende Sort arbeitet nur mit einer beginnende Range-baiserenden Aufteilung und einem abschließenden Sortierschritt. Bei den Sortierverfahren, die eine Range-basierende Aufteilung nutzen, ist das zentrale Probleme, in Näherungsverfahren oder genau berechnet den besten Aufteilungsvektor zu finden {\autocite{Lu1994}{Iyer1989}}. Bei unbekannten Relationen bieten sich also eher Verfahren an, die eine zufällige Aufteilung voraussetzen.
 
@@ -236,6 +210,13 @@ Allerdings nutzt der bisher beschriebene binäre Merge-Sort vorhanden Arbeitsspe
 
 {\textcite{Salzberg1990}} betont, dass die Phasen, die die Läufe sortieren, vor allem durch die CPU limitiert sind, aber die Merge-Phasen durch die Geschwindigkeit des Zugriffs auf den permanenten Speicher, da die einzelnen Läufe, sofern größer als der Hauptspeicher, auf Festplatten ausgelagert werden. Dementsprechend lohnt es sich, jedem Lauf eine eigenen Festplatte zuzuweisen. {\textcite{Hao2009}} erläutert die optimale Verwendung des Prozessor-Caches.
 
+\begin{figure}
+	\centering
+	\includegraphics[width=0.75\textwidth]{Bilder/bitonic_block.png}
+	\caption{Block Bitonic Sortiernetzwerk mit zwei Prozessoren \autocite[S. 335]{Bitton1983}}
+	\label{img:bitonic}
+\end{figure}
+
 Das Bitonic-Sortiernetzwerk {\autocite[S. 335f]{Bitton1983}} hat den Vorteil, dass in jedem Schritt die gleiche Anzahl von Kernen genutzt wird. Jeder Schritt besteht aus parallelen Modulen, die Werte vergleichen, in 2 Gruppen aufteilen und dann in einen nächsten Schritt transportieren. Der Algorithmus sortiert $n$ Werte mit $\frac {n} {2} $ Vergleichs-/Austauschmodulen in $\frac{1}{2} \log n (\log n +1)$ Schritten. Abbildung x zeigt Block-Bitonic-Sort mit 2 Modulen. Module können als Prozessoren/Kerne begriffen werden. Verallgemeinert auf einen externen Algorithmus werden in den Modulen die Vergleiche mit einem externen Sortieralgorithmus ausgeführt. Sortiertnetzwerke stellen also eine Alternative dar zum Ansatz des Piplelinings. Da der Algorithmus höchstens $2p$ Blöcke sortieren kann, braucht es eine vorbereitende Phase, beispielsweise mit einem parallelen 2-Wege-Merge-Sort, bis die Blockgröße für den finalen Schritt erreicht. Die Gesamtkosten des Bitonic-Sortiertnetzwerkes betragen:
 
 \[ \left[ \log _B (\frac {N} {B P}) + \frac {\log _2 ^2 2 P} {2} + \frac {\log _2 ^2 P} {2} \right] ( \frac {N}{B P}) C _{P} ^{B} \]
@@ -245,12 +226,13 @@ Das Bitonic-Sortiernetzwerk {\autocite[S. 335f]{Bitton1983}} hat den Vorteil, da
 Untersuchungen von {\textcite{Bitton1984}} legen nahe, dass sich für externes Sortieren der parallele binäre Merge-Sort mit Pipelining am besten eignet. Dagegen stellt {\textcite{Menon1986}} fest, dass der binärer Merge-Sort-Algorithmus ist nur bei großem $n$ und einer kleiner Kernzahl schneller als der Block Bitonic Sort.
 
 \subsubsection{Euqi-Join} (2 S)
+\label{Equi Join} 
 
-Joins gehören zu den teuersten Operatoren in Standard-Datenbanken und sind die einzigen Operatoren, die es erlauben, mehrere Relationen zu verbinden. Dementsprechend werden sie sehr häufig angewandt. Dementsprechend umfangreich ist die Diskussion um mögliche Performancegewinne durch eine Parallelisierung {\autocite{Richardson1987}{Valduriez1984}{Schneider1989}{DeWitt1985}{Lu1994}}. Die wichtigsten Join-Operatoren sind der Nested-Loop-Join, Sort-Merge-Join, die Gruppe der Hash-Joins und Hash-partitionierende Joins {\autocite{Mishra1992}[S. 147ff]{Lu1994}}, auf deren parallele Implementierung ich im folgenden eingehen werde.
+Joins gehören zu den teuersten Operatoren in Standard-Datenbanken und sind die einzigen Operatoren, die es erlauben, mehrere Relationen zu verbinden. Dementsprechend werden sie sehr häufig angewandt und die Diskussion um mögliche Performancegewinne durch eine Parallelisierung ist umfangreich {\autocite{Richardson1987, Valduriez1984, Schneider1989, DeWitt1985, Lu1994}}. Die wichtigsten Join-Operatoren sind der Nested-Loop-Join, Sort-Merge-Join, die Gruppe der Hash-Joins und Hash-partitionierende Joins {\autocite{Mishra1992, Lu1994}}, auf deren parallele Implementierung ich im folgenden eingehen werde.
 
 Da sich allgemein Schleifen sehr einfach parallelieren lassen, liegt für den Nested Loop eine sehr einfacher paralleler Algorithmus vor. Allerdings ist der Nested Loop Join in seiner seriellen Implementierung sehr teuer. Insbesondere wenn die Selelektivität gering ist, sind die meisten Vergleiche nicht notwendig. Deswegen lohnt sich der Nested Loop Join auch in einer parallelen Variante nur, wenn entweder ein Full-Out-Join vorgenommen wird oder fast alle Tupel miteinander verbunden werden. Die Komplexität beträgt $ O(n m) $, also im parallelen Fall $ O( \frac {n m} {p} )$ {\autocite[S. 72]{Mishra1992}}. Im Gegensatz zu den Join-Algorithmen, die Hashing nutzen, ist der Nested-Loop-Join und auch der Sort-Merge-Join auch in der Lage, Bereichs-Verschmelzungen vorzunehmen, zumindest in der Grundform. 
 
-Der Sort-Merge-Join gehört zu den effizienten Algorithmen in Einkern-Datenbanksystemen. Die Idee ist es, zuerst beide Relationen, die verschmolzen werden sollen, zu sortieren, um sie dann einfach verbinden zu können {\autocite[S. 149]{Lu1994}}. Wie sich der Sort-Schritt parallelisieren lässt, habe ich bereits ausführlich erläutert. Allerdings ist es schwer, den Merge-Schritt zu parallelisieren. Sort-Merge-Joins verbessert sich nur schwach mit der Anzahl der Prozessoren {\autocite{Yu1998}}. Ein Ansatz einer weitergehenden Parallelisierung wird mit der Fragment und Replicate Methode vorgestellt {\autocite {Richardson1987}}.  Beide zu verschmelzenden Tabellen werden partitioniert. Hier gibt es zwei Möglichkeiten: Jede sortierte Partition der Basistabellen aus R wird mit jeder aus S mit Merge-Join verbunden oder die kleinere Relation wird zuerst verschmolzen. Dieser Ansatz ermöglicht eine stärkere Parallelisierung, hat aber Probleme in der Performance, da er eine Annäherung an einen Loop Join darstellt. In einer anderen Methode findet eine Range-Partitionierung in k Fragmente statt. Die entsprechenden Paare können dann verschmolzen werden. \textcite{Iyer1989} schlagen ein Verfahren zur Ermittlung einer idealen Partitionierung vor. Die Sort-Merge-Join-Algorithmen erhalten die Reihenfolge der Relationen und haben Vorteile, wenn Relationen bereits sortiert sind bzw. ein Index vorliegt.
+Der Sort-Merge-Join gehört zu den effizienten Algorithmen in Einkern-Datenbanksystemen. Die Idee ist es, zuerst beide Relationen, die verschmolzen werden sollen, zu sortieren, um sie dann einfach verbinden zu können {\autocite[S. 149]{Lu1994}}. Wie sich der Sort-Schritt parallelisieren lässt, habe ich bereits ausführlich erläutert. Allerdings ist es schwer, den Merge-Schritt zu parallelisieren. Sort-Merge-Joins verbessert sich nur schwach mit der Anzahl der Prozessoren {\autocite{Yu1998}}. Ein Ansatz einer weitergehenden Parallelisierung wird mit der Fragment- und Replicate-Methode vorgestellt {\autocite {Richardson1987}}.  Beide zu verschmelzenden Tabellen werden partitioniert. Hier gibt es zwei Möglichkeiten: Jede sortierte Partition der Basistabellen aus R wird mit jeder aus S mit Merge-Join verbunden oder die kleinere Relation wird zuerst verschmolzen. Dieser Ansatz ermöglicht eine stärkere Parallelisierung, hat aber Probleme in der Performance, da er eine Annäherung an einen Loop Join darstellt. In einer anderen Methode findet eine Range-Partitionierung in $k$ Fragmente statt. Die entsprechenden Paare können dann verschmolzen werden. \textcite{Iyer1989} schlagen ein Verfahren zur Ermittlung einer idealen Partitionierung vor. Die Sort-Merge-Join-Algorithmen erhalten die Reihenfolge der Relationen und haben Vorteile, wenn Relationen bereits sortiert sind bzw. ein Index vorliegt.
 
 Hash-basierte Join-Algorithmen sind besser geeignet für eine Parallelisierung. Beide Phasen, die Partitionierungs-Phase und Join-Phase, können parallelisiert werden. Die Grundidee ist es, beide Relationen mithilfe einer Hashfunktion in Buckets aufzuteilen und nur Tuple zu testen, die in gleichen Buckets sind. Die Komplexität der Grundform beträgt $O(m + n)$, da jede Relation nur einmal gescannt werden muss, sofern die Hashfunktion und die Verteilung ideal ist. Für eine Shared-all-Architektur bietet sich eine globale Hash-Tabelle an. Alle Einprozessor-Hashjoin-Algorithmen können auf diese Art und Weise parallelisiert werden. Probleme können bei ungünstigen Hash-Funktionen mit ungleicher Verteilung und beim Überlauf der Hash-Tabellen auftreten. Auf diese Problematik werde ich später eingehen. Grace- und Hybrid-Hash-Join-Verfahren eignen sich besonders gut für eine Parallelisierung {\autocite{DeWitt1985}}. Eine mögliche Optimierung stellen Bit-Array-Datenstruktur dar, um zu markieren, dass matchende Tuple existieren {\autocite{Valduriez1984}}.
 
@@ -260,85 +242,166 @@ Hash-basierte Join-Algorithmen sind besser geeignet für eine Parallelisierung. 
 	\item Hybrid-Join: Versucht I/O-Verkehr zu minimieren, indem beide Phasen des Grace-Joins nicht völlig getrennt sind. In jedem Kern findet eine Join-Phase direkt im Hauptspeicher statt. Drei Phasen: 1) R in n Buckets. Erstes Bucket in-Memory. 2) S in n Buckets. Wieder erstes Bucket direkt im Speicher und testen auf Joins (parallel). 3) Der Rest wird Verschmolzen. Versucht für alle Buckets ein Overflow zu vermeiden. Partitionierung von R überlappt mit Joining in Memory {\autocite{Schneider1989}}.
 \end{itemize}
 
-Hashtabellen müssen in den Speicher passen, da sonst in der Matching Phase der Join-Operatoren teure I/O-Operationen anfallen. Prinzipiell werden zwei Lösungsansätze diskutiert: Es kann von mehr Partitionen auszugehen werden als theoretisch notwendig sind, um einer ungleichen Datenverteilung vorzubeugen. Allerdings sind für diesen Ansatz Kenntnisse über die Relationen notwendig und eine sinnvolle Wahl der Anzahl der Partitionen ist nur durch einen Optimierer möglich oder bei vorher bekannten Relationen. {\textcite{Lu1994}} diskutiert, welche Statistiken über die Verteilung innerhalb der Relationen notwendig sind und stellt sich Fragen das Load Balancing, also nach einer First-fit- oder Best-fit-Strategie, aber auch ob das Load Balancing dynamisch oder statisch vorgenommen wird.  Ein anderer Ansatz ist das nachträgliche Aufteilen der Hashtabellen {\autocite{Mishra1992}}. Das Overflow-Porblem der Buckets kann durch einen rekursiven Partitionierungsprozess gelöst werden {\fullcite{DeWitt1985}}.
+Hashtabellen müssen in den Speicher passen, da sonst in der Matching Phase der Join-Operatoren teure I/O-Operationen anfallen. Prinzipiell werden zwei Lösungsansätze diskutiert: Es kann von mehr Partitionen auszugehen werden als theoretisch notwendig sind, um einer ungleichen Datenverteilung vorzubeugen. Allerdings sind für diesen Ansatz Kenntnisse über die Relationen notwendig und eine sinnvolle Wahl der Anzahl von Partitionen ist nur durch einen Optimierer. {\textcite{Lu1994}} diskutiert, welche Statistiken über die Verteilung innerhalb der Relationen notwendig sind und wie das Load Balancing gestaltet werden soll, also ob einee First-fit- oder Best-fit-Strategie gewählt wird, aber auch, ob das Load Balancing dynamisch oder statisch vorgenommen wird. Ein anderer Ansatz ist das nachträgliche Aufteilen der Hashtabellen {\autocite{Mishra1992}}. Das Overflow-Problem der Buckets kann durch einen rekursiven Partitionierungsprozess gelöst werden {\autocite{DeWitt1985}}.
 
 Ein weiterer Faktor für die Performance ist die Task-Generierung, also die Frage, ob Subrelationen überlappend oder vollständig geteilt werden, und die Anzahl der erzeugten Tasks. Bei Hash-Joins z.~B. stellt sich die Frage, ob für jeden Kern ein Prozess gestartet wird oder nicht. Beim Grace-Join-Algorithmus werden teils mehrere Threads pro Kern verwendet {\autocite{Lu1994}}. 
 
-Hash-partitionierende Joins folgen einem Devide und Conquer Ansatz und kombinieren die Idee der Hash-Joins mit der Performance von Sort-Merge-Sorts in ihrer Einkern-Version. Damit werden die Schwierigkeit umgangen, Sort-Merge-Joins zu parallelisieren {\autocite[S. 75ff]{Mishra199}}. Die Idee ist simpel. Beide Relationen werden mit einer Hash-Funktion auf die Threads verteilt. Dem folgend findet in jedem Thread parallel ein Sort-Merge-Join lokal statt {\fullcite{Richardson1987}}. Wenn die R-Relation größer ist als der Arbeitsspeicher, gibt es mehrere Läufe {\autocite{Lu1990}}.
+Hash-partitionierende Joins folgen einem Divide- und Conquer-Ansatz und kombinieren die Idee der Hash-Joins mit der Performance von Sort-Merge-Sorts in ihrer Einkern-Version. Damit werden die Schwierigkeit umgangen, Sort-Merge-Joins zu parallelisieren {\autocite[S. 75ff]{Mishra199}}. Die Idee ist simpel. Beide Relationen werden mit einer Hash-Funktion auf die Threads verteilt. Dem folgend findet in jedem Thread lokal parallel ein Sort-Merge-Join statt {\autocite{Richardson1987}}. Wenn die R-Relation größer ist als der Arbeitsspeicher, gibt es mehrere Läufe {\autocite{Lu1990}}.
+
+In einem detaillierter experimenteller Performance-Vergleich paralleler Join-Implementierungen stellt {\textcite{Valduriez1984}} fest, dass Nested Loop-Joins bei einer sehr hoher Prozessor-Zahl die beste Performance haben, Sort-Merge-Joins bei großen Relationen und Hash-Joins, wenn es eine vergleichsweise geringe Anzahl von Treffern gibt. Zu beachten ist aber, dass hier teils sehr einfache Varianten der Algorithmen verwendet werden. Darüber hinaus haben derzeitige Desktop- oder Server-Prozessoren nicht eine Kernzahl, die mit den Prozessorzahlen damaliger Großrechnersysteme vergleichbar ist. Nach {\textcite{Richardson1987}} haben Hash-basierende Algorithmen die beste Performance unter den parallelen Join-Implementierungen {\autocite[vgl. auch ]{Gerber1986}}. Die Kommunikation zwischen den Clustern ist in einer Shared-Nothinng-Architektur ein Flaschenhals. Bei normal verteilten Relationen sind Hybrid-Joins als parallele Algorithmen am performantesten {\autocite{Schneider1989}}. {\textcite{DeWitt1985}} schränkt ein, dass ein paralleler Hybrid-Join eine schwächere HD-Nutzung und eine stärkere Prozessornutzung hat als der Grace-Join. Hybrid-Joins profitieren insbesondere davon, dass heutzutage deutlich mehr Hauptspeicher zur Verfügung steht als in den 80ern, als die meisten hier zitierten Performance-Analysen vorgenommen worden sind. Ein grundsätzliches Problem von Hash-Algorithmen ist es, dass diese für eine ungünstige Verteilung von Daten anfällig sind {\autocite{Lakshmi1990}}.
 
 
-In einem detaillierter experimenteller Performance-Vergleich paralleler Join-Implementierungen stellt {\textcite{Valduriez1984}} fest, dass Nested Loop-Joins bei einer sehr hoher Prozessor-Zahl die beste Performance haben, Sort-Merge-Joins bei großen Relationen und Hash-Joins, wenn es eine vergleichsweise geringe Anzahl von Treffern gibt. Zu beachten ist aber, dass hier teils sehr einfache Varianten der Algorithmen verwendet werden. Darüber hinaus haben derzeitige Desktop- oder Server-Prozessoren nicht eine Kernzahl, die mit den Prozessorzahlen damaliger Großrechnersysteme vergleichbar ist. Nach {\textcite{Richardson1987}} haben Hash-basierende Algorithmen die beste Performance unter den parallelen Join-Implementierungen {\autocite[vgl. auch ]{Gerber1986}}. Die Kommunikation zwischen den Clustern ist in einer shared-nothinng-Architektur ein Flaschenhals. Bei normal verteilten Relationen sind Hybrid-Joins als parallele Algorithmen am performantesten {\fullcite{Schneider1989}}. {\textcite{DeWitt1985}} schränkt ein, dass ein paralleler Hybrid-Join eine schwächere HD-Nutzung und eine stärkere Prozessornutzung hat als der Grace-Join. Hybrid-Joins profitieren insbesondere davon, dass heutzutage deutlich mehr Hauptspeicher zur Verfügung steht als in den 80ern, als die Performance-Analysen vorgenommen worden sind. Ein Grundsätzliches Problem von Hash-Algorithmen ist es, dass diese Anfällig sind für eine ungünstige Verteilung von Daten {\autocite{Lakshmi1990}}.
+\subsubsection{Spatial Join} (3  S)
+\label{Spatial Join} 
 
+Die Berechnung räumlicher Prädikate ist meistens CPU-intensiv. Dementsprechend macht es Sinn, vor einer genauen Berechnung ein mögliches Ergebnis abzuschätzen, um die Anzahl der Join-Kandidaten vor einer exakten Berechnung einschränken zu können. Der Spatial-Join besteht deswegen meist aus zwei Phasen, einer Phase, Filter-Schritt genannt, in der ein Set an Kandidaten über eine Abschätzung bestimmt wird, und eine zweite Refinement-Phase, in der die exakte geometrische Berechnung vorgenommen wird {\autocite[S. 309f]{Rigaux2001}}. Eine Parallelisierung findet über eine Partitionierung statt {\autocite{Zhou1998}}. Für den Filterschritt werden verschiedene räumliche Dekompositionsstrategien angewendet. Der Refinementschritt kann separat implementiert werden. Dann ist nur eine Partitionierung über Round Robin notwendig. Wenn der Refinementschritt in den Spatial-Join-Operator integriert wird, sind komplexere Strategien der Lastenverteilung möglich {\autocite{Brinkhoff1996}}. Sowohl für die Partionierung als auch für den Filterschritt wird eine vereinfachte Repräsentation räumlicher Stukturen gewählt, die die Komplexität räumlicher Strukturen reduziert. Im Allgemeinen wird ein geometrisches Objekt über seine minimale Bounding Box (MBB) genähert, also das minimale Rechteck, welches das geometrische Objekt umschließt {\autocite[S. 202f]{Rigaux2001}}. Allerdings existieren auch andere Ansätze wie z.~B. das True-Hit-Filtering {\autocite{Bouros2019}}.
 
-\subsubsection{spatialjoin} (3  S)
+Eine Parallelisierung basiert auf einer vorherigen Partitionierung. Partitionierungstechniken natürlicher Joins können nicht für Spatial-Joins genutzt werden. Ein in nicht-räumlichen Datenbanken üblicher SASJ-Ansatz (Single Assignment, Single Join) kann hier nicht verwendet werden. Räumliche Paritionierungsmethode sind entweder Mehrfachzuweisungs-Single-Joins (MASJ) oder Einfachzuweisungs-Mehrfach-Joins (SAMJ), anhängig davon, ob eine MBB mehreren Partitionen zugewiesen wird oder beispielsweise der Mittelpunkt als Repräsentation gewählt wird. Demzufolge können als Join-Kandidaten Duplikate entstehen, die üblicherweise entweder direkt bei der Entstehung entfernt werden oder anschließend an den Filterschritt. Da insbesondere beim Ansatz mit Z-Ordnungs-Quadbäumen eine Duplikatsentfernung sehr aufwändig ist, werden Ansätze diskutiert, die lediglich auf eine Duplikatsvermeidung setzen, aber Duplikate nicht restlos ausschließen {\autocite{Jacox2007}{Luo2002}}. 
 
-Die Berechnung räumlicher Prädikate ist meist langsam. Dementsprechend macht es Sinn, vor einer genauen Berechnung ein mögliches Ergebnis abzuschätzen, um die Join-Kandidaten vor einer exakten Berechnung einschränken zu können. Der Spatial-Join besteht deswegen meist aus zwei Phasen, einer Phase, Filter-Schritt genannt, in der ein Set an Kandidaten über eine Abschätzung bestimmt wird, und eine zweite Refinement-Phase, in der die exakte geometrische Berechnung vorgenommen wird {\autocite[S. 309f]{Rigaux2001}}. Eine Parallelisierung findet über eine Partitionierung statt {\autocite{Zhou1998}}. Für den Filterschritt werden verschiedene räumliche Dekompositionsstrategien angewendet. Der Refinementschritt kann entweder seperat implementiert werden. Dann ist nur eine Aufteilung über Round Robin notwendig. Wenn der Refinementschritt in den Spatial Join Operator integriert wird, sind komplexere Strategien der Lastenverteilung möglich {\autocite{Brinkhoff1996}}. Sowohl für die Partionierung als auch für den Filterschritt wird eine vereinfachte Repräsentation räumlicher Stukturen gewählt, die die Komplexität räumlicher Strukturen reduziert. Im Allgemeinen wird ein geometrisches Objekt über seine minimale Bounding Box (MBB) genähert, also das minimale Rechteck, welches das geometrische Objekt umschließt {\autocite[S. 202f]{Rigaux2001}}.
+Eine Partitionierung basiert üblicherweise auf einer räumlichen Dekomposition. R-Bäume werden für SAMJ genutzt, R+-Bäume, Gitter und der Z-Wert für MASJ {\autocite{Zhou1998}}. {\textcite{Brinkhoff1996}} schlägt eine parallele Partitionierung mit R*-Subbäumen und einem globalen Buffer vor. Ein regelmäßiges Gitter als Partitionierungskriterium hat den Nachteil, dass eine Verteilung der Objekte auf die Gitterzellen sehr ungleich sein kann. Als Lösung gibt es mehrere Ansätze: Wenn es deutlich mehr Gitterzellen als spätere Threads gibt, kann durch eine Neuzuweisung einzelner Gitterzellen die Verteilung gleichmäßiger gemacht werden {\autocite{Patel1996}}. Auch kann eine Technik, Sort-Tile-Recursive genannt, dafür genutzt werden, ein unregelmäßiges Gitter zu erzeugen, welches eine Gleichverteilung garantiert. Dieses Verfahren wurde ursprünglich für den Bulk-Load von R-Bäumen entwickelt {\autocite{Leutenegger1997}}.
 
-Partitionierungstechniken natürlicher Joins können nicht für räumliche Joins genutzt werden. Ein in nicht räumlichen Datenbanken üblicher SASJ-Ansatz (single sssignment, single join) kann hier nicht verwendet werden. Räumliche Paritionierungsmethode sind entweder Mehrfachzuweisungs-Single-Joins (MASJ) oder Einfachzuweisungs-Mehrfach-Joins (SAMJ) anhängig davon, ob eine MBB mehreren Partitionen zugewiesen wird oder beispielsweise der Mittelpunkt als Repräsentation gewählt wird. Eine Partitionierung basiert üblicherweise auf einer räumlichen Dekomposition. R-Bäume werden für SAMJ genutzt, R+-Bäume, Gitter und der Z-Wert für MASJ {\autocite{Zhou1998}}. {\textcite{Brinkhoff1996}} schlägt eine parallele Partitionierung mit R*-Bäume mithilfe von Sub-R-Bäume und einem globaler Buffer. TODO irregular Grid k-d-bäume
+Sowohl für die Partitionierung als auch für den Filter-Schritt werden verschiedene räumliche Datenstrukturen verwendet, die ich einführend kurz erläutere, bevor ich wichtige Ansätze für Spatial-Joins kurz skizziere. Die Z-Ordnung ist ein Ansatz, mehrdimensionale Objekte so mit einem regulären Gitter zu approximieren, dass nahe beieinander liegende Punkte auch in der linearen Ordnung nahe beieinanderliegen. Damit können eindimensionale Baumstrukturen als Index genutzt werden. In der Z-Ordnung wird ein Gitter in der Form aufgebaut und strukturiert, dass das Gitter rekursiv in Quadranten aufgeteilt wird. Diese Quadranten werden mit einem Bitstring codiert in der Reihenfolge eines liegenden Z. Für eine Indexierung wird die Z-Ordnung in Quad-Bäumen eingefügt, in denen nicht die MBBs als Aproximation genutzt werden, sondern die Gitterzellen {\autocite[S. 227ff]{Rigaux2001}}.
 
-Sowohl für die Partitionierung als auch für den Filter-Schritt werden verschiedene räumliche Datenstrukturen verwendet, die ich einführend kurz erläutere, bevor ich wichtige Ansätze für Algorithmen für diesen Schritt kurz skizziere. Die Z-Ordnung ist ein Ansatz, mehrdimensionale Objekte so mit einem regulären Gitter zu approximieren, dass nahe beieinander liegende Punkte auch in der linearen Ordnung nahe beiander liegen. Damit können eindimensionale Baumstrukturen als Index genutzt werden. In der Z-Ordnung wird ein Gitter in der Form aufgebaut und strukturiert, dass das Gitter rekursiv in Quadranten aufgeteilt wird. Diese Quadranten werden mit einem Bitstring codiert in der Reihenfolge eines liegenden Z.
+R-Bäume sind die wichtigste Indexstruktur räumlicher Daten, die Rechtecke in einem Höhen-balancierten Vielwegesuchbaum verwalten. Teilbäume sind nicht zwingend disjunkt. Knoten teilen den Raum in Rechtecke auf und in den Blättern sind die Rechtecke, also im Allgemeinen MBBs, gespeichert. Jeder Knoten außer der Wurzel hat zwischen $m$ und $2 m$ Einträge.
 
-R-Bäume sind die wichtigste Indexstruktur räumlicher Daten, die Rechtecke über eine Vielwegesuchbaum verwalten. Teilbäume sind nicht zwingend disjunkt. Knoten teilen den Raum in Rechtecke auf und in den Blättern sind dann die Rechtecke, also im Allgemeinen MBBs gespeichert. Jeder Knoten außer der Wurzel hat zwischnen $m$ und $2 m$ Einträge. Alle Blätter liegen gleich weit entfernt von der Wurzel.
+Grundsätzlich reduziert der Filter-Schritt die Relation auf die Kandidaten, deren Approximierungen sich überlappen. Ansätze nutzen entweder eine Indexstruktur über Varianten von R-Bäumen bzw. Z-Ordering-Quadbäume oder verwenden eine Hashing-Stratgie.
 
-Grundsätzlich reduziert der Filter-Schritt die Relation auf die Kandidaten, deren MBBs sich überlappen. Ansätze nutzen entweder eine Indexstruktur über Varianten von R-Bäumen oder Z-Ordering-Bäume oder verwenden eine Hashing-Stratgie.
+Eine Nutzung einer einfachen Gittervariante der Z-Ordnung, in der Objekte durch minimale Quadranten genähert werden, führt zu einer hohen Zahl von Duplikaten. Deswegen schlagen {\textcite[S. 280f]{Rigaux2001}} eine Approximation durch ein festes Gitter vor. Kandidaten werden bestimmt durch parallele Durchläufe der beiden Bäume unter Verwendung eines Sweepline-Scans der z-Achse entlang. Im Anschluss ist es notwendig, nach einer Sortierung der Objekte Duplikate zu entfernen. Nachteil der Nutzung von Z-Ordnungs-Quadbäumen ist ein sehr schlechtes Worstcase-Verhalten mit $n_1 n_2$ mit $n_i$ gleich der Anzahl der Blätter des entsprechenden Baumes und der zusätzliche Aufwand der Duplikatsentfernung, bei der sortiert werden muss und die nicht on-the-fly vorgenommen werden kann {\autocite[S. 284]{Rigaux2001}}. 
 
- 
+Wenn für beide Relationen bereits R-Bäume vorliegen, was häufig der Fall ist, wenn Spatial-Joins direkt auf Relationen in der Datenbank angewandt werden, bietet sich ein synchronisierter traversaler Durchlauf durch beide Bäume an. Wichtige Kriterien für eine effiziente Implementierung ist die Reduktion von MBB-Schnitttests, die wesentlich teurer sind als Vergleiche von Standard-Daten. Daneben müssen I/O-Zugriffe reduziert werden. Deswegen ist eine simple Umsetzung der traversalen Durchläufe nicht effizient, da sehr viele Rechteck-Schnitttests notwendig sind {\autocite[S. 284f]{Rigaux2001}}. Zwei Ansätze werden vorgeschlagen, die Anzahl notwendiger Tests zu reduzieren: Einerseits kann der Suchraum in jedem Knoten auf den Schnitt mit demselben Knoten im anderen Baum und damit die Zahl der zu testenden Kandidaten reduziert werden. Andererseits kann in den Blättern, die je eine Speicherseite an Objekten beinhalten, ein Sweep-Line-Algorithmus für den Test auf Rechteckeschnitte verwendet werden, der in solch einer Form vereinfacht werden kann, dass er kein optimales Verhalten bei einer sehr großen Anzahl von Rechtecken mehr zeigt, da deren Anzahl durch die geringe Größe der Speicherseiten begrenzt ist {\autocite[S. 286f]{Rigaux2001}}. 
 
-Unterschiedliche Herangehensweisen Filter-Schritt:
-z-ordering spatial join
-R-Trees: Verbesseungen: Restricting Suchraum und Sweep Line
+Sofern keine Indexe über die räumlichen Attribute vorhanden sind, kann ein Spatial-Hashjoin-Ansatz verfolgt werden {\autocite[S. 288]{Rigaux2001}}. Buckets sind hier Gitterzellen, denen diejenigen MBBs zugeordnet werden, die die entsprechende Zelle schneiden. Offensichtlich kann ein Objekt auch mehreren Gitterzellen zugeordnet werden. Dementsprechend sind unter den Join-Kandidaten Duplikate möglich, die in der Regel dort entfernt werden, wo sie entstehen {\autocite{Zhou1998, Luo2002}}. Die Effizienz des Spatial-Hashjojns hängt von der Wahl der Hashfunktion ab: Es sollte eine gleiche Verteilung der Rechtecke auf die Buckets angestrebt werden, die Buckets sollten in den Hauptspeicher passen und Rechtecke sollten möglichst selten mehreren Buckets zugeordnet werden. Ähnlich wie beim Ansatz mit zwei R-Bäumen kann die Join-Phase eines Buckets z.~B. mithilfe eines Plane-Sweep-Algorithmus beschleunigt werden {\autocite[S. 290]{Rigaux2001}}. Dieser Ansatz ist stark von der Verteilung in beiden Relationen abhängig. Insbesondere ist es problematisch, wenn die zweite Relation eine völlig andere Verteilung hat als die erste.
 
+Ein weiterer Ansatz für einen Spatial Join ohne verherigen Index ist der Index Nest-Loop Join {\autocite[S. 10f]{Jacox2007}}, der eine Verbesserung eines Nest-Loop Join darstellt. Für eine Relation wird ein In-Memory-Suchbaum erzeugt, im Allgemeinen ein R-Baum. Die andere Relation wird gescannt und Join-Kandidaten über den Index gesucht. Wie auch bei den anderen Spatial-Join-Algorithmen ist es notwendig, sich mit Überläufen zu beschäftigen, sofern bestimmte Datenstrukturen für eine performante Ausführung im Hauptspeicher gehalten werden müssen. Hier wäre ein Ansatz, die nicht indexierte Relation mehrfach zu scannen mit je einem neuen R-Baum auf einer neuen Teilrelation der anderen Relation. 
 
- In jedem Knoten gibt es zwei im Speicher gehaltene R-Bäume.{\fullcite{Luo2002}}
-Spatial Hash Join
-
-Duplikate werden i.~A. dort entfernt, wo sie entstehen.{\fullcite{Zhou1998}}{\fullcite{Luo2002}}
-
-
-Verfeinerungsschritt
-
-Verschränkung, Scheduling
-
-
-
-Bewertung
-
-
+Eine Grundidee für eine Parallisierung des Refinementschritts ist simpel. Die Kandidaten können nach Round Robin auf die einzelnen Kerne verteilt werden und die Prädikate über die Queryprozessoren der Datenbanksysteme ausgewertet werden. Allerdings werden in der Literatur viele Ansätze diskutiert, die für spezielle Topologien parallele Ansätze diskutieren {\autocite{Bouros2019, Rigaux2001}} oder über eine Verschränkung des Filter- mit dem Refinementschritt eine bessere Lastenverteilung erreichen {\autocite{Brinkhoff1996, Jacox2007, Zhou1998}}. Wichtig für die Performance dieses Schritts ist es auch zu vermeiden, dass die vollständigen räumlichen Objekte, die Teil diverser Kandidatenpaare sein können, mehrfach in den Hauptspeicher gelesen werden müssen. Sofern nicht ein Ansatz verfolgt wird, der das Refinement mit dem Filterschritt in einem Pipeline-System verbindet, lohnt es sich {\textcite[ S. 45f]{Jacox2007}} folgend, die Kandidatenpaare zu sortieren.
 
 \section{Analyse}
 3/4 (45 S.)
 
 \subsection{Problemstellung} 3 Seiten
-parallelisierung innerhalb von operatoren. Auswahl der Operatoren für die Implementierung. Warum diese Sort, Equi-Join und Spatial Join
 
-was sollen die Operatoren erfüllen?
-Ziele allgemein und für die einzelnen Operatoren
-gute Fkt., Korrektheit, Robust, effizienz
-Geschwindigkeit. Hier These dass nicht linearer Geschwindigkeitszuwachs
+Im Folgenden werde ich die Entwicklung und Implementation von drei parallelen Operatoren und einigen Hilfsoperatoren für die MultiThreaded-Algebra kritisch dokumentieren. Anschließend werde ich meine Implementierung experimentell analysieren, indem ich einerseits ein gutes Funktionieren überprüfe und das Verhalten im Vergleich zu anderen Operatoren und unter unterschiedlichen Rahmenbedingungen betrachte. Gutes Funktionieren meint Korrektheit, Robustheit und Effizienz. Ein Vergleich findet vor allem mit den Einkernversionen der Operatoren statt.
 
-gliederung dieses Kapitels
+Ein Parallelisierung innerhalb des Datenbanksystems wird hier durch eine direkte Implementierung paralleler Operatoren gelöst. Ein anderer Ansatz wäre es, Operatoren zur Verfügung zu stellen, die über den Operatorenbaum sozusagen extern eine parallele Ausführung ermöglichen, entweder durch eine parallelisierte Pipeline oder indem Operatoren für eine Partitionierung von Daten an parallel auszuführende Einkernoperatoren zur Verfügung gestellt werden. Der Nachteil dieses Ansatzes ist es, dass keine Anpassungen an den Operatoren vorgenommen werden können. Spezielle Optimierungen für eine parallele Ausführung sind also nicht möglich; die Daten- und Kommunikationsfluss orientiert sich ausschließlich an einem Fork-Join-Architekturmuster. Partitionierung und Zusammenführung der Daten können nicht mit der Ausführung verschränkt werden und weder ist eine Kommunikation zwischen den Operatoren möglich noch ein dynamisches Load Balancing. Allerdings hat die Parallelisierung innerhalb von Operatoren auch einen Nachteil: Stehen bei dem externen Ansatz alle Operatoren zur Verfügung, die sich für beide mögliche Ansätze eignen, d.~.h. nicht blockierende Operatoren für eine Pipelineverarbeitung und Operatoren, bei denen nicht zwingend eine Ausführung auf dem gesamten Datensatz notwendig ist, müssen bei dem hier verfolgten Ansatz Operatoren explizit zur Verfügung gestellt werden.  
+
+Damit Operatoren geeignet sind für eine parallele Implementierung, müssen sie folgende Kriterien erfüllen. Ziel einer Parallelisierung ist dabei immer ein Laufzeitgewinn.
+
+\begin{itemize}
+	\item Berechnungen, die auf verschiedene Prozesse verteilt werden können, müssen eine notwendige Komplexität haben, die den notwendigen Verwaltungsaufwand der Parallelisierung aufwiegt.
+	\item Eine Aufteilung von Teilschritten oder -berechnungen auf mehrere Prozesse muss sinnvoll sein.
+	\item Der Operator muss auf größeren Datenmengen ausgeführt werden.
+	\item Zuerst ist es sinnvoll, Operatoren auszuwählen, die häufig verwendet werden, wobei es hier natürlich für unterschiedliche Anwendungsfälle Unterschiede geben kann.
+	\item Sofern auch andere Ansätze der Parallelisierung verfolgt werden, ist es insbesondere sinnvoll, Operatoren auszuwählen, bei denen ein externer Ansatz nicht möglich ist.
+\end{itemize}
+
+Für die MThreaded-Algebra habe ich mich dafür entschieden, je einen Sort-, einen Equi-Join- und einen Spatial-Join-Operator zu entwickeln und zu implementieren. Auch wenn es sicher interessant wäre, verschiedene Algorithmen experimentell zu vergleichen, habe ich mich aufgrund der für diese Arbeit zur Verfügung stehenden Zeit dafür entschieden, je nur einen Ansatz zu verfolgen und einen Vergleich nur theoretisch vorzunehmen, um die konkrete Entscheidung für einen Ansatz zu begründen. Im folgenden werde ich kurz meine Auswahl erläutern:
+
+Ein Sort-Operator (\autoref{Sort}) wird häufig verwendet und ist auch die Grundlage für weitere Operatoren, die eine Sortierung verlangen oder für die Erstellung von Indexes. Auch wenn in den meisten Ansätzen der Overhead für eine Parallelisierung recht gering ist, hängen die Kosten für die Vergleiche stark davon ab, nach wie vielen und welchen Attribute sortiert werden soll. Sowohl eine Partitionierung als auch internes Pipelining ist möglich. Da Sortierungen meist für ganze Relationen vorgenommen werden, lohnt sich ein Performancegewinn. Eine externe Parallisierung wäre lediglich denkbar mit einer Range-Partitionierung, da in diesem Fall sortierte Teildaten wieder zusammengesetzt werden können, wobei eine Rangepartitionierung nur sinnvoll vorgenommen werden kann, sofern Statistiken über die zu sortierende Relation vorliegen. Im Gegensatz dazu ist ein explizit parallel implementierter Sort-Operator auch zu einer Lastenverteilung in der Lage, wenn keine Statistiken über die Relation vorliegen.
+
+Equi-Joins (\autoref{Equi Join}) sind eine der teuersten und am häufigsten angewandten Datenbankoperationen. Da sich darüber hinaus, jenseits des Sort-Merge-Algorithmus, die Ansätze zumindest für einen Equi-Join gut für eine Parallelsierung eignen, ist es sinnvoll, diesen Operator in einer parallelen Variante zur Verfügung zu stellen. Allerdings beruhen die meisten Parallisierungs-Ansätze vor allem auf einer Partitionierung der Daten, die sich schwer dynanamisieren lässt. Dementsprechend kann zu dem jetzigen Zeitpunkt nicht gesagt werden, ob eine explizite parallele Implementierung vorteilhaft ist gegenüber eines externen Ansatzes. Dies gilt vor allem für Hash-Joins.
+
+Entgegen der beiden erstgenannten Operatoren hat der Spatial Join (\autoref{Spatial Join}) einen beschränkten Anwendungsbereich auf Spezialanwendungen, nämlich geografische Datenbanken. Aber in diesem Feld ist er eine einerseits teurere und auch häufige Operation. Da eine der Stärken von Secondo in seinen Erweiterungen für Nichtstandard-Datenbanktypen liegt, ist es sinnvoll, auch für diesen Bereich eine Parallelisierung zur Verfügung zu stellen. Da in Spatial Joins einerseits häufig große Datenmengen verarbeitet werden und auch die Berechnungen räumlicher Beziehungen teuer sind, lohnt es sich, diesen Operator zu parallelisieren. Es existieren diverse Ansätze zu einer parallelen Implementierung. Ein externer Ansatz ist zwar möglich, aber hat beispielsweise Nachteile im Bereich der Duplikatsvermeidung, da eine Duplikatsentfernung nur als nachfolgender Schritt machbar ist. Auch würde eine Query Kenntnisse über Ansätze der Parallelisierung vorraussetzen und die Anfrage selbst wäre komplex. 
+
+Da ich hier Operatoren nur für eine shared-all Architektur (\autoref{P_DBS_DBS}) entwickle, ist es wichtig, deren Implikationen insbesondere zu betrachten. Ein gemeinsam geteilter Permanentspeicher bedeutet, dass I/O-Operationen zum Flaschenhals werden können, da hier keine Parallelisierung möglich ist. Algorithmen müssen also so gewählt werden, dass sie so wenig I/O-intensiv sind wie möglich. Geteilter Speicher dagegen ermöglicht eine vergleichweise kostengünstige Kommunikation zwischen den Prozessen und die Nutzung globaler Strukturen, die von allen Prozessen geteilt werden.
+
+Abschließend fasse ich noch einmal die Ziele für die Implementierung der MThreaded-Algebra zusammen:
+
+\begin{itemize}
+	\item Implementierung einer parallelen Version der Operatoren Sort, Equi-Join und Spatial-Join.
+	\item Alle entwickelten Operatoren arbeiten mit mindestens drei Kernen: ein Kern für den Hauptprozess und mindestens zwei weitere Threads.
+	\item Gleicher Funktionsumfang wie Einkernversionen und einfache Bedienbarkeit
+	\item Alle Operatoren sollen mit beliebig großen Relationen und allen möglichen Attributen arbeiten können.  
+	\item Korrektheit, d.~h. unter allen Bedingungen richtige Ergebnisse.
+	\item Robustheit, d.~h. keine Abstürze bei Fehleingaben und korrektes Arbeiten auch bei ungewöhnlichen Strukturen/Verteilungen der Eingaberelationen.
+	\item Effizienz, d.~h. bessere Performance als Einkernversionen der entsprechenden Operatoren ab einer Mindestrelationsgröße.
+	\item Ziel ist hier, dass der Geschwindigkeitsgewinn pro Kern mit vollem Funktionsumfang möglichst linear ist. Zumindest soll versucht werden, den Overhead so gering wie möglich zu halten.
+\end{itemize}
 
 \subsection{Entwicklung} 10 Seiten
+\label{Entwicklung} 
 
 pseudocode und entwurf
+
+
 
 \subsection{Hilfsoperatoren}
 
 Die Parameterisierung des der MThreaded-Algebra soll mithilfe von Operatoren vorgenommen werden. Vorgesehen sind drei Operatoren:
 
+\begin{itemize}
+	\item maxcore gibt die maximale Anzahl von Kernen/Threads des Systems aus.
+	\item setcore setzt die Anzahl der Threads, die von den Operatoren der Algebra genutzt werden. Der Standardwert ohne Einstellung ist 3.
+	\item getcore gibt die Anzahl der Threads, die in der Algebra verwendet werden, aus.
+\end{itemize}
+
+\subsubsection{k-merge-sort} 3 S
+
+Es soll ein Operator entworfen werden, der eine Relation nach beliebigen Attributen sortieren kann. Der Funktionsumfang entspricht dem Einkern-Operator sortby aus der ExtRelation2-Algebra. Sortierkriterium können beliebig viele Attribute einer Relation sein und für jedes Attribute kann gesondert die Sortierreihenfolge festgelegt werden. Die Relation wird dem Operator als Tuple-Strom übergeben und Ausgabe ist auch ein Tuple-Strom. Dabei soll es nicht relevant sein, dass die Reihenfolge der Relation erhalten bleibt, sofern Tuple identische Attribute in den Sortierkriterien haben.
+
+Zur Auswahl stehen zwei grundsätzliche Ansätze, einen parallelen Sort-Operator zu implementieren: der Block Bitonic Sort und Varianten des Merge Sort. Der Vorteil des Block Bitonic Sort, in jedem, auch dem letzten Schritt alle Kerne gleichmäßig zu nutzen, wird dadurch relativiert, dass der Algorithmus [...] Deswegen entscheide ich mich hier dazu, einen 2-Wege-Merge-Sort zu implementieren und zwar in einer Version, die auch im Merge-Schritt die meisten Kerne nutzt und in der Lage ist, eine Vorsortierung auszunutzen und Läufe erzeugen kann, die wesentlich größer sind als Hauptspeicher zur Verfügung steht.
+
+Der von mir gewählte Fastsort-Algorithmus ist ein 2-Wege-Mergesort, in dem Replacement Selection für den Hauptspeicher-Sortierprozess angewandt wird und Pipelining für den Merge-Prozess. Ein paralleler 2-Wege-Mergesort läuft dabei in folgemnden drei Phasen ab:
+
+\begin{itemize}
+	\item Suboptimale Phase: Erstellung von Läufen mit einem In-Memory-Sortierverfahren und Merge-Prozess, bis nur noch ein Lauf vorhanden ist. In dieser Phase läuft in jedem Kern ein Fastsort ab, der identisch mit der Einkern-Version ist.
+	\item Optimale Phase: Sie ist erreicht, wenn in jedem Thread die Läufe zu genau einem Lauf zusammengefasst werden. Die Anzahl der notwendigen Merge entspricht also genau der Kernzahl. 
+	\item Postoptimale Phase: In jedem Schritt finden weniger Merge statt als Kerne genutzt werden. Im letzten Schritt findet nur noch ein Merge statt.
+\end{itemize}
 
 
-\subsubsection{k-merge-sort}
+Nicht optimal ist in dieser Grundversion eines 2-Wege-Mergesort die Nutzung der Kerne in der postoptimalen Phase. Deswegen wird hier eine Pipelining für den Merge-Prozess vorgeschlagen. Tuple werden kontinuierlich weitergereich, um verschmolzen zu werden, bis sie abschließend im Ergebnis zusammengefasst werden. 
 
-warum entscheidung?
+Aus der Sicht der Entwicklung lässt sich der Operator in zwei Phasen unterteilen, die sich in ihrer Struktur deutlich unterscheiden. Als erstes beschriebe ich, wie die suboptimale Phase umgesetzt wird. Dem folgend werden die notwendigen Elemente der postoptimalen Phase beschrieben. Das Scheduling, in dem die Daten verteilt sowie wieder eingesammelt werden und die Threads verwaltet werden, ist Teil der Hauptthreads.
 
-schema programm
+Die suboptimale Phase setzt sich aus zwei Schritten zusammen, dem Sortieren und damit erzeugen von Läufen sowie einem Merge-Schritt. Zuerst werden bis zum Ende der entsprechenden Partition des Eingangsstroms sortierte Läufe erzeugt. Als speicherinternes Sortierverfahren wird Replacement Selection verwendet, um Läufe erzeugen zu können, die deutlich mehr Speicher belegen können als Arbeitsspeicher zur Verfügung steht. Als Datenstrukur für das Sortierverfahren wird ein Wettbewerbsbaum verwendet. \autoref{list:fastsortSub} zeigt wie der Schritt aufgebaut ist, in dem die Läufe erzeugt werden. Der letzte erzeugte Lauf kann im Hauptspeicher gehalten werden. Alle anderen müssen in temporäre Dateien ausgelagert werden. Das bedeutet, dass der Algorithmus auch vollständig im Hauptspeicher ablaufen kann, sofern die Relation die entsprechende maximale Größe hat. Anschließend werden je zwei Läufe so lange verschmolzen, bis nur noch ein Lauf vorhanden ist, der dann als Eingang für die postoptimale Phase dient. Das Verschmelzen findet identisch statt wie in  \autoref{list:fastsortMerge} gezeigt.
 
-Umsetzung Subotimale Phase mit Wettbewerbsbaum. Warum? Dann in Suboptimaler Phase Merge Schritte bis nur noch eine Relation. Postoptimale Phase als Pipeline
+\begin{minipage}{\linewidth}
+	\begin{lstlisting}[caption={Fastsort: Erzeugen der Runs in der Suboptimalen Phase}, label=list:fastsortSub] 
+	while (stream and memory) 
+		read stream
+		fillTree
+	endwhile
+	while (stream)
+		tuple = sortTree->Replace (stream->tuple)
+		appendAtRun(tuple)
+		if (treeRootIsInactive)
+			setTreeAsActive
+	endwhile
+	saveTreeAsRun
+	\end{lstlisting}
+\end{minipage}
 
-\subsubsection{Hybrid Hash Join}
+Die postoptimale Phase hat die Aufgabe, eine Pipeline von Merge-Schritten zu erzeugen. Wie man auf in \autoref{img:mergesort} sieht, hat die Merge-Pipeline eine Baumstruktur. Die Threads der Merge-Pipeline haben zwei Eingangsströme und einen Ausgang. Weitergegeben wird immer der Wert, der entsprechend der definierten Sortierung in der Ausgaberelation vor dem anderen Wert kommt. Der weitergegebene Wert wird aus dem entsprechenden Eingang ersetzt. Es muss zwei grundsätzlich unterschiedliche Typen geben von Merge-Pipeline-Segmenten: Typen mit evtl. persistierten Läufen als Eingang (Blätter des Pipeline-Baums hier MergeFeeder genannt) oder mit Strömen in der Pipeline (Knoten, MergePipeline genannt). Sofern es nicht $2^n$ Blätter gibt, muss es vom ersten Typen von Segmenten auch eine Version geben, die nur aus einem Lauf liest und die Tuple direkt in die Pipeline weitergibt (noMergeFeeder). Alle Merge-Pipeline-Segmente, aber auch der Merge-Prozess innerhalb der suboptimalen Phase funktionieren nach dem gleichem Prinzip, der hier exemplarisch am Beispiel eines Merge an einem Baumknoten dargestellt ist (\autoref{list:fastsortMerge}). Der Merge-Baum benötigt maximal einen Thread weniger als Threads in der suboptimalen Phase vorhanden sind.
 
-\subsubsection{Spatial Join}
+\begin{minipage}{\linewidth}
+	\begin{lstlisting}[caption={Fastsort: Merge in Pipeline}, label=list:fastsortMerge] 
+	while (true)
+		if (first/secondTupleEmpty)
+			inbuffer1/2->dequeue()
+		if (not first/secondTupleEmpty)
+			compare(first and second tuple)
+			outbuffer->enqueue(smallerTuple)
+		else if (first/secondTupleEmpty)
+	endwhile
+	\end{lstlisting}
+\end{minipage}
+
+Das Scheduling, welches im Hauptthread stattfindet, hat drei Aufgaben. Die Erzeugung der Threads für sub- und postoptimale Phase. Für die postoptimale Phase wird eine Pipeline mit einer Baumstruktur wie oben beschrieben erzeugt. Sofern zwei Threads damit fertig geworden sind, ihren endgültigen Lauf zu erzeugen, kann die Verschmelzungspipeline auch schon teilweise gestartet werden, sinnvollerweise dann mit den aufwändigen MergeFeedern zu starten und notwendige noMergeFeeder für die spät beendeten Sort-Threads zu verwenden.
+
+Die Datenaufteilung wird nach Round-Robin vorgenommen. Ein Nachteil der Mehrkernversion ist hier, dass Replacement Selection zwar Vorteile hat, wenn Relation teilweise sortiert sind, aber vorsortierte Teilrelationen auf mehrere Threads verteilt werden. Abschließend können, sofern der ersten beiden Werte in der letzten MergePipeline prozessiert worden ist, die Ergebnisse an den Ausgabestrom des Operators weitergegeben werden.
+
+\subsubsection{Hybrid Hash Join} 3 S
+
+Was muss der Operator können
+
+Warum Hybrid Hash Join
+
+Scheduling
+
+
+
+\subsubsection{Spatial Join} 3 S
 Aufgrund einer besseren Vergleichbarkeit mit den bereits in Secondo vorhandenen Operatoren habe ich den Spatial Join auf zwei Operatoren aufgeteilt, nämlich einen Filter-Schritt (MThreadSpatialJoin) und einen Refinement Schritt(MThreadFilter), welcher im nächsten Abschnitt behandelt wird.
 
 Filter Step
@@ -355,19 +418,22 @@ Auch wenn hier ein sehr großer Performance-Vorteil zu erwarten ist, da die Bere
 
 Der Tuplestrom wird nach Round-Robin auf die einzelnen 
 
-\subsection{Implementierung} 15 S
+\subsection{Implementierung} 15 S/ 2 S
 
-Aufteilung der Pakete
+Im folgenden wird die Implementierung der in \autoref{Entwicklung} skizzierten Operatoren und der Datenstrukturen, die von den Operatoren gemeinsam genutzt werden, dargestellt. Einleitend werde ich 
 
-genutzte Software: C-Lion
+genutzte Software: C-Lion, gnuc++ 11
 
 c++-Threads kurz inkl. Speicherkonzept.
 
 thread mode als flag.
 
-evtl. was wurde im Kern geändert für Funktionieren 
+evtl. was wurde im Kern geändert für Funktionieren
 
-\subsection{Hilfsstrukturen}
+Was braucht ein Operator und wie stelle ich die Implementierung dar? Typemapping, kurz VM und LI (übernimmt das Scheduling, get next
+
+\subsubsection{Hilfsstrukturen} 2 S
+
 In diesem Kapitel stelle ich Hilfsoperatoren für die Parametrisierung vor und selbst implementierte Datenstrukturen sowie Strukturen, die aus anderen Operatoren bzw. aus dem Secondo-Framework genutzt wurden.
 
 3 Hilfsoperatoren für die Konfiguration der Threadzahl.
@@ -376,9 +442,16 @@ Datenstrukturen:
 Threadsichere TupleBuffer und Queues. 
 
 bereits aus Secondo genutzt: 
-in Memory R-Bäume, TupleFile, Irregular-Grid aus Spart
+in Memory R-Bäume, TupleFile, Irregular-Grid aus Spart (neues Interface implementiert)
 
-\subsubsection{k-merge-sort}
+
+\subsection{Hilfsoperatoren}
+
+
+
+\subsubsection{k-merge-sort} 3 S
+
+Was brauche ich
 fast sort
 page in meinem fall buffer
 ich brauche: buffersize, io-rw, wie viele tuple passen da rein
@@ -404,14 +477,15 @@ scheduler round robin, wenn alles verteilt, warten wenn threads fertig, wenn fer
 sortierbaum: nur pointer zu tupeln, tupel in buffer
 sortierbaum datenstruktur: soviele Einträge wie Blätter, Gr
 
+Überlegungen zur Effizienz
 
-\subsubsection{Hybrid Hash Join}
+\subsubsection{Hybrid Hash Join} 3 S
 
 Typemapping:
 
 Valuemapping
 
-\subsubsection{Spatial Join Filter Step}
+\subsubsection{Spatial Join Filter Step} 3 S
 
 
 
@@ -455,7 +529,7 @@ Frage ob sortieren sinnvoll damit flob nicht mehrmals gelesen
 
 Gitter
 
-\subsubsection{Spatial Join Refinement Step}
+\subsubsection{Spatial Join Refinement Step} 3 S
 
 Der MThreadFilter-Operator ist analog des nicht parallelen Filter-Operators angelegt und ist damit vielseitiger zu verwenden als ausschließlich für den Refinement Step eines Spatial Joins. Übergeben wird eine beliebige Funktion
 
