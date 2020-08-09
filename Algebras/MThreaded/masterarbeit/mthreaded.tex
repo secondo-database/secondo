@@ -327,7 +327,7 @@ pseudocode und entwurf
 
 \subsection{Hilfsoperatoren}
 
-Die Parameterisierung des der MThreaded-Algebra soll mithilfe von Operatoren vorgenommen werden. Vorgesehen sind drei Operatoren:
+Die Parameterisierung des der \Fb{MThreaded}-Algebra soll mithilfe von Operatoren vorgenommen werden. Vorgesehen sind drei Operatoren:
 
 \begin{itemize}
 	\item maxcore gibt die maximale Anzahl von Kernen/Threads des Systems aus.
@@ -402,7 +402,12 @@ Scheduling
 
 
 \subsubsection{Spatial Join} 3 S
-Aufgrund einer besseren Vergleichbarkeit mit den bereits in Secondo vorhandenen Operatoren habe ich den Spatial Join auf zwei Operatoren aufgeteilt, nämlich einen Filter-Schritt (MThreadSpatialJoin) und einen Refinement Schritt(MThreadFilter), welcher im nächsten Abschnitt behandelt wird.
+
+Aufgrund einer besseren Vergleichbarkeit mit den bereits in Secondo vorhandenen Operatoren habe ich den Spatial Join auf zwei Operatoren aufgeteilt, nämlich einen Filter-Schritt (MThreadSpatialJoin) und einen Refinement-Schritt(MThreadFilter), auch wenn ein Performance-Vorteil zu erwarten ist, wenn beide Operatoren in einem Operator zusammengefasst werden, da einerseits eine Weitergabe des Tuple-Stroms über eine Schnittstelle des Secondo-Kerns entfällt und die Möglichkeit eines dynamischen Load-Balancing besteht. Ein weiterer Vorteil der Trennung ist es, dass eine seperater Filter-Operator für den Refinement-Schritt universell nutzbar ist.
+
+Enscheidung für einen Algorithmus, Iterativer R-Baum und Paritionierung durch irreguläres Gitter
+
+Beschreibung Filter-Schritt: 
 
 Filter Step
 
@@ -416,15 +421,16 @@ refinement step
 
 Auch wenn hier ein sehr großer Performance-Vorteil zu erwarten ist, da die Berechnungen räumlicher Beziehungen bei komplexen räumlichen Objekten sehr aufwendig ist, ist die Grundidee des Filter Operators sehr einfach. Anstatt einen genau auf die Bedürfnisse zugeschnittenen Operator für das Refinement zu implementieren, habe ich mich hier entschieden, einen allgemeinen, universell einsetzbaren Filteroperator für diesen zweiten Schritt des Spatial Joins einzusetzen. 
 
-Der Tuplestrom wird nach Round-Robin auf die einzelnen 
+Der Tuplestrom wird nach Round-Robin auf die einzelnen Threads verteilt, die nur die Tupel zurückgeben, die das Filterprädikat erfüllen.
 
 \subsection{Implementierung} 15 S/ 2 S
+\label{Implemeniterung} 
 
 Im folgenden wird die Implementierung der in \autoref{Entwicklung} skizzierten Operatoren und der Datenstrukturen, die von den Operatoren gemeinsam genutzt werden, dargestellt. Einleitend werde ich 
 
 genutzte Software: C-Lion, gnuc++ 11
 
-c++-Threads kurz inkl. Speicherkonzept.
+Mit C++11 wurde die Concurrency-Implementierung der Boost-Library in die Standardbibliothek übernommen, die ich in meiner Implementierung verwende. Kern meiner Verwendung sind zwei unterschiedliche Mutexe mit unterschiedlichen Kosten und Funktionen, der \Fb{lock\_guard}, der lediglich sicherstellt, dass die Locks wieder freigegeben werden, und der \Fb{unique\_lock}. -Threads kurz inkl. Speicherkonzept.
 
 thread mode als flag.
 
@@ -433,8 +439,9 @@ evtl. was wurde im Kern geändert für Funktionieren
 Was braucht ein Operator und wie stelle ich die Implementierung dar? Typemapping, kurz VM und LI (übernimmt das Scheduling, get next
 
 \subsubsection{Hilfsstrukturen} 2 S
+\label{Hilfsstrukturen} 
 
-In diesem Kapitel stelle ich Hilfsoperatoren für die Parametrisierung vor und selbst implementierte Datenstrukturen sowie Strukturen, die aus anderen Operatoren bzw. aus dem Secondo-Framework genutzt wurden.
+In diesem Kapitel stelle ich  selbst implementierte Datenstrukturen sowie Strukturen, die aus anderen Operatoren bzw. aus dem Secondo-Framework genutzt wurden.
 
 3 Hilfsoperatoren für die Konfiguration der Threadzahl.
 
@@ -445,39 +452,33 @@ bereits aus Secondo genutzt:
 in Memory R-Bäume, TupleFile, Irregular-Grid aus Spart (neues Interface implementiert)
 
 
-\subsection{Hilfsoperatoren}
+\subsubsection{Hilfsoperatoren}
 
+Die Hilfsoperatoren für die Parametrisierung haben folgende Signaturen:
 
+\begin{itemize}
+	\item maxcore: $\longrightarrow int$
+	\item setcore: $int \longrightarrow bool$
+	\item getcore: $\longrightarrow int$.
+\end{itemize}
+
+Die Anzahl der genutzten Kerne wird in einem Singelton in einer statischen Variable gespeichert. Die Anzahl der maximal nutzbaren Kerne wird über eine Methode der Concurrency-Library ermittelt.
 
 \subsubsection{k-merge-sort} 3 S
 
-Was brauche ich
-fast sort
-page in meinem fall buffer
-ich brauche: buffersize, io-rw, wie viele tuple passen da rein
+Der Operator \Fb{mThreadedMergeSort} hat die Signatur $stream~x~(attr~x~bool \ldots) \longrightarrow stream$. In die Algebra muss er mit zwei Optionen in die Algebra integriert werden: Er muss seinen Speicher selbst verwalten, um zu wissen, wieviel Arbeitsspeicher für die Sortierung der Läufe zur Verfügung steht, und er benötigt die Argumente im Typemapping. Sein Typemapping hat zwei Funktionen. Einerseits muss es sicherzustellen, dass die zu sortierende Relation als Tuplestrom in den Operator eingeht und die Sortierattribute Elememte der Tuple sind. Andererseits wird der Append-Mechanismus genutzt, um die Indexes der Sortierattribute und die Sortierrichtung an das Valuemapping weiterzugeben. Die Attribute und die Sortierrichtung werden als Liste übergeben, um zu ermöglichen, dass beliebig viele Sortierattribute genutzt werden können, wobei die Richtung als Boolean übergeben wird und als aufsteigend gesetzt wird, wenn sie nicht angegeben wird.
 
-init: lesen so viel wie in speicher/threads passt, sortieren, dann wegschreiben in dateix der reihe nach, nächster teil dateix, wenn x fertig geschreiben und alle threads vorher fertig gelesen
+Das Value-Mapping startet lediglich die LocalInfo-Class mit den Suchindexes sowie dem verfügbarem Arbeitsspeicher als Argument und holt den sortierten Tuple-Strom über dessen GetNext-Methode ab. Die LocalInfo-Class ist verantwortlich für das Scheduling, DestributoCollector genannt, d.~h. für die Erzeugung der notwendigen Buffer, der Threads und das Verteilen des eingehenden Stroms auf die Threads. Als Buffer für die Läufe werden die in \autoref{Hilfsstrukturen} dargestellten selbst implementierten Klassen verwendet, die Daten sowohl im Speicher halten können als in eine temporäre Datei auslagern. Für den Tuplestrom innerhalb der Merge-Pipeline und für die vollständig sortiere Relation wird eine Wrapper-Klasse um die Warteschlange der Standardbibliothek benutzt, die threadsicher gemacht wurde. Die Partitionierung wird über an die Thread-Klassen weitergegebene Iteratoren vorgenommen und eine Synchronisation mit Mutexen und Nachrichten, die mitteilen, in welchem Thread wieder ein Tuple benötigt wird. Anschließend wird die Merge-Pipeline erzeugt aus den Elementen Merge-Feeder, NoMerge-Feeder und Merge-Pipeline. Hier werden die Threads detached, um einen nicht-blockierenden Operator zu ermöglichen, also nach dem Start der Merge-Pipeline sofort die ausgegebenen Tuple über die GetNext-Methode abholen zu können. Im Gegensatz dazu hat es zu undefiniertem Verhalten geführt, auch in der subotpimalen Phase die Threads zu entkoppeln. Hier wäre der Vorteil, dass, sofern einige Threads der suboptimalen Phase deutlich schneller sind als andere z.~B. aufgrund einer teilweisen Vorsortierung, bereits frühzeitige Teile der Merge-Pipeline gestartet hätten werden können.
 
-dann merge: les
+Wie bereits in \author{Entwicklung} dargelegt, läuft die suboptimale Phase in zwei Schritten ab, nämlich der Erzeugung von sortierten Läufen und die Reduktion der Läufe auf genau einen durch mehrere Merge-Phasen. Der erste Schritt wiederum ist in drei Phasen aufgeteilt: In der ersten Phase werden die Blätter des Wettlaufbaum gefüllt und kontinuierlich überwacht, ob noch genügend Speicher vorhanden ist. Der Arbeitsspeicher ist gleichmäßig zwischen den Threads aufgeteilt. Ein Abbruchkriterium ist hier, wenn der Speicher durch einen vollständigen kontruierten Baum sowie die Speicherrepräsentation der Tuple gefüllt ist. Im Baum selbst werden nur Pointer gespeichert. Ein zweites Abbruchkriterium ist, wenn der Tuplestrom erschöpft ist, gekennzeichnet durch die Weitergabe eines Nullpointers. Dem folgend wird der vollständige Baum von den Blättern ausgehend konstruiert.
 
-paritioniere und merge: wie partitionieren
-partition ein Buffer (Buffer/x)
-paritioniere in x teile und dann normale k-merge sort
-merge zum schluss zwischen den x threads rekursiv: großer nachteil, das letzter schritt nicht mehr parallel
+Die zweite Phase ist nur notwendig, wenn der Tupelstrom noch nicht erschöpft ist, da im anderen Fall nur bereits genau ein sortierter Lauf erzeugt wurde, der auch nicht persistiert werden muss. Hier werden die weiteren Läufe erzeugt jetzt durch einen Austausch der Tuple des Stroms mit der Wurzel des Baums und einem Einsickern dieses neuen Wertes. In dieser Phase werden die Läufe direkt in einem persistenten Buffer erzeugt. Ein neuer Lauf wird angelegt, wenn der aktuelle Wert nicht mehr in den Baum einsickern kann, d.~h. wenn die Wurzeln inaktiv ist (die genaue Funktionsweise dieses Sortierbaums werde ich im nächsten Abschnitt erläutern). Abschließend wird der vollständige letzte Baum in einen In-Memory-Buffer geschrieben.
 
-binärer Merge-Sort:
-Vorbereitung: Buffer pro Thread bestimmen, Dateien initialisieren 2 pro kern, Vergleiche (compare type), wie viel speicher braucht ein tuple (evtl. getrennt memory und disk), 
-je kern: leerer sortierbaum, buffer, berechnen der größe
+Der Wettbewerbsbaum ist eine Datenstruktur, die eine Sortierung abbildet vergleichbar mit einem Turnierbaum. Der Baum wird in einem Vektor gespeichert. In jedem Knoten ist je der Nachfolgeknoten mit dem kleineren und größeren Wert durch den Vektorindex gespeichert. Blätter sind dadurch gekennzeichnet, dass sie als Nachfolgeknoten der größte mögliche vorzeichenlose Integer-Wert eingetragen wird. Als nicht aktiv werden Tuple gekennzeichnet, die erst in der Erzeugung des nächsten Laufs verwendet werden, da sie für den aktuellen Sortierlauf je nach Sortierrichtung zu groß oder klein sind. Ein Baum kann keine weiteren Tupel mehr aufnehmen, wenn die Wurzel inaktiv geworden ist, sonst wandern Tupel in einer rekursiven Methode von der Wurzel zu den Blättern und strukturieren den Baum dabei um. Für einen neuen Lauf muss der Baum lediglich wieder vollständig auf aktiv gesetzt werden. 
 
-scheduler round robin, wenn alles verteilt, warten wenn threads fertig, wenn fertig je zwei verschmelzen und zweiten kern init für pipeline init, scheduler übernimmt letzten merge
-1. Phase: replacement selection, Läufe schaffen, auf allen Kernen
-2: Phase: Merge bis optimale Phase, auf gleichen kernen wie vorher
-3: Phase: Merge Pipeline
+Die Merge-Phase entspricht der in \autoref{Entwicklung} beschriebenen Vorgehensweise. In einer Schleife werden je zwei Läufe miteinander verschnitten, bis nur noch ein Lauf übrigbleibt.
 
-sortierbaum: nur pointer zu tupeln, tupel in buffer
-sortierbaum datenstruktur: soviele Einträge wie Blätter, Gr
-
-Überlegungen zur Effizienz
+Vergleiche werden über eine Compare-Klasse vorgenommen, die mit dem Sortiervektor intitialisert wird. 
 
 \subsubsection{Hybrid Hash Join} 3 S
 
