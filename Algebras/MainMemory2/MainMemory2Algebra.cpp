@@ -1385,7 +1385,7 @@ ListExpr gettuplesTM(ListExpr args){
          last = iattr;
          first = false;
       } else {
-         last = nl->Append(last, iattr); 
+         last = nl->Append(last, attr); 
       }
     }
   }  
@@ -1395,6 +1395,7 @@ ListExpr gettuplesTM(ListExpr args){
   }
   ListExpr relAttrList = nl->Second(nl->Second(a2));
   ListExpr resAttrList = listutils::concat(iattr, relAttrList);
+
   if(!listutils::isAttrList(resAttrList)){
      return listutils::typeError("found name conflicts");
   }
