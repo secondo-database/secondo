@@ -343,6 +343,7 @@ Die Parameterisierung des der \Fb{MThreaded}-Algebra soll mithilfe von Operatore
 \end{itemize}
 
 \subsubsection{k-Merge-Sort} 3 S
+\label{entw:sort}
 
 Es soll ein Operator entworfen werden, der eine Relation nach beliebigen Attributen sortieren kann. Der Funktionsumfang entspricht dem Einkern-Operator sortby aus der ExtRelation2-Algebra. Sortierkriterien können beliebig viele Attribute einer Relation sein und für jedes Attribute kann gesondert die Sortierreihenfolge festgelegt werden. Die Relation wird dem Operator als Tuple-Strom übergeben und Ausgabe ist auch ein Tuple-Strom. Dabei soll es nicht relevant sein, dass die Reihenfolge der Relation erhalten bleibt, sofern Tuple identische Attribute in den Sortierkriterien haben.
 
@@ -355,7 +356,6 @@ Der von mir gewählte Fastsort-Algorithmus ist ein 2-Wege-Mergesort, in dem Repl
 	\item Optimale Phase: Sie ist erreicht, wenn in jedem Thread die Läufe zu genau einem Lauf zusammengefasst werden. Die Anzahl der notwendigen Merges entspricht also genau der Kernzahl. 
 	\item Postoptimale Phase: In jedem Schritt finden weniger Merge statt als Kerne genutzt werden. Im letzten Schritt findet nur noch ein Merge statt.
 \end{itemize}
-
 
 Nicht optimal ist in dieser Grundversion eines 2-Wege-Mergesort die Nutzung der Kerne in der postoptimalen Phase. Deswegen wird hier eine Pipelining für den Merge-Prozess vorgeschlagen. Tupel werden kontinuierlich weitergereicht, um verschmolzen zu werden, bis sie abschließend im Ergebnis in sortierter Reihenfolge entsprechend eines Sortiervektors ausgegeben werden. 
 
@@ -399,6 +399,7 @@ Das Scheduling, welches im Hauptthread stattfindet, hat drei Aufgaben: die Erzeu
 Die Datenaufteilung wird nach Round-Robin vorgenommen. Ein Nachteil der Mehrkernversion ist hier, dass Replacement Selection zwar Vorteile hat, wenn Relationen teilweise sortiert sind, aber vorsortierte Teilrelationen auf mehrere Threads verteilt werden. Abschließend können, sofern die ersten beiden Werte in der letzten MergePipeline prozessiert worden sind, die Ergebnisse an den Ausgabestrom des Operators weitergegeben werden.
 
 \subsubsection{Hybrid Hash Join} 3 S
+\label{entw:hash}
 
 Der parallele Join-Operator soll zwei beliebig große Relationen verschmelzen anhand von je eines Attributs aus beiden Relationen. Der Operator verfügt über keine Statistiken über beide Relationen verfügen und soll bei beliebigen Verteilungen gut funktionieren. Orientierung für die Auswahl eines Algorithmus sind dabei Relationen, die nicht in den Artbeitsspeicher passen und eine gleichmäßige Verteilung beider Relationen bzgl. der Join-Attribute.
 
@@ -413,7 +414,7 @@ In \autoref{Equi Join} habe ich gezeigt, dass für einen parallelen Ansatz vor a
 	\label{img:hybrid}
 \end{figure}
 
-Anders als der parallele Sort-Operator unterscheidet sich der parallele Hybrid-Hash-Join nur durch in eine Hash-Partitionierung von der seriallen Version. Der Algorithmus, der innerhalb der einzelnen Threads abläuft, ist jeweils ein serieller Hybrid-Hash-Join. In einem ersten Schritt werden also so viele Partitionen erzeugt wie Kerne verwendet werden und die entsprechenden Tupel als Strom an die Hash-Join-Worker genannten gleichzeitigen Prozesse verteilt.
+Anders als der parallele Sort-Operator unterscheidet sich der parallele Hybrid-Hash-Join nur durch in eine Hash-Partitionierung von der Single Thread-Version. Der Algorithmus, der innerhalb der einzelnen Threads abläuft, ist jeweils ein serieller Hybrid-Hash-Join. In einem ersten Schritt werden also so viele Partitionen erzeugt wie Kerne verwendet werden und die entsprechenden Tupel als Strom an die Hash-Join-Worker genannten gleichzeitigen Prozesse verteilt.
 
 Der Algorithmus lässt sich in zwei Phasen aufteilen (siehe \autoref{img:hybrid}). In der ersten Phase wird die erste Relation so auf Buckets verteilt, dass ein Bucket möglichst den dem Thread zur Verfügung stehenden Hauptspeicher füllt. In diesem Bucket wird eine Hauptspeicher-Hashtabelle angelegt, in der idealerweise in jedem derer Buckets genau ein Tupel gespeichert wird, um die Anzahl notwendiger Vergleiche so gering wie möglich zu halten. Hier sieht man bereits, dass die Verteilung der Relation für die Effizienz dieses Algorithmus von großer Bedeutung ist. Die anderen Buckets werden temporär persistiert. In einem zweiten Schritt wird die zweite Relation durchgescannt und vergleichbar verfahren: Tupel, die dem ersten Bucket zugeordnet werden, können direkt an den Ergebnisstrom weitergegeben werden, wenn sie in den Joinattributen mit dem Tupel der ersten Relation übereinstimmen. Die anderen Buckets werden wie bei der ersten Relation temporär zwischengespeichert. \autoref{list:hybrid} zeigt den Ablauf der ersten Phase. Da zum Abschluss dieser Phase beide Relationen einmal durchgelaufen worden sind, können Statistiken ermittelt werden, die es in der zweiten Phase ermöglichen, anstatt mit vorher festgelegten Werten für die Anzahl der Buckets mit abgeschätzen zu arbeiten. Auch wenn dies nicht vollständig verhindern kann, dass einzelne Hashtabellen nicht in den Hauptspeicher passen, ist es doch ein wichtiger Ansatz, um die Chance möglicher Overflows zu reduzieren.   
 
@@ -422,7 +423,7 @@ Der Algorithmus lässt sich in zwei Phasen aufteilen (siehe \autoref{img:hybrid}
 	readNextTupleR
 	while (StreamR) 
 	 	bucket = calculateBucket
-		if ()bucket = 0)
+		if (bucket = 0)
 			if (overflow)
 				overflowhandling
 			insertInMemoryHashTable
@@ -496,7 +497,7 @@ In diesem Kapitel stelle ich  selbst implementierte Datenstrukturen sowie Strukt
 
 
 Datenstrukturen:
-Threadsichere TupleBuffer und Queues. Zuerst eigene Struktur, um temportäre Files zu erzeugen. Probleme mit Threadsicherheit
+Threadsichere TupleBuffer und Queues. Zuerst eigene Struktur, um temportäre Files zu erzeugen. Probleme mit Threadsicherheit. zuerst als globale Variable, aber Probleme mit 
 
 bereits aus Secondo genutzt: 
 in Memory R-Bäume, TupleFile, Irregular-Grid aus Spart (neues Interface implementiert)
@@ -520,7 +521,7 @@ Der Operator \Fb{mThreadedMergeSort} hat die Signatur $stream~x~(attr~x~bool \ld
 
 \begin{figure}
 	\centering
-	\includegraphics[width=0.75\textwidth]{Bilder/sortmerge.png}
+	\includegraphics[width=0.75\textwidth]{Bilder/mergeSort.png}
 	\caption{Aufbau des Mergesort-Operators (vereinfacht). Gestrichelte Pfeile: Datenfluss; durchgezogene: Instanzen werden erzeugt}
 	\label{img:KlassSort}
 \end{figure}
@@ -541,9 +542,11 @@ Der Merge-Schritt entspricht der in \autoref{Entwicklung} beschriebenen Vorgehen
 
 \subsubsection{Hybrid Hash Join} 3 S
 
-Der Operator \Fb{mThreadedMergeSort} hat die Signatur $stream~x~(attr~x~bool \ldots) \longrightarrow stream$. In die Algebra muss er mit zwei Optionen integriert werden: Er muss seinen Speicher selbst verwalten, um zu wissen, wie viel Arbeitsspeicher für die Sortierung der Läufe zur Verfügung steht, und er benötigt seine Argumente im Typemapping. Das Typemapping hat zwei Funktionen. Einerseits muss es sicherstellen, dass die zu sortierende Relation als Tupelstrom in den Operator eingeht und die Sortierattribute Elememte der Tupel sind. Andererseits wird der Append-Mechanismus genutzt, um die Indices der Sortierattribute und die Sortierrichtung an das Valuemapping weiterzugeben.
+Der Operator \Fb{mThreadedMergeSort} hat die Signatur $stream~x~(attr~x~bool \ldots) \longrightarrow stream$. In die Algebra muss er mit zwei Optionen integriert werden: Er muss seinen Speicher selbst verwalten, um zu wissen, wie viel Arbeitsspeicher für die Sortierung der Läufe zur Verfügung steht, und er benötigt seine Argumente im Typemapping. Das Typemapping hat zwei Funktionen. Einerseits muss es sicherstellen, dass die beiden Relationen, die über einen Equi-Join verbunden werden sollen, als Tupelstrom in den Operator eingehen und die Joinattribute Elememte der jeweiligen Tupel sind. Andererseits wird der Append-Mechanismus genutzt, um die Indices der Sortierattribute und die Sortierrichtung an das Valuemapping weiterzugeben.
 
-Valuemapping
+Wieder wird das grundsätzliche Entwurfsmuster gewählt, welches in Secondo für Operatoren verwendet wird, die einen Tupelstrom als Ein- und Ausgabe haben. Der Zustand des Operators wird in einer LocalInfo-Class gesichert, auch wenn ein kontinuierlicher Tupelstrom fliest. Hier hat diese Klasse noch die zusätzliche Aufgabe, innerhalb eines Master-Worker-Schemas die Funktion des Masters zu übernehmen: Sie erzeugt die Worker-Threads, partioniert und verteilt die Daten über eine Modulo-Hash-Funktion auf genau so viele Threads wie Kerne genutzt werden und sammelt den Ergebnis-Tupelstrom abschließend wieder über ihre GetNext-Methode ein. Als Buffer wird ein Vektor mit Shared-Pointern auf eine von mir implementierte threadsichere Queue verwendet. In diese Buffer werden nacheinander die beiden eingehenden Relationen verteilt und die Threads vom Hauptthread getrennt, damit ein nicht blockierender Operator ermöglicht wird, da nicht auf die Worker gewartet werden muss, bis Werte von der GetNext-Methode weitergereicht werden können. Da hier keine gleichmäßige Partitionierung stattfindet, wird eine Warteschlange als Buffer gewählt, um Performanceverluste zu vermeiden, wenn ein einzelner Worker auf Daten aus dem Tupelstrom warten müsste.
+
+Die Worker setzen sich aus zwei Klassen zusammen. Eine eigentliche Workerklasse, in der die beiden Phasen (\autoref{entw:hash} des Hybrid-Hash-Joins ablaufen, und eine HashTablePersist genannte Klasse, die die Buckets verwaltet, die nicht direkt On-the-fly verschmolzen werden. Insgesamt wird jede Partition auf 20 Buckets aufgeteilt und der erste direkt verschmolzen. Der Wert muss so gewählt werden, dass es wahrscheinlich ist, dass jedes Bucket in den Hauptspeicher passt. In einem Bucket befinden sich als Anfangswert wiederum 1000 Buckets, deren Zahl aber nach einem ersten vollständigen Durchlauf durch beide Relationen neu kalkuliert wird. Ziel ist hier, dass möglichst nur ein Tupel in einem Bucket ist.
 
 
 Overflowhandling
@@ -607,11 +610,22 @@ L3-Cache: 8 MiB mit Northbridge-Takt (2,0 GHz)
 AMD FX-6300 	3,5 GHz 	3,8 GHz 	4,1 GHz
 6 Integer-Cluster, 3 Gleitkomma-Einheiten
 
+2x Xeon Gold 
+
 wie werden die tests gemacht
 beschreibung der daten, wie werden unterschiedliche Bedingungen getestet
 
 \subsubsection{Funktion}
 gute Fkt., Korrektheit, Robust, effizienz
+
+Korrektheit:
+--valgrindlc, keine Speicherlecks, was für Ausgaben
+
+selbstests: mit was muss ich testen? klein und passt nicht in den Speicher, Flob und nicht Flob, 
+
+Robustheit: leere Relationen, kein Ergebnis, TM-Test: Wird alles abgefangen, was nicht sein darf
+
+Effizienz: Vergleich mit 1Kern-Versionen.
 
 
 \subsubsection{Experimente}
