@@ -360,7 +360,7 @@ function checkLine {
 
 
 if [ $action == start ]; then
-   while read line; do startLine $line ;done <$1
+   while read line; do copyConfigLine $line; startLine $line ;done <$1
 else if [ $action == stop ]; then
    while read line; do stopLine $line ;done <$1
 else if [ $action == check ]; then
