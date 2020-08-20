@@ -310,7 +310,7 @@ Equi-Joins (\autoref{Equi Join}) sind eine der teuersten und am häufigsten ange
 
 Entgegen der beiden erstgenannten Operatoren hat der Spatial Join (\autoref{Spatial Join}) einen beschränkten Anwendungsbereich auf Spezialanwendungen, nämlich geografische Datenbanken. Aber in diesem Feld ist er eine einerseits teurere und auch häufige Operation. Da eine der Stärken von Secondo in seinen Erweiterungen für Nichtstandard-Datenbanktypen liegt, ist es sinnvoll, auch für diesen Bereich eine Parallelisierung zur Verfügung zu stellen. Da in Spatial Joins einerseits häufig große Datenmengen verarbeitet werden und auch die Berechnungen räumlicher Beziehungen teuer sind, lohnt es sich, diesen Operator zu parallelisieren. Es existieren diverse Ansätze zu einer parallelen Implementierung. Ein externer Ansatz ist zwar möglich, aber hat beispielsweise Nachteile im Bereich der Duplikatsvermeidung, da eine Duplikatsentfernung nur als nachfolgender Schritt machbar ist. Auch würde eine Query Kenntnisse über Ansätze der Parallelisierung vorraussetzen und die Anfrage selbst wäre komplex. 
 
-Da ich hier Operatoren nur für eine shared-all Architektur (\autoref{P_DBS_DBS}) entwickle, ist es wichtig, deren Implikationen insbesondere zu betrachten. Ein gemeinsam geteilter Permanentspeicher bedeutet, dass I/O-Operationen zum Flaschenhals werden können, da hier keine Parallelisierung möglich ist. Algorithmen müssen also so gewählt werden, dass sie so wenig I/O-intensiv sind wie möglich. Geteilter Speicher dagegen ermöglicht eine vergleichweise kostengünstige Kommunikation zwischen den Prozessen und die Nutzung globaler Strukturen, die von allen Prozessen geteilt werden.
+Da ich hier Operatoren nur für eine shared-all Architektur entwickle, ist es wichtig, deren Implikationen insbesondere zu betrachten. Ein gemeinsam geteilter Permanentspeicher bedeutet, dass I/O-Operationen zum Flaschenhals werden können, da hier keine Parallelisierung möglich ist. Algorithmen müssen also so gewählt werden, dass sie so wenig I/O-intensiv sind wie möglich. Geteilter Speicher dagegen ermöglicht eine vergleichweise kostengünstige Kommunikation zwischen den Prozessen und die Nutzung globaler Strukturen, die von allen Prozessen geteilt werden.
 
 Abschließend fasse ich noch einmal die Ziele für die Implementierung der MThreaded-Algebra zusammen:
 
@@ -375,7 +375,7 @@ Die suboptimale Phase setzt sich aus zwei Schritten zusammen, dem Sortieren und 
 	\end{lstlisting}
 \end{minipage}
 
-Die postoptimale Phase hat die Aufgabe, in einer Pipeline von Merge-Schritten die Läufe so lange zu verschmelzen bis ein Ergebnis in einem Ausgangsstrom vorliegt. Wie man auf in \autoref{img:mergesort} sieht, hat die Merge-Pipeline eine Baumstruktur. Die Threads der Merge-Pipeline haben je zwei Eingangsströme und einen Ausgangsstrom. Weitergegeben wird immer der Wert, der entsprechend der definierten Sortierung in der Ausgaberelation vor dem anderen kommt. Der weitergegebene Wert wird aus dem Eingangsstrom ersetzt, aus dem er entnommen worden ist. Es muss zwei grundsätzlich unterschiedliche Typen geben von Merge-Pipeline-Segmenten: Typen mit eventuell persistierten Läufen als Eingang (Blätter des Pipeline-Baums hier \Fb{MergeFeeder} genannt) oder mit Strömen (Knoten und Wurzel der Pipeline, \Fb{MergePipeline} genannt). Sofern es nicht $2^n$ Blätter gibt, muss es vom ersten Typen von Segmenten auch eine Version geben, die nur aus einem Lauf liest und die Tupel direkt in die Pipeline weitergibt (\Fb{noMergeFeeder}). Alle Merge-Pipeline-Segmente, aber auch der Merge-Prozess innerhalb der suboptimalen Phase funktionieren nach dem gleichem Prinzip, der hier exemplarisch am Beispiel eines Merge an einem Baumknoten dargestellt ist (\autoref{list:fastsortMerge}). Der Merge-Baum benötigt maximal einen Thread weniger als Threads in der suboptimalen Phase vorhanden sind.
+Die postoptimale Phase hat die Aufgabe, in einer Pipeline von Merge-Schritten die Läufe so lange zu verschmelzen bis ein Ergebnis in einem Ausgangsstrom vorliegt. Wie man auf in \autoref{img:bMergeSort} sieht, hat die Merge-Pipeline eine Baumstruktur. Die Threads der Merge-Pipeline haben je zwei Eingangsströme und einen Ausgangsstrom. Weitergegeben wird immer der Wert, der entsprechend der definierten Sortierung in der Ausgaberelation vor dem anderen kommt. Der weitergegebene Wert wird aus dem Eingangsstrom ersetzt, aus dem er entnommen worden ist. Es muss zwei grundsätzlich unterschiedliche Typen geben von Merge-Pipeline-Segmenten: Typen mit eventuell persistierten Läufen als Eingang (Blätter des Pipeline-Baums hier \Fb{MergeFeeder} genannt) oder mit Strömen (Knoten und Wurzel der Pipeline, \Fb{MergePipeline} genannt). Sofern es nicht $2^n$ Blätter gibt, muss es vom ersten Typen von Segmenten auch eine Version geben, die nur aus einem Lauf liest und die Tupel direkt in die Pipeline weitergibt (\Fb{noMergeFeeder}). Alle Merge-Pipeline-Segmente, aber auch der Merge-Prozess innerhalb der suboptimalen Phase funktionieren nach dem gleichem Prinzip, der hier exemplarisch am Beispiel eines Merge an einem Baumknoten dargestellt ist (\autoref{list:fastsortMerge}). Der Merge-Baum benötigt maximal einen Thread weniger als Threads in der suboptimalen Phase vorhanden sind.
 
 \begin{minipage}{\linewidth}
 	\begin{lstlisting}[caption={Fastsort: Merge in Pipeline}, label=list:fastsortMerge] 
@@ -450,6 +450,7 @@ In der zweiten Phase werden dann die restlichen Buckets der ersten Aufteilung na
 Der Umgang mit möglichen Overflows macht den Algorithmus deutlicher komplexer als eine Version wäre, der unendlicher Hauptspeicher zur Verfügung stände. Auch wenn in vielen Fällen Hash-Join-Algorithmen sehr effizient sind, haben sie ein schlechtes Worst-Case-Verhalten, da in einem Extremfall alle Tupel den gleichen Hash-Wert haben. Danit der Algorithmus auch für ungünstig verteilte Relationen funktioniert, wird die Overflow-Behandlung rekursiv angelegt. Die Grundstruktur des Algorithmus bleibt die gleiche, aber in jeder Rekursion kann erneut in ihrer ersten Phase ein OVerflow auftreten. Da dies das gute Verhalten des Hybrid-Hash-Joins bzgl. der I/O-Kosten umkehrt, ist es sehr wichtig, im ersten Scan einer Relation Statistiken über diese zu generieren, die die Hash-Funktion so optimiert, dass möglichst keine Overflows auftreten.
 
 \subsubsection{Spatial Join} 3 S
+\label{entw:spatial}
 
 Aufgrund einer besseren Vergleichbarkeit mit den bereits in Secondo vorhandenen Operatoren habe ich den Spatial Join auf zwei Operatoren aufgeteilt, nämlich einen Filter-Schritt (\Fb{MThreadSpatialJoin}) \footnote{Die Bezeichnung ist hier etwas verwirrend. Der Filter-Schritt ist nicht der spätere Filteroperator, sondern der Refinement-Schritt} und einen Refinement-Schritt (\Fb{MThreadFilter}), auch wenn ein Performance-Vorteil zu erwarten ist, wenn beide Operatoren in einem Operator zusammengefasst werden, da einerseits eine Weitergabe des Tuple-Stroms über eine Schnittstelle des Secondo-Kerns entfällt und die Möglichkeit eines dynamischen Load-Balancing besteht. Ein weiterer Vorteil der Trennung ist es, dass eine separater Filter-Operator für den Refinement-Schritt universell nutzbar ist.
 
@@ -492,31 +493,65 @@ Auch wenn hier ein sehr großer Performance-Vorteil zu erwarten ist, da die Bere
 
 Im folgenden wird die Implementierung der in \autoref{Entwicklung} skizzierten Operatoren und der Datenstrukturen, die von den Operatoren gemeinsam genutzt werden, dargestellt. Einleitend werde ich einerseits die genutzte Entwicklungsumgebung skizzieren und andererseits wichtige Ansätze in der Implementierung erläutern, die von übergreifender Bedeutung für die gesamte Implementierung sind.
 
-Die von mir implementierte Algebra wird in Secondo 4.20 integriert auf einem Suse Linux 15.0 System. Als IDE wurde C-Lion verwendet. Für meine Implementierung musste ich ausschließlich eine Algebra im Secondo-Kern in C++ integrieren und einige Änderungen im Kern und in anderen Algebren vornehmen. Genutzt wurde der C++11-Standard. Vor allem habe ich die ab diesem Standard in die Standard-Library integrierte Concurrency-Bibliothek und \Fb{shared\_pointer} verwendet.
+Die von mir implementierte Algebra wird in Secondo 4.20 integriert auf einem OpenSuse Leap 15.0 Linux-System. Als IDE wurde C-Lion verwendet. Für meine Implementierung musste ich ausschließlich eine Algebra im Secondo-Kern in C++ integrieren und einige Änderungen im Kern und in anderen Algebren vornehmen. Genutzt wurde der C++11-Standard. Vor allem habe ich die ab diesem Standard in die Standard-Library integrierte Concurrency-Bibliothek und \Fb{shared\_pointer} verwendet.
 
-Mit C++11 wurde die Concurrency-Implementierung der Boost-Library in die Standardbibliothek übernommen, die ich in meiner Implementierung verwende. Kern meiner Verwendung sind zwei unterschiedliche Mutexe mit unterschiedlichen Kosten und Funktionen, der \Fb{lock\_guard}, der lediglich sicherstellt, dass die Locks wieder freigegeben werden, und der \Fb{unique\_lock} mit weiterer Funktionalität. Für meine Implementierung wichtig ist die Möglichkeit, . -Threads kurz inkl. Speicherkonzept.
+Mit C++11 wurde die Concurrency-Implementierung der Boost-Library in die Standardbibliothek übernommen, die ich in meiner Implementierung verwende. Sie basiert auf dem C++-Speichermodell, der sequentiellen Konsistenz. Es muss also ein deterministisches Verhalten auch eines Programmflusses garantiert werden, der auf mehreren gleichzeitigen Prozessen beruht. Kern der C++-Concurrency-Schnittstelle sind Threads, die ihre ausführbare Einheit enthalten und sofort gestartet werden. Ich verwenden durchgehend Funktionsobjekte, das heißt Instanzen von Klassen, für die der Klammer-Operator überladen worden ist. Der erzeugende Thread kann entweder mit \Fb{join} darauf warten, dass der Thread seine Aufgaben beendet oder den Thread mit \Fb{detach} von Erzeuger-Thread lösen, mit dem Risiko von undefiniertem Verhalten, da die Existenz gemeinsame genutzer Resssourcen so nicht mehr garantiert ist. Sperren können in Mutexe verpackt werden, von denen ich zwei mit unterschiedlichen Kosten und Funktionen verwende: den \Fb{lock\_guard}, der lediglich sicherstellt, dass die Sperren wieder freigegeben werden und der \Fb{unique\_lock} mit erweiterter Funktionalität. Für meine Implementierung wichtig ist die Möglichkeit, die Sperre pausieren zu lassen, also Sperren mehrfach zu setzen und wieder freizugeben. Mithilfe von Bedingungsvariablen (\Fb{condition\_variable}) kann auf einer Nachricht entweder an einen oder alle Threads gewartet werden. Anzuraten ist es, um Nebeneffekte zu vermeiden, ein Prädikat meist in Form einer Lambda-Funktion zu verwenden. \Fb{Std::atomic} stellt darüber hinaus atomare Datentypen zur Verfügung, von denen ich Booleans verwende {\autocite{Grimm2018}}. 
 
-Wichtig für Zuerst Probleme mit Thread-Sicherheit des Flob-Managers. thread mode als flag. Leider reicht die bisherige Implementierung nicht aus
-evtl. was wurde im Kern geändert für Funktionieren
+\begin{minipage}{\linewidth}
+	\begin{lstlisting}[caption={Flags der MThreaded-Algebra}, label=list:flags]
+	DEFAULTCCFLAGS += -pthread -DTHREAD_SAFE
+	CCFLAGS += -pthread -DTHREAD_SAFE
+	COMMON_LD_FLAGS += -lboost_thread -lboost_system
+	\end{lstlisting}
+\end{minipage}
 
-Die Schnittstelle für die Integration neuer Operatoren ist genau definiert. Alle von mir implementierten Operatoren außer den Hilfsoperatoren Was braucht ein Operator und wie stelle ich die Implementierung dar? Typemapping, kurz VM und LI (übernimmt das Scheduling, get next
+Eine Schwierigkeit meiner Implementierung ist es, dass ich zwar in der von mir entworfenen Algebra die sequentielle Konsistenz garantieren kann, aber diese an diversen Stellen auf anderen Funktionalitäten des Secondo-Kerns beruht. Probleme traten vor allem im Umgang mit \Fb{FLOBs} auf. Secondo verwendet die Berkeley-DB in einer Konfiguration, die keinen konkurrierenden Zugriff auf die Datenbank-Speicherschnittstelle erlaubt. Deswegen muss sichergestellt werden, dass Zugriffe auf diese nur sequentiell stattfinden. Vor alleauf Wichtig für Zuerst Probleme mit Thread-Sicherheit des Flob-Managers. Über ein Flag lässt sich Secondo in einem Thread-sicheren Modus kompilieren (siehe \autoref{list:flags}). Vor allem wird dann der Flob-Manager synchronisiert. Leider gab es in meiner Algebra weiterhin Probleme mit der Threadsicherheit, sofern \Fb{FLOBs} verwenden werden, genau bei der Verwendung von Query-Prozessoren innerhalb der Threads im Filter-Operator, wo ich die Probleme und Lösungsversuche im Detail diskutieren werden.
 
-Memory plus Attribute in TM
+Abhängigkeiten bestehen zu folgenden Algebren, die mithilfe des Makefiles der Algebra eingebunden werden:
+
+\begin{itemize}
+	\item StandardAlgebra
+	\item StreamAlgebra
+	\item RelationAlgebra
+	\item SpatialAlgebra
+	\item RectangleAlgebra
+	\item SPartAlgebra (irreguläres Gitter)
+\end{itemize}
+
+Die Schnittstelle für die Integration neuer Operatoren ist genau definiert. Prinzipiell besteht ein Operator aus vier Methoden und zwei weiteren Bestandteilen: Das Typemapping stellt sicher, dass der Operator nur mit Parametern aufgerufen wird, mit denen er funktioniert. Das Valuemapping berechnet aus einer Eingabe das Ergebnis. Die Methode \Fb{getOperatorSec} enthält die Spezifikation des Operators als Text. Die Methode \Fb{getOperatorSec} fasst die Bestandteile des Operators für den Algebramananger zusammen. Zusätzlich notwendig ist eine Datei mit mindestens einem Beispiel für jeden Operator, mit der das Funktionieren der Algebren automatisch überprüft werden kann, und eine Datei, die die Signatur der Operatoren enthält. Alle von mir implementierten Operatoren außer den Hilfsoperatoren, auf die ich hier nicht genauer eingebe, da sie sehr simple strukturiert sind, haben als Eingangs- und Ergebniswert einen Tupelstrom. Hier ist es notwendig, den Zustand des Operators in einer weiteren Klasse zu erhalten, die LocalInfo-Klasse genannt wird, die in meiner Implementierung die Funktion des Schedulings übernimmt, also Daten verteilt, das Ergebnis weitergibt, die notwendigen Datenstrukturen erzeugt und die Threads erzeugt sowie verwaltet. Zwei Parameter werden für einige Operatoren gesetzt. \Fb{SetUsesMemory} erlaubt es einem Operator, seinen Speicher selbst zu verwalten und ist notwendig bei Operatoren, die größere Datenstrukturen im Hauptspeicher aufbauen. \Fb{SetUsesArgsInTypeMapping} erlaubt den Zugriff auf die Parameter im Typemapping. Ein wichtiger Mechanismus des Typemappings, der hier genutzt wird, ist der Append-Mechanismus, der die Weitergabe von dort generierten Informationen an das Valuemapping erlaubt.
+
+Grundsätzlich verwende ich Headerdateien, damit die Schnittstellen einfacher erfasst werden können. Die Implementierungen der Operatoren sind in Ordnern zusammengefasst nach Hilfsoperatoren, Sortieroperatoren und Joinoperatoren. Hilfsstrukturen, die von mehreren Operatoren genutzt werden und darüber hinaus für weitere Algebren zur Verfügung gestellt werden sollen, sind in \Fb{MThreadedAux} zusammengefasst.
 
 \subsubsection{Hilfsstrukturen} 2 S
 \label{Hilfsstrukturen} 
 
-In diesem Kapitel stelle ich  selbst implementierte Datenstrukturen sowie Strukturen, die aus anderen Operatoren bzw. aus dem Secondo-Framework genutzt wurden.
+In diesem Kapitel stelle ich  selbst implementierte Datenstrukturen vor, die nicht speziell einem Operator zugeordnet werden können, sondern von mehreren Operatoren genutzt werden. Die Operatoren-übergreifend genutzten Datenstrukturen sind in der Datei \Fb{methreatedAux} zusammengefasst. Ich habe drei unterschiedliche Tupelbuffer implementiert und zwei threadsichere Wrapperklassen um die Warteschlange der Standard-Library. Unterschiede zwischen verschiedenen Versionen ist die Fähigkeit, Tupel zu persistieren.
 
-bereits aus Secondo genutzt: 
-Selbstverständlich wird die Relationale Algebra benutzt. in Memory R-Bäume, TupleFile, Irregular-Grid aus SPart (neues Interface implementiert), Queryprozessor
+Tupelbuffer sind für Anwendungsfälle gedacht, bei denen der Schreib- und Lesevorgang voneinander getrennt ist -- im Allgemeinen wird zuerst eine Menge von Tupel temporär gespeichert, um später wieder vollständig geladen zu werden. Da oft nicht bei der Initialisierung klar ist, ob der Buffer im Hauptspeicher gehalten werden kann oder nicht, gibt es eine virtuelle Bufferklasse, von der ihre Versionen mit gleicher Schnittstelle abgeleitet sind: ein Hauptspeicherbuffer, ein persistenter Buffer und ein Buffer, der intern die Persistierung verwaltet. Intern verwenden die Tupelbuffer als Datenstruktur, sofern Hauptspeicherversionen, Warteschlangen, sofern persistente Buffer, Zeiger auf \Fb{TupleFiles} der \Fb{RelationAlgebra} und verwenden dessen \Fb{MakeScan}-Iterator für den Zugriff auf die Daten. Zuerst habe ich die temporären Speicher selbst mit \Fb{fileStreams} und der Methode \Fb{WriteToBin} der Tupel-Klasse implementiert, aber mit diesem Ansatz gab es, sofern \Fb{FLOBs} verwendet wurden, Synchronisierungsprobleme. Die Buffer haben einer Read-, eine Append-Methode, Methoden zum Öffnen sowie Schließen und zur Abfrage, ob der Buffer leer ist. In der Hauptspeicherversion des Buffers sind einige Methoden ohne Funktion, waren aber notwendig, damit alle Versionen mit einem gleichen Interface benutzt werden können. Sowohl die persistenten Buffer als auch die Warteschlangen wurden so konstruiert, dass Dateien nicht direkt im Konstruktor angelegt werden, sondern erst, wenn der erste Schreibvorgang notwendig wurde, um zu verhindern, dass, sofern keine Persistierung erfolgte, aber die Datenstruktur bereits erzeugt werden musste, I/O-Operationen durch die Anlage einer Datei notwendig werden.
 
-Datenstrukturen: methreatedAux
-Threadsichere TupleBuffer und Queues. Zuerst eigene Struktur, um temportäre Files zu erzeugen. Probleme mit Threadsicherheit. zuerst als globale Variable, aber Probleme mit 
+Die Warteschlange der Standard-Library ist nicht threadsicher. Verwendung finden Warteschlangen vor allem als Buffer für den Datenaustausch zwischen Threads, zwischen den Tupelströme fließen. Eine persistente Version wurde notwendig, da die Join-Operatoren teils blockieren und bereits deutlich früher eines Ergebnisstrom produzieren als begonnen wird, diesen auszulesen. Die nicht persistente Version ist generisch und damit nicht nur für Tupel nutzbar. Für die Synchronisierung wird ein Mutex verwendet und die Dequeue-Methode gibt diesen temporär wieder frei, wenn die Warteschlange leer ist, um in diesem Fall einen Schreibvorgang zu ermöglichen (\autoref{list:queue}). Die persistente Version wird mit dem zur Verfügung stehenden Hauptspeicher parametrisiert und lagert ab dem Zeitpunkt, wenn kein Speicher mehr zur Verfügung steht, die Tupel in in Fb{TupleFile} aus. Eine Verbesserungsmöglichkeit wäre es, wenn anschließend wieder Hauptspeicher frei wird, diesen auch zu verwenden.
 
-SafeQueue und SafeQueuePersistent
-
-
+\begin{minipage}{\linewidth}
+	\begin{lstlisting}[caption={Enqueue und Dequeue-Methode der threadsichere Warteschlange}, label=list:queue]
+	void enqueue(T t) {
+		std::lock_guard<std::mutex> lock(m);
+		q.push(t);
+		dataReadyQueue = true;
+		c.notify_one();
+	}
+	
+	T dequeue() {
+		std::unique_lock<std::mutex> lock(m);
+		while (q.empty()) {
+			c.wait(lock, [&] { return dataReadyQueue; });
+			dataReadyQueue = false;
+		}
+		T val = q.front();
+		q.pop();
+		return val;
+	}
+	\end{lstlisting}
+\end{minipage}
 
 \subsubsection{Hilfsoperatoren}
 
@@ -557,7 +592,7 @@ Der Merge-Schritt entspricht der in \autoref{Entwicklung} beschriebenen Vorgehen
 
 \subsubsection{Hybrid Hash Join} 3 S
 
-Der Operator \Fb{mThreadedMergeSort} hat die Signatur $stream~x~(attr~x~bool \ldots) \longrightarrow stream$. In die Algebra muss er mit zwei Optionen integriert werden: Er muss seinen Speicher selbst verwalten, um zu wissen, wie viel Arbeitsspeicher für die Sortierung der Läufe zur Verfügung steht, und er benötigt seine Argumente im Typemapping. Das Typemapping hat zwei Funktionen. Einerseits muss es sicherstellen, dass die beiden Relationen, die über einen Equi-Join verbunden werden sollen, als Tupelstrom in den Operator eingehen und die Joinattribute Elememte der jeweiligen Tupel sind. Andererseits wird der Append-Mechanismus genutzt, um die Indices der Sortierattribute und die Sortierrichtung an das Valuemapping weiterzugeben.
+Der Operator \Fb{mThreadedMergeSort} hat die Signatur $stream~x~(attr~x~bool \ldots) \longrightarrow stream$. In die Algebra muss er mit einer Optionen integriert werden: Er muss seinen Speicher selbst verwalten, um zu wissen, wie viel Arbeitsspeicher für die Hash-Tabellen zur Verfügung steht. Das Typemapping hat zwei Funktionen. Einerseits muss es sicherstellen, dass die beiden Relationen, die über einen Equi-Join verbunden werden sollen, als Tupelstrom in den Operator eingehen und die Joinattribute Elememte der jeweiligen Tupel sind. Andererseits wird der Append-Mechanismus genutzt, um die Indices der Joinattribute an das Valuemapping weiterzugeben.
 
 Wieder wird das grundsätzliche Entwurfsmuster gewählt, welches in Secondo für Operatoren verwendet wird, die einen Tupelstrom als Ein- und Ausgabe haben. Der Zustand des Operators wird in einer LocalInfo-Class gesichert, auch wenn ein kontinuierlicher Tupelstrom fliest. Hier hat diese Klasse noch die zusätzliche Aufgabe, innerhalb eines Master-Worker-Schemas die Funktion des Masters zu übernehmen: Sie erzeugt die Worker-Threads, partioniert und verteilt die Daten über eine Modulo-Hash-Funktion auf genau so viele Threads wie Kerne genutzt werden und sammelt den Ergebnis-Tupelstrom abschließend wieder über ihre GetNext-Methode ein. Als Buffer wird ein Vektor mit Shared-Pointern auf eine von mir implementierte threadsichere Queue verwendet. In diese Buffer werden nacheinander die beiden eingehenden Relationen verteilt und die Threads vom Hauptthread getrennt, damit ein nicht blockierender Operator ermöglicht wird, da nicht auf die Worker gewartet werden muss, bis Werte von der GetNext-Methode weitergereicht werden können. Da hier keine gleichmäßige Partitionierung stattfindet, wird eine Warteschlange als Buffer gewählt, um Performanceverluste zu vermeiden, wenn ein einzelner Worker auf Daten aus dem Tupelstrom warten müsste.
 
@@ -569,53 +604,26 @@ Im Grunde ist die Struktur des Operators sehr simpel. Probleme treten auf zwei E
 
 \subsubsection{Spatial Join Filter Step} 3 S
 
-Der Operator \Fb{mThreadedSpatialJoin} hat die Signatur $stream~x~stream x attr x attr x int \longrightarrow stream$.
+Der Operator \Fb{mThreadedSpatialJoin} hat die Signatur $stream~x~stream x attr x attr x real \longrightarrow stream$. In die Algebra muss er lediglich mit einer Optionen integriert werden: Er muss seinen Speicher selbst verwalten, um zu wissen, wie viel Arbeitsspeicher für die internen R-Bäume zur Verfügung steht. Sein Typemapping hat zwei Funktionen. Einerseits muss es sicherstellen, dass die beiden Relationen, die verschmolzen werden sollen, als Tupelstrom in den Operator eingehen und die Join-Attribute Elememte der jeweiligen Tupel und von einem räumlichen Datentyp sind. Der fünte Parameter muss ein Real sein und stellt den Wert da, um den die Bounding Box vergrößert werden kann, um Spatial Joins zu ermöglichen, bei den die Objekte, die im späteren Refinement-Schritt mitels einer Prädikats geprüft werden, einen Abstand zueinander haben. Nearest Neighbour wäre ein Beispiel hierfür. Andererseits wird der Append-Mechanismus genutzt, um die Indices der Joinattribute an das Valuemapping weiterzugeben.
 
+Wie die anderen Operatoren auch, gliedert sich der Operator in zwei zentrale Bestandteile: ein Scheduling, welches von einer LocalInfo-Klasse ausgeführt wird, und Threads als Worker, in denen der Ergebnisstrom berechnet wird. Anders als bei den bisherigen Operatoren kann eine räumliche Partitionierung nicht sinnvoll vorgenommen ohne Kenntnisse über die R-Relation vorgenommen werden. Hier wird die R-Relation einmal gescannt und ein Sampel ihrer MBBs erzeugt. Um ein gleichverteiltes Sampling zu erzeugen, werden zunächst die ersten 100 MBBs gespeichert. Anschließend wird eine Zufallszahl erzeugt, die beginnend mit 100 in jedem Durchgang um 1 erhöht wird. Werte zwischen 0 und 99 ersetzen die entsprechende MMB. Um die größes des Sampels an die größe der Relation anzupassen, wird nach dem Scan von je 1000 Tupeln die Menge der gespeicherten MMBs um 10 erhöht. Nur aus diesen MMBs wird das Gitter mittels SRT erzeugt. Hierfür wird die Klasse IrregularGrid2D aus der SPart-Algebra verwendet. Ursprünglich hatte diese nur eine Schnittstelle für Ströme. Für die Anwendung innerhalb dieses Operators habe ich in der Algebra eine Schnittstelle ergänzt, die einen Vektor von Rechtecken als Parameter erlaubt, um eine direkte Parameterisierung ohne Queryprozessor zu ermöglichen. Da das irrgeguläre Gitter nur aus einer Zufallsauswahl erzeugt wurde, kann es sein, dass räumliche Objekte außerhalb des Gitters liegen. Deswegen wird das Gitter in alle Richtungen bis zu den maximal bzw. minimal möglichen Double-Werten erweitert. Da von einer kleinen Kernzahl ausgegangen wird, erzeuge ich für die Partitionierung ein Gitter, welches aus Streifen besteht, um unproblematisch auch mit einer Anzahl von Threads umgehen zu können, deren Wurzel keine natürliche Zahl ist. Ein Gitter mit mehr Zellen ist nicht anzustreben, da auch mehr Duplikate möglich sind.
 
-TM:
+Die möglicherweise vergrößerten MMBs werden über ein Funktionsobjekt realisiert, um dies nur einmal realisieren zu müssen. Die R-Relation muss, da sie bereits im Scheduling gescannt werden muss temporär gespeichert werden. Hierfür wurde ein Buffer implementiert, der seine Persistierung selbst verwaltet (\autoref{Hilfsstrukturen}. Für die interne Speicherung steht der maximale Speicher zur Verfügung. Für die Tupelströme stehen zwei Versionen von Warteschlangen zur Verfügung. Die eingehenden Ströme werden sofort verarbeitet, weswegen die Standardversion der threadsicheren Warteschleife verwendet werden kann. Da aber mehrere Iterationen über die S-Relation notwendig werden können, wenn die R-Bäume inklusive der Repräsentation der Tupel der R-Relation nicht in den Hauptspeicher passen, kann es sein, dass Ergebnistupel zwischengespeichert werden müssen, bevor sie von der GetNext-Methode der LocalInfo-Klasse abgeholt werden können. Hier hilft es auch nicht, die Workerthreads vom Hauptthread zu entkoppeln, da die GetNext-Methode erst Tupel abholen kann, wenn beide Eingangsrelationen vollständig gelesen worden sind. Eine Möglichkeit, dies zu verhinden, wäre es, jedes mal, wenn der Hauptspeicher vollständig belegt ist, zwischen Scheduling und GetNext zu wechseln. Da dies aber nur kompliziert umzusetzen ist, wurde der Ansatz gewählt, der es ermöglicht, den Ergebnisstrom zu persistieren. Für die Datenstrukturen der Worker, vor allem die R-Bäume und Tupelspeicher, wird der Speicherplatz global verwaltet. TODO: Verteilung Speicher, auch noch mal testen. Auch wenn der Speicher global verwaltet wird, habe ich mich gegen einen globalen R-Baum entscheiden, da ich bei einer geringen Anzahl genutzter Kerne von wenigen Duplikaten ausgehe und es deswegen als Vorteil sehe, trotz einer gewissen Redundanz zwischen den R-Bäumen, die Teil-R-Bäume parallel erzeugen zu können.
 
-Auswahl von BBoxen für Aufbau des Netzes
-strean strean müssen bbox haben Version und IrGrid, mindestens der Cellzahl wie Kerne
-attr attr fun
-analyse prädikat wegen bbox>
+Der Join-Prozess selbst ist nicht kompliziert. Aus dem Tupelstrom der R-Relation wird ein interner R-Baum aufgebaut, der 4 bis 8 Rechtecke in jedem Knoten aufnehmen kann. Anschließend wird die S-Relation vollständig durchlaufen und Joinkandidaten über eine Suche der MBB im R-Baum festgestellt. Sofern die R-Relation inklusive des R-Baums nicht mehr in den Hauptspeicher passt, wird der Vorgang wiederholt. Nach einem ersten Durchlauf kann berechnet werden, wie viele Iterationen notwendig sind, wobei immer der maximale Speicherbedarf eines R-Baums vorausgesetzt wird (in der Methode \Fb{calcIterations} wird die Iterationszahl so lange hochgezählt, bis bei der Aufteilung kein Overflow mehr entsteht). Im ersten Durchlauf ist es durchgehend notwendig, den Speicherbedarf zu überwachen, um festzustellen, ab wann die R-Relation nicht mehr in den internen R-Baum geschrieben werden kann, sondern in eine externe Datenstruktur geschrieben werden muss. Die Berechnung des Speicherbedarfs ist komplizierter als bei den anderen Operatoren, da der Speicherverbrauch des R-Baums nicht linear wächst. Allerdings stellt die genutzte Implementierung eines internen R-Baums von Secondo hierfür eine Methode zur Verfügung.
 
-hoel and samet sehr schnell. hypercube
-
-r-tree plus lokaler Plane Sweep
-path buffer
-
-
-Baue BBOX und RTree
-brauche ich ein R-Tree
-
-baue Gitter für wurzel kerne partitionen
-
-filter step bbox zufügen stapel
-
-dublikatsvermeidung im filter step
-
-Geht das Parallel? Wie zusammen führen von RTrees
-bbox geht parallel
-
-Partitionierung
-anhand von Gitter
-
-Filter-Step
-bboxintersects
-Hier Dublikatsvermeidung -> TopRightClass
-toprightreport
-
-Refinement Step gleicher Kern wie Filter
-symmjoin
-Frage ob sortieren sinnvoll damit flob nicht mehrmals gelesen
-
-Gitter
+Duplikate machen auf zwei Ebenen Probleme. Einerseits soll das Ergebnis frei von Duplikaten sein. In \autoref{entw:spatial} habe ich bereits erläutert, dass diese in der Entstehung erkannt werden können über ihre Position innerhalb der Gitterzelle, also erst gar nicht als Joinkandidaten an den Ergebnisstrom weitergegeben werden. Für diesen Zweck habe ich die Methoden \Fb{topright} und \Fb{reportTopright} implementiert. Andererseits bereiten Duplikate Probleme bei der Löschung von Tupeln, die keine Joinkandidaten sind. Anders als bei den beiden anderen Operatoren dürfen Tupel erst gelöscht werden, wenn sie in allen Gitterzellen, in denen sie vorkommen, getestet wurden. Für diesen Zweck muss hier der Referenzzähler der Tupel-Klasse genutzt werden, um sicherzustellen, dass ein Tupel erst gelöscht wird, wenn keine Referenz mehr vorhanden ist.
 
 \subsubsection{Spatial Join Refinement Step} 3 S
 
-Der MThreadFilter-Operator ist analog des nicht parallelen Filter-Operators angelegt und ist damit vielseitiger zu verwenden als ausschließlich für den Refinement Step eines Spatial Joins. Übergeben wird eine beliebige Funktion
+Der MThreadFilter-Operator ist analog des nicht parallelen Filter-Operators angelegt und ist damit vielseitiger zu verwenden als ausschließlich für den Refinement Step eines Spatial Joins. Übergeben wird eine beliebige Funktion. Die Signatur des Operators ist $stream~x~fun \longrightarrow stream$. Auch wenn die Architektur des Operators simpel ist, hat die Implementierung große Schwierigkeiten bereitet und konnte nicht zufriedenstellend gelöst werden. Vor allem liegt das an Problemen mit der Threadsicherheit von \Fb{FLOBs}.
+
+Bereits das Typemmapping ist kompliziert, da anders als in der Single-Thread-Version die übergebende Funktion nicht direkt im Queryprozessor genutzt werden kann, sondern für jeden Thread ein eigener Operatorenbaum für einen eigenen Queryprozessor konstruiert werden muss. Für diesen Zweck ist es notwendig, dass die Argumente, das heißt in diesem Fall die Funktion, an das Typemapping übergeben werden muss. Also wird für den Operator das Parameter \Fb{SetUsesArgsInTypeMapping} gesetzt. Die Attribute der Funktion werden darauf getestet, ob sie im Eingangsstrom vorkommen und die Funktion wird als FText über den Append-Mechanismus übergeben. Im Scheduling kann die Funktion dann in eine ListExpr umgewandelt werden, um den Operatorenbaum zu erzeugen.
+
+
 
 TM Prüfen der Funktion, Übergeben der Funktion
+Frage ob sortieren sinnvoll damit flob nicht mehrmals gelesen
 
 \subsection{Test} 15 S
 
