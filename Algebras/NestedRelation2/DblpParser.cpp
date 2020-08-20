@@ -153,7 +153,10 @@ void DblpParser::poppedDocument(const Element &element)
   setAttribute(0, new CcString(true, element.getName()));
   setAttribute(1, new FText(true, m_authorsText));
   setAttribute(14, m_authorsList);
-  setAttribute(15, m_keywords);
+  setAttribute(15, m_keywords);  
+  setAttribute(16, new CcInt(true, m_tuple_counter));
+  
+  m_tuple_counter++;
 
   for (int index = 0; index < c_attributeCount; index++)
   {
@@ -419,6 +422,7 @@ string mapElementNameToAttributeName(const string & elementName)
   resultType.AppendAttribute("Isbn", Symbols::STRING());
   resultType.AppendAttribute("AuthorsList", authorsType.GetARel());
   resultType.AppendAttribute("Keywords", keywordsType.GetARel());
+  resultType.AppendAttribute("DocId", Symbols::INT());
 
   return resultType.GetNRel();
 }
@@ -497,6 +501,7 @@ Function used to create the needed mappings during initialising.
     creationMapping[13] = createString;
     creationMapping[14] = NULL;
     creationMapping[15] = NULL;
+    creationMapping[16] = NULL;
 
     parserMapping = &map;
     attributeMapping = &mapAttr;

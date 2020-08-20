@@ -52,7 +52,7 @@ typedef Attribute* (*makeAttributeMethodType)(
 
 class DblpParser : public XmlParserInterface
 {
-    static const int c_attributeCount = 16;
+    static const int c_attributeCount = 17;
 
   public:
     DblpParser(NRel *nrel, std::set<std::string> *stopwords,
@@ -101,6 +101,7 @@ class DblpParser : public XmlParserInterface
     bool m_attributeSet[c_attributeCount];
     std::string m_currentText;
     DblpImportLocalInfo *m_info;
+    int m_tuple_counter = 1;
 
     std::set<std::string> *m_stopwords;
 
