@@ -102,6 +102,7 @@ class MGraphCommon : public MemoryObject{
         SecondoCatalog* ctlg = SecondoSystem::GetCatalog();
         k = ctlg->NumericType(k);
         tt = new TupleType(k);
+        memSize += tt->GetTotalSize();
      }
 
 /*
@@ -110,6 +111,7 @@ class MGraphCommon : public MemoryObject{
 */
      ~MGraphCommon(){
          tt->DeleteIfAllowed();
+         memSize = 0; 
       }
         
 /*
@@ -168,6 +170,7 @@ graph.
         MEdge e(source, target, costs, ginfo);
         graph[source].first.push_back(e);
         graph[target].second.push_back(e);
+        memSize += ginfo->GetSize();
         return true;
      }
 
@@ -186,6 +189,7 @@ Inserts an edge to this graph.
         assert((size_t)target<graph.size());
         graph[source].first.push_back(e);
         graph[target].second.push_back(e);
+        memSize += sizeof(MEdge);
      }
 
 
@@ -358,6 +362,7 @@ Removes all Edges from Source to target.
        if(target< 0 || target >= (int) graph.size()) return;
        removeTarget(graph[source].first,target);
        removeSource(graph[target].second,source);
+       memSize -= sizeof(MEdge);
      }
    
 
@@ -388,6 +393,7 @@ Removes all edges from and to a specified node.
            MEdge& edge = *it;
            //assert(edge.target==vertex);
            removeTarget(graph[edge.source].first,vertex);  
+           memSize -= sizeof(MEdge);
         }
 
         // clean lists of vertex
