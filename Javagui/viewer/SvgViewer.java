@@ -31,15 +31,13 @@ import java.awt.*;
 import java.awt.event.*;
 
 
+import org.apache.batik.anim.dom.SAXSVGDocumentFactory;
 import org.apache.batik.swing.JSVGCanvas;
-import org.apache.batik.swing.gvt.GVTTreeRendererAdapter;
-import org.apache.batik.swing.gvt.GVTTreeRendererEvent;
-import org.apache.batik.swing.svg.SVGDocumentLoaderAdapter;
-import org.apache.batik.swing.svg.SVGDocumentLoaderEvent;
-import org.apache.batik.swing.svg.GVTTreeBuilderAdapter;
-import org.apache.batik.swing.svg.GVTTreeBuilderEvent;
-import org.apache.batik.dom.svg.SAXSVGDocumentFactory;
+import org.apache.batik.swing.svg.SVGUserAgentAdapter;
+import org.apache.batik.transcoder.TranscoderInput;
+import org.apache.batik.transcoder.TranscoderOutput;
 import org.apache.batik.util.XMLResourceDescriptor;
+
 import org.apache.fop.render.ps.*;
 import org.apache.batik.transcoder.*;
 import org.w3c.dom.Document;

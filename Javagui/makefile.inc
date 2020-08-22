@@ -90,7 +90,7 @@ CLASSPATH := $(CLASSPATH):$(GUIPATH)/secondoInterface/SecondoInterface.jar:$(JAV
 JARS := $(JLEXCLASSESPATH):$(CUPCLASSESPATH)
 JARS := $(JARS):$(LIBPATH)/jl1.0.1.jar
 JARS := $(JARS):$(LIBPATH)/pdfbox-app-2.0.8.jar
-JARS := $(JARS):$(LIBPATH)/batik.jar
+JARS := $(JARS):$(LIBPATH)/batik-1.8.jar
 JARS := $(JARS):$(LIBPATH)/grappa1_2.jar
 
 
