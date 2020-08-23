@@ -618,48 +618,105 @@ Duplikate machen auf zwei Ebenen Probleme. Einerseits soll das Ergebnis frei von
 
 Der MThreadFilter-Operator ist analog des nicht parallelen Filter-Operators angelegt und ist damit vielseitiger zu verwenden als ausschließlich für den Refinement Step eines Spatial Joins. Übergeben wird eine beliebige Funktion. Die Signatur des Operators ist $stream~x~fun \longrightarrow stream$. Auch wenn die Architektur des Operators simpel ist, hat die Implementierung große Schwierigkeiten bereitet und konnte nicht zufriedenstellend gelöst werden. Vor allem liegt das an Problemen mit der Threadsicherheit von \Fb{FLOBs}.
 
-Bereits das Typemmapping ist kompliziert, da anders als in der Single-Thread-Version die übergebende Funktion nicht direkt im Queryprozessor genutzt werden kann, sondern für jeden Thread ein eigener Operatorenbaum für einen eigenen Queryprozessor konstruiert werden muss. Für diesen Zweck ist es notwendig, dass die Argumente, das heißt in diesem Fall die Funktion, an das Typemapping übergeben werden muss. Also wird für den Operator das Parameter \Fb{SetUsesArgsInTypeMapping} gesetzt. Die Attribute der Funktion werden darauf getestet, ob sie im Eingangsstrom vorkommen und die Funktion wird als FText über den Append-Mechanismus übergeben. Im Scheduling kann die Funktion dann in eine ListExpr umgewandelt werden, um den Operatorenbaum zu erzeugen.
+Bereits das Typemmapping ist kompliziert, da anders als in der Single-Thread-Version die übergebende Funktion nicht direkt im Queryprozessor genutzt werden kann, sondern für jeden Thread ein eigener Operatorenbaum für einen eigenen Queryprozessor konstruiert werden muss. Für diesen Zweck ist es notwendig, dass die Argumente, das heißt in diesem Fall die Funktion, an das Typemapping übergeben werden muss. Also wird für den Operator das Parameter \Fb{SetUsesArgsInTypeMapping} gesetzt. Die Attribute der Funktion werden darauf getestet, ob sie im Eingangsstrom vorkommen und das Ergebnis des Prädikats vom Typ Boolean ist. Die Funktion wird als Textobjekt (\Fb{FText}) mithilfe des Append-Mechanismus an das Valuemapping übergeben. Im Scheduling kann die Funktion dann von einem Textobjekt in eine ListExpr umgewandelt werden, um die jeweiligen Operatorenbäume für die Threads zu erzeugen.
 
+Die Implementierung hat mehrere Ziele: Möglichst die vollständige Berechnung, ob Join-Kandidaten auch bei einer genauen Auswertung der Prädikate mit den räumlichen Attrivuten weiterhin verschmolzen werden müssen oder allgemein ob die Filter-Prädikate als wahr ausgewertet werden, soll in den Threads vorgenommen, da dieser Schritt sehr hohe Kosten verursacht. Eine Synchronisierung gerade der teuren Berechnung soll vermieden werden. Der Operator soll nicht blockierend sein, das heißt es sollen direkt von Filter durchgelassene Tupel an den Ergebnisstrom übergeben werden ohne eine temporäre Speicherung. Darüber hinaus sollen die Threads möglichst nicht pausieren, dass heißt Ein- und Ausgabestrom sollen parallel zur Berechnung der Filterprädikate in den Threads verarbeitet werden.
 
+Durch diese Ziele wird die konkrekte Implementierung des Operators deutlich komplexer als die Single-Thread-Version, da mehrere Threads durchgehend einen Eingabestrom haben müssen und gleichzeitig der Ergebnisstrom weitergeleitet werden muss. Ein trivialer Ansatz, der Tupel an alle Threads verteilt und dann auf die Ergebnisse wartet, um diese weiterzuleiten, kann dazu führen, dass einzelne Threads zwischenzeitlich nicht ausgelastet sind, wenn die Objekte, die in die Berechnung eingehen, sich deutlich in Komplexität unterscheiden. Mein erster Ansatz versuchte, die Verteilung nach Round Robin in einen eigenen Thread auzulagern, damit Verteilung und Ergebnisweitergabe über die \Fb{getNext}-Methode parallel und damit beide kontinuierlich laufen können. Dieser Ansatz, der Voraussetzt, dass die Threads vom Hauptthread entkoppelt werden, ist allerdings schwierig in der Synchronisation vor allem der Destruktion von Objekten und führte zu undefiniertem Verhalten vor Allem bzgl. des Schließen des Eingangsstroms und der Zerstörung der Queryprozessoren. Auch trat bereits ein Problem auf, was ich leider nicht vollständig lösen konnte: Vermutlich durch eine fehlende Synchronisation von nicht zulässigen gleichzeitigen Zugriffen auf die Berkelely-DB-Schnittstelle wurde ein Commit verhindert, da entweder offene Zeiger auf Objekten der Queryprozessoren vorhanden waren oder im Commit noch Sperren bestanden, die teils zu einer Ausnahme führen, teils zu einem Deadlock während des Commits.
 
-TM Prüfen der Funktion, Übergeben der Funktion
-Frage ob sortieren sinnvoll damit flob nicht mehrmals gelesen
+Eine erste Vereinfachung versuchte noch die Parallelität von Strömen und Prädikatsberechnungen aufrechtzuerhalten, aber die Probleme zu reduzieren, die dadurch entstanden, wenn der Eingangsstrom in einem eigenen Thread behandelt wird und der Aufruf der Destruktoren der Threads schwer zu koordinieren ist. Jetzt alternierte der Hauptthread zwischen einer Partitionierungs- und der GetNext-Methode. Da nicht vorauszusehen ist, wie groß die Selektivität des Filters ist, musste die GetNext-Methode so implementiert werden, dass sie nur so lange auf Ergebnisse wartet, bis die Buffer, die als threadsichere Warteschlange implementiert sind, fast leer sind. Eine weitere Synchronisation wurde notwendig, um einen Deadlock zu verhindern, wenn der Eingangsstrom erschöpft ist. Zuerst wurden die Queryprozessoren, die die Filterprädikate in den Threads auswerten, auch in diesen erzeugt, was zu Nebeneffekten führte, wenn diese zerstört wurden. Deswegen wurden die Queryprozessoren in der LocalInfo-Klasse erzeugt und in deren Destruktor zerstört.Mit diesem Ansatz gelang es, Probleme auf den Commit zu reduzieren, wenn eine große Relation mit \Fb{FLOBs} verarbeitet wurde.
+
+Eine genaue Lokalisierung des Fehlers ist schwierig, da er sich erst im Commit, also nach Abschluss des vollständigen Querybaums manifestiert. Der implementierte Operator selbst läuft vollständig mit dem richtigen Ergebnis durch. Der Fehler tritt auch bei nur einem Thread auf, also ist es wahrscheinlich kein Synchronisationsproblem zwischen den Prädikatauswertungen. Eine Vermutung ist es, dass neben den Queryprozessoren der Threads teils Prozesse außerhalb der Threads auch auf \Fb{FLOBs} der Tupleattribute, die in das Prädikat eingehen, zugreifen. Für diesen Zweck war ein weiterer Versucht, einen Performanceverlust in Kauf zu nehmen, indem nur entweder die Prädikatauswertung oder die Verarbeitung des Tupelstroms ablaufen darf. Eine Synchronisation wurde mithilfe einer Bedingungsvariable und Mutexen vorgenommen, führte aber auch nicht zu einer fehlerfreien Funktionsweise des Operators. Auch ein letzter Versuch, Secondo ohne Commit zu verwenden, führte zwar dazu, dass deutlich seltener und erst bei größeren Relationen Fehler auftraten, aber immer noch kam es im Abschluss der Abfrage, die den Filter beinhaltete, gelegentlich zu Abbrüchen.
+
+Ein letzter Versuch war es, den Queryprozessor direkt in den Worker-Threads mehrmals zu erzeugen und wieder zu zerstören. Dieser Ansatz hätte, wenn dies nicht allzu häufig vorgenommen werden muss, zu einem Operator führen können, der zwar nicht optimal Parallelität ausnutzt, aber trotzdem schneller ist als die Single-Thread-Version, sofern die Auswertung der Prädikate entsprechend teuer ist. Die Idee begründet sich darin, dass es erst bei relativ großen Relationen zu dem Commit-Fehler kommt. Allerdings funktionierte diese Ansatz nur, wenn maximal 20 Prädikate ausgewertet wurden, bevor der Query-Prozessor zerstört und wieder neu aufgebaut wird. Damit ist der Operator als parallele Version deutlich langsamer als der Single-Thread-Filteroperator. 
+
+TODO: Frage ob sortieren sinnvoll damit flob nicht mehrmals gelesen
 
 \subsection{Test} 15 S
 
+Im folgenden Abschnitt werden umfangreiche Tests der Operatoren beschrieben und ihr verhalten unter unterschiedlichen Bedingungen untersucht. Da hier kein abstraktes Laufzeitverhalten betrachtet wird, sondern die konkrete Laufzeit der Implementierung auf einem spezifischen System, beschreibe ich dieses kurz, um die Meßergebnisse kontextualisieren zu können. Da eine Effizienz unter anderem durch einen Vergleich mit Single-Thread-Operatoren festgestellt wird, geht es aber nicht vor allem um Messwerte, sondern um eine Effizienzsteigerung. Dementsprechend geht es vor allem um eine Laufzeitverbesserung unter gleichen Bedingungen und nicht so sehr um das einzelne Messergebnis.
+
+Mein System ist 
 Mein System AMD 6300 FX
 L1-Cache: je Kern 16 KiB Daten + je Modul 64 KiB Instruktionen
 L2-Cache: je Modul 2048 KiB mit Prozessortakt
 L3-Cache: 8 MiB mit Northbridge-Takt (2,0 GHz)
 AMD FX-6300 	3,5 GHz 	3,8 GHz 	4,1 GHz
 6 Integer-Cluster, 3 Gleitkomma-Einheiten
+SSD 
 
-2x Xeon Gold 
+Vergleichend teste ich auch auf einem Windows-Server mit deutlich besserer und aktuellerer Hardware, auf dem Ubuntu 20.04 LS als Gast-Betriebssystem unter VMWare läuft. Der Server hat 2x Xeon Gold mit je 6 Kernen und 396 GB Arbeitsspeicher, SSD. Dem Gast-Betriebssystem stehen insgesamt 10 Kerne zur Verfügung und 32 GB Arbeitsspeicher. Vorteil hier ist neben dem modernen Mehrkernsystem, dass die Hardwareausstattung variert werden kann.  
+
+Gegliedert ist dieses Kapitel in zwei Teilbereiche. Zuerst wird es darum gehen zu ermitteln, ob meine Operatoren den gestellten Zielen entsprechen und gut funktionieren. Im Konkreten bedeutet dies Korrektheit des Operators, die Robustheit und die Effizienz. Dem folgen Experimente, in denen ich das Verhalten der Operatoren unter unterschiedlichen Bedingungen beobachte, vergleiche und erkläre. 
+
+\begin{itemize}
+	\item Korrektheit: keine Speicherlecks (Test mit \Fb{--valgrindlc}), richtiges Ergebnis unter verschiedenen Bedingungen vor allem kleinen und großen Relationen, die sicherstellen, dass alle Persistierungsstrukturen verwendet werden, Verhalten bei \Fb{FLOBs}.
+	\item Robustheit: Funktionieren mit unkorrekten bzw. nicht sinnvollen Parametern: Werden nur Eingaben zugelassen, mit denen der Operator funktioniert? Verhalten bei leeren Relationen oder wenn die Ergebnisrelation leer ist. Verhalten bei extremen Verteilungen.
+	\item Effizienz: Vergleich mit der Single-Thread-Version bei unterschiedlichen Parametern und Relationen. 
+\end{itemize}
+
+Was für Experimente mache ich?
+verschiedene Parameter: Speicher, Threads, teils speziell wie Buckets und R-Baum 
+
 
 wie werden die tests gemacht
 beschreibung der daten, wie werden unterschiedliche Bedingungen getestet
+Openstreetmapdaten Berlin
 
-\subsubsection{Funktion}
-gute Fkt., Korrektheit, Robust, effizienz
+\subsubsection{Funktionstest MThreadedsort}
+
+--valgrind
+query buildings feed  mThreadedMergeSort[Name]  project[Name] count
+
+==11278== HEAP SUMMARY:
+==11278==     in use at exit: 1,652,231 bytes in 17,840 blocks
+==11278==   total heap usage: 1,726,857 allocs, 1,709,017 frees, 269,032,078 bytes allocated
+==11278== 
+==11278== LEAK SUMMARY:
+==11278==    definitely lost: 0 bytes in 0 blocks
+==11278==    indirectly lost: 0 bytes in 0 blocks
+==11278==      possibly lost: 0 bytes in 0 blocks
+==11278==    still reachable: 1,652,231 bytes in 17,840 blocks
+
+
+definitely lost: 16 bytes in 1 blocks
+==11428== 16 bytes in 1 blocks are definitely lost in loss record 1 of 129
+==11428==    at 0x4C2E68F: operator new(unsigned long) (in /usr/lib64/valgrind/vgpreload_memcheck-amd64-linux.so)
+
 
 Korrektheit:
 --valgrindlc, keine Speicherlecks, was für Ausgaben
 
-selbstests: mit was muss ich testen? klein und passt nicht in den Speicher, Flob und nicht Flob, 
+
 
 Robustheit: leere Relationen, kein Ergebnis, TM-Test: Wird alles abgefangen, was nicht sein darf
 
 Effizienz: Vergleich mit 1Kern-Versionen.
 
+\subsubsection{Funktionstest MThreadedHashJoin}
 
-\subsubsection{Experimente}
+\subsubsection{Funktionstest MThreadedSpatialJoin}
+
+\subsubsection{Funktionstest MThreadedFilter}
+
+\subsubsection{Experimente MThreadedsort}
 verhalten bei parametern, vergleich mit secondo operatoren.
 
 a) verschiedene Parameter: Speicher, Threads, teils speziell wie Buckets und R-Baum 
 b) vergleich nicht parallele Operatoren
 c) multithread 1 sinnvoll?
 
+\subsubsection{Experimente MThreadedHashJoin}
+
+\subsubsection{Experimente MThreadedSpatialJoin}
+
+\subsubsection{Experimente MThreadedFilter}
+
 \section{Schluss}
+
+Schwierigkeiten bei der Implementierung
+
+Laufzeitverhalten
 
 \pagebreak 
 \printbibliography
