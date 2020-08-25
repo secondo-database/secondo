@@ -278,6 +278,7 @@ stores the flob's data into the dataPointer.
         char* tmp = (char*) malloc(size);
         read(tmp, size);
         dataPointer = tmp;
+        id.destroy();
     }
 
     void bringToDisk(){
