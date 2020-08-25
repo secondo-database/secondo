@@ -54,7 +54,12 @@ namespace pregel {
  }
 
  MessageWrapper::MessageWrapper(MessageWrapper::Header header, Tuple *body)
-  : body(body), header(header) {}
+  : body(body), header(header) {
+   if(body != nullptr){
+     body->bringToMemory(); // to overcome end of query and
+                            //messages having native flobs 
+   }
+ }
 
  template<typename T>
  char* readBin(char* buffer, T& v){
@@ -158,6 +163,7 @@ namespace pregel {
   }
   body->IncReference();
   this->body = body;
+  this->body->bringToMemory();
  }
 
 
