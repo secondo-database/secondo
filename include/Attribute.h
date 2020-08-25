@@ -539,6 +539,12 @@ it deletes the attribute.
 
 */
     Attribute* Copy();
+
+
+    inline void IncReference(){
+      del.refs++;
+    }
+
 /*
 Returns a new reference to this attribute, if possible (~refs~ < 255),
 otherwise it returns a reference to a fresh clone (having ~refs~ = 1).
