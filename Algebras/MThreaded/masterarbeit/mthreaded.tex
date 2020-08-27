@@ -290,9 +290,9 @@ Eine Grundidee einer Parallelisierung des Refinementschritts ist simpel. Die Kan
 
 Im Folgenden werde ich die Entwicklung und Implementation von drei parallelen Operatoren und einigen Hilfsoperatoren für die MultiThreaded-Algebra kritisch dokumentieren. Anschließend werde ich meine Implementierung experimentell analysieren, indem ich einerseits ein gutes Funktionieren überprüfe und das Verhalten im Vergleich zu anderen Operatoren und unter unterschiedlichen Rahmenbedingungen betrachte. Gutes Funktionieren meint Korrektheit, Robustheit und Effizienz. Ein Vergleich findet vor allem mit den Einkernversionen der Operatoren statt.
 
-Ein Parallelisierung innerhalb des Datenbanksystems wird hier durch eine direkte Implementierung paralleler Operatoren gelöst. Ein anderer Ansatz wäre es, Operatoren zur Verfügung zu stellen, die über den Operatorenbaum sozusagen extern eine parallele Ausführung ermöglichen, entweder durch eine parallelisierte Pipeline oder indem Operatoren für eine Partitionierung von Daten an parallel auszuführende Einkernoperatoren zur Verfügung gestellt werden. Der Nachteil dieses Ansatzes ist es, dass keine Anpassungen an den Operatoren vorgenommen werden können. Spezielle Optimierungen für eine parallele Ausführung sind also nicht möglich; die Daten- und Kommunikationsfluss orientiert sich ausschließlich an einem Fork-Join-Architekturmuster. Partitionierung und Zusammenführung der Daten können nicht mit der Ausführung verschränkt werden und weder ist eine Kommunikation zwischen den Operatoren möglich noch ein dynamisches Load Balancing. Allerdings hat die Parallelisierung innerhalb von Operatoren auch einen Nachteil: Stehen bei dem externen Ansatz alle Operatoren zur Verfügung, die sich für beide mögliche Ansätze eignen, d.~.h. nicht blockierende Operatoren für eine Pipelineverarbeitung und Operatoren, bei denen nicht zwingend eine Ausführung auf dem gesamten Datensatz notwendig ist, müssen bei dem hier verfolgten Ansatz Operatoren explizit zur Verfügung gestellt werden.  
+Eine Parallelisierung innerhalb des Datenbanksystems wird hier durch eine direkte Implementierung paralleler Operatoren gelöst. Ein anderer Ansatz wäre es, Operatoren zur Verfügung zu stellen, die über den Operatorenbaum sozusagen extern eine parallele Ausführung ermöglichen, entweder durch eine parallelisierte Pipeline oder indem Operatoren für eine Partitionierung von Daten an parallel auszuführende Einkernoperatoren zur Verfügung gestellt werden. Der Nachteil dieses Ansatzes ist, dass keine Anpassungen an den Operatoren vorgenommen werden können. Spezielle Optimierungen für eine parallele Ausführung sind also nicht möglich; der Daten- und Kommunikationsfluss orientiert sich ausschließlich an einem Fork-Join-Architekturmuster. Partitionierung und Zusammenführung der Daten können nicht mit der Ausführung verschränkt werden und weder ist eine Kommunikation zwischen den Operatoren möglich noch ein dynamisches Load Balancing. Allerdings hat die Parallelisierung innerhalb von Operatoren auch einen Nachteil: Stehen bei dem externen Ansatz alle Operatoren zur Verfügung, die sich für beide mögliche Ansätze eignen, d.~.h. nicht blockierende Operatoren für eine Pipelineverarbeitung und Operatoren, bei denen nicht zwingend eine Ausführung auf dem gesamten Datensatz notwendig ist, müssen bei dem hier verfolgten Ansatz Operatoren explizit zur Verfügung gestellt werden.  
 
-Damit Operatoren geeignet sind für eine parallele Implementierung, müssen sie folgende Kriterien erfüllen. Ziel einer Parallelisierung ist dabei immer ein Laufzeitgewinn.
+Damit Operatoren geeignet sind für eine parallele Implementierung müssen sie folgende Kriterien erfüllen. Ziel einer Parallelisierung ist dabei immer ein Laufzeitgewinn.
 
 \begin{itemize}
 	\item Berechnungen, die auf verschiedene Prozesse verteilt werden können, müssen eine notwendige Komplexität haben, die den notwendigen Verwaltungsaufwand der Parallelisierung aufwiegt.
@@ -302,15 +302,15 @@ Damit Operatoren geeignet sind für eine parallele Implementierung, müssen sie 
 	\item Sofern auch andere Ansätze der Parallelisierung verfolgt werden, ist es insbesondere sinnvoll, Operatoren auszuwählen, bei denen ein externer Ansatz nicht möglich ist.
 \end{itemize}
 
-Für die MThreaded-Algebra habe ich mich dafür entschieden, je einen Sort-, einen Equi-Join- und einen Spatial-Join-Operator zu entwickeln und zu implementieren. Auch wenn es sicher interessant wäre, verschiedene Algorithmen experimentell zu vergleichen, habe ich mich aufgrund der für diese Arbeit zur Verfügung stehenden Zeit dafür entschieden, je nur einen Ansatz zu verfolgen und einen Vergleich nur theoretisch vorzunehmen, um die konkrete Entscheidung für einen Ansatz zu begründen. Im folgenden werde ich kurz meine Auswahl erläutern:
+Für die MThreaded-Algebra habe ich mich dafür entschieden, je einen Sort-, einen Equi-Join- und einen Spatial-Join-Operator zu entwickeln und zu implementieren. Auch wenn es sicher interessant wäre, verschiedene Algorithmen experimentell zu vergleichen, habe ich mich aufgrund der für diese Arbeit zur Verfügung stehenden Zeit dafür entschieden, je nur einen Ansatz zu verfolgen und einen Vergleich nur theoretisch vorzunehmen, um die konkrete Entscheidung für einen Ansatz zu begründen. Im Folgenden werde ich kurz meine Auswahl erläutern:
 
-Ein Sort-Operator (\autoref{Sort}) wird häufig verwendet und ist auch die Grundlage für weitere Operatoren, die eine Sortierung verlangen oder für die Erstellung von Indexes. Auch wenn in den meisten Ansätzen der Overhead für eine Parallelisierung recht gering ist, hängen die Kosten für die Vergleiche stark davon ab, nach wie vielen und welchen Attribute sortiert werden soll. Sowohl eine Partitionierung als auch internes Pipelining ist möglich. Da Sortierungen meist für ganze Relationen vorgenommen werden, lohnt sich ein Performancegewinn. Eine externe Parallisierung wäre lediglich denkbar mit einer Range-Partitionierung, da in diesem Fall sortierte Teildaten wieder zusammengesetzt werden können, wobei eine Rangepartitionierung nur sinnvoll vorgenommen werden kann, sofern Statistiken über die zu sortierende Relation vorliegen. Im Gegensatz dazu ist ein explizit parallel implementierter Sort-Operator auch zu einer Lastenverteilung in der Lage, wenn keine Statistiken über die Relation vorliegen.
+Ein Sort-Operator (\autoref{Sort}) wird häufig verwendet und ist auch die Grundlage für weitere Operatoren, die eine Sortierung verlangen oder für die Erstellung von Indices. Auch wenn in den meisten Ansätzen der Overhead für eine Parallelisierung recht gering ist, hängen die Kosten für die Vergleiche stark davon ab, nach wie vielen und welchen Attributen sortiert werden soll. Sowohl eine Partitionierung als auch internes Pipelining ist möglich. Da Sortierungen meist für ganze Relationen vorgenommen werden, lohnt sich ein Performancegewinn. Eine externe Parallisierung wäre lediglich denkbar mit einer Range-Partitionierung, da in diesem Fall sortierte Teildaten wieder zusammengesetzt werden können, wobei eine Rangepartitionierung nur sinnvoll vorgenommen werden kann, sofern Statistiken über die zu sortierende Relation vorliegen. Im Gegensatz dazu ist ein explizit parallel implementierter Sort-Operator auch zu einer Lastenverteilung in der Lage, wenn keine Statistiken über die Relation vorliegen.
 
 Equi-Joins (\autoref{Equi Join}) sind eine der teuersten und am häufigsten angewandten Datenbankoperationen. Da sich darüber hinaus, jenseits des Sort-Merge-Algorithmus, die Ansätze zumindest für einen Equi-Join gut für eine Parallelsierung eignen, ist es sinnvoll, diesen Operator in einer parallelen Variante zur Verfügung zu stellen. Allerdings beruhen die meisten Parallisierungs-Ansätze vor allem auf einer Partitionierung der Daten, die sich schwer dynanamisieren lässt. Dementsprechend kann zu dem jetzigen Zeitpunkt nicht gesagt werden, ob eine explizite parallele Implementierung vorteilhaft ist gegenüber eines externen Ansatzes. Dies gilt vor allem für Hash-Joins.
 
-Entgegen der beiden erstgenannten Operatoren hat der Spatial Join (\autoref{Spatial Join}) einen beschränkten Anwendungsbereich auf Spezialanwendungen, nämlich geografische Datenbanken. Aber in diesem Feld ist er eine einerseits teurere und auch häufige Operation. Da eine der Stärken von Secondo in seinen Erweiterungen für Nichtstandard-Datenbanktypen liegt, ist es sinnvoll, auch für diesen Bereich eine Parallelisierung zur Verfügung zu stellen. Da in Spatial Joins einerseits häufig große Datenmengen verarbeitet werden und auch die Berechnungen räumlicher Beziehungen teuer sind, lohnt es sich, diesen Operator zu parallelisieren. Es existieren diverse Ansätze zu einer parallelen Implementierung. Ein externer Ansatz ist zwar möglich, aber hat beispielsweise Nachteile im Bereich der Duplikatsvermeidung, da eine Duplikatsentfernung nur als nachfolgender Schritt machbar ist. Auch würde eine Query Kenntnisse über Ansätze der Parallelisierung vorraussetzen und die Anfrage selbst wäre komplex. 
+Entgegen der beiden erstgenannten Operatoren hat der Spatial Join (\autoref{Spatial Join}) einen beschränkten Anwendungsbereich auf Spezialanwendungen, nämlich geografische Datenbanken. Aber in diesem Feld ist er eine teurere und auch häufige Operation. Da eine der Stärken von Secondo in seinen Erweiterungen für Nichtstandard-Datenbanktypen liegt, ist es sinnvoll, auch für diesen Bereich eine Parallelisierung zur Verfügung zu stellen. Da in Spatial Joins einerseits häufig große Datenmengen verarbeitet werden und auch die Berechnungen räumlicher Beziehungen teuer sind, lohnt es sich, diesen Operator zu parallelisieren. Es existieren diverse Ansätze zu einer parallelen Implementierung. Ein externer Ansatz ist zwar möglich, aber hat beispielsweise Nachteile im Bereich der Duplikatsvermeidung, da eine Duplikatsentfernung nur als nachfolgender Schritt machbar ist. Auch würde es Query Kenntnisse über Ansätze der Parallelisierung vorraussetzen und die Anfrage selbst wäre komplex. 
 
-Da ich hier Operatoren nur für eine shared-all Architektur entwickle, ist es wichtig, deren Implikationen insbesondere zu betrachten. Ein gemeinsam geteilter Permanentspeicher bedeutet, dass I/O-Operationen zum Flaschenhals werden können, da hier keine Parallelisierung möglich ist. Algorithmen müssen also so gewählt werden, dass sie so wenig I/O-intensiv sind wie möglich. Geteilter Speicher dagegen ermöglicht eine vergleichweise kostengünstige Kommunikation zwischen den Prozessen und die Nutzung globaler Strukturen, die von allen Prozessen geteilt werden.
+Da ich hier Operatoren nur für eine shared-all Architektur (\autoref{P_DBS_DBS}) entwickle, ist es wichtig, insbesondere deren Implikationen zu betrachten. Ein gemeinsam geteilter Permanentspeicher bedeutet, dass I/O-Operationen zum Flaschenhals werden können, da hier keine Parallelisierung möglich ist. Algorithmen müssen also so gewählt werden, dass sie so wenig I/O-intensiv sind wie möglich. Geteilter Speicher dagegen ermöglicht eine vergleichweise kostengünstige Kommunikation zwischen den Prozessen und die Nutzung globaler Strukturen, die von allen Prozessen geteilt werden.
 
 Abschließend fasse ich noch einmal die Ziele für die Implementierung der MThreaded-Algebra zusammen:
 
@@ -330,7 +330,7 @@ Abschließend fasse ich noch einmal die Ziele für die Implementierung der MThre
 
 \subsubsection{Hilfsoperatoren}
 
-Die Parameterisierung des der \Fb{MThreaded}-Algebra soll mithilfe von Operatoren vorgenommen werden. Vorgesehen sind drei Operatoren:
+Die Parameterisierung der \Fb{MThreaded}-Algebra soll mithilfe von Operatoren vorgenommen werden. Vorgesehen sind drei Operatoren:
 
 \begin{itemize}
 	\item maxcore gibt die maximale Anzahl von Kernen/Threads des Systems aus.
@@ -343,7 +343,7 @@ Die Parameterisierung des der \Fb{MThreaded}-Algebra soll mithilfe von Operatore
 
 Es soll ein Operator entworfen werden, der eine Relation nach beliebigen Attributen sortieren kann. Der Funktionsumfang entspricht dem Single-Thread-Operator \Fb{sortby} aus der \Fb{ExtRelation2}-Algebra. Sortierkriterien können beliebig viele Attribute der eingehenden Relation sein und für jedes Attribut kann gesondert die Sortierreihenfolge festgelegt werden. Die Relation wird dem Operator als Tupel-Strom übergeben und Ausgabe ist wiederum ein Tupel-Strom. Dabei soll es nicht relevant sein, dass die Reihenfolge der Relation erhalten bleibt, sofern Tupel identische Attribute in den Sortierkriterien haben, da dies nach einer zufälligen Partitionierung nur mit großen Aufwand erreicht werden kann.
 
-Zur Auswahl stehen zwei grundsätzliche Ansätze, einen parallelen Sort-Operator zu implementieren: der Block Bitonic Sort und Varianten des Merge Sort. Der Vorteil des Block Bitonic Sort in jedem, auch dem letzten Schritt alle Kerne gleichmäßig zu nutzen, wird dadurch relativiert, dass der Algorithmus, sofern die größe der Relation wesentlich größer ist als die zur Verfügung stehenden Kerne, trotzdem ein externes Sortierverfahren vorschalten muss, also das Sortiernetzwerk nur die Merge-Phase eine parallelen 2-Wege-Merge-Sort ersetzt. Sortiernetzwerke haben auch nur einen Performancevorteil, wenn bei geringer größe einer Relation viele Kerne zur Verfügung stehen. Deswegen entscheide ich mich hier dazu, einen 2-Wege-Merge-Sort zu implementieren und zwar in einer Version, die auch im Merge-Schritt die zur Verfügung stehenden Kerne optimal nutzt und die in der Lage ist, eine Vorsortierung auszunutzen und Läufe erzeugen kann, die wesentlich größer sind als Hauptspeicher zur Verfügung steht.
+Zur Auswahl stehen zwei grundsätzliche Ansätze, einen parallelen Sort-Operator zu implementieren: der Block Bitonic Sort und Varianten des Merge Sort. Der Vorteil des Block Bitonic Sort, in jedem, auch dem letzten Schritt alle Kerne gleichmäßig zu nutzen, wird allerdings relativiert. Der Algorithmus muss, sofern die Größe der Relation wesentlich größer ist als die zur Verfügung stehenden Kerne, trotzdem ein externes Sortierverfahren vorschalten. Also ersetzt das Sortiernetzwerk nur die Merge-Phase einen parallelen 2-Wege-Merge-Sort. Sortiernetzwerke haben auch nur einen Performancevorteil, wenn bei geringer Größe einer Relation viele Kerne zur Verfügung stehen. Deswegen entscheide ich mich, einen 2-Wege-Merge-Sort zu implementieren und zwar in einer Version, die auch im Merge-Schritt die zur Verfügung stehenden Kerne optimal nutzt und die in der Lage ist, eine Vorsortierung auszunutzen und Läufe erzeugen kann, die wesentlich größer sind als Hauptspeicher zur Verfügung steht.
 
 Der von mir gewählte Fastsort-Algorithmus ist ein 2-Wege-Mergesort, in dem Replacement Selection für den Hauptspeicher-Sortierprozess und Pipelining für den Merge-Prozess angewandt wird. Ein paralleler 2-Wege-Mergesort läuft dabei in folgenden drei Phasen ab:
 
@@ -353,7 +353,7 @@ Der von mir gewählte Fastsort-Algorithmus ist ein 2-Wege-Mergesort, in dem Repl
 	\item Postoptimale Phase: In jedem Schritt finden weniger Merge statt als Kerne genutzt werden. Im letzten Schritt findet nur noch ein Merge statt.
 \end{itemize}
 
-Nicht optimal ist in der oben beschriebenen Grundversion eines 2-Wege-Mergesort die Nutzung der Kerne in der postoptimalen Phase. Deswegen wird hier eine Pipelining für den Merge-Prozess vorgeschlagen. Tupel werden kontinuierlich als Strom weitergereicht, um verschmolzen zu werden, bis sie abschließend im Ergebnis in sortierter Reihenfolge entsprechend eines Sortiervektors ausgegeben werden. 
+Nicht optimal ist in der oben beschriebenen Grundversion eines 2-Wege-Mergesort die Nutzung der Kerne in der postoptimalen Phase. Deswegen wird hier ein Pipelining für den Merge-Prozess vorgeschlagen. Tupel werden kontinuierlich als Strom weitergereicht, um verschmolzen zu werden bis sie abschließend im Ergebnis in sortierter Reihenfolge entsprechend eines Sortiervektors ausgegeben werden. 
 
 Aus der Sicht der Entwicklung lässt sich der Operator in zwei Phasen unterteilen, die sich in ihrer Struktur deutlich unterscheiden. Als erstes beschriebe ich, wie die suboptimale Phase umgesetzt wird. Dem folgend werden die notwendigen Elemente der postoptimalen Phase beschrieben. Das Scheduling, in dem die Daten verteilt sowie wieder eingesammelt und die Threads verwaltet werden, ist Teil der Secondo-Hauptthreads. Damit entspricht die Architektur des Operartors einem Master-Worker-Schema.
 
@@ -362,20 +362,20 @@ Die suboptimale Phase setzt sich aus zwei Schritten zusammen, dem Sortieren und 
 \begin{minipage}{\linewidth}
 	\begin{lstlisting}[caption={Fastsort: Erzeugen der Runs in der Suboptimalen Phase}, label=list:fastsortSub] 
 	while (stream and memory) 
-		read stream
-		fillTree
+	read stream
+	fillTree
 	endwhile
 	while (stream)
-		tuple = sortTree->Replace (stream->tuple)
-		appendAtRun(tuple)
-		if (treeRootIsInactive)
-			setTreeAsActive
+	tuple = sortTree->Replace (stream->tuple)
+	appendAtRun(tuple)
+	if (treeRootIsInactive)
+	setTreeAsActive
 	endwhile
 	saveTreeAsRun
 	\end{lstlisting}
 \end{minipage}
 
-Die postoptimale Phase hat die Aufgabe, in einer Pipeline von Merge-Schritten die Läufe so lange zu verschmelzen bis ein Ergebnis in einem Ausgangsstrom vorliegt. Wie man auf in \autoref{img:bMergeSort} sieht, hat die Merge-Pipeline eine Baumstruktur. Die Threads der Merge-Pipeline haben je zwei Eingangsströme und einen Ausgangsstrom. Weitergegeben wird immer der Wert, der entsprechend der definierten Sortierung in der Ausgaberelation vor dem anderen kommt. Der weitergegebene Wert wird aus dem Eingangsstrom ersetzt, aus dem er entnommen worden ist. Es muss zwei grundsätzlich unterschiedliche Typen geben von Merge-Pipeline-Segmenten: Typen mit eventuell persistierten Läufen als Eingang (Blätter des Pipeline-Baums hier \Fb{MergeFeeder} genannt) oder mit Strömen (Knoten und Wurzel der Pipeline, \Fb{MergePipeline} genannt). Sofern es nicht $2^n$ Blätter gibt, muss es vom ersten Typen von Segmenten auch eine Version geben, die nur aus einem Lauf liest und die Tupel direkt in die Pipeline weitergibt (\Fb{noMergeFeeder}). Alle Merge-Pipeline-Segmente, aber auch der Merge-Prozess innerhalb der suboptimalen Phase funktionieren nach dem gleichem Prinzip, der hier exemplarisch am Beispiel eines Merge an einem Baumknoten dargestellt ist (\autoref{list:fastsortMerge}). Der Merge-Baum benötigt maximal einen Thread weniger als Threads in der suboptimalen Phase vorhanden sind.
+Die postoptimale Phase hat die Aufgabe, in einer Pipeline von Merge-Schritten die Läufe so lange zu verschmelzen bis ein Ergebnis in einem Ausgangsstrom vorliegt. Wie man auf in \autoref{img:mergesort} sieht, hat die Merge-Pipeline eine Baumstruktur. Die Threads der Merge-Pipeline haben je zwei Eingangsströme und einen Ausgangsstrom. Weitergegeben wird immer der Wert, der entsprechend der definierten Sortierung in der Ausgaberelation vor dem anderen kommt. Der weitergegebene Wert wird aus dem Eingangsstrom ersetzt, aus dem er entnommen worden ist. Es muss zwei grundsätzlich unterschiedliche Typen geben von Merge-Pipeline-Segmenten: Typen mit eventuell persistierten Läufen als Eingang (Blätter des Pipeline-Baums hier \Fb{MergeFeeder} genannt) oder mit Strömen (Knoten und Wurzel der Pipeline, \Fb{MergePipeline} genannt). Sofern es nicht $2^n$ Blätter gibt, muss es vom ersten Typen von Segmenten auch eine Version geben, die nur aus einem Lauf liest und die Tupel direkt in die Pipeline weitergibt (\Fb{noMergeFeeder}). Alle Merge-Pipeline-Segmente, aber auch der Merge-Prozess innerhalb der suboptimalen Phase funktionieren nach dem gleichem Prinzip, der hier exemplarisch am Beispiel eines Merge an einem Baumknoten dargestellt ist (\autoref{list:fastsortMerge}). Der Merge-Baum benötigt maximal einen Thread weniger als Threads in der suboptimalen Phase vorhanden sind.
 
 \begin{minipage}{\linewidth}
 	\begin{lstlisting}[caption={Fastsort: Merge in Pipeline}, label=list:fastsortMerge] 
@@ -397,7 +397,7 @@ Die Datenaufteilung wird nach \Fb{Round-Robin} vorgenommen. Ein Nachteil der Meh
 \subsubsection{Hybrid Hash Join} 3 S
 \label{entw:hash}
 
-Der parallele Join-Operator soll zwei beliebig große Relationen verschmelzen anhand von je eines Attributs aus beiden Relationen. Der Operator verfügt über keine Statistiken über beide Relationen verfügen und soll bei beliebigen Verteilungen gut funktionieren. Orientierung für die Auswahl eines Algorithmus sind dabei Relationen, die nicht in den Artbeitsspeicher passen und eine gleichmäßige Verteilung beider Relationen bzgl. der Join-Attribute.
+Der parallele Join-Operator soll zwei beliebig große Relationen verschmelzen anhand von je eines Attributs aus beiden Relationen. Der Operator verfügt über keine Statistiken für beide Relationen und soll bei beliebigen Verteilungen gut funktionieren. Orientierung für die Auswahl eines Algorithmus sind dabei Relationen, die nicht in den Artbeitsspeicher passen und eine gleichmäßige Verteilung beider Relationen bzgl. der Join-Attribute.
 
 In \autoref{Equi Join} habe ich gezeigt, dass für einen parallelen Ansatz vor allem die beiden Hash-Join-Varianten Grace und Hybrid in Frage kommen. Bei verhältnismäßig großen Hauptspeicher und insbesondere in einer shared-all-Architektur schneidet der Hybrid-Hash-Join besser ab. Grund ist vor allem, dass der Hauptspeicher dafür genutzt wird, einen Bucket direkt auf Joins zu testen, und dass die I/O-Kosten des Algorithmus deswegen geringer sind. Da in meiner Implementierung nur eine Festplatte genutzt wird, sind die Kosten für einen Zugriff auf nicht flüchtigen Speicher ein Flaschenhals für die Performance der Implementierung.
 
@@ -418,70 +418,69 @@ Der Algorithmus lässt sich in zwei Phasen aufteilen (siehe \autoref{img:hybrid}
 	\begin{lstlisting}[caption={Phase 1 Hybrid Hash Join}, label=list:hybrid] 
 	readNextTupleR
 	while (StreamR) 
-	 	bucket = calculateBucket
-		if (bucket = 0)
-			if (overflow)
-				overflowhandling
-			insertInMemoryHashTable
-		elseif
-			insertInPersistentHashStructur
-		readNextTupleR
+	bucket = calculateBucket
+	if (bucket = 0)
+	if (overflow)
+	overflowhandling
+	insertInMemoryHashTable
+	elseif
+	insertInPersistentHashStructur
+	readNextTupleR
 	endwhile
 	
 	readNextTupleS
 	while (streamS)
-		bucket = calculateBucket
-		if ()bucket = 0)
-			if (overflowR)
-				overflowhandling
-			for (allInSameInMemoryHashBucket)
-				if (equalOnJoinAttr)
-					result = concat(tupleR, tupleS)
-					insert result in resultBuffer
-		elseif
-			insertInPersistentHashStructur
-		readNextTupleS
+	bucket = calculateBucket
+	if ()bucket = 0)
+	if (overflowR)
+	overflowhandling
+	for (allInSameInMemoryHashBucket)
+	if (equalOnJoinAttr)
+	result = concat(tupleR, tupleS)
+	insert result in resultBuffer
+	elseif
+	insertInPersistentHashStructur
+	readNextTupleS
 	endwhile
 	\end{lstlisting}
 \end{minipage}
 
 In der zweiten Phase werden dann die restlichen Buckets der ersten Aufteilung nach der Reihe in den Hauptspeicher geladen und in der gleichen Art und Weise Tupel bestimmt, die in ihren Join-Attributen übereinstimmen. Da jetzt bereits bekannt ist, ob die einzelnen Buckets in den Hauptseicher passen, müssen nicht mehr, wie in Phase 1, bei einem Überlauf Teile eines Buckets in eine Überlaufstruktur geschrieben werden, sondern diese kann direkt angelegt werden.
 
-Der Umgang mit möglichen Overflows macht den Algorithmus deutlicher komplexer als eine Version wäre, der unendlicher Hauptspeicher zur Verfügung stände. Auch wenn in vielen Fällen Hash-Join-Algorithmen sehr effizient sind, haben sie ein schlechtes Worst-Case-Verhalten, da in einem Extremfall alle Tupel den gleichen Hash-Wert haben. Danit der Algorithmus auch für ungünstig verteilte Relationen funktioniert, wird die Overflow-Behandlung rekursiv angelegt. Die Grundstruktur des Algorithmus bleibt die gleiche, aber in jeder Rekursion kann erneut in ihrer ersten Phase ein OVerflow auftreten. Da dies das gute Verhalten des Hybrid-Hash-Joins bzgl. der I/O-Kosten umkehrt, ist es sehr wichtig, im ersten Scan einer Relation Statistiken über diese zu generieren, die die Hash-Funktion so optimiert, dass möglichst keine Overflows auftreten.
+Der Umgang mit möglichen Overflows macht den Algorithmus deutlich komplexer als eine Version, in der unendlich viel Hauptspeicher zur Verfügung stünde. Auch wenn in vielen Fällen Hash-Join-Algorithmen sehr effizient sind, haben sie ein schlechtes Worst-Case-Verhalten, da in einem Extremfall alle Tupel den gleichen Hash-Wert haben. Danit der Algorithmus auch für ungünstig verteilte Relationen funktioniert, wird die Overflow-Behandlung rekursiv angelegt. Die Grundstruktur des Algorithmus bleibt dieselbe, aber in jeder Rekursion erneut in ihrer ersten Phase ein Overflow auftreten kann. Da dies das gute Verhalten des Hybrid-Hash-Joins bzgl. der I/O-Kosten umkehrt, ist es sehr wichtig, im ersten Scan einer Relation Statistiken über diese zu generieren, die die Hash-Funktion so optimiert, dass möglichst keine Overflows auftreten.
 
 \subsubsection{Spatial Join} 3 S
-\label{entw:spatial}
 
-Aufgrund einer besseren Vergleichbarkeit mit den bereits in Secondo vorhandenen Operatoren habe ich den Spatial Join auf zwei Operatoren aufgeteilt, nämlich einen Filter-Schritt (\Fb{MThreadSpatialJoin}) \footnote{Die Bezeichnung ist hier etwas verwirrend. Der Filter-Schritt ist nicht der spätere Filteroperator, sondern der Refinement-Schritt} und einen Refinement-Schritt (\Fb{MThreadFilter}), auch wenn ein Performance-Vorteil zu erwarten ist, wenn beide Operatoren in einem Operator zusammengefasst werden, da einerseits eine Weitergabe des Tuple-Stroms über eine Schnittstelle des Secondo-Kerns entfällt und die Möglichkeit eines dynamischen Load-Balancing besteht. Ein weiterer Vorteil der Trennung ist es, dass eine separater Filter-Operator für den Refinement-Schritt universell nutzbar ist.
+Aufgrund einer besseren Vergleichbarkeit mit den bereits in Secondo vorhandenen Operatoren habe ich den Spatial Join auf zwei Operatoren aufgeteilt, nämlich einen Filter-Schritt (\Fb{MThreadSpatialJoin}) \footnote{Die Bezeichnung ist hier etwas verwirrend. Der Filter-Schritt ist nicht der spätere Filteroperator, sondern der Refinement-Schritt} und einen Refinement-Schritt (\Fb{MThreadFilter}), auch wenn ein Performance-Vorteil zu erwarten ist, wenn beide Operatoren in einem Operator zusammengefasst werden, da einerseits eine Weitergabe des Tuple-Stroms über eine Schnittstelle des Secondo-Kerns entfällt und die Möglichkeit eines dynamischen Load-Balancing besteht. Ein weiterer Vorteil der Trennung ist, dass ein separater Filter-Operator für den Refinement-Schritt universell nutzbar ist.
 
-Hier soll ein universell nutzbarer Spatial-Join-Operator implementiert werden. Dementsprechend muss bei der Entscheidung für einen Algorithmus beachtet werden, dass dieser keine spezifischen Voraussetzungen hat. Weder wird davon ausgegangen, dass Indeces noch Statistiken über die Relation vorliegen. Also kommen vor allem zwei Algorithmen infrage: der Spatial Hash-Join oder ein interativer Spatial-Join mit einem R-Baum. Auch wenn in der Literatur für den hier vorliegenden Kontext häufig Spatial-Hash-Joins empfohlen werden, haben diese zwei Nachteile: Bei unbekannten Relationen ist es schwer, ein optimales Gitter zu bestimmen und entweder werden viele Duplikate erzeugt, was auch dazu führt, dass Objekte mehrfach aus die Joinbedingung getestet werden, oder es liegen zu viele Objekte in der gleichen Gitterzellen, wenn das Gitter zu groß gewählt wird. Darüber hinaus ist insbesondere ein Spatial Hash sehr anfällig gegenüber ungünstigen Verteilungen. Deswegen entscheide ich mich hier, einen speicherinternen R-Baum zu erzeugen und die zweite Relation seriell zu durchlaufen. Für den Fall, dass die Relation, über die ein R-Baum erzeugt wird, nicht in den Hauptspeicher passt, muss dieser Prozess mehrfach wiederholt werden. Deswegen wird von einem interativen Spatial R-Baum Join gesprochen.
+Hier soll ein universell nutzbarer Spatial-Join-Operator implementiert werden. Dementsprechend muss bei der Entscheidung für einen Algorithmus beachtet werden, dass dieser keine spezifischen Voraussetzungen hat. Weder wird davon ausgegangen, dass Indeces noch Statistiken über die Relation vorliegen. Also kommen vor allem zwei Algorithmen infrage: der Spatial Hash-Join oder ein interativer Spatial-Join mit einem R-Baum. Auch wenn in der Literatur für den hier vorliegenden Kontext häufig Spatial-Hash-Joins empfohlen werden, haben diese zwei Nachteile. Bei unbekannten Relationen ist es schwer, ein optimales Gitter zu bestimmen. Gibt es zu viele Gitterzellen, werden viele Duplikate erzeugt, die auch jedes mal erneut auf die Joinbedingung getestet werden müssen;  gibt es zu wenig Gitterzellen, liegen viele Objekte in der gleichen Gitterzelle. Verschärft wird das Problem noch dadurch, dass ein Spatial Hash sehr anfällig gegenüber ungünstigen Verteilungen ist. Deswegen entscheide ich mich hier, einen speicherinternen R-Baum zu erzeugen und die zweite Relation seriell zu durchlaufen. Für den Fall, dass die Relation, über die ein R-Baum erzeugt wird, nicht in den Hauptspeicher passt, muss dieser Prozess mehrfach wiederholt werden. Deswegen wird von einem iterativen Spatial R-Baum Join gesprochen.
 
-Um den Operator zu parallelisieren, ist es notwendig, beide Relationen zu partitionieren. Da hier deutlich weniger Gitterzellen notwendig sind als für den Join-Prozess, bietet sich eine Gitter-Partitionierung an. Um zu vermeiden, dass die Verteilung auf die Gitterzellen sehr ungleichmäßig wird, wähle ich hier ein irreguläres Gitter, welches mit der Sort-Tile-Recursiv (SRT) Technik erzeugt wird. Ein mit SRT erzeugtes Gitter stellt sich, dass die Gitterzellen gleich viele Objekte beinhalten. Um hier den Rechenaufwand zu reduzieren, wird das Gitter nur aus einer Zufallstichprobe erzeugt, der Größe mit der Relation wächst. Da dann nicht sichergestellt werden kann, dass alle Objekte im Gitter liegen, ist das Gitter an den Rändern offen. Ein anderer sinnvoller Ansatz der Partitionierung wäre es, über Zweige eines R-Baums zu partionieren. Der Vorteil wäre, dass der erste Scan der R-Relation während der Partitionierungsphase bereits für den Aufbau der Datenstruktur für den Join-Prozess genutzt werden könnte. Der R-Baum würde dann allerdings nicht parallel erzeugt werden. Ich habe mich gegen einen globalen R-Baum entschieden, um einerseits auch diesen Schritt parallelisieren zu können und da andererseits die Eliminierung von Duplikaten in einer Gitterstrukur nicht so rechenaufwändig ist
- 
-Anders als bei den beiden anderen implementierten Operatoren ist es nicht nur eine Frage der Performance, ob der Algorithmus gegenüber einer Single-Thread-Variante modifiziert wird. Ein prinzipieller Unterschied einer parallelen Implementierung ist, dass räumliche Objekte, sofern sie eine Ausdehnung haben, mehreren Gitterzellen und damit Partitionen gleichzeitig zugewiesen werden. Dementsprechend können im Filter-Schritt gleiche Joinkandidaten in unterschiedlichen Threads doppelt ermittelt werden. Im Anschluss Duplikate zu ermitteln, ist sehr rechenaufwändig. Wird lediglich der Kandidat weitergegeben, deren Schnittmenge in der Gitterzelle liegt, die sich so weit wie möglich rechts-oben befindet, werden Duplikate bereits in der Entstehung ausgeschlossen.
+Um den Operator zu parallelisieren ist es notwendig, beide Relationen zu partitionieren. Da hier deutlich weniger Gitterzellen notwendig sind als für den Join-Prozess, bietet sich eine Gitter-Partitionierung an. Um zu vermeiden, dass die Verteilung auf die Gitterzellen sehr ungleichmäßig wird, wähle ich hier ein irreguläres Gitter, welches mit der Sort-Tile-Recursiv (SRT) Technik erzeugt wird. Ein mit SRT erzeugtes Gitter stellt sicher, dass die Gitterzellen gleich viele Objekte beinhalten. Um hier den Rechenaufwand zu reduzieren, wird das Gitter nur aus einer Zufallstichprobe erzeugt, deren Größe mit der Relation wächst. Da dann nicht sichergestellt werden kann, dass alle Objekte im Gitter liegen, ist das Gitter an den Rändern offen. Ein anderer sinnvoller Ansatz der Partitionierung wäre es, über Zweige eines R-Baums zu partionieren. Der Vorteil wäre, dass der erste Scan der R-Relation während der Partitionierungsphase bereits für den Aufbau der Datenstruktur für den Join-Prozess genutzt werden könnte. Der R-Baum würde dann allerdings nicht parallel erzeugt werden. Ich habe mich gegen einen globalen R-Baum entschieden, um einerseits auch diesen Schritt parallelisieren zu können und da andererseits die Eliminierung von Duplikaten in einer Gitterstrukur nicht so rechenaufwändig ist
+
+Anders als bei den beiden anderen implementierten Operatoren ist es nicht nur eine Frage der Performance, ob der Algorithmus gegenüber einer Single-Thread-Variante modifiziert wird. Ein prinzipieller Unterschied einer parallelen Implementierung ist, dass räumliche Objekte, sofern sie eine Ausdehnung haben, mehreren Gitterzellen und damit Partitionen gleichzeitig zugewiesen werden. Dementsprechend können im Filter-Schritt gleiche Joinkandidaten in unterschiedlichen Threads doppelt ermittelt werden. Im Anschluss Duplikate zu ermitteln ist sehr rechenaufwändig. Wird lediglich der Kandidat weitergegeben dessen Schnittmenge in der Gitterzelle liegt, die sich so weit wie möglich rechts-oben befindet, werden Duplikate bereits in der Entstehung ausgeschlossen.
 
 TODO Bild
 
 Die Beschreibung des Filterschritts beginne ich mit dem Scheduling, in dem das SRT-Gitter für die Partitionierung konstruiert wird, die Worker-Threads erzeugt werden, die beiden Relationen $R$ und $S$ auf die Partitionen verteilt werden und abschließend der Ergebnisstrom an den folgenden Operator weitergegeben wird.
 
-In den Worker-Threads werden zuerst die Tupelströme aus den Partitionen der R-Relation in einen speicherinternen R-Baum eingelesen. Der Speicher wird hier global für alle Threads gemeinsam verwaltet. Tupel, die nicht mehr in den Hauptspeicher passen, werden in eine temporäre Datei geschrieben. In einem ersten Schritt wird die S-Relation einmal gescannt und Join-Kandidaten bestimmt sowie auf Duplikate geprüft.  Sofern es einen Overflow gab, kann jetzt berechnet werden, da Statistiken über die Relation bestimmt werden konnten, wie viele Iterationen der S-Relation notwendig sind mit neuen Teilen der R-Relation, die wiederum so groß sind, dass sie inkl. der für den Join notwendigen Datenstrukturen in der Hauptspeicher passen.
+In den Worker-Threads werden zuerst die Tupelströme aus den Partitionen der R-Relation in einen speicherinternen R-Baum eingelesen. Der Speicher wird hier global für alle Threads gemeinsam verwaltet. Tupel, die nicht mehr in den Hauptspeicher passen, werden in eine temporäre Datei geschrieben. In einem ersten Schritt wird die S-Relation einmal gescannt und Join-Kandidaten bestimmt sowie auf Duplikate geprüft.  Sofern es einen Overflow gab, kann die Anzahl der Iterationen jetzt genau berechnet werden, da die R-Relation einmal durchgescannt wurde und Statistiken über sie bestimmt werden konnten. In jeder Iteration wird die S-Relation wiederum vollständig durchlaufen und die R-Relation muss inklusive der für den Join notwendigen Datenstrukturen in der Hauptspeicher passen.
 
 \begin{minipage}{\linewidth}
 	\begin{lstlisting}[caption={Spatial Join: Worker}, label=list:spatialJoin]
 	tupleR = readFromBufferR 
 	while (tupleR != nullptr)
-		if (globalMemFree)
-			putInRTree(tupleR)
-			recalcGlobalMemFree
-		elseif
-			putInOverflowBuffer(tupleR)
+	if (globalMemFree)
+	putInRTree(tupleR)
+	recalcGlobalMemFree
+	elseif
+	putInOverflowBuffer(tupleR)
 	endwhile
 	tupleS = readFromBufferS
 	while (tupleS)
-		calcResult(tupleS,RTree)
-		if (noDuplicate)
-			putInResult
-		tupleS = readFromBufferS
+	calcResult(tupleS,RTree)
+	if (noDuplicate)
+	putInResult
+	tupleS = readFromBufferS
 	endwhile
 	\end{lstlisting}
 \end{minipage}
@@ -628,9 +627,13 @@ Eine erste Vereinfachung versuchte noch die Parallelität von Strömen und Präd
 
 Eine genaue Lokalisierung des Fehlers ist schwierig, da er sich erst im Commit, also nach Abschluss des vollständigen Querybaums manifestiert. Der implementierte Operator selbst läuft vollständig mit dem richtigen Ergebnis durch. Der Fehler tritt auch bei nur einem Thread auf, also ist es wahrscheinlich kein Synchronisationsproblem zwischen den Prädikatauswertungen. Eine Vermutung ist es, dass neben den Queryprozessoren der Threads teils Prozesse außerhalb der Threads auch auf \Fb{FLOBs} der Tupleattribute, die in das Prädikat eingehen, zugreifen. Für diesen Zweck war ein weiterer Versucht, einen Performanceverlust in Kauf zu nehmen, indem nur entweder die Prädikatauswertung oder die Verarbeitung des Tupelstroms ablaufen darf. Eine Synchronisation wurde mithilfe einer Bedingungsvariable und Mutexen vorgenommen, führte aber auch nicht zu einer fehlerfreien Funktionsweise des Operators. Auch ein letzter Versuch, Secondo ohne Commit zu verwenden, führte zwar dazu, dass deutlich seltener und erst bei größeren Relationen Fehler auftraten, aber immer noch kam es im Abschluss der Abfrage, die den Filter beinhaltete, gelegentlich zu Abbrüchen.
 
-Ein letzter Versuch war es, den Queryprozessor direkt in den Worker-Threads mehrmals zu erzeugen und wieder zu zerstören. Dieser Ansatz hätte, wenn dies nicht allzu häufig vorgenommen werden muss, zu einem Operator führen können, der zwar nicht optimal Parallelität ausnutzt, aber trotzdem schneller ist als die Single-Thread-Version, sofern die Auswertung der Prädikate entsprechend teuer ist. Die Idee begründet sich darin, dass es erst bei relativ großen Relationen zu dem Commit-Fehler kommt. Allerdings funktionierte diese Ansatz nur, wenn maximal 20 Prädikate ausgewertet wurden, bevor der Query-Prozessor zerstört und wieder neu aufgebaut wird. Damit ist der Operator als parallele Version deutlich langsamer als der Single-Thread-Filteroperator. 
+Ein letzter Versuch war es, den Queryprozessor direkt in den Worker-Threads mehrmals zu erzeugen und wieder zu zerstören. Dieser Ansatz hätte, wenn dies nicht allzu häufig vorgenommen werden muss, zu einem Operator führen können, der zwar nicht optimal Parallelität ausnutzt, aber trotzdem schneller ist als die Single-Thread-Version, sofern die Auswertung der Prädikate entsprechend teuer ist. Die Idee begründet sich darin, dass es erst bei relativ großen Relationen zu dem Commit-Fehler kommt. Allerdings funktionierte diese Ansatz nur, wenn maximal 20 Tuple ausgewertet wurden, bevor der Query-Prozessor zerstört und wieder neu aufgebaut wird. Damit ist der Operator als parallele Version deutlich langsamer als der Single-Thread-Filteroperator. 
 
 TODO: Frage ob sortieren sinnvoll damit flob nicht mehrmals gelesen
+In der RequestProgress Funktion wird z.B. ein "static Word result " benutzt, das bei mehreren Thread problematisch sein könnte. 
+Auch ein globales OpNodeAddr2Id ist sich
+mutexe in flobmanager
+writetobin, jetzt tuplefile
 
 \subsection{Test} 15 S
 
@@ -644,6 +647,10 @@ L3-Cache: 8 MiB mit Northbridge-Takt (2,0 GHz)
 AMD FX-6300 	3,5 GHz 	3,8 GHz 	4,1 GHz
 6 Integer-Cluster, 3 Gleitkomma-Einheiten
 SSD 
+
+2 Xeon Gold 6128 6 Kerne, L1: 384 Kb, L2 6 MB, L3 19,25 MB, 3,7/3,54 GHz
+384 GB Hauptspeicher, 2 SSD
+Virtuell auf SATA SSD, 32 GB 6-10 Kerne
 
 Vergleichend teste ich auch auf einem Windows-Server mit deutlich besserer und aktuellerer Hardware, auf dem Ubuntu 20.04 LS als Gast-Betriebssystem unter VMWare läuft. Der Server hat 2x Xeon Gold mit je 6 Kernen und 396 GB Arbeitsspeicher, SSD. Dem Gast-Betriebssystem stehen insgesamt 10 Kerne zur Verfügung und 32 GB Arbeitsspeicher. Vorteil hier ist neben dem modernen Mehrkernsystem, dass die Hardwareausstattung variert werden kann.  
 
@@ -659,33 +666,58 @@ Was für Experimente mache ich?
 verschiedene Parameter: Speicher, Threads, teils speziell wie Buckets und R-Baum 
 
 
-wie werden die tests gemacht
-beschreibung der daten, wie werden unterschiedliche Bedingungen getestet
-Openstreetmapdaten Berlin
+Für die Testes der Operatoren verwende ich den Berlin-Datensatz von Open Streetmap. 
+Openstreetmapdaten Berlin Stand 7.1.2020
+\url{http://download.geofabrik.de/europe/germany/berlin.html}
+
+\begin{tabular}{|c|c|c|c|}
+	\hline 
+	Tabelle & Anzahl Tupel & Datei & räumlicher Datentyp  \\ 
+	\hline 
+	buildings & 502.309 & gis\_osm\_buildings\_a\_free\_1 & region \\ 
+	\hline 
+	landuse & 29.341 & gis\_osm\_landuse\_a\_free\_1 & region \\ 
+	\hline 
+	natural & 116 & gis\_osm\_natural\_a\_free\_1 & region \\ 
+	\hline 
+	natural2 & 162.112 & gis\_osm\_natural\_free\_1 & point \\ 
+	\hline
+	places & 108 & gis\_osm\_places\_free\_1 & region \\ 
+	\hline 
+	pois & 66.123 & gis\_osm\_pois\_free\_1  & point \\ 
+	\hline 
+	roads & 181.685 & gis\_osm\_roads\_free\_1 & line \\ 
+	\hline
+	traf & 40.650 & gis\_osm\_traffic\_free\_1  & point \\ 
+	\hline 
+	waterways & 2104 & gis\_osm\_waterways\_free\_1 & line \\ 
+	\hline 
+\end{tabular} 
 
 \subsubsection{Funktionstest MThreadedsort}
 
---valgrind
-query buildings feed  mThreadedMergeSort[Name]  project[Name] count
+Auf Korrektheit wird mit zwei Methoden getestet. Es ist notwendig, dass ein Test mit \Fb{--valgrindlc} ohne Fehler abläuft und das Ergebnis muss den Erwartungen entsprechen, das heißt, eine Relation muss entsprechend der Parameter korrekt sortiert werden. Eine Korrektheit kann nur festgestellt werden, wenn garantiert ist, dass der Code des Operators in der Summe der Tests vollständig durchlaufen worden ist, was mit Ausgaben abgesichert wird, die in der endgültigen Version des Operators entfernt worden sind. Um dies zu garantieren, muss die Relation so groß sein, dass Läufe persistiert werden müssen bzw. wenig Hauptspeicher zur Verfügung stehen und es sollen mehr als zwei Läufe in der suboptimalen Phase verschmolzen werden müssen. In der postoptimalen Phase sollen die Feeder mit ein und zwei Eingängen getestet werden und es soll ein Mergepipeline-Baum konstruiert wird, der nicht lediglich Blätter und eine Wurzel enthält. Dementsprechend wird mit 3, 4 und 6 Threads getestet \footnote{Der Hauptthread, in dem der Secondokern und damit auch das Scheduling läuft, zählt immer mit}. Darüber hinaus wird mit einer Threadzahl getestet, die deutlich über der Kernzahl des System liegt (16), da in diesem Fall Threads zwischenzeitlich pausieren müssen. Auch wenn dies nicht für die Performance nicht ungedingt sinnvoll ist, hat dies Auswirkungen besipielsweise auf die Buffer und auch in diesem Fall muss der Operator korrekt funktionieren, da unter Anwendungs-Bedingungen nicht unbedingt bekannt ist, wie viele Kerne genutzt werden können oder eventuell durch andere Programme verwendet werden.
 
-==11278== HEAP SUMMARY:
-==11278==     in use at exit: 1,652,231 bytes in 17,840 blocks
-==11278==   total heap usage: 1,726,857 allocs, 1,709,017 frees, 269,032,078 bytes allocated
-==11278== 
-==11278== LEAK SUMMARY:
-==11278==    definitely lost: 0 bytes in 0 blocks
-==11278==    indirectly lost: 0 bytes in 0 blocks
-==11278==      possibly lost: 0 bytes in 0 blocks
-==11278==    still reachable: 1,652,231 bytes in 17,840 blocks
+\begin{minipage}{\linewidth}
+	\begin{lstlisting}[caption={Beispiel Testqueries für den Sort-Operator}, label=list:testsort]
+	query setcore(3)
+	query buildings feed mThreadedMergeSort[Name] count
+	query buildings feed mThreadedMergeSort[Name] {memory 12} project[Name] count
+	\end{lstlisting}
+\end{minipage}
 
+Mit \Fb{--valgrindlc} terminiert der Operator nur in einem Fall mit einem Speicherloch, nämlich sofern der Operator nicht vollständig speicherintern ablaufen kann. Ein Zeiger auf eine CcInt wird nicht gelöscht. Dies ist allerdings nicht ein Fehler meines Operators, sondern ein bekannter Fehler des Queryprozessors, der auftritt, wenn der Queryprozessor Konstanten verwendet. Sofern mehr Threads verwendet werden als Kerne zur Verfügung stehen, kann es zu einem Deadlock kommen, 
 
-definitely lost: 16 bytes in 1 blocks
-==11428== 16 bytes in 1 blocks are definitely lost in loss record 1 of 129
-==11428==    at 0x4C2E68F: operator new(unsigned long) (in /usr/lib64/valgrind/vgpreload_memcheck-amd64-linux.so)
+\begin{minipage}{\linewidth}
+	\begin{lstlisting}[caption={Beispiel Testqueries für den Sort-Operator}, label=list:testsort]
+	query setcore(3)
+	query buildings feed mThreadedMergeSort[Name] count
+	query buildings feed mThreadedMergeSort[Name] {memory 12} project[Name] count
+	\end{lstlisting}
+\end{minipage}
 
+Schwieriger 
 
-Korrektheit:
---valgrindlc, keine Speicherlecks, was für Ausgaben
 
 
 
