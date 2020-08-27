@@ -73,6 +73,9 @@ class CompareByVector {
 
    // Compare 2 tuples and return true of 1>=2
    bool compTuple(const Tuple* a, const Tuple* b) const;
+
+   // Debug: first attr index
+   int firstAttr() const;
 };
 
 class TournamentTree {
@@ -255,6 +258,7 @@ class mergeSortLI {
    size_t coreNo;
    size_t coreNoWorker;
    const size_t cores = MThreadedSingleton::getCoresToUse();
+   bool streamEmpty;
 
    size_t count = 0;
 
