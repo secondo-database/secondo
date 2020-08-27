@@ -1173,7 +1173,10 @@ SmiEnvironment::SetSmiError( const SmiError smiErr,
     {
       instance.impl->txnMustAbort = true;
     }
-    string msg =  Err2Msg(E_SMI_BDB) + DbEnv::strerror( sysErr );
+
+    string msg = Err2Msg(E_SMI_BDB) + " sysErrCode=" 
+                      + to_string(sysErr) + " " + DbEnv::strerror( sysErr );
+
     SetSmiError(smiErr, msg, file, pos, desc);
   }
 }
