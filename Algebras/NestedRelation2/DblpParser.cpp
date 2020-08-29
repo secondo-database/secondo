@@ -422,7 +422,7 @@ string mapElementNameToAttributeName(const string & elementName)
   resultType.AppendAttribute("Isbn", Symbols::STRING());
   resultType.AppendAttribute("AuthorsList", authorsType.GetARel());
   resultType.AppendAttribute("Keywords", keywordsType.GetARel());
-  resultType.AppendAttribute("DocId", Symbols::INT());
+  resultType.AppendAttribute("Docid", Symbols::INT());
 
   return resultType.GetNRel();
 }
