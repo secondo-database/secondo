@@ -1,0 +1,100 @@
+Sequential: Yes
+Database: test
+Restore: No
+
+Operator    : setcore
+Number      : 1
+Signature   : int -> bool
+Example     : query setcore(2)
+Result      : TRUE
+
+Operator    : mThreadedMergeSort
+Number      : 2
+Signature   : stream x (attr x bool ...) -> stream
+Example     : query roads_str feed filter[not (trim(.Name) = '')] head[0] mThreadedMergeSort[NameStr] count
+Result      : TRUE
+
+Operator    : setcore
+Number      : 3
+Signature   : int -> bool
+Example     : query setcore(20)
+Result      : TRUE
+
+Operator    : mThreadedMergeSort
+Number      : 4
+Signature   : stream x (attr x bool ...) -> stream
+Example     : query roads_str feed filter[not (trim(.Name) = '')] head[0] mThreadedMergeSort[NameStr] count
+Result      : TRUE
+
+
+Operator    : setcore
+Number      : 5
+Signature   : int -> bool
+Example     : query setcore(6)
+Result      : TRUE
+
+Operator    : mThreadedMergeSort
+Number      : 6
+Signature   : stream x (attr x bool ...) -> stream
+Example     : query roads_str feed filter[not (trim(.Name) = '')] head[0] mThreadedMergeSort[NameStr] count
+Result      : TRUE
+
+Operator    : mThreadedMergeSort
+Number      : 7
+Signature   : stream x (attr x bool ...) -> stream
+Example     : query roads_str feed filter[not (trim(.Name) = '')] head[2] mThreadedMergeSort[NameStr] count
+Result      : TRUE
+
+Operator    : mThreadedMergeSort
+Number      : 8
+Signature   : stream x (attr x bool ...) -> stream
+Example     : query roads_str mThreadedMergeSort[NameStr] count
+Result      : TRUE
+
+Operator    : mThreadedMergeSort
+Number      : 9
+Signature   : stream x (attr x bool ...) -> stream
+Example     : query (roads_str feed filter[not (trim(.Name) = '')] mThreadedMergeSort[NameStr] project[Name]) = (roads_str feed filter[not (trim(.Name) = '')] mThreadedMergeSort[NameStr, TRUE] project[Name])
+Result      : TRUE
+
+Operator    : mThreadedMergeSort
+Number      : 10
+Signature   : stream x (attr x bool ...) -> stream
+Example     : query roads_str feed filter[not (trim(.Name) = '')] mThreadedMergeSort[NameStra] count
+Result      : TRUE
+
+Operator    : mThreadedMergeSort
+Number      : 11
+Signature   : stream x (attr x bool ...) -> stream
+Example     : query roads_str feed filter[not (trim(.Name) = '')] mThreadedMergeSort[NameStr, 5] count
+Result      : TRUE
+
+Operator    : mThreadedMergeSort
+Number      : 12
+Signature   : stream x (attr x bool ...) -> stream
+Example     : query roads_str feed filter[not (trim(.Name) = '')] mThreadedMergeSort[] count
+Result      : TRUE
+
+Operator    : mThreadedMergeSort
+Number      : 13
+Signature   : stream x (attr x bool ...) -> stream
+Example     : query roads_str feed filter[not (trim(.Name) = '')] mThreadedMergeSort[NameStr; NameStr] count
+Result      : ERROR
+
+Operator    : mThreadedMergeSort
+Number      : 14
+Signature   : stream x (attr x bool ...) -> stream
+Example     : query roads_str feed filter[not (trim(.Name) = '')] mThreadedMergeSort[Oneway, NoAttr, FALSE, Maxspeed, Fclass, FALSE, NameStr] count
+Result      : TRUE
+
+Operator    : mThreadedMergeSort
+Number      : 15
+Signature   : stream x (attr x bool ...) -> stream
+Example     : query (roads_str feed filter[not (trim(.Name) = '')] sortby[NameStr] mThreadedMergeSort[NameStr] project[Name]) = (roads_str feed filter[not (trim(.Name) = '')] sortby[NameStr] project[Name])
+Result      : TRUE
+
+Operator    : mThreadedMergeSort
+Number      : 16
+Signature   : stream x (attr x bool ...) -> stream
+Example     : query (roads_str feed filter[not (trim(.Name) = '')] mThreadedMergeSort[Maxspeed] project[Maxspeed]) =  (roads_str feed filter[not (trim(.Name) = '')] sortby[Maxspeed] project[Maxspeed])
+Result      : TRUE

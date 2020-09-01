@@ -83,7 +83,7 @@ void FileBufferRW::appendTuple(Tuple* tuple) {
       fileStreamInOut = make_shared<std::fstream>(fname.c_str(),
                                                   std::ios::binary |
                                                   std::ios::trunc);
-      cout << "make file" << endl;
+      //cout << "make file" << endl;
 
    }
    size_t coreSize;
@@ -161,7 +161,7 @@ FileBuffer::FileBuffer(TupleType* _tt) : tt(_tt) {
 
 FileBuffer::~FileBuffer() {
    //fileStreamIn->close();
-   cout << "destroy F-Buffer" << endl;
+   //cout << "destroy F-Buffer" << endl;
    delete it;
 }
 
@@ -178,18 +178,18 @@ Tuple* FileBuffer::readTuple() {
    Tuple* val = it->GetNextTuple();
    if (val == 0) {
       val = nullptr;
-      cout << "endReadBuff" << endl;
+      //cout << "endReadBuff" << endl;
    }
    return val;
 }
 
 void FileBuffer::closeWrite() {
-   cout << "tbCWrite" << endl;
+   //cout << "tbCWrite" << endl;
    //tupleBuffer->Close();
 }
 
 void FileBuffer::openRead() {
-   cout << "tbOpenRead" << endl;
+   //cout << "tbOpenRead" << endl;
    delete it;
    it = tupleBuffer->MakeScan();
 }
@@ -197,113 +197,6 @@ void FileBuffer::openRead() {
 bool FileBuffer::empty() const {
    return isEmpty;
 }
-
-
-//FileBuffer::FileBuffer(TupleType* _tt) : tt(_tt) {
-//   fname = createFn() + ".tmp";
-//   //cout << fname << endl;
-//fileStreamOut = make_shared<std::ofstream>(fname.c_str(), std::ios::binary |
-//                                                          std::ios::trunc);
-//   isEmpty = true;
-//}
-
-
-
-
-//FileBuffer::~FileBuffer() {
-//   //fileStreamIn->close();
-//   cout << "delete F-Buffer" << endl;
-//   std::remove(fname.c_str());
-//   cout << "F-Buffer deleted" << endl;
-//}
-
-
-
-//std::string FileBuffer::createFn() {
-//   boost::uuids::random_generator generator;
-//   const boost::uuids::uuid uuid = generator();
-//   return boost::uuids::to_string(uuid);
-//}
-//
-//void FileBuffer::appendTuple(Tuple* tuple) {
-//   if (isEmpty) {
-//      fileStreamOut = make_shared<std::ofstream>(fname.c_str(),
-//                                                 std::ios::binary |
-//                                                 std::ios::trunc);
-//      cout << "make file" << endl;
-//
-//   }
-//   size_t coreSize;
-//   size_t extensionSize;
-//   size_t flobSize;
-//   size_t blocksize = tuple->GetBlockSize(coreSize, extensionSize,
-//                                          flobSize);
-//   // allocate buffer and write flob into it
-//   char* buffer = new char[blocksize];;
-//   {
-//      //std::lock_guard<mutex> lock(mthreadedGlobal::mutexWrite_);
-//      tuple->WriteToBin(buffer, coreSize, extensionSize, flobSize);
-//   }
-//   uint32_t tsize = blocksize;
-//   fileStreamOut->write((char*) &tsize, sizeof(uint32_t));
-//   fileStreamOut->write(buffer, tsize);
-//   delete[] buffer;
-//   //cout << tuple->GetNumOfRefs() << "!!";
-//   tuple->DeleteIfAllowed();
-//   isEmpty = false;
-//}
-//
-//Tuple* FileBuffer::readTuple() {
-//   Tuple* res = nullptr;
-//   if (!fileStreamIn) {
-//      cout << "no filestream" << endl;
-//      return res;
-//   }
-//   if (fileStreamIn->eof()) {
-//      cout << "EOF" << endl;
-//      return res;
-//   }
-//   // size of the next tuple
-//   uint32_t size = 0;
-//   fileStreamIn->read((char*) &size, sizeof(uint32_t));
-//   if (size == 0) {
-//      cout << "read null" << endl;
-//      fileStreamIn->close();
-//      return res;
-//   }
-//   char* buffer = new char[size];
-//   fileStreamIn->read(buffer, size);
-//   if (!fileStreamIn->good()) {
-//      delete[] buffer;
-//      cout << "error during reading file " << endl;
-//      cout << "position " << fileStreamIn->tellg() << endl;
-//      return res; // error
-//   }
-//
-//   {
-//      //std::lock_guard<mutex> lock(mthreadedGlobal::mutexRead_);
-//      res = new Tuple(tt);;
-//      res->ReadFromBin(0, buffer);
-//      delete[] buffer;
-//   }
-//   return res;
-//}
-//
-//void FileBuffer::closeWrite() {
-//   fileStreamOut->close();
-//}
-//
-//void FileBuffer::openRead() {
-//   fileStreamIn = make_shared<std::ifstream>(fname.c_str(), ios::binary);
-//}
-//
-//bool FileBuffer::empty() const {
-//   return isEmpty;
-//}
-//
-//string FileBuffer::getFname() const {
-//   return fname;
-//}
 
 // append single tuple into a file
 void MemoryBuffer::appendTuple(Tuple* tuple) {
@@ -328,7 +221,7 @@ bool MemoryBuffer::empty() const {
 }
 
 MemoryBuffer::MemoryBuffer(TupleType* _tt) : tt(_tt) {
-   isEmpty = false;
+   isEmpty = true;
 }
 
 MemoryBuffer::~MemoryBuffer() {}
@@ -343,19 +236,15 @@ MultiBuffer::MultiBuffer(TupleType* _tt, const size_t _bufferSize) :
 }
 
 MultiBuffer::~MultiBuffer() {
-
 }
 
 void MultiBuffer::appendTuple(Tuple* tuple) {
    assert(tuple != nullptr);
-   //cout << bufferCounter << "##";
    if (bufferCounter > bufferSize) {
       if (!overflow) {
          overflowBuffer = make_shared<FileBuffer>(tt);
       }
-      //cout << "MB Overflow" << endl;
       overflowBuffer->appendTuple(tuple);
-      //tuple->DeleteIfAllowed();
       overflow = true;
    } else {
       bufferCounter -= tuple->GetSize() + sizeof(void*);
@@ -372,21 +261,18 @@ Tuple* MultiBuffer::readTuple() {
    }
    if (overflow) {
       tuple = overflowBuffer->readTuple();
-      //tuple->DeleteIfAllowed();
    }
    return tuple;
 }
 
 void MultiBuffer::closeWrite() {
    if (overflow) {
-      cout << "overflowCloseWrite" << endl;
       overflowBuffer->closeWrite();
    }
 }
 
 void MultiBuffer::openRead() {
    if (overflow) {
-      cout << "overflowOpenRead" << endl;
       overflowBuffer->openRead();
    }
 }
@@ -403,14 +289,11 @@ SafeQueuePersistent::SafeQueuePersistent(const size_t _bufferSize,
    dataReadyQueue = false;
    overflow = false;
    it = nullptr;
-   //bufferPersist = std::make_shared<FileBuffer>(tt);
    tupleBuffer = nullptr;
 }
 
 SafeQueuePersistent::~SafeQueuePersistent() {
-   cout << "destroy SQP" << endl;
    delete it;
-   //bufferPersist->closeWrite();
 };
 
 bool SafeQueuePersistent::empty() const {
@@ -421,7 +304,6 @@ bool SafeQueuePersistent::empty() const {
 void SafeQueuePersistent::enqueue(Tuple* t) {
    std::lock_guard<std::mutex> lock(m);
    if (bufferCounter <= bufferSize) {
-      //if (true) {
       if (t != nullptr) {
          bufferCounter -= t->GetMemSize() + sizeof(void*);
       }
@@ -433,12 +315,10 @@ void SafeQueuePersistent::enqueue(Tuple* t) {
       dataReadyQueue = true;
       c.notify_one();
    } else {
-      //cout << "PersistEn" << endl;
       if (t != nullptr) {
          tupleBuffer->Append(t);
          t->DeleteIfAllowed();
       } else {
-         cout << "free sqp enqueue" << endl;
          tupleBuffer->Close();
          //delete it;
          it = tupleBuffer->MakeScan();
@@ -462,13 +342,10 @@ Tuple* SafeQueuePersistent::dequeue() {
       val = q.front();
       q.pop();
    } else {
-      //cout << "readfromfile" << "##";
       val = it->GetNextTuple();
       if (val == 0) {
          val = nullptr;
-         cout << "endReadBuff" << endl;
       } else {
-         //val->IncReference();
       }
    }
    return val;

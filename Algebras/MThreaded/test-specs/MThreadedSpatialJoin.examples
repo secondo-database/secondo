@@ -1,27 +1,77 @@
 Sequential: Yes
-Database: berlintest
+Database: test
 Restore: No
 
-Operator : setoption
-Number   : 1
-Signature: string x int -> bool
-Example  : query setoption("MaxMemPerOperator", 512*1024);
-Result   : (bool undefined)
-
 Operator    : setcore
-Number      : 2
+Number      : 1
 Signature   : int -> bool
 Example     : query setcore(3)
 Result      : TRUE
 
-Operator    : getcore
+Operator    : mThreadedSpatialJoin
+Number      : 2
+Signature   : stream x stream x attr x attr -> stream
+Example     : query (pois feed {o} traf feed {p} mThreadedSpatialJoin[Geometry_o, Geometry_p, 0.0] project[Name_o, Name_p] sortby[Name_o, Name_p]) = (pois feed {o} traf feed {p} spatialjoin[Geometry_o, Geometry_p] project[Name_o, Name_p] sortby[Name_o, Name_p])
+Result      : TRUE
+
+Operator    : mThreadedSpatialJoin
 Number      : 3
-Signature   : -> int
-Example     : query getcore()
-Result      : 3
+Signature   : stream x stream x attr x attr -> stream
+Example     : query (pois feed {o} roads feed {p} mThreadedSpatialJoin[Geometry_o, Geometry_p, 0.0] project[Name_o, Name_p] sortby[Name_o, Name_p]) = (pois feed {o} roads feed {p} spatialjoin[Geometry_o, Geometry_p] project[Name_o, Name_p] sortby[Name_o, Name_p])
+Result      : TRUE
 
 Operator    : mThreadedSpatialJoin
 Number      : 4
 Signature   : stream x stream x attr x attr -> stream
-Example     : query strassen feed {o} Flaechen feed {p} mThreadedSpatialJoin[GeoData_o, GeoData_p; 0.1] project [Name_o, Name_p] count
-Result      : 1285
+Example     : query (pois feed {o} places feed {p} mThreadedSpatialJoin[Geometry_o, Geometry_p, 0.0] project[Name_o, Name_p] sortby[Name_o, Name_p]) = (pois feed {o} places feed {p} spatialjoin[Geometry_o, Geometry_p] project[Name_o, Name_p] sortby[Name_o, Name_p])
+Result      : TRUE
+
+Operator    : mThreadedSpatialJoin
+Number      : 5
+Signature   : stream x stream x attr x attr -> stream
+Example     : query (roads feed {o} waterways feed {p} mThreadedSpatialJoin[Geometry_o, Geometry_p, 0.0] project[Name_o, Name_p] sortby[Name_o, Name_p]) = (roads feed {o} waterways feed {p} spatialjoin[Geometry_o, Geometry_p] project[Name_o, Name_p] sortby[Name_o, Name_p])
+Result      : TRUE
+
+Operator    : mThreadedSpatialJoin
+Number      : 6
+Signature   : stream x stream x attr x attr -> stream
+Example     : query (roads feed {o} landuse feed {p} mThreadedSpatialJoin[Geometry_o, Geometry_p, 0.0] project[Name_o, Name_p] sortby[Name_o, Name_p]) = (roads feed {o} landuse feed {p} spatialjoin[Geometry_o, Geometry_p] project[Name_o, Name_p] sortby[Name_o, Name_p])
+Result      : TRUE
+
+Operator    : mThreadedSpatialJoin
+Number      : 7
+Signature   : stream x stream x attr x attr -> stream
+Example     : query (landuse feed {o} natural feed {p} mThreadedSpatialJoin[Geometry_o, Geometry_p, 0.0] project[Name_o, Name_p] sortby[Name_o, Name_p]) = (landuse feed {o} natural feed {p} spatialjoin[Geometry_o, Geometry_p] project[Name_o, Name_p] sortby[Name_o, Name_p])
+Result      : TRUE
+
+Operator    : mThreadedSpatialJoin
+Number      : 8
+Signature   : stream x stream x attr x attr -> stream
+Example     : query (roads feed {o} natural feed {p} mThreadedSpatialJoin[Geometry_o, Geometry_p, 0.0] project[Name_o, Name_p] sortby[Name_o, Name_p]) = (roads feed {o} natural feed {p} spatialjoin[Geometry_o, Geometry_p] project[Name_o, Name_p] sortby[Name_o, Name_p])
+Result      : TRUE
+
+Operator    : setcore
+Number      : 9
+Signature   : int -> bool
+Example     : query setcore(6)
+Result      : TRUE
+
+Operator    : mThreadedSpatialJoin
+Number      : 10
+Signature   : stream x stream x attr x attr -> stream
+Example     : query (roads feed {o} natural feed {p} mThreadedSpatialJoin[Geometry_o, Geometry_p, 0.0] project[Name_o, Name_p] sortby[Name_o, Name_p]) = (roads feed {o} natural feed {p} spatialjoin[Geometry_o, Geometry_p] project[Name_o, Name_p] sortby[Name_o, Name_p])
+Result      : TRUE
+
+Operator    : mThreadedSpatialJoin
+Number      : 11
+Signature   : stream x stream x attr x attr -> stream
+Example     : query (roads feed {o} natural feed {p} mThreadedSpatialJoin[Geometry_o, Geometry_p, 0.0] {memory 50} project[Name_o, Name_p] sortby[Name_o, Name_p]) = (roads feed {o} natural feed {p} spatialjoin[Geometry_o, Geometry_p] project[Name_o, Name_p] sortby[Name_o, Name_p])
+Result      : TRUE
+
+Operator    : mThreadedSpatialJoin
+Number      : 12
+Signature   : stream x stream x attr x attr -> stream
+Example     : query (roads feed {o} natural feed {p} mThreadedSpatialJoin[Geometry_o, Geometry_p, 1.0] project[Name_o, Name_p] sortby[Name_o, Name_p]) = (roads feed  extend[ B : enlargeRect(bbox(.Geometry), 1.0, 1.0) ] {F} natural feed extend[ B : bbox(.Geometry)]  {P} symmjoin[.B_F intersects ..B_P] project[Name_o, Name_p] sortby[Name_o, Name_p])
+Result      : TRUE
+
+

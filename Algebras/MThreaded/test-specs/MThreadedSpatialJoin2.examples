@@ -1,0 +1,102 @@
+Sequential: Yes
+Database: test
+Restore: No
+
+Operator    : setcore
+Number      : 1
+Signature   : int -> bool
+Example     : query setcore(6)
+Result      : TRUE
+
+Operator    : mThreadedSpatialJoin
+Number      : 2
+Signature   : stream x stream x attr x attr -> stream
+Example     : query roads feed {o} head[0] natural feed {p} mThreadedSpatialJoin[Geometry_o, Geometry_p, 0.0] count
+Result      : TRUE
+
+Operator    : mThreadedSpatialJoin
+Number      : 3
+Signature   : stream x stream x attr x attr -> stream
+Example     : query roads feed {o} natural feed {p} head[0] mThreadedSpatialJoin[Geometry_o, Geometry_p, 0.0] count
+Result      : TRUE
+
+Operator    : mThreadedSpatialJoin
+Number      : 4
+Signature   : stream x stream x attr x attr -> stream
+Example     : query roads feed {o} head[0] natural feed {p} head[0] mThreadedSpatialJoin[Geometry_o, Geometry_p, 0.0] count
+Result      : TRUE
+
+Operator    : mThreadedSpatialJoin
+Number      : 5
+Signature   : stream x stream x attr x attr -> stream
+Example     : query roads feed {o} head[2] natural feed {p} mThreadedSpatialJoin[Geometry_o, Geometry_p, 0.0] count
+Result      : TRUE
+
+Operator    : mThreadedSpatialJoin
+Number      : 6
+Signature   : stream x stream x attr x attr -> stream
+Example     : query roads natural feed {p} mThreadedSpatialJoin[Geometry, Geometry_p, 0.0] count
+Result      : TRUE
+
+Operator    : mThreadedSpatialJoin
+Number      : 7
+Signature   : stream x stream x attr x attr -> stream
+Example     : query roads feed {o} natural mThreadedSpatialJoin[Geometry_o, Geometry, 0.0] count
+Result      : TRUE
+
+Operator    : mThreadedSpatialJoin
+Number      : 8
+Signature   : stream x stream x attr x attr -> stream
+Example     : query roads feed {o} natural feed {p} mThreadedSpatialJoin[Name_o, Geometry_p, 0.0] count
+Result      : TRUE
+
+Operator    : mThreadedSpatialJoin
+Number      : 9
+Signature   : stream x stream x attr x attr -> stream
+Example     : query roads feed {o} natural feed {p} mThreadedSpatialJoin[Geometry_o, Name_p, 0.0] count
+Result      : TRUE
+
+Operator    : mThreadedSpatialJoin
+Number      : 10
+Signature   : stream x stream x attr x attr -> stream
+Example     : query roads feed {o} natural feed {p} mThreadedSpatialJoin[Geometry_p, Geometry_p, 0.0] count
+Result      : TRUE
+
+Operator    : mThreadedSpatialJoin
+Number      : 11
+Signature   : stream x stream x attr x attr -> stream
+Example     : query roads feed {o} natural feed {p} mThreadedSpatialJoin[Geometry_o, Geometry_o, 0.0] count
+Result      : TRUE
+
+Operator    : mThreadedSpatialJoin
+Number      : 12
+Signature   : stream x stream x attr x attr -> stream
+Example     : query roads feed {o} natural feed {p} mThreadedSpatialJoin[Geometry_o, 0.0] count
+Result      : TRUE
+
+Operator    : mThreadedSpatialJoin
+Number      : 13
+Signature   : stream x stream x attr x attr -> stream
+Example     : query roads feed {o} natural feed {p} mThreadedSpatialJoin[Geometry_o, Geometry_o, Geometry_p, 0.0] count
+Result      : TRUE
+
+Operator    : mThreadedSpatialJoin
+Number      : 14
+Signature   : stream x stream x attr x attr -> stream
+Example     : query roads feed {o} natural feed {p} mThreadedSpatialJoin[Geometry_o, Geometry_p] count
+Result      : TRUE
+
+Operator    : mThreadedSpatialJoin
+Number      : 15
+Signature   : stream x stream x attr x attr -> stream
+Example     : query roads feed {o} natural feed {p} mThreadedSpatialJoin[Geometry_o, Geometry_p, "hase"] count
+Result      : TRUE
+
+
+Operator    : mThreadedSpatialJoin
+Number      : 20
+Signature   : stream x stream x attr x attr -> stream
+Example     : query waterways feed  extend[ B : enlargeRect(bbox(.Geometry), .5, .5) ] {o} natural feed extend[ B : bbox(.Geometry)] {p} symmjoin[.B_o intersects ..B_p] count
+Result      : TRUE
+
+

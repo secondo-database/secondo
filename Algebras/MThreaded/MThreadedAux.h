@@ -219,6 +219,10 @@ class SafeQueue {
       return q.empty();
    }
 
+   size_t size() const {
+      return q.size();
+   }
+
    // Add an element to the queue.
    void enqueue(T t) {
       std::lock_guard<std::mutex> lock(m);

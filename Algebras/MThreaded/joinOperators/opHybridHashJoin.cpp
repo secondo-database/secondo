@@ -61,8 +61,11 @@ extern NestedList* nl;
 extern QueryProcessor* qp;
 
 namespace hashJoinGlobal {
-mutex mutexEqual_;
+//mutex mutexEqual_;
 size_t threadsDone;
+condition_variable workers;
+mutex workersDone_;
+bool workersDone;
 }
 
 using namespace hashJoinGlobal;
@@ -177,9 +180,10 @@ void HashTablePersist::CalcS() {
    for (size_t i = 0; i < bucketsNo - 1; ++i) {
       if (sizeR[i] != 0) {
          overflowBucketNo.emplace_back(
-                 (size_t) (maxMem * 0.8) / (sizeR[i] / hashMod));
+                 (size_t) floor(maxMem * 0.8) / floor(sizeR[i] / hashMod));
       } else {
-         overflowBucketNo.emplace_back();
+         cout << "null" << endl;
+         overflowBucketNo.emplace_back(0);
       }
    }
 }
@@ -250,10 +254,10 @@ void HashJoinWorker::operator()() {
                            overflowBufferS, countOverflow, 1);
       }
 
+      cout << "Phase 2: " << streamInNo << endl;
       // phase 2:
       for (size_t pos = 0; pos < bucketNo - 1; ++pos) {
          // non-overflow
-         cout << "phase 2 bucket: " << pos << "(" << streamInNo << ")" << endl;
          countOverflow = phase2(hashMod, pos);
          // recursive overflow buckets >0
          if (!overflowBufferR->empty()) {
@@ -267,12 +271,17 @@ void HashJoinWorker::operator()() {
       ttR->DeleteIfAllowed();
    }
    cout << "phasen ready: " << streamInNo << endl;
-   resultTupleType->DeleteIfAllowed();
-   ttS->DeleteIfAllowed();
+   //resultTupleType->DeleteIfAllowed();
+   //ttS->DeleteIfAllowed();
    --threadsDone;
    if (threadsDone == 0) {
-      cout << "nullptr" << endl;
       tupleBuffer->enqueue(nullptr);
+      lock_guard<std::mutex> lock(workersDone_);
+      workersDone = true;
+      workers.notify_all();
+   } else {
+      std::unique_lock<std::mutex> lock(workersDone_);
+      workers.wait(lock, [&] { return workersDone; });
    }
    cout << "operator ready" << endl;
 }
@@ -327,6 +336,9 @@ size_t HashJoinWorker::phase1(size_t &countOverflow) {
                }
             }
             inMemBucketNo /= 2;
+
+            // ToDo: in einem bucket mehr als in den speicher passt,
+            //  also inMemBucket = 1
             memR -= memTransfered;
             memROverflow += memTransfered;
             hashTablePersist->UseMemHashTable(-memTransfered);
@@ -344,13 +356,15 @@ size_t HashJoinWorker::phase1(size_t &countOverflow) {
    cout << "phase1doneR" << endl;
 
    size_t hashMod = count / bucketNo;
+   if (hashMod == 0) hashMod = 1;
+
    hashTablePersist->SetHashMod(hashMod);
    hashTablePersist->CalcS();
 
    Tuple* tupleNextS;
    tupleNextS = partBufferS->dequeue();
    if (tupleNextS == nullptr) {
-      cout << "R empty!!!!" << endl;
+      cout << "S empty!!!!" << endl;
       return 0;
    }
 
@@ -377,8 +391,6 @@ size_t HashJoinWorker::phase1(size_t &countOverflow) {
                   }
                }
             }
-            //cout << tupleNextS->GetNumOfRefs() << "##";
-            //cout << tupleNextS->GetNumOfRefs();
             tupleNextS->DeleteIfAllowed();
          } else {
             overflowBufferS->appendTuple(tupleNextS);
@@ -402,14 +414,11 @@ size_t HashJoinWorker::phase1(size_t &countOverflow) {
    hashTablePersist->CloseWrite();
    overflowBufferR->closeWrite();
    overflowBufferS->closeWrite();
-   if (hashMod == 0) {
-      hashMod = 1;
-   }
    return hashMod;
 }
 
 size_t HashJoinWorker::phase2(size_t hashMod, size_t pos) {
-   cout << "phase2" << streamInNo << endl;
+   cout << "phase2" << streamInNo << "pos: " << pos << endl;
    vector<vector<Tuple*>> bucketInMemR(hashMod);
    size_t overflow = hashTablePersist->OpenRead(pos);
    Tuple* tupleR = hashTablePersist->PullR(pos);
@@ -436,6 +445,7 @@ size_t HashJoinWorker::phase2(size_t hashMod, size_t pos) {
               (tupleS->HashValue(joinAttr.second) / coreNoWorker /
                bucketNo) % hashMod;
       if (!bucketInMemR[partNo].empty()) {
+         //cout <<  bucketInMemR[partNo].size() <<"*";
          for (auto tupleR : bucketInMemR[partNo]) {
             if (tupleEqual(tupleR, tupleS)) {
                auto* result = new Tuple(resultTupleType);
@@ -660,7 +670,7 @@ bool HashJoinWorker::tupleEqual(Tuple* a, Tuple* b) const {
    const auto* aAttr = (const Attribute*) a->GetAttribute(joinAttr.first);
    const auto* bAttr = (const Attribute*) b->GetAttribute(joinAttr.second);
    // 0 equal
-   std::lock_guard<mutex> lock(hashJoinGlobal::mutexEqual_);
+   //std::lock_guard<mutex> lock(hashJoinGlobal::mutexEqual_); //TODO: nötig?
    return aAttr->Compare(bAttr) == 0;
 }
 
@@ -699,11 +709,9 @@ Tuple* hybridHashJoinLI::getNext() {
    Tuple* res;
    res = tupleBuffer->dequeue();
    if (res != nullptr) {
-      ++count;
-      if (res->GetNumOfRefs() == 2) cout << "#";
+      if (res->GetNumOfRefs() > 1) cout << "##";
       return res;
    }
-   cout << "endgetnext: " << count << endl;
    return 0;
 }
 
@@ -714,9 +722,9 @@ void hybridHashJoinLI::Scheduler() {
    Tuple* tupleR = streamR.request();
    Tuple* tupleS = streamS.request();
    if (tupleS != nullptr && tupleR != nullptr) {
-      TupleType* ttR = tupleR->GetTupleType();
+//      TupleType* ttR = tupleR->GetTupleType();
       TupleType* ttS = tupleS->GetTupleType();
-      ttR->IncReference();
+//      ttR->IncReference();
       ttS->IncReference();
       // start threads
       joinThreads.reserve(coreNoWorker);
@@ -729,37 +737,30 @@ void hybridHashJoinLI::Scheduler() {
          partBufferS.push_back(
                  make_shared<SafeQueue<Tuple*>>(i));
          resultTupleType->IncReference();
-         ttS->IncReference();
+         //ttS->IncReference();
          joinThreads.emplace_back(
                  HashJoinWorker(maxMem / coreNoWorker, coreNoWorker, i,
                                 tupleBuffer,
                                 partBufferR.back(),
                                 partBufferS.back(),
                                 joinAttr,
-                                resultTupleType,
-                                ttS));
+                                resultTupleType, ttS));
          joinThreads.back().detach();
       }
 
       // Stream R
-      size_t count = 0;
       do {
          size_t partNo = tupleR->HashValue(joinAttr.first) % coreNoWorker;
-         //cout << partNo << "##";
          partBufferR[partNo]->enqueue(tupleR);
-         ++count;
       } while ((tupleR = streamR.request()));
 
       for (size_t i = 0; i < coreNoWorker; ++i) {
          partBufferR[i]->enqueue(nullptr);
       }
 
-      count = 0;
       do {
          size_t partNo = tupleS->HashValue(joinAttr.second) % coreNoWorker;
-         //cout << partNo << "xx";
          partBufferS[partNo]->enqueue(tupleS);
-         ++count;
       } while ((tupleS = streamS.request()));
 
       cout << "stream close" << endl;
@@ -771,12 +772,11 @@ void hybridHashJoinLI::Scheduler() {
 //         joinThreads[i].join();
 //      }
       cout << "joined" << endl;
-      ttR->DeleteIfAllowed();
+//      ttR->DeleteIfAllowed();
       ttS->DeleteIfAllowed();
    } else {
       tupleBuffer->enqueue(nullptr);
    }
-   count = 0;
 }
 
 
@@ -911,6 +911,8 @@ int op_hybridHashJoin::hybridHashJoinVM(Word* args, Word &result, int message,
             local.addr = 0;
          }
          //resultTupleType->DeleteIfAllowed();
+         usleep(100);
+         cout << "operator end" << endl;
          return 0;
    }
    return 0;

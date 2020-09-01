@@ -96,7 +96,6 @@ Suboptimal::Suboptimal(
         threadNumber(_threadNumber),
         bufferTransfer(_bufferTransfer) {
    compare = std::move(_compare);
-   cout << "maxMem" << maxMem << "thread: " << threadNumber << endl;
 }
 
 Suboptimal::~Suboptimal() {
@@ -110,15 +109,10 @@ void Suboptimal::operator()() {
 
    // merge bis ein run
    while (runs1.size() > 1) {
-//      for (const auto &buffer: runs2) {
-//         buffer->closeWrite();
-//      }
       runs2.clear();
       const size_t lengthRun2 = ceil(runs1.size() / 2.0);
       //runs2.reserve(lengthRun2);
       const size_t lengthEven = floor(runs1.size() / 2.0);
-      cout << "lengthRun2: " << lengthRun2 << "lengthEven: " << lengthEven
-           << endl;
       for (size_t i = 0; i < lengthEven; ++i) {
          runs2.emplace_back(merge(runs1[i * 2], runs1[i * 2 + 1]));
       }
@@ -166,7 +160,6 @@ void Suboptimal::replacementSelectionSort(shared_ptr<TournamentTree> sortTree) {
       }
    }
    sortTree->buildTree();
-   //if (threadNumber == 0) sortTree->showTree();
 
    count = 0;
    if (!streamStop) {
@@ -193,7 +186,6 @@ void Suboptimal::replacementSelectionSort(shared_ptr<TournamentTree> sortTree) {
 
          // if root inactive start new run
          if (!sortTree->isActive()) {
-            cout << "new tree" << endl;
             count = 0;
             sortTree->makeActive();
             //sortTree->showTree();
@@ -228,12 +220,10 @@ void Suboptimal::replacementSelectionSort(shared_ptr<TournamentTree> sortTree) {
       runs1.back()->appendTuple(tuple);
    }
    runs1.back()->closeWrite();
-   cout << "runs1: " << runs1.size() << "last run: " << count << endl;
 }
 
 shared_ptr<Buffer> Suboptimal::merge(
         shared_ptr<Buffer> run1, shared_ptr<Buffer> run2) {
-   //const int index = compare->firstAttr() - 1;
    shared_ptr<FileBuffer> mergeBuffer = make_shared<FileBuffer>(tt);
    run1->openRead();
    run2->openRead();
@@ -248,7 +238,6 @@ shared_ptr<Buffer> Suboptimal::merge(
          run2Tuple = run2->readTuple();
       }
       if (run1Tuple == nullptr || run2Tuple == nullptr) {
-         cout << "break";
          break;
       }
       if (compare->compTuple(run1Tuple, run2Tuple)) {
@@ -283,7 +272,6 @@ MergeFeeder::MergeFeeder(std::shared_ptr<Buffer> _buf1,
 };
 
 void MergeFeeder::operator()() {
-   cout << "mergefeeder" << endl;
    buf1->openRead();
    buf2->openRead();
    Tuple* run1Tuple = buf1->readTuple();
@@ -354,7 +342,6 @@ NoMergeFeeder::NoMergeFeeder(std::shared_ptr<Buffer> _buf,
 };
 
 void NoMergeFeeder::operator()() {
-   cout << "nomergefeeder" << endl;
    buf->openRead();
    Tuple* runTuple = buf->readTuple();
    {
@@ -393,7 +380,6 @@ void MergePipeline::operator()() {
       std::unique_lock<std::mutex> lock(mutexStartThreads_);
       conVarStartThreads.wait(lock, [&] { return startThreads; });
    }
-   cout << "pipeline" << endl;
    Tuple* tuple1 = nullptr;
    Tuple* tuple2 = nullptr;
    TupleEmpty tupleEmpty = both;
@@ -438,6 +424,10 @@ mergeSortLI::mergeSortLI(
         const size_t _maxMem)
         : stream(_stream), sortAttr(std::move(_sortAttr)), maxMem(_maxMem) {
    coreNo = MThreadedSingleton::getCoresToUse();
+   // does not work with more threads then cores
+   if (coreNo > thread::hardware_concurrency()) {
+      coreNo = thread::hardware_concurrency();
+   }
    coreNoWorker = coreNo - 1;
    compareLI = std::make_shared<CompareByVector>(sortAttr);
    //mergeBuffer.clear();
@@ -497,26 +487,45 @@ void mergeSortLI::DistributorCollector() {
 
    // generate FileBuffer, either in memory or extern
    vector<shared_ptr<Buffer>> tempVec;
-   for (size_t i = 0; i < coreNoWorker; ++i) {
+   size_t i;
+   for (i = 0; i < coreNoWorker; ++i) {
       Tuple* tuple = stream.request();
-      if (i == 0) {
-         if (tuple == nullptr) {
+      if (tuple == nullptr) {
+         if (i < 3) {
             streamEmpty = true;
-            break;
          }
+         cout << i << endl;
+         break;
+      }
+      tupleBuffer.emplace_back(tuple);
+      if (i == 0) {
          tt = tuple->GetTupleType();
          tt->IncReference();
       }
       tempVec.emplace_back(make_shared<MemoryBuffer>(tt));
-      tupleBuffer.emplace_back(tuple);
    }
    if (streamEmpty) {
+      // handle streams with less then 3 tuples
       tupleBufferIn1 = make_shared<SafeQueue<Tuple*>>(0);
-      tupleBufferIn1->enqueue(nullptr);
+      tupleBufferIn1->enqueue(i == 0 ? nullptr : tupleBuffer[0]);
+      if (i != 0) {
+         tupleBufferIn1->enqueue(nullptr);
+      }
       tupleBufferIn2 = make_shared<SafeQueue<Tuple*>>(1);
-      tupleBufferIn2->enqueue(nullptr);
+      tupleBufferIn2->enqueue(i <= 1 ? nullptr : tupleBuffer[1]);
+      if (i == 2) {
+         tupleBufferIn2->enqueue(nullptr);
+      }
       tupleEmpty = both;
+      if (i != 0) {
+         // tupleType tt has to be deleted in destructor
+         streamEmpty = false;
+      }
    } else {
+      // less tuples then threads
+      if (i < coreNoWorker) {
+         coreNoWorker = i;
+      }
       mergeFn = make_shared<vector<shared_ptr<Buffer>>>(move(tempVec));
       vector<vector<Tuple*>::iterator> tupleIter;
       for (auto it = tupleBuffer.begin(); it != tupleBuffer.end(); ++it) {
@@ -852,6 +861,11 @@ ListExpr op_mergeSort::mergeSortTM(ListExpr args) {
       return listutils::typeError(" only works with >= 3 threads ");
    }
 
+   if (MThreadedSingleton::getCoresToUse() > thread::hardware_concurrency()) {
+      cout << "uses max system cores only: " << thread::hardware_concurrency()
+           << endl;
+   }
+
    const ListExpr arg1 = nl->First(nl->First(args)); //tuple-stream
    ListExpr tupleAttr = nl->Second(args);
    ListExpr tupleValues = nl->Second(tupleAttr); //values
@@ -903,6 +917,9 @@ ListExpr op_mergeSort::mergeSortTM(ListExpr args) {
          break;
       } else {
          std::cout << "did not find attribute" << attrName << endl;
+         if (nl->IsEmpty(tupleAttr)) {
+            break;
+         }
       }
       attrName = nl->SymbolValue(nl->First(tupleAttr));
    }
@@ -942,7 +959,7 @@ ListExpr op_mergeSort::mergeSortTM(ListExpr args) {
    }
 
    //DEBUG
-   std::cout << "return: " << nl->ToString(append) << endl;
+   //std::cout << "return: " << nl->ToString(append) << endl;
 
    return nl->ThreeElemList(
            nl->SymbolAtom(Symbols::APPEND()),
@@ -1004,7 +1021,7 @@ std::string op_mergeSort::getOperatorSpec() {
            " stream x (attr x bool ...) -> stream",
            " stream mThreadedMergeSort(attr desc/incr)",
            " Merge Sort using >2 cores",
-           " query Orte mThreadedMergeSort(plz TRUE)"
+           " query Orte mThreadedMergeSort(plz, TRUE)"
    ).getStr();
 }
 

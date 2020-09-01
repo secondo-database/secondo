@@ -1,22 +1,22 @@
 Sequential: Yes
-Database: test
+Database: berlintest
 Restore: No
 
 Operator    : setcore
 Number      : 2
 Signature   : int -> bool
-Example     : query setcore(4)
+Example     : query setcore(6)
 Result      : TRUE
 
 Operator    : getcore
 Number      : 3
 Signature   : -> int
 Example     : query getcore()
-Result      : 4
+Result      : 6
 
 Operator    : mThreadedHybridJoin
-Number      : 4
+Number      : 9
 Signature   : stream x stream x attr x attr -> stream
-Example     : query pois_roads_sj  feed {p}  pois_str feed  {o} mThreadedHybridJoin[Code_p_p, Code_o] {memory 50} count
+Example     : query strassen feed {o} Plaetze feed {p} mThreadedHybridJoin[Name_o, Name_p] {memory 2} count
 Result      : 15
 

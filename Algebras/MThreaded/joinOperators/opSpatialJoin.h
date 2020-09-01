@@ -104,10 +104,6 @@ class CandidateWorker {
    void operator()();
 
    private:
-   void quickSort(std::vector<Tuple*> &A, size_t p, size_t q);
-
-   size_t partition(std::vector<Tuple*> &A, size_t p, size_t q);
-
    size_t topright(Rect* r1) const;
 
    inline bool reportTopright(size_t r1, size_t r2) const;

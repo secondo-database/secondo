@@ -1,0 +1,57 @@
+Sequential: Yes
+Database: test
+Restore: No
+
+Operator    : setcore
+Number      : 1
+Signature   : int -> bool
+Example     : query setcore(6)
+Result      : TRUE
+
+Operator    : mThreadedMergeSort
+Number      : 2
+Signature   : stream x (attr x bool ...) -> stream
+Example     : query roads_str feed filter[not (trim(.Name) = '')] head[0] mThreadedMergeSort[NameStr] count
+Result      : 0
+
+Operator    : mThreadedMergeSort
+Number      : 3
+Signature   : stream x (attr x bool ...) -> stream
+Example     : query roads_str feed filter[not (trim(.Name) = '')] head[1] mThreadedMergeSort[NameStr] count
+Result      : 1
+
+Operator    : mThreadedMergeSort
+Number      : 4
+Signature   : stream x (attr x bool ...) -> stream
+Example     : query roads_str feed filter[not (trim(.Name) = '')] head[2] mThreadedMergeSort[NameStr] count
+Result      : 2
+
+Operator    : mThreadedMergeSort
+Number      : 5
+Signature   : stream x (attr x bool ...) -> stream
+Example     : query roads_str feed filter[not (trim(.Name) = '')] head[3] mThreadedMergeSort[NameStr] count
+Result      : 3
+
+Operator    : mThreadedMergeSort
+Number      : 6
+Signature   : stream x (attr x bool ...) -> stream
+Example     : query roads_str feed filter[not (trim(.Name) = '')] head[4] mThreadedMergeSort[NameStr] count
+Result      : 4
+
+Operator    : mThreadedMergeSort
+Number      : 7
+Signature   : stream x (attr x bool ...) -> stream
+Example     : query roads_str feed filter[not (trim(.Name) = '')] head[5] mThreadedMergeSort[NameStr] count
+Result      : 5
+
+Operator    : mThreadedMergeSort
+Number      : 8
+Signature   : stream x (attr x bool ...) -> stream
+Example     : query roads_str feed filter[not (trim(.Name) = '')] head[6] mThreadedMergeSort[NameStr] count
+Result      : 6
+
+Operator    : mThreadedMergeSort
+Number      : 9
+Signature   : stream x (attr x bool ...) -> stream
+Example     : query roads_str feed filter[not (trim(.Name) = '')] head[12] mThreadedMergeSort[NameStr] count
+Result      : 7

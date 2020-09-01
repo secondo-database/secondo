@@ -161,8 +161,6 @@ class hybridHashJoinLI {
    std::vector<std::shared_ptr<SafeQueue<Tuple*>>> partBufferS;
    const size_t cores = MThreadedSingleton::getCoresToUse();
 
-   size_t count = 0;
-
    public:
    //Constructor
    hybridHashJoinLI(
