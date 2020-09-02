@@ -69,6 +69,47 @@ Returns the tuple for a given tupleId. If the tuple does not exist,
 
   Tuple* GetTuple(const TupleId id);
 
+
+  class TupleStore2Iterator : public GenericRelationIterator{
+    public:
+      TupleStore2Iterator(TupleStore2* _buffer): pos(0), buffer(_buffer){
+      }
+
+      Tuple* GetNextTuple(){
+         Tuple* res=0;
+         if(pos < buffer->elems.size()){
+            res = buffer->elems[pos];
+            res->IncReference();
+         }
+         if(res) pos++;
+         return res;  
+      }
+
+      TupleId GetTupleId() const{
+          //cout << " << GetTupleId called" << endl;
+          if(pos==0) return 0;
+          size_t pos1 = pos -1;
+          if(pos1 < buffer->elems.size()){
+             return pos1;
+          }
+          return 0;
+      }
+
+      ~TupleStore2Iterator(){
+      }
+
+
+    private:
+      size_t pos;
+      TupleStore2* buffer;
+  };
+  
+  TupleStore2Iterator* MakeScan() {
+     return new TupleStore2Iterator(this);
+  }
+
+
+
   private:
      std::vector<Tuple*> elems;
 };
