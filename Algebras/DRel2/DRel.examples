@@ -1,0 +1,314 @@
+Database : berlintest
+Restore  : No
+
+Operator  : createboundary
+Number    : 1
+Signature : rel(tuple(X)) x attr x int -> boundary(X)
+Example   : query plz createboundary[PLZ, 50]
+Result    : (boundary (2694 4639 6493 7512 9243 11551 14806 16247 17159 18246 19322 21084 22941 24235 25557 26703 28879 31568 33627 36133 38279 39524 41720 45318 47883 49794 52051 54405 55444 56357 57577 59818 63441 65510 67034 68744 71299 73453 75404 78091 80100 82432 84137 86522 88633 91325 94140 96507 98716 99955))
+
+
+Operator  : getboundary
+Number    : 1
+Signature : drel(rel(tuple(X))) -> boundary(X)
+Example   : query getboundary(drel1)
+Result    : bug
+Remark    : remote server required
+
+Operator  : file2stream
+Number    : 1
+Signature : string -> stream(tuple((Data text)))
+Example   : query file2stream("../Algebra/DRel/file2stream.cpp") head[1] count
+Result    : 1
+
+Operator  : getboundaryindex
+Number    : 1
+Signature : boundary x attr -> int
+Example   : query getboundaryindex(plz createboundary[PLZ, 50] , 40000)
+Result    : unpredictable
+Remark    : Result depends on a random sample 
+
+Operator  : rect2cellgrid
+Number    : 1
+Signature : rect x int -> cellgrid2d
+Example   : query [const rect value(5 9 50 52)] rect2cellgrid[20]
+Result    : (cellgrid2d (5.0 50.0 0.2 0.1 20))
+
+Operator  : drelfdistribute
+Number    : 1
+Signature : rel(tuple(X)) x string x symbol [x attr] [x int] x rel(tuple(Y)) -> dfrel(rel(tuple(X)))
+Example   : query strassen drelfdistribute["", RANDOM, 5, Workers3]
+Result    : bug
+Remark    : remote server required
+
+Operator  : dreldistribute
+Number    : 1
+Signature : rel(tuple(X)) x string x symbol [x attr] [x int] x rel(tuple(Y)) -> drel(rel(tuple(X)))
+Example   : query strassen dreldistribute["", RANGE, No, 5, Workers3]
+Result    : bug
+Remark    : remote server required
+
+Operator  : drelimport
+Number    : 1
+Signature : string|ftext x string x int x rel(tuple(Y)) -> drel(rel(tuple(X)))
+Example   : query drelimport("/home/secondo/test.txt", "", 5, Workers3)
+Result    : bug
+Remark    : remote server required
+
+Operator  : drelpartition
+Number    : 1
+Signature : drel(tuple(X)) x attr -> dfrel(tuple(X))
+Example   : query drel1 drelpartition[PLZ]
+Result    : bug
+Remark    : remote server required
+
+Operator  : drelpartition
+Number    : 2
+Signature : drel(tuple(X)) x attr x int -> dfrel(tuple(X))
+Example   : query drel1 drelpartition[PLZ, 5000]
+Result    : bug
+Remark    : remote server required
+
+Operator  : drelspatialpartition
+Number    : 1
+Signature : drel(tuple(X)) x attr -> dfrel(tuple(X))
+Example   : query drel1 drelspatialpartition[GeoData]
+Result    : bug
+Remark    : remote server required
+
+Operator  : comparedisttype
+Number    : 1
+Signature : drel x drel -> bool
+Example   : query drel1 drel2 comparedisttype
+Result    : bug
+Remark    : remote server required
+
+Operator  : drelcollect_box
+Number    : 1
+Signature : stream<SPATIAL2D> x bool -> rectangle
+Example   : query (strassen feed projecttransformstream[GeoData] drelcollect_box[TRUE]) = strassen feed extend[B : bbox(.GeoData)] aggregateB[B; . union ..; [const rect value undef] ] 
+Result    : TRUE
+
+Operator  : drel2darray
+Number    : 1
+Signature : drel -> darray
+Example   : query drel1 drel2darray
+Result    : bug
+Remark    : remote server required
+
+Operator  : drel2darray
+Number    : 2
+Signature : darray -> drel
+Example   : query darray1 drel2darray
+Result    : bug
+Remark    : remote server required
+
+Operator  : drel2darray
+Number    : 3
+Signature : dfrel -> dfarray
+Example   : query drel1 drel2darray
+Result    : bug
+Remark    : remote server required
+
+Operator  : drel2darray
+Number    : 4
+Signature : dfarray -> dfrel
+Example   : query darray1 drel2darray
+Result    : bug
+Remark    : remote server required
+
+Operator  : count
+Number    : 1
+Signature : drel -> int
+Example   : query drel1 count
+Result    : bug
+Remark    : remote server required
+
+Operator  : lcount
+Number    : 1
+Signature : drel -> darray
+Example   : query drel1 lcount[TRUE]
+Result    : bug
+Remark    : remote server required
+
+Operator  : dsummarize
+Number    : 1
+Signature : d[f]rel(rel(X)) -> stream(X)
+Example   : query drel1 dsummarize count
+Result    : bug
+Remark    : remote server required
+
+Operator  : drelcreatebtree
+Number    : 1
+Signature : d[f]rel(rel(X)) x string x attr -> darray(btree(Y))
+Example   : query drel1 drelcreatebtree["",PLZ]
+Result    : bug
+Remark    : remote server required
+
+Operator  : drelbulkloadrtree
+Number    : 1
+Signature : d[f]rel(rel(X)) x string x attr -> darray(rtree(Y))
+Example   : query drel1 drelbulkloadrtree["drel1_GeoData",GeoData]
+Result    : bug
+Remark    : remote server required
+
+Operator  : windowintersects
+Number    : 1
+Signature : darray(rtree(X)) x d[f]rel(rel(X)) x rel(tuple(Y) x T  -> dfrel(rel(X1 t1) -...(Xn tn), where T = ti in {rect<d>} U SPATIAL2D U SPATIAL3D U SPATIAL4D U SPATIAL8D
+Example   : query darray1 drel1 windowintersects[rectangle]
+Result    : bug
+Remark    : remote server required
+
+Operator  : exactmatch
+Number    : 1
+Signature : darray(btree(X)) x drel(rel(X)) x ANY -> dfrel(rel(X))
+Example   : query drel1_PLZ drel1 exactmatch[99998]
+Result    : bug
+Remark    : remote server required
+
+Operator  : range
+Number    : 1
+Signature : darray(btree(X)) x drel(rel(X)) x ANY x ANY -> dfrel(rel(X))
+Example   : query drel1_PLZ drel1 range[90000,99998]
+Result    : bug
+Remark    : remote server required
+
+Operator  : drelfilter
+Number    : 1
+Signature : (drel(rel(X)) (map x bool)) -> dfrel(rel(X))
+Example   : query drel1 drelfilter[.PLZ > 200]
+Result    : bug
+Remark    : remote server required
+
+Operator  : project
+Number    : 1
+Signature : drel(rel(X)) x list -> dfrel(rel(Y))
+Example   : query drel1 project[PLZ, Ort]
+Result    : bug
+Remark    : remote server required
+
+Operator  : drelextend
+Number    : 1
+Signature : drel(rel(X)) x funlist -> dfrel(rel(Y))
+Example   : query drel1 drelextend[PLZ2 : .PLZ + 1]
+Result    : bug
+Remark    : remote server required
+
+Operator  : drelprojectextend
+Number    : 1
+Signature : drel(rel(X)) x attrlist x funlist -> dfrel(rel(Y))
+Example   : query drel1 drelprojectextend[PLZ; PLZ2 : .PLZ + 1]
+Result    : bug
+Remark    : remote server required
+
+Operator  : head
+Number    : 1
+Signature : drel(rel(X)) x int -> dfrel(rel(X))
+Example   : query drel1 head[3]
+Result    : bug
+Remark    : remote server required
+
+Operator  : rename
+Number    : 1
+Signature : drel(rel(X)) x ar -> dfrel(rel(X))
+Example   : query drel1 rename[t1]
+Result    : bug
+Remark    : remote server required
+
+Operator  : lrdup
+Number    : 1
+Signature : drel(rel(X)) -> dfrel(rel(X))
+Example   : query drel1 lrdup
+Result    : bug
+Remark    : remote server required
+
+Operator  : lsort
+Number    : 1
+Signature : drel(rel(X)) -> dfrel(rel(X))
+Example   : query drel1 lsort
+Result    : bug
+Remark    : remote server required
+
+Operator  : drellgroupby
+Number    : 1
+Signature : drel(rel(X)) x attrlist x funlist -> dfrel(rel(Y))
+Example   : query drel1 drellgroupby[PLZ; Anz : group feed count]
+Result    : bug
+Remark    : remote server required
+
+Operator  : lsortby
+Number    : 1
+Signature : drel(rel(X)) x attr -> dfrel(rel(X))
+Example   : query drel1 lsortby[PLZ]
+Result    : bug
+Remark    : remote server required
+
+Operator  : rdup
+Number    : 1
+Signature : drel(rel(X)) -> dfrel(rel(X))
+Example   : query drel1 rdup
+Result    : bug
+Remark    : remote server required
+
+Operator  : sort
+Number    : 1
+Signature : drel(rel(X)) -> dfrel(rel(X))
+Example   : query drel1 sort
+Result    : bug
+Remark    : remote server required
+
+Operator  : drelgroupby
+Number    : 1
+Signature : drel(rel(X)) x attrlist x funlist -> dfrel(rel(Y))
+Example   : query drel1 drelgroupby[PLZ; Anz : group feed count]
+Result    : bug
+Remark    : remote server required
+
+Operator  : sortby
+Number    : 1
+Signature : drel(rel(X)) x attr -> dfrel(rel(X))
+Example   : query drel1 sortby[PLZ]
+Result    : bug
+Remark    : remote server required
+
+Operator  : sortmergejoin
+Number    : 1
+Signature : d[f]rel(rel(X)) x d[f]rel(rel(X)) x attr x attr -> dfrel(rel(X))
+Example   : query drel1 drel2 sortmergejoin[PLZ, PLZ2]
+Result    : bug
+Remark    : remote server required
+
+Operator  : itHashJoin
+Number    : 1
+Signature : d[f]rel(rel(X)) x d[f]rel(rel(X)) x attr x attr -> dfrel(rel(X))
+Example   : query drel1 drel2 itHashJoin[PLZ, PLZ2]
+Result    : bug
+Remark    : remote server required
+
+
+Operator  : inloopjoin
+Number    : 1
+Signature : d[f]rel(rel(X)) x darray(btree(Y)) x d[f]rel(rel(Z)) x attr -> dfrel(rel(X))
+Example   : query drel01 drel01_A drel11 inloopjoin[B]
+Result    : bug
+Remark    : remote server required
+
+Operator  : getDRelPort
+Number    : 1
+Signature : -> int
+Example   : query getDRelPort()
+Result    : 1238
+
+Operator  : setDRelPort
+Number    : 1
+Signature : int -> bool
+Example   : query setDRelPort(1238)
+Result    : TRUE
+
+Operator  : windowintersects2
+Number    : 1
+Signature : darray(rtree(X)) x d[f]rel(rel(X)) x rel(tuple(Y) x T  -> dfrel(rel(X1 t1) -...(Xn tn), where T = ti in {rect<d>} U SPATIAL2D U SPATIAL3D U SPATIAL4D U SPATIAL8D
+Example   : query darray1 drel1 workers windowintersects2[rectangle]
+Result    : bug
+Remark    : remote server required
+
