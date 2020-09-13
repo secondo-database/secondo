@@ -1034,13 +1034,13 @@ int *checkOriginal, int *checkCell, ListExpr *attrList, ListExpr *relType) {
 
         #ifdef DRELDEBUG
         cout << "checkCellOriginal" << endl;
-        #endif  
-
+        #endif
 
         ListExpr attrListCheck = *attrList;
         *checkOriginal = 0;
         *checkCell = 0;
-        string attrListcheck = nl->ToString(nl->First(nl->First(attrListCheck)))
+        string attrListcheck = 
+                nl->ToString(nl->First(nl->First(attrListCheck)));
 
         while(!nl->HasLength(attrListCheck,0)){
                 #ifdef DRELDEBUG

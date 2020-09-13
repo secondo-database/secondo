@@ -25,7 +25,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[$][\$]
 
 */
-#include "./Timeout.h"
 #include "ConnectionInfo.h"
 #include "Dist2Helper.h"
 #include "Distributed2Algebra.h"
@@ -8198,7 +8197,6 @@ int distribute5VMT(Word* args, Word& result, int message,
 
    std::string frhash;
    int index;
-   auto start = chrono::steady_clock::now();
    while((tuple=stream.request())){
       (* funargs[0]) = tuple;
       qp->Request(args[2].addr, funres);

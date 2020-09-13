@@ -680,7 +680,7 @@ operator.
         std::string funText1 = "(dmap ";
         std::string funText2 = "\"\" (fun (dmapelem_1 ARRAYFUNARG1) "
             "(head (feed dmapelem_1)" + 
-            nl->ToString( nl->Second( nl->Second( args ) ) ) ") ) )";
+            nl->ToString( nl->Second( nl->Second( args ) ) ) + ") ) )";
 
         #ifdef DRELDEBUG
         cout << "funText1" << endl;
@@ -798,7 +798,7 @@ operator.
 
             funText2 =  "\"\" (fun (dmapelem_1 ARRAYFUNARG1)" 
             "(rename (remove (filter (feed  dmapelem_1) "
-            "(fun (streamelem_2 STREAMELEM) (= (attr streamelem_2 Original)
+            "(fun (streamelem_2 STREAMELEM) (= (attr streamelem_2 Original)"
             " TRUE))) (Original)) "+ nl->ToString( secondValue ) + ")))";       
         }  
 

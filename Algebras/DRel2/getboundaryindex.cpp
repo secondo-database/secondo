@@ -155,7 +155,7 @@ If its outside of boundary, then there will be an error message.
         if (index == -1)
         {
             int boundary = vector->GetNoComponents( )-1;
-            throw runtime_error{"Your search value is outside of the" +
+            throw runtime_error{"Your search value is outside of the"
                   " existing boundarys. Max boundary is: "+ 
                   std::to_string(boundary) };        
             res->Set(true, 0);

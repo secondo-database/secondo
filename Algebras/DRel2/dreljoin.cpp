@@ -270,7 +270,7 @@ parameters. Used for sortmergejoin and itHashJoin.
                 cout << "drel2Value: " << nl->ToString(drel2Value) << endl;
                 #endif
 
-            if (nl->HasLength(drel1Value, 3)) 
+            if (nl->HasLength(drel1Value, 3)) {
                 #ifdef DRELDEBUG
                 cout << "nl->Second(drel1value): ";
                 cout << nl->ToString(nl->Second(drel1Value)) << endl;
