@@ -171,7 +171,7 @@ parameters. Used for sortmergejoin and itHashJoin.
 
         if( dType1 == replicated && dType2 == replicated ) {
             return listutils::typeError(
-		"join of replicated d[f]rels not supported yet" );
+                "join of replicated d[f]rels not supported yet" );
         }
 
         ListExpr attr1List = 
@@ -243,10 +243,10 @@ parameters. Used for sortmergejoin and itHashJoin.
 
 
         //Replicated with ranges creates problems with partitions. 
-	//Both must be new partitioned.
+        //Both must be new partitioned.
         if( (dType1 == replicated && dType2 == range) 
-	|| (dType1 == range && dType2 == replicated) 
-	|| (dType1 == range && dType2 == hash ))
+        || (dType1 == range && dType2 == replicated) 
+        || (dType1 == range && dType2 == hash ))
         {
             rel1Flag = false;
             rel2Flag = false;
@@ -261,14 +261,14 @@ parameters. Used for sortmergejoin and itHashJoin.
         else if( rel1Flag && rel2Flag && !compatFlag ) {
 
 
-		#ifdef DRELDEBUG
-		cout << endl << "it hash join" << endl;
-		cout << "rel1Flag: " << rel1Flag << endl;
-		cout << "rel2Flag: " << rel2Flag << endl;
-		cout << "compatFlag: " << compatFlag << endl;
-		cout << "drel1Value: " << nl->ToString(drel1Value) << endl;
-		cout << "drel2Value: " << nl->ToString(drel2Value) << endl;
-		#endif
+                #ifdef DRELDEBUG
+                cout << endl << "it hash join" << endl;
+                cout << "rel1Flag: " << rel1Flag << endl;
+                cout << "rel2Flag: " << rel2Flag << endl;
+                cout << "compatFlag: " << compatFlag << endl;
+                cout << "drel1Value: " << nl->ToString(drel1Value) << endl;
+                cout << "drel2Value: " << nl->ToString(drel2Value) << endl;
+                #endif
 
             if (nl->HasLength(drel1Value, 3)) 
                 #ifdef DRELDEBUG
@@ -296,22 +296,22 @@ parameters. Used for sortmergejoin and itHashJoin.
             }
 
 
-		#ifdef DRELDEBUG
-		cout << endl << "it hash join" << endl;
-		cout << "rel1Flag: " << rel1Flag << endl;
-		cout << "rel2Flag: " << rel2Flag << endl;
-		cout << "compatFlag: " << compatFlag << endl;
-		cout << "drel1Value: " << nl->ToString(drel1Value) << endl;
-		cout << "drel2Value: " << nl->ToString(drel2Value) << endl;
-		#endif
+                #ifdef DRELDEBUG
+                cout << endl << "it hash join" << endl;
+                cout << "rel1Flag: " << rel1Flag << endl;
+                cout << "rel2Flag: " << rel2Flag << endl;
+                cout << "compatFlag: " << compatFlag << endl;
+                cout << "drel1Value: " << nl->ToString(drel1Value) << endl;
+                cout << "drel2Value: " << nl->ToString(drel2Value) << endl;
+                #endif
 
             if (nl->HasLength(drel1Value, 3)) {
-		#ifdef DRELDEBUG
+                #ifdef DRELDEBUG
                 cout << "nl->Second(drel1value): ";
                 cout << nl->ToString(nl->Second(drel1Value)) << endl;
                 cout << "nl->Second(drel2value): ";
                 cout << nl->ToString(nl->Second(drel2Value)) << endl;
-		#endif
+                #endif
             }
 
             int size1 = DRelHelpers::countDRel( nl->SymbolValue( drel1Value ) );
@@ -359,22 +359,22 @@ parameters. Used for sortmergejoin and itHashJoin.
                     nl->IntAtom( pos ) ) );
         }
 
-		#ifdef DRELDEBUG
-            	cout << endl << " Join normal vor query1/2" << endl;
-		cout << "rel1Flag: " << rel1Flag << endl;
-		cout << "rel2Flag: " << rel2Flag << endl;
-		cout << "compatFlag: " << compatFlag << endl;
-		cout << "drel1Value: " << nl->ToString(drel1Value) << endl;
-		cout << "drel2Value: " << nl->ToString(drel2Value) << endl;
-		#endif
+                #ifdef DRELDEBUG
+                cout << endl << " Join normal vor query1/2" << endl;
+                cout << "rel1Flag: " << rel1Flag << endl;
+                cout << "rel2Flag: " << rel2Flag << endl;
+                cout << "compatFlag: " << compatFlag << endl;
+                cout << "drel1Value: " << nl->ToString(drel1Value) << endl;
+                cout << "drel2Value: " << nl->ToString(drel2Value) << endl;
+                #endif
 
             if (nl->HasLength(drel1Value, 3)) {
-		#ifdef DRELDEBUG
+                #ifdef DRELDEBUG
                 cout << "nl->Second(drel1value): ";
                 cout << nl->ToString(nl->Second(drel1Value)) << endl;
                 cout << "nl->Second(drel2value): ";
                 cout << nl->ToString(nl->Second(drel2Value)) << endl;
-		#endif
+                #endif
             }   
 
         std::string query1 = "(dmap2 ";

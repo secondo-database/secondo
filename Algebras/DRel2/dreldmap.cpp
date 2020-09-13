@@ -1121,9 +1121,9 @@ Type mapping for the drellgroup operator.
         //Selenyi - added code if attributes are deleted
         if (dType == replicated) {
 
-		#ifdef DRELDEBUG
-		cout << "dreldmap.ccp drellgroupby" << endl;
-		#endif
+                #ifdef DRELDEBUG
+                cout << "dreldmap.ccp drellgroupby" << endl;
+                #endif
 
             // without remove
             funText2 = "\"\" (fun (dmapelem_1 ARRAYFUNARG1) "
