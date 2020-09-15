@@ -1,0 +1,20 @@
+Database: berlintest
+Restore : No
+
+Operator : create_irgrid2d
+Number   : 1
+Signature: stream(rect) x rect x int x int -> irgrid2d
+Example  : query [const rect value (0.1 0.4 0.1 0.4)] feed [const rect value (0.15 0.45 0.15 0.45)] feed concat feed [const rect value (0.5 0.9 0.5 0.9)] feed concat feed [const rect value (1.15 1.6 0.3 0.35)] feed concat feed [const rect value (0.1 0.3 1.2 1.5)] feed concat feed [const rect value (0.15 0.35 1.25 1.7)] feed concat create_irgrid2d [rectangle2(0.0, 2.0, 0.0, 2.0),2,2]
+Result   : (irgrid2d ((0.0 2.0 0.0 2.0)((0.0 0.325)((0.0 0.25 1 3)(0.25 2.0 2 4))(0.325 2.0)((0.0 0.2 3 -1)(0.2 2.0 4 -1)))))
+
+Operator : feed
+Number   : 1
+Signature: irgrid2d -> stream(tuple( Id : int , Cell : rect))
+Example  : query ([const rect value (0.1 0.4 0.1 0.4)] feed [const rect value (0.15 0.45 0.15 0.45)] feed concat feed [const rect value (0.5 0.9 0.5 0.9)] feed concat feed [const rect value (1.15 1.6 0.3 0.35)] feed concat feed [const rect value (0.1 0.3 1.2 1.5)] feed concat feed [const rect value (0.15 0.35 1.25 1.7)] feed concat create_irgrid2d [rectangle2(0.0, 2.0, 0.0, 2.0),2,2]) feed consume count = 4
+Result   : TRUE
+
+Operator : cellnos_ir
+Number   : 1
+Signature: irgrid2d x rect -> intset
+Example  : query cellnos_ir(([const rect value (0.1 0.4 0.1 0.4)] feed [const rect value (0.15 0.45 0.15 0.45)] feed concat feed [const rect value (0.5 0.9 0.5 0.9)] feed concat feed [const rect value (1.15 1.6 0.3 0.35)] feed concat feed [const rect value (0.1 0.3 1.2 1.5)] feed concat feed [const rect value (0.15 0.35 1.25 1.7)] feed concat create_irgrid2d [rectangle2(0.0, 2.0, 0.0, 2.0),2,2]), rectangle2(0.1, 0.15, 0.3, 1.6))
+Result   : (intset (1 3))
