@@ -1,0 +1,19 @@
+Database : convextest
+Restore  : yes
+
+
+Operator : createconvex
+Number   : 1
+Signature: stream(points) -> convex
+Example  : query convtest feed head [3] projecttransformstream[Punkt] createconvex [TRUE]
+Result   : (convex ((-4.0 4.0) (4.0 4.0) (0.0 0.0)))
+Remark   : 
+
+Operator : voronoi
+Number   : 2
+Signature: (stream (tuple (..., (ak1 TK1),...))) x ak1 x ak2 x bool -> (stream (tuple (..., (ak1 point),..., (ak2 Tk2))))
+Example  : query convtest feed voronoi [Punkt, Conv, [const rect value (-10 10 -10 10)], FALSE] head [1] project[Conv] consume
+Result   : ((rel (tuple ((Conv convex)))) ((((-4.0 -0.0) (-0.0 4.0) (1.0 3.0) (1.0 -3.0) (-0.0 -4.0)))))
+Remark   : 
+
+
