@@ -1,0 +1,74 @@
+Database  : berlintest
+Restore   : No
+
+Operator  : init_pg
+Number    : 1
+Signature : int x {string, text} --> bool
+Example   : query init_pg(5432, "gisdb")
+Result    : TRUE
+
+Operator  : be_part
+Number    : 1
+Signature : {string, text} x {string, text} x rel --> bool
+Example   : query be_part("cars", "moid", WorkersPG)
+Result    : FALSE
+
+Operator  : be_part2
+Number    : 1
+Signature : {string, text} x {string, text} x rel --> bool
+Example   : query be_part2("cars", "moid", WorkersPG)
+Result    : FALSE
+
+Operator  : be_import
+Number    : 1
+Signature : {string, text} x rel --> bool
+Example   : query be_import('cars',WorkersPG)
+Result    : FALSE
+
+Operator  : be_query
+Number    : 1
+Signature : {string, text} x {string, text} --> bool
+Example   : query be_query('select * from cars where Speed = 30', 'cars_neu')
+Result    : FALSE
+
+Operator  : be_command
+Number    : 1
+Signature : {string, text} --> bool
+Example   : query be_command('COPY cars FROM /home/filetransfers/cars_3.bin BINARY')
+Result    : FALSE
+
+Operator  : be_copy
+Number    : 1
+Signature : {string, text} x {string, text} --> bool
+Example   : query be_copy('cars','/home/filetransfers/cars_3.bin')
+Result    : FALSE
+
+Operator  : be_mquery
+Number    : 1
+Signature : {string, text} x {string, text} x rel --> bool
+Example   : query be_mquery('select * from cars where Speed = 30','cars_short',WorkersPG)
+Result    : FALSE
+
+Operator  : be_mcommand
+Number    : 1
+Signature : {string, text} x rel --> bool
+Example   : query be_mcommand('Drop table cars',WorkersPG)
+Result    : FALSE
+
+Operator  : be_union
+Number    : 1
+Signature : {string, text} x rel --> bool
+Example   : query be_union('cars_short', WorkersPG)
+Result    : FALSE
+
+Operator  : be_union2
+Number    : 1
+Signature : {string, text} x rel --> bool
+Example   : query be_union2('cars_short', WorkersPG)
+Result    : FALSE
+
+Operator  : be_struct
+Number    : 1
+Signature : {string, text} --> bool
+Example   : query be_struct('cars_short')
+Result    : FALSE
