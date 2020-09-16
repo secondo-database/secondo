@@ -63,11 +63,11 @@ class CandidateWorker {
    private:
    size_t static constexpr DIM = 2;
    const size_t maxMem;
-   size_t* globalMem;
+   size_t globalMem;
    size_t coreNoWorker;
    size_t streamInNo;
    std::shared_ptr<SafeQueuePersistent> tupleBuffer;
-   std::shared_ptr<SafeQueue<Tuple*>> partBufferR;
+   std::shared_ptr<SafeQueuePersistent> partBufferR;
    std::shared_ptr<SafeQueue<Tuple*>> partBufferS;
    std::pair<size_t, size_t> joinAttr;
    std::shared_ptr<bboxFunc> calcBbox;
@@ -88,10 +88,10 @@ class CandidateWorker {
 
    public:
    CandidateWorker(
-           const size_t _maxMem, size_t* _globalMem, size_t _coreNoWorker,
+           size_t _globalMem, size_t _coreNoWorker,
            size_t _streamInNo,
            std::shared_ptr<SafeQueuePersistent> _tupleBuffer,
-           std::shared_ptr<SafeQueue<Tuple*>> _partBufferR,
+           std::shared_ptr<SafeQueuePersistent> _partBufferR,
            std::shared_ptr<SafeQueue<Tuple*>> _partBufferS,
            std::pair<size_t, size_t> _joinAttr,
            //std::shared_ptr<bboxFunc> _calcBbox,
@@ -108,10 +108,10 @@ class CandidateWorker {
 
    inline bool reportTopright(size_t r1, size_t r2) const;
 
-   inline void calcMem(Tuple* tuple, size_t* globalMem);
+   inline void calcMem(Tuple* tuple);
 
    void
-   calcRtree(Tuple* tuple, TupleId id, size_t* globalMem,
+   calcRtree(Tuple* tuple, TupleId id,
              std::shared_ptr<Buffer> overflowBufferR,
              bool &overflowR);
 
@@ -119,6 +119,8 @@ class CandidateWorker {
 
    size_t
    calcIterations(const size_t countOverflow, const size_t tupleSize) const;
+
+   void freeRTree();
 };
 
 
@@ -137,10 +139,11 @@ class spatialJoinLI {
    //std::vector<CellInfo*> cellInfoVec;
    const size_t cores = MThreadedSingleton::getCoresToUse();
    std::shared_ptr<SafeQueuePersistent> tupleBuffer;
-   std::vector<std::shared_ptr<SafeQueue<Tuple*>>> partBufferR;
+   std::vector<std::shared_ptr<SafeQueuePersistent>> partBufferR;
    std::vector<std::shared_ptr<SafeQueue<Tuple*>>> partBufferS;
-   size_t bboxsample = 100;
+   size_t bboxsample;
    constexpr static size_t BBOXSAMPLESTEPS = 10;
+   constexpr static size_t CHANGEBOXSAMPLESTEP = 1000;
    size_t globalMem;
    IrregularGrid2D* irrGrid2d;
    std::vector<CellInfo*> cellInfoVec;

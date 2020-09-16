@@ -77,16 +77,16 @@ mutex globalMem_;
 using namespace spatialJoinGlobal;
 
 CandidateWorker::CandidateWorker(
-        const size_t _maxMem, size_t* _globalMem, size_t _coreNoWorker,
+        size_t _globalMem, size_t _coreNoWorker,
         size_t _streamInNo,
         shared_ptr<SafeQueuePersistent> _tupleBuffer,
-        shared_ptr<SafeQueue<Tuple*>> _partBufferR,
+        shared_ptr<SafeQueuePersistent> _partBufferR,
         shared_ptr<SafeQueue<Tuple*>> _partBufferS,
         pair<size_t, size_t> _joinAttr,
         //std::shared_ptr<bboxFunc> _calcBbox,
         const double _resize,
         TupleType* _resultTupleType, const Rect* _gridcell) :
-        maxMem(_maxMem - _maxMem / (_coreNoWorker + 1)),
+        maxMem(_globalMem),
         globalMem(_globalMem),
         coreNoWorker(_coreNoWorker),
         streamInNo(_streamInNo),
@@ -102,7 +102,6 @@ CandidateWorker::CandidateWorker(
    if (resize == 0.0) {
       calcBbox = make_shared<std::function<Rect(Tuple*, size_t)>>(
               [](Tuple* t, size_t attr) {
-                 assert(t != nullptr);
                  Rect rect = ((StandardSpatialAttribute<2>*)
                          t->GetAttribute(attr))->BoundingBox();
                  return rect;//.Extend(BOX_EXPAND);
@@ -111,7 +110,6 @@ CandidateWorker::CandidateWorker(
    } else {
       calcBbox = make_shared<std::function<Rect(Tuple*, size_t)>>(
               [=](Tuple* t, size_t attr) {
-                 assert(t != nullptr);
                  Rect rect = ((StandardSpatialAttribute<2>*)
                          t->GetAttribute(attr))->BoundingBox();
                  return rect.Extend(resize);
@@ -127,7 +125,6 @@ CandidateWorker::~CandidateWorker() {
 
 // Thread
 void CandidateWorker::operator()() {
-   cout << "Worker Candidate Nr. " << streamInNo << endl;
    workersDone = false;
 
    Tuple* tupleR = partBufferR->dequeue();
@@ -139,7 +136,7 @@ void CandidateWorker::operator()() {
    shared_ptr<FileBuffer> overflowBufferR = make_shared<FileBuffer>(ttR);
 
    while (tupleR != nullptr) {
-      calcRtree(tupleR, id, globalMem, overflowBufferR, overflowR);
+      calcRtree(tupleR, id, overflowBufferR, overflowR);
       ++id;
       tupleR = partBufferR->dequeue();
    }
@@ -167,15 +164,8 @@ void CandidateWorker::operator()() {
          tupleS = partBufferS->dequeue();
       }
 
-      for (Tuple* tupleR : bufferRMem) {
-         //cout << "NoRefR" << tupleR->GetNumOfRefs() << "--";
-         //cout << tupleR->GetNumOfRefs() << "+R+";
-         tupleR->DeleteIfAllowed();
-      }
-      bufferRMem.clear();
+      freeRTree();
       rtreeR = make_shared<mmrtree::RtreeT<DIM, TupleId>>(MINRTREE, MAXRTREE);
-
-      cout << "Worker Candidate Nr. done " << streamInNo << endl;
 
       if (overflowR) {
          cout << "overflow";
@@ -190,7 +180,6 @@ void CandidateWorker::operator()() {
                                                               iterationsR))
                                                 : oneRun); ++id) {
                Tuple* tupleR = overflowBufferR->readTuple();
-               assert(tupleR != nullptr);
                bufferRMem.push_back(tupleR);
                rtreeR->insert(((StandardSpatialAttribute<DIM>*)
                                       tupleR->GetAttribute(joinAttr.first))
@@ -205,10 +194,7 @@ void CandidateWorker::operator()() {
                tupleS = overflowBufferS->readTuple();
             }
             overflowBufferS->closeWrite();
-            for (Tuple* tupleR : bufferRMem) {
-               tupleR->DeleteIfAllowed();
-            }
-            bufferRMem.clear();
+            freeRTree();
             rtreeR = make_shared<mmrtree::RtreeT<DIM, TupleId>>(MINRTREE,
                                                                 MAXRTREE);
          }
@@ -230,18 +216,18 @@ void CandidateWorker::operator()() {
    }
 }
 
-void CandidateWorker::calcRtree(Tuple* tuple, TupleId id, size_t* globalMem,
+void CandidateWorker::calcRtree(Tuple* tuple, TupleId id,
                                 shared_ptr<Buffer> overflowBufferR,
                                 bool &overflowR) {
    if (!overflowR) {
-      calcMem(tuple, globalMem);
+      calcMem(tuple);
       bufferRMem.push_back(tuple);
       rtreeR->insert((*calcBbox)(tuple, joinAttr.first), id);
       {
-         lock_guard<std::mutex> lock(globalMem_);
-         *globalMem = *globalMem - rtreeR->usedMem();
+         //lock_guard<std::mutex> lock(globalMem_);
+         globalMem = globalMem - rtreeR->usedMem();
       }
-      if (*globalMem > maxMem) {
+      if (globalMem > maxMem) {
          overflowR = true;
          countInMem = (size_t) id;
       }
@@ -282,19 +268,33 @@ inline bool CandidateWorker::reportTopright(size_t r1, size_t r2) const {
    return ((r1 & r2) == 0) || (r1 + r2 == 3);
 }
 
-inline void CandidateWorker::calcMem(Tuple* tuple, size_t* globalMem) {
+inline void CandidateWorker::calcMem(Tuple* tuple) {
    {
-      lock_guard<std::mutex> lock(globalMem_);
-      *globalMem = *globalMem - tuple->GetMemSize() - sizeof(void*) +
-                   rtreeR->usedMem();
+      //lock_guard<std::mutex> lock(globalMem_);
+      globalMem = globalMem - tuple->GetMemSize() - sizeof(void*) +
+                  rtreeR->usedMem();
    }
+}
+
+void CandidateWorker::freeRTree() {
+   size_t tupleMemSize = 0;
+   for (Tuple* tupleR : bufferRMem) {
+      tupleMemSize -= tupleR->GetMemSize() + sizeof(void*);
+      tupleR->DeleteIfAllowed();
+   }
+   size_t usedMemRTree = rtreeR->usedMem();
+   {
+      //lock_guard<std::mutex> lock(globalMem_);
+      globalMem = globalMem - tupleMemSize - usedMemRTree;
+   }
+   bufferRMem.clear();
 }
 
 size_t CandidateWorker::calcIterations(const size_t countOverflow,
                                        const size_t tupleSize) const {
    size_t memOverflow = ULONG_MAX;
    size_t iterations = 0;
-   while (memOverflow > (maxMem / (coreNoWorker + 1))) {
+   while (memOverflow > maxMem) {
       ++iterations;
       memOverflow = rtreeR->guessSize(countOverflow / iterations,
                                       true);
@@ -314,8 +314,9 @@ spatialJoinLI::spatialJoinLI(Word _streamR, Word _streamS,
    resultTupleType = new TupleType(nl->Second(resultType));
    vector<Tuple*> bufferR = {};
    coreNo = MThreadedSingleton::getCoresToUse();
-   coreNoWorker = coreNo - 1;
-   tupleBuffer = make_shared<SafeQueuePersistent>(2 * maxMem / 3,
+   coreNoWorker = pow(coreNo - 1, 2);
+   bboxsample = BBOXSAMPLESTEPS * coreNoWorker;
+   tupleBuffer = make_shared<SafeQueuePersistent>(maxMem / 10,
                                                   resultTupleType);
    if (resize == 0.0) {
       calcBbox = make_shared<std::function<Rect(Tuple*, size_t)>>(
@@ -372,7 +373,7 @@ Tuple* spatialJoinLI::getNext() {
 void spatialJoinLI::Scheduler() {
    // build bbox
    // Stream R
-   globalMem = maxMem / 3;
+   globalMem = 9 * maxMem / 10;
    workersDone = false;
    Tuple* tupleR = streamR.request();
    if (tupleR != nullptr) {
@@ -405,7 +406,7 @@ void spatialJoinLI::Scheduler() {
          }
          bufferR.appendTuple(tupleR);
          count++;
-         if (count % 1000 == 0) {
+         if (count % CHANGEBOXSAMPLESTEP == 0) {
             bboxsample += BBOXSAMPLESTEPS;
          }
       } while ((tupleR = streamR.request()));
@@ -418,32 +419,32 @@ void spatialJoinLI::Scheduler() {
       }
       irrGrid2d =
               new IrregularGrid2D(bboxSpan, 1, coreNoWorker);
-      irrGrid2d->SetVector(&bboxRSample, bboxSpan, 1, coreNoWorker);
+      irrGrid2d->SetVector(&bboxRSample, bboxSpan, sqrt(coreNoWorker),
+                           sqrt(coreNoWorker));
       cellInfoVec = IrregularGrid2D::getCellInfoVector(irrGrid2d);
 
-
       //resize cells at margin of grid to min/max
-      size_t gridSize = cellInfoVec.size();
+      const size_t gridSize = cellInfoVec.size();
+      const size_t edgeSize = sqrt(coreNoWorker);
       for (CellInfo* cellInfo : cellInfoVec) {
          double minB[] =
                  {(cellInfo->cell)->MinD(0), (cellInfo->cell)->MinD(1)};
          double maxB[] =
                  {(cellInfo->cell)->MaxD(0), (cellInfo->cell)->MaxD(1)};
-         if ((size_t) cellInfo->cellId <= coreNoWorker) {
+         if ((size_t) cellInfo->cellId <= edgeSize) {
             minB[1] = -DBL_MAX;
          }
-         if ((size_t) cellInfo->cellId > gridSize - coreNoWorker) {
+         if ((size_t) cellInfo->cellId > gridSize - edgeSize) {
             maxB[1] = DBL_MAX;
          }
-         if ((size_t) cellInfo->cellId % coreNoWorker == 1) {
+         if ((size_t) cellInfo->cellId % edgeSize == 1) {
             minB[0] = -DBL_MAX;
          }
-         if ((size_t) cellInfo->cellId % coreNoWorker == 0) {
+         if ((size_t) cellInfo->cellId % edgeSize == 0) {
             maxB[0] = DBL_MAX;
          }
          (cellInfo->cell)->Set(true, minB, maxB);
       }
-
 
       // start threads
       joinThreads.reserve(coreNoWorker);
@@ -452,10 +453,12 @@ void spatialJoinLI::Scheduler() {
       //tupleBuffer = make_shared<SafeQueue<Tuple*>>(coreNoWorker);
       threadsDone = coreNoWorker;
       for (size_t i = 0; i < coreNoWorker; ++i) {
-         partBufferR.push_back(make_shared<SafeQueue<Tuple*>>(i));
+         partBufferR.push_back(make_shared<SafeQueuePersistent>(
+                 (globalMem / coreNoWorker) / 8, ttR));
          partBufferS.push_back(make_shared<SafeQueue<Tuple*>>(i));
          joinThreads.emplace_back(
-                 CandidateWorker(maxMem, &globalMem, coreNoWorker, i,
+                 CandidateWorker(7 * (globalMem / coreNoWorker) / 8,
+                                 coreNoWorker, i,
                                  tupleBuffer,
                                  partBufferR.back(),
                                  partBufferS.back(),
@@ -467,30 +470,26 @@ void spatialJoinLI::Scheduler() {
       }
 
       // Stream R
-      count = 0;
       bufferR.openRead();
       Tuple* tuple = bufferR.readTuple();
       while (tuple != nullptr) {
          Rect bbox = (*calcBbox)(tuple, joinAttr.first);
-         bool refCount = false;
          for (CellInfo* cellInfo : cellInfoVec) {
             if ((cellInfo->cell)->Intersects(bbox)) {
-               if (refCount) {
-                  tuple->IncReference();
-               }
-               refCount = true;
+               tuple->IncReference();
                partBufferR[(cellInfo->cellId - 1)]->enqueue(tuple);
             }
          }
+         tuple->DeleteIfAllowed();
          tuple = bufferR.readTuple();
-         ++count;
       }
-
+      cout << "r ready !!" << endl;
       for (size_t i = 0; i < coreNoWorker; ++i) {
          partBufferR[i]->enqueue(nullptr);
       }
 
       // grid partitioning S
+      cout << "s!!" << endl;
       count = 0;
       Tuple* tupleS;
       while ((tupleS = streamS.request())) {
