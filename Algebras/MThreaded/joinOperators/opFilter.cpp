@@ -50,7 +50,7 @@ These Operators are:
 #include "ListUtils.h"          // useful functions for nested lists
 #include "LogMsg.h"             // send error messages
 #include <cmath>
-#include <random>
+#include <atomic>
 #include <Algebras/FText/FTextAlgebra.h>
 
 
@@ -62,123 +62,63 @@ extern QueryProcessor* qp;
 
 namespace filterGlobal {
 constexpr unsigned int DIMENSIONS = 2;
-//vector<shared_ptr<SafeQueue<Tuple*>>> partBuffer;
-shared_ptr<SafeQueue<Tuple*>> tupleBuffer;
-//shared_ptr<extrel2::TupleBuffer2> buffer;
-size_t threadsDone;
-bool startStream;
+std::atomic<size_t> threadsDone;
+std::atomic<size_t> bufferDone;
+bool startCalc;
 bool startGetNext;
 bool endRefinement;
-bool endDestribut;
-std::mutex data_;
 std::mutex endThreads_;
-std::condition_variable dataC;
+std::mutex stopCalc_;
+std::mutex stopGetNext_;
+std::mutex qp_;
+std::condition_variable stopCalcC;
+std::condition_variable stopGetNextC;
 std::condition_variable endThreadsC;
 }
 
 using namespace filterGlobal;
 
-DistributWorker::DistributWorker(
-        Stream<Tuple> _stream,
-        shared_ptr<vector<shared_ptr<SafeQueue<Tuple*>>>> _buffer,
-        size_t _coreNoWorker) :
-        stream(_stream), buffer(_buffer), coreNoWorker(_coreNoWorker) {
-   endDestribut = false;
-}
-
-
-DistributWorker::~DistributWorker() {
-   cout << "destruct distributer" << endl;
-}
-
-void DistributWorker::operator()() {
-   //stream.open();
-   Tuple* tuple = stream.request();
-   size_t countWorker = 0;
-   size_t fillCounter = 0;
-   do {
-      (buffer->operator[](countWorker))->enqueue(tuple);
-      if (countWorker == coreNoWorker - 1) {
-         countWorker = 0;
-      } else {
-         ++countWorker;
-      }
-      ++fillCounter;
-      // switch to getnext
-      if (fillCounter == 10 * coreNoWorker) {
-         // warte bis nachricht empty und informiere getnext
-         {
-            unique_lock<std::mutex> lock(data_);
-            startGetNext = true;
-            startStream = false;
-            //cout << "inform getnext from stream ##";
-            dataC.notify_all();
-            dataC.wait(lock, [&] { return startStream; });
-         }
-         fillCounter = 0;
-      }
-   } while ((tuple = stream.request()));
-   cout << "Stream close" << endl;
-   {
-      lock_guard<std::mutex> lock(data_);
-      startGetNext = true;
-      //cout << "stream closed";
-      dataC.notify_all();
-   }
-   cout << "Stream Ready1" << endl;
-   for (size_t i = 0; i < coreNoWorker; ++i) {
-      (buffer->operator[](i))->enqueue(nullptr);
-   }
-
-   {
-      unique_lock<std::mutex> lock(endThreads_);
-      cout << "waitD" << endl;
-      endThreadsC.wait(lock, [&] { return endDestribut; });
-   }
-   //stream.close();
-   cout << "Stream closed" << endl;
-}
-
-
-RefinementWorker::RefinementWorker(
+RefinementWorkerNew::RefinementWorkerNew(
         size_t _coreNoWorker,
+        //size_t _bufferSize,
         size_t _streamInNo,
         shared_ptr<SafeQueue<Tuple*>> _tupleBuffer,
         shared_ptr<SafeQueue<Tuple*>> _partBuffer,
-        ListExpr _funList) :
+        QueryProcessor* _qpThread,
+        ListExpr _funList,
+        OpTree _funct) :
         coreNoWorker(_coreNoWorker),
+        //bufferSize(_bufferSize),
         streamInNo(_streamInNo),
         tupleBuffer(_tupleBuffer), partBuffer(_partBuffer),
-        funList(_funList) {
+        qpThread(_qpThread), funList(_funList), funct(_funct) {
 }
 
-RefinementWorker::RefinementWorker(
-        size_t _coreNoWorker,
-        size_t _streamInNo,
-        shared_ptr<SafeQueue<Tuple*>> _tupleBuffer,
-        shared_ptr<SafeQueue<Tuple*>> _partBuffer,
-        OpTree _fun) :
-        coreNoWorker(_coreNoWorker), streamInNo(_streamInNo),
-        tupleBuffer(_tupleBuffer), partBuffer(_partBuffer) {
-   funct = _fun;
-}
-
-RefinementWorker::~RefinementWorker() {
+RefinementWorkerNew::~RefinementWorkerNew() {
    cout << "destruct candidate: " << streamInNo << endl;
 }
 
-
 // Thread
-void RefinementWorker::operator()() {
-   cout << "refinment" << endl;
+void RefinementWorkerNew::operator()() {
    endRefinement = false;
-   if (streamInNo == 0) {
-      refineQP();
-   } else {
-      refineNewQP();
+   ArgVector &arguments = *qpThread->Argument(funct);
+   Tuple* tuple = partBuffer->dequeue();
+   while (tuple != nullptr) {
+      arguments[0].setAddr(tuple);
+      Word funres;
+      qpThread->Request(funct, funres);
+      bool res = false;
+      if (((Attribute*) funres.addr)->IsDefined()) {
+         res = ((CcBool*) funres.addr)->GetBoolval();
+      }
+      if (res) {
+         while (tupleBuffer->size() > 50) { usleep(50); };
+         tupleBuffer->enqueue(tuple);
+      } else {
+         tuple->DeleteIfAllowed();
+      }
+      tuple = partBuffer->dequeue();
    }
-   cout << "ready" << endl;
-
    --threadsDone;
    if (threadsDone == 0) {
       tupleBuffer->enqueue(nullptr);
@@ -188,203 +128,141 @@ void RefinementWorker::operator()() {
       cout << "wait" << endl;
       endThreadsC.wait(lock, [&] { return endRefinement; });
    }
-   tupleBuffer.reset();
 }
 
-void RefinementWorker::refineNewQP() {
-   QueryProcessor* qproc =
-           new QueryProcessor(SecondoSystem::GetNestedList(),
-                              SecondoSystem::GetAlgebraManager());
-   bool correct = false;
-   bool evaluable = false;
-   bool defined = false;
-   bool isFunction = false;
-   ListExpr resultType;
-   qproc->Construct(
-           funList, correct, evaluable, defined, isFunction,
-           funct, resultType, true);
-   Tuple* tuple = partBuffer->dequeue();
-   while (tuple != nullptr) {
-      ArgVector &arguments = *qproc->Argument(funct);
-      arguments[0].setAddr(tuple);
-      Word funres;
-      qproc->Request(funct, funres);
-      //if (qp->Received(funct)) {
-      bool res = false;
-      if (((Attribute*) funres.addr)->IsDefined()) {
-         //CcBool* resBool = (CcBool*) funres.addr;
-         res = ((CcBool*) funres.addr)->GetBoolval();
-      }
-      if (res) {
-         tupleBuffer->enqueue(tuple);
-      } else {
-         tuple->DeleteIfAllowed();
-      }
-      if (partBuffer->empty() && !startStream) {
-         // inform getnext to stop and the distributor to start
-         lock_guard<std::mutex> lock(data_);
-         startGetNext = false;
-         startStream = true;
-         dataC.notify_all();
-      }
-      //}
-      //funres.addr = 0;
-      //delete (CcBool*)funres.addr;
-      tuple = partBuffer->dequeue();
-   }
-   cout << "refinement ready" << endl;
-   qproc->Destroy(funct, true);
-   delete qproc;
-   //funct->addr = 0;
-}
-
-void RefinementWorker::refineQP() {
-   Tuple* tuple = partBuffer->dequeue();
-   while (tuple != nullptr) {
-      ArgVector &arguments = *qp->Argument(funct);
-      arguments[0].setAddr(tuple);
-      Word funres;
-      qp->Request(funct, funres);
-      //if (qp->Received(funct)) {
-      bool res = false;
-      if (((Attribute*) funres.addr)->IsDefined()) {
-         //CcBool* resBool = (CcBool*) funres.addr;
-         res = ((CcBool*) funres.addr)->GetBoolval();
-      }
-      if (res) {
-         tupleBuffer->enqueue(tuple);
-      } else {
-         tuple->DeleteIfAllowed();
-      }
-      if (partBuffer->empty() && !startStream) {
-         // inform getnext to stop and the distributor to start
-         lock_guard<std::mutex> lock(data_);
-         startGetNext = false;
-         startStream = true;
-         //cout << "inform stream ##";
-         dataC.notify_all();
-      }
-      //}
-      //funres.addr = 0;
-      tuple = partBuffer->dequeue();
-   }
-   cout << "refinement ready" << endl;
-}
 
 //Constructor
-refinementLI::refinementLI(Word* _args) : args(_args), stream(_args[0]) {
+refinementLI::refinementLI(Word _stream, Word _funText) : stream(
+        _stream), funText(_funText) {
    coreNo = MThreadedSingleton::getCoresToUse();
    coreNoWorker = coreNo - 1;
    tupleBuffer = make_shared<SafeQueue<Tuple*>>(0);
    stream.open();
+   phaseStream = true;
+   streamDone = false;
+   countWorker = 0;
+   fillCounter = 0;
+   //bufferSize = 10 * coreNoWorker;
    Scheduler();
 }
 
 
 //Destructor
 refinementLI::~refinementLI() {
-   //usleep(50);
-   //tupleBuffer.reset();
-   buffer->clear();
-   nl->Destroy(funList);
-   //usleep(500);
+   for (shared_ptr<SafeQueue<Tuple*>> partBuffer : buffer) {
+      partBuffer.reset();
+   }
+   cout << "1";
+   buffer.clear();
+   tupleBuffer.reset();
+   size_t i = 0;
+   for (QueryProcessor* qpThread : qpVec) {
+      //qpThread->DeleteResultStorage(funct[i]);
+      qpThread->Destroy(funct[i], true);
+      delete qpThread;
+      ++i;
+   }
+   cout << "2";
+   funct.clear();
+   cout << "3";
+   qpVec.clear();
+   cout << "4";
    stream.close();
-   //usleep(500);
-   cout << "destruct LI" << endl;
+   for (size_t i = 0; i < coreNoWorker; ++i) {
+      if (filterThreads[i].joinable()) {
+         filterThreads[i].detach();
+      }
+   }
+   filterThreads.clear();
+   cout << "5";
 }
 
 //Output
 Tuple* refinementLI::getNext() {
-   if (!startGetNext) {
-      unique_lock<std::mutex> lock(data_);
-      dataC.wait(lock, [&] { return startGetNext; });
+   // reading stream phase
+   if (phaseStream && !streamDone) {
+      Tuple* tuple;
+      streamDone = true;
+      while ((tuple = stream.request())) {
+         while (buffer[countWorker]->size() > 10) { usleep(50); };
+
+         buffer[countWorker]->enqueue(tuple);
+
+         if (countWorker == coreNoWorker - 1) {
+            countWorker = 0;
+         } else {
+            ++countWorker;
+         }
+         ++fillCounter;
+         // switch to readRes
+         if (!(tupleBuffer->empty())) {
+            fillCounter = 0;
+            streamDone = false;
+            phaseStream = false;
+            break;
+         }
+      }
+      if (streamDone) {
+         for (size_t i = 0; i < coreNoWorker; ++i) {
+            buffer[i]->enqueue(nullptr);
+         }
+      }
+      // return res phase
    }
    Tuple* res;
    res = tupleBuffer->dequeue();
-   //cout << res->GetNumOfRefs() << "##";
+   if (tupleBuffer->empty()) {
+      phaseStream = true;
+   }
    if (res != nullptr) {
       return res;
    }
-   cout << "join threads" << endl;
-   //stream.close();
-   //usleep(500);
-
-   //tupleBuffer.reset();
-   endDestribut = false;
    endRefinement = false;
-
-
-   {
-      lock_guard<std::mutex> lock(endThreads_);
-      endDestribut = true;
-      endThreadsC.notify_all();
-   }
-   filterThreads[0].join();
-   cout << "distr joined" << endl;
-   //stream.close();
-
    {
       lock_guard<std::mutex> lock(endThreads_);
       endRefinement = true;
       endThreadsC.notify_all();
    }
-   for (size_t i = 1; i <= coreNoWorker; ++i) {
-      filterThreads[i].join();
-   }
-
-   cout << "getnext free" << endl;
-   filterThreads.clear();
-   cout << "threads cleared" << endl;
-   cout << "stream closed" << endl;
+//   for (size_t i = 0; i < coreNoWorker; ++i) {
+//      filterThreads[i].join();
+//   }
    return 0;
 }
 
 void refinementLI::Scheduler() {
-//   vector<vector<Tuple*>::iterator> tupleIter;
-//   for (auto it = tupleBuffer.begin(); it != tupleBuffer.end(); ++it) {
-//      tupleIter.push_back(it);
-//   }
-//
-   // start distributor
-   filterThreads.reserve(coreNoWorker + 1);
-   buffer =
-           make_shared<vector<shared_ptr<SafeQueue<Tuple*>>>>();
-   filterThreads.emplace_back(DistributWorker(args[0],
-           buffer, coreNoWorker));
-   //filterThreads.back().detach();
-
-   // start threads
    threadsDone = coreNoWorker;
-   buffer->push_back(make_shared<SafeQueue<Tuple*>>(0));
-//   ListExpr funList;
-//   nl->ReadFromString(((FText*) args[2].addr)->GetValue(),
-//                      funList);
-   filterThreads.emplace_back(
-           RefinementWorker(coreNoWorker, 0,
-                            tupleBuffer, buffer->back(),
-                   //funList));
-                            (OpTree) args[1].addr));
-   //ArgVector &arguments = *qp->Argument((OpTree) args[1].addr);
-   //filterThreads.back().detach();
-   for (size_t i = 1; i < coreNoWorker; ++i) {
-      buffer->push_back(make_shared<SafeQueue<Tuple*>>(i));
-      nl->ReadFromString(((FText*) args[2].addr)->GetValue(),
-                         funList);
+   bufferDone = coreNoWorker;
+   nl->ReadFromString(((FText*) funText.addr)->GetValue(),
+                      funList);
+   for (size_t i = 0; i < coreNoWorker; ++i) {
+      qpVec.emplace_back(
+              new QueryProcessor(nl, SecondoSystem::GetAlgebraManager()));
+      funct.emplace_back();
+      bool correct = false;
+      bool evaluable = false;
+      bool defined = false;
+      bool isFunction = false;
+      ListExpr resultType;
+      qpVec.back()->Construct(
+              funList, correct, evaluable, defined, isFunction,
+              funct.back(), resultType, false);
+      buffer.push_back(make_shared<SafeQueue<Tuple*>>(i));
       filterThreads.emplace_back(
-              RefinementWorker(coreNoWorker, i, tupleBuffer,
-                      buffer->back(), funList));
-      //filterThreads.back().detach();
+              RefinementWorkerNew(coreNoWorker, i,
+                                  tupleBuffer,
+                                  buffer.back(),
+                                  qpVec.back(), funList,
+                                  funct.back()));
+      filterThreads.back().detach();
    }
-
-   //cout << "Schedule Ready" << endl;
 }
 
 
 ListExpr op_refinement::refinementTM(ListExpr args) {
 
-   // mthreadedHybridJoin has 2 arguments
-   // 1: Stream of Tuple with spatial Attr
-   // 2: fun spatial predicate
+   // mthreadedFilter has 2 arguments
+   // 1: Stream of Tuple
+   // 2: fun
 
    const size_t cores = MThreadedSingleton::getCoresToUse();
    if (cores < 3) {
@@ -410,15 +288,20 @@ ListExpr op_refinement::refinementTM(ListExpr args) {
    if (!Stream<Tuple>::checkType(stream)) {
       return
               listutils::typeError(err
-              + " (first arg is not a tuple stream)");
+                                   + " (first arg is not a tuple stream)");
    }
-   cout << "Stream" << endl;
 
    if (!listutils::isMap<1>(map)) {
       return listutils::typeError(
               err + "(no map with arguments from one tuple)");
    }
-   cout << "Map" << endl;
+
+   ListExpr funRes = nl->Third(map);
+   cout << nl->ToString(funRes) << endl;
+   if (nl->SymbolValue(funRes) == Symbol::TYPEERROR()) {
+      return listutils::typeError(
+              err + "(typeerror in fun)");
+   }
 
    ListExpr attrList = nl->Second(nl->Second(map));
    if (!nl->Equal(attrList, nl->Second(nl->Second(stream)))) {
@@ -438,27 +321,35 @@ ListExpr op_refinement::refinementTM(ListExpr args) {
       mapAttr = nl->Second(mapAttr);
    }
    cout << "Attributes" << nl->ToString(mapAttr) << endl;
-   string mapAttrName1 = nl->SymbolValue(nl->Third(nl->Second(mapAttr)));
-   string mapAttrName2 = nl->SymbolValue(nl->Third(nl->Third(mapAttr)));
-   cout << mapAttrName1 << "##" << mapAttrName2 << endl;
-   ListExpr attrType1;
-   ListExpr attrType2;
-   int index1 = listutils::findAttribute(attrList, mapAttrName1, attrType1);
-   int index2 = listutils::findAttribute(attrList, mapAttrName2, attrType2);
-   cout << "index" << index1 << "##" << index2 << endl;
-   if (index1 == -1 || index2 == -1) {
-      return
-              listutils::typeError
-              (" function attribute not in stream ");
-   }
-   if (!listutils::isSpatialType(attrType1)) {
-      return listutils::typeError(" first attribute not spatial ");
-   }
-   if (!listutils::isSpatialType(attrType2)) {
-      return listutils::typeError(" second attribute not spatial ");
-   }
+//   if (!nl->IsAtom(nl->Second(mapAttr))) {
+//      ListExpr attrType;
+//      string mapAttrName = nl->SymbolValue(nl->Third(nl->Second(mapAttr)));
+//      int index = listutils::findAttribute(attrList, mapAttrName, attrType);
+//      if (index == -1) {
+//         return
+//                 listutils::typeError
+//                         (" function attribute not in stream ");
+//      }
+//   }
+//   if (!nl->IsAtom(nl->Third(mapAttr))) {
+//      ListExpr attrType;
+//      string mapAttrName = nl->SymbolValue(nl->Third(nl->Third(mapAttr)));
+//      int index = listutils::findAttribute(attrList, mapAttrName, attrType);
+//      if (index == -1) {
+//         return
+//                 listutils::typeError
+//                         (" function attribute not in stream ");
+//      }
+//   }
 
-   ListExpr funRes = nl->Third(map);
+
+//   if (!listutils::isSpatialType(attrType1)) {
+//      return listutils::typeError(" first attribute not spatial ");
+//   }
+//   if (!listutils::isSpatialType(attrType2)) {
+//      return listutils::typeError(" second attribute not spatial ");
+//   }
+
    cout << nl->ToString(funRes) << endl;
    // result of the function must be an attribute again , e . g . in
    // kind DATA
@@ -511,7 +402,7 @@ int op_refinement::refinementVM(Word* args, Word &result, int message,
             delete li;
          }
 
-         local.addr = new refinementLI(args);
+         local.addr = new refinementLI(args[0], args[2]);
          //resultTupleType->DeleteIfAllowed();
          return 0;
       case REQUEST:
@@ -523,9 +414,7 @@ int op_refinement::refinementVM(Word* args, Word &result, int message,
             delete li;
             local.addr = 0;
          }
-         //qp->Close(args[0].addr);
          cout << "closed" << endl;
-
          return 0;
    }
    return 0;
