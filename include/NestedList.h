@@ -420,7 +420,8 @@ struct NodeRecord
 };
 typedef NodeRecord* Node;
 
-typedef unsigned char byte;
+typedef unsigned char nlbyte;
+
 /*
 A ~NodeRecord~ represents all node types of a nested list.
 
@@ -1393,7 +1394,7 @@ prototypes for functions used for the binary encoding/decoding of lists
   void  ReadString( std::istream& in, std::string& outStr, 
                     unsigned long length ) const;
 
-  byte  GetBinaryType(const ListExpr list) const;
+  nlbyte  GetBinaryType(const ListExpr list) const;
   void hton(long value, char* buffer) const;
   inline void swap(char* buffer,int size) const;
 

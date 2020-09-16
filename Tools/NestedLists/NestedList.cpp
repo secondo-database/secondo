@@ -1276,7 +1276,7 @@ NestedList::WriteBinaryTo(const ListExpr list, ostream& os) const {
 #endif
   assert( os.good() );
 
-  const byte v[7] = {'b','n','l',0,1,0,2};
+  const nlbyte v[7] = {'b','n','l',0,1,0,2};
   os.write((char*)v,7);
   bool ok = WriteBinaryRec(list, os);
   os.flush();
@@ -1330,7 +1330,7 @@ NestedList::hton(long value, char* buffer) const {
 #endif
    static const int n = sizeof(long);
    for (int i=0; i<n; i++) {
-     buffer[n-1-i] = (byte) (value & 255);
+     buffer[n-1-i] = (nlbyte) (value & 255);
      value = value >> 8;
    }
 }
@@ -1338,24 +1338,24 @@ NestedList::hton(long value, char* buffer) const {
 
 
 // Type IDs for binary encoded lists
-static const byte BIN_LONGLIST = 0;
-static const byte BIN_INTEGER  = 1;
-static const byte BIN_REAL = 2;
-static const byte BIN_BOOLEAN = 3;
-static const byte BIN_LONGSTRING = 4;
-static const byte BIN_LONGSYMBOL = 5;
-static const byte BIN_LONGTEXT = 6;
-static const byte BIN_LIST = 10;
-static const byte BIN_SHORTLIST = 11;
-static const byte BIN_SHORTINT  = 12;
-static const byte BIN_BYTE = 13;
-static const byte BIN_STRING = 14;
-static const byte BIN_SHORTSTRING = 15;
-static const byte BIN_SYMBOL= 16;
-static const byte BIN_SHORTSYMBOL = 17;
-static const byte BIN_TEXT = 18;
-static const byte BIN_SHORTTEXT = 19;
-static const byte BIN_DOUBLE = 20;
+static const nlbyte BIN_LONGLIST = 0;
+static const nlbyte BIN_INTEGER  = 1;
+static const nlbyte BIN_REAL = 2;
+static const nlbyte BIN_BOOLEAN = 3;
+static const nlbyte BIN_LONGSTRING = 4;
+static const nlbyte BIN_LONGSYMBOL = 5;
+static const nlbyte BIN_LONGTEXT = 6;
+static const nlbyte BIN_LIST = 10;
+static const nlbyte BIN_SHORTLIST = 11;
+static const nlbyte BIN_SHORTINT  = 12;
+static const nlbyte BIN_BYTE = 13;
+static const nlbyte BIN_STRING = 14;
+static const nlbyte BIN_SHORTSTRING = 15;
+static const nlbyte BIN_SYMBOL= 16;
+static const nlbyte BIN_SHORTSYMBOL = 17;
+static const nlbyte BIN_TEXT = 18;
+static const nlbyte BIN_SHORTTEXT = 19;
+static const nlbyte BIN_DOUBLE = 20;
 
 
 /*
@@ -1364,7 +1364,7 @@ static const byte BIN_DOUBLE = 20;
 
 */
 
-byte
+nlbyte
 NestedList::GetBinaryType(const ListExpr list) const {
 #ifdef THREAD_SAFE
    boost::lock_guard<boost::recursive_mutex> guard1(mtx);
@@ -1409,7 +1409,7 @@ NestedList::GetBinaryType(const ListExpr list) const {
                             return BIN_SHORTLIST;
                          }
                        }
-  default : return (byte) 255;
+  default : return (nlbyte) 255;
 
   }
 }
@@ -1564,7 +1564,7 @@ NestedList::ReadBinaryRec(ListExpr& result, istream& in, unsigned long& pos) {
   unsigned long len = 0;
   string str = "";
 
-  byte typeId = 255 & in.get();
+  nlbyte typeId = 255 & in.get();
   pos++;
 
   if( debug ) {
@@ -1754,15 +1754,15 @@ NestedList::WriteBinaryRec(ListExpr list, ostream& os) const {
   os.flush();
   assert( os.good() );
 
-  byte typeId = GetBinaryType(list);
+  nlbyte typeId = GetBinaryType(list);
   os << typeId;
 
       switch( typeId ) {
 
           case BIN_BOOLEAN:   {
                            bool b = BoolValue(list);
-                           byte value = (byte) (b?1:0);
-                           os << (byte) value;
+                           nlbyte value = (nlbyte) (b?1:0);
+                           os << (nlbyte) value;
                            return true;
           }
           case BIN_BYTE: {

@@ -28,7 +28,7 @@ include ../../makefile.env
 
 # expand compile flags if necessary
 CCFLAGS += -Werror
-PARSEFLAGS = -std=c++11
+PARSEFLAGS = -std=c++17
 
 OBJECTS += scan.o parse.o PatternRegExParser.o PatternRegExScanner.o
 

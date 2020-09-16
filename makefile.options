@@ -65,7 +65,7 @@ DEFAULTCCFLAGS += -Wall
 # libraries
 DEFAULTCCFLAGS += -D_REENTRANT -D_GLIBCPP_DEPRECATED 
 
-CPPSTDOPTION = -std=c++11
+CPPSTDOPTION = -std=c++17
 
 
 #On 32 bit systems, the file size is restrictec to 2GB
