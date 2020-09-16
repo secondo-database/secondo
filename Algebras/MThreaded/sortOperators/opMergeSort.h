@@ -205,7 +205,8 @@ class MergePipeline {
 class Suboptimal {
    private:
    size_t maxMem;
-   std::vector<Tuple*>::iterator tupleBuffer;
+   std::shared_ptr<SafeQueue<Tuple*>> partBuffer;
+   //std::vector<Tuple*>::iterator tupleBuffer;
    TupleType* tt;
    std::shared_ptr<CompareByVector> compare;
    std::vector<std::shared_ptr<Buffer>> runs1;
@@ -216,7 +217,8 @@ class Suboptimal {
    public:
    explicit Suboptimal(
            size_t _maxMem,
-           std::vector<Tuple*>::iterator _tupleBuffer,
+           std::shared_ptr<SafeQueue<Tuple*>> _partBuffer,
+           //std::vector<Tuple*>::iterator _tupleBuffer,
            std::shared_ptr<CompareByVector> _compare,
            TupleType* _tt,
            size_t _threadNumber,
@@ -241,7 +243,7 @@ class mergeSortLI {
    Stream<Tuple> stream;
    const std::vector<std::pair<int, bool>> sortAttr;
    std::shared_ptr<std::vector<std::shared_ptr<Buffer>>> mergeFn;
-   std::vector<Tuple*> tupleBuffer;
+   //std::vector<Tuple*> tupleBuffer;
    size_t lastWorker;
    TupleType* tt;
    std::vector<std::thread> sortThreads;
@@ -249,6 +251,7 @@ class mergeSortLI {
    Tuple* tupleNext1;
    Tuple* tupleNext2;
    TupleEmpty tupleEmpty;
+   std::vector<std::shared_ptr<SafeQueue<Tuple*>>> partBuffer;
    std::shared_ptr<SafeQueue<Tuple*>> tupleBufferIn1;
    std::shared_ptr<SafeQueue<Tuple*>> tupleBufferIn2;
    //std::vector<std::shared_ptr<Buffer>> bufferTransfer;

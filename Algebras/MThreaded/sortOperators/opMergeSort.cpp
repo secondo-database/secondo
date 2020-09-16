@@ -85,13 +85,15 @@ using namespace mergeSortGlobal;
 
 Suboptimal::Suboptimal(
         size_t _maxMem,
-        std::vector<Tuple*>::iterator _tupleBuffer,
+        std::shared_ptr<SafeQueue<Tuple*>> _partBuffer,
+        //std::vector<Tuple*>::iterator _tupleBuffer,
         std::shared_ptr<CompareByVector> _compare,
         TupleType* _tt,
         size_t _threadNumber,
         std::shared_ptr<std::vector<std::shared_ptr<Buffer>>> _bufferTransfer) :
         maxMem(_maxMem),
-        tupleBuffer(_tupleBuffer),
+        partBuffer(_partBuffer),
+        //tupleBuffer(_tupleBuffer),
         tt(_tt),
         threadNumber(_threadNumber),
         bufferTransfer(_bufferTransfer) {
@@ -106,6 +108,7 @@ void Suboptimal::operator()() {
    auto sortTree = make_shared<TournamentTree>(compare, maxMem);
    // replacement selection
    replacementSelectionSort(sortTree);
+   cout << "replace ready" << endl;
 
    // merge bis ein run
    while (runs1.size() > 1) {
@@ -131,28 +134,15 @@ void Suboptimal::operator()() {
 void Suboptimal::replacementSelectionSort(shared_ptr<TournamentTree> sortTree) {
    // process tuple from stream
    size_t count = 0;
+   Tuple* tuple;
    while (true) {
-      Tuple* tuple;
-      {
-         std::unique_lock<std::mutex> lck(mutexPartition_);
-         condVarData.wait(lck, [] { return dataReady; });
-         if (!streamStop) { dataReady = false; }
-         tuple = *tupleBuffer;
-         if (tuple == nullptr) {
-            break;
-         }
+      tuple = partBuffer->dequeue();
+      if (tuple == nullptr) {
+         streamStop = true;
+         break;
       }
-
       ++count;
       sortTree->fillLeaves(tuple);
-
-      {
-         std::lock_guard<std::mutex> lck(mutexPartitionRemoved_);
-         dataRemoved = true;
-         tupleRemoved = threadNumber;
-         *tupleBuffer = nullptr;
-         condVarDataRemoved.notify_all();
-      }
 
       // test memory
       if (!sortTree->testMemSizeFill(tuple)) {
@@ -160,7 +150,7 @@ void Suboptimal::replacementSelectionSort(shared_ptr<TournamentTree> sortTree) {
       }
    }
    sortTree->buildTree();
-
+   cout << "tree built" << endl;
    count = 0;
    if (!streamStop) {
       runs1.emplace_back(make_shared<FileBuffer>(tt));
@@ -172,10 +162,7 @@ void Suboptimal::replacementSelectionSort(shared_ptr<TournamentTree> sortTree) {
       while (true) {
          Tuple* tuple;
          {
-            std::unique_lock<std::mutex> lck(mutexPartition_);
-            condVarData.wait(lck, [] { return dataReady; });
-            if (!streamStop) { dataReady = false; }
-            tuple = *tupleBuffer;
+            tuple = partBuffer->dequeue();
             if (tuple == nullptr) {
                break;
             }
@@ -191,14 +178,6 @@ void Suboptimal::replacementSelectionSort(shared_ptr<TournamentTree> sortTree) {
             //sortTree->showTree();
             runs1.back()->closeWrite();
             runs1.emplace_back(make_shared<FileBuffer>(tt));
-         }
-
-         {
-            std::lock_guard<std::mutex> lck(mutexPartitionRemoved_);
-            dataRemoved = true;
-            tupleRemoved = threadNumber;
-            *tupleBuffer = nullptr;
-            condVarDataRemoved.notify_all();
          }
       }
       while (sortTree->isActive()) {
@@ -443,7 +422,7 @@ mergeSortLI::mergeSortLI(
 mergeSortLI::~mergeSortLI() {
    //mergeBuffer.clear();
    //bufferTransfer.clear();
-   tupleBuffer.clear();
+   partBuffer.clear();
    if (!streamEmpty) {
       tt->DeleteIfAllowed();
    }
@@ -494,10 +473,10 @@ void mergeSortLI::DistributorCollector() {
          if (i < 3) {
             streamEmpty = true;
          }
-         cout << i << endl;
          break;
       }
-      tupleBuffer.emplace_back(tuple);
+      partBuffer.push_back(make_shared<SafeQueue<Tuple*>>(i));
+      partBuffer[i]->enqueue(tuple);
       if (i == 0) {
          tt = tuple->GetTupleType();
          tt->IncReference();
@@ -507,12 +486,12 @@ void mergeSortLI::DistributorCollector() {
    if (streamEmpty) {
       // handle streams with less then 3 tuples
       tupleBufferIn1 = make_shared<SafeQueue<Tuple*>>(0);
-      tupleBufferIn1->enqueue(i == 0 ? nullptr : tupleBuffer[0]);
+      tupleBufferIn1->enqueue(i == 0 ? nullptr : partBuffer[0]->dequeue());
       if (i != 0) {
          tupleBufferIn1->enqueue(nullptr);
       }
       tupleBufferIn2 = make_shared<SafeQueue<Tuple*>>(1);
-      tupleBufferIn2->enqueue(i <= 1 ? nullptr : tupleBuffer[1]);
+      tupleBufferIn2->enqueue(i <= 1 ? nullptr : partBuffer[1]->dequeue());
       if (i == 2) {
          tupleBufferIn2->enqueue(nullptr);
       }
@@ -527,10 +506,6 @@ void mergeSortLI::DistributorCollector() {
          coreNoWorker = i;
       }
       mergeFn = make_shared<vector<shared_ptr<Buffer>>>(move(tempVec));
-      vector<vector<Tuple*>::iterator> tupleIter;
-      for (auto it = tupleBuffer.begin(); it != tupleBuffer.end(); ++it) {
-         tupleIter.push_back(it);
-      }
 
       // start threads
       streamStop = false;
@@ -538,35 +513,30 @@ void mergeSortLI::DistributorCollector() {
       for (size_t i = 0; i < coreNoWorker; ++i) {
          auto compare = make_shared<CompareByVector>(sortAttr);
          thread tempThread(Suboptimal(
-                 maxMem / coreNoWorker, tupleIter[i],
+                 maxMem / coreNoWorker, partBuffer[i],
                  compare, tt, i, mergeFn));
          sortThreads.push_back(std::move(tempThread));
       }
 
       // divide stream to n-1 cores by round robin
       // start suboptimal as thread
-      size_t countStream = coreNoWorker - 1;
-      do {
-         {
-            std::lock_guard<std::mutex> lck(mutexPartition_);
-            dataReady = true;
-            condVarData.notify_one();
-         }
-         {
-            std::unique_lock<std::mutex> lck(mutexPartitionRemoved_);
-            condVarDataRemoved.wait(lck, [] { return dataRemoved; });
-            dataRemoved = false;
-         }
+      size_t countStream = 0;
+      Tuple* tuple;
+      cout << "stream" << endl;
+      while ((tuple = stream.request())) {
+         partBuffer[countStream]->enqueue(tuple);
          ++countStream;
-      } while ((tupleBuffer[tupleRemoved] = stream.request()));
-
-      // all tuples of stream processed
-      {
-         std::lock_guard<std::mutex> lck(mutexPartition_);
-         dataReady = true;
-         streamStop = true;
-         condVarData.notify_all();
+         if (countStream == coreNoWorker -1 ) {
+            countStream = 0;
+         }
       }
+
+      for (size_t i = 0; i < coreNoWorker; ++i) {
+         partBuffer[i]->enqueue(nullptr);
+      }
+
+      cout << "stream ready" << endl;
+      // all tuples of stream processed
 
       stream.close();
 
@@ -574,8 +544,8 @@ void mergeSortLI::DistributorCollector() {
          sortThreads[i].join();
       }
       sortThreads.clear();
-      tupleIter.clear();
 
+      cout << "joined" << endl;
       //mergeFn = move(bufferTransfer);
 
       // init buffer
@@ -634,7 +604,7 @@ void mergeSortLI::DistributorCollector() {
       tupleBufferIn2 = mergeBuffer[mergeWorkerNo - 2];
       lastWorker = mergeBufferNo - 1;
       tupleEmpty = both;
-
+      cout << "start threads" << endl;
       {
          lock_guard<std::mutex> lock(mutexStartThreads_);
          startThreads = true;
