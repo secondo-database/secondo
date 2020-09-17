@@ -937,6 +937,8 @@ bool ConnectionInfo::createOrUpdateRelationFromBinFile(const std::string& name,
         if(timeout>0){
           stopTimeout(false);
         }
+        std::cerr << "error during transfer file " << filename  
+                  << "from master to " << (*this) << std::endl;
         return false;
     }
 
@@ -985,6 +987,13 @@ bool ConnectionInfo::createOrUpdateRelationFromBinFile(const std::string& name,
     showCommand(si, host, port, cmd, false, showCommands);
 
     bool ok = serr.code == 0;
+    if(!ok){
+       std::cerr << "error during creation of a relation from local file " 
+                 << filename << std::endl;
+       std::cerr << "ErrorCode :" << serr.code << std::endl;
+       std::cerr << "ErrorMessage : " << serr.msg << std::endl;
+       std::cerr << "Command :" << std::endl << cmd << std::endl;
+    }
 
     cmd = "query removeFile('" + rfilename + "')";
     sw.start();
