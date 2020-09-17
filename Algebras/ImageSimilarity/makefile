@@ -26,7 +26,7 @@
 # inlcude global definitions
 include ../../makefile.env
 
-CXXFLAGS=-g -Wall -Werror -pedantic
+CXXFLAGS=-g -std=c++11 -Wall -Werror -pedantic
 LDFLAGS += -ljpeg
 
 include ../../makefile.env

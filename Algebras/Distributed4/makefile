@@ -23,6 +23,7 @@ ALGEBRA_DEPENDENCIES := StandardAlgebra Distributed2Algebra FTextAlgebra \
 include ../../makefile.env
 
 CCFLAGS +=  -Werror
+CPPSTDOPTION = -std=c++14
 
 .PHONY: all
 all: check_dependencies $(OBJECTS) $(LIBOBJ)
