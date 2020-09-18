@@ -7,6 +7,7 @@
 \usepackage{subfig}
 \setlength\abovecaptionskip{4pt}
 \usepackage[bookmarksopen=true,bookmarksnumbered=true]{hyperref}
+\newcommand{\subfigureautorefname}{\figureautorefname}
 \usepackage[utf8]{inputenc}
 \usepackage[inner=2.5cm,outer=2cm,top=2.3cm,bottom=2cm,head=0.8cm,headsep=0.8cm,footskip=1cm,asymmetric]{geometry}
 \usepackage{setspace}
@@ -293,6 +294,7 @@ Eine Grundidee einer Parallelisierung des Refinementschritts ist simpel. Die Kan
 3/4 (45 S.)
 
 \subsection{Problemstellung} 3 Seiten
+\label{problem}
 
 Im Folgenden werde ich die Entwicklung und Implementierung von drei parallelen Operatoren und einigen Hilfsoperatoren für die MultiThreaded-Algebra kritisch dokumentieren. Anschließend werde ich meine Implementierung experimentell analysieren, indem ich einerseits die einwandfreie Funktionsfähigkeit überprüfen, das Verhalten im Vergleich zu anderen Operatoren und unter unterschiedlichen Rahmenbedingungen betrachten werde. Einwandfreie Funktionsfähigkeit meint Korrektheit, Robustheit und Effizienz im Laufzeitverhalten. Ein Vergleich findet vor allem mit den Einkernversionen der Operatoren statt.
 
@@ -334,9 +336,9 @@ Abschließend fasse ich noch einmal die Ziele für die Implementierung der MThre
 \subsection{Entwurf} 10 Seiten
 \label{Entwicklung} 
 
-\subsubsection{Hilfsoperatoren}
+\subsubsection{Operatoren für die Parametrisierung}
 
-Die Parameterisierung der \Fb{MThreaded}-Algebra soll mithilfe von Operatoren vorgenommen werden. Vorgesehen sind drei Operatoren:
+Die Parametrisierung der \Fb{MThreaded}-Algebra soll mithilfe von drei Operatoren vorgenommen werden:
 
 \begin{itemize}
 	\item maxcore gibt die maximale Anzahl von Kernen/Threads des Systems aus.
@@ -558,7 +560,7 @@ Die Warteschlange der Standard-Library ist nicht threadsicher. Verwendung finden
 	\end{lstlisting}
 \end{minipage}
 
-\subsubsection{Hilfsoperatoren}
+\subsubsection{Operatoren für die Parametrisierung}
 
 Die Hilfsoperatoren für die Parametrisierung haben folgende Signaturen:
 
@@ -596,6 +598,7 @@ Der Merge-Schritt entspricht der in \autoref{Entwicklung} beschriebenen Vorgehen
 
 
 \subsubsection{Hybrid Hash Join} 3 S
+\label{impl:hybrid}
 
 Der Operator \Fb{mThreadedMergeSort} hat folgende Signatur:
 
@@ -654,7 +657,8 @@ writetobin, jetzt tuplefile
 
 In diesem Abschnitt versuche ich die Probleme zusammenzufassen, die es mit \Fb{FLOBs} gibt und Ansätze für die Lösung 
 
-\section{Test und Experimente} 15 S
+\section{Test und Experimente} 15 
+\label{te}
 
 Im folgenden Abschnitt werden umfangreiche Tests der Operatoren beschrieben und ihr verhalten unter unterschiedlichen Bedingungen untersucht. Da hier kein abstraktes Laufzeitverhalten betrachtet wird, sondern die konkrete Laufzeit der Implementierung auf einem spezifischen System, beschreibe ich dieses kurz, um die Meßergebnisse kontextualisieren zu können. Da eine Effizienz unter anderem durch einen Vergleich mit Single-Thread-Operatoren festgestellt wird, geht es aber nicht vor allem um Messwerte, sondern um eine Effizienzsteigerung. Dementsprechend geht es vor allem um eine Laufzeitverbesserung unter gleichen Bedingungen und nicht so sehr um das einzelne Messergebnis.
 
@@ -1020,13 +1024,13 @@ Zeile 1 in \autoref{list:testspatialjoin}) zeigt den Aufruf des Operators. Der T
 		\hline
 		Resize string & last argument has to be real \\ 
 		\hline
-		$waterways \bowtie roads consume$ & gelegendlicher Absturz in Consume \\
+		$waterways \bowtie roads$ consume & gelegendlicher Absturz in consume \\
 		\hline
 	\end{tabular}
 	\caption{\label{tab:testSpatialRobust}Robustheit Spatial Join}
 \end{table}
 
-Für eine Vielzahl unterschiedlicher Relationen und deren Kombinationen wurde bereits auf Korrektheit getestet. Auch funktioniert der Operator sehr gut mit sehr großen Relationen. Problematisch kann es sein, wenn die Eingangsströme entweder ganz leer sind oder so wenige Tupel enthalten, dass eine Partitionierung auf alle Threads nicht möglich ist. Darüber hinaus wird getestet, ob im Type-Mapping Parameter zurückgewiesen werden, die für einen Spatial Join nicht sinnvoll sind. Die vorgenommenen Robustheitstest werden in \autoref{tab:testSpatialRobust} dargestellt, wobei die Tests immer bei der Verwendung von 6 Kernen und mit den beiden Relationen \Fb{roads} sowie \Fb{natural} ausgeführt worden sind. Zusätzlich wurden verschiedene komplexe Abfragen getestet. In Kombination mit dem \Fb{Consume}-Operator kommt es gelegentlich zu Abstürzen, da dort scheinbar korrupte Daten ankommen. Vermutlich liegt dieses Problem auch an den Problemen mit parallelen Zugriffen auf die Berkeley-Datenbank, sofern \Fb{FLOBs} verarbeitet werden. Die anderen durchgeführten Test entsprachen aber den Erwartungen.
+Für eine Vielzahl unterschiedlicher Relationen und deren Kombinationen wurde bereits auf Korrektheit getestet. Auch funktioniert der Operator sehr gut mit großen Relationen, wobei es inbesondere bei der Nutzung vieler Threads und bei sehr kleinen R-Relationen gelegentlich zu abstürzen bei der Beendigung der Abfrage kommt -- hier vermute ich ein Problem mit einer fehlenden Synchronisierung bei Zugriffen auf die Berkelely-DB. Problematisch kann es sein, wenn die Eingangsströme entweder ganz leer sind oder so wenige Tupel enthalten, dass eine Partitionierung auf alle Threads nicht möglich ist. Darüber hinaus wird getestet, ob im Type-Mapping Parameter zurückgewiesen werden, die für einen Spatial Join nicht sinnvoll sind. Die vorgenommenen Robustheitstest werden in \autoref{tab:testSpatialRobust} dargestellt, wobei die Tests immer bei der Verwendung von 6 Kernen und mit den beiden Relationen \Fb{roads} sowie \Fb{natural} ausgeführt worden sind. Zusätzlich wurden verschiedene komplexe Abfragen getestet. In Kombination mit dem \Fb{Consume}-Operator kommt es gelegentlich zu Abstürzen, da dort scheinbar korrupte Daten ankommen. Vermutlich liegt dieses Problem auch an den Problemen mit parallelen Zugriffen auf die Berkeley-Datenbank, sofern \Fb{FLOBs} verarbeitet werden. Die anderen durchgeführten Test entsprachen aber den Erwartungen.
 
 \begin{figure}
 	\centering
@@ -1035,117 +1039,166 @@ Für eine Vielzahl unterschiedlicher Relationen und deren Kombinationen wurde be
 	\label{img:sjKern}
 \end{figure}
 
-\autoref{img:sjKern} zeigt das Laufzeitverhalten zweier Spatial Joins
+\autoref{img:sjKern} zeigt das Laufzeitverhalten von zwei Spatial Joins. Die Relationen \Fb{landuse} und \Fb{natural} wurden auf 5.000 Tupel gekürzt und ergeben 1793 Ergebnistupel. Die beiden anderen Relationen, die über Punktattribute verschmolzen werden, haben nur eine Ergebnisrelation von 99 Tupeln, aber die Eingaberelationen sind beide groß (66.123 und 40.650 Tupel). In diesem Operator werden für $n$ konfigurierte Kerne $n^2$ Threads erzeugt, also meist mehr, als gleichzeitig möglich sind. Es hat sich herausgestellt, dass in diesem Fall der Operator ein wesentlich besseres Laufzeitverhalten hat (dieser Ansatz, deutlich mehr Partitionen zu erzeugen als Kerne zu verfügung stehen, hat den Operator teils um den Faktor 5 beschleunigt -- dieses Verhalten deutet die sehr schlechte Laufzeit bei $pois \bowtie traf$ mit $3^2$ Threads an). Mehr Threads zu nutzen als Kerne zur Verfügung stehen hat zu einer deutlich besseren Prozessornutzung geführt als in den anderen Operatoren -- der Koeffizient aus vergangener Zeit und CPU-Zeit liegt im Optimum bei den hier verwendeten Beispielanfragen bei 0,2 bzw. 0,3. Allerdings liegt das Optimum der Laufzeit nicht bei der maximalen Kernzahl, sondern bei $5^5$ bzw $3^3$ Threads, da für jeden Thread bei höherer Gesamtthreadtanzahl weniger Speicher zur Verfügung steht und die Eingangsströme nicht mehr direkt an die Threads durchgereicht werden können, sondern zwischengespeichert werden müssen. Bei größeren Relationen liegt das Optimum bei mehr Threads, da meine Implementierung einen nicht-linearen Anstieg der Rechenzeit im Bezug auf die Relationsgröße hat. Deutlich schneller als die Single-Thread-Version ist der Operator bei relativ kleinen Relationen.
+
+Allgemein kann gesagt werden, dass die Multithread-Variante für die Beispielrelationen hier deutliche Geschwindigkeitsvorteile mit sich bringt, sofern eine optimale Kernzahl gewählt wird. Weitere Experimente in \autoref{exp:sj} zeigen allerdings, dass, wie hier bereits erwähnt, die Laufzeit mit der Relationsgröße exponentiell wächst, während die der Singlethread-Version nur linear ansteigt. Bei sehr großen Relationen und sehr vielen bestimmten Joinkandidaten ist der hier präsentierte Operator nicht mehr konkurrenzfähig.    
 
 
 \subsubsection{Funktionstest MThreadedFilter}
-
-Der Filter-Operator hat keine komplexe Struktur, so dass in allen Fällen die zentralen Teilbereiche des Programms durchlaufen werden. Allerdings, wie bereits in \autoref{impl:refinement} diskutiert worden ist, gibt es, wenn die zu filternde Relation eine bestimmte Größe erreicht und in das Prädikat Attribute eingehen, die als \Fb{FLOBs} organisiert sind, Probleme mit der Synchronisation der Zugriffe auf die Berkeley-Datenbank, so dass der Operator entweder während des Commits abstürzt oder in einen Deadlock gerät.
+\label{funk:filter}
 
 \begin{minipage}{\linewidth}
-	\begin{lstlisting}[caption={Beispiel Testqueries für den Filter-Operator}, label=list:testfilter]
-
+	\begin{lstlisting}[caption={Testquery für den Filter-Operator, die auf Schnittpunkte zwischen Straßen und Wasserwegen prüft}, label=list:testfilter]
+	query wr_sj feed mThreadedFilter[not(isempty(intersection_rob(.Geometry_o, .Geometry_p)));
 	\end{lstlisting}
 \end{minipage}
 
-pl\_sj places landuse region x region
-pt places trafic region point
-tp trafic pois pointx point
+Der Filter-Operator hat keine komplexe Struktur, so dass in allen Fällen die zentralen Teilbereiche des Programms durchlaufen werden. Allerdings, wie bereits in \autoref{impl:refinement} diskutiert worden ist, gibt es Probleme mit der Synchronisation der Zugriffe auf die Berkeley-Datenbank, wenn die zu filternde Relation eine bestimmte Größe erreicht und in das Prädikat Attribute eingehen, die als \Fb{FLOBs} organisiert sind. Der Operator stürzt dann entweder im Commit ab oder gerät dort in einen Deadlock. Wenn Secondo ohne Commit gestartet wird, ist das Verhalten des Operators etwas stabiler, aber es treten auch Abstürze im Abschluss der Query-Ausführung auf oder teils auch beim Zugriff auf die  \Fb{FLOBs}.
+
+\autoref{list:testfilter} zeigt beispielhaft eine Anfrage, die für den Korrektheitstest verwendet wurde. Verglichen wurde mit dem \Fb{filter}-Operator, der nur einen Kern nutzt. Die Ergebnisse der Tests zeigt \autoref{tab:testFilter}. Wenn in den Prädikaten keine Attribute mit \Fb{FLOBs} verwendet werden, liefert der Operator selbst bei sehr großen Relationen richtige Ergebnisse wie \autoref{tab:testFilter} zeigt.
 
 \begin{table}
 	\centering
 	\begin{tabular}{|c|c|c|c|c|}
 		\hline 
-		Relationen & Threads & speicherintern & Typ Join-Attribute & Tupel Ergebnisrelation \\ 
+		Relationen & Prädikat & Relationsgröße & FLOB & Ergebnis \\ 
 		\hline 
-		$pois \bowtie traf$ & 3 & ja & Point \& Point & true \\ 
+		buildings & $.Code > 1200$ & 502.309 & nein & true \\ 
 		\hline 
-		$pois \bowtie roads$ & 3 & ja & Point \& Line & true \\ 
+		tp\_sj \footnotemark & $not(isempty$ & 99 & nein & true \\
+		 & $(intersection1(.Geometry\_p, .Geometry\_o))$ &  &  &  \\ 
 		\hline
-		$pois \bowtie places$ & 3 & ja & Point \& Region & true \\ 
+		n2p\_sj \footnotemark & $not(isempty$ & 219.785.156
+		 & nein & true \\
+		& $(intersection1(.Geometry\_p, .Geometry\_o))$ &  &  &  \\ 
 		\hline
-		$roads \bowtie waterways$ & 3 & ja & Line \& Line & true \\ 
+		wr\_sj \footnotemark & $not(isempty$ & 1.000 & ja & true \\ 
+		 & $(intersection1(.Geometry\_p, .Geometry\_o))$ &  &  &  \\ 
 		\hline
-		$roads \bowtie landuse$ & 3 & ja & Line \& Region & true \\ 
+		wr\_sj  & $not(isempty$ & 5.000 & ja & true \\
+		 & $(intersection1(.Geometry\_p, .Geometry\_o))$ &  &  &  \\  
 		\hline
-		$landuse \bowtie natural$ & 3 & ja & Region \& Region & true \\ 
+		pl\_sj \footnotemark & $.Geometry\_o overlaps .Geometry\_p$ & 2.000 & ja & true \\ 
 		\hline
-		$roads \bowtie natural$ & 3 & ja & Line \& Region & true \\ 
+		pl\_sj  & $.Geometry\_o overlaps .Geometry\_p$ & 5.000 & ja & true \\ 
 		\hline
-		$roads \bowtie natural$ & 6 & ja & Line \& Region & true \\ 
-		\hline
-		$roads \bowtie natural$ & 6 & nein & Line \& Region & true \\ 
-		\hline
-		$roads \bowtie natural$ & 6 & nein & Line \& Region & true \\ 
-		resize MBB 1.0 &  &  &  &  \\ 
+		wr\_sj  & $not(isempty$ & 12.000 & ja & true \\
+		 & $(intersection1(.Geometry\_p, .Geometry\_o))$ &  &  &  \\  
 		\hline
 	\end{tabular}
-	\caption{\label{tab:testSpatial}Korrektheit Spatial Join}
+	\caption{\label{tab:testFilter}Korrektheit Spatial Join}
 \end{table}
 
-Robustheit teste ich nur für kleine Relationen bzw. für Relationen ohne \Fb{FLOBs}
+\footnotetext{Die Relation tp\_sj ist ein Spatial Join zwischen traf und pois.}
+\footnotetext{Die Relation n2p\_sj ist ein Spatial Join zwischen natural2 und pois mit head[20.000] bei einer Vergrößerung der MBB um 0,1.}
+\footnotetext{Die Relation wr\_sj ist ein Spatial Join zwischen waterways und roads.}
+\footnotetext{Die Relation pl\_sj ist ein Spatial Join zwischen roads und pois.}
+
+Robustheit teste ich nur für kleine Relationen bzw. für Relationen ohne \Fb{FLOBs}, da ab einer bestimmten Relationsgröße der Operator hier im Commit bzw. im Abschluss der Anfragebearbeitung abstürzt (\autoref{tab:testFilterRobust}). Alle Ergebnisse entsprechen den Erwartungen.
+
+\begin{table}
+	\centering
+	\begin{tabular}{|c|c|}
+		\hline 
+		Test & Ergebnis \\ 
+		\hline
+		Eingangs-Relation leer & leere Ergebnisrelation \\ 
+		\hline
+		Prädikat nie wahr & leere Ergebnisrelation \\ 
+		\hline
+		Eingangs-Relation nur 1 Tupel & Ergebnisrelation 1 Tupel \\ 
+		\hline
+		Ergebnis des Prädikats nicht boolean & fun result is not a bool \\ 
+		\hline
+		Attribut in Prädikat nicht Teil der Relation &  Attr name Geometry\_x not found in attribute list  \\ 
+		\hline
+		Eingang kein Tupelstrom & first arg is not a tuple stream \\ 
+		\hline
+		Operator in Prädikat nicht existent &  fun corrupt  \\ 
+		\hline
+		Prädikat hat Tupelstrom als Ergebnis & fun corrupt \\ 
+		\hline
+		Prädikat mit \Fb{FLOBs}, Relation 30.000 Tupel & Absturz \\ 
+		\hline
+	\end{tabular}
+	\caption{\label{tab:testFilterRobust}Robustheit Filter-Operator}
+\end{table}
 
 \begin{figure}
 	\centering
-	\includegraphics[width=0.70\textwidth]{Bilder/filter_kerne.png}
+	\includegraphics[width=0.65\textwidth]{Bilder/filter_kerne.png}
 	\caption{Der Filter-Operator im Vergleich mit der Single-Thread-Variante (blaue Linie).}
 	\label{img:filterKern}
 \end{figure}
 
+In seiner Effizienz ist der Filteroperator der \Fb{mThreaded}-Algebra deutlich schlecht als die Singlethread-Version (siehe \autoref{img:filterKern}). Analysiert habe ich den Filter \Fb{.Code > 1200} auf die Relation \Fb{buildings}. Bei der Nutzung von drei Kernen, also bei 2 Worker-Threads, ist die Multithread-Variante ungefähr halb so schnell wie die der Standard-Filter von Secondo. Tests mit komplexeren Prädikaten ergaben vergleichbare Ergebnisse. Eine Nutzung von mehr Kernen verschlechtert das Ergebnis zwar nicht linear, aber durchgehend. Auch bleibt die Parallelisierung quasi konstant bei steigender Kernzahl (Koeffizient aus verbrauchter Zeit und CPU-Zeit ist durchgehend bei knapp 0,7). Hier ist also eine durchgehende Nutzung mehrere Kerne nicht gelungen. Ursache kann eigentlich nur sein, dass durch die Synchronisierung entweder der Auswertungen in den Query-Prozessoren, der Queues für die Weitergabe der Eingangsströme bzw. Ergebnisse oder dem Wechsel zwischen Eingangsstrom- und Ausgangsstromweitergabe in der \Fb{getnext}-Methode Wartezeiten für Threads entstehen. Was diese Erkenntnis für Aussagen zulässt für die Effizienzprobleme fast aller Operatoren der  \Fb{mThreaded}-Algebra, diskutiere ich in \autoref{entw:filter} ausführlich.
+
 \subsubsection{Experimente MThreadedsort}
 
-verhalten bei parametern, vergleich mit secondo operatoren.
+Mit dem Multithread-Sortieroperator habe ich zwei Experimente vorgenommen, nämlich einen Vergleich des Laufzeitverhaltens bei steigender Tupelzahl in den Relationen für einfache Suchattribute und Mehrfach-Suchattribute sowie eine Untersuchung des Laufzeitverhaltens bei unterschiedlichem zur Verfügung stehendem Speicher und damit bei verschiedener Nutzung von Auslagerungsdateien.
 
-a) verschiedene Parameter: Speicher, Threads, teils speziell wie Buckets und R-Baum 
-b) vergleich nicht parallele Operatoren
-c) multithread 1 sinnvoll?
-
-
+\autoref{img:sortHeadExp} und \autoref{img:sortHeadMfExp} zeigen das Laufzeitverhalten am Beispiel der Sortierung der \Fb{buildings}-Relation nach der ID und der Relation \Fb{roads\-str} nach 6 Attributen, die so gewählt worden sind, dass für die Bestimmung der Reihenfolge meistens alle Attribute betrachtet werden müssen. Beide Verläufe zeigen, dass sich die Performance der Multithread-Variante mit der Relationsgröße gegenüber der Singlethread-Variante verschlechtert, allerdings in einem deutlich anderem Ausmaß. Während bei der Sortierung nach einem Attribut die Laufzeit exponentiell wächst, liegt bei vielen Sortierattributen, also wesentlich mehr Vergleichen innerhalb des Operators, ein lineares Wachstum vor, wenn auch mit einer stärkeren Steigung beim von mir implementierten Operator. 
 
 \begin{figure}
 	\centering
-	\subfloat[nach Grröße der Relation\label{img:sortHeadExp}]{{\includegraphics[width=0.45\textwidth]{Bilder/sort_head.png}}}
+	\subfloat[nach Größe der Relation\label{img:sortHeadExp}]{{\includegraphics[width=0.45\textwidth]{Bilder/sort_head.png}}}
 	\qquad
-	\subfloat[nach Grröße der Relation mit mehreren Suchattributen\label{img:sortHeadMfExp}]{{\includegraphics[width=0.45\textwidth]{Bilder/sort_head_mf.png}}}
+	\subfloat[zusätzlich mehrere Suchattribute\label{img:sortHeadMfExp}]{{\includegraphics[width=0.45\textwidth]{Bilder/sort_head_mf.png}}}
 	\qquad
-	\subfloat[nach verfügbarem Speicher\label{img:sortMemExp}]{{\includegraphics[width=0.45\textwidth]{Bilder/sort_mem.png}}}
+	\subfloat[nach verfügbarem Speicher\label{img:sortMemExp}]{{\includegraphics[width=0.35\textwidth]{Bilder/sort_mem.png}}}
 	\caption{Experimente mit dem mThreadedMergeSort}
 	\label{img:sortExpAllg}
 \end{figure}
+
+Der zur Verfügung stehende Speicherplatz für den Operator ist nur für die postoptimale Phase von Bedeutung und bestimmt, wieviel Läufe innerhalb dieser Phase generiert und verschmolzen werden müssen. \autoref{img:sortMemExp} zeigt die Laufzeit der Sortierung der Relation \Fb{buildings} nach der ID bei unterschiedlichem zur Verfügung stehendem Hauptspeicher. Deutlich ist der Sprung von 20 auf 40 MB. Hier nehme ich an, dass bei 40 MB keine Auslagerungsdateien mehr notwendig sind. Warum die Laufzeit bis20 MB mit kleinen Abweichungen ansteigt, liegt wahrscheinlich an einer ungünstigen Verteilung auf die Läufe oder aber an den Schwankungen, die bei der Laufzeitmessung möglich sind (vgl. \autoref{te}).
 
 
 \subsubsection{Experimente MThreadedHashJoin}
 \label{exp:hash}
 
-bucket größe, 
+Für den Hash-Join-Operator untersuche ich sein Verhalten gegenüber Änderungen des Speicherplatz, der ihm zur Verfügung steht, gegenüber der wachsender Tupelzahl in R- und S-Relation sowie wie sich die Konfigurierung der Hashtabellen auf sein Laufzeitverhalten auswirken \autoref{img:joinBucket}.
+
+Eine Analyse, inwieweit sich die Performance des Operators sich verändert, wenn ihm unterschiedlich viel Speicherplatz zur Verfügung steht, wurde mit einem Selfjoin der Relation \Fb{roads\_str} vorgenommen \autoref{img:joinMemExp}. Wenn weniger Speicher zur Verfügung steht, bedeutet dies vor allem, dass Teile der Hashtabellen ausgelagert werden und evtl. ein rekursiver Aufruf des Verschmelzungs-Algorithmus notwendig wird. Dies ist allerdings vor allem dann der Fall, wenn die R-Relation bezüglich des Joinattributs sehr ungleich verteilt ist. Die Tendenz der Laufzeit bei steigendem zur Verfügung stehenden Speicher ist zwar deutlich abnehmend, aber die Abweichungen von der Regressionsgeraden sind sehr ausgeprägt. Deswegen gehe ich davon aus, dass, anders als erwartet, nicht mit Sicherheit festgestellt werden kann, dass eine Auslagerung von Buckets in Dateien eine große Auswirkung auf das Laufzeitverhalten hat.
 
 \begin{figure}
 	\centering
 	\subfloat[Vergleich nach verfügbarem Speicherplatz\label{img:joinMemExp}]{{\includegraphics[width=0.45\textwidth]{Bilder/join_mem.png}}}
 	\qquad	
 	\subfloat[Vergleich nach Größe der Relation\label{img:joinHeadExp}]{{\includegraphics[width=0.45\textwidth]{Bilder/join_head_self2.png}}}
-	\caption{Experimente mit MThreadedHashJoin}
+	\caption{Selfjoin \Fb{roads\_str}}
 	\label{img:joinExpAllg}
 \end{figure}
 
+Im Gegensatz zum Verhalten gegenüber zur dem Speicher, der dem Operator zugewiesen worden ist, zeigt das Verhalten gegenüber der Relationsgröße ein eindeutiges Bild \autoref{img:joinHeadExp}. Große Relationen erhöhen die Laufzeit des von mir implementierten Operators linear. Die lineare Regressionsgerade hat bei wachsender R-Relation für den Multithread-Operator eine stärkere Steigung als die Singlethread-Variante. Interessant ist es vor allem, dass bzgl. einer wachsenden S-Relation sich das Laufzeitverhalten des von mir implementierten Operators in ähnlicher Weise verschlechtert wie bei wachsender S-Relation, aber die Singlethread-Variante hier jenseits von kleinen Schwankungen keine Laufzeitveränderung aufzeigt. Dies deutet an, dass ich ungünstige Entscheidungen für die Implementierung des Hybrid-Hash-Algorithmus getroffen habe. Einige Ideen, wie die Implementierung des Multithreading-Hybrid-Hashs verbessert werden kann, habe ich bereits in \autoref{impl:hybrid} erläutert.   
 
 \begin{figure}
 	\centering
 	\includegraphics[width=0.70\textwidth]{Bilder/join_bucket.png}
-	\caption{Selfjoin der Relation \Fb{roads\_str} nach dem Straßenname. TODO Legende}
+	\caption{Selfjoin der Relation \Fb{roads\_str} nach dem Straßenname bei Veränderung der Anzahl von Buckets.}
 	\label{img:joinBucket}
 \end{figure}
 
+Der von mir implementierte Hybrid-Hash-Join teilt den Tupelstrom drei Mal in Buckets auf: für die Partitionierung auf die Threads, dann innerhalb jedes Threads auf eine kleine Zahl Buckets, von denen der Erste direkt verarbeitet wird und abschließend jedes Bucket in jedem Thread in so viele Buckets, dass in jedem Bucket sich möglichst nur ein Tupel befindet. Für die letzte Aufteilung wird ein initialer Wert verwendet. \autoref{img:joinBucket} zeigt Glättungskurven für die Veränderung der Laufzeit einerseits nach der Bucketzahl der ersten Aufteilung im Thread und andererseits nach der initialen Bucketzahl, die in jedem Bucket im Thread wiederum angelegt werden (für die erste Aufteilung im Thread wird hier der Standardwert 20 verwendet). Jenseits der Bucketzahl wurde auch die Größe der R-Relation verändert und der zur Verfügung stehnde Speicher reduziert, damit Auslagerungen und rekursive Aufteilung von nicht in den Hauptspeicher passende Buckets vorgenommen werden müssen.
+
+Die erste Aufteilung entscheidet vor allem darüber, inwieweit Buckets ausgelagert werden müssen. Optimal ist ein Wert, bei dem jeder Bucket in den Hauptspeicher passt und gleichzeitig die Anzahl der Buckets möglichst gering ist, da der erste Bucket, der direkt verschnitten wird, möglichst viele Tupel fasst. Negative Auswirkung hat es auch, wenn die Größe so gewählt wird, dass rekursive Ausführung des Hashing-Algorithmus notwendig werden, was vor allem dann auftritt, wenn die Relation bzgl. des Join-Attributs ungleich verteilt ist. Bei einer großen Relation und ohne eine Einschränkung des zur Verfügung stehenden Arbeitsspeichers gibt es dementsprechend einen Schwellwert für die Bucketzahl, an dem die optimale Speichernutzung erreicht ist und dementsprechend sich das Laufzeitverhalten deutlich ändert. Alle anderen Änderungen haben keine große Auswirkung. In allen betrachteten Beispielen gibt es einen oder sehr wenige gewählte Bucketmengen, die sich negativ auf die Laufzeit auswirken.
+
+Die Anzahl initialer Buckets gilt nur für den ersten Bucket in jedem Thread, der direkt verschnitten wird. Trotzdem hat seine Größe eine deutlich Auswirkung auf das Laufzeitverhalten. Sofern viele Tupel in dem gleichen Bucket einsortiert werden, ist ein Verschneiden über eine Schleife notwendig -- der Algorithmus nähert sich also einem Loop-Join an. Dementsprechend die die Auswirkung stärker bei großen Relationen, da mehr Tupel auf eine Hashtabelle verteilt werden. Nach erreichen eines Optimums, bei dem jeder vorkommende Hashwert auf ein eignen Bucket aufgeteilt wird, ist keine Veränderung mehr zu erwarten. Bis zu diesem Punkt verändert sich das Laufzeitverhalten schwankend, da es vorkomen kann, dass auch bei mehr verwendeten Buckets eine Verteilung ungleichmäßiger wird. Im Gegensatz dazu hat der zur Verfügung stehende Arbeitsspeicher für den Operator nur insofern einen Einfluss, dass weniger Tupel auf die Buckets verteilt werden müssen, sich also das Optimum früher einstellt und gleichzeitig die Schwankungen nicht so stark ausgeprägt sind, da im Durchschnitt auch weniger Tupel mit gleichen Hashwerten vorhanden sind.
+
 \subsubsection{Experimente MThreadedSpatialJoin}
+\label{exp:sj}
+
+Um das Laufzeitverhalten des Multithreading-Spatial-Joins zu verstehen, habe ich drei unterschiedliche Experimente durchgeführt: Bei verschiedenen Relationen, einem Selfjoin von \Fb{roads} und [$waterways \bowtie roads$, habe ich die Größe der R- und S-Relation variiert (\autoref{img:sjExpHeadAllg}). Bei einem einer Verschneidung der Relationen \Fb{roads} und \Fb{landuse} habe ich dem Operator unterschiedlich viel Arbeitsspeicher zur Verfügung gestell \autoref{im:sjMemExp} und bei dem gleichen Join die Konfiguration des Verwendeten R-Baums bei unterschiedlich großen Relationen variiert \autoref{img:sjTreeExp}.
 
 \begin{figure}
 	\centering
-	\subfloat[Selfjoin\label{img:sjHeadExpRr}]{{\includegraphics[width=0.70\textwidth]{Bilder/sj_head_rr.png}}}
+	\subfloat[Selfjoin\label{img:sjHeadExpRr}]{{\includegraphics[width=0.60\textwidth]{Bilder/sj_head_rr.png}}}
 	\qquad	
-	\subfloat[$waterways \bowtie roads$\label{img:sjHeadExpWr}]{{\includegraphics[width=0.70\textwidth]{Bilder/sj_head_wr.png}}}	
+	\subfloat[$waterways \bowtie roads$ bzw. $roads \bowtie waterways$\label{img:sjHeadExpWr}]{{\includegraphics[width=0.60\textwidth]{Bilder/sj_head_wr.png}}}	
 	\caption{Spatial Joins mit unterschiedlichen Relationen und Relationsgrößen}
 	\label{img:sjExpHeadAllg}
 \end{figure}
+
+Effizienter ist der von mir implementierte Algorithmus lediglich bei kleinen Relationen, sowohl bzgl. der R- als auch der S-Relation. Bei dem Selfjoin, dessen Laufzeitanalyse in \autoref{img:sjHeadExpRr} dargestellt ist, ist der Anstieg der Laufzeit bei der Singlethread-Variante nahezu linear, bei der Multithread-Variante exponentiell. Also ist wahrscheinlich eine ungünstiger Algorithmus der Grund, dass die Performancevorteile bei kleinen Relationen bei deren Vergräßerung verloren gehen. Im Experiment, dessen Ergebnis in \autoref{img:sjHeadExpW} dargestellt ist, wurden die R- sowie die S-Relation ausgetauscht und dann die Größe der R-Relation variiert. Die eine Relation, die die Wasserwege in Berlin darstellt, ist sehr klein (2104 Tupel). In beiden Fällen ist der Anstieg der Laufzeit im Gegensatz zu großen Relationen noch vergleichbar mit der Singlethread-Variante und insgesamt ist die Laufzeit unter Nutzung mehrerer Kerne besser. 
 
 \begin{figure}
 	\centering
@@ -1155,8 +1208,15 @@ bucket größe,
 	\label{img:sjExpAllg}
 \end{figure}
 
-\subsubsection{Experimente MThreadedFilter}
+\autoref{img:sjMemExp} zeigt die Veränderung der Laufzeit, wenn der dem Operator zur Verfügung stehende Speicher reduziert wird. Hier gibt es nur eine Spring von 80~MB zum Speicher, dem der Operator im Standardfall zur Verfügung steht. Der Operator benötigt mehrere Iterationen und muss Teile der R-Relation auslagern, wenn für die vollständige interne Struktur (also für die Tupel der R-Relation und den R-Baum) für diese Relation nicht genügend Speicher zur Verfügung steht. Hier ist das Verhalten des Operators merkwürdig, da bereits ab 80~MB keine Auslagerungsdateien mehr notwendig sind und bei 40~MB für jeden Thread nur eine Iteration notwendig ist, bei weniger Speicher mehr. Die I/O-Operationen sind also für den Operator nicht geschwindigkeitsbestimmend. Dies steht im Gegensatz dazu, dass zu Beginn vermutet wurde, dass gerade die I/O-Operationen in einer Systemarchitektur mit geteiltem Permanentspeicher Dateioperationen das Nadelöhr sind, da hier kein paralleler Zugriff möglich ist. Dementsprechend muss bei dem Multithrad-Spatial-Join die Bedeutung der CPU-Zeit für die Laufzeit deutlich dominieren.
 
+Auch eine Konfiguration des R-Baums hat nur sehr wenig Auswirkung auf die Laufzeit. Für den In-Memory-R-Baum habe ich $2-4, 4-8, \ldots, 32-64$ Einträge pro Knoten gewählt. \autoref{img:sjTreeExp} zeigt, dass die Veränderung der Zahl der Einträge und damit der Höhe des Baums nur eine sehr geringe Auswirkung hat auf das Laufzeitverhalten. Wahrscheinlich wäre dies bei deutlich größeren Relationen anders, aber bei 10.000 bzw. 30.000 Tupel lohnt es nicht, den R-Baum beispielsweise über die Attribute des \Fb{mThreadedSpatialJoin}s parametrisierbar zu machen.   
+
+\subsubsection{Experimente MThreadedFilter}
+\label{entw:filter}
+
+Eigentlich habe ich bei dem Filteroperator einen großen Performancegewinn erwartet, sofern die Prädikate einen hohen Rechenaufwand bedürften, was bei Operationen mit komplexen räumlichen Typen der Fall ist. Allerdings zeigt der Operator ein eindeutig schlechteres Laufzeitverhalten als die Singlethread-Variante und sein Laufzeit nimmt mit der Anzahl genutzter Kerne sogar ab. Interessant ist die Analyse dieses Operators vor allem, da sein eigentlicher Algorithmus sehr simpel ist und ich ungünstige Entscheidungen bei der Implementierung des Filters ausschließen kann. Der Algorithmus beruht vor allem auf der Auswertung eines Prädikats mithilfe von je einem Queryprozessor pro Thread.
+  
 \begin{figure}
 	\centering
 	\includegraphics[width=0.70\textwidth]{Bilder/filter_head.png}
@@ -1164,13 +1224,22 @@ bucket größe,
 	\label{img:filterHead}
 \end{figure}
 
-\section{Schluss}
+Da der Operator seinen Speicher nicht selbst verwaltet -- dementsprechend macht eine Analyse des Verhältnisses von Laufzeitverhalten und zur Verfügung stehenden Speichers keinen Sinn. \autoref{img:filterHead} zeigt, dass der auf einem Kern ausgeführte Filter-Operator durchgehend schneller ist als die Multithread-Variante. Ausgewertet wurde ein komplexes Prädikat, welches auf Schnittpunkte zweier Linien prüft. Allerdings ist hier der Anstieg der Laufzeit beim Singlethread-Operator schneller. Da diese Entwicklung erst bei der letzten Messung sichtbar ist, ist jedoch eine sichere Vorhersage das Verhalten bei sehr großen Relationen nicht möglich. Eine Überprüfung ist auch nicht möglich, da der Operator wegen des Problems bei der Synchronisierung der Zugriffe auf die Berkeley-DB bei Relationen über 20.000 Tupeln nicht mehr stabil arbeitet. 
 
-Schwierigkeiten bei der Implementierung, explizit Flob-Problem, Änderungen am Secondo-Kern. Wahrscheinlich wäre es notwendig, einen parallelen Zugriff auf die Berkeley-Datenbankschicht zuzulassen, was aber größere Änderungen am Secondo-Kern nach sich ziehen würde. Leider nur begrenzt benutzbar
+Da das Laufzeitverhalten deutlich hinter den Erwartungen zurückbleibt und eine ungünstige Implementierung der Auswertung der Prädikate ausgeschlossen werden kann, muss der Grund für die schlechte Performance entweder im Scheduling liegen oder in der Synchronisierung. Da in der \Fb{Getnext}-Methode der Tupelstrom an alle Worker-Threads verteilt werden muss und gleichzeitig die Ergebnisse aus den Workern weitergereicht werden müssen, ist das Scheduling komlexer als bei einem seriell arbeitenden Filter und erfordert darüber hinaus eine Synchronisierung. Auch benötigen die Warteschlangen, die für den Austausch von Tupeln zwischen dem Hauptthread und den Workern genutzt werden, eine Synchronisierung über Locks. Eine weitere Erklärung für die schlechte Performance der Multithread-Operatoren sind die Synchronisierungen im Secondo-Kern, vor allem beim Zugriff auf \Fb{FLOBs}, die bei den Auswertungen der Prädikate stattfinden (und bei anderen Operatoren auch beim Auslagern von Daten). Eine gute Performance lässt sich also wahrscheinlich nur erreichen, wenn das Scheduling optimiert wird und vor allem versucht wird, die Operatoren so anzulegen, dass teure Synchronisierungen nur selten eingesetzt werden müssen. Auch wenn hier noch einige Optimierungen möglich sind, zum Beispiel mit der Verwendung von je einer eigenen Ergebniswarteschlange für jeden Thread, aus der alternierend ausgelesen wird, ist wahrscheinlich ein wirklich performantes Multithreading-Secondo nur möglich, wenn parallele Zugriffe auf die Speicherschicht des Datenbanksystems zugelassen werden, auch da eine weitere Synchronisierung der \Fb{FLOBs}, die bisher nicht stabil nutzbar sind bei Zugriffen aus mehreren Threads, noch zu weiteren Perfomanceeinbussen durch umfangreiche Locks oder sogar die teuren Bedingungsvariablen führen würde. 
 
+\section{Schlussbemerkungen}
+
+Eine Bewertung der Implementierung einer Algebra für Multithread-Versionen ausgewählter Operatoren erfolgt anhand der in \autoref{problem} gesetzten Ziele. Eine Implementierung je einer parallelen Version der Operatoren Sort, Equi-Join und Spatial-Join erfolgte inkl. der zwei Schritte des Spatial-Joins, des Filter- und des Refinement-Schritts, die alle mit mehr als 3 Threads lauffähig sind, teils auch mit deutlich mehr Threads als dem System zur Verfügung stehen. Alle Operatoren haben mindestens den gleichen Funktionsumfang wie die Singlethread-Versionen. Beim Spatial-Join-Operator ist es darüber hinaus noch möglich, die Minimal Bounding Box zu vergrößern, so dass sich dieser auch als Filter-Schritt für räumliche Verschmelzungen eignet, deren Prädikate einen Abstand der im Prädikat verwendeten räumlichen Objekte voraussetzen, wie zum Beispiel Joins nach Nachbarschaften. Unter fast allen Bedingungen liefern die Operatoren richtige Ergebnisse. Die einzige Ausnahme ist hier der Hash-Join, der Tupelpaare ignoriert, wenn ein Joinattribut so häufig mit einem gleichen Hashwert vorkommt, dass das entsprechende Bucket nicht mehr in den Hauptspeicher passt. Hier wäre ein Abbruch des Operators sinnvoller, da in diesem Fall ein Hash-Join ein sehr schlechtes Laufzeitverhalten hat und dementsprechend nicht mehr sinnvoll ist.
+
+Die zweite und sehr deutliche Einschränkung der Robustheit ist ein grundsätzliches Problem des Secondo-Kerns in der Synchronisation der Zugriffe auf die Berkeley-DB bzw. die bisherige Einschränkung, dass auf der Storage-Manager keine parallelen Zugriffe auf die Berkeley-DB zulässt. Vor allem sofern \Fb{FLOBs} verwendet werden, reicht die bisherige Synchronisierung von Secondo nicht aus, die vor allem im Flob-Manager stattfindet, so dass abhängig davon, wie häufig die \Fb{FLOBs} in den Hauptspeicher geladen werden müssen, Fehler entstehen, die zu Abstürzen oder Deadlocks führen. Hier wurde versucht, die Synchronisation des Secondo-Kerns zu verbessern, allerdings ohne Erfolg. Auch wenn von mir die Probleme des Kerns für ein paralleles Secondo nur eingegrenzt, aber nicht vollständig identifiziert worden sind, werden folgende Schritte wahrscheinlich notwendig sein, um sinnvoll parallele Operatoren für Secondo implementierten zu können: Weitere Teile der Speicherschicht des Kerns muss mit Locks versehen werden. Zugriffe auf die unterste Speicherschicht unterschiedliche Module von Secondo müssen untereinander synchronisiert werden und nicht nur einzelne Module intern wie der Flob-Manager. Da eine Synchronisierung immer Performanceeinbußen bedeuten, insbesondere wenn sie nicht nur sehr kleine Bereiche betreffen, wäre es der beste Weg, den Secondo-Kern so zu verändert, dass die Berkeley-DB für einen parallelen Zugriff konfiguriert werden kann. 
+
+Nicht erreicht wurde auch das Ziel, dass die Operatoren effizienter als ihre Singlethrad-Varianten sind. Lediglich der Spatial-Join-Operator ist unter bestimmten Bedingungen schneller als die Variante, die nur mit einem Kern arbeitet, allerdings mit der Einschränkungen, dass sich das Laufzeitverhalten bei großen Relationen schneller verschlechtert, also gerade bei sehr großen Relationen die von mir implementierte Variante nicht mehr konkurrenzfähig ist.
+
+Die Gründe, warum probleme flobs haben sehr viel zeit gekostet
 Betrachtung Laufzeitverhalten, hier insbesondere IO-Verhalten, unterschätzte Kosten der Synchronisation
 
-wann lohnt sich Parallelisierung.
+wann lohnt sich Parallelisierung.vermutete Grenze I/O nicht so relevant, inteligente Synchro
 
 
 
