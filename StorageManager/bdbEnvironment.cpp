@@ -1178,6 +1178,18 @@ SmiEnvironment::SetSmiError( const SmiError smiErr,
                       + to_string(sysErr) + " " + DbEnv::strerror( sysErr );
 
     SetSmiError(smiErr, msg, file, pos, desc);
+ 
+    // DbEnv: BDB2055 Lock table is out of available lock entries
+    // E_SMI_BDB sysErrCode=12 Cannot allocate memory   
+    if(sysErr == 12 && useTransactions)
+    {
+       msg = "This error may indicate that the number of MaxLocks / "
+          "MaxLockObjects is too low.\n"
+          "Please check your SecondoConfig.ini or disable "
+          "transactions (RTFlags += SMI:NoTransactions)\n";
+       SetSmiError(smiErr, msg, file, pos, "");
+    }
+
   }
 }
 
