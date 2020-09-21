@@ -309,44 +309,44 @@ Eine Grundidee einer Parallelisierung des Refinementschritts ist simpel. Die Kan
 \subsection{Problemstellung} 3 Seiten
 \label{problem}
 
-Im Folgenden werde ich die Entwicklung und Implementierung von drei parallelen Operatoren und einigen Hilfsoperatoren für die MultiThreaded-Algebra kritisch dokumentieren. Anschließend werde ich meine Implementierung experimentell analysieren, indem ich einerseits die einwandfreie Funktionsfähigkeit überprüfen, das Verhalten im Vergleich zu anderen Operatoren und unter unterschiedlichen Rahmenbedingungen betrachten werde. Einwandfreie Funktionsfähigkeit meint Korrektheit, Robustheit und Effizienz im Laufzeitverhalten. Ein Vergleich findet vor allem mit den Einkernversionen der Operatoren statt.
+Im Folgenden werde ich die Entwicklung und Implementierung von drei parallelen Operatoren und einigen Operatoren für die Parametrisierung für die \Fb{MThreaded}-Algebra kritisch dokumentieren. Anschließend werde ich meine Implementierung experimentell analysieren, indem ich die einwandfreie Funktionsfähigkeit überprüfen und das Verhalten im Vergleich zu anderen Operatoren sowie unter unterschiedlichen Rahmenbedingungen betrachten werde. Einwandfreie Funktionsfähigkeit meint Korrektheit der Ergebnisse, Robustheit in der Ausführung und Effizienz sowie Beschleunigung im Laufzeitverhalten. Ein Vergleich findet vor allem mit den Einkernversionen der Operatoren statt.
 
-Eine Parallelisierung innerhalb des Datenbanksystems wird hier durch die direkte Implementierung paralleler Operatoren gelöst. Ein anderer Ansatz wäre es, Operatoren zur Verfügung zu stellen, die über den Operatorenbaum sozusagen extern eine parallele Ausführung ermöglichen, entweder durch eine parallelisierte Pipeline oder indem Operatoren für eine Partitionierung von Daten an parallel auszuführende Einkernoperatoren zur Verfügung gestellt werden. Der Nachteil dieses Ansatzes ist, dass keine Anpassungen an den Operatoren mehr vorgenommen werden könnten. Spezielle Optimierungen für eine parallele Ausführung sind also nicht möglich; der Daten- und Kommunikationsfluss orientiert sich ausschließlich an einem Fork-Join-Architekturmuster. Partitionierung und Zusammenführung der Daten können nicht mit der Ausführung verschränkt werden und weder ist eine Kommunikation zwischen den Operatoren möglich noch ein dynamisches Load Balancing. Allerdings hat die Parallelisierung innerhalb von Operatoren auch einen Nachteil: Stehen bei dem externen Ansatz alle Operatoren zur Verfügung, die sich für beide mögliche Ansätze eignen, d.~.h. nicht blockierende Operatoren für eine Pipelineverarbeitung und Operatoren, bei denen nicht zwingend eine Ausführung auf dem gesamten Datensatz notwendig ist, müssen bei dem hier verfolgten Ansatz Operatoren explizit zur Verfügung gestellt werden.  
+Eine Parallelisierung innerhalb des Datenbanksystems wird hier durch die direkte Implementierung paralleler Operatoren gelöst. Ein anderer Ansatz wäre es, Operatoren zur Verfügung zu stellen, die über den Operatorenbaum sozusagen extern eine parallele Ausführung ermöglichen, entweder durch eine parallelisierte Pipeline oder indem Operatoren für eine Partitionierung und Zusammenführung von Daten für parallel ausgeführte Singlethread-Operatoren zur Verfügung gestellt werden. Der Nachteil dieses Ansatzes ist, dass keine Anpassungen an den Operatoren vorgenommen werden könnten. Spezielle Optimierungen für eine parallele Ausführung sind also nicht möglich; der Daten- und Kommunikationsfluss orientiert sich ausschließlich an einem Fork-Join-Architekturmuster. Partitionierung und Zusammenführung der Daten können nicht mit der Ausführung verschränkt werden und weder ist eine Kommunikation zwischen den Operatoren möglich noch ein dynamisches Load Balancing. Allerdings hat die Parallelisierung innerhalb von Operatoren auch einen Nachteil: Stehen bei dem externen Ansatz alle Operatoren zur Verfügung, die sich für beide mögliche Ansätze eignen, d.~.h. nicht blockierende Operatoren für eine Pipelineverarbeitung und Operatoren, bei denen nicht zwingend eine Ausführung auf dem gesamten Datensatz notwendig ist, müssen bei dem hier verfolgten Ansatz Operatoren explizit zur Verfügung gestellt werden.  
 
-Damit Operatoren geeignet sind für eine parallele Implementierung müssen sie folgende Kriterien erfüllen. Ziel einer Parallelisierung ist dabei immer ein Laufzeitgewinn.
+Damit Operatoren geeignet sind für eine parallele Implementierung, müssen sie folgende Kriterien erfüllen. Ziel einer Parallelisierung ist dabei immer ein Laufzeitgewinn.
 
 \begin{itemize}
 	\item Berechnungen, die auf verschiedene Prozesse verteilt werden können, müssen eine notwendige Komplexität haben, die den notwendigen Verwaltungsaufwand der Parallelisierung aufwiegt.
-	\item Eine Aufteilung von Teilschritten oder -berechnungen auf mehrere Prozesse muss sinnvoll sein.
+	\item Eine Aufteilung von Teilschritten oder -berechnungen auf mehrere Prozesse muss sinnvoll möglich sein.
 	\item Der Operator muss üblicherweise große Datenmengen verarbeiten.
-	\item Zuerst ist es sinnvoll, Operatoren auszuwählen, die häufig verwendet werden, wobei es hier für unterschiedliche Anwendungsfälle Unterschiede geben kann.
-	\item Sofern auch andere Ansätze der Parallelisierung verfolgt werden, ist es insbesondere sinnvoll, Operatoren auszuwählen, bei denen ein externer Ansatz nicht möglich ist.
+	\item Es sinnvoll, Operatoren auszuwählen, die häufig in verbreiteten Anwendungsfällen verwendet werden.
+	\item Sofern im Datenbanksystem auch andere Ansätze der Parallelisierung verfolgt werden, ist es insbesondere sinnvoll, Operatoren auszuwählen, bei denen ein externer Ansatz nicht möglich ist.
 \end{itemize}
 
 Im Rahmen der \Fb{MThreaded-Algebra} habe ich mich dafür entschieden, je einen Sort-, einen Equi-Join- und einen Spatial-Join-Operator zu entwickeln und zu implementieren. Auch wenn es sicher interessant wäre, verschiedene Algorithmen experimentell zu vergleichen, habe ich für jeden Operator nur einen Ansatz verfolgt, da sonst der zeitliche Rahmen dieser Arbeit gesprengt worden wäre. Einen Vergleich habe ich nur theoretisch vorgenommen, um die konkrete Entscheidung für einen Ansatz zu begründen. Im Folgenden werde ich kurz erläutern, warum ich mich die oben genannten Operatoren gewählt habe:
 
-Ein Sort-Operator (\autoref{Sort}) wird häufig verwendet und ist auch die Grundlage für weitere Operatoren, die eine Sortierung verlangen oder für die Erstellung von Indices. Auch wenn in den meisten Ansätzen der Overhead für eine Parallelisierung recht gering ist, hängen die Kosten für die Vergleiche stark davon ab, nach wie vielen und welchen Attributen sortiert werden soll. Sowohl eine Partitionierung als auch internes Pipelining ist möglich. Da Sortierungen meist für ganze Relationen vorgenommen werden, lohnt sich ein Performancegewinn. Eine externe Parallelisierung wäre lediglich denkbar mit einer Bereichs-Partitionierung, da in diesem Fall sortierte Teildaten wieder zusammengesetzt werden können, wobei eine Bereichs-Partitionierung nur sinnvoll vorgenommen werden kann, sofern Statistiken über die zu sortierende Relation vorliegen. Im Gegensatz dazu ist ein explizit parallel implementierter Sort-Operator auch zu einer Lastenverteilung in der Lage, wenn keine Statistiken über die Relation vorliegen.
+Ein Sort-Operator (\autoref{Sort}) wird häufig verwendet und ist darüber hinaus die Grundlage für weitere Operatoren, die eine Sortierung verlangen und für die Erstellung von Indices. Auch wenn in den meisten Ansätzen der Overhead für eine Parallelisierung recht gering ist, hängen die Kosten für die Vergleiche stark davon ab, nach wie vielen und welchen Attributen sortiert werden soll. Sowohl eine Partitionierung als auch internes Pipelining ist möglich. Da Sortierungen meist für ganze Relationen vorgenommen werden, lohnt sich ein Performancegewinn. Eine externe Parallelisierung wäre lediglich mit einer Bereichs-Partitionierung denkbar, da in diesem Fall sortierte Teildaten wieder zusammengesetzt werden können, wobei eine Bereichs-Partitionierung nur sinnvoll vorgenommen werden kann, sofern Statistiken über die zu sortierende Relation vorliegen. Im Gegensatz dazu ist ein explizit parallel implementierter Sort-Operator auch zu einer Lastenverteilung in der Lage, wenn keine Statistiken über die Relation vorliegen.
 
-Equi-Joins (\autoref{Equi Join}) sind eine der teuersten und am häufigsten angewandten Datenbankoperationen. Da sich darüber hinaus, jenseits des Sort-Merge-Algorithmus, die Ansätze zumindest für einen Equi-Join gut für eine Parallelsierung eignen, ist es sinnvoll, diesen Operator in einer parallelen Variante zur Verfügung zu stellen. Allerdings beruhen die meisten Parallisierungs-Ansätze vor allem auf einer Partitionierung der Daten, die sich schwer dynamisieren lässt. Dementsprechend kann zu dem jetzigen Zeitpunkt nicht gesagt werden, ob eine explizite parallele Implementierung vorteilhaft ist gegenüber eines externen Ansatzes. Dies gilt vor allem für Hash-Joins.
+Equi-Joins (\autoref{Equi Join}) sind eine der teuersten und am häufigsten angewandten Datenbankoperatoren. Da sich darüber hinaus, jenseits des Sort-Merge-Algorithmus, die Ansätze zumindest für einen Equi-Join gut für eine Parallelisierung eignen, ist es sinnvoll, diesen Operator in einer parallelen Variante zur Verfügung zu stellen. Allerdings beruhen die meisten Parallisierungs-Ansätze vor allem auf einer Partitionierung der Daten, die sich schwer dynamisieren lässt. Dementsprechend kann zu dem jetzigen Zeitpunkt nicht gesagt werden, ob eine explizite parallele Implementierung vorteilhaft ist gegenüber eines externen Ansatzes. Dies gilt vor allem für Hash-Joins.
 
-Entgegen der beiden erstgenannten Operatoren hat der Spatial Join (\autoref{Spatial Join}) einen beschränkten Anwendungsbereich im Rahmen von Spezialanwendungen, nämlich geografischen Datenbanken. In diesem Feld ist er eine teure und häufige Operation. Da eine der Stärken von Secondo in seinen Erweiterungen für Nichtstandard-Datenbanktypen liegt, ist es sinnvoll, auch für diesen Bereich eine Parallelisierung zur Verfügung zu stellen. Da in Spatial Joins einerseits häufig große Datenmengen verarbeitet werden und auch die Berechnungen räumlicher Beziehungen teuer sind, lohnt es sich, diesen Operator zu parallelisieren. Es existieren diverse Ansätze zu einer parallelen Implementierung. Ein externer Ansatz ist zwar möglich, aber hat beispielsweise Nachteile im Bereich der Duplikatsvermeidung, da eine Duplikatsentfernung nur als nachfolgender Schritt machbar ist. Auch würde es Query Kenntnisse über Ansätze der Parallelisierung vorraussetzen und die Anfrage selbst wäre zu komplex. 
+Entgegen der beiden erstgenannten Operatoren hat der Spatial-Join (\autoref{Spatial Join}) einen beschränkten Anwendungsbereich im Rahmen von Spezialanwendungen, nämlich geografischen Datenbanken. In diesem Feld ist er eine teure und häufige Operation. Da eine der Stärken von Secondo in seinen Erweiterungsmöglichkeiten für Nichtstandard-Datenbanktypen liegt, ist es sinnvoll, auch für diesen Bereich eine Parallelisierung zur Verfügung zu stellen. Da in Spatial-Joins einerseits häufig große Datenmengen verarbeitet werden und andererseits die Auswertung räumlicher Prädikate teuer sind, lohnt es sich, diesen Operator zu parallelisieren. Es existieren diverse Ansätze zu einer parallelen Implementierung. Ein externer Ansatz ist zwar möglich, aber hat beispielsweise Nachteile im Bereich der Duplikatsvermeidung, da in diesem Fall eine Duplikatsentfernung nur als nachfolgender und zusätzlicher Schritt machbar ist. 
 
-Da ich hier Operatoren nur für eine shared-all-Architektur (\autoref{P_DBS_DBS}) entwickle, ist es wichtig, insbesondere deren Implikationen zu betrachten. Ein gemeinsam geteilter Permanentspeicher bedeutet, dass I/O-Operationen zum Flaschenhals werden können, da hier keine Parallelisierung möglich ist. Algorithmen müssen also so gewählt werden, dass sie so wenig I/O-intensiv wie möglich sind. Geteilter Speicher dagegen ermöglicht eine vergleichweise kostengünstige Kommunikation zwischen den Prozessen und die Nutzung globaler Strukturen, die von allen Prozessen geteilt werden.
+Da ich hier Operatoren nur für eine shared-all-Architektur (\autoref{P_DBS_DBS}) entwickle, ist es wichtig, deren Implikationen zu betrachten. Ein gemeinsam geteilter Permanentspeicher bedeutet, dass I/O-Operationen zum Flaschenhals werden können, da hier keine Parallelisierung möglich ist. Algorithmen müssen also so gewählt werden, dass sie so wenig I/O-intensiv wie möglich sind. Geteilter Speicher dagegen ermöglicht eine vergleichsweise kostengünstige Kommunikation zwischen den Prozessen und die Nutzung globaler Strukturen, die von allen Prozessen geteilt werden.
 
 Abschließend fasse ich noch einmal die Ziele für die Implementierung der MThreaded-Algebra zusammen:
 
 \begin{itemize}
 	\item Implementierung einer parallelen Version der Operatoren Sort, Equi-Join und Spatial-Join.
-	\item Alle entwickelten Operatoren arbeiten mit mindestens drei Kernen: ein Kern für den Hauptprozess und mindestens zwei weitere Threads.
-	\item Gleicher Funktionsumfang wie Einkernversionen und einfache Bedienbarkeit.
-	\item Alle Operatoren sollen mit beliebig großen Relationen und allen möglichen Attributen arbeiten können.  
+	\item Alle entwickelten Operatoren arbeiten mit mindestens drei Kernen: ein Kern für den Hauptprozess und mindestens zwei für weitere Threads.
+	\item Gleicher Funktionsumfang wie Singlethread-Versionen und einfache Bedienbarkeit.
+	\item Alle Operatoren sollen mit beliebig großen Relationen und der ganzen Bandbreite zur Verfügung stehender Attributen arbeiten können.  
 	\item Korrektheit, d.~h. unter allen Bedingungen richtige Ergebnisse.
 	\item Robustheit, d.~h. keine Abstürze bei Fehleingaben und korrektes Arbeiten auch bei ungewöhnlichen Strukturen/Verteilungen der Eingaberelationen.
-	\item Effizienz, d.~h. bessere Performance als Einkernversionen der entsprechenden Operatoren ab einer Mindestrelationsgröße.
-	\item Ziel ist hier, dass der Geschwindigkeitsgewinn pro Kern mit vollem Funktionsumfang möglichst linear ist. Zumindest soll versucht werden, den Overhead so gering wie möglich zu halten.
+	\item Effizienz, d.~h. bessere Performance als Singlethread-Versionen der entsprechenden Operatoren ab einer Mindestrelationsgröße.
+	\item Der Geschwindigkeitsgewinn pro Kern mit vollem Funktionsumfang soll möglichst linear sein. Zumindest soll versucht werden, den Overhead so gering wie möglich zu halten.
 \end{itemize}
 
-\subsection{Entwurf} 10 Seiten
+\subsection{Entwurf}
 \label{Entwicklung} 
 
 \subsubsection{Operatoren für die Parametrisierung}
@@ -354,9 +354,9 @@ Abschließend fasse ich noch einmal die Ziele für die Implementierung der MThre
 Die Parametrisierung der \Fb{MThreaded}-Algebra soll mithilfe von drei Operatoren vorgenommen werden:
 
 \begin{itemize}
-	\item maxcore gibt die maximale Anzahl von Kernen/Threads des Systems aus.
-	\item setcore setzt die Anzahl der Threads, die von den Operatoren der Algebra genutzt werden. Der Standardwert ist 3.
-	\item getcore gibt die Anzahl der Threads aus, die in der Algebra verwendet werden.
+	\item \Fb{maxcore} gibt die maximale Anzahl von Kernen/Threads des Systems aus.
+	\item \Fb{setcore} setzt die Anzahl der Threads, die von den Operatoren der Algebra genutzt werden. Der Standard- und Mindestwert ist drei.
+	\item \Fb{getcore} gibt die Anzahl der Threads aus, die in der Algebra verwendet werden.
 \end{itemize}
 
 \subsubsection{k-Merge-Sort} 3 S
@@ -444,44 +444,48 @@ In \autoref{Equi Join} habe ich gezeigt, dass für einen parallelen Ansatz vor a
 
 \footnotetext{\fullcite{Richly2009}}
 
-Anders als der parallele Sort-Operator unterscheidet sich der parallele Hybrid-Hash-Join nur durch eine Hash-Partitionierung von der Single Thread-Version. Der Algorithmus, der innerhalb der einzelnen Threads abläuft, ist jeweils ein serieller Hybrid-Hash-Join. In einem ersten Schritt werden also so viele Partitionen erzeugt, wie Kerne verwendet werden und die entsprechenden Tupel als Strom an die Hash-Join-Worker genannten gleichzeitigen Prozesse verteilt.
+Anders als der parallele Sort-Operator unterscheidet sich der parallele Hybrid-Hashjoin nur durch eine Hash-Partitionierung von der Singlethread-Version. Der Algorithmus, der innerhalb der einzelnen Threads abläuft, ist jeweils ein serieller Hybrid-Hash-Join. In einem ersten Schritt werden also so viele Partitionen erzeugt, wie Kerne für die Worker zur Verfügung stehen, und die entsprechenden Tupel als Strom an die Hash-Join-Worker genannten gleichzeitigen Prozesse verteilt.
 
-Der Algorithmus lässt sich in zwei Phasen aufteilen (siehe \autoref{img:hybrid}). In der ersten Phase wird die erste Relation so auf Buckets verteilt, dass ein Bucket möglichst den dem Thread zur Verfügung stehenden Hauptspeicher füllt. In diesem Bucket wird eine Hauptspeicher-Hashtabelle angelegt, in der idealerweise in jedem derer Buckets genau ein Tupel gespeichert wird, um die Anzahl notwendiger Vergleiche so gering wie möglich zu halten. Hier sieht man bereits, dass die Verteilung der Relation für die Effizienz dieses Algorithmus von großer Bedeutung ist. Die anderen Buckets werden temporär zwischengespeichert. In einem zweiten Schritt wird die zweite Relation durchgescannt und vergleichbar verfahren: Tupel, die dem ersten Bucket zugeordnet werden, können direkt an den Ergebnisstrom weitergegeben werden, wenn sie in den Join-Attributen mit dem Tupel der ersten Relation übereinstimmen. Die anderen Buckets werden wie bei der ersten Relation temporär zwischengespeichert. \autoref{list:hybrid} zeigt den Ablauf der ersten Phase. Da zum Abschluss dieser Phase beide Relationen einmal durchgelaufen sind, können Statistiken ermittelt werden, die es in der zweiten Phase ermöglichen, anstatt mit vorher festgelegten Werten für die Anzahl der Buckets mit abgeschätzen zu arbeiten. Auch wenn dies nicht vollständig verhindern kann, dass einzelne Hashtabellen nicht in den Hauptspeicher passen, ist es doch ein wichtiger Ansatz, um die Chance möglicher Overflows zu reduzieren.   
+Der Algorithmus lässt sich in zwei Phasen aufteilen (siehe \autoref{img:hybrid}). In der ersten Phase wird die erste, also die R-Relation so auf Buckets verteilt, dass ein Bucket möglichst den dem Thread zur Verfügung stehenden Hauptspeicher vollständig füllt. In diesem Bucket wird eine Hauptspeicher-Hashtabelle angelegt, in der idealerweise in jedem derer Buckets genau ein Tupel gespeichert wird, um die Anzahl notwendiger Vergleiche so gering wie möglich zu halten -- insbesondere wenn durch eine ungünstige Verteilung in der R-Relation oder eine schlechte Hashfunktion sehr viele Tupel in das gleiche Bucket gespeichert wird, nähert sich der Operator einem Loop-Join an und wird ineffizient. Hier sieht man also bereits, dass die Verteilung vor allem der R-Relation für die Effizienz dieses Algorithmus von großer Bedeutung ist. Die anderen Buckets werden temporär zwischengespeichert, entweder in einer Auslagerungsdatei oder im Hauptspeicher. In einem zweiten Schritt wird die zweite, also die S-Relation durchgescannt. Tupel, die dem ersten Bucket zugeordnet werden, können direkt in der ersten Phase verschmolzen und an den Ergebnisstrom weitergegeben werden, wenn sie in den Join-Attributen mit dem Tupel der ersten Relation übereinstimmen. Die anderen Buckets werden wie bei der R-Relation temporär zwischengespeichert für eine Verarbeitung in der zweiten Phase. \autoref{list:hybrid} zeigt den Ablauf der ersten Phasen. Da zum Abschluss der ersten Phase beide Relationen einmal durchlaufen worden sind, können Statistiken ermittelt werden, die es in der zweiten Phase ermöglichen, anstatt mit vorher festgelegten Werten für die Anzahl der Buckets mit abgeschätzten zu arbeiten. Auch wenn dies nicht vollständig verhindern kann, dass einzelne Hashtabellen nicht in den Hauptspeicher passen, ist es doch ein wichtiger Ansatz, um die Chance möglicher Overflows zu reduzieren.   
 
 \begin{minipage}{\linewidth}
-	\begin{lstlisting}[caption={Phase 1 Hybrid Hash Join}, label=list:hybrid] 
-	readNextTupleR
-	while (StreamR) 
-	bucket = calculateBucket
-	if (bucket = 0)
-	if (overflow)
-	overflowhandling
-	insertInMemoryHashTable
-	elseif
-	insertInPersistentHashStructur
-	readNextTupleR
+	\begin{lstlisting}[caption={Phase 1 Hybrid-Hash-Join}, label=list:hybrid] 
+	lese nächsten Tuple aus R;
+	while (Tupel aus R ungleich null) 
+		bucket = berechne Bucket mit Hashfunktion;
+		if (bucket = 0)
+			if (Tupel passt nicht mehr in Speicher)
+				speichere Tupel für Overflow-Behandlung und merke, ab welchem Bucket es auftritt;
+			elseif
+				speichere Tupel in interner Hashtabelle;
+		elseif
+			speichere Tupel in persistenter Hash-Tabelle;
+		lese nächsten Tuple aus R;
 	endwhile
 	
-	readNextTupleS
-	while (streamS)
-	bucket = calculateBucket
-	if ()bucket = 0)
-	if (overflowR)
-	overflowhandling
-	for (allInSameInMemoryHashBucket)
-	if (equalOnJoinAttr)
-	result = concat(tupleR, tupleS)
-	insert result in resultBuffer
-	elseif
-	insertInPersistentHashStructur
-	readNextTupleS
+	lese nächsten Tuple aus S;
+	while (Tupel aus R ungleich null)
+		bucket = berechne Bucket mit Hashfunktion;
+		if (bucket = 0)
+			if (bucket im Overflow-Bereich von R)
+				speichere Tupel für Overflow-Behandlung; 
+			elseif
+				for (alle Tupel im entsprechenden Bucket)
+					if (TupelR und TupelS gleich in Joinattribut)
+						result = concat(tupleR, tupleS);
+						speichere result im Resultbuffer;
+					elseif
+						lösche TupelS;
+		elseif
+			speichere Tupel in persistenter Hash-Tabelle;
+		lese nächsten Tuple aus S;
 	endwhile
 	\end{lstlisting}
 \end{minipage}
 
 In der zweiten Phase werden dann die restlichen Buckets der ersten Aufteilung der Reihe nach in den Hauptspeicher geladen und in der gleichen Art und Weise Tupel bestimmt, die in ihren Join-Attributen übereinstimmen. Da jetzt bereits bekannt ist, ob die einzelnen Buckets in den Hauptseicher passen, müssen nicht mehr, wie in Phase 1, bei einem Überlauf Teile eines Buckets in eine Überlaufstruktur geschrieben werden, sondern diese kann direkt angelegt werden.
 
-Der Umgang mit möglichen Overflows macht den Algorithmus deutlich komplexer als eine Version, in der unendlich viel Hauptspeicher zur Verfügung stünde. Auch wenn in vielen Fällen Hash-Join-Algorithmen sehr effizient sind, haben sie ein schlechtes Worst-Case-Verhalten, da in einem Extremfall alle Tupel den gleichen Hash-Wert hätten. Danit der Algorithmus auch für ungünstig verteilte Relationen funktioniert, wird die Overflow-Behandlung rekursiv angelegt. Die Grundstruktur des Algorithmus bleibt dabei dieselbe, aber in jedem Durchlauf kann erneut ein Overflow auftreten. Da dies das gute Verhalten des Hybrid-Hash-Joins bzgl. der I/O-Kosten umkehrt, ist es sehr wichtig, im ersten Scan einer Relation Statistiken über diese zu generieren, die die Hash-Funktion so optimiert, dass möglichst keine Overflows auftreten.
+Der Umgang mit möglichen Overflows macht den Algorithmus deutlich komplexer als eine Version, in der unendlich viel Hauptspeicher zur Verfügung stünde. Auch wenn in vielen Fällen Hash-Join-Algorithmen sehr effizient sind, haben sie ein schlechtes Worst-Case-Verhalten, da in einem Extremfall alle Tupel den gleichen Hash-Wert hätten. Damit der Algorithmus auch für ungünstig verteilte Relationen funktioniert, wird die Overflow-Behandlung rekursiv angelegt. Die Grundstruktur des Algorithmus bleibt dabei dieselbe, aber in jedem Durchlauf kann erneut ein Overflow auftreten. Da dies das gute Verhalten des Hybrid-Hash-Joins bzgl. der I/O-Kosten umkehrt, ist es sehr wichtig, im ersten Scan einer Relation Statistiken über diese zu generieren, die die Hash-Funktion so optimiert, sodass möglichst keine Overflows auftreten.
 
 \subsubsection{Spatial Join} 3 S
 
