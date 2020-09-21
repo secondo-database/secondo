@@ -35,17 +35,28 @@ this class.
 class SecondoException : public std::exception {
 
   public:
-  SecondoException() : msgStr("Unknown Error") {}
-  SecondoException(const std::string& Msg) : exception(), msgStr(Msg) {}
-  SecondoException(const SecondoException& rhs) : 
-    std::exception(), msgStr(rhs.msgStr) {}
-  virtual ~SecondoException() throw() {}
-
-  virtual const char* what() const throw()
-  {
-    return ("Secondo-Exception: " + msgStr).c_str();
+  
+  SecondoException() : msgStr("Secondo-Exception: Unknown Error") {
   }
-  const std::string msg() { return msgStr; }
+
+  SecondoException(const std::string& Msg) : 
+   exception(), msgStr("Secondo-Exception: " + Msg) {
+  }
+
+  SecondoException(const SecondoException& rhs) : 
+    std::exception(), msgStr("Secondo-Exception: " + rhs.msgStr) {
+  }
+
+  virtual ~SecondoException() throw() {
+  }
+
+  virtual const char* what() const throw() {
+    return msgStr.c_str();
+  }
+
+  const std::string msg() { 
+   return msgStr; 
+  }
   
   protected:
     std::string msgStr;
