@@ -27,6 +27,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 #include <algorithm>
 #include <cstdlib>
+#include <random>
 
 #include "Algebras/DBService/RelationInfo.hpp"
 
@@ -101,9 +102,10 @@ return originalLocation;
 
 const ConnectionID RelationInfo::getRandomReplicaLocation()
 {
-    random_shuffle(
+    shuffle(
             nodes.begin(),
-            nodes.end());
+            nodes.end(),
+            std::mt19937(std::random_device()()));
 
     for(const auto& node : nodes)
     {

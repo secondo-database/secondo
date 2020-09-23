@@ -30,6 +30,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <iostream>
 #include <sstream>
 #include <string>
+#include <random>
 
 #include <boost/make_shared.hpp>
 
@@ -516,9 +517,10 @@ void DBServiceManager::getWorkerNodesForReplication(
     }
     vector<ConnectionID>& connectionsForLocation =
             const_cast<vector<ConnectionID>& >(it->second);
-    random_shuffle(
+    shuffle(
             connectionsForLocation.begin(),
-            connectionsForLocation.end());
+            connectionsForLocation.end(),
+            std::mt19937(std::random_device()()));
 
     nodes.insert(nodes.begin(),
             connectionsForLocation.begin(),

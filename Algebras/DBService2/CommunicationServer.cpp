@@ -29,6 +29,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "FileSystem.h"
 #include "StringUtils.h"
 
+#include <random>
+
 #include "SecondoCatalog.h"
 #include "SecondoSystem.h"
 
@@ -398,7 +400,8 @@ bool CommunicationServer::handleProvideReplicaLocationRequest(
        }
        if(!possibleLocations.empty()){
           traceWriter->write(tid, "choose random location"); 
-          random_shuffle(possibleLocations.begin(), possibleLocations.end());
+          shuffle(possibleLocations.begin(), possibleLocations.end(), 
+            std::mt19937(std::random_device()()));
           randomReplicaLocation = possibleLocations.front(); 
        } else {
            traceWriter->write(tid, "No locations available");
