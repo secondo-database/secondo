@@ -98,7 +98,7 @@ ostream& operator<<(ostream& o, const mm2algebra::AttrIdPair& t) {
 
 namespace mm2algebra {
 
-MemCatalog* catalog =0;
+MemCatalog* catalog = 0;
 
 MemCatalog* getMemCatalog(){ 
    return catalog;
