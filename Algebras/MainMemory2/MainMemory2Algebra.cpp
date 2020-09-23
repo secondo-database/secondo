@@ -18001,8 +18001,8 @@ Operator mg2numverticesOp(
 */
 template<class Graph>
 ListExpr mgsuccpredTM(ListExpr args){
-  if(!nl->HasLength(args,2)){
-    return listutils::typeError("two arguments required");
+  if(!nl->HasLength(args,2) &&!nl->HasLength(args,3)){
+    return listutils::typeError("two or three arguments required");
   }
   ListExpr g;
   if(!getMemSubType(nl->First(args),g)){
@@ -18016,8 +18016,18 @@ ListExpr mgsuccpredTM(ListExpr args){
   if(!CcInt::checkType(node) ){
     return listutils::typeError("second arg has to be of type int");
   }
-  return nl->TwoElemList(listutils::basicSymbol<Stream<Tuple> >(),
-                         nl->Second(g));
+  ListExpr resType = Stream<Tuple>::wrap(nl->Second(g));
+  if(nl->HasLength(args,3)){
+     if(!CcBool::checkType(nl->Third(args))){
+       return listutils::typeError("third argument is not of type bool");
+     }
+     return resType;
+  }
+  // optional bool argument missing, add default 
+  return nl->ThreeElemList(nl->SymbolAtom(Symbols::APPEND()),
+                           nl->OneElemList(nl->BoolAtom(false)),
+                           resType);
+
 }
 
 
@@ -18035,18 +18045,26 @@ int mgsuccpredVMT(Word* args, Word& result, int message,
           delete li;
           local.addr = 0;
         }
+        // graph
         Graph* g = getMemObject<Graph>((GN*) args[0].addr);
         if(!g){
           return 0;
         }
+        // node
         CcInt* v = (CcInt*) args[1].addr;
         if(!v->IsDefined()){
           return 0;
         }
+        // delete option
+        CcBool* DelOption = (CcBool*) args[2].addr;
+        if(!DelOption->IsDefined()){
+           return 0;
+        } 
+        bool delOption = DelOption->GetValue();
         if(isSucc){
-           local.addr = g->getSuccessors(v->GetValue());
+           local.addr = g->getSuccessors(v->GetValue(),delOption);
         } else {
-           local.addr = g->getPredecessors(v->GetValue());
+           local.addr = g->getPredecessors(v->GetValue(),delOption);
         }
         return 0;
      }
@@ -18080,16 +18098,24 @@ int mgsuccpredSelect(ListExpr args){
 }
 
 OperatorSpec mg2successorsSpec(
-"MGRAPH2 x int -> stream(tuple)",
+"MGRAPH2 x int [x bool] -> stream(tuple)",
 "_ mg2successors [_]",
-"returns the successors of a specified node.",
+"returns the successors of a specified node."
+"if the optional boolean argument exist with value true,"
+" all outgoing edges of this node are removed. This holds "
+"also in the case that only a part of these edges are "
+"put into result stream (e.g., restricted by a head).",
 "query mg2 mg2successors[0] count"
 );
 
 OperatorSpec mg2predecessorsSpec(
-"MGRAPH2 x int -> stream(tuple)",
+"MGRAPH2 x int [x bool] -> stream(tuple)",
 "_ mg2predecessors [_]",
 "returns the predecessors of a specified node.",
+"if the optional boolean argument exist with value true,"
+" all incoming edges of this node are removed. This holds "
+"also in the case that only a part of these edges are "
+"put into result stream (e.g., restricted by a head).",
 "query mg2 mg2predecessors[0] count"
 );
 
@@ -18421,6 +18447,9 @@ ListExpr createmgraph3TM(ListExpr args){
   ListExpr resType = MPointer::wrapType( Mem::wrapType(
                        MGraph3::wrapType(tupleType)));
 
+
+  cout << "result type = " << nl->ToString(resType) << endl;
+
   return nl->ThreeElemList(
             nl->SymbolAtom(Symbols::APPEND()),
             nl->ThreeElemList( nl->IntAtom(srcIndex-1),
@@ -18609,17 +18638,25 @@ ValueMapping mg3predecessorsVM[] = {
 
 
 OperatorSpec mg3successorsSpec(
-"MGRAPH3 x int -> stream(tuple)",
+"MGRAPH3 x int [x bool] -> stream(tuple)",
 "_ mg3successors [_]",
 "returns the successors of a specified node.",
+"if the optional boolean argument exist with value true,"
+" all outgoing edges of this node are removed. This holds "
+"also in the case that only a part of these edges are "
+"put into result stream (e.g., restricted by a head).",
 "query mg3 mg3successors[0] count"
 );
 
 OperatorSpec mg3predecessorsSpec(
-"MGRAPH3 x int -> stream(tuple)",
+"MGRAPH3 x int [x bool] -> stream(tuple)",
 "_ mg3predecessors [_]",
 "returns the predecessors of a specified node.",
-"query mg3 mg3predecessors[0] count"
+"if the optional boolean argument exist with value true,"
+" all incoming edges of this node are removed. This holds "
+"also in the case that only a part of these edges are "
+"put into result stream (e.g., restricted by a head).",
+"query mg3 mg3predecessors[0,FALSE] count"
 );
 
 Operator mg3successorsOp(

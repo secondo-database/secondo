@@ -1,4 +1,3 @@
-
 /*
 
 ----
@@ -264,7 +263,7 @@ Returns an iterator over all edges of this graph.
      class singleNodeIterator{
         friend class MGraphCommon;
         public:
-           Tuple* next(){
+           virtual Tuple* next(){
              if(it!=list->end()){
                Tuple* res = it->info;
                res->IncReference();
@@ -273,15 +272,65 @@ Returns an iterator over all edges of this graph.
              }
              return 0;
            }
+           virtual ~singleNodeIterator(){}
+
         private:
            std::list<MEdge>* list;
            std::list<MEdge>::iterator it;
 
            singleNodeIterator( std::list<MEdge>* _list){
               this->list = _list;
-              it = list->begin();
+              if(list!=nullptr){
+                it = list->begin();
+              }
            } 
      }; // end of class singleNodeIterator
+     
+     class singleNodeDeleteIterator : public singleNodeIterator{
+        friend class MGraphCommon;
+        public:
+  
+         virtual Tuple* next(){
+            if(vlist.empty()){
+               return nullptr;
+            }
+            MEdge e = vlist.front();
+            vlist.pop_front();
+            if(e.info){
+              e.info->IncReference();
+            }
+            return e.info;
+           }
+  
+        private:
+           std::list<MEdge> vlist;
+
+           singleNodeDeleteIterator( int _vertex,
+                               MGraphCommon* _graph,
+                               bool _successors):singleNodeIterator(0){
+              if(_successors){
+                std::swap(vlist,_graph->graph[_vertex].first);
+              } else {
+                std::swap(vlist,_graph->graph[_vertex].second);
+              }
+              delBack(vlist,_graph,_successors,_vertex);
+           } 
+
+           void delBack(std::list<MEdge>& l, 
+                        MGraphCommon* g, 
+                        bool succ,
+                        int v){
+              std::list<MEdge>::iterator it;
+              for(it = l.begin();it!=l.end(); it++){
+                MEdge e = *it; 
+                if(succ){
+                   MGraphCommon::removeSource(g->graph[e.target].second,v);
+                } else {
+                   removeTarget(g->graph[e.source].first,v);
+                }   
+              } 
+           }
+     }; // end of class singleNodeDeleteIterator
 
 /*
 2.11 ~getSuccessors~
@@ -294,6 +343,16 @@ Returns an iterator over all edges of this graph having ~v~ as source.
            return 0;
         }
         return new singleNodeIterator(&(graph[v].first));
+     }
+
+     singleNodeIterator* getSuccessors(int v, bool delOption){
+        if(v<0 || (size_t)v >= graph.size()){
+           return 0;
+        }
+        if(!delOption){
+           return new singleNodeIterator(&(graph[v].first));
+        }
+        return new singleNodeDeleteIterator(v,this,true);
      }
      
 /*
@@ -312,6 +371,15 @@ Returns an iterator over all edges of this graph having ~v~ as target.
         return new singleNodeIterator(&(graph[v].second));
      }
 
+     singleNodeIterator* getPredecessors(int v, bool delOption){
+        if(v<0 || (size_t)v >= graph.size()){
+           return 0;
+        }
+        if(!delOption){
+           return new singleNodeIterator(&(graph[v].second));
+        }
+        return new singleNodeDeleteIterator(v,this,false);
+     }
 
 /*
 2.13 ~getSuccList~
