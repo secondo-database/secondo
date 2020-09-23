@@ -53,6 +53,7 @@ for query processing.
 #include <sstream>
 #include <queue>
 #include <algorithm>
+#include <random>
 
 #undef TRACE_ON
 //#define TRACE_ON 1
@@ -2973,7 +2974,10 @@ struct ShuffleBuf {
      }
   }
 
-  void shuffle() { random_shuffle(buffer.begin(), buffer.end()); }
+  void shuffle() { 
+    std::shuffle(buffer.begin(), buffer.end(), 
+           std::mt19937(std::random_device()())); 
+  }
 
   inline bool overFlow(const size_t tupleSize) {
 
