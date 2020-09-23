@@ -28,9 +28,9 @@ include ../makefile.env
 # needed for SecondoInterfaceREPLAY
 
 ifneq ($(platform),win32)
- CCFLAGS += -std=c++11
+ CCFLAGS += -std=c++17
 else
- CCFLAGS += -std=c++0x
+ CCFLAGS += -std=c++17
 endif
 
 LIBDIROBJECTS := $(LIBDIR)/SecondoInterfaceCS.$(OBJEXT) 

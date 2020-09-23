@@ -24,7 +24,7 @@
 ########################################################################
 
 include ../makefile.env
-
+CCFLAGS += -std=c++17
 
 # Add the base name of your .cpp file here. The deafult rules should
 # compile and link it, otherwise add special rules
