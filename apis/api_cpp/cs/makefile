@@ -80,8 +80,8 @@ lib/libsecondo.$(LIBEXT): $(CSLIBS)
 
 .PHONY:clean
 clean:
-	rm -rf include
-	rm -rf lib
+	rm -rf include/*.h
+	rm -rf lib/*.a
 	make -C example clean
 
 
