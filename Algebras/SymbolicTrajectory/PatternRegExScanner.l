@@ -33,10 +33,11 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "PatternRegExParser.y.h"
 
+ int yylex_destroy ( void );
 
   void destroyLex(){
      yy_delete_buffer(YY_CURRENT_BUFFER);
-    pregexlex_destroy();
+     pregexlex_destroy();
   }
 
 %}
