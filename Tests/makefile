@@ -24,7 +24,6 @@
 ########################################################################
 
 include ../makefile.env
-CCFLAGS += -std=c++17
 
 # Add the base name of your .cpp file here. The deafult rules should
 # compile and link it, otherwise add special rules
@@ -75,6 +74,7 @@ OBJECTS += libtdynlib1.$(DLLEXT) libtdynlib2.$(DLLEXT)
 endif
 
 CCFLAGS := -I../StorageManager -I../Algebras/TupleIdentifier $(DEFAULTCCFLAGS) $(myflags)
+CCFLAGS += -std=c++17
 LIBS := ../UserInterfaces/cmsg.o $(LD_LINK_LIBS)
 
 .PHONY: all 
