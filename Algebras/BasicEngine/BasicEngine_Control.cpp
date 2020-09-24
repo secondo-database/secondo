@@ -34,6 +34,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "FileSystem.h"
 
 using namespace distributed2;
+using namespace std;
 
 namespace BasicEngine {
 

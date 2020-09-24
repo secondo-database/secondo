@@ -29,6 +29,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <boost/algorithm/string.hpp>
 #include <bits/stdc++.h>
 
+using namespace std;
+
 namespace BasicEngine {
 
 ConnectionPG::ConnectionPG(int nport, string ndbname) {

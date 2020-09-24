@@ -27,6 +27,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 #include <boost/bind.hpp>
 #include <boost/ref.hpp>
+#include "Algebras/Distributed2/ConnectionInfo.h"
 
 #ifndef _BasicEngine_Thread_H_
 #define _BasicEngine_Thread_H_

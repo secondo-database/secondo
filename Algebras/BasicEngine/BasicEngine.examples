@@ -3,20 +3,26 @@ Restore   : No
 
 Operator  : init_pg
 Number    : 1
-Signature : int x {string, text} --> bool
+Signature : int x {string, text} x relation --> bool
 Example   : query init_pg(5432, "gisdb")
 Result    : TRUE
 
-Operator  : be_part
+Operator  : be_partRR
 Number    : 1
 Signature : {string, text} x {string, text} x rel --> bool
-Example   : query be_part("cars", "moid", WorkersPG)
+Example   : query be_partRR("cars", "moid", WorkersPG)
 Result    : FALSE
 
-Operator  : be_part2
+Operator  : be_partHash
 Number    : 1
 Signature : {string, text} x {string, text} x rel --> bool
-Example   : query be_part2("cars", "moid", WorkersPG)
+Example   : query be_partHash("cars", "moid", WorkersPG)
+Result    : FALSE
+
+Operator  : be_partFun
+Number    : 1
+Signature : {string, text} x {string, text} x rel --> bool
+Example   : query be_partFun("cars", "moid","random", WorkersPG)
 Result    : FALSE
 
 Operator  : be_import

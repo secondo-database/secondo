@@ -18,8 +18,9 @@
 #Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 operator init_pg alias INIT_PG pattern op (_, _)
-operator be_part alias BE_PART pattern op (_, _, _)
-operator be_part2 alias BE_PART2 pattern op (_, _, _)
+operator be_partRR alias BE_PARTRR pattern op (_, _, _)
+operator be_partHash alias BE_PARTHASH pattern op (_, _, _)
+operator be_partFun alias BE_PARTFUN pattern op (_, _, _)
 operator be_query alias BE_QUERY pattern op (_, _)
 operator be_command alias BE_COMMAND pattern op (_)
 operator be_copy alias BE_COPY pattern op (_, _)
