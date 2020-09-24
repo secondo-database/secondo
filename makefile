@@ -247,6 +247,7 @@ clean:
 	$(MAKE) -C QueryProcessor clean
 	$(MAKE) -C UserInterfaces clean
 	$(MAKE) -C Jpl clean
+	$(MAKE) -C Javagui clean
 	$(MAKE) -C OptServer clean
 	$(MAKE) -C OptParser clean
 	$(MAKE) -C Optimizer clean
@@ -261,8 +262,6 @@ clean:
 
 .PHONY: realclean
 realclean: clean
-	$(MAKE) -C Javagui clean
-	$(MAKE) -C Tests clean
 	$(MAKE) -C Algebras realclean
 	$(MAKE) -C Optimizer realclean
 	rm -f $(CONFIG_FILES) makefile.algebras 
