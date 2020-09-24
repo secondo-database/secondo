@@ -49,8 +49,7 @@ char* result;
 
 %}
 
-%name-prefix "dateconv"
-
+%name-prefix="dateconv"
 %token NUMBER MONTH
 %%
 
