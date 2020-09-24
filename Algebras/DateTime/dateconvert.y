@@ -29,13 +29,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 %{
 
-#ifdef __cplusplus
-extern "C"{
- int dateconvlex();
- int dateconverror (const char *error);
- void dateconv_scan_string(const char* argument);
-}
-#endif
+int dateconvlex();
+int dateconverror (const char *error);
+void dateconv_scan_string(const char* argument);
 
 
 
@@ -53,7 +49,7 @@ char* result;
 
 %}
 
-%name-prefix="dateconv"
+%name-prefix "dateconv"
 
 %token NUMBER MONTH
 %%
