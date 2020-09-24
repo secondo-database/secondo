@@ -240,6 +240,7 @@ tests: makedirs buildlibs
 clean:
 	$(MAKE) -C ClientServer clean
 	$(MAKE) -C Tools clean
+	$(MAKE) -C Tests clean
 	$(MAKE) -C StorageManager clean
 	$(MAKE) -C Algebras/Management clean
 	$(MAKE) -C Algebras clean
