@@ -63,7 +63,7 @@ DEFAULTCCFLAGS += -Wall
 
 # Define some macros which define optional behaviour in some
 # libraries
-DEFAULTCCFLAGS += -D_REENTRANT -D_GLIBCPP_DEPRECATED 
+DEFAULTCCFLAGS += -D_REENTRANT
 
 CPPSTDOPTION = -std=c++17
 
