@@ -37,71 +37,14 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include <include/Stream.h>
 #include <Algebras/MThreaded/MThreadedAux.h>
-#include <jmorecfg.h>
 #include "Operator.h"
 #include "vector"
 #include "thread"
 #include "condition_variable"
-#include "../MThreadedAlgebra.h"
-#include <utility>
-
 
 namespace mthreaded {
 
-//class DistributWorker {
-//   private:
-//   Stream<Tuple> stream;
-//   std::shared_ptr<std::vector<std::shared_ptr<SafeQueue<Tuple*>>>> buffer;
-//   size_t coreNoWorker;
-//
-//   public:
-//   DistributWorker(
-//           Stream<Tuple> _stream,
-//           std::shared_ptr<std::vector<std::shared_ptr<SafeQueue<Tuple*>>>>
-//           _buffer,
-//           size_t _coreNoWorker);
-//
-//   ~DistributWorker();
-//
-//   // Thread
-//   void operator()();
-//};
-
-
-//class RefinementWorker {
-//   private:
-//   size_t static constexpr DIM = 2;
-//   size_t coreNoWorker;
-//   size_t streamInNo;
-//   std::shared_ptr<SafeQueue<Tuple*>> tupleBuffer;
-//   std::shared_ptr<SafeQueue<Tuple*>> partBuffer;
-//   ArgVectorPointer arguments;
-//   //std::pair<size_t, size_t> joinAttr;
-//   //ListExpr funList;
-//   OpTree funct;
-//
-//
-//   public:
-//   RefinementWorker(
-//           size_t _coreNoWorker,
-//           size_t _streamInNo,
-//           std::shared_ptr<SafeQueue<Tuple*>> _tupleBuffer,
-//           std::shared_ptr<SafeQueue<Tuple*>> _partBuffer,
-//           ArgVectorPointer _arguments,
-//           OpTree _fun);
-//
-//   ~RefinementWorker();
-//
-//   // Thread
-//   void operator()();
-//
-//   private:
-//   void refineNewQP();
-//
-//   void refineQP();
-//};
-
-class RefinementWorkerNew {
+class RefinementWorker {
    private:
    size_t static constexpr DIM = 2;
    size_t coreNoWorker;
@@ -109,15 +52,14 @@ class RefinementWorkerNew {
    size_t streamInNo;
    std::shared_ptr<SafeQueue<Tuple*>> tupleBuffer;
    std::shared_ptr<SafeQueue<Tuple*>> partBuffer;
-   //std::pair<size_t, size_t> joinAttr;
-   //ArgVectorPointer arguments;
    QueryProcessor* qpThread;
    ListExpr funList;
    OpTree funct;
+   Stream<Tuple> stream;
 
 
    public:
-   RefinementWorkerNew(
+   RefinementWorker(
            size_t _coreNoWorker,
            //size_t _bufferSize,
            size_t _streamInNo,
@@ -125,9 +67,10 @@ class RefinementWorkerNew {
            std::shared_ptr<SafeQueue<Tuple*>> _partBuffer,
            QueryProcessor* _qpThread,
            ListExpr _funList,
-           OpTree _funct);
+           OpTree _funct,
+           Stream<Tuple> _stream);
 
-   ~RefinementWorkerNew();
+   ~RefinementWorker();
 
    // Thread
    void operator()();
@@ -142,28 +85,21 @@ class RefinementWorkerNew {
 class refinementLI {
    private:
 
-   //std::vector<Word> fun;
    Stream<Tuple> stream;
    Word funText;
-   //std::pair<size_t, size_t> joinAttr;
    std::vector<std::thread> filterThreads;
-   //std::thread distributor;
    size_t coreNo;
    size_t coreNoWorker;
    const size_t cores = MThreadedSingleton::getCoresToUse();
    std::shared_ptr<SafeQueue<Tuple*>> tupleBuffer;
-   std::vector<std::shared_ptr<SafeQueue<Tuple*>>> buffer;
+   std::shared_ptr<std::vector<std::shared_ptr<SafeQueue<Tuple*>>>> buffer;
    ListExpr funList;
    bool phaseStream;
    bool streamDone;
    size_t countWorker;
    size_t fillCounter;
-   //size_t bufferSize;
-
    std::vector<QueryProcessor*> qpVec;
    std::vector<OpTree> funct;
-
-   //void readStream();
 
    public:
    //Constructor

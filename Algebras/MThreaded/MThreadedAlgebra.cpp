@@ -38,7 +38,6 @@ Our MThreaded-Algebra has only a bunch of Operators.
 #include "AlgebraManager.h"
 #include "ListUtils.h"
 
-#include "basicOperators/opTypeOperators.h"
 #include "basicOperators/opBasicOperators.h"
 #include "sortOperators/opMergeSort.h"
 #include "joinOperators/opHybridHashJoin.h"
@@ -50,6 +49,8 @@ extern NestedList* nl;
 extern QueryProcessor* qp;
 
 namespace mthreaded {
+//global mutex for tuple counter
+extern std::mutex mutexTupleCounter_;
 
 class MThreadedAlgebra : public Algebra {
 /*
@@ -57,16 +58,7 @@ class MThreadedAlgebra : public Algebra {
 The shared-pointers are alive as long as the algebra-object lives in Secondo.
 (C++11-feature)
 
-1.1.1 Type Operators
-
-*/
-   std::shared_ptr<Operator> opTypeSpatial =
-           op_typeop_spatial().getOperator();
-   std::shared_ptr<Operator> opTypeSpatial2 =
-           op_typeop_spatial2().getOperator();
-
-/*
-1.1.2 Basic Operators
+1.1.1 Basic Operators
 
 */
    std::shared_ptr<Operator> opMaxCore = op_maxcore().getOperator();
@@ -74,14 +66,14 @@ The shared-pointers are alive as long as the algebra-object lives in Secondo.
    std::shared_ptr<Operator> opGetCore = op_getcore().getOperator();
 
 /*
-1.1.3 Sort Operators
+1.1.2 Sort Operators
 
 */
 
    std::shared_ptr<Operator> opMergeSort = op_mergeSort().getOperator();
 
 /*
-1.1.4 Join Operators
+1.1.3 Join Operators
 
 */
 
@@ -92,10 +84,6 @@ The shared-pointers are alive as long as the algebra-object lives in Secondo.
 
    public:
    MThreadedAlgebra() : Algebra() {
-
-      // type operators
-      AddOperator(opTypeSpatial.get());
-      AddOperator(opTypeSpatial2.get());
 
       // basic operators
       AddOperator(opMaxCore.get());

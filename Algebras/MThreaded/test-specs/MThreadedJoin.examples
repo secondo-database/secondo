@@ -5,18 +5,18 @@ Restore: No
 Operator    : setcore
 Number      : 2
 Signature   : int -> bool
-Example     : query setcore(4)
+Example     : query setcore(3)
 Result      : TRUE
-
-Operator    : getcore
-Number      : 3
-Signature   : -> int
-Example     : query getcore()
-Result      : 4
 
 Operator    : mThreadedHybridJoin
 Number      : 4
 Signature   : stream x stream x attr x attr -> stream
-Example     : query pois_roads_sj  feed {p}  pois_str feed  {o} mThreadedHybridJoin[Code_p_p, Code_o] {memory 50} count
-Result      : 15
+Example     : query roads_str feed {p} roads_str feed {o} mThreadedHybridJoin[NameStr_p, NameStr_o] project[NameStr_o] sortby[NameStr_o] count
+Result      : TRUE
+
+Operator    : mThreadedHybridJoin
+Number      : 5
+Signature   : stream x stream x attr x attr -> stream
+Example     : query (roads_str feed {p} roads_str feed {o} mThreadedHybridJoin[NameStr_p, NameStr_o] {memory 10} project[NameStr_o] sortby[NameStr_o]) = (roads_str feed {p} roads_str feed {o} sortmergejoin[NameStr_p, NameStr_o] project[NameStr_o] sortby[NameStr_o])
+Result      : TRUE
 

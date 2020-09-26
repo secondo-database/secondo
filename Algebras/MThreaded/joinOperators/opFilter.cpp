@@ -48,10 +48,9 @@ These Operators are:
 #include "StandardTypes.h"      // provides int, real, string, bool type
 #include "Symbols.h"            // predefined strings
 #include "ListUtils.h"          // useful functions for nested lists
-#include "LogMsg.h"             // send error messages
-#include <cmath>
 #include <atomic>
 #include <Algebras/FText/FTextAlgebra.h>
+#include <chrono>
 
 
 using namespace mthreaded;
@@ -63,46 +62,45 @@ extern QueryProcessor* qp;
 namespace filterGlobal {
 constexpr unsigned int DIMENSIONS = 2;
 std::atomic<size_t> threadsDone;
-std::atomic<size_t> bufferDone;
-bool startCalc;
-bool startGetNext;
 bool endRefinement;
+bool startStream;
+std::mutex stream_;
 std::mutex endThreads_;
-std::mutex stopCalc_;
-std::mutex stopGetNext_;
-std::mutex qp_;
-std::condition_variable stopCalcC;
-std::condition_variable stopGetNextC;
 std::condition_variable endThreadsC;
 }
 
 using namespace filterGlobal;
 
-RefinementWorkerNew::RefinementWorkerNew(
+RefinementWorker::RefinementWorker(
         size_t _coreNoWorker,
-        //size_t _bufferSize,
         size_t _streamInNo,
         shared_ptr<SafeQueue<Tuple*>> _tupleBuffer,
         shared_ptr<SafeQueue<Tuple*>> _partBuffer,
         QueryProcessor* _qpThread,
         ListExpr _funList,
-        OpTree _funct) :
+        OpTree _funct,
+        Stream<Tuple> _stream) :
         coreNoWorker(_coreNoWorker),
         //bufferSize(_bufferSize),
         streamInNo(_streamInNo),
         tupleBuffer(_tupleBuffer), partBuffer(_partBuffer),
-        qpThread(_qpThread), funList(_funList), funct(_funct) {
+        qpThread(_qpThread), funList(_funList), funct(_funct),
+        stream(_stream) {
 }
 
-RefinementWorkerNew::~RefinementWorkerNew() {
-   cout << "destruct candidate: " << streamInNo << endl;
+RefinementWorker::~RefinementWorker() {
 }
 
 // Thread
-void RefinementWorkerNew::operator()() {
+void RefinementWorker::operator()() {
    endRefinement = false;
    ArgVector &arguments = *qpThread->Argument(funct);
-   Tuple* tuple = partBuffer->dequeue();
+   Tuple* tuple = nullptr;
+   {
+      lock_guard<std::mutex> lock(endThreads_);
+      tuple = stream.request();
+   }
+
    while (tuple != nullptr) {
       arguments[0].setAddr(tuple);
       Word funres;
@@ -112,12 +110,17 @@ void RefinementWorkerNew::operator()() {
          res = ((CcBool*) funres.addr)->GetBoolval();
       }
       if (res) {
-         while (tupleBuffer->size() > 50) { usleep(50); };
+         while (tupleBuffer->size() > 100) {
+            this_thread::sleep_for(std::chrono::microseconds(5));
+         };
          tupleBuffer->enqueue(tuple);
       } else {
          tuple->DeleteIfAllowed();
       }
-      tuple = partBuffer->dequeue();
+      {
+         lock_guard<std::mutex> lock(stream_);
+         tuple = stream.request();
+      }
    }
    --threadsDone;
    if (threadsDone == 0) {
@@ -125,7 +128,6 @@ void RefinementWorkerNew::operator()() {
    }
    {
       unique_lock<std::mutex> lock(endThreads_);
-      cout << "wait" << endl;
       endThreadsC.wait(lock, [&] { return endRefinement; });
    }
 }
@@ -142,31 +144,25 @@ refinementLI::refinementLI(Word _stream, Word _funText) : stream(
    streamDone = false;
    countWorker = 0;
    fillCounter = 0;
-   //bufferSize = 10 * coreNoWorker;
    Scheduler();
 }
 
 
 //Destructor
 refinementLI::~refinementLI() {
-   for (shared_ptr<SafeQueue<Tuple*>> partBuffer : buffer) {
+   for (shared_ptr<SafeQueue<Tuple*>> partBuffer : *buffer) {
       partBuffer.reset();
    }
-   cout << "1";
-   buffer.clear();
+   buffer->clear();
    tupleBuffer.reset();
    size_t i = 0;
    for (QueryProcessor* qpThread : qpVec) {
-      //qpThread->DeleteResultStorage(funct[i]);
       qpThread->Destroy(funct[i], true);
       delete qpThread;
       ++i;
    }
-   cout << "2";
    funct.clear();
-   cout << "3";
    qpVec.clear();
-   cout << "4";
    stream.close();
    for (size_t i = 0; i < coreNoWorker; ++i) {
       if (filterThreads[i].joinable()) {
@@ -174,64 +170,33 @@ refinementLI::~refinementLI() {
       }
    }
    filterThreads.clear();
-   cout << "5";
 }
 
 //Output
 Tuple* refinementLI::getNext() {
    // reading stream phase
-   if (phaseStream && !streamDone) {
-      Tuple* tuple;
-      streamDone = true;
-      while ((tuple = stream.request())) {
-         while (buffer[countWorker]->size() > 10) { usleep(50); };
-
-         buffer[countWorker]->enqueue(tuple);
-
-         if (countWorker == coreNoWorker - 1) {
-            countWorker = 0;
-         } else {
-            ++countWorker;
-         }
-         ++fillCounter;
-         // switch to readRes
-         if (!(tupleBuffer->empty())) {
-            fillCounter = 0;
-            streamDone = false;
-            phaseStream = false;
-            break;
-         }
-      }
-      if (streamDone) {
-         for (size_t i = 0; i < coreNoWorker; ++i) {
-            buffer[i]->enqueue(nullptr);
-         }
-      }
-      // return res phase
-   }
    Tuple* res;
    res = tupleBuffer->dequeue();
-   if (tupleBuffer->empty()) {
-      phaseStream = true;
-   }
+
    if (res != nullptr) {
       return res;
    }
+
    endRefinement = false;
    {
       lock_guard<std::mutex> lock(endThreads_);
       endRefinement = true;
       endThreadsC.notify_all();
    }
-//   for (size_t i = 0; i < coreNoWorker; ++i) {
-//      filterThreads[i].join();
-//   }
+   filterThreads.clear();
    return 0;
 }
 
 void refinementLI::Scheduler() {
+   // start distributor
+   filterThreads.reserve(coreNoWorker + 1);
+   buffer = make_shared<vector<shared_ptr<SafeQueue<Tuple*>>>>();
    threadsDone = coreNoWorker;
-   bufferDone = coreNoWorker;
    nl->ReadFromString(((FText*) funText.addr)->GetValue(),
                       funList);
    for (size_t i = 0; i < coreNoWorker; ++i) {
@@ -246,20 +211,20 @@ void refinementLI::Scheduler() {
       qpVec.back()->Construct(
               funList, correct, evaluable, defined, isFunction,
               funct.back(), resultType, false);
-      buffer.push_back(make_shared<SafeQueue<Tuple*>>(i));
+      buffer->push_back(make_shared<SafeQueue<Tuple*>>(i));
       filterThreads.emplace_back(
-              RefinementWorkerNew(coreNoWorker, i,
-                                  tupleBuffer,
-                                  buffer.back(),
-                                  qpVec.back(), funList,
-                                  funct.back()));
+              RefinementWorker(coreNoWorker, i,
+                               tupleBuffer,
+                               buffer->back(),
+                               qpVec.back(), funList,
+                               funct.back(),
+                               stream));
       filterThreads.back().detach();
    }
 }
 
 
 ListExpr op_refinement::refinementTM(ListExpr args) {
-
    // mthreadedFilter has 2 arguments
    // 1: Stream of Tuple
    // 2: fun
@@ -269,9 +234,6 @@ ListExpr op_refinement::refinementTM(ListExpr args) {
       return listutils::typeError(" only works with >= 3 threads ");
    }
 
-   cout << "TM SJ: " << nl->ToString(args) << "##" << nl->ListLength(args)
-        << endl;
-
    string err = "stream(tuple) x fun";
    if (nl->ListLength(args) != 2) {
       return listutils::typeError(err);
@@ -280,10 +242,6 @@ ListExpr op_refinement::refinementTM(ListExpr args) {
    ListExpr stream = nl->First(nl->First(args));
    ListExpr map = nl->First(nl->Second(args));
    ListExpr fun = nl->Second(nl->Second(args));
-   cout << "Stream" << nl->ToString(stream) << endl;
-   cout << "Map" << nl->ToString(map) << endl;
-   cout << "Fun" << nl->ToString(fun) << endl;
-
 
    if (!Stream<Tuple>::checkType(stream)) {
       return
@@ -297,7 +255,10 @@ ListExpr op_refinement::refinementTM(ListExpr args) {
    }
 
    ListExpr funRes = nl->Third(map);
-   cout << nl->ToString(funRes) << endl;
+   if (!nl->IsAtom(funRes)) {
+      return listutils::typeError(
+              err + "(fun corrupt)");
+   }
    if (nl->SymbolValue(funRes) == Symbol::TYPEERROR()) {
       return listutils::typeError(
               err + "(typeerror in fun)");
@@ -308,49 +269,13 @@ ListExpr op_refinement::refinementTM(ListExpr args) {
       return
               listutils::typeError(err + "(stream not mapped correctly)");
    }
-   cout << "attrList" << nl->ToString(attrList) << endl;
-
-   ListExpr mapArg = nl->Second(map);
-   cout << nl->ToString(mapArg) << endl;
-
 
    ListExpr mapAttr = nl->Third(fun);
    ListExpr function = mapAttr;
-   cout << "Formel" << nl->ToString(function) << endl;
    while (nl->ListLength(mapAttr) != 3) {
       mapAttr = nl->Second(mapAttr);
    }
-   cout << "Attributes" << nl->ToString(mapAttr) << endl;
-//   if (!nl->IsAtom(nl->Second(mapAttr))) {
-//      ListExpr attrType;
-//      string mapAttrName = nl->SymbolValue(nl->Third(nl->Second(mapAttr)));
-//      int index = listutils::findAttribute(attrList, mapAttrName, attrType);
-//      if (index == -1) {
-//         return
-//                 listutils::typeError
-//                         (" function attribute not in stream ");
-//      }
-//   }
-//   if (!nl->IsAtom(nl->Third(mapAttr))) {
-//      ListExpr attrType;
-//      string mapAttrName = nl->SymbolValue(nl->Third(nl->Third(mapAttr)));
-//      int index = listutils::findAttribute(attrList, mapAttrName, attrType);
-//      if (index == -1) {
-//         return
-//                 listutils::typeError
-//                         (" function attribute not in stream ");
-//      }
-//   }
 
-
-//   if (!listutils::isSpatialType(attrType1)) {
-//      return listutils::typeError(" first attribute not spatial ");
-//   }
-//   if (!listutils::isSpatialType(attrType2)) {
-//      return listutils::typeError(" second attribute not spatial ");
-//   }
-
-   cout << nl->ToString(funRes) << endl;
    // result of the function must be an attribute again , e . g . in
    // kind DATA
    if (!CcBool::checkType(funRes)) {
@@ -363,21 +288,12 @@ ListExpr op_refinement::refinementTM(ListExpr args) {
            NList("streamelem1_1"), NList(nl->Second(stream))));
    funList.append(function);
 
-
-   //ListExpr appendList = nl->OneElemList(nl->IntAtom(index1 - 1));
    ListExpr appendList = nl->OneElemList(funList.listExpr());
    ListExpr last = appendList;
-   //last = nl->Append(last, nl->IntAtom(index2 - 1));
    for (size_t i = 2; i < cores - 1; ++i) {
       last = nl->Append(last, funList.listExpr());
    }
 
-   cout << "append: " << nl->ToString(appendList) << endl;
-   nl->WriteListExpr(funList.listExpr());
-   cout << "fertig TM" << endl;
-   //nl->ReadFromString(funStr, funListGlobal );
-   cout << "fertig TM" << endl;
-   //nl->WriteListExpr(funListGlobal);
    return nl->ThreeElemList(nl->SymbolAtom(Symbols::APPEND()),
                             nl->OneElemList(nl->TextAtom(
                                     nl->ToString(funList.listExpr()))), stream);
@@ -401,20 +317,16 @@ int op_refinement::refinementVM(Word* args, Word &result, int message,
          if (li) {
             delete li;
          }
-
          local.addr = new refinementLI(args[0], args[2]);
-         //resultTupleType->DeleteIfAllowed();
          return 0;
       case REQUEST:
          result.addr = li ? li->getNext() : 0;
          return result.addr ? YIELD : CANCEL;
       case CLOSE:
-         cout << "close" << endl;
          if (li) {
             delete li;
             local.addr = 0;
          }
-         cout << "closed" << endl;
          return 0;
    }
    return 0;

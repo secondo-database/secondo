@@ -38,16 +38,12 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <include/Stream.h>
 #include <include/MMRTree.h>
 #include <Algebras/MThreaded/MThreadedAux.h>
-#include <jmorecfg.h>
 #include "Operator.h"
 #include "vector"
 #include "thread"
 #include "condition_variable"
 #include <functional>
-#include "../MThreadedAlgebra.h"
-#include <boost/circular_buffer.hpp>
 #include <utility>
-#include "MMRTree.h"
 #include "Algebras/MMRTree/TupleStore1.h"
 #include "Algebras/SPart/IrregularGrid2D.h"
 
@@ -57,34 +53,27 @@ namespace mthreaded {
 typedef std::function<Rect(Tuple*, size_t)> bboxFunc;
 constexpr int MINRTREE = 4;
 constexpr int MAXRTREE = 8;
-const double BOX_EXPAND = FACTOR;
 
 class CandidateWorker {
    private:
    size_t static constexpr DIM = 2;
    const size_t maxMem;
-   size_t globalMem;
+   size_t workersMem;
    size_t coreNoWorker;
    size_t streamInNo;
    std::shared_ptr<SafeQueuePersistent> tupleBuffer;
    std::shared_ptr<SafeQueuePersistent> partBufferR;
-   std::shared_ptr<SafeQueue<Tuple*>> partBufferS;
+   std::shared_ptr<SafeQueuePersistent> partBufferS;
    std::pair<size_t, size_t> joinAttr;
    std::shared_ptr<bboxFunc> calcBbox;
    const double resize;
    Word fun;
    TupleType* resultTupleType;
    const Rect* gridcell;
-   //std::shared_ptr<TupleStore1> buffer;
-   //std::shared_ptr<mmrtree::RtreeT<2, TupleId>> rtree;
    std::shared_ptr<mmrtree::RtreeT<DIM, TupleId>> rtreeR;
-   //std::shared_ptr<mmrtree::RtreeT<DIM, TupleId>> rtreeS;
-   //TupleStore1 bufferR;
    TupleType* ttR;
    std::vector<Tuple*> bufferRMem;
    size_t countInMem;
-   //TupleStore1 bufferS;
-
 
    public:
    CandidateWorker(
@@ -92,9 +81,8 @@ class CandidateWorker {
            size_t _streamInNo,
            std::shared_ptr<SafeQueuePersistent> _tupleBuffer,
            std::shared_ptr<SafeQueuePersistent> _partBufferR,
-           std::shared_ptr<SafeQueue<Tuple*>> _partBufferS,
+           std::shared_ptr<SafeQueuePersistent> _partBufferS,
            std::pair<size_t, size_t> _joinAttr,
-           //std::shared_ptr<bboxFunc> _calcBbox,
            const double _resize,
            TupleType* _resultTupleType, const Rect* _gridcell);
 
@@ -135,19 +123,20 @@ class spatialJoinLI {
    size_t coreNo;
    size_t coreNoWorker;
    TupleType* resultTupleType;
+   TupleType* ttR;
+   TupleType* ttS;
    std::shared_ptr<bboxFunc> calcBbox;
-   //std::vector<CellInfo*> cellInfoVec;
    const size_t cores = MThreadedSingleton::getCoresToUse();
    std::shared_ptr<SafeQueuePersistent> tupleBuffer;
    std::vector<std::shared_ptr<SafeQueuePersistent>> partBufferR;
-   std::vector<std::shared_ptr<SafeQueue<Tuple*>>> partBufferS;
+   std::vector<std::shared_ptr<SafeQueuePersistent>> partBufferS;
    size_t bboxsample;
    constexpr static size_t BBOXSAMPLESTEPS = 10;
    constexpr static size_t CHANGEBOXSAMPLESTEP = 1000;
    size_t globalMem;
    IrregularGrid2D* irrGrid2d;
    std::vector<CellInfo*> cellInfoVec;
-   size_t countN = 0;
+   //size_t countN = 0;
 
    public:
    //Constructor
@@ -178,7 +167,6 @@ class op_spatialJoin {
    std::string getOperatorSpec();
 
    public:
-
    explicit op_spatialJoin() = default;
 
    ~op_spatialJoin() = default;

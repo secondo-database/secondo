@@ -35,10 +35,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 #include "Operator.h"
 #include "MThreadedAux.h"
-#include "MThreadedAlgebra.h"
 #include <boost/uuid/uuid.hpp>            // uuid class
 #include <boost/uuid/uuid_generators.hpp> // generators
-#include <boost/lexical_cast.hpp>
 #include <boost/uuid/uuid_io.hpp>
 
 using namespace mthreaded;
@@ -49,7 +47,10 @@ mutex mutexRead_;
 mutex mutexWrite_;
 }
 
+//global mutex for tuple counter
+std::mutex mthreaded::mutexTupleCounter_;
 
+// MThreadedSingleton
 void MThreadedSingleton::setCoresToUse(const size_t cores) {
    cores_used = cores;
 }
@@ -58,110 +59,16 @@ size_t MThreadedSingleton::getCoresToUse() {
    return cores_used;
 }
 
+// standard using 3 cores
 size_t MThreadedSingleton::cores_used = 3;
 
-// FileBufferRW
-
-FileBufferRW::FileBufferRW(TupleType* _tt) : tt(_tt) {
-   fname = createFn() + ".tmp";
-   isEmpty = true;
-}
-
-FileBufferRW::~FileBufferRW() {
-   //fileStreamInOut->close();
-   std::remove(fname.c_str());
-}
-
-std::string FileBufferRW::createFn() {
-   boost::uuids::random_generator generator;
-   const boost::uuids::uuid uuid = generator();
-   return boost::uuids::to_string(uuid);
-}
-
-void FileBufferRW::appendTuple(Tuple* tuple) {
-   if (isEmpty) {
-      fileStreamInOut = make_shared<std::fstream>(fname.c_str(),
-                                                  std::ios::binary |
-                                                  std::ios::trunc);
-      //cout << "make file" << endl;
-
-   }
-   size_t coreSize;
-   size_t extensionSize;
-   size_t flobSize;
-   size_t blocksize = tuple->GetBlockSize(coreSize, extensionSize,
-                                          flobSize);
-   // allocate buffer and write flob into it
-   char* buffer = new char[blocksize];;
-   {
-      //std::lock_guard<mutex> lock(mthreadedGlobal::mutexWrite_);
-      tuple->WriteToBin(buffer, coreSize, extensionSize, flobSize);
-   }
-   uint32_t tsize = blocksize;
-   fileStreamInOut->write((char*) &tsize, sizeof(uint32_t));
-   fileStreamInOut->write(buffer, tsize);
-   delete[] buffer;
-   tuple->DeleteIfAllowed();
-   isEmpty = false;
-}
-
-Tuple* FileBufferRW::readTuple() {
-   if (!fileStreamInOut) {
-      cout << "no filestream" << endl;
-      return nullptr;
-   }
-   if (fileStreamInOut->eof()) {
-      cout << "EOF" << endl;
-      return nullptr;
-   }
-   // size of the next tuple
-   uint32_t size;
-   fileStreamInOut->read((char*) &size, sizeof(uint32_t));
-   if (size == 0) {
-      return nullptr;
-   }
-   char* buffer = new char[size];
-   fileStreamInOut->read(buffer, size);
-   if (!fileStreamInOut->good()) {
-      delete[] buffer;
-      cout << "error during reading file " << endl;
-      cout << "position " << fileStreamInOut->tellg() << endl;
-      return nullptr; // error
-   }
-   //Tuple* res = nullptr;
-   Tuple* res = new Tuple(tt);;
-   res->ReadFromBin(0, buffer);
-   delete[] buffer;
-
-   return res;
-}
-
-void FileBufferRW::closeWrite() {
-
-}
-
-void FileBufferRW::openRead() {
-}
-
-bool FileBufferRW::empty() const {
-   return isEmpty;
-}
-
-string FileBufferRW::getFname() const {
-   return fname;
-}
-
-
 // FileBuffer
-
 FileBuffer::FileBuffer(TupleType* _tt) : tt(_tt) {
    isEmpty = true;
    it = nullptr;
 }
 
 FileBuffer::~FileBuffer() {
-   //fileStreamIn->close();
-   //cout << "destroy F-Buffer" << endl;
    delete it;
 }
 
@@ -170,28 +77,32 @@ void FileBuffer::appendTuple(Tuple* tuple) {
       tupleBuffer = std::make_shared<TupleFile>(tt, PAGESIZE);
    }
    tupleBuffer->Append(tuple);
-   tuple->DeleteIfAllowed();
+   {
+      std::lock_guard<std::mutex> lockT(mutexTupleCounter_);
+      tuple->DeleteIfAllowed();
+   }
    isEmpty = false;
 }
 
 Tuple* FileBuffer::readTuple() {
+   if (isEmpty) {
+      return nullptr;
+   }
    Tuple* val = it->GetNextTuple();
    if (val == 0) {
       val = nullptr;
-      //cout << "endReadBuff" << endl;
    }
    return val;
 }
 
 void FileBuffer::closeWrite() {
-   //cout << "tbCWrite" << endl;
-   //tupleBuffer->Close();
 }
 
 void FileBuffer::openRead() {
-   //cout << "tbOpenRead" << endl;
-   delete it;
-   it = tupleBuffer->MakeScan();
+   if (!isEmpty) {
+      delete it;
+      it = tupleBuffer->MakeScan();
+   }
 }
 
 bool FileBuffer::empty() const {
@@ -317,10 +228,10 @@ void SafeQueuePersistent::enqueue(Tuple* t) {
    } else {
       if (t != nullptr) {
          tupleBuffer->Append(t);
+         std::lock_guard<std::mutex> lockT(mutexTupleCounter_);
          t->DeleteIfAllowed();
       } else {
          tupleBuffer->Close();
-         //delete it;
          it = tupleBuffer->MakeScan();
          dataReadyQueue = true;
          overflow = true;
@@ -346,6 +257,7 @@ Tuple* SafeQueuePersistent::dequeue() {
       if (val == 0) {
          val = nullptr;
       } else {
+         //val->IncReference();
       }
    }
    return val;

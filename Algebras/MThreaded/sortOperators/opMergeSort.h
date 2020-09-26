@@ -37,12 +37,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include <include/Stream.h>
 #include <Algebras/MThreaded/MThreadedAux.h>
-#include <jmorecfg.h>
 #include "Operator.h"
 #include "vector"
 #include "thread"
 #include "condition_variable"
-#include "../MThreadedAlgebra.h"
 #include <boost/circular_buffer.hpp>
 #include <utility>
 
@@ -56,6 +54,7 @@ stream x attr x const (desc, incr) -> stream
 
 */
 
+// used for showing which stream in pipelines is empty
 enum TupleEmpty {
    both, first, second
 };
@@ -99,10 +98,10 @@ class TournamentTree {
    std::vector<node> tree;
    std::shared_ptr<CompareByVector> compareClass;
 
-   static constexpr size_t memInTree =
+   static constexpr size_t MEMINTREE =
            2 * sizeof(void*) + 4 * sizeof(int) + 2 * sizeof(bool);
 
-   // recursive insert tuple in complete tree
+   // insert tuple in completed tree recursively
    void exchange(Tuple* tuple, const size_t pos, const bool active);
 
    public:
@@ -146,7 +145,6 @@ class MergeFeeder {
    std::shared_ptr<Buffer> buf1;
    std::shared_ptr<Buffer> buf2;
    std::shared_ptr<SafeQueue<Tuple*>> mergeBuffer;
-   //size_t n;
    TupleEmpty runEmpty;
 
    public:
@@ -165,8 +163,6 @@ class MergeFeeder {
 class NoMergeFeeder {
    private:
    std::shared_ptr<Buffer> buf;
-   //std::shared_ptr<boost::circular_buffer<Tuple*>> tupleBufferOut;
-   //size_t n;
    std::shared_ptr<SafeQueue<Tuple*>> mergeBuffer;
 
    public:
@@ -186,8 +182,6 @@ class MergePipeline {
    std::shared_ptr<SafeQueue<Tuple*>> mergeBuffer_f1;
    std::shared_ptr<SafeQueue<Tuple*>> mergeBuffer_f2;
    std::shared_ptr<SafeQueue<Tuple*>> mergeBuffer;
-   //size_t feederNo;
-   //size_t n;
 
    public:
    MergePipeline(
@@ -206,7 +200,6 @@ class Suboptimal {
    private:
    size_t maxMem;
    std::shared_ptr<SafeQueue<Tuple*>> partBuffer;
-   //std::vector<Tuple*>::iterator tupleBuffer;
    TupleType* tt;
    std::shared_ptr<CompareByVector> compare;
    std::vector<std::shared_ptr<Buffer>> runs1;
@@ -218,7 +211,6 @@ class Suboptimal {
    explicit Suboptimal(
            size_t _maxMem,
            std::shared_ptr<SafeQueue<Tuple*>> _partBuffer,
-           //std::vector<Tuple*>::iterator _tupleBuffer,
            std::shared_ptr<CompareByVector> _compare,
            TupleType* _tt,
            size_t _threadNumber,
@@ -233,6 +225,7 @@ class Suboptimal {
    // Replacement Selection Sort
    void replacementSelectionSort(std::shared_ptr<TournamentTree> sortTree);
 
+   // merge runs
    std::shared_ptr<Buffer> merge(
            std::shared_ptr<Buffer> run1, std::shared_ptr<Buffer> run2);
 };
@@ -243,7 +236,6 @@ class mergeSortLI {
    Stream<Tuple> stream;
    const std::vector<std::pair<int, bool>> sortAttr;
    std::shared_ptr<std::vector<std::shared_ptr<Buffer>>> mergeFn;
-   //std::vector<Tuple*> tupleBuffer;
    size_t lastWorker;
    TupleType* tt;
    std::vector<std::thread> sortThreads;
@@ -254,7 +246,6 @@ class mergeSortLI {
    std::vector<std::shared_ptr<SafeQueue<Tuple*>>> partBuffer;
    std::shared_ptr<SafeQueue<Tuple*>> tupleBufferIn1;
    std::shared_ptr<SafeQueue<Tuple*>> tupleBufferIn2;
-   //std::vector<std::shared_ptr<Buffer>> bufferTransfer;
    std::vector<std::shared_ptr<SafeQueue<Tuple*>>> mergeBuffer;
 
    const size_t maxMem;
@@ -262,8 +253,6 @@ class mergeSortLI {
    size_t coreNoWorker;
    const size_t cores = MThreadedSingleton::getCoresToUse();
    bool streamEmpty;
-
-   size_t count = 0;
 
    public:
    //Constructor
@@ -295,7 +284,6 @@ class op_mergeSort {
    std::string getOperatorSpec();
 
    public:
-
    explicit op_mergeSort() = default;
 
    ~op_mergeSort() = default;

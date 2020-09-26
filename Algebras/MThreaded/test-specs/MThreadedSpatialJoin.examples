@@ -11,13 +11,13 @@ Result      : TRUE
 Operator    : mThreadedSpatialJoin
 Number      : 2
 Signature   : stream x stream x attr x attr -> stream
-Example     : query (pois feed {o} traf feed {p} mThreadedSpatialJoin[Geometry_o, Geometry_p, 0.0] project[Name_o, Name_p] sortby[Name_o, Name_p]) = (pois feed {o} traf feed {p} spatialjoin[Geometry_o, Geometry_p] project[Name_o, Name_p] sortby[Name_o, Name_p])
+Example     : query pois feed head[10000] {o} roads feed head[10000] {p} mThreadedSpatialJoin[Geometry_o, Geometry_p, 0.0] project[Name_o, Name_p] sortby[Name_o, Name_p] count
 Result      : TRUE
 
 Operator    : mThreadedSpatialJoin
 Number      : 3
 Signature   : stream x stream x attr x attr -> stream
-Example     : query (pois feed {o} roads feed {p} mThreadedSpatialJoin[Geometry_o, Geometry_p, 0.0] project[Name_o, Name_p] sortby[Name_o, Name_p]) = (pois feed {o} roads feed {p} spatialjoin[Geometry_o, Geometry_p] project[Name_o, Name_p] sortby[Name_o, Name_p])
+Example     : query (pois feed [10000] {o} roads feed {p} mThreadedSpatialJoin[Geometry_o, Geometry_p, 0.0] project[Name_o, Name_p] sortby[Name_o, Name_p]) = (pois feed [10000] {o} roads feed {p} spatialjoin[Geometry_o, Geometry_p] project[Name_o, Name_p] sortby[Name_o, Name_p])
 Result      : TRUE
 
 Operator    : mThreadedSpatialJoin
@@ -71,7 +71,7 @@ Result      : TRUE
 Operator    : mThreadedSpatialJoin
 Number      : 12
 Signature   : stream x stream x attr x attr -> stream
-Example     : query (roads feed {o} natural feed {p} mThreadedSpatialJoin[Geometry_o, Geometry_p, 1.0] project[Name_o, Name_p] sortby[Name_o, Name_p]) = (roads feed  extend[ B : enlargeRect(bbox(.Geometry), 1.0, 1.0) ] {F} natural feed extend[ B : bbox(.Geometry)]  {P} symmjoin[.B_F intersects ..B_P] project[Name_o, Name_p] sortby[Name_o, Name_p])
+Example     : query (roads feed {o} natural feed {p} mThreadedSpatialJoin[Geometry_o, Geometry_p, 1.0] project[Name_o, Name_p] sortby[Name_o, Name_p]) = (roads feed  extend[ B : enlargeRect(bbox(.Geometry), 1.0, 1.0) ] {o} natural feed extend[ B : bbox(.Geometry)] {p} symmjoin[.B_o intersects ..B_p] project[Name_o, Name_p] sortby[Name_o, Name_p])
 Result      : TRUE
 
 

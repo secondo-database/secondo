@@ -37,17 +37,16 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "Operator.h"
 
-#include <utility>
-#include <iostream>
-#include <fstream>
 #include <cstdio>
 #include <memory>
-#include <atomic>
-#include "thread"
 #include "condition_variable"
 #include "Algebras/Relation-C++/RelationAlgebra.h"
 
 namespace mthreaded {
+
+
+//global mutex for tuple counter
+extern std::mutex mutexTupleCounter_;
 
 const size_t PAGESIZE = WinUnix::getPageSize();
 
@@ -78,54 +77,49 @@ class Buffer {
    ~Buffer() = default;
 };
 
-class FileBufferRW : public Buffer {
-   private:
-   std::string fname;
-   std::shared_ptr<std::fstream> fileStreamInOut;
-   TupleType* tt;
-   bool isEmpty;
-
-   // fname from uuid
-   static std::string createFn();
-
-   public:
-   // append single tuple into a file
-   void appendTuple(Tuple* tuple) override;
-
-   // read single tuple
-   Tuple* readTuple() override;
-
-   // close writing connection
-   void closeWrite() override;
-
-   // open for read
-   void openRead() override;
-
-   bool empty() const override;
-
-   std::string getFname() const;
-
-   // Constructor FileBuffer
-   explicit FileBufferRW(TupleType* _tt);
-
-   // Destructor FileBuffer
-   ~FileBufferRW();
-
-
-};
+//class FileBufferRW : public Buffer {
+//   private:
+//   std::string fname;
+//   std::shared_ptr<std::fstream> fileStreamInOut;
+//   TupleType* tt;
+//   bool isEmpty;
+//
+//   // fname from uuid
+//   static std::string createFn();
+//
+//   public:
+//   // append single tuple into a file
+//   void appendTuple(Tuple* tuple) override;
+//
+//   // read single tuple
+//   Tuple* readTuple() override;
+//
+//   // close writing connection
+//   void closeWrite() override;
+//
+//   // open for read
+//   void openRead() override;
+//
+//   bool empty() const override;
+//
+//   std::string getFname() const;
+//
+//   // Constructor FileBuffer
+//   explicit FileBufferRW(TupleType* _tt);
+//
+//   // Destructor FileBuffer
+//   ~FileBufferRW();
+//
+//
+//};
 
 class FileBuffer : public Buffer {
    private:
    std::string fname;
-   //std::shared_ptr<std::ofstream> fileStreamOut;
-   //std::shared_ptr<std::ifstream> fileStreamIn;
    std::shared_ptr<TupleFile> tupleBuffer;
    TupleFileIterator* it;
    TupleType* tt;
    bool isEmpty;
-
-   // fname from uuid
-   //static std::string createFn();
 
    public:
    // Constructor FileBuffer
@@ -204,6 +198,7 @@ class MultiBuffer : public Buffer {
 
 };
 
+// threadsafe queue, has to be in header as it is a template class
 template <typename T>
 class SafeQueue {
    public:
@@ -244,10 +239,6 @@ class SafeQueue {
       return val;
    }
 
-
-   //bool getStreamOnMerge();
-   //void setStreamOff();
-
    private:
    std::queue<T> q;
    bool dataReadyQueue;
@@ -256,7 +247,7 @@ class SafeQueue {
    size_t n;
 };
 
-
+// threadsafe queue using tuplefiles
 class SafeQueuePersistent {
    public:
    SafeQueuePersistent (const size_t _bufferSize, TupleType* _tt);
@@ -272,10 +263,6 @@ class SafeQueuePersistent {
    // If the queue is empty, wait till a element is avaiable.
    Tuple* dequeue();
 
-
-   //bool getStreamOnMerge();
-   //void setStreamOff();
-
    private:
    const size_t bufferSize;
    TupleType* tt;
@@ -289,10 +276,4 @@ class SafeQueuePersistent {
    size_t bufferCounter;
    bool overflow;
 };
-
-
-
-
-
-
 }

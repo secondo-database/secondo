@@ -45,19 +45,12 @@ These Operators are:
 #include "opBasicOperators.h"
 //#include "../MThreadedAux.h"
 
-#include "Attribute.h"          // implementation of attribute types
-#include "Algebra.h"            // definition of the algebra
 #include "NestedList.h"         // required at many places
 #include "QueryProcessor.h"     // needed for implementing value mappings
-#include "AlgebraManager.h"     // e.g., check for a certain kind
 #include "Operator.h"           // for operator creation
 #include "StandardTypes.h"      // priovides int, real, string, bool type
-#include "Algebras/FText/FTextAlgebra.h"
 #include "Symbols.h"            // predefined strings
 #include "ListUtils.h"          // useful functions for nested lists
-#include "Stream.h"  // wrapper for secondo streams
-#include "LogMsg.h"             // send error messages
-
 
 using namespace mthreaded;
 
