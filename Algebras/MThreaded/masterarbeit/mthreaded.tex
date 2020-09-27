@@ -229,7 +229,7 @@ In meiner Arbeit werde ich Konzepte und eine Implementierung paralleler Datenban
 \begin{figure}
 	\centering
 	\includegraphics[width=0.75\textwidth]{Bilder/secondo.png}
-	\caption{SECONDO Komponenten und Architektur des Kernels \parencite{Gueting2010}.}
+	\caption{\Fb{Secondo} Komponenten und Architektur des Kernels \parencite{Gueting2010}.}
 	\label{img:secondo}
 \end{figure}
 
@@ -531,7 +531,7 @@ In \autoref{Equi Join} habe ich gezeigt, dass für einen parallelen Ansatz vor a
 	\subfloat[][]{\includegraphics[width=0.4\linewidth]{Bilder/hybrid1.png}}
 	\qquad
 	\subfloat[][]{\includegraphics[width=0.4\linewidth]{Bilder/hybrid2.png}}\footnotemark	
-	\caption{Hybrid-Hash-Join in 2 Phasen.}
+	\caption{Hybrid-Hash-Join in 2 Phasen$^1$.}
 	\label{img:hybrid}
 \end{figure}
 
@@ -592,7 +592,7 @@ Das Scheduling des Filterschritts konstruiert für die Partitionierung ein \Fb{S
 \begin{figure}
 	\centering
 	\includegraphics[width=0.4\linewidth]{Bilder/duplikat.png}
-	\caption{Erkennung von Duplikaten im Spatial-Join.}
+	\caption{Erkennung von Duplikaten im Spatial-Join (eigene Grafik).}
 	\label{img:sjDup}
 \end{figure}
 
@@ -672,7 +672,7 @@ In diesem Kapitel stelle ich selbst implementierte Datenstrukturen vor, die nich
 Tupelbuffer sind für Anwendungsfälle gedacht, in denen der Schreib- und der Lesevorgang voneinander zeitlich getrennt sind -- im Allgemeinen wird zuerst eine bestimmte Menge von Tupeln temporär gespeichert, um später wieder vollständig geladen zu werden. Da bei der Initialisierung oft nicht klar ist, ob der Buffer im Hauptspeicher gehalten werden kann oder nicht, habe ich eine virtuelle Klasse für Buffer implementiert, von der Versionen mit gleicher Schnittstelle abgeleitet sind: ein Hauptspeicherbuffer, ein persistenter Buffer und ein Buffer, der intern verwaltet, ob er im Hauptspeicher gehalten werden kann. Intern verwenden die Tupelbuffer, sofern es sich um die Hauptspeicherversionen handelt, als Datenstruktur Warteschlangen und sofern es sich um persistente Buffer handelt, einen Zeiger auf \Fb{TupleFiles} der \Fb{RelationAlgebra}. Im persistenten Fall wird dessen \Fb{MakeScan}-Iterator für den Zugriff auf die Daten verwendet. Zuerst habe ich die temporären Speicher selbst mit \Fb{fileStreams} und der Methode \Fb{WriteToBin} der Tupel-Klasse implementiert, aber mit diesem Ansatz gab es, sofern \Fb{FLOBs} verwendet wurden, Synchronisierungsprobleme. Die Buffer haben eine Read- und eine Append-Methode, Methoden zum Öffnen sowie Schließen und zur Abfrage, ob der Buffer leer ist. In der Hauptspeicherversion des Buffers verfügen einige Methoden über keinen Code, waren aber notwendig, damit alle Versionen mit einem gleichen Interface benutzt werden können. Sowohl die persistenten Buffer als auch die Warteschlangen wurden so konstruiert, dass Dateien nicht direkt im Konstruktor angelegt werden sondern erst, wenn der erste Schreibvorgang notwendig wurde, um zu verhindern, dass I/O-Operationen durch die Anlage einer Datei notwendig werden, sofern keine Persistierung erfolgte, aber der Buffer bereits erzeugt werden musste.
 
 \begin{minipage}{0.95\textwidth}
-	\begin{lstlisting}[caption={Enqueue und Dequeue-Methode der threadsichere Warteschlange.}, label=list:queue]
+	\begin{lstlisting}[caption={Enqueue und Dequeue-Methode der threadsicheren Warteschlange.}, label=list:queue]
 	void enqueue(T t) {
 		std::lock_guard<std::mutex> lock(m);
 		q.push(t);
@@ -716,7 +716,7 @@ In die Algebra muss er mit zwei Optionen integriert werden: Er muss seinen Speic
 \begin{figure}
 	\centering
 	\includegraphics[width=0.75\textwidth]{Bilder/mergeSort.png}
-	\caption{Aufbau des Mergesort-Operators (vereinfacht). Gestrichelte Pfeile: Datenfluss; durchgezogene: Instanzen werden erzeugt.}
+	\caption{Aufbau des Mergesort-Operators (vereinfacht). Gestrichelte Pfeile: Datenfluss; durchgezogene: Instanzen werden erzeugt (eigene Grafik).}
 	\label{img:KlassSort}
 \end{figure}
 
@@ -755,7 +755,7 @@ Auch hier wird das Entwurfsmuster gewählt, welches in \Fb{Secondo} für Operato
 \begin{figure}
 	\centering
 	\includegraphics[width=0.75\textwidth]{Bilder/hybridJoin.png}
-	\caption{Aufbau des Hybrid-Hash-Join-Operators (vereinfacht). Gestrichelte Pfeile: Datenfluss; durchgezogene: Instanzen werden erzeugt.}
+	\caption{Aufbau des Hybrid-Hash-Join-Operators (vereinfacht). Gestrichelte Pfeile: Datenfluss; durchgezogene: Instanzen werden erzeugt (eigene Grafik).}
 	\label{img:KlassJoin}
 \end{figure}
 
@@ -776,7 +776,7 @@ In die Algebra muss dieser Operator lediglich mit einer Option integriert werden
 \begin{figure}
 	\centering
 	\includegraphics[width=0.75\textwidth]{Bilder/spatialJoin.png}
-	\caption{Aufbau des Spatial-Join-Operators Filter Step (vereinfacht). Gestrichelte Pfeile: Datenfluss; durchgezogene: Instanzen werden erzeugt.}
+	\caption{Aufbau des Spatial-Join-Operators Filter Step (vereinfacht). Gestrichelte Pfeile: Datenfluss; durchgezogene: Instanzen werden erzeugt (eigene Grafik).}
 	\label{img:KlassSJ}
 \end{figure}
 
@@ -878,7 +878,7 @@ Sofern Laufzeiten für die Effizienztests und Experimente gemessen werden, wird 
 	plz & 41267 & berlintest & keine \\ 
 	\hline 
 \end{tabular}
-\caption{\label{tab:testRel} Übersicht über in Tests und Experimenten verwendeten Relationen.}
+\caption{\label{tab:testRel} Übersicht über in Tests und Experimenten verwendete Relationen.}
 \end{table}
 
 Im Gegensatz zu vielen Singlethread-Operatoren ist die Laufzeit bei Verwendung von Multithreading nicht stabil, da die Partitionierung nicht immer identisch vorgenommen wird und die Synchronisation nicht vorhersagbar ist. \autoref{img:streuung} zeigt die Verteilung von Laufzeiten bei mehrmaliger Ausführung eines Spatial-Joins und eines Hash-Joins. Dieses Verhalten der Operatoren macht die Interpretation der Messergebnisse schwierig, insbesondere wenn keine eindeutige Tendenz zu erkennen ist. Allerdings wurden alle Tests mehrfach ausgeführt und per Augenschein überprüft, ob Ergebnisse stark variieren. Zumindest Extremwerte wurden so versucht auszuschließen.  
@@ -935,11 +935,11 @@ Korrektheit wird mit unterschiedlich großen Relationen, der Memory-Option\footn
 \caption{\label{tab:testSort} Threadzahl und zur Verfügung stehender Hauptspeicher sowie  Sortierattribute und Reihenfolge beim Merge-Sort.}
 \end{table}
 
-\footnotetext{inkl. Hauptthread und Scheduling. Für das Sortieren und die Merge-Pipeline steht also ein Thread weniger zur Verfügung.}
-
 Der Operator gibt keine korrekten Ergebnisse aus, sofern \Fb{FLOBs} Sortierattribute sind -- im konkurrierenden Zugriff werden die Objekte fehlerhaft in den Speicher eingelesen und dementsprechend nicht korrekt verglichen. Wenn aber eine Relation lediglich \Fb{FLOBs} als Attribute hat, diese aber keine Sortierkriterien sind, ist die Ausgabe richtig.
 
 Im Folgenden werde ich den Operator auf Robustheit testen. Die Ergebnisse sind in \autoref{tab:testSortRobust} zusammengestellt. Als Beispiel für eine spezielle Verteilung der Eingangsrelation wird mit einer vollständig Vorsortierung getestet. In diesem Fall müssen auch bei sehr großen Relationen keine Daten temporär gespeichert werden. Vergleichbares gilt, wenn nach Attributen sortiert wird, die nur sehr wenige Ausprägungen haben, wobei hier nicht garantiert ist, dass keine Daten zwischengespeichert werden müssen. Leere Eingangsströme bzw. Relationen als Eingang, die nur sehr wenige Tupel beinhalten, können dazu führen, dass alle oder einzelne Sortierthreads keine Daten zugewiesen bekommen. Die weiteren Tests betreffen eine Parametrisierung, die nicht sinnvoll oder fehlerhaft ist und vom Type-Mapping abgefangen beziehungsweise behandelt wird. Für alle Operatoren wird erst ab mindestens drei Kernen garantiert, dass sie funktionieren -- zwei Worker-Thread oder mehr und ein Hauptthread inklusive Scheduling. Der Sort-Operator funktioniert nicht richtig, wenn wesentlich mehr Threads verwendet werden, als das System Kerne zur Verfügung hat. Dann kann es zu Deadlocks in der Mergepipeline kommen. Da in diesem Fall kein Performancevorteil zu erwarten ist, wird die Threadzahl dann automatisch auf die maximale Kernzahl des Systems gesetzt. Sofern keine Sortierreihenfolge angegeben ist, wird aufwärts sortiert (\Fb{TRUE}). Eine Besonderheit in dem Type-Mapping dieses Operators ist, dass Sortierattribute, die nicht Teil der Relation sind, lediglich ignoriert werden. Das Type-Mapping gibt allerdings einen Fehler aus, wenn gar kein gültiges Sortierattribut angegeben wird. Das letzte Testbeispiel zeigt, wie eine Attributliste mit Fehlern interpretiert wird.
+
+\footnotetext{inkl. Hauptthread und Scheduling. Für das Sortieren und die Merge-Pipeline steht also ein Thread weniger zur Verfügung.}
 
 \begin{table}
 	\centering
@@ -1077,9 +1077,9 @@ Die Multithread-Variante ist in allen Fällen nicht so effizient wie die Singlet
 
 \begin{figure}
 	\centering
-	\subfloat[Selfjoin von \Fb{roads\_str}.\label{img:joinKern}]{\raisebox{1.65cm}{\includegraphics[width=0.3\textwidth]{Bilder/join_kerne_self.png}}}
+	\subfloat[Selfjoin von \Fb{roads\_str}.\label{img:joinKern}]{\raisebox{1.4cm}{\includegraphics[width=0.38\textwidth]{Bilder/join_kerne_self.png}}}
 	\qquad
-	\subfloat[Relationen aus \Fb{berlintest}.\label{img:joinKernBe}]{{\includegraphics[width=0.6\textwidth]{Bilder/join_kerne_be.png}}}
+	\subfloat[Relationen aus \Fb{berlintest}.\label{img:joinKernBe}]{{\includegraphics[width=0.55\textwidth]{Bilder/join_kerne_be.png}}}
 	\caption{Laufzeitverhalten nach Kernen des Hybrid-Hash-Join.}
 	\label{img:joinKernAllg}
 \end{figure}
@@ -1093,7 +1093,7 @@ Das Laufzeitverhalten der beiden Joins insgesamt kleinerer Relationen der Datenb
 \begin{figure}
 	\centering
 	\includegraphics[width=0.60\textwidth]{Bilder/sj_kerne.png}
-	\caption{Laufzeit zweier unterschiedlicher Spatial-Joins im Vergleich mit der Single-Thread-Variante (blaue Linie).}
+	\caption{Laufzeit zweier unterschiedlicher Spatial-Joins im Vergleich mit der Single-Thread-Variante (blaue Linie); Glättungskurve rot.}
 	\label{img:sjKern}
 \end{figure}
 
@@ -1234,12 +1234,12 @@ Der Filter-Operator hat keine komplexe Struktur, so dass in allen Fällen die ze
 	\caption{\label{tab:testFilter}Korrektheit Filter-Operator.}
 \end{table}
 
+\autoref{list:testfilter} zeigt beispielhaft eine Anfrage, die für den Korrektheitstest verwendet wurde. Verglichen wurde der parallele Filter mit dem \Fb{filter}-Operator, der nur einen Kern nutzt. Die Ergebnisse der Tests zeigt \autoref{tab:testFilter}. Wenn in den Prädikaten keine Attribute mit \Fb{FLOBs} verwendet werden, liefert der Operator selbst bei sehr großen Relationen richtige Ergebnisse, wie ein Filter auf der Relation \Fb{n2p\_sj} zeigt.
+
 \footnotetext[12]{Die Relation \Fb{tp\_sj} ist ein Spatial-Join zwischen \Fb{traf} und \Fb{pois}.}
 \footnotetext[13]{Die Relation \Fb{n2p\_sj} ist ein Spatial-Join zwischen \Fb{natural2} und \Fb{pois} mit \Fb{head[20.000]} bei einer Vergrößerung der \Fb{MBBs} um 0,1.}
 \footnotetext[14]{Die Relation \Fb{wr\_sj} ist ein Spatial-Join zwischen \Fb{waterways} und \Fb{roads}.}
 \footnotetext{Die Relation \Fb{pl\_sj} ist ein Spatial-Join zwischen \Fb{roads} und \Fb{pois}.}
-
-\autoref{list:testfilter} zeigt beispielhaft eine Anfrage, die für den Korrektheitstest verwendet wurde. Verglichen wurde der parallele Filter mit dem \Fb{filter}-Operator, der nur einen Kern nutzt. Die Ergebnisse der Tests zeigt \autoref{tab:testFilter}. Wenn in den Prädikaten keine Attribute mit \Fb{FLOBs} verwendet werden, liefert der Operator selbst bei sehr großen Relationen richtige Ergebnisse, wie ein Filter auf der Relation \Fb{n2p\_sj} zeigt.
 
 Robustheit teste ich nur für kleine Relationen bzw. für Relationen ohne \Fb{FLOBs}, da ab einer bestimmten Relationsgröße der Operator hier im Commit bzw. im Abschluss der Anfragebearbeitung abstürzt (\autoref{tab:testFilterRobust}). Alle Ergebnisse entsprechen den Erwartungen.
 
@@ -1277,7 +1277,7 @@ In seiner Effizienz ist der Filteroperator der \Fb{mThreaded}-Algebra deutlich s
 \begin{figure}
 	\centering
 	\includegraphics[width=0.55\textwidth]{Bilder/filter_kerne.png}
-	\caption{Der Filter-Operator im Vergleich mit der Single-Thread-Variante (blaue Linie).}
+	\caption{Der Filter-Operator im Vergleich mit der Single-Thread-Variante (blaue Linie); Glättungskurve rot.}
 	\label{img:filterKern}
 \end{figure}
 
@@ -1324,7 +1324,7 @@ Im Gegensatz zum Verhalten gegenüber dem Speicher, der dem Operator zugewiesen 
 \begin{figure}
 	\centering
 	\includegraphics[width=0.70\textwidth]{Bilder/join_bucket.png}
-	\caption{Selfjoin der Relation \Fb{roads\_str} nach dem Straßenname bei Veränderung der Anzahl von Buckets.}
+	\caption{Selfjoin der Relation \Fb{roads\_str} nach dem Straßennamen bei Veränderung der Anzahl von Buckets.}
 	\label{img:joinBucket}
 \end{figure}
 
