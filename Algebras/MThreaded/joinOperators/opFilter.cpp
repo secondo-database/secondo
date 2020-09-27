@@ -189,6 +189,7 @@ Tuple* refinementLI::getNext() {
       endThreadsC.notify_all();
    }
    filterThreads.clear();
+   this_thread::sleep_for(std::chrono::microseconds(10));
    return 0;
 }
 

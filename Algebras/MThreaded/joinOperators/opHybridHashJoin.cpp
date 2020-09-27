@@ -38,21 +38,17 @@ These Operators are:
 
 */
 
-#include <thread>
 #include "opHybridHashJoin.h"
-
 #include "Attribute.h"          // implementation of attribute types
 #include "NestedList.h"         // required at many places
 #include "QueryProcessor.h"     // needed for implementing value mappings
-#include "AlgebraManager.h"     // e.g., check for a certain kind
 #include "Operator.h"           // for operator creation
 #include "StandardTypes.h"      // provides int, real, string, bool type
 #include "Symbols.h"            // predefined strings
 #include "ListUtils.h"          // useful functions for nested lists
 #include "LogMsg.h"             // send error messages
 #include <cmath>
-#include <climits>
-
+#include <thread>
 
 using namespace mthreaded;
 using namespace std;
@@ -61,7 +57,6 @@ extern NestedList* nl;
 extern QueryProcessor* qp;
 
 namespace hashJoinGlobal {
-//mutex mutexEqual_;
 size_t threadsDone;
 condition_variable workers;
 mutex workersDone_;
@@ -140,7 +135,6 @@ void HashTablePersist::PushS(Tuple* tuple, const size_t bucket) {
       sizeS[bucket] += size;
       hashBucketsS[bucket]->appendTuple(tuple);
       if (!setSPersist && freeMem > maxMem && lastMemBufferS < bucketsNo) {
-         //cout << "write to disk S: " << lastMemBufferS << endl;
          shared_ptr<FileBuffer> tempFileBuffer = make_shared<FileBuffer>(ttS);
          Tuple* tupleNext = hashBucketsS[lastMemBufferS]->readTuple();
          while (tupleNext != nullptr) {
@@ -172,13 +166,12 @@ void HashTablePersist::SetHashMod(size_t hashMod) {
    this->hashMod = hashMod;
 }
 
-void HashTablePersist::CalcS() {
+void HashTablePersist::CalcOverflow() {
    for (size_t i = 0; i < bucketsNo - 1; ++i) {
       if (sizeR[i] != 0) {
          overflowBucketNo.emplace_back(
                  (size_t) floor(maxMem * 0.8) / floor(sizeR[i] / hashMod));
       } else {
-         cout << "null" << endl;
          overflowBucketNo.emplace_back(0);
       }
    }
@@ -237,25 +230,21 @@ HashJoinWorker::~HashJoinWorker() {
 void HashJoinWorker::operator()() {
    // phase 1:
    size_t countOverflow;
-   //cout << "Stream: " << streamInNo << endl;
    size_t hashMod = phase1(countOverflow);
 
    if (hashMod != 0) {
       // recursive overflow bucket 0
       if (!overflowBufferR->empty()) {
-         cout << "rekursive bucket0: " << endl;
          recursiveOverflow(overflowBufferR,
                            overflowBufferS, countOverflow, 1);
       }
 
-      //cout << "Phase 2: " << streamInNo << endl;
       // phase 2:
       for (size_t pos = 0; pos < bucketNo - 1; ++pos) {
          // non-overflow
          countOverflow = phase2(hashMod, pos);
          // recursive overflow buckets >0
          if (!overflowBufferR->empty()) {
-            cout << "rekursiv" << endl;
             recursiveOverflow(overflowBufferR,
                               hashTablePersist->GetOverflowS(pos),
                               countOverflow,
@@ -264,9 +253,7 @@ void HashJoinWorker::operator()() {
       }
       ttR->DeleteIfAllowed();
    }
-   //cout << "phasen ready: " << streamInNo << endl;
-   //resultTupleType->DeleteIfAllowed();
-   //ttS->DeleteIfAllowed();
+
    --threadsDone;
    if (threadsDone == 0) {
       tupleBuffer->enqueue(nullptr);
@@ -277,18 +264,15 @@ void HashJoinWorker::operator()() {
       std::unique_lock<std::mutex> lock(workersDone_);
       workers.wait(lock, [&] { return workersDone; });
    }
-   //cout << "operator ready" << endl;
 }
 
 size_t HashJoinWorker::phase1(size_t &countOverflow) {
-   //cout << "phase1" << endl;
    vector<vector<Tuple*>> bucketInMemR(bucketsInMem1st);
    size_t memR = maxMem;
 
    Tuple* tupleNextR;
    tupleNextR = partBufferR->dequeue();
    if (tupleNextR == nullptr) {
-      //cout << "R empty!!!!" << endl;
       return 0;
    }
    ttR = tupleNextR->GetTupleType();
@@ -306,7 +290,6 @@ size_t HashJoinWorker::phase1(size_t &countOverflow) {
       size_t partNo =
               (tupleNextR->HashValue(joinAttr.first) / coreNoWorker) % bucketNo;
       if (partNo == 0) {
-         //cout <<"mem##";
          size_t memRTupleNextR = tupleNextR->GetMemSize() + sizeof(void*);
          partNo = (tupleNextR->HashValue(joinAttr.first) / coreNoWorker /
                    bucketNo) % bucketsInMem1st;
@@ -341,27 +324,22 @@ size_t HashJoinWorker::phase1(size_t &countOverflow) {
             hashTablePersist->UseMemHashTable(-memTransfered);
          }
       } else {
-         //cout <<"persist##";
          hashTablePersist->PushR(tupleNextR, partNo - 1);
       }
       tupleNextR = partBufferR->dequeue();
       ++count;
    }
-
    partBufferR.reset();
-
-   //cout << "phase1doneR" << endl;
 
    size_t hashMod = count / bucketNo;
    if (hashMod == 0) hashMod = 1;
 
    hashTablePersist->SetHashMod(hashMod);
-   hashTablePersist->CalcS();
+   hashTablePersist->CalcOverflow();
 
    Tuple* tupleNextS;
    tupleNextS = partBufferS->dequeue();
    if (tupleNextS == nullptr) {
-      cout << "S empty!!!!" << endl;
       return 0;
    }
 
@@ -377,8 +355,6 @@ size_t HashJoinWorker::phase1(size_t &countOverflow) {
          if (partNo < inMemBucketNo) {
             if (!bucketInMemR[partNo].empty()) {
                for (auto tupleR : bucketInMemR[partNo]) {
-                  assert(tupleR != nullptr && tupleNextS != nullptr);
-                  //cout << "testR" << tupleR->GetNumOfRefs() << "##";
                   if (tupleEqual(tupleR, tupleNextS)) {
                      auto* result = new Tuple(resultTupleType);
                      {
@@ -401,7 +377,6 @@ size_t HashJoinWorker::phase1(size_t &countOverflow) {
    partBufferS.reset();
    for (size_t i = 0; i < inMemBucketNo; ++i) {
       for (auto* tupleR : bucketInMemR[i]) {
-         if (tupleR->GetNumOfRefs() > 1) { cout << "Rph1"; }
          tupleR->DeleteIfAllowed();
       }
    }
@@ -413,34 +388,39 @@ size_t HashJoinWorker::phase1(size_t &countOverflow) {
 }
 
 size_t HashJoinWorker::phase2(size_t hashMod, size_t pos) {
-   //cout << "phase2" << streamInNo << "pos: " << pos << endl;
    vector<vector<Tuple*>> bucketInMemR(hashMod);
+   size_t memR = maxMem;
+
    size_t overflow = hashTablePersist->OpenRead(pos);
    Tuple* tupleR = hashTablePersist->PullR(pos);
-   size_t count = 0;
    size_t countOverflow = 0;
    while (tupleR != nullptr) {
       size_t partNo =
               (tupleR->HashValue(joinAttr.first) / coreNoWorker /
                bucketNo) % hashMod;
       if (partNo < overflow) {
+         size_t memRTupleNextR = tupleR->GetMemSize() + sizeof(void*);
+         memR -= memRTupleNextR;
          bucketInMemR[partNo].emplace_back(tupleR);
       } else {
          overflowBufferR->appendTuple(tupleR);
          ++countOverflow;
       }
+      while (memR > maxMem) {
+         for (Tuple* tupleTransfer : bucketInMemR[overflow - 1]) {
+            memR += tupleTransfer->GetMemSize() + sizeof(void*);
+            overflowBufferR->appendTuple(tupleTransfer);
+        }
+        --overflow;
+      }
       tupleR = hashTablePersist->PullR(pos);
-      ++count;
    }
-   //cout << "r Read in 2: " << streamInNo << endl;
-   count = 0;
    Tuple* tupleS = hashTablePersist->PullS(pos);
    while (tupleS != nullptr) {
       size_t partNo =
               (tupleS->HashValue(joinAttr.second) / coreNoWorker /
                bucketNo) % hashMod;
       if (!bucketInMemR[partNo].empty()) {
-         //cout <<  bucketInMemR[partNo].size() <<"*";
          for (auto tupleR : bucketInMemR[partNo]) {
             if (tupleEqual(tupleR, tupleS)) {
                auto* result = new Tuple(resultTupleType);
@@ -451,17 +431,12 @@ size_t HashJoinWorker::phase2(size_t hashMod, size_t pos) {
             }
          }
       }
-      //cout << tupleS->GetNumOfRefs() << "S+S";
       if (tupleS->GetNumOfRefs() == 2) {
-         //cout << "s";
          tupleS->DeleteIfAllowed();
       }
       tupleS->DeleteIfAllowed();
-      //tupleS->DeleteIfAllowed();
-      ++count;
       tupleS = hashTablePersist->PullS(pos);
    }
-   //cout << "clean in ph2: " << streamInNo << endl;
    for (size_t i = 0; i < hashMod; ++i) {
       for (auto* tuple : bucketInMemR[i]) {
          if (tuple->GetNumOfRefs() == 2) {
@@ -479,7 +454,6 @@ void HashJoinWorker::recursiveOverflow(shared_ptr<FileBuffer> overflowR,
                                        shared_ptr<FileBuffer> overflowS,
                                        size_t sizeR, size_t xMod) {
    // phase 1
-   cout << "rekursive" << endl;
    size_t inMemBucketNo = sizeR / bucketNo;
    if (inMemBucketNo == 0) {
       inMemBucketNo = 1;
@@ -551,7 +525,7 @@ void HashJoinWorker::recursiveOverflow(shared_ptr<FileBuffer> overflowR,
       tupleNextR = overflowR->readTuple();
    }
    recursiveHashTablePersist->SetHashMod(hashMod);
-   recursiveHashTablePersist->CalcS();
+   recursiveHashTablePersist->CalcOverflow();
    while (tupleNextS != nullptr) {
       size_t partNo = tupleNextS->HashValue(joinAttr.second) / coreNoWorker;
       for (size_t i = 0; i < xMod; ++i) {
@@ -595,7 +569,6 @@ void HashJoinWorker::recursiveOverflow(shared_ptr<FileBuffer> overflowR,
 
    // R0 recursive
    if (!recursiveOverflowBufferR->empty()) {
-      cout << "rec again" << endl;
       recursiveOverflow(recursiveOverflowBufferR, recursiveOverflowBufferS,
                         countOverflow, xMod);
    }
@@ -604,6 +577,7 @@ void HashJoinWorker::recursiveOverflow(shared_ptr<FileBuffer> overflowR,
    for (size_t pos = 0; pos < bucketNo - 1; ++pos) {
       recursiveOverflowBufferR = make_shared<FileBuffer>(
               ttR);
+      memR = maxMem;
       vector<vector<Tuple*>> bucketInMemR(inMemBucketNo);
       size_t overflow = recursiveHashTablePersist->OpenRead(pos);
       Tuple* tupleR = recursiveHashTablePersist->PullR(pos);
@@ -615,10 +589,19 @@ void HashJoinWorker::recursiveOverflow(shared_ptr<FileBuffer> overflowR,
          }
          partNo %= inMemBucketNo;
          if (partNo < overflow) {
+            size_t memRTupleNextR = tupleR->GetMemSize() + sizeof(void*);
+            memR -= memRTupleNextR;
             bucketInMemR[partNo].emplace_back(tupleR);
          } else {
             recursiveOverflowBufferR->appendTuple(tupleR);
             ++countOverflow;
+         }
+         while (memR > maxMem) {
+            for (Tuple* tupleTransfer : bucketInMemR[overflow - 1]) {
+               memR += tupleTransfer->GetMemSize() + sizeof(void*);
+               recursiveOverflowBufferR->appendTuple(tupleTransfer);
+            }
+            --overflow;
          }
          tupleR = recursiveHashTablePersist->PullR(pos);
       }
@@ -659,12 +642,8 @@ void HashJoinWorker::recursiveOverflow(shared_ptr<FileBuffer> overflowR,
 
 
 bool HashJoinWorker::tupleEqual(Tuple* a, Tuple* b) const {
-   assert(a != nullptr && b != nullptr);
-
    const auto* aAttr = (const Attribute*) a->GetAttribute(joinAttr.first);
    const auto* bAttr = (const Attribute*) b->GetAttribute(joinAttr.second);
-   // 0 equal
-   //std::lock_guard<mutex> lock(hashJoinGlobal::mutexEqual_); //TODO: nötig?
    return aAttr->Compare(bAttr) == 0;
 }
 
@@ -681,7 +660,7 @@ hybridHashJoinLI::hybridHashJoinLI(
           coreNo(MThreadedSingleton::getCoresToUse()),
           coreNoWorker(coreNo - 1) {
    resultTupleType = new TupleType(nl->Second(resultType));
-   //resultTupleType->IncReference();
+   resultTupleType->IncReference();
    streamR.open();
    streamS.open();
    Scheduler();
@@ -701,6 +680,9 @@ Tuple* hybridHashJoinLI::getNext() {
    Tuple* res;
    res = tupleBuffer->dequeue();
    if (res != nullptr) {
+      if (res->GetNumOfRefs() != 1) {
+         res->DeleteIfAllowed();
+      }
       return res;
    }
    return 0;
@@ -713,9 +695,7 @@ void hybridHashJoinLI::Scheduler() {
    Tuple* tupleR = streamR.request();
    Tuple* tupleS = streamS.request();
    if (tupleS != nullptr && tupleR != nullptr) {
-//      TupleType* ttR = tupleR->GetTupleType();
       TupleType* ttS = tupleS->GetTupleType();
-//      ttR->IncReference();
       ttS->IncReference();
       // start threads
       joinThreads.reserve(coreNoWorker);
@@ -728,7 +708,6 @@ void hybridHashJoinLI::Scheduler() {
          partBufferS.push_back(
                  make_shared<SafeQueue<Tuple*>>(i));
          resultTupleType->IncReference();
-         //ttS->IncReference();
          joinThreads.emplace_back(
                  HashJoinWorker(maxMem / coreNoWorker, coreNoWorker, i,
                                 tupleBuffer,
@@ -736,7 +715,6 @@ void hybridHashJoinLI::Scheduler() {
                                 partBufferS.back(),
                                 joinAttr,
                                 resultTupleType, ttS));
-         //joinThreads.back().detach();
       }
 
       // Stream R
@@ -760,8 +738,6 @@ void hybridHashJoinLI::Scheduler() {
       for (size_t i = 0; i < coreNoWorker; ++i) {
          joinThreads[i].join();
       }
-      cout << "joined" << endl;
-//      ttR->DeleteIfAllowed();
       ttS->DeleteIfAllowed();
    } else {
       tupleBuffer->enqueue(nullptr);
@@ -824,7 +800,7 @@ ListExpr op_hybridHashJoin::hybridHashJoinTM(ListExpr args) {
 
    int index2 = listutils::findAttribute(attrList2, attrname2, attrType2);
    if (index2 == 0) {
-      return listutils::typeError(attrname1 +
+      return listutils::typeError(attrname2 +
                                   " is not an attribute of the second stream");
    }
 
@@ -841,8 +817,6 @@ ListExpr op_hybridHashJoin::hybridHashJoinTM(ListExpr args) {
    ListExpr indexList = nl->TwoElemList(
            nl->IntAtom(index1 - 1),
            nl->IntAtom(index2 - 1));
-
-   cout << nl->ToString(indexList) << endl;
 
    return nl->ThreeElemList(nl->SymbolAtom(Symbols::APPEND()),
                             indexList,
@@ -887,19 +861,15 @@ int op_hybridHashJoin::hybridHashJoinVM(Word* args, Word &result, int message,
                                            qp->GetMemorySize(s) *
                                            1024 * 1024,
                                            resultType);
-         //resultTupleType->DeleteIfAllowed();
          return 0;
       case REQUEST:
          result.addr = li ? li->getNext() : 0;
-         //resultTupleType->DeleteIfAllowed();
          return result.addr ? YIELD : CANCEL;
       case CLOSE:
-         cout << "close" << endl;
          if (li) {
             delete li;
             local.addr = 0;
          }
-         //resultTupleType->DeleteIfAllowed();
          usleep(100);
          return 0;
    }

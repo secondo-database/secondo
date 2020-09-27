@@ -71,7 +71,7 @@ Result      : TRUE
 Operator    : mThreadedHybridJoin
 Number      : 12
 Signature   : stream x stream x attr x attr -> stream
-Example     : query strassen feed {o} Plaetze feed {p} mThreadedHybridJoin[Name_o, Code_p] count
+Example     : query strassen feed {o} Plaetze feed {p} mThreadedHybridJoin[Name_o, Type_p] count
 Result      : TRUE
 
 Operator    : setcore

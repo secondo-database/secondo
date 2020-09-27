@@ -37,12 +37,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include <include/Stream.h>
 #include <Algebras/MThreaded/MThreadedAux.h>
-#include <jmorecfg.h>
 #include "Operator.h"
 #include "vector"
 #include "thread"
 #include "condition_variable"
-#include "../MThreadedAlgebra.h"
 #include <boost/circular_buffer.hpp>
 #include <utility>
 
@@ -73,7 +71,7 @@ class HashTablePersist {
 
    void SetHashMod(size_t hashMod);
 
-   void CalcS();
+   void CalcOverflow();
 
    std::shared_ptr<FileBuffer> GetOverflowS(const size_t bucket) const;
 

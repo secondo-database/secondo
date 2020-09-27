@@ -77,41 +77,6 @@ class Buffer {
    ~Buffer() = default;
 };
 
-//class FileBufferRW : public Buffer {
-//   private:
-//   std::string fname;
-//   std::shared_ptr<std::fstream> fileStreamInOut;
-//   TupleType* tt;
-//   bool isEmpty;
-//
-//   // fname from uuid
-//   static std::string createFn();
-//
-//   public:
-//   // append single tuple into a file
-//   void appendTuple(Tuple* tuple) override;
-//
-//   // read single tuple
-//   Tuple* readTuple() override;
-//
-//   // close writing connection
-//   void closeWrite() override;
-//
-//   // open for read
-//   void openRead() override;
-//
-//   bool empty() const override;
-//
-//   std::string getFname() const;
-//
-//   // Constructor FileBuffer
-//   explicit FileBufferRW(TupleType* _tt);
-//
-//   // Destructor FileBuffer
-//   ~FileBufferRW();
-//
-//
-//};
 
 class FileBuffer : public Buffer {
    private:
@@ -248,6 +213,8 @@ class SafeQueue {
 };
 
 // threadsafe queue using tuplefiles
+// if used from several threads mutex has to be used
+// mutexTupleCounter_
 class SafeQueuePersistent {
    public:
    SafeQueuePersistent (const size_t _bufferSize, TupleType* _tt);
