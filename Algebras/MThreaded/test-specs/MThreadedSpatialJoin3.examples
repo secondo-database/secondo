@@ -1,0 +1,15 @@
+Sequential: Yes
+Database: test
+Restore: No
+
+Operator    : setcore
+Number      : 1
+Signature   : int -> bool
+Example     : query setcore(3)
+Result      : TRUE
+
+Operator    : mThreadedSpatialJoin
+Number      : 4
+Signature   : stream x stream x attr x attr -> stream
+Example     : query buildings feed head[80000] {o} roads feed {p} mThreadedSpatialJoin[Geometry_o, Geometry_p, 0.0] {memory 20} count
+Result      : TRUE

@@ -408,6 +408,7 @@ Tuple* mergeSortLI::getNext() {
       }
       return res;
    } else if (tupleNext1 == nullptr && tupleNext2 == nullptr) {
+      this_thread::sleep_for(std::chrono::microseconds(10));
       return 0;
    } else {
       if (tupleNext1 == nullptr) {

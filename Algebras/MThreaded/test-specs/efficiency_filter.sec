@@ -1,0 +1,165 @@
+# efficiency filter operator
+# database test
+
+#erste beiden head 50000, letzte ohne
+#0.514693sec / 0.51sec = 1.0092
+#0.558263sec / 0.56sec = 0.996898
+#4.00792sec / 4.01sec = 0.999481
+query buildings feed filter[.Code > 1200] count;
+
+query setcore(3);
+#(125.692sec) /6.14sec = 20.471
+#1.53197sec / 2.19sec = 0.699528
+#9.9679sec / 14.24sec = 0.699993
+query buildings feed   mThreadedFilter[.Code > 1200] count;
+
+query setcore(4);
+#36.468sec / 3.41sec = 10.6944
+#1.04018sec / 1.7sec = 0.611869
+#14.9667sec / 22.48sec = 0.665779
+query buildings feed  mThreadedFilter[.Code > 1200] count;
+
+query setcore(5);
+#31.3526sec / 3.29sec = 9.52966
+#1.67622sec / 2.5sec = 0.670489
+#15.5291sec / 23.5sec = 0.660815
+query buildings feed mThreadedFilter[.Code > 1200] count;
+
+query setcore(6);
+#30.071sec / 2.99sec = 10.0572
+#1.75409sec / 2.6sec = 0.674651
+#15.1016sec / 23.68sec = 0.637736
+query buildings feed  mThreadedFilter[.Code > 1200] count;
+
+query setcore(7);
+#29.1691sec / 3.2sec = 9.11533
+#1.68013sec / 2.46sec = 0.68298
+#13.4204sec / 20.01sec = 0.670682
+query buildings feed  mThreadedFilter[.Code > 1200] count;
+
+query setcore(8);
+#30.3908sec / 3.33sec = 9.12638
+# 1.3714sec / 2.23sec = 0.614977
+#19.0469sec / 27.18sec = 0.700771
+query buildings feed  mThreadedFilter[.Code > 1200] count;
+
+query setcore(9);
+#28.1033sec / 4.02sec = 6.99087
+#1.3542sec / 2.03sec = 0.667093
+#18.4695sec / 26.47sec = 0.697754
+query buildings feed  mThreadedFilter[.Code > 1200] count;
+
+query setcore(10);
+#27.9021sec / 4.42sec = 6.31269
+#1.69128sec / 2.64sec = 0.640638
+#21.2386sec / 30.81sec = 0.689341
+query buildings feed mThreadedFilter[.Code > 1200] count;
+
+#erste beide head[100000], letztes vollständig
+# 0.016036sec / 0.01sec = 1.6036
+#0.014179sec / 0.02sec = 0.70895
+#0.012805sec / 0.01sec = 1.2805
+query tp_sj feed filter[not(isempty(intersection1(.Geometry_p, .Geometry_o)))] count;
+
+query setcore(3);
+#0.108836sec / 0.04sec = 2.7209
+#0.029958sec / 0.04sec = 0.74895
+#0.029761sec / 0.04sec = 0.744025
+query tp_sj feed mThreadedFilter[not(isempty(intersection1(.Geometry_p, .Geometry_o)))] count;
+
+query setcore(4);
+#head[100000]
+#0.11942sec / 0.05sec = 2.3884
+#0.038752sec / 0.04sec = 0.9688
+#0.03842sec / 0.04sec = 0.9605
+query tp_sj feed mThreadedFilter[not(isempty(intersection1(.Geometry_p, .Geometry_o)))] count;
+
+query setcore(5);
+#0.100793sec / 0.06sec = 1.67988
+#0.059141sec / 0.04sec = 1.47852
+#0.042379sec / 0.05sec = 0.84758
+query tp_sj feed mThreadedFilter[not(isempty(intersection1(.Geometry_p, .Geometry_o)))] count;
+
+query setcore(6);
+# 0.113056sec / 0.06sec = 1.88427
+#0.077709sec / 0.05sec = 1.55418
+#0.051293sec / 0.06sec = 0.854883
+query tp_sj feed mThreadedFilter[not(isempty(intersection1(.Geometry_p, .Geometry_o)))] count;
+
+query setcore(7);
+#0.115273sec / 0.07sec = 1.64676
+#0.060052sec / 0.05sec = 1.20104
+#0.053591sec / 0.06sec = 0.893183
+query tp_sj feed  mThreadedFilter[not(isempty(intersection1(.Geometry_p, .Geometry_o)))] count;
+
+query setcore(8);
+#0.147497sec / 0.09sec = 1.63886
+#0.069502sec / 0.1sec = 0.69502
+#0.061373sec / 0.07sec = 0.876757
+query tp_sj feed mThreadedFilter[not(isempty(intersection1(.Geometry_p, .Geometry_o)))] count;
+
+query setcore(9);
+#0.127088sec / 0.09sec = 1.41209
+#0.065956sec / 0.07sec = 0.942229
+#0.066439sec / 0.07sec = 0.949129
+query tp_sj feed mThreadedFilter[not(isempty(intersection1(.Geometry_p, .Geometry_o)))] count;
+
+query setcore(10);
+#0.134861sec / 0.1sec = 1.34861
+#0.07252sec / 0.07sec = 1.036
+#0.071624sec / 0.07sec = 1.0232
+query tp_sj feed mThreadedFilter[not(isempty(intersection1(.Geometry_p, .Geometry_o)))] count;
+
+# 1 u 2 head 2000, letztes head 12000
+#0.500271sec / 0.5sec = 1.00054
+#0.543229sec / 0.55sec = 0.987689
+#1.30277sec / 1.3sec = 1.00213
+query pt_sj feed head[12000] filter[.Geometry_p inside .Geometry_r] count;
+
+query setcore(3);
+#1.1552sec / 0.46sec = 2.5113
+#0.381928sec / 0.48sec = 0.795683
+#1.64444sec / 2.11sec = 0.779356
+query pt_sj feed head[12000] mThreadedFilter[.Geometry_p inside .Geometry_o] count;
+
+query setcore(4);
+#1.00666sec / 0.43sec = 2.34107
+#0.310841sec / 0.44sec = 0.706457
+#1.58004sec / 2.33sec = 0.678127
+query pt_sj feed head[12000] mThreadedFilter[.Geometry_p inside .Geometry_o] count;
+
+query setcore(5);
+#0.938746sec / 0.44sec = 2.13351
+#0.315451sec / 0.46sec = 0.685763
+#1.59144sec / 2.53sec = 0.629027
+query pt_sj feed head[12000] mThreadedFilter[.Geometry_p inside .Geometry_o] count;
+
+query setcore(6);
+# 0.971458sec / 0.5sec = 1.94292
+#0.337119sec / 0.5sec = 0.674238
+#1.6116sec / 2.7sec = 0.596889
+query pt_sj feed head[12000] mThreadedFilter[.Geometry_p inside .Geometry_o] count;
+
+query setcore(7);
+# 0.937368sec / 0.53sec = 1.76862
+#0.350329sec / 0.53sec = 0.660998
+#1.69624sec / 2.83sec = 0.599378
+query pt_sj feed head[12000] mThreadedFilter[.Geometry_p inside .Geometry_o] count;
+
+query setcore(8);
+#0.97025sec / 0.57sec = 1.70219
+#0.356273sec / 0.51sec = 0.698575
+#1.62264sec / 2.76sec = 0.587912
+query pt_sj feed head[12000] mThreadedFilter[.Geometry_p inside .Geometry_o] count;
+
+query setcore(9);
+# 0.940964sec / 0.57sec = 1.65081
+#0.341323sec / 0.51sec = 0.669261
+#1.71033sec / 2.9sec = 0.589769
+query pt_sj feed head[12000] mThreadedFilter[.Geometry_p inside .Geometry_o] count;
+
+query setcore(10);
+#0.954802sec / 0.63sec = 1.51556
+#0.418471sec / 0.58sec = 0.721502
+#1.73169sec / 2.98sec = 0.581105
+query pt_sj feed head[12000] mThreadedFilter[.Geometry_p inside .Geometry_o] count;

@@ -1,0 +1,57 @@
+Sequential: Yes
+Database: test
+Restore: No
+
+Operator    : setcore
+Number      : 1
+Signature   : int -> bool
+Example     : query setcore(3)
+Result      : TRUE
+
+Operator    : leere Relation
+Number      : 2
+Signature   : stream x attr x attr -> stream
+Example     : query buildings feed head[0] mThreadedFilter[.Code > 1200] count
+Result      : 0
+
+Operator    : leeres Ergebnis
+Number      : 3
+Signature   : stream x attr x attr -> stream
+Example     : query buildings feed mThreadedFilter[.Code > 6200] count
+Result      : 0
+
+Operator    : sehr kleine Relation als Eingang
+Number      : 4
+Signature   : stream x attr x attr -> stream
+Example     : query buildings feed head[1] mThreadedFilter[.Code > 0] count
+Result      : 1
+
+Operator    : no boolean
+Number      : 5
+Signature   : stream x attr x attr -> stream
+Example     : query wr_sj feed head[1000] mThreadedFilter[intersection_rob(.Geometry_o, .Geometry_p)] count
+Result      : ERROR
+
+Operator    : attribute not in relation
+Number      : 6
+Signature   : stream x attr x attr -> stream
+Example     : query wr_sj feed head[1000] mThreadedFilter[not(isempty(intersection_rob(.Geometry_x, .Geometry_p)))] count
+Result      : ERROR
+
+Operator    : operator in function don't exist
+Number      : 7
+Signature   : stream x attr x attr -> stream
+Example     : query wr_sj feed head[1000] mThreadedFilter[interquestion(.Geometry_o, .Geometry_p)] count
+Result      : ERROR
+
+Operator    : function has stream as result
+Number      : 8
+Signature   : stream x attr x attr -> stream
+Example     : query wr_sj feed head[1000] mThreadedFilter[wr_sj feed] count
+Result      : ERROR
+
+Operator    : Eingang kein Tupelstrom
+Number      : 9
+Signature   : stream x attr x attr -> stream
+Example     : query wr_sj mThreadedFilter[wr_sj feed] count
+Result      : ERROR

@@ -1,0 +1,16 @@
+Sequential: Yes
+Database: test
+Restore: No
+
+Operator    : setcore
+Number      : 2
+Signature   : int -> bool
+Example     : query setcore(6)
+Result      : TRUE
+
+Operator    : mThreadedHybridJoin
+Number      : 6
+Signature   : stream x stream x attr x attr -> stream
+Example     : query (pl_sj feed {p} pois_str feed {o} mThreadedHybridJoin[NameStr_p_p, NameStr_o] {memory 10} project[NameStr_o] sortby[NameStr_o]) = (pl_sj feed {p} pois_str feed {o} hybridhashjoin[NameStr_p_p, NameStr_o, 1000] project[NameStr_o] sortby[NameStr_o])
+Result      : TRUE
+

@@ -12,9 +12,9 @@ Operator    : mThreadedHybridJoin
 Number      : 4
 Signature   : stream x stream x attr x attr -> stream
 Example     : query roads_str feed {p} roads_str feed {o} mThreadedHybridJoin[NameStr_p, NameStr_o] project[NameStr_o] sortby[NameStr_o] count
-Result      : TRUE
+Result      : 841040
 
-Operator    : mThreadedHybridJoin
+Operator    : mThreadedHybridJoin - mem
 Number      : 5
 Signature   : stream x stream x attr x attr -> stream
 Example     : query (roads_str feed {p} roads_str feed {o} mThreadedHybridJoin[NameStr_p, NameStr_o] {memory 10} project[NameStr_o] sortby[NameStr_o]) = (roads_str feed {p} roads_str feed {o} sortmergejoin[NameStr_p, NameStr_o] project[NameStr_o] sortby[NameStr_o])

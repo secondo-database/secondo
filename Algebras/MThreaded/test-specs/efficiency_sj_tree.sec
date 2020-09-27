@@ -1,0 +1,16 @@
+# efficieny of mThreadedSpatialJoin
+
+query setcore(8);
+#4,8: 5.52235sec / 7.65sec = 0.721876
+#2,4: 5.69925sec / 7.9sec = 0.721424
+#8,16: 5.19869sec / 7.44sec = 0.698749
+#16,32:5.19603sec / 7.26sec = 0.715707
+#32,64:5.34924sec / 7.51sec = 0.712283
+query roads feed head[30000] {o} landuse feed {p} mThreadedSpatialJoin[Geometry_o, Geometry_p, 0.0] count;
+
+#2,4:0.975231sec / 2.15sec = 0.453596
+#8,16:1.07519sec / 2.12sec = 0.507165
+#4,8: 0.974403sec / 2.07sec = 0.470726
+#16,32: 1.02519sec / 2.2sec = 0.465995
+#32,64: 1.0548sec / 2.19sec = 0.481645
+query roads feed head[10000] {o} landuse feed {p} mThreadedSpatialJoin[Geometry_o, Geometry_p, 0.0] count;

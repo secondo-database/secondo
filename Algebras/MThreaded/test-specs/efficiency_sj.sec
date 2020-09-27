@@ -1,0 +1,139 @@
+# efficieny of mThreadedSpatialJoin
+
+#2.81862sec
+# 2.15405sec / 2.16sec = 0.997245
+query pois feed {o} traf feed {p} spatialjoin[Geometry_o, Geometry_p] count;
+
+query setcore(3);
+#54.4049sec / 56.8sec = 0.957833
+#6.40699sec / 18.02sec = 0.355549
+query pois feed {o} traf feed {p} mThreadedSpatialJoin[Geometry_o, Geometry_p, 0.0] count;
+
+query setcore(4);
+#31.5761sec / 34.04sec = 0.927617
+#2.39585sec / 11.56sec = 0.207253
+query pois feed {o} traf feed {p} mThreadedSpatialJoin[Geometry_o, Geometry_p, 0.0] count;
+
+query setcore(5);
+#24.8717sec / 27.79sec = 0.894986
+#1.39247sec / 9.45sec = 0.147351
+query pois feed {o} traf feed {p} mThreadedSpatialJoin[Geometry_o, Geometry_p, 0.0] count;
+
+query setcore(6);
+#24.8717sec / 27.79sec = 0.894986
+#1.82316sec / 9.91sec = 0.183972
+query pois feed {o} traf feed {p} mThreadedSpatialJoin[Geometry_o, Geometry_p, 0.0] count;
+
+query setcore(7);
+#21.2736sec / 24.59sec = 0.865132
+#2.24065sec / 9.65sec = 0.232192
+query pois feed {o} traf feed {p} mThreadedSpatialJoin[Geometry_o, Geometry_p, 0.0] count;
+
+query setcore(8);
+#18.6667sec / 22.56sec = 0.827424
+#2.35922sec / 8.81sec = 0.267789
+query pois feed {o} traf feed {p} mThreadedSpatialJoin[Geometry_o, Geometry_p, 0.0] count;
+
+query setcore(9);
+#17.3381sec / 21.17sec = 0.818993
+#2.5005sec / 8.69sec = 0.287745
+query pois feed {o} traf feed {p} mThreadedSpatialJoin[Geometry_o, Geometry_p, 0.0] count;
+
+query setcore(10);
+#15.3679sec / 19.19sec = 0.800828
+#2.64318sec / 8.64sec = 0.305923
+query pois feed {o} traf feed {p} mThreadedSpatialJoin[Geometry_o, Geometry_p, 0.0] count;
+
+#6.90522sec / 6.91sec = 0.999308
+#0.515861sec / 0.52sec = 0.99204
+query landuse feed head[5000] {o} traf feed head[5000] {p} spatialjoin[Geometry_o, Geometry_p] count; 
+
+query setcore(3);
+#9.79762sec / 12.05sec = 0.81308
+#0.145441sec / 0.37sec = 0.393084
+query landuse feed head[5000] {o} traf feed  head[5000] {p} mThreadedSpatialJoin[Geometry_o, Geometry_p, 0.0] count;
+
+query setcore(4);
+# 8.41136sec / 10.98sec = 0.766061
+#0.226384sec / 0.6sec = 0.377307
+query landuse feed head[5000] {o} traf feed  head[5000] {p} mThreadedSpatialJoin[Geometry_o, Geometry_p, 0.0] count;
+
+query setcore(5);
+#8.12256sec / 11.72sec = 0.693052
+#0.252209sec / 0.84sec = 0.300249
+query landuse feed head[5000] {o} traf feed   head[5000] {p} mThreadedSpatialJoin[Geometry_o, Geometry_p, 0.0] count;
+
+query setcore(6);
+#6.98461sec / 10.46sec = 0.667745
+# 0.286529sec / 0.9sec = 0.318366
+query landuse feed head[5000] {o} traf feed  head[5000] {p} mThreadedSpatialJoin[Geometry_o, Geometry_p, 0.0] count;
+
+query setcore(7);
+#6.38812sec / 10.87sec = 0.587683
+#0.376669sec / 1sec = 0.376669
+query landuse feed head[5000] {o} traf feed  head[5000] {p} mThreadedSpatialJoin[Geometry_o, Geometry_p, 0.0] count;
+
+query setcore(8);
+#6.03987sec / 10.67sec = 0.566061
+#0.254304sec / 0.68sec = 0.373976
+query landuse feed head[5000] {o} natural feed  head[5000] {p} mThreadedSpatialJoin[Geometry_o, Geometry_p, 0.0] count;
+
+query setcore(9);
+#5.63583sec / 10.13sec = 0.55635
+#0.261913sec / 0.71sec = 0.368892
+query landuse feed head[5000] {o} natural feed  head[5000] {p} mThreadedSpatialJoin[Geometry_o, Geometry_p, 0.0] count;
+
+query setcore(10);
+#4.75705sec / 9.54sec = 0.498643
+#0.315666sec / 0.96sec = 0.328819
+query landuse feed head[5000] {o} natural feed {p}  head[5000] mThreadedSpatialJoin[Geometry_o, Geometry_p, 0.0] count;
+
+query setcore(4);
+# 0.611998sec / 0.61sec = 1.00328
+#0.492768sec / 0.49sec = 1.00565
+query waterways feed head[500] {o} roads feed head[10000] {p} spatialjoin[Geometry_o, Geometry_p] count;
+# 0.253722sec / 0.42sec = 0.6041
+# 0.275854sec / 0.56sec = 0.492596
+query waterways feed head[500] {o} roads feed head[10000] {p} mThreadedSpatialJoin[Geometry_o, Geometry_p, 0.0] count;
+
+#0.608072sec / 0.61sec = 0.996839
+#0.561725sec / 0.56sec = 1.00308
+query waterways feed head[1000] {o} roads feed head[10000] {p} spatialjoin[Geometry_o, Geometry_p] count;
+#0.242058sec / 0.44sec = 0.550132
+#0.270961sec / 0.59sec = 0.459256
+query waterways feed head[1000] {o} roads feed head[10000] {p} mThreadedSpatialJoin[Geometry_o, Geometry_p, 0.0] count;
+
+#0.640465sec / 0.64sec = 1.00073
+# 0.653534sec / 0.66sec = 0.990203
+query waterways feed {o} roads feed head[10000] {p} spatialjoin[Geometry_o, Geometry_p] count;
+#0.229704sec / 0.52sec = 0.441738
+#0.298235sec / 0.65sec = 0.458823
+query waterways feed {o} roads feed head[10000] {p} mThreadedSpatialJoin[Geometry_o, Geometry_p, 0.0] count;
+
+#0.71882sec / 0.71sec = 1.01242
+#0.573734sec / 0.57sec = 1.00655
+query roads feed head[10000] {o} waterways feed {p} spatialjoin[Geometry_o, Geometry_p] count;
+#0.988653sec / 1.52sec = 0.65043
+#0.194482sec / 0.7sec = 0.277831
+query roads feed head[10000] {o} waterways feed {p} mThreadedSpatialJoin[Geometry_o, Geometry_p, 0.0] count;
+
+#2.36547sec / 2.36sec = 1.00232
+#2.6579sec / 2.57sec = 1.0342
+query roads feed head[50000] {o} waterways feed {p} spatialjoin[Geometry_o, Geometry_p] count;
+#16.5367sec / 18.77sec = 0.881016
+# 1.99175sec / 8.9sec = 0.223792
+query roads feed head[50000] {o} waterways feed {p} mThreadedSpatialJoin[Geometry_o, Geometry_p, 0.0] count;
+
+#6.25234sec / 6.25sec = 1.00038
+#4.72317sec / 4.72sec = 1.00067
+query roads feed head[100000] {o} waterways feed {p} spatialjoin[Geometry_o, Geometry_p] count;
+#56.9807sec / 61.1sec = 0.932581
+#5.67324sec / 27.28sec = 0.207963
+query roads feed head[100000] {o} waterways feed {p} mThreadedSpatialJoin[Geometry_o, Geometry_p, 0.0] count;
+
+#15.1748sec / 15.16sec = 1.00098
+#11.4945sec / 10.92sec = 1.05261
+query roads feed {o} waterways feed {p} spatialjoin[Geometry_o, Geometry_p] count;
+#(92.6145sec) /98.72sec = 0.938154
+#14.1903sec / 79.64sec = 0.17818
+query roads feed {o} waterways feed {p} mThreadedSpatialJoin[Geometry_o, Geometry_p, 0.0] count;

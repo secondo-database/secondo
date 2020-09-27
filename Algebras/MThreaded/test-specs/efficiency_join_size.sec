@@ -1,0 +1,65 @@
+# efficieny of mThreadedHybridJoin
+# test
+
+query setcore(4);
+#all: 44684
+
+#1.35203sec / 2.03sec = 0.666027
+query roads_str feed head[1000] {o} roads_str feed {p} mThreadedHybridJoin[Name_o, Name_p] count;
+#0.827635sec / 0.84sec = 0.98528
+query roads_str feed head[1000] {o} roads_str feed {p} hybridhashjoin[Name_o, Name_p,1000] count;
+
+#1.31367sec / 2.1sec = 0.625555
+query roads_str feed head[2500] {o} roads_str feed {p} mThreadedHybridJoin[Name_o, Name_p] count;
+#0.903018sec / 0.9sec = 1.00335
+query roads_str feed head[2500] {o} roads_str feed {p} hybridhashjoin[Name_o, Name_p,1000] count;
+
+#1.80443sec / 2.84sec = 0.635361
+query roads_str feed head[5000] {o} roads_str feed {p} mThreadedHybridJoin[Name_o, Name_p] count;
+#1.11075sec / 1.11sec = 1.00067
+query roads_str feed head[5000] {o} roads_str feed {p} hybridhashjoin[Name_o, Name_p,1000] count;
+
+#4.07782sec / 5.25sec = 0.776727
+query roads_str feed head[10000] {o} roads_str feed {p} mThreadedHybridJoin[Name_o, Name_p] count;
+#1.42961sec / 1.42sec = 1.00677
+query roads_str feed head[10000] {o} roads_str feed {p} hybridhashjoin[Name_o, Name_p,1000] count;
+
+#22.1247sec / 26.55sec = 0.83332
+query roads_str feed head[25000] {o} roads_str feed {p} mThreadedHybridJoin[Name_o, Name_p] count;
+#2.50276sec / 2.5sec = 1.0011
+query roads_str feed head[25000] {o} roads_str feed {p} hybridhashjoin[Name_o, Name_p,1000] count;
+
+#35.0018sec / 41.04sec = 0.852871
+query roads_str feed {o} roads_str feed {p} mThreadedHybridJoin[Name_o, Name_p] count;
+#3.80433sec / 3.81sec = 0.998511
+query roads_str feed {o} roads_str feed {p} hybridhashjoin[Name_o, Name_p,1000] count;
+
+#1.15987sec / 1.89sec = 0.613688
+query roads_str feed {o} roads_str feed head[1000] {p} mThreadedHybridJoin[Name_o, Name_p] count;
+#0.950419sec / 0.95sec = 1.00044
+query roads_str feed head[1000] {o} roads_str feed {p} hybridhashjoin[Name_o, Name_p,1000] count;
+
+#1.47526sec / 2.37sec = 0.622471
+query roads_str feed {o} roads_str feed head[2500] {p} mThreadedHybridJoin[Name_o, Name_p] count;
+#0.906983sec / 0.92sec = 0.985851
+query roads_str feed head[1000] {o} roads_str feed {p} hybridhashjoin[Name_o, Name_p,1000] count;
+
+#1.33178sec / 1.98sec = 0.672616
+query roads_str feed {o} roads_str feed head[5000] {p} mThreadedHybridJoin[Name_o, Name_p] count;
+#0.900097sec / 0.9sec = 1.00011
+query roads_str feed head[1000] {o} roads_str feed {p} hybridhashjoin[Name_o, Name_p,1000] count;
+
+#3.62469sec / 4.75sec = 0.763092
+query roads_str feed {o} roads_str feed head[10000] {p} mThreadedHybridJoin[Name_o, Name_p] count;
+#0.611717sec / 0.6sec = 1.01953
+query roads_str feed head[1000] {o} roads_str feed {p} hybridhashjoin[Name_o, Name_p,1000] count;
+
+#18.5324sec / 22.17sec = 0.835922
+query roads_str feed {o} roads_str feed head[25000] {p} mThreadedHybridJoin[Name_o, Name_p] count;
+#0.753689sec / 0.75sec = 1.00492
+query roads_str feed head[1000] {o} roads_str feed {p} hybridhashjoin[Name_o, Name_p,1000] count;
+
+#31.3091sec / 36.67sec = 0.853806
+query roads_str feed {o} roads_str feed {p} mThreadedHybridJoin[Name_o, Name_p] count;
+#0.929366sec / 0.93sec = 0.999318
+query roads_str feed head[1000] {o} roads_str feed {p} hybridhashjoin[Name_o, Name_p,1000] count;

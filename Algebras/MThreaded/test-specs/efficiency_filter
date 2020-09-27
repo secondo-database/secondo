@@ -1,0 +1,85 @@
+# efficiency filter operator
+# database test
+
+
+query buildings head[50000] feed filter[.Code > 1200] count;
+
+query setcore(3);
+query buildings head[50000]  feed mThreadedFilter[.Code > 1200] count;
+
+query setcore(4);
+query buildings head[50000] feed mThreadedFilter[.Code > 1200] count;
+
+query setcore(5);
+query buildings head[50000] feed mThreadedFilter[.Code > 1200] count;
+
+query setcore(6);
+query buildings head[50000] feed mThreadedFilter[.Code > 1200] count;
+
+query setcore(7);
+query buildings head[50000] feed mThreadedFilter[.Code > 1200] count;
+
+query setcore(8);
+query buildings head[50000] feed mThreadedFilter[.Code > 1200] count;
+
+query setcore(9);
+query buildings head[50000] feed mThreadedFilter[.Code > 1200] count;
+
+query setcore(10);
+query buildings head[50000] feed mThreadedFilter[.Code > 1200] count;
+
+
+
+query tp_sj feed head[100000] filter[not(isempty(intersection1(.Geometry_p, .Geometry_o)))] count;
+
+query setcore(3);
+query tp_sj feed head[100000] mThreadedFilter[not(isempty(intersection1(.Geometry_p, .Geometry_o)))] count;
+
+query setcore(4);
+query tp_sj feed head[100000] mThreadedFilter[not(isempty(intersection1(.Geometry_p, .Geometry_o)))] count;
+
+query setcore(5);
+query tp_sj feed head[100000] mThreadedFilter[not(isempty(intersection1(.Geometry_p, .Geometry_o)))] count;
+
+query setcore(6);
+query tp_sj feed head[100000] mThreadedFilter[not(isempty(intersection1(.Geometry_p, .Geometry_o)))] count;
+
+query setcore(7);
+query tp_sj feed head[100000] mThreadedFilter[not(isempty(intersection1(.Geometry_p, .Geometry_o)))] count;
+
+query setcore(8);
+query tp_sj feed head[100000] mThreadedFilter[not(isempty(intersection1(.Geometry_p, .Geometry_o)))] count;
+
+query setcore(9);
+query tp_sj feed head[100000] mThreadedFilter[not(isempty(intersection1(.Geometry_p, .Geometry_o)))] count;
+
+query setcore(10);
+query tp_sj feed head[100000] mThreadedFilter[not(isempty(intersection1(.Geometry_p, .Geometry_o)))] count;
+
+
+
+query pl_sj feed head[2000] filter[.Geometry_o overlaps .Geometry_p] project[Name_o] count;
+
+query setcore(3);
+query pl_sj feed head[2000] mThreadedFilter[.Geometry_o overlaps .Geometry_p] project[Name_o] count;
+
+query setcore(4);
+query pl_sj feed head[2000] mThreadedFilter[.Geometry_o overlaps .Geometry_p] project[Name_o] count;
+
+query setcore(5);
+query pl_sj feed head[2000] mThreadedFilter[.Geometry_o overlaps .Geometry_p] project[Name_o] count;
+
+query setcore(6);
+query pl_sj feed head[2000] mThreadedFilter[.Geometry_o overlaps .Geometry_p] project[Name_o] count;
+
+query setcore(7);
+query pl_sj feed head[2000] mThreadedFilter[.Geometry_o overlaps .Geometry_p] project[Name_o] count;
+
+query setcore(8);
+query pl_sj feed head[2000] mThreadedFilter[.Geometry_o overlaps .Geometry_p] project[Name_o] count;
+
+query setcore(9);
+query pl_sj feed head[2000] mThreadedFilter[.Geometry_o overlaps .Geometry_p] project[Name_o] count;
+
+query setcore(10);
+query pl_sj feed head[2000] mThreadedFilter[.Geometry_o overlaps .Geometry_p] project[Name_o] count;

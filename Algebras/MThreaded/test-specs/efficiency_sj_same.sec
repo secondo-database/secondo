@@ -1,0 +1,46 @@
+# efficieny of mThreadedSpatialJoin
+
+query setcore(6);
+
+#49.4401sec / 53.51sec = 0.923942
+query roads feed head[100000] {o} waterways feed {p} mThreadedSpatialJoin[Geometry_o, Geometry_p, 0.0] count;
+
+#55.2493sec / 59.77sec = 0.924365
+query roads feed head[100000] {o} waterways feed {p} mThreadedSpatialJoin[Geometry_o, Geometry_p, 0.0] count;
+
+#51.1955sec / 55.22sec = 0.927119
+query roads feed head[100000] {o} waterways feed {p} mThreadedSpatialJoin[Geometry_o, Geometry_p, 0.0] count;
+
+#43.1859sec / 47.01sec = 0.918652
+query roads feed head[100000] {o} waterways feed {p} mThreadedSpatialJoin[Geometry_o, Geometry_p, 0.0] count;
+
+# 55.054sec / 59.58sec = 0.924035
+query roads feed head[100000] {o} waterways feed {p} mThreadedSpatialJoin[Geometry_o, Geometry_p, 0.0] count;
+
+#49.9316sec / 54.22sec = 0.920907
+query roads feed head[100000] {o} waterways feed {p} mThreadedSpatialJoin[Geometry_o, Geometry_p, 0.0] count;
+
+#54.0993sec / 58.11sec = 0.930981
+query roads feed head[100000] {o} waterways feed {p} mThreadedSpatialJoin[Geometry_o, Geometry_p, 0.0] count;
+
+# 52.9141sec / 57.08sec = 0.927016
+query roads feed head[100000] {o} waterways feed {p} mThreadedSpatialJoin[Geometry_o, Geometry_p, 0.0] count;
+
+#43.9615sec / 47.68sec = 0.922012
+query roads feed head[100000] {o} waterways feed {p} mThreadedSpatialJoin[Geometry_o, Geometry_p, 0.0] count;
+
+#53.2439sec / 57.55sec = 0.925176
+query roads feed head[100000] {o} waterways feed {p} mThreadedSpatialJoin[Geometry_o, Geometry_p, 0.0] count;
+
+# 49.7297sec / 53.45sec = 0.930397
+query roads feed head[100000] {o} waterways feed {p} mThreadedSpatialJoin[Geometry_o, Geometry_p, 0.0] count;
+
+#49.6862sec / 53.72sec = 0.924911
+query roads feed head[100000] {o} waterways feed {p} mThreadedSpatialJoin[Geometry_o, Geometry_p, 0.0] count;
+
+#45.9263sec / 49.94sec = 0.91963
+query roads feed head[100000] {o} waterways feed {p} mThreadedSpatialJoin[Geometry_o, Geometry_p, 0.0] count;
+
+#58.8158sec / 63.4sec = 0.927694
+query roads feed head[100000] {o} waterways feed {p} mThreadedSpatialJoin[Geometry_o, Geometry_p, 0.0] count;
+

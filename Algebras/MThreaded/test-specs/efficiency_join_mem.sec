@@ -1,0 +1,37 @@
+# efficieny of mThreadedHybridJoin
+# test
+
+query setcore(4);
+
+#2. gültig
+
+#41.3883sec / 49.15sec = 0.842081
+#10.9048sec / 19.91sec = 0.547705 rek
+query roads feed head[50000] {o} roads feed {p} mThreadedHybridJoin[Osm_id_o, Osm_id_p] {memory 1} count;
+
+#43.6249sec / 51.96sec = 0.839586
+#7.85595sec / 15.27sec = 0.514469 rek
+query roads feed head[50000]  {o} roads feed {p} mThreadedHybridJoin[Osm_id_o, Osm_id_p] {memory 2} count;
+
+#39.9744sec / 48.36sec = 0.8266
+#9.49398sec / 18.26sec = 0.519933 rek
+query roads feed head[50000]  {o} roads feed {p} mThreadedHybridJoin[Osm_id_o, Osm_id_p] {memory 5} count;
+
+#40.6499sec / 49.06sec = 0.828576
+#9.2909sec / 17.4sec = 0.53396
+query roads feed head[50000]  {o} roads feed {p} mThreadedHybridJoin[Osm_id_o, Osm_id_p] {memory 25} count;
+
+#41.8883sec / 49.85sec = 0.840286
+#10.8032sec / 19.71sec = 0.548109
+query roads feed head[50000]  {o} roads feed {p} mThreadedHybridJoin[Osm_id_o, Osm_id_p] {memory 50} count;
+
+#37.775sec / 44.18sec = 0.855024
+#8.02191sec / 14.35sec = 0.559018
+query roads feed head[50000]  {o} roads feed {p} mThreadedHybridJoin[Osm_id_o, Osm_id_p] {memory 100} count;
+
+#35.5806sec / 41.27sec = 0.862142
+#8.26202sec / 13.13sec = 0.629248
+query roads feed head[50000]  {o} roads feed {p} mThreadedHybridJoin[Osm_id_o, Osm_id_p] {memory 200} count;
+
+# 36.293sec / 42.2sec = 0.860023
+query roads feed {o} buildings feed {p} mThreadedHybridJoin[Osm_id_o, Osm_id_p] count;

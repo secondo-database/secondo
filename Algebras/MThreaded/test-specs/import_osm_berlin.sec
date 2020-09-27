@@ -1,0 +1,39 @@
+#!/bin/bash
+#
+# This script import Berlin OSM data into the database test
+#
+# Author: Ingo Bader
+#####################################################
+
+
+
+create database test;
+open database test;
+
+let natural2 = dbimport2('testData/berlin.shp/gis_osm_natural_free_1.dbf') addcounter [No , 1] shpimport2 ('testData/berlin.shp/gis_osm_natural_free_1.shp') namedtransformstream [Geometry ] addcounter [No2, 1] mergejoin [No, No2] remove [No, No2 ] filter [ isdefined ( bbox(.Geometry ))] validateAttr consume;
+let roads = dbimport2('testData/berlin.shp/gis_osm_roads_free_1.dbf') addcounter [No , 1] shpimport2 ('testData/berlin.shp/gis_osm_roads_free_1.shp') namedtransformstream [Geometry ] addcounter [No2, 1] mergejoin [No, No2] remove [No, No2 ] filter [ isdefined ( bbox(.Geometry ))] validateAttr consume;
+let buildings = dbimport2('testData/berlin.shp/gis_osm_buildings_a_free_1.dbf') addcounter [No , 1] shpimport2 ('testData/berlin.shp/gis_osm_buildings_a_free_1.shp') namedtransformstream [Geometry ] addcounter [No2, 1] mergejoin [No, No2] remove [No, No2 ] filter [ isdefined ( bbox(.Geometry ))] validateAttr consume;
+let landuse = dbimport2('testData/berlin.shp/gis_osm_landuse_a_free_1.dbf') addcounter [No , 1] shpimport2 ('testData/berlin.shp/gis_osm_landuse_a_free_1.shp') namedtransformstream [Geometry ] addcounter [No2, 1] mergejoin [No, No2] remove [No, No2 ] filter [ isdefined ( bbox(.Geometry ))] validateAttr consume;
+let places = dbimport2('testData/berlin.shp/gis_osm_places_free_1.dbf') addcounter [No , 1] shpimport2 ('testData/berlin.shp/gis_osm_places_a_free_1.shp') namedtransformstream [Geometry ] addcounter [No2, 1] mergejoin [No, No2] remove [No, No2 ] filter [ isdefined ( bbox(.Geometry ))] validateAttr consume;
+let pois = dbimport2('testData/berlin.shp/gis_osm_pois_free_1.dbf') addcounter [No , 1] shpimport2 ('testData/berlin.shp/gis_osm_pois_free_1.shp') namedtransformstream [Geometry ] addcounter [No2, 1] mergejoin [No, No2] remove [No, No2 ] filter [ isdefined ( bbox(.Geometry ))] validateAttr consume;
+let traf = dbimport2('testData/berlin.shp/gis_osm_traffic_free_1.dbf') addcounter [No , 1] shpimport2 ('testData/berlin.shp/gis_osm_traffic_free_1.shp') namedtransformstream [Geometry ] addcounter [No2, 1] mergejoin [No, No2] remove [No, No2 ] filter [ isdefined ( bbox(.Geometry ))] validateAttr consume;
+let waterways = dbimport2('testData/berlin.shp/gis_osm_waterways_free_1.dbf') addcounter [No , 1] shpimport2 ('testData/berlin.shp/gis_osm_waterways_free_1.shp') namedtransformstream [Geometry ] addcounter [No2, 1] mergejoin [No, No2] remove [No, No2 ] filter [ isdefined ( bbox(.Geometry ))] validateAttr consume;
+let natural = dbimport2('testData/berlin.shp/gis_osm_natural_free_1.dbf') addcounter [No , 1] shpimport2 ('testData/berlin.shp/gis_osm_natural_free_1.shp') namedtransformstream [Geometry ] addcounter [No2, 1] mergejoin [No, No2] remove [No, No2 ] filter [ isdefined ( bbox(.Geometry ))] validateAttr consume;
+
+
+# Create relations without empty strings
+let buildings_str = buildings feed filter[not (trim(.Name) = '')] extend[NameStr: tostring(.Name)] consume;
+let pois_str = pois feed filter[not (trim(.Name) = '')] extend[NameStr: tostring(.Name)] consume;
+let roads_str = roads feed filter[not (trim(.Name) = '')] extend[NameStr: tostring(.Name)] consume;
+
+
+# Create spatial joins
+let pl_sj = places feed {o} landuse feed {p} spatialjoin[Geometry_o, Geometry_p]  consume;
+let pt_sj = places feed {o} traf feed {p} spatialjoin[Geometry_o, Geometry_p]  consume;
+let tp_sj = traf feed {o} pois feed {p} spatialjoin[Geometry_o, Geometry_p]  consume;
+let n2p_sj = natural2 feed head [20000] {o} pois feed head [20000] {p} mThreadedSpatialJoin[Geometry_o, Geometry_p,0.1]  consume;
+let wr_sj = waterways feed {o} roads feed {p} spatialjoin[Geometry_o, Geometry_p]  consume;
+#let n2p_sj = natural2 feed  extend[ B : enlargeRect(bbox(.Geometry), 0.1, 0.1) ] {o} pois feed extend[ B : bbox(.Geometry)] {p} symmjoin[.B_o intersects ..B_p] consume;
+
+
+

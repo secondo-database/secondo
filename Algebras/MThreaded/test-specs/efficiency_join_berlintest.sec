@@ -1,0 +1,77 @@
+# efficieny of mThreadedHybridJoin
+# berlintest
+
+#0.043036sec / 0.04sec = 1.0759
+query strassen feed {o} Plaetze feed {p} hybridhashjoin[Name_o, Name_p,100] count;
+#0.034984sec / 0.03sec = 1.16613
+query strassen feed {o} Plaetze feed {p} hybridhashjoin[Name_o, Name_p,1000] count;
+
+query setcore(3);
+#0.072136sec / 0.11sec = 0.655782
+query strassen feed {o} Plaetze feed {p} mThreadedHybridJoin[Name_o, Name_p] count;
+
+query setcore(4);
+#0.113245sec / 0.16sec = 0.707781
+query strassen feed {o} Plaetze feed {p} mThreadedHybridJoin[Name_o, Name_p] count;
+
+query setcore(5);
+#0.09123sec / 0.14sec = 0.651643
+query strassen feed {o} Plaetze feed {p} mThreadedHybridJoin[Name_o, Name_p] count;
+
+query setcore(6);
+#0.081417sec / 0.11sec = 0.740155
+query strassen feed {o} Plaetze feed {p} mThreadedHybridJoin[Name_o, Name_p] count;
+
+query setcore(7);
+#0.11198sec / 0.17sec = 0.658706
+query strassen feed {o} Plaetze feed {p} mThreadedHybridJoin[Name_o, Name_p] count;
+
+query setcore(8);
+#0.12054sec / 0.21sec = 0.574
+query strassen feed {o} Plaetze feed {p} mThreadedHybridJoin[Name_o, Name_p] count;
+
+query setcore(9);
+#0.118555sec / 0.21sec = 0.564548
+
+query strassen feed {o} Plaetze feed {p} mThreadedHybridJoin[Name_o, Name_p] count;
+
+query setcore(10);
+#0.145508sec / 0.23sec = 0.632643
+query strassen feed {o} Plaetze feed {p} mThreadedHybridJoin[Name_o, Name_p] count;
+
+#0.269368sec / 0.26sec = 1.03603
+query Orte feed {o} plz feed {p} hybridhashjoin[Ort_o, Ort_p, 100] count;
+#0.211142sec / 0.21sec = 1.00544
+query Orte feed {o} plz feed {p} hybridhashjoin[Ort_o, Ort_p, 1000] count;
+
+query setcore(3);
+#0.348523sec / 0.54sec = 0.645413
+query Orte feed {o} plz feed {p} mThreadedHybridJoin[Ort_o, Ort_p] count;
+
+query setcore(4);
+#0.39611sec / 0.66sec = 0.600167
+query Orte feed {o} plz feed {p} mThreadedHybridJoin[Ort_o, Ort_p] count;
+
+query setcore(5);
+#0.477013sec / 0.85sec = 0.561192
+query Orte feed {o} plz feed {p} mThreadedHybridJoin[Ort_o, Ort_p] count;
+
+query setcore(6);
+#.485845sec / 0.87sec = 0.558443 (viele leer Buckets)
+query Orte feed {o} plz feed {p} mThreadedHybridJoin[Ort_o, Ort_p] count;
+
+query setcore(7);
+#0.640273sec / 1.14sec = 0.561643 (leerbuckets
+query Orte feed {o} plz feed {p} mThreadedHybridJoin[Ort_o, Ort_p] count;
+
+query setcore(8);
+#0.666117sec / 1.2sec = 0.555098 (null)
+query Orte feed {o} plz feed {p} mThreadedHybridJoin[Ort_o, Ort_p] count;
+
+query setcore(9);
+#0.548067sec / 1.08sec = 0.507469 (viel null)
+query Orte feed {o} plz feed {p} mThreadedHybridJoin[Ort_o, Ort_p] count;
+
+query setcore(10);
+# 0.511911sec / 1.01sec = 0.506843 (viel null)
+query Orte feed {o} plz feed {p} mThreadedHybridJoin[Ort_o, Ort_p] count;

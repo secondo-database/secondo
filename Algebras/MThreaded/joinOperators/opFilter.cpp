@@ -169,7 +169,6 @@ refinementLI::~refinementLI() {
          filterThreads[i].detach();
       }
    }
-   filterThreads.clear();
 }
 
 //Output
@@ -188,8 +187,7 @@ Tuple* refinementLI::getNext() {
       endRefinement = true;
       endThreadsC.notify_all();
    }
-   filterThreads.clear();
-   this_thread::sleep_for(std::chrono::microseconds(10));
+   this_thread::sleep_for(std::chrono::microseconds(30));
    return 0;
 }
 

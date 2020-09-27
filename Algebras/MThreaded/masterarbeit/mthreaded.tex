@@ -143,7 +143,7 @@
 % Nummer des Themas
 \newcommand{\No}{$136$}
 % Name des Themas
-\newcommand{\Theme}{Multi-threaded Query Processing II}
+\newcommand{\Theme}{Multi-Threaded Query Processing: Parallelisierung von Operatoren für die Anfrageauswertung}
 % Name   
 \newcommand{\Name}{Ingo Bader}
 
@@ -163,7 +163,7 @@
 
 \begin{center}
 \begin{huge}
-\vspace*{3cm}
+\vspace*{2cm}
 %      \vspace*{\fill}
     \begin{tabular}{m{1.2cm}@{\ \ }m{9cm}}
       \includegraphics[width=1.2cm]{logo.eps} & {FernUniversität in Hagen}
@@ -171,13 +171,18 @@
     \\
     \vspace*{3cm}
    Masterarbeit \\
-   Sommersemester 2020 \\[2em]
+\end{huge}
+\begin{large}
+   im Masterstudiengang Praktische Informatik \\[2em]
+\end{large}
+\begin{huge}
    \glqq{} \Theme \grqq{} \\[2cm]
 \end{huge}
 \begin{large}
-	\Name \\[3cm]
-   	Betreuer \\[1em]
-   	Prof. Dr. Ralf Güting 
+	\Name \\
+	eingereicht am 28. September 2020 \\[2cm]
+   	1.~Prüfer \\[1em]
+   	Univ.-Prof. Dr. Ralf Güting 
 \end{large}
 \end{center}
 
@@ -600,7 +605,7 @@ Hier soll ein Spatial-Join-Operator implementiert werden, der keine spezifischen
 
 Anders als bei den beiden anderen implementierten Operatoren ist es nicht nur eine Frage der Performance, ob der Algorithmus gegenüber einer Singlethread-Variante modifiziert wird. Ein prinzipieller Unterschied einer parallelen Implementierung ist, dass räumliche Objekte, sofern sie eine Ausdehnung haben, mehreren Gitterzellen und damit Partitionen gleichzeitig zugewiesen werden können (siehe Mehrfachzuweisungs-Single-Joins in \autoref{Spatial Join}). Dementsprechend können im Filter-Schritt gleiche Joinkandidaten in unterschiedlichen Threads und damit doppelt ermittelt werden. Im Anschluss an den Join Duplikate als zusätzlichen Schritt zu eliminieren, ist sehr rechenaufwändig. Wird lediglich der Kandidat weitergegeben, dessen Schnittmenge der räumlichen Joinattributs aus der Relation R und S in der Gitterzelle liegt, die sich so weit wie möglich rechts und oben befindet, werden Duplikate bereits in der Entstehung ausgeschlossen. Im Beispiel in \autoref{img:sjDup} schneiden sich zwei \Fb{MBBs} und werden als Joinkanditaten in den Gitterzellen 5, 9, 10, 13 und 14 erkannt. Weitergegeben wird aber nur der Treffer, der in Gitterzelle 10 festgestellt worden ist.
 
-In den Worker-Threads werden zuerst die Tupelströme aus den Partitionen der R-Relation in einen internen R-Baum eingelesen. Jedem Thread wird ein gleicher Teil des Hauptspeichers zur Verfügung gestellt. Tupel, die nicht mehr in den Hauptspeicher passen, werden ausgelagert. In einem ersten Schritt wird die S-Relation einmal gescannt, Joinkandidaten bestimmt und diese auf Duplikate geprüft. Sofern es einen Overflow gab, kann die Anzahl der notwendigen Iterationen jetzt genau berechnet werden, da die Größe der R-Relation bereits bekannt ist. In jeder Iteration wird die S-Relation wiederum vollständig durchlaufen und für einen weiteren disjunkten Teil der R-Relation ein Hauptspeicher-R-Baum aufgebaut.
+In den Worker-Threads (vgl. \autoref{list:spatialJoin}) werden zuerst die Tupelströme aus den Partitionen der R-Relation in einen internen R-Baum eingelesen. Jedem Thread wird ein gleicher Teil des Hauptspeichers zur Verfügung gestellt. Tupel, die nicht mehr in den Hauptspeicher passen, werden ausgelagert. In einem ersten Schritt wird die S-Relation einmal gescannt, Joinkandidaten bestimmt und diese auf Duplikate geprüft. Sofern es einen Overflow gab, kann die Anzahl der notwendigen Iterationen jetzt genau berechnet werden, da die Größe der R-Relation bereits bekannt ist. In jeder Iteration wird die S-Relation wiederum vollständig durchlaufen und für einen weiteren disjunkten Teil der R-Relation ein Hauptspeicher-R-Baum aufgebaut.
 
 \begin{minipage}{0.95\textwidth}
 	\begin{lstlisting}[caption={Spatial-Join: Worker.}, label=list:spatialJoin]
@@ -645,7 +650,7 @@ Mit \Fb{C++11} wurde die Concurrency-Implementierung der \Fb{Boost}-Library in d
 	\end{lstlisting}
 \end{minipage}
 
-Eine Schwierigkeit meiner Implementierung ist es, dass ich zwar in der von mir entworfenen Algebra die sequentielle Konsistenz garantieren kann, aber diese an diversen Stellen auf anderen Funktionalitäten des \Fb{Secondo}-Kerns beruht. Probleme traten vor allem im Umgang mit \Fb{FLOBs} auf, aber auch teils mit Standardtypen, wenn im Operatorenbaum dem parallelen Operator folgend nur sehr wenige aufwändige Operatoren folgten\footnote{So stürzt der Hash-Join beispielsweise ohne auch mit Standard-Datentapen ab, wenn ihm nur ein \Fb{count} folgte, aber nicht, wenn alle Ergebnisse mit \Fb{consume} an die Console ausgegeben wurden.}. Die Probleme äußerten sich selten in dem von mir implementierten Operator (gelegentlich in Aufrufen des Flob-Managers), sondern vor allem darin, dass Zähler für Datenbanktabellenzeiger entweder in den Folgeoperatoren korrupt wurden oder meist in Abstürzen durch falsche Zeiger auf Datenbankstrukturen, korrupte Sperren oder Deadlocks im Commit. 
+Eine Schwierigkeit meiner Implementierung ist es, dass ich zwar in der von mir entworfenen Algebra die sequentielle Konsistenz garantieren kann, aber diese an diversen Stellen auf anderen Funktionalitäten des \Fb{Secondo}-Kerns beruht. Probleme traten vor allem im Umgang mit \Fb{FLOBs} auf, aber auch teils mit Standardtypen, wenn im Operatorenbaum dem parallelen Operator folgend nur sehr wenige aufwändige Operatoren folgten\footnote{So stürzt der Hash-Join beispielsweise auch mit Standard-Datentapen ab, wenn ihm nur ein \Fb{count} folgte, aber nicht, wenn alle Ergebnisse mit \Fb{consume} an die Console ausgegeben wurden. Wahrscheinlich tritt dieses Problem auf, wenn die Destruktoren der Worker noch nicht vollständig abgearbeitet sind, wenn die \Fb{LocalInfo}-Klasse zerstört wird. Durch eine kurze Wartezeit vor Beendigung dieser lies sich das Problem stark einschränken.}. Die Probleme äußerten sich selten in dem von mir implementierten Operator (gelegentlich in Aufrufen des Flob-Managers), sondern vor allem darin, dass Zähler für Datenbanktabellenzeiger entweder in den Folgeoperatoren korrupt wurden oder meist in Abstürzen durch falsche Zeiger auf Datenbankstrukturen, korrupte Sperren oder Deadlocks im Commit. 
 
 \Fb{Secondo} verwendet die \Fb{Berkely}-DB in einer Konfiguration, die keinen konkurrierenden Zugriff auf die Datenbankschicht durch den Storage-Mangager erlaubt. Deswegen muss sichergestellt werden, dass Zugriffe auf diese nur sequentiell stattfinden. Im Standard-\Fb{Secondo} gab es Probleme mit der Thread-Sicherheit des Flob-Managers bzw. allgemein bei der Verwendung von \Fb{FLOBs}. Über ein Flag lässt sich \Fb{Secondo} in einem Thread-sicheren Modus kompilieren (siehe \autoref{list:flags}). Vor allem wird bei Verwendung dieses Flags der Flob-Manager synchronisiert, aber auch die Relational-Algebra und Teile des Storage-Managers. Leider gab es in der von mir implementieren Algebra weiterhin Probleme mit der Threadsicherheit, sofern direkt auf \Fb{FLOBs} innerhalb von Threads zugegriffen wurde. Vor allem tritt dieses Problem bei der Verwendung von Query-Prozessoren innerhalb der Threads im Filter-Operator auf und wenn Attribute in den beiden anderen Operatoren \Fb{FLOBs} sind. Im Detail werde ich das Problem und geeignete Lösungsversuche im \autoref{impl:refinement} diskutieren. Ein Problem bei der Implementierung ist, dass nicht immer einfach entschieden werden kann, ob Probleme mit der Stabilität eines Operators an Mängeln der Synchronisation beim Zugriff auf \Fb{FLOBs} liegen oder an Fehlern in meiner Implementierung.
 
@@ -1334,13 +1339,12 @@ Die erste Aufteilung entscheidet vor allem darüber, inwieweit Buckets ausgelage
 
 Die Anzahl initialer Sub-Buckets gilt nur für das erste der 20 Buckets in jedem Thread, der direkt verschmolzen wird, da er anschließend aus der durchschnittlichen Größe jedes Buckets neu berechnet wird. Trotzdem hat seine Größe eine deutliche Auswirkung auf das Laufzeitverhalten. Sofern viele Tupel in das gleiche Sub-Bucket einsortiert werden, ist ein Verschmelzen über eine Schleife mit vielen Durchläufen notwendig -- der Algorithmus nähert sich also einem Loop-Join an. Dementsprechend ist die Auswirkung bei großen Relationen stärker, da mehr Tupel auf eine Hashtabelle verteilt werden. Nach erreichen eines Optimums, bei dem jeder vorkommende Hashwert auf ein eigenes Bucket aufgeteilt wird, ist keine Veränderung mehr zu erwarten. Bis zu diesem Punkt verändert sich das Laufzeitverhalten schwankend, da es vorkommen kann, dass auch bei mehr verwendeten Buckets eine Verteilung ungleichmäßiger wird. Im Gegensatz dazu hat der zur Verfügung stehende Arbeitsspeicher für den Operator nur insofern einen Einfluss, dass weniger Tupel auf die Buckets verteilt werden müssen, sich also das Optimum früher einstellt und gleichzeitig die Schwankungen nicht so stark ausgeprägt sind, da im Durchschnitt auch weniger Tupel mit gleichen Hashwerten vorhanden sind.
 
-\begin{figure}[H]
+\begin{figure}
 	\centering
-	\subfloat[Selfjoin\label{img:sjHeadExpRr}]{{\includegraphics[width=0.6\textwidth]{Bilder/sj_head_rr.png}}}
-	\qquad	
-	\subfloat[$waterways \bowtie roads$ bzw. $roads \bowtie waterways$\label{img:sjHeadExpWr}]{{\includegraphics[width=0.6\textwidth]{Bilder/sj_head_wr.png}}}	
-	\caption{Spatial-Joins mit unterschiedlichen Relationen und Relationsgrößen.}
-	\label{img:sjExpHeadAllg}
+	\subfloat[nach verfügbarem Speicherplatz\label{img:sjMemExp}]{{\includegraphics[width=0.45\textwidth]{Bilder/sj_mem.png}}}
+	\subfloat[Konfiguration des R-Baums\label{img:sjTreeExp}]{{\includegraphics[width=0.45\textwidth]{Bilder/sj_tree.png}}}
+	\caption{Verschiedene Experimente mit dem Spatial-Join.}
+	\label{img:sjExpAllg}
 \end{figure}
 
 \subsubsection{mThreadedSpatialJoin}
@@ -1350,12 +1354,13 @@ Um das Laufzeitverhalten des Multithreading-Spatial-Joins zu verstehen, habe ich
 
 Effizienter ist der von mir implementierte Algorithmus lediglich bei kleinen Relationen, sowohl bezüglich der R- als auch der S-Relation. Bei dem Selfjoin, dessen Laufzeitanalyse \autoref{img:sjHeadExpRr} darstellt, ist der Anstieg der Laufzeit bei der Singlethread-Variante nahezu linear, bei der Multithread-Variante exponentiell. Also sind wahrscheinlich ungünstige Entscheidungen bei der Implementierung des Algorithmus die Gründe, weshalb die Performancevorteile bei kleinen Relationen bei deren Vergrößerung verloren gehen. Im Experiment, dessen Ergebnis in \autoref{img:sjHeadExpWr} dargestellt ist, wurden die R- sowie die S-Relation gegeneinander ausgetauscht und dann die Größe der R-Relation variiert. Die eine Relation, die die Wasserwege in Berlin enthält, ist klein (2104 Tupel). In beiden Fällen ist der Anstieg der Laufzeit im Gegensatz zu großen Relationen noch vergleichbar mit der Singlethread-Variante und insgesamt ist die Laufzeit unter Nutzung von mehr Kernen besser. 
 
-\begin{figure}
+\begin{figure}[H]
 	\centering
-	\subfloat[nach verfügbarem Speicherplatz\label{img:sjMemExp}]{{\includegraphics[width=0.45\textwidth]{Bilder/sj_mem.png}}}
-	\subfloat[Konfiguration des R-Baums\label{img:sjTreeExp}]{{\includegraphics[width=0.45\textwidth]{Bilder/sj_tree.png}}}
-	\caption{Verschiedene Experimente mit dem Spatial-Join.}
-	\label{img:sjExpAllg}
+	\subfloat[Selfjoin\label{img:sjHeadExpRr}]{{\includegraphics[width=0.6\textwidth]{Bilder/sj_head_rr.png}}}
+	\qquad	
+	\subfloat[$waterways \bowtie roads$ bzw. $roads \bowtie waterways$\label{img:sjHeadExpWr}]{{\includegraphics[width=0.6\textwidth]{Bilder/sj_head_wr.png}}}	
+	\caption{Spatial-Joins mit unterschiedlichen Relationen und Relationsgrößen.}
+	\label{img:sjExpHeadAllg}
 \end{figure}
 
 \autoref{img:sjMemExp} zeigt die Veränderung der Laufzeit, wenn der dem Operator zur Verfügung stehende Speicher reduziert wird. Hier tritt lediglich eine sprunghafte Änderung auf zwischen 80~MB und dem Speicher, der dem Operator in der Standardkonfiguration zur Verfügung steht. Der Operator durchläuft mehrere Iterationen und muss Teile der R-Relation auslagern, wenn für die vollständige interne Struktur (also für die Tupel der R-Relation und den R-Baum) nicht genügend Speicher zur Verfügung steht. Dieses Verhalten des Operators ist merkwürdig, da bereits ab 80~MB keine Auslagerungsdateien mehr notwendig sind und bei 40~MB für jeden Thread nur eine Iteration durchlaufen wird, bei weniger Speicher mehr. Die I/O-Operationen sind also für den Operator nicht geschwindigkeitsbestimmend. Dies steht im Gegensatz dazu, dass zu Beginn vermutet wurde, dass gerade in einer Systemarchitektur mit geteiltem Permanentspeicher die I/O-Operationen das Nadelöhr sind, da hier kein paralleler Zugriff möglich ist. Dementsprechend muss bei dem Multithread-Spatial-Join die Bedeutung der CPU-Zeit für die Laufzeit deutlich dominieren.
@@ -1380,7 +1385,7 @@ Der Operator verwaltet seinen Speicher nicht selbst -- dementsprechend macht ein
 
 \begin{figure}
 	\centering
-	\includegraphics[width=0.60\textwidth]{Bilder/filter_head.png}
+	\includegraphics[width=0.55\textwidth]{Bilder/filter_head.png}
 	\caption{Filter und verschiedene Relationsgrößen.}
 	\label{img:filterHead}
 \end{figure}
@@ -1391,7 +1396,7 @@ Da das Laufzeitverhalten deutlich hinter den Erwartungen zurückbleibt und eine 
 
 Eine Bewertung der Implementierung einer Algebra für ausgewählte Multithread-Operatoren erfolgt anhand der in \autoref{problem} gesetzten Ziele. Eine Implementierung je einer parallelen Version der Operatoren Sortby, Equi-Join und Spatial-Join erfolgte, wobei ich den Spatial-Join in einen Filter- und den Refinement-Schritt unterteilt habe. Alle Operatoren der \Fb{mThreadedAlgebra} führen mit mindestens drei zugewiesenen Kernen in den meisten Fällen zu korrekten Ergebnissen, allerdings mit deutlichen Einschränkungen bei der Verwendung von \Fb{FLOBs}. Die meisten Operatoren arbeiten auch korrekt, wenn mehr Threads zugewiesen werden als dem System zur Verfügung stehen. Alle Operatoren haben mindestens den gleichen Funktionsumfang wie die entsprechende Singlethread-Version. Beim Spatial-Join-Operator ist es darüber hinaus noch möglich, die Minimal Bounding Box um das Joinattribut zu vergrößern, so dass sich dieser auch als Filter-Schritt für räumliche Verschmelzungen eignet, deren Prädikate einen Abstand der im Prädikat verwendeten räumlichen Objekte voraussetzen, wie zum Beispiel Joins nach Nachbarschaften. Einzig der Hash-Join liefert unter bestimmten Bedingungen kein korrektes Ergebnis: Er ignoriert Tupelpaare, wenn ein Joinattribut so häufig mit einem gleichen Hashwert auftritt, so dass das entsprechende Bucket nicht mehr in den Hauptspeicher passt. Hier wäre ein Abbruch des Operators sinnvoller, da in diesem Fall ein Hash-Join ein sehr schlechtes Laufzeitverhalten hat und dementsprechend nicht mehr sinnvoll einsetzbar ist.
 
-Die zweite und sehr deutliche Einschränkung der Robustheit ist ein grundsätzliches Problem des \Fb{Secondo}-Kerns in der Synchronisation der Zugriffe auf die \Fb{Berkely}-DB beziehungsweise die Einschränkung des \Fb{Secondo}-Datenbanksystems, durch den Storage-Manager keine parallelen Zugriffe auf die \Fb{Berkely}-DB zuzulassen. Sofern \Fb{FLOBs} verwendet werden, reicht die bisherige Synchronisierung nicht aus, die vor allem im Flob-Manager stattfindet, so dass abhängig davon, wie häufig die \Fb{FLOBs} in den Hauptspeicher geladen werden müssen, Zeiger auf SMI-Files oder Locks korrupt werden, die zu Abstürzen oder Deadlocks im Queryabschluss führen können. Hier habe ich erfolglos versucht, die Synchronisation des \Fb{Secondo}-Kerns zu verbessern. Die Fehler im Kern, die die Entwicklung eines parallelen \Fb{Secondos} einschränken, konnten eingegrenzt, aber nicht vollumfänglich identifiziert werden. Folgende Schritte sind wahrscheinlich notwendig, um sinnvoll parallele Operatoren für \Fb{Secondo} implementieren zu können: Weitere Teile der Speicherschicht des Kerns müssen mit Locks versehen werden. Zugriffe unterschiedlicher Module auf die unterste Speicherschicht von \Fb{Secondo} müssen untereinander synchronisiert werden und nicht nur einzelne Module intern wie bisher vor allem der Flob-Manager. Da Synchronisierungen immer deutliche Performanceeinbußen bedeuten, insbesondere wenn sie nicht nur sehr wenig rechenaufwändige Bereiche betreffen, wäre es der beste Weg, den \Fb{Secondo}-Kern so zu verändern, dass die \Fb{Berkely}-DB für einen parallelen Zugriff konfiguriert werden kann. Das umzusetzen konnte leider in dieser Arbeit nicht geleistet werden. 
+Die zweite und sehr deutliche Einschränkung der Robustheit ist ein grundsätzliches Problem des \Fb{Secondo}-Kerns in der Synchronisation der Zugriffe auf die \Fb{Berkely}-DB beziehungsweise die Einschränkung des \Fb{Secondo}-Datenbanksystems, durch den Storage-Manager keine parallelen Zugriffe auf die \Fb{Berkely}-DB zuzulassen. Sofern \Fb{FLOBs} verwendet werden, reicht die bisherige Synchronisierung nicht aus, die vor allem im Flob-Manager stattfindet, so dass abhängig davon, wie häufig die \Fb{FLOBs} in den Hauptspeicher geladen werden müssen, Zeiger auf Files in der \Fb{Berkeley}-DB oder Locks korrupt werden, die zu Abstürzen oder Deadlocks im Queryabschluss führen können. Hier habe ich erfolglos versucht, die Synchronisation des \Fb{Secondo}-Kerns zu verbessern. Die Fehler im Kern, die die Entwicklung eines parallelen \Fb{Secondos} einschränken, konnten eingegrenzt, aber nicht vollumfänglich identifiziert werden. Folgende Schritte sind wahrscheinlich notwendig, um sinnvoll parallele Operatoren für \Fb{Secondo} implementieren zu können: Weitere Teile der Speicherschicht des Kerns müssen mit Locks versehen werden. Zugriffe unterschiedlicher Module auf die unterste Speicherschicht von \Fb{Secondo} müssen untereinander synchronisiert werden und nicht nur einzelne Module intern wie bisher vor allem der Flob-Manager. Da Synchronisierungen immer deutliche Performanceeinbußen bedeuten, insbesondere wenn sie nicht nur sehr wenig rechenaufwändige Bereiche betreffen, wäre es der beste Weg, den \Fb{Secondo}-Kern so zu verändern, dass die \Fb{Berkely}-DB für einen parallelen Zugriff konfiguriert werden kann. Das umzusetzen konnte leider in dieser Arbeit nicht geleistet werden. 
 
 Nicht erreicht wurde das Ziel, dass die implementierten Operatoren effizienter als ihre Singlethread-Varianten sind. Lediglich der Spatial-Join-Operator ist unter bestimmten Bedingungen schneller als die Variante, die nur mit einem Kern arbeitet, allerdings mit der Einschränkung, dass sich das Laufzeitverhalten bei großen Relationen schneller verschlechtert als bei der Singlethread-Version. Also gerade bei sehr großen Relationen ist die von mir implementierte Variante nicht mehr konkurrenzfähig. Die Versuche, die entstehenden Fehler zu identifizieren und zu beheben, die bei der Verwendung von \Fb{FLOBs} auftreten, haben sehr viel Zeit in Anspruch genommen, so dass zum Schluss eine Optimierung der Operatoren nicht in dem Maße erfolgen konnte, wie sie notwendig gewesen wären. Da parallele Operatoren gerade bei komplexen und umfangreichen Daten sinnvoll sind, habe ich der korrekten Verarbeitung von \Fb{FLOBs} eine hohe Priorität zugewiesen und auch in der Entwicklung Korrektheit und Robustheit vor Effizienz betrachtet.
 

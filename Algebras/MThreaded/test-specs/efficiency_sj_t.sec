@@ -1,0 +1,53 @@
+# efficieny of mThreadedSpatialJoin
+
+
+
+query setcore(5);
+# 0.611998sec / 0.61sec = 1.00328
+# 0.497728sec / 0.51sec = 0.975937
+query waterways feed head[500] {o} roads feed head[10000] {p} spatialjoin[Geometry_o, Geometry_p] count;
+# 0.253722sec / 0.42sec = 0.6041
+#0.308838sec / 0.66sec = 0.467936
+query waterways feed head[500] {o} roads feed head[10000] {p} mThreadedSpatialJoin[Geometry_o, Geometry_p, 0.0] count;
+
+#0.608072sec / 0.61sec = 0.996839
+#0.575679sec / 0.57sec = 1.00996
+query waterways feed head[1000] {o} roads feed head[10000] {p} spatialjoin[Geometry_o, Geometry_p] count;
+#0.242058sec / 0.44sec = 0.550132
+#0.277394sec / 0.6sec = 0.462323
+query waterways feed head[1000] {o} roads feed head[10000] {p} mThreadedSpatialJoin[Geometry_o, Geometry_p, 0.0] count;
+
+#0.640465sec / 0.64sec = 1.00073
+#0.605885sec / 0.6sec = 1.00981
+query waterways feed {o} roads feed head[10000] {p} spatialjoin[Geometry_o, Geometry_p] count;
+#0.229704sec / 0.52sec = 0.441738
+#0.326803sec / 0.72sec = 0.453893
+query waterways feed {o} roads feed head[10000] {p} mThreadedSpatialJoin[Geometry_o, Geometry_p, 0.0] count;
+
+#0.71882sec / 0.71sec = 1.01242
+#0.507165sec / 0.51sec = 0.994441
+query roads feed head[10000] {o} waterways feed {p} spatialjoin[Geometry_o, Geometry_p] count;
+#0.988653sec / 1.52sec = 0.65043
+# 0.137552sec / 0.61sec = 0.225495
+query roads feed head[10000] {o} waterways feed {p} mThreadedSpatialJoin[Geometry_o, Geometry_p, 0.0] count;
+
+#2.36547sec / 2.36sec = 1.00232
+#2.69436sec / 2.7sec = 0.997913
+query roads feed head[50000] {o} waterways feed {p} spatialjoin[Geometry_o, Geometry_p] count;
+#16.5367sec / 18.77sec = 0.881016
+#1.6056sec / 7.31sec = 0.219644
+query roads feed head[50000] {o} waterways feed {p} mThreadedSpatialJoin[Geometry_o, Geometry_p, 0.0] count;
+
+#6.25234sec / 6.25sec = 1.00038
+#4.2449sec / 4.25sec = 0.998799
+query roads feed head[100000] {o} waterways feed {p} spatialjoin[Geometry_o, Geometry_p] count;
+#56.9807sec / 61.1sec = 0.932581
+#3.72621sec / 18.67sec = 0.199583
+query roads feed head[100000] {o} waterways feed {p} mThreadedSpatialJoin[Geometry_o, Geometry_p, 0.0] count;
+
+#15.1748sec / 15.16sec = 1.00098
+#11.798sec / 11.8sec = 0.999834
+query roads feed {o} waterways feed {p} spatialjoin[Geometry_o, Geometry_p] count;
+#(92.6145sec) /98.72sec = 0.938154
+#8.60609sec / 50.85sec = 0.169245
+query roads feed {o} waterways feed {p} mThreadedSpatialJoin[Geometry_o, Geometry_p, 0.0] count;

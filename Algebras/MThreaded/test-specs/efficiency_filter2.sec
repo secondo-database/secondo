@@ -1,0 +1,29 @@
+# efficiency filter operator
+# database test
+
+query setcore(5);
+#0.921622sec / 0.98sec = 0.940431
+query pt_sj feed head[2500] mThreadedFilter[.Geometry_p inside .Geometry_r] count;
+#0.27945sec / 0.27sec = 1.035
+query pt_sj feed head[2500] filter[.Geometry_p inside .Geometry_r] count;
+
+1.02501sec / 1.31sec = 0.782453
+query pt_sj feed head[5000] mThreadedFilter[.Geometry_p inside .Geometry_r] count;
+#0.304129sec / 0.29sec = 1.04872
+query pt_sj feed head[5000] filter[.Geometry_p inside .Geometry_r] count;
+
+#1.80623sec / 2.49sec = 0.725393
+query pt_sj feed head[10000] mThreadedFilter[.Geometry_p inside .Geometry_r] count;
+#0.583016sec / 0.58sec = 1.0052
+query pt_sj feed head[10000] filter[.Geometry_p inside .Geometry_r] count;
+
+#3.84202sec / 5.38sec = 0.714129
+query pt_sj feed head[20000] mThreadedFilter[.Geometry_p inside .Geometry_r] count;
+#2.31235sec / 2.3sec = 1.00537
+query pt_sj feed head[20000] filter[.Geometry_p inside .Geometry_r] count;
+
+query pt_sj feed head[50000] mThreadedFilter[.Geometry_p inside .Geometry_r] count;
+query pt_sj feed head[50000] filter[.Geometry_p inside .Geometry_r] count;
+
+query pt_sj feed mThreadedFilter[.Geometry_p inside .Geometry_r] count;
+query pt_sj feed filter[.Geometry_p inside .Geometry_r] count;

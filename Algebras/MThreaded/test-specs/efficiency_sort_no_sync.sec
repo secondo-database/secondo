@@ -1,0 +1,93 @@
+# efficieny of mThreadedMergeSort
+# erster Wert: ohne threadsave
+#9.63473sec / 9.62sec = 1.00153
+#10.7106sec / 10.71sec = 1.00005
+query buildings feed sortby[Osm_id] count;
+
+
+query setcore(3);
+#17.3157sec / 24sec = 0.721488
+# 21.2445sec / 28.96sec = 0.73358
+query buildings feed mThreadedMergeSort[Osm_id] count;
+
+query setcore(4);
+#12.2795sec / 27.07sec = 0.453619
+#20.0946sec / 42.32sec = 0.474826
+query buildings feed mThreadedMergeSort[Osm_id] count;
+
+query setcore(5);
+#20.2433sec / 48.1sec = 0.420858
+#22.5916sec / 51.67sec = 0.437228
+query buildings feed mThreadedMergeSort[Osm_id] count;
+
+query setcore(6);
+#19.7065sec / 48.39sec = 0.407243
+#23.3908sec / 55.38sec = 0.42237
+query buildings feed mThreadedMergeSort[Osm_id] count;
+
+query setcore(7);
+#19.6131sec / 49.62sec = 0.395265
+# 20.9385sec / 51.44sec = 0.407047
+query buildings feed mThreadedMergeSort[Osm_id] count;
+
+query setcore(8);
+#18.5836sec / 49.16sec = 0.378023
+#22.0742sec / 55.1sec = 0.400621
+query buildings feed mThreadedMergeSort[Osm_id] count;
+
+query setcore(9);
+#16.7815sec / 47.48sec = 0.353443
+#23.9276sec / 57.63sec = 0.415193
+query buildings feed mThreadedMergeSort[Osm_id] count;
+
+query setcore(10);
+#18.2223sec / 50.01sec = 0.364373
+#22.0053sec / 54.68sec = 0.402438
+query buildings feed mThreadedMergeSort[Osm_id] count;
+
+# efficieny of mThreadedMergeSort
+# erster Wert: ohne threadsave
+#0.376367sec / 0.38sec = 0.990439
+#10.7106sec / 10.71sec = 1.00005
+query buildings_str feed sortby[NameStr] count;
+
+
+query setcore(3);
+# 0.275593sec / 0.39sec = 0.706649
+# 21.2445sec / 28.96sec = 0.73358
+query buildings_str feed mThreadedMergeSort[NameStr] count;
+
+query setcore(4);
+# 0.493072sec / 1sec = 0.493072
+#20.0946sec / 42.32sec = 0.474826
+query buildings_str feed mThreadedMergeSort[NameStr] count;
+
+query setcore(5);
+#0.507392sec / 1.13sec = 0.449019
+#22.5916sec / 51.67sec = 0.437228
+query buildings_str feed mThreadedMergeSort[NameStr] count;
+
+query setcore(6);
+#0.584843sec / 1.26sec = 0.464161
+#23.3908sec / 55.38sec = 0.42237
+query buildings_str feed mThreadedMergeSort[NameStr] count;
+
+query setcore(7);
+# 0.394497sec / 0.93sec = 0.42419
+# 20.9385sec / 51.44sec = 0.407047
+query buildings_str feed mThreadedMergeSort[NameStr] count;
+
+query setcore(8);
+#0.511399sec / 1.14sec = 0.448596
+#22.0742sec / 55.1sec = 0.400621
+query buildings_str feed mThreadedMergeSort[NameStr] count;
+
+query setcore(9);
+#0.568925sec / 1.27sec = 0.447972
+#23.9276sec / 57.63sec = 0.415193
+query buildings_str feed mThreadedMergeSort[NameStr] count;
+
+query setcore(10);
+#0.509456sec / 1.2sec = 0.424547
+#22.0053sec / 54.68sec = 0.402438
+query buildings_str feed mThreadedMergeSort[NameStr] count;

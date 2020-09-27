@@ -17,13 +17,13 @@ Result      : TRUE
 Operator    : mThreadedFilter nicht FLOB räumlich Prädikat große Relation
 Number      : 3
 Signature   : stream x attr x attr -> stream
-Example     : query (tp_sj  feed mThreadedFilter[not(isempty(intersection1(.Geometry_p, .Geometry_o)))] project[Name_o] sortby[Name_o]) = (tp_sj  feed filter[not(isempty(intersection1(.Geometry_p, .Geometry_o)))] project[Name_o] sortby[Name_o])
+Example     : query (tp_sj feed  mThreadedFilter[not(isempty(intersection1(.Geometry_p, .Geometry_o)))] project[Name_o] sortby[Name_o]) = (tp_sj feed filter[not(isempty(intersection1(.Geometry_p, .Geometry_o)))] project[Name_o] sortby[Name_o])
 Result      : TRUE
 
 Operator    : mThreadedFilter nicht FLOB räumlich Prädikat große Relation
 Number      : 4
 Signature   : stream x attr x attr -> stream
-Example     : query (n2p_sj  feed mThreadedFilter[not(isempty(intersection1(.Geometry_p, .Geometry_o)))] project[Name_o] sortby[Name_o]) = (n2p_sj  feed filter[not(isempty(intersection1(.Geometry_p, .Geometry_o)))] project[Name_o] sortby[Name_o])
+Example     : query (n2p_sj feed  mThreadedFilter[not(isempty(intersection1(.Geometry_p, .Geometry_o)))] project[Name_o] sortby[Name_o]) = (n2p_sj  filter[not(isempty(intersection1(.Geometry_p, .Geometry_o)))] project[Name_o] sortby[Name_o])
 Result      : TRUE
 
 Operator    : mThreadedFilter FLOB Line Prädikat klein
@@ -35,19 +35,19 @@ Result      : TRUE
 Operator    : mThreadedFilter FLOB Line Prädikat mittel
 Number      : 6
 Signature   : stream x attr x attr -> stream
-Example     : query (wr_sj feed head[5000] mThreadedFilter[not(isempty(intersection_rob(.Geometry_o, .Geometry_p)))] project[Name_o] sortby[Name_o]) = (wr_sj feed head[7000] filter[not(isempty(intersection_rob(.Geometry_o, .Geometry_p)))] project[Name_o] sortby[Name_o])
+Example     : query (wr_sj feed head[5000] mThreadedFilter[not(isempty(intersection_rob(.Geometry_o, .Geometry_p)))] project[Name_o] sortby[Name_o]) = (wr_sj feed head[5000] filter[not(isempty(intersection_rob(.Geometry_o, .Geometry_p)))] project[Name_o] sortby[Name_o])
 Result      : TRUE
 
 Operator    : mThreadedFilter FLOB Region Prädikat klein
 Number      : 7
 Signature   : stream x attr x attr -> stream
-Example     : query (pl_sj  feed head[2000] mThreadedFilter[.Geometry_o overlaps .Geometry_p] project[Name_o] sortby[Name_o]) = (pl_sj  feed head[2000] mThreadedFilter[.Geometry_o overlaps .Geometry_p] project[Name_o] sortby[Name_o])
+Example     : query (pl_sj feed head[2000] mThreadedFilter[.Geometry_o overlaps .Geometry_p] project[Name_o] sortby[Name_o]) = (pl_sj  feed head[2000] filter[.Geometry_o overlaps .Geometry_p] project[Name_o] sortby[Name_o])
 Result      : TRUE
 
 Operator    : mThreadedFilter FLOB Region Prädikat mittel
 Number      : 8
 Signature   : stream x attr x attr -> stream
-Example     : query (pl_sj feed head[5000] mThreadedFilter[.Geometry_o overlaps .Geometry_p] project[Name_o] sortby[Name_o]) = (pl_sj  feed head[7000] mThreadedFilter[.Geometry_o overlaps .Geometry_p] project[Name_o] sortby[Name_o])
+Example     : query (pl_sj feed head[3000] mThreadedFilter[.Geometry_o overlaps .Geometry_p] project[Name_o] sortby[Name_o]) = (pl_sj  feed head[3000] filter[.Geometry_o overlaps .Geometry_p] project[Name_o] sortby[Name_o])
 Result      : TRUE
 
 Operator    : mThreadedFilter FLOB Line Prädikat groß

@@ -1,0 +1,36 @@
+Sequential: Yes
+Database: berlintest
+Restore: No
+
+Operator    : setcore
+Number      : 1
+Signature   : int -> bool
+Example     : query setcore(6)
+Result      : TRUE
+
+Operator    : mThreadedFilter nicht FLOB Prädikat große Relation
+Number      : 3
+Signature   : stream x attr x attr -> stream
+Example     : query (plz feed mThreadedFilter[.PLZ < 12049] sortby[PLZ, Ort]) = (plz feed filter[.PLZ < 12049] sortby[PLZ,Ort])
+Result      : TRUE
+
+Operator    : mThreadedFilter nicht FLOB Prädikat 2 Attribute
+Number      : 4
+Signature   : stream x attr x attr -> stream
+Example     : query (plz feed mThreadedFilter[(.PLZ < 4000) and (.Ort contains "Berlin")]) = (plz feed filter[(.PLZ < 4000) and (.Ort contains "Berlin")])
+Result      : TRUE
+
+Operator    : mThreadedFilter nicht FLOB Prädikat 3 Attribute
+Number      : 5
+Signature   : stream x attr x attr -> stream
+Example     : query (Staedte feed mThreadedFilter[(.Bev < 100000) or (.PLZ >7000) and (.Kennzeichen contains "W")]) = (Staedte feed filter[(.Bev < 100000) or (.PLZ >7000) and (.Kennzeichen contains "W")])
+Result      : TRUE
+
+Operator    : mThreadedFilter nicht FLOB Prädikat kleine Relation
+Number      : 6
+Signature   : stream x attr x attr -> stream
+Example     : query (strassen feed mThreadedFilter[substr(.Name,1,3) = "Fon"]) = (strassen feed filter[substr(.Name,1,3) = "Fon"])
+Result      : TRUE
+
+
+

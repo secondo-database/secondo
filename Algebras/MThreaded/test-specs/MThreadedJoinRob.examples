@@ -1,0 +1,135 @@
+Sequential: Yes
+Database: berlintest
+Restore: No
+
+Operator    : setcore
+Number      : 1
+Signature   : int -> bool
+Example     : query setcore(3)
+Result      : TRUE
+
+Operator    : mThreadedHybridJoin - mem
+Number      : 2
+Signature   : stream x stream x attr x attr -> stream
+Example     : query (strassen feed {o} Plaetze feed {p} mThreadedHybridJoin[Name_o, Name_p] {memory 2} project[Name_o] sortby[Name_o]) = (strassen feed {o} Plaetze feed {p} sortmergejoin[Name_o, Name_p] project[Name_o] sortby[Name_o])
+Result      : TRUE
+
+Operator    : mThreadedHybridJoin
+Number      : 3
+Signature   : stream x stream x attr x attr -> stream
+Example     : query (strassen feed {o} Plaetze feed {p} mThreadedHybridJoin[Name_o, Name_p] project[Name_o] sortby[Name_o]) = (strassen feed {o} Plaetze feed {p} sortmergejoin[Name_o, Name_p] project[Name_o] sortby[Name_o])
+Result      : TRUE
+
+Operator    : mThreadedHybridJoin -mem
+Number      : 4
+Signature   : stream x stream x attr x attr -> stream
+Example     : query (Orte feed {o} plz feed {p} mThreadedHybridJoin[Ort_o, Ort_p] {memory 2} project[Ort_o] sortby[Ort_o]) = (Orte feed {o} plz feed {p} sortmergejoin[Ort_o, Ort_p] project[Ort_o] sortby[Ort_o])
+Result      : TRUE
+
+Operator    : mThreadedHybridJoin - stream1 empty
+Number      : 5
+Signature   : stream x stream x attr x attr -> stream
+Example     : query strassen feed head[0] {o} Plaetze feed {p} mThreadedHybridJoin[Name_o, Name_p] count
+Result      : 0
+
+Operator    : mThreadedHybridJoin -stream1 small
+Number      : 6
+Signature   : stream x stream x attr x attr -> stream
+Example     : query strassen feed head[2] {o} Plaetze feed {p} mThreadedHybridJoin[Name_o, Name_p] count
+Result      : 0
+
+Operator    : mThreadedHybridJoin - stream2 small
+Number      : 7
+Signature   : stream x stream x attr x attr -> stream
+Example     : query strassen feed {o} Plaetze feed head[2] {p} mThreadedHybridJoin[Name_o, Name_p] count
+Result      : 0
+
+Operator    : mThreadedHybridJoin - attr diff type
+Number      : 8
+Signature   : stream x stream x attr x attr -> stream
+Example     : query strassen feed {o} Plaetze feed head[2] {p} mThreadedHybridJoin[Name_o, Code_p] count
+Result      : ERROR
+
+Operator    : setcore
+Number      : 9
+Signature   : int -> bool
+Example     : query setcore(2)
+Result      : TRUE
+
+Operator    : mThreadedHybridJoin - only 2 cores
+Number      : 10
+Signature   : stream x stream x attr x attr -> stream
+Example     : query strassen feed {o} Plaetze feed {p} mThreadedHybridJoin[Name_o, Name_p] count
+Result      : ERROR
+
+Operator    : setcore
+Number      : 11
+Signature   : int -> bool
+Example     : query setcore(20)
+Result      : TRUE
+
+Operator    : mThreadedHybridJoin
+Number      : 12
+Signature   : stream x stream x attr x attr -> stream
+Example     : query strassen feed {o} Plaetze feed {p} mThreadedHybridJoin[Name_o, Name_p] count
+Result      : 15
+
+Operator    : setcore
+Number      : 13
+Signature   : int -> bool
+Example     : query setcore(6)
+Result      : TRUE
+
+Operator    : mThreadedHybridJoin - attr diff type
+Number      : 14
+Signature   : stream x stream x attr x attr -> stream
+Example     : query strassen feed {o} Plaetze feed {p} mThreadedHybridJoin[Name_o, Code_p] count
+Result      : ERROR
+
+Operator    : mThreadedHybridJoin - attr not in stream
+Number      : 15
+Signature   : stream x stream x attr x attr -> stream
+Example     : query strassen feed {o} Plaetze feed {p} mThreadedHybridJoin[Name_o, Test_p] count
+Result      : ERROR
+
+Operator    : mThreadedHybridJoin - attr1 not in stream
+Number      : 16
+Signature   : stream x stream x attr x attr -> stream
+Example     : query strassen Plaetze feed {p} mThreadedHybridJoin[Name, Name_p] count
+Result      : ERROR
+
+Operator    : mThreadedHybridJoin
+Number      : 17
+Signature   : stream x stream x attr x attr -> stream
+Example     : query strassen feed {o} Plaetze mThreadedHybridJoin[Name_o, Name] count
+Result      : ERROR
+
+Operator    : mThreadedHybridJoin - no arg
+Number      : 18
+Signature   : stream x stream x attr x attr -> stream
+Example     : query strassen feed {o} Plaetze feed {p} mThreadedHybridJoin[] count
+Result      : ERROR
+
+Operator    : mThreadedHybridJoin - too much args
+Number      : 19
+Signature   : stream x stream x attr x attr -> stream
+Example     : query strassen feed {o} Plaetze feed {p} mThreadedHybridJoin[Name_o, Name_p , Name_p] count
+Result      : ERROR
+
+Operator    : mThreadedHybridJoin - 3 streams
+Number      : 20
+Signature   : stream x stream x attr x attr -> stream
+Example     : query strassen feed {o} Plaetze feed {p} Orte feed {x} mThreadedHybridJoin[Name_o, Name_p] count
+Result      : ERROR
+
+Operator    : setcore
+Number      : 21
+Signature   : int -> bool
+Example     : query setcore(3)
+Result      : TRUE
+
+Operator    : mThreadedHybridJoin
+Number      : 22
+Signature   : stream x stream x attr x attr -> stream
+Example     : query (strassen feed {o} Plaetze feed {p} mThreadedHybridJoin[Name_o, Name_p] project[Name_o] sortby[Name_o]) = (strassen feed {o} Plaetze feed {p} sortmergejoin[Name_o, Name_p] project[Name_o] sortby[Name_o])
+Result      : TRUE

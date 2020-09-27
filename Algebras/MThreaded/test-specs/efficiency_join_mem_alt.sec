@@ -1,0 +1,28 @@
+# efficieny of mThreadedHybridJoin
+# test
+
+query setcore(4);
+
+#41.3883sec / 49.15sec = 0.842081
+query roads_str feed {o} roads_str feed {p} mThreadedHybridJoin[Name_o, Name_p] {memory 1} count;
+
+#43.6249sec / 51.96sec = 0.839586
+query roads_str feed {o} roads_str feed {p} mThreadedHybridJoin[Name_o, Name_p] {memory 2} count;
+
+#39.9744sec / 48.36sec = 0.8266
+query roads_str feed {o} roads_str feed {p} mThreadedHybridJoin[Name_o, Name_p] {memory 5} count;
+
+#40.6499sec / 49.06sec = 0.828576
+query roads_str feed {o} roads_str feed {p} mThreadedHybridJoin[Name_o, Name_p] {memory 25} count;
+
+#41.8883sec / 49.85sec = 0.840286
+query roads_str feed {o} roads_str feed {p} mThreadedHybridJoin[Name_o, Name_p] {memory 50} count;
+
+#37.775sec / 44.18sec = 0.855024
+query roads_str feed {o} roads_str feed {p} mThreadedHybridJoin[Name_o, Name_p] {memory 100} count;
+
+#35.5806sec / 41.27sec = 0.862142
+query roads_str feed {o} roads_str feed {p} mThreadedHybridJoin[Name_o, Name_p] {memory 200} count;
+
+# 36.293sec / 42.2sec = 0.860023
+query roads_str feed {o} roads_str feed {p} mThreadedHybridJoin[Name_o, Name_p] count;

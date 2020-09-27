@@ -1,0 +1,30 @@
+# efficieny of mThreadedMergeSort
+
+query setcore(5);
+#(79.65sec) /86.49sec = 0.920915
+#n 24.3001sec / 64.95sec = 0.374136
+query buildings feed  mThreadedMergeSort[Osm_id] {memory 1} count;
+
+#(104.498sec) /103.31sec = 1.0115
+#n 25.3076sec / 72.15sec = 0.350763
+query buildings feed  mThreadedMergeSort[Osm_id] {memory 2} count;
+
+#(98.0034sec) /100.1sec = 0.979055
+#22.6354sec / 66.55sec = 0.340126
+query buildings feed  mThreadedMergeSort[Osm_id] {memory 5} count;
+
+# (103.908sec) /103.64sec = 1.00259
+#n21.7977sec / 63.13sec = 0.345283
+query buildings feed  mThreadedMergeSort[Osm_id] {memory 10} count;
+
+#(114.966sec) /116.27sec = 0.988783
+#n24.1524sec / 70.11sec = 0.344493
+query buildings feed  mThreadedMergeSort[Osm_id] {memory 20} count;
+
+#59.9045sec / 55.59sec = 1.07761
+#n 22.5622sec / 51.72sec = 0.436237
+query buildings feed  mThreadedMergeSort[Osm_id] count;
+
+
+#sortby: 9.76582sec / 9.76sec = 1.0006
+#core 3: 22.6931sec / 29.07sec = 0.780638

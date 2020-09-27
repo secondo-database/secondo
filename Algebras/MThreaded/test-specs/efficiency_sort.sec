@@ -1,0 +1,159 @@
+# efficieny of mThreadedMergeSort
+
+#1.14531sec / 1.15sec = 0.995919
+query roads_str feed  sortby[NameStr] count;
+
+query setcore(3);
+#5.63451sec / 5.28sec = 1.06714
+#n 1.21198sec / 1.75sec = 0.692562
+query roads_str feed  mThreadedMergeSort[NameStr] count;
+
+query setcore(4);
+#6.10433sec / 5.78sec = 1.05611
+#n 1.36051sec / 2.77sec = 0.49116
+query roads_str feed  mThreadedMergeSort[NameStr] count;
+
+query setcore(5);
+#6.05662sec / 5.75sec = 1.05333
+#n 2.3482sec / 5.1sec = 0.460431
+query roads_str feed  mThreadedMergeSort[NameStr] count;
+
+query setcore(6);
+# 3.98497sec / 3.97sec = 1.00377
+#n 2.37435sec / 5.32sec = 0.446306
+query roads_str feed  mThreadedMergeSort[NameStr] count;
+
+query setcore(7);
+#8.00554sec / 6.71sec = 1.19308
+#n1.97966sec / 4.67sec = 0.42391
+query roads_str feed  mThreadedMergeSort[NameStr] count;
+
+query setcore(8);
+#7.88274sec / 6.82sec = 1.15583
+#n 1.84242sec / 4.67sec = 0.394522
+query roads_str feed  mThreadedMergeSort[NameStr] count;
+
+query setcore(9);
+#8.44366sec / 7.18sec = 1.176
+#n2.38273sec / 5.39sec = 0.442065
+query roads_str feed  mThreadedMergeSort[NameStr] count;
+
+query setcore(10);
+#7.83416sec / 6.75sec = 1.16062
+#n 1.81451sec / 4.56sec = 0.397918
+query roads_str feed  mThreadedMergeSort[NameStr] count;
+
+#query setcore(maxcore());
+query setcore(5);
+#0.634702sec / 1.23sec = 0.516018
+query buildings feed head[10000]  mThreadedMergeSort[Osm_id] count;
+#0.221333sec / 0.21sec = 1.05397
+query buildings feed head[10000]  sortby[Osm_id] count;
+
+#2.92848sec / 5.95sec = 0.492181
+query buildings feed head[50000]  mThreadedMergeSort[Osm_id] count;
+# 1.00625sec / 1.01sec = 0.99629
+query buildings feed head[50000]  sortby[Osm_id] count;
+
+#5.6279sec / 11.49sec = 0.489809
+query buildings feed head[100000]  mThreadedMergeSort[Osm_id] count;
+#1.89785sec / 1.9sec = 0.998866
+query buildings feed head[100000]  sortby[Osm_id] count;
+
+#14.6047sec / 29.27sec = 0.498966
+query buildings feed head[250000]  mThreadedMergeSort[Osm_id] count;
+#4.26755sec / 4.26sec = 1.00177
+query buildings feed head[250000]  sortby[Osm_id] count;
+
+#27.2338sec / 56.23sec = 0.484328
+query buildings feed head[500000]  mThreadedMergeSort[Osm_id] count;
+# 9.63284sec / 9.63sec = 1.00029
+query buildings feed head[500000]  sortby[Osm_id] count;
+
+#1.98505sec / 1.98sec = 1.00255
+query roads_str feed  sortby[Fclass, Oneway, Bridge, Tunnel, Code, NameStr] count;
+
+query setcore(3);
+#6.36794sec / 6.33sec = 1.00599
+#5: 6.19873sec / 5.98sec = 1.03658
+#n: 1.54563sec / 2.06sec = 0.750303
+query roads_str feed  mThreadedMergeSort[Fclass, Oneway, Bridge, Tunnel, Code, NameStr] count;
+
+query setcore(4);
+#6.21574sec / 6.3sec = 0.986625
+#5: 6.11055sec / 6.22sec = 0.982404
+#n 2.67159sec / 5.38sec = 0.496577
+query roads_str feed  mThreadedMergeSort[Fclass, Oneway, Bridge, Tunnel, Code, NameStr] count;
+
+query setcore(5);
+#5.34421sec / 5.8sec = 0.921415
+#5:  6.07247sec / 6.51sec = 0.932791
+#n:2.69829sec / 5.92sec = 0.455792
+query roads_str feed  mThreadedMergeSort[Fclass, Oneway, Bridge, Tunnel, Code, NameStr] count;
+
+query setcore(6);
+#7.78224sec / 7.65sec = 1.01729
+#5: 7.24967sec / 7.5sec = 0.96662
+#n: 2.89752sec / 6.56sec = 0.441695
+query roads_str feed  mThreadedMergeSort[Fclass, Oneway, Bridge, Tunnel, Code, NameStr] count;
+
+query setcore(7);
+#8.54126sec / 8.42sec = 1.0144
+#5: 6.52815sec / 7.04sec = 0.927294
+#n: 2.4495sec / 6.13sec = 0.399592
+query roads_str feed  mThreadedMergeSort[Fclass, Oneway, Bridge, Tunnel, Code, NameStr] count;
+
+query setcore(8);
+#8.34892sec / 8.33sec = 1.00227
+#5: 8.7466sec / 8.45sec = 1.0351
+#n: 2.37444sec / 6.16sec = 0.38546
+query roads_str feed  mThreadedMergeSort[Fclass, Oneway, Bridge, Tunnel, Code, NameStr] count;
+
+query setcore(9);
+#8.48278sec / 8.44sec = 1.00507
+#5: 8.07068sec / 8.35sec = 0.966549
+#n: 2.75629sec / 7.01sec = 0.393194
+query roads_str feed  mThreadedMergeSort[Fclass, Oneway, Bridge, Tunnel, Code, NameStr] count;
+
+query setcore(10);
+#7.60727sec / 7.9sec = 0.962945
+#5: 7.97244sec / 8.2sec = 0.972248
+#n: 2.20123sec / 5.83sec = 0.377569
+query roads_str feed  mThreadedMergeSort[Fclass, Oneway, Bridge, Tunnel, Code, NameStr] count;
+
+#1.71803sec / 1.71sec = 1.0047
+query roads_str feed  sortby[Fclass, Oneway, Bridge, Tunnel, Code, NameStr] count;
+
+#query setcore(maxcore());
+query setcore(5);
+
+#0.0656sec / 0.11sec = 0.596364
+query roads_str feed head[1000] mThreadedMergeSort[Fclass, Oneway, Bridge, Tunnel, Code, NameStr] count;
+#0.058476sec / 0.06sec = 0.9746
+query roads_str feed head[1000] sortby[Fclass, Oneway, Bridge, Tunnel, Code, NameStr] count;
+
+#0.257555sec / 0.51sec = 0.50501
+query roads_str feed head[5000] mThreadedMergeSort[Fclass, Oneway, Bridge, Tunnel, Code, NameStr] count;
+# 0.247213sec / 0.25sec = 0.988852
+query roads_str feed head[5000] sortby[Fclass, Oneway, Bridge, Tunnel, Code, NameStr] count;
+
+#0.637545sec / 1.36sec = 0.468783
+query roads_str feed head[10000] mThreadedMergeSort[Fclass, Oneway, Bridge, Tunnel, Code, NameStr] count;
+# 0.491362sec / 0.5sec = 0.982724
+query roads_str feed head[10000] sortby[Fclass, Oneway, Bridge, Tunnel, Code, NameStr] count;
+
+#1.15795sec / 2.57sec = 0.450564
+query roads_str feed head[20000] mThreadedMergeSort[Fclass, Oneway, Bridge, Tunnel, Code, NameStr] count;
+#0.667438sec / 0.67sec = 0.996176
+query roads_str feed head[20000] sortby[Fclass, Oneway, Bridge, Tunnel, Code, NameStr] count;
+
+#1.84024sec / 4.04sec = 0.455504
+query roads_str feed head[30000] mThreadedMergeSort[Fclass, Oneway, Bridge, Tunnel, Code, NameStr] count;
+#1.04158sec / 1.04sec = 1.00152
+query roads_str feed head[30000] sortby[Fclass, Oneway, Bridge, Tunnel, Code, NameStr] count;
+
+#2.51312sec / 5.58sec = 0.45038
+query roads_str feed head[44684] mThreadedMergeSort[Fclass, Oneway, Bridge, Tunnel, Code, NameStr] count;
+#1.46196sec / 1.46sec = 1.00134
+query roads_str feed head[44684] sortby[Fclass, Oneway, Bridge, Tunnel, Code, NameStr] count;
+

@@ -1,0 +1,94 @@
+# efficieny of mThreadedSpatialJoin
+
+query setcore(6);
+
+#2.4592sec / 5.37sec = 0.457951
+#4.15114sec / 9.42sec = 0.440673
+# 4.78051sec / 10.82sec = 0.441821
+query roads feed head[1000] {o} roads feed {p} mThreadedSpatialJoin[Geometry_o, Geometry_p, 0.0] count;
+#9.14762sec / 9.15sec = 0.99974
+#6.46069sec / 6.46sec = 1.00011
+#8.2505sec / 8.25sec = 1.00006
+query roads feed head[1000] {o} roads feed {p} spatialjoin[Geometry_o, Geometry_p] count;
+
+#11.8453sec / 16.07sec = 0.737107
+#9.18222sec / 19.78sec = 0.464217
+#9.07794sec / 19.63sec = 0.462452
+query roads feed head[10000] {o} roads feed {p} mThreadedSpatialJoin[Geometry_o, Geometry_p, 0.0] count;
+#10.7392sec / 10.73sec = 1.00085
+#9.81972sec / 9.81sec = 1.00099
+# 9.47158sec / 9.47sec = 1.00017
+query roads feed head[10000] {o} roads feed {p} spatialjoin[Geometry_o, Geometry_p] count;
+
+#31.5396sec / 38.67sec = 0.81561
+#21.2174sec / 41.69sec = 0.508933
+# 22.2303sec / 41.84sec = 0.531317
+query roads feed head[25000] {o} roads feed {p} mThreadedSpatialJoin[Geometry_o, Geometry_p, 0.0] count;
+#17.3387sec / 17.34sec = 0.999925
+#11.6523sec / 11.65sec = 1.0002
+#9.76949sec / 9.77sec = 0.999948
+query roads feed head[25000] {o} roads feed {p} spatialjoin[Geometry_o, Geometry_p] count;
+
+#(76.5789sec) /86.28sec = 0.887563
+#40.1858sec / 78.98sec = 0.50881
+#39.163sec / 73.14sec = 0.535452
+query roads feed head[50000] {o} roads feed {p} mThreadedSpatialJoin[Geometry_o, Geometry_p, 0.0] count;
+#16.457sec / 16.43sec = 1.00164
+#15.1472sec / 15.14sec = 1.00048
+#14.8478sec / 14.84sec = 1.00053
+query roads feed head[50000] {o} roads feed {p} spatialjoin[Geometry_o, Geometry_p] count;
+
+#(74.1421sec) /77.49sec = 0.956796
+#92.3854sec) /167.42sec = 0.551818
+#70.1011sec) /130.99sec = 0.535164
+query roads feed head[100000] {o} roads feed {p} mThreadedSpatialJoin[Geometry_o, Geometry_p, 0.0] count;
+#4.09094sec / 4.09sec = 1.00023
+#20.4806sec / 20.47sec = 1.00052
+#16.8385sec / 16.84sec = 0.999908
+query roads feed head[100000] {o} roads feed {p} spatialjoin[Geometry_o, Geometry_p] count;
+
+#(67.7913sec) /71.1sec = 0.953465
+#5.47708sec / 26.46sec = 0.206995
+#3.0912sec / 14.46sec = 0.213776
+query roads feed head[100000] {o} roads feed head[1000] {p} mThreadedSpatialJoin[Geometry_o, Geometry_p, 0.0] count;
+#6.08955sec / 6.09sec = 0.999927
+#3.59915sec / 3.6sec = 0.999762
+#3.42922sec / 3.43sec = 0.999773
+query roads feed head[100000] {o} roads feed head[1000] {p} spatialjoin[Geometry_o, Geometry_p] count;
+
+#(81.8595sec) /86.5sec = 0.946353
+# 6.75954sec / 28.44sec = 0.237677
+#7.28702sec / 21.45sec = 0.339721
+query roads feed head[100000] {o} roads feed head[10000] {p} mThreadedSpatialJoin[Geometry_o, Geometry_p, 0.0] count;
+#6.08955sec / 6.09sec = 0.999927
+#5.0104sec / 5sec = 1.00208
+#5.0492sec / 5.05sec = 0.999841
+query roads feed head[100000] {o} roads feed head[10000] {p} spatialjoin[Geometry_o, Geometry_p] count;
+
+#(81.8595sec) /86.5sec = 0.946353
+#16.7908sec / 47.9sec = 0.350539
+#16.4227sec / 36.57sec = 0.449077
+query roads feed head[100000] {o} roads feed head[25000] {p} mThreadedSpatialJoin[Geometry_o, Geometry_p, 0.0] count;
+#6.46825sec / 6.46sec = 1.00128
+#7.37863sec / 7.38sec = 0.999815
+#7.93002sec / 7.93sec = 1
+query roads feed head[100000] {o} roads feed head[25000] {p} spatialjoin[Geometry_o, Geometry_p] count;
+
+#(77.7879sec) /84.02sec = 0.925825
+#30.7198sec / 73.55sec = 0.417672
+# 29.7602sec / 59.27sec = 0.502113
+query roads feed head[100000] {o} roads feed head[50000] {p} mThreadedSpatialJoin[Geometry_o, Geometry_p, 0.0] count;
+#8.57639sec / 8.57sec = 1.00075
+#7.12463sec / 7.12sec = 1.00065
+# 8.35407sec / 8.35sec = 1.00049
+query roads feed head[100000] {o} roads feed head[50000] {p} spatialjoin[Geometry_o, Geometry_p] count;
+
+#80.2655sec) /88.62sec = 0.905727
+#53.836sec / 115.25sec = 0.467124
+#50.7021sec / 97.28sec = 0.521198
+query roads feed head[100000] {o} roads feed head[100000] {p} mThreadedSpatialJoin[Geometry_o, Geometry_p, 0.0] count;
+#10.8125sec / 10.81sec = 1.00023
+# 11.0187sec / 11.01sec = 1.00079
+#10.8919sec / 10.89sec = 1.00017
+query roads feed head[100000] {o} roads feed head[100000] {p} spatialjoin[Geometry_o, Geometry_p] count;
+
