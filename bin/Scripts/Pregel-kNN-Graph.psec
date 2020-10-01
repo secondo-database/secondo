@@ -53,7 +53,7 @@ query Stadt
 /*
 The result is shown in Figure 1.
 
-		Figure 1: Partitioning of relation ~Stadt~ [StadtPartition6.eps]
+		Figure 1: Partitioning of relation ~Stadt~ [StadtPartition6b.eps]
 
 Assign partitions to cities by the ~grid~:
 
@@ -587,8 +587,6 @@ In the Javagui, use settings:
   * Settings[->]Projections[->]OSMMercator
 
   * Settings[->]Category by name
-
-  * Settings[->]Background[->]Tiled Map (OSM, ...)
 
 To export the picture, use
 
