@@ -91,7 +91,7 @@ string collectArg       = "";
 
 */
 
-%name-prefix="opspec"
+%name-prefix "opspec"
 
 %token   ZZOPERATOR ZZPATTERN ZZFUN ZZOP ZZINFIXOP  ZZLIST
          ZZIMPLICIT ZZPARAMETER ZZPARAMETERS ZZTYPE ZZTYPES ZZFUNLIST 

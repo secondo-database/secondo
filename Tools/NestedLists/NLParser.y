@@ -75,7 +75,7 @@ extern void yyerror(const char* s);
 %}
 
 %verbose
-%token_table
+%token-table
 
 %token ZZINTEGER ZZREAL ZZBOOLEAN ZZSYMBOL ZZSTRING ZZTEXT ZZOPEN ZZCLOSE ZZERROR
 

@@ -91,7 +91,7 @@ char* errMsg;
   class ExprList* el;
 }
 
-%name-prefix="pattern"
+%name-prefix "pattern"
 
 %token ZZEND
 %token<text> ZZVARIABLE ZZCONTENTS ZZWILDCARD ZZDOUBLESLASH ZZVAR_DOT_TYPE ZZCOMMA

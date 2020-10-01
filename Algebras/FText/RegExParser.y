@@ -100,7 +100,7 @@ char* cregex_last_message=0;
    struct ivec*  range;
 }
 
-%name-prefix="cregex"
+%name-prefix "cregex"
 
 
 %token OPEN CLOSE STARS OR EPSILON PLUS ANY  OPTION TO OPENSET OPENINVERSESET CLOSESET

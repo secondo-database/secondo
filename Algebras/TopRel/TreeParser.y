@@ -183,7 +183,7 @@ http://www.gnu.org/software/bison/manual/
     struct tree* theTree;
 }
 
-%name-prefix="tree"
+%name-prefix "tree"
 
 %token OR XOR NOT CONDITIONAL BICONDITIONAL OPEN CLOSE AND ERROR
 %token II IB IE BI BB BE EI EB EE TRUE FALSE  

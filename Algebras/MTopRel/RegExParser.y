@@ -95,7 +95,7 @@ char* regex_last_message=0;
    int numval;
 }
 
-%name-prefix="regex"
+%name-prefix "regex"
 
 
 %token OPEN CLOSE STARS OR EPSILON ERROR 

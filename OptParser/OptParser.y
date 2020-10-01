@@ -89,7 +89,7 @@ For further checks, we have to extend this definition.
 }
 
 
-%name_prefix="opt"  // use opt instead of yy to avoid naming conflicts with other 
+%name-prefix "opt"  // use opt instead of yy to avoid naming conflicts with other 
                     // parsers of the system
 
 

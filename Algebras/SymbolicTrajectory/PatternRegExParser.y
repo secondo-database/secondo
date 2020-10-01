@@ -94,7 +94,7 @@ char* pregex_last_message = 0;
    int numval;
 }
 
-%name-prefix="pregex"
+%name-prefix "pregex"
 
 
 %token OPEN CLOSE STAR OR PLUS OPTION
