@@ -54,6 +54,7 @@ prolog engine. All generated solutions are printed out.
 
 */
 
+#include <algorithm>
 #include <iostream> 
 #include <stack>
 #include "SWI-Prolog.h"
@@ -1666,7 +1667,6 @@ int SecondoPLTTYMode(TTYParameter& tp)
   }
 
 #ifdef READLINE
-  string historyFile;
   rl_initialize();
   rl_readline_name = "secondopl";
   rl_attempted_completion_function = secondo_completion;
@@ -1674,7 +1674,6 @@ int SecondoPLTTYMode(TTYParameter& tp)
   /* read the history from file */
   ifstream hist_file(HISTORY_FILE);
   string histline;
-  fstream out_history;
   if(hist_file){
     string query("");
     while(!hist_file.eof()){
@@ -1695,11 +1694,7 @@ int SecondoPLTTYMode(TTYParameter& tp)
       query = "";
     }    
     hist_file.close();
-    historyFile = FileSystem::GetCurrentFolder();
-    FileSystem::AppendItem(historyFile, HISTORY_FILE);
-  } else {
-    out_history.open(HISTORY_FILE, ios::out);
-  }
+  } 
 #endif
 
   /* Start PROLOG interpreter with our extensions. */
@@ -1767,24 +1762,27 @@ int SecondoPLTTYMode(TTYParameter& tp)
   }
 
 #ifdef READLINE
-  /* save the last xxx enties in the history to a file */
-  out_history.open(historyFile.c_str(), ios::out );
-  out_history.seekg(0,ios::end);
-  if(out_history){
-     int start_history = history_length-HISTORY_FILE_ENTRIES;
-     if(start_history <0) start_history=0;
+  /* 
+   * save the last HISTORY_FILE_ENTRIES elements of the 
+   * history to a file 
+   */
+  
+  fstream out_history;
+  out_history.open(HISTORY_FILE, fstream::out | fstream::trunc);
+  if(! out_history.bad()) {
      HIST_ENTRY* he;
-     out_history.seekg(0,ios::beg);
-     for(int i=start_history;i<history_length;i++){ // ignore quit
+     
+     int start_history = max(history_length - HISTORY_FILE_ENTRIES, 0);
+     for(int i = start_history; i < history_length; i++) {
         he = history_get(i);
-        if(he){
+        if(he) {
            out_history << he->line << endl << endl;
-        }    
-     }    
-     out_history.flush();
+        }
+     }
+
      out_history.close();
   } else {
-    cerr << "Error: could not write the history file" << endl;
+     cerr << "Error: could not write the SECONDO history file" << endl;
   }
 #endif
 
@@ -1795,5 +1793,4 @@ int SecondoPLTTYMode(TTYParameter& tp)
   return ok?0:1;
 
 }
-
 
