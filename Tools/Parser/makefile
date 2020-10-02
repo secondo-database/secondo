@@ -103,7 +103,7 @@ SecParser.y: SecParser.y.1 tokens SecParser.y.2 yaccrules1 yaccrules2 SecParser.
 
 
 ifneq ($(MAKECMDGOALS),clean)
-include $(DEP_FILES)
+-include $(DEP_FILES)
 endif
 
 lexrules tokens yaccrules1 yaccrules2: $(SPECFILE) $(SPECPARSER) 

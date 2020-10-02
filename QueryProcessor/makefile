@@ -40,7 +40,7 @@ $(LIBDIR)/%.$(OBJEXT): %.$(OBJEXT)
 	$(CP) $< $@ 
 
 ifneq ($(MAKECMDGOALS),clean)
-include $(DEP_FILES)
+-include $(DEP_FILES)
 endif
 
 .PHONY: clean

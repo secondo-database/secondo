@@ -87,7 +87,7 @@ $(BINDIR)/SecondoListener$(EXEEXT): $(CMSG) SecondoListener.o
 	$(link-app) $(COMMON_LD_FLAGS)
 
 ifneq ($(MAKECMDGOALS),clean)
-include $(DEP_FILES)
+-include $(DEP_FILES)
 endif
 
 .PHONY: clean

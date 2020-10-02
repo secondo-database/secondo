@@ -34,7 +34,7 @@ all: $(ALL_OBJS)
 	rm -f AlgebraList.i
 
 ifneq ($(MAKECMDGOALS),clean)
-include $(DEP_FILES)
+-include $(DEP_FILES)
 endif
 
 # After building AlgebraList.o the file AlgebraList.i will be deleted

@@ -53,7 +53,7 @@ NLLex.cpp: NLLex.l $(TOKENDEF)
 	$(LEX) -d -+ -Pnl -o$@ $<
 
 ifneq ($(MAKECMDGOALS),clean)
-include $(DEP_FILES)
+-include $(DEP_FILES)
 endif
 
 .PHONY: clean

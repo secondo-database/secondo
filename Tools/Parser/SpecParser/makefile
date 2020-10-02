@@ -48,7 +48,7 @@ Parser$(EXEEXT):
 	$(MAKE) -C arch_i386
 
 ifneq ($(MAKECMDGOALS),clean)
-include $(DEP_FILES)
+-include $(DEP_FILES)
 endif
 
 clean:

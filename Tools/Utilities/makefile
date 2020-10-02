@@ -38,7 +38,7 @@ Crypt.o: Crypt.cpp
 	$(CC) -fPIC -c -I ../../include -Wall -o Crypt.o $<
 
 ifneq ($(MAKECMDGOALS),clean)
-include $(DEP_FILES)
+-include $(DEP_FILES)
 endif
 
 .PHONY: clean

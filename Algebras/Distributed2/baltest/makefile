@@ -42,7 +42,7 @@ crnd: crnd.o
 
 # include pre-computed dependencies
 ifneq ($(MAKECMDGOALS),clean)
-include $(DEP_FILES)
+-include $(DEP_FILES)
 endif
 .PHONY: deps
 deps: $(DEP_FILES)

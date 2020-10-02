@@ -50,7 +50,7 @@ Parser2$(EXEEXT): SpecParser.tab.o lex2.yy.o NestedText.o
 	$(CP) $@ ../$@
 
 ifneq ($(MAKECMDGOALS),clean)
-include $(DEP_FILES)
+-include $(DEP_FILES)
 endif
 
 clean:

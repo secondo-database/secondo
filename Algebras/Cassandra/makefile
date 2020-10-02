@@ -35,7 +35,7 @@ include ../../makefile.env
 all: $(OBJECTS) $(LIBOBJ)
 
 # include pre-computed dependencies
-include $(DEP_FILES)
+-include $(DEP_FILES)
 
 .PHONY: deps
 deps: $(DEP_FILES)

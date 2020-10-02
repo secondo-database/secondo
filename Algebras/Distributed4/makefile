@@ -35,7 +35,7 @@ check_dependencies:
 clean:
 	$(clean-algebra)
 
-include $(DEP_FILES)
+-include $(DEP_FILES)
 
 .PHONY: deps
 deps: $(DEP_FILES)

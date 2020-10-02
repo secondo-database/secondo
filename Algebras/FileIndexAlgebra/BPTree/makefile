@@ -37,7 +37,7 @@ all: $(OBJECTS)
 
 # include pre-computed dependencies
 ifneq ($(MAKECMDGOALS),clean)
-include $(DEP_FILES)
+-include $(DEP_FILES)
 endif
 
 # generic rule for cleaning all generated files

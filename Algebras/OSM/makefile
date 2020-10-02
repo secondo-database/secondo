@@ -40,7 +40,7 @@ all: $(OBJECTS) $(LIBOBJ)
 
 # include pre-computed dependencies
 #ifneq ($(MAKECMDGOALS),clean)
-#include $(DEP_FILES)
+#-include $(DEP_FILES)
 #endif
 
 .PHONY: deps

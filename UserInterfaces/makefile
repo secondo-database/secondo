@@ -175,7 +175,7 @@ $(BINDIR)/SecondoCS$(EXEEXT): $(CS_OBJECTS) $(APP_LIB) $(PLCS_OBJECTS) $(FLOB)
 
 
 ifneq ($(MAKECMDGOALS),clean)
-include $(DEP_FILES:.cpp=.dep)
+-include $(DEP_FILES:.cpp=.dep)
 endif
 
 
