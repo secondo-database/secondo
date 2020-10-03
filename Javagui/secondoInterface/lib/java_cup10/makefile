@@ -1,14 +1,17 @@
 
+JAVAFILES := $(wildcard *.java)
+CLASSFILES := $(subst .java,.class,$(JAVAFILES))
+
+CLASSPATH = ..
 
 .PHONY: all
+all: $(CLASSFILES)
+	$(MAKE) -C runtime all
 
-all: 
-	make -C runtime all
-	javac -classpath .. *.java
-
+%.class: %.java
+	javac -classpath $(CLASSPATH) $<
 
 .PHONY: clean
-
 clean: 
-	make -C runtime clean
+	$(MAKE) -C runtime clean
 	rm -f *.class
