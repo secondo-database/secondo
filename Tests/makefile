@@ -114,7 +114,7 @@ tdynlib2.$(DLLOBJEXT): tdynlib2.cpp
 
 	
 ifneq ($(MAKECMDGOALS),clean)
-include $(DEP_FILES:.cpp=.dep)
+-include $(DEP_FILES:.cpp=.dep)
 endif
 
 .PHONY: clean
