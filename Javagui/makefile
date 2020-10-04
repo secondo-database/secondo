@@ -80,30 +80,30 @@ removedoc:
 .PHONY: makedirs
 makedirs:
 	rm -rf sj
-	make -C secondoInterface SecondoInterface.jar
-	make -C communication all
-	make -C extern all
-	make -C components all
-	make -C viewer all
-	make -C project all
-	make -C gui all
-	make -C viewer viewers
-	make -C tools all
-	make -C stlib all
-	make -C mmdb all
+	$(MAKE) -C secondoInterface SecondoInterface.jar
+	$(MAKE) -C communication all
+	$(MAKE) -C extern all
+	$(MAKE) -C components all
+	$(MAKE) -C viewer all
+	$(MAKE) -C project all
+	$(MAKE) -C gui all
+	$(MAKE) -C viewer viewers
+	$(MAKE) -C tools all
+	$(MAKE) -C stlib all
+	$(MAKE) -C mmdb all
 
 
 .PHONY: clean # removes the documentation and all .class files
 clean: removedoc
-	make -C secondoInterface clean
-	make -C communication clean
-	make -C components clean
-	make -C extern clean
-	make -C gui clean
-	make -C project clean
-	make -C tools clean
-	make -C viewer clean
-	make -C stlib clean
-	make -C mmdb clean
+	$(MAKE) -C secondoInterface clean
+	$(MAKE) -C communication clean
+	$(MAKE) -C components clean
+	$(MAKE) -C extern clean
+	$(MAKE) -C gui clean
+	$(MAKE) -C project clean
+	$(MAKE) -C tools clean
+	$(MAKE) -C viewer clean
+	$(MAKE) -C stlib clean
+	$(MAKE) -C mmdb clean
 	rm -rf Demo
 	rm -rf sj

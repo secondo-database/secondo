@@ -34,28 +34,28 @@ all: subdirs $(CLASSFILES)
 
 .PHONY:subdirs
 subdirs:
-	(make -C numericreader all)
-	(make -C shapereader all)
-	(make -C dbfreader all)
-	(make -C stlreader all)
-	(make -C shapedbf  all)
-	(make -C binarylist all)
-	(make -C psexport all)
-	(make -C gpxreader all)
-	(make -C nl all)
+	($(MAKE) -C numericreader all)
+	($(MAKE) -C shapereader all)
+	($(MAKE) -C dbfreader all)
+	($(MAKE) -C stlreader all)
+	($(MAKE) -C shapedbf  all)
+	($(MAKE) -C binarylist all)
+	($(MAKE) -C psexport all)
+	($(MAKE) -C gpxreader all)
+	($(MAKE) -C nl all)
 
 %.class:%.java
 	$(JAVAC) -classpath $(CLASSPATH) $<
 
 .PHONY: clean
 clean:
-	(make -C numericreader clean)
-	(make -C shapereader clean)
-	(make -C dbfreader clean)
-	(make -C stlreader clean)
-	(make -C shapedbf clean)
-	(make -C binarylist clean)
-	(make -C psexport clean)
-	(make -C gpxreader clean)
-	(make -C nl clean)
+	($(MAKE) -C numericreader clean)
+	($(MAKE) -C shapereader clean)
+	($(MAKE) -C dbfreader clean)
+	($(MAKE) -C stlreader clean)
+	($(MAKE) -C shapedbf clean)
+	($(MAKE) -C binarylist clean)
+	($(MAKE) -C psexport clean)
+	($(MAKE) -C gpxreader clean)
+	($(MAKE) -C nl clean)
 	rm -f *.class

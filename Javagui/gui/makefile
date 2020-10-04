@@ -37,12 +37,12 @@ all: IDManager $(CLASSFILES)
 
 .PHONY: IDManager
 IDManager:
-	(cd idmanager; make all);
+	$(MAKE) -C idmanager all
 
 
 .PHONY: clean
 clean:
-	(cd idmanager; make clean);
+	$(MAKE) -C idmanager clean
 	rm -f *.class
 
 

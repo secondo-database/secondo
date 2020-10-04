@@ -25,11 +25,11 @@ include ../makefile.inc
 
 .PHONY: all
 all:
-	(cd optimizer;make all)
+	$(MAKE) -C optimizer all
 
 
 .PHONY: clean 
 clean:
-	(cd optimizer; make clean)
+	$(MAKE) -C optimizer clean
 
 

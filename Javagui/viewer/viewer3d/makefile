@@ -28,18 +28,18 @@ CLASSFILES = $(subst ./,,$(TMPFILES))
 
 .PHONY: all
 all: $(CLASSFILES)
-	(cd mathe;make all)
-	(cd graphic2d;make all)
-	(cd graphic3d; make all)
-	(cd objects; make all)
+	$(MAKE) -C mathe all
+	$(MAKE) -C graphic2d all
+	$(MAKE) -C graphic3d all
+	$(MAKE) -C objects all
 
 %.class: %.java
 	$(JAVAC) -classpath $(CLASSPATH) $<
 
 .PHONY:clean
 clean:
-	(cd graphic2d;make clean)
-	(cd graphic3d;make clean)
-	(cd mathe; make clean)
-	(cd objects; make clean)
+	$(MAKE) -C mathe clean
+	$(MAKE) -C graphic2d clean
+	$(MAKE) -C graphic3d clean
+	$(MAKE) -C objects clean
 	rm -f *.class

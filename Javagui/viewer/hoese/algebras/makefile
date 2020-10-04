@@ -37,7 +37,7 @@ all: $(SUBDIRS) $(CLASSFILES)
 
 
 %.dir: %
-	make -C  $<  all
+	$(MAKE) -C  $<  all
 
 %.class: %.java
 	$(JAVAC) -classpath $(CLASSPATH):$(JARS) $<
@@ -48,5 +48,5 @@ clean: $(SUBDIRSCLEAN)
 	rm -f *.class
 
 %.dirclean: %
-	make -C $< clean
+	$(MAKE) -C $< clean
 

@@ -4,9 +4,9 @@ include ../makefile.inc
 .PHONY: all
 
 all: 
-	make -C lib all
-	make -C tools all
-	make -C sj all
+	$(MAKE) -C lib all
+	$(MAKE) -C tools all
+	$(MAKE) -C sj all
 
 
 .PHONY: doc # creates the documentation  via $(JAVADOC)
@@ -43,9 +43,9 @@ SecondoInterface.jar: all
 .PHONY: clean
 
 clean: removedoc
-	make -C sj clean
-	make -C tools clean
-	make -C lib clean
+	$(MAKE) -C sj clean
+	$(MAKE) -C tools clean
+	$(MAKE) -C lib clean
 	rm -f SecondoInterface.jar
 
 

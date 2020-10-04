@@ -13,7 +13,7 @@ CLASSFILES = $(subst ./,,$(TMPFILES))
 
 .PHONY: all
 all: $(CLASSFILES)
-	make -C format all
+	$(MAKE) -C format all
 
 %.class: %.java
 	$(JAVAC) -classpath $(CLASSPATH) $<
@@ -22,4 +22,4 @@ all: $(CLASSFILES)
 .PHONY: clean
 clean:
 	rm -f *.class
-	make -C format clean
+	$(MAKE) -C format clean

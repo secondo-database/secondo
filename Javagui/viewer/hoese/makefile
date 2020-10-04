@@ -34,7 +34,7 @@ all: algebras $(CLASSFILES)
 
 .PHONY: algebras
 algebras:
-	(cd algebras;make all)
+	$(MAKE) -C algebras all
 
 %.class: %.java
 	$(JAVAC) -classpath $(CLASSPATH) $(ENCODING) $<	
@@ -42,5 +42,5 @@ algebras:
 
 .PHONY: clean
 clean:
-	(cd algebras; make clean)
+	$(MAKE) -C algebras clean
 	rm -f *.class

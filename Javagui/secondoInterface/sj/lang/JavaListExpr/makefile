@@ -66,7 +66,7 @@ NLToken.class NLTokenizer.class: NLJLex.l.java ../ListExpr.java
 #////////// Clean rules
 .PHONY clean:
 clean:
-	 rm -f *.class
+	rm -f *.class
 	(cd ..; rm -f ListExpr.class $(PARSERCLASSES) $(SCANERCLASSES))
-	 rm -f $(GENERATEDJAVAFILES)
+	rm -f $(GENERATEDJAVAFILES)
 

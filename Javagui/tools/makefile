@@ -35,10 +35,10 @@ CLASSFILES:= $(shell ls *.java | sed -e "s/java/class/")
 
 .PHONY: all 
 all: ../secondoInterface/SecondoInterface.jar $(CLASSFILES)
-	make -C downloadmanager
+	$(MAKE) -C downloadmanager
 
 ../secondoInterface/SecondoInterface.jar:
-	make -C ../secondoInterface/SecondoInterface.jar
+	$(MAKE) -C ../secondoInterface/SecondoInterface.jar
 
 
 %.class: %.java
@@ -69,6 +69,6 @@ all: ../secondoInterface/SecondoInterface.jar $(CLASSFILES)
 .PHONY: clean
 clean:
 	rm -f *.class
-	make -C downloadmanager clean
+	$(MAKE) -C downloadmanager clean
 
 

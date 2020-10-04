@@ -13,8 +13,8 @@ CLASSFILES = $(subst ./,,$(TMPFILES))
 
 .PHONY: all
 all: $(CLASSFILES)
-	make -C format
-	make -C gui
+	$(MAKE) -C format
+	$(MAKE) -C gui
 
 %.class: %.java
 	$(JAVAC) -Xlint:unchecked -classpath $(CLASSPATH) $<
@@ -22,6 +22,6 @@ all: $(CLASSFILES)
 
 .PHONY: clean
 clean:
-	make -C format clean
-	make -C gui clean
+	$(MAKE) -C format clean
+	$(MAKE) -C gui clean
 	rm -f *.class
