@@ -41,7 +41,7 @@ endif
 ALGEBRA_DIRS := Standard-C++
 ALGEBRAS     := StandardAlgebra
 ALGEBRA_DEPS :=
-ALGEBRA_LINK_FLAGS := 
+ALGEBRA_LINK_FLAGS :=
 ALGEBRA_DEP_DIRS := $(SECONDO_SDK)/lib
 
 ALGEBRA_DIRS += FText
@@ -71,11 +71,11 @@ ALGEBRAS     += StreamAlgebra
 ALGEBRA_DIRS += Function-C++
 ALGEBRAS     += FunctionAlgebra
 
-#ALGEBRA_DIRS += MainMemory 
+#ALGEBRA_DIRS += MainMemory
 #ALGEBRAS     += MainMemoryAlgebra
 
 
-ALGEBRA_DIRS += MainMemory2 
+ALGEBRA_DIRS += MainMemory2
 ALGEBRAS     += MainMemory2Algebra
 
 ALGEBRA_DIRS += Guide
@@ -138,7 +138,7 @@ ALGEBRAS     += RTreeAlgebra
 ALGEBRA_DIRS += TBTree
 ALGEBRAS     += TBTreeAlgebra
 
-ALGEBRA_DIRS += Geoid 
+ALGEBRA_DIRS += Geoid
 ALGEBRAS     += GeoidAlgebra
 
 ALGEBRA_DIRS += Rectangle
@@ -152,6 +152,9 @@ ALGEBRAS     += SpatialAlgebra
 
 #ALGEBRA_DIRS  += Spatial3D
 #ALGEBRAS     += Spatial3DAlgebra
+
+#ALGEBRA_DIRS += SPart
+#ALGEBRAS     += SPartAlgebra
 
 ALGEBRA_DIRS += RobustPlaneSweep
 ALGEBRAS     += RobustPlaneSweepAlgebra
@@ -228,7 +231,7 @@ ALGEBRAS     += MovingRegionAlgebra
 #ALGEBRAS     += MovingRegion3Algebra
 
 
-#ALGEBRA_DIRS  += FixedMRegion 
+#ALGEBRA_DIRS  += FixedMRegion
 #ALGEBRAS     += FixedMRegionAlgebra
 
 #ALGEBRA_DIRS += MRegionOps3
@@ -270,7 +273,7 @@ ALGEBRA_DEPS += jpeg
 ALGEBRA_DIRS += Graph
 ALGEBRAS     += GraphAlgebra
 
-#ALGEBRA_DIRS  += HubLabeling 
+#ALGEBRA_DIRS  += HubLabeling
 #ALGEBRAS     += HubLabelingAlgebra
 
 
@@ -326,7 +329,7 @@ ALGEBRAS      += ClusterAlgebra
 
 
 
-ALGEBRA_DIRS  += Optics 
+ALGEBRA_DIRS  += Optics
 ALGEBRAS      += OpticsAlgebra
 
 #ALGEBRA_DIRS  += DBScan
@@ -358,7 +361,7 @@ ALGEBRAS      += AuxiliaryAlgebra
 #DEFAULTCCFLAGS += -pthread -DTHREAD_SAFE
 #CCFLAGS += -pthread -DTHREAD_SAFE
 #COMMON_LD_FLAGS += -lboost_thread -lboost_system
-# On systems that have boost::chrono compiled without header-only 
+# On systems that have boost::chrono compiled without header-only
 # option, the following line is required
 #COMMON_LD_FLAGS += -lboost_chrono
 
@@ -384,7 +387,7 @@ ALGEBRAS      += AuxiliaryAlgebra
 #COMMON_LD_FLAGS += -lboost_thread -lboost_system
 
 
-#ALGEBRA_DIRS  += DRel 
+#ALGEBRA_DIRS  += DRel
 #ALGEBRAS     += DRelAlgebra
 
 #ALGEBRA_DIRS += DistributedUpdate
@@ -405,10 +408,10 @@ ALGEBRAS      += AuxiliaryAlgebra
 #ALGEBRA_DIRS += DBService
 #ALGEBRAS += DBServiceAlgebra
 
-#ALGEBRA_DIRS  += DistributedClustering 
+#ALGEBRA_DIRS  += DistributedClustering
 #ALGEBRAS     += DistributedClusteringAlgebra
 
-#ALGEBRA_DIRS  += KeyValueStore 
+#ALGEBRA_DIRS  += KeyValueStore
 #ALGEBRAS     += KeyValueStoreAlgebra
 
 
@@ -505,7 +508,7 @@ ALGEBRAS     += SuffixTreeAlgebra
 # in some linux or macosx distributions, the xml2 library is outside
 # of standard paths, iff so, add the missing parts here
 #ALGEBRA_DEP_DIRS += /usr/lib/libxml2
-#ALGEBRA_INCLUDE_DIRS += /usr/include/libxml2 
+#ALGEBRA_INCLUDE_DIRS += /usr/include/libxml2
 # on max os X the framework CoreServices must be added
 # uncomment the next line if you use mac os
 #ALGEBRA_LINK_FLAGS += -framework CoreServices
@@ -516,7 +519,7 @@ ALGEBRAS     += GroupbyAlgebra
 #ALGEBRA_DIRS  += RIndex
 #ALGEBRAS     += RIndexAlgebra
 
-ALGEBRA_DIRS  += MMRTree 
+ALGEBRA_DIRS  += MMRTree
 ALGEBRAS     += MMRTreeAlgebra
 
 
@@ -573,7 +576,7 @@ ALGEBRAS     += JNetAlgebra
 #ALGEBRA_DIRS += SpatialJoin2
 #ALGEBRAS += SpatialJoin2Algebra
 
-#ALGEBRA_DIRS  += CompiledExpressions 
+#ALGEBRA_DIRS  += CompiledExpressions
 #ALGEBRAS     += CompiledExpressionsAlgebra
 
 #ALGEBRA_DIRS  += Mail
@@ -691,7 +694,7 @@ ALGEBRAS     += JNetAlgebra
 #ALGEBRA_DIRS += ParThread
 #ALGEBRAS     += ParThreadAlgebra
 #the flag is used to activate code in QueryProcessor
-#to use the ParThreadAlgebra 
+#to use the ParThreadAlgebra
 #DEFAULTCCFLAGS += -DUSE_MULTIHREADED_QUERY_PROCESSING
 #DEFAULTCCFLAGS += -pthread -DTHREAD_SAFE
 #CCFLAGS += -pthread -DTHREAD_SAFE
