@@ -33,10 +33,13 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <string>
 #include <iostream>
 #include <assert.h>
+#include "Stream.h"
 
 #include "Attribute.h" 
 #include "GenericTC.h"
 #include "Algebras/Spatial/SpatialAlgebra.h"
+
+
 
 /*
 Class ~Convex~
@@ -58,13 +61,18 @@ class Convex: public Attribute{
      Convex(const bool def): Attribute(def), value(0),size(0){}
      Convex(const Convex& src);
      Convex(Convex&& src);
+     Convex(const std::vector<std::tuple<double, double>>& src, int id);
      Convex(const std::vector<std::tuple<double, double>>& src);
 
      Convex& operator=(const Convex& src);
      Convex& operator=(Convex&& src);
      ~Convex(){
        if(value){ delete[] value; }
+
      }
+
+    std::vector<Convex> getVoronoiVector();
+    void setVoronoiVector(std::vector<Convex> voronoi_vect);
 
 
     // auxiliary functions
@@ -173,7 +181,8 @@ class Convex: public Attribute{
        if(!IsDefined()) return sizeof(bool);
 
 
-       size_t res =  sizeof(bool) + sizeof(size_t) + size * sizeof(Point); 
+       size_t res =  sizeof(bool) + sizeof(size_t) 
+              + size * sizeof(Point) + sizeof(int); 
        return res;
    }
     
@@ -191,6 +200,8 @@ class Convex: public Attribute{
         memcpy(buffer+offset, value, size*sizeof(Point));
         offset += size*sizeof(Point);
       }
+      memcpy(buffer+offset, &cellId, sizeof(int));
+        offset += sizeof(int);
    }
 
    inline virtual void Rebuild(char* buffer, size_t sz);
@@ -201,37 +212,172 @@ class Convex: public Attribute{
    
 
    virtual size_t GetMemSize() {
-     return sizeof(*this) + size * sizeof(Point);
+     return sizeof(*this) + size * sizeof(Point) + sizeof(int);
    }
 
    void clear(){
      size = 0;
+     cellId = 0;
      if(value!=nullptr){
         delete[] value;
         value = nullptr;
      }
    }
 
-   void setTo(const std::vector<std::tuple<double, double>>& src);
+   void setTo(const std::vector<std::tuple<double, double>>& src, int id);
+   int getCellId();
+   void setCellId(int id);
 
-   
   
-
- 
-
-  private:
+  //private:
      Point* value;   
      size_t size;
+     int cellId;
 
-     Convex(size_t size, Point* value): Attribute(true), 
-            value(value),size(size) {}
+     Convex(size_t size, Point* value, int id): Attribute(true), 
+            value(value),size(size),cellId(id) {}
 
-     
 
+};
+  // used for cellnos
+   std::vector<Convex> voroVec {};
+
+
+
+
+
+
+
+/*
+ Class Convex3D
+
+*/
+struct Point3D {
+   double x;
+   double y;
+   double z;
+};
+
+struct Tetrahedron {
+  Point3D a;
+  Point3D b;
+  Point3D c;
+  Point3D d;
+};
+
+class Polyhedron {
+  public:
+    Polyhedron();
+    ~Polyhedron();
+
+    Polyhedron* getNeighbor();
+    int getPolyId();
+
+    // Auxiliary functions for In or/and Value mapping functions
+    void setNeighbor(Polyhedron* neighbor_);
+    void setPolyId(int id_);
+    std::vector<std::vector<Point3D>> faces {};
+
+    friend class Convex3D;
+
+  private:
+    Polyhedron* neighbor;
+    int polyhedronId;
+};
+
+
+class Convex3D {
+   public:
+
+   // The first constructor.
+   Convex3D(Rectangle<3> &bounding_box);
+
+   // copy constructor
+   Convex3D( const Convex3D& g );
+
+    // Auxiliary functions for In or/and Value mapping functions
+    void Set(Stream<Rectangle<3>> rStream);
+    int getCellId();
+    void setCellId(int cell_id);
+    std::vector<Tetrahedron*> &getTetrahedronVector();
+    void setTetrahedronVector(std::vector<Tetrahedron*> tetravec);
+    std::vector<Polyhedron> &getPolyhedronVector();
+    void setPolyhedronVector(std::vector<Polyhedron> polyvec);
+
+    std::vector<Point3D> &getPointsVector();
+    void setPointsVector(std::vector<Point3D> pointsvec);
+    
+
+   // Algebra supporting functions
+
+    static ListExpr PropertyConvex3D();
+
+    static ListExpr OutConvex3D(ListExpr typeInfo, Word value);
+
+    static Word InConvex3D( const ListExpr typeInfo, const ListExpr instance,
+      const int errorPos, ListExpr& errorInfo, bool& correct);
+
+    static Word CreateConvex3D( const ListExpr typeInfo);
+
+    static void DeleteConvex3D( const ListExpr typeInfo, Word& w);
+
+    static void Close(const ListExpr typeInfo, Word& w){
+     delete (Convex3D*) w.addr;
+     w.addr = 0;
+    }
+    static Word CloneConvex3D( const ListExpr typeInfo, const Word& w);
+
+    static int SizeOfConvex3D();
+
+    static bool KindCheckConvex3D (ListExpr type, ListExpr& errorInfo);
+
+    static const std::string BasicType() {
+      printf("\n in basictype");
+      return "convex3d";
+    }
+
+    static const bool checkType(const ListExpr type) {
+      return listutils::isSymbol(type, BasicType());
+    }
+
+    ~Convex3D();
+
+    private: 
+    Convex3D();
+
+    // vector with points of input cuboids
+    std::vector<Point3D> points {};
+
+    void CreateVoronoi3D(Stream<Rectangle<3>> rStream);
+    void buildVoronoi3D(Stream<Rectangle<3>> rStream);
+    
+    // cellId => polyhedronId
+    int polyhedronId;
+    Rectangle<3> *boundingBox;
+    std::vector<Tetrahedron*> tetravec;
+    std::vector<Polyhedron> polyhedronvec {};
 };
 
 
 
+/*struct CellInfoConvex3D {
+  int cellId;
+  Convex3D* cell;
+
+  CellInfoConvex3D (int c_id,
+    double left, double right, double bottom, double top, double front, double back) {
+    cellId = c_id;
+
+    double min[3], max[3];
+    min[0] = left;
+    min[1] = bottom;
+    min[2] = front;
+    max[0] = right;
+    max[1] = top;
+    max[2] = back;
+
+    cell = new Convex3D;
+  }
+};*/
+
 } //end of namespace
-
-

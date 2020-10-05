@@ -20,3 +20,12 @@
 
 operator createconvex alias CREATECONVEX  pattern  _ op[_]
 operator voronoi alias VORONOI pattern _op[ _, _, _]
+operator cellnum alias CELLNUM pattern op(_,_,_)
+operator sccvoronoi alias SCCVORONOI pattern op(_,_,_)
+operator trcvoronoi alias TRCVORONOI pattern op(_,_,_)
+operator trccellvoronoi alias TRCCELLVORONOI pattern op(_,_)
+operator voronoi3d alias VORONOI3D pattern _op[_]
+operator cellnum3d alias CELLNUM3D pattern op(_,_,_)
+operator sccvoronoi3d alias SCCVORONOI3D pattern op(_,_,_)
+operator trcvoronoi3d alias TRCVORONOI3D pattern op(_,_,_)
+operator trccellvoronoi3d alias TRCCELLVORONOI3D pattern op(_,_,_)
