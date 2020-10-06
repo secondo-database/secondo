@@ -59,7 +59,7 @@ all: api
 
 
 api: buildincludes buildlib
-	make -C example
+	$(MAKE) -C example
 
 
 
@@ -82,7 +82,7 @@ lib/libsecondo.$(LIBEXT): $(CSLIBS)
 clean:
 	rm -rf include/*.h
 	rm -rf lib/*.a
-	make -C example clean
+	$(MAKE) -C example clean
 
 
 

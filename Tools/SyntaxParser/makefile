@@ -17,7 +17,7 @@ opprios.pl: SyntaxParser ../../Algebras/specs
 
 
 ../../Algebras/specs:
-	make -C ../../Algebras specs
+	$(MAKE) -C ../../Algebras specs
 
 
 

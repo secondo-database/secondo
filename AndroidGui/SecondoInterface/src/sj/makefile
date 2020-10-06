@@ -23,11 +23,11 @@
 all: sj_lang
 
 sj_lang:
-	(cd lang; make all)
+	$(MAKE) -C lang all
 
 
 #////////////////// clean
 clean:
 	rm -f *.class
-	(cd lang; make clean)
+	$(MAKE) -C lang clean
 

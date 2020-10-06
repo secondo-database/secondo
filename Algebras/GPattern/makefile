@@ -35,7 +35,7 @@ CCFLAGS +=  -Werror
 all: $(OBJECTS) $(LIBOBJ) subdirs
 
 subdirs:
-	make -C Boids
+	$(MAKE) -C Boids
 
 
 # include pre-computed dependencies
@@ -55,4 +55,4 @@ $(LIBOBJ): $(OBJECTS)
 .PHONY: clean
 clean:
 	$(clean-algebra)
-	make -C Boids clean
+	$(MAKE) -C Boids clean

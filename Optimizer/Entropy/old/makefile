@@ -15,8 +15,6 @@ CXXFLAGS := -c -g -D_G_HAVE_BOOL -fwritable-strings -ansi -Wno-deprecated -stati
 
 ENTROPY_OBJ := entropy entropy.o tmpent.o
 
-CURDIR := $(PWD)
-
 .PHONY: allEntropy
 allEntropy: $(ENTROPY_OBJ) 
 

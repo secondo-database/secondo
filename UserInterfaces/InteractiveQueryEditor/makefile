@@ -41,7 +41,7 @@ all: Executable SecondoTTYIQE.jar SecondoKernel.so
 
 
 $(SECONDOINTERFACE):
-	make -C $(SECONDOINTERFACEDIR) SecondoInterface.jar
+	$(MAKE) -C $(SECONDOINTERFACEDIR) SecondoInterface.jar
 
 .PHONY: Executable
 Executable:
@@ -79,7 +79,7 @@ JNIHeader: util/secondo/SecondoKernel.java
 
 .PHONY: JNITool.o
 JNITool.o:
-	make -C ../../Tools/Jni
+	$(MAKE) -C ../../Tools/Jni
 
 .PHONY: clean
 clean:

@@ -52,7 +52,7 @@ NFATest.o: NFATest.cpp
 	$(CC) -fPIC -c -o  NFATest.o -I../FText  NFATest.cpp
 
 ../FText/Functions.o: ../FText/Functions.h ../FText/Functions.cpp
-	make -C ../FText
+	$(MAKE) -C ../FText
 
 OBJECTS += Scanner.o RegExParser.o 
 

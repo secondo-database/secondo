@@ -4,18 +4,18 @@ export SUITE
 
 all:
 ifeq ($(SUITE),EXPERIMENTAL)
-	make -C devel
+	$(MAKE) -C devel
 else
-	make -C lib
+	$(MAKE) -C lib
 endif
-	make -C example
+	$(MAKE) -C example
 
 install:
 	cp build/librip.so /usr/local/lib
 	cp include/librip.h /usr/local/include
 
 clean:
-	make -C lib clean
-	make -C devel clean
-	make -C example clean
+	$(MAKE) -C lib clean
+	$(MAKE) -C devel clean
+	$(MAKE) -C example clean
 	rm -f build/*.*

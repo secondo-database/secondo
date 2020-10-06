@@ -3,12 +3,12 @@
 .PHONY: all
 
 all: 
-	make -C runtime all
+	$(MAKE) -C runtime all
 	javac -classpath .. *.java
 
 
 .PHONY: clean
 
 clean: 
-	make -C runtime clean
+	$(MAKE) -C runtime clean
 	rm -f *.class

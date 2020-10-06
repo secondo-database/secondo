@@ -50,11 +50,11 @@ deps: $(DEP_FILES)
 
 # generic rule for creating a library
 $(LIBOBJ): $(OBJECTS) librip/lib/librip.a
-	make -C librip
+	$(MAKE) -C librip
 	$(create-lib) librip/lib/*.o
 
 # generic rule for cleaning all generated files
 .PHONY: clean
 clean:
 	$(clean-algebra)
-	make -C librip clean
+	$(MAKE) -C librip clean

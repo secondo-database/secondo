@@ -35,7 +35,7 @@ check:
 
 .PHONY: fli
 fli:
-	make -C fli all
+	$(MAKE) -C fli all
 
 
 $(JPL_CLASS_TARGET)/jpl/Query.class: $(JAVAFILES)
@@ -43,7 +43,7 @@ $(JPL_CLASS_TARGET)/jpl/Query.class: $(JAVAFILES)
 
 .PHONY: clean
 clean:
-	make -C fli clean
+	$(MAKE) -C fli clean
 	rm -f $(JPL_CLASS_TARGET)/jpl/*.class
 
 

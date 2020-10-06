@@ -20,5 +20,5 @@
 
 .PHONY: clean
 clean:
-	make -C jpl clean
+	$(MAKE) -C jpl clean
 

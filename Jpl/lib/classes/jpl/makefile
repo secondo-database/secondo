@@ -19,5 +19,5 @@
 
 .PHONY: clean
 clean:
-	make -C fli clean
+	$(MAKE) -C fli clean
 	rm -f *.class

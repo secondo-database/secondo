@@ -33,7 +33,7 @@ CCFLAGS += -Werror
 all:   baltest crnd
 
 baltest: btest.o ../BalancedCollect.cpp
-	make -C ..
+	$(MAKE) -C ..
 	g++ -o $@ $^
 
 

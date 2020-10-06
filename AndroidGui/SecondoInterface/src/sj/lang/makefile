@@ -50,7 +50,7 @@ langClasses: IntByReference.class ServerErrorCodes.class SecondoInterface.class 
 CP:=$(CLASSPATH):$(JARS)
 
 Java_ListExpr:
-	(cd JavaListExpr; make all)
+	$(MAKE) -C JavaListExpr all
 
 
 ListExpr.class: ListExpr.java
@@ -67,6 +67,6 @@ clean_local:
 	rm -f ListExpr.java
 
 clean: clean_local
-	(cd JavaListExpr; make clean)
+	$(MAKE) -C JavaListExpr clean
 
 

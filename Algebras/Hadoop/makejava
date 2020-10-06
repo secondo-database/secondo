@@ -25,14 +25,14 @@ include makefile.inc
 .PHONY:all
 all:
 ifdef HADOOP_HOME 
-	(cd Java; make all)
+	$(MAKE) -C Java all
 else
 	@ echo Environment HADOOP_HOME is not correctly defined, no Hadoop job compiled.
 endif
 
 .PHONY: clean
 clean: 
-	(cd Java; make clean)
+	$(MAKE) -C Java clean
 
 
 .PHONY: doc

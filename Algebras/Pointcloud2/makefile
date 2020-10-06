@@ -61,7 +61,7 @@ OBJECTS := $(patsubst %.cpp, %.o, $(SOURCES))
 
 # generic rule for creating a library
 $(LIBOBJ): $(OBJECTS) 
-	make -C ../Pointcloud/lasreader all
+	$(MAKE) -C ../Pointcloud/lasreader all
 	$(create-lib) ../Pointcloud/lasreader/*.o ../Pointcloud/lasreader/prjconvert/*.o
 
 

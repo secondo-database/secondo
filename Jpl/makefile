@@ -22,10 +22,10 @@ include ../makefile.env
 .PHONY: all
 all:
 ifndef JPL_JAR
-	make -C jsrc all
+	$(MAKE) -C jsrc all
 endif
 ifndef JPL_DLL
-	make -C src all
+	$(MAKE) -C src all
 endif
 
 .PHONY:doc
@@ -34,6 +34,6 @@ doc:
 
 .PHONY: clean
 clean:
-	make -C lib clean
-	make -C src clean
+	$(MAKE) -C lib clean
+	$(MAKE) -C src clean
 	rm -rf $$(find doc ! -path "*CVS*" ! -name "doc")

@@ -19,9 +19,9 @@
 
 .PHONY: all
 all: 
-	make -C jpl all
+	$(MAKE) -C jpl all
 
 .PHONY: clean
 clean:
-	make -C jpl clean
+	$(MAKE) -C jpl clean
 

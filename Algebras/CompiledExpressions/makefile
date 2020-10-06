@@ -34,7 +34,7 @@ CURRENT_ALGEBRA := CompiledExpressionsAlgebra
 
 CE_EXTERN_MAKE_DIR := ../Management
 CE_EXTERN_MAKE_FILE := AlgebraManager.cpp
-TMP_CURRENT_DIR := $(PWD)
+TMP_CURRENT_DIR := $(CURDIR)
 
 # expand compile flags if necessary
 #CCFLAGS += -Werror

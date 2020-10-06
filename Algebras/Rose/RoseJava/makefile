@@ -27,12 +27,12 @@ CLASSFILES = ROSEAlgebra.class Lines.class Points.class Regions.class RoseAlgebr
 
 .PHONY:all
 all: $(CLASSFILES)
-	(cd twodsack; make all)
+	$(MAKE) -C twodsack all
 
 %.class:%.java
 	$(JAVAC) -classpath $(CLASSPATH) $<   
 
 .PHONY: clean
 clean:
-	(cd twodsack; make clean)
+	$(MAKE) -C twodsack clean
 	rm -f *.class

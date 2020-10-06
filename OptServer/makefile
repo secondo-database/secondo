@@ -65,7 +65,7 @@ $(BASIC_REG_SEC_DLL): $(REG_SEC_DLL)
 	cp $< $@
 
 jsrc:
-	make -C $(JPLVER) all
+	$(MAKE) -C $(JPLVER) all
 
 regSecondo.o: regSecondo.c
 	$(CC) -c -fPIC -g -ggdb -o $@ $(INCLUDEFLAGS) $<
@@ -90,9 +90,9 @@ endif
 
 .PHONY:clean
 clean:
-	make -C 10 clean
-	make -C 30 clean
-	make -C 70 clean
+	$(MAKE) -C 10 clean
+	$(MAKE) -C 30 clean
+	$(MAKE) -C 70 clean
 	rm -f regSecondo.o
 	rm -f $(REG_SEC_DLL)
 	rm -f $(BASIC_REG_SEC_DLL)

@@ -25,7 +25,7 @@
 
 include ./makefile.env
 
-ifneq ($(PWD),$(BUILDDIR))
+ifneq ($(CURDIR),$(BUILDDIR))
   $(error SECONDO_BUID_DIR has another value than the current directory. \
     Please check your environment setup! Go to the root of your SECONDO \
     tree and enter the command setvar )
@@ -112,7 +112,7 @@ linkonly: buildapps
 
 .PHONY: examples 
 examples:
-	make -C Algebras examples
+	$(MAKE) -C Algebras examples
 
 .PHONY: jnicheck
 jnicheck:

@@ -164,7 +164,7 @@ editor:
 	jar -cfm PSEditor.jar PSEditor/META-INF/MANIFEST.MF PSEditor *.xml
 
 mod:
-	(cd genMod; make all)
+	$(MAKE) -C genMod all
 
 help:
 	@echo "Usage:"

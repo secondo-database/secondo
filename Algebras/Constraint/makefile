@@ -56,7 +56,7 @@ deps: $(DEP_FILES)
 
 .PHONY: TRIA
 TRIA:
-	make -C triangulation 
+	$(MAKE) -C triangulation 
 
 TRIAOBJECTS = triangulation/construct.o triangulation/misc.o triangulation/monotone.o triangulation/tri.o
 
@@ -79,4 +79,4 @@ endif
 .PHONY: clean
 clean:
 	$(RM) $(DEP_FILES) $(OBJECTS) $(LIBOBJ)
-	make -C triangulation clean
+	$(MAKE) -C triangulation clean

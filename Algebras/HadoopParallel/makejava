@@ -24,11 +24,11 @@ include makefile.inc
 
 .PHONY:all
 all: 
-	(cd Java; make all)
+	$(MAKE) -C Java all
 
 .PHONY: clean
 clean: 
-	(cd Java; make clean)
+	$(MAKE) -C Java clean
 
 
 .PHONY: doc

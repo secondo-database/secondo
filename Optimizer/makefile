@@ -29,7 +29,7 @@ reset:
 .PHONY: clean
 clean:
 	rm -f optimizer
-	if [ -d ./Entropy ]; then make -C ./Entropy clean; fi
+	if [ -d ./Entropy ]; then $(MAKE) -C ./Entropy clean; fi
 	rm -f SecondoConfig.ini
 
 .PHONY:realclean

@@ -69,7 +69,7 @@ PeriodicAlgebra.pd.tex: PeriodicAlgebra.pd
 SRCFILES = PeriodicTypes.h PeriodicSupport.h PeriodicSupport.cpp classImpl.txt SimplePoint.cpp PBBox.cpp RelInterval.cpp PInterval.cpp CompositeMove.cpp SpatialCompositeMove.cpp SubMove.cpp CSubMove.cpp PeriodicMove.cpp SpatialPeriodicMove.cpp LinearConstantMove.h LinearBoolMove.cpp LinearIntMove.cpp LinearInt9mMove.cpp LinearPointMove.cpp LinearPointsMove.cpp MRealMap.cpp MovingRealUnit.cpp TwoPoints.cpp PMSimple.h PMInt9M.cpp PMPoint.cpp PMPoints.cpp NodeTypes.h List2.h RepTree.h RepTree.cpp PeriodicAlgebra.cpp 
 
 PeriodicAlgebra.pd: $(SRCFILES) makefile
-	make -C Figures all
+	$(MAKE) -C Figures all
 	echo -e ""  > PeriodicAlgebra.pd
 	for i in $(SRCFILES); do \
      cat $$i >>PeriodicAlgebra.pd; \
@@ -80,7 +80,7 @@ PeriodicAlgebra.pd: $(SRCFILES) makefile
 cleanpdf:
 	rm -f *.pd.*
 	rm -f PeriodicAlgebra.pd
-	make -C Figures clean
+	$(MAKE) -C Figures clean
 
 
 .PHONY: plugin

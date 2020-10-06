@@ -40,8 +40,8 @@ CCFLAGS += -Werror
 # OBJECTS and LIBOBJ are computed automatically by makefile.env 
 .PHONY: all
 all: check_dependencies $(OBJECTS) $(LIBOBJ)
-	make -C ConcurrentTupleBuffer
-	make -C ExecutionContext
+	$(MAKE) -C ConcurrentTupleBuffer
+	$(MAKE) -C ExecutionContext
 
 check_dependencies:
 	$(check-algebra-dependencies)
@@ -58,6 +58,6 @@ $(LIBOBJ): $(OBJECTS)
 # generic rule for cleaning all generated files
 .PHONY: clean
 clean:
-	make -C ConcurrentTupleBuffer clean
-	make -C ExecutionContext clean
+	$(MAKE) -C ConcurrentTupleBuffer clean
+	$(MAKE) -C ExecutionContext clean
 	$(clean-algebra)

@@ -29,16 +29,16 @@ CCFLAGS +=  -Werror
 # OBJECTS and LIBOBJ are computed automatically by makefile.env 
 .PHONY: all
 all: $(OBJECTS) $(LIBOBJ)
-	make -C grid
-	make -C HalfSegment
-	make -C Index
-	make -C it
-	make -C mt
-	make -C operators
-	make -C Properties
-	make -C t
-	make -C Types
-	make -C UniqueStringArray
+	$(MAKE) -C grid
+	$(MAKE) -C HalfSegment
+	$(MAKE) -C Index
+	$(MAKE) -C it
+	$(MAKE) -C mt
+	$(MAKE) -C operators
+	$(MAKE) -C Properties
+	$(MAKE) -C t
+	$(MAKE) -C Types
+	$(MAKE) -C UniqueStringArray
 
 # include pre-computed dependencies
 ifneq ($(MAKECMDGOALS),clean)
@@ -55,14 +55,14 @@ $(LIBOBJ): $(OBJECTS)
 # generic rule for cleaning all generated files
 .PHONY: clean
 clean:
-	make -C grid clean
-	make -C HalfSegment clean
-	make -C Index clean
-	make -C it clean
-	make -C mt clean
-	make -C operators clean
-	make -C Properties clean
-	make -C t clean
-	make -C Types clean
-	make -C UniqueStringArray clean
+	$(MAKE) -C grid clean
+	$(MAKE) -C HalfSegment clean
+	$(MAKE) -C Index clean
+	$(MAKE) -C it clean
+	$(MAKE) -C mt clean
+	$(MAKE) -C operators clean
+	$(MAKE) -C Properties clean
+	$(MAKE) -C t clean
+	$(MAKE) -C Types clean
+	$(MAKE) -C UniqueStringArray clean
 	$(clean-algebra)

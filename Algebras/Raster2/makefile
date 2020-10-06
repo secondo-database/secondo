@@ -39,8 +39,8 @@ CCFLAGS += -Werror
 # OBJECTS and LIBOBJ are computed automatically by makefile.env 
 .PHONY: all
 all: $(OBJECTS) $(LIBOBJ)
-	make -C Operators
-	make -C util
+	$(MAKE) -C Operators
+	$(MAKE) -C util
 
 # include pre-computed dependencies
 ifneq ($(MAKECMDGOALS),clean)
@@ -57,6 +57,6 @@ $(LIBOBJ): $(OBJECTS)
 # generic rule for cleaning all generated files
 .PHONY: clean
 clean:
-	make -C Operators clean
-	make -C util clean
+	$(MAKE) -C Operators clean
+	$(MAKE) -C util clean
 	$(clean-algebra)

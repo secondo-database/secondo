@@ -30,26 +30,26 @@ CLASSFILES = $(subst ./,,$(TMPFILES))
 
 .PHONY: all
 all: $(CLASSFILES)
-	(cd collection; make all)
-	(cd collectiontype; make all)
-	(cd comparator; make all)
-	(cd graph; make all)
-	(cd iterator; make all)
-	(cd meshgenerator; make all)
-	(cd number; make all)
+	$(MAKE) -C collection all
+	$(MAKE) -C collectiontype all
+	$(MAKE) -C comparator all
+	$(MAKE) -C graph all
+	$(MAKE) -C iterator all
+	$(MAKE) -C meshgenerator all
+	$(MAKE) -C number all
 
 %.class: %.java
 	$(JAVAC) -classpath $(CLASSPATH) $<
 
 .PHONY: clean
 clean:
-	(cd collection; make clean)
-	(cd collectiontype; make clean)
-	(cd comparator; make clean)
-	(cd graph; make clean)
-	(cd iterator; make clean)
-	(cd meshgenerator; make clean)
-	(cd number; make clean)
+	$(MAKE) -C collection clean
+	$(MAKE) -C collectiontype clean
+	$(MAKE) -C comparator clean
+	$(MAKE) -C graph clean
+	$(MAKE) -C iterator clean
+	$(MAKE) -C meshgenerator clean
+	$(MAKE) -C number clean
 	rm -f *.class
 
 

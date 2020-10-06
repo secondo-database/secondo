@@ -2,13 +2,13 @@
 
 .PHONY: all
 all: 
-	make -C cs
-	make -C direct
+	$(MAKE) -C cs
+	$(MAKE) -C direct
 
 
 .PHONY:clean
 clean:
-	make -C cs clean
-	make -C direct clean
+	$(MAKE) -C cs clean
+	$(MAKE) -C direct clean
 
 

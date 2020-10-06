@@ -34,7 +34,7 @@ all: sj $(CLASSES)
 
 .PHONY: sj
 sj:
-	make -C $(SECONDO_BUILD_DIR)/Javagui/secondoInterface SecondoInterface.jar
+	$(MAKE) -C $(SECONDO_BUILD_DIR)/Javagui/secondoInterface SecondoInterface.jar
 
 %.class: %.java
 	javac -classpath $(CP) $<

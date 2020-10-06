@@ -53,7 +53,7 @@ all: api
 
 
 api: buildincludes buildlib
-	make -C example all	
+	$(MAKE) -C example all	
 
 #max osx does ot support the -u option for cp command
 ifneq ($(SECONDO_PLATFORM),mac_osx)
@@ -82,7 +82,7 @@ lib/libsecondo.$(LIBEXT): $(SECLIBS)
 clean:
 	rm -rf include/*.h
 	rm -rf lib/*.a
-	make -C example clean
+	$(MAKE) -C example clean
 	rm -rf temp
 
 

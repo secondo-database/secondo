@@ -30,22 +30,22 @@ include ../../makefile.inc
 
 .PHONY: all
 all:
-	(cd io; make all)
-	(cd operation; make all)
-	(cd set; make all)
-	(cd setelement; make all)
-	(cd util; make all)
+	$(MAKE) -C io all
+	$(MAKE) -C operation all
+	$(MAKE) -C set all
+	$(MAKE) -C setelement all
+	$(MAKE) -C util all
 
 %.class: %.java
 	$(JAVAC) -classpath $(CLASSPATH) $<
 
 .PHONY: clean
 clean:
-	(cd io; make clean)
-	(cd operation; make clean)
-	(cd set; make clean)
-	(cd setelement; make clean)
-	(cd util; make clean)
+	$(MAKE) -C io clean
+	$(MAKE) -C operation clean
+	$(MAKE) -C set clean
+	$(MAKE) -C setelement clean
+	$(MAKE) -C util clean
 
 
 

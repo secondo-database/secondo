@@ -19,5 +19,5 @@
 
 .PHONY: clean
 clean:
-	make -C classes clean
+	$(MAKE) -C classes clean
 	rm -f *.o

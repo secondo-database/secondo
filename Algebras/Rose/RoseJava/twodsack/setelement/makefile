@@ -30,14 +30,14 @@ CLASSFILES = $(subst ./,,$(TMPFILES))
 
 .PHONY: all
 all: $(CLASSFILES)
-	(cd datatype; make all)
+	$(MAKE) -C datatype all
 
 %.class: %.java
 	$(JAVAC) -classpath $(CLASSPATH) $<
 
 .PHONY: clean
 clean:
-	(cd datatype; make clean)
+	$(MAKE) -C datatype clean
 	rm -f *.class
 
 

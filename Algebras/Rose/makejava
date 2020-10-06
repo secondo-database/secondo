@@ -24,11 +24,11 @@ include makefile.inc
 
 .PHONY:all
 all: 
-	(cd RoseJava; make all)
+	$(MAKE) -C RoseJava all
 
 .PHONY: clean
 clean: 
-	(cd RoseJava; make clean)
+	$(MAKE) -C RoseJava clean
 	rm -fr $(DOCPATH)
 
 

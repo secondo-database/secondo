@@ -63,7 +63,7 @@ endif
 all: jsrc $(REG_SEC_DLL)
 
 jsrc:
-	make -C $(JPLVER) all
+	$(MAKE) -C $(JPLVER) all
 
 regSecondo.o: regSecondo.c
 	$(CC) -c -fPIC -g -o $@ $(INCLUDEFLAGS) $<

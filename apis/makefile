@@ -1,8 +1,8 @@
 
 .PHONY: all
 all:
-	make -C api_cpp
+	$(MAKE) -C api_cpp
 
 .PHONY: clean
 clean:
-	make -C api_cpp clean
+	$(MAKE) -C api_cpp clean

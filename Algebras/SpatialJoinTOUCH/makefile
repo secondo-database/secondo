@@ -48,9 +48,9 @@ check_dependencies:
 # OBJECTS and LIBOBJ are computed automatically by makefile.env
 .PHONY: all
 all: $(OBJECTS) $(LIBOBJ)
-	make -C Column
-	make -C Row
-	make -C Memory
+	$(MAKE) -C Column
+	$(MAKE) -C Row
+	$(MAKE) -C Memory
 
 # include pre-computed dependencies
 ifneq ($(MAKECMDGOALS),clean)
@@ -69,6 +69,6 @@ $(LIBOBJ): $(OBJECTS)
 .PHONY: clean
 clean:
 	$(clean-algebra)
-	make -C Column clean
-	make -C Row clean
-	make -C Memory clean
+	$(MAKE) -C Column clean
+	$(MAKE) -C Row clean
+	$(MAKE) -C Memory clean

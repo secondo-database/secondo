@@ -21,9 +21,9 @@ include ../../makefile.optimizer
 
 .PHONY: all
 all:
-	make -C $(JPLVER) all
+	$(MAKE) -C $(JPLVER) all
 
 .PHONY: clean
 clean:
-	make -C 10 clean
-	make -C 30 clean
+	$(MAKE) -C 10 clean
+	$(MAKE) -C 30 clean

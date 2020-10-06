@@ -64,7 +64,7 @@ clean:
 
 .PHONY: bptree
 BPTREE:
-	make -C BPTree
+	$(MAKE) -C BPTree
 
 .PHONY: cache
-	make -C Cache
+	$(MAKE) -C Cache

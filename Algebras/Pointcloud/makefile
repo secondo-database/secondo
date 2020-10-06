@@ -55,7 +55,7 @@ deps: $(DEP_FILES)
 
 # generic rule for creating a library
 $(LIBOBJ): $(OBJECTS) 
-	make -C lasreader all
+	$(MAKE) -C lasreader all
 	$(create-lib) lasreader/*.o lasreader/prjconvert/*.o
 
 
@@ -63,4 +63,4 @@ $(LIBOBJ): $(OBJECTS)
 .PHONY: clean
 clean:
 	$(clean-algebra)
-	make -C lasreader clean
+	$(MAKE) -C lasreader clean

@@ -30,16 +30,16 @@ include ../../../makefile.inc
 
 .PHONY: all
 all:
-	(cd basictypeoperation; make all)
-	(cd setoperation; make all)
+	$(MAKE) -C basictypeoperation all
+	$(MAKE) -C setoperation all
 
 %.class: %.java
 	$(JAVAC) -classpath $(CLASSPATH) $<
 
 .PHONY: clean
 clean:
-	(cd basictypeoperation; make clean)
-	(cd setoperation; make clean)
+	$(MAKE) -C basictypeoperation clean
+	$(MAKE) -C setoperation clean
 
 
 

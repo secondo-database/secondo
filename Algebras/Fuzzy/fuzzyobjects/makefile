@@ -26,16 +26,16 @@ CLASSFILES = GeoObject.class Params.class
 
 .PHONY:all
 all: $(CLASSFILES)
-	(cd basic; make all)
-	(cd simple; make all)
-	(cd composite; make all)
+	$(MAKE) -C basic all
+	$(MAKE) -C simple all
+	$(MAKE) -C composite all
 
 %.class:%.java
 	$(JAVAC) -classpath $(CLASSPATH) $<   
 
 .PHONY: clean
 clean:
-	(cd basic; make clean)
-	(cd simple; make clean)
-	(cd composite; make clean)
+	$(MAKE) -C basic clean
+	$(MAKE) -C simple clean
+	$(MAKE) -C composite clean
 	rm -f *.class

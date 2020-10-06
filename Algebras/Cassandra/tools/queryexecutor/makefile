@@ -37,7 +37,7 @@ LDFLAGS += -lssl -lcrypto -lz -luv -lcassandra
 LDFLAGS += $(ALGDEPS)
 
 Algebra:
-	make -C ../../
+	$(MAKE) -C ../../
 
 Config.ini: $(SECONDO_BUILD_DIR)/bin/SecondoConfig.ini
 	cp $(SECONDO_BUILD_DIR)/bin/SecondoConfig.ini ./Config.ini 

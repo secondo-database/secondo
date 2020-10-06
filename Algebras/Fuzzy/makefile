@@ -38,7 +38,7 @@ JAVA_FILES=$(subst .java,,$(JAVA_FILES1))
 all:  alljava allcpp
 
 SecondoInterface.jar:
-	make -C $(SECONDO_BUILD_DIR)/Javagui/secondoInterface  SecondoInterface.jar
+	$(MAKE) -C $(SECONDO_BUILD_DIR)/Javagui/secondoInterface  SecondoInterface.jar
 
 .PHONY: alljava
 alljava:

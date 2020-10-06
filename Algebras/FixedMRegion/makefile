@@ -45,11 +45,11 @@ deps: $(DEP_FILES)
 
 # generic rule for creating a library
 $(LIBOBJ): $(OBJECTS)
-	make -C fmr -f makefile
+	$(MAKE) -C fmr -f makefile
 	$(create-lib) fmr/*.o
 
 # generic rule for cleaning all generated files
 .PHONY: clean
 clean:
 	$(clean-algebra)
-	make -C fmr -f makefile clean
+	$(MAKE) -C fmr -f makefile clean

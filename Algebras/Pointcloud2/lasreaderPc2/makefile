@@ -34,7 +34,7 @@ CCFLAGS += -Werror
 # OBJECTS and LIBOBJ are computed automatically by makefile.env 
 .PHONY: all
 all: $(OBJECTS) $(LIBOBJ)
-	make -C prjconvert all
+	$(MAKE) -C prjconvert all
 
 
 # include pre-computed dependencies
@@ -49,4 +49,4 @@ $(LIBOBJ): $(OBJECTS)
 .PHONY: clean
 clean:
 	$(clean-algebra)
-	make -C prjconvert clean
+	$(MAKE) -C prjconvert clean
