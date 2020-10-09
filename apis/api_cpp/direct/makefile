@@ -75,7 +75,7 @@ lib:
 
 lib/libsecondo.$(LIBEXT): $(SECLIBS)
 	$(AR) -rs  lib/libsecondo.$(LIBEXT) $(SECOBJ) 
-	@./arlib $(AR) $$PWD/lib/libsecondo.$(LIBEXT) $(SECOBJ)  $(SECLIBS)
+	@./arlib $(AR) $(CURDIR)/lib/libsecondo.$(LIBEXT) $(SECOBJ)  $(SECLIBS)
 
 
 .PHONY:clean

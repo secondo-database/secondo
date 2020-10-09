@@ -26,7 +26,7 @@ all: Config.ini app$(EXEEXT)
 
 Config.ini: $(SECONDO_BUILD_DIR)/bin/SecondoConfig.ini
 	cp $(SECONDO_BUILD_DIR)/bin/SecondoConfig.ini ./Config.ini 
-	sed -i -e "s#SecondoHome=.*#SecondoHome=$$PWD/databases#g" Config.ini
+	sed -i -e "s#SecondoHome=.*#SecondoHome=$(CURDIR)/databases#g" Config.ini
 
 
 

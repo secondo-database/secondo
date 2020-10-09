@@ -41,7 +41,7 @@ Algebra:
 
 Config.ini: $(SECONDO_BUILD_DIR)/bin/SecondoConfig.ini
 	cp $(SECONDO_BUILD_DIR)/bin/SecondoConfig.ini ./Config.ini 
-	sed -i -e "s#SecondoHome=.*#SecondoHome=$$PWD/nltemp#g" Config.ini
+	sed -i -e "s#SecondoHome=.*#SecondoHome=$(CURDIR)/nltemp#g" Config.ini
 
 
 Queryexecutor$(EXEEXT): queryexecutor.o heartbeat.o
