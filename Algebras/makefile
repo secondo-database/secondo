@@ -83,9 +83,9 @@ buildlibs: examples
 	@echo && echo  " *** Building algebra libs ***" && echo;
 	for dir in $(USED_ALGEBRA_DIRS); do \
           if [ -e $$dir/makefile ]; then \
-            cd $$dir; if !($(MAKE)) then \
-	      exit 1; \
-	    fi; cd ..; \
+            if !($(MAKE) -C $$dir) then \
+	          exit 1; \
+	        fi; \
           fi \
 	done
 	@echo && echo " *** Algebra libs successfully created ***" && echo;
