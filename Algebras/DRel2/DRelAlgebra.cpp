@@ -212,7 +212,7 @@ DRelAlgebra::DRelAlgebra() {
 
 extern "C"
 Algebra*
-   InitializeDRelAlgebra( NestedList* nlRef,
+   InitializeDRel2Algebra( NestedList* nlRef,
                           QueryProcessor* qpRef ) {
 
    setDRelPort(1238);
