@@ -25,7 +25,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[$][\$]
 
 */
-#include "./Timeout.h"
 #include "ConnectionInfo.h"
 #include "Dist2Helper.h"
 #include "Distributed2Algebra.h"
@@ -55,7 +54,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "DFSType.h"
 #include "DFSTools.h"
 #include "BalancedCollect.h"
-
 
 extern boost::mutex nlparsemtx;
 
@@ -7951,16 +7949,19 @@ int distribute4VMT(Word* args, Word& result, int message,
 
    size_t bufsize = max((size_t)4096, (FILE_BUFFER_SIZE*16) / res->getSize());
 
+   //int tuplecounts=0;
    while((tuple=stream.request())){
       (* funargs[0]) = tuple;
       qp->Request(args[2].addr, funres);
 
       CcInt* fr = (CcInt*) funres.addr;
       int index = fr->IsDefined()?fr->GetValue():0;
-      index = index % res->getSize();
-      
+      index = index % res->getSize();      
 
       string fn = name + "_" + stringutils::int2str(index)+".bin";
+
+      //cout << "fn: " << fn << endl;
+
       if(files.find(index)==files.end()){
           BinRelWriter* brw = new BinRelWriter(fn,relType,bufsize);
           files[index] = brw;
@@ -8056,8 +8057,285 @@ Operator ddistribute4Op(
   distribute4TMT<DArray>
 );
 
+/*
+1.9 Operator ~ddistribute5~
+
+This Operator uses a function: tuple -> int for distributing
+a tuple stream to an darray trough consistent hashing. chash
+
+1.9.1 Type Mapping
+
+*/
+template<class R>
+ListExpr distribute5TMT(ListExpr args){
+
+  string err ="stream(tuple) x string x (tuple->int) x int x rel expected";
+  if(!nl->HasLength(args,5)){
+    return listutils::typeError(err + "( wrong number of args)");
+  }
+  if(    !Stream<Tuple>::checkType(nl->First(args))
+      || !CcString::checkType(nl->Second(args))
+      || !listutils::isMap<1>(nl->Third(args))
+      || !CcInt::checkType(nl->Fourth(args))){
+    return listutils::typeError(err);
+  }
+  string errMsg;
+  ListExpr positions;
+  ListExpr types;
+  if(!isWorkerRelDesc(nl->Fifth(args),positions, types, errMsg)){
+     return listutils::typeError("Fifth arg is not a worker relation: "
+                                 + errMsg);
+  }
+
+  ListExpr funargType = nl->Second(nl->Third(args));
+  if(!nl->Equal(funargType, nl->Second(nl->First(args)))){
+    return listutils::typeError("tuple type and function arg type differ");
+  }
+  ListExpr funResType = nl->Third(nl->Third(args));
+  if(!CcInt::checkType(funResType)){
+    return listutils::typeError("result of function not an int");
+  }
+
+  ListExpr res =  nl->TwoElemList(
+                      listutils::basicSymbol<R>(),
+                      nl->TwoElemList(
+                          listutils::basicSymbol<Relation>(),
+                          nl->Second(nl->First(args))));
+  return nl->ThreeElemList(
+            nl->SymbolAtom(Symbols::APPEND()),
+            positions,
+            res);    
+}
 
 
+/*
+1.9.2 Value Mapping chash
+
+*/
+template<class AType, class DType,class HType, class CType>
+int distribute5VMT(Word* args, Word& result, int message,
+           Word& local, Supplier s ){
+   
+   result = qp->ResultStorage(s);
+   AType* res   = (AType*) result.addr;
+
+   CcString* n = (CcString*) args[1].addr;
+   CcInt* si = (CcInt*) args[3].addr;
+   Relation* rel = (Relation*) args[4].addr;
+   
+   if(!n->IsDefined() || !si->IsDefined()){
+     res->makeUndefined();
+     return 0;
+   }
+   string name = n->GetValue();
+   if(name.size()==0){
+      name = algInstance->getTempName();
+   }
+
+   int siz = si->GetValue();
+   if(!stringutils::isIdent(name) || (siz<=0)){
+      res->makeUndefined();
+      return 0;
+   }
+
+   size_t size = (size_t) siz;
+   int hostPos = ((CcInt*) args[5].addr)->GetValue();
+   int portPos = ((CcInt*) args[6].addr)->GetValue();
+   int configPos = ((CcInt*) args[7].addr)->GetValue();
+
+   (*res) = DArrayBase::createFromRel<HType,CType,AType>(rel, size,
+                               name, hostPos, portPos, configPos);
+
+   if(!res->IsDefined() || (res->numOfWorkers()<1) || (res->getSize() < 1)){
+      res->makeUndefined();
+      return 0;
+   }
+
+
+   std::string host; 
+   int port; 
+   std::string config; 
+
+
+   vector<size_t> slotdistribute;
+
+   vector<int> slotcount;
+   int indexcounter = 0;
+
+   auto workers{res->getWorkers()};
+
+   for(int i = 0; (unsigned) i < size; ++i) {
+   host = workers[res->getWorkerIndexForSlot(i)].getHost();
+   port = workers[res->getWorkerIndexForSlot(i)].getPort();
+   config = workers[res->getWorkerIndexForSlot(i)].getConfig();
+
+   std::string workers_hashing = host + "_" + std::to_string(i) + 
+                                 "_" + std::to_string(port) + "_" + config;
+
+   size_t workers_hash = std::hash<std::string>{}(workers_hashing);
+
+   slotdistribute.push_back(workers_hash);
+   }
+
+   sort(slotdistribute.begin(), slotdistribute.end());
+   
+   // distribute the incoming tuple stream to a set of files
+   // if the distribution number is not defined, the tuple is
+   // treated as for number 0
+   map<int , BinRelWriter* > files;
+   Stream<Tuple> stream(args[0]);
+   stream.open();
+   Tuple* tuple;
+
+   ListExpr relType = nl->Second(qp->GetType(s));
+
+   //gets the function to distribute the tuples
+   ArgVectorPointer funargs = qp->Argument(args[2].addr);
+   Word funres;
+
+   size_t bufsize = max((size_t)4096, (FILE_BUFFER_SIZE*16) / res->getSize());
+
+   std::string frhash;
+   int index;
+   while((tuple=stream.request())){
+      (* funargs[0]) = tuple;
+      qp->Request(args[2].addr, funres);
+
+      CcInt* fr = (CcInt*) funres.addr;
+      index = fr->IsDefined()?fr->GetValue():0;
+
+      size_t frhash = std::hash<std::string>{}(std::to_string(fr->GetValue()));
+
+      // The index depends on the slots in the vector slotdistribute. 
+      // The position depends if it finds the same hashvalue or the 
+      // next higher one.
+      index = lower_bound(slotdistribute.begin(), slotdistribute.end(), frhash) 
+              - slotdistribute.begin();
+
+      if ((unsigned)index >= res->getSize())
+         {
+            index = 0;
+            //cout << "index angepasst:" << endl;
+            indexcounter++;
+         }
+      slotcount.push_back(index);
+
+      string fn = name + "_" + stringutils::int2str(index)+".bin";
+      if(files.find(index)==files.end()){
+          BinRelWriter* writer = new BinRelWriter(fn, relType,bufsize);
+          files[index] = writer;
+      }
+      files[index]->writeNextTuple(tuple);
+      tuple->DeleteIfAllowed();
+   }
+   stream.close();
+
+   // finalize files
+
+   vector<DType*> restorers;
+   
+   typename map<int, BinRelWriter* >::iterator it;
+
+   for(size_t i=0;i<res->getSize();i++){
+      it = files.find(i); 
+      string objName = res->getName()+"_"+stringutils::int2str(i);
+      string fn;
+      if(it==files.end()){
+         // create empty file
+         fn = name + "_" + stringutils::int2str(i)+".bin";
+         BinRelWriter brw(fn,relType,0);
+      } else {
+         fn = it->second->getFileName();
+         delete it->second;
+      }
+      restorers.push_back(new DType(objName,res, i, fn));
+   }
+
+   // distribute the files to the workers and restore relations
+   for(size_t i=0;i<restorers.size();i++){
+     restorers[i]->start();
+
+   } 
+
+   // wait for finishing restore
+   for(size_t i=0;i<restorers.size();i++){
+     delete restorers[i];
+   } 
+   // delete local files
+   for(size_t i=0;i<files.size();i++){
+      string fn = res->getName()+"_"+stringutils::int2str(i)+".bin";     
+      FileSystem::DeleteFileOrFolder(fn); 
+   }
+
+   DType::cleanUp();
+
+   return 0;
+
+}
+
+
+
+int distribute5Select(ListExpr args){
+  ListExpr rel = nl->Fifth(args);
+  ListExpr attrList = nl->Second(nl->Second(rel));
+  ListExpr hostType, configType;
+  listutils::findAttribute(attrList,"Host",hostType);
+  listutils::findAttribute(attrList,"Config", configType);
+  int n1 = CcString::checkType(hostType)?0:2;
+  int n2 = CcString::checkType(configType)?0:1;
+  return n1 + n2;
+}
+
+OperatorSpec ddistribute5Spec(
+     " stream(tuple(X)) x string x (tuple->int) x int x rel -> darray(X) ",
+     " stream ddistribute5[ name, fun, size, workers ]",
+     " Distributes a locally stored relation into a darray distributed by ",
+     " Consistent Hashing method. If the name is an empty string, a name ",
+     " will be automatically chosen. Determines the storing of the slots. "
+     " query strassen feed  ddistribute5[\"s200}\", hashvalue(.Name,2000),"
+     " 5, workers]"
+     );
+
+ValueMapping ddistribute5VM[] = {
+    distribute5VMT<DArray, RelFileRestorer, CcString, CcString>,
+    distribute5VMT<DArray, RelFileRestorer, CcString, FText>,
+    distribute5VMT<DArray, RelFileRestorer, FText, CcString>,
+    distribute5VMT<DArray, RelFileRestorer, FText, FText>,
+};
+
+Operator ddistribute5Op(
+  "ddistribute5",
+  ddistribute5Spec.getStr(),
+  4,
+  ddistribute5VM,
+  distribute5Select,
+  distribute5TMT<DArray>
+);
+
+OperatorSpec dfdistribute5Spec(
+     " stream(tuple(X)) x (tuple->int) x int x rel x string-> dfarray(X) ",
+     " stream dfdistribute5[ fun, size, workers, name ]",
+     " Distributes a locally stored relation into a dfarray distributed ",
+     " by Consistent Hashing method",
+     " query strassen feed dfdistribute5[ hashvalue(.Name,2000),"
+     " 8, workers, \"df8\"]"
+     );
+
+ValueMapping dfdistribute5VM[] = {
+   distribute5VMT<DFArray, FRelCopy, CcString, CcString>,
+   distribute5VMT<DFArray, FRelCopy, CcString, FText>,
+   distribute5VMT<DFArray, FRelCopy, FText, CcString>,
+   distribute5VMT<DFArray, FRelCopy, FText, FText>
+};
+
+Operator dfdistribute5Op(
+  "dfdistribute5",
+  dfdistribute5Spec.getStr(),
+  4,
+  dfdistribute5VM,
+  distribute5Select,
+  distribute5TMT<DFArray>
+);
 
 /*
 1.7 fdistribute
@@ -16665,9 +16943,9 @@ class fileCopy{
       // create directory if not exist
       string pf = FileSystem::GetParentFolder(local);
       if(!FileSystem::CreateFolderEx(pf)){
-	 if(!FileSystem::IsDirectory(pf)){     
-             cerr <<  "could not create directory "  << pf;
-	 }
+         if(!FileSystem::IsDirectory(pf)){     
+            cerr <<  "could not create directory "  << pf;
+         }
       }
 
       ofstream out(local.c_str(), ios::binary|ios::trunc);
@@ -18690,7 +18968,7 @@ class slotGetter{
                DFArray *resultArray,
                string _constrel ):
        myNumber(_myNumber), sname(_sname), tname(_tname),
-	   // size(_size),
+          // size(_size),
        workers(_workers), port(_port), 
        resArray(resultArray), constrel(_constrel){
       
@@ -24155,6 +24433,7 @@ Distributed2Algebra::Distributed2Algebra(){
    AddOperator(&ddistribute2Op);
    AddOperator(&ddistribute3Op);
    AddOperator(&ddistribute4Op);
+   AddOperator(&ddistribute5Op);
    AddOperator(&fdistribute5Op);
    AddOperator(&fdistribute6Op);
    AddOperator(&closeWorkersOp);
