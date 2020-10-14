@@ -785,3 +785,8 @@ Signature : periods x point -> mpoint
 Example   : query constmpoint(deftime(train1), mehringdamm)
 Result    : (mpoint ( ( ("2003-11-20-06:03" "2003-11-20-06:43" TRUE FALSE) (9396.0 9871.0 9396.0 9871.0))))
 
+Operator  : distanceintegral
+Number    : 1
+Signature : mpoint x mpoint (x geoid) -> real
+Example   : query distanceintegral(train5, train6)
+Result    : 274.6017960243

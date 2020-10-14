@@ -3999,6 +3999,8 @@ If invalid geographic coordinates are found, the result is UNDEFINED.
 */
   void Distance( const Point& p, MReal& result,
                  const Geoid* geoid=0 ) const;
+  void DistanceIntegral(const MPoint& mp, CcReal& result, 
+                        const Geoid* geoid=0) const;
   void SquaredDistance( const Point& p, MReal& result,
                         const Geoid* geoid=0 ) const;
   void SquaredDistance( const MPoint& p, MReal& result,

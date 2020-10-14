@@ -4785,6 +4785,60 @@ void MPoint::Distance( const Point& p, MReal& result, const Geoid* geoid ) const
   result.EndBulkLoad( false, false );
 }
 
+void MPoint::DistanceIntegral(const MPoint& mp, CcReal& result, 
+                              const Geoid* geoid) const {
+  if (!IsDefined() || !mp.IsDefined() || (geoid && !geoid->IsDefined())) {
+    result.SetDefined(false);
+    return;
+  }
+  result.SetDefined(true);
+  Instant start1, start2;
+  InitialInstant(start1);
+  mp.InitialInstant(start2);
+  MPoint shifted(true);
+  timeMove(start2 - start1, shifted);
+  UReal ur(true);
+  RefinementPartition<MPoint, MPoint, UPoint, UPoint> rp(mp, shifted);
+  std::stack<ISC> theStack;
+  for (unsigned int i = 0; i < rp.Size(); i++) {
+    Interval<Instant> iv;
+    int u1Pos, u2Pos;
+    UPoint u1, u2;
+    rp.Get(i, iv, u1Pos, u2Pos);
+    if (u1Pos == -1 || u2Pos == -1) {
+      continue;
+    }
+    else {
+      mp.Get(u1Pos, u1);
+      shifted.Get(u2Pos, u2);
+    }
+    if (u1.IsDefined() && u2.IsDefined()) { // no overlapping deftimes
+      u1.Distance(u2, ur); // use of geoid not implemented
+      if (!ur.IsDefined()) {
+        std::cerr << __PRETTY_FUNCTION__ << "Invalid geographic coord!" << endl;
+        result.SetDefined(false);
+        return;
+      }
+      ur.r = true;
+      ISC isc;
+      isc.value = ur.Integrate();
+      isc.level = 0;
+      while (!theStack.empty() && (theStack.top().level == isc.level)) {
+        isc.value = isc.value + theStack.top().value;
+        isc.level = isc.level + 1;
+        theStack.pop();
+      }
+      theStack.push(isc);
+    }
+  }
+  double sum = 0.0;
+  while (!theStack.empty()) {
+    sum += theStack.top().value;
+    theStack.pop();
+  }
+  result.Set(true, sum);
+}
+
 void MPoint::SquaredDistance( const Point& p, MReal& result,
                               const Geoid* geoid ) const
 {
@@ -10760,6 +10814,29 @@ ListExpr SampleMPointTypeMap(ListExpr args){
 
 
 /*
+~DistanceIntegralTypeMap~
+
+This type mapping is applied by the ~distanceintegral~ operator.
+
+*/
+ListExpr DistanceIntegralTypeMap(ListExpr args) {
+  if (!nl->HasLength(args, 2) && !nl->HasLength(args, 3)) {
+    return listutils::typeError("two or three arguments expected");
+  }
+  if (!MPoint::checkType(nl->First(args)) 
+      || !MPoint::checkType(nl->Second(args))) {
+    return listutils::typeError("1st and 2nd argument must have type mpoint");
+  }
+  if (nl->HasLength(args, 3)) {
+    if (!Geoid::checkType(nl->Third(args))) {
+      return listutils::typeError("third argument must be a geoid");
+    }
+  }
+  return nl->SymbolAtom(CcReal::BasicType());
+}
+
+
+/*
 ~GPSTypeMap~
 
 The GPS operator works very similar to the SampleMPoint operator.
@@ -12526,6 +12603,22 @@ int MPointDistance( Word* args, Word& result, int message, Word&
   result = qp->ResultStorage( s );
   ((MPoint*)args[0].addr)->Distance( *((Point*)args[1].addr),
    *((MReal*)result.addr) );
+  return 0;
+}
+
+/*
+16.3.29 Value mapping function of operator ~distancentegral~
+
+*/
+int MPointDistanceIntegral(Word* args, Word& result, int message, Word& local,
+                           Supplier s) {
+  result = qp->ResultStorage(s);
+  Geoid *geoid = 0;
+  if (qp->GetNoSons(s) == 3) {
+    geoid = (Geoid*)args[2].addr;
+  }
+  ((MPoint*)args[0].addr)->DistanceIntegral(*((MPoint*)args[1].addr),
+                                            *((CcReal*)result.addr), geoid);
   return 0;
 }
 
@@ -15856,6 +15949,14 @@ const std::string TemporalSpecDistance =
   "<text>distance( mpoint1, point1 )</text--->"
   ") )";
 
+const std::string TemporalSpecDistanceIntegral =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text>(mpoint point) -> real</text--->"
+  "<text>distanceintegral( _, _ ) </text--->"
+  "<text>Returns the distance based on the integral.</text--->"
+  "<text>distanceintegral(mpoint1, mpoint2)</text--->"
+  ") )";
+
 const std::string TemporalSpecSquaredDistance =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>(mpoint point) -> mreal, (mpoint mpoint)->mreal</text--->"
@@ -16664,6 +16765,12 @@ Operator temporaldistance( "distance",
                            MPointDistance,
                            Operator::SimpleSelect,
                            MovingBaseTypeMapMReal );
+
+Operator temporaldistanceintegral( "distanceintegral",
+                           TemporalSpecDistanceIntegral,
+                           MPointDistanceIntegral,
+                           Operator::SimpleSelect,
+                           DistanceIntegralTypeMap );
 
 Operator temporalsquareddistance( "squareddistance",
                            TemporalSpecSquaredDistance,
@@ -19659,6 +19766,7 @@ class TemporalAlgebra : public Algebra
 
     AddOperator( &temporalat );
     AddOperator( &temporaldistance );
+    AddOperator( &temporaldistanceintegral );
     AddOperator( &temporalsimplify );
     AddOperator( &temporalintegrate );
     AddOperator( &temporallinearize );
