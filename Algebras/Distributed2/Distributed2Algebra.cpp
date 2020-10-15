@@ -8063,6 +8063,9 @@ Operator ddistribute4Op(
 This Operator uses a function: tuple -> int for distributing
 a tuple stream to an darray trough consistent hashing. chash
 
+This operator is ot avaible for users, it is only used by the 
+DRelAlgebra.
+
 1.9.1 Type Mapping
 
 */
@@ -24433,7 +24436,7 @@ Distributed2Algebra::Distributed2Algebra(){
    AddOperator(&ddistribute2Op);
    AddOperator(&ddistribute3Op);
    AddOperator(&ddistribute4Op);
-   AddOperator(&ddistribute5Op);
+   //AddOperator(&ddistribute5Op);
    AddOperator(&fdistribute5Op);
    AddOperator(&fdistribute6Op);
    AddOperator(&closeWorkersOp);
