@@ -4792,7 +4792,9 @@ void MPoint::DistanceIntegral(const MPoint& mp, CcReal& result,
     return;
   }
   result.SetDefined(true);
-  Instant start1, start2;
+  Instant start1, start2, start, end;
+  start.ToMaximum();
+  end.ToMinimum();
   InitialInstant(start1);
   mp.InitialInstant(start2);
   MPoint shifted(true);
@@ -4800,6 +4802,7 @@ void MPoint::DistanceIntegral(const MPoint& mp, CcReal& result,
   UReal ur(true);
   RefinementPartition<MPoint, MPoint, UPoint, UPoint> rp(mp, shifted);
   std::stack<ISC> theStack;
+  Periods per1(true), per2(true), perInter(true);
   for (unsigned int i = 0; i < rp.Size(); i++) {
     Interval<Instant> iv;
     int u1Pos, u2Pos;
@@ -4811,6 +4814,10 @@ void MPoint::DistanceIntegral(const MPoint& mp, CcReal& result,
     else {
       mp.Get(u1Pos, u1);
       shifted.Get(u2Pos, u2);
+      if (start.IsMaximum()) {
+        start = u1.timeInterval.start;
+      }
+      end = u1.timeInterval.end;
     }
     if (u1.IsDefined() && u2.IsDefined()) { // no overlapping deftimes
       u1.Distance(u2, ur); // use of geoid not implemented
@@ -4836,7 +4843,14 @@ void MPoint::DistanceIntegral(const MPoint& mp, CcReal& result,
     sum += theStack.top().value;
     theStack.pop();
   }
-  result.Set(true, sum);
+  
+//   mp.DefTime(per1);
+//   shifted.DefTime(per2);
+//   per1.Intersection(per2, perInter);
+//   
+//   perInter.Minimum(start);
+//   perInter.Maximum(end);
+  result.Set(true, sum / (end - start).ToDouble());
 }
 
 void MPoint::SquaredDistance( const Point& p, MReal& result,
