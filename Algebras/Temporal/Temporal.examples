@@ -789,4 +789,4 @@ Operator  : distanceintegral
 Number    : 1
 Signature : mpoint x mpoint (x geoid) -> real
 Example   : query distanceintegral(train5, train6)
-Result    : 11491.0506099681
+Result    : 11573.4610617085
