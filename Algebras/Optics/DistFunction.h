@@ -47,6 +47,7 @@ from "MMRTreeAlgebra.cpp".
 #include "Algebras/TupleIdentifier/TupleIdentifier.h"
 #include "Algebras/GeneralTree/DistfunReg.h"
 #include "Algebras/Picture/PictureAlgebra.h"
+#include "Algebras/Temporal/TemporalAlgebra.h"
 
 #ifndef OPTICS_DISTFUNCTION_H
 #define OPTICS_DISTFUNCTION_H
@@ -467,6 +468,40 @@ class TupleDist: public DistCount {
      return o;
    }
  };
+ 
+/*
+1.7 Declarations and definition of the class ~FrechetDist~
+
+*/
+class FrechetDist: public DistCount {
+  public:
+
+    double operator()(const std::pair<temporalalgebra::MPoint*,TupleId>& p1,
+                      const std::pair<temporalalgebra::MPoint*,TupleId>& p2) {
+      return operator()(p1.first, p2.first);
+    }
+
+    double operator()(const temporalalgebra::MPoint* p1,
+                      const temporalalgebra::MPoint* p2) {
+      cnt++;
+      assert(p1);
+      assert(p2);
+      if(!p1->IsDefined() && !p2->IsDefined()) {
+        return 0;
+      }
+      if(!p1->IsDefined() || !p2->IsDefined()) {
+        return std::numeric_limits<double>::max();
+      }
+      Geoid *geoid = new Geoid("WGS1984");
+      return p1->FrechetDistance(p2, geoid);
+    }
+      
+    std::ostream& print(const std::pair<temporalalgebra::MPoint*,TupleId>& p, 
+                        std::ostream& o) {
+      o << *(p.first);
+      return o;
+    }
+  };
 }
 
 #endif
