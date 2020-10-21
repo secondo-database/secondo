@@ -179,20 +179,24 @@ SecondoListener::Execute()
       }
     }
     ProcessFactory::WaitForAll();
-  }
-  else {
+  } else {
     string errbuf = gate->GetErrorText();
     delete gate;
+    gate = NULL;
+    cerr << "Failed to create global socket: " << errbuf << endl;
     LogMessage("Failed to create global socket: " + errbuf);
     rc = EXIT_LISTENER_NOSOCKET;
   }
+  
   if (client) {
     delete client;
   }
+  
   if (gate) {
     gate->Close();
     delete gate;
   }
+  
   ProcessFactory::ShutDown();
   return (rc);
 }
