@@ -95,9 +95,9 @@ buildlibs: examples
 clean:
 	rm -f specs specs.test
 	for dir in $(USED_ALGEBRA_DIRS); do \
-          cd $$dir; if !($(MAKE) clean) then \
+          if !($(MAKE) -C $$dir clean) then \
             exit 1; \
-          fi; cd ..; \
+          fi; \
         done
 
 .PHONY: realclean
@@ -105,8 +105,8 @@ realclean:
 	rm -f specs specs.test
 	for dir in $(ALL_ALGEBRA_DIRS); do \
 	  if [ -e $$dir/makefile ]; then \
-            cd $$dir; if !($(MAKE) clean) then \
+            if !($(MAKE) -C $$dir clean) then \
               exit 1; \
-            fi; cd ..; \
+            fi; \
 	  fi; \
         done
