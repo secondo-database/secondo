@@ -5,7 +5,7 @@ Operator  : init_pg
 Number    : 1
 Signature : int x {string, text} --> bool
 Example   : query init_pg(5432, "gisdb")
-Result    : TRUE
+Result    : FALSE
 
 Operator  : be_partRR
 Number    : 1
@@ -77,4 +77,4 @@ Operator  : init_pgWorker
 Number    : 1
 Signature : int x {string, text} x relation --> bool
 Example   : query init_pgWorker(5432, "gisdb", WorkersPG)
-Result    : TRUE
+Result    : FALSE

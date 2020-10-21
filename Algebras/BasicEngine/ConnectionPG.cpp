@@ -179,8 +179,10 @@ Creates a table in postgreSQL with the partitioned data by hash value.
 */
 string ConnectionPG::get_partHash(string* tab, string* key
                   , string* anzSlots, string* targetTab){
-string select = "SELECT (get_byte(decode(md5(concat(" + *key + ")),'hex'),15) %"
-    " " + *anzSlots + " ) + 1 As worker_number," + *key +" FROM "+ *tab;
+string select = "SELECT DISTINCT (get_byte(decode(md5(concat("
+		"" + *key + ")),'hex'),15) %"
+        " " + *anzSlots + " ) + 1 As worker_number,"
+        "" + *key +" FROM "+ *tab;
 return get_createTab(targetTab,&select);
 }
 

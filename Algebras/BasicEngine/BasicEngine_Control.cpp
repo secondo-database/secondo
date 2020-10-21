@@ -35,6 +35,8 @@ Version 1.0 - Created - C.Behrndt - 2020
 */
 #include "BasicEngine_Control.h"
 #include "FileSystem.h"
+#include <boost/algorithm/string.hpp> //wichtig, damit es auf newton läuft
+
 
 using namespace distributed2;
 using namespace std;
@@ -92,15 +94,14 @@ GenericRelationIterator* it = worker->MakeScan();
         ci->simpleCommand(dbs_conn->get_init(&dbName,&dbPort),err,res,false
             ,rt,false,CommandLog,true,defaultTimeout);
         if(err != 0){
-          cout << std::string("ErrCode:" + err) + ""
-               "" + std::string(" Massage: :" + res) << endl;
+          cout << std::string("ErrCode:" + err) << endl;
         }else{
           val = true && val;
         }
     }
   }else{
         cout << std::string("Couldn't connect to secondo-Worker on host"
-        		"" + host + " with port " + port + "!\n") << endl;
+        "" + host + " with port " + port + "!\n") << endl;
   }
 return val;
 }
@@ -136,11 +137,11 @@ template<class T>
 string BasicEngine_Control<T>::replaceStringAll(string str
                     , const string& replace, const string& with) {
     if(!replace.empty()) {
-        size_t pos = 0;
-        while ((pos = str.find(replace, pos)) != string::npos) {
-            str.replace(pos, replace.length(), with);
-            pos += with.length();
-        }
+      size_t pos = 0;
+      while ((pos = str.find(replace, pos)) != string::npos) {
+        str.replace(pos, replace.length(), with);
+        pos += with.length();
+      }
     }
     return str;
 }
@@ -273,42 +274,42 @@ string remoteCreateName = createTabFileName(tab);
 string localCreateName = getFilePath() + remoteCreateName;
 
   while(index < anzWorker and val){
-  if (vec_ci[index]){
-    si = vec_ci[index]->getInterface();
+    if (vec_ci[index]){
+      si = vec_ci[index]->getInterface();
 
-    //sending data
-    strindex = to_string(index+1);
-    remoteName = dbs_conn->get_partTabName(tab,&strindex);
-    localName = getFilePath() + remoteName;
-    val = (si->sendFile(localName, remoteName, true) == 0);
-    val = val && (remove(localName.c_str()) == 0);
-    if (!val){return val;}
+      //sending data
+      strindex = to_string(index+1);
+      remoteName = dbs_conn->get_partTabName(tab,&strindex);
+      localName = getFilePath() + remoteName;
+      val = (si->sendFile(localName, remoteName, true) == 0);
+      val = val && (remove(localName.c_str()) == 0);
+      if (!val){return val;}
 
-    //sending create Table
-    val = (si->sendFile(localCreateName, remoteCreateName, true) == 0);
-    if (!val){return val;}
+      //sending create Table
+      val = (si->sendFile(localCreateName, remoteCreateName, true) == 0);
+      if (!val){return val;}
 
-    index++;
-  } else{
-    createConnection(&index);
-    if(!vec_ci[index]) val = false; ;
-  }
+      index++;
+      } else{
+        createConnection(&index);
+        if(!vec_ci[index]) val = false; ;
+      }
   };
 
   if(val){
-  val = (remove(localCreateName.c_str()) == 0);
-  //doing the import with one thread for each worker
-  for(size_t i=0;i<importer.size();i++){
-    strindex = to_string(i+1);
-    remoteName = dbs_conn->get_partTabName(tab
+    val = (remove(localCreateName.c_str()) == 0);
+    //doing the import with one thread for each worker
+    for(size_t i=0;i<importer.size();i++){
+      strindex = to_string(i+1);
+      remoteName = dbs_conn->get_partTabName(tab
                 ,&strindex);
-    importer[i]->startImport(*tab,remoteCreateName,remoteName);
-  }
+      importer[i]->startImport(*tab,remoteCreateName,remoteName);
+    }
 
-  //waiting for finishing the threads
-  for(size_t i=0;i<importer.size();i++){
-    val = val && importer[i]->getResult();
-  }
+    //waiting for finishing the threads
+    for(size_t i=0;i<importer.size();i++){
+      val = val && importer[i]->getResult();
+    }
   }
 
 return val;

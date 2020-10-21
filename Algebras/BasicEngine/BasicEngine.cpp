@@ -653,11 +653,11 @@ Operator be_queryOp(
 /*
 1.6 Operator  ~be\_command~
 
-Execute a command the basicengine
+Execute a command on the BasicEngine
 
 1.6.1 Type Mapping
 
-This operator gets a query
+This operator gets a command
 
 */
 ListExpr be_commandTM(ListExpr args){

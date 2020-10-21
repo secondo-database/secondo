@@ -50,97 +50,98 @@ This class represents the controling from the system.
 class ConnectionPG {
 
 public:
-  /*
-  5.1 Public Methods
 
-  */
-  ConnectionPG(int port, std::string dbname);
-  virtual ~ConnectionPG(){};
+/*
+5.1 Public Methods
 
-  bool sendCommand(std::string* command, bool print = true);
+*/
+ConnectionPG(int port, std::string dbname);
+virtual ~ConnectionPG(){};
 
-  bool checkConn();
+bool sendCommand(std::string* command, bool print = true);
 
-  std::string createTabFile(std::string* tab);
+bool checkConn();
 
-  std::string get_init()
-    {return "query init_pg(" + std::to_string(port) + ",'"+ dbname +"');";}
+std::string createTabFile(std::string* tab);
 
-  std::string get_init(std::string* _dbname, std::string* _port)
-    {return "query init_pg(" + *_port + ",'"+ *_dbname +"');";}
+std::string get_init()
+  {return "query init_pg(" + std::to_string(port) + ",'"+ dbname +"');";}
 
-  std::string get_drop_table(std::string* tab)
-    {return "DROP TABLE IF EXISTS " + *tab + ";";}
+std::string get_init(std::string* _dbname, std::string* _port)
+  {return "query init_pg(" + *_port + ",'"+ *_dbname +"');";}
 
-  std::string get_partRoundRobin(std::string* tab, std::string* key
-            , std::string* anzSlots, std::string* targetTab);
+std::string get_drop_table(std::string* tab)
+  {return "DROP TABLE IF EXISTS " + *tab + ";";}
 
-  std::string get_partHash(std::string* tab, std::string* key
-            , std::string* anzSlots, std::string* targetTab);
+std::string get_partRoundRobin(std::string* tab, std::string* key
+          , std::string* anzSlots, std::string* targetTab);
 
-  std::string get_partFun(std::string* tab, std::string* key
-            ,std::string* anzSlots,std::string* fun,std::string* targetTab);
+std::string get_partHash(std::string* tab, std::string* key
+          , std::string* anzSlots, std::string* targetTab);
 
-  std::string get_exportData(std::string* tab, std::string* join_tab
-            ,std::string* join_stat,std::string* nr,std::string* path
-            ,long unsigned int* anzWorker);
+std::string get_partFun(std::string* tab, std::string* key
+          ,std::string* anzSlots,std::string* fun,std::string* targetTab);
 
-  std::string get_copy(std::string* tab, std::string* full_path, bool* direct);
+std::string get_exportData(std::string* tab, std::string* join_tab
+          ,std::string* join_stat,std::string* nr,std::string* path
+          ,long unsigned int* anzWorker);
 
-  std::string get_partTabName(std::string* tab, std::string* number)
-    {return *tab + "_" + *number +".bin";};
+std::string get_copy(std::string* tab, std::string* full_path, bool* direct);
 
-  std::string get_createTab(std::string* tab, std::string* query)
-    {return "CREATE TABLE " + *tab + " AS ("+ *query + ")";};
+std::string get_partTabName(std::string* tab, std::string* number)
+  {return *tab + "_" + *number +".bin";};
+
+std::string get_createTab(std::string* tab, std::string* query)
+  {return "CREATE TABLE " + *tab + " AS ("+ *query + ")";};
 
 private:
 
-  /*
-  5.2 Members
+/*
+5.2 Members
 
-  5.2.1 ~conn~
+5.2.1 ~conn~
 
-  The connection to PostgreSQL
+The connection to PostgreSQL
 
-  */
-  PGconn* conn;
+*/
+PGconn* conn;
 
-  /*
-  5.2.2 ~port~
+/*
+5.2.2 ~port~
 
-  The port from the PostgreSQL DB.
+The port from the PostgreSQL DB.
 
-  */
-  int port;
+*/
+int port;
 
-  /*
-  5.2.3 ~dbname~
+/*
+5.2.3 ~dbname~
 
-  The Name of the Database.
+The Name of the Database.
 
-  */
-  std::string dbname;
+*/
+std::string dbname;
 
-  /*
-  5.3 Private Methods
+/*
+5.3 Private Methods
 
-  */
-  int get_port()
-    {return port;};
+*/
+int get_port()
+  {return port;};
 
-  std::string get_dbname()
-    {return dbname;};
+std::string get_dbname()
+  {return dbname;};
 
-  PGresult* sendQuery(std::string* query);
+PGresult* sendQuery(std::string* query);
 
-  bool createFunctionRandom(std::string* tab, std::string* key
-            , std::string* anzWorker, std::string* select);
+bool createFunctionRandom(std::string* tab, std::string* key
+          , std::string* anzWorker, std::string* select);
 
-  bool createFunctionDDRandom(std::string* tab, std::string* key
-            , std::string* anzWorker, std::string* select);
+bool createFunctionDDRandom(std::string* tab, std::string* key
+          , std::string* anzWorker, std::string* select);
 
-  void getFieldInfoFunction(std::string* tab, std::string* key
-             ,std::string* fields,std::string* valueMap,std::string* select);
+void getFieldInfoFunction(std::string* tab, std::string* key
+           ,std::string* fields,std::string* valueMap,std::string* select);
 };
 
 }; /* namespace BasicEngine */

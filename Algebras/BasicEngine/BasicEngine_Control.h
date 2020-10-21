@@ -104,55 +104,55 @@ public:
 
 private:
 
-  /*
-  2.2 Members
+/*
+2.2 Members
 
-  2.2.1 ~dbs\_conn~
+2.2.1 ~dbs\_conn~
 
-  In this template variable were stores the connection,
-  to a secondary dbms (for example postgresql)
+In this template variable were stores the connection,
+to a secondary dbms (for example postgresql)
 
-  */
-  T* dbs_conn;
+*/
+T* dbs_conn;
 
-  /*
-  2.2.2 ~worker~
+/*
+2.2.2 ~worker~
 
-  The worker is a relation with all informations about the
-  worker connection like port, connection-file, ip
+The worker is a relation with all informations about the
+worker connection like port, connection-file, ip
 
-  */
-  Relation* worker;
+*/
+Relation* worker;
 
-  /*
-  2.2.3 ~vec\_ci~
+/*
+2.2.3 ~vec\_ci~
 
-  In this vector all connection to the worker are stored.
+In this vector all connection to the worker are stored.
 
-  */
-  std::vector<distributed2::ConnectionInfo*> vec_ci;
+*/
+std::vector<distributed2::ConnectionInfo*> vec_ci;
 
-  /*
-  2.2.4 ~importer~
+/*
+2.2.4 ~importer~
 
-  In this vector all informations for starting the thread
-  are stored.
+In this vector all informations for starting the thread
+are stored.
 
-  */
-  std::vector<BasicEngine_Thread*> importer;
+*/
+std::vector<BasicEngine_Thread*> importer;
 
-  /*
-  2.2.4 ~anzWorker~
+/*
+2.2.4 ~anzWorker~
 
-  The anzWorker counts the number of worker.
+The anzWorker counts the number of worker.
 
-  */
-  long unsigned int anzWorker;
+*/
+long unsigned int anzWorker;
 
-  /*
-  2.3 Private Methods
+/*
+2.3 Private Methods
 
-  */
+*/
   bool createConnection(long unsigned int* index);
 
   bool partRoundRobin(std::string* tab, std::string* key, int* slotsize);
@@ -183,6 +183,7 @@ private:
     {return std::string("/home/") + getenv("USER") + "/filetransfer/";};
 
   std::string getparttabname(std::string* tab, std::string* key);
+
 };
 };  /* namespace BasicEngine */
 
