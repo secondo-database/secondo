@@ -61,8 +61,8 @@ ifneq ($(SECONDO_PLATFORM),mac_osx)
 endif
 
 buildincludes: 
-	@rm -rf include 
-	@mkdir include >/dev/null 2>&1; echo""
+	mkdir -p include 
+	rm -rf include/*.h
 	cp $(CPOPTION) $(DEPS1) include
 	cp $(CPOPTION) $(DEPS2) include
 
