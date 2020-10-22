@@ -63,9 +63,9 @@ api: buildincludes buildlib
 
 
 
-buildincludes: 
-	@rm -rf include 
-	@mkdir include >/dev/null 2>&1; echo""
+buildincludes:
+	mkdir -p include 
+	rm -rf include/*.h
 	cp $(CPOPTION) $(DEPS1) include
 	cp $(CPOPTION) $(DEPS2) include
 
