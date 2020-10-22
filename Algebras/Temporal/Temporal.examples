@@ -790,3 +790,9 @@ Number    : 1
 Signature : mpoint x mpoint (x geoid) -> real
 Example   : query distanceintegral(train5, train6)
 Result    : 11573.4610617085
+
+Operator  : cbbox
+Number    : 1
+Signature : mpoint | upoint (x real) -> cupoint
+Example   : query isdefined(cbbox(train5))
+Result    : FALSE

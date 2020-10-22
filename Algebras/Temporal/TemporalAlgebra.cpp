@@ -2737,6 +2737,43 @@ bool UPoint::AtRegion(const Region *r, std::vector<UPoint> &result) const {
 }
 
 /*
+1.1 Implementation of functions for the class ~CUPoint~
+
+*/
+double CUPoint::Distance(const CUPoint& cup) const {
+  if (!IsDefined() && !cup.IsDefined()) {
+    return 0.0;
+  }
+  if (!IsDefined() || !cup.IsDefined()) {
+    return DBL_MAX;
+  }
+  CUPoint cup1(*this), cup2(true);
+  cup1.timeInterval.start += (cup.timeInterval.start - timeInterval.start);
+  cup1.timeInterval.end += (cup.timeInterval.start - timeInterval.start);
+  if (cup1.timeInterval.end > cup.timeInterval.end) {
+    cup2 = cup;
+  }
+  else {
+    cup2 = cup1;
+    cup1 = cup;
+  } // now we know that cup1's duration is at least as long as cup2's
+  double dur = (cup2.timeInterval.end - cup2.timeInterval.start).ToDouble();
+  Point newEnd(true);
+  cup1.TemporalFunction(cup2.timeInterval.end, newEnd);
+  cup1.timeInterval.end = cup2.timeInterval.end;
+  cup1.p1 = newEnd;
+  UReal ur(true);
+  ((UPoint*)(&cup1))->Distance(((UPoint*)(&cup2)), ur);
+  if (!ur.IsDefined()) {
+    std::cerr << __PRETTY_FUNCTION__ << "Invalid geographic coord!" << endl;
+    return DBL_MAX;
+  }
+  ur.r = true;
+  return std::max(ur.Integrate() / dur - cup1.GetRadius() - cup2.GetRadius(),
+                  0.0);
+}
+
+/*
 Implementation of methods for class ~GridCellSeq~
 
 */
@@ -4792,9 +4829,7 @@ void MPoint::DistanceIntegral(const MPoint& mp, CcReal& result,
     return;
   }
   result.SetDefined(true);
-  Instant start1, start2, start, end;
-  start.ToMaximum();
-  end.ToMinimum();
+  Instant start1, start2;
   InitialInstant(start1);
   mp.InitialInstant(start2);
   MPoint shifted(true);
@@ -8748,6 +8783,233 @@ TypeConstructor unitpoint(
         CastUPoint, //cast function
         SizeOfUPoint, //sizeof function
         CheckUPoint );                    //kind checking function
+
+/*
+4.9 Type Constructor ~cupoint~
+
+Type ~cupoint~ represents an (tinterval, (x0, y0, x1, y1), radius)-triple.
+
+4.9.1 List Representation
+
+The list representation of a ~cupoint~ is
+
+----    ( timeinterval (x0 y0 x1 y1) r )
+----
+
+For example:
+
+----   ( ( (instant 6.37)  (instant 9.9)   TRUE FALSE)   (1.0 2.3 4.1 2.1)  1.9)
+----
+
+4.9.2 function Describing the Signature of the Type Constructor
+
+*/
+ListExpr CUPointProperty() {
+  return (nl->TwoElemList(
+            nl->FourElemList(nl->StringAtom("Signature"),
+                             nl->StringAtom("Example Type List"),
+                             nl->StringAtom("List Rep"),
+                             nl->StringAtom("Example List")),
+            nl->FourElemList(nl->StringAtom("-> UNIT"),
+                             nl->StringAtom("("+CUPoint::BasicType()+") "),
+      nl->TextAtom("( timeInterval (real_x0 real_y0 real_x1 real_y1) radius) "),
+      nl->StringAtom("((i1 i2 TRUE FALSE) (1.0 2.2 2.5 2.1) 1.9)"))));
+}
+
+/*
+4.9.3 Kind Checking Function
+
+*/
+bool CheckCUPoint(ListExpr type, ListExpr& errorInfo) {
+  return (nl->IsEqual(type, CUPoint::BasicType()));
+}
+
+/*
+4.9.4 ~Out~-function
+
+*/
+ListExpr OutCUPoint(ListExpr typeInfo, Word value) {
+  CUPoint* cupoint = (CUPoint*)(value.addr);
+  if (!(((CUPoint*)value.addr)->IsDefined())) {
+    return (nl->SymbolAtom(Symbol::UNDEFINED()));
+  }
+  else {
+    ListExpr timeintervalList = nl->FourElemList(
+      OutDateTime(nl->TheEmptyList(), SetWord(&cupoint->timeInterval.start)),
+      OutDateTime(nl->TheEmptyList(), SetWord(&cupoint->timeInterval.end)),
+      nl->BoolAtom(cupoint->timeInterval.lc),
+      nl->BoolAtom(cupoint->timeInterval.rc));
+
+    ListExpr pointsList = nl->FourElemList(
+      nl->RealAtom(cupoint->p0.GetX() ), nl->RealAtom(cupoint->p0.GetY()),
+      nl->RealAtom(cupoint->p1.GetX() ), nl->RealAtom(cupoint->p1.GetY()));
+
+    return nl->ThreeElemList(timeintervalList, pointsList, 
+                             nl->RealAtom(cupoint->GetRadius()));
+  }
+}
+
+/*
+4.9.5 ~In~-function
+
+The Nested list form is like this: ((6.37 9.9 TRUE FALSE) (1.0 2.3 4.1 2.1) 1.9)
+
+*/
+Word InCUPoint(const ListExpr typeInfo, const ListExpr instance,
+               const int errorPos, ListExpr& errorInfo, bool& correct) {
+  std::string errmsg;
+  if (nl->ListLength(instance) == 3) {
+    ListExpr first = nl->First(instance);
+    if (nl->ListLength(first) == 4 && nl->IsAtom(nl->Third(first)) 
+     && nl->AtomType(nl->Third(first)) == BoolType
+     && nl->IsAtom(nl->Fourth(first)) 
+     && nl->AtomType(nl->Fourth(first)) == BoolType) {
+      correct = true;
+      Instant *start = (Instant*)InInstant(nl->TheEmptyList(), nl->First(first),
+                                           errorPos, errorInfo, correct).addr;
+      if (!correct || start == NULL || !start->IsDefined()) {
+        errmsg = "InCUPoint(): first instant must be defined!.";
+        errorInfo = nl->Append(errorInfo, nl->StringAtom(errmsg));
+        delete start;
+        return SetWord(Address(0));
+        
+      }
+      Instant *end = (Instant*)InInstant(nl->TheEmptyList(), nl->Second(first),
+                                         errorPos, errorInfo, correct).addr;
+      if (!correct || end == NULL || !end->IsDefined()) {
+        errmsg = "InUPoint(): second instant must be defined!.";
+        errorInfo = nl->Append(errorInfo, nl->StringAtom(errmsg));
+        delete start;
+        delete end;
+        return SetWord(Address(0));
+      }
+      Interval<Instant> tinterval(*start, *end, nl->BoolValue(nl->Third(first)),
+                                   nl->BoolValue(nl->Fourth(first)));
+      delete start;
+      delete end;
+      correct = tinterval.IsValid();
+      if (!correct) {
+        errmsg = "InUPoint(): invalid time interval.";
+        errorInfo = nl->Append(errorInfo, nl->StringAtom(errmsg));
+        return SetWord(Address(0));
+      }
+      ListExpr second = nl->Second(instance);
+      if (nl->ListLength(second) == 4) {
+        if (nl->IsAtom(nl->Third(instance)) 
+         && nl->AtomType(nl->First(second)) == RealType
+         && nl->IsAtom(nl->First(second))
+         && nl->AtomType(nl->First(second)) == RealType
+         && nl->IsAtom( nl->Second(second))
+         && nl->AtomType(nl->Second(second)) == RealType
+         && nl->IsAtom(nl->Third(second))
+         && nl->AtomType(nl->Third(second)) == RealType
+         && nl->IsAtom(nl->Fourth(second))
+         && nl->AtomType(nl->Fourth(second)) == RealType) {
+          CUPoint *cupoint = new CUPoint(tinterval,
+                                      nl->RealValue(nl->First(second)),
+                                      nl->RealValue(nl->Second(second)),
+                                      nl->RealValue(nl->Third(second)),
+                                      nl->RealValue(nl->Fourth(second)),
+                                      nl->RealValue(nl->Third(instance)));
+
+          correct = cupoint->IsValid();
+          if (correct) {
+            return SetWord(cupoint);
+          }
+          errmsg = "InUPoint(): Error in start/end point.";
+          errorInfo = nl->Append(errorInfo, nl->StringAtom(errmsg));
+          delete cupoint;
+        }
+      }
+    }
+  }
+  else if (listutils::isSymbolUndefined(instance)) {
+    CUPoint *cupoint = new CUPoint(true);
+    cupoint->SetDefined(false);
+    cupoint->timeInterval= Interval<DateTime>(DateTime(instanttype),
+                                              DateTime(instanttype),true,true);
+    correct = cupoint->timeInterval.IsValid();
+    if (correct) {
+      return (SetWord(cupoint));
+    }
+  }
+  errmsg = "InCUPoint(): Error in representation.";
+  errorInfo = nl->Append(errorInfo, nl->StringAtom(errmsg));
+  correct = false;
+  return SetWord(Address(0));
+}
+
+/*
+4.9.6 ~Create~-function
+
+*/
+Word CreateCUPoint(const ListExpr typeInfo) {
+  return (SetWord(new CUPoint(false)));
+}
+
+/*
+4.9.7 ~Delete~-function
+
+*/
+void DeleteCUPoint(const ListExpr typeInfo, Word& w) {
+  delete (CUPoint*)w.addr;
+  w.addr = 0;
+}
+
+/*
+4.9.8 ~Close~-function
+
+*/
+void CloseCUPoint(const ListExpr typeInfo, Word& w) {
+  delete (CUPoint*)w.addr;
+  w.addr = 0;
+}
+
+/*
+4.9.9 ~Clone~-function
+
+*/
+Word CloneCUPoint(const ListExpr typeInfo, const Word& w) {
+  CUPoint *cupoint = (CUPoint*)w.addr;
+  return SetWord(new CUPoint(*cupoint));
+}
+
+/*
+4.9.10 ~Sizeof~-function
+
+*/
+int SizeOfCUPoint() {
+  return sizeof(CUPoint);
+}
+
+/*
+4.9.11 ~Cast~-function
+
+*/
+void* CastCUPoint(void* addr) {
+  return new (addr)CUPoint;
+}
+
+/*
+4.9.12 Creation of the type constructor ~upoint~
+
+*/
+TypeConstructor cupointTC (
+        CUPoint::BasicType(),      //name
+        CUPointProperty,               //property function describing signature
+        OutCUPoint,     InCUPoint, //Out and In functions
+        0,             0,  //SaveToList and RestoreFromList functions
+        CreateCUPoint,
+        DeleteCUPoint, //object creation and deletion
+        OpenAttribute<CUPoint>,
+        SaveAttribute<CUPoint>,  // object open and save
+        CloseCUPoint,   CloneCUPoint, //object close and clone
+        CastCUPoint, //cast function
+        SizeOfCUPoint, //sizeof function
+        CheckCUPoint );                    //kind checking function
+
+
+
 
 /*
 4.10 Type Constructor ~mbool~
@@ -15955,7 +16217,7 @@ const std::string TemporalSpecDistance =
 
 const std::string TemporalSpecDistanceIntegral =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "( <text>(mpoint point) -> real</text--->"
+  "( <text>(mpoint mpoint) -> real</text--->"
   "<text>distanceintegral( _, _ ) </text--->"
   "<text>Returns the distance based on the integral.</text--->"
   "<text>distanceintegral(mpoint1, mpoint2)</text--->"
@@ -19652,10 +19914,80 @@ Operator constmpointOp(
   constmpointTM   
 );
 
+/*
+Operator ~cbbox~
 
+This operator creates a cupoint from an mpoint or upoint.
 
+*/
+ListExpr cbboxTM(ListExpr args) {
+  std::string err = "mpoint | upoint (x real) expected";
+  if (!nl->HasLength(args, 2) && !nl->HasLength(args, 1)) {
+    return listutils::typeError(err + " (wrong number of args)");
+  }
+  if (!MPoint::checkType(nl->First(args)) 
+   && !UPoint::checkType(nl->First(args))) {
+    return listutils::typeError(err +" (first arg is not a upoint/mpoint)");
+  }
+  if (nl->HasLength(args, 2)) {
+    if (!CcReal::checkType(nl->Second(args))
+     && !UPoint::checkType(nl->First(args))) {
+      return listutils::typeError(err + " upoint x real required for 2 args");
+    }
+  }
+  return listutils::basicSymbol<CUPoint>();
+}
 
+template<class T>
+int cbboxVM(Word* args, Word& result, int message, Word& local, Supplier s) {
+  result = qp->ResultStorage(s);
+  CUPoint* res = (CUPoint*)result.addr;
+  T* src = (T*)args[0].addr;
+  if (!src->IsDefined()) {
+    res->SetDefined(false);
+    return 0;
+  }
+  double radius = 0.0;
+  if (qp->GetNoSons(s) == 2) {
+    CcReal* ccrad = (CcReal*)args[1].addr;
+    if (!ccrad->IsDefined()) {
+      res->SetDefined(false);
+      return 0;
+    }
+    radius = ccrad->GetValue();
+  }
+  res->ConvertFrom(*src);
+  if (T::BasicType() == "upoint") {
+    res->SetRadius(radius);
+  }
+  return 0;
+}
 
+int cbboxSelect(ListExpr args) {
+  return UPoint::checkType(nl->First(args)) ? 0 : 1;
+}
+
+ValueMapping cbboxVMs[] = {
+  cbboxVM<UPoint>,
+  cbboxVM<MPoint>
+};
+
+OperatorSpec cbboxSpec(
+  "(mpoint | upoint) (x real) -> cupoint",
+  "cbbox(_, _)",
+  "Creates a cupoint from an mpoint or a upoint with a real (otherwise the"
+    "radius is set to 0.0)",
+  "query cbbox([const upoint value ((2019 2020 TRUE FALSE) (0.0 0.0 1.0 1.0))])"
+);
+
+Operator cbbox(
+  "cbbox",
+  cbboxSpec.getStr(),
+  2,
+  cbboxVMs,
+  cbboxSelect,
+  cbboxTM   
+);
 
 
 
@@ -19681,6 +20013,7 @@ class TemporalAlgebra : public Algebra
     AddTypeConstructor( &unitint );
     AddTypeConstructor( &unitreal );
     AddTypeConstructor( &unitpoint );
+    AddTypeConstructor( &cupointTC);
 
     AddTypeConstructor( &movingbool );
     AddTypeConstructor( &movingint );
@@ -19715,6 +20048,9 @@ class TemporalAlgebra : public Algebra
     unitpoint.AssociateKind( Kind::TEMPORAL() );
     unitpoint.AssociateKind( Kind::DATA() );
     unitpoint.AssociateKind( "SPATIAL3D" );
+    cupointTC.AssociateKind( Kind::TEMPORAL() );
+    cupointTC.AssociateKind( Kind::DATA() );
+    cupointTC.AssociateKind( "SPATIAL3D" );
 
     movingbool.AssociateKind( Kind::TEMPORAL() );
     movingbool.AssociateKind( Kind::DATA() );
@@ -19845,6 +20181,7 @@ class TemporalAlgebra : public Algebra
 
     AddOperator(&constmpointOp);
 
+    AddOperator(&cbbox);
 
 #ifdef USE_PROGRESS
     temporalunits.EnableProgress();

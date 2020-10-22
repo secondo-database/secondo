@@ -3182,6 +3182,8 @@ std::ostream& operator<<(std::ostream& o, const UPoint& u);
 ListExpr OutUPoint( ListExpr typeInfo, Word value );
 Word InUPoint( const ListExpr typeInfo, const ListExpr instance,
                const int errorPos, ListExpr& errorInfo, bool& correct );
+
+
 /*
 3.9 Mapping
 
@@ -4270,6 +4272,307 @@ private:
 
    Rectangle<3> bbox;
 };
+
+/*
+3.8 CUPoint
+
+This class will be used in the ~cupoint~ type constructor, i.e., the type constructor
+for the temporal unit of point values together with a radius.
+
+*/
+class CUPoint : public UPoint {
+/*
+3.8.1 Constructors and Destructor
+
+*/
+public:
+  typedef CUPoint unittype;
+
+  CUPoint() {};
+
+  CUPoint(bool is_defined): UPoint(is_defined) {};
+  
+  CUPoint(const Interval<Instant>& _interval, const double x0, const double y0,
+          const double x1, const double y1, const double r):
+    UPoint(_interval, x0, y0, x1, y1), radius(r) {}
+
+  CUPoint(const Interval<Instant>& _interval, const Point& _p0, 
+          const Point& _p1, const double _r):
+    UPoint(_interval, _p0, _p1), radius(_r) {
+      SetDefined(p0.IsDefined() && p1.IsDefined());
+  }
+
+  CUPoint(const CUPoint& source):
+    UPoint(source.IsDefined()) {
+    timeInterval = source.timeInterval;
+    p0 = source.p0;
+    p1 = source.p1;
+    radius = source.radius;
+    del.refs=1;
+    del.SetDelete();
+    del.isDefined = source.del.isDefined;
+  }
+  
+/*
+3.6.2 Operator redefinitions
+
+*/
+  virtual CUPoint& operator=(const CUPoint& src) {
+    del.isDefined = src.del.isDefined;
+    if (!src.IsDefined()) {
+      return *this;
+    }
+    timeInterval = src.timeInterval;
+    p0 = src.p0;
+    p1 = src.p1;
+    radius = src.radius;
+    return *this;
+  }
+
+/*
+~GetNoComponents~
+
+Returns the constant number 1. This function allows for
+templates using UPoint and MPoint.
+
+*/
+  int GetNoComponents() const {
+     return 1;
+  }
+
+/*
+~Get~
+
+*/
+  void Get(const int i, CUPoint& result) const {
+    assert(i==0);
+    result = *this;
+  }
+
+/*
+~GetRadius~
+
+*/
+  double GetRadius() const {
+    return radius;
+  }
+
+/*
+~SetRadius~
+
+*/
+  void SetRadius(const double r) {
+    radius = r;
+  }
+
+/*
+Redefinition of the copy operator ~=~.
+
+*/
+  virtual bool operator==(const CUPoint& src) const {
+    if (!this->IsDefined() && !src.IsDefined()) {
+      return true;
+    }
+    return this->IsDefined() && src.IsDefined()
+        && this->timeInterval == src.timeInterval
+        && AlmostEqual(p0, src.p0) && AlmostEqual(p1, src.p1)
+        && AlmostEqual(radius, src.radius);
+  }
+  
+/*
+Returns ~true~ if both units are undefined, or if both are defined and this temporal unit is equal to the temporal unit ~i~ and ~false~ if they are different.
+
+*/
+  virtual bool operator!=(const CUPoint& src) const {
+    return !(*this == src);
+  }
+
+/*
+Functions required for attribute type
+
+*/
+  static const std::string BasicType() {
+    return "cupoint";
+  }
+  
+  static const bool checkType(const ListExpr type) {
+    return listutils::isSymbol(type, BasicType());
+  }
+
+  inline virtual size_t Sizeof() const {
+    return sizeof(*this);
+  }
+
+  inline virtual int Compare(const Attribute* arg) const {
+    int superclassResult = ((UPoint*)this)->Compare((UPoint*)arg);
+    if (superclassResult == 0) {
+      if (GetRadius() > ((CUPoint*)arg)->GetRadius()) {
+        return 1;
+      }
+      else if (GetRadius() < ((CUPoint*)arg)->GetRadius()) {
+        return -1;
+      }
+      else {
+        return 0;
+      }
+    }
+    else {
+      return superclassResult;
+    }
+  }
+
+  inline virtual bool Adjacent(const Attribute* arg) const {
+    return ((UPoint*)this)->Adjacent((UPoint*)arg);
+  }
+
+  inline virtual std::ostream& Print(std::ostream &os) const {
+    if (IsDefined()) {
+        os << "CUPoint: " << "( ";
+        timeInterval.Print(os);
+        os << ", ";
+        p0.Print(os);
+        os << ", ";
+        p1.Print(os);
+        os << ", " << GetRadius() << " ) ";
+        return os;
+      }
+    else
+      return os << "CUPoint: (undef) ";
+  }
+
+  inline virtual size_t HashValue() const {
+    return ((UPoint*)this)->HashValue();
+  }
+
+  inline virtual CUPoint* Clone() const {
+    CUPoint *res;
+    if (this->IsDefined()) {
+      res = new CUPoint(timeInterval, p0, p1, GetRadius());
+      res->del.isDefined = del.isDefined;
+    }
+    else {
+      res = new CUPoint(false);
+//       res->timeInterval = Interval<Instant>();
+      res->p0 = Point(false, 0.0, 0.0);
+      res->p1 = Point(false, 0.0, 0.0);
+    }
+    return res;
+  }
+
+  inline virtual void CopyFrom(const Attribute* right) {
+    const CUPoint* cupoint = static_cast<const CUPoint*>(right);
+    if (cupoint->del.isDefined) {
+      timeInterval.CopyFrom(cupoint->timeInterval);
+      p0 = cupoint->p0;
+      p1 = cupoint->p1;
+    }
+    else {
+//         timeInterval = Interval<Instant>();
+      p0 = Point(false, 0.0, 0.0);
+      p1 = Point(false, 0.0, 0.0);
+      radius = 0.0;
+    }
+    del.isDefined = cupoint->del.isDefined;
+  }
+
+  virtual const Rectangle<3> BoundingBox(const Geoid* geoid = 0) const {
+    double dir = p0.Direction(p1, false, geoid);
+    int horizSign = p0.GetX() < p1.GetX() ? 1 : -1;
+    int vertSign = p0.GetY() < p1.GetY() ? 1 : -1;
+    Point p0shifted = Point(true, p0.GetX() - horizSign * sin(dir) * radius,
+                                  p0.GetY() - vertSign * cos(dir) * radius);
+    Point p1shifted = Point(true, p1.GetX() + horizSign * sin(dir) * radius,
+                                  p1.GetY() + vertSign * cos(dir) * radius);
+    if (geoid) {
+      if (!geoid->IsDefined() || !IsDefined()) {
+        return Rectangle<3>(false);
+      }
+      Rectangle<2> geobbox(false);
+      if (AlmostEqual(p0, p1)) {
+        geobbox = p0shifted.GeographicBBox(p1shifted, *geoid);
+        double minMax[] = {geobbox.MinD(0), geobbox.MaxD(0),
+                           geobbox.MinD(1), geobbox.MaxD(1),
+                           timeInterval.start.ToDouble(),
+                           timeInterval.end.ToDouble()}; 
+        return Rectangle<3>(true, minMax);
+      } // else: use HalfSegment::BoundingBox(...)
+      geobbox = HalfSegment(true, p0shifted, p1shifted).BoundingBox(geoid);
+      double minMax[] = {geobbox.MinD(0), geobbox.MaxD(0),
+                         geobbox.MinD(1), geobbox.MaxD(1),
+                         timeInterval.start.ToDouble(),
+                         timeInterval.end.ToDouble()};
+      return Rectangle<3>(true, minMax);
+    } // else: euclidean geometry
+    if (this->IsDefined()) {
+      double minMax[] = {MIN(p0shifted.GetX(), p1shifted.GetX()),
+                         MAX(p0shifted.GetX(), p1shifted.GetX()),
+                         MIN(p0shifted.GetY(), p1shifted.GetY()),
+                         MAX(p0shifted.GetY(), p1shifted.GetY()),
+                         timeInterval.start.ToDouble(),
+                         timeInterval.end.ToDouble()};
+      return Rectangle<3>(true, minMax);
+    } 
+    else {
+      return Rectangle<3>(false);
+    }
+  }
+  
+  static unsigned GetDim() {
+    return (UPoint::GetDim());
+  }
+
+  virtual const Rectangle<3> BoundingBox(const double scaleTime,
+                                         const Geoid* geoid = 0) const {
+    Rectangle<3> bbx = this->BoundingBox(geoid);
+    if (bbx.IsDefined()) {
+      double minMax[] = {bbx.MinD(0), bbx.MaxD(0), bbx.MinD(1), bbx.MaxD(1),
+                         timeInterval.start.ToDouble()*scaleTime,
+                         timeInterval.end.ToDouble()*scaleTime};
+      return Rectangle<3>(true, minMax);
+    } 
+    else {
+      return Rectangle<3>(false);
+    }
+  }
+
+  const Rectangle<2> BoundingBoxSpatial(const Geoid* geoid = 0) const {
+    Rectangle<3> bbx = this->BoundingBox(geoid);
+    if (bbx.IsDefined()) {
+      double minMax[] = {bbx.MinD(0), bbx.MaxD(0), bbx.MinD(1), bbx.MaxD(1)};
+      return Rectangle<2>(true, minMax);
+    }
+    else {
+      return Rectangle<2>(false);
+    }
+  }
+  
+/*
+Transforms a UPoint into a CUPoint.
+
+*/
+  void ConvertFrom(const UPoint& up) {
+    ((UPoint*)this)->CopyFrom(&up);
+  }
+  
+/*
+Transforms an MPoint into a CUPoint.
+
+*/
+  void ConvertFrom(const MPoint& mp) {
+    // TODO: all
+  }
+  
+/*
+Computes the distance to a CUPoint ~cup~. 
+
+*/
+  double Distance(const CUPoint& cup) const;
+
+
+private:
+  double radius;
+};
+
 
 /*
 4 Implementation of C++ Classes
