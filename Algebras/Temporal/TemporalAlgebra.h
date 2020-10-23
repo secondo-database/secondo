@@ -4566,6 +4566,7 @@ Transforms an MPoint into a CUPoint.
 Computes the distance to a CUPoint ~cup~. 
 
 */
+  using UPoint::Distance;
   double Distance(const CUPoint& cup) const;
 
 
