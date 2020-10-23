@@ -2740,6 +2740,104 @@ bool UPoint::AtRegion(const Region *r, std::vector<UPoint> &result) const {
 1.1 Implementation of functions for the class ~CUPoint~
 
 */
+const Rectangle<3> CUPoint::BoundingBox(const Geoid* geoid) const {
+  double PI = 3.1415926535;
+  double dir = p0.Direction(p1, false, geoid) * PI / 180;
+  int horizSign = p0.GetX() < p1.GetX() ? 1 : -1;
+  int vertSign = p0.GetY() < p1.GetY() ? 1 : -1;
+//   cout << "direction is " << dir << ", horizSign = " << horizSign
+//        << ", vertSign = " << vertSign << endl;
+  Point p0shifted = Point(true, p0.GetX() - horizSign * abs(sin(dir)) * radius,
+                                p0.GetY() - vertSign * abs(cos(dir)) * radius);
+  Point p1shifted = Point(true, p1.GetX() + horizSign * abs(sin(dir)) * radius,
+                                p1.GetY() + vertSign * abs(cos(dir)) * radius);
+  cout << p0 << " " << p1 << " | " << p0.Direction(p1, false, geoid) << " " 
+       << dir << " . " << sin(dir) << " # " 
+       << cos(dir) << " : " << p0shifted << " " << p1shifted << endl;
+  if (geoid) {
+    if (!geoid->IsDefined() || !IsDefined()) {
+      return Rectangle<3>(false);
+    }
+    Rectangle<2> geobbox(false);
+    if (AlmostEqual(p0, p1)) {
+      geobbox = p0shifted.GeographicBBox(p1shifted, *geoid);
+      double minMax[] = {geobbox.MinD(0), geobbox.MaxD(0),
+                         geobbox.MinD(1), geobbox.MaxD(1),
+                         timeInterval.start.ToDouble(),
+                         timeInterval.end.ToDouble()}; 
+      return Rectangle<3>(true, minMax);
+    } // else: use HalfSegment::BoundingBox(...)
+    geobbox = HalfSegment(true, p0shifted, p1shifted).BoundingBox(geoid);
+    double minMax[] = {geobbox.MinD(0), geobbox.MaxD(0),
+                       geobbox.MinD(1), geobbox.MaxD(1),
+                       timeInterval.start.ToDouble(),
+                       timeInterval.end.ToDouble()};
+    return Rectangle<3>(true, minMax);
+  } // else: euclidean geometry
+  if (this->IsDefined()) {
+    double minMax[] = {MIN(p0shifted.GetX(), p1shifted.GetX()),
+                       MAX(p0shifted.GetX(), p1shifted.GetX()),
+                       MIN(p0shifted.GetY(), p1shifted.GetY()),
+                       MAX(p0shifted.GetY(), p1shifted.GetY()),
+                       timeInterval.start.ToDouble(),
+                       timeInterval.end.ToDouble()};
+    return Rectangle<3>(true, minMax);
+  } 
+  else {
+    return Rectangle<3>(false);
+  }
+}
+
+const Rectangle<3> CUPoint::BoundingBox(const double scaleTime,
+                                        const Geoid* geoid) const {
+  Rectangle<3> bbx = this->BoundingBox(geoid);
+  if (bbx.IsDefined()) {
+    double minMax[] = {bbx.MinD(0), bbx.MaxD(0), bbx.MinD(1), bbx.MaxD(1),
+                        timeInterval.start.ToDouble()*scaleTime,
+                        timeInterval.end.ToDouble()*scaleTime};
+    return Rectangle<3>(true, minMax);
+  } 
+  else {
+    return Rectangle<3>(false);
+  }
+}
+
+const Rectangle<2> CUPoint::BoundingBoxSpatial(const Geoid* geoid) const {
+  Rectangle<3> bbx = this->BoundingBox(geoid);
+  if (bbx.IsDefined()) {
+    double minMax[] = {bbx.MinD(0), bbx.MaxD(0), bbx.MinD(1), bbx.MaxD(1)};
+    return Rectangle<2>(true, minMax);
+  }
+  else {
+    return Rectangle<2>(false);
+  }
+}
+
+void CUPoint::ConvertFrom(const UPoint& up) {
+  ((UPoint*)this)->CopyFrom(&up);
+}
+
+void CUPoint::ConvertFrom(const MPoint& mp) {
+  if (!mp.IsDefined() || mp.IsEmpty()) {
+    SetDefined(false);
+    return;
+  }
+  mp.GetFullInterval(timeInterval);
+  IPoint ip(true);
+  mp.Initial(ip);
+  p0 = ip.value;
+  mp.Final(ip);
+  p1 = ip.value;
+  UPoint up(timeInterval, p0, p1);
+  MPoint approx(true);
+  approx.Add(up);
+  MReal dist(true);
+  mp.SquaredDistance(approx, dist);
+  bool correct = true;
+  radius = sqrt(dist.Max(correct));
+  SetDefined(correct);
+}
+
 double CUPoint::Distance(const CUPoint& cup) const {
   if (!IsDefined() && !cup.IsDefined()) {
     return 0.0;
@@ -10756,7 +10854,7 @@ ListExpr TemporalBBoxTypeMap( ListExpr args )
 {
   int noargs = nl->ListLength( args );
   std::string errmsg = "Expected (M [x geoid]) OR (T), "
-                       "where M in {upoint, mpoint, "
+                       "where M in {cupoint, upoint, mpoint, "
                        "ipoint}, T in {instant,periods}.";
   if ( (noargs<1) || (noargs>2) ){
     return listutils::typeError(errmsg);
@@ -10765,22 +10863,11 @@ ListExpr TemporalBBoxTypeMap( ListExpr args )
     return listutils::typeError(errmsg);
   }
   ListExpr arg1 = nl->First( args );
-
-  if( listutils::isSymbol( arg1, UPoint::BasicType() ) )
-      return (nl->SymbolAtom( Rectangle<3>::BasicType() ));
-
-  if( listutils::isSymbol( arg1, MPoint::BasicType() ) )
-      return (nl->SymbolAtom( Rectangle<3>::BasicType() ));
-
-  if( listutils::isSymbol( arg1, IPoint::BasicType() ) )
-      return (nl->SymbolAtom( Rectangle<3>::BasicType() ));
-
-  if( (noargs==1) && listutils::isSymbol( arg1, Periods::BasicType() ) )
-      return (nl->SymbolAtom( Rectangle<3>::BasicType() ));
-
-  if( (noargs==1) && listutils::isSymbol( arg1, Instant::BasicType() ) )
-      return (nl->SymbolAtom( Rectangle<3>::BasicType() ));
-
+  if (UPoint::checkType(arg1) || MPoint::checkType(arg1)
+   || IPoint::checkType(arg1) || Periods::checkType(arg1)
+   || Instant::checkType(arg1) || CUPoint::checkType(arg1)) {
+    return nl->SymbolAtom(Rectangle<3>::BasicType());
+  }
   return listutils::typeError(errmsg);
 }
 
@@ -10827,7 +10914,7 @@ ListExpr TemporalBBox2dTypeMap( ListExpr args )
 {
   int noargs =  nl->ListLength( args );
   std::string errmsg = "Expected (T [x geoid]), "
-                       "where T in {upoint,mpoint,ipoint}";
+                       "where T in {cupoint, upoint, mpoint, ipoint}";
   if( (noargs<1) || (noargs>2) ){
     return listutils::typeError(errmsg);
   }
@@ -10836,15 +10923,10 @@ ListExpr TemporalBBox2dTypeMap( ListExpr args )
     return listutils::typeError(errmsg);
   }
   ListExpr arg1 = nl->First( args );
-  if( listutils::isSymbol( arg1, UPoint::BasicType() ) )
-      return (nl->SymbolAtom( Rectangle<2>::BasicType() ));
-
-  if( listutils::isSymbol( arg1, MPoint::BasicType() ) )
-      return (nl->SymbolAtom( Rectangle<2>::BasicType() ));
-
-  if( listutils::isSymbol( arg1, IPoint::BasicType() ) )
-      return (nl->SymbolAtom( Rectangle<2>::BasicType() ));
-
+  if (UPoint::checkType(arg1) || MPoint::checkType(arg1)
+   || IPoint::checkType(arg1) || CUPoint::checkType(arg1)) {
+    return nl->SymbolAtom(Rectangle<2>::BasicType());
+  }
   return listutils::typeError(errmsg);
 }
 
@@ -12125,6 +12207,9 @@ int TemporalBBoxSelect( ListExpr args )
   if( nl->SymbolValue( arg1 ) == Instant::BasicType() )
     return 4;
 
+  if (CUPoint::checkType(arg1)) {
+    return 5;
+  }
   return -1; // This point should never be reached
 }
 
@@ -12173,6 +12258,9 @@ int TemporalBBox2dSelect( ListExpr args )
   if( nl->SymbolValue( arg1 ) == IPoint::BasicType() )
     return 2;
 
+  if (CUPoint::checkType(arg1)) {
+    return 3;
+  }
   return -1; // This point should never be reached
 }
 
@@ -13428,25 +13516,6 @@ int MPointBBoxOld(Word* args, Word& result, int message, Word& local,
   return 0;
 }
 
-int UPointBBox(Word* args, Word& result, int message, Word& local,
-               Supplier s )
-{
-  result = qp->ResultStorage( s );
-  Rectangle<3>* res = (Rectangle<3>*) result.addr;
-  const UPoint* arg = static_cast<const UPoint*>(args[0].addr);
-  const Geoid*  geoid =
-              (qp->GetNoSons(s)==2)?static_cast<const Geoid*>(args[1].addr):0;
-  if( !arg->IsDefined() || (geoid && !geoid->IsDefined()) )
-  {
-    res->SetDefined(false);
-  }
-  else
-  {
-    *res = arg->BoundingBox(geoid);
-  }
-  return 0;
-}
-
 int PeriodsBBox(Word* args, Word& result, int message, Word& local,
                Supplier s )
 {
@@ -13500,6 +13569,21 @@ int InstantBBox(Word* args, Word& result, int message, Word& local,
   return 0;
 }
 
+template<class T>
+int UnitBBox(Word* args, Word& result, int message, Word& local, Supplier s) {
+  result = qp->ResultStorage(s);
+  Rectangle<3>* res = (Rectangle<3>*)result.addr;
+  const T* arg = static_cast<const T*>(args[0].addr);
+  const Geoid* geoid = 
+          (qp->GetNoSons(s) == 2) ? static_cast<const Geoid*>(args[1].addr) : 0;
+  if (!arg->IsDefined() || (geoid && !geoid->IsDefined())) {
+    res->SetDefined(false);
+  }
+  else {
+    *res = arg->BoundingBox(geoid);
+  }
+  return 0;
+}
 
 template <class Range>
 int TempMBRange( Word* args, Word& result, int message, Word&
@@ -13564,30 +13648,14 @@ int MPointBBox2d(Word* args, Word& result, int message, Word& local,
   return 0;
 }
 
-int UPointBBox2d(Word* args, Word& result, int message, Word& local,
-               Supplier s )
-{
-  result = qp->ResultStorage( s );
-  Rectangle<2>* res = (Rectangle<2>*) result.addr;
-  const UPoint* arg = static_cast<const UPoint*>(args[0].addr);
-  const Geoid*  geoid =
-                (qp->GetNoSons(s)==2)?static_cast<const Geoid*>(args[1].addr):0;
-  Rectangle<3>  tmp;
-  double min[2], max[2];
-
-  if( !arg->IsDefined() || (geoid && !geoid->IsDefined()) )
-  {
-    res->SetDefined(false);
-  }
-  else
-  {
-    tmp = arg->BoundingBox(geoid);
-    min[0] = tmp.MinD(0); // minX
-    max[0] = tmp.MaxD(0); // maxX
-    min[1] = tmp.MinD(1); // minY
-    max[1] = tmp.MaxD(1); // maxY
-    res->Set(true, min, max);
-  }
+template<class T>
+int UnitBBox2d(Word* args, Word& result, int message, Word& local, Supplier s) {
+  result = qp->ResultStorage(s);
+  Rectangle<2>* res = (Rectangle<2>*)result.addr;
+  const T* arg = static_cast<const T*>(args[0].addr);
+  const Geoid* geoid =
+          (qp->GetNoSons(s) == 2) ? static_cast<const Geoid*>(args[1].addr) : 0;
+  *res = arg->BoundingBoxSpatial(geoid);
   return 0;
 }
 
@@ -15744,11 +15812,12 @@ ValueMapping temporalnocomponentsmap[] = { RangeNoComponents<RInt>,
                                            MappingNoComponents<MReal, CcReal>,
                                            MappingNoComponents<MPoint, Point>};
 
-ValueMapping temporalbboxmap[] = { UPointBBox,
+ValueMapping temporalbboxmap[] = { UnitBBox<UPoint>,
                                    MPointBBox,
                                    IPointBBox,
                                    PeriodsBBox,
-                                   InstantBBox };
+                                   InstantBBox,
+                                   UnitBBox<CUPoint>};
 
 ValueMapping temporalmbrangemap[] = {
                                    TempMBRange<RInt>,
@@ -15757,16 +15826,17 @@ ValueMapping temporalmbrangemap[] = {
                                    TempMBRange<RBool>,
                                    TempMBRange<RString>};
 
-ValueMapping temporalbboxoldmap[] = { UPointBBox,
+ValueMapping temporalbboxoldmap[] = { UnitBBox<UPoint>,
                                       TempMBRange<RInt>,
                                       TempMBRange<RReal>,
                                       TempMBRange<Periods>,
                                       MPointBBoxOld,
                                       IPointBBox };
 
-ValueMapping temporalbbox2dmap[] = { UPointBBox2d,
+ValueMapping temporalbbox2dmap[] = { UnitBBox2d<UPoint>,
                                      MPointBBox2d,
-                                     IPointBBox2d };
+                                     IPointBBox2d,
+                                     UnitBBox2d<CUPoint>};
 
 ValueMapping temporalinstmap[] = { IntimeInst<CcBool>,
                                    IntimeInst<CcInt>,
@@ -16387,7 +16457,8 @@ const std::string TemporalSpecBBox  =
   "mpoint [x geoid] -> rect3,\n"
   "ipoint [x geoid] -> rect3,\n"
   "instant -> rect3,\n"
-  "periods -> rect3</text--->"
+  "periods -> rect3,\""
+  "cupoint -> rect3</text--->"
   "<text>bbox ( Obj [, Geoid])</text--->"
   "<text>Returns the 3d bounding box of the spatio-temporal object Obj, \n"
   "resp. the universe restricted to the definition time of the instant/\n"
@@ -16422,7 +16493,8 @@ const std::string TemporalSpecBBox2d  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
     "( <text>upoint [x geoid] -> rect,\n"
     "mpoint [x geoid] -> rect,\n"
-    "ipoint [x geoid] -> rect"
+    "ipoint [x geoid] -> rect,\n"
+    "cupoint [x geoid] -> rect"
     "</text--->"
     "<text>bbox2d( Obj [, Geoid] )</text--->"
     "<text>Returns the 2d bounding box of the spatio-temporal object Obj."
@@ -17160,7 +17232,7 @@ Operator temporalgetposition( "getPosition",
 
 Operator temporalbbox( "bbox",
                        TemporalSpecBBox,
-                       5,
+                       6,
                        temporalbboxmap,
                        TemporalBBoxSelect,
                        TemporalBBoxTypeMap );
@@ -17174,7 +17246,7 @@ Operator temporalmbrange( "mbrange",
 
 Operator temporalbbox2d( "bbox2d",
                          TemporalSpecBBox2d,
-                         3,
+                         4,
                          temporalbbox2dmap,
                          TemporalBBox2dSelect,
                          TemporalBBox2dTypeMap );
@@ -19977,7 +20049,7 @@ OperatorSpec cbboxSpec(
   "cbbox(_, _)",
   "Creates a cupoint from an mpoint or a upoint with a real (otherwise the"
     "radius is set to 0.0)",
-  "query cbbox([const upoint value ((2019 2020 TRUE FALSE) (0.0 0.0 1.0 1.0))])"
+  "query cbbox([const upoint value ((1 2 TRUE FALSE) (0.0 0.0 1.0 1.0))])"
 );
 
 Operator cbbox(
@@ -19989,7 +20061,91 @@ Operator cbbox(
   cbboxTM   
 );
 
+/*
+Operator ~getRadius~
 
+This operator returns the radius of a CUPoint.
+
+*/
+ListExpr getRadiusTM(ListExpr args) {
+  std::string err = "cupoint expected";
+  if (!nl->HasLength(args, 1)) {
+    return listutils::typeError(err + " (wrong number of args)");
+  }
+  if (!CUPoint::checkType(nl->First(args))) {
+    return listutils::typeError(err +" (first arg is not a cupoint)");
+  }
+  return listutils::basicSymbol<CcReal>();
+}
+
+int getRadiusVM(Word* args, Word& result, int message, Word& local, Supplier s){
+  result = qp->ResultStorage(s);
+  CcReal* res = (CcReal*)result.addr;
+  CUPoint* src = (CUPoint*)args[0].addr;
+  if (!src->IsDefined()) {
+    res->SetDefined(false);
+    return 0;
+  }
+  res->Set(true, src->GetRadius());
+  return 0;
+}
+
+OperatorSpec getRadiusSpec(
+  "cupoint -> real",
+  "getRadius(_)",
+  "Returns the radius from a CUPoint",
+  "query getRadius([const cupoint value ((1 2 TRUE FALSE) (0.0 0.0 1.0 1.0) "
+    "0.3)])"
+);
+
+Operator getRadius(
+  "getRadius",
+  getRadiusSpec.getStr(),
+  getRadiusVM,
+  Operator::SimpleSelect,
+  getRadiusTM
+);
+
+/*
+Operator ~getUPoint~
+
+This operator returns the UPoint value of a CUPoint.
+
+*/
+ListExpr getUPointTM(ListExpr args) {
+  std::string err = "cupoint expected";
+  if (!nl->HasLength(args, 1)) {
+    return listutils::typeError(err + " (wrong number of args)");
+  }
+  if (!CUPoint::checkType(nl->First(args))) {
+    return listutils::typeError(err +" (first arg is not a cupoint)");
+  }
+  return listutils::basicSymbol<UPoint>();
+}
+
+int getUPointVM(Word* args, Word& result, int message, Word& local, Supplier s){
+  result = qp->ResultStorage(s);
+  UPoint* res = (UPoint*)result.addr;
+  CUPoint* src = (CUPoint*)args[0].addr;
+  src->GetUPoint(*res);
+  return 0;
+}
+
+OperatorSpec getUPointSpec(
+  "cupoint -> upoint",
+  "getUPoint(_)",
+  "Returns the UPoint value of a CUPoint",
+  "query getUPoint([const cupoint value ((1 2 TRUE FALSE) (0.0 0.0 1.0 1.0) "
+    "0.3)])"
+);
+
+Operator getUPoint(
+  "getUPoint",
+  getUPointSpec.getStr(),
+  getUPointVM,
+  Operator::SimpleSelect,
+  getUPointTM
+);
 
 
 /*
@@ -20182,6 +20338,8 @@ class TemporalAlgebra : public Algebra
     AddOperator(&constmpointOp);
 
     AddOperator(&cbbox);
+    AddOperator(&getRadius);
+    AddOperator(&getUPoint);
 
 #ifdef USE_PROGRESS
     temporalunits.EnableProgress();

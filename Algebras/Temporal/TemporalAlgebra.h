@@ -3589,6 +3589,15 @@ Extracts the final instant of the object.
     void FinalInstant(Instant& result) const;
 
 /*
+3.10.5.7 ~GetFullInterval~
+
+Extracts the time interval consisting of the initial and final instant and the
+leftclosed/rightclosed flags.
+
+*/
+    void GetFullInterval(Interval<Instant>& result) const;
+    
+/*
 type name used in Secondo
 
 */
@@ -4366,6 +4375,14 @@ templates using UPoint and MPoint.
   }
 
 /*
+~GetUPoint~
+
+*/
+  void GetUPoint(UPoint& result) const {
+    result = *((UPoint*)this);
+  }
+
+/*
 Redefinition of the copy operator ~=~.
 
 */
@@ -4475,92 +4492,28 @@ Functions required for attribute type
     del.isDefined = cupoint->del.isDefined;
   }
 
-  virtual const Rectangle<3> BoundingBox(const Geoid* geoid = 0) const {
-    double dir = p0.Direction(p1, false, geoid);
-    int horizSign = p0.GetX() < p1.GetX() ? 1 : -1;
-    int vertSign = p0.GetY() < p1.GetY() ? 1 : -1;
-    Point p0shifted = Point(true, p0.GetX() - horizSign * sin(dir) * radius,
-                                  p0.GetY() - vertSign * cos(dir) * radius);
-    Point p1shifted = Point(true, p1.GetX() + horizSign * sin(dir) * radius,
-                                  p1.GetY() + vertSign * cos(dir) * radius);
-    if (geoid) {
-      if (!geoid->IsDefined() || !IsDefined()) {
-        return Rectangle<3>(false);
-      }
-      Rectangle<2> geobbox(false);
-      if (AlmostEqual(p0, p1)) {
-        geobbox = p0shifted.GeographicBBox(p1shifted, *geoid);
-        double minMax[] = {geobbox.MinD(0), geobbox.MaxD(0),
-                           geobbox.MinD(1), geobbox.MaxD(1),
-                           timeInterval.start.ToDouble(),
-                           timeInterval.end.ToDouble()}; 
-        return Rectangle<3>(true, minMax);
-      } // else: use HalfSegment::BoundingBox(...)
-      geobbox = HalfSegment(true, p0shifted, p1shifted).BoundingBox(geoid);
-      double minMax[] = {geobbox.MinD(0), geobbox.MaxD(0),
-                         geobbox.MinD(1), geobbox.MaxD(1),
-                         timeInterval.start.ToDouble(),
-                         timeInterval.end.ToDouble()};
-      return Rectangle<3>(true, minMax);
-    } // else: euclidean geometry
-    if (this->IsDefined()) {
-      double minMax[] = {MIN(p0shifted.GetX(), p1shifted.GetX()),
-                         MAX(p0shifted.GetX(), p1shifted.GetX()),
-                         MIN(p0shifted.GetY(), p1shifted.GetY()),
-                         MAX(p0shifted.GetY(), p1shifted.GetY()),
-                         timeInterval.start.ToDouble(),
-                         timeInterval.end.ToDouble()};
-      return Rectangle<3>(true, minMax);
-    } 
-    else {
-      return Rectangle<3>(false);
-    }
-  }
+  virtual const Rectangle<3> BoundingBox(const Geoid* geoid = 0) const;
   
   static unsigned GetDim() {
     return (UPoint::GetDim());
   }
 
   virtual const Rectangle<3> BoundingBox(const double scaleTime,
-                                         const Geoid* geoid = 0) const {
-    Rectangle<3> bbx = this->BoundingBox(geoid);
-    if (bbx.IsDefined()) {
-      double minMax[] = {bbx.MinD(0), bbx.MaxD(0), bbx.MinD(1), bbx.MaxD(1),
-                         timeInterval.start.ToDouble()*scaleTime,
-                         timeInterval.end.ToDouble()*scaleTime};
-      return Rectangle<3>(true, minMax);
-    } 
-    else {
-      return Rectangle<3>(false);
-    }
-  }
+                                         const Geoid* geoid = 0) const;
 
-  const Rectangle<2> BoundingBoxSpatial(const Geoid* geoid = 0) const {
-    Rectangle<3> bbx = this->BoundingBox(geoid);
-    if (bbx.IsDefined()) {
-      double minMax[] = {bbx.MinD(0), bbx.MaxD(0), bbx.MinD(1), bbx.MaxD(1)};
-      return Rectangle<2>(true, minMax);
-    }
-    else {
-      return Rectangle<2>(false);
-    }
-  }
+  const Rectangle<2> BoundingBoxSpatial(const Geoid* geoid = 0) const;
   
 /*
 Transforms a UPoint into a CUPoint.
 
 */
-  void ConvertFrom(const UPoint& up) {
-    ((UPoint*)this)->CopyFrom(&up);
-  }
+  void ConvertFrom(const UPoint& up);
   
 /*
 Transforms an MPoint into a CUPoint.
 
 */
-  void ConvertFrom(const MPoint& mp) {
-    // TODO: all
-  }
+  void ConvertFrom(const MPoint& mp);
   
 /*
 Computes the distance to a CUPoint ~cup~. 
@@ -7524,6 +7477,20 @@ void Mapping<Unit, Alpha>::FinalInstant(Instant& result) const {
   Unit unit(true);
   units.Get(GetNoComponents() - 1, unit);
   result = unit.timeInterval.end;
+}
+
+template<class Unit, class Alpha>
+void Mapping<Unit, Alpha>::GetFullInterval(Interval<Instant>& result) const {
+  if (!IsDefined() || IsEmpty()) {
+    return;
+  }
+  Unit unit(true);
+  units.Get(0, unit);
+  result.start = unit.timeInterval.start;
+  result.lc = unit.timeInterval.lc;
+  units.Get(GetNoComponents() - 1, unit);
+  result.end = unit.timeInterval.end;
+  result.rc = unit.timeInterval.rc;
 }
 
 template<class Unit, class Alpha>

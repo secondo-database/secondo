@@ -794,5 +794,17 @@ Result    : 11573.4610617085
 Operator  : cbbox
 Number    : 1
 Signature : mpoint | upoint (x real) -> cupoint
-Example   : query isdefined(cbbox(train5))
-Result    : FALSE
+Example   : query size(bbox2d((cbbox(train5)))) > 1000000.0
+Result    : TRUE
+
+Operator  : getRadius
+Number    : 1
+Signature : cupoint -> real
+Example   : query getRadius(cbbox(train5))
+Result    : 3894.326188742
+
+Operator  : getUPoint
+Number    : 1
+Signature : cupoint -> upoint
+Example   : query length(getUPoint(cbbox(train5)))
+Result    : 15049.2137336141
