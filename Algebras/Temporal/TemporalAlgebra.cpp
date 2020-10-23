@@ -4829,7 +4829,7 @@ void MPoint::DistanceIntegral(const MPoint& mp, CcReal& result,
     return;
   }
   result.SetDefined(true);
-  Instant start1, start2;
+  Instant start1(datetime::instanttype), start2(datetime::instanttype);
   InitialInstant(start1);
   mp.InitialInstant(start2);
   MPoint shifted(true);
