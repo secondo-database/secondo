@@ -1,0 +1,150 @@
+/*
+//paragraph [10] Title: [{\Large \bf ]  [}]
+//[@] [\verb+@+]
+//[%] [\%]
+//[&] [\&]
+//[ue] [\"{u}]
+//[=~] [$\approx$]
+//[->] [$\rightarrow$]
+
+[10] Approximate kNN-Graph Construction in Secondo-Pregel
+
+Ralf Hartmut G[ue]ting, September 2020.
+
+Part 2
+
+3 Running the Algorithm in Pregel
+
+This part can be run repeatedly, each time starting a new session.
+
+*/
+query setupPregel(Workers);
+
+/*
+Create main memory structures:
+
+*/
+
+query remotePregelCommand('query meminit(3000)')
+
+query remotePregelCommand('let G = EdgesPersistent feed 
+  createmgraph3[Id, Id_t, Distance, Size]')
+
+query remotePregelCommand('let Nodes = NodesPersistent feed 
+  extend[Active: TRUE, Iterations: 0, SumD: k * 2000000.0, 
+  SumDNew: k * 1800000.0] mconsume')
+
+query remotePregelCommand('let Nodes_Id = Nodes mcreateAVLtree[Id]')
+
+/*
+Create the same structures on the master, to be able to run *setPregelFunction* which does type checking. These structures can be made small; only their types are evaluted.
+
+*/
+
+let G = EdgesP feed head[1] createmgraph3[Id, Id_t, Distance, Size]
+
+let Nodes = NodesP feed head[1] extend[Active: TRUE, Iterations: 0, 
+  SumD: k * 2000000.0, SumDNew: k * 1800000.0] mconsume
+
+let Nodes_Id = Nodes mcreateAVLtree[Id]
+
+/*
+Set function and run.
+
+*/
+
+query setPregelFunction(Compute, NodePartition)
+
+query InitialMessages feed initPregelMessages;
+
+query startPregel(-1)
+
+# 37 seconds for germany, 1456 nodes
+# 85:47 minutes for dortmund on newton (6 Workers), 331024 nodes
+
+
+
+
+/*
+Run with explicit Secondo loop.
+
+Here termination is controlled outside pregel. Therefore, from the ~Compute~ function, 
+
+----
+filter[.Active_n]
+----
+
+must be removed.
+
+----
+query remotePregelCommand('let AvgSumD = Nodes mfeed avg[SumD]')
+
+let AvgArray = createSDArray("AvgSumD", Workers) 
+
+let AvgSumD = AvgArray getValue tie[. + ..]
+
+let N = 10
+
+while N > 0 do
+{
+query simpleMessage(num2string(N))
+|
+query startPregel(2)
+|
+query remotePregelCommand('update AvgSumD := Nodes mfeed avg[SumD]')
+|
+update AvgSumD := AvgArray getValue tie[. + ..]
+|
+query simpleMessage(num2string(AvgSumD))
+|
+update N := N - 1
+}
+endwhile
+----
+
+*/
+
+
+/*
+Look at results. Can be done in the Javagui.
+
+*/
+
+if not(isDBObject("NodeResults")) then
+{ 
+query remotePregelCommand('let NodeResults = Nodes mfeed consume') |
+let NodeResults = createSDArray("NodeResults", Workers) dsummarize consume 
+|
+query remotePregelCommand('let GraphResult = G mg3feed consume') |
+let GraphResult = createSDArray("GraphResult", Workers) dsummarize consume
+}
+else 
+{ 
+query remotePregelCommand('update NodeResults := Nodes mfeed consume') |
+update NodeResults := createSDArray("NodeResults", Workers) dsummarize consume 
+|
+query remotePregelCommand('update GraphResult := G mg3feed consume') |
+update GraphResult := createSDArray("GraphResult", Workers) dsummarize consume
+}
+endif
+
+/*
+----
+query GraphResult feed extend[Curve: create_sline(.Value, .Value_t)] 
+  extend[SourcePos: .Value, TargetPos: .Value_t] remove[Value, Value_t] consume
+----
+
+*/
+
+let G = GraphResult feed createmgraph3[Id, Id_t, Distance, Size]
+
+query G mg3successors[70] extend[Curve: create_sline(.Value, .Value_t)] 
+  extend[SourcePos: .Value, TargetPos: .Value_t] remove[Value, Value_t] consume
+
+query NodesP feed some[20] loopsel[
+  G mg3successors[.Id] extend[Curve: create_sline(.Value, .Value_t)] 
+    extend[SourcePos: .Value, TargetPos: .Value_t] remove[Value, Value_t]
+] consume
+
+
+
