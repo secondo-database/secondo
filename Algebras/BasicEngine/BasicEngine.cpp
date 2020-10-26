@@ -221,11 +221,11 @@ bool val = false;
 CcBool* res = (CcBool*) result.addr;
 
   if(dbs_conn<L>){
-  val = dbs_conn<L>->partTable(tab->toText(), key->toText()
+    val = dbs_conn<L>->partTable(tab->toText(), key->toText()
         ,"RR", slot->GetIntval());
   }
   else{
-  cout << noConnection << endl;
+    cout << noConnection << endl;
   }
   res->Set(true, val);
 
@@ -1332,7 +1332,7 @@ ValueMapping init_pgWorkerVM[] = {
 */
 int init_pgWorkerSelect(ListExpr args){
 if (dbms_name == pg){
-  return CcString::checkType(nl->First(args))?0:1;
+  return CcString::checkType(nl->Second(args))?0:1;
 }else{
   return 0;
 }
@@ -1352,7 +1352,101 @@ Operator init_pgWorkerOp(
 );
 
 /*
-1.13 Implementation of the Algebra
+1.13 Operator  ~be\_runsql~
+
+Runs a sql-Statement from a file.
+
+1.13.1 Type Mapping
+
+This operator gets a filepath
+
+*/
+ListExpr be_runsqlTM(ListExpr args){
+string err = "\n (string, text} --> bool"
+       "(filepath) expected";
+
+  if(!(nl->HasLength(args,1))){
+    return listutils::typeError("One arguments expected. " + err);
+  }
+  if(!CcString::checkType(nl->First(args))
+        && !FText::checkType(nl->First(args))){
+    return listutils::typeError("Value of second argument have "
+        "to be a string or a text. " + err);
+  }
+  return nl->SymbolAtom(CcBool::BasicType());
+}
+
+/*
+1.13.2 Value Mapping
+
+*/
+template<class T, class L>
+int be_runsqlSFVM(Word* args, Word& result, int message
+        , Word& local, Supplier s ){
+T* path = (T*) args[0].addr;
+bool val;
+
+  result = qp->ResultStorage(s);
+
+  if(dbs_conn<L>){
+    val = dbs_conn<L>->runsql(path->toText());
+  }
+  else{
+    cout << noConnection << endl;
+  }
+
+((CcBool *)result.addr)->Set(true, val);
+
+return 0;
+}
+
+/*
+1.13.3 Specification
+
+*/
+OperatorSpec be_runsqlSpec(
+   "{string, text}  --> bool",
+   "be_runsql(_)",
+   "Runs a SQL-Statement from a sql-file",
+   "query be_runsql('/home/cbe/filetransfer/createroads.sql')"
+);
+
+/*
+1.13.4 ValueMapping Array
+
+*/
+ValueMapping be_runsqlVM[] = {
+  be_runsqlSFVM<CcString,ConnectionPG>,
+  be_runsqlSFVM<FText,ConnectionPG>,
+};
+
+/*
+1.13.5 Selection Function
+
+*/
+int be_runsqlSelect(ListExpr args){
+if (dbms_name == pg){
+  return CcString::checkType(nl->First(args))?0:1;
+}else{
+  return 0;
+}
+};
+
+/*
+1.13.6 Operator instance
+
+*/
+Operator be_runsqlOp(
+  "be_runsql",
+  be_runsqlSpec.getStr(),
+  2,
+  be_runsqlVM,
+  be_runsqlSelect,
+  be_runsqlTM
+);
+
+/*
+1.14 Implementation of the Algebra
 
 */
 class BasicEngineAlgebra : public Algebra
@@ -1372,6 +1466,7 @@ class BasicEngineAlgebra : public Algebra
     AddOperator(&be_unionOp);
     AddOperator(&be_structOp);
     AddOperator(&init_pgWorkerOp);
+    AddOperator(&be_runsqlOp);
   }
   ~BasicEngineAlgebra() {};
 };

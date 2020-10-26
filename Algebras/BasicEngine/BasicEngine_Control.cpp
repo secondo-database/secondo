@@ -117,7 +117,6 @@ bool BasicEngine_Control<T>::createAllConnection(){
 bool val = true;
 long unsigned int i = 0;
 
-
   while (i < anzWorker and val){
     val = createConnection(&i);
     i++;
@@ -283,11 +282,15 @@ string localCreateName = getFilePath() + remoteCreateName;
       localName = getFilePath() + remoteName;
       val = (si->sendFile(localName, remoteName, true) == 0);
       val = val && (remove(localName.c_str()) == 0);
-      if (!val){return val;}
+      if (!val){
+        cout << "\n Couldn't send the data to the worker." << endl;
+        return val;}
 
       //sending create Table
       val = (si->sendFile(localCreateName, remoteCreateName, true) == 0);
-      if (!val){return val;}
+      if (!val){
+    cout << "\n Couldn't send the structure-file to the worker." << endl;
+        return val;}
 
       index++;
       } else{
@@ -310,8 +313,11 @@ string localCreateName = getFilePath() + remoteCreateName;
     for(size_t i=0;i<importer.size();i++){
       val = val && importer[i]->getResult();
     }
-  }
+  }else cout << "\n Something goes wrong with the"
+		  " export or the transfer." << endl;
 
+  if(!val) cout << "\n Something goes wrong with the "
+		  "import at the worker." << endl;
 return val;
 }
 
@@ -445,15 +451,25 @@ bool val = true;
   if (boost::iequals(art, "RR")){val = partRoundRobin(&tab, &key, &slotsize);}
   else if (boost::iequals(art, "Hash")){val = partHash(&tab, &key, &slotsize);}
   else {val = partFun(&tab, &key, &art, &slotsize);};
-  if(!val){return val;}
+  if(!val){
+    cout << "\n Couldn't partition the table." << endl;
+    return val;
+  }
 
   val =  exportData(&tab, &key, &anzWorker);
-  if(!val){return val;}
+  if(!val){
+    cout << "\n Couldn't export the data from the table." << endl;
+    return val;
+  }
 
   val = createTabFile(tab);
-  if(!val){return val;}
+  if(!val){
+cout << "\n Couldn't create the structure-file" << endl;
+    return val;
+  }
 
   val = exportToWorker(&tab);
+  if(!val){cout << "\n Couldn't transfer the data to the worker." << endl;}
 
 return val;
 }
@@ -571,6 +587,28 @@ CommandLog CommandLog;
   else{
     val = false;
   }
+
+return val;
+}
+
+/*
+3.19 ~runsql~
+
+Runs a query from a file.
+
+Returns true if everything is OK and there are no failure.
+
+*/
+template<class T>
+bool BasicEngine_Control<T>::runsql(string filepath){
+bool val = false;
+string query;
+
+  //reading the file
+  query = readFile(&filepath);
+
+  //execute the sql-Statement
+  if (query != "") val = dbs_conn->sendCommand(&query);
 
 return val;
 }

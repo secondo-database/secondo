@@ -78,3 +78,9 @@ Number    : 1
 Signature : int x {string, text} x relation --> bool
 Example   : query init_pgWorker(5432, "gisdb", WorkersPG)
 Result    : FALSE
+
+Operator  : be_runsql
+Number    : 1
+Signature : {string, text} --> bool
+Example   : query be_runsql('/home/cbe/filetransfer/createroads.sql')
+Result    : FALSE

@@ -50,7 +50,7 @@ Implementation.
 
 */
 ConnectionPG::ConnectionPG(int nport, string ndbname) {
-  string keyword;
+string keyword;
   keyword = "host=localhost port=" + to_string(nport)
       + " dbname=" + ndbname + " connect_timeout=10";
   conn = PQconnectdb(keyword.c_str());
@@ -83,16 +83,16 @@ Returns TRUE if the execution was ok.
 bool ConnectionPG::sendCommand(string* command, bool print) {
 PGresult *res;
 const char *query_exec = command->c_str();
-//cout << *command << endl;
-if (checkConn()) {
-  res = PQexec(conn, query_exec);
-  if (!res || PQresultStatus(res) != PGRES_COMMAND_OK) {
-    if(print){printf("Error with Command:%s\n", PQresultErrorMessage(res));}
+  //cout << *command << endl;
+  if (checkConn()) {
+    res = PQexec(conn, query_exec);
+    if (!res || PQresultStatus(res) != PGRES_COMMAND_OK) {
+      if(print){printf("Error with Command:%s\n", PQresultErrorMessage(res));}
+      PQclear(res);
+      return false;
+    }
     PQclear(res);
-    return false;
   }
-  PQclear(res);
-}
 return true;
 }
 
@@ -108,13 +108,13 @@ PGresult* ConnectionPG::sendQuery(string* query) {
 PGresult *res;
 const char *query_exec = query->c_str();
 
-//cout << *query<< endl;
-if (checkConn()) {
-  res = PQexec(conn, query_exec);
-  if (!res || PQresultStatus(res) != PGRES_TUPLES_OK) {
-    printf("Error with Query:%s\n", PQresultErrorMessage(res));
+  //cout << *query<< endl;
+  if (checkConn()) {
+    res = PQexec(conn, query_exec);
+    if (!res || PQresultStatus(res) != PGRES_TUPLES_OK) {
+      printf("Error with Query:%s\n", PQresultErrorMessage(res));
+    }
   }
-}
 return res;
 }
 
@@ -130,7 +130,7 @@ string query_exec;
 PGresult* res;
 string write;
 
-query_exec = "SELECT a.attname as column_name, "
+  query_exec = "SELECT a.attname as column_name, "
       "    pg_catalog.format_type(a.atttypid, a.atttypmod) as column_type "
       "FROM pg_catalog.pg_attribute a "
       "INNER JOIN (SELECT oid FROM pg_catalog.pg_class "
@@ -140,19 +140,19 @@ query_exec = "SELECT a.attname as column_name, "
       "WHERE a.attnum > 0 "
       "    AND NOT a.attisdropped "
       "ORDER BY a.attnum ";
-res = sendQuery(&query_exec);
+  res = sendQuery(&query_exec);
 
 
-write = "DROP TABLE IF EXISTS public." + *tab +";\n"
+  write = "DROP TABLE IF EXISTS public." + *tab +";\n"
       "CREATE TABLE public." + *tab +" (\n";
-for (int i = 0; i<PQntuples(res) ; i++){
-  if (i>0) write.append(",");
-  write.append(PQgetvalue (res,i,0));
-  write.append(" ");
-  write.append(PQgetvalue(res,i,1)) ;
-  write.append("\n");
-}
-write.append(");");
+  for (int i = 0; i<PQntuples(res) ; i++){
+    if (i>0) write.append(",");
+    write.append(PQgetvalue (res,i,0));
+    write.append(" ");
+    write.append(PQgetvalue(res,i,1)) ;
+    write.append("\n");
+  }
+  write.append(");");
 
 return write;
 }
@@ -165,7 +165,7 @@ Creates a table in postgreSQL with the partitioned data by round robin.
 */
 string ConnectionPG::get_partRoundRobin(string* tab, string* key
                     , string* anzSlots, string* targetTab){
-string select = "SELECT (nextval('temp_seq') %" + *anzSlots+ ""
+  string select = "SELECT (nextval('temp_seq') %" + *anzSlots+ ""
     " ) + 1 As worker_number," + *key +" FROM "+ *tab;
 return "CREATE TEMP SEQUENCE IF NOT EXISTS temp_seq;"
     + get_createTab(targetTab,&select);
@@ -179,8 +179,8 @@ Creates a table in postgreSQL with the partitioned data by hash value.
 */
 string ConnectionPG::get_partHash(string* tab, string* key
                   , string* anzSlots, string* targetTab){
-string select = "SELECT DISTINCT (get_byte(decode(md5(concat("
-		"" + *key + ")),'hex'),15) %"
+  string select = "SELECT DISTINCT (get_byte(decode(md5(concat("
+  "" + *key + ")),'hex'),15) %"
         " " + *anzSlots + " ) + 1 As worker_number,"
         "" + *key +" FROM "+ *tab;
 return get_createTab(targetTab,&select);
@@ -259,17 +259,17 @@ string query_exec;
 string fields;
 string valueMap;
 
-query_exec = "DROP FUNCTION fun()";
-sendCommand(&query_exec,false);
+  query_exec = "DROP FUNCTION fun()";
+  sendCommand(&query_exec,false);
 
-select->append("SELECT worker_number ");
+  select->append("SELECT worker_number ");
 
-getFieldInfoFunction(tab,key,&fields,&valueMap,select);
+  getFieldInfoFunction(tab,key,&fields,&valueMap,select);
 
 
-select->append(" FROM fun()");
+  select->append(" FROM fun()");
 
-query_exec = "create or replace function fun() "
+  query_exec = "create or replace function fun() "
       "returns table ("
       " worker_number integer " + fields + ") "
       "language plpgsql"
@@ -304,17 +304,17 @@ string query_exec;
 string fields;
 string valueMap;
 
-query_exec = "DROP FUNCTION fun()";
-sendCommand(&query_exec,false);
+  query_exec = "DROP FUNCTION fun()";
+  sendCommand(&query_exec,false);
 
-select->append("SELECT worker_number ");
+  select->append("SELECT worker_number ");
 
-getFieldInfoFunction(tab,key,&fields,&valueMap,select);
+  getFieldInfoFunction(tab,key,&fields,&valueMap,select);
 
 
-select->append(" FROM fun()");
+  select->append(" FROM fun()");
 
-query_exec = "create or replace function fun() "
+  query_exec = "create or replace function fun() "
       "returns table ("
       " worker_number integer " + fields + ") "
       "language plpgsql"

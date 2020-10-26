@@ -97,6 +97,8 @@ public:
 
   bool mcommand(std::string query);
 
+  bool runsql(std::string filepath);
+
   bool createAllConnection();
 
   bool sendCommand(std::string query, bool print= true)

@@ -274,27 +274,7 @@ std::string res;
  }
 
 /*
-4.3.2 ~readFile~
-
-Reading a file and returns the text of this file as a string.
-
-*/
-std::string readFile(std::string* path){
-std::string line = "";
-std::ifstream myfile (*path);
-std::string res = "";
-
-  if (myfile.is_open()){
-    while ( getline (myfile,line)){
-      res = res + line;
-    }
-    myfile.close();
-  }
-  return res;
- }
-
-/*
-4.3.3 ~runImport~
+4.3.2 ~runImport~
 
 Starting the import from data at the worker.
 
@@ -304,7 +284,7 @@ std::string importPath;
 std::string cmd;
 
   importPath =ci->getSendPath() + "/"+ remoteCreateName;
-  cmd = "query be_command('"+ readFile(&importPath) + "');";
+  cmd = "query be_runsql('"+ importPath + "');";
   val = simpleCommand(&cmd);
 
   //delete create-file on system
@@ -327,7 +307,7 @@ std::string cmd;
  }
 
 /*
-4.3.4 ~runExport~
+4.3.3 ~runExport~
 
 Starting the export from data at the worker.
 
@@ -377,7 +357,7 @@ std::string transfer_path = path.substr(0,path.find(tab_name));
  }
 
 /*
-4.3.5 ~runQuery~
+4.3.4 ~runQuery~
 
 Starting a query at the worker.
 
@@ -397,7 +377,7 @@ std::string cmd;
  }
 
 /*
-4.3.6 ~runCommand~
+4.3.5 ~runCommand~
 
 Starting a command at the worker.
 
