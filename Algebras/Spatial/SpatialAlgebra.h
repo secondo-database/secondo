@@ -70,6 +70,7 @@ shows examples of these spatial data types.
 #include "LineT.h"
 #include "RegionT.h"
 #include "SimpleLineT.h"
+#include "CPoint.h"
 
 #include "HalfSegment.h"
 #include "Coord.h"

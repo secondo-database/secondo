@@ -130,7 +130,7 @@ the corresponding ~SpatialType~ type name.
 
 */
 enum SpatialType { stpoint, stpoints, stline, stregion,
-                   stbox, sterror, stsline };
+                   stbox, sterror, stsline, stcpoint };
 
 SpatialType
 SpatialTypeOfSymbol( ListExpr symbol )
@@ -144,6 +144,7 @@ SpatialTypeOfSymbol( ListExpr symbol )
     if ( s == Region::BasicType() ) return (stregion);
     if ( s == Rectangle<2>::BasicType()   ) return (stbox);
     if ( s == SimpleLine::BasicType()  ) return (stsline);
+    if ( s == CPoint::BasicType() ) return (stcpoint);
   }
   return (sterror);
 }
@@ -5776,6 +5777,275 @@ GenTC<Disc> disc;
 */
 GenTC<Segment> segment;
 
+/*
+9.1 Implementation of type ~cpoint~
+
+*/
+
+/*
+4 Type Constructor ~cpoint~
+
+A cpoint represents a point in the Euclidean plane with a radius
+which can be considered as a tolerance value.
+
+4.1 Implementation of the class ~CPoint~
+
+*/
+ostream& operator<<(ostream& o, const CPoint& cp) {
+  ios_base::fmtflags oldOptions = o.flags();
+  o.setf(ios_base::fixed,ios_base::floatfield);
+  o.precision(8);
+  if(cp.IsDefined()) {
+    o << "(" << *((Point*)&cp) << ", " << cp.getRadius() << ")";
+  }
+  else {
+    o << Symbol::UNDEFINED();
+  }
+  o.flags(oldOptions);
+  return o;
+}
+
+const Rectangle<2> CPoint::BoundingBox(const Geoid* geoid /*=0*/) const {
+  assert(IsDefined());
+  if (IsDefined()) {
+    if (geoid && geoid->IsDefined()) { // spherical case
+      double minx = MAX(-180, x - ApplyFactor(x) - radius);
+      double maxx = MIN(180, x + ApplyFactor(x) + radius);
+      double miny = MAX(-90, y - ApplyFactor(y) - radius);
+      double maxy = MIN(90,y + ApplyFactor(y) + radius);
+      double minMax[] = {minx, maxx, miny, maxy};
+      return Rectangle<2>(true, minMax);
+    }
+    else if (!geoid) {
+      double minMax[] = {x - ApplyFactor(x) - radius, 
+                         x + ApplyFactor(x) + radius,
+                         y - ApplyFactor(y) - radius,
+                         y + ApplyFactor(y) + radius};
+      return Rectangle<2>(true, minMax);
+    }
+  }
+  return Rectangle<2>(false);
+}
+
+ostream& CPoint::Print(ostream &os) const {
+  return os << *this;
+}
+
+string CPoint::toString(const Geoid* geoid /*=0*/) const {
+  stringstream s;
+  s << "(" << ((Point*)this)->toString(geoid) << ", " << radius << ")";
+  return s.str();
+}
+
+
+bool CPoint::Inside(const Rectangle<2>& r, const Geoid* geoid /*=0*/ ) const {
+  assert(r.IsDefined());
+  if (!IsDefined() || !r.IsDefined() || (geoid && !geoid->IsDefined())) {
+    return false;
+  }
+  Point p = *((Point*)this);
+  if (!p.Inside(r)) {
+    return false;
+  }
+  Point right(true, radius, 0.0), top(true, 0.0, radius);
+  return (p + right).Inside(r) && (p - right).Inside(r) 
+      && (p + top).Inside(r) && (p - top).Inside(r);
+}
+
+void CPoint::ReadFromString(string value) {
+  ListExpr list;
+  if (!nl->ReadFromString(value, list)) {
+    if (!nl->ReadFromString("(" + value + ")", list)) {
+      SetDefined(false); 
+      return;
+    }
+  }
+  if (listutils::isSymbolUndefined(list)) {
+    SetDefined(false);
+    return;
+  }
+  if (!nl->HasLength(list, 2)) {
+    SetDefined(false);
+    return;
+  }
+  ((Point*)this)->ReadFromString(nl->ToString(nl->First(list)));
+  if (IsDefined() && !listutils::isNumeric(nl->Second(list))) {
+    radius = listutils::getNumValue(nl->Second(list));
+    return;
+  }
+  SetDefined(false);
+}
+
+double CPoint::Distance(const CPoint& cp, const Geoid* geoid /* = 0 */) const {
+  double pointDistance = ((Point*)this)->Distance(*((Point*)&cp), geoid);
+  return std::max(0.0, pointDistance - radius - cp.getRadius());
+}
+
+double CPoint::Distance(const Rectangle<2>& r, const Geoid* geoid/*=0*/) const {
+  double pointDistance = ((Point*)this)->Distance(r, geoid);
+  return std::max(0.0, pointDistance - radius);
+}
+
+bool CPoint::Intersects(const Rectangle<2>& r, const Geoid* geoid/*=0*/) const {
+  if (((Point*)this)->Intersects(r)) {
+    return true;
+  }
+  return Distance(r) <= radius;
+}
+
+
+Rectangle<2> CPoint::GeographicBBox(const CPoint &other, const Geoid &geoid)
+                                                                         const {
+  if (!checkGeographicCoord() || !other.checkGeographicCoord()
+   || !geoid.IsDefined()) {
+    return Rectangle<2>(false);
+  }
+  double northmostLAT;
+  double southmostLAT;
+  orthodromeExtremeLatitudes(other, geoid, southmostLAT, northmostLAT);
+  CPoint cp1(true, MIN(GetX(), other.GetX()), southmostLAT);
+  CPoint cp2(true, MAX(GetX(), other.GetX()), northmostLAT);
+  return cp1.BoundingBox().Union(cp2.BoundingBox());
+}
+
+/*
+4.2 List Representation
+
+The list representation of a cpoint is
+
+----  ((x y), radius)
+----
+
+4.3 ~Out~-function
+
+*/
+ListExpr OutCPoint(ListExpr typeInfo, Word value) {
+  CPoint* cpoint = (CPoint*)(value.addr);
+  if (cpoint->IsDefined()) {
+    return nl->TwoElemList(OutPoint(typeInfo, (Point*)cpoint), 
+                           nl->RealAtom(cpoint->getRadius()));
+  }
+  else {
+    return nl->SymbolAtom(Symbol::UNDEFINED());
+  }
+}
+
+/*
+4.4 ~In~-function
+
+*/
+Word InCPoint(const ListExpr typeInfo, const ListExpr instance,
+              const int errorPos, ListExpr& errorInfo, bool& correct) {
+  correct = true;
+  
+  
+  
+  if (nl->ListLength(instance) == 2) {
+    Word p = InPoint(typeInfo, nl->First(instance), errorPos, errorInfo, 
+                     correct);
+    correct = listutils::isNumeric(nl->Second(instance));
+    if (!correct) {
+      return SetWord(Address(0));
+    }
+    else {
+      return SetWord(new CPoint(*((Point*)p.addr),
+                                listutils::getNumValue(nl->Second(instance))));
+    }
+  } 
+  else if (listutils::isSymbolUndefined(instance)) {
+     return SetWord(new CPoint(false));
+  }
+  correct = false;
+  return SetWord(Address(0));
+}
+
+/*
+4.5 ~Create~-function
+
+*/
+Word CreateCPoint(const ListExpr typeInfo) {
+  return SetWord(new CPoint(false));
+}
+
+/*
+4.6 ~Delete~-function
+
+*/
+void DeleteCPoint(const ListExpr typeInfo, Word& w) {
+  ((CPoint*)w.addr)->DeleteIfAllowed();
+  w.addr = 0;
+}
+
+/*
+4.7 ~Close~-function
+
+*/
+void CloseCPoint(const ListExpr typeInfo, Word& w) {
+  ((CPoint*)w.addr)->DeleteIfAllowed();
+  w.addr = 0;
+}
+
+/*
+4.8 ~Clone~-function
+
+*/
+Word CloneCPoint(const ListExpr typeInfo, const Word& w) {
+  return SetWord(new CPoint(*((CPoint*)w.addr)));
+}
+
+/*
+4.8 ~SizeOf~-function
+
+*/
+int SizeOfCPoint() {
+  return sizeof(CPoint);
+}
+
+/*
+4.9 Function describing the signature of the type constructor
+
+*/
+ListExpr CPointProperty() {
+  return nl->TwoElemList(nl->FourElemList(
+                           nl->StringAtom("Signature"),
+                           nl->StringAtom("Example Type List"),
+                           nl->StringAtom("List Rep"),
+                           nl->StringAtom("Example List")),
+                         nl->FourElemList(
+                           nl->StringAtom("-> DATA"),
+                           nl->StringAtom(CPoint::BasicType()),
+                           nl->StringAtom("((x y), r)"),
+                           nl->StringAtom("((0.9 1.8) 0.09)")));
+}
+
+/*
+4.10 Kind Checking Function
+
+This function checks whether the type constructor is applied correctly. Since
+type constructor ~point~ does not have arguments, this is trivial.
+
+*/
+bool CheckCPoint(ListExpr type, ListExpr& errorInfo) {
+  return (listutils::isSymbol(type, CPoint::BasicType()));
+}
+
+
+/*
+4.12 Creation of the type constructor instance
+
+*/
+TypeConstructor cpoint(
+  CPoint::BasicType(),                    //name
+  CPointProperty,              //property function describing signature
+  OutCPoint,      InCPoint,     //Out and In functions
+  0,             0,           //SaveToList and RestoreFromList functions
+  CreateCPoint,   DeleteCPoint, //object creation and deletion
+  OpenAttribute<CPoint>,
+  SaveAttribute<CPoint>,  // object open and save
+  CloseCPoint,    CloneCPoint,  //object close, and clone
+  CPoint::Cast,                  //cast function
+  SizeOfCPoint,                //sizeof function
+  CheckCPoint);               //kind checking function
 
 
 /*
@@ -6735,7 +7005,8 @@ SpatialBBoxMap( ListExpr args )
        SpatialTypeOfSymbol( arg1 ) != stline &&
        SpatialTypeOfSymbol( arg1 ) != stpoints &&
        SpatialTypeOfSymbol( arg1 ) != stsline  &&
-       !Rectangle<2>::checkType(arg1) ){
+       !Rectangle<2>::checkType(arg1) &&
+       !CPoint::checkType(arg1)) {
     return listutils::typeError(errmsg);
   }
   if( (noargs == 2) &&
@@ -7914,7 +8185,9 @@ SpatialSelectBBox( ListExpr args )
   if(Rectangle<2>::checkType(arg1)){
      return 5;
   }
-
+  if (CPoint::checkType(arg1)) {
+    return 6;
+  }
   return -1; // This point should never be reached
 }
 
@@ -11071,7 +11344,8 @@ ValueMapping spatialbboxmap[] = {
   SpatialBBox<Line>,
   SpatialBBox<Region>,
   SpatialBBox<SimpleLine>,
-  SpatialBBox<Rectangle<2> > };
+  SpatialBBox<Rectangle<2> >,
+  SpatialBBox<CPoint>};
 
 ValueMapping spatialtouchpointsmap[] = {
   SpatialTouchPoints_lr,
@@ -11386,7 +11660,8 @@ const string SpatialSpecNoSegments  =
 
 const string SpatialSpecBbox  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "( <text>(point||points||line||region||sline) [x geoid]-> rect</text--->"
+  "( <text>(point||points||line||region||sline||cpoint) [x geoid] -> rect"
+    "</text--->"
   "<text> bbox( Obj [, Geoid ] )</text--->"
   "<text>Returns the bounding box of a spatial object Obj. If Geoid is passed, "
   "the geographical bounding box is computed.</text--->"
@@ -11964,7 +12239,7 @@ Operator spatialnosegments (
 Operator spatialbbox (
   "bbox",
   SpatialSpecBbox,
-  6,
+  7,
   spatialbboxmap,
   SpatialSelectBBox,
   SpatialBBoxMap );
@@ -18694,6 +18969,8 @@ class SpatialAlgebra : public Algebra
     AddTypeConstructor( &oim);
 
     AddTypeConstructor( & label);
+    
+    AddTypeConstructor( &cpoint);
 
 
     point.AssociateKind(Kind::DATA());
@@ -18707,7 +18984,7 @@ class SpatialAlgebra : public Algebra
     drm.AssociateKind(Kind::DATA());
     oim.AssociateKind(Kind::DATA());
     label.AssociateKind(Kind::DATA());
-
+    cpoint.AssociateKind(Kind::DATA());
 
 
     point.AssociateKind(Kind::SPATIAL2D());
@@ -18716,7 +18993,8 @@ class SpatialAlgebra : public Algebra
     region.AssociateKind(Kind::SPATIAL2D());
     sline.AssociateKind(Kind::SPATIAL2D());
     dline.AssociateKind(Kind::SPATIAL2D());
-
+    cpoint.AssociateKind(Kind::SPATIAL2D());
+    
 
     point.AssociateKind(Kind::SHPEXPORTABLE());
     points.AssociateKind(Kind::SHPEXPORTABLE());
