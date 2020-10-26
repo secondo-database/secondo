@@ -121,13 +121,15 @@ class IrregularGrid2D {
     // The copy constructor.
     IrregularGrid2D( const IrregularGrid2D& g );
 
-    Rectangle<2> * getBoundingBox();
+    Rectangle<2> * getBoundingBoxRef();
+    Rectangle<2> getBoundingBox();
+
     int getRowCount();
     int getCellCount();
     std::vector<VCell> &getColumnVector();
 
     // Auxiliary functions for In or/and Value mapping functions
-    void Set(Stream<Rectangle<2>> rStream, Rectangle<2> &bounding_box,
+    void Set(Stream<Rectangle<2>> rStream, Rectangle<2>& bounding_box,
         int rowCount, int cellCount);
     static std::vector<CellInfo*> getCellInfoVector(
       IrregularGrid2D *in_irgrid2d);
@@ -170,6 +172,12 @@ class IrregularGrid2D {
 
     static bool KindCheckIrGrid2D( ListExpr type, ListExpr& errorInfo);
 
+    static bool OpenIrGrid2D(SmiRecord& valueRecord,
+      size_t& offset, const ListExpr typeInfo, Word& value);
+
+    static bool SaveIrGrid2D(SmiRecord& valueRecord, size_t& offset,
+      const ListExpr typeInfo, Word& value);
+
     inline static const std::string BasicType() {
       return "irgrid2d";
     }
@@ -183,8 +191,11 @@ class IrregularGrid2D {
   private:
     // points sorted by y-coordinates
   std::vector<RPoint> points{};
+  // irregular grid bounding box reference
+  Rectangle<2> * boundingBox_ref;
   // irregular grid bounding box
-  Rectangle<2> * boundingBox;
+  // TODO unify bounding / bounding reference
+  Rectangle<2> boundingBox;
   // number of rows and cells per row
   int rowCount, cellCount;
   // column (y-axis) vector with access to the section vectors (x-axes)

@@ -107,30 +107,33 @@ HCell::getUpper() {
 HCell::~HCell() { }
 
 IrregularGrid2D::IrregularGrid2D() {
-  boundingBox = nullptr;
+  boundingBox_ref = nullptr;
   rowCount = 0;
   cellCount = 0;
 }
 
 IrregularGrid2D::IrregularGrid2D(const IrregularGrid2D& g) {
-  boundingBox = g.boundingBox;
+  boundingBox_ref = g.boundingBox_ref;
+  boundingBox = *boundingBox_ref;
   rowCount = g.rowCount;
   cellCount = g.cellCount;
 }
 
 IrregularGrid2D::IrregularGrid2D(Rectangle<2> &bounding_box,
     int row_count, int cell_count) {
-  boundingBox = &bounding_box;
+  boundingBox_ref = &bounding_box;
+  boundingBox = *boundingBox_ref;
   rowCount = row_count;
   cellCount = cell_count;
 }
 
 void
 IrregularGrid2D::Set(Stream<Rectangle<2>> rStream,
-    Rectangle<2> &bounding_box,
+    Rectangle<2>& bounding_box,
     int row_count, int cell_count) {
 
-  boundingBox = &bounding_box;
+  boundingBox_ref = &bounding_box;
+  boundingBox = *boundingBox_ref;
   rowCount = row_count;
   cellCount = cell_count;
 
@@ -141,7 +144,7 @@ void
 IrregularGrid2D::SetVector(std::vector<Rectangle<2>>* rVector,
                      Rectangle<2> &bounding_box,
                      int row_count, int cell_count) {
-   boundingBox = &bounding_box;
+   boundingBox_ref = &bounding_box;
    rowCount = row_count;
    cellCount = cell_count;
 
@@ -200,12 +203,12 @@ void
 IrregularGrid2D::buildGrid() {
 
   // create grid structure
-  double bb_top = boundingBox->getMaxY();
-  double bb_bot = boundingBox->getMinY();
+  double bb_top = boundingBox_ref->getMaxY();
+  double bb_bot = boundingBox_ref->getMinY();
   double colOffset = (bb_top - bb_bot) / rowCount;
 
-  double bb_right = boundingBox->getMaxX();
-  double bb_left = boundingBox->getMinX();
+  double bb_right = boundingBox_ref->getMaxX();
+  double bb_left = boundingBox_ref->getMinX();
   double hOffset = (bb_right - bb_left) / cellCount;
 
   double col_boundary_val = bb_bot;
@@ -412,7 +415,7 @@ IrregularGrid2D::processInput(Stream<Rectangle<2>> rStream) {
   Rectangle<2>* next = rStream.request();
 
   while(next != 0){
-    if (!insideBoundingBox(boundingBox, next)) {
+    if (!insideBoundingBox(boundingBox_ref, next)) {
       // rectangle (partially) outside the bounding box is discarded
       next = rStream.request();
       continue;
@@ -430,7 +433,7 @@ IrregularGrid2D::processInput(Stream<Rectangle<2>> rStream) {
 void
 IrregularGrid2D::processInputVector(std::vector<Rectangle<2>>* rVector) {
    for (Rectangle<2> bbox : *rVector) {
-      if (!insideBoundingBox(boundingBox, &bbox)) {
+      if (!insideBoundingBox(boundingBox_ref, &bbox)) {
          // rectangle (partially) outside the bounding box is discarded
          continue;
       }
@@ -442,8 +445,13 @@ IrregularGrid2D::processInputVector(std::vector<Rectangle<2>>* rVector) {
 }
 
 Rectangle<2> *
+IrregularGrid2D::getBoundingBoxRef() {
+  return this->boundingBox_ref;
+}
+
+Rectangle<2>
 IrregularGrid2D::getBoundingBox() {
-  return boundingBox;
+  return this->boundingBox;
 }
 
 int
@@ -502,12 +510,13 @@ IrregularGrid2D::OutIrGrid2D( ListExpr typeInfo, Word value ) {
   IrregularGrid2D* irgrid2d = static_cast<IrregularGrid2D*>( value.addr );
 
   if (irgrid2d != nullptr) {
-    Rectangle<2> * b_box = irgrid2d->getBoundingBox();
+    //Rectangle<2> * b_box = irgrid2d->getBoundingBoxRef();
+    Rectangle<2> b_box = irgrid2d->getBoundingBox();
     ListExpr bboxLstExpr = nl->FourElemList(
-      nl->RealAtom(b_box->getMinX()),
-      nl->RealAtom(b_box->getMaxX()),
-      nl->RealAtom(b_box->getMinY()),
-      nl->RealAtom(b_box->getMaxY()));
+      nl->RealAtom(b_box.getMinX()),
+      nl->RealAtom(b_box.getMaxX()),
+      nl->RealAtom(b_box.getMinY()),
+      nl->RealAtom(b_box.getMaxY()));
 
     std::vector<VCell>* col = &irgrid2d->getColumnVector();
 
@@ -770,6 +779,60 @@ IrregularGrid2D::SizeOfIrGrid2D()
   return sizeof(IrregularGrid2D);
 }
 
+// TODO Open function
+bool
+IrregularGrid2D::OpenIrGrid2D( SmiRecord& valueRecord, size_t& offset,
+  const ListExpr typeInfo, Word& value )
+{
+  bool ok = true;
+
+  //value.addr = new IrregularGrid2D();
+
+  return ok;
+}
+
+// TODO Save function
+bool
+IrregularGrid2D::SaveIrGrid2D( SmiRecord& valueRecord, size_t& offset,
+  const ListExpr typeInfo, Word& value )
+{
+
+  /*IrregularGrid2D *g = static_cast<IrregularGrid2D*>( value.addr );
+
+  size_t size = sizeof(Rectangle<2>);
+  Rectangle<2> b_box = g->getBoundingBox(); */
+  bool ok = true;
+  /* double v = b_box.getMinX();
+  ok = ok && valueRecord.Write(&v, size, offset );
+  offset += size;
+  v = b_box.getMaxX();
+  ok = ok && valueRecord.Write(&v, size, offset );
+  offset += size;
+  v = b_box.getMinY();
+  ok = ok && valueRecord.Write(&v, size, offset );
+  offset += size;
+  v = b_box.getMaxY();
+  ok = ok && valueRecord.Write(&v, size, offset );
+  offset += size;
+
+  std::vector<VCell>* col = &g->getColumnVector();
+
+  if (col->size() > 0) {
+    for(size_t colIdx = 0; colIdx < col->size(); colIdx++) {
+      VCell* vcell = &col->at(colIdx);
+
+      std::vector<HCell>* row_vect = &col->at(colIdx).getRow();
+      if (row_vect->size() > 0) {
+        for(size_t rowIdx = 0; rowIdx < row_vect->size(); rowIdx++) {
+          HCell* row_cell = &row_vect->at(rowIdx);
+        }
+      }
+   }
+  } */
+
+  return ok;
+}
+
 /*
 Type mapping function ~IrGrid2dFeedTypeMap~
 
@@ -988,7 +1051,7 @@ IrregularGrid2D::IrGrid2dValueMapCellnos( Word* args, Word& result, int message,
     result = qp->ResultStorage(s);
     collection::IntSet* res = (collection::IntSet*) result.addr;
 
-    Rectangle<2> * b_box = input_irgrid2d_ptr->getBoundingBox();
+    Rectangle<2> * b_box = input_irgrid2d_ptr->getBoundingBoxRef();
     if (!search_window_ptr->Intersects(*b_box)) {
       cell_ids.insert(0);
       res->setTo(cell_ids);

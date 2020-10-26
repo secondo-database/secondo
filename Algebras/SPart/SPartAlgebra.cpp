@@ -74,6 +74,7 @@ TypeConstructor irgrid2d(
   IrregularGrid2D::CreateIrGrid2D, IrregularGrid2D::DeleteIrGrid2D,
   // object open, save
   0, 0,
+  //IrregularGrid2D::OpenIrGrid2D, IrregularGrid2D::SaveIrGrid2D,
   // object close and clone
   IrregularGrid2D::CloseIrGrid2D, IrregularGrid2D::CloneIrGrid2D,
   // cast function
