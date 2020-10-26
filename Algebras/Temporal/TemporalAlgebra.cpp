@@ -4920,8 +4920,8 @@ void MPoint::Distance( const Point& p, MReal& result, const Geoid* geoid ) const
   result.EndBulkLoad( false, false );
 }
 
-void MPoint::DistanceIntegral(const MPoint& mp, CcReal& result, 
-                              const Geoid* geoid) const {
+void MPoint::DistanceAvg(const MPoint& mp, CcReal& result, const Geoid* geoid) 
+                                                                         const {
   if (!IsDefined() || !mp.IsDefined() || (geoid && !geoid->IsDefined())) {
     result.SetDefined(false);
     return;
@@ -11162,12 +11162,12 @@ ListExpr SampleMPointTypeMap(ListExpr args){
 
 
 /*
-~DistanceIntegralTypeMap~
+~DistanceAvgTypeMap~
 
-This type mapping is applied by the ~distanceintegral~ operator.
+This type mapping is applied by the ~distanceAvg~ operator.
 
 */
-ListExpr DistanceIntegralTypeMap(ListExpr args) {
+ListExpr DistanceAvgTypeMap(ListExpr args) {
   if (!nl->HasLength(args, 2) && !nl->HasLength(args, 3)) {
     return listutils::typeError("two or three arguments expected");
   }
@@ -12961,18 +12961,18 @@ int MPointDistance( Word* args, Word& result, int message, Word&
 }
 
 /*
-16.3.29 Value mapping function of operator ~distancentegral~
+16.3.29 Value mapping function of operator ~distanceAvg~
 
 */
-int MPointDistanceIntegral(Word* args, Word& result, int message, Word& local,
-                           Supplier s) {
+int MPointDistanceAvg(Word* args, Word& result, int message, Word& local,
+                      Supplier s) {
   result = qp->ResultStorage(s);
   Geoid *geoid = 0;
   if (qp->GetNoSons(s) == 3) {
     geoid = (Geoid*)args[2].addr;
   }
-  ((MPoint*)args[0].addr)->DistanceIntegral(*((MPoint*)args[1].addr),
-                                            *((CcReal*)result.addr), geoid);
+  ((MPoint*)args[0].addr)->DistanceAvg(*((MPoint*)args[1].addr),
+                                       *((CcReal*)result.addr), geoid);
   return 0;
 }
 
@@ -16285,12 +16285,12 @@ const std::string TemporalSpecDistance =
   "<text>distance( mpoint1, point1 )</text--->"
   ") )";
 
-const std::string TemporalSpecDistanceIntegral =
+const std::string TemporalSpecDistanceAvg =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>(mpoint mpoint) -> real</text--->"
-  "<text>distanceintegral( _, _ ) </text--->"
-  "<text>Returns the distance based on the integral.</text--->"
-  "<text>distanceintegral(mpoint1, mpoint2)</text--->"
+  "<text>distanceAvg( _, _ ) </text--->"
+  "<text>Returns the average distance based on the integral.</text--->"
+  "<text>distanceAvg(mpoint1, mpoint2)</text--->"
   ") )";
 
 const std::string TemporalSpecSquaredDistance =
@@ -17104,11 +17104,11 @@ Operator temporaldistance( "distance",
                            Operator::SimpleSelect,
                            MovingBaseTypeMapMReal );
 
-Operator temporaldistanceintegral( "distanceintegral",
-                           TemporalSpecDistanceIntegral,
-                           MPointDistanceIntegral,
+Operator temporaldistanceavg( "distanceAvg",
+                           TemporalSpecDistanceAvg,
+                           MPointDistanceAvg,
                            Operator::SimpleSelect,
-                           DistanceIntegralTypeMap );
+                           DistanceAvgTypeMap );
 
 Operator temporalsquareddistance( "squareddistance",
                            TemporalSpecSquaredDistance,
@@ -20262,7 +20262,7 @@ class TemporalAlgebra : public Algebra
 
     AddOperator( &temporalat );
     AddOperator( &temporaldistance );
-    AddOperator( &temporaldistanceintegral );
+    AddOperator( &temporaldistanceavg );
     AddOperator( &temporalsimplify );
     AddOperator( &temporalintegrate );
     AddOperator( &temporallinearize );

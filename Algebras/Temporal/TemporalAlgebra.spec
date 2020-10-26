@@ -89,7 +89,7 @@ operator turns alias TURNS pattern op( _, _, _, _, _, _ )
 operator timeshift alias TIMESHIFT pattern _ op[ _ ]
 operator gridcellevents alias GRIDCELLEVENTS pattern op(_)
 operator squareddistance alias SQUAREDDISTANCE pattern op ( _ , _ )
-operator distanceintegral alias SQUAREDDISTANCE pattern op ( _ , _ )
+operator distanceAvg alias DISTANCEAVG pattern op ( _ , _ )
 operator getRefinementPartion alias GETREFINEMENTPARTION pattern op( _, _ )
 operator removeNoise alias REMOVENOISE pattern _ op [ _ , _ ]
 

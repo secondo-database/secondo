@@ -4010,8 +4010,8 @@ If invalid geographic coordinates are found, the result is UNDEFINED.
 */
   void Distance( const Point& p, MReal& result,
                  const Geoid* geoid=0 ) const;
-  void DistanceIntegral(const MPoint& mp, CcReal& result, 
-                        const Geoid* geoid=0) const;
+  void DistanceAvg(const MPoint& mp, CcReal& result, 
+                   const Geoid* geoid=0) const;
   void SquaredDistance( const Point& p, MReal& result,
                         const Geoid* geoid=0 ) const;
   void SquaredDistance( const MPoint& p, MReal& result,
@@ -4525,6 +4525,203 @@ Computes the distance to a CUPoint ~cup~.
 
 private:
   double radius;
+};
+
+
+/*
+3.12 Class ~CMPoint~
+
+An instance of this class is a sequence of ~CUPoint~ values.
+
+*/
+class CMPoint : public Mapping<CUPoint, CPoint> {
+  public:
+
+/*
+3.12.1 Constructors and Destructor
+
+The simple constructor. This constructor should not be used.
+
+*/
+  CMPoint() {}
+
+/*
+The constructor. Initializes space for ~n~ elements.
+
+*/
+  CMPoint(const int n): Mapping<CUPoint, CPoint>(n) {
+    del.refs=1;
+    del.SetDelete();
+    del.isDefined = true;
+    bbox = Rectangle<3>(false);
+  }
+
+/*
+Extracts the ~mpoint~ information from a ~cmpoint~.
+
+*/
+  void GetMPoint(MPoint& result) const;
+
+/*
+Extracts the ~upoint~ information at a given position.
+
+*/
+  void GetUPoint(const int pos, UPoint& result) const;
+
+/*
+3.12.2 Modifications of Inherited Functions
+
+Overwrites the function defined in Mapping, mostly in order to
+maintain the object's bounding box. Also, some methods can be improved
+using a check on bbox.
+
+*/
+
+  void Clear();
+  void Add(const CUPoint& unit);
+  void MergeAdd(const CUPoint& unit);
+  bool EndBulkLoad(const bool sort = true, const bool checkvalid = false);
+  void Restrict(const std::vector<std::pair<int, int> >& intervals);
+  std::ostream& Print(std::ostream &os) const;
+  bool operator==(const CMPoint& r) const;
+  bool Present(const Instant& t) const;
+  bool Present(const Periods& t) const;
+  void AtInstant(const Instant& t, Intime<CPoint>& result) const;
+  void AtPeriods(const Periods& p, CMPoint& result) const;
+  void AtRect(const Rectangle<2>& rect, CMPoint& result) const;
+
+/*
+3.10.5.3 Operation ~trajectory~
+
+*Precondition:* ~X.IsOrdered()~
+
+*Semantics:*
+
+*Complexity:* $O( n )$, where ~n~ is the number of units of this ~MPoint~
+
+*/
+  void Trajectory(Line& line) const;
+
+  // The scalar velocity as a temporal function
+  // If geoid = 0, metric (X.Y)-coordinates are used within the MPoint.
+  // If geoid points to a valid Geoid object, geografic coordinates (LON,LAT)
+  // are used within the MPoint (speed over ground).
+  void MSpeed(MReal& result, const Geoid* geoid = 0) const;
+
+  // The vectorial velocity --- (X,Y)-components --- as temporal function
+  void MVelocity(MPoint& result) const;
+
+/*
+3.10.5.3 Operation ~distance~
+
+If ~geoid~ is NULL, euclidean geometry is used, spherical geometry otherwise.
+If invalid geographic coordinates are found, the result is UNDEFINED.
+
+*Precondition:* ~X.IsOrdered()~
+
+*Semantics:*
+
+*Complexity:* $O( n )$, where ~n~ is the number of units of this ~CMPoint~
+
+*/
+  void Distance(const CPoint& p, MReal& result, const Geoid* geoid = 0) const;
+  void DistanceAvg(const CMPoint& cmp, CcReal& result, const Geoid* geoid = 0)
+                                                                          const;
+
+/*
+3.10.5.6 Operatiopn ~Breaks~
+
+This function computes the timeIntervals for Breaks
+
+*/
+
+  void Breaks(Periods& result, const datetime::DateTime& dur,
+              const CcReal& epsilon, const Geoid* geoid= 0 ) const;
+
+/*
+3.10.5.7 Direction
+
+Compute the ~direction~ (~useHeading~ is ~false~) resp. ~heading~ (~true~) of a
+moving point.
+If ~geoid~ is not NULL, spherical geometry is applied. In this case, each unit
+may produce several result units, since the true course changes along the
+orthodrome. Parameter ~epsilon~ determines how exact the approximation will be.
+
+*/
+  void Direction(MReal* result,
+                 const bool useHeading = false,
+                 const Geoid* geoid    = 0,
+                 const double epsilon  = 0.0000001) const;
+
+/*
+3.10.5.8 ~Append~
+
+The ~Append~ function appends all units of the argument to this
+CMPoint. If this cmpoint or the argument is undefined or if the
+argument starts before this cmpoint ends, this cmpoint will be set
+to undefined. The return value is the defined state of this
+cmpoint after the operation (indicating the success).
+
+*/
+  bool Append(const CMPoint& p, const bool autoresize = true);
+
+/*
+3.10.5.10 ~length~
+
+Determines the drive distance of this cmpoint (odometer).
+Coordinates are interpreted as metric (X,Y) coordinates.
+Will return a value smaller than zero if this cmpoint is not defined
+
+*/
+  double Length() const;
+
+/*
+Determines the drive distance of this cmpoint (odometer).
+Coordinates are interpreted as geographic (LON,LAT) coordinates.
+
+If an invalid geographic coordinate is encountered, ~valid~ is set to false,
+otherwise the result is calculated and ~valid~ is set to true.
+
+The same happens, if the cmpoint is undefined. In addition to setting ~valid~ to
+false, the return value will be negative.
+
+*/
+  double Length(const Geoid& g, bool& valid) const;
+
+/*
+3.10.5.11 ~BoundingBox~
+
+Returns the cmpoint's minimum bounding rectangle. If geoid is NULL, euclidean
+geometry is used, otherwise spherical geometry is applied.
+
+*/
+  Rectangle<3> BoundingBox(const Geoid* geoid = 0) const;
+
+  static unsigned GetDim() {return 3;}
+
+  const Rectangle<2> BoundingBoxSpatial(const Geoid* geoid = 0) const;
+
+  // recompute bbox, if necessary
+  void RestoreBoundingBox(const bool force = false);
+
+  static const std::string BasicType() {return "cmpoint";}
+  
+  static const bool checkType(const ListExpr type) {
+    return listutils::isSymbol(type, BasicType());
+  }
+
+/*
+3.10.5.11 ~frechetDistance~ operator (TemporalLiftedAlgebra)
+
+Implements the discrete Frechet distance between two moving points and uses the
+auxiliary function getPointSequence.
+
+*/
+//     void getPointSequence(std::vector<Point>& result) const;
+//     double FrechetDistance(const MPoint* mp, const Geoid* geoid = 0) const;
+    
+private:
+  Rectangle<3> bbox;
 };
 
 
