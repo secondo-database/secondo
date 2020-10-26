@@ -1040,7 +1040,7 @@ ValueMapping be_mcommandVM[] = {
 */
 int be_mcommandSelect(ListExpr args){
 if (dbms_name == pg){
-  return CcString::checkType(nl->Second(args))?0:1;
+  return CcString::checkType(nl->First(args))?0:1;
 }else{
   return 0;
 }
