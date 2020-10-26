@@ -121,7 +121,6 @@ class IrregularGrid2D {
     // The copy constructor.
     IrregularGrid2D( const IrregularGrid2D& g );
 
-    Rectangle<2> * getBoundingBoxRef();
     Rectangle<2> getBoundingBox();
 
     int getRowCount();
@@ -191,10 +190,7 @@ class IrregularGrid2D {
   private:
     // points sorted by y-coordinates
   std::vector<RPoint> points{};
-  // irregular grid bounding box reference
-  Rectangle<2> * boundingBox_ref;
   // irregular grid bounding box
-  // TODO unify bounding / bounding reference
   Rectangle<2> boundingBox;
   // number of rows and cells per row
   int rowCount, cellCount;
