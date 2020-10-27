@@ -250,10 +250,10 @@ string localCreateName = getFilePath() + remoteCreateName;
       val = val && importer[i]->getResult();
     }
   }else cout << "\n Something goes wrong with the"
-		  " export or the transfer." << endl;
+  " export or the transfer." << endl;
 
   if(!val) cout << "\n Something goes wrong with the "
-		  "import at the worker." << endl;
+  "import at the worker." << endl;
 return val;
 }
 
