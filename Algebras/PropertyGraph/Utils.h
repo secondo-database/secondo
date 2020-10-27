@@ -152,17 +152,24 @@ double round(double x, int n);
 class PGraphException : public std::exception {
 
   public:
-  PGraphException() : msgStr("Unknown Error") {}
-  PGraphException(const std::string& Msg) : exception(), msgStr(Msg) {}
-  PGraphException(const PGraphException& rhs) : 
-    std::exception(), msgStr(rhs.msgStr) {}
-  virtual ~PGraphException() throw() {}
 
-  virtual const char* what() const throw()
-  {
-    return ("PGRAPH-Exception: " + msgStr).c_str();
-  }
-  const std::string msg() { return msgStr; }
+    PGraphException() : msgStr("Unknown Error") {}
+
+    PGraphException(const std::string& Msg) : 
+      exception(), msgStr("PGRAPH-Exception: " + Msg) {}
+
+    PGraphException(const PGraphException& rhs) : 
+      std::exception(), msgStr(rhs.msgStr) {}
+
+    virtual ~PGraphException() throw() {}
+
+    virtual const char* what() const throw() {
+      return msgStr.c_str();
+    }
+
+    const std::string msg() { 
+      return msgStr;
+    }
   
   protected:
     std::string msgStr;
