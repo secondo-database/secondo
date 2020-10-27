@@ -89,9 +89,15 @@ const std::string DFUN_QUADRATIC("quadratic");
 const std::string DFUN_QUADRATIC_DESCR(
     "quadratic distance function using a similarity matrix");
 
+const std::string DFUN_MPOINT_DISTAVG("average integral distance");
+const std::string DFUN_MPOINT_DISTAVG_DESCR("average integral distance");
+
 const std::string DFUN_SYMTRAJ_DIST1("symtraj1");
 const std::string DFUN_SYMTRAJ_DIST1_DESCR("distance function for symbolic "
   "trajectories, normalized to [0,1]");
+
+const std::string DFUN_TUPLE_DIST1("tuple");
+const std::string DFUN_TUPLE_DIST1_DESCR("distance function for tuples");
 
 #ifndef NO_IMAGESIMILARITY
 const std::string DFUN_EMD("emd");
@@ -383,6 +389,13 @@ Edit distance function for the "string"[4] type constructor.
             double &result);
 
 /*
+Distance between two mpoint values.
+
+*/
+    static void MPointDistanceAvg(
+        const DistData *data1, const DistData *data2, double &result);
+
+/*
 Distance function between symbolic trajectories; normalized to [0,1].
 
 */
@@ -390,6 +403,12 @@ Distance function between symbolic trajectories; normalized to [0,1].
     static void symTrajDistance1(
             const DistData *data1, const DistData *data2, double &result);
 
+/*
+Distance function between tuples
+
+*/
+    static void tupleDistance(
+            const DistData *data1, const DistData *data2, double &result);
 
 #ifndef NO_MP3
 //-------------------cru-----------------------------------

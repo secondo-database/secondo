@@ -37,6 +37,7 @@ January-May 2008, Mirko Dibbert
 #include "Algebras/Spatial/Coord.h"
 #include "Algebras/Spatial/Point.h"
 #include "Algebras/Spatial/SpatialAlgebra.h"
+#include "Algebras/Temporal/TemporalAlgebra.h"
 #include "Algebras/SymbolicTrajectory/Algorithms.h"
 #include "PictureFuns.h"
 
@@ -493,6 +494,24 @@ void DistfunReg::EditDistance(
 }
 
 /*
+Function ~DistfunReg::MPointDistanceAvg~
+
+*/
+void DistfunReg::MPointDistanceAvg(const DistData *data1, const DistData *data2,
+                                   double &result) {
+  if (data1->size() == 0 && data2->size() == 0) {
+    result = 0;
+  }
+  if (data1->size() == 0 || data2->size() == 0){
+    result = numeric_limits<double>::max();
+  }
+  temporalalgebra::MPoint mp1(true), mp2(true);
+  mp1.deserialize((const char*)data1->value());
+  mp2.deserialize((const char*)data2->value());
+  result = mp1.DistanceAvg(mp2);
+}
+
+/*
 Method ~DistfunReg::symTrajDistance1~ :
 
 */
@@ -509,6 +528,25 @@ void DistfunReg::symTrajDistance1(const DistData *data1, const DistData *data2,
   traj1.deserialize((const char*)data1->value());
   traj2.deserialize((const char*)data2->value());
   result = traj1.Distance(traj2);
+}
+
+/*
+Function ~DistfunReg::tupleDistance~
+
+*/
+void DistfunReg::tupleDistance(const DistData *data1, const DistData *data2,
+                               double &result) {
+  if (data1->size() == 0 && data2->size() == 0) {
+    result = 0.0;
+  }
+  if (data1->size() == 0 || data2->size() == 0){
+    result = numeric_limits<double>::max();
+  }
+//   Tuple *tuple1, *tuple2;
+//   traj1.deserialize((const char*)data1->value());
+//   traj2.deserialize((const char*)data2->value());
+//   result = tuple1->DistanceIntegral(*tuple2);
+  result = 1.0;
 }
 
 #ifndef NO_MP3
@@ -975,6 +1013,13 @@ void DistfunReg::initialize()
         EditDistance,
         DistDataReg::getInfo(CcString::BasicType(), DDATA_NATIVE),
         DFUN_IS_METRIC | DFUN_IS_DEFAULT));
+    
+    addInfo(DistfunInfo(
+        DFUN_MPOINT_DISTAVG, DFUN_MPOINT_DISTAVG_DESCR,
+        MPointDistanceAvg,
+        DistDataReg::getInfo(temporalalgebra::MPoint::BasicType(), 
+                             DDATA_NATIVE),
+        DFUN_IS_METRIC | DFUN_IS_DEFAULT));
 
 //     addInfo(DistfunInfo(
 //         DFUN_SYMTRAJ_DIST1, DFUN_SYMTRAJ_DIST1_DESCR,
@@ -999,6 +1044,12 @@ void DistfunReg::initialize()
 //         symTrajDistance1<stj::MPlaces>,
 //         DistDataReg::getInfo(stj::MPlaces::BasicType(), DDATA_NATIVE),
 //         DFUN_IS_METRIC | DFUN_IS_DEFAULT));
+    
+    addInfo(DistfunInfo(
+      DFUN_TUPLE_DIST1, DFUN_TUPLE_DIST1_DESCR,
+      tupleDistance,
+      DistDataReg::getInfo(Tuple::BasicType(), DDATA_NATIVE),
+      DFUN_IS_METRIC | DFUN_IS_DEFINED));
 
 #ifndef NO_MP3
 //----------------------cru--------------------------

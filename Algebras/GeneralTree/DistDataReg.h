@@ -704,6 +704,24 @@ Getdata function for the "string"[4] type constructor.
 
 */
     static DistData *getDataString(const void *attr);
+    
+/*
+Getdata function for the mpoint type constructor.
+
+*/
+    static DistData *getDataMPoint(const void *attr);
+
+/*
+Getdata function for the cupoint type constructor.
+
+*/
+    static DistData *getDataCUPoint(const void *attr);
+
+/*
+Getdata function for the cmpoint type constructor.
+
+*/
+    static DistData *getDataCMPoint(const void *attr);
 
 /*
 Getdata function for the symbolic trajectory type constructors.
@@ -712,6 +730,11 @@ Getdata function for the symbolic trajectory type constructors.
     template<class M>
     static DistData *getDataSymTraj(const void *attr);
 
+/*
+Getdata function for the ~tuple~ type
+
+*/
+    static DistData *getDataTuple(const void *attr);
 
 #ifndef NO_MP3
 //--------------------cru----------------------

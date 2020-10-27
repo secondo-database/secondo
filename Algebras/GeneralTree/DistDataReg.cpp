@@ -36,6 +36,7 @@ January-May 2008, Mirko Dibbert
 
 #include "Algebras/Spatial/Point.h"
 #include "Algebras/Spatial/SpatialAlgebra.h"
+#include "Algebras/Temporal/TemporalAlgebra.h"
 #include "Algebras/SymbolicTrajectory/Algorithms.h"
 #include "PictureFuns.h"
 
@@ -409,6 +410,24 @@ DistData* DistDataReg::getDataString(const void* attr)
 }
 
 /*
+Function ~DistDataReg::getDataMPoint~
+
+*/
+DistData* DistDataReg::getDataMPoint(const void* attr) {
+  const temporalalgebra::MPoint *mp = 
+                              static_cast<const temporalalgebra::MPoint*>(attr);
+  if (!mp->IsDefined()) {
+    return new DistData(false);
+  }
+  size_t size;
+  char *bytes = 0;
+  mp->serialize(size, bytes);
+  DistData *result = new DistData(size, bytes);
+  delete[] bytes;
+  return result;
+}
+
+/*
 Template Function ~DistDataReg::getDataSymTraj~:
 
 */
@@ -423,6 +442,24 @@ DistData* DistDataReg::getDataSymTraj(const void *attr) {
   return result;
 }
 
+/*
+Function ~getDataTuple~
+
+*/
+DistData* DistDataReg::getDataTuple(const void* attr) {
+   // cast to the correct type
+   const Tuple* tuple = static_cast<const Tuple*>(attr);
+   // serialize the tuple
+   size_t coreSize, extSize, flobSize;
+   size_t tupleSize = tuple->GetSize();
+   tuple->GetBlockSize(coreSize, extSize, flobSize);
+   char *buffer = new char[tupleSize];
+   Tuple *tup = (Tuple*)tuple;
+   tup->WriteToBin(buffer, coreSize, extSize, flobSize);
+   DistData *result = new DistData(tupleSize, buffer);
+   delete[] buffer;
+   return result;
+}
 
 
 #ifndef NO_MP3
@@ -522,6 +559,10 @@ void DistDataReg::initialize()
     addInfo(DistDataInfo(
         DDATA_NATIVE, DDATA_NATIVE_DESCR, DDATA_NATIVE_ID,
         "hpoint", getDataHPoint));
+    
+    addInfo(DistDataInfo(
+        DDATA_NATIVE, DDATA_NATIVE_DESCR, DDATA_NATIVE_ID,
+        temporalalgebra::MPoint::BasicType(), getDataMPoint));
 
     addInfo(DistDataInfo(
         DDATA_NATIVE, DDATA_NATIVE_DESCR, DDATA_NATIVE_ID,
@@ -538,7 +579,10 @@ void DistDataReg::initialize()
     addInfo(DistDataInfo(
         DDATA_NATIVE, DDATA_NATIVE_DESCR, DDATA_NATIVE_ID,
         stj::MPlaces::BasicType(), getDataSymTraj<stj::MPlaces>));
-        
+    
+    addInfo(DistDataInfo(
+        DDATA_NATIVE, DDATA_NATIVE_DESCR, DDATA_NATIVE_ID,
+        Tuple::BasicType(), getDataTuple));
  
 
     PictureFuns::initDistData();
