@@ -2751,9 +2751,6 @@ const Rectangle<3> CUPoint::BoundingBox(const Geoid* geoid) const {
                                 p0.GetY() - vertSign * abs(cos(dir)) * radius);
   Point p1shifted = Point(true, p1.GetX() + horizSign * abs(sin(dir)) * radius,
                                 p1.GetY() + vertSign * abs(cos(dir)) * radius);
-  cout << p0 << " " << p1 << " | " << p0.Direction(p1, false, geoid) << " " 
-       << dir << " . " << sin(dir) << " # " 
-       << cos(dir) << " : " << p0shifted << " " << p1shifted << endl;
   if (geoid) {
     if (!geoid->IsDefined() || !IsDefined()) {
       return Rectangle<3>(false);
@@ -2838,7 +2835,8 @@ void CUPoint::ConvertFrom(const MPoint& mp) {
   SetDefined(correct);
 }
 
-double CUPoint::Distance(const CUPoint& cup) const {
+double CUPoint::DistanceAvg(const CUPoint& cup, const Geoid* geoid /* = 0 */)
+                                                                         const {
   if (!IsDefined() && !cup.IsDefined()) {
     return 0.0;
   }
@@ -2857,11 +2855,11 @@ double CUPoint::Distance(const CUPoint& cup) const {
   } // now we know that cup1's duration is at least as long as cup2's
   double dur = (cup2.timeInterval.end - cup2.timeInterval.start).ToDouble();
   Point newEnd(true);
-  cup1.TemporalFunction(cup2.timeInterval.end, newEnd);
+  cup1.TemporalFunction(cup2.timeInterval.end, newEnd, true);
   cup1.timeInterval.end = cup2.timeInterval.end;
   cup1.p1 = newEnd;
   UReal ur(true);
-  ((UPoint*)(&cup1))->Distance(((UPoint*)(&cup2)), ur);
+  ((UPoint*)(&cup1))->Distance(*((UPoint*)(&cup2)), ur, geoid);
   if (!ur.IsDefined()) {
     std::cerr << __PRETTY_FUNCTION__ << "Invalid geographic coord!" << endl;
     return DBL_MAX;
@@ -2869,6 +2867,15 @@ double CUPoint::Distance(const CUPoint& cup) const {
   ur.r = true;
   return std::max(ur.Integrate() / dur - cup1.GetRadius() - cup2.GetRadius(),
                   0.0);
+}
+
+void CUPoint::DistanceAvg(const CUPoint& cup, CcReal& result, 
+                          const Geoid* geoid /* = 0 */) const {
+  if (!IsDefined() || !cup.IsDefined() || (geoid && !geoid->IsDefined())) {
+    result.SetDefined(false);
+    return;
+  }
+  result.Set(true, this->DistanceAvg(cup, geoid));
 }
 
 /*
@@ -7770,6 +7777,641 @@ const bool Periods::Contains(const Periods& per) const {
 }
 
 /*
+3.2 Class ~CMPoint~
+
+We need to overwrite some methods from template class ~Mapping~, as we need
+to maintain the object's MBR in ~bbox~.
+
+*/
+
+void CMPoint::GetMPoint(MPoint& result) const {
+  result.Clear();
+  result.SetDefined(IsDefined());
+  if (!IsDefined() || IsEmpty()) {
+    return;
+  }
+  UPoint up(true);
+  for (int i = 0; i < GetNoComponents(); i++) {
+    GetUPoint(i, up);
+    result.Add(up);
+  }
+}
+
+void CMPoint::GetUPoint(const int pos, UPoint& result) const {
+  assert(IsDefined());
+  assert(pos >= 0 && pos < GetNoComponents());
+  CUPoint cup(true);
+  Get(pos, cup);
+  cup.GetUPoint(result);
+}
+
+void CMPoint::Clear() {
+  Mapping<CUPoint, CPoint>::Clear(); // call super
+  bbox.SetDefined(false);          // invalidate bbox
+}
+
+void CMPoint::Add(const CUPoint& unit) {
+  assert(unit.IsDefined());
+  assert(unit.IsValid());
+  if (!IsDefined() || !unit.IsDefined()) {
+    SetDefined(false);
+    return;
+  }
+  units.Append(unit);
+  if (units.Size() == 1) {
+//     cout << "        MPoint::Add FIRST ADD" << endl;
+//     cout << "\t Old bbox = "; bbox.Print(cout);
+    bbox.SetDefined(true);
+    bbox = unit.BoundingBox();
+//     cout << "\n\t New bbox = "; bbox.Print(cout);
+  } 
+  else {
+//     cout << "\t Old bbox = "; bbox.Print(cout);
+    bbox = bbox.Union(unit.BoundingBox());
+//     cout << "\n\t New bbox = "; bbox.Print(cout);
+  }
+  RestoreBoundingBox(false);
+}
+
+void CMPoint::Restrict(const std::vector<std::pair<int, int> >& intervals) {
+  if (!IsDefined()) {
+    Clear();
+    bbox.SetDefined(false);
+    SetDefined(false);
+    return;
+  }
+  units.Restrict(intervals, units); // call super
+  bbox.SetDefined(false);      // invalidate bbox
+  RestoreBoundingBox();        // recalculate it
+}
+
+std::ostream& CMPoint::Print(std::ostream &os) const {
+  if (!IsDefined()) {
+    return os << "(CMPoint: undefined)";
+  }
+  os << "(CMPoint: defined, MBR = ";
+  bbox.Print(os);
+  os << ", contains " << GetNoComponents() << " units: ";
+  CUPoint unit(true);
+  for (int i = 0; i < GetNoComponents(); i++) {
+    Get(i, unit);
+    os << "\n\t";
+    unit.Print(os);
+  }
+  os << "\n)" << endl;
+  return os;
+}
+
+bool CMPoint::EndBulkLoad(const bool sort, const bool checkvalid) {
+  bool res = Mapping<CUPoint, CPoint>::EndBulkLoad(sort, checkvalid); 
+  if (res) {
+    RestoreBoundingBox(); 
+  }
+  return res;
+}
+
+bool CMPoint::operator==(const CMPoint& r) const {
+  if (!IsDefined()) {
+    return !r.IsDefined();
+  }
+  if (!r.IsDefined()) {
+    return false;
+  }
+  assert(IsOrdered() && r.IsOrdered());
+  if (IsEmpty()) {
+    return r.IsEmpty();
+  }
+  if (r.IsEmpty()) {
+    return false;
+  }
+  if (bbox != r.bbox) {
+    return false;
+  }
+  return Mapping<CUPoint, CPoint>::operator==(r);
+}
+
+bool CMPoint::Present(const Instant& t) const {
+  assert(IsDefined());
+  assert(IsOrdered());
+  assert(t.IsDefined());
+  if (bbox.IsDefined()) { // do MBR-check
+    double instd = t.ToDouble();
+    double mint = bbox.MinD(2);
+    double maxt = bbox.MaxD(2);
+    if ((instd < mint && !AlmostEqual(instd,mint)) ||
+        (instd > maxt && !AlmostEqual(instd,maxt))) {
+//       cout << __PRETTY_FUNCTION__<< "(" << __FILE__ << __LINE__
+//         << "): Bounding box check failed:" << endl;
+//       cout << "\tInstant : "; t.Print(cout); cout << endl;
+//       cout << "\tinstd   : " << instd << endl;
+//       cout << "\tmint/maxt :" << mint << "\t/\t" << maxt << endl;
+//       cout << "\tBBox = "; bbox.Print(cout); cout << endl;
+      return false;
+    }
+  }
+  int pos = Position(t);
+  if (pos == -1) {         //not contained in any unit
+    return false;
+  }
+  return true;
+}
+
+bool CMPoint::Present(const Periods& t) const {
+  assert(IsDefined());
+  assert(IsOrdered());
+  assert(t.IsDefined());
+  assert(t.IsOrdered());
+  if (bbox.IsDefined()) { // do MBR-check
+    double MeMin = bbox.MinD(2);
+    double MeMax = bbox.MaxD(2);
+    Instant tmin; t.Minimum(tmin);
+    Instant tmax; t.Maximum(tmax);
+    double pmin = tmin.ToDouble();
+    double pmax = tmax.ToDouble();
+    if ((pmax < MeMin && !AlmostEqual(pmax,MeMin)) ||
+        (pmin > MeMax && !AlmostEqual(pmin,MeMax))) {
+//       cout << __PRETTY_FUNCTION__<< "(" << __FILE__ << __LINE__
+//            << "): Bounding box check failed:" << endl;
+//       cout << "\tPeriod : "; t.Print(cout); cout << endl;
+//       cout << "\tpmin/pmax : " << pmin  << "\t/\t" << pmax << endl;
+//       cout << "\ttmin/tmax :" << tmin << "\t/\t" << tmax << endl;
+//       cout << "\tMPoint : " << MeMin << "\t---\t" << MeMax << endl;
+//       cout << "\tBBox = "; bbox.Print(cout); cout << endl;
+      return false;
+    }
+  }
+  Periods defTime(0);
+  DefTime(defTime);
+  return t.Intersects(defTime);
+}
+
+void CMPoint::AtInstant(const Instant& t, Intime<CPoint>& result) const {
+  if(IsDefined() && t.IsDefined()) {
+    if (!bbox.IsDefined()) { // result is undefined
+      result.SetDefined(false);
+    }
+    else if (IsEmpty()) { // result is undefined
+      result.SetDefined(false);
+    } 
+    else
+    { // compute result
+      double instd = t.ToDouble();
+      double mind = bbox.MinD(2);
+      double maxd = bbox.MaxD(2);
+      if ((mind > instd && !AlmostEqual(mind,instd)) ||
+          (maxd < instd && !AlmostEqual(maxd,instd))) {
+//         cout << __PRETTY_FUNCTION__<< "(" << __FILE__ << __LINE__
+//           << "): Bounding box check failed:" << endl;
+//         cout << "\tInstant : "; t.Print(cout); cout << endl;
+//         cout << "\tinstd   : " << instd << endl;
+//         cout << "\tmind/maxd :" << mind << "\t/\t" << maxd << endl;
+//         cout << "\tBBox = "; bbox.Print(cout); cout << endl;
+        result.SetDefined(false);
+      }
+      else {
+        assert(IsOrdered());
+        int pos = Position(t);
+        if (pos == -1) { // not contained in any unit
+          result.SetDefined(false);
+        }
+        else {
+          CUPoint posUnit(true);
+          units.Get(pos, &posUnit);
+          result.SetDefined(true);
+          posUnit.TemporalFunction(t, result.value);
+          result.instant.CopyFrom(&t);
+        }
+      }
+    }
+  }
+  else {
+    result.SetDefined(false);
+  }
+}
+
+void CMPoint::AtPeriods(const Periods& p, CMPoint& result) const {
+  result.Clear();
+  result.SetDefined(true);
+  if (IsDefined() && p.IsDefined()) {
+    if (!bbox.IsDefined()) { // result is undefined
+      result.SetDefined(false);
+    } 
+    else if (IsEmpty() || p.IsEmpty()) { // result is defined but empty
+      result.SetDefined(true);
+    }
+    else if (IsMaximumPeriods(p)) { // p is [begin of time, end of time].
+      result.CopyFrom(this);
+    }
+    else { // compute result
+      assert(IsOrdered());
+      assert(p.IsOrdered());
+      Instant perMinInst; p.Minimum(perMinInst);
+      Instant perMaxInst; p.Maximum(perMaxInst);
+      double permind = perMinInst.ToDouble();
+      double permaxd = perMaxInst.ToDouble();
+      double mind = bbox.MinD(2);
+      double maxd = bbox.MaxD(2);
+      if ((mind > permaxd && !AlmostEqual(mind,permaxd)) ||
+          (maxd < permind && !AlmostEqual(maxd,permind))) {
+//         cout << __PRETTY_FUNCTION__<< "(" << __FILE__ << __LINE__
+//           << "): Bounding box check failed:" << endl;
+//         cout << "\tPeriod : "; p.Print(cout); cout << endl;
+//         cout << "\tperMinInst : "; perMinInst.Print(cout); cout << endl;
+//         cout << "\tperMaxInst : "; perMaxInst.Print(cout); cout << endl;
+//         cout << "\tpermind/permaxd : " << permind  << "\t/\t"
+//              << permaxd << endl;
+//         cout << "\tmind/maxd :" << mind << "\t/\t" << maxd << endl;
+//         cout << "\tBBox = "; bbox.Print(cout); cout << endl;
+        result.SetDefined(true);
+      } 
+      else {
+        result.StartBulkLoad();
+        CUPoint unit;
+        Interval<Instant> interval;
+        int i = 0, j = 0;
+        Get(i, unit);
+        p.Get(j, interval);
+        while(1) {
+          if (unit.timeInterval.Before(interval)) {
+            if (++i == GetNoComponents()) {
+              break;
+            }
+            Get(i, unit);
+          }
+          else if (interval.Before(unit.timeInterval)) {
+            if (++j == p.GetNoComponents()) {
+              break;
+            }
+            p.Get(j, interval);
+          }
+          else { // we have overlapping intervals, now
+            CUPoint r(true);
+            unit.AtInterval(interval, r);
+            assert(r.IsDefined());
+            assert(r.IsValid());
+            result.Add(r);
+//          cout << "\n\tunit = "; unit.Print(cout); cout << endl;
+//          cout << "\tinterval =       "; interval.Print(cout); cout << endl;
+//          cout << "\tr    = "; r.Print(cout); cout << endl;
+
+            if (interval.end == unit.timeInterval.end) { // same ending instant
+              if(interval.rc == unit.timeInterval.rc) { // and rightclosedness
+                if (++i == GetNoComponents()) {
+                  break;
+                }
+                Get(i, unit);
+                if (++j == p.GetNoComponents()) {
+                  break;
+                }
+                p.Get(j, interval);
+              }
+              else if (interval.rc == true) { // Advanve in mapping
+                if (++i == GetNoComponents()) {
+                  break;
+                }
+                Get(i, unit);
+              }
+              else { // Advance in periods
+                assert(unit.timeInterval.rc == true);
+                if (++j == p.GetNoComponents()) {
+                  break;
+                }
+                p.Get(j, interval);
+              }
+            }
+            else if (interval.end > unit.timeInterval.end) { // Adv in cmpoint
+              if (++i == GetNoComponents()) {
+                break;
+              }
+              Get(i, unit);
+            }
+            else { // Advance in periods
+              assert(interval.end < unit.timeInterval.end);
+              if (++j == p.GetNoComponents()) {
+                break;
+              }
+              p.Get(j, interval);
+            }
+          }
+        }
+        result.EndBulkLoad();
+      }
+    }
+  } 
+  else {
+    result.SetDefined(false);
+  }
+}
+
+/*
+
+RestoreBoundingBox() checks, whether the CMPoint's MBR ~bbox~ is ~undefined~
+and thus may need to be recalculated and if, does so.
+
+*/
+
+void CMPoint::RestoreBoundingBox(const bool force) {
+  if (!IsDefined() || GetNoComponents() == 0) { // invalidate bbox
+    bbox.SetDefined(false);
+  }
+  else if (force || !bbox.IsDefined()) { // construct bbox
+    CUPoint unit;
+    int size = GetNoComponents();
+    Get(0, unit); // safe, since (this) contains at least 1 unit
+    bbox = unit.BoundingBox();
+    for (int i = 1; i < size; i++) {
+      Get(i, unit);
+      bbox = bbox.Union(unit.BoundingBox());
+    }
+  } // else: bbox unchanged and still correct
+}
+
+// Class functions
+Rectangle<3u> CMPoint::BoundingBox(const Geoid* geoid /*=0*/) const {
+  if (geoid) { // spherical geometry case:
+    if (!IsDefined() || (GetNoComponents() <= 0)) {
+      return Rectangle<3>(false);
+    }
+    CUPoint u;
+    Rectangle<3> bbx(false);
+    for (int i = 0; i < GetNoComponents(); i++) {
+      Get(i,u);
+      assert(u.IsDefined());
+      if (bbx.IsDefined()) {
+        bbx.Union(u.BoundingBox(geoid));
+      }
+      else {
+        bbx = u.BoundingBox(geoid);
+      }
+    }
+    return bbx;
+  } // else: euclidean case
+  return bbox;
+}
+
+// return the spatial bounding box (2D: X/Y)
+const Rectangle<2> CMPoint::BoundingBoxSpatial(const Geoid* geoid) const {
+  Rectangle<2u> result(false);
+  if (!IsDefined() || (GetNoComponents() <= 0)) {
+    return result;
+  }
+  else {
+    Rectangle<3> bbx = this->BoundingBox(geoid);
+    result = bbx.Project2D(0,1); // project to X/Y
+    return result;
+  }
+};
+
+void CMPoint::Trajectory(Line& line) const {
+  MPoint mp(true);
+  GetMPoint(mp);
+  mp.Trajectory(line);
+}
+
+void CMPoint::DistanceAvg(const CMPoint& cmp, CcReal& result,
+                          const Geoid* geoid) const {
+  if (!IsDefined() || !cmp.IsDefined() || (geoid && !geoid->IsDefined())) {
+    result.SetDefined(false);
+    return;
+  }
+  result.SetDefined(true);
+  Instant start1(datetime::instanttype), start2(datetime::instanttype);
+  InitialInstant(start1);
+  cmp.InitialInstant(start2);
+  CMPoint shifted(true);
+  timeMove(start2 - start1, shifted);
+  UReal ur(true);
+  RefinementPartition<CMPoint, CMPoint, CUPoint, CUPoint> rp(cmp, shifted);
+  std::stack<ISC> theStack;
+  Interval<Instant> iv;
+  int cu1Pos, cu2Pos;
+  CUPoint cu1, cu2;
+  for (unsigned int i = 0; i < rp.Size(); i++) {
+    rp.Get(i, iv, cu1Pos, cu2Pos);
+    if (cu1Pos == -1 || cu2Pos == -1) {
+      continue;
+    }
+    else {
+      cmp.Get(cu1Pos, cu1);
+      shifted.Get(cu2Pos, cu2);
+    }
+    if (cu1.IsDefined() && cu2.IsDefined()) { // no overlapping deftimes
+      ISC isc;
+      isc.value = cu1.DistanceAvg(cu2);
+      isc.level = 0;
+      while (!theStack.empty() && (theStack.top().level == isc.level)) {
+        isc.value = isc.value + theStack.top().value;
+        isc.level = isc.level + 1;
+        theStack.pop();
+      }
+      theStack.push(isc);
+    }
+  }
+  double sum = 0.0;
+  while (!theStack.empty()) {
+    sum += theStack.top().value;
+    theStack.pop();
+  }
+  result.Set(true, sum);
+}
+
+void CMPoint::MergeAdd(const CUPoint& unit) {
+  assert(IsDefined());
+  assert(unit.IsDefined());
+  assert(unit.IsValid());
+  int size = GetNoComponents();
+  if (size==0) { // the first unit
+    Add(unit); // Add() unit as first unit to empty mapping; bbox is updated.
+    return;
+  }
+  CUPoint last;
+  Get(size-1, last);
+  assert(last.timeInterval.end <= unit.timeInterval.start);
+  if (last.timeInterval.end != unit.timeInterval.start ||
+      !((last.timeInterval.rc ) ^ (unit.timeInterval.lc))) {
+     // intervals are not connected
+    Add(unit); // also adopts bbox
+    return;
+  }
+  if (!AlmostEqual(last.p1, unit.p0)) { // jump in spatial dimension
+    Add(unit);  // also adopts bbox
+    return;
+  }
+  Interval<Instant> complete(last.timeInterval.start, unit.timeInterval.end,
+                             last.timeInterval.lc, unit.timeInterval.rc);
+  CUPoint cupoint(complete, last.p0, unit.p1, unit.GetRadius());
+  CPoint cp;
+  cupoint.TemporalFunction(last.timeInterval.end, cp, true);
+  if (!AlmostEqual(*((Point*)&cp), last.p0)) {
+    Add(unit); // also adopts bbox
+    return;
+  }
+  assert(cupoint.IsValid());
+  assert(cupoint.IsDefined());
+  bbox = bbox.Union(cupoint.BoundingBox()); // update bbox
+  units.Put(size - 1, cupoint); // overwrite the last unit by a connected one
+}
+
+void CMPoint::Direction(MReal* result,
+                        const bool useHeading /*=false*/,
+                        const Geoid* geoid    /*=0*/,
+                        const double epsilon  /*=0.0000001*/ ) const {
+  if (!IsDefined() || (geoid && (!geoid->IsDefined() || (epsilon <= 0.0)))) {
+    result->SetDefined(false);
+    return;
+  }
+  std::vector<UReal> resvector;
+  CUPoint unit(true);
+  for(int i = 0; i < GetNoComponents(); i++) {
+    Get(i, unit);
+    ((UPoint*)&unit)->Direction(resvector, useHeading, geoid, epsilon);
+  }
+  result->Clear();
+  result->SetDefined(true);
+  result->StartBulkLoad();
+  for(std::vector<UReal>::iterator iter = resvector.begin();
+                                              iter != resvector.end(); iter++) {
+    if (iter->IsDefined() && iter->IsValid()) {
+      result->MergeAdd(*iter);
+    }
+  }
+  result->EndBulkLoad(false);
+}
+
+bool CMPoint::Append(const CMPoint& p, const bool autoresize /*=true*/) {
+  if (!IsDefined()) {
+    return false;
+  }
+  if (!p.IsDefined()) {
+     Clear();
+     SetDefined(false);
+     return false;
+  }
+  int size1 = this->GetNoComponents();
+  int size2 = p.GetNoComponents();
+  if (size1 > 0 && size2 > 0) { // check whether p starts after the end of this
+    CUPoint u1(true), u2(true);
+    this->Get(size1 - 1, u1);
+    p.Get(0, u2);
+    if ((u1.timeInterval.end > u2.timeInterval.start) ||
+        ((u1.timeInterval.end == u2.timeInterval.start) &&
+         (u1.timeInterval.rc  && u2.timeInterval.lc))) {
+      this->Clear();
+      this->SetDefined(false);
+      return false;
+    }
+  }
+  CUPoint up(true), u(true);
+  if (size2 > 0) { // process the first unit of p
+    if (autoresize) {
+      units.resize(size1 + size2);
+    }
+    p.Get(0, up);
+    this->MergeAdd(up);
+  }
+  StartBulkLoad();
+  for (int i = 1; i < size2; i++) {
+    p.Get(i, up);
+    this->Add(up);
+  }
+  EndBulkLoad(false);
+  return true;
+}
+
+double CMPoint::Length() const {
+  assert(IsDefined());
+  if (!IsDefined()) {
+    return -1.0;
+  }
+  double res = 0.0;
+  CUPoint unit(true);
+  int size = GetNoComponents();
+  for(int i = 0; i < size; i++) {
+    Get(i, unit);
+    res += unit.p0.Distance(unit.p1);
+  }
+  return res;
+}
+
+double CMPoint::Length(const Geoid& g, bool& valid) const {
+  valid = IsDefined();
+  if (!valid) {
+    return -1.0;
+  }
+  double res = 0.0;
+  CUPoint unit(true);
+  int size = GetNoComponents();
+  for (int i = 0; (valid && (i < size)); i++) {
+    Get(i, unit);
+    res += unit.p0.DistanceOrthodrome(unit.p1, g, valid);
+  }
+  return res;
+}
+
+void CMPoint::AtRegion(const Region *r, CMPoint &result) const {
+  result.Clear();
+  if (!IsDefined() || !r->IsDefined()) {
+    result.SetDefined(false);
+    return;
+  }
+  result.SetDefined(true);
+  if (IsEmpty() || r->IsEmpty()) {
+    return;
+  }
+  // check for intersection of total MBRs
+  Rectangle<2u> rMBR = r->BoundingBox();
+  if (!rMBR.Intersects(BoundingBoxSpatial())) {
+    return;
+  }
+  // iterate through all units
+  CUPoint unit(true);
+  std::vector<UPoint> uResultVector;
+  for (int i = 1; i < GetNoComponents(); i++) {
+    Get(i, unit);
+    if (!((UPoint*)&unit)->AtRegion(r, uResultVector)) {
+      std::cerr << __PRETTY_FUNCTION__ << " WARNING: no result for CUPoint (" 
+                << i << "): cupoint = " << unit << endl;
+      continue;
+    }
+    for (unsigned int j = 0; j < uResultVector.size(); j++) {
+      CUPoint cup(uResultVector[j], unit.GetRadius());
+      result.MergeAdd(cup);
+    }
+  }
+}
+
+void CMPoint::AtRect(const Rectangle<2>& rect, CMPoint& result) const {
+  result.Clear();
+  if (!IsDefined() || !rect.IsDefined()) {
+    result.SetDefined(false);
+    return;
+  }
+  Rectangle<2u> bbox = BoundingBoxSpatial();
+  if (!bbox.Intersects(rect)) {
+    return;  // disjoint, return empty 
+  }
+  if (rect.Contains(bbox)) {
+    result.CopyFrom(this);
+    return;
+  }
+  // Bounding boxes overlap, check units
+  CUPoint src(true);
+  UPoint up(false);
+  result.StartBulkLoad();
+  for (int i = 0; i < GetNoComponents(); i++) {
+    Get(i, src);
+    ((UPoint*)&src)->At(rect, up);
+    if (up.IsDefined()) {
+      assert(up.timeInterval.start.GetType() == datetime::instanttype);
+      assert(up.timeInterval.end.GetType() == datetime::instanttype);
+      result.Add(CUPoint(up, src.GetRadius()));
+    }
+  }
+  result.EndBulkLoad(false);
+
+}
+
+/*
 4 Type Constructors
 
 4.1 Type Constructor ~rint~
@@ -9395,6 +10037,70 @@ TypeConstructor movingpoint(
         SizeOfMapping<MPoint>, //sizeof function
         CheckMPoint );  //kind checking function
 
+/*
+4.12 Type Constructor ~cmpoint~
+
+Type ~cmpoint~ represents a moving cpoint.
+
+4.12.1 List Representation
+
+The list representation of a ~cmpoint~ is
+
+----    ( u1 ... un )
+----
+
+,where u1, ..., un are units of type ~cupoint~.
+
+For example:
+
+----   (
+         ( (instant 6.37)  (instant 9.9)   TRUE FALSE) (1.0 2.3 4.1 2.1)  1.9)
+         ( (instant 11.4)  (instant 13.9)  FALSE FALSE) (4.1 2.1 8.9 4.3)  -0.2)
+       )
+----
+
+4.12.2 function Describing the Signature of the Type Constructor
+
+*/
+ListExpr CMPointProperty() {
+  return nl->TwoElemList(nl->FourElemList(nl->StringAtom("Signature"),
+                            nl->StringAtom("Example Type List"),
+                            nl->StringAtom("List Rep"),
+                            nl->StringAtom("Example List")),
+                          nl->FourElemList(nl->StringAtom("-> MAPPING"),
+                            nl->StringAtom("(cmpoint) "),
+                            nl->StringAtom("( u1 ... un ) "),
+        nl->StringAtom("(((i1 i2 TRUE FALSE) (1 2 5 6) -0.9) ...)")));
+}
+
+/*
+4.12.3 Kind Checking Function
+
+*/
+bool CheckCMPoint(ListExpr type, ListExpr& errorInfo) {
+  return (nl->IsEqual(type, CMPoint::BasicType()));
+}
+
+/*
+4.12.4 Creation of the type constructor ~cmpoint~
+
+*/
+TypeConstructor cmpoint(
+        CMPoint::BasicType(),   //name
+        CMPointProperty,        //property function describing signature
+        OutMapping<CMPoint, CUPoint, OutCUPoint>,
+        InMapping<CMPoint, CUPoint, InCUPoint>,//Out and In functions
+        0,
+        0,                 //SaveToList and RestoreFromList functions
+        CreateMapping<CMPoint>,
+        DeleteMapping<CMPoint>,     //object creation and deletion
+        OpenAttribute<CMPoint>,
+        SaveAttribute<CMPoint>,      // object open and save
+        CloseMapping<CMPoint>,
+        CloneMapping<CMPoint>, //object close and clone
+        CastMapping<CMPoint>,    //cast function
+        SizeOfMapping<CMPoint>, //sizeof function
+        CheckCMPoint);  //kind checking function
 
 /*
 4.12.5 Creation of the type constructore ~cellgrid2d~
@@ -9409,7 +10115,6 @@ GenTC<CellGrid2D> cellgrid2d;
 */
 
 GenTC<CellGrid<3> > cellgrid3d;
-
 
 
 /*
@@ -11168,17 +11873,17 @@ This type mapping is applied by the ~distanceAvg~ operator.
 
 */
 ListExpr DistanceAvgTypeMap(ListExpr args) {
-  if (!nl->HasLength(args, 2) && !nl->HasLength(args, 3)) {
-    return listutils::typeError("two or three arguments expected");
+  if (!nl->HasLength(args, 2)) {
+    return listutils::typeError("two arguments expected");
   }
-  if (!MPoint::checkType(nl->First(args)) 
-      || !MPoint::checkType(nl->Second(args))) {
-    return listutils::typeError("1st and 2nd argument must have type mpoint");
-  }
-  if (nl->HasLength(args, 3)) {
-    if (!Geoid::checkType(nl->Third(args))) {
-      return listutils::typeError("third argument must be a geoid");
-    }
+  if ((!MPoint::checkType(nl->First(args)) 
+      || !MPoint::checkType(nl->Second(args))) &&
+      (!CUPoint::checkType(nl->First(args)) 
+      || !CUPoint::checkType(nl->Second(args))) &&
+      (!CMPoint::checkType(nl->First(args)) 
+      || !CMPoint::checkType(nl->Second(args)))) {
+    return listutils::typeError("both arguments must have type mpoint"
+                                "or cupoint or cmpoint");
   }
   return nl->SymbolAtom(CcReal::BasicType());
 }
@@ -12428,6 +13133,22 @@ int SampleMPointSelect(ListExpr args){
   }
 }
 
+/*
+16.2.35 Selection Function for ~distanceAvg~
+
+*/
+int DistanceAvgSelect(ListExpr args) {
+  if (MPoint::checkType(nl->First(args))) {
+    return 0;
+  }
+  if (CUPoint::checkType(nl->First(args))) {
+    return 1;
+  }
+  if (CMPoint::checkType(nl->First(args))) {
+    return 2;
+  }
+  return -1;
+}
 
 /*
 16.2.35 SelectionFunction for ~restrict~
@@ -12964,15 +13685,11 @@ int MPointDistance( Word* args, Word& result, int message, Word&
 16.3.29 Value mapping function of operator ~distanceAvg~
 
 */
-int MPointDistanceAvg(Word* args, Word& result, int message, Word& local,
-                      Supplier s) {
+template<class T>
+int DistanceAvgMap(Word* args, Word& result, int message, Word& local, 
+                   Supplier s) {
   result = qp->ResultStorage(s);
-  Geoid *geoid = 0;
-  if (qp->GetNoSons(s) == 3) {
-    geoid = (Geoid*)args[2].addr;
-  }
-  ((MPoint*)args[0].addr)->DistanceAvg(*((MPoint*)args[1].addr),
-                                       *((CcReal*)result.addr), geoid);
+  ((T*)args[0].addr)->DistanceAvg(*((T*)args[1].addr), *((CcReal*)result.addr));
   return 0;
 }
 
@@ -15960,6 +16677,10 @@ ValueMapping samplempointmap[] = { SampleMPointVM<false,false>,
                                    SampleMPointVM<true,false>,
                                    SampleMPointVM<true,true>};
 
+ValueMapping DistanceAvgMaps[] = {DistanceAvgMap<MPoint>, 
+                                  DistanceAvgMap<CUPoint>,
+                                  DistanceAvgMap<CMPoint>};
+
 ValueMapping mpointsquareddistancemap[]= {SquaredDistanceMPPVM,
                                           SquaredDistancePMPVM,
                                           SquaredDistanceMPMPVM};
@@ -16287,9 +17008,11 @@ const std::string TemporalSpecDistance =
 
 const std::string TemporalSpecDistanceAvg =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "( <text>(mpoint mpoint) -> real</text--->"
+  "( <text>Xpoint x Xpoint -> real  (X = (m|cu|cm))</text--->"
   "<text>distanceAvg( _, _ ) </text--->"
-  "<text>Returns the average distance based on the integral.</text--->"
+  "<text>Returns the average distance based on the integral. The use of geoid "
+  "is not supported since spherical distance between segments has not yet been "
+  "implemented.</text--->"
   "<text>distanceAvg(mpoint1, mpoint2)</text--->"
   ") )";
 
@@ -17106,8 +17829,9 @@ Operator temporaldistance( "distance",
 
 Operator temporaldistanceavg( "distanceAvg",
                            TemporalSpecDistanceAvg,
-                           MPointDistanceAvg,
-                           Operator::SimpleSelect,
+                           3,
+                           DistanceAvgMaps,
+                           DistanceAvgSelect,
                            DistanceAvgTypeMap );
 
 Operator temporalsquareddistance( "squareddistance",
@@ -20175,6 +20899,7 @@ class TemporalAlgebra : public Algebra
     AddTypeConstructor( &movingint );
     AddTypeConstructor( &movingreal );
     AddTypeConstructor( &movingpoint );
+    AddTypeConstructor(&cmpoint);
 
     AddTypeConstructor( &cellgrid2d);
     AddTypeConstructor( &cellgrid3d);
@@ -20216,6 +20941,8 @@ class TemporalAlgebra : public Algebra
     movingreal.AssociateKind( Kind::DATA() );
     movingpoint.AssociateKind( Kind::TEMPORAL() );
     movingpoint.AssociateKind( Kind::DATA() );
+    cmpoint.AssociateKind(Kind::TEMPORAL());
+    cmpoint.AssociateKind(Kind::DATA());
 
     cellgrid2d.AssociateKind( Kind::DATA() );
     cellgrid2d.AssociateKind( Kind::DELIVERABLE() );

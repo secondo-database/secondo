@@ -4310,6 +4310,9 @@ public:
     UPoint(_interval, _p0, _p1), radius(_r) {
       SetDefined(p0.IsDefined() && p1.IsDefined());
   }
+  
+  CUPoint(const UPoint& _up, const double _r) :
+    UPoint(_up), radius(_r) {}
 
   CUPoint(const CUPoint& source):
     UPoint(source.IsDefined()) {
@@ -4520,8 +4523,10 @@ Computes the distance to a CUPoint ~cup~.
 
 */
   using UPoint::Distance;
-  double Distance(const CUPoint& cup) const;
-
+  double DistanceAvg(const CUPoint& cup, const Geoid* geoid = 0) const;
+  
+  void DistanceAvg(const CUPoint& cup, CcReal& result, const Geoid* geoid = 0)
+                                                                          const;
 
 private:
   double radius;
@@ -4589,6 +4594,7 @@ using a check on bbox.
   void AtInstant(const Instant& t, Intime<CPoint>& result) const;
   void AtPeriods(const Periods& p, CMPoint& result) const;
   void AtRect(const Rectangle<2>& rect, CMPoint& result) const;
+  void AtRegion(const Region *reg, CMPoint &result) const;
 
 /*
 3.10.5.3 Operation ~trajectory~
@@ -4624,7 +4630,7 @@ If invalid geographic coordinates are found, the result is UNDEFINED.
 *Complexity:* $O( n )$, where ~n~ is the number of units of this ~CMPoint~
 
 */
-  void Distance(const CPoint& p, MReal& result, const Geoid* geoid = 0) const;
+//  void Distance(const CPoint& p, MReal& result, const Geoid* geoid = 0) const;
   void DistanceAvg(const CMPoint& cmp, CcReal& result, const Geoid* geoid = 0)
                                                                           const;
 
@@ -4635,8 +4641,8 @@ This function computes the timeIntervals for Breaks
 
 */
 
-  void Breaks(Periods& result, const datetime::DateTime& dur,
-              const CcReal& epsilon, const Geoid* geoid= 0 ) const;
+//   void Breaks(Periods& result, const datetime::DateTime& dur,
+//               const CcReal& epsilon, const Geoid* geoid= 0 ) const;
 
 /*
 3.10.5.7 Direction

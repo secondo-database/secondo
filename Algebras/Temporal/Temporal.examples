@@ -787,7 +787,7 @@ Result    : (mpoint ( ( ("2003-11-20-06:03" "2003-11-20-06:43" TRUE FALSE) (9396
 
 Operator  : distanceAvg
 Number    : 1
-Signature : mpoint x mpoint (x geoid) -> real
+Signature : Xpoint x mpoint -> real, where X = (m|cu|cm)
 Example   : query distanceAvg(train5, train6)
 Result    : 11573.4610617085
 
