@@ -702,6 +702,10 @@ ALGEBRAS     += JNetAlgebra
 #COMMON_LD_FLAGS += -L$(TBB_LIB_DIR) -ltbb
 #ALGEBRA_INCLUDE_DIRS += $(TBB_INCLUDE_DIR)
 
+#ALGEBRA_DIRS += BasicEngine
+#ALGEBRAS     += BasicEngineAlgebra
+#ALGEBRA_INCLUDE_DIRS += /usr/include/postgresql 
+#COMMON_LD_FLAGS += -lpq
 
 
 endif
