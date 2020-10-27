@@ -38,6 +38,7 @@ Version 1.0 - Created - C.Behrndt - 2020
 
 #include "Algebras/Relation-C++/RelationAlgebra.h"
 #include "BasicEngine_Thread.h"
+#include "BasicEngineHelper.cpp"
 
 namespace BasicEngine {
 
@@ -170,13 +171,6 @@ long unsigned int anzWorker;
   bool importData(std::string* tab);
 
   bool exportToWorker(std::string* tab);
-
-  std::string replaceStringAll(std::string str,
-                      const std::string& replace,const std::string& with);
-
-  std::string getjoin(std::string* key);
-
-  std::string readFile(std::string* path);
 
   std::string createTabFileName(std::string* tab)
     {return "create" + *tab + ".sql";}

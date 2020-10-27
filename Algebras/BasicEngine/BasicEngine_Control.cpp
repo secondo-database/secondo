@@ -35,8 +35,6 @@ Version 1.0 - Created - C.Behrndt - 2020
 */
 #include "BasicEngine_Control.h"
 #include "FileSystem.h"
-#include <boost/algorithm/string.hpp> //wichtig, damit es auf newton läuft
-
 
 using namespace distributed2;
 using namespace std;
@@ -125,47 +123,6 @@ return val;
 }
 
 /*
-3.3 ~replaceStringAll~
-
-Replacing a string with an other string.
-
-Returns the new string.
-
-*/
-template<class T>
-string BasicEngine_Control<T>::replaceStringAll(string str
-                    , const string& replace, const string& with) {
-    if(!replace.empty()) {
-      size_t pos = 0;
-      while ((pos = str.find(replace, pos)) != string::npos) {
-        str.replace(pos, replace.length(), with);
-        pos += with.length();
-      }
-    }
-    return str;
-}
-
-/*
-3.4 ~getjoin~
-
-Returns the join-part of a join-Statement from a given key-list
-
-*/
-template<class T>
-string BasicEngine_Control<T>::getjoin(string *key){
-string res= "ON ";
-vector<string> result;
-    boost::split(result, *key, boost::is_any_of(","));
-
-    for (long unsigned int i = 0; i < result.size(); i++) {
-      if (i>0) res = res + " AND ";
-      res = res + " a."+ replaceStringAll(result[i]," ","") + " "
-          "  = b." + replaceStringAll(result[i]," ","");
-    }
-return res;
-}
-
-/*
 3.5 ~getparttabname~
 
 Returns a name of a table with the keys included.
@@ -177,27 +134,6 @@ string res;
   res = *tab + "_" + replaceStringAll(*key,",","_");
   res = replaceStringAll(res," ","");
   return(res);
-}
-
-/*
-3.6 ~readFile~
-
-Reads a file and returns the input as a string text.
-
-*/
-template<class T>
-string BasicEngine_Control<T>::readFile(string *path){
-string line = "";
-ifstream myfile (*path);
-string res;
-
-  if (myfile.is_open()){
-    while ( getline (myfile,line)){
-      res.append(line);
-    }
-    myfile.close();
-  }
-  return res;
 }
 
 /*
@@ -388,14 +324,13 @@ bool BasicEngine_Control<T>::exportData(string* tab, string* key,
 bool val = true;
 string path = getFilePath();
 string parttabname = getparttabname(tab,key);
-string join = getjoin(key);
 string strindex;
 long unsigned int i;
 
     for(i=1;i<=anzWorker;i++){
       strindex = to_string(i);
       val = val && sendCommand(dbs_conn->get_exportData(tab
-                   ,&parttabname,&join,&strindex,&path,slotsize));
+                   ,&parttabname, key,&strindex,&path,slotsize));
     }
 
 return val;

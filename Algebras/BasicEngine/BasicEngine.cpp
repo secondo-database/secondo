@@ -38,9 +38,8 @@ Version 1.0 - Created - C.Behrndt - 2020
 */
 #include "Algebras/FText/FTextAlgebra.h"
 #include "StandardTypes.h"
-
 #include "BasicEngine_Control.cpp"
-#include "ConnectionPG.h"
+#include "ConnectionPG.cpp"
 
 using namespace distributed2;
 

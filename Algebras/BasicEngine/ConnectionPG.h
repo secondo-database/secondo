@@ -38,6 +38,7 @@ Version 1.0 - Created - C.Behrndt - 2020
 
 #include <string>
 #include "libpq-fe.h"
+#include "BasicEngineHelper.cpp"
 
 namespace BasicEngine {
 
@@ -83,7 +84,7 @@ std::string get_partFun(std::string* tab, std::string* key
           ,std::string* anzSlots,std::string* fun,std::string* targetTab);
 
 std::string get_exportData(std::string* tab, std::string* join_tab
-          ,std::string* join_stat,std::string* nr,std::string* path
+          ,std::string* key,std::string* nr,std::string* path
           ,long unsigned int* anzWorker);
 
 std::string get_copy(std::string* tab, std::string* full_path, bool* direct);
@@ -142,6 +143,8 @@ bool createFunctionDDRandom(std::string* tab, std::string* key
 
 void getFieldInfoFunction(std::string* tab, std::string* key
            ,std::string* fields,std::string* valueMap,std::string* select);
+
+std::string getjoin(std::string* key);
 };
 
 }; /* namespace BasicEngine */

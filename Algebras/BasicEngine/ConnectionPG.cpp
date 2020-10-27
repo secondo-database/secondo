@@ -33,7 +33,6 @@ Checked - 2020
 Version 1.0 - Created - C.Behrndt - 2020
 
 */
-#include <boost/algorithm/string/predicate.hpp>
 #include "ConnectionPG.h"
 #include <bits/stdc++.h>
 
@@ -184,24 +183,6 @@ string ConnectionPG::get_partHash(string* tab, string* key
         " " + *anzSlots + " ) + 1 As worker_number,"
         "" + *key +" FROM "+ *tab;
 return get_createTab(targetTab,&select);
-}
-
-/*
-6.8 ~replaceStringAll~
-
-Replacing a string with an other string.
-
-*/
-string replaceStringAll(string str, const string& replace
-            , const string& with) {
-    if(!replace.empty()) {
-        size_t pos = 0;
-        while ((pos = str.find(replace, pos)) != string::npos) {
-            str.replace(pos, replace.length(), with);
-            pos += with.length();
-        }
-    }
-    return str;
 }
 
 /*
@@ -371,10 +352,10 @@ Creating a statement for exporting the data from a portioning table.
 
 */
 string ConnectionPG::get_exportData(string* tab, string* join_tab
-                  , string* join_stat, string* nr, string* path
+                  , string* key, string* nr, string* path
                   , long unsigned int* anzWorker){
   return "COPY (SELECT a.* FROM "+ *tab +" a INNER JOIN " + *join_tab  + " b "
-            "" + *join_stat + " WHERE ((worker_number % "
+            "" + getjoin(key) + " WHERE ((worker_number % "
             ""+ to_string(*anzWorker)+") "
             "+ 1) =" + *nr+ ") TO "
             "'" + *path + *tab + "_" + *nr +".bin' BINARY;";
@@ -390,5 +371,24 @@ string ConnectionPG::get_copy(string* tab, string* full_path, bool* direct ){
 
   if (*direct)  return "COPY "+  *full_path + " FROM '" + *tab + "' BINARY;";
   else return "COPY "+  *tab + " TO '" + *full_path + "' BINARY;";
+}
+
+/*
+6.15 ~getjoin~
+
+Returns the join-part of a join-Statement from a given key-list
+
+*/
+string ConnectionPG::getjoin(string *key){
+string res= "ON ";
+vector<string> result;
+    boost::split(result, *key, boost::is_any_of(","));
+
+    for (long unsigned int i = 0; i < result.size(); i++) {
+      if (i>0) res = res + " AND ";
+      res = res + " a."+ replaceStringAll(result[i]," ","") + " "
+          "  = b." + replaceStringAll(result[i]," ","");
+    }
+return res;
 }
 }/* namespace BasicEngine */
