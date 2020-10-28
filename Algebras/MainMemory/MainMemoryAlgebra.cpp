@@ -182,6 +182,11 @@ namespace mtreehelper{
     return m1->Distance(*m2);
   }
   
+  double distance(const temporalalgebra::MPoint* mp1, 
+                  const temporalalgebra::MPoint* mp2) {
+    return mp1->DistanceAvg(*mp2);
+  }
+  
   double distance(const Tuple* t1, const Tuple* t2) {
     return UINT_MAX;
   }
@@ -203,21 +208,23 @@ namespace mtreehelper{
   typedef Rectangle<4> t8;
   typedef Rectangle<8> t9;
   typedef stj::MLabel t10;
-  typedef Tuple t11;
+  typedef temporalalgebra::MPoint t11;
+  typedef Tuple t12;
 
   int getTypeNo(ListExpr type, int expectedNumbers){
-     assert(expectedNumbers==10);
+     assert(expectedNumbers==12);
      if( t1::checkType(type)){ return 0;}
      if( t2::checkType(type)){ return 1;}
      if( t3::checkType(type)){ return 2;}
-     if( t4::checkType(type)){ return 3; }
+     if( t4::checkType(type)){ return 3;}
      if( t5::checkType(type)){ return 4;}
      if( t6::checkType(type)){ return 5;}
      if( t7::checkType(type)){ return 6;}
      if( t8::checkType(type)){ return 7;}
      if( t9::checkType(type)){ return 8;}
      if(t10::checkType(type)){ return 9;}
-     if (nl->ToString(type) == Tuple::BasicType()){return 10;}
+     if(t11::checkType(type)){ return 10;}
+     if (nl->ToString(type) == Tuple::BasicType()){return 11;}
      return -1;
   }
 
@@ -232,7 +239,7 @@ namespace mtreehelper{
     if(!listutils::isSymbol(nl->First(type), BasicType())){
        return false;
     }
-    if(getTypeNo(subtype, 10) < 0){
+    if(getTypeNo(subtype, 12) < 0){
       return false;
     }
     return nl->Equal(nl->Second(type), subtype);
@@ -4298,7 +4305,7 @@ ListExpr mcreateMtree2TM(ListExpr args){
                          nl->StringAtom(nl->ToString(type))),
                      resType);
 
-  int no = mtreehelper::getTypeNo(type, 10);
+  int no = mtreehelper::getTypeNo(type, 12);
   if(no <0){
      return listutils::typeError("there is no known distance fuction for type "
                                + nl->ToString(type));
@@ -4385,7 +4392,7 @@ int mcreateMtree2Select(ListExpr args){
    string attrName = nl->SymbolValue(nl->Second(args));
    ListExpr type;
    listutils::findAttribute(attrList, attrName, type);
-   return mtreehelper::getTypeNo(type, 10);
+   return mtreehelper::getTypeNo(type, 12);
    assert(false);
    return -1; // invalid
 }
@@ -4522,7 +4529,7 @@ int mdistRange2VMT (Word* args, Word& result, int message,
 */
 int mdistRange2Select(ListExpr args){
    ListExpr type = nl->Second(args);
-   int m = 10;
+   int m = 12;
    int n;
    if(CcString::checkType(nl->First(args))){
       n = 0;
@@ -4664,7 +4671,7 @@ int mdistScan2VMT (Word* args, Word& result, int message,
 int mdistScan2Select(ListExpr args){
    ListExpr type = nl->Second(args);
    int n;
-   int m = 10;
+   int m = 12;
    if(CcString::checkType(nl->First(args))){
      n = 0;
    } else {
@@ -4747,7 +4754,7 @@ ListExpr mcreateMtreeTM(ListExpr args){
     return listutils::typeError(err + " (first arg is not a mem rel");
   }
 
-  if(nl->AtomType(a2)!=SymbolType && !listutils::isMap<4>(a2)){
+  if(nl->AtomType(a2)!=SymbolType && !listutils::isMap<2>(a2)){
     return listutils::typeError(err + " (second arg is not a valid Id or Fun");
   }
   if(!CcString::checkType(a3)){
@@ -4771,7 +4778,7 @@ ListExpr mcreateMtreeTM(ListExpr args){
     if(!index){
       return listutils::typeError( attrName+ " is not known in tuple");
     }
-    int typeNo = mtreehelper::getTypeNo(at, 10);
+    int typeNo = mtreehelper::getTypeNo(at, 12);
     if(typeNo < 0){
       return listutils::typeError("Type " + nl->ToString(at) +" not supported");
     }
@@ -4789,42 +4796,78 @@ ListExpr mcreateMtreeTM(ListExpr args){
                             resType);
   }
   else { // 2nd arg is a function
-    int indexS(-1), indexT(-1), counter(0);
-    ListExpr attrList2 = attrList;
-    while (!nl->IsEmpty(attrList2)) {
-      if (temporalalgebra::MPoint::checkType(nl->Second(nl->First(attrList2)))){
-        indexS = counter; 
-      }
-      else if (stj::MLabel::checkType(nl->Second(nl->First(attrList2)))) {
-        indexT = counter;
-      }
-      attrList2 = nl->Rest(attrList2);
-      counter++;
-    }
-    if (!temporalalgebra::MPoint::checkType(nl->Second(a2))
-     || !stj::MLabel::checkType(nl->Third(a2))
-     || !temporalalgebra::MPoint::checkType(nl->Fourth(a2))
-     || !stj::MLabel::checkType(nl->Fifth(a2))
-     || !CcReal::checkType(nl->Sixth(a2))) {
-      return listutils::typeError(err +
-        " (required: fun: mpoint x mlabel x mpoint x mlabel --> real)");
-    }
     ListExpr resType = nl->TwoElemList(nl->SymbolAtom(Mem::BasicType()),
                                        nl->TwoElemList(
                                        nl->SymbolAtom(mtreehelper::BasicType()),
                                        nl->SymbolAtom(Tuple::BasicType())));
-    int typeNo = mtreehelper::getTypeNo(nl->SymbolAtom(Tuple::BasicType()), 10);
+    int typeNo = mtreehelper::getTypeNo(nl->SymbolAtom(Tuple::BasicType()), 12);
+    if (!nl->Equal(nl->Second(a1), nl->Second(a2)) ||
+        !nl->Equal(nl->Second(a1), nl->Third(a2))) {
+      return listutils::typeError("invalid function; has to match tuple type");
+    }
+    if (!CcReal::checkType(nl->Fourth(a2))) {
+      return listutils::typeError("function result has to be a real number");
+    }
     result = nl->ThreeElemList(nl->SymbolAtom(Symbols::APPEND()),
-                           nl->TwoElemList(nl->TwoElemList(nl->IntAtom(indexS),
-                                                           nl->IntAtom(indexT)),
-                                           nl->IntAtom(typeNo)),
-                           resType);
-    cout << nl->ToString(result) << endl;
+                               nl->TwoElemList(nl->IntAtom(-1),
+                                               nl->IntAtom(typeNo)),
+                               resType);
+//     cout << nl->ToString(result) << endl;
   }
   return result;
 }
 
-
+template<class R>
+int mcreateMtreeVMTuple(Word* args, Word& result, int message, Word& local,
+                        Supplier s) {
+  result = qp->ResultStorage(s);
+  Mem* res = (Mem*)result.addr;
+  R* RelName = (R*)args[0].addr;
+  CcString* Name = (CcString*) args[2].addr; 
+  if(!RelName->IsDefined() || !Name->IsDefined()){
+    res->SetDefined(false);
+    return 0;
+  }
+  string relName = RelName->GetValue();
+  string name = Name->GetValue();
+  MemoryObject* mmobj = catalog->getMMObject(relName);
+  
+  StdDistComp<Tuple> dc;
+  MMMTree<pair<Tuple, TupleId>, StdDistComp<Tuple> >* tree = 
+                 new MMMTree<pair<Tuple, TupleId>, StdDistComp<Tuple> >(4,8,dc);
+  MemoryRelObject* mrel = (MemoryRelObject*) mmobj;
+  vector<Tuple*>* rel = mrel->getmmrel();
+//     ArgVectorPointer funargs = qp->Argument(args[1].addr);
+  // qp->Request(fun, tuple)
+  // TODO: apply user-defined function
+  for (size_t i = 0; i < rel->size(); i++) {
+    Tuple *tuple = (*rel)[i];
+    pair<Tuple, TupleId> entry(*tuple, i);
+    tree->insert(entry);
+  }
+  if(!mmobj){
+    res->SetDefined(false);
+    return 0;
+  }
+  ListExpr mmType = nl->Second(catalog->getMMObjectTypeExpr(relName));
+  if(!Relation::checkType(mmType)){
+    res->SetDefined(false);
+    return 0;
+  }
+  if(catalog->isMMObject(name)){
+    // name already used
+    res->SetDefined(false);
+    return 0;
+  }
+  
+  size_t usedMem = tree->memSize();
+  MemoryMtreeObject<Tuple, StdDistComp<Tuple> >* mtree = 
+          new MemoryMtreeObject<Tuple, StdDistComp<Tuple> >(tree,  usedMem, 
+                    nl->ToString(qp->GetType(s)), mrel->hasflob(), getDBname());
+  bool success = catalog->insert(name, mtree);
+  res->set(success, name);
+  return 0;
+}
 
 template <class T, class R>
 int mcreateMtreeVMT (Word* args, Word& result, int message,
@@ -4854,71 +4897,50 @@ int mcreateMtreeVMT (Word* args, Word& result, int message,
     res->SetDefined(false);
     return 0;
   }
-
   int index = ((CcInt*) args[3].addr)->GetValue();
   // extract attribute type
-  ListExpr attrList = nl->Second(nl->Second(mmType));
-  int i2 = index;
-  while(!nl->IsEmpty(attrList) && i2>0){
-    attrList = nl->Rest(attrList);
-    i2--;
+  ListExpr attrType;
+  if (index > -1) { // attribute type relevant
+    ListExpr attrList = nl->Second(nl->Second(mmType));
+    int i2 = index;
+    while(!nl->IsEmpty(attrList) && i2>0){
+      attrList = nl->Rest(attrList);
+      i2--;
+    }
+    if(nl->IsEmpty(attrList)){
+      res->SetDefined(false);
+      return 0;
+    }
+    attrType = nl->Second(nl->First(attrList));
   }
-  if(nl->IsEmpty(attrList)){
+  else {
+    cout << "PROBLEM" << endl;
     res->SetDefined(false);
     return 0;
   }
-  ListExpr attrType = nl->Second(nl->First(attrList));
-  if (T::BasicType() == "tuple") {
-    attrType = nl->Second(mmType);
-  }
-  cout << "VM: " << nl->ToString(attrType) << endl;
   if(!T::checkType(attrType)){
     res->SetDefined(false);
     return 0;
   }
 
-
-  StdDistComp<T> dc;
-  MMMTree<pair<T,TupleId>,StdDistComp<T> >* tree = 
-          new MMMTree<pair<T,TupleId>,StdDistComp<T> >(4,8,dc);
-
-  MemoryRelObject* mrel = (MemoryRelObject*) mmobj;
-
-  vector<Tuple*>* rel = mrel->getmmrel();
-
   // insert attributes
   
-  if (listutils::isMap<4>(qp->GetType(qp->GetSon(s, 1)))) { //only for tuple+map
-    Word index1w, index2w;
-    qp->Request(qp->GetSon(qp->GetSon(s, 3), 0), index1w);
-    qp->Request(qp->GetSon(qp->GetSon(s, 3), 1), index2w);
-    cout << ((CcInt*)(index1w.addr))->GetValue() << " " 
-         << ((CcInt*)(index2w.addr))->GetValue() << endl;
-    int index1 = ((CcInt*)(index1w.addr))->GetValue();
-    int index2 = ((CcInt*)(index2w.addr))->GetValue();
-    for(size_t i=0;i<rel->size();i++){
-      temporalalgebra::MPoint *mp = 
-                      (temporalalgebra::MPoint*)(*rel)[i]->GetAttribute(index1);
-      stj::MLabel *ml = (stj::MLabel*)(*rel)[i]->GetAttribute(index2);
-      pair<temporalalgebra::MPoint*, stj::MLabel*> trajs(mp, ml);
-      pair<pair<temporalalgebra::MPoint*, stj::MLabel*>, TupleId> 
-                                                                entry(trajs, i);
-//       tree->insert(entry);
-    }
-  }
-  else {
-    for(size_t i=0;i<rel->size();i++){
-      T* attr = (T*) (*rel)[i]->GetAttribute(index);
-      pair<T,TupleId> p(*attr,i);
-      tree->insert(p);
-    }
+  StdDistComp<T> dc;
+  MMMTree<pair<T,TupleId>,StdDistComp<T> >* tree = 
+           new MMMTree<pair<T,TupleId>,StdDistComp<T> >(4,8,dc);
+  MemoryRelObject* mrel = (MemoryRelObject*) mmobj;
+  vector<Tuple*>* rel = mrel->getmmrel();
+   for(size_t i=0;i<rel->size();i++){
+    T* attr = (T*) (*rel)[i]->GetAttribute(index);
+    pair<T,TupleId> p(*attr,i);
+    tree->insert(p);
   }
   size_t usedMem = tree->memSize();
   MemoryMtreeObject<T,StdDistComp<T> >* mtree = 
-        new MemoryMtreeObject<T, StdDistComp<T> > (tree,  
-                            usedMem, 
-                            nl->ToString(qp->GetType(s)),
-                            mrel->hasflob(), getDBname());
+          new MemoryMtreeObject<T, StdDistComp<T> > (tree,  
+                              usedMem, 
+                              nl->ToString(qp->GetType(s)),
+                              mrel->hasflob(), getDBname());
   bool success = catalog->insert(name, mtree);
   res->set(success, name);
   return 0;
@@ -4935,7 +4957,8 @@ ValueMapping mcreatetreeVMA[] = {
   mcreateMtreeVMT<mtreehelper::t8,CcString>,
   mcreateMtreeVMT<mtreehelper::t9,CcString>,
   mcreateMtreeVMT<mtreehelper::t10,CcString>,
-  mcreateMtreeVMT<Tuple, CcString>,
+  mcreateMtreeVMT<mtreehelper::t11,CcString>,
+  mcreateMtreeVMTuple<CcString>,
   mcreateMtreeVMT<mtreehelper::t1,Mem>,
   mcreateMtreeVMT<mtreehelper::t2,Mem>,
   mcreateMtreeVMT<mtreehelper::t3,Mem>,
@@ -4946,7 +4969,8 @@ ValueMapping mcreatetreeVMA[] = {
   mcreateMtreeVMT<mtreehelper::t8,Mem>,
   mcreateMtreeVMT<mtreehelper::t9,Mem>,
   mcreateMtreeVMT<mtreehelper::t10,Mem>,
-  mcreateMtreeVMT<Tuple, Mem>
+  mcreateMtreeVMT<mtreehelper::t11,Mem>,
+  mcreateMtreeVMTuple<Mem>
 };
 
 
@@ -4954,8 +4978,7 @@ int mcreateMtreeVM (Word* args, Word& result, int message,
                     Word& local, Supplier s) {
 
   int typeNo = ((CcInt*) args[4].addr)->GetValue();
-  int offset = CcString::checkType(qp->GetType(qp->GetSon(s,0)))?0:11;
-
+  int offset = CcString::checkType(qp->GetType(qp->GetSon(s,0)))?0:12;
   return mcreatetreeVMA[typeNo+ offset](args,result,message,local,s);
 }
 
@@ -5103,7 +5126,7 @@ int mdistRangeVMT (Word* args, Word& result, int message,
 
 int mdistRangeSelect(ListExpr args){
    ListExpr typeL = nl->Third(args);
-   int type =  mtreehelper::getTypeNo(typeL,10);
+   int type =  mtreehelper::getTypeNo(typeL,12);
    int o1 = CcString::checkType(nl->First(args))?0:20;
    int o2 = CcString::checkType(nl->Second(args))?0:10;
    return type + o1 + o2;
@@ -5288,7 +5311,7 @@ int mdistScanVMT (Word* args, Word& result, int message,
 
 int mdistScanSelect(ListExpr args){
    ListExpr type = nl->Third(args);
-   int m = 10;
+   int m = 12;
    int keyTypeNo = mtreehelper::getTypeNo(type,m);
    int n1 = CcString::checkType(nl->First(args))?0:2*m;
    int n2 = CcString::checkType(nl->Second(args))?0:m;
