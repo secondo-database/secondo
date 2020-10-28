@@ -226,7 +226,7 @@ string localCreateName = getFilePath() + remoteCreateName;
       val = (si->sendFile(localCreateName, remoteCreateName, true) == 0);
       if (!val){
         cout << "\n Couldn't send the structure-file "
-        		"to the worker." << endl;
+            "to the worker." << endl;
         return val;}
 
       index++;
