@@ -6016,6 +6016,51 @@ Operator falseOp(
 
 
 /*
+Operator isnan
+
+*/
+ListExpr isnanTM(ListExpr args){
+  if(!nl->HasLength(args,1)){
+    return listutils::typeError("one argumemnt expected");
+  }
+  if(!CcReal::checkType(nl->First(args))){
+    return listutils::typeError("real expected");
+  }
+  return listutils::basicSymbol<CcBool>();
+}
+
+
+int isnanVM (Word* args, Word& result, int message, 
+              Word& local, Supplier s ) {
+
+  CcReal* a = (CcReal*) args[0].addr;
+  result = qp->ResultStorage(s);
+  CcBool* res = (CcBool*) result.addr;
+  if(!a->IsDefined()){
+    res->Set(true,false);
+  } else {
+    res->Set(true, isnan(a->GetValue()));
+  }
+  return 0;
+}
+
+
+OperatorSpec isnanSpec(
+  "real -> bool",
+  "isnan(_) ",
+  "Checks whether the argument contains not a number. "
+  "For undefined value, the result will be false.",
+  " query isnan(1.0)"
+);
+
+Operator isnanOp(
+   "isnan",
+   isnanSpec.getStr(),
+   isnanVM,
+   Operator::SimpleSelect,
+   isnanTM);
+
+/*
 6 Class ~CcAlgebra~
 
 The last steps in adding an algebra to the Secondo system are
@@ -6170,6 +6215,7 @@ class CcAlgebra1 : public Algebra
     AddOperator (&chars);
     AddOperator (&trueOp);
     AddOperator (&falseOp);
+    AddOperator (&isnanOp);
 
 #ifdef USE_PROGRESS
     ccopifthenelse.EnableProgress();

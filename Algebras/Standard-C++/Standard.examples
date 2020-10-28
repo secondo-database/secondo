@@ -718,3 +718,9 @@ Signature : -> bool
 Example   : query false()
 Result    : FALSE
 
+Operator : isnan 
+Number : 1
+Signature : real -> bool
+Example   : query isnan(1.0)
+Result    : FALSE
+

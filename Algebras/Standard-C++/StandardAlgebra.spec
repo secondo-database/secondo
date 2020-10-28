@@ -109,5 +109,6 @@ operator switch alias SWITCH pattern _ op[ _; _ ; _]
 operator true alias TRUE pattern  op()
 operator false alias FALSE  pattern op()
 
+operator isnan alias ISNAN pattern op(_)
 
 
