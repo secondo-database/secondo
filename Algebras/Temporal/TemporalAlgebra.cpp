@@ -2865,7 +2865,11 @@ double CUPoint::DistanceAvg(const CUPoint& cup, const Geoid* geoid /* = 0 */)
     return DBL_MAX;
   }
   ur.r = true;
-  return std::max(ur.Integrate() / dur - cup1.GetRadius() - cup2.GetRadius(),
+  double integral = ur.Integrate();
+  if (isnan(integral)) {
+    integral = 0.0;
+  }
+  return std::max(integral / dur - cup1.GetRadius() - cup2.GetRadius(),
                   0.0);
 }
 
