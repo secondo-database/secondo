@@ -2869,6 +2869,9 @@ double CUPoint::DistanceAvg(const CUPoint& cup, const Geoid* geoid /* = 0 */)
   if (isnan(integral)) {
     integral = 0.0;
   }
+//   cout << integral << " / " << dur << " - " << cup1.GetRadius() << " - "
+//        << cup2.GetRadius() << " ... "
+//        << integral / dur - cup1.GetRadius() - cup2.GetRadius() << endl;
   return std::max(integral / dur - cup1.GetRadius() - cup2.GetRadius(),
                   0.0);
 }
@@ -7889,6 +7892,29 @@ void CMPoint::GetUPoint(const int pos, UPoint& result) const {
   cup.GetUPoint(result);
 }
 
+void CMPoint::ConvertFrom(const MPoint& src, const Duration dur, 
+                          const Geoid *geoid /* = 0 */) {
+  SetDefined(src.IsDefined());
+  if (!IsDefined()) {
+    return;
+  }
+  Clear();
+  if (src.IsEmpty()) {
+    return;
+  }
+  CUPoint cup(true);
+  UPoint up(true);
+  DateTime tempDur(durationtype);
+  tempDur.SetToZero();
+  Point p0(true), p1(true);
+  src.Get(0, up);
+  p0 = up.p0;
+  for (int i = 0; i < src.GetNoComponents(); i++) {
+    src.Get(i, up);
+    
+  }
+}
+
 void CMPoint::Clear() {
   Mapping<CUPoint, CPoint>::Clear(); // call super
   bbox.SetDefined(false);          // invalidate bbox
@@ -8252,13 +8278,11 @@ void CMPoint::Trajectory(Line& line) const {
   mp.Trajectory(line);
 }
 
-void CMPoint::DistanceAvg(const CMPoint& cmp, CcReal& result,
-                          const Geoid* geoid) const {
+double CMPoint::DistanceAvg(const CMPoint& cmp, const Geoid* geoid /* = 0 */)
+                                                                         const {
   if (!IsDefined() || !cmp.IsDefined() || (geoid && !geoid->IsDefined())) {
-    result.SetDefined(false);
-    return;
+    return -1.0;
   }
-  result.SetDefined(true);
   Instant start1(datetime::instanttype), start2(datetime::instanttype);
   InitialInstant(start1);
   cmp.InitialInstant(start2);
@@ -8296,7 +8320,16 @@ void CMPoint::DistanceAvg(const CMPoint& cmp, CcReal& result,
     sum += theStack.top().value;
     theStack.pop();
   }
-  result.Set(true, sum);
+  return sum;
+}
+
+void CMPoint::DistanceAvg(const CMPoint& cmp, CcReal& result,
+                          const Geoid* geoid /* = 0 */) const {
+  if (!IsDefined() || !cmp.IsDefined() || (geoid && !geoid->IsDefined())) {
+    result.SetDefined(false);
+    return;
+  }
+  result.Set(true, this->DistanceAvg(cmp, geoid));                          
 }
 
 void CMPoint::MergeAdd(const CUPoint& unit) {

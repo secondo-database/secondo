@@ -4409,7 +4409,8 @@ ValueMapping mcreateMtree2VM[] = {
   mcreateMtree2VMT<mtreehelper::t7>,
   mcreateMtree2VMT<mtreehelper::t8>,
   mcreateMtree2VMT<mtreehelper::t9>,
-  mcreateMtree2VMT<mtreehelper::t10>
+  mcreateMtree2VMT<mtreehelper::t10>,
+  mcreateMtree2VMT<mtreehelper::t11>
 };
 
 OperatorSpec mcreateMtree2Spec(
@@ -4422,7 +4423,7 @@ OperatorSpec mcreateMtree2Spec(
 Operator mcreateMtree2Op(
    "mcreateMtree2",
    mcreateMtree2Spec.getStr(),
-   10,
+   11,
    mcreateMtree2VM,
    mcreateMtree2Select,
    mcreateMtree2TM

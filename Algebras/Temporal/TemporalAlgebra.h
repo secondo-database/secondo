@@ -4585,6 +4585,20 @@ Extracts the ~upoint~ information at a given position.
   void GetUPoint(const int pos, UPoint& result) const;
 
 /*
+Converts an ~mpoint~ into a ~cmpoint~ with a constant cylinder length (duration)
+
+*/
+  void ConvertFrom(const MPoint& src, const Duration dur, 
+                   const Geoid *geoid = 0);
+  
+/*
+Converts an ~mpoint~ into a ~cmpoint~ with a constant (maximum) cylinder radius.
+
+*/
+//   void ConvertFrom(const MPoint& src, const double maxRadius,
+//                    const Geoid *geoid = 0);
+
+/*
 3.12.2 Modifications of Inherited Functions
 
 Overwrites the function defined in Mapping, mostly in order to
@@ -4642,6 +4656,7 @@ If invalid geographic coordinates are found, the result is UNDEFINED.
 
 */
 //  void Distance(const CPoint& p, MReal& result, const Geoid* geoid = 0) const;
+  double DistanceAvg(const CMPoint& cup, const Geoid* geoid = 0) const;
   void DistanceAvg(const CMPoint& cmp, CcReal& result, const Geoid* geoid = 0)
                                                                           const;
 
