@@ -74,8 +74,8 @@ Returns true if everything is OK and there are no failure.
 */
 bool getResult(){
    boost::lock_guard<boost::mutex> guard(mtx);
-   runner.join();
    started =false;
+   runner.join();
    return val;
 }
 
@@ -374,7 +374,7 @@ std::string cmd;
          "" + query + "','" + tab + "');";
   }
   val = simpleCommand(&cmd);
- }
+}
 
 /*
 4.3.5 ~runCommand~

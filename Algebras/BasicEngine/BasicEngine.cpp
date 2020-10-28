@@ -893,7 +893,7 @@ string err = "\n {string,text} x {string,text} -> bool"
 template<class T, class H, class L>
 int be_mquerySFVM(Word* args,Word& result,int message
           ,Word& local,Supplier s ){
-bool val = true;
+bool val = false;
 result = qp->ResultStorage(s);
 T* query = (T*) args[0].addr;
 H* tab = (H*) args[1].addr;
@@ -996,7 +996,7 @@ string err = "\n {string,text} -> bool"
 template<class T, class L>
 int be_mcommandSFVM(Word* args, Word& result, int message
           , Word& local, Supplier s ){
-bool val = true;
+bool val = false;
 result = qp->ResultStorage(s);
 T* query = (T*) args[0].addr;
 

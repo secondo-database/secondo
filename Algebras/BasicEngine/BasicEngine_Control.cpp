@@ -217,7 +217,7 @@ string localCreateName = getFilePath() + remoteCreateName;
       remoteName = dbs_conn->get_partTabName(tab,&strindex);
       localName = getFilePath() + remoteName;
       val = (si->sendFile(localName, remoteName, true) == 0);
-      val = val && (remove(localName.c_str()) == 0);
+      val = (remove(localName.c_str()) == 0) && val;
       if (!val){
         cout << "\n Couldn't send the data to the worker." << endl;
         return val;}
@@ -225,7 +225,8 @@ string localCreateName = getFilePath() + remoteCreateName;
       //sending create Table
       val = (si->sendFile(localCreateName, remoteCreateName, true) == 0);
       if (!val){
-    cout << "\n Couldn't send the structure-file to the worker." << endl;
+        cout << "\n Couldn't send the structure-file "
+        		"to the worker." << endl;
         return val;}
 
       index++;
@@ -247,7 +248,7 @@ string localCreateName = getFilePath() + remoteCreateName;
 
     //waiting for finishing the threads
     for(size_t i=0;i<importer.size();i++){
-      val = val && importer[i]->getResult();
+      val = importer[i]->getResult() && val;
     }
   }else cout << "\n Something goes wrong with the"
   " export or the transfer." << endl;
@@ -327,12 +328,11 @@ string parttabname = getparttabname(tab,key);
 string strindex;
 long unsigned int i;
 
-    for(i=1;i<=anzWorker;i++){
-      strindex = to_string(i);
-      val = val && sendCommand(dbs_conn->get_exportData(tab
-                   ,&parttabname, key,&strindex,&path,slotsize));
-    }
-
+  for(i=1;i<=anzWorker;i++){
+    strindex = to_string(i);
+    val = sendCommand(dbs_conn->get_exportData(tab
+          ,&parttabname, key,&strindex,&path,slotsize)) && val;
+  }
 return val;
 }
 
@@ -350,20 +350,22 @@ bool BasicEngine_Control<T>::importData(string *tab){
 bool val = true;
 string full_path;
 string cmd;
+string strindex;
 long unsigned int i;
 
   //create Table
   full_path =getFilePath() + createTabFileName(tab);
   cmd = readFile(&full_path);
 
-  val = val && dbs_conn->sendCommand(&cmd);
+  val = dbs_conn->sendCommand(&cmd) && val;
   if(!val) return val;
   FileSystem::DeleteFileOrFolder(full_path);
 
   //import data (local files from worker)
   for(i=1;i<=anzWorker;i++){
-    full_path = getFilePath() + *tab + "_" + to_string(i)+".bin";
-    val = val && copy(full_path,*tab,true);
+    strindex = to_string(i);
+    full_path = getFilePath() + dbs_conn->get_partTabName(tab, &strindex);
+    val = copy(full_path,*tab,true) && val;
     FileSystem::DeleteFileOrFolder(full_path);
   }
 return val;
@@ -399,7 +401,7 @@ bool val = true;
 
   val = createTabFile(tab);
   if(!val){
-cout << "\n Couldn't create the structure-file" << endl;
+    cout << "\n Couldn't create the structure-file" << endl;
     return val;
   }
 
@@ -434,7 +436,7 @@ string strindex;
 
   //waiting for finishing the threads
   for(size_t i=0;i<importer.size();i++){
-    val = val && importer[i]->getResult();
+    val = importer[i]->getResult() && val;
   }
 
   //import in local PG-Master
@@ -457,14 +459,14 @@ bool BasicEngine_Control<T>::mquery(string query
                     , string tab){
 bool val = true;
 
- //doing the query with one thread for each worker
- for(size_t i=0;i<importer.size();i++){
-   importer[i]->startQuery(tab,query);
- }
+  //doing the query with one thread for each worker
+  for(size_t i=0;i<importer.size();i++){
+    importer[i]->startQuery(tab,query);
+  }
 
- //waiting for finishing the threads
- for(size_t i=0;i<importer.size();i++){
-   val = val && importer[i]->getResult();
+  //waiting for finishing the threads
+  for(size_t i=0;i<importer.size();i++){
+    val = importer[i]->getResult() && val;
  }
 
 return val;
@@ -489,7 +491,7 @@ bool val = true;
 
  //waiting for finishing the threads
  for(size_t i=0;i<importer.size();i++){
-   val = val && importer[i]->getResult();
+   val = importer[i]->getResult() && val;
  }
 
 return val;
@@ -517,7 +519,7 @@ CommandLog CommandLog;
       i++;
     }
      //checking the connection to the secondary dbms system
-     val = val && dbs_conn->checkConn();
+     val = dbs_conn->checkConn() && val;
   }
   else{
     val = false;
