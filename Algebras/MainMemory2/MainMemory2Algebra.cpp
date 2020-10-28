@@ -251,7 +251,28 @@ namespace mtreehelper{
     }
     return mp1->DistanceAvg(*mp2);
   }
+  
+  double distance(const temporalalgebra::CUPoint* cup1,
+                  const temporalalgebra::CUPoint* cup2, Geoid* geoid) {
+    if (!cup1->IsDefined() && !cup2->IsDefined()) {
+      return 0;
+    }
+    if (!cup1->IsDefined() || !cup2->IsDefined()) {
+      return std::numeric_limits<double>::max();
+    }
+    return cup1->DistanceAvg(*cup2);
+  }
 
+  double distance(const temporalalgebra::CMPoint* cmp1,
+                  const temporalalgebra::CMPoint* cmp2, Geoid* geoid) {
+    if (!cmp1->IsDefined() && !cmp2->IsDefined()) {
+      return 0;
+    }
+    if (!cmp1->IsDefined() || !cmp2->IsDefined()) {
+      return std::numeric_limits<double>::max();
+    }
+    return cmp1->DistanceAvg(*cmp2);
+  }
 
 /*
    6.4 ~getTypeNo~
@@ -269,9 +290,11 @@ namespace mtreehelper{
   typedef Rectangle<4> t8;
   typedef Rectangle<8> t9;
   typedef temporalalgebra::MPoint t10;
+  typedef temporalalgebra::CUPoint t11;
+  typedef temporalalgebra::CMPoint t12;
 
   int getTypeNo(ListExpr type, int expectedNumbers){
-     assert(expectedNumbers==10);
+     assert(expectedNumbers==12);
      if( t1::checkType(type)){ return 0;}
      if( t2::checkType(type)){ return 1;}
      if( t3::checkType(type) ){ return 2;}
@@ -282,6 +305,8 @@ namespace mtreehelper{
      if( t8::checkType(type)){ return 7;}
      if( t9::checkType(type)){ return 8;}
      if(t10::checkType(type)){ return 9;}
+     if(t11::checkType(type)){ return 10;}
+     if(t12::checkType(type)){ return 11;}
      return -1;
   }
 
@@ -296,7 +321,7 @@ namespace mtreehelper{
     if(!listutils::isSymbol(nl->First(type), BasicType())){
        return false;
     }
-    if(getTypeNo(subtype, 10) < 0){
+    if(getTypeNo(subtype, 12) < 0){
       return false;
     }
     return nl->Equal(nl->Second(type), subtype);
@@ -4330,7 +4355,7 @@ ListExpr mcreatemtreeTM(ListExpr args){
   }
 
   // check for supported type, extend if required
-  int no = mtreehelper::getTypeNo(type,10);
+  int no = mtreehelper::getTypeNo(type,12);
   if(no <0){
      return listutils::typeError("there is no known distance fuction for type "
                                + nl->ToString(type));
@@ -4503,14 +4528,14 @@ int mcreatemtreeSelect(ListExpr args){
      o1 = 0;
      attrList = nl->Second(nl->Second(nl->First(args)));
    } else {
-     o1 = 10;
+     o1 = 12;
      attrList=nl->Second(nl->Second(nl->Second(nl->Second(nl->First(args)))));
             //  mpointer   mem         rel       tuple 
    }
 
    ListExpr type;
    listutils::findAttribute(attrList, attrName, type);
-   return o1 + mtreehelper::getTypeNo(type,10);
+   return o1 + mtreehelper::getTypeNo(type,12);
 }
 
  // note: if adding attributes with flobs, the value mapping must be changed
@@ -4526,6 +4551,8 @@ ValueMapping mcreatemtreeVM[] = {
   mcreatemtreeVMTStream<mtreehelper::t8>,
   mcreatemtreeVMTStream<mtreehelper::t9>,
   mcreatemtreeVMTStream<mtreehelper::t10>,
+  mcreatemtreeVMTStream<mtreehelper::t11>,
+  mcreatemtreeVMTStream<mtreehelper::t12>,
   mcreatemtreeVMTMP<mtreehelper::t1>,
   mcreatemtreeVMTMP<mtreehelper::t2>,
   mcreatemtreeVMTMP<mtreehelper::t3>,
@@ -4535,7 +4562,9 @@ ValueMapping mcreatemtreeVM[] = {
   mcreatemtreeVMTMP<mtreehelper::t7>,
   mcreatemtreeVMTMP<mtreehelper::t8>,
   mcreatemtreeVMTMP<mtreehelper::t9>,
-  mcreatemtreeVMTMP<mtreehelper::t10>
+  mcreatemtreeVMTMP<mtreehelper::t10>,
+  mcreatemtreeVMTMP<mtreehelper::t11>,
+  mcreatemtreeVMTMP<mtreehelper::t12>
 };
 
 OperatorSpec mcreatemtreeSpec(
@@ -4559,7 +4588,7 @@ OperatorSpec mcreatemtreeSpec(
 Operator mcreatemtreeOp(
    "mcreatemtree",
    mcreatemtreeSpec.getStr(),
-   20,
+   24,
    mcreatemtreeVM,
    mcreatemtreeSelect,
    mcreatemtreeTM
@@ -4715,6 +4744,8 @@ ValueMapping minsertmtreeVM[] = {
   minsertmtreeVMT<mtreehelper::t8,Mem>,
   minsertmtreeVMT<mtreehelper::t9,Mem>,
   minsertmtreeVMT<mtreehelper::t10,Mem>,
+  minsertmtreeVMT<mtreehelper::t11,Mem>,
+  minsertmtreeVMT<mtreehelper::t12,Mem>,
   minsertmtreeVMT<mtreehelper::t1,MPointer>,
   minsertmtreeVMT<mtreehelper::t2,MPointer>,
   minsertmtreeVMT<mtreehelper::t3,MPointer>,
@@ -4724,16 +4755,18 @@ ValueMapping minsertmtreeVM[] = {
   minsertmtreeVMT<mtreehelper::t7,MPointer>,
   minsertmtreeVMT<mtreehelper::t8,MPointer>,
   minsertmtreeVMT<mtreehelper::t9,MPointer>,
-  minsertmtreeVMT<mtreehelper::t10,MPointer>
+  minsertmtreeVMT<mtreehelper::t10,MPointer>,
+  minsertmtreeVMT<mtreehelper::t11,MPointer>,
+  minsertmtreeVMT<mtreehelper::t12,MPointer>
 };
 
 int minsertmtreeSelect(ListExpr args){
-   int o1 = Mem::checkType(nl->Second(args))?0:10;
+   int o1 = Mem::checkType(nl->Second(args))?0:12;
    string attrName = nl->SymbolValue(nl->Third(args));
    ListExpr attrList = nl->Second(nl->Second(nl->First(args)));
    ListExpr type;
    listutils::findAttribute(attrList, attrName, type);
-   return  o1 + mtreehelper::getTypeNo(type,10);
+   return  o1 + mtreehelper::getTypeNo(type,12);
 }
 
 OperatorSpec minsertmtreeSpec(
@@ -4749,7 +4782,7 @@ OperatorSpec minsertmtreeSpec(
 Operator minsertmtreeOp(
   "minsertmtree",
    minsertmtreeSpec.getStr(),
-   20,
+   24,
    minsertmtreeVM,
    minsertmtreeSelect,
    minsertmtreeTM
@@ -4905,9 +4938,9 @@ int mdistRange2Select(ListExpr args){
    if(Mem::checkType(nl->First(args))){
       n = 0;
    } else { // MPointer variant
-      n = 10;  
+      n = 12;  
    }
-   int res =  mtreehelper::getTypeNo(type,10) + n;
+   int res =  mtreehelper::getTypeNo(type,12) + n;
    return res;
 }
 
@@ -4924,6 +4957,8 @@ ValueMapping mdistRange2VM[] = {
   mdistRange2VMT<mtreehelper::t8, Mem, true>,
   mdistRange2VMT<mtreehelper::t9, Mem, true>,
   mdistRange2VMT<mtreehelper::t10, Mem, true>,
+  mdistRange2VMT<mtreehelper::t11, Mem, true>,
+  mdistRange2VMT<mtreehelper::t12, Mem, true>,
   
   mdistRange2VMT<mtreehelper::t1, MPointer, true>,
   mdistRange2VMT<mtreehelper::t2, MPointer, true>,
@@ -4934,7 +4969,9 @@ ValueMapping mdistRange2VM[] = {
   mdistRange2VMT<mtreehelper::t7, MPointer, true>,
   mdistRange2VMT<mtreehelper::t8, MPointer, true>,
   mdistRange2VMT<mtreehelper::t9, MPointer, true>,
-  mdistRange2VMT<mtreehelper::t10, MPointer, true>
+  mdistRange2VMT<mtreehelper::t10, MPointer, true>,
+  mdistRange2VMT<mtreehelper::t11, MPointer, true>,
+  mdistRange2VMT<mtreehelper::t12, MPointer, true>
 };
 
 OperatorSpec mdistRange2Spec(
@@ -4949,7 +4986,7 @@ OperatorSpec mdistRange2Spec(
 Operator mdistRange2Op(
    "mdistRange2",
    mdistRange2Spec.getStr(),
-   20,
+   24,
    mdistRange2VM,
    mdistRange2Select,
    mdistRange2TM<true>
@@ -5085,7 +5122,7 @@ int mdistScan2VMT (Word* args, Word& result, int message,
 int mdistScan2Select(ListExpr args){
    ListExpr type = nl->Second(args);
    int n;
-   int m = 10;
+   int m = 12;
    if(Mem::checkType(nl->First(args))){
      n = 0;
    } else {  // mpointer
@@ -5107,6 +5144,8 @@ ValueMapping mdistScan2VM[] = {
   mdistScan2VMT<mtreehelper::t8, Mem, true>,
   mdistScan2VMT<mtreehelper::t9, Mem, true>,
   mdistScan2VMT<mtreehelper::t10, Mem, true>,
+  mdistScan2VMT<mtreehelper::t11, Mem, true>,
+  mdistScan2VMT<mtreehelper::t12, Mem, true>,
 
   mdistScan2VMT<mtreehelper::t1, MPointer, true>,
   mdistScan2VMT<mtreehelper::t2, MPointer, true>,
@@ -5117,7 +5156,9 @@ ValueMapping mdistScan2VM[] = {
   mdistScan2VMT<mtreehelper::t7, MPointer, true>,
   mdistScan2VMT<mtreehelper::t8, MPointer, true>,
   mdistScan2VMT<mtreehelper::t9, MPointer, true>,
-  mdistScan2VMT<mtreehelper::t10, MPointer, true>
+  mdistScan2VMT<mtreehelper::t10, MPointer, true>,
+  mdistScan2VMT<mtreehelper::t11, MPointer, true>,
+  mdistScan2VMT<mtreehelper::t12, MPointer, true>
 };
 
 OperatorSpec mdistScan2Spec(
@@ -5133,7 +5174,7 @@ OperatorSpec mdistScan2Spec(
 Operator mdistScan2Op(
    "mdistScan2",
    mdistScan2Spec.getStr(),
-   30,
+   36,
    mdistScan2VM,
    mdistScan2Select,
    mdistScan2TM<true>
@@ -5277,18 +5318,18 @@ int mdistRangeVMT (Word* args, Word& result, int message,
 
 int mdistRangeSelect(ListExpr args){
     ListExpr typeL = nl->Third(args);
-    int type =  mtreehelper::getTypeNo(typeL,10);
+    int type =  mtreehelper::getTypeNo(typeL,12);
 
     int o1 = -1;
     ListExpr a1 = nl->First(args);
     if(Mem::checkType(a1)) o1=0;
-    if(MPointer::checkType(a1)) o1=20;
+    if(MPointer::checkType(a1)) o1=24;
     if(o1<0) return -1; 
 
     int o2 = -1;
     ListExpr a2 = nl->Second(args);
     if(Mem::checkType(a2)) o2=0;
-    if(MPointer::checkType(a2)) o2=10;
+    if(MPointer::checkType(a2)) o2=12;
     if(o2<0) return -1; 
    
     int res =  type + o1 + o2;
@@ -5308,6 +5349,8 @@ ValueMapping mdistRangeVM[] = {
   mdistRangeVMT<mtreehelper::t8,Mem,Mem>,
   mdistRangeVMT<mtreehelper::t9,Mem,Mem>,
   mdistRangeVMT<mtreehelper::t10,Mem,Mem>,
+  mdistRangeVMT<mtreehelper::t11,Mem,Mem>,
+  mdistRangeVMT<mtreehelper::t12,Mem,Mem>,
   
   mdistRangeVMT<mtreehelper::t1,Mem,MPointer>,
   mdistRangeVMT<mtreehelper::t2,Mem,MPointer>,
@@ -5319,6 +5362,8 @@ ValueMapping mdistRangeVM[] = {
   mdistRangeVMT<mtreehelper::t8,Mem,MPointer>,
   mdistRangeVMT<mtreehelper::t9,Mem,MPointer>,
   mdistRangeVMT<mtreehelper::t10,Mem,MPointer>,
+  mdistRangeVMT<mtreehelper::t11,Mem,MPointer>,
+  mdistRangeVMT<mtreehelper::t12,Mem,MPointer>,
   
   mdistRangeVMT<mtreehelper::t1,MPointer,Mem>,
   mdistRangeVMT<mtreehelper::t2,MPointer,Mem>,
@@ -5330,6 +5375,8 @@ ValueMapping mdistRangeVM[] = {
   mdistRangeVMT<mtreehelper::t8,MPointer,Mem>,
   mdistRangeVMT<mtreehelper::t9,MPointer,Mem>,
   mdistRangeVMT<mtreehelper::t10,MPointer,Mem>,
+  mdistRangeVMT<mtreehelper::t11,MPointer,Mem>,
+  mdistRangeVMT<mtreehelper::t12,MPointer,Mem>,
   
   mdistRangeVMT<mtreehelper::t1,MPointer,MPointer>,
   mdistRangeVMT<mtreehelper::t2,MPointer,MPointer>,
@@ -5341,7 +5388,8 @@ ValueMapping mdistRangeVM[] = {
   mdistRangeVMT<mtreehelper::t8,MPointer,MPointer>,
   mdistRangeVMT<mtreehelper::t9,MPointer,MPointer>,
   mdistRangeVMT<mtreehelper::t10,MPointer,MPointer>,
-
+  mdistRangeVMT<mtreehelper::t11,MPointer,MPointer>,
+  mdistRangeVMT<mtreehelper::t12,MPointer,MPointer>
 };
 
 OperatorSpec mdistRangeSpec(
@@ -5358,7 +5406,7 @@ OperatorSpec mdistRangeSpec(
 Operator mdistRangeOp(
    "mdistRange",
    mdistRangeSpec.getStr(),
-   40,
+   48,
    mdistRangeVM,
    mdistRangeSelect,
    mdistRangeTM
@@ -5487,19 +5535,19 @@ int mdistScanVMT (Word* args, Word& result, int message,
 
 int mdistScanSelect(ListExpr args){
    ListExpr typeL = nl->Third(args);
-   int type =  mtreehelper::getTypeNo(typeL,10);
+   int type =  mtreehelper::getTypeNo(typeL,12);
  
    
     int o1 = -1;
     ListExpr a1 = nl->First(args);
     if(Mem::checkType(a1)) o1=0;
-    if(MPointer::checkType(a1)) o1=20;
+    if(MPointer::checkType(a1)) o1=24;
     if(o1<0) return -1; 
 
     int o2 = -1;
     ListExpr a2 = nl->Second(args);
     if(Mem::checkType(a2)) o2=0;
-    if(MPointer::checkType(a2)) o2=10;
+    if(MPointer::checkType(a2)) o2=12;
     if(o2<0) return -1; 
    
     int res =  type + o1 + o2;
@@ -5520,6 +5568,8 @@ ValueMapping mdistScanVM[] = {
   mdistScanVMT<mtreehelper::t8, Mem, Mem>,
   mdistScanVMT<mtreehelper::t9, Mem, Mem>,
   mdistScanVMT<mtreehelper::t10, Mem, Mem>,
+  mdistScanVMT<mtreehelper::t11, Mem, Mem>,
+  mdistScanVMT<mtreehelper::t12, Mem, Mem>,
   
   mdistScanVMT<mtreehelper::t1, Mem, MPointer>,
   mdistScanVMT<mtreehelper::t2, Mem, MPointer>,
@@ -5531,6 +5581,8 @@ ValueMapping mdistScanVM[] = {
   mdistScanVMT<mtreehelper::t8, Mem, MPointer>,
   mdistScanVMT<mtreehelper::t9, Mem, MPointer>,
   mdistScanVMT<mtreehelper::t10, Mem, MPointer>,
+  mdistScanVMT<mtreehelper::t11, Mem, MPointer>,
+  mdistScanVMT<mtreehelper::t12, Mem, MPointer>,
 
   mdistScanVMT<mtreehelper::t1, MPointer, Mem>,
   mdistScanVMT<mtreehelper::t2, MPointer, Mem>,
@@ -5542,6 +5594,8 @@ ValueMapping mdistScanVM[] = {
   mdistScanVMT<mtreehelper::t8, MPointer, Mem>,
   mdistScanVMT<mtreehelper::t9, MPointer, Mem>,
   mdistScanVMT<mtreehelper::t10, MPointer, Mem>,
+  mdistScanVMT<mtreehelper::t11, MPointer, Mem>,
+  mdistScanVMT<mtreehelper::t12, MPointer, Mem>,
   
   mdistScanVMT<mtreehelper::t1, MPointer, MPointer>,
   mdistScanVMT<mtreehelper::t2, MPointer, MPointer>,
@@ -5553,6 +5607,8 @@ ValueMapping mdistScanVM[] = {
   mdistScanVMT<mtreehelper::t8, MPointer, MPointer>,
   mdistScanVMT<mtreehelper::t9, MPointer, MPointer>,
   mdistScanVMT<mtreehelper::t10, MPointer, MPointer>,
+  mdistScanVMT<mtreehelper::t11, MPointer, MPointer>,
+  mdistScanVMT<mtreehelper::t12, MPointer, MPointer>
 };
 
 OperatorSpec mdistScanSpec(
@@ -5568,7 +5624,7 @@ OperatorSpec mdistScanSpec(
 Operator mdistScanOp(
    "mdistScan",
    mdistScanSpec.getStr(),
-   40,
+   48,
    mdistScanVM,
    mdistScanSelect,
    mdistScanTM
