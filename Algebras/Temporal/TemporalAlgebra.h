@@ -4012,6 +4012,7 @@ If invalid geographic coordinates are found, the result is UNDEFINED.
                  const Geoid* geoid=0 ) const;
   void DistanceAvg(const MPoint& mp, CcReal& result, 
                    const Geoid* geoid=0) const;
+  double DistanceAvg(const MPoint& cup, const Geoid* geoid = 0) const;
   void SquaredDistance( const Point& p, MReal& result,
                         const Geoid* geoid=0 ) const;
   void SquaredDistance( const MPoint& p, MReal& result,
@@ -4268,6 +4269,16 @@ replaces them by one (usually short) unit.
 */
     void removeNoise(const double maxspeed, const double maxdist, 
                      const Geoid *geoid, MPoint &result) const;
+
+/*
+3.10.5.12 Functions ~serialize~ and ~deserialize~
+
+Required for usage in M-tree.
+
+*/
+    void serialize(size_t &size, char *&bytes) const;
+    
+    MPoint* deserialize(const char *bytes);
 
 private:
    int IntervalRelation(Interval<Instant> &int_a_b,

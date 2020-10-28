@@ -4927,13 +4927,20 @@ void MPoint::Distance( const Point& p, MReal& result, const Geoid* geoid ) const
   result.EndBulkLoad( false, false );
 }
 
-void MPoint::DistanceAvg(const MPoint& mp, CcReal& result, const Geoid* geoid) 
-                                                                         const {
+void MPoint::DistanceAvg(const MPoint& mp, CcReal& result,
+                         const Geoid* geoid /* = 0 */) const {
   if (!IsDefined() || !mp.IsDefined() || (geoid && !geoid->IsDefined())) {
     result.SetDefined(false);
     return;
   }
-  result.SetDefined(true);
+  result.Set(true, this->DistanceAvg(mp, geoid));
+}                                                                           
+
+double MPoint::DistanceAvg(const MPoint& mp, const Geoid* geoid /* = 0 */)
+                                                                         const {
+  if (!IsDefined() || !mp.IsDefined() || (geoid && !geoid->IsDefined())) {
+    return -1.0;
+  }
   Instant start1(datetime::instanttype), start2(datetime::instanttype);
   InitialInstant(start1);
   mp.InitialInstant(start2);
@@ -4960,8 +4967,7 @@ void MPoint::DistanceAvg(const MPoint& mp, CcReal& result, const Geoid* geoid)
       u1.Distance(u2, ur); // use of geoid not implemented
       if (!ur.IsDefined()) {
         std::cerr << __PRETTY_FUNCTION__ << "Invalid geographic coord!" << endl;
-        result.SetDefined(false);
-        return;
+        return -1.0;
       }
       ur.r = true;
       ISC isc;
@@ -4980,7 +4986,7 @@ void MPoint::DistanceAvg(const MPoint& mp, CcReal& result, const Geoid* geoid)
     sum += theStack.top().value;
     theStack.pop();
   }
-  result.Set(true, sum / duration);
+  return sum / duration;
 }
 
 void MPoint::SquaredDistance( const Point& p, MReal& result,
@@ -5337,7 +5343,75 @@ static bool IsBreakPoint(const UPoint* u,const DateTime& duration){
    return (dur > duration);
 }
 
+/*
+~serialize~
 
+*/
+void MPoint::serialize(size_t &size, char *&bytes) const {
+  size = 0;
+  bytes = 0;
+  if (!IsDefined()) {
+    return;
+  }
+  size_t rootSize = Sizeof();
+//   size = sizeof(size_t) + rootSize + units.GetFlobSize() + 6 * sizeof(double)
+//          + sizeof(bool);
+  size = sizeof(size_t) + rootSize + units.GetFlobSize();
+  bytes = new char[size];
+  size_t offset = 0;
+  memcpy(bytes + offset, (void*)&rootSize, sizeof(size_t));
+  offset += sizeof(size_t);
+  memcpy(bytes + offset, (void*)this, rootSize);
+  offset += rootSize;
+  char* data = units.getData();
+  memcpy(bytes + offset, data, units.GetFlobSize());
+  delete[] data;
+  offset += units.GetFlobSize();
+//   double coord;
+//   for (int d = 0; d < 3; d++) {
+//     coord = bbox.MinD(d);
+//     memcpy(bytes + offset, (void*)(&coord), sizeof(double));
+//     offset += sizeof(double);
+//     coord = bbox.MaxD(d);
+//     memcpy(bytes + offset, (void*)(&coord), sizeof(double));
+//     offset += sizeof(double);
+//   }
+//   bool isdefined = bbox.IsDefined();
+//   memcpy(bytes + offset, (void*)(&isdefined), sizeof(bool));
+}
+
+/*
+~deserialize~
+
+*/
+MPoint* MPoint::deserialize(const char *bytes) {
+  ListExpr typeExpr = nl->SymbolAtom(BasicType());
+  int algebraId, typeId;
+  std::string typeName;
+  SecondoCatalog* sc = SecondoSystem::GetCatalog();
+  sc->LookUpTypeExpr(typeExpr, typeName, algebraId, typeId);
+  size_t rootSize;
+  size_t offset = 0;
+  memcpy((void*)&rootSize, bytes, sizeof(size_t));
+  offset += sizeof(size_t);
+  char* root = new char[rootSize];
+  memcpy(root, bytes + sizeof(size_t), rootSize);
+  offset += rootSize;
+  AlgebraManager* am = SecondoSystem::GetAlgebraManager();
+  ListExpr nType = sc->NumericType(typeExpr);
+  Attribute* attr = (Attribute*)(am->CreateObj(algebraId, typeId)(nType)).addr;
+  attr = attr->Create(attr, root, rootSize, algebraId, typeId);
+  delete[] root;
+  Flob* flob = attr->GetFLOB(0);
+  size_t size = flob->getSize();
+  flob->kill();
+  char* fb = new char[size];
+  memcpy(fb, bytes + offset, size);
+  flob->createFromBlock(*flob, fb, size, false);
+  delete[] fb;
+  offset += size;
+  return (MPoint*)attr;
+}
 
 /**
 ~Simplify~
