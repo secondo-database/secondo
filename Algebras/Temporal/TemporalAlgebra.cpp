@@ -4961,9 +4961,9 @@ double MPoint::DistanceAvg(const MPoint& mp, const Geoid* geoid /* = 0 */)
     else {
       mp.Get(u1Pos, u1);
       shifted.Get(u2Pos, u2);
-      duration += (iv.end - iv.start).ToDouble();
     }
     if (u1.IsDefined() && u2.IsDefined()) { // no overlapping deftimes
+      duration += (iv.end - iv.start).ToDouble();
       u1.Distance(u2, ur); // use of geoid not implemented
       if (!ur.IsDefined()) {
         std::cerr << __PRETTY_FUNCTION__ << "Invalid geographic coord!" << endl;
@@ -4972,6 +4972,12 @@ double MPoint::DistanceAvg(const MPoint& mp, const Geoid* geoid /* = 0 */)
       ur.r = true;
       ISC isc;
       isc.value = ur.Integrate();
+      if (isnan(isc.value)) {
+        isc.value = 0.0;
+      }
+//       cout << ur << "   ->  integral = " << isc.value << "   "
+//            << (isnan(isc.value) ? " <<<<<<<<<< NAN >>>>>>>>>>" : "") 
+//            << endl << endl;
       isc.level = 0;
       while (!theStack.empty() && (theStack.top().level == isc.level)) {
         isc.value = isc.value + theStack.top().value;
