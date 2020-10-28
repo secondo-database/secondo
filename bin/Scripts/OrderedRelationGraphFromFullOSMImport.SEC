@@ -15,7 +15,7 @@
 
 # Database arnsberg
 
-query fullosmimport('BerlinMOD/berlin-latest.osm', "City")
+query fullosmimport('Raetsel/arnsberg.osm', "City")
 
 # 155 secs
 
@@ -107,7 +107,7 @@ derive RoadsB_Curve_rtree = RoadsB feed addid projectextend[TID; Box: bbox(.Curv
 # 3.56 secs
 # 4.67 secs
 
-# compute Nodes as the union of start points, end points and interss of RoadsB
+# compute Nodes as the union of start points, end points and intersections of RoadsB
 
 let Nodes = 
   CityWays feed
@@ -142,7 +142,7 @@ RoadsB feed
 
 let EdgesUp =
   Nodes feed nest[WayId; SectionNodes]
-    projectextend[WayId; Sections1: .SectionNodes afeed
+    projectextend[WayId; Sections: .SectionNodes afeed
       extend_last[Source: ..NodeIdNew::0, Target: .NodeIdNew::0, 
         SourcePos: ..Pos::[const point value undef], 
         TargetPos: .Pos::[const point value undef],
@@ -154,8 +154,8 @@ let EdgesUp =
       aconsume]
   RoadsB feed {r}
   itHashJoin[WayId, WayId_r]
-  projectextend[WayId; Sections1: fun(t:TUPLE)
-    attr(t, Sections1) afeed 
+  projectextend[WayId; Sections: fun(t:TUPLE)
+    attr(t, Sections) afeed 
     extend[
       Curve: fun(u: TUPLE)
       attr(t, NodeList_r) afeed 
@@ -169,7 +169,7 @@ let EdgesUp =
        [WayTagValue_r]
     ]
     aconsume ]
-  unnest[Sections1]
+  unnest[Sections]
   consume
 
 # 337 secs
@@ -179,7 +179,7 @@ let EdgesUp =
 
 let EdgesDown =
   Nodes feed nest[WayId; SectionNodes]
-    projectextend[WayId; Sections1: .SectionNodes afeed sortby[NodeCounter desc]
+    projectextend[WayId; Sections: .SectionNodes afeed sortby[NodeCounter desc]
       extend_last[Source: ..NodeIdNew::0, Target: .NodeIdNew::0, 
         SourcePos: ..Pos::[const point value undef], 
         TargetPos: .Pos::[const point value undef],
@@ -193,8 +193,8 @@ let EdgesDown =
     filter[.WayInfo afeed filter[.WayTagKey = "oneway"] 
       filter[(.WayTagValue = "yes")] count = 0] {r}
   itHashJoin[WayId, WayId_r]
-  projectextend[WayId; Sections1: fun(t:TUPLE)
-    attr(t, Sections1) afeed extend[Curve: fun(u: TUPLE)
+  projectextend[WayId; Sections: fun(t:TUPLE)
+    attr(t, Sections) afeed extend[Curve: fun(u: TUPLE)
       attr(t, NodeList_r) afeed sortby[NodeCounter_r desc]
         filter[.NodeCounter_r between[attr(u, TargetNodeCounter),
           attr(u, SourceNodeCounter)] ]
@@ -206,7 +206,7 @@ let EdgesDown =
        [WayTagValue_r]
     ]
     aconsume ]
-  unnest[Sections1]
+  unnest[Sections]
   consume
 
 # 372 secs
@@ -224,11 +224,11 @@ let Edges = EdgesUp feed EdgesDown feed concat
 
 
 
-let EdgeIndex = Edges feed projectextend[Source, Target, Curve, SourcePos, RoadName; Box: bbox(.Curve)] 
+let EdgeIndex = Edges feed projectextend[Source, Target, Curve, SourcePos; Box: bbox(.Curve)] 
   filter[isdefined(.Box)] 
   extend[Box2: bbox(.SourcePos) scale[1000000.0]]
   sortby[Box2]
-  project[Source, Target, Curve, RoadName, Box]
+  project[Source, Target, Curve, Box]
   consume
 
 # 99 secs
