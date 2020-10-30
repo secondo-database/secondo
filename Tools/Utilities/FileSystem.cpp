@@ -216,7 +216,7 @@ FileSystem::IsDirectory( const string& fileName )
   int isFolder = S_ISDIR( fileAttribs );
 #endif
     return isFolder != 0;
-  } catch (FileErr f) {
+  } catch (FileErr &f) {
     cerr << f.msg();
     return false;
   }
@@ -264,7 +264,7 @@ FileSystem::DeleteFileOrFolder( const string& fileName )
       throw FileErr(errMsg, rc);
 #endif
   }
-  } catch (FileErr f) {
+  } catch (FileErr &f) {
     cerr << f.msg();
     return false;
   }

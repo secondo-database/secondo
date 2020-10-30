@@ -482,7 +482,7 @@ SecondoTTY::ProcessCommands(const bool stopOnError, const bool isPD) {
            errorFound = true;
         }
       }
-      catch (SecondoException e) {
+      catch (SecondoException &e) {
         cerr << "Exception caught: " << e.msg() << endl;
       }
     }
@@ -739,7 +739,7 @@ SecondoTTY::Execute()
     delete si;
     si = 0;
   }
-  catch (SecondoException e)
+  catch (SecondoException &e)
   {
      cerr << e.msg() << endl;
      rc = 17;

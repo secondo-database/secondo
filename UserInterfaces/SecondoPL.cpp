@@ -46,7 +46,6 @@ support for calling Secondo from PROLOG.
 #include "SWI-Prolog.h"
 #include "SecondoPL.h"
 
-using namespace std;
 
 // NVK ADDED
 #ifdef SECONDO_USE_MEMORY_ALLOCATION
@@ -75,15 +74,15 @@ using namespace std;
 #include "TTYParameter.h"
 #include "NList.h"
 
-
-
-
 #include "../OptParser/OptimizerChecker.h"
 
 
 #ifdef SECONDO_USE_ENTROPY
 #include "../Optimizer/Entropy/entropy.h"
 #endif
+
+
+using namespace std;
 
 SecondoInterface* si = 0;
 NestedList* plnl = 0;
@@ -108,7 +107,7 @@ void handle_exit(void) {
       delete si;
       si = 0;
     }
-    catch (SecondoException e)
+    catch (SecondoException &e)
     {
        cerr << e.msg() << endl;    
     }    

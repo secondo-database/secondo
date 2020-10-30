@@ -223,7 +223,7 @@ SecondoInterfaceCS::Initialize( const string& user, const string& pswd,
         iostream& iosock = server->GetSocketStream();
         try{
            iosock.clear();
-        } catch(ios_base::failure ex){
+        } catch(const ios_base::failure &ex){
            cout << "probem during clear " << ex.what() << endl;
         }
         if(csp!=0){

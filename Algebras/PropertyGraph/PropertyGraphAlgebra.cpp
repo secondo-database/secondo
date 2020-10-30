@@ -341,7 +341,7 @@ ListExpr addedgesrel_OpTm( ListExpr args )
       LOGOP(30,"addedgesrel_OpTm", "RES", nl->ToString(res));
       return res;
     }
-   catch(PGraphException e)   
+   catch(PGraphException &e)   
    {
       return NList::typeError("ERROR:  "+e.msg());
    }   
@@ -445,7 +445,7 @@ ListExpr addnodesrel_OpTm( ListExpr args )
       LOGOP(30,"addnodesrel_OpTm", "RES", nl->ToString(res));
       return res;
     }
-   catch(PGraphException e)   
+   catch(PGraphException &e)   
    {
       return NList::typeError("ERROR:  "+e.msg());
    }
@@ -541,7 +541,7 @@ ListExpr addindex_OpTm( ListExpr args )
       LOGOP(30,"addedgesrel_OpTm", "RES", nl->ToString(res));
       return res;
     }
-   catch(PGraphException e)   
+   catch(PGraphException &e)   
    {
       return NList::typeError("ERROR:  "+e.msg());
    }   
@@ -659,13 +659,13 @@ int loadgraph_OpFun (Word* args, Word& result, int message,
          LOG(30,"already loaded. (Force reload by unloading first!)");
       }
    }
-   catch(PGraphException e)
+   catch(PGraphException &e)
    {
       if(pgm!=NULL) pgm->Clear();
       LOGERR("loadgraph_OpFun", e.msg());
       //throw SecondoException(e.msg());
    }
-   catch(exception e)
+   catch(exception &e)
    {
       if(pgm!=NULL) pgm->Clear();
       LOGERR("loadgraph_OpFun", e.what());
@@ -747,7 +747,7 @@ int unload_OpFun (Word* args, Word& result, int message,
       }
 
    }
-   catch(PGraphException e)
+   catch(PGraphException &e)
    {
       if(pgm!=NULL) pgm->Clear();
       LOGERR("unload_OpFun", e.msg());
@@ -825,7 +825,7 @@ int clearstat_OpFun (Word* args, Word& result, int message,
       qp->SetModified(qp->GetSon(s, 0));
 
    }
-   catch(PGraphException e)
+   catch(PGraphException &e)
    {
       if(pgm!=NULL) pgm->Clear();
       LOGERR("clearstat_OpFun", e.msg());
@@ -923,12 +923,12 @@ int cfg_OpFun (Word* args, Word& result, int message,
           throw PGraphException("configuration not found: "+name);   
 
    }
-   catch(PGraphException e)
+   catch(PGraphException &e)
    {
       LOGERR("cfg_OpFun", e.msg());
       //throw SecondoException(e.msg());
    }
-   catch(exception e)
+   catch(exception &e)
    {
       LOGERR("cfg_OpFun", e.what());
    }
@@ -1061,7 +1061,7 @@ ListExpr match1_OpTm( ListExpr args )
       LOGOP(30,"match1_OpTm", nl->ToString(res));
       return res;
    }
-   catch(PGraphException e)   
+   catch(PGraphException &e)   
    {
       return NList::typeError("ERROR:  "+e.msg());
    }
@@ -1104,11 +1104,11 @@ int match1_OpFun (Word* args, Word& result, int message,
                if (pg->dumpQueryTree)
                   tree->DumpTreeDot(NULL,"querytree.dot");
             }
-            catch(PGraphException e)
+            catch(PGraphException &e)
             {
                cout << "ERROR: " << e.msg() << endl;
             }
-            catch(SecondoException e)
+            catch(SecondoException &e)
             {
                cout << "ERROR: " << e.msg() << endl;
             }
@@ -1149,7 +1149,7 @@ int match1_OpFun (Word* args, Word& result, int message,
          }
       }
    }
-   catch(PGraphException e)
+   catch(PGraphException &e)
    {
       LOGERR("match1_OpFun", e.msg());
       throw SecondoException(e.msg());
@@ -1216,7 +1216,7 @@ ListExpr match2_OpTm( ListExpr args )
 
       return of.StreamTypeDefinition(&qg.AliasList, pgm);
    }
-   catch(PGraphException e)   
+   catch(PGraphException &e)   
    {
       return NList::typeError("ERROR:  "+e.msg());
    }
@@ -1274,11 +1274,11 @@ int match2_OpFun (Word* args, Word& result, int message,
                if (pg->dumpQueryTree)
                   tree->DumpTreeDot(NULL,"querytree.dot");
             }
-            catch(PGraphException e)
+            catch(PGraphException &e)
             {
                cout << "ERROR: " << e.msg() << endl;
             }
-            catch(SecondoException e)
+            catch(SecondoException &e)
             {
                cout << "ERROR: " << e.msg() << endl;
             }
@@ -1320,7 +1320,7 @@ int match2_OpFun (Word* args, Word& result, int message,
          }
       }
    }
-   catch(PGraphException e)
+   catch(PGraphException &e)
    {
       LOGERR("match2_OpTm", e.msg());
       throw SecondoException(e.msg());
@@ -1408,7 +1408,7 @@ ListExpr match3_OpTm( ListExpr args )
       );
       return res;
    }
-   catch(PGraphException e)   
+   catch(PGraphException &e)   
    {
       return NList::typeError("ERROR:  "+e.msg());
    }
@@ -1473,11 +1473,11 @@ int match3_OpFun (Word* args, Word& result, int message,
                if (pg->dumpQueryTree)
                   tree->DumpTreeDot(NULL,"querytree.dot");
             }
-            catch(PGraphException e)
+            catch(PGraphException &e)
             {
                cout << "ERROR: " << e.msg() << endl;
             }
-            catch(SecondoException e)
+            catch(SecondoException &e)
             {
                cout << "ERROR: " << e.msg() << endl;
             }
@@ -1518,7 +1518,7 @@ int match3_OpFun (Word* args, Word& result, int message,
          }
       }
    }
-   catch(PGraphException e)
+   catch(PGraphException &e)
    {
       LOGERR("match3_OpTm", e.msg());
       throw SecondoException(e.msg());

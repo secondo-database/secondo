@@ -1181,7 +1181,7 @@ int SecondoServer::Execute() {
           quit = true;
         }
     
-      } catch (ios_base::failure) {
+      } catch (const ios_base::failure&) {
         cerr << endl 
              << "I/O error on socket stream object during initialization!" 
              << endl;
@@ -1238,7 +1238,7 @@ int SecondoServer::Execute() {
           quit = true;
         }
     
-      } catch (ios_base::failure) {
+      } catch (const ios_base::failure&) {
         cerr << endl 
              << "I/O error on socket stream object during processing commands!" 
              << endl;

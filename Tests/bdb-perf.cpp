@@ -205,8 +205,7 @@ main( int argc, char** argv )
   //db.close(DB_NOSYNC);
   bdb.close(0);
 
-  } catch (DbException e) {
-
+  } catch (DbException &e) {
     cout << "Error: " << e.what() << endl;
   }
 

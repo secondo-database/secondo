@@ -19,7 +19,7 @@ boolean parameter. If the option is unknown, the result will be
 false, true otherwise.
 
 */
-bool setSqlParserOption(const string& optionName, const bool enable);
+bool setSqlParserOption(const std::string& optionName, const bool enable);
 
 
 
