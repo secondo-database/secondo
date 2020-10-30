@@ -4310,7 +4310,7 @@ public:
 
   CUPoint() {};
 
-  CUPoint(bool is_defined): UPoint(is_defined) {};
+  CUPoint(bool is_defined): UPoint(is_defined) {radius = 0.0;};
   
   CUPoint(const Interval<Instant>& _interval, const double x0, const double y0,
           const double x1, const double y1, const double r):
@@ -4327,13 +4327,9 @@ public:
 
   CUPoint(const CUPoint& source):
     UPoint(source.IsDefined()) {
-    timeInterval = source.timeInterval;
-    p0 = source.p0;
-    p1 = source.p1;
+    
+    *((UPoint*)this) = *((UPoint*)&source);
     radius = source.radius;
-    del.refs=1;
-    del.SetDelete();
-    del.isDefined = source.del.isDefined;
   }
   
 /*
@@ -4341,13 +4337,7 @@ public:
 
 */
   virtual CUPoint& operator=(const CUPoint& src) {
-    del.isDefined = src.del.isDefined;
-    if (!src.IsDefined()) {
-      return *this;
-    }
-    timeInterval = src.timeInterval;
-    p0 = src.p0;
-    p1 = src.p1;
+    UPoint::operator=(src);
     radius = src.radius;
     return *this;
   }
@@ -4491,19 +4481,9 @@ Functions required for attribute type
   }
 
   inline virtual void CopyFrom(const Attribute* right) {
-    const CUPoint* cupoint = static_cast<const CUPoint*>(right);
-    if (cupoint->del.isDefined) {
-      timeInterval.CopyFrom(cupoint->timeInterval);
-      p0 = cupoint->p0;
-      p1 = cupoint->p1;
-    }
-    else {
-//         timeInterval = Interval<Instant>();
-      p0 = Point(false, 0.0, 0.0);
-      p1 = Point(false, 0.0, 0.0);
-      radius = 0.0;
-    }
-    del.isDefined = cupoint->del.isDefined;
+//     UPoint::CopyFrom(right);
+//     radius = ((CUPoint*)right)->GetRadius();
+    *this = *((CUPoint*)right);
   }
 
   virtual const Rectangle<3> BoundingBox(const Geoid* geoid = 0) const;
@@ -4534,10 +4514,11 @@ Computes the distance to a CUPoint ~cup~.
 
 */
   using UPoint::Distance;
-  double DistanceAvg(const CUPoint& cup, const Geoid* geoid = 0) const;
+  double DistanceAvg(const CUPoint& cup, const bool upperBound,
+                     const Geoid* geoid = 0) const;
   
-  void DistanceAvg(const CUPoint& cup, CcReal& result, const Geoid* geoid = 0)
-                                                                          const;
+  void DistanceAvg(const CUPoint& cup, const bool upperBound, CcReal& result,
+                   const Geoid* geoid = 0) const;
 
 private:
   double radius;
@@ -4588,7 +4569,7 @@ Extracts the ~upoint~ information at a given position.
 Converts an ~mpoint~ into a ~cmpoint~ with a constant cylinder length (duration)
 
 */
-  void ConvertFrom(const MPoint& src, const Duration dur, 
+  void ConvertFrom(const MPoint& src, const datetime::DateTime dur, 
                    const Geoid *geoid = 0);
   
 /*
@@ -4656,9 +4637,10 @@ If invalid geographic coordinates are found, the result is UNDEFINED.
 
 */
 //  void Distance(const CPoint& p, MReal& result, const Geoid* geoid = 0) const;
-  double DistanceAvg(const CMPoint& cup, const Geoid* geoid = 0) const;
-  void DistanceAvg(const CMPoint& cmp, CcReal& result, const Geoid* geoid = 0)
-                                                                          const;
+  double DistanceAvg(const CMPoint& cup, const bool upperBound,
+                     const Geoid* geoid = 0) const;
+  void DistanceAvg(const CMPoint& cmp, const bool upperBound,
+                   CcReal& result, const Geoid* geoid = 0) const;
 
 /*
 3.10.5.6 Operatiopn ~Breaks~

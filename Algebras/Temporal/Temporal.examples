@@ -787,9 +787,21 @@ Result    : (mpoint ( ( ("2003-11-20-06:03" "2003-11-20-06:43" TRUE FALSE) (9396
 
 Operator  : distanceAvg
 Number    : 1
-Signature : Xpoint x mpoint -> real, where X = (m|cu|cm)
+Signature : mpoint x mpoint -> real
 Example   : query distanceAvg(train5, train6)
 Result    : 11573.4610617085
+
+Operator  : distanceAvgLB
+Number    : 1
+Signature : cXpoint x cXpoint -> real  (X = m|u)
+Example   : query distanceAvgLB(cbbox(train5), cbbox(train6))
+Result    : 4863.6938082193
+
+Operator  : distanceAvgUB
+Number    : 1
+Signature : cXpoint x cXpoint -> real  (X = m|u)
+Example   : query distanceAvgUB(cbbox(train5), cbbox(train6))
+Result    : 20296.82906969
 
 Operator  : cbbox
 Number    : 1
