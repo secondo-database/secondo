@@ -260,7 +260,7 @@ namespace mtreehelper{
     if (!cup1->IsDefined() || !cup2->IsDefined()) {
       return std::numeric_limits<double>::max();
     }
-    return cup1->DistanceAvg(*cup2);
+    return cup1->DistanceAvg(*cup2, false); // lower bound distance applied
   }
 
   double distance(const temporalalgebra::CMPoint* cmp1,
@@ -271,7 +271,7 @@ namespace mtreehelper{
     if (!cmp1->IsDefined() || !cmp2->IsDefined()) {
       return std::numeric_limits<double>::max();
     }
-    return cmp1->DistanceAvg(*cmp2);
+    return cmp1->DistanceAvg(*cmp2, false); // lower bound distance applied
   }
 
 /*
