@@ -66,6 +66,9 @@ command instead of hard coded application name SecondoTTYBDB
 #define _POSIX_OPEN_MAX 256
 #endif
 
+#if defined(SECONDO_LINUX)
+#include <link.h>
+#endif
 
 #include "Messages.h"
 MessageCenter* MessageCenter::msg = 0;
@@ -79,6 +82,7 @@ Application* Application::appPointer = 0;
 map<int, string> Application::signalStr;
 bool Application::dumpStacktrace = true;
 char* Application::stacktraceOutput = NULL;
+char* Application::relocationInfo = NULL;
 
 Application* Application::Instance()
 {
@@ -159,7 +163,23 @@ Application::Application( int argc, const char** argv )
   user1Flag = false;
   user2Flag = false;
 
-  
+ 
+#if defined(SECONDO_LINUX)
+  // Fetch in-memory relocation offset. Needed when compiled
+  // as position-independent-code (-fPIC) and tools which work 
+  // with ELF addresses (e.g., addr2line) should be used.
+  //
+  // Calculation of the string needs to be made here. In the 
+  // signal handler, no new memory allcations can be made.
+  uintptr_t relocation = _r_debug.r_map->l_addr;
+
+  Application::relocationInfo = 
+      (char *) malloc(128 * sizeof(char));
+
+  snprintf(relocationInfo, 128, 
+      "\nBinary relocation: 0x%" PRIxPTR "\n\n", relocation);
+#endif
+ 
 #ifndef SECONDO_WIN32
   
   // Store stacktrace output filenanme for later 
@@ -269,6 +289,11 @@ Application::Application( int argc, const char** argv )
 
 Application::~Application()
 {
+    if(Application::relocationInfo != NULL) {
+        free(Application::relocationInfo);
+        Application::relocationInfo = NULL;
+    }
+
     if(Application::stacktraceOutput != NULL) {
         free(Application::stacktraceOutput);
         Application::stacktraceOutput = NULL;
@@ -303,7 +328,8 @@ abort the process if not handled otherwise.
      if(Application::dumpStacktrace) {
         Application* ap = Application::Instance();
         string appName = ap->GetApplicationName();
-        WinUnix::stacktrace(appName.c_str(), stacktraceOutput);
+        WinUnix::stacktrace(appName.c_str(), stacktraceOutput, 
+            Application::relocationInfo);
      }
   }
   cout << " Calling default signal handler ..." << endl;

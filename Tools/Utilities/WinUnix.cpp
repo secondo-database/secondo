@@ -236,7 +236,8 @@ WinUnix::string2stdout(const char* string) {
 #ifndef SECONDO_ANDROID
 #if defined(SECONDO_LINUX) || defined(SECONDO_MAC_OSX)
 void
-WinUnix::stacktrace(const char* appName, const char* stacktraceOutput)
+WinUnix::stacktrace(const char* appName, const char* stacktraceOutput,
+    const char* relocationInfo)
 {
      string2stdout(" Generating stack trace ... \n");
      string2stdout(" ************ BEGIN STACKTRACE ************\n");
@@ -256,7 +257,11 @@ WinUnix::stacktrace(const char* appName, const char* stacktraceOutput)
          if (outputfd != -1) {
              fd = outputfd;
          }
-         
+        
+         if(relocationInfo != NULL) {
+             write(fd, relocationInfo, strlen(relocationInfo));
+         }
+          
          backtrace_symbols_fd(stacktrace, entries, fd);
          
          if (outputfd != -1) {
@@ -266,6 +271,10 @@ WinUnix::stacktrace(const char* appName, const char* stacktraceOutput)
      } else {
          string2stdout("No stacktrace output file defined, ");
          string2stdout("dumping stacktrace to stdout\n");
+
+         if(relocationInfo != NULL) {
+             string2stdout(relocationInfo);
+         }
          
          // Dump stacktrace to stdout
          backtrace_symbols_fd(stacktrace, entries, fileno(stdout));
@@ -277,7 +286,8 @@ WinUnix::stacktrace(const char* appName, const char* stacktraceOutput)
             string2stdout("\nTo decode the stack trace, please run: ");
             string2stdout("addr2line --demangle=auto -p -fs -e ");
             string2stdout(appName);
-            
+            string2stdout("\n");
+
             // Extract and print addresses from stacktrace
             for (int linePos = 0; linePos < entries; linePos++) {
                 char* line = stacktraceString[linePos];
@@ -300,6 +310,15 @@ WinUnix::stacktrace(const char* appName, const char* stacktraceOutput)
             }
             
             string2stdout("\n");
+            string2stdout("\n");
+          
+            if(relocationInfo != NULL) {
+               string2stdout("When the binary is compliled with -fPIE, "
+                             "you need to substract the binary relocation "
+                             "shown above from the addresses.\n");
+               string2stdout("\n");
+            }
+            
             free(stacktraceString);
          }
      } 

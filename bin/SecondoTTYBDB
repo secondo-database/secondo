@@ -45,22 +45,39 @@ if [ -n "$stacktrace_output" ] ; then
       echo "========"
       echo -e "\n"
 
-      stacktrace=$(cat $stacktrace_output | grep "0x")
+      cat $stacktrace_output
 
       # Convert addresses to lines if addr2line is available
       if hash addr2line 2> /dev/null ; then
          lines=""
 
+         echo -e "\n"
+         echo "========"
+         echo " Trying to decode the stacktrace..."
+         echo "========"
+         echo -e "\n"
+
+         # Get relocation if available 
+         if [ $(cat $stacktrace_output | grep "Binary relocation:" | wc -l) -gt 0 ]; then 
+            binary_relocation=$(cat $stacktrace_output | grep "Binary relocation:" | cut -d ":" -f 2)
+         else
+            binary_relocation="0x0"
+         fi 
+
          # Extract and collect addresses
+         stacktrace=$(cat $stacktrace_output | grep "0x")
          for line in $stacktrace; do
+
+           if [ $(echo $line | grep "\[" | wc -l) -eq 0 ]; then 
+             continue
+           fi
+
            addr=$(echo $line | cut -d "[" -f 2 | sed s/]//g)
-           lines="$lines $addr"
+           printf -v raddr "0x%X" $(($addr - $binary_relocation))
+           lines="$lines $raddr"
          done
 
          addr2line --demangle=auto -p -fs -e $runner $lines
-
-      else 
-         echo $stacktrace
       fi
 
       echo "========"
