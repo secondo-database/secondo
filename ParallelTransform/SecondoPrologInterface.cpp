@@ -24,8 +24,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 
-
-
 #include <string>
 #include <algorithm>
 #include <iostream>
@@ -33,11 +31,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <list>
 #include <unistd.h>
 #include "stdlib.h"
+
 // Zugriff auf Transformationen für Prolog Syntax
 #include "SWI-Prolog.h"
-
-using namespace std;
-
 
 #include "NestedList.h"
 #include "SecondoPrologInterface.h"
@@ -46,6 +42,8 @@ using namespace std;
 #include "License.h"
 #include "TTYParameter.h"
 #include "NList.h"
+
+using namespace std;
 
 /**************************************************************************
 
@@ -72,7 +70,7 @@ SecondoPrologInterface::startPrologEnginge()
     char *plav[2];
     /* make the argument vector for Prolog */
 
-    plav[0] = "../ParallelTransform/Transform.pl";
+    plav[0] = (char *) "../ParallelTransform/Transform.pl";
     plav[1] = NULL;
     
     if(!returnCodeProlog) {
@@ -143,27 +141,28 @@ SecondoPrologInterface::ListExprToTermForInterface(ListExpr expr,
 
   if(nl->IsAtom(expr))
   {
+    int ret = 0;
     switch(nl->AtomType(expr))
     {
       case IntType:
         intValue = nl->IntValue(expr);
-        PL_put_integer(result, intValue);
+        ret = PL_put_integer(result, intValue);
         break;
 
       case RealType:
         realValue = nl->RealValue(expr);
-        PL_put_float(result, realValue);
+        ret = PL_put_float(result, realValue);
         break;
 
       case BoolType:
         boolValue = nl->BoolValue(expr);
-        PL_put_atom_chars(result, boolValue ? "true" : "false");
+        ret = PL_put_atom_chars(result, boolValue ? "true" : "false");
         break;
 
       case StringType:
         stringValue = nl->StringValue(expr);
         stringRepr = string("'\"") + stringValue + string("\"'");
-        PL_put_atom_chars(result, stringRepr.c_str());
+        ret = PL_put_atom_chars(result, stringRepr.c_str());
         break;
 
       case SymbolType:
@@ -175,10 +174,15 @@ SecondoPrologInterface::ListExprToTermForInterface(ListExpr expr,
         stringRepr = "";
         if(isupper(c)) {
             stringRepr = string("'<") + stringValue + string(">'");
-            PL_put_atom_chars(result, stringRepr.c_str());
+            ret = PL_put_atom_chars(result, stringRepr.c_str());
                 break;
         }
     }
+
+    if(! ret) {
+       cerr << "Unable to put atom for prolog" << endl;
+    }
+
     //transform(stringValue.begin(), stringValue.end(), 
   //stringValue.begin(), ::tolower);
         PL_put_atom_chars(result, stringValue.c_str());
@@ -213,7 +217,10 @@ SecondoPrologInterface::ListExprToTermForInterface(ListExpr expr,
     for(iter = listElements.begin(); iter != listElements.end(); iter++)
     {
       elem = ListExprToTermForInterface(*iter, nl);
-      PL_cons_list(result, elem, result);
+      int ret = PL_cons_list(result, elem, result);
+      if(! ret) {
+        cerr << "Unable to execute PL_cons_list" << endl;
+      }
     }
   }
 
@@ -245,6 +252,7 @@ SecondoPrologInterface::TermToListExpr(term_t t, NestedList* nl, bool& error)
   ListExpr result;
 
   error = false;
+  int ret = 0;
 
   switch(PL_term_type(t))
   {
@@ -254,22 +262,22 @@ SecondoPrologInterface::TermToListExpr(term_t t, NestedList* nl, bool& error)
       break;
 
     case PL_INTEGER:
-      PL_get_long(t, &intValue);
+      ret = PL_get_long(t, &intValue);
       result = nl->IntAtom(intValue);
       break;
 
     case PL_FLOAT:
-      PL_get_float(t, &realValue);
+      ret = PL_get_float(t, &realValue);
       result = nl->RealAtom(realValue);
       break;
 
     case PL_ATOM:
-      PL_get_atom_chars(t, &charValue);
+      ret = PL_get_atom_chars(t, &charValue);
       result = AtomToListExpr(nl, charValue, error);
       break;
 
     case PL_STRING:
-      PL_get_string_chars(t, &charValue, &len);
+      ret = PL_get_string_chars(t, &charValue, &len);
       strValue = new char[len + 1];
       strValue[len] = 0;
       memcpy(strValue, charValue, len);
@@ -312,6 +320,10 @@ SecondoPrologInterface::TermToListExpr(term_t t, NestedList* nl, bool& error)
 
     default:
       assert(false); /* should not happen */
+  }
+
+  if(! ret) {
+     cerr << "Unable to get data from prolog" << endl;
   }
 
   return result;
