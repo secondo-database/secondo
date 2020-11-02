@@ -1,0 +1,74 @@
+Database: pgraphtest
+Restore : No
+
+Operator : info
+Number   : 1
+Signature: pgraph -> string
+Example  : query pgraph info
+Result   : (string)
+
+Operator : addnodesrel
+Number   : 2
+Signature: PGRAPH x string -> bool
+Example  : query PGRAPH addnodesrel["people"]
+Result   : (bool)
+
+Operator : addindex
+Number   : 3
+Signature: PGRAPH x string x string -> bool
+Example  : query PGRAPH addindex["Author","Lastname"];
+Result   : (bool)
+
+Operator : addedgesrel
+Number   : 4
+Signature: PGRAPH x string x string x string -> bool
+Example  : query PGRAPH addnodesrel["people","fromexpr","toexpr"]
+Result   : (bool)
+
+Operator : createpgraph
+Number   : 5 
+Signature: string -> pgraph
+Example  : query createpgraph("test1")
+Result   : (pgraph)
+
+Operator : loadgraph
+Number   : 6 
+Signature: pgraph -> bool
+Example  : query p1 loadgraph
+Result   : (bool)
+
+Operator : match1
+Number   : 8
+Signature: graph x stream x string x string x string -> string
+Example  : query p1 stream match1["(query as list)","filters","fields"]
+Result   : (stream)
+
+Operator : match2
+Number   : 9
+Signature: pgraph x string x string x string x string -> string
+Example  : query p1 match2["(query as list)","filters","fields", "opts"]
+Result   : (stream)
+
+Operator : match3
+Number   : 10
+Signature: pgraph x string x string-> string
+Example  : query p1 match3["cypher query", "options"]
+Result   : (stream)
+
+Operator : unload
+Number   : 11
+Signature: pgraph -> bool
+Example  : query p1 unload
+Result   : (bool)
+
+Operator : cfg
+Number   : 12
+Signature: graph x string x string -> string
+Example  : query p1 cfg["log","10"]
+Result   : (bool)
+
+Operator : clearstat
+Number   : 13
+Signature: pgraph -> bool
+Example  : query p1 clearstat
+Result   : (bool)
