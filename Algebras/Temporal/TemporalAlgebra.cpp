@@ -17273,7 +17273,7 @@ const std::string TemporalSpecDistanceAvg =
 
 const std::string TemporalSpecDistanceAvgLB =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "( <text>Xpoint x Xpoint -> real,  X = (m|u)</text--->"
+  "( <text>cXpoint x cXpoint -> real,  X = (m|u)</text--->"
   "<text>distanceAvgLB( _, _ ) </text--->"
   "<text>Returns the lower bound average distance based on the integral, "
   "considering the radii of both arguments. The use of geoid is not supported "
@@ -17284,7 +17284,7 @@ const std::string TemporalSpecDistanceAvgLB =
 
 const std::string TemporalSpecDistanceAvgUB =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "( <text>Xpoint x Xpoint -> real,  X = (m|u)</text--->"
+  "( <text>cXpoint x cXpoint -> real,  X = (m|u)</text--->"
   "<text>distanceAvgUB( _, _ ) </text--->"
   "<text>Returns the upper bound average distance based on the integral, "
   "considering the radii of both arguments. The use of geoid is not supported "
