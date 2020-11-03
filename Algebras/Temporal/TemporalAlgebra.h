@@ -1105,6 +1105,7 @@ typedef Intime<CcInt> IInt;
 typedef Intime<CcReal> IReal;
 typedef Intime<CcString> IString;
 typedef Intime<Point> IPoint;
+typedef Intime<CPoint> CIPoint;
 
 
 /*
@@ -4416,6 +4417,21 @@ Returns ~true~ if both units are undefined, or if both are defined and this temp
   virtual bool operator!=(const CUPoint& src) const {
     return !(*this == src);
   }
+  
+/*
+Restricts this cupoint to a certain time interval.
+
+*/
+  virtual void AtInterval(const Interval<Instant>& i, CUPoint& result ) const;
+  void AtInterval(const Interval<Instant>& i, CUPoint& result,
+                  const Geoid* geoid) const;
+
+/*
+Evaluates this cupoint at a certain instant.
+
+*/
+  virtual void TemporalFunction(const Instant& t, CPoint& result,
+                                bool ignoreLimits = false) const;
 
 /*
 Functions required for attribute type
@@ -4754,7 +4770,6 @@ auxiliary function getPointSequence.
 private:
   Rectangle<3> bbox;
 };
-
 
 /*
 4 Implementation of C++ Classes

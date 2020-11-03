@@ -1903,8 +1903,6 @@ void UPoint::At(const Rectangle<2>& rect, UPoint& result) const{
   result.p1.Set(x2,y2);
 }
 
-
-
 void UPoint::AtInterval( const Interval<Instant>& i,
                          TemporalUnit<Point>& result ) const
 {
@@ -2740,6 +2738,23 @@ bool UPoint::AtRegion(const Region *r, std::vector<UPoint> &result) const {
 1.1 Implementation of functions for the class ~CUPoint~
 
 */
+void CUPoint::AtInterval(const Interval<Instant>& i, CUPoint& result) const {
+  AtInterval(i, result, 0);
+}
+
+void CUPoint::AtInterval(const Interval<Instant>& i, CUPoint& result,
+                         const Geoid* geoid) const {
+  ((UPoint*)this)->AtInterval(i, *((UPoint*)&result));
+  result.SetRadius(this->GetRadius());
+}
+
+void CUPoint::TemporalFunction(const Instant& t, CPoint& result,
+                               bool ignoreLimits /* = false */) const {
+  Point p(true);
+  ((UPoint*)this)->TemporalFunction(t, p, ignoreLimits);
+  result.Set(p, this->GetRadius());
+}
+
 const Rectangle<3> CUPoint::BoundingBox(const Geoid* geoid) const {
   if (geoid) {
     if (!geoid->IsDefined() || !IsDefined()) {
@@ -2885,10 +2900,10 @@ double CUPoint::DistanceAvg(const CUPoint& cup, const bool upperBound,
     cup2 = cup1;
     cup1 = cup;
   } // now we know that cup1's duration is at least as long as cup2's
-  Point newEnd(true);
+  CPoint newEnd(true);
   cup1.TemporalFunction(cup2.timeInterval.end, newEnd, true);
   cup1.timeInterval.end = cup2.timeInterval.end;
-  cup1.p1 = newEnd;
+  cup1.p1 = *((Point*)&newEnd);
   UReal urDist(true), urNull(true);
   ((UPoint*)(&cup1))->Distance(*((UPoint*)(&cup2)), urDist, geoid);
   double dur = (urDist.timeInterval.end - urDist.timeInterval.start).ToDouble();
@@ -9180,6 +9195,66 @@ TypeConstructor intimepoint(
         CheckIntimePoint );               //kind checking function
 
 /*
+4.6 Type Constructor ~cipoint~
+
+Type ~cipoint~ represents an (instant, value)-pair of cpoint.
+
+4.6.1 List Representation
+
+The list representation of a ~cipoint~ is
+
+----    ( t cpoint-value )
+----
+
+For example:
+
+----    ( (instant 1.0) ((5.0 0.0) 1.9) )
+----
+
+4.6.2 function Describing the Signature of the Type Constructor
+
+*/
+ListExpr IntimeCPointProperty() {
+  return (nl->TwoElemList(nl->FourElemList(nl->StringAtom("Signature"),
+                           nl->StringAtom("Example Type List"),
+                           nl->StringAtom("List Rep"),
+                           nl->StringAtom("Example List")),
+                          nl->FourElemList(nl->StringAtom("-> TEMPORAL"),
+                           nl->StringAtom("(cipoint) "),
+                           nl->StringAtom("(instant cpoint-value)"),
+                           nl->StringAtom("((instant 0.5) ((1.0 2.0) 1.9))"))));
+}
+
+/*
+4.6.3 Kind Checking Function
+
+*/
+bool CheckIntimeCPoint(ListExpr type, ListExpr& errorInfo) {
+  return (nl->IsEqual(type, "cipoint"));
+}
+
+/*
+4.6.4 Creation of the type constructor ~ipoint~
+
+*/
+TypeConstructor intimecpoint(
+        "cipoint",                    //name
+        IntimeCPointProperty,  //property function describing signature
+        OutIntime<CPoint, OutCPoint>,
+        InIntime<CPoint, InCPoint>,         //Out and In functions
+        0,
+        0,       //SaveToList and RestoreFromList functions
+        CreateIntime<CPoint>,
+        DeleteIntime<CPoint>,              //object creation and deletion
+        OpenAttribute<Intime<CPoint> >,
+        SaveAttribute<Intime<CPoint> >,  // object open and save
+        CloseIntime<CPoint>,
+        CloneIntime<CPoint>,               //object close and clone
+        CastIntime<CPoint>,                //cast function
+        SizeOfIntime<CPoint>,              //sizeof function
+        CheckIntimeCPoint);               //kind checking function
+
+/*
 4.7 Type Constructor ~ubool~
 
 Type ~ubool~ represents an (tinterval, boolvalue)-pair.
@@ -10817,6 +10892,10 @@ IntimeTypeMapBase( ListExpr args )
 
     if( nl->IsEqual( arg1, IPoint::BasicType() ) )
       return nl->SymbolAtom( Point::BasicType() );
+    
+    if (nl->IsEqual(arg1, "cipoint")) {
+      return nl->SymbolAtom(CPoint::BasicType());
+    }
   }
   return nl->SymbolAtom( Symbol::TYPEERROR() );
 }
@@ -10856,7 +10935,8 @@ IntimeTypeMapInstant( ListExpr args )
     if( nl->IsEqual( arg1, IBool::BasicType() ) ||
         nl->IsEqual( arg1, IInt::BasicType() ) ||
         nl->IsEqual( arg1, IReal::BasicType() ) ||
-        nl->IsEqual( arg1, IPoint::BasicType() ) )
+        nl->IsEqual( arg1, IPoint::BasicType() ) ||
+        nl->IsEqual( arg1, "cipoint" ) )
       return nl->SymbolAtom( Instant::BasicType() );
   }
   return nl->SymbolAtom( Symbol::TYPEERROR() );
@@ -10889,6 +10969,10 @@ MovingInstantTypeMapIntime( ListExpr args )
 
       if( nl->IsEqual( arg1, MPoint::BasicType() ) )
         return nl->SymbolAtom( IPoint::BasicType() );
+      
+      if (CMPoint::checkType(arg1)) {
+        return nl->SymbolAtom("cipoint");
+      }
     }
   }
   return nl->SymbolAtom( Symbol::TYPEERROR() );
@@ -10946,6 +11030,10 @@ MovingPeriodsTypeMapMoving( ListExpr args )
 
       if( nl->IsEqual( arg1, MPoint::BasicType() ) )
         return nl->SymbolAtom( MPoint::BasicType() );
+      
+      if (CMPoint::checkType(arg1)) {
+        return nl->SymbolAtom(CMPoint::BasicType());
+      }
     }
   }
   return nl->SymbolAtom( Symbol::TYPEERROR() );
@@ -10967,7 +11055,8 @@ MovingTypeMapPeriods( ListExpr args )
     if( nl->IsEqual( arg1, MBool::BasicType() ) ||
         nl->IsEqual( arg1, MInt::BasicType() ) ||
         nl->IsEqual( arg1, MReal::BasicType() ) ||
-        nl->IsEqual( arg1, MPoint::BasicType() ) )
+        nl->IsEqual( arg1, MPoint::BasicType() ) ||
+        nl->IsEqual( arg1, CMPoint::BasicType() ) )
       return nl->SymbolAtom( Periods::BasicType() );
   }
   return nl->SymbolAtom( Symbol::TYPEERROR() );
@@ -11109,6 +11198,9 @@ MovingTypeMapIntime( ListExpr args )
 
     if( nl->IsEqual( arg1, MPoint::BasicType() ) )
       return nl->SymbolAtom( IPoint::BasicType() );
+    
+    if( nl->IsEqual( arg1, CMPoint::BasicType() ) )
+      return nl->SymbolAtom( "cipoint" );
   }
   return nl->SymbolAtom( Symbol::TYPEERROR() );
 }
@@ -11856,9 +11948,8 @@ For operator ~bbox~
 ListExpr TemporalBBoxTypeMap( ListExpr args )
 {
   int noargs = nl->ListLength( args );
-  std::string errmsg = "Expected (M [x geoid]) OR (T), "
-                       "where M in {cupoint, upoint, mpoint, "
-                       "ipoint}, T in {instant,periods}.";
+  std::string errmsg = "Expected (M [x geoid]) OR (T), where M in "
+         "{upoint, mpoint, cupoint, cmpoint, ipoint}, T in {instant, periods}.";
   if ( (noargs<1) || (noargs>2) ){
     return listutils::typeError(errmsg);
   }
@@ -11868,7 +11959,8 @@ ListExpr TemporalBBoxTypeMap( ListExpr args )
   ListExpr arg1 = nl->First( args );
   if (UPoint::checkType(arg1) || MPoint::checkType(arg1)
    || IPoint::checkType(arg1) || Periods::checkType(arg1)
-   || Instant::checkType(arg1) || CUPoint::checkType(arg1)) {
+   || Instant::checkType(arg1) || CUPoint::checkType(arg1)
+   || CMPoint::checkType(arg1)) {
     return nl->SymbolAtom(Rectangle<3>::BasicType());
   }
   return listutils::typeError(errmsg);
@@ -11917,7 +12009,7 @@ ListExpr TemporalBBox2dTypeMap( ListExpr args )
 {
   int noargs =  nl->ListLength( args );
   std::string errmsg = "Expected (T [x geoid]), "
-                       "where T in {cupoint, upoint, mpoint, ipoint}";
+                       "where T in {ipoint, upoint, mpoint, cupoint, cmpoint}";
   if( (noargs<1) || (noargs>2) ){
     return listutils::typeError(errmsg);
   }
@@ -11927,7 +12019,8 @@ ListExpr TemporalBBox2dTypeMap( ListExpr args )
   }
   ListExpr arg1 = nl->First( args );
   if (UPoint::checkType(arg1) || MPoint::checkType(arg1)
-   || IPoint::checkType(arg1) || CUPoint::checkType(arg1)) {
+   || IPoint::checkType(arg1) || CUPoint::checkType(arg1)
+   || CMPoint::checkType(arg1)) {
     return nl->SymbolAtom(Rectangle<2>::BasicType());
   }
   return listutils::typeError(errmsg);
@@ -13025,6 +13118,10 @@ IntimeSimpleSelect( ListExpr args )
 
   if( nl->SymbolValue( arg1 ) == IPoint::BasicType() )
     return 3;
+  
+  if (nl->SymbolValue(arg1) == "cipoint") {
+    return 4;
+  }
 
   return -1; // This point should never be reached
 }
@@ -13070,6 +13167,9 @@ MovingSimpleSelect( ListExpr args )
   if( nl->SymbolValue( arg1 ) == MPoint::BasicType() )
     return 3;
 
+  if (nl->SymbolValue(arg1) == CMPoint::BasicType()) {
+    return 4;
+  }
   return -1; // This point should never be reached
 }
 
@@ -13230,6 +13330,9 @@ int TemporalBBoxSelect( ListExpr args )
   if (CUPoint::checkType(arg1)) {
     return 5;
   }
+  if (CMPoint::checkType(arg1)) {
+    return 6;
+  }
   return -1; // This point should never be reached
 }
 
@@ -13280,6 +13383,9 @@ int TemporalBBox2dSelect( ListExpr args )
 
   if (CUPoint::checkType(arg1)) {
     return 3;
+  }
+  if (CMPoint::checkType(arg1)) {
+    return 4;
   }
   return -1; // This point should never be reached
 }
@@ -14507,20 +14613,17 @@ function. One could make it inherit from ~SpatialAttribute~, but than one had to
 restore all databases and adopt the Add, MergeAdd, +=, -=, etc.
 
 */
-int MPointBBox(Word* args, Word& result, int message, Word& local,
-               Supplier s )
-{
-  result = qp->ResultStorage( s );
-  Rectangle<3>* res = (Rectangle<3>*) result.addr;
-  const MPoint* arg = static_cast<const MPoint*>(args[0].addr);
-  const Geoid*  geoid =
-                (qp->GetNoSons(s)==2)?static_cast<const Geoid*>(args[1].addr):0;
-
-  if( !arg->IsDefined() || (arg->GetNoComponents() < 1) )
-  { // empty/undefined MPoint --> undef
+template<class T>
+int MTypeBBox(Word* args, Word& result, int message, Word& local, Supplier s) {
+  result = qp->ResultStorage(s);
+  Rectangle<3>* res = (Rectangle<3>*)result.addr;
+  const T* arg = static_cast<const T*>(args[0].addr);
+  const Geoid* geoid =
+          (qp->GetNoSons(s) == 2) ? static_cast<const Geoid*>(args[1].addr) : 0;
+  if (!arg->IsDefined() || (arg->GetNoComponents() < 1)) {
     res->SetDefined(false);
   }
-  else { // return MBR
+  else {
     *res = arg->BoundingBox(geoid);
   }
   return 0;
@@ -14671,25 +14774,23 @@ int IPointBBox2d(Word* args, Word& result, int message, Word& local,
   return 0;
 }
 
-int MPointBBox2d(Word* args, Word& result, int message, Word& local,
-                 Supplier s )
-{
-  result = qp->ResultStorage( s );
+template<class T>
+int MTypeBBox2d(Word* args, Word& result, int message, Word& local, Supplier s){
+  result = qp->ResultStorage(s);
   Rectangle<2>* res = (Rectangle<2>*) result.addr;
-  const MPoint* arg = static_cast<const MPoint*>(args[0].addr);
-  const Geoid*  geoid =
-                (qp->GetNoSons(s)==2)?static_cast<const Geoid*>(args[1].addr):0;
-  Rectangle<3> accubbox = arg->BoundingBox(geoid);
-  if( accubbox.IsDefined() )
-  {
+  const T* arg = static_cast<const T*>(args[0].addr);
+  const Geoid* geoid =
+          (qp->GetNoSons(s) == 2) ? static_cast<const Geoid*>(args[1].addr) : 0;
+  Rectangle<3> bbox3d = arg->BoundingBox(geoid);
+  if (bbox3d.IsDefined()) {
     double min[2], max[2];
-    min[0] = accubbox.MinD(0); // minX
-    max[0] = accubbox.MaxD(0); // maxX
-    min[1] = accubbox.MinD(1); // minY
-    max[1] = accubbox.MaxD(1); // maxY
-    res->Set( true, min, max );
-  } else
-  {
+    min[0] = bbox3d.MinD(0); // minX
+    max[0] = bbox3d.MaxD(0); // maxX
+    min[1] = bbox3d.MinD(1); // minY
+    max[1] = bbox3d.MaxD(1); // maxY
+    res->Set(true, min, max);
+  }
+  else {
     res->SetDefined(false);
   }
   return 0;
@@ -15739,27 +15840,25 @@ int MPointPresent_p( Word* args, Word& result,
   return 0;
 }
 
-int MPointAtInstant( Word* args, Word& result, int message,
-                          Word& local, Supplier s )
-{
-  result = qp->ResultStorage( s );
-  MPoint* mp = ((MPoint*)args[0].addr);
-  Instant* inst = (Instant*) args[1].addr;
-  Intime<Point>* pResult = (Intime<Point>*)result.addr;
-
-  mp->AtInstant(*inst, *pResult);
+template<class M, class P>
+int MTypeAtInstant(Word* args, Word& result, int message, Word& local,
+                   Supplier s) {
+  result = qp->ResultStorage(s);
+  M* src = ((M*)args[0].addr);
+  Instant* inst = (Instant*)args[1].addr;
+  Intime<P>* pResult = (Intime<P>*)result.addr;
+  src->AtInstant(*inst, *pResult);
   return 0;
 }
 
-int MPointAtPeriods( Word* args, Word& result, int message,
-                          Word& local, Supplier s )
-{
-  result = qp->ResultStorage( s );
-  MPoint* mp = ((MPoint*)args[0].addr);
-  MPoint* pResult = (MPoint*)result.addr;
+template<class T>
+int MTypeAtPeriods(Word* args, Word& result, int message, Word& local, 
+                   Supplier s) {
+  result = qp->ResultStorage(s);
+  T* src = ((T*)args[0].addr);
+  T* pResult = (T*)result.addr;
   Periods* per = (Periods*)args[1].addr;
-
-  mp->AtPeriods(*per,*pResult);
+  src->AtPeriods(*per, *pResult);
   return 0;
 }
 
@@ -16861,11 +16960,12 @@ ValueMapping temporalnocomponentsmap[] = {RangeNoComponents<RInt>,
                                           MappingNoComponents<CMPoint, CPoint>};
 
 ValueMapping temporalbboxmap[] = { UnitBBox<UPoint>,
-                                   MPointBBox,
+                                   MTypeBBox<MPoint>,
                                    IPointBBox,
                                    PeriodsBBox,
                                    InstantBBox,
-                                   UnitBBox<CUPoint>};
+                                   UnitBBox<CUPoint>,
+                                   MTypeBBox<CMPoint>};
 
 ValueMapping temporalmbrangemap[] = {
                                    TempMBRange<RInt>,
@@ -16882,31 +16982,36 @@ ValueMapping temporalbboxoldmap[] = { UnitBBox<UPoint>,
                                       IPointBBox };
 
 ValueMapping temporalbbox2dmap[] = { UnitBBox2d<UPoint>,
-                                     MPointBBox2d,
+                                     MTypeBBox2d<MPoint>,
                                      IPointBBox2d,
-                                     UnitBBox2d<CUPoint>};
+                                     UnitBBox2d<CUPoint>,
+                                     MTypeBBox2d<CMPoint>};
 
 ValueMapping temporalinstmap[] = { IntimeInst<CcBool>,
                                    IntimeInst<CcInt>,
                                    IntimeInst<CcReal>,
-                                   IntimeInst<Point> };
+                                   IntimeInst<Point>, 
+                                   IntimeInst<CPoint>};
 
 ValueMapping temporalvalmap[] = { IntimeVal<CcBool>,
                                   IntimeVal<CcInt>,
                                   IntimeVal<CcReal>,
-                                  IntimeVal<Point> };
+                                  IntimeVal<Point>,
+                                  IntimeVal<CPoint>};
 
 ValueMapping temporaluvalmap[] = { UIntimeVal<UInt,CcInt>};
 
 ValueMapping temporalatinstantmap[] = { MappingAtInstant<MBool, CcBool>,
                                         MappingAtInstant<MInt, CcInt>,
                                         MappingAtInstant<MReal, CcReal>,
-                                        MPointAtInstant };
+                                        MTypeAtInstant<MPoint, Point>,
+                                        MTypeAtInstant<CMPoint, CPoint>};
 
 ValueMapping temporalatperiodsmap[] = { MappingAtPeriods<MBool>,
                                         MappingAtPeriods<MInt>,
                                         MappingAtPeriods<MReal>,
-                                        MPointAtPeriods };
+                                        MTypeAtPeriods<MPoint>,
+                                        MTypeAtPeriods<CMPoint>};
 
 ValueMapping temporalwhenmap[] = { MappingWhen<MBool>,
                                         MappingWhen<MInt>,
@@ -16916,7 +17021,8 @@ ValueMapping temporalwhenmap[] = { MappingWhen<MBool>,
 ValueMapping temporaldeftimemap[] = { MappingDefTime<MBool>,
                                       MappingDefTime<MInt>,
                                       MappingDefTime<MReal>,
-                                      MappingDefTime<MPoint> };
+                                      MappingDefTime<MPoint>,
+                                      MappingDefTime<CMPoint>};
 
 ValueMapping temporalpresentmap[] = { MappingPresent_i<MBool>,
                                       MappingPresent_i<MInt>,
@@ -16937,12 +17043,14 @@ ValueMapping temporalpassesmap[] = { MappingPasses<MBool, CcBool, CcBool>,
 ValueMapping temporalinitialmap[] = { MappingInitial<MBool, UBool, CcBool>,
                                       MappingInitial<MInt, UInt, CcInt>,
                                       MappingInitial<MReal, UReal, CcReal>,
-                                      MappingInitial<MPoint, UPoint, Point> };
+                                      MappingInitial<MPoint, UPoint, Point>,
+                                      MappingInitial<CMPoint, CUPoint, CPoint>};
 
 ValueMapping temporalfinalmap[] = { MappingFinal<MBool, UBool, CcBool>,
                                     MappingFinal<MInt, UInt, CcInt>,
                                     MappingFinal<MReal, UReal, CcReal>,
-                                    MappingFinal<MPoint, UPoint, Point> };
+                                    MappingFinal<MPoint, UPoint, Point>,
+                                    MappingFinal<CMPoint, CUPoint, CPoint>};
 
 ValueMapping temporalatmap[] = { MappingAt<MBool, UBool, CcBool>,
                                  MappingAt<MInt, UInt, CcInt>,
@@ -18077,7 +18185,7 @@ Operator temporalnocomponents( "no_components",
 
 Operator temporalinst( "inst",
                        TemporalSpecInst,
-                       4,
+                       5,
                        temporalinstmap,
                        IntimeSimpleSelect,
                        IntimeTypeMapInstant );
@@ -18087,21 +18195,21 @@ More operator specifications...
 */
 Operator temporalval( "val",
                       TemporalSpecVal,
-                      4,
+                      5,
                       temporalvalmap,
                       IntimeSimpleSelect,
                       IntimeTypeMapBase );
 
 Operator temporalatinstant( "atinstant",
                             TemporalSpecAtInstant,
-                            4,
+                            5,
                             temporalatinstantmap,
                             MovingSimpleSelect,
                             MovingInstantTypeMapIntime );
 
 Operator temporalatperiods( "atperiods",
                             TemporalSpecAtPeriods,
-                            4,
+                            5,
                             temporalatperiodsmap,
                             MovingSimpleSelect,
                             MovingPeriodsTypeMapMoving );
@@ -18115,7 +18223,7 @@ Operator temporalwhen( "when",
 
 Operator temporaldeftime( "deftime",
                           TemporalSpecDefTime,
-                          4,
+                          5,
                           temporaldeftimemap,
                           MovingSimpleSelect,
                           MovingTypeMapPeriods );
@@ -18142,14 +18250,14 @@ Operator temporalpasses( "passes",
 
 Operator temporalinitial( "initial",
                           TemporalSpecInitial,
-                          4,
+                          5,
                           temporalinitialmap,
                           MovingSimpleSelect,
                           MovingTypeMapIntime );
 
 Operator temporalfinal( "final",
                         TemporalSpecFinal,
-                        4,
+                        5,
                         temporalfinalmap,
                         MovingSimpleSelect,
                         MovingTypeMapIntime );
@@ -18324,7 +18432,7 @@ Operator temporalgetposition( "getPosition",
 
 Operator temporalbbox( "bbox",
                        TemporalSpecBBox,
-                       6,
+                       7,
                        temporalbboxmap,
                        TemporalBBoxSelect,
                        TemporalBBoxTypeMap );
@@ -18338,7 +18446,7 @@ Operator temporalmbrange( "mbrange",
 
 Operator temporalbbox2d( "bbox2d",
                          TemporalSpecBBox2d,
-                         4,
+                         5,
                          temporalbbox2dmap,
                          TemporalBBox2dSelect,
                          TemporalBBox2dTypeMap );
@@ -21323,6 +21431,7 @@ class TemporalAlgebra : public Algebra
     AddTypeConstructor( &intimeint );
     AddTypeConstructor( &intimereal );
     AddTypeConstructor( &intimepoint );
+    AddTypeConstructor( &intimecpoint );
 
     AddTypeConstructor( &unitbool );
     AddTypeConstructor( &unitint );
@@ -21354,6 +21463,8 @@ class TemporalAlgebra : public Algebra
     intimereal.AssociateKind( Kind::DATA() );
     intimepoint.AssociateKind( Kind::TEMPORAL() );
     intimepoint.AssociateKind( Kind::DATA() );
+    intimecpoint.AssociateKind( Kind::TEMPORAL() );
+    intimecpoint.AssociateKind( Kind::DATA() );
 
     unitbool.AssociateKind( Kind::TEMPORAL() );
     unitbool.AssociateKind( Kind::DATA() );

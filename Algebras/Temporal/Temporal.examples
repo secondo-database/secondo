@@ -82,19 +82,19 @@ Result   : (mpoint((("2003-11-20-07:01:40" "2003-11-20-07:01:44.586" TRUE FALSE)
 
 Operator : bbox
 Number   : 1
-Signature: upoint -> rect3, mpoint -> rect3, ipoint -> rect3, periods -> rect3, instant -> rect3
+Signature: upoint -> rect3, mpoint -> rect3, ipoint -> rect3, cupoint -> rect3, cmpoint -> rect3, periods -> rect3, instant -> rect3
 Example  : query bbox([const upoint value (("2003-10-10" "2003-12-10" TRUE TRUE) (0.0 0.0 1.0 1.0))])
 Result   : (rect3 (0.0 1.0 0.0 1.0 1376.0 1437.0))
 
 Operator : bbox
 Number   : 2
-Signature: upoint -> rect3, mpoint -> rect3, ipoint -> rect3, periods -> rect3, instant -> rect3
+Signature: upoint -> rect3, mpoint -> rect3, ipoint -> rect3, cupoint -> rect3, cmpoint -> rect3, periods -> rect3, instant -> rect3
 Example  : query bbox(deftime(train1))
 Result   : (rect3 (-1.797693134862313e+308 1.797693134862313e+308 -1.797693134862313e+308 1.797693134862313e+308  1417.252083333333 1417.279861111111))
 
 Operator : bbox
 Number   : 3
-Signature: upoint -> rect3, mpoint -> rect3, ipoint -> rect3, periods -> rect3, instant -> rect3
+Signature: upoint -> rect3, mpoint -> rect3, ipoint -> rect3, cupoint -> rect3, cmpoint -> rect3, periods -> rect3, instant -> rect3
 Example  : query bbox(six30)
 Result   : (rect3 (-1.797693134862313e+308 1.797693134862313e+308 -1.797693134862313e+308 1.797693134862313e+308 1417.270833333333 1417.270833333333))
 
@@ -118,7 +118,7 @@ Result   : (rect3 (0.0 1.0 0.0 1.0 1376.0 1437.0))
 
 Operator : bbox2d
 Number   : 1
-Signature: upoint -> rect2, mpoint -> rect2, ipoint -> rect2
+Signature: (upoint|mpoint|ipoint|cupoint|cmpoint) -> rect2
 Example  : query bbox2d([const upoint value (("2003-10-10" "2003-12-10" TRUE TRUE) (0.0 0.0 1.0 1.0))])
 Result   : (rect (0.0 1.0 0.0 1.0))
 
