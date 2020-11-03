@@ -4012,7 +4012,7 @@ If invalid geographic coordinates are found, the result is UNDEFINED.
                  const Geoid* geoid=0 ) const;
   void DistanceAvg(const MPoint& mp, CcReal& result, 
                    const Geoid* geoid=0) const;
-  double DistanceAvg(const MPoint& cup, const Geoid* geoid = 0) const;
+  double DistanceAvg(const MPoint& mp, const Geoid* geoid = 0) const;
   void SquaredDistance( const Point& p, MReal& result,
                         const Geoid* geoid=0 ) const;
   void SquaredDistance( const MPoint& p, MReal& result,
@@ -4377,6 +4377,15 @@ templates using UPoint and MPoint.
   void SetRadius(const double r) {
     radius = r;
   }
+  
+/*
+~Set~
+
+*/
+  void Set(const UPoint& up, const double r) {
+    UPoint::operator=(up);
+    radius = r;
+  }
 
 /*
 ~GetUPoint~
@@ -4570,6 +4579,14 @@ Converts an ~mpoint~ into a ~cmpoint~ with a constant cylinder length (duration)
 
 */
   void ConvertFrom(const MPoint& src, const datetime::DateTime dur, 
+                   const Geoid *geoid = 0);
+
+/*
+Converts an ~mpoint~ into a ~cmpoint~; a new unit starts as soon as the 
+specified threshold is exceeded.
+
+*/
+  void ConvertFrom(const MPoint& src, const CcReal& threshold, 
                    const Geoid *geoid = 0);
   
 /*

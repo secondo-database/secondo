@@ -2741,47 +2741,74 @@ bool UPoint::AtRegion(const Region *r, std::vector<UPoint> &result) const {
 
 */
 const Rectangle<3> CUPoint::BoundingBox(const Geoid* geoid) const {
-  double PI = 3.1415926535;
-  double dir = p0.Direction(p1, false, geoid) * PI / 180;
-  int horizSign = p0.GetX() < p1.GetX() ? 1 : -1;
-  int vertSign = p0.GetY() < p1.GetY() ? 1 : -1;
-//   cout << "direction is " << dir << ", horizSign = " << horizSign
-//        << ", vertSign = " << vertSign << endl;
-  Point p0shifted = Point(true, p0.GetX() - horizSign * abs(sin(dir)) * radius,
-                                p0.GetY() - vertSign * abs(cos(dir)) * radius);
-  Point p1shifted = Point(true, p1.GetX() + horizSign * abs(sin(dir)) * radius,
-                                p1.GetY() + vertSign * abs(cos(dir)) * radius);
   if (geoid) {
     if (!geoid->IsDefined() || !IsDefined()) {
       return Rectangle<3>(false);
     }
-    Rectangle<2> geobbox(false);
-    if (AlmostEqual(p0, p1)) {
+  }
+  double PI = 3.1415926535;
+  double dir = 0.0;
+  Point p0shifted(true), p1shifted(true);
+  if (AlmostEqual(p0, p1)) {
+    p0shifted = Point(true, p0.GetX() - radius, p0.GetY() - radius);
+    p1shifted = Point(true, p1.GetX() + radius, p1.GetY() + radius);
+    if (geoid) {
+      Rectangle<2> geobbox(false);
       geobbox = p0shifted.GeographicBBox(p1shifted, *geoid);
       double minMax[] = {geobbox.MinD(0), geobbox.MaxD(0),
                          geobbox.MinD(1), geobbox.MaxD(1),
                          timeInterval.start.ToDouble(),
                          timeInterval.end.ToDouble()}; 
       return Rectangle<3>(true, minMax);
-    } // else: use HalfSegment::BoundingBox(...)
-    geobbox = HalfSegment(true, p0shifted, p1shifted).BoundingBox(geoid);
-    double minMax[] = {geobbox.MinD(0), geobbox.MaxD(0),
-                       geobbox.MinD(1), geobbox.MaxD(1),
-                       timeInterval.start.ToDouble(),
-                       timeInterval.end.ToDouble()};
-    return Rectangle<3>(true, minMax);
-  } // else: euclidean geometry
-  if (this->IsDefined()) {
-    double minMax[] = {MIN(p0shifted.GetX(), p1shifted.GetX()),
-                       MAX(p0shifted.GetX(), p1shifted.GetX()),
-                       MIN(p0shifted.GetY(), p1shifted.GetY()),
-                       MAX(p0shifted.GetY(), p1shifted.GetY()),
-                       timeInterval.start.ToDouble(),
-                       timeInterval.end.ToDouble()};
-    return Rectangle<3>(true, minMax);
-  } 
+    }
+    if (this->IsDefined()) {
+      double minMax[] = {MIN(p0shifted.GetX(), p1shifted.GetX()),
+                        MAX(p0shifted.GetX(), p1shifted.GetX()),
+                        MIN(p0shifted.GetY(), p1shifted.GetY()),
+                        MAX(p0shifted.GetY(), p1shifted.GetY()),
+                        timeInterval.start.ToDouble(),
+                        timeInterval.end.ToDouble()};
+      return Rectangle<3>(true, minMax);
+    } 
+    else {
+      return Rectangle<3>(false);
+    }
+  }
   else {
-    return Rectangle<3>(false);
+    try {
+      dir = p0.Direction(p1, false, geoid) * PI / 180;
+    }
+    catch (SecondoException *e) {
+      delete e;
+      return Rectangle<3>(false);
+    }
+    int hSign = p0.GetX() < p1.GetX() ? 1 : -1;
+    int vSign = p0.GetY() < p1.GetY() ? 1 : -1;
+    p0shifted = Point(true, p0.GetX() - hSign * abs(sin(dir)) * radius,
+                            p0.GetY() - vSign * abs(cos(dir)) * radius);
+    p1shifted = Point(true, p1.GetX() + hSign * abs(sin(dir)) * radius,
+                            p1.GetY() + vSign * abs(cos(dir)) * radius);
+    if (geoid) {
+      Rectangle<2> geobbox(false);
+      geobbox = HalfSegment(true, p0shifted, p1shifted).BoundingBox(geoid);
+      double minMax[] = {geobbox.MinD(0), geobbox.MaxD(0),
+                         geobbox.MinD(1), geobbox.MaxD(1),
+                         timeInterval.start.ToDouble(),
+                         timeInterval.end.ToDouble()};
+      return Rectangle<3>(true, minMax);
+    } // else: euclidean geometry
+    if (this->IsDefined()) {
+      double minMax[] = {MIN(p0shifted.GetX(), p1shifted.GetX()),
+                        MAX(p0shifted.GetX(), p1shifted.GetX()),
+                        MIN(p0shifted.GetY(), p1shifted.GetY()),
+                        MAX(p0shifted.GetY(), p1shifted.GetY()),
+                        timeInterval.start.ToDouble(),
+                        timeInterval.end.ToDouble()};
+      return Rectangle<3>(true, minMax);
+    } 
+    else {
+      return Rectangle<3>(false);
+    }
   }
 }
 
@@ -2808,6 +2835,11 @@ const Rectangle<2> CUPoint::BoundingBoxSpatial(const Geoid* geoid) const {
   else {
     return Rectangle<2>(false);
   }
+}
+
+std::ostream& operator<<(std::ostream& o, const CUPoint& u){
+  u.Print(o);
+  return o;
 }
 
 void CUPoint::ConvertFrom(const UPoint& up) {
@@ -7978,10 +8010,11 @@ void CMPoint::GetUPoint(const int pos, UPoint& result) const {
 
 void CMPoint::ConvertFrom(const MPoint& src, const DateTime dur, 
                           const Geoid *geoid /* = 0 */) {
-  SetDefined(src.IsDefined());
-  if (!IsDefined()) {
+  if (!src.IsDefined() || dur.GetType() != durationtype) {
+    SetDefined(false);
     return;
   }
+  SetDefined(true);
   Clear();
   if (src.IsEmpty()) {
     return;
@@ -7990,36 +8023,75 @@ void CMPoint::ConvertFrom(const MPoint& src, const DateTime dur,
   UPoint upSrc(true), upDest(true);;
   DateTime durTemp(durationtype), beginOfTime(instanttype),
            diffToBeginOfTime(durationtype), firstInst(instanttype),
-           durCurIv(durationtype);
+           lastInst(instanttype), durCurIv(durationtype);
   durTemp.SetToZero();
   beginOfTime.SetToZero();
   src.InitialInstant(firstInst);
+  src.FinalInstant(lastInst);
   diffToBeginOfTime = firstInst - beginOfTime;
   Point p0(true), p1(true);
-  MPoint mpTemp(true);
-  for (int i = 0; i < src.GetNoComponents(); i++) {
-    src.Get(i, upSrc);
-    durCurIv = upSrc.timeInterval.end - upSrc.timeInterval.start;
-    if (durTemp.IsZero()) { // start new cupoint here
-      upDest.p0 = upSrc.p0;
-      upDest.timeInterval.start = upSrc.timeInterval.start - diffToBeginOfTime;
-      upDest.timeInterval.lc = upSrc.timeInterval.lc;
+  MPoint mpTemp(true), mpTempShifted(true), srcPart(true);
+  MReal dist(true);
+  Periods per(true);
+  src.TemporalFunction(firstInst, upDest.p0, true);
+  upDest.timeInterval.start = beginOfTime;
+  upDest.timeInterval.lc = false;
+  bool correct(true);
+  for (DateTime i = firstInst + dur; i < lastInst; i += dur) {
+    src.TemporalFunction(i, upDest.p1, true);
+    upDest.timeInterval.end = i - diffToBeginOfTime;
+    upDest.timeInterval.rc = true;
+    mpTemp.Add(upDest);
+    mpTemp.timeMove(diffToBeginOfTime, mpTempShifted);
+    per.Add(Interval<Instant>(i - dur, i, true, false));
+    src.AtPeriods(per, srcPart);
+    srcPart.SquaredDistance(mpTempShifted, dist);
+//     cout << "sqdist between " << mpTempShifted << " and " << srcPart 
+//          << " amounts to " << dist << ", max is " << sqrt(dist.Max(correct)) 
+//          << endl;
+    cup.Set(upDest, sqrt(dist.Max(correct)));
+    if (!correct) {
+      cout << "try to add incorrect unit " << cup << endl;
+      assert(correct);
     }
-    if (durTemp + durCurIv < dur) { // fits into active cupoint
-      durTemp += durCurIv;
-    }
-    else { // current cupoint ends here
-      upDest.p1 = upSrc.p1;
-      upDest.timeInterval.end = upSrc.timeInterval.end - diffToBeginOfTime;
-      upDest.timeInterval.lc = upSrc.timeInterval.lc;
-      if (durTemp + durCurIv == dur) { // perfect fit
-        
-        durTemp.SetToZero();
-      }
-      else { // does not fit, has to be cut
-        
-      }
-    }
+    Add(cup);
+    mpTemp.Clear();
+    mpTempShifted.Clear();
+    per.Clear();
+    dist.Clear();
+    srcPart.Clear();
+    upDest.p0 = upDest.p1; // prepare next cupoint
+    upDest.timeInterval.start = upDest.timeInterval.end;
+    upDest.timeInterval.lc = false;
+  }
+  DateTime destFinalInst(instanttype);
+  FinalInstant(destFinalInst);
+  if (destFinalInst < lastInst) { // processed end of src; add short cupoint
+    src.Get(src.GetNoComponents() - 1, upSrc);
+    upDest.p1 = upSrc.p1;
+    upDest.timeInterval.end = lastInst - diffToBeginOfTime;
+    upDest.timeInterval.rc = true;
+    mpTemp.Add(upDest);
+    mpTemp.timeMove(diffToBeginOfTime, mpTempShifted);
+    per.Add(Interval<Instant>(destFinalInst + diffToBeginOfTime, lastInst, 
+                              true, false));
+    src.AtPeriods(per, srcPart);
+    srcPart.SquaredDistance(mpTempShifted, dist);
+    cup.Set(upDest, sqrt(dist.Max(correct)));
+    Add(cup);
+  }
+}
+
+void CMPoint::ConvertFrom(const MPoint& src, const CcReal& threshold, 
+                          const Geoid *geoid /* = 0 */) {
+  if (!src.IsDefined() || !threshold.IsDefined()) {
+    SetDefined(false);
+    return;
+  }
+  SetDefined(true);
+  Clear();
+  if (src.IsEmpty()) {
+    return;
   }
 }
 
@@ -10714,7 +10786,8 @@ TemporalSetValueTypeMapInt( ListExpr args )
         nl->IsEqual( arg1, MBool::BasicType() ) ||
         nl->IsEqual( arg1, MInt::BasicType() ) ||
         nl->IsEqual( arg1, MReal::BasicType() ) ||
-        nl->IsEqual( arg1, MPoint::BasicType() ) )
+        nl->IsEqual( arg1, MPoint::BasicType() ) ||
+        nl->IsEqual( arg1, CMPoint::BasicType() ) )
       return nl->SymbolAtom( CcInt::BasicType() );
   }
   return nl->SymbolAtom( Symbol::TYPEERROR() );
@@ -12922,6 +12995,10 @@ TemporalSetValueSelect( ListExpr args )
 
   if( nl->SymbolValue( arg1 ) == MPoint::BasicType() )
     return 6;
+  
+  if (nl->SymbolValue(arg1) == CMPoint::BasicType()) {
+    return 7;
+  }
 
   return (-1); // This point should never be reached
 }
@@ -16774,13 +16851,14 @@ ValueMapping temporalmaxmap[] = { RangeMaximum<RInt, CcInt>,
                                   RangeMaximum<RReal, CcReal>,
                                   RangeMaximum<Periods, Instant> };
 
-ValueMapping temporalnocomponentsmap[] = { RangeNoComponents<RInt>,
-                                           RangeNoComponents<RReal>,
-                                           RangeNoComponents<Periods>,
-                                           MappingNoComponents<MBool, CcBool>,
-                                           MappingNoComponents<MInt, CcInt>,
-                                           MappingNoComponents<MReal, CcReal>,
-                                           MappingNoComponents<MPoint, Point>};
+ValueMapping temporalnocomponentsmap[] = {RangeNoComponents<RInt>,
+                                          RangeNoComponents<RReal>,
+                                          RangeNoComponents<Periods>,
+                                          MappingNoComponents<MBool, CcBool>,
+                                          MappingNoComponents<MInt, CcInt>,
+                                          MappingNoComponents<MReal, CcReal>,
+                                          MappingNoComponents<MPoint, Point>,
+                                          MappingNoComponents<CMPoint, CPoint>};
 
 ValueMapping temporalbboxmap[] = { UnitBBox<UPoint>,
                                    MPointBBox,
@@ -17992,7 +18070,7 @@ Operator temporalmax( "maximum",
 
 Operator temporalnocomponents( "no_components",
                                TemporalSpecNoComponents,
-                               7,
+                               8,
                                temporalnocomponentsmap,
                                TemporalSetValueSelect,
                                TemporalSetValueTypeMapInt );
@@ -21161,6 +21239,73 @@ Operator getUPoint(
   getUPointTM
 );
 
+/*
+Operator ~mpoint2cmpoint~
+
+This operator creates a cmpoint from an mpoint and a duration or an mpoint and 
+a real. In the first case, all units (except the last one) are created with the 
+specified duration. Otherwise, a new unit is created as soon as the specified 
+distance threshold is exceeded.
+
+*/
+ListExpr mpoint2cmpointTM(ListExpr args) {
+  std::string err = "mpoint x (duration|real) expected";
+  if (!nl->HasLength(args, 2)) {
+    return listutils::typeError(err + " (wrong number of arguments)");
+  }
+  if (!MPoint::checkType(nl->First(args))) {
+    return listutils::typeError(err + " (first arg is not an mpoint)");
+  }
+  if (!Duration::checkType(nl->Second(args)) 
+      && !CcReal::checkType(nl->Second(args))) {
+    return listutils::typeError(err + " (second arg must be duration or real)");
+  }
+  return listutils::basicSymbol<CMPoint>();
+}
+
+template<class T>
+int mpoint2cmpointVM(Word* args, Word& result, int message, Word& local, 
+                     Supplier s) {
+  result = qp->ResultStorage(s);
+  CMPoint* res = (CMPoint*)result.addr;
+  MPoint* src = (MPoint*)args[0].addr;
+  T* param = (T*)args[1].addr;
+  if (!src->IsDefined()) {
+    res->SetDefined(false);
+    return 0;
+  }
+  res->ConvertFrom(*src, *param);
+  return 0;
+}
+
+int mpoint2cmpointSelect(ListExpr args) {
+  return Duration::checkType(nl->Second(args)) ? 0 : 1;
+}
+
+ValueMapping mpoint2cmpointVMs[] = {
+  mpoint2cmpointVM<DateTime>,
+  mpoint2cmpointVM<CcReal>
+};
+
+OperatorSpec mpoint2cmpointSpec(
+  "mpoint x (duration|real) -> cmpoint",
+  "mpoint2cmpoint(_, _)",
+  "Creates a cmpoint from an mpoint and a duration or an mpoint and a real. In "
+  "the first case, all units (except the last one) are created with the "
+  "specified duration. Otherwise, a new unit is created as soon as the "
+  "specified distance threshold is exceeded.",
+  "query mpoint2cmpoint(train5, [const duration value (0 60000)])"
+);
+
+Operator mpoint2cmpoint(
+  "mpoint2cmpoint",
+  mpoint2cmpointSpec.getStr(),
+  2,
+  mpoint2cmpointVMs,
+  mpoint2cmpointSelect,
+  mpoint2cmpointTM
+);
+
 
 /*
 6 Creating the Algebra
@@ -21359,6 +21504,7 @@ class TemporalAlgebra : public Algebra
     AddOperator(&cbbox);
     AddOperator(&getRadius);
     AddOperator(&getUPoint);
+    AddOperator(&mpoint2cmpoint);
 
 #ifdef USE_PROGRESS
     temporalunits.EnableProgress();
