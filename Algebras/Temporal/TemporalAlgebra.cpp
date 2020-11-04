@@ -8108,6 +8108,16 @@ void CMPoint::ConvertFrom(const MPoint& src, const CcReal& threshold,
   if (src.IsEmpty()) {
     return;
   }
+  double thresh = threshold.GetValue();
+  MPoint mpSimplified(true);
+  src.Simplify(thresh, mpSimplified, false, DateTime(0.0), geoid);
+  UPoint upSimplified(true);
+  CUPoint cup(true);
+  for (int i = 0; i < mpSimplified.GetNoComponents(); i++) {
+    mpSimplified.Get(i, upSimplified);
+    cup.Set(upSimplified, thresh);
+    Add(cup);
+  }
 }
 
 void CMPoint::Clear() {
@@ -11237,6 +11247,7 @@ Type mapping for ~units~ is
         (mint)   -> (stream uint)
   (mreal)  -> (stream ureal)
   (mpoint) -> (stream upoint)
+  (cmpoint) -> (stream cupoint)
 ----
 
 */
@@ -11261,6 +11272,10 @@ ListExpr MovingTypeMapUnits( ListExpr args )
     if( nl->IsEqual( arg1, MPoint::BasicType() ) )
       return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
                              nl->SymbolAtom(UPoint::BasicType()));
+    
+    if( nl->IsEqual( arg1, CMPoint::BasicType() ) )
+      return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
+                             nl->SymbolAtom(CUPoint::BasicType()));
   }
   return nl->SymbolAtom(Symbol::TYPEERROR());
 }
@@ -11276,6 +11291,7 @@ Type mapping for ~getunit~ is
         (mint)   -> (uint)
   (mreal)  -> (ureal)
   (mpoint) -> (upoint)
+  (cmpoint) -> (cupoint)
 ----
 
 */
@@ -11297,6 +11313,9 @@ ListExpr MovingTypeMapGetUnit( ListExpr args )
 
     if( nl->IsEqual( arg1, MPoint::BasicType() ) )
       return nl->SymbolAtom(UPoint::BasicType());
+    
+    if( nl->IsEqual( arg1, CMPoint::BasicType() ) )
+      return nl->SymbolAtom(CUPoint::BasicType());
   }
   return nl->SymbolAtom(Symbol::TYPEERROR());
 }
@@ -11314,6 +11333,7 @@ Type mapping for ~getposition~ is
         (mpoint)  x instant -> (int)
         (mstring) x instant -> (int)
         (mregion) x instant -> (int)
+        (cmpoint) x instant -> (int)
 ----
 
 */
@@ -11322,7 +11342,8 @@ ListExpr TemporalGetPositionTypeMap(ListExpr args) {
     ListExpr arg1 = nl->First(args);
     if (MBool::checkType(arg1) || MInt::checkType(arg1) ||
         MReal::checkType(arg1) || MPoint::checkType(arg1) ||
-        MString::checkType(arg1) || MRegion::checkType(arg1)) {
+        MString::checkType(arg1) || MRegion::checkType(arg1) ||
+        CMPoint::checkType(arg1) ) {
       return nl->SymbolAtom(CcInt::BasicType());
     }
   }
@@ -13300,6 +13321,7 @@ int TemporalGetPositionSelect(ListExpr args) {
   if (MPoint::checkType(nl->First(args)))  return 3;
   if (MString::checkType(nl->First(args))) return 4;
   if (MRegion::checkType(nl->First(args))) return 5;
+  if (CMPoint::checkType(nl->First(args))) return 6;
   return -1;
 }
 
@@ -17060,19 +17082,22 @@ ValueMapping temporalatmap[] = { MappingAt<MBool, UBool, CcBool>,
 ValueMapping temporalunitsmap[] = { MappingUnits<MBool, UBool>,
                                     MappingUnits<MInt,  UInt>,
                                     MappingUnits<MReal, UReal>,
-                                    MappingUnits<MPoint, UPoint> };
+                                    MappingUnits<MPoint, UPoint>,
+                                    MappingUnits<CMPoint, CUPoint> };
 
 ValueMapping temporalgetunitmap[] = { MappingGetUnit<MBool, UBool>,
                                     MappingGetUnit<MInt,  UInt>,
                                     MappingGetUnit<MReal, UReal>,
-                                    MappingGetUnit<MPoint, UPoint> };
+                                    MappingGetUnit<MPoint, UPoint>,
+                                    MappingGetUnit<CMPoint, CUPoint> };
 
 ValueMapping temporalgetpositionmap[] = { MappingGetPosition<MBool>,
                                           MappingGetPosition<MInt>,
                                           MappingGetPosition<MReal>,
                                           MappingGetPosition<MPoint>,
                                           MappingGetPosition<MString>,
-                                          MappingGetPosition<MRegion> };
+                                          MappingGetPosition<MRegion>,
+                                          MappingGetPosition<CMPoint>};
 
 ValueMapping temporalbox3dmap[] = { Box3d_rect,
                                     Box3d_instant,
@@ -18425,7 +18450,7 @@ Operator temporalgetunit( "getunit",
 
 Operator temporalgetposition( "getPosition",
                         TemporalSpecGetPosition,
-                        5,
+                        7,
                         temporalgetpositionmap,
                         TemporalGetPositionSelect,
                         TemporalGetPositionTypeMap );
@@ -21348,6 +21373,47 @@ Operator getUPoint(
 );
 
 /*
+Operator ~getMPoint~
+
+This operator returns the MPoint value of a CMPoint.
+
+*/
+ListExpr getMPointTM(ListExpr args) {
+  std::string err = "cmpoint expected";
+  if (!nl->HasLength(args, 1)) {
+    return listutils::typeError(err + " (wrong number of args)");
+  }
+  if (!CMPoint::checkType(nl->First(args))) {
+    return listutils::typeError(err +" (first arg is not a cmpoint)");
+  }
+  return listutils::basicSymbol<MPoint>();
+}
+
+int getMPointVM(Word* args, Word& result, int message, Word& local, Supplier s){
+  result = qp->ResultStorage(s);
+  MPoint* res = (MPoint*)result.addr;
+  CMPoint* src = (CMPoint*)args[0].addr;
+  src->GetMPoint(*res);
+  return 0;
+}
+
+OperatorSpec getMPointSpec(
+  "cmpoint -> mpoint",
+  "getMPoint(_)",
+  "Returns the MPoint value of a CMPoint",
+  "query getMPoint([const cmpoint value (((1 2 TRUE FALSE) (0.0 0.0 1.0 1.0) "
+    "0.3))])"
+);
+
+Operator getMPoint(
+  "getMPoint",
+  getMPointSpec.getStr(),
+  getMPointVM,
+  Operator::SimpleSelect,
+  getMPointTM
+);
+
+/*
 Operator ~mpoint2cmpoint~
 
 This operator creates a cmpoint from an mpoint and a duration or an mpoint and 
@@ -21615,6 +21681,7 @@ class TemporalAlgebra : public Algebra
     AddOperator(&cbbox);
     AddOperator(&getRadius);
     AddOperator(&getUPoint);
+    AddOperator(&getMPoint);
     AddOperator(&mpoint2cmpoint);
 
 #ifdef USE_PROGRESS

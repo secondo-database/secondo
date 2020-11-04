@@ -826,3 +826,9 @@ Number    : 1
 Signature : cupoint -> upoint
 Example   : query length(getUPoint(cbbox(train5)))
 Result    : 15049.2137336141
+
+Operator  : getMPoint
+Number    : 1
+Signature : cmpoint -> mpoint
+Example   : query no_components(getMPoint(mpoint2cmpoint(train5, create_duration(0, 120000))))
+Result    : 18
