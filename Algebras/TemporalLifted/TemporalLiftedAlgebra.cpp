@@ -5529,6 +5529,10 @@ static ListExpr TemporalLiftIsemptyTypeMap(ListExpr args) {
         return nl->SymbolAtom(MBool::BasicType());
      if(nl->IsEqual(nl->First(args), MString::BasicType()))
         return nl->SymbolAtom(MBool::BasicType());
+     if (CMPoint::checkType(nl->First(args))) {
+       return nl->SymbolAtom(MBool::BasicType());
+     }
+    
 
      else
         return nl->SymbolAtom(Symbol::TYPEERROR());
@@ -6199,6 +6203,9 @@ static int TemporalLiftIsemptySelect(ListExpr args) {
         return 4;
       else if  (nl->SymbolValue(nl->First(args)) == MString::BasicType())
         return 5;
+      else if (CMPoint::checkType(nl->First(args))) {
+        return 6;
+      }
 
       else
         return -1;
@@ -8251,8 +8258,8 @@ static ValueMapping temporalliftisemptyvaluemap[] = {
                 IsEmptyValueMap<MInt, UInt>,
                 IsEmptyValueMap<MReal, UReal>,
                 IsEmptyValueMap<MPoint, UPoint>,
-                IsEmptyValueMap<MString, UString>
-        };
+                IsEmptyValueMap<MString, UString>,
+                IsEmptyValueMap<CMPoint, CUPoint> };
 
 static ValueMapping temporalliftinsidemap[] = {
                 MPointPointsInside<1>,
@@ -8715,7 +8722,7 @@ static Operator temporaldivide ( "/",
 
 static Operator isempty("isempty",
                             temporalliftisemptyspec,
-                            6,
+                            7,
                             temporalliftisemptyvaluemap,
                             TemporalLiftIsemptySelect,
                             TemporalLiftIsemptyTypeMap);
