@@ -367,6 +367,10 @@ Word InPoint( const ListExpr typeInfo, const ListExpr instance,
               const int errorPos, ListExpr& errorInfo, bool& correct );
 ListExpr OutPoint( ListExpr typeInfo, Word value );
 
+Word InCPoint( const ListExpr typeInfo, const ListExpr instance,
+              const int errorPos, ListExpr& errorInfo, bool& correct );
+ListExpr OutCPoint( ListExpr typeInfo, Word value );
+
 Word InLine( const ListExpr typeInfo, const ListExpr instance,
               const int errorPos, ListExpr& errorInfo, bool& correct ) ;
 ListExpr OutLine( ListExpr typeInfo, Word value );
