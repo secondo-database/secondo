@@ -4294,6 +4294,8 @@ private:
    Rectangle<3> bbox;
 };
 
+class CMPoint;
+
 /*
 3.8 CUPoint
 
@@ -4533,6 +4535,12 @@ Transforms an MPoint into a CUPoint.
 
 */
   void ConvertFrom(const MPoint& mp);
+
+/*
+Transforms a CMPoint into a CUPoint, adopting the CMPoint's maximum radius.
+
+*/
+  void ConvertFrom(const CMPoint& cmp);
   
 /*
 Computes the distance to a CUPoint ~cup~. 

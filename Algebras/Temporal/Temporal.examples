@@ -805,7 +805,7 @@ Result    : 20296.82906969
 
 Operator  : cbbox
 Number    : 1
-Signature : mpoint | upoint (x real) -> cupoint
+Signature : cmpoint | mpoint | upoint (x real) -> cupoint
 Example   : query size(bbox2d((cbbox(train5)))) > 1000000.0
 Result    : TRUE
 

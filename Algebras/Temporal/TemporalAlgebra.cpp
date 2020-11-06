@@ -2866,6 +2866,7 @@ void CUPoint::ConvertFrom(const MPoint& mp) {
     SetDefined(false);
     return;
   }
+  SetDefined(true);
   mp.GetFullInterval(timeInterval);
   IPoint ip(true);
   mp.Initial(ip);
@@ -2880,6 +2881,32 @@ void CUPoint::ConvertFrom(const MPoint& mp) {
   bool correct = true;
   radius = sqrt(dist.Max(correct));
   SetDefined(correct);
+}
+
+void CUPoint::ConvertFrom(const CMPoint& cmp) {
+  if (!cmp.IsDefined() || cmp.IsEmpty()) {
+    SetDefined(false);
+    return;
+  }
+  SetDefined(true);
+  cmp.GetFullInterval(timeInterval);
+  CIPoint cip(true);
+  cmp.Initial(cip);
+  p0 = *((Point*)&(cip.value));
+  cmp.Final(cip);
+  p1 = *((Point*)&(cip.value));
+  MPoint mp1unit(true), mpSrc(true);
+  mp1unit.Add(*this);
+  cmp.GetMPoint(mpSrc);
+  MReal dist(true), distAtMax(true);
+  mpSrc.SquaredDistance(mp1unit, dist);
+  bool correct = false;
+  dist.AtMax(distAtMax);
+  IReal ir(true);
+  distAtMax.Initial(ir);
+  cmp.AtInstant(ir.instant, cip);
+  radius = sqrt(dist.Max(correct)) + cip.value.getRadius();
+  assert(correct);
 }
 
 double CUPoint::DistanceAvg(const CUPoint& cup, const bool upperBound,
@@ -21218,13 +21245,14 @@ This operator creates a cupoint from an mpoint or upoint.
 
 */
 ListExpr cbboxTM(ListExpr args) {
-  std::string err = "mpoint | upoint (x real) expected";
+  std::string err = "cmpoint | mpoint | upoint (x real) expected";
   if (!nl->HasLength(args, 2) && !nl->HasLength(args, 1)) {
     return listutils::typeError(err + " (wrong number of args)");
   }
   if (!MPoint::checkType(nl->First(args)) 
-   && !UPoint::checkType(nl->First(args))) {
-    return listutils::typeError(err +" (first arg is not a upoint/mpoint)");
+   && !UPoint::checkType(nl->First(args))
+   && !CMPoint::checkType(nl->First(args))) {
+    return listutils::typeError(err +" (first arg is not a (u|m|cm)point)");
   }
   if (nl->HasLength(args, 2)) {
     if (!CcReal::checkType(nl->Second(args))
@@ -21261,26 +21289,36 @@ int cbboxVM(Word* args, Word& result, int message, Word& local, Supplier s) {
 }
 
 int cbboxSelect(ListExpr args) {
-  return UPoint::checkType(nl->First(args)) ? 0 : 1;
+  if (UPoint::checkType(nl->First(args))) {
+    return 0;
+  }
+  if (MPoint::checkType(nl->First(args))) {
+    return 1;
+  }
+  if (CMPoint::checkType(nl->First(args))) {
+    return 2;
+  }
+  return -1;
 }
 
 ValueMapping cbboxVMs[] = {
   cbboxVM<UPoint>,
-  cbboxVM<MPoint>
+  cbboxVM<MPoint>,
+  cbboxVM<CMPoint>
 };
 
 OperatorSpec cbboxSpec(
-  "(mpoint | upoint) (x real) -> cupoint",
+  "(cmpoint | mpoint | upoint) (x real) -> cupoint",
   "cbbox(_, _)",
-  "Creates a cupoint from an mpoint or a upoint with a real (otherwise the"
-    "radius is set to 0.0)",
+  "Creates a cupoint from a cmpoint, an mpoint or a upoint with a real ("
+    "otherwise the radius is set to 0.0)",
   "query cbbox([const upoint value ((1 2 TRUE FALSE) (0.0 0.0 1.0 1.0))])"
 );
 
 Operator cbbox(
   "cbbox",
   cbboxSpec.getStr(),
-  2,
+  3,
   cbboxVMs,
   cbboxSelect,
   cbboxTM   
