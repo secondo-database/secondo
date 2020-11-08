@@ -197,8 +197,7 @@ class KDTree2D {
       KDTree2D *in_ktree2d);
     void create2DTreeVector(std::vector<Rectangle<2>>* rVector);
     void processInputVector(std::vector<Rectangle<2>>* rVector);
-    //std::vector<KDNode*> &getPointsVector();
-    //void setPointsVector(std::vector<KDNode*> points_vect);
+
     std::vector<KDNodeList*> &getPointsVector();
     void setPointsVector(std::vector<KDNodeList*> points_vect);
 
@@ -294,12 +293,13 @@ class KDTree2D {
     void preorderMed (KDMedList* root);
 
     // returns grid
-    void preorderGrid (CellKD* boundBox, 
-      std::vector<KDNodeList*> pointsPreOrdered);
-    void preorderMedGrid (CellKD* boundBox, 
-      std::vector<KDMedList*> pointsPreOrdered);
+    void preorderGrid (CellKD* boundBox, KDNodeList* node);
+      //std::vector<KDNodeList*> pointsPreOrdered);
+    void preorderMedGrid (CellKD* boundBox, KDMedList* node); 
+      //std::vector<KDMedList*> pointsPreOrdered);
     // sets cell id
     void setCellId(Cell2DTree cell, KDNodeList* kdnode);
     void setCellId(Cell2DTree cell, KDMedList* kdnode);
+    bool duplicateP(TPoint p);
 
 };

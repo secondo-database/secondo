@@ -678,7 +678,7 @@ int IrGrid2dValueMapCreate( Word* args, Word& result, int message,
   CcInt *cell_cnt_ptr =  static_cast<CcInt*>( args[3].addr );
 
   result = qp->ResultStorage(s);
-
+  printf("\n in createvm");
   if (bbox_ptr != nullptr
       && row_cnt_ptr != nullptr && cell_cnt_ptr != nullptr) {
     int row_cnt = row_cnt_ptr->GetIntval();
@@ -687,11 +687,11 @@ int IrGrid2dValueMapCreate( Word* args, Word& result, int message,
     if (row_cnt >  0 && cell_cnt > 0) {
       ((IrregularGrid2D*)result.addr)->Set(
         input_rect_ptr, *bbox_ptr, row_cnt, cell_cnt);
-
+      printf("\n before return 0");
       return 0;
     }
   }
-
+  printf("\n before return (0)");
   return (0);
 }
 
@@ -859,7 +859,9 @@ const string createIrGrid3dSpec  =
       "</text--->"
       "<text>_ create_irgrid3d[_, _, _]</text--->"
       "<text>creates a three-dimensional irregular grid "
-      "from the given parameters.</text--->"
+      "from the given parameters. Three "
+      " int values are needed for amount of "
+      " cells in all dimension. </text--->"
       ") )";
 
 const string feedIrGrid3dSpec  =

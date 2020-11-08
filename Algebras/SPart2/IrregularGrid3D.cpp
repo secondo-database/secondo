@@ -283,6 +283,32 @@ IrregularGrid3D::buildGrid() {
   double bb_frnt = boundingBox->getMinZ();
   double sOffset = (bb_bck - bb_frnt) / layerCount;
 
+  // check if bounding box is big enough
+  /*std::sort(points.begin(), points.end(), pointComparisonX);
+  double minX = points[0].x;
+  double maxX = points[points.size()-1].x;
+  std::sort(points.begin(), points.end(), pointComparisonY);
+  double minY = points[0].y;
+  double maxY = points[points.size()-1].y;
+  std::sort(points.begin(), points.end(), pointComparisonZ);
+  double minZ = points[0].z;
+  double maxZ = points[points.size()-1].z;
+
+  // adjust boundaries of bbox
+  if(minX < bb_left ){
+    bb_left = minX-1;
+  } else if(maxX > bb_right) {
+    bb_right = maxX+1;
+  } else if(minY < bb_bot) {
+    bb_bot = minY-1;
+  } else if(maxY > bb_top) {
+    bb_top = maxY+1;
+  } else if(minZ < bb_bck) {
+    bb_bck = minZ-1;
+  } else if(maxZ > bb_frnt) {
+    bb_frnt = maxZ+1;
+  }*/
+
   double col_boundary_val = bb_bot;
   int hcell_id = 1;
   int scell_id = 1;
@@ -908,9 +934,9 @@ IrregularGrid3D::InIrGrid3D( const ListExpr typeInfo, const ListExpr instance,
     int layer_cnt = 0;
     if (nl->ListLength( rowLstExpr ) > 1 ) {
       VCell3D vc;
+      HCell3D hc;
       VCell3D* vc_ptr;
       HCell3D* hc_ptr;
-
 
       while(!nl->IsEmpty(rowLstExpr)) {
         ListExpr lstElem = nl->First(rowLstExpr);
@@ -920,7 +946,6 @@ IrregularGrid3D::InIrGrid3D( const ListExpr typeInfo, const ListExpr instance,
             && nl->IsAtom(nl->Second(lstElem))) ) {
           // a two-element double list initiates a new row
           row_cnt ++;
-
           ListExpr fLst = nl->First(lstElem);
           ListExpr tLst = nl->Second(lstElem);
 
@@ -933,13 +958,13 @@ IrregularGrid3D::InIrGrid3D( const ListExpr typeInfo, const ListExpr instance,
             column_vec.push_back(vc);
             vc_ptr = &(column_vec.back());
           }
-        } else if(nl->ListLength( nl->First(lstElem) ) == 4) {
-          ListExpr rowLstExpr = lstElem; // row
+        } else {
+          ListExpr rowLstExpr = lstElem;
 
           while(!nl->IsEmpty(rowLstExpr)) {
             // cell information
             ListExpr cellLstExpr = nl->First(rowLstExpr);
-            if (nl->ListLength( cellLstExpr ) == 4) {
+            if (nl->ListLength( cellLstExpr ) == 3) {
               // a three-element list initiates a new rectangle
               ListExpr cv1Lst = nl->First(cellLstExpr);
               ListExpr cv2Lst = nl->Second(cellLstExpr);
@@ -949,20 +974,22 @@ IrregularGrid3D::InIrGrid3D( const ListExpr typeInfo, const ListExpr instance,
                   && nl->IsAtom(cv2Lst) && nl->AtomType(cv2Lst) == RealType
                   && nl->IsAtom(cv3Lst) && nl->AtomType(cv3Lst) == IntType
                   ) {
-                HCell3D* hc = new HCell3D();
-                hc->setValFrom(nl->RealValue(cv1Lst));
-                hc->setValTo(nl->RealValue(cv2Lst));
-                hc->setCellId(nl->IntValue(cv3Lst));
+                hc = HCell3D();
+                hc.setValFrom(nl->RealValue(cv1Lst));
+                hc.setValTo(nl->RealValue(cv2Lst));
+                hc.setCellId(nl->IntValue(cv3Lst));
                 // will be determined later
                 //hc->setUpper(nullptr);
 
-                vc_ptr->getRow().push_back(*hc);
-                cell_vec.push_back(*hc);
-                hc_ptr = &(cell_vec.back());
+                vc_ptr->getRow().push_back(hc);
+                cell_vec.push_back(hc);
+                hc_ptr = &(vc_ptr->getRow().back());
+                //hc_ptr = &(cell_vec.back());
               } else {
                 throw 5;
               }
-            } else { // TO else layer
+            } else { 
+              //ListExpr rowLstExpr = cellLstExpr;
               while(!nl->IsEmpty(cellLstExpr)) {
                 ListExpr layerLstExpr = nl->First(cellLstExpr);
                 if(nl->ListLength( layerLstExpr ) == 5) {
@@ -984,7 +1011,6 @@ IrregularGrid3D::InIrGrid3D( const ListExpr typeInfo, const ListExpr instance,
                     sc->setCellId(nl->IntValue(lv3Lst));
                     sc->setUpper(nullptr);
                     sc->setNeighbor(nullptr);
-                  
                     hc_ptr->getRect().push_back(*sc);
 
                     int cellRefId = nl->IntValue(lv4Lst);
@@ -1002,40 +1028,31 @@ IrregularGrid3D::InIrGrid3D( const ListExpr typeInfo, const ListExpr instance,
                     }
                     cellIds.insert(std::make_pair(
                       ((int)nl->IntValue(lv3Lst)), sc));
-                  
                   }
                 }
+                cellLstExpr = nl->Rest(cellLstExpr);
               }
-              
-
-
+            }
+            if(cell_cnt > 0 && layer_cnt == 0) {
+                layer_cnt = hc_ptr->getRect().size();
             }
             rowLstExpr = nl->Rest(rowLstExpr);
           }
         } 
         // determine number of cells (one-time)
-                  printf("\n CELL_CNT: %d", cell_cnt);
-
         if (row_cnt > 0 && cell_cnt == 0) {
-
           cell_cnt = vc_ptr->getRow().size();
-          printf("\n CELL_CNT: %d", cell_cnt);
           
-        }
-
-        if(row_cnt > 0 && layer_cnt == 0) {
-          layer_cnt = hc_ptr->getRect().size();
-          printf("\n LAYER_CNT: %d", layer_cnt);
-
         }
         rowLstExpr = nl->Rest(rowLstExpr);
       }
+
     } else {
       throw 4;
     }
 
     // update pointer
-    if (row_cnt > 0 && cell_cnt > 0) {
+    if (row_cnt > 0 && cell_cnt > 0 && layer_cnt > 0) {
       for(int colIdx = 0; colIdx < row_cnt-1; colIdx++) {
         VCell3D* vcell = &column_vec.at(colIdx);
         std::vector<HCell3D>* row_vect = &vcell->getRow();
@@ -1133,6 +1150,7 @@ It is used for the ~feed~ operator.
 ListExpr
 IrregularGrid3D::IrGrid3dFeedTypeMap( ListExpr args )
 {
+
   if(nl->HasLength(args, 1)) {
 
     ListExpr first = nl->First(args);
@@ -1287,7 +1305,7 @@ IrregularGrid3D::IrGrid3dCellnosTypeMap( ListExpr args )
   }
 
   const std::string errMsg = "The following two arguments are expected:"
-      " irgrid3d x rect3d";
+      " irgrid3d x rect<3>";
 
   return  listutils::typeError(errMsg);
 }
@@ -1363,8 +1381,8 @@ IrregularGrid3D::IrGrid3dBBoxTypeMap( ListExpr args )
     }
   }
 
-  const std::string errMsg = "The following three arguments are expected:"
-      " irgrid3d x rect3d x rect3";
+  const std::string errMsg = "The following argument is expected:"
+      " stream<rect<3>>";
 
   return  listutils::typeError(errMsg);
 }
@@ -1405,7 +1423,6 @@ CellBS(const std::vector<C>* c_vec, int start, int end, const double val) {
   if (start > end) {
     return -1;
   }
-
   const int mid = start + ((end - start) / 2);
   if (InCell(c_vec->at(mid), val)) {
     return mid;
@@ -1565,6 +1582,8 @@ IrregularGrid3D::IrGrid3dValueMapTRCCellId( Word* args, Word& result,
     std::set<int> cell_ids;
     std::set<int> cell_ids_2;
 
+    
+
     result = qp->ResultStorage(s);
     CcInt* res = (CcInt*) result.addr;
 
@@ -1576,8 +1595,8 @@ IrregularGrid3D::IrGrid3dValueMapTRCCellId( Word* args, Word& result,
 
     it=std::set_intersection (cell_ids.begin(), cell_ids.end(),
          cell_ids_2.begin(), cell_ids_2.end(), v.begin());
+
     v.resize(it-v.begin());                      
-  
     if(v.empty()) { 
     //no intersection between rectangles
       res->Set(0);
@@ -1725,8 +1744,11 @@ IrregularGrid3D::IrGrid2dValueMapBBox( Word* args, Word& result, int message,
     result = qp->ResultStorage(s);
     Rectangle<2>* res = (Rectangle<2>*) result.addr;
 
+
     rStream.open();
     Rectangle<2>* next = rStream.request();
+
+    if(next != 0) {
     double min[2], max[2];
     min[0] = next->getMinX();
     min[1] = next->getMinY();
@@ -1746,11 +1768,15 @@ IrregularGrid3D::IrGrid2dValueMapBBox( Word* args, Word& result, int message,
 
       next = rStream.request();
     }
+    
     rStream.close();
 
     res->Set(true, min, max);
   
   return 0;
+  }
+  return -1;
+  
 }
 
 /*
@@ -1767,6 +1793,7 @@ IrregularGrid3D::IrGrid3dValueMapBBox( Word* args, Word& result, int message,
 
     rStream.open();
     Rectangle<3>* next = rStream.request();
+    if(next != 0) {
     double min[3], max[3];
     min[0] = next->getMinX();
     min[1] = next->getMinY();
@@ -1798,4 +1825,6 @@ IrregularGrid3D::IrGrid3dValueMapBBox( Word* args, Word& result, int message,
     res->Set(true, min, max);
   
   return 0;
+  }
+  return -1;
 }

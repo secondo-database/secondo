@@ -60,7 +60,7 @@ class Cell3D {
 
 
 /*
- describes cells divided on the spatial axis
+ describes cells divided on the temporal axis
 
 */
 class SCell : public Cell3D {

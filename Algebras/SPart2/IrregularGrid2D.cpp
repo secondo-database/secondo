@@ -373,6 +373,8 @@ IrregularGrid2D::buildGrid() {
       }
     }
   }
+
+  printf("\n in build");
 }
 
 bool
@@ -501,7 +503,9 @@ ListExpr
 IrregularGrid2D::OutIrGrid2D( ListExpr typeInfo, Word value ) {
   IrregularGrid2D* irgrid2d = static_cast<IrregularGrid2D*>( value.addr );
 
+  printf("\n in out");
   if (irgrid2d != nullptr) {
+    printf("\n not null");
     Rectangle<2> * b_box = irgrid2d->getBoundingBox();
     ListExpr bboxLstExpr = nl->FourElemList(
       nl->RealAtom(b_box->getMinX()),
@@ -553,11 +557,15 @@ IrregularGrid2D::OutIrGrid2D( ListExpr typeInfo, Word value ) {
           }
           lastRowLstExpr = nl->Append(lastRowLstExpr, cellLstExpr);
         }
+        printf("\n in if before");
       }
+      printf("\n in last if");
     }
     ListExpr irgrid2dLstExpr = nl->TwoElemList(bboxLstExpr, rowLstExpr);
+    printf("\n before return listexpr");
     return irgrid2dLstExpr;
   } else {
+    printf("\n n null");
     return (nl->SymbolAtom(Symbol::UNDEFINED()));
   }
 }

@@ -314,6 +314,50 @@ void KDTree3D::SetVector(std::vector<Rectangle<3>>* rVector,
    create3DTreeVector(rVector);
 }
 
+/*void makelistofRects()
+{
+  double x1 = 0.0;
+  double x2 = 1.0;
+  double a =0.2;
+  double y1 = 0.0;
+  double y2 = 1.0;
+  double b = 0.5;
+
+  for(int i=0; i < 500; i++)
+  {
+    printf("\n ((%.2f %.2f %.2f %.2f))", x1, x2, y1, y2);
+    x1+=a;
+    x2+=a;
+
+    for(int e=0; e < 100; e++)
+    {
+      printf("\n ((%.2f %.2f %.2f %.2f))", x1, x2, y1, y2);
+    
+      y1+=b;
+      y2+=b;
+    }
+  }
+
+  x1 = 2000.0;
+  x2 = 2001.0;
+  y1 = 5100.0;
+  y2 = 5101.0;
+  a = 1.0;
+  b = 0.2;
+  for(int i=0; i < 500; i++)
+  {
+    printf("\n ((%.2f %.2f %.2f %.2f))", x1, x2, y1, y2);
+    x1+=a;
+    x2+=a;
+    for(int e=0; e < 100; e++)
+    {
+      printf("\n ((%.2f %.2f %.2f %.2f))", x1, x2, y1, y2);
+      y1+=b;
+      y2+=b;
+    }
+  }
+}*/
+
 void KDTree3D::create3DTree(Stream<Rectangle<3>> rStream) {
     processInput(rStream);
 
@@ -455,25 +499,41 @@ Tree3DMedStructure*
 KDTree3D::KDTreeMedRec3D(std::vector<T3DPoint> point_list,
    int dim = 3, int depth = 0) 
 { 
+
+  //printf("\n in kdtreemedrec3d");
   int axis = depth % dim;
+  //printf("\n axis: %d", axis);
   double median;
   std::vector<T3DPoint> point_list_left;
   std::vector<T3DPoint> point_list_right;
+  if (point_list_left.size() > 0) {
+      point_list_left.clear();
+  }
+  if (point_list_right.size() > 0) {
+      point_list_right.clear();
+  }
+  
   int mid = point_list.size()/2;
-
+  //printf("\n mid: %d, size: %d", mid, (int)point_list.size());
   // x-axis
   if(axis == 0) {
     std::sort(point_list.begin(), point_list.end(), 
           pointComparisonX);
     // calculate median
+    //printf("\n in axis= 0");
     if(point_list.size() % 2 == 0) 
     {
       median = 0.5*(point_list.at(mid-1).x + point_list.at(mid).x);
     } else {
+      //printf("\n point list at mid: %.2f", point_list[mid].x);
       median = point_list.at(mid).x;
+      //printf("\n -----median: %.2f", median);
     } 
     for(size_t i=0; i < point_list.size(); i++)
     {
+      if(depth > 40000) {
+        //printf("\n elemt: %.2f", point_list[i].x);
+      }
       if(point_list.at(i).x < median)
       {
         point_list_left.push_back(point_list.at(i));
@@ -482,7 +542,32 @@ KDTree3D::KDTreeMedRec3D(std::vector<T3DPoint> point_list,
       }
     }
 
+    // repartition if size of point_list_left or point_list_right 
+    // corresponds to size of (old) point_list from input
+    // in case take middle position as median
+    if(point_list_left.size() == point_list.size() 
+    || point_list_right.size() == point_list.size())
+    {
+      if (point_list_left.size() > 0) {
+        point_list_left.clear();
+      }
+      if (point_list_right.size() > 0) {
+        point_list_right.clear();
+      }
+      //printf("\n same size");
+      median = point_list[mid].x;
+      for(int l=0; l < mid; l++)
+      {
+        point_list_left.push_back(point_list[l]);
+      }
+      for(size_t r=mid; r < point_list.size(); r++)
+      {
+        point_list_right.push_back(point_list[r]);
+      }
+    }
+
   } else if (axis == 1) { // y-axis
+  //printf("\n in axis=1");
     std::sort(point_list.begin(), point_list.end(), 
         pointComparisonY);
 
@@ -492,9 +577,13 @@ KDTree3D::KDTreeMedRec3D(std::vector<T3DPoint> point_list,
     } else {
       median = point_list.at(mid).y;
     }
+      //printf("\n -----median: %.2f", median);
 
     for(size_t i=0; i < point_list.size(); i++)
     {
+      if(depth > 40000) {
+        //printf("\n elemt: %.2f", point_list[i].y);
+      }
       if(point_list.at(i).y < median)
       {
         point_list_left.push_back(point_list.at(i));
@@ -502,7 +591,32 @@ KDTree3D::KDTreeMedRec3D(std::vector<T3DPoint> point_list,
         point_list_right.push_back(point_list.at(i));
       }
     }
+
+    // repartition if size of point_list_left or point_list_right 
+    // corresponds to size of (old) point_list from input
+    // in case take middle position as median
+    if(point_list_left.size() == point_list.size() 
+    || point_list_right.size() == point_list.size())
+    {
+      if (point_list_left.size() > 0) {
+        point_list_left.clear();
+      }
+      if (point_list_right.size() > 0) {
+        point_list_right.clear();
+      }
+      //printf("\n same size");
+      median = point_list[mid].y;
+      for(int l=0; l < mid; l++)
+      {
+        point_list_left.push_back(point_list[l]);
+      }
+      for(size_t r=mid; r < point_list.size(); r++)
+      {
+        point_list_right.push_back(point_list[r]);
+      }
+    } 
   } else if( axis == 2) { // z-axis
+  //printf("\n in axis = 2");
       std::sort(point_list.begin(), point_list.end(),
       pointComparisonZ);
 
@@ -512,9 +626,13 @@ KDTree3D::KDTreeMedRec3D(std::vector<T3DPoint> point_list,
     } else {
       median = point_list.at(mid).z;
     }
+      //printf("\n -----median: %.2f", median);
 
     for(size_t i=0; i < point_list.size(); i++)
     {
+      if(depth > 40000) {
+        //printf("\n elemt: %.2f", point_list[i].z);
+      }
       if(point_list.at(i).z < median)
       {
         point_list_left.push_back(point_list.at(i));
@@ -522,9 +640,37 @@ KDTree3D::KDTreeMedRec3D(std::vector<T3DPoint> point_list,
         point_list_right.push_back(point_list.at(i));
       }
     }
+    // repartition if size of point_list_left or point_list_right 
+    // corresponds to size of (old) point_list from input
+    // in case take middle position as median
+    if(point_list_left.size() == point_list.size() 
+    || point_list_right.size() == point_list.size())
+    {
+      if (point_list_left.size() > 0) {
+        point_list_left.clear();
+      }
+      if (point_list_right.size() > 0) {
+        point_list_right.clear();
+      }
+      //printf("\n same size");
+      median = point_list[mid].z;
+      for(int l=0; l < mid; l++)
+      { 
+        point_list_left.push_back(point_list[l]);
+      }
+      for(size_t r=mid; r < point_list.size(); r++)
+      {
+        point_list_right.push_back(point_list[r]);
+      }
+    }
+  } else {
+    //printf("\n in else axis");
+    return 0;
   }
 
+  
   Tree3DMedStructure* tmp = new Tree3DMedStructure();
+    //printf("\n median: %.2f", median);
     tmp->setAxis(axis);
     tmp->setDepth(depth);
     tmp->setVal(median);
@@ -537,6 +683,7 @@ KDTree3D::KDTreeMedRec3D(std::vector<T3DPoint> point_list,
       tmp->right = KDTreeMedRec3D(point_list_right, 3, depth+1);
     }
 
+    //printf("\n before push");
     // push current node in vector
     kd3dmedListVec.push_back(tmp);
     if (point_list_left.size() > 0) {
@@ -723,9 +870,94 @@ KDTree3D::preorder3DMed(Tree3DMedStructure* root)
 */
 void
 KDTree3D::preorderMedGrid3D(Cell3DT* boundBox,
-   std::vector<Tree3DMedStructure*> pointsPreOrdered)
+Tree3DMedStructure* node)
+   //std::vector<Tree3DMedStructure*> pointsPreOrdered)
 {
-  if (pointsPreOrdered.empty()) {
+  boundBox->left = new Cell3DT();
+  Cell3DT* cell_left = boundBox->left;
+  boundBox->right = new Cell3DT();
+  Cell3DT* cell_right = boundBox->right;
+
+  if(node->getAxis() == 0)
+  {
+    cell_left->value.x1 = boundBox->value.x1;
+  cell_left->value.x2 = node->getVal();
+  cell_left->value.y1 = boundBox->value.y1;
+  cell_left->value.y2 = boundBox->value.y2;
+  cell_left->value.z1 = boundBox->value.z1;
+  cell_left->value.z2 = boundBox->value.z2;
+  cell_left->final = true;
+
+  cell_right->value.x1 = node->getVal();
+  cell_right->value.x2 = boundBox->value.x2;
+  cell_right->value.y1 = boundBox->value.y1;
+  cell_right->value.y2 = boundBox->value.y2;
+  cell_right->value.z1 = boundBox->value.z1;
+  cell_right->value.z2 = boundBox->value.z2;
+  cell_right->final = true;
+
+  boundBox->final = false;
+  //cellsPreorder.push_back(boundBox);
+  cellsPreorder.push_back(cell_right);
+  cellsPreorder.push_back(cell_left);
+  } else if(node->getAxis() == 1)
+  {
+    cell_left->value.y1 = boundBox->value.y1;
+    cell_left->value.y2 = node->getVal();
+    cell_left->value.x1 = boundBox->value.x1;
+    cell_left->value.x2 = boundBox->value.x2;
+    cell_left->value.z1 = boundBox->value.z1;
+    cell_left->value.z2 = boundBox->value.z2;
+    cell_left->final = true;
+
+
+    cell_right->value.y1 = node->getVal();
+    cell_right->value.y2 = boundBox->value.y2;
+    cell_right->value.x1 = boundBox->value.x1;
+    cell_right->value.x2 = boundBox->value.x2;
+    cell_right->value.z1 = boundBox->value.z1;
+    cell_right->value.z2 = boundBox->value.z2;
+
+    cell_right->final = true;
+
+    boundBox->final = false;
+
+    //cellsPreorder.push_back(boundBox);
+    cellsPreorder.push_back(cell_right);
+    cellsPreorder.push_back(cell_left);
+  } else {
+    cell_left->value.y1 = boundBox->value.y1;
+    cell_left->value.y2 = boundBox->value.y2;
+    cell_left->value.x1 = boundBox->value.x1;
+    cell_left->value.x2 = boundBox->value.x2;
+    cell_left->value.z2 = node->getVal();
+    cell_left->value.z1 = boundBox->value.z1;
+    cell_left->final = true;
+
+
+    cell_right->value.y1 = boundBox->value.y1;
+    cell_right->value.y2 = boundBox->value.y2;
+    cell_right->value.x1 = boundBox->value.x1;
+    cell_right->value.x2 = boundBox->value.x2;
+    cell_right->value.z1 = node->getVal();
+    cell_right->value.z2 = boundBox->value.z2;
+    cell_right->final = true;
+
+    boundBox->final = false;
+
+    //cellsPreorder.push_back(boundBox);
+    cellsPreorder.push_back(cell_right);
+    cellsPreorder.push_back(cell_left);
+  }
+
+  if(node->getLeft() != nullptr) {
+    preorderMedGrid3D(cell_left, node->getLeft());
+  }
+  if(node->getRight() != nullptr) {
+    preorderMedGrid3D(cell_right, node->getRight());
+  }
+
+ /* if (pointsPreOrdered.empty()) {
     return;
   }
 
@@ -740,7 +972,7 @@ KDTree3D::preorderMedGrid3D(Cell3DT* boundBox,
   if(pointsPreOrdered.front()->axis == 0) {
 
   // divide list of points bei elements smaller and bigger than first element
-  for(int i = 1 /* 0: root */; i < (int)pointsPreOrdered.size(); i++ )
+  for(int i = 1; i < (int)pointsPreOrdered.size(); i++ )
   {
     if(pointsPreOrdered.at(i)->getVal() < pointsPreOrdered.front()->getVal()) {
       pointsPreOrdered_left.push_back(pointsPreOrdered.at(i));
@@ -774,7 +1006,7 @@ KDTree3D::preorderMedGrid3D(Cell3DT* boundBox,
   } else if (pointsPreOrdered.front()->axis == 1) {
 
      // divide list of points in elements smaller and bigger than first element
-    for(int i = 1 /* 0: root */; i < (int)pointsPreOrdered.size(); i++ )
+    for(int i = 1; i < (int)pointsPreOrdered.size(); i++ )
     {
       if(pointsPreOrdered.at(i)->getVal() 
         < pointsPreOrdered.front()->getVal()) {
@@ -812,7 +1044,7 @@ KDTree3D::preorderMedGrid3D(Cell3DT* boundBox,
   } else if (pointsPreOrdered.front()->axis == 2) {
 
      // divide list of points in elements smaller and bigger than first element
-    for(int i = 1 /* 0: root */; i < (int)pointsPreOrdered.size(); i++ )
+    for(int i = 1; i < (int)pointsPreOrdered.size(); i++ )
     {
       if(pointsPreOrdered.at(i)->getVal() 
         < pointsPreOrdered.front()->getVal()) {
@@ -850,10 +1082,10 @@ KDTree3D::preorderMedGrid3D(Cell3DT* boundBox,
 
   pointsPreOrdered.erase(pointsPreOrdered.begin());
 
-
+  
   preorderMedGrid3D(cell_left, pointsPreOrdered_left);
   preorderMedGrid3D(cell_right, pointsPreOrdered_right);
-
+  */
 }
 
 
@@ -863,8 +1095,99 @@ KDTree3D::preorderMedGrid3D(Cell3DT* boundBox,
 */
 void
 KDTree3D::preorderGrid3D (Cell3DT* boundBox, 
-  std::vector<Tree3DStructure*> pointsPreOrdered){
-  if (pointsPreOrdered.empty()) {
+  Tree3DStructure* node)
+  //std::vector<Tree3DStructure*> pointsPreOrdered)
+  {
+    boundBox->left = new Cell3DT();
+    Cell3DT* cell_left = boundBox->left;
+    boundBox->right = new Cell3DT();
+    Cell3DT* cell_right = boundBox->right;
+
+    if(node->getAxis() == 0)
+    {
+      cell_left->value.x1 = boundBox->value.x1;
+      cell_left->value.x2 = node->x;
+      cell_left->value.y1 = boundBox->value.y1;
+      cell_left->value.y2 = boundBox->value.y2;
+      cell_left->value.z1 = boundBox->value.z1;
+      cell_left->value.z2 = boundBox->value.z2;
+      cell_left->final = true;
+
+      cell_right->value.x1 = node->x;
+      cell_right->value.x2 = boundBox->value.x2;
+      cell_right->value.y1 = boundBox->value.y1;
+      cell_right->value.y2 = boundBox->value.y2;
+      cell_right->value.z1 = boundBox->value.z1;
+      cell_right->value.z2 = boundBox->value.z2;
+      cell_right->final = true;
+
+      boundBox->final = false;
+      //cellsPreorder.push_back(boundBox);
+      cellsPreorder.push_back(cell_right);
+      cellsPreorder.push_back(cell_left);
+
+    } else if(node->getAxis() == 1) 
+    {
+      cell_left->value.y1 = boundBox->value.y1;
+      cell_left->value.y2 = node->y;
+      cell_left->value.x1 = boundBox->value.x1;
+      cell_left->value.x2 = boundBox->value.x2;
+      cell_left->value.z1 = boundBox->value.z1;
+      cell_left->value.z2 = boundBox->value.z2;
+      cell_left->final = true;
+
+
+      cell_right->value.y1 = node->y;
+      cell_right->value.y2 = boundBox->value.y2;
+      cell_right->value.x1 = boundBox->value.x1;
+      cell_right->value.x2 = boundBox->value.x2;
+      cell_right->value.z1 = boundBox->value.z1;
+      cell_right->value.z2 = boundBox->value.z2;
+      cell_right->final = true;
+
+      boundBox->final = false;
+
+      //cellsPreorder.push_back(boundBox);
+      cellsPreorder.push_back(cell_right);
+      cellsPreorder.push_back(cell_left);
+
+    } else if(node->getAxis() == 2)
+    {
+      cell_left->value.y1 = boundBox->value.y1;
+      cell_left->value.y2 = boundBox->value.y2;
+      cell_left->value.x1 = boundBox->value.x1;
+      cell_left->value.x2 = boundBox->value.x2;
+      cell_left->value.z2 = node->z;
+      cell_left->value.z1 = boundBox->value.z1;
+      cell_left->final = true;
+
+
+      cell_right->value.y1 = boundBox->value.y1;
+      cell_right->value.y2 = boundBox->value.y2;
+      cell_right->value.x1 = boundBox->value.x1;
+      cell_right->value.x2 = boundBox->value.x2;
+      cell_right->value.z1 = node->z;
+      cell_right->value.z2 = boundBox->value.z2;
+      cell_right->final = true;
+
+      boundBox->final = false;
+
+      //cellsPreorder.push_back(boundBox);
+      cellsPreorder.push_back(cell_right);
+      cellsPreorder.push_back(cell_left);
+
+    } else {
+      return;
+    }
+
+    if(node->getLeft() != nullptr && !node->getLeft()->isLeaf()) {
+      preorderGrid3D(cell_left, node->getLeft());
+    }
+    if(node->getRight() != nullptr && !node->getRight()->isLeaf()) {
+      preorderGrid3D(cell_right, node->getRight());
+    }
+
+  /*if (pointsPreOrdered.empty()) {
     return;
   }
 
@@ -879,7 +1202,7 @@ KDTree3D::preorderGrid3D (Cell3DT* boundBox,
   if(pointsPreOrdered.front()->axis == 0) {
 
   // divide list of points bei elements smaller and bigger than first element
-  for(int i = 1 /* 0: root */; i < (int)pointsPreOrdered.size(); i++ )
+  for(int i = 1; i < (int)pointsPreOrdered.size(); i++ )
   {
     if(pointsPreOrdered.at(i)->x < pointsPreOrdered.front()->x) {
       pointsPreOrdered_left.push_back(pointsPreOrdered.at(i));
@@ -912,7 +1235,7 @@ KDTree3D::preorderGrid3D (Cell3DT* boundBox,
   } else if (pointsPreOrdered.front()->axis == 1) {
 
      // divide list of points in elements smaller and bigger than first element
-    for(int i = 1 /* 0: root */; i < (int)pointsPreOrdered.size(); i++ )
+    for(int i = 1; i < (int)pointsPreOrdered.size(); i++ )
     {
       if(pointsPreOrdered.at(i)->y < pointsPreOrdered.front()->y) {
         pointsPreOrdered_left.push_back(pointsPreOrdered.at(i));
@@ -948,7 +1271,7 @@ KDTree3D::preorderGrid3D (Cell3DT* boundBox,
   } else if (pointsPreOrdered.front()->axis == 2) {
 
      // divide list of points in elements smaller and bigger than first element
-    for(int i = 1 /* 0: root */; i < (int)pointsPreOrdered.size(); i++ )
+    for(int i = 1; i < (int)pointsPreOrdered.size(); i++ )
     {
       if(pointsPreOrdered.at(i)->z < pointsPreOrdered.front()->z) {
         pointsPreOrdered_left.push_back(pointsPreOrdered.at(i));
@@ -987,7 +1310,7 @@ KDTree3D::preorderGrid3D (Cell3DT* boundBox,
 
   preorderGrid3D(cell_left, pointsPreOrdered_left);
   preorderGrid3D(cell_right, pointsPreOrdered_right);
-
+  */
 }
 
 /*
@@ -1141,15 +1464,19 @@ KDTree3D::build3DTree() {
 
     //order elements and prepare cells
     preorder3D(root);
-    preorderGrid3D(boundBox, pointsPreorder);
+    preorderGrid3D(boundBox, pointsPreorder[0]);
   } else {
 
+    //printf("\n in else zu med");
     KDTreeMedRec3D(points);
+    //printf("\n after kdtreemedrec");
     rootMed = kd3dmedListVec.back();
-
+    //printf("\n after rootmed");
     // order elements and prepare cells
     preorder3DMed(rootMed);
-    preorderMedGrid3D(boundBox, pointsPreorderMed);
+    //printf("\n afer preorder3dmed");
+    preorderMedGrid3D(boundBox, pointsPreorderMed[0]);
+    //printf("\n after preordermedgrid3d");
   }
 
   Cell3DTree cell = Cell3DTree();
@@ -1184,8 +1511,33 @@ KDTree3D::build3DTree() {
       setCellId3D(cellVector.at(e), root);
     } else {
       setCellId3D(cellVector.at(e), rootMed);
+      //printf("\n after setcellid3d");
     }
   }
+
+  /*for(int pri=0; pri < (int)cellVector.size(); pri++)
+  {
+    printf("\n %.2f %.2f %.2f %.2f %.2f %.2f %d", cellVector[pri].getValFromX(),
+     cellVector[pri].getValToX(), cellVector[pri].getValFromY(),
+    cellVector[pri].getValToY(), cellVector[pri].getValFromZ(),
+     cellVector[pri].getValToZ(), cellVector[pri].getCellId());
+  }
+  printf("\n size Points %d size cells %d", (int)pointsPreorderMed.size(),
+  (int)cellVector.size());*/
+}
+
+bool
+KDTree3D::duplicateP(T3DPoint p)
+{
+  for(size_t i = 0; i < points.size(); i++)
+  {
+    if(points[i].x == p.x && points[i].y == p.y
+      && points[i].z == p.z)
+    {
+      return true;
+    }
+  }
+  return false;
 }
 
 void
@@ -1199,7 +1551,11 @@ KDTree3D::processInput(Stream<Rectangle<3>> rStream) {
       next = rStream.request();
       continue;
     }
-    points.push_back(getCuboidCentre3DTree(next));
+
+    T3DPoint p = getCuboidCentre3DTree(next);
+    if(!duplicateP(p)) {
+      points.push_back(getCuboidCentre3DTree(next));
+    }
     next = rStream.request();
   }
 
@@ -1282,7 +1638,8 @@ KDTree3D::Out3DTree( ListExpr typeInfo, Word value ) {
                   nl->RealAtom(curr_cell->getValToY()),
                   nl->RealAtom(curr_cell->getValFromZ()),
                   nl->RealAtom(curr_cell->getValToZ())),
-                  nl->IntAtom(curr_cell->getCellId())));
+                  nl->OneElemList(
+                  nl->IntAtom(curr_cell->getCellId()))));
             } else {
               cellLstExpr = nl->OneElemList(nl->TwoElemList(
                   nl->SixElemList(nl->RealAtom(curr_cell->getValFromX()), 
@@ -1291,7 +1648,8 @@ KDTree3D::Out3DTree( ListExpr typeInfo, Word value ) {
                   nl->RealAtom(curr_cell->getValToY()),
                   nl->RealAtom(curr_cell->getValFromZ()),
                   nl->RealAtom(curr_cell->getValToZ())),
-                  nl->IntAtom(curr_cell->getCellId())));
+                  nl->OneElemList(
+                  nl->IntAtom(curr_cell->getCellId()))));
               lastCellLstExpr = cellLstExpr;
             }
           }
@@ -1363,18 +1721,26 @@ KDTree3D::In3DTree( const ListExpr typeInfo, const ListExpr instance,
 
     std::vector<Cell3DTree> cell_vec {};
         int cell_cnt = 0;
+                        Cell3DTree c;
+
+        //Cell3DTree* c_ptr;
 
     if (nl->ListLength( cellLstExpr ) > 1 ) {
       while(!nl->IsEmpty(cellLstExpr)) {
-            if (nl->ListLength( cellLstExpr ) == 7) {
+            ListExpr cellElem = nl->First(cellLstExpr);
+    
+            if(nl->ListLength(cellElem) == 2) {
+              while(!nl->IsEmpty(cellElem)) {
+              ListExpr lstElem = nl->First(cellElem);
+                if (nl->ListLength( lstElem ) == 6) {
               // a six-element list initiates a new cell
-              ListExpr cv1Lst = nl->First(cellLstExpr);
-              ListExpr cv2Lst = nl->Second(cellLstExpr);
-              ListExpr cv3Lst = nl->Third(cellLstExpr);
-              ListExpr cv4Lst = nl->Fourth(cellLstExpr);
-              ListExpr cv5Lst = nl->Fifth(cellLstExpr);
-              ListExpr cv6Lst = nl->Sixth(cellLstExpr);
-              ListExpr cv7Lst = nl->Seventh(cellLstExpr);
+              ListExpr cv1Lst = nl->First(lstElem);
+              ListExpr cv2Lst = nl->Second(lstElem);
+              ListExpr cv3Lst = nl->Third(lstElem);
+              ListExpr cv4Lst = nl->Fourth(lstElem);
+              ListExpr cv5Lst = nl->Fifth(lstElem);
+              ListExpr cv6Lst = nl->Sixth(lstElem);
+              //ListExpr cv7Lst = nl->Seventh(lstElem);
 
               cell_cnt++;
 
@@ -1384,25 +1750,43 @@ KDTree3D::In3DTree( const ListExpr typeInfo, const ListExpr instance,
                   && nl->IsAtom(cv4Lst) && nl->AtomType(cv4Lst) == RealType
                   && nl->IsAtom(cv5Lst) && nl->AtomType(cv5Lst) == RealType
                   && nl->IsAtom(cv6Lst) && nl->AtomType(cv6Lst) == RealType
-                  && nl->IsAtom(cv6Lst) && nl->AtomType(cv7Lst) == IntType) {
-                Cell3DTree c;
+                 ){
+                c = Cell3DTree();
                 c.setValFromX(nl->RealValue(cv1Lst));
                 c.setValToX(nl->RealValue(cv2Lst));
                 c.setValFromY(nl->RealValue(cv3Lst));
                 c.setValToY(nl->RealValue(cv4Lst));
                 c.setValFromZ(nl->RealValue(cv5Lst));
                 c.setValToZ(nl->RealValue(cv6Lst));
-                c.setCellId(nl->RealValue(cv7Lst));
-
+                
                 cell_vec.push_back(c);
-                cellIds.insert(std::make_pair(
-                  ((int)nl->IntValue(cv7Lst)), &c));
+
               } else {
                 throw 4;
               }
+            } else { // only cellid
+                printf("\n in else");
+              if(nl->ListLength(lstElem) == 1) {
+                ListExpr clLst1 = nl->First(lstElem);
+                if(nl->IsAtom(clLst1) && nl->AtomType(clLst1) == IntType) {
+                  printf("\n cellid: %d", (int)nl->IntValue(clLst1));
+                  Cell3DTree ce = cell_vec.back();
+                  cell_vec.pop_back();
+                  ce.setCellId(nl->IntValue(clLst1));
+                  //c_ptr->setCellId(nl->IntValue(clLst1));
+                  cell_vec.push_back(ce);
+                  cellIds.insert(std::make_pair(
+                  ((int)nl->IntValue(clLst1)), &ce));
+                }  
+              }
             }
+            cellElem = nl->Rest(cellElem);
+
+            }
+            }
+            cellLstExpr = nl->Rest(cellLstExpr);
+
           }
-        cellLstExpr = nl->Rest(cellLstExpr);
     }
     
     std::vector<Tree3DStructure*> points_vec {};
@@ -1410,6 +1794,7 @@ KDTree3D::In3DTree( const ListExpr typeInfo, const ListExpr instance,
     correct = true;
     KDTree3D* kdtree = new KDTree3D(*bbox);
     kdtree->setPointsVector(points_vec);
+    kdtree->setCellVector(cell_vec);
 
     w.addr = kdtree;
     return w;
@@ -1640,7 +2025,7 @@ KDTree3D::Kdtree3dCellnosTypeMap( ListExpr args )
   }
 
   const std::string errMsg = "The following two arguments are expected:"
-      " 3dtree x rect";
+      " 3dtree x rect<3>";
 
   return  listutils::typeError(errMsg);
 }
@@ -1660,7 +2045,7 @@ KDTree3D::Kdtree3dTRCTypeMap( ListExpr args )
   }
 
   const std::string errMsg = "The following three arguments are expected:"
-      " 3dtree x rect x rect";
+      " 3dtree x rect<3> x rect<3>";
 
   return  listutils::typeError(errMsg);
 }
@@ -1680,7 +2065,7 @@ KDTree3D::Kdtree3dTRCCellIdTypeMap( ListExpr args )
   }
 
   const std::string errMsg = "The following three arguments are expected:"
-      " 3dtree x rect x rect";
+      " 3dtree x rect<3> x rect<3>";
 
   return  listutils::typeError(errMsg);
 }
@@ -1700,7 +2085,7 @@ KDTree3D::Kdtree3dSCCTypeMap( ListExpr args )
   }
 
   const std::string errMsg = "The following three arguments are expected:"
-      " 3dtree x rect x rect";
+      " 3dtree x rect<3> x rect<3>";
 
   return  listutils::typeError(errMsg);
 }
@@ -1889,6 +2274,12 @@ KDTree3D::Kdtree3dValueMapCellnos( Word* args, Word& result,
 
     Rectangle<3> * b_box = input_kdtree3d_ptr->getBoundingBox();
     int mode_ = input_kdtree3d_ptr->getMode();
+    // mode not set
+    if(mode_ != 1 && mode_ != 2) {
+      cell_ids.insert(0);
+      res->setTo(cell_ids);
+      return 0;
+    }
     if (!search_window_ptr->Intersects(*b_box)) {
       cell_ids.insert(0);
       res->setTo(cell_ids);
@@ -1903,7 +2294,6 @@ KDTree3D::Kdtree3dValueMapCellnos( Word* args, Word& result,
       cell_ids.insert(0);
     }
 
-    //std::vector<Cell3DTree>* cells = &input_kdtree3d_ptr->getCellVector();    
     double le = search_window_ptr->getMinX();
     double ri = search_window_ptr->getMaxX();
     double bo = search_window_ptr->getMinY();

@@ -331,13 +331,15 @@ class KDTree3D {
     void preorder3DMed (Tree3DMedStructure* root);
 
     // returns grid
-    void preorderGrid3D (Cell3DT* boundBox,
-       std::vector<Tree3DStructure*> pointsPreOrdered);
-    void preorderMedGrid3D (Cell3DT* boundBox,
-       std::vector<Tree3DMedStructure*> pointsPreOrdered);
+    void preorderGrid3D (Cell3DT* boundBox, Tree3DStructure* node);
+      //std::vector<Tree3DStructure*> pointsPreOrdered);
+    void preorderMedGrid3D (Cell3DT* boundBox, Tree3DMedStructure* node);
+       //std::vector<Tree3DMedStructure*> pointsPreOrdered);
 
     // set cell id
     void setCellId3D(Cell3DTree cell, Tree3DStructure* kdnode);
     void setCellId3D(Cell3DTree cell, Tree3DMedStructure* kdnode);
+    bool duplicateP(T3DPoint p);
+
 
 };
