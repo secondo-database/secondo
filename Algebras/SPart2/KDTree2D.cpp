@@ -1302,10 +1302,12 @@ KDTree2D::Out2DTree( ListExpr typeInfo, Word value ) {
     ListExpr cellLstExpr = nl->Empty();
 
     int mode = kdtree2d->getMode();
+    std::vector<KDNodeList*> nodelist;
+    std::vector<KDMedList*> nodelistM;
     if(mode == 1) {
-      std::vector<KDNodeList*> nodelist = kdtree2d->getPointsVector();
+      nodelist = kdtree2d->getPointsVector();
     } else if(mode == 2) {
-      std::vector<KDMedList*> nodelist = kdtree2d->getPointsMedVector();
+      nodelistM = kdtree2d->getPointsMedVector();
     }
     std::vector<Cell2DTree>* cells = &kdtree2d->getCellVector();
 
@@ -1332,6 +1334,18 @@ KDTree2D::Out2DTree( ListExpr typeInfo, Word value ) {
             }
           }
         }
+
+        /*if(nodelist.size() > 0) {
+          ListExpr lastNodeLstExpr;
+          KDNodeList* curr_node = nodelist.back(); // root
+          while(!curr_node->isLeaf())
+          {
+            lastNodeLstExpr = nl->Append(lastNodeLstExpr,
+              nl->OneElemList
+            )
+          }
+          
+        }*/
     
     ListExpr kdtree2dLstExpr = nl->TwoElemList(bboxLstExpr, cellLstExpr);
     return kdtree2dLstExpr;
@@ -1823,6 +1837,7 @@ GetLeaf(KDNodeList* node, double le, double ri,
   // reached the end of the branch => get cellId
   if(node->isLeaf()) {
     cell_ids->insert(node->getCellId());
+    printf("\n is leaf, return");
     return;
     }
 
@@ -1866,6 +1881,35 @@ GetLeaf(KDNodeList* node, double le, double ri,
   return;
 }
 
+void
+cellnumber(double le, double ri, 
+  double bo, double to, std::set<int> *cell_ids,
+  std::vector<Cell2DTree>* cells)
+{ 
+  for(size_t ce=0; ce < cells->size(); ce++)
+  {
+    Cell2DTree* curr_cell = &cells->at(ce);
+    if(le >= curr_cell->getValFromX() && le <= curr_cell->getValToX())
+    {
+      if((bo >= curr_cell->getValFromY() && bo <= curr_cell->getValToY())
+      || (to >= curr_cell->getValFromY() && to <=curr_cell->getValToY()))
+      {
+        cell_ids->insert(curr_cell->getCellId());
+      }
+    } else if(ri >= curr_cell->getValFromX() && ri <= curr_cell->getValToX())
+    {
+      if((bo >= curr_cell->getValFromY() && bo <= curr_cell->getValToY())
+      || (to >= curr_cell->getValFromY() && to <=curr_cell->getValToY()))
+      {
+        cell_ids->insert(curr_cell->getCellId());
+      }
+    }
+  }
+
+  return;
+
+}
+
 /*
 Value mapping function of operator ~cellnos\_ir~
 
@@ -1887,12 +1931,7 @@ KDTree2D::Kdtree2dValueMapCellnos( Word* args, Word& result, int message,
 
     Rectangle<2> * b_box = input_kdtree2d_ptr->getBoundingBox();
     int mode_ = input_kdtree2d_ptr->getMode();
-    // mode not set
-    if(mode_ != 1 && mode_ != 2) {
-      cell_ids.insert(0);
-      res->setTo(cell_ids);
-      return 0;
-    }
+    
     if (!search_window_ptr->Intersects(*b_box)) {
       cell_ids.insert(0);
       res->setTo(cell_ids);
@@ -1913,6 +1952,17 @@ KDTree2D::Kdtree2dValueMapCellnos( Word* args, Word& result, int message,
     double ri = search_window_ptr->getMaxX();
     double bo = search_window_ptr->getMinY();
     double to = search_window_ptr->getMaxY();
+
+    // mode not set
+    if(mode_ != 1 && mode_ != 2) {
+      // use different cellnum method!
+      cell_ids.clear();
+      std::vector<Cell2DTree>* cells = &input_kdtree2d_ptr->getCellVector();    
+      cellnumber(le, ri, bo, to, &cell_ids, cells);
+      //cell_ids.insert(0);
+      res->setTo(cell_ids);
+      return 0;
+    }
 
     /*
       Select GetLeaf function depending on input 

@@ -1765,11 +1765,9 @@ KDTree3D::In3DTree( const ListExpr typeInfo, const ListExpr instance,
                 throw 4;
               }
             } else { // only cellid
-                printf("\n in else");
               if(nl->ListLength(lstElem) == 1) {
                 ListExpr clLst1 = nl->First(lstElem);
                 if(nl->IsAtom(clLst1) && nl->AtomType(clLst1) == IntType) {
-                  printf("\n cellid: %d", (int)nl->IntValue(clLst1));
                   Cell3DTree ce = cell_vec.back();
                   cell_vec.pop_back();
                   ce.setCellId(nl->IntValue(clLst1));
@@ -2253,6 +2251,44 @@ double bo, double to, double fr, double ba,
   return;
 }
 
+void
+cellnumber(double le, double ri, 
+  double bo, double to, double fr, double ba,
+  std::set<int> *cell_ids,
+  std::vector<Cell3DTree>* cells)
+{ 
+  for(size_t ce=0; ce < cells->size(); ce++)
+  {
+    Cell3DTree* curr_cell = &cells->at(ce);
+    if(le >= curr_cell->getValFromX() && le <= curr_cell->getValToX())
+    {
+      if((bo >= curr_cell->getValFromY() && bo <= curr_cell->getValToY())
+      || (to >= curr_cell->getValFromY() && to <=curr_cell->getValToY()))
+      {
+        if((fr >= curr_cell->getValFromZ() && fr <= curr_cell->getValToZ())
+        || (ba >= curr_cell->getValFromZ() && ba <= curr_cell->getValToZ()))
+        {
+          cell_ids->insert(curr_cell->getCellId());
+        }
+      }
+    } else if(ri >= curr_cell->getValFromX() && ri <= curr_cell->getValToX())
+    {
+      if((bo >= curr_cell->getValFromY() && bo <= curr_cell->getValToY())
+      || (to >= curr_cell->getValFromY() && to <=curr_cell->getValToY()))
+      {
+        if((fr >= curr_cell->getValFromZ() && fr <= curr_cell->getValToZ())
+        || (ba >= curr_cell->getValFromZ() && ba <= curr_cell->getValToZ()))
+        {
+          cell_ids->insert(curr_cell->getCellId());
+        }
+      }
+    }
+  }
+
+  return;
+
+}
+
 /*
 Value mapping function of operator ~cellnos\_ir~
 
@@ -2274,12 +2310,7 @@ KDTree3D::Kdtree3dValueMapCellnos( Word* args, Word& result,
 
     Rectangle<3> * b_box = input_kdtree3d_ptr->getBoundingBox();
     int mode_ = input_kdtree3d_ptr->getMode();
-    // mode not set
-    if(mode_ != 1 && mode_ != 2) {
-      cell_ids.insert(0);
-      res->setTo(cell_ids);
-      return 0;
-    }
+    
     if (!search_window_ptr->Intersects(*b_box)) {
       cell_ids.insert(0);
       res->setTo(cell_ids);
@@ -2300,6 +2331,17 @@ KDTree3D::Kdtree3dValueMapCellnos( Word* args, Word& result,
     double to = search_window_ptr->getMaxY();
     double fr = search_window_ptr->getMinZ();
     double ba = search_window_ptr->getMaxZ();
+
+    // mode not set
+    if(mode_ != 1 && mode_ != 2) {
+      // use different cellnum method!
+      cell_ids.clear();
+      std::vector<Cell3DTree>* cells = &input_kdtree3d_ptr->getCellVector();    
+      cellnumber(le, ri, bo, to, fr, ba, &cell_ids, cells);
+      //cell_ids.insert(0);
+      res->setTo(cell_ids);
+      return 0;
+    }
 
     // find leaf with cellIds recursive and insert cell ids in cell_ids
     if(mode_ == 1) {
