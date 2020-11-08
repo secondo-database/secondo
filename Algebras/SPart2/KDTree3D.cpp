@@ -486,8 +486,8 @@ std::vector<T3DPoint> slice(std::vector<T3DPoint> const &v, int m, int n)
   auto first = v.cbegin() + m;
   auto last = v.cbegin() + n + 1;
   
-	std::vector<T3DPoint> vec(first, last);
-	return vec;
+  std::vector<T3DPoint> vec(first, last);
+  return vec;
 }
 
 
