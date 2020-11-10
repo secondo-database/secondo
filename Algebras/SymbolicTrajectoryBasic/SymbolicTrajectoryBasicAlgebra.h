@@ -32,12 +32,13 @@ split from the SymbolicTrajectoryAlgebra in April 2020.
 #include "Stream.h"
 #include "Algebras/FText/FTextAlgebra.h"
 #include "Algebras/Temporal/TemporalAlgebra.h"
+#include "Algebras/Collection/CollectionAlgebra.h"
 
 namespace stj {
   
 enum LabelFunction {TRIVIAL, EDIT};
 enum DistanceFunction {FIRST, LAST, FIRST_LAST, ALL, ALL_DURATION, 
-                       ALL_INTERVALS, EQUAL_LABELS};
+                       ALL_INTERVALS, EQUAL_LABELS, COSINUS_SIM, TF_IDF};
 enum DistanceFunSym {ERROR = -1, EQUALLABELS, PREFIX, SUFFIX, PREFIXSUFFIX};
 
 template<class F, class S>
@@ -201,6 +202,7 @@ class Label : public Attribute {
   bool operator==(const Label& lb) const;
   bool operator==(const std::string& text) const;
   double Distance(const Label& lb, const LabelFunction lf = EDIT) const;
+  void InsertLabels(std::vector<std::string>& result) const;
 
   static bool readValueFrom(ListExpr LE, std::string& text, unitelem& unit);
   bool ReadFrom(ListExpr LE, ListExpr typeInfo);
@@ -278,6 +280,7 @@ class Labels : public Attribute {
   #endif
   friend std::ostream& operator<<(std::ostream& os, const Labels& lbs);
   double Distance(const Labels& lbs, const LabelFunction lf = EDIT) const;
+  void InsertLabels(std::vector<std::string>& result) const;
 
   int NumOfFLOBs() const {return 2;}
   Flob *GetFLOB(const int i);
@@ -409,6 +412,7 @@ class Places : public Attribute {
   void operator=(const Places& p);
   bool operator==(const Places& p) const;
   double Distance(const Places& p, const LabelFunction lf = EDIT) const;
+  void InsertLabels(std::vector<std::string>& result) const;
 
   static ListExpr Property();
   static int SizeOfObj() {return sizeof(Places);}
@@ -639,10 +643,13 @@ class MBasic : public Attribute {
          const;
   double Distance_EQUAL_LABELS(const MBasic<B>& mb, const LabelFunction lf)
          const;
+  double Distance_COSINUS_SIM(const MBasic<B>& mb);
+  double Distance_TF_IDF(const MBasic<B>& mb);
   double Distance(const MBasic<B>& mb, const DistanceFunction df = ALL, 
           const LabelFunction lf = TRIVIAL, const double threshold = 1.0) const;
   int CommonPrefixSuffix(const MBasic<B>& mb, const bool prefix);
   double DistanceSym(const MBasic<B>& mb, const DistanceFunSym distfun);
+  void InsertLabels(std::vector<std::string>& result) const;
   
  protected:
   Flob values;
@@ -741,6 +748,7 @@ class MBasics : public Attribute {
           const LabelFunction lf = TRIVIAL, const double threshold = 1.0) const;
   int CommonPrefixSuffix(const MBasics<B>& mbs, const bool prefix);
   double DistanceSym(const MBasics<B>& mbs, const DistanceFunSym distfun);
+  void InsertLabels(std::vector<std::string>& result) const;
   
  protected:
   Flob values;
@@ -2428,6 +2436,18 @@ double MBasic<B>::Distance_EQUAL_LABELS(const MBasic<B>& mb,
   return true;
 }
 
+template<class B>
+double MBasic<B>::Distance_COSINUS_SIM(const MBasic<B>& mb) {
+  return 0.0;
+  // TODO: a lot
+}
+
+template<class B>
+double MBasic<B>::Distance_TF_IDF(const MBasic<B>& mb) {
+  return 0.0;
+  // TODO: a lot
+}
+
 
 /*
 \subsection{Function ~Distance~}
@@ -2564,6 +2584,15 @@ double MBasic<B>::DistanceSym(const MBasic<B>& mb,
     default: {
       return -1.0;
     }
+  }
+}
+
+template<class B>
+void MBasic<B>::InsertLabels(std::vector<std::string>& result) const {
+  B b(true);
+  for (int i = 0; i < GetNoComponents(); i++) {
+    GetBasic(i, b);
+    b.InsertLabels(result);
   }
 }
 
@@ -3864,6 +3893,15 @@ double MBasics<B>::DistanceSym(const MBasics<B>& mbs,
     default: {
       return -1.0;
     }
+  }
+}
+
+template<class B>
+void MBasics<B>::InsertLabels(std::vector<std::string>& result) const {
+  B b(true);
+  for (int i = 0; i < GetNoComponents(); i++) {
+    GetBasics(i, b);
+    b.InsertLabels(result);
   }
 }
 

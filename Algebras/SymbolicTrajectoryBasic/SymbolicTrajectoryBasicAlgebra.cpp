@@ -284,6 +284,16 @@ double Label::Distance(const Label& lb, const LabelFunction lf /* = EDIT */)
 }
 
 /*
+\subsection{Function ~InsertLabels~}
+
+*/
+void Label::InsertLabels(vector<string>& result) const {
+  if (IsDefined()) {
+    result.push_back(GetLabel());
+  }
+}
+
+/*
 \subsection{Function ~readValueFrom~}
 
 */
@@ -734,6 +744,19 @@ double Labels::Distance(const Labels& lbs, const LabelFunction lf /* = EDIT */)
   return BasicDistanceFuns::distance(values1, values2, lf);
 }
 
+/*
+\subsection{Function ~InsertLabels~}
+
+*/
+void Labels::InsertLabels(vector<string>& result) const {
+  if (IsDefined()) {
+    set<std::string> values;
+    GetValues(values);
+    for (auto it : values) {
+      result.push_back(it);
+    }
+  }
+}
 
 /*
 \subsection{Function ~GetFLOB~}
@@ -1384,6 +1407,20 @@ double Places::Distance(const Places& p, const LabelFunction lf /* = EDIT */)
   }
   return (sum / limit + abs((int64_t)values1.size() - (int64_t)values2.size())/ 
                         max(values1.size(), values2.size())) / 2;
+}
+
+/*
+\subsection{Function ~InsertLabels~}
+
+*/
+void Places::InsertLabels(vector<string>& result) const {
+  if (IsDefined()) {
+    set<base> values;
+    GetValues(values);
+    for (auto it : values) {
+      result.push_back(it.first);
+    }
+  }
 }
 
 /*
