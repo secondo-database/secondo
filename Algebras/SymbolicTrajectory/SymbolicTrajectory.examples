@@ -192,3 +192,9 @@ Number    : 1
 Signature : rel(tuple(X)) x ATTR x ATTR x real x int x int -> stream(tuple(Pattern: text, Support: real))
 Example   : query Dotraj feed extend[X: [const mpoint value undef]] consume createverticaldb[Trajectory, X, 0.5] spade[1, 5] count
 Result    : 8
+
+Operator  : getlabels
+Number    : 1
+Signature : mT -> stream(text), where T in {label(s), place(s)}
+Example   : query getlabels(Dotraj feed extract[Trajectory]) count
+Result    : 10

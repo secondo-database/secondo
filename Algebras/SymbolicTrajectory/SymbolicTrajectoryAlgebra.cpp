@@ -3619,6 +3619,79 @@ Operator spade("spade", spadeSpec, mineStructureVM<VerticalDB, SpadeLI>,
                Operator::SimpleSelect, mineStructureTM<VerticalDB>);
 
 /*
+\section{Operator ~getlabels~}
+
+\subsection{Type Mapping}
+
+*/
+ListExpr getlabelsTM(ListExpr args) {
+  string err = "Operator expects a symbolic trajectory.";
+  if (!nl->HasLength(args, 1)) {
+    return listutils::typeError(err + " (" 
+     + stringutils::int2str(nl->ListLength(args)) + " arguments instead of 2)");
+  }
+  if (!Tools::isSymbolicType(nl->First(args))) {
+    return listutils::typeError(err + " (wrong type)");
+  }
+  return nl->TwoElemList(nl->SymbolAtom(Stream<Attribute>::BasicType()),
+                         nl->SymbolAtom(FText::BasicType()));
+}
+
+/*
+\subsection{Value Mappings}
+
+*/
+template<class T>
+int getlabelsVM(Word* args, Word& result, int message, Word& local, Supplier s){
+  GetLabelsLI<T> *li = (GetLabelsLI<T>*)local.addr;
+  switch (message) {
+    case OPEN: {
+      if (li) {
+        delete li;
+        local.addr = 0;
+      }
+      T* src = static_cast<T*>(args[0].addr);
+      if (!src->IsDefined()) {
+        local.addr = 0;
+      }
+      else {
+        local.addr = new GetLabelsLI<T>(*src);
+      }
+      return 0;
+    }
+    case REQUEST: {
+      result.addr = li ? li->nextResult() : 0;
+      return result.addr ? YIELD : CANCEL;
+    }
+    case CLOSE: {
+      if (li) {
+        delete li;
+        local.addr = 0;
+      }
+      return 0;
+    }
+  }
+  return 0;
+}
+
+ValueMapping getlabelsVMs[] = {getlabelsVM<MLabel>, getlabelsVM<MLabels>, 
+                               getlabelsVM<MPlace>, getlabelsVM<MPlaces>};
+
+/*
+\subsection{Operator Info}
+
+*/
+const string getlabelsSpec =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text> stream(tuple(X)) x ATTR -> set(text) </text--->"
+  "<text> getlabels ( _ ) </text--->"
+  "<text> Collects and outputs all labels into the stream.</text--->"
+  "<text> query getlabels(Dotraj feed extract[Trajectory])</text--->) )";
+
+Operator getlabels("getlabels", getlabelsSpec, 4, getlabelsVMs,
+                   distancesymSelect, getlabelsTM);
+
+/*
 \section{Class ~SymbolicTrajectoryAlgebra~}
 
 */
@@ -3785,6 +3858,8 @@ class SymbolicTrajectoryAlgebra : public Algebra {
   
   AddOperator(&spade);
   spade.SetUsesMemory();
+  
+  AddOperator(&getlabels);
   
   }
   ~SymbolicTrajectoryAlgebra() {}

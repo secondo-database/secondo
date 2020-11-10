@@ -5003,4 +5003,33 @@ void TupleIndex<PosType, PosType2>::collectSortInsert(Relation *rel,
   cout << "After attr " << attrPos << ": " << first << " | " << last << endl;
 }
 
+/*
+\section{Class GetLabelsLI}
+
+*/
+template<class T>
+class GetLabelsLI {
+ public:
+  GetLabelsLI(T& src) : counter(0) {
+    src.InsertLabels(labels);
+  }
+
+  ~GetLabelsLI() {}
+
+  FText* nextResult() {
+    if (counter >= 0 && counter < labels.size()) {
+      std::string label = labels[counter];
+      counter++;
+      return new FText(true, label);
+    }
+    else {
+      return 0;
+    }
+  }
+  
+ protected:
+  std::vector<std::string> labels;
+  unsigned int counter;
+};
+
 }
