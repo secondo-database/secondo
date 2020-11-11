@@ -1453,8 +1453,8 @@ cellNum(IrregularGrid3D *input_irgrid3d_ptr,
     // check for 3d
     if(le == ri || bo == to || fr == ba)
     {
-      printf("\n le: %.2f, ri: %.2f, bo: %.2f, to: %.2f,
-       fr: %2.f, ba: %2.f", le, ri, bo, to, fr, ba);
+      printf("\n le: %.2f, ri: %.2f, bo: %.2f, to: %.2f, fr: %2.f, ba: %2.f", 
+      le, ri, bo, to, fr, ba);
 
       cell_ids->insert(0);
       return; 
