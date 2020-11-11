@@ -502,17 +502,18 @@ Operator insertInvFile (
 
 2.6.1 Type Mapping
 
-Signature : invfile x string -> 
+Signature : invfile x (string|text) -> 
             stream(tuple([Tid : tid, WordPos : int, CharPos : int]))
 
 */
 ListExpr searchWordTM(ListExpr args){
-   string err = "invfile x string expected" ;
+   string err = "invfile x (string | text) expected" ;
    if(!nl->HasLength(args,2)){
      return listutils::typeError(err);
    }
    if(!InvertedFile::checkType(nl->First(args)) ||
-      !CcString::checkType(nl->Second(args))){
+      (!CcString::checkType(nl->Second(args)) &&
+       !FText::checkType(nl->Second(args)))) {
      return listutils::typeError(err);
    }   
    ListExpr attrList = nl->ThreeElemList(
@@ -570,10 +571,9 @@ class searchWordLocalInfo{
 2.6.2 Value Mapping
 
 */
-
-int searchWordVM(Word* args, Word& result, int message,
-                  Word& local, Supplier s){
-
+template<class T>
+int searchWordVM(Word* args, Word& result, int message, Word& local, 
+                 Supplier s) {
    searchWordLocalInfo* li = (searchWordLocalInfo*) local.addr;
    switch(message){
       case OPEN : {
@@ -581,12 +581,12 @@ int searchWordVM(Word* args, Word& result, int message,
                       delete li;
                    }
                    InvertedFile* iv = (InvertedFile*) args[0].addr;
-                   CcString* cstr = (CcString*) args[1].addr;
+                   T* searchObj = (T*) args[1].addr;
                    ListExpr type = nl->Second(GetTupleResultType(s));
                    size_t memBuffer = 4096;
-                   if(cstr->IsDefined()){
+                   if(searchObj->IsDefined()){
                        local.addr = new searchWordLocalInfo(iv, 
-                                         cstr->GetValue(), type, memBuffer);
+                                        searchObj->GetValue(), type, memBuffer);
                    }
                    return 0;
                    }
@@ -608,6 +608,18 @@ int searchWordVM(Word* args, Word& result, int message,
    return -1;
 }
 
+ValueMapping searchWordVMs[] = {searchWordVM<CcString>, searchWordVM<FText>};
+
+int searchWordSelect(ListExpr args) {
+  if (CcString::checkType(nl->Second(args))) {
+    return 0;
+  }
+  if (FText::checkType(nl->Second(args))) {
+    return 1;
+  }
+  return -1;
+}
+
 /*
 2.6.3 Specification
 
@@ -616,11 +628,11 @@ int searchWordVM(Word* args, Word& result, int message,
 const string searchWordSpec = 
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" \"Comment\" ) "
-    "(<text> invfile x string -> stream(tuple([TID : tid, "
+    "(<text> invfile x (string | text) -> stream(tuple([TID : tid, "
     "WordPos : int, CharPos : int)) </text--->"
     "<text> _ searchWord [_]  </text--->"
     "<text>Retrives the information stored in an inverted file "
-    " for the give string"
+    " for the given string or text"
     "</text--->"
     "<text>query SEC2OPERATORINFO feed addid createInvFile[Signature, TID] "
     " searchWord[\"string\"] count"
@@ -632,8 +644,9 @@ const string searchWordSpec =
 Operator searchWord (
          "searchWord" ,           // name
           searchWordSpec,          // specification
-          searchWordVM,           // value mapping
-          Operator::SimpleSelect, // trivial selection function
+          2,
+          searchWordVMs,           // value mapping
+          searchWordSelect,       // selection function
           searchWordTM);
 
 
