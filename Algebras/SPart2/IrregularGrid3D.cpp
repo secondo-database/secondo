@@ -1450,6 +1450,16 @@ cellNum(IrregularGrid3D *input_irgrid3d_ptr,
     double fr = search_window_ptr->getMinZ();
     double ba = search_window_ptr->getMaxZ();
 
+    // check for 3d
+    if(le == ri || bo == to || fr == ba)
+    {
+      printf("\n le: %.2f, ri: %.2f, bo: %.2f, to: %.2f,
+       fr: %2.f, ba: %2.f", le, ri, bo, to, fr, ba);
+
+      cell_ids->insert(0);
+      return; 
+    }
+
     int pos_bo = CellBS(col, 0, col->size(), bo);
     if (pos_bo != -1) {
       VCell3D vCell = col->at(pos_bo);
