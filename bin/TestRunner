@@ -31,7 +31,7 @@ fi
 # the process as soon as an error is recognized.
 export MALLOC_CHECK_=2
 
-export SECONDO_PARAM_RTFlags="DEBUG:DemangleStackTrace,CMSG:Color,CTLG:SkipExamples"
+export SECONDO_PARAM_RTFlags="DEBUG:DemangleStackTrace,CMSG:Color,CTLG:SkipExamples,Server:BinaryTransfer"
 
 $runner $*
 
