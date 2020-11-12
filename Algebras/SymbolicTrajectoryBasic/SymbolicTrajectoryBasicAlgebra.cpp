@@ -294,6 +294,23 @@ void Label::InsertLabels(vector<string>& result) const {
 }
 
 /*
+\subsection{Function ~UpdateFrequencies~}
+
+*/
+void Label::UpdateFrequencies(InvertedFile& inv, vector<int>& fv) const {
+  if (IsDefined()) {
+    InvertedFile::exactIterator* eit = 0;
+    TupleId id;
+    uint32_t wc, cc;
+    eit = inv.getExactIterator(GetLabel(), 16777216);
+    if (eit->next(id, wc, cc)) {
+      fv[id - 1]++;
+    }
+    delete eit;
+  }
+}
+
+/*
 \subsection{Function ~readValueFrom~}
 
 */
@@ -755,6 +772,27 @@ void Labels::InsertLabels(vector<string>& result) const {
     for (auto it : values) {
       result.push_back(it);
     }
+  }
+}
+
+/*
+\subsection{Function ~UpdateFrequencies~}
+
+*/
+void Labels::UpdateFrequencies(InvertedFile& inv, vector<int>& fv) const {
+  if (IsDefined()) {
+    set<string> values;
+    GetValues(values);
+    InvertedFile::exactIterator* eit = 0;
+    TupleId id;
+    uint32_t wc, cc;
+    for (auto label : values) {
+      eit = inv.getExactIterator(label, 16777216);
+      if (eit->next(id, wc, cc)) {
+        fv[id - 1]++;
+      }
+    }
+    delete eit;
   }
 }
 
@@ -1420,6 +1458,27 @@ void Places::InsertLabels(vector<string>& result) const {
     for (auto it : values) {
       result.push_back(it.first);
     }
+  }
+}
+
+/*
+\subsection{Function ~UpdateFrequencies~}
+
+*/
+void Places::UpdateFrequencies(InvertedFile& inv, vector<int>& fv) const {
+  if (IsDefined()) {
+    InvertedFile::exactIterator* eit = 0;
+    TupleId id;
+    uint32_t wc, cc;
+    set<base> values;
+    GetValues(values);    
+    for (auto place : values) {
+      eit = inv.getExactIterator(place.first, 16777216);
+      if (eit->next(id, wc, cc)) {
+        fv[id - 1]++;
+      }
+    }
+    delete eit;
   }
 }
 

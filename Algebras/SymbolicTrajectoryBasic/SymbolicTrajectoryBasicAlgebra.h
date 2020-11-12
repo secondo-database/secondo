@@ -33,6 +33,7 @@ split from the SymbolicTrajectoryAlgebra in April 2020.
 #include "Algebras/FText/FTextAlgebra.h"
 #include "Algebras/Temporal/TemporalAlgebra.h"
 #include "Algebras/Collection/CollectionAlgebra.h"
+#include "Algebras/Trie/InvertedFile.h"
 
 namespace stj {
   
@@ -203,6 +204,7 @@ class Label : public Attribute {
   bool operator==(const std::string& text) const;
   double Distance(const Label& lb, const LabelFunction lf = EDIT) const;
   void InsertLabels(std::vector<std::string>& result) const;
+  void UpdateFrequencies(InvertedFile& inv, std::vector<int>& fv) const;
 
   static bool readValueFrom(ListExpr LE, std::string& text, unitelem& unit);
   bool ReadFrom(ListExpr LE, ListExpr typeInfo);
@@ -281,6 +283,7 @@ class Labels : public Attribute {
   friend std::ostream& operator<<(std::ostream& os, const Labels& lbs);
   double Distance(const Labels& lbs, const LabelFunction lf = EDIT) const;
   void InsertLabels(std::vector<std::string>& result) const;
+  void UpdateFrequencies(InvertedFile& inv, std::vector<int>& fv) const;
 
   int NumOfFLOBs() const {return 2;}
   Flob *GetFLOB(const int i);
@@ -413,6 +416,7 @@ class Places : public Attribute {
   bool operator==(const Places& p) const;
   double Distance(const Places& p, const LabelFunction lf = EDIT) const;
   void InsertLabels(std::vector<std::string>& result) const;
+  void UpdateFrequencies(InvertedFile& inv, std::vector<int>& fv) const;
 
   static ListExpr Property();
   static int SizeOfObj() {return sizeof(Places);}
@@ -650,6 +654,7 @@ class MBasic : public Attribute {
   int CommonPrefixSuffix(const MBasic<B>& mb, const bool prefix);
   double DistanceSym(const MBasic<B>& mb, const DistanceFunSym distfun);
   void InsertLabels(std::vector<std::string>& result) const;
+  void FrequencyVector(InvertedFile& inv, std::vector<int>& fv) const;
   
  protected:
   Flob values;
@@ -749,6 +754,7 @@ class MBasics : public Attribute {
   int CommonPrefixSuffix(const MBasics<B>& mbs, const bool prefix);
   double DistanceSym(const MBasics<B>& mbs, const DistanceFunSym distfun);
   void InsertLabels(std::vector<std::string>& result) const;
+  void FrequencyVector(InvertedFile& inv, std::vector<int>& fv) const;
   
  protected:
   Flob values;
@@ -2596,6 +2602,15 @@ void MBasic<B>::InsertLabels(std::vector<std::string>& result) const {
   }
 }
 
+template<class B>
+void MBasic<B>::FrequencyVector(InvertedFile& inv, std::vector<int>& fv) const {
+  B b(true);
+  for (int i = 0; i < GetNoComponents(); i++) {
+    GetBasic(i, b);
+    b.UpdateFrequencies(inv, fv);
+  }
+}
+
 /*
 \section{Implementation of class ~MBasics~}
 
@@ -3902,6 +3917,15 @@ void MBasics<B>::InsertLabels(std::vector<std::string>& result) const {
   for (int i = 0; i < GetNoComponents(); i++) {
     GetBasics(i, b);
     b.InsertLabels(result);
+  }
+}
+
+template<class B>
+void MBasics<B>::FrequencyVector(InvertedFile& inv, std::vector<int>& fv) const{
+  B b(true);
+  for (int i = 0; i < GetNoComponents(); i++) {
+    GetBasics(i, b);
+    b.UpdateFrequencies(inv, fv);
   }
 }
 
