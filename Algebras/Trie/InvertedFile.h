@@ -997,6 +997,12 @@ Returns data about the underlying files.
    SmiRecordId getStopWordsId() const{
      return stopWordsId;
    }
+   
+   int getNoEntries() {
+     SmiStatResultType fileinfo;
+     getFileInfo(fileinfo);
+     return std::stoi(fileinfo[28].second) - 1;
+   }
 
 
   private:
