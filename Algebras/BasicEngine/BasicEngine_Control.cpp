@@ -94,7 +94,7 @@ GenericRelationIterator* it = worker->MakeScan();
         if(err != 0){
           cout << std::string("ErrCode:" + err) << endl;
         }else{
-          val = true && val;
+          val = (res == "(bool TRUE)") && val;
         }
     }
   }else{
@@ -148,15 +148,22 @@ Returns true if everything is OK and there are no failure.
 template<class T>
 bool BasicEngine_Control<T>::createTabFile(string tab){
 ofstream write;
+string statement;
+bool val = false;
 
-  write.open(getFilePath() + createTabFileName(&tab));
-  if (write.is_open()){
-    write << dbs_conn->createTabFile(&tab);
-    write.close();
-  }else{ cout << "Couldn't write file into " + getFilePath() + ""
+  statement = dbs_conn->createTabFile(&tab);
+
+  if (statement.length() > 0){
+    write.open(getFilePath() + createTabFileName(&tab));
+    if (write.is_open()){
+      write << statement;
+      write.close();
+      val = write.good();
+    }else{ cout << "Couldn't write file into " + getFilePath() + ""
       ". Please check the folder and permissions." << endl;}
-
-return write.good();
+  }
+  else{ cout << "Table " + tab + " not found." << endl;}
+return val;
 }
 
 /*
@@ -214,7 +221,7 @@ string localCreateName = getFilePath() + remoteCreateName;
 
       //sending data
       strindex = to_string(index+1);
-      remoteName = dbs_conn->get_partTabName(tab,&strindex);
+      remoteName = get_partFileName(tab,&strindex);
       localName = getFilePath() + remoteName;
       val = (si->sendFile(localName, remoteName, true) == 0);
       val = (remove(localName.c_str()) == 0) && val;
@@ -241,8 +248,7 @@ string localCreateName = getFilePath() + remoteCreateName;
     //doing the import with one thread for each worker
     for(size_t i=0;i<importer.size();i++){
       strindex = to_string(i+1);
-      remoteName = dbs_conn->get_partTabName(tab
-                ,&strindex);
+      remoteName =get_partFileName(tab,&strindex);
       importer[i]->startImport(*tab,remoteCreateName,remoteName);
     }
 
@@ -364,7 +370,7 @@ long unsigned int i;
   //import data (local files from worker)
   for(i=1;i<=anzWorker;i++){
     strindex = to_string(i);
-    full_path = getFilePath() + dbs_conn->get_partTabName(tab, &strindex);
+    full_path = getFilePath() + get_partFileName(tab, &strindex);
     val = copy(full_path,*tab,true) && val;
     FileSystem::DeleteFileOrFolder(full_path);
   }
@@ -429,9 +435,9 @@ string strindex;
   //doing the export with one thread for each worker
   for(size_t i=0;i<importer.size();i++){
     strindex = to_string(i+1);
-    path = getFilePath() + ""
-      "" + dbs_conn->get_partTabName(&tab,&strindex);
-    importer[i]->startExport(tab,path,strindex);
+    path = getFilePath() + get_partFileName(&tab,&strindex);
+    importer[i]->startExport(tab,path,strindex
+             ,createTabFileName(&tab),get_partFileName(&tab,&strindex));
   }
 
   //waiting for finishing the threads
@@ -541,12 +547,15 @@ bool BasicEngine_Control<T>::runsql(string filepath){
 bool val = false;
 string query;
 
-  //reading the file
-  query = readFile(&filepath);
+  if (0 == access(filepath.c_str(), 0)){
+    //reading the file
+    query = readFile(&filepath);
 
-  //execute the sql-Statement
-  if (query != "") val = dbs_conn->sendCommand(&query);
-
+    //execute the sql-Statement
+    if (query != "") val = dbs_conn->sendCommand(&query);
+  }else{
+    cout << "Couldn't find the file at path:" + filepath << endl;
+  }
 return val;
 }
 
