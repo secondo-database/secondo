@@ -3692,6 +3692,75 @@ Operator getlabels("getlabels", getlabelsSpec, 4, getlabelsVMs,
                    distancesymSelect, getlabelsTM);
 
 /*
+\section{Operator ~frequencyvector~}
+
+\subsection{Type Mapping}
+
+*/
+ListExpr frequencyvectorTM(ListExpr args) {
+  const string errMsg = "Expecting mT x inv, T in {label(s), place(s)}";
+  if (!nl->HasLength(args, 2)) {
+    return listutils::typeError(errMsg);
+  }
+  ListExpr arg1 = nl->First(args);
+  if (MLabel::checkType(arg1) || MLabels::checkType(arg1) || 
+      MPlace::checkType(arg1) || MPlaces::checkType(arg1)) {
+    if (InvertedFile::checkType(nl->Second(args))) {
+      return nl->TwoElemList(nl->SymbolAtom(Vector::BasicType()),
+                             nl->SymbolAtom(CcInt::BasicType()));
+    }
+  }
+  return listutils::typeError(errMsg);
+}
+
+/*
+\subsection{Value Mapping (for a single MLabel)}
+
+*/
+template<class T>
+int frequencyvectorVM(Word* args, Word& result, int message, Word& local, 
+                      Supplier s) {
+  T* src = static_cast<T*>(args[0].addr);
+  InvertedFile* inv = static_cast<InvertedFile*>(args[1].addr);
+  result = qp->ResultStorage(s);
+  collection::Collection* res = (collection::Collection*)result.addr;
+  if (!src->IsDefined()) {
+    res->SetDefined(false);
+    return 0;
+  }
+  vector<int> fv(inv->getNoEntries(), 0);
+//   vector<int> fv(30, 0);
+  src->FrequencyVector(*inv, fv);
+  for (unsigned int i = 0; i < fv.size(); i++) {
+    CcInt *elem = new CcInt(true, fv[i]);
+    res->Insert(elem, 1);
+    elem->DeleteIfAllowed();
+  }
+  return  0;
+}
+
+/*
+\subsection{Operator Info}
+
+*/
+struct frequencyvectorSpec : OperatorInfo {
+  frequencyvectorSpec() {
+    name      = "frequencyvector";
+    signature = "mT x invfile -> vector(int),  where T in {label(s), place(s)}";
+    syntax    = "frequencyvector(_, _)";
+    meaning   = "Computes the frequency vector of the labels of a symbolic "
+                "trajectory, according to the labels stored in the trie.";
+  }
+};
+
+ValueMapping frequencyvectorVMs[] = {frequencyvectorVM<MLabel>, 
+  frequencyvectorVM<MLabels>, frequencyvectorVM<MPlace>, 
+  frequencyvectorVM<MPlaces>};
+
+Operator frequencyvector(frequencyvectorSpec(), frequencyvectorVMs, 
+                         distancesymSelect, frequencyvectorTM);
+
+/*
 \section{Class ~SymbolicTrajectoryAlgebra~}
 
 */
@@ -3860,6 +3929,8 @@ class SymbolicTrajectoryAlgebra : public Algebra {
   spade.SetUsesMemory();
   
   AddOperator(&getlabels);
+  
+  AddOperator(&frequencyvector);
   
   }
   ~SymbolicTrajectoryAlgebra() {}

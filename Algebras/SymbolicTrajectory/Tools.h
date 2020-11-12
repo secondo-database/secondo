@@ -39,7 +39,6 @@ Started July 2014, Fabio Vald\'{e}s
 #include "Algebras/RTree/RTreeAlgebra.h"
 #include "Algebras/FText/FTextAlgebra.h"
 #include "BasicTypes.h"
-#include "Algebras/Trie/InvertedFile.h"
 #include "Algebras/Standard-C++/LongInt.h"
 #include "Algebras/Geoid/Geoid.h"
 #include "Algebras/Spatial/SpatialAlgebra.h"
