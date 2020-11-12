@@ -1424,6 +1424,9 @@ CellBS(const std::vector<C>* c_vec, int start, int end, const double val) {
     return -1;
   }
   const int mid = start + ((end - start) / 2);
+  printf("\n before if in cellbs");
+  printf("\n mid: %d --- start: %d, end: %d, sizevec: %d",
+   mid, start, end, (int)c_vec->size());
   if (InCell(c_vec->at(mid), val)) {
     return mid;
   } else if (GtCell(c_vec->at(mid), val)) {
@@ -1486,15 +1489,19 @@ cellNum(IrregularGrid3D *input_irgrid3d_ptr,
               || (cellIdx == cells->size()-1 && ba >= i.getValFrom())) {
                 SCell fi = cells->at(pos_fr);
                 if(ri >= hcell.getValTo() && fi.getNeighbor() != nullptr) {
-                  hcell = row->at(++pos_le);
-                  cells = &hcell.getRect();
+                  printf("\n row size: %d, posle: %d",
+                   (int)row->size(), pos_le);
+                  if(++pos_le < (int)row->size()) {
+                    hcell = row->at(++pos_le);
+                    cells = &hcell.getRect();
 
-                  SCell* u = fi.getNeighbor();
-                  int nbr_cpr = input_irgrid3d_ptr->getLayerCount();
-                  int cid_pos = (u->getCellId()) % nbr_cpr;
-                  pos_fr = cid_pos == 0 ? nbr_cpr-1 : cid_pos-1;
+                    SCell* u = fi.getNeighbor();
+                    int nbr_cpr = input_irgrid3d_ptr->getLayerCount();
+                    int cid_pos = (u->getCellId()) % nbr_cpr;
+                    pos_fr = cid_pos == 0 ? nbr_cpr-1 : cid_pos-1;
 
-                  cellIdx = pos_fr-1;
+                    cellIdx = pos_fr-1;
+                  } //else if{}
 
 
                 } else if (ri <= hcell.getValTo() || 
@@ -1547,6 +1554,14 @@ IrregularGrid3D::IrGrid3dValueMapCellnos( Word* args, Word& result, int message,
     collection::IntSet* res = (collection::IntSet*) result.addr;
 
     Rectangle<3> * b_box = input_irgrid3d_ptr->getBoundingBox();
+    if(b_box->getMinX() > b_box->getMaxX() ||
+      b_box->getMinY() > b_box->getMaxY()
+    ||b_box->getMinZ() > b_box->getMaxZ())
+    {
+      printf("\n not a right rectangle");
+      return 0;
+    }
+
     if (!search_window_ptr->Intersects(*b_box)) {
       cell_ids.insert(0);
       res->setTo(cell_ids);
