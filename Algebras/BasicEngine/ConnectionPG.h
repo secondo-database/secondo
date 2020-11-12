@@ -80,7 +80,7 @@ std::string get_partRoundRobin(std::string* tab, std::string* key
 std::string get_partHash(std::string* tab, std::string* key
           , std::string* anzSlots, std::string* targetTab);
 
-std::string get_partFun(std::string* tab, std::string* key
+std::string get_partFun(std::string* tab, std::string* keyS
           ,std::string* anzSlots,std::string* fun,std::string* targetTab);
 
 std::string get_exportData(std::string* tab, std::string* join_tab
@@ -89,7 +89,7 @@ std::string get_exportData(std::string* tab, std::string* join_tab
 
 std::string get_copy(std::string* tab, std::string* full_path, bool* direct);
 
-std::string get_partTabName(std::string* tab, std::string* number)
+std::string get_partFileName(std::string* tab, std::string* number)
   {return *tab + "_" + *number +".bin";};
 
 std::string get_createTab(std::string* tab, std::string* query)

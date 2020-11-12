@@ -34,6 +34,7 @@ Version 1.0 - Created - C.Behrndt - 2020
 #include <boost/bind.hpp>
 #include <boost/ref.hpp>
 #include "Algebras/Distributed2/ConnectionInfo.h"
+#include "BasicEngineHelper.cpp"
 
 #ifndef _BasicEngine_Thread_H_
 #define _BasicEngine_Thread_H_
@@ -104,10 +105,13 @@ void startImport(std::string _tab
 Starting the export thread.
 
 */
-void startExport(std::string _tab, std::string _path, std::string _nr){
+void startExport(std::string _tab, std::string _path, std::string _nr
+              , std::string _remoteCreateName, std::string _remoteName){
   tab = _tab;
   path = _path;
   nr = _nr;
+  remoteCreateName = _remoteCreateName;
+  remoteName = _remoteName;
   boost::lock_guard<boost::mutex> guard(mtx);
   if(!started && ci){
     started = true;
@@ -316,9 +320,7 @@ void runExport(){
 std::string from;
 std::string to;
 std::string cmd;
-std::string tab_name = tab + "_" + nr +".bin";
-std::string struct_name = "create" + tab + ".sql";
-std::string transfer_path = path.substr(0,path.find(tab_name));
+std::string transfer_path = path.substr(0,path.find(remoteName));
 
   //export the table structure file
   if(nr == "1"){
@@ -327,13 +329,13 @@ std::string transfer_path = path.substr(0,path.find(tab_name));
     val = simpleCommand(&cmd);
 
     //move the structure-file into the request-folder
-    from = transfer_path + struct_name;
-    to = ci->getRequestPath() + "/" + struct_name;
+    from = transfer_path + remoteCreateName;
+    to = ci->getRequestPath() + "/" + remoteCreateName;
     cmd ="query moveFile('"+ from + "','" + to +"')";
     if(val) val = simpleCommand(&cmd);
 
     //sending file to master
-    if(val) val =(ci->requestFile(struct_name,from,true)==0);
+    if(val) val =(ci->requestFile(remoteCreateName,from,true)==0);
 
     //delete create file on system
     cmd ="query removeFile('"+ to + "')";
@@ -344,12 +346,13 @@ std::string transfer_path = path.substr(0,path.find(tab_name));
   if (val) val = simpleCommand(&cmd);
 
   //move the data-file to the request-folder
-  to = ci->getRequestPath() + "/" + tab_name;
+  to = ci->getRequestPath() + "/" + remoteName;
   cmd = "query moveFile('"+ path + "','" + to +"')";
   if(val) val = simpleCommand(&cmd);
 
   //sendig the File to the master
-  if(val) val =(ci->requestFile(tab_name ,transfer_path+ tab_name ,true)==0);
+  if(val) val =(ci->requestFile(remoteName ,
+                          transfer_path + remoteName ,true)==0);
 
   //delete data file on system
   cmd ="query removeFile('"+ to + "')";
@@ -365,14 +368,10 @@ Starting a query at the worker.
 void runQuery(){
 std::string cmd;
   //run the query
-  if (query.length() < 48){
-    cmd = "query be_query(\""
-          "" + query + "\",\"" + tab + "\");";
-  }
-  else{
-    cmd = "query be_query('"
-         "" + query + "','" + tab + "');";
-  }
+  cmd = "query be_query('"
+         "" + replaceStringAll(query,"'","\\'") + "','"
+         "" + tab + "');";
+
   val = simpleCommand(&cmd);
 }
 
@@ -385,8 +384,9 @@ Starting a command at the worker.
 void runCommand(){
 std::string cmd;
   //run the command
-  if (query.length() < 48) cmd = "query be_command(\"" + query + "\");";
-  else cmd = "query be_command('" + query + "');";
+  cmd = "query be_command('" + ""
+		  "" + replaceStringAll(query,"'","\\'") + "');";
+
   val = simpleCommand(&cmd);
  }
 };

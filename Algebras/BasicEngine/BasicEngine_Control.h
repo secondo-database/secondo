@@ -100,8 +100,6 @@ public:
 
   bool runsql(std::string filepath);
 
-  bool createAllConnection();
-
   bool sendCommand(std::string query, bool print= true)
     {return dbs_conn->sendCommand(&query,print);};
 
@@ -156,6 +154,8 @@ long unsigned int anzWorker;
 2.3 Private Methods
 
 */
+  bool createAllConnection();
+
   bool createConnection(long unsigned int* index);
 
   bool partRoundRobin(std::string* tab, std::string* key, int* slotsize);
@@ -174,6 +174,9 @@ long unsigned int anzWorker;
 
   std::string createTabFileName(std::string* tab)
     {return "create" + *tab + ".sql";}
+
+  std::string get_partFileName(std::string* tab, std::string* nr)
+    {return dbs_conn->get_partFileName(tab,nr);}
 
   std::string getFilePath()
     {return std::string("/home/") + getenv("USER") + "/filetransfer/";};

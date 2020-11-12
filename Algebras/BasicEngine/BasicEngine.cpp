@@ -61,17 +61,38 @@ dbms\_name is a name of the secound dbms, for example to pg (for postgreSQL),mys
 string dbms_name;
 
 /*
+isMaster is a variable which shows, if this system is a master (true)
+or a worker(false).
+
+*/
+bool isMaster = false;
+
+/*
 pg is a short name of postgres.
 
 */
 string const pg = "pg";
 
 /*
-noConnectionis is just a default string for an error massage.
+noMaster is just a default string for an error massage.
 
 */
-string const noConnection ="\nPlease use at first an init-Operator before "
-    "using this Operator!\n" ;
+string const noMaster ="\nPlease use at first an init-Operator "
+       "before using this operator!\n" ;
+
+/*
+noWorker is just a default string for an error massage.
+
+*/
+string const noWorker ="\nPlease use at first an init-Worker-Operator "
+       "before using this operator!\n" ;
+
+/*
+negSlots is just a default string for an error massage.
+
+*/
+string const negSlots ="\nThe number of slots have to be greater than 0."
+       "The number should be a multiple of your number of workers.\n" ;
 
 /*
 1 Operators
@@ -115,13 +136,16 @@ int init_pgSFVM(Word* args, Word& result, int message
         , Word& local, Supplier s ){
 CcInt* port = (CcInt*) args[0].addr;
 T* dbname = (T*) args[1].addr;
+bool val;
 
   result = qp->ResultStorage(s);
 
   dbs_conn<L> = new BasicEngine_Control<L>(new ConnectionPG(port->GetIntval()
                               ,dbname->toText()));
-  dbms_name = pg;
-  ((CcBool*)result.addr)->Set(true, dbs_conn<L>->checkConn());
+  val = dbs_conn<L>->checkConn();
+  dbms_name = (val) ? pg : "";
+  isMaster = false;
+  ((CcBool*)result.addr)->Set(true, val);
 
 return 0;
 }
@@ -133,7 +157,10 @@ return 0;
 OperatorSpec init_pgSpec(
    "int x {string, text} --> bool",
    "init_pg(_,_)",
-   "Set the port and the db-name for the lokal PG-Worker",
+   "Set the port and the db-name from PostgreSQL for initialization "
+   "the local PG-Worker. Your username and password have to be stored "
+   "in the .pgpass file in your home location. For creating a distributed "
+   "PostgreSQL-System please use the operator init_pgWorker.",
    "query init_pg(5432,'gisdb')"
 );
 
@@ -161,7 +188,7 @@ int init_pgSelect(ListExpr args){
 Operator init_pgOp(
   "init_pg",
   init_pgSpec.getStr(),
-  2,
+  sizeof(init_pgVM),
   init_pgVM,
   init_pgSelect,
   init_pgTM
@@ -219,12 +246,16 @@ CcInt* slot = (CcInt*) args[2].addr;
 bool val = false;
 CcBool* res = (CcBool*) result.addr;
 
-  if(dbs_conn<L>){
-    val = dbs_conn<L>->partTable(tab->toText(), key->toText()
-        ,"RR", slot->GetIntval());
+  if(dbs_conn<L> && isMaster){
+    if (slot->GetIntval() > 0){
+      val = dbs_conn<L>->partTable(tab->toText(), key->toText()
+            ,"RR", slot->GetIntval());
+    }else{
+      cout << negSlots << endl;
+    }
   }
   else{
-    cout << noConnection << endl;
+    cout << noWorker << endl;
   }
   res->Set(true, val);
 
@@ -238,8 +269,10 @@ return 0;
 OperatorSpec be_partRRSpec(
    "{string, text} x {string, text} x int--> bool",
    "be_partRR(_,_,_)",
-   "distribute a relation by round-robin "
-   "and the workers import this data",
+   "This operator distribute a relation by round-robin "
+   "to the worker. You can specified a multi key by separating "
+   "the fields with a comma. The number of slots have to be positiv "
+   "and should be a multiple of your number of workers.",
    "query be_partRR('cars','moid',60)"
 );
 
@@ -277,7 +310,7 @@ int be_partRRSelect(ListExpr args){
 Operator be_partRROp(
   "be_partRR",
   be_partRRSpec.getStr(),
-  4,
+  sizeof(be_partRRVM),
   be_partRRVM,
   be_partRRSelect,
   be_partRRTM
@@ -334,12 +367,16 @@ CcInt* slot = (CcInt*) args[2].addr;
 bool val = false;
 CcBool* res = (CcBool*) result.addr;
 
-  if(dbs_conn<L>){
-    val = dbs_conn<L>->partTable(tab->toText(), key->toText()
+  if(dbs_conn<L> && isMaster){
+    if (slot->GetIntval() > 0){
+      val = dbs_conn<L>->partTable(tab->toText(), key->toText()
                 ,"Hash",slot->GetIntval());
+    }else{
+      cout<< negSlots << endl;
+    }
   }
   else{
-    cout << noConnection << endl;
+    cout << noWorker << endl;
   }
   res->Set(true, val);
 
@@ -353,8 +390,10 @@ return 0;
 OperatorSpec be_partHashSpec(
    "{string, text} x {string, text} x int--> bool",
    "be_partHash(_,_,_)",
-   "distribute a relation by hash-key "
-   "and the workers import this data",
+   "This operator distribute a relation by hash-value "
+   "to the worker. You can specified a multi key by separating "
+   "the fields with a comma. The number of slots have to be positiv "
+   "and should be a multiple of your number of workers.",
    "query be_partHash('cars','moid',60)"
 );
 
@@ -393,7 +432,7 @@ int be_partHashSelect(ListExpr args){
 Operator be_partHashOp(
   "be_partHash",
   be_partHashSpec.getStr(),
-  4,
+  sizeof(be_partHashVM),
   be_partHashVM,
   be_partHashSelect,
   be_partHashTM
@@ -458,12 +497,16 @@ CcInt* slot = (CcInt*) args[3].addr;
 bool val = false;
 CcBool* res = (CcBool*) result.addr;
 
-  if(dbs_conn<L>){
-    val = dbs_conn<L>->partTable(tab->toText(), key->toText()
-              ,fun->toText(),slot->GetIntval());
+  if(dbs_conn<L> && isMaster){
+    if (slot->GetIntval() > 0){
+      val = dbs_conn<L>->partTable(tab->toText(), key->toText()
+                ,fun->toText(),slot->GetIntval());
+    }else{
+      cout<< negSlots << endl;
+    }
   }
   else{
-    cout << noConnection << endl;
+    cout << noWorker << endl;
   }
 
   res->Set(true, val);
@@ -478,8 +521,11 @@ return 0;
 OperatorSpec be_partFunSpec(
    "{string, text} x {string, text} x {string, text} x int--> bool",
    "be_partFun(_,_,_,_)",
-   "distribute a relation by e special function "
-   "and the workers import this data",
+   "This operator distribute a relation by a special function "
+   "to the worker. Special functions are RR, Hash and random. "
+   "You can specified a multi key by separating "
+   "the fields with a comma. The number of slots have to be positiv "
+   "and should be a multiple of your number of workers.",
    "query be_partFun('cars','moid','random',60)"
 );
 
@@ -529,7 +575,7 @@ if (dbms_name == pg){
 Operator be_partFunOp(
   "be_partFun",
   be_partFunSpec.getStr(),
-  8,
+  sizeof(be_partFunVM),
   be_partFunVM,
   be_partFunSelect,
   be_partFunTM
@@ -589,7 +635,7 @@ H* resultTab = (H*) args[1].addr;
     val=dbs_conn<L>->createTab(resultTab->toText(),query->toText());
   }
   else{
-    cout << noConnection << endl;
+    cout << noMaster << endl;
   }
 
   ((CcBool *)result.addr)->Set(true, val);
@@ -604,8 +650,9 @@ return 0;
 OperatorSpec be_queryVMSpec(
    "{string, text} x {string, text} --> bool",
    "be_query(_ , _ )",
-   "execute a sql-statement at the locale PG instance "
-   "and saves the result in a table",
+   "Execute a sql-statement at the locale second DBMS and stores the "
+   "result in the specified table. The statement must be in a correct "
+   "syntax for this DBMS. ",
    "query be_query('select * from cars where Speed = 30', 'cars_neu')"
 );
 
@@ -643,7 +690,7 @@ if (dbms_name == pg){
 Operator be_queryOp(
   "be_query",
   be_queryVMSpec.getStr(),
-  4,
+  sizeof(be_queryVM),
   be_queryVM,
   be_querySelect,
   be_queryTM
@@ -691,7 +738,7 @@ T* query = (T*) args[0].addr;
     val = dbs_conn<L>->sendCommand(query->GetValue(),true);
   }
   else{
-    cout << noConnection << endl;
+    cout << noMaster << endl;
   }
 
   ((CcBool *)result.addr)->Set(true, val);
@@ -706,7 +753,8 @@ return 0;
 OperatorSpec be_commandVMSpec(
    "{string, text} --> bool",
    "be_command(_ )",
-   "execute a sql-statement at the lokal PG instance",
+   "Execute a sql-statement at the locale second DBMS. "
+   "The statement must be in a correct syntax for this DBMS. ",
    "query be_command('COPY cars FROM /home/filetransfers/cars_3.bin BINARY')"
 );
 
@@ -738,7 +786,7 @@ if (dbms_name == pg){
 Operator be_commandOp(
   "be_command",
   be_commandVMSpec.getStr(),
-  2,
+  sizeof(be_commandVM),
   be_commandVM,
   be_commandSelect,
   be_commandTM
@@ -793,7 +841,7 @@ H* to = (H*) args[1].addr;    //path
           (from->GetValue().length()>= to->GetValue().length()));
   }
   else{
-    cout << noConnection << endl;
+    cout << noMaster << endl;
   }
 
   ((CcBool *)result.addr)->Set(true, val);
@@ -808,8 +856,9 @@ return 0;
 OperatorSpec be_copyVMSpec(
    "{string, text} x {string, text} --> bool",
    "be_copy(_,_)",
-   "creates a copy-statement in postgres and do the query. "
-   "be_copy(From,To), From/To can be a table or a path.",
+   "You can use this operator to import or export a relation "
+   "to a file. Be sure to have the permissions to read an write in "
+   "this folder. be_copy(From,To), From/To can be a table or a path.",
    "query be_copy('cars','/home/filetransfers/cars_3.bin')"
 );
 
@@ -847,7 +896,7 @@ if (dbms_name == pg){
 Operator be_copyOp(
   "be_copy",
   be_copyVMSpec.getStr(),
-  4,
+  sizeof(be_copyVM),
   be_copyVM,
   be_copySelect,
   be_copyTM
@@ -898,11 +947,11 @@ result = qp->ResultStorage(s);
 T* query = (T*) args[0].addr;
 H* tab = (H*) args[1].addr;
 
-  if(dbs_conn<L>){
+  if(dbs_conn<L> && isMaster){
     val = dbs_conn<L>->mquery(query->toText(), tab->toText() );
   }
   else{
-    cout << noConnection << endl;
+    cout << noWorker << endl;
   }
 
   ((CcBool *)result.addr)->Set(true, val);
@@ -917,8 +966,9 @@ return 0;
 OperatorSpec be_mqueryVMSpec(
    "{string,text} x {string,text}-> bool",
    "be_mquery(_,_)",
-   "Distribute a query to PG-Worker and "
-   "writes the result in a table.",
+   "Distribute a query to the worker and writes the result in "
+   "the specified table. The statement must be in a correct "
+   "syntax for this DBMS.",
    "query be_mquery('select * from cars','cars_short')"
 );
 
@@ -957,7 +1007,7 @@ if (dbms_name == pg){
 Operator be_mqueryOp(
   "be_mquery",
   be_mqueryVMSpec.getStr(),
-  4,
+  sizeof(be_mqueryVM),
   be_mqueryVM,
   be_mquerySelect,
   be_mqueryTM
@@ -1000,11 +1050,11 @@ bool val = false;
 result = qp->ResultStorage(s);
 T* query = (T*) args[0].addr;
 
-  if(dbs_conn<L>){
+  if(dbs_conn<L> && isMaster){
     val = dbs_conn<L>->mcommand(query->toText());
   }
   else{
-    cout << noConnection << endl;
+    cout << noWorker << endl;
   }
 
   ((CcBool *)result.addr)->Set(true, val);
@@ -1019,7 +1069,8 @@ return 0;
 OperatorSpec be_mcommandVMSpec(
    "{string,text} -> bool",
    "_ be_mcommand(_)",
-   "Distribute a command to PG-Worker",
+   "Distribute a sql-command to the worker. The statement "
+   "must be in a correct syntax for this DBMS.",
    "query be_mcommand('Drop Table cars;')"
 );
 
@@ -1052,7 +1103,7 @@ if (dbms_name == pg){
 Operator be_mcommandOp(
   "be_mcommand",
   be_mcommandVMSpec.getStr(),
-  2,
+  sizeof(be_mcommandVM),
   be_mcommandVM,
   be_mcommandSelect,
   be_mcommandTM
@@ -1095,11 +1146,11 @@ result = qp->ResultStorage(s);
 T* tab = (T*) args[0].addr;
 bool val;
 
-  if(dbs_conn<L>){
+  if(dbs_conn<L> && isMaster){
     val = dbs_conn<L>->munion(tab->toText());
   }
   else{
-    cout << noConnection << endl;
+    cout << noWorker << endl;
   }
 
 ((CcBool *)result.addr)->Set(true, val);
@@ -1114,7 +1165,8 @@ return 0;
 OperatorSpec be_unionVMSpec(
    "{string,text} -> bool",
    "be_union(_ )",
-   "Collecting one table to the PG master.",
+   "This operator collecting one table from all workers "
+   "to the master.",
    "query be_union('cars_short')"
 );
 
@@ -1146,7 +1198,7 @@ if (dbms_name == pg){
 Operator be_unionOp(
   "be_union",
   be_unionVMSpec.getStr(),
-  2,
+  sizeof(be_unionVM),
   be_unionVM,
   be_unionSelect,
   be_unionTM
@@ -1195,7 +1247,7 @@ T* tab = (T*) args[0].addr;
     val = dbs_conn<L>->createTabFile(tab->GetValue());
   }
   else{
-    cout << noConnection << endl;
+    cout << noMaster << endl;
   }
 
   ((CcBool *)result.addr)->Set(true, val);
@@ -1210,8 +1262,10 @@ return 0;
 OperatorSpec be_structVMSpec(
    "{string,text} -> bool",
    "be_struct(_)",
-   "Creating a table-create-Statement, "
-   "stores it in a local transferfile folder",
+   "This operator creates a table-create-Statement for a "
+   "specified table and stores it in a file. This file is "
+   "located in your local home-directory in the filetransfer folder."
+   "Be sure to have this directory with the correct permissions.",
    "query be_struct('cars_short')"
 );
 
@@ -1243,7 +1297,7 @@ if (dbms_name == pg){
 Operator be_structOp(
   "be_struct",
   be_structVMSpec.getStr(),
-  2,
+  sizeof(be_structVM),
   be_structVM,
   be_structSelect,
   be_structTM
@@ -1294,13 +1348,16 @@ int init_pgWorkerSFVM(Word* args, Word& result, int message
 CcInt* port = (CcInt*) args[0].addr;
 T* dbname = (T*) args[1].addr;
 Relation* worker = (Relation*) args[2].addr;;
+bool val;
 
   result = qp->ResultStorage(s);
 
   dbs_conn<L> = new BasicEngine_Control<L>(new ConnectionPG(port->GetIntval()
                               ,dbname->toText()),worker);
-  dbms_name = pg;
-  ((CcBool*)result.addr)->Set(true, dbs_conn<L>->checkConn());
+  val = dbs_conn<L>->checkConn();
+  dbms_name = (val) ? pg : "";
+  isMaster = val;
+  ((CcBool*)result.addr)->Set(true, val);
 
 return 0;
 }
@@ -1312,7 +1369,11 @@ return 0;
 OperatorSpec init_pgWorkerSpec(
    "int x {string, text} x rel --> bool",
    "init_pgWorker(_,_,_)",
-   "Set the port and the db-name for the lokal PG-Worker",
+   "Set the port and the db-name from PostgreSQL for initialization the local "
+   "PG-Worker. Additional you have to specified a Workers-Relation with all "
+   "connection information from the worker, including the information "
+   "about the second DBMS. The structure of this relation should be "
+   "[Host: string, Port: int, Config: string, PGPort: int, DBName: string]",
    "query init_pgWorker(5432,'gisdb',WorkersPG)"
 );
 
@@ -1344,7 +1405,7 @@ if (dbms_name == pg){
 Operator init_pgWorkerOp(
   "init_pgWorker",
   init_pgWorkerSpec.getStr(),
-  2,
+  sizeof(init_pgWorkerVM),
   init_pgWorkerVM,
   init_pgWorkerSelect,
   init_pgWorkerTM
@@ -1391,7 +1452,7 @@ bool val;
     val = dbs_conn<L>->runsql(path->toText());
   }
   else{
-    cout << noConnection << endl;
+    cout << noMaster << endl;
   }
 
 ((CcBool *)result.addr)->Set(true, val);
@@ -1406,7 +1467,9 @@ return 0;
 OperatorSpec be_runsqlSpec(
    "{string, text}  --> bool",
    "be_runsql(_)",
-   "Runs a SQL-Statement from a sql-file",
+   "Opens a specified file and reading the SQL-Statement. After the the "
+   "system execute this statement on the second DBMS. The statement "
+   "must be in a correct syntax for this DBMS.",
    "query be_runsql('/home/cbe/filetransfer/createroads.sql')"
 );
 
@@ -1438,7 +1501,7 @@ if (dbms_name == pg){
 Operator be_runsqlOp(
   "be_runsql",
   be_runsqlSpec.getStr(),
-  2,
+  sizeof(be_runsqlVM),
   be_runsqlVM,
   be_runsqlSelect,
   be_runsqlTM
@@ -1473,7 +1536,7 @@ class BasicEngineAlgebra : public Algebra
 } // end of namespace BasicEngine
 
 /*
-1.14 Initialization
+1.15 Initialization
 
 */
 extern "C"

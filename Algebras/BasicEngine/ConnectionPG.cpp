@@ -106,7 +106,6 @@ Returns the Result of the query.
 PGresult* ConnectionPG::sendQuery(string* query) {
 PGresult *res;
 const char *query_exec = query->c_str();
-
   //cout << *query<< endl;
   if (checkConn()) {
     res = PQexec(conn, query_exec);
@@ -127,7 +126,7 @@ return this string.
 string ConnectionPG::createTabFile(string* tab){
 string query_exec;
 PGresult* res;
-string write;
+string write="";
 
   query_exec = "SELECT a.attname as column_name, "
       "    pg_catalog.format_type(a.atttypid, a.atttypmod) as column_type "
@@ -141,17 +140,18 @@ string write;
       "ORDER BY a.attnum ";
   res = sendQuery(&query_exec);
 
-
-  write = "DROP TABLE IF EXISTS public." + *tab +";\n"
+  if (PQntuples(res) > 0){
+    write = "DROP TABLE IF EXISTS public." + *tab +";\n"
       "CREATE TABLE public." + *tab +" (\n";
-  for (int i = 0; i<PQntuples(res) ; i++){
-    if (i>0) write.append(",");
-    write.append(PQgetvalue (res,i,0));
-    write.append(" ");
-    write.append(PQgetvalue(res,i,1)) ;
-    write.append("\n");
+    for (int i = 0; i<PQntuples(res) ; i++){
+      if (i>0) write.append(",");
+      write.append(PQgetvalue (res,i,0));
+      write.append(" ");
+      write.append(PQgetvalue(res,i,1)) ;
+      write.append("\n");
+    }
+    write.append(");");
   }
-  write.append(");");
 
 return write;
 }
@@ -165,7 +165,7 @@ Creates a table in postgreSQL with the partitioned data by round robin.
 string ConnectionPG::get_partRoundRobin(string* tab, string* key
                     , string* anzSlots, string* targetTab){
   string select = "SELECT (nextval('temp_seq') %" + *anzSlots+ ""
-    " ) + 1 As worker_number," + *key +" FROM "+ *tab;
+    " ) + 1 As slot," + *key +" FROM "+ *tab;
 return "CREATE TEMP SEQUENCE IF NOT EXISTS temp_seq;"
     + get_createTab(targetTab,&select);
 }
@@ -180,7 +180,7 @@ string ConnectionPG::get_partHash(string* tab, string* key
                   , string* anzSlots, string* targetTab){
   string select = "SELECT DISTINCT (get_byte(decode(md5(concat("
   "" + *key + ")),'hex'),15) %"
-        " " + *anzSlots + " ) + 1 As worker_number,"
+        " " + *anzSlots + " ) + 1 As slot,"
         "" + *key +" FROM "+ *tab;
 return get_createTab(targetTab,&select);
 }
@@ -243,7 +243,7 @@ string valueMap;
   query_exec = "DROP FUNCTION fun()";
   sendCommand(&query_exec,false);
 
-  select->append("SELECT worker_number ");
+  select->append("SELECT slot ");
 
   getFieldInfoFunction(tab,key,&fields,&valueMap,select);
 
@@ -252,7 +252,7 @@ string valueMap;
 
   query_exec = "create or replace function fun() "
       "returns table ("
-      " worker_number integer " + fields + ") "
+      " slot integer " + fields + ") "
       "language plpgsql"
       " as $$ "
       " declare "
@@ -261,7 +261,7 @@ string valueMap;
       " for var_r in("
       "            select " + *key + ""
       "            from " + *tab + ")"
-      "        loop  worker_number := ceil(random() * " + *anzSlots +" );"
+      "        loop  slot := ceil(random() * " + *anzSlots +" );"
       "        " + valueMap + ""
       "        return next;"
       " end loop;"
@@ -288,7 +288,7 @@ string valueMap;
   query_exec = "DROP FUNCTION fun()";
   sendCommand(&query_exec,false);
 
-  select->append("SELECT worker_number ");
+  select->append("SELECT slot ");
 
   getFieldInfoFunction(tab,key,&fields,&valueMap,select);
 
@@ -297,7 +297,7 @@ string valueMap;
 
   query_exec = "create or replace function fun() "
       "returns table ("
-      " worker_number integer " + fields + ") "
+      " slot integer " + fields + ") "
       "language plpgsql"
       " as $$ "
       " declare "
@@ -309,7 +309,7 @@ string valueMap;
       "        FULL JOIN (SELECT 1 as c"
             "                UNION "
       "               SELECT 2 as c) a on 1=1)"
-      "        loop  worker_number := ceil(random() * " + *anzSlots +" );"
+      "        loop  slot := ceil(random() * " + *anzSlots +" );"
       "        " + valueMap + ""
       "        return next;"
       " end loop;"
@@ -355,16 +355,18 @@ string ConnectionPG::get_exportData(string* tab, string* join_tab
                   , string* key, string* nr, string* path
                   , long unsigned int* anzWorker){
   return "COPY (SELECT a.* FROM "+ *tab +" a INNER JOIN " + *join_tab  + " b "
-            "" + getjoin(key) + " WHERE ((worker_number % "
+            "" + getjoin(key) + " WHERE ((slot % "
             ""+ to_string(*anzWorker)+") "
-            "+ 1) =" + *nr+ ") TO "
+            ") + 1 =" + *nr+ ") TO "
             "'" + *path + *tab + "_" + *nr +".bin' BINARY;";
 }
 
 /*
 6.14 ~get\_copy~
 
-Creating a statement for exporting the data.
+Creating a statement for exporting the data. If the variable direkt is true
+then tab where import the date from the filesystem. If the direkt variable is
+false them the tab where export to the filesystem.
 
 */
 string ConnectionPG::get_copy(string* tab, string* full_path, bool* direct ){

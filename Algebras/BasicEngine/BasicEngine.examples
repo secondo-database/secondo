@@ -25,12 +25,6 @@ Signature : {string, text} x {string, text} x int --> bool
 Example   : query be_partFun("cars", "moid","random",60)
 Result    : FALSE
 
-Operator  : be_import
-Number    : 1
-Signature : {string, text} x rel --> bool
-Example   : query be_import('cars',WorkersPG)
-Result    : FALSE
-
 Operator  : be_query
 Number    : 1
 Signature : {string, text} x {string, text} --> bool
