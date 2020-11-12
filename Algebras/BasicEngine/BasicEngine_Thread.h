@@ -384,8 +384,8 @@ Starting a command at the worker.
 void runCommand(){
 std::string cmd;
   //run the command
-  cmd = "query be_command('" + ""
-		  "" + replaceStringAll(query,"'","\\'") + "');";
+  cmd = "query be_command('"
+         "" + replaceStringAll(query,"'","\\'") + "');";
 
   val = simpleCommand(&cmd);
  }
