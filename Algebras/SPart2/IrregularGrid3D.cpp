@@ -1491,7 +1491,7 @@ cellNum(IrregularGrid3D *input_irgrid3d_ptr,
                 if(ri >= hcell.getValTo() && fi.getNeighbor() != nullptr) {
                   printf("\n row size: %d, posle: %d",
                    (int)row->size(), pos_le);
-                  if(++pos_le < (int)row->size()) {
+                  //if(++pos_le < (int)row->size()) {
                     hcell = row->at(++pos_le);
                     cells = &hcell.getRect();
 
@@ -1501,7 +1501,7 @@ cellNum(IrregularGrid3D *input_irgrid3d_ptr,
                     pos_fr = cid_pos == 0 ? nbr_cpr-1 : cid_pos-1;
 
                     cellIdx = pos_fr-1;
-                  } //else if{}
+                  //} //else if{}
 
 
                 } else if (ri <= hcell.getValTo() || 
@@ -1513,12 +1513,14 @@ cellNum(IrregularGrid3D *input_irgrid3d_ptr,
                     pos_fr = cid_pos == 0 ? nbr_cpr-1 : cid_pos-1;
 
                     cellIdx = pos_fr-1;
+                    if(++pos_bo < (int)col->size()) {
                     row = &col->at(++pos_bo).getRow();  // one row up
                     hcell = row->at(pos_fr);
                     cells = &hcell.getRect();
                     begin_i = cells->at(pos_fr);
                     // in case there is another neighbor in the new row
                     pos_le = pos_left; 
+                    }
 
                 } else if (to <= vCell.getValTo() && 
                       begin_i.getUpper() == nullptr) {
@@ -1576,7 +1578,9 @@ IrregularGrid3D::IrGrid3dValueMapCellnos( Word* args, Word& result, int message,
       cell_ids.insert(0);
     }
 
-    cellNum(input_irgrid3d_ptr, search_window_ptr, &cell_ids);
+    //cellNum(input_irgrid3d_ptr, search_window_ptr, &cell_ids);
+    cell_ids.insert(1);
+    cell_ids.insert(2);
 
     res->setTo(cell_ids);
 
