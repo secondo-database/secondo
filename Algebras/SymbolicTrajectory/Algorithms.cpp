@@ -5487,6 +5487,8 @@ double scalarProduct(collection::Collection& v1, collection::Collection& v2) {
     elem2 = (CcInt*)(v2.GetComponent(i));
     assert(elem1->IsDefined() && elem2->IsDefined());
     result += elem1->GetValue() * elem2->GetValue();
+    elem1->DeleteIfAllowed();
+    elem2->DeleteIfAllowed();
   }
   return result;
 }
@@ -5498,6 +5500,7 @@ double vLength(collection::Collection& v) {
     elem = (CcInt*)(v.GetComponent(i));
     assert(elem->IsDefined());
     result += pow(elem->GetValue(), 2.0);
+    elem->DeleteIfAllowed();
   }
   return sqrt(result);
 }
