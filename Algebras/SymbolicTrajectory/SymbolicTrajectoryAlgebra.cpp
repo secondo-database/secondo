@@ -3714,7 +3714,7 @@ ListExpr frequencyvectorTM(ListExpr args) {
 }
 
 /*
-\subsection{Value Mapping (for a single MLabel)}
+\subsection{Value Mapping}
 
 */
 template<class T>
@@ -3759,6 +3759,73 @@ ValueMapping frequencyvectorVMs[] = {frequencyvectorVM<MLabel>,
 
 Operator frequencyvector(frequencyvectorSpec(), frequencyvectorVMs, 
                          distancesymSelect, frequencyvectorTM);
+
+/*
+\section{Operator ~cosinesim~}
+
+\subsection{Type Mapping}
+
+*/
+ListExpr cosinesimTM(ListExpr args) {
+  const string errMsg = "Expecting vector(int) x vector(int)";
+  if (!nl->HasLength(args, 2)) {
+    return listutils::typeError(errMsg);
+  }
+  ListExpr errorInfo = nl->OneElemList(nl->SymbolAtom("ERROR"));
+  if (!collection::Collection::KindCheck(nl->First(args), errorInfo) ||
+      !collection::Collection::KindCheck(nl->Second(args), errorInfo)) {
+    return listutils::typeError(errMsg);
+  }
+  string ctype1 = nl->SymbolValue(nl->First(nl->First(args)));
+  string ctype2 = nl->SymbolValue(nl->First(nl->Second(args)));
+  if (ctype1 != Vector::BasicType() || ctype2 != Vector::BasicType()) {
+    return listutils::typeError(errMsg + " two vectors required");
+  }
+  string etype1 = nl->SymbolValue(nl->Second(nl->First(args)));
+  string etype2 = nl->SymbolValue(nl->Second(nl->Second(args)));
+  if (etype1 != CcInt::BasicType() || etype2 != CcInt::BasicType()) {
+    return listutils::typeError(errMsg + " integer type required");
+  }
+  return nl->SymbolAtom(CcReal::BasicType());
+}
+
+/*
+\subsection{Value Mapping (for a single MLabel)}
+
+*/
+int cosinesimVM(Word* args, Word& result, int message, Word& local, Supplier s){
+  collection::Collection* v1 = 
+                             static_cast<collection::Collection*>(args[0].addr);
+  collection::Collection* v2 = 
+                             static_cast<collection::Collection*>(args[1].addr);
+  result = qp->ResultStorage(s);
+  CcReal* res = (CcReal*)result.addr;
+  if (!v1->IsDefined() || !v2->IsDefined()) {
+    res->SetDefined(false);
+    return 0;
+  }
+  if (v1->GetNoComponents() != v2->GetNoComponents()) {
+    res->SetDefined(false);
+    return 0;
+  }
+  res->Set(true, cosineSimilarity(*v1, *v2));
+  return  0;
+}
+
+/*
+\subsection{Operator Info}
+
+*/
+struct cosinesimSpec : OperatorInfo {
+  cosinesimSpec() {
+    name      = "cosinesim";
+    signature = "vector(int) x vector(int) -> real";
+    syntax    = "cosinesim(_, _)";
+    meaning   = "Computes the cosine similarity for two frequency vectors.";
+  }
+};
+
+Operator cosinesim(cosinesimSpec(), cosinesimVM, cosinesimTM);
 
 /*
 \section{Class ~SymbolicTrajectoryAlgebra~}
@@ -3931,6 +3998,8 @@ class SymbolicTrajectoryAlgebra : public Algebra {
   AddOperator(&getlabels);
   
   AddOperator(&frequencyvector);
+  
+  AddOperator(&cosinesim);
   
   }
   ~SymbolicTrajectoryAlgebra() {}

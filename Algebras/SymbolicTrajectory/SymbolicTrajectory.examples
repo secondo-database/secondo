@@ -204,3 +204,10 @@ Number    : 1
 Signature : mT x invfile -> vector(int), where T in {label(s), place(s)}
 Example   : query size(frequencyvector(Dotraj feed extract[Trajectory], Dotraj feed projectextendstream[; L: getlabels(.Trajectory)] sort rdup consume feed addid createInvFile[L, TID, FALSE, 1, '', ""]))
 Result    : 12
+
+Operator  : cosinesim
+Number    : 1
+Signature : vector(int) x vector(int) -> real
+Example   : query cosinesim(create_vector(0, 1, 1), create_vector(1, 1, 0))
+Result    : 0.5
+

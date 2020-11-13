@@ -5032,4 +5032,8 @@ class GetLabelsLI {
   unsigned int counter;
 };
 
+double scalarProduct(collection::Collection& v1, collection::Collection& v2);
+double vLength(collection::Collection& v);
+double cosineSimilarity(collection::Collection& v1, collection::Collection& v2);
+
 }

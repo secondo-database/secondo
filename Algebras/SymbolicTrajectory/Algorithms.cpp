@@ -5479,4 +5479,34 @@ void IndexMatchInfo::print(const bool printBinding) {
   }
 }
 
+double scalarProduct(collection::Collection& v1, collection::Collection& v2) {
+  double result = 0.0;
+  CcInt *elem1(0), *elem2(0);
+  for (int i = 0; i < v1.GetNoComponents(); i++) {
+    elem1 = (CcInt*)(v1.GetComponent(i));
+    elem2 = (CcInt*)(v2.GetComponent(i));
+    assert(elem1->IsDefined() && elem2->IsDefined());
+    result += elem1->GetValue() * elem2->GetValue();
+  }
+  return result;
+}
+
+double vLength(collection::Collection& v) {
+  double result = 0.0;
+  CcInt *elem(0);
+  for (int i = 0; i < v.GetNoComponents(); i++) {
+    elem = (CcInt*)(v.GetComponent(i));
+    assert(elem->IsDefined());
+    result += pow(elem->GetValue(), 2.0);
+  }
+  return sqrt(result);
+}
+
+double cosineSimilarity(collection::Collection& v1, collection::Collection& v2){
+  assert(v1.GetMyCollType() == collection::vector &&
+         v2.GetMyCollType() == collection::vector);
+  assert(v1.GetNoComponents() == v2.GetNoComponents());
+  return scalarProduct(v1, v2) / (vLength(v1) * vLength(v2));
+}
+
 }

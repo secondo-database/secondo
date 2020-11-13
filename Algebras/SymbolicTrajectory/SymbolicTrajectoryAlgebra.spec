@@ -36,3 +36,4 @@ operator createverticaldb alias CREATEVERTICALDB pattern _ op [ _ , _ , _ ]
 operator spade alias SPADE pattern _ op [ _ , _ ]
 operator createlexicon alias CREATELEXICON pattern _ op [ _ ]
 operator frequencyvector alias FREQUENCYVECTOR pattern op ( _ , _)
+operator cosinesim alias COSINESIM pattern op ( _ , _)
