@@ -1053,7 +1053,7 @@ IrregularGrid3D::InIrGrid3D( const ListExpr typeInfo, const ListExpr instance,
 
     // update pointer
     if (row_cnt > 0 && cell_cnt > 0 && layer_cnt > 0) {
-      for(int colIdx = 0; colIdx < row_cnt-1; colIdx++) {
+      for(int colIdx = 0; colIdx < row_cnt; colIdx++) {
         VCell3D* vcell = &column_vec.at(colIdx);
         std::vector<HCell3D>* row_vect = &vcell->getRow();
         for(int cIdx = 0; cIdx < cell_cnt; cIdx++) {
@@ -1464,16 +1464,21 @@ cellNum(IrregularGrid3D *input_irgrid3d_ptr,
     }
 
     int pos_bo = CellBS(col, 0, col->size(), bo);
+    printf("\n pos_bo: %d", pos_bo);
     if (pos_bo != -1) {
       VCell3D vCell = col->at(pos_bo);
+      printf("\n vcell: %.2f, %.2f", vCell.getValFrom(), vCell.getValTo());
       std::vector<HCell3D>* row = &vCell.getRow();
 
       int pos_le = CellBS(row, 0, row->size(), le);
+      printf("\n pos_le: %d", pos_le);
       if (pos_le != -1) {
         HCell3D hcell = row->at(pos_le);
+        printf("\n hcell: %.2f, %.2f", hcell.getValFrom(), hcell.getValTo());
         std::vector<SCell>* cells = &hcell.getRect();
 
         int pos_fr = CellBS(cells, 0, cells->size(), fr);
+        printf("\n pos_fr: %d", pos_fr);
         if(pos_fr != -1) {
 
           // collect ids
@@ -1482,13 +1487,16 @@ cellNum(IrregularGrid3D *input_irgrid3d_ptr,
           SCell begin_i = cells->at(cellIdx); // first cell
           while (cellIdx < cells->size()) {
             SCell i = cells->at(cellIdx);
+            printf("\n Scell: %.2f, %.2f", i.getValFrom(), i.getValTo());
             cell_ids->insert(i.getCellId());
 
 
             if((ba >= i.getValFrom() && ba <= i.getValTo())
               || (cellIdx == cells->size()-1 && ba >= i.getValFrom())) {
                 SCell fi = cells->at(pos_fr);
-                if(ri >= hcell.getValTo() && fi.getNeighbor() != nullptr) {
+                printf("\n fi: %.2f, %.2f", fi.getValFrom(), fi.getValTo());
+
+                if(ri > hcell.getValTo() && fi.getNeighbor() != nullptr) {
                   printf("\n row size: %d, posle: %d",
                    (int)row->size(), pos_le);
                   //if(++pos_le < (int)row->size()) {
@@ -1496,9 +1504,14 @@ cellNum(IrregularGrid3D *input_irgrid3d_ptr,
                     cells = &hcell.getRect();
 
                     SCell* u = fi.getNeighbor();
+                    printf("\n u: %d", u->getCellId());
+
                     int nbr_cpr = input_irgrid3d_ptr->getLayerCount();
                     int cid_pos = (u->getCellId()) % nbr_cpr;
                     pos_fr = cid_pos == 0 ? nbr_cpr-1 : cid_pos-1;
+
+                    printf("\n nbr_cpr: %d, cid_pos: %d, pos_fr: %d",
+                     nbr_cpr, cid_pos, pos_fr);
 
                     cellIdx = pos_fr-1;
                   //} //else if{}
@@ -1506,16 +1519,24 @@ cellNum(IrregularGrid3D *input_irgrid3d_ptr,
 
                 } else if (ri <= hcell.getValTo() || 
                   fi.getNeighbor() == nullptr) {
-                  if (to >= vCell.getValTo() && begin_i.getUpper() != nullptr) {
+                  if (to > vCell.getValTo() && begin_i.getUpper() != nullptr) {
                     SCell* up = begin_i.getUpper();
+                    printf("\n up: %d", up->getCellId());
+
                     int nbr_cpr = input_irgrid3d_ptr->getLayerCount();
                     int cid_pos = (up->getCellId()) % nbr_cpr;
                     pos_fr = cid_pos == 0 ? nbr_cpr-1 : cid_pos-1;
+                    printf("\n nbr_cpr: %d, cid_pos: %d, pos_fr: %d",
+                     nbr_cpr, cid_pos, pos_fr);
+
 
                     cellIdx = pos_fr-1;
-                    if(++pos_bo < (int)col->size()) {
+                     int pos_test = pos_bo +1;
+                    if(pos_test < (int)col->size()) {
+                      printf("\n pos bo: %d, col size: %d",
+                       pos_bo, (int)col->size());
                     row = &col->at(++pos_bo).getRow();  // one row up
-                    hcell = row->at(pos_fr);
+                    hcell = row->at(pos_left);
                     cells = &hcell.getRect();
                     begin_i = cells->at(pos_fr);
                     // in case there is another neighbor in the new row
@@ -1578,9 +1599,9 @@ IrregularGrid3D::IrGrid3dValueMapCellnos( Word* args, Word& result, int message,
       cell_ids.insert(0);
     }
 
-    //cellNum(input_irgrid3d_ptr, search_window_ptr, &cell_ids);
-    cell_ids.insert(1);
-    cell_ids.insert(2);
+    cellNum(input_irgrid3d_ptr, search_window_ptr, &cell_ids);
+    //cell_ids.insert(1);
+    //cell_ids.insert(2);
 
     res->setTo(cell_ids);
 
