@@ -97,7 +97,7 @@ void RefinementWorker::operator()() {
    ArgVector &arguments = *qpThread->Argument(funct);
    Tuple* tuple = nullptr;
    {
-      lock_guard<std::mutex> lock(endThreads_);
+      lock_guard<std::mutex> lock(stream_);
       tuple = stream.request();
    }
 
@@ -153,22 +153,13 @@ refinementLI::~refinementLI() {
    for (shared_ptr<SafeQueue<Tuple*>> partBuffer : *buffer) {
       partBuffer.reset();
    }
-   buffer->clear();
-   tupleBuffer.reset();
-   size_t i = 0;
+   size_t i = 0;;
    for (QueryProcessor* qpThread : qpVec) {
       qpThread->Destroy(funct[i], true);
       delete qpThread;
       ++i;
    }
-   funct.clear();
-   qpVec.clear();
    stream.close();
-   for (size_t i = 0; i < coreNoWorker; ++i) {
-      if (filterThreads[i].joinable()) {
-         filterThreads[i].detach();
-      }
-   }
 }
 
 //Output
@@ -178,6 +169,8 @@ Tuple* refinementLI::getNext() {
    res = tupleBuffer->dequeue();
 
    if (res != nullptr) {
+      //increasing helps avoiding commit errors
+      this_thread::sleep_for(std::chrono::microseconds(5));
       return res;
    }
 
@@ -187,7 +180,7 @@ Tuple* refinementLI::getNext() {
       endRefinement = true;
       endThreadsC.notify_all();
    }
-   this_thread::sleep_for(std::chrono::microseconds(30));
+   this_thread::sleep_for(std::chrono::microseconds(50));
    return 0;
 }
 
@@ -326,6 +319,8 @@ int op_refinement::refinementVM(Word* args, Word &result, int message,
             delete li;
             local.addr = 0;
          }
+         this_thread::sleep_for(std::chrono::microseconds(100));
+         cout << "end";
          return 0;
    }
    return 0;

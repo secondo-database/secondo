@@ -641,7 +641,7 @@ int op_spatialJoin::spatialJoinVM(Word* args, Word &result, int message,
             delete li;
             local.addr = 0;
          }
-         this_thread::sleep_for(std::chrono::microseconds(20));
+         this_thread::sleep_for(std::chrono::microseconds(100));
          return 0;
    }
    return 0;
