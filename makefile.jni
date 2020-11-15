@@ -86,8 +86,8 @@ endif
 #LIBJAVA_DIR := $(J2SDK_ROOT)/jre/lib/i386
 #LIBVERIFY_DIR := $(LIBJVM_DIR)
 
-#linkflags
-JNI_CCFLAGS := -framework JavaVM
+# The following flag is required for older (<= 11.0) versions of OS X
+# JNI_CCFLAGS := -framework JavaVM
 
 endif
 
