@@ -113,7 +113,7 @@ void RefinementWorker::operator()() {
       }
       if (res) {
          while (tupleBuffer->size() > 100) {
-            this_thread::sleep_for(std::chrono::microseconds(5));
+            this_thread::sleep_for(std::chrono::microseconds(10));
          };
          tupleBuffer->enqueue(tuple);
       } else {
@@ -322,7 +322,6 @@ int op_refinement::refinementVM(Word* args, Word &result, int message,
             local.addr = 0;
          }
          this_thread::sleep_for(std::chrono::microseconds(100));
-         cout << "end";
          return 0;
    }
    return 0;
