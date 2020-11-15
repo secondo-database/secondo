@@ -104,6 +104,8 @@ void RefinementWorker::operator()() {
    while (tuple != nullptr) {
       arguments[0].setAddr(tuple);
       Word funres;
+      //increasing helps avoiding commit errors
+      this_thread::sleep_for(std::chrono::microseconds(1));
       qpThread->Request(funct, funres);
       bool res = false;
       if (((Attribute*) funres.addr)->IsDefined()) {
