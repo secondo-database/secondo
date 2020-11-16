@@ -2738,18 +2738,18 @@ bool UPoint::AtRegion(const Region *r, std::vector<UPoint> &result) const {
 1.1 Implementation of functions for the class ~CUPoint~
 
 */
-void CUPoint::AtInterval(const Interval<Instant>& i, CUPoint& result) const {
-  AtInterval(i, result, 0);
+void CUPoint::AtIntervalCU(const Interval<Instant>& i, CUPoint& result) const {
+  AtIntervalCU(i, result, 0);
 }
 
-void CUPoint::AtInterval(const Interval<Instant>& i, CUPoint& result,
-                         const Geoid* geoid) const {
+void CUPoint::AtIntervalCU(const Interval<Instant>& i, CUPoint& result,
+                           const Geoid* geoid) const {
   ((UPoint*)this)->AtInterval(i, *((UPoint*)&result));
   result.SetRadius(this->GetRadius());
 }
 
-void CUPoint::TemporalFunction(const Instant& t, CPoint& result,
-                               bool ignoreLimits /* = false */) const {
+void CUPoint::TemporalFunctionCU(const Instant& t, CPoint& result,
+                                 bool ignoreLimits /* = false */) const {
   Point p(true);
   ((UPoint*)this)->TemporalFunction(t, p, ignoreLimits);
   result.Set(p, this->GetRadius());
@@ -2928,7 +2928,7 @@ double CUPoint::DistanceAvg(const CUPoint& cup, const bool upperBound,
     cup1 = cup;
   } // now we know that cup1's duration is at least as long as cup2's
   CPoint newEnd(true);
-  cup1.TemporalFunction(cup2.timeInterval.end, newEnd, true);
+  cup1.TemporalFunctionCU(cup2.timeInterval.end, newEnd, true);
   cup1.timeInterval.end = cup2.timeInterval.end;
   cup1.p1 = *((Point*)&newEnd);
   UReal urDist(true), urNull(true);
@@ -8320,7 +8320,7 @@ void CMPoint::AtInstant(const Instant& t, Intime<CPoint>& result) const {
           CUPoint posUnit(true);
           units.Get(pos, &posUnit);
           result.SetDefined(true);
-          posUnit.TemporalFunction(t, result.value);
+          posUnit.TemporalFunctionCU(t, result.value);
           result.instant.CopyFrom(&t);
         }
       }
@@ -8388,7 +8388,7 @@ void CMPoint::AtPeriods(const Periods& p, CMPoint& result) const {
           }
           else { // we have overlapping intervals, now
             CUPoint r(true);
-            unit.AtInterval(interval, r);
+            unit.AtIntervalCU(interval, r);
             assert(r.IsDefined());
             assert(r.IsValid());
             result.Add(r);
@@ -8590,7 +8590,7 @@ void CMPoint::MergeAdd(const CUPoint& unit) {
                              last.timeInterval.lc, unit.timeInterval.rc);
   CUPoint cupoint(complete, last.p0, unit.p1, unit.GetRadius());
   CPoint cp;
-  cupoint.TemporalFunction(last.timeInterval.end, cp, true);
+  cupoint.TemporalFunctionCU(last.timeInterval.end, cp, true);
   if (!AlmostEqual(*((Point*)&cp), last.p0)) {
     Add(unit); // also adopts bbox
     return;

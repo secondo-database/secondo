@@ -4424,16 +4424,16 @@ Returns ~true~ if both units are undefined, or if both are defined and this temp
 Restricts this cupoint to a certain time interval.
 
 */
-  virtual void AtInterval(const Interval<Instant>& i, CUPoint& result ) const;
-  void AtInterval(const Interval<Instant>& i, CUPoint& result,
-                  const Geoid* geoid) const;
+  virtual void AtIntervalCU(const Interval<Instant>& i, CUPoint& result) const;
+  void AtIntervalCU(const Interval<Instant>& i, CUPoint& result,
+                    const Geoid* geoid) const;
 
 /*
 Evaluates this cupoint at a certain instant.
 
 */
-  virtual void TemporalFunction(const Instant& t, CPoint& result,
-                                bool ignoreLimits = false) const;
+  virtual void TemporalFunctionCU(const Instant& t, CPoint& result,
+                                  bool ignoreLimits = false) const;
 
 /*
 Functions required for attribute type
