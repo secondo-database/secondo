@@ -2071,19 +2071,20 @@ KDTree3D::Kdtree3dTRCCellIdTypeMap( ListExpr args )
 ListExpr
 KDTree3D::Kdtree3dSCCTypeMap( ListExpr args )
 {
-  if(nl->HasLength(args, 3)) {
+  if(nl->HasLength(args, 4)) {
     ListExpr first = nl->First(args);
     ListExpr second = nl->Second(args);
     ListExpr third = nl->Third(args);
+    ListExpr fourth = nl->Fourth(args);
 
     if (KDTree3D::checkType(first) && Rectangle<3>::checkType(second)
-      && Rectangle<3>::checkType(third)) {
-      return nl->SymbolAtom(CcInt::BasicType());
+      && Rectangle<3>::checkType(third) && CcInt::checkType(fourth)) {
+      return nl->SymbolAtom(CcBool::BasicType());
     }
   }
 
-  const std::string errMsg = "The following three arguments are expected:"
-      " 3dtree x rect<3> x rect<3>";
+  const std::string errMsg = "The following four arguments are expected:"
+      " 3dtree x rect<3> x rect<3> x int";
 
   return  listutils::typeError(errMsg);
 }
@@ -2522,14 +2523,20 @@ KDTree3D::Kdtree3dValueMapTRC( Word* args, Word& result, int message,
   Rectangle<3> *search_window_ptr_2
     = static_cast<Rectangle<3>*>( args[2].addr );
 
+  CcInt* cellno_ptr = static_cast<CcInt*>(args[3].addr);
+  int cellno = cellno_ptr->GetIntval();
+  
+
   if (input_kdtree3d_ptr != nullptr && search_window_ptr != nullptr
       && search_window_ptr_2 != nullptr) {
     std::set<int> cell_ids;
     std::set<int> cell_ids_2;
 
+    int mode_ = input_kdtree3d_ptr->getMode();
 
-    result = qp->ResultStorage(s);
-    CcInt* res = (CcInt*) result.addr;
+    result = qp->ResultStorage( s );
+    CcBool *res = (CcBool*) result.addr;
+    bool boolval = false;
 
     std::vector<Tree3DStructure*> nodes = input_kdtree3d_ptr->getPointsVector();
 
@@ -2547,9 +2554,29 @@ KDTree3D::Kdtree3dValueMapTRC( Word* args, Word& result, int message,
     double fr_2 = search_window_ptr_2->getMinZ();
     double ba_2 = search_window_ptr_2->getMaxZ();
 
-    Tree3DStructure* root = nodes.back();
-    GetLeaf(root, le, ri, bo, to, fr, ba, &cell_ids);
-    GetLeaf(root, le_2, ri_2, bo_2, to_2, fr_2, ba_2, &cell_ids_2);
+    // find leaf with cellIds recursive and insert cell ids in cell_ids
+    if(mode_ == 1) {
+      std::vector<Tree3DStructure*> nodes = 
+        input_kdtree3d_ptr->getPointsVector();
+      Tree3DStructure* root = nodes.back();
+      GetLeaf(root, le, ri, bo, to, fr, ba, &cell_ids);
+      GetLeaf(root, le_2, ri_2, bo_2, to_2, fr_2, ba_2, &cell_ids_2);
+
+
+    } else if(mode_ == 2){
+      std::vector<Tree3DMedStructure*> nodes = 
+        input_kdtree3d_ptr->getPointsMedVector();
+      Tree3DMedStructure* root = nodes.back();
+      GetLeaf(root, le, ri, bo, to, fr, ba, &cell_ids);
+      GetLeaf(root, le_2, ri_2, bo_2, to_2, fr_2, ba_2, &cell_ids_2);
+
+    } else {
+      // use different cellnum method!
+      cell_ids.clear();
+      std::vector<Cell3DTree>* cells = &input_kdtree3d_ptr->getCellVector();    
+      cellnumber(le, ri, bo, to, fr, ba, &cell_ids, cells);
+      cellnumber(le_2, ri_2, bo_2, to_2, fr_2, ba_2, &cell_ids_2, cells);
+    }
 
 
     std::vector<int> v(sizeof(cell_ids)+ sizeof(cell_ids_2));
@@ -2559,14 +2586,21 @@ KDTree3D::Kdtree3dValueMapTRC( Word* args, Word& result, int message,
          cell_ids_2.begin(), cell_ids_2.end(), v.begin());
       v.resize(it-v.begin());                      
   
-      if(v.empty()) { 
+     if(v.empty()) { 
       //no intersection between rectangles
-        res->Set(0);
+        res->Set( true, boolval);
         return -1;
 
       }
-
-      res->Set(v.at(0));
+      
+      if(v[0] == cellno)
+      {
+        boolval = true;
+        res->Set( true, boolval);
+        return 0;
+      }
+      
+    res->Set( true, boolval);
 
       }
       

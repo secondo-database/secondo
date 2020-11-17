@@ -1727,19 +1727,20 @@ KDTree2D::Kdtree2dTRCCellIdTypeMap( ListExpr args )
 ListExpr
 KDTree2D::Kdtree2dSCCTypeMap( ListExpr args )
 {
-  if(nl->HasLength(args, 3)) {
+  if(nl->HasLength(args, 4)) {
     ListExpr first = nl->First(args);
     ListExpr second = nl->Second(args);
     ListExpr third = nl->Third(args);
+    ListExpr fourth =  nl->Fourth(args);
 
     if (KDTree2D::checkType(first) && Rectangle<2>::checkType(second)
-      && Rectangle<2>::checkType(third)) {
-      return nl->SymbolAtom(CcInt::BasicType());
+      && Rectangle<2>::checkType(third) && CcInt::checkType(fourth)) {
+      return nl->SymbolAtom(CcBool::BasicType());
     }
   }
 
-  const std::string errMsg = "The following three arguments are expected:"
-      " 2dtree x rect x rect";
+  const std::string errMsg = "The following four arguments are expected:"
+      " 2dtree x rect x rect x int";
 
   return  listutils::typeError(errMsg);
 }
@@ -1837,7 +1838,6 @@ GetLeaf(KDNodeList* node, double le, double ri,
   // reached the end of the branch => get cellId
   if(node->isLeaf()) {
     cell_ids->insert(node->getCellId());
-    printf("\n is leaf, return");
     return;
     }
 
@@ -2167,14 +2167,17 @@ KDTree2D::Kdtree2dValueMapSCC( Word* args, Word& result, int message,
     Rectangle<2> *search_window_ptr_2
     = static_cast<Rectangle<2>*>( args[1].addr );
 
+  CcInt* cellno_ptr = static_cast<CcInt*>(args[3].addr);
+  int cellno = cellno_ptr->GetIntval();
 
   int mode_ = input_kdtree2d_ptr->getMode();
 
   if (input_kdtree2d_ptr != nullptr && search_window_ptr != nullptr
     && search_window_ptr_2 != nullptr) {
 
-      result = qp->ResultStorage(s);
-      CcInt* res = (CcInt*) result.addr;
+      result = qp->ResultStorage( s );
+      CcBool *res = (CcBool*) result.addr;
+      bool boolval = false;
 
       // first rectangle
       double le = search_window_ptr->getMinX();
@@ -2196,12 +2199,19 @@ KDTree2D::Kdtree2dValueMapSCC( Word* args, Word& result, int message,
         KDNodeList* root = nodes.back();
         GetLeaf(root, le, ri, bo, to, &cell_ids);
         GetLeaf(root, le_2, ri_2, bo_2, to_2, &cell_ids_2);
-      } else {
+      } else if(mode_ == 2) {
         std::vector<KDMedList*> nodes = 
             input_kdtree2d_ptr->getPointsMedVector();
         KDMedList* root = nodes.back();
         GetLeaf(root, le, ri, bo, to, &cell_ids);
         GetLeaf(root, le_2, ri_2, bo_2, to_2, &cell_ids_2);
+      } else {
+        cell_ids.clear();
+        cell_ids_2.clear();
+        std::vector<Cell2DTree>* cells = 
+          &input_kdtree2d_ptr->getCellVector();    
+        cellnumber(le, ri, bo, to, &cell_ids, cells);
+        cellnumber(le_2, ri_2, bo_2, to_2, &cell_ids_2, cells);
       }
 
       std::vector<int> v(sizeof(cell_ids)+ sizeof(cell_ids_2));
@@ -2213,12 +2223,19 @@ KDTree2D::Kdtree2dValueMapSCC( Word* args, Word& result, int message,
   
       if(v.empty()) { 
       //no intersection between rectangles
-        res->Set(0);
+        res->Set( true, boolval);
         return -1;
 
       }
       
-      res->Set(v.at(0));
+      if(v[0] == cellno)
+      {
+        boolval = true;
+        res->Set( true, boolval);
+        return 0;
+      }
+      
+    res->Set( true, boolval); 
 
     }
 

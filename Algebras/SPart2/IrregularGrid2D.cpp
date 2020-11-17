@@ -373,8 +373,6 @@ IrregularGrid2D::buildGrid() {
       }
     }
   }
-
-  printf("\n in build");
 }
 
 bool
@@ -503,9 +501,7 @@ ListExpr
 IrregularGrid2D::OutIrGrid2D( ListExpr typeInfo, Word value ) {
   IrregularGrid2D* irgrid2d = static_cast<IrregularGrid2D*>( value.addr );
 
-  printf("\n in out");
   if (irgrid2d != nullptr) {
-    printf("\n not null");
     Rectangle<2> * b_box = irgrid2d->getBoundingBox();
     ListExpr bboxLstExpr = nl->FourElemList(
       nl->RealAtom(b_box->getMinX()),
@@ -557,15 +553,11 @@ IrregularGrid2D::OutIrGrid2D( ListExpr typeInfo, Word value ) {
           }
           lastRowLstExpr = nl->Append(lastRowLstExpr, cellLstExpr);
         }
-        printf("\n in if before");
       }
-      printf("\n in last if");
     }
     ListExpr irgrid2dLstExpr = nl->TwoElemList(bboxLstExpr, rowLstExpr);
-    printf("\n before return listexpr");
     return irgrid2dLstExpr;
   } else {
-    printf("\n n null");
     return (nl->SymbolAtom(Symbol::UNDEFINED()));
   }
 }
@@ -989,19 +981,20 @@ IrregularGrid2D::IrGrid2dTRCTypeMap( ListExpr args )
 ListExpr
 IrregularGrid2D::IrGrid2dSCCTypeMap( ListExpr args )
 {
-  if(nl->HasLength(args, 3)) {
+  if(nl->HasLength(args, 4)) {
     ListExpr first = nl->First(args);
     ListExpr second = nl->Second(args);
     ListExpr third = nl->Third(args);
+    ListExpr fourth = nl->Fourth(args);
 
     if (IrregularGrid2D::checkType(first) && Rectangle<2>::checkType(second)
-        && Rectangle<2>::checkType(third)) {
-      return nl->SymbolAtom(CcInt::BasicType());
+        && Rectangle<2>::checkType(third) && CcInt::checkType(fourth)) {
+      return nl->SymbolAtom(CcBool::BasicType());
     }
   }
 
-  const std::string errMsg = "The following two arguments are expected:"
-      " irgrid2d x rect x rect";
+  const std::string errMsg = "The following four arguments are expected:"
+      " irgrid2d x rect x rect x int";
 
   return  listutils::typeError(errMsg);
 }
@@ -1132,4 +1125,77 @@ IrregularGrid2D::IrGrid2dValueMapCellnos( Word* args, Word& result, int message,
 }
 
 
+int
+IrregularGrid2D::IrGrid2dValueMapSCC( Word* args, Word& result, int message,
+  Word& local, Supplier s) {
+  IrregularGrid2D *input_irgrid2d_ptr
+    = static_cast<IrregularGrid2D*>( args[0].addr );
 
+  Rectangle<2> *search_window_ptr
+    = static_cast<Rectangle<2>*>( args[1].addr );
+  Rectangle<2> *search_window_ptr2
+    = static_cast<Rectangle<2>*>( args[2].addr );
+
+  CcInt* cellno_ptr = static_cast<CcInt*>(args[3].addr);
+  int cellno = cellno_ptr->GetIntval();
+
+  std::set<int> cell_ids;
+  std::set<int> cell_ids2;
+
+
+  if (input_irgrid2d_ptr != nullptr && search_window_ptr != nullptr
+    && search_window_ptr2 != nullptr) 
+  {
+    result = qp->ResultStorage( s );
+    CcBool *res = (CcBool*) result.addr;
+    bool boolval = false;
+
+    Rectangle<2> * b_box = input_irgrid2d_ptr->getBoundingBox();
+    if (!search_window_ptr->Intersects(*b_box) 
+    || !search_window_ptr2->Intersects(*b_box)) {
+      return 0;
+    }
+
+    // 'truncate' search window in case of partial cutting
+    if (!b_box->Contains(*search_window_ptr)) {
+      search_window_ptr = new Rectangle<2>(
+        search_window_ptr->Intersection(*b_box));
+
+      cell_ids.insert(0);
+    }
+
+    if (!b_box->Contains(*search_window_ptr2)) {
+      search_window_ptr2 = new Rectangle<2>(
+        search_window_ptr2->Intersection(*b_box));
+
+      cell_ids2.insert(0);
+    }
+
+    cellNum(input_irgrid2d_ptr, search_window_ptr, &cell_ids);
+    cellNum(input_irgrid2d_ptr, search_window_ptr2, &cell_ids2);
+
+    std::vector<int> v(sizeof(cell_ids)+ sizeof(cell_ids2));
+    std::vector<int>::iterator it;
+
+    it=std::set_intersection (cell_ids.begin(), cell_ids.end(),
+         cell_ids2.begin(), cell_ids2.end(), v.begin());
+    v.resize(it-v.begin());                      
+  
+    if(v.empty()) { 
+    //no intersection between rectangles
+      res->Set( true, boolval);
+      return 0;
+    }
+
+    if(v[0] == cellno)
+    {
+      boolval = true;
+      res->Set( true, boolval);
+      return 0;
+    }
+
+    res->Set( true, boolval);
+    return 0;
+  }
+  return -1;
+}

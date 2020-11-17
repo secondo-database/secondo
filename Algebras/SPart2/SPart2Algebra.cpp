@@ -328,6 +328,28 @@ int IrGrid2dCellnosSelect( ListExpr args )
   return -1; // should never occur
 }
 
+/*
+  Smallest Common Cellnumber 3D Select
+
+*/
+int IrGrid2dSCCSelect( ListExpr args )
+{
+  if (nl->ListLength(args) == 4) {
+    ListExpr first = nl->First(args);
+    ListExpr second = nl->Second(args);
+    ListExpr third = nl->Third(args);
+    ListExpr fourth = nl->Fourth(args);
+
+    if (IrregularGrid2D::checkType(first)
+      && Rectangle<2>::checkType(second)
+      && Rectangle<2>::checkType(third)
+      && CcInt::checkType(fourth)) {
+        return 0;
+    }
+  }
+  return -1;
+}
+
 /* 
   Bbox 2D Select 
 
@@ -438,14 +460,16 @@ int IrGrid3dTRCCellSelect( ListExpr args )
 */
 int IrGrid3dSCCSelect( ListExpr args )
 {
-  if (nl->ListLength(args) == 3) {
+  if (nl->ListLength(args) == 4) {
     ListExpr first = nl->First(args);
     ListExpr second = nl->Second(args);
     ListExpr third = nl->Third(args);
+    ListExpr fourth = nl->Fourth(args);
 
     if (IrregularGrid3D::checkType(first)
       && Rectangle<3>::checkType(second)
-      && Rectangle<3>::checkType(third)) {
+      && Rectangle<3>::checkType(third)
+      && CcInt::checkType(fourth)) {
         return 0;
     }
   }
@@ -551,14 +575,16 @@ int KDTree2dTRCCellSelect( ListExpr args )
 */
 int KDTree2dSCCSelect( ListExpr args )
 {
-  if (nl->ListLength(args) == 3) {
+  if (nl->ListLength(args) == 4) {
     ListExpr first = nl->First(args);
     ListExpr second = nl->Second(args);
     ListExpr third = nl->Third(args);
+    ListExpr fourth = nl->Fourth(args);
 
     if (KDTree2D::checkType(first)
       && Rectangle<2>::checkType(second)
-      && Rectangle<2>::checkType(third)) {
+      && Rectangle<2>::checkType(third)
+      && CcInt::checkType(fourth)) {
         return 0;
     }
   }
@@ -648,14 +674,16 @@ int KDTree3dTRCCellSelect( ListExpr args )
 */
 int KDTree3dSCCSelect( ListExpr args )
 {
-  if (nl->ListLength(args) == 3) {
+  if (nl->ListLength(args) == 4) {
     ListExpr first = nl->First(args);
     ListExpr second = nl->Second(args);
     ListExpr third = nl->Third(args);
+    ListExpr fourth = nl->Fourth(args);
 
     if (KDTree3D::checkType(first)
       && Rectangle<3>::checkType(second)
-      && Rectangle<3>:: checkType(third)) {
+      && Rectangle<3>:: checkType(third)
+      && CcInt::checkType(fourth)) {
         return 0;
     }
   }
@@ -786,7 +814,7 @@ ValueMapping irgdrid2dCreateMap[] = { IrGrid2dValueMapCreate };
 ValueMapping irgdrid2dFeedMap[] = { IrregularGrid2D::IrGrid2dValueMapFeed };
 ValueMapping irgdrid2dCellnosMap[]
   = { IrregularGrid2D::IrGrid2dValueMapCellnos };
-
+ValueMapping irgrid2dSCCMap[] = {IrregularGrid2D::IrGrid2dValueMapSCC };
 ValueMapping irgrid2dBBoxMap[] = {IrregularGrid3D::IrGrid2dValueMapBBox};
 
 
@@ -845,6 +873,15 @@ const string cellnosIrGrid2dSpec  =
       "covered by the given rectangle.</text--->"
       ") )";
 
+const string sccIrGrid2dSpec  =
+      "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" \"Remarks\")"
+      "( <text>(irgrid2d x rect2 x rect2 x int) -> bool</text--->"
+      "<text>ssc_ir2d(_, _, _, _)</text--->"
+      "<text>returns true if int equals "
+      " the id of the smallest common cellnumber "
+      "of the two rectangles<2>.</text--->"
+      ") )";
+
 const string bboxIrGrid2dSpec  =
       "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" \"Remarks\")"
       "( <text>(stream<rect>) -> rect</text--->"
@@ -899,9 +936,10 @@ const string trcCellIrGrid3dSpec  =
 
 const string sccIrGrid3dSpec  =
       "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" \"Remarks\")"
-      "( <text>(irgrid3d x rect3 x rect3) -> intset</text--->"
-      "<text>ssc_ir3d(_, _, _)</text--->"
-      "<text>get the id of the smallest common cellnumber "
+      "( <text>(irgrid3d x rect3 x rect3 x int) -> bool</text--->"
+      "<text>ssc_ir3d(_, _, _,_)</text--->"
+      "<text>returns true if int eqauls "
+      " the id of the smallest common cellnumber "
       "of the two rectangles<3>.</text--->"
       ") )";
 
@@ -948,9 +986,10 @@ const string trcKDTree2dSpec  =
 
 const string sccKDTree2dSpec  =
       "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" \"Remarks\")"
-      "( <text>(kdtree2d x rect2 x rect2) -> int</text--->"
-      "<text>scc_kd(_, _,_)</text--->"
-      "<text>get the id of the smallest common"
+      "( <text>(kdtree2d x rect2 x rect2 x int) -> bool</text--->"
+      "<text>scc_kd(_, _,_;_)</text--->"
+      "<text>returns true if int equals "
+      " the id of the smallest common"
       " cellnumber of two cells.</text--->"
       ") )";            
 
@@ -1007,9 +1046,10 @@ const string trcKDTree3dSpec  =
 
 const string sccKDTree3dSpec  =
       "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" \"Remarks\")"
-      "( <text>(kdtree3d x rect3 x rect3) -> int</text--->"
-      "<text>scc_3d(_, _,_)</text--->"
-      "<text>get the id of the smallest common"
+      "( <text>(kdtree3d x rect3 x rect3 x int) -> bool</text--->"
+      "<text>scc_3d(_, _,_,_)</text--->"
+      "<text> return true if int equals "
+      " id of the smallest common"
       " cellnumber of two rectangles.</text--->"
       ") )";  
 
@@ -1037,6 +1077,13 @@ Operator cellnosirgrid2d( "cellnos_ir",
     irgdrid2dCellnosMap,
     IrGrid2dCellnosSelect,
     IrregularGrid2D::IrGrid2dCellnosTypeMap );
+
+Operator sccirgrid2d( "scc_ir2d",
+    sccIrGrid2dSpec,
+    1,
+    irgrid2dSCCMap,
+    IrGrid2dSCCSelect,
+    IrregularGrid2D::IrGrid2dSCCTypeMap );
 
 Operator bboxirgrid2d( "bbox_grid",
     bboxIrGrid2dSpec,
@@ -1201,6 +1248,7 @@ class SPart : public Algebra {
       AddOperator( &createirgrid2d );
       AddOperator( &feedirgrid2d );
       AddOperator( &cellnosirgrid2d );
+      AddOperator( &sccirgrid2d );
       AddOperator( &createirgrid3d );
       AddOperator( &feedirgrid3d );
       AddOperator( &cellnosirgrid3d );

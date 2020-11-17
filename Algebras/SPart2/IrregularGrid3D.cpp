@@ -1353,14 +1353,15 @@ IrregularGrid3D::IrGrid3dTRCCellIdTypeMap( ListExpr args )
 ListExpr
 IrregularGrid3D::IrGrid3dSCCTypeMap( ListExpr args )
 {
-  if(nl->HasLength(args, 3)) {
+  if(nl->HasLength(args, 4)) {
     ListExpr first = nl->First(args);
     ListExpr second = nl->Second(args);
     ListExpr third = nl->Third(args);
+    ListExpr fourth = nl->Fourth(args);
 
     if (IrregularGrid3D::checkType(first) && Rectangle<3>::checkType(second)
-        && Rectangle<3>::checkType(third)) {
-      return nl->SymbolAtom(CcInt::BasicType());
+        && Rectangle<3>::checkType(third) && CcInt::checkType(fourth)) {
+      return nl->SymbolAtom(CcBool::BasicType());
     }
   }
 
@@ -1424,9 +1425,6 @@ CellBS(const std::vector<C>* c_vec, int start, int end, const double val) {
     return -1;
   }
   const int mid = start + ((end - start) / 2);
-  printf("\n before if in cellbs");
-  printf("\n mid: %d --- start: %d, end: %d, sizevec: %d",
-   mid, start, end, (int)c_vec->size());
   if (InCell(c_vec->at(mid), val)) {
     return mid;
   } else if (GtCell(c_vec->at(mid), val)) {
@@ -1456,29 +1454,21 @@ cellNum(IrregularGrid3D *input_irgrid3d_ptr,
     // check for 3d
     if(le == ri || bo == to || fr == ba)
     {
-      printf("\n le: %.2f, ri: %.2f, bo: %.2f, to: %.2f, fr: %2.f, ba: %2.f", 
-      le, ri, bo, to, fr, ba);
-
       cell_ids->insert(0);
       return; 
     }
 
     int pos_bo = CellBS(col, 0, col->size(), bo);
-    printf("\n pos_bo: %d", pos_bo);
     if (pos_bo != -1) {
       VCell3D vCell = col->at(pos_bo);
-      printf("\n vcell: %.2f, %.2f", vCell.getValFrom(), vCell.getValTo());
       std::vector<HCell3D>* row = &vCell.getRow();
 
       int pos_le = CellBS(row, 0, row->size(), le);
-      printf("\n pos_le: %d", pos_le);
       if (pos_le != -1) {
         HCell3D hcell = row->at(pos_le);
-        printf("\n hcell: %.2f, %.2f", hcell.getValFrom(), hcell.getValTo());
         std::vector<SCell>* cells = &hcell.getRect();
 
         int pos_fr = CellBS(cells, 0, cells->size(), fr);
-        printf("\n pos_fr: %d", pos_fr);
         if(pos_fr != -1) {
 
           // collect ids
@@ -1487,54 +1477,38 @@ cellNum(IrregularGrid3D *input_irgrid3d_ptr,
           SCell begin_i = cells->at(cellIdx); // first cell
           while (cellIdx < cells->size()) {
             SCell i = cells->at(cellIdx);
-            printf("\n Scell: %.2f, %.2f", i.getValFrom(), i.getValTo());
             cell_ids->insert(i.getCellId());
 
 
             if((ba >= i.getValFrom() && ba <= i.getValTo())
               || (cellIdx == cells->size()-1 && ba >= i.getValFrom())) {
                 SCell fi = cells->at(pos_fr);
-                printf("\n fi: %.2f, %.2f", fi.getValFrom(), fi.getValTo());
 
                 if(ri > hcell.getValTo() && fi.getNeighbor() != nullptr) {
-                  printf("\n row size: %d, posle: %d",
-                   (int)row->size(), pos_le);
-                  //if(++pos_le < (int)row->size()) {
                     hcell = row->at(++pos_le);
                     cells = &hcell.getRect();
 
                     SCell* u = fi.getNeighbor();
-                    printf("\n u: %d", u->getCellId());
 
                     int nbr_cpr = input_irgrid3d_ptr->getLayerCount();
                     int cid_pos = (u->getCellId()) % nbr_cpr;
                     pos_fr = cid_pos == 0 ? nbr_cpr-1 : cid_pos-1;
 
-                    printf("\n nbr_cpr: %d, cid_pos: %d, pos_fr: %d",
-                     nbr_cpr, cid_pos, pos_fr);
-
                     cellIdx = pos_fr-1;
-                  //} //else if{}
-
 
                 } else if (ri <= hcell.getValTo() || 
                   fi.getNeighbor() == nullptr) {
                   if (to > vCell.getValTo() && begin_i.getUpper() != nullptr) {
                     SCell* up = begin_i.getUpper();
-                    printf("\n up: %d", up->getCellId());
 
                     int nbr_cpr = input_irgrid3d_ptr->getLayerCount();
                     int cid_pos = (up->getCellId()) % nbr_cpr;
                     pos_fr = cid_pos == 0 ? nbr_cpr-1 : cid_pos-1;
-                    printf("\n nbr_cpr: %d, cid_pos: %d, pos_fr: %d",
-                     nbr_cpr, cid_pos, pos_fr);
 
 
                     cellIdx = pos_fr-1;
                      int pos_test = pos_bo +1;
                     if(pos_test < (int)col->size()) {
-                      printf("\n pos bo: %d, col size: %d",
-                       pos_bo, (int)col->size());
                     row = &col->at(++pos_bo).getRow();  // one row up
                     hcell = row->at(pos_left);
                     cells = &hcell.getRect();
@@ -1581,7 +1555,6 @@ IrregularGrid3D::IrGrid3dValueMapCellnos( Word* args, Word& result, int message,
       b_box->getMinY() > b_box->getMaxY()
     ||b_box->getMinZ() > b_box->getMaxZ())
     {
-      printf("\n not a right rectangle");
       return 0;
     }
 
@@ -1749,13 +1722,17 @@ IrregularGrid3D::IrGrid3dValueMapSCC( Word* args, Word& result, int message,
   Rectangle<3> *search_window_ptr_2
     = static_cast<Rectangle<3>*>( args[2].addr );
 
+  CcInt* cellno_ptr = static_cast<CcInt*>(args[3].addr);
+  int cellno = cellno_ptr->GetIntval();
+
   if (input_irgrid3d_ptr != nullptr && search_window_ptr != nullptr
       && search_window_ptr_2 != nullptr) {
     std::set<int> cell_ids;
     std::set<int> cell_ids_2;
 
-    result = qp->ResultStorage(s);
-    CcInt* res = (CcInt*) result.addr;
+    result = qp->ResultStorage( s );
+    CcBool *res = (CcBool*) result.addr;
+    bool boolval = false;
 
     cellNum(input_irgrid3d_ptr, search_window_ptr, &cell_ids);
     cellNum(input_irgrid3d_ptr, search_window_ptr_2, &cell_ids_2);
@@ -1769,13 +1746,17 @@ IrregularGrid3D::IrGrid3dValueMapSCC( Word* args, Word& result, int message,
   
     if(v.empty()) { 
     //no intersection between rectangles
-      res->Set(0);
-      return -1;
-
+      res->Set( true, boolval);
+      return 0;
     }
 
-    res->Set(v.at(0));
-  
+    if(v[0] == cellno)
+    {
+      boolval = true;
+      res->Set( true, boolval);
+      return 0;
+    }
+    res->Set( true, boolval);  
   }
 
   return 0;
