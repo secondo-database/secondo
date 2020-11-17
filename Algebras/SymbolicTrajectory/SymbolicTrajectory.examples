@@ -199,10 +199,17 @@ Signature : mT -> stream(text), where T in {label(s), place(s)}
 Example   : query getlabels(Dotraj feed extract[Trajectory]) count
 Result    : 10
 
+Operator  : createlexicon
+Number    : 1
+Signature : stream(tuple(X)) x ATTR -> invfile
+Example   : query Dotraj feed createlexicon[Trajectory] searchWord['Innenstadt-Ost'] extract[WordPos]
+Result    : 8
+
+
 Operator  : frequencyvector
 Number    : 1
 Signature : mT x invfile -> vector(int), where T in {label(s), place(s)}
-Example   : query size(frequencyvector(Dotraj feed extract[Trajectory], Dotraj feed projectextendstream[; L: getlabels(.Trajectory)] sort rdup consume feed addid createInvFile[L, TID, FALSE, 1, '', ""]))
+Example   : query size(frequencyvector(Dotraj feed extract[Trajectory], Dotraj feed createlexicon[Trajectory]))
 Result    : 12
 
 Operator  : cosinesim

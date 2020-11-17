@@ -3692,6 +3692,125 @@ Operator getlabels("getlabels", getlabelsSpec, 4, getlabelsVMs,
                    distancesymSelect, getlabelsTM);
 
 /*
+\section{Operator ~createlexicon~}
+
+\subsection{Type Mapping}
+
+*/
+ListExpr createlexiconTM(ListExpr args) {
+  string err = "Operator expects a stream of tuples and the name of an "
+               "mlabel(s) or mplace(s) attribute.";
+  if (!nl->HasLength(args, 2)) {
+    return listutils::typeError(err + " (" 
+     + stringutils::int2str(nl->ListLength(args)) + " arguments instead of 2)");
+  }
+  if (!listutils::isTupleStream(nl->First(args))) {
+    return listutils::typeError(err + " (no tuple stream received)");
+  }
+  ListExpr attrList = nl->Second(nl->Second(nl->First(args)));
+  string attrName;
+  int pos = -1;
+  attrName = nl->SymbolValue(nl->Second(args));
+  ListExpr type;
+  pos = listutils::findAttribute(attrList, attrName, type);
+  if (pos == 0 || !Tools::isSymbolicType(type)) {
+    return listutils::typeError(err + " (" + attrName + " is not the name of "
+            + "a symbolic attribute)");
+  }
+  return nl->ThreeElemList(nl->SymbolAtom(Symbols::APPEND()),
+                           nl->OneElemList(nl->IntAtom(pos - 1)),
+                           nl->SymbolAtom(InvertedFile::BasicType()));
+}
+
+/*
+\subsection{Value Mapping}
+
+*/
+template<class T>
+int createlexiconVM(Word* args, Word& result, int message, Word& local, 
+                    Supplier s) {
+  result = qp->ResultStorage(s);
+  Stream<Tuple> stream = static_cast<Stream<Tuple> >(args[0].addr);
+  int attrno = (static_cast<CcInt*>(args[2].addr))->GetValue();
+  InvertedFile *inv = static_cast<InvertedFile*>(result.addr);
+  inv->setParams(false, 1, "");
+  vector<string> labels;
+  multiset<string> allLabels;
+  set<string> justInserted;
+  stream.open();
+  Tuple* tuple = stream.request();
+  while (tuple) {
+    T *src = (T*)(tuple->GetAttribute(attrno));
+    src->InsertLabels(labels);
+    for (auto it : labels) {
+      if (justInserted.find(it) == justInserted.end()) { // not present yet
+        justInserted.insert(it);
+        allLabels.insert(it);
+      }
+    }
+    labels.clear();
+    justInserted.clear();
+    tuple->DeleteIfAllowed();
+    tuple = stream.request();
+  }
+  stream.close();
+  size_t maxMem = 0;/*qp->GetMemorySize(s) * 1024 * 1024*/
+  size_t trieCacheSize = maxMem / 20;
+  if (trieCacheSize < 4096) {
+    trieCacheSize = 4096;
+  }
+  size_t invCacheSize;
+  if (trieCacheSize + 4096 > maxMem) {
+    invCacheSize = 4096;
+  }
+  else {
+    invCacheSize = maxMem - trieCacheSize;
+  }
+  appendcache::RecordAppendCache* cache = inv->createAppendCache(invCacheSize);
+  TrieNodeCacheType* trieCache = inv->createTrieCache(trieCacheSize);
+  string curLabel = *(allLabels.begin());
+  int freq(0), pos(0);
+  for (auto it : allLabels) {
+    if (it == curLabel) {
+      freq++;
+    }
+    else { // next label
+      inv->insertString(pos, curLabel, freq, 0, cache, trieCache);
+      curLabel = it;
+      freq = 1;
+      pos++;
+    }
+  }
+  inv->insertString(pos, curLabel, freq, 0, cache, trieCache);
+  inv->insertString(0, "ZZZ", 0, 0, cache, trieCache);
+  // TODO: find out why final entry cannot be accessed
+  delete trieCache;
+  delete cache;
+  return 0;
+}
+
+/*
+\subsection{Operator Info}
+
+*/
+struct createlexiconSpec : OperatorInfo {
+  createlexiconSpec() {
+    name      = "createlexicon";
+    signature = "stream(tuple(X)) x ATTR --> invfile";
+    syntax    = "_ createlexicon [ _ ]";
+    meaning   = "Creates a lexicon of all occurring labels, stores their "
+                "position according to lexicographic order and the number of "
+                "tuples they occur in.";
+  }
+};
+
+ValueMapping createlexiconVMs[] = {createlexiconVM<MLabel>, 
+  createlexiconVM<MLabels>, createlexiconVM<MPlace>, createlexiconVM<MPlaces>};
+
+Operator createlexicon(createlexiconSpec(), createlexiconVMs, 
+                       derivegroupsSelect, createlexiconTM);
+
+/*
 \section{Operator ~frequencyvector~}
 
 \subsection{Type Mapping}
@@ -3723,13 +3842,14 @@ int frequencyvectorVM(Word* args, Word& result, int message, Word& local,
   T* src = static_cast<T*>(args[0].addr);
   InvertedFile* inv = static_cast<InvertedFile*>(args[1].addr);
   result = qp->ResultStorage(s);
-  collection::Collection* res = (collection::Collection*)result.addr;
+  collection::Collection* res = 
+                              static_cast<collection::Collection*>(result.addr);
+  res->Clear();
   if (!src->IsDefined()) {
     res->SetDefined(false);
     return 0;
   }
-  vector<int> fv(inv->getNoEntries(), 0);
-//   vector<int> fv(30, 0);
+  vector<int> fv(inv->getNoEntries() - 1, 0);
   src->FrequencyVector(*inv, fv);
   for (unsigned int i = 0; i < fv.size(); i++) {
     CcInt *elem = new CcInt(true, fv[i]);
@@ -3996,6 +4116,8 @@ class SymbolicTrajectoryAlgebra : public Algebra {
   spade.SetUsesMemory();
   
   AddOperator(&getlabels);
+  
+  AddOperator(&createlexicon);
   
   AddOperator(&frequencyvector);
   
