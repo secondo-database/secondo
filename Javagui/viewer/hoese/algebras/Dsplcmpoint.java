@@ -1,32 +1,3 @@
-//This file is part of SECONDO.
-
-//Copyright (C) 2004, University in Hagen, Department of Computer Science, 
-//Database Systems for New Applications.
-
-//SECONDO is free software; you can redistribute it and/or modify
-//it under the terms of the GNU General Public License as published by
-//the Free Software Foundation; either version 2 of the License, or
-//(at your option) any later version.
-
-//SECONDO is distributed in the hope that it will be useful,
-//but WITHOUT ANY WARRANTY; without even the implied warranty of
-//MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//GNU General Public License for more details.
-
-//You should have received a copy of the GNU General Public License
-//along with SECONDO; if not, write to the Free Software
-//Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-
-//
-//
-// This class is part of the implementation of the HierarchicalGeoAlgebra,
-// implemented to display uncertain moving point-objects by an ellipse, whose
-// size represents the uncertainty value.
-//
-// September 2007
-//
-// Autor: Sascha Vaut
-// 
 package  viewer.hoese.algebras;
 
 import java.awt.geom.*;
@@ -40,25 +11,20 @@ import tools.Reporter;
 
 
 /**
- * A displayclass for the uncertainmovingpoint-type (HierarchicalGeoAlgebra), 2D with TimePanel
+ * A displayclass for the cmpoint  for TemporalAlgebra
  */
 public class Dsplcmpoint extends DisplayTimeGraph implements LabelAttribute, RenderAttribute {
-  //AffineTransform internAT;
   Point2D.Double point;
   Vector PointMaps;
   Rectangle2D.Double bounds;
   double minValue = Integer.MAX_VALUE;
   double maxValue = Integer.MIN_VALUE;
   boolean defined;
-  double epsilon = 0.0;
+  double radius = 0.0;
   static java.text.DecimalFormat format = new java.text.DecimalFormat("#.#####");
-
-
   public int numberOfShapes(){
      return 1;
   }
-
-  
 
   /** Returns a short text usable as label **/
   public String getLabel(double time){
@@ -81,12 +47,10 @@ public class Dsplcmpoint extends DisplayTimeGraph implements LabelAttribute, Ren
 
   }
 
-
   /**
    * Gets the shape of this instance at the ActualTime
    * @param at The actual transformation, used to calculate the correct size.
    * @return Rectangle or Circle Shape if ActualTime is defined otherwise null.
-   * @see <a href="Dsplmovingpointsrc.html#getRenderObject">Source</a>
    */
   public Shape getRenderObject (int num,AffineTransform at) {
     if(num!=0){
@@ -115,9 +79,9 @@ public class Dsplcmpoint extends DisplayTimeGraph implements LabelAttribute, Ren
 
     point = new Point2D.Double(x, y);
      double ps = Cat.getPointSize(renderAttribute,CurrentState.ActualTime);
-    // The higth and width of the ellipse is related to the epsilon-value.
-    // For epsilon is the radius, but pix / pixy denote the complete width / higth
-    // of the point-object, they are set to 2*epsilon.
+    // The higth and width of the circle is related to the radius-value.
+    // But pix / pixy denote the complete width / higth
+    // of the point-object, they are set to 2*radius.
     double pixy = 0;
     double pix = 0;
     if( e == 0.0 )
@@ -140,10 +104,9 @@ public class Dsplcmpoint extends DisplayTimeGraph implements LabelAttribute, Ren
   }
 
   /**
-   * Reads the coefficients out of ListExpr for a map
+   * Reads the coefficients out of ListExpr for the point and radius
    * @param le ListExpr of four reals.
    * @return The CPointMap that was read.
-   * @see <a href="Dsplmovingpointsrc.html#readPointMap">Source</a>
    */
   private CPointMap readCPointMap(double e, ListExpr le) {
     Double value[] =  {
@@ -183,11 +146,10 @@ public class Dsplcmpoint extends DisplayTimeGraph implements LabelAttribute, Ren
    * Scans the representation of a movingpoint datatype
    * @param v A list of start and end intervals with ax,bx,ay,by values
    * @see sj.lang.ListExpr
-   * @see <a href="Dsplmovingpointsrc.html#ScanValue">Source</a>
    */
   private void ScanValue (ListExpr v) {
     err = true;
-    epsilon = 0.0;
+    radius = 0.0;
     double tmpepsilon;
     if (v.isEmpty()){ //empty point
       Intervals=null;
@@ -198,49 +160,34 @@ public class Dsplcmpoint extends DisplayTimeGraph implements LabelAttribute, Ren
     }
     while (!v.isEmpty()) {      // unit While maybe empty
       ListExpr acunit = v.first();
-      ListExpr tmp = acunit;
+      ListExpr tmp = v.first();
       int L = acunit.listLength();
-      if(L!=2){
-         Reporter.debug("wrong ListLength in reading uncertain moving point unit");
+      if(L!=3){
+         Reporter.debug("wrong ListLength in reading cmpoint unit");
          defined = false;
          return;
       }
       // deprecated version of external representation
       Interval in=null;
       CPointMap pm=null;
-      // The deprecated version fits only to the 'certain' type moving point and can be ignored here.
-      /*if (L == 8){
-         Reporter.writeWarning("Warning: using deprecated external representation of a moving point !");
-         in = LEUtils.readInterval(ListExpr.fourElemList(aunit.first(),
-                                   aunit.second(), aunit.third(), aunit.fourth()));
-         aunit = aunit.rest().rest().rest().rest();
-         pm = readCPointMap(ListExpr.fourElemList(aunit.first(), aunit.second(),
-                           aunit.third(), aunit.fourth()));
-      }*/
       // the corrected version of external representation
-      if(L==2){
-         epsilon = LEUtils.readNumeric(acunit.first()).doubleValue();
-         //if(tmpepsilon > epsilon) {
-         //   epsilon = tmpepsilon;
-         //}
+      if(L==3){
+         radius = LEUtils.readNumeric(acunit.third()).doubleValue();
          ListExpr aunit = acunit.second();
          int Ll = aunit.listLength();
-         if(Ll!=2){
-            Reporter.debug("wrong ListLength in reading moving point unit");
+         if(Ll!=4){
+            Reporter.debug("wrong ListLength in reading  cmpoint unit");
             defined = false;
             return;
          }
-         in = LEUtils.readInterval(aunit.first());
-         pm = readCPointMap(epsilon, aunit.second());
+         in = LEUtils.readInterval(acunit.first());
+         pm = readCPointMap(radius, acunit.second());
       }
 
       if ((in == null) || (pm == null)){
         
          Reporter.debug("Error in reading Unit");
          Reporter.debug(tmp.writeListExprToString());
-         if(in==null){
-              Reporter.debug("Error in reading uncertainty-value");
-         }
          if(in==null){
               Reporter.debug("Error in reading interval");
           }
@@ -274,8 +221,8 @@ public class Dsplcmpoint extends DisplayTimeGraph implements LabelAttribute, Ren
     PointMaps = new Vector(length+2);
     ScanValue(value);
     if (err) {
-      Reporter.writeError("Dsplmovingpoint Error in ListExpr :parsing aborted");
-      qr.addEntry(new String("(" + AttrName + ": GTA(mpoint))"));
+      Reporter.writeError("Dsplcmpoint Error in ListExpr :parsing aborted");
+      qr.addEntry(new String("(" + AttrName + ": (cmpoint))"));
       return;
     }
     else
@@ -291,18 +238,18 @@ public class Dsplcmpoint extends DisplayTimeGraph implements LabelAttribute, Ren
       
       // To expand the bounding box by the epsilon-value, it is necessary to sort the x- and y-values:
       if (pm.x1 <= pm.x2) {
-         xlow = pm.x1 - epsilon;
-         xhigh = pm.x2 + epsilon;
+         xlow = pm.x1 - radius;
+         xhigh = pm.x2 + radius;
       } else {
-         xlow = pm.x2 - epsilon;
-         xhigh = pm.x1 + epsilon;
+         xlow = pm.x2 - radius;
+         xhigh = pm.x1 + radius;
       }
       if (pm.y1 <= pm.y2) {
-         ylow = pm.y1 - epsilon;
-         yhigh = pm.y2 + epsilon;
+         ylow = pm.y1 - radius;
+         yhigh = pm.y2 + radius;
       } else {
-         ylow = pm.y2 - epsilon;
-         yhigh = pm.y1 + epsilon;
+         ylow = pm.y2 - radius;
+         yhigh = pm.y1 + radius;
       }
       // Create the bounding box from the expanded coordinates:
       Rectangle2D.Double r = new Rectangle2D.Double(xlow,ylow,0,0);
@@ -320,7 +267,6 @@ public class Dsplcmpoint extends DisplayTimeGraph implements LabelAttribute, Ren
 
   /**
    * @return The overall boundingbox of the movingpoint
-   * @see <a href="Dspluncertainmovingpointsrc.html#getBounds">Source</a>
    */
   public Rectangle2D.Double getBounds () {
     return  bounds;
