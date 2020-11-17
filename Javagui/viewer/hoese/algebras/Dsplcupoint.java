@@ -1,24 +1,4 @@
-//This file is part of SECONDO.
-
-//Copyright (C) 2004, University in Hagen, Department of Computer Science, 
-//Database Systems for New Applications.
-
-//SECONDO is free software; you can redistribute it and/or modify
-//it under the terms of the GNU General Public License as published by
-//the Free Software Foundation; either version 2 of the License, or
-//(at your option) any later version.
-
-//SECONDO is distributed in the hope that it will be useful,
-//but WITHOUT ANY WARRANTY; without even the implied warranty of
-//MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//GNU General Public License for more details.
-
-//You should have received a copy of the GNU General Public License
-//along with SECONDO; if not, write to the Free Software
-//Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-
 package  viewer.hoese.algebras;
-
 import java.awt.geom.*;
 import java.awt.*;
 import viewer.*;
@@ -30,18 +10,17 @@ import tools.Reporter;
 
 
 /**
- * A displayclass for a single unit of the moving point type
+ * A displayclass for a cupoint
  */
 public class Dsplcupoint extends DisplayTimeGraph {
-  
   private double x1,x2,y1,y2;
-  private double epsilon = -1;
+  private double radius = -1;
   private Point2D.Double point;
   private Rectangle2D.Double bounds=null;
   private Interval theInterval;
   private static JPanel EmptyPanel = new JPanel();
   private RectangularShape shp;
-
+  static java.text.DecimalFormat format = new java.text.DecimalFormat("#.#####");
   public boolean isPointType(int num){
      return true;
   }
@@ -50,6 +29,26 @@ public class Dsplcupoint extends DisplayTimeGraph {
   public int numberOfShapes(){
       return 1;
   }
+/*
+  public String getLabel(double time){
+    if(Intervals==null){
+      return null;
+    }
+    double t = RefLayer.getActualTime(); // get the current time
+    if(!theInterval.isDefinedAt(t)){ // t is outside from the deftime
+      point = null;
+      return null;
+    }
+    double t1 = theInterval.getStart();
+    double t2 = theInterval.getEnd();
+    double Delta = (time-t1)/(t2-t1);
+    double e = epsilon;
+    double x = x1+Delta*(x2-x1);
+    double y = y1+Delta*(y2-y1);
+    return "("+format.format(e)+"("+format.format(x)+", "+ format.format(y)+"))";
+
+  }
+*/
 
   /** Computes the Renderobject at the given point in time */
   public Shape getRenderObject (int num,AffineTransform at) {
@@ -69,13 +68,11 @@ public class Dsplcupoint extends DisplayTimeGraph {
 
     point = new Point2D.Double(x, y);
     double ps = Cat.getPointSize(renderAttribute,CurrentState.ActualTime);
-    // The higth and width of the ellipse is related to the epsilon-value.
-    // For epsilon is the radius, but pix / pixy denote the complete width / higth
-    // of the point-object, they are set to 2*epsilon.
-    double pixy = Math.abs(2*epsilon);
-    //double pix = Cat.getPointSize();
-    double pix = Math.abs(2*epsilon);
-    //Point2D p=at.transform(point,p);
+    // The higth and width of the circle is related to the radius-value.
+    // but pix / pixy denote the complete width / higth
+    // of the point-object, they are set to 2*radius.
+    double pixy = Math.abs(2* radius);
+    double pix = Math.abs(2* radius);
     if (Cat.getPointasRect())
       shp = new Rectangle2D.Double(point.getX()- pix/2, point.getY() - pixy/2, pix, pixy);
     else {
@@ -86,7 +83,7 @@ public class Dsplcupoint extends DisplayTimeGraph {
 
 
   /**
-   * Scans the representation of a upoint datatype
+   * Scans the representation of a cupoint datatype
    * @param v interval with x1,x2,y1,y2 values
    * @see sj.lang.ListExpr
    */
@@ -94,19 +91,18 @@ public class Dsplcupoint extends DisplayTimeGraph {
     err = true;
     if (v.isEmpty())
       return;
-    if(v.listLength()!=2) // list must have the form 
-                          //(epsilon ((interval)(x1 y1 x2 y2)))
+    if(v.listLength()!=3) // list must have the form
+                          //(((interval)(x1 y1 x2 y2))radius)
        return; 
 
-    epsilon = LEUtils.readNumeric(v.first()).doubleValue();
-    ListExpr upoint = v.second();
-    theInterval = LEUtils.readInterval(upoint.first());
+    radius = LEUtils.readNumeric(v.third()).doubleValue();
+    theInterval = LEUtils.readInterval(v.first());
     if(theInterval==null) // error in reading interval
        return;  
 
-    ListExpr StartEnd = upoint.second();
-    if(StartEnd.listLength()!=4) // error in reading start and end point
-       return; 
+    ListExpr StartEnd = v.second(); //cupoint.second();
+    if(StartEnd.listLength()!=4) // error in reading start and end point (coordinates)
+       return;
     Double X1 = LEUtils.readNumeric(StartEnd.first());
     Double Y1 = LEUtils.readNumeric(StartEnd.second());
     Double X2 = LEUtils.readNumeric(StartEnd.third());
@@ -135,12 +131,11 @@ public class Dsplcupoint extends DisplayTimeGraph {
     ScanValue(value);
     if (err) {
       Reporter.writeError("Dsplcupoint Error in ListExpr :parsing aborted");
-      qr.addEntry(new String("(" + AttrName + ": GTA(cupoint))"));
+      qr.addEntry(new String("(" + AttrName + ": (cupoint))"));
       return;
     }
     else
       qr.addEntry(this);
-    //ListIterator li=iv.listIterator();
   }
 
   /* Returns an empty JPanel at this time */
@@ -162,7 +157,6 @@ public boolean contains (double xpos, double ypos, double scalex, double scaley)
 
   /**
    * @return The overall boundingbox of the upoint
-   * @see <a href="Dsplmovingpointsrc.html#getBounds">Source</a>
    */
   public Rectangle2D.Double getBounds () {
     return  bounds;
