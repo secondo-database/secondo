@@ -25,9 +25,9 @@ Remark   :
 
 Operator : sccvoronoi
 Number   : 1
-Signature: (stream (tuple (..., (ak1 TK1),...))) x ak1 x ak2 x bool x rect2 x rect2 -> int
-Example  : query sccvoronoi((convtest feed voronoi [Punkt, Conv, [const rect value (-10 10 -10 10)], FALSE] project[Conv] consume), rectangle2(-1.0, 4.0, 0.0, 2.0), rectangle2(5.0, 7.0, -0.5, 0.5))
-Result   : 5
+Signature: (stream (tuple (..., (ak1 TK1),...))) x ak1 x ak2 x bool x rect2 x rect2 x int -> bool
+Example  : query sccvoronoi((convtest feed voronoi [Punkt, Conv, [const rect value (-10 10 -10 10)], FALSE] project[Conv] consume), rectangle2(-1.0, 4.0, 0.0, 2.0), rectangle2(5.0, 7.0, -0.5, 0.5),2)
+Result   : TRUE
 
 Operator : trcvoronoi
 Number   : 1
@@ -65,7 +65,7 @@ Remark   :
 
 Operator : sccvoronoi3d
 Number   : 1
-Signature: (stream (tuple (..., (ak1 TK1),...))) x ak1 x ak2 x bool x rect3 x rect3 -> int
+Signature: (stream (tuple (..., (ak1 TK1),...))) x ak1 x ak2 x bool x rect3 x rect3 x int -> bool
 Example  : query sccvoronoi3d([const rect3 value (0.1 0.4 0.1 0.4 0.1 0.4)] feed [const rect3 value (0.8 1.0 0.8 1.0 0.8 1.0)] feed concat feed [const rect3 value (1.0 2.0 1.0 2.0 1.0 2.0)] feed concat feed [const rect3 value (0.5 1.5 0.5 1.0 0.5 1.0)] feed concat feed [const rect3 value (1.0 2.0 1.0 1.4 1.0 1.8)] feed concat voronoi3d[rectangle3(0.0, 2.0, 0.0, 2.0, 0.0, 2.0)], rectangle3(0.25, 1.0, 0.25, 0.5, 0.25, 0.5), rectangle3(0.1, 1.0, 0.25, 0.8, 0.25, 0.5))
 Result   : 1
 

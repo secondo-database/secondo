@@ -306,6 +306,15 @@ class Convex3D {
 
     std::vector<Point3D> &getPointsVector();
     void setPointsVector(std::vector<Point3D> pointsvec);
+
+    std::vector<Point3D> &getVerticeVector();
+    void setVerticeVector(std::vector<Point3D> verticevec);
+    std::vector<std::vector<int>> &getFacesVector();
+    void setFacesVector(std::vector<std::vector<int>> facevec);
+    std::vector<std::vector<int>> &getV2TVector();
+    void setV2TVector(std::vector<std::vector<int>> v2tvec);
+    std::vector<std::vector<int>> &getF2TVector();
+    void setF2TVector(std::vector<std::vector<int>> f2tvec);
     
 
    // Algebra supporting functions
@@ -348,8 +357,27 @@ class Convex3D {
     // vector with points of input cuboids
     std::vector<Point3D> points {};
 
+    // Data structure for delaunay
+    // Vector of vertices
+    std::vector<Point3D> vertices {};
+    // Vector of faces with indices to points included by face
+    // 3 points per face
+    std::vector<std::vector<int>> faces {};
+    // vector tetrahedrons from vertices
+    // with indices to vertices
+    std::vector<std::vector<int>> v2t {};
+    // vector tetrahedrons from faces 
+    // with indices to faces
+    std::vector<std::vector<int>> f2t {};
+
+
     void CreateVoronoi3D(Stream<Rectangle<3>> rStream);
     void buildVoronoi3D(Stream<Rectangle<3>> rStream);
+    void createDelaunay (std::vector<Point3D> points,
+         std::vector<Tetrahedron>* tetravec);
+    bool faceIn(std::vector<int> face, int* pos);
+    bool tetExists(int a, int b, int p, int d, int* pos);
+    bool duplicateP(Point3D p);
     
     // cellId => polyhedronId
     int polyhedronId;
