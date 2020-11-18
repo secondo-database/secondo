@@ -1365,8 +1365,26 @@ IrregularGrid3D::IrGrid3dSCCTypeMap( ListExpr args )
     }
   }
 
-  const std::string errMsg = "The following three arguments are expected:"
-      " irgrid3d x rect3d x rect3";
+  const std::string errMsg = "The following four arguments are expected:"
+      " irgrid3d x rect3d x rect3 x int";
+
+  return  listutils::typeError(errMsg);
+}
+
+ListExpr
+IrregularGrid3D::IrGrid3dGetCellTypeMap( ListExpr args )
+{
+  if(nl->HasLength(args, 2)) {
+    ListExpr first = nl->First(args);
+    ListExpr second = nl->Second(args);
+
+    if (IrregularGrid3D::checkType(first) && CcInt::checkType(second)) {
+      return nl->SymbolAtom(Rectangle<3>::BasicType());
+    }
+  }
+
+  const std::string errMsg = "The following two arguments are expected:"
+      " irgrid3d x int";
 
   return  listutils::typeError(errMsg);
 }
@@ -1761,6 +1779,57 @@ IrregularGrid3D::IrGrid3dValueMapSCC( Word* args, Word& result, int message,
 
   return 0;
 
+}
+
+/*
+  Value Mapping function of operator ~getCell~
+
+*/
+int
+IrregularGrid3D::IrGrid3dValueMapGetCell(Word* args, Word& result, int message,
+    Word& local, Supplier s)
+{
+
+  IrregularGrid3D *input_irgrid3d_ptr
+    = static_cast<IrregularGrid3D*>( args[0].addr );
+
+  CcInt* cellno_ptr = static_cast<CcInt*>(args[1].addr);
+  int cellno = cellno_ptr->GetIntval();
+
+  if (input_irgrid3d_ptr != nullptr)
+  {
+    result = qp->ResultStorage( s );
+    Rectangle<3> *res = (Rectangle<3>*) result.addr;
+
+    std::vector<VCell3D>* column = &input_irgrid3d_ptr->getColumnVector();
+    for(size_t i = 0; i < column->size(); i++)
+    {
+      VCell3D vCell = column->at(i);
+      std::vector<HCell3D>* row = &vCell.getRow();
+      for(size_t ii=0; ii < row->size(); ii++)
+      {
+        HCell3D hCell = row->at(ii);
+        std::vector<SCell>* cell = &hCell.getRect();
+        for(size_t iii=0; iii < cell->size(); iii++)
+        {
+          SCell c = cell->at(iii);
+          if(cellno == c.getCellId())
+          {
+            double min[3], max[3];
+            min[0] = hCell.getValFrom();
+            min[1] = vCell.getValFrom();
+            min[2] = c.getValFrom();
+            max[0] = hCell.getValTo();
+            max[1] = vCell.getValTo();
+            max[2] = c.getValTo();
+            res->Set(true, min, max);
+            return 0;
+          }
+        }
+      }
+    }
+  }
+  return -1;
 }
 
 /*

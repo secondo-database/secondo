@@ -216,6 +216,8 @@ class KDTree2D {
     static ListExpr Kdtree2dTRCCellIdTypeMap( ListExpr args );
 
     static ListExpr Kdtree2dSCCTypeMap( ListExpr args );
+    static ListExpr Kdtree2dGetCellTypeMap( ListExpr args );
+
 
     static int Kdtree2dValueMapCellnos( Word* args, Word& result, int message,
       Word& local, Supplier s );
@@ -226,6 +228,8 @@ class KDTree2D {
     static int Kdtree2dValueMapSCC( Word* args, Word& result, int message,
       Word& local, Supplier s );  
 
+    static int Kdtree2dValueMapGetCell( Word* args, Word& result, int message,
+      Word& local, Supplier s );  
 
     // Algebra supporting functions
 

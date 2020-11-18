@@ -227,6 +227,10 @@ class IrregularGrid3D {
     static int IrGrid3dValueMapSCC( Word* args, Word& result, int message,
       Word& local, Supplier s );
 
+    static ListExpr IrGrid3dGetCellTypeMap( ListExpr args );
+    static int IrGrid3dValueMapGetCell( Word* args, Word& result, int message,
+      Word& local, Supplier s );
+
     static ListExpr IrGrid3dBBoxTypeMap( ListExpr args );
     static int IrGrid3dValueMapBBox( Word* args, Word& result, int message,
       Word& local, Supplier s );

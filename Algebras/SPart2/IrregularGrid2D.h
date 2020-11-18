@@ -161,6 +161,10 @@ class IrregularGrid2D {
     static int IrGrid2dValueMapSCC( Word* args, Word& result, int message,
       Word& local, Supplier s );
 
+      static ListExpr IrGrid2dGetCellTypeMap( ListExpr args );
+    static int IrGrid2dValueMapGetCell( Word* args, Word& result, int message,
+      Word& local, Supplier s );
+
      static ListExpr IrGrid2dBBoxTypeMap( ListExpr args );
     static int IrGrid2dValueMapBBox( Word* args, Word& result, int message,
       Word& local, Supplier s );

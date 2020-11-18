@@ -329,7 +329,7 @@ int IrGrid2dCellnosSelect( ListExpr args )
 }
 
 /*
-  Smallest Common Cellnumber 3D Select
+  Smallest Common Cellnumber 2D Select
 
 */
 int IrGrid2dSCCSelect( ListExpr args )
@@ -344,6 +344,24 @@ int IrGrid2dSCCSelect( ListExpr args )
       && Rectangle<2>::checkType(second)
       && Rectangle<2>::checkType(third)
       && CcInt::checkType(fourth)) {
+        return 0;
+    }
+  }
+  return -1;
+}
+
+/*
+  GetCell Select
+
+*/
+int IrGrid2dGetCellSelect( ListExpr args )
+{
+  if (nl->ListLength(args) == 2) {
+    ListExpr first = nl->First(args);
+    ListExpr second = nl->Second(args);
+
+    if (IrregularGrid2D::checkType(first)
+      && CcInt::checkType(second)) {
         return 0;
     }
   }
@@ -476,6 +494,24 @@ int IrGrid3dSCCSelect( ListExpr args )
   return -1;
 }
 
+/*
+  GetCell 3D Select
+
+*/
+int IrGrid3dGetCellSelect( ListExpr args )
+{
+  if (nl->ListLength(args) == 2) {
+    ListExpr first = nl->First(args);
+    ListExpr second = nl->Second(args);
+
+    if (IrregularGrid3D::checkType(first)
+      && CcInt::checkType(second)) {
+        return 0;
+    }
+  }
+  return -1;
+}
+
 /* 
   Bbox 3D Select 
 
@@ -591,6 +627,24 @@ int KDTree2dSCCSelect( ListExpr args )
   return -1; // should never occur
 }
 
+/* 
+  GetCell 2DTree Select 
+
+*/
+int KDTree2dGetCellSelect( ListExpr args )
+{
+  if (nl->ListLength(args) == 2) {
+    ListExpr first = nl->First(args);
+    ListExpr second = nl->Second(args);
+
+    if (KDTree2D::checkType(first)
+      && CcInt::checkType(second)) {
+        return 0;
+    }
+  }
+  return -1; // should never occur
+}
+
 //4.2.4 3DTree
 // Is used for the ~create\_3dtree~ operator.
 int KDTree3DCreateSelect( ListExpr args )
@@ -669,6 +723,24 @@ int KDTree3dTRCCellSelect( ListExpr args )
 }
 
 /* 
+  GetCell 3dtree select 
+
+*/
+int KDTree3dGetCellSelect( ListExpr args )
+{
+  if (nl->ListLength(args) == 2) {
+    ListExpr first = nl->First(args);
+    ListExpr second = nl->Second(args);
+
+    if (KDTree3D::checkType(first)
+      && CcInt::checkType(second)) {
+        return 0;
+    }
+  }
+  return -1; // should never occur
+}
+
+/* 
   smallest common cellnumber 3dtree select 
 
 */
@@ -706,7 +778,6 @@ int IrGrid2dValueMapCreate( Word* args, Word& result, int message,
   CcInt *cell_cnt_ptr =  static_cast<CcInt*>( args[3].addr );
 
   result = qp->ResultStorage(s);
-  printf("\n in createvm");
   if (bbox_ptr != nullptr
       && row_cnt_ptr != nullptr && cell_cnt_ptr != nullptr) {
     int row_cnt = row_cnt_ptr->GetIntval();
@@ -715,11 +786,9 @@ int IrGrid2dValueMapCreate( Word* args, Word& result, int message,
     if (row_cnt >  0 && cell_cnt > 0) {
       ((IrregularGrid2D*)result.addr)->Set(
         input_rect_ptr, *bbox_ptr, row_cnt, cell_cnt);
-      printf("\n before return 0");
       return 0;
     }
   }
-  printf("\n before return (0)");
   return (0);
 }
 
@@ -815,6 +884,7 @@ ValueMapping irgdrid2dFeedMap[] = { IrregularGrid2D::IrGrid2dValueMapFeed };
 ValueMapping irgdrid2dCellnosMap[]
   = { IrregularGrid2D::IrGrid2dValueMapCellnos };
 ValueMapping irgrid2dSCCMap[] = {IrregularGrid2D::IrGrid2dValueMapSCC };
+ValueMapping irgrid2dGetCellMap[] = {IrregularGrid2D::IrGrid2dValueMapGetCell };
 ValueMapping irgrid2dBBoxMap[] = {IrregularGrid3D::IrGrid2dValueMapBBox};
 
 
@@ -826,6 +896,7 @@ ValueMapping irgrid3dTRCMap[] = {IrregularGrid3D::IrGrid3dValueMapTRC };
 ValueMapping irgrid3dTRCCellMap[] 
   = {IrregularGrid3D::IrGrid3dValueMapTRCCellId };
 ValueMapping irgrid3dSCCMap[] = {IrregularGrid3D::IrGrid3dValueMapSCC };
+ValueMapping irgrid3dGetCellMap[] = {IrregularGrid3D::IrGrid3dValueMapGetCell };
 ValueMapping irgrid3dBBoxMap[] = {IrregularGrid3D::IrGrid3dValueMapBBox };
 
 
@@ -835,6 +906,7 @@ ValueMapping kdtree2dCellnosMap[] = {KDTree2D::Kdtree2dValueMapCellnos};
 ValueMapping kdtree2dTRCMap[] = {KDTree2D::Kdtree2dValueMapTRC};
 ValueMapping kdtree2dTRCCellMap[] = {KDTree2D::Kdtree2dValueMapTRCCellId};
 ValueMapping kdtree2dSCCMap[] = {KDTree2D::Kdtree2dValueMapSCC};
+ValueMapping kdtree2dGetCellMap[] = {KDTree2D::Kdtree2dValueMapGetCell};
 
 ValueMapping kdtree3dCreateMap[] = { KDTree3DValueMapCreate };
 ValueMapping kdtree3dFeedMap[] = { KDTree3D::KdTree3dValueMapFeed };
@@ -842,6 +914,8 @@ ValueMapping kdtree3dCellnosMap[] = {KDTree3D::Kdtree3dValueMapCellnos};
 ValueMapping kdtree3dTRCMap[] = {KDTree3D::Kdtree3dValueMapTRC};
 ValueMapping kdtree3dTRCCellMap[] = {KDTree3D::Kdtree3dValueMapTRCCellId};
 ValueMapping kdtree3dSCCMap[] = {KDTree3D::Kdtree3dValueMapSCC};
+ValueMapping kdtree3dGetCellMap[] = {KDTree3D::Kdtree3dValueMapGetCell};
+
 
 /*
 4.4.2 Definition of specification strings
@@ -880,6 +954,13 @@ const string sccIrGrid2dSpec  =
       "<text>returns true if int equals "
       " the id of the smallest common cellnumber "
       "of the two rectangles<2>.</text--->"
+      ") )";
+
+const string getcellIrGrid2dSpec  =
+      "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" \"Remarks\")"
+      "( <text>(irgrid2d x int) -> rect2</text--->"
+      "<text>getcell_ir2d(_, _)</text--->"
+      "<text>returns cell to a given id </text--->"
       ") )";
 
 const string bboxIrGrid2dSpec  =
@@ -943,6 +1024,13 @@ const string sccIrGrid3dSpec  =
       "of the two rectangles<3>.</text--->"
       ") )";
 
+const string getcellIrGrid3dSpec  =
+      "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" \"Remarks\")"
+      "( <text>(irgrid3d x int) -> rect3</text--->"
+      "<text>getcell_ir3d(_, _)</text--->"
+      "<text>returns cell to a given id </text--->"
+      ") )";
+
 const string bboxIrGrid3dSpec  =
       "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" \"Remarks\")"
       "( <text>(stream<rect3>) -> rect3</text--->"
@@ -991,7 +1079,14 @@ const string sccKDTree2dSpec  =
       "<text>returns true if int equals "
       " the id of the smallest common"
       " cellnumber of two cells.</text--->"
-      ") )";            
+      ") )";   
+
+const string getcellKDTree2dSpec  =
+      "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" \"Remarks\")"
+      "( <text>(kdtree2d x int) -> rect2</text--->"
+      "<text>getcell_kd(_, _)</text--->"
+      "<text>returns cell to a given id </text--->"
+      ") )";         
 
 const string feedKDTree2dSpec  =
       "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" \"Remarks\")"
@@ -1051,7 +1146,14 @@ const string sccKDTree3dSpec  =
       "<text> return true if int equals "
       " id of the smallest common"
       " cellnumber of two rectangles.</text--->"
-      ") )";  
+      ") )"; 
+
+const string getcellKDTree3dSpec  =
+      "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" \"Remarks\")"
+      "( <text>(kdtree3d x int) -> rect3</text--->"
+      "<text>getcell_3d(_, _)</text--->"
+      "<text>returns cell to a given id </text--->"
+      ") )";
 
 /*
 4.4.3 Definition of the operators
@@ -1084,6 +1186,13 @@ Operator sccirgrid2d( "scc_ir2d",
     irgrid2dSCCMap,
     IrGrid2dSCCSelect,
     IrregularGrid2D::IrGrid2dSCCTypeMap );
+
+Operator getcellirgrid2d( "getcell_ir2d",
+    getcellIrGrid2dSpec,
+    1,
+    irgrid2dGetCellMap,
+    IrGrid2dGetCellSelect,
+    IrregularGrid2D::IrGrid2dGetCellTypeMap );
 
 Operator bboxirgrid2d( "bbox_grid",
     bboxIrGrid2dSpec,
@@ -1134,6 +1243,13 @@ Operator sccirgrid3d( "scc_ir3d",
     IrGrid3dSCCSelect,
     IrregularGrid3D::IrGrid3dSCCTypeMap );
 
+Operator getcellirgrid3d( "getcell_ir3d",
+    getcellIrGrid3dSpec,
+    1,
+    irgrid3dGetCellMap,
+    IrGrid3dGetCellSelect,
+    IrregularGrid3D::IrGrid3dGetCellTypeMap );
+
 Operator bboxirgrid3d( "bbox_grid3d",
     bboxIrGrid3dSpec,
     1,
@@ -1176,6 +1292,13 @@ Operator scckdtree2d( "scc_kd",
     kdtree2dSCCMap,
     KDTree2dSCCSelect,
     KDTree2D::Kdtree2dSCCTypeMap );
+
+Operator getcellkdtree2d( "getcell_kd",
+    getcellKDTree2dSpec,
+    1,
+    kdtree2dGetCellMap,
+    KDTree2dGetCellSelect,
+    KDTree2D::Kdtree2dGetCellTypeMap );
     
 Operator feedkdtree2d( "feed",
     feedKDTree2dSpec,
@@ -1224,7 +1347,14 @@ Operator scckdtree3d( "scc_3d",
     1,
     kdtree3dSCCMap,
     KDTree3dSCCSelect,
-    KDTree3D::Kdtree3dSCCTypeMap );      
+    KDTree3D::Kdtree3dSCCTypeMap );   
+
+Operator getcellkdtree3d( "getcell_3d",
+    getcellKDTree3dSpec,
+    1,
+    kdtree3dGetCellMap,
+    KDTree3dGetCellSelect,
+    KDTree3D::Kdtree3dGetCellTypeMap );     
 
 /*
 5 Creating the Algebra
@@ -1249,6 +1379,7 @@ class SPart : public Algebra {
       AddOperator( &feedirgrid2d );
       AddOperator( &cellnosirgrid2d );
       AddOperator( &sccirgrid2d );
+      AddOperator( &getcellirgrid2d );
       AddOperator( &createirgrid3d );
       AddOperator( &feedirgrid3d );
       AddOperator( &cellnosirgrid3d );
@@ -1263,12 +1394,15 @@ class SPart : public Algebra {
       AddOperator( &trckdtree2d );
       AddOperator( &trccellkdtree2d );
       AddOperator( &scckdtree2d );
+      AddOperator( &getcellkdtree2d );
       AddOperator( &trckdtree3d );
       AddOperator( &trccellkdtree3d );
       AddOperator( &scckdtree3d );
+      AddOperator( &getcellkdtree3d );
       AddOperator( &trcirgrid3d );
       AddOperator( &trccellirgrid3d );
       AddOperator( &sccirgrid3d );
+      AddOperator( &getcellirgrid3d );
       
       AddOperator( &bboxirgrid2d );
       AddOperator( &bboxirgrid3d );

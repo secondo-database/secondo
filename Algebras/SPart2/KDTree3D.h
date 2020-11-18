@@ -265,6 +265,10 @@ class KDTree3D {
     static int Kdtree3dValueMapSCC( Word* args, Word& result, int message,
       Word& local, Supplier s );
 
+    static ListExpr Kdtree3dGetCellTypeMap( ListExpr args );
+    static int Kdtree3dValueMapGetCell( Word* args, Word& result, int message,
+      Word& local, Supplier s );
+
 
     // Algebra supporting functions
 

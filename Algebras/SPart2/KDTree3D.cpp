@@ -2089,6 +2089,24 @@ KDTree3D::Kdtree3dSCCTypeMap( ListExpr args )
   return  listutils::typeError(errMsg);
 }
 
+ListExpr
+KDTree3D::Kdtree3dGetCellTypeMap( ListExpr args )
+{
+  if(nl->HasLength(args, 2)) {
+    ListExpr first = nl->First(args);
+    ListExpr second = nl->Second(args);
+
+    if (KDTree3D::checkType(first) && CcInt::checkType(second)) {
+      return nl->SymbolAtom(Rectangle<3>::BasicType());
+    }
+  }
+
+  const std::string errMsg = "The following two arguments are expected:"
+      " 3dtree x int";
+
+  return  listutils::typeError(errMsg);
+}
+
 bool
 InCell(Cell3DTree cell, double valy, double valx, double valz) {
   return (valx >= cell.getValFromX()
@@ -2505,6 +2523,48 @@ KDTree3D::Kdtree3dValueMapTRC( Word* args, Word& result, int message,
 
       return 0;
   }
+
+/*
+  returns cell to a given id
+  
+*/
+int
+KDTree3D::Kdtree3dValueMapGetCell( Word* args, Word& result, int message,
+    Word& local, Supplier s ) 
+{
+  KDTree3D *input_kdtree3d_ptr
+    = static_cast<KDTree3D*>( args[0].addr );
+
+  CcInt* cellno_ptr = static_cast<CcInt*>(args[1].addr);
+  int cellno = cellno_ptr->GetIntval();
+
+  if (input_kdtree3d_ptr != nullptr)
+  {
+    result = qp->ResultStorage( s );
+    Rectangle<3> *res = (Rectangle<3>*) result.addr;
+
+    std::vector<Cell3DTree>* cells = 
+          &input_kdtree3d_ptr->getCellVector(); 
+
+    for(size_t i = 0; i < cells->size(); i++)
+    {
+      Cell3DTree cell = cells->at(i);
+      if(cell.getCellId() == cellno)
+      {
+        double min[3], max[3];
+        min[0] = cell.getValFromX();
+        min[1] = cell.getValFromY();
+        min[2] = cell.getValFromZ();
+        max[0] = cell.getValToX();
+        max[1] = cell.getValToY();
+        max[2] = cell.getValToZ();
+        res->Set(true, min, max);
+        return 0;
+      }
+    }
+  }
+  return -1;
+}
 
 
   /*

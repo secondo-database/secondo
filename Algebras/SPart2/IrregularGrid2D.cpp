@@ -999,6 +999,24 @@ IrregularGrid2D::IrGrid2dSCCTypeMap( ListExpr args )
   return  listutils::typeError(errMsg);
 }
 
+ListExpr
+IrregularGrid2D::IrGrid2dGetCellTypeMap( ListExpr args )
+{
+  if(nl->HasLength(args, 2)) {
+    ListExpr first = nl->First(args);
+    ListExpr second = nl->Second(args);
+
+    if (IrregularGrid2D::checkType(first) && CcInt::checkType(second)) {
+      return nl->SymbolAtom(Rectangle<2>::BasicType());
+    }
+  }
+
+  const std::string errMsg = "The following two arguments are expected:"
+      " irgrid2d x int";
+
+  return  listutils::typeError(errMsg);
+}
+
 
 
 template <class C>
@@ -1198,4 +1216,46 @@ IrregularGrid2D::IrGrid2dValueMapSCC( Word* args, Word& result, int message,
     return 0;
   }
   return -1;
+}
+
+int
+IrregularGrid2D::IrGrid2dValueMapGetCell(Word* args, Word& result, int message,
+  Word& local, Supplier s)
+{
+  IrregularGrid2D *input_irgrid2d_ptr
+    = static_cast<IrregularGrid2D*>( args[0].addr );
+
+  CcInt* cellno_ptr = static_cast<CcInt*>(args[1].addr);
+  int cellno = cellno_ptr->GetIntval();
+
+  if (input_irgrid2d_ptr != nullptr)
+  {
+    result = qp->ResultStorage( s );
+    Rectangle<2> *res = (Rectangle<2>*) result.addr;
+
+    std::vector<VCell>* column = &input_irgrid2d_ptr->getColumnVector();
+    for(size_t i = 0; i < column->size(); i++)
+    {
+      VCell vCell = column->at(i);
+      std::vector<HCell>* row = &vCell.getRow();
+      for(size_t ii=0; ii < row->size(); ii++)
+      {
+        HCell hCell = row->at(ii);
+        if(cellno == hCell.getCellId())
+        {
+          double min[2], max[2];
+          min[0] = hCell.getValFrom();
+          min[1] = vCell.getValFrom();
+          max[0] = hCell.getValTo();
+          max[1] = vCell.getValTo();
+          res->Set(true, min, max);
+          return 0;
+        }
+      }
+    }
+  }
+
+
+  return -1;
+
 }

@@ -24,17 +24,21 @@ operator cellnos_ir alias CELLNOS_IR pattern op(_, _)
 operator trccell_ir alias TRCCELL_IR pattern op(_,_,_)
 operator trc_ir alias TRC_IR pattern op(_,_)
 operator scc_ir2d alias SCC_IR2D pattern op(_,_,_,_)
+operator getcell_ir2d alias GETCELL_IR2D pattern op(_,_)
 operator trc_ir3d alias TRC_IR3D pattern op(_,_,_)
 operator trccell_ir3d alias TRCCELL_IR3D pattern op(_,_,_)
 operator scc_ir3d alias SCC_IR3D pattern op(_,_,_,_)
+operator getcell_ir3d alias GETCELL_IR3D pattern op(_,_)
 operator create_2dtree alias CREATE_2DTREE pattern _ op [_]
 operator cellnos_kd alias CELLNOS_KD pattern op(_, _)
 operator trc_kd alias TRC_KD pattern op(_,_,_)
 operator trccell_kd alias TRCCELL_KD pattern op(_,_,_)
 operator scc_kd alias SCC_KD pattern op(_,_,_,_)
+operator getcell_kd alias GETCELL_KD pattern op(_,_)
 operator create_3dtree alias CREATE_3DTREE pattern _ op [_]
 operator trc_3d alias TRC_3D pattern op(_,_,_)
 operator trccell_3d alias TRCCELL_3D pattern op(_,_,_)
 operator scc_3d alias SCC_3D pattern op(_,_,_,_)
+operator getcell_3d alias GETCELL_3D pattern op(_,_)
 operator bbox_grid alias BBOX_GRID pattern _ op
 operator bbox_grid3d alias BBOX_GRID3D pattern _ op
