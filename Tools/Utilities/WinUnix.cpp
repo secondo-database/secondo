@@ -314,7 +314,7 @@ WinUnix::stacktrace(const char* appName, const char* stacktraceOutput,
           
             if(relocationInfo != NULL) {
                string2stdout("When the binary is compliled with -fPIE, "
-                             "you need to substract the binary relocation "
+                             "you need to subtract the binary relocation "
                              "shown above from the addresses.\n");
                string2stdout("\n");
             }
