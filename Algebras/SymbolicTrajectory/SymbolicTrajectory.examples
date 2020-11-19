@@ -205,16 +205,20 @@ Signature : stream(tuple(X)) x ATTR -> invfile
 Example   : query Dotraj feed createlexicon[Trajectory] searchWord['Innenstadt-Ost'] extract[WordPos]
 Result    : 8
 
-
 Operator  : frequencyvector
 Number    : 1
-Signature : mT x invfile -> vector(int), where T in {label(s), place(s)}
+Signature : mT x invfile (x bool) -> vector(real), where T in {label(s), place(s)}
 Example   : query size(frequencyvector(Dotraj feed extract[Trajectory], Dotraj feed createlexicon[Trajectory]))
 Result    : 12
 
 Operator  : cosinesim
 Number    : 1
-Signature : vector(int) x vector(int) -> real
-Example   : query cosinesim(create_vector(0, 1, 1), create_vector(1, 1, 0))
+Signature : vector(double) x vector(real) -> real
+Example   : query cosinesim(create_vector(0.0, 1.0, 1.0), create_vector(1.0, 1.0, 0.0))
 Result    : 0.5
 
+Operator  : jaccardsim
+Number    : 1
+Signature : vector(real) x vector(real) -> real
+Example   : query jaccard(create_vector(0.0, 1.0, 1.0, 1.0), create_vector(1.0, 1.0, 1.0, 0.0))
+Result    : 0.5

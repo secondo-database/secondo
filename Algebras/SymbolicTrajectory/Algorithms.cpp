@@ -5480,11 +5480,14 @@ void IndexMatchInfo::print(const bool printBinding) {
 }
 
 double scalarProduct(collection::Collection& v1, collection::Collection& v2) {
+  assert(v1.GetMyCollType() == collection::vector &&
+         v2.GetMyCollType() == collection::vector);
+  assert(v1.GetNoComponents() == v2.GetNoComponents());
   double result = 0.0;
-  CcInt *elem1(0), *elem2(0);
+  CcReal *elem1(0), *elem2(0);
   for (int i = 0; i < v1.GetNoComponents(); i++) {
-    elem1 = (CcInt*)(v1.GetComponent(i));
-    elem2 = (CcInt*)(v2.GetComponent(i));
+    elem1 = (CcReal*)(v1.GetComponent(i));
+    elem2 = (CcReal*)(v2.GetComponent(i));
     assert(elem1->IsDefined() && elem2->IsDefined());
     result += elem1->GetValue() * elem2->GetValue();
     elem1->DeleteIfAllowed();
@@ -5495,9 +5498,9 @@ double scalarProduct(collection::Collection& v1, collection::Collection& v2) {
 
 double vLength(collection::Collection& v) {
   double result = 0.0;
-  CcInt *elem(0);
+  CcReal *elem(0);
   for (int i = 0; i < v.GetNoComponents(); i++) {
-    elem = (CcInt*)(v.GetComponent(i));
+    elem = (CcReal*)(v.GetComponent(i));
     assert(elem->IsDefined());
     result += pow(elem->GetValue(), 2.0);
     elem->DeleteIfAllowed();
@@ -5510,6 +5513,28 @@ double cosineSimilarity(collection::Collection& v1, collection::Collection& v2){
          v2.GetMyCollType() == collection::vector);
   assert(v1.GetNoComponents() == v2.GetNoComponents());
   return scalarProduct(v1, v2) / (vLength(v1) * vLength(v2));
+}
+
+double jaccardSimilarity(collection::Collection& v1,
+                         collection::Collection& v2) {
+  assert(v1.GetMyCollType() == collection::vector &&
+         v2.GetMyCollType() == collection::vector);
+  assert(v1.GetNoComponents() == v2.GetNoComponents());
+  CcReal *elem1(0), *elem2(0);
+  unsigned int intersection(0), un(0);
+  for (int i = 0; i < v1.GetNoComponents(); i++) {
+    elem1 = (CcReal*)(v1.GetComponent(i));
+    elem2 = (CcReal*)(v2.GetComponent(i));
+    assert(elem1->IsDefined() && elem2->IsDefined());
+    if (elem1->GetValue() > 0 && elem2->GetValue() > 0) {
+      intersection++;
+      un++;
+    }
+    else if (elem1->GetValue() > 0 || elem2->GetValue() > 0) {
+      un++;
+    }
+  }
+  return (double)intersection / un;
 }
 
 }

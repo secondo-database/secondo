@@ -37,3 +37,5 @@ operator spade alias SPADE pattern _ op [ _ , _ ]
 operator createlexicon alias CREATELEXICON pattern _ op [ _ ]
 operator frequencyvector alias FREQUENCYVECTOR pattern op ( _ , _)
 operator cosinesim alias COSINESIM pattern op ( _ , _)
+operator jaccard alias JACCARD pattern op ( _ , _ )
+operator tfidf alias TFIDF pattern op ( _ , _ )

@@ -3817,19 +3817,25 @@ Operator createlexicon(createlexiconSpec(), createlexiconVMs,
 
 */
 ListExpr frequencyvectorTM(ListExpr args) {
-  const string errMsg = "Expecting mT x inv, T in {label(s), place(s)}";
-  if (!nl->HasLength(args, 2)) {
+  const string errMsg = "Expecting mT x inv (x bool), T in {label(s),place(s)}";
+  if (!nl->HasLength(args, 2) && !nl->HasLength(args, 3)) {
     return listutils::typeError(errMsg);
   }
   ListExpr arg1 = nl->First(args);
-  if (MLabel::checkType(arg1) || MLabels::checkType(arg1) || 
-      MPlace::checkType(arg1) || MPlaces::checkType(arg1)) {
-    if (InvertedFile::checkType(nl->Second(args))) {
-      return nl->TwoElemList(nl->SymbolAtom(Vector::BasicType()),
-                             nl->SymbolAtom(CcInt::BasicType()));
+  if (!MLabel::checkType(arg1) && !MLabels::checkType(arg1) &&
+      !MPlace::checkType(arg1) && !MPlaces::checkType(arg1)) {
+    return listutils::typeError(errMsg);
+  }
+  if (!InvertedFile::checkType(nl->Second(args))) {
+    return listutils::typeError(errMsg);
+  }
+  if (nl->HasLength(args, 3)) {
+    if (!CcBool::checkType(nl->Third(args))) {
+      return listutils::typeError(errMsg);
     }
   }
-  return listutils::typeError(errMsg);
+  return nl->TwoElemList(nl->SymbolAtom(Vector::BasicType()),
+                         nl->SymbolAtom(CcReal::BasicType()));
 }
 
 /*
@@ -3849,10 +3855,19 @@ int frequencyvectorVM(Word* args, Word& result, int message, Word& local,
     res->SetDefined(false);
     return 0;
   }
-  vector<int> fv(inv->getNoEntries() - 1, 0);
-  src->FrequencyVector(*inv, fv);
+  bool useIdf = false;
+  if (qp->GetNoSons(s) == 3) {
+    CcBool *ccb = static_cast<CcBool*>(args[2].addr);
+    if (!ccb->IsDefined()) {
+      res->SetDefined(false);
+      return 0;
+    }
+    useIdf = ccb->GetValue();
+  }
+  vector<double> fv(inv->getNoEntries() - 1, 0.0);
+  src->FrequencyVector(*inv, fv, useIdf);
   for (unsigned int i = 0; i < fv.size(); i++) {
-    CcInt *elem = new CcInt(true, fv[i]);
+    CcReal *elem = new CcReal(true, fv[i]);
     res->Insert(elem, 1);
     elem->DeleteIfAllowed();
   }
@@ -3866,10 +3881,13 @@ int frequencyvectorVM(Word* args, Word& result, int message, Word& local,
 struct frequencyvectorSpec : OperatorInfo {
   frequencyvectorSpec() {
     name      = "frequencyvector";
-    signature = "mT x invfile -> vector(int),  where T in {label(s), place(s)}";
+    signature = "mT x invfile (x bool) -> vector(real),  where T in {label(s), "
+                "place(s)}";
     syntax    = "frequencyvector(_, _)";
     meaning   = "Computes the frequency vector of the labels of a symbolic "
-                "trajectory, according to the labels stored in the trie.";
+                "trajectory, according to the labels stored in the trie. The "
+                "boolean value indicates whether idf (inverted document "
+                "frequency) is applied (false by default).";
   }
 };
 
@@ -3903,14 +3921,14 @@ ListExpr cosinesimTM(ListExpr args) {
   }
   string etype1 = nl->SymbolValue(nl->Second(nl->First(args)));
   string etype2 = nl->SymbolValue(nl->Second(nl->Second(args)));
-  if (etype1 != CcInt::BasicType() || etype2 != CcInt::BasicType()) {
-    return listutils::typeError(errMsg + " integer type required");
+  if (etype1 != CcReal::BasicType() || etype2 != CcReal::BasicType()) {
+    return listutils::typeError(errMsg + " real type required");
   }
   return nl->SymbolAtom(CcReal::BasicType());
 }
 
 /*
-\subsection{Value Mapping (for a single MLabel)}
+\subsection{Value Mapping}
 
 */
 int cosinesimVM(Word* args, Word& result, int message, Word& local, Supplier s){
@@ -3939,13 +3957,53 @@ int cosinesimVM(Word* args, Word& result, int message, Word& local, Supplier s){
 struct cosinesimSpec : OperatorInfo {
   cosinesimSpec() {
     name      = "cosinesim";
-    signature = "vector(int) x vector(int) -> real";
+    signature = "vector(real) x vector(real) -> real";
     syntax    = "cosinesim(_, _)";
     meaning   = "Computes the cosine similarity for two frequency vectors.";
   }
 };
 
 Operator cosinesim(cosinesimSpec(), cosinesimVM, cosinesimTM);
+
+/*
+\section{Operator ~jaccard~}
+
+\subsection{Value Mapping (for a single MLabel)}
+
+*/
+int jaccardVM(Word* args, Word& result, int message, Word& local, Supplier s) {
+  collection::Collection* v1 = 
+                             static_cast<collection::Collection*>(args[0].addr);
+  collection::Collection* v2 = 
+                             static_cast<collection::Collection*>(args[1].addr);
+  result = qp->ResultStorage(s);
+  CcReal* res = (CcReal*)result.addr;
+  if (!v1->IsDefined() || !v2->IsDefined()) {
+    res->SetDefined(false);
+    return 0;
+  }
+  if (v1->GetNoComponents() != v2->GetNoComponents()) {
+    res->SetDefined(false);
+    return 0;
+  }
+  res->Set(true, jaccardSimilarity(*v1, *v2));
+  return  0;
+}
+
+/*
+\subsection{Operator Info}
+
+*/
+struct jaccardSpec : OperatorInfo {
+  jaccardSpec() {
+    name      = "jaccard";
+    signature = "vector(real) x vector(real) -> real";
+    syntax    = "jaccard(_, _)";
+    meaning   = "Computes the Jaccard similarity for two frequency vectors.";
+  }
+};
+
+Operator jaccard(jaccardSpec(), jaccardVM, cosinesimTM);
 
 /*
 \section{Class ~SymbolicTrajectoryAlgebra~}
@@ -4122,6 +4180,8 @@ class SymbolicTrajectoryAlgebra : public Algebra {
   AddOperator(&frequencyvector);
   
   AddOperator(&cosinesim);
+  AddOperator(&jaccard);
+  
   
   }
   ~SymbolicTrajectoryAlgebra() {}

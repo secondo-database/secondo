@@ -297,14 +297,14 @@ void Label::InsertLabels(vector<string>& result) const {
 \subsection{Function ~UpdateFrequencies~}
 
 */
-void Label::UpdateFrequencies(InvertedFile& inv, vector<int>& fv) const {
+void Label::UpdateFrequencies(InvertedFile& inv, vector<double>& fv) const {
   if (IsDefined()) {
     InvertedFile::exactIterator* eit = 0;
     TupleId id;
     uint32_t wc, cc;
     eit = inv.getExactIterator(GetLabel(), 16777216);
     if (eit->next(id, wc, cc)) {
-      fv[id - 1]++;
+      fv[id] += 1.0;
     }
     delete eit;
   }
@@ -779,7 +779,7 @@ void Labels::InsertLabels(vector<string>& result) const {
 \subsection{Function ~UpdateFrequencies~}
 
 */
-void Labels::UpdateFrequencies(InvertedFile& inv, vector<int>& fv) const {
+void Labels::UpdateFrequencies(InvertedFile& inv, vector<double>& fv) const {
   if (IsDefined()) {
     set<string> values;
     GetValues(values);
@@ -789,7 +789,7 @@ void Labels::UpdateFrequencies(InvertedFile& inv, vector<int>& fv) const {
     for (auto label : values) {
       eit = inv.getExactIterator(label, 16777216);
       if (eit->next(id, wc, cc)) {
-        fv[id - 1]++;
+        fv[id] += 1.0;
       }
     }
     delete eit;
@@ -1465,7 +1465,7 @@ void Places::InsertLabels(vector<string>& result) const {
 \subsection{Function ~UpdateFrequencies~}
 
 */
-void Places::UpdateFrequencies(InvertedFile& inv, vector<int>& fv) const {
+void Places::UpdateFrequencies(InvertedFile& inv, vector<double>& fv) const {
   if (IsDefined()) {
     InvertedFile::exactIterator* eit = 0;
     TupleId id;
@@ -1475,7 +1475,7 @@ void Places::UpdateFrequencies(InvertedFile& inv, vector<int>& fv) const {
     for (auto place : values) {
       eit = inv.getExactIterator(place.first, 16777216);
       if (eit->next(id, wc, cc)) {
-        fv[id - 1]++;
+        fv[id] += 1.0;
       }
     }
     delete eit;
