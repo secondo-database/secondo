@@ -1756,7 +1756,7 @@ KDTree2D::Kdtree2dGetCellTypeMap( ListExpr args )
       return nl->SymbolAtom(Rectangle<2>::BasicType());
     }
   }
-  
+
   const std::string errMsg = "The following two arguments are expected:"
       " 2dtree x int";
 
@@ -2074,7 +2074,7 @@ KDTree2D::Kdtree2dValueMapTRCCellId( Word* args, Word& result, int message,
     = static_cast<Rectangle<2>*>( args[1].addr );
 
     Rectangle<2> *search_window_ptr_2
-    = static_cast<Rectangle<2>*>( args[1].addr );
+    = static_cast<Rectangle<2>*>( args[2].addr );
 
   int mode_ = input_kdtree2d_ptr->getMode();
 
@@ -2104,12 +2104,19 @@ KDTree2D::Kdtree2dValueMapTRCCellId( Word* args, Word& result, int message,
         KDNodeList* root = nodes.back();
         GetLeaf(root, le, ri, bo, to, &cell_ids);
         GetLeaf(root, le_2, ri_2, bo_2, to_2, &cell_ids_2);
-      } else {
+      } else if(mode_ == 2) {
         std::vector<KDMedList*> nodes = 
             input_kdtree2d_ptr->getPointsMedVector();
         KDMedList* root = nodes.back();
         GetLeaf(root, le, ri, bo, to, &cell_ids);
         GetLeaf(root, le_2, ri_2, bo_2, to_2, &cell_ids_2);
+      } else {
+        cell_ids.clear();
+        cell_ids_2.clear();
+        std::vector<Cell2DTree>* cells = 
+          &input_kdtree2d_ptr->getCellVector();    
+        cellnumber(le, ri, bo, to, &cell_ids, cells);
+        cellnumber(le_2, ri_2, bo_2, to_2, &cell_ids_2, cells);
       }
 
       std::vector<int> v(sizeof(cell_ids)+ sizeof(cell_ids_2));
