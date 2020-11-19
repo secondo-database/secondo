@@ -10140,7 +10140,7 @@ void* CastCUPoint(void* addr) {
 }
 
 /*
-4.9.12 Creation of the type constructor ~upoint~
+4.9.12 Creation of the type constructor ~cupoint~
 
 */
 TypeConstructor cupointTC (
@@ -10157,7 +10157,23 @@ TypeConstructor cupointTC (
         SizeOfCUPoint, //sizeof function
         CheckCUPoint );                    //kind checking function
 
+/*
+4.9.12 Creation of the type constructor ~cupointregion~
 
+*/
+TypeConstructor cupointregionTC (
+        CUPoint::BasicType() + "region",      //name
+        CUPointProperty,               //property function describing signature
+        OutCUPoint,     InCUPoint, //Out and In functions
+        0,             0,  //SaveToList and RestoreFromList functions
+        CreateCUPoint,
+        DeleteCUPoint, //object creation and deletion
+        OpenAttribute<CUPoint>,
+        SaveAttribute<CUPoint>,  // object open and save
+        CloseCUPoint,   CloneCUPoint, //object close and clone
+        CastCUPoint, //cast function
+        SizeOfCUPoint, //sizeof function
+        CheckCUPoint );                    //kind checking function
 
 
 /*
@@ -10494,8 +10510,29 @@ bool CheckCMPoint(ListExpr type, ListExpr& errorInfo) {
 4.12.4 Creation of the type constructor ~cmpoint~
 
 */
-TypeConstructor cmpoint(
+TypeConstructor cmpointTC(
         CMPoint::BasicType(),   //name
+        CMPointProperty,        //property function describing signature
+        OutMapping<CMPoint, CUPoint, OutCUPoint>,
+        InMapping<CMPoint, CUPoint, InCUPoint>,//Out and In functions
+        0,
+        0,                 //SaveToList and RestoreFromList functions
+        CreateMapping<CMPoint>,
+        DeleteMapping<CMPoint>,     //object creation and deletion
+        OpenAttribute<CMPoint>,
+        SaveAttribute<CMPoint>,      // object open and save
+        CloseMapping<CMPoint>,
+        CloneMapping<CMPoint>, //object close and clone
+        CastMapping<CMPoint>,    //cast function
+        SizeOfMapping<CMPoint>, //sizeof function
+        CheckCMPoint);  //kind checking function
+
+/*
+4.12.4 Creation of the type constructor ~cmpointregion~
+
+*/
+TypeConstructor cmpointregionTC(
+        CMPoint::BasicType() + "region",   //name
         CMPointProperty,        //property function describing signature
         OutMapping<CMPoint, CUPoint, OutCUPoint>,
         InMapping<CMPoint, CUPoint, InCUPoint>,//Out and In functions
@@ -21542,12 +21579,14 @@ class TemporalAlgebra : public Algebra
     AddTypeConstructor( &unitreal );
     AddTypeConstructor( &unitpoint );
     AddTypeConstructor( &cupointTC);
+    AddTypeConstructor( &cupointregionTC);
 
     AddTypeConstructor( &movingbool );
     AddTypeConstructor( &movingint );
     AddTypeConstructor( &movingreal );
     AddTypeConstructor( &movingpoint );
-    AddTypeConstructor(&cmpoint);
+    AddTypeConstructor( &cmpointTC);
+    AddTypeConstructor( &cmpointregionTC);
 
     AddTypeConstructor( &cellgrid2d);
     AddTypeConstructor( &cellgrid3d);
@@ -21582,6 +21621,9 @@ class TemporalAlgebra : public Algebra
     cupointTC.AssociateKind( Kind::TEMPORAL() );
     cupointTC.AssociateKind( Kind::DATA() );
     cupointTC.AssociateKind( "SPATIAL3D" );
+    cupointregionTC.AssociateKind( Kind::TEMPORAL() );
+    cupointregionTC.AssociateKind( Kind::DATA() );
+    cupointregionTC.AssociateKind( "SPATIAL3D" );
 
     movingbool.AssociateKind( Kind::TEMPORAL() );
     movingbool.AssociateKind( Kind::DATA() );
@@ -21591,8 +21633,11 @@ class TemporalAlgebra : public Algebra
     movingreal.AssociateKind( Kind::DATA() );
     movingpoint.AssociateKind( Kind::TEMPORAL() );
     movingpoint.AssociateKind( Kind::DATA() );
-    cmpoint.AssociateKind(Kind::TEMPORAL());
-    cmpoint.AssociateKind(Kind::DATA());
+    cmpointTC.AssociateKind(Kind::TEMPORAL());
+    cmpointTC.AssociateKind(Kind::DATA());
+    cmpointregionTC.AssociateKind( Kind::TEMPORAL() );
+    cmpointregionTC.AssociateKind( Kind::DATA() );
+    cmpointregionTC.AssociateKind( "SPATIAL3D" );
 
     cellgrid2d.AssociateKind( Kind::DATA() );
     cellgrid2d.AssociateKind( Kind::DELIVERABLE() );
