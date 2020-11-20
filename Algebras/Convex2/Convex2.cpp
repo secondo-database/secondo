@@ -2136,10 +2136,12 @@ void Convex::Rebuild(char* buffer, size_t sz) {
      offset += size * sizeof(Point);
      
      }
+     
+      for(size_t i=0;i<size;i++){
+         void* v = (void*) &(value[i]);
+         new (v) Point();
+     }
 
-     memcpy(&cellId, buffer+offset, sizeof(int));
-
-     offset += sizeof(int);
         
    
 }
