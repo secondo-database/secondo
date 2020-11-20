@@ -8071,6 +8071,13 @@ void CMPoint::ConvertFrom(const MPoint& src, const DateTime dur,
   src.InitialInstant(firstInst);
   src.FinalInstant(lastInst);
   diffToBeginOfTime = firstInst - beginOfTime;
+  if (lastInst - firstInst < dur) { // one cupoint suffices
+    cup.ConvertFrom(src);
+    cup.timeInterval.start.SetToZero();
+    cup.timeInterval.end -= diffToBeginOfTime;
+    Add(cup);
+    return;
+  }
   Point p0(true), p1(true);
   MPoint mpTemp(true), mpTempShifted(true), srcPart(true);
   MReal dist(true);
@@ -8108,15 +8115,17 @@ void CMPoint::ConvertFrom(const MPoint& src, const DateTime dur,
   }
   DateTime destFinalInst(instanttype);
   FinalInstant(destFinalInst);
-  if (destFinalInst < lastInst) { // processed end of src; add short cupoint
+  if (destFinalInst.IsDefined() && 
+      destFinalInst < lastInst - diffToBeginOfTime) { // process end of src
     src.Get(src.GetNoComponents() - 1, upSrc);
     upDest.p1 = upSrc.p1;
     upDest.timeInterval.end = lastInst - diffToBeginOfTime;
     upDest.timeInterval.rc = true;
     mpTemp.Add(upDest);
     mpTemp.timeMove(diffToBeginOfTime, mpTempShifted);
-    per.Add(Interval<Instant>(destFinalInst + diffToBeginOfTime, lastInst, 
-                              true, false));
+    Interval<Instant> iv(destFinalInst + diffToBeginOfTime, lastInst, true, 
+                         false);
+    per.Add(iv);
     src.AtPeriods(per, srcPart);
     srcPart.SquaredDistance(mpTempShifted, dist);
     cup.Set(upDest, sqrt(dist.Max(correct)));
