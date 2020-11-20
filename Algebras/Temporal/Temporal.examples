@@ -821,6 +821,12 @@ Signature : cupoint -> real
 Example   : query getRadius(cbbox(train5))
 Result    : 3894.326188742
 
+Operator  : getRadii
+Number    : 1
+Signature : cmpoint -> mreal
+Example   : query sometimes(getRadii(mpoint2cmpoint(train5, create_duration(0, 300000))) > 868.0)
+Result    : TRUE
+
 Operator  : getUPoint
 Number    : 1
 Signature : cupoint -> upoint

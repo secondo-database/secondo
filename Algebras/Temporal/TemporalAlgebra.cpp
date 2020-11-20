@@ -8766,7 +8766,24 @@ void CMPoint::AtRect(const Rectangle<2>& rect, CMPoint& result) const {
     }
   }
   result.EndBulkLoad(false);
+}
 
+void CMPoint::GetRadii(MReal& result) const {
+  result.Clear();
+  if (!IsDefined()) {
+    result.SetDefined(false);
+  }
+  CUPoint cup(true);
+  UReal ur(true);
+  for (int i = 0; i < GetNoComponents(); i++) {
+    Get(i, cup);
+    ur.timeInterval = cup.timeInterval;
+    ur.a = 0.0;
+    ur.b = 0.0;
+    ur.c = cup.GetRadius();
+    ur.r = false;
+    result.Add(ur);
+  }
 }
 
 /*
@@ -21432,6 +21449,51 @@ Operator getRadius(
 );
 
 /*
+Operator ~getRadii~
+
+This operator returns the radii of a CMPoint as an MReal.
+
+*/
+ListExpr getRadiiTM(ListExpr args) {
+  std::string err = "cmpoint expected";
+  if (!nl->HasLength(args, 1)) {
+    return listutils::typeError(err + " (wrong number of args)");
+  }
+  if (!CMPoint::checkType(nl->First(args))) {
+    return listutils::typeError(err +" (arg is not a cmpoint)");
+  }
+  return listutils::basicSymbol<MReal>();
+}
+
+int getRadiiVM(Word* args, Word& result, int message, Word& local, Supplier s) {
+  result = qp->ResultStorage(s);
+  MReal* res = (MReal*)result.addr;
+  CMPoint* src = (CMPoint*)args[0].addr;
+  if (!src->IsDefined()) {
+    res->SetDefined(false);
+    return 0;
+  }
+  src->GetRadii(*res);
+  return 0;
+}
+
+OperatorSpec getRadiiSpec(
+  "cmpoint -> mreal",
+  "getRadii(_)",
+  "Returns the sequence of radii from a CMPoint as an MReal",
+  "query sometimes(getRadii([const cmpoint value (((1 2 TRUE FALSE) "
+    "(0.0 0.0 1.0 1.0) 0.3))]) > 0.25)"
+);
+
+Operator getRadii(
+  "getRadii",
+  getRadiiSpec.getStr(),
+  getRadiiVM,
+  Operator::SimpleSelect,
+  getRadiiTM
+);
+
+/*
 Operator ~getUPoint~
 
 This operator returns the UPoint value of a CUPoint.
@@ -21842,6 +21904,7 @@ class TemporalAlgebra : public Algebra
 
     AddOperator(&cbbox);
     AddOperator(&getRadius);
+    AddOperator(&getRadii);
     AddOperator(&getUPoint);
     AddOperator(&getMPoint);
     AddOperator(&mpoint2cmpoint);

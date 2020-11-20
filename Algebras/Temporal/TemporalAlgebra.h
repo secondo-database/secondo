@@ -4758,6 +4758,8 @@ geometry is used, otherwise spherical geometry is applied.
 
   // recompute bbox, if necessary
   void RestoreBoundingBox(const bool force = false);
+  
+  void GetRadii(MReal& result) const;
 
   static const std::string BasicType() {return "cmpoint";}
   
