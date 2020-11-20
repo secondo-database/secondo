@@ -832,3 +832,9 @@ Number    : 1
 Signature : cmpoint -> mpoint
 Example   : query no_components(getMPoint(mpoint2cmpoint(train5, create_duration(0, 120000))))
 Result    : 18
+
+Operator  : traversed
+Number    : 1
+Signature : cupoint -> cupointregion
+Example   : query isdefined(traversed(cbbox(train5)))
+Result    : TRUE

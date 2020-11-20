@@ -21555,6 +21555,46 @@ Operator mpoint2cmpoint(
   mpoint2cmpointTM
 );
 
+/*
+Operator ~traversed~
+
+This operator converts a cupoint into a cupointregion.
+
+*/
+ListExpr traversedTM(ListExpr args) {
+  std::string err = "cupoint expected";
+  if (!nl->HasLength(args, 1)) {
+    return listutils::typeError(err + " (wrong number of args)");
+  }
+  if (!CUPoint::checkType(nl->First(args))) {
+    return listutils::typeError(err +" (arg is not a cupoint)");
+  }
+  return nl->SymbolAtom("cupointregion");
+}
+
+int traversedVM(Word* args, Word& result, int message, Word& local, Supplier s){
+  result = qp->ResultStorage(s);
+  CUPoint* res = (CUPoint*)result.addr;
+  CUPoint* src = (CUPoint*)args[0].addr;
+  *res = *src;
+  return 0;
+}
+
+OperatorSpec traversedSpec(
+  "cupoint -> cupointregion",
+  "traversed(_)",
+  "This operator converts a cupoint into a cupointregion",
+  "query traversed([const cupoint value ((1 2 TRUE FALSE) (0.0 0.0 1.0 1.0) "
+    "0.3)])"
+);
+
+Operator traversed(
+  "traversed",
+  traversedSpec.getStr(),
+  traversedVM,
+  Operator::SimpleSelect,
+  traversedTM
+);
 
 /*
 6 Creating the Algebra
@@ -21766,6 +21806,7 @@ class TemporalAlgebra : public Algebra
     AddOperator(&getUPoint);
     AddOperator(&getMPoint);
     AddOperator(&mpoint2cmpoint);
+    AddOperator(&traversed);
 
 #ifdef USE_PROGRESS
     temporalunits.EnableProgress();
