@@ -835,6 +835,6 @@ Result    : 18
 
 Operator  : traversed
 Number    : 1
-Signature : cupoint -> cupointregion
+Signature : cXpoint -> cXpointregion,  X in {m,u}
 Example   : query isdefined(traversed(cbbox(train5)))
 Result    : TRUE

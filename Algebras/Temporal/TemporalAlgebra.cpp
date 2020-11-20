@@ -10167,6 +10167,14 @@ TypeConstructor cupointTC (
         CheckCUPoint );                    //kind checking function
 
 /*
+4.9.3 Kind Checking Function
+
+*/
+bool CheckCUPointRegion(ListExpr type, ListExpr& errorInfo) {
+  return (nl->IsEqual(type, CUPoint::BasicType() + "region"));
+}
+
+/*
 4.9.12 Creation of the type constructor ~cupointregion~
 
 */
@@ -10182,7 +10190,7 @@ TypeConstructor cupointregionTC (
         CloseCUPoint,   CloneCUPoint, //object close and clone
         CastCUPoint, //cast function
         SizeOfCUPoint, //sizeof function
-        CheckCUPoint );                    //kind checking function
+        CheckCUPointRegion );                    //kind checking function
 
 
 /*
@@ -10537,6 +10545,14 @@ TypeConstructor cmpointTC(
         CheckCMPoint);  //kind checking function
 
 /*
+4.12.3 Kind Checking Function
+
+*/
+bool CheckCMPointRegion(ListExpr type, ListExpr& errorInfo) {
+  return (nl->IsEqual(type, CMPoint::BasicType() + "region"));
+}
+
+/*
 4.12.4 Creation of the type constructor ~cmpointregion~
 
 */
@@ -10555,7 +10571,7 @@ TypeConstructor cmpointregionTC(
         CloneMapping<CMPoint>, //object close and clone
         CastMapping<CMPoint>,    //cast function
         SizeOfMapping<CMPoint>, //sizeof function
-        CheckCMPoint);  //kind checking function
+        CheckCMPointRegion);  //kind checking function
 
 /*
 4.12.5 Creation of the type constructore ~cellgrid2d~
@@ -21571,28 +21587,41 @@ This operator converts a cupoint into a cupointregion.
 
 */
 ListExpr traversedTM(ListExpr args) {
-  std::string err = "cupoint expected";
+  std::string err = "cupoint or cmpoint expected";
   if (!nl->HasLength(args, 1)) {
     return listutils::typeError(err + " (wrong number of args)");
   }
-  if (!CUPoint::checkType(nl->First(args))) {
-    return listutils::typeError(err +" (arg is not a cupoint)");
+  if (CUPoint::checkType(nl->First(args))) {
+    return nl->SymbolAtom("cupointregion");
   }
-  return nl->SymbolAtom("cupointregion");
+  if (CMPoint::checkType(nl->First(args))) {
+    return nl->SymbolAtom("cmpointregion");
+  }
+  return listutils::typeError(err +" (arg is not a cupoint or cmpoint)");
 }
 
+template<class CXPoint>
 int traversedVM(Word* args, Word& result, int message, Word& local, Supplier s){
   result = qp->ResultStorage(s);
-  CUPoint* res = (CUPoint*)result.addr;
-  CUPoint* src = (CUPoint*)args[0].addr;
+  CXPoint* res = (CXPoint*)result.addr;
+  CXPoint* src = (CXPoint*)args[0].addr;
   *res = *src;
   return 0;
 }
 
+int traversedSelect(ListExpr args) {
+  return CUPoint::checkType(nl->First(args)) ? 0 : 1;
+}
+
+ValueMapping traversedVMs[] = {
+  traversedVM<CUPoint>,
+  traversedVM<CMPoint>
+};
+
 OperatorSpec traversedSpec(
-  "cupoint -> cupointregion",
+  "cXpoint -> cXpointregion,  X in {m,u}",
   "traversed(_)",
-  "This operator converts a cupoint into a cupointregion",
+  "This operator converts a cXpoint into a cXpointregion (X in {m,u})",
   "query traversed([const cupoint value ((1 2 TRUE FALSE) (0.0 0.0 1.0 1.0) "
     "0.3)])"
 );
@@ -21600,8 +21629,9 @@ OperatorSpec traversedSpec(
 Operator traversed(
   "traversed",
   traversedSpec.getStr(),
-  traversedVM,
-  Operator::SimpleSelect,
+  2,
+  traversedVMs,
+  traversedSelect,
   traversedTM
 );
 
