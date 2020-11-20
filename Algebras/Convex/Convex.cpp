@@ -1681,6 +1681,12 @@ void Convex::Rebuild(char* buffer, size_t sz) {
      memcpy(value, buffer+offset, size * sizeof(Point));
      offset += size * sizeof(Point);
    }
+   
+   
+   for(size_t i=0;i<size;i++){
+         void* v = (void*) &(value[i]);
+         new (v) Point();
+     }
 }
 
 
