@@ -2144,9 +2144,9 @@ void Convex::Rebuild(char* buffer, size_t sz) {
    
    
    
-     //memcpy(&cellId, buffer+offset, sizeof(int));
+     memcpy(&cellId, buffer+offset, sizeof(int));
 
-     //offset += sizeof(int);
+     offset += sizeof(int);
         
    
 }
