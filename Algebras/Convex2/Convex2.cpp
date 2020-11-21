@@ -229,7 +229,7 @@ Convex::setTo(const std::vector<std::tuple <double, double>>& src,
 
 
 
-
+Convex::~Convex() {}
 
 
 

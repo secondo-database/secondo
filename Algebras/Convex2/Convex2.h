@@ -66,10 +66,10 @@ class Convex: public Attribute{
 
      Convex& operator=(const Convex& src);
      Convex& operator=(Convex&& src);
-     ~Convex(){
+     ~Convex();/*{
        if(value){ delete[] value; }
 
-     }
+     }*/
 
     std::vector<Convex> getVoronoiVector();
     void setVoronoiVector(std::vector<Convex> voronoi_vect);
