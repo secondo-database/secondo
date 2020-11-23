@@ -66,10 +66,9 @@ class Convex: public Attribute{
 
      Convex& operator=(const Convex& src);
      Convex& operator=(Convex&& src);
-     ~Convex();/*{
+     ~Convex(){
        if(value){ delete[] value; }
-
-     }*/
+     }
 
     std::vector<Convex> getVoronoiVector();
     void setVoronoiVector(std::vector<Convex> voronoi_vect);
@@ -200,6 +199,11 @@ class Convex: public Attribute{
         memcpy(buffer+offset, value, size*sizeof(Point));
         offset += size*sizeof(Point);
       }
+      for(size_t i=0;i<size;i++){
+         void* v = (void*) &(value[i]);
+         new (v) Point();
+      }
+
       memcpy(buffer+offset, &cellId, sizeof(int));
         offset += sizeof(int);
    }

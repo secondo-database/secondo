@@ -229,7 +229,6 @@ Convex::setTo(const std::vector<std::tuple <double, double>>& src,
 
 
 
-Convex::~Convex() {}
 
 
 
@@ -2071,6 +2070,10 @@ bool Convex::Open( SmiRecord& valueRecord, size_t& offset,
   Point* v = new Point[size];
   if(!valueRecord.Read(v,size*sizeof(Point),offset)){
     return false;
+  }
+  for(size_t i=0;i<size;i++){
+     void* v1 = (void*) &(v[i]);
+     new (v1) Point();
   }
   value.addr = new Convex(size,v,0);
   return true;
