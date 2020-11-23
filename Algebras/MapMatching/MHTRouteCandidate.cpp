@@ -599,8 +599,9 @@ void MHTRouteCandidate::SetUTurn(double dAdditionalScore)
 static HalfSegment CalcHSOfEndPoint(const SimpleLine* pLine,
                                     const Point& rPt)
 {
+
     if (pLine == NULL)
-        return HalfSegment(true, Point(0.,0.), Point(0.,0.));
+        throw SecondoException("pLine is null");
 
     const int nSize = pLine->Size();
     if (nSize > 0)
@@ -619,14 +620,17 @@ static HalfSegment CalcHSOfEndPoint(const SimpleLine* pLine,
         }
         else
         {
-            assert(false);
-            return hs;
+            throw SecondoException(
+                "Got SimpleLine with only one point, ignoring");
+            //assert(false);
+            //return hs;
         }
     }
     else
     {
-        assert(false);
-        return HalfSegment(true, Point(0.,0.), Point(0.,0.));
+        throw SecondoException("Got SimpleLine with size=0, ignoring");
+        //assert(false);
+        //return HalfSegment(true, Point(0.,0.), Point(0.,0.));
     }
 }
 
@@ -678,11 +682,18 @@ bool MHTRouteCandidate::CorrectUTurn(void)
         const MapMatchData* pMMData = pData != NULL ? pData->GetMMData() : NULL;
         if (pMMData != NULL)
         {
-            AddPoint(PointNewProjection,
-                     CalcHSOfEndPoint(pNewSection->GetCurve(),
-                                      PointNewProjection),
-                     pMMData,
-                     -1.0);
+
+            try {
+                HalfSegment segment = CalcHSOfEndPoint(
+                                        pNewSection->GetCurve(),
+                                        PointNewProjection);
+
+                AddPoint(PointNewProjection, segment, pMMData, -1.0);
+            } catch(SecondoException &e) {
+                cerr << "Got exception while calculating HalfSegment: " 
+                     << e.msg() << endl;
+            }
+            
         }
 
         stackPointData.pop();
@@ -690,6 +701,8 @@ bool MHTRouteCandidate::CorrectUTurn(void)
 
     return true;
 }
+
+
 
 void MHTRouteCandidate::Print(std::ostream& os) const
 {
