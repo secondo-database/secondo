@@ -1,0 +1,263 @@
+/*
+Script to create a distributed property graph for the dblp dataset.
+
+Part 2
+
+Run this part with transactions enabled, i.e., SecondoTTYBDB. Monitors must be running.
+
+2 Distribute Data to Workers
+
+Distribute data to the workers. Then convert darray to a simple darray (sdarray). In a simple darray, all fields on workers have the same names, for example, ~Document~ instead of ~Document\_28~. This results in persistent relations on workers.
+
+*/
+open database dblppregel0820;
+
+restore Workers from Workers5Pregel;
+
+let NWorkers = Workers count;
+
+let part = fun (id: int) id mod NWorkers;
+
+
+let DocumentB1 = DocumentP feed 
+  ddistribute4["", part(.Docid), NWorkers, Workers]
+  dmap["DocumentB1", . feed oconsume[Docid]];
+let DocumentB2 = DocumentB1 makeSimple[FALSE, "Document"];
+delete DocumentB1
+
+let KeywordB1 = KeywordP feed 
+  ddistribute4["", part(.Wordid), NWorkers, Workers]
+  dmap["KeywordB1", . feed oconsume[Wordid]];
+let KeywordB2 = KeywordB1 makeSimple[FALSE, "Keyword"];
+delete KeywordB1
+
+let AuthorB1 = AuthorP feed 
+  ddistribute4["", part(.Authorid), NWorkers, Workers]
+  dmap["AuthorB1", . feed oconsume[Authorid]];
+let AuthorB2 = AuthorB1 makeSimple[FALSE, "Author"];
+delete AuthorB1
+
+
+let WROTEB1f = WROTEp feed ddistribute4["", part(.Authorid), NWorkers, 
+  Workers]
+  dmap["WROTEB1f", . feed oconsume[Authorid]];
+let WROTEB2f = WROTEB1f makeSimple[FALSE, "WROTEf"];
+delete WROTEB1f
+
+let WROTEB1b = WROTEp feed ddistribute4["", part(.Docid), NWorkers, 
+  Workers]
+  dmap["WROTEB1b", . feed oconsume[Docid]];
+let WROTEB2b = WROTEB1b makeSimple[FALSE, "WROTEb"];
+delete WROTEB1b
+
+
+let HAS_KEYWORDB1f = HAS_KEYWORDp feed 
+  ddistribute4["", part(.Docid), NWorkers, Workers]
+  dmap["HAS_KEYWORDB1f", . feed oconsume[Docid]];
+let HAS_KEYWORDB2f = HAS_KEYWORDB1f makeSimple[FALSE, "HAS_KEYWORDf"];
+delete HAS_KEYWORDB1f
+
+let HAS_KEYWORDB1b = HAS_KEYWORDp feed 
+  ddistribute4["", part(.Wordid), NWorkers, Workers]
+  dmap["HAS_KEYWORDB1b", . feed oconsume[Wordid]];
+let HAS_KEYWORDB2b = HAS_KEYWORDB1b makeSimple[FALSE, "HAS_KEYWORDb"];
+delete HAS_KEYWORDB1b
+
+
+
+/*
+3 Defining the ~Compute~ Function
+
+Create relations in main memory on the master, just for type checking the ~Compute~ function. We use ordered relations for relatively quick direct access to persistent relations. On the master, only the types are needed; therefore we create small relations.
+
+These definitions are needed for the definition of the ~Compute~ function.
+
+*/
+
+let Document = DocumentP feed head[1] oconsume[Docid];
+let Keyword = KeywordP feed head[1] oconsume[Wordid];
+let Author = AuthorP feed head[1] oconsume[Authorid]; 
+
+let WROTEf = WROTEp feed head[1] oconsume[Authorid];
+let WROTEb = WROTEp feed head[1] oconsume[Docid];
+
+let HAS_KEYWORDf = HAS_KEYWORDp feed head[1] oconsume[Docid];
+let HAS_KEYWORDb = HAS_KEYWORDp feed head[1] oconsume[Wordid];
+
+
+
+/*
+We try to formulate an example query.
+
+''Find all authors of papers on Symbolic Trajectories.''
+
+----
+  MATCH
+    (author)-[WROTE]->(doc)-[HAS_KEYWORD]->(w {Word: "Symbolic"}), 
+    (doc)-[HAS_KEYWORD]->(w2 {Word: "Trajectories"})
+  RETURN
+    author.Name, doc.Authors, doc.Title, doc.Journal, doc.Booktitle, doc.Year
+----
+
+We use the following traversal of the query tree:
+
+----
+(Keyword {Word: "Symbolic"}) 
+  <-[HAS_KEYWORD]-(doc)
+    -[HAS_KEYWORD]->(Keyword {Word: "Trajectories"})
+    <-[WROTE]-(author)
+----
+
+Initial messages to all Keyword nodes with value \{Word: "Symbolic"\}: kw\_match1()
+
+----
+Keyword
+  on kw_match1():
+    send(predecessors(HAS_KEYWORD), doc_match1())
+
+Document
+  on doc_match1():
+    send(successors(HAS_KEYWORD), kw_match2(Docid, "Trajectories"))
+
+Keyword
+  on kw_match2(Sender, Word):
+    if Word = X then
+      send(Sender, doc_match2())
+
+Document
+  on doc_match2():
+    message.Authors = Authors;
+    message.Title = Title;
+    message.Journal = Journal;
+    message.Year = Year;
+    send(predecessors(WROTE), author_match())
+
+Author
+  on author_match():
+    message.Author = Name;
+    insert into Results tuple 
+      (message.Name, message.Authors, message.Title, message.Journal, 
+        message.Booktitle, message.Year)----
+
+Messages and Results relation have the following schema:
+
+----
+stream(tuple([
+  NodeId: int, Partition: int, Message: string, Sender: int, Value: string, 
+  AuthorName: string, Authors: text, Title: text, Journal: text, Booktitle: text,
+  Year: string]))
+
+Results(AuthorName: string, Authors: text, Title: text, Journal: text, 
+  Booktitle: text, Year: string)
+----
+
+*/
+
+
+let InitialMessages = KeywordP feed filter[.Word = "Symbolic"]
+  projectextend[
+  ; NodeId: .Wordid, Partition: part(.Wordid), Message: "kw_match1", Sender: 0, 
+    Value: "", AuthorName: "", Authors: '', Title: '', Journal: '', 
+    Booktitle: '', Year: ""]
+  consume
+
+let NoMessages = fun() InitialMessages feed head[0]
+
+let Results = [const rel(tuple([AuthorName: string, Authors: text, Title: text, 
+  Journal: text, Booktitle: text, Year: string])) value ()]
+ 
+
+let Compute = fun (messages: stream(tuple([
+    NodeId: int, Partition: int, Message: string, Sender: int, Value: string, 
+    AuthorName: string, Authors: text, Title: text, Journal: text, Booktitle: text,
+    Year: string])))
+  messages 
+  loopsel[fun(t: TUPLE)
+    attr(t, Message)
+    switch[
+      "kw_match1",
+        t feed 
+        loopjoin[Keyword orange[.NodeId; .NodeId]]
+        loopjoin[HAS_KEYWORDb orange[.Wordid; .Wordid] {hk}]
+        replaceAttr[NodeId: .Docid_hk, Partition: part(.Docid_hk), 
+          Message: "doc_match1"]
+        project[NodeId, Partition, Message, Sender, Value,
+          AuthorName, Authors, Title, Journal, Booktitle, Year]
+    ; "doc_match1",
+        t feed 
+        loopjoin[Document orange[.NodeId; .NodeId] {d}]
+        loopjoin[HAS_KEYWORDf orange[.Docid_d; .Docid_d] {hk}]
+        replaceAttr[NodeId: .Wordid_hk, Partition: part(.Wordid_hk), 
+          Message: "kw_match2", Sender: .Docid_d, Value: "Trajectories"]
+        project[NodeId, Partition, Message, Sender, Value,
+          AuthorName, Authors, Title, Journal, Booktitle, Year]
+    ; "kw_match2",
+        t feed 
+        loopjoin[Keyword orange[.NodeId; .NodeId] {k}]
+        filter[.Word_k = .Value]
+        replaceAttr[NodeId: .Sender, Partition: part(.Sender), 
+          Message: "doc_match2"]
+        project[NodeId, Partition, Message, Sender, Value,
+          AuthorName, Authors, Title, Journal, Booktitle, Year]
+    ; "doc_match2",
+        t feed 
+        loopjoin[Document orange[.NodeId; .NodeId] {d}]
+        replaceAttr[Authors: .Authors_d, Title: .Title_d, 
+          Journal: .Journal_d, Booktitle: .Booktitle_d, Year: .Year_d]
+        loopjoin[WROTEb orange[.Docid_d; .Docid_d] {w}]
+        replaceAttr[NodeId: .Authorid_w, Partition: part(.Authorid_w), 
+          Message: "author_match"]
+        project[NodeId, Partition, Message, Sender, Value,
+          AuthorName, Authors, Title, Journal, Booktitle, Year]
+   ; "author_match",
+        t feed 
+        loopjoin[Author orange[.NodeId; .NodeId] {a}]
+        replaceAttr[AuthorName: .Name_a]
+        project[AuthorName, Authors, Title, Journal, Booktitle, Year]
+        Results insert
+        filter[FALSE] 
+        projectextend[; NodeId: 0, Partition:0, Message: "", Sender: 0, 
+          Value: "", AuthorName: "", Authors: '', Title: '', Journal: '', 
+          Booktitle: '', Year: ""]
+    ;  NoMessages()]
+  ]
+
+
+/* 
+2.3 Share Definitions With Workers
+
+*/
+
+query share("Compute", TRUE, Workers);
+query share("part", TRUE, Workers);
+query share("NWorkers", TRUE, Workers);
+query share("InitialMessages", TRUE, Workers);
+query share("NoMessages", TRUE, Workers);
+query share("Results", TRUE, Workers);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  

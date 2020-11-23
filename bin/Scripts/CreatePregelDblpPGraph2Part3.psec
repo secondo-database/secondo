@@ -1,0 +1,55 @@
+/*
+Script to create a distributed property graph for the dblp dataset.
+
+Part 2
+
+This part can be executed repeatedly. Run with SecondoTTBDB. Monitors must be running.
+
+
+1 Set up Pregel
+
+
+*/
+	
+query setupPregel(Workers);
+
+query setPregelFunction(Compute, Partition);
+
+# 
+
+
+/*
+2 Computation
+
+Initialize Pregel messages
+
+*/
+
+query InitialMessages feed initPregelMessages;
+
+/*
+Repeat several times:
+
+*/
+
+query startPregel(1);
+
+query getPregelMessages() count;
+
+query getPregelMessages() consume;
+
+/*
+When there are no more messages, look at the results:
+
+*/
+
+query createSDArray("Results", Workers) dsummarize consume;
+
+/*
+To make the result storage empty again:
+
+*/
+query createSDArray("Results", Workers) dmap["", . feed . deletedirect count] getValue
+
+  
+  

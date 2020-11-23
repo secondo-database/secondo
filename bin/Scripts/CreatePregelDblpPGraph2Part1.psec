@@ -1,0 +1,91 @@
+/*
+Script to create a distributed property graph for the dblp dataset.
+
+Run this script without transactions, hence with SecondoTTNT.
+
+1 Preparations
+
+Get the dblp data.
+
+Within a directory, say /home/ralf/Daten, execute: 
+
+----
+wget https://dblp.uni-trier.de/xml/dblp.xml.gz
+gunzip dblp.xml.gz
+----
+
+Start monitors.
+
+2 Set Up a Database
+
+2.1 Import DBLP Data
+
+*/
+
+create database dblppregel0820;
+
+open database dblppregel0820;
+
+let Document_raw2 = '/home/ralf/Daten/dblp.xml' 
+  dblpimport['/home/ralf/Daten/Stopwords.txt']
+
+# restore Document_raw2 from Document_raw2
+
+/*
+2.2 Create Relations on Master
+
+*/
+
+{
+  let DocumentP = Document_raw2 feed remove[AuthorsList, Keywords] consume
+| let KeywordP = Document_raw2 feed project[Keywords] unnest[Keywords] rduph[] 
+    renameAttr[Word: Keyword]
+    addcounter[Wordid, 1] consume
+| let HAS_KEYWORDp = Document_raw2 feed  project[Docid, Keywords] 
+    unnest[Keywords] {d}
+    KeywordP feed itHashJoin[Keyword_d, Word]
+    projectextend[Wordid; Docid: .Docid_d]
+    project[Docid, Wordid]
+    consume
+| let AuthorP = Document_raw2 feed  project[AuthorsList] 
+    unnest[AuthorsList] rduph[] 
+    addcounter[Authorid, 1] consume
+| let WROTEp = Document_raw2 feed project[Docid, AuthorsList] 
+    unnest[AuthorsList] {d}
+    AuthorP feed itHashJoin[Name_d, Name]
+    projectextend[Authorid; Docid: .Docid_d]
+    consume
+| let JournalsP = Document_raw2 feed project[Journal] filter[.Journal # ""]
+    renameAttr[Name: Journal]
+    rduph[] 
+    addcounter[Journalid, 1] consume
+| let AT_JOURNALp = Document_raw2 feed filter[.Type = "article"] {d} 
+    project[Docid_d, Journal_d]
+    JournalsP feed itHashJoin[Journal_d, Name]
+    renameAttr[Docid: Docid_d]
+    project[Docid, Journalid]
+    consume
+| let ConferenceP = Document_raw2 feed filter[.Type = "inproceedings"] 
+    project[Booktitle] 
+    renameAttr[Name: Booktitle]
+    rduph[] 
+    addcounter[Conferenceid, 1] consume
+| let AT_CONFp = Document_raw2 feed {d} project[Docid_d, Booktitle_d]
+    ConferenceP feed itHashJoin[Booktitle_d, Name]
+    renameAttr[Docid: Docid_d]
+    project[Docid, Conferenceid]
+    consume
+| let PublisherP = Document_raw2 feed filter[isdefined(.Publisher)] 
+    project[Publisher] 
+    renameAttr[Name: Publisher]
+    rduph[] 
+    addcounter[Publisherid, 1] consume
+| let PUBLISHED_BYp = Document_raw2 feed {d} project[Docid_d, Publisher_d]
+    PublisherP feed itHashJoin[Publisher_d, Name]
+    renameAttr[Docid: Docid_d]
+    project[Docid, Publisherid]
+    consume
+}
+
+close database
+
