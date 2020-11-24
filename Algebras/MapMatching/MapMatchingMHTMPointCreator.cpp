@@ -211,7 +211,10 @@ void MPointCreator::ProcessPoints(
              pUPoint(new temporalalgebra::UPoint(TimeInterval, Pt1, Pt1));
         m_pResMPoint->Add(*pUPoint);
 
-        assert(vecCurvesBetweenPoints.size() == 0);
+        cout << "Warning: Handle vecCurvesBetweenPoints with size " 
+             << vecCurvesBetweenPoints.size() 
+             << " as almost equal" << endl;
+        //assert(vecCurvesBetweenPoints.size() == 0);
     }
     else
     {
