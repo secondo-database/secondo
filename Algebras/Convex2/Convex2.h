@@ -73,7 +73,6 @@ class Convex: public Attribute{
     std::vector<Convex> getVoronoiVector();
     void setVoronoiVector(std::vector<Convex> voronoi_vect);
 
-
     // auxiliary functions
     static const std::string BasicType(){ return "convex"; }
     static const bool checkType(ListExpr type){
@@ -237,15 +236,18 @@ class Convex: public Attribute{
      Point* value;   
      size_t size;
      int cellId;
+      
+
+     
 
      Convex(size_t size, Point* value, int id): Attribute(true), 
             value(value),size(size),cellId(id) {}
 
 
 };
-  // used for cellnos
-   std::vector<Convex> voroVec {};
 
+// used for cellnos
+std::vector<Convex> voroVec {};
 
 
 

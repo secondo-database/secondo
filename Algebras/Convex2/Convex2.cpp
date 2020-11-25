@@ -184,12 +184,21 @@ Convex::getCellId() {
   return cellId;
 }
 
+/*std::vector<Convex>
+Convex::getVoronoiVector() {
+  return this->voroVec;
+}
+    
+void 
+Convex::setVoronoiVector(std::vector<Convex> voro_vec) {
+  this->voroVec = voro_vec;
+}*/
+
 
 
 void 
 Convex::setTo(const std::vector<std::tuple <double, double>>& src,
    int id_){
-      
       clear();
       SetDefined(true);
       if(src.size()>0){
@@ -550,8 +559,8 @@ Rectangle<3> createBBox3D(Polyhedron* poly) {
   with the bounding box of a cell
 
 */
-std::set<int> cellNum(Convex* convex, 
-  Rectangle<2>* search_window_ptr, int mode) {
+std::set<int> cellNum(Rectangle<2>* search_window_ptr,
+ int mode) {
 
   std::set<int> cell_ids;
   int bbox = 2;
@@ -565,11 +574,14 @@ std::set<int> cellNum(Convex* convex,
 
   Point center = getRectCentre(search_window_ptr);
 
+  //std::vector<Convex> voro_Vec = convex->getVoronoiVector();
+
   // intersection with exact cell
   if(mode == precise) {
+    //printf("\n convex size: %d", (int)convex->size());
   for(int i = 0; i < (int)voroVec.size(); i++) 
   {
-    Convex* tmp = &voroVec[i];
+    Convex tmp = voroVec[i];
 
     std::vector<std::tuple<double, double>> polygon {};
     std::tuple<double, double> point;
@@ -586,14 +598,14 @@ std::set<int> cellNum(Convex* convex,
         -> if no intersects: go to next cell, don't add cell_id
     */
 
-    double firstX = tmp->value[0].GetX();
-    double firstY = tmp->value[0].GetY();
+    double firstX = tmp.value[0].GetX();
+    double firstY = tmp.value[0].GetY();
 
     point = std::make_tuple(firstX, firstY);
     polygon.insert(polygon.begin(), point);
 
-    for(int a = 1; a < (int)tmp->size; a++) {
-      point = std::make_tuple(tmp->value[a].GetX(), tmp->value[a].GetY());
+    for(int a = 1; a < (int)tmp.size; a++) {
+      point = std::make_tuple(tmp.value[a].GetX(), tmp.value[a].GetY());
       polygon.insert(polygon.begin() + a, point);
     }
 
@@ -602,17 +614,17 @@ std::set<int> cellNum(Convex* convex,
       computePolygonCentroid(polygon, vertexCount);
 
     if(insideRect(search_window_ptr, centroid)){
-      cell_ids.insert(tmp->getCellId());
-    } else if (PointInPolygon(center, tmp)) {
-      cell_ids.insert(tmp->getCellId());
+      cell_ids.insert(tmp.getCellId());
+    } else if (PointInPolygon(center, &tmp)) {
+      cell_ids.insert(tmp.getCellId());
     } else {
-      for(int e = 0; e < (int)tmp->size; e++) {
+      for(int e = 0; e < (int)tmp.size; e++) {
       Point a,b;
-      a.Set(tmp->value[e].GetX(), tmp->value[e].GetY());
-      if(e == (int)tmp->size-1) {
+      a.Set(tmp.value[e].GetX(), tmp.value[e].GetY());
+      if(e == (int)tmp.size-1) {
         b.Set(firstX, firstY);
       } else {
-        b.Set(tmp->value[e+1].GetX(), tmp->value[e+1].GetY());
+        b.Set(tmp.value[e+1].GetX(), tmp.value[e+1].GetY());
 
       }
       // Point of intersection i_x, i_y
@@ -627,7 +639,7 @@ std::set<int> cellNum(Convex* convex,
         || getLineIntersection(a,b, lebo, leto, &i_x, &i_y) == 1 
         || getLineIntersection(a,b, ribo, rito, &i_x, &i_y) == 1
         || getLineIntersection(a,b, leto, rito, &i_x, &i_y) == 1) {
-        cell_ids.insert(tmp->getCellId());
+        cell_ids.insert(tmp.getCellId());
         break;
       }
       }
@@ -1853,9 +1865,7 @@ Word Convex::In(const ListExpr typeInfo, const ListExpr le1,
    int checkokflag;
      
    string lexprstr;
-  
-  
-  
+    
     Word res = SetWord(Address(0));
    
    
@@ -1886,11 +1896,26 @@ Word Convex::In(const ListExpr typeInfo, const ListExpr le1,
    while(!nl->IsEmpty(le)){
      f = nl->First(le);
      le = nl->Rest(le);
+
+     
     
      
      if(nl->ListLength(f) != 2) 
      
      {
+       // cellId
+     if(nl->ListLength(f) == 1)
+     {
+       Convex* co = new Convex(false);
+      correct = true;
+      co->cellId = nl->RealValue(f);
+ 
+      co->SetDefined(false);
+      res.addr = co;      
+      return res;
+
+
+     } else {
                
       correct = true;
       
@@ -1901,6 +1926,7 @@ Word Convex::In(const ListExpr typeInfo, const ListExpr le1,
       co->SetDefined(false);
       res.addr = co;      
      return res;
+     }
       
      }    
      
@@ -1987,6 +2013,7 @@ Word Convex::In(const ListExpr typeInfo, const ListExpr le1,
    Convex* r = new Convex(tmpo);
    res.addr = r;
    correct = true; 
+   voroVec.push_back(r);
    return res;
    
    }
@@ -2003,7 +2030,6 @@ Word Convex::In(const ListExpr typeInfo, const ListExpr le1,
 ListExpr Convex::Out(const ListExpr typeInfo, Word value) {
   
   Convex* is = (Convex*) value.addr;
-  printf("\n in out convex");
   if(!is->IsDefined()){
      return listutils::getUndefined();
   }
@@ -2116,7 +2142,6 @@ void Convex::Rebuild(char* buffer, size_t sz) {
      delete[] value;
      value = nullptr;
    }
-
    size = 0;
    bool def;
    size_t offset = 0;
@@ -2381,18 +2406,18 @@ ListExpr voronoitypemap ( ListExpr args)
 ListExpr cellnumvoronoitypemap ( ListExpr args)
 {
   if(nl->HasLength(args, 3)) {
-    //ListExpr first = nl->First(args);
+    ListExpr first = nl->First(args);
     ListExpr second = nl->Second(args);
     ListExpr third = nl->Third(args);
 
-    if (CcInt::checkType(third) 
+    if(Stream<Convex>::checkType(first) && CcInt::checkType(third) 
       && Rectangle<2>::checkType(second)) {
       return nl->SymbolAtom(collection::IntSet::BasicType());
     }
   }
 
   const std::string errMsg = "The following three arguments are expected:"
-      " Convex x rect x int";
+      " Stream<Convex> x rect x int";
 
   return  listutils::typeError(errMsg);
 
@@ -2407,12 +2432,12 @@ ListExpr cellnumvoronoitypemap ( ListExpr args)
 ListExpr sccvoronoitypemap (ListExpr args)
 {
   if(nl->HasLength(args, 4)) {
-    //ListExpr first = nl->First(args);
+    ListExpr first = nl->First(args);
     ListExpr second = nl->Second(args);
     ListExpr third = nl->Third(args);
     ListExpr fourth = nl->Fourth(args);
     
-    if(/*Convex::checkType(first) &&*/ Rectangle<2>::checkType(second)
+    if(Stream<Convex>::checkType(first) && Rectangle<2>::checkType(second)
      && Rectangle<2>::checkType(third)
      && CcInt::checkType(fourth)) {
       return nl->SymbolAtom(CcBool::BasicType());
@@ -2420,7 +2445,7 @@ ListExpr sccvoronoitypemap (ListExpr args)
   }
 
   const std::string errMsg = "The following four arguments are expected:"
-      " Convex x rect x rect x int";
+      " Stream<Convex> x rect x rect x int";
 
   return  listutils::typeError(errMsg);
 
@@ -2437,13 +2462,13 @@ ListExpr trcvoronoitypemap (ListExpr args)
     ListExpr first = nl->First(args);
     ListExpr second = nl->Second(args);
     
-    if(Convex::checkType(first) && Rectangle<2>::checkType(second)) {
+    if(Rectangle<2>::checkType(first) && Rectangle<2>::checkType(second)) {
       return nl->SymbolAtom(CcInt::BasicType());
     }
   }
 
   const std::string errMsg = "The following two arguments are expected:"
-      " Convex x rect";
+      " rect x rect";
 
   return  listutils::typeError(errMsg);
 
@@ -2452,22 +2477,41 @@ ListExpr trcvoronoitypemap (ListExpr args)
 ListExpr trcCellIdvoronoitypemap (ListExpr args)
 {
   if(nl->HasLength(args, 3)) {
+    ListExpr first = nl->First(args);
     ListExpr second = nl->Second(args);
     ListExpr third = nl->Third(args);
 
-    if(Rectangle<2>::checkType(second) 
+    if(Stream<Convex>::checkType(first) && Rectangle<2>::checkType(second) 
       && Rectangle<2>::checkType(third)) {
       return nl->SymbolAtom(CcInt::BasicType());
     }
   }
 
-  const std::string errMsg = "The following two arguments are expected:"
-      " Convex x rect x rect";
+  const std::string errMsg = "The following three arguments are expected:"
+      " Stream<Convex> x rect x rect";
 
   return  listutils::typeError(errMsg);
 
 }
 
+ListExpr getcellvoronoitypemap ( ListExpr args)
+{
+  if(nl->HasLength(args, 2)) {
+    ListExpr first = nl->First(args);
+    ListExpr second = nl->Second(args);
+
+    if(Stream<Convex>::checkType(first)
+      && CcInt::checkType(second)) {
+      return nl->SymbolAtom(Rectangle<2>::BasicType());
+    }
+  }
+
+  const std::string errMsg = "The following two arguments are expected:"
+      " Stream<Convex> x int";
+
+  return  listutils::typeError(errMsg);
+
+}
 
 /* 
  8.1.2 voronoi3dtypemap
@@ -2493,7 +2537,6 @@ ListExpr voronoi3dtypemap( ListExpr args )
 
 ListExpr cellnumvoronoi3dtypemap ( ListExpr args)
 {
-  printf("\n in voro3d cellnum typemap");
   if(nl->HasLength(args, 3)) {
     //ListExpr first = nl->First(args);
     ListExpr second = nl->Second(args);
@@ -2610,7 +2653,16 @@ ListExpr trcvoronoi3dtypemap (ListExpr args)
 int cellNumVM( Word* args, Word& result, int message,
       Word& local, Supplier s ) 
 {
-  Convex *convex = static_cast<Convex*>(args[0].addr);
+    Stream<Convex> input_convex(args[0]);
+    input_convex.open();
+    Convex* next = input_convex.request();
+
+    while(next != 0){
+      voroVec.push_back(*next);
+      next = input_convex.request();
+    }
+
+    input_convex.close();
 
   Rectangle<2> *search_window_ptr
     = static_cast<Rectangle<2>*>( args[1].addr );
@@ -2625,7 +2677,7 @@ int cellNumVM( Word* args, Word& result, int message,
   result = qp->ResultStorage(s);
   collection::IntSet* res = (collection::IntSet*) result.addr;
 
-  if(search_window_ptr == nullptr || convex == nullptr) {
+  if(search_window_ptr == nullptr /*|| convex == nullptr*/) {
     return 1;
   }
 
@@ -2633,9 +2685,10 @@ int cellNumVM( Word* args, Word& result, int message,
     mode = bbox;
   }
 
-  cell_ids = cellNum(convex, search_window_ptr, mode);
+  cell_ids = cellNum(search_window_ptr, mode);
   res->setTo(cell_ids);
 
+  
   if(voroVec.size() > 0) {
     voroVec.clear();
   }
@@ -2651,7 +2704,16 @@ int cellNumVM( Word* args, Word& result, int message,
 int smallestCommonCellnumVM( Word* args, Word& result, int message,
       Word& local, Supplier s ) 
 {
-  Convex *convex = static_cast<Convex*>(args[0].addr);
+  Stream<Convex> input_convex(args[0]);
+  input_convex.open();
+  Convex* next = input_convex.request();
+
+  while(next != 0){
+    voroVec.push_back(*next);
+    next = input_convex.request();
+  }
+
+  input_convex.close();
 
   Rectangle<2> *search_window_ptr
     = static_cast<Rectangle<2>*>( args[1].addr );
@@ -2663,8 +2725,7 @@ int smallestCommonCellnumVM( Word* args, Word& result, int message,
   int cellno = cellno_ptr->GetIntval();
 
   if(search_window_ptr == nullptr 
-    || search_window_ptr_2 == nullptr 
-    || convex == nullptr) {
+    || search_window_ptr_2 == nullptr) {
     return 0;
   }
 
@@ -2672,8 +2733,8 @@ int smallestCommonCellnumVM( Word* args, Word& result, int message,
   CcBool *res = (CcBool*) result.addr;
   bool boolval = false;
 
-  std::set<int> intsetRect1 = cellNum(convex, search_window_ptr, 1);
-  std::set<int> intsetRect2 = cellNum(convex, search_window_ptr_2, 1);
+  std::set<int> intsetRect1 = cellNum(search_window_ptr, 1);
+  std::set<int> intsetRect2 = cellNum(search_window_ptr_2, 1);
 
 
   std::vector<int> v(sizeof(intsetRect1)+ sizeof(intsetRect2));
@@ -2698,7 +2759,7 @@ int smallestCommonCellnumVM( Word* args, Word& result, int message,
   }
       
   res->Set( true, boolval);
-
+  
   if(voroVec.size() > 0) {
     voroVec.clear();
   }
@@ -2714,7 +2775,16 @@ int smallestCommonCellnumVM( Word* args, Word& result, int message,
 int trcCellIdvorononoiVM( Word* args, Word& result, int message,
       Word& local, Supplier s ) 
 {
-  Convex *convex = static_cast<Convex*>(args[0].addr);
+  Stream<Convex> input_convex(args[0]);
+  input_convex.open();
+  Convex* next = input_convex.request();
+
+  while(next != 0){
+    voroVec.push_back(*next);
+    next = input_convex.request();
+  }
+
+  input_convex.close();
 
   Rectangle<2> *search_window_ptr
     = static_cast<Rectangle<2>*>( args[1].addr );
@@ -2723,23 +2793,22 @@ int trcCellIdvorononoiVM( Word* args, Word& result, int message,
     = static_cast<Rectangle<2>*>( args[2].addr );
 
   if(search_window_ptr == nullptr 
-    || search_window_ptr_2 == nullptr 
-    || convex == nullptr) {
+    || search_window_ptr_2 == nullptr) {
     return 1;
   }
 
   result = qp->ResultStorage(s);
   CcInt* res = (CcInt*) result.addr;
 
-  std::set<int> intsetRect1 = cellNum(convex, search_window_ptr, 2);
-  std::set<int> intsetRect2 = cellNum(convex, search_window_ptr_2, 2);
+  std::set<int> intsetRect1 = cellNum(search_window_ptr, 2);
+  std::set<int> intsetRect2 = cellNum(search_window_ptr_2, 2);
   
-  /*for (std::set<int>::iterator it=intsetRect1.begin(); 
+  for (std::set<int>::iterator it=intsetRect1.begin(); 
     it!=intsetRect1.end(); ++it)
     std::cout << ' ' << *it;
   for (std::set<int>::iterator ip=intsetRect2.begin(); 
     ip!=intsetRect2.end(); ++ip)
-    std::cout << ' ' << *ip;*/
+    std::cout << ' ' << *ip;
   
 
 
@@ -2795,7 +2864,7 @@ int trcCellIdvorononoiVM( Word* args, Word& result, int message,
     }
   }
   }
-
+  
 
   if(voroVec.size() > 0) {
     voroVec.clear();
@@ -2806,39 +2875,82 @@ int trcCellIdvorononoiVM( Word* args, Word& result, int message,
 }
 
 /*
-8.2.2 TopRightClass returns cellId of cell which should be reported
+8.2.2 TopRightClass returns toprightclassvalue
 
 */
 int trcvorononoiVM( Word* args, Word& result, int message,
       Word& local, Supplier s ) 
 {
-  Convex *convex = static_cast<Convex*>(args[0].addr);
+  Rectangle<2> *search_window_ptr_C
+    = static_cast<Rectangle<2>*>( args[0].addr );
 
   Rectangle<2> *search_window_ptr
     = static_cast<Rectangle<2>*>( args[1].addr );
 
-  if(search_window_ptr == nullptr || convex == nullptr) {
+  if(search_window_ptr == nullptr 
+  || search_window_ptr_C == nullptr) {
     return -1;
   }
 
   result = qp->ResultStorage(s);
   CcInt* res = (CcInt*) result.addr;
 
-  // get TRC Values
+  // get TRC Value
   int value_rect1 = 0;
 
-  // create bbox of voronoi cell
-  Rectangle<2> bbox = createBBox(convex);
-
-  if ( search_window_ptr->getMaxX() >= bbox.getMaxX() )
+  if ( search_window_ptr->getMaxX() >= search_window_ptr_C->getMaxX() )
     {value_rect1++;}
-  if ( search_window_ptr->getMaxY() >= bbox.getMaxY() ) {
+  if ( search_window_ptr->getMaxY() >= search_window_ptr_C->getMaxY() ) {
     value_rect1 += 2;}
 
 
   res->Set(value_rect1);
 
   return 0;    
+
+}
+
+int getcellvoronoiVM(Word* args, Word& result, int message,
+  Word& local, Supplier s)
+{
+  Stream<Convex> input_convex(args[0]);
+  input_convex.open();
+  Convex* next = input_convex.request();
+
+  while(next != 0){
+    voroVec.push_back(*next);
+    next = input_convex.request();
+  }
+
+  input_convex.close();
+
+  CcInt* cellno_ptr = static_cast<CcInt*>(args[1].addr);
+  int cellno = cellno_ptr->GetIntval();
+
+  if (voroVec.size() > 0 )
+  {
+    result = qp->ResultStorage( s );
+    Rectangle<2> *res = (Rectangle<2>*) result.addr;
+
+    for(size_t i = 0; i < voroVec.size(); i++)
+    {
+      if(voroVec[i].getCellId() == cellno)
+      {
+        double min[2], max[2];
+        Rectangle<2> bbox = createBBox(&voroVec[i]);
+
+        min[0] = bbox.getMinX();
+        min[1] = bbox.getMinY();
+        max[0] = bbox.getMaxX();
+        max[1] = bbox.getMaxY();
+        res->Set(true, min, max);
+        return 0;
+      }
+    }
+  }
+
+
+  return -1;
 
 }
 
@@ -2853,7 +2965,6 @@ int createconvexVM (Word* args, Word& result,
 
 
 { 
- 
  qp->DeleteResultStorage(s);
  qp->ReInitResultStorage(s);
  result = qp->ResultStorage(s);
@@ -2977,9 +3088,7 @@ int voronoiVM (Word* args, Word& result, int message, Word& local, Supplier s)
   Word tee;
   
   Tuple* tup;
-  
-  
-      
+        
   voronoiInfo*  localInfo = (voronoiInfo*) qp->GetLocal2(s).addr;
   
   std::vector<VoronoiPoint> voropoints; 
@@ -9031,9 +9140,9 @@ int smallestCommonCellnum3DVM( Word* args, Word& result, int message,
       
   res->Set( true, boolval);
 
-  if(voroVec.size() > 0) {
-    voroVec.clear();
-  }
+  /*if(convex->voroVec.size() > 0) {
+    convex->voroVec.clear();
+  }*/
 
   return 0;
 
@@ -9259,25 +9368,23 @@ cellNumSpec
 */
 const string cellNumSpec = 
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-    "( <text>((stream (tuple (..., (ak1 Tk1),...))) x "
-    "ak1 x ak2 x rect x bool x rect2"
+    "( <text> Stream<Convex> x rect2 x int"
     "-> intset </text--->"
     "<text>_ cellnum[ list ] </text--->"
     "<text> Returns all cellnumbers of the created voronoi"
     " diagram which intersect with the given "
-    " rectangle. Like in voronoi() the attributes Tk1 and ak1 "
-    " are expected. </text--->"    
+    " rectangle. </text--->"    
     "<text> query cellnum((convtest feed voronoi "
     " [Punkt, Conv, [const rect value (-10 10 -10 10)], "
-    " FALSE] project[Conv] consume), "
+    " FALSE] project[Conv] consume) feed "
+    " projecttransformstream[Conv], "
     " rectangle2(-1.0, 4.0, 0.0, 2.0), 1) </text--->" 
     ") )";
 
 
 const string smallestCommCellnumSpec = 
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-    "( <text>((stream (tuple (..., (ak1 Tk1),...))) x "
-    "ak1 x ak2 x rect x bool x rect2 x rect2 x int"
+    "( <text> Stream<Convex> x rect2 x rect2 x int"
     "-> bool </text--->"
     "<text>_ sccvoronoi [ list ] </text--->"
     "<text> Returns true if int equals "
@@ -9286,15 +9393,15 @@ const string smallestCommCellnumSpec =
     " the voronoi diagram is created as in voronoi(). </text--->"    
     "<text> query sccvoronoi((convtest feed voronoi "
     " [Punkt, Conv, [const rect value (-10 10 -10 10)], FALSE] "
-    " project[Conv] consume), rectangle2(-1.0, 4.0, 0.0, 2.0), "
+    " project[Conv] consume) feed projecttransformstream[Conv],"
+    " rectangle2(-1.0, 4.0, 0.0, 2.0), "
     " rectangle2(5.0, 7.0, -0.5, 0.5), 5) </text--->" 
     ") )";
 
 
 const string toprightclassCellSpec = 
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-    "( <text>((stream (tuple (..., (ak1 Tk1),...))) x "
-    "ak1 x ak2 x rect x bool x rect2 x rect2"
+    "( <text> Stream<Convex> x rect2 x rect2"
     "-> int </text--->"
     "<text>_ trcvoronoi [ list ] </text--->"
     "<text>Returns cell id in which "
@@ -9302,14 +9409,14 @@ const string toprightclassCellSpec =
     " be reported. </text--->"    
     "<text> query trcvoronoi((convtest feed voronoi "
     " [Punkt, Conv, [const rect value (-10 10 -10 10)], FALSE] "
-    " project[Conv] consume), rectangle2(-1.0, 4.0, 0.0, 2.0), " 
+    " project[Conv] consume) feed projecttransformstream[Conv],"
+    " rectangle2(-1.0, 4.0, 0.0, 2.0), " 
     " rectangle2(5.0, 7.0, -0.5, 0.5)) </text--->" 
     ") )";
 
 const string toprightclassSpec = 
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-    "( <text>((stream (tuple (..., (ak1 Tk1),...))) x "
-    "ak1 x ak2 x rect x bool x rect2 x rect2"
+    "( <text> rect2 x rect2"
     "-> int </text--->"
     "<text>_ trcvoronoi [ list ] </text--->"
     "<text>Returns the toprightclass value "
@@ -9319,6 +9426,19 @@ const string toprightclassSpec =
     " [Punkt, Conv, [const rect value (-10 10 -10 10)], FALSE] "
     " project[Conv] consume), rectangle2(-1.0, 4.0, 0.0, 2.0), " 
     " rectangle2(5.0, 7.0, -0.5, 0.5)) </text--->" 
+    ") )";
+
+const string getcellvoronoiSpec = 
+"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text> Stream<Convex> x int "
+    "-> rectangle<2> </text--->"
+    "<text>_ getcellvoro [ ] </text--->"
+    "<text>Returns the bbox of a cell to "
+    " the given cellid </text--->"    
+    "<text> query trcvoronoi((convtest feed voronoi "
+    " [Punkt, Conv, [const rect value (-10 10 -10 10)], FALSE] "
+    " project[Conv] consume) feed projecttransformstream[Conv],"
+    " 2  </text--->" 
     ") )";
 
 const string voronoi3dSpec = 
@@ -9487,9 +9607,15 @@ Operator trccellvoronoi ("trccellvoronoi",
                       Operator::SimpleSelect,
                       trcCellIdvoronoitypemap );
 
+Operator getcellvoronoi ( "getcellvoronoi",
+                          getcellvoronoiSpec,
+                          getcellvoronoiVM,
+                          Operator::SimpleSelect, 
+                          getcellvoronoitypemap);
+
 Operator voronoi3d ( "voronoi3d",
                       voronoi3dSpec,
-                      voronoi3dVM,
+                      voronoi3dVM,  
                       Operator::SimpleSelect,
                       voronoi3dtypemap );  
 
@@ -9553,6 +9679,7 @@ class ConvexAlgebra : public Algebra
     AddOperator( &sccvoronoi);
     AddOperator( &trcvoronoi);
     AddOperator( &trccellvoronoi );
+    AddOperator( &getcellvoronoi );
     AddOperator( &voronoi3d );
     AddOperator( &cellnum3d );
     AddOperator( &sccvoronoi3d );

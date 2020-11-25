@@ -18,28 +18,34 @@ Remark   :
 
 Operator : cellnum
 Number   : 1
-Signature: (stream (tuple (..., (ak1 TK1),...))) x ak1 x ak2 x bool x rect2 x int -> intset
-Example  : query cellnum((convtest feed voronoi [Punkt, Conv, [const rect value (-10 10 -10 10)], FALSE] project[Conv] consume), rectangle2(-1.0, 4.0, 0.0, 2.0), 1)
+Signature: stream<convex> x rect2 x int -> intset
+Example  : query cellnum((convtest feed voronoi [Punkt, Conv, [const rect value (-10 10 -10 10)], FALSE] project[Conv] consume) feed projecttransformstream[Conv], rectangle2(-1.0, 4.0, 0.0, 2.0), 1)
 Result   : ((1 2 5))
 Remark   : 
 
 Operator : sccvoronoi
 Number   : 1
-Signature: (stream (tuple (..., (ak1 TK1),...))) x ak1 x ak2 x bool x rect2 x rect2 x int -> bool
-Example  : query sccvoronoi((convtest feed voronoi [Punkt, Conv, [const rect value (-10 10 -10 10)], FALSE] project[Conv] consume), rectangle2(-1.0, 4.0, 0.0, 2.0), rectangle2(5.0, 7.0, -0.5, 0.5),2)
+Signature: stream<convex> x rect2 x rect2 x int -> bool
+Example  : query sccvoronoi((convtest feed voronoi [Punkt, Conv, [const rect value (-10 10 -10 10)], FALSE] project[Conv] consume) feed projecttransformstream[Conv], rectangle2(-1.0, 4.0, 0.0, 2.0), rectangle2(5.0, 7.0, -0.5, 0.5),2)
 Result   : TRUE
 
 Operator : trcvoronoi
 Number   : 1
-Signature: convex x rect2 -> int
-Example  : query trcvoronoi(convtest feed head [3] projecttransformstream[Punkt] createconvex [TRUE], rectangle2(5.0, 7.0, -0.5, 0.5))
-Result   : 1
+Signature: rect2 x rect2 -> int
+Example  : query trcvoronoi(rectangle2(5.0, 10.0, -1.0, 1.0), rectangle2(5.0, 7.0, -0.5, 0.5))
+Result   : 0
 
 Operator : trccellvoronoi
 Number   : 1
-Signature: (stream (tuple (..., (ak1 TK1),...))) x ak1 x ak2 x bool x rect2 x rect2 -> int
-Example  : query trccellvoronoi((convtest feed voronoi [Punkt, Conv, [const rect value (-10 10 -10 10)], FALSE] project[Conv] consume), rectangle2(-1.0, 4.0, 0.0, 2.0), rectangle2(5.0, 7.0, -0.5, 0.5))
+Signature: stream<convex> x rect2 x rect2 -> int
+Example  : query trccellvoronoi((convtest feed voronoi [Punkt, Conv, [const rect value (-10 10 -10 10)], FALSE] project[Conv] consume) feed projecttransformstream[Conv], rectangle2(-1.0, 4.0, 0.0, 2.0), rectangle2(5.0, 7.0, -0.5, 0.5))
 Result   : 2
+
+Operator : getcellvoronoi
+Number   : 1
+Signature: stream<convex> x int -> rect2
+Example  : query getcellvoronoi((convtest feed voronoi [Punkt, Conv, [const rect value (-10 10 -10 10)], FALSE] project[Conv] consume) feed projecttransformstream[Conv], 2)
+Result   : ( (-0,-0) - (10,10) )
 
 Operator : voronoi3d
 Number   : 1
