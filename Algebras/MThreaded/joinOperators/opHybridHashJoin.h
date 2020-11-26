@@ -107,7 +107,7 @@ class HashJoinWorker {
    std::shared_ptr<SafeQueue<Tuple*>> partBufferR;
    std::shared_ptr<SafeQueue<Tuple*>> partBufferS;
    size_t bucketNo = 20;
-   size_t bucketsInMem1st = 1000;
+   size_t bucketsInMem1st = 999997;
    std::pair<int, int> joinAttr;
    TupleType* resultTupleType;
    std::shared_ptr<HashTablePersist> hashTablePersist;
