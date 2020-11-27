@@ -789,13 +789,19 @@ Operator  : distanceAvg
 Number    : 1
 Signature : mpoint x mpoint -> real
 Example   : query distanceAvg(train5, train6)
-Result    : 11573.4610617085
+Result    : 13246.07501438946
 
 Operator  : distanceAvgLB
 Number    : 1
 Signature : cXpoint x cXpoint -> real  (X = m|u)
 Example   : query distanceAvgLB(cbbox(train5), cbbox(train6))
 Result    : 4863.6938082193
+
+Operator  : sphericalDistanceApprox
+Number    : 1
+Signature : mpoint x mpoint -> real
+Example   : query isdefined(sphericalDistanceApprox([const mpoint value (((0 1 TRUE FALSE) (8.0 51.0 8.1 51.0)))], [const mpoint value (((0 1 TRUE FALSE) (8.5 51.0 8.6 51.0)))]))
+Result    : FALSE
 
 Operator  : distanceAvgUB
 Number    : 1

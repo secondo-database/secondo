@@ -5115,13 +5115,24 @@ double MPoint::DistanceAvg(const MPoint& mp, const Geoid* geoid /* = 0 */)
   RefinementPartition<MPoint, MPoint, UPoint, UPoint> rp(mp, shifted);
   std::stack<ISC> theStack;
   double duration = 0.0;
+  Interval<Instant> iv;
+  int u1Pos, u2Pos;
+  UPoint u1(true), u2(true);
   for (unsigned int i = 0; i < rp.Size(); i++) {
-    Interval<Instant> iv;
-    int u1Pos, u2Pos;
-    UPoint u1, u2;
     rp.Get(i, iv, u1Pos, u2Pos);
-    if (u1Pos == -1 || u2Pos == -1) {
+    if (u1Pos == -1 && u2Pos == -1) {
+      cout << "Both mpoints undefined for i = " << i << endl;
       continue;
+    }
+    else if (u1Pos == -1) {
+      shifted.Get(u2Pos, u2);
+      u1.timeInterval = u2.timeInterval;
+      u1.p0 = u1.p1; // use constant unit with same time interval as u2
+    }
+    else if (u2Pos == -1) {
+      mp.Get(u1Pos, u1);
+      u2.timeInterval = u1.timeInterval;
+      u2.p0 = u2.p1; // use constant unit with same time interval as u1
     }
     else {
       mp.Get(u1Pos, u1);
@@ -8537,8 +8548,19 @@ double CMPoint::DistanceAvg(const CMPoint& cmp, const bool upperBound,
   CUPoint cu1, cu2;
   for (unsigned int i = 0; i < rp.Size(); i++) {
     rp.Get(i, iv, cu1Pos, cu2Pos);
-    if (cu1Pos == -1 || cu2Pos == -1) {
+    if (cu1Pos == -1 && cu2Pos == -1) {
+      cout << "Both mpoints undefined for i = " << i << endl;
       continue;
+    }
+    else if (cu1Pos == -1) {
+      shifted.Get(cu2Pos, cu2);
+      cu1.timeInterval = cu2.timeInterval;
+      cu1.p0 = cu1.p1; // use constant unit with same time interval as u2
+    }
+    else if (cu2Pos == -1) {
+      cmp.Get(cu1Pos, cu1);
+      cu2.timeInterval = cu1.timeInterval;
+      cu2.p0 = cu2.p1; // use constant unit with same time interval as u1
     }
     else {
       cmp.Get(cu1Pos, cu1);
@@ -12421,6 +12443,23 @@ ListExpr DistanceAvgLBUBTypeMap(ListExpr args) {
 }
 
 /*
+~SphericalDistanceApproxTypeMap~
+
+This function is applied by the ~sphericalDistanceApprox~ operator.
+
+*/
+ListExpr SphericalDistanceApproxTypeMap(ListExpr args) {
+  if (!nl->HasLength(args, 2)) {
+    return listutils::typeError("two arguments expected");
+  }
+  if ((!MPoint::checkType(nl->First(args)) ||
+       !MPoint::checkType(nl->Second(args)))) {
+    return listutils::typeError("both args must have type mpoint");
+  }
+  return nl->SymbolAtom(CcReal::BasicType());
+}
+
+/*
 ~GPSTypeMap~
 
 The GPS operator works very similar to the SampleMPoint operator.
@@ -14254,6 +14293,19 @@ int DistanceAvgUBMap(Word* args, Word& result, int message, Word& local,
   result = qp->ResultStorage(s);
   ((T*)args[0].addr)->DistanceAvg(*((T*)args[1].addr), true, 
                                   *((CcReal*)result.addr));
+  return 0;
+}
+
+int SphericalDistanceApproxMap(Word* args, Word& result, int message, 
+                               Word& local, Supplier s) {
+  result = qp->ResultStorage(s);
+  MPoint *m1 = (MPoint*)args[0].addr;
+  MPoint *m2 = (MPoint*)args[1].addr;
+  if (!m1->IsDefined() || !m2->IsDefined()) {
+    ((CcReal*)result.addr)->SetDefined(false);
+    return 0;
+  }
+// TODO:  m1->SphericalDistanceApprox(*m1, *((CcReal*)result.addr));
   return 0;
 }
 
@@ -17610,6 +17662,15 @@ const std::string TemporalSpecDistanceAvgUB =
   "<text>distanceAvgUB(cmpoint1, cmpoint2)</text--->"
   ") )";
 
+const std::string TemporalSpecSphericalDistanceApprox =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text>mpoint x mpoint -> real</text--->"
+  "<text>sphericalDistanceApprox( _, _ ) </text--->"
+  "<text>Returns the integral sum of the partial distance functions. Spherical "
+  "distances are approximated by scaling.</text--->"
+  "<text>sphericalDistanceApprox(mpoint1, mpoint2)</text--->"
+  ") )";
+
 const std::string TemporalSpecSquaredDistance =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>(mpoint point) -> mreal, (mpoint mpoint)->mreal</text--->"
@@ -18440,6 +18501,12 @@ Operator temporaldistanceavgub( "distanceAvgUB",
                            DistanceAvgUBMaps,
                            DistanceAvgLBUBSelect,
                            DistanceAvgLBUBTypeMap);
+
+Operator temporalsphericaldistanceapprox( "sphericalDistanceApprox",
+                           TemporalSpecSphericalDistanceApprox,
+                           SphericalDistanceApproxMap,
+                           Operator::SimpleSelect,
+                           SphericalDistanceApproxTypeMap);
 
 Operator temporalsquareddistance( "squareddistance",
                            TemporalSpecSquaredDistance,
@@ -21828,6 +21895,7 @@ class TemporalAlgebra : public Algebra
     AddOperator( &temporaldistanceavg );
     AddOperator( &temporaldistanceavglb );
     AddOperator( &temporaldistanceavgub );
+    AddOperator( &temporalsphericaldistanceapprox );
     AddOperator( &temporalsimplify );
     AddOperator( &temporalintegrate );
     AddOperator( &temporallinearize );
