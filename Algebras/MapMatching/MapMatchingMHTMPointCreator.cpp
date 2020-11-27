@@ -382,7 +382,14 @@ void MPointCreator::ProcessPoints(
                 AttributePtr<temporalalgebra::UPoint> pUPoint(
                          new temporalalgebra::UPoint(TimeInterval,
                                                         Pt2, Pt2));
-                m_pResMPoint->Add(*pUPoint);
+
+                if (! pUPoint->IsDefined() || ! pUPoint->IsValid()) {
+                    cout << "Warning: Ignoring invalid UPoint: ";
+                    pUPoint->Print(cout);
+                    cout << endl;
+                } else {
+                    m_pResMPoint->Add(*pUPoint);
+                }
             }
             else
             {
