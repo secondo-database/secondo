@@ -321,7 +321,7 @@ bool PointInPolygon(Point point, Convex* conv)
 
   // Precheck: if point is not in bbox of polygon, then it is not in 
   // polygon either
-  if(!insideRect(&bbox, std::make_tuple(point.GetX(), point.GetX())))
+  if(!insideRect(&bbox, std::make_tuple(point.GetX(), point.GetY())))
   {
     return false;
   }
@@ -559,10 +559,9 @@ Rectangle<3> createBBox3D(Polyhedron* poly) {
   with the bounding box of a cell
 
 */
-std::set<int> cellNum(Rectangle<2>* search_window_ptr,
- int mode) {
+void cellNum(Rectangle<2>* search_window_ptr,
+ int mode, std::set<int> *cell_ids) {
 
-  std::set<int> cell_ids;
   int bbox = 2;
   int precise = 1;
   // Rectangle points
@@ -574,11 +573,9 @@ std::set<int> cellNum(Rectangle<2>* search_window_ptr,
 
   Point center = getRectCentre(search_window_ptr);
 
-  //std::vector<Convex> voro_Vec = convex->getVoronoiVector();
-
+  int n = 0;
   // intersection with exact cell
   if(mode == precise) {
-    //printf("\n convex size: %d", (int)convex->size());
   for(int i = 0; i < (int)voroVec.size(); i++) 
   {
     Convex tmp = voroVec[i];
@@ -608,15 +605,17 @@ std::set<int> cellNum(Rectangle<2>* search_window_ptr,
       point = std::make_tuple(tmp.value[a].GetX(), tmp.value[a].GetY());
       polygon.insert(polygon.begin() + a, point);
     }
-
     size_t vertexCount = polygon.size();
     std::tuple<double,double> centroid = 
       computePolygonCentroid(polygon, vertexCount);
 
+    int in = 0;
     if(insideRect(search_window_ptr, centroid)){
-      cell_ids.insert(tmp.getCellId());
+      cell_ids->insert(tmp.getCellId());
+      in += 1;
     } else if (PointInPolygon(center, &tmp)) {
-      cell_ids.insert(tmp.getCellId());
+      cell_ids->insert(tmp.getCellId());
+      in += 1;
     } else {
       for(int e = 0; e < (int)tmp.size; e++) {
       Point a,b;
@@ -639,13 +638,17 @@ std::set<int> cellNum(Rectangle<2>* search_window_ptr,
         || getLineIntersection(a,b, lebo, leto, &i_x, &i_y) == 1 
         || getLineIntersection(a,b, ribo, rito, &i_x, &i_y) == 1
         || getLineIntersection(a,b, leto, rito, &i_x, &i_y) == 1) {
-        cell_ids.insert(tmp.getCellId());
+        cell_ids->insert(tmp.getCellId());
+        in += 1;
         break;
       }
       }
+
+      
     }
 
   }
+
   
   } else if (mode== bbox) {
 
@@ -661,15 +664,15 @@ std::set<int> cellNum(Rectangle<2>* search_window_ptr,
       tole.Set(bbox.getMinX(), bbox.getMaxY());
       bori.Set(bbox.getMaxX(), bbox.getMinY());
       if(rectOverlap(tole, bori, leto, ribo)) {
-        cell_ids.insert(tmp->getCellId());
+        cell_ids->insert(tmp->getCellId());
       }
     }
 
   } else {
-    cell_ids.insert(0);
+    cell_ids->insert(0);
   }
 
-  return cell_ids;
+  return;
 
 } 
 
@@ -2685,7 +2688,7 @@ int cellNumVM( Word* args, Word& result, int message,
     mode = bbox;
   }
 
-  cell_ids = cellNum(search_window_ptr, mode);
+  cellNum(search_window_ptr, mode, &cell_ids);
   res->setTo(cell_ids);
 
   
@@ -2733,8 +2736,12 @@ int smallestCommonCellnumVM( Word* args, Word& result, int message,
   CcBool *res = (CcBool*) result.addr;
   bool boolval = false;
 
-  std::set<int> intsetRect1 = cellNum(search_window_ptr, 1);
-  std::set<int> intsetRect2 = cellNum(search_window_ptr_2, 1);
+  std::set<int> intsetRect1;
+  std::set<int> intsetRect2;
+
+
+  cellNum(search_window_ptr, 1, &intsetRect1);
+  cellNum(search_window_ptr_2, 1, &intsetRect2);
 
 
   std::vector<int> v(sizeof(intsetRect1)+ sizeof(intsetRect2));
@@ -2800,8 +2807,11 @@ int trcCellIdvorononoiVM( Word* args, Word& result, int message,
   result = qp->ResultStorage(s);
   CcInt* res = (CcInt*) result.addr;
 
-  std::set<int> intsetRect1 = cellNum(search_window_ptr, 2);
-  std::set<int> intsetRect2 = cellNum(search_window_ptr_2, 2);
+  std::set<int> intsetRect1;
+  std::set<int> intsetRect2;
+
+  cellNum(search_window_ptr, 2, &intsetRect1);
+  cellNum(search_window_ptr_2, 2, &intsetRect2);
   
   for (std::set<int>::iterator it=intsetRect1.begin(); 
     it!=intsetRect1.end(); ++it)
