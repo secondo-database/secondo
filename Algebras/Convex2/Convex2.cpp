@@ -573,7 +573,6 @@ void cellNum(Rectangle<2>* search_window_ptr,
 
   Point center = getRectCentre(search_window_ptr);
 
-  int n = 0;
   // intersection with exact cell
   if(mode == precise) {
   for(int i = 0; i < (int)voroVec.size(); i++) 
