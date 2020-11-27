@@ -384,7 +384,7 @@ void MPointCreator::ProcessPoints(
                                                         Pt2, Pt2));
 
                 if (! pUPoint->IsDefined() || ! pUPoint->IsValid()) {
-                    cout << "Warning: Ignoring invalid UPoint: ";
+                    cout << "Warning: Ignoring invalid ";
                     pUPoint->Print(cout);
                     cout << endl;
                 } else {
