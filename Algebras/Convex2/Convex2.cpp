@@ -577,12 +577,31 @@ void cellNum(Rectangle<2>* search_window_ptr,
   if(mode == precise) {
   for(int i = 0; i < (int)voroVec.size(); i++) 
   {
-    Convex tmp = voroVec[i];
-
-    std::vector<std::tuple<double, double>> polygon {};
-    std::tuple<double, double> point;
+    Convex* tmp = &voroVec[i];
 
     /*
+      -1. Precheck if object has an intersection
+      with bbox of voronoi cell
+      -> if yes: go on with further tests
+      -> if not: go to next cell
+
+    */
+
+    Rectangle<2> bbox = createBBox(tmp);
+
+    // see if bbox intersects with rectangle
+    // top left and bottom right of bbox
+    Point tole, bori;
+    tole.Set(bbox.getMinX(), bbox.getMaxY());
+    bori.Set(bbox.getMaxX(), bbox.getMinY());
+    if(rectOverlap(tole, bori, leto, ribo)) 
+    {
+      
+
+      std::vector<std::tuple<double, double>> polygon {};
+      std::tuple<double, double> point;
+
+      /*
       1. Check if middle of cell intersects with rectangle 
       (get middle of cell, check if it lies in rectangle)
       -> if yes: add cell_id to cell_ids -> done
@@ -592,58 +611,55 @@ void cellNum(Rectangle<2>* search_window_ptr,
         -> if no edge intersects: check if rectangle is small and does
           not intersects with edges or centroid at all, but lies in cell
         -> if no intersects: go to next cell, don't add cell_id
-    */
+      */
 
-    double firstX = tmp.value[0].GetX();
-    double firstY = tmp.value[0].GetY();
+      double firstX = tmp->value[0].GetX();
+      double firstY = tmp->value[0].GetY();
 
-    point = std::make_tuple(firstX, firstY);
-    polygon.insert(polygon.begin(), point);
+      point = std::make_tuple(firstX, firstY);
+      polygon.insert(polygon.begin(), point);
 
-    for(int a = 1; a < (int)tmp.size; a++) {
-      point = std::make_tuple(tmp.value[a].GetX(), tmp.value[a].GetY());
-      polygon.insert(polygon.begin() + a, point);
-    }
-    size_t vertexCount = polygon.size();
-    std::tuple<double,double> centroid = 
+      for(int a = 1; a < (int)tmp->size; a++) {
+        point = std::make_tuple(tmp->value[a].GetX(), tmp->value[a].GetY());
+        polygon.insert(polygon.begin() + a, point);
+      }
+      size_t vertexCount = polygon.size();
+      std::tuple<double,double> centroid = 
       computePolygonCentroid(polygon, vertexCount);
 
-    int in = 0;
-    if(insideRect(search_window_ptr, centroid)){
-      cell_ids->insert(tmp.getCellId());
-      in += 1;
-    } else if (PointInPolygon(center, &tmp)) {
-      cell_ids->insert(tmp.getCellId());
-      in += 1;
-    } else {
-      for(int e = 0; e < (int)tmp.size; e++) {
-      Point a,b;
-      a.Set(tmp.value[e].GetX(), tmp.value[e].GetY());
-      if(e == (int)tmp.size-1) {
-        b.Set(firstX, firstY);
+      if(insideRect(search_window_ptr, centroid)){
+        cell_ids->insert(tmp->getCellId());
+      } else if (PointInPolygon(center, tmp)) {
+        cell_ids->insert(tmp->getCellId());
       } else {
-        b.Set(tmp.value[e+1].GetX(), tmp.value[e+1].GetY());
+        for(int e = 0; e < (int)tmp->size; e++) {
+        Point a,b;
+        a.Set(tmp->value[e].GetX(), tmp->value[e].GetY());
+        if(e == (int)tmp->size-1) {
+          b.Set(firstX, firstY);
+        } else {
+          b.Set(tmp->value[e+1].GetX(), tmp->value[e+1].GetY());
 
-      }
-      // Point of intersection i_x, i_y
-      double i_x = 0.0;
-      double i_y = 0.0;
+        }
+        // Point of intersection i_x, i_y
+        double i_x = 0.0;
+        double i_y = 0.0;
 
-      /* call to getlineintersection with 2 points of line
-       and two points of side of rectangle 
-       (for each side of rectangle)
-      */ 
-      if(getLineIntersection(a,b, lebo, ribo, &i_x, &i_y) == 1 
-        || getLineIntersection(a,b, lebo, leto, &i_x, &i_y) == 1 
-        || getLineIntersection(a,b, ribo, rito, &i_x, &i_y) == 1
-        || getLineIntersection(a,b, leto, rito, &i_x, &i_y) == 1) {
-        cell_ids->insert(tmp.getCellId());
-        in += 1;
-        break;
-      }
-      }
+        /* call to getlineintersection with 2 points of line
+        and two points of side of rectangle 
+        (for each side of rectangle)
+        */ 
+        if(getLineIntersection(a,b, lebo, ribo, &i_x, &i_y) == 1 
+          || getLineIntersection(a,b, lebo, leto, &i_x, &i_y) == 1 
+          || getLineIntersection(a,b, ribo, rito, &i_x, &i_y) == 1
+          || getLineIntersection(a,b, leto, rito, &i_x, &i_y) == 1) {
+          cell_ids->insert(tmp->getCellId());
+          break;
+        }
+        }
 
       
+      }
     }
 
   }
@@ -2760,15 +2776,21 @@ int smallestCommonCellnumVM( Word* args, Word& result, int message,
   if(v[0] == cellno)
   {
         boolval = true;
-        res->Set( true, boolval);
-        return 0;
+        //res->Set( true, boolval);
+        //return 0;
+  }
+
+  if(v.size() > 0)
+  {
+    v.clear();
+  }
+
+  if(voroVec.size() > 0) 
+  {
+    voroVec.clear();
   }
       
   res->Set( true, boolval);
-  
-  if(voroVec.size() > 0) {
-    voroVec.clear();
-  }
 
   return 0;
 
@@ -2834,7 +2856,7 @@ int trcCellIdvorononoiVM( Word* args, Word& result, int message,
     if(voroVec.size() > 0) {
       voroVec.clear();
     }
-    return -1;
+    return 0;
 
   }
 
