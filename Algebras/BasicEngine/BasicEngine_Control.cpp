@@ -578,7 +578,7 @@ string sizSlots = to_string(*slotsize);
 
   //creating Index on table
   query_exec =  dbs_conn->get_drop_index(tab) + " "
-		  "" + dbs_conn->create_geo_index(tab, geo_col);
+            "" + dbs_conn->create_geo_index(tab, geo_col);
   val = dbs_conn->sendCommand(&query_exec);
 
   //
