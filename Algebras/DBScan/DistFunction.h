@@ -47,9 +47,10 @@ from "MMRTreeAlgebra.cpp".
 #include "Algebras/TupleIdentifier/TupleIdentifier.h"
 #include "Algebras/GeneralTree/DistfunReg.h"
 #include "Algebras/Picture/PictureAlgebra.h"
+#include "Algebras/Temporal/TemporalAlgebra.h"
 
-namespace clusterdbscanalg
-{
+namespace clusterdbscanalg {
+
 /*
 1.3 Declarations and definition of the class ~DistCount~
 
@@ -66,6 +67,7 @@ namespace clusterdbscanalg
   protected:
    mutable size_t cnt;
  };
+ 
 /*
 1.4 Declarations and definition of the class ~IntDist~
 
@@ -104,6 +106,7 @@ namespace clusterdbscanalg
     return o;
    }
  };
+ 
 /*
 1.5 Declarations and definition of the class ~RealDist~
 
@@ -142,6 +145,7 @@ namespace clusterdbscanalg
     return o;
    }
  };
+ 
 /*
 1.6 Declarations and definition of the class ~PointDist~
 
@@ -176,6 +180,7 @@ namespace clusterdbscanalg
     return o;
    }
  };
+ 
 /*
 1.7 Declarations and definition of the class ~StringDist~
 
@@ -210,6 +215,7 @@ namespace clusterdbscanalg
     return o;
    }
  };
+ 
 /*
 1.8 Declarations and definition of the class ~CustomDist~
 
@@ -390,4 +396,32 @@ class TupleDist: public DistCount {
  }; 
 
 
+/*
+1.6 Declarations and definition of the class ~MPointDist~
+
+*/
+ class MPointDist: public DistCount
+ {
+  public:
+  
+   double operator()(const std::pair<temporalalgebra::MPoint*, TupleId>& mp1,
+                     const std::pair<temporalalgebra::MPoint*, TupleId>& mp2) {
+     cnt++;
+     assert(mp1.first);
+     assert(mp2.first);
+     if (!mp1.first->IsDefined() && !mp2.first->IsDefined()) {
+       return 0;
+     }
+     if (!mp1.first->IsDefined() || !mp2.first->IsDefined()) {
+       return std::numeric_limits<double>::max();
+     }
+     return mp1.first->DistanceAvg(*(mp2.first));
+   }
+     
+   std::ostream& print(const std::pair<temporalalgebra::MPoint*, TupleId>& mp, 
+                       std::ostream& o) {
+     o << *(mp.first);
+     return o;
+   }
+ };
 }
