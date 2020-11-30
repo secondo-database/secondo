@@ -2613,12 +2613,21 @@ void MBasic<B>::FrequencyVector(InvertedFile& inv, std::vector<double>& fv,
     b.UpdateFrequencies(inv, fv);
   }
   if (useIdf) {
+    double noDocs = 0.0;
     InvertedFile::prefixIterator* pit = 0;
     TupleId id;
     uint32_t wc, cc;
+    std::string dummy = "zzzzz";
+    pit = inv.getPrefixIterator(dummy);
+    if (pit->next(dummy, id, wc, cc)) { // retrieve noTuples from inv node
+      noDocs = (double)id;
+    }
+    else {
+      return;
+    }
+    delete pit;
     std::string emptyPrefix = "";
     pit = inv.getPrefixIterator(emptyPrefix);
-    double noDocs = fv.size();
     int pos = 0;
     int noEntries = inv.getNoEntries() - 1;
     while (pos < noEntries && pit->next(emptyPrefix, id, wc, cc)) {
@@ -3949,12 +3958,21 @@ void MBasics<B>::FrequencyVector(InvertedFile& inv, std::vector<double>& fv,
     b.UpdateFrequencies(inv, fv);
   }
   if (useIdf) {
+    double noDocs = 0.0;
     InvertedFile::prefixIterator* pit = 0;
     TupleId id;
     uint32_t wc, cc;
+    std::string dummy = "zzzzz";
+    pit = inv.getPrefixIterator(dummy);
+    if (pit->next(dummy, id, wc, cc)) { // retrieve noTuples from inv node
+      noDocs = (double)id;
+    }
+    else {
+      return;
+    }
+    delete pit;
     std::string emptyPrefix = "";
     pit = inv.getPrefixIterator(emptyPrefix);
-    double noDocs = fv.size();
     int pos = 0;
     int noEntries = inv.getNoEntries() - 1;
     while (pos < noEntries && pit->next(emptyPrefix, id, wc, cc)) {
