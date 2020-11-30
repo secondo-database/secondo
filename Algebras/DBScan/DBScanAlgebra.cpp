@@ -359,14 +359,18 @@ using an r-tree as index structure.
    && !Point::checkType(attrType)
    && !CcString::checkType(attrType) 
    && !Picture::checkType(attrType)
-   && !temporalalgebra::MPoint::checkType(attrType) ) {
+   && !temporalalgebra::MPoint::checkType(attrType)
+   && !temporalalgebra::CUPoint::checkType(attrType)
+   && !temporalalgebra::CMPoint::checkType(attrType) ) {
    return listutils::typeError("Attribute " + attrName + " not of type " 
     + CcInt::BasicType() + ", " 
     + CcReal::BasicType() + ", " 
     + Point::BasicType() + ", " 
     + CcString::BasicType() + " or " 
     + Picture::BasicType() + " or "
-    + temporalalgebra::MPoint::BasicType() );
+    + temporalalgebra::MPoint::BasicType() + " or "
+    + temporalalgebra::CUPoint::BasicType() + " or "
+    + temporalalgebra::CMPoint::BasicType() );
   }
 
   ListExpr typeList;
@@ -530,6 +534,10 @@ int dbscanMVM1(Word* args, Word& result,
    return 4;
   } else if(temporalalgebra::MPoint::checkType(attrType)) {
    return 5;
+  } else if(temporalalgebra::CUPoint::checkType(attrType)) {
+   return 6;
+  } else if(temporalalgebra::CMPoint::checkType(attrType)) {
+   return 7;
   }
   
   return -1; 
@@ -548,7 +556,9 @@ ValueMapping dbscanMVM[] =
   dbscanMVM1<Point, PointDist>,
   dbscanMVM1<CcString, StringDist>,
   dbscanMVM1<Picture, PictureDist>,
-  dbscanMVM1<temporalalgebra::MPoint, MPointDist>
+  dbscanMVM1<temporalalgebra::MPoint, MPointDist>,
+  dbscanMVM1<temporalalgebra::CUPoint, CUPointDist>,
+  dbscanMVM1<temporalalgebra::CMPoint, CMPointDist>
  };
  
 

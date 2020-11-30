@@ -400,8 +400,7 @@ class TupleDist: public DistCount {
 1.6 Declarations and definition of the class ~MPointDist~
 
 */
- class MPointDist: public DistCount
- {
+ class MPointDist: public DistCount {
   public:
   
    double operator()(const std::pair<temporalalgebra::MPoint*, TupleId>& mp1,
@@ -421,6 +420,62 @@ class TupleDist: public DistCount {
    std::ostream& print(const std::pair<temporalalgebra::MPoint*, TupleId>& mp, 
                        std::ostream& o) {
      o << *(mp.first);
+     return o;
+   }
+ };
+
+/*
+1.6 Declarations and definition of the class ~CUPointDist~
+
+*/
+ class CUPointDist: public DistCount {
+  public:
+  
+   double operator()(const std::pair<temporalalgebra::CUPoint*, TupleId>& cup1,
+                     const std::pair<temporalalgebra::CUPoint*, TupleId>& cup2){
+     cnt++;
+     assert(cup1.first);
+     assert(cup2.first);
+     if (!cup1.first->IsDefined() && !cup2.first->IsDefined()) {
+       return 0;
+     }
+     if (!cup1.first->IsDefined() || !cup2.first->IsDefined()) {
+       return std::numeric_limits<double>::max();
+     }
+     return cup1.first->DistanceAvg(*(cup2.first), true);
+   }
+     
+   std::ostream& print(const std::pair<temporalalgebra::CUPoint*, TupleId>& cup,
+                       std::ostream& o) {
+     o << *(cup.first);
+     return o;
+   }
+ };
+
+/*
+1.6 Declarations and definition of the class ~CMPointDist~
+
+*/
+ class CMPointDist: public DistCount {
+  public:
+  
+   double operator()(const std::pair<temporalalgebra::CMPoint*, TupleId>& cmp1,
+                     const std::pair<temporalalgebra::CMPoint*, TupleId>& cmp2){
+     cnt++;
+     assert(cmp1.first);
+     assert(cmp2.first);
+     if (!cmp1.first->IsDefined() && !cmp2.first->IsDefined()) {
+       return 0;
+     }
+     if (!cmp1.first->IsDefined() || !cmp2.first->IsDefined()) {
+       return std::numeric_limits<double>::max();
+     }
+     return cmp1.first->DistanceAvg(*(cmp2.first), true);
+   }
+     
+   std::ostream& print(const std::pair<temporalalgebra::CMPoint*, TupleId>& cmp,
+                       std::ostream& o) {
+     o << *(cmp.first);
      return o;
    }
  };
