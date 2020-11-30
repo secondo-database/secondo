@@ -3739,7 +3739,9 @@ int createlexiconVM(Word* args, Word& result, int message, Word& local,
   set<string> justInserted;
   stream.open();
   Tuple* tuple = stream.request();
+  int tupleCounter = 0;
   while (tuple) {
+    tupleCounter++;
     T *src = (T*)(tuple->GetAttribute(attrno));
     src->InsertLabels(labels);
     for (auto it : labels) {
@@ -3782,7 +3784,8 @@ int createlexiconVM(Word* args, Word& result, int message, Word& local,
     }
   }
   inv->insertString(pos, curLabel, freq, 0, cache, trieCache);
-  inv->insertString(0, "ZZZ", 0, 0, cache, trieCache);
+  inv->insertString(tupleCounter, "zzzzzzzzzzzzzzzzzzzzzzzzzzzzz", 0, 0, cache,
+                    trieCache);
   // TODO: find out why final entry cannot be accessed
   delete trieCache;
   delete cache;
@@ -3966,12 +3969,13 @@ struct cosinesimSpec : OperatorInfo {
 Operator cosinesim(cosinesimSpec(), cosinesimVM, cosinesimTM);
 
 /*
-\section{Operator ~jaccard~}
+\section{Operator ~jaccardsim~}
 
 \subsection{Value Mapping (for a single MLabel)}
 
 */
-int jaccardVM(Word* args, Word& result, int message, Word& local, Supplier s) {
+int jaccardsimVM(Word* args, Word& result, int message, Word& local, 
+                 Supplier s) {
   collection::Collection* v1 = 
                              static_cast<collection::Collection*>(args[0].addr);
   collection::Collection* v2 = 
@@ -3994,16 +3998,16 @@ int jaccardVM(Word* args, Word& result, int message, Word& local, Supplier s) {
 \subsection{Operator Info}
 
 */
-struct jaccardSpec : OperatorInfo {
-  jaccardSpec() {
-    name      = "jaccard";
+struct jaccardsimSpec : OperatorInfo {
+  jaccardsimSpec() {
+    name      = "jaccardsim";
     signature = "vector(real) x vector(real) -> real";
-    syntax    = "jaccard(_, _)";
+    syntax    = "jaccardsim(_, _)";
     meaning   = "Computes the Jaccard similarity for two frequency vectors.";
   }
 };
 
-Operator jaccard(jaccardSpec(), jaccardVM, cosinesimTM);
+Operator jaccardsim(jaccardsimSpec(), jaccardsimVM, cosinesimTM);
 
 /*
 \section{Class ~SymbolicTrajectoryAlgebra~}
@@ -4180,7 +4184,7 @@ class SymbolicTrajectoryAlgebra : public Algebra {
   AddOperator(&frequencyvector);
   
   AddOperator(&cosinesim);
-  AddOperator(&jaccard);
+  AddOperator(&jaccardsim);
   
   
   }
