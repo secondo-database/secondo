@@ -78,3 +78,9 @@ Number    : 1
 Signature : {string, text} --> bool
 Example   : query be_runsql('/home/cbe/filetransfer/createroads.sql')
 Result    : FALSE
+
+Operator  : be_partGrid
+Number    : 1
+Signature : {string, text} x {string, text} x real x real x real x int--> bool
+Example   : query be_partGrid('roads','gid','geod',5.8, 50.3,0.2,20)
+Result    : FALSE

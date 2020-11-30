@@ -1508,7 +1508,168 @@ Operator be_runsqlOp(
 );
 
 /*
-1.14 Implementation of the Algebra
+1.14 Operator  ~be\_partGrid~
+
+Distribute a relation by a Grid, sends the data
+to the worker and import the data
+
+1.14.1 Type Mapping
+
+This operator gets a tablename, key-column, a geo\_column, (x,y)
+leftbottom coordinates number of slots per row and column
+ and the slot size of each square
+
+*/
+ListExpr be_partGridTM(ListExpr args){
+string err = "\n {string, text} x {string, text} x {string, text} "
+             "x real x real x real x int--> bool"
+             "(tab-name,geo_col,x-value,y-value,slot size,number of slots)"
+             " expected";
+  if(!nl->HasLength(args,7)){
+    return listutils::typeError("Seven arguments expected. " + err);
+  }
+  if(!CcString::checkType(nl->First(args))
+      && !FText::checkType(nl->First(args))){
+    return listutils::typeError("Value of first argument have "
+        "to be a string or a text." + err);
+  }
+  if(!CcString::checkType(nl->Second(args))
+      && !FText::checkType(nl->Second(args))){
+    return listutils::typeError("Value of second argument have "
+        "to be a string or a text." + err);
+  }
+  if(!CcString::checkType(nl->Third(args))
+      && !FText::checkType(nl->Third(args))){
+    return listutils::typeError("Value of third argument have "
+        "to be a string or a text." + err);
+  }
+  if(!CcReal::checkType(nl->Fourth(args))){
+    return listutils::typeError("Value of fourth argument have "
+        "to be an real." + err);
+  }
+  if(!CcReal::checkType(nl->Fifth(args))){
+    return listutils::typeError("Value of fifth argument have "
+        "to be an real." + err);
+  }
+  if(!CcReal::checkType(nl->Sixth(args))){
+    return listutils::typeError("Value of sixth argument have "
+        "to be an real." + err);
+  }
+  if(!CcInt::checkType(nl->Seventh(args))){
+    return listutils::typeError("Value of seventh argument have "
+        "to be an integer." + err);
+  }
+
+  return nl->SymbolAtom(CcBool::BasicType());
+}
+
+/*
+1.14.2 Value Mapping
+
+*/
+template<class T, class H, class I, class L>
+int be_partGridSFVM(Word* args,Word& result,int message
+          ,Word& local,Supplier s ){
+result = qp->ResultStorage(s);
+
+T* tab = (T*) args[0].addr;
+H* key = (H*) args[1].addr;
+I* geo_col = (I*) args[2].addr;
+CcReal* xstart = (CcReal*) args[3].addr;
+CcReal* ystart = (CcReal*) args[4].addr;
+CcReal* slotsize = (CcReal*) args[5].addr;
+CcInt* slot = (CcInt*) args[6].addr;
+
+bool val = false;
+CcBool* res = (CcBool*) result.addr;
+
+  if(dbs_conn<L> && isMaster){
+    if (slot->GetIntval() > 0){
+      val = dbs_conn<L>->partTable(tab->toText(),key->toText()
+            ,"Grid",slot->GetIntval(),geo_col->toText()
+      ,xstart->GetValue(),ystart->GetValue(),slotsize->GetValue());
+    }else{
+      cout<< negSlots << endl;
+    }
+  }
+  else{
+    cout << noWorker << endl;
+  }
+  res->Set(true, val);
+
+return 0;
+}
+
+/*
+1.14.3 Specification
+
+*/
+OperatorSpec be_partGridSpec(
+   "{string, text} x {string, text} x {string, text} "
+   "x real x real x real x int --> bool",
+   "be_partGrid(_,_,_,_,_,_,_)",
+   "This operator distribute a relation by specified grid "
+   "to the worker. You can specified the leftbottom coordinates and the "
+   "size and number of squares. This number of slots and size have to be "
+   "positiv. The column should be a geological attribut.",
+   "query be_partGrid('roads','gid','geog',5.8, 50.3,0.2,20)"
+);
+
+/*
+1.14.4 ValueMapping Array
+
+*/
+ValueMapping be_partGridVM[] = {
+  be_partGridSFVM<CcString,CcString,CcString,ConnectionPG>,
+  be_partGridSFVM<FText,CcString,CcString,ConnectionPG>,
+  be_partGridSFVM<CcString,FText,CcString,ConnectionPG>,
+  be_partGridSFVM<FText,FText,CcString,ConnectionPG>,
+  be_partGridSFVM<CcString,CcString,FText,ConnectionPG>,
+  be_partGridSFVM<FText,CcString,FText,ConnectionPG>,
+  be_partGridSFVM<CcString,FText,FText,ConnectionPG>,
+  be_partGridSFVM<FText,FText,FText,ConnectionPG>
+};
+
+/*
+1.14.5 Selection Function
+
+*/
+int be_partGridSelect(ListExpr args){
+  if (dbms_name == pg){
+    if(CcString::checkType(nl->First(args))){
+      if(CcString::checkType(nl->Second(args))){
+        return CcString::checkType(nl->Third(args))?0:4;
+      }else{
+        return CcString::checkType(nl->Third(args))?2:6;
+      }
+    }else{
+      if(CcString::checkType(nl->Second(args))){
+        return CcString::checkType(nl->Third(args))?1:5;
+      }else{
+        return CcString::checkType(nl->Third(args))?3:7;
+      }
+    }
+  }else{
+    return 0;
+  }
+};
+
+
+/*
+1.14.6 Operator instance
+
+*/
+Operator be_partGridOp(
+  "be_partGrid",
+  be_partGridSpec.getStr(),
+  sizeof(be_partHashVM),
+  be_partGridVM,
+  be_partGridSelect,
+  be_partGridTM
+);
+
+/*
+1.15 Implementation of the Algebra
 
 */
 class BasicEngineAlgebra : public Algebra
@@ -1529,6 +1690,7 @@ class BasicEngineAlgebra : public Algebra
     AddOperator(&be_structOp);
     AddOperator(&init_pgWorkerOp);
     AddOperator(&be_runsqlOp);
+    AddOperator(&be_partGridOp);
   }
   ~BasicEngineAlgebra() {};
 };
@@ -1536,7 +1698,7 @@ class BasicEngineAlgebra : public Algebra
 } // end of namespace BasicEngine
 
 /*
-1.15 Initialization
+1.16 Initialization
 
 */
 extern "C"

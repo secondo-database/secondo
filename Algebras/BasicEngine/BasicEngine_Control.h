@@ -78,8 +78,9 @@ public:
 
   bool checkConn();
 
-  bool partTable(std::string tab, std::string key
-            , std::string art, int slotSize);
+  bool partTable(std::string tab, std::string key, std::string art,
+     int slotnum, std::string geo_col = "", float x0 = 0, float y0 = 0,
+     float slotsize = 0);
 
   bool drop_table(std::string tab)
     {return sendCommand(dbs_conn->get_drop_table(&tab),false);};
@@ -158,15 +159,18 @@ long unsigned int anzWorker;
 
   bool createConnection(long unsigned int* index);
 
-  bool partRoundRobin(std::string* tab, std::string* key, int* slotsize);
+  bool partRoundRobin(std::string* tab, std::string* key, int* slotnum);
 
-  bool partHash(std::string* tab, std::string* key, int* slotsize);
+  bool partHash(std::string* tab, std::string* key, int* slotnum);
 
   bool partFun(std::string* tab, std::string* key
-         , std::string* fun, int* slotsize);
+         ,std::string* fun, int* slotnum);
+
+  bool partGrid(std::string* tab, std::string* key, std::string* geo_col,
+         int* slotnum,float* x0,float* y0,float* slotsize);
 
   bool exportData(std::string* tab, std::string* key
-         , long unsigned int* slotsize);
+         ,long unsigned int* slotnum);
 
   bool importData(std::string* tab);
 

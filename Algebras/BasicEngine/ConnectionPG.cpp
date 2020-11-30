@@ -82,7 +82,7 @@ Returns TRUE if the execution was ok.
 bool ConnectionPG::sendCommand(string* command, bool print) {
 PGresult *res;
 const char *query_exec = command->c_str();
-  //cout << *command << endl;
+
   if (checkConn()) {
     res = PQexec(conn, query_exec);
     if (!res || PQresultStatus(res) != PGRES_COMMAND_OK) {
@@ -106,7 +106,7 @@ Returns the Result of the query.
 PGresult* ConnectionPG::sendQuery(string* query) {
 PGresult *res;
 const char *query_exec = query->c_str();
-  //cout << *query<< endl;
+
   if (checkConn()) {
     res = PQexec(conn, query_exec);
     if (!res || PQresultStatus(res) != PGRES_TUPLES_OK) {
@@ -179,7 +179,7 @@ Creates a table in postgreSQL with the partitioned data by hash value.
 string ConnectionPG::get_partHash(string* tab, string* key
                   , string* anzSlots, string* targetTab){
   string select = "SELECT DISTINCT (get_byte(decode(md5(concat("
-  "" + *key + ")),'hex'),15) %"
+        "" + replaceStringAll(*key,",",",'%_%',") + ")),'hex'),15) %"
         " " + *anzSlots + " ) + 1 As slot,"
         "" + *key +" FROM "+ *tab;
 return get_createTab(targetTab,&select);
@@ -272,55 +272,7 @@ return sendCommand(&query_exec);
 }
 
 /*
-6.11 ~createFunctionDDRandom~
-
-Creates a table in postgreSQL with the partitioned data by random
-and uses for that a function in postgres.
-The data where doubled.
-
-*/
-bool ConnectionPG::createFunctionDDRandom(string* tab, string* key
-            , string* anzSlots, string* select){
-string query_exec;
-string fields;
-string valueMap;
-
-  query_exec = "DROP FUNCTION fun()";
-  sendCommand(&query_exec,false);
-
-  select->append("SELECT slot ");
-
-  getFieldInfoFunction(tab,key,&fields,&valueMap,select);
-
-
-  select->append(" FROM fun()");
-
-  query_exec = "create or replace function fun() "
-      "returns table ("
-      " slot integer " + fields + ") "
-      "language plpgsql"
-      " as $$ "
-      " declare "
-      "    var_r record;"
-      " begin"
-      " for var_r in("
-      "            select " + *key + ""
-      "            from " + *tab + ""
-      "        FULL JOIN (SELECT 1 as c"
-            "                UNION "
-      "               SELECT 2 as c) a on 1=1)"
-      "        loop  slot := ceil(random() * " + *anzSlots +" );"
-      "        " + valueMap + ""
-      "        return next;"
-      " end loop;"
-      " end; $$;";
-
-//create function
-return sendCommand(&query_exec);
-}
-
-/*
-6.12 ~get\_partFun~
+6.11 ~get\_partFun~
 
 This function is for organizing the special partitioning functions.
 
@@ -332,12 +284,12 @@ string query = "";
 
   if (boost::iequals(*fun, "random")){
     createFunctionRandom(tab,key,anzSlots,&select);
-  }else if (boost::iequals(*fun, "DDrandom")){
-    createFunctionDDRandom(tab,key,anzSlots,&select);
+  }else if (boost::iequals(*fun, "share")){
+    select = get_partShare(tab,key,anzSlots);
   }
   else{
     cout<< "Function " + *fun + " not recognized! "
-        "Available functions are: RR, Hash, DDrandom and random." << endl;
+        "Available functions are: RR, Hash, share and random." << endl;
   }
 
   if(select != "") query = get_createTab(targetTab,&select);
@@ -346,7 +298,7 @@ return query;
 }
 
 /*
-6.13 ~get\_exportData~
+6.12 ~get\_exportData~
 
 Creating a statement for exporting the data from a portioning table.
 
@@ -357,12 +309,12 @@ string ConnectionPG::get_exportData(string* tab, string* join_tab
   return "COPY (SELECT a.* FROM "+ *tab +" a INNER JOIN " + *join_tab  + " b "
             "" + getjoin(key) + " WHERE ((slot % "
             ""+ to_string(*anzWorker)+") "
-            ") + 1 =" + *nr+ ") TO "
+            "+1) =" + *nr+ ") TO "
             "'" + *path + *tab + "_" + *nr +".bin' BINARY;";
 }
 
 /*
-6.14 ~get\_copy~
+6.13 ~get\_copy~
 
 Creating a statement for exporting the data. If the variable direkt is true
 then tab where import the date from the filesystem. If the direkt variable is
@@ -376,7 +328,7 @@ string ConnectionPG::get_copy(string* tab, string* full_path, bool* direct ){
 }
 
 /*
-6.15 ~getjoin~
+6.14 ~getjoin~
 
 Returns the join-part of a join-Statement from a given key-list
 
@@ -388,9 +340,76 @@ vector<string> result;
 
     for (long unsigned int i = 0; i < result.size(); i++) {
       if (i>0) res = res + " AND ";
-      res = res + " a."+ replaceStringAll(result[i]," ","") + " "
-          "  = b." + replaceStringAll(result[i]," ","");
+      res = res + "a."+ replaceStringAll(result[i]," ","") + " "
+          "= b." + replaceStringAll(result[i]," ","");
     }
 return res;
+}
+
+/*
+6.15 ~get\_partGrid~
+
+Creates a table in postgreSQL with the partitioned data by a grid.
+The key specified a column which content is a object like a line or a polygon.
+
+*/
+string ConnectionPG::get_partGrid(std::string* tab, std::string* key
+        , std::string* geo_col,std::string* anzSlots, std::string* x0
+        , std::string* y0, std::string* size,  std::string* targetTab){
+string query_exec;
+string gridIndex = "grid";
+string gridTable = "grid_tab";
+string gridCol = "geom";
+
+  //Creating the new grid with index
+  query_exec = get_drop_table(&gridTable) + ""
+               "CREATE TABLE grid as (SELECT * "
+                   "FROM ST_CreateGrid("+*anzSlots+","
+                   ""+*anzSlots+","+*size+","+*size+","+*x0+","+*y0+"));"
+                   "" + create_geo_index(&gridTable,&gridCol);
+  sendCommand(&query_exec,false);
+
+  //Creating function
+  query_exec = "CREATE OR REPLACE FUNCTION ST_CreateGrid("
+        "nrow integer, ncol integer, "
+        "xsize float8, ysize float8, "
+        "x0 float8, y0 float8, "
+        "OUT num integer, "
+        "OUT geom geometry) "
+        "RETURNS SETOF record AS "
+        "$$ "
+        "SELECT (i * nrow) + (j + 1) AS num, ST_Translate(cell,"
+        " j * $3 + $5, i * $4 + $6) AS geom "
+        "FROM generate_series(0, $1 - 1) AS i, "
+        "generate_series(0, $2 - 1) AS j, "
+        "( "
+        "SELECT ('POLYGON((0 0,0 '||$4||','||$3||' '||$4||','||$3||' 0,0 0))')"
+        "::geometry AS cell) AS foo; "
+        "$$ LANGUAGE sql IMMUTABLE STRICT;";
+
+  query_exec = "SELECT r."+replaceStringAll(*key,",",",r.")+ ", "
+                      "g.number as slot "
+               "FROM grid g INNER JOIN "+ *tab + " r "
+                     "ON ST_INTERSECTS(g.geom,r."+ *geo_col +")";
+return get_createTab(targetTab,&query_exec);
+}
+
+/*
+6.16 ~get\_partShare~
+
+Creates a table in postgreSQL with all date to all worker,
+
+*/
+string ConnectionPG::get_partShare(string* tab, string* key, string* anzWorker){
+string query_exec;
+string worker = "SELECT 1 as slot";
+
+  for(int i=2;i<=stoi(*anzWorker);i++){
+    worker = worker + " UNION SELECT " + to_string(i) + " as slot";
+  }
+
+  query_exec = "SELECT r."+ replaceStringAll(*key,",",",r.") +", g.slot "
+                  "FROM ("+ worker +") g," + *tab + " r";
+return query_exec;
 }
 }/* namespace BasicEngine */

@@ -265,7 +265,6 @@ const int defaultTimeout = 0;
 distributed2::CommandLog CommandLog;
 std::string res;
 
-  //cout << *cmd<< endl;
   ci->simpleCommand(*cmd,err,res,false,rt,false
                     ,CommandLog,true,defaultTimeout);
 

@@ -74,6 +74,13 @@ std::string get_init(std::string* _dbname, std::string* _port)
 std::string get_drop_table(std::string* tab)
   {return "DROP TABLE IF EXISTS " + *tab + ";";}
 
+std::string get_drop_index(std::string* index)
+  {return "DROP INDEX " + *index + "_idx;";}
+
+std::string create_geo_index(std::string* tab, std::string* geo_col)
+  {return get_drop_index(tab) + " CREATE INDEX "+ *tab +"_idx ON"
+               " " + *tab + " USING GIST ("+ *geo_col +");";}
+
 std::string get_partRoundRobin(std::string* tab, std::string* key
           , std::string* anzSlots, std::string* targetTab);
 
@@ -82,6 +89,10 @@ std::string get_partHash(std::string* tab, std::string* key
 
 std::string get_partFun(std::string* tab, std::string* keyS
           ,std::string* anzSlots,std::string* fun,std::string* targetTab);
+
+std::string get_partGrid(std::string* tab,std::string* key,std::string* geo_col
+          ,std::string* anzSlots, std::string* x0, std::string* y0
+          ,std::string* size, std::string* targetTab);
 
 std::string get_exportData(std::string* tab, std::string* join_tab
           ,std::string* key,std::string* nr,std::string* path
@@ -143,6 +154,8 @@ bool createFunctionDDRandom(std::string* tab, std::string* key
 
 void getFieldInfoFunction(std::string* tab, std::string* key
            ,std::string* fields,std::string* valueMap,std::string* select);
+
+std::string get_partShare(string* tab, string* key, string* anzWorker);
 
 std::string getjoin(std::string* key);
 };

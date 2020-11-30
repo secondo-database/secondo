@@ -141,7 +141,6 @@ string res;
 
 Creates a table create statement from the input tab
 and store the statement in a file.
-
 Returns true if everything is OK and there are no failure.
 
 */
@@ -170,17 +169,16 @@ return val;
 3.8 ~partRoundRobin~
 
 The data were partitions in the database by round robin.
-
 Returns true if everything is OK and there are no failure.
 
 */
 template<class T>
 bool BasicEngine_Control<T>::partRoundRobin(string* tab
-                    ,string* key, int* slotsize){
+                    ,string* key, int* slotnum){
 bool val = false;
 string query_exec = "";
 string partTabName;
-string anzSlots = to_string(*slotsize);
+string anzSlots = to_string(*slotnum);
 
   partTabName = getparttabname(tab,key);
   drop_table(partTabName);
@@ -197,7 +195,6 @@ return val;
 
 The data of a partitions table were sanded to the worker
 and after that imported by the worker.
-
 Returns true if everything is OK and there are no failure.
 
 */
@@ -268,17 +265,16 @@ return val;
 3.10 ~partHash~
 
 The data were partitions in the database by an hash value.
-
 Returns true if everything is OK and there are no failure.
 
 */
 template<class T>
 bool BasicEngine_Control<T>::partHash(string* tab
-                    , string* key, int* slotsize){
+                    , string* key, int* slotnum){
 bool val = false;
 string query_exec = "";
 string partTabName;
-string anzSlots = to_string(*slotsize);
+string anzSlots = to_string(*slotnum);
 
   partTabName = getparttabname(tab,key);
   drop_table(partTabName);
@@ -295,19 +291,24 @@ return val;
 
 The data were partitions in the database by an defined function.
 This function have to be defined before using it.
-
 Returns true if everything is OK and there are no failure.
 
 */
 template<class T>
 bool BasicEngine_Control<T>::partFun(string* tab
-                    , string* key,string* fun, int* slotsize){
+                    , string* key,string* fun, int* slotnum){
 bool val = false;
 string query_exec = "";
 string partTabName = getparttabname(tab,key);
-string anzSlots = to_string(*slotsize);
+string anzSlots;;
 
   drop_table(partTabName);
+
+  if (boost::iequals(*fun, "share")){
+    anzSlots = to_string(anzWorker);
+  }else{
+    anzSlots = to_string(*slotnum);
+  }
 
   query_exec = dbs_conn->get_partFun(tab,key
       ,&anzSlots,fun,&partTabName);
@@ -321,13 +322,12 @@ return val;
 3.12 ~exportData~
 
 Exporting the data from the DBMS to a local file.
-
 Returns true if everything is OK and there are no failure.
 
 */
 template<class T>
 bool BasicEngine_Control<T>::exportData(string* tab, string* key,
-   long unsigned int* slotsize){
+   long unsigned int* slotnum){
 bool val = true;
 string path = getFilePath();
 string parttabname = getparttabname(tab,key);
@@ -337,7 +337,7 @@ long unsigned int i;
   for(i=1;i<=anzWorker;i++){
     strindex = to_string(i);
     val = sendCommand(dbs_conn->get_exportData(tab
-          ,&parttabname, key,&strindex,&path,slotsize)) && val;
+          ,&parttabname, key,&strindex,&path,slotnum)) && val;
   }
 return val;
 }
@@ -347,7 +347,6 @@ return val;
 
 Importing data from a local file into the dbms. At first the
 table will be created and after that starts the import from a file.
-
 Returns true if everything is OK and there are no failure.
 
 */
@@ -382,18 +381,19 @@ return val;
 
 Partitions the data, export the data and
 import them into the worker.
-
 Returns true if everything is OK and there are no failure.
 
 */
 template<class T>
-bool BasicEngine_Control<T>::partTable(string tab
-            , string key, string art, int slotsize){
+bool BasicEngine_Control<T>::partTable(string tab, string key, string art
+      , int slotnum, string geo_col, float x0, float y0, float slotsize){
 bool val = true;
 
-  if (boost::iequals(art, "RR")){val = partRoundRobin(&tab, &key, &slotsize);}
-  else if (boost::iequals(art, "Hash")){val = partHash(&tab, &key, &slotsize);}
-  else {val = partFun(&tab, &key, &art, &slotsize);};
+  if (boost::iequals(art, "RR")){val = partRoundRobin(&tab, &key, &slotnum);}
+  else if (boost::iequals(art, "Hash")){val = partHash(&tab, &key, &slotnum);}
+  else if (boost::iequals(art, "Grid")){val = partGrid(&tab, &key, &geo_col
+                                               ,&slotnum,&x0, &y0, &slotsize);}
+  else {val = partFun(&tab, &key, &art, &slotnum);};
   if(!val){
     cout << "\n Couldn't partition the table." << endl;
     return val;
@@ -422,7 +422,6 @@ return val;
 
 Exports the data from the worker and sending them to the master.
 The master imports them into the local db.
-
 Returns true if everything is OK and there are no failure.
 
 */
@@ -456,7 +455,6 @@ return val;
 
 The multi query sends and execute a query to all worker
 and stores the result in a table.
-
 Returns true if everything is OK and there are no failure.
 
 */
@@ -482,7 +480,6 @@ return val;
 3.17 ~mcommand~
 
 The multi command sends and execute a query to all worker.
-
 Returns true if everything is OK and there are no failure.
 
 */
@@ -507,7 +504,6 @@ return val;
 3.18 ~checkConn~
 
 Checking the Connection to the secondary Master System and to the Worker.
-
 Returns true if everything is OK and there are no failure.
 
 */
@@ -538,7 +534,6 @@ return val;
 3.19 ~runsql~
 
 Runs a query from a file.
-
 Returns true if everything is OK and there are no failure.
 
 */
@@ -556,6 +551,40 @@ string query;
   }else{
     cout << "Couldn't find the file at path:" + filepath << endl;
   }
+return val;
+}
+
+/*
+3.20 ~partGrid~
+
+The data were partitions in the database by a grid.
+Returns true if everything is OK and there are no failure.
+
+*/
+template<class T>
+bool BasicEngine_Control<T>::partGrid(std::string* tab, std::string* key
+    ,std::string* geo_col,int* slotnum,float* x0,float* y0,float* slotsize){
+bool val = false;
+string query_exec = "";
+string partTabName;
+string anzSlots = to_string(*slotnum);
+string x_start = to_string(*x0);
+string y_start = to_string(*y0);
+string sizSlots = to_string(*slotsize);
+
+  //Dropping parttable
+  partTabName = getparttabname(tab,key);
+  drop_table(partTabName);
+
+  //creating Index on table
+  query_exec =  dbs_conn->create_geo_index(tab, geo_col);
+  val = dbs_conn->sendCommand(&query_exec);
+
+  //
+  query_exec = dbs_conn->get_partGrid(tab,key,geo_col,&anzSlots, &x_start
+                            , &y_start, &sizSlots, &partTabName);
+  if (query_exec != "" && val) val = dbs_conn->sendCommand(&query_exec);
+
 return val;
 }
 
