@@ -274,7 +274,7 @@ cout << "Create: " << nl->ToString(typeInfo) << endl;
 #ifdef DEBUGHEAD
      cout << "returning Empty Collection" << endl;
 #endif
-     cout << "returning Empty Collection" << endl;
+//      cout << "returning Empty Collection" << endl;
      return (SetWord(new Collection(undef))); // create an undefined collection
    }
 
