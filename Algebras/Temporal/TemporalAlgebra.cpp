@@ -1452,6 +1452,44 @@ int UReal::Distance(const UReal& other, std::vector<UReal>& result) const
   return ;
 }
 
+void UReal::ScaleToWGS(const UPoint& up1, const UPoint& up2, 
+                       const Geoid* geoid) {
+  Instant mid = up1.timeInterval.start + 
+                (up1.timeInterval.end - up1.timeInterval.start) / 2;
+//   cout << up1 << endl << up2 << endl << *this << endl << endl;
+  double x1 = up1.timeInterval.start.ToDouble();
+  double x2 = mid.ToDouble();
+  double x3 = up1.timeInterval.end.ToDouble();
+  Point pMid1(true), pMid2(true);
+  up1.TemporalFunction(mid, pMid1, true);
+  up2.TemporalFunction(mid, pMid2, true);
+  double y1 = up1.p0.Distance(up2.p0, geoid);
+  double y2 = pMid1.Distance(pMid2, geoid);
+  double y3 = up1.p1.Distance(up2.p1, geoid);
+//   cout << "Start: (" << x1 << ", " << y1 << "), Mid: (" << x2 << ", " << y2 
+//        << "), End: (" << x3 << ", " << y3 << ")" << endl;
+  std::vector<double> eq1 {std::pow(x1, 2), x1, 1.0, y1};
+  std::vector<double> eq2 {std::pow(x2, 2), x2, 1.0, y2};
+  std::vector<double> eq3 {std::pow(x3, 2), x3, 1.0, y3};
+  
+  std::vector<double> eq4 {eq2[0]-eq1[0], eq2[1]-eq1[1], 0.0, eq2[3]-eq1[3]};
+  std::vector<double> eq5 {eq3[0]-eq1[0], eq3[1]-eq1[1], 0.0, eq3[3]-eq1[3]};
+  
+  std::vector<double> eq6 = {eq4[0]-(eq4[1]/eq5[1])*eq5[0], 0.0, 0.0, 
+                             eq4[3]-(eq4[1]/eq5[1])*eq5[3]};
+  a = eq6[3] / eq6[0];
+  b = (eq4[3] - eq4[0] * a) / eq4[1];
+  c = eq1[3] - eq1[0] * a - eq1[1] * b;
+//   cout << "y = "<< a << "x^2 + " << b << "x + " << c << endl;
+  r = false;
+//   UReal urNew(timeInterval, aNew, bNew, cNew, false);
+//   CcReal d1(true), d2(true), d3(true);
+//   urNew.TemporalFunction(timeInterval.start, d1, true);
+//   urNew.TemporalFunction(mid, d2, true);
+//   urNew.TemporalFunction(timeInterval.end, d3, true);
+//   cout << "Start: " << d1.GetValue() << ", Mid: " << d2.GetValue() 
+//        << ", End: " << d3.GetValue() << endl;
+}
 
 /*
 3.1 Class ~UPoint~
@@ -2932,7 +2970,10 @@ double CUPoint::DistanceAvg(const CUPoint& cup, const bool upperBound,
   cup1.timeInterval.end = cup2.timeInterval.end;
   cup1.p1 = *((Point*)&newEnd);
   UReal urDist(true), urNull(true);
-  ((UPoint*)(&cup1))->Distance(*((UPoint*)(&cup2)), urDist, geoid);
+  ((UPoint*)(&cup1))->Distance(*((UPoint*)(&cup2)), urDist);
+  if (geoid) {
+    urDist.ScaleToWGS((UPoint*)(&cup1), (UPoint*)(&cup2), geoid);
+  }
   double dur = (urDist.timeInterval.end - urDist.timeInterval.start).ToDouble();
   bool correct;
   Periods per(true);
@@ -2941,7 +2982,7 @@ double CUPoint::DistanceAvg(const CUPoint& cup, const bool upperBound,
   double integralValue1, integralValue2, result,
          sumOfRadii(cup1.GetRadius() + cup2.GetRadius());
   if (!upperBound) { // prune sections below sumOfRadii
-    if (!urDist.r) {
+    if (!geoid && !urDist.r) {
       return 0.0;
     }
     if (urDist.PeriodsAtMin(correct, per) < sumOfRadii) {
@@ -5140,12 +5181,17 @@ double MPoint::DistanceAvg(const MPoint& mp, const Geoid* geoid /* = 0 */)
     }
     if (u1.IsDefined() && u2.IsDefined()) { // no overlapping deftimes
       duration += (iv.end - iv.start).ToDouble();
-      u1.Distance(u2, ur); // use of geoid not implemented
+      u1.Distance(u2, ur);
+      if (geoid) {
+        ur.ScaleToWGS(u1, u2, geoid);
+      }
+      else {
+        ur.r = true;
+      }
       if (!ur.IsDefined()) {
         std::cerr << __PRETTY_FUNCTION__ << "Invalid geographic coord!" << endl;
         return -1.0;
       }
-      ur.r = true;
       ISC isc;
       isc.value = ur.Integrate();
       if (isnan(isc.value)) {
@@ -5169,6 +5215,12 @@ double MPoint::DistanceAvg(const MPoint& mp, const Geoid* geoid /* = 0 */)
     theStack.pop();
   }
   return sum / duration;
+}
+
+void MPoint::SphericalDistanceApprox(const MPoint& mp, CcReal& result) const {
+  Geoid *geoid = new Geoid(true);
+  DistanceAvg(mp, result, geoid);
+  geoid->DeleteIfAllowed();
 }
 
 void MPoint::SquaredDistance( const Point& p, MReal& result,
@@ -8568,7 +8620,7 @@ double CMPoint::DistanceAvg(const CMPoint& cmp, const bool upperBound,
     }
     if (cu1.IsDefined() && cu2.IsDefined()) { // no overlapping deftimes
       ISC isc;
-      isc.value = cu1.DistanceAvg(cu2, upperBound);
+      isc.value = cu1.DistanceAvg(cu2, upperBound, geoid);
       isc.level = 0;
       while (!theStack.empty() && (theStack.top().level == isc.level)) {
         isc.value = isc.value + theStack.top().value;
@@ -8593,6 +8645,13 @@ void CMPoint::DistanceAvg(const CMPoint& cmp, const bool upperBound,
     return;
   }
   result.Set(true, this->DistanceAvg(cmp, upperBound, geoid));
+}
+
+void CMPoint::SphericalDistanceApprox(const CMPoint& cmp, const bool upperBound,
+                                      CcReal& result) const {
+  Geoid *geoid = new Geoid(true);
+  DistanceAvg(cmp, upperBound, result, geoid);
+  geoid->DeleteIfAllowed();
 }
 
 void CMPoint::MergeAdd(const CUPoint& unit) {
@@ -14305,7 +14364,7 @@ int SphericalDistanceApproxMap(Word* args, Word& result, int message,
     ((CcReal*)result.addr)->SetDefined(false);
     return 0;
   }
-// TODO:  m1->SphericalDistanceApprox(*m1, *((CcReal*)result.addr));
+  m1->SphericalDistanceApprox(*m2, *((CcReal*)result.addr));
   return 0;
 }
 

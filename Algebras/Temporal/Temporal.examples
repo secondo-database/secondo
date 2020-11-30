@@ -800,8 +800,8 @@ Result    : 4863.6938082193
 Operator  : sphericalDistanceApprox
 Number    : 1
 Signature : mpoint x mpoint -> real
-Example   : query isdefined(sphericalDistanceApprox([const mpoint value (((0 1 TRUE FALSE) (8.0 51.0 8.1 51.0)))], [const mpoint value (((0 1 TRUE FALSE) (8.5 51.0 8.6 51.0)))]))
-Result    : FALSE
+Example   : query sphericalDistanceApprox([const mpoint value (((0 10 TRUE FALSE) (8.0 51.0 9.0 51.0)))], [const mpoint value (((0 10 TRUE FALSE) (8.0 52.0 9.0 53.0)))])
+Result    : 166894.663959107
 
 Operator  : distanceAvgUB
 Number    : 1

@@ -1997,6 +1997,8 @@ for the temporal unit of real numbers.
 Inherits a denined flag.
 
 */
+class UPoint; // forward declaration
+
 class UReal : public StandardTemporalUnit<CcReal>
 {
   public:
@@ -2484,6 +2486,14 @@ Creates the distance to an other UReal value.
     opcode == 4 <=
     opcode == 5 >=
     */
+    
+  void ScaleToWGS(const UPoint& up1, const UPoint& up2, const Geoid* geoid);
+  /*
+  Scales the unit real so that it represents the distance in meters instead of
+  geographic coordinates. This is necessary because the precise spherical
+  distance for segments is not implemented.
+  
+  */
 
 /*
 3.7.5 Attributes
@@ -4014,6 +4024,7 @@ If invalid geographic coordinates are found, the result is UNDEFINED.
   void DistanceAvg(const MPoint& mp, CcReal& result, 
                    const Geoid* geoid=0) const;
   double DistanceAvg(const MPoint& mp, const Geoid* geoid = 0) const;
+  void SphericalDistanceApprox(const MPoint& mp, CcReal& result) const;
   void SquaredDistance( const Point& p, MReal& result,
                         const Geoid* geoid=0 ) const;
   void SquaredDistance( const MPoint& p, MReal& result,
@@ -4682,6 +4693,8 @@ If invalid geographic coordinates are found, the result is UNDEFINED.
                      const Geoid* geoid = 0) const;
   void DistanceAvg(const CMPoint& cmp, const bool upperBound,
                    CcReal& result, const Geoid* geoid = 0) const;
+  void SphericalDistanceApprox(const CMPoint& cmp, const bool upperBound,
+                               CcReal& result) const;
 
 /*
 3.10.5.6 Operatiopn ~Breaks~
