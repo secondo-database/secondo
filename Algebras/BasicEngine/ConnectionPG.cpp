@@ -395,7 +395,7 @@ string gridCol = "geom";
 
 
   query_exec = "SELECT r."+replaceStringAll(*key,",",",r.")+ ", "
-                      "g.number as slot "
+                      "g.num as slot "
                "FROM " + gridTable + " g INNER JOIN "+ *tab + " r "
                      "ON ST_INTERSECTS(g.geom,r."+ *geo_col +")";
 
