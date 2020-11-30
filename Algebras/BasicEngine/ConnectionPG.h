@@ -75,10 +75,10 @@ std::string get_drop_table(std::string* tab)
   {return "DROP TABLE IF EXISTS " + *tab + ";";}
 
 std::string get_drop_index(std::string* index)
-  {return "DROP INDEX " + *index + "_idx;";}
+  {return "DROP INDEX IF EXISTS " + *index + "_idx;";}
 
 std::string create_geo_index(std::string* tab, std::string* geo_col)
-  {return get_drop_index(tab) + " CREATE INDEX "+ *tab +"_idx ON"
+  {return "CREATE INDEX "+ *tab +"_idx ON"
                " " + *tab + " USING GIST ("+ *geo_col +");";}
 
 std::string get_partRoundRobin(std::string* tab, std::string* key

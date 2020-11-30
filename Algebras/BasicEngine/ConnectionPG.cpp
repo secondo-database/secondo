@@ -357,17 +357,8 @@ string ConnectionPG::get_partGrid(std::string* tab, std::string* key
         , std::string* geo_col,std::string* anzSlots, std::string* x0
         , std::string* y0, std::string* size,  std::string* targetTab){
 string query_exec;
-string gridIndex = "grid";
 string gridTable = "grid_tab";
 string gridCol = "geom";
-
-  //Creating the new grid with index
-  query_exec = get_drop_table(&gridTable) + ""
-               "CREATE TABLE grid as (SELECT * "
-                   "FROM ST_CreateGrid("+*anzSlots+","
-                   ""+*anzSlots+","+*size+","+*size+","+*x0+","+*y0+"));"
-                   "" + create_geo_index(&gridTable,&gridCol);
-  sendCommand(&query_exec,false);
 
   //Creating function
   query_exec = "CREATE OR REPLACE FUNCTION ST_CreateGrid("
@@ -386,11 +377,28 @@ string gridCol = "geom";
         "SELECT ('POLYGON((0 0,0 '||$4||','||$3||' '||$4||','||$3||' 0,0 0))')"
         "::geometry AS cell) AS foo; "
         "$$ LANGUAGE sql IMMUTABLE STRICT;";
+  sendCommand(&query_exec,false);
+
+  //Creating the new grid
+  query_exec = get_drop_table(&gridTable);
+  sendCommand(&query_exec,false);
+
+  //creating the grid table
+  query_exec ="CREATE TABLE " + gridTable + " as (SELECT * "
+                   "FROM ST_CreateGrid("+*anzSlots+","
+                   ""+*anzSlots+","+*size+","+*size+","+*x0+","+*y0+"));";
+  sendCommand(&query_exec,false);
+
+  //creating index on grid
+  query_exec = create_geo_index(&gridTable,&gridCol);
+  sendCommand(&query_exec,false);
+
 
   query_exec = "SELECT r."+replaceStringAll(*key,",",",r.")+ ", "
                       "g.number as slot "
-               "FROM grid g INNER JOIN "+ *tab + " r "
+               "FROM " + gridTable + " g INNER JOIN "+ *tab + " r "
                      "ON ST_INTERSECTS(g.geom,r."+ *geo_col +")";
+
 return get_createTab(targetTab,&query_exec);
 }
 
