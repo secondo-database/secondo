@@ -1457,9 +1457,9 @@ void UReal::ScaleToWGS(const UPoint& up1, const UPoint& up2,
   Instant mid = up1.timeInterval.start + 
                 (up1.timeInterval.end - up1.timeInterval.start) / 2;
 //   cout << up1 << endl << up2 << endl << *this << endl << endl;
-  double x1 = up1.timeInterval.start.ToDouble();
-  double x2 = mid.ToDouble();
-  double x3 = up1.timeInterval.end.ToDouble();
+  double x1 = 0.0;
+  double x2 = ((up1.timeInterval.end - up1.timeInterval.start) / 2).ToDouble();
+  double x3 = (up1.timeInterval.end - up1.timeInterval.start).ToDouble();
   Point pMid1(true), pMid2(true);
   up1.TemporalFunction(mid, pMid1, true);
   up2.TemporalFunction(mid, pMid2, true);
@@ -5214,6 +5214,7 @@ double MPoint::DistanceAvg(const MPoint& mp, const Geoid* geoid /* = 0 */)
     sum += theStack.top().value;
     theStack.pop();
   }
+//   cout << "  SUM is " << sum << ", DURATION is " << duration << endl;
   return sum / duration;
 }
 
