@@ -92,7 +92,6 @@ operator squareddistance alias SQUAREDDISTANCE pattern op ( _ , _ )
 operator distanceAvg alias DISTANCEAVG pattern op ( _ , _ )
 operator distanceAvgLB alias DISTANCEAVGLB pattern op ( _ , _ )
 operator distanceAvgUB alias DISTANCEAVGUB pattern op ( _ , _ )
-operator sphericalDistanceApprox alias SPHERICALDISTANCEAPPROX pattern op ( _ , _ )
 operator getRefinementPartion alias GETREFINEMENTPARTION pattern op( _, _ )
 operator removeNoise alias REMOVENOISE pattern _ op [ _ , _ ]
 

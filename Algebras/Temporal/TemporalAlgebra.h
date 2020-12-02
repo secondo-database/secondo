@@ -4031,7 +4031,6 @@ If invalid geographic coordinates are found, the result is UNDEFINED.
   void DistanceAvg(const MPoint& mp, CcReal& result, 
                    const Geoid* geoid=0) const;
   double DistanceAvg(const MPoint& mp, const Geoid* geoid = 0) const;
-  void DistanceAvgSA(const MPoint& mp, CcReal& result) const;
   void SquaredDistance( const Point& p, MReal& result,
                         const Geoid* geoid=0 ) const;
   void SquaredDistance( const MPoint& p, MReal& result,
@@ -4693,8 +4692,6 @@ If invalid geographic coordinates are found, the result is UNDEFINED.
                      const Geoid* geoid = 0) const;
   void DistanceAvg(const CMPoint& cmp, const bool upperBound,
                    CcReal& result, const Geoid* geoid = 0) const;
-  void DistanceAvgSA(const CMPoint& cmp, const bool upperBound, CcReal& result) 
-                    const;
 
 /*
 3.10.5.6 Operatiopn ~Breaks~

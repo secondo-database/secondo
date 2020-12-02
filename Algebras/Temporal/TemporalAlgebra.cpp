@@ -5278,12 +5278,6 @@ double MPoint::DistanceAvg(const MPoint& mp, const Geoid* geoid /* = 0 */)
   return sum / duration;
 }
 
-void MPoint::DistanceAvgSA(const MPoint& mp, CcReal& result) const {
-  Geoid *geoid = new Geoid(true);
-  DistanceAvg(mp, result, geoid);
-  geoid->DeleteIfAllowed();
-}
-
 void MPoint::SquaredDistance( const Point& p, MReal& result,
                               const Geoid* geoid ) const
 {
@@ -8717,13 +8711,6 @@ void CMPoint::DistanceAvg(const CMPoint& cmp, const bool upperBound,
     return;
   }
   result.Set(true, this->DistanceAvg(cmp, upperBound, geoid));
-}
-
-void CMPoint::DistanceAvgSA(const CMPoint& cmp, const bool upperBound,
-                            CcReal& result) const {
-  Geoid *geoid = new Geoid(true);
-  DistanceAvg(cmp, upperBound, result, geoid);
-  geoid->DeleteIfAllowed();
 }
 
 void CMPoint::MergeAdd(const CUPoint& unit) {
@@ -12544,12 +12531,17 @@ This type mapping is applied by the ~distanceAvg~ operator.
 
 */
 ListExpr DistanceAvgTypeMap(ListExpr args) {
-  if (!nl->HasLength(args, 2)) {
-    return listutils::typeError("two arguments expected");
+  if (!nl->HasLength(args, 2) && !nl->HasLength(args, 3)) {
+    return listutils::typeError("two or three arguments expected");
   }
   if (!MPoint::checkType(nl->First(args)) 
    || !MPoint::checkType(nl->Second(args))) {
     return listutils::typeError("both arguments must have type mpoint");
+  }
+  if (nl->HasLength(args, 3)) {
+    if (!Geoid::checkType(nl->Third(args))) {
+      return listutils::typeError("third arg must be a geoid");
+    }
   }
   return nl->SymbolAtom(CcReal::BasicType());
 }
@@ -12574,23 +12566,6 @@ ListExpr DistanceAvgLBUBTypeMap(ListExpr args) {
     if (!Geoid::checkType(nl->Third(args))) {
       return listutils::typeError("third arg must be a geoid");
     }
-  }
-  return nl->SymbolAtom(CcReal::BasicType());
-}
-
-/*
-~DistanceAvgSATypeMap~
-
-This function is applied by the ~DistanceAvgSA~ operator.
-
-*/
-ListExpr DistanceAvgSATypeMap(ListExpr args) {
-  if (!nl->HasLength(args, 2)) {
-    return listutils::typeError("two arguments expected");
-  }
-  if ((!MPoint::checkType(nl->First(args)) ||
-       !MPoint::checkType(nl->Second(args)))) {
-    return listutils::typeError("both args must have type mpoint");
   }
   return nl->SymbolAtom(CcReal::BasicType());
 }
@@ -14409,8 +14384,12 @@ int MPointDistance( Word* args, Word& result, int message, Word&
 int DistanceAvgMap(Word* args, Word& result, int message, Word& local, 
                    Supplier s) {
   result = qp->ResultStorage(s);
+  Geoid *geoid = 0;
+  if (qp->GetNoSons(s) == 3) {
+    geoid = (Geoid*)args[2].addr;
+  }
   ((MPoint*)args[0].addr)->DistanceAvg(*((MPoint*)args[1].addr), 
-                                       *((CcReal*)result.addr));
+                                       *((CcReal*)result.addr), geoid);
   return 0;
 }
 
@@ -14437,19 +14416,6 @@ int DistanceAvgUBMap(Word* args, Word& result, int message, Word& local,
   }
   ((T*)args[0].addr)->DistanceAvg(*((T*)args[1].addr), true, 
                                   *((CcReal*)result.addr), geoid);
-  return 0;
-}
-
-int DistanceAvgSAMap(Word* args, Word& result, int message, Word& local,
-                     Supplier s) {
-  result = qp->ResultStorage(s);
-  MPoint *m1 = (MPoint*)args[0].addr;
-  MPoint *m2 = (MPoint*)args[1].addr;
-  if (!m1->IsDefined() || !m2->IsDefined()) {
-    ((CcReal*)result.addr)->SetDefined(false);
-    return 0;
-  }
-  m1->DistanceAvgSA(*m2, *((CcReal*)result.addr));
   return 0;
 }
 
@@ -17776,11 +17742,9 @@ const std::string TemporalSpecDistance =
 
 const std::string TemporalSpecDistanceAvg =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "( <text>mpoint x mpoint -> real</text--->"
+  "( <text>mpoint x mpoint (x geoid) -> real</text--->"
   "<text>distanceAvg( _, _ ) </text--->"
-  "<text>Returns the average distance based on the integral. The use of geoid "
-  "is not supported since spherical distance between segments has not yet been "
-  "implemented.</text--->"
+  "<text>Returns the average distance based on the integral.</text--->"
   "<text>distanceAvg(mpoint1, mpoint2)</text--->"
   ") )";
 
@@ -17802,15 +17766,6 @@ const std::string TemporalSpecDistanceAvgUB =
   "considering the radii of both arguments."
   "</text--->"
   "<text>distanceAvgUB(cmpoint1, cmpoint2)</text--->"
-  ") )";
-
-const std::string TemporalSpecDistanceAvgSA =
-  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "( <text>mpoint x mpoint -> real</text--->"
-  "<text>DistanceAvgSA( _, _ ) </text--->"
-  "<text>Returns the integral sum of the partial distance functions. Spherical "
-  "distances are approximated.</text--->"
-  "<text>DistanceAvgSA(mpoint1, mpoint2)</text--->"
   ") )";
 
 const std::string TemporalSpecSquaredDistance =
@@ -18643,12 +18598,6 @@ Operator temporaldistanceavgub( "distanceAvgUB",
                            DistanceAvgUBMaps,
                            DistanceAvgLBUBSelect,
                            DistanceAvgLBUBTypeMap);
-
-Operator temporaldistanceavgsa( "distanceAvgSA",
-                           TemporalSpecDistanceAvgSA,
-                           DistanceAvgSAMap,
-                           Operator::SimpleSelect,
-                           DistanceAvgSATypeMap);
 
 Operator temporalsquareddistance( "squareddistance",
                            TemporalSpecSquaredDistance,
@@ -22061,7 +22010,6 @@ class TemporalAlgebra : public Algebra
     AddOperator( &temporaldistanceavg );
     AddOperator( &temporaldistanceavglb );
     AddOperator( &temporaldistanceavgub );
-    AddOperator( &temporaldistanceavgsa );
     AddOperator( &temporalsimplify );
     AddOperator( &temporalintegrate );
     AddOperator( &temporallinearize );
