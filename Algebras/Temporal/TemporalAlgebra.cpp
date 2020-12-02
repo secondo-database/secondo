@@ -3009,7 +3009,7 @@ double CUPoint::DistanceAvg(const CUPoint& cup, const bool upperBound,
   }
   else {
     urDist.timeInterval = cup1.timeInterval;
-    urDist.Recompute((UPoint*)(&cup1), (UPoint*)(&cup2), geoid);
+    urDist.Recompute(*(UPoint*)(&cup1), *(UPoint*)(&cup2), geoid);
   }
   double dur = (urDist.timeInterval.end - urDist.timeInterval.start).ToDouble();
   bool correct;
@@ -3057,7 +3057,7 @@ double CUPoint::DistanceAvg(const CUPoint& cup, const bool upperBound,
         dur = (urDist.timeInterval.end - urDist.timeInterval.start).ToDouble();
 //         cout << urDist << " --> " << integralValue1 << "  " << dur << endl;
 //         cout << "    RESULT 1 = " 
-//              << 0.0, integralValue1 / dur - sumOfRadii)
+//              << std::max(0.0, integralValue1 / dur - sumOfRadii)
 //              << endl << endl << endl << endl;
         result = std::max(0.0, integralValue1 / dur - sumOfRadii);
              
@@ -3079,7 +3079,7 @@ double CUPoint::DistanceAvg(const CUPoint& cup, const bool upperBound,
 //                   (instNull1 - urDist.timeInterval.start).ToDouble()
 //                 + integralValue2 /
 //                   (urDist.timeInterval.end - instNull2).ToDouble()
-//                 - sumOfRadii << endl << endl << endl << endl;
+//                 - sumOfRadii << endl << endl;
         result = integralValue1 / 
                    (instNull1 - urDist.timeInterval.start).ToDouble()
                  + integralValue2 /
@@ -3093,7 +3093,7 @@ double CUPoint::DistanceAvg(const CUPoint& cup, const bool upperBound,
         return 0.0;
       }
 //       cout << "    RESULT = " << integralValue1 / dur - sumOfRadii
-//            << endl << endl << endl << endl;
+//            << endl << endl;
       result = std::max(0.0, integralValue1 / dur - sumOfRadii);
     }
   }
@@ -3106,6 +3106,8 @@ double CUPoint::DistanceAvg(const CUPoint& cup, const bool upperBound,
     if (isnan(integralValue1)) {
       return 0.0;
     }
+//     cout << "   urDist = " << urDist << endl << " ==> RESULTub = " 
+//          << integralValue1 << "/" << dur << " + " << sumOfRadii << endl;
     result = integralValue1 / dur + sumOfRadii;
 //     result = std::max(0.0, integralValue1 / dur + sumOfRadii);
   }
@@ -4464,7 +4466,6 @@ void MReal::Linearize2(MReal& result) const{
 }
 
 void MReal::Recompute(const MPoint& mp1, const MPoint& mp2, const Geoid* geoid){
-  cout << "CALL MReal::recompute!" << endl;
   UReal ur(true), urPart(true);
   Periods per(true);
   MPoint mp1Part(true), mp2Part(true);
@@ -12560,14 +12561,19 @@ This function is applied by the ~distanceAvgLB~ and ~distanceAvgUB~ operators.
 
 */
 ListExpr DistanceAvgLBUBTypeMap(ListExpr args) {
-  if (!nl->HasLength(args, 2)) {
-    return listutils::typeError("two arguments expected");
+  if (!nl->HasLength(args, 2) && !nl->HasLength(args, 3)) {
+    return listutils::typeError("two or three arguments expected");
   }
   if ((!CUPoint::checkType(nl->First(args)) 
       || !CUPoint::checkType(nl->Second(args))) &&
       (!CMPoint::checkType(nl->First(args)) 
       || !CMPoint::checkType(nl->Second(args)))) {
     return listutils::typeError("both args must have type cupoint or cmpoint");
+  }
+  if (nl->HasLength(args, 3)) {
+    if (!Geoid::checkType(nl->Third(args))) {
+      return listutils::typeError("third arg must be a geoid");
+    }
   }
   return nl->SymbolAtom(CcReal::BasicType());
 }
@@ -14412,8 +14418,12 @@ template<class T>
 int DistanceAvgLBMap(Word* args, Word& result, int message, Word& local, 
                      Supplier s) {
   result = qp->ResultStorage(s);
+  Geoid *geoid = 0;
+  if (qp->GetNoSons(s) == 3) {
+    geoid = (Geoid*)args[2].addr;
+  }
   ((T*)args[0].addr)->DistanceAvg(*((T*)args[1].addr), false, 
-                                  *((CcReal*)result.addr));
+                                  *((CcReal*)result.addr), geoid);
   return 0;
 }
 
@@ -14421,8 +14431,12 @@ template<class T>
 int DistanceAvgUBMap(Word* args, Word& result, int message, Word& local, 
                      Supplier s) {
   result = qp->ResultStorage(s);
+  Geoid *geoid = 0;
+  if (qp->GetNoSons(s) == 3) {
+    geoid = (Geoid*)args[2].addr;
+  }
   ((T*)args[0].addr)->DistanceAvg(*((T*)args[1].addr), true, 
-                                  *((CcReal*)result.addr));
+                                  *((CcReal*)result.addr), geoid);
   return 0;
 }
 
@@ -17772,22 +17786,20 @@ const std::string TemporalSpecDistanceAvg =
 
 const std::string TemporalSpecDistanceAvgLB =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "( <text>cXpoint x cXpoint -> real,  X = (m|u)</text--->"
+  "( <text>cXpoint x cXpoint (x geoid) -> real,  X = (m|u)</text--->"
   "<text>distanceAvgLB( _, _ ) </text--->"
   "<text>Returns the lower bound average distance based on the integral, "
-  "considering the radii of both arguments. The use of geoid is not supported "
-  "since spherical distance between segments has not yet been implemented."
+  "considering the radii of both arguments."
   "</text--->"
   "<text>distanceAvgLB(cmpoint1, cmpoint2)</text--->"
   ") )";
 
 const std::string TemporalSpecDistanceAvgUB =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "( <text>cXpoint x cXpoint -> real,  X = (m|u)</text--->"
+  "( <text>cXpoint x cXpoint (x geoid) -> real,  X = (m|u)</text--->"
   "<text>distanceAvgUB( _, _ ) </text--->"
   "<text>Returns the upper bound average distance based on the integral, "
-  "considering the radii of both arguments. The use of geoid is not supported "
-  "since spherical distance between segments has not yet been implemented."
+  "considering the radii of both arguments."
   "</text--->"
   "<text>distanceAvgUB(cmpoint1, cmpoint2)</text--->"
   ") )";
