@@ -1452,11 +1452,9 @@ int UReal::Distance(const UReal& other, std::vector<UReal>& result) const
   return ;
 }
 
-void UReal::ScaleToWGS(const UPoint& up1, const UPoint& up2, 
-                       const Geoid* geoid) {
+void UReal::Recompute(const UPoint& up1, const UPoint& up2, const Geoid* geoid){
   Instant mid = up1.timeInterval.start + 
                 (up1.timeInterval.end - up1.timeInterval.start) / 2;
-//   cout << up1 << endl << up2 << endl << *this << endl << endl;
   double x1 = 0.0;
   double x2 = ((up1.timeInterval.end - up1.timeInterval.start) / 2).ToDouble();
   double x3 = (up1.timeInterval.end - up1.timeInterval.start).ToDouble();
@@ -1482,13 +1480,6 @@ void UReal::ScaleToWGS(const UPoint& up1, const UPoint& up2,
   c = eq1[3] - eq1[0] * a - eq1[1] * b;
 //   cout << "y = "<< a << "x^2 + " << b << "x + " << c << endl;
   r = false;
-//   UReal urNew(timeInterval, aNew, bNew, cNew, false);
-//   CcReal d1(true), d2(true), d3(true);
-//   urNew.TemporalFunction(timeInterval.start, d1, true);
-//   urNew.TemporalFunction(mid, d2, true);
-//   urNew.TemporalFunction(timeInterval.end, d3, true);
-//   cout << "Start: " << d1.GetValue() << ", Mid: " << d2.GetValue() 
-//        << ", End: " << d3.GetValue() << endl;
 }
 
 /*
@@ -2895,11 +2886,11 @@ std::ostream& operator<<(std::ostream& o, const CUPoint& u){
   return o;
 }
 
-void CUPoint::ConvertFrom(const UPoint& up) {
+void CUPoint::ConvertFrom(const UPoint& up, const Geoid* geoid /* = 0 */) {
   ((UPoint*)this)->CopyFrom(&up);
 }
 
-void CUPoint::ConvertFrom(const MPoint& mp) {
+void CUPoint::ConvertFrom(const MPoint& mp, const Geoid* geoid /* = 0 */) {
   if (!mp.IsDefined() || mp.IsEmpty()) {
     SetDefined(false);
     return;
@@ -2914,14 +2905,34 @@ void CUPoint::ConvertFrom(const MPoint& mp) {
   UPoint up(timeInterval, p0, p1);
   MPoint approx(true);
   approx.Add(up);
-  MReal dist(true);
-  mp.SquaredDistance(approx, dist);
   bool correct = true;
-  radius = sqrt(dist.Max(correct));
-  SetDefined(correct);
+  if (!geoid) {
+    MReal dist(true), distScaled(true);
+    mp.SquaredDistance(approx, dist);
+    radius = sqrt(dist.Max(correct));
+  }
+  else {
+    radius = 0.0;
+    UPoint upSrc(true), upDest(true);
+    UReal ur(true);
+    for (int i = 0; i < mp.GetNoComponents(); i++) {
+      mp.Get(i, upSrc);
+      upDest.timeInterval = upSrc.timeInterval;
+      up.TemporalFunction(upSrc.timeInterval.start, upDest.p0, true);
+      up.TemporalFunction(upSrc.timeInterval.end, upDest.p1, true);
+      ur.timeInterval = upDest.timeInterval;
+      ur.Recompute(upSrc, upDest, geoid);
+      double maxDist = ur.Max(correct);
+      assert(correct);
+      if (maxDist > radius) {
+        radius = maxDist;
+      }
+    }
+  }
+  assert(correct);
 }
 
-void CUPoint::ConvertFrom(const CMPoint& cmp) {
+void CUPoint::ConvertFrom(const CMPoint& cmp, const Geoid* geoid /* = 0 */) {
   if (!cmp.IsDefined() || cmp.IsEmpty()) {
     SetDefined(false);
     return;
@@ -2936,14 +2947,37 @@ void CUPoint::ConvertFrom(const CMPoint& cmp) {
   MPoint mp1unit(true), mpSrc(true);
   mp1unit.Add(*this);
   cmp.GetMPoint(mpSrc);
-  MReal dist(true), distAtMax(true);
-  mpSrc.SquaredDistance(mp1unit, dist);
   bool correct = false;
-  dist.AtMax(distAtMax);
-  IReal ir(true);
-  distAtMax.Initial(ir);
-  cmp.AtInstant(ir.instant, cip);
-  radius = sqrt(dist.Max(correct)) + cip.value.getRadius();
+  if (!geoid) {
+    MReal dist(true), distAtMax(true);
+    mpSrc.SquaredDistance(mp1unit, dist);
+    dist.AtMax(distAtMax);
+    IReal ir(true);
+    distAtMax.Initial(ir);
+    cmp.AtInstant(ir.instant, cip);
+    radius = sqrt(dist.Max(correct)) + cip.value.getRadius();
+  }
+  else {
+    radius = 0.0;
+    UPoint up(timeInterval, p0, p1);
+    CUPoint cup(true);
+    UPoint upSrc(true), upDest(true);
+    UReal ur(true);
+    for (int i = 0; i < cmp.GetNoComponents(); i++) {
+      cmp.Get(i, cup);
+      cup.GetUPoint(upSrc);
+      upDest.timeInterval = upSrc.timeInterval;
+      up.TemporalFunction(upSrc.timeInterval.start, upDest.p0, true);
+      up.TemporalFunction(upSrc.timeInterval.end, upDest.p1, true);
+      ur.timeInterval = upDest.timeInterval;
+      ur.Recompute(upSrc, upDest, geoid);
+      assert(correct);
+      double maxDist = ur.Max(correct);
+      if (maxDist + cup.GetRadius() > radius) {
+        radius = maxDist + cup.GetRadius();
+      }
+    }
+  }
   assert(correct);
 }
 
@@ -2970,9 +3004,12 @@ double CUPoint::DistanceAvg(const CUPoint& cup, const bool upperBound,
   cup1.timeInterval.end = cup2.timeInterval.end;
   cup1.p1 = *((Point*)&newEnd);
   UReal urDist(true), urNull(true);
-  ((UPoint*)(&cup1))->Distance(*((UPoint*)(&cup2)), urDist);
-  if (geoid) {
-    urDist.ScaleToWGS((UPoint*)(&cup1), (UPoint*)(&cup2), geoid);
+  if (!geoid) {
+    ((UPoint*)(&cup1))->Distance(*((UPoint*)(&cup2)), urDist);
+  }
+  else {
+    urDist.timeInterval = cup1.timeInterval;
+    urDist.Recompute((UPoint*)(&cup1), (UPoint*)(&cup2), geoid);
   }
   double dur = (urDist.timeInterval.end - urDist.timeInterval.start).ToDouble();
   bool correct;
@@ -4426,6 +4463,24 @@ void MReal::Linearize2(MReal& result) const{
 
 }
 
+void MReal::Recompute(const MPoint& mp1, const MPoint& mp2, const Geoid* geoid){
+  cout << "CALL MReal::recompute!" << endl;
+  UReal ur(true), urPart(true);
+  Periods per(true);
+  MPoint mp1Part(true), mp2Part(true);
+  UPoint up1(true), up2(true);
+  for (int i = 0; i < GetNoComponents(); i++) {
+    Get(i, ur);
+    per.Add(ur.timeInterval);
+    mp1.AtPeriods(per, mp1Part);
+    mp2.AtPeriods(per, mp2Part);
+    mp1Part.Get(0, up1);
+    mp2Part.Get(0, up2);
+    ur.Recompute(up1, up2, geoid);
+    Put(i, ur);
+    per.Clear();
+  }
+}
 
 /*
 Helper function for the ~simplify~ operator
@@ -5161,6 +5216,9 @@ double MPoint::DistanceAvg(const MPoint& mp, const Geoid* geoid /* = 0 */)
   UPoint u1(true), u2(true);
   for (unsigned int i = 0; i < rp.Size(); i++) {
     rp.Get(i, iv, u1Pos, u2Pos);
+  }
+  for (unsigned int i = 0; i < rp.Size(); i++) {
+    rp.Get(i, iv, u1Pos, u2Pos);
     if (u1Pos == -1 && u2Pos == -1) {
       cout << "Both mpoints undefined for i = " << i << endl;
       continue;
@@ -5181,11 +5239,12 @@ double MPoint::DistanceAvg(const MPoint& mp, const Geoid* geoid /* = 0 */)
     }
     if (u1.IsDefined() && u2.IsDefined()) { // no overlapping deftimes
       duration += (iv.end - iv.start).ToDouble();
-      u1.Distance(u2, ur);
       if (geoid) {
-        ur.ScaleToWGS(u1, u2, geoid);
+        ur.timeInterval = u1.timeInterval;
+        ur.Recompute(u1, u2, geoid);
       }
       else {
+        u1.Distance(u2, ur);
         ur.r = true;
       }
       if (!ur.IsDefined()) {
@@ -5218,7 +5277,7 @@ double MPoint::DistanceAvg(const MPoint& mp, const Geoid* geoid /* = 0 */)
   return sum / duration;
 }
 
-void MPoint::SphericalDistanceApprox(const MPoint& mp, CcReal& result) const {
+void MPoint::DistanceAvgSA(const MPoint& mp, CcReal& result) const {
   Geoid *geoid = new Geoid(true);
   DistanceAvg(mp, result, geoid);
   geoid->DeleteIfAllowed();
@@ -8136,7 +8195,7 @@ void CMPoint::ConvertFrom(const MPoint& src, const DateTime dur,
   src.FinalInstant(lastInst);
   diffToBeginOfTime = firstInst - beginOfTime;
   if (lastInst - firstInst < dur) { // one cupoint suffices
-    cup.ConvertFrom(src);
+    cup.ConvertFrom(src, geoid);
     cup.timeInterval.start.SetToZero();
     cup.timeInterval.end -= diffToBeginOfTime;
     Add(cup);
@@ -8149,7 +8208,8 @@ void CMPoint::ConvertFrom(const MPoint& src, const DateTime dur,
   src.TemporalFunction(firstInst, upDest.p0, true);
   upDest.timeInterval.start = beginOfTime;
   upDest.timeInterval.lc = false;
-  bool correct(true);
+  bool correct = true;
+  CcReal distCC(true);
   for (DateTime i = firstInst + dur; i < lastInst; i += dur) {
     src.TemporalFunction(i, upDest.p1, true);
     upDest.timeInterval.end = i - diffToBeginOfTime;
@@ -8159,14 +8219,17 @@ void CMPoint::ConvertFrom(const MPoint& src, const DateTime dur,
     per.Add(Interval<Instant>(i - dur, i, true, false));
     src.AtPeriods(per, srcPart);
     srcPart.SquaredDistance(mpTempShifted, dist);
+    if (!geoid) {
+      cup.Set(upDest, sqrt(dist.Max(correct)));
+    }
+    else {
+      dist.Recompute(srcPart, mpTempShifted, geoid);
+      cup.Set(upDest, dist.Max(correct));
+    }
+    assert(correct);
 //     cout << "sqdist between " << mpTempShifted << " and " << srcPart 
 //          << " amounts to " << dist << ", max is " << sqrt(dist.Max(correct)) 
 //          << endl;
-    cup.Set(upDest, sqrt(dist.Max(correct)));
-    if (!correct) {
-      cout << "try to add incorrect unit " << cup << endl;
-      assert(correct);
-    }
     Add(cup);
     mpTemp.Clear();
     mpTempShifted.Clear();
@@ -8192,7 +8255,14 @@ void CMPoint::ConvertFrom(const MPoint& src, const DateTime dur,
     per.Add(iv);
     src.AtPeriods(per, srcPart);
     srcPart.SquaredDistance(mpTempShifted, dist);
-    cup.Set(upDest, sqrt(dist.Max(correct)));
+    if (!geoid) {
+      cup.Set(upDest, sqrt(dist.Max(correct)));
+    }
+    else {
+      dist.Recompute(srcPart, mpTempShifted, geoid);
+      cup.Set(upDest, dist.Max(correct));
+    }
+    assert(correct);
     Add(cup);
   }
 }
@@ -8598,7 +8668,7 @@ double CMPoint::DistanceAvg(const CMPoint& cmp, const bool upperBound,
   std::stack<ISC> theStack;
   Interval<Instant> iv;
   int cu1Pos, cu2Pos;
-  CUPoint cu1, cu2;
+  CUPoint cu1, cu2; 
   for (unsigned int i = 0; i < rp.Size(); i++) {
     rp.Get(i, iv, cu1Pos, cu2Pos);
     if (cu1Pos == -1 && cu2Pos == -1) {
@@ -8648,8 +8718,8 @@ void CMPoint::DistanceAvg(const CMPoint& cmp, const bool upperBound,
   result.Set(true, this->DistanceAvg(cmp, upperBound, geoid));
 }
 
-void CMPoint::SphericalDistanceApprox(const CMPoint& cmp, const bool upperBound,
-                                      CcReal& result) const {
+void CMPoint::DistanceAvgSA(const CMPoint& cmp, const bool upperBound,
+                            CcReal& result) const {
   Geoid *geoid = new Geoid(true);
   DistanceAvg(cmp, upperBound, result, geoid);
   geoid->DeleteIfAllowed();
@@ -12503,12 +12573,12 @@ ListExpr DistanceAvgLBUBTypeMap(ListExpr args) {
 }
 
 /*
-~SphericalDistanceApproxTypeMap~
+~DistanceAvgSATypeMap~
 
-This function is applied by the ~sphericalDistanceApprox~ operator.
+This function is applied by the ~DistanceAvgSA~ operator.
 
 */
-ListExpr SphericalDistanceApproxTypeMap(ListExpr args) {
+ListExpr DistanceAvgSATypeMap(ListExpr args) {
   if (!nl->HasLength(args, 2)) {
     return listutils::typeError("two arguments expected");
   }
@@ -14356,8 +14426,8 @@ int DistanceAvgUBMap(Word* args, Word& result, int message, Word& local,
   return 0;
 }
 
-int SphericalDistanceApproxMap(Word* args, Word& result, int message, 
-                               Word& local, Supplier s) {
+int DistanceAvgSAMap(Word* args, Word& result, int message, Word& local,
+                     Supplier s) {
   result = qp->ResultStorage(s);
   MPoint *m1 = (MPoint*)args[0].addr;
   MPoint *m2 = (MPoint*)args[1].addr;
@@ -14365,7 +14435,7 @@ int SphericalDistanceApproxMap(Word* args, Word& result, int message,
     ((CcReal*)result.addr)->SetDefined(false);
     return 0;
   }
-  m1->SphericalDistanceApprox(*m2, *((CcReal*)result.addr));
+  m1->DistanceAvgSA(*m2, *((CcReal*)result.addr));
   return 0;
 }
 
@@ -17722,13 +17792,13 @@ const std::string TemporalSpecDistanceAvgUB =
   "<text>distanceAvgUB(cmpoint1, cmpoint2)</text--->"
   ") )";
 
-const std::string TemporalSpecSphericalDistanceApprox =
+const std::string TemporalSpecDistanceAvgSA =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>mpoint x mpoint -> real</text--->"
-  "<text>sphericalDistanceApprox( _, _ ) </text--->"
+  "<text>DistanceAvgSA( _, _ ) </text--->"
   "<text>Returns the integral sum of the partial distance functions. Spherical "
-  "distances are approximated by scaling.</text--->"
-  "<text>sphericalDistanceApprox(mpoint1, mpoint2)</text--->"
+  "distances are approximated.</text--->"
+  "<text>DistanceAvgSA(mpoint1, mpoint2)</text--->"
   ") )";
 
 const std::string TemporalSpecSquaredDistance =
@@ -18562,11 +18632,11 @@ Operator temporaldistanceavgub( "distanceAvgUB",
                            DistanceAvgLBUBSelect,
                            DistanceAvgLBUBTypeMap);
 
-Operator temporalsphericaldistanceapprox( "sphericalDistanceApprox",
-                           TemporalSpecSphericalDistanceApprox,
-                           SphericalDistanceApproxMap,
+Operator temporaldistanceavgsa( "distanceAvgSA",
+                           TemporalSpecDistanceAvgSA,
+                           DistanceAvgSAMap,
                            Operator::SimpleSelect,
-                           SphericalDistanceApproxTypeMap);
+                           DistanceAvgSATypeMap);
 
 Operator temporalsquareddistance( "squareddistance",
                            TemporalSpecSquaredDistance,
@@ -21451,7 +21521,8 @@ This operator creates a cupoint from an mpoint or upoint.
 
 */
 ListExpr cbboxTM(ListExpr args) {
-  std::string err = "cmpoint | mpoint | upoint (x real) expected";
+  std::string err = "(cmpoint x geoid) | (mpoint x geoid) | upoint (x real) "
+                    "expected";
   if (!nl->HasLength(args, 2) && !nl->HasLength(args, 1)) {
     return listutils::typeError(err + " (wrong number of args)");
   }
@@ -21461,9 +21532,13 @@ ListExpr cbboxTM(ListExpr args) {
     return listutils::typeError(err +" (first arg is not a (u|m|cm)point)");
   }
   if (nl->HasLength(args, 2)) {
-    if (!CcReal::checkType(nl->Second(args))
-     && !UPoint::checkType(nl->First(args))) {
-      return listutils::typeError(err + " upoint x real required for 2 args");
+    if ((!CMPoint::checkType(nl->First(args)) || 
+         !Geoid::checkType(nl->Second(args))) &&
+        (!MPoint::checkType(nl->First(args)) ||
+         !Geoid::checkType(nl->Second(args))) &&
+        (!UPoint::checkType(nl->First(args)) || 
+         !CcReal::checkType(nl->Second(args)))) {
+      return listutils::typeError(err);
     }
   }
   return listutils::basicSymbol<CUPoint>();
@@ -21478,16 +21553,26 @@ int cbboxVM(Word* args, Word& result, int message, Word& local, Supplier s) {
     res->SetDefined(false);
     return 0;
   }
+  Geoid *geoid = 0;
   double radius = 0.0;
   if (qp->GetNoSons(s) == 2) {
-    CcReal* ccrad = (CcReal*)args[1].addr;
-    if (!ccrad->IsDefined()) {
-      res->SetDefined(false);
-      return 0;
+    if (T::BasicType() != UPoint::BasicType()) { // no upoint => 2nd arg = geoid
+      geoid = (Geoid*)args[1].addr;
+      if (!geoid->IsDefined()) {
+        res->SetDefined(false);
+        return 0;
+      }
     }
-    radius = ccrad->GetValue();
+    else {
+      CcReal* ccrad = (CcReal*)args[1].addr;
+      if (!ccrad->IsDefined()) {
+        res->SetDefined(false);
+        return 0;
+      }
+      radius = ccrad->GetValue();
+    }
   }
-  res->ConvertFrom(*src);
+  res->ConvertFrom(*src, geoid);
   if (T::BasicType() == "upoint") {
     res->SetRadius(radius);
   }
@@ -21514,7 +21599,7 @@ ValueMapping cbboxVMs[] = {
 };
 
 OperatorSpec cbboxSpec(
-  "(cmpoint | mpoint | upoint) (x real) -> cupoint",
+  "cmpoint (x geoid) | mpoint (x geoid) | upoint (x real) -> cupoint",
   "cbbox(_, _)",
   "Creates a cupoint from a cmpoint, an mpoint or a upoint with a real ("
     "otherwise the radius is set to 0.0)",
@@ -21712,8 +21797,8 @@ distance threshold is exceeded.
 
 */
 ListExpr mpoint2cmpointTM(ListExpr args) {
-  std::string err = "mpoint x (duration|real) expected";
-  if (!nl->HasLength(args, 2)) {
+  std::string err = "mpoint x (duration|real) (x geoid) expected";
+  if (!nl->HasLength(args, 2) && !nl->HasLength(args, 3)) {
     return listutils::typeError(err + " (wrong number of arguments)");
   }
   if (!MPoint::checkType(nl->First(args))) {
@@ -21722,6 +21807,11 @@ ListExpr mpoint2cmpointTM(ListExpr args) {
   if (!Duration::checkType(nl->Second(args)) 
       && !CcReal::checkType(nl->Second(args))) {
     return listutils::typeError(err + " (second arg must be duration or real)");
+  }
+  if (nl->HasLength(args, 3)) {
+    if (!Geoid::checkType(nl->Third(args))) {
+      return listutils::typeError(err + " (third arg must be a geoid)");
+    }
   }
   return listutils::basicSymbol<CMPoint>();
 }
@@ -21737,7 +21827,11 @@ int mpoint2cmpointVM(Word* args, Word& result, int message, Word& local,
     res->SetDefined(false);
     return 0;
   }
-  res->ConvertFrom(*src, *param);
+  Geoid *geoid = 0;
+  if (qp->GetNoSons(s) == 3) {
+    geoid = (Geoid*)args[2].addr;
+  }
+  res->ConvertFrom(*src, *param, geoid);
   return 0;
 }
 
@@ -21955,7 +22049,7 @@ class TemporalAlgebra : public Algebra
     AddOperator( &temporaldistanceavg );
     AddOperator( &temporaldistanceavglb );
     AddOperator( &temporaldistanceavgub );
-    AddOperator( &temporalsphericaldistanceapprox );
+    AddOperator( &temporaldistanceavgsa );
     AddOperator( &temporalsimplify );
     AddOperator( &temporalintegrate );
     AddOperator( &temporallinearize );

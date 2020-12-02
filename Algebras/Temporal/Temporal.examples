@@ -797,10 +797,10 @@ Signature : cXpoint x cXpoint -> real  (X = m|u)
 Example   : query distanceAvgLB(cbbox(train5), cbbox(train6))
 Result    : 4863.6938082193
 
-Operator  : sphericalDistanceApprox
+Operator  : distanceAvgSA
 Number    : 1
 Signature : mpoint x mpoint -> real
-Example   : query sphericalDistanceApprox([const mpoint value (((0 10 TRUE FALSE) (8.0 51.0 9.0 51.0)))], [const mpoint value (((0 10 TRUE FALSE) (8.0 52.0 9.0 53.0)))])
+Example   : query distanceAvgSA([const mpoint value (((0 10 TRUE FALSE) (8.0 51.0 9.0 51.0)))], [const mpoint value (((0 10 TRUE FALSE) (8.0 52.0 9.0 53.0)))])
 Result    : 166894.663959107
 
 Operator  : distanceAvgUB
@@ -811,13 +811,13 @@ Result    : 20296.82906969
 
 Operator  : cbbox
 Number    : 1
-Signature : cmpoint | mpoint | upoint (x real) -> cupoint
+Signature : (cmpoint x geoid) | (mpoint x geoid) | upoint (x real) -> cupoint
 Example   : query size(bbox2d((cbbox(train5)))) > 1000000.0
 Result    : TRUE
 
 Operator  : mpoint2cmpoint
 Number    : 1
-Signature : mpoint x (duration|real) -> cmpoint
+Signature : mpoint x (duration|real) (x geoid) -> cmpoint
 Example   : query no_components(mpoint2cmpoint(train5, create_duration(0, 60000)))
 Result    : 35
 

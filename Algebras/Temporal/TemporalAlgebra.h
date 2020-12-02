@@ -2487,11 +2487,11 @@ Creates the distance to an other UReal value.
     opcode == 5 >=
     */
     
-  void ScaleToWGS(const UPoint& up1, const UPoint& up2, const Geoid* geoid);
+  void Recompute(const UPoint& up1, const UPoint& up2, const Geoid* geoid);
   /*
-  Scales the unit real so that it represents the distance in meters instead of
-  geographic coordinates. This is necessary because the precise spherical
-  distance for segments is not implemented.
+  Recomputes the unit real so that it represents the distance according to geoid
+  instead of geographic coordinates. This is necessary because the precise 
+  spherical distance for line segments is not implemented.
   
   */
 
@@ -3780,6 +3780,8 @@ the given value.
 
 };
 
+class MPoint;
+
 /*
 3.11 Class ~MReal~
 
@@ -3877,7 +3879,12 @@ Precondition: ccvalue.IsDefined() == true
 */
    void AtValue( const CcReal& ccvalue, MReal& result ) const;
 
+/*
+3.11.9 Operation ~Recompute~
 
+*/
+   void Recompute(const MPoint& mp1, const MPoint& mp2, const Geoid* geoid);
+   
    static const std::string BasicType(){ return "mreal"; }
    static const bool checkType(const ListExpr type){
      return listutils::isSymbol(type, BasicType());
@@ -4024,7 +4031,7 @@ If invalid geographic coordinates are found, the result is UNDEFINED.
   void DistanceAvg(const MPoint& mp, CcReal& result, 
                    const Geoid* geoid=0) const;
   double DistanceAvg(const MPoint& mp, const Geoid* geoid = 0) const;
-  void SphericalDistanceApprox(const MPoint& mp, CcReal& result) const;
+  void DistanceAvgSA(const MPoint& mp, CcReal& result) const;
   void SquaredDistance( const Point& p, MReal& result,
                         const Geoid* geoid=0 ) const;
   void SquaredDistance( const MPoint& p, MReal& result,
@@ -4539,19 +4546,19 @@ Functions required for attribute type
 Transforms a UPoint into a CUPoint.
 
 */
-  void ConvertFrom(const UPoint& up);
+  void ConvertFrom(const UPoint& up, const Geoid* geoid = 0);
   
 /*
 Transforms an MPoint into a CUPoint.
 
 */
-  void ConvertFrom(const MPoint& mp);
+  void ConvertFrom(const MPoint& mp, const Geoid* geoid = 0);
 
 /*
 Transforms a CMPoint into a CUPoint, adopting the CMPoint's maximum radius.
 
 */
-  void ConvertFrom(const CMPoint& cmp);
+  void ConvertFrom(const CMPoint& cmp, const Geoid* geoid = 0);
   
 /*
 Computes the distance to a CUPoint ~cup~. 
@@ -4623,13 +4630,6 @@ specified threshold is exceeded.
 */
   void ConvertFrom(const MPoint& src, const CcReal& threshold, 
                    const Geoid *geoid = 0);
-  
-/*
-Converts an ~mpoint~ into a ~cmpoint~ with a constant (maximum) cylinder radius.
-
-*/
-//   void ConvertFrom(const MPoint& src, const double maxRadius,
-//                    const Geoid *geoid = 0);
 
 /*
 3.12.2 Modifications of Inherited Functions
@@ -4693,8 +4693,8 @@ If invalid geographic coordinates are found, the result is UNDEFINED.
                      const Geoid* geoid = 0) const;
   void DistanceAvg(const CMPoint& cmp, const bool upperBound,
                    CcReal& result, const Geoid* geoid = 0) const;
-  void SphericalDistanceApprox(const CMPoint& cmp, const bool upperBound,
-                               CcReal& result) const;
+  void DistanceAvgSA(const CMPoint& cmp, const bool upperBound, CcReal& result) 
+                    const;
 
 /*
 3.10.5.6 Operatiopn ~Breaks~
