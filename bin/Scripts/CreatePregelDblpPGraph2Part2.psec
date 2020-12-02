@@ -165,6 +165,8 @@ let NoMessages = fun() InitialMessages feed head[0]
 
 let Results = [const rel(tuple([AuthorName: string, Authors: text, Title: text, 
   Journal: text, Booktitle: text, Year: string])) value ()]
+
+let ResultsM = Results feed mconsume
  
 
 let Compute = fun (messages: stream(tuple([
@@ -214,7 +216,7 @@ let Compute = fun (messages: stream(tuple([
         loopjoin[Author orange[.NodeId; .NodeId] {a}]
         replaceAttr[AuthorName: .Name_a]
         project[AuthorName, Authors, Title, Journal, Booktitle, Year]
-        Results insert
+        minsert[ResultsM]
         filter[FALSE] 
         projectextend[; NodeId: 0, Partition:0, Message: "", Sender: 0, 
           Value: "", AuthorName: "", Authors: '', Title: '', Journal: '', 

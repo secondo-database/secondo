@@ -13,6 +13,10 @@ This part can be executed repeatedly. Run with SecondoTTBDB. Monitors must be ru
 	
 query setupPregel(Workers);
 
+let ResultsM = Results feed head[0] mconsumeflob;
+
+query remotePregelCommand('let ResultsM = Results feed head[0] mconsumeflob')
+
 query setPregelFunction(Compute, Partition);
 
 # 
@@ -21,11 +25,13 @@ query setPregelFunction(Compute, Partition);
 /*
 2 Computation
 
-Initialize Pregel messages
+Initialize Pregel messages and ~ResultsM~ relation
 
 */
 
 query InitialMessages feed initPregelMessages;
+
+
 
 /*
 Repeat several times:
@@ -42,6 +48,8 @@ query getPregelMessages() consume;
 When there are no more messages, look at the results:
 
 */
+
+query remotePregelCommand('update Results := ResultsM mfeed consume')
 
 query createSDArray("Results", Workers) dsummarize consume;
 
