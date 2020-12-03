@@ -1608,6 +1608,11 @@ SecondoCatalog::CloseObject( const ListExpr type, Word object )
 Closes a given ~object~ of type ~type~.
 
 */
+
+  if(object.addr==0){ // nothing to close
+     return;
+  }
+
   ListExpr pair, numtype;
   int alId, typeId;
 
