@@ -80,9 +80,30 @@ namespace pregel {
                "Please initialize with \"setPregelFunction(...) first.");
 
   QueryProcessor *queryProcessor = new QueryProcessor(
-   SecondoSystem::GetNestedList(), SecondoSystem::GetAlgebraManager());
+  SecondoSystem::GetNestedList(), SecondoSystem::GetAlgebraManager());
 
-  while (round < rounds || rounds < 0) {
+  ListExpr query = nl->Second(convertToList(function));
+
+  bool correct = false;
+  bool evaluable = false;
+  bool defined = false;
+  bool isFunction = false;
+  OpTree opTree;
+  ListExpr resultType;
+
+  queryProcessor->Construct(query, correct, evaluable, defined, isFunction,
+                            opTree, resultType);
+ 
+  if (!correct || !evaluable || !defined) {
+   BOOST_LOG_TRIVIAL(error) << "Invalid Function: correct: " << correct
+                            << ", evaluable: " << evaluable << ", defined: "
+                            << defined << "; Abort.";
+   delete queryProcessor;
+   return 0;
+  }
+  
+
+ while (round < rounds || rounds < 0) {
    SuperstepCounter::increment();
    PRODUCTIVE
 
@@ -95,7 +116,7 @@ namespace pregel {
     boost::bind(&StartPregelWorker::startReceivingMessages,
                 boost::ref(allEmpty)));
 
-   compute(queryProcessor, function);
+   compute(queryProcessor, opTree);
 
    if (messagesToProcess <= 0) {
     MessageBroker::get().broadcastEmptyMessage();
@@ -113,6 +134,7 @@ namespace pregel {
    }
    ++round;
   }
+  queryProcessor->Destroy(opTree, true);
 
   delete queryProcessor;
   ((CcBool *) result.addr)->Set(true, true);
@@ -143,29 +165,11 @@ namespace pregel {
  }
 
  bool StartPregelWorker::compute(QueryProcessor *queryProcessor,
-                                 std::string &function) {
-  ListExpr query = nl->Second(convertToList(function));
+                                 OpTree opTree) {
 
-  bool correct = false;
-  bool evaluable = false;
-  bool defined = false;
-  bool isFunction = false;
-  OpTree opTree;
-  ListExpr resultType;
-
-  queryProcessor->Construct(query, correct, evaluable, defined, isFunction,
-                            opTree, resultType);
-
-  if (!correct || !evaluable || !defined) {
-   BOOST_LOG_TRIVIAL(error) << "Invalid Function: correct: " << correct
-                            << ", evaluable: " << evaluable << ", defined: "
-                            << defined << "; Abort.";
-   return false;
-  }
 
   auto result = queryProcessor->Request(opTree);
 
-  queryProcessor->Destroy(opTree, false);
 
   if (result.addr == nullptr) {
    BOOST_LOG_TRIVIAL(error) << "Query returned nullptr. Abort.";
@@ -183,7 +187,6 @@ namespace pregel {
    successBool->DeleteIfAllowed();
    return false;
   }
-  successBool->DeleteIfAllowed();
   return true;
  }
 
