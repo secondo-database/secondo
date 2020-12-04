@@ -1,0 +1,12 @@
+(stream (tuple ((PLZ int) (Ort string))))
+(1059 "Dresden")
+(1060 "Dresden")
+(1001 "Dresden")
+(1002 "Dresden")
+(1003 "Dresden")
+(1004 "Dresden")
+(1005 "Dresden")
+(1006 "Dresden")
+(1007 "Dresden")
+(1008 "Dresden")
+quit
