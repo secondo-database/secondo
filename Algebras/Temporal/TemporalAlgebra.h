@@ -3607,6 +3607,15 @@ leftclosed/rightclosed flags.
 
 */
     void GetFullInterval(Interval<Instant>& result) const;
+
+/*
+3.10.5.7 ~GetDuration~
+
+Extracts the sum of the lengths of all time intervals (avoiding the creation 
+and the scan of a periods value).
+
+*/
+    void GetDuration(datetime::DateTime& result) const;
     
 /*
 type name used in Secondo
@@ -4564,9 +4573,10 @@ Computes the distance to a CUPoint ~cup~.
 
 */
   using UPoint::Distance;
+  double DistanceIntegral(const CUPoint& cup, const bool upperBound,
+                          const Geoid* geoid = 0) const;
   double DistanceAvg(const CUPoint& cup, const bool upperBound,
                      const Geoid* geoid = 0) const;
-  
   void DistanceAvg(const CUPoint& cup, const bool upperBound, CcReal& result,
                    const Geoid* geoid = 0) const;
 
@@ -4688,7 +4698,9 @@ If invalid geographic coordinates are found, the result is UNDEFINED.
 
 */
 //  void Distance(const CPoint& p, MReal& result, const Geoid* geoid = 0) const;
-  double DistanceAvg(const CMPoint& cup, const bool upperBound,
+  double DistanceIntegral(const CMPoint& cmp, const bool upperBound,
+                          const Geoid* geoid = 0) const;
+  double DistanceAvg(const CMPoint& cmp, const bool upperBound,
                      const Geoid* geoid = 0) const;
   void DistanceAvg(const CMPoint& cmp, const bool upperBound,
                    CcReal& result, const Geoid* geoid = 0) const;
@@ -7754,6 +7766,20 @@ void Mapping<Unit, Alpha>::GetFullInterval(Interval<Instant>& result) const {
   units.Get(GetNoComponents() - 1, unit);
   result.end = unit.timeInterval.end;
   result.rc = unit.timeInterval.rc;
+}
+
+template<class Unit, class Alpha>
+void Mapping<Unit, Alpha>::GetDuration(datetime::DateTime& result) const {
+  result.SetToZero();
+  if (!IsDefined()) {
+    result.SetDefined(false);
+    return;
+  }
+  Unit u(true);
+  for (int i = 0; i < GetNoComponents(); i++) {
+    Get(i, u);
+    result += u.timeInterval.end - u.timeInterval.start;
+  }
 }
 
 template<class Unit, class Alpha>

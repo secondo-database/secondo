@@ -2981,8 +2981,8 @@ void CUPoint::ConvertFrom(const CMPoint& cmp, const Geoid* geoid /* = 0 */) {
   assert(correct);
 }
 
-double CUPoint::DistanceAvg(const CUPoint& cup, const bool upperBound,
-                            const Geoid* geoid /* = 0 */) const {
+double CUPoint::DistanceIntegral(const CUPoint& cup, const bool upperBound,
+                                 const Geoid* geoid /* = 0 */) const {
   if (!IsDefined() && !cup.IsDefined()) {
     return 0.0;
   }
@@ -3059,7 +3059,8 @@ double CUPoint::DistanceAvg(const CUPoint& cup, const bool upperBound,
 //         cout << "    RESULT 1 = " 
 //              << std::max(0.0, integralValue1 / dur - sumOfRadii)
 //              << endl << endl << endl << endl;
-        result = std::max(0.0, integralValue1 / dur - sumOfRadii);
+//         result = std::max(0.0, integralValue1 / dur - sumOfRadii);
+        result = std::max(0.0, integralValue1 - sumOfRadii * dur);
              
       }
       else { // numOfNulls == 2; left of instNull1, right of instNull2
@@ -3080,11 +3081,15 @@ double CUPoint::DistanceAvg(const CUPoint& cup, const bool upperBound,
 //                 + integralValue2 /
 //                   (urDist.timeInterval.end - instNull2).ToDouble()
 //                 - sumOfRadii << endl << endl;
-        result = integralValue1 / 
-                   (instNull1 - urDist.timeInterval.start).ToDouble()
-                 + integralValue2 /
-                   (urDist.timeInterval.end - instNull2).ToDouble()
-                 - sumOfRadii;
+//         result = integralValue1 / 
+//                    (instNull1 - urDist.timeInterval.start).ToDouble()
+//                  + integralValue2 /
+//                    (urDist.timeInterval.end - instNull2).ToDouble()
+//                  - sumOfRadii;
+        result = integralValue1 - 
+                 sumOfRadii * (instNull1 - urDist.timeInterval.start).ToDouble()
+                 + integralValue2 - 
+                 sumOfRadii * (urDist.timeInterval.end - instNull2).ToDouble();
       }
     }
     else { // no shifting required because min >= sumOfRadii
@@ -3094,7 +3099,8 @@ double CUPoint::DistanceAvg(const CUPoint& cup, const bool upperBound,
       }
 //       cout << "    RESULT = " << integralValue1 / dur - sumOfRadii
 //            << endl << endl;
-      result = std::max(0.0, integralValue1 / dur - sumOfRadii);
+//       result = std::max(0.0, integralValue1 / dur - sumOfRadii);
+      result = std::max(0.0, integralValue1 - sumOfRadii * dur);
     }
   }
   else { // case upperbound starts here
@@ -3108,10 +3114,17 @@ double CUPoint::DistanceAvg(const CUPoint& cup, const bool upperBound,
     }
 //     cout << "   urDist = " << urDist << endl << " ==> RESULTub = " 
 //          << integralValue1 << "/" << dur << " + " << sumOfRadii << endl;
-    result = integralValue1 / dur + sumOfRadii;
-//     result = std::max(0.0, integralValue1 / dur + sumOfRadii);
+//     result = integralValue1 / dur + sumOfRadii;
+    result = integralValue1 + sumOfRadii * dur;
   }
   return result;
+}
+
+double CUPoint::DistanceAvg(const CUPoint& cup, const bool upperBound,
+                            const Geoid* geoid /* = 0 */) const {
+  double minDur = std::min((timeInterval.end - timeInterval.start).ToDouble(),
+                    (cup.timeInterval.end - cup.timeInterval.start).ToDouble());
+  return this->DistanceIntegral(cup, upperBound, geoid) / minDur;
 }
 
 void CUPoint::DistanceAvg(const CUPoint& cup, const bool upperBound,
@@ -3120,6 +3133,7 @@ void CUPoint::DistanceAvg(const CUPoint& cup, const bool upperBound,
     result.SetDefined(false);
     return;
   }
+  
   result.Set(true, this->DistanceAvg(cup, upperBound, geoid));
 }
 
@@ -8648,8 +8662,8 @@ void CMPoint::Trajectory(Line& line) const {
   mp.Trajectory(line);
 }
 
-double CMPoint::DistanceAvg(const CMPoint& cmp, const bool upperBound,
-                            const Geoid* geoid /* = 0 */) const {
+double CMPoint::DistanceIntegral(const CMPoint& cmp, const bool upperBound,
+                                 const Geoid* geoid /* = 0 */) const {
   if (!IsDefined() || !cmp.IsDefined() || (geoid && !geoid->IsDefined())) {
     return -1.0;
   }
@@ -8686,7 +8700,7 @@ double CMPoint::DistanceAvg(const CMPoint& cmp, const bool upperBound,
     }
     if (cu1.IsDefined() && cu2.IsDefined()) { // no overlapping deftimes
       ISC isc;
-      isc.value = cu1.DistanceAvg(cu2, upperBound, geoid);
+      isc.value = cu1.DistanceIntegral(cu2, upperBound, geoid);
       isc.level = 0;
       while (!theStack.empty() && (theStack.top().level == isc.level)) {
         isc.value = isc.value + theStack.top().value;
@@ -8702,6 +8716,15 @@ double CMPoint::DistanceAvg(const CMPoint& cmp, const bool upperBound,
     theStack.pop();
   }
   return sum;
+}
+
+double CMPoint::DistanceAvg(const CMPoint& cmp, const bool upperBound,
+                            const Geoid* geoid /* = 0 */) const {
+  DateTime dur1(datetime::durationtype), dur2(datetime::durationtype);
+  GetDuration(dur1);
+  cmp.GetDuration(dur2);
+  double minDur = std::min(dur1.ToDouble(), dur2.ToDouble());
+  return this->DistanceIntegral(cmp, upperBound, geoid) / minDur;
 }
 
 void CMPoint::DistanceAvg(const CMPoint& cmp, const bool upperBound,
