@@ -5537,4 +5537,13 @@ double jaccardSimilarity(collection::Collection& v1,
   return (double)intersection / un;
 }
 
+double jaccardSimilarity(set<string>& s1, set<string>& s2) {
+  set<string> in, un;
+  set_intersection(s1.begin(), s1.end(), s2.begin(), s2.end(), 
+                   std::inserter(in, in.begin()));
+  set_union(s1.begin(), s1.end(), s2.begin(), s2.end(),
+            std::inserter(un, un.begin()));
+  return (double)(in.size()) / un.size();
+}
+
 }

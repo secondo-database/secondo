@@ -3971,10 +3971,60 @@ Operator cosinesim(cosinesimSpec(), cosinesimVM, cosinesimTM);
 /*
 \section{Operator ~jaccardsim~}
 
-\subsection{Value Mapping (for a single MLabel)}
+\subsection{Type Mapping}
 
 */
-int jaccardsimVM(Word* args, Word& result, int message, Word& local, 
+ListExpr jaccardsimTM(ListExpr args) {
+  const string errMsg = "vector(int) x vector(int) or mlabel(s) x mlabel(s) or "
+                        "mplace(s) x mplace(s) expected";
+  if (!nl->HasLength(args, 2)) {
+    return listutils::typeError(errMsg);
+  }
+  if (MLabel::checkType(nl->First(args))) {
+    if (!MLabel::checkType(nl->Second(args))) {
+      return listutils::typeError(errMsg);
+    }
+  }
+  else if (MLabels::checkType(nl->First(args))) {
+    if (!MLabels::checkType(nl->Second(args))) {
+      return listutils::typeError(errMsg);
+    }
+  }
+  else if (MPlace::checkType(nl->First(args))) {
+    if (!MPlace::checkType(nl->Second(args))) {
+      return listutils::typeError(errMsg);
+    }
+  }
+  else if (MPlaces::checkType(nl->First(args))) {
+    if (!MPlaces::checkType(nl->Second(args))) {
+      return listutils::typeError(errMsg);
+    }
+  }
+  else {
+    ListExpr errorInfo = nl->OneElemList(nl->SymbolAtom("ERROR"));
+    if (!collection::Collection::KindCheck(nl->First(args), errorInfo) ||
+        !collection::Collection::KindCheck(nl->Second(args), errorInfo)) {
+      return listutils::typeError(errMsg);
+    }
+    string ctype1 = nl->SymbolValue(nl->First(nl->First(args)));
+    string ctype2 = nl->SymbolValue(nl->First(nl->Second(args)));
+    if (ctype1 != Vector::BasicType() || ctype2 != Vector::BasicType()) {
+      return listutils::typeError(errMsg + " two vectors required");
+    }
+    string etype1 = nl->SymbolValue(nl->Second(nl->First(args)));
+    string etype2 = nl->SymbolValue(nl->Second(nl->Second(args)));
+    if (etype1 != CcReal::BasicType() || etype2 != CcReal::BasicType()) {
+      return listutils::typeError(errMsg + " real type required");
+    }
+  }
+  return nl->SymbolAtom(CcReal::BasicType());
+}
+
+/*
+\subsection{Value Mappings}
+
+*/
+int jaccardsimFVVM(Word* args, Word& result, int message, Word& local, 
                  Supplier s) {
   collection::Collection* v1 = 
                              static_cast<collection::Collection*>(args[0].addr);
@@ -3991,7 +4041,52 @@ int jaccardsimVM(Word* args, Word& result, int message, Word& local,
     return 0;
   }
   res->Set(true, jaccardSimilarity(*v1, *v2));
-  return  0;
+  return 0;
+}
+
+template<class M>
+int jaccardsimMLVM(Word* args, Word& result, int message, Word& local, 
+                 Supplier s) {
+  M* m1 = static_cast<M*>(args[0].addr);
+  M* m2 = static_cast<M*>(args[1].addr);
+  result = qp->ResultStorage(s);
+  CcReal* res = (CcReal*)result.addr;
+  if (!m1->IsDefined() || !m2->IsDefined()) {
+    res->SetDefined(false);
+    return 0;
+  }
+  set<string> allLabels1, allLabels2;
+  m1->InsertLabels(allLabels1);
+  m2->InsertLabels(allLabels2);
+  res->Set(true, jaccardSimilarity(allLabels1, allLabels2));
+  return 0;
+}
+
+ValueMapping jaccardsimVMs[] = {jaccardsimFVVM, jaccardsimMLVM<MLabel>,
+  jaccardsimMLVM<MLabels>, jaccardsimMLVM<MPlace>, jaccardsimMLVM<MPlaces>};
+
+/*
+\subsection{Selection Function}
+
+*/
+int jaccardsimSelect(ListExpr args) {
+  ListExpr errorInfo = nl->OneElemList(nl->SymbolAtom("ERROR"));
+  if (collection::Collection::KindCheck(nl->First(args), errorInfo)) {
+    return 0;
+  }
+  if (MLabel::checkType(nl->First(args))) {
+    return 1;
+  }
+  if (MLabels::checkType(nl->First(args))) {
+    return 2;
+  }
+  if (MPlace::checkType(nl->First(args))) {
+    return 3;
+  }
+  if (MPlaces::checkType(nl->First(args))) {
+    return 4;
+  }
+  return -1;
 }
 
 /*
@@ -4001,13 +4096,16 @@ int jaccardsimVM(Word* args, Word& result, int message, Word& local,
 struct jaccardsimSpec : OperatorInfo {
   jaccardsimSpec() {
     name      = "jaccardsim";
-    signature = "vector(real) x vector(real) -> real";
+    signature = "(vector(real) x vector(real)) | (mlabel(s) x mlabel(s)) | "
+                "(mplace(s) x mplace(s)) -> real";
     syntax    = "jaccardsim(_, _)";
-    meaning   = "Computes the Jaccard similarity for two frequency vectors.";
+    meaning   = "Computes the Jaccard similarity for two frequency vectors or "
+                "two mlabels.";
   }
 };
 
-Operator jaccardsim(jaccardsimSpec(), jaccardsimVM, cosinesimTM);
+Operator jaccardsim(jaccardsimSpec(), jaccardsimVMs, jaccardsimSelect,
+                    jaccardsimTM);
 
 /*
 \section{Class ~SymbolicTrajectoryAlgebra~}

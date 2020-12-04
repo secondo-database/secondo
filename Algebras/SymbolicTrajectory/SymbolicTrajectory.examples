@@ -219,6 +219,6 @@ Result    : 0.5
 
 Operator  : jaccardsim
 Number    : 1
-Signature : vector(real) x vector(real) -> real
-Example   : query jaccard(create_vector(0.0, 1.0, 1.0, 1.0), create_vector(1.0, 1.0, 1.0, 0.0))
+Signature : (vector(real) x vector(real)) | (mlabel x mlabel) -> real
+Example   : query jaccardsim(create_vector(0.0, 1.0, 1.0, 1.0), create_vector(1.0, 1.0, 1.0, 0.0))
 Result    : 0.5

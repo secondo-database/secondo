@@ -293,6 +293,12 @@ void Label::InsertLabels(vector<string>& result) const {
   }
 }
 
+void Label::InsertLabels(set<string>& result) const {
+  if (IsDefined()) {
+    result.insert(GetLabel());
+  }
+}
+
 /*
 \subsection{Function ~UpdateFrequencies~}
 
@@ -772,6 +778,14 @@ void Labels::InsertLabels(vector<string>& result) const {
     for (auto it : values) {
       result.push_back(it);
     }
+  }
+}
+
+void Labels::InsertLabels(set<string>& result) const {
+  if (IsDefined()) {
+    set<std::string> values;
+    GetValues(values);
+    result.insert(values.begin(), values.end());
   }
 }
 
@@ -1457,6 +1471,16 @@ void Places::InsertLabels(vector<string>& result) const {
     GetValues(values);
     for (auto it : values) {
       result.push_back(it.first);
+    }
+  }
+}
+
+void Places::InsertLabels(set<string>& result) const {
+  if (IsDefined()) {
+    set<base> values;
+    GetValues(values);
+    for (auto it : values) {
+      result.insert(it.first);
     }
   }
 }

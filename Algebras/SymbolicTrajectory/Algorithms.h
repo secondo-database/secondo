@@ -5037,4 +5037,5 @@ double vLength(collection::Collection& v);
 double cosineSimilarity(collection::Collection& v1, collection::Collection& v2);
 double jaccardSimilarity(collection::Collection& v1, 
                          collection::Collection& v2);
+double jaccardSimilarity(std::set<std::string>& s1, std::set<std::string>& s2);
 }
