@@ -447,7 +447,19 @@ Precondition: dbState = dbOpen.
       return 2; // Error reading file
     }
 
-    if ( !nl->IsEqual( nl->Second( list ), objectname ) )
+    if(!nl->HasLength(list,2) && !nl->HasMinLength(list,5))
+    {
+      return 3; // invalid list structure 
+    }
+    if(nl->HasLength(list,2))
+    {
+       list = nl->FiveElemList(nl->SymbolAtom("OBJECT"),
+		               nl->SymbolAtom(objectname),
+			       nl->TheEmptyList(),
+			       nl->First(list),
+			       nl->Second(list));
+    } 
+    else  if ( !nl->IsEqual( nl->Second( list ), objectname ) )
     {
       if(nl->AtomType(nl->Second(list))!=SymbolType){
           return 3; // error in list structure
@@ -460,11 +472,7 @@ Precondition: dbState = dbOpen.
       nl->Replace( nl->Second(list), nl->SymbolAtom(objectname) );
     }
 
-    if ( nl->IsEmpty( list) )
-    {
-      rc = 3; // List structure invalid
-    }
-    else if ( RestoreObjects(
+    if ( RestoreObjects(
                  nl->TwoElemList( nl->SymbolAtom("OBJECTS"), list ),
                  errorInfo ) )
     {
