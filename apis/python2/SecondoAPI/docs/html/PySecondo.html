@@ -1,0 +1,399 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <title>PySecondo package &#8212; PySecondo-API 1.0 documentation</title>
+    <link rel="stylesheet" href="_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="_static/language_data.js"></script>
+    
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">PySecondo-API 1.0 documentation</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="pysecondo-package">
+<h1>PySecondo package<a class="headerlink" href="#pysecondo-package" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="subpackages">
+<h2>Subpackages<a class="headerlink" href="#subpackages" title="Permalink to this headline">¶</a></h2>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="PySecondo.config_pkg.html">PySecondo.config_pkg package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="PySecondo.config_pkg.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="PySecondo.config_pkg.html#pysecondo-config-pkg-load-secondo-config-module">PySecondo.config_pkg.load_secondo_config module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="PySecondo.config_pkg.html#module-contents">Module contents</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="PySecondo.libs_pkg.html">PySecondo.libs_pkg package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="PySecondo.libs_pkg.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="PySecondo.libs_pkg.html#pysecondo-libs-pkg-command-execution-module">PySecondo.libs_pkg.command_execution module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="PySecondo.libs_pkg.html#pysecondo-libs-pkg-exception-handler-module">PySecondo.libs_pkg.exception_handler module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="PySecondo.libs_pkg.html#pysecondo-libs-pkg-nested-list-module">PySecondo.libs_pkg.nested_list module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="PySecondo.libs_pkg.html#pysecondo-libs-pkg-read-binary-format-module">PySecondo.libs_pkg.read_binary_format module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="PySecondo.libs_pkg.html#pysecondo-libs-pkg-secondo-results-module">PySecondo.libs_pkg.secondo_results module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="PySecondo.libs_pkg.html#pysecondo-libs-pkg-write-binary-format-module">PySecondo.libs_pkg.write_binary_format module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="PySecondo.libs_pkg.html#module-contents">Module contents</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="PySecondo.optimizer_pkg.html">PySecondo.optimizer_pkg package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="PySecondo.optimizer_pkg.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="PySecondo.optimizer_pkg.html#pysecondo-optimizer-pkg-optimize-query-module">PySecondo.optimizer_pkg.optimize_query module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="PySecondo.optimizer_pkg.html#pysecondo-optimizer-pkg-optimizer-server-module">PySecondo.optimizer_pkg.optimizer_server module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="PySecondo.optimizer_pkg.html#module-contents">Module contents</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="PySecondo.secondo_datatypes_pkg.html">PySecondo.secondo_datatypes_pkg package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="PySecondo.secondo_datatypes_pkg.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="PySecondo.secondo_datatypes_pkg.html#pysecondo-secondo-datatypes-pkg-attribute-module">PySecondo.secondo_datatypes_pkg.Attribute module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="PySecondo.secondo_datatypes_pkg.html#pysecondo-secondo-datatypes-pkg-relation-module">PySecondo.secondo_datatypes_pkg.Relation module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="PySecondo.secondo_datatypes_pkg.html#pysecondo-secondo-datatypes-pkg-tuple-module">PySecondo.secondo_datatypes_pkg.Tuple module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="PySecondo.secondo_datatypes_pkg.html#pysecondo-secondo-datatypes-pkg-general-type-module">PySecondo.secondo_datatypes_pkg.general_type module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="PySecondo.secondo_datatypes_pkg.html#pysecondo-secondo-datatypes-pkg-secondo-bool-module">PySecondo.secondo_datatypes_pkg.secondo_bool module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="PySecondo.secondo_datatypes_pkg.html#pysecondo-secondo-datatypes-pkg-secondo-int-module">PySecondo.secondo_datatypes_pkg.secondo_int module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="PySecondo.secondo_datatypes_pkg.html#pysecondo-secondo-datatypes-pkg-secondo-real-module">PySecondo.secondo_datatypes_pkg.secondo_real module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="PySecondo.secondo_datatypes_pkg.html#pysecondo-secondo-datatypes-pkg-secondo-string-module">PySecondo.secondo_datatypes_pkg.secondo_string module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="PySecondo.secondo_datatypes_pkg.html#pysecondo-secondo-datatypes-pkg-secondo-text-module">PySecondo.secondo_datatypes_pkg.secondo_text module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="PySecondo.secondo_datatypes_pkg.html#module-contents">Module contents</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+<div class="section" id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="pysecondo-pysecondo-module">
+<h2>PySecondo.PySecondo module<a class="headerlink" href="#pysecondo-pysecondo-module" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="module-PySecondo">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-PySecondo" title="Permalink to this headline">¶</a></h2>
+<p>The module PySecondo implements an API for interaction between Python and Secondo. 
+After stablishing connections to Secondo server and Optimizer server reading the cofiguration parameters from a file, 
+the queries canbe executed.</p>
+<dl class="class">
+<dt id="PySecondo.Secondo">
+<em class="property">class </em><code class="sig-prename descclassname">PySecondo.</code><code class="sig-name descname">Secondo</code><a class="headerlink" href="#PySecondo.Secondo" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>This class contains attributes and methods for connecting to a running Secondo server, 
+executing commands and queries, returning the result sets and parsing the results to implemented
+data structurs in python.</p>
+<dl class="method">
+<dt id="PySecondo.Secondo.__init__">
+<code class="sig-name descname">__init__</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#PySecondo.Secondo.__init__" title="Permalink to this definition">¶</a></dt>
+<dd><p>This constructor which reads from configuration file, connects to secondo server
+and initialises the object to connect to Optimizer server.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="PySecondo.Secondo.close">
+<code class="sig-name descname">close</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#PySecondo.Secondo.close" title="Permalink to this definition">¶</a></dt>
+<dd><p>This method closes the connections to Secondo server and consequently to Optimizer server.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="PySecondo.Secondo.command_exec">
+<em class="property">async </em><code class="sig-name descname">command_exec</code><span class="sig-paren">(</span><em class="sig-param">command</em>, <em class="sig-param">tupel_source=None</em><span class="sig-paren">)</span><a class="headerlink" href="#PySecondo.Secondo.command_exec" title="Permalink to this definition">¶</a></dt>
+<dd><p>This method executes the command/query in three categories (save, restore, general)
+by calling relevant functions, sets the attributes result_error_code, 
+result_error_message and result of the Secondo object.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>command</strong> – The command or query to be executed.</p></li>
+<li><p><strong>tupel_source</strong> – the source for producing a stream of tupels, needed by queries like pyreceive</p></li>
+</ul>
+</dd>
+</dl>
+<p>which send a stream of tuples to Secondo server.
+:return: the result of command/ query as a python nested list.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="PySecondo.Secondo.connect">
+<em class="property">async </em><code class="sig-name descname">connect</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#PySecondo.Secondo.connect" title="Permalink to this definition">¶</a></dt>
+<dd><p>This method connects to Secondo server using asyncio methods and sets the connection, 
+stream- reader and writer attributes of the Secondo class.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="PySecondo.Secondo.fetch_relation_header">
+<code class="sig-name descname">fetch_relation_header</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#PySecondo.Secondo.fetch_relation_header" title="Permalink to this definition">¶</a></dt>
+<dd><p>This method returns the header of the relation in result set of secondo object.
+:return: The header of the relation in result set as a nested list.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="PySecondo.Secondo.fetch_result">
+<code class="sig-name descname">fetch_result</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#PySecondo.Secondo.fetch_result" title="Permalink to this definition">¶</a></dt>
+<dd><p>This method returns the result attribute of the Secondo object.
+:return: The result attribute of the Secondo object as list.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="PySecondo.Secondo.fetch_result_rows">
+<code class="sig-name descname">fetch_result_rows</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#PySecondo.Secondo.fetch_result_rows" title="Permalink to this definition">¶</a></dt>
+<dd><p>This method returns the result attribute of secondo object.
+:return: The result attribute of secondo represents the result as a list.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="PySecondo.Secondo.fetch_result_type">
+<code class="sig-name descname">fetch_result_type</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#PySecondo.Secondo.fetch_result_type" title="Permalink to this definition">¶</a></dt>
+<dd><p>This method returns the result_type attribute of secondo object.
+:return: The result_type attribute of secondo represents the datatype
+of result set e.g. int or nested list.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="PySecondo.Secondo.fetch_stream_result">
+<code class="sig-name descname">fetch_stream_result</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#PySecondo.Secondo.fetch_stream_result" title="Permalink to this definition">¶</a></dt>
+<dd><p>This method returns the attribute containing the stream of tupels received from
+Secondo server when the query contains the operator pysend.
+:return: The stream of tuples collected in a list of tuples after receiving.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="PySecondo.Secondo.get_bin_format">
+<code class="sig-name descname">get_bin_format</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#PySecondo.Secondo.get_bin_format" title="Permalink to this definition">¶</a></dt>
+<dd><p>This method returns the format of returned result of queries.
+:return: True if the result is a nested list in binary formet/ False if in plain text nested list.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="PySecondo.Secondo.get_opendb">
+<code class="sig-name descname">get_opendb</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#PySecondo.Secondo.get_opendb" title="Permalink to this definition">¶</a></dt>
+<dd><p>This method returns the open database attribute of secondo object.
+:return: The currently open database in Secondo server as string.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="PySecondo.Secondo.get_opt">
+<code class="sig-name descname">get_opt</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#PySecondo.Secondo.get_opt" title="Permalink to this definition">¶</a></dt>
+<dd><p>This method returns the opt attribute of secondo object.
+:return: The opt attribute of secondo represents an optimizer object.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="PySecondo.Secondo.get_password">
+<code class="sig-name descname">get_password</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#PySecondo.Secondo.get_password" title="Permalink to this definition">¶</a></dt>
+<dd><p>This method returns the password attributes of secondo object.
+:return: The password attributes of secondo object, which is given as
+plain text and needed for authentication in Secondo.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="PySecondo.Secondo.get_port">
+<code class="sig-name descname">get_port</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#PySecondo.Secondo.get_port" title="Permalink to this definition">¶</a></dt>
+<dd><p>This method returns the port attributes of Secondo object.
+:return: The port attributes of Secondo object, which consists of an integer number as port eg. 5678.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="PySecondo.Secondo.get_result_error_code">
+<code class="sig-name descname">get_result_error_code</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#PySecondo.Secondo.get_result_error_code" title="Permalink to this definition">¶</a></dt>
+<dd><p>This method returns the result_error_code attribute of the Secondo object.
+:return: An integer representing the error code after executing a command/ query.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="PySecondo.Secondo.get_result_error_message">
+<code class="sig-name descname">get_result_error_message</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#PySecondo.Secondo.get_result_error_message" title="Permalink to this definition">¶</a></dt>
+<dd><p>This method returns the result_error_message attribute of the Secondo object.
+:return: A string representing the error message after executing a command/ query.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="PySecondo.Secondo.get_sec_conn">
+<code class="sig-name descname">get_sec_conn</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#PySecondo.Secondo.get_sec_conn" title="Permalink to this definition">¶</a></dt>
+<dd><p>This method returns the connection attribute of Secondo object.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>The connection attribute of Secondo object.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="PySecondo.Secondo.get_sec_streams">
+<code class="sig-name descname">get_sec_streams</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#PySecondo.Secondo.get_sec_streams" title="Permalink to this definition">¶</a></dt>
+<dd><p>This method returns the stream reader/ writer attributes of Secondo object.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>The stream reader/ writer attributes of Secondo object.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="PySecondo.Secondo.get_server">
+<code class="sig-name descname">get_server</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#PySecondo.Secondo.get_server" title="Permalink to this definition">¶</a></dt>
+<dd><p>This method returns the server attributes of Secondo object.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>The server attributes of Secondo object, which consists of an IP-address eg. 127.0.0.0.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="PySecondo.Secondo.get_user">
+<code class="sig-name descname">get_user</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#PySecondo.Secondo.get_user" title="Permalink to this definition">¶</a></dt>
+<dd><p>This method returns the user attributes of secondo object.
+:return: The user attributes of secondo object needed for authentication in Secondo.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="PySecondo.Secondo.optimization_check">
+<em class="property">async </em><code class="sig-name descname">optimization_check</code><span class="sig-paren">(</span><em class="sig-param">command</em><span class="sig-paren">)</span><a class="headerlink" href="#PySecondo.Secondo.optimization_check" title="Permalink to this definition">¶</a></dt>
+<dd><p>This method checks if the query need to be optimized then returns the optimized command 
+by calling the function opt_comm_exec() otherwise returns the unchanged query.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>command</strong> – The command or query to be executed.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The optimized query.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="PySecondo.Secondo.parse_result_to_relation">
+<code class="sig-name descname">parse_result_to_relation</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#PySecondo.Secondo.parse_result_to_relation" title="Permalink to this definition">¶</a></dt>
+<dd><p>This method parses the relation result of a query and converts it to a Relation type.
+:return: An object of type Relation.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="PySecondo.Secondo.parse_result_to_secondo_int">
+<code class="sig-name descname">parse_result_to_secondo_int</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#PySecondo.Secondo.parse_result_to_secondo_int" title="Permalink to this definition">¶</a></dt>
+<dd><p>This method parses the integer result of a query and converts it to a secondo_int type.
+:return: An object of type secondo_int.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="PySecondo.Secondo.parse_result_to_secondo_real">
+<code class="sig-name descname">parse_result_to_secondo_real</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#PySecondo.Secondo.parse_result_to_secondo_real" title="Permalink to this definition">¶</a></dt>
+<dd><p>This method parses the float result of a query and converts it to a secondo_real type.
+:return: An object of type secondo_real.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="PySecondo.Secondo.parse_stream_result_to_relation">
+<code class="sig-name descname">parse_stream_result_to_relation</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#PySecondo.Secondo.parse_stream_result_to_relation" title="Permalink to this definition">¶</a></dt>
+<dd><p>This method parses the stream of tuples received from Secondo server
+when the query contains the operator pysend and converts them to a relation.
+:return: A Relation containing the stream of tuples received from Secondo server.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="PySecondo.Secondo.reopen_db">
+<em class="property">async </em><code class="sig-name descname">reopen_db</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#PySecondo.Secondo.reopen_db" title="Permalink to this definition">¶</a></dt>
+<dd><p>This method closes the currently open database and opens it again. 
+It is needed after executing some query types like catalog updates.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>True/ False according to the success of operation.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="PySecondo.Secondo.set_bin_format">
+<code class="sig-name descname">set_bin_format</code><span class="sig-paren">(</span><em class="sig-param">val</em><span class="sig-paren">)</span><a class="headerlink" href="#PySecondo.Secondo.set_bin_format" title="Permalink to this definition">¶</a></dt>
+<dd><p>This method returns the bin_format attribute of the Secondo object.
+:return: A Boolean representing the format of received result from Secondo,
+when True corresponds to Binary nested list, when False textual nested list.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="PySecondo.Secondo.set_opendb">
+<code class="sig-name descname">set_opendb</code><span class="sig-paren">(</span><em class="sig-param">db</em><span class="sig-paren">)</span><a class="headerlink" href="#PySecondo.Secondo.set_opendb" title="Permalink to this definition">¶</a></dt>
+<dd><p>This method returns the opendb attribute of the Secondo object.
+:return: A string representing the currently open database.</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">PySecondo package</a><ul>
+<li><a class="reference internal" href="#subpackages">Subpackages</a></li>
+<li><a class="reference internal" href="#submodules">Submodules</a></li>
+<li><a class="reference internal" href="#pysecondo-pysecondo-module">PySecondo.PySecondo module</a></li>
+<li><a class="reference internal" href="#module-PySecondo">Module contents</a></li>
+</ul>
+</li>
+</ul>
+
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/PySecondo.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">PySecondo-API 1.0 documentation</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2020, Mahsa Davari.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.2.0.
+    </div>
+  </body>
+</html>
