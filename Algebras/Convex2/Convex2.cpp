@@ -2737,6 +2737,7 @@ int smallestCommonCellnumVM( Word* args, Word& result, int message,
 
   while(next != 0){
     voroVec.push_back(*next);
+    delete next;
     next = input_convex.request();
   }
 
@@ -2818,6 +2819,7 @@ int trcCellIdvorononoiVM( Word* args, Word& result, int message,
 
   while(next != 0){
     voroVec.push_back(*next);
+    delete next;
     next = input_convex.request();
   }
 
@@ -2959,6 +2961,7 @@ int getcellvoronoiVM(Word* args, Word& result, int message,
 
   while(next != 0){
     voroVec.push_back(*next);
+    delete next;
     next = input_convex.request();
   }
 
