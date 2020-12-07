@@ -660,7 +660,12 @@ void cellNum(Rectangle<2>* search_window_ptr,
 
       
       }
-    }
+
+      if(polygon.size() > 0)
+      {
+        polygon.clear();
+      }
+    } 
 
   }
 
@@ -1886,7 +1891,7 @@ Word Convex::In(const ListExpr typeInfo, const ListExpr le1,
     
     Word res = SetWord(Address(0));
    
-   
+    printf("\n in in");
     if(listutils::isSymbolUndefined(le)){
       
       
@@ -1915,15 +1920,17 @@ Word Convex::In(const ListExpr typeInfo, const ListExpr le1,
      f = nl->First(le);
      le = nl->Rest(le);
 
-     
+     printf("\n list not empty");
     
      
      if(nl->ListLength(f) != 2) 
      
      {
        // cellId
-     if(nl->ListLength(f) == 1)
+     /*if(nl->ListLength(f) == 1)
      {
+
+       printf("\n length == 1");
        Convex* co = new Convex(false);
       correct = true;
       co->cellId = nl->RealValue(f);
@@ -1933,7 +1940,7 @@ Word Convex::In(const ListExpr typeInfo, const ListExpr le1,
       return res;
 
 
-     } else {
+     } else {*/
                
       correct = true;
       
@@ -1944,7 +1951,7 @@ Word Convex::In(const ListExpr typeInfo, const ListExpr le1,
       co->SetDefined(false);
       res.addr = co;      
      return res;
-     }
+     //}
       
      }    
      
@@ -2031,7 +2038,7 @@ Word Convex::In(const ListExpr typeInfo, const ListExpr le1,
    Convex* r = new Convex(tmpo);
    res.addr = r;
    correct = true; 
-   voroVec.push_back(r);
+   //voroVec.push_back(r);
    return res;
    
    }
@@ -2677,6 +2684,8 @@ int cellNumVM( Word* args, Word& result, int message,
 
     while(next != 0){
       voroVec.push_back(*next);
+      // free memory
+      delete next;
       next = input_convex.request();
     }
 
