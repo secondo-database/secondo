@@ -641,7 +641,7 @@ void cellNum(Rectangle<2>* search_window_ptr,
           b.Set(tmp->value[e+1].GetX(), tmp->value[e+1].GetY());
 
         }
-        // Point of intersection i_x, i_y
+        // Point of intersection i_x, i_y w
         double i_x = 0.0;
         double i_y = 0.0;
 
@@ -2766,43 +2766,57 @@ int smallestCommonCellnumVM( Word* args, Word& result, int message,
 
 
   cellNum(search_window_ptr, 1, &intsetRect1);
-  cellNum(search_window_ptr_2, 1, &intsetRect2);
+  if (intsetRect1.find(cellno) != intsetRect1.end()) 
+  {
+
+    cellNum(search_window_ptr_2, 1, &intsetRect2);
 
 
-  std::vector<int> v(sizeof(intsetRect1)+ sizeof(intsetRect2));
-  std::vector<int>::iterator it;
+    std::vector<int> v(sizeof(intsetRect1)+ sizeof(intsetRect2));
+    std::vector<int>::iterator it;
 
-  it=std::set_intersection (intsetRect1.begin(), intsetRect1.end(),
+    it=std::set_intersection (intsetRect1.begin(), intsetRect1.end(),
                  intsetRect2.begin(), intsetRect2.end(), v.begin());
-  v.resize(it-v.begin());                      
+    v.resize(it-v.begin());                      
   
-  if(v.empty()) { 
+    if(v.empty()) { 
       //no intersection between rectangles
         res->Set( true, boolval);
         return 0;
 
-  }
+    }
       
-  if(v[0] == cellno)
-  {
+    if(v[0] == cellno)
+    {
         boolval = true;
         //res->Set( true, boolval);
         //return 0;
+    }
+
+    if(v.size() > 0)
+    {
+      v.clear();
+    }
   }
 
-  if(v.size() > 0)
-  {
-    v.clear();
-  }
+    if(intsetRect1.size() > 0)
+    {
+      intsetRect1.clear();
+    }
+    if(intsetRect2.size() > 0)
+    {
+      intsetRect2.clear();
+    }
 
-  if(voroVec.size() > 0) 
-  {
-    voroVec.clear();
-  }
+    if(voroVec.size() > 0) 
+    {
+      voroVec.clear();
+    }
+  
       
-  res->Set( true, boolval);
+    res->Set( true, boolval);
 
-  return 0;
+    return 0;
 
 }
 
