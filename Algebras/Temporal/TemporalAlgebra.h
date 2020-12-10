@@ -4529,6 +4529,7 @@ Functions required for attribute type
 //       res->timeInterval = Interval<Instant>();
       res->p0 = Point(false, 0.0, 0.0);
       res->p1 = Point(false, 0.0, 0.0);
+      res->radius = 0.0;
     }
     return res;
   }
@@ -4584,6 +4585,8 @@ private:
   double radius;
 };
 
+std::ostream& operator<<(std::ostream& o, const CUPoint& u);
+
 
 /*
 3.12 Class ~CMPoint~
@@ -4611,6 +4614,46 @@ The constructor. Initializes space for ~n~ elements.
     del.SetDelete();
     del.isDefined = true;
     bbox = Rectangle<3>(false);
+  }
+  
+  virtual Attribute* Clone() const {
+    assert(IsOrdered());
+    CMPoint *result;
+    if (!this->IsDefined()) {
+      result = new CMPoint(0);
+    }
+    else {
+      result = new CMPoint(GetNoComponents());
+      if (GetNoComponents() > 0) {
+        result->units.resize(GetNoComponents());
+      }
+      result->StartBulkLoad();
+      CUPoint unit;
+      for (int i = 0; i < GetNoComponents(); i++) {
+        Get(i, unit);
+        result->Add(unit);
+      }
+      result->EndBulkLoad(false);
+    }
+    result->SetDefined(this->IsDefined());
+    return (Attribute*)result;
+  }
+
+  void CopyFrom(const Attribute* right) {
+    const CMPoint *r = (const CMPoint*)right;
+    assert(r->IsOrdered());
+    Clear();
+    this->SetDefined(r->IsDefined());
+    if (!this->IsDefined()) {
+      return;
+    }
+    StartBulkLoad();
+    CUPoint unit;
+    for(int i = 0; i < r->GetNoComponents(); i++) {
+      r->Get(i, unit);
+      Add(unit);
+    }
+    EndBulkLoad(false);
   }
 
 /*
