@@ -238,6 +238,12 @@ Signature : stream(Tuple) x IDENT x IDENT [x geoid] -> (mpointer(mem(mtree ...) 
 Example   : let mkinos_GeoData_mtree =  Kinos feed addid mcreatemtree [GeoData, TID]
 Result    : ()
 
+Operator  : mcreatemtree2
+Number    : 1400
+Signature : stream(Tuple) x IDENT x IDENT x IDENT x real [x geoid] -> (mpointer(mem(mtree tuple) )
+Example   : let mTrains_mtree = Trains feed head[25] addid extend[ML: [const mlabel value undef] ] mcreatemtree2[Trip, ML, TID, 0.0001]
+Result    : ()
+
 Operator  : mdistRange2 
 Number    : 45
 Signature : MMTREE(T) x T x real -> stream(tuple((TID tid)))
@@ -268,7 +274,6 @@ Number    : 50
 Signature : MREL  x IDENT [x geoid]  -> mpointer(mem(mtree Y))
 Example   : let mKinos_GeoData_mtree2 =  mKinos mcreatemtree[GeoData]
 Result    : ()
-
 
 Operator  : mdistRange
 Number    : 52
