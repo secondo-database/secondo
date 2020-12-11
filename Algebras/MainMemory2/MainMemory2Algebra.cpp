@@ -53,6 +53,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Algebras/Spatial/Point.h"
 #include "Algebras/Spatial/SpatialAlgebra.h"
 #include "Algebras/Temporal/TemporalAlgebra.h"
+#include "Algebras/SymbolicTrajectoryBasic/SymbolicTrajectoryBasicAlgebra.h"
 #include "AvlTree.h"
 #include "StopWatch.h"
 
@@ -82,6 +83,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "MGraph3.h"
 #include "Algebras/Standard-C++/LongInt.h"
 
+#include <chrono>
 
 using namespace std;
 
@@ -249,7 +251,7 @@ namespace mtreehelper{
     if (!mp1->IsDefined() || !mp2->IsDefined()) {
       return std::numeric_limits<double>::max();
     }
-    return mp1->DistanceAvg(*mp2);
+    return mp1->DistanceAvg(*mp2, geoid);
   }
   
   double distance(const temporalalgebra::CUPoint* cup1,
@@ -260,7 +262,7 @@ namespace mtreehelper{
     if (!cup1->IsDefined() || !cup2->IsDefined()) {
       return std::numeric_limits<double>::max();
     }
-    return cup1->DistanceAvg(*cup2, false); // lower bound distance applied
+    return cup1->DistanceAvg(*cup2, false, geoid); // lower bound distance
   }
 
   double distance(const temporalalgebra::CMPoint* cmp1,
@@ -271,7 +273,39 @@ namespace mtreehelper{
     if (!cmp1->IsDefined() || !cmp2->IsDefined()) {
       return std::numeric_limits<double>::max();
     }
-    return cmp1->DistanceAvg(*cmp2, false); // lower bound distance applied
+    return cmp1->DistanceAvg(*cmp2, false, geoid); // lower bound distance
+  }
+  
+  template<class T>
+  double distance(const T* o1, const T* o2, double alpha, Geoid* geoid) {
+//     cout << "  CALL dist for " << o1->first << " and " << o2->first << endl;
+//     auto t1 = chrono::high_resolution_clock::now();
+//     double spaDist = o1->first.DistanceAvg(o2->first, geoid);
+    double spaDist = distance(&(o1->first), &(o2->first), geoid);
+//     auto t2 = chrono::high_resolution_clock::now();
+//     auto duration = 
+//           chrono::duration_cast<chrono::microseconds>(t2 - t1).count();
+//     cout << "  spatial distance: " << spaDist << " after "
+//          << (double)duration / 1000.0 << " ms" << endl;
+//     cout << "  num of spatial units: (" << o1->first.GetNoComponents()
+//          << ", " << o2->first.GetNoComponents() 
+//          << "), num of symbolic units: ("
+//          << o2->second.GetNoComponents() << ", " 
+//          << o2->second.GetNoComponents() << ")" << endl;
+    set<string> allLabels1, allLabels2;
+    o1->second.InsertLabels(allLabels1);
+    o2->second.InsertLabels(allLabels2);
+    double symDist = 1.0 - stj::jaccardSimilarity(allLabels1, allLabels2);
+//     auto t3 = chrono::high_resolution_clock::now();
+//     duration = chrono::duration_cast<chrono::microseconds>(t3 - t2).count();
+//     cout << "  symbolic jaccard sim:   " << symSim << " after "
+//          << (double)duration / 1000.0 << " ms" << endl;
+//     double symDist = o1->second.Distance_ALL(o2->second, stj::TRIVIAL);
+//     auto t4 = chrono::high_resolution_clock::now();
+//     duration = chrono::duration_cast<chrono::microseconds>(t4 - t3).count();
+//     cout << "  symbolic edit distance: " << symDist << " after " 
+//          << (double)duration / 1000.0 << " ms" << endl;
+    return spaDist * alpha + symDist * (1.0 - alpha);
   }
 
 /*
@@ -366,11 +400,55 @@ class StdDistComp{
        o << "<"; p.first.Print(o); o << p.second << ">";
        return o;
     }
+    
+    Geoid* getGeoid() const {
+      return geoid;
+    }
   
     void reset(){} // not sureA
 
   private:
     Geoid* geoid;
+};
+
+template<class T, class U>
+class StdDistCompExt : public StdDistComp<pair<T, U> > {
+ public:
+  StdDistCompExt(Geoid* _geoid, double _alpha) :
+    StdDistComp<pair<T, U> >(_geoid), alpha(_alpha) {}
+  
+  StdDistCompExt(const StdDistCompExt& src) :
+    StdDistComp<pair<T, U> >(src), alpha(src.alpha) {}
+  
+  StdDistCompExt& operator=(const StdDistCompExt& src) {
+    if (this->geoid) {
+      this->geoid->DeleteIfAllowed();
+    }
+    ((StdDistComp<pair<T, U> >*)this)->geoid = src.geoid ? 
+                                                  (Geoid*)src.geoid->Copy() : 0;
+    alpha = src.alpha;
+  }
+  
+  ~StdDistCompExt() {}
+    
+  
+  ostream& print(const pair<pair<T, U>, TupleId>& p, ostream& o) {
+       o << "< <";
+       p.first.first.Print(o);
+       o << ", ";
+       p.first.second.Print(o);
+       o << ">, " << p.second << ">";
+       return o;
+    }
+  
+  double operator()(const pair<pair<T, U>, TupleId>& o1, 
+                    const pair<pair<T, U>, TupleId>& o2) {
+    return mtreehelper::distance(&o1.first, &o2.first, alpha, 
+               ((StdDistComp<pair<T, U> >*)this)->getGeoid());
+  }
+  
+ private:
+  double alpha; 
 };
 
 
@@ -4297,7 +4375,8 @@ ListExpr mcreatemtreeTM(ListExpr args){
       }
       geoidPresent = true;
     }
-  } else {
+  } 
+  else {
     if(!nl->HasLength(args,2) && !nl->HasLength(args,3)){
       return listutils::typeError("for an mpointer, 2 or 3 "
                                   " arguments are required");
@@ -4331,10 +4410,12 @@ ListExpr mcreatemtreeTM(ListExpr args){
     return listutils::typeError("attribute " + name 
                                 + " not part of the tuple");
   }
-  // support geoid only for points
+  // support geoid only for point, mpoint, cupoint, cmpoint
   if(geoidPresent){
-    if(!Point::checkType(type)){
-      return listutils::typeError("geoid support only for points");
+    if(!Point::checkType(type) && !temporalalgebra::MPoint::checkType(type) &&
+       !temporalalgebra::CUPoint::checkType(type) &&
+       !temporalalgebra::CMPoint::checkType(type)) {
+      return listutils::typeError("geoid support only for (m|cu|cm|eps)point");
     }
   }
 
@@ -4369,7 +4450,6 @@ ListExpr mcreatemtreeTM(ListExpr args){
                                              StdDistComp<Point> > >(),
                              type
                           )));
-
   ListExpr appendList;
   if(isTS){
     if(geoidPresent){
@@ -4578,10 +4658,18 @@ OperatorSpec mcreatemtreeSpec(
   "over that the index is built. If the tuples are provided as a stream, "
   "the third argument refers to an attribute inside the tuple containg its "
   "tuple id. The last argument is optional. It must be of type geoid and "
-  "can only be used if the index-attribute is of type point. "
-  "If this argument is present, the distance between two points is computed "
-  "as geographic distance on this geoid instead of using the Euclidean "
-  "distance.",
+  "can only be used if the index-attribute is of type point, mpoint, cupoint, "
+  "or cmpoint. If this argument is present, the distance between two objects "
+  "is computed as geographic distance on this geoid instead of using the "
+  "Euclidean distance.\n In detail, the following types are supported:\n\n"
+  "  * point:   p1->Distance(*p2, geoid)\n"
+  "  * string:  stringutils::ld->(s1->GetValue(), s2->GetValue())\n"
+  "  * int:     abs(i1->GetValue() - i2->GetValue())\n"
+  "  * real:    abs(r1->GetValue() - r2->GetValue())\n"
+  "  * rect<d>: r1->Distance(*r2)\n"
+  "  * mpoint:  mp1->DistanceAvg(*mp2, geoid)\n"
+  "  * cupoint: cup1->DistanceAvg(*cup2, false, geoid)\n"
+  "  * cmpoint: cmp1->DistanceAvg(*cmp2, false, geoid)\n",
   "let kinos_mtree_GeoData =  kinos feed addid mcreatemtree[GeoData, TID]"
 );
 
@@ -4592,6 +4680,373 @@ Operator mcreatemtreeOp(
    mcreatemtreeVM,
    mcreatemtreeSelect,
    mcreatemtreeTM
+);
+
+/*
+Operator ~mcreatemtree2~
+
+6.1 Type Mapping
+
+*/
+ListExpr mcreatemtree2TM(ListExpr args) {
+  string err= "expected: stream(tuple) x attrname x attrname x attrname x real "
+              "[x geoid]\n or MREL x attrname x attrname x real [x geoid]";
+  if (!nl->HasMinLength(args, 4)) {
+    return listutils::typeError(err+" (less than 4 arguments)");
+  }
+  bool isTS = Stream<Tuple>::checkType(nl->First(args));
+  bool isMP = MPointer::checkType(nl->First(args));
+  if (!isTS && !isMP) {
+    return listutils::typeError(err + " (first arg is neither a tuple stream "
+                                         "nor an mpointer)");
+  }
+  if (nl->AtomType(nl->Second(args)) != SymbolType){
+    return listutils::typeError(err + " (second argument is not a valid "
+                                "attribute name)");
+  }
+  if (nl->AtomType(nl->Third(args)) != SymbolType) {
+    return listutils::typeError(err + " (third argument is not a valid "
+                                "attribute name)");
+  }
+  if (isTS) {
+    if(!nl->HasLength(args, 5) && !nl->HasLength(args, 6)) {
+      return listutils::typeError("for a tuple stream, "
+                                  "5 or 6 arguments are required");
+    }
+    if (nl->AtomType(nl->Fourth(args)) != SymbolType) {
+      return listutils::typeError(err + " (fourth argument is not a valid "
+                                "attribute name)");
+    }
+    if (!CcReal::checkType(nl->Fifth(args))) {
+      return listutils::typeError(err + " (fifth argument is not a real)");
+    }
+    if (nl->HasLength(args, 6)) {
+      if (!Geoid::checkType(nl->Sixth(args))) {
+         return listutils::typeError(" (sixth argument is not a geoid)");
+      }
+    }
+  } 
+  else {
+    if (!nl->HasLength(args, 4) && !nl->HasLength(args, 5)) {
+      return listutils::typeError("for an mpointer, 4 or 5 "
+                                  " arguments are required");
+    }
+    if (nl->HasLength(args, 5)) {
+      if (!Geoid::checkType(nl->Fifth(args))) {
+         return listutils::typeError("fifth argument is not a geoid");
+       }
+    }
+  }
+  // extract tuple type from first argument
+  ListExpr tupletype;
+  if (isMP) {
+    ListExpr mpt = nl->Second(nl->Second(nl->First(args)));
+    if (!Relation::checkType(mpt)) {
+      return listutils::typeError("mpointer to a non-relation");
+    }
+    tupletype = nl->Second(mpt);
+  }
+  else {
+    tupletype = nl->Second(nl->First(args));
+  }
+  ListExpr attrList = nl->Second(tupletype);
+  string mpName = nl->SymbolValue(nl->Second(args));
+  ListExpr type;
+  int index1 = listutils::findAttribute(attrList, mpName, type);
+  if (!index1) {
+    return listutils::typeError("attr " + mpName + " not part of the tuple");
+  }
+  if(!temporalalgebra::MPoint::checkType(type) &&
+     !temporalalgebra::CUPoint::checkType(type) &&
+     !temporalalgebra::CMPoint::checkType(type)) {
+    return listutils::typeError(" support only for (m|cu|cm)point");
+  }
+  string mlName = nl->SymbolValue(nl->Third(args));
+  int index2 = listutils::findAttribute(attrList, mlName, type);
+  if (!index2) {
+    return listutils::typeError("attr " + mlName + " not part of the tuple");
+  }
+  if (!stj::isSymbolicType(type)) {
+    return listutils::typeError(" support only for mlabel(s) or mplace(s)");
+  }
+  int index3 = -1;
+  if (isTS) {
+    string tidname = nl->SymbolValue(nl->Fourth(args));
+    ListExpr tidtype;
+    index3 = listutils::findAttribute(attrList, tidname, tidtype);
+    if (!index3) {
+      return listutils::typeError("attribute " + tidname + " does not exist");
+    }
+    if (!TupleIdentifier::checkType(tidtype)) {
+      return listutils::typeError("attribute " + tidname + " not of type tid");
+    }
+  }
+  ListExpr resType = MPointer::wrapType( 
+                        Mem::wrapType(
+                          nl->TwoElemList(
+                             listutils::basicSymbol<
+                               MemoryMtreeObject<Point, 
+                                             StdDistComp<Point> > >(),
+                             nl->SymbolAtom("tuple")
+                          )));
+  ListExpr appendList;
+  if (isTS) {
+    appendList = nl->ThreeElemList(nl->IntAtom(index1 - 1),
+                                   nl->IntAtom(index2 - 1),
+                                   nl->IntAtom(index3 - 1));
+  }
+  else {
+    appendList = nl->TwoElemList(nl->IntAtom(index1 - 1), 
+                                 nl->IntAtom(index2 - 1));
+  }
+  ListExpr result = nl->ThreeElemList(nl->SymbolAtom(Symbols::APPEND()),
+                                      appendList,
+                                      resType);
+  return result;
+}
+
+/*
+6.2 Value Mapping functions
+
+*/
+template<class Spa, class Sym>
+int mcreatemtree2StreamVM(Word* args, Word& result, int message, Word& local, 
+                          Supplier s) {
+  result = qp->ResultStorage(s);
+  MPointer* res = (MPointer*)result.addr;
+  Geoid *geoid = 0;
+  int offset = 0;
+  if (qp->GetNoSons(s) == 9) { // 6 given, 3 additional
+    geoid = (Geoid*)args[5].addr;
+    if (!geoid->IsDefined()) {
+      geoid = 0;
+    }
+    offset++;
+  }
+  CcReal* alphacc = (CcReal*)args[4].addr;
+  if (!alphacc->IsDefined()) {
+    return 0;
+  }
+  double alpha = alphacc->GetValue();
+  if (alpha < 0.0 || alpha > 1.0) {
+    cout << "alpha must be in [0, 1]" << endl;
+    return 0;
+  }
+  int indexSpa = ((CcInt*)args[5 + offset].addr)->GetValue(); 
+  int indexSym = ((CcInt*)args[6 + offset].addr)->GetValue();
+  int indexTID = ((CcInt*)args[7 + offset].addr)->GetValue();
+  StdDistCompExt<Spa, Sym> dc(geoid, alpha);
+  MMMTree<pair<pair<Spa, Sym>, TupleId>, StdDistCompExt<Spa, Sym> >* tree = 
+      new MMMTree<pair<pair<Spa, Sym>, TupleId>,
+                       StdDistCompExt<Spa, Sym> >(4, 8, dc);
+  Stream<Tuple> stream(args[0]);
+  stream.open();
+  Tuple* tuple;
+  bool flobused = false;
+  Spa* spa = 0;
+  Sym *sym = 0;
+  while ((tuple = stream.request())) {
+    spa = (Spa*)(tuple->GetAttribute(indexSpa));
+    sym = (Sym*)(tuple->GetAttribute(indexSym));
+    TupleIdentifier* tid = (TupleIdentifier*)(tuple->GetAttribute(indexTID));
+    if (tid->IsDefined()) {
+      Spa copySpa = *spa;
+      Sym copySym = *sym;
+      flobused = flobused || copySpa.NumOfFLOBs() > 0 ||
+        copySym.NumOfFLOBs() > 0;
+      pair<Spa, Sym> spasym(copySpa, copySym);
+      pair<pair<Spa, Sym>, TupleId> p(spasym, tid->GetTid());
+      tree->insert(p);
+    }
+    tuple->DeleteIfAllowed();
+  }
+  stream.close();
+  size_t usedMem = tree->memSize();
+  ListExpr typeList = nl->Second(qp->GetType(s));
+  MemoryMtreeObject<pair<Spa, Sym>, StdDistCompExt<Spa, Sym> >*
+     mtree = new MemoryMtreeObject<pair<Spa, Sym>, StdDistCompExt<Spa, Sym> > 
+                (tree, usedMem, nl->ToString(typeList), !flobused, getDBname());
+  res->setPointer(mtree);
+  mtree->deleteIfAllowed();
+  return 0;
+}
+
+template<class Spa, class Sym>
+int mcreatemtree2MRelVM(Word* args, Word& result, int message, Word& local, 
+                        Supplier s) {
+  result = qp->ResultStorage(s);
+  MPointer* res = (MPointer*)result.addr;
+  MPointer* mrelp = (MPointer*)args[0].addr;
+  if (mrelp->isNull()) {
+    res->setPointer(0);
+    return 0;
+  }
+  Geoid *geoid = 0;
+  int offset = 0;
+  if (qp->GetNoSons(s) == 7) { // 5 given, 2 additional
+    geoid = (Geoid*)args[4].addr;
+    if (!geoid->IsDefined()) {
+      geoid = 0;
+    }
+    offset++;
+  }
+  CcReal* alphacc = (CcReal*)args[3].addr;
+  if (!alphacc->IsDefined()) {
+    return 0;
+  }
+  double alpha = alphacc->GetValue();
+  if (alpha < 0.0 || alpha > 1.0) {
+    cout << "alpha must be in [0, 1]" << endl;
+    return 0;
+  }
+  int indexSpa = ((CcInt*)args[4 + offset].addr)->GetValue();
+  int indexSym = ((CcInt*)args[5 + offset].addr)->GetValue();
+  MemoryRelObject* mrel = (MemoryRelObject*) mrelp->GetValue();
+  vector<Tuple*>* v = mrel->getmmrel();
+  StdDistCompExt<Spa, Sym> dc(geoid, alpha);
+  MMMTree<pair<pair<Spa, Sym>, TupleId>, StdDistCompExt<Spa, Sym> >* tree = 
+    new MMMTree<pair<pair<Spa, Sym>, TupleId>, 
+                StdDistCompExt<Spa, Sym> >(4, 8, dc);
+  Tuple* tuple;
+  bool flobused = false;
+  Spa* spa = 0;
+  Sym* sym = 0;
+  if (v) {
+    for(size_t i = 0; i < v->size(); i++) {
+      tuple = v->at(i);
+      if (tuple) {
+        spa = (Spa*)tuple->GetAttribute(indexSpa);
+        sym = (Sym*)tuple->GetAttribute(indexSym);
+        Spa copySpa = *spa;
+        Sym copySym = *sym;
+        pair<Spa, Sym> spasym(copySpa, copySym);
+        pair<pair<Spa, Sym>, TupleId> p(spasym, i + 1);
+        tree->insert(p);
+      }
+    }
+  }
+  size_t usedMem = tree->memSize();
+  ListExpr typeList = nl->Second(qp->GetType(s));
+  MemoryMtreeObject<pair<Spa, Sym>, StdDistCompExt<Spa, Sym> >*
+     mtree = new MemoryMtreeObject<pair<Spa, Sym>, StdDistCompExt<Spa, Sym> > 
+                (tree, usedMem, nl->ToString(typeList), !flobused, getDBname());
+  res->setPointer(mtree);
+  mtree->deleteIfAllowed();
+  return 0;
+}
+
+/*
+6.3 Selection Function and Value Mapping Array
+
+*/
+int mcreatemtree2Select(ListExpr args) {
+  bool isStream = Stream<Tuple>::checkType(nl->First(args));
+  ListExpr tupletype;
+  int noSymTypes = 4;
+  int noSpaTypes = 3;
+  int offset = 0;
+  if (!isStream) {
+    tupletype = nl->Second(nl->Second(nl->Second(nl->First(args))));
+    offset = noSymTypes * noSpaTypes;
+  }
+  else {
+    tupletype = nl->Second(nl->First(args));
+  }
+  ListExpr attrList = nl->Second(tupletype);
+  string symName = nl->SymbolValue(nl->Third(args));
+  ListExpr type;
+  listutils::findAttribute(attrList, symName, type);
+  int symbolicType;
+  if (stj::MLabel::checkType(type)) {
+    symbolicType = 0;
+  }
+  if (stj::MLabels::checkType(type)) {
+    symbolicType = 1;
+  }
+  if (stj::MPlace::checkType(type)) {
+    symbolicType = 2;
+  }
+  if (stj::MPlaces::checkType(type)) {
+    symbolicType = 3;
+  }
+  string spaName = nl->SymbolValue(nl->Second(args));
+  listutils::findAttribute(attrList, spaName, type);
+  if (temporalalgebra::MPoint::checkType(type)) {
+    return symbolicType + offset;
+  }
+  if (temporalalgebra::CUPoint::checkType(type)) {
+    return noSymTypes + symbolicType + offset;
+  }
+  if (temporalalgebra::CMPoint::checkType(type)) {
+    return 2 * noSymTypes + symbolicType + offset;
+  }
+  return -1;
+}
+
+ValueMapping mcreatemtree2VMs[] = {
+  mcreatemtree2StreamVM<temporalalgebra::MPoint, stj::MLabel>,
+  mcreatemtree2StreamVM<temporalalgebra::MPoint, stj::MLabels>,
+  mcreatemtree2StreamVM<temporalalgebra::MPoint, stj::MPlace>,
+  mcreatemtree2StreamVM<temporalalgebra::MPoint, stj::MPlaces>,
+  mcreatemtree2StreamVM<temporalalgebra::CUPoint, stj::MLabel>,
+  mcreatemtree2StreamVM<temporalalgebra::CUPoint, stj::MLabels>,
+  mcreatemtree2StreamVM<temporalalgebra::CUPoint, stj::MPlace>,
+  mcreatemtree2StreamVM<temporalalgebra::CUPoint, stj::MPlaces>,
+  mcreatemtree2StreamVM<temporalalgebra::CMPoint, stj::MLabel>,
+  mcreatemtree2StreamVM<temporalalgebra::CMPoint, stj::MLabels>,
+  mcreatemtree2StreamVM<temporalalgebra::CMPoint, stj::MPlace>,
+  mcreatemtree2StreamVM<temporalalgebra::CMPoint, stj::MPlaces>,
+  mcreatemtree2MRelVM<temporalalgebra::MPoint, stj::MLabel>,
+  mcreatemtree2MRelVM<temporalalgebra::MPoint, stj::MLabels>,
+  mcreatemtree2MRelVM<temporalalgebra::MPoint, stj::MPlace>,
+  mcreatemtree2MRelVM<temporalalgebra::MPoint, stj::MPlaces>,
+  mcreatemtree2MRelVM<temporalalgebra::CUPoint, stj::MLabel>,
+  mcreatemtree2MRelVM<temporalalgebra::CUPoint, stj::MLabels>,
+  mcreatemtree2MRelVM<temporalalgebra::CUPoint, stj::MPlace>,
+  mcreatemtree2MRelVM<temporalalgebra::CUPoint, stj::MPlaces>,
+  mcreatemtree2MRelVM<temporalalgebra::CMPoint, stj::MLabel>,
+  mcreatemtree2MRelVM<temporalalgebra::CMPoint, stj::MLabels>,
+  mcreatemtree2MRelVM<temporalalgebra::CMPoint, stj::MPlace>,
+  mcreatemtree2MRelVM<temporalalgebra::CMPoint, stj::MPlaces>
+};
+
+OperatorSpec mcreatemtree2Spec(
+  "stream(tuple) x attrname x attrname x attrname x real [x geoid] -> "
+  "mpointer(mem(mtree tuple))||\n"
+  "MREL(tuple) x attrname x attrname x real [x geoid] -> "
+  "mpointer(mem(mtree tuple))",
+  "tuplestream mcreatemtree2[MPoint_attr, MLabel_attr, TID_attr, alpha "
+  "[, geoid] ] ||\n"
+  "mrel mcreatemtree2[MPoint_attr, MLabel_attr, alpha [, geoid] ]",
+  "This operator creates an m-tree in main memory. "
+  "The first argument is a stream or a main memory relation containing the "
+  "tuples to be indexed. The second and third arguments refer to the attributes"
+  " of the types mpoint/cupoint/cmpoint and mlabel(s)/mplace(s), respectively. "
+  "If the tuples are provided as a stream, the fourth argument refers to a "
+  "tuple id attribute. The fifth argument is a real number in [0,1] controlling"
+  "the distance function ratio. The sixth argument is optional and must be of "
+  "type geoid. If it is present, the distance between two objects is computed "
+  "as geographic distance on this geoid instead of using the Euclidean "
+  "distance.\n The following types are supported with respective functions:\n\n"
+  "  Spatial Types (first attribute name):\n"
+  "  * mpoint:  DistanceAvg (geoid supported)\n"
+  "  * cupoint: DistanceAvgLB (geoid supported)\n"
+  "  * cmpoint: DistanceAvgLB (geoid supported)\n\n"
+  "  Symbolic Types (second attribute name):\n"
+  "  * mlabel:  Jaccard Similarity\n"
+  "  * mlabels: Jaccard Similarity\n"
+  "  * mplace:  Jaccard Similarity\n"
+  "  * mplaces: Jaccard Similarity\n",
+  "let kinos_mtree_GeoData =  kinos feed addid mcreatemtree[GeoData, TID]"
+);
+
+Operator mcreatemtree2Op(
+   "mcreatemtree2",
+   mcreatemtree2Spec.getStr(),
+   24,
+   mcreatemtree2VMs,
+   mcreatemtree2Select,
+   mcreatemtree2TM
 );
 
 
@@ -20729,6 +21184,7 @@ class MainMemory2Algebra : public Algebra {
           AddOperator (&matchbelow2Op);
 
           AddOperator(&mcreatemtreeOp);
+          AddOperator(&mcreatemtree2Op);
           AddOperator(&minsertmtreeOp);
           AddOperator(&mdistRange2Op);
 
