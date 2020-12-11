@@ -2758,7 +2758,7 @@ void RelAgg::combineEntries(unsigned int endOfPrefix, RelAgg *ra,
 //          << " occs" << endl;
   }
   else {
-    freqLabels[label] == "";
+    freqLabels[label] = "";
   }
 }
 
