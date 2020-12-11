@@ -297,9 +297,9 @@ namespace clusteropticsalg
   opticsInfoR() : OperatorInfo()
   {
    name      = "opticsR";
-   signature = "stream(Tuple) x attrName x double x int -> stream(Tuple)";
+   signature = "stream(tuple) x IDENT x real x int -> stream(tuple)";
    syntax    = "_ opticsR[_, _, _]";
-   meaning   = "This operator will ordering data to identify the cluster "
+   meaning   = "This operator will order data to identify the cluster "
                "structure. The operator uses the MMRTree index structure. The "
                "first paramater has to be a stream of tuple, the second is the "
                "attribute for clustering, the third is eps and the fourth is "
@@ -319,99 +319,75 @@ namespace clusteropticsalg
 2.1 Type mapping method ~opticsMTM~
 
 */
- ListExpr opticsMTM( ListExpr args )
- {    
-  if(nl->ListLength(args)!=2)
-  {
-   ErrorReporter::ReportError("two element expected");
-   return nl->TypeError();
+ListExpr opticsMTM(ListExpr args) {    
+  if (nl->ListLength(args) != 2) {
+    ErrorReporter::ReportError("two elements expected");
+    return nl->TypeError();
   }
-
   ListExpr stream = nl->First(args);
-
-  if(!Stream<Tuple>::checkType(nl->First(args)))
-  {
-     return listutils::typeError("stream(Tuple) expected");
+  if (!Stream<Tuple>::checkType(nl->First(args))) {
+    return listutils::typeError("stream(tuple) expected");
   }
-
-  //Check the arguments
   ListExpr arguments = nl->Second(args);
-
-  if(nl->ListLength(arguments)!=3)
-  {
-   ErrorReporter::ReportError("non conform list (three arguments expected)");
-   return nl->TypeError();
+  if (nl->ListLength(arguments) != 3 && nl->ListLength(arguments) != 4) {
+    ErrorReporter::ReportError("non conform list (3 or 4 arguments expected)");
+    return nl->TypeError();
   }
-  
-  if(!CcReal::checkType(nl->Second(arguments)))
-  {
-     return listutils::typeError("arg2 is not a real (Eps)");
+  if (!CcReal::checkType(nl->Second(arguments))) {
+    return listutils::typeError("arg2 is not a real (Eps)");
   }
-  
-  if(!CcInt::checkType(nl->Third(arguments)))
-  {
-     return listutils::typeError("arg3 is not an int (MinPts)");
+  if (!CcInt::checkType(nl->Third(arguments))) {
+    return listutils::typeError("arg3 is not an int (MinPts)");
   }
-  
-  //Check the attribute name, is it in the tuple list
+  if (nl->ListLength(arguments) == 4) {
+    if (!Geoid::checkType(nl->Fourth(arguments))) {
+      return listutils::typeError("arg4 is not a Geoid");
+    }
+  }
   ListExpr attrList = nl->Second(nl->Second(stream));
   ListExpr attrType;
   string attrName = nl->SymbolValue(nl->First(nl->Second(args)));
   int found = FindAttribute(attrList, attrName, attrType);
   if(found == 0)
   {
-   ErrorReporter::ReportError("Attribute "
-    + attrName + " is not a member of the tuple");
+   ErrorReporter::ReportError("Attribute " + attrName + " does not exist");
    return nl->TypeError();
   }
-  
-  if( !CcInt::checkType(attrType)
-   && !CcReal::checkType(attrType)
-   && !Point::checkType(attrType)
-   && !CcString::checkType(attrType)
-   && !Picture::checkType(attrType) 
-   && !stj::MLabel::checkType(attrType))
-  {
-   return listutils::typeError("Attribute " + attrName + " not of type " 
-    + CcInt::BasicType() + ", " 
-    + CcReal::BasicType() + ", " 
-    + Point::BasicType() + " , " 
-    + CcString::BasicType() + " or " 
-    + Picture::BasicType() + " or "
-    + stj::MLabel::BasicType());
+  if (!CcInt::checkType(attrType) && !CcReal::checkType(attrType) && 
+      !Point::checkType(attrType) && !CcString::checkType(attrType) &&
+      !Picture::checkType(attrType) && !stj::MLabel::checkType(attrType) &&
+      !temporalalgebra::MPoint::checkType(attrType) &&
+      !temporalalgebra::CUPoint::checkType(attrType) &&
+      !temporalalgebra::CMPoint::checkType(attrType)) {
+    return listutils::typeError("Attribute " + attrName + " not of type " 
+      + CcInt::BasicType() + ", " + CcReal::BasicType() + ", " 
+      + Point::BasicType() + ", " + CcString::BasicType() + ", " 
+      + Picture::BasicType() + ", " + stj::MLabel::BasicType() + ", "
+      + temporalalgebra::MPoint::BasicType() + ", " 
+      + temporalalgebra::CUPoint::BasicType() + ", "
+      + temporalalgebra::CMPoint::BasicType());
   }
-  
   //Copy attrlist to newattrlist
   attrList             = nl->Second(nl->Second(stream));
   ListExpr newAttrList = nl->OneElemList(nl->First(attrList));
   ListExpr lastlistn   = newAttrList;
-  
   attrList = nl->Rest(attrList);
-  
-  while(!(nl->IsEmpty(attrList)))
-  {
-     lastlistn = nl->Append(lastlistn,nl->First(attrList));
-     attrList = nl->Rest(attrList);
+  while (!(nl->IsEmpty(attrList))) {
+    lastlistn = nl->Append(lastlistn,nl->First(attrList));
+    attrList = nl->Rest(attrList);
   }
-
-  lastlistn = nl->Append(lastlistn
-   ,nl->TwoElemList(nl->SymbolAtom("CoreDist")
-    ,nl->SymbolAtom(CcReal::BasicType())));
-  lastlistn = nl->Append(lastlistn
-   ,nl->TwoElemList(nl->SymbolAtom("ReachDist")
-    ,nl->SymbolAtom(CcReal::BasicType())));
-  lastlistn = nl->Append(lastlistn
-   ,nl->TwoElemList(nl->SymbolAtom("Processed")
-    ,nl->SymbolAtom(CcBool::BasicType())));
-  lastlistn = nl->Append(lastlistn
-   ,nl->TwoElemList(nl->SymbolAtom("Eps")
-    ,nl->SymbolAtom(CcReal::BasicType())));
-    
-   return nl->ThreeElemList(nl->SymbolAtom(Symbol::APPEND())
-   ,nl->OneElemList(nl->IntAtom(found-1))
-   ,nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM())
-   ,nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType())
-     ,newAttrList)));
+  lastlistn = nl->Append(lastlistn, nl->TwoElemList(nl->SymbolAtom("CoreDist"),
+                                          nl->SymbolAtom(CcReal::BasicType())));
+  lastlistn = nl->Append(lastlistn, nl->TwoElemList(nl->SymbolAtom("ReachDist"),
+                                          nl->SymbolAtom(CcReal::BasicType())));
+  lastlistn = nl->Append(lastlistn, nl->TwoElemList(nl->SymbolAtom("Processed"),
+                                          nl->SymbolAtom(CcBool::BasicType())));
+  lastlistn = nl->Append(lastlistn, nl->TwoElemList(nl->SymbolAtom("Eps"),
+                                          nl->SymbolAtom(CcReal::BasicType())));
+  return nl->ThreeElemList(nl->SymbolAtom(Symbol::APPEND()),
+                           nl->OneElemList(nl->IntAtom(found - 1)),
+                           nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
+             nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()), newAttrList)));
  }
 
 
@@ -419,74 +395,57 @@ namespace clusteropticsalg
 2.2 Value Mapping Function for M-tree variant
 
 */
-
- template <class T, class DistComp>
- int opticsMVM1(Word* args, Word& result, int message, Word& local, Supplier s)
- {
-
-  typedef OpticsGen<T,  
-                   SetOfObjectsM<DistComp,T>,
-                   DistComp> opticsclass;
-
-   opticsclass* info = (opticsclass*) local.addr;
-
-  switch (message)
-  {
-   case OPEN :
-   {
-    if(info){
-      delete info;
-      local.addr=0;
+template <class T, class DistComp>
+int opticsMVM1(Word* args, Word& result, int message, Word& local, Supplier s) {
+  typedef OpticsGen<T, SetOfObjectsM<DistComp, T>, DistComp> opticsclass;
+  opticsclass* info = (opticsclass*) local.addr;
+  switch (message) {
+    case OPEN : {
+      if(info){
+        delete info;
+        local.addr=0;
+      }
+      ListExpr resultType = nl->Second(GetTupleResultType(s));
+      Supplier son = qp->GetSupplier(args[1].addr, 1);
+      Word argument; 
+      qp->Request(son, argument);
+      CcReal* Eps = ((CcReal*) argument.addr);
+      if (!Eps->IsDefined()) {
+        return 0;
+      }
+      double eps = Eps->GetValue();
+      if (eps <= 0) {
+        return 0;
+      }
+      son = qp->GetSupplier(args[1].addr, 2);
+      qp->Request(son, argument);
+      CcInt* MinPts  = ((CcInt*)argument.addr);
+      if (!MinPts->IsDefined()) {
+        return 0;
+      }
+      int minPts = MinPts->GetValue();
+      if (minPts < 1) {
+        return 0;
+      }
+      int attrPos = static_cast<CcInt*>(args[2].addr)->GetIntval();
+      size_t maxMem = qp->GetMemorySize(s) * 1024 * 1024; 
+      double UNDEFINED = -1.0;
+      DistComp df;
+      local.addr = new opticsclass(args[0], attrPos, eps, minPts, 
+                                   UNDEFINED, resultType, maxMem, df);
+      return 0;
+    } 
+    case REQUEST : {
+      result.addr = info ? info->next() : 0;
+      return result.addr ? YIELD : CANCEL;
     }
-        
-    //set the result type of the tuple
-    ListExpr resultType = nl->Second(GetTupleResultType(s));
-    //set the given eps
-    Supplier son = qp->GetSupplier(args[1].addr, 1);
-    Word argument; 
-    qp->Request(son, argument);
-    CcReal* Eps = ((CcReal*) argument.addr);
-    if(!Eps->IsDefined()){
+    case CLOSE : {
+      if (info) {
+        delete info;
+        local.addr = 0;
+      }
       return 0;
     }
-    double eps = Eps->GetValue();
-    if(eps <= 0) {
-       return 0;
-    }
-    
-    //set the given minPts
-    son = qp->GetSupplier(args[1].addr, 2);
-    qp->Request(son, argument);
-    CcInt* MinPts  = ((CcInt*)argument.addr);
-    if(!MinPts->IsDefined()){
-      return 0;
-    }
-    int minPts = MinPts->GetValue();
-    if(minPts < 1){
-       return 0;
-    }
-    //set the index of the attribute in the tuple
-    int attrPos = static_cast<CcInt*>(args[2].addr)->GetIntval();
-    size_t maxMem = qp->GetMemorySize(s)*1024*1024; 
-    double UNDEFINED = -1.0;
-
-    DistComp df;
-    local.addr = new opticsclass(
-                          args[0], attrPos, eps, minPts, 
-                          UNDEFINED, resultType, maxMem, df);
-    return 0;
-   } 
-   case REQUEST : {
-     result.addr = info?info->next():0;
-     return result.addr?YIELD:CANCEL;
-   }
-   case CLOSE : {
-    if(info){
-      delete info;
-      local.addr = 0;
-    }
-    return 0;
-   }
   }
   return 0;
 }
@@ -505,29 +464,33 @@ namespace clusteropticsalg
   string attrName = nl->SymbolValue(nl->First(nl->Second(args)));
   int found = FindAttribute(attrList, attrName, attrType);
   assert(found > 0);
-  
-  if(CcInt::checkType(attrType))
-  {
-   return 0;
+  bool useGeoid = (nl->ListLength(nl->Second(args)) == 4);
+  if (CcInt::checkType(attrType)) {
+    return 0;
   }
-  else if(CcReal::checkType(attrType))
-  {
-   return 1;
+  if (CcReal::checkType(attrType)) {
+    return 1;
   }
-  else if(Point::checkType(attrType))
-  {
-   return 2;
+  if (Point::checkType(attrType)) {
+    return (useGeoid ? 3 : 2);
   }
-  else if(CcString::checkType(attrType))
-  {
-   return 3;
+  if (CcString::checkType(attrType)) {
+    return 4;
   }
-  else if(Picture::checkType(attrType))
-  {
-   return 4;
-  }
-  else if (stj::MLabel::checkType(attrType)) {
+  if (Picture::checkType(attrType)) {
     return 5;
+  }
+  if (stj::MLabel::checkType(attrType)) {
+    return 6;
+  }
+  if (temporalalgebra::MPoint::checkType(attrType)) {
+    return (useGeoid ? 8 : 7);
+  }
+  if (temporalalgebra::CUPoint::checkType(attrType)) {
+    return (useGeoid ? 10 : 9);
+  }
+  if (temporalalgebra::CMPoint::checkType(attrType)) {
+    return (useGeoid ? 12 : 11);
   }
   return -1; 
  };
@@ -537,14 +500,20 @@ namespace clusteropticsalg
 
 */
 
- ValueMapping opticsMVM[] = 
- {
-  opticsMVM1<CcInt, IntDist>
- ,opticsMVM1<CcReal, RealDist>
- ,opticsMVM1<Point, PointDist>
- ,opticsMVM1<CcString, StringDist>
- ,opticsMVM1<Picture, PictureDist>
- ,opticsMVM1<stj::MLabel, MLabelDist>
+ ValueMapping opticsMVM[] = {
+   opticsMVM1<CcInt, IntDist>,
+   opticsMVM1<CcReal, RealDist>,
+   opticsMVM1<Point, PointDist<false> >,
+   opticsMVM1<Point, PointDist<true> >,
+   opticsMVM1<CcString, StringDist>,
+   opticsMVM1<Picture, PictureDist>,
+   opticsMVM1<stj::MLabel, MLabelDist>,
+   opticsMVM1<temporalalgebra::MPoint, MPointDist<false> >,
+   opticsMVM1<temporalalgebra::MPoint, MPointDist<true> >,
+   opticsMVM1<temporalalgebra::CUPoint, CUPointDist<false> >,
+   opticsMVM1<temporalalgebra::CUPoint, CUPointDist<true> >,
+   opticsMVM1<temporalalgebra::CMPoint, CMPointDist<false> >,
+   opticsMVM1<temporalalgebra::CMPoint, CMPointDist<true> >,
  };
 
 
@@ -557,15 +526,15 @@ namespace clusteropticsalg
   opticsInfoM() : OperatorInfo()
   {
    name      = "opticsM";
-   signature = "stream(Tuple) -> stream(Tuple)";
+   signature = "stream(tuple) x IDENT x real x int (x geoid) -> stream(Tuple)";
    syntax    = "_ opticsM [_, _, _]";
-   meaning   = "This operator will ordering data to identify the cluster "
+   meaning   = "This operator will order data to identify the cluster "
                "structure. The operator uses the MMMTree index structure. The "
                "first paramater has to be a stream of tuple, the second is the "
                "attribute for clustering, the third is eps and the fourth is "
                "MinPts. The return value is a stream of tuples."
                "The supported types to cluster are point, picture, int, real "
-               "and string.";
+               "string, mpoint, cupoint, cmpoint.";
    example   = "query Kneipen feed opticsM[Name, 10.0, 5] consume";
   }
  };
@@ -780,7 +749,7 @@ namespace clusteropticsalg
   opticsInfoF() : OperatorInfo()
   {
    name      = "opticsF";
-   signature = "stream(Tuple) x Id x real x int x fun -> stream(Tuple)";
+   signature = "stream(tuple) x IDENT x real x int x fun -> stream(tuple)";
    syntax    = "_ opticsF [_, _, _, fun]";
    meaning   = "This operator will ordering data to identify the cluster "
                "structure. The operator uses the MMMTree index structure. The "
@@ -929,7 +898,7 @@ ValueMapping opticsTFVMs[] = {opticsTFVM<Tuple, TupleDist<CcInt> >,
   opticsInfoTF() : OperatorInfo()
   {
    name      = "opticsTF";
-   signature = "stream(Tuple) x real x int x fun -> stream(Tuple)";
+   signature = "stream(tuple) x real x int x fun -> stream(tuple)";
    syntax    = "_ opticsF [_, _, fun]";
    meaning   = "This operator will order the data to identify the cluster "
                "structure. The operator uses the MMMTree index structure. The "

@@ -3,35 +3,35 @@ Restore : No
 
 Operator : extractDbScan
 Number   : 1
-Signature: stream x real -> stream
+Signature: stream(tuple) x real -> stream(tuple)
 Example  : query Kneipen feed extend[B : bbox(.GeoData)] opticsR[B, 2000.0, 10] extractDbScan[500.0] filter[.Cid>=0] sortby[Cid] groupby[Cid; C : group count] count 
 Result   : 4
 
 
 Operator : opticsF
 Number   : 1
-Signature: stream(Tuple) -> stream(Tuple)
+Signature: stream(tuple) x IDENT x real x int x fun -> stream(tuple)
 Example  : query (plz feed opticsF[PLZ, 10.0, 5, abs(. - ..) ] count ) = (plz count)
 Result   :  TRUE
 
 
 Operator : opticsTF
 Number   : 1
-Signature: stream(Tuple) -> stream(Tuple)
+Signature: stream(tuple) x real x int x fun -> stream(tuple)
 Example  : query (Kneipen feed opticsTF[500.0, 5, distance(.GeoData, ..GeoData)] count) = (Kneipen count)
 Result   : TRUE
 
 
 Operator : opticsM
 Number   : 1
-Signature: stream(Tuple) -> stream(Tuple)
+Signature: stream(tuple) x IDENT x real x int (x geoid) -> stream(tuple)
 Example  : query Kneipen feed opticsM[Name, 10.0, 5] count
 Result   : 284
 
 
 Operator : opticsR
 Number   : 1
-Signature: stream(Tuple) -> stream(Tuple)
+Signature: stream(tuple) x IDENT x real x int -> stream(tuple)
 Example  : query Kneipen feed extend[B : bbox(.GeoData)]opticsR[B, 1000.0, 5] count
 Result   : 284
 

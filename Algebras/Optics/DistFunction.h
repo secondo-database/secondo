@@ -156,31 +156,31 @@ namespace clusteropticsalg
 1.6 Declarations and definition of the class ~PointDist~
 
 */
- class PointDist: public DistCount
- {
+ template<bool useGeoid>
+ class PointDist: public DistCount {
   public:
   
-   double operator()(const std::pair<Point*,TupleId>& p1
-    ,const std::pair<Point*,TupleId>& p2) {
+   double operator()(const std::pair<Point*,TupleId>& p1,
+                     const std::pair<Point*,TupleId>& p2) {
      return operator()(p1.first, p2.first);
    }
 
-   double operator()(const Point* p1, const Point* p2){
+   double operator()(const Point* p1, const Point* p2) {
     cnt++;
     assert(p1);
     assert(p2);
-    
-    if(!p1->IsDefined() && !p2->IsDefined())
-    {
-     return 0;
+    if (!p1->IsDefined() && !p2->IsDefined()) {
+      return 0;
     }
-    
-    if(!p1->IsDefined() || !p2->IsDefined())
-    {
-     return std::numeric_limits<double>::max();
+    if (!p1->IsDefined() || !p2->IsDefined()) {
+      return std::numeric_limits<double>::max();
     }
-    
-    return p1->Distance(*(p2));
+    Geoid *geoid = (useGeoid ? new Geoid(true) : 0);
+    double result = p1->Distance(*(p2), geoid);
+    if (geoid) {
+      geoid->DeleteIfAllowed();
+    }
+    return result;
    }
      
    std::ostream& print(const std::pair<Point*,TupleId>& p, std::ostream& o)
@@ -473,7 +473,7 @@ class TupleDist: public DistCount {
 1.7 Declarations and definition of the class ~FrechetDist~
 
 */
-class FrechetDist: public DistCount {
+  class FrechetDist: public DistCount {
   public:
 
     double operator()(const std::pair<temporalalgebra::MPoint*,TupleId>& p1,
@@ -493,7 +493,11 @@ class FrechetDist: public DistCount {
         return std::numeric_limits<double>::max();
       }
       Geoid *geoid = new Geoid("WGS1984");
-      return p1->FrechetDistance(p2, geoid);
+      double result = p1->FrechetDistance(p2, geoid);
+      return result;
+      if (geoid) {
+        geoid->DeleteIfAllowed();
+      }
     }
       
     std::ostream& print(const std::pair<temporalalgebra::MPoint*,TupleId>& p, 
@@ -502,6 +506,123 @@ class FrechetDist: public DistCount {
       return o;
     }
   };
+  
+/*
+1.6 Declarations and definition of the class ~MPointDist~
+
+*/
+ template<bool useGeoid>
+ class MPointDist: public DistCount {
+  public:
+  
+   double operator()(const std::pair<temporalalgebra::MPoint*,TupleId>& p1,
+                     const std::pair<temporalalgebra::MPoint*,TupleId>& p2) {
+     return operator()(p1.first, p2.first);
+   }
+
+   double operator()(const temporalalgebra::MPoint* p1, 
+                     const temporalalgebra::MPoint* p2) {
+    cnt++;
+    assert(p1);
+    assert(p2);
+    if (!p1->IsDefined() && !p2->IsDefined()) {
+      return 0;
+    }
+    if (!p1->IsDefined() || !p2->IsDefined()) {
+      return std::numeric_limits<double>::max();
+    }
+    Geoid *geoid = (useGeoid ? new Geoid(true) : 0);
+    double result = p1->DistanceAvg(*(p2), geoid);
+    if (geoid) {
+      geoid->DeleteIfAllowed();
+    }
+    return result;
+   }
+     
+   std::ostream& print(const std::pair<temporalalgebra::MPoint*,TupleId>& p,
+                       std::ostream& o) {
+    o << *(p.first);
+    return o;
+   }
+ };
+
+/*
+1.6 Declarations and definition of the class ~CUPointDist~
+
+*/
+ template<bool useGeoid>
+ class CUPointDist: public DistCount {
+  public:
+  
+   double operator()(const std::pair<temporalalgebra::CUPoint*,TupleId>& p1,
+                     const std::pair<temporalalgebra::CUPoint*,TupleId>& p2) {
+     return operator()(p1.first, p2.first);
+   }
+
+   double operator()(const temporalalgebra::CUPoint* p1, 
+                     const temporalalgebra::CUPoint* p2) {
+    cnt++;
+    assert(p1);
+    assert(p2);
+    if (!p1->IsDefined() && !p2->IsDefined()) {
+      return 0;
+    }
+    if (!p1->IsDefined() || !p2->IsDefined()) {
+      return std::numeric_limits<double>::max();
+    }
+    Geoid *geoid = (useGeoid ? new Geoid(true) : 0);
+    double result = p1->DistanceAvg(*(p2), false, geoid);
+    if (geoid) {
+      geoid->DeleteIfAllowed();
+    }
+    return result;
+   }
+     
+   std::ostream& print(const std::pair<temporalalgebra::CUPoint*,TupleId>& p,
+                       std::ostream& o) {
+    o << *(p.first);
+    return o;
+   }
+ };
+ 
+/*
+1.6 Declarations and definition of the class ~CMPointDist~
+
+*/
+ template<bool useGeoid>
+ class CMPointDist: public DistCount {
+  public:
+  
+   double operator()(const std::pair<temporalalgebra::CMPoint*,TupleId>& p1,
+                     const std::pair<temporalalgebra::CMPoint*,TupleId>& p2) {
+     return operator()(p1.first, p2.first);
+   }
+
+   double operator()(const temporalalgebra::CMPoint* p1, 
+                     const temporalalgebra::CMPoint* p2) {
+    cnt++;
+    assert(p1);
+    assert(p2);
+    if (!p1->IsDefined() && !p2->IsDefined()) {
+      return 0;
+    }
+    if (!p1->IsDefined() || !p2->IsDefined()) {
+      return std::numeric_limits<double>::max();
+    }
+    Geoid *geoid = (useGeoid ? new Geoid(true) : 0);
+    double result = p1->DistanceAvg(*(p2), false, geoid);
+    if (geoid) {
+      geoid->DeleteIfAllowed();
+    }
+    return result;
+   }
+     
+   std::ostream& print(const std::pair<temporalalgebra::CMPoint*,TupleId>& p,
+                       std::ostream& o) {
+    o << *(p.first);
+    return o;
+   }
+ };
 }
 
 #endif
