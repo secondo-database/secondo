@@ -150,6 +150,7 @@ namespace clusterdbscanalg {
 1.6 Declarations and definition of the class ~PointDist~
 
 */
+ template<bool useGeoid>
  class PointDist: public DistCount
  {
   public:
@@ -170,8 +171,12 @@ namespace clusterdbscanalg {
     {
      return std::numeric_limits<double>::max();
     }
-    
-    return p1.first->Distance(*(p2.first));
+    Geoid* geoid = (useGeoid ? new Geoid(true) : 0);
+    double result = p1.first->Distance(*(p2.first), geoid);
+    if (geoid) {
+       geoid->DeleteIfAllowed();
+     }
+    return result;
    }
      
    std::ostream& print(const std::pair<Point*,TupleId>& p, std::ostream& o)
@@ -400,6 +405,7 @@ class TupleDist: public DistCount {
 1.6 Declarations and definition of the class ~MPointDist~
 
 */
+ template<bool useGeoid>
  class MPointDist: public DistCount {
   public:
   
@@ -414,7 +420,12 @@ class TupleDist: public DistCount {
      if (!mp1.first->IsDefined() || !mp2.first->IsDefined()) {
        return std::numeric_limits<double>::max();
      }
-     return mp1.first->DistanceAvg(*(mp2.first));
+     Geoid* geoid = (useGeoid ? new Geoid(true) : 0);
+     double result = mp1.first->DistanceAvg(*(mp2.first), geoid);
+     if (geoid) {
+       geoid->DeleteIfAllowed();
+     }
+     return result;
    }
      
    std::ostream& print(const std::pair<temporalalgebra::MPoint*, TupleId>& mp, 
@@ -428,6 +439,7 @@ class TupleDist: public DistCount {
 1.6 Declarations and definition of the class ~CUPointDist~
 
 */
+ template<bool useGeoid>
  class CUPointDist: public DistCount {
   public:
   
@@ -442,7 +454,12 @@ class TupleDist: public DistCount {
      if (!cup1.first->IsDefined() || !cup2.first->IsDefined()) {
        return std::numeric_limits<double>::max();
      }
-     return cup1.first->DistanceAvg(*(cup2.first), true);
+     Geoid* geoid = (useGeoid ? new Geoid(true) : 0);
+     double result = cup1.first->DistanceAvg(*(cup2.first), false, geoid);
+     if (geoid) {
+       geoid->DeleteIfAllowed();
+     }
+     return result;
    }
      
    std::ostream& print(const std::pair<temporalalgebra::CUPoint*, TupleId>& cup,
@@ -456,6 +473,7 @@ class TupleDist: public DistCount {
 1.6 Declarations and definition of the class ~CMPointDist~
 
 */
+ template<bool useGeoid>
  class CMPointDist: public DistCount {
   public:
   
@@ -470,7 +488,12 @@ class TupleDist: public DistCount {
      if (!cmp1.first->IsDefined() || !cmp2.first->IsDefined()) {
        return std::numeric_limits<double>::max();
      }
-     return cmp1.first->DistanceAvg(*(cmp2.first), true);
+     Geoid* geoid = (useGeoid ? new Geoid(true) : 0);
+     double result = cmp1.first->DistanceAvg(*(cmp2.first), false, geoid);
+     if (geoid) {
+       geoid->DeleteIfAllowed();
+     }
+     return result;
    }
      
    std::ostream& print(const std::pair<temporalalgebra::CMPoint*, TupleId>& cmp,
