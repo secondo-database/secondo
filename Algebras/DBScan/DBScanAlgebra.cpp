@@ -313,47 +313,41 @@ using an r-tree as index structure.
 2.1 Type mapping 
 
 */
- ListExpr dbscanMTM( ListExpr args ) {
-  if(nl->ListLength(args)!=2) {
-   ErrorReporter::ReportError("two elements expected. " 
-            "Stream and argument list");
-   return nl->TypeError();
+ListExpr dbscanMTM(ListExpr args) {
+  if (nl->ListLength(args) != 2) {
+    ErrorReporter::ReportError("two elements expected: stream and arg list");
+    return nl->TypeError();
   }
-
   ListExpr stream = nl->First(args);
-
   if(!Stream<Tuple>::checkType(nl->First(args))) {
-   return listutils::typeError("first argument is not stream(Tuple)");
+    return listutils::typeError("first argument is not a tuple stream");
   }
-
   ListExpr arguments = nl->Second(args);
-
-  if(nl->ListLength(arguments)!=4) {
-   ErrorReporter::ReportError("non conform list of cluster attribut, "
-    "attribute name as cluster ID, Eps and MinPts");
-   return nl->TypeError();
+  if (nl->ListLength(arguments) != 4 && nl->ListLength(arguments) != 5) {
+    ErrorReporter::ReportError("non conform list of cluster attribute, "
+    "attribute name as cluster ID, Eps, MinPts (and Geoid)");
+    return nl->TypeError();
   }
-
-  if(!CcReal::checkType(nl->Third(arguments))) {
-   return listutils::typeError("no numeric Eps");
+  if (!CcReal::checkType(nl->Third(arguments))) {
+    return listutils::typeError("no numeric Eps");
   }
-
-  if(!CcInt::checkType(nl->Fourth(arguments))) {
-   return listutils::typeError("no numeric MinPts");
+  if (!CcInt::checkType(nl->Fourth(arguments))) {
+    return listutils::typeError("no numeric MinPts");
   }
-
-
-//Check the cluster attribute name, if it is in the tuple
+  if (nl->HasLength(arguments, 5)) {
+    if (!Geoid::checkType(nl->Fifth(arguments))) {
+      return listutils::typeError("last argument is not a geoid");
+    }
+  }
+// Check if the cluster attribute name exists in the tuple
   ListExpr attrList = nl->Second(nl->Second(stream));
   ListExpr attrType;
   string attrName = nl->SymbolValue(nl->First(nl->Second(args)));
   int found = FindAttribute(attrList, attrName, attrType);
-  if(found == 0) {
-   ErrorReporter::ReportError("Attribute "
-    + attrName + " is no member of the tuple");
-   return nl->TypeError();
+  if (found == 0) {
+    ErrorReporter::ReportError("Attribute " + attrName + " does not exist");
+    return nl->TypeError();
   }
-
   if( !CcInt::checkType(attrType)
    && !CcReal::checkType(attrType)
    && !Point::checkType(attrType)
@@ -366,127 +360,99 @@ using an r-tree as index structure.
     + CcInt::BasicType() + ", " 
     + CcReal::BasicType() + ", " 
     + Point::BasicType() + ", " 
-    + CcString::BasicType() + " or " 
-    + Picture::BasicType() + " or "
-    + temporalalgebra::MPoint::BasicType() + " or "
-    + temporalalgebra::CUPoint::BasicType() + " or "
+    + CcString::BasicType() + ", " 
+    + Picture::BasicType() + ", "
+    + temporalalgebra::MPoint::BasicType() + ", "
+    + temporalalgebra::CUPoint::BasicType() + ", "
     + temporalalgebra::CMPoint::BasicType() );
   }
-
   ListExpr typeList;
-
-  // check functions
+  // check clusterNo attribute name
   ListExpr name = nl->Second(arguments); 
-  
   string errormsg;
-  if(!listutils::isValidAttributeName(name, errormsg)){
-   return listutils::typeError(errormsg);
-  }//endif
-
+  if (!listutils::isValidAttributeName(name, errormsg)) {
+    return listutils::typeError(errormsg);
+  }
   string namestr = nl->SymbolValue(name);
-  int pos = FindAttribute(attrList,namestr,typeList);
-  if(pos!=0) {
-   ErrorReporter::ReportError("Attribute "+ namestr +
-                              " already member of the tuple");
-   return nl->TypeError();
-  }//endif
-
+  int pos = FindAttribute(attrList, namestr, typeList);
+  if (pos != 0) {
+    ErrorReporter::ReportError("Attribute "+ namestr + " already exists");
+    return nl->TypeError();
+  }
   //Copy attrlist to newattrlist
   attrList             = nl->Second(nl->Second(stream));
   ListExpr newAttrList = nl->OneElemList(nl->First(attrList));
   ListExpr lastlistn   = newAttrList;
-  
   attrList = nl->Rest(attrList);
-  
-  while(!(nl->IsEmpty(attrList))) {
-   lastlistn = nl->Append(lastlistn,nl->First(attrList));
-   attrList = nl->Rest(attrList);
+  while (!(nl->IsEmpty(attrList))) {
+    lastlistn = nl->Append(lastlistn,nl->First(attrList));
+    attrList = nl->Rest(attrList);
   }
-
-
   lastlistn = nl->Append(lastlistn, 
-     (nl->TwoElemList(name, nl->SymbolAtom(CcInt::BasicType()) )));
- 
-  lastlistn = nl->Append(lastlistn, 
-      nl->TwoElemList(nl->SymbolAtom("Visited"),
-      nl->SymbolAtom(CcBool::BasicType()) ));
-  lastlistn = nl->Append(lastlistn, 
-      nl->TwoElemList(nl->SymbolAtom("IsCore"),
-      nl->SymbolAtom(CcBool::BasicType()) ));
-      
+     (nl->TwoElemList(name, nl->SymbolAtom(CcInt::BasicType()))));
+  lastlistn = nl->Append(lastlistn, nl->TwoElemList(nl->SymbolAtom("Visited"),
+                                          nl->SymbolAtom(CcBool::BasicType())));
+  lastlistn = nl->Append(lastlistn, nl->TwoElemList(nl->SymbolAtom("IsCore"),
+                                          nl->SymbolAtom(CcBool::BasicType())));
   return nl->ThreeElemList(
-   nl->SymbolAtom(Symbol::APPEND())
-        ,nl->OneElemList(nl->IntAtom(found-1))
-        ,nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM())
-                        ,nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType())
-                                      ,newAttrList)));
- }
+    nl->SymbolAtom(Symbol::APPEND()), nl->OneElemList(nl->IntAtom(found - 1)),
+    nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
+                    nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()),
+                                    newAttrList)));
+}
 
 
 /*
 1.2 Value mapping method ~dbscanM~ 
 
 */
-
 template <class T, class DistComp> 
-int dbscanMVM1(Word* args, Word& result, 
-               int message, Word& local, Supplier s) {
-
-  typedef  dbscan::DBScanGen< 
-                   dbscan::SetOfObjectsM<DistComp,T >, 
-                   DistComp > 
-           dbscanclass;
-  dbscanclass* li = (dbscanclass*) local.addr;  
-  switch (message)
-  {
-   case OPEN :
-   {
-    // arg0 : stream
-    Word stream = args[0];
-    Supplier supplier = qp->GetSupplier(args[1].addr, 2);
-    Word argument;
-    qp->Request(supplier, argument);
-    CcReal* eps = ((CcReal*)argument.addr);
-    supplier = qp->GetSupplier(args[1].addr, 3);
-    qp->Request(supplier, argument);
-    CcInt* minPts = ((CcInt*)argument.addr);
-    int cid = ((CcInt*)args[2].addr)->GetValue();
-    ListExpr resultType = GetTupleResultType( s );
-    ListExpr tt = ( nl->Second( resultType ) );
-    if(li) { 
+int dbscanMVM1(Word* args, Word& result, int message, Word& local, Supplier s) {
+  typedef dbscan::DBScanGen<dbscan::SetOfObjectsM<DistComp, T>, DistComp> 
+          dbscanclass;
+  dbscanclass* li = (dbscanclass*)local.addr;  
+  switch (message) {
+    case OPEN : {
+      Word stream = args[0];
+      Supplier supplier = qp->GetSupplier(args[1].addr, 2);
+      Word argument;
+      qp->Request(supplier, argument);
+      CcReal* eps = ((CcReal*)argument.addr);
+      supplier = qp->GetSupplier(args[1].addr, 3);
+      qp->Request(supplier, argument);
+      CcInt* minPts = ((CcInt*)argument.addr);
+      int cid = ((CcInt*)args[2].addr)->GetValue();
+      ListExpr resultType = GetTupleResultType(s);
+      ListExpr tt = (nl->Second(resultType));
+      if (li) { 
+        delete li;
+        local.addr = 0;
+      }
+      size_t maxMem = (qp->GetMemorySize(s) * 1024);
+      if (!eps->IsDefined() || eps->GetValue() < 0) {
+        return 0;
+      }
+      if (!minPts->IsDefined() || minPts->GetValue() < 0) {
+        return 0;
+      }
+      DistComp dist; 
+      local.addr = new dbscanclass(stream, tt, eps->GetValue(),
+                                   minPts->GetValue(), maxMem, cid, dist);
+      return 0;
+    } 
+    case REQUEST: {
+      result.addr = li ? li->next() : 0;
+      return result.addr ? YIELD : CANCEL;
+    }
+    case CLOSE: {
+      if (li) {
         delete li;
         local.addr=0;
+      }
     }
-    size_t maxMem = (qp->GetMemorySize(s) * 1024);
-    if(!eps->IsDefined() || eps->GetValue() < 0){
-      return 0;
-    }
-    if(!minPts->IsDefined() || minPts->GetValue() < 0){
-      return 0;
-    }
-   
-    DistComp dist; 
-
-    local.addr = new dbscanclass(stream,tt, 
-                                 eps->GetValue(),
-                                 minPts->GetValue(),
-                                 maxMem, 
-                                 cid, dist);
-    return 0;
-  } 
-  case REQUEST:
-     result.addr= li?li->next():0;
-     return result.addr?YIELD:CANCEL;
-  case CLOSE:{
-     if(li){
-        delete li;
-        local.addr=0;
-     }
-  }
   }
   return 0;
 }
-
 
 /*
 1.3 Struct ~dbscanMInfo~
@@ -497,7 +463,8 @@ int dbscanMVM1(Word* args, Word& result,
   dbscanMInfo() : OperatorInfo()
   {
    name      = "dbscanM";
-   signature = "stream(Tuple) x Id x Id x real x int ->> stream(Tuple)";
+   signature = "stream(Tuple) x IDENT x IDENT x real x int (x geoid) -> "
+               "stream(Tuple)";
    syntax    = "_ dbscanM [_, _, _, _]";
    meaning   = "Detects cluster from a given stream using an MMM-Tree as index "
    "structure. The first parameter is the attribute to cluster, the second "
@@ -514,32 +481,37 @@ int dbscanMVM1(Word* args, Word& result,
 1.4 Selection Function
 
 */ 
- int dbscanMSel(ListExpr args) {
-
+int dbscanMSel(ListExpr args) {
   ListExpr attrList = nl->Second(nl->Second(nl->First(args)));
   ListExpr attrType;
   string attrName = nl->SymbolValue(nl->First(nl->Second(args)));
   int found = FindAttribute(attrList, attrName, attrType);
   assert(found > 0);
-  
-  if(CcInt::checkType(attrType)) {
-   return 0;
-  } else if(CcReal::checkType(attrType)) {
-   return 1;
-  } else if(Point::checkType(attrType)) {
-   return 2;
-  } else if(CcString::checkType(attrType)) {
-   return 3;
-  } else if(Picture::checkType(attrType)) {
-   return 4;
-  } else if(temporalalgebra::MPoint::checkType(attrType)) {
-   return 5;
-  } else if(temporalalgebra::CUPoint::checkType(attrType)) {
-   return 6;
-  } else if(temporalalgebra::CMPoint::checkType(attrType)) {
-   return 7;
+  bool useGeoid = nl->HasLength(nl->Second(args), 5);
+  if (CcInt::checkType(attrType)) {
+    return 0;
   }
-  
+  if (CcReal::checkType(attrType)) {
+    return 1;
+  }
+  if (Point::checkType(attrType)) {
+    return (useGeoid ? 3 : 2);
+  }
+  if (CcString::checkType(attrType)) {
+    return 4;
+  }
+  if (Picture::checkType(attrType)) {
+    return 5;
+  }
+  if (temporalalgebra::MPoint::checkType(attrType)) {
+    return (useGeoid ? 7 : 6);
+  }
+  if (temporalalgebra::CUPoint::checkType(attrType)) {
+    return (useGeoid ? 9 : 8);
+  }
+  if (temporalalgebra::CMPoint::checkType(attrType)) {
+    return (useGeoid ? 11 : 10);
+  }
   return -1; 
  };
 
@@ -553,13 +525,17 @@ ValueMapping dbscanMVM[] =
  {
   dbscanMVM1<CcInt, IntDist>,
   dbscanMVM1<CcReal, RealDist>,
-  dbscanMVM1<Point, PointDist>,
+  dbscanMVM1<Point, PointDist<false> >,
+  dbscanMVM1<Point, PointDist<true> >,
   dbscanMVM1<CcString, StringDist>,
   dbscanMVM1<Picture, PictureDist>,
-  dbscanMVM1<temporalalgebra::MPoint, MPointDist>,
-  dbscanMVM1<temporalalgebra::CUPoint, CUPointDist>,
-  dbscanMVM1<temporalalgebra::CMPoint, CMPointDist>
- };
+  dbscanMVM1<temporalalgebra::MPoint, MPointDist<false> >,
+  dbscanMVM1<temporalalgebra::MPoint, MPointDist<true> >,
+  dbscanMVM1<temporalalgebra::CUPoint, CUPointDist<false> >,
+  dbscanMVM1<temporalalgebra::CUPoint, CUPointDist<true> >,
+  dbscanMVM1<temporalalgebra::CMPoint, CMPointDist<false> >,
+  dbscanMVM1<temporalalgebra::CMPoint, CMPointDist<true> >
+};
  
 
 

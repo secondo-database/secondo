@@ -9,7 +9,7 @@ Result   : 8
 
 Operator : dbscanM
 Number   : 1
-Signature: stream(Tuple) x Id x Id x real x int  -> stream(Tuple)
+Signature: stream(Tuple) x Id x Id x real x int (x geoid) -> stream(Tuple)
 Example  : query Kneipen feed  dbscanM [GeoData, No, 500.0, 5] sortby[No] groupby[No ; C : group count] count
 Result   : 8
 
