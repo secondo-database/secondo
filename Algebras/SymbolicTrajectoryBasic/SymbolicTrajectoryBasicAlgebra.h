@@ -80,6 +80,10 @@ class NewPair {
     return os;
   }
   
+  void Print(std::ostream& os) const {
+    os << *this;
+  }
+  
   template<class X>
   void copy2ndFrom(const X newValue) {
     assert(sizeof(S) == sizeof(X));
@@ -785,6 +789,24 @@ class MLabel : public MBasic<Label> {
   void convertFromMString(const temporalalgebra::MString& source);
 };
 
+class MLabels : public MBasics<Labels> {
+ public:
+  MLabels() {}
+  MLabels(unsigned int n) : MBasics<Labels>(n) {}
+};
+
+class MPlace : public MBasic<Place> {
+ public:
+  MPlace() {}
+  MPlace(unsigned int n) : MBasic<Place>(n) {}
+};
+
+class MPlaces : public MBasics<Places> {
+ public:
+  MPlaces() {}
+  MPlaces(unsigned int n) : MBasics<Places>(n) {}
+};
+
 typedef IBasic<Label> ILabel;
 typedef IBasic<Place> IPlace;
 typedef IBasics<Labels> ILabels;
@@ -793,9 +815,9 @@ typedef UBasic<Label> ULabel;
 typedef UBasic<Place> UPlace;
 typedef UBasics<Labels> ULabels;
 typedef UBasics<Places> UPlaces;
-typedef MBasics<Labels> MLabels;
-typedef MBasic<Place> MPlace;
-typedef MBasics<Places> MPlaces;
+// typedef MBasics<Labels> MLabels;
+// typedef MBasic<Place> MPlace;
+// typedef MBasics<Places> MPlaces;
 
 /*
 \section{Implementation of Class ~IBasic~}
@@ -2385,6 +2407,12 @@ double MBasic<B>::Distance_FIRST_LAST(const MBasic<B>& mb,
 template<class B>
 double MBasic<B>::Distance_ALL(const MBasic<B>& mb, const LabelFunction lf) 
                   const {
+  if (!IsDefined() && !mb.IsDefined()) {
+    return 0.0;
+  }
+  if (!IsDefined() || !mb.IsDefined()) {
+    return 1.0;
+  }
   int m = GetNoComponents();
   int n = mb.GetNoComponents();
   int dp[m + 1][n + 1];
@@ -4019,5 +4047,14 @@ class UnitsLI {
 
   int index;
 };
+
+bool isSymbolicType(ListExpr typeList);
+
+double scalarProduct(collection::Collection& v1, collection::Collection& v2);
+double vLength(collection::Collection& v);
+double cosineSimilarity(collection::Collection& v1, collection::Collection& v2);
+double jaccardSimilarity(collection::Collection& v1, 
+                         collection::Collection& v2);
+double jaccardSimilarity(std::set<std::string>& s1, std::set<std::string>& s2);
 
 }
