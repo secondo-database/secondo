@@ -5217,6 +5217,12 @@ double MPoint::DistanceAvg(const MPoint& mp, const Geoid* geoid /* = 0 */)
   if (!IsDefined() || !mp.IsDefined() || (geoid && !geoid->IsDefined())) {
     return -1.0;
   }
+  if (IsEmpty() && mp.IsEmpty()) {
+    return 0.0;
+  }
+  if (IsEmpty() || mp.IsEmpty()) {
+    return DBL_MAX;
+  }
   Instant start1(datetime::instanttype), start2(datetime::instanttype);
   InitialInstant(start1);
   mp.InitialInstant(start2);
@@ -8208,6 +8214,7 @@ void CMPoint::ConvertFrom(const MPoint& src, const DateTime dur,
     cup.timeInterval.start.SetToZero();
     cup.timeInterval.end -= diffToBeginOfTime;
     Add(cup);
+    RestoreBoundingBox(true);
     return;
   }
   Point p0(true), p1(true);
@@ -8274,6 +8281,7 @@ void CMPoint::ConvertFrom(const MPoint& src, const DateTime dur,
     assert(correct);
     Add(cup);
   }
+  RestoreBoundingBox(true);
 }
 
 void CMPoint::ConvertFrom(const MPoint& src, const CcReal& threshold, 
@@ -8609,6 +8617,7 @@ void CMPoint::RestoreBoundingBox(const bool force) {
     bbox.SetDefined(false);
   }
   else if (force || !bbox.IsDefined()) { // construct bbox
+    bbox.SetDefined(true);
     CUPoint unit;
     int size = GetNoComponents();
     Get(0, unit); // safe, since (this) contains at least 1 unit
@@ -8720,6 +8729,12 @@ double CMPoint::DistanceIntegral(const CMPoint& cmp, const bool upperBound,
 
 double CMPoint::DistanceAvg(const CMPoint& cmp, const bool upperBound,
                             const Geoid* geoid /* = 0 */) const {
+  if (IsEmpty() && cmp.IsEmpty()) {
+    return 0.0;
+  }
+  if (IsEmpty() || cmp.IsEmpty()) {
+    return DBL_MAX;
+  }
   DateTime dur1(datetime::durationtype), dur2(datetime::durationtype);
   GetDuration(dur1);
   cmp.GetDuration(dur2);
@@ -10703,6 +10718,39 @@ bool CheckCMPoint(ListExpr type, ListExpr& errorInfo) {
   return (nl->IsEqual(type, CMPoint::BasicType()));
 }
 
+ListExpr OutCMPoint(ListExpr typeInfo, Word value) {
+  CMPoint* m = (CMPoint*)(value.addr);
+  if(! m->IsDefined()){
+    return nl->SymbolAtom(Symbol::UNDEFINED());
+  } else
+  if( m->IsEmpty() )
+    return (nl->TheEmptyList());
+  else
+  {
+    assert( m->IsOrdered() );
+    ListExpr l = nl->TheEmptyList();
+    ListExpr lastElem = nl->TheEmptyList();
+    ListExpr unitList;
+
+    for( int i = 0; i < m->GetNoComponents(); i++ )
+    {
+      CUPoint unit;
+      m->Get( i, unit );
+      unitList = OutCUPoint( nl->TheEmptyList(), SetWord(&unit) );
+      if( l == nl->TheEmptyList() )
+      {
+        l = nl->Cons( unitList, nl->TheEmptyList() );
+        lastElem = l;
+      }
+      else
+        lastElem = nl->Append( lastElem, unitList );
+    }
+    std::stringstream strstr;
+    m->BoundingBox().Print(strstr);
+    return nl->TwoElemList(nl->TextAtom(strstr.str()), l);
+  }
+}
+
 /*
 4.12.4 Creation of the type constructor ~cmpoint~
 
@@ -10710,6 +10758,7 @@ bool CheckCMPoint(ListExpr type, ListExpr& errorInfo) {
 TypeConstructor cmpointTC(
         CMPoint::BasicType(),   //name
         CMPointProperty,        //property function describing signature
+//         OutCMPoint,
         OutMapping<CMPoint, CUPoint, OutCUPoint>,
         InMapping<CMPoint, CUPoint, InCUPoint>,//Out and In functions
         0,
@@ -21829,12 +21878,12 @@ ValueMapping mpoint2cmpointVMs[] = {
 };
 
 OperatorSpec mpoint2cmpointSpec(
-  "mpoint x (duration|real) -> cmpoint",
+  "mpoint x (duration|real) (x geoid) -> cmpoint",
   "mpoint2cmpoint(_, _)",
-  "Creates a cmpoint from an mpoint and a duration or an mpoint and a real. In "
-  "the first case, all units (except the last one) are created with the "
-  "specified duration. Otherwise, a new unit is created as soon as the "
-  "specified distance threshold is exceeded.",
+  "Creates a cmpoint from an mpoint and a duration or an mpoint and a real (and"
+  " an optional geoid). In the first case, all units (except the last one) are "
+  "created with the specified duration. Otherwise, a new unit is created as "
+  "soon as the specified distance threshold is exceeded.",
   "query mpoint2cmpoint(train5, [const duration value (0 60000)])"
 );
 
