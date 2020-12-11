@@ -366,15 +366,11 @@ public:
 
    void forwardTuple() {
       forwardedTuples++;
-      #pragma GCC diagnostic push
-      #pragma GCC diagnostic ignored "-Wdiv-by-zero"
-      #pragma GCC diagnostic ignored "-Wunused-variable"
       int randValue = rand();
       if(randValue % crashAfter == 0) {
           if(crashType == CRASH) {
-             // Execute division by zero to crash the software
-             int res = 10 / 0;
-             exit(-1); 
+             __builtin_trap();
+             exit(1);
           } else {
              // Loop forever! 
              while(true) {
@@ -382,7 +378,6 @@ public:
              }
           }
       } 
-      #pragma GCC diagnostic pop
    }
 
 private:

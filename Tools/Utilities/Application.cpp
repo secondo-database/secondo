@@ -222,6 +222,9 @@ Application::Application( int argc, const char** argv )
   signalStr[SIGFPE] = "SIGFPE";
   signal( SIGFPE,    Application::AbortOnSignalHandler );
 
+  signalStr[SIGILL] = "SIGILL";
+  signal( SIGILL,    Application::AbortOnSignalHandler );
+
   signal( SIGPIPE,   Application::AbortOnSignalHandler );
   signal( SIGALRM,   Application::AbortOnSignalHandler );
 
@@ -323,7 +326,7 @@ abort the process if not handled otherwise.
   cout << endl << "*** Signal " << signalStr[sig] 
        << " (" << sig << ") caught!";
    
-  if ( sig == SIGABRT || sig == SIGSEGV || sig == SIGFPE )
+  if ( sig == SIGABRT || sig == SIGSEGV || sig == SIGFPE || sig == SIGILL)
   {
      if(Application::dumpStacktrace) {
         Application* ap = Application::Instance();
