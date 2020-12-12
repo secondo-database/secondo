@@ -724,3 +724,8 @@ Signature : real -> bool
 Example   : query isnan(1.0)
 Result    : FALSE
 
+Operator : outerjoin
+Number : 1
+Signature : bool -> bool
+Example   : query outerjoin(TRUE)
+Result    : TRUE
