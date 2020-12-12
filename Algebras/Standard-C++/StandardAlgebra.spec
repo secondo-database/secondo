@@ -111,4 +111,4 @@ operator false alias FALSE  pattern op()
 
 operator isnan alias ISNAN pattern op(_)
 
-
+operator outerjoin alias OUTERJOIN pattern op(_)

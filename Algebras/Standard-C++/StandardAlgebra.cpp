@@ -6060,6 +6060,48 @@ Operator isnanOp(
    Operator::SimpleSelect,
    isnanTM);
 
+
+/*
+Operator outerjoin
+
+*/
+ListExpr outerjoinTM(ListExpr args){
+  if(!nl->HasLength(args,1)){
+    return listutils::typeError("one argumemnt expected");
+  }
+  if(!CcBool::checkType(nl->First(args))){
+    return listutils::typeError("boolean expected as parameter");
+  }
+  return listutils::basicSymbol<CcBool>();
+}
+
+int outerjoinVM (Word* args, Word& result, int message, 
+              Word& local, Supplier s ) {
+
+  CcBool* input = (CcBool*) args[0].addr;
+  result = qp->ResultStorage(s);
+  CcBool* res = (CcBool*) result.addr;
+
+  res -> Set(input->IsDefined(), input -> GetValue());
+
+  return 0;
+}
+
+OperatorSpec outerjoinSpec(
+  "bool -> bool",
+  "outerjoin(_) ",
+  "Helper operator for performing outer joins in the operator. "
+  "The operator simply returns the provided boolean.",
+  " query outerjoin(TRUE)"
+);
+
+Operator outerjoinOp(
+   "outerjoin",
+   outerjoinSpec.getStr(),
+   outerjoinVM,
+   Operator::SimpleSelect,
+   outerjoinTM);
+
 /*
 6 Class ~CcAlgebra~
 
@@ -6216,6 +6258,8 @@ class CcAlgebra1 : public Algebra
     AddOperator (&trueOp);
     AddOperator (&falseOp);
     AddOperator (&isnanOp);
+    AddOperator (&outerjoinOp);
+
 
 #ifdef USE_PROGRESS
     ccopifthenelse.EnableProgress();
