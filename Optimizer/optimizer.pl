@@ -1668,6 +1668,15 @@ plan_to_atom(symmjoin(X, Y, M), Result) :-
     MAtom, ']'], '', Result),
   !.
 
+plan_to_atom(symmouterjoin(X, Y, M), Result) :-
+  plan_to_atom(X, XAtom),
+  plan_to_atom(Y, YAtom),
+  consider_Arg2(M, M2),          % transform second arg/3 to arg2/3
+  plan_to_atom(M2, MAtom),
+  my_concat_atom([XAtom, ' ', YAtom, ' symmouterjoin[',
+    MAtom, ']'], '', Result),
+  !.
+
 plan_to_atom(symmproductextend(X, Y, Fields), Result) :-
   plan_to_atom(X, XAtom),
   plan_to_atom(Y, YAtom),
@@ -3604,10 +3613,22 @@ A join can always be translated to a ~symmjoin~ because a ~symmjoin~ evaluates a
 
 Option ~noSymmjoin~ is only used in experiments. Has to be off for the optimizer to work properly.
 
+8.1.1 Normal Evaluation
 
 */
 
 join(Arg1, Arg2, pr(Pred, _, _)) => symmjoin(Arg1S, Arg2S, Pred) :-
+  	not(optimizerOption(noSymmjoin)),
+        \+ Pred = outerjoin(_), % special case treated next
+  Arg1 => Arg1S,
+  Arg2 => Arg2S.
+
+/*
+8.1.2 Outer Join for Arbitrary Predicate
+
+*/
+join(Arg1, Arg2, pr(outerjoin(Pred), _, _)) => 
+    symmouterjoin(Arg1S, Arg2S, Pred) :-
   	not(optimizerOption(noSymmjoin)),
   Arg1 => Arg1S,
   Arg2 => Arg2S.
@@ -3648,6 +3669,7 @@ methods can be formulated independently from this general technique. They
 translate terms of the form join00(Arg1Stream, Arg2Stream, Pred).
 
 */
+
 
 join(Arg1, Arg2, pr(X=Y, R1, R2)) => JoinPlan :-
   X = attr(_, _, _),
@@ -3950,6 +3972,19 @@ join00(Arg1S, Arg2S, pr(X = Y, _, _))
   isOfSecond(Attr2, X, Y),
   orderTest(sortRightThenMergejoin).
 
+
+/*
+8.2.6 Outer Join for an Equality Predicate
+
+*/
+join(Arg1, Arg2, pr(outerjoin(X=Y), _, _)) => smouterjoin(Arg1S, Arg2S,
+        attrname(Attr1), attrname(Attr2)) :-
+  X = attr(_, _, _),
+  Y = attr(_, _, _), 
+  Arg1 => Arg1S,
+  Arg2 => Arg2S,
+  isOfFirst(Attr1, X, Y),
+  isOfSecond(Attr2, X, Y).
 
 /*
 
@@ -5552,6 +5587,14 @@ cost(mergejoin(X, Y, _, _), Sel, P, S, C) :-
     B * (SizeX + SizeY). 		% parallel scan of sorted relations
 
 cost(sortmergejoin(X, Y, AX, AY), Sel, P, S, C) :-
+  cost(mergejoin(sortby(X, [AX]),
+    sortby(Y, [AY]), AX, AY), Sel, P, S, C).
+
+/*
+We treat ~smouterjoin~ just in the same way as ~sortmergejoin~.
+
+*/
+cost(smouterjoin(X, Y, AX, AY), Sel, P, S, C) :-
   cost(mergejoin(sortby(X, [AX]),
     sortby(Y, [AY]), AX, AY), Sel, P, S, C).
 

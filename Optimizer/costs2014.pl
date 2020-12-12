@@ -531,6 +531,25 @@ cost(symmjoin(Arg1, Arg2, _), Sel, Pred, Res, Mem,
   C2 is Card * NAttrs * PerAttr,	% the same for all joins
   Cost is Cost1 + Cost2 + C1 + C2.
 
+/*
+We treat ~symmouterjoin~ in the same way as ~symmjoin~.
+
+*/
+
+cost(symmouterjoin(Arg1, Arg2, _), Sel, Pred, Res, Mem, 
+	Card, NAttrs, TSize, Cost) :-
+  cost(Arg1, 1, Pred, Res, Mem, Card1, _, _, Cost1), 
+  cost(Arg2, 1, Pred, Res, Mem, Card2, _, _, Cost2),
+  Card is Card1 * Card2 * Sel,
+  nodeNAttrs(Res, NAttrs),
+  nodeTupleSize(Res, TSize),
+  symmjoinC(U),
+  getPET(Pred, _, ExpPET),   % fetch stored predicate evaluation time
+  ( (ExpPET =< 0.01) -> (PET is 0.0); PET is ExpPET),
+  C1 is Card1 * Card2 * (U + PET),
+  attrC(PerAttr), 			% Cost dep. on result size,
+  C2 is Card * NAttrs * PerAttr,	% the same for all joins
+  Cost is Cost1 + Cost2 + C1 + C2.
 
 
 /*
