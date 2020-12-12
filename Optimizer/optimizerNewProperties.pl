@@ -1694,6 +1694,16 @@ plan_to_atom(symmjoin(X, Y, M), Result) :-
     MAtom, ']'], '', Result),
   !.
 
+plan_to_atom(symmouterjoin(X, Y, M), Result) :-
+  plan_to_atom(X, XAtom),
+  plan_to_atom(Y, YAtom),
+  consider_Arg2(M, M2),          % transform second arg/3 to arg2/3
+  plan_to_atom(M2, MAtom),
+  my_concat_atom([XAtom, ' ', YAtom, ' symmouterjoin[',
+    MAtom, ']'], '', Result),
+  !.
+
+
 plan_to_atom(symmproductextend(X, Y, Fields), Result) :-
   plan_to_atom(X, XAtom),
   plan_to_atom(Y, YAtom),
@@ -3777,11 +3787,25 @@ join(Arg1, Arg2, Pred) => SecondoPlan:-
 % end fapra 2015/16
 
 
+/*
+8.1.1 Normal Evaluation
 
-
-
+*/
 join(Arg1, Arg2, pr(Pred, _, _)) => [symmjoin(Arg1S, Arg2S, Pred), [none]] :-
   	not(optimizerOption(noSymmjoin)),
+        \+ Pred = outerjoin(_), % special case treated next
+  Arg1 => [Arg1S, _],
+  Arg2 => [Arg2S, _].
+
+
+/*
+8.1.2 Outer Join for Arbitrary Predicate
+
+*/
+join(Arg1, Arg2, pr(outerjoin(Pred), _, _)) => 
+    [symmouterjoin(Arg1S, Arg2S, Pred), [none]] :-
+  	not(optimizerOption(noSymmjoin)),
+        \+ Pred = outerjoin(_), % special case treated next
   Arg1 => [Arg1S, _],
   Arg2 => [Arg2S, _].
 
@@ -3824,7 +3848,7 @@ translate terms of the form join00(Arg1Stream, Arg2Stream, Pred).
 
 join(Arg1, Arg2, pr(X=Y, R1, R2)) => [JoinPlan, P] :-
   X = attr(_, _, _),
-  Y = attr(_, _, _), % !,	% cut removed
+  Y = attr(_, _, _), 
   Arg1 => [Arg1S, P1],
   Arg2 => [Arg2S, P2],
   join00([Arg1S, P1], [Arg2S, P2], pr(X=Y, R1, R2)) => [JoinPlan, P].
@@ -4148,6 +4172,20 @@ join00(Arg1S, Arg2S, pr(X = Y, _, _))
   isOfFirst(Attr1, X, Y),
   isOfSecond(Attr2, X, Y),
   orderTest(sortRightThenMergejoin).
+
+
+/*
+8.2.6 Outer Join for an Equality Predicate
+
+*/
+join(Arg1, Arg2, pr(outerjoin(X=Y), _, _)) => [smouterjoin(Arg1S, Arg2S,
+        attrname(Attr1), attrname(Attr2)), [none]] :-
+  X = attr(_, _, _),
+  Y = attr(_, _, _), 
+  Arg1 => [Arg1S, _],
+  Arg2 => [Arg2S, _],
+  isOfFirst(Attr1, X, Y),
+  isOfSecond(Attr2, X, Y).
 
 
 /*
@@ -5793,6 +5831,18 @@ cost(mergejoin(X, Y, _, _), Sel, P, S, C) :-
 
 cost(sortmergejoin(X, Y, AX, AY), Sel, P, S, C) :-
   cost(mergejoin(sortby(X, [AX]),sortby(Y, [AY]), AX, AY), Sel, P, S, C).
+
+
+/*
+We treat ~smouterjoin~ just in the same way as ~sortmergejoin~.
+
+*/
+cost(smouterjoin(X, Y, AX, AY), Sel, P, S, C) :-
+  cost(mergejoin(sortby(X, [AX]), sortby(Y, [AY]), AX, AY), Sel, P, S, C).
+
+
+
+
 
 
 % two rules used by the 'interesting orders extension':
