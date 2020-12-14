@@ -69,3 +69,6 @@ $(LIBOBJ): $(OBJECTS)
 .PHONY: clean
 clean:
 	$(clean-algebra)
+	rm -f *.dep *.o
+
+

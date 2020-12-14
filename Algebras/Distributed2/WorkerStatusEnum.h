@@ -26,6 +26,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 
+#ifndef workerstatusenum_h
+#define workerstatusenum_h
 
 /*
 1 Enum WorkerStatusEnum
@@ -34,7 +36,10 @@ Status for workers and jobs
 
 */
 enum WorkerStatusEnum { 
-CREATED = 0,
-RUNNING = 1,
-FINISHED = 2,
-CANCELED = 3};
+   CREATED = 0,
+   RUNNING = 1,
+   FINISHED = 2,
+   CANCELED = 3
+};
+
+#endif

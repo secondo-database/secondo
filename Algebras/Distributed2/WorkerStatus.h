@@ -26,10 +26,14 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 
+#ifndef workerstatus_h
+#define workerstatus_h
+
 #include <string>
 #include <iostream>
-#include "WorkerStatusEnum.cpp"
 #include <unordered_map>
+
+#include "WorkerStatusEnum.h"
 
 std::string const WORKER_STATUS_CREATED = "created";
 std::string const WORKER_STATUS_RUNNING = "running";
@@ -37,8 +41,9 @@ std::string const WORKER_STATUS_FINISHED = "finished";
 
 class ProgressListener;
 
+
 /*
-1 Class WorkerStatus
+2 Class WorkerStatus
 
 Represents status of a worker
 
@@ -235,3 +240,6 @@ private:
     std::string finished;
     int node;
 };
+
+
+#endif 
