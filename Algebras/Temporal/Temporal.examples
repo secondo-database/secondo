@@ -789,7 +789,7 @@ Operator  : distanceAvg
 Number    : 1
 Signature : mpoint x mpoint (x geoid) -> real
 Example   : query distanceAvg(train5, train6)
-Result    : 13246.07501438946
+Result    : 11573.4610617085
 
 Operator  : distanceAvgLB
 Number    : 1
