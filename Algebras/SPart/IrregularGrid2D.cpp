@@ -957,7 +957,10 @@ CellBS(const std::vector<C>* c_vec, int start, int end, const double val) {
     return -1;
   }
 
-  const int mid = start + ((end - start) / 2);
+  const unsigned int mid = start + ((end - start) / 2);
+  if (mid >= c_vec->size()) {
+    return -1;
+  }
 
   if (InCell(c_vec->at(mid), val)) {
     return mid;
