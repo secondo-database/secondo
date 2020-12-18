@@ -7250,6 +7250,7 @@ We introduce ~select~, ~from~, ~where~, ~as~, etc. as PROLOG operators:
 :- op(986, xfx,  some).
 :- op(980, xfx,  orderby).
 :- op(970, xfx,  groupby).
+:- op(974, xfx,  having).
 :- op(960, xfx,  from).
 :- op(960, xfx,  set).   % for update, insert
 :- op(950,  fx,  select).
@@ -7531,10 +7532,23 @@ lookup(Query orderby Attrs, Query2 orderby Attrs3) :-
   makeList(Attrs, Attrs2),
   lookupAttrs(Attrs2, Attrs3).
 
+lookup(Query groupby Attrs having Pred, Query2 groupby Attrs3 having Pred) :-
+  lookup(Query, Query2),
+  makeList(Attrs, Attrs2),
+  lookupAttrs(Attrs2, Attrs3),
+  !.
+
 lookup(Query groupby Attrs, Query2 groupby Attrs3) :-
   lookup(Query, Query2),
   makeList(Attrs, Attrs2),
   lookupAttrs(Attrs2, Attrs3).
+
+
+lookup(Query groupby Attrs having Preds, Query2 groupby Attrs3 having Preds) :-
+  lookup(Query, Query2),
+  makeList(Attrs, Attrs2),
+  lookupAttrs(Attrs2, Attrs3).
+
 
 lookup(Query first N, Query2 first N) :-
   lookup(Query, Query2).
@@ -8355,7 +8369,57 @@ lookupPred2([Me|Others], [Me2|Others2], RelsBefore, RelsAfter) :-
 % support for tmatches
 isTmatchesQuery(Pred) :-
   functor(Pred, Op, 2),
-  Op = 'tmatches', !. 
+  Op = 'tmatches', !.
+
+
+
+/*
+----    lookupAttrHaving(+T, GroupAttrs, -T2)
+----
+Translates attributes in a having-clause into the internal format.
+
+*/
+lookupAttrHaving([], _, []) :- 
+  !.
+
+lookupAttrHaving([Term], GroupAttrs, Term2) :-
+  lookupAttrHaving(Term, GroupAttrs, Term2),
+  !.
+
+lookupAttrHaving([Term | Terms], GroupAttrs, [Term2, Terms2]) :-
+  lookupAttrHaving(Term, GroupAttrs, Term2),
+  lookupAttrHaving(Terms, GroupAttrs, Terms2),
+  !.
+
+lookupAttrHaving(Term, GroupAttrs, Term2) :-
+  compound(Term),
+  Term =.. [Op, Expr],
+  lookupAttrHaving(Expr, GroupAttrs, Expr2),
+  Term2 =.. [Op, Expr2],
+  !.
+
+lookupAttrHaving(Term, GroupAttrs, Term2) :-
+  compound(Term),
+  Term =.. [Op|Args],
+  lookupAttrHaving(Args, GroupAttrs, Args2),
+  Term2 =.. [Op|Args2],
+  !.
+
+lookupAttrHaving(Name, GroupAttrs, attr(Name, 0, u)) :-
+  member(attr(Name, 0, u), GroupAttrs),
+  !.
+
+% database object
+lookupAttrHaving(Term, _, dbobject(TermDC)) :-
+  atomic(Term),
+  \+ is_list(Term),
+  dcName2externalName(TermDC,Term),
+  secondoCatalogInfo(TermDC,_,_,_),
+  !.
+
+lookupAttrHaving(Expr, _, Expr).
+
+
 
 /*
 ----    lookupTransformations(+Transf, -Transf2)
@@ -8589,6 +8653,21 @@ translate1(Query, Stream2, Select2, Update, Cost) :-
     % Hook for CSE substitution
   !.
 
+
+/*
+
+----    translate(+Query, -Stream, -SelectClause, -UpdateClause, -Cost) :-
+----
+
+~Query~ is translated into a ~Stream~ to which still the translation of the
+~SelectClause~ and ~UpdateClause~ need to be applied. A ~Cost~ is
+returned which currently is only the cost for evaluating the essential
+part, the conjunctive query.
+
+*/
+
+
+
 %    the main predicate which does the translation of a query
 %    translate(+Query, -Stream, -SelectClause, -UpdateClause, -Cost).
 %  This version of the predicate is only used while the optimizer option
@@ -8612,6 +8691,14 @@ translate(Query groupby Attrs,
   attrnamesSort(Project, AttrNamesSort),
   delExtends(Select2,Select3),
   !.
+
+translate(Query groupby Attrs having Pred,
+  		Stream, select Select, Update, Cost) :-
+  translate(Query groupby Attrs, Stream2, select Select, Update, Cost),
+  Stream2 = filter(Stream, Pred2),
+  lookupAttrHaving(Pred, Select, Pred2),
+  !.
+
 
 % the main predicate which does the translation of a query
 %   translate(+Query, -Stream, -SelectClause, -Cost)
@@ -9703,6 +9790,7 @@ countQuery(select all count(_) from _) :- !.      % This is deprecated!
 countQuery(select distinct count(_) from _) :- !. % This is deprecated!
 
 countQuery(Query groupby _) :- countQuery(Query).
+countQuery(Query having _) :- countQuery(Query).
 countQuery(Query orderby _) :- countQuery(Query).
 countQuery(Query first _)   :- countQuery(Query).
 countQuery(Query last _)   :- countQuery(Query).
@@ -9836,6 +9924,7 @@ updateQuery(delete from _) :- !.
 updateQuery(update _ set _) :- !.
 
 updateQuery(Query groupby _) :- updateQuery(Query).
+updateQuery(Query having _) :- updateQuery(Query).
 updateQuery(Query orderby _) :- updateQuery(Query).
 updateQuery(Query first _)   :- updateQuery(Query).
 updateQuery(Query last _)   :- updateQuery(Query).
@@ -9932,6 +10021,16 @@ queryToStream(Select from Rels groupby Attrs, Stream3, Cost) :-
   finish(Stream, Select1, [], Stream2),
   finishUpdate(Update, Stream2, Stream3),
   !.
+
+queryToStream(Select from Rels groupby Attrs having Pred, Stream4, Cost) :-
+  translate1(Select from Rels groupby Attrs, Stream, Select1, Update, Cost),
+  Select1 = select(GroupAttrs),
+  lookupAttrHaving(Pred, GroupAttrs, Pred2),
+  Stream2 = filter(Stream, Pred2),
+  finish(Stream2, Select1, [], Stream3),
+  finishUpdate(Update, Stream3, Stream4),
+  !.
+
 
 queryToStream(Query, Stream3, Cost) :-
   translate1(Query, Stream, Select, Update, Cost),
