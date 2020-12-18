@@ -8374,9 +8374,9 @@ isTmatchesQuery(Pred) :-
 
 
 /*
-----    lookupAttrHaving(+T, GroupAttrs, -T2)
+----    lookupAttrHaving(+Term, GroupAttrs, -Term2)
 ----
-Translates attributes in a having-clause into the internal format.
+Translates attributes in a predicate of a having-clause into the internal format.
 
 */
 lookupAttrHaving([], _, []) :- 
@@ -8418,6 +8418,30 @@ lookupAttrHaving(Term, _, dbobject(TermDC)) :-
   !.
 
 lookupAttrHaving(Expr, _, Expr).
+
+
+/*
+----    lookupPredsHaving(+Preds, GroupAttrs, -Preds2)
+----
+Translates a list of predicates in a having-clause into the internal format.
+
+*/
+
+lookupPredsHaving(Pred, GroupAttrs, Pred2) :-
+  \+ is_list(Pred),
+  lookupAttrHaving(Pred, GroupAttrs, Pred2),
+  !.
+
+lookupPredsHaving([Pred], GroupAttrs, Pred2) :-
+  lookupAttrHaving(Pred, GroupAttrs, Pred2),
+  !.
+
+lookupPredsHaving([Pred | Preds], GroupAttrs, Pred1 and Pred2) :-
+  lookupAttrHaving(Pred, GroupAttrs, Pred1),
+  lookupPredsHaving(Preds, GroupAttrs, Pred2),
+  !.
+
+lookupPredsHaving([], _, true).
 
 
 
@@ -10025,7 +10049,7 @@ queryToStream(Select from Rels groupby Attrs, Stream3, Cost) :-
 queryToStream(Select from Rels groupby Attrs having Pred, Stream4, Cost) :-
   translate1(Select from Rels groupby Attrs, Stream, Select1, Update, Cost),
   Select1 = select(GroupAttrs),
-  lookupAttrHaving(Pred, GroupAttrs, Pred2),
+  lookupPredsHaving(Pred, GroupAttrs, Pred2),
   Stream2 = filter(Stream, Pred2),
   finish(Stream2, Select1, [], Stream3),
   finishUpdate(Update, Stream3, Stream4),
