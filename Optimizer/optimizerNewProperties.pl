@@ -8716,12 +8716,6 @@ translate(Query groupby Attrs,
   delExtends(Select2,Select3),
   !.
 
-translate(Query groupby Attrs having Pred,
-  		Stream, select Select, Update, Cost) :-
-  translate(Query groupby Attrs, Stream2, select Select, Update, Cost),
-  Stream2 = filter(Stream, Pred2),
-  lookupAttrHaving(Pred, Select, Pred2),
-  !.
 
 
 % the main predicate which does the translation of a query
@@ -8739,6 +8733,14 @@ translate(Query groupby Attrs,
   translateFields(SelAttrs, Attrs2, Fields, Select2,_,_), % change by Goehr
   assert(memoryOp(grouping, Attrs)),
   assert(memoryOp(sortingForGrouping, Attrs)),
+  !.
+
+translate(Query groupby Attrs having Pred,
+  		Stream2, Select, Update, Cost) :-
+  translate(Query groupby Attrs, Stream, Select, Update, Cost),
+  Select = select(GroupAttrs),
+  lookupPredsHaving(Pred, GroupAttrs, Pred2),
+  Stream2 = filter(Stream, Pred2),
   !.
 
 % insert query
@@ -10047,14 +10049,11 @@ queryToStream(Select from Rels groupby Attrs, Stream3, Cost) :-
   !.
 
 queryToStream(Select from Rels groupby Attrs having Pred, Stream4, Cost) :-
-  translate1(Select from Rels groupby Attrs, Stream, Select1, Update, Cost),
-  Select1 = select(GroupAttrs),
-  lookupPredsHaving(Pred, GroupAttrs, Pred2),
-  Stream2 = filter(Stream, Pred2),
+  translate1(Select from Rels groupby Attrs having Pred, Stream2, 
+    Select1, Update, Cost),
   finish(Stream2, Select1, [], Stream3),
   finishUpdate(Update, Stream3, Stream4),
   !.
-
 
 queryToStream(Query, Stream3, Cost) :-
   translate1(Query, Stream, Select, Update, Cost),
