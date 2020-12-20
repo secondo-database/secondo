@@ -212,19 +212,12 @@ class KDTree2D {
       Word& local, Supplier s );
 
     static ListExpr Kdtree2dCellnosTypeMap( ListExpr args );
-    static ListExpr Kdtree2dTRCTypeMap( ListExpr args );
-    static ListExpr Kdtree2dTRCCellIdTypeMap( ListExpr args );
 
     static ListExpr Kdtree2dSCCTypeMap( ListExpr args );
     static ListExpr Kdtree2dGetCellTypeMap( ListExpr args );
 
-
     static int Kdtree2dValueMapCellnos( Word* args, Word& result, int message,
       Word& local, Supplier s );
-    static int Kdtree2dValueMapTRC( Word* args, Word& result, int message,
-      Word& local, Supplier s ); 
-      static int Kdtree2dValueMapTRCCellId( Word* args, Word& result,
-       int message, Word& local, Supplier s ); 
     static int Kdtree2dValueMapSCC( Word* args, Word& result, int message,
       Word& local, Supplier s );  
 

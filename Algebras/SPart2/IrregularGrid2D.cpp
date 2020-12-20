@@ -939,46 +939,6 @@ IrregularGrid2D::IrGrid2dCellnosTypeMap( ListExpr args )
 }
 
 ListExpr
-IrregularGrid2D::IrGrid2dTRCCellIdTypeMap( ListExpr args )
-{
-  if(nl->HasLength(args, 3)) {
-    ListExpr first = nl->First(args);
-    ListExpr second = nl->Second(args);
-    ListExpr third = nl->Third(args);
-
-    if (IrregularGrid2D::checkType(first) && Rectangle<2>::checkType(second)
-        && Rectangle<2>::checkType(third)) {
-      return nl->SymbolAtom(CcInt::BasicType());
-    }
-  }
-
-  const std::string errMsg = "The following two arguments are expected:"
-      " irgrid2d x rect x rect";
-
-  return  listutils::typeError(errMsg);
-}
-
-ListExpr
-IrregularGrid2D::IrGrid2dTRCTypeMap( ListExpr args )
-{
-  if(nl->HasLength(args, 3)) {
-    ListExpr first = nl->First(args);
-    ListExpr second = nl->Second(args);
-    ListExpr third = nl->Third(args);
-
-    if (IrregularGrid2D::checkType(first) && Rectangle<2>::checkType(second)
-        && Rectangle<2>::checkType(third)) {
-      return nl->SymbolAtom(CcInt::BasicType());
-    }
-  }
-
-  const std::string errMsg = "The following two arguments are expected:"
-      " irgrid2d x rect x rect";
-
-  return  listutils::typeError(errMsg);
-}
-
-ListExpr
 IrregularGrid2D::IrGrid2dSCCTypeMap( ListExpr args )
 {
   if(nl->HasLength(args, 4)) {

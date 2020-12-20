@@ -1685,46 +1685,6 @@ KDTree2D::Kdtree2dCellnosTypeMap( ListExpr args )
 }
 
 ListExpr
-KDTree2D::Kdtree2dTRCTypeMap( ListExpr args )
-{
-  if(nl->HasLength(args, 3)) {
-    ListExpr first = nl->First(args);
-    ListExpr second = nl->Second(args);
-    ListExpr third = nl->Third(args);
-
-    if (KDTree2D::checkType(first) && Rectangle<2>::checkType(second)
-      && Rectangle<2>::checkType(third)) {
-      return nl->SymbolAtom(CcInt::BasicType());
-    }
-  }
-
-  const std::string errMsg = "The following three arguments are expected:"
-      " 2dtree x rect x rect";
-
-  return  listutils::typeError(errMsg);
-}
-
-ListExpr
-KDTree2D::Kdtree2dTRCCellIdTypeMap( ListExpr args )
-{
-  if(nl->HasLength(args, 3)) {
-    ListExpr first = nl->First(args);
-    ListExpr second = nl->Second(args);
-    ListExpr third = nl->Third(args);
-
-    if (KDTree2D::checkType(first) && Rectangle<2>::checkType(second)
-      && Rectangle<2>::checkType(third)) {
-      return nl->SymbolAtom(CcInt::BasicType());
-    }
-  }
-
-  const std::string errMsg = "The following three arguments are expected:"
-      " 2dtree x rect x rect";
-
-  return  listutils::typeError(errMsg);
-}
-
-ListExpr
 KDTree2D::Kdtree2dSCCTypeMap( ListExpr args )
 {
   if(nl->HasLength(args, 4)) {
@@ -1899,6 +1859,25 @@ GetLeaf(KDNodeList* node, double le, double ri,
   return;
 }
 
+/*
+  Returns true if two rectangles (l1, r1) and (l2, r2) overlap 
+
+*/
+bool rectOverlap(double toleX1, double toleY1, double boriX1,
+ double boriY1, double toleX2, double toleY2, double boriX2,
+ double boriY2) 
+{ 
+    // If one rectangle is on left side of other 
+    if (toleX1 > boriX2 || toleX2 > boriX1) 
+        return false; 
+  
+    // If one rectangle is above other 
+    if (toleY1 < boriY2 || toleY2 < boriY1) 
+        return false; 
+  
+    return true; 
+} 
+
 void
 cellnumber(double le, double ri, 
   double bo, double to, std::set<int> *cell_ids,
@@ -1907,20 +1886,11 @@ cellnumber(double le, double ri,
   for(size_t ce=0; ce < cells->size(); ce++)
   {
     Cell2DTree* curr_cell = &cells->at(ce);
-    if(le >= curr_cell->getValFromX() && le <= curr_cell->getValToX())
+
+    if(rectOverlap(curr_cell->getValFromX(), curr_cell->getValToY(), 
+    curr_cell->getValToX(), curr_cell->getValFromY(), le, to, ri, bo))
     {
-      if((bo >= curr_cell->getValFromY() && bo <= curr_cell->getValToY())
-      || (to >= curr_cell->getValFromY() && to <=curr_cell->getValToY()))
-      {
-        cell_ids->insert(curr_cell->getCellId());
-      }
-    } else if(ri >= curr_cell->getValFromX() && ri <= curr_cell->getValToX())
-    {
-      if((bo >= curr_cell->getValFromY() && bo <= curr_cell->getValToY())
-      || (to >= curr_cell->getValFromY() && to <=curr_cell->getValToY()))
-      {
-        cell_ids->insert(curr_cell->getCellId());
-      }
+      cell_ids->insert(curr_cell->getCellId());
     }
   }
 
@@ -2024,156 +1994,6 @@ KDTree2D::Kdtree2dValueMapCellnos( Word* args, Word& result, int message,
   return -1;
 }
 
-/*
-  Calculates top right class value of two rectangles
-
-*/
-int
-KDTree2D::Kdtree2dValueMapTRC( Word* args, Word& result, int message,
-    Word& local, Supplier s ) {
-
-  Rectangle<2> *search_window_ptr
-    = static_cast<Rectangle<2>*>( args[1].addr );
-
-    Rectangle<2> *search_window_ptr_2
-    = static_cast<Rectangle<2>*>( args[1].addr );
-
-  if (search_window_ptr != nullptr
-    && search_window_ptr_2 != nullptr) {
-
-      result = qp->ResultStorage(s);
-      CcInt* res = (CcInt*) result.addr;
-
-        // get TRC Values
-        int value_rect1 = 0;
-
-        if ( search_window_ptr->getMaxX() >= search_window_ptr_2->getMaxY() )
-          {value_rect1++;}
-        if ( search_window_ptr->getMaxY() >= search_window_ptr_2->getMaxY() ) {
-          value_rect1 += 2;}
-
-        res->Set(value_rect1);
-  }
-
-return 0;
-}
-
-/*
-  Calculates top right class value of two rectangles in
-  a created grid and returns cell id of cell which should
-  report
-
-*/
-int
-KDTree2D::Kdtree2dValueMapTRCCellId( Word* args, Word& result, int message,
-    Word& local, Supplier s ) {
-  KDTree2D *input_kdtree2d_ptr
-    = static_cast<KDTree2D*>( args[0].addr );
-
-  Rectangle<2> *search_window_ptr
-    = static_cast<Rectangle<2>*>( args[1].addr );
-
-    Rectangle<2> *search_window_ptr_2
-    = static_cast<Rectangle<2>*>( args[2].addr );
-
-  int mode_ = input_kdtree2d_ptr->getMode();
-
-  if (input_kdtree2d_ptr != nullptr && search_window_ptr != nullptr
-    && search_window_ptr_2 != nullptr) {
-
-      result = qp->ResultStorage(s);
-      CcInt* res = (CcInt*) result.addr;
-
-      // first rectangle
-      double le = search_window_ptr->getMinX();
-      double ri = search_window_ptr->getMaxX();
-      double bo = search_window_ptr->getMinY();
-      double to = search_window_ptr->getMaxY();
-
-      // second rectangle
-      double le_2 = search_window_ptr_2->getMinX();
-      double ri_2 = search_window_ptr_2->getMaxX();
-      double bo_2 = search_window_ptr_2->getMinY();
-      double to_2 = search_window_ptr_2->getMaxY();
-
-      std::set<int> cell_ids;
-      std::set<int> cell_ids_2;
-
-      if(mode_ == 1) {
-        std::vector<KDNodeList*> nodes = input_kdtree2d_ptr->getPointsVector();
-        KDNodeList* root = nodes.back();
-        GetLeaf(root, le, ri, bo, to, &cell_ids);
-        GetLeaf(root, le_2, ri_2, bo_2, to_2, &cell_ids_2);
-      } else if(mode_ == 2) {
-        std::vector<KDMedList*> nodes = 
-            input_kdtree2d_ptr->getPointsMedVector();
-        KDMedList* root = nodes.back();
-        GetLeaf(root, le, ri, bo, to, &cell_ids);
-        GetLeaf(root, le_2, ri_2, bo_2, to_2, &cell_ids_2);
-      } else {
-        cell_ids.clear();
-        cell_ids_2.clear();
-        std::vector<Cell2DTree>* cells = 
-          &input_kdtree2d_ptr->getCellVector();    
-        cellnumber(le, ri, bo, to, &cell_ids, cells);
-        cellnumber(le_2, ri_2, bo_2, to_2, &cell_ids_2, cells);
-      }
-
-      std::vector<int> v(sizeof(cell_ids)+ sizeof(cell_ids_2));
-      std::vector<int>::iterator it;
-
-      it=std::set_intersection (cell_ids.begin(), cell_ids.end(),
-         cell_ids_2.begin(), cell_ids_2.end(), v.begin());
-      v.resize(it-v.begin());                      
-  
-      if(v.empty()) { 
-      //no intersection between rectangles
-        res->Set(0);
-        return -1;
-
-      }
-
-      std::vector<Cell2DTree>* cells = &input_kdtree2d_ptr->getCellVector();    
-
-
-      for (it=v.begin(); it!=v.end(); ++it) {
-      for(size_t c = 0; c < cells->size(); c++) {
-      if(cells->at(c).getCellId() == *it) {
-        // get TRC Values
-        int value_rect1 = 0;
-        int value_rect2 = 0;
-
-        // create bbox of kdtree cell
-        Cell2DTree* tmp = &cells->at(c);
-
-        //Rectangle<2> bbox =  bbox(tmp);
-        if ( search_window_ptr->getMaxX() >= tmp->getValToX() )
-          {value_rect1++;}
-        if ( search_window_ptr->getMaxY() >= tmp->getValToY() ) {
-          value_rect1 += 2;}
-        
-
-        if ( search_window_ptr_2->getMaxX() >= tmp->getValToX() )
-          {value_rect2++;}
-        if ( search_window_ptr_2->getMaxY() >= tmp->getValToY() ) {
-          value_rect2 += 2;}
-        
-        int value = value_rect1 & value_rect2;
-        if (value == 0)
-        {
-          res->Set( *it );
-          return 0;
-        }
-   }
-  }
-  }
-
-
-  }
-
-
-return 0;
-}
 
 /*
   returns cell to a given id

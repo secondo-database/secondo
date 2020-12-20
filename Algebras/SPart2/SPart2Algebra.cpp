@@ -432,46 +432,6 @@ int IrGrid3dCellnosSelect( ListExpr args )
   return -1; // should never occur
 }
 
-/* 
-  Toprightclass 3D Select 
-
-*/
-int IrGrid3dTRCSelect( ListExpr args )
-{
-  if (nl->ListLength(args) == 3) {
-    ListExpr first = nl->First(args);
-    ListExpr second = nl->Second(args);
-    ListExpr third = nl->Third(args);
-
-    if (IrregularGrid3D::checkType(first)
-      && Rectangle<3>::checkType(second)
-      && Rectangle<3>::checkType(third)) {
-        return 0;
-    }
-  }
-  return -1;
-}
-
-/*
-  Toprightclass 3D Select 
-
-*/
-int IrGrid3dTRCCellSelect( ListExpr args )
-{
-  if (nl->ListLength(args) == 3) {
-    ListExpr first = nl->First(args);
-    ListExpr second = nl->Second(args);
-    ListExpr third = nl->Third(args);
-
-    if (IrregularGrid3D::checkType(first)
-      && Rectangle<3>::checkType(second)
-      && Rectangle<3>::checkType(third)) {
-        return 0;
-    }
-  }
-  return -1;
-}
-
 /*
   Smallest Common Cellnumber 3D Select
 
@@ -572,39 +532,6 @@ int KDTree2dCellnosSelect( ListExpr args )
   return -1;
 }
 
-/* ToprightClass 2DTree Select */
-int KDTree2dTRCSelect( ListExpr args )
-{
-  if (nl->ListLength(args) == 3) {
-    ListExpr first = nl->First(args);
-    ListExpr second = nl->Second(args);
-    ListExpr third = nl->Third(args);
-
-    if (KDTree2D::checkType(first)
-      && Rectangle<2>::checkType(second)
-      && Rectangle<2>::checkType(third)) {
-        return 0;
-    }
-  }
-  return -1; // should never occur
-}
-
-int KDTree2dTRCCellSelect( ListExpr args )
-{
-  if (nl->ListLength(args) == 3) {
-    ListExpr first = nl->First(args);
-    ListExpr second = nl->Second(args);
-    ListExpr third = nl->Third(args);
-
-    if (KDTree2D::checkType(first)
-      && Rectangle<2>::checkType(second)
-      && Rectangle<2>::checkType(third)) {
-        return 0;
-    }
-  }
-  return -1; // should never occur
-}
-
 /* 
   Smallest common cellnumber 2DTree Select 
 
@@ -684,42 +611,6 @@ int KDTree3dCellnosSelect( ListExpr args )
     }
   }
   return -1; // should never occur
-}
-
-/* 
-  toprightclass 3dtree select 
-  
-*/
-int KDTree3dTRCSelect( ListExpr args )
-{
-  if (nl->ListLength(args) == 3) {
-    ListExpr first = nl->First(args);
-    ListExpr second = nl->Second(args);
-    ListExpr third = nl->Third(args);
-
-    if (KDTree3D::checkType(first)
-      && Rectangle<3>::checkType(second)
-      && Rectangle<3>::checkType(third)) {
-        return 0;
-    }
-  }
-  return -1;
-}
-
-int KDTree3dTRCCellSelect( ListExpr args )
-{
-  if (nl->ListLength(args) == 3) {
-    ListExpr first = nl->First(args);
-    ListExpr second = nl->Second(args);
-    ListExpr third = nl->Third(args);
-
-    if (KDTree3D::checkType(first)
-      && Rectangle<3>::checkType(second)
-      && Rectangle<3>::checkType(third)) {
-        return 0;
-    }
-  }
-  return -1;
 }
 
 /* 
@@ -892,9 +783,6 @@ ValueMapping irgdrid3dCreateMap[] = { IrGrid3dValueMapCreate };
 ValueMapping irgdrid3dFeedMap[] = { IrregularGrid3D::IrGrid3dValueMapFeed };
 ValueMapping irgdrid3dCellnosMap[]
   = { IrregularGrid3D::IrGrid3dValueMapCellnos };
-ValueMapping irgrid3dTRCMap[] = {IrregularGrid3D::IrGrid3dValueMapTRC };
-ValueMapping irgrid3dTRCCellMap[] 
-  = {IrregularGrid3D::IrGrid3dValueMapTRCCellId };
 ValueMapping irgrid3dSCCMap[] = {IrregularGrid3D::IrGrid3dValueMapSCC };
 ValueMapping irgrid3dGetCellMap[] = {IrregularGrid3D::IrGrid3dValueMapGetCell };
 ValueMapping irgrid3dBBoxMap[] = {IrregularGrid3D::IrGrid3dValueMapBBox };
@@ -903,16 +791,12 @@ ValueMapping irgrid3dBBoxMap[] = {IrregularGrid3D::IrGrid3dValueMapBBox };
 ValueMapping kdtree2dCreateMap[] = { KDTree2DValueMapCreate };
 ValueMapping kdtree2dFeedMap[] = { KDTree2D::KdTree2dValueMapFeed };
 ValueMapping kdtree2dCellnosMap[] = {KDTree2D::Kdtree2dValueMapCellnos};
-ValueMapping kdtree2dTRCMap[] = {KDTree2D::Kdtree2dValueMapTRC};
-ValueMapping kdtree2dTRCCellMap[] = {KDTree2D::Kdtree2dValueMapTRCCellId};
 ValueMapping kdtree2dSCCMap[] = {KDTree2D::Kdtree2dValueMapSCC};
 ValueMapping kdtree2dGetCellMap[] = {KDTree2D::Kdtree2dValueMapGetCell};
 
 ValueMapping kdtree3dCreateMap[] = { KDTree3DValueMapCreate };
 ValueMapping kdtree3dFeedMap[] = { KDTree3D::KdTree3dValueMapFeed };
 ValueMapping kdtree3dCellnosMap[] = {KDTree3D::Kdtree3dValueMapCellnos};
-ValueMapping kdtree3dTRCMap[] = {KDTree3D::Kdtree3dValueMapTRC};
-ValueMapping kdtree3dTRCCellMap[] = {KDTree3D::Kdtree3dValueMapTRCCellId};
 ValueMapping kdtree3dSCCMap[] = {KDTree3D::Kdtree3dValueMapSCC};
 ValueMapping kdtree3dGetCellMap[] = {KDTree3D::Kdtree3dValueMapGetCell};
 
@@ -999,22 +883,6 @@ const string cellnosIrGrid3dSpec  =
       "covered by the given 3d rectangle.</text--->"
       ") )";
 
-const string trcIrGrid3dSpec  =
-      "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" \"Remarks\")"
-      "( <text>(irgrid3d x rect3 x rect3) -> int</text--->"
-      "<text>trc_ir3d(_, _,_)</text--->"
-      "<text>get the toprightclass value "
-      " of two given cells/cuboids.</text--->"
-      ") )";
-
-const string trcCellIrGrid3dSpec  =
-      "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" \"Remarks\")"
-      "( <text>(irgrid3d x rect3 x rect3) -> int</text--->"
-      "<text>trc_ir3d(_, _,_)</text--->"
-      "<text>get the id of the cell which should be "
-      "reported in case of join.</text--->"
-      ") )";
-
 const string sccIrGrid3dSpec  =
       "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" \"Remarks\")"
       "( <text>(irgrid3d x rect3 x rect3 x int) -> bool</text--->"
@@ -1055,22 +923,6 @@ const string cellnosKDTree2dSpec  =
       "<text>get the ids of the 2d-tree cells "
       "covered by the given rectangle.</text--->"
       ") )"; 
-      
-const string trcCellKDTree2dSpec  =
-      "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" \"Remarks\")"
-      "( <text>(kdtree2d x rect2 x rect2) -> int</text--->"
-      "<text>trc_kd(_, _,_)</text--->"
-      "<text>get the id of the cell which should"
-      " be reported.</text--->"
-      ") )";
-
-const string trcKDTree2dSpec  =
-      "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" \"Remarks\")"
-      "( <text>(kdtree2d x rect2 x rect2) -> int</text--->"
-      "<text>trc_kd(_, _,_)</text--->"
-      "<text>get the toprightclass value of"
-      " two given rectangles/cells.</text--->"
-      ") )";
 
 const string sccKDTree2dSpec  =
       "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" \"Remarks\")"
@@ -1122,22 +974,6 @@ const string feedKDTree3dSpec  =
       "<text>creates a tuple stream "
       "from 3dtree.</text--->"
       ") )";
-
-const string trcCellKDTree3dSpec  =
-      "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" \"Remarks\")"
-      "( <text>(kdtree3d x rect3 x rect3) -> int</text--->"
-      "<text>trc_3d(_, _,_)</text--->"
-      "<text>get the id of the cell which should be" 
-      " reported.</text--->"
-      ") )";  
-
-const string trcKDTree3dSpec  =
-      "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" \"Remarks\")"
-      "( <text>(kdtree3d x rect3 x rect3) -> int</text--->"
-      "<text>trc_3d(_, _,_)</text--->"
-      "<text>get the toprightclass value of"
-      "the given cuboid and cell.</text--->"
-      ") )"; 
 
 const string sccKDTree3dSpec  =
       "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" \"Remarks\")"
@@ -1222,20 +1058,6 @@ Operator cellnosirgrid3d( "cellnos_ir",
     IrGrid3dCellnosSelect,
     IrregularGrid3D::IrGrid3dCellnosTypeMap );
 
-Operator trcirgrid3d( "trc_ir3d",
-    trcIrGrid3dSpec,
-    1,
-    irgrid3dTRCMap,
-    IrGrid3dTRCSelect,
-    IrregularGrid3D::IrGrid3dTRCTypeMap );
-
-Operator trccellirgrid3d( "trccell_ir3d",
-    trcCellIrGrid3dSpec,
-    1,
-    irgrid3dTRCCellMap,
-    IrGrid3dTRCCellSelect,
-    IrregularGrid3D::IrGrid3dTRCCellIdTypeMap );
-
 Operator sccirgrid3d( "scc_ir3d",
     sccIrGrid3dSpec,
     1,
@@ -1270,21 +1092,6 @@ Operator cellnoskdtree2d( "cellnos_kd",
     kdtree2dCellnosMap,
     KDTree2dCellnosSelect,
     KDTree2D::Kdtree2dCellnosTypeMap );
-
-
-Operator trckdtree2d( "trc_kd",
-    trcKDTree2dSpec,
-    1,
-    kdtree2dTRCMap,
-    KDTree2dTRCSelect,
-    KDTree2D::Kdtree2dTRCTypeMap );
-
-Operator trccellkdtree2d( "trccell_kd",
-    trcCellKDTree2dSpec,
-    1,
-    kdtree2dTRCCellMap,
-    KDTree2dTRCCellSelect,
-    KDTree2D::Kdtree2dTRCCellIdTypeMap );
 
 Operator scckdtree2d( "scc_kd",
     sccKDTree2dSpec,
@@ -1327,20 +1134,6 @@ Operator feedkdtree3d( "feed",
     kdtree3dFeedMap,
     KDTree3dFeedSelect,
     KDTree3D::KdTree3dFeedTypeMap );  
-
-Operator trckdtree3d( "trc_3d",
-    trcKDTree3dSpec,
-    1,
-    kdtree3dTRCMap,
-    KDTree3dTRCSelect,
-    KDTree3D::Kdtree3dTRCTypeMap );  
-
-Operator trccellkdtree3d( "trccell_3d",
-    trcCellKDTree3dSpec,
-    1,
-    kdtree3dTRCCellMap,
-    KDTree3dTRCCellSelect,
-    KDTree3D::Kdtree3dTRCCellIdTypeMap ); 
 
 Operator scckdtree3d( "scc_3d",
     sccKDTree3dSpec,
@@ -1391,16 +1184,10 @@ class SPart : public Algebra {
       AddOperator( &cellnoskdtree3d );
       AddOperator( &feedkdtree3d );
 
-      AddOperator( &trckdtree2d );
-      AddOperator( &trccellkdtree2d );
       AddOperator( &scckdtree2d );
       AddOperator( &getcellkdtree2d );
-      AddOperator( &trckdtree3d );
-      AddOperator( &trccellkdtree3d );
       AddOperator( &scckdtree3d );
       AddOperator( &getcellkdtree3d );
-      AddOperator( &trcirgrid3d );
-      AddOperator( &trccellirgrid3d );
       AddOperator( &sccirgrid3d );
       AddOperator( &getcellirgrid3d );
       

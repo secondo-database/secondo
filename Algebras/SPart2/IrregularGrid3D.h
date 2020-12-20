@@ -215,14 +215,6 @@ class IrregularGrid3D {
     static int IrGrid3dValueMapCellnos( Word* args, Word& result, int message,
       Word& local, Supplier s );
 
-    static ListExpr IrGrid3dTRCTypeMap( ListExpr args );
-    static int IrGrid3dValueMapTRC( Word* args, Word& result, int message,
-      Word& local, Supplier s );
-
-       static ListExpr IrGrid3dTRCCellIdTypeMap( ListExpr args );
-    static int IrGrid3dValueMapTRCCellId( Word* args, Word& result, int message,
-      Word& local, Supplier s );
-
     static ListExpr IrGrid3dSCCTypeMap( ListExpr args );
     static int IrGrid3dValueMapSCC( Word* args, Word& result, int message,
       Word& local, Supplier s );

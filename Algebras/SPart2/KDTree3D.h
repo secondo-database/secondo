@@ -255,12 +255,6 @@ class KDTree3D {
     static ListExpr Kdtree3dCellnosTypeMap( ListExpr args );
     static int Kdtree3dValueMapCellnos( Word* args, Word& result, int message,
       Word& local, Supplier s );
-    static ListExpr Kdtree3dTRCTypeMap( ListExpr args );
-    static int Kdtree3dValueMapTRC( Word* args, Word& result, int message,
-      Word& local, Supplier s );
-      static ListExpr Kdtree3dTRCCellIdTypeMap( ListExpr args );
-    static int Kdtree3dValueMapTRCCellId( Word* args, Word& result, int message,
-      Word& local, Supplier s );
     static ListExpr Kdtree3dSCCTypeMap( ListExpr args );
     static int Kdtree3dValueMapSCC( Word* args, Word& result, int message,
       Word& local, Supplier s );

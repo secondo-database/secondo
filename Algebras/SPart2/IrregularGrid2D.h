@@ -148,15 +148,7 @@ class IrregularGrid2D {
     static ListExpr IrGrid2dCellnosTypeMap( ListExpr args );
     static int IrGrid2dValueMapCellnos( Word* args, Word& result, int message,
       Word& local, Supplier s );
-
-      static ListExpr IrGrid2dTRCCellIdTypeMap( ListExpr args );
-    static int IrGrid2dValueMapTRCCellId( Word* args, Word& result, int message,
-      Word& local, Supplier s );
-
-      static ListExpr IrGrid2dTRCTypeMap( ListExpr args );
-    static int IrGrid2dValueMapTRC( Word* args, Word& result, int message,
-      Word& local, Supplier s );
-
+      
       static ListExpr IrGrid2dSCCTypeMap( ListExpr args );
     static int IrGrid2dValueMapSCC( Word* args, Word& result, int message,
       Word& local, Supplier s );
