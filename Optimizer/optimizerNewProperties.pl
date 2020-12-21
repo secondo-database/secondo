@@ -6104,9 +6104,9 @@ costEdge(Source, Target, PropertiesIn, Plan, PropertiesOut, Result,
 
 determineCost(Term, Sel, Pred, Result, Size, Cost) :-
   getMemory(Memory),
-	write('Cost function 2014 called for term '), write(Term), nl,
+%	write('Cost function 2014 called for term '), write(Term), nl,
   cost(Term, Sel, Pred, Result, Memory, Size, _NAttrs, _TupleSize, Cost),
-	write('Cost function 2014 succeeded'), nl, nl,
+%	write('Cost function 2014 succeeded'), nl, nl,
   !.
 
 determineCost(Term, Sel, Pred, Result, Size, Cost) :-
@@ -7275,6 +7275,7 @@ We introduce ~select~, ~from~, ~where~, ~as~, etc. as PROLOG operators:
 :- op(800,  fx,  union).
 :- op(984,  xfx, union).
 :- op(984,  xfx, minus).
+:- op(984,  xfx, intersection).
 :- op(800,  fx,  intersection).
 
 % Section:Start:opPrologSyntax_3_e
@@ -7558,15 +7559,6 @@ lookup(Query last N, Query2 last N) :-
 
 lookup(Query some N, Query2 some N) :-
   lookup(Query, Query2).
-
-lookup(Query1 union Query2, Query1a union Query2a) :-
-  lookup(Query1, Query1a),
-  lookup(Query2, Query2a).
-
-lookup(Query1 minus Query2, Query1a minus Query2a) :-
-  lookup(Query1, Query1a),
-  lookup(Query2, Query2a).
-
 
 % Section:Start:lookup_2_e
 % Section:End:lookup_2_e
@@ -9990,19 +9982,6 @@ queryToStream(Query some N, some(Stream, N), Cost) :-
   queryToStream(Query, Stream, Cost),
   !.
 
-queryToStream(Query1 union Query2, 
-    rdup(sort(concat(Stream1, Stream2))), Cost1 + Cost2) :-
-  queryToStream(Query1, Stream1, Cost1),
-  queryToStream(Query2, Stream2, Cost2),
-  !.
-
-queryToStream(Query1 minus Query2, 
-	mergediff(rdup(sort(Stream1)), rdup(sort(Stream2))), Cost1 + Cost2) :-
-  queryToStream(Query1, Stream1, Cost1),
-  queryToStream(Query2, Stream2, Cost2),
-  !.
-
-
 
 % NVK ADDED MA
 /*
@@ -10404,7 +10383,7 @@ sqlToPlan(QueryText, ResultText, Costs) :-
            ( ( Exc = error_SQL(ErrorTerm),
                ( ErrorTerm=(_::ErrorCode::Message) ; ErrorTerm=(_::Message) )
              ) %% Problems with the SQL query itself:
-             -> my_concat_atom(['SQL ERROR (usually a user error):\n',
+             -> my_concat_atom(['SQL ERROR (usually a user error): \n',
                        Message],'', MessageToSend)
              ;  ( ( Exc = error_Internal(ErrorTerm),
                     (   ErrorTerm = (_::ErrorCode::Message)
@@ -10900,7 +10879,7 @@ exception-format described above, that is thrown within goal ~G~.
 
 
 :- dynamic(errorHandlingRethrow/0),   % standard behaviour is to handle
-   retractall(errorHandlingRethrow).  % errors quitely.
+   retractall(errorHandlingRethrow).  % errors quietly.
 
 defaultExceptionHandler(G) :-
   catch( G,
@@ -11074,38 +11053,96 @@ mOptimize(intersection Terms, Query, Cost) :-
   mStreamOptimize(intersection Terms, Plan, Cost),
   my_concat_atom([Plan, 'consume'], '', Query).
 
+
+mOptimize(Term1 union Term2, Query, Cost) :-
+  mStreamOptimize(Term1 union Term2, Plan, Cost),
+  my_concat_atom([Plan, 'consume'], '', Query).
+
+mOptimize(Term1 intersection Term2, Query, Cost) :-
+  mStreamOptimize(Term1 intersection Term2, Plan, Cost),
+  my_concat_atom([Plan, 'consume'], '', Query).
+
+mOptimize(Term1 minus Term2, Query, Cost) :-
+  mStreamOptimize(Term1 minus Term2, Plan, Cost),
+  my_concat_atom([Plan, 'consume'], '', Query).
+
+
 mOptimize(Term, Query, Cost) :-
   optimize(Term, Query, Cost).
 
 
 mStreamOptimize(union [Term], Query, Cost) :-
   streamOptimize(Term, QueryPart, Cost),
-  %my_concat_atom([QueryPart, 'sort rdup '], '', Query).
-  % NVK MODIFIED NR: missing blank before sort.
   my_concat_atom([QueryPart, ' sort rdup '], '', Query).
 
 mStreamOptimize(union [Term | Terms], Query, Cost) :-
   streamOptimize(Term, Plan1, Cost1),
   mStreamOptimize(union Terms, Plan2, Cost2),
-  %my_concat_atom([Plan1, 'sort rdup ', Plan2, 'mergeunion '], '', Query),
-  % NVK MODIFIED NR: missing blank before sort.
+  equalSchema(Term, union Terms, Plan1, Plan2, union),
   my_concat_atom([Plan1, ' sort rdup ', Plan2, 'mergeunion '], '', Query),
   Cost is Cost1 + Cost2.
 
 mStreamOptimize(intersection [Term], Query, Cost) :-
   streamOptimize(Term, QueryPart, Cost),
-  %my_concat_atom([QueryPart, 'sort rdup '], '', Query).
-  % NVK MODIFIED NR: missing blank before sort.
   my_concat_atom([QueryPart, ' sort rdup '], '', Query).
 
 mStreamOptimize(intersection [Term | Terms], Query, Cost) :-
   streamOptimize(Term, Plan1, Cost1),
   mStreamOptimize(intersection Terms, Plan2, Cost2),
-  my_concat_atom([Plan1, 'sort rdup ', Plan2, 'mergesec '], '', Query),
+  equalSchema(Term, intersection Terms, Plan1, Plan2, intersection),
+  my_concat_atom([Plan1, ' sort rdup ', Plan2, 'mergesec '], '', Query),
+  Cost is Cost1 + Cost2.
+
+
+mStreamOptimize(Term1 union Term2, Query, Cost) :-
+  streamOptimize(Term1, Plan1, Cost1),
+  streamOptimize(Term2, Plan2, Cost2),
+  equalSchema(Term1, Term2, Plan1, Plan2, union),
+  my_concat_atom([Plan1, ' sort rdup ', Plan2, ' sort rdup mergeunion '], '', 
+    Query),
+  Cost is Cost1 + Cost2.
+
+mStreamOptimize(Term1 intersection Term2, Query, Cost) :-
+  streamOptimize(Term1, Plan1, Cost1),
+  streamOptimize(Term2, Plan2, Cost2),
+  equalSchema(Term1, Term2, Plan1, Plan2, intersection),
+  my_concat_atom([Plan1, ' sort rdup ', Plan2, ' sort rdup mergesec '], '', 
+    Query),
+  Cost is Cost1 + Cost2.
+
+mStreamOptimize(Term1 minus Term2, Query, Cost) :-
+  streamOptimize(Term1, Plan1, Cost1),
+  streamOptimize(Term2, Plan2, Cost2),
+  equalSchema(Term1, Term2, Plan1, Plan2, minus),
+  my_concat_atom([Plan1, ' sort rdup ', Plan2, ' sort rdup mergediff '], '', 
+    Query),
   Cost is Cost1 + Cost2.
 
 mStreamOptimize(Term, Query, Cost) :-
   streamOptimize(Term, Query, Cost).
+
+equalSchema(_, _, Plan1, Plan2, _) :-
+  typeQuery(Plan1, Query1),
+  typeQuery(Plan2, Query2),
+  secondo(Query1, Result1),
+  secondo(Query2, Result2),
+  Result1 = Result2,
+  !.
+
+equalSchema(Term1, Term2, _, _, Op) :-
+  writeError,
+  write_list(['\tSchemas of the following queries for ', Op, ' not equal: ']),
+  write_list(['\n\t', Term1]),
+  write_list(['\n\t', Term2]),
+  write_list(['\n\n']),
+  fail.
+
+typeQuery(Plan, Query) :-
+  my_concat_atom(['query ', Plan, ' getTypeNL'], '', Query).
+
+writeError :-   ansi_format([bold,fg(red)], '\n~w', ['ERROR:']).
+
+
 
 
 /*
