@@ -7675,8 +7675,8 @@ lookupRel((Rel) as Var, (Rel2) as Var) :-
 
 lookupRel(X,Y) :- !,
   (isDatabaseOpen
-   -> ( term_to_atom(X,XA),
-        my_concat_atom(['Unknown relation: \'',XA,'\'.'],'',ErrMsg),
+   -> ( term_to_atom(X, XA),
+        my_concat_atom(['Unknown relation: ', XA], '', ErrMsg),
         write_list(['\nERROR:\t',ErrMsg]), nl,
         throw(error_SQL(optimizer_lookupRel(X,Y)::unknownRelation::ErrMsg)),
         fail
@@ -8606,6 +8606,8 @@ example13 :- showTranslate(
 /*
 11.4 Translating a Query to a Plan
 
+11.4.1 Predicates translate1 and translate
+
 ----    translate1(+Query, -Stream, -SelectClause, -UpdateClause, -Cost) :-
 ----
 
@@ -9061,6 +9063,8 @@ renameAttributes(Var, [attrname(attr(Attr,Arg,Case))|AttrNames],
 /* Begin Code modified by Goehr */
 
 /*
+14.4.2 Grouping and Aggregation
+
 ----  translateFields(+Select, +GroupAttrs,
                       -Fields, -Select2, -ExtendAttrs, -ProjectAttrs)
 ----
@@ -9288,6 +9292,8 @@ translateFields([Term | Select], GroupAttrs, Fields, Select2,
   !.
 
 /*
+14.4.3 User Defined Aggregation
+
 Generic rules for user defined aggregation functions, using
 ~aggregate~.
 
@@ -9464,6 +9470,9 @@ translateFields(X, GroupAttrs, Fields, Select2, ExtendAttrs, ProjectAttr) :-
 /* End Code modified by Goehr */
 
 /*
+14.4.4 Updates
+
+
 ----    translateTransformations(+Transf, -Transf2)
 ----
 
@@ -9552,6 +9561,8 @@ translateType(boolean, bool) :- !.
 translateType(Type, Type) :- !.
 
 /*
+14.4.5 Distance Queries
+
 ----    translateDistanceQuery(+Query, +DistAttr1, +DistAttr2,
           +HeadCount, -Stream, -Select, -Update, -Cost)
 ----
@@ -9632,6 +9643,7 @@ translateDistanceQuery(Query, X, Y, HeadCount, StreamOut,
 
 
 /*
+ 14.4.5 Predicate queryToPlan
 
 ----    queryToPlan(+Query, -Plan, -Cost) :-
 ----
@@ -9950,6 +9962,7 @@ updateQuery(Query some _)   :- updateQuery(Query).
 
 
 /*
+14.4.5 Predicate queryTostream
 
 ----    queryToStream(+Query, -Plan, -Cost) :-
 ----
@@ -10046,6 +10059,8 @@ queryToStream(Query, Stream, Cost) :-
   !.
 
 /*
+14.4.5 Final Operations on Query Streams (finish)
+
 ----    finish(+Stream, +Select, +Sort, -Stream2) :-
 ----
 
@@ -10254,7 +10269,7 @@ attributes([attrname(attr(Name, _, _)) | Attrs], [Attr | Attrs2]) :-
 /*
 
 
-11.3.8 Integration with Optimizer
+11.3.8 Integration with Optimizer (optimize)
 
 ----    optimize(Query).
 ----
@@ -10341,7 +10356,7 @@ sqlToPlan2(QueryText, Plan, Costs) :-
   string(QueryText),
   my_string_to_atom(QueryText,AtomText),
   term_to_atom(Query, AtomText),
-  optimize(Query, Plan, Costs).
+  mOptimize(Query, Plan, Costs).
 
 % special treatment for create and drop queries
 sqlToPlan2(QueryText, 'done', Costs) :-
@@ -10352,14 +10367,14 @@ sqlToPlan2(QueryText, 'done', Costs) :-
 
 sqlToPlan2(QueryText, Plan, Costs) :-
   term_to_atom(sql Query, QueryText),
-  optimize(Query, Plan, Costs).
+  mOptimize(Query, Plan, Costs).
 
 /*
 ----    sqlToPlan2(QueryText, Plan)
 ----
 
 Transform an SQL ~QueryText~ into a ~Plan~. The query is given as a text atom.
-~QueryText~ starts not with sql in this version.
+~QueryText~ does not start with sql in this version.
 
 */
 
@@ -10372,14 +10387,14 @@ sqlToPlan2(QueryText, 'done', Costs) :-
 
 sqlToPlan2(QueryText, Plan, Costs) :-
   term_to_atom(Query, QueryText),
-  optimize(Query, Plan, Costs).
+  mOptimize(Query, Plan, Costs).
 
 sqlToPlan(QueryText, ResultText, Costs) :-
   asserta(errorHandlingRethrow), % force rethrowing of exceptions to handle them
                                  % here finally
   catch( sqlToPlan2(QueryText, ResultText, Costs),
          Exc, % catch all exceptions!
-         ( write('\nsqlToPlan: Exception \''),write(Exc),write('\' caught.'),nl,
+         ( 
            ( ( Exc = error_SQL(ErrorTerm),
                ( ErrorTerm=(_::ErrorCode::Message) ; ErrorTerm=(_::Message) )
              ) %% Problems with the SQL query itself:
@@ -10398,8 +10413,8 @@ sqlToPlan(QueryText, ResultText, Costs) :-
                                   Exc], '',MessageToSend)
                 )
            ),
-           term_to_atom(MessageToSend,ResultTMP),
-           atom_concat('::ERROR::',ResultTMP,ResultText)
+           term_to_atom(MessageToSend, ResultTMP),
+           atom_concat('::ERROR::', ResultTMP, ResultText)
          )
        ),
   ( var(ResultText)
@@ -10430,7 +10445,7 @@ the ~aggregate~ command.
 
 
 /*
-11.3.8 Examples
+11.5 Examples
 
 We can now formulate the previous example queries in the user level language.
 They are stored as prolog facts sqlExample/2. Examples can be called by
@@ -10449,13 +10464,13 @@ example(Nr) :- showExample(Nr, Query), optimize(Query).
 example(Nr, Query, Cost) :- showExample(Nr, Example),
                             optimize(Example, Query, Cost).
 
-% The following predicate will minic the behaviour of the OptimizerServer.
+% The following predicate will mimic the behaviour of the OptimizerServer.
 % It will catch exceptions and create error messages to be sent to the JavaGUI:
 exampleToPlan(Nr) :-
   sqlExample(Nr, QueryTerm),
   write_list(['\n\nExampleNr: ',Nr,'\nSQL: ',QueryTerm,'\n']),
-  term_to_atom(sql QueryTerm,QueryAtom),
-  sqlToPlan(QueryAtom,Plan),
+  term_to_atom(sql QueryTerm, QueryAtom),
+  sqlToPlan(QueryAtom, Plan),
   write_list(['Plan: ', Plan, '\n']).
 
 /*
@@ -10765,27 +10780,7 @@ example106 :- example(106).
 
 12 Optimizing and Calling Secondo
 
-----    sql Term
-        sql(Term, SecondoQueryRest)
-        let(X, Term)
-        let(X, Term, SecondoQueryRest)
-----
-
-~Term~ must be one of the available select-from-where statements.
-It is optimized and Secondo is called to execute it. ~SecondoQueryRest~
-is a character string (atom) containing a sequence of Secondo
-operators that can be appended to a given
-plan found by the optimizer; in this case the optimizer returns a
-plan producing a stream.
-
-The two versions of ~let~ allow one to assign the result of a query
-to a new object ~X~, using the optimizer.
-
-*/
-
-/*
-
-Exception Handling
+12.1 Exception Handling
 
 If an error is encountered during the optimization process, an exception should be
 thrown using the built-in Prolog predicate
@@ -10860,24 +10855,6 @@ exception-format described above, that is thrown within goal ~G~.
 
 */
 
-:- assert(helpLine(sql,1,
-    [[+,'SQLquery','The SQL-style query to run optimized.']],
-    'Optimize and run an SQL-style query .')).
-:- assert(helpLine(sql,2,
-    [[+,'SQLquery','The SQL-style query to run optimized.'],
-     [+,'SECrest','The executable Secondo-style end of the query.']],
-    'Form and run a query from the first (optimized) and second argument .')).
-:- assert(helpLine(let,2,
-    [[+,'ObjName','The name for the object to create.'],
-     [+,'SQLquery','The SQL-style query to run optimized.']],
-    'Create a DB object using an SQL-style value.')).
-:- assert(helpLine(let,3,
-    [[+,'ObjName','The name for the object to create.'],
-     [+,'SQLquery','The SQL-style query to run optimized.'],
-     [+,'SECrest','The executable Secondo-style end of the query.']],
-    'Create a DB object, using a combined SQL and Secondo executable query.')).
-
-
 :- dynamic(errorHandlingRethrow/0),   % standard behaviour is to handle
    retractall(errorHandlingRethrow).  % errors quietly.
 
@@ -10938,6 +10915,45 @@ storeHistory :-
   saveRel('SqlHistory').
 
 
+/*
+12.2 The sql and let Predicates
+
+----    sql Term
+        sql(Term, SecondoQueryRest)
+        let(X, Term)
+        let(X, Term, SecondoQueryRest)
+----
+
+~Term~ must be one of the available select-from-where statements.
+It is optimized and Secondo is called to execute it. ~SecondoQueryRest~
+is a character string (atom) containing a sequence of Secondo
+operators that can be appended to a given
+plan found by the optimizer; in this case the optimizer returns a
+plan producing a stream.
+
+The two versions of ~let~ allow one to assign the result of a query
+to a new object ~X~, using the optimizer.
+
+*/
+
+:- assert(helpLine(sql, 1,
+    [[+,'SQLquery','The SQL-style query to run optimized.']],
+    'Optimize and run an SQL-style query .')).
+:- assert(helpLine(sql, 2,
+    [[+,'SQLquery','The SQL-style query to run optimized.'],
+     [+,'SECrest','The executable Secondo-style end of the query.']],
+    'Form and run a query from the first (optimized) and second argument .')).
+:- assert(helpLine(let, 2,
+    [[+,'ObjName','The name for the object to create.'],
+     [+,'SQLquery','The SQL-style query to run optimized.']],
+    'Create a DB object using an SQL-style value.')).
+:- assert(helpLine(let, 3,
+    [[+,'ObjName','The name for the object to create.'],
+     [+,'SQLquery','The SQL-style query to run optimized.'],
+     [+,'SECrest','The executable Secondo-style end of the query.']],
+    'Create a DB object, using a combined SQL and Secondo executable query.')).
+
+
 sql create X by Term :- let(X, Term).
 
 % special handling for create query
@@ -10955,8 +10971,6 @@ sql Term :- defaultExceptionHandler((
   query(Query, PlanExec),
   appendToRel('SqlHistory', Term, Query, Cost, PlanBuild, PlanExec)
  )).
-
-
 
 sql(Term, SecondoQueryRest) :- defaultExceptionHandler((
   isDatabaseOpen,
@@ -10990,7 +11004,7 @@ let(X, Term, SecondoQueryRest) :- defaultExceptionHandler((
 ----    sqlNoQuery(+Term)
 ----
 
-special handling for create and drop-queries, which do not use the
+Special handling for create and drop-queries, which do not use the
 query command in SECONDO
 
 */
@@ -11037,6 +11051,10 @@ streamOptimize(Term, Query, Cost) :-
   plan_to_atom_string(Plan,  Query).		% fapra 2015/16
 
 /*
+14.3 Handling Set Operations (union, intersection, minus)
+
+14.3.1 Predicates mOptimize, mStreamOptimize
+
 ----    mOptimize(Term, Query, Cost) :-
         mStreamOptimize(union [Term], Query, Cost) :-
 ----
@@ -11093,7 +11111,6 @@ mStreamOptimize(intersection [Term | Terms], Query, Cost) :-
   my_concat_atom([Plan1, ' sort rdup ', Plan2, 'mergesec '], '', Query),
   Cost is Cost1 + Cost2.
 
-
 mStreamOptimize(Term1 union Term2, Query, Cost) :-
   streamOptimize(Term1, Plan1, Cost1),
   streamOptimize(Term2, Plan2, Cost2),
@@ -11121,6 +11138,12 @@ mStreamOptimize(Term1 minus Term2, Query, Cost) :-
 mStreamOptimize(Term, Query, Cost) :-
   streamOptimize(Term, Query, Cost).
 
+
+/*
+14.3.2 Testing for Schema Equality
+
+*/
+
 equalSchema(_, _, Plan1, Plan2, _) :-
   typeQuery(Plan1, Query1),
   typeQuery(Plan2, Query2),
@@ -11130,23 +11153,24 @@ equalSchema(_, _, Plan1, Plan2, _) :-
   !.
 
 equalSchema(Term1, Term2, _, _, Op) :-
-  writeError,
-  write_list(['\tSchemas of the following queries for ', Op, ' not equal: ']),
-  write_list(['\n\t', Term1]),
-  write_list(['\n\t', Term2]),
-  write_list(['\n\n']),
+  term_to_atom(Term1, Term1a),
+  term_to_atom(Term2, Term2a),
+  term_to_atom(Op, OpA),
+  my_concat_atom(
+    [ 'Schemas of the following queries for ', OpA, ' not equal: ',
+      '\n', Term1a,
+      ', \n', Term2a
+    ], '', ErrMsg),
+  throw(error_SQL(optimizer_equalSchema()::differentSchemas::ErrMsg)),
   fail.
 
 typeQuery(Plan, Query) :-
   my_concat_atom(['query ', Plan, ' getTypeNL'], '', Query).
 
-writeError :-   ansi_format([bold,fg(red)], '\n~w', ['ERROR:']).
-
-
 
 
 /*
-Some auxiliary stuff.
+15.5 Auxiliary Predicates
 
 */
 
@@ -11165,18 +11189,18 @@ bestPlanConsume :-
   query(Q, _).
 
 
-% Section:Start:auxiliaryPredicates
-% Section:End:auxiliaryPredicates
-
 /*
+15.6 Support for Spatio-temporal Pattern Predicates
+
 Used within the spatiotemporal pattern predicates.
 Looks up the aliased lifted predicate list within the
 spatiotemporal pattern predicate.
 
 */
-composeNPredList( [P | PredListRest], [A | AliasListRest],
-                                                  [P as A| NPredListRest]):-
- composeNPredList(PredListRest, AliasListRest, NPredListRest).
+composeNPredList( [P | PredListRest], [A | AliasListRest], 
+    [P as A| NPredListRest]):-
+  composeNPredList(PredListRest, AliasListRest, NPredListRest).
+
 composeNPredList( [], [], []).
 
 
