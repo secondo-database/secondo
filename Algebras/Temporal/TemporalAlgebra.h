@@ -4466,7 +4466,7 @@ Functions required for attribute type
 
 */
   static const std::string BasicType() {
-    return "cupoint";
+    return "c" + UPoint::BasicType();
   }
   
   static const bool checkType(const ListExpr type) {

@@ -3074,14 +3074,14 @@ double CUPoint::DistanceIntegral(const CUPoint& cup, const bool upperBound,
         if (isnan(integralValue1) || isnan(integralValue2)) {
           return 0.0;
         }
-//         cout << "    RESULT 2 = " << integralValue1 - sumOfRadii *
-//                 (instNull1 - urDist.timeInterval.start).ToDouble()
-//                 + integralValue2 - sumOfRadii *
-//                 (urDist.timeInterval.end - instNull2).ToDouble() << endl;
-        result = integralValue1 - 
-                 sumOfRadii * (instNull1 - urDist.timeInterval.start).ToDouble()
-                 + integralValue2 - 
-                 sumOfRadii * (urDist.timeInterval.end - instNull2).ToDouble();
+//         cout << "    RES 2 = " << std::max(0.0, integralValue1 - sumOfRadii *
+//                 (instNull1 - urDist.timeInterval.start).ToDouble())
+//                 + std::max(0.0, integralValue2 - sumOfRadii *
+//                 (urDist.timeInterval.end - instNull2).ToDouble()) << endl;
+        result = std::max(0.0, integralValue1 - sumOfRadii * 
+                 (instNull1 - urDist.timeInterval.start).ToDouble())
+                 + std::max(0.0, integralValue2 - sumOfRadii * 
+                 (urDist.timeInterval.end - instNull2).ToDouble());
       }
     }
     else { // no shifting required because min >= sumOfRadii
@@ -3090,8 +3090,13 @@ double CUPoint::DistanceIntegral(const CUPoint& cup, const bool upperBound,
         return 0.0;
       }
       result = std::max(0.0, integralValue1 - sumOfRadii * dur);
+//       DateTime dura(durationtype);
+//       dura.ReadFrom(dur);
+//       cout << cup1 << endl << cup2 << endl << urDist << endl 
+//            << "min distance during " << per << " is "
+//            << urDist.PeriodsAtMin(correct, per) << endl;
 //       cout << "    RESULT = " << integralValue1 << " - " << sumOfRadii 
-//            << " * " << dur << " = " 
+//            << " * " << dura << " = " 
 //            << std::max(0.0, integralValue1 - sumOfRadii * dur) << endl;
     }
   }
@@ -3104,8 +3109,10 @@ double CUPoint::DistanceIntegral(const CUPoint& cup, const bool upperBound,
     if (isnan(integralValue1)) {
       return 0.0;
     }
-//     cout << "   urDist = " << urDist << endl << " ==> RESULTub = " 
-//          << integralValue1 << " + " << sumOfRadii << " * " << dur << endl;
+//     DateTime dura(durationtype);
+//     dura.ReadFrom(dur);
+//     cout << "   urDist = " << urDist << " ==> RESULTub = " 
+//          << integralValue1 << " + " << sumOfRadii << " * " << dura << endl;
     result = integralValue1 + sumOfRadii * dur;
   }
   return result;
@@ -3116,8 +3123,8 @@ double CUPoint::DistanceAvg(const CUPoint& cup, const bool upperBound,
   double minDur = std::min((timeInterval.end - timeInterval.start).ToDouble(),
                     (cup.timeInterval.end - cup.timeInterval.start).ToDouble());
   double integral = this->DistanceIntegral(cup, upperBound, geoid);
-  DateTime dur(datetime::durationtype);
-  dur.ReadFrom(minDur);
+//   DateTime dur(datetime::durationtype);
+//   dur.ReadFrom(minDur);
 //   cout << "CUPoint::DistanceAvg" << (upperBound ? "UB" : "LB") << " for "
 //        << *this << " AND " << cup << endl << " = " 
 //        << integral << " / " << dur << "  =  " << integral / minDur << endl;
@@ -5284,12 +5291,16 @@ double MPoint::DistanceAvg(const MPoint& mp, const Geoid* geoid /* = 0 */)
         integralValue = 0.0;
       }
       sum += integralValue;
+//       cout << "added value " << integralValue << " from " << ur << endl;
+    }
+    else {
+      cout << "UNDEFINED" << endl;
     }
   }
 //   DateTime dur(datetime::durationtype);
 //   dur.ReadFrom(duration);
-//   cout << "MPoint::DistanceAvg, integral SUM is " << sum << ", DURATION is " 
-//        << dur << endl;
+//   cout << "MPoint::DistanceAvg, integral SUM is " << sum << ", DURATION of "
+//        << intersec << " is " << dur << endl;
   return sum / duration;
 }
 
@@ -8290,16 +8301,45 @@ void CMPoint::ConvertFrom(const MPoint& src, const CcReal& threshold,
   if (src.IsEmpty()) {
     return;
   }
+  DateTime beginOfTime(instanttype), diffToBeginOfTime(durationtype), 
+           firstInst(instanttype);
+  beginOfTime.SetToZero();
+  src.InitialInstant(firstInst);
+  diffToBeginOfTime = firstInst - beginOfTime;
   double thresh = threshold.GetValue();
-  MPoint mpSimplified(true);
+  MPoint mpSimplified(true), srcFinalPart(true), simpleFinalPart(true);
   src.Simplify(thresh, mpSimplified, false, DateTime(0.0), geoid);
   UPoint upSimplified(true);
   CUPoint cup(true);
-  for (int i = 0; i < mpSimplified.GetNoComponents(); i++) {
+  for (int i = 0; i < mpSimplified.GetNoComponents() - 1; i++) {
     mpSimplified.Get(i, upSimplified);
     cup.Set(upSimplified, thresh);
+    cup.timeInterval.start -= diffToBeginOfTime;
+    cup.timeInterval.end -= diffToBeginOfTime;
     Add(cup);
   }
+  if (!mpSimplified.IsEmpty()) { // radius of final (or only) cyl may be smaller
+    mpSimplified.Get(mpSimplified.GetNoComponents() - 1, upSimplified);
+    Periods per(true);
+    per.Add(upSimplified.timeInterval);
+    src.AtPeriods(per, srcFinalPart);
+    mpSimplified.AtPeriods(per, simpleFinalPart);
+    MReal dist(true);
+    srcFinalPart.SquaredDistance(simpleFinalPart, dist);
+    bool correct = true;
+    if (!geoid) {
+      cup.Set(upSimplified, sqrt(dist.Max(correct)));
+    }
+    else {
+      dist.Recompute(srcFinalPart, simpleFinalPart, geoid);
+      cup.Set(upSimplified, dist.Max(correct));
+    }
+    assert(correct);
+    cup.timeInterval.start -= diffToBeginOfTime;
+    cup.timeInterval.end -= diffToBeginOfTime;
+    Add(cup);
+  }
+  RestoreBoundingBox(true);
 }
 
 void CMPoint::Clear() {
