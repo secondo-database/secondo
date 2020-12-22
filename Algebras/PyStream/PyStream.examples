@@ -1,0 +1,14 @@
+Database : berlintest
+Restore  : NO
+
+Operator : pysend
+Number   : 1
+Signature: stream(T) x int -> stream(T)
+Example  : query plz feed head[7] pysend[30000] count
+Result   : 7
+
+Operator : pyreceive
+Number   : 1
+Signature: rel(tuple(a_1 t1)..(a_n t_n)) x int -> stream(tuple(...))
+Example  : let X = [const rel(tuple([plz: int, Ort: string])) value ()] pyreceive[30000] consume
+Result   : 7
