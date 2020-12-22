@@ -39,7 +39,10 @@ const int MAXHOSTNAME = 200;
 const int MAXCONNECTIONS = 5;
 const int MAXRECV = 500;
 const int MAXRECVLINE = 200;
-#define MSG_NOSIGNAL 0
+
+#ifndef MSG_NOSIGNAL
+    #define MSG_NOSIGNAL 0
+#endif
 
 class Socket
 {
