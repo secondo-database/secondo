@@ -50,13 +50,14 @@ using namespace std;
  
 namespace pyStream{
 
- /*
-  1 Operators
-  1.2 pySend Operator
+/*
+1 Operators
 
-  1.2.2 Type mapping function for send operators
+1.2 pySend Operator
 
- */
+1.2.2 Type mapping function for send operators
+
+*/
 
 
  ListExpr pySend_TM( ListExpr args )
@@ -90,10 +91,10 @@ namespace pyStream{
  }
 
 
- /*
-  1.2.3 LocalInfo Class for Value mapping
+/*
+1.2.3 LocalInfo Class for Value mapping
 
- */
+*/
 
 
  class pySendLocalInfo {
@@ -158,10 +159,10 @@ namespace pyStream{
     ListExpr type_;
  };
 
- /*
-  1.2.4 Value mapping function for operator pySend
+/*
+1.2.4 Value mapping function for operator pySend
 
- */
+*/
 
  int pySend_VM(Word* args, Word& result, int message, Word& local, Supplier s)
 
@@ -204,10 +205,10 @@ namespace pyStream{
     return 0;
   }
 
- /*
-  1.2.5 pySend operator specification
+/*
+1.2.5 pySend operator specification
 
- */
+*/
 
  const std::string pySend_Spec =
  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
@@ -219,17 +220,17 @@ namespace pyStream{
  "((stream T) x int) -> (stream T), "
  "for T in kind DATA.</text--->"
  "<text>_ pysend [ _ ]</text--->"
- "<text>Distributes stream of Tuples"
+ "<text>Distributes stream of tuples "
  "to a specific port.</text--->"
  "<text>query plz feed head[7] pysend[30000] count"
  "</text--->"
  ") )";
 
 
- /*
-  1.2.6 Operator pySend
+/*
+1.2.6 Operator pySend
 
- */
+*/
 
  Operator pySend_Op(
     "pysend",
@@ -294,10 +295,10 @@ namespace pyStream{
   }
 
 
- /*
- 
-  1.3.3 LocalInfo fuction for Value mapping
- */
+/*
+1.3.3 LocalInfo Function for Value Mapping
+
+*/
 
 
  class pyReceiveLocalInfo {
@@ -374,12 +375,13 @@ namespace pyStream{
 
 
 
- /*
-  1.3.4  ValueMapping of operator ~pyreceive~
-  All real work is done by the getNext()
-  function of the corresponding LocalInfo<> Class.
+/*
+1.3.4 ValueMapping of operator ~pyreceive~
 
- */
+All real work is done by the getNext()
+function of the corresponding LocalInfo<> Class.
+
+*/
 
  int pyReceive_VM(Word* args, Word& result, int message,
                      Word& local, Supplier s) {
@@ -430,26 +432,25 @@ namespace pyStream{
     return 0;
   }
 
- /*
-    1.3.5 Specification of operator ~pyReceive~
+/*
+1.3.5 Specification of operator ~pyReceive~
 
- */
+*/
 
-  const std::string pyReceive_Spec =
+const std::string pyReceive_Spec =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-    "(<text> Rel(tuple(x)) X (int)"
-    " -> stream (tuple(x)))"
-    "</text--->"
+    "(<text>rel(tuple(X)) x int -> stream(tuple(X))</text--->"
     "<text>_ pyreceive [ _ ]</text--->"
-    "<text>Receives a stream of Tuples from a given port number.</text--->"
+    "<text>Receives a stream of tuples from a given port number. The relation"
+    " argument is needed to provide the type of tuples received.</text--->"
     "<text>let X = [const rel(tuple([plz: int, Ort: string])) value ()]"
     "pyreceive[30000] consume</text--->"
     ") )";
 
- /*
-    1.3.6 Definition of operator ~pyreceive~
+/*
+1.3.6 Definition of operator ~pyreceive~
 
- */
+*/
 
  Operator pyReceive_Op(
     "pyreceive",
@@ -459,10 +460,10 @@ namespace pyStream{
     pyReceive_TM
  );
 
- /*
-    2 Corresponding class for Algebra
+/*
+2 Corresponding class for Algebra
 
- */
+*/
 
  
  class PyStreamAlgebra : public Algebra
@@ -482,9 +483,10 @@ namespace pyStream{
 
 
 
- /*
-    3 Initialization
- */
+/*
+3 Initialization
+
+*/
 
  extern "C"
     Algebra*
