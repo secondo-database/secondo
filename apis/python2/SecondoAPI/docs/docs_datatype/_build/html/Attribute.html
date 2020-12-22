@@ -1,0 +1,189 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <title>Attribute module &#8212; PySecondo-API 1.0 documentation</title>
+    <link rel="stylesheet" href="_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="_static/language_data.js"></script>
+    
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">PySecondo-API 1.0 documentation</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="module-Attribute">
+<span id="attribute-module"></span><h1>Attribute module<a class="headerlink" href="#module-Attribute" title="Permalink to this headline">¶</a></h1>
+<p>The module Attribute defines the Attribute class, which represents the Attribute data type.</p>
+<dl class="class">
+<dt id="Attribute.Attribute">
+<em class="property">class </em><code class="sig-prename descclassname">Attribute.</code><code class="sig-name descname">Attribute</code><span class="sig-paren">(</span><em class="sig-param">identifier=None</em>, <em class="sig-param">typeName=None</em><span class="sig-paren">)</span><a class="headerlink" href="#Attribute.Attribute" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>The class Attribute implements the attribute data type in python.
+Each Tupel and relation header consist of one or more attributes.</p>
+<dl class="method">
+<dt id="Attribute.Attribute.__init__">
+<code class="sig-name descname">__init__</code><span class="sig-paren">(</span><em class="sig-param">identifier=None</em>, <em class="sig-param">typeName=None</em><span class="sig-paren">)</span><a class="headerlink" href="#Attribute.Attribute.__init__" title="Permalink to this definition">¶</a></dt>
+<dd><p>The constructor of the class Attribute.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>identifier</strong> – The attribute’s identifier.</p></li>
+<li><p><strong>typeName</strong> – The attribute’s type as String.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>None.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="Attribute.Attribute.get_Identifier">
+<code class="sig-name descname">get_Identifier</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Attribute.Attribute.get_Identifier" title="Permalink to this definition">¶</a></dt>
+<dd><p>The getter method of the class Attribute.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>returns the identifier attribute of the class Attribute.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="Attribute.Attribute.get_Projected">
+<code class="sig-name descname">get_Projected</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Attribute.Attribute.get_Projected" title="Permalink to this definition">¶</a></dt>
+<dd><p>The getter method of the class Attribute.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>A boolean value that shows if the attribute is visible (True) or not (False).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="Attribute.Attribute.get_type_class">
+<code class="sig-name descname">get_type_class</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Attribute.Attribute.get_type_class" title="Permalink to this definition">¶</a></dt>
+<dd><p>The getter method of the class Attribute.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>returns the att_type attribute of the class Attribute.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="Attribute.Attribute.get_type_name">
+<code class="sig-name descname">get_type_name</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Attribute.Attribute.get_type_name" title="Permalink to this definition">¶</a></dt>
+<dd><p>The getter method of the class Attribute.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>returns the type_name attribute of the class Attribute.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="Attribute.Attribute.in_from_list">
+<code class="sig-name descname">in_from_list</code><span class="sig-paren">(</span><em class="sig-param">att_list</em><span class="sig-paren">)</span><a class="headerlink" href="#Attribute.Attribute.in_from_list" title="Permalink to this definition">¶</a></dt>
+<dd><p>The method that sets the identifier and type name of the attribute respectively from a given list.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>att_list</strong> – A list in python that contains the identifier as first element and type name as second element.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="Attribute.Attribute.out_to_list">
+<code class="sig-name descname">out_to_list</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Attribute.Attribute.out_to_list" title="Permalink to this definition">¶</a></dt>
+<dd><p>The method that returns the identifier and type name of the attribute in a list object.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>A list in python that contains the identifier and type name of the attribute.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="Attribute.Attribute.set_Projected">
+<code class="sig-name descname">set_Projected</code><span class="sig-paren">(</span><em class="sig-param">prj</em><span class="sig-paren">)</span><a class="headerlink" href="#Attribute.Attribute.set_Projected" title="Permalink to this definition">¶</a></dt>
+<dd><p>The setter method of the class Attribute.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>prj</strong> – A boolean value that shows if the attribute is visible (True) or not (False).</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/Attribute.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">PySecondo-API 1.0 documentation</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2020, Mahsa Davari.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.2.0.
+    </div>
+  </body>
+</html>

@@ -1,0 +1,257 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <title>Tuple module &#8212; PySecondo-API 1.0 documentation</title>
+    <link rel="stylesheet" href="_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="_static/language_data.js"></script>
+    
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">PySecondo-API 1.0 documentation</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="module-Tuple">
+<span id="tuple-module"></span><h1>Tuple module<a class="headerlink" href="#module-Tuple" title="Permalink to this headline">¶</a></h1>
+<dl class="class">
+<dt id="Tuple.Tuple">
+<em class="property">class </em><code class="sig-prename descclassname">Tuple.</code><code class="sig-name descname">Tuple</code><span class="sig-paren">(</span><em class="sig-param">attrib_list=None</em>, <em class="sig-param">value_list=None</em><span class="sig-paren">)</span><a class="headerlink" href="#Tuple.Tuple" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>The class Tuple implements the Tuple data structure of Secondo.</p>
+<dl class="method">
+<dt id="Tuple.Tuple.__init__">
+<code class="sig-name descname">__init__</code><span class="sig-paren">(</span><em class="sig-param">attrib_list=None</em>, <em class="sig-param">value_list=None</em><span class="sig-paren">)</span><a class="headerlink" href="#Tuple.Tuple.__init__" title="Permalink to this definition">¶</a></dt>
+<dd><p>The constructor of the class.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>attrib_list</strong> – A list containing Attributes of types seconndo_int, secondo_real, … and is optional.</p></li>
+<li><p><strong>value_list</strong> – A list of values for each attribute in self.attrib_list and is optional.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>None.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="Tuple.Tuple.add_attrib">
+<code class="sig-name descname">add_attrib</code><span class="sig-paren">(</span><em class="sig-param">attrib</em><span class="sig-paren">)</span><a class="headerlink" href="#Tuple.Tuple.add_attrib" title="Permalink to this definition">¶</a></dt>
+<dd><p>The method add_attrib adds an Attribute object to the attrib_list attribute of the Tuple.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>attrib</strong> – An Attribute object.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>None.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="Tuple.Tuple.add_value">
+<code class="sig-name descname">add_value</code><span class="sig-paren">(</span><em class="sig-param">val</em><span class="sig-paren">)</span><a class="headerlink" href="#Tuple.Tuple.add_value" title="Permalink to this definition">¶</a></dt>
+<dd><p>The method add_value() adds a list of values to the attribute value_list .</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>val</strong> – A list of values for each Attribute in attrib_list.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>None.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="Tuple.Tuple.create_tuple_instance">
+<em class="property">classmethod </em><code class="sig-name descname">create_tuple_instance</code><span class="sig-paren">(</span><em class="sig-param">attrib_list</em><span class="sig-paren">)</span><a class="headerlink" href="#Tuple.Tuple.create_tuple_instance" title="Permalink to this definition">¶</a></dt>
+<dd><p>The class method that constructs a new Tuple instance given
+a list of Attribute objects attrib_list as parameter.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>attrib_list</strong> – A list of Attribute objects.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A new instance of the class Tuple.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="Tuple.Tuple.get_attrib">
+<code class="sig-name descname">get_attrib</code><span class="sig-paren">(</span><em class="sig-param">index</em><span class="sig-paren">)</span><a class="headerlink" href="#Tuple.Tuple.get_attrib" title="Permalink to this definition">¶</a></dt>
+<dd><p>The getter method for attrib_list attribute.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>index</strong> – The index of the desired Attribute in the attrib_list.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Returns an Attribute object given the index of the desired Attribute in the attrib_list.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="Tuple.Tuple.get_attrib_list">
+<code class="sig-name descname">get_attrib_list</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Tuple.Tuple.get_attrib_list" title="Permalink to this definition">¶</a></dt>
+<dd><p>The getter method for attrib_list attribute.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>Returns the attrib_list attribute of the object.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="Tuple.Tuple.get_value">
+<code class="sig-name descname">get_value</code><span class="sig-paren">(</span><em class="sig-param">index</em><span class="sig-paren">)</span><a class="headerlink" href="#Tuple.Tuple.get_value" title="Permalink to this definition">¶</a></dt>
+<dd><p>The getter method for value_list attribute.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>index</strong> – The index of the desired value record in the value_list.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Returns a list of values given the index of the desired value record in the value_list.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="Tuple.Tuple.get_value_list">
+<code class="sig-name descname">get_value_list</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Tuple.Tuple.get_value_list" title="Permalink to this definition">¶</a></dt>
+<dd><p>The getter method for value_list attribute.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>Returns the value_list attribute of the object.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="Tuple.Tuple.in_from_list">
+<code class="sig-name descname">in_from_list</code><span class="sig-paren">(</span><em class="sig-param">ls</em><span class="sig-paren">)</span><a class="headerlink" href="#Tuple.Tuple.in_from_list" title="Permalink to this definition">¶</a></dt>
+<dd><p>This method updates the attrib_list and value_list
+of the Tuple object respectively from a given list.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>ls</strong> – A list of two elements the first is a list of attributes</p>
+</dd>
+</dl>
+<p>the secondo is a list containing the values of attributes.
+:return: None.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="Tuple.Tuple.out_to_list">
+<code class="sig-name descname">out_to_list</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Tuple.Tuple.out_to_list" title="Permalink to this definition">¶</a></dt>
+<dd><p>This method saves the attrib_list and value_list
+of the Tuple object to a list.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>A list of two lists.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="Tuple.Tuple.set_attrib_list">
+<code class="sig-name descname">set_attrib_list</code><span class="sig-paren">(</span><em class="sig-param">ls</em><span class="sig-paren">)</span><a class="headerlink" href="#Tuple.Tuple.set_attrib_list" title="Permalink to this definition">¶</a></dt>
+<dd><p>The setter method for attrib_list attribute.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>ls</strong> – A list of Attribute objects.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>None.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="Tuple.Tuple.set_value_list">
+<code class="sig-name descname">set_value_list</code><span class="sig-paren">(</span><em class="sig-param">ls</em><span class="sig-paren">)</span><a class="headerlink" href="#Tuple.Tuple.set_value_list" title="Permalink to this definition">¶</a></dt>
+<dd><p>The setter method for value_list attribute.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>ls</strong> – A list of value records for Attribute objects.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>None.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/Tuple.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">PySecondo-API 1.0 documentation</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2020, Mahsa Davari.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.2.0.
+    </div>
+  </body>
+</html>

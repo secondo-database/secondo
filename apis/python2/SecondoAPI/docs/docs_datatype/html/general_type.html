@@ -1,0 +1,197 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <title>general_type module &#8212; PySecondo-API 1.0 documentation</title>
+    <link rel="stylesheet" href="_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="_static/language_data.js"></script>
+    
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">PySecondo-API 1.0 documentation</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="module-general_type">
+<span id="general-type-module"></span><h1>general_type module<a class="headerlink" href="#module-general_type" title="Permalink to this headline">¶</a></h1>
+<p>The module general_type defines a class which is a base for other data structure classes.</p>
+<dl class="class">
+<dt id="general_type.general_type">
+<em class="property">class </em><code class="sig-prename descclassname">general_type.</code><code class="sig-name descname">general_type</code><span class="sig-paren">(</span><em class="sig-param">value=None</em>, <em class="sig-param">defined=None</em><span class="sig-paren">)</span><a class="headerlink" href="#general_type.general_type" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>The class general_type is the base class for other data structures like
+secondo_int and secondo_string and summarizes the shared attributes and methods
+between the data structures.</p>
+<dl class="method">
+<dt id="general_type.general_type.__init__">
+<code class="sig-name descname">__init__</code><span class="sig-paren">(</span><em class="sig-param">value=None</em>, <em class="sig-param">defined=None</em><span class="sig-paren">)</span><a class="headerlink" href="#general_type.general_type.__init__" title="Permalink to this definition">¶</a></dt>
+<dd><p>The constructor of the class.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>value</strong> – Substitutes the value of the object and is optional.</p></li>
+<li><p><strong>defined</strong> – A boolean value showing the value of the object is defined or not and is optional.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>None.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="general_type.general_type.get_defined">
+<code class="sig-name descname">get_defined</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#general_type.general_type.get_defined" title="Permalink to this definition">¶</a></dt>
+<dd><p>The getter method for defined attribute.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>Returns the defined attribute of the object.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="general_type.general_type.get_type_class">
+<code class="sig-name descname">get_type_class</code><span class="sig-paren">(</span><em class="sig-param">TypeName</em><span class="sig-paren">)</span><a class="headerlink" href="#general_type.general_type.get_type_class" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="general_type.general_type.get_type_name">
+<code class="sig-name descname">get_type_name</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#general_type.general_type.get_type_name" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="general_type.general_type.get_value">
+<code class="sig-name descname">get_value</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#general_type.general_type.get_value" title="Permalink to this definition">¶</a></dt>
+<dd><p>The getter method for value attribute.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>Returns the value attribute of the object.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="general_type.general_type.in_from_list">
+<code class="sig-name descname">in_from_list</code><span class="sig-paren">(</span><em class="sig-param">NList</em><span class="sig-paren">)</span><a class="headerlink" href="#general_type.general_type.in_from_list" title="Permalink to this definition">¶</a></dt>
+<dd><p>The method that sets the value and defined attributes respectively from a given list.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>att_list</strong> – A list in python that contains the value as first element and defined as second element.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>None.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="general_type.general_type.out_to_list">
+<code class="sig-name descname">out_to_list</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#general_type.general_type.out_to_list" title="Permalink to this definition">¶</a></dt>
+<dd><p>The method that returns the value and defined attributes in a list object.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>A list in python that contains the value and defined attributes.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="general_type.general_type.parse">
+<code class="sig-name descname">parse</code><span class="sig-paren">(</span><em class="sig-param">text</em><span class="sig-paren">)</span><a class="headerlink" href="#general_type.general_type.parse" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="general_type.general_type.set_defined">
+<code class="sig-name descname">set_defined</code><span class="sig-paren">(</span><em class="sig-param">value</em><span class="sig-paren">)</span><a class="headerlink" href="#general_type.general_type.set_defined" title="Permalink to this definition">¶</a></dt>
+<dd><p>The setter method for defined attribute.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>value</strong> – The value to replace the old attribute’s value.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="general_type.general_type.set_value">
+<code class="sig-name descname">set_value</code><span class="sig-paren">(</span><em class="sig-param">value</em><span class="sig-paren">)</span><a class="headerlink" href="#general_type.general_type.set_value" title="Permalink to this definition">¶</a></dt>
+<dd><p>The setter method for value attribute.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>value</strong> – The value to replace the old attribute’s value.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/general_type.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">PySecondo-API 1.0 documentation</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2020, Mahsa Davari.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.2.0.
+    </div>
+  </body>
+</html>

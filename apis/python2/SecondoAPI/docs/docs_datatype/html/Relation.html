@@ -1,0 +1,214 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <title>Relation module &#8212; PySecondo-API 1.0 documentation</title>
+    <link rel="stylesheet" href="_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="_static/language_data.js"></script>
+    
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">PySecondo-API 1.0 documentation</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="module-Relation">
+<span id="relation-module"></span><h1>Relation module<a class="headerlink" href="#module-Relation" title="Permalink to this headline">¶</a></h1>
+<p>The module Relation defines a class for representing Relation data structure in python.</p>
+<dl class="class">
+<dt id="Relation.Relation">
+<em class="property">class </em><code class="sig-prename descclassname">Relation.</code><code class="sig-name descname">Relation</code><span class="sig-paren">(</span><em class="sig-param">header=None</em>, <em class="sig-param">tuples=None</em><span class="sig-paren">)</span><a class="headerlink" href="#Relation.Relation" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>The class Relation implements the Relation data structure of Secondo.</p>
+<dl class="method">
+<dt id="Relation.Relation.__init__">
+<code class="sig-name descname">__init__</code><span class="sig-paren">(</span><em class="sig-param">header=None</em>, <em class="sig-param">tuples=None</em><span class="sig-paren">)</span><a class="headerlink" href="#Relation.Relation.__init__" title="Permalink to this definition">¶</a></dt>
+<dd><p>The constructor of the class.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>header</strong> – A list of one or more objects of type Attribute and is optional.</p></li>
+<li><p><strong>tuples</strong> – A list of one or more objects of type Tuple and is optional.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>None.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="Relation.Relation.create_tuple_from_list">
+<code class="sig-name descname">create_tuple_from_list</code><span class="sig-paren">(</span><em class="sig-param">NList</em><span class="sig-paren">)</span><a class="headerlink" href="#Relation.Relation.create_tuple_from_list" title="Permalink to this definition">¶</a></dt>
+<dd><p>The method create_tuple_from_list() creates a new object
+of type Tuple and updates the attrib_list of the Tuple object
+with the header attribute of the Realtion and its value_list
+with thw given list as parameter and adds the new Tuple object
+to the tuples attribute of the Relation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>NList</strong> – A list to replace the value_list attribute of the Tuple object.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>the new Tuple object.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="Relation.Relation.get_att_index_type">
+<code class="sig-name descname">get_att_index_type</code><span class="sig-paren">(</span><em class="sig-param">identifier</em><span class="sig-paren">)</span><a class="headerlink" href="#Relation.Relation.get_att_index_type" title="Permalink to this definition">¶</a></dt>
+<dd><p>This method returns the index and data type of an specific
+Attribute given by its header in the header list.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>identifier</strong> – The identifier of the searched Attribute.</p>
+</dd>
+<dt class="field-even">Retutn</dt>
+<dd class="field-even"><p>Tthe index and data type of Attribute.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="Relation.Relation.get_header">
+<code class="sig-name descname">get_header</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Relation.Relation.get_header" title="Permalink to this definition">¶</a></dt>
+<dd><p>The getter method for header attribute.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>Returns a list of Attributes.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="Relation.Relation.get_rel_header">
+<code class="sig-name descname">get_rel_header</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Relation.Relation.get_rel_header" title="Permalink to this definition">¶</a></dt>
+<dd><p>The getter method for header attribute.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>Returns a list of Attributes.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="Relation.Relation.get_tuples">
+<code class="sig-name descname">get_tuples</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Relation.Relation.get_tuples" title="Permalink to this definition">¶</a></dt>
+<dd><p>The getter method for tuples attribute.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>Returns a list of tuples.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="Relation.Relation.in_from_list">
+<code class="sig-name descname">in_from_list</code><span class="sig-paren">(</span><em class="sig-param">rel_list</em><span class="sig-paren">)</span><a class="headerlink" href="#Relation.Relation.in_from_list" title="Permalink to this definition">¶</a></dt>
+<dd><p>This method updates the attributes header and tuples
+of the Relation object respectively from a given list.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>rel_list</strong> – A list of lists containing the values of header</p>
+</dd>
+</dl>
+<p>and tuples of the Relation object.
+:return: None.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="Relation.Relation.out_to_list">
+<code class="sig-name descname">out_to_list</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Relation.Relation.out_to_list" title="Permalink to this definition">¶</a></dt>
+<dd><p>This method saves the attributes header and tuples
+of the Relation object to a list.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>A list of two lists.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="Relation.Relation.set_tuples">
+<code class="sig-name descname">set_tuples</code><span class="sig-paren">(</span><em class="sig-param">tuples</em><span class="sig-paren">)</span><a class="headerlink" href="#Relation.Relation.set_tuples" title="Permalink to this definition">¶</a></dt>
+<dd><p>The setter method for tuples attribute.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>tuples</strong> – A list of tuples containing the values of Attributesin header.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/Relation.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">PySecondo-API 1.0 documentation</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2020, Mahsa Davari.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.2.0.
+    </div>
+  </body>
+</html>
