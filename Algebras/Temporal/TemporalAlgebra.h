@@ -3937,6 +3937,20 @@ The constructor. Initializes space for ~n~ elements.
 
 */
 
+  MPoint(const MPoint& src): Mapping<UPoint, Point>(1) {
+    SetDefined(src.IsDefined());
+    if (IsDefined()) {
+      StartBulkLoad();
+      UPoint unit(true);
+      for (int i = 0; i < src.GetNoComponents(); i++) {
+        src.Get(i, unit);
+        Add(unit);
+      }
+      EndBulkLoad(false);
+      bbox = src.BoundingBox();
+    }
+  }
+
 /*
 3.12.2 Modifications of Inherited Functions
 
@@ -4614,6 +4628,20 @@ The constructor. Initializes space for ~n~ elements.
     del.SetDelete();
     del.isDefined = true;
     bbox = Rectangle<3>(false);
+  }
+  
+  CMPoint(const CMPoint& src): Mapping<CUPoint, CPoint>(1) {
+    SetDefined(src.IsDefined());
+    if (IsDefined()) {
+      StartBulkLoad();
+      CUPoint unit(true);
+      for (int i = 0; i < src.GetNoComponents(); i++) {
+        src.Get(i, unit);
+        Add(unit);
+      }
+      EndBulkLoad(false);
+      bbox = src.BoundingBox();
+    }
   }
   
   virtual Attribute* Clone() const {
