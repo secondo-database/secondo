@@ -2936,8 +2936,10 @@ private void createMenuBar(){
    OptimizerCommandMenu.add(MI_OptimizerAutoUpdateCatalog);
    OptimizerCommandMenu.add(MI_OptimizerReconnectWhenOpenDB);
    OptimizerCommandMenu.add(MI_OptimizerResetKnowledgeDB);
-   OptimizerCommandMenu.addSeparator();
-   OptimizerCommandMenu.add(MI_OptimizerTestOptimizer);
+   
+   // Test Optimizer is currently disabled due to errors in test spec
+   // OptimizerCommandMenu.addSeparator();
+   // OptimizerCommandMenu.add(MI_OptimizerTestOptimizer);
 
 
 
