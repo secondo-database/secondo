@@ -691,6 +691,9 @@ ALGEBRAS     += JNetAlgebra
 #ALGEBRA_DIRS += PropertyGraph
 #ALGEBRAS     += PropertyGraphAlgebra
 
+#ALGEBRA_DIRS += PyStream
+#ALGEBRAS     += PyStreamAlgebra
+
 #ALGEBRA_DIRS += ParThread
 #ALGEBRAS     += ParThreadAlgebra
 #the flag is used to activate code in QueryProcessor
