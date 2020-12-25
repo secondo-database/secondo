@@ -135,22 +135,24 @@ namespace pyStream{
     nl->WriteToString(data, l);
     data = data + "\n";
                     
-    try
-     {
-                        
+    try {
       *client_socket << data;
-                                  
-     }
-     catch ( SocketException& e) {
+    } catch ( SocketException& e) {
       std::cout << "Exception was caught:" << e.description() << "\n";
-     }
+    }
                     
     return t;
    }
-   std::string fin = "quit\n";
-   *client_socket << fin;
+   
+   // Close connection
+   try {
+      std::string fin = "quit\n";
+      *client_socket << fin;
+   } catch ( SocketException& e) {
+      std::cout << "Exception was caught:" << e.description() << "\n";
+   }
+
    return 0;
-            
   }
             
    private:
