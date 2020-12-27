@@ -205,7 +205,10 @@ async def general_command(reader, writer, bin_list, command, stream_source = Non
                             stream.append(tupel)
         
                 print('Stream of {} Tuples received from SecondoServer.'.format(str(count)))
+                writer.close()
     
+            
+        
             idx1 = command.find('pysend[') + 7
             idx2 = command.find(']', int(idx1))
             port = int(command[idx1:idx2])
@@ -221,11 +224,11 @@ async def general_command(reader, writer, bin_list, command, stream_source = Non
             
             if stream_source is None:
                 raise SecondoAPI_Error('The Tupel source is empty.')
-            async def handle_send_to_Secondo(reader, writer, t_source):
-        
+            async def handle_send_to_Secondo(reader, writer, t_source = stream_source):
+                
                 count = 0
                 for tupel in t_source:
-                    tupel_str = nl_to_String(tupel)
+                    tupel_str = list_to_nl(tupel) + "\n"
                     print (tupel_str)
                     writer.write(tupel_str.encode())
                     await writer.drain()
@@ -234,6 +237,8 @@ async def general_command(reader, writer, bin_list, command, stream_source = Non
                 print('Stream of {} Tuples sent to SecondoServer.'.format(str(count)))
                 writer.close()
             
+            
+            
             idx1 = command.find('pyreceive[') + 10
             idx2 = command.find(']', int(idx1))
             port = int(command[idx1:idx2])
@@ -241,7 +246,8 @@ async def general_command(reader, writer, bin_list, command, stream_source = Non
             loop = asyncio.get_event_loop()
             
             try:
-                loop.create_task(asyncio.start_server(lambda r, w: handle_send_to_Secondo(r, w, stream_source), '127.0.0.1', port, reuse_address = True, reuse_port = True))
+                    #loop.create_task(asyncio.start_server(lambda r, w: handle_send_to_Secondo(r, w, stream_source), '127.0.0.1', port, reuse_address = True, reuse_port = True))
+                loop.create_task(asyncio.start_server(handle_send_to_Secondo, '127.0.0.1', port, reuse_address = True, reuse_port = True))
             except UnexpectedSystemError:
                 raise UnexpectedSystemError('Error occured while trying to contact the port to send stream of tupels.')
                     
@@ -263,6 +269,7 @@ async def general_command(reader, writer, bin_list, command, stream_source = Non
         message = message.encode()
         writer.write(message)
         await writer.drain()
+                
         
         try:
             result = await receive_secondo_response(reader, bin_list)

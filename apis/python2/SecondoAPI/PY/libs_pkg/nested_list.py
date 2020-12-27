@@ -1,13 +1,14 @@
-import ast
+
 """
 The module nested_list contains functions for parsing and manipulating the nested lists.
 """
 from pyparsing import *
 import pprint
 import re
+import ast
 
 """
-The class dbl_quot returns a double quoted string while the default in python is single quotation mark.
+The class dbl_quot returns a double quoted string while the default in python is single quotation mark for strings.
 """
 class dbl_quot(str):
     def __repr__(self):
@@ -15,13 +16,13 @@ class dbl_quot(str):
     
 
 #old
-#def change(seq, what, make):
-#    for i, item in enumerate(seq):
-#        if item == what:
-#            seq[i] = make
-#        elif type(item) == list:
-#            change(item, what, make)
-#    return seq
+def change(seq, what, make):
+    for i, item in enumerate(seq):
+        if item == what:
+            seq[i] = make
+        elif type(item) == list:
+            change(item, what, make)
+    return seq
 
 #new
 def change_nl_item_val(seq, what, make):
@@ -46,7 +47,8 @@ def change_nl_item_val(seq, what, make):
 
 def change_nl_text_form(seq):
     """
-    The function change_nl_text_form() modifies the value of items of type text in a nested list with form '****' to <text>****</text---> form.
+    The function change_nl_text_form() modifies the value of items of type text in a nested list
+    with form '****' to <text>****</text---> form.
 
     :param seq: An iterable data structure like nested list.
     :return: The modified iterable.
@@ -67,23 +69,24 @@ def change_nl_text_form(seq):
 
 
 #old
-#def NL_items_type_Check(NL):
-#    flattend_list = flatten_list(NL)
-#    for item in flattend_list:
-#        
-#        if item.isdigit() or item in ('True', 'False'):
-#            try:
-#                if type(eval(item)) in(int, float, bool):
-#                    change(NL, item, ast.literal_eval(item))
-#            except (ValueError, NameError):
-#                pass
-#    return(NL)
+def NL_items_type_Check(NL):
+    flattend_list = flatten_list(NL)
+    for item in flattend_list:
+        
+        if item.isdigit() or item in ('True', 'False'):
+            try:
+                if type(eval(item)) in(int, float, bool):
+                    change(NL, item, ast.literal_eval(item))
+            except (ValueError, NameError):
+                pass
+    return(NL)
 
 
 #new
 def change_nl_item_type(seq):
     """
-    The function change_nl_item_type() modifies the type of string items in a nested list to proper types in python according to their values.
+    The function change_nl_item_type() modifies the type of string items in a nested list
+    to proper types in python according to their values.
 
     :param seq: An iterable data structure like nested list.
     :return: The modified iterable.
@@ -175,15 +178,16 @@ def nl_parse(content, ftype):  #ftype = True: file as argument, ftype = False: s
     return NLresult
 
     
-def nl_to_String(NL):
+def list_to_nl(NL):
     """
-    The function nl_to_String() converts a pythonic nested list to a textual nestedlist with nested parenthesis that matches the nested list format in Secondo.
+    The function list_to_nl() converts a pythonic nested list to a textual nestedlist with nested parenthesis
+    that matches the nested list format in Secondo.
 
     :param NL: The nested list to be changed.
     :return: The Secondo nested list.
     """
     strresult = pprint.pformat(NL)
-    replacements = {"[": "(", "]": ")", "'": ""}
+    replacements = {"[": "(", "]": ")", ",": "", "'": '"'}
     strresult = "".join([replacements.get(c, c) for c in strresult])
     return strresult
 

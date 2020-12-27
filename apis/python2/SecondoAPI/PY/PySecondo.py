@@ -166,7 +166,11 @@ class Secondo():
         elif "drop" in command:
             update_comm = True
             catalog_comm = True
-            select_comm = False     
+            select_comm = False
+	elif "delete" in command:
+            update_comm = True
+            catalog_comm = True
+            select_comm = False    
         elif "select" in command:
             update_comm = True
     
@@ -176,22 +180,22 @@ class Secondo():
             
             if not self.opt.get_opt_conn():
                 raise SecondoAPI_Error('Connection to OptimizerServer reset.')
-                
-            opt_res = await opt_comm_exec(self.opt_reader, self.opt_writer, command, self.get_opendb(), False)
-        
-            if opt_res:
-                if catalog_comm:
-                    db = await self.reopen_db()
-                    if not db: 
-                        raise SecondoError("Reopenning the DataBase after Catalog update was Not seccessful.")
-                    return None
-                elif select_comm:
-                    return "query " + opt_res
             
-                return opt_res
-        
-            else:
-                raise SecondoError("Optimization failed.")
+            if catalog_comm:    
+                opt_res = await opt_comm_exec(self.opt_reader, self.opt_writer, command, self.get_opendb(), True)
+                if opt_res:
+                    await self.reopen_db()
+                    return None
+                else:
+                    raise SecondoError("Optimization failed.")
+            elif select_comm:
+                opt_res = await opt_comm_exec(self.opt_reader, self.opt_writer, command, self.get_opendb(), False)
+                if opt_res:
+                    return "query " + opt_res
+                else:
+                    raise SecondoError("Optimization failed.")
+            
+                
         else:
             return command
   
@@ -215,20 +219,19 @@ class Secondo():
         
         if self.conn is None:
             raise SecondoAPI_Error('Connection to ScondoServer reset.')
-        res = await exec_command(self.reader, self.writer, "close database")
+        res = await self.command_exec("close database")
         
-        if (int.from_bytes(res[0][0], byteorder='big')) != 0:
-            raise SecondoError(secondo_errors[res[0][0]], 'Error by closing the database before reopening.')
+        self.set_opendb('')
+        
         if not self.initialized:
             raise SecondoAPI_Error('Connection to ScondoServer has not been initialised.')
         
         if self.conn is None:
             raise SecondoAPI_Error('Connection to ScondoServer reset.')
-        res = await exec_command(reader, writer, "open database " + db)
+        res = await self.command_exec("open database " + db)
         
-        if (int.from_bytes(res[0][0], byteorder='big')) != 0:
-            raise SecondoError(secondo_errors[res[0][0]], 'Error by reopening the database.')
-        return (int.from_bytes(res[0][0], byteorder='big')) == 0
+        self.set_opendb(db)
+        return res[0] == 0
     
             
     async def command_exec(self, command, tupel_source = None):
@@ -269,91 +272,95 @@ class Secondo():
             raise SecondoAPI_Error('Connection to Secondo Server reset!')
             
         command = await self.optimization_check(command)
-        #handliung restore-command
-        if command and (((command.lstrip()).lower()).startswith('(restore') or ((command.lstrip()).lower()).startswith('( restore') or ((command.lstrip()).lower()).startswith('restore')):
+        if command:
+            #handliung restore-command
+            if (((command.lstrip()).lower()).startswith('(restore') or ((command.lstrip()).lower()).startswith('( restore') or ((command.lstrip()).lower()).startswith('restore')):
             
+                if not self.initialized:
+                    raise SecondoAPI_Error('Connection to ScondoServer has not been initialised.')
+        
+                if self.conn is None:
+                    raise SecondoAPI_Error('Connection to ScondoServer reset.')
+            
+                result = await restore_command(self.reader, self.writer, self.get_bin_format(), command)
+                self.result_error_code = result[0]
+                self.result_error_message = result[2]
+                self.result = result[3]
+                if result is None:
+                    raise SecondoAPI_Error('Command execution returned an empty list.')
+            
+                if result[0] != 0 :
+                    raise SecondoError(secondo_errors[result[0]] + ' Command execution was not successful.')
+            
+                if result[0] == 0 :
+                    print('Restore was successful.')
+                return result
+    
+            #handliung save-command
+            if (((command.lstrip()).lower()).startswith('(save') or ((command.lstrip()).lower()).startswith('( save') or ((command.lstrip()).lower()).startswith('save')):
+            
+                if not self.initialized:
+                    raise SecondoAPI_Error('Connection to ScondoServer has not been initialised.')
+        
+                if self.conn == None:
+                    raise SecondoAPI_Error('Connection to ScondoServer reset.')
+            
+                result = await save_command(self.reader, self.writer, self.get_bin_format(), command)
+                self.result_error_code = result[0]
+                self.result_error_message = result[2]
+                self.result = result[3]
+                if result is None:
+                    raise SecondoAPI_Error('Command execution returned an empty list.')
+            
+                if result[0] != 0 :
+                    raise SecondoError(secondo_errors[result[0]] + ' Command execution was not successful.')
+                if result[0] == 0 :
+                    print('Save was successful.')
+            
+                return result
+    
+            #handling general-commands
+        
             if not self.initialized:
                 raise SecondoAPI_Error('Connection to ScondoServer has not been initialised.')
         
             if self.conn is None:
                 raise SecondoAPI_Error('Connection to ScondoServer reset.')
+        
+            if 'pysend[' in command.lower():
+                result, self.stream_result = await general_command(self.reader, self.writer, self.get_bin_format(), command)
             
-            result = await restore_command(self.reader, self.writer, self.get_bin_format(), command)
+            if 'pyreceive[' in command.lower():
+                if tupel_source is None:
+                    raise SecondoAPI_Error('No Tupel source has been given.')
+                result = await general_command(self.reader, self.writer, self.get_bin_format(), command, stream_source = tupel_source)    
+            
+            if not ('pysend[' in command.lower() or 'pyreceive[' in command.lower()):
+                result = await general_command(self.reader, self.writer, self.get_bin_format(), command)
+        
             self.result_error_code = result[0]
             self.result_error_message = result[2]
             self.result = result[3]
+        
             if result is None:
-                raise SecondoAPI_Error('Command execution returned an empty list.')
+                raise SecondoAPI_Error('Command execution returned an empty list.') 
             
             if result[0] != 0 :
+                print(self.get_result_error_message())
                 raise SecondoError(secondo_errors[result[0]] + ' Command execution was not successful.')
-            
+    
             if result[0] == 0 :
-                print('Restore was successful.')
+                print('Command execution was successful.')
+    
+            if result[0] == 0 and "open database " in command:
+                self.set_opendb(command[14:])
+    
+            if result[0] == 0 and "close database" in command.lower():
+                self.opendb = ''
             return result
-    
-        #handliung save-command
-        if command and (((command.lstrip()).lower()).startswith('(save') or ((command.lstrip()).lower()).startswith('( save') or ((command.lstrip()).lower()).startswith('save')):
-            
-            if not self.initialized:
-                raise SecondoAPI_Error('Connection to ScondoServer has not been initialised.')
         
-            if self.conn == None:
-                raise SecondoAPI_Error('Connection to ScondoServer reset.')
-            
-            result = await save_command(self.reader, self.writer, self.get_bin_format(), command)
-            self.result_error_code = result[0]
-            self.result_error_message = result[2]
-            self.result = result[3]
-            if result is None:
-                raise SecondoAPI_Error('Command execution returned an empty list.')
-            
-            if result[0] != 0 :
-                raise SecondoError(secondo_errors[result[0]] + ' Command execution was not successful.')
-            if result[0] == 0 :
-                print('Save was successful.')
-            
-            return result
-    
-        #handling general-commands
-        
-        if not self.initialized:
-            raise SecondoAPI_Error('Connection to ScondoServer has not been initialised.')
-        
-        if self.conn is None:
-            raise SecondoAPI_Error('Connection to ScondoServer reset.')
-        
-        if 'pysend[' in command.lower():
-            result, self.stream_result = await general_command(self.reader, self.writer, self.get_bin_format(), command)
-            
-        if 'pyreceive[' in command.lower():
-            if tupel_source is None:
-                raise SecondoAPI_Error('No Tupel source has been given.')
-            result = await general_command(self.reader, self.writer, self.get_bin_format(), command, stream_source = tupel_source)    
-            
-        if not ('pysend[' in command.lower() or 'pyreceive[' in command.lower()):
-            result = await general_command(self.reader, self.writer, self.get_bin_format(), command)
-        
-        self.result_error_code = result[0]
-        self.result_error_message = result[2]
-        self.result = result[3]
-        
-        if result is None:
-            raise SecondoAPI_Error('Command execution returned an empty list.') 
-            
-        if result[0] != 0 :
-            print(self.get_result_error_message())
-            raise SecondoError(secondo_errors[result[0]] + ' Command execution was not successful.')
-    
-        if result[0] == 0 :
-            print('Command execution was successful.')
-    
-        if result[0] == 0 and "open database " in command:
-            self.set_opendb(command[14:])
-    
-        if result[0] == 0 and "close database" in command.lower():
-            self.opendb = ''
-        return result
+        else:
+            return None
     
     
     def close(self):

@@ -77,5 +77,5 @@ async def opt_comm_exec(reader, writer, query, db_name, flag):
                 raise SecondoAPI_Error('Connection to Optimizer is broken.')
         
         if opt_res == "":
-            raise SecondoAPI_Error('Optimization failed.')
+            raise SecondoAPI_Error('Optimization failed due to some Errors in the query.')
         return opt_res
