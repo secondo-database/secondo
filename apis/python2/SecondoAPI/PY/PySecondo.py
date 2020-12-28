@@ -167,7 +167,7 @@ class Secondo():
             update_comm = True
             catalog_comm = True
             select_comm = False
-	elif "delete" in command:
+        elif "delete" in command:
             update_comm = True
             catalog_comm = True
             select_comm = False    
