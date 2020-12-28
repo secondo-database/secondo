@@ -829,7 +829,6 @@ optDebugLevel(translation).      % Details on translation rule matching
 loadFiles(standard) :-
   ( not(loadedModule(standard)),
     [optimizer],
-%    [optimizerNewProperties],  % requires also distributed.pl
     [costs2014],
     [statistics],
     [database],
@@ -839,7 +838,7 @@ loadFiles(standard) :-
     [relations],
     [testExamples],
 %    [operatorSQL],	% operatorSQL
-%    [distributed],
+    [distributed],
 % Section:Start:loadFiles_1_i
 % Section:End:loadFiles_1_i
     retractall(loadedModule(_)),
