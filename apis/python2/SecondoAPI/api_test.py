@@ -21,6 +21,10 @@ async def execute_api_calls():
    print("Performing plz query")
    plz_output = await scn.command_exec('query plz')
    print(plz_output)
+ 
+   print("Performing plz query (count)")
+   plz_output_count = await scn.command_exec('query plz count')
+   print(plz_output_count)
    
    print("Performing plz sql query")
    plz_output_sql = await scn.command_exec('select * from plz')
@@ -32,8 +36,10 @@ async def execute_api_calls():
    for item in scn.fetch_stream_result():
        print(item)
 
+   #print ("Performing delete query")
+   #await scn.command_exec('delete testrel')
+   
    print ("Performing insert query with pyreceive")
-   await scn.command_exec('delete testrel')
    tuples = [[1059,"Dresden"], [1060,"Dresden"], [1001,"Dresden"], [1002,"Dresden"], 
              [1003,"Dresden"],[1004,"Dresden"],[1005,"Dresden"],[1006,"Dresden"],
              [1007,"Dresden"],[1008,"Dresden"]]
