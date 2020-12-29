@@ -13,7 +13,8 @@ import asyncio
 from PySecondo import *
 
 async def execute_api_calls():
-   scn = Secondo()
+
+   scn = Secondo(secondo_port=12340, optimizer_port=12350)
 
    print("Open database opt")
    await scn.command_exec("open database opt")

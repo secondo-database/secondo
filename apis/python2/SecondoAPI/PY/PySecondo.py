@@ -24,7 +24,6 @@ from secondo_datatypes_pkg.Relation import *
 
 
 
-
 class Secondo():
     """
     This class contains attributes and methods for connecting to a running Secondo server, 
@@ -33,21 +32,19 @@ class Secondo():
     
     """
     
-    def __init__(self):
+    def __init__(self, secondo_server='127.0.0.1', secondo_port=1234, optimizer_host='127.0.0.1', 
+                 optimizer_port=1235, username='user', password='secret', bin_format = True):
         
         """
         This constructor which reads from configuration file, connects to secondo server
         and initialises the object to connect to Optimizer server.
         
         """
-        
-        cfg = Config("config_pkg/secondo.cfg")
-        params = cfg.initialize()
-        self.server = params[0]
-        self.port = params[1]
-        self.user = params[2]
-        self.bin_format = params[6]
-        self.password = params[3]
+        self.server = secondo_server
+        self.port = secondo_port
+        self.user = username
+        self.password = password
+        self.bin_format = bin_format
         self.initialized = False
         self.conn = None
         self.reader = None
@@ -56,7 +53,7 @@ class Secondo():
         #loop = asyncio.get_event_loop()
         #loop.run_until_complete(self.connect())
         asyncio.run(self.connect())
-        self.opt = Optimizer(params[4], params[5])
+        self.opt = Optimizer(optimizer_host, optimizer_port)
         self.opt_reader, self.opt_writer = self.opt.get_opt_streams()
         self.result_error_code = None
         self.result_error_message = None
