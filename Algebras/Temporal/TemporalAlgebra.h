@@ -4565,6 +4565,8 @@ Functions required for attribute type
 
   const Rectangle<2> BoundingBoxSpatial(const Geoid* geoid = 0) const;
   
+  static double GetToleranceFactor();
+  
 /*
 Transforms a UPoint into a CUPoint.
 

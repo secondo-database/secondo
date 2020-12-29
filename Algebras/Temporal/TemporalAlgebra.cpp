@@ -2891,6 +2891,10 @@ void CUPoint::ConvertFrom(const UPoint& up, const Geoid* geoid /* = 0 */) {
   ((UPoint*)this)->CopyFrom(&up);
 }
 
+double CUPoint::GetToleranceFactor() {
+  return 1.05;
+}
+
 void CUPoint::ConvertFrom(const MPoint& mp, const Geoid* geoid /* = 0 */) {
   if (!mp.IsDefined() || mp.IsEmpty()) {
     SetDefined(false);
@@ -3089,14 +3093,15 @@ double CUPoint::DistanceIntegral(const CUPoint& cup, const bool upperBound,
         if (isnan(integralValue1) || isnan(integralValue2)) {
           return 0.0;
         }
-//         cout << "    RES 2 = " << std::max(0.0, integralValue1 - sumOfRadii *
-//                 (instNull1 - urDist.timeInterval.start).ToDouble())
-//                 + std::max(0.0, integralValue2 - sumOfRadii *
-//                 (urDist.timeInterval.end - instNull2).ToDouble()) << endl;
         result = std::max(0.0, integralValue1 - sumOfRadii * 
                  (instNull1 - urDist.timeInterval.start).ToDouble())
                  + std::max(0.0, integralValue2 - sumOfRadii * 
                  (urDist.timeInterval.end - instNull2).ToDouble());
+//         cout << "  RES 2 = " << integralValue1 << " - " << sumOfRadii 
+//              << " * " << (instNull1 - urDist.timeInterval.start) << " + "
+//              << integralValue2 << " - " << sumOfRadii << " * "
+//              << (urDist.timeInterval.end - instNull2) << " = " << result
+//              << endl;
       }
     }
     else { // no shifting required because min >= sumOfRadii
@@ -3143,7 +3148,9 @@ double CUPoint::DistanceAvg(const CUPoint& cup, const bool upperBound,
 //   cout << "CUPoint::DistanceAvg" << (upperBound ? "UB" : "LB") << " for "
 //        << *this << " AND " << cup << endl << " = " 
 //        << integral << " / " << dur << "  =  " << integral / maxDur << endl;
-  return integral / maxDur;
+  double factor = (upperBound ? pow(GetToleranceFactor(), 2) :
+                   1.0 / pow(GetToleranceFactor(), 2));
+  return integral / maxDur * factor;
 }
 
 void CUPoint::DistanceAvg(const CUPoint& cup, const bool upperBound,
@@ -8271,6 +8278,7 @@ void CMPoint::ConvertFrom(const MPoint& src, const DateTime dur,
       dist.Recompute(srcPart, mpTempShifted, geoid);
       cup.Set(upDest, dist.Max(correct));
     }
+    cup.SetRadius(cup.GetRadius());
     assert(correct);
 //     cout << "sqdist between " << mpTempShifted << " and " << srcPart 
 //          << " amounts to " << dist << ", max is " << sqrt(dist.Max(correct)) 
@@ -8307,6 +8315,7 @@ void CMPoint::ConvertFrom(const MPoint& src, const DateTime dur,
       dist.Recompute(srcPart, mpTempShifted, geoid);
       cup.Set(upDest, dist.Max(correct));
     }
+    cup.SetRadius(cup.GetRadius());
     assert(correct);
     Add(cup);
   }
@@ -8330,26 +8339,33 @@ void CMPoint::ConvertFrom(const MPoint& src, const CcReal& threshold,
   src.InitialInstant(firstInst);
   diffToBeginOfTime = firstInst - beginOfTime;
   double thresh = threshold.GetValue();
-  MPoint mpSimplified(true), srcFinalPart(true), simpleFinalPart(true);
+  MPoint mpSimplified(true), mpSimplePart(true), srcPart(true), 
+         srcFinalPart(true), simpleFinalPart(true);
   src.Simplify(thresh, mpSimplified, false, DateTime(0.0), geoid);
   UPoint upSimplified(true);
   CUPoint cup(true);
+  MReal dist(true);
+  Periods per(true);
+  bool correct = true;
   for (int i = 0; i < mpSimplified.GetNoComponents() - 1; i++) {
     mpSimplified.Get(i, upSimplified);
-    cup.Set(upSimplified, thresh);
+    per.Add(upSimplified.timeInterval);
+    src.AtPeriods(per, srcPart);
+    mpSimplePart.Add(upSimplified);
+    srcPart.SquaredDistance(mpSimplePart, dist);
+    per.Clear();
+    mpSimplePart.Clear();
+    cup.Set(upSimplified, sqrt(dist.Max(correct)));
     cup.timeInterval.start -= diffToBeginOfTime;
     cup.timeInterval.end -= diffToBeginOfTime;
     Add(cup);
   }
   if (!mpSimplified.IsEmpty()) { // radius of final (or only) cyl may be smaller
     mpSimplified.Get(mpSimplified.GetNoComponents() - 1, upSimplified);
-    Periods per(true);
     per.Add(upSimplified.timeInterval);
     src.AtPeriods(per, srcFinalPart);
     mpSimplified.AtPeriods(per, simpleFinalPart);
-    MReal dist(true);
     srcFinalPart.SquaredDistance(simpleFinalPart, dist);
-    bool correct = true;
     if (!geoid) {
       cup.Set(upSimplified, sqrt(dist.Max(correct)));
     }
@@ -8357,6 +8373,7 @@ void CMPoint::ConvertFrom(const MPoint& src, const CcReal& threshold,
       dist.Recompute(srcFinalPart, simpleFinalPart, geoid);
       cup.Set(upSimplified, dist.Max(correct));
     }
+    cup.SetRadius(cup.GetRadius());
     assert(correct);
     cup.timeInterval.start -= diffToBeginOfTime;
     cup.timeInterval.end -= diffToBeginOfTime;
@@ -8816,7 +8833,9 @@ double CMPoint::DistanceAvg(const CMPoint& cmp, const bool upperBound,
   double integral = this->DistanceIntegral(cmp, upperBound, duration, geoid);
 //   cout << " result is " << integral << " / " << duration << "  =  " 
 //        << integral / duration.ToDouble() << endl;
-  return integral / duration.ToDouble();
+  double factor = (upperBound ? CUPoint::GetToleranceFactor() :
+                   1.0 / CUPoint::GetToleranceFactor());
+  return integral / duration.ToDouble() * factor;
 }
 
 void CMPoint::DistanceAvg(const CMPoint& cmp, const bool upperBound,
@@ -21685,6 +21704,9 @@ int cbboxVM(Word* args, Word& result, int message, Word& local, Supplier s) {
   res->ConvertFrom(*src, geoid);
   if (T::BasicType() == "upoint") {
     res->SetRadius(radius);
+  }
+  else if (T::BasicType() == "mpoint") {
+    res->SetRadius(res->GetRadius());
   }
   return 0;
 }
