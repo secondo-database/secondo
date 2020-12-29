@@ -298,6 +298,8 @@ class Convex3D {
    // The first constructor.
    Convex3D(Rectangle<3> &bounding_box);
 
+   Convex3D(std::vector<Polyhedron> &poly_vec);
+
    // copy constructor
    Convex3D( const Convex3D& g );
 

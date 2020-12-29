@@ -184,17 +184,6 @@ Convex::getCellId() {
   return cellId;
 }
 
-/*std::vector<Convex>
-Convex::getVoronoiVector() {
-  return this->voroVec;
-}
-    
-void 
-Convex::setVoronoiVector(std::vector<Convex> voro_vec) {
-  this->voroVec = voro_vec;
-}*/
-
-
 
 void 
 Convex::setTo(const std::vector<std::tuple <double, double>>& src,
@@ -307,6 +296,11 @@ Rectangle<2> createBBox(Convex* convex) {
 
 }
 
+
+/*
+  Returns true if point is inside of convex polygon
+
+*/
 bool PointInPolygon(Point point, Convex* conv) 
 {
     std::vector<Point> poly;
@@ -319,8 +313,11 @@ bool PointInPolygon(Point point, Convex* conv)
 
   Rectangle<2> bbox = createBBox(conv);
 
-  // Precheck: if point is not in bbox of polygon, then it is not in 
-  // polygon either
+  /* 
+    Precheck: if point is not in bbox of polygon, then it is not in 
+    polygon either
+
+  */
   if(!insideRect(&bbox, std::make_tuple(point.GetX(), point.GetY())))
   {
     return false;
@@ -346,7 +343,10 @@ bool PointInPolygon(Point point, Convex* conv)
   return c;
 }
 
+/*
+  Calculates point of intersection between two segments
 
+*/
 int getLineIntersection(Point p0, Point p1, 
   Point p2, Point p3, double *i_x, double *i_y)
 {
@@ -363,21 +363,6 @@ int getLineIntersection(Point p0, Point p1,
 
     double p3_x = p3.GetX();
     double p3_y = p3.GetY();
-
-    /*
-      L1 = (x0,y0) + t*(x1-x0, y1-y0)
-      L2 = (x2,y2) + u*(x3-x2, y3-y2)
-
-      t = (x0-x2)*(y2-y3)-(y0-y2)*(x2-x3) / (x0-x1)*(y2-y3)-(y0-y1)*(x2-x3)
-      u = (x0-x1)*(y0-y2)-(y0-y1)*(x0-x2) / (x0-x1)*(y2-y3)-(y0-y1)*(x2-x3)
-
-      Px,Py = x0+t(x1-x0), y0 + t(y1-y0)
-      Px,Py = x2+u(x3-x2), y2 + u(y3-y2)
-
-      parallel or coincident => denom is zero
-      (x0-x1)*(y2-y3) - (y0-y1)*(x2-x3) = 0
-
-    */
 
     double xp0p2, yp0p2, xp1p0, yp1p0, xp3p2,
            yp3p2, u_numrator, t_numerator, denominator, t;
@@ -485,11 +470,11 @@ bool rectOverlap(Point tole1, Point bori1, Point tole2, Point bori2)
 bool cuboidOverlap(Point3D tolefr1, 
   Point3D boriba1, Point3D tolefr2, Point3D boriba2) 
 { 
-    // If one rectangle is on left side of other 
+    // If one cuboid is on left side of other 
     if (tolefr1.x > boriba2.x || tolefr2.x > boriba1.x) 
         return false; 
   
-    // If one rectangle is above other 
+    // If one cuboid is above other 
     if (tolefr1.y < boriba2.y || tolefr2.y < boriba1.y) 
         return false; 
 
@@ -537,7 +522,7 @@ Rectangle<3> createBBox3D(Polyhedron* poly) {
         maxz = z_val;
       }
     }
-}
+  }
 
     double min[3], max[3];
     min[0] = minx;
@@ -578,12 +563,13 @@ void cellNum(Rectangle<2>* search_window_ptr,
   for(int i = 0; i < (int)voroVec.size(); i++) 
   {
     Convex* tmp = &voroVec[i];
+    if(tmp->size > 0) {
 
     /*
       -1. Precheck if object has an intersection
       with bbox of voronoi cell
-      -> if yes: go on with further tests
-      -> if not: go to next cell
+      - if yes: go on with further tests
+      - if not: go to next cell
 
     */
 
@@ -601,17 +587,18 @@ void cellNum(Rectangle<2>* search_window_ptr,
       std::vector<std::tuple<double, double>> polygon {};
       std::tuple<double, double> point;
 
-      /*
-      1. Check if middle of cell intersects with rectangle 
-      (get middle of cell, check if it lies in rectangle)
-      -> if yes: add cell_id to cell_ids -> done
-      -> if no: check if edges intersect with rectangle
-        -> build edges from points (ordered clockwise), check intersection
-        -> if one intersect: add cell_id to cell_ids -> done
-        -> if no edge intersects: check if rectangle is small and does
-          not intersects with edges or centroid at all, but lies in cell
-        -> if no intersects: go to next cell, don't add cell_id
-      */
+/*
+  1. Check if middle of cell intersects with rectangle 
+  (get middle of cell, check if it lies in rectangle)
+  - if yes: add cell\_id to cell\_ids
+  - if no: check if edges intersect with rectangle
+  - build edges from points (ordered clockwise), check intersection
+  - if one intersect: add cell\_id to cell\_ids
+  - if no edge intersects: check if rectangle is small and does
+    not intersects with edges or centroid at all, but lies in cell
+  - if no intersects: go to next cell, don't add cell\_id
+
+*/
 
       double firstX = tmp->value[0].GetX();
       double firstY = tmp->value[0].GetY();
@@ -641,14 +628,16 @@ void cellNum(Rectangle<2>* search_window_ptr,
           b.Set(tmp->value[e+1].GetX(), tmp->value[e+1].GetY());
 
         }
-        // Point of intersection i_x, i_y w
+        // Point of intersection i\_x, i\_y w
         double i_x = 0.0;
         double i_y = 0.0;
 
-        /* call to getlineintersection with 2 points of line
-        and two points of side of rectangle 
-        (for each side of rectangle)
-        */ 
+/* 
+call to getlineintersection with 2 points of line
+and two points of side of rectangle 
+(for each side of rectangle)
+
+*/ 
         if(getLineIntersection(a,b, lebo, ribo, &i_x, &i_y) == 1 
           || getLineIntersection(a,b, lebo, leto, &i_x, &i_y) == 1 
           || getLineIntersection(a,b, ribo, rito, &i_x, &i_y) == 1
@@ -666,6 +655,7 @@ void cellNum(Rectangle<2>* search_window_ptr,
         polygon.clear();
       }
     } 
+    }
 
   }
 
@@ -675,7 +665,7 @@ void cellNum(Rectangle<2>* search_window_ptr,
     for(int b = 0; b < (int)voroVec.size(); b++) 
     {
       Convex* tmp = &voroVec[b];
-
+      if(tmp->size > 0) {
       Rectangle<2> bbox = createBBox(tmp);
 
       // see if bbox intersects with rectangle
@@ -686,6 +676,7 @@ void cellNum(Rectangle<2>* search_window_ptr,
       if(rectOverlap(tole, bori, leto, ribo)) {
         cell_ids->insert(tmp->getCellId());
       }
+    }
     }
 
   } else {
@@ -1890,8 +1881,7 @@ Word Convex::In(const ListExpr typeInfo, const ListExpr le1,
    string lexprstr;
     
     Word res = SetWord(Address(0));
-   
-    printf("\n in in");
+
     if(listutils::isSymbolUndefined(le)){
       
       
@@ -1920,27 +1910,11 @@ Word Convex::In(const ListExpr typeInfo, const ListExpr le1,
      f = nl->First(le);
      le = nl->Rest(le);
 
-     printf("\n list not empty");
     
      
      if(nl->ListLength(f) != 2) 
      
      {
-       // cellId
-     /*if(nl->ListLength(f) == 1)
-     {
-
-       printf("\n length == 1");
-       Convex* co = new Convex(false);
-      correct = true;
-      co->cellId = nl->RealValue(f);
- 
-      co->SetDefined(false);
-      res.addr = co;      
-      return res;
-
-
-     } else {*/
                
       correct = true;
       
@@ -1951,7 +1925,6 @@ Word Convex::In(const ListExpr typeInfo, const ListExpr le1,
       co->SetDefined(false);
       res.addr = co;      
      return res;
-     //}
       
      }    
      
@@ -2478,47 +2451,9 @@ ListExpr sccvoronoitypemap (ListExpr args)
 
 /*
 
- 8.1.5 toprightclass typemapping
+ 8.1.5 getcell typemapping
 
 */
-ListExpr trcvoronoitypemap (ListExpr args)
-{
-  if(nl->HasLength(args, 2)) {
-    ListExpr first = nl->First(args);
-    ListExpr second = nl->Second(args);
-    
-    if(Rectangle<2>::checkType(first) && Rectangle<2>::checkType(second)) {
-      return nl->SymbolAtom(CcInt::BasicType());
-    }
-  }
-
-  const std::string errMsg = "The following two arguments are expected:"
-      " rect x rect";
-
-  return  listutils::typeError(errMsg);
-
-}
-
-ListExpr trcCellIdvoronoitypemap (ListExpr args)
-{
-  if(nl->HasLength(args, 3)) {
-    ListExpr first = nl->First(args);
-    ListExpr second = nl->Second(args);
-    ListExpr third = nl->Third(args);
-
-    if(Stream<Convex>::checkType(first) && Rectangle<2>::checkType(second) 
-      && Rectangle<2>::checkType(third)) {
-      return nl->SymbolAtom(CcInt::BasicType());
-    }
-  }
-
-  const std::string errMsg = "The following three arguments are expected:"
-      " Stream<Convex> x rect x rect";
-
-  return  listutils::typeError(errMsg);
-
-}
-
 ListExpr getcellvoronoitypemap ( ListExpr args)
 {
   if(nl->HasLength(args, 2)) {
@@ -2539,7 +2474,7 @@ ListExpr getcellvoronoitypemap ( ListExpr args)
 }
 
 /* 
- 8.1.2 voronoi3dtypemap
+  8.1.6 voronoi3dtypemap
  
 */
 ListExpr voronoi3dtypemap( ListExpr args )
@@ -2560,14 +2495,19 @@ ListExpr voronoi3dtypemap( ListExpr args )
   return  listutils::typeError(errMsg);
 }
 
+/* 
+  8.1.7 cellnum 3d typemapping
+ 
+*/
 ListExpr cellnumvoronoi3dtypemap ( ListExpr args)
 {
   if(nl->HasLength(args, 3)) {
-    //ListExpr first = nl->First(args);
+    ListExpr first = nl->First(args);
     ListExpr second = nl->Second(args);
     ListExpr third = nl->Third(args);
 
-    if (CcInt::checkType(third) && Rectangle<3>::checkType(second)) {
+    if (Convex3D::checkType(first) && CcInt::checkType(third)
+       && Rectangle<3>::checkType(second)) {
       return nl->SymbolAtom(collection::IntSet::BasicType());
     }
   }
@@ -2579,6 +2519,7 @@ ListExpr cellnumvoronoi3dtypemap ( ListExpr args)
 
 }
 
+
 int voronoi3DCreateSelect( ListExpr args )
 {
   ListExpr first = nl->First(args);
@@ -2588,84 +2529,62 @@ int voronoi3DCreateSelect( ListExpr args )
     && Rectangle<3>::checkType(second)) {
     return 0;
   }
-  return -1; // should never occur
+  return -1;
 }
 
 
 /*
-
- 8.1.9 smallest common cellnumber typemapping
+ 8.1.8 smallest common cellnumber typemapping
 
 */
 ListExpr sccvoronoi3dtypemap (ListExpr args)
 {
   if(nl->HasLength(args, 4)) {
+    ListExpr first = nl->First(args);
     ListExpr second = nl->Second(args);
     ListExpr third = nl->Third(args);
     ListExpr fourth = nl->Fourth(args);
     
-    if(Rectangle<3>::checkType(second) && Rectangle<3>::checkType(third)
+    if(Convex3D::checkType(first) 
+    && Rectangle<3>::checkType(second) 
+    && Rectangle<3>::checkType(third)
      && CcInt::checkType(fourth)) {
       return nl->SymbolAtom(CcBool::BasicType());
     }
   }
 
   const std::string errMsg = "The following two arguments are expected:"
-      " Convex3D x rect3 x rect3";
+      " Convex3D x rect3 x rect3 x int";
 
   return  listutils::typeError(errMsg);
 
 }
 
 /*
-
- 8.1.10 toprightclass typemapping
+ 8.1.9 getcell 3d typemapping
 
 */
-ListExpr trcCellIdvoronoi3dtypemap (ListExpr args)
-{
-  if(nl->HasLength(args, 3)) {
-    ListExpr second = nl->Second(args);
-    ListExpr third = nl->Third(args);
-    
-    if(Rectangle<3>::checkType(second) && Rectangle<3>::checkType(third)) {
-      return nl->SymbolAtom(CcInt::BasicType());
-    }
-  }
-
-  const std::string errMsg = "The following two arguments are expected:"
-      " Convex3D x rect3 x rect3";
-
-  return  listutils::typeError(errMsg);
-
-}
-
-ListExpr trcvoronoi3dtypemap (ListExpr args)
+ListExpr getcellvoronoi3dtypemap ( ListExpr args)
 {
   if(nl->HasLength(args, 2)) {
-    //ListExpr first = nl->First(args);
+    ListExpr first = nl->First(args);
     ListExpr second = nl->Second(args);
 
-    // check for polyhedron is missing
-    if(Rectangle<3>::checkType(second)) {
-      return nl->SymbolAtom(CcInt::BasicType());
+    if(Convex3D::checkType(first) && CcInt::checkType(second)) {
+      return nl->SymbolAtom(Rectangle<3>::BasicType());
     }
   }
 
   const std::string errMsg = "The following two arguments are expected:"
-      " Polyhedron x rect3";
+      " Convex3D x int";
 
   return  listutils::typeError(errMsg);
 
 }
-
-
-
 
 
 
 /*
-
 8.2 ValueMapping Definitions
 
 */
@@ -2678,6 +2597,7 @@ ListExpr trcvoronoi3dtypemap (ListExpr args)
 int cellNumVM( Word* args, Word& result, int message,
       Word& local, Supplier s ) 
 {
+  if(voroVec.size() == 0) {
     Stream<Convex> input_convex(args[0]);
     input_convex.open();
     Convex* next = input_convex.request();
@@ -2690,12 +2610,16 @@ int cellNumVM( Word* args, Word& result, int message,
     }
 
     input_convex.close();
-
+  }
   Rectangle<2> *search_window_ptr
     = static_cast<Rectangle<2>*>( args[1].addr );
 
-  /* mode == 1 => precise allocation; mode == 2 => use Bboxes of convex cells
-    In case the user did not specify the mode of allocation, use Bboxes
+  /* 
+    mode == 1 => precise allocation; 
+    mode == 2 => use Bboxes of convex cells
+    In case the user did not specify 
+    the mode of allocation, use Bboxes
+
   */
   int mode = ((CcInt*)args[2].addr)->GetIntval();
   std::set<int> cell_ids;
@@ -2704,7 +2628,7 @@ int cellNumVM( Word* args, Word& result, int message,
   result = qp->ResultStorage(s);
   collection::IntSet* res = (collection::IntSet*) result.addr;
 
-  if(search_window_ptr == nullptr /*|| convex == nullptr*/) {
+  if(search_window_ptr == nullptr) {
     return 1;
   }
 
@@ -2789,8 +2713,6 @@ int smallestCommonCellnumVM( Word* args, Word& result, int message,
     if(v[0] == cellno)
     {
         boolval = true;
-        //res->Set( true, boolval);
-        //return 0;
     }
 
     if(v.size() > 0)
@@ -2820,152 +2742,11 @@ int smallestCommonCellnumVM( Word* args, Word& result, int message,
 
 }
 
-/*
-8.2.2 TopRightClass returns cellId of cell which should be reported
-
-*/
-int trcCellIdvorononoiVM( Word* args, Word& result, int message,
-      Word& local, Supplier s ) 
-{
-  Stream<Convex> input_convex(args[0]);
-  input_convex.open();
-  Convex* next = input_convex.request();
-
-  while(next != 0){
-    voroVec.push_back(*next);
-    delete next;
-    next = input_convex.request();
-  }
-
-  input_convex.close();
-
-  Rectangle<2> *search_window_ptr
-    = static_cast<Rectangle<2>*>( args[1].addr );
-
-  Rectangle<2> *search_window_ptr_2
-    = static_cast<Rectangle<2>*>( args[2].addr );
-
-  if(search_window_ptr == nullptr 
-    || search_window_ptr_2 == nullptr) {
-    return 1;
-  }
-
-  result = qp->ResultStorage(s);
-  CcInt* res = (CcInt*) result.addr;
-
-  std::set<int> intsetRect1;
-  std::set<int> intsetRect2;
-
-  cellNum(search_window_ptr, 2, &intsetRect1);
-  cellNum(search_window_ptr_2, 2, &intsetRect2);
-  
-  for (std::set<int>::iterator it=intsetRect1.begin(); 
-    it!=intsetRect1.end(); ++it)
-    std::cout << ' ' << *it;
-  for (std::set<int>::iterator ip=intsetRect2.begin(); 
-    ip!=intsetRect2.end(); ++ip)
-    std::cout << ' ' << *ip;
-  
-
-
-  std::vector<int> v(sizeof(intsetRect1)+ sizeof(intsetRect2));
-  std::vector<int>::iterator it;
-
-  it=std::set_intersection (intsetRect1.begin(), intsetRect1.end(),
-                 intsetRect2.begin(), intsetRect2.end(), v.begin());
-  v.resize(it-v.begin());                      
-  
-  if(v.empty()) { 
-    //no intersection between rectangles
-    res->Set(0);
-    if(voroVec.size() > 0) {
-      voroVec.clear();
-    }
-    return 0;
-
-  }
-
-  for (it=v.begin(); it!=v.end(); ++it) {
-    for(int c = 0; c < (int)voroVec.size(); c++) {
-      if(voroVec[c].getCellId() == *it) {
-        // get TRC Values
-        int value_rect1 = 0;
-        int value_rect2 = 0;
-
-        // create bbox of voronoi cell
-        Convex* tmp = &voroVec[c];
-
-        Rectangle<2> bbox = createBBox(tmp);
-        if ( search_window_ptr->getMaxX() >= bbox.getMaxX() )
-          {value_rect1++;}
-        if ( search_window_ptr->getMaxY() >= bbox.getMaxY() ) {
-          value_rect1 += 2;}
-        
-
-        if ( search_window_ptr_2->getMaxX() >= bbox.getMaxX() )
-          {value_rect2++;}
-        if ( search_window_ptr_2->getMaxY() >= bbox.getMaxY() ) {
-          value_rect2 += 2;}
-        
-        int value = value_rect1 & value_rect2;
-        if (value == 0)
-        {
-          res->Set( *it );
-          if(voroVec.size() > 0) {
-            voroVec.clear();
-          }
-          return 0;
-
-        }
-    }
-  }
-  }
-  
-
-  if(voroVec.size() > 0) {
-    voroVec.clear();
-  }
-  res->Set(0);
-  return 0;
-
-}
 
 /*
-8.2.2 TopRightClass returns toprightclassvalue
+8.2.3 getCellVM
 
 */
-int trcvorononoiVM( Word* args, Word& result, int message,
-      Word& local, Supplier s ) 
-{
-  Rectangle<2> *search_window_ptr_C
-    = static_cast<Rectangle<2>*>( args[0].addr );
-
-  Rectangle<2> *search_window_ptr
-    = static_cast<Rectangle<2>*>( args[1].addr );
-
-  if(search_window_ptr == nullptr 
-  || search_window_ptr_C == nullptr) {
-    return -1;
-  }
-
-  result = qp->ResultStorage(s);
-  CcInt* res = (CcInt*) result.addr;
-
-  // get TRC Value
-  int value_rect1 = 0;
-
-  if ( search_window_ptr->getMaxX() >= search_window_ptr_C->getMaxX() )
-    {value_rect1++;}
-  if ( search_window_ptr->getMaxY() >= search_window_ptr_C->getMaxY() ) {
-    value_rect1 += 2;}
-
-
-  res->Set(value_rect1);
-
-  return 0;    
-
-}
-
 int getcellvoronoiVM(Word* args, Word& result, int message,
   Word& local, Supplier s)
 {
@@ -3014,7 +2795,7 @@ int getcellvoronoiVM(Word* args, Word& result, int message,
 
 /*
 
-8.2.3  createconvexVM
+8.2.4  createconvexVM
 
 */
 int createconvexVM (Word* args, Word& result,
@@ -4913,7 +4694,7 @@ Polyhedron::getNeighbor() {
   return neighbor;
 }
 
-// cellId
+
 void Polyhedron::setPolyId(int id_) {
   this->polyhedronId = id_;
 }
@@ -4929,7 +4710,6 @@ Polyhedron::~Polyhedron() {}
   3D Convex constructor
 
 */
-
 Convex3D::Convex3D() {}
 
 Convex3D::Convex3D(const Convex3D& g) {
@@ -4938,6 +4718,10 @@ Convex3D::Convex3D(const Convex3D& g) {
 
 Convex3D::Convex3D(Rectangle<3> &bounding_box) {
   boundingBox = &bounding_box;
+}
+
+Convex3D::Convex3D(std::vector<Polyhedron> &poly_vec) {
+  polyhedronvec = poly_vec;
 }
 
 void Convex3D::Set(Stream<Rectangle<3>> rStream) {
@@ -5062,8 +4846,7 @@ double dotProduct(std::vector<double> va, std::vector<double> vb)
   Calculates centre of a cuboid
 
 */
-Point3D
-getCentre(Rectangle<3>* r) {
+Point3D getCentre(Rectangle<3>* r) {
   double a = (r->getMaxY() - r->getMinY()) / (double)2;
   double b = (r->getMaxX() - r->getMinX()) / (double)2;
   double c = (r->getMaxZ() - r->getMinZ()) / (double)2;
@@ -5077,223 +4860,44 @@ getCentre(Rectangle<3>* r) {
 }
 
 /*
-  calculates normal of three points
-
-*/
-std::vector<double> normal(std::vector<Point3D> pp)
-{
-  if(pp.size() > 2)
-  {
-    std::vector<double> dir1 {pp.at(1).x - pp.at(0).x,
-       pp.at(1).y - pp.at(0).y, pp.at(1).z - pp.at(0).z };
-    std::vector<double> dir2 {pp.at(2).x - pp.at(0).x,
-       pp.at(2).y - pp.at(0).y, pp.at(2).z - pp.at(0).z };
-    std::vector<double> cross = crossProduct(dir1, dir2);
-    double d = std::sqrt(cross.at(0)*cross.at(0) + 
-      cross.at(1)*cross.at(1) + cross.at(2)*cross.at(2));
-
-    std::vector<double> res {cross.at(0)/d, cross.at(1)/d, cross.at(2)/d};
-    return res;
-  }
-
-  return {0,0,0};
-}
-
-/*
   Returns true if Point p is in given polyhedron
 
 */
-bool isInPolyhedron(Point3D p, Polyhedron poly)
-{
-  for(std::vector<Point3D> pp : poly.faces)
+bool isInPolyhedron(Point3D p, Polyhedron poly, Point3D pi)
+{    
+  for(size_t i = 1; i < poly.faces.size(); i++)
   {
-    std::vector<double> p_pp {pp.at(0).x - p.x,
-       pp.at(0).y - p.y, pp.at(0).z - p.z};
-    //Point3D normal = normalize(pp);
-    double dot = dotProduct(p_pp, normal(pp));
-    dot /= std::sqrt(p_pp.at(0)*p_pp.at(0) 
-      + p_pp.at(1)*p_pp.at(1) + p_pp.at(2)*p_pp.at(2));
+    // calculate first orient3d to have a comparetive value
+    std::vector<Point3D> face = poly.faces[i];
+    double pa[3] = {face[0].x, face[0].y, face[0].z};
+    double pb[3] = {face[1].x, face[1].y, face[1].z};
+    double pc[3] = {face[2].x, face[2].y, face[2].z};
+    // take point pi (which lies definitly in cell) as a reference
+    double pd[3] = {pi.x, pi.y, pi.z};
 
-    double bound = -1e-15;
-    if(dot < bound)
+
+    double d0 = orient3d(pa, pb, pc, pd);
+    double paC[3] = {face[0].x, face[0].y, face[0].z};
+    double pbC[3] = {face[1].x, face[1].y, face[1].z};
+    double pcC[3] = {face[2].x, face[2].y, face[2].z};
+    double pp[3] = {p.x, p.y, p.z};
+    double d1 = orient3d(paC, pbC, pcC, pp);
+
+/* 
+  if values for determinants (d0,d1) 
+  have different signs,
+  the points pi and p cannot be on the same side
+  of the checked face. In this case p cannot be
+  inside of the polyhedron
+
+*/
+    if(signbit(d0) != signbit(d1)) 
+    {
       return false;
+    }
   }
+
   return true;
-}
-
-
-/*
-  Returns true if points lie on the same side
-
-*/
-bool sameside(Point3D p1, Point3D p2, Point3D p3, Point3D p4, Point3D p)
-{
-  std::vector<double> subv2_v1 {p2.x - p1.x, p2.y - p1.y, p2.z - p1.z};
-  std::vector<double> subv3_v1 {p3.x - p1.x, p3.y - p1.y, p3.z - p1.z};
-  std::vector<double> subv4_v1 {p4.x - p1.x, p4.y - p1.y, p4.z - p1.z};
-  std::vector<double> subp_v1 {p.x - p1.x, p.y - p1.y, p.z - p1.z};
-
-  std::vector<double> normal = crossProduct(subv2_v1, subv3_v1);
-  double dotproductV4 = dotProduct(normal, subv4_v1);
-  double dotproductP = dotProduct(normal, subp_v1);
-
-  // isgreater > 0: points are on the same side
-  bool isgreater = (dotproductV4 * dotproductP) > 0;
-  return isgreater;
-
-}
-
-/*
-  Calculates determinant of 4x4 matrix
-
-*/
-float determinant4x4(Point3D a, Point3D b, Point3D c, Point3D x)
-{
-  float det = 0.0;
-  /*
-  calculate 4x4 matrix
-  ax ay az 1
-  bx by bz 1
-  cx cy cz 1
-  xx xy xz 1
-
-  */
-
-  det = 
-  a.x * (b.y*(c.z*1 - 1*x.z) - b.z*(c.y*1 - 1*x.y) + 1*(c.y*x.z - c.z*x.y)) - 
-  b.x * (a.y*(c.z*1 - 1*x.z) - a.z*(c.y*1 - 1*x.y) +1*(c.y*x.z - c.z*x.y)) + 
-  c.x * (a.y*(b.z*1 - 1*x.z) - a.z*(b.y*1 - 1*x.y) +1*(b.y*x.z - b.z*x.y)) -
-  x.x * (a.y*(b.z*1 - 1*c.z) - a.z*(b.y*1 - 1*c.y) +1*(b.y*c.z - b.z*c.y));
-
-  return det;
-
-}
-
-/*
- Calculates if a point p lies inside a sphere (returns value > 0), outside a 
- sphere (returns value < 0) or directly on a sphere (returns value == 0)
-
-*/
-float insphereP(Point3D a, Point3D b, Point3D c, Point3D d, Point3D p) 
-{
-    float determinant = 0.0;
-
-    // calculate px²+py²+pz²
-    float a_square = a.x*a.x + a.y*a.y + a.z*a.z;
-    float b_square = b.x*b.x + b.y*b.y + b.z*b.z;
-    float c_square = c.x*c.x + c.y*c.y + c.z*c.z;
-    float d_square = d.x*d.x + d.y*d.y + d.z*d.z;
-    float p_square = p.x*p.x + p.y*p.y + p.z*p.z;
-
-
-    // calculate 5x5 matrix
-    determinant = 
-    a.x* (b.y*(c.z*d_square*1 + c_square*1*p.z + 1*d.z*p_square
-       - p.z*d_square*1 - p_square*1*c.z - 1*d.z*c_square)  
-        - c.y*(b.z*d_square*1 + b_square*1*p.z + 1*d.z*p_square
-           - p.z*d_square*1 - p_square*1*b.z - 1*d.z*b_square)  
-        + d.y*(b.z*c_square*1 + b_square*1*p.z + 1*c.z*p_square
-           - p.z*c_square*1 - p_square*1*b.z - 1*c.z*b_square)  
-        - p.y*(b.z*c_square*1 + b_square*1*d.z + 1*c.z*d_square
-           - d.z*c_square*1 - d_square*1*b.z - 1*c.z*b_square))
-    -b.x* (a.y*(c.z*d_square*1 + c_square*1*p.z + 1*d.z*p_square
-       - p.z*d_square*1 - p_square*1*c.z - 1*d.z*c_square)  
-        - c.y*(a.z*d_square*1 + a_square*1*p.z + 1*d.z*p_square
-           - p.z*d_square*1 - p_square*1*a.z - 1*d.z*a_square) 
-        + d.y*(a.z*c_square*1 + a_square*1*p.z + 1*c.z*p_square
-           - p.z*c_square*1 - p_square*1*a.z - 1*c.z*a_square) 
-        - p.y*(a.z*c_square*1 + a_square*1*d.z + 1*c.z*d_square
-           - d.z*c_square*1 - d_square*1*a.z - 1*c.z*a_square))
-    +c.x* (a.y*(b.z*d_square*1 + b_square*1*p.z + 1*d.z*p_square
-       - p.z*d_square*1 - p_square*1*b.z - 1*d.z*b_square)  
-        - b.y*(a.z*d_square*1 + a_square*1*p.z + 1*d.z*p_square
-           - p.z*d_square*1 - p_square*1*a.z - 1*d.z*a_square)  
-        + d.y*(a.z*b_square*1 + a_square*1*p.z + 1*b.z*p_square
-           - p.z*b_square*1 - p_square*1*a.z - 1*b.z*a_square)  
-        - p.y*(a.z*b_square*1 + a_square*1*d.z + 1*b.z*d_square
-           - d.z*b_square*1 - d_square*1*a.z - 1*b.z*a_square))
-    -d.x* (a.y*(b.z*c_square*1 + b_square*1*p.z + 1*c.z*p_square
-       - p.z*c_square*1 - p_square*1*b.z - 1*c.z*b_square) 
-        - b.y*(a.z*c_square*1 + a_square*1*p.z + 1*c.z*p_square
-           - p.z*c_square*1 - p_square*1*a.z - 1*c.z*a_square)
-        + c.y*(a.z*b_square*1 + a_square*1*p.z + 1*b.z*p_square
-           - p.z*b_square*1 - p_square*1*a.z - 1*b.z*a_square)  
-        - p.y*(a.z*b_square*1 + a_square*1*c.z + 1*b.z*c_square
-           - c.z*b_square*1 - c_square*1*a.z - 1*b.z*a_square))
-    + p.x*(a.y*(b.z*c_square*1 + b_square*1*d.z + 1*c.z*d_square
-       - d.z*c_square*1 -d_square*1*b.z - 1*c.z*b_square)  
-        - b.y*(a.z*c_square*1 + a_square*1*d.z + 1*c.z*d_square
-           - d.z*c_square*1 - d_square*1*a.z - 1*c.z*a_square)  
-        + c.y*(a.z*b_square*1 + b_square*1*d.z + 1*b.z*d_square
-           - d.z*b_square*1 - d_square*1*a.z - 1*b.z*d_square)  
-        - d.y*(a.z*b_square*1 + a_square*1*c.z + 1*b.z*c_square
-           - c.z*b_square*1 - c_square*1*a.z - 1*b.z*c_square));
-
-
-
-    return determinant;
-
-}
-
-/*
-  Calculates determinat of a 3x3 matrix
-
-*/
-double det3x3(Point3D b, Point3D c, Point3D d)
-{
-  double det = b.x*c.y*d.z + c.x*d.y*b.z + d.x*b.y*c.z
-     - d.x*c.y*b.z - c.x*b.y*d.z - b.x*d.y*c.z;
-  return det;
-}
-
-/*
-  Returns true if a point is inside of a given tetrahedron
-
-*/
-bool inTetrahedron(Point3D p1, Point3D p2, Point3D p3, Point3D p4, Point3D newP)
-{
-
-  double p11[3];
-  p11[0] = p1.x;
-  p11[1] = p1.y;
-  p11[2] = p1.z;
-  double p22[3];
-  p22[0] = p2.x;
-  p22[1] = p2.y;
-  p22[2] = p2.z;
-  double p33[3];
-  p33[0] = p3.x;
-  p33[1] = p3.y;
-  p33[2] = p3.z;
-  double p44[3];
-  p44[0] = p4.x;
-  p44[1] = p4.y;
-  p44[2] = p4.z;
-  double newpp[3];
-  newpp[0] = newP.x;
-  newpp[1] = newP.y;
-  newpp[2] = newP.z;
-  double d0 = orient3d(p11, p22, p33, p44);
-  double d1 = orient3d(newpp, p22, p33, p44);
-  double d2 = orient3d(p11, newpp, p33, p44);
-  double d3 = orient3d(p11, p22, newpp, p44);
-  double d4 = orient3d(p11, p22, p33, newpp);
-  
-
-
-  if(d0 == 0) // tetrahedron is coplanar
-  {
-    return false;
-  }
-
-  if(signbit(d0) == signbit(d1) && signbit(d0) == signbit(d2) &&
-  signbit(d0) == signbit(d3) && signbit(d0) == signbit(d4))
-  {
-    return true;
-  }
-
-  return false;
-
 }
 
 /* 
@@ -5315,6 +4919,32 @@ bool insideCuboid(Rectangle<3>* r, Point3D center) {
  return false;
 }
 
+/* 
+  Returns true if one of the points
+  of the given polyhedron lies in cuboid
+
+*/
+bool insideCuboid(Rectangle<3>* r, Polyhedron poly) {
+
+  for(size_t t = 0; t < poly.faces.size(); t++)
+  {
+    std::vector<Point3D> face = poly.faces[t];
+    for(size_t f = 0; f < face.size(); f++)
+    {
+        double x = face[f].x;
+        double y = face[f].y;
+        double z = face[f].z;
+        if (r->getMinX() <= x && r->getMaxX() >= x
+        && r->getMinY() <= y && r->getMaxY() >= y
+        && r->getMinZ() <= z && r->getMaxZ() >= z) {                        
+
+        return true;
+    } 
+    }
+  }
+
+ return false;
+}
 
 
 bool sortbyX(Point3D a, Point3D b)
@@ -5332,17 +4962,6 @@ bool sortbyZ(Point3D a, Point3D b)
     return a.z < b.z;
 }
 
-void
-createconvex3D (std::vector<Point> points) 
-{
-  /*
-    Create Convex in 3D
-    Input: Set of points
-    Output: Convex
-
-  */
-
-}
 
 ListExpr
 Convex3D::PropertyConvex3D()
@@ -5356,7 +4975,7 @@ Convex3D::PropertyConvex3D()
 
   ListExpr formatlst = nl->TextAtom();
     nl->AppendText(formatlst,
-    "(1.0 ('Face' ((1.0 2.0 1.0)(1.0 3.0 1.0)(4.0 3.0 1.0)"
+    "(1 (((1.0 2.0 1.0)(1.0 3.0 1.0)(4.0 3.0 1.0)"
     "(1.0 1.5 2.0)(2.0 1.5 2.0))))");
 
   return (nl->TwoElemList(
@@ -5370,7 +4989,10 @@ Convex3D::PropertyConvex3D()
                formatlst)));
 }
 
-// Out function
+/* 
+  Out function
+
+*/
 ListExpr
 Convex3D::OutConvex3D( ListExpr typeInfo, Word value ) {
 
@@ -5388,6 +5010,7 @@ Convex3D::OutConvex3D( ListExpr typeInfo, Word value ) {
       ListExpr lastFacesLstExpr;
       Polyhedron poly = polyhedronvec.at(test);
       if(test > 0) {
+
         lastPolyLstExpr = nl->Append(lastPolyLstExpr,
                           nl->IntAtom(poly.getPolyId()));
       } else {
@@ -5401,11 +5024,9 @@ Convex3D::OutConvex3D( ListExpr typeInfo, Word value ) {
         ListExpr lastFaceLstExpr;
         if(fac > 0)
         {
-          lastFacesLstExpr = nl->Append(lastFacesLstExpr, nl->IntAtom(fac+1));
-          //lastFacesLstExpr = nl->Append(lastFacesLstExpr, nl->Empty());
+          lastFacesLstExpr = nl->Append(lastFacesLstExpr, nl->Empty());
         } else {
-          facesLstExpr = nl->OneElemList(nl->IntAtom(fac+1));
-          //facesLstExpr = nl->OneElemList(nl->Empty());
+          facesLstExpr = nl->OneElemList(nl->Empty());
           lastFacesLstExpr = facesLstExpr;
         }
         std::vector<Point3D> facc = poly.faces.at(fac);
@@ -5428,14 +5049,11 @@ Convex3D::OutConvex3D( ListExpr typeInfo, Word value ) {
         }
 
         lastFacesLstExpr = nl->Append(lastFacesLstExpr,
-             nl->OneElemList(faceLstExpr));
+             faceLstExpr);
         
       }
       
-      
-      //facesLstExpr = nl->OneElemList(nl->IntAtom(poly.faces.size()));
       lastPolyLstExpr = nl->Append(lastPolyLstExpr, facesLstExpr);
-
     }
     return polyExpr;
     } else {
@@ -5443,68 +5061,85 @@ Convex3D::OutConvex3D( ListExpr typeInfo, Word value ) {
   }
 }
 
-// In function
+/* 
+  In function
+
+*/
 Word
 Convex3D::InConvex3D( const ListExpr typeInfo, const ListExpr instance,
       const int errorPos, ListExpr& errorInfo, bool& correct ) {
 
   Word w = SetWord(Address(0));
   try {
-    Rectangle<3>* bbox;
+  Polyhedron polyhedron; 
+  std::vector<Point3D> face;
+  std::vector<Polyhedron>  poly_vec;
+  std::vector<std::vector<Point3D>> facesPoints;
+   
+   ListExpr polyExpr = instance;
 
-    ListExpr bboxLstExpr;
+   int polyId;
+   if (nl->ListLength( polyExpr ) > 0) {
+     while(nl->ListLength(polyExpr) > 1) {
+       ListExpr lstElem = nl->First(polyExpr);
+       if(nl->IsAtom(lstElem))
+       {
+         polyhedron = Polyhedron();
+         polyId = nl->IntValue(lstElem);
+         polyhedron.setPolyId(polyId);
+       }
 
-    if ( nl->ListLength( instance ) == 2 ) {
-      bboxLstExpr = nl->First(instance);
-    } else {
-      throw 1;
-    }
+       ListExpr facesLst = nl->Second(polyExpr); 
+/*
+  list of faces
 
-    // fetch bounding box information from input
-    if (nl->ListLength( bboxLstExpr ) == 6 ) {
-      ListExpr left = nl->First(bboxLstExpr);
-      ListExpr right = nl->Second(bboxLstExpr);
-      ListExpr bottom = nl->Third(bboxLstExpr);
-      ListExpr top = nl->Fourth(bboxLstExpr);
-      ListExpr front = nl->Fifth(bboxLstExpr);
-      ListExpr back = nl->Sixth(bboxLstExpr);
+*/
+       if(nl->ListLength(facesLst) > 1) { 
+          while(nl->ListLength(facesLst) > 1) {
+            if(nl->ListLength(facesLst) > 1) {
+            ListExpr faceElems = nl->Second(facesLst);
+            if(nl->ListLength(faceElems) > 0) {
+              face.clear();
+              while(!nl->IsEmpty(faceElems)) {
 
-      if ( nl->IsAtom(left) && nl->AtomType(left) == RealType
-          && nl->IsAtom(right) && nl->AtomType(right) == RealType
-          && nl->IsAtom(bottom) && nl->AtomType(bottom) == RealType
-          && nl->IsAtom(top) && nl->AtomType(top) == RealType
-          && nl->IsAtom(front) && nl->AtomType(front) == RealType
-          && nl->IsAtom(back) && nl->AtomType(back) == RealType) {
+              ListExpr vertex = nl->First(faceElems);
+              ListExpr first = nl->First(vertex);
+              ListExpr second = nl->Second(vertex);
+              ListExpr third = nl->Third(vertex);
 
-        double min[3], max[3];
-        min[0] = nl->RealValue(left);
-        min[1] = nl->RealValue(bottom);
-        max[0] = nl->RealValue(right);
-        max[1] = nl->RealValue(top);
-        min[2] = nl->RealValue(front);
-        max[2] = nl->RealValue(back);
+              
+              if(nl->IsAtom(first) && nl->AtomType(first) == RealType
+              && nl->IsAtom(second) && nl->AtomType(second) == RealType
+              && nl->IsAtom(third) && nl->AtomType(third) == RealType)
+              {
+                double x = nl->RealValue(first);
+                double y = nl->RealValue(second);
+                double z = nl->RealValue(third);
+                Point3D p {x,y,z};
+                face.push_back(p);
+              }
+              
+              faceElems = nl->Rest(faceElems);
+              }
+            }
+            polyhedron.faces.push_back(face);
+            facesLst = nl->Rest(facesLst);
+            facesLst = nl->Rest(facesLst);
+            }
+          }
+       }
+      poly_vec.push_back(polyhedron);
+      polyExpr = nl->Rest(polyExpr);
+      polyExpr = nl->Rest(polyExpr);
+     }
 
-        bbox = new Rectangle<3>(true, min, max);
-      } else {
-        throw 3;
-      }
 
-    } else {
-      throw 2;
-    }
+   }
 
-    // temporary support structures
-    std::map<int, int> cellRef;
+    Convex3D* conv3d = new Convex3D(poly_vec);
+    conv3d->setPolyhedronVector(poly_vec);
 
-    std::vector<Convex3D> cell_vec {};
-    
-    std::vector<Point3D> points_vec {};
-
-    correct = true;
-    Convex3D* conv = new Convex3D(*bbox);
-    conv->setPointsVector(points_vec);
-
-    w.addr = conv;
+    w.addr = conv3d;
     return w;
   } catch (int e) {
     correct = false;
@@ -5594,116 +5229,12 @@ int getIndex(Point3D t1, std::vector<Point3D> v2)
 
 /*
   Returns the centre of the sphere around a tetrahedron
+  see
+  Weisstein, Eric W. 'Circumsphere.' 
+  From MathWorld--A Wolfram Web Resource.  
+  for explanation
 
 */
-Point3D getCircumcenter(Tetrahedron fin)
-{
-  // calculate middle of Tetrahedron with circumsphere
-  double fina[3];
-  double finb[3];
-  double finc[3];
-  double find[3];
-  fina[0] = fin.a.x;
-  fina[1] = fin.a.y;
-  fina[2] = fin.a.z;
-  finb[0] = fin.b.x;
-  finb[1] = fin.b.y;
-  finb[2] = fin.b.z;
-  finc[0] = fin.c.x;
-  finc[1] = fin.c.y;
-  finc[2] = fin.c.z;
-  find[0] = fin.d.x;
-  find[1] = fin.d.y;
-  find[2] = fin.d.z;
-
-    float a = orient3d(fina, finb, finc, find);
-    //build new points for Dx, Dy and Dz by discarding column xi (or yi or zi)
-    float square_1 = fin.a.x*fin.a.x + fin.a.y*fin.a.y + fin.a.z*fin.a.z;
-    float square_2 = fin.b.x*fin.b.x + fin.b.y*fin.b.y + fin.b.z*fin.b.z;
-    float square_3 = fin.c.x*fin.c.x + fin.c.y*fin.c.y + fin.c.z*fin.c.z;
-    float square_4 = fin.d.x*fin.d.x + fin.d.y*fin.d.y + fin.d.z*fin.d.z;
-
-    double dx_1[3];
-    dx_1[0] = square_1;
-    dx_1[1] = fin.a.y;
-    dx_1[2] = fin.a.z;
-
-    double dx_2[3];
-    dx_2[0] = square_2;
-    dx_2[1] = fin.b.y;
-    dx_2[2] = fin.b.z;
-
-    double dx_3[3];
-    dx_3[0] = square_3;
-    dx_3[1] = fin.c.y;
-    dx_3[2] = fin.c.z;
-
-    double dx_4[3];
-    dx_4[0] = square_4;
-    dx_4[1] = fin.d.y;
-    dx_4[2] = fin.d.z;
-
-    float dx = orient3d(dx_1, dx_2, dx_3, dx_4);
-
-    double dy_1[3];
-    dy_1[0] = square_1;
-    dy_1[1] = fin.a.x;
-    dy_1[2] = fin.a.z;
-
-    double dy_2[3];
-    dy_2[0] = square_2;
-    dy_2[1] = fin.b.x;
-    dy_2[2] = fin.b.z;
-
-    double dy_3[3];
-    dy_3[0] = square_3;
-    dy_3[1] = fin.c.x;
-    dy_3[2] = fin.c.z;
-
-    double dy_4[3];
-    dy_4[0] = square_4;
-    dy_4[1] = fin.d.x;
-    dy_4[2] = fin.d.z;
-
-    float dy = -orient3d(dy_1, dy_2, dy_3, dy_4);
-
-    double dz_1[3];
-    double dz_2[3];
-    double dz_3[3];
-    double dz_4[3];
-    dz_1[0] = square_1;
-    dz_1[1] = fin.a.x;
-    dz_1[2] = fin.a.y;
-    dz_2[0] = square_2;
-    dz_2[1] = fin.b.x;
-    dz_2[2] = fin.b.y;
-    dz_3[0] = square_3;
-    dz_3[1] = fin.c.x;
-    dz_3[2] = fin.c.y;
-    dz_4[0] = square_4;
-    dz_4[1] = fin.d.x;
-    dz_4[2] = fin.d.y;
-
-    float dz = orient3d(dz_1, dz_2, dz_3, dz_4);
-
-    if(a < 0)
-    {
-      a = orient3d(fina, finc, finb, find);
-      dx = orient3d(dx_1, dx_3, dx_2, dx_4);
-      dy = -orient3d(dy_1, dy_3, dy_2, dy_4);
-      dz = orient3d(dz_1, dz_2, dz_3, dz_4);
-
-    }
-
-    Point3D circumcenter;
-    circumcenter.x = (dx / (2*a));
-    circumcenter.y = (dy / (2*a));
-    circumcenter.z = (dz / (2*a));
-
-    return circumcenter;
-}
-
-
 Point3D getCircumcenter(Point3D a, Point3D b, Point3D c, Point3D d)
 {
   // calculate middle of Tetrahedron with circumsphere
@@ -5712,206 +5243,59 @@ Point3D getCircumcenter(Point3D a, Point3D b, Point3D c, Point3D d)
   double finc[3] = {c.x, c.y, c.z};
   double find[3] = {d.x, d.y, d.z};
 
-    float ax = orient3d(fina, finb, finc, find);
-    /*
-    build new points for Dx, Dy and Dz 
-    by discarding column xi (or yi or zi)
-
-    */
-    float square_1 = a.x*a.x + a.y*a.y + a.z*a.z;
-    float square_2 = b.x*b.x + b.y*b.y + b.z*b.z;
-    float square_3 = c.x*c.x + c.y*c.y + c.z*c.z;
-    float square_4 = d.x*d.x + d.y*d.y + d.z*d.z;
-
-    double dx_1[3] = {square_1, a.y, a.z};
-    double dx_2[3] = {square_2, b.y, b.z};
-    double dx_3[3] = {square_3, c.y, c.z};
-    double dx_4[3] = {square_4, d.y, d.z};
-
-    float dx = orient3d(dx_1, dx_2, dx_3, dx_4);
-
-    double dy_1[3] = {square_1, a.x, a.z};
-    double dy_2[3] = {square_2, b.x, b.z};
-    double dy_3[3] = {square_3, c.x, c.z};
-    double dy_4[3] = {square_4, d.x, d.z};
-
-    float dy = -orient3d(dy_1, dy_2, dy_3, dy_4);
-
-    double dz_1[3] = {square_1, a.x, a.y};
-    double dz_2[3] = {square_2, b.x, b.y};
-    double dz_3[3] = {square_3, c.x, c.y};
-    double dz_4[3] = {square_4, d.x, d.y};
-
-    float dz = orient3d(dz_1, dz_2, dz_3, dz_4);
-
-    if(ax < 0)
-    {
-      ax = orient3d(fina, finc, finb, find);
-      dx = orient3d(dx_1, dx_3, dx_2, dx_4);
-      dy = -orient3d(dy_1, dy_3, dy_2, dy_4);
-      dz = orient3d(dz_1, dz_3, dz_2, dz_4);
-
-    }
-
-    Point3D circumcenter;
-    circumcenter.x = (dx / (2*ax));
-    circumcenter.y = (dy / (2*ax));
-    circumcenter.z = (dz / (2*ax));
-
-    return circumcenter;
-}
-
+  float ax = orient3d(fina, finb, finc, find);
 
 /*
-  Returns true if a tetrahedron t shares the face abc of another tetrahedron
+  build new points for Dx, Dy and Dz 
+  by discarding column xi (or yi or zi)
 
 */
-bool shareSameFace(Point3D a, Point3D b, Point3D c, Tetrahedron t)
-{
-    std::vector<Point3D> faceP {a, b, c};
-    std::vector<Point3D> points3d_vec_tmp {t.a, t.b, t.c, t.d};
-    std::vector<Point3D> points3d_vec_tmp_2 {t.a, t.b, t.c, t.d};
-    for(int fa = 0; fa < (int)faceP.size(); fa++)
-    {
-      for(int v = 0; v < (int)points3d_vec_tmp.size(); v++)
-      {
-        if(comparePoints3D(points3d_vec_tmp.at(v), faceP.at(fa)))
-        {
-          // get position of point points3d_vec_tmp.at(v) in points3d_vec_tmp_2
-          int i = getIndex(points3d_vec_tmp.at(v), points3d_vec_tmp_2);
-          points3d_vec_tmp_2.erase(points3d_vec_tmp_2.begin()+i);
-          break;
-        }
-      }
-      
-      if((int)points3d_vec_tmp_2.size() == 1)
-      {
-        return true;
-      }
-    }
-    
-    return false;
+  float square_1 = a.x*a.x + a.y*a.y + a.z*a.z;
+  float square_2 = b.x*b.x + b.y*b.y + b.z*b.z;
+  float square_3 = c.x*c.x + c.y*c.y + c.z*c.z;
+  float square_4 = d.x*d.x + d.y*d.y + d.z*d.z;
 
-}
+  double dx_1[3] = {square_1, a.y, a.z};
+  double dx_2[3] = {square_2, b.y, b.z};
+  double dx_3[3] = {square_3, c.y, c.z};
+  double dx_4[3] = {square_4, d.y, d.z};
 
-/*
-  Returns true if two lines intersect
+  float dx = orient3d(dx_1, dx_2, dx_3, dx_4);
 
-*/
-bool linesInt3D(Point3D p0, Point3D p1, Point3D q0, Point3D q1)
-{
-  std::vector<double> dp {p1.x-p0.x, p1.y-p0.y, p1.z-p0.z}; // first line
-  std::vector<double> dq {q1.x-q0.x, q1.y-q0.y, q1.z-q0.z}; // second line
-  // difference
-  std::vector<double> pq {q0.x-p0.x, q0.y-p0.y,q0.z-p0.z};
+  double dy_1[3] = {square_1, a.x, a.z};
+  double dy_2[3] = {square_2, b.x, b.z};
+  double dy_3[3] = {square_3, c.x, c.z};
+  double dy_4[3] = {square_4, d.x, d.z};
 
-  double a = dotProduct(dp, dp);
-  double b = dotProduct(dp, dq);
-  double c = dotProduct(dq, dq);
-  double d = dotProduct(dp, pq);
-  double e = dotProduct(dq, pq);
+  float dy = -orient3d(dy_1, dy_2, dy_3, dy_4);
 
-  // find discriminant
-  double dd = (a*c)-(b*b);
+  double dz_1[3] = {square_1, a.x, a.y};
+  double dz_2[3] = {square_2, b.x, b.y};
+  double dz_3[3] = {square_3, c.x, c.y};
+  double dz_4[3] = {square_4, d.x, d.y};
 
-  if(dd == 0) //parallel
+  float dz = orient3d(dz_1, dz_2, dz_3, dz_4);
+
+  if(ax < 0)
   {
-    return false;
-  } 
-  else  // find parameters for the closest points on lines
-  {
-    double tt = (b*e - c*d) / dd;
-    double uu = (a*e - b*d) / dd;
+    ax = orient3d(fina, finc, finb, find);
+    dx = orient3d(dx_1, dx_3, dx_2, dx_4);
+    dy = -orient3d(dy_1, dy_3, dy_2, dy_4);
+    dz = orient3d(dz_1, dz_3, dz_2, dz_4);
 
-    // if parameters are not between 0 and 1, lines do not intersect
-    if(tt > 1 || tt < 0 || uu > 1 || uu <0)
-    {
-      return false;
-    }
-    else 
-    {
-      // find distance between points
-      std::vector<double> p_tt {p0.x+(tt*dp.at(0)),
-           p0.y+(tt*dp.at(1)), p0.z+(tt*dp.at(2))};
-      std::vector<double> q_uu {q0.x+(uu*dq.at(0)),
-           q0.y+(uu*dq.at(1)), q0.z+(uu*dq.at(2))};
-      double dist = ((q_uu.at(0)-p_tt.at(0))*(q_uu.at(0)-p_tt.at(0)) + 
-        (q_uu.at(1)-p_tt.at(1))*(q_uu.at(1)-p_tt.at(1)) + 
-        (q_uu.at(2)-p_tt.at(2))*(q_uu.at(2)-p_tt.at(2)));
-
-      // if distance is == 0 or nearly 0: lines intersect
-      if(dist < 0.000001f)
-      {
-        return true;
-      }
-    }
   }
 
-  return false;
+  Point3D circumcenter;
+  circumcenter.x = (dx / (2*ax));
+  circumcenter.y = (dy / (2*ax));
+  circumcenter.z = (dz / (2*ax));
+
+  return circumcenter;
 }
 
-/*
-  Returns true if two lines in 3d space intersect
-  if yes: calculates point of intersection
-
-*/
-bool linesIntersect(Point3D p0, Point3D p1,
-   Point3D q0, Point3D q1, std::vector<Point3D> *line)
-{
-  std::vector<double> dp {p1.x-p0.x, p1.y-p0.y, p1.z-p0.z};
-  std::vector<double> dq {q1.x-q0.x, q1.y-q0.y, q1.z-q0.z};
-  // difference
-  std::vector<double> pq {q0.x-p0.x, q0.y-p0.y,q0.z-p0.z};
-
-  double a = dotProduct(dp, dp);
-  double b = dotProduct(dp, dq);
-  double c = dotProduct(dq, dq);
-  double d = dotProduct(dp, pq);
-  double e = dotProduct(dq, pq);
-
-  // find discriminant
-  double dd = (a*c)-(b*b);
-
-  if(dd == 0) //parallel
-  {
-    return false;
-  } 
-  else  // find parameters for the closest points on lines
-  {
-    double tt = (b*e - c*d) / dd;
-    double uu = (a*e - b*d) / dd;
-
-    // if parameters are not between 0 and 1, lines do not intersect
-    if(tt > 1 || tt < 0 || uu > 1 || uu <0)
-    {
-      return false;
-    }
-    else 
-    {
-      // find distance between points
-      std::vector<double> p_tt {p0.x+(tt*dp.at(0)),
-           p0.y+(tt*dp.at(1)), p0.z+(tt*dp.at(2))};
-      std::vector<double> q_uu {q0.x+(uu*dq.at(0)),
-           q0.y+(uu*dq.at(1)), q0.z+(uu*dq.at(2))};
-      double dist = ((q_uu.at(0)-p_tt.at(0))*(q_uu.at(0)-p_tt.at(0)) 
-        + (q_uu.at(1)-p_tt.at(1))*(q_uu.at(1)-p_tt.at(1)) 
-        + (q_uu.at(2)-p_tt.at(2))*(q_uu.at(2)-p_tt.at(2)));
-
-      // if distance is == 0 or nearly 0: lines intersect
-      if(dist < 0.000001f)
-      {
-        line->push_back(q1);
-        line->push_back(q0);
-        return true;
-      }
-    }
-  }
-
-  return false;
-}
 
 /*
- Returns true if line p1 to p2 is a line in tet (two tetrahedrons share a line)
+  Returns true if line p1 to p2 is a line in tet (two tetrahedrons share a line)
 
 */
 bool sameline(Point3D p1, Point3D p2, Tetrahedron tet)
@@ -5966,7 +5350,8 @@ bool sameline(int p1, int p2, std::vector<int> tet)
 }
 
 /*
-  Returns true if a pair of points is in a vector of point pairs
+  Returns true if a pair of points is 
+  in a vector of pairs of points
 
 */
 bool insidevec(Point3D p1, Point3D p2,
@@ -5988,6 +5373,13 @@ bool insidevec(Point3D p1, Point3D p2,
   return false;
 }
 
+/*
+  Returns true if a pair of points is 
+  in a vector of pairs of points
+
+  using indices
+
+*/
 bool insidevec(int p1, int p2,
    std::vector<std::tuple<int, int>> pairs)
 {
@@ -6008,183 +5400,113 @@ bool insidevec(int p1, int p2,
 }
 
 /*
-  Returns the distance between a 3d point and a line defined by 3d points l1 and l2
+  Returns true if a segment pd intersects with triangle abc
+  See Moeller-Trumbore intersection algorithm 
+  for further explanation
+  Paper: Fast MinimumStorage RayTriangle Intersection
 
 */
-double pointLineDist( Point3D P, Point3D L1, Point3D L2)
-{
-     std::vector<double> v {L2.x - L1.x, L2.y-L1.y, L2.z-L1.z};
-     std::vector<double> w {P.x - L1.x, P.y -L1.y, P.z-L1.z};
-
-     double c1 = dotProduct(w,v);
-     double c2 = dotProduct(v,v);
-     double b = c1 / c2;
-
-     Point3D Pb;
-     Pb.x = L1.x + b * v.at(0);
-     Pb.y = L1.y + b * v.at(1);
-     Pb.z = L1.z + b * v.at(2);
-     
-     double dist = (P.x-Pb.x)*(P.x -Pb.x) + (P.y-Pb.y)*(P.y-Pb.y)
-                   + (P.z-Pb.z)*(P.z-Pb.z); 
-     return dist;
-}
-
-/*
-  Returns true if there is a tetrahedron in vector tetravec which shares the line ab with
-  another tetrahedron
-  if yes position of tetrahedron in vector is returned
-
-*/
-bool shareSameLine(Point3D a, Point3D b, Point3D c,
-   Point3D p, std::vector<Tetrahedron> tetravec, int* pos_tet)
-{
-  std::vector<Point3D> line {a, b};
-  for(int f=0; f < (int)tetravec.size(); f++)
-  {
-    // current tetrahedron from all tetrahedros in tetravec
-    Tetrahedron t = tetravec[f];
-    // two temporary vectors with points of current tetrahedron
-    std::vector<Point3D> points3d_vec_tmp {t.a, t.b, t.c, t.d};
-    std::vector<Point3D> points3d_vec_tmp_2 {t.a, t.b, t.c, t.d};
-
-    // check for every point in faceP (points to proof) 
-    // if they are equal to points of current tetrahedron
-    for(int fa = 0; fa < (int)line.size(); fa++)
-    {
-      for(int v = 0; v < (int)points3d_vec_tmp.size(); v++)
-      {
-        if(comparePoints3D(points3d_vec_tmp.at(v), line.at(fa)))
-        {
-          // if the point is equal, remove it from vector 
-          // (check if empty == done => tetrahedron has same values)
-          int i = getIndex(points3d_vec_tmp.at(v), points3d_vec_tmp_2);
-          points3d_vec_tmp_2.erase(points3d_vec_tmp_2.begin()+i);
-          if(points3d_vec_tmp_2.size() == 2)
-          {
-            if((!comparePoints3D(points3d_vec_tmp_2.at(0), c) 
-                && !comparePoints3D(points3d_vec_tmp_2.at(1), c)) &&
-                (!comparePoints3D(points3d_vec_tmp_2.at(0), p) 
-                && !comparePoints3D(points3d_vec_tmp_2.at(1), p)))
-            {
-              *pos_tet = f;
-              return true;
-            }
-          }
-        }
-      }
-    }            
-  }
-  return false;
-}
-
-
-/*
-  Returns index of the tetrahedron in vector with the given 3d points
-
-*/
-int getTetrahedron(Point3D p, Point3D d, Point3D a, 
-  Point3D b, std::vector<Tetrahedron> vectorTet)
-{
-
-  bool equal = false;
-  std::vector<Point3D> faceP {p, a, b, d};
-  for(int f=0; f < (int)vectorTet.size(); f++)
-  {
-      // current tetrahedron from all tetrahedros in tetravec
-      Tetrahedron t = vectorTet[f];
-      // two temporary vectors with points of current tetrahedron
-      std::vector<Point3D> points3d_vec_tmp {t.a, t.b, t.c, t.d};
-      std::vector<Point3D> points3d_vec_tmp_2 {t.a, t.b, t.c, t.d};
-  
-      // check for every point in faceP (points to proof)
-      // if they are equal to points of current tetrahedron
-      for(int fa = 0; fa < (int)faceP.size(); fa++)
-      {
-        for(int v = 0; v < (int)points3d_vec_tmp.size(); v++)
-        {
-          if(comparePoints3D(points3d_vec_tmp.at(v), faceP.at(fa)))
-          {
-            // if the point is equal, remove it from vector 
-            // (check if empty == done => tetrahedron has same values)
-
-            int i = getIndex(points3d_vec_tmp.at(v), points3d_vec_tmp_2);
-            points3d_vec_tmp_2.erase(points3d_vec_tmp_2.begin()+i);
-            equal = true;
-            if((int)points3d_vec_tmp_2.size() == 0)
-            {
-              return f;
-            }
-          }
-        }
-          if(!equal)
-          { //whole set of points must be equal, 
-            //so if one is not, step to the next tetrahedron
-            break;
-          }
-      }
-     
-  }
-  return -1;
-
-}
-
-/*
-  Returns true if a segment pd intersects with an area abc
-  in case of intersection: returns point of intersection
-
-*/
-#define EPSILON 0.000001f
 bool segmentIntersectsArea(Point3D p, Point3D d, Point3D a,
-     Point3D b, Point3D c, Point3D *point)
+Point3D b, Point3D c)
 { 
-    Point3D e0 {b.x-a.x, b.y-a.y, b.z-a.z};
-    Point3D e1 {c.x-a.x, c.y-a.y, c.z-a.z};
+  double epsilon = 0.000001f;
+  Point3D e0 {b.x-a.x, b.y-a.y, b.z-a.z};
+  Point3D e1 {c.x-a.x, c.y-a.y, c.z-a.z};
 
-    Point3D dir {d.x-p.x, d.y-p.y, d.z-p.z};
-    Point3D dir_norm = normalize(dir.x, dir.y, dir.z);
+  Point3D dir {d.x-p.x, d.y-p.y, d.z-p.z};
+  Point3D dir_norm = normalize(dir.x, dir.y, dir.z);
 
-    std::vector<double> dir_norm_vec {dir_norm.x, dir_norm.y, dir_norm.z};
-    std::vector<double> dir_vec{dir.x, dir.y, dir.z};
-    std::vector<double> e1_vec {e1.x, e1.y, e1.z};
-    std::vector<double> e0_vec {e0.x, e0.y, e0.z};
+  std::vector<double> dir_norm_vec {dir_norm.x, dir_norm.y, dir_norm.z};
+  std::vector<double> dir_vec{dir.x, dir.y, dir.z};
+  std::vector<double> e1_vec {e1.x, e1.y, e1.z};
+  std::vector<double> e0_vec {e0.x, e0.y, e0.z};
 
-    std::vector<double> h = crossProduct(dir_norm_vec, e1_vec);
-    double dp = dotProduct(e0_vec, h);
+/*
+The equation that needs to be solved is (6)
+(page 3 from source above)
+The first step is to check whether the part
+(dir\_norm\_vec x e1\_vec) \* e0\_vec
+(in the paper this would be (D x E2)\*E1) is non-zero.
 
-    if (dp > -EPSILON && dp < EPSILON) {
-        return false;
-    }
+If the equation is not solvable we can stop.
 
-    Point3D s {p.x-a.x, p.y-a.y, p.z-a.z};
-    std::vector<double> s_vec {s.x, s.y, s.z};
-    const float f = 1.0f / dp;
-    const float u = f * dotProduct(s_vec, h);
+In the paper h is called P.
 
-    if (u < 0.0f || u > 1.0f) {
-        return false;
-    }
+*/
+  std::vector<double> h = crossProduct(dir_norm_vec, e1_vec);
+  double dp = dotProduct(e0_vec, h);
 
-    std::vector<double> q = crossProduct(s_vec, e0_vec);
-    const float v = f * dotProduct(dir_norm_vec, q);
+  if (dp > -epsilon && dp < epsilon) {
+      return false;
+  }
 
-    if (v < 0.0f || u + v > 1.0f) {
-        return false;
-    }
+/*
+  The next step is to check the value of u
+  which is calculated as 1 / (P * E1) * (P * T)
+  In this notation:
+  h: P
+  dp: (P * E1)
+  s\_vec: T
+  So:
+  u = (1 / dp) * (s\_vec * h) 
 
-    const float t = f * dotProduct(e1_vec, q);
+*/
+  Point3D s {p.x-a.x, p.y-a.y, p.z-a.z};
+  std::vector<double> s_vec {s.x, s.y, s.z};
+  const float f = 1.0f / dp;
+  const float u = f * dotProduct(s_vec, h);
 
-    // segment intersection
-    if (t > EPSILON && t < sqrtf(dotProduct(dir_vec, dir_vec))) { 
-        if (point) {
-            point->x = p.x + dir_norm.x*t;
-            point->y = p.y + dir_norm.y*t;
-            point->z = p.z + dir_norm.z*t;
-          }
-        return true;
-    }
+/*
+  u has to be between 0 and 1 as we are 
+  looking at a unit triangle in
+  y and z and a ray direction aligned with x.
+  If u is not between 0 and 1 we can stop.
 
-    return false;
+*/
+  if (u < 0.0f || u > 1.0f) {
+      return false;
+  }
+
+/*
+  Now we look at the v in equation (6) in the paper.
+  Here v = 1 / (P * E1) * ((T x E1) * D)
+  In this notation:
+  v = f * ((s\_vec x e0\_vec) * dir\_norm\_vec)
+
+*/
+  std::vector<double> q = crossProduct(s_vec, e0_vec);
+  const float v = f * dotProduct(dir_norm_vec, q);
+
+/*
+  v has to be positive and u + v cannot exceed 1 to lie
+  in the unit triangle
+
+*/
+  if (v < 0.0f || u + v > 1.0f) {
+      return false;
+  }
+
+/*
+  Now the last value t is calculated accordingly as
+  t = 1 / (P * E1) * ((T x E1) * E2)
+  In this notation:
+  t = f * (q * e1\_vec)
+
+*/
+  const float t = f * dotProduct(e1_vec, q);
+
+/*
+  segment intersection:
+  the distance variable t must be between 0 and the length
+  of the direction vector dir\_vec for the segment between the two
+  points p and d to intersect the triangle.
+
+*/
+  if (t > epsilon && t < sqrtf(dotProduct(dir_vec, dir_vec))) { 
+      return true;
+  }
+
+  return false;
 
 }
 
@@ -6194,12 +5516,32 @@ bool segmentIntersectsArea(Point3D p, Point3D d, Point3D a,
   with the bounding box of a cell
 
 */
-std::set<int> cellNum3D(Convex3D* convex3d,
-  Rectangle<3>* search_window_ptr, int mode) 
+std::set<int> cellNum3D(Convex3D* convex3d, 
+Rectangle<3>* search_window_ptr, int mode) 
 {
   // get polyvec
   std::vector<Polyhedron> polyvec = convex3d->getPolyhedronVector();
   std::vector<Point3D> inputPoints = convex3d->getPointsVector();
+  if(inputPoints.size() < polyvec.size())
+  {
+/* 
+  calculate center of polyeder
+  1. calculate bbox of polyeder
+  2. calculate center of this bbox
+
+*/
+    for(size_t p = 0; p < polyvec.size(); p++)
+    {
+      if(polyvec[p].faces.size() > 2) {
+        Rectangle<3> bboxP = createBBox3D(&polyvec[p]);
+        Point3D bc = getCentre(&bboxP);
+        inputPoints.push_back(bc);
+      } else {
+        polyvec.erase(polyvec.begin()+p);
+      }
+    }
+  }
+
   std::set<int> cell_ids;
   int bbox = 2;
   int precise = 1;
@@ -6229,97 +5571,87 @@ std::set<int> cellNum3D(Convex3D* convex3d,
   for(size_t i = 0; i < polyvec.size(); i++) 
   {
     Polyhedron tmp = polyvec[i];
+    if(!tmp.faces.empty()) {
 
+/*
+  1. Check if any point (taken from points) of polyhedron 
+    lies in cuboid: add cell id (easy, saves time)
+  2. Check if middle of cuboid intersects with polyhedron 
+    cell (get middle of cuboid, check if it lies in cell)
+  - if yes: add cell\_id to cell\_ids
+  - if no: check if edges of cuboid intersect with faces of polyhedron
+    - get face and points of cuboid, check intersection
+    - if one intersect: add cell\_id to cell\_ids
+    - if no intersects: go to next cell, don't add cell\_id
 
-    /*
-      1. Check if any point (take from points) of polyhedron 
-        lies in cuboid -> add cell id (easy, saves time)
-      2. Check if middle of cuboid intersects with polyhedron 
-        cell (get middle of cuboid, check if it lies in cell)
-      -> if yes: add cell_id to cell_ids -> done
-      -> if no: check if edges of cuboid intersect with edges of polyhedron
-        -> build edges from points (ordered clockwise) (points of 
-          polyhedron faces and points of cuboid), check intersection
-        -> if one intersect: add cell_id to cell_ids -> done
-        -> if no intersects: go to next cell, don't add cell_id
-    */
-
+*/
     if(insideCuboid(search_window_ptr, inputPoints.at(i)))
     {
       cell_ids.insert(tmp.getPolyId());
     }
-    // check if center lies in polyhedron
-    else if(isInPolyhedron(center, tmp))
+    else if(isInPolyhedron(center, tmp, inputPoints.at(i)))
     {
         cell_ids.insert(tmp.getPolyId());
     } 
     else
     {
-
-      // get faces
+      // check intersection for each face
       for(size_t f = 0; f < tmp.faces.size(); f++)
       {
-
-        std::vector<std::tuple<double, double>> polygon {};
-        std::tuple<double, double> point;
         std::vector<Point3D> face = tmp.faces.at(f);
-        Point3D firstP = face.at(0);
-        for(size_t e; e < face.size(); e++)
+        if(face.size() > 2) {
+        for(size_t n=0; n < face.size()-2; n++)
         {
-          Point3D a,b;
-          a.x = face.at(e).x;
-          a.y = face.at(e).y;
-          a.z = face.at(e).z;
-          if(e == face.size() -1)
-          {
-            b = firstP;
-          } else {
-            b = {face.at(e+1).x, face.at(e+1).y, face.at(e+1).z};
-          }
+/* 
+  polygon consists of x-2 (x number of vertices) triangles
+  triangle consists of vertex v[0], v[n+1], v[n+2]
+  n = number of triangles already formed
+  first triangle: v[0], v[1], v[2] with n = 0
 
-          //check for every point combination (=line) of cuboid 
-          // if it intersects with line ab from polygon (polyhedron face)
-          if(linesInt3D(a, b, lebofr, leboba) 
-            || linesInt3D(a, b, ribofr, riboba) 
-            || linesInt3D(a, b, lebofr, ribofr) 
-            || linesInt3D(a, b, leboba, riboba) 
-            || linesInt3D(a, b, lebofr, letofr) 
-            || linesInt3D(a, b, ribofr, ritofr) 
-            || linesInt3D(a, b, leboba, letoba) 
-            || linesInt3D(a, b, riboba, ritoba) 
-            || linesInt3D(a, b, letofr, letoba) 
-            || linesInt3D(a, b, ritofr, ritoba) 
-            || linesInt3D(a, b, letofr, ritofr) 
-            || linesInt3D(a, b, letoba, ritoba)) 
-            {
-
-            cell_ids.insert(tmp.getPolyId());
-            break;
-          }
-
+*/
+        if(segmentIntersectsArea(lebofr, leboba, face[0], face[n+1], face[n+2])
+        || segmentIntersectsArea(ribofr, riboba, face[0], face[n+1], face[n+2])
+        || segmentIntersectsArea(lebofr, ribofr, face[0], face[n+1], face[n+2])
+        || segmentIntersectsArea(leboba, riboba, face[0], face[n+1], face[n+2])
+        || segmentIntersectsArea(lebofr, letofr, face[0], face[n+1], face[n+2])
+        || segmentIntersectsArea(ribofr, ritofr, face[0], face[n+1], face[n+2])
+        || segmentIntersectsArea(leboba, letoba, face[0], face[n+1], face[n+2])
+        || segmentIntersectsArea(riboba, ritoba, face[0], face[n+1], face[n+2])
+        || segmentIntersectsArea(letofr, letoba, face[0], face[n+1], face[n+2])
+        || segmentIntersectsArea(ritofr, ritoba, face[0], face[n+1], face[n+2])
+        || segmentIntersectsArea(letofr, ritofr, face[0], face[n+1], face[n+2])
+        || segmentIntersectsArea(letoba, ritoba, face[0], face[n+1], face[n+2]))
+        {
+          cell_ids.insert(tmp.getPolyId());
+          break;
         }
-     
-
+        }
+        }
       }
-
     }
 
     }
+  }
   
   } else if (mode== bbox) {
 
     for(size_t b = 0; b < polyvec.size(); b++) 
     {
       Polyhedron pol = polyvec.at(b);
+      if(!pol.faces.empty()) {
       Rectangle<3> bbox = createBBox3D(&pol);
 
-      // see if bbox intersects with rectangle
-      // top left and bottom right of bbox
+/*
+  see if bbox intersects with rectangle
+  top left and bottom right of bbox
+
+*/
       Point3D tolefr, boriba;
       tolefr = {bbox.getMinX(), bbox.getMaxY(), bbox.getMinZ()};
       boriba = {bbox.getMaxX(), bbox.getMinY(), bbox.getMaxZ()};
       if(cuboidOverlap(tolefr, boriba, letofr, riboba)) {
         cell_ids.insert(pol.getPolyId());
+      }
       }
     }
 
@@ -6331,6 +5663,11 @@ std::set<int> cellNum3D(Convex3D* convex3d,
 
 }
 
+/*
+  checks if id of face is already in vector
+  if yes: returns position
+
+*/
 bool Convex3D::faceIn(std::vector<int> face, int* pos)
 {
   std::sort(face.begin(), face.end());
@@ -6338,11 +5675,7 @@ bool Convex3D::faceIn(std::vector<int> face, int* pos)
   {
     std::sort(faces[a].begin(), faces[a].end());
     if(faces[a] == face)
-    {
-      printf("\n SAME: %d, %d, %d | %d %d %d",
-      faces[a][0], faces[a][1], faces[a][2],
-      face[0], face[1], face[2]);
-      
+    { 
       *pos = a;
       return true;
     }
@@ -6350,6 +5683,10 @@ bool Convex3D::faceIn(std::vector<int> face, int* pos)
   return false;
 }
 
+/*
+  check if tetrahedron exists in vector v2t
+
+*/
 bool Convex3D::tetExists(int a, int b, int p, int d, int* pos)
 {
   std::vector<int> tetr {a, b, p, d};
@@ -6359,7 +5696,6 @@ bool Convex3D::tetExists(int a, int b, int p, int d, int* pos)
     sort(v2t[v].begin(), v2t[v].end());
     if(v2t[v] == tetr)
     {
-      printf("\n in tetexists");
       *pos = v;
       return true;
     }
@@ -6371,10 +5707,15 @@ bool Convex3D::tetExists(int a, int b, int p, int d, int* pos)
 
 
 /*
-    Create Delaunay diagram 
-    Input: Set of points
-    Output: Delaunay diagram
-  */
+  Create Delaunay diagram 
+  Input: Set of points
+  Output: Delaunay diagram
+
+  Further explanation in paper of Hugo Ledoux
+  Computing the 3D Voronoi Diagram Robustly: 
+  An Easy Explanation
+
+*/
 void
 Convex3D::createDelaunay (std::vector<Point3D> points,
          std::vector<Tetrahedron>* tetravec) 
@@ -6394,24 +5735,34 @@ Convex3D::createDelaunay (std::vector<Point3D> points,
   double ymin = pointsSortedbyY.front().y;
   double ymax = pointsSortedbyY[pointsSortedbyY.size()-1].y;
 
-  // Sort points by z-value ---> check if it works to get z-value
+  // Sort points by z-value - check if it works to get z-value
   std::sort(pointsSortedbyZ.begin(), pointsSortedbyZ.end(), sortbyZ);
   double zmin = pointsSortedbyZ.front().z;
   double zmax = pointsSortedbyZ[pointsSortedbyZ.size()-1].z;
 
-  /* 2. Build tetrahedron with min and max values
-    2.1 Calculate bounding box of points with min and max values
-    2.2 Build triangle around upper rectangle of cuboid (bounding box)
-    2.3 Build tetrahedron with point above triangle
-    2.4 Extend sides from point to triangle until it reaches 
-        height of lower rectangle of cuboid
-    2.5 result is the start tetrahedron  
-  */
-  // Tetrahedron has 4 edges a, b, c, d
-  //Tetrahedron tet = Tetrahedron();
+  if(pointsSortedbyX.size() > 0)
+  {
+    pointsSortedbyX.clear();
+  }
+  if(pointsSortedbyY.size() > 0)
+  {
+    pointsSortedbyY.clear();
+  }
+  if(pointsSortedbyZ.size() > 0)
+  {
+    pointsSortedbyZ.clear();
+  }
 
-  // Build tetrahedron with initial rectangle around bounding box of points
-  // get min, max values of each dimension
+/*
+  2. Build tetrahedron with min and max values
+  2.1 Calculate bounding box of points with min and max values
+  2.2 Build triangle around upper rectangle of cuboid (bounding box)
+  2.3 Build tetrahedron with point above triangle
+  2.4 Extend sides from point to triangle until it reaches 
+      height of lower rectangle of cuboid
+  2.5 result is the start tetrahedron  
+
+*/
   double min[3], max[3];
   min[0] = xmin;
   min[1] = ymin;
@@ -6438,30 +5789,17 @@ Convex3D::createDelaunay (std::vector<Point3D> points,
   Point3D t6 {t2.x, ymin-1, t2.z+y_len};
   Point3D t7 {t3.x+y_len, ymin-1, zmin-1};
 
-  /*tet.a.x = t4.x;
-  tet.a.y = t4.y;
-  tet.a.z = t4.z;
-
-  tet.b.x = t5.x;
-  tet.b.y = t5.y;
-  tet.b.z = t5.z;
-
-  tet.c.x = t6.x;
-  tet.c.y = t6.y,
-  tet.c.z = t6.z;
-
-  tet.d.x = t7.x;
-  tet.d.y = t7.y;
-  tet.d.z = t7.z;*/
-
   // adding vertices t4-t7 to vertice vector
   vertices.push_back(t4);
   vertices.push_back(t5);
   vertices.push_back(t6);
   vertices.push_back(t7);
 
-  // adding faces to faces vector
-  // use indices of vertice vector
+/*
+  adding faces to faces vector
+  use indices of vertice vector
+
+*/
   std::vector<int> face1 {0, 1, 2};
   std::vector<int> face2 {0, 2, 3};
   std::vector<int> face3 {0, 1, 3};
@@ -6472,8 +5810,21 @@ Convex3D::createDelaunay (std::vector<Point3D> points,
   faces.push_back(face3);
   faces.push_back(face4);
 
-  // adding indices to tetrahedron vectors
-  // vertices2tetrahedron
+  if(face1.size() > 0)
+    face1.clear();
+  if(face2.size() > 0)
+    face2.clear();
+  if(face3.size() > 0)
+    face3.clear();
+  if(face4.size() > 0)
+    face4.clear();
+
+/* 
+  adding indices to tetrahedron vectors
+  tetrahedron is build from four vertices
+  vertices2tetrahedron (v2t)
+
+*/
   double dz[3] {t4.x, t4.y, t4.z};
   double dx[3] {t5.x, t5.y, t5.z};
   double dy[3] {t6.x, t6.y, t6.z};
@@ -6489,35 +5840,35 @@ Convex3D::createDelaunay (std::vector<Point3D> points,
     v2t.push_back(vert2tet);
     vert2tet.clear();
   }
-  //faces2tetrahedron
+
+/*
+  faces2tetrahedron (f2t)
+  vector which has indices to faces
+  of each tetrahedron that is inside
+  this vector
+
+*/
   std::vector<int> face2tet {0,1,2,3};
   f2t.push_back(face2tet);
   face2tet.clear();
 
-  //std::vector<Tetrahedron> tempvec;
-  //std::vector<Tetrahedron> flip14vec;
-
   std::vector<std::vector<int>> tetfaces;
   std::vector<std::vector<int>> tetverts;
 
-  //tetverts.push_back(vert2tet);
-  //tetfaces.push_back(face2tet);
-  
-  /*int count = 0;
-  int counti = 0;
-  int count3 = 0;
-  int count4 = 0;*/
+/* 
+  push start tetrahedron in vector
+  Insert point by point in initial tetrahedron
 
-  // push start tetrahedron in vector
-  //tetravec->push_back(tet);
-  // Create Delaunay with tet and points
-  // Insert point by point in initial tetrahedron
+*/
   for(int i = 0; i < (int)points.size(); i++)
   {
     Point3D p = points.at(i);
-    //Tetrahedron tmptet;
-    // find tetrahedron T containing p
-    // visibility walk through diagram
+
+/*
+  find tetrahedron T containing p
+  with visibility walk through diagram
+
+*/
     bool found_tet = false;
     int n = 0;
     int start = 0;
@@ -6527,53 +5878,34 @@ Convex3D::createDelaunay (std::vector<Point3D> points,
     std::vector<int> tStart = v2t[n];
     double pit[3] = {p.x, p.y, p.z};
 
-    printf("\n size v2t: %d", (int)v2t.size());
-    printf("\n size f2t: %d", (int)f2t.size());
-
-    printf("\n ");
-
-          for(int z=0; z < (int)vertices.size(); z++)
-          {
-            printf(" (%.2f, %.2f, %.2f )",
-             vertices[z].x, vertices[z].y, vertices[z].z);
-          }
-
-          printf("\n ");
-          for(int t=0; t < (int)faces.size(); t++)
-          {
-            printf("t: %d (%d, %d, %d) ",
-            t, faces[t][0], faces[t][1], faces[t][2]);
-          }
-                    printf("\n TET Vertices and Faces: ");
-
-          for(int e=0; e < (int)v2t.size(); e++)
-          {
-            printf("\n V: %d, %d, %d, %d",
-             v2t[e][0], v2t[e][1], v2t[e][2], v2t[e][3]);
-            printf("\n F: %d, %d, %d, %d",
-             f2t[e][0], f2t[e][1], f2t[e][2], f2t[e][3]);
-          }
-
     int a = 0;
-    std::vector<int> visited {}; // visited elements in v2t
+
+/*
+  visited elements in v2t
+
+*/
+    std::vector<int> visited {};
     std::vector<int>::iterator it;
 
     while(found_tet == false)
     {
-      //printf("\n in while");
       start = 0;
       a++;
 
       it = std::find(visited.begin(), visited.end(), n); 
+
+/* 
+  to take another starting point 
+  (and not to get stuck in visibility walk)
+
+*/
       if (it != visited.end()) 
       { 
-        // random start
+        // random start 
         n = std::rand() % v2t.size();
         tStart = v2t[n];
       }
 
-      printf("\n Vertices: %d %d %d %d",
-       tStart[0], tStart[1], tStart[2], tStart[3]);
       // first points at position 0,1,2
       double ait[3] = {vertices[tStart[0]].x, 
       vertices[tStart[0]].y, vertices[tStart[0]].z} ;
@@ -6588,123 +5920,142 @@ Convex3D::createDelaunay (std::vector<Point3D> points,
 
       if(signbit(orient3d(ait, bit, cit, pit)) 
         != signbit(detTet))
+      {
+        visited.push_back(n);
+          // face
+        std::vector<int> fa {tStart[0], tStart[1], tStart[2]};
+        int index = -1;
+        std::vector<int>::iterator it;
+        if(faceIn(fa, &index)) 
         {
-          printf("\n not same side -check #1-");
+          
+/*
+  is index in another tet in f2t
+
+*/
+          for(int ii=0; ii < (int)f2t.size(); ii++)
+          { 
+            if(ii != n) {
+              it = find (f2t[ii].begin(), f2t[ii].end(), index);
+              if (it != f2t[ii].end()) 
+              {
+                n = ii;
+                tStart = v2t[n];
+                break;
+              }
+            } 
+          }
+        }
+
+      } else {
+        if(signbit(orient3d(ait, bit, pit, dit)) 
+            != signbit(detTet))
+        {
           visited.push_back(n);
-          std::vector<int> fa {tStart[0], tStart[1], tStart[2]};
+          std::vector<int> fa {tStart[0], tStart[1], tStart[3]};
           int index = -1;
           std::vector<int>::iterator it;
-          if(faceIn(fa, &index)) { //is index in another tet in f2t
+          if(faceIn(fa, &index)) 
+          {
+            
+/*
+  is index in another tet in f2t
+
+*/
             for(int ii=0; ii < (int)f2t.size(); ii++)
             { 
               if(ii != n) {
-               it = find (f2t[ii].begin(), f2t[ii].end(), index);
-               if (it != f2t[ii].end()) 
-               {
-                 n = ii;
-                 printf("\n n: %d", n);
-                 tStart = v2t[n];
-                 break;
-               }
+                it = find (f2t[ii].begin(), f2t[ii].end(), index);
+                if (it != f2t[ii].end()) 
+                {
+                  n = ii;
+                  tStart = v2t[n];
+                  break;
+                }
               } 
             }
           }
-
         } else {
-          if(signbit(orient3d(ait, bit, pit, dit)) 
-            != signbit(detTet))
+          if(signbit(orient3d(ait, pit, cit, dit)) 
+                != signbit(detTet))
+          {
+            visited.push_back(n);
+            std::vector<int> fa {tStart[0], tStart[2], tStart[3]};
+            int index = -1;
+            std::vector<int>::iterator it;
+            if(faceIn(fa, &index)) 
             {
-              printf("\n not same side -check2-");
-              visited.push_back(n);
-              std::vector<int> fa {tStart[0], tStart[1], tStart[3]};
-              int index = -1;
-              std::vector<int>::iterator it;
-              if(faceIn(fa, &index)) { //is index in another tet in f2t
+
+/*
+  is index in another tet in f2t
+
+*/
               for(int ii=0; ii < (int)f2t.size(); ii++)
-              { 
+              {  
                 if(ii != n) {
                   it = find (f2t[ii].begin(), f2t[ii].end(), index);
                   if (it != f2t[ii].end()) 
                   {
                     n = ii;
-                                     printf("\n n: %d", n);
-
                     tStart = v2t[n];
                     break;
-                  }
+                  }  
                 } 
               }
+            }
+          } else {
+            if(signbit(orient3d(pit, bit, cit, dit)) 
+                != signbit(detTet))
+            {
+              visited.push_back(n);
+              std::vector<int> fa {tStart[1], tStart[2], tStart[3]};
+              int index = -1;
+              std::vector<int>::iterator it;
+              if(faceIn(fa, &index)) 
+              { 
+
+/* 
+  is index in another tet in f2t
+
+*/
+                for(int ii=0; ii < (int)f2t.size(); ii++)
+                {  
+                  if(ii != n) {
+                    it = find (f2t[ii].begin(), f2t[ii].end(), index);
+                    if (it != f2t[ii].end()) 
+                    {
+                      n = ii;
+                      tStart = v2t[n];
+                      break;
+                    }  
+                  } 
+                }
               }
             } else {
-              if(signbit(orient3d(ait, pit, cit, dit)) 
-                != signbit(detTet))
-              {
-                printf("\n not same side -check3-");
-                visited.push_back(n);
-                std::vector<int> fa {tStart[0], tStart[2], tStart[3]};
-                int index = -1;
-                std::vector<int>::iterator it;
-                if(faceIn(fa, &index)) { //is index in another tet in f2t
-                for(int ii=0; ii < (int)f2t.size(); ii++)
-                {  
-                  if(ii != n) {
-                    it = find (f2t[ii].begin(), f2t[ii].end(), index);
-                    if (it != f2t[ii].end()) 
-                    {
-                      n = ii;
-                                       printf("\n n: %d", n);
+                
+/* 
+  point is inside
 
-                      tStart = v2t[n];
-                      break;
-                    }  
-                  } 
-                }
-                }
-              } else {
-              if(signbit(orient3d(pit, bit, cit, dit)) 
-                != signbit(detTet))
-              {
-                printf("\n not same side -check4-");
-                visited.push_back(n);
-                std::vector<int> fa {tStart[1], tStart[2], tStart[3]};
-                int index = -1;
-                std::vector<int>::iterator it;
-                if(faceIn(fa, &index)) { //is index in another tet in f2t
-                for(int ii=0; ii < (int)f2t.size(); ii++)
-                {  
-                  if(ii != n) {
-                    it = find (f2t[ii].begin(), f2t[ii].end(), index);
-                    if (it != f2t[ii].end()) 
-                    {
-                      n = ii;
-                                       printf("\n n: %d", n);
-
-                      tStart = v2t[n];
-                      break;
-                    }  
-                  } 
-                }
-                }
-              } else {
-                // point is inside
+*/
                 found_tet = true;
-                printf("\n found inside tet!");
                 if(found_tet) {
                   a = (int)v2t.size();
                 }
               }
-              }
             }
+          }
 
         }
 
-        if(a > ((int)v2t.size()*2))
+        if(a > ((int)v2t.size()*4))
         {
-          // cannot find tetrahedron
-          // remove point
-          printf("\n point %d removed", i);
-          points.erase(points.begin()+i);
+/*
+  cannot find tetrahedron
+  remove point
 
+*/
+          points.erase(points.begin()+i);
+          break;
         }
 
     } // end of while
@@ -6712,2109 +6063,1609 @@ Convex3D::createDelaunay (std::vector<Point3D> points,
     if(visited.size() > 0){
       visited.clear();
     }
-    
 
-    printf("\n Punkt: %.2f %.2f %.2f", p.x, p.y, p.z);
-    printf("\n Tet new version: %.2f %.2f %.2f, %.2f %.2f " 
-    " %.2f, %.2f %.2f %.2f, %.2f %.2f, %.2f",
-     vertices[v2t[n][0]].x, vertices[v2t[n][0]].y, 
-         vertices[v2t[n][0]].z, vertices[v2t[n][1]].x,
-          vertices[v2t[n][1]].y, vertices[v2t[n][1]].z,
-           vertices[v2t[n][2]].x, vertices[v2t[n][2]].y,
-         vertices[v2t[n][2]].z, vertices[v2t[n][3]].x,
-          vertices[v2t[n][3]].y, vertices[v2t[n][3]].z);
 
+/*
+  check if new point lies directly on one of
+  the already existing vertices
+
+*/
     if(comparePoints3D(p, vertices[v2t[n][0]]) 
     || comparePoints3D(p, vertices[v2t[n][1]]) 
     || comparePoints3D(p, vertices[v2t[n][2]]) 
     || comparePoints3D(p, vertices[v2t[n][3]]))
     {
-            // do not insert point at all
-            printf("\n point is equal to vertex");
 
+/* 
+  do not insert point at all 
+
+*/
     } else {
-          // insert point p to vertices
-          vertices.push_back(p);
-          // add new v2t
-          // get current tet
-          std::vector<int> tetcrr = v2t[n];
-          std::vector<int> facecrr = f2t[n];
-          //printf("\n size v2t: %d, n: %d", (int)v2t.size(), n);
-          v2t.erase(v2t.begin()+n);
-          // (0,1,3,4), (1,2,3,4), (0,1,2,4), (0,2,3,4)
-          double ux[3] ={vertices[tetcrr[0]].x,
-           vertices[tetcrr[0]].y, vertices[tetcrr[0]].z};
-          double uy[3] ={vertices[tetcrr[1]].x,
-           vertices[tetcrr[1]].y, vertices[tetcrr[1]].z};
-          double uv[3] ={vertices[tetcrr[2]].x,
-           vertices[tetcrr[2]].y, vertices[tetcrr[2]].z};
-          double uw[3] ={vertices[tetcrr[3]].x,
-           vertices[tetcrr[3]].y, vertices[tetcrr[3]].z};
-          double ur[3] ={vertices[vertices.size()-1].x,
-          vertices[vertices.size()-1].y, vertices[vertices.size()-1].z};
 
-          if(orient3d(ux, uy, uw, ur) > 0) {
-            std::vector<int> tetnew1 {tetcrr[0],
-             tetcrr[1], tetcrr[3], (int)vertices.size()-1};
-                      v2t.push_back(tetnew1);
+      // insert point p to vertices
+      vertices.push_back(p);
+
+/* 
+  add new v2t
+  get current tetrahedron and 
+  remove it from vector to insert
+  4 new ones
+
+*/
+      std::vector<int> tetcrr = v2t[n];
+      std::vector<int> facecrr = f2t[n];
+      v2t.erase(v2t.begin()+n);
+      // (0,1,3,4), (1,2,3,4), (0,1,2,4), (0,2,3,4)
+      double ux[3] ={vertices[tetcrr[0]].x,
+        vertices[tetcrr[0]].y, vertices[tetcrr[0]].z};
+      double uy[3] ={vertices[tetcrr[1]].x,
+        vertices[tetcrr[1]].y, vertices[tetcrr[1]].z};
+      double uv[3] ={vertices[tetcrr[2]].x,
+        vertices[tetcrr[2]].y, vertices[tetcrr[2]].z};
+      double uw[3] ={vertices[tetcrr[3]].x,
+        vertices[tetcrr[3]].y, vertices[tetcrr[3]].z};
+      double ur[3] ={vertices[vertices.size()-1].x,
+      vertices[vertices.size()-1].y, vertices[vertices.size()-1].z};
+
+/*
+  check orientation of vertices
+    before inserting
+
+*/
+      if(orient3d(ux, uy, uw, ur) > 0) {
+        std::vector<int> tetnew1 {tetcrr[0],
+          tetcrr[1], tetcrr[3], (int)vertices.size()-1};
+          v2t.push_back(tetnew1);
           tetverts.push_back(tetnew1);
 
-          } else {
-            std::vector<int> tetnew1 {tetcrr[0],
-             tetcrr[3], tetcrr[1], (int)vertices.size()-1};
-                      v2t.push_back(tetnew1);
+      } else {
+        std::vector<int> tetnew1 {tetcrr[0],
+          tetcrr[3], tetcrr[1], (int)vertices.size()-1};
+          v2t.push_back(tetnew1);
           tetverts.push_back(tetnew1);
 
-          }
-          if(orient3d(uy, uv, uw, ur) > 0) {
-            std::vector<int> tetnew2 {tetcrr[1],
-             tetcrr[2], tetcrr[3], (int)vertices.size()-1};
-                      v2t.push_back(tetnew2);
+      }
+      if(orient3d(uy, uv, uw, ur) > 0) {
+        std::vector<int> tetnew2 {tetcrr[1],
+          tetcrr[2], tetcrr[3], (int)vertices.size()-1};
+          v2t.push_back(tetnew2);
           tetverts.push_back(tetnew2);
 
-          } else {
-            std::vector<int> tetnew2 {tetcrr[1],
-             tetcrr[3], tetcrr[2], (int)vertices.size()-1};
-                      v2t.push_back(tetnew2);
+      } else {
+        std::vector<int> tetnew2 {tetcrr[1],
+          tetcrr[3], tetcrr[2], (int)vertices.size()-1};
+          v2t.push_back(tetnew2);
           tetverts.push_back(tetnew2);
 
-          }
-          if(orient3d(ux, uy, uv, ur) > 0) {
-            std::vector<int> tetnew3 {tetcrr[0],
-             tetcrr[1], tetcrr[2], (int)vertices.size()-1};
-                      v2t.push_back(tetnew3);
+      }
+      if(orient3d(ux, uy, uv, ur) > 0) {
+        std::vector<int> tetnew3 {tetcrr[0],
+          tetcrr[1], tetcrr[2], (int)vertices.size()-1};
+          v2t.push_back(tetnew3);
           tetverts.push_back(tetnew3);
 
-          } else {            
-            std::vector<int> tetnew3 {tetcrr[0],
-             tetcrr[2], tetcrr[1], (int)vertices.size()-1};
-                      v2t.push_back(tetnew3);
+      } else {            
+        std::vector<int> tetnew3 {tetcrr[0],
+          tetcrr[2], tetcrr[1], (int)vertices.size()-1};
+          v2t.push_back(tetnew3);
           tetverts.push_back(tetnew3);
 
-          }
-          if(orient3d(ux, uv, uw, ur) > 0) {
-            std::vector<int> tetnew4 {tetcrr[0],
-             tetcrr[2], tetcrr[3], (int)vertices.size()-1};
-                      v2t.push_back(tetnew4);
+      }
+      if(orient3d(ux, uv, uw, ur) > 0) {
+        std::vector<int> tetnew4 {tetcrr[0],
+          tetcrr[2], tetcrr[3], (int)vertices.size()-1};
+          v2t.push_back(tetnew4);
           tetverts.push_back(tetnew4);
 
-          } else {
-            std::vector<int> tetnew4 {tetcrr[0],
-             tetcrr[3], tetcrr[2], (int)vertices.size()-1};
-                      v2t.push_back(tetnew4);
+      } else {
+        std::vector<int> tetnew4 {tetcrr[0],
+          tetcrr[3], tetcrr[2], (int)vertices.size()-1};
+          v2t.push_back(tetnew4);
           tetverts.push_back(tetnew4);
 
-          }
-          // add new faces
-          std::vector<int> facenew1_1 {tetcrr[0],
-           tetcrr[1], tetcrr[3] }; //013
-          std::vector<int> facenew1_2 {tetcrr[0],
-           tetcrr[1], (int)vertices.size()-1 }; //014
-          std::vector<int> facenew1_3 {tetcrr[0],
-           tetcrr[3], (int)vertices.size()-1 }; //034
-          std::vector<int> facenew1_4 {tetcrr[1],
-           tetcrr[3], (int)vertices.size()-1 }; //134
+      }
 
-          std::vector<int> facenew2_1 {tetcrr[1],
-           tetcrr[2], (int)vertices.size()-1 }; //124
-          std::vector<int> facenew2_2 {tetcrr[1],
-           tetcrr[2], tetcrr[3] }; //123
-          // 134 s.o => 1_4
-          std::vector<int> facenew2_4 {tetcrr[2],
-           tetcrr[3], (int)vertices.size()-1 }; //234
+/*
+  add new faces
+  (numbers behind for orientation)
 
-          std::vector<int> facenew3_1 {tetcrr[0],
-           tetcrr[1], tetcrr[2] }; //012     
-          //014 s.o. => 1_2
-          std::vector<int> facenew3_3 {tetcrr[0],
-           tetcrr[2], (int)vertices.size()-1 }; //024  
-          std::vector<int> facenew3_4 {tetcrr[1],
-           tetcrr[2], (int)vertices.size()-1 }; //124
+*/
+      std::vector<int> facenew1_1 {tetcrr[0],
+        tetcrr[1], tetcrr[3] }; //013
+      std::vector<int> facenew1_2 {tetcrr[0],
+        tetcrr[1], (int)vertices.size()-1 }; //014
+      std::vector<int> facenew1_3 {tetcrr[0],
+        tetcrr[3], (int)vertices.size()-1 }; //034
+      std::vector<int> facenew1_4 {tetcrr[1],
+        tetcrr[3], (int)vertices.size()-1 }; //134
 
-          //024 s.o. => 3_3
-          //034 s.o. => 1_3
-          std::vector<int> facenew4_3 {tetcrr[0],
-           tetcrr[2], tetcrr[3] }; //023 
-          std::vector<int> facenew4_4 {tetcrr[2],
-           tetcrr[3], (int)vertices.size()-1 }; //234
+      std::vector<int> facenew2_1 {tetcrr[1],
+        tetcrr[2], (int)vertices.size()-1 }; //124
+      std::vector<int> facenew2_2 {tetcrr[1],
+        tetcrr[2], tetcrr[3] }; //123
+      // 134 s.o.: 1-4
+      std::vector<int> facenew2_4 {tetcrr[2],
+        tetcrr[3], (int)vertices.size()-1 }; //234
 
+      std::vector<int> facenew3_1 {tetcrr[0],
+        tetcrr[1], tetcrr[2] }; //012     
+      //014 s.o.: 1-2
+      std::vector<int> facenew3_3 {tetcrr[0],
+        tetcrr[2], (int)vertices.size()-1 }; //024  
+      std::vector<int> facenew3_4 {tetcrr[1],
+        tetcrr[2], (int)vertices.size()-1 }; //124
+
+      //024 s.o.: 3-3
+      //034 s.o.: 1-3
+      std::vector<int> facenew4_3 {tetcrr[0],
+        tetcrr[2], tetcrr[3] }; //023 
+      std::vector<int> facenew4_4 {tetcrr[2],
+        tetcrr[3], (int)vertices.size()-1 }; //234
+
+
+      int pos1 = 0;
+      std::vector<int> tetfacenew1;
+      std::vector<int> tetfacenew2;
+      std::vector<int> tetfacenew3;
+      std::vector<int> tetfacenew4;
           
-         
+/*
+  create faces
+  - check if face exists
+  - take position if it does
 
-          int pos1 = 0;
-          std::vector<int> tetfacenew1;
-          std::vector<int> tetfacenew2;
-          std::vector<int> tetfacenew3;
-          std::vector<int> tetfacenew4;
+*/
+      if(!faceIn(facenew1_1, &pos1)) {
+        faces.push_back(facenew1_1);
+        tetfacenew1.push_back(faces.size()-1);
+      } else {
+        tetfacenew1.push_back(pos1);
+      }
+      if(!faceIn(facenew1_2, &pos1)) {
+        faces.push_back(facenew1_2);
+        tetfacenew1.push_back(faces.size()-1);
+      } else {
+        tetfacenew1.push_back(pos1);
+      }
+      if(!faceIn(facenew1_3, &pos1)) {
+        faces.push_back(facenew1_3);
+        tetfacenew1.push_back(faces.size()-1);
+      } else {
+        tetfacenew1.push_back(pos1);
+      }
+      if(!faceIn(facenew1_4, &pos1)) {
+        faces.push_back(facenew1_4);
+        tetfacenew1.push_back(faces.size()-1);
+      } else {
+        tetfacenew1.push_back(pos1);
+      }
 
-          if(!faceIn(facenew1_1, &pos1)) {
-            faces.push_back(facenew1_1);
-            tetfacenew1.push_back(faces.size()-1);
-          } else {
-            //printf("\n pos: %d",pos1);
-            tetfacenew1.push_back(pos1);
-          }
-          if(!faceIn(facenew1_2, &pos1)) {
-            faces.push_back(facenew1_2);
-            tetfacenew1.push_back(faces.size()-1);
-          } else {
-            tetfacenew1.push_back(pos1);
-          }
-          if(!faceIn(facenew1_3, &pos1)) {
-            faces.push_back(facenew1_3);
-            tetfacenew1.push_back(faces.size()-1);
-          } else {
-            tetfacenew1.push_back(pos1);
-          }
-          if(!faceIn(facenew1_4, &pos1)) {
-            faces.push_back(facenew1_4);
-            tetfacenew1.push_back(faces.size()-1);
-          } else {
-            tetfacenew1.push_back(pos1);
-          }
+/*
+  faces for tetrahedron 2
 
+*/  
+      if(!faceIn(facenew2_1, &pos1)) {
+        faces.push_back(facenew2_1);
+        tetfacenew2.push_back(faces.size()-1);
+      } else {
+        tetfacenew2.push_back(pos1);
+      }
+      if(!faceIn(facenew2_2, &pos1)) {
+        faces.push_back(facenew2_2);
+        tetfacenew2.push_back(faces.size()-1);
+      } else {
+        tetfacenew2.push_back(pos1);
+      }
+      if(!faceIn(facenew1_4, &pos1)) {
+        faces.push_back(facenew1_4);
+        tetfacenew2.push_back(faces.size()-1);
+      } else {
+        tetfacenew2.push_back(pos1);
+      }
+      if(!faceIn(facenew2_4, &pos1)) {
+        faces.push_back(facenew2_4);
+        tetfacenew2.push_back(faces.size()-1);
+      } else {
+        tetfacenew2.push_back(pos1);
+      }
 
-          if(!faceIn(facenew2_1, &pos1)) {
-            faces.push_back(facenew2_1);
-            tetfacenew2.push_back(faces.size()-1);
-          } else {
-            tetfacenew2.push_back(pos1);
-          }
-          if(!faceIn(facenew2_2, &pos1)) {
-            faces.push_back(facenew2_2);
-            tetfacenew2.push_back(faces.size()-1);
-          } else {
-            tetfacenew2.push_back(pos1);
-          }
-          if(!faceIn(facenew1_4, &pos1)) {
-            faces.push_back(facenew1_4);
-            tetfacenew2.push_back(faces.size()-1);
-          } else {
-            tetfacenew2.push_back(pos1);
-          }
-          if(!faceIn(facenew2_4, &pos1)) {
-            faces.push_back(facenew2_4);
-            tetfacenew2.push_back(faces.size()-1);
-          } else {
-            tetfacenew2.push_back(pos1);
-          }
+/*
+  faces for tetrahedron 3
 
+*/ 
+      if(!faceIn(facenew3_1, &pos1)) {
+        faces.push_back(facenew3_1);
+        tetfacenew3.push_back(faces.size()-1);
+      } else {
+        tetfacenew3.push_back(pos1);
+      }
+      if(!faceIn(facenew1_2, &pos1)) {
+        faces.push_back(facenew1_2);
+        tetfacenew3.push_back(faces.size()-1);
+      } else {
+        tetfacenew3.push_back(pos1);
+      }
+      if(!faceIn(facenew3_3, &pos1)) {
+        faces.push_back(facenew3_3);
+        tetfacenew3.push_back(faces.size()-1);
+      } else {
+        tetfacenew3.push_back(pos1);
+      }
+      if(!faceIn(facenew3_4, &pos1)) {
+        faces.push_back(facenew3_4);
+        tetfacenew3.push_back(faces.size()-1);
+      } else {
+        tetfacenew3.push_back(pos1);
+      }
 
-          if(!faceIn(facenew3_1, &pos1)) {
-            faces.push_back(facenew3_1);
-            tetfacenew3.push_back(faces.size()-1);
-          } else {
-            tetfacenew3.push_back(pos1);
-          }
-          if(!faceIn(facenew1_2, &pos1)) {
-            faces.push_back(facenew1_2);
-            tetfacenew3.push_back(faces.size()-1);
-          } else {
-            tetfacenew3.push_back(pos1);
-          }
-          if(!faceIn(facenew3_3, &pos1)) {
-            faces.push_back(facenew3_3);
-            tetfacenew3.push_back(faces.size()-1);
-          } else {
-            tetfacenew3.push_back(pos1);
-          }
-          if(!faceIn(facenew3_4, &pos1)) {
-            faces.push_back(facenew3_4);
-            tetfacenew3.push_back(faces.size()-1);
-          } else {
-            tetfacenew3.push_back(pos1);
-          }
+/*
+  faces for tetrahedron 4
 
-
-          if(!faceIn(facenew3_3, &pos1)) {
-            faces.push_back(facenew3_3);
-            tetfacenew4.push_back(faces.size()-1);
-          } else {
-            tetfacenew4.push_back(pos1);
-          }
-          if(!faceIn(facenew1_3, &pos1)) {
-            faces.push_back(facenew1_3);
-            tetfacenew4.push_back(faces.size()-1);
-          } else {
-            tetfacenew4.push_back(pos1);
-          }
-          if(!faceIn(facenew4_3, &pos1)) {
-            faces.push_back(facenew4_3);
-            tetfacenew4.push_back(faces.size()-1);
-          } else {
-            tetfacenew4.push_back(pos1);
-          }
-          if(!faceIn(facenew4_4, &pos1)) {
-            faces.push_back(facenew4_4);
-            tetfacenew4.push_back(faces.size()-1);
-          } else {
-            tetfacenew4.push_back(pos1);
-          }
+*/ 
+      if(!faceIn(facenew3_3, &pos1)) {
+        faces.push_back(facenew3_3);
+        tetfacenew4.push_back(faces.size()-1);
+      } else {
+        tetfacenew4.push_back(pos1);
+      }
+      if(!faceIn(facenew1_3, &pos1)) {
+        faces.push_back(facenew1_3);
+        tetfacenew4.push_back(faces.size()-1);
+      } else {
+        tetfacenew4.push_back(pos1);
+      }
+      if(!faceIn(facenew4_3, &pos1)) {
+        faces.push_back(facenew4_3);
+        tetfacenew4.push_back(faces.size()-1);
+      } else {
+        tetfacenew4.push_back(pos1);
+      }
+      if(!faceIn(facenew4_4, &pos1)) {
+        faces.push_back(facenew4_4);
+        tetfacenew4.push_back(faces.size()-1);
+      } else {
+        tetfacenew4.push_back(pos1);
+      }
           
+/*
+  push tetrahedrons in vector f2t
+  and same tetrahedrons in 
+  temporary vector tetfaces
+  to check delaunay criteria
 
-          /*faces.push_back(facenew1); //size-6
-          faces.push_back(facenew2); //size-5
-          faces.push_back(facenew3); //size-4
-          faces.push_back(facenew4); //size-3
-          faces.push_back(facenew5); //size-2
-          faces.push_back(facenew6); //size-1
-          */
-          // new faces tet
-          /*std::vector<int> tetfacenew1 {facecrr[2],
-           (int)faces.size()-6, (int)faces.size()-3,
-            (int)faces.size()-1};
-          std::vector<int> tetfacenew2 {facecrr[3],
-           (int)faces.size()-1, (int)faces.size()-4,
-            (int)faces.size()-2};
-          std::vector<int> tetfacenew3 {facecrr[0],
-           (int)faces.size()-6, (int)faces.size()-5,
-            (int)faces.size()-4};
-          std::vector<int> tetfacenew4 {facecrr[0],
-           (int)faces.size()-5, (int)faces.size()-3,
-            (int)faces.size()-2};
-          */
-          // remove tet from v2t and f2t and add new ones
-          
+*/
+      f2t.erase(f2t.begin()+n);
+      f2t.push_back(tetfacenew1);
+      f2t.push_back(tetfacenew2);
+      f2t.push_back(tetfacenew3);
+      f2t.push_back(tetfacenew4);
+      tetfaces.push_back(tetfacenew1);
+      tetfaces.push_back(tetfacenew2);
+      tetfaces.push_back(tetfacenew3);
+      tetfaces.push_back(tetfacenew4);
 
-          f2t.erase(f2t.begin()+n);
-          f2t.push_back(tetfacenew1);
-          f2t.push_back(tetfacenew2);
-          f2t.push_back(tetfacenew3);
-          f2t.push_back(tetfacenew4);
-          tetfaces.push_back(tetfacenew1);
-          tetfaces.push_back(tetfacenew2);
-          tetfaces.push_back(tetfacenew3);
-          tetfaces.push_back(tetfacenew4);
-
-          for(int e=0; e < (int)f2t.size(); e++)
-          {
-            printf("\n F: %d, %d, %d, %d",
-             f2t[e][0], f2t[e][1], f2t[e][2], f2t[e][3]);
-          }
-
-          if(tetfacenew1.size() > 0) {
-            tetfacenew1.clear();
-          }
-          if(tetfacenew2.size() > 0) {
-            tetfacenew2.clear();
-          }
-          if(tetfacenew3.size() > 0) {
-            tetfacenew3.clear();
-          }
-          if(tetfacenew4.size() > 0) {
-            tetfacenew4.clear();
-          }
-          if(facenew1_1.size() > 0) {
-            facenew1_1.clear();
-          }
-          if(facenew1_2.size() > 0) {
-            facenew1_2.clear();
-          }
-          if(facenew1_3.size() > 0) {
-            facenew1_3.clear();
-          }
-          if(facenew1_4.size() > 0) {
-            facenew1_4.clear();
-          }
-          if(facenew2_1.size() > 0) {
-            facenew2_1.clear();
-          }
-          if(facenew2_2.size() > 0) {
-            facenew2_2.clear();
-          }
-          if(facenew2_4.size() > 0) {
-            facenew2_4.clear();
-          }
-          if(facenew3_1.size() > 0) {
-            facenew3_1.clear();
-          }
-          if(facenew3_3.size() > 0) {
-            facenew3_3.clear();
-          }
-          if(facenew3_4.size() > 0) {
-            facenew3_4.clear();
-          }
-          if(facenew4_3.size() > 0) {
-            facenew4_3.clear();
-          }
-          if(facenew4_4.size() > 0) {
-            facenew4_4.clear();
-          }
-
-
+      if(tetfacenew1.size() > 0) {
+        tetfacenew1.clear();
+      }
+      if(tetfacenew2.size() > 0) {
+        tetfacenew2.clear();
+      }
+      if(tetfacenew3.size() > 0) {
+        tetfacenew3.clear();
+      }
+      if(tetfacenew4.size() > 0) {
+        tetfacenew4.clear();
+      }
+      if(facenew1_1.size() > 0) {
+        facenew1_1.clear();
+      }
+      if(facenew1_2.size() > 0) {
+        facenew1_2.clear();
+      }
+      if(facenew1_3.size() > 0) {
+        facenew1_3.clear();
+      }
+      if(facenew1_4.size() > 0) {
+        facenew1_4.clear();
+      }
+      if(facenew2_1.size() > 0) {
+        facenew2_1.clear();
+      }
+      if(facenew2_2.size() > 0) {
+        facenew2_2.clear();
+      }
+      if(facenew2_4.size() > 0) {
+        facenew2_4.clear();
+      }
+      if(facenew3_1.size() > 0) {
+        facenew3_1.clear();
+      }
+      if(facenew3_3.size() > 0) {
+        facenew3_3.clear();
+      }
+      if(facenew3_4.size() > 0) {
+        facenew3_4.clear();
+      }
+      if(facenew4_3.size() > 0) {
+        facenew4_3.clear();
+      }
+      if(facenew4_4.size() > 0) {
+        facenew4_4.clear();
+      }
 
     }
 
-        while((int)tetverts.size() > 0) {
-          int siz = (int)tetverts.size();
-          //printf("\n tetverts size: %d", siz);
-          std::vector<int> ttt = tetverts.at(siz-1);
-          tetverts.pop_back();
+    int f2tsize = (int)f2t.size();
 
-          printf("\n ttt: %d, %d, %d, %d ",
-           ttt[0], ttt[1], ttt[2], ttt[3]);
-          printf("\n p: %.2f %.2f %.2f", p.x, p.y, p.z);
-          // get tetrahedron with same face opposite of p
-          int index_p = getIndex(p, vertices);
-          printf("\n indexP: %d", index_p);
-          printf("\n tetfaces: %d, %d, %d, %d,",
-           tetfaces[siz-1][0], tetfaces[siz-1][1],
-            tetfaces[siz-1][2], tetfaces[siz-1][3]);
-          printf("\n ");
-          for(int t=0; t < (int)faces.size(); t++)
-          {
-            printf("t: %d (%d, %d, %d) ",t,
-             faces[t][0], faces[t][1], faces[t][2]);
-          }
-          int faceIndx;
-          for(int gf=0; gf < (int)tetfaces[siz-1].size(); gf++)
-          {
-            //printf("\n p index index_p: %d", index_p);
+/*
+  check if the new tetrahedrons 
+  meet delaunay critera
 
-            /*printf("\n Tetfaces[siz-1]: %d %d %d",
-             faces[tetfaces[siz-1][gf]][0], faces[tetfaces[siz-1][gf]][1],
-            faces[tetfaces[siz-1][gf]][2]);*/
+*/
+    while((int)tetverts.size() > 0) {
+      int siz = (int)tetverts.size();
+      std::vector<int> ttt = tetverts.at(siz-1);
+      tetverts.pop_back();
+      f2tsize--;
 
-            auto it = std::find(std::begin(faces[tetfaces[siz-1][gf]]),
-             std::end(faces[tetfaces[siz-1][gf]]), index_p);
-            if(it == std::end(faces[tetfaces[siz-1][gf]])) {
-              faceIndx = tetfaces[siz-1][gf];
-              printf("\n faceindx: %d", faceIndx);
-              break;
+/*
+  get tetrahedron with same face opposite of p
+
+*/
+      int index_p = getIndex(p, vertices);
+      int faceIndx;
+      for(int gf=0; gf < (int)tetfaces[siz-1].size(); gf++)
+      {
+
+        auto it = std::find(std::begin(faces[tetfaces[siz-1][gf]]),
+          std::end(faces[tetfaces[siz-1][gf]]), index_p);
+        if(it == std::end(faces[tetfaces[siz-1][gf]])) {
+          faceIndx = tetfaces[siz-1][gf];
+          break;
+        }
+      }
+      bool foundtet = false;
+      int ind_tet2;
+      int ind_d;
+      for(int ai=0; ai < (int)f2t.size(); ai++)
+      {
+        auto it = std::find(std::begin(f2t[ai]),
+          std::end(f2t[ai]), faceIndx);
+        if(it != std::end(f2t[ai])) {
+          if(ai != f2tsize) {
+            ind_tet2 = ai;
+
+            for(int zz=0; zz < (int)v2t[ai].size(); zz++)
+            {
+              if(faces[faceIndx][0] != v2t[ai][zz] 
+              && faces[faceIndx][1] != v2t[ai][zz]
+              && faces[faceIndx][2] != v2t[ai][zz]) {
+                  ind_d = zz;
+                  foundtet = true;
+                  break;
+                
+              }
             }
+
+            break;
           }
-          //int faceIndx = tetfaces[siz-1][0]; // it is the first one
-          bool foundtet = false;
-          int ind_tet2;
-          int ind_d;
-          //std::sort(tetfaces[siz-1].begin(), tetfaces[siz-1].end());
-          for(int ai=0; ai < (int)f2t.size(); ai++)
+        }
+      }
+
+      tetfaces.pop_back();
+
+/*
+  found tet with point d
+
+*/
+      if(foundtet) {
+        std::vector<int> tettt = v2t[ind_tet2];
+        double pti[3] {vertices[ttt[3]].x,
+          vertices[ttt[3]].y, vertices[ttt[3]].z};
+        double ati[3] {vertices[ttt[0]].x,
+          vertices[ttt[0]].y, vertices[ttt[0]].z};
+        double bti[3] {vertices[ttt[1]].x,
+          vertices[ttt[1]].y, vertices[ttt[1]].z};
+        double cti[3] {vertices[ttt[2]].x,
+          vertices[ttt[2]].y, vertices[ttt[2]].z};
+        double dti[3] {vertices[tettt[ind_d]].x,
+          vertices[tettt[ind_d]].y, vertices[tettt[ind_d]].z};
+
+/* 
+  Before insphere check if orientation
+  of points is correct
+
+*/
+        float orient_1 = orient3d(ati, bti, cti, pti);
+        float detInSphere;
+        if(orient_1 < 0.0)
+        {
+          detInSphere = insphere(ati, cti, bti, pti, dti);
+                      
+        } else {
+          detInSphere = insphere(ati, bti, cti, pti, dti);
+
+        }
+
+/*
+  if point d lies inside sphere of tetrahedron abcp,
+  check if it fulfills one of four other cases.
+  If so, change ordering of points corresponding to
+  the face
+
+*/
+        if(detInSphere > 0.0) 
+        { 
+/* 
+  case 1: pd intersects area abc 
+  perform Flip23
+
+*/
+          if(signbit(orient3d(ati, bti, cti, pti)) 
+            != signbit(orient3d(ati,bti,cti, dti)))
           {
-            auto it = std::find(std::begin(f2t[ai]),
-             std::end(f2t[ai]), faceIndx);
-            if(it != std::end(f2t[ai])) {
-              //std::sort(f2t[ai].begin(), f2t[ai].end());
-              //printf("\n F2tAI: %d %d %d %d", f2t[ai][0],
-              // f2t[ai][1],f2t[ai][2],f2t[ai][3]);
-              //printf("\n Tetfaces[siz-1]: %d %d %d %d",
-              // tetfaces[siz-1][0], tetfaces[siz-1][1],
-              // tetfaces[siz-1][2],tetfaces[siz-1][3]);
-              if(f2t[ai] != tetfaces[siz-1]) {
-                ind_tet2 = ai;
-                  /*printf("\n v2t-ai: %d", v2t[ai][0]);
-                  printf("\n v2t-ai: %d", v2t[ai][1]);
-                  printf("\n v2t-ai: %d", v2t[ai][2]);
-                  printf("\n v2t-ai: %d", v2t[ai][3]);*/
+/*
+  Flip23:
+  get 'old' tetrahedrons and push three new one in vector
 
-                for(int zz=0; zz < (int)v2t[ai].size(); zz++)
-                {
-                  //printf("\n f2t-ai: %d %d %d",
-                  // faces[faceIndx][0], faces[faceIndx][1],
-                  // faces[faceIndx][2]);
-                  //printf("\n v2t-ai: %d", v2t[ai][zz]);
+  find ttt and tettt 
+  in v2t/f2t
 
-                  if(faces[faceIndx][0] != v2t[ai][zz] 
-                  && faces[faceIndx][1] != v2t[ai][zz]
-                  && faces[faceIndx][2] != v2t[ai][zz]) {
-                      ind_d = zz;
-                      foundtet = true;
-                      break;
-                    
-                  }
-                }
+*/
+            std::sort(tettt.begin(), tettt.end());
+            for(int comp1=0; comp1 < (int) v2t.size(); comp1++)
+            {
+              std::sort(v2t[comp1].begin(), v2t[comp1].end());
+              if(v2t[comp1] == tettt)
+              {
+                v2t.erase(v2t.begin()+comp1);
+                f2t.erase(f2t.begin()+comp1);
+
+              }
+            }
+
+            std::sort(ttt.begin(), ttt.end());
+            for(int comp=0; comp < (int)v2t.size(); comp++)
+            {
+              std::sort(v2t[comp].begin(), v2t[comp].end());
+              if(v2t[comp] == ttt) {
+
+                v2t.erase(v2t.begin()+comp);
+                f2t.erase(f2t.begin()+comp);
 
                 break;
               }
             }
-          }
 
-          tetfaces.pop_back();
-          if(foundtet) {
-            printf("\n found tet");
-            std::vector<int> tettt = v2t[ind_tet2];
-            printf("\tettt: %d %d %d %d", tettt[0],
-             tettt[1], tettt[2], tettt[3]);
-            double pti[3] {vertices[ttt[3]].x,
-             vertices[ttt[3]].y, vertices[ttt[3]].z};
-            double ati[3] {vertices[ttt[0]].x,
-             vertices[ttt[0]].y, vertices[ttt[0]].z};
-            double bti[3] {vertices[ttt[1]].x,
-             vertices[ttt[1]].y, vertices[ttt[1]].z};
-            double cti[3] {vertices[ttt[2]].x,
-             vertices[ttt[2]].y, vertices[ttt[2]].z};
-            double dti[3] {vertices[tettt[ind_d]].x,
-             vertices[tettt[ind_d]].y, vertices[tettt[ind_d]].z};
+/*
+remove tettt from tetfaces and tetverts
 
-            printf("\n P: %.2f %.2f %.2f",
-             vertices[ttt[3]].x, vertices[ttt[3]].y, vertices[ttt[3]].z);
-            printf("\n A: %.2f %.2f %.2f",
-             vertices[ttt[0]].x, vertices[ttt[0]].y, vertices[ttt[0]].z);
-            printf("\n B: %.2f %.2f %.2f",
-             vertices[ttt[1]].x, vertices[ttt[1]].y, vertices[ttt[1]].z);
-            printf("\n C: %.2f %.2f %.2f",
-             vertices[ttt[2]].x, vertices[ttt[2]].y, vertices[ttt[2]].z);
-            printf("\n D: %.2f %.2f %.2f",
-             vertices[tettt[ind_d]].x, vertices[tettt[ind_d]].y,
-              vertices[tettt[ind_d]].z);
-            // Before insphere check if orientation of points is correct
-            float orient_1 = orient3d(ati, bti, cti, pti);
-            float detInSphere;
-            if(orient_1 < 0.0)
+*/
+            std::sort(tettt.begin(), tettt.end());
+            for(int au=0; au < (int)tetfaces.size(); au++)
             {
-              detInSphere = insphere(ati, cti, bti, pti, dti);
-                          
-            } else {
-              detInSphere = insphere(ati, bti, cti, pti, dti);
-
+              std::sort(tetfaces[au].begin(), tetfaces[au].end());
+              if(tetfaces[au] == tettt) {
+                tetfaces.erase(tetfaces.begin()+au);
+                tetverts.erase(tetverts.begin()+au);
+              }
+              
             }
-            printf("\n DETINSPHERE: %.2f", detInSphere);
 
-            if(detInSphere > 0.0) 
-              // inside sphere or on it (on it also ok?! ==> no)
-            { // #case 1: pd intersects area abc => Flip23
-             
-              printf("\n in detinsphere");
-             if(signbit(orient3d(ati, bti, cti, pti)) 
-                != signbit(orient3d(ati,bti,cti, dti))) 
-             {
-               for(int e=0; e < (int)f2t.size(); e++)
-          {
-            printf("\n V: %d, %d, %d, %d",
-             v2t[e][0], v2t[e][1], v2t[e][2], v2t[e][3]);
-            printf("\n F: %d, %d, %d, %d",
-             f2t[e][0], f2t[e][1], f2t[e][2], f2t[e][3]);
-          }
-               // perform Flip23
-               // get "old" tetrahedrons and push three new one in vector
-               printf("\n in first ");
-               printf("\n size before: %d, %d",
-                (int)v2t.size(), (int)f2t.size());
-              /* printf("\n v2t[a] : %d %d %d %d", v2t[a-1][0],
-                v2t[a-1][1], v2t[a-1][2], v2t[a-1][3]);
-               v2t.erase(v2t.begin()+a-1);
-               f2t.erase(f2t.begin()+a-1);
-               printf("\n size after: %d, %d",
-                (int)v2t.size(), (int)f2t.size());
-  */
-               std::sort(tettt.begin(), tettt.end());
-               for(int comp1=0; comp1 < (int) v2t.size(); comp1++)
-               {
-                 std::sort(v2t[comp1].begin(), v2t[comp1].end());
-                 if(v2t[comp1] == tettt)
-                 {
-                   v2t.erase(v2t.begin()+comp1);
-                   f2t.erase(f2t.begin()+comp1);
-                  printf("\n removed 1");
-
-                   printf("\n size after: %d, %d",
-                    (int)v2t.size(), (int)f2t.size());
-
-                 }
-               }
-               // find ttt in v2t/f2t
-               std::sort(ttt.begin(), ttt.end());
-               for(int comp=0; comp < (int)v2t.size(); comp++)
-               {
-                 printf("\n COMP: %d, %d, %d, %d",
-                  v2t[comp][0], v2t[comp][1], v2t[comp][2], v2t[comp][3]);
-
-                 std::sort(v2t[comp].begin(), v2t[comp].end());
-                 if(v2t[comp] == ttt) {
-                    printf("\n removed 2");
-
-                  // position is comp
-                  printf("\n size before: %d, %d",
-                   (int)v2t.size(), (int)f2t.size());
-
-                   v2t.erase(v2t.begin()+comp);
-                   f2t.erase(f2t.begin()+comp);
-                   printf("\n size after: %d, %d",
-                    (int)v2t.size(), (int)f2t.size());
-
-                   break;
-                 }
-               }
-
-               // remove tettt from tetfaces & tetverts
-               std::sort(tettt.begin(), tettt.end());
-               for(int au=0; au < (int)tetfaces.size(); au++)
-               {
-                 std::sort(tetfaces[au].begin(), tetfaces[au].end());
-                 if(tetfaces[au] == tettt) {
-                   printf("\n removed from tetfaces/tetvertices");
-
-                   tetfaces.erase(tetfaces.begin()+au);
-                   tetverts.erase(tetverts.begin()+au);
-                 }
-                 
-               }
-
-               // build new ones
-               // p = ttt[3], a = ttt[0], b = ttt[1], c = ttt[2], d = tettt[3]
-              double dx1[3] {vertices[ttt[0]].x,
-               vertices[ttt[0]].y, vertices[ttt[0]].z};
-              double dx2[3] {vertices[ttt[1]].x,
-               vertices[ttt[1]].y, vertices[ttt[1]].z};
-              double dx3[3] {vertices[ttt[2]].x,
-               vertices[ttt[2]].y, vertices[ttt[2]].z};
-              double dx4[3] {vertices[ttt[3]].x,
-               vertices[ttt[3]].y, vertices[ttt[3]].z};
-              double dx5[3] {vertices[tettt[ind_d]].x,
-               vertices[tettt[ind_d]].y, vertices[tettt[ind_d]].z};
-
-              printf("\n TETS: %d, %d, %d, %d, %d",
-               ttt[0], ttt[1], ttt[2], ttt[3], tettt[ind_d]);
-
-              if(orient3d(dx4, dx1, dx2, dx5) > 0) {
-                std::vector<int> pnew1 {ttt[3], ttt[0], ttt[1], tettt[ind_d]};
-                v2t.push_back(pnew1);
-                tetverts.push_back(pnew1);
-                pnew1.clear();
-              } else {
-                std::vector<int> pnew1 {ttt[3], ttt[1], ttt[0], tettt[ind_d]};
-                v2t.push_back(pnew1);
-                tetverts.push_back(pnew1);
-                pnew1.clear();
-              }
-              if(orient3d(dx4, dx1, dx3, dx5) > 0) {
-                std::vector<int> pnew2 {ttt[3], ttt[0], ttt[2], tettt[ind_d]};
-                v2t.push_back(pnew2);
-                tetverts.push_back(pnew2);
-                pnew2.clear();
-              } else {
-                std::vector<int> pnew2 {ttt[3], ttt[2], ttt[0], tettt[ind_d]};
-                v2t.push_back(pnew2);
-                tetverts.push_back(pnew2);
-                pnew2.clear();
-              }
-              if(orient3d(dx4, dx2, dx3, dx5) > 0) {
-                std::vector<int> pnew3 {ttt[3], ttt[1], ttt[2], tettt[ind_d]};
-                v2t.push_back(pnew3);
-                tetverts.push_back(pnew3);
-                pnew3.clear();
-              } else {
-                std::vector<int> pnew3 {ttt[3], ttt[2], ttt[1], tettt[ind_d]};
-                v2t.push_back(pnew3);
-                tetverts.push_back(pnew3);
-                pnew3.clear();
-              }
-
-              // first tet with faces
-              // pac, acd, pcd, pad
-              std::vector<int> fnew1 {ttt[3], ttt[0], ttt[2]};
-              std::vector<int> fnew2 {ttt[0], ttt[2], tettt[ind_d]};
-              std::vector<int> fnew3 {ttt[3], ttt[2], tettt[ind_d]};
-              std::vector<int> fnew4 {ttt[3], ttt[0], tettt[ind_d]};
-              // pbc, bcd, pcd, pbd
-              std::vector<int> fnew5 {ttt[3], ttt[1], ttt[2]};
-              std::vector<int> fnew6 {ttt[1], ttt[2], tettt[ind_d]};
-              // pdc s.o. => fnew3
-              std::vector<int> fnew7 {ttt[3], ttt[1], tettt[ind_d]};
-              // pab, abd, pad, pbd
-              std::vector<int> fnew8 {ttt[3], ttt[0], ttt[1]};
-              std::vector<int> fnew9 {ttt[0], ttt[1], tettt[ind_d]};
-              // pad s.o. => fnew4
-              // pbd s.o. => fnew7
-              int pos1 = 0;
-              std::vector<int> ftet;
-              std::vector<int> ftet2;
-              std::vector<int> ftet3;
-              if(!faceIn(fnew1, &pos1)) {
-                faces.push_back(fnew1);
-                ftet.push_back(faces.size()-1);
-              } else {
-                ftet.push_back(pos1);
-                printf("\n pos: %d", pos1);
-              }
-              if(!faceIn(fnew2, &pos1)) {
-                faces.push_back(fnew2);
-                ftet.push_back(faces.size()-1);
-              } else {
-                ftet.push_back(pos1);
-                                printf("\n pos: %d", pos1);
-
-              }
-              if(!faceIn(fnew3, &pos1)) {
-                faces.push_back(fnew3);
-                ftet.push_back(faces.size()-1);
-              } else {
-                ftet.push_back(pos1);
-                                printf("\n pos: %d", pos1);
-
-              }
-              if(!faceIn(fnew4, &pos1)) {
-                faces.push_back(fnew4);
-                ftet.push_back(faces.size()-1);
-              } else {
-                ftet.push_back(pos1);
-                                printf("\n pos: %d", pos1);
-
-              }
-
-
-              if(!faceIn(fnew5, &pos1)) {
-                faces.push_back(fnew5);
-                ftet2.push_back(faces.size()-1);
-              } else {
-                ftet2.push_back(pos1);
-                                printf("\n pos: %d", pos1);
-
-              }
-              if(!faceIn(fnew6, &pos1)) {
-                faces.push_back(fnew6);
-                ftet2.push_back(faces.size()-1);
-              } else {
-                ftet2.push_back(pos1);
-                                printf("\n pos: %d", pos1);
-
-              }
-              if(!faceIn(fnew3, &pos1)) {
-                faces.push_back(fnew3);
-                ftet2.push_back(faces.size()-1);
-              } else {
-                ftet2.push_back(pos1);
-                                printf("\n pos: %d", pos1);
-
-              }
-              if(!faceIn(fnew7, &pos1)){
-                faces.push_back(fnew7);
-                ftet2.push_back(faces.size()-1);
-              } else {
-                ftet2.push_back(pos1);
-                                printf("\n pos: %d", pos1);
-
-              }
-
-
-              if(!faceIn(fnew8, &pos1)){
-                faces.push_back(fnew8);
-                ftet3.push_back(faces.size()-1);
-              } else {
-                ftet3.push_back(pos1);
-                                printf("\n pos: %d", pos1);
-
-              }
-              if(!faceIn(fnew9, &pos1)){
-                faces.push_back(fnew9);
-                ftet3.push_back(faces.size()-1);
-              } else {
-                ftet3.push_back(pos1);
-                                printf("\n pos: %d", pos1);
-
-              }
-              if(!faceIn(fnew7, &pos1)){
-                faces.push_back(fnew7);
-                ftet3.push_back(faces.size()-1);
-              } else {
-                ftet3.push_back(pos1);
-                                printf("\n pos: %d", pos1);
-
-              }
-              if(!faceIn(fnew4, &pos1)) {
-                faces.push_back(fnew4);
-                ftet3.push_back(faces.size()-1);
-              } else {
-                ftet3.push_back(pos1);
-                                printf("\n pos: %d", pos1);
-
-              }
-
-              // push in vectorss
-              f2t.push_back(ftet3);
-              f2t.push_back(ftet);
-              f2t.push_back(ftet2);
-
-              tetfaces.push_back(ftet3);
-              tetfaces.push_back(ftet);
-              tetfaces.push_back(ftet2);
-
-              if(ftet.size() > 0) {
-                ftet.clear();
-              }
-              if(ftet2.size() > 0) {
-                ftet2.clear();
-              }
-              if(ftet3.size() > 0) {
-                ftet3.clear();
-              }
-
-             }  else {
-               //#case 2: pd does not intersect area abc and there is 
-              // a third tetrahedron abpd, 
-              // so all tetrahedrons share ab => Flip32
-              int pos;
-              if(tetExists(ttt[0], ttt[1], ttt[3], tettt[ind_d], &pos)) {
-                printf("\n in secondo case");
-                std::vector<int> tetabpd = v2t[pos];
-                                  printf("\n removed 1");
-
-                v2t.erase(v2t.begin() + pos);
-                f2t.erase(f2t.begin() + pos);
-                printf("\n in second case,a: %d, pos: %d", a, pos);
-
-                // find ttt in v2t/f2t
-                std::sort(ttt.begin(), ttt.end());
-                for(int comp=0; comp < (int)v2t.size(); comp++)
-                {
-                  std::sort(v2t[comp].begin(), v2t[comp].end());
-                  if(v2t[comp] == ttt) {
-                                      printf("\n removed 2");
-
-                  // position is comp
-                   v2t.erase(v2t.begin()+comp);
-                   f2t.erase(f2t.begin()+comp);
-                   break;
-                 }
-                }
-                // find tettt in v2t/f2t
-                std::sort(tettt.begin(), tettt.end());
-                for(int comp=0; comp < (int)v2t.size(); comp++)
-                {
-                  std::sort(v2t[comp].begin(), v2t[comp].end());
-                  if(v2t[comp] == tettt) {
-                                      printf("\n removed 3");
-
-                  // position is comp
-                   v2t.erase(v2t.begin()+comp);
-                   f2t.erase(f2t.begin()+comp);
-                   break;
-                 }
-                }
-                
-
-
-                //flip32:
-                double dx1[3] {vertices[ttt[0]].x,
-                 vertices[ttt[0]].y, vertices[ttt[0]].z};
-                double dx2[3] {vertices[ttt[1]].x,
-                 vertices[ttt[1]].y, vertices[ttt[1]].z};
-                double dx3[3] {vertices[ttt[2]].x,
-                 vertices[ttt[2]].y, vertices[ttt[2]].z};
-                double dx4[3] {vertices[ttt[3]].x,
-                 vertices[ttt[3]].y, vertices[ttt[3]].z};
-                double dx5[3] {vertices[tettt[ind_d]].x,
-                 vertices[tettt[ind_d]].y, vertices[tettt[ind_d]].z};
-
-              if(orient3d(dx4, dx1, dx2, dx3) > 0) {
-                std::vector<int> pnew1 {ttt[3], ttt[0], ttt[1], ttt[2]};
-                v2t.push_back(pnew1);
-                tetverts.push_back(pnew1);
-                pnew1.clear();
-              } else {
-                std::vector<int> pnew1 {ttt[3], ttt[1], ttt[0], ttt[2]};
-                v2t.push_back(pnew1);
-                tetverts.push_back(pnew1);
-                pnew1.clear();
-              }
-              if(orient3d(dx1, dx2, dx3, dx5) > 0) {
-                std::vector<int> pnew2 {ttt[0], ttt[1], ttt[2], tettt[ind_d]};
-                v2t.push_back(pnew2);
-                tetverts.push_back(pnew2);
-                pnew2.clear();
-              } else {
-                std::vector<int> pnew2 {ttt[0], ttt[2], ttt[1], tettt[ind_d]};
-                v2t.push_back(pnew2);
-                tetverts.push_back(pnew2);
-                pnew2.clear();
-              }
-
-                std::vector<int> newf1 {ttt[3], ttt[0], ttt[2]};
-                std::vector<int> newf2 {ttt[3], ttt[1], ttt[2]};
-                std::vector<int> newf3 {ttt[3], ttt[0], ttt[1]};
-                std::vector<int> newf4 {ttt[0], ttt[1], ttt[2]}; // in both
-
-                std::vector<int> newf5 {ttt[0], ttt[2], tettt[ind_d]};
-                std::vector<int> newf6 {ttt[1], ttt[2], tettt[ind_d]};
-                std::vector<int> newf7 {ttt[0], ttt[1], tettt[ind_d]};
-
-                int pos2;
-                std::vector<int> ftet32_1;
-                std::vector<int> ftet32_2;
-                if(faceIn(newf1, &pos2)) {
-                  //printf("\n posi: %d", pos2);
-                  ftet32_1.push_back(pos2);
-                } else {
-                  faces.push_back(newf1);
-                  ftet32_1.push_back(faces.size()-1);
-                }
-                if(faceIn(newf2, &pos2)) {
-                  //printf("\n posi: %d", pos2);
-                  ftet32_1.push_back(pos2);
-                } else {
-                  faces.push_back(newf2);
-                  ftet32_1.push_back(faces.size()-1);
-                }
-                if(faceIn(newf3, &pos2)) {
-                  //printf("\n posi: %d", pos2);
-                  ftet32_1.push_back(pos2);
-                } else {
-                  faces.push_back(newf3);
-                  ftet32_1.push_back(faces.size()-1);
-                }
-                if(faceIn(newf4, &pos2)) {
-                  //printf("\n posi: %d", pos2);
-                  ftet32_1.push_back(pos2);
-                } else {
-                  faces.push_back(newf4);
-                  ftet32_1.push_back(faces.size()-1);
-                }
-
-
-                if(faceIn(newf4, &pos2)) {
-                  //printf("\n posi: %d", pos2);
-                  ftet32_2.push_back(pos2);
-                } else {
-                  faces.push_back(newf4);
-                  ftet32_2.push_back(faces.size()-1);
-                }
-                if(faceIn(newf5, &pos2)) {
-                                    //printf("\n posi: %d", pos2);
-
-                  ftet32_2.push_back(pos2);
-                } else {
-                  faces.push_back(newf5);
-                  ftet32_2.push_back(faces.size()-1);
-                }
-                if(faceIn(newf6, &pos2)) {
-                                    //printf("\n posi: %d", pos2);
-
-                  ftet32_2.push_back(pos2);
-                } else {
-                  faces.push_back(newf6);
-                  ftet32_2.push_back(faces.size()-1);
-                }
-                if(faceIn(newf7, &pos2)) {
-                                    //printf("\n posi: %d", pos2);
-
-                  ftet32_2.push_back(pos2);
-                } else {
-                  faces.push_back(newf7);
-                  ftet32_2.push_back(faces.size()-1);
-                }
-
-                f2t.push_back(ftet32_1);
-                f2t.push_back(ftet32_2);
-
-                tetfaces.push_back(ftet32_1);
-                tetfaces.push_back(ftet32_2);
-
-                if(ftet32_1.size() > 0) {
-                  ftet32_1.clear();
-                }
-                if(ftet32_2.size() > 0) {
-                  ftet32_2.clear();
-                }
-
-                if(newf1.size() > 0) {
-                  newf1.clear();
-                }
-                if(newf2.size() > 0) {
-                  newf2.clear();
-                }
-                if(newf3.size() > 0) {
-                  newf3.clear();
-                }
-                if(newf4.size() > 0) {
-                  newf4.clear();
-                }
-                if(newf5.size() >  0) {
-                  newf5.clear();
-                }
-                if(newf6.size() > 0) {
-                  newf6.clear();
-                }
-                if(newf7.size() > 0) {
-                  newf7.clear();
-                }
-
-
-
-              }
-              else if(orient3d(pti, ati, bti, dti) == 0.00 
-              || orient3d(pti, bti, cti, dti) == 0.00
-              || orient3d(pti, ati, cti, dti) == 0.00)
-              {
-                printf("\n in case 3");
-                //#case 3: line pd intersects edge of abc and there exist 
-                // two other tetrahedrons which share edges => flip44
-                // 1. find common edge => share same points (ab, bc, or ac ?)
-                //vectors
-
-                //sorting the vectors
-                sort(ttt.begin(), ttt.end());
-                sort(tettt.begin(), tettt.end());
-
-                //declaring result vector to
-                //store the common elements
-                vector<int> v3(ttt.size() + tettt.size());
-
-                //iterator to store return type
-                vector<int>::iterator it, end;
-
-                end = set_intersection(
-                    ttt.begin(), ttt.end(),
-                    tettt.begin(), tettt.end(),
-                    v3.begin());
-
-                std::vector<int> samep;
-                for (it = v3.begin(); it != end; it++)
-                {  
-                  if(*it != ttt[3] && *it != tettt[ind_d])
-                  {
-                      samep.push_back(*it);
-                  } 
-                }
-                
-
-                if((int)samep.size() == 2)
-                {
-                  sort(samep.begin(), samep.end());
-                  std::vector<int> vv(4);
-                  int first = -1;
-                  int second = -1;
-                  // find two other tetrahedrons with same points
-                  for(int r=0; r < (int)v2t.size(); r++)
-                  {
-                    std::vector<int> v = v2t[r];
-                    sort(v.begin(), v.end());
-                    
-                     std::set_intersection(v.begin(), v.end(),
-                          samep.begin(), samep.end(),
-                          std::back_inserter(vv));
-                    if(vv.size() == 2) {
-                      first = r;
-                      vv.clear();
-                      for(int rr=r; rr < (int)v2t.size(); rr++)
-                      {
-                        std::vector<int> v = v2t[rr];
-                        sort(v.begin(), v.end());
-                    
-                        std::set_intersection(v.begin(), v.end(),
-                            samep.begin(), samep.end(),
-                            std::back_inserter(vv));
-                        if(vv.size() == 2) {
-                          second = rr;
-                          break;
-                        }
-
-                      }
-                      break;
-                    }
-                  }
-                  if(first >= 0 && second >= 0) {
-                    std::vector<int> thitet = v2t[first];
-                    std::vector<int> foutet = v2t[second];
-
-                    if(first > second) {
-                      printf("\n removed 1 and 2");
-
-                      v2t.erase(v2t.begin() + first);
-                      f2t.erase(f2t.begin() + first);
-                      v2t.erase(v2t.begin() + second);
-                      f2t.erase(f2t.begin() + second);
-                    } else {
-                       printf("\n removed 1 and 2");
-
-                      v2t.erase(v2t.begin() + second);
-                      f2t.erase(f2t.begin() + second);
-                      v2t.erase(v2t.begin() + first);
-                      f2t.erase(f2t.begin() + first);
-                    }
-                    
-                    // find ttt in v2t/f2t
-                    for(int comp=0; comp < (int)v2t.size(); comp++)
-                    {
-                      if(v2t[comp] == ttt) {
-                      printf("\n removed 3");
-
-                      // position is comp
-                      v2t.erase(v2t.begin()+comp);
-                      f2t.erase(f2t.begin()+comp);
-                      break;
-                      }
-                    }
-                   // find tettt in v2t/f2t
-                    for(int comp=0; comp < (int)v2t.size(); comp++)
-                    {
-                      if(v2t[comp] == tettt) {
-                      printf("\n removed 4");
-
-                      // position is comp
-                      v2t.erase(v2t.begin()+comp);
-                      f2t.erase(f2t.begin()+comp);
-                      break;
-                      }
-                    }
-                    
-                    // remove old tets, add 4 new ones => flip44
-                    // build 4 new tetrahedrons
-                    // 1: curr.a, curr.b, curr.c, t1.d
-                    // 2: curr.a, curr.b, curr.d, t1.d
-                    // 3: d, curr.b, curr.c, t1.d
-                    // 4: d, curr.b, curr.d, t1.d
-
-                    double ux[3] ={vertices[ttt[0]].x,
-                     vertices[ttt[0]].y, vertices[ttt[0]].z};
-                    double uy[3] ={vertices[ttt[1]].x,
-                     vertices[ttt[1]].y, vertices[ttt[1]].z};
-                    double uv[3] ={vertices[ttt[2]].x,
-                     vertices[ttt[2]].y, vertices[ttt[2]].z};
-                    double uw[3] ={vertices[ttt[3]].x,
-                     vertices[ttt[3]].y, vertices[ttt[3]].z};
-                    double ur[3] ={vertices[tettt[ind_d]].x,
-                     vertices[tettt[ind_d]].y, vertices[tettt[ind_d]].z};
-                    double ut[3] ={vertices[thitet[0]].x,
-                     vertices[thitet[0]].y, vertices[thitet[0]].z};
-
-                    if(orient3d(uw, ux, uy, ut) > 0) {
-                      std::vector<int> newt1 {ttt[3],
-                       ttt[0], ttt[1], thitet[0]};
-                      v2t.push_back(newt1);
-                      tetverts.push_back(newt1);
-                      newt1.clear();
-                    } else {
-                      std::vector<int> newt1 {ttt[3],
-                       ttt[1], ttt[0], thitet[0]};
-                      v2t.push_back(newt1);
-                      tetverts.push_back(newt1);
-                      newt1.clear();
-                    }
-                    if(orient3d(ur, ux, uy, ut) > 0) {
-                      std::vector<int> newt2 {tettt[ind_d], ttt[0],
-                       ttt[1], thitet[0]};
-                      v2t.push_back(newt2);
-                      tetverts.push_back(newt2);
-                      newt2.clear();
-                    } else {
-                      std::vector<int> newt2 {tettt[ind_d], ttt[1],
-                       ttt[0], thitet[0]};
-                      v2t.push_back(newt2);
-                      tetverts.push_back(newt2);
-                      newt2.clear();
-                    }
-                    if(orient3d(uw, ux, uv, ut) > 0) {
-                      std::vector<int> newt3 {ttt[3], ttt[0],
-                       ttt[2], thitet[0]};
-                      v2t.push_back(newt3);
-                      tetverts.push_back(newt3);
-                      newt3.clear();
-                    } else {
-                      std::vector<int> newt3 {ttt[3],
-                       ttt[2], ttt[0], thitet[0]};
-                      v2t.push_back(newt3);
-                      tetverts.push_back(newt3);
-                      newt3.clear();
-                    }
-                    if(orient3d(ur, ux, uv, ut) > 0) {
-                      std::vector<int> newt4 {tettt[ind_d],
-                       ttt[0], ttt[2], thitet[0]};
-                       v2t.push_back(newt4);
-                       tetverts.push_back(newt4);
-                       newt4.clear();
-                    } else {
-                      std::vector<int> newt4 {tettt[ind_d],
-                       ttt[2], ttt[0], thitet[0]};
-                       v2t.push_back(newt4);
-                       tetverts.push_back(newt4);
-                       newt4.clear();
-                    }
-
-                    std::vector<int> newf1 {ttt[3], ttt[0], ttt[1]};
-                    std::vector<int> newf2 {ttt[3], ttt[1], thitet[0]};
-                    std::vector<int> newf3 {ttt[0], ttt[1], thitet[0]};
-                    std::vector<int> newf4 {ttt[3], ttt[0], thitet[0]};
-
-                    std::vector<int> newf5 {tettt[ind_d], ttt[0], ttt[1]};
-                    std::vector<int> newf6 {tettt[ind_d], ttt[1], thitet[0]};
-                    std::vector<int> newf7 {ttt[0], ttt[1], thitet[0]};
-                    std::vector<int> newf8 {tettt[ind_d], ttt[0], thitet[0]};
-
-                    std::vector<int> newf9 {ttt[3], ttt[0], ttt[2]};
-                    std::vector<int> newf10 {ttt[3], ttt[2], thitet[0]};
-                    std::vector<int> newf11 {ttt[0], ttt[3], thitet[0]};
-                    std::vector<int> newf12 {ttt[0], ttt[2], thitet[0]};
-
-                    std::vector<int> newf13 {tettt[ind_d], ttt[2], thitet[0]};
-                    std::vector<int> newf14 {tettt[ind_d], ttt[0], ttt[2]};
-                    std::vector<int> newf15 {tettt[ind_d], ttt[0], thitet[0]};
-                    std::vector<int> newf16 {ttt[0], ttt[2], thitet[0]};
-
-                    int pos2 = 0;
-                    std::vector<int> ftet44_1;
-                    std::vector<int> ftet44_2;
-                    std::vector<int> ftet44_3;
-                    std::vector<int> ftet44_4;
-
-                    if(!faceIn(newf1, &pos2)) {
-                      faces.push_back(newf1);
-                      ftet44_1.push_back(faces.size()-1);
-                    } else {
-                      ftet44_1.push_back(pos2);
-                    }
-                    if(!faceIn(newf2, &pos2)) {
-                      faces.push_back(newf2);
-                      ftet44_1.push_back(faces.size()-1);
-                    } else {
-                      ftet44_1.push_back(pos2);
-                    }
-                    if(!faceIn(newf3, &pos2)) {
-                      faces.push_back(newf3);
-                      ftet44_1.push_back(faces.size()-1);
-                    } else {
-                      ftet44_1.push_back(pos2);
-                    }
-                    if(!faceIn(newf4, &pos2)) {
-                      faces.push_back(newf4);
-                      ftet44_1.push_back(faces.size()-1);
-                    } else {
-                      ftet44_1.push_back(pos2);
-                    }
-
-                    if(!faceIn(newf5, &pos2)) {
-                      faces.push_back(newf5);
-                      ftet44_2.push_back(faces.size()-1);
-                    } else {
-                      ftet44_2.push_back(pos2);
-                    }
-                    if(!faceIn(newf6, &pos2)) {
-                      faces.push_back(newf6);
-                      ftet44_2.push_back(faces.size()-1);
-                    } else {
-                      ftet44_2.push_back(pos2);
-                    }
-                    if(!faceIn(newf7, &pos2)) {
-                      faces.push_back(newf7);
-                      ftet44_2.push_back(faces.size()-1);
-                    } else {
-                      ftet44_2.push_back(pos2);
-                    }
-                    if(!faceIn(newf8, &pos2)) {
-                      faces.push_back(newf8);
-                      ftet44_2.push_back(faces.size()-1);
-                    } else {
-                      ftet44_2.push_back(pos2);
-                    }
-
-
-                    if(!faceIn(newf9, &pos2)) {
-                      faces.push_back(newf8);
-                      ftet44_3.push_back(faces.size()-1);
-                    } else {
-                      ftet44_3.push_back(pos2);
-                    }
-                    if(!faceIn(newf10, &pos2)) {
-                      faces.push_back(newf10);
-                      ftet44_3.push_back(faces.size()-1);
-                    } else {
-                      ftet44_3.push_back(pos2);
-                    }
-                    if(!faceIn(newf11, &pos2)) {
-                      faces.push_back(newf11);
-                      ftet44_3.push_back(faces.size()-1);
-                    } else {
-                      ftet44_3.push_back(pos2);
-                    }
-                    if(!faceIn(newf12, &pos2)) {
-                      faces.push_back(newf12);
-                      ftet44_3.push_back(faces.size()-1);
-                    } else {
-                      ftet44_3.push_back(pos2);
-                    }
-
-
-                    if(!faceIn(newf13, &pos2)) {
-                      faces.push_back(newf13);
-                      ftet44_4.push_back(faces.size()-1);
-                    } else {
-                      ftet44_4.push_back(pos2);
-                    }
-                    if(!faceIn(newf14, &pos2)) {
-                      faces.push_back(newf14);
-                      ftet44_4.push_back(faces.size()-1);
-                    } else {
-                      ftet44_4.push_back(pos2);
-                    }
-                    if(!faceIn(newf15, &pos2)) {
-                      faces.push_back(newf15);
-                      ftet44_4.push_back(faces.size()-1);
-                    } else {
-                      ftet44_4.push_back(pos2);
-                    }
-                    if(!faceIn(newf16, &pos2)) {
-                      faces.push_back(newf16);
-                      ftet44_4.push_back(faces.size()-1);
-                    } else {
-                      ftet44_4.push_back(pos2);
-                    }
-                    
-                    f2t.push_back(ftet44_1);
-                    f2t.push_back(ftet44_2);
-                    f2t.push_back(ftet44_3);
-                    f2t.push_back(ftet44_4);
-
-                    tetfaces.push_back(ftet44_1);
-                    tetfaces.push_back(ftet44_2);
-                    tetfaces.push_back(ftet44_3);
-                    tetfaces.push_back(ftet44_4);
-
-                    if(newf1.size() > 0) {
-                     newf1.clear();
-                    }
-                if(newf2.size() > 0) {
-                  newf2.clear();
-                }
-                if(newf3.size() > 0) {
-                  newf3.clear();
-                }
-                if(newf4.size() > 0) {
-                  newf4.clear();
-                }
-                if(newf5.size() >  0) {
-                  newf5.clear();
-                }
-                if(newf6.size() > 0) {
-                  newf6.clear();
-                }
-                if(newf7.size() > 0) {
-                  newf7.clear();
-                }
-                if(newf8.size() > 0) {
-                  newf8.clear();
-                }
-                if(newf9.size() > 0) {
-                  newf9.clear();
-                }
-                if(newf10.size() >  0) {
-                  newf10.clear();
-                }
-                if(newf11.size() > 0) {
-                  newf11.clear();
-                }
-                if(newf12.size() > 0) {
-                  newf12.clear();
-                }
-                if(newf13.size() > 0) {
-                  newf13.clear();
-                }
-                if(newf14.size() > 0) {
-                  newf14.clear();
-                }
-                if(newf15.size() > 0) {
-                  newf15.clear();
-                }
-                if(newf16.size() > 0) {
-                  newf16.clear();
-                }
-
-                if(ftet44_1.size() > 0) {
-                  ftet44_1.clear();
-                }
-                if(ftet44_2.size() > 0) {
-                  ftet44_2.clear();
-                }
-                if(ftet44_3.size() > 0) {
-                  ftet44_3.clear();
-                }
-                if(ftet44_4.size() > 0) {
-                  ftet44_4.clear();
-                }
-
-                  }
-                }
-
-
-              } else if(orient3d(ati, bti, cti, pti) == 0.00) {
-                printf("\n in case 4");
-                //#case 4: tetrahedron is flat
-                // perform flip32
-
-                // remove ttt and tettt
-                // find ttt in v2t/f2t
-                std::sort(ttt.begin(), ttt.end());
-                for(int comp=0; comp < (int)v2t.size(); comp++)
-                {
-                  std::sort(v2t[comp].begin(), v2t[comp].end());
-                  if(v2t[comp] == ttt) {
-                  // position is comp
-                  printf("\n removed 1");
-                  v2t.erase(v2t.begin()+comp);
-                  f2t.erase(f2t.begin()+comp);
-                  break;
-                  }
-                }
-                // find tettt in v2t/f2t
-                std::sort(tettt.begin(), tettt.end());
-                for(int comp=0; comp < (int)v2t.size(); comp++)
-                {
-                  std::sort(v2t[comp].begin(), v2t[comp].end());
-                  if(v2t[comp] == tettt) {
-                                      printf("\n removed 2");
-
-                  // position is comp
-                  v2t.erase(v2t.begin()+comp);
-                  f2t.erase(f2t.begin()+comp);
-                  break;
-                  }
-                }
-
-
-              // build new ones
-               // p = ttt[3], a = ttt[0], b = ttt[1], c = ttt[2], d = tettt[3]
-              double dx1[3] {vertices[ttt[0]].x,
-               vertices[ttt[0]].y, vertices[ttt[0]].z};
-              double dx2[3] {vertices[ttt[1]].x,
-               vertices[ttt[1]].y, vertices[ttt[1]].z};
-              double dx3[3] {vertices[ttt[2]].x,
-               vertices[ttt[2]].y, vertices[ttt[2]].z};
-              double dx4[3] {vertices[ttt[3]].x,
-               vertices[ttt[3]].y, vertices[ttt[3]].z};
-              double dx5[3] {vertices[tettt[ind_d]].x,
-               vertices[tettt[ind_d]].y, vertices[tettt[ind_d]].z};
-
-              if(orient3d(dx4, dx1, dx2, dx5) > 0) {
-                std::vector<int> pnew1 {ttt[3], ttt[0], ttt[1], tettt[ind_d]};
-                v2t.push_back(pnew1);
-                tetverts.push_back(pnew1);
-                pnew1.clear();
-              } else {
-                std::vector<int> pnew1 {ttt[3], ttt[1], ttt[0], tettt[ind_d]};
-                v2t.push_back(pnew1);
-                tetverts.push_back(pnew1);
-                pnew1.clear();
-              }
-              if(orient3d(dx4, dx1, dx3, dx5) > 0) {
-                std::vector<int> pnew2 {ttt[3], ttt[0], ttt[2], tettt[ind_d]};
-                v2t.push_back(pnew2);
-                tetverts.push_back(pnew2);
-                pnew2.clear();
-              } else {
-                std::vector<int> pnew2 {ttt[3], ttt[2], ttt[0], tettt[ind_d]};
-                v2t.push_back(pnew2);
-                tetverts.push_back(pnew2);
-                pnew2.clear();
-              }
-              if(orient3d(dx4, dx2, dx3, dx5) > 0) {
-                std::vector<int> pnew3 {ttt[3], ttt[1], ttt[2], tettt[ind_d]};
-                v2t.push_back(pnew3);
-                tetverts.push_back(pnew3);
-                pnew3.clear();
-              } else {
-                std::vector<int> pnew3 {ttt[3], ttt[2], ttt[1], tettt[ind_d]};
-                v2t.push_back(pnew3);
-                tetverts.push_back(pnew3);
-                pnew3.clear();
-              }
-
-              // first tet with faces
-              // pac, acd, pcd, pad
-              std::vector<int> fnew1 {ttt[3], ttt[0], ttt[2]};
-              std::vector<int> fnew2 {ttt[0], ttt[2], tettt[ind_d]};
-              std::vector<int> fnew3 {ttt[3], ttt[2], tettt[ind_d]};
-              std::vector<int> fnew4 {ttt[3], ttt[0], tettt[ind_d]};
-              // pbc, bcd, pcd, pbd
-              std::vector<int> fnew5 {ttt[3], ttt[1], ttt[2]};
-              std::vector<int> fnew6 {ttt[1], ttt[2], tettt[ind_d]};
-              // pdc s.o.
-              std::vector<int> fnew7 {ttt[3], ttt[1], tettt[ind_d]};
-              // pab, abd, pad, pbd
-              std::vector<int> fnew8 {ttt[3], ttt[0], ttt[1]};
-              std::vector<int> fnew9 {ttt[0], ttt[1], tettt[ind_d]};
-              // pad s.o.
-              // pbd s.o.
-              int pos1 = 0;
-              std::vector<int> ftet;
-              std::vector<int> ftet2;
-              std::vector<int> ftet3;
-              if(!faceIn(fnew1, &pos1)) {
-                faces.push_back(fnew1);
-                ftet.push_back(faces.size()-1);
-              } else {
-                ftet.push_back(pos1);
-              }
-              if(!faceIn(fnew2, &pos1)) {
-                faces.push_back(fnew2);
-                ftet.push_back(faces.size()-1);
-              } else {
-                ftet.push_back(pos1);
-              }
-              if(!faceIn(fnew3, &pos1)) {
-                faces.push_back(fnew3);
-                ftet.push_back(faces.size()-1);
-              } else {
-                ftet.push_back(pos1);
-              }
-              if(!faceIn(fnew4, &pos1)) {
-                faces.push_back(fnew4);
-                ftet.push_back(faces.size()-1);
-              } else {
-                ftet.push_back(pos1);
-              }
-
-
-              if(!faceIn(fnew5, &pos1)) {
-                faces.push_back(fnew5);
-                ftet2.push_back(faces.size()-1);
-              } else {
-                ftet2.push_back(pos1);
-              }
-              if(!faceIn(fnew6, &pos1)) {
-                faces.push_back(fnew6);
-                ftet2.push_back(faces.size()-1);
-              } else {
-                ftet2.push_back(pos1);
-              }
-              if(!faceIn(fnew3, &pos1)) {
-                faces.push_back(fnew3);
-                ftet2.push_back(faces.size()-1);
-              } else {
-                ftet2.push_back(pos1);
-              }
-              if(!faceIn(fnew7, &pos1)){
-                faces.push_back(fnew7);
-                ftet2.push_back(faces.size()-1);
-              } else {
-                ftet2.push_back(pos1);
-              }
-
-
-              if(!faceIn(fnew8, &pos1)){
-                faces.push_back(fnew6);
-                ftet3.push_back(faces.size()-1);
-              } else {
-                ftet3.push_back(pos1);
-              }
-              if(!faceIn(fnew9, &pos1)){
-                faces.push_back(fnew9);
-                ftet3.push_back(faces.size()-1);
-              } else {
-                ftet3.push_back(pos1);
-              }
-              if(!faceIn(fnew7, &pos1)){
-                faces.push_back(fnew7);
-                ftet3.push_back(faces.size()-1);
-              } else {
-                ftet3.push_back(pos1);
-              }
-              if(!faceIn(fnew4, &pos1)) {
-                faces.push_back(fnew4);
-                ftet3.push_back(faces.size()-1);
-              } else {
-                ftet3.push_back(pos1);
-              }
-
-              // push in vectorss
-              f2t.push_back(ftet);
-              f2t.push_back(ftet2);
-              f2t.push_back(ftet3);
-
-              tetfaces.push_back(ftet);
-              tetfaces.push_back(ftet2);
-              tetfaces.push_back(ftet3);
-
-              if(ftet.size() > 0) {
-                ftet.clear();
-              }
-              if(ftet2.size() > 0) {
-                ftet2.clear();
-              }
-              if(ftet3.size() > 0) {
-                ftet3.clear();
-              }
-
-              if(fnew1.size() > 0) {
-                fnew1.clear();
-              }
-              if(fnew2.size() > 0) {
-                fnew2.clear();
-              }
-              if(fnew3.size() > 0) {
-                fnew3.clear();
-              }
-              if(fnew4.size() > 0) {
-                fnew4.clear();
-              }
-              if(fnew5.size() > 0) {
-                fnew5.clear();
-              }
-              if(fnew6.size() > 0) {
-                fnew6.clear();
-              }
-              if(fnew7.size() > 0) {
-                fnew7.clear();
-              }
-              if(fnew8.size() > 0) {
-                fnew8.clear();
-              }
-              if(fnew9.size() > 0) {
-                fnew9.clear();
-              }
-              }
-             }
-            }
-          }
-        }
-
-        for(size_t u=0; u < v2t.size(); u++)
-        {
-          double pa[3] = {vertices[v2t[u][0]].x,
-           vertices[v2t[u][0]].y, vertices[v2t[u][0]].z};
-          double pb[3] = {vertices[v2t[u][1]].x,
-           vertices[v2t[u][1]].y, vertices[v2t[u][1]].z};
-          double pc[3] = {vertices[v2t[u][2]].x,
-           vertices[v2t[u][2]].y, vertices[v2t[u][2]].z};
-          double pd[3] = {vertices[v2t[u][3]].x,
-           vertices[v2t[u][3]].y, vertices[v2t[u][3]].z};
-          double det = orient3d(pa, pb, pc, pd);
-          printf("\n T: %.2f %.2f %.2f, %.2f %.2f %.2f, "
-          " %.2f %.2f %.2f, %.2f %.2f %.2f",
-           vertices[v2t[u][0]].x, vertices[v2t[u][0]].y,
-          vertices[v2t[u][0]].z, vertices[v2t[u][1]].x,
-           vertices[v2t[u][1]].y, vertices[v2t[u][1]].z,
-            vertices[v2t[u][2]].x, 
-          vertices[v2t[u][2]].y, vertices[v2t[u][2]].z,
-           vertices[v2t[u][3]].x, vertices[v2t[u][3]].y,
-            vertices[v2t[u][3]].z);
-          printf("\n DET: %.2f", det);
-        }
-
-
-
-         /* 
-          while stack is not empty
-           τ = { p, a, b, c } ← pop from stack
-           τ a = { a, b, c, d } ← get adjacent tetrahedron 
-           of τ having the edge abc as a face 
-
-          */
-       /*  while((int)tempvec.size() != 0) {
-           int size_vec = (int)tempvec.size();
-           // first element von curr_tet.a => p
-           Tetrahedron curr_tet = tempvec.at(size_vec-1); 
-           tempvec.pop_back(); // remove first one
-
-           // get a, b, c of t (first point p is already known)
-           Point3D a = curr_tet.b;
-           Point3D b = curr_tet.c;
-           Point3D c = curr_tet.d;
-
-          pt[0] = curr_tet.a.x;
-          pt[1] = curr_tet.a.y;
-          pt[2] = curr_tet.a.z;
-          at[0] = curr_tet.b.x;
-          at[1] = curr_tet.b.y;
-          at[2] = curr_tet.b.z;
-          bt[0] = curr_tet.c.x;
-          bt[1] = curr_tet.c.y;
-          bt[2] = curr_tet.c.z;
-          ct[0] = curr_tet.d.x;
-          ct[1] = curr_tet.d.y;
-          ct[2] = curr_tet.d.z;
-
-          
-
-           std::vector<Point3D> faceP {a, b, c};
-
-           Point3D d;
-           bool found = false;
-           // find tetrahedron which contains points a,b,c as a face
-           for(int f=0; f < (int)tetravec->size(); f++)
-           {
-             found = false;
-             Tetrahedron t = tetravec->at(f);
-             std::vector<Point3D> points3d_vec_tmp {t.a, t.b, t.c, t.d};
-             std::vector<Point3D> points3d_vec_tmp_2 {t.a, t.b, t.c, t.d};
-
-             for(int fa = 0; fa < (int)faceP.size(); fa++)
-             {
-              for(int v = 0; v < (int)points3d_vec_tmp.size(); v++)
-              {
-                if(comparePoints3D(points3d_vec_tmp.at(v), faceP.at(fa)))
-                {
-                  // get position of point points3d_vec_tmp.at(v) 
-                  // in points3d_vec_tmp_2
-                  int i = getIndex(points3d_vec_tmp.at(v), points3d_vec_tmp_2);
-                  points3d_vec_tmp_2.erase(points3d_vec_tmp_2.begin()+i);
-                  break;
-                }
-              }
-              if((int)points3d_vec_tmp_2.size() == 1)
-              {
-                 d = points3d_vec_tmp_2.at(0);
-                 //not the same as input tetra
-                 if(!comparePoints3D(d, curr_tet.a)) { 
-                  found = true;
-                  dt[0] = d.x;
-                  dt[1] = d.y;
-                  dt[2] = d.z;
-                  break;
-                 }
-              }
-             }
-
-             if(found)
-             {
-               break;
-             }
-
-             
-           } */
-
-         // if(found) { //found d
-           /*
-            Check if d lies in circumsphere of p a b c
-            with InSphere -> calculate determinant
-
-            ax ay az ax²+ay²+az² 1
-            bx by bz bx²+by²+bz² 1
-            cx cy cz cx²+cy²+cz² 1
-            dx dy dz dx²+dy²+dz² 1
-            px py pz px²+py²+pz² 1
-
-            5x5 Matrix
-            
-           */
-
-          // Before insphere check if orientation of points is correct
-         /* float orient_1 = orient3d(pt, at, bt, ct);
-          float detInSphere = 0.0;
-          if(orient_1 < 0.0)
-          {
-            detInSphere = insphere(pt, bt, at, ct, dt);
+/* 
+  build new ones
+  p = ttt[3], a = ttt[0], b = ttt[1],
+  c = ttt[2], d = tettt[3]
+
+*/
+          double dx1[3] {vertices[ttt[0]].x,
+            vertices[ttt[0]].y, vertices[ttt[0]].z};
+          double dx2[3] {vertices[ttt[1]].x,
+            vertices[ttt[1]].y, vertices[ttt[1]].z};
+          double dx3[3] {vertices[ttt[2]].x,
+            vertices[ttt[2]].y, vertices[ttt[2]].z};
+          double dx4[3] {vertices[ttt[3]].x,
+            vertices[ttt[3]].y, vertices[ttt[3]].z};
+          double dx5[3] {vertices[tettt[ind_d]].x,
+            vertices[tettt[ind_d]].y, vertices[tettt[ind_d]].z};
+
+/*
+  abdp
+
+*/
+          if(orient3d(dx1, dx2, dx5, dx4) > 0) {
+            std::vector<int> pnew1 {ttt[0], ttt[1], tettt[ind_d], ttt[3]};
+            v2t.push_back(pnew1);
+            tetverts.push_back(pnew1);
+            pnew1.clear();
           } else {
-            detInSphere = insphere(pt, at, bt, ct, dt);
+            std::vector<int> pnew1 {ttt[0], tettt[ind_d], ttt[1], ttt[3]};
+            v2t.push_back(pnew1);
+            tetverts.push_back(pnew1);
+            pnew1.clear();
           }
-           if(detInSphere > 0.0) 
-              // inside sphere or on it (on it also ok?! ==> no)
-            { // #case 1: pd intersects area abc => Flip23
-             std::vector<Point3D> intersectlines;
-             int pos_tet32_1;
-             int pos_tet32_2;
-             int pos_tet32_3;
 
-             if(signbit(orient3d(pt, at, bt, ct)) 
-                != signbit(orient3d(dt,at,bt,ct))) 
-             {
-               // perform Flip23
-               // get "old" tetrahedrons and push three new one in vector
-               // get position of first tetrahedron to delete
-                int pos_1 = getTetrahedron(curr_tet.a, curr_tet.b,
-                               curr_tet.c, curr_tet.d, *tetravec);
-                if(pos_1 >= 0)
-                {
-                     tetravec->erase(tetravec->begin() + pos_1);
-                }
-                
-               // get position of second tetrahedron in vector to delete
-               int pos_2 = getTetrahedron(curr_tet.b, curr_tet.c,
-                                       curr_tet.d, d, *tetravec);
-               if(pos_2 >= 0) 
-               {
-                  tetravec->erase(tetravec->begin() + pos_2); 
-               }
+/* 
+  acdp
 
-               // create new tetrahedrons and save in right orientation
-               Tetrahedron tet_flip23_1;
-               float orient_23 = orient3d(pt, at, ct, dt);
-               if(orient_23 > 0.00) {
-                  tet_flip23_1.a = curr_tet.a;
-                  tet_flip23_1.b = curr_tet.b;
-                  tet_flip23_1.c = curr_tet.d;
-                  tet_flip23_1.d = d;
-                  tempvec.push_back(tet_flip23_1);
-                  tetravec->push_back(tet_flip23_1);
-               } else {
-                  tet_flip23_1.a = curr_tet.a;
-                  tet_flip23_1.b = curr_tet.d;
-                  tet_flip23_1.c = curr_tet.b;
-                  tet_flip23_1.d = d; 
-                  tempvec.push_back(tet_flip23_1);
-                  tetravec->push_back(tet_flip23_1);
-               }
+*/
+          if(orient3d(dx1, dx3, dx5, dx4) > 0) {
+            std::vector<int> pnew2 {ttt[0], ttt[2], tettt[ind_d], ttt[3]};
+            v2t.push_back(pnew2);
+            tetverts.push_back(pnew2);
+            pnew2.clear();
+          } else {
+            std::vector<int> pnew2 {ttt[0], tettt[ind_d], ttt[2], ttt[3]};
+            v2t.push_back(pnew2);
+            tetverts.push_back(pnew2);
+            pnew2.clear();
+          }
 
-               Tetrahedron tet_flip23_2;
-               orient_23 = orient3d(pt, bt, ct, dt);
-               if(orient_23 > 0.00)
-               {
-                 tet_flip23_2.a = curr_tet.a;
-                 tet_flip23_2.b = curr_tet.c;
-                 tet_flip23_2.c = curr_tet.d;
-                 tet_flip23_2.d = d;
-                 tempvec.push_back(tet_flip23_2);
-                 tetravec->push_back(tet_flip23_2);
-               } else {
-                   tet_flip23_2.a = curr_tet.a;
-                   tet_flip23_2.b = curr_tet.d;
-                   tet_flip23_2.c = curr_tet.c;
-                   tet_flip23_2.d = d;
-                   tempvec.push_back(tet_flip23_2);
-                   tetravec->push_back(tet_flip23_2);
-               }
-               
-               Tetrahedron tet_flip23_3;
-               orient_23 = orient3d(pt, at, bt, dt);
-               if(orient_23 > 0.00)
-               {
-                  tet_flip23_3.a = curr_tet.a;
-                  tet_flip23_3.b = curr_tet.b;
-                  tet_flip23_3.c = curr_tet.c;
-                  tet_flip23_3.d = d;
-                  tempvec.push_back(tet_flip23_3);
-                  tetravec->push_back(tet_flip23_3);
+/* 
+  bcdp
 
-               } else {
-                  tet_flip23_3.a = curr_tet.a;
-                  tet_flip23_3.b = curr_tet.c;
-                  tet_flip23_3.c = curr_tet.b;
-                  tet_flip23_3.d = d;
-                  tempvec.push_back(tet_flip23_3);
-                  tetravec->push_back(tet_flip23_3);
-               }
-               
-               count++;
+*/
+          if(orient3d(dx2, dx3, dx5, dx4) > 0) {
+            std::vector<int> pnew3 {ttt[1], ttt[2], tettt[ind_d], ttt[3]};
+            v2t.push_back(pnew3);
+            tetverts.push_back(pnew3);
+            pnew3.clear();
+          } else {
+            std::vector<int> pnew3 {ttt[1], tettt[ind_d], ttt[2], ttt[3]};
+            v2t.push_back(pnew3);
+            tetverts.push_back(pnew3);
+            pnew3.clear();
+          }
 
-             } else {
-              //#case 2: pd does not intersect area abc and there is 
-              // a third tetrahedron abpd, 
-              // so all tetrahedrons share ab => Flip32
-              if (shareSameLine(curr_tet.b, curr_tet.c, curr_tet.d, 
-                  curr_tet.a, *tetravec, &pos_tet32_1)) { 
-                                
-                // delete first tetrahedron
-                tetravec->erase(tetravec->begin()+ pos_tet32_1);
-                //get the other two tetrahedrons
-                  pos_tet32_2 = getTetrahedron(curr_tet.a, curr_tet.b,
-                     curr_tet.c, curr_tet.d, *tetravec);
-                  if(pos_tet32_2 >= 0)
-                  {
-                     tetravec->erase(tetravec->begin() + pos_tet32_2);
-                  }
-                
-                pos_tet32_3 = getTetrahedron(curr_tet.b, curr_tet.c,
-                   curr_tet.d, d, *tetravec);
-                if(pos_tet32_3 >= 0) 
-                {
-                  tetravec->erase(tetravec->begin()+ pos_tet32_3);
-                }
-                // sharing ab:
-                
-                // 2 new Tetrahedron:
-                Tetrahedron tet_flip32_1;
-                Tetrahedron tet_flip32_2;
-                float orient_32 = orient3d(pt, at, ct, dt);
-                if(orient_32 > 0.00) 
-                {
-                  tet_flip32_1.a = curr_tet.a;
-                  tet_flip32_1.b = curr_tet.b;
-                  tet_flip32_1.c = curr_tet.d;
-                  tet_flip32_1.d = d;
-                  tempvec.push_back(tet_flip32_1);
-                  tetravec->push_back(tet_flip32_1);
+/*
+  first tet with faces
+  pac, acd, pcd, pad
 
-                } else {
-                    tet_flip32_1.a = curr_tet.a;
-                    tet_flip32_1.b = curr_tet.d;
-                    tet_flip32_1.c = curr_tet.b;
-                    tet_flip32_1.d = d;
-                    tempvec.push_back(tet_flip32_1);
-                    tetravec->push_back(tet_flip32_1);
-                }
+*/
+          std::vector<int> fnew1 {ttt[3], ttt[0], ttt[2]};
+          std::vector<int> fnew2 {ttt[0], ttt[2], tettt[ind_d]};
+          std::vector<int> fnew3 {ttt[3], ttt[2], tettt[ind_d]};
+          std::vector<int> fnew4 {ttt[3], ttt[0], tettt[ind_d]};
+          // pbc, bcd, pcd, pbd
+          std::vector<int> fnew5 {ttt[3], ttt[1], ttt[2]};
+          std::vector<int> fnew6 {ttt[1], ttt[2], tettt[ind_d]};
+          // pdc s.o.: fnew3
+          std::vector<int> fnew7 {ttt[3], ttt[1], tettt[ind_d]};
+          // pab, abd, pad, pbd
+          std::vector<int> fnew8 {ttt[3], ttt[0], ttt[1]};
+          std::vector<int> fnew9 {ttt[0], ttt[1], tettt[ind_d]};
+          // pad s.o.: fnew4
+          // pbd s.o.: fnew7
 
-                orient_32 = orient3d(pt, bt, ct, dt);
-                if(orient_32 > 0.00)
-                {
-                    tet_flip32_1.a = curr_tet.a;
-                    tet_flip32_1.b = curr_tet.c;
-                    tet_flip32_1.c = curr_tet.d;
-                    tet_flip32_1.d = d;
-                    tempvec.push_back(tet_flip32_2);
-                    tetravec->push_back(tet_flip32_2);
+          int pos1 = 0;
+          std::vector<int> ftet;
+          std::vector<int> ftet2;
+          std::vector<int> ftet3;
 
-                } else {
-                    tet_flip32_1.a = curr_tet.a;
-                    tet_flip32_1.b = curr_tet.d;
-                    tet_flip32_1.c = curr_tet.c;
-                    tet_flip32_1.d = d;
-                    tempvec.push_back(tet_flip32_2);
-                    tetravec->push_back(tet_flip32_2);
-                }
-                
-                
-                counti++;
+/*
+  build new faces
+  check if combination already
+  exists
+
+  1. faces for tet 1
+
+*/
+          if(!faceIn(fnew1, &pos1)) {
+            faces.push_back(fnew1);
+            ftet.push_back(faces.size()-1);
+          } else {
+            ftet.push_back(pos1);
+          }
+          if(!faceIn(fnew2, &pos1)) {
+            faces.push_back(fnew2);
+            ftet.push_back(faces.size()-1);
+          } else {
+            ftet.push_back(pos1);
+
+          }
+          if(!faceIn(fnew3, &pos1)) {
+            faces.push_back(fnew3);
+            ftet.push_back(faces.size()-1);
+          } else {
+            ftet.push_back(pos1);
+          }
+          if(!faceIn(fnew4, &pos1)) {
+            faces.push_back(fnew4);
+            ftet.push_back(faces.size()-1);
+          } else {
+            ftet.push_back(pos1);
+          }
+
+/*
+  faces for tet 2
+
+*/
+          if(!faceIn(fnew5, &pos1)) {
+            faces.push_back(fnew5);
+            ftet2.push_back(faces.size()-1);
+          } else {
+            ftet2.push_back(pos1);
+          }
+          if(!faceIn(fnew6, &pos1)) {
+            faces.push_back(fnew6);
+            ftet2.push_back(faces.size()-1);
+          } else {
+            ftet2.push_back(pos1);
+          }
+          if(!faceIn(fnew3, &pos1)) {
+            faces.push_back(fnew3);
+            ftet2.push_back(faces.size()-1);
+          } else {
+            ftet2.push_back(pos1);
+          }
+          if(!faceIn(fnew7, &pos1)){
+            faces.push_back(fnew7);
+            ftet2.push_back(faces.size()-1);
+          } else {
+            ftet2.push_back(pos1);
+          }
+
+/*
+  faces for tet 3
+
+*/
+          if(!faceIn(fnew8, &pos1)){
+            faces.push_back(fnew8);
+            ftet3.push_back(faces.size()-1);
+          } else {
+            ftet3.push_back(pos1);
+          }
+          if(!faceIn(fnew9, &pos1)){
+            faces.push_back(fnew9);
+            ftet3.push_back(faces.size()-1);
+          } else {
+            ftet3.push_back(pos1);
+          }
+          if(!faceIn(fnew7, &pos1)){
+            faces.push_back(fnew7);
+            ftet3.push_back(faces.size()-1);
+          } else {
+            ftet3.push_back(pos1);
+          }
+          if(!faceIn(fnew4, &pos1)) {
+            faces.push_back(fnew4);
+            ftet3.push_back(faces.size()-1);
+          } else {
+            ftet3.push_back(pos1);
+          }
+
+/* 
+  push in vectors
+  and update f2tsize
+
+*/
+          f2t.push_back(ftet3);
+          f2t.push_back(ftet);
+          f2t.push_back(ftet2);
+
+          f2tsize = (int)f2t.size();
+
+          tetfaces.push_back(ftet3);
+          tetfaces.push_back(ftet);
+          tetfaces.push_back(ftet2);
+
+          if(ftet.size() > 0) {
+            ftet.clear();
+          }
+          if(ftet2.size() > 0) {
+            ftet2.clear();
+          }
+          if(ftet3.size() > 0) {
+            ftet3.clear();
+          }
+
+          }  else 
+          {
               
-              
-             }*/ /*else if (linesIntersect(curr_tet.a, d, curr_tet.b,
-               curr_tet.c, &intersectlines) 
-             || linesIntersect(curr_tet.a, d, curr_tet.b, 
-                curr_tet.d, &intersectlines) 
-             || linesIntersect(curr_tet.a, d, curr_tet.c, 
-                curr_tet.d, &intersectlines))
-             
-             */
-             /*else if(determinant4x4(curr_tet.a, curr_tet.b, 
-                curr_tet.c, d) == 0.00 
-             || determinant4x4(curr_tet.a, curr_tet.c, 
-                curr_tet.d, d) == 0.00
-             || determinant4x4(curr_tet.a, curr_tet.b, 
-                curr_tet.d, d) == 0.00)
-             
-             */
-            /*  else if(orient3d(pt, at, bt, dt) == 0.00 
-              || orient3d(pt, bt, ct, dt) == 0.00
-              || orient3d(pt, at, ct, dt) == 0.00)
-             {
-              //#case 3: line pd intersects edge of abc and there exist 
-              // two other tetrahedrons which share edges => flip44
+/*
+  case 2: pd does not intersect area abc and there is 
+  a third tetrahedron abpd, 
+  so all tetrahedrons share edge ab: Flip32
 
-              // TODO
-              Point3D q1;// = intersectlines.at(0);
-              Point3D q2;// = intersectlines.at(1);
-              bool found1 = false;
-              bool found2 = false;
-              Tetrahedron t1;
-              int pos_t1;
-              Tetrahedron t2;
-              int pos_t2;
-              for(int g=0; g < (int)tetravec->size(); g++)
-              { 
-                //find other tetrahedrons which share edge q1q2
-                if(!found1 && shareSameFace(curr_tet.a, q1,
-                   q2, tetravec->at(g)))
-                {
-                    found1 = true;
-                    t1 = tetravec->at(g);
-                    pos_t1 = g;
-                }
-                if(!found2 && shareSameFace(d, q1, q2, tetravec->at(g)))
-                {
-                    found2 = true;
-                    t2 = tetravec->at(g);
-                    pos_t2 = g;
-                } 
+*/
+          int pos;
+          if(tetExists(ttt[0], ttt[1], ttt[3], tettt[ind_d], &pos)) {
+            std::vector<int> tetabpd = v2t[pos];
 
+            v2t.erase(v2t.begin() + pos);
+            f2t.erase(f2t.begin() + pos);
+
+/*
+  find ttt in v2t/f2t
+
+*/
+            std::sort(ttt.begin(), ttt.end());
+            for(int comp=0; comp < (int)v2t.size(); comp++)
+            {
+              std::sort(v2t[comp].begin(), v2t[comp].end());
+              if(v2t[comp] == ttt) {
+
+              // position is comp
+                v2t.erase(v2t.begin()+comp);
+                f2t.erase(f2t.begin()+comp);
+                break;
               }
+            }
 
-              // found two other tetrahedrons, prepare flip44
-              if(found1 && found2)
+/* 
+  find tettt in v2t/f2t
+
+*/
+            std::sort(tettt.begin(), tettt.end());
+            for(int comp=0; comp < (int)v2t.size(); comp++)
+            {
+              std::sort(v2t[comp].begin(), v2t[comp].end());
+              if(v2t[comp] == tettt) {
+
+              // position is comp
+                v2t.erase(v2t.begin()+comp);
+                f2t.erase(f2t.begin()+comp);
+                break;
+              }
+            }
+
+/*
+  perform flip32
+  build two new tetrahedrons from
+  three old ones
+
+*/
+            double dx1[3] {vertices[ttt[0]].x,
+              vertices[ttt[0]].y, vertices[ttt[0]].z};
+            double dx2[3] {vertices[ttt[1]].x,
+              vertices[ttt[1]].y, vertices[ttt[1]].z};
+            double dx3[3] {vertices[ttt[2]].x,
+              vertices[ttt[2]].y, vertices[ttt[2]].z};
+            double dx4[3] {vertices[ttt[3]].x,
+              vertices[ttt[3]].y, vertices[ttt[3]].z};
+            double dx5[3] {vertices[tettt[ind_d]].x,
+              vertices[tettt[ind_d]].y, vertices[tettt[ind_d]].z};
+
+          if(orient3d(dx1, dx2, dx3, dx4) > 0) {
+            std::vector<int> pnew1 {ttt[0], ttt[1], ttt[2], ttt[3]};
+            v2t.push_back(pnew1);
+            tetverts.push_back(pnew1);
+            pnew1.clear();
+          } else {
+            std::vector<int> pnew1 {ttt[0], ttt[2], ttt[1], ttt[3]};
+            v2t.push_back(pnew1);
+            tetverts.push_back(pnew1);
+            pnew1.clear();
+          }
+          if(orient3d(dx1, dx2, dx3, dx5) > 0) {
+            std::vector<int> pnew2 {ttt[0], ttt[1], ttt[2], tettt[ind_d]};
+            v2t.push_back(pnew2);
+            tetverts.push_back(pnew2);
+            pnew2.clear();
+          } else {
+            std::vector<int> pnew2 {ttt[0], ttt[2], ttt[1], tettt[ind_d]};
+            v2t.push_back(pnew2);
+            tetverts.push_back(pnew2);
+            pnew2.clear();
+          }
+
+            std::vector<int> newf1 {ttt[3], ttt[0], ttt[2]};
+            std::vector<int> newf2 {ttt[3], ttt[1], ttt[2]};
+            std::vector<int> newf3 {ttt[3], ttt[0], ttt[1]};
+            std::vector<int> newf4 {ttt[0], ttt[1], ttt[2]}; // in both
+
+            std::vector<int> newf5 {ttt[0], ttt[2], tettt[ind_d]};
+            std::vector<int> newf6 {ttt[1], ttt[2], tettt[ind_d]};
+            std::vector<int> newf7 {ttt[0], ttt[1], tettt[ind_d]};
+
+            int pos2;
+            
+/*
+  check if face already exists
+  if yes: take position of needed face
+  if no: create new one
+
+*/
+            std::vector<int> ftet32_1;
+            std::vector<int> ftet32_2;
+            if(faceIn(newf1, &pos2)) {
+              ftet32_1.push_back(pos2);
+            } else {
+              faces.push_back(newf1);
+              ftet32_1.push_back(faces.size()-1);
+            }
+            if(faceIn(newf2, &pos2)) {
+              ftet32_1.push_back(pos2);
+            } else {
+              faces.push_back(newf2);
+              ftet32_1.push_back(faces.size()-1);
+            }
+            if(faceIn(newf3, &pos2)) {
+              ftet32_1.push_back(pos2);
+            } else {
+              faces.push_back(newf3);
+              ftet32_1.push_back(faces.size()-1);
+            }
+            if(faceIn(newf4, &pos2)) {
+              ftet32_1.push_back(pos2);
+            } else {
+              faces.push_back(newf4);
+              ftet32_1.push_back(faces.size()-1);
+            }
+
+
+            if(faceIn(newf4, &pos2)) {
+              ftet32_2.push_back(pos2);
+            } else {
+              faces.push_back(newf4);
+              ftet32_2.push_back(faces.size()-1);
+            }
+            if(faceIn(newf5, &pos2)) {
+              ftet32_2.push_back(pos2);
+            } else {
+              faces.push_back(newf5);
+              ftet32_2.push_back(faces.size()-1);
+            }
+            if(faceIn(newf6, &pos2)) {
+              ftet32_2.push_back(pos2);
+            } else {
+              faces.push_back(newf6);
+              ftet32_2.push_back(faces.size()-1);
+            }
+            if(faceIn(newf7, &pos2)) {
+              ftet32_2.push_back(pos2);
+            } else {
+              faces.push_back(newf7);
+              ftet32_2.push_back(faces.size()-1);
+            }
+
+/*
+  push new builded tetrahedrons
+  from faces in vectors
+
+*/
+            f2t.push_back(ftet32_1);
+            f2t.push_back(ftet32_2);
+
+            // update f2tsize
+            f2tsize = (int)f2t.size();
+
+            tetfaces.push_back(ftet32_1);
+            tetfaces.push_back(ftet32_2);
+
+            if(ftet32_1.size() > 0) {
+              ftet32_1.clear();
+            }
+            if(ftet32_2.size() > 0) {
+              ftet32_2.clear();
+            }
+
+            if(newf1.size() > 0) {
+              newf1.clear();
+            }
+            if(newf2.size() > 0) {
+              newf2.clear();
+            }
+            if(newf3.size() > 0) {
+              newf3.clear();
+            }
+            if(newf4.size() > 0) {
+              newf4.clear();
+            }
+            if(newf5.size() >  0) {
+              newf5.clear();
+            }
+            if(newf6.size() > 0) {
+              newf6.clear();
+            }
+            if(newf7.size() > 0) {
+              newf7.clear();
+            }
+          }
+          else if(orient3d(pti, ati, bti, dti) == 0.00 
+          || orient3d(pti, bti, cti, dti) == 0.00
+          || orient3d(pti, ati, cti, dti) == 0.00)
+          {
+
+/*
+  case 3: line pd intersects edge of abc and there exist 
+  two other tetrahedrons which share edges: flip44
+
+  1. sorting the vectors
+
+*/
+            sort(ttt.begin(), ttt.end());
+            sort(tettt.begin(), tettt.end());
+
+/*
+  declaring result vector to
+  store the common elements
+
+*/
+            vector<int> v3(ttt.size() + tettt.size());
+
+/*
+  iterator to store return type
+
+*/
+            vector<int>::iterator it, end;
+
+            end = set_intersection(
+                ttt.begin(), ttt.end(),
+                tettt.begin(), tettt.end(),
+                v3.begin());
+
+            std::vector<int> samep;
+            for (it = v3.begin(); it != end; it++)
+            {  
+              if(*it != ttt[3] && *it != tettt[ind_d])
               {
-                // FLIP44
-                // get 4 "old" tetrahedrons and push 4 new one in vector
-               int pos_2 = getTetrahedron(curr_tet.b, curr_tet.c,
-                                          curr_tet.d, d, *tetravec); 
-               if(pos_2 >= 0) {
-                tetravec->erase(tetravec->begin() + pos_2); }
-               if(pos_t1 >= 0)
-               {
-                 tetravec->erase(tetravec->begin() + pos_t1);
-               }
-               if(pos_t2 >= 0)
-               {
-                 tetravec->erase(tetravec->begin() + pos_t2);
-               }
-               
-               // build 4 new tetrahedrons
-               // 1: curr.a, curr.b, curr.c, t1.d
-               // 2: curr.a, curr.b, curr.d, t1.d
-               // 3: d, curr.b, curr.c, t1.d
-               // 4: d, curr.b, curr.d, t1.d
+                  samep.push_back(*it);
+              } 
+            }
+            
+            if((int)samep.size() == 2)
+            {
+              sort(samep.begin(), samep.end());
+              std::vector<int> vv(4);
+              int first = -1;
+              int second = -1;
 
-               Tetrahedron tet_flip44_1;
-               float orient_44 = determinant4x4(curr_tet.a,
-                 curr_tet.b, curr_tet.c, t1.d);
-               if(orient_44 > 0.00) {
-                  tet_flip44_1.a = curr_tet.a;
-                  tet_flip44_1.b = curr_tet.b;
-                  tet_flip44_1.c = curr_tet.c;
-                  tet_flip44_1.d = t1.d;
-                  tempvec.push_back(tet_flip44_1);
-                  tetravec->push_back(tet_flip44_1);
-               } else {
-                  tet_flip44_1.a = curr_tet.a;
-                  tet_flip44_1.b = curr_tet.c;
-                  tet_flip44_1.c = curr_tet.b;
-                  tet_flip44_1.d = t1.d; 
-                  tempvec.push_back(tet_flip44_1);
-                  tetravec->push_back(tet_flip44_1);
-               }
+/*
+  find two other tetrahedrons 
+  with same points
 
-               Tetrahedron tet_flip44_2;
-               orient_44 = determinant4x4(curr_tet.a,
-                 curr_tet.b, curr_tet.d, t1.d);
-               if(orient_44 > 0.00)
-               {
-                 tet_flip44_2.a = curr_tet.a;
-                 tet_flip44_2.b = curr_tet.b;
-                 tet_flip44_2.c = curr_tet.d;
-                 tet_flip44_2.d = t1.d;
-                 tempvec.push_back(tet_flip44_2);
-                 tetravec->push_back(tet_flip44_2);
-               } else {
-                   tet_flip44_2.a = curr_tet.a;
-                   tet_flip44_2.b = curr_tet.d;
-                   tet_flip44_2.c = curr_tet.b;
-                   tet_flip44_2.d = t1.d;
-                   tempvec.push_back(tet_flip44_2);
-                   tetravec->push_back(tet_flip44_2);
-               }
-               
-               Tetrahedron tet_flip44_3;
-               orient_44 = determinant4x4(d, curr_tet.b, curr_tet.c, t1.d);
-               if(orient_44 > 0.00)
-               {
-                  tet_flip44_3.a = d;
-                  tet_flip44_3.b = curr_tet.b;
-                  tet_flip44_3.c = curr_tet.c;
-                  tet_flip44_3.d = t1.d;
-                  tempvec.push_back(tet_flip44_3);
-                  tetravec->push_back(tet_flip44_3);
-               } else {
-                    tet_flip44_3.a = d;
-                    tet_flip44_3.b = curr_tet.c;
-                    tet_flip44_3.c = curr_tet.b;
-                    tet_flip44_3.d = t1.d;
-                    tempvec.push_back(tet_flip44_3);
-                    tetravec->push_back(tet_flip44_3);
-               }
+*/
+              for(int r=0; r < (int)v2t.size(); r++)
+              {
+                std::vector<int> v = v2t[r];
+                sort(v.begin(), v.end());
+                
+                  std::set_intersection(v.begin(), v.end(),
+                      samep.begin(), samep.end(),
+                      std::back_inserter(vv));
+                if(vv.size() == 2) {
+                  first = r;
+                  vv.clear();
+                  for(int rr=r; rr < (int)v2t.size(); rr++)
+                  {
+                    std::vector<int> v = v2t[rr];
+                    sort(v.begin(), v.end());
+                
+                    std::set_intersection(v.begin(), v.end(),
+                        samep.begin(), samep.end(),
+                        std::back_inserter(vv));
+                    if(vv.size() == 2) {
+                      second = rr;
+                      break;
+                    }
 
-              Tetrahedron tet_flip44_4;
-               orient_44 = determinant4x4(d, curr_tet.b, curr_tet.d, t1.d);
-               if(orient_44 > 0.00)
-               {
-                  tet_flip44_3.a = d;
-                  tet_flip44_3.b = curr_tet.b;
-                  tet_flip44_3.c = curr_tet.d;
-                  tet_flip44_3.d = t1.d;
-                  tempvec.push_back(tet_flip44_4);
-                  tetravec->push_back(tet_flip44_4);
-               } else {
-                    tet_flip44_3.a = d;
-                    tet_flip44_3.b = curr_tet.d;
-                    tet_flip44_3.c = curr_tet.b;
-                    tet_flip44_3.d = t1.d;
-                    tempvec.push_back(tet_flip44_4);
-                    tetravec->push_back(tet_flip44_4);
-               }
+                  }
+                  break;
+                }
               }
 
-                count3++;
-             } 
-             // tetrahedron is flat
-             else if(orient3d(at, bt, dt, pt) == 0.00)
-             {
-               //#case 4: p lies exactly on edge of abc => 
-               // Flip23 == same as orient== 0 ?!
-               // get "old" tetrahedrons and push three new one in vector
-               int pos_1 = getTetrahedron(curr_tet.a, curr_tet.b,
-                 curr_tet.c, curr_tet.d, *tetravec);
-               if(pos_1 >= 0) {
-                tetravec->erase(tetravec->begin() + pos_1); }
-               int pos_2 = getTetrahedron(curr_tet.b, curr_tet.c,
-                 curr_tet.d, d, *tetravec);
-               if(pos_2 >= 0) {
-                tetravec->erase(tetravec->begin() + pos_2); }
+/*
+  found two other tetrahedrons
 
-               Tetrahedron tet_flip23_1;
-                float orient_23 = orient3d(pt, at, ct, dt);
-               if(orient_23 > 0.00) {
-                  tet_flip23_1.a = curr_tet.a;
-                  tet_flip23_1.b = curr_tet.b;
-                  tet_flip23_1.c = curr_tet.d;
-                  tet_flip23_1.d = d;
-                  tempvec.push_back(tet_flip23_1);
-                  tetravec->push_back(tet_flip23_1);
-               } else {
-                  tet_flip23_1.a = curr_tet.a;
-                  tet_flip23_1.b = curr_tet.d;
-                  tet_flip23_1.c = curr_tet.b;
-                  tet_flip23_1.d = d; 
-                  tempvec.push_back(tet_flip23_1);
-                  tetravec->push_back(tet_flip23_1);
-               }
+*/
+              if(first >= 0 && second >= 0) 
+              {
+                std::vector<int> thitet = v2t[first];
+                std::vector<int> foutet = v2t[second];
 
-               Tetrahedron tet_flip23_2;
-               orient_23 = orient3d(pt, bt, ct, dt);
-               if(orient_23 > 0.00)
-               {
-                 tet_flip23_2.a = curr_tet.a;
-                 tet_flip23_2.b = curr_tet.c;
-                 tet_flip23_2.c = curr_tet.d;
-                 tet_flip23_2.d = d;
-                 tempvec.push_back(tet_flip23_2);
-                 tetravec->push_back(tet_flip23_2);
-               } else {
-                   tet_flip23_2.a = curr_tet.a;
-                   tet_flip23_2.b = curr_tet.d;
-                   tet_flip23_2.c = curr_tet.c;
-                   tet_flip23_2.d = d;
-                   tempvec.push_back(tet_flip23_2);
-                   tetravec->push_back(tet_flip23_2);
-               }
-               
-               Tetrahedron tet_flip23_3;
-               orient_23 = orient3d(pt, at, bt, dt);
-               if(orient_23 > 0.00)
-               {
-                  tet_flip23_3.a = curr_tet.a;
-                  tet_flip23_3.b = curr_tet.b;
-                  tet_flip23_3.c = curr_tet.c;
-                  tet_flip23_3.d = d;
-                  tempvec.push_back(tet_flip23_3);
-                  tetravec->push_back(tet_flip23_3);
+                if(first > second) {
+                  v2t.erase(v2t.begin() + first);
+                  f2t.erase(f2t.begin() + first);
+                  v2t.erase(v2t.begin() + second);
+                  f2t.erase(f2t.begin() + second);
+                } else {
+                  v2t.erase(v2t.begin() + second);
+                  f2t.erase(f2t.begin() + second);
+                  v2t.erase(v2t.begin() + first);
+                  f2t.erase(f2t.begin() + first);
+                }
+                
+/*
+  find ttt in v2t/f2t
+  find tettt in v2t/f2t
 
-               } else {
-                    tet_flip23_3.a = curr_tet.a;
-                    tet_flip23_3.b = curr_tet.c;
-                    tet_flip23_3.c = curr_tet.b;
-                    tet_flip23_3.d = d;
-                    tetravec->push_back(tet_flip23_3);
-                    tempvec.push_back(tet_flip23_3);
-               }
+*/
+                for(int comp=0; comp < (int)v2t.size(); comp++)
+                {
+                  if(v2t[comp] == ttt) {
+                    v2t.erase(v2t.begin()+comp);
+                    f2t.erase(f2t.begin()+comp);
+                    break;
+                  }
+                }
+                
+                for(int comp=0; comp < (int)v2t.size(); comp++)
+                {
+                  if(v2t[comp] == tettt) {
+                    v2t.erase(v2t.begin()+comp);
+                    f2t.erase(f2t.begin()+comp);
+                    break;
+                  }
+                }
+              
+                
+/* 
+  build 4 new tetrahedrons
+  1 curr.a, curr.b, curr.c, t1.d
+  2 curr.a, curr.b, curr.d, t1.d
+  3 d, curr.b, curr.c, t1.d
+  4 d, curr.b, curr.d, t1.d
 
-              count4++;
+*/
+              double ux[3] ={vertices[ttt[0]].x,
+                vertices[ttt[0]].y, vertices[ttt[0]].z};
+              double uy[3] ={vertices[ttt[1]].x,
+                vertices[ttt[1]].y, vertices[ttt[1]].z};
+              double uv[3] ={vertices[ttt[2]].x,
+                vertices[ttt[2]].y, vertices[ttt[2]].z};
+              double uw[3] ={vertices[ttt[3]].x,
+                vertices[ttt[3]].y, vertices[ttt[3]].z};
+              double ur[3] ={vertices[tettt[ind_d]].x,
+                vertices[tettt[ind_d]].y, vertices[tettt[ind_d]].z};
+              double ut[3] ={vertices[thitet[0]].x,
+                vertices[thitet[0]].y, vertices[thitet[0]].z};
 
-             }
+/*
+  build new tetrahedrons
+  check order of vertices before push to vector
 
-           } // end of second if
-          }  // else do nothing
+*/
+              if(orient3d(ux, uy, ut, uw) > 0) {
+                std::vector<int> newt1 {ttt[0], ttt[1],
+                  thitet[0], ttt[3]};
+                v2t.push_back(newt1);
+                tetverts.push_back(newt1);
+                newt1.clear();
+              } else {
+                std::vector<int> newt1 {ttt[0], thitet[0], ttt[1], ttt[3]};
+                v2t.push_back(newt1);
+                tetverts.push_back(newt1);
+                newt1.clear();
+              }
+              if(orient3d(ur, ux, uy, ut) > 0) {
+                std::vector<int> newt2 {tettt[ind_d], ttt[0],
+                  ttt[1], thitet[0]};
+                v2t.push_back(newt2);
+                tetverts.push_back(newt2);
+                newt2.clear();
+              } else {
+                std::vector<int> newt2 {tettt[ind_d], ttt[1],
+                  ttt[0], thitet[0]};
+                v2t.push_back(newt2);
+                tetverts.push_back(newt2);
+                newt2.clear();
+              }
+              if(orient3d(ux, uv, ut, uw) > 0) {
+                std::vector<int> newt3 {ttt[0],
+                  ttt[2], thitet[0], ttt[3]};
+                v2t.push_back(newt3);
+                tetverts.push_back(newt3);
+                newt3.clear();
+              } else {
+                std::vector<int> newt3 {ttt[0],
+                  thitet[0], ttt[2], ttt[3]};
+                v2t.push_back(newt3);
+                tetverts.push_back(newt3);
+                newt3.clear();
+              }
+              if(orient3d(ur, ux, uv, ut) > 0) {
+                std::vector<int> newt4 {tettt[ind_d],
+                  ttt[0], ttt[2], thitet[0]};
+                  v2t.push_back(newt4);
+                  tetverts.push_back(newt4);
+                  newt4.clear();
+              } else {
+                std::vector<int> newt4 {tettt[ind_d],
+                  ttt[2], ttt[0], thitet[0]};
+                  v2t.push_back(newt4);
+                  tetverts.push_back(newt4);
+                  newt4.clear();
+              }
+
+/*
+  Build faces and push
+  to vector
+
+*/
+              std::vector<int> newf1 {ttt[3], ttt[0], ttt[1]};
+              std::vector<int> newf2 {ttt[3], ttt[1], thitet[0]};
+              std::vector<int> newf3 {ttt[0], ttt[1], thitet[0]};
+              std::vector<int> newf4 {ttt[3], ttt[0], thitet[0]};
+
+              std::vector<int> newf5 {tettt[ind_d], ttt[0], ttt[1]};
+              std::vector<int> newf6 {tettt[ind_d], ttt[1], thitet[0]};
+              std::vector<int> newf7 {ttt[0], ttt[1], thitet[0]};
+              std::vector<int> newf8 {tettt[ind_d], ttt[0], thitet[0]};
+
+              std::vector<int> newf9 {ttt[3], ttt[0], ttt[2]};
+              std::vector<int> newf10 {ttt[3], ttt[2], thitet[0]};
+              std::vector<int> newf11 {ttt[0], ttt[3], thitet[0]};
+              std::vector<int> newf12 {ttt[0], ttt[2], thitet[0]};
+
+              std::vector<int> newf13 {tettt[ind_d], ttt[2], thitet[0]};
+              std::vector<int> newf14 {tettt[ind_d], ttt[0], ttt[2]};
+              std::vector<int> newf15 {tettt[ind_d], ttt[0], thitet[0]};
+              std::vector<int> newf16 {ttt[0], ttt[2], thitet[0]};
+
+              int pos2 = 0;
+              std::vector<int> ftet44_1;
+              std::vector<int> ftet44_2;
+              std::vector<int> ftet44_3;
+              std::vector<int> ftet44_4;
+
+/*
+  faces for tetrahedron 44-1
+
+*/  
+              if(!faceIn(newf1, &pos2)) {
+                faces.push_back(newf1);
+                ftet44_1.push_back(faces.size()-1);
+              } else {
+                ftet44_1.push_back(pos2);
+              }
+              if(!faceIn(newf2, &pos2)) {
+                faces.push_back(newf2);
+                ftet44_1.push_back(faces.size()-1);
+              } else {
+                ftet44_1.push_back(pos2);
+              }
+              if(!faceIn(newf3, &pos2)) {
+                faces.push_back(newf3);
+                ftet44_1.push_back(faces.size()-1);
+              } else {
+                ftet44_1.push_back(pos2);
+              }
+              if(!faceIn(newf4, &pos2)) {
+                faces.push_back(newf4);
+                ftet44_1.push_back(faces.size()-1);
+              } else {
+                ftet44_1.push_back(pos2);
+              }
+
+/*
+  faces for tetrahedron 44-2
+
+*/  
+              if(!faceIn(newf5, &pos2)) {
+                faces.push_back(newf5);
+                ftet44_2.push_back(faces.size()-1);
+              } else {
+                ftet44_2.push_back(pos2);
+              }
+              if(!faceIn(newf6, &pos2)) {
+                faces.push_back(newf6);
+                ftet44_2.push_back(faces.size()-1);
+              } else {
+                ftet44_2.push_back(pos2);
+              }
+              if(!faceIn(newf7, &pos2)) {
+                faces.push_back(newf7);
+                ftet44_2.push_back(faces.size()-1);
+              } else {
+                ftet44_2.push_back(pos2);
+              }
+              if(!faceIn(newf8, &pos2)) {
+                faces.push_back(newf8);
+                ftet44_2.push_back(faces.size()-1);
+              } else {
+                ftet44_2.push_back(pos2);
+              }
+
+/*
+  faces for tetrahedron 44-3
+
+*/  
+              if(!faceIn(newf9, &pos2)) {
+                faces.push_back(newf8);
+                ftet44_3.push_back(faces.size()-1);
+              } else {
+                ftet44_3.push_back(pos2);
+              }
+              if(!faceIn(newf10, &pos2)) {
+                faces.push_back(newf10);
+                ftet44_3.push_back(faces.size()-1);
+              } else {
+                ftet44_3.push_back(pos2);
+              }
+              if(!faceIn(newf11, &pos2)) {
+                faces.push_back(newf11);
+                ftet44_3.push_back(faces.size()-1);
+              } else {
+                ftet44_3.push_back(pos2);
+              }
+              if(!faceIn(newf12, &pos2)) {
+                faces.push_back(newf12);
+                ftet44_3.push_back(faces.size()-1);
+              } else {
+                ftet44_3.push_back(pos2);
+              }
+
+/*
+  faces for tetrahedron 44-4
+
+*/  
+              if(!faceIn(newf13, &pos2)) {
+                faces.push_back(newf13);
+                ftet44_4.push_back(faces.size()-1);
+              } else {
+                ftet44_4.push_back(pos2);
+              }
+              if(!faceIn(newf14, &pos2)) {
+                faces.push_back(newf14);
+                ftet44_4.push_back(faces.size()-1);
+              } else {
+                ftet44_4.push_back(pos2);
+              }
+              if(!faceIn(newf15, &pos2)) {
+                faces.push_back(newf15);
+                ftet44_4.push_back(faces.size()-1);
+              } else {
+                ftet44_4.push_back(pos2);
+              }
+              if(!faceIn(newf16, &pos2)) {
+                faces.push_back(newf16);
+                ftet44_4.push_back(faces.size()-1);
+              } else {
+                ftet44_4.push_back(pos2);
+              }
+                    
+
+              f2t.push_back(ftet44_1);
+              f2t.push_back(ftet44_2);
+              f2t.push_back(ftet44_3);
+              f2t.push_back(ftet44_4);
+
+/*
+  update f2tsize
+
+*/
+              f2tsize = (int)f2t.size();
+
+              tetfaces.push_back(ftet44_1);
+              tetfaces.push_back(ftet44_2);
+              tetfaces.push_back(ftet44_3);
+              tetfaces.push_back(ftet44_4);
+
+/*
+  clear vectors
+  which have been used to build faces
+
+*/
+              if(newf1.size() > 0) {
+                newf1.clear();
+              }
+              if(newf2.size() > 0) {
+                newf2.clear();
+              }
+              if(newf3.size() > 0) {
+                newf3.clear();
+              }
+              if(newf4.size() > 0) {
+                newf4.clear();
+              }
+              if(newf5.size() >  0) {
+                newf5.clear();
+              }
+              if(newf6.size() > 0) {
+                newf6.clear();
+              }
+              if(newf7.size() > 0) {
+                newf7.clear();
+              }
+              if(newf8.size() > 0) {
+                newf8.clear();
+              }
+              if(newf9.size() > 0) {
+                newf9.clear();
+              }
+              if(newf10.size() >  0) {
+                newf10.clear();
+              }
+              if(newf11.size() > 0) {
+                newf11.clear();
+              }
+              if(newf12.size() > 0) {
+                newf12.clear();
+              }
+              if(newf13.size() > 0) {
+                newf13.clear();
+              }
+              if(newf14.size() > 0) {
+                newf14.clear();
+              }
+              if(newf15.size() > 0) {
+                newf15.clear();
+              }
+              if(newf16.size() > 0) {
+                newf16.clear();
+              }
+
+              if(ftet44_1.size() > 0) {
+                ftet44_1.clear();
+              }
+              if(ftet44_2.size() > 0) {
+                ftet44_2.clear();
+              }
+              if(ftet44_3.size() > 0) {
+                ftet44_3.clear();
+              }
+              if(ftet44_4.size() > 0) {
+                ftet44_4.clear();
+              }
+
+                }
+              }
 
 
-          } // end of dfound
+          } else if(orient3d(ati, bti, cti, dti) == 0.00) 
+          {
+            
+/*
+  case 4: tetrahedron is flat
+  perform Flip23
+  get 'old' tetrahedrons and push three new one in vector
 
-        }  // end of while-loop
-      */
+*/
+            std::sort(tettt.begin(), tettt.end());
+            for(int comp1=0; comp1 < (int) v2t.size(); comp1++)
+            {
+              std::sort(v2t[comp1].begin(), v2t[comp1].end());
+              if(v2t[comp1] == tettt)
+              {
+                v2t.erase(v2t.begin()+comp1);
+                f2t.erase(f2t.begin()+comp1);
+
+              }
+            }
+            // find ttt in v2t/f2t
+            std::sort(ttt.begin(), ttt.end());
+            for(int comp=0; comp < (int)v2t.size(); comp++)
+            {
+              std::sort(v2t[comp].begin(), v2t[comp].end());
+              if(v2t[comp] == ttt) {
+
+                v2t.erase(v2t.begin()+comp);
+                f2t.erase(f2t.begin()+comp);
+
+                break;
+              }
+            }
+
+            // remove tettt from tetfaces and tetverts
+            std::sort(tettt.begin(), tettt.end());
+            for(int au=0; au < (int)tetfaces.size(); au++)
+            {
+              std::sort(tetfaces[au].begin(), tetfaces[au].end());
+              if(tetfaces[au] == tettt) {
+                tetfaces.erase(tetfaces.begin()+au);
+                tetverts.erase(tetverts.begin()+au);
+              }
+              
+            }
+
+/*
+  build new ones
+  p = ttt[3], a = ttt[0], b = ttt[1], c = ttt[2], d = tettt[3]
+
+*/
+          double dx1[3] {vertices[ttt[0]].x,
+            vertices[ttt[0]].y, vertices[ttt[0]].z};
+          double dx2[3] {vertices[ttt[1]].x,
+            vertices[ttt[1]].y, vertices[ttt[1]].z};
+          double dx3[3] {vertices[ttt[2]].x,
+            vertices[ttt[2]].y, vertices[ttt[2]].z};
+          double dx4[3] {vertices[ttt[3]].x,
+            vertices[ttt[3]].y, vertices[ttt[3]].z};
+          double dx5[3] {vertices[tettt[ind_d]].x,
+            vertices[tettt[ind_d]].y, vertices[tettt[ind_d]].z};
+
+          // abdp
+          if(orient3d(dx1, dx2, dx5, dx4) > 0) {
+            std::vector<int> pnew1 {ttt[0], ttt[1], tettt[ind_d], ttt[3]};
+            v2t.push_back(pnew1);
+            tetverts.push_back(pnew1);
+            pnew1.clear();
+          } else {
+            std::vector<int> pnew1 {ttt[0], tettt[ind_d], ttt[1], ttt[3]};
+            v2t.push_back(pnew1);
+            tetverts.push_back(pnew1);
+            pnew1.clear();
+          }
+          // acdp
+          if(orient3d(dx1, dx3, dx5, dx4) > 0) {
+            std::vector<int> pnew2 {ttt[0], ttt[2], tettt[ind_d], ttt[3]};
+            v2t.push_back(pnew2);
+            tetverts.push_back(pnew2);
+            pnew2.clear();
+          } else {
+            std::vector<int> pnew2 {ttt[0], tettt[ind_d], ttt[2], ttt[3]};
+            v2t.push_back(pnew2);
+            tetverts.push_back(pnew2);
+            pnew2.clear();
+          }
+          // bcdp
+          if(orient3d(dx2, dx3, dx5, dx4) > 0) {
+            std::vector<int> pnew3 {ttt[1], ttt[2], tettt[ind_d], ttt[3]};
+            v2t.push_back(pnew3);
+            tetverts.push_back(pnew3);
+            pnew3.clear();
+          } else {
+            std::vector<int> pnew3 {ttt[1], tettt[ind_d], ttt[2], ttt[3]};
+            v2t.push_back(pnew3);
+            tetverts.push_back(pnew3);
+            pnew3.clear();
+          }
+
+/* 
+  first tet with faces
+  pac, acd, pcd, pad
+
+*/
+          std::vector<int> fnew1 {ttt[3], ttt[0], ttt[2]};
+          std::vector<int> fnew2 {ttt[0], ttt[2], tettt[ind_d]};
+          std::vector<int> fnew3 {ttt[3], ttt[2], tettt[ind_d]};
+          std::vector<int> fnew4 {ttt[3], ttt[0], tettt[ind_d]};
+          // pbc, bcd, pcd, pbd
+          std::vector<int> fnew5 {ttt[3], ttt[1], ttt[2]};
+          std::vector<int> fnew6 {ttt[1], ttt[2], tettt[ind_d]};
+          // pdc s.o.: fnew3
+          std::vector<int> fnew7 {ttt[3], ttt[1], tettt[ind_d]};
+          // pab, abd, pad, pbd
+          std::vector<int> fnew8 {ttt[3], ttt[0], ttt[1]};
+          std::vector<int> fnew9 {ttt[0], ttt[1], tettt[ind_d]};
+          // pad s.o.: fnew4
+          // pbd s.o.: fnew7
+
+          int pos1 = 0;
+          std::vector<int> ftet;
+          std::vector<int> ftet2;
+          std::vector<int> ftet3;
+          
+/*
+  build faces
+
+*/
+          if(!faceIn(fnew1, &pos1)) {
+            faces.push_back(fnew1);
+            ftet.push_back(faces.size()-1);
+          } else {
+            ftet.push_back(pos1);
+          }
+          if(!faceIn(fnew2, &pos1)) {
+            faces.push_back(fnew2);
+            ftet.push_back(faces.size()-1);
+          } else {
+            ftet.push_back(pos1);
+
+          }
+          if(!faceIn(fnew3, &pos1)) {
+            faces.push_back(fnew3);
+            ftet.push_back(faces.size()-1);
+          } else {
+            ftet.push_back(pos1);
+
+          }
+          if(!faceIn(fnew4, &pos1)) {
+            faces.push_back(fnew4);
+            ftet.push_back(faces.size()-1);
+          } else {
+            ftet.push_back(pos1);
+
+          }
+
+
+          if(!faceIn(fnew5, &pos1)) {
+            faces.push_back(fnew5);
+            ftet2.push_back(faces.size()-1);
+          } else {
+            ftet2.push_back(pos1);
+
+          }
+          if(!faceIn(fnew6, &pos1)) {
+            faces.push_back(fnew6);
+            ftet2.push_back(faces.size()-1);
+          } else {
+            ftet2.push_back(pos1);
+
+          }
+          if(!faceIn(fnew3, &pos1)) {
+            faces.push_back(fnew3);
+            ftet2.push_back(faces.size()-1);
+          } else {
+            ftet2.push_back(pos1);
+
+          }
+          if(!faceIn(fnew7, &pos1)){
+            faces.push_back(fnew7);
+            ftet2.push_back(faces.size()-1);
+          } else {
+            ftet2.push_back(pos1);
+
+          }
+
+
+          if(!faceIn(fnew8, &pos1)){
+            faces.push_back(fnew8);
+            ftet3.push_back(faces.size()-1);
+          } else {
+            ftet3.push_back(pos1);
+
+          }
+          if(!faceIn(fnew9, &pos1)){
+            faces.push_back(fnew9);
+            ftet3.push_back(faces.size()-1);
+          } else {
+            ftet3.push_back(pos1);
+
+          }
+          if(!faceIn(fnew7, &pos1)){
+            faces.push_back(fnew7);
+            ftet3.push_back(faces.size()-1);
+          } else {
+            ftet3.push_back(pos1);
+
+          }
+          if(!faceIn(fnew4, &pos1)) {
+            faces.push_back(fnew4);
+            ftet3.push_back(faces.size()-1);
+          } else {
+            ftet3.push_back(pos1);
+
+          }
+
+/*
+  push in vectors
+
+*/
+          f2t.push_back(ftet3);
+          f2t.push_back(ftet);
+          f2t.push_back(ftet2);
+
+          // update f2tsize
+          f2tsize = (int)f2t.size();
+
+          tetfaces.push_back(ftet3);
+          tetfaces.push_back(ftet);
+          tetfaces.push_back(ftet2);
+
+          if(ftet.size() > 0) {
+            ftet.clear();
+          }
+          if(ftet2.size() > 0) {
+            ftet2.clear();
+          }
+          if(ftet3.size() > 0) {
+            ftet3.clear();
+          }
+          }
+          }
+        }
+      }
+    }
   }
 
-        for(size_t u=0; u < v2t.size(); u++)
-        {
-          printf("\n Tetraeder %d", (int)u+1);
-          printf("\n dreieck(%.2f|%.2f|%.2f "
-          " %.2f|%.2f|%.2f %.2f|%.2f|%.2f)",
-           vertices[v2t[u][0]].x,vertices[v2t[u][0]].y, vertices[v2t[u][0]].z,
-           vertices[v2t[u][1]].x, vertices[v2t[u][1]].y, vertices[v2t[u][1]].z,
-            vertices[v2t[u][2]].x, vertices[v2t[u][2]].y,
-             vertices[v2t[u][2]].z);
-          printf("\n dreieck(%.2f|%.2f|%.2f "
-          " %.2f|%.2f|%.2f %.2f|%.2f|%.2f)",
-           vertices[v2t[u][0]].x,vertices[v2t[u][0]].y, vertices[v2t[u][0]].z,
-           vertices[v2t[u][1]].x, vertices[v2t[u][1]].y, vertices[v2t[u][1]].z,
-            vertices[v2t[u][3]].x, vertices[v2t[u][3]].y,
-             vertices[v2t[u][3]].z);
-          printf("\n dreieck(%.2f|%.2f|%.2f "
-          " %.2f|%.2f|%.2f %.2f|%.2f|%.2f)",
-            vertices[v2t[u][0]].x,vertices[v2t[u][0]].y, vertices[v2t[u][0]].z,
-          vertices[v2t[u][2]].x, vertices[v2t[u][2]].y, vertices[v2t[u][2]].z,
-           vertices[v2t[u][3]].x, vertices[v2t[u][3]].y, vertices[v2t[u][3]].z);
-           printf("\n dreieck(%.2f|%.2f|%.2f "
-           " %.2f|%.2f|%.2f %.2f|%.2f|%.2f)",
-             vertices[v2t[u][1]].x, vertices[v2t[u][1]].y,
-              vertices[v2t[u][1]].z,
-            vertices[v2t[u][2]].x, vertices[v2t[u][2]].y, vertices[v2t[u][2]].z,
-             vertices[v2t[u][3]].x, vertices[v2t[u][3]].y,
-              vertices[v2t[u][3]].z);
-        }
-   
+  if(tetfaces.size() > 0)
+  {
+    tetfaces.clear();
+  }
+  if(tetverts.size() > 0)
+  {
+    tetverts.clear();
+  }
    
 }
 
+/*
+  check if point p is already 
+  in vector points
+
+*/
 bool
 Convex3D::duplicateP(Point3D p) 
 {
@@ -8828,6 +7679,10 @@ Convex3D::duplicateP(Point3D p)
   return false;
 }
 
+/*
+  build voronoi diagramm 3d
+
+*/
 void
 Convex3D::buildVoronoi3D(Stream<Rectangle<3>> rStream) {
 
@@ -8836,53 +7691,42 @@ Convex3D::buildVoronoi3D(Stream<Rectangle<3>> rStream) {
     Rectangle<3>* next = rStream.request();
     while(next != 0){
       Point3D p = getCentre(next);
+      // check for duplicates
       if(!duplicateP(p)) {
         points.push_back(getCentre(next));
       }
+       // free memory
+      delete next;
       next = rStream.request();
     }
 
-    Convex3D* conv3d = new Convex3D();
     rStream.close();
+    Convex3D* conv3d = new Convex3D();
 
     std::vector<Tetrahedron> tetravec;
     // create delaunay diagram with points
     createDelaunay(points, &tetravec);
+
     std::vector<std::vector<Point3D>> facesPoints;
     std::vector<std::tuple<int, int>> lines;
     std::vector<std::vector<int>> temp;
+    std::vector<std::vector<int>> tempF;
     std::vector<Point3D> circumcenters;
-    std::vector<Polyhedron> poly_vec;
 
-    // create voronoi diagram from delaunay diagram
-    // find all lines including point p from points
+/* 
+  create voronoi diagram from delaunay diagram
+  find all lines including point p from points
+
+*/
     for(int t=0; t < (int)points.size(); t++)
     {
-        //Point3D p = points.at(t);
         int p_index;
         for(size_t id=0; id < vertices.size(); id++)
         {
           if(comparePoints3D(vertices[id], points[t]))
           {
             p_index = id;
-            printf("\n p_index: %d", p_index);
             break;
-          }
-        }
-
-        for(int verti=0; verti< (int)v2t.size(); verti++)
-        {
-          if(p_index == v2t[verti][0] || p_index == v2t[verti][1] 
-          || p_index == v2t[verti][2]
-          || p_index == v2t[verti][3])
-          {
-            printf("\n in v2t: %d", verti+1);
-            printf("\n %d, %d, %d, %d",
-             v2t[verti][0], v2t[verti][1], v2t[verti][2], v2t[verti][3]);
-            Point3D vertex = getCircumcenter(vertices[v2t[verti][0]],
-             vertices[v2t[verti][1]], 
-            vertices[v2t[verti][2]], vertices[v2t[verti][3]]);
-            printf("\n %.2f %.2f %.2f", vertex.x, vertex.y, vertex.z);
           }
         }
 
@@ -8936,118 +7780,76 @@ Convex3D::buildVoronoi3D(Stream<Rectangle<3>> rStream) {
 
         }
 
+        // find tetrahedrons to lines
         for(int n=0; n < (int)lines.size(); n++)
         {
               std::tuple<int, int> tup = lines.at(n); 
               int p1 = std::get<0>(tup);
               int p2 = std::get<1>(tup);
-              //printf("\n %d, %d", p1, p2);
               for(int b=0; b < (int)v2t.size(); b++)
               {
-                //printf("\n %d %d %d %d", v2t[b][0],
-                // v2t[b][1],  v2t[b][2],  v2t[b][3]);
                 if(sameline(p1, p2, v2t[b]))
                 {    
-                  //printf(" => same"); 
                   temp.push_back(v2t[b]);
+                  tempF.push_back(f2t[b]);
                 }
               }
-                // all tetrahedrons in vector which share line point_tup[n]
-                // get circumcenter
-                for(int m=0; m< (int)temp.size(); m++)
+              // sort tetrahedrons of temp
+              // face to face
+              std::vector<std::vector<int>> tempSorted;
+              std::vector<int> faces = tempF[temp.size()-1];
+              tempSorted.push_back(temp[temp.size()-1]);
+              int x = temp.size()-1;
+              while(temp.size() > 0)
+              {
+                bool foundface = false;
+                faces = tempF[x];
+                temp.erase(temp.begin()+x);
+                tempF.erase(tempF.begin()+x);
+
+                for(size_t st=0; st < faces.size(); st++)
                 {
-                  Point3D vertex = getCircumcenter(vertices[temp[m][0]],
-                   vertices[temp[m][1]], 
-                  vertices[temp[m][2]], vertices[temp[m][3]]);
-                  circumcenters.push_back(vertex);
+                  int face = faces[st];
+
+                  for(int ai=0; ai < (int)tempF.size(); ai++)
+                  {       
+                      auto it = std::find(std::begin(tempF[ai]),
+                      std::end(tempF[ai]), face);
+                      if(it != std::end(tempF[ai])) {
+                        tempSorted.push_back(temp[ai]);
+                        foundface = true;
+                        x = ai;
+                        break;
+                      }
+                  }
+                  if(foundface) { break; }  
+                }
+
+              }
+
+/* 
+  all tetrahedrons in vector which share line point\_tup[n]
+  get circumcenter which builds vertex of face of polyhedron
+
+*/
+                for(int m=0; m< (int)tempSorted.size(); m++)
+                {
+                  Point3D vertex = getCircumcenter(vertices[tempSorted[m][0]],
+                   vertices[tempSorted[m][1]], 
+                  vertices[tempSorted[m][2]], vertices[tempSorted[m][3]]);
+                  if(isfinite(vertex.x) && isfinite(vertex.y) 
+                  && isfinite(vertex.z))
+                  {
+                    circumcenters.push_back(vertex);
+                  }
                 }
                   facesPoints.push_back(circumcenters);
-                  temp.clear();
+                  tempSorted.clear();
                   circumcenters.clear();
         }
 
-    /*for(int t=0; t < (int)points.size(); t++)
-    {
-      Point3D p = points.at(t);
-        lines.clear();
-
-        for(int z=0; z<(int)tetravec.size(); z++)
-        {
-          Tetrahedron fin = tetravec.at(z);
-          if(comparePoints3D(fin.a, p))
-          {
-             if(!insidevec(fin.a, fin.b, lines)) {
-             lines.push_back(std::make_tuple(fin.a, fin.b)); }
-             if(!insidevec(fin.a, fin.c, lines)) {
-             lines.push_back(std::make_tuple(fin.a, fin.c)); }
-             if(!insidevec(fin.a, fin.d, lines)) {
-             lines.push_back(std::make_tuple(fin.a, fin.d));
-             }
-          }
-          else if(comparePoints3D(fin.b, p)) 
-          {
-            if(!insidevec(fin.b, fin.a, lines)) {
-             lines.push_back(std::make_tuple(fin.b, fin.a)); }
-             if(!insidevec(fin.b, fin.c, lines)) {
-             lines.push_back(std::make_tuple(fin.b, fin.c)); }
-             if(!insidevec(fin.b, fin.d, lines)) {
-             lines.push_back(std::make_tuple(fin.b, fin.d)); 
-            }
-          }
-
-          else if(comparePoints3D(fin.c, p))
-          {
-            if(!insidevec(fin.c, fin.a, lines)) {
-              lines.push_back(std::make_tuple(fin.c, fin.a)); }
-              if(!insidevec(fin.c, fin.b, lines)) {
-              lines.push_back(std::make_tuple(fin.c, fin.b)); }
-              if(!insidevec(fin.c, fin.d, lines)) {
-              lines.push_back(std::make_tuple(fin.c, fin.d));
-            }
-          }
-
-          else if(comparePoints3D(fin.d, p))
-          {
-            if(!insidevec(fin.d, fin.a, lines)) {
-             lines.push_back(std::make_tuple(fin.d, fin.a)); }
-             if(!insidevec(fin.d, fin.b, lines)) {
-             lines.push_back(std::make_tuple(fin.d, fin.b)); }
-             if(!insidevec(fin.d, fin.c, lines)) {
-             lines.push_back(std::make_tuple(fin.d, fin.c)); 
-            }
-          }
-          
-
-          
-        }*/
-         /*   for(int n=0; n < (int)lines.size(); n++)
-            {
-              std::tuple<Point3D, Point3D> tup = lines.at(n); 
-              Point3D p1 = std::get<0>(tup);
-              Point3D p2 = std::get<1>(tup);
-              for(int b=0; b < (int)tetravec.size(); b++)
-              {
-                if(sameline(p1, p2, tetravec.at(b)))
-                {     
-                  temp.push_back(tetravec.at(b));
-                }
-              }
-                // all tetrahedrons in vector which share line point_tup[n]
-                // get circumcenter
-                for(int m=0; m< (int)temp.size(); m++)
-                {
-                  Point3D vertex = getCircumcenter(temp.at(m));
-                  circumcenters.push_back(vertex);
-                }
-                  facesPoints.push_back(circumcenters);
-                  temp.clear();
-                  circumcenters.clear();
-            }
-*/
+    
       // create polyhedron
-      // Convex3d: vector<faces> => 
-      // face: vector<points> => 
-      // Convex3D = std::vector<std::vector<Point3D>>
       Polyhedron polyhedron = Polyhedron();
       std::vector<Point3D> face;
       polyhedron.setPolyId(t+1);
@@ -9059,34 +7861,25 @@ Convex3D::buildVoronoi3D(Stream<Rectangle<3>> rStream) {
         {
           face.push_back(facesPoints.at(s).at(g));
         }
-        polyhedron.faces.push_back(face);
+        if(!face.empty()) {
+          polyhedron.faces.push_back(face);
+        }
       }
       // save polyhedron in vector
       polyhedronvec.push_back(polyhedron);
       facesPoints.clear();
     }
 
-    for(int pol=0; pol < (int)polyhedronvec.size(); pol++)
-    {
-      Polyhedron polyhe = polyhedronvec[pol];
-      printf("\n Polygon %d", pol+1);
-      for(int fa=0; fa < (int)polyhe.faces.size(); fa++)
-      {
-        std::vector<Point3D> face = polyhe.faces[fa];
-        printf("\n polygon(");
-        for(int po=0; po < (int)face.size(); po++)
-        {
-          printf("%.2f|%.2f|%.2f ", face[po].x, face[po].y, face[po].z);
-        }
-        printf(")");
-      }
-    }
-
     conv3d->setPolyhedronVector(polyhedronvec);
+    delete conv3d;
 
     if(faces.size() > 0)
     {
       faces.clear();
+    }
+    if(lines.size() > 0)
+    {
+      lines.clear();
     }
     if(vertices.size() > 0) {
       vertices.clear();
@@ -9097,14 +7890,18 @@ Convex3D::buildVoronoi3D(Stream<Rectangle<3>> rStream) {
     if(f2t.size() > 0) {
       f2t.clear();
     }
+    if(tetravec.size() > 0)
+    {
+      tetravec.clear();
+    }
 
 }
 
 
 /*
-8.2.1 cellNumVM
-*/
+  8.2.1 cellNumVM
 
+*/
 int cellNum3DVM( Word* args, Word& result, int message,
       Word& local, Supplier s ) 
 {
@@ -9113,14 +7910,14 @@ int cellNum3DVM( Word* args, Word& result, int message,
   Rectangle<3> *search_window_ptr
     = static_cast<Rectangle<3>*>( args[1].addr );
 
-  /*
-    mode == 1 => precise allocation; 
-    mode == 2 => use Bboxes of convex3d cells
-    In case the user did not specify the mode of 
-    allocation, use Bboxes 
-  
-  */
-  
+/*
+  mode == 1 => precise allocation; 
+  mode == 2 => use Bboxes of convex3d cells
+  In case the user did not specify the mode of 
+  allocation, use Bboxes 
+
+*/
+
   int mode = ((CcInt*)args[2].addr)->GetIntval();
   std::set<int> cell_ids;
   int bbox = 2;
@@ -9129,7 +7926,7 @@ int cellNum3DVM( Word* args, Word& result, int message,
   collection::IntSet* res = (collection::IntSet*) result.addr;
 
   if(search_window_ptr == nullptr || convex3d == nullptr) {
-    return 1;
+    return 0;
   }
 
   if(mode > bbox || mode < precise) {
@@ -9144,9 +7941,9 @@ int cellNum3DVM( Word* args, Word& result, int message,
 }
 
 /*
-8.2.2 smallestCommonCellnumVM
-*/
+  8.2.2 smallestCommonCellnumVM
 
+*/
 int smallestCommonCellnum3DVM( Word* args, Word& result, int message,
       Word& local, Supplier s ) 
 {
@@ -9164,7 +7961,7 @@ int smallestCommonCellnum3DVM( Word* args, Word& result, int message,
   if(search_window_ptr == nullptr 
     || search_window_ptr_2 == nullptr 
     || convex3d == nullptr) {
-    return 1;
+    return 0;
   }
 
   result = qp->ResultStorage( s );
@@ -9197,143 +7994,54 @@ int smallestCommonCellnum3DVM( Word* args, Word& result, int message,
       
   res->Set( true, boolval);
 
-  /*if(convex->voroVec.size() > 0) {
-    convex->voroVec.clear();
-  }*/
-
   return 0;
 
 }
 
 /*
-8.2.2 TopRightClassVoronoiVM
-*/
+  8.2.3 getcellvoronoi3DVM
 
-int trcCellIdvorononoi3DVM( Word* args, Word& result, int message,
-      Word& local, Supplier s ) 
+*/
+int getcellvoronoi3DVM(Word* args, Word& result, int message,
+  Word& local, Supplier s)
 {
   Convex3D *convex3d = static_cast<Convex3D*>(args[0].addr);
+  
+  CcInt* cellno_ptr = static_cast<CcInt*>(args[1].addr);
+  int cellno = cellno_ptr->GetIntval();
+
+  result = qp->ResultStorage( s );
+  Rectangle<3> *res = (Rectangle<3>*) result.addr;
+
   std::vector<Polyhedron> polyvec = convex3d->getPolyhedronVector();
 
-  Rectangle<3> *search_window_ptr
-    = static_cast<Rectangle<3>*>( args[1].addr );
+  for(size_t i = 0; i < polyvec.size(); i++)
+  {
+      if(polyvec[i].getPolyId() == cellno)
+      {
+        double min[3], max[3];
+        Rectangle<3> bbox = createBBox3D(&polyvec[i]);
 
-  Rectangle<3> *search_window_ptr_2
-    = static_cast<Rectangle<3>*>( args[2].addr );
-
-  if(search_window_ptr == nullptr 
-    || search_window_ptr_2 == nullptr 
-    || convex3d == nullptr) {
-    return 1;
+        min[0] = bbox.getMinX();
+        min[1] = bbox.getMinY();
+        min[2] = bbox.getMinZ();
+        max[0] = bbox.getMaxX();
+        max[1] = bbox.getMaxY();
+        max[2] = bbox.getMaxZ();
+        res->Set(true, min, max);
+        return 0;
+      }
   }
-
-  result = qp->ResultStorage(s);
-  CcInt* res = (CcInt*) result.addr;
-
-  std::set<int> intsetRect1 = cellNum3D(convex3d,
-                              search_window_ptr, 2);
-  std::set<int> intsetRect2 = cellNum3D(convex3d, 
-                              search_window_ptr_2, 2);
-  
-  /*
-  for (std::set<int>::iterator it=intsetRect1.begin();
-   it!=intsetRect1.end(); ++it)
-    std::cout << ' ' << *it;
-  for (std::set<int>::iterator ip=intsetRect2.begin();
-   ip!=intsetRect2.end(); ++ip)
-    std::cout << ' ' << *ip;
-
-   */ 
   
 
 
-  std::vector<int> v(sizeof(intsetRect1)+ sizeof(intsetRect2));
-  std::vector<int>::iterator it;
-
-  it=std::set_intersection (intsetRect1.begin(), intsetRect1.end(),
-     intsetRect2.begin(), intsetRect2.end(), v.begin());
-  v.resize(it-v.begin());                      
-  
-  if(v.empty()) { 
-    //no intersection between rectangles
-    res->Set(0);
-    return -1;
-
-  }
-
-  for (it=v.begin(); it!=v.end(); ++it) {
-    for(size_t c = 0; c < polyvec.size(); c++) {
-      if(polyvec[c].getPolyId() == *it) {
-        // get TRC Values
-        int value_rect1 = 0;
-        int value_rect2 = 0;
-
-        // create bbox of polyhedron cell
-        Polyhedron* tmp = &polyvec[c];
-
-        Rectangle<3> bbox = createBBox3D(tmp);
-        if ( search_window_ptr->getMaxX() >= bbox.getMaxX() )
-          {value_rect1++;}
-        if ( search_window_ptr->getMaxY() >= bbox.getMaxY() ) {
-          value_rect1 += 2;}
-        
-
-        if ( search_window_ptr_2->getMaxX() >= bbox.getMaxX() )
-          {value_rect2++;}
-        if ( search_window_ptr_2->getMaxY() >= bbox.getMaxY() ) {
-          value_rect2 += 2;}
-        
-        int value = value_rect1 & value_rect2;
-        if (value == 0)
-        {
-          res->Set( *it );
-          return 0;
-        }
-   }
-  }
-  }
-
-  res->Set(0);
   return 0;
 
 }
-
-int trcvorononoi3DVM( Word* args, Word& result, int message,
-      Word& local, Supplier s ) 
-{
-  Polyhedron *convex3d = static_cast<Polyhedron*>(args[0].addr);
-
-  Rectangle<3> *search_window_ptr
-    = static_cast<Rectangle<3>*>( args[1].addr );
-
-
-  if(search_window_ptr == nullptr || convex3d == nullptr) {
-    return 1;
-  }
-
-  result = qp->ResultStorage(s);
-  CcInt* res = (CcInt*) result.addr;
-
-        // get TRC Values
-        int value_rect1 = 0;
-
-        // create bbox of polyhedron cell
-        Rectangle<3> bbox = createBBox3D(convex3d);
-        if ( search_window_ptr->getMaxX() >= bbox.getMaxX() )
-          {value_rect1++;}
-        if ( search_window_ptr->getMaxY() >= bbox.getMaxY() ) {
-          value_rect1 += 2;}
-
-
-  res->Set(value_rect1);
-  return 0;
-
-}
-
-
 
 /*
   Valuemapping function for create 3D-Tree
+
 */
 int voronoi3dVM( Word* args, Word& result, int message,
                         Word& local, Supplier s ) {
@@ -9455,36 +8163,6 @@ const string smallestCommCellnumSpec =
     " rectangle2(5.0, 7.0, -0.5, 0.5), 5) </text--->" 
     ") )";
 
-
-const string toprightclassCellSpec = 
-"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-    "( <text> Stream<Convex> x rect2 x rect2"
-    "-> int </text--->"
-    "<text>_ trcvoronoi [ list ] </text--->"
-    "<text>Returns cell id in which "
-    "  two rectangles should "
-    " be reported. </text--->"    
-    "<text> query trcvoronoi((convtest feed voronoi "
-    " [Punkt, Conv, [const rect value (-10 10 -10 10)], FALSE] "
-    " project[Conv] consume) feed projecttransformstream[Conv],"
-    " rectangle2(-1.0, 4.0, 0.0, 2.0), " 
-    " rectangle2(5.0, 7.0, -0.5, 0.5)) </text--->" 
-    ") )";
-
-const string toprightclassSpec = 
-"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-    "( <text> rect2 x rect2"
-    "-> int </text--->"
-    "<text>_ trcvoronoi [ list ] </text--->"
-    "<text>Returns the toprightclass value "
-    " of two rectangles to show if they should "
-    " be be reported now or later </text--->"    
-    "<text> query trcvoronoi((convtest feed voronoi "
-    " [Punkt, Conv, [const rect value (-10 10 -10 10)], FALSE] "
-    " project[Conv] consume), rectangle2(-1.0, 4.0, 0.0, 2.0), " 
-    " rectangle2(5.0, 7.0, -0.5, 0.5)) </text--->" 
-    ") )";
-
 const string getcellvoronoiSpec = 
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
     "( <text> Stream<Convex> x int "
@@ -9492,7 +8170,7 @@ const string getcellvoronoiSpec =
     "<text>_ getcellvoro [ ] </text--->"
     "<text>Returns the bbox of a cell to "
     " the given cellid </text--->"    
-    "<text> query trcvoronoi((convtest feed voronoi "
+    "<text> query getcellvoro((convtest feed voronoi "
     " [Punkt, Conv, [const rect value (-10 10 -10 10)], FALSE] "
     " project[Conv] consume) feed projecttransformstream[Conv],"
     " 2  </text--->" 
@@ -9542,37 +8220,17 @@ const string smallestCommCellnum3DSpec =
     " rectangle3(-1.0, 2.0, 1.0, 2.0, 1.0, 2.0), 5) </text--->" 
     ") )";
 
-
-const string toprightclass3DSpec = 
+const string getcellvoronoi3DSpec = 
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-    "( <text>((stream (tuple (..., (ak1 Tk1),...))) x ak1 "
-    "x ak2 x rect x bool x rect2 x rect2"
-    "-> int </text--->"
-    "<text>_ trcvoronoi3d [ list ] </text--->"
-    "<text>Returns the toprightclass value "
-    " of two rectangles to show if they should "
-    " be be reported now or later </text--->"    
-    "<text> query trc_voronoi3d([const rect3 value(-1 2 -3 6 0 2)]"
-    " feed voronoi3d "
-    " [const rect value (-10 10 -10 10 -10 10)], "
-    " rectangle3(-1.0, 4.0, 0.0, 2.0, 1.0, 2.0), "
-    " rectangle3(-1.0, 2.0, 1.0, 2.0, 1.0, 2.0)) </text--->" 
-    ") )";
-
-const string toprightclassCell3DSpec = 
-"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-    "( <text>((stream (tuple (..., (ak1 Tk1),...))) x ak1"
-    " x ak2 x rect x bool x rect2 x rect2"
-    "-> int </text--->"
-    "<text>_ trcvoronoi3d [ list ] </text--->"
-    "<text>Returns the cell id of the cell in which "
-    " two rectangles should "
-    " be reported. </text--->"    
-    "<text> query trc_voronoi3d([const rect3 value(-1 2 -3 6 0 2)]"
-    " feed voronoi3d "
-    " [const rect value (-10 10 -10 10 -10 10)], "
-    " rectangle3(-1.0, 4.0, 0.0, 2.0, 1.0, 2.0), "
-    " rectangle3(-1.0, 2.0, 1.0, 2.0, 1.0, 2.0)) </text--->" 
+    "( <text> Stream<Convex3D> x int "
+    "-> rectangle<3> </text--->"
+    "<text>_ getcellvoro3d [ ] </text--->"
+    "<text>Returns the bbox of a cell to "
+    " the given cellid </text--->"    
+    "<text> query getcellvoro3d((convtest feed voronoi "
+    " [Punkt, Conv, [const rect value (-10 10 -10 10)], FALSE] "
+    " project[Conv] consume) feed projecttransformstream[Conv],"
+    " 2  </text--->" 
     ") )";
 
 
@@ -9651,19 +8309,6 @@ Operator sccvoronoi ("sccvoronoi",
                         Operator::SimpleSelect,
                         sccvoronoitypemap );
 
-
-Operator trcvoronoi ("trcvoronoi",
-                      toprightclassSpec,
-                      trcvorononoiVM,
-                      Operator::SimpleSelect,
-                      trcvoronoitypemap );
-
-Operator trccellvoronoi ("trccellvoronoi",
-                      toprightclassCellSpec,
-                      trcCellIdvorononoiVM,
-                      Operator::SimpleSelect,
-                      trcCellIdvoronoitypemap );
-
 Operator getcellvoronoi ( "getcellvoronoi",
                           getcellvoronoiSpec,
                           getcellvoronoiVM,
@@ -9688,18 +8333,12 @@ Operator sccvoronoi3d ("sccvoronoi3d",
                         Operator::SimpleSelect,
                         sccvoronoi3dtypemap );  
 
-Operator trcvoronoi3d ("trcvoronoi3d",
-                      toprightclass3DSpec,
-                      trcvorononoi3DVM,
-                      Operator::SimpleSelect,
-                      trcvoronoi3dtypemap );  
-
-Operator trccellvoronoi3d ("trccellvoronoi3d",
-                  toprightclassCell3DSpec,
-                  trcCellIdvorononoi3DVM,
-                  Operator::SimpleSelect,
-                  trcCellIdvoronoi3dtypemap
-                  );                                         
+Operator getcellvoronoi3d ( "getcellvoronoi3d",
+                          getcellvoronoi3DSpec,
+                          getcellvoronoi3DVM,
+                          Operator::SimpleSelect, 
+                          getcellvoronoi3dtypemap);
+                                    
 /*
   
 10.3 Creating the Algebra 
@@ -9734,14 +8373,12 @@ class ConvexAlgebra : public Algebra
     AddOperator( &voronoi);
     AddOperator( &cellnum);
     AddOperator( &sccvoronoi);
-    AddOperator( &trcvoronoi);
-    AddOperator( &trccellvoronoi );
     AddOperator( &getcellvoronoi );
     AddOperator( &voronoi3d );
     AddOperator( &cellnum3d );
     AddOperator( &sccvoronoi3d );
-    AddOperator( &trcvoronoi3d );
-    AddOperator( &trccellvoronoi3d );
+    AddOperator( &getcellvoronoi3d );
+
  
     
   }

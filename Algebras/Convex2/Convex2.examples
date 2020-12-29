@@ -29,18 +29,6 @@ Signature: stream<convex> x rect2 x rect2 x int -> bool
 Example  : query sccvoronoi((convtest feed voronoi [Punkt, Conv, [const rect value (-10 10 -10 10)], FALSE] project[Conv] consume) feed projecttransformstream[Conv], rectangle2(-1.0, 4.0, 0.0, 2.0), rectangle2(5.0, 7.0, -0.5, 0.5),2)
 Result   : TRUE
 
-Operator : trcvoronoi
-Number   : 1
-Signature: rect2 x rect2 -> int
-Example  : query trcvoronoi(rectangle2(5.0, 10.0, -1.0, 1.0), rectangle2(5.0, 7.0, -0.5, 0.5))
-Result   : 0
-
-Operator : trccellvoronoi
-Number   : 1
-Signature: stream<convex> x rect2 x rect2 -> int
-Example  : query trccellvoronoi((convtest feed voronoi [Punkt, Conv, [const rect value (-10 10 -10 10)], FALSE] project[Conv] consume) feed projecttransformstream[Conv], rectangle2(-1.0, 4.0, 0.0, 2.0), rectangle2(5.0, 7.0, -0.5, 0.5))
-Result   : 2
-
 Operator : getcellvoronoi
 Number   : 1
 Signature: stream<convex> x int -> rect2
@@ -51,15 +39,13 @@ Operator : voronoi3d
 Number   : 1
 Signature: stream(rect3) -> int
 Example  : query [const rect3 value (0.1 0.4 0.1 0.4 0.1 0.4)] feed [const rect3 value (0.8 1.0 0.8 1.0 0.8 1.0)] feed concat feed [const rect3 value (1.0 2.0 1.0 2.0 1.0 2.0)] feed concat feed [const rect3 value (0.5 1.5 0.5 1.0 0.5 1.0)] feed concat feed [const rect3 value (1.0 2.0 1.0 1.4 1.0 1.8)] feed concat voronoi3d[rectangle3(0.0, 2.0, 0.0, 2.0, 0.0, 2.0)]
-Result   : (1 (6) 2 (8) 3 (6) 4 (7) 5 (6))
-
-
+Result   : (1((6)) 2((8)) 3((6)) 4((7)) 5((5)))
 
 Operator : cellnum3d
 Number   : 1
 Signature: (stream (tuple (..., (ak1 TK1),...))) x ak1 x ak2 x bool x rect3 x int -> intset
 Example  : query cellnum3d([const rect3 value (0.1 0.4 0.1 0.4 0.1 0.4)] feed [const rect3 value (0.8 1.0 0.8 1.0 0.8 1.0)] feed concat feed [const rect3 value (1.0 2.0 1.0 2.0 1.0 2.0)] feed concat feed [const rect3 value (0.5 1.5 0.5 1.0 0.5 1.0)] feed concat feed [const rect3 value (1.0 2.0 1.0 1.4 1.0 1.8)] feed concat voronoi3d[rectangle3(0.0, 2.0, 0.0, 2.0, 0.0, 2.0)], rectangle3(0.25, 1.0, 0.25, 0.5, 0.25, 0.5), 1)
-Result   : ((1))
+Result   : (1 4)
 Remark   : 
 
 Operator : cellnum3d
@@ -72,13 +58,13 @@ Remark   :
 Operator : sccvoronoi3d
 Number   : 1
 Signature: (stream (tuple (..., (ak1 TK1),...))) x ak1 x ak2 x bool x rect3 x rect3 x int -> bool
-Example  : query sccvoronoi3d([const rect3 value (0.1 0.4 0.1 0.4 0.1 0.4)] feed [const rect3 value (0.8 1.0 0.8 1.0 0.8 1.0)] feed concat feed [const rect3 value (1.0 2.0 1.0 2.0 1.0 2.0)] feed concat feed [const rect3 value (0.5 1.5 0.5 1.0 0.5 1.0)] feed concat feed [const rect3 value (1.0 2.0 1.0 1.4 1.0 1.8)] feed concat voronoi3d[rectangle3(0.0, 2.0, 0.0, 2.0, 0.0, 2.0)], rectangle3(0.25, 1.0, 0.25, 0.5, 0.25, 0.5), rectangle3(0.1, 1.0, 0.25, 0.8, 0.25, 0.5))
-Result   : 1
+Example  : query sccvoronoi3d([const rect3 value (0.1 0.4 0.1 0.4 0.1 0.4)] feed [const rect3 value (0.8 1.0 0.8 1.0 0.8 1.0)] feed concat feed [const rect3 value (1.0 2.0 1.0 2.0 1.0 2.0)] feed concat feed [const rect3 value (0.5 1.5 0.5 1.0 0.5 1.0)] feed concat feed [const rect3 value (1.0 2.0 1.0 1.4 1.0 1.8)] feed concat voronoi3d[rectangle3(0.0, 2.0, 0.0, 2.0, 0.0, 2.0)], rectangle3(0.25, 1.0, 0.25, 0.5, 0.25, 0.5), rectangle3(0.1, 1.0, 0.25, 0.8, 0.25, 0.5), 1)
+Result   : TRUE
 
-Operator : trccellvoronoi3d
+Operator : getcellvoronoi3d
 Number   : 1
-Signature: (stream (tuple (..., (ak1 TK1),...))) x ak1 x ak2 x bool x rect3 x rect3 -> int
-Example  : query trccellvoronoi3d([const rect3 value (0.1 0.4 0.1 0.4 0.1 0.4)] feed [const rect3 value (0.8 1.0 0.8 1.0 0.8 1.0)] feed concat feed [const rect3 value (1.0 2.0 1.0 2.0 1.0 2.0)] feed concat feed [const rect3 value (0.5 1.5 0.5 1.0 0.5 1.0)] feed concat feed [const rect3 value (1.0 2.0 1.0 1.4 1.0 1.8)] feed concat voronoi3d[rectangle3(0.0, 2.0, 0.0, 2.0, 0.0, 2.0)], rectangle3(0.25, 1.0, 0.25, 0.5, 0.25, 0.5), rectangle3(0.1, 1.0, 0.25, 0.8, 0.25, 0.5))
-Result   : 1
+Signature: (stream (tuple (..., (ak1 TK1),...))) x ak1 x ak2 x bool x rect3 x rect3 x int -> bool
+Example  : query getcellvoronoi3d([const rect3 value (0.1 0.4 0.1 0.4 0.1 0.4)] feed [const rect3 value (0.8 1.0 0.8 1.0 0.8 1.0)] feed concat feed [const rect3 value (1.0 2.0 1.0 2.0 1.0 2.0)] feed concat feed [const rect3 value (0.5 1.5 0.5 1.0 0.5 1.0)] feed concat feed [const rect3 value (1.0 2.0 1.0 1.4 1.0 1.8)] feed concat voronoi3d[rectangle3(0.0, 2.0, 0.0, 2.0, 0.0, 2.0)], 1)
+Result   : ( (-3.15,-6.96635,-9) - (1.98214,3.8125,4.10096) )
 
 
