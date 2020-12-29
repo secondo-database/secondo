@@ -2669,29 +2669,21 @@ As of January 2016, the optimizer maintains ~properties~ of intermediate results
 
 Here ~P~ is a list of properties, for example, [order(o:ort), order(p:ort)] which may arise after a sortmergejoin. So a rule translates into a pair consisting of a plan and a list of properties.
 
-The use of properties is illustrated by integrating order property maintenance into some rules. This is just an example; orders are not systematically maintained everywhere. For implementing optimization of distributed query processing, one should remove the order properties and instead maintain distribution properties.
-
-For the order property examples, we hardcode a few orders in the opt database into the following predicates. Maintaining orders allows one to use mergejoin instead of sortmergejoin in certain cases.
+We maintain the order property of a relation; it is given for relations of type ordered relation (~orel~). Other relations do not have an order property.
 
 */
 
-ordered(plz, ort).
+order(DCName, *, [order(Order)]) :-
+  is_orel(DCName, Order),
+  !.
 
-ordered(orte, ort).
+order(DCName, Var, [order(Var:Order)]) :-
+  is_orel(DCName, Order),
+  !.
 
-ordered(staedte, sName).
-
-ordered(thousand, no).
-
-ordered(ten, no).
-
-order(Name, Attr) :-
-  ordered(Name, Attr), !.
-
-order(_, none).
+order(_, _, []).
 
 /*
-
 If the argument is of the form ~res(N)~, then it is a stream already and can be
 used unchanged. If it is of the form ~arg(N)~, then it is a base relation; a
 ~feed~ must be applied and possibly a ~rename~.
@@ -2711,26 +2703,27 @@ It is necessary to treat some special cases first. The simple standard case is t
 
 
 % special handling for distancescan queries
-arg(N) => distancescan(IndexName, rel(Name, *), Attr, 0) :-
+arg(N) => [distancescan(IndexName, rel(Name, *), Attr, 0), []]:-
   isStarQuery,
   argument(N, rel(Name, *)),
   distanceRel(rel(Name, *), IndexName, Attr, _), !.
 
 % special handling for distancescan queries
-arg(N) => rename(distancescan(IndexName, rel(Name, Var), Attr, 0), Var) :-
+arg(N) => [rename(distancescan(IndexName, rel(Name, Var), Attr, 0), Var), []] :-
   isStarQuery,
   argument(N, rel(Name, Var)),
   distanceRel(rel(Name, Var), IndexName, Attr, _), !.
 
 % special handling for distancescan queries
-arg(N) => project(distancescan(IndexName, rel(Name, *), Attr, 0), AttrNames) :-
+arg(N) => [project(distancescan(IndexName, rel(Name, *), Attr, 0), AttrNames), 
+	[]] :-
   argument(N, rel(Name, *)),
   distanceRel(rel(Name, *), IndexName, Attr, _), !,
   usedAttrList(rel(Name, *), AttrNames).
 
 % special handling for distancescan queries
-arg(N) => rename(project(distancescan(IndexName, rel(Name, Var), Attr, 0),
-    AttrNames), Var) :-
+arg(N) => [rename(project(distancescan(IndexName, rel(Name, Var), Attr, 0),
+    AttrNames), Var), []] :-
   argument(N, rel(Name, Var)),
   distanceRel(rel(Name, Var), IndexName, Attr, _), !,
   usedAttrList(rel(Name, Var), AttrNames).
@@ -2742,7 +2735,7 @@ arg(N) => rename(project(distancescan(IndexName, rel(Name, Var), Attr, 0),
 
 NVK ADDED NR
 
-There is even no feedproject operator as for arel's (see below). Note that these rules are used for optimization of subquries, there are usually subqueries create like 0 COMPARE\_OP (select count(*) ...) and count(*) is NOT a isStarQuery, so the above rules are not used.
+There is even no feedproject operator as for arel's (see below). Note that these rules are used for optimization of subqueries, there are usually subqueries create like 0 COMPARE\_OP (select count(*) ...) and count(*) is NOT a isStarQuery, so the above rules are not used.
 
 */
 
@@ -2758,68 +2751,30 @@ This translation rule handles all the cases:
 */
 arg(N) => Stream4 :-
   argument(N, RelT),
-	RelT=rel(irrel(_, Stream1, TOP, _, _, _, _), Var),
+	RelT = rel(irrel(_, Stream1, TOP, _, _, _, _), Var),
   addTransformationOperator(Stream1, TOP, Stream2),
   (isStarQuery ->
 		Stream3=Stream2
 	;
 		(
   		usedAttrList(RelT, AttrNames),
-			Stream3=project(Stream2, AttrNames)
+			Stream3 = project(Stream2, AttrNames)
 		)
 	),
 	addRenameOperator(Stream3, Var, Stream4).
-
-arg(N) => feed(rel(Name, *)) :-
-  optimizerOption(nestedRelations), 
-  isStarQuery,
-  argument(N, rel(Name, *)), 
-  % NVK ADDED to distinguish between this rule and the irrel rule:
-  atomic(Name),
-  !.
-
-arg(N) => rename(feed(rel(Name, Var)), Var) :-
-  optimizerOption(nestedRelations),
-  isStarQuery,
-  argument(N, rel(Name, Var)),
-  % NVK ADDED to distinguish between this rule and the irrel rule:
-  atomic(Name),
-  !.
-
-arg(N) => feedproject(rel(Name, *), AttrNames) :-
-  optimizerOption(nestedRelations),
-  argument(N, rel(Name, *)), %!, NVK MODIFIED
-  % NVK ADDED to distinguish between this rule and the irrel rule:
-  atomic(Name),
-  % There is no feedproject operator for nrel relations.
-  %\+ secondoCatalogInfo(Name,_,_,[[nrel, _]]), 
-  \+ is_nrel(Name),
-  !,
-  usedAttrList(rel(Name, *), AttrNames).
-
-arg(N) => rename(feedproject(rel(Name, Var), AttrNames), Var) :-
-  optimizerOption(nestedRelations),
-  argument(N, rel(Name, Var)),
-  % NVK ADDED to distinguish between this rule and the irrel rule:
-  atomic(Name),
-  % There is no feedproject operator for nrel relations.
-  %\+ secondoCatalogInfo(Name,_,_,[[nrel, _]]), 
-  \+ is_nrel(Name),
-  !,
-  usedAttrList(rel(Name, Var), AttrNames).
 
 /*
 There is no feedproject operator for nrel relations, hence this is translated into a project after the regular feed.
 
 */
-arg(N) => project(feed(rel(Name, *)), AttrNames) :-
+arg(N) => [project(feed(rel(Name, *)), AttrNames), []] :-
   optimizerOption(nestedRelations),
   argument(N, rel(Name, *)),
   is_nrel(Name),
   !,
   usedAttrList(rel(Name, *), AttrNames).
 
-arg(N) => rename(project(feed(rel(Name, Var)), AttrNames), Var) :-
+arg(N) => [rename(project(feed(rel(Name, Var)), AttrNames), Var), []] :-
   optimizerOption(nestedRelations),
   argument(N, rel(Name, Var)),
   is_nrel(Name),
@@ -2827,24 +2782,6 @@ arg(N) => rename(project(feed(rel(Name, Var)), AttrNames), Var) :-
   usedAttrList(rel(Name, Var), AttrNames).
 
 % NVK ADDED NR END
-
-/*
-NVK ADDED MA
-There is not much to translate. Used to integrate the sortby operator into the memory allocation optimization.
-
-*/
-
-/*
-----    
-sortby(N, AttrNames) => sortby(N, AttrNames) :-
-  !.
-----
-
-
-
-*/
-% NVK ADDED MA END
-
 
 /*
 
@@ -2892,37 +2829,48 @@ If it is of the form ~arg(N)~, then it is a base relation. There are four cases:
 
 The standard case holds at this point, except when option ~nestedRelations~ is active.
 
-We maintain the order property of a relation; if there is no defined order, the relation has property order(none).
+We maintain the order property of a relation; it is given for relations of type ordered relation (~orel~). Other relations do not have an order property.
 
 */
 
-arg(N) => [feed(rel(Name, *)), [order(X)]] :-
-  	\+ optimizerOption(nestedRelations), 
+arg(N) => [feed(rel(Name, *)), P] :-
   isStarQuery,
   argument(N, rel(Name, *)), !,
-  order(Name, X).
+  order(Name, *, P).
 
-arg(N) => [rename(feed(rel(Name, Var)), Var), [order(Var:X)]] :-
-  	\+ optimizerOption(nestedRelations),  
+arg(N) => [rename(feed(rel(Name, Var)), Var), P] :-
   isStarQuery,
   argument(N, rel(Name, Var)), !,
-  order(Name, X).
+  order(Name, Var, P).
 
+/*
+Ordered relations do not have a ~feedproject~ operation. So for regular relations, we can use ~feedproject~, for ordered relations we need ~project(feed ...)~.
 
-arg(N) => [feedproject(rel(Name, *), AttrNames), [order(X)]] :-
-  	\+ optimizerOption(nestedRelations),  
-  argument(N, rel(Name, *)), !,
+*/
+arg(N) => [feedproject(rel(Name, *), AttrNames), P] :-
+  argument(N, rel(Name, *)),
+  \+ is_orel(Name, _), !,
   usedAttrList(rel(Name, *), AttrNames),
-  order(Name, X).
+  order(Name, *, P).
 
-
-arg(N) => [rename(feedproject(rel(Name, Var), AttrNames), Var), 
-  [order(Var:X)]] :-
-  	\+ optimizerOption(nestedRelations),  
-  argument(N, rel(Name, Var)), !,
+arg(N) => [rename(feedproject(rel(Name, Var), AttrNames), Var), P] :- 
+  argument(N, rel(Name, Var)),  
+  \+ is_orel(Name, _), !,
   usedAttrList(rel(Name, Var), AttrNames),
-  order(Name, X).
+  order(Name, Var, P).
 
+
+arg(N) => [project(feed(rel(Name, *)), AttrNames), P] :-
+  argument(N, rel(Name, *)),
+  is_orel(Name, _), !,
+  usedAttrList(rel(Name, *), AttrNames),
+  order(Name, *, P).
+
+arg(N) => [rename(project(feed(rel(Name, Var)), AttrNames), Var), P] :- 
+  argument(N, rel(Name, Var)),  
+  is_orel(Name, _), !,
+  usedAttrList(rel(Name, Var), AttrNames),
+  order(Name, Var, P).
 
 
 /*
@@ -9568,7 +9516,7 @@ translateType(Type, Type) :- !.
 ----
 
 Translates a query which is ordered by the distance between ~DistAttr1~
-and ~DistAttr2~. ~HeadCount~ is the number of object to look for in the
+and ~DistAttr2~. ~HeadCount~ is the number of objects to look for in the
 distance query. ~assertDistanceRel~ is used to check for an
 R-Tree-Index.
 
@@ -9586,7 +9534,7 @@ translateDistanceQuery(Select from Rel, X, Y, HeadCount,
 If the query has a where-clause and an R-Tree-Index can be used, the POG
 is calculated twice: One version using the index and one version not
 using the index. The costs of these two solutions are compared in
-~chooseFasterSolution~ and the faster one is returned
+~chooseFasterSolution~ and the faster one is returned.
 
 
 */

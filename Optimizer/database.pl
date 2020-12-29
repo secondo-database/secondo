@@ -408,6 +408,7 @@ updateRelationSchema(DCrel) :-
   ( ( secondoCatalogInfo(DCrel,ExtRel, _, TypeExpr),
       (   TypeExpr = [[rel, [tuple, _ExtAttrList]]]
         ; TypeExpr = [[trel, [tuple, _ExtAttrList]]]
+        ; TypeExpr = [[orel, [tuple, _ExtAttrList], _]]
         % NVK ADDED NR: receive data as well for nrel tables.
         ; 
           (
@@ -527,6 +528,16 @@ refreshSecondoCatalogInfo :-
   assertAllSecondoCatalogInfo(ObjListSorted),
   !.
 
+
+/*
+Check whether a relation is an ordered relation.
+
+*/
+is_orel(DCRel, DCOrder) :-
+  secondoCatalogInfo(DCRel, _, _, [[orel, _, Order]]),
+  dcName2externalName(DCOrder, Order).
+
+
 /*
 ---- checkObjectNamingConvention/0
 ----
@@ -549,8 +560,8 @@ checkForAttributeNameConflicts :-
                      % NVK MODIFIED
                      % The check clause has to be extended to check nested
                      % attribute names.
-                     %member(RelType,[trel,rel]),
-                     member(RelType,[trel,rel,nrel]),
+                     %member(RelType,[trel, rel]),
+                     member(RelType,[trel, rel, orel, nrel]),
                      % NVK MODIFIED END
                      getAttributeNameConflicts(DCrel,ConflictList),
                      ConflictList \= [],
@@ -584,8 +595,8 @@ checkForAttributeNameConflicts :-
 getAttributeNameConflicts(DCrel,ConflictList) :-
   secondoCatalogInfo(DCrel,ExtRel,_,[[RelType, [tuple, AttrList]]]),
   % NVK MODIFIED
-  %member(RelType,[trel,rel]),
-  member(RelType,[trel,rel,nrel]),
+  %member(RelType,[trel, rel]),
+  member(RelType,[trel, rel, orel, nrel]),
   getAttributeNameConflicts2(ExtRel,AttrList,ConflictList), !.
 
 % returns a list of conflicting attribute names, i.e.
@@ -725,6 +736,8 @@ findNewRelations(NewRelations) :-
               % NEW:
               ( secondoCatalogInfo(DCRel,_,_,[[rel, _]])
               ; 
+                secondoCatalogInfo(DCRel,_,_,[[orel, _, _]])
+              ;
                 (
                   optimizerOption(nestedRelations),
                   secondoCatalogInfo(DCRel,_,_,[[nrel, _]])
@@ -856,11 +869,11 @@ handleNewRelation(DCrel) :-
   ),
   ( ( secondoCatalogInfo(DCrel,ExtRel,_,Type),
       % NVK ADDED NR
-      Type = [[RelType, [tuple, _]]],
+      ( Type = [[RelType, [tuple, _]]]; Type = [[RelType, [tuple, _], _]]),
       (optimizerOption(nestedRelations) ->
-        member(RelType, [rel, nrel])
+        member(RelType, [rel, nrel, orel])
       ;
-        RelType=rel
+        member(RelType, [rel, orel])
       )
       % NVK ADDED NR END
     )
@@ -1720,7 +1733,7 @@ createSampleS(DCRel) :-
               )
           ; true
          ),
-         ( var(SampleCard) % sample would become to large or to small
+         ( var(SampleCard) % sample would become too large or too small
            -> ( optimizerOption(autoSamples)
                 -> ( % automatically set sample size and force creation
                     SampleCard is CardRec,
@@ -1735,7 +1748,7 @@ createSampleS(DCRel) :-
                    )
                 ;  ( % leave sample creation to the user
                        my_concat_atom(['REQUEST FOR USER INTERACTION:\n',
-                                    'Selection sample is to large: ',
+                                    'Selection sample is too large: ',
                                      CardStd,
                                      ' (=',MemStd,' KB).\n','Maximum size is ',
                                      CardRec,' (=',MemRec,' KB).\n\n',
@@ -1764,16 +1777,18 @@ createSampleS(DCRel) :-
 
 
 sampleQuery(ExtSample, ExtRel, Card, SampleSize, QueryAtom) :-
-  dm(dbhandling,['\nTry: sampleQuery(',ExtSample,',',ExtRel,',',SampleSize,',',
-                 QueryAtom,').']),
-  secondoCatalogInfo(_,ExtRel,_,[[RelType, [tuple, _]]]),
+  dm(dbhandling,['\nTry: sampleQuery(', ExtSample, ', ',ExtRel,', ', 
+    Card, ', ',  SampleSize, ', ', QueryAtom,').']),
+  ( secondoCatalogInfo(_, ExtRel, _, [[RelType, [tuple, _]]])
+  ; secondoCatalogInfo(_, ExtRel, _, [[RelType, [tuple, _], _Order]])
+  ),
   secOptConstant(sampleScalingFactor, SF),
   N1 is Card / SampleSize, 
   N2 is 1 / SF, 
   N is max(1, floor(min(N1, N2))),
   FinalCard is floor(max(SampleSize, Card * SF)),
-  % distinguish system tables and nested relations from relations
-  ( member(RelType, [trel, nrel] ) 
+  % distinguish system tables, ordered and nested relations from relations
+  ( member(RelType, [trel, orel, nrel] ) 
     -> FeedNth = ' feed nth'; FeedNth = ' feedNth' ),
   my_concat_atom(['derive ', ExtSample, ' = ', ExtRel,
       FeedNth, '[', N, ', FALSE] head[', FinalCard, '] consume feed
@@ -3960,6 +3975,7 @@ getTupleInfo(DCrel) :-
   ( ( secondoCatalogInfo(DCrel,ExtRel, _, TypeExpr),
       (   TypeExpr = [[rel, [tuple, ExtAttrList]]]
         ; TypeExpr = [[trel, [tuple, ExtAttrList]]]
+        ; TypeExpr = [[orel, [tuple, ExtAttrList], _]]
          % NVK ADDED recognize nested relations.
         ; TypeExpr = [[nrel, [tuple, ExtAttrList]]]
       ),
