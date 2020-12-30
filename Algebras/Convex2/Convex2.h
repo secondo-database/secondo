@@ -294,7 +294,7 @@ class Polyhedron {
 
 class Convex3D {
    public:
-
+   Convex3D();
    // The first constructor.
    Convex3D(Rectangle<3> &bounding_box);
 
@@ -349,7 +349,6 @@ class Convex3D {
     static bool KindCheckConvex3D (ListExpr type, ListExpr& errorInfo);
 
     static const std::string BasicType() {
-      printf("\n in basictype");
       return "convex3d";
     }
 
@@ -360,7 +359,7 @@ class Convex3D {
     ~Convex3D();
 
     private: 
-    Convex3D();
+    
 
     // vector with points of input cuboids
     std::vector<Point3D> points {};

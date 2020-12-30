@@ -4710,7 +4710,9 @@ Polyhedron::~Polyhedron() {}
   3D Convex constructor
 
 */
-Convex3D::Convex3D() {}
+Convex3D::Convex3D() {
+  boundingBox = nullptr;
+}
 
 Convex3D::Convex3D(const Convex3D& g) {
   boundingBox = g.boundingBox;
@@ -5136,10 +5138,12 @@ Convex3D::InConvex3D( const ListExpr typeInfo, const ListExpr instance,
 
    }
 
-    Convex3D* conv3d = new Convex3D(poly_vec);
+    Convex3D* conv3d = new Convex3D();
     conv3d->setPolyhedronVector(poly_vec);
 
     w.addr = conv3d;
+    correct = true;
+    
     return w;
   } catch (int e) {
     correct = false;
