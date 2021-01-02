@@ -276,18 +276,15 @@ class Polyhedron {
     Polyhedron();
     ~Polyhedron();
 
-    Polyhedron* getNeighbor();
     int getPolyId();
 
     // Auxiliary functions for In or/and Value mapping functions
-    void setNeighbor(Polyhedron* neighbor_);
     void setPolyId(int id_);
     std::vector<std::vector<Point3D>> faces {};
 
     friend class Convex3D;
 
   private:
-    Polyhedron* neighbor;
     int polyhedronId;
 };
 

@@ -323,24 +323,48 @@ bool PointInPolygon(Point point, Convex* conv)
     return false;
   }
 
-  int i, j = 0;
-  int nvert = (int)poly.size();
-  bool c = false;
+  /*
+    go through every segment and check 
+    on which side point lies
 
-  for(i = 0, j = nvert - 1; i < nvert; j = i++) {
-    double i_y = poly[i].GetY();
-    double j_y = poly[j].GetY();
-    double i_x = poly[i].GetX();
-    double j_x = poly[j].GetX();
+  */
+  double detO;
+  Point a,b;
+  a = poly[0];
+  b = poly[1];
+  /* 
+    P0 (x0,y0) and P1 (x1,y1), another point P (x,y) 
+    (y - y0) (x1 - x0) - (x - x0) (y1 - y0)
 
-    if( ( (i_y > point.GetY() ) != (j_y > point.GetY()) ) &&
-        (point.GetX() < (j_x - i_x) * (point.GetY() - i_y) / (j_y - i_y) + i_x)
-      ) {
-        c = !c;
-      }
+  */
+  detO = (point.GetY() - a.GetY())*(b.GetX() - a.GetX()) 
+    - (point.GetX() - a.GetX())*(b.GetY() - a.GetY());
+  // if equal to 0, point lies on edge
+  if(detO == 0)
+  {
+    return true;
   }
+  for(int e = 1; e < (int)poly.size()-1; e++) {
+    Point a,b;
+    a = poly[e];
+    b = poly[e+1];
+    
+    double det = (point.GetY() - a.GetY())*(b.GetX() - a.GetX()) 
+    - (point.GetX() - a.GetX())*(b.GetY() - a.GetY());
 
-  return c;
+    if(det == 0)
+    {
+      return true;
+    }
+
+    if(signbit(detO) != signbit(det))
+    {
+      return false;
+    }
+
+  }
+  return true;
+  
 }
 
 /*
@@ -404,20 +428,20 @@ int getLineIntersection(Point p0, Point p1,
 
 */
 std::tuple<double,double> 
-computePolygonCentroid(std::vector<std::tuple<double, double>> vertices,
-   int vertexCount)
+calcPolyCentroid(std::vector<std::tuple<double, double>> vertices,
+   int vertexNumb)
 {
     std::tuple<double,double> centroid = {0, 0};
     double signedArea = 0.0;
-    double x0 = 0.0; // Current vertex X
-    double y0 = 0.0; // Current vertex Y
-    double x1 = 0.0; // Next vertex X
-    double y1 = 0.0; // Next vertex Y
-    double a = 0.0;  // Partial signed area
+    double x0 = 0.0; // current x value
+    double y0 = 0.0; // current y value
+    double x1 = 0.0; // next x value
+    double y1 = 0.0; // next y value
+    double a = 0.0;  // area
 
-    // For all vertices except last
-    int i=0;
-    for (i=0; i<vertexCount-1; ++i)
+    int i;
+    // Calculate area of polygon with Gaußsche Trapezformel
+    for(i=0; i<vertexNumb-1; ++i)
     {
         x0 = get<0>(vertices[i]);
         y0 = get<1>(vertices[i]);
@@ -429,7 +453,7 @@ computePolygonCentroid(std::vector<std::tuple<double, double>> vertices,
         get<1>(centroid) += (y0 + y1)*a;
     }
 
-    // last vertex
+    // last vertex 
     x0 = get<0>(vertices[i]);
     y0 = get<1>(vertices[i]);
     x1 = get<0>(vertices[0]);
@@ -440,6 +464,7 @@ computePolygonCentroid(std::vector<std::tuple<double, double>> vertices,
     get<1>(centroid) += (y0 + y1)*a;
 
     signedArea *= 0.5;
+    // calculate centroid with formula 
     get<0>(centroid) /= (6.0*signedArea);
     get<1>(centroid) /= (6.0*signedArea);
 
@@ -610,9 +635,9 @@ void cellNum(Rectangle<2>* search_window_ptr,
         point = std::make_tuple(tmp->value[a].GetX(), tmp->value[a].GetY());
         polygon.insert(polygon.begin() + a, point);
       }
-      size_t vertexCount = polygon.size();
+      
       std::tuple<double,double> centroid = 
-      computePolygonCentroid(polygon, vertexCount);
+      calcPolyCentroid(polygon, polygon.size());
 
       if(insideRect(search_window_ptr, centroid)){
         cell_ids->insert(tmp->getCellId());
@@ -2483,7 +2508,7 @@ ListExpr voronoi3dtypemap( ListExpr args )
     ListExpr first = nl->First(args);
     ListExpr second = nl->Second(args);
 
-    if (Stream<Rectangle<3>>::checkType(first) 
+    if (Stream<Rectangle<3>>::checkType(first)
       && Rectangle<3>::checkType(second)) {
         return nl->SymbolAtom(Convex3D::BasicType());
       }
@@ -2678,7 +2703,7 @@ int smallestCommonCellnumVM( Word* args, Word& result, int message,
 
   if(search_window_ptr == nullptr 
     || search_window_ptr_2 == nullptr) {
-    return 0;
+    return -1;
   }
 
   result = qp->ResultStorage( s );
@@ -4683,17 +4708,6 @@ special case
 */
 
 Polyhedron::Polyhedron() {}
-
-void
-Polyhedron::setNeighbor(Polyhedron* neighbor_) {
-  this->neighbor = neighbor_;
-}
-
-Polyhedron*
-Polyhedron::getNeighbor() {
-  return neighbor;
-}
-
 
 void Polyhedron::setPolyId(int id_) {
   this->polyhedronId = id_;
@@ -7705,6 +7719,12 @@ Convex3D::buildVoronoi3D(Stream<Rectangle<3>> rStream) {
     }
 
     rStream.close();
+
+    if(points.size() < 2)
+    {
+      const string errmsg = "Expected at least two points";
+      return;
+    }
     Convex3D* conv3d = new Convex3D();
 
     std::vector<Tetrahedron> tetravec;
@@ -7965,7 +7985,7 @@ int smallestCommonCellnum3DVM( Word* args, Word& result, int message,
   if(search_window_ptr == nullptr 
     || search_window_ptr_2 == nullptr 
     || convex3d == nullptr) {
-    return 0;
+    return -1;
   }
 
   result = qp->ResultStorage( s );
@@ -7986,7 +8006,7 @@ int smallestCommonCellnum3DVM( Word* args, Word& result, int message,
   if(v.empty()) { 
     //no intersection between rectangles
     res->Set( true, boolval);
-    return -1;
+    return 0;
   }
       
   if(v[0] == cellno)
@@ -8039,7 +8059,7 @@ int getcellvoronoi3DVM(Word* args, Word& result, int message,
   
 
 
-  return 0;
+  return -1;
 
 }
 
