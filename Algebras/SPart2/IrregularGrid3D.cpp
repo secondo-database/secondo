@@ -1587,6 +1587,27 @@ IrregularGrid3D::IrGrid3dValueMapSCC( Word* args, Word& result, int message,
     std::set<int> cell_ids;
     std::set<int> cell_ids_2;
 
+    Rectangle<3>* b_box = input_irgrid3d_ptr->getBoundingBox();
+    if (!search_window_ptr->Intersects(*b_box) 
+    || !search_window_ptr_2->Intersects(*b_box)) {
+      return 0;
+    }
+
+    // 'truncate' search window in case of partial cutting
+    if (!b_box->Contains(*search_window_ptr)) {
+      search_window_ptr = new Rectangle<3>(
+        search_window_ptr->Intersection(*b_box));
+
+      cell_ids.insert(0);
+    }
+
+    if (!b_box->Contains(*search_window_ptr_2)) {
+      search_window_ptr_2 = new Rectangle<3>(
+        search_window_ptr_2->Intersection(*b_box));
+
+      cell_ids_2.insert(0);
+    }
+
     result = qp->ResultStorage( s );
     CcBool *res = (CcBool*) result.addr;
     bool boolval = false;
