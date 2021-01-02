@@ -2474,7 +2474,7 @@ KDTree3D::Kdtree3dValueMapGetCell( Word* args, Word& result, int message,
      if(v.empty()) { 
       //no intersection between rectangles
         res->Set( true, boolval);
-        return -1;
+        return 0;
 
       }
       
@@ -2485,9 +2485,9 @@ KDTree3D::Kdtree3dValueMapGetCell( Word* args, Word& result, int message,
         return 0;
       }
       
-    res->Set( true, boolval);
-
-      }
-      
+      res->Set( true, boolval);
       return 0;
+    }
+      
+      return -1;
   }

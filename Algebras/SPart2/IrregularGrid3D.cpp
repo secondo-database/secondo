@@ -1613,10 +1613,11 @@ IrregularGrid3D::IrGrid3dValueMapSCC( Word* args, Word& result, int message,
       res->Set( true, boolval);
       return 0;
     }
-    res->Set( true, boolval);  
+    res->Set( true, boolval); 
+    return 0; 
   }
 
-  return 0;
+  return -1;
 
 }
 
