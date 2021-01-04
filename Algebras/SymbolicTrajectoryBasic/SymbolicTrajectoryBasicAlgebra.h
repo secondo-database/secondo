@@ -2162,7 +2162,7 @@ void MBasic<B>::Inside(const typename B::coll& coll,
     GetValue(i, value);
     CcBool res(true, coll.Contains(value));
     temporalalgebra::UBool ub(unit.iv, res);
-    result.Add(ub);
+    result.MergeAdd(ub);
   }
 }
 
