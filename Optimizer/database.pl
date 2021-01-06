@@ -236,7 +236,7 @@ dcName2externalName(DC, External) :-
   DC = _ : _,                    % is attribute identifier
   databaseName(DB),              % get current DB name
   storedSpell(DB, DC, Internal), % get stored internal object spelling
-  internalName2externalName(Internal,External), % covert to external
+  internalName2externalName(Internal,External), % convert to external
   !.
 % ExternalObj -> DCobj  ALWAYS SUCCEEDS!
 dcName2externalName(DC, External) :-
@@ -534,8 +534,9 @@ Check whether a relation is an ordered relation.
 
 */
 is_orel(DCRel, DCOrder) :-
-  secondoCatalogInfo(DCRel, _, _, [[orel, _, Order]]),
-  dcName2externalName(DCOrder, Order).
+  secondoCatalogInfo(DCRel, _, _, [[orel, _, [Order]]]),
+  dcName2externalName(X, Order),
+  X = DCOrder.
 
 
 /*

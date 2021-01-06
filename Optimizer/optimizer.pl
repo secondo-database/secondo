@@ -1778,6 +1778,14 @@ plan_to_atom(field(NewAttr, Expr), Result) :-
   my_concat_atom([NAtom, ': ', EAtom], '', Result),
   !.
 
+plan_to_atom(orange(Rel, Lower, Upper), Result) :-
+  plan_to_atom(Rel, RelAtom),
+  plan_to_atom(Lower, LowerAtom),
+  plan_to_atom(Upper, UpperAtom),
+  my_concat_atom([RelAtom, ' orange[', LowerAtom, '; ', UpperAtom, '] '], '', 
+    Result),
+  !.
+  
 
 /*
 Using the switch ``removeHiddenAttributes'', ~reduce~ can either be left in the plan or removed from it.
@@ -3009,6 +3017,23 @@ indexselect2(arg(N), pr(Y = attr(AttrName, Arg, AttrCase), _)) =>
   dcName2externalName(DCindex,IndexName),
   (IndexType = btree; IndexType = hash).
 
+% generic rule for (Term = Attr): orange using an ordered relation
+% with or without rename.
+indexselect2(arg(N), pr(Y = attr(AttrName, _, _), _)) =>
+  [orange(rel(Name, Z), Y, Y), [order(AttrName)]]
+  :-
+  argument(N, rel(Name, Z)),
+  downcase_atom(AttrName, DCAttrName),
+  is_orel(Name, DCAttrName).
+
+% generic rule for between(Attr, X, Y): orange using an ordered relation
+% with or without rename.
+indexselect2(arg(N), pr(between(attr(AttrName, _, _), X, Y), _)) =>
+  [orange(rel(Name, Z), X, Y), [order(AttrName)]]
+  :-
+  argument(N, rel(Name, Z)),
+  downcase_atom(AttrName, DCAttrName),
+  is_orel(Name, DCAttrName).
 
 
 % generic rule for (Term = Attr): rangesearch using mtree
@@ -5646,6 +5671,16 @@ cost(rangeS(dbindexobject(Index), _KeyValue), Sel, _P, Size, Cost) :-
   exactmatchTC(C),
   Size is Sel * RelSize,
   Cost is Sel * RelSize * C * 0.25 . % balance of 75% is for gettuples
+
+% Cost function for orange on ordered relation. Not measured, assuming similar 
+% cost as for range query on B-tree
+
+cost(orange(Rel, _, _), Sel, P, Size, Cost) :-
+  cost(Rel, 1, P, RelSize, _),
+  exactmatchTC(C),
+  Size is Sel * RelSize,
+  Cost is Sel * RelSize * C.
+
 
 cost(indextmatches(_, Rel, _, _), Sel, P, Size, Cost) :-
   cost(Rel, 1, P, RelSize, _),
