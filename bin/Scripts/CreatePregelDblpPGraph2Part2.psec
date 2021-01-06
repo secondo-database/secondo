@@ -137,7 +137,8 @@ Author
     message.Author = Name;
     insert into Results tuple 
       (message.Name, message.Authors, message.Title, message.Journal, 
-        message.Booktitle, message.Year)----
+        message.Booktitle, message.Year)
+----
 
 Messages and Results relation have the following schema:
 
@@ -166,7 +167,7 @@ let NoMessages = fun() InitialMessages feed head[0]
 let Results = [const rel(tuple([AuthorName: string, Authors: text, Title: text, 
   Journal: text, Booktitle: text, Year: string])) value ()]
 
-let ResultsM = Results feed mconsume
+let ResultsM = Results feed mconsumeflob
  
 
 let Compute = fun (messages: stream(tuple([
