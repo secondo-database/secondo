@@ -356,7 +356,6 @@ class Convex3D {
     ~Convex3D();
 
     private: 
-    
 
     // vector with points of input cuboids
     std::vector<Point3D> points {};

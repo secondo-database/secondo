@@ -282,8 +282,8 @@ class KDTree2D {
     void build2DTree();
     // create KDTree recursive
     KDNodeList* KDTreeRec(std::vector<TPoint> point_list, int begin,
-       int end, int dim, int depth);
-    KDMedList* KDTreeMedRec(std::vector<TPoint> point_list, int dim, int depth);
+       int end, int depth);
+    KDMedList* KDTreeMedRec(std::vector<TPoint> point_list, int depth);
 
     // returns points in preoder
     void preorder (KDNodeList* root);

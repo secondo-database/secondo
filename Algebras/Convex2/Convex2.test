@@ -1,0 +1,174 @@
+## execute with
+## TestRunner -i ~/secondo/Algebras/Convex2/Convex2.test
+## TestRunner --valgrindlc -i ~/secondo/Algebras/Convex2/Convex2.test
+
+########################################
+# INITIALIZATION
+########################################
+delete database Convex2Test;
+
+#setup Convex2Test
+create database Convex2Test;
+open database Convex2Test;
+
+let convtest = [const (rel (tuple (( Name  string )( Matrn  int )( Punkt  point )) )) value (( "Hans"  1221 ( 0.0  0.0 ))( "Karl"  1121 ( 4.0  4.0 ))( "Kuil"  2121 ( -4.0  4.0 ))( "Huop"  1222 ( -4.0  -4.0 ))( "Kaal"  9128 ( 2.0  0.0 ))( "Oiart"  4242 ( 4.0  -4.0 )))];
+
+########################################
+# OPERATOR - cellnum
+########################################
+#testcase -1.1.1- cellnum- exakt
+#yields (intset(1 2 5))
+query cellnum((convtest feed voronoi [Punkt, Conv, [const rect value (-10 10 -10 10)], FALSE] project[Conv] consume) feed projecttransformstream[Conv], rectangle2(-1.0, 4.0, 0.0, 2.0), 1)
+
+#testcase -1.1.2- cellnum- border- exakt
+#yields (intset(2 6))
+query cellnum((convtest feed voronoi [Punkt, Conv, [const rect value (-10 10 -10 10)], FALSE] project[Conv] consume) feed projecttransformstream[Conv], rectangle2(9.0, 10.0, 0.0, 3.0), 1)
+
+
+#testcase -1.1.3- cellnum- one cell- exakt
+#yields (intset(1))
+query cellnum((convtest feed voronoi [Punkt, Conv, [const rect value (-10 10 -10 10)], FALSE] project[Conv] consume) feed projecttransformstream[Conv], rectangle2(0.0, 0.1, 0.0, 0.1), 1)
+
+#testcase -1.1.4- cellnum- bbox
+#yields (intset(1 2 3 4 5 6))
+query cellnum((convtest feed voronoi [Punkt, Conv, [const rect value (-10 10 -10 10)], FALSE] project[Conv] consume) feed projecttransformstream[Conv], rectangle2(-1.0, 4.0, 0.0, 2.0), 2)
+#Result: (1 2 3 4 5 6)
+
+#testcase -1.1.5- cellnum- bbox border
+#yields (intset(2))
+query cellnum((convtest feed voronoi [Punkt, Conv, [const rect value (-10 10 -10 10)], FALSE] project[Conv] consume) feed projecttransformstream[Conv], rectangle2(9.0, 10.0, 8.0, 9.0), 2)
+
+
+#testcase -1.1.6- cellnum- bbox one cell
+#yields (intset(2))
+query cellnum((convtest feed voronoi [Punkt, Conv, [const rect value (-10 10 -10 10)], FALSE] project[Conv] consume) feed projecttransformstream[Conv], rectangle2(8.0, 9.1, 8.0, 9.1), 2)
+
+#testcase -1.1.7- cellnum- no intersection
+#yields (intset ())
+query cellnum((convtest feed voronoi [Punkt, Conv, [const rect value (-10 10 -10 10)], FALSE] project[Conv] consume) feed projecttransformstream[Conv], rectangle2(25.0, 42.0, 25.0, 42.0), 1)
+
+#testcase -1.1.8- cellnum- missing values
+#yields error
+query cellnum((convtest feed voronoi [Punkt, Conv, [const rect value (-10 10 -10 10)], FALSE] project[Conv] consume) feed projecttransformstream[Conv], rectangle2(-1.0, 4.0, 0.0, 2.0))
+
+########################################
+# OPERATOR - sccvoronoi
+########################################
+#testcase -1.2.1- sccvoronoi
+#yields (bool TRUE)
+query sccvoronoi((convtest feed voronoi [Punkt, Conv, [const rect value (-10 10 -10 10)], FALSE] project[Conv] consume) feed projecttransformstream[Conv], rectangle2(-1.0, 4.0, 0.0, 2.0), rectangle2(5.0, 7.0, -0.5, 0.5),2)
+
+#testcase -1.2.2- sccvoronoi no intersection
+#yields (bool FALSE)
+query sccvoronoi((convtest feed voronoi [Punkt, Conv, [const rect value (-10 10 -10 10)], FALSE] project[Conv] consume) feed projecttransformstream[Conv], rectangle2(-1.0, 1.0, 0.0, 2.0), rectangle2(5.0, 7.0, 4.5, 5.5),2)
+
+#testcase -1.2.3- sccvoronoi same rectangles
+#yields (bool TRUE)
+query sccvoronoi((convtest feed voronoi [Punkt, Conv, [const rect value (-10 10 -10 10)], FALSE] project[Conv] consume) feed projecttransformstream[Conv], rectangle2(5.0, 7.0, -0.5, 0.5), rectangle2(5.0, 7.0, -0.5, 0.5),2)
+
+
+########################################
+# OPERATOR - getcellvoronoi
+########################################
+#testcase -1.3.1- getcellvoronoi
+#yields (rect (-0.0 10.0 -0.0 10.0))
+query getcellvoronoi((convtest feed voronoi [Punkt, Conv, [const rect value (-10 10 -10 10)], FALSE] project[Conv] consume) feed projecttransformstream[Conv], 2)
+
+#testcase -1.3.2- getcellvoronoi cellid not inside
+#yields (rect undefined)
+query getcellvoronoi((convtest feed voronoi [Punkt, Conv, [const rect value (-10 10 -10 10)], FALSE] project[Conv] consume) feed projecttransformstream[Conv], 7)
+
+#testcase -1.3.3- getcellvoronoi missing cellid
+#yields error
+query getcellvoronoi((convtest feed voronoi [Punkt, Conv, [const rect value (-10 10 -10 10)], FALSE] project[Conv] consume) feed projecttransformstream[Conv])
+
+########################################
+# OPERATOR - voronoi3d
+########################################
+#testcase -2.1.1- voronoi3d five elements getTypeNL
+#yields (text 'convex3d)
+query [const rect3 value (0.1 0.4 0.1 0.4 0.1 0.4)] feed [const rect3 value (0.8 1.0 0.8 1.0 0.8 1.0)] feed concat feed [const rect3 value (1.0 2.0 1.0 2.0 1.0 2.0)] feed concat feed [const rect3 value (0.5 1.5 0.5 1.0 0.5 1.0)] feed concat feed [const rect3 value (1.0 2.0 1.0 1.4 1.0 1.8)] feed concat voronoi3d[rectangle3(0.0, 2.0, 0.0, 2.0, 0.0, 2.0)] getTypeNL
+#testcase -2.1.2- voronoi3d wrong values
+#yields error
+query [const rect3 value (0.1 0.4 0.1 0.4 0.1 0.4)] feed [const rect3 value (0.8 1.0 0.8 1.0 0.8 1.0)] feed concat feed [const rect3 value (1.0 2.0 1.0 2.0 1.0 2.0)] feed concat feed [const rect3 value (0.5 1.5 0.5 1.0 0.5 1.0)] feed concat feed [const rect2 value (1.0 1.4 1.0 1.8)] feed concat voronoi3d[rectangle3(0.0, 2.0, 0.0, 2.0, 0.0, 2.0)]
+
+#testcase -2.1.3- voronoi3d missing values
+#yields error
+query [const rect3 value (0.1 0.4 0.1 0.4 0.1 0.4)] feed [const rect3 value (0.8 1.0 0.8 1.0 0.8 1.0)] feed concat feed [const rect3 value (1.0 2.0 1.0 2.0 1.0 2.0)] feed concat feed [const rect3 value (0.5 1.5 0.5 1.0 0.5 1.0)] feed concat feed [const rect3 value (1.0 2.0 1.0 1.4 1.0 1.8)] feed concat voronoi3d[]
+
+#testcase -2.1.4- voronoi3d same objects getTypeNL
+#yields (text 'convex3d')
+query [const rect3 value (0.1 0.4 0.1 0.4 0.1 0.4)] feed [const rect3 value (0.8 1.0 0.8 1.0 0.8 1.0)] feed concat feed [const rect3 value (1.0 2.0 1.0 2.0 1.0 2.0)] feed concat feed [const rect3 value (1.0 2.0 1.0 2.0 1.0 2.0)] feed concat feed [const rect3 value (1.0 2.0 1.0 1.4 1.0 1.8)] feed concat voronoi3d[rectangle3(0.0, 2.0, 0.0, 2.0, 0.0, 2.0)] getTypeNL
+
+
+########################################
+# OPERATOR - cellnum3d
+########################################
+#testcase -2.2.1- cellnum3d exact, object at boundary
+#yields (intset (4))
+query cellnum3d([const rect3 value (0.1 0.4 0.1 0.4 0.1 0.4)] feed [const rect3 value (0.8 1.0 0.8 1.0 0.8 1.0)] feed concat feed [const rect3 value (1.0 2.0 1.0 2.0 1.0 2.0)] feed concat feed [const rect3 value (0.5 1.5 0.5 1.0 0.5 1.0)] feed concat feed [const rect3 value (1.0 2.0 1.0 1.4 1.0 1.8)] feed concat voronoi3d[rectangle3(0.0, 2.0, 0.0, 2.0, 0.0, 2.0)], rectangle3(2.0, 2.5, 1.25, 2.25, -2.25, -2.0), 1)
+
+#testcase -2.2.2- cellnum3d exact, multiple cells
+#yields (intset (1 2 4))
+query cellnum3d([const rect3 value (0.1 0.4 0.1 0.4 0.1 0.4)] feed [const rect3 value (0.8 1.0 0.8 1.0 0.8 1.0)] feed concat feed [const rect3 value (1.0 2.0 1.0 2.0 1.0 2.0)] feed concat feed [const rect3 value (0.5 1.5 0.5 1.0 0.5 1.0)] feed concat feed [const rect3 value (1.0 2.0 1.0 1.4 1.0 1.8)] feed concat voronoi3d[rectangle3(0.0, 2.0, 0.0, 2.0, 0.0, 2.0)],  rectangle3(0.25, 1.0, 0.25, 0.5, 0.25, 1.5), 1)
+
+#testcase -2.2.3- cellnum3d exact, one cell
+#yields (intset (1))
+query cellnum3d([const rect3 value (0.1 0.4 0.1 0.4 0.1 0.4)] feed [const rect3 value (0.8 1.0 0.8 1.0 0.8 1.0)] feed concat feed [const rect3 value (1.0 2.0 1.0 2.0 1.0 2.0)] feed concat feed [const rect3 value (0.5 1.5 0.5 1.0 0.5 1.0)] feed concat feed [const rect3 value (1.0 2.0 1.0 1.4 1.0 1.8)] feed concat voronoi3d[rectangle3(0.0, 2.0, 0.0, 2.0, 0.0, 2.0)], rectangle3(0.25, 0.3, 0.25, 0.3, 0.25, 0.3), 1)
+
+#testcase -2.2.4- cellnum3d bbox, object at boundary
+#yields (intset(4))
+query cellnum3d([const rect3 value (0.1 0.4 0.1 0.4 0.1 0.4)] feed [const rect3 value (0.8 1.0 0.8 1.0 0.8 1.0)] feed concat feed [const rect3 value (1.0 2.0 1.0 2.0 1.0 2.0)] feed concat feed [const rect3 value (0.5 1.5 0.5 1.0 0.5 1.0)] feed concat feed [const rect3 value (1.0 2.0 1.0 1.4 1.0 1.8)] feed concat voronoi3d[rectangle3(0.0, 2.0, 0.0, 2.0, 0.0, 2.0)], rectangle3(2.0, 2.5, 1.25, 2.25, -2.25, -2.0), 2)
+
+#testcase -2.2.5- cellnum3d bbox, multiple cells
+#yields (intset(1 2 4 5))
+query cellnum3d([const rect3 value (0.1 0.4 0.1 0.4 0.1 0.4)] feed [const rect3 value (0.8 1.0 0.8 1.0 0.8 1.0)] feed concat feed [const rect3 value (1.0 2.0 1.0 2.0 1.0 2.0)] feed concat feed [const rect3 value (0.5 1.5 0.5 1.0 0.5 1.0)] feed concat feed [const rect3 value (1.0 2.0 1.0 1.4 1.0 1.8)] feed concat voronoi3d[rectangle3(0.0, 2.0, 0.0, 2.0, 0.0, 2.0)], rectangle3(0.25, 1.0, 0.25, 0.5, 0.25, 0.5), 2)
+
+#testcase -2.2.6- cellnum3d bbox, one cell
+#yields (intset(4))
+query cellnum3d([const rect3 value (0.1 0.4 0.1 0.4 0.1 0.4)] feed [const rect3 value (0.8 1.0 0.8 1.0 0.8 1.0)] feed concat feed [const rect3 value (1.0 2.0 1.0 2.0 1.0 2.0)] feed concat feed [const rect3 value (0.5 1.5 0.5 1.0 0.5 1.0)] feed concat feed [const rect3 value (1.0 2.0 1.0 1.4 1.0 1.8)] feed concat voronoi3d[rectangle3(0.0, 2.0, 0.0, 2.0, 0.0, 2.0)], rectangle3(2.0, 2.5, 1.25, 2.25, -2.25, -2.0), 2)
+
+#testcase -2.2.7- cellnum3d no intersection
+#yields (intset ())
+query cellnum3d([const rect3 value (0.1 0.4 0.1 0.4 0.1 0.4)] feed [const rect3 value (0.8 1.0 0.8 1.0 0.8 1.0)] feed concat feed [const rect3 value (1.0 2.0 1.0 2.0 1.0 2.0)] feed concat feed [const rect3 value (0.5 1.5 0.5 1.0 0.5 1.0)] feed concat feed [const rect3 value (1.0 2.0 1.0 1.4 1.0 1.8)] feed concat voronoi3d[rectangle3(0.0, 2.0, 0.0, 2.0, 0.0, 2.0)], rectangle3(-1000, -500, -1000,-500, -1000, -500), 1)
+
+
+#testcase -2.2.8- cellnum3d missing values
+#yields error
+query cellnum3d([const rect3 value (0.1 0.4 0.1 0.4 0.1 0.4)] feed [const rect3 value (0.8 1.0 0.8 1.0 0.8 1.0)] feed concat feed [const rect3 value (1.0 2.0 1.0 2.0 1.0 2.0)] feed concat feed [const rect3 value (0.5 1.5 0.5 1.0 0.5 1.0)] feed concat feed [const rect3 value (1.0 2.0 1.0 1.4 1.0 1.8)] feed concat voronoi3d[rectangle3(0.0, 2.0, 0.0, 2.0, 0.0, 2.0)], rectangle3(0.25, 1.0, 0.25, 0.5, 0.25, 0.5))
+
+#testcase -2.2.9- cellnum3d wrong int value
+#yields (intset(1 2 4 5))
+query cellnum3d([const rect3 value (0.1 0.4 0.1 0.4 0.1 0.4)] feed [const rect3 value (0.8 1.0 0.8 1.0 0.8 1.0)] feed concat feed [const rect3 value (1.0 2.0 1.0 2.0 1.0 2.0)] feed concat feed [const rect3 value (0.5 1.5 0.5 1.0 0.5 1.0)] feed concat feed [const rect3 value (1.0 2.0 1.0 1.4 1.0 1.8)] feed concat voronoi3d[rectangle3(0.0, 2.0, 0.0, 2.0, 0.0, 2.0)], rectangle3(0.25, 1.0, 0.25, 0.5, 0.25, 0.5), 4)
+
+
+########################################
+# OPERATOR - sccvoronoi3d
+########################################
+#testcase -2.3.1- sccvoronoi3d
+#yields (bool TRUE)
+query sccvoronoi3d([const rect3 value (0.1 0.4 0.1 0.4 0.1 0.4)] feed [const rect3 value (0.8 1.0 0.8 1.0 0.8 1.0)] feed concat feed [const rect3 value (1.0 2.0 1.0 2.0 1.0 2.0)] feed concat feed [const rect3 value (0.5 1.5 0.5 1.0 0.5 1.0)] feed concat feed [const rect3 value (1.0 2.0 1.0 1.4 1.0 1.8)] feed concat voronoi3d[rectangle3(0.0, 2.0, 0.0, 2.0, 0.0, 2.0)], rectangle3(0.25, 1.0, 0.25, 0.5, 0.25, 0.5), rectangle3(0.1, 1.0, 0.25, 0.8, 0.25, 0.5), 1)
+#Result: TRUE
+
+#testcase -2.3.2- sccvoronoi3d no intersection
+#yields (bool FALSE)
+query sccvoronoi3d([const rect3 value (0.1 0.4 0.1 0.4 0.1 0.4)] feed [const rect3 value (0.8 1.0 0.8 1.0 0.8 1.0)] feed concat feed [const rect3 value (1.0 2.0 1.0 2.0 1.0 2.0)] feed concat feed [const rect3 value (0.5 1.5 0.5 1.0 0.5 1.0)] feed concat feed [const rect3 value (1.0 2.0 1.0 1.4 1.0 1.8)] feed concat voronoi3d[rectangle3(0.0, 2.0, 0.0, 2.0, 0.0, 2.0)], rectangle3(0.25, 1.0, 0.25, 0.5, 0.25, 0.5), rectangle3(8.0, 10.0, 8.25, 8.8, 5.25, 5.5),1)
+
+#testcase -2.3.3- sccvoronoi3d same objects
+#yields (bool TRUE)
+query sccvoronoi3d([const rect3 value (0.1 0.4 0.1 0.4 0.1 0.4)] feed [const rect3 value (0.8 1.0 0.8 1.0 0.8 1.0)] feed concat feed [const rect3 value (1.0 2.0 1.0 2.0 1.0 2.0)] feed concat feed [const rect3 value (0.5 1.5 0.5 1.0 0.5 1.0)] feed concat feed [const rect3 value (1.0 2.0 1.0 1.4 1.0 1.8)] feed concat voronoi3d[rectangle3(0.0, 2.0, 0.0, 2.0, 0.0, 2.0)], rectangle3(0.1, 1.0, 0.25, 0.8, 0.25, 0.5), rectangle3(0.1, 1.0, 0.25, 0.8, 0.25, 0.5),1)
+
+########################################
+# OPERATOR - getcellvoronoi3d
+########################################
+#testcase -2.4.1- getcellvoronoi3d
+#yields (rect3 (-3.150000095367432 1.982142806053162 -6.966346263885498 3.8125 -9.0 4.100961208343506))
+query getcellvoronoi3d([const rect3 value (0.1 0.4 0.1 0.4 0.1 0.4)] feed [const rect3 value (0.8 1.0 0.8 1.0 0.8 1.0)] feed concat feed [const rect3 value (1.0 2.0 1.0 2.0 1.0 2.0)] feed concat feed [const rect3 value (0.5 1.5 0.5 1.0 0.5 1.0)] feed concat feed [const rect3 value (1.0 2.0 1.0 1.4 1.0 1.8)] feed concat voronoi3d[rectangle3(0.0, 2.0, 0.0, 2.0, 0.0, 2.0)], 1)
+#testcase -2.4.2- getcellvoronoi3d - missing value
+#yields error
+query getcellvoronoi3d([const rect3 value (0.1 0.4 0.1 0.4 0.1 0.4)] feed [const rect3 value (0.8 1.0 0.8 1.0 0.8 1.0)] feed concat feed [const rect3 value (1.0 2.0 1.0 2.0 1.0 2.0)] feed concat feed [const rect3 value (0.5 1.5 0.5 1.0 0.5 1.0)] feed concat feed [const rect3 value (1.0 2.0 1.0 1.4 1.0 1.8)] feed concat voronoi3d[rectangle3(0.0, 2.0, 0.0, 2.0, 0.0, 2.0)])
+
+
+#teardown
+close database;
+delete database Convex2Test;

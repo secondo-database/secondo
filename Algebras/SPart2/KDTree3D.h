@@ -320,9 +320,9 @@ class KDTree3D {
     void build3DTree();
     // calculates 3DTree recursive
     Tree3DStructure* KDTreeRec3D(std::vector<T3DPoint> point_list,
-       int begin, int end, int dim, int depth);
+       int begin, int end, int depth);
     Tree3DMedStructure* KDTreeMedRec3D(std::vector<T3DPoint> point_list,
-       int dim, int depth);
+       int depth);
 
     // returns preorder of points
     void preorder3D (Tree3DStructure* root);

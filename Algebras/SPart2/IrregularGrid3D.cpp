@@ -283,32 +283,6 @@ IrregularGrid3D::buildGrid() {
   double bb_frnt = boundingBox->getMinZ();
   double sOffset = (bb_bck - bb_frnt) / layerCount;
 
-  // check if bounding box is big enough
-  /*std::sort(points.begin(), points.end(), pointComparisonX);
-  double minX = points[0].x;
-  double maxX = points[points.size()-1].x;
-  std::sort(points.begin(), points.end(), pointComparisonY);
-  double minY = points[0].y;
-  double maxY = points[points.size()-1].y;
-  std::sort(points.begin(), points.end(), pointComparisonZ);
-  double minZ = points[0].z;
-  double maxZ = points[points.size()-1].z;
-
-  // adjust boundaries of bbox
-  if(minX < bb_left ){
-    bb_left = minX-1;
-  } else if(maxX > bb_right) {
-    bb_right = maxX+1;
-  } else if(minY < bb_bot) {
-    bb_bot = minY-1;
-  } else if(maxY > bb_top) {
-    bb_top = maxY+1;
-  } else if(minZ < bb_bck) {
-    bb_bck = minZ-1;
-  } else if(maxZ > bb_frnt) {
-    bb_frnt = maxZ+1;
-  }*/
-
   double col_boundary_val = bb_bot;
   int hcell_id = 1;
   int scell_id = 1;
@@ -1551,8 +1525,6 @@ IrregularGrid3D::IrGrid3dValueMapCellnos( Word* args, Word& result, int message,
     }
 
     cellNum(input_irgrid3d_ptr, search_window_ptr, &cell_ids);
-    //cell_ids.insert(1);
-    //cell_ids.insert(2);
 
     res->setTo(cell_ids);
 
@@ -1628,7 +1600,7 @@ IrregularGrid3D::IrGrid3dValueMapSCC( Word* args, Word& result, int message,
       return 0;
     }
 
-    if(v[0] == cellno)
+    if(v.at(0) == cellno)
     {
       boolval = true;
       res->Set( true, boolval);

@@ -497,11 +497,11 @@ std::vector<T3DPoint> slice(std::vector<T3DPoint> const &v, int m, int n)
 */
 Tree3DMedStructure*
 KDTree3D::KDTreeMedRec3D(std::vector<T3DPoint> point_list,
-   int dim = 3, int depth = 0) 
+   int depth) 
 { 
 
   //printf("\n in kdtreemedrec3d");
-  int axis = depth % dim;
+  int axis = depth % 3; // dim = 3
   //printf("\n axis: %d", axis);
   double median;
   std::vector<T3DPoint> point_list_left;
@@ -677,10 +677,10 @@ KDTree3D::KDTreeMedRec3D(std::vector<T3DPoint> point_list,
 
 
     if(point_list_left.size() > 1) {
-      tmp->left = KDTreeMedRec3D(point_list_left, 3, depth+1); 
+      tmp->left = KDTreeMedRec3D(point_list_left, depth+1); 
     }
     if(point_list_right.size() > 1) {
-      tmp->right = KDTreeMedRec3D(point_list_right, 3, depth+1);
+      tmp->right = KDTreeMedRec3D(point_list_right, depth+1);
     }
 
     //printf("\n before push");
@@ -705,7 +705,7 @@ KDTree3D::KDTreeMedRec3D(std::vector<T3DPoint> point_list,
 */
 Tree3DStructure*
 KDTree3D::KDTreeRec3D(std::vector<T3DPoint> point_list, int begin,
- int end, int dim = 3, int depth = 0) {
+ int end, int depth) {
   
   if(begin == end) {
     // only one element in list: leaf
@@ -714,7 +714,7 @@ KDTree3D::KDTreeRec3D(std::vector<T3DPoint> point_list, int begin,
       lastNode->setValx(point_list[0].x);
       lastNode->setValy(point_list[0].y);
       lastNode->setValz(point_list[0].z);
-      lastNode->setAxis(depth%dim);
+      lastNode->setAxis(depth%3); // dim = 3
       lastNode->setDepth(depth);
 
       // left and right for cellIds
@@ -736,7 +736,7 @@ KDTree3D::KDTreeRec3D(std::vector<T3DPoint> point_list, int begin,
     return nullptr;
   } 
 
-  int axis = depth % dim;
+  int axis = depth % 3; // dim = 3
   if(axis == 0) {
   // points sorted by x
   std::sort(point_list.begin(), point_list.end(), 
@@ -791,13 +791,13 @@ KDTree3D::KDTreeRec3D(std::vector<T3DPoint> point_list, int begin,
 
     // recursive call with left and right lists
     if(!point_list_left.empty()) {
-      curr->left = KDTreeRec3D(point_list_left, 0, medianpos-1,  3, depth+1);
+      curr->left = KDTreeRec3D(point_list_left, 0, medianpos-1, depth+1);
     } else {
       curr->setLeft(leftk);
     }
     if(!point_list_right.empty()) {
       curr->right = KDTreeRec3D(point_list_right, 
-      medianpos+1, (int)point_list.size(), 3, depth+1);
+      medianpos+1, (int)point_list.size(), depth+1);
     } else {
       curr->setRight(rightk);
     }
@@ -1459,7 +1459,7 @@ KDTree3D::build3DTree() {
   if(mode_ == 1) {
 
     // build 3dtree recursive, push elements in pointsVector
-    KDTreeRec3D(points, 0, (int)points.size()-1);
+    KDTreeRec3D(points, 0, (int)points.size()-1,0);
     root = pointsVector.back();
 
     //order elements and prepare cells
@@ -1468,7 +1468,7 @@ KDTree3D::build3DTree() {
   } else {
 
     //printf("\n in else zu med");
-    KDTreeMedRec3D(points);
+    KDTreeMedRec3D(points,0);
     //printf("\n after kdtreemedrec");
     rootMed = kd3dmedListVec.back();
     //printf("\n after rootmed");

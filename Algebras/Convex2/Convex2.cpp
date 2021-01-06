@@ -339,11 +339,7 @@ bool PointInPolygon(Point point, Convex* conv)
   */
   detO = (point.GetY() - a.GetY())*(b.GetX() - a.GetX()) 
     - (point.GetX() - a.GetX())*(b.GetY() - a.GetY());
-  // if equal to 0, point lies on edge
-  if(detO == 0)
-  {
-    return true;
-  }
+
   for(int e = 1; e < (int)poly.size()-1; e++) {
     Point a,b;
     a = poly[e];
@@ -351,11 +347,6 @@ bool PointInPolygon(Point point, Convex* conv)
     
     double det = (point.GetY() - a.GetY())*(b.GetX() - a.GetX()) 
     - (point.GetX() - a.GetX())*(b.GetY() - a.GetY());
-
-    if(det == 0)
-    {
-      return true;
-    }
 
     if(signbit(detO) != signbit(det))
     {
@@ -589,7 +580,6 @@ void cellNum(Rectangle<2>* search_window_ptr,
   {
     Convex* tmp = &voroVec[i];
     if(tmp->size > 0) {
-
     /*
       -1. Precheck if object has an intersection
       with bbox of voronoi cell
@@ -679,6 +669,8 @@ and two points of side of rectangle
       {
         polygon.clear();
       }
+
+
     } 
     }
 
@@ -2719,7 +2711,6 @@ int smallestCommonCellnumVM( Word* args, Word& result, int message,
   {
 
     cellNum(search_window_ptr_2, 1, &intsetRect2);
-
 
     std::vector<int> v(sizeof(intsetRect1)+ sizeof(intsetRect2));
     std::vector<int>::iterator it;
@@ -4885,6 +4876,7 @@ bool isInPolyhedron(Point3D p, Polyhedron poly, Point3D pi)
   {
     // calculate first orient3d to have a comparetive value
     std::vector<Point3D> face = poly.faces[i];
+    if(face.size() > 2) {
     double pa[3] = {face[0].x, face[0].y, face[0].z};
     double pb[3] = {face[1].x, face[1].y, face[1].z};
     double pc[3] = {face[2].x, face[2].y, face[2].z};
@@ -4911,6 +4903,7 @@ bool isInPolyhedron(Point3D p, Polyhedron poly, Point3D pi)
     {
       return false;
     }
+  }
   }
 
   return true;
@@ -5534,8 +5527,8 @@ In the paper h is called P.
   with the bounding box of a cell
 
 */
-std::set<int> cellNum3D(Convex3D* convex3d, 
-Rectangle<3>* search_window_ptr, int mode) 
+void cellNum3D(Convex3D* convex3d, Rectangle<3>* 
+search_window_ptr, int mode, std::set<int> *cell_ids) 
 {
   // get polyvec
   std::vector<Polyhedron> polyvec = convex3d->getPolyhedronVector();
@@ -5550,17 +5543,12 @@ Rectangle<3>* search_window_ptr, int mode)
 */
     for(size_t p = 0; p < polyvec.size(); p++)
     {
-      if(polyvec[p].faces.size() > 2) {
         Rectangle<3> bboxP = createBBox3D(&polyvec[p]);
         Point3D bc = getCentre(&bboxP);
         inputPoints.push_back(bc);
-      } else {
-        polyvec.erase(polyvec.begin()+p);
-      }
     }
   }
 
-  std::set<int> cell_ids;
   int bbox = 2;
   int precise = 1;
   // Rectangle points
@@ -5605,11 +5593,11 @@ Rectangle<3>* search_window_ptr, int mode)
 */
     if(insideCuboid(search_window_ptr, inputPoints.at(i)))
     {
-      cell_ids.insert(tmp.getPolyId());
+      cell_ids->insert(tmp.getPolyId());
     }
     else if(isInPolyhedron(center, tmp, inputPoints.at(i)))
     {
-        cell_ids.insert(tmp.getPolyId());
+        cell_ids->insert(tmp.getPolyId());
     } 
     else
     {
@@ -5640,7 +5628,7 @@ Rectangle<3>* search_window_ptr, int mode)
         || segmentIntersectsArea(letofr, ritofr, face[0], face[n+1], face[n+2])
         || segmentIntersectsArea(letoba, ritoba, face[0], face[n+1], face[n+2]))
         {
-          cell_ids.insert(tmp.getPolyId());
+          cell_ids->insert(tmp.getPolyId());
           break;
         }
         }
@@ -5668,16 +5656,16 @@ Rectangle<3>* search_window_ptr, int mode)
       tolefr = {bbox.getMinX(), bbox.getMaxY(), bbox.getMinZ()};
       boriba = {bbox.getMaxX(), bbox.getMinY(), bbox.getMaxZ()};
       if(cuboidOverlap(tolefr, boriba, letofr, riboba)) {
-        cell_ids.insert(pol.getPolyId());
+        cell_ids->insert(pol.getPolyId());
       }
       }
     }
 
   } else {
-    cell_ids.insert(0);
+    cell_ids->insert(0);
   }
 
-  return cell_ids;
+  return;
 
 }
 
@@ -5758,18 +5746,6 @@ Convex3D::createDelaunay (std::vector<Point3D> points,
   double zmin = pointsSortedbyZ.front().z;
   double zmax = pointsSortedbyZ[pointsSortedbyZ.size()-1].z;
 
-  if(pointsSortedbyX.size() > 0)
-  {
-    pointsSortedbyX.clear();
-  }
-  if(pointsSortedbyY.size() > 0)
-  {
-    pointsSortedbyY.clear();
-  }
-  if(pointsSortedbyZ.size() > 0)
-  {
-    pointsSortedbyZ.clear();
-  }
 
 /*
   2. Build tetrahedron with min and max values
@@ -5827,15 +5803,6 @@ Convex3D::createDelaunay (std::vector<Point3D> points,
   faces.push_back(face2);
   faces.push_back(face3);
   faces.push_back(face4);
-
-  if(face1.size() > 0)
-    face1.clear();
-  if(face2.size() > 0)
-    face2.clear();
-  if(face3.size() > 0)
-    face3.clear();
-  if(face4.size() > 0)
-    face4.clear();
 
 /* 
   adding indices to tetrahedron vectors
@@ -6362,55 +6329,6 @@ Convex3D::createDelaunay (std::vector<Point3D> points,
       tetfaces.push_back(tetfacenew3);
       tetfaces.push_back(tetfacenew4);
 
-      if(tetfacenew1.size() > 0) {
-        tetfacenew1.clear();
-      }
-      if(tetfacenew2.size() > 0) {
-        tetfacenew2.clear();
-      }
-      if(tetfacenew3.size() > 0) {
-        tetfacenew3.clear();
-      }
-      if(tetfacenew4.size() > 0) {
-        tetfacenew4.clear();
-      }
-      if(facenew1_1.size() > 0) {
-        facenew1_1.clear();
-      }
-      if(facenew1_2.size() > 0) {
-        facenew1_2.clear();
-      }
-      if(facenew1_3.size() > 0) {
-        facenew1_3.clear();
-      }
-      if(facenew1_4.size() > 0) {
-        facenew1_4.clear();
-      }
-      if(facenew2_1.size() > 0) {
-        facenew2_1.clear();
-      }
-      if(facenew2_2.size() > 0) {
-        facenew2_2.clear();
-      }
-      if(facenew2_4.size() > 0) {
-        facenew2_4.clear();
-      }
-      if(facenew3_1.size() > 0) {
-        facenew3_1.clear();
-      }
-      if(facenew3_3.size() > 0) {
-        facenew3_3.clear();
-      }
-      if(facenew3_4.size() > 0) {
-        facenew3_4.clear();
-      }
-      if(facenew4_3.size() > 0) {
-        facenew4_3.clear();
-      }
-      if(facenew4_4.size() > 0) {
-        facenew4_4.clear();
-      }
-
     }
 
     int f2tsize = (int)f2t.size();
@@ -6767,16 +6685,6 @@ remove tettt from tetfaces and tetverts
           tetfaces.push_back(ftet);
           tetfaces.push_back(ftet2);
 
-          if(ftet.size() > 0) {
-            ftet.clear();
-          }
-          if(ftet2.size() > 0) {
-            ftet2.clear();
-          }
-          if(ftet3.size() > 0) {
-            ftet3.clear();
-          }
-
           }  else 
           {
               
@@ -6951,34 +6859,6 @@ remove tettt from tetfaces and tetverts
             tetfaces.push_back(ftet32_1);
             tetfaces.push_back(ftet32_2);
 
-            if(ftet32_1.size() > 0) {
-              ftet32_1.clear();
-            }
-            if(ftet32_2.size() > 0) {
-              ftet32_2.clear();
-            }
-
-            if(newf1.size() > 0) {
-              newf1.clear();
-            }
-            if(newf2.size() > 0) {
-              newf2.clear();
-            }
-            if(newf3.size() > 0) {
-              newf3.clear();
-            }
-            if(newf4.size() > 0) {
-              newf4.clear();
-            }
-            if(newf5.size() >  0) {
-              newf5.clear();
-            }
-            if(newf6.size() > 0) {
-              newf6.clear();
-            }
-            if(newf7.size() > 0) {
-              newf7.clear();
-            }
           }
           else if(orient3d(pti, ati, bti, dti) == 0.00 
           || orient3d(pti, bti, cti, dti) == 0.00
@@ -7350,73 +7230,6 @@ remove tettt from tetfaces and tetverts
               tetfaces.push_back(ftet44_3);
               tetfaces.push_back(ftet44_4);
 
-/*
-  clear vectors
-  which have been used to build faces
-
-*/
-              if(newf1.size() > 0) {
-                newf1.clear();
-              }
-              if(newf2.size() > 0) {
-                newf2.clear();
-              }
-              if(newf3.size() > 0) {
-                newf3.clear();
-              }
-              if(newf4.size() > 0) {
-                newf4.clear();
-              }
-              if(newf5.size() >  0) {
-                newf5.clear();
-              }
-              if(newf6.size() > 0) {
-                newf6.clear();
-              }
-              if(newf7.size() > 0) {
-                newf7.clear();
-              }
-              if(newf8.size() > 0) {
-                newf8.clear();
-              }
-              if(newf9.size() > 0) {
-                newf9.clear();
-              }
-              if(newf10.size() >  0) {
-                newf10.clear();
-              }
-              if(newf11.size() > 0) {
-                newf11.clear();
-              }
-              if(newf12.size() > 0) {
-                newf12.clear();
-              }
-              if(newf13.size() > 0) {
-                newf13.clear();
-              }
-              if(newf14.size() > 0) {
-                newf14.clear();
-              }
-              if(newf15.size() > 0) {
-                newf15.clear();
-              }
-              if(newf16.size() > 0) {
-                newf16.clear();
-              }
-
-              if(ftet44_1.size() > 0) {
-                ftet44_1.clear();
-              }
-              if(ftet44_2.size() > 0) {
-                ftet44_2.clear();
-              }
-              if(ftet44_3.size() > 0) {
-                ftet44_3.clear();
-              }
-              if(ftet44_4.size() > 0) {
-                ftet44_4.clear();
-              }
-
                 }
               }
 
@@ -7652,29 +7465,11 @@ remove tettt from tetfaces and tetverts
           tetfaces.push_back(ftet);
           tetfaces.push_back(ftet2);
 
-          if(ftet.size() > 0) {
-            ftet.clear();
-          }
-          if(ftet2.size() > 0) {
-            ftet2.clear();
-          }
-          if(ftet3.size() > 0) {
-            ftet3.clear();
-          }
           }
           }
         }
       }
     }
-  }
-
-  if(tetfaces.size() > 0)
-  {
-    tetfaces.clear();
-  }
-  if(tetverts.size() > 0)
-  {
-    tetverts.clear();
   }
    
 }
@@ -7897,28 +7692,6 @@ Convex3D::buildVoronoi3D(Stream<Rectangle<3>> rStream) {
     conv3d->setPolyhedronVector(polyhedronvec);
     delete conv3d;
 
-    if(faces.size() > 0)
-    {
-      faces.clear();
-    }
-    if(lines.size() > 0)
-    {
-      lines.clear();
-    }
-    if(vertices.size() > 0) {
-      vertices.clear();
-    }
-    if(v2t.size() > 0) {
-      v2t.clear();
-    }
-    if(f2t.size() > 0) {
-      f2t.clear();
-    }
-    if(tetravec.size() > 0)
-    {
-      tetravec.clear();
-    }
-
 }
 
 
@@ -7957,7 +7730,7 @@ int cellNum3DVM( Word* args, Word& result, int message,
     mode = bbox;
   }
 
-  cell_ids = cellNum3D(convex3d, search_window_ptr, mode);
+  cellNum3D(convex3d, search_window_ptr, mode, &cell_ids);
   res->setTo(cell_ids);
 
   return 0;
@@ -7992,8 +7765,10 @@ int smallestCommonCellnum3DVM( Word* args, Word& result, int message,
   CcBool *res = (CcBool*) result.addr;
   bool boolval = false;
 
-  std::set<int> intsetRect1 = cellNum3D(convex3d, search_window_ptr, 1);
-  std::set<int> intsetRect2 = cellNum3D(convex3d, search_window_ptr_2, 1);
+  std::set<int> intsetRect1;
+  cellNum3D(convex3d, search_window_ptr, 1, &intsetRect1);
+  std::set<int> intsetRect2;
+  cellNum3D(convex3d, search_window_ptr_2, 1, &intsetRect2);
 
 
   std::vector<int> v(sizeof(intsetRect1)+ sizeof(intsetRect2));
@@ -8003,21 +7778,21 @@ int smallestCommonCellnum3DVM( Word* args, Word& result, int message,
      intsetRect2.begin(), intsetRect2.end(), v.begin());
   v.resize(it-v.begin());                      
   
+
   if(v.empty()) { 
     //no intersection between rectangles
     res->Set( true, boolval);
     return 0;
   }
-      
+
   if(v[0] == cellno)
   {
     boolval = true;
     res->Set( true, boolval);
     return 0;
   }
-      
-  res->Set( true, boolval);
 
+  res->Set( true, boolval);
   return 0;
 
 }

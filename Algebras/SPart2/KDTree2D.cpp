@@ -402,11 +402,11 @@ slice(std::vector<TPoint> const &v, int m, int n)
 */
 KDMedList*
 KDTree2D::KDTreeMedRec(std::vector<TPoint> point_list,
- int dim = 2, int depth = 0) 
+ int depth) 
 {
   //printf("\n in rec");
   //printf("\n Size: %d", (int)point_list.size());
-  int axis = depth % dim;
+  int axis = depth % 2; // dim = 2
   double median;
   std::vector<TPoint> point_list_left;
   std::vector<TPoint> point_list_right;
@@ -514,10 +514,10 @@ KDTree2D::KDTreeMedRec(std::vector<TPoint> point_list,
 
 
     if(point_list_left.size() > 1) {
-      tmp->left = KDTreeMedRec(point_list_left, 2, depth+1); 
+      tmp->left = KDTreeMedRec(point_list_left, depth+1); 
     }
     if(point_list_right.size() > 1) {
-      tmp->right = KDTreeMedRec(point_list_right, 2, depth+1);
+      tmp->right = KDTreeMedRec(point_list_right, depth+1);
     }
 
     // push current node in vector
@@ -540,7 +540,7 @@ KDTree2D::KDTreeMedRec(std::vector<TPoint> point_list,
 */
 KDNodeList*
 KDTree2D::KDTreeRec(std::vector<TPoint> point_list, int begin,
- int end, int dim = 2, int depth = 0) {
+ int end, int depth) {
   
   if(begin == end) {
     // only one element in list is a leaf
@@ -548,7 +548,7 @@ KDTree2D::KDTreeRec(std::vector<TPoint> point_list, int begin,
     if(!point_list.empty()) {    
       lastNode->setValx(point_list[0].x);
       lastNode->setValy(point_list[0].y);
-      lastNode->setAxis(depth%dim);
+      lastNode->setAxis(depth%2);
       lastNode->setDepth(depth);
 
       KDNodeList* leftl = new KDNodeList();
@@ -567,7 +567,7 @@ KDTree2D::KDTreeRec(std::vector<TPoint> point_list, int begin,
     return nullptr;
   } 
 
-  int axis = depth % dim;
+  int axis = depth % 2; //dim = 2
   if(axis == 0) {
   std::sort(point_list.begin(), point_list.end(), 
           pointComparisonX);
@@ -621,14 +621,14 @@ KDTree2D::KDTreeRec(std::vector<TPoint> point_list, int begin,
   
   
     if(!point_list_left.empty()) {
-      tmp->left = KDTreeRec(point_list_left, 0, medianpos-1,  2, depth+1); 
+      tmp->left = KDTreeRec(point_list_left, 0, medianpos-1, depth+1); 
     } else {
       //set leaf if list is empty
       tmp->setLeft(leftk);
     }
     if(!point_list_right.empty()) {
       tmp->right = KDTreeRec(point_list_right, medianpos+1,
-       (int)point_list.size(), 2, depth+1);
+       (int)point_list.size(), depth+1);
     } else {
       //set leaf if list is empty
       tmp->setRight(rightk);
@@ -746,7 +746,6 @@ KDTree2D::preorderMedGrid (CellKD* boundBox,
 
     boundBox->final = false;
 
-    //cellsPreorder.push_back(boundBox);
     cellsPreorder.push_back(cell_right);
     cellsPreorder.push_back(cell_left);
   }
@@ -757,110 +756,7 @@ KDTree2D::preorderMedGrid (CellKD* boundBox,
   if(node->getRight() != nullptr) {
   preorderMedGrid(cell_right, node->getRight());
   }
-  /*if (pointsPreOrdered.empty()) {
-    return;
-  }
-
-  boundBox->left = new CellKD();
-  CellKD* cell_left = boundBox->left;
-  boundBox->right = new CellKD();
-  CellKD* cell_right = boundBox->right;
-
-  std::vector<KDMedList*> pointsPreOrdered_left; // < current
-  std::vector<KDMedList*> pointsPreOrdered_right; // > current
-
-  if(pointsPreOrdered.front()->getAxis() == 0) {*/
-  // divide list of points bei elements smaller and bigger than first element
-  /*for(int i = 1; i < (int)pointsPreOrdered.size(); i++ )
-  {
-    if(pointsPreOrdered.at(i)->getVal() < pointsPreOrdered.front()->getVal()) {
-      pointsPreOrdered_left.push_back(pointsPreOrdered.at(i));
-    } else if (pointsPreOrdered.at(i)->getVal() 
-      >= pointsPreOrdered.front()->getVal()) {
-      pointsPreOrdered_right.push_back(pointsPreOrdered.at(i));
-    }
-  }*/
   
-  //if(pointsPreOrdered.front()->getVal() != boundBox->value.x1
-  //&& pointsPreOrdered.front()->getVal() != boundBox->value.x2) { 
-  /*cell_left->value.x1 = boundBox->value.x1;
-  cell_left->value.x2 = pointsPreOrdered.front()->getVal();
-  cell_left->value.y1 = boundBox->value.y1;
-  cell_left->value.y2 = boundBox->value.y2;
-  cell_left->final = true;
-
-  cell_right->value.x1 = pointsPreOrdered.front()->getVal();
-  cell_right->value.x2 = boundBox->value.x2;
-  cell_right->value.y1 = boundBox->value.y1;
-  cell_right->value.y2 = boundBox->value.y2;
-  cell_right->final = true;
-
-  boundBox->final = false;
-
-  //cellsPreorder.push_back(boundBox);
-  cellsPreorder.push_back(cell_right);
-  cellsPreorder.push_back(cell_left);*/
-  /*} else {
-          printf("\n returned");
-
-    return;
-  }*/
-
-  /*} else if (pointsPreOrdered.front()->axis == 1) {
-
-     // divide list of points in elements smaller and bigger than first element
-    for(int i = 1; i < (int)pointsPreOrdered.size(); i++ )
-    {
-      if(pointsPreOrdered.at(i)->getVal() 
-        < pointsPreOrdered.front()->getVal()) {
-        pointsPreOrdered_left.push_back(pointsPreOrdered.at(i));
-      } else if (pointsPreOrdered.at(i)->getVal() 
-        >= pointsPreOrdered.front()->getVal()) {
-        pointsPreOrdered_right.push_back(pointsPreOrdered.at(i));
-      }
-    }
-
-    //if(pointsPreOrdered.front()->getVal() != boundBox->value.y1
-    //&& pointsPreOrdered.front()->getVal() != boundBox->value.y2) { 
-    cell_left->value.y1 = boundBox->value.y1;
-    cell_left->value.y2 = pointsPreOrdered.front()->getVal();
-    cell_left->value.x1 = boundBox->value.x1;
-    cell_left->value.x2 = boundBox->value.x2;
-    cell_left->final = true;
-
-
-    cell_right->value.y1 = pointsPreOrdered.front()->getVal();
-    cell_right->value.y2 = boundBox->value.y2;
-    cell_right->value.x1 = boundBox->value.x1;
-    cell_right->value.x2 = boundBox->value.x2;
-    cell_right->final = true;
-
-    boundBox->final = false;
-
-    //cellsPreorder.push_back(boundBox);
-    cellsPreorder.push_back(cell_right);
-    cellsPreorder.push_back(cell_left);
-    } else {
-            printf("\n returned");
-
-      return;
-    }*/
-  /*}
-
-  pointsPreOrdered.erase(pointsPreOrdered.begin());
-
-
-  preorderMedGrid(cell_left, pointsPreOrdered_left);
-  preorderMedGrid(cell_right, pointsPreOrdered_right);
-
-  // clear aux. vectors
-  if (pointsPreOrdered_left.size() > 0) {
-    pointsPreOrdered_left.clear();
-  }
-  if (pointsPreOrdered_right.size() > 0) {
-    pointsPreOrdered_right.clear();
-  }
-  */
 }
 
 /*
@@ -870,7 +766,6 @@ KDTree2D::preorderMedGrid (CellKD* boundBox,
 void
 KDTree2D::preorderGrid (CellKD* boundBox,
 KDNodeList* node)
-  // std::vector<KDNodeList*> pointsPreOrdered)
 {
   boundBox->left = new CellKD();
   CellKD* cell_left = boundBox->left;
@@ -892,7 +787,6 @@ KDNodeList* node)
 
     boundBox->final = false;
 
-    //cellsPreorder.push_back(boundBox);
     cellsPreorder.push_back(cell_right);
     cellsPreorder.push_back(cell_left);
   } else {
@@ -911,7 +805,6 @@ KDNodeList* node)
 
     boundBox->final = false;
 
-    //cellsPreorder.push_back(boundBox);
     cellsPreorder.push_back(cell_right);
     cellsPreorder.push_back(cell_left);
   }
@@ -922,107 +815,6 @@ KDNodeList* node)
   if(node->getRight() != nullptr && !node->getRight()->isLeaf()) {
   preorderGrid(cell_right, node->getRight());
   }
-
-
-  /*if (pointsPreOrdered.empty()) {
-    return;
-  }
-
-  boundBox->left = new CellKD();
-  CellKD* cell_left = boundBox->left;
-  boundBox->right = new CellKD();
-  CellKD* cell_right = boundBox->right;
-
-  std::vector<KDNodeList*> pointsPreOrdered_left; // < current
-  std::vector<KDNodeList*> pointsPreOrdered_right; // > current
-
-  if(pointsPreOrdered.front()->axis == 0) {
-  // divide list of points bei elements smaller and bigger than first element
-  for(int i = 1; i < (int)pointsPreOrdered.size(); i++ )
-  {
-    if(pointsPreOrdered.at(i)->x < pointsPreOrdered.front()->x) {
-      pointsPreOrdered_left.push_back(pointsPreOrdered.at(i));
-    } else if (pointsPreOrdered.at(i)->x >= pointsPreOrdered.front()->x) {
-      pointsPreOrdered_right.push_back(pointsPreOrdered.at(i));
-    }
-  }
-  if(pointsPreOrdered.front()->x != boundBox->value.x1
-    && pointsPreOrdered.front()->x != boundBox->value.x2){
-  
-  cell_left->value.x1 = boundBox->value.x1;
-  cell_left->value.x2 = pointsPreOrdered.front()->x;
-  cell_left->value.y1 = boundBox->value.y1;
-  cell_left->value.y2 = boundBox->value.y2;
-  cell_left->final = true;
-
-  cell_right->value.x1 = pointsPreOrdered.front()->x;
-  cell_right->value.x2 = boundBox->value.x2;
-  cell_right->value.y1 = boundBox->value.y1;
-  cell_right->value.y2 = boundBox->value.y2;
-  cell_right->final = true;
-
-  boundBox->final = false;
-
-  //cellsPreorder.push_back(boundBox);
-  cellsPreorder.push_back(cell_right);
-  cellsPreorder.push_back(cell_left);
-  } else {
-          printf("\n returned");
-
-    return;
-  }
-
-  } else if (pointsPreOrdered.front()->axis == 1) {
-
-     // divide list of points in elements smaller and bigger than first element
-    for(int i = 1; i < (int)pointsPreOrdered.size(); i++ )
-    {
-      if(pointsPreOrdered.at(i)->y < pointsPreOrdered.front()->y) {
-        pointsPreOrdered_left.push_back(pointsPreOrdered.at(i));
-      } else if (pointsPreOrdered.at(i)->y >= pointsPreOrdered.front()->y) {
-        pointsPreOrdered_right.push_back(pointsPreOrdered.at(i));
-      }
-    }
-
-    if(pointsPreOrdered.front()->y != boundBox->value.y1
-    && pointsPreOrdered.front()->y != boundBox->value.y2) {
-    cell_left->value.y1 = boundBox->value.y1;
-    cell_left->value.y2 = pointsPreOrdered.front()->y;
-    cell_left->value.x1 = boundBox->value.x1;
-    cell_left->value.x2 = boundBox->value.x2;
-    cell_left->final = true;
-
-
-    cell_right->value.y1 = pointsPreOrdered.front()->y;
-    cell_right->value.y2 = boundBox->value.y2;
-    cell_right->value.x1 = boundBox->value.x1;
-    cell_right->value.x2 = boundBox->value.x2;
-    cell_right->final = true;
-
-    boundBox->final = false;
-
-    //cellsPreorder.push_back(boundBox);
-    cellsPreorder.push_back(cell_right);
-    cellsPreorder.push_back(cell_left);
-    } else {
-      printf("\n returned");
-      return;
-    }
-  }
-
-  pointsPreOrdered.erase(pointsPreOrdered.begin());
-
-
-  preorderGrid(cell_left, pointsPreOrdered_left);
-  preorderGrid(cell_right, pointsPreOrdered_right);
-
-  // clear aux. vectors
-  if (pointsPreOrdered_left.size() > 0) {
-    pointsPreOrdered_left.clear();
-  }
-  if (pointsPreOrdered_right.size() > 0) {
-    pointsPreOrdered_right.clear();
-  }*/
 
 }
 
@@ -1138,7 +930,7 @@ KDTree2D::build2DTree() {
   KDMedList* root2;
   // build kdtree recursive
   if(mode == 1) {
-    KDTreeRec(points, 0, (int)points.size()-1);
+    KDTreeRec(points, 0, (int)points.size()-1,0);
     // points saved in pointsVector, 
     // taking the root, saved in the back of vector
     root = pointsVector.back();
@@ -1152,7 +944,7 @@ KDTree2D::build2DTree() {
     {
          printf("\n %.2f %.2f", points[po].x, points[po].y);
     }*/
-    KDTreeMedRec(points); 
+    KDTreeMedRec(points,0); 
     //taking the root, saved in the back of vector
     root2 = kdmedListVec.back();
 
@@ -1198,15 +990,6 @@ KDTree2D::build2DTree() {
     }
 
   }
-
-  /*for(int pri=0; pri < (int)cellVector.size(); pri++)
-  {
-    printf("\n %.2f %.2f %.2f %.2f %d", cellVector[pri].getValFromX(),
-     cellVector[pri].getValToX(), cellVector[pri].getValFromY(),
-    cellVector[pri].getValToY(), cellVector[pri].getCellId());
-  }
-  printf("\n size Points %d size cells %d", (int)pointsPreorderMed.size(),
-  (int)cellVector.size());*/
 }
 
 
