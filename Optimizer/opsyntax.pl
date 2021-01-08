@@ -86,6 +86,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 :- op(800, xfx, commonborder).
 :- op(800, xfx, commonborderscan).
 :- op(800, xfx, contains).
+:- op(800, xfx, containsWord).
+:- op(800, xfx, containsPrefix).
 :- op(800, xfx, div).
 :- op(800, xfx, eplus).
 :- op(800, xfx, equalway).
