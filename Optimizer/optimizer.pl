@@ -5696,8 +5696,8 @@ cost(gettuples(rdup(sortby(
     project(SearchTerm, attrname(attr(tid, 1, u))),
     attrname(attr(tid, 1, u)))),
     Rel), Sel, _P, Size, Cost) :-
-  (SearchTerm = searchWord(dbobject(_), _); 
-    SearchTerm = searchPrefix(dbobject(_), _)),
+  (SearchTerm = searchWord(dbindexobject(_), _); 
+    SearchTerm = searchPrefix(dbindexobject(_), _)),
   cost(Rel, _, _, RelSize, _),
   exactmatchTC(C),
   Size is Sel * RelSize,
