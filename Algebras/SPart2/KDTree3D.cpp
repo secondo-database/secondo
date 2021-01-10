@@ -314,49 +314,7 @@ void KDTree3D::SetVector(std::vector<Rectangle<3>>* rVector,
    create3DTreeVector(rVector);
 }
 
-/*void makelistofRects()
-{
-  double x1 = 0.0;
-  double x2 = 1.0;
-  double a =0.2;
-  double y1 = 0.0;
-  double y2 = 1.0;
-  double b = 0.5;
 
-  for(int i=0; i < 500; i++)
-  {
-    printf("\n ((%.2f %.2f %.2f %.2f))", x1, x2, y1, y2);
-    x1+=a;
-    x2+=a;
-
-    for(int e=0; e < 100; e++)
-    {
-      printf("\n ((%.2f %.2f %.2f %.2f))", x1, x2, y1, y2);
-    
-      y1+=b;
-      y2+=b;
-    }
-  }
-
-  x1 = 2000.0;
-  x2 = 2001.0;
-  y1 = 5100.0;
-  y2 = 5101.0;
-  a = 1.0;
-  b = 0.2;
-  for(int i=0; i < 500; i++)
-  {
-    printf("\n ((%.2f %.2f %.2f %.2f))", x1, x2, y1, y2);
-    x1+=a;
-    x2+=a;
-    for(int e=0; e < 100; e++)
-    {
-      printf("\n ((%.2f %.2f %.2f %.2f))", x1, x2, y1, y2);
-      y1+=b;
-      y2+=b;
-    }
-  }
-}*/
 
 void KDTree3D::create3DTree(Stream<Rectangle<3>> rStream) {
     processInput(rStream);
@@ -500,9 +458,7 @@ KDTree3D::KDTreeMedRec3D(std::vector<T3DPoint> point_list,
    int depth) 
 { 
 
-  //printf("\n in kdtreemedrec3d");
   int axis = depth % 3; // dim = 3
-  //printf("\n axis: %d", axis);
   double median;
   std::vector<T3DPoint> point_list_left;
   std::vector<T3DPoint> point_list_right;
@@ -514,26 +470,19 @@ KDTree3D::KDTreeMedRec3D(std::vector<T3DPoint> point_list,
   }
   
   int mid = point_list.size()/2;
-  //printf("\n mid: %d, size: %d", mid, (int)point_list.size());
   // x-axis
   if(axis == 0) {
     std::sort(point_list.begin(), point_list.end(), 
           pointComparisonX);
     // calculate median
-    //printf("\n in axis= 0");
     if(point_list.size() % 2 == 0) 
     {
       median = 0.5*(point_list.at(mid-1).x + point_list.at(mid).x);
     } else {
-      //printf("\n point list at mid: %.2f", point_list[mid].x);
       median = point_list.at(mid).x;
-      //printf("\n -----median: %.2f", median);
     } 
     for(size_t i=0; i < point_list.size(); i++)
     {
-      if(depth > 40000) {
-        //printf("\n elemt: %.2f", point_list[i].x);
-      }
       if(point_list.at(i).x < median)
       {
         point_list_left.push_back(point_list.at(i));
@@ -554,7 +503,6 @@ KDTree3D::KDTreeMedRec3D(std::vector<T3DPoint> point_list,
       if (point_list_right.size() > 0) {
         point_list_right.clear();
       }
-      //printf("\n same size");
       median = point_list[mid].x;
       for(int l=0; l < mid; l++)
       {
@@ -567,7 +515,6 @@ KDTree3D::KDTreeMedRec3D(std::vector<T3DPoint> point_list,
     }
 
   } else if (axis == 1) { // y-axis
-  //printf("\n in axis=1");
     std::sort(point_list.begin(), point_list.end(), 
         pointComparisonY);
 
@@ -577,13 +524,9 @@ KDTree3D::KDTreeMedRec3D(std::vector<T3DPoint> point_list,
     } else {
       median = point_list.at(mid).y;
     }
-      //printf("\n -----median: %.2f", median);
 
     for(size_t i=0; i < point_list.size(); i++)
     {
-      if(depth > 40000) {
-        //printf("\n elemt: %.2f", point_list[i].y);
-      }
       if(point_list.at(i).y < median)
       {
         point_list_left.push_back(point_list.at(i));
@@ -604,7 +547,6 @@ KDTree3D::KDTreeMedRec3D(std::vector<T3DPoint> point_list,
       if (point_list_right.size() > 0) {
         point_list_right.clear();
       }
-      //printf("\n same size");
       median = point_list[mid].y;
       for(int l=0; l < mid; l++)
       {
@@ -616,7 +558,6 @@ KDTree3D::KDTreeMedRec3D(std::vector<T3DPoint> point_list,
       }
     } 
   } else if( axis == 2) { // z-axis
-  //printf("\n in axis = 2");
       std::sort(point_list.begin(), point_list.end(),
       pointComparisonZ);
 
@@ -626,13 +567,9 @@ KDTree3D::KDTreeMedRec3D(std::vector<T3DPoint> point_list,
     } else {
       median = point_list.at(mid).z;
     }
-      //printf("\n -----median: %.2f", median);
 
     for(size_t i=0; i < point_list.size(); i++)
     {
-      if(depth > 40000) {
-        //printf("\n elemt: %.2f", point_list[i].z);
-      }
       if(point_list.at(i).z < median)
       {
         point_list_left.push_back(point_list.at(i));
@@ -652,7 +589,6 @@ KDTree3D::KDTreeMedRec3D(std::vector<T3DPoint> point_list,
       if (point_list_right.size() > 0) {
         point_list_right.clear();
       }
-      //printf("\n same size");
       median = point_list[mid].z;
       for(int l=0; l < mid; l++)
       { 
@@ -664,13 +600,11 @@ KDTree3D::KDTreeMedRec3D(std::vector<T3DPoint> point_list,
       }
     }
   } else {
-    //printf("\n in else axis");
     return 0;
   }
 
   
   Tree3DMedStructure* tmp = new Tree3DMedStructure();
-    //printf("\n median: %.2f", median);
     tmp->setAxis(axis);
     tmp->setDepth(depth);
     tmp->setVal(median);
@@ -683,7 +617,6 @@ KDTree3D::KDTreeMedRec3D(std::vector<T3DPoint> point_list,
       tmp->right = KDTreeMedRec3D(point_list_right, depth+1);
     }
 
-    //printf("\n before push");
     // push current node in vector
     kd3dmedListVec.push_back(tmp);
     if (point_list_left.size() > 0) {
@@ -1467,16 +1400,11 @@ KDTree3D::build3DTree() {
     preorderGrid3D(boundBox, pointsPreorder[0]);
   } else {
 
-    //printf("\n in else zu med");
     KDTreeMedRec3D(points,0);
-    //printf("\n after kdtreemedrec");
     rootMed = kd3dmedListVec.back();
-    //printf("\n after rootmed");
     // order elements and prepare cells
     preorder3DMed(rootMed);
-    //printf("\n afer preorder3dmed");
     preorderMedGrid3D(boundBox, pointsPreorderMed[0]);
-    //printf("\n after preordermedgrid3d");
   }
 
   Cell3DTree cell = Cell3DTree();
@@ -1511,19 +1439,9 @@ KDTree3D::build3DTree() {
       setCellId3D(cellVector.at(e), root);
     } else {
       setCellId3D(cellVector.at(e), rootMed);
-      //printf("\n after setcellid3d");
     }
   }
 
-  /*for(int pri=0; pri < (int)cellVector.size(); pri++)
-  {
-    printf("\n %.2f %.2f %.2f %.2f %.2f %.2f %d", cellVector[pri].getValFromX(),
-     cellVector[pri].getValToX(), cellVector[pri].getValFromY(),
-    cellVector[pri].getValToY(), cellVector[pri].getValFromZ(),
-     cellVector[pri].getValToZ(), cellVector[pri].getCellId());
-  }
-  printf("\n size Points %d size cells %d", (int)pointsPreorderMed.size(),
-  (int)cellVector.size());*/
 }
 
 bool

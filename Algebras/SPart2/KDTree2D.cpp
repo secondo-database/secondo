@@ -404,8 +404,6 @@ KDMedList*
 KDTree2D::KDTreeMedRec(std::vector<TPoint> point_list,
  int depth) 
 {
-  //printf("\n in rec");
-  //printf("\n Size: %d", (int)point_list.size());
   int axis = depth % 2; // dim = 2
   double median;
   std::vector<TPoint> point_list_left;
@@ -423,7 +421,6 @@ KDTree2D::KDTreeMedRec(std::vector<TPoint> point_list,
   } else {
     median = point_list.at(mid).x;
   }
-  //printf("\n MED: %.2f", median);
     for(size_t i=0; i < point_list.size(); i++)
     {
       if(point_list.at(i).x < median)
@@ -446,7 +443,6 @@ KDTree2D::KDTreeMedRec(std::vector<TPoint> point_list,
       if (point_list_right.size() > 0) {
         point_list_right.clear();
       }
-      //printf("\n same size");
       median = point_list[mid].x;
       for(int l=0; l < mid; l++)
       {
@@ -467,7 +463,6 @@ KDTree2D::KDTreeMedRec(std::vector<TPoint> point_list,
     } else {
       median = point_list.at(mid).y;
     }
-      //printf("\n MED: %.2f", median);
 
     for(size_t i=0; i < point_list.size(); i++)
     {
@@ -491,7 +486,6 @@ KDTree2D::KDTreeMedRec(std::vector<TPoint> point_list,
       if (point_list_right.size() > 0) {
         point_list_right.clear();
       }
-      //printf("\n same size");
       median = point_list[mid].y;
       for(int l=0; l < mid; l++)
       {
@@ -682,14 +676,11 @@ KDTree2D::preorderMed(KDMedList* root)
     return;
   } 
   pointsPreorderMed.push_back(root);
-  //printf("\n root val: %.2f", root->getVal());
   if(root->left != nullptr) {
-    //printf("\n root left: %.2f", root->left->getVal());
     preorderMed(root->left);
   }
 
   if(root->right != nullptr) {
-    //printf("\n root right: %.2f", root->right->getVal());
 
     preorderMed(root->right);
   }
@@ -940,19 +931,13 @@ KDTree2D::build2DTree() {
     preorderGrid(boundBox, pointsPreorder[0]);
 
   } else {
-    /*for(int po=0; po < (int)points.size(); po++)
-    {
-         printf("\n %.2f %.2f", points[po].x, points[po].y);
-    }*/
+    
     KDTreeMedRec(points,0); 
     //taking the root, saved in the back of vector
     root2 = kdmedListVec.back();
 
     // Points of KDtree in preorder
     preorderMed(root2);
-    for(int a = 0; a < (int)pointsPreorderMed.size(); a++) {
-     // printf("\n After Preorder %.2f", pointsPreorderMed.at(a)->getVal());
-    }
 
     // order cells in preorder
     preorderMedGrid(boundBox, pointsPreorderMed[0]);
@@ -1188,9 +1173,7 @@ KDTree2D::In2DTree( const ListExpr typeInfo, const ListExpr instance,
     std::vector<Cell2DTree> cell_vec {};
     int cell_cnt = 0;
 
-    //printf("\n listlengt celllisexpr: %d", (int)nl->ListLength(cellLstExpr));
     if(nl->ListLength(cellLstExpr) > 1 ) {
-    //printf("\n cellLs gr 1");
       while(!nl->IsEmpty(cellLstExpr)) {
           ListExpr lstElem = nl->First(cellLstExpr);
 
