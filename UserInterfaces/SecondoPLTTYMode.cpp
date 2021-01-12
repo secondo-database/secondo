@@ -57,7 +57,10 @@ prolog engine. All generated solutions are printed out.
 #include <algorithm>
 #include <iostream> 
 #include <stack>
+
+#define PL_ARITY_AS_SIZE 1
 #include "SWI-Prolog.h"
+
 #include <stdlib.h>
 #include "SecondoConfig.h"
 #include "Application.h"
@@ -1196,10 +1199,10 @@ bool getBindings( term_t bindings,
         return false;
      }
      bindings = tail;  // get the rest of the list
-     int arity;
+     size_t arity;
      term_t name  = PL_new_term_ref();
      if(!PL_get_name_arity(head, &name, &arity)){
-       cerr << "name_arity failöed" << endl;
+       cerr << "name_arity failed" << endl;
        return false;
      }
      if(arity!=2){
@@ -1638,7 +1641,7 @@ bool  processCommands(istream& in, bool haltOnErrors, bool pdstyle ){
 
 
 /*
-The function ~secondo_completion~  enables 
+The function ~secondo\_completion~  enables 
 tab extension if the readline library is used.
 
 */
