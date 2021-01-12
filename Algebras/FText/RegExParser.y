@@ -79,9 +79,9 @@ extern "C"{
 }
 #endif
 
-int parse_success;
-IntNfa* result;
-Stack<IntNfa*>* stack=0;
+int cregex_parse_success;
+IntNfa* cregex_result;
+Stack<IntNfa*>* cregex_stack=0;
 char* cregex_last_message=0;
 
 %}
@@ -112,7 +112,7 @@ char* cregex_last_message=0;
 %%
 
 start: expr{
-         result = $1;
+         cregex_result = $1;
       }
 
 expr : term {
@@ -165,7 +165,7 @@ atom  : OPEN expr CLOSE {
       | CHAR {
         int number = $1;
         $$ = new IntNfa(number); 
-        stack->push($$);
+        cregex_stack->push($$);
         }
       | ANY {
         std::vector<int> v;
@@ -175,11 +175,11 @@ atom  : OPEN expr CLOSE {
            }
         }
         $$ = new IntNfa(v);
-        stack->push($$);  
+        cregex_stack->push($$);  
        }
       | OPENSET set CLOSESET {
          $$ = new IntNfa($2->theVector);
-         stack->push($$);
+         cregex_stack->push($$);
          delete $2;
       }
       | OPENINVERSESET set CLOSESET {
@@ -191,7 +191,7 @@ atom  : OPEN expr CLOSE {
         }
         delete $2;
         $$  = new IntNfa(v);
-        stack->push($$); 
+        cregex_stack->push($$); 
       }
       ;
 
@@ -243,8 +243,8 @@ an error.
 int cregexerror (const char *error)
 {
   std::cout << error << std::endl;
-  parse_success=1; 
-  result = 0;
+  cregex_parse_success=1; 
+  cregex_result = 0;
   return 1;
 }
 
@@ -263,10 +263,10 @@ the first argument is parsed according to the rules given above.
 */
 int parseRegEx(const char* argument, IntNfa** T){
 
-    parse_success=0;
+    cregex_parse_success=0;
     lexDestroy();
 
-    stack = new Stack<IntNfa*>();
+    cregex_stack = new Stack<IntNfa*>();
 
 
     cregex_scan_string(argument);
@@ -274,32 +274,32 @@ int parseRegEx(const char* argument, IntNfa** T){
     yyparse();
 
 
-    if(parse_success && cregex_last_message){
+    if(cregex_parse_success && cregex_last_message){
           free(cregex_last_message);
           cregex_last_message=0;
     }
 
 
-    // kill the stack
-    while(!stack->isEmpty()){
-      IntNfa* elem = stack->pop();
-      if(elem!=result || parse_success){
+    // kill the cregex_stack
+    while(!cregex_stack->isEmpty()){
+      IntNfa* elem = cregex_stack->pop();
+      if(elem!=cregex_result || cregex_parse_success){
         delete elem;
       }
     }
 
-    if(parse_success){
+    if(cregex_parse_success){
       *T = 0; 
     }  else {
-       (*T) = result;
+       (*T) = cregex_result;
     }
 
-    delete stack;
-    stack = 0;
+    delete cregex_stack;
+    cregex_stack = 0;
 
     lexDestroy();
 
-    return parse_success;
+    return cregex_parse_success;
 }
 
 /* 
