@@ -448,7 +448,7 @@ void Message14::extractInfos(){
    text = extractString(40,1007-2);
    int textlength = omsg.length() - 8;
    text = text.substr(0,textlength);
-   assert(type=14);
+   assert(type==14);
 }
 
 
@@ -502,7 +502,7 @@ void Message18::extractInfos(){
    assigned = extract(146,146);
    raim = extract(147,147);
    radio = extract(148,167);
-   assert(type=18);
+   assert(type==18);
 }
 
 
@@ -559,7 +559,7 @@ void Message19::extractInfos(){
    raim = extract(305,305);
    dte = extract(306,306);
    assigned = extract(307,307);
-   assert(type=19);
+   assert(type==19);
 }
 
 /*
