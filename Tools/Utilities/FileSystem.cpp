@@ -161,7 +161,6 @@ FileSystem::GetParentFolder( const string& folder, int level /* =1 */)
 bool
 FileSystem::SetCurrentFolder( const string& folder )
 {
-  assert( &folder );
 #ifdef SECONDO_WIN32
   return (::SetCurrentDirectory( folder.c_str() ) != 0);
 #else
@@ -190,7 +189,6 @@ bool FileSystem::CreateFolderEx(string pathname){
 bool
 FileSystem::CreateFolder( const string& folder )
 {
-  assert( &folder );
 #ifdef SECONDO_WIN32
   return (::CreateDirectory( folder.c_str(), NULL ) != 0);
 #else
@@ -274,7 +272,6 @@ FileSystem::DeleteFileOrFolder( const string& fileName )
 bool
 FileSystem::EraseFolder( const string& folder, uint16_t maxLevels )
 {
-  assert( &folder );
 #ifdef SECONDO_WIN32
   // Determine file type
   FileAttributes fileAttribs = Get_FileAttributes( folder );
@@ -311,8 +308,6 @@ bool
 FileSystem::RenameFileOrFolder( const string& currentName,
                                 const string& newName )
 {
-  assert( &currentName );
-  assert( &newName );
 #ifdef SECONDO_WIN32
   return (::MoveFile( currentName.c_str(), newName.c_str() ) != 0);
 #else
@@ -325,8 +320,6 @@ FileSystem::RenameFileOrFolder( const string& currentName,
 bool
 FileSystem::Copy_File( const string& source, const string& dest )
 {
-  assert( &source );
-  assert( &dest );
 #ifdef SECONDO_WIN32
   return (::CopyFile( source.c_str(), dest.c_str(), FALSE ) != 0);
 #else
@@ -339,14 +332,12 @@ FileSystem::Copy_File( const string& source, const string& dest )
 bool
 FileSystem::FileOrFolderExists( const string& fileName )
 {
-  assert( &fileName );
   return (access( fileName.c_str(), 0 ) != -1);
 }
 
 FileAttributes
 FileSystem::Get_FileAttributes( const string& fileName )
 {
-  assert( &fileName );
   FileAttributes attribs = 0;
 #ifdef SECONDO_WIN32
   attribs = ::GetFileAttributes( fileName.c_str() );
@@ -397,9 +388,6 @@ FileSystem::FileSearch( const string& folder,
                         bool fullPath,
                         FileSearchCallbackFunc fileSearchCallback )
 {
-  assert( &folder );
-  assert( &filenameList );
-
   // Save the current folder and change to folder where the search starts.
   string oldFolder = GetCurrentFolder();
   if(!SetCurrentFolder( folder ))

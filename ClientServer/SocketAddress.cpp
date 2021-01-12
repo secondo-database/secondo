@@ -63,7 +63,6 @@ SocketAddress::~SocketAddress()
 SocketAddress& SocketAddress::operator=( const SocketAddress& sockAddr )
 {
   assert( this );
-  assert( &sockAddr );
   if ( this != &sockAddr )
   {
     u.sock_inet = sockAddr.u.sock_inet;
@@ -74,7 +73,6 @@ SocketAddress& SocketAddress::operator=( const SocketAddress& sockAddr )
 bool SocketAddress::operator==( const SocketAddress& sockAddr ) const
 {
   assert( this );
-  assert( &sockAddr );
   bool result = true;
   if ( this != &sockAddr )
   {
@@ -90,7 +88,6 @@ void SocketAddress::SetAddress( const string& ipAddr,
                                 uint16_t portNo /* = 0 */ )
 {
   assert( this );
-  assert( &ipAddr );
   u.sock_inet.sin_family = AF_INET;
   u.sock_inet.sin_port   = htons( portNo );
   u.sock_inet.sin_addr.s_addr = inet_addr( ipAddr.c_str() );
@@ -103,7 +100,6 @@ void SocketAddress::SetAddress( const string& ipAddr,
 void SocketAddress::SetAddress( const string& ipAddr, const string& portNo )
 {
   assert( this );
-  assert( &ipAddr );
   u.sock_inet.sin_family = AF_INET;
   unsigned short port;
   sscanf( portNo.c_str(), "%hd", &port );

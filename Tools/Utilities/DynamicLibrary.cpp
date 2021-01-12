@@ -54,7 +54,6 @@ DynamicLibrary::~DynamicLibrary()
 bool
 DynamicLibrary::Load( const string& libraryName )
 {
-  assert( &libraryName );
   bool ok = false;
   if ( libraryName.length() > 0  && !IsLoaded() )
   {
@@ -127,7 +126,6 @@ DynamicLibrary::GetLibraryName() const
 void*
 DynamicLibrary::GetFunctionAddress( const string& functionName )
 {
-  assert( &functionName );
   void* functionAddr = 0;
   if ( IsLoaded() )
   {
