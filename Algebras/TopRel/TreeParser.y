@@ -96,9 +96,9 @@ extern void deleteCurrentBuffer();
 
 */
 
-int parse_success;
-struct tree* result;
-char* last_message=0;
+int tree_parser_parse_success;
+struct tree* tree_parser_result;
+char* tree_parser_last_message=0;
 
 /*
 
@@ -193,8 +193,8 @@ http://www.gnu.org/software/bison/manual/
 %%
 
 formula	: expr { $$ = $1;
-                 result= $1; 
-                 parse_success=1;
+                 tree_parser_result= $1; 
+                 tree_parser_parse_success=1;
                  destroyStackWithoutEntries();
                  treestack=0;
                }
@@ -236,21 +236,21 @@ factor  : OPEN expr CLOSE { $$ = $2; }
 
 This functions is automatically called when the parser detects
 an error. The main task of this function is to destroy all objects
-created while parsing and to set all results to the right values.
+created while parsing and to set all tree_parser_results to the right values.
 
 */
 
 int treeerror (const char *error)
 {
  // save the error message
- if( last_message ) { 
-      free(last_message); 
+ if( tree_parser_last_message ) { 
+      free(tree_parser_last_message); 
   }
-  last_message = (char*) malloc(strlen(error) +1);
-  strcpy( last_message, error );
+  tree_parser_last_message = (char*) malloc(strlen(error) +1);
+  strcpy( tree_parser_last_message, error );
   
-  parse_success=0; 
-  result = 0;
+  tree_parser_parse_success=0; 
+  tree_parser_result = 0;
   destroyStack(); // destroy all created trees 
   return 0;
 }
@@ -263,7 +263,7 @@ This function  is the only one which should be called from
 outside. When this function is called, the string given as
 the first argument is parsed according to the rules given above.
 If the strng represents a valid boolean expression with operators
-and variables described above, the result will be 1. In this case,
+and variables described above, the tree_parser_result will be 1. In this case,
 the second argument is the created operator tree. You have to ensure
 that T is destroyed after use. 
 
@@ -272,28 +272,28 @@ int parseString(const char* argument, struct tree** T){
     tree_scan_string(argument);
     treestack=0;
     treeparse();
-    if(parse_success && last_message){
-          free(last_message);
-          last_message=0;
+    if(tree_parser_parse_success && tree_parser_last_message){
+          free(tree_parser_last_message);
+          tree_parser_last_message=0;
     }
-    (*T) = result;
+    (*T) = tree_parser_result;
     deleteCurrentBuffer();
-    return parse_success;
+    return tree_parser_parse_success;
 }
 
 /* 
 2.6 The GetLastMessage function
 
 This function returns the last occured error. If no message
-is available, the result will be NULL. Otherwise you shoul don't forget
-to deallocate the memory of the result.
+is available, the tree_parser_result will be NULL. Otherwise you shoul don't forget
+to deallocate the memory of the tree_parser_result.
 
 */
 char* GetLastMessage(){
-  if(!last_message)
+  if(!tree_parser_last_message)
     return NULL;
-  char* M = (char*) malloc(strlen(last_message)+1);
-  strcpy(M,last_message);
+  char* M = (char*) malloc(strlen(tree_parser_last_message)+1);
+  strcpy(M,tree_parser_last_message);
   return M; 
 
 }
