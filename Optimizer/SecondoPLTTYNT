@@ -24,5 +24,9 @@ fi
 fi
 fi  
 
-$runner  -pltty -L256M -G256M $* pl -g true
+if [ $(swipl --help 2>&1 | grep stack-limit | wc -l) -gt 0 ]; then
+   $runner  -pltty $* pl -g true --stack-limit=256M
+else
+   $runner  -pltty -L256M -G256M $* pl -g true
+fi
 
