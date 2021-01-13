@@ -25,26 +25,27 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
 */
-#include "Algebras/DBService/DBServiceAlgebra.hpp"
-#include "Algebras/DBService/OperatorAddNode.hpp"
-#include "Algebras/DBService/OperatorCheckDBServiceStatus.hpp"
-#include "Algebras/DBService/OperatorDBSARG.hpp"
-#include "Algebras/DBService/OperatorDBRARG.hpp"
-#include "Algebras/DBService/OperatorRELARG.hpp"
-#include "Algebras/DBService/OperatorDDelete.hpp"
-#include "Algebras/DBService/OperatorDDeleteDB.hpp"
-#include "Algebras/DBService/OperatorGetConfigParam.hpp"
-#include "Algebras/DBService/OperatorInitDBServiceWorker.hpp"
-#include "Algebras/DBService/OperatorPingDBService.hpp"
-#include "Algebras/DBService/OperatorRead.hpp"
-#include "Algebras/DBService/OperatorRead2.hpp"
-#include "Algebras/DBService/OperatorSetTraceLevel.hpp"
-#include "Algebras/DBService/OperatorStartDBService.hpp"
-#include "Algebras/DBService/OperatorWrite.hpp"
-#include "Algebras/DBService/OperatorRderive.hpp"
-#include "Algebras/DBService/OperatorDBIARG.hpp"
-#include "Algebras/DBService/OperatorRead3_X.hpp"
-#include "Algebras/DBService/OperatorUseIncrementalMetadataUpdate.hpp"
+#include "Algebras/DBService2/DBServiceAlgebra.hpp"
+#include "Algebras/DBService2/OperatorAddNode.hpp"
+#include "Algebras/DBService2/OperatorCheckDBServiceStatus.hpp"
+#include "Algebras/DBService2/OperatorDBSARG.hpp"
+#include "Algebras/DBService2/OperatorDBRARG.hpp"
+#include "Algebras/DBService2/OperatorRELARG.hpp"
+#include "Algebras/DBService2/OperatorDDelete.hpp"
+#include "Algebras/DBService2/OperatorDDeleteDB.hpp"
+#include "Algebras/DBService2/OperatorGetConfigParam.hpp"
+#include "Algebras/DBService2/OperatorInitDBServiceWorker.hpp"
+#include "Algebras/DBService2/OperatorPingDBService.hpp"
+#include "Algebras/DBService2/OperatorRead.hpp"
+#include "Algebras/DBService2/OperatorRead2.hpp"
+#include "Algebras/DBService2/OperatorSetTraceLevel.hpp"
+#include "Algebras/DBService2/OperatorStartDBService.hpp"
+#include "Algebras/DBService2/OperatorWrite.hpp"
+#include "Algebras/DBService2/OperatorRderive.hpp"
+#include "Algebras/DBService2/OperatorDBIARG.hpp"
+#include "Algebras/DBService2/OperatorRead3_X.hpp"
+#include "Algebras/DBService2/OperatorUseIncrementalMetadataUpdate.hpp"
+#include "Algebras/DBService2/OperatorTestDBService.hpp"
 
 namespace DBService
 {
@@ -92,6 +93,10 @@ DBServiceAlgebra::DBServiceAlgebra() :
     AddOperator(UseIncrementalMetadataUpdateInfo(),
                 OperatorUseIncrementalMetadataUpdate::mapValue,
                 OperatorUseIncrementalMetadataUpdate::mapType);
+
+    AddOperator(TestDBServiceInfo(),
+                OperatorTestDBService::mapValue,
+                OperatorTestDBService::mapType);
 
     AddOperator(DBSARGInfo(),
                 0,

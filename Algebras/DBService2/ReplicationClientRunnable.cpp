@@ -25,10 +25,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
 */
-#include "Algebras/DBService/DebugOutput.hpp"
-#include "Algebras/DBService/ReplicationClient.hpp"
-#include "Algebras/DBService/ReplicationClientRunnable.hpp"
-#include "Algebras/DBService/ReplicationUtils.hpp"
+#include "Algebras/DBService2/DebugOutput.hpp"
+#include "Algebras/DBService2/ReplicationClient.hpp"
+#include "Algebras/DBService2/ReplicationClientRunnable.hpp"
+#include "Algebras/DBService2/ReplicationUtils.hpp"
 
 using namespace std;
 

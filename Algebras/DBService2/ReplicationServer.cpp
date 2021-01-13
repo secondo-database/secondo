@@ -36,11 +36,11 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Algebras/Distributed2/FileTransferKeywords.h"
 #include "Algebras/Distributed2/FileRelations.h"
 
-#include "Algebras/DBService/CommunicationProtocol.hpp"
-#include "Algebras/DBService/CommunicationUtils.hpp"
-#include "Algebras/DBService/ReplicationServer.hpp"
-#include "Algebras/DBService/ReplicationUtils.hpp"
-#include "Algebras/DBService/SecondoUtilsLocal.hpp"
+#include "Algebras/DBService2/CommunicationProtocol.hpp"
+#include "Algebras/DBService2/CommunicationUtils.hpp"
+#include "Algebras/DBService2/ReplicationServer.hpp"
+#include "Algebras/DBService2/ReplicationUtils.hpp"
+#include "Algebras/DBService2/SecondoUtilsLocal.hpp"
 
 using namespace std;
 
@@ -188,12 +188,16 @@ void ReplicationServer::sendFileToClient(
                 "communication error while initiating file transfer");
     }
 
-    traceWriter->write(tid, "file created, sending file");
+    traceWriter->write(tid, "File created, sending file...");
 
     std::chrono::steady_clock::time_point begin =
             std::chrono::steady_clock::now();
     std::string filename;
     int rc = sendFile(io, filename);
+
+    traceWriter->write(tid, "File has been sent.");
+    traceWriter->write(tid, "Filename", filename);
+
     std::chrono::steady_clock::time_point end =
             std::chrono::steady_clock::now();
     if(rc != 0)

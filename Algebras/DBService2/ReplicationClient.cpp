@@ -30,12 +30,12 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "SocketIO.h"
 #include "StringUtils.h"
 
-#include "Algebras/DBService/CommunicationClient.hpp"
-#include "Algebras/DBService/CommunicationProtocol.hpp"
-#include "Algebras/DBService/CommunicationUtils.hpp"
-#include "Algebras/DBService/ReplicationClient.hpp"
-#include "Algebras/DBService/SecondoUtilsLocal.hpp"
-#include "Algebras/DBService/ReplicationUtils.hpp"
+#include "Algebras/DBService2/CommunicationClient.hpp"
+#include "Algebras/DBService2/CommunicationProtocol.hpp"
+#include "Algebras/DBService2/CommunicationUtils.hpp"
+#include "Algebras/DBService2/ReplicationClient.hpp"
+#include "Algebras/DBService2/SecondoUtilsLocal.hpp"
+#include "Algebras/DBService2/ReplicationUtils.hpp"
 
 using namespace std;
 using namespace distributed2;
@@ -274,6 +274,8 @@ bool ReplicationClient::receiveFileFromServer()
     if(rc != 0)
     {
         traceWriter->write("receive failed");
+
+        //TODO Resolve error codes and explain them.
         traceWriter->write("rc=", rc);
         return false;
     }else

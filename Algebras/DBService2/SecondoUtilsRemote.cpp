@@ -16,8 +16,8 @@ the Free Software Foundation; either version 2 of the License, or
 
 SECONDO is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
+GNU General Public License for more det0ails.
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
 along with SECONDO; if not, write to the Free Software
@@ -32,8 +32,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Profiles.h"
 #include "SecParser.h"
 
-#include "Algebras/DBService/DebugOutput.hpp"
-#include "Algebras/DBService/SecondoUtilsRemote.hpp"
+#include "Algebras/DBService2/DebugOutput.hpp"
+#include "Algebras/DBService2/SecondoUtilsRemote.hpp"
 
 
 using namespace std;

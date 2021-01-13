@@ -39,7 +39,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "Algebras/Distributed2/FileTransferServer.h"
 
-#include "Algebras/DBService/MultiClientServer.hpp"
+#include "Algebras/DBService2/MultiClientServer.hpp"
 
 namespace DBService {
 

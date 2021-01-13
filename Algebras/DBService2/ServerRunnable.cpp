@@ -25,9 +25,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
 */
-#include "Algebras/DBService/CommunicationServer.hpp"
-#include "Algebras/DBService/ReplicationServer.hpp"
-#include "Algebras/DBService/ServerRunnable.hpp"
+#include "Algebras/DBService2/CommunicationServer.hpp"
+#include "Algebras/DBService2/ReplicationServer.hpp"
+#include "Algebras/DBService2/ServerRunnable.hpp"
 
 using namespace distributed2;
 

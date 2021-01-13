@@ -33,12 +33,12 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "Algebras/Distributed2/FileRelations.h"
 
-#include "Algebras/DBService/DebugOutput.hpp"
-#include "Algebras/DBService/OperatorCommon.hpp"
-#include "Algebras/DBService/OperatorRead2.hpp"
-#include "Algebras/DBService/ReplicationUtils.hpp"
-#include "Algebras/DBService/SecondoUtilsLocal.hpp"
-#include "DBServiceClient.hpp"
+#include "Algebras/DBService2/DebugOutput.hpp"
+#include "Algebras/DBService2/OperatorCommon.hpp"
+#include "Algebras/DBService2/OperatorRead2.hpp"
+#include "Algebras/DBService2/ReplicationUtils.hpp"
+#include "Algebras/DBService2/SecondoUtilsLocal.hpp"
+#include "Algebras/DBService2/DBServiceClient.hpp"
 #include "Stream.h"
 
 using namespace std;

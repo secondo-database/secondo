@@ -26,10 +26,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 #include <algorithm>
-#include <cstdlib>
 #include <random>
+#include <cstdlib>
 
-#include "Algebras/DBService/RelationInfo.hpp"
+#include "Algebras/DBService2/RelationInfo.hpp"
 
 using namespace std;
 
@@ -102,10 +102,11 @@ return originalLocation;
 
 const ConnectionID RelationInfo::getRandomReplicaLocation()
 {
-    shuffle(
-            nodes.begin(),
-            nodes.end(),
-            std::mt19937(std::random_device()()));
+    std::random_device rd;
+    std::mt19937 g(rd());
+    std::shuffle(
+        nodes.begin(),
+        nodes.end(), g);
 
     for(const auto& node : nodes)
     {

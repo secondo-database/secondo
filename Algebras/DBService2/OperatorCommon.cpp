@@ -31,9 +31,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Algebras/Relation-C++/OperatorFeed.h"
 #include "Algebras/Relation-C++/RelationAlgebra.h"
 
-#include "Algebras/DBService/DBServiceClient.hpp"
-#include "Algebras/DBService/DebugOutput.hpp"
-#include "Algebras/DBService/OperatorCommon.hpp"
+#include "Algebras/DBService2/DBServiceClient.hpp"
+#include "Algebras/DBService2/DebugOutput.hpp"
+#include "Algebras/DBService2/OperatorCommon.hpp"
 #include "Stream.h"
 
 using namespace std;

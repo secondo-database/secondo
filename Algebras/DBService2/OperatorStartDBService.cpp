@@ -24,9 +24,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 #include "Algebras/Distributed2/Dist2Helper.h"
 
-#include "Algebras/DBService/DBServiceManager.hpp"
-#include "Algebras/DBService/DebugOutput.hpp"
-#include "Algebras/DBService/OperatorStartDBService.hpp"
+#include "Algebras/DBService2/DBServiceManager.hpp"
+#include "Algebras/DBService2/DebugOutput.hpp"
+#include "Algebras/DBService2/OperatorStartDBService.hpp"
 
 using namespace std;
 
@@ -60,6 +60,17 @@ int OperatorStartDBService::mapValue(Word* args,
         return 0;
     }
     bool started =  DBServiceManager::getInstance() != 0;
+
+
+    //TODO find out if there's a more elegant way...
+    /* The test suite will commit many transactions but Secondo will attempt 
+     * to close
+     * the transaction for the given operator. Therefore, here a transaction 
+     * will be opened
+     * to satisfy this requirement for a successful operator execution.
+     */
+    SecondoSystem::BeginTransaction();
+
     res->Set(true,started);
     return 0;
 }

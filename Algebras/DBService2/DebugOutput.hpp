@@ -38,11 +38,13 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include <boost/thread.hpp>
 
+#include <loguru.hpp>
+
 #include "Algebra.h"
 
-#include "Algebras/DBService/LocationInfo.hpp"
-#include "Algebras/DBService/RelationInfo.hpp"
-#include "Algebras/DBService/DerivateInfo.hpp"
+#include "Algebras/DBService2/LocationInfo.hpp"
+#include "Algebras/DBService2/RelationInfo.hpp"
+#include "Algebras/DBService2/DerivateInfo.hpp"
 
 namespace DBService
 {

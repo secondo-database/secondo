@@ -31,15 +31,15 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "SecondoException.h"
 
-#include "Algebras/DBService/CommunicationClient.hpp"
-#include "Algebras/DBService/DBServiceClient.hpp"
-#include "Algebras/DBService/DebugOutput.hpp"
-#include "Algebras/DBService/ReplicationClient.hpp"
-#include "Algebras/DBService/ReplicationServer.hpp"
-#include "Algebras/DBService/ReplicationUtils.hpp"
-#include "Algebras/DBService/Replicator.hpp"
-#include "Algebras/DBService/SecondoUtilsLocal.hpp"
-#include "Algebras/DBService/ServerRunnable.hpp"
+#include "Algebras/DBService2/CommunicationClient.hpp"
+#include "Algebras/DBService2/DBServiceClient.hpp"
+#include "Algebras/DBService2/DebugOutput.hpp"
+#include "Algebras/DBService2/ReplicationClient.hpp"
+#include "Algebras/DBService2/ReplicationServer.hpp"
+#include "Algebras/DBService2/ReplicationUtils.hpp"
+#include "Algebras/DBService2/Replicator.hpp"
+#include "Algebras/DBService2/SecondoUtilsLocal.hpp"
+#include "Algebras/DBService2/ServerRunnable.hpp"
 
 using namespace std;
 

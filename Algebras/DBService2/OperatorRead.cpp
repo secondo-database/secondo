@@ -33,10 +33,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "Algebras/Distributed2/FileRelations.h"
 
-#include "Algebras/DBService/DebugOutput.hpp"
-#include "Algebras/DBService/OperatorRead.hpp"
-#include "Algebras/DBService/ReplicationUtils.hpp"
-#include "Algebras/DBService/SecondoUtilsLocal.hpp"
+#include "Algebras/DBService2/DebugOutput.hpp"
+#include "Algebras/DBService2/OperatorRead.hpp"
+#include "Algebras/DBService2/ReplicationUtils.hpp"
+#include "Algebras/DBService2/SecondoUtilsLocal.hpp"
 #include "DBServiceClient.hpp"
 
 using namespace std;
@@ -96,7 +96,10 @@ ListExpr OperatorRead::mapType(ListExpr nestedList)
             print("Could not determine relation type from file", std::cout);
             return listutils::typeError("Unreadable file");
         }
+    } else {
+        print("Found relation locally.", std::cout);
     }
+
     print("feedTypeMapResult", feedTypeMapResult, std::cout);
 
     ListExpr readTypeMapResult = nl->ThreeElemList(
@@ -114,42 +117,59 @@ int OperatorRead::mapValue(Word* args,
                             Word& local,
                             Supplier s)
 {
+    print("READ mapValue", std::cout);
+    
     string fileName =
             static_cast<CcString*>(args[1].addr)->GetValue();
+
+    print("Filename", fileName, std::cout);
+
     if(fileName.empty())
     {
+        print("Filename was empty.", std::cout);
         return OperatorFeed::Feed(args, result,
                 message, local, s);
     }
+
     ffeed5Info* info = (ffeed5Info*) local.addr;
+
     switch(message){
     case OPEN:{
+        print("Case OPEN", std::cout);
         if(info){
             delete info;
             local.addr = 0;
         }
+
         print("Reading tuple stream from file", fileName, std::cout);
         info = new ffeed5Info(fileName);
+
         if(!info->isOK())
         {
             print("Could not read file", std::cout);
             delete info;
             return 0;
         }
+
         ListExpr relType = info->getRelType();
         print("relType", relType, std::cout);
+        
         if(!Relation::checkType(relType))
         {
+            print("Deleting info. checkType was false.", std::cout);
             delete info;
             return 0;
         }
+
         local.addr = info;
         return 0;
     }
     case REQUEST:
+        print("Case REQUEST", std::cout);
         result.addr = info ? info->next() : 0;
         return result.addr? YIELD : CANCEL;
     case CLOSE:
+        print("Case CLOSE", std::cout);
         if(info)
         {
             delete info;

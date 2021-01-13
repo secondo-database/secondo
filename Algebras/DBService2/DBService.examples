@@ -82,6 +82,13 @@ Example   : query startdbservice()
 Result    : unpredictable
 Remark    : Result depends on the presence of DBService configuration
 
+Operator  : testdbservice
+Number    : 1
+Signature : -> bool
+Example   : query testdbservice()
+Result    : TRUE
+Remark    : Requires an empty database named "dbservice_test" to be opened.
+
 Operator : rderive
 Number   : 1
 Signature : rel x string x fun(rel->X) -> X 

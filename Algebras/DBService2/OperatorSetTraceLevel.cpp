@@ -29,9 +29,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "StandardTypes.h"
 #include "QueryProcessor.h"
 
-#include "Algebras/DBService/DebugOutput.hpp"
-#include "Algebras/DBService/OperatorSetTraceLevel.hpp"
-#include "Algebras/DBService/TraceSettings.hpp"
+#include "Algebras/DBService2/DebugOutput.hpp"
+#include "Algebras/DBService2/OperatorSetTraceLevel.hpp"
+#include "Algebras/DBService2/TraceSettings.hpp"
 
 namespace DBService {
 

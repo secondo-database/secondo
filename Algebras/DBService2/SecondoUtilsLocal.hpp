@@ -85,6 +85,7 @@ This function allows adjusting the currently opened database to the specified
 value.
 
 */
+    // TODO Rename to "selectDatabase" or "openDatabase"
     static bool adjustDatabase(const std::string& databaseName);
 
 /*

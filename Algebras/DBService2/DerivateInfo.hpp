@@ -38,9 +38,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #ifndef DERIVATEINFO_HPP
 #define DERIVATEINFO_HPP
 
-#include "Algebras/DBService/MetadataObject.hpp"
-#include "Algebras/DBService/RelationInfo.hpp"
-#include "Algebras/DBService/ReplicaLocations.hpp"
+#include "Algebras/DBService2/MetadataObject.hpp"
+#include "Algebras/DBService2/RelationInfo.hpp"
+#include "Algebras/DBService2/ReplicaLocations.hpp"
 #include <string>
 
 

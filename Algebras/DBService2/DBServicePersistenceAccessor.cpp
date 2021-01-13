@@ -31,29 +31,54 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "SecondoException.h"
 #include "StringUtils.h"
 
-#include "Algebras/DBService/DBServicePersistenceAccessor.hpp"
-#include "Algebras/DBService/DebugOutput.hpp"
-#include "Algebras/DBService/SecondoUtilsLocal.hpp"
+#include "Algebras/DBService2/DBServicePersistenceAccessor.hpp"
+#include "Algebras/DBService2/DebugOutput.hpp"
+#include "Algebras/DBService2/SecondoUtilsLocal.hpp"
 
 using namespace std;
 
 namespace DBService {
 
 
+//TODO This class is deprecated. Remove all dependencies to it. Then remove it.
+
+bool DBServicePersistenceAccessor::createDBSchemaIfNotExists()
+{
+    printFunction("DBServicePersistenceAccessor::createDBSchemaIfNotExists", 
+        std::cout);
+
+    //TODO DBServicePersistenceAccessor must be instantiated ... 
+    //  look for an example on how to do that.
+
+    // Create table locations_DBSP    
+    DBServicePersistenceAccessor::createSecondoRelation(string("dbs_nodes"), 
+        nodes);
+
+    print("Done creating the DBService database schema.", std::cout);
+    return true;
+}
+
 bool DBServicePersistenceAccessor::deleteAndCreate(
         const string& relationName,
         const RelationDefinition& rel,
         const vector<vector <string> >& values)
 {
-    printFunction("DBServicePersistenceAccessor::createOrInsert", std::cout);
-    string databaseName("dbservice");
-    print(relationName, std::cout);
+    printFunction("DBServicePersistenceAccessor::deleteAndCreate", std::cout);
+    print("Relation name:", relationName, std::cout);
 
-    SecondoUtilsLocal::adjustDatabase(databaseName);
+    SecondoUtilsLocal::adjustDatabase(DBSERVICE_DATABASE_NAME);
 
     if(SecondoSystem::GetCatalog()->IsObjectName(relationName))
     {
+        print("Deleting object", relationName, std::cout);
+        
+        // TODO Why delete the entire table?
         SecondoSystem::GetCatalog()->DeleteObject(relationName);
+        print("Done deleting object", relationName, std::cout);
+    } else {
+        print("The relation can't be deleted as it doesn't exist", 
+            relationName, std::cout);
+        return false;
     }
 
     if(values.empty())
@@ -61,46 +86,96 @@ bool DBServicePersistenceAccessor::deleteAndCreate(
         print("Nothing to persist", std::cout);
         return true;
     }
+
+    print("Persisting values...", std::cout);
     return createOrInsert(relationName, rel, values);
 }
 
-bool DBServicePersistenceAccessor::createOrInsert(
-        const string& relationName,
-        const RelationDefinition& rel,
-        const vector<vector<string> >& values)
+//TODO Merge createSecondoRelation with createOrInsert
+bool DBServicePersistenceAccessor::createSecondoRelation(
+    const std::string &relationName,
+    const RelationDefinition &rel)
 {
-    printFunction("DBServicePersistenceAccessor::createOrInsert", std::cout);
-    string databaseName("dbservice");
+    printFunction("DBServicePersistenceAccessor::createSecondoRelation", 
+        std::cout);
     print(relationName, std::cout);
 
-    SecondoUtilsLocal::adjustDatabase(databaseName);
+    SecondoUtilsLocal::adjustDatabase(DBSERVICE_DATABASE_NAME);
+
+    bool resultOk = false;
+    string errorMessage;
+
+    // Create an empty vector for buildCreateCommand
+    vector<vector<string>> values;
+
+    if (!SecondoSystem::GetCatalog()->IsObjectName(relationName))
+    {
+        print("The secondo relation does not exist: ", relationName, std::cout);
+
+        resultOk = SecondoUtilsLocal::createRelation(
+
+            // Add buildCreateCommand without values
+            CommandBuilder::buildCreateCommand(
+                relationName,
+                rel,
+                {values}),
+            errorMessage);
+        if (resultOk)
+        {            
+            print("Created the secondo relation: ", relationName, std::cout);
+        }
+        else
+        {            
+            print("Failed to create the secondo relation: ", relationName, 
+                std::cout);
+            return false;
+        }        
+    }
+    return resultOk;
+}
+
+
+    //TODO Rename to insert
+    bool
+    DBServicePersistenceAccessor::createOrInsert(
+        const string &relationName,
+        const RelationDefinition &rel,
+        const vector<vector<string>> &values)
+{
+    printFunction("DBServicePersistenceAccessor::createOrInsert", std::cout);
+    print(relationName, std::cout);
+
+    SecondoUtilsLocal::adjustDatabase(DBSERVICE_DATABASE_NAME);
 
     bool resultOk = false;
     string errorMessage;
 
     if(!SecondoSystem::GetCatalog()->IsObjectName(relationName))
     {
-        print("relation does not exist: ", relationName, std::cout);
-//        SecondoSystem::CommitTransaction(true);
-//        SecondoSystem::BeginTransaction();
-        resultOk = SecondoUtilsLocal::createRelation(
-                CommandBuilder::buildCreateCommand(
-                        relationName,
-                        rel,
-                        {values}),
-                errorMessage);
-        if(resultOk)
-        {
-//            SecondoSystem::CommitTransaction(true);
-            print("created relation: ", relationName, std::cout);
-        }else
-        {
-//            SecondoSystem::AbortTransaction(true);
-            print("failed to create relation: ", relationName, std::cout);
-        }
+        print("Relation does not exist. Can't insert. Aborting. Relationname:",
+            relationName, std::cout);        
+
+//TODO Remove
+// //        SecondoSystem::CommitTransaction(true);
+// //        SecondoSystem::BeginTransaction();
+//         resultOk = SecondoUtilsLocal::createRelation(
+//                 CommandBuilder::buildCreateCommand(
+//                         relationName,
+//                         rel,
+//                         {values}),
+//                 errorMessage);
+//         if(resultOk)
+//         {
+// //            SecondoSystem::CommitTransaction(true);
+//             print("created relation: ", relationName, std::cout);
+//         }else
+//         {
+// //            SecondoSystem::AbortTransaction(true);
+//             print("failed to create relation: ", relationName, std::cout);
+//         }
         return resultOk;
     }
-    print("relation exists, trying insert command", std::cout);
+    print("Relation exists. Trying insert command.", std::cout);
 
     if(values.size() != 1)
     {
@@ -108,20 +183,24 @@ bool DBServicePersistenceAccessor::createOrInsert(
         return false;
     }
 //    SecondoSystem::BeginTransaction();
-    resultOk = SecondoUtilsLocal::executeQuery2(
-            CommandBuilder::buildInsertCommand(
+
+    string command = CommandBuilder::buildInsertCommand(
                     relationName,
                     rel,
-                    values[0]));
+                    values[0]);
+    print("Command to be executed is: ", command, std::cout);
+
+    resultOk = SecondoUtilsLocal::executeQuery2(
+            command);
 
     if(resultOk)
     {
 //        SecondoSystem::CommitTransaction(true);
-        print("insert successful", std::cout);
+        print("Insert successful", std::cout);
     }else
     {
 //        SecondoSystem::AbortTransaction(true);
-        print("insert failed", std::cout);
+        print("Insert failed", std::cout);
     }
     return resultOk;
 }
@@ -166,6 +245,12 @@ bool DBServicePersistenceAccessor::persistRelationInfo(
         relationInfo.getOriginalLocation().getDisk()
     };
 
+    /* TODO JF Change to insert if not exists. Currently this case is prevented 
+     * as the CommunicationServer checks for the existence of the relation 
+     * already
+     * but it would be cleaner to express the intend of the insert semantic more
+     * clearly where the persistency is about to happen.
+     */
     bool resultOk =
             createOrInsert(relationName, relations, {value});
     if(resultOk)
@@ -249,7 +334,6 @@ bool DBServicePersistenceAccessor::persistDerivateInfo(
     return resultOk;
 }
 
-
 bool DBServicePersistenceAccessor::restoreLocationInfo(
         map<ConnectionID, LocationInfo>& locations)
 {
@@ -258,19 +342,24 @@ bool DBServicePersistenceAccessor::restoreLocationInfo(
     bool resultOk = true;
     if(SecondoSystem::GetCatalog()->IsObjectName(string("locations_DBSP")))
     {
-        string query("query locations_DBSP");
-        string errorMessage;
-        ListExpr resultList;
-        resultOk = SecondoUtilsLocal::executeQueryCommand(
-                query, resultList, errorMessage);
-        if(resultOk)
-        {
-            print("resultList", resultList, std::cout);
-            ListExpr resultData = nl->Second(resultList);
-            print("resultData", resultData, std::cout);
+        print("The relation locations_DBSP exists. Trying to retrieve \
+            locations...", std::cout);
+
+         string query("query locations_DBSP");
+         string errorMessage;
+         ListExpr resultList;
+         resultOk = SecondoUtilsLocal::executeQueryCommand(
+                 query, resultList, errorMessage);
+         if(resultOk)
+         {
+             print("Successfully executed the locations_DBSP query command", 
+                std::cout);
+             print("resultList", resultList, std::cout);
+             ListExpr resultData = nl->Second(resultList);
+             print("resultData", resultData, std::cout);
 
             int resultCount = nl->ListLength(resultData);
-            print(resultCount, std::cout);
+            print("Number of locations", resultCount, std::cout);
 
             for(int i = 0; i < resultCount; i++)
             {
@@ -293,13 +382,16 @@ bool DBServicePersistenceAccessor::restoreLocationInfo(
                     locations.insert(
                             pair<ConnectionID, LocationInfo>(conn, location));
                     resultData = nl->Rest(resultData);
+                } else {
+                    print("ResultData was empty.", std::cout);
                 }
             }
-        }else
+        } else
         {
+            print("Couldn't query locations from locations_DBSP.", std::cout);
             print(errorMessage, std::cout);
         }
-    }else
+    } else
     {
         print("locations_DBSP not found -> nothing to restore", std::cout);
     }
@@ -473,23 +565,25 @@ bool DBServicePersistenceAccessor::updateLocationMapping(
     printFunction("DBServicePersistenceAccessor::updateLocationMapping",
                   std::cout);
 
-    SecondoUtilsLocal::adjustDatabase(string("dbservice"));
+    SecondoUtilsLocal::adjustDatabase(DBSERVICE_DATABASE_NAME);
 
     FilterConditions filterConditions =
     {
-        { {AttributeType::STRING, string("ObjectID")}, objectID },
-        { {AttributeType::INT, string("ConnectionID")},
+        { {AttributeType2::STRING, string("ObjectID")}, objectID },
+        { {AttributeType2::INT, string("ConnectionID")},
                 stringutils::int2str(connID) }
     };
     AttributeInfoWithValue valueToUpdate =
-    {{AttributeType::BOOL, string("Replicated")},
+    {{AttributeType2::BOOL, string("Replicated")},
             (replicated ? string("TRUE") : string("FALSE")) };
 
-    return SecondoUtilsLocal::executeQuery2(
-            CommandBuilder::buildUpdateCommand(
-                    string("mapping_DBSP"),
-                    filterConditions,
-                    valueToUpdate));
+    // return SecondoUtilsLocal::executeQuery2(
+    //return SecondoUtilsLocal::executeQuery(
+    return SecondoUtilsLocal::executeQueryCommand(
+        CommandBuilder::buildUpdateCommand(
+            string("mapping_DBSP"),
+            filterConditions,
+            valueToUpdate));
 }
 
 bool DBServicePersistenceAccessor::deleteRelationInfo(
@@ -504,7 +598,7 @@ bool DBServicePersistenceAccessor::deleteRelationInfo(
     string relationID = relationInfo.toString();
     FilterConditions filterConditions =
     {
-        { { AttributeType::STRING, string("ObjectID")}, relationID },
+        { { AttributeType2::STRING, string("ObjectID")}, relationID },
     };
 
     bool resultOk = SecondoUtilsLocal::executeQuery2(
@@ -528,7 +622,7 @@ bool DBServicePersistenceAccessor::deleteDerivateInfo(
         DerivateInfo& derivateInfo,
         RelationInfo& source)
 {
-    printFunction("DBServicePersistenceAccessor::deleteRelationInfo",
+    printFunction("DBServicePersistenceAccessor::deleteDerivateInfo",
                   std::cout);
 
     if(derivateInfo.getSource() != source.toString()){
@@ -545,8 +639,8 @@ bool DBServicePersistenceAccessor::deleteDerivateInfo(
     string sourceName = derivateInfo.getSource();
     FilterConditions filterConditions =
     {
-        { { AttributeType::STRING, string("ObjectName")}, objectName },
-        { { AttributeType::STRING, string("Source")}, sourceName }
+        { { AttributeType2::STRING, string("ObjectName")}, objectName },
+        { { AttributeType2::STRING, string("Source")}, sourceName }
 
     };
 
@@ -584,8 +678,8 @@ bool DBServicePersistenceAccessor::deleteLocationMapping(
     {
         FilterConditions filterConditions =
         {
-            { {AttributeType::STRING, string("ObjectID") }, objectID },
-            { {AttributeType::INT, string("ConnectionID") },
+            { {AttributeType2::STRING, string("ObjectID") }, objectID },
+            { {AttributeType2::INT, string("ConnectionID") },
                     stringutils::int2str(it->first) }
         };
 
@@ -626,20 +720,35 @@ bool DBServicePersistenceAccessor::persistAllLocations(
             values.push_back(value);
         }
     }
+
+    //TODO Delete and create is basically updateOrCreate. So why not update 
+    //  existing records and create if no record exists?.
     return deleteAndCreate(
             string("locations_DBSP"),
             locations,
             values);
+    return true;
 }
 
+
+//TODO Refactore. Remove the deleteAndCreateLogic.
 bool DBServicePersistenceAccessor::persistAllReplicas(
         DBServiceRelations dbsRelations,
         DBServiceDerivates dbsDerivates)
 {
-    printFunction("DBServicePersistenceAccessor::persistAllRelations",
+
+    /*
+     */
+
+    printFunction("DBServicePersistenceAccessor::persistAllReplicas",
                   std::cout);
     vector<vector<string> > relationValues;
     vector<vector<string> > mappingValues;
+
+    // If there are Relations, for each relation build a relationInfo object.
+    // Build a vector of relations
+    // For each replica locations create a mapping (relation <> location)
+    // Build a vectore of mappings
     if(!dbsRelations.empty())
     {
         for(const auto& relation : dbsRelations)
@@ -668,8 +777,10 @@ bool DBServicePersistenceAccessor::persistAllReplicas(
         }
     }
 
+    // Build a vectore of derivates
     vector<vector<string> > derivateValues;
 
+    // Build a vector of derivate mappings
     if(!dbsDerivates.empty())
     {
         for(const auto& derivate : dbsDerivates)
@@ -696,6 +807,10 @@ bool DBServicePersistenceAccessor::persistAllReplicas(
         }
     }
 
+    /* Delete the DBService relations (tables) and recreate them.
+    *  While recreating them insert the relation, derivate and
+    *  mapping records.
+    */
 
     return     deleteAndCreate(
                  string("relations_DBSP"),
@@ -711,7 +826,6 @@ bool DBServicePersistenceAccessor::persistAllReplicas(
                     mappingValues);
 }
 
-
 size_t getRecordCount(const string& databaseName, const string& relationName)
 {
     printFunction("DBServicePersistenceAccessor::getRecordCount", std::cout);
@@ -725,39 +839,52 @@ size_t getRecordCount(const string& databaseName, const string& relationName)
 
 RelationDefinition DBServicePersistenceAccessor::locations =
 {
-     { AttributeType::INT, "ConnectionID" },
-     { AttributeType::STRING, "Host" },
-     { AttributeType::STRING, "Port" },
-     { AttributeType::TEXT, "Config" },
-     { AttributeType::TEXT, "Disk" },
-     { AttributeType::STRING, "CommPort" },
-     { AttributeType::STRING, "TransferPort" }
+     { AttributeType2::INT, "ConnectionID" },
+     { AttributeType2::STRING, "Host" },
+     { AttributeType2::STRING, "Port" },
+     { AttributeType2::TEXT, "Config" },
+     { AttributeType2::TEXT, "Disk" },
+     { AttributeType2::STRING, "CommPort" },
+     { AttributeType2::STRING, "TransferPort" }
+};
+
+RelationDefinition DBServicePersistenceAccessor::nodes =
+{
+        {AttributeType2::TEXT, "Host"},
+        {AttributeType2::INT, "Port"},
+        {AttributeType2::TEXT, "Config"},
+        {AttributeType2::TEXT, "DiskPath"},
+        {AttributeType2::INT, "ComPort"},
+        {AttributeType2::INT, "TransferPort"}
 };
 
 RelationDefinition DBServicePersistenceAccessor::relations =
 {
-    { AttributeType::STRING, "RelationID" },
-    { AttributeType::STRING, "DatabaseName" },
-    { AttributeType::STRING, "RelationName" },
-    { AttributeType::STRING, "Host" },
-    { AttributeType::STRING, "Port" },
-    { AttributeType::TEXT, "Disk" }
+    { AttributeType2::STRING, "RelationID" },
+    { AttributeType2::STRING, "DatabaseName" },
+    { AttributeType2::STRING, "RelationName" },
+    { AttributeType2::STRING, "Host" },
+    { AttributeType2::STRING, "Port" },
+    { AttributeType2::TEXT, "Disk" }
 };
 
 RelationDefinition DBServicePersistenceAccessor::mapping =
 {
-    { AttributeType::STRING, "ObjectID" },
-    { AttributeType::INT, "ConnectionID" },
-    { AttributeType::BOOL, "Replicated" }
+    { AttributeType2::STRING, "ObjectID" },
+    { AttributeType2::INT, "ConnectionID" },
+    { AttributeType2::BOOL, "Replicated" }
 };
 
 
 RelationDefinition DBServicePersistenceAccessor::derivates =
 {
-    { AttributeType::STRING, "ObjectName" },
-    { AttributeType::STRING, "DependsOn" },
-    { AttributeType::TEXT, "FunDef" }
+    { AttributeType2::STRING, "ObjectName" },
+    { AttributeType2::STRING, "DependsOn" },
+    { AttributeType2::TEXT, "FunDef" }
 };
+
+const string DBServicePersistenceAccessor::DBSERVICE_DATABASE_NAME = 
+    "dbservice";
 
 } /* namespace DBService */
 

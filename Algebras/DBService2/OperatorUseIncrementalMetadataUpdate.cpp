@@ -24,9 +24,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 #include "Algebras/Distributed2/Dist2Helper.h"
 
-#include "Algebras/DBService/DBServiceManager.hpp"
-#include "Algebras/DBService/DebugOutput.hpp"
-#include "Algebras/DBService/OperatorUseIncrementalMetadataUpdate.hpp"
+#include "Algebras/DBService2/DBServiceManager.hpp"
+#include "Algebras/DBService2/DebugOutput.hpp"
+#include "Algebras/DBService2/OperatorUseIncrementalMetadataUpdate.hpp"
 
 using namespace std;
 

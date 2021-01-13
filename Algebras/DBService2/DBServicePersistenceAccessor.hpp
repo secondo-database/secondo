@@ -39,11 +39,11 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "NestedList.h"
 
-#include "Algebras/DBService/CommandBuilder.hpp"
-#include "Algebras/DBService/DBServiceManager.hpp"
-#include "Algebras/DBService/LocationInfo.hpp"
-#include "Algebras/DBService/RelationInfo.hpp"
-#include "Algebras/DBService/DerivateInfo.hpp"
+#include "Algebras/DBService2/CommandBuilder.hpp"
+#include "Algebras/DBService2/DBServiceManager.hpp"
+#include "Algebras/DBService2/LocationInfo.hpp"
+#include "Algebras/DBService2/RelationInfo.hpp"
+#include "Algebras/DBService2/DerivateInfo.hpp"
 
 namespace DBService {
 
@@ -66,6 +66,18 @@ This function persists the provided \textit{ConnectionID} and the corresponding
 public:
     static bool persistLocationInfo(
             ConnectionID connID, LocationInfo& locationInfo);
+
+/*
+
+1.1.1.1 \textit{createDBSchema}
+
+This function creates the DBService database schema if it doesn't exist 
+already.
+
+*/
+
+    static bool createDBSchemaIfNotExists();
+
 
 /*
 
@@ -229,7 +241,20 @@ This function persists the mapping of a relation to its replica locations.
             ReplicaLocations::const_iterator nodesBegin,
             ReplicaLocations::const_iterator nodesEnd);
 
+
+
 /*
+
+1.1.1.1 \textit{createOrInsert}
+
+This function creates the given secondo relation (table) if the relation doesn't exist.
+
+*/
+
+    static bool createSecondoRelation(const std::string &relationName,
+                                                             const RelationDefinition &rel);
+
+    /*
 
 1.1.1.1 \textit{createOrInsert}
 
@@ -266,6 +291,9 @@ persisting the \textit{DBService} worker node locations.
 */
     static RelationDefinition locations;
 
+
+    static RelationDefinition nodes;
+
 /*
 
 1.1.1.1 \textit{relations}
@@ -294,6 +322,8 @@ used for persisting the derivates of a relation.
 
 */
     static RelationDefinition derivates;
+
+    static const std::string DBSERVICE_DATABASE_NAME;
 
 };
 

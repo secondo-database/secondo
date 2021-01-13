@@ -24,7 +24,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 #include "StringUtils.h"
 
-#include "Algebras/DBService/MultiClientServer.hpp"
+#include "Algebras/DBService2/MultiClientServer.hpp"
 
 namespace DBService {
 
@@ -64,6 +64,8 @@ int MultiClientServer::start()
         boost::unique_lock<boost::mutex> lock(queueGuard);
         socketBuffer.push(serverConnection);
         queueIndicator.notify_one();
+
+        boost::this_thread::sleep_for(boost::chrono::milliseconds(50));
     }
 
     threads.interrupt_all(); // interrupt the threads (at queueGuard.wait())

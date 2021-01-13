@@ -30,11 +30,11 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "SocketIO.h"
 #include "StringUtils.h"
 
-#include "Algebras/DBService/CommunicationClient.hpp"
-#include "Algebras/DBService/CommunicationProtocol.hpp"
-#include "Algebras/DBService/CommunicationUtils.hpp"
-#include "Algebras/DBService/SecondoUtilsLocal.hpp"
-#include "Algebras/DBService/ReplicationUtils.hpp"
+#include "Algebras/DBService2/CommunicationClient.hpp"
+#include "Algebras/DBService2/CommunicationProtocol.hpp"
+#include "Algebras/DBService2/CommunicationUtils.hpp"
+#include "Algebras/DBService2/SecondoUtilsLocal.hpp"
+#include "Algebras/DBService2/ReplicationUtils.hpp"
 
 using namespace std;
 using namespace distributed2;
@@ -65,11 +65,13 @@ int CommunicationClient::start()
     socket = Socket::Connect(server, stringutils::int2str(port),
                 Socket::SockGlobalDomain, 3, 1);
         if (!socket) {
-            traceWriter->write("socket initialization failed");
+            traceWriter->write("Socket initialization failed");
             return 8;
         }
         if (!socket->IsOk()) {
-            traceWriter->write("socket not ok");
+            traceWriter->write("The socket not ok. Tried to connect to");
+            traceWriter->write("Host", server);
+            traceWriter->write("Port", stringutils::int2str(port));
             return 9;
         }
         return 0;
@@ -82,7 +84,8 @@ bool CommunicationClient::triggerReplication(const string& databaseName,
 
     if(!connectionTargetIsDBServiceMaster())
     {
-        traceWriter->write("Aborting due to wrong node specification");
+        traceWriter->write("Aborting. The target must be the DBService \
+            Master.");
         return false;
     }
 

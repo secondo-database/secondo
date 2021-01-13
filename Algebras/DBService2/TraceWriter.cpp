@@ -28,10 +28,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <ctime>
 #include <sstream>
 
-#include "Algebras/DBService/DebugOutput.hpp"
-#include "Algebras/DBService/SecondoUtilsLocal.hpp"
-#include "Algebras/DBService/TraceSettings.hpp"
-#include "Algebras/DBService/TraceWriter.hpp"
+#include "Algebras/DBService2/DebugOutput.hpp"
+#include "Algebras/DBService2/SecondoUtilsLocal.hpp"
+#include "Algebras/DBService2/TraceSettings.hpp"
+#include "Algebras/DBService2/TraceWriter.hpp"
 
 using namespace std;
 

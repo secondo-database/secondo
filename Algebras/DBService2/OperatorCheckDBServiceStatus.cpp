@@ -28,9 +28,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "NestedList.h"
 #include "StandardTypes.h"
 
-#include "Algebras/DBService/DBServiceManager.hpp"
-#include "Algebras/DBService/OperatorCheckDBServiceStatus.hpp"
-#include "Algebras/DBService/DebugOutput.hpp"
+#include "Algebras/DBService2/DBServiceManager.hpp"
+#include "Algebras/DBService2/OperatorCheckDBServiceStatus.hpp"
+#include "Algebras/DBService2/DebugOutput.hpp"
 #include "Algebras/FText/FTextAlgebra.h"
 #include <sstream>
 

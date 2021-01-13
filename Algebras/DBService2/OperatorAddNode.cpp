@@ -28,9 +28,11 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "NestedList.h"
 #include "StandardTypes.h"
 
-#include "Algebras/DBService/DBServiceManager.hpp"
-#include "Algebras/DBService/OperatorAddNode.hpp"
-#include "Algebras/DBService/DebugOutput.hpp"
+#include "Algebras/DBService2/DBServiceManager.hpp"
+#include "Algebras/DBService2/OperatorAddNode.hpp"
+#include "Algebras/DBService2/DebugOutput.hpp"
+
+#include "FileSystem.h"
 
 namespace DBService
 {
@@ -80,19 +82,48 @@ int OperatorAddNode::mapValue(Word* args,
     CcInt* port = static_cast<CcInt*>(args[1].addr);
     CcString* config = static_cast<CcString*>(args[2].addr);
 
+    DBServiceManager *dbsm = DBServiceManager::getInstance();
+    result = qp->ResultStorage(s);
+
     print(host->GetValue(), std::cout);
     print(port->GetValue(), std::cout);
     print(config->GetValue(), std::cout);
+        
+    if (!FileSystem::FileOrFolderExists(config->GetValue()))
+    {
+       print("The given DBService config file does not exist.", std::cout);
+       static_cast<CcBool *>(result.addr)->SetDefined(false);
+       return 0;
+    }
 
-    DBServiceManager* dbsm = DBServiceManager::getInstance();
+    print("Adding node...", std::cout);
+    
     bool success = false;
     if(dbsm){
         success = dbsm->addNode(
                     host->GetValue(),
                     port->GetValue(),
                     config->getCsvStr());
+        
+        if (!success) {
+            print("Couldn't add node using DBServiceManager.", std::cout);
+            static_cast<CcBool *>(result.addr)->Set(false, false);
+            return 1;
+        }
     }
-    result = qp->ResultStorage(s);
+
+    print("Done adding node.", std::cout);
+
+    //TODO find out if there's a more elegant way...
+    /* The test suite will commit many transactions but Secondo will attempt 
+        to close
+     * the transaction for the given operator. Therefore, here a transaction 
+     * will be opened
+     * to satisfy this requirement for a successful operator execution.
+     */
+    SecondoSystem::BeginTransaction();
+
+    // Sets defined?=yes, success=true
     static_cast<CcBool*>(result.addr)->Set(true,success);
     return 0;
 }

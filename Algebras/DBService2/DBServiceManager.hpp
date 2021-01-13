@@ -34,17 +34,22 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #define ALGEBRAS_DBSERVICE_DBSERVICEMANAGER_HPP_
 
 #include <memory>
+#include <iostream>
 
 #include <boost/shared_ptr.hpp>
-#include <iostream>
+
+#include <loguru.hpp>
 
 #include "Algebras/Distributed2/ConnectionInfo.h"
 
-#include "Algebras/DBService/CommunicationServer.hpp"
-#include "Algebras/DBService/LocationInfo.hpp"
-#include "Algebras/DBService/RelationInfo.hpp"
-#include "Algebras/DBService/DerivateInfo.hpp"
-
+#include "Algebras/DBService2/CommunicationServer.hpp"
+#include "Algebras/DBService2/LocationInfo.hpp"
+#include "Algebras/DBService2/RelationInfo.hpp"
+#include "Algebras/DBService2/DerivateInfo.hpp"
+#include "Algebras/DBService2/NodeManager.hpp"
+#include "Algebras/DBService2/RelationManager.hpp"
+#include "Algebras/DBService2/FaultToleranceMode.hpp"
+#include "Algebras/DBService2/ReplicaPlacementStrategy.hpp"
 
 /*
 
@@ -61,7 +66,7 @@ namespace DBService
 
 Maps a ~ConnectionID~ to the corresponding ~LocationInfo~ and ~ConnectionInfo~
 objects.
-
+TODO Remove
 */
 typedef std::map<ConnectionID,
         std::pair<LocationInfo,
@@ -72,14 +77,14 @@ typedef std::map<ConnectionID,
 1.1.1.1 ~DBServiceRelations~
 
 Maps a relation identified to the corresponding ~RelationInfo~ object.
-
+TODO Remove
 */
 typedef std::map<std::string, RelationInfo> DBServiceRelations;
 
 
 /*
 1.1.1.1 ~DBServiceDerivates~
-
+TODO Remove
 */
 typedef std::map<std::string, DerivateInfo> DBServiceDerivates;
 
@@ -144,10 +149,22 @@ storing relation replicas.
 
 /*
 
+1.1.1.1 \textit{addDerivative}
+
+This function adds a derivative to the specified relation and triggers 
+the creation of derivative replicas.
+
+*/
+
+    void addDerivative(std::string relationDatabase, std::string relationName, 
+        std::string derivativeName, std::string derivativeFunction);
+
+/*
+
 1.1.1.1 \textit{getConnection}
 
-This function returns a pointer to the \textit{ConnectionInfo} object identified
-by the specified \textit{ConnectionID}.
+This function returns a pointer to the \textit{ConnectionInfo} object
+identified by the specified \textit{ConnectionID}.
 
 */
     distributed2::ConnectionInfo* getConnection(ConnectionID id);
@@ -173,6 +190,18 @@ by the specified string.
     RelationInfo& getRelationInfo(const std::string& relationAsString);
 
 /*
+
+1.1.1.1 \textit{getRelation}
+
+Returns the Relation specified by ~relationDatabase~ and ~relationName~.
+Return the ~nullptr~ if none has been found.
+
+*/
+std::shared_ptr<DBService::Relation> getRelation(
+    std::string relationDatabase, 
+    std::string relationName);
+
+/*
 1.1.1.1 ~getDerivateInfo~
 
 This function returns a reference to the ~DerivateInfo~ object 
@@ -191,8 +220,6 @@ Debug method. prints all known derivates.
 
 
 
-
-
 /*
 
 1.1.1.1 \textit{determineReplicaLocations}
@@ -201,8 +228,11 @@ This function determines the replica locations for a certain relation and is
 therefore provided with the name of the database and relation as well as all
 relevant information on the original location.
 
+Returns false if the placement violated the replication policy, e.g. due to
+insufficient number of replicas (nodes qualified for a replica placement).
+
 */
-    void determineReplicaLocations(
+    bool determineReplicaLocations(
             const std::string& databaseName,
             const std::string& relationName,
             const std::string& host,
@@ -215,7 +245,6 @@ relevant information on the original location.
 This function determines the locations of the source relations,
 creates a new DerivateInfo object from the arguments and these
 locations, and inserts this derivateInfo into the main memory map.
-
 */
 
 std::string determineDerivateLocations(
@@ -370,6 +399,16 @@ found the relation and all derived objects.
 
 
 
+/*
+1.1.1.1 ~getRandomNodeWithReplica~
+
+Returns the target Node a random replica determined by the
+Relation found by the provided ~relationDatabase~ and ~relationName~.
+
+Returns ~nullptr~ if no relation and/or replicas are found.
+*/
+std::shared_ptr<DBService::Node> getRandomNodeWithReplica(
+            std::string relationDatabase, std::string relationName);
 
 
 /*
@@ -381,9 +420,9 @@ already existing ~RelationInfo~ object maintained by the ~DBServiceManager~.
 
 */
 
-        void setOriginalLocationTransferPort(
-                const std::string& relID,
-                const std::string& transferPort);
+        // void setOriginalLocationTransferPort(
+        //         const std::string& relID,
+        //         const std::string& transferPort);
 
 
 /*
@@ -429,6 +468,13 @@ inline void findDerivates(const std::string& database,
 void findDerivatesInDatabase(const std::string& databaseName,
                              std::vector<std::string>& result);
 
+/*
+1.1.1.1 ~getMessages~~
+
+Get messages from the DBServiceManager.
+Currently only returns messages from the ~ReplicaPlacementStrategy~.
+*/
+std::string getMessages();
 
 /*
 1.1.1.1 Constructor
@@ -467,23 +513,12 @@ unique identifier of connections.
 1.1.1.1 \textit{getWorkerNodesForReplication}
 
 This function adds the specified number of replicas to the given vector.
-
+The number of replicas is set as a member called \textit{}.
 */
     void getWorkerNodesForReplication(std::vector<
                                       ConnectionID>& nodes,
                                       const std::string& host,
                                       const std::string& disk);
-
-/*
-
-1.1.1.1 \textit{startServersOnWorker}
-
-This function triggers the startup of one \textit{CommunicationServer} and one
-\textit{ReplicationServer} on the node that is addressed by the specified
-\textit{ConnectionInfo}.
-
-*/
-    bool startServersOnWorker(distributed2::ConnectionInfo* connectionInfo);
 
 /*
 
@@ -512,6 +547,8 @@ in consideration of the configured fault tolerance mode.
             const std::string& host,
             const std::string& disk);
 
+
+
 /*
 
 1.1.1.1 \textit{restoreConfiguration}
@@ -523,20 +560,79 @@ available connections.
 */
     void restoreConfiguration();
 
+
+
+
+// /*
+
+// 1.1.1.1 \textit{restoreReplicaInformation}
+
+// On \textit{DBServiceManager} instantiation, this function restores all replica
+// information from the persistent relations in case they exist. This includes
+// relations, connections, derivates, and mappings.
+
+// */
+//     void restoreReplicaInformation();
+
+
 /*
 
-1.1.1.1 \textit{restoreReplicaInformation}
+1.1.1.1 \textit{restoreReplicaPlacementStrategyConfig}
 
-On \textit{DBServiceManager} instantiation, this function restores all replica
-information from the persistent relations in case they exist. This includes
-relations, connections, derivates, and mappings.
+Creates a \textit{ReplicaPlacementStrategy} based on the DBService config.
 
 */
-    void restoreReplicaInformation();
 
+    void restoreReplicaPlacementStrategyConfig();
+
+/*
+
+1.1.1.1 \textit{nodeManager}
+
+The \textit{NodeManager} encapsulates the lifecycle management of nodes. 
+It maintains a list of nodes, provides accessor and persistency methods.
+This reduces the complexity of the \testit{DBServiceManager}.
+
+*/
+
+    unique_ptr<NodeManager> nodeManager;
 
 
 /*
+
+1.1.1.1 \textit{relationManager}
+
+Similar to the \textit{nodeManager} the \textit{relationManager} is also
+a specialization of a \textit{RecordManager}. 
+It allows the management of Relations.
+
+*/
+
+    unique_ptr<RelationManager> relationManager;
+
+/*
+
+1.1.1.1 \textit{replicaPlacementStrategy}
+
+The \textit{ReplicaPlacementStrategy} encapsulates the decision process
+of selecting nodes to place Replicas to. 
+
+*/
+    
+    shared_ptr<ReplicaPlacementStrategy> replicaPlacementStrategy;
+
+/*
+
+1.1.1.1 \textit{database}
+
+The name of the main database of the \textit{DBService} algebra.
+
+*/
+std::string database;
+
+
+/*
+
 
 1.1.1.1 \textit{\_instance}
 
@@ -551,8 +647,8 @@ Pointer to the \textit{DBServiceManager} instance (singleton).
 
 This member maps a \textit{ConnectionID} to a pair that contains the
 corresponding \textit{LocationInfo} and \textit{ConnectionInfo}.
-
-*/
+TODO Remove
+*/    
     DBServiceLocations connections;
 
 /*
@@ -562,6 +658,7 @@ corresponding \textit{LocationInfo} and \textit{ConnectionInfo}.
 This member maps a location identifier to a vector of possible replica
 locations.
 
+TODO Remove
 */
     typedef std::map<std::string, std::vector<ConnectionID> >
     AlternativeLocations;
@@ -574,7 +671,7 @@ locations.
 
 This member maps a relation identifier to the corresponding
 \textit{RelationInfo} object.
-
+TODO Remove
 */
     DBServiceRelations relations;
 
@@ -583,7 +680,7 @@ This member maps a relation identifier to the corresponding
 
 This manager maps a derivate identifier to the corresponding
 ~DerivateInfo~ object.
-
+TODO Remove
 */
    DBServiceDerivates derivates;
 
@@ -600,21 +697,6 @@ configuration file.
 */
     size_t replicaCount;
 
-/*
-
-1.1.1.1 \textit{faultToleranceMode}
-
-This member stores the target number of replicas that is read from the
-configuration file.
-
-*/
-
-enum FaultToleranceMode
-{
-    NONE = 0,
-    DISK = 1,
-    NODE = 2,
-};
 
 FaultToleranceMode mode;
 

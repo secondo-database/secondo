@@ -39,7 +39,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "Algebras/Distributed2/Server.h"
 
-#include "Algebras/DBService/TraceWriter.hpp"
+#include "Algebras/DBService2/TraceWriter.hpp"
 
 class Socket;
 

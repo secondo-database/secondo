@@ -40,10 +40,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "NestedList.h"
 
-#include "Algebras/DBService/LocationInfo.hpp"
-#include "Algebras/DBService/RelationInfo.hpp"
-#include "Algebras/DBService/DebugOutput.hpp"
-#include "Algebras/DBService/TraceSettings.hpp"
+#include "Algebras/DBService2/LocationInfo.hpp"
+#include "Algebras/DBService2/RelationInfo.hpp"
+#include "Algebras/DBService2/DebugOutput.hpp"
+#include "Algebras/DBService2/TraceSettings.hpp"
 
 namespace DBService {
 

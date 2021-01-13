@@ -40,8 +40,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "NList.h"
 
-#include "Algebras/DBService/CommunicationClient.hpp"
-#include "Algebras/DBService/LocationInfo.hpp"
+#include "Algebras/DBService2/CommunicationClient.hpp"
+#include "Algebras/DBService2/LocationInfo.hpp"
 
 namespace DBService {
 

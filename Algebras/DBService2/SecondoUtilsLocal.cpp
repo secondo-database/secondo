@@ -34,13 +34,16 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "NestedList.h"
 #include "Profiles.h"
 #include "SecParser.h"
+#include "ErrorCodes.h"
 
-#include "Algebras/DBService/DebugOutput.hpp"
-#include "Algebras/DBService/SecondoUtilsLocal.hpp"
-#include "Algebras/DBService/TraceSettings.hpp"
+#include "Algebras/DBService2/DebugOutput.hpp"
+#include "Algebras/DBService2/SecondoUtilsLocal.hpp"
+#include "Algebras/DBService2/TraceSettings.hpp"
 
 using namespace std;
 using namespace distributed2;
+
+extern CMsg cmsg;
 
 namespace DBService {
 
@@ -57,7 +60,9 @@ void SecondoUtilsLocal::readFromConfigFile(string& resultValue,
 
 bool SecondoUtilsLocal::executeQuery(const string& queryAsString)
 {
-    Word queryResult;
+    // JF
+    Word queryResult = new Word; SetWord(Address(0));
+    print("Query (with new Word):", queryAsString, std::cout);
     return executeQuery(queryAsString, queryResult);
 }
 
@@ -66,7 +71,7 @@ bool SecondoUtilsLocal::prepareQueryForProcessing(
             string& queryAsPreparedNestedListString)
 {
     printFunction("SecondoUtilsLocal::prepareQueryForProcessing", std::cout);
-    print("queryAsString", queryAsString, std::cout);
+    print("Query:", queryAsString, std::cout);
     SecParser secondoParser;
     string queryAsNestedListString;
     if (secondoParser.Text2List(queryAsString, queryAsNestedListString) != 0)
@@ -96,17 +101,28 @@ bool SecondoUtilsLocal::prepareQueryForProcessing(
 bool SecondoUtilsLocal::executeQuery2(const string& queryAsString)
 {
     printFunction("SecondoUtilsLocal::executeQuery2", std::cout);
+    print("Query:", queryAsString, std::cout);
     Word queryResult;
     string queryAsPreparedNestedListString;
+
+    print("Acquiring lock for executeQuery2...", std::cout);
     boost::lock_guard<boost::mutex> lock(utilsMutex);
+    print("Done acquiring lock for executeQuery2.", std::cout);
+
+    print("Preparing query for processing...", std::cout);
     if(!prepareQueryForProcessing(
             queryAsString,
             queryAsPreparedNestedListString))
     {
         return false;
     }
+    print("Done preparing query for processing.", std::cout);
+
     int traceLevel =
             TraceSettings::getInstance()->isDebugTraceOn() ? 3 : 0;
+
+    print("Actually executing query now ...", std::cout);
+
     return QueryProcessor::ExecuteQuery(
             queryAsPreparedNestedListString,
             queryResult,
@@ -118,15 +134,20 @@ bool SecondoUtilsLocal::executeQuery(const string& queryAsString,
                                      Word& queryResult)
 {
     printFunction("SecondoUtilsLocal::executeQuery", std::cout);
+
+    print("Acquiring lock for executeQuery...", std::cout);
     boost::lock_guard<boost::mutex> lock(utilsMutex);
-    print("queryAsString", queryAsString, std::cout);
+    print("Done acquiring lock for executeQuery.", std::cout);
+
+    print("QueryAsString", queryAsString, std::cout);
+    
     SecParser secondoParser;
     string queryAsNestedListString;
     if (secondoParser.Text2List(queryAsString, queryAsNestedListString) != 0) {
         print("could not parse query", std::cout);
         return false;
     }
-    print("query converted to nested list string", std::cout);
+    print("Query has been converted to nested list string.", std::cout);
 
     ListExpr queryAsNestedList;
     NestedList* nli = SecondoSystem::GetNestedList();
@@ -137,9 +158,9 @@ bool SecondoUtilsLocal::executeQuery(const string& queryAsString,
         return false;
     }
 
-    print("nested list string converted to nested list", std::cout);
+    print("Nested list string has been converted to nested list", std::cout);
 
-    print("queryAsNestedListString", queryAsNestedListString, std::cout);
+    print("QueryAsNestedListString", queryAsNestedListString, std::cout);
 
     bool success = true;
     bool correct, evaluable, defined, isFunction = false;
@@ -173,9 +194,13 @@ bool SecondoUtilsLocal::executeQuery(const string& queryAsString,
 bool SecondoUtilsLocal::adjustDatabase(const string& databaseName)
 {
     printFunction("SecondoUtilsLocal::adjustDatabase", std::cout);
+
+    bool success = false;
+
     const string currentDB = SecondoSystem::GetInstance()->GetDatabaseName();
-    print("current database name", currentDB, std::cout);
-    print("requested database name", databaseName, std::cout);
+
+    print("Current database name", currentDB, std::cout);
+    print("Requested database name", databaseName, std::cout);
 
     string databaseNameUppered(databaseName);
 
@@ -188,26 +213,46 @@ bool SecondoUtilsLocal::adjustDatabase(const string& databaseName)
     if(currentDB
             != databaseNameUppered)
     {
-        boost::lock_guard<boost::mutex> lock(utilsMutex);
-        print("need to adjust database", std::cout);
-        string queryClose("close database");
-        SecondoUtilsLocal::executeQuery(queryClose);
+        
+        print("Need to switch database to", databaseName, std::cout);
+
+        // Close the current database
+        string queryClose("close database");    
+        success = SecondoUtilsLocal::executeQuery(queryClose);
+
+        if (!success)
+        {
+            print("Coudln't close the current database and thus couldn't \
+                proceed selecting the new database.", std::cout);
+            return false;
+        }
+
+        //TODO verify if database to open already exists, only create db if 
+            // it doesn't exist.
 
         stringstream queryCreate;
         queryCreate << "create database "
                     << databaseName;
-        SecondoUtilsLocal::executeQuery(queryCreate.str());
+
+        success = SecondoUtilsLocal::executeQuery(queryCreate.str());
+
+        if (!success) {
+            print("Coudln't create database and thus couldn't select it.", 
+                std::cout);
+            return false;
+        }
+
 
         stringstream queryOpen;
         queryOpen << "open database "
                     << databaseName;
-        SecondoUtilsLocal::executeQuery(queryOpen.str());
-        return true;
-    }else
+                
+        success = SecondoUtilsLocal::executeQuery(queryOpen.str());
+    } else 
     {
-        print("database name matches, no need to adjust", std::cout);
+        print("database name matches, no need to adjust", std::cout);        
     }
-    return false;
+    return success;
 }
 
 bool
@@ -259,6 +304,8 @@ SecondoUtilsLocal::createRelation(const string& queryAsString,
             catalog->CreateObject(objectName, typeName, resultType, 0);
             queryProcessor->EvalS(tree, result, 1);
             catalog->UpdateObject(objectName, result);
+            
+            //queryProcessor->Destroy(tree, true); // > Segfault.
             queryProcessor->Destroy(tree, false);
         } else {
             return false;
@@ -305,7 +352,10 @@ bool SecondoUtilsLocal::executeQueryCommand(const string& queryAsString,
     bool defined = false;
     bool isFunction = false;
 
+    print("Acquiring lock for executeQueryCommand...", std::cout);
     boost::lock_guard<boost::mutex> lock(utilsMutex);
+    print("Done acquiring lock for executeQueryCommand.", std::cout);
+
     NestedList* nli = SecondoSystem::GetNestedList();
     QueryProcessor* queryProcessor = new QueryProcessor( nli,
             SecondoSystem::GetAlgebraManager(),
@@ -355,13 +405,42 @@ bool SecondoUtilsLocal::executeQueryCommand(const string& queryAsString,
             resultList = nl->TwoElemList(resultType, valueList);
             print("resultList done", std::cout);
 
-            queryProcessor->Destroy(tree, true);
+            // queryProcessor->Destroy(tree, true);
+            queryProcessor->Destroy(tree, false);
             print("queryProcessor->Destroy done", std::cout);
         }
 
-    } catch (...) {
-        print("caught error", std::cout);
-        queryProcessor->Destroy(tree, true);
+    } catch (const std::exception& e) {
+        print("Caught exception in SecondoUtilsLocal::executeQueryCommand: ", 
+            string(e.what()), std::cout);        
+
+        queryProcessor->Destroy(tree, false);
+        return false;
+    } catch (SI_Error errorCode) {        
+        stringstream errorMsg;
+        print("Caught SI_Error in SecondoUtilsLocal::executeQueryCommand \
+            with code: ", errorCode, std::cout);
+        print("Error descriptions of SI_Error can be found in \
+            SecondoInterfaceGeneral.cpp.", std::cout);
+        
+        errorMsg << "CSMSG: " << cmsg.getErrorMsg() << endl;
+        print(errorMsg.str(), std::cout);
+
+        cout << "correct: " << correct << endl;
+        cout << "evaluable: " << evaluable << endl;
+        cout << "defined: " << defined << endl;
+        cout << "isFunction: " << isFunction << endl;
+        
+        //queryProcessor->Destroy(tree, true);
+        queryProcessor->Destroy(tree, false);
+        return false;
+    
+    } catch (...) {        
+        print("Caught unknown exception in \
+            SecondoUtilsLocal::executeQueryCommand.", std::cout);
+        
+        //queryProcessor->Destroy(tree, true);
+        queryProcessor->Destroy(tree, false);
         return false;
     }
     return true;

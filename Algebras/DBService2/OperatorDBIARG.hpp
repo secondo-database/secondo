@@ -35,7 +35,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #define ALGEBRAS_DBSERVICE_OperatorDBIARG_HPP_
 
 #include "Operator.h"
-#include "Algebras/DBService/OperatorCommon.hpp"
+#include "Algebras/DBService2/OperatorCommon.hpp"
 #include "StringUtils.h"
 
 namespace DBService {

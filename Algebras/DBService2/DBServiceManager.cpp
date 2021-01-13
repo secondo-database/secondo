@@ -26,13 +26,19 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 #include <algorithm>
+#include <random>
 #include <cstdlib>
 #include <iostream>
 #include <sstream>
 #include <string>
-#include <random>
+#include <stdlib.h>
 
 #include <boost/make_shared.hpp>
+#include <boost/asio.hpp>
+#include <boost/regex.hpp>
+#include <boost/algorithm/string/regex.hpp>
+
+#include <loguru.cc>
 
 #include "Algebra.h"
 #include "NestedList.h"
@@ -43,17 +49,23 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "Algebras/Distributed2/ConnectionInfo.h"
 
-#include "Algebras/DBService/CommunicationServer.hpp"
-#include "Algebras/DBService/DBServiceManager.hpp"
-#include "Algebras/DBService/DBServicePersistenceAccessor.hpp"
-#include "Algebras/DBService/DebugOutput.hpp"
-#include "Algebras/DBService/RelationInfo.hpp"
-#include "Algebras/DBService/SecondoUtilsLocal.hpp"
-#include "Algebras/DBService/SecondoUtilsRemote.hpp"
-#include "Algebras/DBService/ServerRunnable.hpp"
-#include "Algebras/DBService/ReplicationUtils.hpp"
+#include "Algebras/DBService2/CommunicationServer.hpp"
+#include "Algebras/DBService2/DBServiceManager.hpp"
+#include "Algebras/DBService2/DBServicePersistenceAccessor.hpp"
+#include "Algebras/DBService2/DebugOutput.hpp"
+#include "Algebras/DBService2/RelationInfo.hpp"
+#include "Algebras/DBService2/Relation.hpp"
+#include "Algebras/DBService2/Replica.hpp"
+#include "Algebras/DBService2/SecondoUtilsLocal.hpp"
+#include "Algebras/DBService2/SecondoUtilsRemote.hpp"
+#include "Algebras/DBService2/ServerRunnable.hpp"
+#include "Algebras/DBService2/ReplicationUtils.hpp"
 
-#include <boost/asio.hpp>
+#include "Algebras/DBService2/DatabaseSchema.hpp"
+#include "Algebras/DBService2/DatabaseEnvironment.hpp"
+
+#include "Algebras/DBService2/CreateDerivateRunnable.hpp"
+
 
 using namespace std;
 using namespace distributed2;
@@ -61,839 +73,864 @@ using namespace distributed2;
 namespace DBService
 {
 
-DBServiceManager::DBServiceManager()
-{
-    printFunction("DBServiceManager::DBServiceManager", std::cout);
-    boost::lock_guard<boost::mutex> lock(managerMutex);
-    restoreConfiguration();
-    restoreReplicaInformation();
-}
-
-DBServiceManager::~DBServiceManager()
-{
-    printFunction("DBServiceManager::~DBServiceManager", std::cout);
-    DBServicePersistenceAccessor::persistAllLocations(connections);
-    DBServicePersistenceAccessor::persistAllReplicas(relations, derivates);
-}
-
-void DBServiceManager::restoreConfiguration()
-{
-    printFunction("DBServiceManager::restoreConfiguration", std::cout);
-    string port;
-    SecondoUtilsLocal::readFromConfigFile(
-            port, "DBService","DBServicePort", "9989");
-    ServerRunnable commServer(atoi(port.c_str()));
-    commServer.run<CommunicationServer>();
-
-    string replicaNumber;
-    SecondoUtilsLocal::readFromConfigFile(
-            replicaNumber, "DBService","ReplicaNumber", "1");
-    replicaCount = atoi(replicaNumber.c_str());
-
-    string faultToleranceMode;
-    SecondoUtilsLocal::readFromConfigFile(
-            faultToleranceMode, "DBService","FaultToleranceLevel", "2");
-    mode = static_cast<FaultToleranceMode>(atoi(faultToleranceMode.c_str()));
-}
-
-void DBServiceManager::restoreReplicaInformation()
-{
-    printFunction("DBServiceManager::restoreReplicaInformation", std::cout);
-    map<ConnectionID, LocationInfo> locations;
-    DBServicePersistenceAccessor::restoreLocationInfo(locations);
-    for(map<ConnectionID, LocationInfo>::const_iterator it = locations.begin();
-            it != locations.end(); it++)
+    DBServiceManager::DBServiceManager()
     {
-        ConnectionInfo* connectionInfo =
-                ConnectionInfo::createConnection(
-                            it->second.getHost(),
-                            atoi(it->second.getPort().c_str()),
-                            *(const_cast<string*>(&(it->second.getConfig()))));
-        pair<LocationInfo, ConnectionInfo*> workerConnDetails(it->second,
-                                                              connectionInfo);
-        connections.insert(
-                pair<size_t, pair<LocationInfo, ConnectionInfo*> >(
-                        it->first, workerConnDetails));
+        printFunction("DBServiceManager::DBServiceManager", std::cout);
+        boost::lock_guard<boost::mutex> lock(managerMutex);
 
-        connectionInfo->switchDatabase(
-                string("dbservice"),
-                true /*createifnotexists*/,
-                false /*showCommands*/,
-                true /*forceExec*/);
+        restoreConfiguration();
 
-        if(!startServersOnWorker(connectionInfo))
+        //TODO Make configurable
+        database = DatabaseEnvironment::production;
+
+        //TODO Create the DBService database if that's not the current database.
+
+        DatabaseSchema::migrate(database);
+
+        nodeManager = make_unique<NodeManager>(database);
+        nodeManager->load();
+
+        relationManager = make_unique<RelationManager>(database);
+        relationManager->load();
+
+        restoreReplicaPlacementStrategyConfig();
+
+        // TODO restoreReplicaInformation used to start worker nodes
+        //  Where is this done now?
+
+        // restoreReplicaInformation();
+
+        //TODOMove to function "initializeLogger"
+        char* argv[] = { (char*)"DBService", NULL };
+        int argc = sizeof(argv) / sizeof(char*) - 1;
+
+        loguru::g_stderr_verbosity = loguru::Verbosity_OFF;
+        loguru::init(argc, argv);
+
+        loguru::add_file("dbservice.log", loguru::Append, 
+            loguru::Verbosity_MAX);
+    }
+
+    DBServiceManager::~DBServiceManager()
+    {
+        printFunction("DBServiceManager::~DBServiceManager", std::cout);
+    }
+
+    void DBServiceManager::restoreConfiguration()
+    {
+        printFunction("DBServiceManager::restoreConfiguration", std::cout);
+        string port;
+        SecondoUtilsLocal::readFromConfigFile(
+            port, "DBService", "DBServicePort", "9989");
+        ServerRunnable commServer(atoi(port.c_str()));
+        commServer.run<CommunicationServer>();
+
+        string replicaNumber;
+        SecondoUtilsLocal::readFromConfigFile(
+            replicaNumber, "DBService", "ReplicaNumber", "1");
+        replicaCount = atoi(replicaNumber.c_str());
+
+        string faultToleranceMode;
+        SecondoUtilsLocal::readFromConfigFile(
+            faultToleranceMode, "DBService", "FaultToleranceLevel", "2");
+        mode = static_cast<FaultToleranceMode>(atoi(
+            faultToleranceMode.c_str()));
+    }
+
+    void DBServiceManager::restoreReplicaPlacementStrategyConfig() {
+
+        PlacementPolicy placementPolicy = { 
+            mode, static_cast<int>(replicaCount) 
+        };
+
+        replicaPlacementStrategy = make_shared<ReplicaPlacementStrategy>(
+            placementPolicy, nodeManager->getNodes());
+    }
+
+    DBServiceManager* DBServiceManager::getInstance()
+    {
+        printFunction("DBServiceManager::getInstance", std::cout);
+        if(!_instance)
         {
-            // TODO more descriptive error message (host, port, etc)
-            throw new SecondoException("could not start file transfer server");
+            try {
+                _instance = new DBServiceManager();
+                active = true;
+            }
+            catch(...) {
+                _instance = 0;
+                active = false;
+            }
         }
+        return _instance;
     }
 
-    DBServicePersistenceAccessor::restoreRelationInfo(relations);
-    DBServicePersistenceAccessor::restoreDerivateInfo(derivates);
-
-    queue<pair<string, pair<ConnectionID, bool> > > mapping;
-    DBServicePersistenceAccessor::restoreLocationMapping(mapping);
-
-    while(!mapping.empty())
+    bool DBServiceManager::isActive()
     {
-        const auto& currentMapping = mapping.front();
-        string objectId = currentMapping.first;
-        DBServiceRelations::iterator it1 = relations.find(objectId);
-        if(it1 != relations.end()){
-            it1->second.addNode(currentMapping.second.first,
-                               currentMapping.second.second);
-        } else {
-           DBServiceDerivates::iterator it2 = derivates.find(objectId);
-           if(it2!=derivates.end()){
-              it2->second.addNode(
-                    currentMapping.second.first,
-                    currentMapping.second.second);
-           } else {
-              print("found location for object with id " + objectId + 
-                    " but there is neigther a relation nor a derivate "
-                    " stored with this id.", std::cout);
-           }
-        }
-        mapping.pop();
+        //TODO es würde genügen _instance auf == 0 zu prüfen.
+        return active;
     }
 
-    for(map<string, RelationInfo>::const_iterator it = relations.begin();
-            it != relations.end(); it++)
+    bool DBServiceManager::isUsingIncrementalMetadataUpdate()
     {
-        print("RelationID: ", it->first, std::cout);
-        print("Number of Replicas: ",
-                const_cast<RelationInfo*>(&(it->second))->getNodeCount(),
-                std::cout);
+        return usesIncrementalMetadataUpdate;
     }
-}
 
-DBServiceManager* DBServiceManager::getInstance()
-{
-    printFunction("DBServiceManager::getInstance", std::cout);
-    if (!_instance)
+    void DBServiceManager::useIncrementalMetadataUpdate(bool use)
     {
-      try{
-          _instance = new DBServiceManager();
-          active = true;
-      } catch(...){
-          _instance = 0;
-          active = false;
-      }
+        usesIncrementalMetadataUpdate = use;
     }
-    return _instance;
-}
-
-bool DBServiceManager::isActive()
-{
-    return active;
-}
-
-bool DBServiceManager::isUsingIncrementalMetadataUpdate()
-{
-    return usesIncrementalMetadataUpdate;
-}
-
-void DBServiceManager::useIncrementalMetadataUpdate(bool use)
-{
-    usesIncrementalMetadataUpdate = use;
-}
 
 
-ConnectionID DBServiceManager::getNextFreeConnectionID()
-{
-    printFunction("DBServiceManager::getNextFreeConnectionID", std::cout);
-    return connections.size() + 1;
-}
+    ConnectionID DBServiceManager::getNextFreeConnectionID()
+    {
+        printFunction("DBServiceManager::getNextFreeConnectionID", std::cout);
+        return connections.size() + 1;
+    }
 
-bool DBServiceManager::addNode(const string host,
+    bool DBServiceManager::addNode(const string host,
         const int port,
         string config)
-{
-    printFunction("DBServiceManager::addNode", std::cout);
-    boost::lock_guard<boost::mutex> lock(managerMutex);
-
-    for(const auto& connection : connections)
     {
-        if(connection.second.first.isSameWorker(
-                host, stringutils::int2str(port)))
+        printFunction("DBServiceManager::addNode", std::cout);
+        boost::lock_guard<boost::mutex> lock(managerMutex);
+
+        // Establishing a connection to the remote node to retrieve 
+        // config values
+
+        print("Establishing a connection to worker node", std::cout);
+        print("\tHost", host, std::cout);
+        print("\tPort", port, std::cout);
+
+        shared_ptr<DBService::Node> node = make_shared<DBService::Node>(
+            host, port, config);
+
+        /* Connect to the node and obtain missing params such as
+         * comPort
+         * transferPort and
+         * diskPath
+         */
+        node->connectAndConfigure();
+
+        // Adding the node to the in-memory store.
+        // This also checks if the node has already been added.
+        // Does silently ignore duplicate nodes.
+        nodeManager->add(node);
+
+        // Starting the DBService Worker.
+        node->startWorker();
+
+        // Persisting the new node
+        nodeManager->save();
+
+        //TODO What is any of the above step fails? 
+        //  Add Exception handling, Retry or Removing of a failed node, ...
+
+        print("The DBServiceManager is done adding node.", std::cout);
+
+        return true;
+    }
+
+    bool DBServiceManager::determineReplicaLocations(const string& databaseName,
+        const string& relationName,
+        const string& host,
+        const string& port,
+        const string& disk)
+    {
+        bool success = false;
+
+        printFunction("DBServiceManager::determineReplicaLocations", std::cout);
+        boost::lock_guard<boost::mutex> lock(managerMutex);
+    
+        shared_ptr<DBService::Relation> relation = DBService::Relation::build(
+            string(databaseName), string(relationName),
+            string(host), stoi(port), string(disk));
+
+        relation->setDatabase(database);
+
+        // See whether the original already exists
+        shared_ptr<DBService::Node> originalNode =
+            relationManager->findOriginalNode(relation->getOriginalNode());
+
+        // To avoid a duplicate originalNode, reuse the existing one.
+        if(originalNode != nullptr) {
+            relation->setOriginalNode(originalNode);
+        }
+
+        /*
+            The original node's information is incomplete.
+            Config, diskPath, comPort and transferPort are missing.
+            It must be retrieved.
+        */
+        relation->getOriginalNode()->connectAndConfigure();
+
+        /*
+         TODO Either add nodes to the signature of doPlacement or initalize
+         the strategy with a shared_pointer to the node manager.
+
+         The list of nodes must be up to date as it may change of time, e.g.
+         due to addNode invocations.
+         */
+        replicaPlacementStrategy->setNodes(nodeManager->getNodes());
+
+        success = replicaPlacementStrategy->doPlacement(relation);
+
+        print("Placement done.\nPlacement message:\n", 
+            replicaPlacementStrategy->getMessage(), std::cout);
+
+        if(success) {
+            relationManager->add(relation);
+
+            stringstream msg;
+            msg << *relation;
+
+            print("Relation after adding to relationManager: ", 
+                msg.str(), std::cout);
+
+            // Resetting the stringstream
+            msg.str("");
+            msg.clear();
+
+            msg << relationManager->str();
+            print("RelationManager bevore saving: ", msg.str(), std::cout);
+
+            relationManager->save();
+        }
+
+        return success;
+    }
+
+
+
+    string DBServiceManager::determineDerivateLocations(
+        const string& targetname,
+        const string& relationId,
+        const string& fundef)
+    {
+        printFunction("DBServiceManager::determineDerivateLocations", 
+            std::cout);
+        boost::lock_guard<boost::mutex> lock(managerMutex);
+        DerivateInfo derivateInfo(targetname, relationId, fundef);
+        ReplicaLocations locations;
+        getReplicaLocations(relationId, locations);
+        vector<ConnectionID> v;
+        for(const auto& loc : locations)
         {
-            return false;
+            v.push_back(loc.first);
+        }
+        derivateInfo.addNodes(v);
+        string id = derivateInfo.toString();
+        derivates.insert(pair<string, DerivateInfo>(id, derivateInfo));
+        return id;
+    }
+
+    //TODO Remove. Depricated.
+    void DBServiceManager::deleteRelationLocations(const string& databaseName,
+        const string& relationName)
+    {
+        //TODO JF This deletes from the vector, only. 
+        // It doesn't delete from the database. 
+        // Change the dbService function accordingly.
+        boost::lock_guard<boost::mutex> lock(managerMutex);
+        relations.erase(RelationInfo::getIdentifier(databaseName, 
+            relationName));
+    }
+
+
+    void DBServiceManager::deleteDerivateLocations(const string& objectId)
+    {
+        boost::lock_guard<boost::mutex> lock(managerMutex);
+        derivates.erase(objectId);
+    }
+
+    //TODO Remove. Depricated.
+    void DBServiceManager::persistReplicaLocations(const string& databaseName,
+        const string& relationName)
+    {
+        boost::lock_guard<boost::mutex> lock(managerMutex);
+        RelationInfo relationInfo =
+            relations.at(
+                RelationInfo::getIdentifier(databaseName, relationName));
+
+        // Store the relation
+        DBServicePersistenceAccessor::persistRelationInfo(relationInfo);
+
+        /*
+
+            JF:
+            the RelationInfo already exists. Where and when has it been created?
+
+            RelationInfo(const std::string& dbName,
+                     const std::string& relName,
+                     const std::string& host,
+                     const std::string& port,
+                     const std::string& disk);
+
+            ReplicaLocations nodes;
+
+            LocationInfo originalLocation;
+
+        */
+
+
+        // Store the replica
+
+        //TODO Change to persist only the single replica that is being handled 
+        // here.
+        //  --> There could be multiple replicas for a given database&relation
+        // depending 
+        //      on the number of replicas set in the configuration
+        // -> Implement persistReplica(...)
+        if(!DBServicePersistenceAccessor::persistAllReplicas(relations, 
+            derivates))
+        {
+            print("Could not persist DBService relations", std::cout);
         }
     }
 
-    ConnectionInfo* connectionInfo =
-            ConnectionInfo::createConnection(host, port, config);
-
-    if(!connectionInfo)
+    //TODO Remove. Depricated.
+    void DBServiceManager::persistDerivateLocations(const string& ObjectId)
     {
-        print("Could not connect to remote server", std::cout);
-        return false;
+        // boost::lock_guard<boost::mutex> lock(managerMutex);
+        // DerivateInfo derivateInfo = derivates.at(ObjectId);
+        // //DBServicePersistenceAccessor::persistDerivateInfo(derivateInfo);
+        // if(!DBServicePersistenceAccessor::persistAllReplicas(relations, 
+        // derivates))
+        // {
+        //     print("Could not persist DBService derivates", std::cout);
+        // }
     }
 
-    connectionInfo->switchDatabase(
-            string("dbservice"),
-            true /*createifnotexists*/,
-            false /*showCommands*/,
-            true /*forceExec*/);
 
-    // retrieve location parameters from worker
-    string dir;
-    if(!getConfigParamFromWorker(dir, connectionInfo,
-            "Environment", "SecondoHome"))
-    {
-        print("could not retrieve SecondoHome of remote host", std::cout);
-        return false;
-    }
-
-    string commPort;
-    if(!getConfigParamFromWorker(commPort, connectionInfo,
-            "DBService", "CommunicationPort"))
-    {
-        print("could not retrieve CommunicationPort of remote host", std::cout);
-        return false;
-    }
-
-    string transferPort;
-    if(!getConfigParamFromWorker(transferPort, connectionInfo,
-            "DBService", "FileTransferPort"))
-    {
-        print("could not retrieve FileTransferPort of remote host", std::cout);
-        return false;
-    }
-
-    if(!startServersOnWorker(connectionInfo))
-    {
-        print("could not start servers on worker", std::cout);
-        return false;
-    }
-
-    LocationInfo location(host, stringutils::int2str(port), config, dir,
-            commPort, transferPort);
-
-    pair<LocationInfo, ConnectionInfo*> workerConnDetails(location,
-                                                          connectionInfo);
-    ConnectionID connID = getNextFreeConnectionID();
-    connections.insert(
-            pair<size_t, pair<LocationInfo, ConnectionInfo*> >(
-                    connID, workerConnDetails));
-
-    //DBServicePersistenceAccessor::persistLocationInfo(connID, location);
-
-    if (!DBServicePersistenceAccessor::persistAllLocations(connections))
-    {
-        print("Could not persist DBService locations", std::cout);
-        connections.erase(connID);
-        return false;
-    }
-
-    for(auto& replicaLocation : possibleReplicaLocations)
-    {
-        addToPossibleReplicaLocations(
-                connID,
-                location,
-                replicaLocation.second,
-                host,
-                dir);
-    }
-
-    return true;
-}
-
-bool DBServiceManager::startServersOnWorker(
-        distributed2::ConnectionInfo* connectionInfo)
-{
-    printFunction("DBServiceManager::startServersOnWorker", std::cout);
-    string queryInit("query initdbserviceworker()");
-    print("queryInit", queryInit, std::cout);
-
-    return SecondoUtilsRemote::executeQuery(connectionInfo, queryInit);
-}
-
-bool DBServiceManager::getConfigParamFromWorker(string& result,
-        distributed2::ConnectionInfo* connectionInfo, const char* section,
-        const char* key)
-{
-    printFunction("DBServiceManager::getConfigParamFromWorker", std::cout);
-    string resultAsString;
-    stringstream query;
-    query << "query getconfigparam(\""
-          << section
-          << "\", \""
-          << key
-          << "\")";
-    bool resultOk = SecondoUtilsRemote::executeQuery(
-            connectionInfo,
-            query.str(),
-            resultAsString);
-    print("resultAsString", resultAsString, std::cout);
-
-    if(!resultOk)
-    {
-        print("error during remote query execution", std::cout);
-        return false;
-    }
-
-    ListExpr resultAsNestedList;
-    nl->ReadFromString(resultAsString, resultAsNestedList);
-    result.assign(nl->StringValue(nl->Second(resultAsNestedList)));
-    print("result", result, std::cout);
-
-    return result.size() != 0;
-}
-
-void DBServiceManager::determineReplicaLocations(const string& databaseName,
-                                         const string& relationName,
-                                         const string& host,
-                                         const string& port,
-                                         const string& disk)
-{
-    printFunction("DBServiceManager::determineReplicaLocations", std::cout);
-    boost::lock_guard<boost::mutex> lock(managerMutex);
-    RelationInfo relationInfo(databaseName,
-                              relationName,
-                              host,
-                              port,
-                              disk);
-
-    vector<ConnectionID> locations;
-    getWorkerNodesForReplication(locations,
-                                 host,
-                                 disk);
-    relationInfo.addNodes(locations);
-    relations.insert(pair<string, RelationInfo>(relationInfo.toString(),
-            relationInfo));
-}
-
-
-
-string DBServiceManager::determineDerivateLocations(
-                                         const string& targetname,
-                                         const string& relationId,
-                                         const string& fundef)
-{
-    printFunction("DBServiceManager::determineDerivateLocations", std::cout);
-    boost::lock_guard<boost::mutex> lock(managerMutex);
-    DerivateInfo derivateInfo(targetname, relationId, fundef);
-    ReplicaLocations locations;
-    getReplicaLocations(relationId, locations);
-    vector<ConnectionID> v;
-    for(const auto& loc : locations)
-    {
-       v.push_back(loc.first);
-    }
-    derivateInfo.addNodes(v);
-    string id = derivateInfo.toString();
-    derivates.insert( pair<string, DerivateInfo>(id, derivateInfo));
-    return id;
-}
-
-void DBServiceManager::deleteRelationLocations(const string& databaseName,
-                                              const string& relationName)
-{
-    boost::lock_guard<boost::mutex> lock(managerMutex);
-    relations.erase(RelationInfo::getIdentifier(databaseName, relationName));
-}
-
-
-void DBServiceManager::deleteDerivateLocations(const string& objectId)
-{
-    boost::lock_guard<boost::mutex> lock(managerMutex);
-    derivates.erase(objectId);
-}
-
-void DBServiceManager::persistReplicaLocations(const string& databaseName,
-                                               const string& relationName)
-{
-    boost::lock_guard<boost::mutex> lock(managerMutex);
-    RelationInfo relationInfo =
-            relations.at(
-                    RelationInfo::getIdentifier(databaseName, relationName));
-    //DBServicePersistenceAccessor::persistRelationInfo(relationInfo);
-    if(!DBServicePersistenceAccessor::persistAllReplicas(relations, derivates))
-    {
-        print("Could not persist DBService relations", std::cout);
-    }
-}
-
-void DBServiceManager::persistDerivateLocations(const string& ObjectId)
-{
-    boost::lock_guard<boost::mutex> lock(managerMutex);
-    DerivateInfo derivateInfo = derivates.at(ObjectId);
-    //DBServicePersistenceAccessor::persistDerivateInfo(derivateInfo);
-    if(!DBServicePersistenceAccessor::persistAllReplicas(relations,derivates))
-    {
-        print("Could not persist DBService derivates", std::cout);
-    }
-}
-
-
-void DBServiceManager::getReplicaLocations(
+    void DBServiceManager::getReplicaLocations(
         const string& relationAsString,
         ReplicaLocations& ids)
-{
-    printFunction("DBServiceManager::getReplicaLocations", std::cout);
-    try
     {
-        RelationInfo& relInfo = getRelationInfo(relationAsString);
-        ids.insert(ids.begin(), relInfo.nodesBegin(), relInfo.nodesEnd());
-    }catch(...)
-    {
-        print("RelationInfo does not exist", std::cout);
+        printFunction("DBServiceManager::getReplicaLocations", std::cout);
+        try
+        {
+            RelationInfo& relInfo = getRelationInfo(relationAsString);
+            ids.insert(ids.begin(), relInfo.nodesBegin(), relInfo.nodesEnd());
+        }        
+catch(...)
+        {
+            print("RelationInfo does not exist", std::cout);
+        }
     }
-}
 
 
-void DBServiceManager::getDerivateLocations(
+    void DBServiceManager::getDerivateLocations(
         const string& objectId,
         ReplicaLocations& ids)
-{
-    printFunction("DBServiceManager::getDerivateLocations", std::cout);
-    try
     {
-        DerivateInfo& derInfo = getDerivateInfo(objectId);
-        ids.insert(ids.begin(), derInfo.nodesBegin(), derInfo.nodesEnd());
-    }catch(...)
-    {
-        print("DerivateInfo does not exist", std::cout);
+        printFunction("DBServiceManager::getDerivateLocations", std::cout);
+        try
+        {
+            DerivateInfo& derInfo = getDerivateInfo(objectId);
+            ids.insert(ids.begin(), derInfo.nodesBegin(), derInfo.nodesEnd());
+        }        
+catch(...)
+        {
+            print("DerivateInfo does not exist", std::cout);
+        }
     }
-}
 
+    /*
+        TODO Refactor and move!
+        Preserve the semantics of the FaultToleranceMode values.
 
-
-void DBServiceManager::addToPossibleReplicaLocations(
+    */
+    void DBServiceManager::addToPossibleReplicaLocations(
         const ConnectionID connectionID,
         const LocationInfo& location,
         vector<ConnectionID>& potentialReplicaLocations,
         const string& host,
         const string& disk)
-{
-    switch(mode)
     {
-    case FaultToleranceMode::DISK:
-        if(!location.isSameDisk(host, disk))
+        switch(mode)
         {
+        case FaultToleranceMode::DISK:
+            if(!location.isSameDisk(host, disk))
+            {
+                potentialReplicaLocations.push_back(connectionID);
+            }
+            break;
+        case FaultToleranceMode::NODE:
+            if(!location.isSameHost(host))
+            {
+                potentialReplicaLocations.push_back(connectionID);
+            }
+            break;
+        case FaultToleranceMode::NONE:
+        default:
             potentialReplicaLocations.push_back(connectionID);
+            break;
         }
-        break;
-    case FaultToleranceMode::NODE:
-        if(!location.isSameHost(host))
-        {
-            potentialReplicaLocations.push_back(connectionID);
-        }
-        break;
-    case FaultToleranceMode::NONE:
-    default:
-        potentialReplicaLocations.push_back(connectionID);
-        break;
     }
-}
 
-void DBServiceManager::getWorkerNodesForReplication(
+    //TODO Remove. Depricated.
+    void DBServiceManager::getWorkerNodesForReplication(
         vector<ConnectionID>& nodes,
         const string& host,
         const string& disk)
-{
-    printFunction("DBServiceManager::getWorkerNodesForReplication", std::cout);
-    string locationID = LocationInfo::getIdentifier(host, disk);
-    AlternativeLocations::const_iterator it =
-            possibleReplicaLocations.find(locationID);
-    if(it == possibleReplicaLocations.end())
     {
-        vector<ConnectionID> potentialReplicaLocations;
-        for(const auto& connection : connections)
+        /* Given is an empty set of worker nodes meant to store the results of 
+        * this operation.
+        * The host and disk identify the host holding the original relation 
+        * to be replicated.
+        */
+        printFunction("DBServiceManager::getWorkerNodesForReplication", 
+            std::cout);
+        
+        string locationID = LocationInfo::getIdentifier(host, disk);
+
+        // A location is considered a possible replica location if it has been
+        // added during the addNode operation.
+        AlternativeLocations::const_iterator it =
+            possibleReplicaLocations.find(locationID);
+
+        // If there is only one result ...
+        if(it == possibleReplicaLocations.end())
         {
-            const LocationInfo& location = connection.second.first;
-            addToPossibleReplicaLocations(
-                    connection.first,
-                    location,
-                    potentialReplicaLocations,
+            // PotentialReplicaLocations are locations for which there 
+            // is a connection.
+            vector<ConnectionID> potentialReplicaLocations;
+
+            // Connections is a vector of DBServiceLocations
+            // DBServiceLocations is a map of ConnectionID -> {LocationInfo, 
+            // ConnectionInfo}
+            for(const auto& connection : connections)
+            {
+                // connection.second > pair LocationInfo
+                // pair.first > ConnectionID
+                const LocationInfo& location = connection.second.first;
+
+                // this method modifies the potentialReplicaLocations vector
+                addToPossibleReplicaLocations(
+                    connection.first, // ConnectionID
+                    location, // LocationInfo
+                    potentialReplicaLocations, // vector
                     host,
                     disk);
-        }
-        possibleReplicaLocations.insert(
-                pair<string, vector<ConnectionID> >(
-                        locationID, potentialReplicaLocations));
-        it = possibleReplicaLocations.find(locationID);
-    }
-    vector<ConnectionID>& connectionsForLocation =
-            const_cast<vector<ConnectionID>& >(it->second);
-    shuffle(
-            connectionsForLocation.begin(),
-            connectionsForLocation.end(),
-            std::mt19937(std::random_device()()));
+            }
 
-    nodes.insert(nodes.begin(),
+            // And here the vector is modifed too
+            possibleReplicaLocations.insert(
+                pair<string, vector<ConnectionID> >(
+                    locationID, potentialReplicaLocations));
+
+            it = possibleReplicaLocations.find(locationID);
+        } // What if not?
+
+        vector<ConnectionID>& connectionsForLocation =
+            const_cast<vector<ConnectionID>&>(it->second);
+
+        std::random_device rd;
+        std::mt19937 g(rd());
+
+        // Randomly realign elements of the connectionsForLocation vector
+        // This will distribute replicas randomly across potential replica
+        //  locations.
+        std::shuffle(
+            connectionsForLocation.begin(),
+            connectionsForLocation.end(), g);
+
+        // ReplicaLocations nodes;
+        nodes.insert(nodes.begin(),
             connectionsForLocation.begin(),
             connectionsForLocation.end());
 
-    if(connectionsForLocation.size() > replicaCount)
-    {
-        nodes.resize(replicaCount);
-    }
-}
-
-ConnectionInfo* DBServiceManager::getConnection(ConnectionID id)
-{
-    printFunction("DBServiceManager::getConnection", std::cout);
-    return connections.at(id).second;
-}
-
-LocationInfo& DBServiceManager::getLocation(ConnectionID id)
-{
-    printFunction("DBServiceManager::getLocation", std::cout);
-    return connections.at(id).first;
-}
-
-RelationInfo& DBServiceManager::getRelationInfo(const string& relationAsString)
-{
-    printFunction("DBServiceManager::getRelationInfo", std::cout);
-    print("relationAsString", relationAsString, std::cout);
-    return relations.at(relationAsString);
-}
-
-DerivateInfo& DBServiceManager::getDerivateInfo(const string& objectId)
-{
-    printFunction(__PRETTY_FUNCTION__, std::cout);
-    print("objectId", objectId, std::cout);
-    return derivates.at(objectId);
-}
-
-void DBServiceManager::printDerivates( std::ostream& out) const{
-   printFunction(__PRETTY_FUNCTION__,out);
-   print("available derivates:", stringutils::int2str(derivates.size()),out);
-   for(auto& t : derivates){
-      print(t.first,out);
-      print(t.second,out);
-   }
-   print("---------------", out);
-}
-
-
-void DBServiceManager::maintainSuccessfulReplication(
-        const string& relID,
-        const string& replicaLocationHost,
-        const string& replicaLocationPort)
-{
-    printFunction("DBServiceManager::maintainSuccessfulReplication", std::cout);
-    boost::lock_guard<boost::mutex> lock(managerMutex);
-    print("relID", relID, std::cout);
-    print("replicaLocationHost", replicaLocationHost, std::cout);
-    print("replicaLocationPort", replicaLocationPort, std::cout);    
-
-    try
-    {
-        RelationInfo& relInfo = getRelationInfo(relID);
-
-        print("RelationInfo Node Count:", relInfo.getNodeCount(), std::cout);
-
-        for(ReplicaLocations::const_iterator it
-                = relInfo.nodesBegin(); it != relInfo.nodesEnd(); it++)
+        // Resize the nodes vector if 0
+        if(connectionsForLocation.size() > replicaCount)
         {
-            LocationInfo& location = getLocation(it->first);            
-            bool isSameWorker = location.isSameWorker(replicaLocationHost, 
-                replicaLocationPort);
-                        
-            if (isSameWorker)
-            {
-                ConnectionID connectionId = it->first;
-                
-                relInfo.updateReplicationStatus(connectionId, true);
-                //    if(!DBServicePersistenceAccessor::updateLocationMapping(
-                //            relID,
-                //            it->first,
-                //            true))
-                //    {
-                //        print("Could not update location mapping", std::cout);
-                //    }
-                break;
-            }
+            nodes.resize(replicaCount);
         }
-    }catch(...)
-    {
-        print("RelationInfo does not exist", std::cout);
     }
-    if(!DBServicePersistenceAccessor::persistAllReplicas(relations, derivates))
+
+    ConnectionInfo* DBServiceManager::getConnection(ConnectionID id)
     {
-        print("Could not persist DBService relations", std::cout);
+        printFunction("DBServiceManager::getConnection", std::cout);
+        return connections.at(id).second;
     }
-}
+
+    LocationInfo& DBServiceManager::getLocation(ConnectionID id)
+    {
+        printFunction("DBServiceManager::getLocation", std::cout);
+        return connections.at(id).first;
+    }
+
+    RelationInfo& DBServiceManager::getRelationInfo(
+        const string& relationAsString)
+    {
+        printFunction("DBServiceManager::getRelationInfo", std::cout);
+        print("relationAsString", relationAsString, std::cout);
+        return relations.at(relationAsString);
+    }
+
+    shared_ptr<DBService::Relation> DBServiceManager::getRelation(
+        string relationDatabase, string relationName) {
+        return relationManager->findByDatabaseAndName(
+            relationDatabase, relationName);
+    }
+
+    DerivateInfo& DBServiceManager::getDerivateInfo(const string& objectId)
+    {
+        printFunction(__PRETTY_FUNCTION__, std::cout);
+        print("objectId", objectId, std::cout);
+        return derivates.at(objectId);
+    }
+
+    void DBServiceManager::printDerivates(std::ostream& out) const {
+        printFunction(__PRETTY_FUNCTION__, out);
+        print("available derivates:", stringutils::int2str(
+            derivates.size()), out);
+        for(auto& t : derivates) {
+            print(t.first, out);
+            print(t.second, out);
+        }
+        print("---------------", out);
+    }
 
 
-void DBServiceManager::maintainSuccessfulDerivation(
+    void DBServiceManager::maintainSuccessfulReplication(
+        const string& relID,
+        const string& replicaTargetNodeHost,
+        const string& replicaTargetNodePort)
+    {
+        printFunction("DBServiceManager::maintainSuccessfulReplication", 
+            std::cout);
+        boost::lock_guard<boost::mutex> lock(managerMutex);
+        print("relID", relID, std::cout);
+
+        print("replicaLocationHost", replicaTargetNodeHost, std::cout);
+        print("replicaLocationPort", replicaTargetNodePort, std::cout);
+
+
+        string relationDatabase;
+        string relationName;
+
+        //TODO Refactor -> Eliminate dependency to RelationInfo
+        RelationInfo::parseIdentifier(relID, relationDatabase, relationName);
+
+
+        shared_ptr<DBService::Relation> relation = getRelation(relationDatabase,
+            relationName);
+
+        if(relation == nullptr) {
+            print("Relation does not exist", std::cout);
+            return;
+        }
+
+        relation->updateReplicaStatus(
+            replicaTargetNodeHost, stoi(replicaTargetNodePort),
+            Replica::statusReplicated);
+    }
+
+
+    void DBServiceManager::maintainSuccessfulDerivation(
         const string& objectID,
         const string& replicaLocationHost,
         const string& replicaLocationPort)
-{
-    printFunction("DBServiceManager::maintainSuccessfulDerivation", std::cout);
-    boost::lock_guard<boost::mutex> lock(managerMutex);
-    print("ObjectID", objectID, std::cout);
-    print("replicaLocationHost", replicaLocationHost, std::cout);
-    print("replicaLocationPort", replicaLocationPort, std::cout);
-    try
     {
-        DerivateInfo& derInfo = getDerivateInfo(objectID);
+        printFunction("DBServiceManager::maintainSuccessfulDerivation", 
+            std::cout);
 
-        for(ReplicaLocations::const_iterator it
-                = derInfo.nodesBegin(); it != derInfo.nodesEnd(); it++)
+        boost::lock_guard<boost::mutex> lock(managerMutex);
+        print("ObjectID", objectID, std::cout);
+        print("replicaLocationHost", replicaLocationHost, std::cout);
+        print("replicaLocationPort", replicaLocationPort, std::cout);
+
+        // ObjectID example:
+        // DBSTESTxDBSxCitiesR2xDBSxCitiesR2_count
+        // relationID xDBSx derivativeID
+
+        //TODO Move to utility function    
+        std::vector<std::string> fragments;
+        boost::regex separator("xDBSx");
+        boost::algorithm::split_regex(fragments, objectID, separator);
+
+        string relationDatabase = fragments[0];
+        string relationName = fragments[1];
+        string derivativeName = fragments[2];
+
+        auto relation = relationManager->findByDatabaseAndName(
+            relationDatabase, relationName);
+
+        relation->updateDerivativeReplicaStatus(
+            derivativeName,
+            replicaLocationHost, stoi(replicaLocationPort),
+            Replica::statusReplicated);
+    }
+
+
+
+    void DBServiceManager::deleteReplicaMetadata(const string& database,
+        const string& relation,
+        const string& derivateName)
+    {
+        printFunction("DBServiceManager::deleteReplicaMetadata", std::cout);
+        print("Database", database, std::cout);
+        print("Relation", relation, std::cout);
+        print("Derivative", derivateName, std::cout);
+
+        boost::lock_guard<boost::mutex> lock(managerMutex);
+        try
         {
-            LocationInfo& location = getLocation(it->first);
-            if(location.isSameWorker(replicaLocationHost, replicaLocationPort))
-            {
-                derInfo.updateReplicationStatus(it->first, true);
-            //    if(!DBServicePersistenceAccessor::updateLocationMapping(
-            //            objectID,
-            //            it->first,
-            //            true))
-            //    {
-            //        print("Could not update location mapping", std::cout);
-            //    }
-                break;
+            if(relation.empty()) {
+                //JF: If no relation is provided, delete the entire db
+
+                print("deleteRelationsByRelationDatabase", std::cout);
+                relationManager->deleteRelationsByRelationDatabase(database);
+
             }
+            else if(derivateName.empty()) {
+                //JF: If a relation is provided but no derivativeName,
+                //  delete the entire relation
+
+                print("deleteRelationByDatabaseAndName", std::cout);
+                relationManager->deleteRelationByDatabaseAndName(database,
+                    relation);                        
+            }
+            else {
+
+                print("deleteDerivativeByName", std::cout);
+                relationManager->deleteDerivativeByName(database, relation,
+                    derivateName);
+            }
+        }        
+catch(...)
+        {
+            print("Object to remove not found", std::cout);
         }
-    }catch(...)
-    {
-        print("DerivateInfo does not exist", std::cout);
     }
-    if(!DBServicePersistenceAccessor::persistAllReplicas(relations,derivates))
+
+
+
+    void DBServiceManager::printMetadata(std::ostream& out)
     {
-        print("Could not persist DBService derivates", std::cout);
-    }
-}
 
+        out << "**************************************" << endl;
+        out << "* DBSERVICE WORKER NODES             *" << endl;
+        out << "**************************************" << endl;
 
-
-void DBServiceManager::deleteReplicaMetadata(const string& database,
-                                             const string& relation,
-                                             const string& derivateName)
-{
-    printFunction("DBServiceManager::deleteReplicaMetadata", std::cout);
-
-    boost::lock_guard<boost::mutex> lock(managerMutex);
-    try
-    { 
-        if(relation.empty()){
-            vector<string> rel;
-            findRelations(database, rel);
-            for(auto& t : rel){
-               relations.erase(t);
-               possibleReplicaLocations.erase(t);
-            }     
-            vector<string> der;
-            findDerivatesInDatabase(database,der);
-            for(auto& d : der){
-               derivates.erase(d);
-               possibleReplicaLocations.erase(d);
-            }
-        } else if(derivateName.empty()){
-            string relId = RelationInfo::getIdentifier(database, relation);
-            RelationInfo relinfo = getRelationInfo(relId);
-            /*
-            DBServicePersistenceAccessor::deleteLocationMapping(relId,
-                                     relinfo.nodesBegin(), relinfo.nodesEnd());
-            */
-            relations.erase(relId);
-            possibleReplicaLocations.erase(relId);
-            vector<string> derivatestoremove;
-            findDerivates(database, relation, derivatestoremove);
-            for( auto& t : derivatestoremove){
-               /*DerivateInfo derinfo = getDerivateInfo(t);
-               DBServicePersistenceAccessor::deleteLocationMapping(t, 
-                                        derinfo.nodesBegin(), 
-                                        derinfo.nodesEnd());
-               */
-               derivates.erase(t);
-               possibleReplicaLocations.erase(t);
-            }
-        } else {
-            string derId = DerivateInfo::getIdentifier(database, relation, 
-                                                       derivateName);
-            /*
-            DerivateInfo derinfo = getDerivateInfo(derId);
-            DBServicePersistenceAccessor::deleteLocationMapping(derId, 
-                                         derinfo.nodesBegin(), 
-                                         derinfo.nodesEnd());
-            */
-            derivates.erase(derId);
-            possibleReplicaLocations.erase(derId);
+        if(nodeManager->empty())
+        {
+            out << "*** NONE ***" << endl;
         }
-    }catch(...)
-    {
-        print("Object to remove not found", std::cout);
-    }
-    if(!DBServicePersistenceAccessor::persistAllReplicas(relations,derivates))
-    {
-        print("Could not persist DBService relations or derivates", std::cout);
-    }
-}
 
+        for(const auto& node : nodeManager->getAll())
+        {
+            out << node->str() << endl;
+        }
 
+        out << "**************************************" << endl;
+        out << "* RELATIONS & REPLICAS & DERIVATIVES *" << endl;
+        out << "**************************************" << endl;
 
-void DBServiceManager::printMetadata(std::ostream& out)
-{
-    out << "********************************" << endl;
-    out << "* WORKER NODES                 *" << endl;
-    out << "********************************" << endl;
-    if(connections.empty())
-    {
-        out << "*** NONE ***" << endl;
-    }
-    for(const auto& connection : connections)
-    {
-        out << "ConnectionID:\t" << connection.first << endl;
-        printLocationInfo(connection.second.first, out);
-        out << endl;
-    }
-    out << "********************************" << endl;
-    out << "* REPLICAS                     *" << endl;
-    out << "********************************" << endl;
-    if(relations.empty())
-    {
-        out << "*** NONE ***" << endl;
-    }
-    for(const auto& relation : relations)
-    {
-        out << "RelationID:\t" << relation.first << endl;
-        printRelationInfo(relation.second, out);
-        out << endl;
-    }
-    out << "********************************" << endl;
-    out << "* DERIVATES                    *" << endl;
-    out << "********************************" << endl;
-    if(derivates.empty())
-    {
-        out << "*** NONE ***" << endl;
-    }
-    for(const auto& derivate : derivates)
-    {
-        out << "ObjectID:\t" << derivate.first << endl;
-        printDerivateInfo(derivate.second, out);
-        out << endl;
-    }
-}
+        if(relationManager->empty())
+        {
+            out << "*** NONE ***" << endl;
+        }
 
-bool DBServiceManager::replicaExists(
+        for(const auto& relation : relationManager->getAll())
+        {
+            out << "Relation:" << endl;
+            out << *relation << endl;
+        }
+    }
+
+    bool DBServiceManager::replicaExists(
         const string& databaseName,
         const string& relationName)
-{
-    DBServiceRelations::const_iterator it =
-            relations.find(RelationInfo::getIdentifier(
-                    databaseName,
-                    relationName));
-    return it != relations.end();
-}
-
-bool DBServiceManager::derivateExists(const string& objectId)
-{
-    DBServiceDerivates::const_iterator it =
-            derivates.find( objectId);
-    return it != derivates.end();
-}
-
-bool DBServiceManager::locationExists(
-                  const string& databaseName,
-                  const string& relation,
-                  const vector<string>& derivates){
-
-    string relId = RelationInfo::getIdentifier(databaseName, relation);
-    DBServiceRelations::const_iterator rit = relations.find(relId);
-    if(rit==relations.end()){
-        return false;
-    }
-    vector<int> locations;
-    ReplicaLocations::const_iterator nit;
-    for(nit=rit->second.nodesBegin(); nit!=rit->second.nodesEnd();nit++){
-         if(nit->second){ // replicated flag set
-            locations.push_back(nit->first);
-         }
-    }
-
-    sort(locations.begin(), locations.end());
-    
-    for( auto& der : derivates){
-      string derId = RelationInfo::getIdentifier(relId, der);
-      DBServiceDerivates::const_iterator dit = this->derivates.find(derId);
-      if(dit==this->derivates.end()){
-         return false; // derived object not managed
-      }
-      // collect all replica locations of this derived object
-      vector<int> dlocs;
-      ReplicaLocations::const_iterator nit;
-      for(nit = dit->second.nodesBegin(); nit!=dit->second.nodesEnd(); nit++){
-          if(nit->second){
-            dlocs.push_back(nit->first);
-          }
-      }
-      sort(dlocs.begin(), dlocs.end());
-      vector<int> tmp;
-      set_intersection(locations.begin(), locations.end(),
-                       dlocs.begin(), dlocs.end(),
-                       back_inserter(tmp));
-      if(tmp.empty()){
-        return false;
-      } 
-      swap(locations,tmp);
-    }
-    return true;
-
-}
-
-
-void DBServiceManager::findRelations(const string& databaseName, 
-                                     vector<string>& result) {
-
-
-  result.clear();
-  string start = ReplicationUtils::getDBStart(databaseName);
-  DBServiceRelations::const_iterator it = relations.lower_bound(start); 
-  while(it!=relations.end() && it->first.find(start)==0){
-     result.push_back(it->first);
-     it++;
-  }
-
-}
-
-
-void DBServiceManager::findDerivates(const string& relID,
-                                     vector<string>& result){
-
-  result.clear();
-  for(auto& t : derivates){
-        if(t.second.getSource()==relID){
-           result.push_back(t.first);
-        }
-  }
-
-}  
-
-void DBServiceManager::findDerivatesInDatabase(
-                             const std::string& databaseName,
-                             std::vector<std::string>& result){
-   result.clear();
-   string start = ReplicationUtils::getDBStart(databaseName);
-   DBServiceDerivates::const_iterator it = derivates.lower_bound(start);
-   while(it!=derivates.end() && it->first.find(start)==0){
-       result.push_back(it->first);
-       it++;
-   } 
-
-}
-
-void DBServiceManager::setOriginalLocationTransferPort(
-        const string& relID,
-        const string& transferPort)
-{
-    DBServiceRelations::const_iterator it =
-            relations.find(relID);
-    if(it != relations.end())
     {
-        RelationInfo& relInfo = getRelationInfo(relID);
-        relInfo.setTransferPortOfOriginalLocation(
-                *(const_cast<string*>(&transferPort)));
+        return relationManager->doesRelationHaveReplicas(databaseName, 
+            relationName);
     }
-}
 
-DBServiceManager* DBServiceManager::_instance = nullptr;
-bool DBServiceManager::active = false;
-bool DBServiceManager::usesIncrementalMetadataUpdate = false;
+    bool DBServiceManager::derivateExists(const string& derivativeName)
+    {
+        // DBServiceDerivates::const_iterator it =
+        //         derivates.find( objectId);
+        // return it != derivates.end();
+
+        bool doesExist = false;
+
+        doesExist = relationManager->doesDerivativeExist(derivativeName);
+
+        return doesExist;
+    }
+
+    void DBServiceManager::addDerivative(std::string relationDatabase,
+        std::string relationName, std::string derivativeName,
+        std::string derivativeFunction) {
+
+        // TODO Move to DBServiceManager where a relationManager is present
+        auto relation = relationManager->findByDatabaseAndName(
+            relationDatabase, relationName);
+
+        auto derivative = relation->addDerivative(derivativeName, 
+            derivativeFunction);
+
+        relation->save();
+
+        //TODO make the creation of the processes a control-loop
+
+        for(auto& replica : derivative->getReplicas()) {
+            auto targetNode = replica->getTargetNode();
+
+            CreateDerivateRunnable cdr(
+                targetNode->getHost().getHostname(),
+                targetNode->getComPort(),
+                relationDatabase,
+                derivativeName,
+                relationName,
+                derivativeFunction);
+            cdr.run();
+        }
+    }
+
+    //TODO Depricated. Remove
+    bool DBServiceManager::locationExists(
+        const string& databaseName,
+        const string& relation,
+        const vector<string>& derivates) {
+
+        string relId = RelationInfo::getIdentifier(databaseName, relation);
+        DBServiceRelations::const_iterator rit = relations.find(relId);
+        if(rit == relations.end()) {
+            return false;
+        }
+        vector<int> locations;
+        ReplicaLocations::const_iterator nit;
+        for(nit = rit->second.nodesBegin(); 
+            nit != rit->second.nodesEnd(); nit++) {
+            if(nit->second) { // replicated flag set
+                locations.push_back(nit->first);
+            }
+        }
+
+        sort(locations.begin(), locations.end());
+
+        for(auto& der : derivates) {
+            string derId = RelationInfo::getIdentifier(relId, der);
+            DBServiceDerivates::const_iterator dit = 
+                this->derivates.find(derId);
+            if(dit == this->derivates.end()) {
+                return false; // derived object not managed
+            }
+            // collect all replica locations of this derived object
+            vector<int> dlocs;
+            ReplicaLocations::const_iterator nit;
+            for(nit = dit->second.nodesBegin(); 
+                nit != dit->second.nodesEnd(); nit++) {
+                if(nit->second) {
+                    dlocs.push_back(nit->first);
+                }
+            }
+            sort(dlocs.begin(), dlocs.end());
+            vector<int> tmp;
+            set_intersection(locations.begin(), locations.end(),
+                dlocs.begin(), dlocs.end(),
+                back_inserter(tmp));
+            if(tmp.empty()) {
+                return false;
+            }
+            swap(locations, tmp);
+        }
+        return true;
+
+    }
+
+    shared_ptr<DBService::Node> DBServiceManager::getRandomNodeWithReplica(
+        string relationDatabase, string relationName) {
+
+        printFunction("DBServiceManager::getRandomNodeWithReplica", std::cout);
+
+        auto replica = relationManager->getRandomReplica(
+            relationDatabase, relationName);
+
+        if(replica == nullptr) {
+            LOG_F(WARNING, "Didn't find Replica for db (%s) and relation (%s)",
+                relationDatabase.c_str(),
+                relationName.c_str()
+            );
+            return nullptr;
+        }
+
+        print("Replica: ", replica->str(), std::cout);
+
+        int targetNodeId = replica->getTargetNodeId();
+
+        print("TargetNodeId: ", targetNodeId, std::cout);
+
+        // The goal of using the nodeManager is to avoid
+        // loading nodes multiple times and thus producing in-memory duplicates
+        // In this case an in-mem dup wouldn't do any harm, though.
+        auto targetNode = nodeManager->findById(targetNodeId);
+
+        if(targetNode == nullptr) {
+            LOG_F(WARNING, "Didn't find target node for replica of db(%s) / \
+                relation (%s)",
+                relationDatabase.c_str(),
+                relationName.c_str()
+            );
+            return nullptr;
+        }
+
+        print("TargetNode: ", targetNode->str(), std::cout);
+
+        return targetNode;
+    }
+
+
+    void DBServiceManager::findRelations(const string& databaseName,
+        vector<string>& result) {
+
+
+        result.clear();
+        string start = ReplicationUtils::getDBStart(databaseName);
+        DBServiceRelations::const_iterator it = relations.lower_bound(start);
+        while(it != relations.end() && it->first.find(start) == 0) {
+            result.push_back(it->first);
+            it++;
+        }
+
+    }
+
+
+    void DBServiceManager::findDerivates(const string& relID,
+        vector<string>& result) {
+
+        result.clear();
+        for(auto& t : derivates) {
+            if(t.second.getSource() == relID) {
+                result.push_back(t.first);
+            }
+        }
+
+    }
+
+    void DBServiceManager::findDerivatesInDatabase(
+        const std::string& databaseName,
+        std::vector<std::string>& result) {
+        result.clear();
+        string start = ReplicationUtils::getDBStart(databaseName);
+        DBServiceDerivates::const_iterator it = derivates.lower_bound(start);
+        while(it != derivates.end() && it->first.find(start) == 0) {
+            result.push_back(it->first);
+            it++;
+        }
+
+    }
+
+    string DBServiceManager::getMessages() {
+        if(replicaPlacementStrategy != nullptr) {
+            return replicaPlacementStrategy->getMessage();
+        }
+        return "";
+    }
+
+    DBServiceManager* DBServiceManager::_instance = nullptr;
+    bool DBServiceManager::active = false;
+    bool DBServiceManager::usesIncrementalMetadataUpdate = false;
 
 } /* namespace DBService */

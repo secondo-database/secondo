@@ -29,14 +29,14 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "SecondoException.h"
 
-#include "Algebras/DBService/CommandBuilder.hpp"
+#include "Algebras/DBService2/CommandBuilder.hpp"
 
 using namespace std;
 
 namespace DBService
 {
 
-string CommandBuilder::getTypeName(AttributeType type)
+string CommandBuilder::getTypeName(AttributeType2 type)
 {
     switch(type)
     {
@@ -99,29 +99,37 @@ string CommandBuilder::buildCreateCommand(
             createCommand << ", ";
         }
     }
-    createCommand << "])) value((";
+    createCommand << "])) value (";
 
-    for(size_t j = 0; j < values.size(); j++)
+    // If values are present append them to the create command
+    if (!values.empty()) 
     {
-        if(rel.size() != values[j].size())
+        createCommand << "(";
+
+        for(size_t j = 0; j < values.size(); j++)
         {
-            throw new SecondoException("wrong number of attributes");
-        }
-        for(size_t i = 0; i < values[j].size(); i++)
-        {
-            addAttributeValue(
-                    createCommand, rel[i], values[j][i]);
-            if(i != rel.size() - 1)
+            if(rel.size() != values[j].size())
             {
-                createCommand << " ";
+                throw new SecondoException("wrong number of attributes");
+            }
+            for(size_t i = 0; i < values[j].size(); i++)
+            {
+                addAttributeValue(
+                        createCommand, rel[i], values[j][i]);
+                if(i != rel.size() - 1)
+                {
+                    createCommand << " ";
+                }
+            }
+            if(j != values.size() - 1)
+            {
+                createCommand << ")\n(";
             }
         }
-        if(j != values.size() - 1)
-        {
-            createCommand << ")\n(";
-        }
+        createCommand << ")";
     }
-    createCommand << "))]";
+    
+    createCommand << ")]";
     return createCommand.str();
 }
 

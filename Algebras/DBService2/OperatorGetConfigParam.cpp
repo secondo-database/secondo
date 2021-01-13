@@ -28,9 +28,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "NestedList.h"
 #include "StandardTypes.h"
 
-#include "Algebras/DBService/DebugOutput.hpp"
-#include "Algebras/DBService/OperatorGetConfigParam.hpp"
-#include "Algebras/DBService/SecondoUtilsLocal.hpp"
+#include "Algebras/DBService2/DebugOutput.hpp"
+#include "Algebras/DBService2/OperatorGetConfigParam.hpp"
+#include "Algebras/DBService2/SecondoUtilsLocal.hpp"
 
 using namespace std;
 

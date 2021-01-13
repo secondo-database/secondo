@@ -29,9 +29,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "StandardTypes.h"
 #include "QueryProcessor.h"
 
-#include "Algebras/DBService/DBServiceClient.hpp"
-#include "Algebras/DBService/DebugOutput.hpp"
-#include "Algebras/DBService/OperatorPingDBService.hpp"
+#include "Algebras/DBService2/DBServiceClient.hpp"
+#include "Algebras/DBService2/DebugOutput.hpp"
+#include "Algebras/DBService2/OperatorPingDBService.hpp"
 
 namespace DBService
 {

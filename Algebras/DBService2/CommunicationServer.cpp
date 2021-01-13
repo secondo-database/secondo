@@ -25,28 +25,31 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
 */
+
 #include "Algebra.h"
 #include "FileSystem.h"
 #include "StringUtils.h"
-
-#include <random>
 
 #include "SecondoCatalog.h"
 #include "SecondoSystem.h"
 
 #include "Algebras/Distributed2/FileRelations.h"
 
-#include "Algebras/DBService/CommunicationProtocol.hpp"
-#include "Algebras/DBService/CommunicationServer.hpp"
-#include "Algebras/DBService/CommunicationUtils.hpp"
-#include "Algebras/DBService/DBServiceManager.hpp"
-#include "Algebras/DBService/ReplicationClientRunnable.hpp"
-#include "Algebras/DBService/ReplicationUtils.hpp"
-#include "Algebras/DBService/SecondoUtilsLocal.hpp"
-#include "Algebras/DBService/TriggerFileTransferRunnable.hpp"
-#include "Algebras/DBService/TriggerReplicaDeletionRunnable.hpp"
-#include "Algebras/DBService/DerivationClient.hpp"
-#include "Algebras/DBService/CreateDerivateRunnable.hpp"
+#include "Algebras/DBService2/CommunicationProtocol.hpp"
+#include "Algebras/DBService2/CommunicationServer.hpp"
+#include "Algebras/DBService2/CommunicationUtils.hpp"
+#include "Algebras/DBService2/DBServiceManager.hpp"
+#include "Algebras/DBService2/ReplicationClientRunnable.hpp"
+#include "Algebras/DBService2/ReplicationUtils.hpp"
+#include "Algebras/DBService2/SecondoUtilsLocal.hpp"
+#include "Algebras/DBService2/TriggerFileTransferRunnable.hpp"
+#include "Algebras/DBService2/TriggerReplicaDeletionRunnable.hpp"
+#include "Algebras/DBService2/DerivationClient.hpp"
+#include "Algebras/DBService2/CreateDerivateRunnable.hpp"
+
+#include <algorithm>
+#include <random>
+#include <sstream>
 
 using namespace distributed2;
 using namespace std;
@@ -170,17 +173,32 @@ int CommunicationServer::communicate(iostream& io)
                     tid, "Protocol error: invalid request: ", request);
             return 1;
         }
-    } catch (...)
-    {
-        traceWriter->write(tid, "CommunicationServer: communication error");
+    } catch (char const* exception) {
+        traceWriter->write(tid, "CommunicationServer: communication char \
+                const* exception:");
+        traceWriter->write(tid, exception);
+        return 2;
+    } catch (std::string const* exception) {
+        traceWriter->write(tid, "CommunicationServer: communication string \
+                const* exception:");
+        traceWriter->write(tid, exception->c_str());
+        return 2;    
+    } catch (std::string const exception) {
+        traceWriter->write(tid, "CommunicationServer: communication string \
+                const exception:");
+        traceWriter->write(tid, exception.c_str());
         return 2;
     }
+
     return 0;
 }
 
 bool CommunicationServer::handleTriggerReplicationRequest(
         std::iostream& io, const boost::thread::id tid)
 {
+    bool success = false;
+    // The original system (e.g. the master) triggers the actual replication
+
     traceWriter->writeFunction(tid,
             "CommunicationServer::handleTriggerReplicationRequest");
     CommunicationUtils::sendLine(io,
@@ -198,15 +216,33 @@ bool CommunicationServer::handleTriggerReplicationRequest(
     traceWriter->write(tid, "relationName", relationName);
 
     DBServiceManager* dbService = DBServiceManager::getInstance();
+
+    traceWriter->write(tid, "Got a DBServiceManager instance.");
+
+    // Check if the DBService already has a replica of the given database & 
+    //  relation combination ...
     if(dbService->replicaExists(databaseName, relationName))
     {
+        /* 
+          Updates are not supported. 
+          If the DBService already has a replica the replication is cancelled.
+        */
+        traceWriter->write(tid, 
+            "The relation exists and has replicas. Aborting.");
         CommunicationUtils::sendLine(io,
                 CommunicationProtocol::ReplicaExists());
         return false;
     }
 
+    traceWriter->write(tid, "The relation doesn't exist. Initiating \
+        replication. Starting location request...");
+
     CommunicationUtils::sendLine(io,
             CommunicationProtocol::LocationRequest());
+
+    // JF: What location is requested, here? 
+    // Assumption: The original location to send the retrieveFile request to.
+    traceWriter->write(tid, "Location request issued.");
 
     CommunicationUtils::receiveLines(io, 4, receiveBuffer);
     string host = receiveBuffer.front();
@@ -218,81 +254,109 @@ bool CommunicationServer::handleTriggerReplicationRequest(
     string transferPort = receiveBuffer.front();
     receiveBuffer.pop();
 
+    traceWriter->write(tid, "Received the following LocationInfo");
     traceWriter->write(tid, "host", host);
     traceWriter->write(tid, "port", port);
     traceWriter->write(tid, "disk", disk);
     traceWriter->write(tid, "transferPort", transferPort);
 
-    dbService->determineReplicaLocations(databaseName,
+    // Given the database and relation which needs to replicated, it now needs 
+    // to be determined
+    // whereto the relation can be replicated. This can be a single or 
+    // mulitple worker nodes 
+    // as replication targets.
+    traceWriter->write(tid, "Determinig replica locations...");    
+    
+    /*
+        TODO Rename determineReplicaLocations as it also creates the relation,
+        original node, do the replica placement and stores all records if 
+        a placement can be done.
+     */
+    success = dbService->determineReplicaLocations(databaseName,
                                  relationName,
                                  host,
                                  port,
                                  disk);
-    vector<pair<ConnectionID, bool> > locations;
-    dbService->getReplicaLocations(RelationInfo::getIdentifier(
-            databaseName, relationName),
-            locations);
-    dbService->setOriginalLocationTransferPort(
-            RelationInfo::getIdentifier(databaseName, relationName),
-            transferPort);
 
-    if(locations.size() < (size_t)minimumReplicaCount)
-    {
-        dbService->deleteRelationLocations(databaseName, relationName);
+    traceWriter->write(tid, "Done determinig replica locations...");
+
+    if (success) {
+        traceWriter->write(tid, "Replica placement successful.");
+        
+        CommunicationUtils::sendLine(io,
+            CommunicationProtocol::ReplicationTriggered());
+        
+    } else {
+        traceWriter->write(tid, "Replica placement failed.");
+        traceWriter->write(tid, dbService->getMessages().c_str());        
+        
         CommunicationUtils::sendLine(io,
                 CommunicationProtocol::ReplicationCanceled());
-    }else
-    {
-        dbService->persistReplicaLocations(databaseName, relationName);
-        CommunicationUtils::sendLine(io,
-                CommunicationProtocol::ReplicationTriggered());
     }
+
     return true;
 }
 
 bool CommunicationServer::handleStartingSignalRequest(
         std::iostream& io, const boost::thread::id tid)
 {
+
     traceWriter->writeFunction(tid,
             "CommunicationServer::handleStartingSignalRequest");
     CommunicationUtils::sendLine(io,
             CommunicationProtocol::RelationRequest());
-
+    
+    // relID = {DATABASE}xDBSx{RELATION_NAME}
     string relID;
     CommunicationUtils::receiveLine(io, relID);
     traceWriter->write(tid, "relID", relID);
 
-    vector<pair<ConnectionID, bool> > locations;
-    DBServiceManager* dbService = DBServiceManager::getInstance();
-    dbService->getReplicaLocations(relID, locations);
-    RelationInfo& relationInfo = dbService->getRelationInfo(relID);
+    string relationDatabase;
+    string relationName;
 
-    string originalLocationHost = relationInfo.
-            getOriginalLocation().getHost();
-    traceWriter->write("originalLocationHost", originalLocationHost);
-    string originalLocationTransferPort = relationInfo.
-            getOriginalLocation().
-            getTransferPort();
-    traceWriter->write("originalLocationTransferPort",
-            originalLocationTransferPort);
+    //TODO Refactor -> Eliminate dependency to RelationInfo
+    RelationInfo::parseIdentifier(relID, relationDatabase, relationName);
+    
+    //TODO use shared_ptr
+    DBServiceManager* dbService = DBServiceManager::getInstance();
+
+    shared_ptr<DBService::Relation> relation = dbService->getRelation(
+        relationDatabase, relationName);
+    
+    if (relation == nullptr) {        
+        stringstream msg;
+        msg << "Couldn't find the relation (relationDatabase: ";
+        msg << relationDatabase << ", relationName: " << relationName;
+        traceWriter->write(msg.str());
+        return false;
+    }
+
+    /* JF:
+        Locations have been pretermined as during this step it was also possible
+        to reject the replication, e.g. due to missing nodes.
+
+        In this phase it is about starting the file transfers, one for each
+        selected replica locations.
+    */
+    shared_ptr<DBService::Node> originalNode = relation->getOriginalNode();
 
     traceWriter->write("Triggering file transfers");
-    for(vector<pair<ConnectionID, bool> >::const_iterator it
-                = locations.begin(); it != locations.end(); it++)
-        {
-            LocationInfo locationInfo = dbService->getLocation((*it).first);
-            traceWriter->write(locationInfo);
-            TriggerFileTransferRunnable clientToDBServiceWorker(
-                    originalLocationHost, /*original location*/
-                    atoi(originalLocationTransferPort.
-                            c_str()), /*original location*/
-                    locationInfo.getHost(), /*DBService*/
-                    atoi(locationInfo.getCommPort().c_str()), /*DBService*/
-                    relationInfo.getDatabaseName(),
-                    relationInfo.getRelationName());
 
-            clientToDBServiceWorker.run();
-        }
+    shared_ptr<DBService::Node> replicaTargetNode;
+
+    for( auto& replica : relation->getReplicas()) {
+        replicaTargetNode = replica->getTargetNode();
+        TriggerFileTransferRunnable clientToDBServiceWorker(
+            originalNode->getHost().getHostname(),
+            originalNode->getTransferPort(),
+            replicaTargetNode->getHost().getHostname(), // DBService Worker
+            replicaTargetNode->getComPort(),        
+            relation->getRelationDatabase(),
+            relation->getName());                    
+
+        clientToDBServiceWorker.run();
+    }
+
     return true;
 }
 
@@ -337,6 +401,23 @@ bool CommunicationServer::handleTriggerFileTransferRequest(
 bool CommunicationServer::handleProvideReplicaLocationRequest(
         std::iostream& io, const boost::thread::id tid)
 {
+
+    /*
+        JF: Interpretation of what the function does.
+
+        For a given relation find a DBS node (location) that
+        has both a replica of the relation and - if derivates are provided -
+        of the derivatives as well.
+
+        Question:
+        How are derivates places?
+        My first guess: they are places alongside the relation.
+        Nothing else makes sense. Derivates should be co-located.
+        There is a chance though that a derivate has not been placed, yet or
+        that it's transfer failed. This may produce inconsistencies where
+        there's a replica of a relation but no corresponding derivative.
+    */
+
     traceWriter->writeFunction(tid,
             "CommunicationServer::handleProvideReplicaLocationRequest");
 
@@ -346,16 +427,24 @@ bool CommunicationServer::handleProvideReplicaLocationRequest(
     queue<string> receiveBuffer;
     CommunicationUtils::receiveLines(io, 2, receiveBuffer);
 
+    // START receving derivate information
     // read number of other objects
     string n;
     CommunicationUtils::receiveLine(io, n);
+
     bool correct;
     int number = stringutils::str2int<int>(n,correct); //TODO: error handling
     if(number<0) number = 0;
+
+    //JF what is other objects about? derivatives?
+    //  building a queue from received lines
+    //  what has been send by the replication client?
+    // 
     queue<string> otherObjects;
     if(number>0){
       CommunicationUtils::receiveLines(io,number,otherObjects);
     }
+    // END receving derivate information
     
     string databaseName = receiveBuffer.front();
     receiveBuffer.pop();
@@ -366,68 +455,57 @@ bool CommunicationServer::handleProvideReplicaLocationRequest(
     traceWriter->write(tid, "relationName", relationName);
 
     DBServiceManager* dbService = DBServiceManager::getInstance();
-    ConnectionID randomReplicaLocation = 0;
 
-    try
-    {
-       vector<ConnectionID> possibleLocations;
-       string relName = RelationInfo::getIdentifier(databaseName, relationName);
-       RelationInfo relInfo =dbService->getRelationInfo(relName);
-       relInfo.getAllLocations(possibleLocations);
-       std::sort(possibleLocations.begin(), possibleLocations.end());
+    /*
+    JF: 
+    - Retrieve replicas of the requestion relation, 
+    - Select a random replica
+    - Return its targetNode
+    */
+    
+    shared_ptr<DBService::Node> node = dbService->getRandomNodeWithReplica(
+            databaseName, relationName);
 
-       traceWriter->write("check for presence of derived objects");
-       while(!otherObjects.empty() && !possibleLocations.empty())
-       {
-          string n = otherObjects.front();
-          otherObjects.pop();
-          traceWriter->write(tid, "look for derivate " , n);
-          string oname = DerivateInfo::getIdentifier(relName, n);
-          traceWriter->write("derivateID : " , oname);
-          DerivateInfo derInfo = dbService->getDerivateInfo(oname);
-          traceWriter->write("derivateInfo found");
+    /*
+      CommunicationProtocol
+      Didn't find a node
 
-          vector<ConnectionID> derLocs;
-          derInfo.getAllLocations(derLocs);
-          sort(derLocs.begin(), derLocs.end());
-
-
-          vector<ConnectionID> inter;
-          set_intersection(possibleLocations.begin(), possibleLocations.end(),
-                           derLocs.begin(), derLocs.end(), 
-                           back_inserter(inter));
-          inter.swap(possibleLocations);
-       }
-       if(!possibleLocations.empty()){
-          traceWriter->write(tid, "choose random location"); 
-          shuffle(possibleLocations.begin(), possibleLocations.end(), 
-            std::mt19937(std::random_device()()));
-          randomReplicaLocation = possibleLocations.front(); 
-       } else {
-           traceWriter->write(tid, "No locations available");
-           dbService->printDerivates( std::cout);
-       }
-       
-    } catch(...)
-    {
-       traceWriter->write(tid, "Exception: No location found");
-       dbService->printDerivates(std::cout);
-    }
-
+      This is a non-success case.
+    */
     queue<string> sendBuffer;
-    if(randomReplicaLocation == 0)
-    {
+
+    if(node == nullptr)
+    {        
+        traceWriter->write(tid, "Didn't find a targetNode. Maybe relation \
+                doesn't exist or relation has no replicas.");
+        traceWriter->write(tid, "My data:");
+        stringstream msg;
+        dbService->printMetadata(msg);
+        traceWriter->write(tid, msg.str().c_str());
         sendBuffer.push(CommunicationProtocol::None());
         sendBuffer.push(CommunicationProtocol::None());
         sendBuffer.push(CommunicationProtocol::None());
         CommunicationUtils::sendBatch(io, sendBuffer);
         return false;
     }
-    LocationInfo location = dbService->getLocation(randomReplicaLocation);
 
-    sendBuffer.push(location.getHost());
-    sendBuffer.push(location.getTransferPort());
-    sendBuffer.push(location.getCommPort());
+    traceWriter->write(tid, "Found a target Node: ");
+    traceWriter->write(tid, node->str().c_str());
+
+    // LocationInfo location = dbService->getLocation(randomReplicaLocation);
+
+    /*
+      CommunicationProtocol
+      Sending the location by providing:
+      - host
+      - transferPort
+      - comPort
+
+      This is the success case.
+    */
+    sendBuffer.push(node->getHost().getHostname());
+    sendBuffer.push(to_string(node->getTransferPort()));
+    sendBuffer.push(to_string(node->getComPort()));
     CommunicationUtils::sendBatch(io, sendBuffer);
 
     return true;
@@ -465,83 +543,6 @@ bool CommunicationServer::reportSuccessfulReplication(
     return true;
 }
 
-
-
-void CommunicationServer::deleteRemoteDerivate(
-        const string& databaseName,
-        const string& relationName,
-        const string& derivateName){
-
-   string derId = DerivateInfo::getIdentifier(databaseName,relationName, 
-                                              derivateName);
-   DBServiceManager* dbService = DBServiceManager::getInstance();
-   DerivateInfo& derInfo = dbService->getDerivateInfo(derId);
-   for(ReplicaLocations::const_iterator it =
-         derInfo.nodesBegin(); it != derInfo.nodesEnd(); it++)
-   {
-       if(it->second)
-       {
-          LocationInfo& locationInfo =dbService->getLocation(it->first);
-          TriggerReplicaDeletionRunnable replicaEraser(
-              locationInfo.getHost(),
-               atoi(locationInfo.getCommPort().c_str()),
-               databaseName, relationName, derivateName);
-          replicaEraser.run();
-      }
-  }
-}
-
-void CommunicationServer::deleteRemoteRelation(
-        const string& databaseName,
-        const string& relationName)
-{
-   string relId = RelationInfo::getIdentifier(databaseName, relationName);
-   DBServiceManager* dbService = DBServiceManager::getInstance();
-   RelationInfo& relationInfo = dbService->getRelationInfo(relId);
-   // remove the relation itselfs 
-   for(ReplicaLocations::const_iterator it =
-       relationInfo.nodesBegin(); it!=relationInfo.nodesEnd(); it++)
-   {
-       if(it->second)
-       {
-          LocationInfo& locationInfo = dbService->getLocation(it->first);
-          TriggerReplicaDeletionRunnable replicaEraser(
-                locationInfo.getHost(),
-                atoi(locationInfo.getCommPort().c_str()),
-                databaseName, relationName,"");
-          replicaEraser.run();
-       }
-   }
-   // delete all derivates that depend on relation
-   vector<string> derivates;
-   dbService->findDerivates(relId, derivates);
-   for(auto& t: derivates)
-   {
-       string db, rel, der;
-       if(!ReplicationUtils::extractDerivateInfo(t, db, rel, der)){
-                traceWriter->write("problem in extracting derivate info " 
-                                   "from id");
-       } else {
-           deleteRemoteDerivate(db,rel,der);
-       }
-   }
-}
-
-void CommunicationServer::deleteRemoteDatabase(const string& databaseName){
-
-    DBServiceManager* dbService = DBServiceManager::getInstance();
-    vector<string> relations;
-    dbService->findRelations(databaseName, relations);
-    for(auto& r: relations){
-        string db;
-        string rel;
-        if(ReplicationUtils::extractRelationInfo(r,db,rel)){
-          deleteRemoteRelation(db,rel);
-        }
-    }
-}
-
-
 bool CommunicationServer::handleRequestReplicaDeletion(
         iostream& io, const boost::thread::id tid)
 {
@@ -562,13 +563,7 @@ bool CommunicationServer::handleRequestReplicaDeletion(
     
     DBServiceManager* dbService = DBServiceManager::getInstance();
     try{
-      if(relationName.empty()){
-          deleteRemoteDatabase(databaseName);
-      } else if(derivateName.empty()){
-          deleteRemoteRelation(databaseName, relationName);
-      } else {
-          deleteRemoteDerivate(databaseName, relationName, derivateName);
-      }
+
       dbService->deleteReplicaMetadata(databaseName,relationName,
                                          derivateName);
     }catch(...)
@@ -744,45 +739,24 @@ bool CommunicationServer::handleTriggerDerivation(
     traceWriter->write(tid, "fundef", fundef);
 
     DBServiceManager* dbService = DBServiceManager::getInstance();
+
     if(!dbService->replicaExists(databaseName, relName))
     {
         CommunicationUtils::sendLine(io,
                 CommunicationProtocol::RelationNotExists());
         return false;
     }
+
     if(dbService->derivateExists(targetName)){
         CommunicationUtils::sendLine(io, 
                  CommunicationProtocol::ObjectExists());
         return false;
-    }
+    }    
 
-    // for all workers holding a replica of the relation
-    // send command to the worker to derive the object
-    string relId = RelationInfo::getIdentifier(databaseName, relName);
-    ReplicaLocations rl;
-    string  derId = dbService->determineDerivateLocations(targetName, relId,
-                                                          fundef);
-    dbService->persistDerivateLocations(derId);
-    
+    dbService->addDerivative(databaseName, relName, targetName, fundef);
 
-    dbService->getReplicaLocations(relId, rl);
-    ReplicaLocations::iterator it;
-    for(it = rl.begin(); it!=rl.end();it++){
-       if(it->second){ // relation is replicated
-          ConnectionID cid = it->first;
-          LocationInfo& li = dbService->getLocation(cid);
-          CreateDerivateRunnable cdr(li.getHost(),
-                                     atoi(li.getCommPort().c_str()),
-                                     databaseName,
-                                     targetName,
-                                     relName,
-                                     fundef);
-          cdr.run();
-                                     
-       }
-    }
-    CommunicationUtils::sendLine(io, 
-              CommunicationProtocol::DerivationTriggered());
+    CommunicationUtils::sendLine (
+        io, CommunicationProtocol::DerivationTriggered ());
     return true;
 }
 
@@ -847,8 +821,5 @@ bool CommunicationServer::reportSuccessfulDerivation(
             objectID, host, port);
     return true;
 }
-
-
-
 
 } /* namespace DBService */
