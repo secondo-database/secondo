@@ -4048,6 +4048,8 @@ class UnitsLI {
   int index;
 };
 
+int getTypeNo(ListExpr typeList);
+
 bool isSymbolicType(ListExpr typeList);
 
 double scalarProduct(collection::Collection& v1, collection::Collection& v2);

@@ -1683,6 +1683,22 @@ void MLabel::convertFromMString(const MString& source) {
   units.TrimToSize();
 }
 
+int getTypeNo(ListExpr typeList) {
+  if (MLabel::checkType(typeList)) {
+    return 0;
+  }
+  if (MLabels::checkType(typeList)) {
+    return 1;
+  }
+  if (MPlace::checkType(typeList)) {
+    return 2;
+  }
+  if (MPlaces::checkType(typeList)) {
+    return 3;
+  }
+  return -1;
+}
+
 bool isSymbolicType(ListExpr type) {
   return ((nl->ToString(type) == "mlabel") || (nl->ToString(type) == "mlabels")
      || (nl->ToString(type) == "mplace") || (nl->ToString(type) ==  "mplaces"));
