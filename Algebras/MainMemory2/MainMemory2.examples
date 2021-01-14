@@ -49,18 +49,18 @@ Result    : 10
 Operator  : memobject
 Number    : 8
 Signature : MX  -> X , M is mem or mpointer, X in {DATA,rel)
-Example   : query memobject(memload("astring")) 
-Result    : (string "astring") 
+Example   : query memobject(memload("astring"))
+Result    : (string "astring")
 
 
 
 Operator  : mconsume
 Number    : 9
-Signature : stream(tuple) -> mpointer(mem(rel(tuple))) 
+Signature : stream(tuple) -> mpointer(mem(rel(tuple)))
 Example   : let fuenf = ten feed head[5] mconsume
-Result    : () 
+Result    : ()
 
-Operator  : nop 
+Operator  : nop
 Number    : 10
 Signature : mpointer -> nothing
 Example   : delete ten2
@@ -87,9 +87,9 @@ Signature : -> stream(tuple(...))
 Example   : query memgetcatalog () count
 Result    : 3
 
-Operator  : mconsume 
+Operator  : mconsume
 Number    : 14
-Signature : stream(Tuple) -> mpointer(mem(rel(tuple))) 
+Signature : stream(Tuple) -> mpointer(mem(rel(tuple)))
 Example   : let fuenf2 = ten feed head[5] mconsume
 Result    : ()
 
@@ -103,7 +103,7 @@ Operator  : mcreatertree
 Number    : 16
 Signature : stream(tuple(X))  x IDENT -> mpointer(mem(rtree X))
 Example   : let mstrassen_GeoData2 =  strassen feed addid mcreatertree[GeoData]
-Result    : () 
+Result    : ()
 
 Operator  : memsize
 Number    : 17
@@ -138,7 +138,7 @@ Result    : 1266
 
 Operator  : mconsume
 Number    : 24
-Signature : stream(tuple) -> mpointer(mem(rel(tuple))) 
+Signature : stream(tuple) -> mpointer(mem(rel(tuple)))
 Example   : query ten2 mfeed head[2] mconsume
 Result    : ( (mpointer (mem (rel (tuple ( (No int)))))) ( (1) (2)))
 
@@ -219,7 +219,7 @@ Signature : stream(tuple(...)) -> (mpointer(mem(rel(tuple(...)))))
 Example   : let trainsFlob =  Trains feed mconsumeflob
 Result    : ()
 
-Operator  : mconsumeflob 
+Operator  : mconsumeflob
 Number    : 42
 Signature : stream(tuple)  -> mpointer(mem(rel(tuple)))
 Example   : let trains5 = Trains feed head[5] mconsumeflob
@@ -240,14 +240,14 @@ Result    : ()
 
 Operator  : mcreatemtree2
 Number    : 1400
-Signature : stream(Tuple) x IDENT x IDENT x IDENT x real [x geoid] -> (mpointer(mem(mtree tuple) )
+Signature : stream(Tuple) x IDENT x IDENT x IDENT x real [x geoid] -> (mpointer(mem(mtree tuple) ) )
 Example   : let mTrains_mtree = Trains feed head[25] addid extend[ML: [const mlabel value undef] ] mcreatemtree2[Trip, ML, TID, 0.0001]
 Result    : ()
 
-Operator  : mdistRange2 
+Operator  : mdistRange2
 Number    : 45
 Signature : MMTREE(T) x T x real -> stream(tuple((TID tid)))
-Example   :  query mkinos_GeoData_mtree mdistRange2[alexanderplatz, 2000.0] transformstream Kinos gettuples sort = Kinos feed filter[ distance(.GeoData, alexanderplatz) < 2000.0] sort 
+Example   :  query mkinos_GeoData_mtree mdistRange2[alexanderplatz, 2000.0] transformstream Kinos gettuples sort = Kinos feed filter[ distance(.GeoData, alexanderplatz) < 2000.0] sort
 Result    : TRUE
 
 
@@ -260,7 +260,7 @@ Result    : TRUE
 Operator  : minsertmtree
 Number    : 484
 Signature : stream(Tuple) x MMTREE -> stream(tuple(x@TID)))
-Example   : query Kinos feed addid minsertmtree[mkinos_GeoData_mtree, GeoData] count = Kinos count 
+Example   : query Kinos feed addid minsertmtree[mkinos_GeoData_mtree, GeoData] count = Kinos count
 Result    : TRUE
 
 Operator  : memload
@@ -277,7 +277,7 @@ Result    : ()
 
 Operator  : mdistRange
 Number    : 52
-Signature : MMTREEi(T) x MREL(X)  x T x real -> stream(X)
+Signature : MMTREEi(T) x MREL(X) x T (x U) x real -> stream(X)
 Example   : query mKinos_GeoData_mtree2 mKinos mdistRange[alexanderplatz, 2000.0] count
 Result    : 17
 
@@ -308,13 +308,13 @@ Example   : query mstrassen_Name7 mexactmatchS["Hirzerweg"] count
 Result    : 5
 
 Operator  : mrangeS
-Number    : 59  
+Number    : 59
 Signature : MAVLTREE(T) x T x T -> stream(tuple((TID tid)))
 Example   : query mstrassen_Name7 mrangeS["A", "B"] count
 Result    : 247
 
 Operator  : matchbelowS
-Number    : 61  
+Number    : 61
 Signature : MAVLTREE(T)  x T -> stream(tuple((TID tid)))
 Example   : query mstrassen_Name7 matchbelowS["B"] count
 Result    : 1
@@ -323,13 +323,13 @@ Result    : 1
 Operator  : gettuples
 Number    : 63
 Signature : stream(tuple((A1 ( .. tid) A2))  x MREL(X) -> stream(tuple(A1A2X))
-Example   : query ten2_No mrangeS[4, 5] ten2 gettuples consume count 
+Example   : query ten2_No mrangeS[4, 5] ten2 gettuples consume count
 Result    : 2
 
 Operator  : gettuples
 Number    : 65
 Signature : stream(tid)  x MREL(X) -> stream(tuple(X))
-Example   : query ten2_No mrangeS[4, 5] transformstream  ten2 gettuples consume count 
+Example   : query ten2_No mrangeS[4, 5] transformstream  ten2 gettuples consume count
 Result    : 2
 
 Operator  : memclear
@@ -352,7 +352,7 @@ Result    : ()
 
 Operator  : mcreatettree
 Number    : 70
-Signature : MREL x IDENT -> (mpointer(mem(ttree X))) 
+Signature : MREL x IDENT -> (mpointer(mem(ttree X)))
 Example   : let mStaedte_SName =  mStaedte mcreatettree[SName]
 Result    : ()
 
@@ -396,10 +396,10 @@ Example   : query mStaedte minserttuple["AA",34,5666,"899","ZZ"] count;
 Result    : 1
 
 
-Operator  : mcreateinsertrel 
+Operator  : mcreateinsertrel
 Number    : 83
 Signature : MREL(X) -> mpointer(mem(rel(X@[TID tid])))
-Example   : let Stadt =  mcreateinsertrel(mStaedte) 
+Example   : let Stadt =  mcreateinsertrel(mStaedte)
 Result    : ()
 
 
@@ -412,7 +412,7 @@ Result    : 1
 
 Operator  : mcreatedeleterel
 Number    : 86
-Signature : MREL(tuple(X)) -> mpointer(mem(rel(tuple(x@[TID:tid]))) 
+Signature : MREL(tuple(X)) -> mpointer(mem(rel(tuple(x@[TID:tid])))
 Example   : let Doerfer =  mcreatedeleterel(mStaedte)
 Result    : ()
 
@@ -430,13 +430,13 @@ Result    : 1
 
 Operator  : mdeletebyid
 Number    : 92
-Signature : MREL(tuple(X)) x tid  -> stream(tuple(X@[TID:tid]))] 
+Signature : MREL(tuple(X)) x tid  -> stream(tuple(X@[TID:tid]))]
 Example   : query mStaedte mdeletebyid[[const tid value 5]] count;
 Result    : 1
 
 Operator  : mcreateupdaterel
 Number    : 94
-Signature : MREL(tuple(X)) -> mem(rel(tuple(x@[(a1_old x1)...(an_old xn)(TID:tid)]))) 
+Signature : MREL(tuple(X)) -> mem(rel(tuple(x@[(a1_old x1)...(an_old xn)(TID:tid)])))
 Example   : let mStaedteUp =  mcreateupdaterel(mStaedte);
 Result    : ()
 
@@ -463,7 +463,7 @@ Result    : 1
 Operator  : mquicksort
 Number    : 102
 Signature : MREL(X)  -> stream(X)
-Example   : query mStaedte mquicksort isOrdered 
+Example   : query mStaedte mquicksort isOrdered
 Result    : TRUE
 
 
@@ -473,10 +473,10 @@ Signature : MREL(X) x (ident1 ... identn) -> stream(X)
 Example   : query mStaedte mquicksortby[SName] isOrderedBy[SName]
 Result    : TRUE
 
-Operator  : moconsume 
+Operator  : moconsume
 Number    : 105
-Signature : stream(tuple) x attlist -> mpointer(mem(orel(tuple) attrlist)) 
-Example   : let oten =  ten feed moconsume[No] 
+Signature : stream(tuple) x attlist -> mpointer(mem(orel(tuple) attrlist))
+Example   : let oten =  ten feed moconsume[No]
 Result    : ()
 
 Operator  : mfeed
@@ -522,7 +522,7 @@ Example   : query ten feed head[5] moinsert[oten] count;
 Result    : 5
 
 Operator  : modelete
-Number    : 118 
+Number    : 118
 Signature : stream(tuple(x)) x MOREL(tuple(x),T) -> stream(tuple(x@[TID:tid]))
 Example   : query ten feed head[5] modelete[oten] count;
 Result    : 5
@@ -537,7 +537,7 @@ Result    : ()
 Operator  : mupdatedirect2
 Number    : 121
 Signature : stream(tuple(X)) x MREL(tuple(Y)) x IDENT x funlist -> stream(tuple(X))
-Example   : query thousand feed addid ten2 mupdatedirect2[TID; No : .No + ..No] count = ten2 mfeed count 
+Example   : query thousand feed addid ten2 mupdatedirect2[TID; No : .No + ..No] count = ten2 mfeed count
 Result    : TRUE
 
 Operator  : memload
@@ -553,22 +553,22 @@ Signature : mrel x id -> stream(tuple)
 Example   : query mplz mquicksortby[PLZ] count
 Result    : 41267
 
-Operator  : mconsume 
+Operator  : mconsume
 Number    : 124
-Signature : stream(tuple) -> mpointer(mem(rel(tuple))) 
+Signature : stream(tuple) -> mpointer(mem(rel(tuple)))
 Example   : let TR = intstream(1000, 4000) namedtransformstream[No] mconsume
 Result    : ()
 
 Operator  : mmergejoinproject
 Number    : 125
 Signature : MRel x MREL x IDENT x IDENT x IDENT_list -> mpointer(mem(rel))
-Example   : let noPlz = TR mplz mmergejoinproject[No, PLZ; Ort,PLZ,No] 
+Example   : let noPlz = TR mplz mmergejoinproject[No, PLZ; Ort,PLZ,No]
 Result    : ()
 
-Operator : nop 
+Operator : nop
 Number   : 126
-Signature : ANY -> NOTHING 
-Example   : delete mplz 
+Signature : ANY -> NOTHING
+Example   : delete mplz
 Result    : ()
 
 
@@ -590,10 +590,10 @@ Signature : MOREL(X) -> stream(tuple(x@[compNo:int]))
 Example   : query motestrel moconnectedcomponents count;
 Result    : 74
 
-Operator  : mcreatemgraph 
+Operator  : mcreatemgraph
 Number    : 206
 Signature : orel(tuple(x)) -> mpointer(mem(graph(tuple(x))))
-Example   : let graph = mcreatemgraph(otestrel); 
+Example   : let graph = mcreatemgraph(otestrel);
 Result    : ()
 
 Operator  : mcreatemgraphflob
@@ -665,14 +665,14 @@ Result    : 1
 Operator  : moconsume
 Number    : 308
 Signature : stream(tuple) x attr^n -> (mpointer(mem(orel(tuple))))
-Example   : query Staedte feed head[2] moconsume[SName]  
+Example   : query Staedte feed head[2] moconsume[SName]
 Result    : ( (mpointer (mem (orel (tuple ((SName string) (Bev int) (PLZ int) (Vorwahl string) (Kennzeichen string))) (SName)))) (("Aachen" 239000 5100 "0241" "AC") ("Berlin" 1859000 1000 "030" "B")) )
 
 
 Operator : moconsumeflob
 Number    : 309
 Signature : stream(tuple) x attr^n -> mpointer(mem(orel(tuple)))
-Example   : query Staedte feed head[2] moconsume[SName]  
+Example   : query Staedte feed head[2] moconsume[SName]
 Result    : ( (mpointer (mem (orel (tuple ((SName string) (Bev int) (PLZ int) (Vorwahl string) (Kennzeichen string))) (SName)))) (("Aachen" 239000 5100 "0241" "AC") ("Berlin" 1859000 1000 "030" "B")) )
 
 
@@ -708,7 +708,7 @@ Example   : query mplz mfeed head[10] mplz mdeletedirect count
 Result    : 10
 
 
-Operator  : mcreatedeleterel 
+Operator  : mcreatedeleterel
 Number    : 317
 Signature : MREL(tuple(X))  -> mpointer(mem(rel(tuple(X@[TID:tid]))))
 Example  :  let PLZ_DEL =  mcreatedeleterel(mplz)
@@ -722,33 +722,33 @@ Result    : 10
 
 Operator  : collect_mvector
 Number    : 400
-Signature : stream(DATA) x bool -> mpointer(mem(vector(DATA))) 
+Signature : stream(DATA) x bool -> mpointer(mem(vector(DATA)))
 Example   : let V_PLZ = plz feed projecttransformstream[PLZ] collect_mvector[TRUE]
 Result    : ()
 
-Operator  : sizemv 
+Operator  : sizemv
 Number    : 401
 Signature : MVECTOR -> int, MVECTOR represented as mem or mpointer
 Example   : query sizemv(V_PLZ) = plz count
 Result    : TRUE
 
-Operator  : getmv 
+Operator  : getmv
 Number    : 403
 Signature : MVECTOR x int -> DATA, MVECTOR represented as mem or mpointer
-Example   : query V_PLZ getmv[22] = plz feed nth[23,TRUE] extract[PLZ] 
+Example   : query V_PLZ getmv[22] = plz feed nth[23,TRUE] extract[PLZ]
 Result    : TRUE
 Remark    : Counting starts with 0
 
-Operator  : putmv 
+Operator  : putmv
 Number    : 405
 Signature : MVECTOR x int x DATA -> DATA, MVECTOR represented as  mem or mpointer
-Example   : query V_PLZ putmv[22, 333] = plz feed nth[23,TRUE] extract[PLZ] 
+Example   : query V_PLZ putmv[22, 333] = plz feed nth[23,TRUE] extract[PLZ]
 Result    : TRUE
 
-Operator  : getmv 
+Operator  : getmv
 Number    : 407
 Signature : MVECTOR x int -> DATA, MVECTOR represented as mem or mpointer
-Example   : query V_PLZ getmv[22] = 333  
+Example   : query V_PLZ getmv[22] = 333
 Result    : TRUE
 
 Operator  : isSortedmv
@@ -772,10 +772,10 @@ Result    : TRUE
 Operator  : findmv
 Number    : 415
 Signature : MVECTOR(T) x T -> int, MVECTOR represented as mem or mpointer
-Example   : query findmv(V_PLZ ,3) 
+Example   : query findmv(V_PLZ ,3)
 Result    : 0
 
-Operator  : matchbelowmv 
+Operator  : matchbelowmv
 Number    : 417
 Signature : MVECTOR(T) x T -> T , MVECTOR represented as mem or mpointer
 Example   : query V_PLZ matchbelowmv[8666]
@@ -803,7 +803,7 @@ Result    : 10
 Operator  : mcreatepqueue
 Number    : 600
 Signature : stream(tuple) x IDENT -> mpointer(mem(mpqueue(tuple)))
-Example   : let mstrassen_PQ_L = strassen feed extend[L : size(.GeoData)] mcreatepqueue[L] 
+Example   : let mstrassen_PQ_L = strassen feed extend[L : size(.GeoData)] mcreatepqueue[L]
 Result    : ()
 
 Operator  : size
@@ -848,13 +848,13 @@ Result    : TRUE
 Operator  : mpqreorder
 Number    : 613
 Signature : MPQUEUE x fun -> int
-Example   : query mstrassen_PQ_L mpqreorder[ -1 * .L] 
+Example   : query mstrassen_PQ_L mpqreorder[ -1 * .L]
 Result    : 0
 
 Operator  : mpqreorderupdate
 Number    : 614
 Signature : MPQUEUE x fun x IDENT -> int
-Example   : query mstrassen_PQ_L mpqreorderupdate[ -1 * .L, L] 
+Example   : query mstrassen_PQ_L mpqreorderupdate[ -1 * .L, L]
 Result    : 0
 
 
@@ -876,17 +876,17 @@ Operator : mblock
 Number   : 700
 Signature : stream(X) -> stream(X) , X in {tuple,DATA}
 Example   : query ten feed mblock head[5] count
-Result    : 5 
+Result    : 5
 
 Operator  : mcreatestack
 Number    : 800
-Signature : stream(tuple) -> mpointer(mem(stack(tuple))) 
+Signature : stream(tuple) -> mpointer(mem(stack(tuple)))
 Example   : let plzstack1 = plz feed mcreatestack
 Result    : ()
 
 Operator  : mcreatestackflob
 Number    : 801
-Signature : stream(tuple) -> mpointer(mem(stack(tuple))) 
+Signature : stream(tuple) -> mpointer(mem(stack(tuple)))
 Example   : let plzstack2 = plz feed mcreatestackflob
 Result    : ()
 
@@ -912,14 +912,14 @@ Result    : TRUE
 Operator  : createmgraph2
 Number    : 900
 Signature : stream(tuple) x IDENT x IDENT x fun -> mpointer(mem(mgraph2((tuple@(MG_Source int, MG_Target int, MG_Cost : real)))))
-Example   : let mgraph2 =  otestrel feed createmgraph2[Id_s1,Id_s2, distance(.GeoData_s1,.GeoData_s2)] 
+Example   : let mgraph2 =  otestrel feed createmgraph2[Id_s1,Id_s2, distance(.GeoData_s1,.GeoData_s2)]
 Result    : ()
 
 
 Operator  : createmgraph2
 Number    : 901
 Signature : stream(tuple) x IDENT x IDENT x fun -> mpointer(mem(mgraph2((tuple@(MG_Source int, MG_Target int, MG_Cost : real)))))
-Example   : let mgraph2_1  = otestrel feed head[0] createmgraph2[Id_s1,Id_s2, distance(.GeoData_s1,.GeoData_s2)]  
+Example   : let mgraph2_1  = otestrel feed head[0] createmgraph2[Id_s1,Id_s2, distance(.GeoData_s1,.GeoData_s2)]
 Result    : ()
 
 Operator  : mg2insertorig
@@ -970,20 +970,20 @@ Result    : 4
 Operator  : mg2numsuccessors
 Number    : 909
 Signature : MGRAPH2 x int -> stream(tuple)
-Example   : query mgraph2_1 mg2numsuccessors[1] 
+Example   : query mgraph2_1 mg2numsuccessors[1]
 Result    : 4
 
 Operator  : mg2numpredecessors
 Number    : 910
 Signature : MGRAPH2 x int -> stream(tuple)
-Example   : query mgraph2_1 mg2numpredecessors[1] 
+Example   : query mgraph2_1 mg2numpredecessors[1]
 Result    : 4
- 
+
 
 Operator  : mg2disconnect
 Number    : 911
 Signature : MGRAPH2 x int -> stream(tuple)
-Example   : query mgraph2_1 mg2disconnect[1] 
+Example   : query mgraph2_1 mg2disconnect[1]
 Result    : TRUE
 
 Operator  : mg2connectedcomponents
@@ -1001,7 +1001,7 @@ Result    : TRUE
 Operator  : createmgraph2flob
 Number    : 914
 Signature : stream(tuple) x IDENT x IDENT x fun -> mpointer(mem(mgraph(tuple@MG_Source,MG_Target,MG_Cost)))
-Example   : let mgraph2m =  otestrel feed createmgraph2flob[Id_s1,Id_s2, distance(.GeoData_s1,.GeoData_s2)] 
+Example   : let mgraph2m =  otestrel feed createmgraph2flob[Id_s1,Id_s2, distance(.GeoData_s1,.GeoData_s2)]
 Result    : ()
 
 
@@ -1024,22 +1024,22 @@ Example  : query mgraph2 mg2exportddsg['mgraph2.ddsg', 1000]
 Result   : TRUE
 
 Operator  : mg2deleteEdges
-Number    : 918 
+Number    : 918
 Signature : MGRAPH2 x int x int -> bool
-Example   : query mgraph2_1 mg2deleteEdges[2,3] 
+Example   : query mgraph2_1 mg2deleteEdges[2,3]
 Result    : TRUE
 
 
 Operator  : createmgraph3
 Number    : 1000
 Signature : stream(tuple) x IDENT x IDENT x IDENT x int -> mpointer(mem(mgraph3(tuple)))
-Example   : let mgraph3_1 = mgraph2_1 mg2feed projectextend[GeoData_s1, GeoData_s2, Name_s1, Name_s2; Id_s1 : .MG_Source, Id_s2 : .MG_Target, Cost : .MG_Cost] createmgraph3[Id_s1, Id_s2, Cost, mg2numvertices(mgraph2_1)] 
+Example   : let mgraph3_1 = mgraph2_1 mg2feed projectextend[GeoData_s1, GeoData_s2, Name_s1, Name_s2; Id_s1 : .MG_Source, Id_s2 : .MG_Target, Cost : .MG_Cost] createmgraph3[Id_s1, Id_s2, Cost, mg2numvertices(mgraph2_1)]
 Result    : ()
 
 Operator  : createmgraph3flob
 Number    : 1001
 Signature : stream(tuple) x IDENT x IDENT x IDENT x int -> mpointer(mem(mgraph3(tuple)))
-Example   : let mgraph3_1f = mgraph2_1 mg2feed projectextend[GeoData_s1, GeoData_s2, Name_s1, Name_s2; Id_s1 : .MG_Source, Id_s2 : .MG_Target, Cost : .MG_Cost] createmgraph3flob[Id_s1, Id_s2, Cost, mg2numvertices(mgraph2_1)] 
+Example   : let mgraph3_1f = mgraph2_1 mg2feed projectextend[GeoData_s1, GeoData_s2, Name_s1, Name_s2; Id_s1 : .MG_Source, Id_s2 : .MG_Target, Cost : .MG_Cost] createmgraph3flob[Id_s1, Id_s2, Cost, mg2numvertices(mgraph2_1)]
 Result    : ()
 
 Operator  : mg3feed
@@ -1059,7 +1059,7 @@ Result    : TRUE
 Operator  : mg3successors
 Number    : 1004
 Signature : MGRAPH3 x int -> stream(tuple)
-Example   : query mgraph3_1 mg3successors[1]  count =  mgraph2_1 mg2successors[1]  count 
+Example   : query mgraph3_1 mg3successors[1]  count =  mgraph2_1 mg2successors[1]  count
 Result    : TRUE
 
 Operator  : mg3predecessors
@@ -1071,7 +1071,7 @@ Result    : TRUE
 Operator  : mg3numsuccessors
 Number    : 1006
 Signature : MGRAPH3 x int -> stream(tuple)
-Example   : query mgraph3_1 mg3numsuccessors[1] =  mgraph2_1 mg2numsuccessors[1] 
+Example   : query mgraph3_1 mg3numsuccessors[1] =  mgraph2_1 mg2numsuccessors[1]
 Result    : TRUE
 
 Operator  : mg3numpredecessors
@@ -1083,7 +1083,7 @@ Result    : TRUE
 Operator  : mg3disconnect
 Number    : 1008
 Signature : MGRAPH3 x int -> stream(tuple)
-Example   : query mgraph3_1 mg3disconnect[1] 
+Example   : query mgraph3_1 mg3disconnect[1]
 Result    : TRUE
 
 Operator  : mg3insert
@@ -1099,7 +1099,7 @@ Example   : query mgraph3_1 mg3connectedcomponents sortby[CompNo] krdup[CompNo] 
 Result    : 1
 
 Operator  : mg3connectedcomponentsN
-Number    : 1011 
+Number    : 1011
 Signature : MGRAPH(tuple(x)) -> stream(tuple(x @ SourceComp : int, TargetComp : int)
 Example   : query mgraph3_1 mg3connectedcomponents filter[.CompNo <0] count = mgraph3_1 mg3connectedcomponentsN filter[.SourceComp # .TargetComp] count
 Result    : TRUE
@@ -1123,16 +1123,16 @@ Example  : query mgraph3_1 mg3exportddsg['mgraph3_1.ddsg', 1000]
 Result   : TRUE
 
 Operator  : mg3deleteEdges
-Number    : 1015 
+Number    : 1015
 Signature : MGRAPH3 x int x int -> bool
-Example   : query mgraph3_1 mg3deleteEdges[2,3] 
+Example   : query mgraph3_1 mg3deleteEdges[2,3]
 Result    : TRUE
 
 
 Operator  : mgraphPrint
 Number    : 1016
 Signature : MGRAPH x bool x bool -> bool
-Example   : query mgraph3_1 mgraphPrint[FALSE,FALSE] 
+Example   : query mgraph3_1 mgraphPrint[FALSE,FALSE]
 Result    : TRUE
 
 Operator  : mgraph2text
@@ -1157,7 +1157,7 @@ Result    : ( (mem text) "name")
 Operator : memgroupby
 Number   : 1200
 Signature: stream(T) x attrlist x funlist -> stream(G)
-Example  : query plz feed sortby[PLZ] memgroupby[PLZ; C : group mfeed count] = plz feed sortby[PLZ] groupby[PLZ; C : group count] 
+Example  : query plz feed sortby[PLZ] memgroupby[PLZ; C : group mfeed count] = plz feed sortby[PLZ] groupby[PLZ; C : group count]
 Result   : TRUE
 
 Operator  : importCH
