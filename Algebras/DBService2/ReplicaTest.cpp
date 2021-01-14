@@ -66,7 +66,8 @@ TEST_CASE("Constructing DBService::Replicas")
 
     SECTION("Equality and Unequality of Replicas") {
       SECTION("Replicas should be equal if target Nodes and Relations are \
-        equal") {
+equal") {
+  
         // Create a relation 1
         shared_ptr<DBService::Relation> relation = DBService::Relation::build(
           test_db_name, "equalrelation");

@@ -227,8 +227,9 @@ namespace DBService {
 
   string Replica::createRelationStatement() {
     return "let " + getRelationName() + " = [const rel(tuple([RelationId: int, \
-      TargetNodeId: int, Status: string, Type: string, DerivativeId: int])) \
-      value ()]";    
+TargetNodeId: int, Status: string, Type: string, DerivativeId: int])) \
+value ()]";
+
   }
 
   string Replica::createStatement() const {

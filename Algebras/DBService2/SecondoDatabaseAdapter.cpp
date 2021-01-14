@@ -142,16 +142,20 @@ namespace DBService
       // record's id.      
       if(resultCount != 1) {
         print("Exception: Found a resultCount != 1. Expected exactly one \
-          result containing the record's id.", std::cout);
+result containing the record's id.", std::cout);
+
         throw SecondoException("Found a resultCount != 1. Expected exactly \
-          one result containing the record's id.");
+one result containing the record's id.");
+
       }
 
       if(nl->IsEmpty(resultData)) {
         print("Exception: Found empty result data. Should have found the \
-          inserted record's id.", std::cout);
+inserted record's id.", std::cout);
+
         throw SecondoException("Found empty result data. Should have found \
-          the inserted record's id.");
+the inserted record's id.");
+
       }
 
       ListExpr currentRow = nl->First(resultData);
@@ -352,7 +356,7 @@ namespace DBService
 
     if(!isDatabaseOpen() == true)
       throw SecondoException("Can't determine current database as no database \
-        is open.");
+is open.");
 
     currentDatabase = string(SecondoSystem::GetInstance()->GetDatabaseName());
 
@@ -418,7 +422,7 @@ namespace DBService
       print("\tDatabase " + database + " doesn't exist. Can't open it.", 
         std::cout);
       throw SecondoException("Database " + database + " doesn't exist. \
-        Thus, can't open it.");
+Thus, can't open it.");
     }
 
     // Before opening a new db, the current db has to be closed.

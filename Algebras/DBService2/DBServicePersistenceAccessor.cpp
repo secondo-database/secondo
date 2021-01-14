@@ -343,7 +343,7 @@ bool DBServicePersistenceAccessor::restoreLocationInfo(
     if(SecondoSystem::GetCatalog()->IsObjectName(string("locations_DBSP")))
     {
         print("The relation locations_DBSP exists. Trying to retrieve \
-            locations...", std::cout);
+locations...", std::cout);
 
          string query("query locations_DBSP");
          string errorMessage;

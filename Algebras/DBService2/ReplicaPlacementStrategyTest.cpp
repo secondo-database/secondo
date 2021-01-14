@@ -62,7 +62,7 @@ TEST_CASE("Testing ReplicaPlacementStrategy") {
 
   SECTION("Fault Tolerance Mode NODE") {
     SECTION("Simulate a successful 3 Node placement in Fault Tolerance Mode \
-      NODE") {
+NODE") {
 
       // Create NodeManager and Nodes
       // The nodeManager will load dbservice nodes, only.
@@ -91,13 +91,14 @@ TEST_CASE("Testing ReplicaPlacementStrategy") {
       bool success = placementStrategy.doPlacement(relation);
 
       REQUIRE_THAT( placementStrategy.getMessage(), Contains("The placement \
-        was successful.") );
+was successful.") );
+
       REQUIRE( success == true );
       REQUIRE( relation->getReplicas().size() == 3);
     }
 
     SECTION("Simulate a failed 3 Node placement with only 2 Nodes in Fault \
-      Tolerance Mode NODE") {
+Tolerance Mode NODE") {
 
       /*
         For this test the following is required:
@@ -152,9 +153,10 @@ TEST_CASE("Testing ReplicaPlacementStrategy") {
       bool success = placementStrategy.doPlacement(relation);    
 
       REQUIRE_THAT( placementStrategy.getMessage(), Contains("The placement \
-        has selected 2 nodes for placing replicas. 3 are required."));
+has selected 2 nodes for placing replicas. 3 are required."));
+
       REQUIRE_THAT( placementStrategy.getMessage(), Contains("not compliant \
-        with the given") );
+with the given") );
       REQUIRE( success == false );
       //INFO(placementStrategy.getMessage());    
       

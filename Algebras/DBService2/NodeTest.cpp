@@ -110,7 +110,8 @@ TEST_CASE("Constructing DBService::Nodes")
     }
 
     SECTION("A DBService::Node constructed from the standard constructor \
-      should be empty") {
+should be empty") {
+
       DBService::Node node;
       node.setDatabase(test_db_name);
 
@@ -121,7 +122,7 @@ TEST_CASE("Constructing DBService::Nodes")
 
   SECTION("DBService::Node comparisons") {
     SECTION("Two nodes with equal ports and equal hosts should be \
-      considered equal") {
+considered equal") {
 
       DBService::Node node1("localhost", 1244, "", "/home/doesnt_exist/secondo",
         9941, 9942);
@@ -137,7 +138,8 @@ TEST_CASE("Constructing DBService::Nodes")
     }
 
     SECTION("Two nodes with unequal ports and equal hosts should be \
-      considered unequal") {
+considered unequal") {
+
       DBService::Node node1("localhost", 1244, "", "/home/doesnt_exist/secondo",
         9941, 9942);
 
@@ -152,7 +154,8 @@ TEST_CASE("Constructing DBService::Nodes")
     }
 
     SECTION("Two nodes with equal ports and unequal hosts should be \
-      considered unequal") {
+considered unequal") {
+
       DBService::Node node1("localhost", 1244, "", "/home/doesnt_exist/secondo",
         9941, 9942);
 
@@ -167,7 +170,8 @@ TEST_CASE("Constructing DBService::Nodes")
     }
 
     SECTION("Two nodes with unequal ports and unequal hosts should be \
-      considered unequal") {
+considered unequal") {
+  
       DBService::Node node1("localhost", 1245, "", "/home/doesnt_exist/secondo",
         9941, 9942);
         
@@ -271,7 +275,8 @@ TEST_CASE("Constructing DBService::Nodes")
 
   SECTION("Query generation") {
     SECTION("A non-empty DBService::Node should create its own create \
-      statement") {
+statement") {
+
       DBService::Node node1("sec-w-0.sec-ws.secondo.svc.cluster.local", 1244, 
         "/database/config/SecondoConfig.ini", "/database/secondo-databases", 
         9941, 9942);
@@ -279,10 +284,10 @@ TEST_CASE("Constructing DBService::Nodes")
       node1.setDatabase(test_db_name); // the db doesn't matter here
 
       REQUIRE(node1.createStatement() == "query dbs_nodes \
-        inserttuple[totext(\"sec-w-0.sec-ws.secondo.svc.cluster.local\"), \
-        1244, totext(\"/database/config/SecondoConfig.ini\"), \
-        totext(\"/database/secondo-databases\"), 9941, 9942, \"dbservice\"] \
-        consume");
+inserttuple[totext(\"sec-w-0.sec-ws.secondo.svc.cluster.local\"), \
+1244, totext(\"/database/config/SecondoConfig.ini\"), \
+totext(\"/database/secondo-databases\"), 9941, 9942, \"dbservice\"] \
+consume");
     }
 
     SECTION("A non-empty DBService::Node should create its own create \
@@ -294,8 +299,9 @@ TEST_CASE("Constructing DBService::Nodes")
       node1.setDatabase(test_db_name); // the db doesn't matter here
 
       REQUIRE(node1.createRelationStatement() == "let dbs_nodes = [const \
-        rel(tuple([Host: text, Port: int, Config: text, DiskPath: text, \
-        ComPort: int, TransferPort: int, Type: string])) value ()]");
+rel(tuple([Host: text, Port: int, Config: text, DiskPath: text, \
+ComPort: int, TransferPort: int, Type: string])) value ()]");
+
     }
   }
 

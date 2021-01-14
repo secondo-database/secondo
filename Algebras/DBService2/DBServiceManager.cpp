@@ -869,7 +869,7 @@ catch(...)
 
         if(targetNode == nullptr) {
             LOG_F(WARNING, "Didn't find target node for replica of db(%s) / \
-                relation (%s)",
+relation (%s)",
                 relationDatabase.c_str(),
                 relationName.c_str()
             );

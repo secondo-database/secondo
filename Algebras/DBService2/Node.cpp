@@ -365,8 +365,9 @@ namespace DBService {
     //TODO this neglects the existence of schema migrations - the evolution of 
     //  database schemas over time.
     return "let " + getRelationName() + " = [const rel(tuple([Host: text, \
-      Port: int, Config: text, DiskPath: text, ComPort: int, TransferPort: \
-      int, Type: string])) value ()]";
+Port: int, Config: text, DiskPath: text, ComPort: int, TransferPort: \
+int, Type: string])) value ()]";
+
   }
 
   //TODO Refactor using the Query class.

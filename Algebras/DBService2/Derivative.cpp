@@ -269,7 +269,7 @@ namespace DBService {
 
   string Derivative::createRelationStatement() {
     return "let " + getRelationName() + " = [const rel(tuple([Name: string, \
-      Function: string, RelationId: int])) value ()]";
+Function: string, RelationId: int])) value ()]";
   }
 
   string Derivative::createStatement() const {

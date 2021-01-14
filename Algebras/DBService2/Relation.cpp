@@ -456,7 +456,8 @@ namespace DBService {
     //TODO this neglects the existence of schema migrations - 
     //  the evolution of database schemas over time.
     return "let " + getRelationName() + " = [const rel(tuple([Name: string, \
-      Database: string, OriginalNodeId: int])) value ()]";
+Database: string, OriginalNodeId: int])) value ()]";
+
   }
 
   string Relation::createStatement() const {
@@ -469,7 +470,7 @@ namespace DBService {
 
     if(getOriginalNode()->getIsNew() == true)
       throw "Can't execute Relation::createStatement() with an unsaved \
-        original Node!";
+original Node!";
 
     createStatement << "query " << Relation::getRelationName();
     createStatement << " inserttuple" << "[";

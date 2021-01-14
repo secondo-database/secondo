@@ -147,7 +147,8 @@ namespace DBService {
       case FaultToleranceMode::NONE:
         message << "For the designate target Node " << node->str();
         message << " node-equality with the Relation's original Node has not \
-          been considered.";
+been considered.";
+
         message << endl;
         
         equal = true;

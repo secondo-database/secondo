@@ -223,7 +223,8 @@ bool SecondoUtilsLocal::adjustDatabase(const string& databaseName)
         if (!success)
         {
             print("Coudln't close the current database and thus couldn't \
-                proceed selecting the new database.", std::cout);
+proceed selecting the new database.", std::cout);
+
             return false;
         }
 
@@ -419,9 +420,11 @@ bool SecondoUtilsLocal::executeQueryCommand(const string& queryAsString,
     } catch (SI_Error errorCode) {        
         stringstream errorMsg;
         print("Caught SI_Error in SecondoUtilsLocal::executeQueryCommand \
-            with code: ", errorCode, std::cout);
+with code: ", errorCode, std::cout);
+
         print("Error descriptions of SI_Error can be found in \
-            SecondoInterfaceGeneral.cpp.", std::cout);
+SecondoInterfaceGeneral.cpp.", std::cout);
+
         
         errorMsg << "CSMSG: " << cmsg.getErrorMsg() << endl;
         print(errorMsg.str(), std::cout);
@@ -437,7 +440,7 @@ bool SecondoUtilsLocal::executeQueryCommand(const string& queryAsString,
     
     } catch (...) {        
         print("Caught unknown exception in \
-            SecondoUtilsLocal::executeQueryCommand.", std::cout);
+SecondoUtilsLocal::executeQueryCommand.", std::cout);
         
         //queryProcessor->Destroy(tree, true);
         queryProcessor->Destroy(tree, false);

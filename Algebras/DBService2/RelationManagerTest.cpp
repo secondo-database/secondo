@@ -39,10 +39,11 @@ TEST_CASE("Constructing DBService::RelationManagers") {
   const string test_db_name = "dbservice_test";
 
   SECTION("Can't construct a RelationManager with an empty string as database \
-    name") {
+name") {
 
     REQUIRE_THROWS_WITH(new DBService::RelationManager(""), "Can't setDatabase \
-      on Query given an empty database string!");
+on Query given an empty database string!");
+
   }
 
   SECTION("Constructing a simple RelationManager")
@@ -83,7 +84,8 @@ TEST_CASE("Constructing DBService::RelationManagers") {
   SECTION("doesRelationHaveReplicas") {
 
     SECTION("doesRelationHaveReplicas should return false for a non-existing \
-      database") {
+database") {
+
       DBService::RelationManager manager(test_db_name);
 
       // the test_db_name db exists but has no replicas
@@ -92,7 +94,8 @@ TEST_CASE("Constructing DBService::RelationManagers") {
     }
 
     SECTION("doesRelationHaveReplicas should return false for a non-existing \
-      relation") {
+relation") {
+  
       DBService::RelationManager manager(test_db_name);
 
       // the test_db_name db exists but has no replicas

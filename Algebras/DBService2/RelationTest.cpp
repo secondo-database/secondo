@@ -392,7 +392,8 @@ TEST_CASE("Constructing DBService::Relations")
       Query filteredQuery = query.filter(".Name = ?", relationName);
 
       REQUIRE(filteredQuery.str() == "query dbs_relations \
-        filter[.Name = \"relation1\"]");
+filter[.Name = \"relation1\"]");
+
     }
 
     SECTION("It should be able to create query train racks") {
@@ -401,7 +402,8 @@ TEST_CASE("Constructing DBService::Relations")
         ".Name = ?", relationName);
 
       REQUIRE(query.str() == "query dbs_relations \
-        filter[.Name = \"relation1\"]");
+filter[.Name = \"relation1\"]");
+
     }
 
     SECTION("Generate a query for all Relations using feed consume") {
@@ -430,7 +432,8 @@ TEST_CASE("Constructing DBService::Relations")
         ".RelationId = ?", 1).addid().consume();
 
       REQUIRE(query.str() == "query dbs_relations feed \
-        filter[.RelationId = 1] addid consume");
+filter[.RelationId = 1] addid consume");
+
     }
   }
 

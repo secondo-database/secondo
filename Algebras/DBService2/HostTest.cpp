@@ -82,8 +82,7 @@ TEST_CASE("Constructing Hosts")
   }
 
   SECTION("Two hosts should be considered equal if they resolve to the same IP \
-    address")
-  {
+address") {
     Host host1("localhost");
     Host host2("127.0.0.1");
 
@@ -93,8 +92,7 @@ TEST_CASE("Constructing Hosts")
   }
 
   SECTION("Two hosts should be considered unequal if they are different and \
-    one of them doesn't resolve")
-  {
+one of them doesn't resolve") {
     Host host1("localhost");
     Host host2("nonlocalhost");
 

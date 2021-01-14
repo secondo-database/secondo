@@ -66,7 +66,8 @@ namespace DBService
   int DatabaseAdapter::executeInsertQuery(string database, string insertQuery)
   {
     throw SecondoException("executeInsertQuery: Not implemented in \
-      DatabaseAdapter. Use subclass such as SecondoDatabaseAdapter.");
+DatabaseAdapter. Use subclass such as SecondoDatabaseAdapter.");
+
     return -1;
   }
 
@@ -74,65 +75,77 @@ namespace DBService
     string query) {
 
     throw SecondoException("executeCreateRelationQuery: Not implemented in \
-      DatabaseAdapter. Use subclass such as SecondoDatabaseAdapter.");
+DatabaseAdapter. Use subclass such as SecondoDatabaseAdapter.");
+
   }
 
   void DatabaseAdapter::executeQueryWithoutResult(string database, 
     string query) {
 
     throw SecondoException("executeQueryWithoutResult: Not implemented in \
-      DatabaseAdapter. Use subclass such as SecondoDatabaseAdapter.");
+DatabaseAdapter. Use subclass such as SecondoDatabaseAdapter.");
+
   }
 
   ListExpr DatabaseAdapter::executeFindQuery(string database, string query)
   {
     throw SecondoException("executeQuery: Not implemented in DatabaseAdapter. \
-      Use subclass such as SecondoDatabaseAdapter.");
+Use subclass such as SecondoDatabaseAdapter.");
+
   }
 
   bool DatabaseAdapter::doesDatabaseExist(string database) {
     throw SecondoException("doesDatabaseExist: Not implemented in \
-      DatabaseAdapter. Use subclass such as SecondoDatabaseAdapter.");
+DatabaseAdapter. Use subclass such as SecondoDatabaseAdapter.");
+
   }
   void DatabaseAdapter::openDatabase(string database) {
     throw SecondoException("openDatabase: Not implemented in DatabaseAdapter. \
-      Use subclass such as SecondoDatabaseAdapter.");
+Use subclass such as SecondoDatabaseAdapter.");
+
   }
   void DatabaseAdapter::closeDatabase() {
     throw SecondoException("closeDatabase: Not implemented in DatabaseAdapter. \
-      Use subclass such as SecondoDatabaseAdapter.");
+Use subclass such as SecondoDatabaseAdapter.");
+
   }
   void DatabaseAdapter::createDatabase(string database) {
     throw SecondoException("createDatabase: Not implemented in \
-      DatabaseAdapter. Use subclass such as SecondoDatabaseAdapter.");
+DatabaseAdapter. Use subclass such as SecondoDatabaseAdapter.");
+
   }
 
   void DatabaseAdapter::deleteDatabase(string database) {
     throw SecondoException("deleteDatabase: Not implemented in \
-      DatabaseAdapter. Use subclass such as SecondoDatabaseAdapter.");
+DatabaseAdapter. Use subclass such as SecondoDatabaseAdapter.");
+
   }
 
   void DatabaseAdapter::createRelation(string database, string relationName, 
     string createRelationStatement)
   {
     throw SecondoException("createRelation: Not implemented in \
-      DatabaseAdapter. Use subclass such as SecondoDatabaseAdapter.");
+DatabaseAdapter. Use subclass such as SecondoDatabaseAdapter.");
+
   }
 
   bool DatabaseAdapter::doesRelationExist(string database, 
     string relationName) {
     throw SecondoException("doesRelationExist: Not implemented in \
-      DatabaseAdapter. Use subclass such as SecondoDatabaseAdapter.");
+DatabaseAdapter. Use subclass such as SecondoDatabaseAdapter.");
+
   }
 
   bool DatabaseAdapter::isDatabaseOpen() {
     throw SecondoException("isDatabaseOpen: Not implemented in \
-      DatabaseAdapter. Use subclass such as SecondoDatabaseAdapter.");
+DatabaseAdapter. Use subclass such as SecondoDatabaseAdapter.");
+
   }
 
   string DatabaseAdapter::getCurrentDatabase() {
     throw SecondoException("getCurrentDatabase: Not implemented in \
-      DatabaseAdapter. Use subclass such as SecondoDatabaseAdapter.");
+DatabaseAdapter. Use subclass such as SecondoDatabaseAdapter.");
+
   }
 
 } // namespace DBService

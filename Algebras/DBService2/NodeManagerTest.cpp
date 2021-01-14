@@ -81,7 +81,8 @@ TEST_CASE("Constructing DBService::NodeManagers")
   }
 
   SECTION("Adding the same node twice should lead to a non-empty list of size \
-    equal to 1") {
+equal to 1") {
+
     shared_ptr<DBService::Node> node = make_shared<DBService::Node>("localhost",
     1244, "", "/home/doesnt_exist/secondo", 9941, 9942);
     DBService::NodeManager nodeManager(test_db_name);
@@ -94,8 +95,7 @@ TEST_CASE("Constructing DBService::NodeManagers")
   }
 
   SECTION("Adding the same node and trying to find it by node should be \
-    successful")
-  {
+successful") {
     shared_ptr<DBService::Node> node = make_shared<DBService::Node>("localhost",
       1244, "", "/home/doesnt_exist/secondo", 9941, 9942);
 
@@ -109,8 +109,7 @@ TEST_CASE("Constructing DBService::NodeManagers")
   }
 
   SECTION("Adding the same node and trying to find it by hostname and port \
-    should be successful")
-  {
+should be successful") {
     shared_ptr<DBService::Node> node = make_shared<DBService::Node>("localhost",
       1244, "", "/home/doesnt_exist/secondo", 9941, 9942);
     DBService::NodeManager nodeManager(test_db_name);

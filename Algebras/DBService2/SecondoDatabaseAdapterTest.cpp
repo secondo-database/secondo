@@ -43,7 +43,7 @@ TEST_CASE("DBService::SecondoDatabaseAdapter")
 
   SECTION("It should confirm that an non-existing database doesn't exists")
   {
-    REQUIRE(adapter->doesDatabaseExist("nonexistenddatabase") == false);    
+    REQUIRE(adapter->doesDatabaseExist("nonexistenddatabase") == false);
   }
 
   SECTION("It should confirm that an existing database exists")
@@ -52,8 +52,8 @@ TEST_CASE("DBService::SecondoDatabaseAdapter")
   }
 
   SECTION("A database should be open as the test operator requires an open \
-    database to be invoked")
-  {
+database to be invoked") {
+
     REQUIRE(adapter->isDatabaseOpen() == true);
   }
 
@@ -67,49 +67,49 @@ TEST_CASE("DBService::SecondoDatabaseAdapter")
   }
 
   SECTION("Without an open database, the attempt to close it should succeed \
-    silently") {
+silently") {
+
     REQUIRE(adapter->isDatabaseOpen() == false);
     adapter->closeDatabase();
     REQUIRE(adapter->isDatabaseOpen() == false);
   }
 
   SECTION("Without an open database, it should be possible to open the \
-    database")
-  {
+database") {
+
     REQUIRE(adapter->isDatabaseOpen() == false);
     adapter->openDatabase(test_db_name);
-    REQUIRE(adapter->isDatabaseOpen() == true);    
+    REQUIRE(adapter->isDatabaseOpen() == true);
   }
 
   SECTION("Given an open database, it should success to open the \
-    database again")
-  {
+database again") {
+
     REQUIRE(adapter->isDatabaseOpen() == true);
     adapter->openDatabase(test_db_name);
     REQUIRE(adapter->isDatabaseOpen() == true);
   }
 
   SECTION("Given an open database, it should success to open the \
-    database again")
-  {
+database again") {
+
     REQUIRE(adapter->isDatabaseOpen() == true);
     adapter->openDatabase(test_db_name);
     REQUIRE(adapter->isDatabaseOpen() == true);
   }
-  
+
   SECTION("Given an open database, it should success to open the database \
-    again")
-  {
+again") {
+
     REQUIRE(adapter->isDatabaseOpen() == true);
     adapter->openDatabase(test_db_name);
     REQUIRE(adapter->isDatabaseOpen() == true);
   }
-  
+
   SECTION("It should raise an exception attempting to open a non-existing \
-    database")
-  {
-    REQUIRE_THROWS_WITH(adapter->openDatabase("nonexistenddatabase"), 
-      Contains("doesn't exist"));    
+database") {
+    REQUIRE_THROWS_WITH(adapter->openDatabase("nonexistenddatabase"),
+      Contains("doesn't exist"));
   }
 
   SECTION("Database lifecycle tests") {
@@ -117,15 +117,15 @@ TEST_CASE("DBService::SecondoDatabaseAdapter")
     // exoticdatabase73829 -> crash
     string exoticDatabaseName = "db73829";
 
-    SECTION("Creating a database") {      
+    SECTION("Creating a database") {
       REQUIRE(adapter->doesDatabaseExist(exoticDatabaseName) == false);
-      REQUIRE_NOTHROW( adapter->createDatabase(exoticDatabaseName) );
+      REQUIRE_NOTHROW(adapter->createDatabase(exoticDatabaseName));
       REQUIRE(adapter->doesDatabaseExist(exoticDatabaseName) == true);
     }
 
-    SECTION("Deleting a database") {      
+    SECTION("Deleting a database") {
       REQUIRE(adapter->doesDatabaseExist(exoticDatabaseName) == true);
-      REQUIRE_NOTHROW( adapter->deleteDatabase(exoticDatabaseName) );
+      REQUIRE_NOTHROW(adapter->deleteDatabase(exoticDatabaseName));
       REQUIRE(adapter->doesDatabaseExist(exoticDatabaseName) == false);
     }
   }
