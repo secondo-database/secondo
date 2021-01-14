@@ -228,8 +228,7 @@ TEST_CASE("Constructing DBService::Nodes")
       REQUIRE(node1.getId() > 0);
     }
 
-    SECTION("A recently saved previously saved DBService::Node (updating) 
-      \should be clean and not-new") {
+    SECTION("A recently saved previously saved Node should be clean") {
 
       DBService::Node node1("localhost", 1245, "", "/home/doesnt_exist/secondo",
         9941, 9942);

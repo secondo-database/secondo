@@ -1,7 +1,7 @@
 #ifndef HOST_H
 #define HOST_H
 
-#include <std::string>
+#include <string>
 
 namespace DBService {
   class Host {

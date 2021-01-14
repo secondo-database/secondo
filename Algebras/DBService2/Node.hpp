@@ -1,7 +1,7 @@
 #ifndef DBS_NODE_H
 #define DBS_NODE_H
 
-#include <std::string>
+#include <string>
 #include <iostream>
 
 #include "Algebras/DBService2/Record.hpp"
@@ -81,7 +81,7 @@ namespace DBService {
       Indents the output according to the provided ~indentationLevel~ using 
       an according number of tabs.
     */
-    std::std::string str(int indentationLevel = 0) const;
+    std::string str(int indentationLevel = 0) const;
 
     /**
      * Connects to the node, creates & sets the corresponding nodeConnection and
@@ -125,7 +125,7 @@ namespace DBService {
 
     //TODO Remove
     // Deprecatated. use findAllQuery instead.
-    static std::string findAllStatement(std::std::string database);    
+    static std::string findAllStatement(std::string database);    
 
     // static std::string deleteAllStatement();    
 
@@ -134,8 +134,8 @@ namespace DBService {
     static std::string nodeTypeOriginal();
     // static Query query(std::string database);
 
-    // static std::vector<std::std::shared_ptr<Node> > findAll(std::string database);
-    // static std::std::shared_ptr<Node> findByTid(std::string database, int tid);    
+    // static std::vector<std::shared_ptr<Node> > findAll(std::string database);
+    // static std::shared_ptr<Node> findByTid(std::string database, int tid);    
   };
 
   // Print node

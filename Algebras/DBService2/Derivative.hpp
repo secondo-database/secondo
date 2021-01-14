@@ -104,7 +104,7 @@ namespace DBService {
     */
     void syncReplicasWithRelation();
 
-    bool doesReplicaExist(shared_ptr<Replica> newReplica);
+    bool doesReplicaExist(std::shared_ptr<Replica> newReplica);
 
     /*
       Adds a derivative replica based on the provided ~relationReplica~.
@@ -173,21 +173,24 @@ namespace DBService {
     /*
       Returns the Derivative if found or ~nullptr~ otherwise.
     */
-    static std::shared_ptr<Derivative> findOne(string database, Query query);    
+    static std::shared_ptr<Derivative> findOne(std::string database, 
+      Query query);    
 
     /*
      * Record END
      */
 
     /*
-      Retrieves Derivatives associated to the Relation specified by its relationId.
+      Retrieves Derivatives associated to the Relation specified by its 
+      relationId.
     */
-    static std::vector<std::shared_ptr<Derivative> > findByRelationId(string database, int relationId);
+    static std::vector<std::shared_ptr<Derivative> > findByRelationId(
+      std::string database, int relationId);
   };
 
   // Print relation
   std::ostream &operator<<(std::ostream &os, 
-  DBService::Derivative const &derivative);
+    DBService::Derivative const &derivative);
 }
 
 #endif

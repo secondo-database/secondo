@@ -213,10 +213,11 @@ namespace DBService
     */
     virtual void deleteRecord() {
 
-      string query = deleteRecordQuery(database).str();
+      std::string query = deleteRecordQuery(database).str();
       LOG_F(INFO, "Record::delete(): %s", query.c_str());
 
-      shared_ptr<DatabaseAdapter> dbAdapter = DatabaseAdapter::getInstance();
+      std::shared_ptr<DatabaseAdapter> dbAdapter = 
+        DatabaseAdapter::getInstance();
 
       dbAdapter->executeQueryWithoutResult(
         database,
@@ -298,7 +299,9 @@ namespace DBService
     }
 
     static void deleteAll(std::string database) {
-      shared_ptr<DatabaseAdapter> dbAdapter = DatabaseAdapter::getInstance();
+      std::shared_ptr<DatabaseAdapter> dbAdapter 
+        = DatabaseAdapter::getInstance();
+        
       dbAdapter->executeQueryWithoutResult(
         database,
         RecordType::deleteAllQuery(database).str()
@@ -357,7 +360,7 @@ namespace DBService
     // static Query query();
 
     static Query query(std::string database) {
-      stringstream query;
+      std::stringstream query;
 
       // Ducktyping - expecting RecordType to implement a static method called
       //  getRelationName

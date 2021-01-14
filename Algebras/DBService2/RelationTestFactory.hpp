@@ -23,8 +23,9 @@ namespace DBServiceTest {
       relation->setDatabase(recordDatabase);
 
       // Original Node
-      shared_ptr<DBService::Node> node = make_shared<DBService::Node>(
-        "localhost", originalNodePort, "", "/home/doesnt_exist/secondo", 9941, 9942);      
+      std::shared_ptr<DBService::Node> node = std::make_shared<DBService::Node>(
+        "localhost", originalNodePort, 
+        "", "/home/doesnt_exist/secondo", 9941, 9942);
       node->setDatabase(recordDatabase);
       node->setType(DBService::Node::nodeTypeOriginal());      
       relation->setOriginalNode(node); 
@@ -50,7 +51,7 @@ namespace DBServiceTest {
           recordDatabase, relationName, originalNodePort, false);      
 
       // Target Node
-      shared_ptr<DBService::Node> targetNode = NodeTestFactory::buildTargetNode(recordDatabase, targetNodePort);
+      std::shared_ptr<DBService::Node> targetNode = NodeTestFactory::buildTargetNode(recordDatabase, targetNodePort);
 
       //TODO Remove
       // shared_ptr<DBService::Node> targetNode = make_shared<DBService::Node>(

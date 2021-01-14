@@ -595,7 +595,7 @@ This reduces the complexity of the \testit{DBServiceManager}.
 
 */
 
-    unique_ptr<NodeManager> nodeManager;
+    std::unique_ptr<NodeManager> nodeManager;
 
 
 /*
@@ -608,7 +608,7 @@ It allows the management of Relations.
 
 */
 
-    unique_ptr<RelationManager> relationManager;
+    std::unique_ptr<RelationManager> relationManager;
 
 /*
 
@@ -619,7 +619,7 @@ of selecting nodes to place Replicas to.
 
 */
     
-    shared_ptr<ReplicaPlacementStrategy> replicaPlacementStrategy;
+    std::shared_ptr<ReplicaPlacementStrategy> replicaPlacementStrategy;
 
 /*
 

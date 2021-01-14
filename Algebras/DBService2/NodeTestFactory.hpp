@@ -23,7 +23,7 @@ namespace DBServiceTest {
         bool save = true 
       ) {
 
-      shared_ptr<DBService::Node> targetNode = buildNode(
+      std::shared_ptr<DBService::Node> targetNode = buildNode(
         recordDatabase,
         DBService::Node::nodeTypeDBService(),
         nodePort,
@@ -78,11 +78,13 @@ namespace DBServiceTest {
         int nodePort, 
         bool save = true 
       ) {
-      shared_ptr<DBService::Node> targetNode = make_shared<DBService::Node>(
-        "localhost", nodePort, "", 
-        "/home/doesnt_exist/secondo", 9941, 9942);            
+      std::shared_ptr<DBService::Node> targetNode = 
+        std::make_shared<DBService::Node>(
+          "localhost", nodePort, "", 
+          "/home/doesnt_exist/secondo", 9941, 9942);
+
       targetNode->setDatabase(recordDatabase);
-      targetNode->setType(nodeType);    
+      targetNode->setType(nodeType);
 
       if (save == true)
         targetNode->save();

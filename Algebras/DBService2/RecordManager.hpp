@@ -145,7 +145,7 @@ namespace DBService {
       Provides a string description of the RecordManager's state.
     */
     std::string str() {
-      stringstream msg;
+      std::stringstream msg;
 
       msg << "---------------------------------------" << std::endl;
       msg << "RecordManager - RecordType::getRelationName: "; 

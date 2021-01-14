@@ -58,7 +58,7 @@ namespace DBService {
     */
     Relation(std::string relationDatabase, std::string relationName);
     Relation(std::string relationDatabase, std::string relationName, 
-      shared_ptr<DBService::Node> originalNode);    
+      std::shared_ptr<DBService::Node> originalNode);    
     Relation(std::string relationDatabase, std::string relationName,
       std::string originalNodeHost, int originalNodePort, 
       std::string originalNodeDisk);    
@@ -66,10 +66,13 @@ namespace DBService {
     public:
 
     static std::shared_ptr<DBService::Relation> build();
-    static std::shared_ptr<DBService::Relation> build(std::string relationDatabase, std::string relationName);
-    static std::shared_ptr<DBService::Relation> build(std::string relationDatabase, std::string relationName, 
-      shared_ptr<DBService::Node> originalNode);
-    static std::shared_ptr<DBService::Relation> build(std::string relationDatabase, std::string relationName,
+    static std::shared_ptr<DBService::Relation> build(
+      std::string relationDatabase, std::string relationName);
+    static std::shared_ptr<DBService::Relation> build(
+      std::string relationDatabase, std::string relationName, 
+      std::shared_ptr<DBService::Node> originalNode);
+    static std::shared_ptr<DBService::Relation> build(
+      std::string relationDatabase, std::string relationName,
       std::string originalNodeHost, int originalNodePort, 
       std::string originalNodeDisk);
 
@@ -320,7 +323,7 @@ namespace DBService {
     /*
       Returns the Relation if found or ~nullptr~ otherwise.
     */
-    static std::shared_ptr<Relation> findOne(string database, Query query);
+    static std::shared_ptr<Relation> findOne(std::string database, Query query);
 
     /*     
      * Record END

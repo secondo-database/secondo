@@ -29,14 +29,14 @@ namespace DBService {
     private:
 
     PlacementPolicy policy;    
-    std::vector<shared_ptr<DBService::Node> > nodes;
+    std::vector<std::shared_ptr<DBService::Node> > nodes;
     
     std::stringstream message;
     
     public:
 
     ReplicaPlacementStrategy(PlacementPolicy newPolicy, 
-      std::vector<shared_ptr<DBService::Node> > newNodes);
+      std::vector<std::shared_ptr<DBService::Node> > newNodes);
 
     /*
       Returns a description of the placement decision and potential errors.
@@ -49,7 +49,7 @@ namespace DBService {
     */
     void setPolicy(PlacementPolicy newPolicy);
 
-    void setNodes(std::vector<shared_ptr<DBService::Node> > newNodes);
+    void setNodes(std::vector<std::shared_ptr<DBService::Node> > newNodes);
 
     /*
       Determines the placement of Replicas of a given Relation among
@@ -62,20 +62,22 @@ namespace DBService {
 
       relation: Relation to be replicated.
     */
-    bool doPlacement(shared_ptr<Relation> relation);
+    bool doPlacement(std::shared_ptr<Relation> relation);
 
     /*
       Checks whether the given Node is compliant to the given
       PlacementPolicy and thus qualifies as a target Node to
       place a Replica.
     */
-    bool isNodeCompliant(shared_ptr<Node> node, shared_ptr<Relation> relation);
+    bool isNodeCompliant(std::shared_ptr<Node> node, 
+      std::shared_ptr<Relation> relation);
 
     /*
       Verifies whether the placement is compliant to the fault tolerance level
       specified by the PlacementPolicy.
     */
-    bool isPlacementCompliant(vector<shared_ptr<Node> > selectedNodes);
+    bool isPlacementCompliant(
+      std::vector<std::shared_ptr<Node> > selectedNodes);
   };
 }
 #endif

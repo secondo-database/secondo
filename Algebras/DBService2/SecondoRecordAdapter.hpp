@@ -48,7 +48,7 @@ namespace DBService
 
       */      
       static std::vector<std::shared_ptr<RecordType> > buildVectorFromNestedList(std::string database, std::shared_ptr<DatabaseAdapter> dbAdapter, ListExpr resultList)  {
-        vector<shared_ptr<RecordType> > records;
+        std::vector<std::shared_ptr<RecordType> > records;
 
         /* The resultList contains a header which we are not interested in.     
         * Example:
@@ -74,7 +74,7 @@ namespace DBService
             // ('localhost' 1245 '' '/home/doesnt_exist/secondo' 9941 9942 1) 
             ListExpr currentRecordNL = nl->First(recordList);
 
-            shared_ptr<RecordType> currentRecord = buildObjectFromNestedList(database, currentRecordNL);
+            std::shared_ptr<RecordType> currentRecord = buildObjectFromNestedList(database, currentRecordNL);
                     
             currentRecord->setDatabase(database);
             currentRecord->setDatabaseAdapter(dbAdapter);

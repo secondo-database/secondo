@@ -33,8 +33,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Algebras/DBService2/DatabaseAdapter.hpp"
 
 namespace DBService {
-  void DatabaseSchema::migrate(string database) {    
-    shared_ptr<DatabaseAdapter> adapter = DatabaseAdapter::getInstance();
+  void DatabaseSchema::migrate(std::string database) {
+    std::shared_ptr<DatabaseAdapter> adapter = DatabaseAdapter::getInstance();
 
     // Ensure the database exists.
     adapter->createDatabase(database);

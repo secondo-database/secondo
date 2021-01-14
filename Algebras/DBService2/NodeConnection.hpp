@@ -24,7 +24,7 @@ This way a
       Perform a remote query to receive a config param a string.
       Intended to be invoked by obtainRemoteConfigParamX methods.
     */
-    void getRemoteConfigParam(string& result,
+    void getRemoteConfigParam(std::string& result,
         distributed2::ConnectionInfo* connectionInfo, const char* section,
         const char* key);
 
