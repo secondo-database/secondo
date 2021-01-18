@@ -36,6 +36,19 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 // implementation of a main memory based M-tree
 
 /*
+1 template class for clone
+
+*/
+template<class T>
+class MemCloner {
+ public:
+  static T* clone(const T& object) {
+    cout << "use clone from MMMtree.h" << endl;
+    return new T(object);
+  }
+};
+
+/*
 1 class MTreeNode
 
 The class MTreeNode is an abstract super class for the nodes 
@@ -668,7 +681,9 @@ Adds an entry to this leaf.
 
 */
      void store(const T& o, DistComp& di){
-        Objects[MTreeNode<T,DistComp>::count] = new T(o);
+       cout << "call STORE" << endl;
+//         Objects[MTreeNode<T,DistComp>::count] = new T(o);
+        Objects[MTreeNode<T,DistComp>::count] = MemCloner<T>::clone(o);
         double dist = di(MTreeNode<T,DistComp>::routingObject,o);
         if(MTreeNode<T,DistComp>::radius<dist){
           MTreeNode<T,DistComp>::radius=dist;
@@ -739,6 +754,7 @@ write a textual representation fo this leaf to ~out~.
       }
 
    MTreeLeafNode<T,DistComp>* clone(){
+       cout << "call CLONE" << endl;
        MTreeLeafNode<T,DistComp>* res;
        res = new MTreeLeafNode<T,DistComp>(MTreeNode<T,DistComp>::minEntries, 
                                         MTreeNode<T,DistComp>::maxEntries,
@@ -747,7 +763,8 @@ write a textual representation fo this leaf to ~out~.
        res->distanceToParent = MTreeNode<T,DistComp>::distanceToParent;
        res->count = MTreeNode<T,DistComp>::count;
        for(int i=0;i<MTreeNode<T,DistComp>::count;i++){
-            res->Objects[i] = new T(*Objects[i]);
+//             res->Objects[i] = new T(*Objects[i]);
+         res->Objects[i] = MemCloner<T>::clone(*Objects[i]);
        }  
        return res;
    }

@@ -85,6 +85,17 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include <chrono>
 
+template<>
+class MemCloner<Attribute>{
+  static Attribute* clone(const Attribute& object) {
+    cout << "use clone for Attribute" << endl;
+    Attribute* r = object.Clone();
+    r->bringToMemory();
+    return r;
+  }
+};
+
+
 using namespace std;
 
 extern NestedList* nl;
@@ -4353,7 +4364,11 @@ Operator matchbelowSOp(
 /*
 6 M-tree support
 
+6.1 template class that enables the use of Flob types in an M-tree
 
+*/
+
+/*
 6.1 mcreatemtree: Creation of an M-tree 
 
 6.1.1 Type Mapping
