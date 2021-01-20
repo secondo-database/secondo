@@ -1467,6 +1467,13 @@ void UReal::Recompute(const UPoint& up1, const UPoint& up2, const Geoid* geoid){
 //   cout << "   " << up1 << ", " << up2 << "; Start: (" << x1 << ", " << y1 
 //        << "), Mid: (" << x2 << ", " << y2 << "), End: (" << x3 << ", " << y3 
 //        << ")" << endl;
+  if (AlmostEqual(x1, x2) || AlmostEqual(x2, x3)) {
+    a = 0.0;
+    b = 0.0;
+    c = 0.0;
+    r = false;
+    return;
+  }
   std::vector<double> eq1 {std::pow(x1, 2), x1, 1.0, y1};
   std::vector<double> eq2 {std::pow(x2, 2), x2, 1.0, y2};
   std::vector<double> eq3 {std::pow(x3, 2), x3, 1.0, y3};
@@ -2892,7 +2899,7 @@ void CUPoint::ConvertFrom(const UPoint& up, const Geoid* geoid /* = 0 */) {
 }
 
 double CUPoint::GetToleranceFactor() {
-  return 1.05;
+  return 1.0;
 }
 
 void CUPoint::ConvertFrom(const MPoint& mp, const Geoid* geoid /* = 0 */) {
@@ -2986,8 +2993,122 @@ void CUPoint::ConvertFrom(const CMPoint& cmp, const Geoid* geoid /* = 0 */) {
   assert(correct);
 }
 
-double CUPoint::DistanceIntegral(const CUPoint& cup, const bool upperBound,
-                                 const Geoid* geoid /* = 0 */) const {
+double CUPoint::DistanceIntegral(const CUPoint& cup, const UReal& urDist,
+                    const bool upperBound, const Geoid* geoid /* = 0 */) const {
+  bool correct = false;
+  Periods per(true);
+  double sumOfRadii = this->GetRadius() + cup.GetRadius();
+  Interval<Instant> ivMin(true);
+  Instant instMin, instNull1, instNull2;
+  double integralValue1, integralValue2, result;
+  UReal dist(urDist), urNull(true);
+  double dur = (urDist.timeInterval.end - urDist.timeInterval.start).ToDouble();
+  if (!upperBound) { // prune sections below sumOfRadii
+    if (!geoid && !urDist.r) {
+      return 0.0;
+    }
+    double minDist = urDist.PeriodsAtMin(correct, per);
+    if (!correct) {
+      return (upperBound ? DBL_MAX : 0.0);
+    }
+    if (minDist < sumOfRadii) {
+      per.Get(0, ivMin); // contains only one interval
+      instMin = ivMin.start; // same as end
+//       cout << "distance between " << cup1 << " and " << cup2 << " is "
+//             << urDist << endl << "    minimum " 
+//             << urDist.PeriodsAtMin(correct, per) << " at " << instMin;
+      CcReal ccSumOfRadii(true, sumOfRadii);
+      std::vector<UReal> urNulls;
+      int numOfNulls = urDist.AtValue(ccSumOfRadii, urNulls);
+//       cout << "    sumOfRadii " << sumOfRadii << " reached "
+//             << numOfNulls << " times:" << endl << "      " 
+//             << (numOfNulls > 0 ? 
+//                  (urNulls[0].IsDefined() ? urNulls[0] : "UNDEF") : 0) 
+//             << endl << "      " 
+//             << (numOfNulls > 1 ? 
+//                  (urNulls[1].IsDefined() ? urNulls[1] : "UNDEF") : 1)
+//             << endl;
+      if (numOfNulls == 0) { // sumOfRadii not assumed; no relevant section
+        return 0.0;
+      }
+      else if (numOfNulls == 1) {
+        instNull1 = urNulls[0].timeInterval.start; // same as end
+        if (instNull1 < instMin) { // left of minimum
+          dist.timeInterval.end = instNull1;
+        }
+        else {
+          dist.timeInterval.start = instNull1;
+        }
+        integralValue1 = dist.Integrate();
+        if (isnan(integralValue1)) {
+          return 0.0;
+        }
+        dur = (dist.timeInterval.end - dist.timeInterval.start).ToDouble();
+        cout << "    RESULT 1 = " << integralValue1 << " - " << sumOfRadii
+             << " * " << dur << endl << "  =  "
+             << std::max(0.0, integralValue1 - sumOfRadii * dur) << endl;
+        result = std::max(0.0, integralValue1 - sumOfRadii * dur);
+             
+      }
+      else { // numOfNulls == 2; left of instNull1, right of instNull2
+        instNull1 = urNulls[0].timeInterval.start; // same as end
+        instNull2 = urNulls[1].timeInterval.start; // same as end
+        urNull = dist;
+        urNull.timeInterval.end = instNull1;
+        integralValue1 = urNull.Integrate();
+        urNull.timeInterval.start = instNull2;
+        urNull.timeInterval.end = dist.timeInterval.end;
+        integralValue2 = urNull.Integrate();
+        if (isnan(integralValue1) || isnan(integralValue2)) {
+          return 0.0;
+        }
+        result = std::max(0.0, integralValue1 - sumOfRadii * 
+                 (instNull1 - dist.timeInterval.start).ToDouble())
+                 + std::max(0.0, integralValue2 - sumOfRadii * 
+                 (dist.timeInterval.end - instNull2).ToDouble());
+        cout << "  RES 2 = " << integralValue1 << " - " << sumOfRadii 
+             << " * " << (instNull1 - dist.timeInterval.start) << " + "
+             << integralValue2 << " - " << sumOfRadii << " * "
+             << (dist.timeInterval.end - instNull2) << " = " << result
+             << endl;
+      }
+    }
+    else { // no shifting required because min >= sumOfRadii
+      integralValue1 = dist.Integrate();
+      if (isnan(integralValue1)) {
+        return 0.0;
+      }
+      result = std::max(0.0, integralValue1 - sumOfRadii * dur);
+      DateTime dura(durationtype);
+      dura.ReadFrom(dur);
+      cout << *this << endl << cup << endl << dist << endl 
+           << "min distance during " << per << " is "
+           << dist.PeriodsAtMin(correct, per) << endl;
+      cout << "    RESULT = " << integralValue1 << " - " << sumOfRadii 
+           << " * " << dura << " = " 
+           << std::max(0.0, integralValue1 - sumOfRadii * dur) << endl;
+    }
+  }
+  else { // case upperbound starts here
+    if (!urDist.IsDefined()) {
+      std::cerr << __PRETTY_FUNCTION__ << "Invalid geographic coord!" << endl;
+      return DBL_MAX;
+    }
+    integralValue1 = dist.Integrate();
+    if (isnan(integralValue1)) {
+      return 0.0;
+    }
+    DateTime dura(durationtype);
+    dura.ReadFrom(dur);
+    cout << "   urDist = " << dist << " ==> RESULTub = " 
+         << integralValue1 << " + " << sumOfRadii << " * " << dura << endl;
+    result = integralValue1 + sumOfRadii * dur;
+  }
+  return result;
+}
+
+double CUPoint::DistanceAvg(const CUPoint& cup, const bool upperBound,
+                            const Geoid* geoid /* = 0 */) const {
   if (!IsDefined() && !cup.IsDefined()) {
     return 0.0;
   }
@@ -3016,14 +3137,19 @@ double CUPoint::DistanceIntegral(const CUPoint& cup, const bool upperBound,
            cup1b.timeInterval.end, !cup2.timeInterval.rc, cup2.timeInterval.rc);
 //     cout << cup1a << " extended by " << cup1b << endl << endl << cup2
 //          << " extended by " << cup2b << endl;
-    double result1 = cup1a.DistanceIntegral(cup2, upperBound, geoid);
-    double result2 = cup1b.DistanceIntegral(cup2b, upperBound, geoid);
+    double result1 = cup1a.DistanceAvg(cup2, upperBound, geoid);
+    double result2 = cup1b.DistanceAvg(cup2b, upperBound, geoid);
 //     cout << "res1 = " << result1 << ", res2 = " << result2 << ", sum is "
 //          << result1 + result2 << endl;
-    return result1 + result2;
+    
+    
+    double dur1 = (cup1a.timeInterval.end-cup1a.timeInterval.start).ToDouble();
+    double dur2 = (cup1b.timeInterval.end-cup1b.timeInterval.start).ToDouble();
+    return (result1 * dur1 + result2 * dur2) / (dur1 + dur2);
+    // previously: return result1 + result2;
   }
   // from now on, it is ensured that cup1 and cup2 have the same length
-  UReal urDist(true), urNull(true);
+  UReal urDist(true);
   if (!geoid) {
     ((UPoint*)(&cup1))->Distance(*((UPoint*)(&cup2)), urDist);
   }
@@ -3031,126 +3157,22 @@ double CUPoint::DistanceIntegral(const CUPoint& cup, const bool upperBound,
     urDist.timeInterval = cup1.timeInterval;
     urDist.Recompute(*(UPoint*)(&cup1), *(UPoint*)(&cup2), geoid);
   }
-  double dur = (urDist.timeInterval.end - urDist.timeInterval.start).ToDouble();
   bool correct;
-  Periods per(true);
-  Interval<Instant> ivMin(true);
-  Instant instMin, instNull1, instNull2;
-  double integralValue1, integralValue2, result,
-         sumOfRadii(cup1.GetRadius() + cup2.GetRadius());
-  if (!upperBound) { // prune sections below sumOfRadii
-    if (!geoid && !urDist.r) {
-      return 0.0;
-    }
-    if (urDist.PeriodsAtMin(correct, per) < sumOfRadii) {
-      per.Get(0, ivMin); // contains only one interval
-      instMin = ivMin.start; // same as end
-//       cout << "distance between " << cup1 << " and " << cup2 << " is "
-//             << urDist << endl << "    minimum " 
-//             << urDist.PeriodsAtMin(correct, per) << " at " << instMin;
-      CcReal ccSumOfRadii(true, cup1.GetRadius() + cup2.GetRadius());
-      std::vector<UReal> urNulls;
-      int numOfNulls = urDist.AtValue(ccSumOfRadii, urNulls);
-//       cout << "    sumOfRadii " << sumOfRadii << " reached "
-//             << numOfNulls << " times:" << endl << "      " 
-//             << (numOfNulls > 0 ? 
-//                  (urNulls[0].IsDefined() ? urNulls[0] : "UNDEF") : 0) 
-//             << endl << "      " 
-//             << (numOfNulls > 1 ? 
-//                  (urNulls[1].IsDefined() ? urNulls[1] : "UNDEF") : 1)
-//             << endl;
-      if (numOfNulls == 0) { // sumOfRadii not assumed; no relevant section
-        return 0.0;
-      }
-      else if (numOfNulls == 1) {
-        instNull1 = urNulls[0].timeInterval.start; // same as end
-        if (instNull1 < instMin) { // left of minimum
-          urDist.timeInterval.end = instNull1;
-        }
-        else {
-          urDist.timeInterval.start = instNull1;
-        }
-        integralValue1 = urDist.Integrate();
-        if (isnan(integralValue1)) {
-          return 0.0;
-        }
-        dur = (urDist.timeInterval.end - urDist.timeInterval.start).ToDouble();
-//         cout << "    RESULT 1 = " << integralValue1 << " - " << sumOfRadii
-//              << " * " << dur << endl << "  =  "
-//              << std::max(0.0, integralValue1 - sumOfRadii * dur) << endl;
-        result = std::max(0.0, integralValue1 - sumOfRadii * dur);
-             
-      }
-      else { // numOfNulls == 2; left of instNull1, right of instNull2
-        instNull1 = urNulls[0].timeInterval.start; // same as end
-        instNull2 = urNulls[1].timeInterval.start; // same as end
-        urNull = urDist;
-        urNull.timeInterval.end = instNull1;
-        integralValue1 = urNull.Integrate();
-        urNull.timeInterval.start = instNull2;
-        urNull.timeInterval.end = urDist.timeInterval.end;
-        integralValue2 = urNull.Integrate();
-        if (isnan(integralValue1) || isnan(integralValue2)) {
-          return 0.0;
-        }
-        result = std::max(0.0, integralValue1 - sumOfRadii * 
-                 (instNull1 - urDist.timeInterval.start).ToDouble())
-                 + std::max(0.0, integralValue2 - sumOfRadii * 
-                 (urDist.timeInterval.end - instNull2).ToDouble());
-//         cout << "  RES 2 = " << integralValue1 << " - " << sumOfRadii 
-//              << " * " << (instNull1 - urDist.timeInterval.start) << " + "
-//              << integralValue2 << " - " << sumOfRadii << " * "
-//              << (urDist.timeInterval.end - instNull2) << " = " << result
-//              << endl;
-      }
-    }
-    else { // no shifting required because min >= sumOfRadii
-      integralValue1 = urDist.Integrate();
-      if (isnan(integralValue1)) {
-        return 0.0;
-      }
-      result = std::max(0.0, integralValue1 - sumOfRadii * dur);
-//       DateTime dura(durationtype);
-//       dura.ReadFrom(dur);
-//       cout << cup1 << endl << cup2 << endl << urDist << endl 
-//            << "min distance during " << per << " is "
-//            << urDist.PeriodsAtMin(correct, per) << endl;
-//       cout << "    RESULT = " << integralValue1 << " - " << sumOfRadii 
-//            << " * " << dura << " = " 
-//            << std::max(0.0, integralValue1 - sumOfRadii * dur) << endl;
-    }
+  double sumOfRadii(cup1.GetRadius() + cup2.GetRadius());
+  if (upperBound) {
+    double maxDist = urDist.Max(correct);
+//     cout << "maxDist of " << urDist << " is " << maxDist << ", sumOfRadii = "
+//          << sumOfRadii << endl;
+    return (correct ? maxDist + sumOfRadii : DBL_MAX);
   }
-  else { // case upperbound starts here
-    if (!urDist.IsDefined()) {
-      std::cerr << __PRETTY_FUNCTION__ << "Invalid geographic coord!" << endl;
-      return DBL_MAX;
-    }
-    integralValue1 = urDist.Integrate();
-    if (isnan(integralValue1)) {
-      return 0.0;
-    }
-//     DateTime dura(durationtype);
-//     dura.ReadFrom(dur);
-//     cout << "   urDist = " << urDist << " ==> RESULTub = " 
-//          << integralValue1 << " + " << sumOfRadii << " * " << dura << endl;
-    result = integralValue1 + sumOfRadii * dur;
+  else {
+    double minDist = urDist.Min(correct);
+//     cout << "minDist of " << urDist << " is " << minDist << ", sumOfRadii = "
+//          << sumOfRadii << endl;
+    return (correct ? std::max(0.0, minDist - sumOfRadii) : 0.0);
   }
-  return result;
-}
-
-double CUPoint::DistanceAvg(const CUPoint& cup, const bool upperBound,
-                            const Geoid* geoid /* = 0 */) const {
-  double maxDur = std::max((timeInterval.end - timeInterval.start).ToDouble(),
-                    (cup.timeInterval.end - cup.timeInterval.start).ToDouble());
-  double integral = this->DistanceIntegral(cup, upperBound, geoid);
-//   DateTime dur(datetime::durationtype);
-//   dur.ReadFrom(maxDur);
-//   cout << "CUPoint::DistanceAvg" << (upperBound ? "UB" : "LB") << " for "
-//        << *this << " AND " << cup << endl << " = " 
-//        << integral << " / " << dur << "  =  " << integral / maxDur << endl;
-  double factor = (upperBound ? pow(GetToleranceFactor(), 2) :
-                   1.0 / pow(GetToleranceFactor(), 2));
-  return integral / maxDur * factor;
+  // currently not used: return cup1.DistanceIntegral(cup2, urDist, 
+  //                                                  upperBound, geoid);
 }
 
 void CUPoint::DistanceAvg(const CUPoint& cup, const bool upperBound,
@@ -3159,7 +3181,6 @@ void CUPoint::DistanceAvg(const CUPoint& cup, const bool upperBound,
     result.SetDefined(false);
     return;
   }
-  
   result.Set(true, this->DistanceAvg(cup, upperBound, geoid));
 }
 
@@ -5251,6 +5272,7 @@ double MPoint::DistanceAvg(const MPoint& mp, const Geoid* geoid /* = 0 */)
   }
   Instant start1(datetime::instanttype), start2(datetime::instanttype),
           end1(datetime::instanttype), end2(datetime::instanttype);
+//   cout << "THIS: " << *this << endl << "ARG: " << mp << endl;
   InitialInstant(start1);
   mp.InitialInstant(start2);
   MPoint shiftThis(true), arg(mp);
@@ -8812,7 +8834,8 @@ double CMPoint::DistanceIntegral(const CMPoint& cmp, const bool upperBound,
       cu2.AtIntervalCU(iv, cu2cut, geoid);
     }
     if (cu1cut.IsDefined() && cu2cut.IsDefined()) {
-      sum += cu1cut.DistanceIntegral(cu2cut, upperBound, geoid);
+      sum += cu1cut.DistanceAvg(cu2cut, upperBound, geoid) *
+             (cu1cut.timeInterval.end - cu1cut.timeInterval.start).ToDouble();
       duration += (cu1cut.timeInterval.end - cu1cut.timeInterval.start);
     }
   }
@@ -8833,9 +8856,7 @@ double CMPoint::DistanceAvg(const CMPoint& cmp, const bool upperBound,
   double integral = this->DistanceIntegral(cmp, upperBound, duration, geoid);
 //   cout << " result is " << integral << " / " << duration << "  =  " 
 //        << integral / duration.ToDouble() << endl;
-  double factor = (upperBound ? CUPoint::GetToleranceFactor() :
-                   1.0 / CUPoint::GetToleranceFactor());
-  return integral / duration.ToDouble() * factor;
+  return integral / duration.ToDouble();
 }
 
 void CMPoint::DistanceAvg(const CMPoint& cmp, const bool upperBound,

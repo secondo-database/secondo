@@ -4590,8 +4590,8 @@ Computes the distance to a CUPoint ~cup~.
 
 */
   using UPoint::Distance;
-  double DistanceIntegral(const CUPoint& cup, const bool upperBound,
-                          const Geoid* geoid = 0) const;
+  double DistanceIntegral(const CUPoint& cup, const UReal& urDist,
+                          const bool upperBound, const Geoid* geoid = 0) const;
   double DistanceAvg(const CUPoint& cup, const bool upperBound,
                      const Geoid* geoid = 0) const;
   void DistanceAvg(const CUPoint& cup, const bool upperBound, CcReal& result,
