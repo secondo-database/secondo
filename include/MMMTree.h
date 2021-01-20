@@ -40,10 +40,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 template<class T>
-class MemCloner {
+class StdCloner {
  public:
   static T* clone(const T& object) {
-    cout << "use clone from MMMtree.h" << endl;
     return new T(object);
   }
 };
@@ -55,10 +54,12 @@ The class MTreeNode is an abstract super class for the nodes
 of an m-tree.
 
 */
-template<class T, class DistComp>
+template<class T, class DistComp, class Cloner>
 class MTreeNode{
     public:
   
+
+  typedef MTreeNode<T,DistComp,Cloner> node_t;
 
 /*
 1.1 Destructor
@@ -199,7 +200,7 @@ If __o__ is inside the circle, 0 is returned.
 Returns the parent of this node or 0 if this node is the root of the tree.
 
 */
-      inline MTreeNode<T,DistComp>* getParent(){
+      inline node_t* getParent(){
         return parent;
       }
 
@@ -209,7 +210,7 @@ Returns the parent of this node or 0 if this node is the root of the tree.
 Sets the father node.
 
 */
-      inline void setParent(MTreeNode<T,DistComp>* p, DistComp& di){
+      inline void setParent(node_t* p, DistComp& di){
          parent = p;
          distanceToParent = distance(p, di);
       }
@@ -221,7 +222,7 @@ Returns the distance between the routing objects of this node and
 the routing objectt of the other one.
 
 */
-      inline double distance(MTreeNode<T,DistComp>* node, DistComp& di) const{
+      inline double distance(node_t* node, DistComp& di) const{
         return di(routingObject,node->routingObject);
       }
 
@@ -274,10 +275,10 @@ Returns, how many nodes are within the subtree rooted by this.
       virtual int getNoNodes() const = 0;
 
 
-      virtual MTreeNode<T,DistComp>* clone() = 0;
+      virtual node_t* clone() = 0;
 
 
-      void setParent(MTreeNode<T,DistComp>* p){
+      void setParent(node_t* p){
           parent = p;
       }
 
@@ -303,7 +304,7 @@ This constructor initializes all members
       double distanceToParent;
       int minEntries;
       int maxEntries;
-      MTreeNode<T,DistComp>* parent;
+      node_t* parent;
       int count;
 };
 
@@ -316,10 +317,11 @@ This class represents an inner node of an m-tree.
 
 */
 
-template<class T,class DistComp>
-class MTreeInnerNode: public MTreeNode<T,DistComp>{
+template<class T,class DistComp, class Cloner>
+class MTreeInnerNode: public MTreeNode<T,DistComp,Cloner>{
    public:
-
+    typedef MTreeInnerNode<T,DistComp,Cloner> innernode_t;
+    typedef MTreeNode<T,DistComp,Cloner> node_t;
 /*
 2.1 Constructor
 
@@ -328,9 +330,9 @@ sons. The routing object is given by ~Or~.
 
 */
       MTreeInnerNode(const int _minEntries, const int _maxEntries, const T Or):
-        MTreeNode<T,DistComp>(Or,0,0,_minEntries,_maxEntries)
+        node_t(Or,0,0,_minEntries,_maxEntries)
       {
-         sons = new MTreeNode<T,DistComp>*[_maxEntries+1];
+         sons = new node_t*[_maxEntries+1];
          for(int i=0;i<_maxEntries+1;i++){
             sons[i]=0;
          }
@@ -343,7 +345,7 @@ Destroys the tree rooted by this node.
 
 */
       virtual ~MTreeInnerNode(){
-        for(int i=0;i<MTreeNode<T,DistComp>::maxEntries+1;i++){
+        for(int i=0;i<node_t::maxEntries+1;i++){
           if(sons[i]){
             delete sons[i];
           }
@@ -361,13 +363,13 @@ all subtrees are destroyed.
 
 */      
       virtual void clear(const bool deleteContent){
-         for(int i=0;i<MTreeNode<T,DistComp>::count;i++){
+         for(int i=0;i<node_t::count;i++){
             if(deleteContent){
                delete sons[i];
             }
             sons[i] = 0;
          }
-         MTreeNode<T,DistComp>::count = 0;
+         node_t::count = 0;
       }
 
 /*
@@ -389,14 +391,14 @@ returning false.
  inserting o
 
 */
-   MTreeNode<T,DistComp>* getBestSon(const T& o, DistComp& di) const{
-     MTreeNode<T,DistComp>* res = 0;
+   node_t* getBestSon(const T& o, DistComp& di) const{
+     node_t* res = 0;
      double currentDist=0; 
 
-     MTreeNode<T,DistComp>* secondRes = 0;
+     node_t* secondRes = 0;
      double secondDist=0;
 
-     for(int i=0;i<MTreeNode<T,DistComp>::count;i++){
+     for(int i=0;i<node_t::count;i++){
         const T* ro = (sons[i])->getRoutingObject();
         double dist = di(o,*ro);
         if(dist < sons[i]->getRadius()){ // o fits into the circle of son
@@ -415,7 +417,7 @@ returning false.
      return res?res:secondRes;
    }
 
-   MTreeNode<T,DistComp>* getSon(const int i){
+   node_t* getSon(const int i){
        return sons[i];
    }
 
@@ -426,7 +428,7 @@ returning false.
 Adds a new subtree to this node.
 
 */
-   void store(MTreeNode<T,DistComp>* node, DistComp& di){
+   void store(node_t* node, DistComp& di){
 
        //cout << "store called" << endl;
        //cout << "Routing Object is "; 
@@ -439,8 +441,7 @@ Adds a new subtree to this node.
 
 
        // compute new radius from this and the new node
-       double dist = di(MTreeNode<T,DistComp>::routingObject, 
-                        *node->getRoutingObject());;
+       double dist = di(node_t::routingObject,*node->getRoutingObject());
 
        //cout << " dist = " << dist << endl;
 
@@ -449,9 +450,9 @@ Adds a new subtree to this node.
 
        //cout << "new radius is " << rad << endl;
 
-       MTreeNode<T,DistComp>::radius = rad;
-       sons[MTreeNode<T,DistComp>::count] = node;
-       MTreeNode<T,DistComp>::count++; 
+       node_t::radius = rad;
+       sons[node_t::count] = node;
+       node_t::count++; 
        node->setParent(this, di);
    }
 
@@ -462,8 +463,8 @@ Adds a new subtree to this node.
 Searches a son by scanning all entries.
 
 */
-   int search(const MTreeNode<T,DistComp>* son) const{
-     for(int i=0;i<MTreeNode<T,DistComp>::count;i++){
+   int search(const node_t* son) const{
+     for(int i=0;i<node_t::count;i++){
        if(sons[i]==son){
          return i;
        }
@@ -478,11 +479,11 @@ Searches a son by scanning all entries.
 Replaces the entry at position ~index~ by ~replacement~.
 
 */
-   void replace(MTreeNode<T,DistComp>* replacement, int index, DistComp& di){
+   void replace(node_t* replacement, int index, DistComp& di){
       sons[index] = replacement;
       double dist = this->distance(replacement, di);
       double rad = std::max(this->getRadius(), dist + replacement->getRadius());
-      MTreeNode<T,DistComp>::radius =  rad;
+      node_t::radius =  rad;
       replacement->setParent(this, di); 
    } 
 
@@ -502,11 +503,11 @@ Writes a textual representation of this node to ~out~.
                                const bool printSubtrees,
                                DistComp& di ) const {
        out << "( \"o = " ;
-       di.print( MTreeNode<T,DistComp>::routingObject,out) << ", rad = " 
-           << MTreeNode<T,DistComp>::radius << "\"";
+       di.print( node_t::routingObject,out) << ", rad = " 
+           << node_t::radius << "\"";
        if(printSubtrees){
          out <<  " (";
-         for(int i=0;i<MTreeNode<T,DistComp>::count;i++){
+         for(int i=0;i<node_t::count;i++){
             sons[i]->print(out,di);
          }
          out << " )";
@@ -523,7 +524,7 @@ Returns the number of leafs for this subtree.
 */
    virtual int getNoLeafs() const{
      int sum = 0;
-     for(int i=0; i<MTreeNode<T,DistComp>::count;i++){
+     for(int i=0; i<node_t::count;i++){
        sum += sons[i]->getNoLeafs();
      }
      return sum;
@@ -537,7 +538,7 @@ Returns the number of entries in this subtree.
 */ 
    virtual int getNoEntries() const{
      int sum = 0;
-     for(int i=0; i<MTreeNode<T,DistComp>::count;i++){
+     for(int i=0; i<node_t::count;i++){
        sum += sons[i]->getNoEntries();
      }
      return sum;
@@ -552,7 +553,7 @@ Returns the number of nodes of  this subtree.
 */
    virtual int getNoNodes() const{
      int sum = 0;
-     for(int i=0; i< MTreeNode<T,DistComp>::count;i++){
+     for(int i=0; i< node_t::count;i++){
        sum += sons[i]->getNoNodes();
      }
      return sum + 1;
@@ -561,23 +562,23 @@ Returns the number of nodes of  this subtree.
 
    size_t memSize() const{
      size_t res = sizeof(*this) + 
-                  sizeof(void*) * MTreeNode<T,DistComp>::maxEntries+1;
-     for(int i=0;i<MTreeNode<T,DistComp>::count;i++){
+                  sizeof(void*) * node_t::maxEntries+1;
+     for(int i=0;i<node_t::count;i++){
          res += sons[i]->memSize();
      }
      return res;
    }
 
 
-   MTreeInnerNode<T,DistComp>* clone(){
-       MTreeInnerNode<T,DistComp>* res;
-       res = new MTreeInnerNode<T,DistComp>(MTreeNode<T,DistComp>::minEntries, 
-                                         MTreeNode<T,DistComp>::maxEntries,
-                                         MTreeNode<T,DistComp>::routingObject);
-       res->radius = MTreeNode<T,DistComp>::radius;
-       res->distanceToParent = MTreeNode<T,DistComp>::distanceToParent;
-       res->count = MTreeNode<T,DistComp>::count;
-       for(int i=0;i<MTreeNode<T,DistComp>::count;i++){
+   innernode_t* clone(){
+       innernode_t* res;
+       res = new innernode_t(node_t::minEntries, 
+                             node_t::maxEntries,
+                             node_t::routingObject);
+       res->radius = node_t::radius;
+       res->distanceToParent = node_t::distanceToParent;
+       res->count = node_t::count;
+       for(int i=0;i<node_t::count;i++){
           res->sons[i] = sons[i]->clone();
           res->sons[i]->setParent(res);
        }  
@@ -590,7 +591,7 @@ Returns the number of nodes of  this subtree.
 2.4 Member variables
 
 */
-     MTreeNode<T,DistComp>** sons;
+     node_t** sons;
 };
 
 
@@ -602,18 +603,21 @@ This class represents a leaf node of an m-tree.
 
 */
 
-template<class T,class DistComp>
-class MTreeLeafNode: public MTreeNode<T,DistComp>{
+template<class T,class DistComp,class Cloner>
+class MTreeLeafNode: public MTreeNode<T,DistComp,Cloner>{
    public:
+
+    typedef MTreeLeafNode<T,DistComp,Cloner> leafnode_t;
+    typedef MTreeNode<T,DistComp,Cloner> node_t;
 
 /*
 3.1 Constructor
 
 */
      MTreeLeafNode(const int _minEntries, const int _maxEntries, const T Or):
-        MTreeNode<T,DistComp>(Or,0,0,_minEntries,_maxEntries){
-         Objects = new T*[MTreeNode<T,DistComp>::maxEntries+1];
-         for(int i=0;i<MTreeNode<T,DistComp>::maxEntries+1;i++){
+        node_t(Or,0,0,_minEntries,_maxEntries){
+         Objects = new T*[node_t::maxEntries+1];
+         for(int i=0;i<node_t::maxEntries+1;i++){
             Objects[i] = 0;
          }
      }
@@ -623,7 +627,7 @@ class MTreeLeafNode: public MTreeNode<T,DistComp>{
 
 */
      virtual ~MTreeLeafNode(){
-         for(int i=0;i<MTreeNode<T,DistComp>::maxEntries+1;i++){
+         for(int i=0;i<node_t::maxEntries+1;i++){
            if(Objects[i]){
               delete Objects[i];
            }
@@ -658,7 +662,7 @@ Returns the number of entries stored within this leaf.
 
 */
      virtual int getNoEntries() const{
-        return MTreeNode<T,DistComp>::count;
+        return node_t::count;
      }
 
 
@@ -681,14 +685,13 @@ Adds an entry to this leaf.
 
 */
      void store(const T& o, DistComp& di){
-       cout << "call STORE" << endl;
 //         Objects[MTreeNode<T,DistComp>::count] = new T(o);
-        Objects[MTreeNode<T,DistComp>::count] = MemCloner<T>::clone(o);
-        double dist = di(MTreeNode<T,DistComp>::routingObject,o);
-        if(MTreeNode<T,DistComp>::radius<dist){
-          MTreeNode<T,DistComp>::radius=dist;
+        Objects[node_t::count] = Cloner::clone(o);
+        double dist = di(node_t::routingObject,o);
+        if(node_t::radius<dist){
+          node_t::radius=dist;
         }
-        MTreeNode<T,DistComp>::count++;
+        node_t::count++;
      }
 
 /*
@@ -710,13 +713,13 @@ all contained objects are destroyed.
 
 */
      virtual void clear(const bool deleteContent){
-         for(int i=0;i<MTreeNode<T,DistComp>::count;i++){
+         for(int i=0;i<node_t::count;i++){
             if(deleteContent){
                delete Objects[i];
             }
             Objects[i] = 0;
          }
-         MTreeNode<T,DistComp>::count = 0;
+         node_t::count = 0;
       }
 
 /*
@@ -728,9 +731,9 @@ write a textual representation fo this leaf to ~out~.
   
       std::ostream& print(std::ostream& out, DistComp& di) const{
          out << "[ o = ";
-         di.print(MTreeNode<T,DistComp>::routingObject,out) << ", rad = " 
-             << MTreeNode<T,DistComp>::radius << " , content = \"";
-         for(int i=0;i<MTreeNode<T,DistComp>::count;i++){
+         di.print(node_t::routingObject,out) << ", rad = " 
+             << node_t::radius << " , content = \"";
+         for(int i=0;i<node_t::count;i++){
             if(i>0) out << ", ";
             di.print(*Objects[i],out) ;
          }
@@ -746,25 +749,24 @@ write a textual representation fo this leaf to ~out~.
 
       size_t memSize() const{
         size_t res = sizeof(*this) +
-                     MTreeNode<T,DistComp>::maxEntries * sizeof(void*);
-        for(int i=0;i<MTreeNode<T,DistComp>::count;i++){
+                     node_t::maxEntries * sizeof(void*);
+        for(int i=0;i<node_t::count;i++){
           res += sizeof(* Objects[i]);
         }
         return res;
       }
 
-   MTreeLeafNode<T,DistComp>* clone(){
-       cout << "call CLONE" << endl;
-       MTreeLeafNode<T,DistComp>* res;
-       res = new MTreeLeafNode<T,DistComp>(MTreeNode<T,DistComp>::minEntries, 
-                                        MTreeNode<T,DistComp>::maxEntries,
-                                        MTreeNode<T,DistComp>::routingObject);
-       res->radius = MTreeNode<T,DistComp>::radius;
-       res->distanceToParent = MTreeNode<T,DistComp>::distanceToParent;
-       res->count = MTreeNode<T,DistComp>::count;
-       for(int i=0;i<MTreeNode<T,DistComp>::count;i++){
+   leafnode_t* clone(){
+       leafnode_t* res;
+       res = new leafnode_t(node_t::minEntries, 
+                            node_t::maxEntries,
+                            node_t::routingObject);
+       res->radius = node_t::radius;
+       res->distanceToParent = node_t::distanceToParent;
+       res->count = node_t::count;
+       for(int i=0;i<node_t::count;i++){
 //             res->Objects[i] = new T(*Objects[i]);
-         res->Objects[i] = MemCloner<T>::clone(*Objects[i]);
+         res->Objects[i] = Cloner::clone(*Objects[i]);
        }  
        return res;
    }
@@ -781,11 +783,17 @@ write a textual representation fo this leaf to ~out~.
 
 
 
-template <class T, class DistComp>
+template <class T, class DistComp, class Cloner>
 class RangeIterator{
 
    public:
-      RangeIterator(const MTreeNode<T,DistComp>* root, const T& _q, 
+
+   typedef RangeIterator<T,DistComp,Cloner> rangeiterator_t;
+   typedef MTreeNode<T,DistComp,Cloner> node_t;
+   typedef MTreeLeafNode<T,DistComp,Cloner> leafnode_t;
+   typedef MTreeInnerNode<T,DistComp,Cloner> innernode_t;
+
+      RangeIterator(const node_t* root, const T& _q, 
                     const double _range, const DistComp& _di):
             s(),q(_q), range(_range), di(_di) {
          if(!root){
@@ -793,7 +801,7 @@ class RangeIterator{
          }
          di.reset();
          if((root->centerDist(q, di) - range <= root->getRadius() )){
-             s.push(std::pair<const MTreeNode<T,DistComp>*,int>(root,-1));
+             s.push(std::pair<const node_t*,int>(root,-1));
              findNext();
          } 
       }
@@ -806,9 +814,9 @@ class RangeIterator{
        if(s.empty()){
           return 0;
        }
-       std::pair<const MTreeNode<T,DistComp>*,int> top = s.top();
+       std::pair<const node_t*,int> top = s.top();
        findNext();
-       return ((MTreeLeafNode<T,DistComp>*)top.first)->getObject(top.second);
+       return ((leafnode_t*)top.first)->getObject(top.second);
       }
 
       size_t noComparisons() const{
@@ -817,20 +825,20 @@ class RangeIterator{
 
 
    private:
-      std::stack<std::pair<const MTreeNode<T,DistComp>*, int> > s;
+      std::stack<std::pair<const node_t*, int> > s;
       T q;
       double range;
       DistComp di;
 
       void findNext(){
          while(!s.empty()){
-           std::pair<const MTreeNode<T,DistComp>*, int> top = s.top();
+           std::pair<const node_t*, int> top = s.top();
            s.pop();
            top.second++; // ignore current result
            if(top.second < top.first->getCount() ){
              if(top.first->isLeaf()){
-                MTreeLeafNode<T,DistComp>* leaf = 
-                                 (MTreeLeafNode<T,DistComp>*) top.first;
+                leafnode_t* leaf = 
+                                 (leafnode_t*) top.first;
                 while(top.second < leaf->getCount()){
                     double dist = di(*(leaf->getObject(top.second)),q);
                     if(dist<=range){
@@ -841,10 +849,9 @@ class RangeIterator{
                     }
                 }
              }   else { // an inner node
-                MTreeInnerNode<T,DistComp>* inner = 
-                                (MTreeInnerNode<T,DistComp>*) top.first;
+                innernode_t* inner = (innernode_t*) top.first;
                 s.push(top);
-                std::pair<MTreeNode<T,DistComp>*, int> 
+                std::pair<node_t*, int> 
                             cand(inner->getSon(top.second),-1);
                 if(cand.first->minDist(q,di) <= range){
                    s.push(cand);
@@ -866,11 +873,14 @@ This iterator returns the content of an m-tree with increasing distance.
 The class NNContent encapsulates the entries of a priority queue.
 
 */
-template<class T,class DistComp>
+template<class T,class DistComp, class Cloner>
 class NNContent{
 
    public:
-      NNContent(const double _dist, MTreeNode<T,DistComp>* _node):
+      typedef MTreeNode<T,DistComp,Cloner> node_t;
+      
+
+      NNContent(const double _dist, node_t* _node):
          dist(_dist), node(_node), obj(0){ }
       
       NNContent(const double _dist, T* _obj):
@@ -881,7 +891,7 @@ class NNContent{
       }
 
 
-      MTreeNode<T,DistComp>* getNode() {
+      node_t* getNode() {
         return node;
       }
 
@@ -908,7 +918,7 @@ class NNContent{
 
    private:  
       double dist;
-      MTreeNode<T,DistComp>* node;
+      node_t* node;
       T* obj;
 };
 
@@ -919,28 +929,32 @@ This auxiliary class implements the less operator for two
 NNContent objects.
 
 */
-template<class T, class DistComp>
+template<class T, class DistComp, class Cloner>
 class NNContentComparator{
   public:
-      bool operator()(const NNContent<T,DistComp>& a, 
-                      const NNContent<T,DistComp>& b){
+      bool operator()(const NNContent<T,DistComp,Cloner>& a, 
+                      const NNContent<T,DistComp,Cloner>& b){
          return a < b;
       }
 };
 
 
-template<class T, class DistComp>
+template<class T, class DistComp, class Cloner>
 class NNIterator{
    public:
+    typedef MTreeNode<T,DistComp, Cloner> node_t;
+    typedef MTreeLeafNode<T,DistComp, Cloner> leafnode_t;
+    typedef MTreeInnerNode<T,DistComp, Cloner> innernode_t;
+    typedef NNContent<T,DistComp, Cloner> nncontent_t;
 /*
 4.1 Constructor
 
 */ 
-   NNIterator(MTreeNode<T,DistComp>* root, T& _ref, DistComp _di ):
+   NNIterator(node_t* root, T& _ref, DistComp _di ):
       ref(_ref), q(), di(_di){
       if(root!=0){
         double dist = root->minDist(ref, di);
-        q.push(NNContent<T,DistComp>(dist,root));
+        q.push(nncontent_t(dist,root));
       }
    }
 
@@ -952,25 +966,24 @@ class NNIterator{
       if(q.empty()){
          return 0;
       }
-      NNContent<T,DistComp> top = q.top();
+      nncontent_t top = q.top();
       q.pop();
       // for nodes, push the sons/objects to q
       while(top.getObject()==0){
-          MTreeNode<T,DistComp>* node = top.getNode();
+          node_t* node = top.getNode();
           if(node->isLeaf()){
-            MTreeLeafNode<T,DistComp>* leaf = (MTreeLeafNode<T,DistComp>*) node;
+            leafnode_t* leaf = (leafnode_t*) node;
             for(int i=0;i<leaf->getCount();i++){
                T* o = leaf->getObject(i);
                double dist = di( *o,ref);
-               q.push(NNContent<T,DistComp>(dist,o));
+               q.push(nncontent_t(dist,o));
             }
           } else {
-             MTreeInnerNode<T,DistComp>* inner = 
-                                            (MTreeInnerNode<T,DistComp>*) node;
+             innernode_t* inner = (innernode_t*) node;
              for(int i=0;i<inner->getCount(); i++){
-                MTreeNode<T,DistComp>* son = inner->getSon(i);
+                node_t* son = inner->getSon(i);
                 double dist = son->minDist(ref, di);
-                q.push(NNContent<T,DistComp>(dist, son));
+                q.push(nncontent_t(dist, son));
              }
           }
           top = q.top();
@@ -983,9 +996,9 @@ class NNIterator{
 
    private:
       T ref;
-      std::priority_queue<NNContent<T,DistComp>,
-                          std::vector<NNContent<T,DistComp> >, 
-                          std::greater<NNContent<T,DistComp> > > q;
+      std::priority_queue<nncontent_t,
+                          std::vector<nncontent_t >, 
+                          std::greater<nncontent_t > > q;
       DistComp di;
 
 };
@@ -999,9 +1012,16 @@ class NNIterator{
 This is the main class of this file. It implements a main memory based m-tree.
 
 */
-template<class T, class DistComp>
+template<class T, class DistComp, class Cloner>
 class MMMTree{
   public:
+
+    typedef MTreeLeafNode<T,DistComp,Cloner> leafnode_t;
+    typedef RangeIterator<T,DistComp,Cloner>  rangeiterator_t;
+    typedef NNIterator<T,DistComp,Cloner> nniterator_t;
+    typedef MTreeNode<T, DistComp,Cloner > node_t;
+    typedef MMMTree<T,DistComp,Cloner> mmmtree_t;
+    typedef MTreeInnerNode<T,DistComp, Cloner> innernode_t;
 
 /*
 4.1 Constructor
@@ -1094,7 +1114,7 @@ Adds ~o~ to this tree.
 */
     void insert(T & o){
        if(!root){
-         root=new MTreeLeafNode<T,DistComp>(minEntries,maxEntries,o);
+         root=new leafnode_t(minEntries,maxEntries,o);
        }
        root = insert(root,o,di);
     }
@@ -1122,8 +1142,8 @@ Returns a range iterator iterating over all Elements with distance
 to q smaller or equals to range.
 
 */
-   RangeIterator<T,DistComp>* rangeSearch(const T& q, double range) const {
-      return new RangeIterator<T,DistComp>(root,q,range, di);
+   rangeiterator_t* rangeSearch(const T& q, double range) const {
+      return new rangeiterator_t(root,q,range, di);
    }
 
 
@@ -1134,22 +1154,21 @@ Returns an iterator returning the elements of this tree in
 increasing order to the reference object.
 
 */
-   NNIterator<T,DistComp>* nnSearch(T& ref){
-     return new NNIterator<T,DistComp>(root,ref,di);
+   nniterator_t* nnSearch(T& ref){
+     return new nniterator_t(root,ref,di);
    }
 
    const DistComp& getDistComp(){
       return di;
    }
    
-   MTreeNode<T, DistComp>* getRoot() {
+   node_t* getRoot() {
      return root;
    }
 
 
-   MMMTree<T,DistComp>* clone(){
-     MMMTree<T,DistComp>* res = new MMMTree<T,DistComp>(minEntries, 
-                                                  maxEntries, di);
+   mmmtree_t* clone(){
+     mmmtree_t* res = new mmmtree_t(minEntries, maxEntries, di);
      if(root){
         res->root = root->clone();
      }
@@ -1160,7 +1179,7 @@ increasing order to the reference object.
    private:
      int minEntries;
      int maxEntries;
-     MTreeNode<T,DistComp>* root;  
+     node_t* root;  
      DistComp di;
 /*
 ~insert~
@@ -1170,14 +1189,13 @@ tree that contains all old entries and o (may be the same root as the
 parameter.
 
 */
-   static MTreeNode<T,DistComp>* insert(MTreeNode<T,DistComp>* root, const T& o,
-                                       DistComp& di){
-     MTreeNode<T,DistComp>* son = root;
+   static node_t* insert(node_t* root, const T& o, DistComp& di){
+      node_t* son = root;
       while(!son->isLeaf()){
          son->increaseRadius(o,di);
-         son = ((MTreeInnerNode<T,DistComp>*)son)->getBestSon(o, di);
+         son = ((innernode_t*)son)->getBestSon(o, di);
       }
-      ((MTreeLeafNode<T,DistComp>*)son)->store(o,di);
+      ((leafnode_t*)son)->store(o,di);
       return split(root,son, di);
    }
 
@@ -1189,7 +1207,7 @@ parameter.
 
 */
 
-   static std::pair<int,int> selectSeeds(MTreeNode<T,DistComp>* node,
+   static std::pair<int,int> selectSeeds(node_t* node,
                                          DistComp& dc){
      //variants
      // 1: use two random numbers
@@ -1211,7 +1229,7 @@ parameter.
      double dist = 0;
 
      if(node->isLeaf()){
-        MTreeLeafNode<T,DistComp>* node1 = (MTreeLeafNode<T,DistComp>*) node;
+        leafnode_t* node1 = (leafnode_t*) node;
         const T* ro = node1->getObject(seed1);
         for(int i=0;i<node1->getCount();i++){
            if(i!=seed1){
@@ -1224,7 +1242,7 @@ parameter.
            }
         }
      } else {
-        MTreeInnerNode<T,DistComp>* node1 = (MTreeInnerNode<T,DistComp>*) node;
+        innernode_t* node1 = (innernode_t*) node;
         const T* ro = node1->getSon(seed1)->getRoutingObject();
         for(int i=0;i<node1->getCount();i++){
            if(i!=seed1){
@@ -1251,26 +1269,26 @@ Distributes the content of a node two two new nodes using ~firstSeed~ and
 ~secondSeed~ for the seeds.
 
 */
-   static std::pair<MTreeNode<T,DistComp>*,MTreeNode<T,DistComp>*> 
+   static std::pair<node_t*,node_t*> 
    createPartition(
-         const MTreeNode<T,DistComp>* node, 
+         const node_t* node, 
          const int firstSeed, 
          const int secondSeed,
          DistComp& di) {
 
        if(node->isLeaf()){
-          MTreeLeafNode<T,DistComp>* nodeL = (MTreeLeafNode<T,DistComp>*) node;
+          leafnode_t* nodeL = (leafnode_t*) node;
           T* obj1 = nodeL->getObject(firstSeed);
           T* obj2 = nodeL->getObject(secondSeed); 
-          MTreeLeafNode<T,DistComp>* first = 
-                           new MTreeLeafNode<T,DistComp>(node->getMinEntries(), 
+          leafnode_t* first = 
+                           new leafnode_t(node->getMinEntries(), 
                                                          node->getMaxEntries(), 
                                                          *obj1);
-          MTreeLeafNode<T,DistComp>* second = 
-                       new MTreeLeafNode<T,DistComp>(node->getMinEntries(), 
+          leafnode_t* second = 
+                       new leafnode_t(node->getMinEntries(), 
                                             node->getMaxEntries(),
                                             *obj2);
-          MTreeLeafNode<T,DistComp>* in;
+          leafnode_t* in;
           for(int i=0;i<node->getCount();i++){
              T* obj = nodeL->getObject(i);
              double dist1 = first->centerDist(*obj,di);
@@ -1282,23 +1300,23 @@ Distributes the content of a node two two new nodes using ~firstSeed~ and
              }
              in->store(*obj,di);
           }
-          return std::pair<MTreeNode<T,DistComp>*,MTreeNode<T,DistComp>*>
+          return std::pair<node_t*,node_t*>
                      (first,second);
        } else { // process inner node
-          MTreeInnerNode<T,DistComp>* nodeI= (MTreeInnerNode<T,DistComp>*) node;
+          innernode_t* nodeI= (innernode_t*) node;
           const T* obj1 = nodeI->getSon(firstSeed)->getRoutingObject();  
           const T* obj2 = nodeI->getSon(secondSeed)->getRoutingObject();  
-          MTreeInnerNode<T,DistComp>* first = 
-                      new MTreeInnerNode<T,DistComp>(node->getMinEntries(),
-                                            node->getMaxEntries(), 
-                                            *obj1);
-          MTreeInnerNode<T,DistComp>* second = 
-                      new MTreeInnerNode<T,DistComp>(node->getMinEntries(), 
-                                            node->getMaxEntries(),
-                                            *obj2);
-          MTreeInnerNode<T,DistComp>* in;
+          innernode_t* first = 
+                      new innernode_t(node->getMinEntries(),
+                                      node->getMaxEntries(), 
+                                      *obj1);
+          innernode_t* second = 
+                      new innernode_t(node->getMinEntries(), 
+                                      node->getMaxEntries(),
+                                      *obj2);
+          innernode_t* in;
           for(int i=0;i<node->getCount();i++){
-              MTreeNode<T,DistComp>* son = nodeI->getSon(i);
+              node_t* son = nodeI->getSon(i);
               double dist1 = first->distance(son,di);
               double dist2 = second->distance(son,di);
               if(dist1==dist2){
@@ -1308,8 +1326,7 @@ Distributes the content of a node two two new nodes using ~firstSeed~ and
               }
               in->store(son,di);
           }
-          return std::pair<MTreeNode<T,DistComp>*,MTreeNode<T,DistComp>*>
-                   (first,second);
+          return std::pair<node_t*,node_t*>(first,second);
        }
    }
 
@@ -1319,21 +1336,21 @@ Distributes the content of a node two two new nodes using ~firstSeed~ and
 Performs a split up to the root of this tree.
 
 */
-   static MTreeNode<T,DistComp>* split(MTreeNode<T,DistComp>* root,
-                                       MTreeNode<T,DistComp>* currentNode, 
-                                       DistComp& di){
+   static node_t* split(node_t* root,
+                        node_t* currentNode, 
+                        DistComp& di){
 
        while((currentNode!=0) && currentNode->isOverflow()){
           std::pair<int,int> seeds = selectSeeds(currentNode,di);
-          std::pair<MTreeNode<T,DistComp>*,MTreeNode<T,DistComp>*> part = 
+          std::pair<node_t*,node_t*> part = 
                          createPartition(currentNode,seeds.first, 
                                          seeds.second, di);
           
           if(currentNode->getParent()==0){ // splitted root
               const T* ro = rand()%1>0?part.first->getRoutingObject()
                                 :part.second->getRoutingObject();
-              MTreeInnerNode<T,DistComp>* root2 = 
-                          new MTreeInnerNode<T,DistComp>(
+              innernode_t* root2 = 
+                          new innernode_t(
                                    currentNode->getMinEntries(), 
                                    currentNode->getMaxEntries(),
                                      *ro);
@@ -1344,9 +1361,7 @@ Performs a split up to the root of this tree.
               root2->store(part.second, di); 
               root = root2;
           } else {
-              
-              MTreeInnerNode<T,DistComp>* parent =
-                      (MTreeInnerNode<T,DistComp>*) currentNode->getParent();
+              innernode_t* parent = (innernode_t*) currentNode->getParent();
               int index = parent->search(currentNode);
               assert(index >=0);
               parent->replace(part.first,index,di);

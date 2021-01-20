@@ -54,7 +54,8 @@ class SetOfObjectsM{
     SetOfObjectsM( Stream<Tuple>& instream, int _attrPos, D& _distfun, 
                    double _eps, size_t maxMem, ListExpr _resultType):
       buffer(0), attrPos(_attrPos),
-      tree(new MMMTree<std::pair<T*,TupleId>, D>(4,8,_distfun)),
+      tree(new MMMTree<std::pair<T*,TupleId>, D, 
+                       StdCloner<std::pair<T*,TupleId> > >(4,8,_distfun)),
       distfun(_distfun), eps(_eps){
 
       instream.open();
@@ -142,7 +143,8 @@ class SetOfObjectsM{
    std::list<TupleId>* getNeighbors( TupleId id){
       Tuple* tuple = buffer->GetTuple(id,false);
       T* obj = (T*)(getAttribute(tuple, attrPos, dummy));
-      RangeIterator<std::pair<T*,TupleId>, D>* it 
+      RangeIterator<std::pair<T*,TupleId>, D, 
+                    StdCloner<std::pair<T*,TupleId>> >* it 
             = tree->rangeSearch(std::make_pair(obj,id), eps);
       std::list<TupleId>* res = new std::list<TupleId>();
 
@@ -291,7 +293,7 @@ bool isDefined(Tuple *t) {
 */
      TupleBuffer* buffer;  // storage for tuples
      int attrPos;          // position of the attribute selected for clustering
-     MMMTree<std::pair<T*,TupleId>, D>* tree;
+     MMMTree<std::pair<T*,TupleId>, D, StdCloner<std::pair<T*,TupleId>> >* tree;
      D distfun;  // distance function
      double eps; // the epsilon value
      int corePos; // position of the core distance in result tuple

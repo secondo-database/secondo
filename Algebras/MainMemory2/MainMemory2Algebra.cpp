@@ -85,16 +85,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include <chrono>
 
-template<>
-class MemCloner<Attribute>{
-  static Attribute* clone(const Attribute& object) {
-    cout << "use clone for Attribute" << endl;
-    Attribute* r = object.Clone();
-    r->bringToMemory();
-    return r;
-  }
-};
-
 
 using namespace std;
 
@@ -4548,8 +4538,11 @@ int mcreatemtreeVMTStream (Word* args, Word& result, int message,
    }
 
    StdDistComp<T> dc(geoid);
-   MMMTree<pair<T,TupleId>,StdDistComp<T> >* tree = 
-           new MMMTree<pair<T,TupleId>,StdDistComp<T> >(4,8,dc);
+   typedef pair<T,TupleId> treeentry_t;
+
+   MMMTree<treeentry_t,StdDistComp<T>,MemCloner<treeentry_t> >* tree = 
+           new MMMTree<treeentry_t,StdDistComp<T>,
+                       MemCloner<treeentry_t>>(4,8,dc);
 
    Stream<Tuple> stream(args[0]);
    stream.open();
@@ -4605,8 +4598,10 @@ int mcreatemtreeVMTMP (Word* args, Word& result, int message,
 
 
    StdDistComp<T> dc(geoid);
-   MMMTree<pair<T,TupleId>,StdDistComp<T> >* tree = 
-           new MMMTree<pair<T,TupleId>,StdDistComp<T> >(4,8,dc);
+   typedef pair<T,TupleId> treeentry_t;
+   MMMTree<treeentry_t,StdDistComp<T>,MemCloner<treeentry_t>  >* tree = 
+           new MMMTree<treeentry_t,StdDistComp<T>, 
+                       MemCloner<treeentry_t> >(4,8,dc);
 
    Tuple* tuple;
    bool flobused = false;
@@ -4875,9 +4870,12 @@ int mcreatemtree2StreamVM(Word* args, Word& result, int message, Word& local,
   int indexSym = ((CcInt*)args[6 + offset].addr)->GetValue();
   int indexTID = ((CcInt*)args[7 + offset].addr)->GetValue();
   StdDistCompExt<Spa, Sym> dc(geoid, alpha);
-  MMMTree<pair<pair<Spa, Sym>, TupleId>, StdDistCompExt<Spa, Sym> >* tree = 
-      new MMMTree<pair<pair<Spa, Sym>, TupleId>,
-                       StdDistCompExt<Spa, Sym> >(4, 8, dc);
+  typedef pair<pair<Spa, Sym>, TupleId>  treeentry_t; 
+  MMMTree<treeentry_t, StdDistCompExt<Spa, Sym>,
+          MemCloner<treeentry_t>  >* tree = 
+      new MMMTree<treeentry_t,
+                  StdDistCompExt<Spa, Sym>,
+                  MemCloner<treeentry_t>  >(4, 8, dc);
   Stream<Tuple> stream(args[0]);
   stream.open();
   Tuple* tuple;
@@ -4943,9 +4941,12 @@ int mcreatemtree2MRelVM(Word* args, Word& result, int message, Word& local,
   MemoryRelObject* mrel = (MemoryRelObject*) mrelp->GetValue();
   vector<Tuple*>* v = mrel->getmmrel();
   StdDistCompExt<Spa, Sym> dc(geoid, alpha);
-  MMMTree<pair<pair<Spa, Sym>, TupleId>, StdDistCompExt<Spa, Sym> >* tree = 
-    new MMMTree<pair<pair<Spa, Sym>, TupleId>, 
-                StdDistCompExt<Spa, Sym> >(4, 8, dc);
+  typedef pair<pair<Spa, Sym>, TupleId> treeentry_t;
+  MMMTree<treeentry_t, StdDistCompExt<Spa, Sym>,
+          MemCloner<treeentry_t>  >* tree = 
+    new MMMTree<treeentry_t, 
+                StdDistCompExt<Spa, Sym>,
+                MemCloner<treeentry_t>  >(4, 8, dc);
   Tuple* tuple;
   bool flobused = false;
   Spa* spa = 0;
@@ -5187,7 +5188,8 @@ class minsertmtreeInfo{
 
   private:
      Stream<Tuple> stream;
-     MMMTree<std::pair<T, TupleId>, StdDistComp<T> >* tree;
+     MMMTree<std::pair<T, TupleId>, StdDistComp<T>,
+            MemCloner<std::pair<T, TupleId> >  >* tree;
      int index;
      int tidIndex;
 
@@ -5338,7 +5340,8 @@ ListExpr mdistRange2TM(ListExpr args){
 
 template<class T>
 struct mdistrange2Info{
-   RangeIterator<pair<T,TupleId>, StdDistComp<T>  >* it;
+   RangeIterator<pair<T,TupleId>, StdDistComp<T>, 
+                 MemCloner<pair<T,TupleId>> >* it;
    TupleType* tt;
 };
 
@@ -5373,7 +5376,8 @@ int mdistRange2VMT (Word* args, Word& result, int message,
             if(!mtreeo){
               return 0;
             }            
-            typedef MMMTree<pair<T,TupleId>,StdDistComp<T> > mtt;
+            typedef MMMTree<pair<T,TupleId>,StdDistComp<T>,
+                            MemCloner<pair<T,TupleId>> > mtt;
             mtt* mtree = mtreeo->getmtree();
             if(mtree){
                 T a = *attr;
@@ -5533,7 +5537,8 @@ ListExpr mdistScan2TM(ListExpr args){
 
 template<class T>
 struct mdistScan2Info{
-   NNIterator<pair<T,TupleId>, StdDistComp<T>  >* it;
+   NNIterator<pair<T,TupleId>, StdDistComp<T>, 
+              MemCloner<pair<T,TupleId> >   >* it;
    TupleType* tt;
 };
 
@@ -5559,7 +5564,8 @@ int mdistScan2VMT (Word* args, Word& result, int message,
             if(!tree){
               return 0;
             }
-            MMMTree<pair<T, TupleId>,StdDistComp<T> >* mtree = 
+            MMMTree<pair<T, TupleId>,StdDistComp<T>,
+                    MemCloner<pair<T, TupleId>> >* mtree = 
                     tree->getmtree();
             if(mtree){
               pair<T,TupleId> p(*attr,0);
@@ -5762,7 +5768,8 @@ class distRangeInfo{
 
   private:
      vector<Tuple*>* rel;
-     RangeIterator<pair<T,TupleId> , StdDistComp<T> >* it;
+     RangeIterator<pair<T,TupleId> , StdDistComp<T>,
+                   MemCloner<pair<T,TupleId> > >* it;
 
 };
 
@@ -5799,7 +5806,8 @@ class distRange2Info {
   
  private:
   vector<Tuple*>* rel;
-  RangeIterator<pair<pair<T, U>, TupleId>, StdDistCompExt<T, U> >* it;
+  RangeIterator<pair<pair<T, U>, TupleId>, StdDistCompExt<T, U>,
+                MemCloner<pair<pair<T, U>, TupleId>>  >* it;
 };
 
 template<class K, class T, class R>
@@ -6152,7 +6160,8 @@ class distScanInfo{
 
   private:
      vector<Tuple*>* rel;
-     NNIterator<pair<T,TupleId> , StdDistComp<T> >* it;
+     NNIterator<pair<T,TupleId> , StdDistComp<T>,
+                MemCloner<pair<T,TupleId> >  >* it;
 
 };
 

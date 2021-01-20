@@ -602,11 +602,41 @@ class MemoryRtreeObject : public MemoryObject {
 
 };
 
+template<class T>
+class MemCloner{
+public:
+  static T* clone(const T& object){
+     std::cout << "call clone" << endl;
+     T* result = new T(object);
+     bringToMemory(&(result->first));
+     return result;
+  }
+   
+private:
+   static void bringToMemory(void*){
+     std::cout << "nothing to memory" << endl;
+     std::cout << __PRETTY_FUNCTION__ << endl;
+   }
+   static void bringToMemory(Attribute* attr){
+        std::cout << "attr to memory" << endl;
+        attr->bringToMemory();
+   }
+   static void bringToMemory(Tuple* tuple){
+        std::cout << "tuple to memory" << endl;
+        tuple->bringToMemory();
+   }
+};
+
+
 template <class T, class DistComp> 
 class MemoryMtreeObject : public MemoryObject {
 
     public:
-        MemoryMtreeObject(MMMTree<std::pair<T, TupleId>, DistComp>* _mtree,
+        typedef std::pair<T, TupleId> treeentry_t;
+        typedef MemCloner<treeentry_t> cloner_t;
+        typedef MMMTree<treeentry_t, DistComp, cloner_t > tree_t;
+
+        MemoryMtreeObject(tree_t* _mtree,
                         size_t _memSize, 
                         const std::string& _objectTypeExpr, 
                         bool _flob,
@@ -618,7 +648,7 @@ class MemoryMtreeObject : public MemoryObject {
                         database = _database;
                         };
 
-        MMMTree<std::pair<T, TupleId>, DistComp>* getmtree(){
+        tree_t* getmtree(){
             return mtree;
         };
 
@@ -643,7 +673,7 @@ class MemoryMtreeObject : public MemoryObject {
 
 
     private:
-         MMMTree< std::pair<T, TupleId>, DistComp>* mtree;
+         tree_t* mtree;
          MemoryMtreeObject();
     protected:
         ~MemoryMtreeObject(){

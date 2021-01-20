@@ -1947,9 +1947,9 @@ private:
     int a1;
     int a2;
     TupleType* tt; 
-    MMMTree<pair<T,int>, DistComp >* tree;
+    MMMTree<pair<T,int>, DistComp, StdCloner<pair<T,int>>>* tree;
     vector<Tuple*>*  buffer_stream1;
-    RangeIterator<pair<T,int>,DistComp >*  it1;
+    RangeIterator<pair<T,int>,DistComp,StdCloner<pair<T,int>> >*  it1;
     bool stream1Finished;
     bool stream2Finished;
     size_t maxMem;
@@ -1971,12 +1971,14 @@ private:
       }
 
       buffer_stream1 = new vector<Tuple*>();
-      tree = new MMMTree<pair<T,int>,DistComp> (min,max,dc);
+      tree = new MMMTree<pair<T,int>,DistComp,
+                             StdCloner<pair<T,int>>> (min,max,dc);
       size_t usedSize = 0;
       Tuple* t = stream1.request();
 
       stream1Finished = t==0;
-      size_t nodesize = sizeof(MTreeNode<pair<T,int>,DistComp >);
+      size_t nodesize = sizeof(MTreeNode<pair<T,int>,DistComp,
+                               StdCloner<pair<T,int>> >);
 
       size_t cnt = 0;
 
