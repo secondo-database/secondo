@@ -210,13 +210,13 @@ Native_SlotSize=16777216
 Native_AvgSize=512
 
 
-# maximum size used by the native flob cache in bytes , default = 67108864
+# maximum size used by the persistent flob cache in bytes , default = 67108864
 Persistent_MaxSize=67108864
 
 # maximum size of a single slot in bytes, default : 16777216
 Persistent_SlotSize=16777216
 
-# average size of  a native flob, default = 512
+# average size of  a persistent flob, default = 512
 Persistent_AvgSize=512
 
 
