@@ -391,14 +391,18 @@ class StdDistComp{
     }
 
 
-
-    double  operator()(const pair<T,TupleId>& o1, 
-                       const pair<T,TupleId>& o2){
-       return mtreehelper::distance(&o1.first,&o2.first, geoid);
+    double operator()(const MTreeEntry<T>& o1, const MTreeEntry<T>& o2) {
+      T t1 = o1.getKey();
+      T t2 = o2.getKey();
+      return mtreehelper::distance(&t1, &t2, geoid);
     }
+//     double  operator()(const pair<T,TupleId>& o1, 
+//                        const pair<T,TupleId>& o2){
+//        return mtreehelper::distance(&o1.first,&o2.first, geoid);
+//     }
 
-    ostream& print( const pair<T, TupleId> & p,  ostream& o){
-       o << "<"; p.first.Print(o); o << p.second << ">";
+    ostream& print( const MTreeEntry<T>& e,  ostream& o){
+       o << "<"; e.getKey().Print(o); o << e.getTid() << ">";
        return o;
     }
     
@@ -433,20 +437,27 @@ class StdDistCompExt : public StdDistComp<pair<T, U> > {
   ~StdDistCompExt() {}
     
   
-  ostream& print(const pair<pair<T, U>, TupleId>& p, ostream& o) {
+  ostream& print(const MTreeEntry<pair<T, U> >& p, ostream& o) {
        o << "< <";
-       p.first.first.Print(o);
+       p.getKey().first.Print(o);
        o << ", ";
-       p.first.second.Print(o);
-       o << ">, " << p.second << ">";
+       p.getKey().second.Print(o);
+       o << ">, " << p.getTid() << ">";
        return o;
     }
-  
-  double operator()(const pair<pair<T, U>, TupleId>& o1, 
-                    const pair<pair<T, U>, TupleId>& o2) {
-    return mtreehelper::distance(&o1.first, &o2.first, alpha, 
-               ((StdDistComp<pair<T, U> >*)this)->getGeoid());
+    
+  double operator()(const MTreeEntry<pair<T, U> >& o1,
+                    const MTreeEntry<pair<T, U> >& o2) {
+    pair<T, U> p1 = o1.getKey();
+    pair<T, U> p2 = o2.getKey();
+    return mtreehelper::distance(&p1, &p2, alpha,
+                                 ((StdDistComp<pair<T, U> >*)this)->getGeoid());
   }
+//   double operator()(const pair<pair<T, U>, TupleId>& o1, 
+//                     const pair<pair<T, U>, TupleId>& o2) {
+//     return mtreehelper::distance(&o1.first, &o2.first, alpha, 
+//                ((StdDistComp<pair<T, U> >*)this)->getGeoid());
+//   }
   
  private:
   double alpha; 
@@ -983,9 +994,6 @@ string trim(string s, const string& delim = " \t\r\n")
 {
   return ltrim(rtrim(s, delim), delim);
 }
-
-
-
 
 /*
 
@@ -4538,11 +4546,12 @@ int mcreatemtreeVMTStream (Word* args, Word& result, int message,
    }
 
    StdDistComp<T> dc(geoid);
-   typedef pair<T,TupleId> treeentry_t;
-
-   MMMTree<treeentry_t,StdDistComp<T>,MemCloner<treeentry_t> >* tree = 
-           new MMMTree<treeentry_t,StdDistComp<T>,
-                       MemCloner<treeentry_t>>(4,8,dc);
+   MMMTree<MTreeEntry<T>, StdDistComp<T> >* tree =
+     new MMMTree<MTreeEntry<T>, StdDistComp<T> >(4, 8, dc);
+//    typedef pair<T,TupleId> treeentry_t;
+//    MMMTree<treeentry_t,StdDistComp<T>,MemCloner<treeentry_t> >* tree = 
+//            new MMMTree<treeentry_t,StdDistComp<T>,
+//                        MemCloner<treeentry_t>>(4,8,dc);
 
    Stream<Tuple> stream(args[0]);
    stream.open();
@@ -4555,19 +4564,25 @@ int mcreatemtreeVMTStream (Word* args, Word& result, int message,
       if(tid->IsDefined()){
         T copy = *attr;
         flobused = flobused || (copy.NumOfFLOBs()>0);
-        pair<T,TupleId> p(copy, tid->GetTid());
-        tree->insert(p);
+        MTreeEntry<T> entry(copy, tid->GetTid());
+//         pair<T,TupleId> p(copy, tid->GetTid());
+        tree->insert(entry);
       }
       tuple->DeleteIfAllowed();
    }
    stream.close();
    size_t usedMem = tree->memSize();
    ListExpr typeList = nl->Second(qp->GetType(s));
-   MemoryMtreeObject<T,StdDistComp<T> >* mtree = 
+   MemoryMtreeObject<T, StdDistComp<T> >* mtree = 
           new MemoryMtreeObject<T, StdDistComp<T> > (tree,  
                              usedMem, 
                              nl->ToString(typeList), 
                              !flobused, getDBname());
+//    MemoryMtreeObject<T,StdDistComp<T> >* mtree = 
+//           new MemoryMtreeObject<T, StdDistComp<T> > (tree,  
+//                              usedMem, 
+//                              nl->ToString(typeList), 
+//                              !flobused, getDBname());
    res->setPointer(mtree);
    mtree->deleteIfAllowed();
    return 0;
@@ -4598,10 +4613,12 @@ int mcreatemtreeVMTMP (Word* args, Word& result, int message,
 
 
    StdDistComp<T> dc(geoid);
-   typedef pair<T,TupleId> treeentry_t;
-   MMMTree<treeentry_t,StdDistComp<T>,MemCloner<treeentry_t>  >* tree = 
-           new MMMTree<treeentry_t,StdDistComp<T>, 
-                       MemCloner<treeentry_t> >(4,8,dc);
+//    typedef pair<T,TupleId> treeentry_t;
+   MMMTree<MTreeEntry<T>, StdDistComp<T> >* tree =
+     new MMMTree<MTreeEntry<T>, StdDistComp<T> >(4, 8, dc);
+//    MMMTree<treeentry_t,StdDistComp<T>,MemCloner<treeentry_t>  >* tree = 
+//            new MMMTree<treeentry_t,StdDistComp<T>, 
+//                        MemCloner<treeentry_t> >(4,8,dc);
 
    Tuple* tuple;
    bool flobused = false;
@@ -4612,18 +4629,24 @@ int mcreatemtreeVMTMP (Word* args, Word& result, int message,
          T* attr = (T*) tuple->GetAttribute(index1);
          T copy = *attr;
          flobused = flobused || (copy.NumOfFLOBs()>0);
-         pair<T,TupleId> p(copy, i+1);
-         tree->insert(p);
+         MTreeEntry<T> entry(copy, i+1);
+//          pair<T,TupleId> p(copy, i+1);
+         tree->insert(entry);
        }
      }
    }
    size_t usedMem = tree->memSize();
    ListExpr typeList = nl->Second(qp->GetType(s));
-   MemoryMtreeObject<T,StdDistComp<T> >* mtree = 
+   MemoryMtreeObject<T, StdDistComp<T> >* mtree = 
           new MemoryMtreeObject<T, StdDistComp<T> > (tree,  
                              usedMem, 
                              nl->ToString(typeList), 
                              !flobused, getDBname());
+//    MemoryMtreeObject<T,StdDistComp<T> >* mtree = 
+//           new MemoryMtreeObject<T, StdDistComp<T> > (tree,  
+//                              usedMem, 
+//                              nl->ToString(typeList), 
+//                              !flobused, getDBname());
    res->setPointer(mtree);
    mtree->deleteIfAllowed();
    return 0;
@@ -4870,12 +4893,14 @@ int mcreatemtree2StreamVM(Word* args, Word& result, int message, Word& local,
   int indexSym = ((CcInt*)args[6 + offset].addr)->GetValue();
   int indexTID = ((CcInt*)args[7 + offset].addr)->GetValue();
   StdDistCompExt<Spa, Sym> dc(geoid, alpha);
-  typedef pair<pair<Spa, Sym>, TupleId>  treeentry_t; 
-  MMMTree<treeentry_t, StdDistCompExt<Spa, Sym>,
-          MemCloner<treeentry_t>  >* tree = 
-      new MMMTree<treeentry_t,
-                  StdDistCompExt<Spa, Sym>,
-                  MemCloner<treeentry_t>  >(4, 8, dc);
+  MMMTree<MTreeEntry<pair<Spa, Sym> >, StdDistCompExt<Spa, Sym> >* tree =
+    new MMMTree<MTreeEntry<pair<Spa, Sym> >, StdDistCompExt<Spa, Sym> >(4,8,dc);
+//   typedef pair<pair<Spa, Sym>, TupleId>  treeentry_t; 
+//   MMMTree<treeentry_t, StdDistCompExt<Spa, Sym>,
+//           MemCloner<treeentry_t>  >* tree = 
+//       new MMMTree<treeentry_t,
+//                   StdDistCompExt<Spa, Sym>,
+//                   MemCloner<treeentry_t>  >(4, 8, dc);
   Stream<Tuple> stream(args[0]);
   stream.open();
   Tuple* tuple;
@@ -4892,8 +4917,9 @@ int mcreatemtree2StreamVM(Word* args, Word& result, int message, Word& local,
       flobused = flobused || copySpa.NumOfFLOBs() > 0 ||
         copySym.NumOfFLOBs() > 0;
       pair<Spa, Sym> spasym(copySpa, copySym);
-      pair<pair<Spa, Sym>, TupleId> p(spasym, tid->GetTid());
-      tree->insert(p);
+      MTreeEntry<pair<Spa, Sym> > entry(spasym, tid->GetTid());
+//       pair<pair<Spa, Sym>, TupleId> p(spasym, tid->GetTid());
+      tree->insert(entry);
     }
     tuple->DeleteIfAllowed();
   }
@@ -4941,12 +4967,14 @@ int mcreatemtree2MRelVM(Word* args, Word& result, int message, Word& local,
   MemoryRelObject* mrel = (MemoryRelObject*) mrelp->GetValue();
   vector<Tuple*>* v = mrel->getmmrel();
   StdDistCompExt<Spa, Sym> dc(geoid, alpha);
-  typedef pair<pair<Spa, Sym>, TupleId> treeentry_t;
-  MMMTree<treeentry_t, StdDistCompExt<Spa, Sym>,
-          MemCloner<treeentry_t>  >* tree = 
-    new MMMTree<treeentry_t, 
-                StdDistCompExt<Spa, Sym>,
-                MemCloner<treeentry_t>  >(4, 8, dc);
+  MMMTree<MTreeEntry<pair<Spa, Sym> >, StdDistCompExt<Spa, Sym> >* tree =
+    new MMMTree<MTreeEntry<pair<Spa, Sym> >, StdDistCompExt<Spa, Sym> >(4,8,dc);
+//   typedef pair<pair<Spa, Sym>, TupleId> treeentry_t;
+//   MMMTree<treeentry_t, StdDistCompExt<Spa, Sym>,
+//           MemCloner<treeentry_t>  >* tree = 
+//     new MMMTree<treeentry_t, 
+//                 StdDistCompExt<Spa, Sym>,
+//                 MemCloner<treeentry_t>  >(4, 8, dc);
   Tuple* tuple;
   bool flobused = false;
   Spa* spa = 0;
@@ -4960,8 +4988,9 @@ int mcreatemtree2MRelVM(Word* args, Word& result, int message, Word& local,
         Spa copySpa = *spa;
         Sym copySym = *sym;
         pair<Spa, Sym> spasym(copySpa, copySym);
-        pair<pair<Spa, Sym>, TupleId> p(spasym, i + 1);
-        tree->insert(p);
+        MTreeEntry<pair<Spa, Sym> > entry(spasym, i + 1);
+//         pair<pair<Spa, Sym>, TupleId> p(spasym, i + 1);
+        tree->insert(entry);
       }
     }
   }
@@ -5179,7 +5208,8 @@ class minsertmtreeInfo{
         TupleId id = tid->GetTid();
         if(id!=0){ // do not insert 0 id
            T* attr = (T*) in->GetAttribute(index);
-           pair<T,TupleId> p(*attr,id);
+           MTreeEntry<T> p(*attr, id);
+//            pair<T,TupleId> p(*attr,id);
            tree->insert(p);
         }
         return in;
@@ -5188,8 +5218,9 @@ class minsertmtreeInfo{
 
   private:
      Stream<Tuple> stream;
-     MMMTree<std::pair<T, TupleId>, StdDistComp<T>,
-            MemCloner<std::pair<T, TupleId> >  >* tree;
+     MMMTree<MTreeEntry<T>, StdDistComp<T> >* tree;
+//      MMMTree<std::pair<T, TupleId>, StdDistComp<T>,
+//             MemCloner<std::pair<T, TupleId> >  >* tree;
      int index;
      int tidIndex;
 
@@ -5340,8 +5371,7 @@ ListExpr mdistRange2TM(ListExpr args){
 
 template<class T>
 struct mdistrange2Info{
-   RangeIterator<pair<T,TupleId>, StdDistComp<T>, 
-                 MemCloner<pair<T,TupleId>> >* it;
+   RangeIterator<MTreeEntry<T>, StdDistComp<T> >* it;
    TupleType* tt;
 };
 
@@ -5376,13 +5406,16 @@ int mdistRange2VMT (Word* args, Word& result, int message,
             if(!mtreeo){
               return 0;
             }            
-            typedef MMMTree<pair<T,TupleId>,StdDistComp<T>,
-                            MemCloner<pair<T,TupleId>> > mtt;
+            typedef MMMTree<MTreeEntry<T>, StdDistComp<T> > mtt;
+//             typedef MMMTree<pair<T,TupleId>,StdDistComp<T>,
+//                             MemCloner<pair<T,TupleId>> > mtt;
             mtt* mtree = mtreeo->getmtree();
             if(mtree){
                 T a = *attr;
                 mdistrange2Info<T>* info = new mdistrange2Info<T>();
-                info->it = mtree->rangeSearch(pair<T,TupleId>(a,0), d);
+                MTreeEntry<T> entry(a, 0);
+                info->it = mtree->rangeSearch(entry, d);
+//                 info->it = mtree->rangeSearch(pair<T,TupleId>(a,0), d);
                 if(!wrap){
                    info->tt = 0;
                 } else {
@@ -5397,8 +5430,9 @@ int mdistRange2VMT (Word* args, Word& result, int message,
                  result.addr=0;
                  return CANCEL;
                }
-               const pair<T,TupleId>* n = li->it->next();
-               TupleIdentifier* res = n? new TupleIdentifier(true,n->second):0;
+               const MTreeEntry<T>* n = li->it->next();
+               TupleIdentifier* res = n ?
+                                     new TupleIdentifier(true, n->getTid()) : 0;
                if(!res){
                  result.addr=0;
                  return CANCEL;
@@ -5537,8 +5571,9 @@ ListExpr mdistScan2TM(ListExpr args){
 
 template<class T>
 struct mdistScan2Info{
-   NNIterator<pair<T,TupleId>, StdDistComp<T>, 
-              MemCloner<pair<T,TupleId> >   >* it;
+  NNIterator<MTreeEntry<T>, StdDistComp<T> >* it;
+//    NNIterator<pair<T,TupleId>, StdDistComp<T>, 
+//               MemCloner<pair<T,TupleId> >   >* it;
    TupleType* tt;
 };
 
@@ -5546,7 +5581,8 @@ struct mdistScan2Info{
 template <class T, class N, bool wrap>
 int mdistScan2VMT (Word* args, Word& result, int message,
                     Word& local, Supplier s) {
-  mdistScan2Info<T>* li = (mdistScan2Info<T>*) local.addr;  
+  mdistScan2Info<T>* li = (mdistScan2Info<T>*) local.addr;
+  int noDistFunCalls = 0;
   switch(message){
     case OPEN: {
             if(li) {
@@ -5564,11 +5600,13 @@ int mdistScan2VMT (Word* args, Word& result, int message,
             if(!tree){
               return 0;
             }
-            MMMTree<pair<T, TupleId>,StdDistComp<T>,
-                    MemCloner<pair<T, TupleId>> >* mtree = 
-                    tree->getmtree();
+            MMMTree<MTreeEntry<T>, StdDistComp<T> >* mtree = tree->getmtree();
+//             MMMTree<pair<T, TupleId>,StdDistComp<T>,
+//                     MemCloner<pair<T, TupleId>> >* mtree = 
+//                     tree->getmtree();
             if(mtree){
-              pair<T,TupleId> p(*attr,0);
+              MTreeEntry<T> p(*attr, 0);
+//               pair<T,TupleId> p(*attr,0);
               li = new mdistScan2Info<T>();
               li->it =  mtree->nnSearch(p);
               if(!wrap){
@@ -5585,8 +5623,11 @@ int mdistScan2VMT (Word* args, Word& result, int message,
                  result.addr=0;
                  return CANCEL;
                }
-               const pair<T,TupleId>* n = li->it->next();
-               TupleIdentifier* tid = n? new TupleIdentifier(true,n->second):0;
+               const MTreeEntry<T>* n = li->it->next();
+               TupleIdentifier* tid = n ? 
+                                     new TupleIdentifier(true, n->getTid()) : 0;
+//                const pair<T,TupleId>* n = li->it->next();
+//              TupleIdentifier* tid = n? new TupleIdentifier(true,n->second):0;
                if(!tid){
                  result.addr=0;
                  return CANCEL;
@@ -5602,6 +5643,8 @@ int mdistScan2VMT (Word* args, Word& result, int message,
                return result.addr?YIELD:CANCEL;
             }
      case CLOSE:
+               cout << "Number of distance function calls: " << noDistFunCalls
+                    << endl;
                if(li){
                  delete li->it;
                  if(li->tt){
@@ -5742,7 +5785,8 @@ class distRangeInfo{
                     double dist){
                  
                 rel = mrel->getmmrel();
-                pair<T,TupleId> p(*ref,0);
+                MTreeEntry<T> p(*ref, 0);
+//                 pair<T,TupleId> p(*ref,0);
                 it = mtree->getmtree()->rangeSearch(p,dist);
               }
 
@@ -5752,10 +5796,11 @@ class distRangeInfo{
 
      Tuple* next(){
         while(true){
-            const pair<T,TupleId>* p = it->next();
+            const MTreeEntry<T>* p = it->next();
+//             const pair<T,TupleId>* p = it->next();
             if(!p){ return 0;}
-            if(p->second <= rel->size()){
-               Tuple* res = (*rel)[p->second-1];
+            if(p->getTid() <= rel->size()){
+               Tuple* res = (*rel)[p->getTid() - 1];
                if(res){ // ignore deleted tuples
                  res->IncReference();
                  return res;
@@ -5768,8 +5813,9 @@ class distRangeInfo{
 
   private:
      vector<Tuple*>* rel;
-     RangeIterator<pair<T,TupleId> , StdDistComp<T>,
-                   MemCloner<pair<T,TupleId> > >* it;
+     RangeIterator<MTreeEntry<T>, StdDistComp<T> >* it;
+//      RangeIterator<pair<T,TupleId> , StdDistComp<T>,
+//                    MemCloner<pair<T,TupleId> > >* it;
 
 };
 
@@ -5779,7 +5825,8 @@ class distRange2Info {
   distRange2Info(MemoryMtreeObject<pair<T, U>, StdDistCompExt<T, U> >* mtree,
                  MemoryRelObject* mrel, pair<T, U>* ref, double dist) {
     rel = mrel->getmmrel();
-    pair<pair<T, U>, TupleId> p(*ref, 0);
+    MTreeEntry<pair<T, U> > p(*ref, 0);
+//     pair<pair<T, U>, TupleId> p(*ref, 0);
     it = mtree->getmtree()->rangeSearch(p, dist);
   }
   
@@ -5789,12 +5836,13 @@ class distRange2Info {
 
   Tuple* next() {
     while(true) {
-      const pair<pair<T, U>, TupleId>* p = it->next();
+      const MTreeEntry<pair<T, U> >* p = it->next();
+//       const pair<pair<T, U>, TupleId>* p = it->next();
       if (!p) {
         return 0;
       }
-      if (p->second <= rel->size()) {
-        Tuple* res = (*rel)[p->second - 1];
+      if (p->getTid() <= rel->size()) {
+        Tuple* res = (*rel)[p->getTid() - 1];
         if (res) { // ignore deleted tuples
           res->IncReference();
           return res;
@@ -5806,8 +5854,9 @@ class distRange2Info {
   
  private:
   vector<Tuple*>* rel;
-  RangeIterator<pair<pair<T, U>, TupleId>, StdDistCompExt<T, U>,
-                MemCloner<pair<pair<T, U>, TupleId>>  >* it;
+  RangeIterator<MTreeEntry<pair<T, U> >, StdDistCompExt<T, U> >* it;
+//   RangeIterator<pair<pair<T, U>, TupleId>, StdDistCompExt<T, U>,
+//                 MemCloner<pair<pair<T, U>, TupleId>>  >* it;
 };
 
 template<class K, class T, class R>
@@ -6134,8 +6183,10 @@ class distScanInfo{
                     T* ref){
                  
                 rel = mrel->getmmrel();
-                pair<T,TupleId> p(*ref,0);
+                MTreeEntry<T> p(*ref, 0);
+//                 pair<T,TupleId> p(*ref,0);
                 it = mtree->getmtree()->nnSearch(p);
+                noDistFunCalls = 0;
               }
 
      ~distScanInfo(){
@@ -6144,10 +6195,11 @@ class distScanInfo{
 
      Tuple* next(){
         while(true){
-            const pair<T,TupleId>* p = it->next();
+            const MTreeEntry<T>* p = it->next();
+//             const pair<T,TupleId>* p = it->next();
             if(!p){ return 0;}
-            if((p->second <= rel->size()) && (p->second>0)){
-               Tuple* res = (*rel)[p->second-1];
+            if((p->getTid() <= rel->size()) && (p->getTid()>0)){
+               Tuple* res = (*rel)[p->getTid()-1];
                if(res){ // ignore deleted tuples
                  res->IncReference();
                  return res;
@@ -6156,13 +6208,18 @@ class distScanInfo{
         }
         return 0;
      }
+     
+     int getNoDistFunCalls() {
+       return noDistFunCalls;
+     }
 
 
   private:
      vector<Tuple*>* rel;
-     NNIterator<pair<T,TupleId> , StdDistComp<T>,
-                MemCloner<pair<T,TupleId> >  >* it;
-
+     int noDistFunCalls;
+     NNIterator<MTreeEntry<T>, StdDistComp<T> >* it;
+//      NNIterator<pair<T,TupleId> , StdDistComp<T>,
+//                 MemCloner<pair<T,TupleId> >  >* it;
 };
 
 template<class K, class T, class R>
@@ -6197,6 +6254,8 @@ int mdistScanVMT (Word* args, Word& result, int message,
                result.addr = li?li->next():0;
                return result.addr?YIELD:CANCEL;
       case CLOSE :
+               cout << "Number of distance function calls: " 
+                    << li->getNoDistFunCalls() << endl;
                if(li){
                   delete li;
                   local.addr = 0;
