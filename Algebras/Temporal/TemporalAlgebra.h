@@ -4771,8 +4771,6 @@ If invalid geographic coordinates are found, the result is UNDEFINED.
 
 */
 //  void Distance(const CPoint& p, MReal& result, const Geoid* geoid = 0) const;
-  double DistanceIntegral(const CMPoint& cmp, const bool upperBound,
-                    datetime::DateTime& duration, const Geoid* geoid = 0) const;
   double DistanceAvg(const CMPoint& cmp, const bool upperBound,
                      const Geoid* geoid = 0) const;
   void DistanceAvg(const CMPoint& cmp, const bool upperBound,

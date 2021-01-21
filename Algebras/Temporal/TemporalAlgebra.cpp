@@ -8768,11 +8768,15 @@ void CMPoint::Trajectory(Line& line) const {
   mp.Trajectory(line);
 }
 
-double CMPoint::DistanceIntegral(const CMPoint& cmp, const bool upperBound,
-             datetime::DateTime& duration, const Geoid* geoid /* = 0 */) const {
-  if (!IsDefined() || !cmp.IsDefined() || (geoid && !geoid->IsDefined())) {
-    return -1.0;
+double CMPoint::DistanceAvg(const CMPoint& cmp, const bool upperBound,
+                            const Geoid* geoid /* = 0 */) const {
+  if (IsEmpty() && cmp.IsEmpty()) {
+    return 0.0;
   }
+  if (IsEmpty() || cmp.IsEmpty()) {
+    return DBL_MAX;
+  }
+  DateTime duration(datetime::durationtype);
 //   cout << "ORIGINAL: " << *this << endl << cmp << endl << endl;
   duration.SetToZero();
   Instant start1(datetime::instanttype), start2(datetime::instanttype),
@@ -8839,24 +8843,7 @@ double CMPoint::DistanceIntegral(const CMPoint& cmp, const bool upperBound,
       duration += (cu1cut.timeInterval.end - cu1cut.timeInterval.start);
     }
   }
-  return sum;
-}
-
-double CMPoint::DistanceAvg(const CMPoint& cmp, const bool upperBound,
-                            const Geoid* geoid /* = 0 */) const {
-  if (IsEmpty() && cmp.IsEmpty()) {
-    return 0.0;
-  }
-  if (IsEmpty() || cmp.IsEmpty()) {
-    return DBL_MAX;
-  }
-  DateTime duration(datetime::durationtype);
-//   cout << "CMPoint::DistanceAvg" << (upperBound ? "UB" : "LB") << " for "
-//        << *this << " AND " << cmp << endl;
-  double integral = this->DistanceIntegral(cmp, upperBound, duration, geoid);
-//   cout << " result is " << integral << " / " << duration << "  =  " 
-//        << integral / duration.ToDouble() << endl;
-  return integral / duration.ToDouble();
+  return sum / duration.ToDouble();
 }
 
 void CMPoint::DistanceAvg(const CMPoint& cmp, const bool upperBound,
