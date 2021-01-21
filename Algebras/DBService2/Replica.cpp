@@ -366,6 +366,7 @@ value ()]";
   void Replica::beforeDestroy() {
     string derivativeName;
     string relationName;
+    string relationDatabase;
 
     if (getRelation() == nullptr)
       throw "Can't destroy Replica without a pointer to a Relation";
@@ -385,11 +386,12 @@ value ()]";
     }
 
     relationName = getRelation()->getName();    
+    relationDatabase = getRelation()->getRelationDatabase();
 
     TriggerReplicaDeletionRunnable replicaEraser(
       targetNode->getHost().getHostname(),
       targetNode->getComPort(),
-      database, relationName, derivativeName);
+      relationDatabase, relationName, derivativeName);
 
     replicaEraser.run();
   }

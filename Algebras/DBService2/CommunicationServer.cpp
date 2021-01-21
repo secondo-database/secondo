@@ -590,6 +590,7 @@ bool CommunicationServer::handleTriggerReplicaDeletion(
     CommunicationUtils::receiveLine(io, derivateName);
     
     string victim;
+    bool success;
 
     if(derivateName.empty())
     {
@@ -597,7 +598,14 @@ bool CommunicationServer::handleTriggerReplicaDeletion(
        string filename = ReplicationUtils::getFileNameOnDBServiceWorker(
                                   databaseName,
                                   relationName);
-       FileSystem::DeleteFileOrFolder( filename );
+       traceWriter->write("filename", filename);                                
+       success = FileSystem::DeleteFileOrFolder( filename );
+
+       if (success)
+           traceWriter->write("Successfully deleted file");
+        else
+           traceWriter->write("Couldn't delete file");
+
        victim = ReplicationUtils::getRelName(filename);
     } 
     else
@@ -621,6 +629,8 @@ bool CommunicationServer::handleTriggerReplicaDeletion(
     ctlg->DeleteObject(victim);    
     ctlg->CleanUp(false,true);
     SecondoSystem::CommitTransaction(false);
+
+    traceWriter->write("Deleted object (victim).");
 
     //TODO check return code etc
     //TODO tracing
