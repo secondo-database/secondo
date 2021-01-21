@@ -627,6 +627,36 @@ private:
    }
 };
 
+/*
+class MTreeEntry: stores attribute types in main memory
+
+*/
+template<class T>
+class MTreeEntry {
+ public:
+  MTreeEntry(T k, TupleId id) : key(k), tid(id) {
+    bringToMemory(&key); 
+  }   
+  
+  void bringToMemory(void* v) {}
+  
+  void bringToMemory(Attribute* attr) {
+    attr->bringToMemory();
+  }
+  
+  T getKey() const {
+    return key;
+  }
+  
+  TupleId getTid() const {
+    return tid;
+  }
+  
+ private:
+  T key;
+  TupleId tid;
+};
+
 
 template <class T, class DistComp> 
 class MemoryMtreeObject : public MemoryObject {
@@ -634,7 +664,8 @@ class MemoryMtreeObject : public MemoryObject {
     public:
         typedef std::pair<T, TupleId> treeentry_t;
         typedef MemCloner<treeentry_t> cloner_t;
-        typedef MMMTree<treeentry_t, DistComp, cloner_t > tree_t;
+        typedef MMMTree<MTreeEntry<T>, DistComp> tree_t;
+//         typedef MMMTree<treeentry_t, DistComp, cloner_t > tree_t;
 
         MemoryMtreeObject(tree_t* _mtree,
                         size_t _memSize, 
