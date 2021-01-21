@@ -54,7 +54,7 @@ The class MTreeNode is an abstract super class for the nodes
 of an m-tree.
 
 */
-template<class T, class DistComp, class Cloner>
+template<class T, class DistComp, class Cloner = StdCloner<T> >
 class MTreeNode{
     public:
   
@@ -317,7 +317,7 @@ This class represents an inner node of an m-tree.
 
 */
 
-template<class T,class DistComp, class Cloner>
+template<class T,class DistComp, class Cloner = StdCloner<T> >
 class MTreeInnerNode: public MTreeNode<T,DistComp,Cloner>{
    public:
     typedef MTreeInnerNode<T,DistComp,Cloner> innernode_t;
@@ -603,7 +603,7 @@ This class represents a leaf node of an m-tree.
 
 */
 
-template<class T,class DistComp,class Cloner>
+template<class T, class DistComp, class Cloner = StdCloner<T> >
 class MTreeLeafNode: public MTreeNode<T,DistComp,Cloner>{
    public:
 
@@ -783,7 +783,7 @@ write a textual representation fo this leaf to ~out~.
 
 
 
-template <class T, class DistComp, class Cloner>
+template <class T, class DistComp, class Cloner = StdCloner<T> >
 class RangeIterator{
 
    public:
@@ -873,7 +873,7 @@ This iterator returns the content of an m-tree with increasing distance.
 The class NNContent encapsulates the entries of a priority queue.
 
 */
-template<class T,class DistComp, class Cloner>
+template<class T,class DistComp, class Cloner = StdCloner<T> >
 class NNContent{
 
    public:
@@ -929,7 +929,7 @@ This auxiliary class implements the less operator for two
 NNContent objects.
 
 */
-template<class T, class DistComp, class Cloner>
+template<class T, class DistComp, class Cloner = StdCloner<T> >
 class NNContentComparator{
   public:
       bool operator()(const NNContent<T,DistComp,Cloner>& a, 
@@ -939,7 +939,7 @@ class NNContentComparator{
 };
 
 
-template<class T, class DistComp, class Cloner>
+template<class T, class DistComp, class Cloner = StdCloner<T> >
 class NNIterator{
    public:
     typedef MTreeNode<T,DistComp, Cloner> node_t;
@@ -1012,7 +1012,7 @@ class NNIterator{
 This is the main class of this file. It implements a main memory based m-tree.
 
 */
-template<class T, class DistComp, class Cloner>
+template<class T, class DistComp, class Cloner = StdCloner<T> >
 class MMMTree{
   public:
 
