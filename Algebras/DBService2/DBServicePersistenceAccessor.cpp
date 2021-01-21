@@ -155,24 +155,6 @@ bool DBServicePersistenceAccessor::createSecondoRelation(
         print("Relation does not exist. Can't insert. Aborting. Relationname:",
             relationName, std::cout);        
 
-//TODO Remove
-// //        SecondoSystem::CommitTransaction(true);
-// //        SecondoSystem::BeginTransaction();
-//         resultOk = SecondoUtilsLocal::createRelation(
-//                 CommandBuilder::buildCreateCommand(
-//                         relationName,
-//                         rel,
-//                         {values}),
-//                 errorMessage);
-//         if(resultOk)
-//         {
-// //            SecondoSystem::CommitTransaction(true);
-//             print("created relation: ", relationName, std::cout);
-//         }else
-//         {
-// //            SecondoSystem::AbortTransaction(true);
-//             print("failed to create relation: ", relationName, std::cout);
-//         }
         return resultOk;
     }
     print("Relation exists. Trying insert command.", std::cout);
@@ -182,7 +164,6 @@ bool DBServicePersistenceAccessor::createSecondoRelation(
         print("values has wrong format for insert, aborting", std::cout);
         return false;
     }
-//    SecondoSystem::BeginTransaction();
 
     string command = CommandBuilder::buildInsertCommand(
                     relationName,
@@ -193,15 +174,12 @@ bool DBServicePersistenceAccessor::createSecondoRelation(
     resultOk = SecondoUtilsLocal::executeQuery2(
             command);
 
-    if(resultOk)
-    {
-//        SecondoSystem::CommitTransaction(true);
+    if(resultOk) {
         print("Insert successful", std::cout);
-    }else
-    {
-//        SecondoSystem::AbortTransaction(true);
+    } else {
         print("Insert failed", std::cout);
     }
+
     return resultOk;
 }
 
@@ -260,10 +238,10 @@ bool DBServicePersistenceAccessor::persistRelationInfo(
                    relationInfo.toString(),
                    relationInfo.nodesBegin(),
                    relationInfo.nodesEnd());
-    }else
-    {
+    } else {
         print("Could not persist RelationInfo. Skipping mapping.", std::cout);
     }
+
     return resultOk;
 }
 
@@ -586,14 +564,13 @@ bool DBServicePersistenceAccessor::updateLocationMapping(
             valueToUpdate));
 }
 
+// TODO Remove, obsolete.
 bool DBServicePersistenceAccessor::deleteRelationInfo(
         RelationInfo& relationInfo)
 {
     printFunction("DBServicePersistenceAccessor::deleteRelationInfo",
                    std::cout);
     string relationName("relations_DBSP");
-
-  //    SecondoUtilsLocal::adjustDatabase(relationInfo.getDatabaseName());
 
     string relationID = relationInfo.toString();
     FilterConditions filterConditions =
@@ -618,6 +595,7 @@ bool DBServicePersistenceAccessor::deleteRelationInfo(
             relationInfo.nodesEnd());
 }
 
+//TODO Remove. Obsolete
 bool DBServicePersistenceAccessor::deleteDerivateInfo(
         DerivateInfo& derivateInfo,
         RelationInfo& source)
@@ -663,7 +641,7 @@ bool DBServicePersistenceAccessor::deleteDerivateInfo(
 }
 
 
-
+//TODO Remove. Obsolete
 bool DBServicePersistenceAccessor::deleteLocationMapping(
         string objectID,
         ReplicaLocations::const_iterator nodesBegin,
@@ -697,6 +675,7 @@ bool DBServicePersistenceAccessor::deleteLocationMapping(
     return resultOk;
 }
 
+//TODO Remove. Obsolete
 bool DBServicePersistenceAccessor::persistAllLocations(
         DBServiceLocations dbsLocations)
 {

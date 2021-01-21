@@ -240,8 +240,6 @@ bool CommunicationServer::handleTriggerReplicationRequest(
     CommunicationUtils::sendLine(io,
             CommunicationProtocol::LocationRequest());
 
-    // JF: What location is requested, here? 
-    // Assumption: The original location to send the retrieveFile request to.
     traceWriter->write(tid, "Location request issued.");
 
     CommunicationUtils::receiveLines(io, 4, receiveBuffer);
@@ -402,22 +400,6 @@ bool CommunicationServer::handleProvideReplicaLocationRequest(
         std::iostream& io, const boost::thread::id tid)
 {
 
-    /*
-        JF: Interpretation of what the function does.
-
-        For a given relation find a DBS node (location) that
-        has both a replica of the relation and - if derivates are provided -
-        of the derivatives as well.
-
-        Question:
-        How are derivates places?
-        My first guess: they are places alongside the relation.
-        Nothing else makes sense. Derivates should be co-located.
-        There is a chance though that a derivate has not been placed, yet or
-        that it's transfer failed. This may produce inconsistencies where
-        there's a replica of a relation but no corresponding derivative.
-    */
-
     traceWriter->writeFunction(tid,
             "CommunicationServer::handleProvideReplicaLocationRequest");
 
@@ -435,11 +417,7 @@ bool CommunicationServer::handleProvideReplicaLocationRequest(
     bool correct;
     int number = stringutils::str2int<int>(n,correct); //TODO: error handling
     if(number<0) number = 0;
-
-    //JF what is other objects about? derivatives?
-    //  building a queue from received lines
-    //  what has been send by the replication client?
-    // 
+    
     queue<string> otherObjects;
     if(number>0){
       CommunicationUtils::receiveLines(io,number,otherObjects);
@@ -456,8 +434,7 @@ bool CommunicationServer::handleProvideReplicaLocationRequest(
 
     DBServiceManager* dbService = DBServiceManager::getInstance();
 
-    /*
-    JF: 
+    /*    
     - Retrieve replicas of the requestion relation, 
     - Select a random replica
     - Return its targetNode
@@ -491,8 +468,6 @@ bool CommunicationServer::handleProvideReplicaLocationRequest(
 
     traceWriter->write(tid, "Found a target Node: ");
     traceWriter->write(tid, node->str().c_str());
-
-    // LocationInfo location = dbService->getLocation(randomReplicaLocation);
 
     /*
       CommunicationProtocol

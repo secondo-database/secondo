@@ -309,12 +309,7 @@ namespace DBService {
 
   //TODO Refactor using the Query class.
   string Node::createStatement() const {
-    // Original: query locations_DBSP 
-    //  inserttuple[1, "sec-w-0.sec-ws.secondo.svc.cluster.local", "1234",
-    //  '/database/config/SecondoConfig.ini', '/database/secondo-databases',
-    //  "9941", "9942"] consume
-    //
-    // Modified: query nodes 
+        
     //  inserttuple["sec-w-0.sec-ws.secondo.svc.cluster.local", 1234,
     //  '/database/config/SecondoConfig.ini', '/database/secondo-databases',
     //  9941, 9942, "dbservice"] consume

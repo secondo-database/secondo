@@ -171,16 +171,6 @@ the inserted record's id.");
     return recordId;
   }
 
-  //TODO Although the query seems to be executed successfully, there is no 
-  //  relation afterwards.
-  // ALso all subsequent attempts to insert values fail.
-  // Is this a problem in the implementation of the query or is it a general 
-  //  problem with the
-  // attempt to create an empty relation?
-  // I don't think so. It is possible using the CLI so it must be possible 
-  //  using code.
-  // This means that the problem is - most likely - within the implementation 
-  //  of this function.
   void SecondoDatabaseAdapter::executeCreateRelationQuery(string database, 
     string query) {
 
@@ -284,11 +274,11 @@ the inserted record's id.");
   }
 
 
-  // /**
-  //  * Executing arbitrary queries.
-  //  * It is assumes that the query either does not return values or that 
-  //  there is not interest in them.
-  //  */
+  /*
+    Executing arbitrary queries.
+    It is assumes that the query either does not return values or that 
+    there is not interest in them.
+   */
   ListExpr SecondoDatabaseAdapter::executeFindQuery(string database, 
     string query) {
     bool success = false;
@@ -346,10 +336,9 @@ the inserted record's id.");
     return resultList;
   }
 
-  /**
-  * Return the name of the currently opened database.
-  * Assumption: A database has already been opened.
-  * TODO Add to header file.
+  /*
+    Return the name of the currently opened database.
+    Assumption: A database has already been opened.    
   */
   string SecondoDatabaseAdapter::getCurrentDatabase() {
     string currentDatabase;
@@ -365,8 +354,8 @@ is open.");
 
   bool SecondoDatabaseAdapter::doesDatabaseExist(string database)
   {
-    //TODO Why use upper here? Does the catalog always return upper case names?
-    // Comparing database names in upper case
+    // Uppercase is also for getting the filenames right later as 
+    // they are derived from the relation's db name.
     boost::to_upper(database);
 
     string databaseNameInList;

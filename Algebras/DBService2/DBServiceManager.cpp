@@ -95,11 +95,6 @@ namespace DBService
 
         restoreReplicaPlacementStrategyConfig();
 
-        // TODO restoreReplicaInformation used to start worker nodes
-        //  Where is this done now?
-
-        // restoreReplicaInformation();
-
         //TODOMove to function "initializeLogger"
         char* argv[] = { (char*)"DBService", NULL };
         int argc = sizeof(argv) / sizeof(char*) - 1;

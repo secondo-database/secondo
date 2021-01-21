@@ -20,14 +20,15 @@ namespace DBService
 
     protected:    
 
-    /* In order to create subclasses with dynamic binding, the database adapter 
-     * does not use static methods although it does not maintain any state.
-     * The idea is to have multiple DatabaseAdapter implementations such as
-     * a MockDatabaseAdapter that doesn't execute commands in a database but is
-     * used to test the logic handling records, instead.
-     * 
-     * TODO All execute methods share a significant part of code. Find a way
-     *  to reduce code duplicity.
+    /* 
+      In order to create subclasses with dynamic binding, the database adapter 
+      does not use static methods although it does not maintain any state.
+      The idea is to have multiple DatabaseAdapter implementations such as
+      a MockDatabaseAdapter that doesn't execute commands in a database but is
+      used to test the logic handling records, instead.
+      
+      TODO All execute methods share a significant part of code. Find a way
+      to reduce code duplicity.
      */
     DatabaseAdapter();
     DatabaseAdapter(const DatabaseAdapter&);
