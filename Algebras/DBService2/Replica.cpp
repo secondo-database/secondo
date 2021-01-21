@@ -265,9 +265,6 @@ value ()]";
 
   string Replica::updateStatement() const {
   
-    // int relationId   = getRelation()->getId();
-    // int targetNodeId = getTargetNode()->getId(); 
-
     stringstream updatedirect;
     updatedirect << "updatedirect[";
     updatedirect << "RelationId: " << relationId << ", ";
@@ -276,26 +273,6 @@ value ()]";
     updatedirect << "Type: \"" << getType() << "\"" << ", ";
     updatedirect << "DerivativeId: " << derivativeId << "]";
 
-    // query dbs_replicas feed addid filter[.TID = tid(1)] 
-    //  dbs_replicas updatedirect [Status: "replicated"] consume
-    // query dbs_replicas feed addid filter[.TID = tid(1)] 
-    //  project[RelationId,TargetNodeId,Status] dbs_replicas 
-    //  updatedirect[Status: "replicated"] consume
-    // -> Crash
-    // query dbs_replicas feed addid filter[.TID = tid(1)] 
-    //  project[RelationId,TargetNodeId,Status] dbs_replicas 
-    //  updatedirect[RelationId: 1, TargetNodeId: 1, Status: "replicated"] 
-    //  consume
-    // -> Crash
-    // Without TID:
-    // query dbs_replicas feed filter[(.RelationId=1) and (.TargetNodeId=1)] 
-    //  dbs_replicas updatedirect[RelationId:1,TargetNodeId:1, 
-    //  Status:"replicated"] consume
-    // -> Works
-    // query dbs_replicas feed filter[.RelationId=1] filter[.TargetNodeId=1] 
-    //  dbs_replicas updatedirect[RelationId:1,TargetNodeId:1, 
-    //  Status:"replicated"] consume
-    // -> Works
     Query updateQuery = Replica::query(getDatabase()).feed().filter(
       ".Type = ?", getType()).filter(".RelationId = ?", relationId).filter(
       ".TargetNodeId = ?", targetNodeId).relation(
