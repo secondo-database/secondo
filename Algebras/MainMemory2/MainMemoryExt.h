@@ -602,30 +602,6 @@ class MemoryRtreeObject : public MemoryObject {
 
 };
 
-template<class T>
-class MemCloner{
-public:
-  static T* clone(const T& object){
-     std::cout << "call clone" << endl;
-     T* result = new T(object);
-     bringToMemory(&(result->first));
-     return result;
-  }
-   
-private:
-   static void bringToMemory(void*){
-     std::cout << "nothing to memory" << endl;
-     std::cout << __PRETTY_FUNCTION__ << endl;
-   }
-   static void bringToMemory(Attribute* attr){
-        std::cout << "attr to memory" << endl;
-        attr->bringToMemory();
-   }
-   static void bringToMemory(Tuple* tuple){
-        std::cout << "tuple to memory" << endl;
-        tuple->bringToMemory();
-   }
-};
 
 /*
 class MTreeEntry: stores attribute types in main memory
@@ -636,7 +612,11 @@ class MTreeEntry {
  public:
   MTreeEntry(T k, TupleId id) : key(k), tid(id) {
     bringToMemory(&key); 
-  }   
+  }  
+
+  MTreeEntry( const MTreeEntry& src): key(src.key), tid(src.tid) {
+    bringToMemory(&key); 
+  } 
   
   void bringToMemory(void* v) {}
   
@@ -663,7 +643,6 @@ class MemoryMtreeObject : public MemoryObject {
 
     public:
         typedef std::pair<T, TupleId> treeentry_t;
-        typedef MemCloner<treeentry_t> cloner_t;
         typedef MMMTree<MTreeEntry<T>, DistComp> tree_t;
 //         typedef MMMTree<treeentry_t, DistComp, cloner_t > tree_t;
 
