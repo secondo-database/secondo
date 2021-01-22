@@ -15,6 +15,9 @@
 namespace pmr {
 
 class RList;
+
+
+
 class MReal;
 class MBool;
 class ScalarField;
@@ -35,62 +38,115 @@ class PMRegion {
         MBool intersects(PMRegion& pmr);
         MReal perimeter();
         MReal area();
+        MReal area2();
         RList traversedarea();
-        ScalarField coverduration();
-        PMRegion coverduration2();
-        PMRegion coverduration3();
-        Kernel::FT thickness(Point_2 p);
+        PMRegion createcdpoly();
+        PMRegion createcdpoly(RList baseregion);
+        PMRegion restrictcdpoly(RList baseregion);
+        PMRegion createccdpoly();
+        PMRegion createccdpoly(RList baseregion);
+        PMRegion createicdpoly(Kernel::FT duration);
+        PMRegion createicdpoly(Kernel::FT duration, RList baseregion);
+        Kernel::FT coverduration (Kernel::FT x, Kernel::FT y);
+        RList coveredlonger (Kernel::FT duration);
+        RList coveredshorter (Kernel::FT duration);
+        RList intervalcovered (Kernel::FT startduration);
+        Kernel::FT avgcover ();
+        Kernel::FT avgcover (RList baseregion);
+        void openscad(std::string filename);
+        ScalarField scalarfield();
+        void zthicknessprepare();
+        Kernel::FT zthickness(Point2d p2d);
         Plane calculate_plane(Polygon p);
         void translate (Kernel::FT x, Kernel::FT y, Kernel::FT z);
-        vector<Polygon_with_holes_2> projectxy ();
+        std::pair<Kernel::FT, Kernel::FT> minmaxz();
+        std::pair<Point3d, Point3d> boundingbox();
+        void analyze();
+        std::vector<Polygon_with_holes_2> projectxy();
 
-        static PMRegion fromRList(RList rl);
+        static PMRegion fromRList(RList& rl);
+        RList toRList(bool raw);
         RList toRList();
+        void toFile(std::string filename);
 
         static PMRegion fromOFF(std::string off);
-        string toOFF();
+        std::string toOFF();
 
         static PMRegion fromMRegion(RList mr);
         RList toMRegion();
+        RList toMRegion2();
+        RList toMRegion2(int raw);
 
-    protected:
+        static PMRegion fromRegion(RList reg, Kernel::FT instant1,
+                Kernel::FT instant2, Kernel::FT xoff);
+
         Polyhedron polyhedron;
+        Polyhedron zthicknesstmp;
+        Tree *zthicknesstree;
+        std::map<Point2d, Kernel::FT> ztcache;
+        Point_inside *inside_tester;
 };
+
+#ifndef RLIST_TYPES
+#define RLIST_TYPES
+enum {
+    NL_LIST = 1,
+    NL_STRING,
+    NL_SYM,
+    NL_DOUBLE,
+    NL_FT,
+    NL_BOOL
+};
+#endif
 
 class RList {
     protected:
         int type;
-        string str;
+        std::string str;
         double nr;
+        Kernel::FT *ft;
         bool boolean;
-        string ToString(int indent);
+        std::string ToString(int indent);
 
     public:
-        vector<RList> items;
+        std::vector<RList> items;
 
         RList();
+        ~RList();
         void append(double nr);
-        void append(Kernel::FT nr) { append(CGAL::to_double(nr)); }
-        void append(string str);
-        void appendsym(string str);
+        void append(Kernel::FT nr);
+        void append(std::string str);
+        void appendsym(std::string str);
         void append(bool val);
         void append(RList l);
         void prepend(RList l);
         RList* point(double x, double y);
         void concat(RList l);
+    void toFile(std::string filename);
         double getNr () {
-            assert(type == NL_DOUBLE);
+            assert(type == NL_DOUBLE || type == NL_FT);
+        if (type == NL_DOUBLE)
             return nr;
+        else
+            return ::CGAL::to_double(*ft);
+        }
+        Kernel::FT getFt () {
+            assert(type == NL_FT||type == NL_DOUBLE);
+            if (type == NL_FT) {
+                return *ft;
+            } else {
+                return Kernel::FT(nr);
+            }
         }
         bool getBool () {
             assert(type == NL_BOOL);
             return boolean;
         }
-        string getString () {
+        std::string getString () {
             assert(type == NL_STRING);
             return str;
         }
-        string getSym () {
+        std::string getSym () {
             assert(type == NL_SYM);
             return str;
         }
@@ -99,11 +155,13 @@ class RList {
         }
         RList* nest();
 
-        RList obj(string name, string type);
+        RList obj(std::string name, std::string type);
         static RList parse(std::istream& f);
-        string ToString();
+        static RList* parsep(std::istream& f);
+        std::string ToString();
 };
 
+std::string timestr (Kernel::FT t);
 class MReal {
     public:
         RList rl;
@@ -127,9 +185,9 @@ class MReal {
             interval.append((bool)false);
 
             RList coeffs;
-            coeffs.append(::CGAL::to_double(a));
-            coeffs.append(::CGAL::to_double(b));
-            coeffs.append(::CGAL::to_double(c));
+            coeffs.append(a);
+            coeffs.append(b);
+            coeffs.append(c);
             coeffs.append((bool)false);
 
             ureal.append(interval);
@@ -167,18 +225,21 @@ class MBool {
 
 class ScalarField {
     public:
-        vector<Polygon> polygons;
-        vector<vector<Kernel::FT> > coeffs;
+        std::vector<Polygon> polygons;
+        std::vector<std::vector<Kernel::FT> > coeffs;
 
         void add (Polygon polygon, Plane plane);
         Kernel::FT value(Point2d p);
 
-        string ToString();
+        std::string ToString();
 
         static ScalarField fromRList(RList rl);
         RList toRList();
 };
 
+RList decompose_mreg (RList *mreg, int steps, std::vector<RList>& mregs);
+std::vector<PMRegion> decompose_pmreg (PMRegion *pmreg, int steps,
+        std::vector<RList>& mregs);
 }
 
 #endif /* PMREGION_H */

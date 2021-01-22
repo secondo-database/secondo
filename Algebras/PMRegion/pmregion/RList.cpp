@@ -18,6 +18,7 @@
 #include <cstring>
 #include "PMRegion_internal.h"
 
+using namespace std;
 using namespace pmr;
 
 namespace pmr {
@@ -29,6 +30,9 @@ namespace pmr {
 RList::RList() : type(NL_LIST) {
 }
 
+RList::~RList() {
+}
+
 /*
    1.2 Appends a real number to this nested list
 
@@ -38,6 +42,18 @@ void RList::append(double nr) {
 
     nl.type = NL_DOUBLE;
     nl.nr = nr;
+    items.push_back(nl);
+}
+
+/*
+   1.2a Appends a FT number to this nested list
+
+*/ 
+void RList::append(Kernel::FT nr) {
+    RList nl;
+
+    nl.type = NL_FT;
+    nl.ft = new Kernel::FT(nr);
     items.push_back(nl);
 }
 
@@ -154,7 +170,7 @@ string RList::ToString(int indent) {
         ret << ")";
     } else if (type == NL_DOUBLE) {
         char buf[100];
-        sprintf(buf, "%f", nr);
+        sprintf(buf, "%.10f", nr);
         ret << buf;
     } else if (type == NL_BOOL) {
         ret << (boolean ? "TRUE" : "FALSE");
@@ -162,6 +178,12 @@ string RList::ToString(int indent) {
         ret << "\"" << str << "\"";
     } else if (type == NL_SYM) {
         ret << str;
+    } else if (type == NL_FT) {
+        std::stringstream tmp;
+        tmp << std::setprecision(50) << *ft;
+    if (tmp.str().find('.') == std::string::npos)
+        tmp << ".0";
+    ret << tmp.str();
     }
     return ret.str();
 }
@@ -193,7 +215,9 @@ RList RList::obj(string name, string type) {
 #define NUM 257
 #define STR 258
 #define SYM 259
+#define NFT 260
 static double num;
+Kernel::FT ft;
 static char *str;
 static int state = 0;
 
@@ -209,9 +233,10 @@ static int getToken (std::istream& f) {
             case '(':
                 if (buf != ptr && state == NUM) {
                     f.unget();
-                    num = atof(buf);
+                    num = strtod(buf, NULL);
+                    ft = Kernel::FT(num);
                     state = 0;
-                    return NUM;
+                    return NFT;
                 } else if (buf != ptr && state == SYM) {
                     f.unget();
                     str = buf;
@@ -253,8 +278,9 @@ static int getToken (std::istream& f) {
             case '\t':
                 if (buf != ptr && state == NUM) {
                     num = atof(buf);
+                    ft = Kernel::FT(num);
                     state = 0;
-                    return NUM;
+                    return NFT;
                 } else if (buf != ptr && state == SYM) {
                     str = buf;
                     state = 0;
@@ -273,6 +299,9 @@ static int getToken (std::istream& f) {
                     state = SYM;
                     *ptr++ = ch;
                     *ptr = '\0';
+        } else if (state == NUM && (ch == '+' || ch == 'e')) {
+            *ptr++ = ch;
+            *ptr = '\0';
                 } else {
                     printf("Parse error: '%c' (state: %d)\n", ch, state);
                     exit(EXIT_FAILURE);
@@ -295,6 +324,9 @@ static int _parse (std::istream& f, RList *nl, int depth) {
                 break;
             case NUM:
                 nl->append(num);
+                break;
+            case NFT:
+                nl->append(ft);
                 break;
             case STR:
                 nl->append((string)str);
@@ -328,6 +360,24 @@ RList RList::parse (std::istream& f) {
 
     return nl.items[0];
 }
+
+RList* RList::parsep (std::istream& f) {
+    RList *nl = new RList();
+
+    int st = _parse(f, nl, 0);
+    if (st != 0)
+        cerr << "Parse error!" << std::endl;
+
+    return nl;
+}
+
+void RList::toFile(string filename) {
+    ofstream out;
+    out.open(filename);
+    out << ToString();
+    out.close();
+}
+
 
 }
 

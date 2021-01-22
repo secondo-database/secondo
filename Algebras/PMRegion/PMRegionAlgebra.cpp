@@ -63,6 +63,7 @@ convert the pmregion to a mregion and vice versa.
 using namespace temporalalgebra;
 using namespace pmregion;
 using namespace pmr;
+using namespace std;
 
 Region* buildRegion(vector< vector<Point> >& cycles);
 
@@ -352,7 +353,7 @@ int atinstantvalmap(Word *args, Word& result,
 
 
     cout << "Building region..." << endl;
-#if 1
+#if 0
     // and convert the result to a Secondo nested list
     ListExpr regle = RList2NL(region.items[4]);
 
@@ -363,28 +364,50 @@ int atinstantvalmap(Word *args, Word& result,
     Word regp = InRegion(nl->Empty(), regle, 0, errorInfo, correct);
     Region *reg = static_cast<Region*> (regp.addr);
 #else
-    vector<vector<Point> > cyc;
+    Region reg(10);
+    cout << "StartBulkLoad()" << endl;
+    reg.StartBulkLoad();
+    int partnerno = 0;
     RList faces = region.items[4];
     for (unsigned int i = 0; i < faces.items.size(); i++) {
         RList cycles = faces.items[i];
         for (unsigned int j = 0; j < cycles.items.size(); j++) {
             vector<Point> c;
             RList points = cycles.items[j];
-            for (unsigned int k = 0; k < points.items.size(); k++) {
-                RList point = points.items[k];
-                c.push_back(Point(true, point.items[0].getNr(),
-                            point.items[1].getNr()));
+            unsigned int ps = points.items.size();
+            Point prev;
+            vector<HalfSegment> hss;
+            for (unsigned int k = 0; k <= ps; k++) {
+                RList rp = points.items[k%ps];
+                Point p(true, rp.items[0].getNr(), rp.items[1].getNr());
+                if (k > 0) {
+                    if (AlmostEqual(prev, p))
+                        continue;
+                    HalfSegment hs(true, prev, p);
+                    hs.attr.faceno = 0;
+                    hs.attr.cycleno = 0;
+                    hs.attr.edgeno = partnerno;
+                    hs.attr.partnerno = partnerno;
+                    hs.attr.insideAbove = prev < p;
+                    hss.push_back(hs);
+                    hs.SetLeftDomPoint(false);
+                    hss.push_back(hs);
+                    partnerno++;
+                }
+                prev = p;
             }
-            cyc.push_back(c);
+            if (hss.size() >= 6) {
+                for (unsigned int k = 0; k < hss.size(); k++) {
+                    reg += hss[k];
+                }
+            }
         }
     }
-    cout << "Calling buildRegion..." << endl;
-    Region *reg = buildRegion(cyc);
-
-
+    cout << "EndBulkLoad()" << endl;
+    reg.EndBulkLoad();
 #endif
     cout << "Done" << endl;
-    result.setAddr(new temporalalgebra::IRegion(*it, *reg));
+    result.setAddr(new temporalalgebra::IRegion(*it, reg));
 
     return 0;
 }
@@ -641,7 +664,7 @@ int coverdurationvalmap(Word *args, Word& result,
     PMRegion *pmr = new PMRegion(true);
 
     // Calculate the coverduration in libpmregion
-    pmr::PMRegion tmp = pmr1->pmr()->coverduration2();
+    pmr::PMRegion tmp = pmr1->pmr()->createcdpoly();
     pmr->pmr(tmp);
     result = pmr;
 
@@ -1305,6 +1328,9 @@ ListExpr RList2NL(RList r) {
         case NL_DOUBLE:
             ret = nl->RealAtom(r.getNr());
             break;
+        case NL_FT:
+            ret = nl->RealAtom(r.getNr());
+            break;
         case NL_BOOL:
             ret = nl->BoolAtom(r.getBool());
             break;
@@ -1332,9 +1358,9 @@ RList NL2RList(ListExpr l) {
         } else if (nl->IsNodeType(IntType, i)) {
             // Convert integer to double, since there is no separate
             // RList type for it
-            ret.append((double) nl->IntValue(i));
+            ret.append(Kernel::FT((double)nl->IntValue(i)));
         } else if (nl->IsNodeType(RealType, i)) {
-            ret.append(nl->RealValue(i));
+            ret.append(Kernel::FT(nl->RealValue(i)));
         } else if (nl->IsNodeType(BoolType, i)) {
             ret.append(nl->BoolValue(i));
         } else if (nl->IsNodeType(StringType, i)) {
@@ -1402,8 +1428,8 @@ pmr::PMRegion* pmregion::PMRegion::pmr() {
         pmrlist.append(rpoints);
         pmrlist.append(rfaces);
         _pmr = new pmr::PMRegion();
-                *_pmr = pmr::PMRegion::fromRList(
-                          pmrlist.obj("pmregion", "pmregion"));
+        RList tmp2 = pmrlist.obj("pmregion", "pmregion");
+        *_pmr = pmr::PMRegion::fromRList(tmp2);
     }
 
     return _pmr;

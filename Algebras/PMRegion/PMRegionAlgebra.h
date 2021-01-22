@@ -96,7 +96,7 @@ public:
     DbArray<PMPoint> points;
     DbArray<PMFace> faces;
 
-    PMRegion() : _pmr(NULL) { cerr << "created pmregion" << endl; };
+    PMRegion() : _pmr(NULL) { };
     PMRegion(bool dummy);
     ~PMRegion();
     

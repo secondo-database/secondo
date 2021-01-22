@@ -2,7 +2,7 @@ CXX=g++
 CPPFLAGS=-O3 -fPIC -Wall -ggdb
 LIBS=-lCGAL -lCGAL_Core -lboost_thread -lboost_system -lgmp -lmpfr
 LDFLAGS=$(LIBS)
-LIBOBJ=PMRegion_operations.o PMRegion_conversions.o PMRegion_helpers.o RList.o PMRegion_coverduration.o
+LIBOBJ=PMRegion_operations.o PMRegion_conversions.o PMRegion_helpers.o RList.o PMRegion_coverduration.o PMRegion_decompose.o
 
 all: libpmregion.a pmregcli
 

@@ -11,139 +11,119 @@
 */
 
 #include "PMRegion_internal.h"
-// We can only compile with CGAL 4.14 and later
-#if CGAL_VERSION_NR >= 1041400000
-
 
 #include <CGAL/Surface_sweep_2_algorithms.h>
+#include <CGAL/Polygon_mesh_processing/extrude.h>
+#include <CGAL/Polygon_mesh_processing/measure.h>
+#include <fstream>
 
 using namespace pmr;
+using namespace std;
 
 namespace pmr {
 
-struct seg_compare {
-    bool operator() (const Segment2d &l, const Segment2d &r) const {
-        Point_2 ls = l.source(), lt = l.target();
-        Point_2 rs = r.source(), rt = r.target();
-        return ((ls < rs) || ((ls == rs) && (lt < rt)));
+void PMRegion::zthicknessprepare () {
+    // Create a copy of the polyhedron and triangulate the faces
+    zthicknesstmp = polyhedron;
+    CGAL::Polygon_mesh_processing::triangulate_faces(zthicknesstmp);
+
+    // Build an AABB tree for fast intersection tests
+    zthicknesstree = new Tree(faces(zthicknesstmp).first,
+            faces(zthicknesstmp).second, zthicknesstmp);
+    zthicknesstree->accelerate_distance_queries();
+
+    // Create a tester to check, if a point is within the polyhedron boundary
+    inside_tester = new Point_inside(*zthicknesstree);
+}
+
+/* zthickness calculates the thickness of the polyhedron wrt the
+ * z axis at * the given xy coordinates.                         */
+Kernel::FT PMRegion::zthickness (Point2d p2d) {
+    if (ztcache.count(p2d) > 0) {
+        return ztcache[p2d];
     }
-};
+    Kernel::FT x = p2d.x();
+    Kernel::FT y = p2d.y();
 
-Kernel::FT PMRegion::thickness (Point_2 p) {
-    Point3d p1(p.x(), p.y(), 0);
-    Point3d p2(p.x(), p.y(), 1);
-    Kernel::Line_3 seg(p1, p2);
+    // Create a line orthogonal to the z plane through point x/y
+    Point3d p1(x, y, 0), p2(x, y, 1);
+    Kernel::Line_3 line(p1, p2);
 
-    Tree tree(faces(polyhedron).first,faces(polyhedron).second,polyhedron);
-    tree.accelerate_distance_queries();
-    std::list<Segment_intersection> sis;
-    tree.all_intersections(seg, std::back_inserter(sis));
+    // Calculate intersections between the line and the polyhedron boundary
+    list<Segment_intersection> sis;
+    zthicknesstree->all_intersections(line, back_inserter(sis));
 
-    std::set<Kernel::FT> zs;
-
-    for (std::list<Segment_intersection>::iterator it = sis.begin();
+    // Add all intersection points to an ordered set
+    set<Kernel::FT> zs;
+    for (list<Segment_intersection>::iterator it = sis.begin();
             it != sis.end(); ++it) {
         if (Point3d *p = boost::get<Point3d>(&((*it)->first))) {
             zs.insert(p->z());
         }
     }
 
-    Point_inside inside_tester(tree);
-
-    Kernel::FT thickness = 0;
+    Kernel::FT zthickness = 0;
     Kernel::FT prev;
     bool prevvalid = false;
-    for (std::set<Kernel::FT>::iterator it = zs.begin();
+    // Iterate over all intersection points in z order
+    for (set<Kernel::FT>::iterator it = zs.begin();
             it != zs.end(); ++it) {
         Kernel::FT cur = *it;
         if (prevvalid) {
-            Point3d p3(p.x(), p.y(), (prev+cur)/2);
-            if (inside_tester(p3) == CGAL::ON_BOUNDED_SIDE) {
-                thickness += (cur - prev);
+        // For two consecutive points, calculate the middle point and test,
+        // if it is inside the polyhedron.
+            Point3d p3(x, y, (prev+cur)/2);
+            if ((*inside_tester)(p3) == CGAL::ON_BOUNDED_SIDE) {
+            // It is inside, so the length of the segment contributes
+        // to the zthickness
+                zthickness += (cur - prev);
             }
         }
         prev = cur;
         prevvalid = true;
     }
+    ztcache[p2d] = zthickness;
 
-
-    return thickness;
+    return zthickness;
 }
 
+/* The operation coverduration returns, for which time a given point is
+   covered by a moving region. This function operates on a pre-calculated
+   cdpolyhedron */
+Kernel::FT PMRegion::coverduration (Kernel::FT x, Kernel::FT y) {
+    // Create a line orthogonal to the z plane through point x/y
+    Point3d p1(x, y, 0), p2(x, y, 1);
+    Kernel::Line_3 line(p1, p2);
 
-Plane PMRegion::calculate_plane(Polygon p) {
-    vector<Point3d> p3d;
-    for (unsigned int i = 0; i < 3; i++) {
-        Kernel::FT t = thickness(p[i]);
-        p3d.push_back(Point3d(p[i].x(), p[i].y(), t));
-    }
-    Plane pl(p3d[0], p3d[1], p3d[2]);
+    // Create a copy of the polyhedron and triangulate the faces
+    Polyhedron poly = polyhedron;
+    Tree tree(faces(poly).first,faces(poly).second,poly);
+    
+    // Calculate intersections between the line and the polyhedron boundary
+    list<Segment_intersection> sis;
+    tree.all_intersections(line, back_inserter(sis));
 
-    return pl;
-}
-
-ScalarField PMRegion::coverduration() {
-    set<Segment2d, seg_compare> segs;
-
-    for (Facet_iterator f = polyhedron.facets_begin();
-            f != polyhedron.facets_end(); f++) {
-        Halfedge_facet_circulator h = f->facet_begin(), he(h);
-
-        Point_2 prev;
-        bool prevvalid = false;
-        do {
-            Point3d p3 = h->vertex()->point();
-            Point_2 p(p3.x(), p3.y());
-            if (prevvalid) {
-                Segment2d seg(prev, p);
-                if (prev > p)
-                    seg = seg.opposite();
-                segs.insert(seg);
-            }
-            prev = p;
-            prevvalid = true;
-        } while (++h != he);
-        Point3d p3 = he->vertex()->point();
-        Segment2d seg(Point_2(p3.x(), p3.y()), prev);
-        if (seg.source() > seg.target())
-            seg = seg.opposite();
-        segs.insert(seg);
-    }
-
-    std::list<Segment2d> subsegs;
-    CGAL::compute_subcurves(segs.begin(), segs.end(),
-            std::back_inserter(subsegs));
-
-    Arrangement arr;
-
-    for (std::list<Segment2d>::iterator it = subsegs.begin();
-            it != subsegs.end(); it++) {
-        CGAL::insert(arr, *it);
-    }
-
-    Arrangement::Face_const_iterator            fit;
-    Arrangement::Ccb_halfedge_const_circulator  curr;
-    ScalarField scalarfield;
-    for (fit = arr.faces_begin(); fit != arr.faces_end(); ++fit) {
-        if (!fit->is_unbounded()) {
-            curr = fit->outer_ccb();
-            Polygon poly;
-            do {
-                poly.push_back(curr->target()->point());
-                ++curr;
-            } while (curr != fit->outer_ccb());
-            Plane plane = calculate_plane(poly);
-            scalarfield.add(poly, plane);
+    // Due to the specific characteristics of a cdpolyhedron, there can be
+    // at most two intersections. One at (x,y,0) and the other at (x,y,z),
+    // where z is the result value.
+    for (list<Segment_intersection>::iterator it = sis.begin();
+            it != sis.end(); ++it) {
+        if (Point3d *p = boost::get<Point3d>(&((*it)->first))) {
+            if (p->z() != 0)
+                return p->z();
         }
     }
 
-    return scalarfield;
+    // The line was outside the polyhedron or intersected the polyhedron in
+    // a single point, which has to be z=0 then.
+    return 0;
 }
 
+/* projects the 3d facets of the polyhedron to 2d segments in the xy plane */
+set<Segment_2, seg_compare> getprojectedsegments(Polyhedron polyhedron) {
+    set<Segment_2, seg_compare> segs;
 
-PMRegion PMRegion::coverduration2() {
-    set<Segment2d, seg_compare> segs;
-
+    // Iterate over all polyhedron facets
     for (Facet_iterator f = polyhedron.facets_begin();
             f != polyhedron.facets_end(); f++) {
         Halfedge_facet_circulator h = f->facet_begin(), he(h);
@@ -153,67 +133,115 @@ PMRegion PMRegion::coverduration2() {
         do {
             Point3d p3 = h->vertex()->point();
             Point_2 p(p3.x(), p3.y());
-            if (prevvalid) {
-                Segment2d seg(prev, p);
-                if (prev > p)
-                    seg = seg.opposite();
-                segs.insert(seg);
+            if (prevvalid && prev != p) {
+        // Create a 2d line segment for each polygon segment 
+        // Define an unambiguous order to prevent duplicates
+            if (prev > p) {
+            Segment_2 seg(p, prev);
+            segs.insert(seg);
+            } else {
+            Segment_2 seg(prev, p);
+            segs.insert(seg);
+            }
             }
             prev = p;
             prevvalid = true;
         } while (++h != he);
+
+    // Add last segment which closes the polygon
         Point3d p3 = he->vertex()->point();
-        Segment2d seg(Point_2(p3.x(), p3.y()), prev);
-        if (seg.source() > seg.target())
-            seg = seg.opposite();
-        segs.insert(seg);
+        Point_2 p(p3.x(), p3.y());
+        if (p != prev) {
+        if (prev > p) {
+            Segment_2 seg(p, prev);
+            segs.insert(seg);
+        } else {
+            Segment_2 seg(prev, p);
+            segs.insert(seg);
+        }
+        }
     }
 
-    std::list<Segment2d> subsegs;
-    CGAL::compute_subcurves(segs.begin(), segs.end(),
-                            std::back_inserter(subsegs));
+    return segs;
+}
 
+/* Create non-intersecting subsegments from a set of intersecting 2d segments.
+ * This creates for example 4 segments from 2 intersecting line segments    */
+list<Segment_2> getsubsegments (set<Segment_2, seg_compare> segs) {
+    list<Segment_2> subsegs;
+
+    CGAL::compute_subcurves(segs.begin(), segs.end(), back_inserter(subsegs));
+
+    return subsegs;
+}
+
+/* Build an arrangement of non-intersecting polygons from a set of segments */
+Arrangement getarrangementfromsegments (list<Segment_2> subsegs) {
     Arrangement arr;
-    for (std::list<Segment2d>::iterator it = subsegs.begin();
+
+    for (list<Segment_2>::iterator it = subsegs.begin();
                                       it != subsegs.end(); it++) {
         CGAL::insert(arr, *it);
     }
 
-    PMRegion ret;
+    return arr;
+}
+
+/* Create 3d facets from an arrangement of 2d polygons. The z value of each
+   vertex is the z thickness of the original polyhedron */
+static pair<vector<Point3d>, vector<vector<size_t> > >
+       create3dfacets (Arrangement arr, PMRegion *p) {
+
     int _idx = 0;
     Arrangement::Face_const_iterator            fit;
     Arrangement::Ccb_halfedge_const_circulator  curr;
     map<Point2d, Point3d> points;
     map<Point3d, int> indices;
-    std::vector<Point3d> xpoints;
-    std::vector<std::vector<std::size_t> > xpolygons;
+    vector<Point3d> xpoints;
+    vector<vector<size_t> > xpolygons;
+
+    p->zthicknessprepare();
+
+    // Iterate over all 2d polygons in the interior of the arrangement
     for (fit = arr.faces_begin(); fit != arr.faces_end(); ++fit) {
         if (!fit->is_unbounded()) {
             curr = fit->outer_ccb();
             Polygon poly;
             vector<size_t> facet;
+        // Iterate over all vertices of a polygon
             do {
                 Point2d p2d = curr->target()->point();
                 poly.push_back(p2d);
                 Point3d p3d;
                 int idx;
+        // Check, if the point was already processed
                 if (points.count(p2d) == 0) {
-                    Kernel::FT z = thickness(p2d);
+            // Extend the 2d point to a 3d point with
+            // the z-thickness of the polyhedron as
+            // z coordinate
+                    Kernel::FT z = p->zthickness(p2d);
                     p3d = Point3d(p2d.x(), p2d.y(), z);
                     points[p2d] = p3d;
                     indices[p3d] = idx = _idx++;
+            // Insert it in the list of points
                     xpoints.push_back(p3d);
                 } else {
+            // Point already exists, retrieve it and its index
                     p3d = points[p2d];
                     idx = indices[p3d];
                 }
+        // Add the index of the point to the current facet
                 facet.push_back(idx);
                 ++curr;
             } while (curr != fit->outer_ccb());
+        // Add the facet to the set of 3d polygons
             xpolygons.push_back(facet);
         }
     }
 
+    // The outer boundary of the arrangement is added with all z
+    // coordinates set to 0. This will be the baseplate of the
+    // cdpolyhedron
     Arrangement::Face_iterator fi = arr.unbounded_face();
     for (Arrangement::Hole_iterator fs = fi->holes_begin();
             fs != fi->holes_end(); fs++) {
@@ -227,92 +255,171 @@ PMRegion PMRegion::coverduration2() {
         xpolygons.push_back(facet);
     }
 
+    return pair<vector<Point3d>,
+           vector<vector<size_t> > >(xpoints, xpolygons);
+}
 
-    CGAL::Polygon_mesh_processing::orient_polygon_soup(xpoints, xpolygons);
-    CGAL::Polygon_mesh_processing::polygon_soup_to_polygon_mesh(xpoints,
-            xpolygons, ret.polyhedron);
-    CGAL::Polygon_mesh_processing::triangulate_faces(ret.polyhedron);
+/* Create a polyhedron from a list of points and facets */
+static Polyhedron createpolyhedronfromfacets (vector<Point3d> points,
+        vector<vector<size_t> > polygons) {
+    Polyhedron p;
+    CGAL::Polygon_mesh_processing::orient_polygon_soup(points, polygons);
+    CGAL::Polygon_mesh_processing::polygon_soup_to_polygon_mesh(points,
+            polygons, p);
+   CGAL::Polygon_mesh_processing::triangulate_faces(p);
+
+    return p;
+}
+
+/* Calculate a coverduration polyhedron from a polyhedron representing a
+ * moving region.                                                        */
+PMRegion PMRegion::createcdpoly() {
+    // Project all edges of the polyhedron's boundary to 2d
+    set<Segment_2, seg_compare> segs = getprojectedsegments(polyhedron);
+    
+    // Create non-intersecting subsegments
+    list<Segment_2> subsegs = getsubsegments(segs);
+
+    // Build a 2d arrangement from these segments
+    Arrangement arr = getarrangementfromsegments(subsegs);
+
+    // Create 3d facets from the 2d polygons in the arrangement
+    pair<vector<Point3d>,
+        vector<vector<size_t> > > facets = create3dfacets(arr, this);
+
+    // Build a polyhedron from these 3d facets
+    Polyhedron p = createpolyhedronfromfacets(facets.first, facets.second);
+
+    PMRegion ret(p);
 
     return ret;
 }
 
-void ScalarField::add(Polygon polygon, Plane plane) {
-    polygons.push_back(polygon);
-    vector<Kernel::FT> co;
-    co.push_back(plane.a());
-    co.push_back(plane.b());
-    co.push_back(plane.c());
-    co.push_back(plane.d());
-    coeffs.push_back(co);
+/* Calculate a coverduration polyhedron from a polyhedron representing a
+ * moving region related to a given baseregion. */
+PMRegion PMRegion::createcdpoly(RList baseregion) {
+    PMRegion cdpoly = createcdpoly();
+    Kernel::FT maxz = cdpoly.minmaxz().second;
+    PMRegion baseregpoly = PMRegion::fromRegion(baseregion, -1, maxz+1, 0);
+
+    return cdpoly * baseregpoly;
 }
 
-ScalarField ScalarField::fromRList(RList rl) {
-    ScalarField ret;
+/* Change the base region for a coverduration polyhedron */
+PMRegion PMRegion::restrictcdpoly(RList baseregion) {
+    Kernel::FT maxz = minmaxz().second;
+    PMRegion baseregpoly = PMRegion::fromRegion(baseregion, -1, maxz+1, 0);
 
-    RList& obj = rl.items[4];
+    return *this * baseregpoly;
+}
 
-    for (unsigned int i = 0; i < obj.items.size(); i++) {
-        RList& part = obj.items[i];
-        RList& face = part.items[0];
-        RList& coeffs = part.items[1];
-        Polygon poly;
-        for (unsigned int j = 0; j < face.items.size(); j++) {
-            Point2d p(face.items[j].items[0].getNr(),
-                      face.items[j].items[1].getNr());
-            poly.push_back(p);
-        }
-        vector<Kernel::FT> co;
-        co.push_back(coeffs.items[0].getNr());
-        co.push_back(coeffs.items[1].getNr());
-        co.push_back(coeffs.items[2].getNr());
-        co.push_back(coeffs.items[3].getNr());
-        ret.polygons.push_back(poly);
-        ret.coeffs.push_back(co);
-    }
+PMRegion PMRegion::createccdpoly() {
+    return createccdpoly(traversedarea());
+}
 
-    return ret;
+/* Calculate a complementary coverduration polyhedron from a polyhedron
+ * representing a moving region related to a given baseregion. */
+PMRegion PMRegion::createccdpoly(RList baseregion) {
+    // First, create a coverduration polyhedron
+    PMRegion cdpoly = createcdpoly();
+
+    // Then extrude the base region to the height of the cdpolyhedron
+    // (and slightly above, to keep the polyhedron simple)
+    Kernel::FT maxz = cdpoly.minmaxz().second + 1;
+    PMRegion baseregpoly = PMRegion::fromRegion(baseregion, 0, maxz, 0);
+
+    return baseregpoly - cdpoly;
+    
+    // Create the intersection between the cdpolyhedron and the extruded
+    // base region
+    PMRegion tmp = cdpoly * baseregpoly;
+
+    // and finally return the difference between the baseregion polyhedron
+    // and the restricted cdpolyhedron
+    return baseregpoly - tmp;
+}
+
+/* Calculate an interval coverduration polyhedron from a polyhedron
+ * representing a moving region related to a given baseregion. */
+PMRegion PMRegion::createicdpoly(Kernel::FT duration, RList baseregion) {
+    // First, create a coverduration polyhedron restricted
+    // to the given baseregion
+    PMRegion cdpoly = createcdpoly(baseregion);
+
+    // Copy the cdpolyhedron and translate it according to the given duration
+    PMRegion tmp;
+    tmp.polyhedron = cdpoly.polyhedron;
+    tmp.translate(0, 0, -duration);
+
+    // Subtract the cdpolyhedron with the translated version of itself
+    return cdpoly - tmp;
+}
+
+/* Calculate an interval coverduration polyhedron from a polyhedron
+ * representing a moving region. */
+PMRegion PMRegion::createicdpoly(Kernel::FT duration) {
+    // First, create a coverduration polyhedron
+    PMRegion cdpoly = createcdpoly();
+
+    // Copy the cdpolyhedron and translate it according to the given duration
+    PMRegion tmp;
+    tmp.polyhedron = cdpoly.polyhedron;
+    tmp.translate(0, 0, -duration);
+
+    // Subtract the cdpolyhedron with the translated version of itself
+    return cdpoly - tmp;
+}
+
+
+// The next three functions do all the same, the only difference is, on
+// which type of coverduration polyhedron (cd, ccd or icd) they are
+// applied.
+
+/* This function operates on a coverduration polyhedron (cdpolyhedron) and
+   returns the area, which is covered at least for the given duration     */
+RList PMRegion::coveredlonger(Kernel::FT duration) {
+    return atinstant(duration);
+}
+
+/* This function operates on a complementary coverduration polyhedron
+ * (ccdpolyhedron) and returns the area, which is covered at most for
+   the given duration                                                */
+RList PMRegion::coveredshorter(Kernel::FT duration) {
+    return atinstant(duration);
+}
+
+/* This function operates on an interval coverduration polyhedron
+   (icdpolyhedron) and returns the area, which is covered at least for
+   the given duration and at most for duration + t, where t is the
+   duration specified when the icdpolyhedron was created.             */
+RList PMRegion::intervalcovered(Kernel::FT duration) {
+    return atinstant(duration);
+}
+
+/* This function calculates the average cover time of the (moving) region */
+Kernel::FT PMRegion::avgcover() {
+    // Calculate the volume of the cdpolyhedron
+    Kernel::FT v = CGAL::Polygon_mesh_processing::volume(polyhedron);
+
+    // Calculate the area of the "traversed area"
+    Kernel::FT a = ::area(projectxy());
+
+    return v/a;
+}
+
+/* This function calculates the average cover time of the given base region
+   by the (moving) region. The same base region must have been specified when
+   creating the cdpolyhedron. */
+Kernel::FT PMRegion::avgcover(RList basereg) {
+    // Calculate the volume of the cdpolyhedron
+    Kernel::FT v = CGAL::Polygon_mesh_processing::volume(polyhedron);
+    
+    // Calculate the area of the base region
+    Kernel::FT a = ::area(Region2Polygons(basereg));
+
+    // The average cover duration is the volume divided by the area
+    return v/a;
+}
 
 }
 
-RList ScalarField::toRList() {
-    RList scalarfield;
-
-    for (unsigned int i = 0; i < polygons.size(); i++) {
-        RList plane, face, coeff;
-
-        Polygon p = polygons[i];
-        vector<Kernel::FT> co = coeffs[i];
-        for (unsigned int j = 0; j < p.size(); j++) {
-            Point2d p2d = p[j];
-            RList point;
-            point.append(::CGAL::to_double(p2d.x()));
-            point.append(::CGAL::to_double(p2d.y()));
-            face.append(point);
-        }
-        coeff.append(::CGAL::to_double(co[0]));
-        coeff.append(::CGAL::to_double(co[1]));
-        coeff.append(::CGAL::to_double(co[2]));
-        coeff.append(::CGAL::to_double(co[3]));
-        plane.append(face);
-        plane.append(coeff);
-        scalarfield.append(plane);
-    }
-
-    return scalarfield.obj("scalarfield", "scalarfield");
-}
-
-Kernel::FT ScalarField::value(Point2d point) {
-    for (unsigned int i = 0; i < polygons.size(); i++) {
-        Polygon& polygon = polygons[i];
-        if (polygon.bounded_side(point) != CGAL::ON_UNBOUNDED_SIDE) {
-            vector<Kernel::FT> coeff = coeffs[i];
-            return -(coeff[0]*point.x()+coeff[1]*point.y()+coeff[3])/coeff[2];
-        }
-    }
-
-    return 0;
-}
-
-
-}
-#endif
