@@ -36,30 +36,18 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 // implementation of a main memory based M-tree
 
 /*
-1 template class for clone
-
-*/
-template<class T>
-class StdCloner {
- public:
-  static T* clone(const T& object) {
-    return new T(object);
-  }
-};
-
-/*
 1 class MTreeNode
 
 The class MTreeNode is an abstract super class for the nodes 
 of an m-tree.
 
 */
-template<class T, class DistComp, class Cloner = StdCloner<T> >
+template<class T, class DistComp>
 class MTreeNode{
     public:
   
 
-  typedef MTreeNode<T,DistComp,Cloner> node_t;
+  typedef MTreeNode<T,DistComp> node_t;
 
 /*
 1.1 Destructor
@@ -317,11 +305,11 @@ This class represents an inner node of an m-tree.
 
 */
 
-template<class T,class DistComp, class Cloner = StdCloner<T> >
-class MTreeInnerNode: public MTreeNode<T,DistComp,Cloner>{
+template<class T,class DistComp>
+class MTreeInnerNode: public MTreeNode<T,DistComp>{
    public:
-    typedef MTreeInnerNode<T,DistComp,Cloner> innernode_t;
-    typedef MTreeNode<T,DistComp,Cloner> node_t;
+    typedef MTreeInnerNode<T,DistComp> innernode_t;
+    typedef MTreeNode<T,DistComp> node_t;
 /*
 2.1 Constructor
 
@@ -603,12 +591,12 @@ This class represents a leaf node of an m-tree.
 
 */
 
-template<class T, class DistComp, class Cloner = StdCloner<T> >
-class MTreeLeafNode: public MTreeNode<T,DistComp,Cloner>{
+template<class T, class DistComp>
+class MTreeLeafNode: public MTreeNode<T,DistComp>{
    public:
 
-    typedef MTreeLeafNode<T,DistComp,Cloner> leafnode_t;
-    typedef MTreeNode<T,DistComp,Cloner> node_t;
+    typedef MTreeLeafNode<T,DistComp> leafnode_t;
+    typedef MTreeNode<T,DistComp> node_t;
 
 /*
 3.1 Constructor
@@ -685,8 +673,7 @@ Adds an entry to this leaf.
 
 */
      void store(const T& o, DistComp& di){
-//         Objects[MTreeNode<T,DistComp>::count] = new T(o);
-        Objects[node_t::count] = Cloner::clone(o);
+        Objects[node_t::count] = new T(o);
         double dist = di(node_t::routingObject,o);
         if(node_t::radius<dist){
           node_t::radius=dist;
@@ -765,8 +752,7 @@ write a textual representation fo this leaf to ~out~.
        res->distanceToParent = node_t::distanceToParent;
        res->count = node_t::count;
        for(int i=0;i<node_t::count;i++){
-//             res->Objects[i] = new T(*Objects[i]);
-         res->Objects[i] = Cloner::clone(*Objects[i]);
+          res->Objects[i] = new T(*Objects[i]);
        }  
        return res;
    }
@@ -783,15 +769,15 @@ write a textual representation fo this leaf to ~out~.
 
 
 
-template <class T, class DistComp, class Cloner = StdCloner<T> >
+template <class T, class DistComp>
 class RangeIterator{
 
    public:
 
-   typedef RangeIterator<T,DistComp,Cloner> rangeiterator_t;
-   typedef MTreeNode<T,DistComp,Cloner> node_t;
-   typedef MTreeLeafNode<T,DistComp,Cloner> leafnode_t;
-   typedef MTreeInnerNode<T,DistComp,Cloner> innernode_t;
+   typedef RangeIterator<T,DistComp> rangeiterator_t;
+   typedef MTreeNode<T,DistComp> node_t;
+   typedef MTreeLeafNode<T,DistComp> leafnode_t;
+   typedef MTreeInnerNode<T,DistComp> innernode_t;
 
       RangeIterator(const node_t* root, const T& _q, 
                     const double _range, const DistComp& _di):
@@ -873,11 +859,11 @@ This iterator returns the content of an m-tree with increasing distance.
 The class NNContent encapsulates the entries of a priority queue.
 
 */
-template<class T,class DistComp, class Cloner = StdCloner<T> >
+template<class T,class DistComp>
 class NNContent{
 
    public:
-      typedef MTreeNode<T,DistComp,Cloner> node_t;
+      typedef MTreeNode<T,DistComp> node_t;
       
 
       NNContent(const double _dist, node_t* _node):
@@ -929,23 +915,23 @@ This auxiliary class implements the less operator for two
 NNContent objects.
 
 */
-template<class T, class DistComp, class Cloner = StdCloner<T> >
+template<class T, class DistComp >
 class NNContentComparator{
   public:
-      bool operator()(const NNContent<T,DistComp,Cloner>& a, 
-                      const NNContent<T,DistComp,Cloner>& b){
+      bool operator()(const NNContent<T,DistComp>& a, 
+                      const NNContent<T,DistComp>& b){
          return a < b;
       }
 };
 
 
-template<class T, class DistComp, class Cloner = StdCloner<T> >
+template<class T, class DistComp>
 class NNIterator{
    public:
-    typedef MTreeNode<T,DistComp, Cloner> node_t;
-    typedef MTreeLeafNode<T,DistComp, Cloner> leafnode_t;
-    typedef MTreeInnerNode<T,DistComp, Cloner> innernode_t;
-    typedef NNContent<T,DistComp, Cloner> nncontent_t;
+    typedef MTreeNode<T,DistComp> node_t;
+    typedef MTreeLeafNode<T,DistComp> leafnode_t;
+    typedef MTreeInnerNode<T,DistComp> innernode_t;
+    typedef NNContent<T,DistComp> nncontent_t;
 /*
 4.1 Constructor
 
@@ -1012,16 +998,16 @@ class NNIterator{
 This is the main class of this file. It implements a main memory based m-tree.
 
 */
-template<class T, class DistComp, class Cloner = StdCloner<T> >
+template<class T, class DistComp>
 class MMMTree{
   public:
 
-    typedef MTreeLeafNode<T,DistComp,Cloner> leafnode_t;
-    typedef RangeIterator<T,DistComp,Cloner>  rangeiterator_t;
-    typedef NNIterator<T,DistComp,Cloner> nniterator_t;
-    typedef MTreeNode<T, DistComp,Cloner > node_t;
-    typedef MMMTree<T,DistComp,Cloner> mmmtree_t;
-    typedef MTreeInnerNode<T,DistComp, Cloner> innernode_t;
+    typedef MTreeLeafNode<T,DistComp> leafnode_t;
+    typedef RangeIterator<T,DistComp>  rangeiterator_t;
+    typedef NNIterator<T,DistComp> nniterator_t;
+    typedef MTreeNode<T, DistComp> node_t;
+    typedef MMMTree<T,DistComp> mmmtree_t;
+    typedef MTreeInnerNode<T,DistComp> innernode_t;
 
 /*
 4.1 Constructor
