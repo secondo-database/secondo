@@ -27,7 +27,7 @@
 include ../../makefile.env
 
 # expand compile flags if necessary
-CCFLAGS += -Werror -DCGAL_DISABLE_ROUNDING_MATH_CHECK=ON -Wno-tautological-overlap-compare
+CCFLAGS += -DCGAL_DISABLE_ROUNDING_MATH_CHECK=ON -Wno-tautological-overlap-compare
 
 # create objects and algebra library. The values for the variables
 # OBJECTS and LIBOBJ are computed automatically by makefile.env 
