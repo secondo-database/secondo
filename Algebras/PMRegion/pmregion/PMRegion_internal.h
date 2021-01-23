@@ -19,6 +19,13 @@
 #include <vector>
 #include <cassert>
 
+#include <CGAL/version.h>
+
+#if CGAL_VERSION_NR < 1041200000
+#  warning "CGAL library too old, disabling coverduration operations"
+#  define PMREGION_DISABLE_COVERDURATION 1
+#endif
+
 #include <CGAL/Polyhedron_3.h>
 #include <CGAL/Side_of_triangle_mesh.h>
 #include <CGAL/Arrangement_2.h>

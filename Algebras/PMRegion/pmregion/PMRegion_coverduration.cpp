@@ -12,8 +12,9 @@
 
 #include "PMRegion_internal.h"
 
+#ifndef PMREGION_DISABLE_COVERDURATION
+
 #include <CGAL/Surface_sweep_2_algorithms.h>
-#include <CGAL/Polygon_mesh_processing/extrude.h>
 #include <CGAL/Polygon_mesh_processing/measure.h>
 #include <fstream>
 
@@ -422,4 +423,6 @@ Kernel::FT PMRegion::avgcover(RList basereg) {
 }
 
 }
+
+#endif /* PMREGION_DISABLE_COVERDURATION */
 

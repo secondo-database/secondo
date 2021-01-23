@@ -44,6 +44,7 @@ static void usage (void) {
         << "             reg2pmreg     <regfile> <instant1> <instant2> <xoff>"
         << endl
         << "     === Spatiotemporal coverage analysis ===" << endl
+#ifndef PMREGION_DISABLE_COVERDURATION
         << "             createcdpoly    <pmreg> [basereg]" << endl
         << "             createccdpoly   <pmreg> [basereg]" << endl
         << "             createicdpoly   <pmreg> <duration/msecs> [basereg]"
@@ -54,13 +55,18 @@ static void usage (void) {
         << "             coveredshorter  <ccdpoly> <msecs>" << endl
         << "             intervalcovered <icdpoly> <msecs>" << endl
         << "             avgcover        <cdpoly> [basereg]" << endl
+#else
+        << "             (disabled due to too old CGAL library) " << endl
+#endif
         << "     === Miscellaneous commands ===" << endl
         << "             decomposemreg  <mregfile>  [0:isolate 1:debranch "
                             "2:keeplargest] [r:relation s:separate]" << endl
         << "             decomposepmreg <pmregfile> [0:isolate 1:debranch "
                             "2:keeplargest]" << endl
-        << "             openscad       <pmregfile>" << endl
         << "             analyze        <pmreg>" << endl
+#ifndef PMREGION_DISABLE_COVERDURATION
+        << "             openscad       <pmregfile>" << endl
+#endif
         << "             deter1         <csv>" << endl
         ;
     exit(1);
@@ -107,6 +113,8 @@ static void atinstant2(char **param) {
     cerr << "Calculating atinstant..." << endl;
     cout << pmreg.atinstant2(instant).ToString() << endl;
 }
+
+#ifndef PMREGION_DISABLE_COVERDURATION
 
 static void createcdpoly(char **param, int argc) {
     RList rl = file2rlist(param[0]);
@@ -223,6 +231,16 @@ static void avgcover (char **param, int argc) {
     }
 }
 
+static void openscad (char **param) {
+    RList rl = file2rlist(param[0]);
+    PMRegion pmreg = PMRegion::fromRList(rl);
+    pmreg.openscad(param[0]);
+    PMRegion cd = pmreg.createcdpoly();
+    cd.openscad(((string)param[0])+"cd");
+}
+
+#endif /* PMREGION_DISABLE_COVERDURATION */
+
 static void minmaxz(char **param) {
     RList rl = file2rlist(param[0]);
     PMRegion pmreg = PMRegion::fromRList(rl);
@@ -230,7 +248,6 @@ static void minmaxz(char **param) {
     cout << ::CGAL::to_double(minmax.first) << " " <<
         ::CGAL::to_double(minmax.second) << endl;
 }
-
 
 static void perimeter(char **param) {
     RList rl = file2rlist(param[0]);
@@ -308,14 +325,6 @@ static void analyze (char **param) {
     RList rl = file2rlist(param[0]);
     PMRegion pmreg = PMRegion::fromRList(rl);
     pmreg.analyze();
-}
-
-static void openscad (char **param) {
-    RList rl = file2rlist(param[0]);
-    PMRegion pmreg = PMRegion::fromRList(rl);
-    pmreg.openscad(param[0]);
-    PMRegion cd = pmreg.createcdpoly();
-    cd.openscad(((string)param[0])+"cd");
 }
 
 static void reg2pmreg(char **param) {
@@ -469,8 +478,6 @@ int main (int argc, char **argv) {
         atinstant2(param);
     } else if (!strcmp(cmd, "atinstantold") && nrparam == 2) {
         atinstant(param);
-    } else if (!strcmp(cmd, "openscad") && nrparam == 1) {
-        openscad(param);
     } else if (!strcmp(cmd, "minmaxz") && nrparam == 1) {
         minmaxz(param);
     } else if (!strcmp(cmd, "perimeter") && nrparam == 1) {
@@ -497,6 +504,7 @@ int main (int argc, char **argv) {
         difference(param);
     } else if (!strcmp(cmd, "analyze") && nrparam == 1) {
         analyze(param);
+#ifndef PMREGION_DISABLE_COVERDURATION
     } else if (!strcmp(cmd, "createcdpoly") && (nrparam == 1 || nrparam == 2)) {
         createcdpoly(param, nrparam);
     } else if (!strcmp(cmd, "restrictcdpoly") && nrparam == 2) {
@@ -515,6 +523,9 @@ int main (int argc, char **argv) {
         intervalcovered(param);
     } else if (!strcmp(cmd, "avgcover") && (nrparam == 1 || nrparam == 2)) {
         avgcover(param, nrparam);
+    } else if (!strcmp(cmd, "openscad") && nrparam == 1) {
+        openscad(param);
+#endif
     } else if (!strcmp(cmd, "decomposemreg") && nrparam == 3 ) {
         decomposemreg(param);
     } else if (!strcmp(cmd, "decomposepmreg") && nrparam == 2 ) {

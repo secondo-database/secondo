@@ -27,7 +27,11 @@
 include ../../makefile.env
 
 # expand compile flags if necessary
-CCFLAGS += -DCGAL_DISABLE_ROUNDING_MATH_CHECK=ON -Wno-tautological-overlap-compare
+CCFLAGS += -DCGAL_DISABLE_ROUNDING_MATH_CHECK=ON
+
+# Setting C++ standard to c++14 because older CGAL library versions
+# violate c++17 (i.e. CGAL libraries older than 4.12)
+CPPSTDOPTION = -std=c++14
 
 # create objects and algebra library. The values for the variables
 # OBJECTS and LIBOBJ are computed automatically by makefile.env 
@@ -51,4 +55,4 @@ $(LIBOBJ): $(OBJECTS)
 # generic rule for cleaning all generated files
 .PHONY: clean
 clean:
-	$(clean-algebra)
+	$(clean-algebra) 

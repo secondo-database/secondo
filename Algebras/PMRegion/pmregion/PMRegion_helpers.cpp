@@ -233,6 +233,7 @@ void PMRegion::analyze() {
     cerr << vertices << ", " << facets << ", "<< units << ", " << msegs << endl;
 }
 
+#ifndef PMREGION_DISABLE_COVERDURATION
 set<Segment_2, seg_compare> getprojectedsegments(Polyhedron polyhedron);
 list<Segment_2> getsubsegments (set<Segment_2, seg_compare> segs);
 Arrangement getarrangementfromsegments(list<Segment_2> segs);
@@ -313,6 +314,7 @@ void PMRegion::openscad(string filename) {
 
     scad.close();
 }
+#endif
 
 void PMRegion::toFile(string filename) {
     ofstream out;

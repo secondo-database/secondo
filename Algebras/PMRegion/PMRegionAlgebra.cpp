@@ -624,7 +624,8 @@ Operator traversedarea("traversedarea",
         traversedareatypemap
         );
 
-#if CGAL_VERSION_NR >= 1041400000
+/* #if CGAL_VERSION_NR >= 1041400000 */
+#ifndef PMREGION_DISABLE_COVERDURATION
 /*
    3.4 ~coverduration~
 
