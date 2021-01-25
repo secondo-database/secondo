@@ -610,7 +610,7 @@ class MTreeEntry: stores attribute types in main memory
 template<class T>
 class MTreeEntry {
  public:
-  MTreeEntry(T k, TupleId id) : key(k), tid(id) {
+  MTreeEntry(const T& k, const TupleId& id) : key(k), tid(id) {
     bringToMemory(&key); 
   }  
 
