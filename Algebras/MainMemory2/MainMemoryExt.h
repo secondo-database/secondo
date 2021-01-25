@@ -56,6 +56,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "MPointer.h"
 
 #include "MemoryObject.h"
+#include "Algebras/Temporal/TemporalAlgebra.h"
 
 
 namespace mm2algebra{
@@ -632,9 +633,21 @@ class MTreeEntry {
     return tid;
   }
   
+  void Destroy() {
+    destroy(&key);
+  }
+  
  private:
   T key;
   TupleId tid;
+  
+  void destroy(void* v) {}
+  
+  template<class Unit, class Alpha>
+  void destroy(temporalalgebra::Mapping<Unit, Alpha>* m) {
+    m->Destroy();
+  }
+  
 };
 
 
