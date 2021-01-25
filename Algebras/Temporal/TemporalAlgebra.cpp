@@ -5349,6 +5349,8 @@ double MPoint::DistanceAvg(const MPoint& mp, const Geoid* geoid /* = 0 */)
       cout << "UNDEFINED" << endl;
     }
   }
+  shiftThis.Destroy();
+  arg.Destroy();
   DateTime dur(datetime::durationtype);
   dur.ReadFrom(duration);
 //   cout << "MPoint::DistanceAvg, integral SUM is " << sum << ", DURATION is "
