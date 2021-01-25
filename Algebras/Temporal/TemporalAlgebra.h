@@ -6972,8 +6972,13 @@ void Mapping<Unit, Alpha>::Destroy()
 template <class Unit, class Alpha>
 Mapping<Unit, Alpha>::~Mapping()
 {
-  if( canDestroy )
+  if( canDestroy ) {
     units.Destroy();
+  }
+  else {
+    units.destroyIfNonPersistent();
+  }
+    
 }
 
 /*
