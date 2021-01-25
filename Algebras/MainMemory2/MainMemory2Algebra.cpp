@@ -4627,11 +4627,12 @@ int mcreatemtreeVMTMP (Word* args, Word& result, int message,
        tuple = v->at(i);
        if(tuple){
          T* attr = (T*) tuple->GetAttribute(index1);
-         T copy = *attr;
-         flobused = flobused || (copy.NumOfFLOBs()>0);
-         MTreeEntry<T> entry(copy, i+1);
+//          T copy = *attr;
+         flobused = flobused || (attr->NumOfFLOBs()>0);
+         MTreeEntry<T> entry(*attr, i+1);
 //          pair<T,TupleId> p(copy, i+1);
          tree->insert(entry);
+         entry.Destroy();
        }
      }
    }
@@ -5758,7 +5759,7 @@ ListExpr mdistRangeTM(ListExpr args) {
   if (nl->HasLength(args, 4)) {
     if (!mtreehelper::checkType(a1, a3)){
       return listutils::typeError("first arg is not a mtree over " 
-                                  + nl->ToString(a1));
+                                  + nl->ToString(a3));
     }
   }
   else {
