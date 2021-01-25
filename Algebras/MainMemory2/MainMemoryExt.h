@@ -624,8 +624,8 @@ class MTreeEntry {
     attr->bringToMemory();
   }
   
-  T getKey() const {
-    return key;
+  const T* getKey() const {
+    return &key;
   }
   
   TupleId getTid() const {

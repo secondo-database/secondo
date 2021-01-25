@@ -392,9 +392,9 @@ class StdDistComp{
 
 
     double operator()(const MTreeEntry<T>& o1, const MTreeEntry<T>& o2) {
-      T t1 = o1.getKey();
-      T t2 = o2.getKey();
-      return mtreehelper::distance(&t1, &t2, geoid);
+      const T* t1 = o1.getKey();
+      const T* t2 = o2.getKey();
+      return mtreehelper::distance(t1, t2, geoid);
     }
 //     double  operator()(const pair<T,TupleId>& o1, 
 //                        const pair<T,TupleId>& o2){
@@ -402,7 +402,7 @@ class StdDistComp{
 //     }
 
     ostream& print( const MTreeEntry<T>& e,  ostream& o){
-       o << "<"; e.getKey().Print(o); o << e.getTid() << ">";
+       o << "<"; e.getKey()->Print(o); o << e.getTid() << ">";
        return o;
     }
     
@@ -439,18 +439,18 @@ class StdDistCompExt : public StdDistComp<pair<T, U> > {
   
   ostream& print(const MTreeEntry<pair<T, U> >& p, ostream& o) {
        o << "< <";
-       p.getKey().first.Print(o);
+       p.getKey()->first.Print(o);
        o << ", ";
-       p.getKey().second.Print(o);
+       p.getKey()->second.Print(o);
        o << ">, " << p.getTid() << ">";
        return o;
     }
     
   double operator()(const MTreeEntry<pair<T, U> >& o1,
                     const MTreeEntry<pair<T, U> >& o2) {
-    pair<T, U> p1 = o1.getKey();
-    pair<T, U> p2 = o2.getKey();
-    return mtreehelper::distance(&p1, &p2, alpha,
+    const pair<T, U>* p1 = o1.getKey();
+    const pair<T, U>* p2 = o2.getKey();
+    return mtreehelper::distance(p1, p2, alpha,
                                  ((StdDistComp<pair<T, U> >*)this)->getGeoid());
   }
 //   double operator()(const pair<pair<T, U>, TupleId>& o1, 
