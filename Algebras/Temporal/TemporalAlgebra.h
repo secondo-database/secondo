@@ -6974,11 +6974,7 @@ Mapping<Unit, Alpha>::~Mapping()
 {
   if( canDestroy ) {
     units.Destroy();
-  }
-  else {
-    units.destroyIfNonPersistent();
-  }
-    
+  }    
 }
 
 /*
