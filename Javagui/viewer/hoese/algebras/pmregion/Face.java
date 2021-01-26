@@ -160,7 +160,7 @@ public class Face {
      * 
      * @return The Area to display
      */
-    public Area getAreaObj() {
+    public Area getAreaObj(boolean holestep) {
         if (_area != null)
             return _area;
         Path2D.Double path = new Path2D.Double();
@@ -175,12 +175,17 @@ public class Face {
         path.closePath();
 
         Area ret = new Area(path);
-        for (Face h : holes) {
-//            ret.subtract(h.getAreaObj());
+        if (!holestep) {
+            for (Face h : holes) {
+                ret.subtract(h.getAreaObj(true));
+            }
         }
 
         _area = ret;
         return ret;
     }
-    
+
+    public Area getAreaObj() {
+        return getAreaObj(false);
+    }
 }

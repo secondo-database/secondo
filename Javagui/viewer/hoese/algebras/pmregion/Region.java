@@ -2,6 +2,7 @@ package viewer.hoese.algebras.pmregion;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.LinkedList;
 
 /**
  * Class Region represents a set of Faces.
@@ -75,5 +76,22 @@ public class Region {
         }
         
         return nl;
+    }
+
+    public void fixHoles () {
+        List<Face> holes = new LinkedList();
+        for (Face f1 : fcs) {
+            for (Face f2 : fcs) {
+                if (f1 == f2)
+                    continue;
+                if (f1.contains(f2)) {
+                    f1.addHole(f2);
+                    holes.add(f2);
+                }
+            }
+        }
+        for (Face h : holes) {
+            fcs.remove(h);
+        }
     }
 }

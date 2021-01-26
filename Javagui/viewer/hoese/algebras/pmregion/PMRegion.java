@@ -49,9 +49,8 @@ public class PMRegion {
                 prev = cur;
             }
         }
-        System.out.println("Rendered "+faces+" faces");
 
-//        reg.fixHoles(); // FIXME!
+        reg.fixTopology(); // FIXME!
         return reg;
     }
     
