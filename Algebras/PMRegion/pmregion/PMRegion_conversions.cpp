@@ -177,6 +177,8 @@ PMRegion PMRegion::fromMRegion (RList reg) {
         Kernel::FT starttime = parsetime(iv.items[0].getString()) - off;
         Kernel::FT endtime = parsetime(iv.items[1].getString()) - off;
 
+        if (starttime == endtime)
+            continue;
 
         RList& fcs = ur.items[1];
         for (unsigned int j = 0; j < fcs.items.size(); j++) {
