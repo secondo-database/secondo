@@ -42,7 +42,14 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Algebras/DBService2/ReplicationUtils.hpp"
 #include "Algebras/DBService2/SecondoUtilsLocal.hpp"
 
+#include <loguru.hpp>
+
+#include "boost/filesystem.hpp"
+
+namespace fs = boost::filesystem;
+
 using namespace std;
+using namespace distributed2;
 
 namespace DBService {
 
@@ -88,12 +95,16 @@ int ReplicationServer::communicate(iostream& io)
         string purpose = receiveBuffer.front();
         receiveBuffer.pop();
         string fileName = receiveBuffer.front();
+
+        fs::path filepath = ReplicationUtils::expandFilenameToAbsPath(fileName);
+        traceWriter->write(tid, "Filepath", filepath.string());
+
         receiveBuffer.pop();
 
         if(purpose == CommunicationProtocol::SendReplicaForStorage())
         {
-            if(!FileSystem::FileOrFolderExists(fileName) &&
-               !createFileFromRelation(fileName))
+            if(!FileSystem::FileOrFolderExists(filepath.string()) &&
+               !createFileFromRelation(filepath))
             {
                traceWriter->write(tid, "file not found, notifying client");
                CommunicationUtils::sendLine(io,
@@ -108,16 +119,17 @@ int ReplicationServer::communicate(iostream& io)
             CommunicationUtils::receiveLine(io, function);
             if(function == CommunicationProtocol::None())
             {
-                traceWriter->write("request file " + fileName 
+                traceWriter->write("request file " + filepath.string() 
                                     + " without function");
-                if(!FileSystem::FileOrFolderExists(fileName) &&
-                   !createFileFromRelation(fileName))
+                if(!FileSystem::FileOrFolderExists(filepath.string()) &&
+                   !createFileFromRelation(filepath))
                 {
                    traceWriter->write(tid, "file not found, notifying client");
                    CommunicationUtils::sendLine(io,
                    distributed2::FileTransferKeywords::FileNotFound());
                 } else {
-                   traceWriter->write("file " + fileName + " found or created");
+                   traceWriter->write(
+                       "file " + filepath.string() + " found or created");
                 }
                 sendFileToClient(io, true, tid);
             }else
@@ -143,14 +155,21 @@ int ReplicationServer::communicate(iostream& io)
 
                 std::time_t currentTime = std::time(0);
                 stringstream fileName;
+                
                 fileName << currentTime << "_" << replicaFileName;
+
+                fs::path replicaFilepath = 
+                    ReplicationUtils::expandFilenameToAbsPath(replicaFileName);
+                
+                fs::path newFilepath = 
+                    ReplicationUtils::expandFilenameToAbsPath(fileName.str());
 
                 CommunicationUtils::sendLine(io,
                         fileName.str());
 
                 applyFunctionAndCreateNewFile(
-                        io, function, otherObjects, replicaFileName, 
-                        fileName.str(), tid);
+                        io, function, otherObjects, replicaFilepath, 
+                        newFilepath, tid);
             }
             sendFileToClient(io, true, tid);
         }else
@@ -168,7 +187,7 @@ int ReplicationServer::communicate(iostream& io)
 
 void ReplicationServer::sendFileToClient(
         iostream& io,
-        bool fileCreated,
+        bool fileCreated, // TODO remove?! seems not to be used.
         const boost::thread::id tid)
 {
     traceWriter->writeFunction(tid, "ReplicationServer::sendFileToClient");
@@ -188,21 +207,24 @@ void ReplicationServer::sendFileToClient(
                 "communication error while initiating file transfer");
     }
 
+    // TODO Misleading: No file is created here.
     traceWriter->write(tid, "File created, sending file...");
 
     std::chrono::steady_clock::time_point begin =
             std::chrono::steady_clock::now();
-    std::string filename;
-    int rc = sendFile(io, filename);
+    
+    fs::path filepath;
 
+    int rc = ReplicationServer::sendFile(io, filepath);
+
+    traceWriter->write(tid, "Filepath", filepath.string());
     traceWriter->write(tid, "File has been sent.");
-    traceWriter->write(tid, "Filename", filename);
 
     std::chrono::steady_clock::time_point end =
             std::chrono::steady_clock::now();
     if(rc != 0)
     {
-        traceWriter->write(tid, ("sending file " + filename 
+        traceWriter->write(tid, ("sending file " + filepath.string() 
                                  + " failed").c_str());
     }else
     {
@@ -217,14 +239,14 @@ void ReplicationServer::applyFunctionAndCreateNewFile(
         iostream& io,
         const string& function,
         queue<string>& otherObjects,
-        const string& oldFileName,
-        const string& newFileName,
+        const fs::path& oldFileName,
+        const fs::path& newFileName,
         const boost::thread::id tid)
 {
     traceWriter->writeFunction(
             tid, "ReplicationServer::applyFunctionAndCreateNewFile");
-    traceWriter->write("oldFileName ", oldFileName);
-    traceWriter->write("newFileName ", newFileName);
+    traceWriter->write("oldFileName ", oldFileName.string());
+    traceWriter->write("newFileName ", newFileName.string());
 
 
     traceWriter->write(tid, "FunctionList " , function); 
@@ -256,7 +278,9 @@ void ReplicationServer::applyFunctionAndCreateNewFile(
     ListExpr argtype = nl->Second(args);
     ListExpr funarg1;
     // funarg may be a tuple stream or a relation
-    string relName = ReplicationUtils::getRelName(oldFileName);
+    string relName = ReplicationUtils::getRelName(
+        oldFileName.filename().string());
+
     if(nl->HasLength(argtype,2) && nl->IsEqual(nl->First(argtype),"stream")){
        funarg1 = nl->TwoElemList(
                             nl->SymbolAtom("feed"),
@@ -311,7 +335,7 @@ void ReplicationServer::applyFunctionAndCreateNewFile(
     command = nl->ThreeElemList(
                      nl->SymbolAtom("fconsume5"),
                      command,
-                     nl->TextAtom(newFileName));
+                     nl->TextAtom(newFileName.string()));
  
     command = nl->TwoElemList(
                      nl->SymbolAtom("count"),
@@ -379,20 +403,78 @@ void ReplicationServer::applyFunctionAndCreateNewFile(
 }
 
 
-bool ReplicationServer::createFileFromRelation(const std::string& filename){
-   string relname = ReplicationUtils::getRelName(filename);
-   string cmd = "(count (fconsume5 ( feed "+relname+") '"+filename+"'))";
-   Word result;
-   if(QueryProcessor::ExecuteQuery(cmd,result)){
-      traceWriter->write("file created from relation");
-      CcInt* res = (CcInt*) result.addr;
-      res->DeleteIfAllowed();
-      return true;
-   } else {
-      traceWriter->write("problem in creating file from relation with command'"
+bool ReplicationServer::createFileFromRelation(const fs::path& filepath){
+
+    string databaseName;
+    string relname;
+
+    ReplicationUtils::parseFileName(
+        filepath.filename().string(),
+        databaseName,
+        relname
+    );
+    
+    traceWriter->write("createFileFromRelation - Filepath", filepath.string());
+
+    string cmd = "(count (fconsume5 ( feed "+relname+"\
+) '"+filepath.string()+"'))";
+
+    Word result;
+    if(QueryProcessor::ExecuteQuery(cmd,result)){
+        traceWriter->write("file created from relation");
+        CcInt* res = (CcInt*) result.addr;
+        res->DeleteIfAllowed();
+        return true;
+    } else {
+        traceWriter->write(
+            "problem in creating file from relation with command'"
                          + cmd + "'");
-      return false;
-   }
+        return false;
+    }
+}
+
+int ReplicationServer::sendFile(iostream& io, fs::path& outfilepath) {
+
+    string outfilename;
+
+    // client ask for a file
+    getline(io, outfilename);
+
+    traceWriter->write("ReplicationServer::sendFile. Outfilename: ",
+        outfilename);
+
+    outfilepath = ReplicationUtils::expandFilenameToAbsPath(
+        outfilename);
+
+    traceWriter->write("ReplicationServer::sendFile. Outfilepath: ", 
+        outfilepath.string());
+
+    LOG_F(INFO, "ReplicationServer::sendFile. Outfilepath: %s", 
+        outfilepath.string().c_str());
+
+    ifstream in(outfilepath.string().c_str(), ios::binary);
+    if(!in) {
+        io << FileTransferKeywords::FileNotFound() << endl;
+        io.flush();
+        return 6;
+    }
+    in.seekg(0, in.end);
+    size_t length = in.tellg();
+    in.seekg(0, in.beg);
+    io << FileTransferKeywords::Data() << endl;
+    io << stringutils::any2str(length) << endl;
+    io.flush();
+    size_t bufsize = 8192; //1048576;
+    char buffer[bufsize];
+    while(!in.eof() && in.good()) {
+        in.read(buffer, bufsize);
+        size_t r = in.gcount();
+        io.write(buffer, r);
+    }
+    in.close();
+    io << FileTransferKeywords::EndData() << endl;
+    io.flush();
+    return 0;
 }
 
 } /* namespace DBService */

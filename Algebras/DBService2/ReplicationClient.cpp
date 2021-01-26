@@ -37,25 +37,46 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Algebras/DBService2/SecondoUtilsLocal.hpp"
 #include "Algebras/DBService2/ReplicationUtils.hpp"
 
+#include "boost/filesystem.hpp"
+
+namespace fs = boost::filesystem;
+
 using namespace std;
 using namespace distributed2;
 
 namespace DBService {
 
+
+/*
+
+Hypothesis
+
+Use Case 1
+The ReplicationClient is used when transferring files from the
+O-M to the DBS-W.
+In this scenario the O-M runs the ReplicationServer and the DBS-W runs
+the ReplicationClient.
+
+Use Case 2
+However, there is another use case in which the DBS-W sends a replica to
+lets say a O-W. In this scenario the DBS-W runs the ReplicationServer
+and the O-W runs the ReplicationClient.
+
+*/
 ReplicationClient::ReplicationClient(
         string& server,
         int port,
-        const std::string& fileNameDBS,
-        const std::string& fileNameOrigin,
+        const fs::path& localPath, // local to the replication client
+        const std::string& remoteFilename,
         string& databaseName,
         string& relationName)
 : FileTransferClient(server,
                      port,
                      true,
-                     *(const_cast<string*>(&fileNameDBS)),
-                     *(const_cast<string*>(&fileNameOrigin))),
-  fileNameDBS(fileNameDBS),
-  fileNameOrigin(fileNameOrigin),
+                     *(const_cast<string*>(&localPath.string())), // local
+                     *(const_cast<string*>(&remoteFilename))), // remote
+  localPath(localPath.string()),
+  remoteFilename(remoteFilename),
   databaseName(databaseName),
   relationName(relationName)
 {
@@ -66,8 +87,8 @@ ReplicationClient::ReplicationClient(
     traceWriter->writeFunction("ReplicationClient::ReplicationClient");
     traceWriter->write("server", server);
     traceWriter->write("port", port);
-    traceWriter->write("fileNameDBS", fileNameDBS);
-    traceWriter->write("fileNameOrigin", fileNameOrigin);
+    traceWriter->write("localPath", localPath.string());
+    traceWriter->write("remoteFilename", remoteFilename);
     traceWriter->write("databaseName", databaseName);
     traceWriter->write("relationName", relationName);
 }
@@ -116,25 +137,30 @@ int ReplicationClient::receiveReplica()
         queue<string> sendBuffer;
         sendBuffer.push(CommunicationProtocol::ReplicationClient());
         sendBuffer.push(CommunicationProtocol::SendReplicaForStorage());
-        sendBuffer.push(fileNameOrigin);
-        traceWriter->write("fileNameOrigin", fileNameOrigin);
-        traceWriter->write("fileNameDBS", fileNameDBS);
+        sendBuffer.push(remoteFilename);
+        traceWriter->write("remoteFilename", remoteFilename);
+        traceWriter->write("localPath", localPath.string());
         CommunicationUtils::sendBatch(io, sendBuffer);
 
         if(receiveFileFromServer())
         {
             traceWriter->write("file received, create relation");
             ListExpr command = nl->TwoElemList(
-                                 nl->SymbolAtom("consume"),
-                                 nl->TwoElemList(
-                                   nl->SymbolAtom("ffeed5"),
-                                   nl->TextAtom(fileNameDBS)));
+                nl->SymbolAtom("consume"),
+                nl->TwoElemList(
+                    nl->SymbolAtom("ffeed5"),
+                    nl->TextAtom(localPath.string()))); //  // remoteFilename
 
+
+            //TODO Does this read the entire memory before writing it?
+            //  If so, wouldn't it be more efficient to stream read and 
+            //  stream write? Is this possible?
             Word result((void*)0);
             string typeString,errorString;
             bool correct,evaluable,defined,isFunction;
             SecondoSystem::BeginTransaction();
 
+            // Generate a stream of tuples from ffeed5 and store into "result"
             try{
                 QueryProcessor::ExecuteQuery(command, result, typeString,
                                   errorString,correct,evaluable,defined,
@@ -150,9 +176,11 @@ int ReplicationClient::receiveReplica()
             ListExpr typeExpr;
             nl->ReadFromString(typeString,typeExpr);
             SecondoCatalog* ctlg = SecondoSystem::GetCatalog();
-            string relName = ReplicationUtils::getRelName(fileNameDBS);
+            string relName = ReplicationUtils::getRelName(
+                localPath.filename().string());
 
-            bool ok = ctlg->InsertObject (relName,"",typeExpr,result,true);
+            // Create the relation by writing the "result"
+            bool ok = ctlg->InsertObject(relName,"",typeExpr,result,true);
             if(!ok){
               traceWriter->write("Insertion relation " + relName + " failed");
               SecondoSystem::AbortTransaction(true);
@@ -182,10 +210,13 @@ int ReplicationClient::receiveReplica()
 }
 
 int ReplicationClient::requestReplica(const string& functionAsNestedListString,
-                                 std::string& fileName,
+                                 fs::path& fileName,
                                  const std::vector<std::string>& otherObjects)
 {
     traceWriter->writeFunction("ReplicationClient::requestReplica");
+    traceWriter->write("remoteFilename is", remoteFilename);
+
+
     try
     {
         if(start() != 0)
@@ -204,7 +235,7 @@ int ReplicationClient::requestReplica(const string& functionAsNestedListString,
         queue<string> sendBuffer;
         sendBuffer.push(CommunicationProtocol::ReplicationClient());
         sendBuffer.push(CommunicationProtocol::SendReplicaForUsage());
-        sendBuffer.push(fileNameOrigin);
+        sendBuffer.push(remoteFilename);
         CommunicationUtils::sendBatch(io, sendBuffer);
         if(!CommunicationUtils::receivedExpectedLine(io,
                 CommunicationProtocol::FunctionRequest()))
@@ -233,7 +264,7 @@ int ReplicationClient::requestReplica(const string& functionAsNestedListString,
                 traceWriter->write("expected file name keyword");
                 return 4;
             }
-            CommunicationUtils::sendLine(io, fileNameOrigin);
+            CommunicationUtils::sendLine(io, remoteFilename);
             traceWriter->write("sent original filename");
 
             if(!CommunicationUtils::receivedExpectedLine(io,
@@ -246,12 +277,12 @@ int ReplicationClient::requestReplica(const string& functionAsNestedListString,
             string newFileName;
             CommunicationUtils::receiveLine(io, newFileName);
             traceWriter->write("new filename is", newFileName);
-            fileNameOrigin = remoteName = newFileName;
+            remoteFilename = remoteName = newFileName;
         }
 
         if(receiveFileFromServer())
         {
-            fileName = fileNameDBS;
+            fileName = localPath;
         }
     } catch (...)
     {

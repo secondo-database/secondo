@@ -33,6 +33,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #ifndef ALGEBRAS_DBSERVICE_OperatorRead3_X_HPP_
 #define ALGEBRAS_DBSERVICE_OperatorRead3_X_HPP_
 
+#include "boost/filesystem.hpp"
+
 #include "Operator.h"
 #include "StringUtils.h"
 #include "Algebras/DBService2/DebugOutput.hpp"
@@ -42,6 +44,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Algebras/Distributed2/FileRelations.h"
 #include "Algebras/FText/FTextAlgebra.h"
 #include "Algebras/DBService2/DBServiceClient.hpp"
+
+namespace fs = boost::filesystem;
 
 namespace DBService {
 
@@ -359,7 +363,7 @@ int OperatorRead3_X<X>::mapValue(Word* args,
                   otherObjects.push_back(name);
                }
             }
-            std::string fileName =
+            fs::path fileName =
                 DBServiceClient::getInstance()->
                 retrieveReplicaAndGetFileName(
                         databaseName,
@@ -371,8 +375,8 @@ int OperatorRead3_X<X>::mapValue(Word* args,
                print("Did not receive file", std::cout);
                return CANCEL; 
             }
-            print("Reading tuple stream from file", fileName, std::cout);
-            info = new ffeed5Info(fileName);
+            print("Reading tuple stream from file", fileName.string(), std::cout);
+            info = new ffeed5Info(fileName.string());
             if(!info->isOK())
             {
                 print("Could not read file", std::cout);

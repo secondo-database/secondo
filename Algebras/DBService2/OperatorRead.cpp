@@ -39,6 +39,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Algebras/DBService2/SecondoUtilsLocal.hpp"
 #include "DBServiceClient.hpp"
 
+#include "boost/filesystem.hpp"
+
+namespace fs = boost::filesystem;
+
 using namespace std;
 
 namespace DBService {
@@ -59,7 +63,9 @@ ListExpr OperatorRead::mapType(ListExpr nestedList)
     bool relationLocallyAvailable = (feedTypeMapResult != nl->TypeError());
     print("relationLocallyAvailable",
             string(relationLocallyAvailable ? "TRUE" : "FALSE"), std::cout);
-    string fileName;
+    
+    fs::path fileName;
+
     if(!relationLocallyAvailable)
     {
         print("Trying to retrieve relation from DBService", std::cout);
@@ -75,7 +81,7 @@ ListExpr OperatorRead::mapType(ListExpr nestedList)
           return listutils::typeError("Could not create client, "
                                       "check dbs configuration");
         }
-        fileName = client-> retrieveReplicaAndGetFileName(
+        fileName = client->retrieveReplicaAndGetFileName(
                         databaseName,
                         relationName,
                         otherObjects,
@@ -85,8 +91,8 @@ ListExpr OperatorRead::mapType(ListExpr nestedList)
             print("Did not receive file", std::cout);
             return listutils::typeError("File does not exist");
         }
-        print("fileName", fileName, std::cout);
-        ffeed5Info info(fileName);
+        print("fileName (path)", fileName.string(), std::cout);
+        ffeed5Info info(fileName.string());
         if(info.isOK()){
            feedTypeMapResult = nl->TwoElemList(
                    nl->SymbolAtom(Symbol::STREAM()),
@@ -102,10 +108,13 @@ ListExpr OperatorRead::mapType(ListExpr nestedList)
 
     print("feedTypeMapResult", feedTypeMapResult, std::cout);
 
+    string fileNameStr = fileName.filename().string();
+    
     ListExpr readTypeMapResult = nl->ThreeElemList(
             nl->SymbolAtom(Symbols::APPEND()),
             nl->OneElemList((relationLocallyAvailable ?
-                    nl->StringAtom("") : nl->StringAtom(fileName))),
+                    nl->StringAtom("") : nl->StringAtom(
+                        as_const(fileNameStr)))),
                     feedTypeMapResult);
     print("readTypeMapResult", readTypeMapResult, std::cout);
     return readTypeMapResult;

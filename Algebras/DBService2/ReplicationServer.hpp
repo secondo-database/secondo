@@ -41,6 +41,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "Algebras/DBService2/MultiClientServer.hpp"
 
+#include "boost/filesystem.hpp"
+
+namespace fs = boost::filesystem;
+
 namespace DBService {
 
 /*
@@ -118,13 +122,26 @@ the resulting tuple stream in a new file.
             std::iostream& io,
             const std::string& function,
             std::queue<std::string>& otherObjects,
-            const std::string& oldFileName,
-            const std::string& newFileName,
+            // const std::string& oldFileName,
+            // const std::string& newFileName,
+            const fs::path& oldFileName,
+            const fs::path& newFileName,
             const boost::thread::id tid);
 
-    bool createFileFromRelation(const std::string& filename);
+    bool createFileFromRelation(const fs::path& filename);
 
+/*
+
+1.1.1.1 ~sendFile~~
+
+Hides the ~FileTransferServer::sendFile~ so that a base directory
+for all file transfers.
+
+*/
+
+    int sendFile(std::iostream& io, fs::path& outfilepath);
 };
+
 
 } /* namespace DBService */
 

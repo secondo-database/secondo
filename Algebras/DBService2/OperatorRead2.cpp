@@ -41,6 +41,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Algebras/DBService2/DBServiceClient.hpp"
 #include "Stream.h"
 
+#include "boost/filesystem.hpp"
+
+namespace fs = boost::filesystem;
+
 using namespace std;
 
 namespace DBService {
@@ -230,7 +234,7 @@ int OperatorRead2::mapValue(Word* args,
                print("could not create client", std::cout);
                return CANCEL;
             }
-            string fileName =
+            fs::path fileName =
                 client->
                 retrieveReplicaAndGetFileName(
                         databaseName,
@@ -242,8 +246,9 @@ int OperatorRead2::mapValue(Word* args,
                print("Did not receive file", std::cout);
                return CANCEL; 
             }
-            print("Reading tuple stream from file", fileName, std::cout);
-            info = new ffeed5Info(fileName);
+            print("Reading tuple stream from file", 
+                fileName.string(), std::cout);
+            info = new ffeed5Info(fileName.string());
             if(!info->isOK())
             {
                 print("Could not read file", std::cout);

@@ -30,6 +30,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <sstream>
 
 #include "Algebras/DBService2/ReplicationUtils.hpp"
+#include "Algebras/DBService2/SecondoUtilsLocal.hpp"
 
 using namespace std;
 
@@ -64,6 +65,29 @@ const std::string ReplicationUtils::getFileNameOnDBServiceWorker(
              << relationName
              << "xRPLCTD" << ".bin";
     return fileName.str();
+}
+
+const fs::path ReplicationUtils::getFilePathOnDBServiceWorker(
+    const std::string& databaseName,
+    const std::string& relationName)
+{    
+    const string& filename = ReplicationUtils::getFileNameOnDBServiceWorker(
+        databaseName, relationName);
+    
+    fs::path filepath = expandFilenameToAbsPath(filename);
+    
+    return filepath;
+}
+
+fs::path ReplicationUtils::expandFilenameToAbsPath(
+    const string& filename) {
+
+    fs::path filepath(SecondoUtilsLocal::getSecondoHomeDir());
+
+    filepath.append(
+        filename);
+
+    return filepath;
 }
 
 const std::string ReplicationUtils::getRelNameOnDBServiceWorker(

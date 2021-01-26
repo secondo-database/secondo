@@ -58,6 +58,15 @@ void SecondoUtilsLocal::readFromConfigFile(string& resultValue,
             key, defaultValue, secondoConfig);
 }
 
+string SecondoUtilsLocal::getSecondoHomeDir() {
+    string secondoHome;
+
+    readFromConfigFile(secondoHome, "Environment", "SecondoHome", 
+        "/secondo/home/is/missing");
+
+    return secondoHome;
+}
+
 bool SecondoUtilsLocal::executeQuery(const string& queryAsString)
 {
     // JF

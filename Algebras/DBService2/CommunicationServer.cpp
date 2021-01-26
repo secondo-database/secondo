@@ -47,12 +47,17 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Algebras/DBService2/DerivationClient.hpp"
 #include "Algebras/DBService2/CreateDerivateRunnable.hpp"
 
+#include "boost/filesystem.hpp"
+
+
 #include <algorithm>
 #include <random>
 #include <sstream>
 
 using namespace distributed2;
 using namespace std;
+
+namespace fs = boost::filesystem;
 
 namespace DBService {
 
@@ -235,7 +240,7 @@ bool CommunicationServer::handleTriggerReplicationRequest(
     }
 
     traceWriter->write(tid, "The relation doesn't exist. Initiating \
-        replication. Starting location request...");
+replication. Starting location request...");
 
     CommunicationUtils::sendLine(io,
             CommunicationProtocol::LocationRequest());
@@ -569,19 +574,20 @@ bool CommunicationServer::handleTriggerReplicaDeletion(
 
     if(derivateName.empty())
     {
-       // remove File
-       string filename = ReplicationUtils::getFileNameOnDBServiceWorker(
-                                  databaseName,
-                                  relationName);
-       traceWriter->write("filename", filename);                                
-       success = FileSystem::DeleteFileOrFolder( filename );
+        // remove File
+        fs::path filename = ReplicationUtils::getFilePathOnDBServiceWorker(
+            databaseName,
+            relationName);
+
+       traceWriter->write("filename", filename.string());
+       success = FileSystem::DeleteFileOrFolder( filename.string() );
 
        if (success)
            traceWriter->write("Successfully deleted file");
         else
            traceWriter->write("Couldn't delete file");
 
-       victim = ReplicationUtils::getRelName(filename);
+       victim = ReplicationUtils::getRelName(filename.filename().string());
     } 
     else
     {
@@ -636,6 +642,9 @@ bool CommunicationServer::handleRelTypeRequest(
     traceWriter->write("databaseName", databaseName);
     traceWriter->write("relationName", relationName);
 
+    // Here filename is enough. No no need to use a path as all that mattes
+    // is extracting the relationName. 
+    // JF: Strange enough as the relationName is also passed as a parameter?!s
     string fileName = ReplicationUtils::getFileNameOnDBServiceWorker(
                         databaseName,
                         relationName);
@@ -643,6 +652,7 @@ bool CommunicationServer::handleRelTypeRequest(
     traceWriter->write("fileName", fileName);
     string relname = ReplicationUtils::getRelName(fileName);
     traceWriter->write("relName ", relname);
+    
     SecondoCatalog* ctlg = SecondoSystem::GetCatalog();
     if(!ctlg->IsObjectName(relname)){
         traceWriter->write(relname + " is not a database object");

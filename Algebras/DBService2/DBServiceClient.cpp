@@ -41,6 +41,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Algebras/DBService2/SecondoUtilsLocal.hpp"
 #include "Algebras/DBService2/ServerRunnable.hpp"
 
+#include <loguru.hpp>
+
 using namespace std;
 
 namespace DBService {
@@ -151,12 +153,18 @@ bool DBServiceClient::getReplicaLocation(
         string& transferPort,
         string& commPort)
 {
+    LOG_SCOPE_FUNCTION(INFO);
+    LOG_F(INFO, "databaseName: %s", databaseName.c_str());
+    LOG_F(INFO, "relationName: %s", relationName.c_str());
+
     printFunction("DBServiceClient::getReplicaLocation", std::cout);
     print("databaseName", databaseName, std::cout);
     print("relationName", relationName, std::cout);
+
     CommunicationClient dbServiceMasterClient(dbServiceHost,
                                               atoi(dbServicePort.c_str()),
                                               0);
+
     return dbServiceMasterClient.getReplicaLocation(databaseName,
                                                     relationName,
                                                     otherObjects,
@@ -165,12 +173,17 @@ bool DBServiceClient::getReplicaLocation(
                                                     commPort);
 }
 
-string DBServiceClient::retrieveReplicaAndGetFileName(
+fs::path DBServiceClient::retrieveReplicaAndGetFileName(
                                 const string& databaseName,
                                 const string& relationName,
                                 const vector<string>& otherObjects,
                                 const string& functionAsNestedListString)
 {
+    LOG_SCOPE_FUNCTION(INFO);
+    LOG_F(INFO, "databaseName: %s", databaseName.c_str());
+    LOG_F(INFO, "relationName: %s", relationName.c_str());    
+    LOG_F(INFO, "function: %s", functionAsNestedListString.c_str());
+    
     printFunction("DBServiceClient::retrieveReplicaAndGetFileName", std::cout);
     print("databaseName", databaseName, std::cout);
     print("relationName", relationName, std::cout);
@@ -191,21 +204,36 @@ string DBServiceClient::retrieveReplicaAndGetFileName(
     print("host", host, std::cout);
     print("transferPort", transferPort, std::cout);
 
+    fs::path localPathOnClient = ReplicationUtils::expandFilenameToAbsPath(
+        ReplicationUtils::getFileName(databaseName,relationName));
+
+    string filenameOnDBSWorker = 
+        ReplicationUtils::getFileNameOnDBServiceWorker(databaseName,
+        relationName);
+
+    /*
+     Use case: Transfer from DBS-W to a O-Node.
+     Here the DBServiceClient is used to get the fileName of the file
+     to be retrieved by the requesting node. (e.g. an O-W)
+    */
     ReplicationClient clientToDBServiceWorker(
             host,
             atoi(transferPort.c_str()),
-            ReplicationUtils::getFileName(
-                    databaseName, relationName), /*local*/
-            ReplicationUtils::getFileNameOnDBServiceWorker(
-                    databaseName, relationName), /*remote*/
+            localPathOnClient, /*local*/
+            filenameOnDBSWorker, /*remote*/
             *(const_cast<string*>(&databaseName)),
             *(const_cast<string*>(&relationName)));
 
-    string fileName;
+    // requestReplica sets the fileName passed into it.
+    // requestReplica acts upon the remoteFile (2nd argument of the constructor)
+    fs::path fileName;
     clientToDBServiceWorker.requestReplica(
             functionAsNestedListString,
             fileName,
             otherObjects);
+
+    LOG_F(INFO, "retrieveReplicaAndGetFileName: %s", fileName.string().c_str());
+
     return fileName;
 }
 

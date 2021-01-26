@@ -757,8 +757,7 @@ catch(...)
     void DBServiceManager::addDerivative(std::string relationDatabase,
         std::string relationName, std::string derivativeName,
         std::string derivativeFunction) {
-
-        // TODO Move to DBServiceManager where a relationManager is present
+    
         auto relation = relationManager->findByDatabaseAndName(
             relationDatabase, relationName);
 

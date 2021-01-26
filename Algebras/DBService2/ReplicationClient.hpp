@@ -6,6 +6,9 @@ The ~ReplicationClient~ connects to a ~ReplicationServer~ and requests the
 ~DBService~ worker node, in order to create a replica, or from an arbitrary
 node in the original system, in order to request a replica.
 
+DBS-W > create replica.
+Arbitrary original node > request replica.
+
 ----
 This file is part of SECONDO.
 
@@ -40,6 +43,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Algebras/DBService2/LocationInfo.hpp"
 #include "Algebras/DBService2/TraceWriter.hpp"
 
+#include "boost/filesystem.hpp"
+
+namespace fs = boost::filesystem;
+
 namespace DBService {
 
 /*
@@ -60,8 +67,8 @@ public:
     ReplicationClient(
             std::string& server,
             int port,
-            const std::string& fileNameDBS,
-            const std::string& fileNameOrigin,
+            const fs::path& localPath,
+            const std::string& remoteFilename,
             std::string& databaseName,
             std::string& relationName);
 
@@ -101,7 +108,7 @@ the ~DBService~ worker node.
 */
     int requestReplica(
             const std::string& functionAsNestedListString,
-            std::string& fileName,
+            fs::path& fileName,
             const std::vector<std::string>& otherObjects);
 
 /*
@@ -126,21 +133,21 @@ private:
 
 /*
 
-1.1.1.1 ~fileNameDBS~
+1.1.1.1 ~localPath~
 
 Stores the name of the file that contains the replica on the local side.
 
 */
-    const std::string fileNameDBS;
+    const fs::path localPath;
 
 /*
 
-1.1.1.1 ~fileNameOrigin~
+1.1.1.1 ~remoteFilename~
 
 Stores the name of the file that contains the replica on the remote side.
 
 */
-    std::string fileNameOrigin;
+    std::string remoteFilename;
 
 /*
 

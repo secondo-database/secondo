@@ -37,11 +37,14 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <vector>
 
 #include <boost/shared_ptr.hpp>
+#include "boost/filesystem.hpp"
 
 #include "NList.h"
 
 #include "Algebras/DBService2/CommunicationClient.hpp"
 #include "Algebras/DBService2/LocationInfo.hpp"
+
+namespace fs = boost::filesystem;
 
 namespace DBService {
 
@@ -96,7 +99,7 @@ specified relation and returns the file name to the caller. The file name can
 then be used to read a tuple stream from the file.
 
 */
-    std::string retrieveReplicaAndGetFileName(
+   fs::path retrieveReplicaAndGetFileName(
             const std::string& databaseName,
             const std::string& relationName,
             const std::vector<std::string>& otherObjects,

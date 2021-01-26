@@ -32,6 +32,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include <string>
 
+#include "boost/filesystem.hpp"
+
+namespace fs = boost::filesystem;
+
 namespace DBService {
 
 /*
@@ -54,6 +58,32 @@ public:
     static const std::string getFileName(
             const std::string& databaseName,
             const std::string& relationName);
+
+/*
+
+1.1.1.1 ~getFilePathOnDBServiceWorker~
+
+This function constructs a filename, e.g. to store a retreived replica
+and returns an absolute file path
+relative to the Secondo home directory as defined in the Secondo config.
+
+*/
+
+    static const fs::path getFilePathOnDBServiceWorker(
+        const std::string& databaseName,
+        const std::string& relationName);
+
+
+/*
+
+1.1.1.1 ~expandFilenameToAbsPath~~
+
+Takes a ~filename~ and expands it into an absolute path by appending
+the filename to the ~SecondoHome~ path.
+
+*/
+
+    static fs::path expandFilenameToAbsPath(const std::string& filename);
 
 /*
 

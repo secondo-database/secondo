@@ -35,6 +35,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Algebras/DBService2/OperatorDDelete.hpp"
 #include "Algebras/DBService2/ReplicationUtils.hpp"
 
+#include "boost/filesystem.hpp"
+
+namespace fs = boost::filesystem;
 
 using namespace std;
 
@@ -99,10 +102,11 @@ int OperatorDDelete::mapValue(Word* args,
     print("derivateName", derivateName, std::cout);
     print("deleteLocalRelation", deleteLocalRelation, std::cout);
 
-    FileSystem::DeleteFileOrFolder(
-            ReplicationUtils::getFileName(
-                    SecondoSystem::GetInstance()->GetDatabaseName(),
-                    relationName));
+    // Deleting the local relation's .bin-file.
+    fs::path filepath = ReplicationUtils::getFilePathOnDBServiceWorker(
+        SecondoSystem::GetInstance()->GetDatabaseName(),
+        relationName);
+    FileSystem::DeleteFileOrFolder(filepath.string());            
 
     bool success = false;
     try{

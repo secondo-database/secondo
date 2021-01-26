@@ -59,6 +59,17 @@ This function retrieves a value from the local configuration file.
             const char* key,
             const char* defaultValue);
 
+
+/*
+
+1.1.1.1 ~getSecondoHomeDir~
+
+Returns the Secondo home directory by reading it from the Secondo config file.
+
+*/
+
+    static std::string getSecondoHomeDir();
+
 /*
 
 1.1.1.1 ~executeQuery~

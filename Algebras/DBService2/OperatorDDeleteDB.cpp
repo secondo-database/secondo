@@ -78,7 +78,7 @@ int OperatorDDeleteDB::mapValue(Word* args,
       res->Set(true,false);
       return 0;
     }
-    bool success = cl->deleteReplicas( dbname, "", "");
+    bool success = cl->deleteReplicas(dbname, "", "");
     res->Set(true,success);
     return 0;
 }

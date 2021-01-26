@@ -30,6 +30,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Algebras/DBService2/ReplicationClientRunnable.hpp"
 #include "Algebras/DBService2/ReplicationUtils.hpp"
 
+#include "boost/filesystem.hpp"
+
+namespace fs = boost::filesystem;
+
 using namespace std;
 
 namespace DBService {
@@ -75,19 +79,19 @@ void ReplicationClientRunnable::create(
 {
     print("ReplicationClientRunnable::create", std::cout);
 
-    const string fileNameDBS =
-            ReplicationUtils::getFileNameOnDBServiceWorker(
+    const fs::path localPath =
+        ReplicationUtils::getFilePathOnDBServiceWorker(
                     databaseName,
                     relationName);
-    const string fileNameOrigin =
-            ReplicationUtils::getFileName(
+    const string remoteFilename =
+        ReplicationUtils::getFileName(
                     databaseName,
                     relationName);
 
     ReplicationClient client(targetHost,
                              targetTransferPort,
-                             fileNameDBS,
-                             fileNameOrigin,
+                             localPath,
+                             remoteFilename,
                              databaseName,
                              relationName);
     client.receiveReplica();
