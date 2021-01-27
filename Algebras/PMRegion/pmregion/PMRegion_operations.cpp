@@ -75,9 +75,11 @@ PMRegion PMRegion::operator* (PMRegion &reg) {
 
     PMRegion ret; // Convert it back to normal polyhedra
     try {
-        p12.convert_to_polyhedron(ret.polyhedron);
+        Polyhedron np;
+        p12.convert_to_polyhedron(np);
+        ret.polyhedron = np;
     } catch (...) {
-        ret = PMRegion();
+        ret.polyhedron = polyhedron;
         cerr << "Error: converting intersection polyhedron" << endl;
     }
 
