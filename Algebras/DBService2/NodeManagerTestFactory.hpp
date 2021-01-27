@@ -19,7 +19,7 @@ namespace DBServiceTest {
     ) {
 
       std::shared_ptr<DBService::NodeManager> nodeManager =
-        make_shared<DBService::NodeManager>(recordDatabase);
+        std::make_shared<DBService::NodeManager>(recordDatabase);
 
       // Build nrOrNodes Nodes      
       std::vector<std::shared_ptr<DBService::Node> > nodes = 

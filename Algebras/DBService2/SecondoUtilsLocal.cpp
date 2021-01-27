@@ -58,7 +58,7 @@ void SecondoUtilsLocal::readFromConfigFile(string& resultValue,
             key, defaultValue, secondoConfig);
 }
 
-string SecondoUtilsLocal::getSecondoHomeDir() {
+string SecondoUtilsLocal::getSecondoHomeDir() {
     string secondoHome;
 
     readFromConfigFile(secondoHome, "Environment", "SecondoHome", 

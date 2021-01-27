@@ -53,14 +53,6 @@ namespace DBServiceTest {
       // Target Node
       std::shared_ptr<DBService::Node> targetNode = NodeTestFactory::buildTargetNode(recordDatabase, targetNodePort);
 
-      //TODO Remove
-      // shared_ptr<DBService::Node> targetNode = make_shared<DBService::Node>(
-      //   "localhost", targetNodePort, "", 
-      //   "/home/doesnt_exist/secondo", 9941, 9942);            
-      // targetNode->setDatabase(recordDatabase);
-      // targetNode->setType(DBService::Node::nodeTypeDBService());    
-      // targetNode->save();
-
       // Replica
       relationWithReplica->addReplica(targetNode);
 
