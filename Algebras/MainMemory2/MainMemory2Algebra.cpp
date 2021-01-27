@@ -4562,9 +4562,9 @@ int mcreatemtreeVMTStream (Word* args, Word& result, int message,
       T* attr = (T*) tuple->GetAttribute(index1);
       TupleIdentifier* tid = (TupleIdentifier*) tuple->GetAttribute(index2);
       if(tid->IsDefined()){
-        T copy = *attr;
-        flobused = flobused || (copy.NumOfFLOBs()>0);
-        MTreeEntry<T> entry(copy, tid->GetTid());
+//         T copy = *attr;
+        flobused = flobused || (attr->NumOfFLOBs()>0);
+        MTreeEntry<T> entry(*attr, tid->GetTid());
 //         pair<T,TupleId> p(copy, tid->GetTid());
         tree->insert(entry);
       }
@@ -5784,11 +5784,11 @@ ListExpr mdistRangeTM(ListExpr args) {
                 nl->Second(a2)); 
 }
 
-template<class T>
+template<class T, class Dist>
 class distRangeInfo{
   public:
 
-     distRangeInfo( MemoryMtreeObject<T, StdDistComp<T> >* mtree, 
+     distRangeInfo( MemoryMtreeObject<T, Dist>* mtree, 
                     MemoryRelObject* mrel, 
                     T* ref, 
                     double dist){
@@ -5796,21 +5796,23 @@ class distRangeInfo{
                 rel = mrel->getmmrel();
                 MTreeEntry<T> p(*ref, 0);
 //                 pair<T,TupleId> p(*ref,0);
-                it = mtree->getmtree()->rangeSearch(p,dist);
+                it = mtree->getmtree()->rangeSearch(p, dist);
               }
 
-     ~distRangeInfo(){
+     ~distRangeInfo() {
        delete it;
      }
 
-     Tuple* next(){
-        while(true){
+     Tuple* next() {
+        while(true) {
             const MTreeEntry<T>* p = it->next();
 //             const pair<T,TupleId>* p = it->next();
-            if(!p){ return 0;}
-            if(p->getTid() <= rel->size()){
+            if(!p) {
+              return 0;
+            }
+            if (p->getTid() <= rel->size()) {
                Tuple* res = (*rel)[p->getTid() - 1];
-               if(res){ // ignore deleted tuples
+               if(res) { // ignore deleted tuples
                  res->IncReference();
                  return res;
                }
@@ -5826,101 +5828,58 @@ class distRangeInfo{
 
   private:
      vector<Tuple*>* rel;
-     RangeIterator<MTreeEntry<T>, StdDistComp<T> >* it;
+     RangeIterator<MTreeEntry<T>, Dist>* it;
 //      RangeIterator<pair<T,TupleId> , StdDistComp<T>,
 //                    MemCloner<pair<T,TupleId> > >* it;
 
 };
 
-template<class T, class U>
-class distRange2Info {
- public:
-  distRange2Info(MemoryMtreeObject<pair<T, U>, StdDistCompExt<T, U> >* mtree,
-                 MemoryRelObject* mrel, pair<T, U>* ref, double dist) {
-    rel = mrel->getmmrel();
-    MTreeEntry<pair<T, U> > p(*ref, 0);
-//     pair<pair<T, U>, TupleId> p(*ref, 0);
-    it = mtree->getmtree()->rangeSearch(p, dist);
-  }
-  
-  ~distRange2Info() {
-    delete it;
-  }
-
-  Tuple* next() {
-    while(true) {
-      const MTreeEntry<pair<T, U> >* p = it->next();
-//       const pair<pair<T, U>, TupleId>* p = it->next();
-      if (!p) {
+template<class K, class T, class R>
+int mdistRangeVMT (Word* args, Word& result, int message, Word& local,
+                   Supplier s) {
+  distRangeInfo<K, StdDistComp<K> >* li = 
+                              (distRangeInfo<K, StdDistComp<K> >*) local.addr;
+  switch (message) {
+    case OPEN : {
+      if (li) {
+        delete li;
+        local.addr = 0;
+      }
+      R* relN = (R*)args[1].addr;
+      MemoryRelObject* rel = getMemRel(relN, nl->Second(qp->GetType(s)));
+      if (!rel) {
         return 0;
       }
-      if (p->getTid() <= rel->size()) {
-        Tuple* res = (*rel)[p->getTid() - 1];
-        if (res) { // ignore deleted tuples
-          res->IncReference();
-          return res;
-        }
+      CcReal* dist = (CcReal*)args[3].addr;
+      if (!dist->IsDefined()) {
+        return 0;
       }
+      double d = dist->GetValue();
+      if (d < 0) {
+        return 0;
+      }
+      T* treeN = (T*)args[0].addr;
+      MemoryMtreeObject<K, StdDistComp<K> >* m = getMtree<T, K>(treeN);
+      if (!m) {
+        return 0;
+      }
+      K* key = (K*)args[2].addr;
+      local.addr = new distRangeInfo<K, StdDistComp<K> >(m, rel, key, d);
+      return 0;
     }
-    return 0;
-  }
-  
-  int getNoDistFunCalls() {
-    return it->getNoDistFunCalls();
-  }
-  
- private:
-  vector<Tuple*>* rel;
-  RangeIterator<MTreeEntry<pair<T, U> >, StdDistCompExt<T, U> >* it;
-//   RangeIterator<pair<pair<T, U>, TupleId>, StdDistCompExt<T, U>,
-//                 MemCloner<pair<pair<T, U>, TupleId>>  >* it;
-};
-
-template<class K, class T, class R>
-int mdistRangeVMT (Word* args, Word& result, int message,
-                    Word& local, Supplier s) {
-   distRangeInfo<K>* li = (distRangeInfo<K>*) local.addr;
-   switch(message){
-     case OPEN : {
-               if(li){
-                 delete li;
-                 local.addr = 0;
-               }
-               R* relN = (R*) args[1].addr;
-               MemoryRelObject* rel = getMemRel(relN, 
-                                         nl->Second(qp->GetType(s)));
-               if(!rel){
-                 return 0;
-               }
-               CcReal* dist = (CcReal*) args[3].addr;
-               if(!dist->IsDefined()){
-                 return 0;
-               }
-               double d = dist->GetValue();
-               if(d<0){
-                  return 0;
-               }
-               
-               T* treeN = (T*) args[0].addr;
-               MemoryMtreeObject<K, StdDistComp<K> >* m = getMtree<T,K>(treeN);
-               if(!m){
-                 return 0;
-               }
-               K* key = (K*) args[2].addr;
-               local.addr = new distRangeInfo<K>(m,rel,key,d);
-               return 0;
-             }
-      case REQUEST:
-               result.addr = li?li->next():0;
-               return result.addr?YIELD:CANCEL;
-      case CLOSE :
-               cout << "The distance function was called " 
-                    << li->getNoDistFunCalls() << " times." << endl;
-               if(li){
-                  delete li;
-                  local.addr = 0;
-               }
-               return 0;
+    case REQUEST: {
+      result.addr = li ? li->next() : 0;
+      return result.addr ? YIELD : CANCEL;
+    }
+    case CLOSE : {
+      cout << "The distance function was called " << li->getNoDistFunCalls() 
+           << " times." << endl;
+      if (li) {
+        delete li;
+        local.addr = 0;
+      }
+      return 0;
+    }
    }
    return -1;
 }
@@ -5928,8 +5887,9 @@ int mdistRangeVMT (Word* args, Word& result, int message,
 template<class K, class L, class T, class R>
 int mdistRangeVMT2(Word* args, Word& result, int message, Word& local, 
                    Supplier s) {
-  distRange2Info<K, L>* li = (distRange2Info<K, L>*) local.addr;
-  switch(message) {
+  distRangeInfo<pair<K, L>, StdDistCompExt<K, L> >* li = 
+                 (distRangeInfo<pair<K, L>, StdDistCompExt<K, L> >*) local.addr;
+  switch (message) {
     case OPEN : {
       if (li) {
         delete li;
@@ -5950,14 +5910,15 @@ int mdistRangeVMT2(Word* args, Word& result, int message, Word& local,
       }
       T* treeN = (T*)args[0].addr;
       MemoryMtreeObject<pair<K, L>, StdDistCompExt<K, L> >* m = 
-        getMtree<T, K, L >(treeN);
+                                                      getMtree<T, K, L >(treeN);
       if (!m) {
         return 0;
       }
       K* key1 = (K*)args[2].addr;
       L* key2 = (L*)args[3].addr;
       pair<K, L> key(*key1, *key2);
-      local.addr = new distRange2Info<K, L>(m, rel, &key, d);
+      local.addr = new distRangeInfo<pair<K, L>, StdDistCompExt<K, L> >(m, rel,
+                                                                       &key, d);
       return 0;
     }
     case REQUEST: {
@@ -6157,7 +6118,7 @@ Operator mdistRangeOp(
 
 
 /*
-Operator mdistScan
+Operator ~mdistScan~
 
 */
 ListExpr mdistScanTM(ListExpr args) {
