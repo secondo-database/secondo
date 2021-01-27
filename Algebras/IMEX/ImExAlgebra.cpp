@@ -894,8 +894,10 @@ class CSVFileInputStream : public CSVInputStream {
 
    virtual void open() {
       // Is file accessible?
-      if( access( source.c_str(), R_OK ) != 0 ) { 
-         cout << "Unable to open file: " << source << endl;
+      if( access( source.c_str(), R_OK ) != 0 ) {
+         cout << endl;
+         cout << "Error: Unable to open file: " << source << endl;
+         cout << endl;
       } else {
          file = fopen(source.c_str(), "rb");
       }
@@ -1410,9 +1412,6 @@ public:
       }
   }
 
-
-
-
   ~CsvImportInfo(){
      if(BasicTuple){
        delete BasicTuple;
@@ -1476,26 +1475,40 @@ private:
       bool eol;
       unsigned  i = 0;
       bool err;
-      while(i< instances.size()) {
+
+      while(i < instances.size()) {
          Attribute* attr = instances[i]->Clone();
          err = false;
 
-         if(csvinputstream -> isUnprocessedDataAvailable()){
+         if(csvinputstream -> isUnprocessedDataAvailable()) {
             attr->ReadFromString(csvinputstream -> getNextValue(eol));
-            if(eol && i < instances.size()-1){ // incomplete line
+
+            // incomplete line
+            if(eol && i < instances.size()-1) { 
                i = 0;
                err = true;
+               cerr << "Error: More columns requested than " 
+                    << "provided by import stream" << endl;
             }
          } else {
+            cerr << "Error: New tuple requested but no input "
+                 << "line available" << endl;
             attr->SetDefined(false);
             defined = false;
          }
+
          if(err){
             attr->DeleteIfAllowed();
          } else { 
             result->PutAttribute(i,attr);
             i++;
          }
+
+      }
+
+      if(! eol) {
+        cerr << "Warning: Line with more columns detected "
+             << "than requested by tuple" << endl;
       }
       
       // Callback
@@ -5092,8 +5105,7 @@ int rtf2txtfileVM(Word* args, Word& result,
     res->Set(false,false);
    } 
    
-   else 
-    {       
+   else {       
       
      string fileNameS = objName->GetValue();    
      
@@ -5132,7 +5144,7 @@ int rtf2txtfileVM(Word* args, Word& result,
      } else {
          res->Set(true,false);
          back = system(del);
-	 if(back != 0){
+         if(back != 0){
            std::cerr << "Problem in deletion of temporarly file" << std::endl;
          }
          return 0;
