@@ -163,6 +163,7 @@ Nef_polyhedron region2nefpolyhedron(RList reg, Kernel::FT instant1,
 
 std::vector<Polygon_with_holes_2> Region2Polygons (RList region);
 void do_deter1(std::string fname);
+void translatedelta(Kernel::FT limit, bool x, bool y, bool z, Polyhedron& p);
 
 template <class T>
 class MyPoint {

@@ -31,6 +31,18 @@ PMRegion PMRegion::operator+ (PMRegion &reg) {
     // Compute the union
     Nef_polyhedron p12 = p1 + p2;
 
+    if (!p12.is_simple()) {
+        Polyhedron tmp = reg.polyhedron;
+        translatedelta(0.000001, 1, 1, 1, tmp);
+        p2 = Nef_polyhedron(tmp);
+        p12 = p1 + p2;
+        if (!p12.is_simple()) {
+            p12 = p1;
+            std::cerr << "Error: Union failed" << std::endl;
+        } else {
+            std::cerr << "Warning: Fixed union" << std::endl;
+        }
+    }
     PMRegion ret; // Convert it back to normal polyhedra
     p12.convert_to_polyhedron(ret.polyhedron);
 
@@ -43,6 +55,18 @@ PMRegion PMRegion::operator* (PMRegion &reg) {
     Nef_polyhedron p1(polyhedron), p2(reg.polyhedron);
     // Compute the intersection
     Nef_polyhedron p12 = p1 * p2;
+    if (!p12.is_simple()) {
+        Polyhedron tmp = reg.polyhedron;
+        translatedelta(0.000001, 1, 1, 1, tmp);
+        p2 = Nef_polyhedron(tmp);
+        p12 = p1 * p2;
+        if (!p12.is_simple()) {
+            p12 = p1;
+            std::cerr << "Error: Intersection failed" << std::endl;
+        } else {
+            std::cerr << "Warning: Fixed intersection" << std::endl;
+        }
+    }
 
     PMRegion ret; // Convert it back to normal polyhedra
     p12.convert_to_polyhedron(ret.polyhedron);
@@ -57,6 +81,18 @@ PMRegion PMRegion::operator- (PMRegion &reg) {
     Nef_polyhedron p1(polyhedron), p2(reg.polyhedron);
     // Compute the difference
     Nef_polyhedron p12 = p1 - p2;
+    if (!p12.is_simple()) {
+        Polyhedron tmp = reg.polyhedron;
+        translatedelta(0.000001, 1, 1, 1, tmp);
+        p2 = Nef_polyhedron(tmp);
+        p12 = p1 - p2;
+        if (!p12.is_simple()) {
+            p12 = p1;
+            std::cerr << "Error: Difference failed" << std::endl;
+        } else {
+            std::cerr << "Warning: Fixed difference" << std::endl;
+        }
+    }
 
     PMRegion ret; // Convert it back to normal polyhedra
     p12.convert_to_polyhedron(ret.polyhedron);

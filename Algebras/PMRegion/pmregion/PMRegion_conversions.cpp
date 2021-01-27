@@ -193,10 +193,35 @@ PMRegion PMRegion::fromMRegion (RList reg) {
                 CGAL::Polygon_mesh_processing::triangulate_faces(p);
 
                 Nef_polyhedron nnp(p);
-                if (k == 0)
-                    np = np + nnp;
-                else
-                    np = np - nnp;
+                if (k == 0) {
+                    Nef_polyhedron ntmp = np + nnp;
+                    if (ntmp.is_simple())
+                        np = ntmp;
+                    else {
+                        translatedelta(0.0000001, 1, 1, 0, p);
+                        nnp = Nef_polyhedron(p);
+                        ntmp = np + nnp;
+                        if (ntmp.is_simple()) {
+                            cerr << "Warning: Fixed face" << endl;
+                            np = ntmp;
+                        } else
+                            cerr << "Error: Ignored face" << endl;
+                    }
+                } else {
+                    Nef_polyhedron ntmp = np - nnp;
+                    if (ntmp.is_simple())
+                        np = ntmp;
+                    else {
+                        translatedelta(0.0000001, 1, 1, 0, p);
+                        nnp = Nef_polyhedron(p);
+                        ntmp = np - nnp;
+                        if (ntmp.is_simple()) {
+                            cerr << "Warning: Fixed hole" << endl;
+                            np = ntmp;
+                        } else
+                            cerr << "Error: Ignored hole" << endl;
+                    }
+                } 
             }
         }
     }

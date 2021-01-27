@@ -330,4 +330,33 @@ void rangeinstance () {
     dummy.addrange(0, 0);
 }
 
+void translatedelta(Kernel::FT limit, bool x, bool y, bool z, Polyhedron& p) {
+    Kernel::FT dx, dy, dz;
+    static int seeded = 0;
+
+    if (!seeded) {
+        srand48(time(NULL));
+        seeded = 1;
+    }
+
+    double d = drand48()-0.5;
+    if (d >= 0 && d < 0.2)
+        d += 0.2;
+    else if (d <= 0 && d > 0.2)
+        d -= 0.2;
+
+    dx = x ? d*limit*2 : 0;
+    dy = y ? d*limit*2 : 0;
+    dz = z ? d*limit*2 : 0;
+
+    cerr << "DX: " << std::setprecision(20) << dx << endl;
+
+    Kernel::Vector_3 translate(dx, dy, dz);
+    for (Polyhedron::Vertex_iterator v = p.vertices_begin();
+            v != p.vertices_end(); v++) {
+        v->point() = v->point() + translate;
+    }
+}
+
+
 }
