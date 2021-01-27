@@ -2841,6 +2841,8 @@ const Rectangle<3> CUPoint::BoundingBox(const Geoid* geoid) const {
     p1shifted = Point(true, p1.GetX() + hSign * abs(sin(dir)) * radius,
                             p1.GetY() + vSign * abs(cos(dir)) * radius);
     if (geoid) {
+      // TODO: recompute p0shifted and p1shifted for geoid; convert radius
+      // TODO: into geographic coordinates
       Rectangle<2> geobbox(false);
       geobbox = HalfSegment(true, p0shifted, p1shifted).BoundingBox(geoid);
       double minMax[] = {geobbox.MinD(0), geobbox.MaxD(0),
@@ -8280,7 +8282,7 @@ void CMPoint::ConvertFrom(const MPoint& src, const DateTime dur,
     cup.timeInterval.start.SetToZero();
     cup.timeInterval.end -= diffToBeginOfTime;
     Add(cup);
-    RestoreBoundingBox(true);
+    RestoreBoundingBox(true, geoid);
     return;
   }
   Point p0(true), p1(true);
@@ -8349,7 +8351,7 @@ void CMPoint::ConvertFrom(const MPoint& src, const DateTime dur,
     assert(correct);
     Add(cup);
   }
-  RestoreBoundingBox(true);
+  RestoreBoundingBox(true, geoid);
 }
 
 void CMPoint::ConvertFrom(const MPoint& src, const CcReal& threshold, 
@@ -8409,7 +8411,7 @@ void CMPoint::ConvertFrom(const MPoint& src, const CcReal& threshold,
     cup.timeInterval.end -= diffToBeginOfTime;
     Add(cup);
   }
-  RestoreBoundingBox(true);
+  RestoreBoundingBox(true, geoid);
 }
 
 void CMPoint::Clear() {
@@ -8449,7 +8451,7 @@ void CMPoint::Restrict(const std::vector<std::pair<int, int> >& intervals) {
   }
   units.Restrict(intervals, units); // call super
   bbox.SetDefined(false);      // invalidate bbox
-  RestoreBoundingBox();        // recalculate it
+  RestoreBoundingBox(false);        // recalculate it
 }
 
 std::ostream& CMPoint::Print(std::ostream &os) const {
@@ -8472,7 +8474,7 @@ std::ostream& CMPoint::Print(std::ostream &os) const {
 bool CMPoint::EndBulkLoad(const bool sort, const bool checkvalid) {
   bool res = Mapping<CUPoint, CPoint>::EndBulkLoad(sort, checkvalid); 
   if (res) {
-    RestoreBoundingBox(); 
+    RestoreBoundingBox(false); 
   }
   return res;
 }
@@ -8717,7 +8719,7 @@ and thus may need to be recalculated and if, does so.
 
 */
 
-void CMPoint::RestoreBoundingBox(const bool force) {
+void CMPoint::RestoreBoundingBox(const bool force, const Geoid* geoid) {
   if (!IsDefined() || GetNoComponents() == 0) { // invalidate bbox
     bbox.SetDefined(false);
   }
@@ -8726,10 +8728,10 @@ void CMPoint::RestoreBoundingBox(const bool force) {
     CUPoint unit;
     int size = GetNoComponents();
     Get(0, unit); // safe, since (this) contains at least 1 unit
-    bbox = unit.BoundingBox();
+    bbox = unit.BoundingBox(geoid);
     for (int i = 1; i < size; i++) {
       Get(i, unit);
-      bbox = bbox.Union(unit.BoundingBox());
+      bbox = bbox.Union(unit.BoundingBox(geoid));
     }
   } // else: bbox unchanged and still correct
 }

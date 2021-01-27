@@ -4850,7 +4850,7 @@ geometry is used, otherwise spherical geometry is applied.
   const Rectangle<2> BoundingBoxSpatial(const Geoid* geoid = 0) const;
 
   // recompute bbox, if necessary
-  void RestoreBoundingBox(const bool force = false);
+  void RestoreBoundingBox(const bool force, const Geoid* geoid = 0);
   
   void GetRadii(MReal& result) const;
 
