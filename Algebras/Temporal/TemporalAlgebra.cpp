@@ -2941,6 +2941,9 @@ void CUPoint::ConvertFrom(const MPoint& mp, const Geoid* geoid /* = 0 */) {
       }
     }
   }
+  datetime::DateTime duration(datetime::durationtype);
+  mp.GetDuration(duration);
+  timeInterval.end = timeInterval.start + duration;
   assert(correct);
 }
 
@@ -2990,6 +2993,9 @@ void CUPoint::ConvertFrom(const CMPoint& cmp, const Geoid* geoid /* = 0 */) {
       }
     }
   }
+  datetime::DateTime duration(datetime::durationtype);
+  cmp.GetDuration(duration);
+  timeInterval.end = timeInterval.start + duration;
   assert(correct);
 }
 
@@ -8845,6 +8851,8 @@ double CMPoint::DistanceAvg(const CMPoint& cmp, const bool upperBound,
       duration += (cu1cut.timeInterval.end - cu1cut.timeInterval.start);
     }
   }
+  shiftThis.Destroy();
+  arg.Destroy();
   return sum / duration.ToDouble();
 }
 
