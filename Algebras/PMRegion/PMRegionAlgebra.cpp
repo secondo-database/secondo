@@ -1071,7 +1071,7 @@ int pmreg2mregvalmap(Word *args, Word& result,
     PMRegion *pmr = static_cast<PMRegion*> (args[0].addr);
 
     // Perform the conversion to an mregion
-    RList mregion = pmr->pmr()->toMRegion();
+    RList mregion = pmr->pmr()->toMRegion2();
 
     // Create a Secondo nested list from the result
     ListExpr le = RList2NL(mregion.items[4]);
