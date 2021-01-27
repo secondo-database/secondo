@@ -44,7 +44,12 @@ PMRegion PMRegion::operator+ (PMRegion &reg) {
         }
     }
     PMRegion ret; // Convert it back to normal polyhedra
-    p12.convert_to_polyhedron(ret.polyhedron);
+    try {
+        p12.convert_to_polyhedron(ret.polyhedron);
+    } catch (...) {
+        ret = PMRegion();
+        cerr << "Error: converting union polyhedron" << endl;
+    }
 
     return ret;
 }
@@ -69,7 +74,12 @@ PMRegion PMRegion::operator* (PMRegion &reg) {
     }
 
     PMRegion ret; // Convert it back to normal polyhedra
-    p12.convert_to_polyhedron(ret.polyhedron);
+    try {
+        p12.convert_to_polyhedron(ret.polyhedron);
+    } catch (...) {
+        ret = PMRegion();
+        cerr << "Error: converting intersection polyhedron" << endl;
+    }
 
     return ret;
 }
@@ -95,7 +105,12 @@ PMRegion PMRegion::operator- (PMRegion &reg) {
     }
 
     PMRegion ret; // Convert it back to normal polyhedra
-    p12.convert_to_polyhedron(ret.polyhedron);
+    try {
+        p12.convert_to_polyhedron(ret.polyhedron);
+    } catch (...) {
+        ret = PMRegion();
+        cerr << "Error: converting difference polyhedron" << endl;
+    }
 
     return ret;
 }
