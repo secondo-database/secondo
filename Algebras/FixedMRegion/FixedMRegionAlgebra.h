@@ -63,8 +63,9 @@ This header file contains the definition of the classes ~FMRegion~ and
 These functions convert between Secondo NestedLists and libfmr RLists.
  
 */
-ListExpr RList2NL (fmr::RList r);
-fmr::RList NL2RList (ListExpr l);
+static ListExpr RList2NL (fmr::RList r);
+static fmr::RList NL2RList (ListExpr l);
+
 
 namespace fmregion {
 

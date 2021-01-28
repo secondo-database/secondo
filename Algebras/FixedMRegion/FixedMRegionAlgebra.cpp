@@ -1301,7 +1301,7 @@ Unknown types are dropped.
 Convert a libfmr RList to a Secondo NestedList.
 
 */
-ListExpr RList2NL(fmr::RList r) {
+static ListExpr RList2NL(fmr::RList r) {
     ListExpr ret = nl->Empty();
     ListExpr cur = ret;
 
@@ -1336,7 +1336,7 @@ ListExpr RList2NL(fmr::RList r) {
 Convert a Secondo NestedList to a libfmr RList.
 
 */
-fmr::RList NL2RList(ListExpr l) {
+static fmr::RList NL2RList(ListExpr l) {
     fmr::RList ret;
 
     while (l != nl->Empty()) {
