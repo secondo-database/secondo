@@ -542,6 +542,10 @@ ALGEBRAS     += JNetAlgebra
 #ALGEBRA_DIRS += PMRegion
 #ALGEBRAS     += PMRegionAlgebra
 #ALGEBRA_DEPS += CGAL boost_thread boost_system mpfr gmp gmpxx
+#If CGAL is installed header-only (default for CGAL 5.0.0) use the
+#following ALGEBRA_DEPS (otherwise the linker will complain about
+#a missing libCGAL):
+#ALGEBRA_DEPS += boost_thread boost_system mpfr gmp gmpxx
 
 #ALGEBRA_DIRS  += DFS
 #ALGEBRAS      += DFSAlgebra
