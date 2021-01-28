@@ -9184,8 +9184,9 @@ SpatialRotateMap( ListExpr args )
     return listutils::typeError("first arg is not a supported spatial type");
   }
   // the remaining arguments have to be of type real
-  if(   !CcReal::checkType(nl->Second(args))
-     || !CcReal::checkType(nl->Third(args))
+  if(  (( !CcReal::checkType(nl->Second(args))
+      || !CcReal::checkType(nl->Third(args)))
+      && !Point::checkType(nl->Second(args)))
      || !CcReal::checkType(nl->Fourth(args))){
      return listutils::typeError("rotation arguments have to be of type real");
   }
@@ -9212,30 +9213,58 @@ int SpatialRotate( Word* args, Word& result, int message,
 }
 
 
+template<class T>
+int SpatialRotatePt( Word* args, Word& result, int message,
+                    Word& local, Supplier s ){
+  result = qp->ResultStorage(s);
+  T* res = static_cast<T*>(result.addr);
+  T* st = static_cast<T*>(args[0].addr);
+  Point* pt = static_cast<Point*>(args[1].addr);
+  CcReal* a = static_cast<CcReal*>(args[3].addr);
+  if(!st->IsDefined() || !pt->IsDefined() || !a->IsDefined()){
+      res->SetDefined(false);
+      return 0;
+  }
+  double angle = a->GetRealval() * M_PI / 180;
+  st->Rotate(pt->GetX(),pt->GetY(),angle,*res);
+  return 0;
+}
+
 ValueMapping spatialrotatemap[] = {
   SpatialRotate<Point>,
   SpatialRotate<Points>,
   SpatialRotate<Line>,
   SpatialRotate<Region>,
-  SpatialRotate<DLine>};
+  SpatialRotate<DLine>,
+  SpatialRotatePt<Point>,
+  SpatialRotatePt<Points>,
+  SpatialRotatePt<Line>,
+  SpatialRotatePt<Region>,
+  SpatialRotatePt<DLine>
+};
 
 
 int SpatialSelectRotate( ListExpr args ) {
+  int ret = -1;
   ListExpr arg1 = nl->First( args );
-  if(Point::checkType(arg1)) return 0;
-  if(Points::checkType(arg1)) return 1;
-  if(Line::checkType(arg1)) return 2;
-  if(Region::checkType(arg1)) return 3;
-  if(DLine::checkType(arg1)) return 4;
-  return -1;
+  ListExpr arg2 = nl->Second( args );
+  if(Point::checkType(arg1)) ret = 0;
+  else if(Points::checkType(arg1)) ret = 1;
+  else if(Line::checkType(arg1)) ret = 2;
+  else if(Region::checkType(arg1)) ret = 3;
+  else if(DLine::checkType(arg1)) ret = 4;
+  else return -1;
+  if (Point::checkType(arg2)) ret += 5;
+  return ret;
 }
 
 const string SpatialSpecRotate  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "( <text>(point|points|line|region|dline x real x real x real) -> "
+  "( <text>(point|points|line|region|dline x real|point x real x real) -> "
   "point||points||line||region|dline</text--->"
-  "<text> _ translate[ x, y, theta ]</text--->"
-  "<text> rotates the spatial object by 'theta' degrees around (x,y) </text--->"
+  "<text> _ rotate[ x|pt, y, theta ]</text--->"
+  "<text> rotates the spatial object by 'theta' degrees around (x,y) or "
+  "point pt </text--->"
   "<text> query region1 rotate[3.5, 15.1, 10.0]</text--->"
   ") )";
 
@@ -9243,7 +9272,7 @@ const string SpatialSpecRotate  =
 Operator spatialrotate (
   "rotate",
   SpatialSpecRotate,
-  5,
+  10,
   spatialrotatemap,
   SpatialSelectRotate,
   SpatialRotateMap );
