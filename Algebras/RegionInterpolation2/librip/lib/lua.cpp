@@ -15,7 +15,9 @@
 
 #include <vector>
 #include <set>
-#if defined(LUA5_2)
+#if defined(LUA5_3)
+#include <lua5.3/lua.hpp>
+#elif defined(LUA5_2)
 #include <lua5.2/lua.hpp>
 #elif defined(LUA5_1)
 #include <lua5.1/lua.hpp>

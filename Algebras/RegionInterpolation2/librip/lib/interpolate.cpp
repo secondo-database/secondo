@@ -162,7 +162,8 @@ void handleIntersections(MFaces& children, MFace parent, bool evap) {
                     // victim now. Refuse to remove the parent.
                     ss = s2->kill();
                     children.faces.erase(children.faces.begin() + (j-1));
-                    DEBUG(2, "== Collapse/Expand of s2 " << s1->ToString());
+                    DEBUG(2, "== Collapse of s2 " << ss.first.ToString());
+                    DEBUG(2, "== Expand   of s2 " << ss.second.ToString());
                 } else {
                     // Both intersecting objects are already collapsing or
                     // expanding (or we are evaporating right now)
@@ -195,6 +196,7 @@ void handleIntersections(MFaces& children, MFace parent, bool evap) {
 //                                              ms.begin(), ms.end());
 //                        evp.insert(evp.end(), ms.begin(), ms.end());
                     } else {
+                        DEBUG(2, "== Failed, need to remove s1");
                         // We are in the main interpolation and cannot
                         // compensate this intersection. Remove one offending
                         // object and save, that we have to evaporate or

@@ -364,6 +364,8 @@ void Face::Transform(Pt off, Pt scale) {
         v[i].s = (v[i].s+off)*scale;
         v[i].e = (v[i].e+off)*scale;
     }
+    bbox.first = (bbox.first+off)*scale;
+    bbox.second = (bbox.second+off)*scale;
     for (unsigned int h = 0; h < holes.size(); h++) {
         holes[h].Transform(off, scale);
     }

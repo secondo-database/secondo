@@ -119,7 +119,10 @@ void Pt::calcPolar(const Pt& origin) {
 */
 string Pt::ToString() const {
     std::ostringstream ss;
-    ss << "(" << x << "/" << y << ")";
+    if (!valid)
+        ss << "( invalid )";
+    else
+        ss << "(" << x << "/" << y << ")";
     return ss.str();
 }
 

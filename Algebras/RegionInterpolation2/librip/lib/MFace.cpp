@@ -122,6 +122,8 @@ vector<MFace> MFace::SplitCycle() {
     } while (ms.msegs.size() > 0);
 
     if (ret.size() == 1) {
+        ret[0].face.sreg = face.sreg;
+        ret[0].face.dreg = face.dreg;
         ret[0].holes = holes;
     }
 

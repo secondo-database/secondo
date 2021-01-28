@@ -237,7 +237,7 @@ RList MFaces::ToMListExpr(Interval iv) {
         MFaces s = Face::CreateMFaces(dregs);
         mreg.append(s.ToListExpr(eiv, 0, 1));
     }
-        
+
     return mreg;
 }
 
