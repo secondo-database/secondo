@@ -948,9 +948,10 @@ Maps a result value to the given arguments.
         Instant* ti1 = static_cast<Instant*> (args[1].addr);
         Instant* ti2 = static_cast<Instant*> (args[3].addr);
 
+#define DAYMS 86400000
         // Create the interpolation interval
-        fmr::Interval iv(ti1->GetAllMilliSeconds(), ti2->GetAllMilliSeconds(),
-                true, true);
+        fmr::Interval iv((ti1->ToDouble() + 10959) * DAYMS,
+                (ti2->ToDouble() + 10959) * DAYMS, true, true);
         // Calculate the interpolation
         fmr::FMRegion fm = sreg.interpolate(dreg, iv);
 
