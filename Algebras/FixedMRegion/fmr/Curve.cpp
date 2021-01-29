@@ -178,8 +178,10 @@ std::pair<double, std::pair<double, Curve*> > Curve::getNext(double t1,
     bestpeer.first = nan(""); // No curve found
     
     std::vector<std::pair<double, Curve *> > peers = is[t2];
+//    std::cerr << this->ToString() << ", Peers: " << peers.size() << std::endl;
     for (int i = 0; i < peers.size(); i++) { // iterate all intersecting curves
         std::pair<double, Curve *> peer = peers[i];
+//        std::cerr << "Candidate: " << peer.second->ToString() << std::endl;
         std::pair<double, double> tts =
                           peer.second->getAdjacentIntersectionTimes(peer.first);
         for (int j = 0; j < 2; j++) { // Calculate the angle in both directions
@@ -188,16 +190,17 @@ std::pair<double, std::pair<double, Curve*> > Curve::getNext(double t1,
                 continue;
             double a2 = peer.second->getAngle(peer.first, tt); // Angle on peer
             double a = getDeltaAngleCW(a1, a2); // Angle between two curve segs
+//        std::cerr << "Angles: " << a1 << ", " << a2 << ", " << a << std::endl;
             if (a < 0.00001) // Too small angle, probably a numeric error
                 continue;
-            if (std::isnan(bestangle) || a < bestangle) { 
-                // Remember the best match
+            if (std::isnan(bestangle) || a < bestangle) { // best match
                 bestangle = a;
                 bestpeer = std::pair<double, std::pair<double, Curve *> >
                                                                      (tt, peer);
             }
         }
     }
+//    std::cerr << std::endl;
 
     return bestpeer;
 }

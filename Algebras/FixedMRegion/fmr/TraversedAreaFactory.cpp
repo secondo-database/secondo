@@ -58,7 +58,7 @@ CRegion fmr::traversedArea(FMRegion& fmregion) {
     for (int i = 0; i < fmregion.trafos.size(); i++) {
         // Create the necessary curves
         std::vector<Curve*> curves = createCurves(fmregion.region,
-                                                            fmregion.trafos[i]);
+                                                           fmregion.trafos[i]);
         // Find intersections between curves
         findIntersections(curves);
         // Divide the intersecting curves into disjunct partitons
@@ -259,8 +259,14 @@ static std::vector<RCurve> getCycle(std::vector<Curve*> cs) {
         double t1 = p.second.first;
         // The end instant of the curve segment
         double t2 = p.first;
+        if (!cc) {
+            // No successor curve element found. This is an error.
+            ta.clear();
+            return ta;
+        }
         Point p1 = cc->project(t1);
         Point p2 = cc->project(t2);
+//        std::cerr << p1.ToString() << " - " << p2.ToString() << std::endl;
         if (!start.valid())
             start = p2;
         else if (p2.near(start))
@@ -288,7 +294,8 @@ too small, assume that the part from an endpoint of that trochoid to the next
 intersection is part of the cycle.
 
 */
-static std::pair<double, std::pair<double, Curve*> > getFirst(
+#if 0
+static std::pair<double, std::pair<double, Curve*> > getFirstOld(
                                                        std::vector<Curve*> cs) {
     Trochoid *c = NULL;
     // Find trochoid c with the biggest b-value
@@ -350,3 +357,69 @@ static std::pair<double, std::pair<double, Curve*> > getFirst(
     // cycle if c@[t1;t2] is part of the cycle
     return c->getNext(tt, tt2);
 }
+#endif
+
+static std::pair<double, std::pair<double, Curve*> > getFirst(
+                                                       std::vector<Curve*> cs) {
+    double bt = nan("");
+    Curve *bc = NULL;
+    Point bp;
+#define DELTA 0.0001
+    for (unsigned int i = 0; i < cs.size(); i++) {
+        Curve *c = cs[i];
+        for (double t = 0; t <= 1.0; t += DELTA) {
+            if (!c->valid(t))
+                continue;
+            Point p = c->project(t);
+            if (!bc || p.x < bp.x) {
+                bp = p;
+                bc = c;
+                bt = t;
+            }
+        }
+    }
+
+    double ba = nan("");
+    for (unsigned int i = 0; i < cs.size(); i++) {
+        double a2, bt2;
+        Curve *c = cs[i];
+        if (c->project(0.0).near(bp)) {
+            Point p1 = c->project(0.0);
+            Point p2 = c->project(0.000001);
+            a2 = atan2(p2.y-p1.y, p2.x-p1.x);
+            bt2 = 0.000001;
+        } else if (c->project(1.0).near(bp)) {
+            Point p1 = c->project(1.0);
+            Point p2 = c->project(1.0-0.000001);
+            a2 = atan2(p2.y-p1.y, p2.x-p1.x);
+            bt2 = 1.0-0.000001;
+        } else
+            continue;
+//  std::cerr << "Curve " << c->ToString() << " has angle " << a2 << std::endl;
+        if (std::isnan(ba) || ba > a2) {
+            ba = a2;
+            bc = c;
+            bt = bt2;
+        }
+    }
+
+    std::pair<double, double> tx = bc->getAdjacentIntersectionTimes(bt);
+    double t1, t2;
+    double y1 = bc->fy(bt);
+    double y2 = bc->fy(bt+0.0001);
+    if (y1 > y2) {
+        t1 = tx.first;
+        t2 = tx.second;
+    } else {
+        t1 = tx.second;
+        t2 = tx.first;
+    }
+//    std::cerr << "Start: " << bc->ToString() << std::endl;
+//    Point p1 = bc->project(t1);
+//    Point p2 = bc->project(t2);
+//    std::cerr << p1.ToString() << " - " << p2.ToString() << std::endl;
+
+    return bc->getNext(t1, t2);
+}
+
+

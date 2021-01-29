@@ -60,6 +60,7 @@ public:
     // Methods
     Region atinstant (double time);
     CRegion traversedArea();
+    FMRegion normalize();
     MBool inside (MPoint& mp) { return mp.inside(*this); }
     MPoint intersection (MPoint& mp) { return mp.intersection(*this); }
     FMRegion interpolate (Region& r1, Region& r2, Interval& iv) {

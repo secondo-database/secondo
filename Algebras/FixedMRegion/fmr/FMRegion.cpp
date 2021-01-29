@@ -126,6 +126,28 @@ CRegion FMRegion::traversedArea() {
 }
 
 /*
+5.1 ~normalize~
+
+Normalize this ~fmregion~. This means, that the y component of the
+translation vector is set to 0. The object is rotated accordingly.
+This only works with a single transformation unit.
+
+*/
+FMRegion FMRegion::normalize() {
+    TransformationUnit tu = trafos[0];
+    TransformationUnit tu2;
+    tu2.c = tu.c;
+    tu2.v0 = Point(0, 0);
+    tu2.v = Point(0, 0);
+    tu2.a0 = 0;
+    tu2.a = -tu.v.angle();
+    region = region.transform(tu2, 1.0);
+    trafos[0].v = Point(tu.v.length(), 0);
+
+    return *this;
+}
+
+/*
 6 ~atinstant~
 
 Calculates the projection of an ~fmregion~ to a ~region~ for the given

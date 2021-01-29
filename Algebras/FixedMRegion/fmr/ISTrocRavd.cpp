@@ -131,10 +131,10 @@ std::vector<std::pair<double, double> >ISTrocRavd::findIntersectionTimesTouch(){
         tmin1 -= pd;
     while (tmax1 > pd)
         tmax1 -= pd;
-    while (tmin2 > pd)
-        tmin2 -= pd;
-    while (tmax2 > pd)
-        tmax2 -= pd;
+//    while (tmin2 > pd)
+//        tmin2 -= pd;
+//    while (tmax2 > pd)
+//        tmax2 -= pd;
 
     std::vector<std::pair<double, double> > ret;
     double times[] = {tmin1, tmax1, tmin2, tmax2};
