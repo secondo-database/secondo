@@ -2836,15 +2836,18 @@ const Rectangle<3> CUPoint::BoundingBox(const Geoid* geoid) const {
     }
     int hSign = p0.GetX() < p1.GetX() ? 1 : -1;
     int vSign = p0.GetY() < p1.GetY() ? 1 : -1;
-    p0shifted = Point(true, p0.GetX() - hSign * abs(sin(dir)) * radius,
-                            p0.GetY() - vSign * abs(cos(dir)) * radius);
-    p1shifted = Point(true, p1.GetX() + hSign * abs(sin(dir)) * radius,
-                            p1.GetY() + vSign * abs(cos(dir)) * radius);
+    
+//     double yfact = (geoid ? 1.0 / getMetersPerDegree(true) : 1.0);
+//     double xfact = (geoid ? 1.0 / getMetersPerDegree(false) : 1.0);
+    double xfact(1.0), yfact(1.0);
+    p0shifted = Point(true, p0.GetX() - hSign * abs(sin(dir)) * radius * xfact,
+                            p0.GetY() - vSign * abs(cos(dir)) * radius * yfact);
+    p1shifted = Point(true, p1.GetX() + hSign * abs(sin(dir)) * radius * xfact,
+                            p1.GetY() + vSign * abs(cos(dir)) * radius * yfact);
     if (geoid) {
       // TODO: recompute p0shifted and p1shifted for geoid; convert radius
       // TODO: into geographic coordinates
-      Rectangle<2> geobbox(false);
-      geobbox = HalfSegment(true, p0shifted, p1shifted).BoundingBox(geoid);
+      Rectangle<2> geobbox = HalfSegment(true, p0, p1).BoundingBox(geoid);
       double minMax[] = {geobbox.MinD(0), geobbox.MaxD(0),
                          geobbox.MinD(1), geobbox.MaxD(1),
                          timeInterval.start.ToDouble(),
@@ -3122,6 +3125,9 @@ double CUPoint::DistanceAvg(const CUPoint& cup, const bool upperBound,
   }
   if (!IsDefined() || !cup.IsDefined()) {
     return DBL_MAX;
+  }
+  if (*this == cup) {
+    return 0.0;
   }
   CUPoint cup1(*this), cup1a(true), cup2(true), cup1b(true), cup2b(true);
   cup1.timeInterval.start += (cup.timeInterval.start - timeInterval.start);
@@ -8385,12 +8391,18 @@ void CMPoint::ConvertFrom(const MPoint& src, const CcReal& threshold,
     src.AtPeriods(per, srcPart);
     mpSimplePart.Add(upSimplified);
     srcPart.SquaredDistance(mpSimplePart, dist);
-    per.Clear();
-    mpSimplePart.Clear();
-    cup.Set(upSimplified, sqrt(dist.Max(correct)));
+    if (!geoid) {
+      cup.Set(upSimplified, sqrt(dist.Max(correct)));
+    }
+    else {
+      dist.Recompute(srcPart, mpSimplePart, geoid);
+      cup.Set(upSimplified, dist.Max(correct));
+    }
     cup.timeInterval.start -= diffToBeginOfTime;
     cup.timeInterval.end -= diffToBeginOfTime;
     Add(cup);
+    per.Clear();
+    mpSimplePart.Clear();
   }
   if (!mpSimplified.IsEmpty()) { // radius of final (or only) cyl may be smaller
     mpSimplified.Get(mpSimplified.GetNoComponents() - 1, upSimplified);
@@ -8749,9 +8761,11 @@ Rectangle<3u> CMPoint::BoundingBox(const Geoid* geoid /*=0*/) const {
       assert(u.IsDefined());
       if (bbx.IsDefined()) {
         bbx.Union(u.BoundingBox(geoid));
+//         cout << i << " : " << bbx << endl;
       }
       else {
         bbx = u.BoundingBox(geoid);
+//         cout << i << " : " << bbx << endl;
       }
     }
     return bbx;
@@ -8785,6 +8799,11 @@ double CMPoint::DistanceAvg(const CMPoint& cmp, const bool upperBound,
   }
   if (IsEmpty() || cmp.IsEmpty()) {
     return DBL_MAX;
+  }
+  if (GetNoComponents() == cmp.GetNoComponents()) {
+    if (*this == cmp) {
+      return 0.0;
+    }
   }
   DateTime duration(datetime::durationtype);
 //   cout << "ORIGINAL: " << *this << endl << cmp << endl << endl;
