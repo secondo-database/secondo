@@ -66,10 +66,10 @@ bool checkConn();
 std::string createTabFile(std::string* tab);
 
 std::string get_init()
-  {return "query init_pg(" + std::to_string(port) + ",'"+ dbname +"');";}
+  {return "query be_init(" + std::to_string(port) + ",'"+ dbname +"');";}
 
 std::string get_init(std::string* _dbname, std::string* _port)
-  {return "query init_pg(" + *_port + ",'"+ *_dbname +"');";}
+  {return "query be_init(" + *_port + ",'"+ *_dbname +"');";}
 
 std::string get_drop_table(std::string* tab)
   {return "DROP TABLE IF EXISTS " + *tab + ";";}

@@ -17,7 +17,9 @@
 #along with SECONDO; if not, write to the Free Software
 #Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-operator init_pg alias INIT_PG pattern op (_,_)
+operator be_init alias BE_INIT pattern op (_,_)
+operator be_init_worker alias BE_INIT_WORKER pattern op (_,_,_)
+
 operator be_partRR alias BE_PARTRR pattern op (_,_,_)
 operator be_partHash alias BE_PARTHASH pattern op (_,_,_)
 operator be_partFun alias BE_PARTFUN pattern op (_,_,_)
@@ -28,6 +30,5 @@ operator be_mquery alias BE_MQUERY pattern op (_,_)
 operator be_mcommand alias BE_MCOMMAND pattern op (_)
 operator be_union alias BE_UNION pattern op (_)
 operator be_struct alias BE_STRUCT pattern op (_)
-operator init_pgWorker alias INIT_PGWORKER pattern op (_,_,_)
 operator be_runsql alias BE_RUNSQL pattern op (_)
 operator be_partGrid alias BE_PARTGRID pattern op (_,_,_,_,_,_,_)

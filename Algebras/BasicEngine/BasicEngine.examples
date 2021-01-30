@@ -1,10 +1,16 @@
 Database  : berlintest
 Restore   : No
 
-Operator  : init_pg
+Operator  : be_init
 Number    : 1
 Signature : int x {string, text} --> bool
-Example   : query init_pg(5432, "gisdb")
+Example   : query be_init(5432, "gisdb")
+Result    : FALSE
+
+Operator  : be_init_worker
+Number    : 1
+Signature : int x {string, text} x relation --> bool
+Example   : query be_init_worker(5432, "gisdb", WorkersPG)
 Result    : FALSE
 
 Operator  : be_partRR
@@ -65,12 +71,6 @@ Operator  : be_struct
 Number    : 1
 Signature : {string, text} --> bool
 Example   : query be_struct('cars_short')
-Result    : FALSE
-
-Operator  : init_pgWorker
-Number    : 1
-Signature : int x {string, text} x relation --> bool
-Example   : query init_pgWorker(5432, "gisdb", WorkersPG)
 Result    : FALSE
 
 Operator  : be_runsql
