@@ -113,7 +113,7 @@ file.
 #include "AlmostEqual.h"
 #include "ListUtils.h"
 #include "Symbols.h"
-#include "Algebras/Geoid/Geoid.h"
+#include "Algebras/Geoid/GeoDist.h"
 #include "Algebras/MovingRegion/MovingRegionAlgebra.h"
 #include "RefinementStream.h"
 #include "Algebras/TemporalUnit/TemporalUnitAlgebra.h"
@@ -2836,36 +2836,31 @@ const Rectangle<3> CUPoint::BoundingBox(const Geoid* geoid) const {
     }
     int hSign = p0.GetX() < p1.GetX() ? 1 : -1;
     int vSign = p0.GetY() < p1.GetY() ? 1 : -1;
-    
-//     double yfact = (geoid ? 1.0 / getMetersPerDegree(true) : 1.0);
-//     double xfact = (geoid ? 1.0 / getMetersPerDegree(false) : 1.0);
-    double xfact(1.0), yfact(1.0);
+    double yfact = (geoid ? 1.0 / geodist::getMetersPerDegree(p0.GetY(), true) 
+                          : 1.0);
+    double xfact = (geoid ? 1.0 / geodist::getMetersPerDegree(p0.GetY(), false)
+                          : 1.0);
     p0shifted = Point(true, p0.GetX() - hSign * abs(sin(dir)) * radius * xfact,
                             p0.GetY() - vSign * abs(cos(dir)) * radius * yfact);
     p1shifted = Point(true, p1.GetX() + hSign * abs(sin(dir)) * radius * xfact,
                             p1.GetY() + vSign * abs(cos(dir)) * radius * yfact);
     if (geoid) {
-      // TODO: recompute p0shifted and p1shifted for geoid; convert radius
-      // TODO: into geographic coordinates
-      Rectangle<2> geobbox = HalfSegment(true, p0, p1).BoundingBox(geoid);
+      Rectangle<2> geobbox = 
+                     HalfSegment(true, p0shifted, p1shifted).BoundingBox(geoid);
       double minMax[] = {geobbox.MinD(0), geobbox.MaxD(0),
                          geobbox.MinD(1), geobbox.MaxD(1),
                          timeInterval.start.ToDouble(),
                          timeInterval.end.ToDouble()};
       return Rectangle<3>(true, minMax);
     } // else: euclidean geometry
-    if (this->IsDefined()) {
-      double minMax[] = {MIN(p0shifted.GetX(), p1shifted.GetX()),
-                        MAX(p0shifted.GetX(), p1shifted.GetX()),
-                        MIN(p0shifted.GetY(), p1shifted.GetY()),
-                        MAX(p0shifted.GetY(), p1shifted.GetY()),
-                        timeInterval.start.ToDouble(),
-                        timeInterval.end.ToDouble()};
-      return Rectangle<3>(true, minMax);
-    } 
-    else {
-      return Rectangle<3>(false);
-    }
+    double minMax[] = {MIN(p0shifted.GetX(), p1shifted.GetX()),
+                       MAX(p0shifted.GetX(), p1shifted.GetX()),
+                       MIN(p0shifted.GetY(), p1shifted.GetY()),
+                       MAX(p0shifted.GetY(), p1shifted.GetY()),
+                       timeInterval.start.ToDouble(),
+                       timeInterval.end.ToDouble()};
+    return Rectangle<3>(true, minMax);
+    
   }
 }
 
@@ -8411,11 +8406,11 @@ void CMPoint::ConvertFrom(const MPoint& src, const CcReal& threshold,
     mpSimplified.AtPeriods(per, simpleFinalPart);
     srcFinalPart.SquaredDistance(simpleFinalPart, dist);
     if (!geoid) {
-      cup.Set(upSimplified, sqrt(dist.Max(correct)));
+      cup.Set(upSimplified, std::min(thresh, sqrt(dist.Max(correct))));
     }
     else {
       dist.Recompute(srcFinalPart, simpleFinalPart, geoid);
-      cup.Set(upSimplified, dist.Max(correct));
+      cup.Set(upSimplified, std::min(thresh, dist.Max(correct)));
     }
     cup.SetRadius(cup.GetRadius());
     assert(correct);
@@ -8760,12 +8755,10 @@ Rectangle<3u> CMPoint::BoundingBox(const Geoid* geoid /*=0*/) const {
       Get(i,u);
       assert(u.IsDefined());
       if (bbx.IsDefined()) {
-        bbx.Union(u.BoundingBox(geoid));
-//         cout << i << " : " << bbx << endl;
+        bbx = bbx.Union(u.BoundingBox(geoid));
       }
       else {
         bbx = u.BoundingBox(geoid);
-//         cout << i << " : " << bbx << endl;
       }
     }
     return bbx;
