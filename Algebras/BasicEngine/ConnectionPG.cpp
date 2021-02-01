@@ -58,6 +58,16 @@ string keyword;
 }
 
 /*
+6.1.1 Destructor
+
+*/
+ConnectionPG::~ConnectionPG() {
+  if(conn != NULL) {
+    PQfinish(conn);
+  }
+}
+
+/*
 6.2 ~checkConn~
 
 Returns TRUE if the connection is ok.

@@ -53,25 +53,26 @@ to the importer vector.
 
 */
 template<class T>
-bool BasicEngine_Control<T>::createConnection(long unsigned int* index){
-NestedList* mynl = new NestedList("temp_nested_list");
-const int defaultTimeout = 0;
+bool BasicEngine_Control<T>::createConnection(long unsigned int* index) {
 
-bool val = false;
-string host;
-string config;
-string port;
-string dbName;
-string dbPort;
-string errMsg;
-int err = 0;
-double rt;
-CommandLog CommandLog;
-string res;
-SecondoInterfaceCS* si ;
-ConnectionInfo* ci;
-Tuple* tuple;
-GenericRelationIterator* it = worker->MakeScan();
+  NestedList* mynl = new NestedList("temp_nested_list");
+  const int defaultTimeout = 0;
+
+  bool val = false;
+  string host;
+  string config;
+  string port;
+  string dbName;
+  string dbPort;
+  string errMsg;
+  int err = 0;
+  double rt;
+  CommandLog CommandLog;
+  string res;
+  SecondoInterfaceCS* si ;
+  ConnectionInfo* ci;
+  Tuple* tuple;
+  GenericRelationIterator* it = worker->MakeScan();
 
   tuple = it->GetNthTuple(*index+1,false);
   si = new SecondoInterfaceCS(true,mynl, true);
@@ -93,15 +94,21 @@ GenericRelationIterator* it = worker->MakeScan();
             ,rt,false,CommandLog,true,defaultTimeout);
         if(err != 0){
           cout << std::string("ErrCode:" + err) << endl;
-        }else{
+        } else {
           val = (res == "(bool TRUE)") && val;
         }
     }
-  }else{
+  } else{
         cout << std::string("Couldn't connect to secondo-Worker on host"
         "" + host + " with port " + port + "!\n") << endl;
   }
-return val;
+
+  if(it != NULL) {
+    delete it;
+    it = NULL;
+  }
+
+  return val;
 }
 
 /*
