@@ -17,8 +17,8 @@
 #along with SECONDO; if not, write to the Free Software
 #Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-operator be_init alias BE_INIT pattern op (_,_)
-operator be_init_worker alias BE_INIT_WORKER pattern op (_,_,_)
+operator be_init alias BE_INIT pattern op (_,_,_)
+operator be_init_worker alias BE_INIT_WORKER pattern op (_,_,_,_)
 
 operator be_partRR alias BE_PARTRR pattern op (_,_,_)
 operator be_partHash alias BE_PARTHASH pattern op (_,_,_)

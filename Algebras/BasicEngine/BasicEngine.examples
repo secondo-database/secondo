@@ -4,13 +4,13 @@ Restore   : No
 Operator  : be_init
 Number    : 1
 Signature : int x {string, text} --> bool
-Example   : query be_init(5432, "gisdb")
+Example   : query be_init("pgsql", 5432, "gisdb")
 Result    : FALSE
 
 Operator  : be_init_worker
 Number    : 1
 Signature : int x {string, text} x relation --> bool
-Example   : query be_init_worker(5432, "gisdb", WorkersPG)
+Example   : query be_init_worker("pgsql", 5432, "gisdb", WorkersPG)
 Result    : FALSE
 
 Operator  : be_partRR

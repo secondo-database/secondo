@@ -109,21 +109,30 @@ This operator gets a hostname and a port.
 
 */
 ListExpr be_init_tm(ListExpr args){
-string err = "int x {string, text} --> bool"
-       "(port, db-name) expected";
+string err = "{string, text} x int x {string, text}"
+       "--> bool (dbtype, port, db-name) expected";
 
-  if(!(nl->HasLength(args,2))){
+  if(!(nl->HasLength(args,3))){
     return listutils::typeError("Two arguments expected. " + err);
   }
-  if(!CcInt::checkType(nl->First(args))){
+
+  if(!CcString::checkType(nl->First(args))
+        && !FText::checkType(nl->First(args))){
     return listutils::typeError("Value of first argument have "
-        "to be a int." + err);
-  }
-  if(!CcString::checkType(nl->Second(args))
-        && !FText::checkType(nl->Second(args))){
-    return listutils::typeError("Value of second argument have "
         "to be a string or a text. " + err);
   }
+
+  if(!CcInt::checkType(nl->Second(args))){
+    return listutils::typeError("Value of second argument have "
+        "to be a int." + err);
+  }
+
+  if(!CcString::checkType(nl->Third(args))
+        && !FText::checkType(nl->Third(args))){
+    return listutils::typeError("Value of third argument have "
+        "to be a string or a text. " + err);
+  }
+
   return nl->SymbolAtom(CcBool::BasicType());
 }
 
@@ -133,22 +142,29 @@ string err = "int x {string, text} --> bool"
 */
 template<class T, class L>
 int be_init_sf_vm(Word* args, Word& result, int message,
-        Word& local, Supplier s ){
+        Word& local, Supplier s) {
   
-  CcInt* port = (CcInt*) args[0].addr;
-  T* dbname = (T*) args[1].addr;
-  bool val;
+  T* dbtype = (T*) args[0].addr;
+  CcInt* port = (CcInt*) args[1].addr;
+  T* dbname = (T*) args[2].addr;
 
   result = qp->ResultStorage(s);
 
-  dbs_conn<L> = new BasicEngine_Control<L>(
-    new ConnectionPG(port->GetIntval(),
-        dbname->toText()));
+  // Postgress database
+  if(string("pgsql").compare(dbtype->toText()) == 0) {
+    dbs_conn<L> = new BasicEngine_Control<L>(
+      new ConnectionPG(port->GetIntval(),
+          dbname->toText()));
 
-  val = dbs_conn<L>->checkConn();
-  dbms_name = (val) ? pg : "";
-  isMaster = false;
-  ((CcBool*)result.addr)->Set(true, val);
+    bool val = dbs_conn<L>->checkConn();
+    dbms_name = (val) ? pg : "";
+    isMaster = false;
+    ((CcBool*)result.addr)->Set(true, val);
+  } else {
+    cerr << endl << "Error: Unsupported database type: " 
+         << dbtype->toText() << endl;
+    ((CcBool*)result.addr)->Set(false, false);
+  }
 
   return 0;
 }
@@ -158,13 +174,13 @@ int be_init_sf_vm(Word* args, Word& result, int message,
 
 */
 OperatorSpec init_be_spec (
-   "int x {string, text} --> bool",
-   "be_init(_,_)",
-   "Set the port and the db-name from PostgreSQL for initialization "
-   "the local PG-Worker. Your username and password have to be stored "
+   "{string, text} x int x {string, text} --> bool",
+   "be_init(_,_,_)",
+   "Set the db-type, port and the db-name for initialization "
+   "the local BE-Worker. Your username and password have to be stored "
    "in the .pgpass file in your home location. For creating a distributed "
    "PostgreSQL-System please use the operator be_init_worker.",
-   "query be_init(5432,'gisdb')"
+   "query be_init('pgsql', 5432,'gisdb')"
 );
 
 /*
@@ -1319,25 +1335,35 @@ This operator gets a hostname,a port and a Worker relation.
 
 */
 ListExpr be_init_worker_tm(ListExpr args){
-string err = "\n int x {string, text} x rel --> bool"
-       "(port, db-name, worker relation) expected";
+string err = "\n {string, text} x int x {string, text} x rel "
+       "--> bool (type, port, db-name, worker relation) expected";
 
-  if(!(nl->HasLength(args,3))){
-    return listutils::typeError("Three arguments expected. " + err);
+  if(!(nl->HasLength(args,4))){
+    return listutils::typeError("Four arguments expected. " + err);
   }
-  if(!CcInt::checkType(nl->First(args))){
+
+  if(!CcString::checkType(nl->First(args))
+        && !FText::checkType(nl->First(args))){
     return listutils::typeError("Value of first argument have "
-        "to be a int." + err);
-  }
-  if(!CcString::checkType(nl->Second(args))
-        && !FText::checkType(nl->Second(args))){
-    return listutils::typeError("Value of second argument have "
         "to be a string or a text. " + err);
   }
-  if(!Relation::checkType(nl->Third(args))){
+
+  if(!CcInt::checkType(nl->Second(args))){
+    return listutils::typeError("Value of second argument have "
+        "to be a int." + err);
+  }
+
+  if(!CcString::checkType(nl->Third(args))
+        && !FText::checkType(nl->Third(args))){
     return listutils::typeError("Value of third argument have "
+        "to be a string or a text. " + err);
+  }
+
+  if(!Relation::checkType(nl->Fourth(args))){
+    return listutils::typeError("Value of fourth argument have "
         "to be a relation." + err);
   }
+
   return nl->SymbolAtom(CcBool::BasicType());
 }
 
@@ -1349,21 +1375,28 @@ template<class T, class L>
 int init_be_workerSFVM(Word* args, Word& result, int message, 
      Word& local, Supplier s ) {
 
-  CcInt* port = (CcInt*) args[0].addr;
-  T* dbname = (T*) args[1].addr;
-  Relation* worker = (Relation*) args[2].addr;;
-  bool val;
+  T* dbtype = (T*) args[0].addr;
+  CcInt* port = (CcInt*) args[1].addr;
+  T* dbname = (T*) args[2].addr;
+  Relation* worker = (Relation*) args[3].addr;
 
   result = qp->ResultStorage(s);
 
-  dbs_conn<L> = new BasicEngine_Control<L>(
-         new ConnectionPG(port->GetIntval(), 
-         dbname->toText()),worker);
+  // Postgress database
+  if(string("pgsql").compare(dbtype->toText()) == 0) {
+    dbs_conn<L> = new BasicEngine_Control<L>(
+            new ConnectionPG(port->GetIntval(), 
+            dbname->toText()),worker);
 
-  val = dbs_conn<L>->checkConn();
-  dbms_name = (val) ? pg : "";
-  isMaster = val;
-  ((CcBool*)result.addr)->Set(true, val);
+      bool val = dbs_conn<L>->checkConn();
+      dbms_name = (val) ? pg : "";
+      isMaster = val;
+      ((CcBool*)result.addr)->Set(true, val);
+  } else {
+    cerr << endl << "Error: Unsupported database type: " 
+         << dbtype->toText() << endl;
+    ((CcBool*)result.addr)->Set(false, false);
+  }
 
   return 0;
 }
@@ -1373,14 +1406,14 @@ int init_be_workerSFVM(Word* args, Word& result, int message,
 
 */
 OperatorSpec be_init_worker_spec (
-   "int x {string, text} x rel --> bool",
-   "be_init_worker(_,_,_)",
-   "Set the port and the db-name from PostgreSQL for initialization the local "
-   "PG-Worker. Additional you have to specified a Workers-Relation with all "
+   "{string, text} x int x {string, text} x rel --> bool",
+   "be_init_worker(_,_,_,_)",
+   "Set the dbtype, port and the db-namefor initialization the local "
+   "BE-Worker. Additional you have to specified a Workers-Relation with all "
    "connection information from the worker, including the information "
    "about the second DBMS. The structure of this relation should be "
    "[Host: string, Port: int, Config: string, PGPort: int, DBName: string]",
-   "query be_init_worker(5432,'gisdb',WorkersPG)"
+   "query be_init_worker('pgsql',5432,'gisdb',WorkersPG)"
 );
 
 /*
@@ -1398,7 +1431,7 @@ ValueMapping be_init_worker_vm[] = {
 */
 int be_init_worker_select(ListExpr args){
   if (dbms_name == pg){
-    return CcString::checkType(nl->Second(args))?0:1;
+    return CcString::checkType(nl->First(args))?0:1;
   } else {
     return 0;
   }
