@@ -165,7 +165,20 @@ namespace geodist{
        //return HaversineInM(p3[0],p3[1],np[0], np[1], geoid);
        bool valid;
        return geoid->DistanceOrthodrome(x,y,np[1], np[0], valid);
-    } 
+    }
+    
+    
+  double getMetersPerDegree(const double lat, const bool getY) {
+    
+    double radLat = 3.14159265359 / 180.0 * lat;
+    if (getY) {
+      return 111132.954 - 559.822 * cos(2.0*radLat) + 1.175 * cos(4.0*radLat);
+    }
+    else {
+      return 111412.0 * cos(radLat) - 93.5 * cos(3.0*radLat) +
+             0.118 * cos(5.0*radLat);
+    }
+  }
 
 
 } // end of namespace geodist

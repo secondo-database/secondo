@@ -44,5 +44,9 @@ namespace geodist{
                   const double x, const double y,
                   const Geoid* geoid);
 
+  /*
+    Computes the length of a degree in LON or LAT direction.
+  */
+  double getMetersPerDegree(const double lat, const bool getY);
 }
 
