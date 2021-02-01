@@ -13,6 +13,18 @@ Signature : int x {string, text} x relation --> bool
 Example   : query be_init_worker("pgsql", 5432, "gisdb", WorkersPG)
 Result    : FALSE
 
+Operator  : be_shutdown
+Number    : 1
+Signature : --> bool
+Example   : query be_shutdown()
+Result    : FALSE
+
+Operator  : be_shutdown_worker
+Number    : 1
+Signature : --> bool
+Example   : query be_shutdown_worker()
+Result    : FALSE
+
 Operator  : be_partRR
 Number    : 1
 Signature : {string, text} x {string, text} x int --> bool

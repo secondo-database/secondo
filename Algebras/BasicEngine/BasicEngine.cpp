@@ -52,7 +52,7 @@ dbs\_con is a pointer to a connection, for example to postgres
 
 */
 template<class L>
-BasicEngine_Control<L>* dbs_conn;
+BasicEngine_Control<L>* dbs_conn = NULL;
 
 /*
 dbms\_name is a name of the secound dbms, for example to pg (for postgreSQL),mysql...
@@ -97,7 +97,7 @@ string const negSlots ="\nThe number of slots have to be greater than 0."
 /*
 1 Operators
 
-1.1 Operator  ~init\_pg~
+1.1 Operator  ~be\_init~
 
 Establishes a connection to a running postgres System.
 The result of this operator is a boolean indicating the success
@@ -204,13 +204,130 @@ int be_init_select(ListExpr args){
 1.1.6 Operator instance
 
 */
-Operator init_be_op(
+Operator be_init_op(
   "be_init",
   init_be_spec.getStr(),
   sizeof(be_init_vm),
   be_init_vm,
   be_init_select,
   be_init_tm
+);
+
+
+
+/*
+1.1.1 Type Mapping
+
+This operator has no paramter
+
+*/
+ListExpr be_shutdown_tm(ListExpr args) {
+string err = "No parameter (--> bool) expected";
+
+  if(!(nl->HasLength(args,0))){
+    return listutils::typeError("No arguments expected. " + err);
+  }
+  return nl->SymbolAtom(CcBool::BasicType());
+}
+
+/*
+1.1.2 Value Mapping
+
+*/
+int be_shutdown_vm(Word* args, Word& result, int message,
+        Word& local, Supplier s) {
+
+  result = qp->ResultStorage(s);
+
+  // TODO: Implement shutdown
+  ((CcBool*)result.addr)->Set(false, false);
+
+  return 0;
+}
+
+/*
+1.1.3 Specification
+
+*/
+OperatorSpec be_shutdown_spec (
+   " --> bool",
+   "be_shutdown()",
+   "Shutdown the connection to the basic engine worker",
+   "query be_shutdown()"
+);
+
+/*
+1.1.6 Definition of operator ~be\_shutdown~
+
+*/
+Operator be_shutdown (
+         "be_shutdown",             // name
+         be_shutdown_spec.getStr(), // specification
+         be_shutdown_vm,            // value mapping
+         Operator::SimpleSelect,    // trivial selection function
+         be_shutdown_tm             // type mapping
+);
+
+
+/*
+1.1.1 Type Mapping
+
+This operator has no paramter
+
+*/
+ListExpr be_shutdown_worker_tm(ListExpr args) {
+string err = "No parameter (--> bool) expected";
+
+  if(!(nl->HasLength(args,0))){
+    return listutils::typeError("No arguments expected. " + err);
+  }
+  return nl->SymbolAtom(CcBool::BasicType());
+}
+
+/*
+1.1.2 Value Mapping
+
+*/
+int be_shutdown_worker_vm(Word* args, Word& result, int message,
+        Word& local, Supplier s) {
+  
+  result = qp->ResultStorage(s);
+
+  // TODO: Replace template by abstract class
+  if(dbs_conn<ConnectionPG> != NULL) {
+    cout << "Shutting down basic engine" << endl;
+    delete dbs_conn<ConnectionPG>;
+    dbs_conn<ConnectionPG> = NULL;
+    ((CcBool*)result.addr)->Set(true, true);
+  } else {
+    cout << "Basic engine is not active" << endl;
+    ((CcBool*)result.addr)->Set(true, false);
+  }
+
+  return 0;
+}
+
+/*
+1.1.3 Specification
+
+*/
+OperatorSpec be_shutdown_worker_spec (
+   " --> bool",
+   "be_shutdown_worker()",
+   "Shutdown the connection to the basic engine worker",
+   "query be_shutdown_worker()"
+);
+
+/*
+1.1.6 Definition of operator ~be\_shutdown~
+
+*/
+Operator be_shutdown_worker (
+         "be_shutdown_worker",             // name
+         be_shutdown_worker_spec.getStr(), // specification
+         be_shutdown_worker_vm,            // value mapping
+         Operator::SimpleSelect,           // trivial selection function
+         be_shutdown_worker_tm             // type mapping
 );
 
 /*
@@ -1716,7 +1833,10 @@ class BasicEngineAlgebra : public Algebra
  public:
   BasicEngineAlgebra() : Algebra()
   {
-    AddOperator(&init_be_op);
+    AddOperator(&be_init_op);
+    AddOperator(&be_init_worker_op);
+    AddOperator(&be_shutdown);
+    AddOperator(&be_shutdown_worker);
     AddOperator(&be_partRROp);
     AddOperator(&be_partHashOp);
     AddOperator(&be_partFunOp);
@@ -1727,7 +1847,6 @@ class BasicEngineAlgebra : public Algebra
     AddOperator(&be_mcommandOp);
     AddOperator(&be_unionOp);
     AddOperator(&be_structOp);
-    AddOperator(&be_init_worker_op);
     AddOperator(&be_runsqlOp);
     AddOperator(&be_partGridOp);
   }

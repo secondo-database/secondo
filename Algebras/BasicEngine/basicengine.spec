@@ -20,6 +20,9 @@
 operator be_init alias BE_INIT pattern op (_,_,_)
 operator be_init_worker alias BE_INIT_WORKER pattern op (_,_,_,_)
 
+operator be_shutdown alias BE_SHUTDOWN pattern op ()
+operator be_shutdown_worker alias BE_SHUTDOWN_WORKER pattern op ()
+
 operator be_partRR alias BE_PARTRR pattern op (_,_,_)
 operator be_partHash alias BE_PARTHASH pattern op (_,_,_)
 operator be_partFun alias BE_PARTFUN pattern op (_,_,_)

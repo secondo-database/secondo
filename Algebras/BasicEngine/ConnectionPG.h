@@ -57,6 +57,7 @@ public:
 
 */
 ConnectionPG(int port, std::string dbname);
+
 virtual ~ConnectionPG(){};
 
 bool sendCommand(std::string* command, bool print = true);
