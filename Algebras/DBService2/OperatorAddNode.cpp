@@ -145,7 +145,7 @@ int OperatorAddNode::mapValue(Word* args,
         print("Couldn't get DBService Client instance.", std::cout);
 
         static_cast<CcBool*>(result.addr)->Set(false, false);
-        return 0;
+        return 1;
     }
 
     print("Done adding node.", std::cout);
@@ -157,7 +157,7 @@ int OperatorAddNode::mapValue(Word* args,
      * will be opened
      * to satisfy this requirement for a successful operator execution.
      */
-    SecondoSystem::BeginTransaction();
+    //SecondoSystem::BeginTransaction();
 
     // Sets defined?=yes, success=true
     static_cast<CcBool*>(result.addr)->Set(true,success);
