@@ -261,6 +261,21 @@ relation to the connected server
 
 
 /*
+
+1.1.1.5 ~addNode~
+
+Request adding a node to the DBService.
+
+*/
+
+bool addNode(
+    const std::string& nodeHost,
+    const int& nodePort,
+    const std::string& pathToNodeConfig
+);
+
+
+/*
 1.1.1.2 \textit{getLocationParameter}
 
 This function simplifies reading information from the "Environment" section of

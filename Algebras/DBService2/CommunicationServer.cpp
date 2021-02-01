@@ -172,7 +172,9 @@ int CommunicationServer::communicate(iostream& io)
         }else if(request ==
                  CommunicationProtocol::CreateDerivateSuccessful()){
            reportSuccessfulDerivation(io,tid);
-        }else
+        } else if (request == CommunicationProtocol::AddNodeRequest()) {
+            handleAddNodeRequest(io,tid);
+        } else
         {
             traceWriter->write(
                     tid, "Protocol error: invalid request: ", request);
@@ -616,6 +618,51 @@ bool CommunicationServer::handleTriggerReplicaDeletion(
     //TODO check return code etc
     //TODO tracing
     return true;
+}
+
+bool CommunicationServer::handleAddNodeRequest(
+        std::iostream& io,
+        const boost::thread::id tid) {
+
+    traceWriter->writeFunction(tid,
+            "CommunicationServer::handleAddNodeRequest");
+    
+    // Confirm the AddNodeRequest
+    CommunicationUtils::sendLine(io,
+            CommunicationProtocol::AddNodeRequest());
+    
+    string nodeHost;
+    string nodePort;
+    string nodeConfigPath;
+
+    CommunicationUtils::receiveLine(io, nodeHost);
+    CommunicationUtils::receiveLine(io, nodePort);
+    CommunicationUtils::receiveLine(io, nodeConfigPath);
+
+    traceWriter->write("nodeHost", nodeHost);
+    traceWriter->write("nodePort", nodePort);
+    traceWriter->write("nodeConfigPath", nodeConfigPath);
+
+    // TODO Talk to DBServiceManager then return
+    DBServiceManager* dbService = DBServiceManager::getInstance();
+
+    bool success = dbService->addNode(nodeHost, stoi(nodePort), nodeConfigPath);
+    
+    if (success) {
+        // Success
+        traceWriter->write("Successfully added node.");   
+        CommunicationUtils::sendLine(io,
+            CommunicationProtocol::NodeAdded());
+        return true;
+
+    } else {
+        traceWriter->write("dbServiceManager::addNode failed.");   
+        CommunicationUtils::sendLine(io,
+            CommunicationProtocol::AddNodeFailed());
+        return false;
+    }
+
+    return false;
 }
 
 bool CommunicationServer::handlePing(

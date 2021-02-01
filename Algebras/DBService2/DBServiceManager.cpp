@@ -20,7 +20,6 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
@@ -46,6 +45,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "SecondoException.h"
 #include "SecParser.h"
 #include "StringUtils.h"
+#include "StandardTypes.h"
+#include "FileSystem.h"
 
 #include "Algebras/Distributed2/ConnectionInfo.h"
 
@@ -184,10 +185,19 @@ namespace DBService
 
     bool DBServiceManager::addNode(const string host,
         const int port,
-        string config)
+        string configPath)
     {
         printFunction("DBServiceManager::addNode", std::cout);
         boost::lock_guard<boost::mutex> lock(managerMutex);
+
+        if (!FileSystem::FileOrFolderExists(configPath)) {
+            print("The given DBService config file does not exist.", std::cout);
+            LOG_F(ERROR, "The given DBService config file does not exist.");
+            
+            return 0;
+        }
+
+        CcString config = CcString(true, configPath);
 
         // Establishing a connection to the remote node to retrieve 
         // config values
@@ -197,7 +207,7 @@ namespace DBService
         print("\tPort", port, std::cout);
 
         shared_ptr<DBService::Node> node = make_shared<DBService::Node>(
-            host, port, config);
+            host, port, config.getCsvStr());
 
         /* Connect to the node and obtain missing params such as
          * comPort

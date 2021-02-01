@@ -169,6 +169,20 @@ This function returns whether or not a relation exists in the ~DBService~.
             const std::string& relationName,
             const std::vector<std::string>& derivates);
 
+/*
+
+1.1.1.1 ~addNode~
+
+Request adding a node to the DBService.
+
+*/
+
+    bool addNode(
+        const std::string& nodeHost,
+        const int& nodePort,
+        const std::string& pathToNodeConfig
+    );
+
 private:
 /*
 1.1.1.1 Constructor

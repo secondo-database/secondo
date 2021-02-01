@@ -201,4 +201,21 @@ string CommunicationProtocol::ObjectRequest()
   return "<OBJECTREQUEST>";
 }
 
+string CommunicationProtocol::AddNodeRequest()
+{
+    return "<ADDNODEREQUEST>";
+}
+
+string CommunicationProtocol::AddNodeFailed() {
+    return "<ADDNODEFAILED>";
+}
+
+// string CommunicationProtocol::NodeAlreadyExists() {
+//     return "<NODEALREADYEXISTS>";
+// }
+
+string CommunicationProtocol::NodeAdded() {
+    return "<NODEADDED>";
+}
+
 } /* namespace DBService */

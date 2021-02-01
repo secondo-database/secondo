@@ -188,6 +188,21 @@ running.
             std::iostream& io,
             const boost::thread::id tid);
 
+
+/*
+
+1.1.1.1 \textit{handleAddNodeRequest}
+
+Adds the specified DBS-Worker node to the DBService.
+Possible outcomes are: added, already present, failed.
+
+*/
+
+    bool handleAddNodeRequest(
+        std::iostream& io,
+        const boost::thread::id tid
+    );
+
 /*
 
 1.1.1.1 \textit{handlePing}

@@ -27,12 +27,14 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 #include "NestedList.h"
 #include "StandardTypes.h"
+#include "FileSystem.h"
+#include "QueryProcessor.h"
 
-#include "Algebras/DBService2/DBServiceManager.hpp"
+#include "Algebras/DBService2/DBServiceClient.hpp"
 #include "Algebras/DBService2/OperatorAddNode.hpp"
 #include "Algebras/DBService2/DebugOutput.hpp"
 
-#include "FileSystem.h"
+extern QueryProcessor* qp;
 
 namespace DBService
 {
@@ -82,34 +84,68 @@ int OperatorAddNode::mapValue(Word* args,
     CcInt* port = static_cast<CcInt*>(args[1].addr);
     CcString* config = static_cast<CcString*>(args[2].addr);
 
-    DBServiceManager *dbsm = DBServiceManager::getInstance();
-    result = qp->ResultStorage(s);
+    DBServiceClient* dbsClient = DBServiceClient::getInstance();
+
 
     print(host->GetValue(), std::cout);
     print(port->GetValue(), std::cout);
     print(config->GetValue(), std::cout);
         
-    if (!FileSystem::FileOrFolderExists(config->GetValue()))
-    {
-       print("The given DBService config file does not exist.", std::cout);
-       static_cast<CcBool *>(result.addr)->SetDefined(false);
-       return 0;
-    }
+    // if (!FileSystem::FileOrFolderExists(config->GetValue()))
+    // {
+    //    print("The given DBService config file does not exist.", std::cout);
+    //    static_cast<CcBool *>(result.addr)->SetDefined(false);
+    //    return 0;
+    // }
 
     print("Adding node...", std::cout);
     
+    /* TODO Invoking the DBServiceManager directly from an Operator is an 
+      anti-pattern. It prevents the operator from being executable from
+      SecondoClients which do not run the DBService processes.
+      This is very confusing to users and makes the usage of the DBService
+      alegbra in distributed environments harder as it requires a strong
+      tie between a particular Secondo TTY - the one which has been used to
+      start the DBService - and its corresponding SecondoBDB process.
+      Due to the fact that the Secondo server process will die if the TTY 
+      disconnects, the lifecycle of the DBService is tied to the SecondoTTY.
+      
+      This is absolutely not desirable. The SecondoBDB processes may run on a 
+      reliable server computer but the TTY may be executed on a personal 
+      computer which may have to be put into standby or switched off from time 
+      to time, e.g. during transportation.
+
+      Instead of using the DBServiceManager, the operator should enhance
+      the DBServiceClient / CommunicationServer client to talk to the
+      one process running the DBService. As the CommunictionServer is 
+      - by besign - colocated to this process - the CommServer will
+      always have access to the DBServiceManager.
+
+      Making addNode remote executable will allow self-registration of 
+      dbs workers. This is important in Kubernetes environments, for example
+      where the number of workers can be easily adjusted by adapting the
+      replica number in the dbs-worker statefulset.
+    */
     bool success = false;
-    if(dbsm){
-        success = dbsm->addNode(
+
+    result = qp->ResultStorage(s);
+
+    if(dbsClient) {
+        success = dbsClient->addNode(
                     host->GetValue(),
                     port->GetValue(),
                     config->getCsvStr());
         
         if (!success) {
             print("Couldn't add node using DBServiceManager.", std::cout);
-            static_cast<CcBool *>(result.addr)->Set(false, false);
+            static_cast<CcBool*>(result.addr)->Set(false, false);
             return 1;
         }
+    } else {
+        print("Couldn't get DBService Client instance.", std::cout);
+
+        static_cast<CcBool*>(result.addr)->Set(false, false);
+        return 0;
     }
 
     print("Done adding node.", std::cout);
@@ -125,6 +161,7 @@ int OperatorAddNode::mapValue(Word* args,
 
     // Sets defined?=yes, success=true
     static_cast<CcBool*>(result.addr)->Set(true,success);
+
     return 0;
 }
 

@@ -80,7 +80,10 @@ public:
     static std::string CreateDerivation();
     static std::string CreateDerivateSuccessful();
     static std::string ObjectRequest();
-
+    static std::string AddNodeRequest();
+    static std::string AddNodeFailed();
+    // static std::string NodeAlreadyExists();
+    static std::string NodeAdded();
 };
 
 } /* namespace DBService */

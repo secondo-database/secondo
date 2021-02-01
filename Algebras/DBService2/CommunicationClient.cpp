@@ -24,6 +24,8 @@ along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
+TOOD Functions here contain a lot of repetitive code. Refactor!
+
 */
 #include <iostream>
 
@@ -771,6 +773,68 @@ bool CommunicationClient::createDerivation(const string& databaseName,
     }
 
     return true;
+}
+
+bool CommunicationClient::addNode(
+    const std::string& nodeHost, const int& nodePort,
+    const std::string& pathToNodeConfig) {
+
+    traceWriter->writeFunction("CommunicationClient::addNode");
+    
+    if(!connectionTargetIsDBServiceMaster())
+    {
+        traceWriter->write("Aborting due to wrong node specification");
+        return false;
+    }
+
+    if(start() != 0)
+    {
+        traceWriter->write("Could not connect to Server");
+        return false;
+    }
+    iostream& io = socket->GetSocketStream();
+
+    if(!CommunicationUtils::receivedExpectedLine(io,
+        CommunicationProtocol::CommunicationServer()))
+    {
+        traceWriter->write("Not connected to CommunicationServer");
+        return false;
+    }
+
+    queue<string> sendBuffer;
+    sendBuffer.push(CommunicationProtocol::CommunicationClient());
+    sendBuffer.push(CommunicationProtocol::AddNodeRequest());
+    CommunicationUtils::sendBatch(io, sendBuffer);
+
+    if(!CommunicationUtils::receivedExpectedLine(io,
+        CommunicationProtocol::AddNodeRequest()))
+    {
+        traceWriter->write("Did not receive expected AddNodeRequest keyword");
+        return false;
+    }
+
+    //TODO Look at this function. UP to this point nothing really happened!
+    sendBuffer.push(nodeHost);
+    sendBuffer.push(to_string(nodePort));
+    sendBuffer.push(pathToNodeConfig);
+
+    CommunicationUtils::sendBatch(io, sendBuffer);
+
+    if(CommunicationUtils::receivedExpectedLine(io,
+        CommunicationProtocol::NodeAdded())) {
+            
+        traceWriter->write("The node has been added successfully.");
+
+        return true;
+
+    } else {
+
+        traceWriter->write("Adding of the node has failed.");
+
+        return false;
+    }
+
+    return false;
 }
 
 

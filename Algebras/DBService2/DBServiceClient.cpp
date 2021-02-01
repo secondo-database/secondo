@@ -397,6 +397,33 @@ bool DBServiceClient::allExists(
     return true;
 }
 
+bool DBServiceClient::addNode(
+    const std::string& nodeHost,
+    const int& nodePort,
+    const std::string& pathToNodeConfig) {
+
+    LOG_SCOPE_FUNCTION(INFO);
+    LOG_F(INFO, "nodeHost: %s", nodeHost.c_str());
+    LOG_F(INFO, "nodePort: %d", nodePort);
+    LOG_F(INFO, "pathToNodeConfig: %s", pathToNodeConfig.c_str());
+
+    // Connect to the DBService Master to submit the worker nodes'
+    // details.
+    CommunicationClient dbServiceMasterClient(dbServiceHost,
+        atoi(dbServicePort.c_str()),
+        0);    
+    
+    bool success = dbServiceMasterClient.addNode(
+        nodeHost, nodePort, pathToNodeConfig);
+
+    if (!success) {
+        LOG_F(ERROR, "%s", "Couldn't addNode.");
+        return false;
+    }
+
+    return true;
+}
+
 
 
 DBServiceClient* DBServiceClient::_instance = nullptr;
