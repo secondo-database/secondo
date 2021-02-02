@@ -298,6 +298,7 @@ int be_shutdown_worker_vm(Word* args, Word& result, int message,
     cout << "Shutting down basic engine" << endl;
     delete dbs_conn<ConnectionPG>;
     dbs_conn<ConnectionPG> = NULL;
+    
     ((CcBool*)result.addr)->Set(true, true);
   } else {
     cout << "Basic engine is not active" << endl;
@@ -1502,13 +1503,14 @@ int init_be_workerSFVM(Word* args, Word& result, int message,
   // Postgress database
   if(string("pgsql").compare(dbtype->toText()) == 0) {
     dbs_conn<L> = new BasicEngine_Control<L>(
-            new ConnectionPG(port->GetIntval(), 
-            dbname->toText()),worker);
+          new ConnectionPG(port->GetIntval(), 
+          dbname->toText()), worker);
 
-      bool val = dbs_conn<L>->checkConn();
-      dbms_name = (val) ? pg : "";
-      isMaster = val;
-      ((CcBool*)result.addr)->Set(true, val);
+    bool val = dbs_conn<L>->checkConn();
+
+    dbms_name = (val) ? pg : "";
+    isMaster = val;
+    ((CcBool*)result.addr)->Set(true, val);
   } else {
     cerr << endl << "Error: Unsupported database type: " 
          << dbtype->toText() << endl;

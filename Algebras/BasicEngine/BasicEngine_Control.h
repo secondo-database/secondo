@@ -57,24 +57,47 @@ public:
 2.1 Public Methods
 
 */
-  BasicEngine_Control(T* _dbs_conn)
-  {
+  BasicEngine_Control(T* _dbs_conn) {
     dbs_conn = _dbs_conn;
     worker = NULL;
     anzWorker = 0;
   };
 
-  BasicEngine_Control(T* _dbs_conn, Relation* _worker)
-  {
+  BasicEngine_Control(T* _dbs_conn, Relation* _worker) {
     dbs_conn = _dbs_conn;
-    worker =_worker->Clone();
+    worker = _worker->Clone();
     anzWorker = worker->GetNoTuples();
     createAllConnection();
   };
 
-  virtual ~BasicEngine_Control(){delete dbs_conn;};
+  virtual ~BasicEngine_Control() {
+    if(dbs_conn != NULL) {
+      delete dbs_conn;
+      dbs_conn = NULL;
+    }
 
-  T* get_conn(){return dbs_conn;};
+    // Delete importer
+    for(const BasicEngine_Thread* basic_engine_thread: importer) {
+      delete basic_engine_thread;
+    }
+    importer.clear();
+
+    // Delete connections
+    for(const distributed2::ConnectionInfo* connection: vec_ci) {
+      delete connection;
+    }
+    vec_ci.clear();
+
+    // Delete cloned worker relation
+    if(worker != NULL) {
+      worker -> Delete();
+      worker = NULL;
+    }
+  }
+
+  T* get_conn() {
+    return dbs_conn;
+  }
 
   bool checkConn();
 

@@ -82,23 +82,23 @@ bool BasicEngine_Control<T>::createConnection(long unsigned int* index) {
   dbPort = tuple->GetAttribute(3)->toText();
   dbName = tuple->GetAttribute(4)->toText();
 
-  if (si->Initialize("", "", host, port, config,"", errMsg, true)){
+  if (si->Initialize("", "", host, port, config,"", errMsg, true)) {
     ci = new ConnectionInfo(host,stoi(port),config,si,mynl,0,defaultTimeout);
     if(ci){
         vec_ci.push_back(ci);
         importer.push_back(new BasicEngine_Thread(vec_ci[*index]));
 
-        val=ci->switchDatabase(dbName,true, false, true, defaultTimeout);
+        val=ci->switchDatabase(dbName, true, false, true, defaultTimeout);
 
         ci->simpleCommand(dbs_conn->get_init(&dbName,&dbPort),err,res,false
             ,rt,false,CommandLog,true,defaultTimeout);
-        if(err != 0){
+        if(err != 0) {
           cout << std::string("ErrCode:" + err) << endl;
         } else {
           val = (res == "(bool TRUE)") && val;
         }
     }
-  } else{
+  } else {
         cout << std::string("Couldn't connect to secondo-Worker on host"
         "" + host + " with port " + port + "!\n") << endl;
   }
@@ -106,6 +106,10 @@ bool BasicEngine_Control<T>::createConnection(long unsigned int* index) {
   if(it != NULL) {
     delete it;
     it = NULL;
+  }
+
+  if(tuple != NULL) {
+    tuple->DeleteIfAllowed();
   }
 
   return val;
