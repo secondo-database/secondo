@@ -53,7 +53,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Algebras/Spatial/Point.h"
 #include "Algebras/Spatial/SpatialAlgebra.h"
 #include "Algebras/Temporal/TemporalAlgebra.h"
-#include "Algebras/SymbolicTrajectoryBasic/SymbolicTrajectoryBasicAlgebra.h"
 #include "AvlTree.h"
 #include "StopWatch.h"
 
@@ -263,7 +262,7 @@ namespace mtreehelper{
     if (!cup1->IsDefined() || !cup2->IsDefined()) {
       return std::numeric_limits<double>::max();
     }
-    return cup1->DistanceAvg(*cup2, false, geoid); // lower bound distance
+    return cup1->DistanceAvg(*cup2, true, geoid); // lower bound distance
   }
 
   double distance(const temporalalgebra::CMPoint* cmp1,
@@ -274,7 +273,7 @@ namespace mtreehelper{
     if (!cmp1->IsDefined() || !cmp2->IsDefined()) {
       return std::numeric_limits<double>::max();
     }
-    return cmp1->DistanceAvg(*cmp2, false, geoid); // lower bound distance
+    return cmp1->DistanceAvg(*cmp2, true, geoid); // lower bound distance
   }
   
   template<class T>
@@ -330,6 +329,7 @@ namespace mtreehelper{
 
   int getTypeNo(ListExpr type, int expectedNumbers){
      assert(expectedNumbers==12);
+     if(nl->ToString(type) == Tuple::BasicType()){return 12;}
      if( t1::checkType(type)){ return 0;}
      if( t2::checkType(type)){ return 1;}
      if( t3::checkType(type) ){ return 2;}
@@ -4367,7 +4367,7 @@ Operator matchbelowSOp(
 */
 
 /*
-6.1 mcreatemtree: Creation of an M-tree 
+6.1 ~mcreatemtree~: Creation of an M-tree 
 
 6.1.1 Type Mapping
 
@@ -4556,7 +4556,6 @@ int mcreatemtreeVMTStream (Word* args, Word& result, int message,
    Stream<Tuple> stream(args[0]);
    stream.open();
    Tuple* tuple;
-
    bool flobused = false;
    while( (tuple = stream.request())){
       T* attr = (T*) tuple->GetAttribute(index1);
@@ -4921,6 +4920,7 @@ int mcreatemtree2StreamVM(Word* args, Word& result, int message, Word& local,
       MTreeEntry<pair<Spa, Sym> > entry(spasym, tid->GetTid());
 //       pair<pair<Spa, Sym>, TupleId> p(spasym, tid->GetTid());
       tree->insert(entry);
+      entry.Destroy();
     }
     tuple->DeleteIfAllowed();
   }
@@ -4992,6 +4992,7 @@ int mcreatemtree2MRelVM(Word* args, Word& result, int message, Word& local,
         MTreeEntry<pair<Spa, Sym> > entry(spasym, i + 1);
 //         pair<pair<Spa, Sym>, TupleId> p(spasym, i + 1);
         tree->insert(entry);
+        entry.Destroy();
       }
     }
   }
@@ -5772,7 +5773,7 @@ ListExpr mdistRangeTM(ListExpr args) {
       return listutils::typeError("third arg is not a (m|cu|cm)point");
     }
     if (!stj::isSymbolicType(a4)) {
-      return listutils::typeError("third arg is not an mlabel(s) / mplace(s)");
+      return listutils::typeError("fourth arg is not an mlabel(s) / mplace(s)");
     }
     a4 = nl->Fifth(args);
   }
@@ -6148,14 +6149,14 @@ ListExpr mdistScanTM(ListExpr args) {
   ListExpr a3 = nl->Third(args);
   if (nl->HasLength(args, 3)) {
     if (!mtreehelper::checkType(a1, a3)) {
-      return listutils::typeError("first arg is not a mtree over " 
-                                  + nl->ToString(a1));
+      return listutils::typeError("first arg is not an mtree over " 
+                                  + nl->ToString(a3));
     }
   }
   else {
     ListExpr a4 = nl->Fourth(args);
     if (!mtreehelper::checkType(a1, nl->SymbolAtom(Tuple::BasicType()))) {
-      return listutils::typeError("first arg is not a mtree over tuples");
+      return listutils::typeError("first arg is not an mtree over tuples");
     }
     if (!temporalalgebra::MPoint::checkType(a3) &&
         !temporalalgebra::CUPoint::checkType(a3) &&
@@ -6163,7 +6164,7 @@ ListExpr mdistScanTM(ListExpr args) {
       return listutils::typeError("third arg is not a (m|cu|cm)point");
     }
     if (!stj::isSymbolicType(a4)) {
-      return listutils::typeError("third arg is not an mlabel(s) / mplace(s)");
+      return listutils::typeError("fourth arg is not an mlabel(s) / mplace(s)");
     }
   }
   return nl->TwoElemList(listutils::basicSymbol<Stream<Tuple> >(),
