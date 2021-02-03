@@ -8387,11 +8387,11 @@ void CMPoint::ConvertFrom(const MPoint& src, const CcReal& threshold,
     mpSimplePart.Add(upSimplified);
     srcPart.SquaredDistance(mpSimplePart, dist);
     if (!geoid) {
-      cup.Set(upSimplified, sqrt(dist.Max(correct)));
+      cup.Set(upSimplified, std::min(thresh, sqrt(dist.Max(correct))));
     }
     else {
       dist.Recompute(srcPart, mpSimplePart, geoid);
-      cup.Set(upSimplified, dist.Max(correct));
+      cup.Set(upSimplified, std::min(thresh, dist.Max(correct)));
     }
     cup.timeInterval.start -= diffToBeginOfTime;
     cup.timeInterval.end -= diffToBeginOfTime;
@@ -8793,10 +8793,8 @@ double CMPoint::DistanceAvg(const CMPoint& cmp, const bool upperBound,
   if (IsEmpty() || cmp.IsEmpty()) {
     return DBL_MAX;
   }
-  if (GetNoComponents() == cmp.GetNoComponents()) {
-    if (*this == cmp) {
-      return 0.0;
-    }
+  if (*this == cmp) {
+    return 0.0;
   }
   DateTime duration(datetime::durationtype);
 //   cout << "ORIGINAL: " << *this << endl << cmp << endl << endl;
