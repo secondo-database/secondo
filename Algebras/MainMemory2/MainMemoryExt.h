@@ -57,6 +57,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "MemoryObject.h"
 #include "Algebras/Temporal/TemporalAlgebra.h"
+#include "Algebras/SymbolicTrajectoryBasic/SymbolicTrajectoryBasicAlgebra.h"
 
 
 namespace mm2algebra{
@@ -624,6 +625,67 @@ class MTreeEntry {
   void bringToMemory(Attribute* attr) {
     attr->bringToMemory();
   }
+  
+  void bringToMemory(std::pair<temporalalgebra::MPoint, stj::MLabel>* attr) {
+    attr->first.bringToMemory();
+    attr->second.bringToMemory();
+  }
+  
+  void bringToMemory(std::pair<temporalalgebra::MPoint, stj::MLabels>* attr) {
+    attr->first.bringToMemory();
+    attr->second.bringToMemory();
+  }
+  
+  void bringToMemory(std::pair<temporalalgebra::MPoint, stj::MPlace>* attr) {
+    attr->first.bringToMemory();
+    attr->second.bringToMemory();
+  }
+  
+  void bringToMemory(std::pair<temporalalgebra::MPoint, stj::MPlaces>* attr) {
+    attr->first.bringToMemory();
+    attr->second.bringToMemory();
+  }
+  
+  void bringToMemory(std::pair<temporalalgebra::CUPoint, stj::MLabel>* attr) {
+    attr->first.bringToMemory();
+    attr->second.bringToMemory();
+  }
+  
+  void bringToMemory(std::pair<temporalalgebra::CUPoint, stj::MLabels>* attr) {
+    attr->first.bringToMemory();
+    attr->second.bringToMemory();
+  }
+  
+  void bringToMemory(std::pair<temporalalgebra::CUPoint, stj::MPlace>* attr) {
+    attr->first.bringToMemory();
+    attr->second.bringToMemory();
+  }
+  
+  void bringToMemory(std::pair<temporalalgebra::CUPoint, stj::MPlaces>* attr) {
+    attr->first.bringToMemory();
+    attr->second.bringToMemory();
+  }
+  
+  void bringToMemory(std::pair<temporalalgebra::CMPoint, stj::MLabel>* attr) {
+    attr->first.bringToMemory();
+    attr->second.bringToMemory();
+  }
+  
+  void bringToMemory(std::pair<temporalalgebra::CMPoint, stj::MLabels>* attr) {
+    attr->first.bringToMemory();
+    attr->second.bringToMemory();
+  }
+  
+  void bringToMemory(std::pair<temporalalgebra::CMPoint, stj::MPlace>* attr) {
+    attr->first.bringToMemory();
+    attr->second.bringToMemory();
+  }
+  
+  void bringToMemory(std::pair<temporalalgebra::CMPoint, stj::MPlaces>* attr) {
+    attr->first.bringToMemory();
+    attr->second.bringToMemory();
+  }
+  
   
   const T* getKey() const {
     return &key;
