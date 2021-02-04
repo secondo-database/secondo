@@ -32,6 +32,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Algebras/DBService2/CommunicationClient.hpp"
 #include "Algebras/DBService2/DebugOutput.hpp"
 
+#include <loguru.hpp>
+
 using namespace std;
 
 namespace DBService {
@@ -52,6 +54,7 @@ TriggerReplicaDeletionRunnable::TriggerReplicaDeletionRunnable(
     printFunction(
             "TriggerReplicaDeletionRunnable::TriggerReplicaDeletionRunnable",
             std::cout);
+    LOG_SCOPE_FUNCTION(INFO);
 }
 
 TriggerReplicaDeletionRunnable::~TriggerReplicaDeletionRunnable()
@@ -59,11 +62,14 @@ TriggerReplicaDeletionRunnable::~TriggerReplicaDeletionRunnable()
     printFunction(
             "TriggerReplicaDeletionRunnable::~TriggerReplicaDeletionRunnable",
             std::cout);
+    LOG_SCOPE_FUNCTION(INFO);
 }
 
 void TriggerReplicaDeletionRunnable::run()
 {
     printFunction("TriggerReplicaDeletionRunnable::run", std::cout);
+    LOG_SCOPE_FUNCTION(INFO);
+
     if(runner){
         runner->join();
         delete runner;
@@ -85,6 +91,9 @@ void TriggerReplicaDeletionRunnable::createClient(
         const std::string& derivate
         )
 {
+    LOG_SCOPE_FUNCTION(INFO);
+    loguru::set_thread_name("TriggerReplicaDeletionRunnable");
+
     printFunction("TriggerReplicaDeletionRunnable::createClient", std::cout);
     CommunicationClient client(dbServiceWorkerHost, dbServiceWorkerCommPort, 0);
     client.triggerReplicaDeletion(database, relationname, derivate); 

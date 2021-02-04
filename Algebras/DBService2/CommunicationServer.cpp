@@ -49,6 +49,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "boost/filesystem.hpp"
 
+#include <loguru.hpp>
 
 #include <algorithm>
 #include <random>
@@ -64,13 +65,16 @@ namespace DBService {
 CommunicationServer::CommunicationServer(int port) :
         MultiClientServer(port)
 {
+    LOG_SCOPE_FUNCTION(INFO);
+    LOG_F(INFO, "CommunicationServer port: %d", port);
+
     string context("CommunicationServer");
     traceWriter= unique_ptr<TraceWriter>
     (new TraceWriter(context, port, std::cout));
-
     traceWriter->writeFunction("CommunicationServer::CommunicationServer");
     traceWriter->write("Initializing CommunicationServer");
     traceWriter->write("port", port);
+
 
     lookupMinimumReplicaCount();
 }
@@ -78,11 +82,14 @@ CommunicationServer::CommunicationServer(int port) :
 CommunicationServer::~CommunicationServer()
 {
     traceWriter->writeFunction("CommunicationServer::~CommunicationServer");
+    LOG_SCOPE_FUNCTION(INFO);
 }
 
 int CommunicationServer::start()
 {
     traceWriter->writeFunction("CommunicationServer::start");
+    LOG_SCOPE_FUNCTION(INFO);
+
     return MultiClientServer::start();
 }
 
@@ -90,6 +97,8 @@ void CommunicationServer::lookupMinimumReplicaCount()
 {
     traceWriter->writeFunction(
             "CommunicationServer::lookupMinimumReplicaCount");
+    LOG_SCOPE_FUNCTION(INFO);
+
     string replicaNumber;
     SecondoUtilsLocal::readFromConfigFile(replicaNumber,
                                            "DBService",
@@ -102,9 +111,12 @@ int CommunicationServer::communicate(iostream& io)
 {
     const boost::thread::id tid = boost::this_thread::get_id();
     traceWriter->writeFunction(tid, "CommunicationServer::communicate");
+    LOG_SCOPE_FUNCTION(INFO);
+
     try
     {
         traceWriter->write(tid, "Communicating...");
+
         CommunicationUtils::sendLine(io,
                 CommunicationProtocol::CommunicationServer());
 
@@ -113,6 +125,9 @@ int CommunicationServer::communicate(iostream& io)
         {
             traceWriter->write(tid,
             "Protocol error: Not connected to CommunicationClient");
+            LOG_F(ERROR,
+                  "Protocol error: Not connected to CommunicationClient");
+
             return 1;
         }
 
@@ -120,6 +135,7 @@ int CommunicationServer::communicate(iostream& io)
         CommunicationUtils::receiveLine(io, request);
 
         traceWriter->write(tid, "request", request);
+        LOG_F(INFO, "Received request: %s", request.c_str());
 
         if(request ==
                 CommunicationProtocol::TriggerReplication())
@@ -178,22 +194,37 @@ int CommunicationServer::communicate(iostream& io)
         {
             traceWriter->write(
                     tid, "Protocol error: invalid request: ", request);
+            LOG_F(ERROR, "Protocol error: invalid request: %s",
+                  request.c_str());
+
             return 1;
         }
     } catch (char const* exception) {
-        traceWriter->write(tid, "CommunicationServer: communication char \
-                const* exception:");
+        traceWriter->write(tid, "CommunicationServer: communication char "
+                                "const* exception:");
         traceWriter->write(tid, exception);
+
+        LOG_F(ERROR, "CommunicationServer: communication char "
+            "const* exception: %s", exception);
+
         return 2;
     } catch (std::string const* exception) {
         traceWriter->write(tid, "CommunicationServer: communication string \
                 const* exception:");
         traceWriter->write(tid, exception->c_str());
+
+        LOG_F(ERROR, "CommunicationServer: communication string "
+                     "exception: %s", exception->c_str());
+
         return 2;    
     } catch (std::string const exception) {
         traceWriter->write(tid, "CommunicationServer: communication string \
                 const exception:");
         traceWriter->write(tid, exception.c_str());
+
+        LOG_F(ERROR, "CommunicationServer: communication const string "
+                     "exception: %s", exception.c_str());
+
         return 2;
     }
 
@@ -208,6 +239,8 @@ bool CommunicationServer::handleTriggerReplicationRequest(
 
     traceWriter->writeFunction(tid,
             "CommunicationServer::handleTriggerReplicationRequest");
+    LOG_SCOPE_FUNCTION(INFO);
+
     CommunicationUtils::sendLine(io,
             CommunicationProtocol::RelationRequest());
 
@@ -221,10 +254,13 @@ bool CommunicationServer::handleTriggerReplicationRequest(
 
     traceWriter->write(tid, "databaseName", databaseName);
     traceWriter->write(tid, "relationName", relationName);
+    LOG_F(INFO, "databaseName: %s", databaseName.c_str());
+    LOG_F(INFO, "relationName: %s", relationName.c_str());
 
     DBServiceManager* dbService = DBServiceManager::getInstance();
 
     traceWriter->write(tid, "Got a DBServiceManager instance.");
+    LOG_F(INFO, "Got a DBServiceManager instance.");
 
     // Check if the DBService already has a replica of the given database & 
     //  relation combination ...
@@ -236,18 +272,26 @@ bool CommunicationServer::handleTriggerReplicationRequest(
         */
         traceWriter->write(tid, 
             "The relation exists and has replicas. Aborting.");
+
+        LOG_F(ERROR, "The relation exists and has replicas."
+                     "This is currently not supported. Aborting");
+
         CommunicationUtils::sendLine(io,
                 CommunicationProtocol::ReplicaExists());
         return false;
     }
 
     traceWriter->write(tid, "The relation doesn't exist. Initiating \
-replication. Starting location request...");
+replication. Requesting a target node...");
+
+    LOG_F(INFO, "The relation doesn't exist. Initiating "
+                "replication. Requesting a target node...");
 
     CommunicationUtils::sendLine(io,
             CommunicationProtocol::LocationRequest());
 
     traceWriter->write(tid, "Location request issued.");
+    LOG_F(INFO, "Target node requested.");
 
     CommunicationUtils::receiveLines(io, 4, receiveBuffer);
     string host = receiveBuffer.front();
@@ -259,18 +303,23 @@ replication. Starting location request...");
     string transferPort = receiveBuffer.front();
     receiveBuffer.pop();
 
-    traceWriter->write(tid, "Received the following LocationInfo");
+    traceWriter->write(tid, "Received the following target node:");
     traceWriter->write(tid, "host", host);
     traceWriter->write(tid, "port", port);
     traceWriter->write(tid, "disk", disk);
     traceWriter->write(tid, "transferPort", transferPort);
+
+    LOG_F(INFO, "Received the following target node: "
+                "Host: %s, Port: %s, Disk: %s, TransferPort: %s",
+                host.c_str(), port.c_str(), disk.c_str(), transferPort.c_str());
 
     // Given the database and relation which needs to replicated, it now needs 
     // to be determined
     // whereto the relation can be replicated. This can be a single or 
     // mulitple worker nodes 
     // as replication targets.
-    traceWriter->write(tid, "Determinig replica locations...");    
+    traceWriter->write(tid, "Determinig replica locations...");
+    LOG_F(INFO, "Determinig replica locations...");
     
     /*
         TODO Rename determineReplicaLocations as it also creates the relation,
@@ -284,17 +333,23 @@ replication. Starting location request...");
                                  disk);
 
     traceWriter->write(tid, "Done determinig replica locations...");
+    LOG_F(INFO, "Done determinig replica locations...");
 
     if (success) {
         traceWriter->write(tid, "Replica placement successful.");
+        LOG_F(INFO, "Replica placement successful.");
         
         CommunicationUtils::sendLine(io,
             CommunicationProtocol::ReplicationTriggered());
         
     } else {
         traceWriter->write(tid, "Replica placement failed.");
-        traceWriter->write(tid, dbService->getMessages().c_str());        
-        
+        traceWriter->write(tid, dbService->getMessages().c_str());
+
+        LOG_F(ERROR, "The replica placement has failed. "
+                     "Placement strategy message is: %s",
+                        dbService->getMessages().c_str());
+
         CommunicationUtils::sendLine(io,
                 CommunicationProtocol::ReplicationCanceled());
     }
@@ -308,13 +363,17 @@ bool CommunicationServer::handleStartingSignalRequest(
 
     traceWriter->writeFunction(tid,
             "CommunicationServer::handleStartingSignalRequest");
+    LOG_SCOPE_FUNCTION(INFO);
+
     CommunicationUtils::sendLine(io,
             CommunicationProtocol::RelationRequest());
     
     // relID = {DATABASE}xDBSx{RELATION_NAME}
     string relID;
     CommunicationUtils::receiveLine(io, relID);
+
     traceWriter->write(tid, "relID", relID);
+    LOG_F(INFO, "relID: %s", relID.c_str());
 
     string relationDatabase;
     string relationName;
@@ -332,7 +391,10 @@ bool CommunicationServer::handleStartingSignalRequest(
         stringstream msg;
         msg << "Couldn't find the relation (relationDatabase: ";
         msg << relationDatabase << ", relationName: " << relationName;
+
         traceWriter->write(msg.str());
+        LOG_F(WARNING, "%s", msg.str().c_str());
+
         return false;
     }
 
@@ -345,7 +407,8 @@ bool CommunicationServer::handleStartingSignalRequest(
     */
     shared_ptr<DBService::Node> originalNode = relation->getOriginalNode();
 
-    traceWriter->write("Triggering file transfers");
+    traceWriter->write("Triggering file transfers...");
+    LOG_F(INFO, "Triggering file transfers...");
 
     shared_ptr<DBService::Node> replicaTargetNode;
 
@@ -370,9 +433,13 @@ bool CommunicationServer::handleTriggerFileTransferRequest(
 {
     traceWriter->writeFunction(tid,
             "CommunicationServer::handleTriggerFileTransferRequest");
+    LOG_SCOPE_FUNCTION(INFO);
+
     CommunicationUtils::sendLine(io,
             CommunicationProtocol::ReplicationDetailsRequest());
-    traceWriter->write(tid, "sent ReplicationDetailsRequest");
+
+    traceWriter->write(tid, "Sent ReplicationDetailsRequest");
+    LOG_F(INFO, "Sent the ReplicationDetailsRequest");
 
     queue<string> receiveBuffer;
     CommunicationUtils::receiveLines(io, 5, receiveBuffer);
@@ -386,13 +453,21 @@ bool CommunicationServer::handleTriggerFileTransferRequest(
     receiveBuffer.pop();
     string relationName = receiveBuffer.front();
     receiveBuffer.pop();
+
+    //TODO Explain what these details are about. From or to location?
     traceWriter->write(tid, "received replication details");
     traceWriter->write(tid, "host", host);
     traceWriter->write(tid, "port", port);
+
     // TODO remove filename, is determined automatically
     traceWriter->write(tid, "fileName", fileName);
     traceWriter->write(tid, "databaseName", databaseName);
     traceWriter->write(tid, "relationName", relationName);
+
+    LOG_F(INFO, "Received replication details. Host: %s, Port: %s, "
+                "filename: %s, database: %s, relation: %s",
+          host.c_str(), port.c_str(), fileName.c_str(), databaseName.c_str(),
+          relationName.c_str());
 
     ReplicationClientRunnable replicationClient(
             host,
@@ -409,6 +484,7 @@ bool CommunicationServer::handleProvideReplicaLocationRequest(
 
     traceWriter->writeFunction(tid,
             "CommunicationServer::handleProvideReplicaLocationRequest");
+    LOG_SCOPE_FUNCTION(INFO);
 
     CommunicationUtils::sendLine(io,
             CommunicationProtocol::RelationRequest());
@@ -438,6 +514,8 @@ bool CommunicationServer::handleProvideReplicaLocationRequest(
 
     traceWriter->write(tid, "databaseName", databaseName);
     traceWriter->write(tid, "relationName", relationName);
+    LOG_F(INFO, "Database: %s, Relation: %s",
+          databaseName.c_str(), relationName.c_str());
 
     DBServiceManager* dbService = DBServiceManager::getInstance();
 
@@ -460,12 +538,19 @@ bool CommunicationServer::handleProvideReplicaLocationRequest(
 
     if(node == nullptr)
     {        
-        traceWriter->write(tid, "Didn't find a targetNode. Maybe relation \
-                doesn't exist or relation has no replicas.");
+        traceWriter->write(tid, "Didn't find a targetNode. Maybe relation "
+                                "doesn't exist or relation has no replicas.");
+
+
         traceWriter->write(tid, "My data:");
         stringstream msg;
         dbService->printMetadata(msg);
         traceWriter->write(tid, msg.str().c_str());
+
+        LOG_F(WARNING, "Didn't find a targetNode. Maybe relation "
+                       "doesn't exist or relation has no replicas. My data: %s",
+              msg.str().c_str());
+
         sendBuffer.push(CommunicationProtocol::None());
         sendBuffer.push(CommunicationProtocol::None());
         sendBuffer.push(CommunicationProtocol::None());
@@ -475,6 +560,8 @@ bool CommunicationServer::handleProvideReplicaLocationRequest(
 
     traceWriter->write(tid, "Found a target Node: ");
     traceWriter->write(tid, node->str().c_str());
+
+    LOG_F(INFO, "Found target node: %s", node->str().c_str());
 
     /*
       CommunicationProtocol
@@ -499,6 +586,7 @@ bool CommunicationServer::reportSuccessfulReplication(
 {
     traceWriter->writeFunction(tid,
             "CommunicationServer::reportSuccessfulReplication");
+    LOG_SCOPE_FUNCTION(INFO);
 
     CommunicationUtils::sendLine(io,
             CommunicationProtocol::RelationRequest());
@@ -506,6 +594,7 @@ bool CommunicationServer::reportSuccessfulReplication(
     string relID;
     CommunicationUtils::receiveLine(io, relID);
     traceWriter->write(tid, "relID", relID);
+    LOG_F(INFO, "reldID: %s", relID.c_str());
 
     CommunicationUtils::sendLine(io,
             CommunicationProtocol::LocationRequest());
@@ -519,6 +608,7 @@ bool CommunicationServer::reportSuccessfulReplication(
 
     traceWriter->write(tid, "host", host);
     traceWriter->write(tid, "port", port);
+    LOG_F(INFO, "Host: %s, Port: %s", host.c_str(), port.c_str());
 
     DBServiceManager::getInstance()->maintainSuccessfulReplication(
             relID, host, port);
@@ -530,6 +620,7 @@ bool CommunicationServer::handleRequestReplicaDeletion(
 {
     traceWriter->writeFunction(tid,
                 "CommunicationServer::handleRequestReplicaDeletion");
+    LOG_SCOPE_FUNCTION(INFO);
 
     string databaseName;
     string relationName;
@@ -542,6 +633,8 @@ bool CommunicationServer::handleRequestReplicaDeletion(
     traceWriter->write("database", databaseName);
     traceWriter->write("relation", relationName);
     traceWriter->write("derived", derivateName);
+    LOG_F(INFO, "Database: %s, Relation: %s, Derivative: %s",
+          databaseName.c_str(), relationName.c_str(), derivateName.c_str());
     
     DBServiceManager* dbService = DBServiceManager::getInstance();
     try{
@@ -551,6 +644,7 @@ bool CommunicationServer::handleRequestReplicaDeletion(
     }catch(...)
     {
         traceWriter->write(tid, "Relation does not exist");
+        LOG_F(WARNING, "The relation does not exist.");
         return false;
     }
 
@@ -563,6 +657,7 @@ bool CommunicationServer::handleTriggerReplicaDeletion(
 {
     traceWriter->writeFunction(tid,
                 "CommunicationServer::handleTriggerReplicaDeletion");
+    LOG_SCOPE_FUNCTION(INFO);
 
     string databaseName;
     string relationName;
@@ -582,17 +677,20 @@ bool CommunicationServer::handleTriggerReplicaDeletion(
             relationName);
 
        traceWriter->write("filename", filename.string());
+       LOG_F(INFO, "Filename: %s", filename.string().c_str());
+
        success = FileSystem::DeleteFileOrFolder( filename.string() );
 
-       if (success)
-           traceWriter->write("Successfully deleted file");
-        else
-           traceWriter->write("Couldn't delete file");
+       if (success) {
+           traceWriter->write("Successfully deleted file.");
+           LOG_F(INFO, "Successfully deleted file.");
+       } else {
+           traceWriter->write("Couldn't delete file.");
+           LOG_F(ERROR, "Couldn't delete file");
+       }
 
        victim = ReplicationUtils::getRelName(filename.filename().string());
-    } 
-    else
-    {
+    } else {
        string relId = RelationInfo::getIdentifier(databaseName, relationName);
        victim = DerivateInfo::getIdentifier(relId, derivateName);
     }
@@ -600,12 +698,14 @@ bool CommunicationServer::handleTriggerReplicaDeletion(
     // ensure to have only one access to the catalog
     static boost::mutex mtx;
     boost::lock_guard<boost::mutex> guard(mtx);
- 
 
     traceWriter->write("database", databaseName);
     traceWriter->write("relation", relationName),
     traceWriter->write("derivate", derivateName);
     traceWriter->write("victim", victim);
+    LOG_F(INFO, "Database: %s, Relation: %s, Derivative: %s, Victim: %s",
+          databaseName.c_str(), relationName.c_str(), derivateName.c_str(),
+          victim.c_str());
 
     SecondoCatalog* ctlg = SecondoSystem::GetCatalog();
     SecondoSystem::BeginTransaction();
@@ -614,6 +714,7 @@ bool CommunicationServer::handleTriggerReplicaDeletion(
     SecondoSystem::CommitTransaction(false);
 
     traceWriter->write("Deleted object (victim).");
+    LOG_F(INFO, "Deleted object (victim).");
 
     //TODO check return code etc
     //TODO tracing
@@ -626,6 +727,7 @@ bool CommunicationServer::handleAddNodeRequest(
 
     traceWriter->writeFunction(tid,
             "CommunicationServer::handleAddNodeRequest");
+    LOG_SCOPE_FUNCTION(INFO);
     
     // Confirm the AddNodeRequest
     CommunicationUtils::sendLine(io,
@@ -642,6 +744,8 @@ bool CommunicationServer::handleAddNodeRequest(
     traceWriter->write("nodeHost", nodeHost);
     traceWriter->write("nodePort", nodePort);
     traceWriter->write("nodeConfigPath", nodeConfigPath);
+    LOG_F(INFO, "Node: (Host: %s, Port: %s, ConfigPath: %s",
+          nodeHost.c_str(), nodePort.c_str(), nodeConfigPath.c_str());
 
     // TODO Talk to DBServiceManager then return
     DBServiceManager* dbService = DBServiceManager::getInstance();
@@ -650,13 +754,17 @@ bool CommunicationServer::handleAddNodeRequest(
     
     if (success) {
         // Success
-        traceWriter->write("Successfully added node.");   
+        traceWriter->write("Successfully added node.");
+        LOG_F(INFO, "Successfully added node.");
+
         CommunicationUtils::sendLine(io,
             CommunicationProtocol::NodeAdded());
         return true;
 
     } else {
-        traceWriter->write("dbServiceManager::addNode failed.");   
+        traceWriter->write("dbServiceManager::addNode failed.");
+        LOG_F(WARNING, "dbServiceManager::addNode failed.");
+
         CommunicationUtils::sendLine(io,
             CommunicationProtocol::AddNodeFailed());
         return false;
@@ -668,8 +776,8 @@ bool CommunicationServer::handleAddNodeRequest(
 bool CommunicationServer::handlePing(
         std::iostream& io, const boost::thread::id tid)
 {
-    traceWriter->writeFunction(tid,
-            "CommunicationServer::handlePing");
+    LOG_SCOPE_FUNCTION(INFO);
+
     CommunicationUtils::sendLine(io,
             CommunicationProtocol::Ping());
     return true;
@@ -680,6 +788,8 @@ bool CommunicationServer::handleRelTypeRequest(
 {
     traceWriter->writeFunction(tid,
             "CommunicationServer::handleRelTypeRequest");
+    LOG_SCOPE_FUNCTION(INFO);
+
     string relID;
     CommunicationUtils::receiveLine(io, relID);
 
@@ -688,6 +798,8 @@ bool CommunicationServer::handleRelTypeRequest(
     RelationInfo::parseIdentifier(relID, databaseName, relationName);
     traceWriter->write("databaseName", databaseName);
     traceWriter->write("relationName", relationName);
+    LOG_F(INFO, "Database: %s, Relation: %s",
+          databaseName.c_str(), relationName.c_str());
 
     // Here filename is enough. No no need to use a path as all that mattes
     // is extracting the relationName. 
@@ -699,15 +811,25 @@ bool CommunicationServer::handleRelTypeRequest(
     traceWriter->write("fileName", fileName);
     string relname = ReplicationUtils::getRelName(fileName);
     traceWriter->write("relName ", relname);
+
+    LOG_F(INFO, "Filename: %s, Relation: %s",
+            fileName.c_str(), relname.c_str());
     
     SecondoCatalog* ctlg = SecondoSystem::GetCatalog();
     if(!ctlg->IsObjectName(relname)){
         traceWriter->write(relname + " is not a database object");
+        LOG_F(WARNING, "%s is not a database object.", relname.c_str());
+
         CommunicationUtils::sendLine(io, CommunicationProtocol::None());
     } else {
         traceWriter->write(relname + " is a database object");
+        LOG_F(INFO, "%s is a database object.", relname.c_str());
+
         ListExpr type = ctlg->GetObjectTypeExpr(relname);
+
         traceWriter->write("relType is " , nl->ToString(type));
+        LOG_F(INFO, "Relation type is %s.", nl->ToString(type).c_str());
+
         type = nl->TwoElemList(
                nl->SymbolAtom(Symbol::STREAM()),
                nl->Second(type));
@@ -721,6 +843,8 @@ bool CommunicationServer::handleDerivedTypeRequest(
 {
     traceWriter->writeFunction(tid,
             "CommunicationServer::handleDerivedTypeRequest");
+    LOG_SCOPE_FUNCTION(INFO);
+
     string relID;
     CommunicationUtils::receiveLine(io, relID);
     string derivedName;
@@ -728,26 +852,38 @@ bool CommunicationServer::handleDerivedTypeRequest(
     string databaseName;
     string relationName;
     RelationInfo::parseIdentifier(relID, databaseName, relationName);
+
     traceWriter->write("databaseName", databaseName);
     traceWriter->write("relationName", relationName);
     traceWriter->write("derivedName ", derivedName);
+
+    LOG_F(INFO, "Database: %s, Relation: %s, Derivative: %s",
+          databaseName.c_str(), relationName.c_str(), derivedName.c_str());
 
     string objectName = ReplicationUtils::getDerivedName(
                                            databaseName,
                                            relationName,
                                            derivedName);
-    traceWriter->write("ObjectName ", objectName);
 
+    traceWriter->write("ObjectName ", objectName);
+    LOG_F(INFO, "ObjectName: %s", objectName.c_str());
 
 
     SecondoCatalog* ctlg = SecondoSystem::GetCatalog();
     if(!ctlg->IsObjectName(objectName)){
         traceWriter->write(objectName + " is not a database object");
+        LOG_F(WARNING, "%s is not a database object.", objectName.c_str());
+
         CommunicationUtils::sendLine(io, CommunicationProtocol::None());
     } else {
         traceWriter->write(objectName + " is a database object");
+        LOG_F(INFO, "%s is a database object.", objectName.c_str());
+
         ListExpr type = ctlg->GetObjectTypeExpr(objectName);
-        traceWriter->write("objectName is " , nl->ToString(type));
+
+        traceWriter->write("Object type is " , nl->ToString(type));
+        LOG_F(INFO, "Object type is: %s.", nl->ToString(type).c_str());
+
         CommunicationUtils::sendLine(io, nl->ToString(type));
     }
     return true;
@@ -758,6 +894,7 @@ bool CommunicationServer::handleTriggerDerivation(
 {
     traceWriter->writeFunction(tid,
             "CommunicationServer::handleTriggerDerivation");
+    LOG_SCOPE_FUNCTION(INFO);
 
     // request derivation information
     CommunicationUtils::sendLine(io,
@@ -779,6 +916,10 @@ bool CommunicationServer::handleTriggerDerivation(
     traceWriter->write(tid, "targetName", targetName);
     traceWriter->write(tid, "relationName", relName);
     traceWriter->write(tid, "fundef", fundef);
+
+    LOG_F(INFO, "Database: %s, TargetName: %s, Relation: %s, Fundef: %s",
+          databaseName.c_str(), targetName.c_str(), relName.c_str(),
+          fundef.c_str());
 
     DBServiceManager* dbService = DBServiceManager::getInstance();
 
@@ -808,6 +949,9 @@ bool CommunicationServer::handleCreateDerivation(
 {
     traceWriter->writeFunction(tid,
             "CommunicationServer::handleCreateDerivation");
+
+    LOG_SCOPE_FUNCTION(INFO);
+
     CommunicationUtils::sendLine(io,
             CommunicationProtocol::DerivationRequest());
 
@@ -828,6 +972,10 @@ bool CommunicationServer::handleCreateDerivation(
     traceWriter->write(tid, "relationName", relName);
     traceWriter->write(tid, "fundef", fundef);
 
+    LOG_F(INFO, "Database: %s, TargetName: %s, Relation: %s, Fundef: %s",
+          databaseName.c_str(), targetName.c_str(), relName.c_str(),
+          fundef.c_str());
+
     DerivationClient dc(databaseName, targetName, relName, fundef);
     dc.start();
     return true;
@@ -839,12 +987,16 @@ bool CommunicationServer::reportSuccessfulDerivation(
     traceWriter->writeFunction(tid,
             "CommunicationServer::reportSuccessfulDerivation");
 
+    LOG_SCOPE_FUNCTION(INFO);
+
     CommunicationUtils::sendLine(io,
             CommunicationProtocol::ObjectRequest());
 
     string objectID;
     CommunicationUtils::receiveLine(io, objectID);
+
     traceWriter->write(tid, "objectID", objectID);
+    LOG_F(INFO, "ObjectID: %s", objectID.c_str());
 
     CommunicationUtils::sendLine(io,
             CommunicationProtocol::LocationRequest());
@@ -858,6 +1010,7 @@ bool CommunicationServer::reportSuccessfulDerivation(
 
     traceWriter->write(tid, "host", host);
     traceWriter->write(tid, "port", port);
+    LOG_F(INFO, "Host: %s, Port: %s", host.c_str(), port.c_str());
 
     DBServiceManager::getInstance()->maintainSuccessfulDerivation(
             objectID, host, port);

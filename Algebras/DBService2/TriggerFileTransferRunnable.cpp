@@ -32,6 +32,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Algebras/DBService2/CommunicationClient.hpp"
 #include "Algebras/DBService2/DebugOutput.hpp"
 
+#include <loguru.hpp>
+
 using namespace std;
 
 namespace DBService {
@@ -52,17 +54,21 @@ TriggerFileTransferRunnable::TriggerFileTransferRunnable(
 {
     printFunction("TriggerFileTransferRunnable::TriggerFileTransferRunnable",
                   std::cout);
+    LOG_SCOPE_FUNCTION(INFO);
 }
 
 TriggerFileTransferRunnable::~TriggerFileTransferRunnable()
 {
     printFunction("TriggerFileTransferRunnable::~TriggerFileTransferRunnable",
                   std::cout);
+    LOG_SCOPE_FUNCTION(INFO);
 }
 
 void TriggerFileTransferRunnable::run()
 {
     printFunction("TriggerFileTransferRunnable::run", std::cout);
+    LOG_SCOPE_FUNCTION(INFO);
+
     if(runner){
         runner->join();
         delete runner;
@@ -85,6 +91,9 @@ void TriggerFileTransferRunnable::createClient(
         std::string databaseName,
         std::string relationName)
 {
+    LOG_SCOPE_FUNCTION(INFO);
+    loguru::set_thread_name("TriggerFileTransferRunnable");
+
     printFunction("TriggerFileTransferRunnable::createClient", std::cout);
     CommunicationClient client(dbServiceWorkerHost, dbServiceWorkerCommPort, 0);
     client.triggerFileTransfer(sourceSystemHost,

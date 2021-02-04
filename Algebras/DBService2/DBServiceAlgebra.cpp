@@ -47,6 +47,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Algebras/DBService2/OperatorUseIncrementalMetadataUpdate.hpp"
 #include "Algebras/DBService2/OperatorTestDBService.hpp"
 
+#include <loguru.hpp>
+
 namespace DBService
 {
 
@@ -132,6 +134,17 @@ DBServiceAlgebra::DBServiceAlgebra() :
     AddOperator(Read3_XInfo<2>(),
                 OperatorRead3_X<2>::mapValue,
                 OperatorRead3_X<2>::mapType);
+
+    //TODO move to initLogger function
+     //TODOMove to function "initializeLogger"
+    char* argv[] = { (char*)"DBService", NULL };
+    int argc = sizeof(argv) / sizeof(char*) - 1;
+
+    loguru::g_stderr_verbosity = loguru::Verbosity_OFF;
+    loguru::init(argc, argv);
+
+    loguru::add_file("dbservice.log", loguru::Append,
+            loguru::Verbosity_MAX);
 
 }
 

@@ -32,6 +32,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Algebras/DBService2/CommunicationClient.hpp"
 #include "Algebras/DBService2/DebugOutput.hpp"
 
+#include <loguru.hpp>
+
 using namespace std;
 
 namespace DBService {
@@ -52,16 +54,21 @@ CreateDerivateRunnable::CreateDerivateRunnable(
  fundef(_fundef)
 {
     printFunction(__FUNCTION__, std::cout);
+    LOG_SCOPE_FUNCTION(INFO);    
 }
 
 CreateDerivateRunnable::~CreateDerivateRunnable()
 {
     printFunction(__FUNCTION__, std::cout);
+    LOG_SCOPE_FUNCTION(INFO);
+
 }
 
 void CreateDerivateRunnable::run()
 {
     printFunction(__FUNCTION__, std::cout);
+    LOG_SCOPE_FUNCTION(INFO);
+
     if(runner){
         runner->join();
         delete runner;
@@ -84,7 +91,11 @@ void CreateDerivateRunnable::createClient(
         std::string relname,
         std::string fundef)
 {
+    loguru::set_thread_name("CreateDerivateRunnable");
+
     printFunction(__FUNCTION__, std::cout);
+    LOG_SCOPE_FUNCTION(INFO);
+
     CommunicationClient client(dbServiceWorkerHost, dbServiceWorkerCommPort, 0);
     client.createDerivation(database, targetname, relname,fundef); 
     // TODO check return value

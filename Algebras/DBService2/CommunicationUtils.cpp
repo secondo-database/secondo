@@ -30,6 +30,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "CommunicationUtils.hpp"
 
+#include <loguru.hpp>
+
 using namespace std;
 
 namespace DBService
@@ -78,6 +80,10 @@ bool CommunicationUtils::receivedExpectedLines(iostream& io,
             cout << "Wrong line received."
                     "Expected: " << expectedLines.front()
                     << ", received: " << line << endl;
+            
+            LOG_F(ERROR, "Wrong lines received. Expected: %s but received %s.",
+                expectedLines.front().c_str(), line.c_str());
+                
             queue<string> empty;
             expectedLines.swap(empty);
             return false;

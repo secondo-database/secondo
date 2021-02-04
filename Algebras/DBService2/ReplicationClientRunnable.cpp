@@ -32,6 +32,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "boost/filesystem.hpp"
 
+#include <loguru.hpp>
+
 namespace fs = boost::filesystem;
 
 using namespace std;
@@ -48,16 +50,20 @@ ReplicationClientRunnable::ReplicationClientRunnable(
   runner(0)
 {
     print("ReplicationClientRunnable::ReplicationClientRunnable", std::cout);
+    LOG_SCOPE_FUNCTION(INFO);
 }
 
 ReplicationClientRunnable::~ReplicationClientRunnable()
 {
     print("ReplicationClientRunnable::~ReplicationClientRunnable", std::cout);
+    LOG_SCOPE_FUNCTION(INFO);
 }
 
 void ReplicationClientRunnable::run()
 {
     print("ReplicationClientRunnable::run", std::cout);
+    LOG_SCOPE_FUNCTION(INFO);
+
     if(runner){
         runner->join();
         delete runner;
@@ -78,6 +84,8 @@ void ReplicationClientRunnable::create(
         string& relationName)
 {
     print("ReplicationClientRunnable::create", std::cout);
+    LOG_SCOPE_FUNCTION(INFO);
+    loguru::set_thread_name("ReplicationClientRunnable");
 
     const fs::path localPath =
         ReplicationUtils::getFilePathOnDBServiceWorker(

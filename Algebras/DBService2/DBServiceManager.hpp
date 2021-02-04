@@ -161,36 +161,6 @@ the creation of derivative replicas.
 
 /*
 
-1.1.1.1 \textit{getConnection}
-
-This function returns a pointer to the \textit{ConnectionInfo} object
-identified by the specified \textit{ConnectionID}.
-
-*/
-    distributed2::ConnectionInfo* getConnection(ConnectionID id);
-
-/*
-
-1.1.1.1 \textit{getLocation}
-
-This function returns a reference to the \textit{LocationInfo} object identified
-by the specified \textit{ConnectionID}.
-
-*/
-    LocationInfo& getLocation(ConnectionID id);
-
-/*
-
-1.1.1.1 \textit{getRelationInfo}
-
-This function returns a reference to the \textit{RelationInfo} object identified
-by the specified string.
-
-*/
-    RelationInfo& getRelationInfo(const std::string& relationAsString);
-
-/*
-
 1.1.1.1 \textit{getRelation}
 
 Returns the Relation specified by ~relationDatabase~ and ~relationName~.
@@ -200,15 +170,6 @@ Return the ~nullptr~ if none has been found.
 std::shared_ptr<DBService::Relation> getRelation(
     std::string relationDatabase, 
     std::string relationName);
-
-/*
-1.1.1.1 ~getDerivateInfo~
-
-This function returns a reference to the ~DerivateInfo~ object 
-identified by the specified string.
-
-*/
-   DerivateInfo& getDerivateInfo(const std::string& objectId);
 
 /*
 1.1.1.1 ~printDerivates~
@@ -238,91 +199,6 @@ insufficient number of replicas (nodes qualified for a replica placement).
             const std::string& host,
             const std::string& port,
             const std::string& disk);
-
-/*
-1.1.1.1 ~determineDerivateLocations~
-
-This function determines the locations of the source relations,
-creates a new DerivateInfo object from the arguments and these
-locations, and inserts this derivateInfo into the main memory map.
-*/
-
-std::string determineDerivateLocations(
-              const std::string& targetname,
-              const std::string& relationId,
-              const std::string& fundef);
-
-
-/*
-
-1.1.1.1 \textit{persistReplicaLocations}
-
-This function persists the identified replica locations in case the replication
-shall be executed. It triggers storing them in a persistent SECONDO table
-as well as adding them to internal data structures.
-
-*/
-    void persistReplicaLocations(
-            const std::string& databaseName,
-            const std::string& relationName);
-
-/*
-1.1.1.1 ~persistDerivateLocations~
-
-This function persists the locations of the derivate identified by
-the specified string. 
-
-*/
-    void persistDerivateLocations(const std::string& objectId);
-
-
-
-/*
-
-1.1.1.1 \textit{getReplicaLocations}
-
-This function retrieves all replica locations of the relation identified by the
-given string and stores them in the provided vector.
-
-*/
-    void getReplicaLocations(
-            const std::string& relationAsString,
-            ReplicaLocations& ids);
-
-
-/*
-1.1.1.1 ~getDerivateLocations~
-
-This function retrieves all replica locations of the derivate identified by the
-given string and stores them into the provided vector.
-
-*/
-  void getDerivateLocations(
-           const std::string& objectId,
-           ReplicaLocations& locations);
-
-
-/*
-
-1.1.1.1 \textit{deleteRelationLocations}
-
-This function deletes the replica information of the specified relation from
-the internal data structures.
-
-*/
-    void deleteRelationLocations(const std::string& databaseName,
-                                const std::string& relationName);
-
-
-/*
-1.1.1.1 ~deleteDerivateLocations~
-
-This function removes the location information of the specified
-derivate from internal data structures.
-
-*/
-    void deleteDerivateLocations(
-              const std::string& objectId);
 
 
 /*
@@ -385,20 +261,6 @@ This function checks whether a derivate with given id exists.
 */
     bool derivateExists(const std::string& objectId);
 
-
-/*
-1.1.1.1 ~locationExists~
-
-This function checks whether there is a location where can 
-found the relation and all derived objects.
-
-*/
-    bool locationExists(const std::string& databaseName,
-                        const std::string& relationName,
-                        const std::vector<std::string>& derivedObjects);
-
-
-
 /*
 1.1.1.1 ~getRandomNodeWithReplica~
 
@@ -412,20 +274,6 @@ std::shared_ptr<DBService::Node> getRandomNodeWithReplica(
 
 
 /*
-
-1.1.1.1 ~setOriginalLocationTransferPort~
-
-This function allows setting the transfer port of the original location for an
-already existing ~RelationInfo~ object maintained by the ~DBServiceManager~.
-
-*/
-
-        // void setOriginalLocationTransferPort(
-        //         const std::string& relID,
-        //         const std::string& transferPort);
-
-
-/*
 1.1.1.1 ~maintainSuccessfulDerivation~
 
 This function is called after a successful creation of a derivate.
@@ -435,39 +283,6 @@ This function is called after a successful creation of a derivate.
             const std::string& objectID,
             const std::string& replicaLocationHost,
             const std::string& replicaLocationPort);
-
-
-/*
-1.1.1.1 ~findRelations~
-
-Stores all relation identifiers stored in the given database into result.
-
-*/
-void findRelations(const std::string& databaseName,
-                   std::vector<std::string>& result);
-
-
-/*
-1.1.1.1 ~findDerivates~
-
-This fundtion returns the ids of all derivates that depend on
-the given relationID.
-
-*/
-void findDerivates(const std::string& relID,
-                   std::vector<std::string> & result);
-
-
-inline void findDerivates(const std::string& database,
-                          const std::string& relation,
-                   std::vector<std::string>& result)
-{
-   findDerivates(RelationInfo::getIdentifier(database, relation), result);
-}
-
-void findDerivatesInDatabase(const std::string& databaseName,
-                             std::vector<std::string>& result);
-
 /*
 1.1.1.1 ~getMessages~~
 
@@ -498,27 +313,6 @@ Deletes existing DBServiceManager instance.
 */
     ~DBServiceManager();
 
-/*
-
-1.1.1.1 \textit{getNextFreeConnectionID}
-
-This function determines the next free \textit{ConnectionID} which is used as
-unique identifier of connections.
-
-*/
-    ConnectionID getNextFreeConnectionID();
-
-/*
-
-1.1.1.1 \textit{getWorkerNodesForReplication}
-
-This function adds the specified number of replicas to the given vector.
-The number of replicas is set as a member called \textit{}.
-*/
-    void getWorkerNodesForReplication(std::vector<
-                                      ConnectionID>& nodes,
-                                      const std::string& host,
-                                      const std::string& disk);
 
 /*
 
@@ -532,22 +326,6 @@ their local configuration files.
             distributed2::ConnectionInfo* connectionInfo, const char* section,
             const char* key);
 
-/*
-
-1.1.1.1 \textit{addToPossibleReplicaLocations}
-
-This function maintains the potential replica locations for a locations
-in consideration of the configured fault tolerance mode.
-
-*/
-    void addToPossibleReplicaLocations(
-            const ConnectionID connectionID,
-            const LocationInfo& location,
-            std::vector<ConnectionID>& potentialReplicaLocations,
-            const std::string& host,
-            const std::string& disk);
-
-
 
 /*
 
@@ -559,21 +337,6 @@ available connections.
 
 */
     void restoreConfiguration();
-
-
-
-
-// /*
-
-// 1.1.1.1 \textit{restoreReplicaInformation}
-
-// On \textit{DBServiceManager} instantiation, this function restores all replica
-// information from the persistent relations in case they exist. This includes
-// relations, connections, derivates, and mappings.
-
-// */
-//     void restoreReplicaInformation();
-
 
 /*
 

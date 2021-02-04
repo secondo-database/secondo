@@ -74,25 +74,32 @@ ListExpr OperatorRead::mapType(ListExpr nestedList)
         const string relationName = nl->ToString(nl->First(nestedList));
         print("databaseName", databaseName, std::cout);
         print("relationName", relationName, std::cout);
+
         vector<string> otherObjects;
         DBServiceClient* client = DBServiceClient::getInstance();
+
         if(!client){
           print("could not create client", std::cout);
           return listutils::typeError("Could not create client, "
                                       "check dbs configuration");
         }
+
         fileName = client->retrieveReplicaAndGetFileName(
                         databaseName,
                         relationName,
                         otherObjects,
                         string(""));
+
         if(fileName.empty())
         {
             print("Did not receive file", std::cout);
             return listutils::typeError("File does not exist");
         }
+
         print("fileName (path)", fileName.string(), std::cout);
+
         ffeed5Info info(fileName.string());
+
         if(info.isOK()){
            feedTypeMapResult = nl->TwoElemList(
                    nl->SymbolAtom(Symbol::STREAM()),
@@ -128,10 +135,14 @@ int OperatorRead::mapValue(Word* args,
 {
     print("READ mapValue", std::cout);
     
+    //TODO Add fs::path and retrieve file from database dir.
     string fileName =
             static_cast<CcString*>(args[1].addr)->GetValue();
 
+    fs::path filePath = ReplicationUtils::expandFilenameToAbsPath(fileName);
+
     print("Filename", fileName, std::cout);
+    print("Filepath", filePath.string(), std::cout);
 
     if(fileName.empty())
     {
@@ -150,8 +161,8 @@ int OperatorRead::mapValue(Word* args,
             local.addr = 0;
         }
 
-        print("Reading tuple stream from file", fileName, std::cout);
-        info = new ffeed5Info(fileName);
+        print("Reading tuple stream from file", filePath.string(), std::cout);
+        info = new ffeed5Info(filePath.string());
 
         if(!info->isOK())
         {
