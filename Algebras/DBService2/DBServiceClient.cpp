@@ -50,6 +50,7 @@ namespace DBService {
 DBServiceClient::DBServiceClient()
 {
     printFunction("DBServiceClient::DBServiceClient", std::cout);
+    LOG_SCOPE_FUNCTION(INFO);
 
     if(!SecondoUtilsLocal::lookupDBServiceLocation(
             dbServiceHost,
@@ -61,18 +62,25 @@ DBServiceClient::DBServiceClient()
     }
     print("dbServiceHost", dbServiceHost, std::cout);
     print("dbServicePort", dbServicePort, std::cout);
+    LOG_F(INFO, "DBService (Host: %s, Port: %s)",
+          dbServiceHost.c_str(), dbServicePort.c_str());
+
     startReplicationServer();
 }
 
 void DBServiceClient::startReplicationServer()
 {
     printFunction("DBServiceClient::startReplicationServer", std::cout);
+    LOG_SCOPE_FUNCTION(INFO);
+
     string fileTransferPort;
     SecondoUtilsLocal::readFromConfigFile(fileTransferPort,
             "DBService",
             "FileTransferPort",
             "");
     print(fileTransferPort, std::cout);
+    LOG_F(INFO, "FileTransferPort: %s", fileTransferPort.c_str());
+
     ServerRunnable replicationServer(atoi(fileTransferPort.c_str()));
     replicationServer.run<ReplicationServer>();
 }
@@ -80,6 +88,8 @@ void DBServiceClient::startReplicationServer()
 DBServiceClient* DBServiceClient::getInstance()
 {
     printFunction("DBServiceClient::getInstance", std::cout);
+    LOG_SCOPE_FUNCTION(INFO);
+
     if (!_instance)
     {
       try{
@@ -96,10 +106,14 @@ bool DBServiceClient::triggerReplication(const std::string& databaseName,
                                             const ListExpr relType,
                                             const bool async)
 {
+    LOG_SCOPE_FUNCTION(INFO);
     printFunction("DBServiceClient::triggerReplication", std::cout);
-    print("databaseName", relationName, std::cout);
+    print("databaseName", databaseName, std::cout);
     print("relationName", relationName, std::cout);
     print(relType, std::cout);
+
+    LOG_F(INFO, "Database: %s, Relation: %s",
+          databaseName.c_str(), relationName.c_str());
 
     CommunicationClient dbServiceMasterClient(dbServiceHost,
                                               atoi(dbServicePort.c_str()),
@@ -125,10 +139,16 @@ bool DBServiceClient::triggerDerivation(const std::string& databaseName,
                                         const std::string& fundef)
 {
     printFunction("DBServiceClient::triggerDerivation", std::cout);
+    LOG_SCOPE_FUNCTION(INFO);
+
     print("databaseName", databaseName, std::cout);
     print("targetName", targetName, std::cout);
     print("relationName", relationName, std::cout);
     print("fundef", fundef, std::cout);
+
+    LOG_F(INFO, "Database: %s, Target: %s, Relation: %s, Fundef: %s",
+          databaseName.c_str(), targetName.c_str(), relationName.c_str(),
+          fundef.c_str());
 
     CommunicationClient dbServiceMasterClient(dbServiceHost,
                                               atoi(dbServicePort.c_str()),
@@ -198,11 +218,15 @@ fs::path DBServiceClient::retrieveReplicaAndGetFileName(
             dummyCommPort))
     {
         print("No replica available", std::cout);
+        LOG_F(WARNING, "No replica available.");
+
         return string("");
     }
 
     print("host", host, std::cout);
     print("transferPort", transferPort, std::cout);
+    LOG_F(INFO, "Host: %s, TransferPort: %s",
+          host.c_str(), transferPort.c_str());
 
     fs::path localPathOnClient = ReplicationUtils::expandFilenameToAbsPath(
         ReplicationUtils::getFileName(databaseName,relationName));
@@ -242,6 +266,8 @@ bool DBServiceClient::deleteReplicas(const string& databaseName,
                                      const string& derivateName)
 {
     printFunction("DBServiceClient::deleteReplicas", std::cout);
+    LOG_SCOPE_FUNCTION(INFO);
+
     try{
        CommunicationClient dbServiceMasterClient(dbServiceHost,
                                               atoi(dbServicePort.c_str()),
@@ -258,6 +284,8 @@ bool DBServiceClient::deleteReplicas(const string& databaseName,
 bool DBServiceClient::pingDBService()
 {
     printFunction("DBServiceClient::pingDBService", std::cout);
+    LOG_SCOPE_FUNCTION(INFO);
+
     CommunicationClient dbServiceMasterClient(dbServiceHost,
                                               atoi(dbServicePort.c_str()),
                                               0);
@@ -270,6 +298,8 @@ bool DBServiceClient::getStreamType(
         string& nestedListAsString)
 {
     printFunction("DBServiceClient::getRelType", std::cout);
+    LOG_SCOPE_FUNCTION(INFO);
+
     CommunicationClient dbServiceMasterClient(dbServiceHost,
                                               atoi(dbServicePort.c_str()),
                                               0);
@@ -287,7 +317,10 @@ bool DBServiceClient::getStreamType(
             dummyTransferPort,
             commPort))
     {
-        print("Relation does not exist in DBService", std::cout);
+        print("The relation does not exist in DBService", std::cout);
+        LOG_F(WARNING, "The relation (%s, %s) does not exist in DBService.",
+              databaseName.c_str(), relationName.c_str());
+
         return false;
     }
 
@@ -308,6 +341,9 @@ bool DBServiceClient::getDerivedType(
         string& nestedListAsString)
 {
     printFunction("DBServiceClient::getDerivedType", std::cout);
+    LOG_SCOPE_FUNCTION(INFO);
+
+
     CommunicationClient dbServiceMasterClient(dbServiceHost,
                                               atoi(dbServicePort.c_str()),
                                               0);
@@ -327,6 +363,11 @@ bool DBServiceClient::getDerivedType(
     {
         print("Relation and/or Derived Object does not exist in DBService",
                std::cout);
+
+        LOG_F(WARNING, "Relation and/or Derived Object (%s, %s) does "
+                       "not exist in DBService",
+                       databaseName.c_str(), relName.c_str());
+
         return false;
     }
 
@@ -347,6 +388,8 @@ bool DBServiceClient::relationExists(
         const std::string& relationName)
 {
     printFunction("DBServiceClient::relationExists", std::cout);
+    LOG_SCOPE_FUNCTION(INFO);
+
     CommunicationClient dbServiceMasterClient(dbServiceHost,
                                               atoi(dbServicePort.c_str()),
                                               0);
@@ -363,7 +406,10 @@ bool DBServiceClient::relationExists(
             dummyTransferPort,
             commPort))
     {
-        print("Relation does not exist in DBService", std::cout);
+        print("The Relation does not exist in DBService", std::cout);
+        LOG_F(WARNING, "The Relation (%s, %s) does not exist in DBService",
+              databaseName.c_str(), relationName.c_str());
+
         return false;
     }
     return true;
@@ -375,6 +421,8 @@ bool DBServiceClient::allExists(
          const std::vector<std::string>& derivates){
 
     printFunction(__PRETTY_FUNCTION__, std::cout);
+    LOG_SCOPE_FUNCTION(INFO);
+
     CommunicationClient dbServiceMasterClient(dbServiceHost,
                                               atoi(dbServicePort.c_str()),
                                               0);
@@ -392,6 +440,10 @@ bool DBServiceClient::allExists(
     {
         print("Relation or a derivate does not exist in "
               "DBService at the same location", std::cout);
+
+        LOG_F(WARNING, "Relation or a derivate (%s, %s) does not exist in "
+                       "DBService at the same location",
+                       databaseName.c_str(), relationName.c_str());
         return false;
     }
     return true;

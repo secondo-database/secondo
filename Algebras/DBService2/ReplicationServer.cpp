@@ -85,6 +85,8 @@ int ReplicationServer::communicate(iostream& io)
 {
     LOG_SCOPE_FUNCTION(INFO);
     const boost::thread::id tid = boost::this_thread::get_id();
+    loguru::set_thread_name("ReplicationServer");
+
     traceWriter->writeFunction(tid, "ReplicationServer::communicate");
     try
     {
@@ -527,9 +529,9 @@ bool ReplicationServer::createFileFromRelation(const fs::path& filepath){
 }
 
 ///*
-    Replaces the function from the FileTransferServer to fix an issue with 
-    bufsize (crashed with the default value of 1048576).
-    Note that this function takes a path instead of a filename.
+//    Replaces the function from the FileTransferServer to fix an issue with
+//    bufsize (crashed with the default value of 1048576).
+//    Note that this function takes a path instead of a filename.
 //*/
 int ReplicationServer::sendFile(iostream& io, fs::path& outfilepath) {
     LOG_SCOPE_FUNCTION(INFO);
