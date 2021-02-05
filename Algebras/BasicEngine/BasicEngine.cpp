@@ -124,6 +124,26 @@ string err = "{string, text} x int x {string, text}"
 }
 
 /*
+1.1.2 Generic database connection factory
+
+*/
+ConnectionGeneric* getDatabaseConnection(string dbtype, 
+     int port, string database) {
+
+    // Postgres
+    if(string("pgsql").compare(dbtype) == 0) {
+      return new ConnectionPG(port, database);
+    } 
+
+    // New databases can be added here
+
+    cerr << endl << "Error: Unsupported database type: " 
+        << dbtype << endl;
+    
+    return NULL;
+}
+
+/*
 1.1.2 Value Mapping
 
 */
@@ -137,11 +157,15 @@ int be_init_sf_vm(Word* args, Word& result, int message,
 
   result = qp->ResultStorage(s);
 
-  // Postgress database
-  if(string("pgsql").compare(dbtype->toText()) == 0) {
-    dbs_conn = new BasicEngine_Control(
-      new ConnectionPG(port->GetIntval(),
-          dbname->toText()));
+  int portValue = port->GetIntval();
+  string dbnameValue = dbname->toText();
+  string dbtypeValue = dbtype->toText();
+  
+  ConnectionGeneric* dbConnection = getDatabaseConnection(
+      dbtypeValue, portValue, dbnameValue);
+
+  if(dbConnection != NULL) {
+    dbs_conn = new BasicEngine_Control(dbConnection);
 
     bool val = dbs_conn->checkConn();
     isMaster = false;
@@ -154,6 +178,7 @@ int be_init_sf_vm(Word* args, Word& result, int message,
 
   return 0;
 }
+
 
 /*
 1.1.3 Specification
@@ -1484,12 +1509,16 @@ int init_be_workerSFVM(Word* args, Word& result, int message,
 
   result = qp->ResultStorage(s);
 
-  // Postgress database
-  if(string("pgsql").compare(dbtype->toText()) == 0) {
+  int portValue = port->GetIntval();
+  string dbnameValue = dbname->toText();
+  string dbtypeValue = dbtype->toText();
+  
+  ConnectionGeneric* dbConnection = getDatabaseConnection(
+      dbtypeValue, portValue, dbnameValue);
 
+  if(dbConnection != NULL) {
     dbs_conn = new BasicEngine_Control(
-          new ConnectionPG(port->GetIntval(), 
-          dbname->toText()), worker);
+          dbConnection, worker);
 
     bool val = dbs_conn->checkConn();
 
