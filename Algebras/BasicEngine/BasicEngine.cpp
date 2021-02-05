@@ -54,23 +54,11 @@ dbs\_con is a pointer to a connection, for example to postgres
 BasicEngine_Control* dbs_conn = NULL;
 
 /*
-dbms\_name is a name of the secound dbms, for example to pg (for postgreSQL),mysql...
-
-*/
-string dbms_name;
-
-/*
 isMaster is a variable which shows, if this system is a master (true)
 or a worker(false).
 
 */
 bool isMaster = false;
-
-/*
-pg is a short name of postgres.
-
-*/
-string const pg = "pg";
 
 /*
 noMaster is just a default string for an error massage.
@@ -156,7 +144,6 @@ int be_init_sf_vm(Word* args, Word& result, int message,
           dbname->toText()));
 
     bool val = dbs_conn->checkConn();
-    dbms_name = (val) ? pg : "";
     isMaster = false;
     ((CcBool*)result.addr)->Set(true, val);
   } else {
@@ -465,14 +452,10 @@ ValueMapping be_partRRVM[] = {
 
 */
 int be_partRRSelect(ListExpr args){
-  if (dbms_name == pg){
-    if(CcString::checkType(nl->First(args))){
-      return CcString::checkType(nl->Second(args))?0:2;
-    }else{
-      return CcString::checkType(nl->Second(args))?1:3;
-    }
-  }else{
-    return 0;
+  if(CcString::checkType(nl->First(args))){
+    return CcString::checkType(nl->Second(args))?0:2;
+  } else {
+    return CcString::checkType(nl->Second(args))?1:3;
   }
 };
 
@@ -586,17 +569,12 @@ ValueMapping be_partHashVM[] = {
 
 */
 int be_partHashSelect(ListExpr args){
-  if (dbms_name == pg){
-    if(CcString::checkType(nl->First(args))){
-      return CcString::checkType(nl->Second(args))?0:2;
-    }else{
-      return CcString::checkType(nl->Second(args))?1:3;
-    }
-  }else{
-    return 0;
+  if(CcString::checkType(nl->First(args))){
+    return CcString::checkType(nl->Second(args))?0:2;
+  } else {
+    return CcString::checkType(nl->Second(args))?1:3;
   }
-};
-
+}
 
 /*
 1.3.6 Operator instance
@@ -722,7 +700,6 @@ ValueMapping be_partFunVM[] = {
 
 */
 int be_partFunSelect(ListExpr args){
-if (dbms_name == pg){
   if(CcString::checkType(nl->First(args))){
     if(CcString::checkType(nl->Second(args))){
       return CcString::checkType(nl->Third(args))?0:4;
@@ -736,9 +713,6 @@ if (dbms_name == pg){
       return CcString::checkType(nl->Third(args))?3:7;
     };
   }
-}else{
-  return 0;
-}
 };
 
 /*
@@ -845,16 +819,12 @@ ValueMapping be_queryVM[] = {
 
 */
 int be_querySelect(ListExpr args){
-  if (dbms_name == pg){
-    if(CcString::checkType(nl->First(args))){
-      return CcString::checkType(nl->Second(args))?0:2;
-    }else{
-      return CcString::checkType(nl->Second(args))?1:3;
-    }
+  if(CcString::checkType(nl->First(args))){
+    return CcString::checkType(nl->Second(args))?0:2;
   }else{
-    return 0;
+    return CcString::checkType(nl->Second(args))?1:3;
   }
-};
+}
 
 /*
 1.5.6 Operator instance
@@ -946,11 +916,7 @@ ValueMapping be_commandVM[] = {
 
 */
 int be_commandSelect(ListExpr args){
-if (dbms_name == pg){
   return CcString::checkType(nl->First(args))?0:1;
-}else{
-  return 0;
-}
 };
 
 /*
@@ -1052,15 +1018,11 @@ ValueMapping be_copyVM[] = {
 
 */
 int be_copySelect(ListExpr args){
-if (dbms_name == pg){
   if(CcString::checkType(nl->First(args))){
     return CcString::checkType(nl->Second(args))?0:2;
   }else{
     return CcString::checkType(nl->Second(args))?1:3;
   }
-}else{
-  return 0;
-}
 };
 
 /*
@@ -1163,15 +1125,11 @@ ValueMapping be_mqueryVM[] = {
 
 */
 int be_mquerySelect(ListExpr args){
-  if (dbms_name == pg){
     if(CcString::checkType(nl->First(args))){
       return CcString::checkType(nl->Second(args))?0:2;
     }else{
       return CcString::checkType(nl->Second(args))?1:3;
     }
-  } else {
-    return 0;
-  }
 };
 
 /*
@@ -1263,11 +1221,7 @@ ValueMapping be_mcommandVM[] = {
 
 */
 int be_mcommandSelect(ListExpr args){
-if (dbms_name == pg){
   return CcString::checkType(nl->First(args))?0:1;
-}else{
-  return 0;
-}
 };
 
 /*
@@ -1358,12 +1312,8 @@ ValueMapping be_unionVM[] = {
 
 */
 int be_unionSelect(ListExpr args){
-  if (dbms_name == pg){
     return CcString::checkType(nl->First(args))?0:1;
-  }else{
-    return 0;
-  }
-};
+}
 
 /*
 1.10.6 Operator instance
@@ -1458,12 +1408,8 @@ ValueMapping be_structVM[] = {
 
 */
 int be_structSelect(ListExpr args){
-  if (dbms_name == pg) {
     return CcString::checkType(nl->First(args))?0:1;
-  } else {
-    return 0;
-  }
-};
+}
 
 /*
 1.11.6 Operator instance
@@ -1540,14 +1486,13 @@ int init_be_workerSFVM(Word* args, Word& result, int message,
 
   // Postgress database
   if(string("pgsql").compare(dbtype->toText()) == 0) {
-    
+
     dbs_conn = new BasicEngine_Control(
           new ConnectionPG(port->GetIntval(), 
           dbname->toText()), worker);
 
     bool val = dbs_conn->checkConn();
 
-    dbms_name = (val) ? pg : "";
     isMaster = val;
     ((CcBool*)result.addr)->Set(true, val);
   } else {
@@ -1588,12 +1533,8 @@ ValueMapping be_init_worker_vm[] = {
 
 */
 int be_init_worker_select(ListExpr args){
-  if (dbms_name == pg){
     return CcString::checkType(nl->First(args))?0:1;
-  } else {
-    return 0;
-  }
-};
+}
 
 /*
 1.12.6 Operator instance
@@ -1685,11 +1626,7 @@ ValueMapping be_runsqlVM[] = {
 
 */
 int be_runsqlSelect(ListExpr args){
-  if (dbms_name == pg){
     return CcString::checkType(nl->First(args))?0:1;
-  }else{
-    return 0;
-  }
 };
 
 /*
@@ -1834,24 +1771,20 @@ ValueMapping be_partGridVM[] = {
 
 */
 int be_partGridSelect(ListExpr args){
-  if (dbms_name == pg){
-    if(CcString::checkType(nl->First(args))){
-      if(CcString::checkType(nl->Second(args))){
-        return CcString::checkType(nl->Third(args))?0:4;
-      }else{
-        return CcString::checkType(nl->Third(args))?2:6;
-      }
+  if(CcString::checkType(nl->First(args))){
+    if(CcString::checkType(nl->Second(args))){
+      return CcString::checkType(nl->Third(args))?0:4;
     }else{
-      if(CcString::checkType(nl->Second(args))){
-        return CcString::checkType(nl->Third(args))?1:5;
-      }else{
-        return CcString::checkType(nl->Third(args))?3:7;
-      }
+      return CcString::checkType(nl->Third(args))?2:6;
     }
   }else{
-    return 0;
+    if(CcString::checkType(nl->Second(args))){
+      return CcString::checkType(nl->Third(args))?1:5;
+    }else{
+      return CcString::checkType(nl->Third(args))?3:7;
+    }
   }
-};
+}
 
 
 /*
