@@ -362,6 +362,27 @@ namespace mtreehelper{
     return nl->Equal(nl->Second(type), subtype);
   }
 
+  void increaseCounter(const string& objName, const int numberToBeAdded) {
+    SecondoCatalog* sc = SecondoSystem::GetCatalog();
+    Word counterW;
+    bool defined = false;
+    bool exists = sc->GetObject(objName, counterW, defined);
+    ListExpr currentType = sc->GetObjectTypeExpr(objName);
+    if (!CcInt::checkType(currentType) || !defined) {
+      sc->DeleteObject(objName);
+    }
+    if (!exists || !CcInt::checkType(currentType) || !defined) {
+      counterW.addr = new CcInt(true, numberToBeAdded);
+      sc->InsertObject(objName, CcInt::BasicType(),
+                       nl->SymbolAtom(CcInt::BasicType()), counterW, true);
+    }
+    else {
+      int counter = ((CcInt*)counterW.addr)->GetValue() + numberToBeAdded;
+      ((CcInt*)counterW.addr)->Set(true, counter);
+      sc->ModifyObject(objName, counterW);
+    }
+    cout << ((CcInt*)counterW.addr)->GetValue() << endl;
+  }
 
 }
 
@@ -5825,7 +5846,7 @@ class distRangeInfo{
      size_t getNoDistFunCalls() {
        return it->getNoDistFunCalls();
      }
-
+     
 
   private:
      vector<Tuple*>* rel;
@@ -5873,9 +5894,9 @@ int mdistRangeVMT (Word* args, Word& result, int message, Word& local,
       return result.addr ? YIELD : CANCEL;
     }
     case CLOSE : {
-      cout << "The distance function was called " << li->getNoDistFunCalls() 
-           << " times." << endl;
       if (li) {
+        mtreehelper::increaseCounter("counterMDistRange", 
+                                     li->getNoDistFunCalls());
         delete li;
         local.addr = 0;
       }
@@ -5927,9 +5948,9 @@ int mdistRangeVMT2(Word* args, Word& result, int message, Word& local,
       return result.addr ? YIELD : CANCEL;
     }
     case CLOSE : {
-      cout << "The distance function was called " << li->getNoDistFunCalls() 
-           << " times." << endl;
       if (li) {
+        mtreehelper::increaseCounter("counterMDistRange", 
+                                     li->getNoDistFunCalls());
         delete li;
         local.addr = 0;
       }
@@ -6250,9 +6271,9 @@ int mdistScanVMT(Word* args, Word& result, int message, Word& local,
         return result.addr ? YIELD : CANCEL;
       }
       case CLOSE : {
-        cout << "Number of distance function calls: " 
-             << li->getNoDistFunCalls() << endl;
         if (li) {
+          mtreehelper::increaseCounter("counterMDistScan", 
+                                       li->getNoDistFunCalls());
           delete li;
           local.addr = 0;
         }
@@ -6300,9 +6321,9 @@ int mdistScanVMT2(Word* args, Word& result, int message, Word& local,
       return result.addr ? YIELD : CANCEL;
     }
     case CLOSE : {
-      cout << "Number of distance function calls: " 
-           << li->getNoDistFunCalls() << endl;
       if (li) {
+        mtreehelper::increaseCounter("counterMDistScan", 
+                                     li->getNoDistFunCalls());
         delete li;
         local.addr = 0;
       }
