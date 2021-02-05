@@ -38,7 +38,6 @@ Version 1.0 - Created - C.Behrndt - 2020
 
 #include "Algebras/Relation-C++/RelationAlgebra.h"
 #include "BasicEngine_Thread.h"
-#include "BasicEngineHelper.cpp"
 
 namespace BasicEngine {
 

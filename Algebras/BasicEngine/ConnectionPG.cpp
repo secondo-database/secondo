@@ -189,12 +189,17 @@ Creates a table in postgreSQL with the partitioned data by hash value.
 
 */
 string ConnectionPG::get_partHash(string* tab, string* key
-                  , string* anzSlots, string* targetTab){
+                  , string* anzSlots, string* targetTab) {
+
+  string usedKey(*key);
+  boost::replace_all(usedKey, ",", ",'%_%',");
+
   string select = "SELECT DISTINCT (get_byte(decode(md5(concat("
-        "" + replaceStringAll(*key,",",",'%_%',") + ")),'hex'),15) %"
+        "" + usedKey + ")),'hex'),15) %"
         " " + *anzSlots + " ) + 1 As slot,"
         "" + *key +" FROM "+ *tab;
-return get_createTab(targetTab,&select);
+
+  return get_createTab(targetTab,&select);
 }
 
 /*
@@ -205,10 +210,13 @@ This is needed for a special definition of a partitioning function.
 
 */
 void ConnectionPG::getFieldInfoFunction(string* tab, string* key
-            , string *fields, string *valueMap, string* select){
+            , string *fields, string *valueMap, string* select) {
 
-string query_exec;
-PGresult* res;
+  string query_exec;
+  PGresult* res;
+
+  string usedKey(*key);
+  boost::replace_all(usedKey, ",","','");
 
   query_exec ="SELECT a.attname as column_name,a.attname || '_orig' as t,"
         "pg_catalog.format_type(a.atttypid, a.atttypmod) as column_type"
@@ -218,7 +226,7 @@ PGresult* res;
         "  ON a.attrelid = b.oid"
         " WHERE a.attnum > 0 "
         " AND NOT a.attisdropped and a.attname in ('"
-        "" + replaceStringAll(*key,",","','") + "');";
+        "" + usedKey + "');";
   res = sendQuery(&query_exec);
 
   for (int i = 0; i<PQntuples(res) ; i++){
@@ -346,16 +354,22 @@ Returns the join-part of a join-Statement from a given key-list
 
 */
 string ConnectionPG::getjoin(string *key){
-string res= "ON ";
-vector<string> result;
-    boost::split(result, *key, boost::is_any_of(","));
+  string res= "ON ";
+  vector<string> result;
+  boost::split(result, *key, boost::is_any_of(","));
 
-    for (long unsigned int i = 0; i < result.size(); i++) {
-      if (i>0) res = res + " AND ";
-      res = res + "a."+ replaceStringAll(result[i]," ","") + " "
-          "= b." + replaceStringAll(result[i]," ","");
+  for (long unsigned int i = 0; i < result.size(); i++) {
+    if (i>0) {
+      res = res + " AND ";
     }
-return res;
+
+    string attribute = result[i];
+    boost::replace_all(attribute," ","");
+
+    res = res + "a." + attribute + " = b." + attribute;
+  }
+
+  return res;
 }
 
 /*
@@ -405,8 +419,10 @@ string gridCol = "geom";
   query_exec = create_geo_index(&gridTable,&gridCol);
   sendCommand(&query_exec,false);
 
+  string usedKey(*key);
+  boost::replace_all(usedKey, ",", ",r.");
 
-  query_exec = "SELECT r."+replaceStringAll(*key,",",",r.")+ ", "
+  query_exec = "SELECT r." + usedKey + ", "
                       "g.num as slot "
                "FROM " + gridTable + " g INNER JOIN "+ *tab + " r "
                      "ON ST_INTERSECTS(g.geom,r."+ *geo_col +")";
@@ -421,15 +437,19 @@ Creates a table in postgreSQL with all date to all worker,
 
 */
 string ConnectionPG::get_partShare(string* tab, string* key, string* anzWorker){
-string query_exec;
-string worker = "SELECT 1 as slot";
+  string query_exec;
+  string worker = "SELECT 1 as slot";
 
-  for(int i=2;i<=stoi(*anzWorker);i++){
+  string usedKey(*key);
+  boost::replace_all(usedKey, ",", ",r.");
+
+  for(int i=2;i<=stoi(*anzWorker);i++) {
     worker = worker + " UNION SELECT " + to_string(i) + " as slot";
   }
 
-  query_exec = "SELECT r."+ replaceStringAll(*key,",",",r.") +", g.slot "
+  query_exec = "SELECT r."+ usedKey +", g.slot "
                   "FROM ("+ worker +") g," + *tab + " r";
-return query_exec;
+    
+  return query_exec;
 }
 }/* namespace BasicEngine */

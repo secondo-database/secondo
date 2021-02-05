@@ -37,8 +37,9 @@ Version 1.0 - Created - C.Behrndt - 2020
 #define _ConnectionPG_H_
 
 #include <string>
+#include <boost/algorithm/string.hpp>
 #include "libpq-fe.h"
-#include "BasicEngineHelper.cpp"
+
 
 namespace BasicEngine {
 
@@ -160,7 +161,8 @@ class ConnectionPG {
   void getFieldInfoFunction(std::string* tab, std::string* key
             ,std::string* fields,std::string* valueMap,std::string* select);
 
-  std::string get_partShare(string* tab, string* key, string* anzWorker);
+  std::string get_partShare(std::string* tab, std::string* key, 
+              std::string* anzWorker);
 
   std::string getjoin(std::string* key);
 };

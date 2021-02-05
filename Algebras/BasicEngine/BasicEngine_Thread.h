@@ -33,8 +33,8 @@ Version 1.0 - Created - C.Behrndt - 2020
 */
 #include <boost/bind.hpp>
 #include <boost/ref.hpp>
+#include <boost/algorithm/string.hpp>
 #include "Algebras/Distributed2/ConnectionInfo.h"
-#include "BasicEngineHelper.cpp"
 
 #ifndef _BasicEngine_Thread_H_
 #define _BasicEngine_Thread_H_
@@ -366,11 +366,16 @@ void runExport(){
 Starting a query at the worker.
 
 */
-void runQuery(){
-std::string cmd;
+void runQuery() {
+  std::string cmd;
+
+  std::string escapedQuery(query);
+  
+  boost::replace_all(escapedQuery, "'", "\\'");
+
   //run the query
   cmd = "query be_query('"
-         "" + replaceStringAll(query,"'","\\'") + "','"
+         "" + escapedQuery + "','"
          "" + tab + "');";
 
   val = simpleCommand(&cmd);
@@ -383,11 +388,11 @@ Starting a command at the worker.
 
 */
 void runCommand(){
-std::string cmd;
-  //run the command
-  cmd = "query be_command('"
-         "" + replaceStringAll(query,"'","\\'") + "');";
+  std::string cmd;
 
+  //run the command
+  boost::replace_all(query, "'", "\\'");
+  cmd = "query be_command('" + query + "');";
   val = simpleCommand(&cmd);
  }
 };

@@ -171,10 +171,14 @@ Returns a name of a table with the keys included.
 */
 template<class T>
 string BasicEngine_Control<T>::getparttabname(string* tab, string* key){
-string res;
-  res = *tab + "_" + replaceStringAll(*key,",","_");
-  res = replaceStringAll(res," ","");
-  return(res);
+
+  string usedKey(*key);
+
+  boost::replace_all(usedKey, ",", "_");
+  string res = *tab + "_" + usedKey;
+  boost::replace_all(res, " ", "");
+
+  return res;
 }
 
 /*
@@ -396,16 +400,23 @@ Returns true if everything is OK and there are no failure.
 
 */
 template<class T>
-bool BasicEngine_Control<T>::importData(string *tab){
-bool val = true;
-string full_path;
-string cmd;
-string strindex;
-long unsigned int i;
+bool BasicEngine_Control<T>::importData(string *tab) {
+
+  bool val = true;
+  string full_path;
+  string cmd;
+  string strindex;
+  long unsigned int i;
 
   //create Table
-  full_path =getFilePath() + createTabFileName(tab);
-  cmd = readFile(&full_path);
+  full_path = getFilePath() + createTabFileName(tab);
+
+  // Read data into memory
+  ifstream inFile;
+  stringstream strStream;
+  inFile.open(full_path);
+  strStream << inFile.rdbuf();
+  cmd = strStream.str();
 
   val = dbs_conn->sendCommand(&cmd) && val;
   if(!val) return val;
@@ -606,20 +617,30 @@ Returns true if everything is OK and there are no failure.
 
 */
 template<class T>
-bool BasicEngine_Control<T>::runsql(string filepath){
-bool val = false;
-string query;
+bool BasicEngine_Control<T>::runsql(string filepath) {
 
-  if (0 == access(filepath.c_str(), 0)){
-    //reading the file
-    query = readFile(&filepath);
+  if (access(filepath.c_str(), 0) == 0) {
+
+    // Read file into memory
+    ifstream inFile;
+    stringstream strStream;
+
+    inFile.open(filepath);
+    strStream << inFile.rdbuf();
+    string query = strStream.str();
 
     //execute the sql-Statement
-    if (query != "") val = dbs_conn->sendCommand(&query);
-  }else{
+    if (query != "") {
+      bool result = dbs_conn->sendCommand(&query);
+      return result;
+    }
+
+  } else {
     cout << "Couldn't find the file at path:" + filepath << endl;
+    return false;
   }
-return val;
+
+  return false;
 }
 
 /*
