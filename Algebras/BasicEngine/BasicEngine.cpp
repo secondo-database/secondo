@@ -51,8 +51,7 @@ namespace BasicEngine {
 dbs\_con is a pointer to a connection, for example to postgres
 
 */
-template<class L>
-BasicEngine_Control<L>* dbs_conn = NULL;
+BasicEngine_Control* dbs_conn = NULL;
 
 /*
 dbms\_name is a name of the secound dbms, for example to pg (for postgreSQL),mysql...
@@ -140,7 +139,7 @@ string err = "{string, text} x int x {string, text}"
 1.1.2 Value Mapping
 
 */
-template<class T, class L>
+template<class T>
 int be_init_sf_vm(Word* args, Word& result, int message,
         Word& local, Supplier s) {
   
@@ -152,11 +151,11 @@ int be_init_sf_vm(Word* args, Word& result, int message,
 
   // Postgress database
   if(string("pgsql").compare(dbtype->toText()) == 0) {
-    dbs_conn<L> = new BasicEngine_Control<L>(
+    dbs_conn = new BasicEngine_Control(
       new ConnectionPG(port->GetIntval(),
           dbname->toText()));
 
-    bool val = dbs_conn<L>->checkConn();
+    bool val = dbs_conn->checkConn();
     dbms_name = (val) ? pg : "";
     isMaster = false;
     ((CcBool*)result.addr)->Set(true, val);
@@ -188,8 +187,8 @@ OperatorSpec init_be_spec (
 
 */
 ValueMapping be_init_vm[] = {
-  be_init_sf_vm<CcString,ConnectionPG>,
-  be_init_sf_vm<FText,ConnectionPG>,
+  be_init_sf_vm<CcString>,
+  be_init_sf_vm<FText>,
 };
 
 /*
@@ -248,10 +247,10 @@ int be_shutdown_vm(Word* args, Word& result, int message,
     return 0;
   }
 
-  if(dbs_conn<ConnectionPG> != NULL) {
+  if(dbs_conn != NULL) {
     cout << "Shutting down basic engine worker" << endl;
-    delete dbs_conn<ConnectionPG>;
-    dbs_conn<ConnectionPG> = NULL;
+    delete dbs_conn;
+    dbs_conn = NULL;
     
     ((CcBool*)result.addr)->Set(true, true);
     return 0;
@@ -305,7 +304,6 @@ string err = "No parameter (--> bool) expected";
 1.1.2 Value Mapping
 
 */
-template<class T>
 int be_shutdown_worker_vm(Word* args, Word& result, int message,
         Word& local, Supplier s) {
   
@@ -321,9 +319,9 @@ int be_shutdown_worker_vm(Word* args, Word& result, int message,
   }
 
   // TODO: Replace template by abstract class
-  if(dbs_conn<T> != NULL) {
+  if(dbs_conn != NULL) {
     cout << "Shutting down basic engine worker" << endl;
-    bool shutdownResult = dbs_conn<T>->shutdownWorker();
+    bool shutdownResult = dbs_conn->shutdownWorker();
 
     if(! shutdownResult) {
       cout << "Error: Shutdown of the workers failed" << endl 
@@ -334,8 +332,8 @@ int be_shutdown_worker_vm(Word* args, Word& result, int message,
     }
 
     cout << "Shutting down basic engine master" << endl;
-    delete dbs_conn<ConnectionPG>;
-    dbs_conn<ConnectionPG> = NULL;
+    delete dbs_conn;
+    dbs_conn= NULL;
 
     ((CcBool*)result.addr)->Set(true, true);
     return 0;
@@ -364,7 +362,7 @@ OperatorSpec be_shutdown_worker_spec (
 Operator be_shutdown_worker (
          "be_shutdown_worker",                 // name
          be_shutdown_worker_spec.getStr(),     // specification
-         be_shutdown_worker_vm<ConnectionPG>,  // value mapping
+         be_shutdown_worker_vm,                // value mapping
          Operator::SimpleSelect,               // trivial selection function
          be_shutdown_worker_tm                 // type mapping
 );
@@ -409,7 +407,7 @@ string err = "{string, text} x {string, text} x int -> bool"
 1.2.2 Value Mapping
 
 */
-template<class T, class H, class L>
+template<class T, class H>
 int be_partRRSFVM(Word* args, Word& result, int message
         , Word& local, Supplier s ){
 result = qp->ResultStorage(s);
@@ -421,9 +419,9 @@ CcInt* slot = (CcInt*) args[2].addr;
 bool val = false;
 CcBool* res = (CcBool*) result.addr;
 
-  if(dbs_conn<L> && isMaster){
+  if(dbs_conn && isMaster){
     if (slot->GetIntval() > 0){
-      val = dbs_conn<L>->partTable(tab->toText(), key->toText()
+      val = dbs_conn->partTable(tab->toText(), key->toText()
             ,"RR", slot->GetIntval());
     }else{
       cout << negSlots << endl;
@@ -456,10 +454,10 @@ OperatorSpec be_partRRSpec(
 
 */
 ValueMapping be_partRRVM[] = {
-  be_partRRSFVM<CcString,CcString,ConnectionPG>,
-  be_partRRSFVM<FText,CcString,ConnectionPG>,
-  be_partRRSFVM<CcString,FText,ConnectionPG>,
-  be_partRRSFVM<FText,FText,ConnectionPG>
+  be_partRRSFVM<CcString,CcString>,
+  be_partRRSFVM<FText,CcString>,
+  be_partRRSFVM<CcString,FText>,
+  be_partRRSFVM<FText,FText>
 };
 
 /*
@@ -530,7 +528,7 @@ string err = "\n {string, text} x {string, text} x int--> bool"
 1.3.2 Value Mapping
 
 */
-template<class T, class H, class L>
+template<class T, class H>
 int be_partHashSFVM(Word* args,Word& result,int message
           ,Word& local,Supplier s ){
 result = qp->ResultStorage(s);
@@ -542,9 +540,9 @@ CcInt* slot = (CcInt*) args[2].addr;
 bool val = false;
 CcBool* res = (CcBool*) result.addr;
 
-  if(dbs_conn<L> && isMaster){
+  if(dbs_conn && isMaster){
     if (slot->GetIntval() > 0){
-      val = dbs_conn<L>->partTable(tab->toText(), key->toText()
+      val = dbs_conn->partTable(tab->toText(), key->toText()
                 ,"Hash",slot->GetIntval());
     }else{
       cout<< negSlots << endl;
@@ -577,10 +575,10 @@ OperatorSpec be_partHashSpec(
 
 */
 ValueMapping be_partHashVM[] = {
-  be_partHashSFVM<CcString,CcString,ConnectionPG>,
-  be_partHashSFVM<FText,CcString,ConnectionPG>,
-  be_partHashSFVM<CcString,FText,ConnectionPG>,
-  be_partHashSFVM<FText,FText,ConnectionPG>
+  be_partHashSFVM<CcString,CcString>,
+  be_partHashSFVM<FText,CcString>,
+  be_partHashSFVM<CcString,FText>,
+  be_partHashSFVM<FText,FText>
 };
 
 /*
@@ -659,7 +657,7 @@ string err = "\n {string, text} x {string, text} x {string, text} x int--> bool"
 1.4.2 Value Mapping
 
 */
-template<class T, class H, class N, class L>
+template<class T, class H, class N>
 int be_partFunSFVM(Word* args,Word& result,int message
           ,Word& local,Supplier s ){
 result = qp->ResultStorage(s);
@@ -672,9 +670,9 @@ CcInt* slot = (CcInt*) args[3].addr;
 bool val = false;
 CcBool* res = (CcBool*) result.addr;
 
-  if(dbs_conn<L> && isMaster){
+  if(dbs_conn && isMaster){
     if (slot->GetIntval() > 0){
-      val = dbs_conn<L>->partTable(tab->toText(), key->toText()
+      val = dbs_conn->partTable(tab->toText(), key->toText()
                 ,fun->toText(),slot->GetIntval());
     }else{
       cout<< negSlots << endl;
@@ -709,14 +707,14 @@ OperatorSpec be_partFunSpec(
 
 */
 ValueMapping be_partFunVM[] = {
-  be_partFunSFVM<CcString,CcString,CcString,ConnectionPG>,
-  be_partFunSFVM<FText,CcString,CcString,ConnectionPG>,
-  be_partFunSFVM<CcString,FText,CcString,ConnectionPG>,
-  be_partFunSFVM<FText,FText,CcString,ConnectionPG>,
-  be_partFunSFVM<CcString,CcString,FText,ConnectionPG>,
-  be_partFunSFVM<FText,CcString,FText,ConnectionPG>,
-  be_partFunSFVM<CcString,FText,FText,ConnectionPG>,
-  be_partFunSFVM<FText,FText,FText,ConnectionPG>
+  be_partFunSFVM<CcString,CcString,CcString>,
+  be_partFunSFVM<FText,CcString,CcString>,
+  be_partFunSFVM<CcString,FText,CcString>,
+  be_partFunSFVM<FText,FText,CcString>,
+  be_partFunSFVM<CcString,CcString,FText>,
+  be_partFunSFVM<FText,CcString,FText>,
+  be_partFunSFVM<CcString,FText,FText>,
+  be_partFunSFVM<FText,FText,FText>
 };
 
 /*
@@ -793,29 +791,29 @@ string err = "\n {string, text} x {string, text} --> bool"
 1.5.2 Value Mapping
 
 */
-template<class T, class H, class L>
-int be_querySFVM(Word* args,Word& result,int message,Word& local,Supplier s ){
-string query_exec;
-bool val = false;
-result = qp->ResultStorage(s);
+template<class T, class H>
+int be_querySFVM(Word* args,Word& result,int message,Word& local,Supplier s ) {
 
-T* query = (T*) args[0].addr;
-H* resultTab = (H*) args[1].addr;
+  string query_exec;
+  bool val = false;
+  result = qp->ResultStorage(s);
 
-  if(dbs_conn<L>){
+  T* query = (T*) args[0].addr;
+  H* resultTab = (H*) args[1].addr;
+
+  if(dbs_conn) {
     //Delete target Table, ignore failure
-    dbs_conn<L>->drop_table(resultTab->toText());
+    dbs_conn->drop_table(resultTab->toText());
 
     //execute the query
-    val=dbs_conn<L>->createTab(resultTab->toText(),query->toText());
-  }
-  else{
+    val=dbs_conn->createTab(resultTab->toText(),query->toText());
+  } else {
     cout << noMaster << endl;
   }
 
   ((CcBool *)result.addr)->Set(true, val);
 
-return 0;
+  return 0;
 }
 
 /*
@@ -836,10 +834,10 @@ OperatorSpec be_queryVMSpec(
 
 */
 ValueMapping be_queryVM[] = {
-  be_querySFVM<CcString,CcString,ConnectionPG>,
-  be_querySFVM<FText,CcString,ConnectionPG>,
-  be_querySFVM<CcString,FText,ConnectionPG>,
-  be_querySFVM<FText,FText,ConnectionPG>
+  be_querySFVM<CcString,CcString>,
+  be_querySFVM<FText,CcString>,
+  be_querySFVM<CcString,FText>,
+  be_querySFVM<FText,FText>
 };
 
 /*
@@ -847,15 +845,15 @@ ValueMapping be_queryVM[] = {
 
 */
 int be_querySelect(ListExpr args){
-if (dbms_name == pg){
-  if(CcString::checkType(nl->First(args))){
-    return CcString::checkType(nl->Second(args))?0:2;
+  if (dbms_name == pg){
+    if(CcString::checkType(nl->First(args))){
+      return CcString::checkType(nl->Second(args))?0:2;
+    }else{
+      return CcString::checkType(nl->Second(args))?1:3;
+    }
   }else{
-    return CcString::checkType(nl->Second(args))?1:3;
+    return 0;
   }
-}else{
-  return 0;
-}
 };
 
 /*
@@ -901,16 +899,17 @@ string err = "\n {string, text} --> bool"
 1.6.2 Value Mapping
 
 */
-template<class T, class L>
+template<class T>
 int be_commandSFVM(Word* args, Word& result, int message
           , Word& local, Supplier s ){
-bool val = false;
-result = qp->ResultStorage(s);
+          
+  bool val = false;
+  result = qp->ResultStorage(s);
 
-T* query = (T*) args[0].addr;
+  T* query = (T*) args[0].addr;
 
-  if(dbs_conn<L>){
-    val = dbs_conn<L>->sendCommand(query->GetValue(),true);
+  if(dbs_conn){
+    val = dbs_conn->sendCommand(query->GetValue(),true);
   }
   else{
     cout << noMaster << endl;
@@ -918,7 +917,7 @@ T* query = (T*) args[0].addr;
 
   ((CcBool *)result.addr)->Set(true, val);
 
-return 0;
+  return 0;
 }
 
 /*
@@ -938,8 +937,8 @@ OperatorSpec be_commandVMSpec(
 
 */
 ValueMapping be_commandVM[] = {
-  be_commandSFVM<CcString,ConnectionPG>,
-  be_commandSFVM<FText,ConnectionPG>
+  be_commandSFVM<CcString>,
+  be_commandSFVM<FText>
 };
 
 /*
@@ -1002,26 +1001,26 @@ string err = "\n {string, text} x {string, text} --> bool"
 1.7.2 Value Mapping
 
 */
-template<class T, class H, class L>
+template<class T, class H>
 int be_copySFVM(Word* args,Word& result,int message
           ,Word& local,Supplier s ){
-bool val = false;
-result = qp->ResultStorage(s);
 
-T* from = (T*) args[0].addr;  //table
-H* to = (H*) args[1].addr;    //path
+  bool val = false;
+  result = qp->ResultStorage(s);
 
-  if(dbs_conn<L>){
-    val = dbs_conn<L>->copy(from->GetValue(),to->GetValue(),
-          (from->GetValue().length()>= to->GetValue().length()));
-  }
-  else{
+  T* from = (T*) args[0].addr;  //table
+  H* to = (H*) args[1].addr;    //path
+
+  if(dbs_conn){
+    val = dbs_conn->copy(from->GetValue(),to->GetValue(),
+          (from->GetValue().length() >= to->GetValue().length()));
+  } else {
     cout << noMaster << endl;
   }
 
   ((CcBool *)result.addr)->Set(true, val);
 
-return 0;
+  return 0;
 }
 
 /*
@@ -1042,10 +1041,10 @@ OperatorSpec be_copyVMSpec(
 
 */
 ValueMapping be_copyVM[] = {
-  be_copySFVM<CcString,CcString,ConnectionPG>,
-  be_copySFVM<FText,CcString,ConnectionPG>,
-  be_copySFVM<CcString,FText,ConnectionPG>,
-  be_copySFVM<FText,FText,ConnectionPG>
+  be_copySFVM<CcString,CcString>,
+  be_copySFVM<FText,CcString>,
+  be_copySFVM<CcString,FText>,
+  be_copySFVM<FText,FText>
 };
 
 /*
@@ -1114,7 +1113,7 @@ string err = "\n {string,text} x {string,text} -> bool"
 1.8.2 Value Mapping
 
 */
-template<class T, class H, class L>
+template<class T, class H>
 int be_mquerySFVM(Word* args, Word& result, int message,
           Word& local, Supplier s) {
 
@@ -1123,8 +1122,8 @@ int be_mquerySFVM(Word* args, Word& result, int message,
   T* query = (T*) args[0].addr;
   H* tab = (H*) args[1].addr;
 
-  if(dbs_conn<L> && isMaster){
-    val = dbs_conn<L>->mquery(query->toText(), tab->toText() );
+  if(dbs_conn && isMaster){
+    val = dbs_conn->mquery(query->toText(), tab->toText() );
   } else {
     cout << noWorker << endl;
   }
@@ -1153,10 +1152,10 @@ OperatorSpec be_mqueryVMSpec(
 
 */
 ValueMapping be_mqueryVM[] = {
-  be_mquerySFVM<CcString,CcString,ConnectionPG>,
-  be_mquerySFVM<FText,CcString,ConnectionPG>,
-  be_mquerySFVM<CcString,FText,ConnectionPG>,
-  be_mquerySFVM<FText,FText,ConnectionPG>
+  be_mquerySFVM<CcString,CcString>,
+  be_mquerySFVM<FText,CcString>,
+  be_mquerySFVM<CcString,FText>,
+  be_mquerySFVM<FText,FText>
 };
 
 /*
@@ -1164,15 +1163,15 @@ ValueMapping be_mqueryVM[] = {
 
 */
 int be_mquerySelect(ListExpr args){
-if (dbms_name == pg){
-  if(CcString::checkType(nl->First(args))){
-    return CcString::checkType(nl->Second(args))?0:2;
-  }else{
-    return CcString::checkType(nl->Second(args))?1:3;
+  if (dbms_name == pg){
+    if(CcString::checkType(nl->First(args))){
+      return CcString::checkType(nl->Second(args))?0:2;
+    }else{
+      return CcString::checkType(nl->Second(args))?1:3;
+    }
+  } else {
+    return 0;
   }
-}else{
-  return 0;
-}
 };
 
 /*
@@ -1218,23 +1217,23 @@ string err = "\n {string,text} -> bool"
 1.9.2 Value Mapping
 
 */
-template<class T, class L>
+template<class T>
 int be_mcommandSFVM(Word* args, Word& result, int message
-          , Word& local, Supplier s ){
-bool val = false;
-result = qp->ResultStorage(s);
-T* query = (T*) args[0].addr;
+          , Word& local, Supplier s) {
 
-  if(dbs_conn<L> && isMaster){
-    val = dbs_conn<L>->mcommand(query->toText());
-  }
-  else{
+  bool val = false;
+  result = qp->ResultStorage(s);
+  T* query = (T*) args[0].addr;
+
+  if(dbs_conn && isMaster){
+    val = dbs_conn->mcommand(query->toText());
+  } else{
     cout << noWorker << endl;
   }
 
   ((CcBool *)result.addr)->Set(true, val);
 
-return 0;
+  return 0;
 }
 
 /*
@@ -1255,8 +1254,8 @@ OperatorSpec be_mcommandVMSpec(
 
 */
 ValueMapping be_mcommandVM[] = {
-  be_mcommandSFVM<CcString,ConnectionPG>,
-  be_mcommandSFVM<FText,ConnectionPG>
+  be_mcommandSFVM<CcString>,
+  be_mcommandSFVM<FText>
 };
 
 /*
@@ -1314,23 +1313,23 @@ string err = "\n {string,text} -> bool"
 1.10.2 Value Mapping
 
 */
-template<class T, class L>
+template<class T>
 int be_unionSFVM(Word* args, Word& result, int message
-        , Word& local, Supplier s ){
-result = qp->ResultStorage(s);
-T* tab = (T*) args[0].addr;
-bool val;
+        , Word& local, Supplier s){
+            
+  result = qp->ResultStorage(s);
+  T* tab = (T*) args[0].addr;
+  bool val;
 
-  if(dbs_conn<L> && isMaster){
-    val = dbs_conn<L>->munion(tab->toText());
-  }
-  else{
+  if(dbs_conn && isMaster) {
+    val = dbs_conn->munion(tab->toText());
+  } else {
     cout << noWorker << endl;
   }
 
-((CcBool *)result.addr)->Set(true, val);
+  ((CcBool *)result.addr)->Set(true, val);
 
-return 0;
+  return 0;
 }
 
 /*
@@ -1350,8 +1349,8 @@ OperatorSpec be_unionVMSpec(
 
 */
 ValueMapping be_unionVM[] = {
-  be_unionSFVM<CcString,ConnectionPG>,
-  be_unionSFVM<FText,ConnectionPG>,
+  be_unionSFVM<CcString>,
+  be_unionSFVM<FText>,
 };
 
 /*
@@ -1359,11 +1358,11 @@ ValueMapping be_unionVM[] = {
 
 */
 int be_unionSelect(ListExpr args){
-if (dbms_name == pg){
-  return CcString::checkType(nl->First(args))?0:1;
-}else{
-  return 0;
-}
+  if (dbms_name == pg){
+    return CcString::checkType(nl->First(args))?0:1;
+  }else{
+    return 0;
+  }
 };
 
 /*
@@ -1409,17 +1408,18 @@ string err = "\n {string,text} -> bool"
 1.11.2 Value Mapping
 
 */
-template<class T, class L>
+template<class T>
 int be_structSFVM(Word* args, Word& result, int message
           , Word& local, Supplier s ){
-bool val = false;
 
-result = qp->ResultStorage(s);
-T* tab = (T*) args[0].addr;
+  bool val = false;
 
-  if(dbs_conn<L>){
+  result = qp->ResultStorage(s);
+  T* tab = (T*) args[0].addr;
+
+  if(dbs_conn){
     //export a create Statement to filetransfer
-    val = dbs_conn<L>->createTabFile(tab->GetValue());
+    val = dbs_conn->createTabFile(tab->GetValue());
   }
   else{
     cout << noMaster << endl;
@@ -1427,7 +1427,7 @@ T* tab = (T*) args[0].addr;
 
   ((CcBool *)result.addr)->Set(true, val);
 
-return 0;
+  return 0;
 }
 
 /*
@@ -1449,8 +1449,8 @@ OperatorSpec be_structVMSpec(
 
 */
 ValueMapping be_structVM[] = {
-  be_structSFVM<CcString,ConnectionPG>,
-  be_structSFVM<FText,ConnectionPG>,
+  be_structSFVM<CcString>,
+  be_structSFVM<FText>,
 };
 
 /*
@@ -1527,7 +1527,7 @@ string err = "\n {string, text} x int x {string, text} x rel "
 1.12.2 Value Mapping
 
 */
-template<class T, class L>
+template<class T>
 int init_be_workerSFVM(Word* args, Word& result, int message, 
      Word& local, Supplier s ) {
 
@@ -1540,11 +1540,12 @@ int init_be_workerSFVM(Word* args, Word& result, int message,
 
   // Postgress database
   if(string("pgsql").compare(dbtype->toText()) == 0) {
-    dbs_conn<L> = new BasicEngine_Control<L>(
+    
+    dbs_conn = new BasicEngine_Control(
           new ConnectionPG(port->GetIntval(), 
           dbname->toText()), worker);
 
-    bool val = dbs_conn<L>->checkConn();
+    bool val = dbs_conn->checkConn();
 
     dbms_name = (val) ? pg : "";
     isMaster = val;
@@ -1578,8 +1579,8 @@ OperatorSpec be_init_worker_spec (
 
 */
 ValueMapping be_init_worker_vm[] = {
-  init_be_workerSFVM<CcString,ConnectionPG>,
-  init_be_workerSFVM<FText,ConnectionPG>,
+  init_be_workerSFVM<CcString>,
+  init_be_workerSFVM<FText>,
 };
 
 /*
@@ -1636,24 +1637,25 @@ string err = "\n (string, text} --> bool"
 1.13.2 Value Mapping
 
 */
-template<class T, class L>
+template<class T>
 int be_runsqlSFVM(Word* args, Word& result, int message
         , Word& local, Supplier s ){
-T* path = (T*) args[0].addr;
-bool val;
+
+  T* path = (T*) args[0].addr;
+  bool val;
 
   result = qp->ResultStorage(s);
 
-  if(dbs_conn<L>){
-    val = dbs_conn<L>->runsql(path->toText());
+  if(dbs_conn){
+    val = dbs_conn->runsql(path->toText());
   }
   else{
     cout << noMaster << endl;
   }
 
-((CcBool *)result.addr)->Set(true, val);
+  ((CcBool *)result.addr)->Set(true, val);
 
-return 0;
+  return 0;
 }
 
 /*
@@ -1674,8 +1676,8 @@ OperatorSpec be_runsqlSpec(
 
 */
 ValueMapping be_runsqlVM[] = {
-  be_runsqlSFVM<CcString,ConnectionPG>,
-  be_runsqlSFVM<FText,ConnectionPG>,
+  be_runsqlSFVM<CcString>,
+  be_runsqlSFVM<FText>,
 };
 
 /*
@@ -1683,11 +1685,11 @@ ValueMapping be_runsqlVM[] = {
 
 */
 int be_runsqlSelect(ListExpr args){
-if (dbms_name == pg){
-  return CcString::checkType(nl->First(args))?0:1;
-}else{
-  return 0;
-}
+  if (dbms_name == pg){
+    return CcString::checkType(nl->First(args))?0:1;
+  }else{
+    return 0;
+  }
 };
 
 /*
@@ -1763,9 +1765,10 @@ string err = "\n {string, text} x {string, text} x {string, text} "
 1.14.2 Value Mapping
 
 */
-template<class T, class H, class I, class L>
+template<class T, class H, class I>
 int be_partGridSFVM(Word* args,Word& result,int message
           ,Word& local,Supplier s ){
+
 result = qp->ResultStorage(s);
 
 T* tab = (T*) args[0].addr;
@@ -1779,21 +1782,21 @@ CcInt* slot = (CcInt*) args[6].addr;
 bool val = false;
 CcBool* res = (CcBool*) result.addr;
 
-  if(dbs_conn<L> && isMaster){
+  if(dbs_conn && isMaster){
     if (slot->GetIntval() > 0){
-      val = dbs_conn<L>->partTable(tab->toText(),key->toText()
+      val = dbs_conn->partTable(tab->toText(),key->toText()
             ,"Grid",slot->GetIntval(),geo_col->toText()
       ,xstart->GetValue(),ystart->GetValue(),slotsize->GetValue());
     }else{
       cout<< negSlots << endl;
     }
-  }
-  else{
+  } else {
     cout << noWorker << endl;
   }
+
   res->Set(true, val);
 
-return 0;
+  return 0;
 }
 
 /*
@@ -1816,14 +1819,14 @@ OperatorSpec be_partGridSpec(
 
 */
 ValueMapping be_partGridVM[] = {
-  be_partGridSFVM<CcString,CcString,CcString,ConnectionPG>,
-  be_partGridSFVM<FText,CcString,CcString,ConnectionPG>,
-  be_partGridSFVM<CcString,FText,CcString,ConnectionPG>,
-  be_partGridSFVM<FText,FText,CcString,ConnectionPG>,
-  be_partGridSFVM<CcString,CcString,FText,ConnectionPG>,
-  be_partGridSFVM<FText,CcString,FText,ConnectionPG>,
-  be_partGridSFVM<CcString,FText,FText,ConnectionPG>,
-  be_partGridSFVM<FText,FText,FText,ConnectionPG>
+  be_partGridSFVM<CcString,CcString,CcString>,
+  be_partGridSFVM<FText,CcString,CcString>,
+  be_partGridSFVM<CcString,FText,CcString>,
+  be_partGridSFVM<FText,FText,CcString>,
+  be_partGridSFVM<CcString,CcString,FText>,
+  be_partGridSFVM<FText,CcString,FText>,
+  be_partGridSFVM<CcString,FText,FText>,
+  be_partGridSFVM<FText,FText,FText>
 };
 
 /*

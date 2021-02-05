@@ -52,8 +52,7 @@ Creating a specified and saves it in the vec\_ci. Additionally add an entry
 to the importer vector.
 
 */
-template<class T>
-bool BasicEngine_Control<T>::createConnection(long unsigned int* index) {
+bool BasicEngine_Control::createConnection(long unsigned int* index) {
 
   NestedList* mynl = new NestedList("temp_nested_list");
   const int defaultTimeout = 0;
@@ -119,8 +118,7 @@ bool BasicEngine_Control<T>::createConnection(long unsigned int* index) {
 3.2 Destructor
 
 */
-template<class T>
-BasicEngine_Control<T>::~BasicEngine_Control() {
+BasicEngine_Control::~BasicEngine_Control() {
     if(dbs_conn != NULL) {
       delete dbs_conn;
       dbs_conn = NULL;
@@ -151,16 +149,16 @@ BasicEngine_Control<T>::~BasicEngine_Control() {
 Creating all connection from the worker relation.
 
 */
-template<class T>
-bool BasicEngine_Control<T>::createAllConnection(){
-bool val = true;
-long unsigned int i = 0;
+bool BasicEngine_Control::createAllConnection(){
+  bool val = true;
+  long unsigned int i = 0;
 
   while (i < anzWorker and val){
     val = createConnection(&i);
     i++;
   }
-return val;
+
+  return val;
 }
 
 /*
@@ -169,8 +167,7 @@ return val;
 Returns a name of a table with the keys included.
 
 */
-template<class T>
-string BasicEngine_Control<T>::getparttabname(string* tab, string* key){
+string BasicEngine_Control::getparttabname(string* tab, string* key){
 
   string usedKey(*key);
 
@@ -189,11 +186,11 @@ and store the statement in a file.
 Returns true if everything is OK and there are no failure.
 
 */
-template<class T>
-bool BasicEngine_Control<T>::createTabFile(string tab){
-ofstream write;
-string statement;
-bool val = false;
+bool BasicEngine_Control::createTabFile(string tab) {
+
+  ofstream write;
+  string statement;
+  bool val = false;
 
   statement = dbs_conn->createTabFile(&tab);
 
@@ -205,9 +202,11 @@ bool val = false;
       val = write.good();
     }else{ cout << "Couldn't write file into " + getFilePath() + ""
       ". Please check the folder and permissions." << endl;}
+  } else { 
+     cout << "Table " + tab + " not found." << endl;
   }
-  else{ cout << "Table " + tab + " not found." << endl;}
-return val;
+
+   return val;
 }
 
 /*
@@ -217,8 +216,7 @@ The data were partitions in the database by round robin.
 Returns true if everything is OK and there are no failure.
 
 */
-template<class T>
-bool BasicEngine_Control<T>::partRoundRobin(string* tab,
+bool BasicEngine_Control::partRoundRobin(string* tab,
                     string* key, int* slotnum) {
 
   bool val = false;
@@ -247,8 +245,7 @@ and after that imported by the worker.
 Returns true if everything is OK and there are no failure.
 
 */
-template<class T>
-bool BasicEngine_Control<T>::exportToWorker(string *tab){
+bool BasicEngine_Control::exportToWorker(string *tab){
 bool val = true;
 string query_exec;
 long unsigned int index = 0;
@@ -317,8 +314,7 @@ The data were partitions in the database by an hash value.
 Returns true if everything is OK and there are no failure.
 
 */
-template<class T>
-bool BasicEngine_Control<T>::partHash(string* tab
+bool BasicEngine_Control::partHash(string* tab
                     , string* key, int* slotnum){
 bool val = false;
 string query_exec = "";
@@ -343,8 +339,7 @@ This function have to be defined before using it.
 Returns true if everything is OK and there are no failure.
 
 */
-template<class T>
-bool BasicEngine_Control<T>::partFun(string* tab
+bool BasicEngine_Control::partFun(string* tab
                     , string* key,string* fun, int* slotnum){
 bool val = false;
 string query_exec = "";
@@ -374,8 +369,7 @@ Exporting the data from the DBMS to a local file.
 Returns true if everything is OK and there are no failure.
 
 */
-template<class T>
-bool BasicEngine_Control<T>::exportData(string* tab, string* key,
+bool BasicEngine_Control::exportData(string* tab, string* key,
    long unsigned int* slotnum){
 bool val = true;
 string path = getFilePath();
@@ -399,8 +393,7 @@ table will be created and after that starts the import from a file.
 Returns true if everything is OK and there are no failure.
 
 */
-template<class T>
-bool BasicEngine_Control<T>::importData(string *tab) {
+bool BasicEngine_Control::importData(string *tab) {
 
   bool val = true;
   string full_path;
@@ -440,8 +433,7 @@ import them into the worker.
 Returns true if everything is OK and there are no failure.
 
 */
-template<class T>
-bool BasicEngine_Control<T>::partTable(string tab, string key, string art
+bool BasicEngine_Control::partTable(string tab, string key, string art
       , int slotnum, string geo_col, float x0, float y0, float slotsize){
 
   bool val = true;
@@ -482,8 +474,7 @@ The master imports them into the local db.
 Returns true if everything is OK and there are no failure.
 
 */
-template<class T>
-bool BasicEngine_Control<T>::munion(string tab) {
+bool BasicEngine_Control::munion(string tab) {
 
   bool val = true;
   string path;
@@ -516,8 +507,7 @@ and stores the result in a table.
 Returns true if everything is OK and there are no failure.
 
 */
-template<class T>
-bool BasicEngine_Control<T>::mquery(string query,
+bool BasicEngine_Control::mquery(string query,
                     string tab) {
                 
   bool val = true;
@@ -542,8 +532,7 @@ The multi command sends and execute a query to all worker.
 Returns true if everything is OK and there are no failure.
 
 */
-template<class T>
-bool BasicEngine_Control<T>::mcommand(string query) {
+bool BasicEngine_Control::mcommand(string query) {
 
  bool val = true;
 
@@ -566,8 +555,7 @@ bool BasicEngine_Control<T>::mcommand(string query) {
 Shutdown the remote worker
 
 */
-template<class T>
-bool BasicEngine_Control<T>::shutdownWorker() {
+bool BasicEngine_Control::shutdownWorker() {
 
    bool result = true;
    string shutdownCommand("query be_shutdown()");
@@ -587,8 +575,7 @@ Checking the Connection to the secondary Master System and to the Worker.
 Returns true if everything is OK and there are no failure.
 
 */
-template<class T>
-bool BasicEngine_Control<T>::checkConn() {
+bool BasicEngine_Control::checkConn() {
 bool val = true;
 long unsigned int i = 0;
 const int defaultTimeout = 0;
@@ -616,8 +603,7 @@ Runs a query from a file.
 Returns true if everything is OK and there are no failure.
 
 */
-template<class T>
-bool BasicEngine_Control<T>::runsql(string filepath) {
+bool BasicEngine_Control::runsql(string filepath) {
 
   if (access(filepath.c_str(), 0) == 0) {
 
@@ -650,8 +636,7 @@ The data were partitions in the database by a grid.
 Returns true if everything is OK and there are no failure.
 
 */
-template<class T>
-bool BasicEngine_Control<T>::partGrid(std::string* tab, std::string* key
+bool BasicEngine_Control::partGrid(std::string* tab, std::string* key
     ,std::string* geo_col,int* slotnum,float* x0,float* y0,float* slotsize){
 bool val = false;
 string query_exec = "";

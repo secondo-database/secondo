@@ -39,6 +39,7 @@ Version 1.0 - Created - C.Behrndt - 2020
 #include <string>
 #include <boost/algorithm/string.hpp>
 #include "libpq-fe.h"
+#include "ConnectionGeneric.h"
 
 
 namespace BasicEngine {
@@ -49,7 +50,7 @@ namespace BasicEngine {
 This class represents the controling from the system.
 
 */
-class ConnectionPG {
+class ConnectionPG : public ConnectionGeneric {
 
   public:
 

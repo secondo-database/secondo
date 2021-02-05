@@ -38,6 +38,7 @@ Version 1.0 - Created - C.Behrndt - 2020
 
 #include "Algebras/Relation-C++/RelationAlgebra.h"
 #include "BasicEngine_Thread.h"
+#include "ConnectionGeneric.h"
 
 namespace BasicEngine {
 
@@ -47,7 +48,6 @@ namespace BasicEngine {
 This class represents the controling from the system.
 
 */
-template<class T>
 class BasicEngine_Control {
 
 public:
@@ -56,13 +56,15 @@ public:
 2.1 Public Methods
 
 */
-  BasicEngine_Control(T* _dbs_conn) {
+  BasicEngine_Control(ConnectionGeneric* _dbs_conn) {
     dbs_conn = _dbs_conn;
     worker = NULL;
     anzWorker = 0;
   };
 
-  BasicEngine_Control(T* _dbs_conn, Relation* _worker) {
+  BasicEngine_Control(ConnectionGeneric* _dbs_conn, 
+     Relation* _worker) {
+
     dbs_conn = _dbs_conn;
     worker = _worker->Clone();
     anzWorker = worker->GetNoTuples();
@@ -71,7 +73,7 @@ public:
 
   virtual ~BasicEngine_Control();
 
-  T* get_conn() {
+  ConnectionGeneric* get_conn() {
     return dbs_conn;
   }
 
@@ -120,7 +122,7 @@ In this template variable were stores the connection,
 to a secondary dbms (for example postgresql)
 
 */
-T* dbs_conn;
+ConnectionGeneric* dbs_conn;
 
 /*
 2.2.2 ~worker~
