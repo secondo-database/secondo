@@ -367,14 +367,12 @@ Starting a query at the worker.
 
 */
 void runQuery() {
-  std::string cmd;
-
   std::string escapedQuery(query);
-  
+
   boost::replace_all(escapedQuery, "'", "\\'");
 
   //run the query
-  cmd = "query be_query('"
+  std::string cmd = "query be_query('"
          "" + escapedQuery + "','"
          "" + tab + "');";
 
@@ -388,11 +386,12 @@ Starting a command at the worker.
 
 */
 void runCommand(){
-  std::string cmd;
+  std::string escapedCommand(query);
 
   //run the command
-  boost::replace_all(query, "'", "\\'");
-  cmd = "query be_command('" + query + "');";
+  boost::replace_all(escapedCommand, "'", "\\'");
+  std::string cmd = "query be_command('" + escapedCommand + "');";
+  
   val = simpleCommand(&cmd);
  }
 };
