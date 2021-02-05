@@ -153,6 +153,34 @@ void startCommand(std::string command){
   };
 };
 
+/*
+4.3.1 ~simpleCommand~
+
+Execute a command or query on the worker.
+
+Returns true if everything is OK and there are no failure.
+Displays an error massage if something goes wrong.
+
+*/
+bool simpleCommand(std::string *cmd) {
+
+  int err = 0;
+  double rt;
+  const int defaultTimeout = 0;
+  distributed2::CommandLog CommandLog;
+  std::string res;
+
+  ci->simpleCommand(*cmd, err, res, false, rt, false,
+                    CommandLog, true, defaultTimeout);
+  
+  if(err != 0){
+    cout << std::string("ErrCode:" + err) << endl;
+    return false;
+  }
+
+  return (res == "(bool TRUE)");
+ }
+
 private:
 
 /*
@@ -250,41 +278,14 @@ bool val = true;
 /*
 4.3 Private Methods
 
-4.3.1 ~simpleCommand~
-
-Execute a command or query on the worker.
-
-Returns true if everything is OK and there are no failure.
-Displays an error massage if something goes wrong.
-
-*/
-bool simpleCommand(std::string *cmd){
-int err = 0;
-double rt;
-const int defaultTimeout = 0;
-distributed2::CommandLog CommandLog;
-std::string res;
-
-  ci->simpleCommand(*cmd,err,res,false,rt,false
-                    ,CommandLog,true,defaultTimeout);
-
-  if(err != 0){
-    cout << std::string("ErrCode:" + err) << endl;
-    return false;
-  }
-
-  return (res == "(bool TRUE)");
- }
-
-/*
 4.3.2 ~runImport~
 
 Starting the import from data at the worker.
 
 */
 void runImport(){
-std::string importPath;
-std::string cmd;
+  std::string importPath;
+  std::string cmd;
 
   importPath =ci->getSendPath() + "/"+ remoteCreateName;
   cmd = "query be_runsql('"+ importPath + "');";
@@ -316,15 +317,15 @@ Starting the export from data at the worker.
 
 */
 void runExport(){
-std::string from;
-std::string to;
-std::string cmd;
-std::string transfer_path = path.substr(0,path.find(remoteName));
+  std::string from;
+  std::string to;
+  std::string cmd;
+  std::string transfer_path = path.substr(0,path.find(remoteName));
 
   //export the table structure file
-  if(nr == "1"){
+  if(nr == "1") {
     //export tab structure
-    cmd="query be_struct('"+ tab + "');";
+    cmd = "query be_struct('"+ tab + "');";
     val = simpleCommand(&cmd);
 
     //move the structure-file into the request-folder
@@ -334,12 +335,13 @@ std::string transfer_path = path.substr(0,path.find(remoteName));
     if(val) val = simpleCommand(&cmd);
 
     //sending file to master
-    if(val) val =(ci->requestFile(remoteCreateName,from,true)==0);
+    if(val) val = (ci->requestFile(remoteCreateName,from,true)==0);
 
     //delete create file on system
     cmd ="query removeFile('"+ to + "')";
     if(val) val = simpleCommand(&cmd);
   }
+
   //export the date to a file
   cmd = "query be_copy('"+ tab+"','"+ path+"');";
   if (val) val = simpleCommand(&cmd);

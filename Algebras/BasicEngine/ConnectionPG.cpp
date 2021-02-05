@@ -96,7 +96,9 @@ const char *query_exec = command->c_str();
   if (checkConn()) {
     res = PQexec(conn, query_exec);
     if (!res || PQresultStatus(res) != PGRES_COMMAND_OK) {
-      if(print){printf("Error with Command:%s\n", PQresultErrorMessage(res));}
+      if(print) {
+        printf("Error with Command:%s\n", PQresultErrorMessage(res));
+      }
       PQclear(res);
       return false;
     }

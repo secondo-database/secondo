@@ -116,6 +116,36 @@ bool BasicEngine_Control<T>::createConnection(long unsigned int* index) {
 }
 
 /*
+3.2 Destructor
+
+*/
+template<class T>
+BasicEngine_Control<T>::~BasicEngine_Control() {
+    if(dbs_conn != NULL) {
+      delete dbs_conn;
+      dbs_conn = NULL;
+    }
+
+    // Delete importer
+    for(const BasicEngine_Thread* basic_engine_thread: importer) {
+      delete basic_engine_thread;
+    }
+    importer.clear();
+
+    // Delete connections
+    for(const distributed2::ConnectionInfo* connection: vec_ci) {
+      delete connection;
+    }
+    vec_ci.clear();
+
+    // Delete cloned worker relation
+    if(worker != NULL) {
+      worker -> Delete();
+      worker = NULL;
+    }
+  }
+
+/*
 3.2 ~createAllConnection~
 
 Creating all connection from the worker relation.
@@ -184,21 +214,25 @@ Returns true if everything is OK and there are no failure.
 
 */
 template<class T>
-bool BasicEngine_Control<T>::partRoundRobin(string* tab
-                    ,string* key, int* slotnum){
-bool val = false;
-string query_exec = "";
-string partTabName;
-string anzSlots = to_string(*slotnum);
+bool BasicEngine_Control<T>::partRoundRobin(string* tab,
+                    string* key, int* slotnum) {
+
+  bool val = false;
+  string query_exec = "";
+  string partTabName;
+  string anzSlots = to_string(*slotnum);
 
   partTabName = getparttabname(tab,key);
   drop_table(partTabName);
 
-  query_exec = dbs_conn->get_partRoundRobin(tab,key
-      ,&anzSlots,&partTabName);
-  if (query_exec != "") val = dbs_conn->sendCommand(&query_exec);
+  query_exec = dbs_conn->get_partRoundRobin(tab, key,
+      &anzSlots, &partTabName);
+  
+  if (query_exec != "") {
+    val = dbs_conn->sendCommand(&query_exec);
+  }
 
-return val;
+  return val;
 }
 
 /*
@@ -398,7 +432,8 @@ Returns true if everything is OK and there are no failure.
 template<class T>
 bool BasicEngine_Control<T>::partTable(string tab, string key, string art
       , int slotnum, string geo_col, float x0, float y0, float slotsize){
-bool val = true;
+
+  bool val = true;
 
   if (boost::iequals(art, "RR")){val = partRoundRobin(&tab, &key, &slotnum);}
   else if (boost::iequals(art, "Hash")){val = partHash(&tab, &key, &slotnum);}
@@ -410,7 +445,7 @@ bool val = true;
     return val;
   }
 
-  val =  exportData(&tab, &key, &anzWorker);
+  val = exportData(&tab, &key, &anzWorker);
   if(!val){
     cout << "\n Couldn't export the data from the table." << endl;
     return val;
@@ -425,7 +460,7 @@ bool val = true;
   val = exportToWorker(&tab);
   if(!val){cout << "\n Couldn't transfer the data to the worker." << endl;}
 
-return val;
+  return val;
 }
 
 /*
@@ -437,10 +472,11 @@ Returns true if everything is OK and there are no failure.
 
 */
 template<class T>
-bool BasicEngine_Control<T>::munion(string tab){
-bool val = true;
-string path;
-string strindex;
+bool BasicEngine_Control<T>::munion(string tab) {
+
+  bool val = true;
+  string path;
+  string strindex;
 
   //doing the export with one thread for each worker
   for(size_t i=0;i<importer.size();i++){
@@ -451,15 +487,15 @@ string strindex;
   }
 
   //waiting for finishing the threads
-  for(size_t i=0;i<importer.size();i++){
+  for(size_t i=0; i<importer.size(); i++){
     val = importer[i]->getResult() && val;
   }
 
   //import in local PG-Master
   if(val) val = importData(&tab);
 
-return val;
-};
+  return val;
+}
 
 /*
 3.16 ~mquery~
@@ -470,9 +506,10 @@ Returns true if everything is OK and there are no failure.
 
 */
 template<class T>
-bool BasicEngine_Control<T>::mquery(string query
-                    , string tab){
-bool val = true;
+bool BasicEngine_Control<T>::mquery(string query,
+                    string tab) {
+                
+  bool val = true;
 
   //doing the query with one thread for each worker
   for(size_t i=0;i<importer.size();i++){
@@ -482,9 +519,9 @@ bool val = true;
   //waiting for finishing the threads
   for(size_t i=0;i<importer.size();i++){
     val = importer[i]->getResult() && val;
- }
+  }
 
-return val;
+  return val;
 }
 
 /*
@@ -495,8 +532,9 @@ Returns true if everything is OK and there are no failure.
 
 */
 template<class T>
-bool BasicEngine_Control<T>::mcommand(string query){
-bool val = true;
+bool BasicEngine_Control<T>::mcommand(string query) {
+
+ bool val = true;
 
  //doing the command with one thread for each worker
  for(size_t i=0;i<importer.size();i++){
@@ -508,8 +546,28 @@ bool val = true;
    val = importer[i]->getResult() && val;
  }
 
-return val;
+ return val;
 }
+
+/*
+3.17 ~shutdownWorker~
+
+Shutdown the remote worker
+
+*/
+template<class T>
+bool BasicEngine_Control<T>::shutdownWorker() {
+
+   bool result = true;
+   string shutdownCommand("query be_shutdown()");
+
+   for(BasicEngine_Thread* remote : importer) {
+     result = result && remote->simpleCommand(&shutdownCommand);
+   }
+
+   return result;
+}
+
 
 /*
 3.18 ~checkConn~
@@ -519,22 +577,21 @@ Returns true if everything is OK and there are no failure.
 
 */
 template<class T>
-bool BasicEngine_Control<T>::checkConn(){
+bool BasicEngine_Control<T>::checkConn() {
 bool val = true;
 long unsigned int i = 0;
 const int defaultTimeout = 0;
 CommandLog CommandLog;
 
   //checking connection to the worker
-  if (vec_ci.size() == anzWorker){
-    while (i < anzWorker and val and anzWorker > 0){
+  if (vec_ci.size() == anzWorker) {
+    while (i < anzWorker and val and anzWorker > 0) {
       val = vec_ci[i]->check(false,CommandLog,defaultTimeout);
       i++;
     }
      //checking the connection to the secondary dbms system
      val = dbs_conn->checkConn() && val;
-  }
-  else{
+  } else {
     val = false;
   }
 

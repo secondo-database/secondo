@@ -70,30 +70,7 @@ public:
     createAllConnection();
   };
 
-  virtual ~BasicEngine_Control() {
-    if(dbs_conn != NULL) {
-      delete dbs_conn;
-      dbs_conn = NULL;
-    }
-
-    // Delete importer
-    for(const BasicEngine_Thread* basic_engine_thread: importer) {
-      delete basic_engine_thread;
-    }
-    importer.clear();
-
-    // Delete connections
-    for(const distributed2::ConnectionInfo* connection: vec_ci) {
-      delete connection;
-    }
-    vec_ci.clear();
-
-    // Delete cloned worker relation
-    if(worker != NULL) {
-      worker -> Delete();
-      worker = NULL;
-    }
-  }
+  virtual ~BasicEngine_Control();
 
   T* get_conn() {
     return dbs_conn;
@@ -105,16 +82,19 @@ public:
      int slotnum, std::string geo_col = "", float x0 = 0, float y0 = 0,
      float slotsize = 0);
 
-  bool drop_table(std::string tab)
-    {return sendCommand(dbs_conn->get_drop_table(&tab),false);};
+  bool drop_table(std::string tab) {
+    return sendCommand(dbs_conn->get_drop_table(&tab), false);
+  }
 
   bool createTabFile(std::string tab);
 
-  bool copy(std::string tab, std::string full_path, bool direct)
-    {return sendCommand(dbs_conn->get_copy(&tab,&full_path,&direct));};
+  bool copy(std::string tab, std::string full_path, bool direct) {
+    return sendCommand(dbs_conn->get_copy(&tab, &full_path, &direct));
+  }
 
-  bool createTab(std::string tab, std::string query)
-    {return sendCommand(dbs_conn->get_createTab(&tab, &query));};
+  bool createTab(std::string tab, std::string query) {
+     return sendCommand(dbs_conn->get_createTab(&tab, &query));
+  }
 
   bool munion(std::string tab);
 
@@ -124,8 +104,11 @@ public:
 
   bool runsql(std::string filepath);
 
-  bool sendCommand(std::string query, bool print= true)
-    {return dbs_conn->sendCommand(&query,print);};
+  bool shutdownWorker();
+
+  bool sendCommand(std::string query, bool print=true) {
+    return dbs_conn->sendCommand(&query, print);
+  }
 
 private:
 

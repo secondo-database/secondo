@@ -239,10 +239,27 @@ int be_shutdown_vm(Word* args, Word& result, int message,
 
   result = qp->ResultStorage(s);
 
-  // TODO: Implement shutdown
-  ((CcBool*)result.addr)->Set(false, false);
+  if(isMaster) {
+    cout << "Error: Can not shutdown worker, we are in master mode." 
+         << endl;
+    cout << "Please use be_shutdown_worker() instead." 
+         << endl << endl;
+    ((CcBool*)result.addr)->Set(true, false);
+    return 0;
+  }
 
-  return 0;
+  if(dbs_conn<ConnectionPG> != NULL) {
+    cout << "Shutting down basic engine worker" << endl;
+    delete dbs_conn<ConnectionPG>;
+    dbs_conn<ConnectionPG> = NULL;
+    
+    ((CcBool*)result.addr)->Set(true, true);
+    return 0;
+  } else {
+    cout << "Basic engine worker is not active" << endl;
+    ((CcBool*)result.addr)->Set(true, false);
+    return 0;
+  }
 }
 
 /*
@@ -288,24 +305,45 @@ string err = "No parameter (--> bool) expected";
 1.1.2 Value Mapping
 
 */
+template<class T>
 int be_shutdown_worker_vm(Word* args, Word& result, int message,
         Word& local, Supplier s) {
   
   result = qp->ResultStorage(s);
 
+  if(! isMaster) {
+    cout << "Error: Can not shutdown worker nodes, we are not" 
+         << " in master mode" << endl;
+    cout << "Please use be_shutdown to shutdown the local engine."
+         << endl << endl;
+    ((CcBool*)result.addr)->Set(false, true);
+    return 0;
+  }
+
   // TODO: Replace template by abstract class
-  if(dbs_conn<ConnectionPG> != NULL) {
-    cout << "Shutting down basic engine" << endl;
+  if(dbs_conn<T> != NULL) {
+    cout << "Shutting down basic engine worker" << endl;
+    bool shutdownResult = dbs_conn<T>->shutdownWorker();
+
+    if(! shutdownResult) {
+      cout << "Error: Shutdown of the workers failed" << endl 
+           << endl;
+    
+      ((CcBool*)result.addr)->Set(true, false);
+      return 0;
+    }
+
+    cout << "Shutting down basic engine master" << endl;
     delete dbs_conn<ConnectionPG>;
     dbs_conn<ConnectionPG> = NULL;
-    
+
     ((CcBool*)result.addr)->Set(true, true);
+    return 0;
   } else {
     cout << "Basic engine is not active" << endl;
     ((CcBool*)result.addr)->Set(true, false);
+    return 0;
   }
-
-  return 0;
 }
 
 /*
@@ -324,11 +362,11 @@ OperatorSpec be_shutdown_worker_spec (
 
 */
 Operator be_shutdown_worker (
-         "be_shutdown_worker",             // name
-         be_shutdown_worker_spec.getStr(), // specification
-         be_shutdown_worker_vm,            // value mapping
-         Operator::SimpleSelect,           // trivial selection function
-         be_shutdown_worker_tm             // type mapping
+         "be_shutdown_worker",                 // name
+         be_shutdown_worker_spec.getStr(),     // specification
+         be_shutdown_worker_vm<ConnectionPG>,  // value mapping
+         Operator::SimpleSelect,               // trivial selection function
+         be_shutdown_worker_tm                 // type mapping
 );
 
 /*
@@ -1077,23 +1115,23 @@ string err = "\n {string,text} x {string,text} -> bool"
 
 */
 template<class T, class H, class L>
-int be_mquerySFVM(Word* args,Word& result,int message
-          ,Word& local,Supplier s ){
-bool val = false;
-result = qp->ResultStorage(s);
-T* query = (T*) args[0].addr;
-H* tab = (H*) args[1].addr;
+int be_mquerySFVM(Word* args, Word& result, int message,
+          Word& local, Supplier s) {
+
+  bool val = false;
+  result = qp->ResultStorage(s);
+  T* query = (T*) args[0].addr;
+  H* tab = (H*) args[1].addr;
 
   if(dbs_conn<L> && isMaster){
     val = dbs_conn<L>->mquery(query->toText(), tab->toText() );
-  }
-  else{
+  } else {
     cout << noWorker << endl;
   }
 
   ((CcBool *)result.addr)->Set(true, val);
 
-return 0;
+  return 0;
 }
 
 /*
