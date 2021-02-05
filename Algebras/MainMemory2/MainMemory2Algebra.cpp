@@ -381,7 +381,6 @@ namespace mtreehelper{
       ((CcInt*)counterW.addr)->Set(true, counter);
       sc->ModifyObject(objName, counterW);
     }
-    cout << ((CcInt*)counterW.addr)->GetValue() << endl;
   }
 
 }
