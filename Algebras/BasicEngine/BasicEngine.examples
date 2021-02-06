@@ -43,6 +43,12 @@ Signature : {string, text} x {string, text} x int --> bool
 Example   : query be_partFun("cars", "moid","random",60)
 Result    : FALSE
 
+Operator  : be_collect
+Number    : 1
+Signature : {text} --> stream(tuple(...))
+Example   : query be_collect('select * from cars where Speed = 30')
+Result    : FALSE
+
 Operator  : be_query
 Number    : 1
 Signature : {string, text} x {string, text} --> bool

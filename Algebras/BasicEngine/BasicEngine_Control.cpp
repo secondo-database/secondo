@@ -638,13 +638,14 @@ Returns true if everything is OK and there are no failure.
 */
 bool BasicEngine_Control::partGrid(std::string* tab, std::string* key
     ,std::string* geo_col,int* slotnum,float* x0,float* y0,float* slotsize){
-bool val = false;
-string query_exec = "";
-string partTabName;
-string anzSlots = to_string(*slotnum);
-string x_start = to_string(*x0);
-string y_start = to_string(*y0);
-string sizSlots = to_string(*slotsize);
+
+  bool val = false;
+  string query_exec = "";
+  string partTabName;
+  string anzSlots = to_string(*slotnum);
+  string x_start = to_string(*x0);
+  string y_start = to_string(*y0);
+  string sizSlots = to_string(*slotsize);
 
   //Dropping parttable
   partTabName = getparttabname(tab,key);
@@ -660,7 +661,19 @@ string sizSlots = to_string(*slotsize);
                             , &y_start, &sizSlots, &partTabName);
   if (query_exec != "" && val) val = dbs_conn->sendCommand(&query_exec);
 
-return val;
-}
+  return val;
+} 
+
+/*
+3.21 ~getTypeFromSQLQuery~
+
+Get the SECONDO type for the given SQL query.
+
+*/
+ bool BasicEngine_Control::getTypeFromSQLQuery(std::string sqlQuery, 
+    ListExpr &resultList) {
+      
+   return dbs_conn->getTypeFromSQLQuery(sqlQuery, resultList);
+ }
 
 } /* namespace BasicEngine */

@@ -39,6 +39,7 @@ Version 1.0 - Created - C.Behrndt - 2020
 #include <string>
 #include <boost/algorithm/string.hpp>
 #include "libpq-fe.h"
+#include "StandardTypes.h"
 #include "ConnectionGeneric.h"
 
 
@@ -73,8 +74,8 @@ class ConnectionPG : public ConnectionGeneric {
         + ",'"+ dbname +"');";}
 
   std::string get_init(std::string* _dbname, std::string* _port)
-    {return "query be_init('pgsql'," + *_port + ",'"+ *_dbname +"');";}
 
+    {return "query be_init('pgsql'," + *_port + ",'"+ *_dbname +"');";}
   std::string get_drop_table(std::string* tab)
     {return "DROP TABLE IF EXISTS " + *tab + ";";}
 
@@ -99,9 +100,9 @@ class ConnectionPG : public ConnectionGeneric {
             std::string* x0, std::string* y0,
             std::string* size, std::string* targetTab);
 
-  std::string get_exportData(std::string* tab, std::string* join_tab
-            ,std::string* key,std::string* nr,std::string* path
-            ,long unsigned int* anzWorker);
+  std::string get_exportData(std::string* tab, std::string* join_tab,
+            std::string* key, std::string* nr, std::string* path,
+            long unsigned int* anzWorker);
 
   std::string get_copy(std::string* tab, std::string* full_path, bool* direct);
 
@@ -110,6 +111,8 @@ class ConnectionPG : public ConnectionGeneric {
 
   std::string get_createTab(std::string* tab, std::string* query)
     {return "CREATE TABLE " + *tab + " AS ("+ *query + ")";};
+
+  bool getTypeFromSQLQuery(std::string sqlQuery, ListExpr &resultList);
 
   private:
 

@@ -452,4 +452,20 @@ string ConnectionPG::get_partShare(string* tab, string* key, string* anzWorker){
     
   return query_exec;
 }
+
+/*
+6.16 ~getTypeFromSQLQuery~
+
+Get the SECONDO type of the given SQL query
+
+*/
+bool ConnectionPG::getTypeFromSQLQuery(std::string sqlQuery, 
+    ListExpr &resultList) {
+
+  // TODO: Replace by SQL query struct
+  nl->ReadFromString("(stream (tuple ((PLZ int) (Ort string))))", resultList);
+
+  return true;
+}
+
 }/* namespace BasicEngine */

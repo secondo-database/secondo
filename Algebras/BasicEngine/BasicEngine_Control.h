@@ -39,6 +39,7 @@ Version 1.0 - Created - C.Behrndt - 2020
 #include "Algebras/Relation-C++/RelationAlgebra.h"
 #include "BasicEngine_Thread.h"
 #include "ConnectionGeneric.h"
+#include "StandardTypes.h"
 
 namespace BasicEngine {
 
@@ -110,6 +111,8 @@ public:
   bool sendCommand(std::string query, bool print=true) {
     return dbs_conn->sendCommand(&query, print);
   }
+
+  bool getTypeFromSQLQuery(std::string sqlQuery, ListExpr &resultList);
 
 private:
 

@@ -80,6 +80,9 @@ class ConnectionGeneric {
 
     virtual std::string get_createTab(
         std::string* tab, std::string* query) = 0;
+
+    virtual bool getTypeFromSQLQuery(std::string sqlQuery, 
+         ListExpr &resultList) = 0;
 };
 
 

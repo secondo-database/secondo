@@ -1829,6 +1829,124 @@ Operator be_partGridOp(
   be_partGridTM
 );
 
+
+/*
+1.1.1 Type Mapping
+
+This operator has no paramter
+
+*/
+bool EvaluateTypeMappingExpr(string expression, string &result) {
+  
+  Word res; 
+  
+  if(! QueryProcessor::ExecuteQuery(expression,res) ){
+     result = "Could not evaluate expression";
+     return false;
+  }
+  
+  FText* fn = (FText*) res.addr;
+  
+  if(!fn->IsDefined()){
+     fn->DeleteIfAllowed();
+     result = "result of expression is undefined";
+     return false;
+  }
+  
+  result = fn->GetValue();
+  fn->DeleteIfAllowed();
+  fn = 0; 
+  res.setAddr(0);
+  
+  return true;
+}
+
+ListExpr be_collect_tm(ListExpr args) {
+  string err = "Expected text as parameter";
+
+  if(!(nl->HasLength(args,1))){
+    return listutils::typeError(err);
+  }
+
+  // arg evaluation is active
+  // this means each argument is a two elem list (type value)
+  ListExpr tmp = args;
+  while(!nl->IsEmpty(tmp)){
+    if(!nl->HasLength(nl->First(tmp),2)){
+       return listutils::typeError("expected (type value)");
+    }    
+    tmp = nl->Rest(tmp);
+  }
+
+  ListExpr query = nl->First(args);
+  if(!FText::checkType(nl->First(query)) ) {
+    return listutils::typeError(err);
+  }
+
+  // Evaluate query expression
+  string queryValue;  
+  string queryExpression = nl->ToString(nl->Second(query));
+  if(! EvaluateTypeMappingExpr(queryExpression, queryValue) ) {
+    return listutils::typeError(queryValue);
+  }
+
+  if(dbs_conn == NULL) {
+    return listutils::typeError("Basic engine is not connected. "
+      "Plase call be_init_worker() first.");
+  }
+
+  ListExpr resultType;
+  bool sqlResult = dbs_conn -> getTypeFromSQLQuery(queryValue, resultType);
+
+  if(!sqlResult) {
+     return listutils::typeError("Unable to evaluate"
+       "the given SQL query.");
+  }
+
+  //cout << "Result: " << nl->ToString(resultType) << endl;
+
+  return resultType;
+}
+
+/*
+1.1.2 Value Mapping
+
+*/
+int be_collect_vm(Word* args, Word& result, int message,
+        Word& local, Supplier s) {
+
+  result = qp->ResultStorage(s);
+
+  // TODO
+  return 0;
+}
+
+/*
+1.1.3 Specification
+
+*/
+OperatorSpec be_collect_spec (
+   "(text) --> stream(tuple(...))",
+   "be_collect(_)",
+   "Fetches the data from the used database into SECONDO",
+   "query be_collect('select * from cars') collect"
+);
+
+/*
+1.1.6 Definition of operator ~be\_collect~
+
+*/
+Operator be_collect_op (
+         "be_collect",              // name
+         be_collect_spec.getStr(),  // specification
+         be_collect_vm,             // value mapping
+         Operator::SimpleSelect,    // trivial selection function
+         be_collect_tm             // type mapping
+);
+
+
+
+
 /*
 1.15 Implementation of the Algebra
 
@@ -1854,8 +1972,13 @@ class BasicEngineAlgebra : public Algebra
     AddOperator(&be_structOp);
     AddOperator(&be_runsqlOp);
     AddOperator(&be_partGridOp);
+    AddOperator(&be_collect_op);
+    be_collect_op.SetUsesArgsInTypeMapping();
   }
-  ~BasicEngineAlgebra() {};
+
+  ~BasicEngineAlgebra() {
+
+  };
 };
 
 } // end of namespace BasicEngine
