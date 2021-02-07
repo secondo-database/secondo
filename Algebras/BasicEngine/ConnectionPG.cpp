@@ -2,7 +2,7 @@
 ----
 This file is part of SECONDO.
 
-Copyright (C) 2018,
+Copyright (C) 2021,
 Faculty of Mathematics and Computer Science,
 Database Systems for New Applications.
 
@@ -468,4 +468,20 @@ bool ConnectionPG::getTypeFromSQLQuery(std::string sqlQuery,
   return true;
 }
 
+
+/*
+6.16 ~performSQLQuery~
+
+Perform the given query and return a result iterator
+
+*/
+ResultIteratorGeneric* ConnectionPG::performSQLQuery(std::string sqlQuery) {
+
+  // TODO Implement
+  return NULL;
+}
+
+
 }/* namespace BasicEngine */
+
+

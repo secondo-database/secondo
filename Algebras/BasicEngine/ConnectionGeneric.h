@@ -2,7 +2,7 @@
 ----
 This file is part of SECONDO.
 
-Copyright (C) 2018,
+Copyright (C) 2021,
 Faculty of Mathematics and Computer Science,
 Database Systems for New Applications.
 
@@ -28,6 +28,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #define _CONNECTION_GENERIC_H_
 
 #include <string>
+#include "ResultIteratorGeneric.h"
 
 namespace BasicEngine {
 
@@ -83,6 +84,8 @@ class ConnectionGeneric {
 
     virtual bool getTypeFromSQLQuery(std::string sqlQuery, 
          ListExpr &resultList) = 0;
+
+    virtual ResultIteratorGeneric* performSQLQuery(std::string sqlQuery) = 0;
 };
 
 

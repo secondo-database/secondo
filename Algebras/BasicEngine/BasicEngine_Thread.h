@@ -2,7 +2,7 @@
 ----
 This file is part of SECONDO.
 
-Copyright (C) 2018,
+Copyright (C) 2021,
 Faculty of Mathematics and Computer Science,
 Database Systems for New Applications.
 
@@ -35,6 +35,7 @@ Version 1.0 - Created - C.Behrndt - 2020
 #include <boost/ref.hpp>
 #include <boost/algorithm/string.hpp>
 #include "Algebras/Distributed2/ConnectionInfo.h"
+#include "ConnectionGeneric.h"
 
 #ifndef _BasicEngine_Thread_H_
 #define _BasicEngine_Thread_H_

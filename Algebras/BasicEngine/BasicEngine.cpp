@@ -2,7 +2,7 @@
 ----
 This file is part of SECONDO.
 
-Copyright (C) 2018,
+Copyright (C) 2021,
 Faculty of Mathematics and Computer Science,
 Database Systems for New Applications.
 
@@ -1915,10 +1915,47 @@ ListExpr be_collect_tm(ListExpr args) {
 int be_collect_vm(Word* args, Word& result, int message,
         Word& local, Supplier s) {
 
-  result = qp->ResultStorage(s);
+  ResultIteratorGeneric* cli = (ResultIteratorGeneric*) local.addr;
+  string sqlQuery = ((FText*) args[0].addr)->GetValue();
 
-  // TODO
-  return 0;
+  switch(message) {
+    case OPEN: 
+
+      if (cli != NULL) {
+        delete cli;
+        cli = NULL;
+      }
+
+      cli = dbs_conn -> performSQLQuery(sqlQuery);
+      local.setAddr( cli );
+      return 0;
+
+    case REQUEST:
+      
+      // Operator not ready
+      if ( ! cli ) {
+        return CANCEL;
+      }
+      
+      // Fetch next tuple from database
+      if(cli->hasNextTuple()) {
+        result.addr = cli -> getNextTuple();
+        return YIELD;
+      } else {
+        return CANCEL;
+      }
+
+    case CLOSE:
+      if(cli) {
+        delete cli;
+        cli = NULL;
+        local.setAddr( cli );
+      }
+
+      return 0;
+  }
+  
+  return 0;    
 }
 
 /*

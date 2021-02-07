@@ -2,7 +2,7 @@
 ----
 This file is part of SECONDO.
 
-Copyright (C) 2018,
+Copyright (C) 2021,
 Faculty of Mathematics and Computer Science,
 Database Systems for New Applications.
 

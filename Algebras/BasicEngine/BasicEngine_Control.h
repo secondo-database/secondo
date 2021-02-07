@@ -2,7 +2,7 @@
 ----
 This file is part of SECONDO.
 
-Copyright (C) 2018,
+Copyright (C) 2021,
 Faculty of Mathematics and Computer Science,
 Database Systems for New Applications.
 
@@ -39,6 +39,7 @@ Version 1.0 - Created - C.Behrndt - 2020
 #include "Algebras/Relation-C++/RelationAlgebra.h"
 #include "BasicEngine_Thread.h"
 #include "ConnectionGeneric.h"
+#include "ResultIteratorGeneric.h"
 #include "StandardTypes.h"
 
 namespace BasicEngine {
@@ -113,6 +114,8 @@ public:
   }
 
   bool getTypeFromSQLQuery(std::string sqlQuery, ListExpr &resultList);
+
+  ResultIteratorGeneric* performSQLQuery(std::string sqlQuery);
 
 private:
 

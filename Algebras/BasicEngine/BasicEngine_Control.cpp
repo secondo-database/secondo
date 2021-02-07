@@ -2,7 +2,7 @@
 ----
 This file is part of SECONDO.
 
-Copyright (C) 2018,
+Copyright (C) 2021,
 Faculty of Mathematics and Computer Science,
 Database Systems for New Applications.
 
@@ -672,8 +672,21 @@ Get the SECONDO type for the given SQL query.
 */
  bool BasicEngine_Control::getTypeFromSQLQuery(std::string sqlQuery, 
     ListExpr &resultList) {
-      
+
    return dbs_conn->getTypeFromSQLQuery(sqlQuery, resultList);
+ }
+
+
+/*
+3.21 ~getTypeFromSQLQuery~
+
+Get the SECONDO type for the given SQL query.
+
+*/
+ ResultIteratorGeneric* BasicEngine_Control::performSQLQuery(
+   std::string sqlQuery) {
+
+   return dbs_conn->performSQLQuery(sqlQuery);
  }
 
 } /* namespace BasicEngine */
