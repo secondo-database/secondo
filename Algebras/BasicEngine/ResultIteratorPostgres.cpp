@@ -46,10 +46,17 @@ namespace BasicEngine {
         Tuple* result = basicTuple->Clone();
     
         for(size_t i = 0; i < instances.size(); i++) {
-            char* value = PQgetvalue(res, currentTuple, i);
+            
             Attribute* attr = instances[i]->Clone();
-            attr->ReadFromString(value);
-            attr->SetDefined(true);
+
+            if(PQgetisnull(res, currentTuple, i)) {
+                attr->SetDefined(false);
+            } else {
+                char* value = PQgetvalue(res, currentTuple, i);
+                attr->ReadFromString(value);
+                attr->SetDefined(true);
+            }
+
             result->PutAttribute(i, attr);
         }
 
