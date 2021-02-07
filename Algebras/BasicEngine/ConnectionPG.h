@@ -45,10 +45,14 @@ Version 1.0 - Created - C.Behrndt - 2020
 #include "Algebras/FText/FTextAlgebra.h"
 
 #include "ConnectionGeneric.h"
+#include "ResultIteratorPostgres.h"
 
 #include <string>
 #include <boost/algorithm/string.hpp>
-#include "libpq-fe.h"
+#include <bits/stdc++.h>
+#include <postgres.h>
+#include <libpq-fe.h>
+#include <catalog/pg_type.h>
 
 namespace BasicEngine {
 
@@ -120,6 +124,8 @@ class ConnectionPG : public ConnectionGeneric {
     {return "CREATE TABLE " + *tab + " AS ("+ *query + ")";};
 
   bool getTypeFromSQLQuery(std::string sqlQuery, ListExpr &resultList);
+
+  bool getTypeFromQuery(PGresult* res, ListExpr &resultList);
 
   ResultIteratorGeneric* performSQLQuery(std::string sqlQuery);
 

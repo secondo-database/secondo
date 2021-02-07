@@ -35,11 +35,6 @@ Version 1.0 - Created - C.Behrndt - 2020
 */
 #include "ConnectionPG.h"
 
-#include <bits/stdc++.h>
-#include <postgres.h>
-#include <libpq-fe.h>
-#include <catalog/pg_type.h>
-
 using namespace std;
 
 namespace BasicEngine {
@@ -457,34 +452,12 @@ string ConnectionPG::get_partShare(string* tab, string* key, string* anzWorker){
   return query_exec;
 }
 
-/*
-6.16 ~getTypeFromSQLQuery~
-
-Get the SECONDO type of the given SQL query
-
-*/
-bool ConnectionPG::getTypeFromSQLQuery(std::string sqlQuery, 
-    ListExpr &resultList) {
-
-  // Remove existing ";" at the query end, if exists
-  if(boost::algorithm::ends_with(sqlQuery, ";")) {
-    sqlQuery.pop_back();
-  }
-
-  // Limit query to 1 result tuple
-  string usedSQLQuery = sqlQuery + " LIMIT 1;";
-
-  if( ! checkConn()) {
-    return NULL;
-  }
-  
-  PGresult* res = PQexec(conn, usedSQLQuery.c_str());
-
-  if (!res || PQresultStatus(res) != PGRES_TUPLES_OK) {
-    cerr << "Unable to perform SQL query: " << usedSQLQuery 
+bool ConnectionPG::getTypeFromQuery(PGresult* res, ListExpr &resultList) {
+if (!res || PQresultStatus(res) != PGRES_TUPLES_OK) {
+    cerr << "Unable to fetch type from non tuple returning result"
          << endl << endl;
     PQclear(res);
-    return NULL;
+    return false;
   }
 
   int columns = PQnfields(res);
@@ -527,9 +500,10 @@ bool ConnectionPG::getTypeFromSQLQuery(std::string sqlQuery,
         break;
 
       default:
-          cout << "Error: Unknown column type: " 
+          cout << "Warning: Unknown column type: " 
                << attributeName << " / " << columnType 
-               << " will be mapped to FText" << endl;
+               << " will be mapped to FText" << endl
+               << endl;
           attributeType = FText::BasicType();
     }
 
@@ -547,8 +521,6 @@ bool ConnectionPG::getTypeFromSQLQuery(std::string sqlQuery,
     }
   }
 
-  PQclear(res);
-
   resultList = nl->TwoElemList(
              listutils::basicSymbol<Stream<Tuple> >(),
              nl->TwoElemList(
@@ -556,6 +528,43 @@ bool ConnectionPG::getTypeFromSQLQuery(std::string sqlQuery,
                   attrListBegin));
 
   return true;
+}
+
+
+/*
+6.16 ~getTypeFromSQLQuery~
+
+Get the SECONDO type of the given SQL query
+
+*/
+bool ConnectionPG::getTypeFromSQLQuery(std::string sqlQuery, 
+    ListExpr &resultList) {
+
+  string usedSQLQuery = sqlQuery;
+
+  string sqlQueryUpper = boost::to_upper_copy<std::string>(sqlQuery);
+
+  if(sqlQueryUpper.find("LIMIT") == std::string::npos) {
+    // Remove existing ";" at the query end, if exists
+    if(boost::algorithm::ends_with(sqlQuery, ";")) {
+      sqlQuery.pop_back();
+    }
+
+    // Limit query to 1 result tuple
+    string usedSQLQuery = sqlQuery + " LIMIT 1;";
+  }
+
+  if( ! checkConn()) {
+    return NULL;
+  }
+  
+  PGresult* res = PQexec(conn, usedSQLQuery.c_str());
+
+  bool result = getTypeFromQuery(res, resultList);
+
+  PQclear(res);
+
+  return result;
 }
 
 /*
@@ -566,18 +575,22 @@ Perform the given query and return a result iterator
 */
 ResultIteratorGeneric* ConnectionPG::performSQLQuery(std::string sqlQuery) {
 
-  /*
-  TupleType* tt = new TupleType( listExpr );
-  Tuple* resTuple = new Tuple(tt);
-  tt->DeleteIfAllowed();
-  resTuple->PutAttribute(0, new CcInt(true,conv));
-  resTuple->PutAttribute(1, new CcInt(true,errorCode));
-  resTuple->PutAttribute(2, new FText(true, result));
-  resTuple->PutAttribute(3, new CcReal(true,runtime));
+  if( ! checkConn()) {
+    cerr << "Error: Connection check failed in performSQLQuery()" << endl;
+    return NULL;
+  }
 
-  */
-  // TODO Implement
-  return NULL;
+  ListExpr resultList;
+  PGresult* res = PQexec(conn, sqlQuery.c_str());
+  bool result = getTypeFromQuery(res, resultList);
+
+  if(!result) {
+    cerr << "Error: Unable to get tuple type form query: " 
+         << sqlQuery << endl;
+    return NULL;
+  }
+
+  return new ResultIteratorPostgres(res, resultList);
 }
 
 

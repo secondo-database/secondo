@@ -25,47 +25,36 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 
-#ifndef _RESULT_ITERATOR_GENERIC_H_
-#define _RESULT_ITERATOR_GENERIC_H_
-
-#include "StandardTypes.h"
-#include "Algebras/Relation-C++/RelationAlgebra.h"
+#include "ResultIteratorPostgres.h"
 
 namespace BasicEngine {
 
-
 /*
-1 Class ~ResultIteratorGeneric~
-
-A database independend iterator for query results
+  1.1 Is a new tuple available in the iterator
 
 */
-   class ResultIteratorGeneric {
+    bool ResultIteratorPostgres::hasNextTuple() {
+        return currentTuple < totalTuples;
+    }
 
 /*
-  1.1 Public Methods
+  1.2 Return the next tuple from the iterator
 
 */
-       public:
-        
-        virtual ~ResultIteratorGeneric() {
+    Tuple* ResultIteratorPostgres::getNextTuple() {
 
+        Tuple* result = basicTuple->Clone();
+    
+        for(size_t i = 0; i < instances.size(); i++) {
+            char* value = PQgetvalue(res, currentTuple, i);
+            Attribute* attr = instances[i]->Clone();
+            attr->ReadFromString(value);
+            attr->SetDefined(true);
+            result->PutAttribute(i, attr);
         }
 
-/*
-  1.1.1 Returns whether or not a tuple is available
+        currentTuple++;
 
-*/
-        virtual bool hasNextTuple() = 0;
-
-/*
-  1.1.2 Get the next tuple
-
-*/
-        virtual Tuple* getNextTuple() = 0;
-
-   }; // Class
-
-}; // Namespace
-
-#endif
+        return result;
+    }
+}; // End namespace
