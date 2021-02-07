@@ -1900,7 +1900,7 @@ ListExpr be_collect_tm(ListExpr args) {
 
   if(!sqlResult) {
      return listutils::typeError("Unable to evaluate"
-       "the given SQL query.");
+       " the given SQL query.");
   }
 
   //cout << "Result: " << nl->ToString(resultType) << endl;

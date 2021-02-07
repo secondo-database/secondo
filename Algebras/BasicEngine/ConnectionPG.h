@@ -36,12 +36,19 @@ Version 1.0 - Created - C.Behrndt - 2020
 #ifndef _ConnectionPG_H_
 #define _ConnectionPG_H_
 
+#include "Attribute.h"
+#include "NestedList.h"
+#include "StandardTypes.h"
+#include "Algebra.h"
+#include "Stream.h"
+#include "Algebras/Relation-C++/OperatorConsume.h"
+#include "Algebras/FText/FTextAlgebra.h"
+
+#include "ConnectionGeneric.h"
+
 #include <string>
 #include <boost/algorithm/string.hpp>
 #include "libpq-fe.h"
-#include "StandardTypes.h"
-#include "ConnectionGeneric.h"
-
 
 namespace BasicEngine {
 

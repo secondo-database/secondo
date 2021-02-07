@@ -34,7 +34,11 @@ Version 1.0 - Created - C.Behrndt - 2020
 
 */
 #include "ConnectionPG.h"
+
 #include <bits/stdc++.h>
+#include <postgres.h>
+#include <libpq-fe.h>
+#include <catalog/pg_type.h>
 
 using namespace std;
 
@@ -462,12 +466,97 @@ Get the SECONDO type of the given SQL query
 bool ConnectionPG::getTypeFromSQLQuery(std::string sqlQuery, 
     ListExpr &resultList) {
 
-  // TODO: Replace by SQL query struct
-  nl->ReadFromString("(stream (tuple ((PLZ int) (Ort string))))", resultList);
+  // Remove existing ";" at the query end, if exists
+  if(boost::algorithm::ends_with(sqlQuery, ";")) {
+    sqlQuery.pop_back();
+  }
+
+  // Limit query to 1 result tuple
+  string usedSQLQuery = sqlQuery + " LIMIT 1;";
+
+  if( ! checkConn()) {
+    return NULL;
+  }
+  
+  PGresult* res = PQexec(conn, usedSQLQuery.c_str());
+
+  if (!res || PQresultStatus(res) != PGRES_TUPLES_OK) {
+    cerr << "Unable to perform SQL query: " << usedSQLQuery 
+         << endl << endl;
+    PQclear(res);
+    return NULL;
+  }
+
+  int columns = PQnfields(res);
+  
+  ListExpr attrList = nl->TheEmptyList();
+  ListExpr attrListBegin;
+
+  for(int i = 0; i < columns; i++) {
+
+    int columnType = PQftype(res, i);
+    string attributeName = string(PQfname(res, i));
+
+    // Ensure secondo is happy with the name
+    attributeName[0] = toupper(attributeName[0]);
+
+    ListExpr attribute;
+    string attributeType;
+
+    // Convert to SECONDO attribute type
+    switch(columnType) {
+      case BOOLOID:
+        attributeType = CcBool::BasicType();
+        break;
+
+      case CHAROID:
+      case TEXTOID:
+      case VARCHAROID:
+        attributeType = FText::BasicType();
+        break;
+
+      case INT2OID:
+      case INT4OID:
+      case INT8OID:
+        attributeType = CcInt::BasicType();
+        break;
+
+      case FLOAT4OID:
+      case FLOAT8OID:
+          attributeType = CcReal::BasicType();
+        break;
+
+      default:
+          cout << "Error: Unknown column type: " 
+               << attributeName << " / " << columnType 
+               << " will be mapped to FText" << endl;
+          attributeType = FText::BasicType();
+    }
+
+    // Attribute name and type
+    attribute = nl->TwoElemList(
+      nl->SymbolAtom(attributeName), 
+      nl->SymbolAtom(attributeType)
+    );
+    
+    if(nl->IsEmpty(attrList)) {
+      attrList = nl -> OneElemList(attribute);
+      attrListBegin = attrList;
+    } else {
+      attrList = nl -> Append(attrList, attribute);
+    }
+  }
+
+  PQclear(res);
+
+  resultList = nl->TwoElemList(
+             listutils::basicSymbol<Stream<Tuple> >(),
+             nl->TwoElemList(
+                 listutils::basicSymbol<Tuple>(),
+                  attrListBegin));
 
   return true;
 }
-
 
 /*
 6.16 ~performSQLQuery~
@@ -477,6 +566,16 @@ Perform the given query and return a result iterator
 */
 ResultIteratorGeneric* ConnectionPG::performSQLQuery(std::string sqlQuery) {
 
+  /*
+  TupleType* tt = new TupleType( listExpr );
+  Tuple* resTuple = new Tuple(tt);
+  tt->DeleteIfAllowed();
+  resTuple->PutAttribute(0, new CcInt(true,conv));
+  resTuple->PutAttribute(1, new CcInt(true,errorCode));
+  resTuple->PutAttribute(2, new FText(true, result));
+  resTuple->PutAttribute(3, new CcReal(true,runtime));
+
+  */
   // TODO Implement
   return NULL;
 }
