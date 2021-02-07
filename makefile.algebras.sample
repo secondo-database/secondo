@@ -712,6 +712,7 @@ ALGEBRAS     += JNetAlgebra
 #ALGEBRA_DIRS += BasicEngine
 #ALGEBRAS     += BasicEngineAlgebra
 #ALGEBRA_INCLUDE_DIRS += /usr/include/postgresql 
+#ALGEBRA_INCLUDE_DIRS += /usr/include/postgresql/10/server 
 #COMMON_LD_FLAGS += -lpq
 
 
