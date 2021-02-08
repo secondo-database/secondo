@@ -7,11 +7,17 @@ Signature: semantictrajectory x semantictrajectory x rectangle x real -> real
 Example  : query similarity(st1, st2, r1, 0.5)
 Result   : 0.83639
 
+Operator : makeuniquelistwords
+Number   : 1
+Signature: stream(tuple(a1 t1) ...(an tn) ) x ai -> uniquestringarray
+Example  : query stopwords feed makeuniquelistwords[Words]
+Result   : (uniquestringarray ("able" "about" "above") )
+
 Operator : makesemtraj
 Number   : 1
 Signature: stream(tuple(a1 t1) ...(an tn) ) x ai x aj x ak -> semantictrajectory
-Example  : query Raw feed sortby [TripId asc] groupby[TripId; DayTrip: group feed makesemtraj [Longitude, Latitude, Semantics]] consume
-Result   : test
+Example  : query Raw feed sortby [TripId asc] groupby[TripId; DayTrip: group feed makesemtraj [Longitude, Latitude, Semantics]] count;
+Result   : 4
 
 Operator : stbox
 Number   : 1
@@ -19,15 +25,20 @@ Signature: semantictrajectory -> rectangle
 Example  : query stbox(st2)
 Result   : (rect (1.4 4.5 8.6 10.5))
 
-Operator : makespatialsum
+Operator : makesummaries
 Number   : 1
-Signature: 1 x semantictrajectory x CellGrid2D -> semantictrajectory
-Example  : query makespatialsum(1, st1, grid)
-Result   : st4
+Signature: stream x 1 x semantictrajectory x CellGrid2D x attr x attr-> semantictrajectory
+Example  : query joinWordTrips feed replaceAttr[DayTrip: .WordList2 afeed makesummaries[.TripId2, .DayTrip, Grid, KeywordId, Cnt]]  project[TripId2, DayTrip] count
+Result   : 201
 
-
-Operator : makeuniquelistwords
+Operator : extractkeywords
 Number   : 1
-Signature: stream(tuple(a1 t1) ...(an tn) ) x ai -> uniquestringarray
-Example  : query stopwords feed makeuniquelistwords[Words]
-Result   : (uniquestringarray ("able" "about" "above") )
+Signature: semantictrajectory -> stream(string)
+Example  : query CTrips feed extendstream[Keyword: .DayTrip extractkeywords] project[Keyword] count
+Result   : 24942
+
+Operator : batches
+Number   : 1
+Signature: stream(tuple(x)) x ax1 x ax2 x real -> stream(tuple(x))
+Example  : query Node0Trips feed batches[DayTrip, BatchId, 0.07] count;
+Result   : 49
