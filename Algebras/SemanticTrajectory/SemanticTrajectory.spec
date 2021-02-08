@@ -19,6 +19,8 @@
 
 operator similarity alias SIMILARITY pattern op (_,_,_,_)
 operator makesemtraj alias MAKESEMTRAJ pattern _ op [_, _, _]
-operator stbox alias STBOX pattern op (_)
-operator makespatialsum alias MAKESPATIALSUM pattern op (_,_,_)
 operator makeuniquelistwords alias MAKEUNIQUELISTWORDS pattern _ op [_]
+operator stbox alias STBOX pattern op (_)
+operator makesummaries alias MAKESUMMARIES pattern _ op [_,_,_,_,_]
+operator extractkeywords alias extractkeywords pattern _ op
+operator batches alias BATCHES pattern _ op[_,_,_]
