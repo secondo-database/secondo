@@ -3639,8 +3639,6 @@ type name used in Secondo
   void moveTo(const datetime::DateTime& instant, 
               Mapping<Unit,Alpha>& result) const;
 
-
-
 /*
 3.10.7 Attributes
 
@@ -4312,6 +4310,17 @@ replaces them by one (usually short) unit.
                      const Geoid *geoid, MPoint &result) const;
 
 /*
+3.10.5.11 ~ForceToDuration~ function
+
+Force duration to the given value. This means, longer instances are truncated
+and shorter ones are extended (by a constant unit having the same value as its
+precursor). Temporal gaps are also filled by such constant units.
+
+*/
+void ForceToDuration(const datetime::DateTime& duration, MPoint& result,
+                     const Geoid* geoid = 0) const;
+                     
+/*
 3.10.5.12 Functions ~serialize~ and ~deserialize~
 
 Required for usage in M-tree.
@@ -4853,6 +4862,17 @@ geometry is used, otherwise spherical geometry is applied.
   void RestoreBoundingBox(const bool force, const Geoid* geoid = 0);
   
   void GetRadii(MReal& result) const;
+  
+/*
+3.10.5.11 ~ForceToDuration~ function
+
+Force duration to the given value. This means, longer instances are truncated
+and shorter ones are extended (by a constant unit having the same value as its
+precursor). Temporal gaps are also filled by such constant units.
+
+*/
+void ForceToDuration(const datetime::DateTime& duration, CMPoint& result,
+                     const Geoid* geoid = 0) const;
 
   static const std::string BasicType() {return "cmpoint";}
   
@@ -7894,9 +7914,6 @@ void Mapping<Unit,Alpha>::moveTo(const datetime::DateTime& instant,
   datetime::DateTime dur = instant - unit.timeInterval.start;
   timeMove(dur, result);
 }
-
-
-
 
 
 /*
