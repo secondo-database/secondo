@@ -1,0 +1,22 @@
+Sequential : No
+Database   : berlintest
+Restore    : No
+
+Operator  : genTransactions
+Number    : 1
+Signature : int int int int int -> stream(intset)
+Example   : query genTransactions(10000, 5, 2, 2000, 1000) count
+Result    : 10000
+
+Operator  : genTransactions
+Number    : 2
+Signature : int int int int int -> stream(intset)
+Example   : query genTransactions(10000, 5, 2, 2000, 1000) filter[size(.) = 0] count
+Result    : 0
+
+Operator  : genTransactions
+Number    : 3
+Signature : int int int int int -> stream(intset)
+Example   : query genTransactions(10000, 5, 2, 2000, 1000) use[size(.)] avgattr
+Result    : 5.0
+Tolerance : 0.1

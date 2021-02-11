@@ -1,0 +1,1 @@
+operator genTransaction alias GENTRANSACTION pattern op(_, _, _, _, _)
