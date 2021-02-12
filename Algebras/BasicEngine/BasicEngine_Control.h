@@ -96,7 +96,7 @@ public:
   }
 
   bool createTab(std::string tab, std::string query) {
-     return sendCommand(dbs_conn->get_createTab(&tab, &query));
+     return sendCommand(dbs_conn->getCreateTabSQL(&tab, &query));
   }
 
   bool munion(std::string tab);

@@ -178,7 +178,7 @@ string ConnectionPG::get_partRoundRobin(string* tab, string* key
   string select = "SELECT (nextval('temp_seq') %" + *anzSlots+ ""
     " ) + 1 As slot," + *key +" FROM "+ *tab;
 return "CREATE TEMP SEQUENCE IF NOT EXISTS temp_seq;"
-    + get_createTab(targetTab,&select);
+    + getCreateTabSQL(targetTab,&select);
 }
 
 /*
@@ -198,7 +198,7 @@ string ConnectionPG::get_partHash(string* tab, string* key
         " " + *anzSlots + " ) + 1 As slot,"
         "" + *key +" FROM "+ *tab;
 
-  return get_createTab(targetTab,&select);
+  return getCreateTabSQL(targetTab,&select);
 }
 
 /*
@@ -311,7 +311,7 @@ string query = "";
         "Available functions are: RR, Hash, share and random." << endl;
   }
 
-  if(select != "") query = get_createTab(targetTab,&select);
+  if(select != "") query = getCreateTabSQL(targetTab,&select);
 
 return query;
 }
@@ -426,7 +426,7 @@ string gridCol = "geom";
                "FROM " + gridTable + " g INNER JOIN "+ *tab + " r "
                      "ON ST_INTERSECTS(g.geom,r."+ *geo_col +")";
 
-return get_createTab(targetTab,&query_exec);
+return getCreateTabSQL(targetTab,&query_exec);
 }
 
 /*

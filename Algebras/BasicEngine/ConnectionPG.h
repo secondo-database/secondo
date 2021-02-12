@@ -117,11 +117,13 @@ class ConnectionPG : public ConnectionGeneric {
 
   std::string get_copy(std::string* tab, std::string* full_path, bool* direct);
 
-  std::string get_partFileName(std::string* tab, std::string* number)
-    {return *tab + "_" + *number +".bin";};
+  std::string get_partFileName(std::string* tab, std::string* number) {
+    return *tab + "_" + *number +".bin";
+  }
 
-  std::string get_createTab(std::string* tab, std::string* query)
-    {return "CREATE TABLE " + *tab + " AS ("+ *query + ")";};
+  std::string getCreateTabSQL(std::string* tab, std::string* query) {
+    return "CREATE TABLE " + *tab + " AS ("+ *query + ")";
+  }
 
   bool getTypeFromSQLQuery(std::string sqlQuery, ListExpr &resultList);
 

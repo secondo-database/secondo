@@ -79,7 +79,7 @@ class ConnectionGeneric {
     virtual std::string get_partFileName(
         std::string* tab, std::string* number) = 0;
 
-    virtual std::string get_createTab(
+    virtual std::string getCreateTabSQL(
         std::string* tab, std::string* query) = 0;
 
     virtual bool getTypeFromSQLQuery(std::string sqlQuery, 

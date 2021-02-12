@@ -394,12 +394,15 @@ bool BasicEngine_Control::exportData(string* tab, string* key,
   string strindex;
   long unsigned int i;
 
-  for(i=1;i<=anzWorker;i++){
+  for(i=1;i<=anzWorker;i++) {
     strindex = to_string(i);
-    val = sendCommand(dbs_conn->get_exportData(tab
-          ,&parttabname, key,&strindex,&path,slotnum)) && val;
+
+    string exportDataSQL = dbs_conn->get_exportData(tab,
+          &parttabname, key, &strindex, &path, slotnum);
+        
+    val = sendCommand(exportDataSQL) && val;
   }
-  
+
   return val;
 }
 
@@ -430,7 +433,11 @@ bool BasicEngine_Control::importData(string *tab) {
   cmd = strStream.str();
 
   val = dbs_conn->sendCommand(&cmd) && val;
-  if(!val) return val;
+  
+  if(!val) {
+    return val;
+  }
+
   FileSystem::DeleteFileOrFolder(full_path);
 
   //import data (local files from worker)
@@ -440,7 +447,8 @@ bool BasicEngine_Control::importData(string *tab) {
     val = copy(full_path,*tab,true) && val;
     FileSystem::DeleteFileOrFolder(full_path);
   }
-return val;
+
+  return val;
 }
 
 /*
@@ -523,7 +531,9 @@ bool BasicEngine_Control::munion(string tab) {
   }
 
   //import in local PG-Master
-  if(val) val = importData(&tab);
+  if(val) {
+    val = importData(&tab);
+  }
 
   return val;
 }
