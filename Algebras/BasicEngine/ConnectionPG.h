@@ -113,7 +113,7 @@ class ConnectionPG : public ConnectionGeneric {
 
   std::string get_exportData(std::string* tab, std::string* join_tab,
             std::string* key, std::string* nr, std::string* path,
-            long unsigned int* anzWorker);
+            long unsigned int* numberOfWorker);
 
   std::string get_copy(std::string* tab, std::string* full_path, bool* direct);
 
@@ -174,16 +174,16 @@ class ConnectionPG : public ConnectionGeneric {
   PGresult* sendQuery(std::string* query);
 
   bool createFunctionRandom(std::string* tab, std::string* key
-            , std::string* anzWorker, std::string* select);
+            , std::string* numberOfWorker, std::string* select);
 
   bool createFunctionDDRandom(std::string* tab, std::string* key
-            , std::string* anzWorker, std::string* select);
+            , std::string* numberOfWorker, std::string* select);
 
   void getFieldInfoFunction(std::string* tab, std::string* key
             ,std::string* fields,std::string* valueMap,std::string* select);
 
   std::string get_partShare(std::string* tab, std::string* key, 
-              std::string* anzWorker);
+              std::string* numberOfWorker);
 
   std::string getjoin(std::string* key);
 };

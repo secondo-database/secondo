@@ -61,7 +61,7 @@ public:
   BasicEngine_Control(ConnectionGeneric* _dbs_conn) {
     dbs_conn = _dbs_conn;
     worker = NULL;
-    anzWorker = 0;
+    numberOfWorker = 0;
   };
 
   BasicEngine_Control(ConnectionGeneric* _dbs_conn, 
@@ -69,7 +69,7 @@ public:
 
     dbs_conn = _dbs_conn;
     worker = _worker->Clone();
-    anzWorker = worker->GetNoTuples();
+    numberOfWorker = worker->GetNoTuples();
     createAllConnection();
   };
 
@@ -140,12 +140,12 @@ worker connection like port, connection-file, ip
 Relation* worker;
 
 /*
-2.2.3 ~vec\_ci~
+2.2.3 ~connections~
 
 In this vector all connection to the worker are stored.
 
 */
-std::vector<distributed2::ConnectionInfo*> vec_ci;
+std::vector<distributed2::ConnectionInfo*> connections;
 
 /*
 2.2.4 ~importer~
@@ -157,12 +157,12 @@ are stored.
 std::vector<BasicEngine_Thread*> importer;
 
 /*
-2.2.4 ~anzWorker~
+2.2.4 ~numberOfWorker~
 
-The anzWorker counts the number of worker.
+The numberOfWorker counts the number of worker.
 
 */
-long unsigned int anzWorker;
+long unsigned int numberOfWorker;
 
 /*
 2.3 Private Methods

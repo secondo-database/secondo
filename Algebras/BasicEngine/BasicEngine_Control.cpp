@@ -84,7 +84,7 @@ bool BasicEngine_Control::createConnection(size_t index) {
     ConnectionInfo* ci = new ConnectionInfo(
           host, stoi(port), config, si, mynl, 0, defaultTimeout);
 
-    vec_ci.push_back(ci);
+    connections.push_back(ci);
     BasicEngine_Thread* basicEngineThread = new BasicEngine_Thread(ci);
     importer.push_back(basicEngineThread);
 
@@ -135,10 +135,10 @@ BasicEngine_Control::~BasicEngine_Control() {
     importer.clear();
 
     // Delete connections
-    for(const distributed2::ConnectionInfo* connection: vec_ci) {
+    for(const distributed2::ConnectionInfo* connection: connections) {
       delete connection;
     }
-    vec_ci.clear();
+    connections.clear();
 
     // Delete cloned worker relation
     if(worker != NULL) {
@@ -154,15 +154,21 @@ Creating all connection from the worker relation.
 
 */
 bool BasicEngine_Control::createAllConnection(){
-  bool val = true;
-  long unsigned int i = 0;
 
-  while (i < anzWorker and val){
-    val = createConnection(i);
-    i++;
+  for(size_t i = 0; i < numberOfWorker; i++) {
+
+    bool connectionResult = createConnection(i);
+    
+    if(! connectionResult) {
+      cout << endl 
+           << "Error: Unable to establish connection to worker: "
+           << i << endl << endl;
+
+      return false;
+    }
   }
 
-  return val;
+  return true;
 }
 
 /*
@@ -253,24 +259,26 @@ bool BasicEngine_Control::exportToWorker(string *tab){
 
   bool val = true;
   string query_exec;
-  long unsigned int index = 0;
-  string remoteName;
-  string localName;
   string importPath;
-  string strindex;
   SecondoInterfaceCS* si ;
 
   string remoteCreateName = createTabFileName(tab);
   string localCreateName = getFilePath() + remoteCreateName;
 
-  while(index < anzWorker and val){
-    if (vec_ci[index]){
-      si = vec_ci[index]->getInterface();
+  for(size_t index; index < numberOfWorker; index++){
+
+    if (! connections[index]) {
+      cout << endl << "Error: connection " << index 
+        << " does not exists " << endl << endl;
+      return false;
+    } else {
+      si = connections[index]->getInterface();
 
       //sending data
-      strindex = to_string(index+1);
-      remoteName = get_partFileName(tab,&strindex);
-      localName = getFilePath() + remoteName;
+      string strindex = to_string(index+1);
+      string remoteName = get_partFileName(tab,&strindex);
+      string localName = getFilePath() + remoteName;
+
       val = (si->sendFile(localName, remoteName, true) == 0);
       val = (remove(localName.c_str()) == 0) && val;
 
@@ -281,27 +289,21 @@ bool BasicEngine_Control::exportToWorker(string *tab){
 
       //sending create Table
       val = (si->sendFile(localCreateName, remoteCreateName, true) == 0);
+
       if (!val) {
         cout << "\n Couldn't send the structure-file "
             "to the worker." << endl;
         return val;
       }
-
-      index++;
-    } else {
-        createConnection(index);
-        if(!vec_ci[index]) {
-          val = false;
-        }
-    }
+    } 
   }
 
   if(val){
     val = (remove(localCreateName.c_str()) == 0);
     //doing the import with one thread for each worker
     for(size_t i=0;i<importer.size();i++){
-      strindex = to_string(i+1);
-      remoteName =get_partFileName(tab,&strindex);
+      string strindex = to_string(i+1);
+      string remoteName =get_partFileName(tab,&strindex);
       importer[i]->startImport(*tab,remoteCreateName,remoteName);
     }
 
@@ -369,7 +371,7 @@ bool BasicEngine_Control::partFun(string* tab,
   drop_table(partTabName);
 
   if (boost::iequals(*fun, "share")){
-    anzSlots = to_string(anzWorker);
+    anzSlots = to_string(numberOfWorker);
   } else {
     anzSlots = to_string(*slotnum);
   }
@@ -400,7 +402,7 @@ bool BasicEngine_Control::exportData(string* tab, string* key,
   string strindex;
   long unsigned int i;
 
-  for(i=1;i<=anzWorker;i++) {
+  for(i=1;i<=numberOfWorker;i++) {
     strindex = to_string(i);
 
     string exportDataSQL = dbs_conn->get_exportData(tab,
@@ -447,7 +449,7 @@ bool BasicEngine_Control::importData(string *tab) {
   FileSystem::DeleteFileOrFolder(full_path);
 
   //import data (local files from worker)
-  for(i=1;i<=anzWorker;i++){
+  for(i=1;i<=numberOfWorker;i++){
     strindex = to_string(i);
     full_path = getFilePath() + get_partFileName(tab, &strindex);
     val = copy(full_path,*tab,true) && val;
@@ -486,7 +488,7 @@ bool BasicEngine_Control::partTable(string tab, string key, string art,
     return val;
   }
 
-  val = exportData(&tab, &key, &anzWorker);
+  val = exportData(&tab, &key, &numberOfWorker);
 
   if(!val) {
     cout << "\n Couldn't export the data from the table." << endl;
@@ -627,9 +629,9 @@ const int defaultTimeout = 0;
 CommandLog CommandLog;
 
   //checking connection to the worker
-  if (vec_ci.size() == anzWorker) {
-    while (i < anzWorker and val and anzWorker > 0) {
-      val = vec_ci[i]->check(false,CommandLog,defaultTimeout);
+  if (connections.size() == numberOfWorker) {
+    while (i < numberOfWorker and val and numberOfWorker > 0) {
+      val = connections[i]->check(false,CommandLog,defaultTimeout);
       i++;
     }
      //checking the connection to the secondary dbms system

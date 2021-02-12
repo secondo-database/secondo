@@ -328,11 +328,11 @@ Creating a statement for exporting the data from a portioning table.
 */
 string ConnectionPG::get_exportData(string* tab, string* join_tab,
                   string* key, string* nr, string* path,
-                  long unsigned int* anzWorker) {
+                  long unsigned int* numberOfWorker) {
   
   return "COPY (SELECT a.* FROM "+ *tab +" a INNER JOIN " + *join_tab  + " b "
             "" + getjoin(key) + " WHERE ((slot % "
-            ""+ to_string(*anzWorker)+") "
+            ""+ to_string(*numberOfWorker)+") "
             "+1) =" + *nr+ ") TO "
             "'" + *path + *tab + "_" + *nr +".bin' BINARY;";
 }
@@ -443,14 +443,16 @@ return getCreateTabSQL(targetTab,&query_exec);
 Creates a table in postgreSQL with all date to all worker,
 
 */
-string ConnectionPG::get_partShare(string* tab, string* key, string* anzWorker){
+string ConnectionPG::get_partShare(string* tab, string* key, 
+    string* numberOfWorker){
+      
   string query_exec;
   string worker = "SELECT 1 as slot";
 
   string usedKey(*key);
   boost::replace_all(usedKey, ",", ",r.");
 
-  for(int i=2;i<=stoi(*anzWorker);i++) {
+  for(int i=2;i<=stoi(*numberOfWorker);i++) {
     worker = worker + " UNION SELECT " + to_string(i) + " as slot";
   }
 
