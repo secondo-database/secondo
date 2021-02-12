@@ -4049,9 +4049,10 @@ If invalid geographic coordinates are found, the result is UNDEFINED.
 */
   void Distance( const Point& p, MReal& result,
                  const Geoid* geoid=0 ) const;
-  void DistanceAvg(const MPoint& mp, CcReal& result, 
-                   const Geoid* geoid=0) const;
-  double DistanceAvg(const MPoint& mp, const Geoid* geoid = 0) const;
+  void DistanceAvg(const MPoint& mp, const datetime::DateTime& duration,
+                   CcReal& result, const Geoid* geoid=0) const;
+  double DistanceAvg(const MPoint& mp, const datetime::DateTime& duration,
+                     const Geoid* geoid = 0) const;
   void SquaredDistance( const Point& p, MReal& result,
                         const Geoid* geoid=0 ) const;
   void SquaredDistance( const MPoint& p, MReal& result,
@@ -4317,8 +4318,8 @@ and shorter ones are extended (by a constant unit having the same value as its
 precursor). Temporal gaps are also filled by such constant units.
 
 */
-void ForceToDuration(const datetime::DateTime& duration, MPoint& result,
-                     const Geoid* geoid = 0) const;
+void ForceToDuration(const datetime::DateTime& duration, 
+         bool startAtBeginOfTime, MPoint& result, const Geoid* geoid = 0) const;
                      
 /*
 3.10.5.12 Functions ~serialize~ and ~deserialize~

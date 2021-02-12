@@ -686,6 +686,12 @@ Signature : mpoint x real x real [x geoid] -> mpoint
 Example   : query no_components(train7) = no_components(train7 removeNoise[10.0, 20.0])
 Result    : FALSE
 
+Operator  : forceToDuration
+Number    : 1
+Signature : mpoint x duration x bool [x geoid] -> mpoint
+Example   : query no_components(forceToDuration(train7, create_duration(0,60000), TRUE))
+Result    : 7
+
 Operator  : atRect
 Number    : 1
 Signature : mpoint x rect -> mpoint
@@ -787,9 +793,9 @@ Result    : (mpoint ( ( ("2003-11-20-06:03" "2003-11-20-06:43" TRUE FALSE) (9396
 
 Operator  : distanceAvg
 Number    : 1
-Signature : mpoint x mpoint (x geoid) -> real
+Signature : mpoint x mpoint (x duration) (x geoid) -> real
 Example   : query distanceAvg(train5, train6)
-Result    : 17030.94986023
+Result    : 12445.28024142
 
 Operator  : distanceAvgLB
 Number    : 1

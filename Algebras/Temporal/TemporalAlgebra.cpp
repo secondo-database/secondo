@@ -5263,17 +5263,18 @@ void MPoint::Distance( const Point& p, MReal& result, const Geoid* geoid ) const
   result.EndBulkLoad( false, false );
 }
 
-void MPoint::DistanceAvg(const MPoint& mp, CcReal& result,
-                         const Geoid* geoid /* = 0 */) const {
+void MPoint::DistanceAvg(const MPoint& mp, const datetime::DateTime& duration,
+                         CcReal& result, const Geoid* geoid /* = 0 */) const {
   if (!IsDefined() || !mp.IsDefined() || (geoid && !geoid->IsDefined())) {
     result.SetDefined(false);
     return;
   }
-  result.Set(true, roundToNPlaces(this->DistanceAvg(mp, geoid), 8));
+  result.Set(true, roundToNPlaces(this->DistanceAvg(mp, duration, geoid), 8));
 }                                                                           
 
-double MPoint::DistanceAvg(const MPoint& mp, const Geoid* geoid /* = 0 */)
-                                                                         const {
+double MPoint::DistanceAvg(const MPoint& mp, const datetime::DateTime& duration,
+                           const Geoid* geoid /* = 0 */) const {
+  assert(duration.GetType() == datetime::durationtype);
   if (!IsDefined() || !mp.IsDefined() || (geoid && !geoid->IsDefined())) {
     return -1.0;
   }
@@ -5283,31 +5284,26 @@ double MPoint::DistanceAvg(const MPoint& mp, const Geoid* geoid /* = 0 */)
   if (IsEmpty() || mp.IsEmpty()) {
     return DBL_MAX;
   }
-  Instant start1(datetime::instanttype), start2(datetime::instanttype);
-  //   cout << "THIS: " << *this << endl << "ARG: " << mp << endl;
-  InitialInstant(start1);
-  mp.InitialInstant(start2);
-  MPoint shiftThis(true), arg(mp);
-  timeMove(start2 - start1, shiftThis);
-  if (shiftThis == arg) {
-    return 0.0;
+  
+//   Instant start1(datetime::instanttype), start2(datetime::instanttype);
+//   InitialInstant(start1);
+//   mp.InitialInstant(start2);
+  MPoint mp1(true), mp2(true);
+//   timeMove(start2 - start1, shiftThis);
+//   cout << *this << endl << mp << endl;
+  ForceToDuration(duration, true, mp1, geoid);
+  mp.ForceToDuration(duration, true, mp2, geoid);
+//   cout << "AFTER FTD: " << endl << mp1 << endl << mp2 << endl;
+  if (mp1.Compare(&mp2) == -1) {
+    std::swap(mp1, mp2);
   }
-  double duration(0.0), sum(0.0), integralValue(0.0);
+  double durTemp(0.0), sum(0.0), integralValue(0.0);
   // extend shorter mpoint with constant unit
   UPoint lastUnit(true), u1(true), u2(true), u1cut(true), u2cut(true);
-  Periods per1(true), per2(true);
-  shiftThis.DefTime(per1);
-  arg.DefTime(per2);
-  datetime::DateTime durMax(0, 3600000, datetime::durationtype);
-  MPoint dummy(true);
-  shiftThis.ForceToDuration(durMax, dummy);
-  std::swap(dummy, shiftThis);
-  arg.ForceToDuration(durMax, dummy);
-  std::swap(dummy, arg);
-  RefinementPartition<MPoint, MPoint, UPoint, UPoint> rp(shiftThis, arg);
-  Interval<Instant> iv;
+  RefinementPartition<MPoint, MPoint, UPoint, UPoint> rp(mp1, mp2);
   int u1Pos, u2Pos;  
   UReal ur(true);
+  Interval<Instant> iv;
   for (unsigned int i = 0; i < rp.Size(); i++) {
     rp.Get(i, iv, u1Pos, u2Pos);
     if (u1Pos == -1 && u2Pos == -1) {
@@ -5315,59 +5311,58 @@ double MPoint::DistanceAvg(const MPoint& mp, const Geoid* geoid /* = 0 */)
       continue;
     }
     else if (u1Pos == -1) {
-      arg.Get(u2Pos, u2);
+      mp2.Get(u2Pos, u2);
       u2.AtInterval(iv, u2cut, geoid);
       u1cut.timeInterval = u2cut.timeInterval;
       u1cut.p0 = u1cut.p1; // use constant unit with same time interval as u2
     }
     else if (u2Pos == -1) {
-      shiftThis.Get(u1Pos, u1);
+      mp1.Get(u1Pos, u1);
       u1.AtInterval(iv, u1cut, geoid);
       u2cut.timeInterval = u1cut.timeInterval;
       u2cut.p0 = u2cut.p1; // use constant unit with same time interval as u1
     }
     else {
-      shiftThis.Get(u1Pos, u1);
+      mp1.Get(u1Pos, u1);
       u1.AtInterval(iv, u1cut, geoid);
-      arg.Get(u2Pos, u2);
+      mp2.Get(u2Pos, u2);
       u2.AtInterval(iv, u2cut, geoid);
     }
-    if (u1cut.IsDefined() && u2cut.IsDefined()) {
-      duration += (iv.end - iv.start).ToDouble();
-      if (geoid) {
-        ur.timeInterval = u1cut.timeInterval;
-        ur.Recompute(u1cut, u2cut, geoid);
-      }
-      else {
-        u1cut.Distance(u2cut, ur);
-//         ur.r = true;
-      }
-      if (!ur.IsDefined()) {
-        std::cerr << __PRETTY_FUNCTION__ << "Invalid geographic coord!" << endl;
-        return -1.0;
-      }
-      integralValue = ur.Integrate();
-      if (isnan(integralValue) || integralValue < 0.0) {
-        integralValue = 0.0;
-      }
-      sum += integralValue;
-//       cout << "added value " << integralValue << " from " << ur << endl;
+    assert(u1cut.IsDefined() && u2cut.IsDefined());
+    durTemp += (iv.end - iv.start).ToDouble();
+    if (geoid) {
+      ur.timeInterval = u1cut.timeInterval;
+      ur.Recompute(u1cut, u2cut, geoid);
     }
     else {
-      assert(false);
+      u1cut.Distance(u2cut, ur);
     }
+    if (!ur.IsDefined()) {
+      std::cerr << __PRETTY_FUNCTION__ << "Invalid geographic coord!" << endl;
+      return -1.0;
+    }
+    integralValue = ur.Integrate();
+    if (isnan(integralValue)) {
+      integralValue = (u1cut.p0.Distance(u2cut.p0, geoid) +
+                        u1cut.p1.Distance(u2cut.p1, geoid)) / 2 *
+                      (iv.end - iv.start).ToDouble();
+    }
+    if (integralValue < 0.0) {
+      integralValue = 0.0;
+    }
+    sum += integralValue;
+//       cout << "added value " << integralValue << " from " << ur << endl;
   }
   DateTime dur(datetime::durationtype);
-  dur.ReadFrom(duration);
+  dur.ReadFrom(durTemp);
 //   if (dur < durMax) {
 //     cout << shiftThis << endl << arg << endl;
 //   }
 //   cout << "MPoint::DistanceAvg, integral SUM is " << sum << ", DURATION is "
 //        << dur << endl << endl << endl;
-  shiftThis.Destroy();
-  arg.Destroy();
-  dummy.Destroy();
-  return sum / duration;
+  mp1.Destroy();
+  mp2.Destroy();
+  return sum / durTemp;
 }
 
 void MPoint::SquaredDistance( const Point& p, MReal& result,
@@ -5643,8 +5638,9 @@ void MPoint::removeNoise(const double maxspeed, const double maxdist,
   }
 }
 
-void MPoint::ForceToDuration(const datetime::DateTime& duration, 
-                             MPoint& result, const Geoid* geoid /*=0*/) const {
+void MPoint::ForceToDuration(const DateTime& duration, 
+                             const bool startAtBeginOfTime, MPoint& result, 
+                             const Geoid* geoid /*=0*/) const {
   assert(duration.GetType() == datetime::durationtype);
   result.Clear();
   if (!IsDefined()) {
@@ -5655,7 +5651,10 @@ void MPoint::ForceToDuration(const datetime::DateTime& duration,
   if (IsEmpty()) {
     return;
   }
-  datetime::DateTime durTemp(0, 0, datetime::durationtype);
+  Instant firstInstant(0.0), beginOfTime(0.0);
+  InitialInstant(firstInstant);
+  DateTime diffToBeginOfTime = firstInstant - beginOfTime;
+  DateTime durTemp(0, 0, datetime::durationtype);
   int i = 0;
   UPoint unit(true), unit2(true), unit3(true);
   Interval<Instant> iv;
@@ -5667,25 +5666,41 @@ void MPoint::ForceToDuration(const datetime::DateTime& duration,
                                                !iv.rc, !unit.timeInterval.lc);
         unit2.p0 = unit2.p1;
         durTemp += (unit2.timeInterval.end - unit2.timeInterval.start);
-        if (durTemp >= duration) {
+        if (durTemp >= duration) { // prune current unit and finish
           iv = unit2.timeInterval;
           unit2.AtInterval(Interval<Instant>(iv.start,
                     iv.end - (durTemp - duration), iv.lc, iv.rc), unit3, geoid);
+          if (startAtBeginOfTime) {
+            unit3.timeInterval.start -= diffToBeginOfTime;
+            unit3.timeInterval.end -= diffToBeginOfTime;
+          }
           result.Add(unit3);
           return;
+        }
+        if (startAtBeginOfTime) {
+          unit2.timeInterval.start -= diffToBeginOfTime;
+          unit2.timeInterval.end -= diffToBeginOfTime;
         }
         result.Add(unit2);
       }
     }
     iv = unit.timeInterval;
     durTemp += (iv.end - iv.start);
-    if (durTemp >= duration) { // truncate current unit and finish
+    if (durTemp >= duration) { // prune current unit and finish
       unit.AtInterval(Interval<Instant>(iv.start, iv.end - (durTemp - duration),
                                         iv.lc, iv.rc), unit2, geoid);
+      if (startAtBeginOfTime) {
+        unit2.timeInterval.start -= diffToBeginOfTime;
+        unit2.timeInterval.end -= diffToBeginOfTime;
+      }
       result.Add(unit2);
       return;
     }
     else {
+      if (startAtBeginOfTime) {
+        unit.timeInterval.start -= diffToBeginOfTime;
+        unit.timeInterval.end -= diffToBeginOfTime;
+      }
       result.Add(unit);
     }
     unit2 = unit;
@@ -5694,7 +5709,13 @@ void MPoint::ForceToDuration(const datetime::DateTime& duration,
   if (durTemp < duration) { // add constant unit at the end
     unit.timeInterval = Interval<Instant>(iv.end, iv.end + (duration - durTemp),
                                           !iv.rc, iv.rc);
-    unit.p0 = unit.p1;
+    Rectangle<2> bbox = BoundingBoxSpatial();
+    unit.p0.Set(true, bbox.MidD(0), bbox.MidD(1));
+    unit.p1 = unit.p0;
+    if (startAtBeginOfTime) {
+      unit.timeInterval.start -= diffToBeginOfTime;
+      unit.timeInterval.end -= diffToBeginOfTime;
+    }
     result.Add(unit);
   }
 }
@@ -12842,16 +12863,26 @@ This type mapping is applied by the ~distanceAvg~ operator.
 
 */
 ListExpr DistanceAvgTypeMap(ListExpr args) {
-  if (!nl->HasLength(args, 2) && !nl->HasLength(args, 3)) {
-    return listutils::typeError("two or three arguments expected");
+  if (!nl->HasLength(args, 2) && !nl->HasLength(args, 3) &&
+      !nl->HasLength(args, 4)) {
+    return listutils::typeError("two, three, or four arguments expected");
   }
   if (!MPoint::checkType(nl->First(args)) 
    || !MPoint::checkType(nl->Second(args))) {
-    return listutils::typeError("both arguments must have type mpoint");
+    return listutils::typeError("first two arguments must have type mpoint");
+  }
+  if (nl->HasLength(args, 4)) {
+    if (!Duration::checkType(nl->Third(args))) {
+      return listutils::typeError("third arg must be a duration");
+    }
+    if (!Geoid::checkType(nl->Fourth(args))) {
+      return listutils::typeError("fourth arg must be a geoid");
+    }
   }
   if (nl->HasLength(args, 3)) {
-    if (!Geoid::checkType(nl->Third(args))) {
-      return listutils::typeError("third arg must be a geoid");
+    if (!Geoid::checkType(nl->Third(args)) && 
+        !Duration::checkType(nl->Third(args))) {
+      return listutils::typeError("third arg must be a geoid or a duration");
     }
   }
   return nl->SymbolAtom(CcReal::BasicType());
@@ -14144,6 +14175,19 @@ int SampleMPointSelect(ListExpr args){
 }
 
 /*
+16.2.35 Selection Function for ~distanceAvg~
+
+*/
+int DistanceAvgSelect(ListExpr args) {
+  if (nl->ListLength(args) > 2) {
+    if (Duration::checkType(nl->Third(args))) {
+      return 1;
+    }
+  }
+  return 0;
+}
+
+/*
 16.2.35 Selection Function for ~distanceAvgLB~ and ~distanceAvgUB~
 
 */
@@ -14692,14 +14736,24 @@ int MPointDistance( Word* args, Word& result, int message, Word&
 16.3.29 Value mapping function of operator ~distanceAvg~
 
 */
+template<bool durationSpecified>
 int DistanceAvgMap(Word* args, Word& result, int message, Word& local, 
                    Supplier s) {
   result = qp->ResultStorage(s);
   Geoid *geoid = 0;
-  if (qp->GetNoSons(s) == 3) {
+  datetime::DateTime *duration = new datetime::DateTime(0, 3600000, 
+                                                        datetime::durationtype);
+  if (durationSpecified) {
+    duration->DeleteIfAllowed();
+    duration = (datetime::DateTime*)args[2].addr;
+    if (qp->GetNoSons(s) == 4) {
+      geoid = (Geoid*)args[3].addr;
+    }
+  }
+  else if (qp->GetNoSons(s) == 3) {
     geoid = (Geoid*)args[2].addr;
   }
-  ((MPoint*)args[0].addr)->DistanceAvg(*((MPoint*)args[1].addr), 
+  ((MPoint*)args[0].addr)->DistanceAvg(*((MPoint*)args[1].addr), *duration,
                                        *((CcReal*)result.addr), geoid);
   return 0;
 }
@@ -17719,6 +17773,9 @@ ValueMapping maxmap[] = { VM_Max<UReal, CcReal>,
 ValueMapping samplempointmap[] = { SampleMPointVM<false,false>,
                                    SampleMPointVM<true,false>,
                                    SampleMPointVM<true,true>};
+                                   
+ValueMapping DistanceAvgMaps[] = {DistanceAvgMap<false>,
+                                  DistanceAvgMap<true>};
 
 ValueMapping DistanceAvgLBMaps[] = {DistanceAvgLBMap<CUPoint>,
                                     DistanceAvgLBMap<CMPoint>};
@@ -18892,8 +18949,9 @@ Operator temporaldistance( "distance",
 
 Operator temporaldistanceavg( "distanceAvg",
                            TemporalSpecDistanceAvg,
-                           DistanceAvgMap,
-                           Operator::SimpleSelect,
+                           2,
+                           DistanceAvgMaps,
+                           DistanceAvgSelect,
                            DistanceAvgTypeMap);
 
 Operator temporaldistanceavglb( "distanceAvgLB",
@@ -20478,7 +20536,6 @@ OperatorInfo removeNoiseOperatorInfo(
   "FALSE"
 );
 
-
 /*
 5.2.2.6 Operator definition for ~removeNoise~
 
@@ -20490,6 +20547,81 @@ Operator removeNoise(
   removeNoiseTM
 );
 
+/*
+5.2.3 Operator ~forceToDuration~
+
+*/
+
+/*
+5.2.3.1 Type Mapping for Operator ~forceToDuration~
+
+*/
+ListExpr forceToDurationTM(ListExpr args) {
+  if (!nl->HasLength(args, 3) && !nl->HasLength(args, 4)) {
+    return listutils::typeError("3 or 4 arguments expected");
+  }
+  if (!MPoint::checkType(nl->First(args))) {
+    return listutils::typeError("First argument must be an mpoint");
+  }
+  if (!Duration::checkType(nl->Second(args))) {
+    return listutils::typeError("Second argument must be a duration");
+  }
+  if (!CcBool::checkType(nl->Third(args))) {
+    return listutils::typeError("Third argument must be a bool");
+  }
+  if (nl->HasLength(args, 4)) {
+    if (!Geoid::checkType(nl->Fourth(args))) {
+      return listutils::typeError("Fourth argument must be a geoid");
+    }
+  }
+  return nl->SymbolAtom(MPoint::BasicType());
+}
+
+/*
+5.2.3.2 Value Mapping
+
+*/
+int forceToDurationVM(Word* args, Word& result, int message, Word& local,
+                      Supplier s) {
+  result = qp->ResultStorage(s);
+  MPoint* res = (MPoint*)result.addr;
+  MPoint* src = (MPoint*)args[0].addr;
+  datetime::DateTime* duration = (datetime::DateTime*)args[1].addr;
+  CcBool* startAtBeginOfTime = (CcBool*)args[2].addr;
+  Geoid *geoid = 0;
+  if (qp->GetNoSons(s) == 4) {
+    geoid = (Geoid*)args[3].addr;
+  }
+  src->ForceToDuration(*duration, startAtBeginOfTime->GetValue(), *res, geoid);
+  return 0;
+}
+
+/*
+5.2.2.5 Specification for Operator ~removeNoise~
+
+*/
+OperatorInfo forceToDurationOperatorInfo(
+  "forceToDuration",
+  "mpoint x duration x bool [x geoid] -> mpoint",
+  "forceToDuration[mp, dur, startAtBeginOfTime]",
+  "Extends or prunes the source mpoint to a certain duration. The boolean flag "
+  "determines whether the beginning of the resulting mpoint is set to the "
+  "beginning of time or remains unchanged.",
+  "query no_components(forceToDuration(train7, create_duration(0,60000), TRUE))"
+  "1"
+);
+
+/*
+5.2.2.6 Operator definition for ~forceToDuration~
+
+*/
+Operator forcetoduration(
+  "forceToDuration",
+  forceToDurationOperatorInfo.str(),
+  forceToDurationVM,
+  Operator::SimpleSelect,
+  forceToDurationTM
+);
 
 /*
 5.2.3 Operator atRect
@@ -22376,6 +22508,7 @@ class TemporalAlgebra : public Algebra
     AddOperator(&temporalsquareddistance);
     AddOperator(&getrefinementpartition);
     AddOperator(&removeNoise);
+    AddOperator(&forcetoduration);
 
     AddOperator(&createCellGrid2D);
     AddOperator(&createCellGrid3D);
