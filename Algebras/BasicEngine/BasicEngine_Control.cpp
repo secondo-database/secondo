@@ -54,36 +54,28 @@ to the importer vector.
 */
 bool BasicEngine_Control::createConnection(size_t index) {
 
-  NestedList* mynl = new NestedList("temp_nested_list");
-  const int defaultTimeout = 0;
+  const size_t defaultTimeout = 0;
+  const int defaultHeartbeat = 0;
 
   bool val = false;
-  string errMsg;
-  int err = 0;
-  double rt;
-  CommandLog CommandLog;
-  string res;
 
   GenericRelationIterator* it = worker->MakeScan();
 
   Tuple* tuple = it->GetNthTuple(index+1,false);
-  SecondoInterfaceCS* si = new SecondoInterfaceCS(true,mynl, true);
   string host = tuple->GetAttribute(0)->toText();
   string port = tuple->GetAttribute(1)->toText();
   string config = tuple->GetAttribute(2)->toText();
   string dbPort = tuple->GetAttribute(3)->toText();
   string dbName = tuple->GetAttribute(4)->toText();
 
-  bool initRes = si->Initialize("", "", host, port, config,"", errMsg, true);
+  ConnectionInfo* ci = ConnectionInfo::createConnection(
+      host, stoi(port), config, defaultTimeout, defaultHeartbeat);
 
-  if (! initRes) {  
+  if (ci == nullptr) {  
     cout << "Couldn't connect to secondo-Worker on host "
          << host << " with port " << port << "!" 
          << endl << endl;
   } else {
-    ConnectionInfo* ci = new ConnectionInfo(
-          host, stoi(port), config, si, mynl, 0, defaultTimeout);
-
     connections.push_back(ci);
     BasicEngine_Thread* basicEngineThread = new BasicEngine_Thread(ci);
     importer.push_back(basicEngineThread);
@@ -95,6 +87,12 @@ bool BasicEngine_Control::createConnection(size_t index) {
            << " on host " << host << " with port " << port << "!" 
            << endl << endl;
     } else {
+      string errMsg;
+      int err = 0;
+      double rt;
+      string res;
+      CommandLog CommandLog;
+
       ci->simpleCommand(dbs_conn->get_init(&dbName,&dbPort),err,res,false,
           rt,false,CommandLog,true,defaultTimeout);
 
