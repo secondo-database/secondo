@@ -246,17 +246,18 @@ Returns true if everything is OK and there are no failure.
 
 */
 bool BasicEngine_Control::exportToWorker(string *tab){
-bool val = true;
-string query_exec;
-long unsigned int index = 0;
-string remoteName;
-string localName;
-string importPath;
-string strindex;
-SecondoInterfaceCS* si ;
 
-string remoteCreateName = createTabFileName(tab);
-string localCreateName = getFilePath() + remoteCreateName;
+  bool val = true;
+  string query_exec;
+  long unsigned int index = 0;
+  string remoteName;
+  string localName;
+  string importPath;
+  string strindex;
+  SecondoInterfaceCS* si ;
+
+  string remoteCreateName = createTabFileName(tab);
+  string localCreateName = getFilePath() + remoteCreateName;
 
   while(index < anzWorker and val){
     if (vec_ci[index]){
@@ -268,23 +269,26 @@ string localCreateName = getFilePath() + remoteCreateName;
       localName = getFilePath() + remoteName;
       val = (si->sendFile(localName, remoteName, true) == 0);
       val = (remove(localName.c_str()) == 0) && val;
-      if (!val){
+
+      if (!val) {
         cout << "\n Couldn't send the data to the worker." << endl;
-        return val;}
+        return val;
+      }
 
       //sending create Table
       val = (si->sendFile(localCreateName, remoteCreateName, true) == 0);
-      if (!val){
+      if (!val) {
         cout << "\n Couldn't send the structure-file "
             "to the worker." << endl;
-        return val;}
+        return val;
+      }
 
       index++;
-      } else{
+    } else{
         createConnection(&index);
         if(!vec_ci[index]) val = false; ;
-      }
-  };
+    }
+  }
 
   if(val){
     val = (remove(localCreateName.c_str()) == 0);
@@ -299,12 +303,17 @@ string localCreateName = getFilePath() + remoteCreateName;
     for(size_t i=0;i<importer.size();i++){
       val = importer[i]->getResult() && val;
     }
-  }else cout << "\n Something goes wrong with the"
-  " export or the transfer." << endl;
+  } else {
+    cout << endl << "Something goes wrong with the"
+          " export or the transfer." << endl;
+  }
 
-  if(!val) cout << "\n Something goes wrong with the "
-  "import at the worker." << endl;
-return val;
+  if(!val) {
+    cout << endl << "Something goes wrong with the"
+            " import at the worker." << endl;
+  }
+
+  return val;
 }
 
 /*
@@ -314,21 +323,25 @@ The data were partitions in the database by an hash value.
 Returns true if everything is OK and there are no failure.
 
 */
-bool BasicEngine_Control::partHash(string* tab
-                    , string* key, int* slotnum){
-bool val = false;
-string query_exec = "";
-string partTabName;
-string anzSlots = to_string(*slotnum);
+bool BasicEngine_Control::partHash(string* tab,
+                    string* key, int* slotnum) {
+
+  bool val = false;
+  string query_exec = "";
+  string partTabName;
+  string anzSlots = to_string(*slotnum);
 
   partTabName = getparttabname(tab,key);
   drop_table(partTabName);
 
   query_exec = dbs_conn->get_partHash(tab,key
     ,&anzSlots,&partTabName);
-  if (query_exec != "")  val = dbs_conn->sendCommand(&query_exec);
+  
+  if (query_exec != "") {
+    val = dbs_conn->sendCommand(&query_exec);
+  } 
 
-return val;
+  return val;
 }
 
 /*
@@ -339,27 +352,30 @@ This function have to be defined before using it.
 Returns true if everything is OK and there are no failure.
 
 */
-bool BasicEngine_Control::partFun(string* tab
-                    , string* key,string* fun, int* slotnum){
-bool val = false;
-string query_exec = "";
-string partTabName = getparttabname(tab,key);
-string anzSlots;;
+bool BasicEngine_Control::partFun(string* tab,
+                    string* key,string* fun, int* slotnum){
+                
+  bool val = false;
+  string query_exec = "";
+  string partTabName = getparttabname(tab,key);
+  string anzSlots;
 
   drop_table(partTabName);
 
   if (boost::iequals(*fun, "share")){
     anzSlots = to_string(anzWorker);
-  }else{
+  } else {
     anzSlots = to_string(*slotnum);
   }
 
-  query_exec = dbs_conn->get_partFun(tab,key
-      ,&anzSlots,fun,&partTabName);
+  query_exec = dbs_conn->get_partFun(tab,key,
+      &anzSlots,fun,&partTabName);
 
-  if (query_exec != "") val = dbs_conn->sendCommand(&query_exec);
+  if (query_exec != "") {
+    val = dbs_conn->sendCommand(&query_exec);
+  }
 
-return val;
+  return val;
 }
 
 /*
@@ -371,18 +387,20 @@ Returns true if everything is OK and there are no failure.
 */
 bool BasicEngine_Control::exportData(string* tab, string* key,
    long unsigned int* slotnum){
-bool val = true;
-string path = getFilePath();
-string parttabname = getparttabname(tab,key);
-string strindex;
-long unsigned int i;
+
+  bool val = true;
+  string path = getFilePath();
+  string parttabname = getparttabname(tab,key);
+  string strindex;
+  long unsigned int i;
 
   for(i=1;i<=anzWorker;i++){
     strindex = to_string(i);
     val = sendCommand(dbs_conn->get_exportData(tab
           ,&parttabname, key,&strindex,&path,slotnum)) && val;
   }
-return val;
+  
+  return val;
 }
 
 /*
@@ -433,35 +451,46 @@ import them into the worker.
 Returns true if everything is OK and there are no failure.
 
 */
-bool BasicEngine_Control::partTable(string tab, string key, string art
-      , int slotnum, string geo_col, float x0, float y0, float slotsize){
+bool BasicEngine_Control::partTable(string tab, string key, string art,
+      int slotnum, string geo_col, float x0, float y0, float slotsize){
 
   bool val = true;
 
-  if (boost::iequals(art, "RR")){val = partRoundRobin(&tab, &key, &slotnum);}
-  else if (boost::iequals(art, "Hash")){val = partHash(&tab, &key, &slotnum);}
-  else if (boost::iequals(art, "Grid")){val = partGrid(&tab, &key, &geo_col
-                                               ,&slotnum,&x0, &y0, &slotsize);}
-  else {val = partFun(&tab, &key, &art, &slotnum);};
-  if(!val){
+  if (boost::iequals(art, "RR")) {
+    val = partRoundRobin(&tab, &key, &slotnum);
+  } else if (boost::iequals(art, "Hash")) {
+    val = partHash(&tab, &key, &slotnum);
+  } else if (boost::iequals(art, "Grid")) {
+    val = partGrid(&tab, &key, &geo_col
+                    ,&slotnum,&x0, &y0, &slotsize);
+  } else {
+    val = partFun(&tab, &key, &art, &slotnum);
+  }
+
+  if(!val) {
     cout << "\n Couldn't partition the table." << endl;
     return val;
   }
 
   val = exportData(&tab, &key, &anzWorker);
-  if(!val){
+
+  if(!val) {
     cout << "\n Couldn't export the data from the table." << endl;
     return val;
   }
 
   val = createTabFile(tab);
+
   if(!val){
     cout << "\n Couldn't create the structure-file" << endl;
     return val;
   }
 
   val = exportToWorker(&tab);
-  if(!val){cout << "\n Couldn't transfer the data to the worker." << endl;}
+
+  if(!val) {
+    cout << "\n Couldn't transfer the data to the worker." << endl;
+  }
 
   return val;
 }
