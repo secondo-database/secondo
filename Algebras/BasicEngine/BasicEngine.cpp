@@ -1510,6 +1510,15 @@ int init_be_workerSFVM(Word* args, Word& result, int message,
 
   result = qp->ResultStorage(s);
 
+  if(be_control != NULL) {
+    cerr << "Error: Basic engine is already initialized. "
+      << "Please shutdown first using be_shutdown_worker."
+      << endl << endl;
+
+    ((CcBool*) result.addr)->Set(true, false);
+    return 0;
+  }
+
   int portValue = port->GetIntval();
   string dbnameValue = dbname->toText();
   string dbtypeValue = dbtype->toText();
@@ -1524,11 +1533,11 @@ int init_be_workerSFVM(Word* args, Word& result, int message,
     bool val = be_control->checkAllConnections();
 
     isMaster = val;
-    ((CcBool*)result.addr)->Set(true, val);
+    ((CcBool*) result.addr)->Set(true, val);
   } else {
     cerr << endl << "Error: Unsupported database type: " 
          << dbtype->toText() << endl;
-    ((CcBool*)result.addr)->Set(false, false);
+    ((CcBool*) result.addr)->Set(false, false);
   }
 
   return 0;
