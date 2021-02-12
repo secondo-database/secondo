@@ -44,9 +44,10 @@ class ConnectionGeneric {
 
     virtual std::string createTabFile(std::string* tab) = 0;
 
-    virtual std::string get_init() = 0;
+    virtual std::string getInitSecondoCMD() = 0;
 
-    virtual std::string get_init(std::string* _dbname, std::string* _port) = 0;
+    virtual std::string getInitSecondoCMD(std::string* _dbname, 
+        std::string* _port) = 0;
 
     virtual std::string get_drop_table(std::string* tab) = 0;
 

@@ -48,8 +48,8 @@ Implementation.
 
 3.1 ~createConnection~
 
-Creating a specified and saves it in the vec\_ci. Additionally add an entry
-to the importer vector.
+Creating a specified and saves it in the connections vector. 
+Additionally add an entry to the importer vector.
 
 */
 bool BasicEngine_Control::createConnection(size_t index) {
@@ -93,7 +93,9 @@ bool BasicEngine_Control::createConnection(size_t index) {
       string res;
       CommandLog CommandLog;
 
-      ci->simpleCommand(dbs_conn->get_init(&dbName,&dbPort),err,res,false,
+      string initSQL = dbs_conn->getInitSecondoCMD(&dbName, &dbPort);
+
+      ci->simpleCommand(initSQL,err,res,false,
           rt,false,CommandLog,true,defaultTimeout);
 
       if(err != 0) {
