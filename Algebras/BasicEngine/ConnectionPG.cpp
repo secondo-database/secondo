@@ -173,11 +173,13 @@ return write;
 Creates a table in postgreSQL with the partitioned data by round robin.
 
 */
-string ConnectionPG::get_partRoundRobin(string* tab, string* key
-                    , string* anzSlots, string* targetTab){
-  string select = "SELECT (nextval('temp_seq') %" + *anzSlots+ ""
-    " ) + 1 As slot," + *key +" FROM "+ *tab;
-return "CREATE TEMP SEQUENCE IF NOT EXISTS temp_seq;"
+string ConnectionPG::get_partRoundRobin(string* tab, string* key,
+                    string* anzSlots, string* targetTab){
+
+  string select = "SELECT (nextval('temp_seq') %" + *anzSlots + ""
+    " ) + 1 As slot," + *key + " FROM " + *tab;
+
+  return "CREATE TEMP SEQUENCE IF NOT EXISTS temp_seq;"
     + getCreateTabSQL(targetTab,&select);
 }
 
@@ -298,22 +300,24 @@ This function is for organizing the special partitioning functions.
 */
 string ConnectionPG::get_partFun(string* tab, string* key, string* anzSlots,
                   string* fun, string* targetTab){
-string select = "";
-string query = "";
 
-  if (boost::iequals(*fun, "random")){
-    createFunctionRandom(tab,key,anzSlots,&select);
-  }else if (boost::iequals(*fun, "share")){
-    select = get_partShare(tab,key,anzSlots);
-  }
-  else{
-    cout<< "Function " + *fun + " not recognized! "
+  string select = "";
+  string query = "";
+
+  if (boost::iequals(*fun, "random")) {
+    createFunctionRandom(tab, key, anzSlots, &select);
+  } else if (boost::iequals(*fun, "share")) {
+    select = get_partShare(tab, key, anzSlots);
+  } else {
+    cout << "Function " + *fun + " not recognized! "
         "Available functions are: RR, Hash, share and random." << endl;
   }
 
-  if(select != "") query = getCreateTabSQL(targetTab,&select);
+  if(select != "") {
+    query = getCreateTabSQL(targetTab, &select);
+  }
 
-return query;
+  return query;
 }
 
 /*
@@ -322,9 +326,10 @@ return query;
 Creating a statement for exporting the data from a portioning table.
 
 */
-string ConnectionPG::get_exportData(string* tab, string* join_tab
-                  , string* key, string* nr, string* path
-                  , long unsigned int* anzWorker){
+string ConnectionPG::get_exportData(string* tab, string* join_tab,
+                  string* key, string* nr, string* path,
+                  long unsigned int* anzWorker) {
+  
   return "COPY (SELECT a.* FROM "+ *tab +" a INNER JOIN " + *join_tab  + " b "
             "" + getjoin(key) + " WHERE ((slot % "
             ""+ to_string(*anzWorker)+") "
@@ -342,8 +347,11 @@ false them the tab where export to the filesystem.
 */
 string ConnectionPG::get_copy(string* tab, string* full_path, bool* direct ){
 
-  if (*direct)  return "COPY "+  *full_path + " FROM '" + *tab + "' BINARY;";
-  else return "COPY "+  *tab + " TO '" + *full_path + "' BINARY;";
+  if (*direct) {
+    return "COPY "+  *full_path + " FROM '" + *tab + "' BINARY;";
+  }
+
+  return "COPY "+  *tab + " TO '" + *full_path + "' BINARY;";
 }
 
 /*

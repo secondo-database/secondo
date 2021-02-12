@@ -58,31 +58,28 @@ bool BasicEngine_Control::createConnection(long unsigned int* index) {
   const int defaultTimeout = 0;
 
   bool val = false;
-  string host;
-  string config;
-  string port;
-  string dbName;
-  string dbPort;
   string errMsg;
   int err = 0;
   double rt;
   CommandLog CommandLog;
   string res;
-  SecondoInterfaceCS* si ;
   ConnectionInfo* ci;
-  Tuple* tuple;
   GenericRelationIterator* it = worker->MakeScan();
 
-  tuple = it->GetNthTuple(*index+1,false);
-  si = new SecondoInterfaceCS(true,mynl, true);
-  host = tuple->GetAttribute(0)->toText();
-  port = tuple->GetAttribute(1)->toText();
-  config = tuple->GetAttribute(2)->toText();
-  dbPort = tuple->GetAttribute(3)->toText();
-  dbName = tuple->GetAttribute(4)->toText();
+  Tuple* tuple = it->GetNthTuple(*index+1,false);
+  SecondoInterfaceCS* si = new SecondoInterfaceCS(true,mynl, true);
+  string host = tuple->GetAttribute(0)->toText();
+  string port = tuple->GetAttribute(1)->toText();
+  string config = tuple->GetAttribute(2)->toText();
+  string dbPort = tuple->GetAttribute(3)->toText();
+  string dbName = tuple->GetAttribute(4)->toText();
 
-  if (si->Initialize("", "", host, port, config,"", errMsg, true)) {
+  bool initRes = si->Initialize("", "", host, port, config,"", errMsg, true);
+
+  if (initRes) {
+    
     ci = new ConnectionInfo(host,stoi(port),config,si,mynl,0,defaultTimeout);
+
     if(ci){
         vec_ci.push_back(ci);
         importer.push_back(new BasicEngine_Thread(vec_ci[*index]));
@@ -91,6 +88,7 @@ bool BasicEngine_Control::createConnection(long unsigned int* index) {
 
         ci->simpleCommand(dbs_conn->get_init(&dbName,&dbPort),err,res,false
             ,rt,false,CommandLog,true,defaultTimeout);
+
         if(err != 0) {
           cout << std::string("ErrCode:" + err) << endl;
         } else {

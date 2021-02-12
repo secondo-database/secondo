@@ -537,31 +537,32 @@ string err = "\n {string, text} x {string, text} x int--> bool"
 
 */
 template<class T, class H>
-int be_partHashSFVM(Word* args,Word& result,int message
-          ,Word& local,Supplier s ){
-result = qp->ResultStorage(s);
+int be_partHashSFVM(Word* args,Word& result,int message,
+          Word& local,Supplier s ){
 
-T* tab = (T*) args[0].addr;
-H* key = (H*) args[1].addr;
-CcInt* slot = (CcInt*) args[2].addr;
+  result = qp->ResultStorage(s);
 
-bool val = false;
-CcBool* res = (CcBool*) result.addr;
+  T* tab = (T*) args[0].addr;
+  H* key = (H*) args[1].addr;
+  CcInt* slot = (CcInt*) args[2].addr;
+
+  bool val = false;
+  CcBool* res = (CcBool*) result.addr;
 
   if(dbs_conn && isMaster){
     if (slot->GetIntval() > 0){
-      val = dbs_conn->partTable(tab->toText(), key->toText()
-                ,"Hash",slot->GetIntval());
-    }else{
-      cout<< negSlots << endl;
+      val = dbs_conn->partTable(tab->toText(), key->toText(),
+                "Hash",slot->GetIntval());
+    } else {
+      cout << negSlots << endl;
     }
-  }
-  else{
+  } else {
     cout << noWorker << endl;
   }
+
   res->Set(true, val);
 
-return 0;
+  return 0;
 }
 
 /*
@@ -1540,7 +1541,7 @@ int init_be_workerSFVM(Word* args, Word& result, int message,
 OperatorSpec be_init_worker_spec (
    "{string, text} x int x {string, text} x rel --> bool",
    "be_init_worker(_,_,_,_)",
-   "Set the dbtype, port and the db-namefor initialization the local "
+   "Set the dbtype, port and the db-name for initialization the local "
    "BE-Worker. Additional you have to specified a Workers-Relation with all "
    "connection information from the worker, including the information "
    "about the second DBMS. The structure of this relation should be "
