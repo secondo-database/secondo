@@ -170,7 +170,7 @@ long unsigned int anzWorker;
 */
   bool createAllConnection();
 
-  bool createConnection(long unsigned int* index);
+  bool createConnection(size_t index);
 
   bool partRoundRobin(std::string* tab, std::string* key, int* slotnum);
 

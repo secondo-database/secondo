@@ -52,7 +52,7 @@ Creating a specified and saves it in the vec\_ci. Additionally add an entry
 to the importer vector.
 
 */
-bool BasicEngine_Control::createConnection(long unsigned int* index) {
+bool BasicEngine_Control::createConnection(size_t index) {
 
   NestedList* mynl = new NestedList("temp_nested_list");
   const int defaultTimeout = 0;
@@ -63,10 +63,10 @@ bool BasicEngine_Control::createConnection(long unsigned int* index) {
   double rt;
   CommandLog CommandLog;
   string res;
-  ConnectionInfo* ci;
+
   GenericRelationIterator* it = worker->MakeScan();
 
-  Tuple* tuple = it->GetNthTuple(*index+1,false);
+  Tuple* tuple = it->GetNthTuple(index+1,false);
   SecondoInterfaceCS* si = new SecondoInterfaceCS(true,mynl, true);
   string host = tuple->GetAttribute(0)->toText();
   string port = tuple->GetAttribute(1)->toText();
@@ -76,28 +76,34 @@ bool BasicEngine_Control::createConnection(long unsigned int* index) {
 
   bool initRes = si->Initialize("", "", host, port, config,"", errMsg, true);
 
-  if (initRes) {
-    
-    ci = new ConnectionInfo(host,stoi(port),config,si,mynl,0,defaultTimeout);
-
-    if(ci){
-        vec_ci.push_back(ci);
-        importer.push_back(new BasicEngine_Thread(vec_ci[*index]));
-
-        val=ci->switchDatabase(dbName, true, false, true, defaultTimeout);
-
-        ci->simpleCommand(dbs_conn->get_init(&dbName,&dbPort),err,res,false
-            ,rt,false,CommandLog,true,defaultTimeout);
-
-        if(err != 0) {
-          cout << std::string("ErrCode:" + err) << endl;
-        } else {
-          val = (res == "(bool TRUE)") && val;
-        }
-    }
+  if (! initRes) {  
+    cout << "Couldn't connect to secondo-Worker on host "
+         << host << " with port " << port << "!" 
+         << endl << endl;
   } else {
-        cout << std::string("Couldn't connect to secondo-Worker on host"
-        "" + host + " with port " + port + "!\n") << endl;
+    ConnectionInfo* ci = new ConnectionInfo(
+          host, stoi(port), config, si, mynl, 0, defaultTimeout);
+
+    vec_ci.push_back(ci);
+    BasicEngine_Thread* basicEngineThread = new BasicEngine_Thread(ci);
+    importer.push_back(basicEngineThread);
+
+    val = ci->switchDatabase(dbName, true, false, true, defaultTimeout);
+
+    if(! val) { 
+      cerr << "Unable to switch to database " << dbName 
+           << " on host " << host << " with port " << port << "!" 
+           << endl << endl;
+    } else {
+      ci->simpleCommand(dbs_conn->get_init(&dbName,&dbPort),err,res,false,
+          rt,false,CommandLog,true,defaultTimeout);
+
+      if(err != 0) {
+        cout << std::string("ErrCode:" + err) << endl;
+      } else {
+        val = (res == "(bool TRUE)") && val;
+      }
+    }
   }
 
   if(it != NULL) {
@@ -152,7 +158,7 @@ bool BasicEngine_Control::createAllConnection(){
   long unsigned int i = 0;
 
   while (i < anzWorker and val){
-    val = createConnection(&i);
+    val = createConnection(i);
     i++;
   }
 
@@ -282,9 +288,11 @@ bool BasicEngine_Control::exportToWorker(string *tab){
       }
 
       index++;
-    } else{
-        createConnection(&index);
-        if(!vec_ci[index]) val = false; ;
+    } else {
+        createConnection(index);
+        if(!vec_ci[index]) {
+          val = false;
+        }
     }
   }
 
