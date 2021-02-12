@@ -1512,7 +1512,7 @@ int init_be_workerSFVM(Word* args, Word& result, int message,
 
   if(be_control != NULL) {
     cerr << "Error: Basic engine is already initialized. "
-      << "Please shutdown first using be_shutdown_worker."
+      << "Please shutdown first, using be_shutdown_worker()."
       << endl << endl;
 
     ((CcBool*) result.addr)->Set(true, false);
@@ -1530,10 +1530,18 @@ int init_be_workerSFVM(Word* args, Word& result, int message,
     be_control = new BasicEngine_Control(
           dbConnection, worker);
 
-    bool val = be_control->checkAllConnections();
+    bool connectionsAvailable = be_control->checkAllConnections();
 
-    isMaster = val;
-    ((CcBool*) result.addr)->Set(true, val);
+    if(! connectionsAvailable) {
+      isMaster = false;
+      ((CcBool*) result.addr)->Set(true, false);
+    } else {
+      cerr << "Errror: Connection error, please check the previous messages"
+           << " for error messages." << endl << endl;
+      isMaster = true;
+      ((CcBool*) result.addr)->Set(true, true);
+    }
+
   } else {
     cerr << endl << "Error: Unsupported database type: " 
          << dbtype->toText() << endl;
