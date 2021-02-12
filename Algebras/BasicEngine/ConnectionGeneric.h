@@ -70,9 +70,9 @@ class ConnectionGeneric {
             std::string* x0, std::string* y0,
             std::string* size, std::string* targetTab) = 0;
 
-    virtual std::string get_exportData(std::string* tab, std::string* join_tab
-            ,std::string* key,std::string* nr,std::string* path
-            ,long unsigned int* numberOfWorker) = 0;
+    virtual std::string get_exportData(std::string* tab, std::string* join_tab,
+            std::string* key,std::string* nr,std::string* path,
+            size_t numberOfWorker) = 0;
 
     virtual std::string get_copy(
         std::string* tab, std::string* full_path, bool* direct) = 0;

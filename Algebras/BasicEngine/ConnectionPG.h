@@ -89,15 +89,18 @@ class ConnectionPG : public ConnectionGeneric {
     return "query be_init('pgsql'," + *_port + ",'"+ *_dbname +"');";
   }
 
-  std::string get_drop_table(std::string* tab)
-    {return "DROP TABLE IF EXISTS " + *tab + ";";}
+  std::string get_drop_table(std::string* tab) {
+    return "DROP TABLE IF EXISTS " + *tab + ";";
+  }
 
-  std::string get_drop_index(std::string* index)
-    {return "DROP INDEX IF EXISTS " + *index + "_idx;";}
+  std::string get_drop_index(std::string* index) {
+    return "DROP INDEX IF EXISTS " + *index + "_idx;";
+  }
 
-  std::string create_geo_index(std::string* tab, std::string* geo_col)
-    {return "CREATE INDEX "+ *tab +"_idx ON"
-                " " + *tab + " USING GIST ("+ *geo_col +");";}
+  std::string create_geo_index(std::string* tab, std::string* geo_col) {
+    return "CREATE INDEX "+ *tab +"_idx ON"
+                " " + *tab + " USING GIST ("+ *geo_col +");";
+  }
 
   std::string get_partRoundRobin(std::string* tab, std::string* key
             , std::string* anzSlots, std::string* targetTab);
@@ -115,7 +118,7 @@ class ConnectionPG : public ConnectionGeneric {
 
   std::string get_exportData(std::string* tab, std::string* join_tab,
             std::string* key, std::string* nr, std::string* path,
-            long unsigned int* numberOfWorker);
+            size_t numberOfWorker);
 
   std::string get_copy(std::string* tab, std::string* full_path, bool* direct);
 

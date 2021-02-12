@@ -85,7 +85,7 @@ bool BasicEngine_Control::createConnection(string host, string port,
       string res;
       CommandLog CommandLog;
 
-      string initCommand = be_control->getInitSecondoCMD(&dbName, &dbPort);
+      string initCommand = dbms_connection->getInitSecondoCMD(&dbName, &dbPort);
 
       ci->simpleCommand(initCommand,err,res,false,
           rt,false,CommandLog,true,defaultTimeout);
@@ -106,9 +106,9 @@ bool BasicEngine_Control::createConnection(string host, string port,
 
 */
 BasicEngine_Control::~BasicEngine_Control() {
-    if(be_control != NULL) {
-      delete be_control;
-      be_control = NULL;
+    if(dbms_connection != NULL) {
+      delete dbms_connection;
+      dbms_connection = NULL;
     }
 
     // Delete importer
@@ -131,12 +131,12 @@ BasicEngine_Control::~BasicEngine_Control() {
   }
 
 /*
-3.2 ~createAllConnection~
+3.2 ~createAllConnections~
 
 Creating all connection from the worker relation.
 
 */
-bool BasicEngine_Control::createAllConnection(){
+bool BasicEngine_Control::createAllConnections(){
 
   GenericRelationIterator* it = worker->MakeScan();
   Tuple* tuple = nullptr;
@@ -210,7 +210,7 @@ bool BasicEngine_Control::createTabFile(string tab) {
   string statement;
   bool val = false;
 
-  statement = be_control->createTabFile(&tab);
+  statement = dbms_connection->createTabFile(&tab);
 
   if (statement.length() > 0){
     write.open(getFilePath() + createTabFileName(&tab));
@@ -235,21 +235,21 @@ Returns true if everything is OK and there are no failure.
 
 */
 bool BasicEngine_Control::partRoundRobin(string* tab,
-                    string* key, int* slotnum) {
+                    string* key, size_t slotnum) {
 
   bool val = false;
   string query_exec = "";
   string partTabName;
-  string anzSlots = to_string(*slotnum);
+  string anzSlots = to_string(slotnum);
 
   partTabName = getparttabname(tab,key);
   drop_table(partTabName);
 
-  query_exec = be_control->get_partRoundRobin(tab, key,
+  query_exec = dbms_connection->get_partRoundRobin(tab, key,
       &anzSlots, &partTabName);
   
   if (query_exec != "") {
-    val = be_control->sendCommand(&query_exec);
+    val = dbms_connection->sendCommand(&query_exec);
   }
 
   return val;
@@ -340,21 +340,21 @@ Returns true if everything is OK and there are no failure.
 
 */
 bool BasicEngine_Control::partHash(string* tab,
-                    string* key, int* slotnum) {
+                    string* key, size_t slotnum) {
 
   bool val = false;
   string query_exec = "";
   string partTabName;
-  string anzSlots = to_string(*slotnum);
+  string anzSlots = to_string(slotnum);
 
   partTabName = getparttabname(tab,key);
   drop_table(partTabName);
 
-  query_exec = be_control->get_partHash(tab,key
+  query_exec = dbms_connection->get_partHash(tab,key
     ,&anzSlots,&partTabName);
   
   if (query_exec != "") {
-    val = be_control->sendCommand(&query_exec);
+    val = dbms_connection->sendCommand(&query_exec);
   } 
 
   return val;
@@ -369,7 +369,7 @@ Returns true if everything is OK and there are no failure.
 
 */
 bool BasicEngine_Control::partFun(string* tab,
-                    string* key,string* fun, int* slotnum){
+                    string* key,string* fun, size_t slotnum){
                 
   bool val = false;
   string query_exec = "";
@@ -381,14 +381,14 @@ bool BasicEngine_Control::partFun(string* tab,
   if (boost::iequals(*fun, "share")){
     anzSlots = to_string(numberOfWorker);
   } else {
-    anzSlots = to_string(*slotnum);
+    anzSlots = to_string(slotnum);
   }
 
-  query_exec = be_control->get_partFun(tab,key,
+  query_exec = dbms_connection->get_partFun(tab,key,
       &anzSlots,fun,&partTabName);
 
   if (query_exec != "") {
-    val = be_control->sendCommand(&query_exec);
+    val = dbms_connection->sendCommand(&query_exec);
   }
 
   return val;
@@ -402,7 +402,7 @@ Returns true if everything is OK and there are no failure.
 
 */
 bool BasicEngine_Control::exportData(string* tab, string* key,
-   long unsigned int* slotnum){
+   size_t slotnum){
 
   bool val = true;
   string path = getFilePath();
@@ -410,10 +410,11 @@ bool BasicEngine_Control::exportData(string* tab, string* key,
   string strindex;
   long unsigned int i;
 
+  // TODO: Check if 1 is the correct start index here (JNI)
   for(i=1;i<=numberOfWorker;i++) {
     strindex = to_string(i);
 
-    string exportDataSQL = be_control->get_exportData(tab,
+    string exportDataSQL = dbms_connection->get_exportData(tab,
           &parttabname, key, &strindex, &path, slotnum);
         
     val = sendCommand(exportDataSQL) && val;
@@ -448,7 +449,7 @@ bool BasicEngine_Control::importData(string *tab) {
   strStream << inFile.rdbuf();
   cmd = strStream.str();
 
-  val = be_control->sendCommand(&cmd) && val;
+  val = dbms_connection->sendCommand(&cmd) && val;
   
   if(!val) {
     return val;
@@ -457,6 +458,7 @@ bool BasicEngine_Control::importData(string *tab) {
   FileSystem::DeleteFileOrFolder(full_path);
 
   //import data (local files from worker)
+  // TODO: Check if 1 is the correct start index here (JNI)
   for(i=1;i<=numberOfWorker;i++){
     strindex = to_string(i);
     full_path = getFilePath() + get_partFileName(tab, &strindex);
@@ -476,19 +478,19 @@ Returns true if everything is OK and there are no failure.
 
 */
 bool BasicEngine_Control::partTable(string tab, string key, string art,
-      int slotnum, string geo_col, float x0, float y0, float slotsize){
+      size_t slotnum, string geo_col, float x0, float y0, float slotsize){
 
   bool val = true;
 
   if (boost::iequals(art, "RR")) {
-    val = partRoundRobin(&tab, &key, &slotnum);
+    val = partRoundRobin(&tab, &key, slotnum);
   } else if (boost::iequals(art, "Hash")) {
-    val = partHash(&tab, &key, &slotnum);
+    val = partHash(&tab, &key, slotnum);
   } else if (boost::iequals(art, "Grid")) {
     val = partGrid(&tab, &key, &geo_col
-                    ,&slotnum,&x0, &y0, &slotsize);
+                    ,slotnum,&x0, &y0, &slotsize);
   } else {
-    val = partFun(&tab, &key, &art, &slotnum);
+    val = partFun(&tab, &key, &art, slotnum);
   }
 
   if(!val) {
@@ -496,7 +498,7 @@ bool BasicEngine_Control::partTable(string tab, string key, string art,
     return val;
   }
 
-  val = exportData(&tab, &key, &numberOfWorker);
+  val = exportData(&tab, &key, numberOfWorker);
 
   if(!val) {
     cout << "\n Couldn't export the data from the table." << endl;
@@ -639,7 +641,7 @@ bool BasicEngine_Control::checkAllConnections() {
     return false;
   }
 
-  for(size_t i; i < numberOfWorker; i++) {
+  for(size_t i = 0; i < numberOfWorker; i++) {
     CommandLog CommandLog;
     
     bool connectionState = connections[i]->check(
@@ -651,7 +653,7 @@ bool BasicEngine_Control::checkAllConnections() {
   }
 
   //checking the connection to the secondary dbms system
-  bool localConnectionState = be_control->checkAllConnections();
+  bool localConnectionState = dbms_connection->checkAllConnections();
   return localConnectionState;
 }
 
@@ -676,7 +678,7 @@ bool BasicEngine_Control::runsql(string filepath) {
 
     //execute the sql-Statement
     if (query != "") {
-      bool result = be_control->sendCommand(&query);
+      bool result = dbms_connection->sendCommand(&query);
       return result;
     }
 
@@ -696,12 +698,12 @@ Returns true if everything is OK and there are no failure.
 
 */
 bool BasicEngine_Control::partGrid(std::string* tab, std::string* key
-    ,std::string* geo_col,int* slotnum,float* x0,float* y0,float* slotsize){
+    ,std::string* geo_col, size_t slotnum,float* x0,float* y0,float* slotsize){
 
   bool val = false;
   string query_exec = "";
   string partTabName;
-  string anzSlots = to_string(*slotnum);
+  string anzSlots = to_string(slotnum);
   string x_start = to_string(*x0);
   string y_start = to_string(*y0);
   string sizSlots = to_string(*slotsize);
@@ -711,14 +713,14 @@ bool BasicEngine_Control::partGrid(std::string* tab, std::string* key
   drop_table(partTabName);
 
   //creating Index on table
-  query_exec =  be_control->get_drop_index(tab) + " "
-            "" + be_control->create_geo_index(tab, geo_col);
-  val = be_control->sendCommand(&query_exec);
+  query_exec =  dbms_connection->get_drop_index(tab) + " "
+            "" + dbms_connection->create_geo_index(tab, geo_col);
+  val = dbms_connection->sendCommand(&query_exec);
 
   //
-  query_exec = be_control->get_partGrid(tab,key,geo_col,&anzSlots, &x_start
+  query_exec = dbms_connection->get_partGrid(tab,key,geo_col,&anzSlots, &x_start
                             , &y_start, &sizSlots, &partTabName);
-  if (query_exec != "" && val) val = be_control->sendCommand(&query_exec);
+  if (query_exec != "" && val) val = dbms_connection->sendCommand(&query_exec);
 
   return val;
 } 
@@ -732,7 +734,7 @@ Get the SECONDO type for the given SQL query.
  bool BasicEngine_Control::getTypeFromSQLQuery(std::string sqlQuery, 
     ListExpr &resultList) {
 
-   return be_control->getTypeFromSQLQuery(sqlQuery, resultList);
+   return dbms_connection->getTypeFromSQLQuery(sqlQuery, resultList);
  }
 
 
@@ -745,7 +747,7 @@ Get the SECONDO type for the given SQL query.
  ResultIteratorGeneric* BasicEngine_Control::performSQLQuery(
    std::string sqlQuery) {
 
-   return be_control->performSQLQuery(sqlQuery);
+   return dbms_connection->performSQLQuery(sqlQuery);
  }
 
 } /* namespace BasicEngine */

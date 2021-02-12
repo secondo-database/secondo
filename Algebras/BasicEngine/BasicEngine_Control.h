@@ -58,45 +58,43 @@ public:
 2.1 Public Methods
 
 */
-  BasicEngine_Control(ConnectionGeneric* _be_control) {
-    be_control = _be_control;
-    worker = NULL;
-    numberOfWorker = 0;
-  };
+  BasicEngine_Control(ConnectionGeneric* _dbms_connection) 
+    : dbms_connection(_dbms_connection), worker(NULL), numberOfWorker(0) {
+    
+  }
 
-  BasicEngine_Control(ConnectionGeneric* _be_control, 
-     Relation* _worker) {
+  BasicEngine_Control(ConnectionGeneric* _dbms_connection, Relation* _worker) 
+    : dbms_connection(_dbms_connection) {
 
-    be_control = _be_control;
     worker = _worker->Clone();
     numberOfWorker = worker->GetNoTuples();
-    createAllConnection();
-  };
+    createAllConnections();
+  }
 
   virtual ~BasicEngine_Control();
 
-  ConnectionGeneric* get_conn() {
-    return be_control;
+  ConnectionGeneric* getDBMSConnection() {
+    return dbms_connection;
   }
 
   bool checkAllConnections();
 
   bool partTable(std::string tab, std::string key, std::string art,
-     int slotnum, std::string geo_col = "", float x0 = 0, float y0 = 0,
+     size_t slotnum, std::string geo_col = "", float x0 = 0, float y0 = 0,
      float slotsize = 0);
 
   bool drop_table(std::string tab) {
-    return sendCommand(be_control->get_drop_table(&tab), false);
+    return sendCommand(dbms_connection->get_drop_table(&tab), false);
   }
 
   bool createTabFile(std::string tab);
 
   bool copy(std::string tab, std::string full_path, bool direct) {
-    return sendCommand(be_control->get_copy(&tab, &full_path, &direct));
+    return sendCommand(dbms_connection->get_copy(&tab, &full_path, &direct));
   }
 
   bool createTab(std::string tab, std::string query) {
-     return sendCommand(be_control->getCreateTabSQL(&tab, &query));
+     return sendCommand(dbms_connection->getCreateTabSQL(&tab, &query));
   }
 
   bool munion(std::string tab);
@@ -110,7 +108,7 @@ public:
   bool shutdownWorker();
 
   bool sendCommand(std::string query, bool print=true) {
-    return be_control->sendCommand(&query, print);
+    return dbms_connection->sendCommand(&query, print);
   }
 
   bool getTypeFromSQLQuery(std::string sqlQuery, ListExpr &resultList);
@@ -128,7 +126,7 @@ In this template variable were stores the connection,
 to a secondary dbms (for example postgresql)
 
 */
-ConnectionGeneric* be_control;
+ConnectionGeneric* dbms_connection;
 
 /*
 2.2.2 ~worker~
@@ -162,42 +160,45 @@ std::vector<BasicEngine_Thread*> importer;
 The numberOfWorker counts the number of worker.
 
 */
-long unsigned int numberOfWorker;
+size_t numberOfWorker;
 
 /*
 2.3 Private Methods
 
 */
-  bool createAllConnection();
+  bool createAllConnections();
 
   bool createConnection(std::string host, std::string port, 
     std::string config, std::string dbPort, std::string dbName);
 
-  bool partRoundRobin(std::string* tab, std::string* key, int* slotnum);
+  bool partRoundRobin(std::string* tab, std::string* key, size_t slotnum);
 
-  bool partHash(std::string* tab, std::string* key, int* slotnum);
+  bool partHash(std::string* tab, std::string* key, size_t slotnum);
 
-  bool partFun(std::string* tab, std::string* key
-         ,std::string* fun, int* slotnum);
+  bool partFun(std::string* tab, std::string* key,
+         std::string* fun, size_t slotnum);
 
   bool partGrid(std::string* tab, std::string* key, std::string* geo_col,
-         int* slotnum,float* x0,float* y0,float* slotsize);
+         size_t slotnum, float* x0, float* y0, float* slotsize);
 
-  bool exportData(std::string* tab, std::string* key
-         ,long unsigned int* slotnum);
+  bool exportData(std::string* tab, std::string* key,
+         size_t slotnum);
 
   bool importData(std::string* tab);
 
   bool exportToWorker(std::string* tab);
 
-  std::string createTabFileName(std::string* tab)
-    {return "create" + *tab + ".sql";}
+  std::string createTabFileName(std::string* tab) {
+    return "create" + *tab + ".sql";
+  }
 
-  std::string get_partFileName(std::string* tab, std::string* nr)
-    {return be_control->get_partFileName(tab,nr);}
+  std::string get_partFileName(std::string* tab, std::string* nr) {
+    return dbms_connection->get_partFileName(tab,nr);
+  }
 
-  std::string getFilePath()
-    {return std::string("/home/") + getenv("USER") + "/filetransfer/";};
+  std::string getFilePath() {
+    return std::string("/home/") + getenv("USER") + "/filetransfer/";
+  }
 
   std::string getparttabname(std::string* tab, std::string* key);
 

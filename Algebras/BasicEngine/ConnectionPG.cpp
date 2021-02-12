@@ -328,11 +328,11 @@ Creating a statement for exporting the data from a portioning table.
 */
 string ConnectionPG::get_exportData(string* tab, string* join_tab,
                   string* key, string* nr, string* path,
-                  long unsigned int* numberOfWorker) {
+                  size_t numberOfWorker) {
   
   return "COPY (SELECT a.* FROM "+ *tab +" a INNER JOIN " + *join_tab  + " b "
             "" + getjoin(key) + " WHERE ((slot % "
-            ""+ to_string(*numberOfWorker)+") "
+            ""+ to_string(numberOfWorker)+") "
             "+1) =" + *nr+ ") TO "
             "'" + *path + *tab + "_" + *nr +".bin' BINARY;";
 }
