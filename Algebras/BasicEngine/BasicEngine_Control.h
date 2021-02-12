@@ -170,7 +170,8 @@ long unsigned int numberOfWorker;
 */
   bool createAllConnection();
 
-  bool createConnection(size_t index);
+  bool createConnection(std::string host, std::string port, 
+    std::string config, std::string dbPort, std::string dbName);
 
   bool partRoundRobin(std::string* tab, std::string* key, int* slotnum);
 

@@ -52,21 +52,13 @@ Creating a specified and saves it in the connections vector.
 Additionally add an entry to the importer vector.
 
 */
-bool BasicEngine_Control::createConnection(size_t index) {
+bool BasicEngine_Control::createConnection(string host, string port, 
+  string config, string dbPort, string dbName) {
 
   const size_t defaultTimeout = 0;
   const int defaultHeartbeat = 0;
 
   bool val = false;
-
-  GenericRelationIterator* it = worker->MakeScan();
-
-  Tuple* tuple = it->GetNthTuple(index+1,false);
-  string host = tuple->GetAttribute(0)->toText();
-  string port = tuple->GetAttribute(1)->toText();
-  string config = tuple->GetAttribute(2)->toText();
-  string dbPort = tuple->GetAttribute(3)->toText();
-  string dbName = tuple->GetAttribute(4)->toText();
 
   ConnectionInfo* ci = ConnectionInfo::createConnection(
       host, stoi(port), config, defaultTimeout, defaultHeartbeat);
@@ -104,15 +96,6 @@ bool BasicEngine_Control::createConnection(size_t index) {
         val = (res == "(bool TRUE)") && val;
       }
     }
-  }
-
-  if(it != NULL) {
-    delete it;
-    it = NULL;
-  }
-
-  if(tuple != NULL) {
-    tuple->DeleteIfAllowed();
   }
 
   return val;
@@ -155,17 +138,42 @@ Creating all connection from the worker relation.
 */
 bool BasicEngine_Control::createAllConnection(){
 
-  for(size_t i = 0; i < numberOfWorker; i++) {
+  GenericRelationIterator* it = worker->MakeScan();
+  Tuple* tuple = nullptr;
+  
+  while ((tuple = it->GetNextTuple()) != 0) {
+    string host = tuple->GetAttribute(0)->toText();
+    string port = tuple->GetAttribute(1)->toText();
+    string config = tuple->GetAttribute(2)->toText();
+    string dbPort = tuple->GetAttribute(3)->toText();
+    string dbName = tuple->GetAttribute(4)->toText();
 
-    bool connectionResult = createConnection(i);
+    if(tuple != NULL) {
+      tuple->DeleteIfAllowed();
+    }
+
+    bool connectionResult = createConnection(
+      host, port, config, dbPort, dbName);
     
     if(! connectionResult) {
       cout << endl 
            << "Error: Unable to establish connection to worker: "
-           << i << endl << endl;
+           << host << " / " << port << endl << endl;
 
-      return false;
+      break;
     }
+  }
+
+  if(it != NULL) {
+    delete it;
+    it = NULL;
+  }
+
+  if(numberOfWorker != connections.size()) {
+    cerr << endl 
+         << "Error: Number of worker connections does not match relation size"
+         << endl << endl;
+    return false;
   }
 
   return true;
