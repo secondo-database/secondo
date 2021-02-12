@@ -40,7 +40,7 @@ class ConnectionGeneric {
 
     virtual bool sendCommand(std::string* command, bool print = true) = 0;
 
-    virtual bool checkConn() = 0;
+    virtual bool checkAllConnections() = 0;
 
     virtual std::string createTabFile(std::string* tab) = 0;
 

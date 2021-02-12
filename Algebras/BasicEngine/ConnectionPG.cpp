@@ -67,12 +67,12 @@ ConnectionPG::~ConnectionPG() {
 }
 
 /*
-6.2 ~checkConn~
+6.2 ~checkAllConnections~
 
 Returns TRUE if the connection is ok.
 
 */
-bool ConnectionPG::checkConn() {
+bool ConnectionPG::checkAllConnections() {
   if (PQstatus(conn) == CONNECTION_BAD) {
     printf("Connection Error:%s\n", PQerrorMessage(conn));
     return false;
@@ -92,7 +92,7 @@ bool ConnectionPG::sendCommand(string* command, bool print) {
 PGresult *res;
 const char *query_exec = command->c_str();
 
-  if (checkConn()) {
+  if (checkAllConnections()) {
     res = PQexec(conn, query_exec);
     if (!res || PQresultStatus(res) != PGRES_COMMAND_OK) {
       if(print) {
@@ -118,7 +118,7 @@ PGresult* ConnectionPG::sendQuery(string* query) {
 PGresult *res;
 const char *query_exec = query->c_str();
 
-  if (checkConn()) {
+  if (checkAllConnections()) {
     res = PQexec(conn, query_exec);
     if (!res || PQresultStatus(res) != PGRES_TUPLES_OK) {
       printf("Error with Query:%s\n", PQresultErrorMessage(res));
@@ -564,7 +564,7 @@ bool ConnectionPG::getTypeFromSQLQuery(std::string sqlQuery,
     string usedSQLQuery = sqlQuery + " LIMIT 1;";
   }
 
-  if( ! checkConn()) {
+  if( ! checkAllConnections()) {
     return NULL;
   }
   
@@ -585,7 +585,7 @@ Perform the given query and return a result iterator
 */
 ResultIteratorGeneric* ConnectionPG::performSQLQuery(std::string sqlQuery) {
 
-  if( ! checkConn()) {
+  if( ! checkAllConnections()) {
     cerr << "Error: Connection check failed in performSQLQuery()" << endl;
     return NULL;
   }

@@ -85,9 +85,9 @@ bool BasicEngine_Control::createConnection(string host, string port,
       string res;
       CommandLog CommandLog;
 
-      string initSQL = dbs_conn->getInitSecondoCMD(&dbName, &dbPort);
+      string initCommand = be_control->getInitSecondoCMD(&dbName, &dbPort);
 
-      ci->simpleCommand(initSQL,err,res,false,
+      ci->simpleCommand(initCommand,err,res,false,
           rt,false,CommandLog,true,defaultTimeout);
 
       if(err != 0) {
@@ -106,9 +106,9 @@ bool BasicEngine_Control::createConnection(string host, string port,
 
 */
 BasicEngine_Control::~BasicEngine_Control() {
-    if(dbs_conn != NULL) {
-      delete dbs_conn;
-      dbs_conn = NULL;
+    if(be_control != NULL) {
+      delete be_control;
+      be_control = NULL;
     }
 
     // Delete importer
@@ -118,8 +118,8 @@ BasicEngine_Control::~BasicEngine_Control() {
     importer.clear();
 
     // Delete connections
-    for(const distributed2::ConnectionInfo* connection: connections) {
-      delete connection;
+    for(distributed2::ConnectionInfo* ci: connections) {
+      ci->deleteIfAllowed();
     }
     connections.clear();
 
@@ -210,7 +210,7 @@ bool BasicEngine_Control::createTabFile(string tab) {
   string statement;
   bool val = false;
 
-  statement = dbs_conn->createTabFile(&tab);
+  statement = be_control->createTabFile(&tab);
 
   if (statement.length() > 0){
     write.open(getFilePath() + createTabFileName(&tab));
@@ -245,11 +245,11 @@ bool BasicEngine_Control::partRoundRobin(string* tab,
   partTabName = getparttabname(tab,key);
   drop_table(partTabName);
 
-  query_exec = dbs_conn->get_partRoundRobin(tab, key,
+  query_exec = be_control->get_partRoundRobin(tab, key,
       &anzSlots, &partTabName);
   
   if (query_exec != "") {
-    val = dbs_conn->sendCommand(&query_exec);
+    val = be_control->sendCommand(&query_exec);
   }
 
   return val;
@@ -350,11 +350,11 @@ bool BasicEngine_Control::partHash(string* tab,
   partTabName = getparttabname(tab,key);
   drop_table(partTabName);
 
-  query_exec = dbs_conn->get_partHash(tab,key
+  query_exec = be_control->get_partHash(tab,key
     ,&anzSlots,&partTabName);
   
   if (query_exec != "") {
-    val = dbs_conn->sendCommand(&query_exec);
+    val = be_control->sendCommand(&query_exec);
   } 
 
   return val;
@@ -384,11 +384,11 @@ bool BasicEngine_Control::partFun(string* tab,
     anzSlots = to_string(*slotnum);
   }
 
-  query_exec = dbs_conn->get_partFun(tab,key,
+  query_exec = be_control->get_partFun(tab,key,
       &anzSlots,fun,&partTabName);
 
   if (query_exec != "") {
-    val = dbs_conn->sendCommand(&query_exec);
+    val = be_control->sendCommand(&query_exec);
   }
 
   return val;
@@ -413,7 +413,7 @@ bool BasicEngine_Control::exportData(string* tab, string* key,
   for(i=1;i<=numberOfWorker;i++) {
     strindex = to_string(i);
 
-    string exportDataSQL = dbs_conn->get_exportData(tab,
+    string exportDataSQL = be_control->get_exportData(tab,
           &parttabname, key, &strindex, &path, slotnum);
         
     val = sendCommand(exportDataSQL) && val;
@@ -448,7 +448,7 @@ bool BasicEngine_Control::importData(string *tab) {
   strStream << inFile.rdbuf();
   cmd = strStream.str();
 
-  val = dbs_conn->sendCommand(&cmd) && val;
+  val = be_control->sendCommand(&cmd) && val;
   
   if(!val) {
     return val;
@@ -624,31 +624,35 @@ bool BasicEngine_Control::shutdownWorker() {
 
 
 /*
-3.18 ~checkConn~
+3.18 ~checkAllConnections~
 
 Checking the Connection to the secondary Master System and to the Worker.
 Returns true if everything is OK and there are no failure.
 
 */
-bool BasicEngine_Control::checkConn() {
-bool val = true;
-long unsigned int i = 0;
-const int defaultTimeout = 0;
-CommandLog CommandLog;
+bool BasicEngine_Control::checkAllConnections() {
+
+  const int defaultTimeout = 0;
 
   //checking connection to the worker
-  if (connections.size() == numberOfWorker) {
-    while (i < numberOfWorker and val and numberOfWorker > 0) {
-      val = connections[i]->check(false,CommandLog,defaultTimeout);
-      i++;
-    }
-     //checking the connection to the secondary dbms system
-     val = dbs_conn->checkConn() && val;
-  } else {
-    val = false;
+  if (connections.size() != numberOfWorker) {
+    return false;
   }
 
-return val;
+  for(size_t i; i < numberOfWorker; i++) {
+    CommandLog CommandLog;
+    
+    bool connectionState = connections[i]->check(
+      false, CommandLog, defaultTimeout);
+    
+    if(!connectionState) {
+      return false;
+    }
+  }
+
+  //checking the connection to the secondary dbms system
+  bool localConnectionState = be_control->checkAllConnections();
+  return localConnectionState;
 }
 
 /*
@@ -672,7 +676,7 @@ bool BasicEngine_Control::runsql(string filepath) {
 
     //execute the sql-Statement
     if (query != "") {
-      bool result = dbs_conn->sendCommand(&query);
+      bool result = be_control->sendCommand(&query);
       return result;
     }
 
@@ -707,14 +711,14 @@ bool BasicEngine_Control::partGrid(std::string* tab, std::string* key
   drop_table(partTabName);
 
   //creating Index on table
-  query_exec =  dbs_conn->get_drop_index(tab) + " "
-            "" + dbs_conn->create_geo_index(tab, geo_col);
-  val = dbs_conn->sendCommand(&query_exec);
+  query_exec =  be_control->get_drop_index(tab) + " "
+            "" + be_control->create_geo_index(tab, geo_col);
+  val = be_control->sendCommand(&query_exec);
 
   //
-  query_exec = dbs_conn->get_partGrid(tab,key,geo_col,&anzSlots, &x_start
+  query_exec = be_control->get_partGrid(tab,key,geo_col,&anzSlots, &x_start
                             , &y_start, &sizSlots, &partTabName);
-  if (query_exec != "" && val) val = dbs_conn->sendCommand(&query_exec);
+  if (query_exec != "" && val) val = be_control->sendCommand(&query_exec);
 
   return val;
 } 
@@ -728,7 +732,7 @@ Get the SECONDO type for the given SQL query.
  bool BasicEngine_Control::getTypeFromSQLQuery(std::string sqlQuery, 
     ListExpr &resultList) {
 
-   return dbs_conn->getTypeFromSQLQuery(sqlQuery, resultList);
+   return be_control->getTypeFromSQLQuery(sqlQuery, resultList);
  }
 
 
@@ -741,7 +745,7 @@ Get the SECONDO type for the given SQL query.
  ResultIteratorGeneric* BasicEngine_Control::performSQLQuery(
    std::string sqlQuery) {
 
-   return dbs_conn->performSQLQuery(sqlQuery);
+   return be_control->performSQLQuery(sqlQuery);
  }
 
 } /* namespace BasicEngine */

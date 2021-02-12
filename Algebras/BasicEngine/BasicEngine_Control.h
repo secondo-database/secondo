@@ -58,16 +58,16 @@ public:
 2.1 Public Methods
 
 */
-  BasicEngine_Control(ConnectionGeneric* _dbs_conn) {
-    dbs_conn = _dbs_conn;
+  BasicEngine_Control(ConnectionGeneric* _be_control) {
+    be_control = _be_control;
     worker = NULL;
     numberOfWorker = 0;
   };
 
-  BasicEngine_Control(ConnectionGeneric* _dbs_conn, 
+  BasicEngine_Control(ConnectionGeneric* _be_control, 
      Relation* _worker) {
 
-    dbs_conn = _dbs_conn;
+    be_control = _be_control;
     worker = _worker->Clone();
     numberOfWorker = worker->GetNoTuples();
     createAllConnection();
@@ -76,27 +76,27 @@ public:
   virtual ~BasicEngine_Control();
 
   ConnectionGeneric* get_conn() {
-    return dbs_conn;
+    return be_control;
   }
 
-  bool checkConn();
+  bool checkAllConnections();
 
   bool partTable(std::string tab, std::string key, std::string art,
      int slotnum, std::string geo_col = "", float x0 = 0, float y0 = 0,
      float slotsize = 0);
 
   bool drop_table(std::string tab) {
-    return sendCommand(dbs_conn->get_drop_table(&tab), false);
+    return sendCommand(be_control->get_drop_table(&tab), false);
   }
 
   bool createTabFile(std::string tab);
 
   bool copy(std::string tab, std::string full_path, bool direct) {
-    return sendCommand(dbs_conn->get_copy(&tab, &full_path, &direct));
+    return sendCommand(be_control->get_copy(&tab, &full_path, &direct));
   }
 
   bool createTab(std::string tab, std::string query) {
-     return sendCommand(dbs_conn->getCreateTabSQL(&tab, &query));
+     return sendCommand(be_control->getCreateTabSQL(&tab, &query));
   }
 
   bool munion(std::string tab);
@@ -110,7 +110,7 @@ public:
   bool shutdownWorker();
 
   bool sendCommand(std::string query, bool print=true) {
-    return dbs_conn->sendCommand(&query, print);
+    return be_control->sendCommand(&query, print);
   }
 
   bool getTypeFromSQLQuery(std::string sqlQuery, ListExpr &resultList);
@@ -128,7 +128,7 @@ In this template variable were stores the connection,
 to a secondary dbms (for example postgresql)
 
 */
-ConnectionGeneric* dbs_conn;
+ConnectionGeneric* be_control;
 
 /*
 2.2.2 ~worker~
@@ -194,7 +194,7 @@ long unsigned int numberOfWorker;
     {return "create" + *tab + ".sql";}
 
   std::string get_partFileName(std::string* tab, std::string* nr)
-    {return dbs_conn->get_partFileName(tab,nr);}
+    {return be_control->get_partFileName(tab,nr);}
 
   std::string getFilePath()
     {return std::string("/home/") + getenv("USER") + "/filetransfer/";};

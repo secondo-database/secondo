@@ -51,7 +51,7 @@ namespace BasicEngine {
 dbs\_con is a pointer to a connection, for example to postgres
 
 */
-BasicEngine_Control* dbs_conn = NULL;
+BasicEngine_Control* be_control = NULL;
 
 /*
 isMaster is a variable which shows, if this system is a master (true)
@@ -165,9 +165,9 @@ int be_init_sf_vm(Word* args, Word& result, int message,
       dbtypeValue, portValue, dbnameValue);
 
   if(dbConnection != NULL) {
-    dbs_conn = new BasicEngine_Control(dbConnection);
+    be_control = new BasicEngine_Control(dbConnection);
 
-    bool val = dbs_conn->checkConn();
+    bool val = be_control->checkAllConnections();
     isMaster = false;
     ((CcBool*)result.addr)->Set(true, val);
   } else {
@@ -259,10 +259,10 @@ int be_shutdown_vm(Word* args, Word& result, int message,
     return 0;
   }
 
-  if(dbs_conn != NULL) {
+  if(be_control != NULL) {
     cout << "Shutting down basic engine worker" << endl;
-    delete dbs_conn;
-    dbs_conn = NULL;
+    delete be_control;
+    be_control = NULL;
     
     ((CcBool*)result.addr)->Set(true, true);
     return 0;
@@ -331,9 +331,9 @@ int be_shutdown_worker_vm(Word* args, Word& result, int message,
   }
 
   // TODO: Replace template by abstract class
-  if(dbs_conn != NULL) {
+  if(be_control != NULL) {
     cout << "Shutting down basic engine worker" << endl;
-    bool shutdownResult = dbs_conn->shutdownWorker();
+    bool shutdownResult = be_control->shutdownWorker();
 
     if(! shutdownResult) {
       cout << "Error: Shutdown of the workers failed" << endl 
@@ -344,8 +344,8 @@ int be_shutdown_worker_vm(Word* args, Word& result, int message,
     }
 
     cout << "Shutting down basic engine master" << endl;
-    delete dbs_conn;
-    dbs_conn= NULL;
+    delete be_control;
+    be_control= NULL;
 
     ((CcBool*)result.addr)->Set(true, true);
     return 0;
@@ -431,9 +431,9 @@ CcInt* slot = (CcInt*) args[2].addr;
 bool val = false;
 CcBool* res = (CcBool*) result.addr;
 
-  if(dbs_conn && isMaster){
+  if(be_control && isMaster){
     if (slot->GetIntval() > 0){
-      val = dbs_conn->partTable(tab->toText(), key->toText()
+      val = be_control->partTable(tab->toText(), key->toText()
             ,"RR", slot->GetIntval());
     }else{
       cout << negSlots << endl;
@@ -549,9 +549,9 @@ int be_partHashSFVM(Word* args,Word& result,int message,
   bool val = false;
   CcBool* res = (CcBool*) result.addr;
 
-  if(dbs_conn && isMaster){
+  if(be_control && isMaster){
     if (slot->GetIntval() > 0){
-      val = dbs_conn->partTable(tab->toText(), key->toText(),
+      val = be_control->partTable(tab->toText(), key->toText(),
                 "Hash",slot->GetIntval());
     } else {
       cout << negSlots << endl;
@@ -674,9 +674,9 @@ CcInt* slot = (CcInt*) args[3].addr;
 bool val = false;
 CcBool* res = (CcBool*) result.addr;
 
-  if(dbs_conn && isMaster){
+  if(be_control && isMaster){
     if (slot->GetIntval() > 0){
-      val = dbs_conn->partTable(tab->toText(), key->toText()
+      val = be_control->partTable(tab->toText(), key->toText()
                 ,fun->toText(),slot->GetIntval());
     }else{
       cout<< negSlots << endl;
@@ -801,12 +801,12 @@ int be_querySFVM(Word* args,Word& result,int message,Word& local,Supplier s ) {
   T* query = (T*) args[0].addr;
   H* resultTab = (H*) args[1].addr;
 
-  if(dbs_conn) {
+  if(be_control) {
     //Delete target Table, ignore failure
-    dbs_conn->drop_table(resultTab->toText());
+    be_control->drop_table(resultTab->toText());
 
     //execute the query
-    val=dbs_conn->createTab(resultTab->toText(),query->toText());
+    val=be_control->createTab(resultTab->toText(),query->toText());
   } else {
     cout << noMaster << endl;
   }
@@ -904,8 +904,8 @@ int be_commandSFVM(Word* args, Word& result, int message
 
   T* query = (T*) args[0].addr;
 
-  if(dbs_conn){
-    val = dbs_conn->sendCommand(query->GetValue(),true);
+  if(be_control){
+    val = be_control->sendCommand(query->GetValue(),true);
   }
   else{
     cout << noMaster << endl;
@@ -1003,8 +1003,8 @@ int be_copySFVM(Word* args,Word& result,int message
   T* from = (T*) args[0].addr;  //table
   H* to = (H*) args[1].addr;    //path
 
-  if(dbs_conn){
-    val = dbs_conn->copy(from->GetValue(),to->GetValue(),
+  if(be_control){
+    val = be_control->copy(from->GetValue(),to->GetValue(),
           (from->GetValue().length() >= to->GetValue().length()));
   } else {
     cout << noMaster << endl;
@@ -1110,8 +1110,8 @@ int be_mquerySFVM(Word* args, Word& result, int message,
   T* query = (T*) args[0].addr;
   H* tab = (H*) args[1].addr;
 
-  if(dbs_conn && isMaster){
-    val = dbs_conn->mquery(query->toText(), tab->toText() );
+  if(be_control && isMaster){
+    val = be_control->mquery(query->toText(), tab->toText() );
   } else {
     cout << noWorker << endl;
   }
@@ -1209,8 +1209,8 @@ int be_mcommandSFVM(Word* args, Word& result, int message
   result = qp->ResultStorage(s);
   T* query = (T*) args[0].addr;
 
-  if(dbs_conn && isMaster){
-    val = dbs_conn->mcommand(query->toText());
+  if(be_control && isMaster){
+    val = be_control->mcommand(query->toText());
   } else{
     cout << noWorker << endl;
   }
@@ -1301,8 +1301,8 @@ int be_unionSFVM(Word* args, Word& result, int message
   T* tab = (T*) args[0].addr;
   bool val;
 
-  if(dbs_conn && isMaster) {
-    val = dbs_conn->munion(tab->toText());
+  if(be_control && isMaster) {
+    val = be_control->munion(tab->toText());
   } else {
     cout << noWorker << endl;
   }
@@ -1393,9 +1393,9 @@ int be_structSFVM(Word* args, Word& result, int message
   result = qp->ResultStorage(s);
   T* tab = (T*) args[0].addr;
 
-  if(dbs_conn){
+  if(be_control){
     //export a create Statement to filetransfer
-    val = dbs_conn->createTabFile(tab->GetValue());
+    val = be_control->createTabFile(tab->GetValue());
   }
   else{
     cout << noMaster << endl;
@@ -1518,10 +1518,10 @@ int init_be_workerSFVM(Word* args, Word& result, int message,
       dbtypeValue, portValue, dbnameValue);
 
   if(dbConnection != NULL) {
-    dbs_conn = new BasicEngine_Control(
+    be_control = new BasicEngine_Control(
           dbConnection, worker);
 
-    bool val = dbs_conn->checkConn();
+    bool val = be_control->checkAllConnections();
 
     isMaster = val;
     ((CcBool*)result.addr)->Set(true, val);
@@ -1617,8 +1617,8 @@ int be_runsqlSFVM(Word* args, Word& result, int message
 
   result = qp->ResultStorage(s);
 
-  if(dbs_conn){
-    val = dbs_conn->runsql(path->toText());
+  if(be_control){
+    val = be_control->runsql(path->toText());
   }
   else{
     cout << noMaster << endl;
@@ -1749,9 +1749,9 @@ CcInt* slot = (CcInt*) args[6].addr;
 bool val = false;
 CcBool* res = (CcBool*) result.addr;
 
-  if(dbs_conn && isMaster){
+  if(be_control && isMaster){
     if (slot->GetIntval() > 0){
-      val = dbs_conn->partTable(tab->toText(),key->toText()
+      val = be_control->partTable(tab->toText(),key->toText()
             ,"Grid",slot->GetIntval(),geo_col->toText()
       ,xstart->GetValue(),ystart->GetValue(),slotsize->GetValue());
     }else{
@@ -1891,13 +1891,13 @@ ListExpr be_collect_tm(ListExpr args) {
     return listutils::typeError(queryValue);
   }
 
-  if(dbs_conn == NULL) {
+  if(be_control == NULL) {
     return listutils::typeError("Basic engine is not connected. "
       "Plase call be_init_worker() first.");
   }
 
   ListExpr resultType;
-  bool sqlResult = dbs_conn -> getTypeFromSQLQuery(queryValue, resultType);
+  bool sqlResult = be_control -> getTypeFromSQLQuery(queryValue, resultType);
 
   if(!sqlResult) {
      return listutils::typeError("Unable to evaluate"
@@ -1927,7 +1927,7 @@ int be_collect_vm(Word* args, Word& result, int message,
         cli = NULL;
       }
 
-      cli = dbs_conn -> performSQLQuery(sqlQuery);
+      cli = be_control -> performSQLQuery(sqlQuery);
       local.setAddr( cli );
       return 0;
 

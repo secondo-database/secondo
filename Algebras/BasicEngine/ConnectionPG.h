@@ -76,7 +76,7 @@ class ConnectionPG : public ConnectionGeneric {
 
   bool sendCommand(std::string* command, bool print = true);
 
-  bool checkConn();
+  bool checkAllConnections();
 
   std::string createTabFile(std::string* tab);
 
