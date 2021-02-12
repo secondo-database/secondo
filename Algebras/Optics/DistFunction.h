@@ -532,7 +532,8 @@ class TupleDist: public DistCount {
       return std::numeric_limits<double>::max();
     }
     Geoid *geoid = (useGeoid ? new Geoid(true) : 0);
-    double result = p1->DistanceAvg(*(p2), geoid);
+    datetime::DateTime duration(0, 3600000, datetime::durationtype);
+    double result = p1->DistanceAvg(*(p2), duration, geoid);
     if (geoid) {
       geoid->DeleteIfAllowed();
     }

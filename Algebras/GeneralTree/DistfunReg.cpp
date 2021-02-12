@@ -506,9 +506,10 @@ void DistfunReg::MPointDistanceAvg(const DistData *data1, const DistData *data2,
     result = numeric_limits<double>::max();
   }
   temporalalgebra::MPoint mp1(true), mp2(true);
+  datetime::DateTime duration(0, 3600000, datetime::durationtype);
   mp1.deserialize((const char*)data1->value());
   mp2.deserialize((const char*)data2->value());
-  result = mp1.DistanceAvg(mp2);
+  result = mp1.DistanceAvg(mp2, duration);
 }
 
 /*

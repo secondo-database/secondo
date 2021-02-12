@@ -251,7 +251,8 @@ namespace mtreehelper{
     if (!mp1->IsDefined() || !mp2->IsDefined()) {
       return std::numeric_limits<double>::max();
     }
-    return mp1->DistanceAvg(*mp2, geoid);
+    datetime::DateTime duration(0, 3600000, datetime::durationtype);
+    return mp1->DistanceAvg(*mp2, duration, geoid);
   }
   
   double distance(const temporalalgebra::CUPoint* cup1,
