@@ -115,6 +115,16 @@ public:
 
   ResultIteratorGeneric* performSQLQuery(std::string sqlQuery);
 
+  bool shareWorkerRelation(Relation* relation);
+
+  bool isMaster() {
+    return master;
+  }
+
+  void setMaster(bool masterState) {
+    master = masterState;
+  }
+
 private:
 
 /*
@@ -161,6 +171,13 @@ The numberOfWorker counts the number of worker.
 
 */
 size_t numberOfWorker;
+
+/*
+2.2.5 master is a variable which shows, if this system is a master (true)
+or a worker(false).
+
+*/
+bool master = false;
 
 /*
 2.3 Private Methods

@@ -54,13 +54,6 @@ dbs\_con is a pointer to a connection, for example to postgres
 BasicEngine_Control* be_control = NULL;
 
 /*
-isMaster is a variable which shows, if this system is a master (true)
-or a worker(false).
-
-*/
-bool isMaster = false;
-
-/*
 noMaster is just a default string for an error massage.
 
 */
@@ -168,7 +161,7 @@ int be_init_sf_vm(Word* args, Word& result, int message,
     be_control = new BasicEngine_Control(dbConnection);
 
     bool val = be_control->checkAllConnections();
-    isMaster = false;
+    be_control->setMaster(false);
     ((CcBool*)result.addr)->Set(true, val);
   } else {
     cerr << endl << "Error: Unsupported database type: " 
@@ -250,16 +243,17 @@ int be_shutdown_vm(Word* args, Word& result, int message,
 
   result = qp->ResultStorage(s);
 
-  if(isMaster) {
-    cout << "Error: Can not shutdown worker, we are in master mode." 
-         << endl;
-    cout << "Please use be_shutdown_worker() instead." 
-         << endl << endl;
-    ((CcBool*)result.addr)->Set(true, false);
-    return 0;
-  }
-
   if(be_control != NULL) {
+
+    if(be_control->isMaster()) {
+      cout << "Error: Can not shutdown worker, we are in master mode." 
+          << endl;
+      cout << "Please use be_shutdown_worker() instead." 
+          << endl << endl;
+      ((CcBool*)result.addr)->Set(true, false);
+      return 0;
+    }
+
     cout << "Shutting down basic engine worker" << endl;
     delete be_control;
     be_control = NULL;
@@ -321,17 +315,17 @@ int be_shutdown_worker_vm(Word* args, Word& result, int message,
   
   result = qp->ResultStorage(s);
 
-  if(! isMaster) {
-    cout << "Error: Can not shutdown worker nodes, we are not" 
-         << " in master mode" << endl;
-    cout << "Please use be_shutdown to shutdown the local engine."
-         << endl << endl;
-    ((CcBool*)result.addr)->Set(false, true);
-    return 0;
-  }
-
-  // TODO: Replace template by abstract class
   if(be_control != NULL) {
+
+    if(! be_control->isMaster()) {
+      cout << "Error: Can not shutdown worker nodes, we are not" 
+          << " in master mode" << endl;
+      cout << "Please use be_shutdown to shutdown the local engine."
+          << endl << endl;
+      ((CcBool*)result.addr)->Set(false, true);
+      return 0;
+    }
+
     cout << "Shutting down basic engine worker" << endl;
     bool shutdownResult = be_control->shutdownWorker();
 
@@ -431,7 +425,7 @@ CcInt* slot = (CcInt*) args[2].addr;
 bool val = false;
 CcBool* res = (CcBool*) result.addr;
 
-  if(be_control && isMaster){
+  if(be_control && be_control->isMaster()){
     if (slot->GetIntval() > 0){
       val = be_control->partTable(tab->toText(), key->toText()
             ,"RR", slot->GetIntval());
@@ -549,7 +543,7 @@ int be_partHashSFVM(Word* args,Word& result,int message,
   bool val = false;
   CcBool* res = (CcBool*) result.addr;
 
-  if(be_control && isMaster){
+  if(be_control && be_control->isMaster()){
     if (slot->GetIntval() > 0){
       val = be_control->partTable(tab->toText(), key->toText(),
                 "Hash",slot->GetIntval());
@@ -674,7 +668,7 @@ CcInt* slot = (CcInt*) args[3].addr;
 bool val = false;
 CcBool* res = (CcBool*) result.addr;
 
-  if(be_control && isMaster){
+  if(be_control && be_control -> isMaster()){
     if (slot->GetIntval() > 0){
       val = be_control->partTable(tab->toText(), key->toText()
                 ,fun->toText(),slot->GetIntval());
@@ -1110,7 +1104,7 @@ int be_mquerySFVM(Word* args, Word& result, int message,
   T* query = (T*) args[0].addr;
   H* tab = (H*) args[1].addr;
 
-  if(be_control && isMaster){
+  if(be_control && be_control -> isMaster()){
     val = be_control->mquery(query->toText(), tab->toText() );
   } else {
     cout << noWorker << endl;
@@ -1209,7 +1203,7 @@ int be_mcommandSFVM(Word* args, Word& result, int message
   result = qp->ResultStorage(s);
   T* query = (T*) args[0].addr;
 
-  if(be_control && isMaster){
+  if(be_control && be_control -> isMaster()){
     val = be_control->mcommand(query->toText());
   } else{
     cout << noWorker << endl;
@@ -1301,7 +1295,7 @@ int be_unionSFVM(Word* args, Word& result, int message
   T* tab = (T*) args[0].addr;
   bool val;
 
-  if(be_control && isMaster) {
+  if(be_control && be_control -> isMaster()) {
     val = be_control->munion(tab->toText());
   } else {
     cout << noWorker << endl;
@@ -1533,12 +1527,14 @@ int init_be_workerSFVM(Word* args, Word& result, int message,
     bool connectionsAvailable = be_control->checkAllConnections();
 
     if(! connectionsAvailable) {
-      isMaster = false;
-      ((CcBool*) result.addr)->Set(true, false);
-    } else {
       cerr << "Errror: Connection error, please check the previous messages"
            << " for error messages." << endl << endl;
-      isMaster = true;
+      be_control -> setMaster(false);
+      ((CcBool*) result.addr)->Set(true, false);
+    } else {
+      cout << "Share the provided worker relation with the workers." << endl;
+      be_control -> shareWorkerRelation(worker);
+      be_control -> setMaster(true);
       ((CcBool*) result.addr)->Set(true, true);
     }
 
@@ -1766,7 +1762,7 @@ CcInt* slot = (CcInt*) args[6].addr;
 bool val = false;
 CcBool* res = (CcBool*) result.addr;
 
-  if(be_control && isMaster){
+  if(be_control && be_control -> isMaster()){
     if (slot->GetIntval() > 0){
       val = be_control->partTable(tab->toText(),key->toText()
             ,"Grid",slot->GetIntval(),geo_col->toText()

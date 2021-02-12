@@ -750,4 +750,15 @@ Get the SECONDO type for the given SQL query.
    return dbms_connection->performSQLQuery(sqlQuery);
  }
 
+/*
+3.21 ~shareWorkerRelation~
+
+Share the given worker relation.
+
+*/
+bool BasicEngine_Control::shareWorkerRelation(Relation* relation) {
+  return true;
+}
+
+
 } /* namespace BasicEngine */
