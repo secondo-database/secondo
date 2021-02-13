@@ -2780,18 +2780,18 @@ bool UPoint::AtRegion(const Region *r, std::vector<UPoint> &result) const {
 1.1 Implementation of functions for the class ~CUPoint~
 
 */
-void CUPoint::AtIntervalCU(const Interval<Instant>& i, CUPoint& result) const {
-  AtIntervalCU(i, result, 0);
+void CUPoint::AtInterval(const Interval<Instant>& i, CUPoint& result) const {
+  AtInterval(i, result, 0);
 }
 
-void CUPoint::AtIntervalCU(const Interval<Instant>& i, CUPoint& result,
-                           const Geoid* geoid) const {
+void CUPoint::AtInterval(const Interval<Instant>& i, CUPoint& result,
+                         const Geoid* geoid) const {
   ((UPoint*)this)->AtInterval(i, *((UPoint*)&result));
   result.SetRadius(this->GetRadius());
 }
 
-void CUPoint::TemporalFunctionCU(const Instant& t, CPoint& result,
-                                 bool ignoreLimits /* = false */) const {
+void CUPoint::TemporalFunction(const Instant& t, CPoint& result,
+                               bool ignoreLimits /* = false */) const {
   Point p(true);
   ((UPoint*)this)->TemporalFunction(t, p, ignoreLimits);
   result.Set(p, this->GetRadius());
@@ -3139,10 +3139,10 @@ double CUPoint::DistanceAvg(const CUPoint& cup, const bool upperBound,
     std::swap(cup1, cup2);
   } // now we know that cup1's duration is at least as long as cup2's
   if (cup1.timeInterval.end > cup2.timeInterval.end) { // divide and conquer
-    cup1.AtIntervalCU(cup2.timeInterval, cup1a, geoid);
+    cup1.AtInterval(cup2.timeInterval, cup1a, geoid);
     Interval<Instant> iv1b(cup1a.timeInterval.end, cup1.timeInterval.end, 
                            !cup1a.timeInterval.rc, cup1a.timeInterval.rc);
-    cup1.AtIntervalCU(iv1b, cup1b, geoid);    
+    cup1.AtInterval(iv1b, cup1b, geoid);
     cup2b.SetRadius(0.0); // add constant cupoint
     cup2b.p0 = cup2.p1;
     cup2b.p1 = cup2b.p0;
@@ -3162,6 +3162,7 @@ double CUPoint::DistanceAvg(const CUPoint& cup, const bool upperBound,
     // previously: return result1 + result2;
   }
   // from now on, it is ensured that cup1 and cup2 have the same length
+  
   UReal urDist(true);
   if (!geoid) {
     ((UPoint*)(&cup1))->Distance(*((UPoint*)(&cup2)), urDist);
@@ -5284,22 +5285,15 @@ double MPoint::DistanceAvg(const MPoint& mp, const datetime::DateTime& duration,
   if (IsEmpty() || mp.IsEmpty()) {
     return DBL_MAX;
   }
-  
-//   Instant start1(datetime::instanttype), start2(datetime::instanttype);
-//   InitialInstant(start1);
-//   mp.InitialInstant(start2);
   MPoint mp1(true), mp2(true);
-//   timeMove(start2 - start1, shiftThis);
-//   cout << *this << endl << mp << endl;
-  ForceToDuration(duration, true, mp1, geoid);
-  mp.ForceToDuration(duration, true, mp2, geoid);
+  ForceToDuration<MPoint, UPoint>(*this, duration, true, mp1, geoid);
+  ForceToDuration<MPoint, UPoint>(mp, duration, true, mp2, geoid);
 //   cout << "AFTER FTD: " << endl << mp1 << endl << mp2 << endl;
   if (mp1.Compare(&mp2) == -1) {
     std::swap(mp1, mp2);
   }
   double durTemp(0.0), sum(0.0), integralValue(0.0);
-  // extend shorter mpoint with constant unit
-  UPoint lastUnit(true), u1(true), u2(true), u1cut(true), u2cut(true);
+  UPoint u1(true), u2(true), u1cut(true), u2cut(true);
   RefinementPartition<MPoint, MPoint, UPoint, UPoint> rp(mp1, mp2);
   int u1Pos, u2Pos;  
   UReal ur(true);
@@ -5344,7 +5338,7 @@ double MPoint::DistanceAvg(const MPoint& mp, const datetime::DateTime& duration,
     integralValue = ur.Integrate();
     if (isnan(integralValue)) {
       integralValue = (u1cut.p0.Distance(u2cut.p0, geoid) +
-                        u1cut.p1.Distance(u2cut.p1, geoid)) / 2 *
+                       u1cut.p1.Distance(u2cut.p1, geoid)) / 2 *
                       (iv.end - iv.start).ToDouble();
     }
     if (integralValue < 0.0) {
@@ -5355,9 +5349,6 @@ double MPoint::DistanceAvg(const MPoint& mp, const datetime::DateTime& duration,
   }
   DateTime dur(datetime::durationtype);
   dur.ReadFrom(durTemp);
-//   if (dur < durMax) {
-//     cout << shiftThis << endl << arg << endl;
-//   }
 //   cout << "MPoint::DistanceAvg, integral SUM is " << sum << ", DURATION is "
 //        << dur << endl << endl << endl;
   mp1.Destroy();
@@ -5635,88 +5626,6 @@ void MPoint::removeNoise(const double maxspeed, const double maxdist,
       }
 //       cout << "stored startpos: " << startpos << endl;
     }
-  }
-}
-
-void MPoint::ForceToDuration(const DateTime& duration, 
-                             const bool startAtBeginOfTime, MPoint& result, 
-                             const Geoid* geoid /*=0*/) const {
-  assert(duration.GetType() == datetime::durationtype);
-  result.Clear();
-  if (!IsDefined()) {
-    result.SetDefined(false);
-    return;
-  }
-  result.SetDefined(true);
-  if (IsEmpty()) {
-    return;
-  }
-  Instant firstInstant(0.0), beginOfTime(0.0);
-  InitialInstant(firstInstant);
-  DateTime diffToBeginOfTime = firstInstant - beginOfTime;
-  DateTime durTemp(0, 0, datetime::durationtype);
-  int i = 0;
-  UPoint unit(true), unit2(true), unit3(true);
-  Interval<Instant> iv;
-  while (i < GetNoComponents()) {
-    Get(i, unit);
-    if (i > 0) {
-      if (iv.end != unit.timeInterval.start) { // fill temporal gap with const u
-        unit2.timeInterval = Interval<Instant>(iv.end, unit.timeInterval.start,
-                                               !iv.rc, !unit.timeInterval.lc);
-        unit2.p0 = unit2.p1;
-        durTemp += (unit2.timeInterval.end - unit2.timeInterval.start);
-        if (durTemp >= duration) { // prune current unit and finish
-          iv = unit2.timeInterval;
-          unit2.AtInterval(Interval<Instant>(iv.start,
-                    iv.end - (durTemp - duration), iv.lc, iv.rc), unit3, geoid);
-          if (startAtBeginOfTime) {
-            unit3.timeInterval.start -= diffToBeginOfTime;
-            unit3.timeInterval.end -= diffToBeginOfTime;
-          }
-          result.Add(unit3);
-          return;
-        }
-        if (startAtBeginOfTime) {
-          unit2.timeInterval.start -= diffToBeginOfTime;
-          unit2.timeInterval.end -= diffToBeginOfTime;
-        }
-        result.Add(unit2);
-      }
-    }
-    iv = unit.timeInterval;
-    durTemp += (iv.end - iv.start);
-    if (durTemp >= duration) { // prune current unit and finish
-      unit.AtInterval(Interval<Instant>(iv.start, iv.end - (durTemp - duration),
-                                        iv.lc, iv.rc), unit2, geoid);
-      if (startAtBeginOfTime) {
-        unit2.timeInterval.start -= diffToBeginOfTime;
-        unit2.timeInterval.end -= diffToBeginOfTime;
-      }
-      result.Add(unit2);
-      return;
-    }
-    else {
-      if (startAtBeginOfTime) {
-        unit.timeInterval.start -= diffToBeginOfTime;
-        unit.timeInterval.end -= diffToBeginOfTime;
-      }
-      result.Add(unit);
-    }
-    unit2 = unit;
-    i++;
-  }
-  if (durTemp < duration) { // add constant unit at the end
-    unit.timeInterval = Interval<Instant>(iv.end, iv.end + (duration - durTemp),
-                                          !iv.rc, iv.rc);
-    Rectangle<2> bbox = BoundingBoxSpatial();
-    unit.p0.Set(true, bbox.MidD(0), bbox.MidD(1));
-    unit.p1 = unit.p0;
-    if (startAtBeginOfTime) {
-      unit.timeInterval.start -= diffToBeginOfTime;
-      unit.timeInterval.end -= diffToBeginOfTime;
-    }
-    result.Add(unit);
   }
 }
 
@@ -8674,7 +8583,7 @@ void CMPoint::AtInstant(const Instant& t, Intime<CPoint>& result) const {
           CUPoint posUnit(true);
           units.Get(pos, &posUnit);
           result.SetDefined(true);
-          posUnit.TemporalFunctionCU(t, result.value);
+          posUnit.TemporalFunction(t, result.value);
           result.instant.CopyFrom(&t);
         }
       }
@@ -8742,7 +8651,7 @@ void CMPoint::AtPeriods(const Periods& p, CMPoint& result) const {
           }
           else { // we have overlapping intervals, now
             CUPoint r(true);
-            unit.AtIntervalCU(interval, r);
+            unit.AtInterval(interval, r);
             assert(r.IsDefined());
             assert(r.IsValid());
             result.Add(r);
@@ -8915,23 +8824,23 @@ double CMPoint::DistanceAvg(const CMPoint& cmp, const bool upperBound,
     }
     else if (cu1Pos == -1) {
       arg.Get(cu2Pos, cu2);
-      cu2.AtIntervalCU(iv, cu2cut, geoid);
+      cu2.AtInterval(iv, cu2cut, geoid);
       cu1cut.timeInterval = cu2cut.timeInterval;
       cu1cut.p0 = cu1cut.p1; // use constant unit with same time interval as u2
       cu1cut.SetRadius(0.0);
     }
     else if (cu2Pos == -1) {
       shiftThis.Get(cu1Pos, cu1);
-      cu1.AtIntervalCU(iv, cu1cut, geoid);
+      cu1.AtInterval(iv, cu1cut, geoid);
       cu2cut.timeInterval = cu1cut.timeInterval;
       cu2cut.p0 = cu2cut.p1; // use constant unit with same time interval as u1
       cu2cut.SetRadius(0.0);
     }
     else {
       shiftThis.Get(cu1Pos, cu1);
-      cu1.AtIntervalCU(iv, cu1cut, geoid);
+      cu1.AtInterval(iv, cu1cut, geoid);
       arg.Get(cu2Pos, cu2);
-      cu2.AtIntervalCU(iv, cu2cut, geoid);
+      cu2.AtInterval(iv, cu2cut, geoid);
     }
     if (cu1cut.IsDefined() && cu2cut.IsDefined()) {
       sum += cu1cut.DistanceAvg(cu2cut, upperBound, geoid) *
@@ -8979,7 +8888,7 @@ void CMPoint::MergeAdd(const CUPoint& unit) {
                              last.timeInterval.lc, unit.timeInterval.rc);
   CUPoint cupoint(complete, last.p0, unit.p1, unit.GetRadius());
   CPoint cp;
-  cupoint.TemporalFunctionCU(last.timeInterval.end, cp, true);
+  cupoint.TemporalFunction(last.timeInterval.end, cp, true);
   if (!AlmostEqual(*((Point*)&cp), last.p0)) {
     Add(unit); // also adopts bbox
     return;
@@ -9163,64 +9072,6 @@ void CMPoint::GetRadii(MReal& result) const {
     ur.c = cup.GetRadius();
     ur.r = false;
     result.Add(ur);
-  }
-}
-
-void CMPoint::ForceToDuration(const datetime::DateTime& duration, 
-                             CMPoint& result, const Geoid* geoid /*=0*/) const {
-  assert(duration.GetType() == datetime::durationtype);
-  result.Clear();
-  if (!IsDefined()) {
-    result.SetDefined(false);
-    return;
-  }
-  result.SetDefined(true);
-  if (IsEmpty()) {
-    return;
-  }
-  datetime::DateTime durTemp(0, 0, datetime::durationtype);
-  int i = 0;
-  CUPoint unit(true), unit2(true), unit3(true);
-  Interval<Instant> iv;
-  while (i < GetNoComponents()) {
-    Get(i, unit);
-    if (i > 0) {
-      if (iv.end != unit.timeInterval.start) { // fill temporal gap with const u
-        unit2.timeInterval = Interval<Instant>(iv.end, unit.timeInterval.start,
-                                               !iv.rc, !unit.timeInterval.lc);
-        unit2.p0 = unit2.p1;
-        unit2.SetRadius(0.0);
-        durTemp += (unit2.timeInterval.end - unit2.timeInterval.start);
-        if (durTemp >= duration) {
-          iv = unit2.timeInterval;
-          unit2.AtInterval(Interval<Instant>(iv.start, 
-                    iv.end - (durTemp - duration), iv.lc, iv.rc), unit3, geoid);
-          result.Add(unit3);
-          return;
-        }
-        result.Add(unit2);
-      }
-    }
-    iv = unit.timeInterval;
-    durTemp += (iv.end - iv.start);
-    if (durTemp >= duration) { // truncate current unit and finish
-      unit.AtInterval(Interval<Instant>(iv.start, iv.end - (durTemp - duration),
-                                        iv.lc, iv.rc), unit2, geoid);
-      result.Add(unit2);
-      return;
-    }
-    else {
-      result.Add(unit);
-    }
-    unit2 = unit;
-    i++;
-  }
-  if (durTemp < duration) { // add constant unit at the end
-    unit.timeInterval = Interval<Instant>(iv.end, iv.end + (duration - durTemp),
-                                          !iv.rc, iv.rc);
-    unit.p0 = unit.p1;
-    unit.SetRadius(0.0);
-    result.Add(unit);
   }
 }
 
@@ -20592,7 +20443,8 @@ int forceToDurationVM(Word* args, Word& result, int message, Word& local,
   if (qp->GetNoSons(s) == 4) {
     geoid = (Geoid*)args[3].addr;
   }
-  src->ForceToDuration(*duration, startAtBeginOfTime->GetValue(), *res, geoid);
+  ForceToDuration<MPoint, UPoint>(*src, *duration, 
+                                  startAtBeginOfTime->GetValue(), *res, geoid);
   return 0;
 }
 

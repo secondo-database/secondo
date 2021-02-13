@@ -4309,17 +4309,6 @@ replaces them by one (usually short) unit.
 */
     void removeNoise(const double maxspeed, const double maxdist, 
                      const Geoid *geoid, MPoint &result) const;
-
-/*
-3.10.5.11 ~ForceToDuration~ function
-
-Force duration to the given value. This means, longer instances are truncated
-and shorter ones are extended (by a constant unit having the same value as its
-precursor). Temporal gaps are also filled by such constant units.
-
-*/
-void ForceToDuration(const datetime::DateTime& duration, 
-         bool startAtBeginOfTime, MPoint& result, const Geoid* geoid = 0) const;
                      
 /*
 3.10.5.12 Functions ~serialize~ and ~deserialize~
@@ -4343,6 +4332,97 @@ private:
 
    Rectangle<3> bbox;
 };
+
+/*
+3.10.5 ~ForceToDuration~ function
+
+Force duration of the src mpoint or cmpoint to the given value. This means, 
+longer instances are pruned and shorter ones are extended (by a constant unit 
+located at the center of the bounding box). Temporal gaps are also filled by 
+constant units.
+
+*/
+template<class M, class U>
+void ForceToDuration(const M& src, const datetime::DateTime& duration,
+             const bool startAtBeginOfTime, M& result, const Geoid* geoid = 0) {
+  assert(duration.GetType() == datetime::durationtype);
+  result.Clear();
+  if (!src.IsDefined()) {
+    result.SetDefined(false);
+    return;
+  }
+  result.SetDefined(true);
+  if (src.IsEmpty()) {
+    return;
+  }
+  Instant firstInstant(0.0), beginOfTime(0.0);
+  src.InitialInstant(firstInstant);
+  datetime::DateTime diffToBeginOfTime = firstInstant - beginOfTime;
+  datetime::DateTime durTemp(0, 0, datetime::durationtype);
+  int i = 0;
+  U unit(true), unit2(true), unit3(true);
+  Interval<Instant> iv;
+  while (i < src.GetNoComponents()) {
+    src.Get(i, unit);
+    if (i > 0) {
+      if (iv.end != unit.timeInterval.start) { // fill temporal gap with const u
+        unit2.timeInterval = Interval<Instant>(iv.end, unit.timeInterval.start,
+                                               !iv.rc, !unit.timeInterval.lc);
+        unit2.p0 = unit2.p1;
+        durTemp += (unit2.timeInterval.end - unit2.timeInterval.start);
+        if (durTemp >= duration) { // prune current unit and finish
+          iv = unit2.timeInterval;
+          unit2.AtInterval(Interval<Instant>(iv.start,
+                    iv.end - (durTemp - duration), iv.lc, iv.rc), unit3, geoid);
+          if (startAtBeginOfTime) {
+            unit3.timeInterval.start -= diffToBeginOfTime;
+            unit3.timeInterval.end -= diffToBeginOfTime;
+          }
+          result.Add(unit3);
+          return;
+        }
+        if (startAtBeginOfTime) {
+          unit2.timeInterval.start -= diffToBeginOfTime;
+          unit2.timeInterval.end -= diffToBeginOfTime;
+        }
+        result.Add(unit2);
+      }
+    }
+    iv = unit.timeInterval;
+    durTemp += (iv.end - iv.start);
+    if (durTemp >= duration) { // prune current unit and finish
+      unit.AtInterval(Interval<Instant>(iv.start, iv.end - (durTemp - duration),
+                                        iv.lc, iv.rc), unit2, geoid);
+      if (startAtBeginOfTime) {
+        unit2.timeInterval.start -= diffToBeginOfTime;
+        unit2.timeInterval.end -= diffToBeginOfTime;
+      }
+      result.Add(unit2);
+      return;
+    }
+    else {
+      if (startAtBeginOfTime) {
+        unit.timeInterval.start -= diffToBeginOfTime;
+        unit.timeInterval.end -= diffToBeginOfTime;
+      }
+      result.Add(unit);
+    }
+    unit2 = unit;
+    i++;
+  }
+  if (durTemp < duration) { // add constant unit at the end
+    unit.timeInterval = Interval<Instant>(iv.end, iv.end + (duration - durTemp),
+                                          !iv.rc, iv.rc);
+    Rectangle<2> bbox = src.BoundingBoxSpatial();
+    unit.p0.Set(true, bbox.MidD(0), bbox.MidD(1)); // center of bounding box
+    unit.p1 = unit.p0;
+    if (startAtBeginOfTime) {
+      unit.timeInterval.start -= diffToBeginOfTime;
+      unit.timeInterval.end -= diffToBeginOfTime;
+    }
+    result.Add(unit);
+  }
+}
 
 class CMPoint;
 
@@ -4474,16 +4554,16 @@ Returns ~true~ if both units are undefined, or if both are defined and this temp
 Restricts this cupoint to a certain time interval.
 
 */
-  virtual void AtIntervalCU(const Interval<Instant>& i, CUPoint& result) const;
-  void AtIntervalCU(const Interval<Instant>& i, CUPoint& result,
-                    const Geoid* geoid) const;
+  virtual void AtInterval(const Interval<Instant>& i, CUPoint& result) const;
+  void AtInterval(const Interval<Instant>& i, CUPoint& result,
+                  const Geoid* geoid) const;
 
 /*
 Evaluates this cupoint at a certain instant.
 
 */
-  virtual void TemporalFunctionCU(const Instant& t, CPoint& result,
-                                  bool ignoreLimits = false) const;
+  virtual void TemporalFunction(const Instant& t, CPoint& result,
+                                bool ignoreLimits = false) const;
 
 /*
 Functions required for attribute type
@@ -4863,17 +4943,6 @@ geometry is used, otherwise spherical geometry is applied.
   void RestoreBoundingBox(const bool force, const Geoid* geoid = 0);
   
   void GetRadii(MReal& result) const;
-  
-/*
-3.10.5.11 ~ForceToDuration~ function
-
-Force duration to the given value. This means, longer instances are truncated
-and shorter ones are extended (by a constant unit having the same value as its
-precursor). Temporal gaps are also filled by such constant units.
-
-*/
-void ForceToDuration(const datetime::DateTime& duration, CMPoint& result,
-                     const Geoid* geoid = 0) const;
 
   static const std::string BasicType() {return "cmpoint";}
   
