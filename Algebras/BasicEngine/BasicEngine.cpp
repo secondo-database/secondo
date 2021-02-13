@@ -1456,37 +1456,55 @@ of the operation.
 This operator gets a hostname,a port and a Worker relation.
 
 */
-ListExpr be_init_worker_tm(ListExpr args){
-string err = "\n {string, text} x int x {string, text} x rel "
+ListExpr be_init_worker_tm(ListExpr args) {
+
+  string err = "\n {string, text} x int x {string, text} x rel "
        "--> bool (type, port, db-name, worker relation) expected";
+
+  // Example
+  // ((text 'pgsql') (int 50506) (text 'mydb') 
+  //  ((rel (tuple ((Host string) (Port int) (Config string) 
+  //  (PGPort int) (DBName string)))) WorkersPG))
 
   if(!(nl->HasLength(args,4))){
     return listutils::typeError("Four arguments expected. " + err);
   }
 
-  if(!CcString::checkType(nl->First(args))
-        && !FText::checkType(nl->First(args))){
+  ListExpr dbType = nl->First(nl->First(args));
+  ListExpr dbPort = nl->First(nl->Second(args));
+  ListExpr dbName = nl->First(nl->Third(args));
+  ListExpr relation = nl->First(nl->Fourth(args));
+  string relationName = nl->ToString(nl->Second(nl->Fourth(args)));
+
+  if(!CcString::checkType(dbType) && !FText::checkType(dbType)) {
     return listutils::typeError("Value of first argument have "
         "to be a string or a text. " + err);
   }
 
-  if(!CcInt::checkType(nl->Second(args))){
+  if(!CcInt::checkType(dbPort)) {
     return listutils::typeError("Value of second argument have "
         "to be a int." + err);
   }
 
-  if(!CcString::checkType(nl->Third(args))
-        && !FText::checkType(nl->Third(args))){
+  if(!CcString::checkType(dbName) && !FText::checkType(dbName)) {
     return listutils::typeError("Value of third argument have "
         "to be a string or a text. " + err);
   }
 
-  if(!Relation::checkType(nl->Fourth(args))){
+  if(!Relation::checkType(relation)){
     return listutils::typeError("Value of fourth argument have "
         "to be a relation." + err);
   }
 
-  return nl->SymbolAtom(CcBool::BasicType());
+  // Append the used relation name to the result
+  // The relation is distributed in the VM to the worker
+  ListExpr res = nl->ThreeElemList(
+        nl->SymbolAtom(Symbol::APPEND()),
+        nl->OneElemList(nl->StringAtom(relationName)),
+        nl->OneElemList(nl->SymbolAtom(CcBool::BasicType()))
+  );
+
+  return res;
 }
 
 /*
@@ -1501,6 +1519,7 @@ int init_be_workerSFVM(Word* args, Word& result, int message,
   CcInt* port = (CcInt*) args[1].addr;
   T* dbname = (T*) args[2].addr;
   Relation* worker = (Relation*) args[3].addr;
+  FText* workerRelationName = (FText*) args[4].addr;
 
   result = qp->ResultStorage(s);
 
@@ -1513,9 +1532,34 @@ int init_be_workerSFVM(Word* args, Word& result, int message,
     return 0;
   }
 
+  if(! port->IsDefined()) {
+    cerr << "Error: Port is undefined" << endl;
+    ((CcBool*) result.addr)->Set(true, false);
+    return 0;
+  }
+  
+  if(! dbname->IsDefined()) {
+    cerr << "Error: DBName is undefined" << endl;
+    ((CcBool*) result.addr)->Set(true, false);
+    return 0;
+  }
+
+  if(! dbtype->IsDefined()) {
+    cerr << "Error: Database type is undefined" << endl;
+    ((CcBool*) result.addr)->Set(true, false);
+    return 0;
+  }
+
+  if(! workerRelationName->IsDefined()) {
+    cerr << "Error: Worker relation name is undefined" << endl;
+    ((CcBool*) result.addr)->Set(true, false);
+    return 0;
+  }
+
   int portValue = port->GetIntval();
   string dbnameValue = dbname->toText();
   string dbtypeValue = dbtype->toText();
+  string workerRelationNameValue = workerRelationName->toText();
   
   ConnectionGeneric* dbConnection = getDatabaseConnection(
       dbtypeValue, portValue, dbnameValue);
@@ -1532,8 +1576,11 @@ int init_be_workerSFVM(Word* args, Word& result, int message,
       be_control -> setMaster(false);
       ((CcBool*) result.addr)->Set(true, false);
     } else {
-      cout << "Share the provided worker relation with the workers." << endl;
-      be_control -> shareWorkerRelation(worker);
+      cout << "Share the worker relation '" << workerRelationNameValue 
+           << "' with the basic engine workers." << endl;
+  
+      be_control -> setWorkerRelationName(workerRelationNameValue);
+      be_control -> shareWorkerRelation(workerRelationNameValue, worker);
       be_control -> setMaster(true);
       ((CcBool*) result.addr)->Set(true, true);
     }
@@ -2009,6 +2056,7 @@ class BasicEngineAlgebra : public Algebra
   {
     AddOperator(&be_init_op);
     AddOperator(&be_init_worker_op);
+    be_init_worker_op.SetUsesArgsInTypeMapping();
     AddOperator(&be_shutdown);
     AddOperator(&be_shutdown_worker);
     AddOperator(&be_partRROp);

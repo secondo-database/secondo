@@ -115,7 +115,7 @@ public:
 
   ResultIteratorGeneric* performSQLQuery(std::string sqlQuery);
 
-  bool shareWorkerRelation(Relation* relation);
+  bool shareWorkerRelation(std::string workerRelationName, Relation* relation);
 
   bool isMaster() {
     return master;
@@ -124,6 +124,18 @@ public:
   void setMaster(bool masterState) {
     master = masterState;
   }
+
+  std::string getWorkerRelationName() {
+    return workerRelationName;
+  }
+
+  void setWorkerRelationName(std::string newWorkerRelationName) {
+    workerRelationName = newWorkerRelationName;
+  }
+
+  static const size_t defaultTimeout = 0;
+
+  static const int defaultHeartbeat = 0;
 
 private:
 
@@ -178,6 +190,12 @@ or a worker(false).
 
 */
 bool master = false;
+
+/*
+2.2.5 workerRelationName is the name of the used worker relation
+
+*/
+std::string workerRelationName = "";
 
 /*
 2.3 Private Methods

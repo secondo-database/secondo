@@ -55,13 +55,12 @@ Additionally add an entry to the importer vector.
 bool BasicEngine_Control::createConnection(string host, string port, 
   string config, string dbPort, string dbName) {
 
-  const size_t defaultTimeout = 0;
-  const int defaultHeartbeat = 0;
-
   bool val = false;
 
   ConnectionInfo* ci = ConnectionInfo::createConnection(
-      host, stoi(port), config, defaultTimeout, defaultHeartbeat);
+      host, stoi(port), config, 
+      BasicEngine_Control::defaultTimeout, 
+      BasicEngine_Control::defaultHeartbeat);
 
   if (ci == nullptr) {  
     cout << "Couldn't connect to secondo-Worker on host "
@@ -72,7 +71,8 @@ bool BasicEngine_Control::createConnection(string host, string port,
     BasicEngine_Thread* basicEngineThread = new BasicEngine_Thread(ci);
     importer.push_back(basicEngineThread);
 
-    val = ci->switchDatabase(dbName, true, false, true, defaultTimeout);
+    val = ci->switchDatabase(dbName, true, false, true, 
+      BasicEngine_Control::defaultTimeout);
 
     if(! val) { 
       cerr << "Unable to switch to database " << dbName 
@@ -83,12 +83,12 @@ bool BasicEngine_Control::createConnection(string host, string port,
       int err = 0;
       double rt;
       string res;
-      CommandLog CommandLog;
+      CommandLog commandLog;
 
       string initCommand = dbms_connection->getInitSecondoCMD(&dbName, &dbPort);
 
       ci->simpleCommand(initCommand,err,res,false,
-          rt,false,CommandLog,true,defaultTimeout);
+          rt,false,commandLog,true, BasicEngine_Control::defaultTimeout);
 
       if(err != 0) {
         cout << std::string("ErrCode:" + err) << endl;
@@ -756,8 +756,77 @@ Get the SECONDO type for the given SQL query.
 Share the given worker relation.
 
 */
-bool BasicEngine_Control::shareWorkerRelation(Relation* relation) {
-  return true;
+bool BasicEngine_Control::shareWorkerRelation(
+  string relationName, Relation* relation) {
+  
+  bool successFlag = true;
+
+  // Get type for secondo object
+  SecondoCatalog* ctlg = SecondoSystem::GetCatalog();
+  string tn;
+  bool defined;
+  bool hasTypeName;
+  ListExpr typeList;
+  Word value;
+  value.setAddr(0);
+
+  if(!ctlg->GetObjectExpr(relationName, tn, typeList, value, 
+                          defined, hasTypeName)){
+     cerr << "Error: Name " << relationName << " is not on object" << endl;
+     return false;
+  }
+
+  if(!defined){
+     cerr << "Error: Undefined objects cannot be shared" << endl;
+     return false;
+  }
+  
+  // Write relation to file
+  bool isRelation = Relation::checkType(typeList);
+
+  if(! isRelation) {
+    cerr << "Error: provided relation name is not a relation" << endl;
+    return false;
+  }
+
+  string filename = relationName + "_" 
+                     + stringutils::int2str(WinUnix::getpid()) 
+                     + ".bin";
+
+  if(connections.empty()) {
+    cerr << "Error: Worker are empty" << endl;
+    return false;
+  }
+
+  ConnectionInfo* ci = connections.front();
+  ci->saveRelationToFile(typeList, value, filename);
+
+  // Share relation
+  for(distributed2::ConnectionInfo* ci: connections) {
+    CommandLog commandLog;
+
+    bool result = ci->createOrUpdateRelationFromBinFile(
+      relationName, filename, false, commandLog, true,
+      false, BasicEngine_Control::defaultTimeout);
+
+    if(! result) {
+      cerr << "Error while distributing worker relation to" 
+        << ci -> getHost() << " / " << ci -> getPort() << endl;
+      successFlag = false;
+    }
+  }
+
+  // Delete relation file
+  if(filename.size()>0){
+      FileSystem::DeleteFileOrFolder(filename); 
+  }
+
+  if(value.addr){
+    SecondoSystem::GetCatalog()->CloseObject(typeList, value);
+    value.setAddr(0);
+  }
+
+  return successFlag;
 }
 
 
