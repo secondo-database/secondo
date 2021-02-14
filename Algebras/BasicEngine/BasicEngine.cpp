@@ -38,10 +38,11 @@ Version 1.0 - Created - C.Behrndt - 2020
 */
 #include "Algebras/FText/FTextAlgebra.h"
 #include "StandardTypes.h"
-#include "BasicEngine_Control.cpp"
-#include "ConnectionPG.cpp"
+#include "BasicEngine_Control.h"
+#include "ConnectionPostgres.h"
 
 using namespace distributed2;
+using namespace std;
 
 namespace BasicEngine {
 
