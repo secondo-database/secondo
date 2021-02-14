@@ -131,13 +131,13 @@ PGresult* ConnectionPG::sendQuery(const string &query) {
 }
 
 /*
-6.5 ~createTabFile~
+6.5 ~getCreateTableSQL~
 
 Creates a Create-Statement of a given table and
 return this string.
 
 */
-string ConnectionPG::createTabFile(const string &tab){
+string ConnectionPG::getCreateTableSQL(const string &tab){
 
   string query_exec;
   PGresult* res;
@@ -181,7 +181,7 @@ string ConnectionPG::createTabFile(const string &tab){
 Creates a table in postgreSQL with the partitioned data by round robin.
 
 */
-string ConnectionPG::get_partRoundRobin(const string &tab, 
+string ConnectionPG::getPartitionRoundRobinSQL(const string &tab, 
   const string &key, const string &anzSlots, const string &targetTab) {
 
   string select = "SELECT (nextval('temp_seq') %" + anzSlots + ""
@@ -197,7 +197,7 @@ string ConnectionPG::get_partRoundRobin(const string &tab,
 Creates a table in postgreSQL with the partitioned data by hash value.
 
 */
-string ConnectionPG::get_partHash(const string &tab, const string &key,
+string ConnectionPG::getPartitionHashSQL(const string &tab, const string &key,
                   const string &anzSlots, const string &targetTab) {
 
   string usedKey(key);
@@ -308,7 +308,7 @@ bool ConnectionPG::createFunctionRandom(const string &tab,
 This function is for organizing the special partitioning functions.
 
 */
-string ConnectionPG::get_partFun(const string &tab, const string &key, 
+string ConnectionPG::getPartitionSQL(const string &tab, const string &key, 
   const string &anzSlots, const string &fun, const string &targetTab) {
 
   string select = "";
@@ -336,7 +336,7 @@ string ConnectionPG::get_partFun(const string &tab, const string &key,
 Creating a statement for exporting the data from a portioning table.
 
 */
-string ConnectionPG::get_exportData(const string &tab, const string &join_tab,
+string ConnectionPG::getExportDataSQL(const string &tab, const string &join_tab,
                   const string &key, const string &nr, const string &path,
                   size_t numberOfWorker) {
   
@@ -355,7 +355,7 @@ then tab where import the date from the filesystem. If the direkt variable is
 false them the tab where export to the filesystem.
 
 */
-string ConnectionPG::get_copy(const string &tab, 
+string ConnectionPG::getCopySQL(const string &tab, 
   const string &full_path, bool direct) {
 
   if (direct) {
@@ -398,7 +398,7 @@ Creates a table in postgreSQL with the partitioned data by a grid.
 The key specified a column which content is a object like a line or a polygon.
 
 */
-string ConnectionPG::get_partGrid(const std::string &tab, 
+string ConnectionPG::getPartitionGridSQL(const std::string &tab, 
   const std::string &key, const std::string &geo_col, 
   const std::string &anzSlots, const std::string &x0,
   const std::string &y0, const std::string &size, 
@@ -429,7 +429,7 @@ string ConnectionPG::get_partGrid(const std::string &tab,
   sendCommand(query_exec,false);
 
   //Creating the new grid
-  query_exec = get_drop_table(gridTable);
+  query_exec = getDropTableSQL(gridTable);
   sendCommand(query_exec, false);
 
   //creating the grid table
@@ -441,7 +441,7 @@ string ConnectionPG::get_partGrid(const std::string &tab,
   sendCommand(query_exec,false);
 
   //creating index on grid
-  query_exec = create_geo_index(gridTable, gridCol);
+  query_exec = getCreateGeoIndexSQL(gridTable, gridCol);
   sendCommand(query_exec, false);
 
   string usedKey(key);
@@ -596,16 +596,16 @@ bool ConnectionPG::getTypeFromSQLQuery(const std::string &sqlQuery,
 }
 
 /*
-6.16 ~performSQLQuery~
+6.16 ~performSQLSelectQuery~
 
 Perform the given query and return a result iterator
 
 */
-ResultIteratorGeneric* ConnectionPG::performSQLQuery(
+ResultIteratorGeneric* ConnectionPG::performSQLSelectQuery(
   const std::string &sqlQuery) {
 
   if( ! checkConnection()) {
-    cerr << "Error: Connection check failed in performSQLQuery()" << endl;
+    cerr << "Error: Connection check failed in performSQLSelectQuery()" << endl;
     return NULL;
   }
 

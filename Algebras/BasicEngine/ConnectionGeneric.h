@@ -42,46 +42,46 @@ class ConnectionGeneric {
 
     virtual bool checkConnection() = 0;
 
-    virtual std::string createTabFile(const std::string &tab) = 0;
+    virtual std::string getCreateTableSQL(const std::string &tab) = 0;
 
     virtual std::string getInitSecondoCMD(const std::string &dbname, 
         const std::string &port, const std::string &workerRelation) = 0;
 
-    virtual std::string get_drop_table(const std::string &table) = 0;
+    virtual std::string getDropTableSQL(const std::string &table) = 0;
 
-    virtual std::string get_drop_index(const std::string &index) = 0;
+    virtual std::string getDropIndexSQL(const std::string &index) = 0;
 
-    virtual std::string create_geo_index(
+    virtual std::string getCreateGeoIndexSQL(
         const std::string &table, const std::string &geo_col) = 0;
 
-    virtual std::string get_partRoundRobin(const std::string &table, 
+    virtual std::string getPartitionRoundRobinSQL(const std::string &table, 
         const std::string &key, const std::string &anzSlots, 
         const std::string &targetTab) = 0;
 
-    virtual std::string get_partHash(const std::string &table, 
+    virtual std::string getPartitionHashSQL(const std::string &table, 
         const std::string &key, const std::string &anzSlots, 
         const std::string &targetTab) = 0;
 
-    virtual std::string get_partFun(const std::string &table, 
+    virtual std::string getPartitionSQL(const std::string &table, 
         const std::string &keyS, const std::string &anzSlots, 
         const  std::string &fun, const std::string &targetTab) = 0;
 
-    virtual std::string get_partGrid(const std::string &table, 
+    virtual std::string getPartitionGridSQL(const std::string &table, 
             const std::string &key,
             const std::string &geo_col, const std::string &anzSlots, 
             const std::string &x0, const std::string &y0,
             const std::string &size, const std::string &targetTab) = 0;
 
-    virtual std::string get_exportData(const std::string &table, 
+    virtual std::string getExportDataSQL(const std::string &table, 
             const std::string &join_table, const std::string &key, 
             const std::string &nr, const std::string &path,
             size_t numberOfWorker) = 0;
 
-    virtual std::string get_copy(
+    virtual std::string getCopySQL(
         const std::string &table, const std::string &full_path, 
         bool direct) = 0;
 
-    virtual std::string get_partFileName(
+    virtual std::string getFilenameForPartition(
         const std::string &table, const std::string &number) = 0;
 
     virtual std::string getCreateTabSQL(
@@ -90,7 +90,7 @@ class ConnectionGeneric {
     virtual bool getTypeFromSQLQuery(const std::string &sqlQuery, 
          ListExpr &resultList) = 0;
 
-    virtual ResultIteratorGeneric* performSQLQuery(
+    virtual ResultIteratorGeneric* performSQLSelectQuery(
         const std::string &sqlQuery) = 0;
 
     virtual std::string getDatabaseName() = 0;

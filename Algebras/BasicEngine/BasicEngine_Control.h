@@ -88,13 +88,13 @@ public:
     float x0 = 0, float y0 = 0, float slotsize = 0);
 
   bool drop_table(const std::string &tab) {
-    return sendCommand(dbms_connection->get_drop_table(tab), false);
+    return sendCommand(dbms_connection->getDropTableSQL(tab), false);
   }
 
-  bool createTabFile(const std::string &tab);
+  bool getCreateTableSQL(const std::string &tab);
 
   bool copy(const std::string &tab, const std::string &full_path, bool direct) {
-    return sendCommand(dbms_connection->get_copy(tab, full_path, direct));
+    return sendCommand(dbms_connection->getCopySQL(tab, full_path, direct));
   }
 
   bool createTab(const std::string &tab, const std::string &query) {
@@ -120,7 +120,7 @@ public:
 
   bool getTypeFromSQLQuery(const std::string &sqlQuery, ListExpr &resultList);
 
-  ResultIteratorGeneric* performSQLQuery(const std::string &sqlQuery);
+  ResultIteratorGeneric* performSQLSelectQuery(const std::string &sqlQuery);
 
   std::string exportWorkerRelation(const std::string &relationName, 
     Relation* relation);
@@ -232,14 +232,14 @@ distributed2::ConnectionInfo* createConnection(const std::string &host,
 
   bool exportToWorker(const std::string &tab);
 
-  std::string createTabFileName(const std::string &tab) {
+  std::string getCreateTableSQLName(const std::string &tab) {
     return "create" + tab + ".sql";
   }
 
-  std::string get_partFileName(const std::string &tab, 
+  std::string getFilenameForPartition(const std::string &tab, 
     const std::string &nr) {
   
-    return dbms_connection->get_partFileName(tab, nr);
+    return dbms_connection->getFilenameForPartition(tab, nr);
   }
 
   std::string getFilePath() {

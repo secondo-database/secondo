@@ -1278,7 +1278,7 @@ int be_structSFVM(Word* args, Word& result, int message
 
   if(be_control){
     //export a create Statement to filetransfer
-    val = be_control->createTabFile(tab->GetValue());
+    val = be_control->getCreateTableSQL(tab->GetValue());
   }
   else{
     cout << noMaster << endl;
@@ -1963,7 +1963,7 @@ int be_collect_vm(Word* args, Word& result, int message,
         cli = NULL;
       }
 
-      cli = be_control -> performSQLQuery(sqlQuery);
+      cli = be_control -> performSQLSelectQuery(sqlQuery);
       local.setAddr( cli );
       return 0;
 

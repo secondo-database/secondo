@@ -78,7 +78,7 @@ class ConnectionPG : public ConnectionGeneric {
 
   bool checkConnection();
 
-  std::string createTabFile(const std::string &table);
+  std::string getCreateTableSQL(const std::string &table);
 
   std::string getDatabaseName() {
     return dbname;
@@ -95,48 +95,48 @@ class ConnectionPG : public ConnectionGeneric {
       + dbname + "'," + workerRelation + ");";
   }
 
-  std::string get_drop_table(const std::string &table) {
+  std::string getDropTableSQL(const std::string &table) {
     return "DROP TABLE IF EXISTS " + table + ";";
   }
 
-  std::string get_drop_index(const std::string& index) {
+  std::string getDropIndexSQL(const std::string& index) {
     return "DROP INDEX IF EXISTS " + index + "_idx;";
   }
 
-  std::string create_geo_index(const std::string &table, 
+  std::string getCreateGeoIndexSQL(const std::string &table, 
     const std::string &geo_col) {
 
     return "CREATE INDEX " + table + "_idx ON"
                 " " + table + " USING GIST (" + geo_col + ");";
   }
 
-  std::string get_partRoundRobin(const std::string &table, 
+  std::string getPartitionRoundRobinSQL(const std::string &table, 
     const std::string &key, const std::string &anzSlots, 
     const std::string &targetTab);
 
-  std::string get_partHash(const std::string &table, 
+  std::string getPartitionHashSQL(const std::string &table, 
     const std::string &key, const std::string &anzSlots, 
     const std::string &targetTab);
 
-  std::string get_partFun(const std::string &table, 
+  std::string getPartitionSQL(const std::string &table, 
     const std::string &keyS, const std::string &anzSlots,
     const std::string &fun, const std::string &targetTab);
 
-  std::string get_partGrid(const std::string &table,
+  std::string getPartitionGridSQL(const std::string &table,
     const std::string &key, const std::string &geo_col, 
     const std::string &anzSlots, const std::string &x0, 
     const std::string &y0, const std::string &size, 
     const std::string &targetTab);
 
-  std::string get_exportData(const std::string &table, 
+  std::string getExportDataSQL(const std::string &table, 
     const std::string &join_table, const std::string &key, 
     const std::string &nr, const std::string &path,
     size_t numberOfWorker);
 
-  std::string get_copy(const std::string &table, 
+  std::string getCopySQL(const std::string &table, 
     const std::string &full_path, bool direct);
 
-  std::string get_partFileName(const std::string &table, 
+  std::string getFilenameForPartition(const std::string &table, 
     const std::string &number) {
 
     return table + "_" + number + ".bin";
@@ -152,7 +152,7 @@ class ConnectionPG : public ConnectionGeneric {
 
   bool getTypeFromQuery(const PGresult* res, ListExpr &resultList);
 
-  ResultIteratorGeneric* performSQLQuery(const std::string &sqlQuery);
+  ResultIteratorGeneric* performSQLSelectQuery(const std::string &sqlQuery);
 
   private:
 

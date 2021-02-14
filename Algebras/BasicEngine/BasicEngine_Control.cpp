@@ -288,23 +288,23 @@ string BasicEngine_Control::getparttabname(
 }
 
 /*
-3.7 ~createTabFile~
+3.7 ~getCreateTableSQL~
 
 Creates a table create statement from the input tab
 and store the statement in a file.
 Returns true if everything is OK and there are no failure.
 
 */
-bool BasicEngine_Control::createTabFile(const string &tab) {
+bool BasicEngine_Control::getCreateTableSQL(const string &tab) {
 
   ofstream write;
   string statement;
   bool val = false;
 
-  statement = dbms_connection->createTabFile(tab);
+  statement = dbms_connection->getCreateTableSQL(tab);
 
   if (statement.length() > 0){
-    write.open(getFilePath() + createTabFileName(tab));
+    write.open(getFilePath() + getCreateTableSQLName(tab));
     if (write.is_open()){
       write << statement;
       write.close();
@@ -338,7 +338,7 @@ bool BasicEngine_Control::partRoundRobin(const string &tab,
   partTabName = getparttabname(tab, key);
   drop_table(partTabName);
 
-  query_exec = dbms_connection->get_partRoundRobin(tab, key,
+  query_exec = dbms_connection->getPartitionRoundRobinSQL(tab, key,
       anzSlots, partTabName);
   
   if (query_exec != "") {
@@ -392,7 +392,7 @@ bool BasicEngine_Control::exportToWorker(const string &tab){
   string importPath;
   SecondoInterfaceCS* si ;
 
-  string remoteCreateName = createTabFileName(tab);
+  string remoteCreateName = getCreateTableSQLName(tab);
   string localCreateName = getFilePath() + remoteCreateName;
 
   for(size_t index; index < numberOfWorker; index++){
@@ -406,7 +406,7 @@ bool BasicEngine_Control::exportToWorker(const string &tab){
 
       //sending data
       string strindex = to_string(index+1);
-      string remoteName = get_partFileName(tab, strindex);
+      string remoteName = getFilenameForPartition(tab, strindex);
       string localName = getFilePath() + remoteName;
 
       val = (si->sendFile(localName, remoteName, true) == 0);
@@ -433,7 +433,7 @@ bool BasicEngine_Control::exportToWorker(const string &tab){
     //doing the import with one thread for each worker
     for(size_t i=0;i<importer.size();i++){
       string strindex = to_string(i+1);
-      string remoteName = get_partFileName(tab, strindex);
+      string remoteName = getFilenameForPartition(tab, strindex);
       importer[i]->startImport(tab, remoteCreateName, remoteName);
     }
 
@@ -472,7 +472,7 @@ bool BasicEngine_Control::partHash(const string &tab,
   partTabName = getparttabname(tab, key);
   drop_table(partTabName);
 
-  query_exec = dbms_connection->get_partHash(tab, key,
+  query_exec = dbms_connection->getPartitionHashSQL(tab, key,
     anzSlots, partTabName);
   
   if (query_exec != "") {
@@ -506,7 +506,7 @@ bool BasicEngine_Control::partFun(const string &tab,
     anzSlots = to_string(slotnum);
   }
 
-  query_exec = dbms_connection->get_partFun(tab, key,
+  query_exec = dbms_connection->getPartitionSQL(tab, key,
       anzSlots, fun, partTabName);
 
   if (query_exec != "") {
@@ -535,7 +535,7 @@ bool BasicEngine_Control::exportData(const string &tab,
   for(size_t i=1;i<=numberOfWorker;i++) {
     strindex = to_string(i);
 
-    string exportDataSQL = dbms_connection->get_exportData(tab,
+    string exportDataSQL = dbms_connection->getExportDataSQL(tab,
           parttabname, key, strindex, path, slotnum);
         
     val = sendCommand(exportDataSQL) && val;
@@ -560,7 +560,7 @@ bool BasicEngine_Control::importData(const string &tab) {
   string strindex;
 
   //create Table
-  full_path = getFilePath() + createTabFileName(tab);
+  full_path = getFilePath() + getCreateTableSQLName(tab);
 
   // Read data into memory
   ifstream inFile;
@@ -581,7 +581,7 @@ bool BasicEngine_Control::importData(const string &tab) {
   // TODO: Check if 1 is the correct start index here (JNI)
   for(size_t i=1;i<=numberOfWorker; i++){
     strindex = to_string(i);
-    full_path = getFilePath() + get_partFileName(tab, strindex);
+    full_path = getFilePath() + getFilenameForPartition(tab, strindex);
     val = copy(full_path, tab, true) && val;
     FileSystem::DeleteFileOrFolder(full_path);
   }
@@ -626,7 +626,7 @@ bool BasicEngine_Control::partTable(const string &tab, const string &key,
     return val;
   }
 
-  val = createTabFile(tab);
+  val = getCreateTableSQL(tab);
 
   if(!val){
     cout << "\n Couldn't create the structure-file" << endl;
@@ -659,11 +659,11 @@ bool BasicEngine_Control::munion(const string &tab) {
   //doing the export with one thread for each worker
   for(size_t i=0; i<importer.size(); i++) {
     strindex = to_string(i+1);
-    path = getFilePath() + get_partFileName(tab, strindex);
+    path = getFilePath() + getFilenameForPartition(tab, strindex);
 
     importer[i]->startExport(tab, path, strindex,
-             createTabFileName(tab),
-             get_partFileName(tab, strindex));
+             getCreateTableSQLName(tab),
+             getFilenameForPartition(tab, strindex));
   }
 
   //waiting for finishing the threads
@@ -837,12 +837,12 @@ bool BasicEngine_Control::partGrid(const std::string &tab,
   drop_table(partTabName);
 
   //creating Index on table
-  query_exec =  dbms_connection->get_drop_index(tab) + " "
-            "" + dbms_connection->create_geo_index(tab, geo_col);
+  query_exec =  dbms_connection->getDropIndexSQL(tab) + " "
+            "" + dbms_connection->getCreateGeoIndexSQL(tab, geo_col);
   val = dbms_connection->sendCommand(query_exec);
 
   //
-  query_exec = dbms_connection->get_partGrid(tab, key, geo_col, 
+  query_exec = dbms_connection->getPartitionGridSQL(tab, key, geo_col, 
     anzSlots, x_start, y_start, sizSlots, partTabName);
 
   if (query_exec != "" && val) {
@@ -871,10 +871,10 @@ Get the SECONDO type for the given SQL query.
 Get the SECONDO type for the given SQL query.
 
 */
- ResultIteratorGeneric* BasicEngine_Control::performSQLQuery(
+ ResultIteratorGeneric* BasicEngine_Control::performSQLSelectQuery(
    const std::string &sqlQuery) {
 
-   return dbms_connection->performSQLQuery(sqlQuery);
+   return dbms_connection->performSQLSelectQuery(sqlQuery);
  }
 
 
