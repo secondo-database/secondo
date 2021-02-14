@@ -1389,7 +1389,7 @@ ListExpr be_init_worker_tm(ListExpr args) {
   ListExpr res = nl->ThreeElemList(
         nl->SymbolAtom(Symbol::APPEND()),
         nl->OneElemList(nl->StringAtom(relationName)),
-        nl->OneElemList(nl->SymbolAtom(CcBool::BasicType()))
+        nl->SymbolAtom(CcBool::BasicType())
   );
 
   return res;

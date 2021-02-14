@@ -145,7 +145,7 @@ bool BasicEngine_Control::initBasicEngineOnWorker(ConnectionInfo* ci,
       return false;
     } 
     
-    if (res != "((bool) TRUE)") {
+    if (res != "(bool TRUE)") {
       cout << "Error: Got invalid result from remote node " 
            << res << endl
            << "Command was: " << initCommand << endl;
@@ -153,6 +153,28 @@ bool BasicEngine_Control::initBasicEngineOnWorker(ConnectionInfo* ci,
     }
     
     return true;
+}
+
+/*
+3.2 ~exportWorkerRelationToWorker~
+
+Init the basic engine on the given worker
+
+*/
+bool BasicEngine_Control::exportWorkerRelationToWorker(ConnectionInfo* ci, 
+  const optional<string> &workerRelationFileName) {
+
+      if(! workerRelationFileName.has_value()) {
+          cerr << "We are in master mode, but worker relation is not exported" 
+               << endl;
+          return false;
+        }
+
+      CommandLog commandLog;
+
+      return ci->createOrUpdateRelationFromBinFile(
+        workerRelationName, workerRelationFileName.value(), false, 
+        commandLog, true, false, BasicEngine_Control::defaultTimeout);
 }
 
 /*
@@ -201,24 +223,24 @@ bool BasicEngine_Control::createAllConnections(){
 
       break;
     }
-    
+
+
+    // In master mode init the basic engine on the clients
+    // and share worker relation
     if(master) {
-        initBasicEngineOnWorker(ci, dbPort, dbName);
+        bool initResult 
+          = initBasicEngineOnWorker(ci, dbPort, dbName);
 
-        // Share worker relation
-        CommandLog commandLog;
-
-        if(! workerRelationFileName.has_value()) {
-          cerr << "We are in master mode, but worker relation is not exported" 
-               << endl;
-          return false;
+        if(! initResult) {
+          cerr << "Error while init basic engine on" 
+            << ci -> getHost() << " / " << ci -> getPort() << endl;
+          break;
         }
 
-        bool result = ci->createOrUpdateRelationFromBinFile(
-          workerRelationName, workerRelationFileName.value(), false, 
-          commandLog, true, false, BasicEngine_Control::defaultTimeout);
+        bool exportResult 
+          = exportWorkerRelationToWorker(ci, workerRelationFileName);
 
-        if(! result) {
+        if(! exportResult) {
           cerr << "Error while distributing worker relation to" 
             << ci -> getHost() << " / " << ci -> getPort() << endl;
           break;

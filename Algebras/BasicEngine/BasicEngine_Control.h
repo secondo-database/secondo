@@ -36,6 +36,7 @@ Version 1.0 - Created - C.Behrndt - 2020
 #ifndef _BasicEngine_Control_H_
 #define _BasicEngine_Control_H_
 
+#include <optional>
 #include "Algebras/Relation-C++/RelationAlgebra.h"
 #include "BasicEngine_Thread.h"
 #include "ConnectionGeneric.h"
@@ -117,6 +118,9 @@ public:
 
   std::string exportWorkerRelation(std::string relationName, 
     Relation* relation);
+
+  bool exportWorkerRelationToWorker(distributed2::ConnectionInfo* ci, 
+    const std::optional<std::string> &workerRelationFileName);
 
   bool isMaster() {
     return master;
