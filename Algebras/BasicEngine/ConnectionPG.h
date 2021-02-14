@@ -76,17 +76,23 @@ class ConnectionPG : public ConnectionGeneric {
 
   bool sendCommand(std::string* command, bool print = true);
 
-  bool checkAllConnections();
+  bool checkConnection();
 
   std::string createTabFile(std::string* tab);
 
-  std::string getInitSecondoCMD() {
-      return "query be_init('pgsql'," + std::to_string(port) 
-              + ",'"+ dbname +"');";
+  std::string getDatabaseName() {
+    return dbname;
   }
 
-  std::string getInitSecondoCMD(std::string* _dbname, std::string* _port) {
-    return "query be_init('pgsql'," + *_port + ",'"+ *_dbname +"');";
+  int getDatabasePort() {
+    return port;
+  }
+
+  std::string getInitSecondoCMD(const std::string &dbname, 
+    const std::string &port, const std::string &workerRelation) {
+
+    return "query be_init('pgsql'," + port + ",'"
+      + dbname + "'," + workerRelation + ");";
   }
 
   std::string get_drop_table(std::string* tab) {

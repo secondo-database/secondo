@@ -52,10 +52,9 @@ Creating a specified and saves it in the connections vector.
 Additionally add an entry to the importer vector.
 
 */
-bool BasicEngine_Control::createConnection(string host, string port, 
-  string config, string dbPort, string dbName) {
-
-  bool val = false;
+ConnectionInfo* BasicEngine_Control::createConnection(const string &host, 
+  const string &port, string &config, 
+  const string &dbPort, const string &dbName) {
 
   ConnectionInfo* ci = ConnectionInfo::createConnection(
       host, stoi(port), config, 
@@ -66,40 +65,28 @@ bool BasicEngine_Control::createConnection(string host, string port,
     cout << "Couldn't connect to secondo-Worker on host "
          << host << " with port " << port << "!" 
          << endl << endl;
-  } else {
-    connections.push_back(ci);
-    BasicEngine_Thread* basicEngineThread = new BasicEngine_Thread(ci);
-    importer.push_back(basicEngineThread);
+    return nullptr;
+  } 
+  
+  bool switchResult = ci->switchDatabase(dbName, true, false, true, 
+    BasicEngine_Control::defaultTimeout);
 
-    val = ci->switchDatabase(dbName, true, false, true, 
-      BasicEngine_Control::defaultTimeout);
-
-    if(! val) { 
-      cerr << "Unable to switch to database " << dbName 
-           << " on host " << host << " with port " << port << "!" 
-           << endl << endl;
-    } else {
-      string errMsg;
-      int err = 0;
-      double rt;
-      string res;
-      CommandLog commandLog;
-
-      string initCommand = dbms_connection->getInitSecondoCMD(&dbName, &dbPort);
-
-      ci->simpleCommand(initCommand,err,res,false,
-          rt,false,commandLog,true, BasicEngine_Control::defaultTimeout);
-
-      if(err != 0) {
-        cout << std::string("ErrCode:" + err) << endl;
-      } else {
-        val = (res == "(bool TRUE)") && val;
-      }
-    }
+  if(! switchResult) { 
+    cerr << "Unable to switch to database " << dbName 
+          << " on host " << host << " with port " << port << "!" 
+          << endl << endl;
+    
+    ci->deleteIfAllowed();
+    return nullptr;
   }
 
-  return val;
+  connections.push_back(ci);
+  BasicEngine_Thread* basicEngineThread = new BasicEngine_Thread(ci);
+  importer.push_back(basicEngineThread);
+
+  return ci;
 }
+
 
 /*
 3.2 Destructor
@@ -124,11 +111,49 @@ BasicEngine_Control::~BasicEngine_Control() {
     connections.clear();
 
     // Delete cloned worker relation
-    if(worker != NULL) {
-      worker -> Delete();
-      worker = NULL;
+    if(workerRelation != NULL) {
+      workerRelation -> Delete();
+      workerRelation = NULL;
     }
   }
+
+/*
+3.2 ~initBasicEngineOnWorker~
+
+Init the basic engine on the given worker
+
+*/
+bool BasicEngine_Control::initBasicEngineOnWorker(ConnectionInfo* ci, 
+  const string &dbPort, const string &dbName) {
+
+    string errMsg;
+    int err = 0;
+    double rt;
+    string res;
+    CommandLog commandLog;
+
+    string initCommand = dbms_connection->getInitSecondoCMD(
+      dbName, dbPort, workerRelationName);
+
+    // Call be_init on the remote node
+    ci->simpleCommand(initCommand,err,res,false,
+      rt,false,commandLog,true, BasicEngine_Control::defaultTimeout);
+
+    if(err != 0) {
+      cout << "Error: Got ErrCode:" << err << endl
+            << "Command was: " << initCommand << endl;
+      return false;
+    } 
+    
+    if (res != "((bool) TRUE)") {
+      cout << "Error: Got invalid result from remote node " 
+           << res << endl
+           << "Command was: " << initCommand << endl;
+      return false;
+    }
+    
+    return true;
+}
 
 /*
 3.2 ~createAllConnections~
@@ -138,8 +163,22 @@ Creating all connection from the worker relation.
 */
 bool BasicEngine_Control::createAllConnections(){
 
-  GenericRelationIterator* it = worker->MakeScan();
+  GenericRelationIterator* it = workerRelation->MakeScan();
   Tuple* tuple = nullptr;
+  optional<string> workerRelationFileName = nullopt;
+
+  // In master mode, share the worker relation with the clients
+  if(master) {
+    try {
+      string exportedFile = exportWorkerRelation(
+          workerRelationName, workerRelation);
+      workerRelationFileName.emplace(exportedFile); 
+    } catch(std::exception &e) {
+      cerr << "Error: Got an exception during export worker relation"  
+           << e.what() << endl;
+      return false;
+    }
+  }
   
   while ((tuple = it->GetNextTuple()) != 0) {
     string host = tuple->GetAttribute(0)->toText();
@@ -152,21 +191,50 @@ bool BasicEngine_Control::createAllConnections(){
       tuple->DeleteIfAllowed();
     }
 
-    bool connectionResult = createConnection(
+    ConnectionInfo* ci = createConnection(
       host, port, config, dbPort, dbName);
-    
-    if(! connectionResult) {
+
+    if(ci == nullptr) {
       cout << endl 
            << "Error: Unable to establish connection to worker: "
            << host << " / " << port << endl << endl;
 
       break;
     }
+    
+    if(master) {
+        initBasicEngineOnWorker(ci, dbPort, dbName);
+
+        // Share worker relation
+        CommandLog commandLog;
+
+        if(! workerRelationFileName.has_value()) {
+          cerr << "We are in master mode, but worker relation is not exported" 
+               << endl;
+          return false;
+        }
+
+        bool result = ci->createOrUpdateRelationFromBinFile(
+          workerRelationName, workerRelationFileName.value(), false, 
+          commandLog, true, false, BasicEngine_Control::defaultTimeout);
+
+        if(! result) {
+          cerr << "Error while distributing worker relation to" 
+            << ci -> getHost() << " / " << ci -> getPort() << endl;
+          break;
+        }
+    }
   }
 
   if(it != NULL) {
     delete it;
     it = NULL;
+  }
+
+  // Delete relation file
+  if(workerRelationFileName.has_value()){
+      FileSystem::DeleteFileOrFolder(workerRelationFileName.value());
+      workerRelationFileName.reset();
   }
 
   if(numberOfWorker != connections.size()) {
@@ -642,10 +710,10 @@ bool BasicEngine_Control::checkAllConnections() {
   }
 
   for(size_t i = 0; i < numberOfWorker; i++) {
-    CommandLog CommandLog;
+    CommandLog commandLog;
     
     bool connectionState = connections[i]->check(
-      false, CommandLog, defaultTimeout);
+      false, commandLog, defaultTimeout);
     
     if(!connectionState) {
       return false;
@@ -653,7 +721,7 @@ bool BasicEngine_Control::checkAllConnections() {
   }
 
   //checking the connection to the secondary dbms system
-  bool localConnectionState = dbms_connection->checkAllConnections();
+  bool localConnectionState = dbms_connection->checkConnection();
   return localConnectionState;
 }
 
@@ -750,16 +818,21 @@ Get the SECONDO type for the given SQL query.
    return dbms_connection->performSQLQuery(sqlQuery);
  }
 
-/*
-3.21 ~shareWorkerRelation~
 
-Share the given worker relation.
+/*
+3.21 ~exportWorkerRelation~
+
+Export the worker relation into a file.
 
 */
-bool BasicEngine_Control::shareWorkerRelation(
+string BasicEngine_Control::exportWorkerRelation(
   string relationName, Relation* relation) {
-  
-  bool successFlag = true;
+
+  // Output file
+  string filename = relationName + "_" 
+                     + stringutils::int2str(WinUnix::getpid()) 
+                     + ".bin";
+
 
   // Get type for secondo object
   SecondoCatalog* ctlg = SecondoSystem::GetCatalog();
@@ -770,55 +843,34 @@ bool BasicEngine_Control::shareWorkerRelation(
   Word value;
   value.setAddr(0);
 
-  if(!ctlg->GetObjectExpr(relationName, tn, typeList, value, 
-                          defined, hasTypeName)){
-     cerr << "Error: Name " << relationName << " is not on object" << endl;
-     return false;
-  }
-
-  if(!defined){
-     cerr << "Error: Undefined objects cannot be shared" << endl;
-     return false;
-  }
-  
-  // Write relation to file
-  bool isRelation = Relation::checkType(typeList);
-
-  if(! isRelation) {
-    cerr << "Error: provided relation name is not a relation" << endl;
-    return false;
-  }
-
-  string filename = relationName + "_" 
-                     + stringutils::int2str(WinUnix::getpid()) 
-                     + ".bin";
-
-  if(connections.empty()) {
-    cerr << "Error: Worker are empty" << endl;
-    return false;
-  }
-
-  ConnectionInfo* ci = connections.front();
-  ci->saveRelationToFile(typeList, value, filename);
-
-  // Share relation
-  for(distributed2::ConnectionInfo* ci: connections) {
-    CommandLog commandLog;
-
-    bool result = ci->createOrUpdateRelationFromBinFile(
-      relationName, filename, false, commandLog, true,
-      false, BasicEngine_Control::defaultTimeout);
-
-    if(! result) {
-      cerr << "Error while distributing worker relation to" 
-        << ci -> getHost() << " / " << ci -> getPort() << endl;
-      successFlag = false;
+  try {
+    if(!ctlg->GetObjectExpr(relationName, tn, typeList, value, 
+                            defined, hasTypeName)) {
+      throw SecondoException("Error: Name " 
+        + relationName + " is not on object");
     }
-  }
 
-  // Delete relation file
-  if(filename.size()>0){
-      FileSystem::DeleteFileOrFolder(filename); 
+    if(!defined){
+      throw SecondoException("Error: Undefined objects cannot be shared");
+    }
+    
+    // Write relation to file
+    bool isRelation = Relation::checkType(typeList);
+
+    if(! isRelation) {
+      throw SecondoException("Error: provided relation name is not a relation");
+    }
+
+    ConnectionInfo::saveRelationToFile(typeList, value, filename);
+
+  } catch(std::exception &e) {
+  
+    if(value.addr){
+      SecondoSystem::GetCatalog()->CloseObject(typeList, value);
+      value.setAddr(0);
+    }
+
+    throw;
   }
 
   if(value.addr){
@@ -826,7 +878,7 @@ bool BasicEngine_Control::shareWorkerRelation(
     value.setAddr(0);
   }
 
-  return successFlag;
+  return filename;
 }
 
 

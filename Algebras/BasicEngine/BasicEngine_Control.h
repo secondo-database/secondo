@@ -58,17 +58,14 @@ public:
 2.1 Public Methods
 
 */
-  BasicEngine_Control(ConnectionGeneric* _dbms_connection) 
-    : dbms_connection(_dbms_connection), worker(NULL), numberOfWorker(0) {
-    
-  }
 
-  BasicEngine_Control(ConnectionGeneric* _dbms_connection, Relation* _worker) 
-    : dbms_connection(_dbms_connection) {
+  BasicEngine_Control(ConnectionGeneric* _dbms_connection, 
+    Relation* _workerRelation, std::string _workerRelationName, 
+    bool _isMaster) : dbms_connection(_dbms_connection),
+    workerRelationName(_workerRelationName), master(_isMaster) {
 
-    worker = _worker->Clone();
-    numberOfWorker = worker->GetNoTuples();
-    createAllConnections();
+    workerRelation = _workerRelation->Clone();
+    numberOfWorker = _workerRelation->GetNoTuples();
   }
 
   virtual ~BasicEngine_Control();
@@ -105,6 +102,9 @@ public:
 
   bool runsql(std::string filepath);
 
+  bool initBasicEngineOnWorker(distributed2::ConnectionInfo* ci, 
+    const std::string &dbPort, const std::string &dbName);
+
   bool shutdownWorker();
 
   bool sendCommand(std::string query, bool print=true) {
@@ -115,23 +115,18 @@ public:
 
   ResultIteratorGeneric* performSQLQuery(std::string sqlQuery);
 
-  bool shareWorkerRelation(std::string workerRelationName, Relation* relation);
+  std::string exportWorkerRelation(std::string relationName, 
+    Relation* relation);
 
   bool isMaster() {
     return master;
-  }
-
-  void setMaster(bool masterState) {
-    master = masterState;
   }
 
   std::string getWorkerRelationName() {
     return workerRelationName;
   }
 
-  void setWorkerRelationName(std::string newWorkerRelationName) {
-    workerRelationName = newWorkerRelationName;
-  }
+  bool createAllConnections();
 
   static const size_t defaultTimeout = 0;
 
@@ -151,16 +146,22 @@ to a secondary dbms (for example postgresql)
 ConnectionGeneric* dbms_connection;
 
 /*
-2.2.2 ~worker~
+2.2.2 ~workerRelation~
 
-The worker is a relation with all informations about the
+The workerRelation is a relation with all informations about the
 worker connection like port, connection-file, ip
 
 */
-Relation* worker;
+Relation* workerRelation;
 
 /*
-2.2.3 ~connections~
+2.2.3 workerRelationName is the name of the used worker relation
+
+*/
+std::string workerRelationName = "";
+
+/*
+2.2.4 ~connections~
 
 In this vector all connection to the worker are stored.
 
@@ -168,7 +169,7 @@ In this vector all connection to the worker are stored.
 std::vector<distributed2::ConnectionInfo*> connections;
 
 /*
-2.2.4 ~importer~
+2.2.5 ~importer~
 
 In this vector all informations for starting the thread
 are stored.
@@ -177,7 +178,7 @@ are stored.
 std::vector<BasicEngine_Thread*> importer;
 
 /*
-2.2.4 ~numberOfWorker~
+2.2.6 ~numberOfWorker~
 
 The numberOfWorker counts the number of worker.
 
@@ -185,26 +186,21 @@ The numberOfWorker counts the number of worker.
 size_t numberOfWorker;
 
 /*
-2.2.5 master is a variable which shows, if this system is a master (true)
+2.2.7 master is a variable which shows, if this system is a master (true)
 or a worker(false).
 
 */
 bool master = false;
 
-/*
-2.2.5 workerRelationName is the name of the used worker relation
-
-*/
-std::string workerRelationName = "";
 
 /*
 2.3 Private Methods
 
 */
-  bool createAllConnections();
 
-  bool createConnection(std::string host, std::string port, 
-    std::string config, std::string dbPort, std::string dbName);
+  distributed2::ConnectionInfo* createConnection(const std::string &host, 
+    const std::string &port, std::string &config, 
+    const std::string &dbPort, const std::string &dbName);
 
   bool partRoundRobin(std::string* tab, std::string* key, size_t slotnum);
 

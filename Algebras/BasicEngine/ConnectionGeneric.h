@@ -40,14 +40,12 @@ class ConnectionGeneric {
 
     virtual bool sendCommand(std::string* command, bool print = true) = 0;
 
-    virtual bool checkAllConnections() = 0;
+    virtual bool checkConnection() = 0;
 
     virtual std::string createTabFile(std::string* tab) = 0;
 
-    virtual std::string getInitSecondoCMD() = 0;
-
-    virtual std::string getInitSecondoCMD(std::string* _dbname, 
-        std::string* _port) = 0;
+    virtual std::string getInitSecondoCMD(const std::string &dbname, 
+        const std::string &port, const std::string &workerRelation) = 0;
 
     virtual std::string get_drop_table(std::string* tab) = 0;
 
@@ -87,6 +85,10 @@ class ConnectionGeneric {
          ListExpr &resultList) = 0;
 
     virtual ResultIteratorGeneric* performSQLQuery(std::string sqlQuery) = 0;
+
+    virtual std::string getDatabaseName() = 0;
+
+    virtual int getDatabasePort() = 0;
 };
 
 

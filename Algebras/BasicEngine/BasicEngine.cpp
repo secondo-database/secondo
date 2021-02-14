@@ -83,38 +83,9 @@ Establishes a connection to a running postgres System.
 The result of this operator is a boolean indicating the success
 of the operation.
 
-1.1.1 Type Mapping
-
-This operator gets a hostname and a port.
+1.1.1 Type Mapping of be\_init\_worker is used
 
 */
-ListExpr be_init_tm(ListExpr args){
-string err = "{string, text} x int x {string, text}"
-       "--> bool (dbtype, port, db-name) expected";
-
-  if(!(nl->HasLength(args,3))){
-    return listutils::typeError("Two arguments expected. " + err);
-  }
-
-  if(!CcString::checkType(nl->First(args))
-        && !FText::checkType(nl->First(args))){
-    return listutils::typeError("Value of first argument have "
-        "to be a string or a text. " + err);
-  }
-
-  if(!CcInt::checkType(nl->Second(args))){
-    return listutils::typeError("Value of second argument have "
-        "to be a int." + err);
-  }
-
-  if(!CcString::checkType(nl->Third(args))
-        && !FText::checkType(nl->Third(args))){
-    return listutils::typeError("Value of third argument have "
-        "to be a string or a text. " + err);
-  }
-
-  return nl->SymbolAtom(CcBool::BasicType());
-}
 
 /*
 1.1.2 Generic database connection factory
@@ -135,89 +106,6 @@ ConnectionGeneric* getDatabaseConnection(string dbtype,
     
     return NULL;
 }
-
-/*
-1.1.2 Value Mapping
-
-*/
-template<class T>
-int be_init_sf_vm(Word* args, Word& result, int message,
-        Word& local, Supplier s) {
-  
-  T* dbtype = (T*) args[0].addr;
-  CcInt* port = (CcInt*) args[1].addr;
-  T* dbname = (T*) args[2].addr;
-
-  result = qp->ResultStorage(s);
-
-  int portValue = port->GetIntval();
-  string dbnameValue = dbname->toText();
-  string dbtypeValue = dbtype->toText();
-  
-  ConnectionGeneric* dbConnection = getDatabaseConnection(
-      dbtypeValue, portValue, dbnameValue);
-
-  if(dbConnection != NULL) {
-    be_control = new BasicEngine_Control(dbConnection);
-
-    bool val = be_control->checkAllConnections();
-    be_control->setMaster(false);
-    ((CcBool*)result.addr)->Set(true, val);
-  } else {
-    cerr << endl << "Error: Unsupported database type: " 
-         << dbtype->toText() << endl;
-    ((CcBool*)result.addr)->Set(false, false);
-  }
-
-  return 0;
-}
-
-
-/*
-1.1.3 Specification
-
-*/
-OperatorSpec init_be_spec (
-   "{string, text} x int x {string, text} --> bool",
-   "be_init(_,_,_)",
-   "Set the db-type, port and the db-name for initialization "
-   "the local BE-Worker. Your username and password have to be stored "
-   "in the .pgpass file in your home location. For creating a distributed "
-   "PostgreSQL-System please use the operator be_init_worker.",
-   "query be_init('pgsql', 5432,'gisdb')"
-);
-
-/*
-1.1.4 ValueMapping Array
-
-*/
-ValueMapping be_init_vm[] = {
-  be_init_sf_vm<CcString>,
-  be_init_sf_vm<FText>,
-};
-
-/*
-1.1.5 Selection Function
-
-*/
-int be_init_select(ListExpr args){
-    return CcString::checkType(nl->First(args))?0:1;
-};
-
-/*
-1.1.6 Operator instance
-
-*/
-Operator be_init_op(
-  "be_init",
-  init_be_spec.getStr(),
-  sizeof(be_init_vm),
-  be_init_vm,
-  be_init_select,
-  be_init_tm
-);
-
-
 
 /*
 1.1.1 Type Mapping
@@ -1565,23 +1453,24 @@ int init_be_workerSFVM(Word* args, Word& result, int message,
       dbtypeValue, portValue, dbnameValue);
 
   if(dbConnection != NULL) {
-    be_control = new BasicEngine_Control(
-          dbConnection, worker);
+    be_control = new BasicEngine_Control(dbConnection, worker, 
+      workerRelationNameValue, true);
+      
+    bool createConnectionResult = be_control -> createAllConnections();
+
+    if(! createConnectionResult) {
+      cerr << "Error: Connection error, please check the previous messages"
+           << " for error messages." << endl << endl;
+      ((CcBool*) result.addr)->Set(true, false);
+    }
 
     bool connectionsAvailable = be_control->checkAllConnections();
 
     if(! connectionsAvailable) {
-      cerr << "Errror: Connection error, please check the previous messages"
+      cerr << "Error: Connection error, please check the previous messages"
            << " for error messages." << endl << endl;
-      be_control -> setMaster(false);
       ((CcBool*) result.addr)->Set(true, false);
     } else {
-      cout << "Share the worker relation '" << workerRelationNameValue 
-           << "' with the basic engine workers." << endl;
-  
-      be_control -> setWorkerRelationName(workerRelationNameValue);
-      be_control -> shareWorkerRelation(workerRelationNameValue, worker);
-      be_control -> setMaster(true);
       ((CcBool*) result.addr)->Set(true, true);
     }
 
@@ -1638,6 +1527,92 @@ Operator be_init_worker_op (
   be_init_worker_select,
   be_init_worker_tm
 );
+
+
+/*
+1.1.2 Value Mapping
+
+*/
+template<class T>
+int be_init_sf_vm(Word* args, Word& result, int message,
+        Word& local, Supplier s) {
+  
+  T* dbtype = (T*) args[0].addr;
+  CcInt* port = (CcInt*) args[1].addr;
+  T* dbname = (T*) args[2].addr;
+  Relation* worker = (Relation*) args[3].addr; 
+  FText* workerRelationName = (FText*) args[4].addr; 
+
+  result = qp->ResultStorage(s);
+
+  int portValue = port->GetIntval();
+  string dbnameValue = dbname->toText();
+  string dbtypeValue = dbtype->toText();
+  string workerRelationNameValue = workerRelationName->toText();
+
+  ConnectionGeneric* dbConnection = getDatabaseConnection(
+      dbtypeValue, portValue, dbnameValue);
+
+  if(dbConnection != NULL) {
+    be_control = new BasicEngine_Control(dbConnection, worker, 
+      workerRelationNameValue, false);
+
+    bool connectionState = dbConnection->checkConnection();
+    ((CcBool*)result.addr)->Set(true, connectionState);
+  } else {
+    cerr << endl << "Error: Unsupported database type: " 
+         << dbtype->toText() << endl;
+    ((CcBool*)result.addr)->Set(false, false);
+  }
+
+  return 0;
+}
+
+
+/*
+1.1.3 Specification
+
+*/
+OperatorSpec init_be_spec (
+   "{string, text} x int x {string, text} --> bool",
+   "be_init(_,_,_)",
+   "Set the db-type, port and the db-name for initialization "
+   "the local BE-Worker. Your username and password have to be stored "
+   "in the .pgpass file in your home location. For creating a distributed "
+   "PostgreSQL-System please use the operator be_init_worker.",
+   "query be_init('pgsql', 5432,'gisdb')"
+);
+
+/*
+1.1.4 ValueMapping Array
+
+*/
+ValueMapping be_init_vm[] = {
+  be_init_sf_vm<CcString>,
+  be_init_sf_vm<FText>,
+};
+
+/*
+1.1.5 Selection Function
+
+*/
+int be_init_select(ListExpr args){
+    return CcString::checkType(nl->First(args))?0:1;
+};
+
+/*
+1.1.6 Operator instance
+
+*/
+Operator be_init_op(
+  "be_init",
+  init_be_spec.getStr(),
+  sizeof(be_init_vm),
+  be_init_vm,
+  be_init_select,
+  be_init_worker_tm
+);
+
 
 /*
 1.13 Operator  ~be\_runsql~
@@ -2055,6 +2030,7 @@ class BasicEngineAlgebra : public Algebra
   BasicEngineAlgebra() : Algebra()
   {
     AddOperator(&be_init_op);
+    be_init_op.SetUsesArgsInTypeMapping();
     AddOperator(&be_init_worker_op);
     be_init_worker_op.SetUsesArgsInTypeMapping();
     AddOperator(&be_shutdown);
