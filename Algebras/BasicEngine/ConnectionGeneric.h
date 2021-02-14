@@ -38,53 +38,60 @@ class ConnectionGeneric {
 
     virtual ~ConnectionGeneric() {}
 
-    virtual bool sendCommand(std::string* command, bool print = true) = 0;
+    virtual bool sendCommand(const std::string &command, bool print = true) = 0;
 
     virtual bool checkConnection() = 0;
 
-    virtual std::string createTabFile(std::string* tab) = 0;
+    virtual std::string createTabFile(const std::string &tab) = 0;
 
     virtual std::string getInitSecondoCMD(const std::string &dbname, 
         const std::string &port, const std::string &workerRelation) = 0;
 
-    virtual std::string get_drop_table(std::string* tab) = 0;
+    virtual std::string get_drop_table(const std::string &table) = 0;
 
-    virtual std::string get_drop_index(std::string* index) = 0;
+    virtual std::string get_drop_index(const std::string &index) = 0;
 
     virtual std::string create_geo_index(
-        std::string* tab, std::string* geo_col) = 0;
+        const std::string &table, const std::string &geo_col) = 0;
 
-    virtual std::string get_partRoundRobin(std::string* tab, std::string* key
-            , std::string* anzSlots, std::string* targetTab) = 0;
+    virtual std::string get_partRoundRobin(const std::string &table, 
+        const std::string &key, const std::string &anzSlots, 
+        const std::string &targetTab) = 0;
 
-    virtual std::string get_partHash(std::string* tab, std::string* key
-            , std::string* anzSlots, std::string* targetTab) = 0;
+    virtual std::string get_partHash(const std::string &table, 
+        const std::string &key, const std::string &anzSlots, 
+        const std::string &targetTab) = 0;
 
-    virtual std::string get_partFun(std::string* tab, std::string* keyS
-            ,std::string* anzSlots,std::string* fun,std::string* targetTab) = 0;
+    virtual std::string get_partFun(const std::string &table, 
+        const std::string &keyS, const std::string &anzSlots, 
+        const  std::string &fun, const std::string &targetTab) = 0;
 
-    virtual std::string get_partGrid(std::string* tab,std::string* key,
-            std::string* geo_col, std::string* anzSlots, 
-            std::string* x0, std::string* y0,
-            std::string* size, std::string* targetTab) = 0;
+    virtual std::string get_partGrid(const std::string &table, 
+            const std::string &key,
+            const std::string &geo_col, const std::string &anzSlots, 
+            const std::string &x0, const std::string &y0,
+            const std::string &size, const std::string &targetTab) = 0;
 
-    virtual std::string get_exportData(std::string* tab, std::string* join_tab,
-            std::string* key,std::string* nr,std::string* path,
+    virtual std::string get_exportData(const std::string &table, 
+            const std::string &join_table, const std::string &key, 
+            const std::string &nr, const std::string &path,
             size_t numberOfWorker) = 0;
 
     virtual std::string get_copy(
-        std::string* tab, std::string* full_path, bool* direct) = 0;
+        const std::string &table, const std::string &full_path, 
+        bool direct) = 0;
 
     virtual std::string get_partFileName(
-        std::string* tab, std::string* number) = 0;
+        const std::string &table, const std::string &number) = 0;
 
     virtual std::string getCreateTabSQL(
-        std::string* tab, std::string* query) = 0;
+        const std::string &table, const std::string &query) = 0;
 
-    virtual bool getTypeFromSQLQuery(std::string sqlQuery, 
+    virtual bool getTypeFromSQLQuery(const std::string &sqlQuery, 
          ListExpr &resultList) = 0;
 
-    virtual ResultIteratorGeneric* performSQLQuery(std::string sqlQuery) = 0;
+    virtual ResultIteratorGeneric* performSQLQuery(
+        const std::string &sqlQuery) = 0;
 
     virtual std::string getDatabaseName() = 0;
 

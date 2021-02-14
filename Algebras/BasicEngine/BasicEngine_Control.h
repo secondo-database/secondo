@@ -83,46 +83,46 @@ public:
   bool repartition_table_by_rr(const std::string &tab, 
     const std::string &key, const size_t slotnum);
 
-  bool partTable(std::string tab, std::string key, std::string art,
-     size_t slotnum, std::string geo_col = "", float x0 = 0, float y0 = 0,
-     float slotsize = 0);
+  bool partTable(const std::string &tab, const std::string &key, 
+    const std::string &art, size_t slotnum, const std::string &geo_col = "", 
+    float x0 = 0, float y0 = 0, float slotsize = 0);
 
-  bool drop_table(std::string tab) {
-    return sendCommand(dbms_connection->get_drop_table(&tab), false);
+  bool drop_table(const std::string &tab) {
+    return sendCommand(dbms_connection->get_drop_table(tab), false);
   }
 
-  bool createTabFile(std::string tab);
+  bool createTabFile(const std::string &tab);
 
-  bool copy(std::string tab, std::string full_path, bool direct) {
-    return sendCommand(dbms_connection->get_copy(&tab, &full_path, &direct));
+  bool copy(const std::string &tab, const std::string &full_path, bool direct) {
+    return sendCommand(dbms_connection->get_copy(tab, full_path, direct));
   }
 
-  bool createTab(std::string tab, std::string query) {
-     return sendCommand(dbms_connection->getCreateTabSQL(&tab, &query));
+  bool createTab(const std::string &tab, const std::string &query) {
+     return sendCommand(dbms_connection->getCreateTabSQL(tab, query));
   }
 
-  bool munion(std::string tab);
+  bool munion(const std::string &tab);
 
-  bool mquery(std::string query, std::string tab);
+  bool mquery(const std::string &query, const std::string &tab);
 
-  bool mcommand(std::string query);
+  bool mcommand(const std::string &query);
 
-  bool runsql(std::string filepath);
+  bool runsql(const std::string &filepath);
 
   bool initBasicEngineOnWorker(distributed2::ConnectionInfo* ci, 
     const std::string &dbPort, const std::string &dbName);
 
   bool shutdownWorker();
 
-  bool sendCommand(std::string query, bool print=true) {
-    return dbms_connection->sendCommand(&query, print);
+  bool sendCommand(const std::string &query, bool print=true) {
+    return dbms_connection->sendCommand(query, print);
   }
 
-  bool getTypeFromSQLQuery(std::string sqlQuery, ListExpr &resultList);
+  bool getTypeFromSQLQuery(const std::string &sqlQuery, ListExpr &resultList);
 
-  ResultIteratorGeneric* performSQLQuery(std::string sqlQuery);
+  ResultIteratorGeneric* performSQLQuery(const std::string &sqlQuery);
 
-  std::string exportWorkerRelation(std::string relationName, 
+  std::string exportWorkerRelation(const std::string &relationName, 
     Relation* relation);
 
   bool exportWorkerRelationToWorker(distributed2::ConnectionInfo* ci, 
@@ -208,40 +208,46 @@ bool master = false;
 
 */
 
-  distributed2::ConnectionInfo* createConnection(const std::string &host, 
+distributed2::ConnectionInfo* createConnection(const std::string &host, 
     const std::string &port, std::string &config, 
     const std::string &dbPort, const std::string &dbName);
 
-  bool partRoundRobin(std::string* tab, std::string* key, size_t slotnum);
+  bool partRoundRobin(const std::string &tab, const std::string &key, 
+    size_t slotnum);
 
-  bool partHash(std::string* tab, std::string* key, size_t slotnum);
+  bool partHash(const std::string &tab, const std::string &key, 
+    size_t slotnum);
 
-  bool partFun(std::string* tab, std::string* key,
-         std::string* fun, size_t slotnum);
+  bool partFun(const std::string &tab, const std::string &key,
+         const std::string &fun, size_t slotnum);
 
-  bool partGrid(std::string* tab, std::string* key, std::string* geo_col,
-         size_t slotnum, float* x0, float* y0, float* slotsize);
+  bool partGrid(const std::string &tab, const std::string &key, 
+    const std::string &geo_col, size_t slotnum, 
+    float x0, float y0, float slotsize);
 
-  bool exportData(std::string* tab, std::string* key,
+  bool exportData(const std::string &tab, const std::string &key,
          size_t slotnum);
 
-  bool importData(std::string* tab);
+  bool importData(const std::string &tab);
 
-  bool exportToWorker(std::string* tab);
+  bool exportToWorker(const std::string &tab);
 
-  std::string createTabFileName(std::string* tab) {
-    return "create" + *tab + ".sql";
+  std::string createTabFileName(const std::string &tab) {
+    return "create" + tab + ".sql";
   }
 
-  std::string get_partFileName(std::string* tab, std::string* nr) {
-    return dbms_connection->get_partFileName(tab,nr);
+  std::string get_partFileName(const std::string &tab, 
+    const std::string &nr) {
+  
+    return dbms_connection->get_partFileName(tab, nr);
   }
 
   std::string getFilePath() {
     return std::string("/home/") + getenv("USER") + "/filetransfer/";
   }
 
-  std::string getparttabname(std::string* tab, std::string* key);
+  std::string getparttabname(const std::string &tab, 
+    const std::string &key);
 
 };
 };  /* namespace BasicEngine */

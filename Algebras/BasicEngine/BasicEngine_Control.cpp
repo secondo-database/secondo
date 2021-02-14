@@ -275,12 +275,13 @@ bool BasicEngine_Control::createAllConnections(){
 Returns a name of a table with the keys included.
 
 */
-string BasicEngine_Control::getparttabname(string* tab, string* key){
+string BasicEngine_Control::getparttabname(
+  const string &tab, const string &key) {
 
-  string usedKey(*key);
+  string usedKey(key);
 
   boost::replace_all(usedKey, ",", "_");
-  string res = *tab + "_" + usedKey;
+  string res = tab + "_" + usedKey;
   boost::replace_all(res, " ", "");
 
   return res;
@@ -294,22 +295,24 @@ and store the statement in a file.
 Returns true if everything is OK and there are no failure.
 
 */
-bool BasicEngine_Control::createTabFile(string tab) {
+bool BasicEngine_Control::createTabFile(const string &tab) {
 
   ofstream write;
   string statement;
   bool val = false;
 
-  statement = dbms_connection->createTabFile(&tab);
+  statement = dbms_connection->createTabFile(tab);
 
   if (statement.length() > 0){
-    write.open(getFilePath() + createTabFileName(&tab));
+    write.open(getFilePath() + createTabFileName(tab));
     if (write.is_open()){
       write << statement;
       write.close();
       val = write.good();
-    }else{ cout << "Couldn't write file into " + getFilePath() + ""
-      ". Please check the folder and permissions." << endl;}
+    } else { 
+      cout << "Couldn't write file into " + getFilePath() + ""
+      ". Please check the folder and permissions." << endl;
+    }
   } else { 
      cout << "Table " + tab + " not found." << endl;
   }
@@ -324,22 +327,22 @@ The data were partitions in the database by round robin.
 Returns true if everything is OK and there are no failure.
 
 */
-bool BasicEngine_Control::partRoundRobin(string* tab,
-                    string* key, size_t slotnum) {
+bool BasicEngine_Control::partRoundRobin(const string &tab,
+                    const string &key, size_t slotnum) {
 
   bool val = false;
   string query_exec = "";
   string partTabName;
   string anzSlots = to_string(slotnum);
 
-  partTabName = getparttabname(tab,key);
+  partTabName = getparttabname(tab, key);
   drop_table(partTabName);
 
   query_exec = dbms_connection->get_partRoundRobin(tab, key,
-      &anzSlots, &partTabName);
+      anzSlots, partTabName);
   
   if (query_exec != "") {
-    val = dbms_connection->sendCommand(&query_exec);
+    val = dbms_connection->sendCommand(query_exec);
   }
 
   return val;
@@ -382,7 +385,7 @@ and after that imported by the worker.
 Returns true if everything is OK and there are no failure.
 
 */
-bool BasicEngine_Control::exportToWorker(string *tab){
+bool BasicEngine_Control::exportToWorker(const string &tab){
 
   bool val = true;
   string query_exec;
@@ -403,7 +406,7 @@ bool BasicEngine_Control::exportToWorker(string *tab){
 
       //sending data
       string strindex = to_string(index+1);
-      string remoteName = get_partFileName(tab,&strindex);
+      string remoteName = get_partFileName(tab, strindex);
       string localName = getFilePath() + remoteName;
 
       val = (si->sendFile(localName, remoteName, true) == 0);
@@ -430,8 +433,8 @@ bool BasicEngine_Control::exportToWorker(string *tab){
     //doing the import with one thread for each worker
     for(size_t i=0;i<importer.size();i++){
       string strindex = to_string(i+1);
-      string remoteName =get_partFileName(tab,&strindex);
-      importer[i]->startImport(*tab,remoteCreateName,remoteName);
+      string remoteName = get_partFileName(tab, strindex);
+      importer[i]->startImport(tab, remoteCreateName, remoteName);
     }
 
     //waiting for finishing the threads
@@ -458,22 +461,22 @@ The data were partitions in the database by an hash value.
 Returns true if everything is OK and there are no failure.
 
 */
-bool BasicEngine_Control::partHash(string* tab,
-                    string* key, size_t slotnum) {
+bool BasicEngine_Control::partHash(const string &tab,
+                    const string &key, size_t slotnum) {
 
   bool val = false;
   string query_exec = "";
   string partTabName;
   string anzSlots = to_string(slotnum);
 
-  partTabName = getparttabname(tab,key);
+  partTabName = getparttabname(tab, key);
   drop_table(partTabName);
 
-  query_exec = dbms_connection->get_partHash(tab,key
-    ,&anzSlots,&partTabName);
+  query_exec = dbms_connection->get_partHash(tab, key,
+    anzSlots, partTabName);
   
   if (query_exec != "") {
-    val = dbms_connection->sendCommand(&query_exec);
+    val = dbms_connection->sendCommand(query_exec);
   } 
 
   return val;
@@ -487,8 +490,8 @@ This function have to be defined before using it.
 Returns true if everything is OK and there are no failure.
 
 */
-bool BasicEngine_Control::partFun(string* tab,
-                    string* key,string* fun, size_t slotnum){
+bool BasicEngine_Control::partFun(const string &tab,
+    const string &key, const string &fun, size_t slotnum){
                 
   bool val = false;
   string query_exec = "";
@@ -497,17 +500,17 @@ bool BasicEngine_Control::partFun(string* tab,
 
   drop_table(partTabName);
 
-  if (boost::iequals(*fun, "share")){
+  if (boost::iequals(fun, "share")){
     anzSlots = to_string(numberOfWorker);
   } else {
     anzSlots = to_string(slotnum);
   }
 
-  query_exec = dbms_connection->get_partFun(tab,key,
-      &anzSlots,fun,&partTabName);
+  query_exec = dbms_connection->get_partFun(tab, key,
+      anzSlots, fun, partTabName);
 
   if (query_exec != "") {
-    val = dbms_connection->sendCommand(&query_exec);
+    val = dbms_connection->sendCommand(query_exec);
   }
 
   return val;
@@ -520,21 +523,20 @@ Exporting the data from the DBMS to a local file.
 Returns true if everything is OK and there are no failure.
 
 */
-bool BasicEngine_Control::exportData(string* tab, string* key,
-   size_t slotnum){
+bool BasicEngine_Control::exportData(const string &tab, 
+  const string &key, size_t slotnum){
 
   bool val = true;
   string path = getFilePath();
-  string parttabname = getparttabname(tab,key);
+  string parttabname = getparttabname(tab, key);
   string strindex;
-  long unsigned int i;
 
   // TODO: Check if 1 is the correct start index here (JNI)
-  for(i=1;i<=numberOfWorker;i++) {
+  for(size_t i=1;i<=numberOfWorker;i++) {
     strindex = to_string(i);
 
     string exportDataSQL = dbms_connection->get_exportData(tab,
-          &parttabname, key, &strindex, &path, slotnum);
+          parttabname, key, strindex, path, slotnum);
         
     val = sendCommand(exportDataSQL) && val;
   }
@@ -550,13 +552,12 @@ table will be created and after that starts the import from a file.
 Returns true if everything is OK and there are no failure.
 
 */
-bool BasicEngine_Control::importData(string *tab) {
+bool BasicEngine_Control::importData(const string &tab) {
 
   bool val = true;
   string full_path;
   string cmd;
   string strindex;
-  long unsigned int i;
 
   //create Table
   full_path = getFilePath() + createTabFileName(tab);
@@ -568,7 +569,7 @@ bool BasicEngine_Control::importData(string *tab) {
   strStream << inFile.rdbuf();
   cmd = strStream.str();
 
-  val = dbms_connection->sendCommand(&cmd) && val;
+  val = dbms_connection->sendCommand(cmd) && val;
   
   if(!val) {
     return val;
@@ -578,10 +579,10 @@ bool BasicEngine_Control::importData(string *tab) {
 
   //import data (local files from worker)
   // TODO: Check if 1 is the correct start index here (JNI)
-  for(i=1;i<=numberOfWorker;i++){
+  for(size_t i=1;i<=numberOfWorker; i++){
     strindex = to_string(i);
-    full_path = getFilePath() + get_partFileName(tab, &strindex);
-    val = copy(full_path,*tab,true) && val;
+    full_path = getFilePath() + get_partFileName(tab, strindex);
+    val = copy(full_path, tab, true) && val;
     FileSystem::DeleteFileOrFolder(full_path);
   }
 
@@ -596,20 +597,21 @@ import them into the worker.
 Returns true if everything is OK and there are no failure.
 
 */
-bool BasicEngine_Control::partTable(string tab, string key, string art,
-      size_t slotnum, string geo_col, float x0, float y0, float slotsize){
+bool BasicEngine_Control::partTable(const string &tab, const string &key, 
+  const string &art, size_t slotnum, const string &geo_col, 
+  float x0, float y0, float slotsize) {
 
   bool val = true;
 
   if (boost::iequals(art, "RR")) {
-    val = partRoundRobin(&tab, &key, slotnum);
+    val = partRoundRobin(tab, key, slotnum);
   } else if (boost::iequals(art, "Hash")) {
-    val = partHash(&tab, &key, slotnum);
+    val = partHash(tab, key, slotnum);
   } else if (boost::iequals(art, "Grid")) {
-    val = partGrid(&tab, &key, &geo_col
-                    ,slotnum,&x0, &y0, &slotsize);
+    val = partGrid(tab, key, geo_col,
+                    slotnum, x0,  y0, slotsize);
   } else {
-    val = partFun(&tab, &key, &art, slotnum);
+    val = partFun(tab, key, art, slotnum);
   }
 
   if(!val) {
@@ -617,7 +619,7 @@ bool BasicEngine_Control::partTable(string tab, string key, string art,
     return val;
   }
 
-  val = exportData(&tab, &key, numberOfWorker);
+  val = exportData(tab, key, numberOfWorker);
 
   if(!val) {
     cout << "\n Couldn't export the data from the table." << endl;
@@ -631,7 +633,7 @@ bool BasicEngine_Control::partTable(string tab, string key, string art,
     return val;
   }
 
-  val = exportToWorker(&tab);
+  val = exportToWorker(tab);
 
   if(!val) {
     cout << "\n Couldn't transfer the data to the worker." << endl;
@@ -648,18 +650,20 @@ The master imports them into the local db.
 Returns true if everything is OK and there are no failure.
 
 */
-bool BasicEngine_Control::munion(string tab) {
+bool BasicEngine_Control::munion(const string &tab) {
 
   bool val = true;
   string path;
   string strindex;
 
   //doing the export with one thread for each worker
-  for(size_t i=0;i<importer.size();i++){
+  for(size_t i=0; i<importer.size(); i++) {
     strindex = to_string(i+1);
-    path = getFilePath() + get_partFileName(&tab,&strindex);
-    importer[i]->startExport(tab,path,strindex
-             ,createTabFileName(&tab),get_partFileName(&tab,&strindex));
+    path = getFilePath() + get_partFileName(tab, strindex);
+
+    importer[i]->startExport(tab, path, strindex,
+             createTabFileName(tab),
+             get_partFileName(tab, strindex));
   }
 
   //waiting for finishing the threads
@@ -669,7 +673,7 @@ bool BasicEngine_Control::munion(string tab) {
 
   //import in local PG-Master
   if(val) {
-    val = importData(&tab);
+    val = importData(tab);
   }
 
   return val;
@@ -683,8 +687,8 @@ and stores the result in a table.
 Returns true if everything is OK and there are no failure.
 
 */
-bool BasicEngine_Control::mquery(string query,
-                    string tab) {
+bool BasicEngine_Control::mquery(const string &query,
+                    const string &tab) {
                 
   bool val = true;
 
@@ -708,7 +712,7 @@ The multi command sends and execute a query to all worker.
 Returns true if everything is OK and there are no failure.
 
 */
-bool BasicEngine_Control::mcommand(string query) {
+bool BasicEngine_Control::mcommand(const string &query) {
 
  bool val = true;
 
@@ -783,7 +787,7 @@ Runs a query from a file.
 Returns true if everything is OK and there are no failure.
 
 */
-bool BasicEngine_Control::runsql(string filepath) {
+bool BasicEngine_Control::runsql(const string &filepath) {
 
   if (access(filepath.c_str(), 0) == 0) {
 
@@ -797,7 +801,7 @@ bool BasicEngine_Control::runsql(string filepath) {
 
     //execute the sql-Statement
     if (query != "") {
-      bool result = dbms_connection->sendCommand(&query);
+      bool result = dbms_connection->sendCommand(query);
       return result;
     }
 
@@ -816,16 +820,17 @@ The data were partitions in the database by a grid.
 Returns true if everything is OK and there are no failure.
 
 */
-bool BasicEngine_Control::partGrid(std::string* tab, std::string* key
-    ,std::string* geo_col, size_t slotnum,float* x0,float* y0,float* slotsize){
+bool BasicEngine_Control::partGrid(const std::string &tab, 
+  const std::string &key, const std::string &geo_col, 
+  size_t slotnum, float x0, float y0, float slotsize) {
 
   bool val = false;
   string query_exec = "";
   string partTabName;
   string anzSlots = to_string(slotnum);
-  string x_start = to_string(*x0);
-  string y_start = to_string(*y0);
-  string sizSlots = to_string(*slotsize);
+  string x_start = to_string(x0);
+  string y_start = to_string(y0);
+  string sizSlots = to_string(slotsize);
 
   //Dropping parttable
   partTabName = getparttabname(tab,key);
@@ -834,12 +839,15 @@ bool BasicEngine_Control::partGrid(std::string* tab, std::string* key
   //creating Index on table
   query_exec =  dbms_connection->get_drop_index(tab) + " "
             "" + dbms_connection->create_geo_index(tab, geo_col);
-  val = dbms_connection->sendCommand(&query_exec);
+  val = dbms_connection->sendCommand(query_exec);
 
   //
-  query_exec = dbms_connection->get_partGrid(tab,key,geo_col,&anzSlots, &x_start
-                            , &y_start, &sizSlots, &partTabName);
-  if (query_exec != "" && val) val = dbms_connection->sendCommand(&query_exec);
+  query_exec = dbms_connection->get_partGrid(tab, key, geo_col, 
+    anzSlots, x_start, y_start, sizSlots, partTabName);
+
+  if (query_exec != "" && val) {
+    val = dbms_connection->sendCommand(query_exec);
+  }
 
   return val;
 } 
@@ -850,7 +858,7 @@ bool BasicEngine_Control::partGrid(std::string* tab, std::string* key
 Get the SECONDO type for the given SQL query.
 
 */
- bool BasicEngine_Control::getTypeFromSQLQuery(std::string sqlQuery, 
+ bool BasicEngine_Control::getTypeFromSQLQuery(const std::string &sqlQuery, 
     ListExpr &resultList) {
 
    return dbms_connection->getTypeFromSQLQuery(sqlQuery, resultList);
@@ -864,7 +872,7 @@ Get the SECONDO type for the given SQL query.
 
 */
  ResultIteratorGeneric* BasicEngine_Control::performSQLQuery(
-   std::string sqlQuery) {
+   const std::string &sqlQuery) {
 
    return dbms_connection->performSQLQuery(sqlQuery);
  }
@@ -877,7 +885,7 @@ Export the worker relation into a file.
 
 */
 string BasicEngine_Control::exportWorkerRelation(
-  string relationName, Relation* relation) {
+  const string &relationName, Relation* relation) {
 
   // Output file
   string filename = relationName + "_" 

@@ -74,11 +74,11 @@ class ConnectionPG : public ConnectionGeneric {
 
   virtual ~ConnectionPG();
 
-  bool sendCommand(std::string* command, bool print = true);
+  bool sendCommand(const std::string &command, bool print = true);
 
   bool checkConnection();
 
-  std::string createTabFile(std::string* tab);
+  std::string createTabFile(const std::string &table);
 
   std::string getDatabaseName() {
     return dbname;
@@ -95,52 +95,64 @@ class ConnectionPG : public ConnectionGeneric {
       + dbname + "'," + workerRelation + ");";
   }
 
-  std::string get_drop_table(std::string* tab) {
-    return "DROP TABLE IF EXISTS " + *tab + ";";
+  std::string get_drop_table(const std::string &table) {
+    return "DROP TABLE IF EXISTS " + table + ";";
   }
 
-  std::string get_drop_index(std::string* index) {
-    return "DROP INDEX IF EXISTS " + *index + "_idx;";
+  std::string get_drop_index(const std::string& index) {
+    return "DROP INDEX IF EXISTS " + index + "_idx;";
   }
 
-  std::string create_geo_index(std::string* tab, std::string* geo_col) {
-    return "CREATE INDEX "+ *tab +"_idx ON"
-                " " + *tab + " USING GIST ("+ *geo_col +");";
+  std::string create_geo_index(const std::string &table, 
+    const std::string &geo_col) {
+
+    return "CREATE INDEX " + table + "_idx ON"
+                " " + table + " USING GIST (" + geo_col + ");";
   }
 
-  std::string get_partRoundRobin(std::string* tab, std::string* key
-            , std::string* anzSlots, std::string* targetTab);
+  std::string get_partRoundRobin(const std::string &table, 
+    const std::string &key, const std::string &anzSlots, 
+    const std::string &targetTab);
 
-  std::string get_partHash(std::string* tab, std::string* key
-            , std::string* anzSlots, std::string* targetTab);
+  std::string get_partHash(const std::string &table, 
+    const std::string &key, const std::string &anzSlots, 
+    const std::string &targetTab);
 
-  std::string get_partFun(std::string* tab, std::string* keyS
-            ,std::string* anzSlots,std::string* fun,std::string* targetTab);
+  std::string get_partFun(const std::string &table, 
+    const std::string &keyS, const std::string &anzSlots,
+    const std::string &fun, const std::string &targetTab);
 
-  std::string get_partGrid(std::string* tab,std::string* key,
-            std::string* geo_col, std::string* anzSlots, 
-            std::string* x0, std::string* y0,
-            std::string* size, std::string* targetTab);
+  std::string get_partGrid(const std::string &table,
+    const std::string &key, const std::string &geo_col, 
+    const std::string &anzSlots, const std::string &x0, 
+    const std::string &y0, const std::string &size, 
+    const std::string &targetTab);
 
-  std::string get_exportData(std::string* tab, std::string* join_tab,
-            std::string* key, std::string* nr, std::string* path,
-            size_t numberOfWorker);
+  std::string get_exportData(const std::string &table, 
+    const std::string &join_table, const std::string &key, 
+    const std::string &nr, const std::string &path,
+    size_t numberOfWorker);
 
-  std::string get_copy(std::string* tab, std::string* full_path, bool* direct);
+  std::string get_copy(const std::string &table, 
+    const std::string &full_path, bool direct);
 
-  std::string get_partFileName(std::string* tab, std::string* number) {
-    return *tab + "_" + *number +".bin";
+  std::string get_partFileName(const std::string &table, 
+    const std::string &number) {
+
+    return table + "_" + number + ".bin";
   }
 
-  std::string getCreateTabSQL(std::string* tab, std::string* query) {
-    return "CREATE TABLE " + *tab + " AS ("+ *query + ")";
+  std::string getCreateTabSQL(const std::string &table, 
+    const std::string &query) {
+
+    return "CREATE TABLE " + table + " AS ("+ query + ")";
   }
 
-  bool getTypeFromSQLQuery(std::string sqlQuery, ListExpr &resultList);
+  bool getTypeFromSQLQuery(const std::string &sqlQuery, ListExpr &resultList);
 
-  bool getTypeFromQuery(PGresult* res, ListExpr &resultList);
+  bool getTypeFromQuery(const PGresult* res, ListExpr &resultList);
 
-  ResultIteratorGeneric* performSQLQuery(std::string sqlQuery);
+  ResultIteratorGeneric* performSQLQuery(const std::string &sqlQuery);
 
   private:
 
@@ -182,21 +194,24 @@ class ConnectionPG : public ConnectionGeneric {
     return dbname;
   }
 
-  PGresult* sendQuery(std::string* query);
+  PGresult* sendQuery(const std::string &query);
 
-  bool createFunctionRandom(std::string* tab, std::string* key
-            , std::string* numberOfWorker, std::string* select);
+  bool createFunctionRandom(const std::string &table, 
+    const std::string &key, const std::string &numberOfWorker, 
+    std::string &select);
 
-  bool createFunctionDDRandom(std::string* tab, std::string* key
-            , std::string* numberOfWorker, std::string* select);
+  bool createFunctionDDRandom(const std::string &table, 
+    const std::string &key, const std::string &numberOfWorker, 
+    const std::string &select);
 
-  void getFieldInfoFunction(std::string* tab, std::string* key
-            ,std::string* fields,std::string* valueMap,std::string* select);
+  void getFieldInfoFunction(const std::string &table, 
+    const std::string &key, std::string &fields, 
+    std::string &valueMap, std::string &select);
 
-  std::string get_partShare(std::string* tab, std::string* key, 
-              std::string* numberOfWorker);
+  std::string get_partShare(const std::string &table, const std::string &key,
+    const std::string &numberOfWorker);
 
-  std::string getjoin(std::string* key);
+  std::string getjoin(const std::string &key);
 };
 
 }; /* namespace BasicEngine */

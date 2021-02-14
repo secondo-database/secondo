@@ -88,9 +88,10 @@ Sending a command to postgres.
 Returns TRUE if the execution was ok.
 
 */
-bool ConnectionPG::sendCommand(string* command, bool print) {
-PGresult *res;
-const char *query_exec = command->c_str();
+bool ConnectionPG::sendCommand(const string &command, bool print) {
+
+  PGresult *res;
+  const char *query_exec = command.c_str();
 
   if (checkConnection()) {
     res = PQexec(conn, query_exec);
@@ -103,7 +104,8 @@ const char *query_exec = command->c_str();
     }
     PQclear(res);
   }
-return true;
+
+  return true;
 }
 
 /*
@@ -114,9 +116,9 @@ Sending a query to postgres.
 Returns the Result of the query.
 
 */
-PGresult* ConnectionPG::sendQuery(string* query) {
-PGresult *res;
-const char *query_exec = query->c_str();
+PGresult* ConnectionPG::sendQuery(const string &query) {
+  PGresult *res;
+  const char *query_exec = query.c_str();
 
   if (checkConnection()) {
     res = PQexec(conn, query_exec);
@@ -124,7 +126,8 @@ const char *query_exec = query->c_str();
       printf("Error with Query:%s\n", PQresultErrorMessage(res));
     }
   }
-return res;
+  
+  return res;
 }
 
 /*
@@ -134,37 +137,42 @@ Creates a Create-Statement of a given table and
 return this string.
 
 */
-string ConnectionPG::createTabFile(string* tab){
-string query_exec;
-PGresult* res;
-string write="";
+string ConnectionPG::createTabFile(const string &tab){
+
+  string query_exec;
+  PGresult* res;
+  string write="";
 
   query_exec = "SELECT a.attname as column_name, "
       "    pg_catalog.format_type(a.atttypid, a.atttypmod) as column_type "
       "FROM pg_catalog.pg_attribute a "
       "INNER JOIN (SELECT oid FROM pg_catalog.pg_class "
-      "WHERE relname ='" +  *tab +
+      "WHERE relname ='" + tab +
       "' AND pg_catalog.pg_table_is_visible(oid)) b "
         "ON a.attrelid = b.oid "
       "WHERE a.attnum > 0 "
       "    AND NOT a.attisdropped "
       "ORDER BY a.attnum ";
-  res = sendQuery(&query_exec);
+
+  res = sendQuery(query_exec);
 
   if (PQntuples(res) > 0){
-    write = "DROP TABLE IF EXISTS public." + *tab +";\n"
-      "CREATE TABLE public." + *tab +" (\n";
-    for (int i = 0; i<PQntuples(res) ; i++){
+    
+    write = "DROP TABLE IF EXISTS public." + tab +";\n"
+      "CREATE TABLE public." + tab +" (\n";
+    
+    for (int i = 0; i<PQntuples(res); i++) {
       if (i>0) write.append(",");
       write.append(PQgetvalue (res,i,0));
       write.append(" ");
       write.append(PQgetvalue(res,i,1)) ;
       write.append("\n");
     }
+
     write.append(");");
   }
 
-return write;
+  return write;
 }
 
 /*
@@ -173,14 +181,14 @@ return write;
 Creates a table in postgreSQL with the partitioned data by round robin.
 
 */
-string ConnectionPG::get_partRoundRobin(string* tab, string* key,
-                    string* anzSlots, string* targetTab){
+string ConnectionPG::get_partRoundRobin(const string &tab, 
+  const string &key, const string &anzSlots, const string &targetTab) {
 
-  string select = "SELECT (nextval('temp_seq') %" + *anzSlots + ""
-    " ) + 1 As slot," + *key + " FROM " + *tab;
+  string select = "SELECT (nextval('temp_seq') %" + anzSlots + ""
+    " ) + 1 As slot," + key + " FROM " + tab;
 
   return "CREATE TEMP SEQUENCE IF NOT EXISTS temp_seq;"
-    + getCreateTabSQL(targetTab,&select);
+    + getCreateTabSQL(targetTab, select);
 }
 
 /*
@@ -189,18 +197,18 @@ string ConnectionPG::get_partRoundRobin(string* tab, string* key,
 Creates a table in postgreSQL with the partitioned data by hash value.
 
 */
-string ConnectionPG::get_partHash(string* tab, string* key
-                  , string* anzSlots, string* targetTab) {
+string ConnectionPG::get_partHash(const string &tab, const string &key,
+                  const string &anzSlots, const string &targetTab) {
 
-  string usedKey(*key);
+  string usedKey(key);
   boost::replace_all(usedKey, ",", ",'%_%',");
 
   string select = "SELECT DISTINCT (get_byte(decode(md5(concat("
         "" + usedKey + ")),'hex'),15) %"
-        " " + *anzSlots + " ) + 1 As slot,"
-        "" + *key +" FROM "+ *tab;
+        " " + anzSlots + " ) + 1 As slot,"
+        "" + key +" FROM "+ tab;
 
-  return getCreateTabSQL(targetTab,&select);
+  return getCreateTabSQL(targetTab, select);
 }
 
 /*
@@ -210,41 +218,43 @@ This function collects all information about fields and value Mappings.
 This is needed for a special definition of a partitioning function.
 
 */
-void ConnectionPG::getFieldInfoFunction(string* tab, string* key
-            , string *fields, string *valueMap, string* select) {
+void ConnectionPG::getFieldInfoFunction(const string &tab, 
+  const string &key, string &fields, string &valueMap, 
+  string &select) {
 
   string query_exec;
   PGresult* res;
 
-  string usedKey(*key);
+  string usedKey(key);
   boost::replace_all(usedKey, ",","','");
 
   query_exec ="SELECT a.attname as column_name,a.attname || '_orig' as t,"
         "pg_catalog.format_type(a.atttypid, a.atttypmod) as column_type"
         " FROM pg_catalog.pg_attribute a "
         " INNER JOIN (SELECT oid FROM pg_catalog.pg_class WHERE relname ='"
-        "" + *tab + "' AND pg_catalog.pg_table_is_visible(oid)) b"
+        "" + tab + "' AND pg_catalog.pg_table_is_visible(oid)) b"
         "  ON a.attrelid = b.oid"
         " WHERE a.attnum > 0 "
         " AND NOT a.attisdropped and a.attname in ('"
         "" + usedKey + "');";
-  res = sendQuery(&query_exec);
+  
+  res = sendQuery(query_exec);
 
   for (int i = 0; i<PQntuples(res) ; i++){
-    fields->append(",");
-    fields->append(PQgetvalue (res,i,1));
-    fields->append(" ");
-    fields->append(PQgetvalue(res,i,2)) ;
+    fields.append(",");
+    fields.append(PQgetvalue (res,i,1));
+    fields.append(" ");
+    fields.append(PQgetvalue(res,i,2)) ;
 
-    valueMap->append(PQgetvalue (res,i,1));
-    valueMap->append(" := var_r.");
-    valueMap->append(PQgetvalue(res,i,0));
-    valueMap->append(";");
+    valueMap.append(PQgetvalue (res,i,1));
+    valueMap.append(" := var_r.");
+    valueMap.append(PQgetvalue(res,i,0));
+    valueMap.append(";");
 
-    select->append(",");
-    select->append(PQgetvalue (res,i,1));
-    select->append(" AS ");
-    select->append(PQgetvalue(res,i,0));
+    select.append(",");
+    select.append(PQgetvalue (res,i,1));
+    select.append(" AS ");
+    select.append(PQgetvalue(res,i,0));
   }
 }
 
@@ -255,21 +265,22 @@ Creates a table in postgreSQL with the partitioned data by random
 and uses for that a function in postgres.
 
 */
-bool ConnectionPG::createFunctionRandom(string* tab, string* key
-            , string* anzSlots, string* select){
-string query_exec;
-string fields;
-string valueMap;
+bool ConnectionPG::createFunctionRandom(const string &tab, 
+  const string &key, const string &anzSlots, 
+  string &select) {
+
+  string query_exec;
+  string fields;
+  string valueMap;
 
   query_exec = "DROP FUNCTION fun()";
-  sendCommand(&query_exec,false);
+  sendCommand(query_exec,false);
 
-  select->append("SELECT slot ");
+  select.append("SELECT slot ");
 
-  getFieldInfoFunction(tab,key,&fields,&valueMap,select);
+  getFieldInfoFunction(tab,key,fields,valueMap,select);
 
-
-  select->append(" FROM fun()");
+  select.append(" FROM fun()");
 
   query_exec = "create or replace function fun() "
       "returns table ("
@@ -280,16 +291,15 @@ string valueMap;
       "    var_r record;"
       " begin"
       " for var_r in("
-      "            select " + *key + ""
-      "            from " + *tab + ")"
-      "        loop  slot := ceil(random() * " + *anzSlots +" );"
+      "            select " + key + ""
+      "            from " + tab + ")"
+      "        loop  slot := ceil(random() * " + anzSlots +" );"
       "        " + valueMap + ""
       "        return next;"
       " end loop;"
       " end; $$;";
 
-
-return sendCommand(&query_exec);
+  return sendCommand(query_exec);
 }
 
 /*
@@ -298,23 +308,23 @@ return sendCommand(&query_exec);
 This function is for organizing the special partitioning functions.
 
 */
-string ConnectionPG::get_partFun(string* tab, string* key, string* anzSlots,
-                  string* fun, string* targetTab){
+string ConnectionPG::get_partFun(const string &tab, const string &key, 
+  const string &anzSlots, const string &fun, const string &targetTab) {
 
   string select = "";
   string query = "";
 
-  if (boost::iequals(*fun, "random")) {
-    createFunctionRandom(tab, key, anzSlots, &select);
-  } else if (boost::iequals(*fun, "share")) {
+  if (boost::iequals(fun, "random")) {
+    createFunctionRandom(tab, key, anzSlots, select);
+  } else if (boost::iequals(fun, "share")) {
     select = get_partShare(tab, key, anzSlots);
   } else {
-    cout << "Function " + *fun + " not recognized! "
+    cout << "Function " + fun + " not recognized! "
         "Available functions are: RR, Hash, share and random." << endl;
   }
 
   if(select != "") {
-    query = getCreateTabSQL(targetTab, &select);
+    query = getCreateTabSQL(targetTab, select);
   }
 
   return query;
@@ -326,15 +336,15 @@ string ConnectionPG::get_partFun(string* tab, string* key, string* anzSlots,
 Creating a statement for exporting the data from a portioning table.
 
 */
-string ConnectionPG::get_exportData(string* tab, string* join_tab,
-                  string* key, string* nr, string* path,
+string ConnectionPG::get_exportData(const string &tab, const string &join_tab,
+                  const string &key, const string &nr, const string &path,
                   size_t numberOfWorker) {
   
-  return "COPY (SELECT a.* FROM "+ *tab +" a INNER JOIN " + *join_tab  + " b "
+  return "COPY (SELECT a.* FROM "+ tab +" a INNER JOIN " + join_tab  + " b "
             "" + getjoin(key) + " WHERE ((slot % "
-            ""+ to_string(numberOfWorker)+") "
-            "+1) =" + *nr+ ") TO "
-            "'" + *path + *tab + "_" + *nr +".bin' BINARY;";
+            "" + to_string(numberOfWorker) + ") "
+            "+1) =" + nr + ") TO "
+            "'" + path + tab + "_" + nr + ".bin' BINARY;";
 }
 
 /*
@@ -345,13 +355,14 @@ then tab where import the date from the filesystem. If the direkt variable is
 false them the tab where export to the filesystem.
 
 */
-string ConnectionPG::get_copy(string* tab, string* full_path, bool* direct ){
+string ConnectionPG::get_copy(const string &tab, 
+  const string &full_path, bool direct) {
 
-  if (*direct) {
-    return "COPY "+  *full_path + " FROM '" + *tab + "' BINARY;";
+  if (direct) {
+    return "COPY " + full_path + " FROM '" + tab + "' BINARY;";
   }
 
-  return "COPY "+  *tab + " TO '" + *full_path + "' BINARY;";
+  return "COPY " + tab + " TO '" + full_path + "' BINARY;";
 }
 
 /*
@@ -360,12 +371,13 @@ string ConnectionPG::get_copy(string* tab, string* full_path, bool* direct ){
 Returns the join-part of a join-Statement from a given key-list
 
 */
-string ConnectionPG::getjoin(string *key){
+string ConnectionPG::getjoin(const string &key) {
+
   string res= "ON ";
   vector<string> result;
-  boost::split(result, *key, boost::is_any_of(","));
+  boost::split(result, key, boost::is_any_of(","));
 
-  for (long unsigned int i = 0; i < result.size(); i++) {
+  for (size_t i = 0; i < result.size(); i++) {
     if (i>0) {
       res = res + " AND ";
     }
@@ -386,12 +398,15 @@ Creates a table in postgreSQL with the partitioned data by a grid.
 The key specified a column which content is a object like a line or a polygon.
 
 */
-string ConnectionPG::get_partGrid(std::string* tab, std::string* key
-        , std::string* geo_col,std::string* anzSlots, std::string* x0
-        , std::string* y0, std::string* size,  std::string* targetTab){
-string query_exec;
-string gridTable = "grid_tab";
-string gridCol = "geom";
+string ConnectionPG::get_partGrid(const std::string &tab, 
+  const std::string &key, const std::string &geo_col, 
+  const std::string &anzSlots, const std::string &x0,
+  const std::string &y0, const std::string &size, 
+  const std::string &targetTab) {
+
+  string query_exec;
+  string gridTable = "grid_tab";
+  string gridCol = "geom";
 
   //Creating function
   query_exec = "CREATE OR REPLACE FUNCTION ST_CreateGrid("
@@ -410,31 +425,34 @@ string gridCol = "geom";
         "SELECT ('POLYGON((0 0,0 '||$4||','||$3||' '||$4||','||$3||' 0,0 0))')"
         "::geometry AS cell) AS foo; "
         "$$ LANGUAGE sql IMMUTABLE STRICT;";
-  sendCommand(&query_exec,false);
+    
+  sendCommand(query_exec,false);
 
   //Creating the new grid
-  query_exec = get_drop_table(&gridTable);
-  sendCommand(&query_exec,false);
+  query_exec = get_drop_table(gridTable);
+  sendCommand(query_exec, false);
 
   //creating the grid table
   query_exec ="CREATE TABLE " + gridTable + " as (SELECT * "
-                   "FROM ST_CreateGrid("+*anzSlots+","
-                   ""+*anzSlots+","+*size+","+*size+","+*x0+","+*y0+"));";
-  sendCommand(&query_exec,false);
+                   "FROM ST_CreateGrid(" +  anzSlots + ","
+                   "" + anzSlots + ","+ size + "," 
+                   + size + ","+  x0 + "," + y0 +"));";
+
+  sendCommand(query_exec,false);
 
   //creating index on grid
-  query_exec = create_geo_index(&gridTable,&gridCol);
-  sendCommand(&query_exec,false);
+  query_exec = create_geo_index(gridTable, gridCol);
+  sendCommand(query_exec, false);
 
-  string usedKey(*key);
+  string usedKey(key);
   boost::replace_all(usedKey, ",", ",r.");
 
   query_exec = "SELECT r." + usedKey + ", "
                       "g.num as slot "
-               "FROM " + gridTable + " g INNER JOIN "+ *tab + " r "
-                     "ON ST_INTERSECTS(g.geom,r."+ *geo_col +")";
+               "FROM " + gridTable + " g INNER JOIN "+ tab + " r "
+                     "ON ST_INTERSECTS(g.geom,r."+ geo_col +")";
 
-return getCreateTabSQL(targetTab,&query_exec);
+  return getCreateTabSQL(targetTab, query_exec);
 }
 
 /*
@@ -443,30 +461,30 @@ return getCreateTabSQL(targetTab,&query_exec);
 Creates a table in postgreSQL with all date to all worker,
 
 */
-string ConnectionPG::get_partShare(string* tab, string* key, 
-    string* numberOfWorker){
+string ConnectionPG::get_partShare(const string &tab, const string &key, 
+    const string &numberOfWorker){
       
   string query_exec;
   string worker = "SELECT 1 as slot";
 
-  string usedKey(*key);
+  string usedKey(key);
   boost::replace_all(usedKey, ",", ",r.");
 
-  for(int i=2;i<=stoi(*numberOfWorker);i++) {
+  for(int i=2;i<=stoi(numberOfWorker);i++) {
     worker = worker + " UNION SELECT " + to_string(i) + " as slot";
   }
 
-  query_exec = "SELECT r."+ usedKey +", g.slot "
-                  "FROM ("+ worker +") g," + *tab + " r";
+  query_exec = "SELECT r." + usedKey + ", g.slot "
+                  "FROM (" + worker + ") g," + tab + " r";
     
   return query_exec;
 }
 
-bool ConnectionPG::getTypeFromQuery(PGresult* res, ListExpr &resultList) {
-if (!res || PQresultStatus(res) != PGRES_TUPLES_OK) {
+bool ConnectionPG::getTypeFromQuery(const PGresult* res, ListExpr &resultList) {
+
+  if (!res || PQresultStatus(res) != PGRES_TUPLES_OK) {
     cerr << "Unable to fetch type from non tuple returning result"
          << endl << endl;
-    PQclear(res);
     return false;
   }
 
@@ -547,7 +565,7 @@ if (!res || PQresultStatus(res) != PGRES_TUPLES_OK) {
 Get the SECONDO type of the given SQL query
 
 */
-bool ConnectionPG::getTypeFromSQLQuery(std::string sqlQuery, 
+bool ConnectionPG::getTypeFromSQLQuery(const std::string &sqlQuery, 
     ListExpr &resultList) {
 
   string usedSQLQuery = sqlQuery;
@@ -556,12 +574,12 @@ bool ConnectionPG::getTypeFromSQLQuery(std::string sqlQuery,
 
   if(sqlQueryUpper.find("LIMIT") == std::string::npos) {
     // Remove existing ";" at the query end, if exists
-    if(boost::algorithm::ends_with(sqlQuery, ";")) {
-      sqlQuery.pop_back();
+    if(boost::algorithm::ends_with(usedSQLQuery, ";")) {
+      usedSQLQuery.pop_back();
     }
 
     // Limit query to 1 result tuple
-    string usedSQLQuery = sqlQuery + " LIMIT 1;";
+    string usedSQLQuery = usedSQLQuery + " LIMIT 1;";
   }
 
   if( ! checkConnection()) {
@@ -583,7 +601,8 @@ bool ConnectionPG::getTypeFromSQLQuery(std::string sqlQuery,
 Perform the given query and return a result iterator
 
 */
-ResultIteratorGeneric* ConnectionPG::performSQLQuery(std::string sqlQuery) {
+ResultIteratorGeneric* ConnectionPG::performSQLQuery(
+  const std::string &sqlQuery) {
 
   if( ! checkConnection()) {
     cerr << "Error: Connection check failed in performSQLQuery()" << endl;
