@@ -77,6 +77,12 @@ public:
 
   bool checkAllConnections();
 
+  bool repartition_table_by_hash(const std::string &tab, 
+    const std::string &key, const size_t slotnum);
+
+  bool repartition_table_by_rr(const std::string &tab, 
+    const std::string &key, const size_t slotnum);
+
   bool partTable(std::string tab, std::string key, std::string art,
      size_t slotnum, std::string geo_col = "", float x0 = 0, float y0 = 0,
      float slotsize = 0);

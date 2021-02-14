@@ -336,12 +336,12 @@ return 0;
 */
 OperatorSpec be_partRRSpec(
    "{string, text} x {string, text} x int--> bool",
-   "be_partRR(_,_,_)",
+   "be_part_rr(_,_,_)",
    "This operator distribute a relation by round-robin "
    "to the worker. You can specified a multi key by separating "
    "the fields with a comma. The number of slots have to be positiv "
    "and should be a multiple of your number of workers.",
-   "query be_partRR('cars','moid',60)"
+   "query be_part_rr('cars','moid',60)"
 );
 
 /*
@@ -372,7 +372,7 @@ int be_partRRSelect(ListExpr args){
 
 */
 Operator be_partRROp(
-  "be_partRR",
+  "be_part_rr",
   be_partRRSpec.getStr(),
   sizeof(be_partRRVM),
   be_partRRVM,
@@ -454,12 +454,12 @@ int be_partHashSFVM(Word* args,Word& result,int message,
 */
 OperatorSpec be_partHashSpec(
    "{string, text} x {string, text} x int--> bool",
-   "be_partHash(_,_,_)",
+   "be_part_hash(_,_,_)",
    "This operator distribute a relation by hash-value "
    "to the worker. You can specified a multi key by separating "
    "the fields with a comma. The number of slots have to be positiv "
    "and should be a multiple of your number of workers.",
-   "query be_partHash('cars','moid',60)"
+   "query be_part_hash('cars','moid',60)"
 );
 
 /*
@@ -490,7 +490,7 @@ int be_partHashSelect(ListExpr args){
 
 */
 Operator be_partHashOp(
-  "be_partHash",
+  "be_part_hash",
   be_partHashSpec.getStr(),
   sizeof(be_partHashVM),
   be_partHashVM,
@@ -580,13 +580,13 @@ return 0;
 */
 OperatorSpec be_partFunSpec(
    "{string, text} x {string, text} x {string, text} x int--> bool",
-   "be_partFun(_,_,_,_)",
+   "be_part_fun(_,_,_,_)",
    "This operator distribute a relation by a special function "
    "to the worker. Special functions are RR, Hash and random. "
    "You can specified a multi key by separating "
    "the fields with a comma. The number of slots have to be positiv "
    "and should be a multiple of your number of workers.",
-   "query be_partFun('cars','moid','random',60)"
+   "query be_part_fun('cars','moid','random',60)"
 );
 
 /*
@@ -629,7 +629,7 @@ int be_partFunSelect(ListExpr args){
 
 */
 Operator be_partFunOp(
-  "be_partFun",
+  "be_part_fun",
   be_partFunSpec.getStr(),
   sizeof(be_partFunVM),
   be_partFunVM,
@@ -1809,12 +1809,12 @@ CcBool* res = (CcBool*) result.addr;
 OperatorSpec be_partGridSpec(
    "{string, text} x {string, text} x {string, text} "
    "x real x real x real x int --> bool",
-   "be_partGrid(_,_,_,_,_,_,_)",
+   "be_part_grid(_,_,_,_,_,_,_)",
    "This operator distribute a relation by specified grid "
    "to the worker. You can specified the leftbottom coordinates and the "
    "size and number of squares. This number of slots and size have to be "
    "positiv. The column should be a geological attribut.",
-   "query be_partGrid('roads','gid','geog',5.8, 50.3,0.2,20)"
+   "query be_part_grid('roads','gid','geog',5.8, 50.3,0.2,20)"
 );
 
 /*
@@ -1858,7 +1858,7 @@ int be_partGridSelect(ListExpr args){
 
 */
 Operator be_partGridOp(
-  "be_partGrid",
+  "be_part_grid",
   be_partGridSpec.getStr(),
   sizeof(be_partHashVM),
   be_partGridVM,
@@ -2022,6 +2022,185 @@ Operator be_collect_op (
 
 
 /*
+1.2 Operator  ~be\_repart\_rr~
+
+Repartition a relation by Round-Robin, sends the data
+to the worker and import the data
+
+1.2.2 Value Mapping
+
+*/
+template<class T, class H>
+int be_repartRRSFVM(Word* args, Word& result, int message,
+        Word& local, Supplier s ){
+
+  result = qp->ResultStorage(s);
+
+  T* tab = (T*) args[0].addr;
+  H* key = (H*) args[1].addr;
+  CcInt* slot = (CcInt*) args[2].addr;
+
+  bool val = false;
+  CcBool* res = (CcBool*) result.addr;
+
+  if(be_control && be_control->isMaster()){
+    if (slot->GetIntval() > 0){
+      val = be_control->repartition_table_by_rr(tab->toText(), 
+        key->toText(), slot->GetIntval());
+    }else{
+      cout << negSlots << endl;
+    }
+  }
+  else{
+    cout << noWorker << endl;
+  }
+  res->Set(true, val);
+
+  return 0;
+}
+
+/*
+1.2.3 Specification
+
+*/
+OperatorSpec be_repartRRSpec(
+   "{string, text} x {string, text} x int--> bool",
+   "be_repart_rr(_,_,_)",
+   "This operator repartition a relation by round-robin "
+   "to the worker. You can specified a multi key by separating "
+   "the fields with a comma. The number of slots have to be positiv "
+   "and should be a multiple of your number of workers.",
+   "query be_repart_rr('cars','moid',60)"
+);
+
+/*
+1.2.4 ValueMapping Array
+
+*/
+ValueMapping be_repartRRVM[] = {
+  be_repartRRSFVM<CcString,CcString>,
+  be_repartRRSFVM<FText,CcString>,
+  be_repartRRSFVM<CcString,FText>,
+  be_repartRRSFVM<FText,FText>
+};
+
+/*
+1.2.5 Selection Function
+
+*/
+int be_repartRRSelect(ListExpr args){
+  if(CcString::checkType(nl->First(args))){
+    return CcString::checkType(nl->Second(args))?0:2;
+  } else {
+    return CcString::checkType(nl->Second(args))?1:3;
+  }
+};
+
+/*
+1.2.6 Operator instance
+
+*/
+Operator be_repartRROp(
+  "be_repart_rr",
+  be_repartRRSpec.getStr(),
+  sizeof(be_repartRRVM),
+  be_repartRRVM,
+  be_repartRRSelect,
+  be_partRRTM
+);
+
+/*
+1.3 Operator  ~be\_repart\_hash~
+
+Repartition a relation by Hash, sends the data
+to the worker and import the data
+
+1.3.2 Value Mapping
+
+*/
+template<class T, class H>
+int be_repartHashSFVM(Word* args,Word& result,int message,
+          Word& local,Supplier s ){
+
+  result = qp->ResultStorage(s);
+
+  T* tab = (T*) args[0].addr;
+  H* key = (H*) args[1].addr;
+  CcInt* slot = (CcInt*) args[2].addr;
+
+  bool val = false;
+  CcBool* res = (CcBool*) result.addr;
+
+  if(be_control && be_control->isMaster()){
+    if (slot->GetIntval() > 0){
+      val = be_control->repartition_table_by_hash(tab->toText(), 
+        key->toText(), slot->GetIntval());
+    } else {
+      cout << negSlots << endl;
+    }
+  } else {
+    cout << noWorker << endl;
+  }
+
+  res->Set(true, val);
+
+  return 0;
+}
+
+/*
+1.3.3 Specification
+
+*/
+OperatorSpec be_repartHashSpec(
+   "{string, text} x {string, text} x int--> bool",
+   "be_repart_hash(_,_,_)",
+   "This operator repartition a relation by hash-value "
+   "to the worker. You can specified a multi key by separating "
+   "the fields with a comma. The number of slots have to be positiv "
+   "and should be a multiple of your number of workers.",
+   "query be_repart_hash('cars','moid',60)"
+);
+
+/*
+1.3.4 ValueMapping Array
+
+*/
+ValueMapping be_repartHashVM[] = {
+  be_repartHashSFVM<CcString,CcString>,
+  be_repartHashSFVM<FText,CcString>,
+  be_repartHashSFVM<CcString,FText>,
+  be_repartHashSFVM<FText,FText>
+};
+
+/*
+1.3.5 Selection Function
+
+*/
+int be_repartHashSelect(ListExpr args){
+  if(CcString::checkType(nl->First(args))){
+    return CcString::checkType(nl->Second(args))?0:2;
+  } else {
+    return CcString::checkType(nl->Second(args))?1:3;
+  }
+}
+
+/*
+1.3.6 Operator instance
+
+*/
+Operator be_repartHashOp(
+  "be_repart_hash",
+  be_repartHashSpec.getStr(),
+  sizeof(be_repartHashVM),
+  be_repartHashVM,
+  be_repartHashSelect,
+  be_partHashTM
+);
+
+
+
+
+/*
 1.15 Implementation of the Algebra
 
 */
@@ -2036,9 +2215,6 @@ class BasicEngineAlgebra : public Algebra
     be_init_worker_op.SetUsesArgsInTypeMapping();
     AddOperator(&be_shutdown);
     AddOperator(&be_shutdown_worker);
-    AddOperator(&be_partRROp);
-    AddOperator(&be_partHashOp);
-    AddOperator(&be_partFunOp);
     AddOperator(&be_queryOp);
     AddOperator(&be_commandOp);
     AddOperator(&be_copyOp);
@@ -2047,9 +2223,15 @@ class BasicEngineAlgebra : public Algebra
     AddOperator(&be_unionOp);
     AddOperator(&be_structOp);
     AddOperator(&be_runsqlOp);
-    AddOperator(&be_partGridOp);
     AddOperator(&be_collect_op);
     be_collect_op.SetUsesArgsInTypeMapping();
+
+    AddOperator(&be_partRROp);
+    AddOperator(&be_partHashOp);
+    AddOperator(&be_partGridOp);
+    AddOperator(&be_partFunOp);
+    AddOperator(&be_repartRROp);
+    AddOperator(&be_repartHashOp);
   }
 
   ~BasicEngineAlgebra() {

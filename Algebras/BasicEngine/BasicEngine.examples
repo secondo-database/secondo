@@ -25,24 +25,6 @@ Signature : --> bool
 Example   : query be_shutdown_worker()
 Result    : FALSE
 
-Operator  : be_partRR
-Number    : 1
-Signature : {string, text} x {string, text} x int --> bool
-Example   : query be_partRR("cars", "moid", 60)
-Result    : FALSE
-
-Operator  : be_partHash
-Number    : 1
-Signature : {string, text} x {string, text} x int --> bool
-Example   : query be_partHash("cars", "moid", 60)
-Result    : FALSE
-
-Operator  : be_partFun
-Number    : 1
-Signature : {string, text} x {string, text} x int --> bool
-Example   : query be_partFun("cars", "moid","random",60)
-Result    : FALSE
-
 Operator  : be_collect
 Number    : 1
 Signature : {text} --> stream(tuple(...))
@@ -97,8 +79,38 @@ Signature : {string, text} --> bool
 Example   : query be_runsql('/home/cbe/filetransfer/createroads.sql')
 Result    : FALSE
 
-Operator  : be_partGrid
+Operator  : be_part_rr
+Number    : 1
+Signature : {string, text} x {string, text} x int --> bool
+Example   : query be_part_rr("cars", "moid", 60)
+Result    : FALSE
+
+Operator  : be_part_hash
+Number    : 1
+Signature : {string, text} x {string, text} x int --> bool
+Example   : query be_part_hash("cars", "moid", 60)
+Result    : FALSE
+
+Operator  : be_part_fun
+Number    : 1
+Signature : {string, text} x {string, text} x int --> bool
+Example   : query be_part_fun("cars", "moid","random",60)
+Result    : FALSE
+
+Operator  : be_part_grid
 Number    : 1
 Signature : {string, text} x {string, text} x real x real x real x int--> bool
-Example   : query be_partGrid('roads','gid','geod',5.8, 50.3,0.2,20)
+Example   : query be_part_grid('roads','gid','geod',5.8, 50.3,0.2,20)
+Result    : FALSE
+
+Operator  : be_repart_rr
+Number    : 1
+Signature : {string, text} x {string, text} x int --> bool
+Example   : query be_repart_rr("cars", "moid", 60)
+Result    : FALSE
+
+Operator  : be_repart_hash
+Number    : 1
+Signature : {string, text} x {string, text} x int --> bool
+Example   : query be_repart_hash("cars", "moid", 60)
 Result    : FALSE

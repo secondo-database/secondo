@@ -345,6 +345,35 @@ bool BasicEngine_Control::partRoundRobin(string* tab,
   return val;
 }
 
+
+/*
+3.8 ~repartition\_table\_by\_hash~
+
+Repartition the given table by round hash
+
+*/
+bool BasicEngine_Control::repartition_table_by_hash(const std::string &tab, 
+  const std::string &key, const size_t slotnum) {
+
+    //TODO: Implement
+    return false;
+}
+
+/*
+3.8 ~repartition\_table\_by\_rr~
+
+Repartition the given table by round robin
+
+*/
+bool BasicEngine_Control::repartition_table_by_rr(const std::string &tab, 
+  const std::string &key, const size_t slotnum) {
+    
+
+    //TODO: Implement
+    return false;
+}
+
+
 /*
 3.9 ~exportToWorker~
 
