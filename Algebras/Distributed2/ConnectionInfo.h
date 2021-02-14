@@ -208,15 +208,15 @@ public:
                                             bool forceExec = false,
                                             const size_t timeout=0);
 
-    bool saveRelationToFile(ListExpr relType,
+    static bool saveRelationToFile(ListExpr relType,
                             Word& value,
                             const std::string& filename);
 
-    bool saveAttributeToFile(ListExpr type,
+    static bool saveAttributeToFile(ListExpr type,
                              Word& value,
                              const std::string& filename);
 
-    bool storeObjectToFile(const std::string& objName,
+    static bool storeObjectToFile(const std::string& objName,
                            Word& value,
                            ListExpr typeList,
                            const std::string& fileName);
