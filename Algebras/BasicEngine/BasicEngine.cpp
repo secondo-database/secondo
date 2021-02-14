@@ -137,7 +137,7 @@ int be_shutdown_vm(Word* args, Word& result, int message,
     if(be_control->isMaster()) {
       cout << "Error: Can not shutdown worker, we are in master mode." 
           << endl;
-      cout << "Please use be_shutdown_worker() instead." 
+      cout << "Please use be_shutdown_cluster() instead." 
           << endl << endl;
       ((CcBool*)result.addr)->Set(true, false);
       return 0;
@@ -186,7 +186,7 @@ Operator be_shutdown (
 This operator has no paramter
 
 */
-ListExpr be_shutdown_worker_tm(ListExpr args) {
+ListExpr be_shutdown_cluster_tm(ListExpr args) {
 string err = "No parameter (--> bool) expected";
 
   if(!(nl->HasLength(args,0))){
@@ -199,7 +199,7 @@ string err = "No parameter (--> bool) expected";
 1.1.2 Value Mapping
 
 */
-int be_shutdown_worker_vm(Word* args, Word& result, int message,
+int be_shutdown_cluster_vm(Word* args, Word& result, int message,
         Word& local, Supplier s) {
   
   result = qp->ResultStorage(s);
@@ -243,23 +243,23 @@ int be_shutdown_worker_vm(Word* args, Word& result, int message,
 1.1.3 Specification
 
 */
-OperatorSpec be_shutdown_worker_spec (
+OperatorSpec be_shutdown_cluster_spec (
    " --> bool",
-   "be_shutdown_worker()",
+   "be_shutdown_cluster()",
    "Shutdown the connection to the basic engine worker",
-   "query be_shutdown_worker()"
+   "query be_shutdown_cluster()"
 );
 
 /*
 1.1.6 Definition of operator ~be\_shutdown~
 
 */
-Operator be_shutdown_worker (
-         "be_shutdown_worker",                 // name
-         be_shutdown_worker_spec.getStr(),     // specification
-         be_shutdown_worker_vm,                // value mapping
+Operator be_shutdown_cluster (
+         "be_shutdown_cluster",                 // name
+         be_shutdown_cluster_spec.getStr(),     // specification
+         be_shutdown_cluster_vm,                // value mapping
          Operator::SimpleSelect,               // trivial selection function
-         be_shutdown_worker_tm                 // type mapping
+         be_shutdown_cluster_tm                 // type mapping
 );
 
 /*
@@ -1345,7 +1345,7 @@ of the operation.
 This operator gets a hostname,a port and a Worker relation.
 
 */
-ListExpr be_init_worker_tm(ListExpr args) {
+ListExpr be_init_cluster_tm(ListExpr args) {
 
   string err = "\n {string, text} x int x {string, text} x rel "
        "--> bool (type, port, db-name, worker relation) expected";
@@ -1414,7 +1414,7 @@ int init_be_workerSFVM(Word* args, Word& result, int message,
 
   if(be_control != NULL) {
     cerr << "Error: Basic engine is already initialized. "
-      << "Please shutdown first, using be_shutdown_worker()."
+      << "Please shutdown first, using be_shutdown_cluster()."
       << endl << endl;
 
     ((CcBool*) result.addr)->Set(true, false);
@@ -1488,22 +1488,22 @@ int init_be_workerSFVM(Word* args, Word& result, int message,
 1.12.3 Specification
 
 */
-OperatorSpec be_init_worker_spec (
+OperatorSpec be_init_cluster_spec (
    "{string, text} x int x {string, text} x rel --> bool",
-   "be_init_worker(_,_,_,_)",
+   "be_init_cluster(_,_,_,_)",
    "Set the dbtype, port and the db-name for initialization the local "
    "BE-Worker. Additional you have to specified a Workers-Relation with all "
    "connection information from the worker, including the information "
    "about the second DBMS. The structure of this relation should be "
    "[Host: string, Port: int, Config: string, PGPort: int, DBName: string]",
-   "query be_init_worker('pgsql',5432,'gisdb',WorkersPG)"
+   "query be_init_cluster('pgsql',5432,'gisdb',WorkersPG)"
 );
 
 /*
 1.12.4 ValueMapping Array
 
 */
-ValueMapping be_init_worker_vm[] = {
+ValueMapping be_init_cluster_vm[] = {
   init_be_workerSFVM<CcString>,
   init_be_workerSFVM<FText>,
 };
@@ -1512,7 +1512,7 @@ ValueMapping be_init_worker_vm[] = {
 1.12.5 Selection Function
 
 */
-int be_init_worker_select(ListExpr args){
+int be_init_cluster_select(ListExpr args){
     return CcString::checkType(nl->First(args))?0:1;
 }
 
@@ -1520,13 +1520,13 @@ int be_init_worker_select(ListExpr args){
 1.12.6 Operator instance
 
 */
-Operator be_init_worker_op (
-  "be_init_worker",
-  be_init_worker_spec.getStr(),
-  sizeof(be_init_worker_vm),
-  be_init_worker_vm,
-  be_init_worker_select,
-  be_init_worker_tm
+Operator be_init_cluster_op (
+  "be_init_cluster",
+  be_init_cluster_spec.getStr(),
+  sizeof(be_init_cluster_vm),
+  be_init_cluster_vm,
+  be_init_cluster_select,
+  be_init_cluster_tm
 );
 
 
@@ -1580,7 +1580,7 @@ OperatorSpec init_be_spec (
    "Set the db-type, port and the db-name for initialization "
    "the local BE-Worker. Your username and password have to be stored "
    "in the .pgpass file in your home location. For creating a distributed "
-   "PostgreSQL-System please use the operator be_init_worker.",
+   "PostgreSQL-System please use the operator be_init_cluster.",
    "query be_init('pgsql', 5432,'gisdb')"
 );
 
@@ -1611,7 +1611,7 @@ Operator be_init_op(
   sizeof(be_init_vm),
   be_init_vm,
   be_init_select,
-  be_init_worker_tm
+  be_init_cluster_tm
 );
 
 
@@ -1929,7 +1929,7 @@ ListExpr be_collect_tm(ListExpr args) {
 
   if(be_control == NULL) {
     return listutils::typeError("Basic engine is not connected. "
-      "Plase call be_init_worker() first.");
+      "Plase call be_init_cluster() first.");
   }
 
   ListExpr resultType;
@@ -2211,10 +2211,10 @@ class BasicEngineAlgebra : public Algebra
   {
     AddOperator(&be_init_op);
     be_init_op.SetUsesArgsInTypeMapping();
-    AddOperator(&be_init_worker_op);
-    be_init_worker_op.SetUsesArgsInTypeMapping();
+    AddOperator(&be_init_cluster_op);
+    be_init_cluster_op.SetUsesArgsInTypeMapping();
     AddOperator(&be_shutdown);
-    AddOperator(&be_shutdown_worker);
+    AddOperator(&be_shutdown_cluster);
     AddOperator(&be_queryOp);
     AddOperator(&be_commandOp);
     AddOperator(&be_copyOp);

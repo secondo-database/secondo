@@ -7,10 +7,10 @@ Signature : int x {string, text} x relation --> bool
 Example   : query be_init("pgsql", 5432, "gisdb", WorkersPG)
 Result    : FALSE
 
-Operator  : be_init_worker
+Operator  : be_init_cluster
 Number    : 1
 Signature : int x {string, text} x relation --> bool
-Example   : query be_init_worker("pgsql", 5432, "gisdb", WorkersPG)
+Example   : query be_init_cluster("pgsql", 5432, "gisdb", WorkersPG)
 Result    : FALSE
 
 Operator  : be_shutdown
@@ -19,10 +19,10 @@ Signature : --> bool
 Example   : query be_shutdown()
 Result    : FALSE
 
-Operator  : be_shutdown_worker
+Operator  : be_shutdown_cluster
 Number    : 1
 Signature : --> bool
-Example   : query be_shutdown_worker()
+Example   : query be_shutdown_cluster()
 Result    : FALSE
 
 Operator  : be_collect
