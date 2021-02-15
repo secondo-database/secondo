@@ -93,9 +93,9 @@ ConnectionInfo* BasicEngine_Control::createConnection(const string &host,
 
 */
 BasicEngine_Control::~BasicEngine_Control() {
-    if(dbms_connection != NULL) {
+    if(dbms_connection != nullptr) {
       delete dbms_connection;
-      dbms_connection = NULL;
+      dbms_connection = nullptr;
     }
 
     // Delete importer
@@ -111,9 +111,9 @@ BasicEngine_Control::~BasicEngine_Control() {
     connections.clear();
 
     // Delete cloned worker relation
-    if(workerRelation != NULL) {
+    if(workerRelation != nullptr) {
       workerRelation -> Delete();
-      workerRelation = NULL;
+      workerRelation = nullptr;
     }
   }
 
@@ -209,7 +209,7 @@ bool BasicEngine_Control::createAllConnections(){
     string dbPort = tuple->GetAttribute(3)->toText();
     string dbName = tuple->GetAttribute(4)->toText();
 
-    if(tuple != NULL) {
+    if(tuple != nullptr) {
       tuple->DeleteIfAllowed();
     }
 
@@ -248,9 +248,9 @@ bool BasicEngine_Control::createAllConnections(){
     }
   }
 
-  if(it != NULL) {
+  if(it != nullptr) {
     delete it;
-    it = NULL;
+    it = nullptr;
   }
 
   // Delete relation file

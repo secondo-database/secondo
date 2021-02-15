@@ -84,19 +84,19 @@ namespace BasicEngine {
         }
 
         virtual ~ResultIteratorPostgres() {
-            if(tt != NULL) {
+            if(tt != nullptr) {
                 tt -> DeleteIfAllowed();
-                tt = NULL;
+                tt = nullptr;
             }
 
-            if(basicTuple != NULL) {
+            if(basicTuple != nullptr) {
                 basicTuple -> DeleteIfAllowed();
-                basicTuple = NULL;
+                basicTuple = nullptr;
             }
 
-            if(res != NULL) {
+            if(res != nullptr) {
                 PQclear(res);
-                res = NULL;
+                res = nullptr;
             }
 
             for(unsigned int i=0; i<instances.size();i++){
@@ -110,10 +110,10 @@ namespace BasicEngine {
         virtual Tuple* getNextTuple();
 
        private:
-        PGresult* res = NULL;
+        PGresult* res = nullptr;
         ListExpr type;
-        TupleType* tt = NULL;
-        Tuple* basicTuple = NULL;
+        TupleType* tt = nullptr;
+        Tuple* basicTuple = nullptr;
         std::vector<Attribute*> instances;
         int currentTuple = 0;
         int totalTuples = 0;

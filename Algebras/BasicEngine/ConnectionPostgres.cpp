@@ -61,7 +61,7 @@ string keyword;
 
 */
 ConnectionPG::~ConnectionPG() {
-  if(conn != NULL) {
+  if(conn != nullptr) {
     PQfinish(conn);
   }
 }
@@ -613,7 +613,7 @@ ResultIteratorGeneric* ConnectionPG::performSQLSelectQuery(
 
   if( ! checkConnection()) {
     cerr << "Error: Connection check failed in performSQLSelectQuery()" << endl;
-    return NULL;
+    return nullptr;
   }
 
   ListExpr resultList;
@@ -623,7 +623,7 @@ ResultIteratorGeneric* ConnectionPG::performSQLSelectQuery(
   if(!result) {
     cerr << "Error: Unable to get tuple type form query: " 
          << sqlQuery << endl;
-    return NULL;
+    return nullptr;
   }
 
   return new ResultIteratorPostgres(res, resultList);

@@ -164,7 +164,7 @@ class ConnectionPG : public ConnectionGeneric {
   The connection to PostgreSQL
 
   */
-  PGconn* conn = NULL;
+  PGconn* conn = nullptr;
 
   /*
   5.2.2 ~port~
