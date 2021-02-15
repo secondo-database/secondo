@@ -37,6 +37,7 @@ Version 1.0 - Created - C.Behrndt - 2020
 #define _BasicEngine_Control_H_
 
 #include <optional>
+#include <memory>
 #include <boost/log/trivial.hpp>
 #include "Algebras/Relation-C++/RelationAlgebra.h"
 #include "BasicEngine_Thread.h"
@@ -159,6 +160,8 @@ public:
 
   bool createAllConnections();
 
+  void shutdownAllConnections();
+
   static const size_t defaultTimeout = 0;
 
   static const int defaultHeartbeat = 0;
@@ -267,7 +270,7 @@ distributed2::ConnectionInfo* createConnection(const std::string &host,
     return std::string("/home/") + getenv("USER") + "/filetransfer/";
   }
 
-  std::string getparttabname(const std::string &tab, 
+  std::string getTableNameForPartitioning(const std::string &tab, 
     const std::string &key);
 
   std::string getRepartitionTableName(const std::string &table) {

@@ -1564,8 +1564,16 @@ int be_init_sf_vm(Word* args, Word& result, int message,
     be_control = new BasicEngine_Control(dbConnection, worker, 
       workerRelationNameValue, false);
 
-    bool connectionState = dbConnection->checkConnection();
-    ((CcBool*)result.addr)->Set(true, connectionState);
+    /*bool createConnectionResult = be_control -> createAllConnections();
+
+    if(! createConnectionResult) {
+      cerr << "Error: Connection error, please check the previous messages"
+           << " for error messages." << endl << endl;
+      ((CcBool*) result.addr)->Set(true, false);
+    } else {*/
+      bool connectionState = dbConnection->checkConnection();
+      ((CcBool*)result.addr)->Set(true, connectionState);
+//    }
   } else {
     cerr << endl << "Error: Unsupported database type: " 
          << dbtype->toText() << endl;
@@ -2049,17 +2057,18 @@ int be_repartRRSFVM(Word* args, Word& result, int message,
   bool val = false;
   CcBool* res = (CcBool*) result.addr;
 
-  if(be_control && be_control->isMaster()){
+  if(be_control == nullptr){
+    cerr << "Please init basic engine first" << endl;
+    val = false;
+  } else {
     if (slot->GetIntval() > 0){
       val = be_control->repartition_table_by_rr(tab->toText(), 
         key->toText(), slot->GetIntval());
-    }else{
+    } else{
       cout << negSlots << endl;
     }
   }
-  else{
-    cout << noWorker << endl;
-  }
+  
   res->Set(true, val);
 
   return 0;
@@ -2137,16 +2146,17 @@ int be_repartHashSFVM(Word* args,Word& result,int message,
   bool val = false;
   CcBool* res = (CcBool*) result.addr;
 
-  if(be_control && be_control->isMaster()){
+  if(be_control == nullptr) {
+    cerr << "Please init basic engine first" << endl;
+    val = false;
+  } else {
     if (slot->GetIntval() > 0){
       val = be_control->repartition_table_by_hash(tab->toText(), 
         key->toText(), slot->GetIntval());
     } else {
       cout << negSlots << endl;
     }
-  } else {
-    cout << noWorker << endl;
-  }
+  } 
 
   res->Set(true, val);
 

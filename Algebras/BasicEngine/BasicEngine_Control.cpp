@@ -68,7 +68,7 @@ ConnectionInfo* BasicEngine_Control::createConnection(const string &host,
     return nullptr;
   } 
   
-  bool switchResult = ci->switchDatabase(dbName, true, false, true, 
+  bool switchResult = ci->switchDatabase(dbName, true, false, false, 
     BasicEngine_Control::defaultTimeout);
 
   if(! switchResult) { 
@@ -87,7 +87,6 @@ ConnectionInfo* BasicEngine_Control::createConnection(const string &host,
   return ci;
 }
 
-
 /*
 3.2 Destructor
 
@@ -98,24 +97,34 @@ BasicEngine_Control::~BasicEngine_Control() {
       dbms_connection = nullptr;
     }
 
-    // Delete importer
-    for(const BasicEngine_Thread* basic_engine_thread: importer) {
-      delete basic_engine_thread;
-    }
-    importer.clear();
-
-    // Delete connections
-    for(distributed2::ConnectionInfo* ci: connections) {
-      ci->deleteIfAllowed();
-    }
-    connections.clear();
+    shutdownAllConnections();
 
     // Delete cloned worker relation
     if(workerRelation != nullptr) {
       workerRelation -> Delete();
       workerRelation = nullptr;
     }
+}
+
+/*
+3.2 ~shutdownAllConnections~
+
+Shutdown all connections
+
+*/
+void BasicEngine_Control::shutdownAllConnections() {
+  // Delete importer
+  for(const BasicEngine_Thread* basic_engine_thread: importer) {
+    delete basic_engine_thread;
   }
+  importer.clear();
+
+  // Delete connections
+  for(distributed2::ConnectionInfo* ci: connections) {
+    ci->deleteIfAllowed();
+  }
+  connections.clear();
+}
 
 /*
 3.2 ~initBasicEngineOnWorker~
@@ -185,9 +194,9 @@ Creating all connection from the worker relation.
 */
 bool BasicEngine_Control::createAllConnections(){
 
-  GenericRelationIterator* it = workerRelation->MakeScan();
   Tuple* tuple = nullptr;
   optional<string> workerRelationFileName = nullopt;
+  unique_ptr<GenericRelationIterator> it(workerRelation->MakeScan());
 
   // In master mode, share the worker relation with the clients
   if(master) {
@@ -196,8 +205,9 @@ bool BasicEngine_Control::createAllConnections(){
           workerRelationName, workerRelation);
       workerRelationFileName.emplace(exportedFile); 
     } catch(std::exception &e) {
-      cerr << "Error: Got an exception during export worker relation"  
-           << e.what() << endl;
+      BOOST_LOG_TRIVIAL(error) 
+        << "Got an exception during export worker relation" 
+        << e.what();
       return false;
     }
   }
@@ -217,13 +227,12 @@ bool BasicEngine_Control::createAllConnections(){
       host, port, config, dbPort, dbName);
 
     if(ci == nullptr) {
-      cout << endl 
+      BOOST_LOG_TRIVIAL(error)  
            << "Error: Unable to establish connection to worker: "
-           << host << " / " << port << endl << endl;
+           << host << " / " << port;
 
       break;
     }
-
 
     // In master mode init the basic engine on the clients
     // and share worker relation
@@ -232,8 +241,8 @@ bool BasicEngine_Control::createAllConnections(){
           = initBasicEngineOnWorker(ci, dbPort, dbName);
 
         if(! initResult) {
-          cerr << "Error while init basic engine on" 
-            << ci -> getHost() << " / " << ci -> getPort() << endl;
+          BOOST_LOG_TRIVIAL(error) << "Error while init basic engine on" 
+            << ci -> getHost() << " / " << ci -> getPort();
           break;
         }
 
@@ -241,16 +250,12 @@ bool BasicEngine_Control::createAllConnections(){
           = exportWorkerRelationToWorker(ci, workerRelationFileName);
 
         if(! exportResult) {
-          cerr << "Error while distributing worker relation to" 
-            << ci -> getHost() << " / " << ci -> getPort() << endl;
+          BOOST_LOG_TRIVIAL(error) 
+            << "Error while distributing worker relation to" 
+            << ci -> getHost() << " / " << ci -> getPort();
           break;
         }
     }
-  }
-
-  if(it != nullptr) {
-    delete it;
-    it = nullptr;
   }
 
   // Delete relation file
@@ -260,9 +265,8 @@ bool BasicEngine_Control::createAllConnections(){
   }
 
   if(numberOfWorker != connections.size()) {
-    cerr << endl 
-         << "Error: Number of worker connections does not match relation size"
-         << endl << endl;
+    BOOST_LOG_TRIVIAL(error)
+         << "Error: Number of worker connections does not match relation size";
     return false;
   }
 
@@ -270,12 +274,12 @@ bool BasicEngine_Control::createAllConnections(){
 }
 
 /*
-3.5 ~getparttabname~
+3.5 ~getTableNameForPartitioning~
 
 Returns a name of a table with the keys included.
 
 */
-string BasicEngine_Control::getparttabname(
+string BasicEngine_Control::getTableNameForPartitioning(
   const string &tab, const string &key) {
 
   string usedKey(key);
@@ -335,7 +339,7 @@ bool BasicEngine_Control::partRoundRobin(const string &tab,
   string partTabName;
   string anzSlots = to_string(slotnum);
 
-  partTabName = getparttabname(tab, key);
+  partTabName = getTableNameForPartitioning(tab, key);
   drop_table(partTabName);
 
   query_exec = dbms_connection->getPartitionRoundRobinSQL(tab, key,
@@ -380,6 +384,11 @@ Repartition the given table - worker version
     const RepartitionMode &repartitionMode) {
 
     // Open connections
+    /*bool connectionCreateResult = createAllConnections();
+    if(!connectionCreateResult) {
+      BOOST_LOG_TRIVIAL(error) << "Unable to open connections";
+      return false;
+    }*/
 
     // On the worker: Call export
 
@@ -388,7 +397,9 @@ Repartition the given table - worker version
     // On the worker: Call import
 
     // Close connections
-    return false;
+  //  shutdownAllConnections();
+
+    return true;
   }
 
 
@@ -600,7 +611,7 @@ bool BasicEngine_Control::partHash(const string &tab,
   string partTabName;
   string anzSlots = to_string(slotnum);
 
-  partTabName = getparttabname(tab, key);
+  partTabName = getTableNameForPartitioning(tab, key);
   drop_table(partTabName);
 
   query_exec = dbms_connection->getPartitionHashSQL(tab, key,
@@ -626,7 +637,7 @@ bool BasicEngine_Control::partFun(const string &tab,
                 
   bool val = false;
   string query_exec = "";
-  string partTabName = getparttabname(tab,key);
+  string partTabName = getTableNameForPartitioning(tab,key);
   string anzSlots;
 
   drop_table(partTabName);
@@ -659,7 +670,7 @@ bool BasicEngine_Control::exportData(const string &tab,
 
   bool val = true;
   string path = getFilePath();
-  string parttabname = getparttabname(tab, key);
+  string parttabname = getTableNameForPartitioning(tab, key);
   string strindex;
 
   // Starting with 1 to <= numberOfWorker
@@ -988,7 +999,7 @@ bool BasicEngine_Control::partGrid(const std::string &tab,
   string sizSlots = to_string(slotsize);
 
   //Dropping parttable
-  partTabName = getparttabname(tab,key);
+  partTabName = getTableNameForPartitioning(tab,key);
   drop_table(partTabName);
 
   //creating Index on table
