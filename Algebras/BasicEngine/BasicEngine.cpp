@@ -36,6 +36,8 @@ Checked - 2020
 Version 1.0 - Created - C.Behrndt - 2020
 
 */
+
+
 #include "Algebras/FText/FTextAlgebra.h"
 #include "StandardTypes.h"
 #include "BasicEngine_Control.h"
@@ -52,7 +54,7 @@ namespace BasicEngine {
 dbs\_con is a pointer to a connection, for example to postgres
 
 */
-BasicEngine_Control* be_control = NULL;
+BasicEngine_Control* be_control = nullptr;
 
 /*
 noMaster is just a default string for an error massage.
@@ -105,7 +107,7 @@ ConnectionGeneric* getDatabaseConnection(string dbtype,
     cerr << endl << "Error: Unsupported database type: " 
         << dbtype << endl;
     
-    return NULL;
+    return nullptr;
 }
 
 /*
@@ -132,7 +134,7 @@ int be_shutdown_vm(Word* args, Word& result, int message,
 
   result = qp->ResultStorage(s);
 
-  if(be_control != NULL) {
+  if(be_control != nullptr) {
 
     if(be_control->isMaster()) {
       cout << "Error: Can not shutdown worker, we are in master mode." 
@@ -145,7 +147,7 @@ int be_shutdown_vm(Word* args, Word& result, int message,
 
     cout << "Shutting down basic engine worker" << endl;
     delete be_control;
-    be_control = NULL;
+    be_control = nullptr;
     
     ((CcBool*)result.addr)->Set(true, true);
     return 0;
@@ -204,7 +206,7 @@ int be_shutdown_cluster_vm(Word* args, Word& result, int message,
   
   result = qp->ResultStorage(s);
 
-  if(be_control != NULL) {
+  if(be_control != nullptr) {
 
     if(! be_control->isMaster()) {
       cout << "Error: Can not shutdown worker nodes, we are not" 
@@ -228,7 +230,7 @@ int be_shutdown_cluster_vm(Word* args, Word& result, int message,
 
     cout << "Shutting down basic engine master" << endl;
     delete be_control;
-    be_control= NULL;
+    be_control = nullptr;
 
     ((CcBool*)result.addr)->Set(true, true);
     return 0;
@@ -1412,7 +1414,7 @@ int init_be_workerSFVM(Word* args, Word& result, int message,
 
   result = qp->ResultStorage(s);
 
-  if(be_control != NULL) {
+  if(be_control != nullptr) {
     cerr << "Error: Basic engine is already initialized. "
       << "Please shutdown first, using be_shutdown_cluster()."
       << endl << endl;
@@ -1453,7 +1455,7 @@ int init_be_workerSFVM(Word* args, Word& result, int message,
   ConnectionGeneric* dbConnection = getDatabaseConnection(
       dbtypeValue, portValue, dbnameValue);
 
-  if(dbConnection != NULL) {
+  if(dbConnection != nullptr) {
     be_control = new BasicEngine_Control(dbConnection, worker, 
       workerRelationNameValue, true);
       
@@ -1554,7 +1556,7 @@ int be_init_sf_vm(Word* args, Word& result, int message,
   ConnectionGeneric* dbConnection = getDatabaseConnection(
       dbtypeValue, portValue, dbnameValue);
 
-  if(dbConnection != NULL) {
+  if(dbConnection != nullptr) {
     be_control = new BasicEngine_Control(dbConnection, worker, 
       workerRelationNameValue, false);
 
@@ -1927,7 +1929,7 @@ ListExpr be_collect_tm(ListExpr args) {
     return listutils::typeError(queryValue);
   }
 
-  if(be_control == NULL) {
+  if(be_control == nullptr) {
     return listutils::typeError("Basic engine is not connected. "
       "Plase call be_init_cluster() first.");
   }
@@ -2235,7 +2237,13 @@ class BasicEngineAlgebra : public Algebra
   }
 
   ~BasicEngineAlgebra() {
-
+    if(be_control != NULL) {
+      if(be_control->isMaster()) {
+        be_control->shutdownWorker();
+        delete be_control;
+        be_control = nullptr;
+      }
+    }
   };
 };
 
