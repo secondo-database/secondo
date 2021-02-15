@@ -62,15 +62,6 @@ January 2021 - April 2021, P. Fedorow for bachelor thesis.
 namespace AssociationAnalysis
 {
 
-int genNonZero(std::mt19937 gen, std::poisson_distribution<int> dist)
-{
-    int size = dist(gen);
-    while (size == 0) {
-        size = dist(gen);
-    }
-    return size;
-}
-
 //region Implementation of the genTransactions operator.
 
 ListExpr genTransactionsTM(ListExpr args)
@@ -111,12 +102,12 @@ public:
     )
         : numOfTransactions(numOfTransactions),
           t(0),
-          genTransactionSize(transactionSizeMean),
+          genTransactionSize(transactionSizeMean - 1),
           allowOversizedTransaction(false)
     {
         // Prepare the random number distributions.
         std::poisson_distribution<int>
-            genFrequentItemsetSize(frequentItemsetSizeMean);
+            genFrequentItemsetSize(frequentItemsetSizeMean - 1);
         std::uniform_int_distribution<int> genItem(1, numOfItems);
         std::exponential_distribution<float> genReuseFraction(2);
         std::exponential_distribution<double> genWeight(1);
@@ -125,7 +116,7 @@ public:
 
         // Generate the first frequent itemset.
         {
-            int size = genNonZero(this->gen, genFrequentItemsetSize);
+            int size = genFrequentItemsetSize(this->gen) + 1;
             std::vector<int> itemset;
             itemset.reserve(size);
             for (int i = 0; i < size; i += 1) {
@@ -136,7 +127,7 @@ public:
 
         // Generate the rest of the frequent itemsets.
         for (int i = 0; i < numOfFrequentItemsets; i += 1) {
-            int size = genNonZero(this->gen, genFrequentItemsetSize);
+            int size = genFrequentItemsetSize(this->gen) + 1;
 
             std::vector<int> itemset;
 
@@ -171,7 +162,8 @@ public:
             itemsetWeights.end());
 
         // Setup corruption levels.
-        std::normal_distribution randCorruptionLevel(0.5, std::sqrt(0.1));
+        std::normal_distribution
+            randCorruptionLevel(0.5, (double) std::sqrt(0.1L));
         this->corruptionLevels.reserve(numOfFrequentItemsets);
         for (int i = 0; i < numOfFrequentItemsets; i += 1) {
             this->corruptionLevels
@@ -185,8 +177,7 @@ public:
     {
         std::uniform_real_distribution<double> randCorruptionLevel(0, 1);
         if (this->t < this->numOfTransactions) {
-            int transactionSize =
-                genNonZero(this->gen, this->genTransactionSize);
+            int transactionSize = this->genTransactionSize(this->gen) + 1;
             collection::IntSet transaction(true);
 
             while ((int) transaction.getSize() < transactionSize) {
