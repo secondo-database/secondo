@@ -1960,9 +1960,9 @@ int be_collect_vm(Word* args, Word& result, int message,
   switch(message) {
     case OPEN: 
 
-      if (cli != NULL) {
+      if (cli != nullptr) {
         delete cli;
-        cli = NULL;
+        cli = nullptr;
       }
 
       cli = be_control -> performSQLSelectQuery(sqlQuery);
@@ -1987,7 +1987,7 @@ int be_collect_vm(Word* args, Word& result, int message,
     case CLOSE:
       if(cli) {
         delete cli;
-        cli = NULL;
+        cli = nullptr;
         local.setAddr( cli );
       }
 
@@ -2237,7 +2237,7 @@ class BasicEngineAlgebra : public Algebra
   }
 
   ~BasicEngineAlgebra() {
-    if(be_control != NULL) {
+    if(be_control != nullptr) {
       if(be_control->isMaster()) {
         be_control->shutdownWorker();
       }
