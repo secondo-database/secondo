@@ -579,16 +579,23 @@ bool ConnectionPG::getTypeFromSQLQuery(const std::string &sqlQuery,
     }
 
     // Limit query to 1 result tuple
-    string usedSQLQuery = usedSQLQuery + " LIMIT 1;";
+    usedSQLQuery = usedSQLQuery + " LIMIT 1;";
   }
 
   if( ! checkConnection()) {
-    return NULL;
+    cerr << "Error: Connection is not ready in getTypeFromSQLQuery" 
+        << endl << endl;
+    return false;
   }
   
   PGresult* res = PQexec(conn, usedSQLQuery.c_str());
 
   bool result = getTypeFromQuery(res, resultList);
+
+  if(! result) {
+    cerr << "Error: Unable to get type from SQL query"
+      << usedSQLQuery << endl << endl;
+  }
 
   PQclear(res);
 
