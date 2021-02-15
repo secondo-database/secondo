@@ -2240,9 +2240,10 @@ class BasicEngineAlgebra : public Algebra
     if(be_control != NULL) {
       if(be_control->isMaster()) {
         be_control->shutdownWorker();
-        delete be_control;
-        be_control = nullptr;
       }
+
+      delete be_control;
+      be_control = nullptr;
     }
   };
 };
