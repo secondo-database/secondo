@@ -29,7 +29,7 @@ CURRENT_ALGEBRA := BasicEngine
 ALGEBRA_DEPENDENCIES += Distributed2Algebra
 
 # expand compile flags if necessary
-CCFLAGS += -Werror
+CCFLAGS += -Werror -DBOOST_LOG_DYN_LINK
 
 # create objects and algebra library. The values for the variables
 # OBJECTS and LIBOBJ are computed automatically by makefile.env 

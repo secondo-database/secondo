@@ -48,6 +48,7 @@ Version 1.0 - Created - C.Behrndt - 2020
 #include "ResultIteratorPostgres.h"
 
 #include <string>
+#include <boost/log/trivial.hpp>
 #include <boost/algorithm/string.hpp>
 #include <bits/stdc++.h>
 #include <postgres.h>

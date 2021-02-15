@@ -319,8 +319,9 @@ string ConnectionPG::getPartitionSQL(const string &tab, const string &key,
   } else if (boost::iequals(fun, "share")) {
     select = get_partShare(tab, key, anzSlots);
   } else {
-    cout << "Function " + fun + " not recognized! "
-        "Available functions are: RR, Hash, share and random." << endl;
+    BOOST_LOG_TRIVIAL(error)
+        << "Function " + fun + " not recognized! "
+        "Available functions are: RR, Hash, share and random.";
   }
 
   if(select != "") {
@@ -483,8 +484,8 @@ string ConnectionPG::get_partShare(const string &tab, const string &key,
 bool ConnectionPG::getTypeFromQuery(const PGresult* res, ListExpr &resultList) {
 
   if (!res || PQresultStatus(res) != PGRES_TUPLES_OK) {
-    cerr << "Unable to fetch type from non tuple returning result"
-         << endl << endl;
+    BOOST_LOG_TRIVIAL(error) 
+      << "Unable to fetch type from non tuple returning result";
     return false;
   }
 
@@ -528,10 +529,9 @@ bool ConnectionPG::getTypeFromQuery(const PGresult* res, ListExpr &resultList) {
         break;
 
       default:
-          cout << "Warning: Unknown column type: " 
-               << attributeName << " / " << columnType 
-               << " will be mapped to FText" << endl
-               << endl;
+          BOOST_LOG_TRIVIAL(warning) 
+              << "Unknown column type: " << attributeName << " / " 
+              << columnType << " will be mapped to FText";
           attributeType = FText::BasicType();
     }
 
@@ -583,8 +583,8 @@ bool ConnectionPG::getTypeFromSQLQuery(const std::string &sqlQuery,
   }
 
   if( ! checkConnection()) {
-    cerr << "Error: Connection is not ready in getTypeFromSQLQuery" 
-        << endl << endl;
+    BOOST_LOG_TRIVIAL(error) 
+      << "Connection is not ready in getTypeFromSQLQuery";
     return false;
   }
   
@@ -593,8 +593,8 @@ bool ConnectionPG::getTypeFromSQLQuery(const std::string &sqlQuery,
   bool result = getTypeFromQuery(res, resultList);
 
   if(! result) {
-    cerr << "Error: Unable to get type from SQL query"
-      << usedSQLQuery << endl << endl;
+    BOOST_LOG_TRIVIAL(error) 
+      << "Unable to get type from SQL query" << usedSQLQuery;
   }
 
   PQclear(res);
@@ -612,7 +612,8 @@ ResultIteratorGeneric* ConnectionPG::performSQLSelectQuery(
   const std::string &sqlQuery) {
 
   if( ! checkConnection()) {
-    cerr << "Error: Connection check failed in performSQLSelectQuery()" << endl;
+    BOOST_LOG_TRIVIAL(error) 
+      << "Connection check failed in performSQLSelectQuery()";
     return nullptr;
   }
 
@@ -621,8 +622,8 @@ ResultIteratorGeneric* ConnectionPG::performSQLSelectQuery(
   bool result = getTypeFromQuery(res, resultList);
 
   if(!result) {
-    cerr << "Error: Unable to get tuple type form query: " 
-         << sqlQuery << endl;
+    BOOST_LOG_TRIVIAL(error) 
+      << "Unable to get tuple type form query: " << sqlQuery;
     return nullptr;
   }
 
