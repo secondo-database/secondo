@@ -2776,6 +2776,91 @@ bool UPoint::AtRegion(const Region *r, std::vector<UPoint> &result) const {
     ConsolidateUnitVector<UPoint,Point>(this->timeInterval,tmpresult,result);
 }
 
+// TODO: use template and move implementation to TemporalAlgebra.h
+std::ostream& operator<<(std::ostream& o, const MPointNoFlob& mp) {
+  if (!mp.IsDefined()) {
+    o << "MPointNoFlob, undefined" << endl;
+    return o;
+  }
+  o << "MPointNoFlob, defined, has " << mp.GetNoComponents() << " components:"
+    << endl;
+  UPoint unit(true);
+  for (int i = 0; i < mp.GetNoComponents(); i++) {
+    mp.Get(i, unit);
+    o << unit << endl;
+  }
+  o << endl;
+  return o;
+}
+
+MPointNoFlob::MPointNoFlob(const int size) {
+  isdefined = (size > 0);
+  if (isdefined) {
+    units.clear();
+    units.reserve(size);
+  }
+}
+
+MPointNoFlob::MPointNoFlob(const MPoint& src) {
+  *this = src;
+}
+
+void MPointNoFlob::SetDefined(const bool def) {
+  isdefined = def;
+}
+
+bool MPointNoFlob::IsDefined() const {
+  return isdefined;
+}
+
+MPointNoFlob MPointNoFlob::operator=(const MPoint& src) {
+  isdefined = src.IsDefined();
+  if (isdefined) {
+    units.clear();
+    units.reserve(src.GetNoComponents());
+    UPoint unit(true);
+    for (int i = 0; i < src.GetNoComponents(); i++) {
+      src.Get(i, unit);
+      Add(unit);
+    }
+  }
+  return *this;
+}
+
+void MPointNoFlob::Add(const UPoint& unit) {
+  units.push_back(unit);
+}
+
+void MPointNoFlob::Get(const int i, UPoint& unit) const {
+  assert(i >= 0 && i < GetNoComponents());
+  unit = units[i];
+}
+
+int MPointNoFlob::GetNoComponents() const {
+  return units.size();
+}
+
+void MPointNoFlob::ConvertToMPoint(MPoint& res) const {
+  res.SetDefined(isdefined);
+  if (!isdefined) {
+    return;
+  }
+  res.Clear();
+  res.StartBulkLoad();
+  for (unsigned int i = 0; i < units.size(); i++) {
+    res.Add(units[i]);
+  }
+  res.EndBulkLoad();
+}
+
+void MPointNoFlob::Reserve(const int size) {
+  units.reserve(size);
+}
+
+void MPointNoFlob::Truncate() {
+  units.shrink_to_fit();
+}
+
 /*
 1.1 Implementation of functions for the class ~CUPoint~
 
@@ -5285,16 +5370,15 @@ double MPoint::DistanceAvg(const MPoint& mp, const datetime::DateTime& duration,
   if (IsEmpty() || mp.IsEmpty()) {
     return DBL_MAX;
   }
-  MPoint mp1(true), mp2(true);
+  MPointNoFlob mp1(this->GetNoComponents()), mp2(mp.GetNoComponents());
   ForceToDuration<MPoint, UPoint>(*this, duration, true, mp1, geoid);
   ForceToDuration<MPoint, UPoint>(mp, duration, true, mp2, geoid);
-//   cout << "AFTER FTD: " << endl << mp1 << endl << mp2 << endl;
-  if (mp1.Compare(&mp2) == -1) {
+  if (this->Compare(&mp) == -1) {
     std::swap(mp1, mp2);
   }
   double durTemp(0.0), sum(0.0), integralValue(0.0);
   UPoint u1(true), u2(true), u1cut(true), u2cut(true);
-  RefinementPartition<MPoint, MPoint, UPoint, UPoint> rp(mp1, mp2);
+  RefinementPartition<MPointNoFlob, MPointNoFlob, UPoint, UPoint> rp(mp1, mp2);
   int u1Pos, u2Pos;  
   UReal ur(true);
   Interval<Instant> iv;
@@ -5351,8 +5435,6 @@ double MPoint::DistanceAvg(const MPoint& mp, const datetime::DateTime& duration,
   dur.ReadFrom(durTemp);
 //   cout << "MPoint::DistanceAvg, integral SUM is " << sum << ", DURATION is "
 //        << dur << endl << endl << endl;
-  mp1.Destroy();
-  mp2.Destroy();
   return sum / durTemp;
 }
 

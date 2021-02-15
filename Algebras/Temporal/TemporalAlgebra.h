@@ -4333,6 +4333,28 @@ private:
    Rectangle<3> bbox;
 };
 
+class MPointNoFlob {
+ public:
+  MPointNoFlob(const int size);
+  MPointNoFlob(const MPoint& src);
+  
+  void SetDefined(const bool def);
+  bool IsDefined() const;
+  MPointNoFlob operator=(const MPoint& src);
+  void Add(const UPoint& unit);
+  void Get(const int i, UPoint& unit) const;
+  int GetNoComponents() const;
+  void ConvertToMPoint(MPoint& res) const;
+  void Reserve(const int size);
+  void Truncate();
+    
+ private:
+  std::vector<UPoint> units;
+  bool isdefined;
+};
+
+
+
 /*
 3.10.5 ~ForceToDuration~ function
 
@@ -4341,12 +4363,14 @@ longer instances are pruned and shorter ones are extended (by a constant unit
 located at the center of the bounding box). Temporal gaps are also filled by 
 constant units.
 
+For efficiency reasons, the result is stored in an object without flobs.
+
 */
 template<class M, class U>
 void ForceToDuration(const M& src, const datetime::DateTime& duration,
-             const bool startAtBeginOfTime, M& result, const Geoid* geoid = 0) {
+                     const bool startAtBeginOfTime, MPointNoFlob& result, 
+                     const Geoid* geoid = 0) {
   assert(duration.GetType() == datetime::durationtype);
-  result.Clear();
   if (!src.IsDefined()) {
     result.SetDefined(false);
     return;
@@ -4379,6 +4403,7 @@ void ForceToDuration(const M& src, const datetime::DateTime& duration,
             unit3.timeInterval.end -= diffToBeginOfTime;
           }
           result.Add(unit3);
+          result.Truncate();
           return;
         }
         if (startAtBeginOfTime) {
@@ -4398,6 +4423,7 @@ void ForceToDuration(const M& src, const datetime::DateTime& duration,
         unit2.timeInterval.end -= diffToBeginOfTime;
       }
       result.Add(unit2);
+      result.Truncate();
       return;
     }
     else {
@@ -4422,6 +4448,16 @@ void ForceToDuration(const M& src, const datetime::DateTime& duration,
     }
     result.Add(unit);
   }
+  result.Truncate();
+}
+
+template<class M, class U>
+void ForceToDuration(const M& src, const datetime::DateTime& duration,
+                     const bool startAtBeginOfTime, M& result, 
+                     const Geoid* geoid = 0) {
+  MPointNoFlob res(src.GetNoComponents());
+  ForceToDuration<M, U>(src, duration, startAtBeginOfTime, res, geoid);
+  res.ConvertToMPoint(result);
 }
 
 class CMPoint;
