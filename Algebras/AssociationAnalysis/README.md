@@ -8,7 +8,14 @@ Work in Progress
 Build
 -----
 
-Ensure the following is included in your makefile.algebras to compile this algebra correctly:
+Add the Association Analysis algebra to the `Algebras/Management/AlgebraList.i.cfg` file like this:
+
+    ALGEBRA_INCLUDE(180,AssociationAnalysisAlgebra)
+
+Replace the number 180 with an another unique number in case this identification number is already used.
+
+Make sure at least the following algebras are included in your `makefile.algebras` file to compile this algebra
+correctly:
 
     ALGEBRA_DIRS := Standard-C++
     ALGEBRAS     := StandardAlgebra
