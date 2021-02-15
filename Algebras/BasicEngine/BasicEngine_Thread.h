@@ -76,11 +76,13 @@ void startImport(std::string _tab,
 void startExport(std::string _tab, std::string _path, std::string _nr,
               std::string _remoteCreateName, std::string _remoteName);
 
-void startQuery(std::string _tab, std::string _query);
+void startBEQuery(std::string _tab, std::string _query);
 
-void startCommand(std::string command);
+void startBECommand(std::string command);
 
-bool simpleCommand(std::string *cmd);
+void startSecondoCommand(std::string command);
+
+bool simpleCommand(const std::string &command);
 
 private:
 
@@ -182,8 +184,9 @@ bool val = true;
 */
 void runImport();
 void runExport();
-void runQuery();
-void runCommand();
+void runBEQuery();
+void runBECommand();
+void runSecondoCommand();
 
 
 }; // Class BasicEngine_Thread

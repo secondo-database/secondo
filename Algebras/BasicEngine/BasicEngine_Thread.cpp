@@ -94,37 +94,54 @@ void BasicEngine_Thread::startExport(std::string _tab, std::string _path,
 }
 
 /*
-4.1.6 ~startQuery~
+4.1.6 ~startBEQuery~
 
-Starting a query on all workers.
+Starting a query on all workers in parallel.
 
 */
-void BasicEngine_Thread::startQuery(std::string _tab, std::string _query) {
+void BasicEngine_Thread::startBEQuery(std::string _tab, std::string _query) {
   tab = _tab;
   query = _query;
   boost::lock_guard<boost::mutex> guard(mtx);
   if(!started && ci ){
     started = true;
     val = true;
-    runner = boost::thread(&BasicEngine_Thread::runQuery, this);
-  };
-};
+    runner = boost::thread(&BasicEngine_Thread::runBEQuery, this);
+  }
+}
 
 /*
-4.1.7 ~startCommand~
+4.1.7 ~startBECommand~
 
-Starting a command on all workers.
+Starting a command on all workers in parallel.
 
 */
-void BasicEngine_Thread::startCommand(std::string command) {
+void BasicEngine_Thread::startBECommand(std::string command) {
   query = command;
   boost::lock_guard<boost::mutex> guard(mtx);
   if(!started && ci ){
     started = true;
     val = true;
-    runner = boost::thread(&BasicEngine_Thread::runCommand, this);
-  };
-};
+    runner = boost::thread(&BasicEngine_Thread::runBECommand, this);
+  }
+}
+
+/*
+4.1.7 ~startSecondoCommand~
+
+Starting a secondo command on all workers in parallel.
+
+*/
+void BasicEngine_Thread::startSecondoCommand(std::string command) {
+  query = command;
+  boost::lock_guard<boost::mutex> guard(mtx);
+  if(!started && ci ){
+    started = true;
+    val = true;
+    runner = boost::thread(&BasicEngine_Thread::runSecondoCommand, this);
+  }
+}
+
 
 /*
 4.3.1 ~simpleCommand~
@@ -135,7 +152,7 @@ Returns true if everything is OK and there are no failure.
 Displays an error massage if something goes wrong.
 
 */
-bool BasicEngine_Thread::simpleCommand(std::string *cmd) {
+bool BasicEngine_Thread::simpleCommand(const std::string &cmd) {
 
   int err = 0;
   double rt;
@@ -143,7 +160,7 @@ bool BasicEngine_Thread::simpleCommand(std::string *cmd) {
   distributed2::CommandLog CommandLog;
   std::string res;
 
-  ci->simpleCommand(*cmd, err, res, false, rt, false,
+  ci->simpleCommand(cmd, err, res, false, rt, false,
                     CommandLog, true, defaultTimeout);
   
   if(err != 0){
@@ -166,22 +183,22 @@ void BasicEngine_Thread::runImport() {
 
   importPath =ci->getSendPath() + "/"+ remoteCreateName;
   cmd = "query be_runsql('"+ importPath + "');";
-  val = simpleCommand(&cmd);
+  val = simpleCommand(cmd);
 
   //delete create-file on system
   cmd = "query removeFile('"+ importPath + "')";
-  if (val) val = simpleCommand(&cmd);
+  if (val) val = simpleCommand(cmd);
 
   //import data in pg-worker
   if(val){
     importPath = ci->getSendPath() + "/"+ remoteName;
     cmd = "query be_copy('"+ importPath + "','" + tab + "')";
-    val = simpleCommand(&cmd);
+    val = simpleCommand(cmd);
   }
 
   //delete data file on system
   cmd = "query removeFile('"+ importPath + "')";
-  if(val) val = simpleCommand(&cmd);
+  if(val) val = simpleCommand(cmd);
 
   //cout<<"wait 10sec" << endl;
   //boost::this_thread::sleep_for(boost::chrono::seconds(10));
@@ -203,30 +220,30 @@ void BasicEngine_Thread::runExport() {
   if(nr == "1") {
     //export tab structure
     cmd = "query be_struct('"+ tab + "');";
-    val = simpleCommand(&cmd);
+    val = simpleCommand(cmd);
 
     //move the structure-file into the request-folder
     from = transfer_path + remoteCreateName;
     to = ci->getRequestPath() + "/" + remoteCreateName;
     cmd ="query moveFile('"+ from + "','" + to +"')";
-    if(val) val = simpleCommand(&cmd);
+    if(val) val = simpleCommand(cmd);
 
     //sending file to master
     if(val) val = (ci->requestFile(remoteCreateName,from,true)==0);
 
     //delete create file on system
     cmd ="query removeFile('"+ to + "')";
-    if(val) val = simpleCommand(&cmd);
+    if(val) val = simpleCommand(cmd);
   }
 
   //export the date to a file
   cmd = "query be_copy('"+ tab+"','"+ path+"');";
-  if (val) val = simpleCommand(&cmd);
+  if (val) val = simpleCommand(cmd);
 
   //move the data-file to the request-folder
   to = ci->getRequestPath() + "/" + remoteName;
   cmd = "query moveFile('"+ path + "','" + to +"')";
-  if(val) val = simpleCommand(&cmd);
+  if(val) val = simpleCommand(cmd);
 
   //sendig the File to the master
   if(val) val =(ci->requestFile(remoteName ,
@@ -234,16 +251,16 @@ void BasicEngine_Thread::runExport() {
 
   //delete data file on system
   cmd ="query removeFile('"+ to + "')";
-  if(val) val = simpleCommand(&cmd);
+  if(val) val = simpleCommand(cmd);
  }
 
 /*
-4.3.4 ~runQuery~
+4.3.4 ~runBEQuery~
 
 Starting a query at the worker.
 
 */
-void BasicEngine_Thread::runQuery() {
+void BasicEngine_Thread::runBEQuery() {
   std::string escapedQuery(query);
 
   boost::replace_all(escapedQuery, "'", "\\'");
@@ -253,23 +270,33 @@ void BasicEngine_Thread::runQuery() {
          "" + escapedQuery + "','"
          "" + tab + "');";
 
-  val = simpleCommand(&cmd);
+  val = simpleCommand(cmd);
 }
 
 /*
-4.3.5 ~runCommand~
+4.3.5 ~runBECommand~
 
 Starting a command at the worker.
 
 */
-void BasicEngine_Thread::runCommand() {
+void BasicEngine_Thread::runBECommand() {
   std::string escapedCommand(query);
 
   //run the command
   boost::replace_all(escapedCommand, "'", "\\'");
   std::string cmd = "query be_command('" + escapedCommand + "');";
 
-  val = simpleCommand(&cmd);
+  val = simpleCommand(cmd);
+ }
+
+/*
+4.3.6 ~runSecondoCommand~
+
+Starting a secondo command at the worker.
+
+*/
+void BasicEngine_Thread::runSecondoCommand() {
+  val = simpleCommand(query);
  }
 
 };

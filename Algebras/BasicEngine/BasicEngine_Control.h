@@ -37,6 +37,7 @@ Version 1.0 - Created - C.Behrndt - 2020
 #define _BasicEngine_Control_H_
 
 #include <optional>
+#include <boost/log/trivial.hpp>
 #include "Algebras/Relation-C++/RelationAlgebra.h"
 #include "BasicEngine_Thread.h"
 #include "ConnectionGeneric.h"
@@ -44,6 +45,12 @@ Version 1.0 - Created - C.Behrndt - 2020
 #include "StandardTypes.h"
 
 namespace BasicEngine {
+
+/*
+2 ENum ~RepartitionMode~
+
+*/
+enum RepartitionMode {hash, rr};
 
 /*
 2 Class ~BasicEngine\_Control~
@@ -77,6 +84,18 @@ public:
 
   bool checkAllConnections();
 
+  bool repartition_table(const std::string &tab, 
+    const std::string &key, const size_t slotnum, 
+    const RepartitionMode &repartitionMode);
+
+  bool repartition_table_worker(const std::string &tab, 
+    const std::string &key, const size_t slotnum, 
+    const RepartitionMode &repartitionMode);
+
+  bool repartition_table_master(const std::string &tab, 
+    const std::string &key, const size_t slotnum, 
+    const RepartitionMode &repartitionMode);
+
   bool repartition_table_by_hash(const std::string &tab, 
     const std::string &key, const size_t slotnum);
 
@@ -106,6 +125,8 @@ public:
   bool mquery(const std::string &query, const std::string &tab);
 
   bool mcommand(const std::string &query);
+
+  bool msecondocommand(const std::string &query);
 
   bool runsql(const std::string &filepath);
 
@@ -248,6 +269,10 @@ distributed2::ConnectionInfo* createConnection(const std::string &host,
 
   std::string getparttabname(const std::string &tab, 
     const std::string &key);
+
+  std::string getRepartitionTableName(const std::string &table) {
+    return table + "_repartition";
+  }
 
 };
 };  /* namespace BasicEngine */

@@ -49,6 +49,7 @@ Version 1.0 - Created - C.Behrndt - 2020
 
 #include <string>
 #include <boost/log/trivial.hpp>
+
 #include <boost/algorithm/string.hpp>
 #include <bits/stdc++.h>
 #include <postgres.h>
@@ -148,6 +149,17 @@ class ConnectionPG : public ConnectionGeneric {
 
     return "CREATE TABLE " + table + " AS ("+ query + ")";
   }
+
+  std::string getCopySchemaSQL(const std::string &table) {
+    return "SELECT * FROM " + table + " LIMIT 0";
+  }
+
+  std::string getRenameTableSQL(const std::string &source, 
+        const std::string &destination) {
+  
+    return "ALTER TABLE " + source + " RENAME TO " + destination + ";";
+  }
+
 
   bool getTypeFromSQLQuery(const std::string &sqlQuery, ListExpr &resultList);
 

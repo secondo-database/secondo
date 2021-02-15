@@ -38,6 +38,10 @@ Version 1.0 - Created - C.Behrndt - 2020
 */
 
 
+#include <boost/log/core.hpp>
+#include <boost/log/expressions.hpp>
+#include <boost/log/trivial.hpp>
+
 #include "Algebras/FText/FTextAlgebra.h"
 #include "StandardTypes.h"
 #include "BasicEngine_Control.h"
@@ -2234,10 +2238,20 @@ class BasicEngineAlgebra : public Algebra
     AddOperator(&be_partFunOp);
     AddOperator(&be_repartRROp);
     AddOperator(&be_repartHashOp);
+
+    // configure boost logger
+    // TODO: Move to SECONDO core
+    boost::log::core::get()->set_filter
+    (
+         boost::log::trivial::severity >= boost::log::trivial::debug
+//         boost::log::trivial::severity >= boost::log::trivial::info
+    );
   }
 
   ~BasicEngineAlgebra() {
+
     if(be_control != nullptr) {
+
       if(be_control->isMaster()) {
         be_control->shutdownWorker();
       }

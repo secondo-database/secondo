@@ -348,6 +348,136 @@ bool BasicEngine_Control::partRoundRobin(const string &tab,
   return val;
 }
 
+/*
+3.8 ~repartition\_table~
+
+Repartition the given table
+
+*/
+bool BasicEngine_Control::repartition_table(const std::string &table, 
+  const std::string &key, const size_t slotnum, 
+  const RepartitionMode &repartitionMode) {
+
+   BOOST_LOG_TRIVIAL(debug) << "Repartiton on "
+    << table << " with mode " << repartitionMode
+    << " master: " << master;
+
+    if(! master) {
+      return repartition_table_worker(table, key, slotnum, repartitionMode);
+    }
+
+    return repartition_table_master(table, key, slotnum, repartitionMode);
+  }
+
+/*
+3.8 ~repartition\_table\_worker~
+
+Repartition the given table - worker version
+
+*/
+  bool BasicEngine_Control::repartition_table_worker(const std::string &table, 
+    const std::string &key, const size_t slotnum, 
+    const RepartitionMode &repartitionMode) {
+
+    // Open connections
+
+    // On the worker: Call export
+
+    // On the worker: Call transfer data
+
+    // On the worker: Call import
+
+    // Close connections
+    return false;
+  }
+
+
+/*
+3.8 ~repartition\_table\_master~
+
+Repartition the given table - master version
+
+*/
+  bool BasicEngine_Control::repartition_table_master(const std::string &table, 
+    const std::string &key, const size_t slotnum, 
+    const RepartitionMode &repartitionMode) {
+
+    string repartTableName = getRepartitionTableName(table);
+
+    // On the worker: Drop old re-partition table if exists
+    string dropTableSQL = dbms_connection ->getDropTableSQL(repartTableName);
+    BOOST_LOG_TRIVIAL(debug) << "Delete old re-parition table: "
+      << dropTableSQL;
+
+    bool dropTableResult = mcommand(dropTableSQL);
+
+    if(! dropTableResult) {
+      BOOST_LOG_TRIVIAL(error) << "Unable to execute on worker: "
+        << dropTableSQL;
+        return false;
+    }
+
+    // On the worker: Create destination table with same structure
+    string copySchemaSQL = dbms_connection->getCopySchemaSQL(table);
+    BOOST_LOG_TRIVIAL(debug) << "Copy schema of table: "
+      << copySchemaSQL;
+
+    bool copySchemaResult = mquery(copySchemaSQL, repartTableName);
+    if(! copySchemaResult) {
+        BOOST_LOG_TRIVIAL(error) << "Unable to execute on worker: "
+          << copySchemaSQL;
+          return false;
+    }
+
+    // On the worker do the real repartiton job
+    string repartitionQuery = "query ";
+    if(repartitionMode == rr) {
+      repartitionQuery.append("be_repart_rr");
+    } else if(repartitionMode == hash) {
+      repartitionQuery.append("be_repart_hash");
+    }
+
+    repartitionQuery.append("('" + table + "','" + key 
+      + "'," + to_string(slotnum) + ")");
+    BOOST_LOG_TRIVIAL(debug) << "Execute repartition job on worker: "
+      << repartitionQuery;
+
+    bool partitioningResult = msecondocommand(repartitionQuery);
+
+    if(! partitioningResult) {
+      BOOST_LOG_TRIVIAL(error) << "Unable to execute on worker: "
+        << repartitionQuery;
+        return false;
+    }
+
+    // On the worker: Drop source table
+    string dropSourceTableSQL = dbms_connection ->getDropTableSQL(table);
+    BOOST_LOG_TRIVIAL(debug) << "Delete source table: "
+      << dropSourceTableSQL;
+
+    bool dropSourceTableResult = mcommand(dropSourceTableSQL);
+
+    if(! dropSourceTableResult) {
+      BOOST_LOG_TRIVIAL(error) << "Unable to execute on worker: "
+        << dropSourceTableSQL;
+        return false;
+    }
+
+    // On the worker: Rename destination table to source table 
+    string renameTableSQL = dbms_connection ->getRenameTableSQL(
+      repartTableName, table);
+    BOOST_LOG_TRIVIAL(debug) << "Rename table: " << renameTableSQL;
+
+    bool renameTableResult = mcommand(renameTableSQL);
+
+    if(! renameTableResult) {
+      BOOST_LOG_TRIVIAL(error) << "Unable to execute on worker: "
+        << renameTableSQL;
+        return false;
+    }
+
+    return true;
+}
 
 /*
 3.8 ~repartition\_table\_by\_hash~
@@ -355,11 +485,12 @@ bool BasicEngine_Control::partRoundRobin(const string &tab,
 Repartition the given table by round hash
 
 */
-bool BasicEngine_Control::repartition_table_by_hash(const std::string &tab, 
+bool BasicEngine_Control::repartition_table_by_hash(const std::string &table, 
   const std::string &key, const size_t slotnum) {
 
-    //TODO: Implement
-    return false;
+    BOOST_LOG_TRIVIAL(debug) << "Repartiton by hash called on " << table;
+
+    return repartition_table(table, key, slotnum, hash);
 }
 
 /*
@@ -368,12 +499,12 @@ bool BasicEngine_Control::repartition_table_by_hash(const std::string &tab,
 Repartition the given table by round robin
 
 */
-bool BasicEngine_Control::repartition_table_by_rr(const std::string &tab, 
+bool BasicEngine_Control::repartition_table_by_rr(const std::string &table, 
   const std::string &key, const size_t slotnum) {
     
+    BOOST_LOG_TRIVIAL(debug) << "Repartiton by rr called on " << table;
 
-    //TODO: Implement
-    return false;
+    return repartition_table(table, key, slotnum, rr);
 }
 
 
@@ -531,8 +662,8 @@ bool BasicEngine_Control::exportData(const string &tab,
   string parttabname = getparttabname(tab, key);
   string strindex;
 
-  // TODO: Check if 1 is the correct start index here (JNI)
-  for(size_t i=1;i<=numberOfWorker;i++) {
+  // Starting with 1 to <= numberOfWorker
+  for(size_t i=1; i<=numberOfWorker; i++) {
     strindex = to_string(i);
 
     string exportDataSQL = dbms_connection->getExportDataSQL(tab,
@@ -578,7 +709,7 @@ bool BasicEngine_Control::importData(const string &tab) {
   FileSystem::DeleteFileOrFolder(full_path);
 
   //import data (local files from worker)
-  // TODO: Check if 1 is the correct start index here (JNI)
+  // Starting with 1 to <= numberOfWorker
   for(size_t i=1;i<=numberOfWorker; i++){
     strindex = to_string(i);
     full_path = getFilePath() + getFilenameForPartition(tab, strindex);
@@ -694,7 +825,7 @@ bool BasicEngine_Control::mquery(const string &query,
 
   //doing the query with one thread for each worker
   for(size_t i=0;i<importer.size();i++){
-    importer[i]->startQuery(tab,query);
+    importer[i]->startBEQuery(tab,query);
   }
 
   //waiting for finishing the threads
@@ -718,7 +849,31 @@ bool BasicEngine_Control::mcommand(const string &query) {
 
  //doing the command with one thread for each worker
  for(size_t i=0;i<importer.size();i++){
-   importer[i]->startCommand(query);
+   importer[i]->startBECommand(query);
+ }
+
+ //waiting for finishing the threads
+ for(size_t i=0;i<importer.size();i++){
+   val = importer[i]->getResult() && val;
+ }
+
+ return val;
+}
+
+/*
+3.17 ~msecondocommand~
+
+The multi command sends and execute a query to all worker.
+Returns true if everything is OK and there are no failure.
+
+*/
+bool BasicEngine_Control::msecondocommand(const string &query) {
+
+ bool val = true;
+
+ //doing the command with one thread for each worker
+ for(size_t i=0;i<importer.size();i++){
+   importer[i]->startSecondoCommand(query);
  }
 
  //waiting for finishing the threads
@@ -741,7 +896,7 @@ bool BasicEngine_Control::shutdownWorker() {
    string shutdownCommand("query be_shutdown()");
 
    for(BasicEngine_Thread* remote : importer) {
-     result = result && remote->simpleCommand(&shutdownCommand);
+     result = result && remote->simpleCommand(shutdownCommand);
    }
 
    return result;

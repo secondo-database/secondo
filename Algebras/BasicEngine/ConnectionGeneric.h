@@ -87,6 +87,11 @@ class ConnectionGeneric {
     virtual std::string getCreateTabSQL(
         const std::string &table, const std::string &query) = 0;
 
+    virtual std::string getCopySchemaSQL(const std::string &table) = 0;
+
+    virtual std::string getRenameTableSQL(const std::string &source, 
+        const std::string &destination) = 0;
+
     virtual bool getTypeFromSQLQuery(const std::string &sqlQuery, 
          ListExpr &resultList) = 0;
 
