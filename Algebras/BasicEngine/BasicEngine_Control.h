@@ -254,7 +254,8 @@ distributed2::ConnectionInfo* createConnection(const std::string &host,
 
   bool importData(const std::string &tab);
 
-  bool exportToWorker(const std::string &tab);
+  bool exportToWorker(const std::string &sourceTable, 
+    const std::string &destinationTable);
 
   std::string getCreateTableSQLName(const std::string &tab) {
     return "create" + tab + ".sql";

@@ -1564,16 +1564,17 @@ int be_init_sf_vm(Word* args, Word& result, int message,
     be_control = new BasicEngine_Control(dbConnection, worker, 
       workerRelationNameValue, false);
 
-    /*bool createConnectionResult = be_control -> createAllConnections();
+    // Fixme: Should be moved to on-demand connetion create
+    bool createConnectionResult = be_control -> createAllConnections();
 
     if(! createConnectionResult) {
       cerr << "Error: Connection error, please check the previous messages"
            << " for error messages." << endl << endl;
       ((CcBool*) result.addr)->Set(true, false);
-    } else {*/
+    } else {
       bool connectionState = dbConnection->checkConnection();
       ((CcBool*)result.addr)->Set(true, connectionState);
-//    }
+    }
   } else {
     cerr << endl << "Error: Unsupported database type: " 
          << dbtype->toText() << endl;

@@ -390,11 +390,35 @@ Repartition the given table - worker version
       return false;
     }*/
 
-    // On the worker: Call export
+    string repartTableName = getRepartitionTableName(table);
 
-    // On the worker: Call transfer data
+    // On the worker: Create export table
+    if(repartitionMode == rr) {
+      bool partResult = partRoundRobin(table, key, slotnum);
+      if(! partResult) {
+          BOOST_LOG_TRIVIAL(error) << "Unable to partition table";
+      }
+    } else if(repartitionMode == hash) {
+      bool partResult = partHash(table, key, slotnum);
+      if(! partResult) {
+          BOOST_LOG_TRIVIAL(error) << "Unable to partition table";
+      }
+    } else {
+      BOOST_LOG_TRIVIAL(error) << "Unknown partition mode" << repartitionMode;
+      return false;
+    }
 
-    // On the worker: Call import
+    // On the worker: Export data
+    bool exportDataResult = exportData(table, key, numberOfWorker);
+    if(! exportDataResult) {
+      BOOST_LOG_TRIVIAL(error) << "Unable to export table data";
+    }
+
+    // On the worker: Call transfer and import data
+    bool importResult = exportToWorker(table, repartTableName);
+    if(! importResult) {
+      BOOST_LOG_TRIVIAL(error) << "Unable to transfer and import table data";
+    }
 
     // Close connections
   //  shutdownAllConnections();
@@ -527,14 +551,15 @@ and after that imported by the worker.
 Returns true if everything is OK and there are no failure.
 
 */
-bool BasicEngine_Control::exportToWorker(const string &tab){
+bool BasicEngine_Control::exportToWorker(const string &sourceTable, 
+  const string &destinationTable){
 
   bool val = true;
   string query_exec;
   string importPath;
   SecondoInterfaceCS* si ;
 
-  string remoteCreateName = getCreateTableSQLName(tab);
+  string remoteCreateName = getCreateTableSQLName(sourceTable);
   string localCreateName = getFilePath() + remoteCreateName;
 
   for(size_t index; index < numberOfWorker; index++){
@@ -548,7 +573,7 @@ bool BasicEngine_Control::exportToWorker(const string &tab){
 
       //sending data
       string strindex = to_string(index+1);
-      string remoteName = getFilenameForPartition(tab, strindex);
+      string remoteName = getFilenameForPartition(sourceTable, strindex);
       string localName = getFilePath() + remoteName;
 
       val = (si->sendFile(localName, remoteName, true) == 0);
@@ -575,8 +600,9 @@ bool BasicEngine_Control::exportToWorker(const string &tab){
     //doing the import with one thread for each worker
     for(size_t i=0;i<importer.size();i++){
       string strindex = to_string(i+1);
-      string remoteName = getFilenameForPartition(tab, strindex);
-      importer[i]->startImport(tab, remoteCreateName, remoteName);
+      string remoteName = getFilenameForPartition(sourceTable, strindex);
+      importer[i]->startImport(
+        destinationTable, remoteCreateName, remoteName);
     }
 
     //waiting for finishing the threads
@@ -775,7 +801,7 @@ bool BasicEngine_Control::partTable(const string &tab, const string &key,
     return val;
   }
 
-  val = exportToWorker(tab);
+  val = exportToWorker(tab, tab);
 
   if(!val) {
     cout << "\n Couldn't transfer the data to the worker." << endl;

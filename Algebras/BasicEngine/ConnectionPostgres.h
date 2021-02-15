@@ -43,6 +43,7 @@ Version 1.0 - Created - C.Behrndt - 2020
 #include "Stream.h"
 #include "Algebras/Relation-C++/OperatorConsume.h"
 #include "Algebras/FText/FTextAlgebra.h"
+#include "WinUnix.h"
 
 #include "ConnectionGeneric.h"
 #include "ResultIteratorPostgres.h"
@@ -141,7 +142,8 @@ class ConnectionPG : public ConnectionGeneric {
   std::string getFilenameForPartition(const std::string &table, 
     const std::string &number) {
 
-    return table + "_" + number + ".bin";
+    return table + "_" + std::to_string(WinUnix::getpid())
+      + "_" + number + ".bin";
   }
 
   std::string getCreateTabSQL(const std::string &table, 
