@@ -2776,91 +2776,6 @@ bool UPoint::AtRegion(const Region *r, std::vector<UPoint> &result) const {
     ConsolidateUnitVector<UPoint,Point>(this->timeInterval,tmpresult,result);
 }
 
-// TODO: use template and move implementation to TemporalAlgebra.h
-std::ostream& operator<<(std::ostream& o, const MPointNoFlob& mp) {
-  if (!mp.IsDefined()) {
-    o << "MPointNoFlob, undefined" << endl;
-    return o;
-  }
-  o << "MPointNoFlob, defined, has " << mp.GetNoComponents() << " components:"
-    << endl;
-  UPoint unit(true);
-  for (int i = 0; i < mp.GetNoComponents(); i++) {
-    mp.Get(i, unit);
-    o << unit << endl;
-  }
-  o << endl;
-  return o;
-}
-
-MPointNoFlob::MPointNoFlob(const int size) {
-  isdefined = (size > 0);
-  if (isdefined) {
-    units.clear();
-    units.reserve(size);
-  }
-}
-
-MPointNoFlob::MPointNoFlob(const MPoint& src) {
-  *this = src;
-}
-
-void MPointNoFlob::SetDefined(const bool def) {
-  isdefined = def;
-}
-
-bool MPointNoFlob::IsDefined() const {
-  return isdefined;
-}
-
-MPointNoFlob MPointNoFlob::operator=(const MPoint& src) {
-  isdefined = src.IsDefined();
-  if (isdefined) {
-    units.clear();
-    units.reserve(src.GetNoComponents());
-    UPoint unit(true);
-    for (int i = 0; i < src.GetNoComponents(); i++) {
-      src.Get(i, unit);
-      Add(unit);
-    }
-  }
-  return *this;
-}
-
-void MPointNoFlob::Add(const UPoint& unit) {
-  units.push_back(unit);
-}
-
-void MPointNoFlob::Get(const int i, UPoint& unit) const {
-  assert(i >= 0 && i < GetNoComponents());
-  unit = units[i];
-}
-
-int MPointNoFlob::GetNoComponents() const {
-  return units.size();
-}
-
-void MPointNoFlob::ConvertToMPoint(MPoint& res) const {
-  res.SetDefined(isdefined);
-  if (!isdefined) {
-    return;
-  }
-  res.Clear();
-  res.StartBulkLoad();
-  for (unsigned int i = 0; i < units.size(); i++) {
-    res.Add(units[i]);
-  }
-  res.EndBulkLoad();
-}
-
-void MPointNoFlob::Reserve(const int size) {
-  units.reserve(size);
-}
-
-void MPointNoFlob::Truncate() {
-  units.shrink_to_fit();
-}
-
 /*
 1.1 Implementation of functions for the class ~CUPoint~
 
@@ -3281,6 +3196,11 @@ void CUPoint::DistanceAvg(const CUPoint& cup, const bool upperBound,
     return;
   }
   result.Set(true, roundToNPlaces(this->DistanceAvg(cup, upperBound, geoid),8));
+}
+
+void CUPoint::SetToConstantUnit(const Point& p) {
+  ((UPoint*)this)->SetToConstantUnit(p);
+  SetRadius(0.0);
 }
 
 /*
@@ -5370,7 +5290,8 @@ double MPoint::DistanceAvg(const MPoint& mp, const datetime::DateTime& duration,
   if (IsEmpty() || mp.IsEmpty()) {
     return DBL_MAX;
   }
-  MPointNoFlob mp1(this->GetNoComponents()), mp2(mp.GetNoComponents());
+  MappingNoFlob<MPoint, UPoint> mp1(this->GetNoComponents()), 
+                                mp2(mp.GetNoComponents());
   ForceToDuration<MPoint, UPoint>(*this, duration, true, mp1, geoid);
   ForceToDuration<MPoint, UPoint>(mp, duration, true, mp2, geoid);
   if (this->Compare(&mp) == -1) {
@@ -5378,7 +5299,8 @@ double MPoint::DistanceAvg(const MPoint& mp, const datetime::DateTime& duration,
   }
   double durTemp(0.0), sum(0.0), integralValue(0.0);
   UPoint u1(true), u2(true), u1cut(true), u2cut(true);
-  RefinementPartition<MPointNoFlob, MPointNoFlob, UPoint, UPoint> rp(mp1, mp2);
+  RefinementPartition<MappingNoFlob<MPoint, UPoint>, 
+                    MappingNoFlob<MPoint, UPoint>, UPoint, UPoint> rp(mp1, mp2);
   int u1Pos, u2Pos;  
   UReal ur(true);
   Interval<Instant> iv;
@@ -20493,8 +20415,9 @@ ListExpr forceToDurationTM(ListExpr args) {
   if (!nl->HasLength(args, 3) && !nl->HasLength(args, 4)) {
     return listutils::typeError("3 or 4 arguments expected");
   }
-  if (!MPoint::checkType(nl->First(args))) {
-    return listutils::typeError("First argument must be an mpoint");
+  if (!MPoint::checkType(nl->First(args)) &&
+      !CMPoint::checkType(nl->First(args))) {
+    return listutils::typeError("1st argument must be an mpoint or a cmpoint");
   }
   if (!Duration::checkType(nl->Second(args))) {
     return listutils::typeError("Second argument must be a duration");
@@ -20507,27 +20430,47 @@ ListExpr forceToDurationTM(ListExpr args) {
       return listutils::typeError("Fourth argument must be a geoid");
     }
   }
-  return nl->SymbolAtom(MPoint::BasicType());
+  return nl->First(args);
 }
 
 /*
 5.2.3.2 Value Mapping
 
 */
+template<class M, class U>
 int forceToDurationVM(Word* args, Word& result, int message, Word& local,
                       Supplier s) {
   result = qp->ResultStorage(s);
-  MPoint* res = (MPoint*)result.addr;
-  MPoint* src = (MPoint*)args[0].addr;
+  M* res = (M*)result.addr;
+  M* src = (M*)args[0].addr;
   datetime::DateTime* duration = (datetime::DateTime*)args[1].addr;
   CcBool* startAtBeginOfTime = (CcBool*)args[2].addr;
   Geoid *geoid = 0;
   if (qp->GetNoSons(s) == 4) {
     geoid = (Geoid*)args[3].addr;
   }
-  ForceToDuration<MPoint, UPoint>(*src, *duration, 
-                                  startAtBeginOfTime->GetValue(), *res, geoid);
+  ForceToDuration<M, U>(*src, *duration, startAtBeginOfTime->GetValue(), *res, 
+                        geoid);
   return 0;
+}
+
+/*
+5.2.4.3 Value Mapping array and Selection Function
+
+*/
+ValueMapping forceToDurationVMs[] = {
+        forceToDurationVM<MPoint, UPoint>,
+        forceToDurationVM<CMPoint, CUPoint>
+};
+
+int forceToDurationSelect(ListExpr args) {
+  if (MPoint::checkType(nl->First(args))) {
+    return 0;
+  }
+  if (CMPoint::checkType(nl->First(args))) {
+    return 1;
+  }
+  return -1;
 }
 
 /*
@@ -20536,10 +20479,10 @@ int forceToDurationVM(Word* args, Word& result, int message, Word& local,
 */
 OperatorInfo forceToDurationOperatorInfo(
   "forceToDuration",
-  "mpoint x duration x bool [x geoid] -> mpoint",
+  "(c)mpoint x duration x bool [x geoid] -> (c)mpoint",
   "forceToDuration[mp, dur, startAtBeginOfTime]",
-  "Extends or prunes the source mpoint to a certain duration. The boolean flag "
-  "determines whether the beginning of the resulting mpoint is set to the "
+  "Extends or prunes the source (c)mpoint to a certain duration. The boolean "
+  "flag determines whether the beginning of the resulting mpoint is set to the "
   "beginning of time or remains unchanged.",
   "query no_components(forceToDuration(train7, create_duration(0,60000), TRUE))"
   "1"
@@ -20552,8 +20495,9 @@ OperatorInfo forceToDurationOperatorInfo(
 Operator forcetoduration(
   "forceToDuration",
   forceToDurationOperatorInfo.str(),
-  forceToDurationVM,
-  Operator::SimpleSelect,
+  2,
+  forceToDurationVMs,
+  forceToDurationSelect,
   forceToDurationTM
 );
 

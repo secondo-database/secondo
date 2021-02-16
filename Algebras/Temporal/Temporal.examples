@@ -688,7 +688,7 @@ Result    : FALSE
 
 Operator  : forceToDuration
 Number    : 1
-Signature : mpoint x duration x bool [x geoid] -> mpoint
+Signature : Xpoint x duration x bool [x geoid] -> Xmpoint,  where X in {cu, m, cm}
 Example   : query no_components(forceToDuration(train7, create_duration(0,60000), TRUE))
 Result    : 7
 

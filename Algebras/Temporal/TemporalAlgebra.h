@@ -3179,6 +3179,11 @@ Returns true, iff this unit is defined and not moving during its definition time
          result.SetDefined(false);
       }
    }
+   
+   void SetToConstantUnit(const Point& p) {
+     p0 = p;
+     p1 = p0;
+   }
 
 
 /*
@@ -4333,27 +4338,122 @@ private:
    Rectangle<3> bbox;
 };
 
-class MPointNoFlob {
+template<class M, class U>
+class MappingNoFlob {
  public:
-  MPointNoFlob(const int size);
-  MPointNoFlob(const MPoint& src);
+  MappingNoFlob(const int size);
+  MappingNoFlob(const M& src);
   
   void SetDefined(const bool def);
   bool IsDefined() const;
-  MPointNoFlob operator=(const MPoint& src);
-  void Add(const UPoint& unit);
-  void Get(const int i, UPoint& unit) const;
+  MappingNoFlob operator=(const M& src);
+  void Add(const U& unit);
+  void Get(const int i, U& unit) const;
   int GetNoComponents() const;
-  void ConvertToMPoint(MPoint& res) const;
+  void ConvertToMapping(M& res) const;
   void Reserve(const int size);
   void Truncate();
     
  private:
-  std::vector<UPoint> units;
+  std::vector<U> units;
   bool isdefined;
 };
 
+template<class M, class U>
+std::ostream& operator<<(std::ostream& o, const MappingNoFlob<M, U>& m) {
+  if (!m.IsDefined()) {
+    o << "MPointNoFlob, undefined" << endl;
+    return o;
+  }
+  o << "MPointNoFlob, defined, has " << m.GetNoComponents() << " components:"
+    << endl;
+  U unit(true);
+  for (int i = 0; i < m.GetNoComponents(); i++) {
+    m.Get(i, unit);
+    o << unit << endl;
+  }
+  o << endl;
+  return o;
+}
 
+template<class M, class U>
+MappingNoFlob<M, U>::MappingNoFlob(const int size) {
+  isdefined = (size > 0);
+  if (isdefined) {
+    units.clear();
+    units.reserve(size);
+  }
+}
+
+template<class M, class U>
+MappingNoFlob<M, U>::MappingNoFlob(const M& src) {
+  *this = src;
+}
+
+template<class M, class U>
+void MappingNoFlob<M, U>::SetDefined(const bool def) {
+  isdefined = def;
+}
+
+template<class M, class U>
+bool MappingNoFlob<M, U>::IsDefined() const {
+  return isdefined;
+}
+
+template<class M, class U>
+MappingNoFlob<M, U> MappingNoFlob<M, U>::operator=(const M& src) {
+  isdefined = src.IsDefined();
+  if (isdefined) {
+    units.clear();
+    units.reserve(src.GetNoComponents());
+    UPoint unit(true);
+    for (int i = 0; i < src.GetNoComponents(); i++) {
+      src.Get(i, unit);
+      Add(unit);
+    }
+  }
+  return *this;
+}
+
+template<class M, class U>
+void MappingNoFlob<M, U>::Add(const U& unit) {
+  units.push_back(unit);
+}
+
+template<class M, class U>
+void MappingNoFlob<M, U>::Get(const int i, U& unit) const {
+  assert(i >= 0 && i < GetNoComponents());
+  unit = units[i];
+}
+
+template<class M, class U>
+int MappingNoFlob<M, U>::GetNoComponents() const {
+  return units.size();
+}
+
+template<class M, class U>
+void MappingNoFlob<M, U>::ConvertToMapping(M& res) const {
+  res.SetDefined(isdefined);
+  if (!isdefined) {
+    return;
+  }
+  res.Clear();
+  res.StartBulkLoad();
+  for (unsigned int i = 0; i < units.size(); i++) {
+    res.Add(units[i]);
+  }
+  res.EndBulkLoad();
+}
+
+template<class M, class U>
+void MappingNoFlob<M, U>::Reserve(const int size) {
+  units.reserve(size);
+}
+
+template<class M, class U>
+void MappingNoFlob<M, U>::Truncate() {
+  units.shrink_to_fit();
+}
 
 /*
 3.10.5 ~ForceToDuration~ function
@@ -4368,7 +4468,7 @@ For efficiency reasons, the result is stored in an object without flobs.
 */
 template<class M, class U>
 void ForceToDuration(const M& src, const datetime::DateTime& duration,
-                     const bool startAtBeginOfTime, MPointNoFlob& result, 
+                     const bool startAtBeginOfTime, MappingNoFlob<M, U>& result,
                      const Geoid* geoid = 0) {
   assert(duration.GetType() == datetime::durationtype);
   if (!src.IsDefined()) {
@@ -4392,7 +4492,7 @@ void ForceToDuration(const M& src, const datetime::DateTime& duration,
       if (iv.end != unit.timeInterval.start) { // fill temporal gap with const u
         unit2.timeInterval = Interval<Instant>(iv.end, unit.timeInterval.start,
                                                !iv.rc, !unit.timeInterval.lc);
-        unit2.p0 = unit2.p1;
+        unit2.SetToConstantUnit(unit2.p1);
         durTemp += (unit2.timeInterval.end - unit2.timeInterval.start);
         if (durTemp >= duration) { // prune current unit and finish
           iv = unit2.timeInterval;
@@ -4440,8 +4540,8 @@ void ForceToDuration(const M& src, const datetime::DateTime& duration,
     unit.timeInterval = Interval<Instant>(iv.end, iv.end + (duration - durTemp),
                                           !iv.rc, iv.rc);
     Rectangle<2> bbox = src.BoundingBoxSpatial();
-    unit.p0.Set(true, bbox.MidD(0), bbox.MidD(1)); // center of bounding box
-    unit.p1 = unit.p0;
+    Point pt(true, bbox.MidD(0), bbox.MidD(1));
+    unit.SetToConstantUnit(pt); // center of bounding box
     if (startAtBeginOfTime) {
       unit.timeInterval.start -= diffToBeginOfTime;
       unit.timeInterval.end -= diffToBeginOfTime;
@@ -4455,9 +4555,9 @@ template<class M, class U>
 void ForceToDuration(const M& src, const datetime::DateTime& duration,
                      const bool startAtBeginOfTime, M& result, 
                      const Geoid* geoid = 0) {
-  MPointNoFlob res(src.GetNoComponents());
+  MappingNoFlob<M, U> res(src.GetNoComponents());
   ForceToDuration<M, U>(src, duration, startAtBeginOfTime, res, geoid);
-  res.ConvertToMPoint(result);
+  res.ConvertToMapping(result);
 }
 
 class CMPoint;
@@ -4722,6 +4822,8 @@ Computes the distance to a CUPoint ~cup~.
                      const Geoid* geoid = 0) const;
   void DistanceAvg(const CUPoint& cup, const bool upperBound, CcReal& result,
                    const Geoid* geoid = 0) const;
+  
+  void SetToConstantUnit(const Point& p);
 
 private:
   double radius;
