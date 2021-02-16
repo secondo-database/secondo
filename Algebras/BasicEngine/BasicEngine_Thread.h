@@ -31,9 +31,11 @@ Checked - 2020
 Version 1.0 - Created - C.Behrndt - 2020
 
 */
+
 #include <boost/bind.hpp>
 #include <boost/ref.hpp>
 #include <boost/algorithm/string.hpp>
+#include <boost/log/trivial.hpp>
 #include "Algebras/Distributed2/ConnectionInfo.h"
 #include "ConnectionGeneric.h"
 

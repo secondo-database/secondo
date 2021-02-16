@@ -100,7 +100,7 @@ ConnectionInfo* BasicEngine_Control::createConnection(const string &host,
     return nullptr;
   } 
   
-  bool switchResult = ci->switchDatabase(dbName, true, false, false, 
+  bool switchResult = ci->switchDatabase(dbName, true, false, true, 
     BasicEngine_Control::defaultTimeout);
 
   if(! switchResult) { 
@@ -258,16 +258,6 @@ bool BasicEngine_Control::createAllConnections(){
       break;
     }
 
-    // Init basic engine connection on worker
-    bool initResult 
-      = initBasicEngineOnWorker(ci, dbPort, dbName);
-
-    if(! initResult) {
-      BOOST_LOG_TRIVIAL(error) << "Error while init basic engine on" 
-        << ci -> getHost() << " / " << ci -> getPort();
-      break;
-    }
-
     // In master mode share the worker relation
     if(master) {
         bool exportResult 
@@ -280,6 +270,17 @@ bool BasicEngine_Control::createAllConnections(){
           break;
         }
     }
+
+    // Init basic engine connection on worker
+    bool initResult 
+      = initBasicEngineOnWorker(ci, dbPort, dbName);
+
+    if(! initResult) {
+      BOOST_LOG_TRIVIAL(error) << "Error while init basic engine on" 
+        << ci -> getHost() << " / " << ci -> getPort();
+      break;
+    }
+
   }
 
   // Delete relation file
@@ -421,11 +422,13 @@ Repartition the given table - worker version
       bool partResult = partRoundRobin(table, key, slotnum);
       if(! partResult) {
           BOOST_LOG_TRIVIAL(error) << "Unable to partition table";
+          return false;
       }
     } else if(repartitionMode == hash) {
       bool partResult = partHash(table, key, slotnum);
       if(! partResult) {
           BOOST_LOG_TRIVIAL(error) << "Unable to partition table";
+          return false;
       }
     } else {
       BOOST_LOG_TRIVIAL(error) << "Unknown partition mode" << repartitionMode;
@@ -436,12 +439,14 @@ Repartition the given table - worker version
     bool exportDataResult = exportData(table, key, numberOfWorker);
     if(! exportDataResult) {
       BOOST_LOG_TRIVIAL(error) << "Unable to export table data";
+      return false;
     }
 
     // On the worker: Call transfer and import data
     bool importResult = exportToWorker(table, repartTableName, false);
     if(! importResult) {
       BOOST_LOG_TRIVIAL(error) << "Unable to transfer and import table data";
+      return false;
     }
 
     // Close connections
@@ -609,18 +614,22 @@ bool BasicEngine_Control::exportToWorker(const string &sourceTable,
       }
 
       //sending create Table
-      val = (si->sendFile(localCreateName, remoteCreateName, true) == 0);
+      if(exportSchema) {
+        val = (si->sendFile(localCreateName, remoteCreateName, true) == 0);
 
-      if (!val) {
-        cout << "\n Couldn't send the structure-file "
-            "to the worker." << endl;
-        return val;
+        if (!val) {
+          cout << "\n Couldn't send the structure-file "
+              "to the worker." << endl;
+          return val;
+        }
       }
     } 
   }
 
+  // Remove schema file
+  remove(localCreateName.c_str());
+
   if(val){
-    val = (remove(localCreateName.c_str()) == 0);
     //doing the import with one thread for each worker
     for(size_t i=0;i<importer.size();i++){
       string strindex = to_string(i+1);
@@ -633,10 +642,7 @@ bool BasicEngine_Control::exportToWorker(const string &sourceTable,
     for(size_t i=0;i<importer.size();i++){
       val = importer[i]->getResult() && val;
     }
-  } else {
-    cout << endl << "Something goes wrong with the"
-          " export or the transfer." << endl;
-  }
+  } 
 
   if(!val) {
     cout << endl << "Something goes wrong with the"
@@ -729,6 +735,9 @@ bool BasicEngine_Control::exportData(const string &tab,
 
     string exportDataSQL = dbms_connection->getExportDataSQL(tab,
           parttabname, key, strindex, path, slotnum);
+
+    BOOST_LOG_TRIVIAL(debug) << "Export table from DB: "
+      << exportDataSQL;
         
     val = sendCommand(exportDataSQL) && val;
   }

@@ -166,11 +166,20 @@ bool BasicEngine_Thread::simpleCommand(const std::string &cmd) {
                     CommandLog, true, defaultTimeout);
   
   if(err != 0){
-    cout << std::string("ErrCode:" + err) << endl;
+    BOOST_LOG_TRIVIAL(error)
+        << "Got error from server: " << err << res;
     return false;
   }
 
-  return (res == "(bool TRUE)");
+  bool resultOk = (res == "(bool TRUE)");
+
+  if(! resultOk) {
+    BOOST_LOG_TRIVIAL(error)
+        << "Got unexpected result from server: " << res;
+    return false;
+  }
+
+  return true;
  }
 
 /*
