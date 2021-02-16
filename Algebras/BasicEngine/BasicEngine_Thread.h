@@ -71,7 +71,8 @@ virtual ~BasicEngine_Thread() {};
 bool getResult();
 
 void startImport(std::string _tab,
-                std::string _remoteCreateName,std::string _remoteName);
+                std::string _remoteCreateName,std::string _remoteName,
+                const bool importSchema);
 
 void startExport(std::string _tab, std::string _path, std::string _nr,
               std::string _remoteCreateName, std::string _remoteName);
@@ -120,6 +121,14 @@ which stores a Create-Statement.
 
 */
 std::string remoteCreateName;
+
+/*
+4.2.5 ~importSchema~
+
+Perform schema import
+
+*/
+bool importSchema;
 
 /*
 4.2.5 ~remoteName~

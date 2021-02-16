@@ -54,11 +54,13 @@ Starting the import thread.
 
 */
 void BasicEngine_Thread::startImport(std::string _tab,
-                std::string _remoteCreateName, std::string _remoteName) {
+                std::string _remoteCreateName, std::string _remoteName,
+                const bool _importSchema) {
   
   tab = _tab;
   remoteCreateName = _remoteCreateName;
   remoteName = _remoteName;
+  importSchema = _importSchema;
   boost::lock_guard<boost::mutex> guard(mtx);
   
   if(!started && ci) {
@@ -181,13 +183,15 @@ void BasicEngine_Thread::runImport() {
   std::string importPath;
   std::string cmd;
 
-  importPath =ci->getSendPath() + "/"+ remoteCreateName;
-  cmd = "query be_runsql('"+ importPath + "');";
-  val = simpleCommand(cmd);
+  if(importSchema) {
+    importPath =ci->getSendPath() + "/"+ remoteCreateName;
+    cmd = "query be_runsql('"+ importPath + "');";
+    val = simpleCommand(cmd);
 
-  //delete create-file on system
-  cmd = "query removeFile('"+ importPath + "')";
-  if (val) val = simpleCommand(cmd);
+    //delete create-file on system
+    cmd = "query removeFile('"+ importPath + "')";
+    if (val) val = simpleCommand(cmd);
+  }
 
   //import data in pg-worker
   if(val){

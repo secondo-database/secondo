@@ -46,6 +46,38 @@ namespace BasicEngine {
 
 Implementation.
 
+3.1 Constructor
+
+*/
+BasicEngine_Control::BasicEngine_Control(ConnectionGeneric* _dbms_connection, 
+    Relation* _workerRelation, std::string _workerRelationName, 
+    bool _isMaster) : dbms_connection(_dbms_connection),
+    workerRelationName(_workerRelationName), master(_isMaster) {
+
+    unique_ptr<GenericRelationIterator> it(_workerRelation->MakeScan());
+    Tuple* tuple = nullptr;
+
+    while ((tuple = it->GetNextTuple()) != 0) {
+
+      RemoteConnectionInfo* info = new RemoteConnectionInfo();
+
+      info->host = tuple->GetAttribute(0)->toText();
+      info->port = tuple->GetAttribute(1)->toText();
+      info->config = tuple->GetAttribute(2)->toText();
+      info->dbPort = tuple->GetAttribute(3)->toText();
+      info->dbName = tuple->GetAttribute(4)->toText();
+
+      if(tuple != nullptr) {
+        tuple->DeleteIfAllowed();
+      }
+
+      remoteConnections.push_back(info);
+    }
+
+    numberOfWorker = remoteConnections.size();
+}
+
+/*
 3.1 ~createConnection~
 
 Creating a specified and saves it in the connections vector. 
@@ -99,10 +131,9 @@ BasicEngine_Control::~BasicEngine_Control() {
 
     shutdownAllConnections();
 
-    // Delete cloned worker relation
-    if(workerRelation != nullptr) {
-      workerRelation -> Delete();
-      workerRelation = nullptr;
+    // Shutdown remote connections
+    for(const RemoteConnectionInfo* remoteConnection: remoteConnections) {
+      delete remoteConnection;
     }
 }
 
@@ -194,15 +225,12 @@ Creating all connection from the worker relation.
 */
 bool BasicEngine_Control::createAllConnections(){
 
-  Tuple* tuple = nullptr;
   optional<string> workerRelationFileName = nullopt;
-  unique_ptr<GenericRelationIterator> it(workerRelation->MakeScan());
 
   // In master mode, share the worker relation with the clients
   if(master) {
     try {
-      string exportedFile = exportWorkerRelation(
-          workerRelationName, workerRelation);
+      string exportedFile = exportWorkerRelation(workerRelationName);
       workerRelationFileName.emplace(exportedFile); 
     } catch(std::exception &e) {
       BOOST_LOG_TRIVIAL(error) 
@@ -212,16 +240,12 @@ bool BasicEngine_Control::createAllConnections(){
     }
   }
   
-  while ((tuple = it->GetNextTuple()) != 0) {
-    string host = tuple->GetAttribute(0)->toText();
-    string port = tuple->GetAttribute(1)->toText();
-    string config = tuple->GetAttribute(2)->toText();
-    string dbPort = tuple->GetAttribute(3)->toText();
-    string dbName = tuple->GetAttribute(4)->toText();
-
-    if(tuple != nullptr) {
-      tuple->DeleteIfAllowed();
-    }
+  for(const RemoteConnectionInfo* remoteConnection: remoteConnections) {
+    string host = remoteConnection->host;
+    string port = remoteConnection->port;
+    string config = remoteConnection->config;
+    string dbPort = remoteConnection->dbPort;
+    string dbName = remoteConnection->dbName;
 
     ConnectionInfo* ci = createConnection(
       host, port, config, dbPort, dbName);
@@ -234,18 +258,18 @@ bool BasicEngine_Control::createAllConnections(){
       break;
     }
 
-    // In master mode init the basic engine on the clients
-    // and share worker relation
+    // Init basic engine connection on worker
+    bool initResult 
+      = initBasicEngineOnWorker(ci, dbPort, dbName);
+
+    if(! initResult) {
+      BOOST_LOG_TRIVIAL(error) << "Error while init basic engine on" 
+        << ci -> getHost() << " / " << ci -> getPort();
+      break;
+    }
+
+    // In master mode share the worker relation
     if(master) {
-        bool initResult 
-          = initBasicEngineOnWorker(ci, dbPort, dbName);
-
-        if(! initResult) {
-          BOOST_LOG_TRIVIAL(error) << "Error while init basic engine on" 
-            << ci -> getHost() << " / " << ci -> getPort();
-          break;
-        }
-
         bool exportResult 
           = exportWorkerRelationToWorker(ci, workerRelationFileName);
 
@@ -384,11 +408,11 @@ Repartition the given table - worker version
     const RepartitionMode &repartitionMode) {
 
     // Open connections
-    /*bool connectionCreateResult = createAllConnections();
+    bool connectionCreateResult = createAllConnections();
     if(!connectionCreateResult) {
       BOOST_LOG_TRIVIAL(error) << "Unable to open connections";
       return false;
-    }*/
+    }
 
     string repartTableName = getRepartitionTableName(table);
 
@@ -415,13 +439,13 @@ Repartition the given table - worker version
     }
 
     // On the worker: Call transfer and import data
-    bool importResult = exportToWorker(table, repartTableName);
+    bool importResult = exportToWorker(table, repartTableName, false);
     if(! importResult) {
       BOOST_LOG_TRIVIAL(error) << "Unable to transfer and import table data";
     }
 
     // Close connections
-  //  shutdownAllConnections();
+    shutdownAllConnections();
 
     return true;
   }
@@ -552,7 +576,7 @@ Returns true if everything is OK and there are no failure.
 
 */
 bool BasicEngine_Control::exportToWorker(const string &sourceTable, 
-  const string &destinationTable){
+  const string &destinationTable, const bool exportSchema) {
 
   bool val = true;
   string query_exec;
@@ -562,7 +586,7 @@ bool BasicEngine_Control::exportToWorker(const string &sourceTable,
   string remoteCreateName = getCreateTableSQLName(sourceTable);
   string localCreateName = getFilePath() + remoteCreateName;
 
-  for(size_t index; index < numberOfWorker; index++){
+  for(size_t index = 0; index < numberOfWorker; index++){
 
     if (! connections[index]) {
       cout << endl << "Error: connection " << index 
@@ -602,7 +626,7 @@ bool BasicEngine_Control::exportToWorker(const string &sourceTable,
       string strindex = to_string(i+1);
       string remoteName = getFilenameForPartition(sourceTable, strindex);
       importer[i]->startImport(
-        destinationTable, remoteCreateName, remoteName);
+        destinationTable, remoteCreateName, remoteName, exportSchema);
     }
 
     //waiting for finishing the threads
@@ -801,7 +825,7 @@ bool BasicEngine_Control::partTable(const string &tab, const string &key,
     return val;
   }
 
-  val = exportToWorker(tab, tab);
+  val = exportToWorker(tab, tab, true);
 
   if(!val) {
     cout << "\n Couldn't transfer the data to the worker." << endl;
@@ -1077,7 +1101,7 @@ Export the worker relation into a file.
 
 */
 string BasicEngine_Control::exportWorkerRelation(
-  const string &relationName, Relation* relation) {
+  const string &relationName) {
 
   // Output file
   string filename = relationName + "_" 

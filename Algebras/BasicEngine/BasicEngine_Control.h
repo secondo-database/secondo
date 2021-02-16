@@ -54,6 +54,18 @@ namespace BasicEngine {
 enum RepartitionMode {hash, rr};
 
 /*
+2 Struct ~RemoteConnectionInfo~
+
+*/
+struct RemoteConnectionInfo {
+  std::string host;
+  std::string port;
+  std::string config;
+  std::string dbPort;
+  std::string dbName;
+};
+
+/*
 2 Class ~BasicEngine\_Control~
 
 This class represents the controling from the system.
@@ -67,15 +79,9 @@ public:
 2.1 Public Methods
 
 */
-
   BasicEngine_Control(ConnectionGeneric* _dbms_connection, 
     Relation* _workerRelation, std::string _workerRelationName, 
-    bool _isMaster) : dbms_connection(_dbms_connection),
-    workerRelationName(_workerRelationName), master(_isMaster) {
-
-    workerRelation = _workerRelation->Clone();
-    numberOfWorker = _workerRelation->GetNoTuples();
-  }
+    bool _isMaster);
 
   virtual ~BasicEngine_Control();
 
@@ -144,8 +150,7 @@ public:
 
   ResultIteratorGeneric* performSQLSelectQuery(const std::string &sqlQuery);
 
-  std::string exportWorkerRelation(const std::string &relationName, 
-    Relation* relation);
+  std::string exportWorkerRelation(const std::string &relationName);
 
   bool exportWorkerRelationToWorker(distributed2::ConnectionInfo* ci, 
     const std::optional<std::string> &workerRelationFileName);
@@ -180,13 +185,13 @@ to a secondary dbms (for example postgresql)
 ConnectionGeneric* dbms_connection;
 
 /*
-2.2.2 ~workerRelation~
+2.2.2 ~remoteConnections~
 
-The workerRelation is a relation with all informations about the
+The remoteConnections is a vector with all informations about the
 worker connection like port, connection-file, ip
 
 */
-Relation* workerRelation;
+std::vector<RemoteConnectionInfo*> remoteConnections;
 
 /*
 2.2.3 workerRelationName is the name of the used worker relation
@@ -255,7 +260,7 @@ distributed2::ConnectionInfo* createConnection(const std::string &host,
   bool importData(const std::string &tab);
 
   bool exportToWorker(const std::string &sourceTable, 
-    const std::string &destinationTable);
+    const std::string &destinationTable, const bool exportSchema);
 
   std::string getCreateTableSQLName(const std::string &tab) {
     return "create" + tab + ".sql";

@@ -172,6 +172,8 @@ string ConnectionPG::getCreateTableSQL(const string &tab){
     write.append(");");
   }
 
+  PQclear(res);
+
   return write;
 }
 
