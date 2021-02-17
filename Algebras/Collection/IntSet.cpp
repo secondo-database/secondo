@@ -73,6 +73,7 @@ IntSet& IntSet::operator=(const IntSet& src) {
 
 IntSet& IntSet::operator=(IntSet&& src) {
    Attribute::operator=(src);
+   delete[] value;
    size = src.size;
    value = src.value;
    src.size = 0;
