@@ -165,6 +165,22 @@ int IrGrid2dCellnosSelect( ListExpr args )
   return -1; // should never occur
 }
 
+// Is used for the ~irg2d\_cellToRect~ operator.
+int IrGrid2dcellToRectSelect( ListExpr args )
+{
+  if (nl->ListLength(args) == 2) {
+    ListExpr first = nl->First(args);
+    ListExpr second = nl->Second(args);
+
+    if (IrregularGrid2D::checkType(first)
+      && CcInt::checkType(second)) {
+        return 0;
+    }
+  }
+  return -1; // should never occur
+}
+
+
 /*
 4.3 Value mapping functions
 
@@ -207,6 +223,8 @@ ValueMapping irgdrid2dCreateMap[] = { IrGrid2dValueMapCreate };
 ValueMapping irgdrid2dFeedMap[] = { IrregularGrid2D::IrGrid2dValueMapFeed };
 ValueMapping irgdrid2dCellnosMap[]
   = { IrregularGrid2D::IrGrid2dValueMapCellnos };
+ValueMapping irgdrid2dcellToRectMap[]
+  = { IrregularGrid2D::IrGrid2dValueMapcellToRect };
 
 /*
 4.4.2 Definition of specification strings
@@ -238,6 +256,14 @@ const string cellnosIrGrid2dSpec  =
       "covered by the given rectangle.</text--->"
       ") )";
 
+const string irg2dcellToRectSpec  =
+      "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" \"Remarks\")"
+      "( <text>(irgrid2d x int) -> rect</text--->"
+      "<text>irg2d_cellToRect(_, _)</text--->"
+      "<text>returns the rect representation  "
+      "of a cell_id in the given grid.</text--->"
+      ") )";
+
 /*
 4.4.3 Definition of the operators
 
@@ -263,6 +289,13 @@ Operator cellnosirgrid2d( "cellnos_ir",
     IrGrid2dCellnosSelect,
     IrregularGrid2D::IrGrid2dCellnosTypeMap );
 
+Operator irg2dcellToRect( "irg2d_cellToRect",
+    irg2dcellToRectSpec,
+    1,
+    irgdrid2dcellToRectMap,
+    IrGrid2dcellToRectSelect,
+    IrregularGrid2D::IrGrid2dcellToRectTypeMap );
+
 /*
 5 Creating the Algebra
 
@@ -276,6 +309,7 @@ class SPart : public Algebra {
       AddOperator( &createirgrid2d );
       AddOperator( &feedirgrid2d );
       AddOperator( &cellnosirgrid2d );
+      AddOperator( &irg2dcellToRect );
     }
 
     ~SPart() { };

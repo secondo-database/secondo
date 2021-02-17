@@ -175,6 +175,34 @@ IrregularGrid2D::getCellInfoVector(IrregularGrid2D *in_irgrid2d) {
 }
 
 void
+IrregularGrid2D::buildCellRectangleVector(IrregularGrid2D *b_irgrid2d) {
+  if (b_irgrid2d != nullptr) {
+    std::vector<CellInfo*> cell_info_vect = getCellInfoVector(b_irgrid2d);
+
+    if (cell_info_vect.size() > 0) {
+      for(size_t ciIdx = 0; ciIdx < cell_info_vect.size(); ciIdx++) {
+        cell_rectangle_vect.push_back(*((cell_info_vect.at(ciIdx))->cell));
+      }
+    }
+  }
+}
+
+Rectangle<2>
+IrregularGrid2D::cellIdToRectangle(IrregularGrid2D *b_irgrid2d, int cellNbr) {
+  if (b_irgrid2d != nullptr) {
+    buildCellRectangleVector(b_irgrid2d);
+    std::vector<Rectangle<2>> cell_r_vect =
+      b_irgrid2d->getcCellRectangleVector();
+    if (cellNbr > 0 && (int)cell_r_vect.size() >= cellNbr
+      && cellNbr <= (int)cell_r_vect.size()) {
+      return cell_r_vect.at(cellNbr-1);
+    }
+  }
+
+  return *(new Rectangle<2>(false));
+}
+
+void
 IrregularGrid2D::createIrgrid2D(Stream<Rectangle<2>> rStream) {
   // sort input points by y-coordinates
   processInput(rStream);
@@ -372,6 +400,7 @@ IrregularGrid2D::buildGrid() {
       }
     }
   }
+  //buildCellRectangleVector(this);
 }
 
 bool
@@ -463,6 +492,11 @@ IrregularGrid2D::setColumnVector(std::vector<VCell> column_vect) {
 std::vector<VCell>&
 IrregularGrid2D::getColumnVector() {
   return this->columnVector;
+}
+
+std::vector<Rectangle<2>>&
+IrregularGrid2D::getcCellRectangleVector() {
+  return this->cell_rectangle_vect;
 }
 
 IrregularGrid2D::~IrregularGrid2D() {}
@@ -712,6 +746,7 @@ IrregularGrid2D::InIrGrid2D( const ListExpr typeInfo, const ListExpr instance,
     correct = true;
     IrregularGrid2D* irgrid = new IrregularGrid2D(*bbox, row_cnt, cell_cnt);
     irgrid->setColumnVector(column_vec);
+    //irgrid->buildCellRectangleVector(irgrid);
 
     w.addr = irgrid;
     return w;
@@ -937,6 +972,30 @@ IrregularGrid2D::IrGrid2dCellnosTypeMap( ListExpr args )
   return  listutils::typeError(errMsg);
 }
 
+/*
+Type mapping function ~IrGrid2dcellToRectTypeMap~
+
+It is used for the ~irg2d\_cellToRect~ operator.
+
+*/
+ListExpr
+IrregularGrid2D::IrGrid2dcellToRectTypeMap( ListExpr args )
+{
+  if(nl->HasLength(args, 2)) {
+    ListExpr first = nl->First(args);
+    ListExpr second = nl->Second(args);
+
+    if (IrregularGrid2D::checkType(first) && CcInt::checkType(second)) {
+      return nl->SymbolAtom(Rectangle<2>::BasicType());
+    }
+  }
+
+  const std::string errMsg = "The following two arguments are expected:"
+      " irgrid2d x int";
+
+  return  listutils::typeError(errMsg);
+}
+
 template <class C>
 bool
 InCell(C cell, double val) {
@@ -1052,5 +1111,33 @@ IrregularGrid2D::IrGrid2dValueMapCellnos( Word* args, Word& result, int message,
       }
     }
   }
+  return -1;
+}
+
+/*
+Value mapping function of operator ~irg2d\_cellToRect~
+
+*/
+int
+IrregularGrid2D::IrGrid2dValueMapcellToRect( Word* args, Word& result,
+  int message, Word& local, Supplier s ) {
+
+  IrregularGrid2D *input_irgrid2d_ptr =
+   static_cast<IrregularGrid2D*>( args[0].addr );
+  CcInt *cid_ptr =  static_cast<CcInt*>( args[1].addr );
+  int cid_val = cid_ptr->GetIntval();
+
+  result = qp->ResultStorage(s);
+  Rectangle<2>* res = (Rectangle<2>*) result.addr;
+
+  Rectangle<2> cell_r = input_irgrid2d_ptr->cellIdToRectangle(
+    input_irgrid2d_ptr, cid_val);
+
+  if( cell_r.IsDefined() ) {
+    *res = *(&cell_r);
+
+    return 0;
+  }
+
   return -1;
 }

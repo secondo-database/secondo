@@ -20,3 +20,4 @@
 operator create_irgrid2d alias CREATE_IRGRID2D pattern _ op [_, _, _]
 operator feed alias FEED pattern _ op
 operator cellnos_ir alias CELLNOS_IR pattern op(_, _)
+operator irg2d_cellToRect alias IRG2D_CELLTORECT pattern op(_, _)

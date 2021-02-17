@@ -126,6 +126,7 @@ class IrregularGrid2D {
     int getRowCount();
     int getCellCount();
     std::vector<VCell> &getColumnVector();
+    std::vector<Rectangle<2>> &getcCellRectangleVector();
 
     // Auxiliary functions for In or/and Value mapping functions
     void Set(Stream<Rectangle<2>> rStream, Rectangle<2>& bounding_box,
@@ -149,6 +150,10 @@ class IrregularGrid2D {
     static ListExpr IrGrid2dCellnosTypeMap( ListExpr args );
     static int IrGrid2dValueMapCellnos( Word* args, Word& result, int message,
       Word& local, Supplier s );
+
+    static ListExpr IrGrid2dcellToRectTypeMap( ListExpr args );
+    static int IrGrid2dValueMapcellToRect( Word* args, Word& result,
+      int message, Word& local, Supplier s );
 
     // Algebra supporting functions
 
@@ -196,8 +201,12 @@ class IrregularGrid2D {
   int rowCount, cellCount;
   // column (y-axis) vector with access to the section vectors (x-axes)
   std::vector<VCell> columnVector {};
+  //Cell representation as rectangles
+  std::vector<Rectangle<2>> cell_rectangle_vect{};
 
   void createIrgrid2D(Stream<Rectangle<2>> rStream);
   void processInput(Stream<Rectangle<2>> rStream);
   void buildGrid();
+  void buildCellRectangleVector(IrregularGrid2D *b_irgrid2d);
+  Rectangle<2> cellIdToRectangle(IrregularGrid2D *b_irgrid2d, int cellNbr);
 };
