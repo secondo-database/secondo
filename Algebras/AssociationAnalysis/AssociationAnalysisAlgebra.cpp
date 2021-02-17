@@ -42,6 +42,7 @@ January 2021 - April 2021, P. Fedorow for bachelor thesis.
 */
 #include "Algebra.h"
 #include "Algebras/Collection/IntSet.h"
+#include "Algebras/Relation-C++/RelationAlgebra.h" // rel, trel, tuple
 #include "ListUtils.h"
 #include "NList.h"
 #include "NestedList.h"
@@ -65,6 +66,15 @@ using namespace std;
 
 // region Implementation of the genTransactions operator.
 
+ListExpr genTransactionsTupleType() {
+  NList attrs = NList(
+      NList(NList().symbolAtom("Id"), NList().symbolAtom(CcInt::BasicType())),
+      NList(NList().symbolAtom("Itemset"),
+            NList().symbolAtom(collection::IntSet::BasicType())));
+  ListExpr type = NList().tupleOf(attrs).listExpr();
+  return type;
+}
+
 ListExpr genTransactionsTM(ListExpr args) {
   NList type(args);
 
@@ -78,8 +88,8 @@ ListExpr genTransactionsTM(ListExpr args) {
     return NList::typeError("Wrong number of arguments passed.");
   }
 
-  return Stream<collection::IntSet>::wrap(
-      listutils::basicSymbol<collection::IntSet>());
+  NList tupleType = NList(genTransactionsTupleType());
+  return NList().streamOf(tupleType).listExpr();
 }
 
 class getTransactionsLI {
@@ -151,9 +161,15 @@ public:
       this->corruptionLevels.push_back(
           clamp(randCorruptionLevel(this->gen), 0.0, 1.0));
     }
+
+    // Setup resulting tuple type.
+    this->tupleType = new TupleType(
+        SecondoSystem::GetCatalog()->NumericType(genTransactionsTupleType()));
   }
 
-  collection::IntSet *getNext() {
+  ~getTransactionsLI() { this->tupleType->DeleteIfAllowed(); }
+
+  Tuple *getNext() {
     uniform_real_distribution<double> randCorruptionLevel(0, 1);
     if (this->t < this->numOfTransactions) {
       int transactionSize = this->genTransactionSize(this->gen) + 1;
@@ -197,8 +213,12 @@ public:
         }
       }
 
+      auto tuple = new Tuple(this->tupleType);
+      tuple->PutAttribute(0, new CcInt(this->t));
+      tuple->PutAttribute(1, new collection::IntSet(transaction));
+
       this->t += 1;
-      return new collection::IntSet(transaction);
+      return tuple;
     } else {
       return nullptr;
     }
@@ -213,6 +233,7 @@ private:
   vector<vector<int>> potentialFrequentItemsets;
   vector<double> corruptionLevels;
   bool allowOversizedTransaction;
+  TupleType *tupleType;
 };
 
 int genTransactionsVM(Word *args, Word &result, int message, Word &local,
@@ -245,7 +266,8 @@ int genTransactionsVM(Word *args, Word &result, int message, Word &local,
 struct genTransactionsInfo : OperatorInfo {
   genTransactionsInfo() : OperatorInfo() {
     this->name = "genTransactions";
-    this->signature = "int int int int int -> stream(intset)";
+    this->signature =
+        "int int int int int -> stream(tuple([Id: int, Itemset: intset]))";
     this->syntax = "genTransaction(_, _, _, _, _)";
     this->meaning =
         "Generates a stream of transactions. The expected arguments are: the "
