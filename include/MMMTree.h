@@ -992,6 +992,10 @@ class NNIterator{
    int getNoDistFunCalls() const {
      return noDistFunCalls;
    }
+   
+   size_t distStorageSize() const {
+     return di.distStorageSize();
+   }
 
    private:
       T ref;

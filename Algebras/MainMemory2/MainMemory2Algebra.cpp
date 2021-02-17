@@ -83,6 +83,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Algebras/Standard-C++/LongInt.h"
 
 #include <chrono>
+#include <unordered_map>
 
 
 using namespace std;
@@ -386,6 +387,56 @@ namespace mtreehelper{
 
 }
 
+/*
+3.9 class ~DistStorage~, with a struct used to hash a pair of any kind
+
+*/
+struct hash_pair { 
+  template <class T1, class T2> 
+  size_t operator()(const std::pair<T1, T2>& p) const { 
+    auto hash1 = std::hash<T1>{}(p.first); 
+    auto hash2 = std::hash<T2>{}(p.second); 
+    return hash1 ^ hash2; 
+  } 
+};
+
+class DistStorage {
+ public: 
+  DistStorage() {}
+  
+  ~DistStorage() {
+    clear();
+  }
+    
+  double retrieveDist(const TupleId& tid1, const TupleId& tid2) const {
+    assert(tid1 <= tid2);
+    auto it = storedDists.find(std::make_pair(tid1, tid2));
+    if (it == storedDists.end()) { // not found
+//       cout << "NOT FOUND dist(" << tid1 << ", " << tid2 << ")" << endl;
+      return -1.0;
+    }
+//     cout << "FOUND dist(" << tid1 << ", " << tid2 << ") = " << it->second 
+//          << endl;
+    return it->second;
+  }
+  
+  void storeDist(const TupleId& tid1, const TupleId& tid2, const double dist) {
+    storedDists[std::make_pair(tid1, tid2)] = dist;
+//     cout << "  COMPUTED and STORED dist(" << tid1 << ", " << tid2 << ") = " 
+//          << dist << "  ... # " << storedDists.size() << endl;
+  }
+  
+  size_t size() const {
+    return storedDists.size();
+  }
+  
+  void clear() {
+    storedDists.clear();
+  }
+  
+ private: 
+  std::unordered_map<std::pair<TupleId,TupleId>, double, hash_pair> storedDists;
+};
 
 template<class T>
 class StdDistComp{
@@ -413,9 +464,16 @@ class StdDistComp{
 
 
     double operator()(const MTreeEntry<T>& o1, const MTreeEntry<T>& o2) {
-      const T* t1 = o1.getKey();
-      const T* t2 = o2.getKey();
-      return mtreehelper::distance(t1, t2, geoid);
+      TupleId tid1 = std::min(o1.getTid(), o2.getTid());
+      TupleId tid2 = std::max(o1.getTid(), o2.getTid());
+      double dist = distStorage.retrieveDist(tid1, tid2);
+      if (dist < 0.0) {
+        const T* t1 = o1.getKey();
+        const T* t2 = o2.getKey();
+        dist = mtreehelper::distance(t1, t2, geoid);
+        distStorage.storeDist(tid1, tid2, dist);
+      }
+      return dist;
     }
 //     double  operator()(const pair<T,TupleId>& o1, 
 //                        const pair<T,TupleId>& o2){
@@ -432,9 +490,14 @@ class StdDistComp{
     }
   
     void reset(){} // not sureA
+    
+    size_t distStorageSize() const {
+      return distStorage.size();
+    }
 
-  private:
+  protected:
     Geoid* geoid;
+    DistStorage distStorage;
 };
 
 template<class T, class U>
@@ -469,16 +532,18 @@ class StdDistCompExt : public StdDistComp<pair<T, U> > {
     
   double operator()(const MTreeEntry<pair<T, U> >& o1,
                     const MTreeEntry<pair<T, U> >& o2) {
-    const pair<T, U>* p1 = o1.getKey();
-    const pair<T, U>* p2 = o2.getKey();
-    return mtreehelper::distance(p1, p2, alpha,
+    TupleId tid1 = std::min(o1.getTid(), o2.getTid());
+    TupleId tid2 = std::max(o1.getTid(), o2.getTid());
+    double dist = this->distStorage.retrieveDist(tid1, tid2);
+    if (dist < 0.0) {
+      const pair<T, U>* p1 = o1.getKey();
+      const pair<T, U>* p2 = o2.getKey();
+      dist = mtreehelper::distance(p1, p2, alpha,
                                  ((StdDistComp<pair<T, U> >*)this)->getGeoid());
+      this->distStorage.storeDist(tid1, tid2, dist);
+    }
+    return dist;
   }
-//   double operator()(const pair<pair<T, U>, TupleId>& o1, 
-//                     const pair<pair<T, U>, TupleId>& o2) {
-//     return mtreehelper::distance(&o1.first, &o2.first, alpha, 
-//                ((StdDistComp<pair<T, U> >*)this)->getGeoid());
-//   }
   
  private:
   double alpha; 
