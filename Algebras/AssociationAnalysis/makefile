@@ -27,7 +27,7 @@
 include ../../makefile.env
 
 CURRENT_ALGEBRA := AssociationAnalysisAlgebra
-ALGEBRA_DEPENDENCIES := StandardAlgebra StreamAlgebra CollectionAlgebra
+ALGEBRA_DEPENDENCIES := StandardAlgebra StreamAlgebra CollectionAlgebra RelationAlgebra ExtRelationAlgebra
 
 
 # expand compile flags if necessary
