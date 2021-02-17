@@ -71,15 +71,11 @@ ListExpr genTransactionsTM(ListExpr args) {
   if (type.length() == 5) {
     for (int i = 1; i <= 5; i++) {
       if (!type.elem(i).isSymbol(CcInt::BasicType())) {
-        return NList::typeError(
-            "Wrong argument type passed. The signature of genTransactions is: "
-            "int int int int int -> (stream intset).");
+        return NList::typeError("Wrong argument type passed.");
       }
     }
   } else {
-    return NList::typeError(
-        "Wrong number of arguments passed. The signature of genTransactions "
-        "is: int int int int int -> (stream intset).");
+    return NList::typeError("Wrong number of arguments passed.");
   }
 
   return Stream<collection::IntSet>::wrap(
@@ -249,11 +245,13 @@ int genTransactionsVM(Word *args, Word &result, int message, Word &local,
 struct genTransactionsInfo : OperatorInfo {
   genTransactionsInfo() : OperatorInfo() {
     this->name = "genTransactions";
-    this->signature = "int int int int int -> (stream intset)";
-    this->syntax =
-        "genTransaction(numOfTransactions, transactionSizeMean, "
-        "frequentItemsetSizeMean, numOfFrequentItemsets, numOfItems)";
-    this->meaning = "Generates a stream of transactions.";
+    this->signature = "int int int int int -> stream(intset)";
+    this->syntax = "genTransaction(_, _, _, _, _)";
+    this->meaning =
+        "Generates a stream of transactions. The expected arguments are: the "
+        "number of transactions, the mean of the transaction size, the mean of "
+        "the frequent itemset size, the number of frequent itemsets and the "
+        "number of items.";
   }
 };
 
