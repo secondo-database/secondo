@@ -262,7 +262,7 @@ ProgMesHandler::handleMsg(NestedList* nl, ListExpr list, int source)
 
   // end of progress messages
   if(TotalValue <= 0){
-      cout << endl << "feddisch!" << endl << endl;
+      cout << endl << "feddisch (done)!" << endl << endl;
       delete s;
       s = 0;
       return true;
