@@ -163,8 +163,17 @@ AlgebraManager::LoadAlgebras()
     {
       if ( (*getAlgebraEntry)( j ).algebraInit != 0 )
       {
-        algebraNames[algId] = algNameStr;
-        algebra[algId] = ((*getAlgebraEntry)( j ).algebraInit)( nl, qp, this );
+        // Prevent duplicate loading of an algebra
+        if ( algebraNames.find(algId) != algebraNames.end() ) {
+          cerr << endl 
+               << "WARNING: Algebra " << algNameStr << " is already loaded. "
+               << "Please check your algebra setup for duplicates."
+               << endl;
+        } else {
+          algebraNames[algId] = algNameStr;
+          algebra[algId] = ((*getAlgebraEntry)( j ).algebraInit)
+            ( nl, qp, this );
+        }
       }
       else
       {
