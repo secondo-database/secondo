@@ -308,7 +308,7 @@ struct SmiCatalogEntry
   bool      isFixed;
   SmiCatalogEntry() : fileId(0), isKeyed(false), isFixed(false)
   {
-    memset(fileName, 0, 2*SMI_MAX_NAMELEN+2);	  
+    memset(fileName, 0, (2*SMI_MAX_NAMELEN+2) * sizeof(char));
   }	  
 };
 /*
