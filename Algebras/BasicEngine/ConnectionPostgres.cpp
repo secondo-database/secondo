@@ -535,7 +535,7 @@ bool ConnectionPG::getTypeFromQuery(const PGresult* res, ListExpr &resultList) {
       default:
           BOOST_LOG_TRIVIAL(warning) 
               << "Unknown column type: " << attributeName << " / " 
-              << columnType << " will be mapped to FText";
+              << columnType << " will be mapped to text";
           attributeType = FText::BasicType();
     }
 
