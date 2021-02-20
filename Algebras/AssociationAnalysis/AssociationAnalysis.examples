@@ -5,18 +5,38 @@ Restore    : No
 Operator  : genTransactions
 Number    : 1
 Signature : int int int int int -> stream(tuple([Id: int, Itemset: intset]))
-Example   : query genTransactions(10000, 5, 2, 2000, 1000) count
-Result    : 10000
+Example   : query genTransactions(1000, 5, 2, 2000, 1000) count
+Result    : 1000
 
 Operator  : genTransactions
 Number    : 2
 Signature : int int int int int -> stream(tuple([Id: int, Itemset: intset]))
-Example   : query genTransactions(10000, 5, 2, 2000, 1000) filter[size(.Itemset) = 0] count
+Example   : query genTransactions(1000, 5, 2, 2000, 1000) filter[size(.Itemset) = 0] count
 Result    : 0
 
 Operator  : genTransactions
 Number    : 3
 Signature : int int int int int -> stream(tuple([Id: int, Itemset: intset]))
-Example   : query genTransactions(10000, 5, 2, 2000, 1000) extend[ItemsetSize: size(.Itemset)] avg[ItemsetSize]
+Example   : query genTransactions(1000, 5, 2, 2000, 1000) extend[ItemsetSize: size(.Itemset)] avg[ItemsetSize]
 Result    : 5.0
 Tolerance : 0.1
+
+Operator  : apriori
+Number    : 1
+Signature : rel(tuple(...)) attr real -> stream(tuple(Itemset: intset, Support: real))
+Example   : query genTransactions(1000, 5, 2, 2000, 1000) consume apriori[Itemset, 0.015] count
+Result    : 64
+
+Operator  : apriori
+Number    : 2
+Signature : rel(tuple(...)) attr real -> stream(tuple(Itemset: intset, Support: real))
+Example   : query genTransactions(1000, 5, 2, 2000, 1000) consume apriori[Itemset, 0.015] filter[size(.Itemset) > 1] extend[ItemsetSize: size(.Itemset)] avg[ItemsetSize]
+Result    : 2.25
+Tolerance : 0.001
+
+Operator  : apriori
+Number    : 3
+Signature : rel(tuple(...)) attr real -> stream(tuple(Itemset: intset, Support: real))
+Example   : query genTransactions(1000, 5, 2, 2000, 1000) consume apriori[Itemset, 0.015] min[Support]
+Result    : 0.015
+Tolerance : 0.0001
