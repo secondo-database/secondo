@@ -913,29 +913,39 @@ int main( int argc, char* argv[] )
   bool ok;
 
   if ( RTFlag::isActive("SMI:NoTransactions") ) {
-    rc = SmiEnvironment::StartUp( SmiEnvironment::SingleUserSimple,
+    ok = SmiEnvironment::StartUp( SmiEnvironment::SingleUserSimple,
                                   paramFile, "", cerr, "" );
   } else {
-    rc = SmiEnvironment::StartUp( SmiEnvironment::SingleUser,
+    ok = SmiEnvironment::StartUp( SmiEnvironment::SingleUser,
                                   paramFile, "", cerr,"" );
   }
 
-  cout << "StartUp rc=" << rc << endl;
-  if ( rc == 1 )
+  cout << "StartUp rc=" << ok << endl;
+  if ( ok == 1 )
   {
     string dbname;
     cout << "*** Start list of databases ***" << endl;
-    SmiEnvironment::ListDatabases( dbname );
+    ok = SmiEnvironment::ListDatabases( dbname );
+
+    if( ! ok )
+    {
+      cout << "ListDatabases failed" << endl;
+      return EXIT_FAILURE;
+    }
+
     cout << dbname << endl;
+
     cout << "*** End list of databases ***" << endl;
-    ok = SmiEnvironment::OpenDatabase( "test" );
-    if ( ok )
+    rc = SmiEnvironment::OpenDatabase( "test" );
+    if ( rc == ERR_NO_ERROR )
     {
       cout << "OpenDatabase test ok." << endl;
     }
     else
     {
-      cout << "OpenDatabase test failed, try to create." << endl;
+      cout << "OpenDatabase test failed (rc=" 
+           << rc << "), try to create" << endl;
+
       ok = SmiEnvironment::CreateDatabase( "test" );
       if ( ok )
         cout << "CreateDatabase test ok." << endl;
@@ -945,10 +955,18 @@ int main( int argc, char* argv[] )
         cout << "CloseDatabase test ok." << endl;
       else
         cout << "CloseDatabase test failed." << endl;
-      if ( (ok = SmiEnvironment::OpenDatabase( "test" )) )
+      
+      rc = SmiEnvironment::OpenDatabase( "test" );
+
+      if ( rc == ERR_NO_ERROR )
+      {
         cout << "OpenDatabase test ok." << endl;
-      else
-        cout << "OpenDatabase test failed." << endl;
+      }
+      else 
+      {
+        cout << "OpenDatabase test failed (rc=" << rc << ")." << endl;
+        return EXIT_FAILURE;
+      }
     }
     Pause();
     if ( ok )
@@ -1016,7 +1034,7 @@ int main( int argc, char* argv[] )
         cout << "EraseDatabase test failed." << endl;
     }
   }
-  rc = SmiEnvironment::ShutDown();
+  ok = SmiEnvironment::ShutDown();
   cout << "ShutDown rc=" << rc << endl;
 }
 
