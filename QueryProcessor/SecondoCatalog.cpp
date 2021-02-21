@@ -513,7 +513,8 @@ Precondition: dbState = dbOpen.
       mutex->lock();
       #endif
       SmiRecord tRecord;
-      found = typeCatalogFile.SelectRecord( SmiKey( typeName ), tRecord );
+      SmiKey tKey( typeName );
+      found = typeCatalogFile.SelectRecord(tKey , tRecord );
       #ifdef SM_FILE_ID 
       mutex->unlock();
       #endif
