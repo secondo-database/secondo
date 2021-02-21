@@ -1407,7 +1407,7 @@ bool SmiEnvironment::StartUp(const RunMode mode, const string& parmFile,
   }
   string home = dbDir;
   if(home.empty()){
-    home = SmiProfile::GetParameter("SecondoHome", "Environment","",
+    home = SmiProfile::GetParameter("Environment", "SecondoHome", "",
                                       configFile.c_str());
   }
 
