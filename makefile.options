@@ -56,6 +56,15 @@ DEBUG = -ggdb
 # Set up default flags for the compiler
 DEFAULTCCFLAGS += $(DEBUG) $(OPTIMIZE) $(TEMPLATEFLAGS) -I. -I$(INCLUDEDIR)
 
+# Compiler sanitizer (as an alternative to valgrind)
+#DEFAULTCCFLAGS += -fsanitize=address
+#DEFAULTCCFLAGS += -fsanitize=undefined
+#DEFAULTCCFLAGS += -fsanitize=nullability
+#DEFAULTCCFLAGS += -fno-omit-frame-pointer
+#LDFLAGS += -fsanitize=address
+#LDFLAGS += -fsanitize=undefined
+#LDFLAGS += -fsanitize=nullability
+#LDFLAGS += -fno-omit-frame-pointer
 
 # Show all warnings
 DEFAULTCCFLAGS += -Wall  
