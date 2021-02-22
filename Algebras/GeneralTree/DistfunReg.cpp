@@ -509,7 +509,8 @@ void DistfunReg::MPointDistanceAvg(const DistData *data1, const DistData *data2,
   datetime::DateTime duration(0, 3600000, datetime::durationtype);
   mp1.deserialize((const char*)data1->value());
   mp2.deserialize((const char*)data2->value());
-  result = mp1.DistanceAvg(mp2, duration);
+  result = temporalalgebra::DistanceComputation<temporalalgebra::MPoint, 
+       temporalalgebra::UPoint>::DistanceAvg(mp1, mp2, duration, true);
 }
 
 /*

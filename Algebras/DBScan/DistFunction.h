@@ -405,102 +405,109 @@ class TupleDist: public DistCount {
 1.6 Declarations and definition of the class ~MPointDist~
 
 */
- template<bool useGeoid>
- class MPointDist: public DistCount {
-  public:
-  
-   double operator()(const std::pair<temporalalgebra::MPoint*, TupleId>& mp1,
-                     const std::pair<temporalalgebra::MPoint*, TupleId>& mp2) {
-     cnt++;
-     assert(mp1.first);
-     assert(mp2.first);
-     if (!mp1.first->IsDefined() && !mp2.first->IsDefined()) {
-       return 0;
-     }
-     if (!mp1.first->IsDefined() || !mp2.first->IsDefined()) {
-       return std::numeric_limits<double>::max();
-     }
-     Geoid* geoid = (useGeoid ? new Geoid(true) : 0);
-     datetime::DateTime duration(0, 3600000, datetime::durationtype);
-     double result = mp1.first->DistanceAvg(*(mp2.first), duration, geoid);
-     if (geoid) {
-       geoid->DeleteIfAllowed();
-     }
-     return result;
-   }
-     
-   std::ostream& print(const std::pair<temporalalgebra::MPoint*, TupleId>& mp, 
-                       std::ostream& o) {
-     o << *(mp.first);
-     return o;
-   }
- };
+template<bool useGeoid>
+class MPointDist: public DistCount {
+ public:
+
+  double operator()(const std::pair<temporalalgebra::MPoint*, TupleId>& mp1,
+                    const std::pair<temporalalgebra::MPoint*, TupleId>& mp2) {
+    cnt++;
+    assert(mp1.first);
+    assert(mp2.first);
+    if (!mp1.first->IsDefined() && !mp2.first->IsDefined()) {
+      return 0;
+    }
+    if (!mp1.first->IsDefined() || !mp2.first->IsDefined()) {
+      return std::numeric_limits<double>::max();
+    }
+    Geoid* geoid = (useGeoid ? new Geoid(true) : 0);
+    datetime::DateTime duration(0, 3600000, datetime::durationtype);
+    double result =temporalalgebra::DistanceComputation<temporalalgebra::MPoint,
+       temporalalgebra::UPoint>::DistanceAvg(*(mp1.first), *(mp2.first), 
+                                             duration, true, geoid);
+    if (geoid) {
+      geoid->DeleteIfAllowed();
+    }
+    return result;
+  }
+    
+  std::ostream& print(const std::pair<temporalalgebra::MPoint*, TupleId>& mp, 
+                      std::ostream& o) {
+    o << *(mp.first);
+    return o;
+  }
+};
 
 /*
 1.6 Declarations and definition of the class ~CUPointDist~
 
 */
- template<bool useGeoid>
- class CUPointDist: public DistCount {
-  public:
-  
-   double operator()(const std::pair<temporalalgebra::CUPoint*, TupleId>& cup1,
-                     const std::pair<temporalalgebra::CUPoint*, TupleId>& cup2){
-     cnt++;
-     assert(cup1.first);
-     assert(cup2.first);
-     if (!cup1.first->IsDefined() && !cup2.first->IsDefined()) {
-       return 0;
-     }
-     if (!cup1.first->IsDefined() || !cup2.first->IsDefined()) {
-       return std::numeric_limits<double>::max();
-     }
-     Geoid* geoid = (useGeoid ? new Geoid(true) : 0);
-     double result = cup1.first->DistanceAvg(*(cup2.first), false, geoid);
-     if (geoid) {
-       geoid->DeleteIfAllowed();
-     }
-     return result;
-   }
-     
-   std::ostream& print(const std::pair<temporalalgebra::CUPoint*, TupleId>& cup,
-                       std::ostream& o) {
-     o << *(cup.first);
-     return o;
-   }
- };
+template<bool useGeoid>
+class CUPointDist: public DistCount {
+ public:
+
+  double operator()(const std::pair<temporalalgebra::CUPoint*, TupleId>& cup1,
+                    const std::pair<temporalalgebra::CUPoint*, TupleId>& cup2) {
+    cnt++;
+    assert(cup1.first);
+    assert(cup2.first);
+    if (!cup1.first->IsDefined() && !cup2.first->IsDefined()) {
+      return 0;
+    }
+    if (!cup1.first->IsDefined() || !cup2.first->IsDefined()) {
+      return std::numeric_limits<double>::max();
+    }
+    Geoid* geoid = (useGeoid ? new Geoid(true) : 0);
+    datetime::DateTime duration(0, 3600000, datetime::durationtype);
+    double result = cup1.first->DistanceAvg(*(cup2.first), duration, true, 
+                                            geoid);
+    if (geoid) {
+      geoid->DeleteIfAllowed();
+    }
+    return result;
+  }
+    
+  std::ostream& print(const std::pair<temporalalgebra::CUPoint*, TupleId>& cup,
+                      std::ostream& o) {
+    o << *(cup.first);
+    return o;
+  }
+};
 
 /*
 1.6 Declarations and definition of the class ~CMPointDist~
 
 */
- template<bool useGeoid>
- class CMPointDist: public DistCount {
-  public:
-  
-   double operator()(const std::pair<temporalalgebra::CMPoint*, TupleId>& cmp1,
-                     const std::pair<temporalalgebra::CMPoint*, TupleId>& cmp2){
-     cnt++;
-     assert(cmp1.first);
-     assert(cmp2.first);
-     if (!cmp1.first->IsDefined() && !cmp2.first->IsDefined()) {
-       return 0;
-     }
-     if (!cmp1.first->IsDefined() || !cmp2.first->IsDefined()) {
-       return std::numeric_limits<double>::max();
-     }
-     Geoid* geoid = (useGeoid ? new Geoid(true) : 0);
-     double result = cmp1.first->DistanceAvg(*(cmp2.first), false, geoid);
-     if (geoid) {
-       geoid->DeleteIfAllowed();
-     }
-     return result;
-   }
-     
-   std::ostream& print(const std::pair<temporalalgebra::CMPoint*, TupleId>& cmp,
-                       std::ostream& o) {
-     o << *(cmp.first);
-     return o;
-   }
- };
+template<bool useGeoid>
+class CMPointDist: public DistCount {
+ public:
+
+  double operator()(const std::pair<temporalalgebra::CMPoint*, TupleId>& cmp1,
+                    const std::pair<temporalalgebra::CMPoint*, TupleId>& cmp2) {
+    cnt++;
+    assert(cmp1.first);
+    assert(cmp2.first);
+    if (!cmp1.first->IsDefined() && !cmp2.first->IsDefined()) {
+      return 0;
+    }
+    if (!cmp1.first->IsDefined() || !cmp2.first->IsDefined()) {
+      return std::numeric_limits<double>::max();
+    }
+    Geoid* geoid = (useGeoid ? new Geoid(true) : 0);
+    datetime::DateTime duration(0, 3600000, datetime::durationtype);
+    double result = temporalalgebra::DistanceComputation<
+               temporalalgebra::CMPoint, temporalalgebra::CUPoint>::DistanceAvg(
+                           *(cmp1.first), *(cmp2.first), duration, true, geoid);
+    if (geoid) {
+      geoid->DeleteIfAllowed();
+    }
+    return result;
+  }
+    
+  std::ostream& print(const std::pair<temporalalgebra::CMPoint*, TupleId>& cmp,
+                      std::ostream& o) {
+    o << *(cmp.first);
+    return o;
+  }
+};
 }

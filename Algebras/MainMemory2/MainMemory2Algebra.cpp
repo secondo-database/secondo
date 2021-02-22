@@ -253,7 +253,8 @@ namespace mtreehelper{
       return std::numeric_limits<double>::max();
     }
     datetime::DateTime duration(0, 3600000, datetime::durationtype);
-    return mp1->DistanceAvg(*mp2, duration, geoid);
+    return temporalalgebra::DistanceComputation<temporalalgebra::MPoint, 
+       temporalalgebra::UPoint>::DistanceAvg(*mp1, *mp2, duration, true, geoid);
   }
   
   double distance(const temporalalgebra::CUPoint* cup1,
@@ -264,7 +265,8 @@ namespace mtreehelper{
     if (!cup1->IsDefined() || !cup2->IsDefined()) {
       return std::numeric_limits<double>::max();
     }
-    return cup1->DistanceAvg(*cup2, true, geoid); // upper bound distance
+    datetime::DateTime duration(0, 3600000, datetime::durationtype);
+    return cup1->DistanceAvg(*cup2, duration, true, geoid); // upper bound dist
   }
 
   double distance(const temporalalgebra::CMPoint* cmp1,
@@ -275,7 +277,10 @@ namespace mtreehelper{
     if (!cmp1->IsDefined() || !cmp2->IsDefined()) {
       return std::numeric_limits<double>::max();
     }
-    return cmp1->DistanceAvg(*cmp2, true, geoid); // upper bound distance
+    datetime::DateTime duration(0, 3600000, datetime::durationtype);
+    return temporalalgebra::DistanceComputation<temporalalgebra::CMPoint, 
+                                         temporalalgebra::CUPoint>::DistanceAvg(
+                                           *cmp1, *cmp2, duration, true, geoid);
   }
   
   template<class T>
