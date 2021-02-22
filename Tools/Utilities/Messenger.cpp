@@ -25,29 +25,79 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <iostream>
 #include <string>
 #include "Messenger.h"
-#include "SocketIO.h"
+
+#include <sys/socket.h>
+#include <sys/un.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
 
 using namespace std;
 
 bool
 Messenger::Send( const string& message, string& answer )
 {
-  bool ok = false;
   answer = "";
-  Socket* msgServer = Socket::Connect( msgQueue, "", 
-                          Socket::SockLocalDomain, 3, 1 );
-  if ( msgServer && msgServer->IsOk() )
-  {
-    iostream& ss = msgServer->GetSocketStream();
-    ss << message << endl;
-    getline( ss, answer );
-    ok = true;
-  }
-  else
-  {
-    answer = "Connect to registrar failed.";
-  }
-  delete msgServer;
-  return (ok);
-}
 
+  struct sockaddr_un addr;
+  memset(&addr, '\0', sizeof(addr));
+
+  addr.sun_family = AF_UNIX;
+  string fullpath = string("/tmp/") + msgQueue;
+  fullpath.copy(addr.sun_path, 100);
+
+  int fd;
+
+  if ( (fd = socket(AF_UNIX, SOCK_STREAM, 0)) == -1) {
+    answer = "Socket error";
+    return false;
+  }
+  
+  if (connect(fd, (struct sockaddr*)&addr, sizeof(addr)) == -1) {
+    answer = "Connect error";
+    return false;
+  }
+
+  // Write command to registry
+  write(fd, message.c_str(), message.length());
+  write(fd, "\n", 1);
+
+  // Read answer from registry
+  char buf[255];
+  memset(buf, '\0', sizeof(buf));
+
+  size_t buf_used = 0;
+  size_t buf_remain = sizeof(buf) - buf_used;
+  size_t retries = 0;
+  bool error = false;
+
+  // Read until newline
+  for(;;) {
+
+    int result = read(fd, buf + buf_used, buf_remain);
+
+    if(result < 0) {
+      retries++;
+
+      if(retries > 10) {
+        answer = "Unable to read data";
+        error = true;
+        break;
+      }
+    }
+
+    buf_used = buf_used + result;
+    buf_remain = sizeof(buf) - buf_used;
+
+    if(buf[buf_used - 1] == '\n') {
+      break;
+    }
+  }
+
+  if(! error) {
+    answer = string(buf);
+  }
+  
+  close(fd);
+  return true;
+}
