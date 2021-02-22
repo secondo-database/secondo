@@ -3083,6 +3083,8 @@ If invalid geographic coordinates are found, the result is UNDEFINED.
 
   void Distance( const UPoint& up, UReal& result, const Geoid* geoid = 0) const;
 
+  double DistanceIntegral(const UPoint& up, const bool upperBound,
+                          const Geoid* geoid = 0) const;
 /*
 Computes the distance between the three dimensional line defined by
 that unit and the rectangle.
@@ -4054,10 +4056,10 @@ If invalid geographic coordinates are found, the result is UNDEFINED.
 */
   void Distance( const Point& p, MReal& result,
                  const Geoid* geoid=0 ) const;
-  void DistanceAvg(const MPoint& mp, const datetime::DateTime& duration,
-                   CcReal& result, const Geoid* geoid=0) const;
-  double DistanceAvg(const MPoint& mp, const datetime::DateTime& duration,
-                     const Geoid* geoid = 0) const;
+//   void DistanceAvg(const MPoint& mp, const datetime::DateTime& duration,
+//                    CcReal& result, const Geoid* geoid=0) const;
+//   double DistanceAvg(const MPoint& mp, const datetime::DateTime& duration,
+//                      const Geoid* geoid = 0) const;
   void SquaredDistance( const Point& p, MReal& result,
                         const Geoid* geoid=0 ) const;
   void SquaredDistance( const MPoint& p, MReal& result,
@@ -4718,7 +4720,8 @@ Functions required for attribute type
   }
 
   inline virtual int Compare(const Attribute* arg) const {
-    int superclassResult = ((UPoint*)this)->Compare((UPoint*)arg);
+    UPoint u1(*this), u2(*((CUPoint*)arg));
+    int superclassResult = u1.Compare(&u2);
     if (superclassResult == 0) {
       if (GetRadius() > ((CUPoint*)arg)->GetRadius()) {
         return 1;
@@ -4816,12 +4819,16 @@ Computes the distance to a CUPoint ~cup~.
 
 */
   using UPoint::Distance;
-  double DistanceIntegral(const CUPoint& cup, const UReal& urDist,
-                          const bool upperBound, const Geoid* geoid = 0) const;
-  double DistanceAvg(const CUPoint& cup, const bool upperBound,
-                     const Geoid* geoid = 0) const;
-  void DistanceAvg(const CUPoint& cup, const bool upperBound, CcReal& result,
-                   const Geoid* geoid = 0) const;
+  double DistanceIntegral(const CUPoint& cup, const bool upperBound, 
+                          const Geoid* geoid = 0) const;
+  double DistanceAvg(const CUPoint& cup, const datetime::DateTime& duration,
+                     const bool upperBound, const Geoid* geoid = 0) const;
+  void DistanceAvg(const CUPoint& cup, const datetime::DateTime& duration,
+           const bool upperBound, CcReal& result, const Geoid* geoid = 0) const;
+//   double DistanceAvg(const CUPoint& cup,  const bool upperBound,
+//                      const Geoid* geoid = 0) const;
+//   void DistanceAvg(const CUPoint& cup, const bool upperBound, CcReal& result,
+//                    const Geoid* geoid = 0) const;
   
   void SetToConstantUnit(const Point& p);
 
@@ -4999,10 +5006,10 @@ If invalid geographic coordinates are found, the result is UNDEFINED.
 
 */
 //  void Distance(const CPoint& p, MReal& result, const Geoid* geoid = 0) const;
-  double DistanceAvg(const CMPoint& cmp, const bool upperBound,
-                     const Geoid* geoid = 0) const;
-  void DistanceAvg(const CMPoint& cmp, const bool upperBound,
-                   CcReal& result, const Geoid* geoid = 0) const;
+//   double DistanceAvg(const CMPoint& cmp, const bool upperBound,
+//                      const Geoid* geoid = 0) const;
+//   void DistanceAvg(const CMPoint& cmp, const bool upperBound,
+//                    CcReal& result, const Geoid* geoid = 0) const;
 
 /*
 3.10.5.6 Operatiopn ~Breaks~
@@ -9837,6 +9844,83 @@ RefinementPartition<Mapping1, Mapping2, Unit1,
 
  }
 
+/*
+7.7.7 functions ~DistanceAvg~ for MPoint and CMPoint
+
+*/
+template<class M, class U>
+struct DistanceComputation{
+
+static void DistanceAvg(const M& mp1, const M& mp2, 
+                        const datetime::DateTime& duration, 
+                const bool upperBound, CcReal& result, const Geoid* geoid = 0) {
+  if (!mp1.IsDefined() || !mp2.IsDefined() || (geoid && !geoid->IsDefined())) {
+    result.SetDefined(false);
+    return;
+  }
+  result.Set(true, DistanceAvg(mp1, mp2, duration, upperBound, geoid));
+}                                                                           
+
+static double DistanceAvg(const M& mp1, const M& mp2, 
+                          const datetime::DateTime& duration,
+                          const bool upperBound, const Geoid* geoid = 0) {
+  assert(duration.GetType() == datetime::durationtype);
+  if (!mp1.IsDefined() || !mp2.IsDefined() || (geoid && !geoid->IsDefined())) {
+    return -1.0;
+  }
+  if (mp1 == mp2) {
+    return 0.0;
+  }
+  if (mp1.IsEmpty() || mp2.IsEmpty()) {
+    return DBL_MAX;
+  }
+  MappingNoFlob<M, U> m1(mp1.GetNoComponents()), m2(mp2.GetNoComponents());
+  ForceToDuration<M, U>(mp1, duration, true, m1, geoid);
+  ForceToDuration<M, U>(mp2, duration, true, m2, geoid);
+  if (mp1.Compare(&mp2) == -1) {
+    std::swap(m1, m2);
+  }
+  double durTemp(0.0), sum(0.0);
+  U u1(true), u2(true), u1cut(true), u2cut(true), up1(true), up2(true);
+  RefinementPartition<MappingNoFlob<M, U>, MappingNoFlob<M, U>, U, U> rp(m1,m2);
+  int u1Pos, u2Pos;
+  Interval<Instant> iv;
+  for (unsigned int i = 0; i < rp.Size(); i++) {
+    rp.Get(i, iv, u1Pos, u2Pos);
+    if (u1Pos == -1 && u2Pos == -1) {
+      cout << "Both mpoints undefined for i = " << i << endl;
+      continue;
+    }
+    else if (u1Pos == -1) {
+      m2.Get(u2Pos, u2);
+      u2.AtInterval(iv, u2cut, geoid);
+      u1cut.timeInterval = u2cut.timeInterval;
+      u1cut.p0 = u1cut.p1; // use constant unit with same time interval as u2
+    }
+    else if (u2Pos == -1) {
+      m1.Get(u1Pos, u1);
+      u1.AtInterval(iv, u1cut, geoid);
+      u2cut.timeInterval = u1cut.timeInterval;
+      u2cut.p0 = u2cut.p1; // use constant unit with same time interval as u1
+    }
+    else {
+      m1.Get(u1Pos, u1);
+      u1.AtInterval(iv, u1cut, geoid);
+      m2.Get(u2Pos, u2);
+      u2.AtInterval(iv, u2cut, geoid);
+    }
+    assert(u1cut.IsDefined() && u2cut.IsDefined());
+    durTemp += (iv.end - iv.start).ToDouble();
+    sum += u1cut.DistanceIntegral(u2cut, upperBound, geoid);
+  }
+  datetime::DateTime dur(datetime::durationtype);
+  dur.ReadFrom(durTemp);
+//   cout << "MPoint::DistanceAvg, integral SUM is " << sum << ", DURATION is "
+//        << dur << endl << endl << endl;
+  return sum / durTemp;
+}
+
+};
 
 template<class Unittype>
 class CComparator_before{ // create a strict ordering function

@@ -2128,6 +2128,33 @@ void UPoint::Distance( const Point& p,
   }
 }
 
+double UPoint::DistanceIntegral(const UPoint& up, const bool upperBound,
+                                const Geoid* geoid /* = 0 */) const {
+  UReal dist(true);
+  if (geoid) {
+    dist.timeInterval = this->timeInterval;
+    dist.Recompute(*this, up, geoid);
+  }
+  else {
+    this->Distance(up, dist);
+  }
+  if (!dist.IsDefined()) {
+    std::cerr << __PRETTY_FUNCTION__ << "Invalid geographic coord!" << endl;
+    return -1.0;
+  }
+  double result = dist.Integrate();
+  if (isnan(result)) { // use mean of start and end point distance
+    Interval<Instant> iv = this->timeInterval;
+    result = (this->p0.Distance(up.p0, geoid) + this->p1.Distance(up.p1, geoid))
+             / 2 * (iv.end - iv.start).ToDouble();
+  }
+  if (result < 0.0) {
+    result = 0.0;
+  }
+  //       cout << "added value " << result << " from " << dist << endl;
+  return result;
+}
+
 double UPoint::Distance(const Rectangle<3>& rect,
                         const Geoid* geoid /*=0*/) const{
   std::cerr << "UPoint::Distance(const Rectangle<3>&) not implemented yet"
@@ -3004,21 +3031,36 @@ void CUPoint::ConvertFrom(const CMPoint& cmp, const Geoid* geoid /* = 0 */) {
   assert(correct);
 }
 
-double CUPoint::DistanceIntegral(const CUPoint& cup, const UReal& urDist,
-                    const bool upperBound, const Geoid* geoid /* = 0 */) const {
+double CUPoint::DistanceIntegral(const CUPoint& cup, const bool upperBound, 
+                                 const Geoid* geoid /* = 0 */) const {
+//   UReal speed1(true), speed2(true);
+//   ((UPoint*)this)->USpeed(speed1);
+//   ((UPoint*)&cup)->USpeed(speed2);
   bool correct = false;
+//   double epsilon = 1.0 / 16384.0;
+//   if ((AlmostEqual(this->p0, this->p1) || speed1.Max(correct) < epsilon) &&
+//       (AlmostEqual(cup.p0, cup.p1) || speed2.Max(correct) < epsilon)) {
+//     return (upperBound ? DBL_MAX : 0.0);
+//   }
   Periods per(true);
   double sumOfRadii = this->GetRadius() + cup.GetRadius();
   Interval<Instant> ivMin(true);
   Instant instMin, instNull1, instNull2;
   double integralValue1, integralValue2, result;
-  UReal dist(urDist), urNull(true);
-  double dur = (urDist.timeInterval.end - urDist.timeInterval.start).ToDouble();
+  UReal dist(true), urNull(true);
+  if (!geoid) {
+    ((UPoint*)(this))->Distance(*((UPoint*)(&cup)), dist);
+  }
+  else {
+    dist.timeInterval = this->timeInterval;
+    dist.Recompute(*(UPoint*)(this), *(UPoint*)(&cup), geoid);
+  }
+  double dur = (dist.timeInterval.end - dist.timeInterval.start).ToDouble();
   if (!upperBound) { // prune sections below sumOfRadii
-    if (!geoid && !urDist.r) {
+    if (!geoid && !dist.r) {
       return 0.0;
     }
-    double minDist = urDist.PeriodsAtMin(correct, per);
+    double minDist = dist.PeriodsAtMin(correct, per);
     if (!correct) {
       return (upperBound ? DBL_MAX : 0.0);
     }
@@ -3030,7 +3072,7 @@ double CUPoint::DistanceIntegral(const CUPoint& cup, const UReal& urDist,
 //             << urDist.PeriodsAtMin(correct, per) << " at " << instMin;
       CcReal ccSumOfRadii(true, sumOfRadii);
       std::vector<UReal> urNulls;
-      int numOfNulls = urDist.AtValue(ccSumOfRadii, urNulls);
+      int numOfNulls = dist.AtValue(ccSumOfRadii, urNulls);
 //       cout << "    sumOfRadii " << sumOfRadii << " reached "
 //             << numOfNulls << " times:" << endl << "      " 
 //             << (numOfNulls > 0 ? 
@@ -3055,9 +3097,9 @@ double CUPoint::DistanceIntegral(const CUPoint& cup, const UReal& urDist,
           return 0.0;
         }
         dur = (dist.timeInterval.end - dist.timeInterval.start).ToDouble();
-        cout << "    RESULT 1 = " << integralValue1 << " - " << sumOfRadii
-             << " * " << dur << endl << "  =  "
-             << std::max(0.0, integralValue1 - sumOfRadii * dur) << endl;
+//         cout << "    RESULT 1 = " << integralValue1 << " - " << sumOfRadii
+//              << " * " << dur << "  =  "
+//              << std::max(0.0, integralValue1 - sumOfRadii * dur) << endl;
         result = std::max(0.0, integralValue1 - sumOfRadii * dur);
              
       }
@@ -3077,11 +3119,11 @@ double CUPoint::DistanceIntegral(const CUPoint& cup, const UReal& urDist,
                  (instNull1 - dist.timeInterval.start).ToDouble())
                  + std::max(0.0, integralValue2 - sumOfRadii * 
                  (dist.timeInterval.end - instNull2).ToDouble());
-        cout << "  RES 2 = " << integralValue1 << " - " << sumOfRadii 
-             << " * " << (instNull1 - dist.timeInterval.start) << " + "
-             << integralValue2 << " - " << sumOfRadii << " * "
-             << (dist.timeInterval.end - instNull2) << " = " << result
-             << endl;
+//         cout << "  RES 2 = " << integralValue1 << " - " << sumOfRadii 
+//              << " * " << (instNull1 - dist.timeInterval.start) << " + "
+//              << integralValue2 << " - " << sumOfRadii << " * "
+//              << (dist.timeInterval.end - instNull2) << " = " << result
+//              << endl;
       }
     }
     else { // no shifting required because min >= sumOfRadii
@@ -3092,16 +3134,16 @@ double CUPoint::DistanceIntegral(const CUPoint& cup, const UReal& urDist,
       result = std::max(0.0, integralValue1 - sumOfRadii * dur);
       DateTime dura(durationtype);
       dura.ReadFrom(dur);
-      cout << *this << endl << cup << endl << dist << endl 
-           << "min distance during " << per << " is "
-           << dist.PeriodsAtMin(correct, per) << endl;
-      cout << "    RESULT = " << integralValue1 << " - " << sumOfRadii 
-           << " * " << dura << " = " 
-           << std::max(0.0, integralValue1 - sumOfRadii * dur) << endl;
+//       cout << *this << endl << cup << endl << dist << endl 
+//            << "min distance during " << per << " is "
+//            << dist.PeriodsAtMin(correct, per) << endl;
+//       cout << "    RESULT = " << integralValue1 << " - " << sumOfRadii 
+//            << " * " << dura << " = " 
+//            << std::max(0.0, integralValue1 - sumOfRadii * dur) << endl;
     }
   }
   else { // case upperbound starts here
-    if (!urDist.IsDefined()) {
+    if (!dist.IsDefined()) {
       std::cerr << __PRETTY_FUNCTION__ << "Invalid geographic coord!" << endl;
       return DBL_MAX;
     }
@@ -3111,15 +3153,15 @@ double CUPoint::DistanceIntegral(const CUPoint& cup, const UReal& urDist,
     }
     DateTime dura(durationtype);
     dura.ReadFrom(dur);
-    cout << "   urDist = " << dist << " ==> RESULTub = " 
-         << integralValue1 << " + " << sumOfRadii << " * " << dura << endl;
+//     cout << "   urDist = " << dist << " ==> RESULTub = " 
+//          << integralValue1 << " + " << sumOfRadii << " * " << dura << endl;
     result = integralValue1 + sumOfRadii * dur;
   }
   return result;
 }
 
-double CUPoint::DistanceAvg(const CUPoint& cup, const bool upperBound,
-                            const Geoid* geoid /* = 0 */) const {
+double CUPoint::DistanceAvg(const CUPoint& cup, const DateTime& duration,
+                    const bool upperBound, const Geoid* geoid /* = 0 */) const {
   if (!IsDefined() && !cup.IsDefined()) {
     return 0.0;
   }
@@ -3129,73 +3171,20 @@ double CUPoint::DistanceAvg(const CUPoint& cup, const bool upperBound,
   if (*this == cup) {
     return 0.0;
   }
-  CUPoint cup1(*this), cup1a(true), cup2(cup), cup1b(true), cup2b(true);
-  if (cup1.timeInterval.start > cup2.timeInterval.start) {
-    std::swap(cup1, cup2);
-  }
-  cup1.timeInterval.end += (cup2.timeInterval.start - cup1.timeInterval.start);
-  cup1.timeInterval.start += (cup2.timeInterval.start-cup1.timeInterval.start);
-  if (cup1.timeInterval.end < cup2.timeInterval.end) {
-    std::swap(cup1, cup2);
-  } // now we know that cup1's duration is at least as long as cup2's
-  if (cup1.timeInterval.end > cup2.timeInterval.end) { // divide and conquer
-    cup1.AtInterval(cup2.timeInterval, cup1a, geoid);
-    Interval<Instant> iv1b(cup1a.timeInterval.end, cup1.timeInterval.end, 
-                           !cup1a.timeInterval.rc, cup1a.timeInterval.rc);
-    cup1.AtInterval(iv1b, cup1b, geoid);
-    cup2b.SetRadius(0.0); // add constant cupoint
-    cup2b.p0 = cup2.p1;
-    cup2b.p1 = cup2b.p0;
-    cup2b.timeInterval = Interval<Instant>(cup2.timeInterval.end,
-           cup1b.timeInterval.end, !cup2.timeInterval.rc, cup2.timeInterval.rc);
-//     cout << cup1a << " extended by " << cup1b << endl << endl << cup2
-//          << " extended by " << cup2b << endl;
-    double result1 = cup1a.DistanceAvg(cup2, upperBound, geoid);
-    double result2 = cup1b.DistanceAvg(cup2b, upperBound, geoid);
-//     cout << "res1 = " << result1 << ", res2 = " << result2 << ", sum is "
-//          << result1 + result2 << endl;
-    
-    
-    double dur1 = (cup1a.timeInterval.end-cup1a.timeInterval.start).ToDouble();
-    double dur2 = (cup1b.timeInterval.end-cup1b.timeInterval.start).ToDouble();
-    return (result1 * dur1 + result2 * dur2) / (dur1 + dur2);
-    // previously: return result1 + result2;
-  }
-  // from now on, it is ensured that cup1 and cup2 have the same length
-  
-  UReal urDist(true);
-  if (!geoid) {
-    ((UPoint*)(&cup1))->Distance(*((UPoint*)(&cup2)), urDist);
-  }
-  else {
-    urDist.timeInterval = cup1.timeInterval;
-    urDist.Recompute(*(UPoint*)(&cup1), *(UPoint*)(&cup2), geoid);
-  }
-  bool correct;
-  double sumOfRadii(cup1.GetRadius() + cup2.GetRadius());
-  if (upperBound) {
-    double maxDist = urDist.Max(correct);
-//     cout << "maxDist of " << urDist << " is " << maxDist << ", sumOfRadii = "
-//          << sumOfRadii << endl;
-    return (correct ? maxDist + sumOfRadii : DBL_MAX);
-  }
-  else {
-    double minDist = urDist.Min(correct);
-//     cout << "minDist of " << urDist << " is " << minDist << ", sumOfRadii = "
-//          << sumOfRadii << endl;
-    return (correct ? std::max(0.0, minDist - sumOfRadii) : 0.0);
-  }
-  // currently not used: return cup1.DistanceIntegral(cup2, urDist, 
-  //                                                  upperBound, geoid);
+  CMPoint cm1(true), cm2(true);
+  cm1.Add(*this);
+  cm2.Add(cup);
+  return DistanceComputation<CMPoint, CUPoint>::DistanceAvg(cm1, cm2, duration, 
+                                                            upperBound, geoid);
 }
 
-void CUPoint::DistanceAvg(const CUPoint& cup, const bool upperBound,
-                          CcReal& result, const Geoid* geoid /* = 0 */) const {
+void CUPoint::DistanceAvg(const CUPoint& cup, const DateTime& duration,
+    const bool upperBound, CcReal& result, const Geoid* geoid /* = 0 */) const {
   if (!IsDefined() || !cup.IsDefined() || (geoid && !geoid->IsDefined())) {
     result.SetDefined(false);
     return;
   }
-  result.Set(true, roundToNPlaces(this->DistanceAvg(cup, upperBound, geoid),8));
+  result.Set(true, this->DistanceAvg(cup, duration, upperBound, geoid));
 }
 
 void CUPoint::SetToConstantUnit(const Point& p) {
@@ -5267,97 +5256,6 @@ void MPoint::Distance( const Point& p, MReal& result, const Geoid* geoid ) const
     }
   }
   result.EndBulkLoad( false, false );
-}
-
-void MPoint::DistanceAvg(const MPoint& mp, const datetime::DateTime& duration,
-                         CcReal& result, const Geoid* geoid /* = 0 */) const {
-  if (!IsDefined() || !mp.IsDefined() || (geoid && !geoid->IsDefined())) {
-    result.SetDefined(false);
-    return;
-  }
-  result.Set(true, roundToNPlaces(this->DistanceAvg(mp, duration, geoid), 8));
-}                                                                           
-
-double MPoint::DistanceAvg(const MPoint& mp, const datetime::DateTime& duration,
-                           const Geoid* geoid /* = 0 */) const {
-  assert(duration.GetType() == datetime::durationtype);
-  if (!IsDefined() || !mp.IsDefined() || (geoid && !geoid->IsDefined())) {
-    return -1.0;
-  }
-  if (*this == mp) {
-    return 0.0;
-  }
-  if (IsEmpty() || mp.IsEmpty()) {
-    return DBL_MAX;
-  }
-  MappingNoFlob<MPoint, UPoint> mp1(this->GetNoComponents()), 
-                                mp2(mp.GetNoComponents());
-  ForceToDuration<MPoint, UPoint>(*this, duration, true, mp1, geoid);
-  ForceToDuration<MPoint, UPoint>(mp, duration, true, mp2, geoid);
-  if (this->Compare(&mp) == -1) {
-    std::swap(mp1, mp2);
-  }
-  double durTemp(0.0), sum(0.0), integralValue(0.0);
-  UPoint u1(true), u2(true), u1cut(true), u2cut(true);
-  RefinementPartition<MappingNoFlob<MPoint, UPoint>, 
-                    MappingNoFlob<MPoint, UPoint>, UPoint, UPoint> rp(mp1, mp2);
-  int u1Pos, u2Pos;  
-  UReal ur(true);
-  Interval<Instant> iv;
-  for (unsigned int i = 0; i < rp.Size(); i++) {
-    rp.Get(i, iv, u1Pos, u2Pos);
-    if (u1Pos == -1 && u2Pos == -1) {
-      cout << "Both mpoints undefined for i = " << i << endl;
-      continue;
-    }
-    else if (u1Pos == -1) {
-      mp2.Get(u2Pos, u2);
-      u2.AtInterval(iv, u2cut, geoid);
-      u1cut.timeInterval = u2cut.timeInterval;
-      u1cut.p0 = u1cut.p1; // use constant unit with same time interval as u2
-    }
-    else if (u2Pos == -1) {
-      mp1.Get(u1Pos, u1);
-      u1.AtInterval(iv, u1cut, geoid);
-      u2cut.timeInterval = u1cut.timeInterval;
-      u2cut.p0 = u2cut.p1; // use constant unit with same time interval as u1
-    }
-    else {
-      mp1.Get(u1Pos, u1);
-      u1.AtInterval(iv, u1cut, geoid);
-      mp2.Get(u2Pos, u2);
-      u2.AtInterval(iv, u2cut, geoid);
-    }
-    assert(u1cut.IsDefined() && u2cut.IsDefined());
-    durTemp += (iv.end - iv.start).ToDouble();
-    if (geoid) {
-      ur.timeInterval = u1cut.timeInterval;
-      ur.Recompute(u1cut, u2cut, geoid);
-    }
-    else {
-      u1cut.Distance(u2cut, ur);
-    }
-    if (!ur.IsDefined()) {
-      std::cerr << __PRETTY_FUNCTION__ << "Invalid geographic coord!" << endl;
-      return -1.0;
-    }
-    integralValue = ur.Integrate();
-    if (isnan(integralValue)) {
-      integralValue = (u1cut.p0.Distance(u2cut.p0, geoid) +
-                       u1cut.p1.Distance(u2cut.p1, geoid)) / 2 *
-                      (iv.end - iv.start).ToDouble();
-    }
-    if (integralValue < 0.0) {
-      integralValue = 0.0;
-    }
-    sum += integralValue;
-//       cout << "added value " << integralValue << " from " << ur << endl;
-  }
-  DateTime dur(datetime::durationtype);
-  dur.ReadFrom(durTemp);
-//   cout << "MPoint::DistanceAvg, integral SUM is " << sum << ", DURATION is "
-//        << dur << endl << endl << endl;
-  return sum / durTemp;
 }
 
 void MPoint::SquaredDistance( const Point& p, MReal& result,
@@ -8778,94 +8676,6 @@ void CMPoint::Trajectory(Line& line) const {
   mp.Trajectory(line);
 }
 
-double CMPoint::DistanceAvg(const CMPoint& cmp, const bool upperBound,
-                            const Geoid* geoid /* = 0 */) const {
-  if (IsEmpty() && cmp.IsEmpty()) {
-    return 0.0;
-  }
-  if (IsEmpty() || cmp.IsEmpty()) {
-    return DBL_MAX;
-  }
-  if (*this == cmp) {
-    return 0.0;
-  }
-  DateTime duration(datetime::durationtype);
-//   cout << "ORIGINAL: " << *this << endl << cmp << endl << endl;
-  duration.SetToZero();
-  Instant start1(datetime::instanttype), start2(datetime::instanttype),
-          end1(datetime::instanttype), end2(datetime::instanttype);
-  InitialInstant(start1);
-  cmp.InitialInstant(start2);
-  CMPoint shiftThis(true), arg(cmp);
-  timeMove(start2 - start1, shiftThis);
-  shiftThis.FinalInstant(end1);
-  arg.FinalInstant(end2);
-  CUPoint lastUnit(true), cu1(true), cu2(true), cu1cut(true), cu2cut(true);
-  if (end1 > end2) {
-    std::swap(shiftThis, arg);
-    std::swap(end1, end2);
-  }
-  // extend shorter cmpoint with constant unit
-  if (end1 < end2) {
-    shiftThis.Get(shiftThis.GetNoComponents() - 1, lastUnit);
-    lastUnit.timeInterval = Interval<Instant>(end1, end2, 
-                           !lastUnit.timeInterval.rc, lastUnit.timeInterval.rc);
-    lastUnit.p0 = lastUnit.p1;
-    lastUnit.SetRadius(0.0);
-    shiftThis.Add(lastUnit);
-  }
-//   cout << "AFTER EXTENSION: " << shiftThis << endl << arg << endl;
-  UReal ur(true);
-  RefinementPartition<CMPoint, CMPoint, CUPoint, CUPoint> rp(shiftThis, arg);
-  Interval<Instant> iv;
-  int cu1Pos, cu2Pos;
-  double sum = 0.0;
-  for (unsigned int i = 0; i < rp.Size(); i++) {
-    rp.Get(i, iv, cu1Pos, cu2Pos);
-    if (cu1Pos == -1 && cu2Pos == -1) {
-      cout << "Both mpoints undefined for i = " << i << endl;
-      continue;
-    }
-    else if (cu1Pos == -1) {
-      arg.Get(cu2Pos, cu2);
-      cu2.AtInterval(iv, cu2cut, geoid);
-      cu1cut.timeInterval = cu2cut.timeInterval;
-      cu1cut.p0 = cu1cut.p1; // use constant unit with same time interval as u2
-      cu1cut.SetRadius(0.0);
-    }
-    else if (cu2Pos == -1) {
-      shiftThis.Get(cu1Pos, cu1);
-      cu1.AtInterval(iv, cu1cut, geoid);
-      cu2cut.timeInterval = cu1cut.timeInterval;
-      cu2cut.p0 = cu2cut.p1; // use constant unit with same time interval as u1
-      cu2cut.SetRadius(0.0);
-    }
-    else {
-      shiftThis.Get(cu1Pos, cu1);
-      cu1.AtInterval(iv, cu1cut, geoid);
-      arg.Get(cu2Pos, cu2);
-      cu2.AtInterval(iv, cu2cut, geoid);
-    }
-    if (cu1cut.IsDefined() && cu2cut.IsDefined()) {
-      sum += cu1cut.DistanceAvg(cu2cut, upperBound, geoid) *
-             (cu1cut.timeInterval.end - cu1cut.timeInterval.start).ToDouble();
-      duration += (cu1cut.timeInterval.end - cu1cut.timeInterval.start);
-    }
-  }
-  shiftThis.Destroy();
-  arg.Destroy();
-  return sum / duration.ToDouble();
-}
-
-void CMPoint::DistanceAvg(const CMPoint& cmp, const bool upperBound,
-                          CcReal& result, const Geoid* geoid /* = 0 */) const {
-  if (!IsDefined() || !cmp.IsDefined() || (geoid && !geoid->IsDefined())) {
-    result.SetDefined(false);
-    return;
-  }
-  result.Set(true, roundToNPlaces(this->DistanceAvg(cmp, upperBound, geoid),8));
-}
-
 void CMPoint::MergeAdd(const CUPoint& unit) {
   assert(IsDefined());
   assert(unit.IsDefined());
@@ -11643,7 +11453,7 @@ MovingTypeMapIntime( ListExpr args )
       return nl->SymbolAtom( IPoint::BasicType() );
     
     if( nl->IsEqual( arg1, CMPoint::BasicType() ) )
-      return nl->SymbolAtom( "cipoint" );
+      return nl->SymbolAtom( CIPoint::BasicType() );
   }
   return nl->SymbolAtom( Symbol::TYPEERROR() );
 }
@@ -12750,8 +12560,9 @@ This function is applied by the ~distanceAvgLB~ and ~distanceAvgUB~ operators.
 
 */
 ListExpr DistanceAvgLBUBTypeMap(ListExpr args) {
-  if (!nl->HasLength(args, 2) && !nl->HasLength(args, 3)) {
-    return listutils::typeError("two or three arguments expected");
+  if (!nl->HasLength(args, 2) && !nl->HasLength(args, 3) &&
+      !nl->HasLength(args, 4)) {
+    return listutils::typeError("two, three, or four arguments expected");
   }
   if ((!CUPoint::checkType(nl->First(args)) 
       || !CUPoint::checkType(nl->Second(args))) &&
@@ -12759,9 +12570,18 @@ ListExpr DistanceAvgLBUBTypeMap(ListExpr args) {
       || !CMPoint::checkType(nl->Second(args)))) {
     return listutils::typeError("both args must have type cupoint or cmpoint");
   }
+  if (nl->HasLength(args, 4)) {
+    if (!Duration::checkType(nl->Third(args))) {
+      return listutils::typeError("third arg must be a duration");
+    }
+    if (!Geoid::checkType(nl->Fourth(args))) {
+      return listutils::typeError("fourth arg must be a geoid");
+    }
+  }
   if (nl->HasLength(args, 3)) {
-    if (!Geoid::checkType(nl->Third(args))) {
-      return listutils::typeError("third arg must be a geoid");
+    if (!Geoid::checkType(nl->Third(args)) && 
+        !Duration::checkType(nl->Third(args))) {
+      return listutils::typeError("third arg must be a geoid or a duration");
     }
   }
   return nl->SymbolAtom(CcReal::BasicType());
@@ -14047,11 +13867,17 @@ int DistanceAvgSelect(ListExpr args) {
 
 */
 int DistanceAvgLBUBSelect(ListExpr args) {
+  int durationSpecified = 0;
+  if (nl->ListLength(args) > 2) {
+    if (Duration::checkType(nl->Third(args))) {
+      durationSpecified = 1;
+    }
+  }
   if (CUPoint::checkType(nl->First(args))) {
-    return 0;
+    return 0 + durationSpecified;
   }
   if (CMPoint::checkType(nl->First(args))) {
-    return 1;
+    return 2 + durationSpecified;
   }
   return -1;
 }
@@ -14608,34 +14434,53 @@ int DistanceAvgMap(Word* args, Word& result, int message, Word& local,
   else if (qp->GetNoSons(s) == 3) {
     geoid = (Geoid*)args[2].addr;
   }
-  ((MPoint*)args[0].addr)->DistanceAvg(*((MPoint*)args[1].addr), *duration,
-                                       *((CcReal*)result.addr), geoid);
+  DistanceComputation<MPoint, UPoint>::DistanceAvg(*((MPoint*)args[0].addr),
+     *((MPoint*)args[1].addr), *duration, true, *((CcReal*)result.addr), geoid);
   return 0;
 }
 
-template<class T>
-int DistanceAvgLBMap(Word* args, Word& result, int message, Word& local, 
-                     Supplier s) {
+template<bool durationSpecified, bool upperBound>
+int DistanceAvgCMMap(Word* args, Word& result, int message, Word& local, 
+                       Supplier s) {
   result = qp->ResultStorage(s);
   Geoid *geoid = 0;
-  if (qp->GetNoSons(s) == 3) {
+  datetime::DateTime *duration = new datetime::DateTime(0, 3600000, 
+                                                        datetime::durationtype);
+  if (durationSpecified) {
+    duration->DeleteIfAllowed();
+    duration = (datetime::DateTime*)args[2].addr;
+    if (qp->GetNoSons(s) == 4) {
+      geoid = (Geoid*)args[3].addr;
+    }
+  }
+  else if (qp->GetNoSons(s) == 3) {
     geoid = (Geoid*)args[2].addr;
   }
-  ((T*)args[0].addr)->DistanceAvg(*((T*)args[1].addr), false, 
-                                  *((CcReal*)result.addr), geoid);
+  DistanceComputation<CMPoint, CUPoint>::DistanceAvg(*((CMPoint*)args[0].addr),
+                                           *((CMPoint*)args[1].addr), *duration,
+                                    upperBound, *((CcReal*)result.addr), geoid);
   return 0;
 }
 
-template<class T>
-int DistanceAvgUBMap(Word* args, Word& result, int message, Word& local, 
+template<bool durationSpecified, bool upperBound>
+int DistanceAvgCUMap(Word* args, Word& result, int message, Word& local, 
                      Supplier s) {
   result = qp->ResultStorage(s);
   Geoid *geoid = 0;
-  if (qp->GetNoSons(s) == 3) {
-    geoid = (Geoid*)args[2].addr;
+  datetime::DateTime *duration = new datetime::DateTime(0, 3600000, 
+                                                        datetime::durationtype);
+  if (durationSpecified) {
+    duration->DeleteIfAllowed();
+    duration = (datetime::DateTime*)args[2].addr;
+    if (qp->GetNoSons(s) == 4) {
+      geoid = (Geoid*)args[3].addr;
+    }
   }
-  ((T*)args[0].addr)->DistanceAvg(*((T*)args[1].addr), true, 
-                                  *((CcReal*)result.addr), geoid);
+  else if (qp->GetNoSons(s) == 3) {
+    geoid = (Geoid*)args[2].addr;
+  }  
+  ((CUPoint*)args[0].addr)->DistanceAvg(*((CUPoint*)args[1].addr), *duration,
+                                    upperBound, *((CcReal*)result.addr), geoid);
   return 0;
 }
 
@@ -17632,11 +17477,16 @@ ValueMapping samplempointmap[] = { SampleMPointVM<false,false>,
 ValueMapping DistanceAvgMaps[] = {DistanceAvgMap<false>,
                                   DistanceAvgMap<true>};
 
-ValueMapping DistanceAvgLBMaps[] = {DistanceAvgLBMap<CUPoint>,
-                                    DistanceAvgLBMap<CMPoint>};
+ValueMapping DistanceAvgLBMaps[] = {DistanceAvgCUMap<false, false>,
+                                    DistanceAvgCUMap<true, false>,
+                                    DistanceAvgCMMap<false, false>,
+                                    DistanceAvgCMMap<true, false>
+};
 
-ValueMapping DistanceAvgUBMaps[] = {DistanceAvgUBMap<CUPoint>,
-                                    DistanceAvgUBMap<CMPoint>};
+ValueMapping DistanceAvgUBMaps[] = {DistanceAvgCUMap<false, true>,
+                                    DistanceAvgCUMap<true, true>,
+                                    DistanceAvgCMMap<false, true>,
+                                    DistanceAvgCMMap<true, true>};
 
 ValueMapping mpointsquareddistancemap[]= {SquaredDistanceMPPVM,
                                           SquaredDistancePMPVM,
@@ -18811,14 +18661,14 @@ Operator temporaldistanceavg( "distanceAvg",
 
 Operator temporaldistanceavglb( "distanceAvgLB",
                            TemporalSpecDistanceAvgLB,
-                           2,
+                           4,
                            DistanceAvgLBMaps,
                            DistanceAvgLBUBSelect,
                            DistanceAvgLBUBTypeMap);
 
 Operator temporaldistanceavgub( "distanceAvgUB",
                            TemporalSpecDistanceAvgUB,
-                           2,
+                           4,
                            DistanceAvgUBMaps,
                            DistanceAvgLBUBSelect,
                            DistanceAvgLBUBTypeMap);
