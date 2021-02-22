@@ -114,7 +114,7 @@ UnixSocket::UnixSocket( const string& addr,
                         const string& port, const SocketDomain domain,
                         std::ostream* _traceInStream,
                         std::ostream* _traceOutStream,
-                        bool _destroyStreams )
+                        bool _destroyStreams ) : Socket(), fd(INVALID_SOCKET)
 {
   hostAddress    = addr;
   hostPort       = port;
@@ -140,7 +140,7 @@ UnixSocket::UnixSocket( const string& addr,
 UnixSocket::UnixSocket( int newFd,
                         ostream* _traceInStream,
                         ostream* _traceOutStream,
-                        bool _destroyStreams )
+                        bool _destroyStreams ) : Socket()
 {
   fd = newFd;
   hostAddress = "";
@@ -160,29 +160,38 @@ UnixSocket::UnixSocket( int newFd,
 
 UnixSocket::~UnixSocket()
 {
-  try{
+  try {
      Close();
-  } catch(...) {}
+  } catch(...) {
+    // Ignore exception
+  }
 
   if ( createFile )
   {
-    char name[MAX_HOST_NAME];
-    sprintf( name, "%s%s", unixSocketDir.c_str(), hostAddress.c_str() );
-    unlink( name );
+    string tracefile = unixSocketDir + hostAddress;
+    unlink( tracefile.c_str() );
   }
+
   if ( ioSocketStream != 0 )
-  { try{
+  { 
+    try{
        delete ioSocketStream;
-    } catch(...) {}
+    } catch(...) {
+      // Ignore exception
+    }
     ioSocketStream=0;
   }
+
   if ( ioSocketBuffer != 0 )
   {
     try{
         delete ioSocketBuffer;
-    } catch(...) {}
+    } catch(...) {
+      // Ignore exception
+    }
     ioSocketBuffer=0;
   }
+
   destroyTracing();
 }
 
@@ -211,13 +220,7 @@ void UnixSocket::setTraceStreams( std::ostream* _traceInStream,
    destroyStreams = _destroyStreams;
 }
 
-
-
-
-
-
-bool
-UnixSocket::Open( const int listenQueueSize,
+bool UnixSocket::Open( const int listenQueueSize,
                   const int sockType, const int flags )
 {
   union
@@ -796,24 +799,33 @@ UnixSocket::Write( void const* buf, size_t size )
 bool
 UnixSocket::Close()
 {
-  if ( state != SS_CLOSE )
+  if ( state == SS_CLOSE )
   {
-    state = SS_CLOSE;
-    if ( ::close( fd ) == 0 )
-    {
-      SetStreamState( ios::eofbit );
-      lastError = EC_OK;
-      return (true);
-    }
-    else
-    {
-      SetStreamState( ios::failbit | ios::eofbit );
-      lastError = errno;
-      return (false);
-    }
+    lastError = EC_OK;
+    return (true);
   }
-  lastError = EC_OK;
-  return (true);
+
+  state = SS_CLOSE;
+
+  if(fd == INVALID_SOCKET)
+  {
+    SetStreamState( ios::eofbit );
+    lastError = EC_OK;
+    return (true);
+  }
+
+  if ( ::close( fd ) == 0 )
+  {
+    fd = INVALID_SOCKET;
+    SetStreamState( ios::eofbit );
+    lastError = EC_OK;
+    return (true);
+  }
+  
+  fd = INVALID_SOCKET;
+  SetStreamState( ios::failbit | ios::eofbit );
+  lastError = errno;
+  return (false);
 }
 
 bool
