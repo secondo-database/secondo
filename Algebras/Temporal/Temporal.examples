@@ -801,13 +801,13 @@ Operator  : distanceAvgLB
 Number    : 1
 Signature : cXpoint x cXpoint (x duration) (x geoid) -> real  (X = m|u)
 Example   : query distanceAvgLB(cbbox(train5), cbbox(train6))
-Result    : 3619.7380687183
+Result    : 8330.010532083068
 
 Operator  : distanceAvgUB
 Number    : 1
 Signature : cXpoint x cXpoint (x duration) (x geoid) -> real  (X = m|u)
 Example   : query distanceAvgUB(cbbox(train5), cbbox(train6))
-Result    : 30431.3999290351
+Result    : 17819.06793145265
 
 Operator  : cbbox
 Number    : 1
