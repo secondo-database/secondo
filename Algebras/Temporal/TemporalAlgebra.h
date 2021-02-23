@@ -3083,6 +3083,10 @@ If invalid geographic coordinates are found, the result is UNDEFINED.
 
   void Distance( const UPoint& up, UReal& result, const Geoid* geoid = 0) const;
 
+  double GetRadius() const {return 0.0;}
+  
+  void SetRadius(const double r) {}
+  
   double DistanceIntegral(const UPoint& up, const bool upperBound,
                           const Geoid* geoid = 0) const;
 /*
@@ -3182,7 +3186,7 @@ Returns true, iff this unit is defined and not moving during its definition time
       }
    }
    
-   void SetToConstantUnit(const Point& p) {
+   void SetToConstantUnit(const Point& p, const double r = 0) {
      p0 = p;
      p1 = p0;
    }
@@ -4494,7 +4498,7 @@ void ForceToDuration(const M& src, const datetime::DateTime& duration,
       if (iv.end != unit.timeInterval.start) { // fill temporal gap with const u
         unit2.timeInterval = Interval<Instant>(iv.end, unit.timeInterval.start,
                                                !iv.rc, !unit.timeInterval.lc);
-        unit2.SetToConstantUnit(unit2.p1);
+        unit2.SetToConstantUnit(unit2.p1, 0.0);
         durTemp += (unit2.timeInterval.end - unit2.timeInterval.start);
         if (durTemp >= duration) { // prune current unit and finish
           iv = unit2.timeInterval;
@@ -4504,6 +4508,7 @@ void ForceToDuration(const M& src, const datetime::DateTime& duration,
             unit3.timeInterval.start -= diffToBeginOfTime;
             unit3.timeInterval.end -= diffToBeginOfTime;
           }
+          unit3.SetRadius(0.0);
           result.Add(unit3);
           result.Truncate();
           return;
@@ -4524,6 +4529,7 @@ void ForceToDuration(const M& src, const datetime::DateTime& duration,
         unit2.timeInterval.start -= diffToBeginOfTime;
         unit2.timeInterval.end -= diffToBeginOfTime;
       }
+      unit2.SetRadius(unit.GetRadius());
       result.Add(unit2);
       result.Truncate();
       return;
@@ -4543,11 +4549,12 @@ void ForceToDuration(const M& src, const datetime::DateTime& duration,
                                           !iv.rc, iv.rc);
     Rectangle<2> bbox = src.BoundingBoxSpatial();
     Point pt(true, bbox.MidD(0), bbox.MidD(1));
-    unit.SetToConstantUnit(pt); // center of bounding box
+    unit.SetToConstantUnit(pt, 0.0); // center of bounding box
     if (startAtBeginOfTime) {
       unit.timeInterval.start -= diffToBeginOfTime;
       unit.timeInterval.end -= diffToBeginOfTime;
     }
+    unit.SetRadius(0.0);
     result.Add(unit);
   }
   result.Truncate();
@@ -4692,16 +4699,16 @@ Returns ~true~ if both units are undefined, or if both are defined and this temp
 Restricts this cupoint to a certain time interval.
 
 */
-  virtual void AtInterval(const Interval<Instant>& i, CUPoint& result) const;
-  void AtInterval(const Interval<Instant>& i, CUPoint& result,
-                  const Geoid* geoid) const;
+  virtual void AtIntervalCU(const Interval<Instant>& i, CUPoint& result) const;
+  void AtIntervalCU(const Interval<Instant>& i, CUPoint& result,
+                    const Geoid* geoid) const;
 
 /*
 Evaluates this cupoint at a certain instant.
 
 */
-  virtual void TemporalFunction(const Instant& t, CPoint& result,
-                                bool ignoreLimits = false) const;
+  virtual void TemporalFunctionCU(const Instant& t, CPoint& result,
+                                  bool ignoreLimits = false) const;
 
 /*
 Functions required for attribute type
@@ -4830,7 +4837,7 @@ Computes the distance to a CUPoint ~cup~.
 //   void DistanceAvg(const CUPoint& cup, const bool upperBound, CcReal& result,
 //                    const Geoid* geoid = 0) const;
   
-  void SetToConstantUnit(const Point& p);
+  void SetToConstantUnit(const Point& p, const double r);
 
 private:
   double radius;
@@ -9895,19 +9902,23 @@ static double DistanceAvg(const M& mp1, const M& mp2,
       m2.Get(u2Pos, u2);
       u2.AtInterval(iv, u2cut, geoid);
       u1cut.timeInterval = u2cut.timeInterval;
+      u1cut.SetRadius(0.0);
       u1cut.p0 = u1cut.p1; // use constant unit with same time interval as u2
     }
     else if (u2Pos == -1) {
       m1.Get(u1Pos, u1);
       u1.AtInterval(iv, u1cut, geoid);
       u2cut.timeInterval = u1cut.timeInterval;
+      u2cut.SetRadius(0.0);
       u2cut.p0 = u2cut.p1; // use constant unit with same time interval as u1
     }
     else {
       m1.Get(u1Pos, u1);
       u1.AtInterval(iv, u1cut, geoid);
+      u1cut.SetRadius(u1.GetRadius());
       m2.Get(u2Pos, u2);
       u2.AtInterval(iv, u2cut, geoid);
+      u2cut.SetRadius(u2.GetRadius());
     }
     assert(u1cut.IsDefined() && u2cut.IsDefined());
     durTemp += (iv.end - iv.start).ToDouble();

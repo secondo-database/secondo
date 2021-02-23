@@ -2130,6 +2130,7 @@ void UPoint::Distance( const Point& p,
 
 double UPoint::DistanceIntegral(const UPoint& up, const bool upperBound,
                                 const Geoid* geoid /* = 0 */) const {
+//   cout << "compare " << up << endl << "   and " << up << endl;
   UReal dist(true);
   if (geoid) {
     dist.timeInterval = this->timeInterval;
@@ -2151,7 +2152,7 @@ double UPoint::DistanceIntegral(const UPoint& up, const bool upperBound,
   if (result < 0.0) {
     result = 0.0;
   }
-  //       cout << "added value " << result << " from " << dist << endl;
+//   cout << "added value " << result << " from " << dist << endl << endl;
   return result;
 }
 
@@ -2807,18 +2808,18 @@ bool UPoint::AtRegion(const Region *r, std::vector<UPoint> &result) const {
 1.1 Implementation of functions for the class ~CUPoint~
 
 */
-void CUPoint::AtInterval(const Interval<Instant>& i, CUPoint& result) const {
-  AtInterval(i, result, 0);
+void CUPoint::AtIntervalCU(const Interval<Instant>& i, CUPoint& result) const {
+  AtIntervalCU(i, result, 0);
 }
 
-void CUPoint::AtInterval(const Interval<Instant>& i, CUPoint& result,
-                         const Geoid* geoid) const {
+void CUPoint::AtIntervalCU(const Interval<Instant>& i, CUPoint& result,
+                           const Geoid* geoid) const {
   ((UPoint*)this)->AtInterval(i, *((UPoint*)&result));
   result.SetRadius(this->GetRadius());
 }
 
-void CUPoint::TemporalFunction(const Instant& t, CPoint& result,
-                               bool ignoreLimits /* = false */) const {
+void CUPoint::TemporalFunctionCU(const Instant& t, CPoint& result,
+                                 bool ignoreLimits /* = false */) const {
   Point p(true);
   ((UPoint*)this)->TemporalFunction(t, p, ignoreLimits);
   result.Set(p, this->GetRadius());
@@ -3033,15 +3034,8 @@ void CUPoint::ConvertFrom(const CMPoint& cmp, const Geoid* geoid /* = 0 */) {
 
 double CUPoint::DistanceIntegral(const CUPoint& cup, const bool upperBound, 
                                  const Geoid* geoid /* = 0 */) const {
-//   UReal speed1(true), speed2(true);
-//   ((UPoint*)this)->USpeed(speed1);
-//   ((UPoint*)&cup)->USpeed(speed2);
+//   cout << "compare " << *this << endl << "   and " << cup << endl;
   bool correct = false;
-//   double epsilon = 1.0 / 16384.0;
-//   if ((AlmostEqual(this->p0, this->p1) || speed1.Max(correct) < epsilon) &&
-//       (AlmostEqual(cup.p0, cup.p1) || speed2.Max(correct) < epsilon)) {
-//     return (upperBound ? DBL_MAX : 0.0);
-//   }
   Periods per(true);
   double sumOfRadii = this->GetRadius() + cup.GetRadius();
   Interval<Instant> ivMin(true);
@@ -3153,8 +3147,8 @@ double CUPoint::DistanceIntegral(const CUPoint& cup, const bool upperBound,
     }
     DateTime dura(durationtype);
     dura.ReadFrom(dur);
-//     cout << "   urDist = " << dist << " ==> RESULTub = " 
-//          << integralValue1 << " + " << sumOfRadii << " * " << dura << endl;
+//     cout << "   urDist = " << dist << " ==> RESULTub = " << integralValue1 
+//          << " + " << sumOfRadii << " * " << dura << endl << endl;
     result = integralValue1 + sumOfRadii * dur;
   }
   return result;
@@ -3187,9 +3181,9 @@ void CUPoint::DistanceAvg(const CUPoint& cup, const DateTime& duration,
   result.Set(true, this->DistanceAvg(cup, duration, upperBound, geoid));
 }
 
-void CUPoint::SetToConstantUnit(const Point& p) {
+void CUPoint::SetToConstantUnit(const Point& p, const double r) {
   ((UPoint*)this)->SetToConstantUnit(p);
-  SetRadius(0.0);
+  SetRadius(r);
 }
 
 /*
