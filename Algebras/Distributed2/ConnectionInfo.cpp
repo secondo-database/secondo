@@ -462,6 +462,9 @@ bool ConnectionInfo::switchDatabase(const std::string& dbname,
     if(timeout>0){
       stopTimeout(false);
     }
+
+    activeDatabase = dbname;
+    
     return res;
 }
 

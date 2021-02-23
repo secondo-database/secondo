@@ -301,6 +301,10 @@ public:
        return si;
     }
 
+    std::string getActiveDatabae() {
+      return activeDatabase;
+    }
+
 private:
 
     ConnectionInfo(const ConnectionInfo& s); 
@@ -321,6 +325,7 @@ private:
     std::string requestPath;
     std::string sendFolder;
     std::string sendPath;
+    std::string activeDatabase;
     boost::mutex norefmtx;
 
 
