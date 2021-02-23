@@ -301,7 +301,7 @@ public:
        return si;
     }
 
-    std::string getActiveDatabae() {
+    std::string getActiveDatabase() const {
       return activeDatabase;
     }
 
