@@ -283,6 +283,9 @@ distributed2::ConnectionInfo* createConnection(const std::string &host,
     return table + "_repartition";
   }
 
+  bool executeSecondoCommand(distributed2::ConnectionInfo* ci, 
+    const std::string &command, const bool checkResult);
+
 };
 };  /* namespace BasicEngine */
 

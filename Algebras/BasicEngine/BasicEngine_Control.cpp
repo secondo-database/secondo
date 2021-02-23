@@ -35,6 +35,7 @@ Version 1.0 - Created - C.Behrndt - 2020
 */
 #include "BasicEngine_Control.h"
 #include "FileSystem.h"
+#include <chrono>
 
 using namespace distributed2;
 using namespace std;
@@ -100,7 +101,14 @@ ConnectionInfo* BasicEngine_Control::createConnection(const string &host,
     return nullptr;
   } 
   
-  bool switchResult = ci->switchDatabase(dbName, true, false, true, 
+  auto now = std::chrono::system_clock::now();
+  auto now_mic = std::chrono::time_point_cast<std::chrono::microseconds>(now);
+  long duration = now_mic.time_since_epoch().count();
+  
+  string msString = to_string(duration);
+  string mydbName = "tmpdb" + msString.substr(msString.size() - 8);
+
+  bool switchResult = ci->switchDatabase(mydbName, true, false, true, 
     BasicEngine_Control::defaultTimeout);
 
   if(! switchResult) { 
@@ -152,7 +160,17 @@ void BasicEngine_Control::shutdownAllConnections() {
 
   // Delete connections
   for(distributed2::ConnectionInfo* ci: connections) {
+    string activeDB = ci -> getActiveDatabase();
+
+    // Delete temporary databases
+    if(activeDB.rfind("tmpdb", 0) == 0) {
+      executeSecondoCommand(ci, "close database", false);
+      executeSecondoCommand(ci, "delete database " + activeDB, false);
+    }
+
     ci->deleteIfAllowed();
+    BOOST_LOG_TRIVIAL(debug) 
+        << "Closed connection to " << ci->getHost() << " / " << ci->getPort();
   }
   connections.clear();
 }
@@ -166,29 +184,47 @@ Init the basic engine on the given worker
 bool BasicEngine_Control::initBasicEngineOnWorker(ConnectionInfo* ci, 
   const string &dbPort, const string &dbName) {
 
+    string initCommand = dbms_connection->getInitSecondoCMD(
+      dbName, dbPort, workerRelationName);
+
+    return executeSecondoCommand(ci, initCommand, true);
+}
+
+/*
+3.2 ~initBasicEngineOnWorker~
+
+Init the basic engine on the given worker
+
+*/
+bool BasicEngine_Control::executeSecondoCommand(ConnectionInfo* ci, 
+  const string &command, const bool checkResult) {
+
     string errMsg;
     int err = 0;
     double rt;
     string res;
     CommandLog commandLog;
 
-    string initCommand = dbms_connection->getInitSecondoCMD(
-      dbName, dbPort, workerRelationName);
-
     // Call be_init on the remote node
-    ci->simpleCommand(initCommand,err,res,false,
+    ci->simpleCommand(command,err,res,false,
       rt,false,commandLog,true, BasicEngine_Control::defaultTimeout);
 
     if(err != 0) {
-      cout << "Error: Got ErrCode:" << err << endl
-            << "Command was: " << initCommand << endl;
+      BOOST_LOG_TRIVIAL(error) 
+        << "Got ErrCode:" << err <<  " / command was: " << command;
+
       return false;
     } 
     
+    if(! checkResult) {
+      return true;
+    }
+
     if (res != "(bool TRUE)") {
-      cout << "Error: Got invalid result from remote node " 
-           << res << endl
-           << "Command was: " << initCommand << endl;
+      BOOST_LOG_TRIVIAL(error) 
+        << "Error: Got invalid result from remote node " 
+        << res << " / command was: " << command;
+    
       return false;
     }
     
@@ -227,17 +263,20 @@ bool BasicEngine_Control::createAllConnections(){
 
   optional<string> workerRelationFileName = nullopt;
 
-  // In master mode, share the worker relation with the clients
-  if(master) {
-    try {
-      string exportedFile = exportWorkerRelation(workerRelationName);
-      workerRelationFileName.emplace(exportedFile); 
-    } catch(std::exception &e) {
-      BOOST_LOG_TRIVIAL(error) 
-        << "Got an exception during export worker relation" 
-        << e.what();
-      return false;
-    }
+  // Are the connections already present?
+  if(! connections.empty()) {
+    return true;
+  }
+
+  // Share the worker relation with the clients
+  try {
+    string exportedFile = exportWorkerRelation(workerRelationName);
+    workerRelationFileName.emplace(exportedFile); 
+  } catch(std::exception &e) {
+    BOOST_LOG_TRIVIAL(error) 
+      << "Got an exception during export worker relation" 
+      << e.what();
+    return false;
   }
   
   for(const RemoteConnectionInfo* remoteConnection: remoteConnections) {
@@ -258,18 +297,17 @@ bool BasicEngine_Control::createAllConnections(){
       break;
     }
 
-    // In master mode share the worker relation
-    if(master) {
-        bool exportResult 
-          = exportWorkerRelationToWorker(ci, workerRelationFileName);
+    // Share the worker relation
+    bool exportResult 
+      = exportWorkerRelationToWorker(ci, workerRelationFileName);
 
-        if(! exportResult) {
-          BOOST_LOG_TRIVIAL(error) 
-            << "Error while distributing worker relation to" 
-            << ci -> getHost() << " / " << ci -> getPort();
-          break;
-        }
+    if(! exportResult) {
+      BOOST_LOG_TRIVIAL(error) 
+        << "Error while distributing worker relation to" 
+        << ci -> getHost() << " / " << ci -> getPort();
+      break;
     }
+
 
     // Init basic engine connection on worker
     bool initResult 
@@ -448,9 +486,6 @@ Repartition the given table - worker version
       BOOST_LOG_TRIVIAL(error) << "Unable to transfer and import table data";
       return false;
     }
-
-    // Close connections
-    shutdownAllConnections();
 
     return true;
   }
