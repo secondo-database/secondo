@@ -1035,6 +1035,6 @@ int main( int argc, char* argv[] )
     }
   }
   ok = SmiEnvironment::ShutDown();
-  cout << "ShutDown rc=" << rc << endl;
+  cout << "ShutDown rc=" << ok << endl;
 }
 
