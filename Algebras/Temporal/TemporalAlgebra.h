@@ -2494,6 +2494,9 @@ Creates the distance to an other UReal value.
   spherical distance for line segments is not implemented.
   
   */
+  
+  void Split(const datetime::DateTime& duration, std::vector<UReal>& result)
+             const;
 
 /*
 3.7.5 Attributes
@@ -4822,9 +4825,12 @@ Transforms a CMPoint into a CUPoint, adopting the CMPoint's maximum radius.
   void ConvertFrom(const CMPoint& cmp, const Geoid* geoid = 0);
   
 /*
-Computes the distance to a CUPoint ~cup~. 
+Computes the distance to another CUPoint ~cup~. 
 
 */
+  void Split(const datetime::DateTime& duration, std::vector<CUPoint>& result)
+             const;
+
   using UPoint::Distance;
   double DistanceIntegral(const CUPoint& cup, const bool upperBound, 
                           const Geoid* geoid = 0) const;
@@ -4832,10 +4838,6 @@ Computes the distance to a CUPoint ~cup~.
                      const bool upperBound, const Geoid* geoid = 0) const;
   void DistanceAvg(const CUPoint& cup, const datetime::DateTime& duration,
            const bool upperBound, CcReal& result, const Geoid* geoid = 0) const;
-//   double DistanceAvg(const CUPoint& cup,  const bool upperBound,
-//                      const Geoid* geoid = 0) const;
-//   void DistanceAvg(const CUPoint& cup, const bool upperBound, CcReal& result,
-//                    const Geoid* geoid = 0) const;
   
   void SetToConstantUnit(const Point& p, const double r);
 
@@ -9881,6 +9883,7 @@ static double DistanceAvg(const M& mp1, const M& mp2,
   if (mp1.IsEmpty() || mp2.IsEmpty()) {
     return DBL_MAX;
   }
+//   cout << "original: " << mp1 << endl << mp2 << endl << endl;
   MappingNoFlob<M, U> m1(mp1.GetNoComponents()), m2(mp2.GetNoComponents());
   ForceToDuration<M, U>(mp1, duration, true, m1, geoid);
   ForceToDuration<M, U>(mp2, duration, true, m2, geoid);
@@ -9923,10 +9926,11 @@ static double DistanceAvg(const M& mp1, const M& mp2,
     assert(u1cut.IsDefined() && u2cut.IsDefined());
     durTemp += (iv.end - iv.start).ToDouble();
     sum += u1cut.DistanceIntegral(u2cut, upperBound, geoid);
+    cout << "sum is now " << sum << endl;
   }
   datetime::DateTime dur(datetime::durationtype);
   dur.ReadFrom(durTemp);
-//   cout << "MPoint::DistanceAvg, integral SUM is " << sum << ", DURATION is "
+//   cout << "DistanceAvg, integral SUM is " << sum << ", DURATION is "
 //        << dur << endl << endl << endl;
   return sum / durTemp;
 }

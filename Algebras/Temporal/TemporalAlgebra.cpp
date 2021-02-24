@@ -1495,6 +1495,28 @@ void UReal::Recompute(const UPoint& up1, const UPoint& up2, const Geoid* geoid){
   r = false;
 }
 
+void UReal::Split(const datetime::DateTime& duration, 
+                  std::vector<UReal>& result) const {
+  result.clear();
+  if (!IsDefined()) {
+    return;
+  }
+  UReal res(true);
+  datetime::DateTime durTemp(0, 0, datetime::durationtype);
+  datetime::DateTime durSrc(timeInterval.end - timeInterval.start);
+  Interval<Instant> iv;
+  while (durTemp < durSrc) {
+    iv.start = timeInterval.start + durTemp;
+    iv.end = iv.start + duration;
+    durTemp += duration;
+    if (durTemp > durSrc) {
+      iv.end -= durTemp - durSrc;
+    }
+    AtInterval(iv, res);
+    result.push_back(res);
+  }
+}
+
 /*
 3.1 Class ~UPoint~
 
@@ -2146,13 +2168,14 @@ double UPoint::DistanceIntegral(const UPoint& up, const bool upperBound,
   double result = dist.Integrate();
   if (isnan(result)) { // use mean of start and end point distance
     Interval<Instant> iv = this->timeInterval;
+    cout << "NaN processing" << endl;
     result = (this->p0.Distance(up.p0, geoid) + this->p1.Distance(up.p1, geoid))
              / 2 * (iv.end - iv.start).ToDouble();
   }
   if (result < 0.0) {
     result = 0.0;
   }
-//   cout << "added value " << result << " from " << dist << endl << endl;
+  cout << "added value " << result << " from " << dist << endl << endl;
   return result;
 }
 
@@ -3032,9 +3055,31 @@ void CUPoint::ConvertFrom(const CMPoint& cmp, const Geoid* geoid /* = 0 */) {
   assert(correct);
 }
 
+void CUPoint::Split(const datetime::DateTime& duration,
+                    std::vector<CUPoint>& result) const {
+  result.clear();
+  if (!IsDefined()) {
+    return;
+  }
+  CUPoint res(true);
+  datetime::DateTime durTemp(0, 0, datetime::durationtype);
+  datetime::DateTime durSrc(timeInterval.end - timeInterval.start);
+  Interval<Instant> iv;
+  while (durTemp < durSrc) {
+    iv.start = timeInterval.start + durTemp;
+    iv.end = iv.start + duration;
+    durTemp += duration;
+    if (durTemp > durSrc) {
+      iv.end -= durTemp - durSrc;
+    }
+    AtIntervalCU(iv, res);
+    result.push_back(res);
+  }
+}
+
 double CUPoint::DistanceIntegral(const CUPoint& cup, const bool upperBound, 
                                  const Geoid* geoid /* = 0 */) const {
-//   cout << "compare " << *this << endl << "   and " << cup << endl;
+  cout << "compare " << *this << endl << "   and " << cup << endl;
   bool correct = false;
   Periods per(true);
   double sumOfRadii = this->GetRadius() + cup.GetRadius();
@@ -3043,7 +3088,7 @@ double CUPoint::DistanceIntegral(const CUPoint& cup, const bool upperBound,
   double integralValue1, integralValue2, result;
   UReal dist(true), urNull(true);
   if (!geoid) {
-    ((UPoint*)(this))->Distance(*((UPoint*)(&cup)), dist);
+    ((UPoint*)this)->Distance(*((UPoint*)(&cup)), dist);
   }
   else {
     dist.timeInterval = this->timeInterval;
@@ -3143,13 +3188,64 @@ double CUPoint::DistanceIntegral(const CUPoint& cup, const bool upperBound,
     }
     integralValue1 = dist.Integrate();
     if (isnan(integralValue1)) {
-      return 0.0;
+      cout << "NaN processing" << endl;
+      CUPoint cup1part1(true),cup1part2(true), cup2part1(true), cup2part2(true);
+      Interval<Instant> iv = this->timeInterval;
+      Interval<Instant> iv1(iv.start, iv.start + (iv.end - iv.start) / 2, true,
+                            false);
+      Interval<Instant> iv2(iv1.start, iv.end, true, false);
+      this->AtIntervalCU(iv1, cup1part1);
+      this->AtIntervalCU(iv2, cup1part2);
+      cup.AtIntervalCU(iv1, cup2part1);
+      cup.AtIntervalCU(iv2, cup2part2);
+      UReal dist1(true), dist2(true);
+      cup1part1.Distance(cup2part1, dist1);
+      cup1part2.Distance(cup2part2, dist2);
+      double integral1 = dist1.Integrate();
+      double integral2 = dist2.Integrate();
+      if (isnan(integral1) && isnan(integral2)) {
+        integralValue1 = dist.Max(correct);
+        if (!correct) {
+          return DBL_MAX;
+        }
+      }
+      if (isnan(integral1) || isnan(integral2)) {
+        integralValue1 = (isnan(integral1) ? 2.0 * integral2 : 2.0 * integral1);
+        cout << "NaN : " << isnan(integral1) << " " << isnan(integral2) << endl;
+      }
+      else {
+        integralValue1 = integral1 + integral2;
+        cout << "after split: integralValue = " << integral1 << " + " 
+             << integral2 << endl;
+      }
+      cout << "NaN processed" << endl;
     }
+//     datetime::DateTime oneMinute(0, 30000, datetime::durationtype);
+//     std::vector<CUPoint> parts1, parts2;
+//     this->Split(oneMinute, parts1);
+//     cup.Split(oneMinute, parts2);
+//     double integralSum = 0.0;
+//     for (unsigned int i = 0; i < parts1.size(); i++) {
+//       parts1[i].Distance(parts2[i], dist);
+//       integralSum += dist.Integrate();
+//     }
+    
+//     std::vector<UReal> parts;
+//     dist.Split(oneMinute, parts);
+//     double integralSum = 0.0;
+//     for (unsigned int i = 0; i < parts.size(); i++) {
+//       integralSum += parts[i].Integrate();
+//       cout << "integralSum is now " << integralSum << endl;
+//     }
+    
+
+    
     DateTime dura(durationtype);
     dura.ReadFrom(dur);
-//     cout << "   urDist = " << dist << " ==> RESULTub = " << integralValue1 
-//          << " + " << sumOfRadii << " * " << dura << endl << endl;
     result = integralValue1 + sumOfRadii * dur;
+    cout << "   urDist = " << dist << " ==> RESULTub = " << integralValue1
+         << " + " << sumOfRadii << " * " << dura << " = " << result 
+         << endl << endl;
   }
   return result;
 }
