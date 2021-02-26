@@ -1,0 +1,15 @@
+Source: swi-prolog-secondo
+Section: interpreters
+Priority: extra
+Maintainer: Jan Nidzwetzki <jnidzwetzki@gmx.de>
+Build-Depends: debhelper (>= 5), libgmp-dev, libjpeg-dev, zlib1g-dev, libreadline-dev, libssl-dev, autotools-dev, default-jdk, junit, openjdk-7-jdk
+Standards-Version: 3.9.6
+Homepage: http://www.swi-prolog.org
+
+Package: swi-prolog-secondo
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, libgmp-dev, libreadline-dev, libncursesw5-dev, default-jre-headless | java2-runtime
+Conflicts: swi-prolog, swi-prolog-nox, swi-prolog-x
+Provides: swi-prolog 
+Description: A swi-prolog build for secondo
+ A special build of swi-prolog for secondo

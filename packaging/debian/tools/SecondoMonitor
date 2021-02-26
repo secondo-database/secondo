@@ -1,0 +1,18 @@
+#!/bin/bash
+
+dir=$(mktemp -d)
+
+echo "Preparing the SECONDO environment in $dir"
+
+if [ ! -d $dir ]; then
+   echo "Error: Unable to create $dir"
+   exit -1
+fi
+
+cp -a $SECONDO_BUILD_DIR/bin/* $dir
+cd $dir
+$SECONDO_BUILD_DIR/bin/SecondoMonitor.real $* 
+
+cd
+
+rm -r $dir

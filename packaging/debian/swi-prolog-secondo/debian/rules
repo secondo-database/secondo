@@ -1,0 +1,60 @@
+#!/usr/bin/make -f
+# -*- makefile -*-
+
+# Uncomment this to turn on verbose mode.
+#export DH_VERBOSE=1
+
+# Use hardenings flags for compiling
+export DEB_BUILD_HARDENING=1
+
+clean:
+	[ ! -f Makefile ] || $(MAKE) clean
+	[ ! -f Makefile ] || $(MAKE) distclean
+	dh_clean
+
+configure:
+	./configure --prefix=/usr --enable-shared
+	cd packages; env PKG="jpl" ./configure
+
+build: build-stamp
+	
+build-stamp: configure 
+	dh_testdir
+	touch $@
+	$(MAKE)
+	cd packages ; \
+	$(MAKE)
+ 
+install: build
+	dh_testdir
+	dh_testroot
+	dh_prep
+	dh_installdirs
+
+	$(MAKE) DESTDIR=$(CURDIR)/debian/swi-prolog-secondo install
+
+	cd packages/jpl ; \
+	$(MAKE)  DESTDIR=$(CURDIR)/debian/swi-prolog-secondo install
+
+binary-indep: build install
+	dh_testdir
+	dh_testroot
+	dh_installchangelogs
+	dh_installdocs
+
+	dh_link
+	dh_strip
+	dh_installman
+	dh_compress
+	dh_fixperms
+	dh_installdeb
+	dh_shlibdeps
+	dh_gencontrol
+	dh_md5sums
+	dh_builddeb
+
+binary-arch: build install
+
+binary: binary-indep binary-arch
+
+.PHONY: build binary-indep binary-arch binary install configure clean

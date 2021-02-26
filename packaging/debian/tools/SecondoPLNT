@@ -1,0 +1,30 @@
+#!/bin/bash
+
+if [ -z "$SECONDO_WORK_DIR" ]; then
+	echo '$SECONDO_WORK_DIR is not defined, check your SECONDO installation'
+	exit -1
+fi
+
+if [ ! -d $SECONDO_WORK_DIR/optimizer ]; then
+	echo "$SECONDO_WORK_DIR/optimizer not found, check your SECONDO installation"
+	exit -1
+fi
+
+echo "Preparing the SECONDO Optimizer in $SECONDO_WORK_DIR/optimizer"
+cd $SECONDO_WORK_DIR/optimizer
+
+rsync -rt $SECONDO_BUILD_DIR/Optimizer/* .
+
+
+export SECONDO_PARAM_RTFlags="DEBUG:DemangleStackTrace,CMSG:Color,SMI:NoTransactions,CTLG:SkipExamples"
+
+# adjust the defaults if you have more
+# memory available
+export SECONDO_PARAM_NodeMem=32000
+export SECONDO_PARAM_StringMem=8000
+export SECONDO_PARAM_TextMem=8000
+
+cmdOpts="-pl -L 8M -G 8M $* pl -g true"
+
+$SECONDO_BUILD_DIR/bin/SecondoBDB $cmdOpts
+

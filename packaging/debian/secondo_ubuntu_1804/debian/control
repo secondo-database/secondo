@@ -1,0 +1,13 @@
+Source: secondo 
+Section: database
+Priority: extra
+Maintainer: Jan Nidzwetzki <jnidzwetzki@gmx.de>
+Build-Depends: debhelper (>= 5), flex, bison, libdb5.3, libdb5.3-dev, libdb5.3++, libdb5.3++-dev, db5.3-util, libjpeg62, libjpeg62-dev, libgsl-dev, libreadline-dev, librecode-dev, libgmp-dev, libncurses-dev, libxml2-dev, libboost-all-dev, libxml2-dev, openjdk-8-jdk, swi-prolog-nox, swi-prolog-java, swi-prolog, libquadmath0, libgmp-dev, libgmp10, libboost-all-dev, original-awk
+Standards-Version: 3.9.6
+Homepage: http://dna.fernuni-hagen.de/Secondo.html 
+
+Package: secondo
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, libdb5.3, libdb5.3++, db5.3-util, libjpeg62, librecode0, libxml2, openjdk-8-jdk | openjdk-8-jre, swi-prolog-nox, swi-prolog-java, swi-prolog, rsync, libquadmath0, libgmp10, libboost-all-dev, original-awk
+Description: The secondo database 
+ Designed at the FernUniversitaet in Hagen, Secondo is a platform for implementing and experimenting with various kinds of data models. 

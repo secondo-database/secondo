@@ -1,0 +1,100 @@
+#!/usr/bin/make -f
+# -*- makefile -*-
+
+# Uncomment this to turn on verbose mode.
+#export DH_VERBOSE=1
+
+LBITS := $(shell getconf LONG_BIT)
+
+ifeq ($(LBITS),64)
+	PLATTFORM=linux64
+	PL_LIB_DIR=lib/amd64/
+	PL_VERSION=70203
+	J2SDK_ROOT=/usr/lib/jvm/java-8-openjdk-amd64
+else
+	PLATTFORM=linux
+	PL_LIB_DIR=lib/i686-linux/
+	PL_VERSION=70203
+	J2SDK_ROOT=/usr/lib/jvm/java-8-openjdk-i386
+endif
+
+SWI_HOME_DIR=/usr/lib/swi-prolog/
+DESTDIR=$(CURDIR)/debian/secondo
+LD_LIBRARY_PATH=$(SWI_HOME_DIR)/lib:$(SWI_HOME_DIR)/$PL_LIB_DIR; \
+
+configure:
+
+build: build-stamp
+	
+build-stamp: configure 
+	dh_testdir
+	touch $@
+
+	export SECONDO_PLATFORM=$(PLATTFORM); \
+	export SECONDO_BUILD_DIR=$(shell pwd); \
+	export BERKELEY_DB_LIB="db_cxx"; \
+	export BERKELEY_DB_DIR="/usr"; \
+	export J2SDK_ROOT=$(J2SDK_ROOT); \
+	export readline=true; \
+	export SWI_HOME_DIR=$(SWI_HOME_DIR); \
+	export PL_LIB_DIR=$(SWI_HOME_DIR)/$(PL_LIB_DIR); \
+	export PL_DLL_DIR=$(SWI_HOME_DIR)/$(PL_LIB_DIR); \
+	export PL_INCLUDE_DIR=$(SWI_HOME_DIR)/include; \
+	export PL_VERSION=$(PL_VERSION); \
+	export JPL_DLL=$(SWI_HOME_DIR)/$(PL_LIB_DIR)/libjpl.so; \
+	export JPL_JAR=$(SWI_HOME_DIR)/lib/jpl.jar; \
+	export PL_LIB=swipl ; \
+	export PATH=$(PATH):$(shell pwd)/secondo/api_cpp/direct ; \
+	($(MAKE); cd Javagui;$(MAKE) demo)
+
+install: build
+	dh_testdir
+	dh_testroot
+	dh_prep
+	dh_installdirs
+
+	mkdir -p $(DESTDIR)/opt/secondo/bin
+	cp -a bin/* $(DESTDIR)/opt/secondo/bin
+	mv $(DESTDIR)/opt/secondo/bin/SecondoMonitor $(DESTDIR)/opt/secondo/bin/SecondoMonitor.real
+	cp ../../tools/secondo_installer.sh $(DESTDIR)/opt/secondo/bin
+	cp ../../tools/SecondoPL* $(DESTDIR)/opt/secondo/bin
+	cp ../../tools/SecondoMonitor $(DESTDIR)/opt/secondo/bin
+	cp ../../tools/StartOptServer $(DESTDIR)/opt/secondo/bin
+	cp ../../tools/sgui $(DESTDIR)/opt/secondo/bin
+	cp -a Data $(DESTDIR)/opt/secondo
+
+	# Databases
+	sed -i "s|Trains.obj|/opt/secondo/bin/Trains.obj|g" $(DESTDIR)/opt/secondo/bin/berlintest
+
+	# Java gui
+	cp -a Javagui/Demo $(DESTDIR)/opt/secondo/bin/javagui
+	rm $(DESTDIR)/opt/secondo/bin/javagui/*.bat
+
+	# Optimizer
+	cp -a Optimizer $(DESTDIR)/opt/secondo/Optimizer
+
+	mkdir -p $(DESTDIR)/opt/secondo/etc
+	cp bin/SecondoConfig.ini $(DESTDIR)/opt/secondo/etc
+
+binary-indep: build install
+	dh_testdir
+	dh_testroot
+	dh_installchangelogs
+	dh_installdocs
+
+	dh_link
+	dh_strip
+	dh_installman
+	dh_compress
+	dh_fixperms
+	dh_installdeb
+#	dh_shlibdeps
+	dh_gencontrol
+	dh_md5sums
+	dh_builddeb
+
+binary-arch: build install
+
+binary: binary-indep binary-arch
+
+.PHONY: build binary-indep binary-arch binary install configure clean

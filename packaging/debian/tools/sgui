@@ -1,0 +1,25 @@
+#!/bin/bash
+
+if [ -z "$SECONDO_WORK_DIR" ]; then
+	echo '$SECONDO_WORK_DIR is not defined, check your SECONDO installation'
+	exit -1
+fi
+
+if [ ! -d $SECONDO_WORK_DIR/sgui ]; then
+	echo "$SECONDO_WORK_DIR/sgui not found, check your SECONDO installation"
+	exit -1
+fi
+
+guijar="$SECONDO_BUILD_DIR/bin/javagui/Javagui.jar"
+
+if [ ! -f $guijar ]; then
+	echo "$guijar not found, check your SECONDO installation"
+	exit -1
+fi
+
+cd $SECONDO_WORK_DIR/sgui
+
+rsync -rt /opt/secondo/bin/javagui/ViewerList.txt .
+rsync -rt /opt/secondo/bin/javagui/data .
+
+java -Xmx512M -jar $guijar $*
