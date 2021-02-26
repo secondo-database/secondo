@@ -7,9 +7,6 @@ This package provides the needed tools to build Debian packages for the [SECONDO
 docker run -it ubuntu:18.04
 apt-get update
 apt-get install git vim wget rsync dpkg-dev screen -y
-git config --global user.name "Jan Nidzwetzki"
-git config --global user.email jnidzwetzki@gmx.de
-git clone https://github.com/secondo-database/secondo-debian.git
 cd secondo-debian/ubuntu_1804
 ./build.sh
 ```
