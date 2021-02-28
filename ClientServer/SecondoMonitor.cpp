@@ -142,7 +142,7 @@ SecondoMonitor::Usage()
   cout 
   << "The following commands are available:" << endl << endl
   << "  ?, HELP        - display this message" << endl
-  << "  STARTUP        - of Listener, Registrar and CheckPoint processes" 
+  << "  STARTUP        - of Listener, Registrar and Checkpoint processes" 
   << endl
   << "  SHUTDOWN       - of Listener, Registrar and Checkpoint processes" 
   << endl
