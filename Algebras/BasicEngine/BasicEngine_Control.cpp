@@ -37,6 +37,10 @@ Version 1.0 - Created - C.Behrndt - 2020
 #include "FileSystem.h"
 #include <chrono>
 
+#include <future>
+#include <utility>
+#include <iostream>
+
 using namespace distributed2;
 using namespace std;
 
@@ -55,6 +59,21 @@ BasicEngine_Control::BasicEngine_Control(ConnectionGeneric* _dbms_connection,
     bool _isMaster) : dbms_connection(_dbms_connection),
     workerRelationName(_workerRelationName), master(_isMaster) {
 
+    // Check relation type
+    TupleType* tt = _workerRelation->GetTupleType();
+
+    if(! tt) {
+      BOOST_LOG_TRIVIAL(error) << "Unable to get tuple type from relation";
+      return;
+    }
+
+    if(tt->GetNoAttributes() != 7) {
+      BOOST_LOG_TRIVIAL(error) 
+        << "Provided relation has to contain 7 attributes "
+        << " provided number of attributes: "  << tt->GetNoAttributes();
+        return;
+    }
+
     unique_ptr<GenericRelationIterator> it(_workerRelation->MakeScan());
     Tuple* tuple = nullptr;
 
@@ -65,17 +84,17 @@ BasicEngine_Control::BasicEngine_Control(ConnectionGeneric* _dbms_connection,
       info->host = tuple->GetAttribute(0)->toText();
       info->port = tuple->GetAttribute(1)->toText();
       info->config = tuple->GetAttribute(2)->toText();
-      info->dbPort = tuple->GetAttribute(3)->toText();
-      info->dbName = tuple->GetAttribute(4)->toText();
+      info->dbUser = tuple->GetAttribute(3)->toText();
+      info->dbPass = tuple->GetAttribute(4)->toText();
+      info->dbPort = tuple->GetAttribute(5)->toText();
+      info->dbName = tuple->GetAttribute(6)->toText();
 
       if(tuple != nullptr) {
         tuple->DeleteIfAllowed();
       }
 
-      remoteConnections.push_back(info);
+      remoteConnectionInfos.push_back(info);
     }
-
-    numberOfWorker = remoteConnections.size();
 }
 
 /*
@@ -85,18 +104,21 @@ Creating a specified and saves it in the connections vector.
 Additionally add an entry to the importer vector.
 
 */
-ConnectionInfo* BasicEngine_Control::createConnection(const string &host, 
-  const string &port, string &config, 
-  const string &dbPort, const string &dbName) {
+ConnectionInfo* BasicEngine_Control::createConnection(
+    const RemoteConnectionInfo* remoteConnection) {
+
+  string config = string(remoteConnection->config);
 
   ConnectionInfo* ci = ConnectionInfo::createConnection(
-      host, stoi(port), config, 
+      remoteConnection->host, stoi(remoteConnection->port), 
+      config, 
       BasicEngine_Control::defaultTimeout, 
       BasicEngine_Control::defaultHeartbeat);
 
   if (ci == nullptr) {  
     cout << "Couldn't connect to secondo-Worker on host "
-         << host << " with port " << port << "!" 
+         << remoteConnection->host  
+         << " with port " << remoteConnection->port << "!" 
          << endl << endl;
     return nullptr;
   } 
@@ -112,17 +134,14 @@ ConnectionInfo* BasicEngine_Control::createConnection(const string &host,
     BasicEngine_Control::defaultTimeout);
 
   if(! switchResult) { 
-    cerr << "Unable to switch to database " << dbName 
-          << " on host " << host << " with port " << port << "!" 
+    cerr << "Unable to switch to database " << mydbName 
+          << " on host " << remoteConnection->host 
+          << " with port " << remoteConnection->port << "!" 
           << endl << endl;
     
     ci->deleteIfAllowed();
     return nullptr;
   }
-
-  connections.push_back(ci);
-  BasicEngine_Thread* basicEngineThread = new BasicEngine_Thread(ci);
-  importer.push_back(basicEngineThread);
 
   return ci;
 }
@@ -140,7 +159,7 @@ BasicEngine_Control::~BasicEngine_Control() {
     shutdownAllConnections();
 
     // Shutdown remote connections
-    for(const RemoteConnectionInfo* remoteConnection: remoteConnections) {
+    for(const RemoteConnectionInfo* remoteConnection: remoteConnectionInfos) {
       delete remoteConnection;
     }
 }
@@ -168,9 +187,10 @@ void BasicEngine_Control::shutdownAllConnections() {
       executeSecondoCommand(ci, "delete database " + activeDB, false);
     }
 
-    ci->deleteIfAllowed();
     BOOST_LOG_TRIVIAL(debug) 
         << "Closed connection to " << ci->getHost() << " / " << ci->getPort();
+
+    ci->deleteIfAllowed();
   }
   connections.clear();
 }
@@ -182,11 +202,18 @@ Init the basic engine on the given worker
 
 */
 bool BasicEngine_Control::initBasicEngineOnWorker(ConnectionInfo* ci, 
-  const string &dbPort, const string &dbName) {
+  const RemoteConnectionInfo* remoteConnectionInfo) {
 
-    string initCommand = dbms_connection->getInitSecondoCMD(
-      dbName, dbPort, workerRelationName);
+    string dbType = dbms_connection->getDbType();
 
+    // Call be worker init on remote nodes
+    string initCommand = "query be_init('" + dbType + "','"
+      + remoteConnectionInfo->dbUser + "','" 
+      + remoteConnectionInfo->dbPass + "'," 
+      + remoteConnectionInfo->dbPort + ",'"
+      + remoteConnectionInfo->dbName + "'," 
+      + workerRelationName + ");";
+  
     return executeSecondoCommand(ci, initCommand, true);
 }
 
@@ -205,7 +232,6 @@ bool BasicEngine_Control::executeSecondoCommand(ConnectionInfo* ci,
     string res;
     CommandLog commandLog;
 
-    // Call be_init on the remote node
     ci->simpleCommand(command,err,res,false,
       rt,false,commandLog,true, BasicEngine_Control::defaultTimeout);
 
@@ -268,6 +294,11 @@ bool BasicEngine_Control::createAllConnections(){
     return true;
   }
 
+  if(remoteConnectionInfos.empty()) {
+    BOOST_LOG_TRIVIAL(warning) << "No known remote nodes known"; 
+    return false;
+  }
+
   // Share the worker relation with the clients
   try {
     string exportedFile = exportWorkerRelation(workerRelationName);
@@ -278,47 +309,32 @@ bool BasicEngine_Control::createAllConnections(){
       << e.what();
     return false;
   }
+
+  vector<std::future<ConnectionInfo*>> connectionFutures;
   
-  for(const RemoteConnectionInfo* remoteConnection: remoteConnections) {
-    string host = remoteConnection->host;
-    string port = remoteConnection->port;
-    string config = remoteConnection->config;
-    string dbPort = remoteConnection->dbPort;
-    string dbName = remoteConnection->dbName;
+  // Establish the connections async in futures
+  for(const RemoteConnectionInfo* remoteConnectionInfo: 
+    remoteConnectionInfos) {
 
-    ConnectionInfo* ci = createConnection(
-      host, port, config, dbPort, dbName);
+    std::future<ConnectionInfo*> asyncResult = std::async(
+        &BasicEngine_Control::createAndInitConnection, 
+        this, 
+        remoteConnectionInfo, 
+        workerRelationFileName);
+        
+    connectionFutures.push_back(std::move(asyncResult));
+  }
 
-    if(ci == nullptr) {
-      BOOST_LOG_TRIVIAL(error)  
-           << "Error: Unable to establish connection to worker: "
-           << host << " / " << port;
+  // Get future results
+  for(future<ConnectionInfo*> &connectionFuture : connectionFutures) {
 
-      break;
+    ConnectionInfo* ci = connectionFuture.get();
+
+    if (ci != nullptr) {
+      connections.push_back(ci);
+      BasicEngine_Thread* basicEngineThread = new BasicEngine_Thread(ci);
+      importer.push_back(basicEngineThread);
     }
-
-    // Share the worker relation
-    bool exportResult 
-      = exportWorkerRelationToWorker(ci, workerRelationFileName);
-
-    if(! exportResult) {
-      BOOST_LOG_TRIVIAL(error) 
-        << "Error while distributing worker relation to" 
-        << ci -> getHost() << " / " << ci -> getPort();
-      break;
-    }
-
-
-    // Init basic engine connection on worker
-    bool initResult 
-      = initBasicEngineOnWorker(ci, dbPort, dbName);
-
-    if(! initResult) {
-      BOOST_LOG_TRIVIAL(error) << "Error while init basic engine on" 
-        << ci -> getHost() << " / " << ci -> getPort();
-      break;
-    }
-
   }
 
   // Delete relation file
@@ -327,13 +343,51 @@ bool BasicEngine_Control::createAllConnections(){
       workerRelationFileName.reset();
   }
 
-  if(numberOfWorker != connections.size()) {
+  if(remoteConnectionInfos.size() != connections.size()) {
     BOOST_LOG_TRIVIAL(error)
          << "Error: Number of worker connections does not match relation size";
     return false;
   }
 
   return true;
+}
+
+ConnectionInfo* BasicEngine_Control::createAndInitConnection(
+  const RemoteConnectionInfo* remoteConnectionInfo, 
+  const optional<string> &workerRelationFileName) {
+
+  ConnectionInfo* ci = createConnection(remoteConnectionInfo);
+
+  if(ci == nullptr) {
+    BOOST_LOG_TRIVIAL(error)  
+          << "Error: Unable to establish connection to worker: "
+          << remoteConnectionInfo->host << " / " << remoteConnectionInfo->port;
+
+    return nullptr;
+  }
+  
+  // Share the worker relation
+  bool exportResult 
+    = exportWorkerRelationToWorker(ci, workerRelationFileName);
+
+  if(! exportResult) {
+    BOOST_LOG_TRIVIAL(error) 
+      << "Error while distributing worker relation to" 
+      << ci -> getHost() << " / " << ci -> getPort();
+    return nullptr;
+  }
+
+  // Init basic engine connection on worker
+  bool initResult 
+    = initBasicEngineOnWorker(ci, remoteConnectionInfo);
+
+  if(! initResult) {
+    BOOST_LOG_TRIVIAL(error) << "Error while init basic engine on" 
+      << ci -> getHost() << " / " << ci -> getPort();
+    return nullptr;
+  }
+
+  return ci;
 }
 
 /*
@@ -474,7 +528,9 @@ Repartition the given table - worker version
     }
 
     // On the worker: Export data
-    bool exportDataResult = exportData(table, key, numberOfWorker);
+    bool exportDataResult 
+      = exportData(table, key, remoteConnectionInfos.size());
+    
     if(! exportDataResult) {
       BOOST_LOG_TRIVIAL(error) << "Unable to export table data";
       return false;
@@ -626,7 +682,7 @@ bool BasicEngine_Control::exportToWorker(const string &sourceTable,
   string remoteCreateName = getCreateTableSQLName(sourceTable);
   string localCreateName = getFilePath() + remoteCreateName;
 
-  for(size_t index = 0; index < numberOfWorker; index++){
+  for(size_t index = 0; index < remoteConnectionInfos.size(); index++){
 
     if (! connections[index]) {
       cout << endl << "Error: connection " << index 
@@ -734,7 +790,7 @@ bool BasicEngine_Control::partFun(const string &tab,
   drop_table(partTabName);
 
   if (boost::iequals(fun, "share")){
-    anzSlots = to_string(numberOfWorker);
+    anzSlots = to_string(remoteConnectionInfos.size());
   } else {
     anzSlots = to_string(slotnum);
   }
@@ -765,7 +821,7 @@ bool BasicEngine_Control::exportData(const string &tab,
   string strindex;
 
   // Starting with 1 to <= numberOfWorker
-  for(size_t i=1; i<=numberOfWorker; i++) {
+  for(size_t i=1; i<=remoteConnectionInfos.size(); i++) {
     strindex = to_string(i);
 
     string exportDataSQL = dbms_connection->getExportDataSQL(tab,
@@ -815,7 +871,7 @@ bool BasicEngine_Control::importData(const string &tab) {
 
   //import data (local files from worker)
   // Starting with 1 to <= numberOfWorker
-  for(size_t i=1;i<=numberOfWorker; i++){
+  for(size_t i=1;i<=remoteConnectionInfos.size(); i++){
     strindex = to_string(i);
     full_path = getFilePath() + getFilenameForPartition(tab, strindex);
     val = copy(full_path, tab, true) && val;
@@ -855,7 +911,7 @@ bool BasicEngine_Control::partTable(const string &tab, const string &key,
     return val;
   }
 
-  val = exportData(tab, key, numberOfWorker);
+  val = exportData(tab, key, remoteConnectionInfos.size());
 
   if(!val) {
     cout << "\n Couldn't export the data from the table." << endl;
@@ -1020,11 +1076,11 @@ bool BasicEngine_Control::checkAllConnections() {
   const int defaultTimeout = 0;
 
   //checking connection to the worker
-  if (connections.size() != numberOfWorker) {
+  if (connections.size() != remoteConnectionInfos.size()) {
     return false;
   }
 
-  for(size_t i = 0; i < numberOfWorker; i++) {
+  for(size_t i = 0; i < remoteConnectionInfos.size(); i++) {
     CommandLog commandLog;
     
     bool connectionState = connections[i]->check(

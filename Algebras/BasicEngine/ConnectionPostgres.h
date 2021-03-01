@@ -73,30 +73,22 @@ class ConnectionPG : public ConnectionGeneric {
   5.1 Public Methods
 
   */
-  ConnectionPG(int port, std::string dbname);
+  ConnectionPG(const std::string &_dbUser, const std::string &_dbPass, 
+       const int _dbPort, const std::string &_dbName);
 
   virtual ~ConnectionPG();
 
+  std::string getDbType() {
+    return DBTYPE;
+  }
+
   bool sendCommand(const std::string &command, bool print = true);
+  
+  bool createConnection();
 
   bool checkConnection();
 
   std::string getCreateTableSQL(const std::string &table);
-
-  std::string getDatabaseName() {
-    return dbname;
-  }
-
-  int getDatabasePort() {
-    return port;
-  }
-
-  std::string getInitSecondoCMD(const std::string &dbname, 
-    const std::string &port, const std::string &workerRelation) {
-
-    return "query be_init('pgsql'," + port + ",'"
-      + dbname + "'," + workerRelation + ");";
-  }
 
   std::string getDropTableSQL(const std::string &table) {
     return "DROP TABLE IF EXISTS " + table + ";";
@@ -169,6 +161,9 @@ class ConnectionPG : public ConnectionGeneric {
 
   ResultIteratorGeneric* performSQLSelectQuery(const std::string &sqlQuery);
 
+  // The DB Type
+  inline static const std::string DBTYPE = "pgsql";
+
   private:
 
   /*
@@ -180,34 +175,6 @@ class ConnectionPG : public ConnectionGeneric {
 
   */
   PGconn* conn = nullptr;
-
-  /*
-  5.2.2 ~port~
-
-  The port from the PostgreSQL DB.
-
-  */
-  int port;
-
-  /*
-  5.2.3 ~dbname~
-
-  The Name of the Database.
-
-  */
-  std::string dbname;
-
-  /*
-  5.3 Private Methods
-
-  */
-  int get_port() {
-    return port;
-  }
-
-  std::string get_dbname() {
-    return dbname;
-  }
 
   PGresult* sendQuery(const std::string &query);
 

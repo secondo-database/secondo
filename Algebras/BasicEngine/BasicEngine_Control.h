@@ -61,6 +61,8 @@ struct RemoteConnectionInfo {
   std::string host;
   std::string port;
   std::string config;
+  std::string dbUser;
+  std::string dbPass;
   std::string dbPort;
   std::string dbName;
 };
@@ -138,7 +140,7 @@ public:
   bool runsql(const std::string &filepath);
 
   bool initBasicEngineOnWorker(distributed2::ConnectionInfo* ci, 
-    const std::string &dbPort, const std::string &dbName);
+    const RemoteConnectionInfo* remoteConnectionInfo);
 
   bool shutdownWorker();
 
@@ -185,19 +187,19 @@ to a secondary dbms (for example postgresql)
 ConnectionGeneric* dbms_connection;
 
 /*
-2.2.2 ~remoteConnections~
-
-The remoteConnections is a vector with all informations about the
-worker connection like port, connection-file, ip
-
-*/
-std::vector<RemoteConnectionInfo*> remoteConnections;
-
-/*
-2.2.3 workerRelationName is the name of the used worker relation
+2.2.2 workerRelationName is the name of the used worker relation
 
 */
 std::string workerRelationName = "";
+
+/*
+2.2.3 ~remoteConnectionInfos~
+
+The remoteConnectionInfos is a vector with all informations about the
+worker connection like port, connection-file, ip
+
+*/
+std::vector<RemoteConnectionInfo*> remoteConnectionInfos;
 
 /*
 2.2.4 ~connections~
@@ -217,14 +219,6 @@ are stored.
 std::vector<BasicEngine_Thread*> importer;
 
 /*
-2.2.6 ~numberOfWorker~
-
-The numberOfWorker counts the number of worker.
-
-*/
-size_t numberOfWorker;
-
-/*
 2.2.7 master is a variable which shows, if this system is a master (true)
 or a worker(false).
 
@@ -237,9 +231,13 @@ bool master = false;
 
 */
 
-distributed2::ConnectionInfo* createConnection(const std::string &host, 
-    const std::string &port, std::string &config, 
-    const std::string &dbPort, const std::string &dbName);
+
+distributed2::ConnectionInfo* createAndInitConnection(
+  const RemoteConnectionInfo* remoteConnectionInfo,
+  const std::optional<std::string> &workerRelationFileName);
+
+distributed2::ConnectionInfo* createConnection(
+  const RemoteConnectionInfo* remoteConnection);
 
   bool partRoundRobin(const std::string &tab, const std::string &key, 
     size_t slotnum);

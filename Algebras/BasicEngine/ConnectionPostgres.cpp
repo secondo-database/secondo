@@ -47,13 +47,10 @@ Implementation.
 6.1 ~Constructor~
 
 */
-ConnectionPG::ConnectionPG(int nport, string ndbname) {
-string keyword;
-  keyword = "host=localhost port=" + to_string(nport)
-      + " dbname=" + ndbname + " connect_timeout=10";
-  conn = PQconnectdb(keyword.c_str());
-  port = nport;
-  dbname = ndbname;
+ConnectionPG::ConnectionPG(const std::string &_dbUser, 
+  const std::string &_dbPass, const int _dbPort, 
+  const std::string &_dbName) : ConnectionGeneric(
+    _dbUser, _dbPass, _dbPort, _dbName) {
 }
 
 /*
@@ -64,6 +61,25 @@ ConnectionPG::~ConnectionPG() {
   if(conn != nullptr) {
     PQfinish(conn);
   }
+}
+
+/*
+6.2 ~createConnection~
+
+*/
+bool ConnectionPG::createConnection() {
+
+  if(conn != nullptr) {
+    return false;
+  }
+
+  string keyword = "host=localhost user=" + dbUser  
+      + " password=" + dbPass + " port=" + to_string(dbPort)
+      + " dbname=" + dbName + " connect_timeout=10";
+  
+  conn = PQconnectdb(keyword.c_str());
+
+  return true;
 }
 
 /*

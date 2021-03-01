@@ -17,8 +17,8 @@
 #along with SECONDO; if not, write to the Free Software
 #Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-operator be_init alias BE_INIT pattern op (_,_,_,_)
-operator be_init_cluster alias BE_INIT_CLUSTER pattern op (_,_,_,_)
+operator be_init alias BE_INIT pattern op (_,_,_,_,_,_)
+operator be_init_cluster alias BE_INIT_CLUSTER pattern op (_,_,_,_,_,_)
 
 operator be_shutdown alias BE_SHUTDOWN pattern op ()
 operator be_shutdown_cluster alias BE_SHUTDOWN_CLUSTER pattern op ()

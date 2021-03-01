@@ -36,16 +36,25 @@ class ConnectionGeneric {
 
     public:
 
-    virtual ~ConnectionGeneric() {}
+    ConnectionGeneric(const std::string &_dbUser, const std::string &_dbPass, 
+       const int _dbPort, const std::string &_dbName) : dbUser(_dbUser),
+       dbPass(_dbPass), dbPort(_dbPort), dbName(_dbName) {
 
-    virtual bool sendCommand(const std::string &command, bool print = true) = 0;
+    }
+
+    virtual ~ConnectionGeneric() {
+
+    }
+
+    virtual std::string getDbType() = 0;
+
+    virtual bool createConnection() = 0;
 
     virtual bool checkConnection() = 0;
 
-    virtual std::string getCreateTableSQL(const std::string &tab) = 0;
+    virtual bool sendCommand(const std::string &command, bool print = true) = 0;
 
-    virtual std::string getInitSecondoCMD(const std::string &dbname, 
-        const std::string &port, const std::string &workerRelation) = 0;
+    virtual std::string getCreateTableSQL(const std::string &tab) = 0;
 
     virtual std::string getDropTableSQL(const std::string &table) = 0;
 
@@ -98,9 +107,77 @@ class ConnectionGeneric {
     virtual ResultIteratorGeneric* performSQLSelectQuery(
         const std::string &sqlQuery) = 0;
 
-    virtual std::string getDatabaseName() = 0;
+    /*
+    5.2.1 ~dbUser~
 
-    virtual int getDatabasePort() = 0;
+    The username for the database connection
+
+    */
+    std::string dbUser;
+
+    /*
+    5.2.2 ~dbPass~
+
+    The password of the postgress connection
+
+    */
+    std::string dbPass;
+
+    /*
+    5.2.3 ~port~
+
+    The port of the database
+
+    */
+    int dbPort;
+
+    /*
+    5.2.4 ~dbname~
+
+    The Name of the Database.
+
+    */
+    std::string dbName;
+
+    /*
+    5.3 Private Methods
+
+    5.3.1 ~getDbPort~ Return the Port of the database
+
+    */
+    int getDbPort() {
+        return dbPort;
+    }
+
+    /*
+    5.3.2 ~getDbName~
+
+    Return the name of the database.
+
+    */
+    std::string getDbName() {
+        return dbName;
+    }
+
+    /*
+    5.3.3 ~getDbUser~
+
+    Return the user of the database.
+
+    */
+    std::string getDbUser() {
+        return dbUser;
+    }
+
+    /*
+    5.3.4 ~getDbPass~
+
+    Return the password of the database.
+
+    */
+    std::string getDbPass() {
+        return dbPass;
+    }
 };
 
 

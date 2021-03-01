@@ -3,14 +3,14 @@ Restore   : No
 
 Operator  : be_init
 Number    : 1
-Signature : int x {string, text} x relation --> bool
-Example   : query be_init("pgsql", 5432, "gisdb", WorkersPG)
+Signature : int x {string, text} x {string, text} x {string, text} x relation --> bool
+Example   : query be_init("pgsql", "user", "pass", 5432, "gisdb", WorkersPG)
 Result    : FALSE
 
 Operator  : be_init_cluster
 Number    : 1
-Signature : int x {string, text} x relation --> bool
-Example   : query be_init_cluster("pgsql", 5432, "gisdb", WorkersPG)
+Signature : int x {string, text} x {string, text} x {string, text} x relation --> bool
+Example   : query be_init_cluster("pgsql", "user", "pass", 5432, "gisdb", WorkersPG)
 Result    : FALSE
 
 Operator  : be_shutdown

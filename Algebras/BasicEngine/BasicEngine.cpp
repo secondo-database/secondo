@@ -98,20 +98,32 @@ of the operation.
 1.1.2 Generic database connection factory
 
 */
-ConnectionGeneric* getDatabaseConnection(string dbtype, 
-     int port, string database) {
+ConnectionGeneric* getAndInitDatabaseConnection(const string &dbType, 
+     const string &dbUser, const string &dbPass, 
+     const int dbPort, const string &dbName) {
+
+    ConnectionGeneric* connection = nullptr;
 
     // Postgres
-    if(string("pgsql").compare(dbtype) == 0) {
-      return new ConnectionPG(port, database);
+    if(ConnectionPG::DBTYPE == dbType) {
+      connection = new ConnectionPG(dbUser, dbPass, dbPort, dbName);
     } 
 
     // New databases can be added here
 
-    cerr << endl << "Error: Unsupported database type: " 
-        << dbtype << endl;
-    
-    return nullptr;
+    if(connection == nullptr) {
+      BOOST_LOG_TRIVIAL(error) << "Unsupported database type: " << dbType;
+      return nullptr;
+    }
+
+    bool connectionResult = connection->createConnection();
+
+    if(! connectionResult) {
+      BOOST_LOG_TRIVIAL(error) << "Unable to establish database connection ";
+      return nullptr;
+    }
+
+    return connection;
 }
 
 /*
@@ -1353,41 +1365,56 @@ This operator gets a hostname,a port and a Worker relation.
 */
 ListExpr be_init_cluster_tm(ListExpr args) {
 
-  string err = "\n {string, text} x int x {string, text} x rel "
-       "--> bool (type, port, db-name, worker relation) expected";
+  string err = "\n {string, text} x {string, text} x {string, text} "
+       "x int x {string, text} x rel "
+       "--> bool (db-type, db-user, db-pass, port, db-name,"
+       " worker relation) expected";
 
   // Example
-  // ((text 'pgsql') (int 50506) (text 'mydb') 
+  // ((text 'pgsql') (text 'user')  (text 'pass') (int 50506) (text 'mydb') 
   //  ((rel (tuple ((Host string) (Port int) (Config string) 
   //  (PGPort int) (DBName string)))) WorkersPG))
 
-  if(!(nl->HasLength(args,4))){
-    return listutils::typeError("Four arguments expected. " + err);
+  if(!(nl->HasLength(args, 6))){
+    return listutils::typeError("Six arguments expected. " + err);
   }
 
   ListExpr dbType = nl->First(nl->First(args));
-  ListExpr dbPort = nl->First(nl->Second(args));
-  ListExpr dbName = nl->First(nl->Third(args));
-  ListExpr relation = nl->First(nl->Fourth(args));
-  string relationName = nl->ToString(nl->Second(nl->Fourth(args)));
+  ListExpr dbUser = nl->First(nl->Second(args));
+  ListExpr dbPass = nl->First(nl->Third(args));
+  ListExpr dbPort = nl->First(nl->Fourth(args));
+  ListExpr dbName = nl->First(nl->Fifth(args));
+  ListExpr relation = nl->First(nl->Sixth(args));
+
+  string relationName = nl->ToString(nl->Second(nl->Sixth(args)));
 
   if(!CcString::checkType(dbType) && !FText::checkType(dbType)) {
     return listutils::typeError("Value of first argument have "
         "to be a string or a text. " + err);
   }
 
-  if(!CcInt::checkType(dbPort)) {
+  if(!CcString::checkType(dbUser) && !FText::checkType(dbUser)) {
     return listutils::typeError("Value of second argument have "
-        "to be a int." + err);
+        "to be a string or a text. " + err);
   }
 
-  if(!CcString::checkType(dbName) && !FText::checkType(dbName)) {
+  if(!CcString::checkType(dbPass) && !FText::checkType(dbPass)) {
     return listutils::typeError("Value of third argument have "
         "to be a string or a text. " + err);
   }
 
-  if(!Relation::checkType(relation)){
+  if(!CcInt::checkType(dbPort)) {
     return listutils::typeError("Value of fourth argument have "
+        "to be a int." + err);
+  }
+
+  if(!CcString::checkType(dbName) && !FText::checkType(dbName)) {
+    return listutils::typeError("Value of fifth argument have "
+        "to be a string or a text. " + err);
+  }
+
+  if(!Relation::checkType(relation)){
+    return listutils::typeError("Value of sixth argument have "
         "to be a relation." + err);
   }
 
@@ -1411,10 +1438,12 @@ int init_be_workerSFVM(Word* args, Word& result, int message,
      Word& local, Supplier s ) {
 
   T* dbtype = (T*) args[0].addr;
-  CcInt* port = (CcInt*) args[1].addr;
-  T* dbname = (T*) args[2].addr;
-  Relation* worker = (Relation*) args[3].addr;
-  FText* workerRelationName = (FText*) args[4].addr;
+  T* dbUser = (T*) args[1].addr;
+  T* dbPass = (T*) args[2].addr;
+  CcInt* port = (CcInt*) args[3].addr;
+  T* dbname = (T*) args[4].addr;
+  Relation* worker = (Relation*) args[5].addr;
+  FText* workerRelationName = (FText*) args[6].addr;
 
   result = qp->ResultStorage(s);
 
@@ -1423,6 +1452,24 @@ int init_be_workerSFVM(Word* args, Word& result, int message,
       << "Please shutdown first, using be_shutdown_cluster()."
       << endl << endl;
 
+    ((CcBool*) result.addr)->Set(true, false);
+    return 0;
+  }
+
+  if(! dbtype->IsDefined()) {
+    cerr << "Error: Database type is undefined" << endl;
+    ((CcBool*) result.addr)->Set(true, false);
+    return 0;
+  }
+
+  if(! dbUser->IsDefined()) {
+    cerr << "Error: DBUser is undefined" << endl;
+    ((CcBool*) result.addr)->Set(true, false);
+    return 0;
+  }
+
+  if(! dbPass->IsDefined()) {
+    cerr << "Error: DBPass is undefined" << endl;
     ((CcBool*) result.addr)->Set(true, false);
     return 0;
   }
@@ -1439,25 +1486,21 @@ int init_be_workerSFVM(Word* args, Word& result, int message,
     return 0;
   }
 
-  if(! dbtype->IsDefined()) {
-    cerr << "Error: Database type is undefined" << endl;
-    ((CcBool*) result.addr)->Set(true, false);
-    return 0;
-  }
-
   if(! workerRelationName->IsDefined()) {
     cerr << "Error: Worker relation name is undefined" << endl;
     ((CcBool*) result.addr)->Set(true, false);
     return 0;
   }
 
+  string dbUserValue = dbUser->toText();
+  string dbPassValue = dbPass->toText();
   int portValue = port->GetIntval();
-  string dbnameValue = dbname->toText();
-  string dbtypeValue = dbtype->toText();
+  string dbNameValue = dbname->toText();
+  string dbTypeValue = dbtype->toText();
   string workerRelationNameValue = workerRelationName->toText();
   
-  ConnectionGeneric* dbConnection = getDatabaseConnection(
-      dbtypeValue, portValue, dbnameValue);
+  ConnectionGeneric* dbConnection = getAndInitDatabaseConnection(
+      dbTypeValue, dbUserValue, dbPassValue, portValue, dbNameValue);
 
   if(dbConnection != nullptr) {
     be_control = new BasicEngine_Control(dbConnection, worker, 
@@ -1469,24 +1512,26 @@ int init_be_workerSFVM(Word* args, Word& result, int message,
       cerr << "Error: Connection error, please check the previous messages"
            << " for error messages." << endl << endl;
       ((CcBool*) result.addr)->Set(true, false);
+      return 0;
     }
 
     bool connectionsAvailable = be_control->checkAllConnections();
 
     if(! connectionsAvailable) {
-      cerr << "Error: Connection error, please check the previous messages"
-           << " for error messages." << endl << endl;
+      cerr << "Error: Not all connections available, please check the"
+           << " previous messages for error messages." << endl << endl;
       ((CcBool*) result.addr)->Set(true, false);
-    } else {
-      ((CcBool*) result.addr)->Set(true, true);
-    }
+      return 0;
+    } 
 
-  } else {
-    cerr << endl << "Error: Unsupported database type: " 
-         << dbtype->toText() << endl;
-    ((CcBool*) result.addr)->Set(false, false);
-  }
+    ((CcBool*) result.addr)->Set(true, true);
+    return 0;
+  } 
 
+  cerr << endl << "Error: Unsupported database type: " 
+        << dbtype->toText() << endl;
+  ((CcBool*) result.addr)->Set(false, false);
+  
   return 0;
 }
 
@@ -1495,14 +1540,15 @@ int init_be_workerSFVM(Word* args, Word& result, int message,
 
 */
 OperatorSpec be_init_cluster_spec (
-   "{string, text} x int x {string, text} x rel --> bool",
-   "be_init_cluster(_,_,_,_)",
-   "Set the dbtype, port and the db-name for initialization the local "
-   "BE-Worker. Additional you have to specified a Workers-Relation with all "
-   "connection information from the worker, including the information "
+   "{string, text} x {string, text}  x {string, text} "
+      "x int x {string, text} x rel --> bool",
+   "be_init_cluster(_,_,_,_,_,_)",
+   "Set the dbtype, user, pass, port and the db-name for initialization the "
+   "local BE-Worker. Additional you have to specified a Workers-Relation with "
+   "all connection information from the worker, including the information "
    "about the second DBMS. The structure of this relation should be "
    "[Host: string, Port: int, Config: string, PGPort: int, DBName: string]",
-   "query be_init_cluster('pgsql',5432,'gisdb',WorkersPG)"
+   "query be_init_cluster('pgsql','user','pass',5432,'gisdb',WorkersPG)"
 );
 
 /*
@@ -1545,31 +1591,82 @@ int be_init_sf_vm(Word* args, Word& result, int message,
         Word& local, Supplier s) {
   
   T* dbtype = (T*) args[0].addr;
-  CcInt* port = (CcInt*) args[1].addr;
-  T* dbname = (T*) args[2].addr;
-  Relation* worker = (Relation*) args[3].addr; 
-  FText* workerRelationName = (FText*) args[4].addr; 
+  T* dbUser = (T*) args[1].addr;
+  T* dbPass = (T*) args[2].addr;
+  CcInt* port = (CcInt*) args[3].addr;
+  T* dbname = (T*) args[4].addr;
+  Relation* worker = (Relation*) args[5].addr;
+  FText* workerRelationName = (FText*) args[6].addr;
 
   result = qp->ResultStorage(s);
 
+  if(be_control != nullptr) {
+    cerr << "Error: Basic engine is already initialized. "
+      << "Please shutdown first, using be_shutdown_cluster()."
+      << endl << endl;
+
+    ((CcBool*) result.addr)->Set(true, false);
+    return 0;
+  }
+
+  if(! dbtype->IsDefined()) {
+    cerr << "Error: Database type is undefined" << endl;
+    ((CcBool*) result.addr)->Set(true, false);
+    return 0;
+  }
+
+  if(! dbUser->IsDefined()) {
+    cerr << "Error: DBUser is undefined" << endl;
+    ((CcBool*) result.addr)->Set(true, false);
+    return 0;
+  }
+
+  if(! dbPass->IsDefined()) {
+    cerr << "Error: DBPass is undefined" << endl;
+    ((CcBool*) result.addr)->Set(true, false);
+    return 0;
+  }
+
+  if(! port->IsDefined()) {
+    cerr << "Error: Port is undefined" << endl;
+    ((CcBool*) result.addr)->Set(true, false);
+    return 0;
+  }
+  
+  if(! dbname->IsDefined()) {
+    cerr << "Error: DBName is undefined" << endl;
+    ((CcBool*) result.addr)->Set(true, false);
+    return 0;
+  }
+
+  if(! workerRelationName->IsDefined()) {
+    cerr << "Error: Worker relation name is undefined" << endl;
+    ((CcBool*) result.addr)->Set(true, false);
+    return 0;
+  }
+
+  string dbUserValue = dbUser->toText();
+  string dbPassValue = dbPass->toText();
   int portValue = port->GetIntval();
-  string dbnameValue = dbname->toText();
-  string dbtypeValue = dbtype->toText();
+  string dbNameValue = dbname->toText();
+  string dbTypeValue = dbtype->toText();
   string workerRelationNameValue = workerRelationName->toText();
 
-  ConnectionGeneric* dbConnection = getDatabaseConnection(
-      dbtypeValue, portValue, dbnameValue);
+  ConnectionGeneric* dbConnection = getAndInitDatabaseConnection(
+      dbTypeValue, dbUserValue, dbPassValue, portValue, dbNameValue);
 
   if(dbConnection != nullptr) {
     be_control = new BasicEngine_Control(dbConnection, worker, 
       workerRelationNameValue, false);
+
       bool connectionState = dbConnection->checkConnection();
       ((CcBool*)result.addr)->Set(true, connectionState);
-  } else {
-    cerr << endl << "Error: Unsupported database type: " 
-         << dbtype->toText() << endl;
-    ((CcBool*)result.addr)->Set(false, false);
-  }
+      return 0;
+  } 
+
+  cerr << endl << "Error: Unsupported database type: " 
+        << dbtype->toText() << endl;
+  ((CcBool*)result.addr)->Set(false, false);
 
   return 0;
 }
@@ -1580,13 +1677,14 @@ int be_init_sf_vm(Word* args, Word& result, int message,
 
 */
 OperatorSpec init_be_spec (
-   "{string, text} x int x {string, text} --> bool",
-   "be_init(_,_,_)",
-   "Set the db-type, port and the db-name for initialization "
+   "{string, text} x {string, text} x {string, text} x "
+      "int x {string, text} --> bool",
+   "be_init(_,_,_,_,_)",
+   "Set the db-type, user, pass, port and the db-name for initialization "
    "the local BE-Worker. Your username and password have to be stored "
    "in the .pgpass file in your home location. For creating a distributed "
    "PostgreSQL-System please use the operator be_init_cluster.",
-   "query be_init('pgsql', 5432,'gisdb')"
+   "query be_init('pgsql','user','pass',5432,'gisdb')"
 );
 
 /*
