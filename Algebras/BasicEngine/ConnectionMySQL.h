@@ -37,7 +37,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "WinUnix.h"
 
 #include "ConnectionGeneric.h"
-#include "ResultIteratorPostgres.h"
+#include "ResultIteratorMySQL.h"
 
 #include <string>
 #include <boost/log/trivial.hpp>
@@ -146,8 +146,6 @@ class ConnectionMySQL : public ConnectionGeneric {
 
   bool getTypeFromSQLQuery(const std::string &sqlQuery, ListExpr &resultList);
 
-  bool getTypeFromQuery(const PGresult* res, ListExpr &resultList);
-
   ResultIteratorGeneric* performSQLSelectQuery(const std::string &sqlQuery);
 
   // The DB Type
@@ -165,7 +163,9 @@ class ConnectionMySQL : public ConnectionGeneric {
   */
   MYSQL* conn = nullptr;
 
-  PGresult* sendQuery(const std::string &query);
+  bool getTypeFromQuery(const MYSQL_RES* res, ListExpr &resultList);
+
+  MYSQL_RES* sendQuery(const std::string &query);
 
 };
 

@@ -157,8 +157,6 @@ class ConnectionPG : public ConnectionGeneric {
 
   bool getTypeFromSQLQuery(const std::string &sqlQuery, ListExpr &resultList);
 
-  bool getTypeFromQuery(const PGresult* res, ListExpr &resultList);
-
   ResultIteratorGeneric* performSQLSelectQuery(const std::string &sqlQuery);
 
   // The DB Type
@@ -177,6 +175,8 @@ class ConnectionPG : public ConnectionGeneric {
   PGconn* conn = nullptr;
 
   PGresult* sendQuery(const std::string &query);
+
+  bool getTypeFromQuery(const PGresult* res, ListExpr &resultList);
 
   bool createFunctionRandom(const std::string &table, 
     const std::string &key, const std::string &numberOfWorker, 

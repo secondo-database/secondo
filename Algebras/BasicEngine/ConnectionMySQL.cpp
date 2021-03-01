@@ -191,7 +191,7 @@ bool ConnectionMySQL::getTypeFromSQLQuery(const std::string &sqlQuery,
 6.13 ~getTypeFromQuery~
 
 */
-bool ConnectionMySQL::getTypeFromQuery(const PGresult* res, 
+bool ConnectionMySQL::getTypeFromQuery(const MYSQL_RES* res, 
     ListExpr &resultList) {
 
     // TODO
