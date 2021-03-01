@@ -171,11 +171,6 @@ Shutdown all connections
 
 */
 void BasicEngine_Control::shutdownAllConnections() {
-  // Delete importer
-  for(const BasicEngine_Thread* basic_engine_thread: importer) {
-    delete basic_engine_thread;
-  }
-  importer.clear();
 
   // Delete connections
   for(distributed2::ConnectionInfo* ci: connections) {
@@ -332,8 +327,6 @@ bool BasicEngine_Control::createAllConnections(){
 
     if (ci != nullptr) {
       connections.push_back(ci);
-      BasicEngine_Thread* basicEngineThread = new BasicEngine_Thread(ci);
-      importer.push_back(basicEngineThread);
     }
   }
 
@@ -722,16 +715,25 @@ bool BasicEngine_Control::exportToWorker(const string &sourceTable,
 
   if(val){
     //doing the import with one thread for each worker
-    for(size_t i=0;i<importer.size();i++){
+    vector<std::future<bool>> futures;
+    int i = 0;
+
+    for(distributed2::ConnectionInfo* ci : connections) {
       string strindex = to_string(i+1);
       string remoteName = getFilenameForPartition(sourceTable, strindex);
-      importer[i]->startImport(
-        destinationTable, remoteCreateName, remoteName, exportSchema);
+
+      std::future<bool> asyncResult = std::async(
+      &BasicEngine_Control::performImport, 
+      this, ci, destinationTable, remoteCreateName, remoteName, exportSchema);
+
+      futures.push_back(std::move(asyncResult));
+
+      i++;
     }
 
     //waiting for finishing the threads
-    for(size_t i=0;i<importer.size();i++){
-      val = importer[i]->getResult() && val;
+    for(std::future<bool> &future : futures) {
+      val = future.get() && val;
     }
   } 
 
@@ -942,30 +944,39 @@ The master imports them into the local db.
 Returns true if everything is OK and there are no failure.
 
 */
-bool BasicEngine_Control::munion(const string &tab) {
+bool BasicEngine_Control::munion(const string &table) {
 
   bool val = true;
-  string path;
-  string strindex;
+  int i = 0;
+  vector<std::future<bool>> futures;
 
   //doing the export with one thread for each worker
-  for(size_t i=0; i<importer.size(); i++) {
-    strindex = to_string(i+1);
-    path = getFilePath() + getFilenameForPartition(tab, strindex);
+  for(distributed2::ConnectionInfo* ci : connections) {
 
-    importer[i]->startExport(tab, path, strindex,
-             getCreateTableSQLName(tab),
-             getFilenameForPartition(tab, strindex));
+    string strindex = to_string(i+1);
+    string path = getFilePath() + getFilenameForPartition(table, strindex);
+
+    string tableName = getCreateTableSQLName(table);
+    string filename = getFilenameForPartition(table, strindex);
+
+    std::future<bool> asyncResult = std::async(
+      &BasicEngine_Control::performExport, 
+      this, ci, table, path, strindex, tableName, filename);
+        
+    futures.push_back(std::move(asyncResult));
+
+    i++;
   }
 
   //waiting for finishing the threads
-  for(size_t i=0; i<importer.size(); i++){
-    val = importer[i]->getResult() && val;
+  for(std::future<bool> &future : futures) {
+    val = future.get() && val;
   }
 
   //import in local PG-Master
   if(val) {
-    val = importData(tab);
+    BOOST_LOG_TRIVIAL(debug) << "Starting data import on master";
+    val = importData(table);
   }
 
   return val;
@@ -980,18 +991,23 @@ Returns true if everything is OK and there are no failure.
 
 */
 bool BasicEngine_Control::mquery(const string &query,
-                    const string &tab) {
+                    const string &table) {
                 
   bool val = true;
+  vector<std::future<bool>> futures;
 
   //doing the query with one thread for each worker
-  for(size_t i=0;i<importer.size();i++){
-    importer[i]->startBEQuery(tab,query);
+  for(distributed2::ConnectionInfo* ci : connections) {
+    std::future<bool> asyncResult = std::async(
+    &BasicEngine_Control::performBEQuery, 
+    this, ci, table, query);
+        
+    futures.push_back(std::move(asyncResult));
   }
 
   //waiting for finishing the threads
-  for(size_t i=0;i<importer.size();i++){
-    val = importer[i]->getResult() && val;
+  for(std::future<bool> &future : futures) {
+    val = future.get() && val;
   }
 
   return val;
@@ -1006,19 +1022,24 @@ Returns true if everything is OK and there are no failure.
 */
 bool BasicEngine_Control::mcommand(const string &query) {
 
- bool val = true;
+  bool val = true;
+  vector<std::future<bool>> futures;
 
- //doing the command with one thread for each worker
- for(size_t i=0;i<importer.size();i++){
-   importer[i]->startBECommand(query);
- }
+  //doing the command with one thread for each worker
+  for(distributed2::ConnectionInfo* ci : connections) {
+    std::future<bool> asyncResult = std::async(
+    &BasicEngine_Control::performBECommand, 
+    this, ci, query);
+        
+    futures.push_back(std::move(asyncResult));
+  }
 
- //waiting for finishing the threads
- for(size_t i=0;i<importer.size();i++){
-   val = importer[i]->getResult() && val;
- }
+  //waiting for finishing the threads
+  for(std::future<bool> &future : futures) {
+    val = future.get() && val;
+  }
 
- return val;
+  return val;
 }
 
 /*
@@ -1030,19 +1051,24 @@ Returns true if everything is OK and there are no failure.
 */
 bool BasicEngine_Control::msecondocommand(const string &query) {
 
- bool val = true;
+  bool val = true;
+  vector<std::future<bool>> futures;
+ 
+  //doing the command with one thread for each worker
+  for(distributed2::ConnectionInfo* ci : connections) {
+    std::future<bool> asyncResult = std::async(
+    &BasicEngine_Control::performSimpleSecondoCommand, 
+    this, ci, query);
+        
+    futures.push_back(std::move(asyncResult));
+  }
 
- //doing the command with one thread for each worker
- for(size_t i=0;i<importer.size();i++){
-   importer[i]->startSecondoCommand(query);
- }
+  //waiting for finishing the threads
+  for(std::future<bool> &future : futures) {
+    val = future.get() && val;
+  }
 
- //waiting for finishing the threads
- for(size_t i=0;i<importer.size();i++){
-   val = importer[i]->getResult() && val;
- }
-
- return val;
+  return val;
 }
 
 /*
@@ -1056,8 +1082,8 @@ bool BasicEngine_Control::shutdownWorker() {
    bool result = true;
    string shutdownCommand("query be_shutdown()");
 
-   for(BasicEngine_Thread* remote : importer) {
-     result = result && remote->simpleCommand(shutdownCommand);
+   for(distributed2::ConnectionInfo* ci : connections) {
+     result = result && performSimpleSecondoCommand(ci, shutdownCommand);
    }
 
    return result;
@@ -1182,7 +1208,7 @@ Get the SECONDO type for the given SQL query.
 
 
 /*
-3.21 ~getTypeFromSQLQuery~
+3.22 ~getTypeFromSQLQuery~
 
 Get the SECONDO type for the given SQL query.
 
@@ -1195,7 +1221,7 @@ Get the SECONDO type for the given SQL query.
 
 
 /*
-3.21 ~exportWorkerRelation~
+3.23 ~exportWorkerRelation~
 
 Export the worker relation into a file.
 
@@ -1254,6 +1280,226 @@ string BasicEngine_Control::exportWorkerRelation(
   }
 
   return filename;
+}
+
+
+/*
+3.24 ~performImport~
+
+Starting the data import operation.
+
+*/
+bool BasicEngine_Control::performImport(
+      distributed2::ConnectionInfo* ci,
+      const std::string &table,
+      const std::string &remoteCreateName,
+      const std::string &remoteName,
+      const bool importSchema) {
+
+  std::string importPath;
+  std::string cmd;
+  bool result = true;
+
+  if(importSchema) {
+    importPath =ci->getSendPath() + "/"+ remoteCreateName;
+    cmd = "query be_runsql('"+ importPath + "');";
+    result = performSimpleSecondoCommand(ci, cmd);
+
+    //delete create-file on system
+    cmd = "query removeFile('"+ importPath + "')";
+    if (result) {
+      result = performSimpleSecondoCommand(ci, cmd);
+    }
+  }
+
+  //import data in pg-worker
+  if(result) {
+    importPath = ci->getSendPath() + "/"+ remoteName;
+    cmd = "query be_copy('"+ importPath + "','" + table + "')";
+    result = performSimpleSecondoCommand(ci, cmd);
+  }
+
+  //delete data file on system
+  if(result) {
+    cmd = "query removeFile('"+ importPath + "')";
+    result = performSimpleSecondoCommand(ci, cmd);
+  }
+
+  //cout<<"wait 10sec" << endl;
+  //boost::this_thread::sleep_for(boost::chrono::seconds(10));
+
+  return result;
+}
+
+/*
+3.25 ~performExport~
+
+Perform the data export operation.
+
+*/
+bool BasicEngine_Control::performExport(
+      distributed2::ConnectionInfo* ci,
+      const std::string &table, 
+      const std::string &path, 
+      const std::string &nr,
+      const std::string &remoteCreateName, 
+      const std::string &remoteName) {
+
+
+  std::string from;
+  std::string to;
+  std::string cmd;
+  std::string transfer_path = path.substr(0,path.find(remoteName));
+  bool result = true;
+
+  //export the table structure file
+  if(nr == "1") {
+    //export tab structure
+    cmd = "query be_struct('"+ table + "');";
+    result = performSimpleSecondoCommand(ci, cmd);
+
+    //move the structure-file into the request-folder
+    if(result) {
+      from = transfer_path + remoteCreateName;
+      to = ci->getRequestPath() + "/" + remoteCreateName;
+      cmd ="query moveFile('"+ from + "','" + to +"')";
+      result = performSimpleSecondoCommand(ci, cmd);
+    }
+
+    //sending file to master
+    if(result) {
+      result = (ci->requestFile(remoteCreateName,from,true)==0);
+
+      if(! result) {
+        BOOST_LOG_TRIVIAL(error) 
+          << "Error while requesting struct file"
+          << remoteCreateName << " / " << from;
+      }
+    }
+    
+    //delete create file on system
+    cmd ="query removeFile('"+ to + "')";
+    if(result) {
+      result = performSimpleSecondoCommand(ci, cmd);
+    }
+  }
+
+  //export the date to a file
+  cmd = "query be_copy('"+ table + "','"+ path+"');";
+  if (result) {
+    result = performSimpleSecondoCommand(ci, cmd);
+  }
+
+  //move the data-file to the request-folder
+  to = ci->getRequestPath() + "/" + remoteName;
+  cmd = "query moveFile('"+ path + "','" + to +"')";
+  if(result) {
+    result = performSimpleSecondoCommand(ci, cmd);
+  }
+
+  //sendig the File to the master
+  if(result) {
+    result =(ci->requestFile(remoteName ,
+                          transfer_path + remoteName ,true)==0);
+
+    if(! result) {
+      BOOST_LOG_TRIVIAL(error) 
+          << "Error while requesting export file"
+          << remoteName << " / " << transfer_path + remoteName;
+    }
+  }
+
+  //delete data file on system
+  if(result) {
+    cmd = "query removeFile('"+ to + "')";
+    result = performSimpleSecondoCommand(ci, cmd);
+  }
+
+  return result;
+}
+
+/*
+3.26 ~runBEQuery~
+
+Starting a query at the worker.
+
+*/
+bool BasicEngine_Control::performBEQuery(
+      distributed2::ConnectionInfo* ci,
+      const std::string &table, 
+      const std::string &query) {
+  
+  std::string escapedQuery(query);
+
+  boost::replace_all(escapedQuery, "'", "\\'");
+
+  //run the query
+  std::string cmd = "query be_query('"
+         "" + escapedQuery + "','"
+         "" + table + "');";
+
+  return performSimpleSecondoCommand(ci, cmd);
+}
+
+/*
+3.27 ~runBECommand~
+
+Starting a command at the worker.
+
+*/
+bool BasicEngine_Control::performBECommand(
+      distributed2::ConnectionInfo* ci,
+      const std::string &command) {
+
+  std::string escapedCommand(command);
+
+  //run the command
+  boost::replace_all(escapedCommand, "'", "\\'");
+  std::string cmd = "query be_command('" + escapedCommand + "');";
+
+  return performSimpleSecondoCommand(ci, cmd);
+}
+
+/*
+3.28 ~simpleCommand~
+
+Execute a command or query on the worker.
+
+Returns true if everything is OK and there are no failure.
+Displays an error massage if something goes wrong.
+
+*/
+bool BasicEngine_Control::performSimpleSecondoCommand(
+      distributed2::ConnectionInfo* ci, const std::string &command) {
+  
+  int err = 0;
+  double rt;
+  const int defaultTimeout = 0;
+  distributed2::CommandLog CommandLog;
+  std::string res;
+
+  ci->simpleCommand(command, err, res, false, rt, false,
+                    CommandLog, true, defaultTimeout);
+  
+  if(err != 0){
+    BOOST_LOG_TRIVIAL(error)
+        << "Got error from server: " 
+        << ci->getHost() << ":" << ci->getPort() << " "
+        << err << res << " command was: " << command;
+    return false;
+  }
+
+  bool resultOk = (res == "(bool TRUE)");
+
+  if(! resultOk) {
+    BOOST_LOG_TRIVIAL(error)
+        << "Got unexpected result from server: " 
+        << ci->getHost() << ":" << ci->getPort() << " "
+        << res << " command was: " << command;
+    return false;
+  }
+
+  return true;
 }
 
 

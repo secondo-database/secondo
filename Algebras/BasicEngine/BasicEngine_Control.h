@@ -38,9 +38,12 @@ Version 1.0 - Created - C.Behrndt - 2020
 
 #include <optional>
 #include <memory>
+#include <future>
+
 #include <boost/log/trivial.hpp>
+#include <boost/algorithm/string.hpp>
 #include "Algebras/Relation-C++/RelationAlgebra.h"
-#include "BasicEngine_Thread.h"
+#include "Algebras/Distributed2/ConnectionInfo.h"
 #include "ConnectionGeneric.h"
 #include "ResultIteratorGeneric.h"
 #include "StandardTypes.h"
@@ -169,6 +172,29 @@ public:
 
   void shutdownAllConnections();
 
+  bool performImport(distributed2::ConnectionInfo* ci,
+        const std::string &table,
+        const std::string &remoteCreateName,
+        const std::string &remoteName,
+        const bool importSchema);
+
+  bool performExport(distributed2::ConnectionInfo* ci,
+        const std::string &table, 
+        const std::string &path, 
+        const std::string &nr,
+        const std::string &remoteCreateName, 
+        const std::string &remoteName);
+
+  bool performBEQuery(distributed2::ConnectionInfo* ci,
+        const std::string &table, 
+        const std::string &query);
+
+  bool performBECommand(distributed2::ConnectionInfo* ci,
+        const std::string &command);
+
+  bool performSimpleSecondoCommand(distributed2::ConnectionInfo* ci,
+        const std::string &command);
+
   static const size_t defaultTimeout = 0;
 
   static const int defaultHeartbeat = 0;
@@ -210,16 +236,7 @@ In this vector all connection to the worker are stored.
 std::vector<distributed2::ConnectionInfo*> connections;
 
 /*
-2.2.5 ~importer~
-
-In this vector all informations for starting the thread
-are stored.
-
-*/
-std::vector<BasicEngine_Thread*> importer;
-
-/*
-2.2.7 master is a variable which shows, if this system is a master (true)
+2.2.5 master is a variable which shows, if this system is a master (true)
 or a worker(false).
 
 */
@@ -230,8 +247,6 @@ bool master = false;
 2.3 Private Methods
 
 */
-
-
 distributed2::ConnectionInfo* createAndInitConnection(
   const RemoteConnectionInfo* remoteConnectionInfo,
   const std::optional<std::string> &workerRelationFileName);
