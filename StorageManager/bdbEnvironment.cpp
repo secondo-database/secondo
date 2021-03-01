@@ -439,19 +439,38 @@ bool SmiEnvironment::Implementation::SetFileId(SmiFileId id,
 
   DbTxn* tid = 0;
   db_recno_t seqno = SMI_SEQUENCE_FILEID;
-  Dbt key( &seqno, sizeof(seqno) );
-  Dbt data;
-
-  data.set_flags( DB_DBT_USERMEM );
-  data.set_data( &id );
-  data.set_ulen( sizeof( SmiFileId ) );
 
   if ( useTransactions ) {
      rc = dbenv->txn_begin( 0, &tid, 0 );
      SetBDBError(rc);
   }
 
+  Dbt key( &seqno, sizeof(seqno) );
+  Dbt data( &id, sizeof(id) );
+
   if ( rc == 0 ) {
+    /* 
+    The following code reads the currently stored SmiFileId value 
+    for debugging purposes. 
+    
+    WARNING: Reading the old value (in the provided implementation)
+             can cause deadlocks!
+
+    The code requests a read lock in the dbseq->get operation and 
+    tries to upgrade this lock into a write lock in the 
+    dbseq->put operation. 
+    
+    A concurrent transaction can execute the same operation; this 
+    might result in a deadlock when two clients want to open the 
+    same database.
+    */ 
+    /*
+      Dbt data;
+
+      data.set_flags( DB_DBT_USERMEM );
+      data.set_data( &id );
+      data.set_ulen( sizeof( SmiFileId ) );
+
       SmiFileId sid =0;
       data.set_data(&sid);
       if((rc=dbseq->get(tid,&key,&data,0))!=0){
@@ -462,12 +481,14 @@ bool SmiEnvironment::Implementation::SetFileId(SmiFileId id,
         }
         return false;
       } else {
-        //cout << "stored value is " << sid << endl;
-        //cout << "change to       " << id << endl;
-        ;
+        cout << "stored value is " << sid << endl;
+        cout << "change to       " << id << endl;
       }
       sid = id; 
+      */
+
       rc = dbseq->put( tid, &key, &data, 0 );
+
       if ( rc == 0 ) {
         if ( useTransactions ) {
             rc = tid->commit( 0 );
