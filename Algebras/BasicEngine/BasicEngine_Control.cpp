@@ -115,10 +115,11 @@ ConnectionInfo* BasicEngine_Control::createConnection(
       BasicEngine_Control::defaultHeartbeat);
 
   if (ci == nullptr) {  
-    cout << "Couldn't connect to secondo-Worker on host "
-         << remoteConnection->host  
-         << " with port " << remoteConnection->port << "!" 
-         << endl << endl;
+    BOOST_LOG_TRIVIAL(error) 
+        << "Couldn't connect to secondo-Worker on host "
+        << remoteConnection->host  
+        << " with port " << remoteConnection->port << "!";
+
     return nullptr;
   } 
   
@@ -126,11 +127,11 @@ ConnectionInfo* BasicEngine_Control::createConnection(
     true, false, true, BasicEngine_Control::defaultTimeout);
 
   if(! switchResult) { 
-    cerr << "Unable to switch to database " << remoteConnection->dbName
-          << " on host " << remoteConnection->host 
-          << " with port " << remoteConnection->port << "!" 
-          << endl << endl;
-    
+    BOOST_LOG_TRIVIAL(error) 
+        << "Unable to switch to database " << remoteConnection->dbName
+        << " on host " << remoteConnection->host 
+        << " with port " << remoteConnection->port << "!";
+
     ci->deleteIfAllowed();
     return nullptr;
   }
@@ -246,8 +247,8 @@ bool BasicEngine_Control::exportWorkerRelationToWorker(ConnectionInfo* ci,
   const optional<string> &workerRelationFileName) {
 
       if(! workerRelationFileName.has_value()) {
-          cerr << "We are in master mode, but worker relation is not exported" 
-               << endl;
+          BOOST_LOG_TRIVIAL(error) 
+            << "We are in master mode, but worker relation is not exported";
           return false;
         }
 
@@ -412,11 +413,12 @@ bool BasicEngine_Control::getCreateTableSQL(const string &tab) {
       write.close();
       val = write.good();
     } else { 
-      cout << "Couldn't write file into " + getFilePath() + ""
-      ". Please check the folder and permissions." << endl;
+      BOOST_LOG_TRIVIAL(error) 
+        << "Couldn't write file into "<< getFilePath() 
+        << ". Please check the folder and permissions.";
     }
   } else { 
-     cout << "Table " + tab + " not found." << endl;
+     BOOST_LOG_TRIVIAL(error) << "Table " << tab << " not found.";
   }
 
    return val;
@@ -666,8 +668,8 @@ bool BasicEngine_Control::exportToWorker(const string &sourceTable,
   for(size_t index = 0; index < remoteConnectionInfos.size(); index++){
 
     if (! connections[index]) {
-      cout << endl << "Error: connection " << index 
-        << " does not exists " << endl << endl;
+      BOOST_LOG_TRIVIAL(error) 
+        << "connection " << index << " does not exists ";
       return false;
     } else {
       si = connections[index]->getInterface();
@@ -681,7 +683,7 @@ bool BasicEngine_Control::exportToWorker(const string &sourceTable,
       val = (remove(localName.c_str()) == 0) && val;
 
       if (!val) {
-        cout << "\n Couldn't send the data to the worker." << endl;
+        BOOST_LOG_TRIVIAL(error) << "Couldn't send the data to the worker.";
         return val;
       }
 
@@ -690,8 +692,8 @@ bool BasicEngine_Control::exportToWorker(const string &sourceTable,
         val = (si->sendFile(localCreateName, remoteCreateName, true) == 0);
 
         if (!val) {
-          cout << "\n Couldn't send the structure-file "
-              "to the worker." << endl;
+          BOOST_LOG_TRIVIAL(error) 
+            << "Couldn't send the structure-file to the worker.";
           return val;
         }
       }
@@ -726,8 +728,8 @@ bool BasicEngine_Control::exportToWorker(const string &sourceTable,
   } 
 
   if(!val) {
-    cout << endl << "Something goes wrong with the"
-            " import at the worker." << endl;
+    BOOST_LOG_TRIVIAL(error) 
+      << "Something goes wrong with the import at the worker.";
   }
 
   return val;
@@ -897,28 +899,29 @@ bool BasicEngine_Control::partTable(const string &tab, const string &key,
   }
 
   if(!val) {
-    cout << "\n Couldn't partition the table." << endl;
+    BOOST_LOG_TRIVIAL(error) 
+      << "Couldn't partition the table.";
     return val;
   }
 
   val = exportData(tab, key, remoteConnectionInfos.size());
 
   if(!val) {
-    cout << "\n Couldn't export the data from the table." << endl;
+    BOOST_LOG_TRIVIAL(error) << "Couldn't export the data from the table.";
     return val;
   }
 
   val = getCreateTableSQL(tab);
 
   if(!val){
-    cout << "\n Couldn't create the structure-file" << endl;
+    BOOST_LOG_TRIVIAL(error) << "\n Couldn't create the structure-file";
     return val;
   }
 
   val = exportToWorker(tab, tab, true);
 
   if(!val) {
-    cout << "\n Couldn't transfer the data to the worker." << endl;
+    BOOST_LOG_TRIVIAL(error) << "Couldn't transfer the data to the worker.";
   }
 
   return val;
@@ -1136,7 +1139,8 @@ bool BasicEngine_Control::runsql(const string &filepath) {
     }
 
   } else {
-    cout << "Couldn't find the file at path:" + filepath << endl;
+    BOOST_LOG_TRIVIAL(error) 
+      << "Couldn't find the file at path:" + filepath;
     return false;
   }
 
@@ -1312,9 +1316,6 @@ bool BasicEngine_Control::performImport(
     cmd = "query removeFile('"+ importPath + "')";
     result = performSimpleSecondoCommand(ci, cmd);
   }
-
-  //cout<<"wait 10sec" << endl;
-  //boost::this_thread::sleep_for(boost::chrono::seconds(10));
 
   return result;
 }
