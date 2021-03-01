@@ -35,7 +35,6 @@ Version 1.0 - Created - C.Behrndt - 2020
 */
 #include "BasicEngine_Control.h"
 #include "FileSystem.h"
-#include <chrono>
 
 #include <future>
 #include <utility>
@@ -123,18 +122,11 @@ ConnectionInfo* BasicEngine_Control::createConnection(
     return nullptr;
   } 
   
-  auto now = std::chrono::system_clock::now();
-  auto now_mic = std::chrono::time_point_cast<std::chrono::microseconds>(now);
-  long duration = now_mic.time_since_epoch().count();
-  
-  string msString = to_string(duration);
-  string mydbName = "tmpdb" + msString.substr(msString.size() - 8);
-
-  bool switchResult = ci->switchDatabase(mydbName, true, false, true, 
-    BasicEngine_Control::defaultTimeout);
+  bool switchResult = ci->switchDatabase(remoteConnection->dbName, 
+    true, false, true, BasicEngine_Control::defaultTimeout);
 
   if(! switchResult) { 
-    cerr << "Unable to switch to database " << mydbName 
+    cerr << "Unable to switch to database " << remoteConnection->dbName
           << " on host " << remoteConnection->host 
           << " with port " << remoteConnection->port << "!" 
           << endl << endl;
@@ -174,16 +166,8 @@ void BasicEngine_Control::shutdownAllConnections() {
 
   // Delete connections
   for(distributed2::ConnectionInfo* ci: connections) {
-    string activeDB = ci -> getActiveDatabase();
-
-    // Delete temporary databases
-    if(activeDB.rfind("tmpdb", 0) == 0) {
-      executeSecondoCommand(ci, "close database", false);
-      executeSecondoCommand(ci, "delete database " + activeDB, false);
-    }
-
     BOOST_LOG_TRIVIAL(debug) 
-        << "Closed connection to " << ci->getHost() << " / " << ci->getPort();
+        << "Closing connection to " << ci->getHost() << " / " << ci->getPort();
 
     ci->deleteIfAllowed();
   }
@@ -295,14 +279,16 @@ bool BasicEngine_Control::createAllConnections(){
   }
 
   // Share the worker relation with the clients
-  try {
-    string exportedFile = exportWorkerRelation(workerRelationName);
-    workerRelationFileName.emplace(exportedFile); 
-  } catch(std::exception &e) {
-    BOOST_LOG_TRIVIAL(error) 
-      << "Got an exception during export worker relation" 
-      << e.what();
-    return false;
+  if(master) {
+    try {
+      string exportedFile = exportWorkerRelation(workerRelationName);
+      workerRelationFileName.emplace(exportedFile); 
+    } catch(std::exception &e) {
+      BOOST_LOG_TRIVIAL(error) 
+        << "Got an exception during export worker relation" 
+        << e.what();
+      return false;
+    }
   }
 
   vector<std::future<ConnectionInfo*>> connectionFutures;
@@ -360,14 +346,16 @@ ConnectionInfo* BasicEngine_Control::createAndInitConnection(
   }
   
   // Share the worker relation
-  bool exportResult 
-    = exportWorkerRelationToWorker(ci, workerRelationFileName);
+  if(master) {
+    bool exportResult 
+      = exportWorkerRelationToWorker(ci, workerRelationFileName);
 
-  if(! exportResult) {
-    BOOST_LOG_TRIVIAL(error) 
-      << "Error while distributing worker relation to" 
-      << ci -> getHost() << " / " << ci -> getPort();
-    return nullptr;
+    if(! exportResult) {
+      BOOST_LOG_TRIVIAL(error) 
+        << "Error while distributing worker relation to" 
+        << ci -> getHost() << " / " << ci -> getPort();
+      return nullptr;
+    }
   }
 
   // Init basic engine connection on worker
