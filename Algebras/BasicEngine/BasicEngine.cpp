@@ -46,6 +46,7 @@ Version 1.0 - Created - C.Behrndt - 2020
 #include "StandardTypes.h"
 #include "BasicEngine_Control.h"
 #include "ConnectionPostgres.h"
+#include "ConnectionMySQL.h"
 
 using namespace distributed2;
 using namespace std;
@@ -104,12 +105,11 @@ ConnectionGeneric* getAndInitDatabaseConnection(const string &dbType,
 
     ConnectionGeneric* connection = nullptr;
 
-    // Postgres
     if(ConnectionPG::DBTYPE == dbType) {
       connection = new ConnectionPG(dbUser, dbPass, dbPort, dbName);
-    } 
-
-    // New databases can be added here
+    } else if(ConnectionMySQL::DBTYPE == dbType) {
+      connection = new ConnectionMySQL(dbUser, dbPass, dbPort, dbName);
+    }
 
     if(connection == nullptr) {
       BOOST_LOG_TRIVIAL(error) << "Unsupported database type: " << dbType;

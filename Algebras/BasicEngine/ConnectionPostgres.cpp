@@ -60,6 +60,7 @@ ConnectionPG::ConnectionPG(const std::string &_dbUser,
 ConnectionPG::~ConnectionPG() {
   if(conn != nullptr) {
     PQfinish(conn);
+    conn = nullptr;
   }
 }
 
