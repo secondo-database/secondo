@@ -29,13 +29,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "ResultIteratorGeneric.h"
 
-#include "Attribute.h"
-#include "NestedList.h"
-#include "StandardTypes.h"
-#include "Algebra.h"
-
-#include <vector>
-#include <string>
 #include <postgres.h>
 #include <libpq-fe.h>
 #include <catalog/pg_type.h>
@@ -45,65 +38,21 @@ namespace BasicEngine {
    class ResultIteratorPostgres : public ResultIteratorGeneric {
        public:
 
-        ResultIteratorPostgres(PGresult* res, ListExpr type) 
-           : res(res), type(type) {
-            
-            ListExpr numType = nl->Second(
-                SecondoSystem::GetCatalog()->NumericType(type));
+        ResultIteratorPostgres(PGresult* res, ListExpr &type) 
+           : ResultIteratorGeneric(type), res(res) {
 
-            tt = new TupleType(numType);
-            basicTuple = new Tuple(tt);
-
-            // build instances for each type
-            ListExpr attrList = nl->Second(nl->Second(type));
-            while(!nl->IsEmpty(attrList)){
-
-                ListExpr attrType = nl->Second(nl->First(attrList));
-                attrList = nl->Rest(attrList);
-                int algId;
-                int typeId;
-                std::string tname;
-
-                if(! ((SecondoSystem::GetCatalog())->LookUpTypeExpr(attrType,
-                                                    tname, algId, typeId))) {
-                    
-                    std::cerr << "Type: " << nl->ToString(attrType) << endl;
-
-                    std::cerr << "Error: Unable to find attribute in catalog" 
-                         << endl;
-                
-                    totalTuples = 0;
-                }
-
-                Word w = am->CreateObj(algId,typeId)(attrType);
-                instances.push_back(static_cast<Attribute*>(w.addr));
+            if(ready) {
+                totalTuples = PQntuples(res);
+            } else {
+                totalTuples = 0;
             }
-
-            totalTuples = PQntuples(res);
-            // cout << "Total Tuples are " << totalTuples << endl;
         }
 
         virtual ~ResultIteratorPostgres() {
-            if(tt != nullptr) {
-                tt -> DeleteIfAllowed();
-                tt = nullptr;
-            }
-
-            if(basicTuple != nullptr) {
-                basicTuple -> DeleteIfAllowed();
-                basicTuple = nullptr;
-            }
-
             if(res != nullptr) {
                 PQclear(res);
                 res = nullptr;
             }
-
-            for(unsigned int i=0; i<instances.size();i++){
-                delete instances[i];
-            }
-
-            instances.clear();
         }
 
         virtual bool hasNextTuple();
@@ -111,10 +60,7 @@ namespace BasicEngine {
 
        private:
         PGresult* res = nullptr;
-        ListExpr type;
-        TupleType* tt = nullptr;
-        Tuple* basicTuple = nullptr;
-        std::vector<Attribute*> instances;
+
         int currentTuple = 0;
         int totalTuples = 0;
    };

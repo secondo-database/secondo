@@ -45,9 +45,9 @@ namespace BasicEngine {
 
         Tuple* result = basicTuple->Clone();
     
-        for(size_t i = 0; i < instances.size(); i++) {
+        for(size_t i = 0; i < attributeInstances.size(); i++) {
             
-            Attribute* attr = instances[i]->Clone();
+            Attribute* attr = attributeInstances[i]->Clone();
 
             if(PQgetisnull(res, currentTuple, i)) {
                 attr->SetDefined(false);
