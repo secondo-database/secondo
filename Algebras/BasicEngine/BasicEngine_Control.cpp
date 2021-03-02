@@ -659,7 +659,7 @@ bool BasicEngine_Control::exportToWorker(const string &sourceTable,
 
 
   if(connections.size() != remoteConnectionInfos.size()) {
-    BOOST_LOG_TRIVIAL(error) << "No all connections are available";
+    BOOST_LOG_TRIVIAL(error) << "Not all connections are available";
     return false;
   }
 
