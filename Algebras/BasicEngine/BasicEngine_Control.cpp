@@ -657,82 +657,80 @@ Returns true if everything is OK and there are no failure.
 bool BasicEngine_Control::exportToWorker(const string &sourceTable, 
   const string &destinationTable, const bool exportSchema) {
 
-  bool val = true;
-  string query_exec;
-  string importPath;
-  SecondoInterfaceCS* si ;
+
+  if(connections.size() != remoteConnectionInfos.size()) {
+    BOOST_LOG_TRIVIAL(error) << "No all connections are available";
+    return false;
+  }
 
   string remoteCreateName = getCreateTableSQLName(sourceTable);
   string localCreateName = getFilePath() + remoteCreateName;
 
-  for(size_t index = 0; index < remoteConnectionInfos.size(); index++){
+  for(size_t index = 0; index < connections.size(); index++){
+    
+    SecondoInterfaceCS* si = connections[index]->getInterface();
 
-    if (! connections[index]) {
-      BOOST_LOG_TRIVIAL(error) 
-        << "connection " << index << " does not exists ";
+    //sending data
+    string strindex = to_string(index+1);
+    string remoteName = getFilenameForPartition(sourceTable, strindex);
+    string localName = getFilePath() + remoteName;
+
+    int sendFileRes = si->sendFile(localName, remoteName, true);
+
+    if (sendFileRes != 0) {
+      BOOST_LOG_TRIVIAL(error) << "Couldn't send the data to the worker.";
       return false;
-    } else {
-      si = connections[index]->getInterface();
+    }
 
-      //sending data
-      string strindex = to_string(index+1);
-      string remoteName = getFilenameForPartition(sourceTable, strindex);
-      string localName = getFilePath() + remoteName;
+    bool removeFileRes = (remove(localName.c_str()) == 0);
 
-      val = (si->sendFile(localName, remoteName, true) == 0);
-      val = (remove(localName.c_str()) == 0) && val;
+    if (!removeFileRes) {
+      BOOST_LOG_TRIVIAL(error) << "Couldn't remove the local file.";
+      return false;
+    }
 
-      if (!val) {
-        BOOST_LOG_TRIVIAL(error) << "Couldn't send the data to the worker.";
-        return val;
+    //sending create Table
+    if(exportSchema) {
+      int sendFileRes = si->sendFile(localCreateName, remoteCreateName, true);
+
+      if (sendFileRes != 0) {
+        BOOST_LOG_TRIVIAL(error) 
+          << "Couldn't send the structure-file to the worker.";
+        return false;
       }
-
-      //sending create Table
-      if(exportSchema) {
-        val = (si->sendFile(localCreateName, remoteCreateName, true) == 0);
-
-        if (!val) {
-          BOOST_LOG_TRIVIAL(error) 
-            << "Couldn't send the structure-file to the worker.";
-          return val;
-        }
-      }
-    } 
+    }
   }
 
   // Remove schema file
   remove(localCreateName.c_str());
 
-  if(val){
-    //doing the import with one thread for each worker
-    vector<std::future<bool>> futures;
-    int i = 0;
+  //doing the import with one thread for each worker
+  vector<std::future<bool>> futures;
 
-    for(distributed2::ConnectionInfo* ci : connections) {
-      string strindex = to_string(i+1);
-      string remoteName = getFilenameForPartition(sourceTable, strindex);
+  for(size_t index = 0; index < connections.size(); index++){
+    distributed2::ConnectionInfo* ci = connections[index];
+    string strindex = to_string(index + 1);
+    string remoteName = getFilenameForPartition(sourceTable, strindex);
 
-      std::future<bool> asyncResult = std::async(
+    std::future<bool> asyncResult = std::async(
       &BasicEngine_Control::performImport, 
-      this, ci, destinationTable, remoteCreateName, remoteName, exportSchema);
+      this, ci, destinationTable, remoteCreateName, 
+      remoteName, exportSchema);
 
-      futures.push_back(std::move(asyncResult));
-
-      i++;
-    }
-
-    //waiting for finishing the threads
-    for(std::future<bool> &future : futures) {
-      val = future.get() && val;
-    }
-  } 
-
-  if(!val) {
-    BOOST_LOG_TRIVIAL(error) 
-      << "Something goes wrong with the import at the worker.";
+    futures.push_back(std::move(asyncResult));
   }
 
-  return val;
+  // Are all worker reporting true?
+  bool exportRes = std::all_of(futures.begin(), futures.end(), 
+    [] (std::future<bool> &future) { return future.get(); });
+
+  if(! exportRes) {
+    BOOST_LOG_TRIVIAL(error) 
+      << "Something goes wrong with the import at the worker.";
+      return false;
+  }
+
+  return true;
 }
 
 /*
