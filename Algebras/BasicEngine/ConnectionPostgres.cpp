@@ -90,10 +90,16 @@ Returns TRUE if the connection is ok.
 
 */
 bool ConnectionPG::checkConnection() {
+
+  if(conn == nullptr) {
+    return false;
+  }
+
   if (PQstatus(conn) == CONNECTION_BAD) {
     printf("Connection Error:%s\n", PQerrorMessage(conn));
     return false;
   }
+
   return true;
 };
 

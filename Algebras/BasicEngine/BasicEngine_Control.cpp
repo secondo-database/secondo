@@ -912,7 +912,7 @@ bool BasicEngine_Control::partTable(const string &tab, const string &key,
   val = getCreateTableSQL(tab);
 
   if(!val){
-    BOOST_LOG_TRIVIAL(error) << "\n Couldn't create the structure-file";
+    BOOST_LOG_TRIVIAL(error) << "Couldn't create the structure-file";
     return val;
   }
 
