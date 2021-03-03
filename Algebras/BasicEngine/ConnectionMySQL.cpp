@@ -52,6 +52,7 @@ ConnectionMySQL::~ConnectionMySQL() {
   if(conn != nullptr) {
     mysql_close(conn);
     conn = nullptr;
+    mysql_library_end();
   }
 }
 
@@ -62,6 +63,20 @@ ConnectionMySQL::~ConnectionMySQL() {
 bool ConnectionMySQL::createConnection() {
 
     if(conn != nullptr) {
+        return false;
+    }
+
+    int mysqlInitRes = mysql_library_init(0, NULL, NULL);
+
+    if(mysqlInitRes != 0) {
+        BOOST_LOG_TRIVIAL(error) << "Unable to init MySQL client library";
+        return false;
+    }
+
+    conn = mysql_init(conn);
+
+    if(conn == nullptr) {
+        BOOST_LOG_TRIVIAL(error) << "Unable to create MySQL connection object";
         return false;
     }
 
@@ -88,8 +103,19 @@ bool ConnectionMySQL::sendCommand(const std::string &command,
 
 */
 bool ConnectionMySQL::checkConnection() {
-    // TODO
-    return false;
+
+    if(conn == nullptr) {
+        return false;
+    }
+
+    int pingResult = mysql_ping(conn);
+
+    if(pingResult != 0) {
+        BOOST_LOG_TRIVIAL(error) << "MySQL ping failed";
+        return false;
+    }
+
+    return true;
 }
 
 /*
@@ -183,19 +209,129 @@ std::string ConnectionMySQL::getCopySQL(const std::string &table,
 bool ConnectionMySQL::getTypeFromSQLQuery(const std::string &sqlQuery, 
     ListExpr &resultList) {
 
-    // TODO
+  string usedSQLQuery = sqlQuery;
+
+  string sqlQueryUpper = boost::to_upper_copy<std::string>(sqlQuery);
+
+  if(sqlQueryUpper.find("LIMIT") == std::string::npos) {
+    // Remove existing ";" at the query end, if exists
+    if(boost::algorithm::ends_with(usedSQLQuery, ";")) {
+      usedSQLQuery.pop_back();
+    }
+
+    // Limit query to 1 result tuple
+    usedSQLQuery = usedSQLQuery + " LIMIT 1;";
+  }
+
+  if( ! checkConnection()) {
+    BOOST_LOG_TRIVIAL(error) 
+      << "Connection is not ready in getTypeFromSQLQuery";
     return false;
+  }
+  
+  int mysqlExecRes = mysql_query(conn, usedSQLQuery.c_str());
+
+  if(mysqlExecRes != 0) {
+    BOOST_LOG_TRIVIAL(error) 
+      << "Unable to perform query" << usedSQLQuery
+      << mysql_error(conn);
+    return false;
+  }
+
+  MYSQL_RES *res = mysql_store_result(conn);
+
+  bool result = getTypeFromQuery(res, resultList);
+
+  if(! result) {
+    BOOST_LOG_TRIVIAL(error) 
+      << "Unable to get type from SQL query" << usedSQLQuery;
+  }
+
+  mysql_free_result(res);
+
+  return result;
 }
 
 /*
 6.13 ~getTypeFromQuery~
 
 */
-bool ConnectionMySQL::getTypeFromQuery(const MYSQL_RES* res, 
+bool ConnectionMySQL::getTypeFromQuery(MYSQL_RES* res, 
     ListExpr &resultList) {
 
-    // TODO
-    return false;
+    ListExpr attrList = nl->TheEmptyList();
+    ListExpr attrListBegin;
+
+    int columns = mysql_num_fields(res);
+    MYSQL_FIELD *fields = mysql_fetch_fields(res);
+
+    for(int i = 0; i < columns; i++) {       
+        enum_field_types columnType = fields[i].type;
+        
+        string attributeName = string(fields[i].name);
+
+        // Ensure secondo is happy with the name
+        attributeName[0] = toupper(attributeName[0]);
+
+        ListExpr attribute;
+        string attributeType;
+
+        // Convert to SECONDO attribute type
+        switch(columnType) {
+#if LIBMYSQL_VERSION_ID >= 80000
+        case MYSQL_TYPE_BOOL:
+            attributeType = CcBool::BasicType();
+            break;
+#endif
+        
+        case MYSQL_TYPE_STRING:
+        case MYSQL_TYPE_VARCHAR:
+        case MYSQL_TYPE_VAR_STRING:
+            attributeType = FText::BasicType();
+            break;
+
+        case MYSQL_TYPE_DECIMAL:
+        case MYSQL_TYPE_TINY:
+        case MYSQL_TYPE_SHORT:
+        case MYSQL_TYPE_LONG:
+        case MYSQL_TYPE_TIMESTAMP:
+        case MYSQL_TYPE_LONGLONG:
+            attributeType = CcInt::BasicType();
+            break;
+
+        case MYSQL_TYPE_FLOAT:
+        case MYSQL_TYPE_DOUBLE:
+            attributeType = CcReal::BasicType();
+            break;
+
+        default:
+            BOOST_LOG_TRIVIAL(warning) 
+                << "Unknown column type: " << attributeName << " / " 
+                << columnType << " will be mapped to text";
+            attributeType = FText::BasicType();
+        }
+
+        // Attribute name and type
+        attribute = nl->TwoElemList(
+            nl->SymbolAtom(attributeName), 
+            nl->SymbolAtom(attributeType)
+        );
+        
+        if(nl->IsEmpty(attrList)) {
+            attrList = nl -> OneElemList(attribute);
+            attrListBegin = attrList;
+        } else {
+            attrList = nl -> Append(attrList, attribute);
+        }
+    }
+
+    resultList = nl->TwoElemList(
+        listutils::basicSymbol<Stream<Tuple> >(),
+        nl->TwoElemList(
+            listutils::basicSymbol<Tuple>(),
+            attrListBegin));
+
+    return true;
 }
 
 /*
@@ -205,7 +341,33 @@ bool ConnectionMySQL::getTypeFromQuery(const MYSQL_RES* res,
 ResultIteratorGeneric* ConnectionMySQL::performSQLSelectQuery(
     const std::string &sqlQuery) {
 
-    // TODO
-    return nullptr;
+    if( ! checkConnection()) {
+        BOOST_LOG_TRIVIAL(error) 
+             << "Connection check failed in performSQLSelectQuery()";
+        return nullptr;
+    }
+
+    ListExpr resultList;
+
+    int mysqlExecRes = mysql_query(conn, sqlQuery.c_str());
+
+    if(mysqlExecRes != 0) {
+        BOOST_LOG_TRIVIAL(error) 
+            << "Unable to perform query" << sqlQuery
+            << mysql_error(conn);
+            return nullptr;
+    }
+
+    MYSQL_RES *res = mysql_store_result(conn);
+
+    bool result = getTypeFromQuery(res, resultList);
+
+    if(!result) {
+        BOOST_LOG_TRIVIAL(error) 
+            << "Unable to get tuple type form query: " << sqlQuery;
+            return nullptr;
+    }
+
+    return new ResultIteratorMySQL(res, resultList);
 }
 }

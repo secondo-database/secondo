@@ -163,7 +163,7 @@ class ConnectionMySQL : public ConnectionGeneric {
   */
   MYSQL* conn = nullptr;
 
-  bool getTypeFromQuery(const MYSQL_RES* res, ListExpr &resultList);
+  bool getTypeFromQuery(MYSQL_RES* res, ListExpr &resultList);
 
   MYSQL_RES* sendQuery(const std::string &query);
 
