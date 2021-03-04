@@ -112,22 +112,39 @@ Returns TRUE if the execution was ok.
 
 */
 bool ConnectionPG::sendCommand(const string &command, bool print) {
-
-  PGresult *res;
+  
   const char *query_exec = command.c_str();
 
-  if (checkConnection()) {
-    res = PQexec(conn, query_exec);
-    if (!res || PQresultStatus(res) != PGRES_COMMAND_OK) {
-      if(print) {
-        BOOST_LOG_TRIVIAL(error) 
-          << "Error with Command: " <<  PQresultErrorMessage(res);
-      }
-      PQclear(res);
-      return false;
-    }
-    PQclear(res);
+  if (! checkConnection()) {
+    return false;
   }
+
+  PGresult* res = PQexec(conn, query_exec);
+
+  if (!res) {
+    if(print) {
+      BOOST_LOG_TRIVIAL(error) 
+        << "Error with Command: " << command;
+    }
+
+    return false;
+  } 
+  
+  if(PQresultStatus(res) != PGRES_COMMAND_OK) {
+    if(print) {
+      BOOST_LOG_TRIVIAL(error) 
+        << "Error with Command: " << command
+        << " error is: " <<  PQresultErrorMessage(res);
+    }
+
+    PQclear(res);
+    res = nullptr;
+  
+    return false;
+  }
+
+  PQclear(res);
+  res = nullptr;
 
   return true;
 }
@@ -141,18 +158,30 @@ Returns the Result of the query.
 
 */
 PGresult* ConnectionPG::sendQuery(const string &query) {
-  PGresult *res;
+   
   const char *query_exec = query.c_str();
 
-  if (checkConnection()) {
-    res = PQexec(conn, query_exec);
-    if (!res || PQresultStatus(res) != PGRES_TUPLES_OK) {
+  if (! checkConnection()) {
+    return nullptr;
+  }
+
+  PGresult *res = PQexec(conn, query_exec);
+  
+  if (!res) {
       BOOST_LOG_TRIVIAL(error)
         << "Error with Query: " <<  PQresultErrorMessage(res);
       return nullptr;
-    }
-  }
+  } 
   
+  if(PQresultStatus(res) != PGRES_TUPLES_OK) {
+      BOOST_LOG_TRIVIAL(error)
+        << "Error with Query: " <<  PQresultErrorMessage(res);
+
+    PQclear(res);
+    res = nullptr;
+    return nullptr;
+  }
+
   return res;
 }
 
