@@ -94,12 +94,44 @@ bool ConnectionMySQL::createConnection() {
 bool ConnectionMySQL::sendCommand(const std::string &command, 
     bool print) {
 
-    // TODO
-    return false;
+    int mysqlExecRes = mysql_query(conn, command.c_str());
+
+    if(mysqlExecRes != 0) {
+        if(print) {
+            BOOST_LOG_TRIVIAL(error) 
+                << "Unable to perform command: " << command
+                << mysql_error(conn);
+        }
+
+        return false;
+    }
+
+    return true;
 }
 
 /*
-6.4 ~checkConnection~
+6.4 ~sendQuery~
+
+*/
+MYSQL_RES* ConnectionMySQL::sendQuery(const std::string &query) {
+
+ int mysqlExecRes = mysql_query(conn, query.c_str());
+
+  if(mysqlExecRes != 0) {
+    BOOST_LOG_TRIVIAL(error) 
+      << "Unable to perform query" << query
+      << mysql_error(conn);
+    return nullptr;
+  }
+
+  MYSQL_RES *res = mysql_store_result(conn);
+
+  return res;
+}
+
+
+/*
+6.5 ~checkConnection~
 
 */
 bool ConnectionMySQL::checkConnection() {
@@ -119,7 +151,7 @@ bool ConnectionMySQL::checkConnection() {
 }
 
 /*
-6.5 ~getCreateTableSQL~
+6.6 ~getCreateTableSQL~
 
 */
 std::string ConnectionMySQL::getCreateTableSQL(const std::string &table) {
@@ -128,7 +160,7 @@ std::string ConnectionMySQL::getCreateTableSQL(const std::string &table) {
 }
 
 /*
-6.6 ~getPartitionRoundRobinSQL~
+6.7 ~getPartitionRoundRobinSQL~
 
 */
 std::string ConnectionMySQL::getPartitionRoundRobinSQL(
@@ -141,7 +173,7 @@ std::string ConnectionMySQL::getPartitionRoundRobinSQL(
 }
 
 /*
-6.7 ~getPartitionHashSQL~
+6.8 ~getPartitionHashSQL~
 
 */
 std::string ConnectionMySQL::getPartitionHashSQL(const std::string &table, 
@@ -153,7 +185,7 @@ std::string ConnectionMySQL::getPartitionHashSQL(const std::string &table,
 }
 
 /*
-6.8 ~getPartitionSQL~
+6.9 ~getPartitionSQL~
 
 */
 std::string ConnectionMySQL::getPartitionSQL(const std::string &table, 
@@ -165,7 +197,7 @@ std::string ConnectionMySQL::getPartitionSQL(const std::string &table,
 }
 
 /*
-6.9 ~getPartitionGridSQL~
+6.10 ~getPartitionGridSQL~
 
 */
 std::string ConnectionMySQL::getPartitionGridSQL(const std::string &table,
@@ -179,7 +211,7 @@ std::string ConnectionMySQL::getPartitionGridSQL(const std::string &table,
 }
 
 /*
-6.10 ~getExportDataSQL~
+6.11 ~getExportDataSQL~
 
 */
 std::string ConnectionMySQL::getExportDataSQL(const std::string &table, 
@@ -192,7 +224,7 @@ std::string ConnectionMySQL::getExportDataSQL(const std::string &table,
 }
 
 /*
-6.11 ~getCopySQL~
+6.12 ~getCopySQL~
 
 */
 std::string ConnectionMySQL::getCopySQL(const std::string &table, 
@@ -203,7 +235,7 @@ std::string ConnectionMySQL::getCopySQL(const std::string &table,
 }
 
 /*
-6.12 ~getTypeFromSQLQuery~
+6.13 ~getTypeFromSQLQuery~
 
 */
 bool ConnectionMySQL::getTypeFromSQLQuery(const std::string &sqlQuery, 
@@ -253,7 +285,7 @@ bool ConnectionMySQL::getTypeFromSQLQuery(const std::string &sqlQuery,
 }
 
 /*
-6.13 ~getTypeFromQuery~
+6.14 ~getTypeFromQuery~
 
 */
 bool ConnectionMySQL::getTypeFromQuery(MYSQL_RES* res, 
@@ -335,7 +367,7 @@ bool ConnectionMySQL::getTypeFromQuery(MYSQL_RES* res,
 }
 
 /*
-6.14 ~performSQLSelectQuery~
+6.15 ~performSQLSelectQuery~
 
 */
 ResultIteratorGeneric* ConnectionMySQL::performSQLSelectQuery(
@@ -347,19 +379,13 @@ ResultIteratorGeneric* ConnectionMySQL::performSQLSelectQuery(
         return nullptr;
     }
 
+    MYSQL_RES *res = sendQuery(sqlQuery.c_str());
+
+    if(res == nullptr) {
+        return nullptr;
+    }    
+
     ListExpr resultList;
-
-    int mysqlExecRes = mysql_query(conn, sqlQuery.c_str());
-
-    if(mysqlExecRes != 0) {
-        BOOST_LOG_TRIVIAL(error) 
-            << "Unable to perform query" << sqlQuery
-            << mysql_error(conn);
-            return nullptr;
-    }
-
-    MYSQL_RES *res = mysql_store_result(conn);
-
     bool result = getTypeFromQuery(res, resultList);
 
     if(!result) {

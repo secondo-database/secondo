@@ -120,7 +120,8 @@ bool ConnectionPG::sendCommand(const string &command, bool print) {
     res = PQexec(conn, query_exec);
     if (!res || PQresultStatus(res) != PGRES_COMMAND_OK) {
       if(print) {
-        printf("Error with Command:%s\n", PQresultErrorMessage(res));
+        BOOST_LOG_TRIVIAL(error) 
+          << "Error with Command: " <<  PQresultErrorMessage(res);
       }
       PQclear(res);
       return false;
@@ -146,7 +147,9 @@ PGresult* ConnectionPG::sendQuery(const string &query) {
   if (checkConnection()) {
     res = PQexec(conn, query_exec);
     if (!res || PQresultStatus(res) != PGRES_TUPLES_OK) {
-      printf("Error with Query:%s\n", PQresultErrorMessage(res));
+      BOOST_LOG_TRIVIAL(error)
+        << "Error with Query: " <<  PQresultErrorMessage(res);
+      return nullptr;
     }
   }
   
