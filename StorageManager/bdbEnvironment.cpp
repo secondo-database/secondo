@@ -428,7 +428,6 @@ bool SmiEnvironment::Implementation::SetFileId(SmiFileId id,
 
 #else
 
-  //  SmiFileId newFileId = 0;
   int       rc = 0;
   DbEnv*    dbenv = instance.impl->bdbEnv;
   Db*       dbseq = instance.impl->bdbSeq;
@@ -439,75 +438,70 @@ bool SmiEnvironment::Implementation::SetFileId(SmiFileId id,
 
   DbTxn* tid = 0;
   db_recno_t seqno = SMI_SEQUENCE_FILEID;
-
+  
   if ( useTransactions ) {
      rc = dbenv->txn_begin( 0, &tid, 0 );
      SetBDBError(rc);
   }
 
-  Dbt key( &seqno, sizeof(seqno) );
-  Dbt data( &id, sizeof(id) );
+  bool operationSuccess = true;
 
   if ( rc == 0 ) {
-    /* 
-    The following code reads the currently stored SmiFileId value 
-    for debugging purposes. 
-    
-    WARNING: Reading the old value (in the provided implementation)
-             can cause deadlocks!
+    Dbt key( &seqno, sizeof(seqno) );
+    Dbt data;
 
-    The code requests a read lock in the dbseq->get operation and 
-    tries to upgrade this lock into a write lock in the 
-    dbseq->put operation. 
-    
-    A concurrent transaction can execute the same operation; this 
-    might result in a deadlock when two clients want to open the 
-    same database.
-    */ 
-    /*
-      Dbt data;
+    data.set_flags( DB_DBT_USERMEM );
+    data.set_data( &id );
+    data.set_ulen( sizeof( SmiFileId ) );
 
-      data.set_flags( DB_DBT_USERMEM );
-      data.set_data( &id );
-      data.set_ulen( sizeof( SmiFileId ) );
+    SmiFileId sid =0;
+    data.set_data(&sid);
 
-      SmiFileId sid =0;
-      data.set_data(&sid);
-      if((rc=dbseq->get(tid,&key,&data,0))!=0){
+    // Aquire write lock to prevent deadlock in 
+    // read-modify-write cycle
+    u_int32_t rwFlag = useTransactions ? DB_RMW : 0;
+
+    rc = dbseq->get(tid,&key,&data,rwFlag);
+
+    if(rc != 0) {
+      SetBDBError(rc);
+      operationSuccess = false;
+    } 
+
+    if(operationSuccess) {
+      
+      //cout << "stored value is " << sid << endl;
+      //cout << "change to       " << id << endl;
+      
+      // Prevent the decrease of the stored file id.
+      // 
+      // This can happen when another SECONDO instance
+      // requests a new file id, and we perform a scan before
+      // the file is created in the file system. In this 
+      // case, we would overwrite the value with an outdated 
+      // file id.
+
+      if(id > sid) {
+        sid = id; 
+        rc = dbseq->put( tid, &key, &data, 0 );
         SetBDBError(rc);
-        if ( useTransactions ) {
-          rc = tid->abort();
-          SetBDBError(rc);
-        }
-        return false;
-      } else {
-        cout << "stored value is " << sid << endl;
-        cout << "change to       " << id << endl;
+        operationSuccess = (rc == 0);
       }
-      sid = id; 
-      */
-
-      rc = dbseq->put( tid, &key, &data, 0 );
-
-      if ( rc == 0 ) {
-        if ( useTransactions ) {
-            rc = tid->commit( 0 );
-            SetBDBError(rc);
-        }
-      } else {
-        SetBDBError(rc);
-        if ( useTransactions ) {
-          rc = tid->abort();
-          SetBDBError(rc);
-        }
-        return false;
-     }
-  } else if ( tid != 0 ) {
-    rc = tid->abort();
-    SetBDBError(rc);
-    return false;
+    }
   }
-  return true;
+
+  if(useTransactions) {
+
+    if(operationSuccess) {
+      rc = tid->commit( 0 );
+    } else {
+      rc = tid->abort();
+    }
+    
+    SetBDBError(rc);
+  }
+
+  return operationSuccess;
 #endif
 }
 
@@ -591,6 +585,8 @@ SmiEnvironment::Implementation::GetFileId( const bool isTemporary )
   if ( dbseq )
   {
     DbTxn* tid = 0;
+    DbLock lock;
+    u_int32_t locker = 0;
     db_recno_t seqno = SMI_SEQUENCE_FILEID;
     Dbt key( &seqno, sizeof(seqno) );
     Dbt data;
@@ -603,6 +599,28 @@ SmiEnvironment::Implementation::GetFileId( const bool isTemporary )
     {
       rc = dbenv->txn_begin( 0, &tid, 0 );
       SetBDBError(rc);
+    }
+
+    if( ( rc == 0 && useTransactions)) {
+      string lockName = stringutils::replaceAll(GetSecondoHome(),"/","_") 
+          + "_" + database + "_file_id";
+
+      // Create locker to make read/write operation atomar
+      rc = dbenv -> lock_id(&locker);
+
+      if(rc != 0) {
+        cerr << "Error: Locker error";
+      }
+
+      char lockNameStr[lockName.length()];
+      strcpy(lockNameStr, lockName.c_str());
+
+      Dbt dbt(lockNameStr, (u_int32_t) lockName.length());
+
+      rc = dbenv -> lock_get(locker, 0, &dbt, DB_LOCK_WRITE, &lock);
+      if(rc != 0) {
+        cerr << "Error: Unable to get lock";
+      }
     }
 
     if ( rc == 0 )
@@ -1179,8 +1197,6 @@ bool SmiEnvironment::correctFileId(){
      return false;
    }
 }
-
-
 
 
 void
