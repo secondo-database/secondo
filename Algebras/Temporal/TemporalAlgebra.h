@@ -114,6 +114,8 @@ class SecInterval;
 
 std::string int2string(const int& number);
 
+double roundToNPlaces(const double value, const int noPlaces);
+
 /*
 3 C++ Classes (Defintion)
 
@@ -4550,14 +4552,11 @@ void ForceToDuration(const M& src, const datetime::DateTime& duration,
   if (durTemp < duration) { // add constant unit at the end
     unit.timeInterval = Interval<Instant>(iv.end, iv.end + (duration - durTemp),
                                           !iv.rc, iv.rc);
-    Rectangle<2> bbox = src.BoundingBoxSpatial();
-    Point pt(true, bbox.MidD(0), bbox.MidD(1));
-    unit.SetToConstantUnit(pt, 0.0); // center of bounding box
+    unit.SetToConstantUnit(unit2.p1, 0.0);
     if (startAtBeginOfTime) {
       unit.timeInterval.start -= diffToBeginOfTime;
       unit.timeInterval.end -= diffToBeginOfTime;
     }
-    unit.SetRadius(0.0);
     result.Add(unit);
   }
   result.Truncate();
@@ -4832,6 +4831,7 @@ Computes the distance to another CUPoint ~cup~.
              const;
 
   using UPoint::Distance;
+  double DistanceStartEnd(const CUPoint& cup, const Geoid* geoid = 0);
   double DistanceIntegral(const CUPoint& cup, const bool upperBound, 
                           const Geoid* geoid = 0) const;
   double DistanceAvg(const CUPoint& cup, const datetime::DateTime& duration,
@@ -9867,7 +9867,8 @@ static void DistanceAvg(const M& mp1, const M& mp2,
     result.SetDefined(false);
     return;
   }
-  result.Set(true, DistanceAvg(mp1, mp2, duration, upperBound, geoid));
+  result.Set(true, roundToNPlaces(DistanceAvg(mp1, mp2, duration, upperBound, 
+                                              geoid), 6));
 }                                                                           
 
 static double DistanceAvg(const M& mp1, const M& mp2, 
@@ -9895,41 +9896,32 @@ static double DistanceAvg(const M& mp1, const M& mp2,
   RefinementPartition<MappingNoFlob<M, U>, MappingNoFlob<M, U>, U, U> rp(m1,m2);
   int u1Pos, u2Pos;
   Interval<Instant> iv;
+  std::stack<std::pair<double, unsigned int> > integralSt;
   for (unsigned int i = 0; i < rp.Size(); i++) {
     rp.Get(i, iv, u1Pos, u2Pos);
-    if (u1Pos == -1 && u2Pos == -1) {
-      cout << "Both mpoints undefined for i = " << i << endl;
-      continue;
-    }
-    else if (u1Pos == -1) {
-      m2.Get(u2Pos, u2);
-      u2.AtInterval(iv, u2cut, geoid);
-      u1cut.timeInterval = u2cut.timeInterval;
-      u1cut.SetRadius(0.0);
-      u1cut.p0 = u1cut.p1; // use constant unit with same time interval as u2
-    }
-    else if (u2Pos == -1) {
-      m1.Get(u1Pos, u1);
-      u1.AtInterval(iv, u1cut, geoid);
-      u2cut.timeInterval = u1cut.timeInterval;
-      u2cut.SetRadius(0.0);
-      u2cut.p0 = u2cut.p1; // use constant unit with same time interval as u1
-    }
-    else {
-      m1.Get(u1Pos, u1);
-      u1.AtInterval(iv, u1cut, geoid);
-      u1cut.SetRadius(u1.GetRadius());
-      m2.Get(u2Pos, u2);
-      u2.AtInterval(iv, u2cut, geoid);
-      u2cut.SetRadius(u2.GetRadius());
-    }
+    m1.Get(u1Pos, u1);
+    u1.AtInterval(iv, u1cut, geoid);
+    u1cut.SetRadius(u1.GetRadius());
+    m2.Get(u2Pos, u2);
+    u2.AtInterval(iv, u2cut, geoid);
+    u2cut.SetRadius(u2.GetRadius());
     assert(u1cut.IsDefined() && u2cut.IsDefined());
     durTemp += (iv.end - iv.start).ToDouble();
-    sum += u1cut.DistanceIntegral(u2cut, upperBound, geoid);
-    cout << "sum is now " << sum << endl;
+    std::pair<double, unsigned int> stackElem(u1cut.DistanceIntegral(u2cut, 
+                                              upperBound, geoid), 0);
+    while (!integralSt.empty() && integralSt.top().second == stackElem.second) {
+      stackElem.first += integralSt.top().first;
+      stackElem.second++;
+      integralSt.pop();
+    }
+    integralSt.push(stackElem);
   }
-  datetime::DateTime dur(datetime::durationtype);
-  dur.ReadFrom(durTemp);
+  while (!integralSt.empty()) {
+    sum += integralSt.top().first;
+    integralSt.pop();
+  }
+//   datetime::DateTime dur(datetime::durationtype);
+//   dur.ReadFrom(durTemp);
 //   cout << "DistanceAvg, integral SUM is " << sum << ", DURATION is "
 //        << dur << endl << endl << endl;
   return sum / durTemp;

@@ -156,7 +156,7 @@ std::string int2string(const int& number)
   return oss.str();
 }
 
-double roundToNPlaces(double value, int noPlaces) {
+double roundToNPlaces(const double value, const int noPlaces) {
   double places = pow(10.0, noPlaces);
   return round(value * places) / places;
 }
@@ -227,9 +227,10 @@ void UReal::TemporalFunction( const Instant& t,
         if(res>=0.0){
            res = sqrt( res );
         } else {
-           if(AlmostEqual(res,0.0)){ // correction of rounding errors
+           if(res > -0.001){ // correction of rounding errors
               res = 0.0;
            } else {
+             cout << *this << endl << t << "      " << res << endl;
              assert(false);
            }
         }
@@ -428,6 +429,68 @@ by the integral of a linear function between the values at the boundaries.
   return  result;
 }
 
+double AntiderivativeSQRTpoly2new(const double a, const double b,
+                                  const double c, const double x, const int f) {
+  long double result = 0.0;
+  switch (f) {
+    case 0: { // Springer - Taschenbuch der Mathematik, 3rd edition, p. 161
+      long double Q = a * x * x + b * x + c;
+      long double D = 4.0 * a * c - b * b;
+      long double f1 = D / (8.0 * a);
+      long double f2 = 2 * a * x + b;
+      long double i1 = 0.0;
+      if (a > 0.0 && D < 0.0) {
+        i1 = 1.0 / sqrt(a) * log(2 * sqrt(a * Q) + f2);
+      }
+      else if (a > 0.0 && D > 0.0) {
+        i1 = 1.0 / sqrt(a) * asinh(f2 / sqrt(D));
+      }
+      else if (a > 0.0 && D == 0.0) {
+        i1 = 1.0 / sqrt(a) * log(f2);
+      }
+      else if (a < 0.0 && D < 0.0) {
+        i1 = -1.0 / sqrt(-a) * asin(f2 / sqrt(-D));
+      }
+      else { // invalid case
+        return 1.0 / 0.0; // nan
+      }
+      result = f2 * sqrt(Q) / (4.0 * a) + f1 * i1;
+      break;
+    }
+    case 1: { // mathe-online.at
+      long double f1 = b + 2.0 * a * x;
+      long double f2 = sqrt(c + x * (b + a * x));
+      long double f3 = b * b - 4.0 * a * c;
+      long double den = 8.0 * pow(a, 1.5);
+      long double l1 = log(f1 + 2.0 * sqrt(a) * f2);
+      result = (2.0 * sqrt(a) * f1 * f2 - f3 * l1) / den;
+      break;
+    }
+    case 2: { // integralrechner.de, 1st result
+      long double f1 = 4 * a * c - pow(b, 2);
+      long double sqr1 = x * (a * x + b) + c;
+      long double f2 = log(abs(2 * (sqrt(a) * sqrt(sqr1) + a * x) + b));
+      long double s2 = 2 * sqrt(f1) * (2 * a * x + b) * sqrt(a * sqr1 / f1);
+      long double den = 8 * pow(a, 1.5);
+      result = (f1 * f2 + s2) / den;
+      break;
+    }
+    case 3: { // integralrechner.de, 2nd result
+      long double f1 = 4 * pow(a, 2) * c - a * pow(b, 2);
+      long double f2 = asinh((2 * a * x + b) / sqrt(4 * a * c - pow(b, 2)));
+      long double f3 = 4 * pow(a, 2.5) * x + 2 * pow(a, 1.5) * b;
+      long double f4 = sqrt(a * pow(x, 2) + b * x + c);
+      long double den = 8 * pow(a, 2.5);
+      result = (f1 * f2 + f3 * f4) / den;
+      break;
+    }
+    default: {
+      assert(false);
+      return -1.0;
+    }
+  }
+  return result;
+}
 
 
 // integrate an ureal over its deftime
@@ -451,9 +514,26 @@ double UReal::Integrate() const
      return (2/ (3*b))* sqrt(X*X*X);
   }
   // form : sqrt ( ax^2 + bx + c)
-  double res = AntiderivativeSQRTpoly2(a, b, c, t);
+  double antiderivValueStart = AntiderivativeSQRTpoly2new(a, b, c, 
+                                           timeInterval.start.ToDouble(), 0);
+  double antiderivValueEnd = AntiderivativeSQRTpoly2new(a, b, c, 
+                                             timeInterval.end.ToDouble(), 0);
+  double res = antiderivValueEnd - antiderivValueStart;
+//   if (res < 0.0) {
+//     cout << "    (1) NEGATIVE difference: " << antiderivValueEnd << " - "
+//          << antiderivValueStart << " = " << res << endl;
+//   }
+//   if (isnan(antiderivValueStart)) {
+//     cout << "    (1) NaN found at START " << timeInterval.start.ToDouble()
+//          << endl;
+//   }
+//   if (isnan(antiderivValueEnd)) {
+//     cout << "    (1) NaN found at END " << timeInterval.end.ToDouble()
+//          << endl;
+//   }
+//   cout << "    integral value is " << antiderivValueEnd << " - "
+//        << antiderivValueStart << " = " << res << endl;
   return res;
-
 }
 
 
@@ -2152,30 +2232,43 @@ void UPoint::Distance( const Point& p,
 
 double UPoint::DistanceIntegral(const UPoint& up, const bool upperBound,
                                 const Geoid* geoid /* = 0 */) const {
-//   cout << "compare " << up << endl << "   and " << up << endl;
+//   cout << "compare " << *this << endl << "   and " << up << endl;
+  datetime::DateTime beginOfTime(0, 0, datetime::instanttype);
+  datetime::DateTime diffToBeginOfTime = timeInterval.start - beginOfTime;
+  datetime::DateTime duration = timeInterval.end - timeInterval.start;
+  UPoint up1(*this), up2(up);
+  up1.timeInterval.start -= diffToBeginOfTime;
+  up1.timeInterval.end = up1.timeInterval.start + duration;
+  up2.timeInterval.start -= diffToBeginOfTime;
+  up2.timeInterval.end = up2.timeInterval.start + duration;
   UReal dist(true);
   if (geoid) {
-    dist.timeInterval = this->timeInterval;
-    dist.Recompute(*this, up, geoid);
+    dist.timeInterval = up1.timeInterval;
+    dist.Recompute(up1, up2, geoid);
   }
   else {
-    this->Distance(up, dist);
+    up1.Distance(up2, dist);
   }
   if (!dist.IsDefined()) {
     std::cerr << __PRETTY_FUNCTION__ << "Invalid geographic coord!" << endl;
     return -1.0;
   }
   double result = dist.Integrate();
-  if (isnan(result)) { // use mean of start and end point distance
-    Interval<Instant> iv = this->timeInterval;
-    cout << "NaN processing" << endl;
-    result = (this->p0.Distance(up.p0, geoid) + this->p1.Distance(up.p1, geoid))
-             / 2 * (iv.end - iv.start).ToDouble();
+  if (isnan(result) || result < 0.0 || isinf(result)) { // linearize dist fun
+    Interval<Instant> iv = dist.timeInterval;
+    UReal linPart1(true), linPart2(true);
+    dist.Linearize(linPart1, linPart2);
+    result = linPart1.Integrate() + 
+                            (linPart2.IsDefined() ? linPart2.Integrate() : 0.0);
+//     cout << "  approx by " << linPart1.Integrate() << " + "
+//          << (linPart2.IsDefined() ? linPart2.Integrate() : 0.0) << endl;
+    if (isnan(result)) { // use mean of start and end point distance
+      cout << "######$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$" << endl;
+      result = (this->p0.Distance(up.p0, geoid) + 
+          this->p1.Distance(up.p1, geoid)) / 2 * (iv.end - iv.start).ToDouble();
+    }
   }
-  if (result < 0.0) {
-    result = 0.0;
-  }
-  cout << "added value " << result << " from " << dist << endl << endl;
+//   cout << "added value " << result << " from " << dist << endl << endl;
   return result;
 }
 
@@ -3077,9 +3170,27 @@ void CUPoint::Split(const datetime::DateTime& duration,
   }
 }
 
+double CUPoint::DistanceStartEnd(const CUPoint& cup, const Geoid* geoid /*=0*/){
+  CPoint start1(true), start2(true), end1(true), end2(true);
+  this->TemporalFunctionCU(this->timeInterval.start, start1, true);
+  this->TemporalFunctionCU(this->timeInterval.end, end1, true);
+  cup.TemporalFunctionCU(cup.timeInterval.start, start2, true);
+  cup.TemporalFunctionCU(cup.timeInterval.end, end2, true);
+  return (start1.Distance(start2, geoid) + end1.Distance(end2, geoid)) / 2.0;
+}
+
 double CUPoint::DistanceIntegral(const CUPoint& cup, const bool upperBound, 
                                  const Geoid* geoid /* = 0 */) const {
-  cout << "compare " << *this << endl << "   and " << cup << endl;
+//   cout << "compare " << *this << endl << "   and " << cup << endl;
+  datetime::DateTime beginOfTime(0, 0, datetime::instanttype);
+  datetime::DateTime diffToBeginOfTime = timeInterval.start - beginOfTime;
+  datetime::DateTime duration = timeInterval.end - timeInterval.start;
+  CUPoint cup1(*this), cup2(cup);
+  cup1.timeInterval.start -= diffToBeginOfTime;
+  cup1.timeInterval.end = cup1.timeInterval.start + duration;
+  cup2.timeInterval.start -= diffToBeginOfTime;
+  cup2.timeInterval.end = cup2.timeInterval.start + duration;
+                                   
   bool correct = false;
   Periods per(true);
   double sumOfRadii = this->GetRadius() + cup.GetRadius();
@@ -3088,11 +3199,11 @@ double CUPoint::DistanceIntegral(const CUPoint& cup, const bool upperBound,
   double integralValue1, integralValue2, result;
   UReal dist(true), urNull(true);
   if (!geoid) {
-    ((UPoint*)this)->Distance(*((UPoint*)(&cup)), dist);
+    ((UPoint*)&cup1)->Distance(*((UPoint*)(&cup2)), dist);
   }
   else {
-    dist.timeInterval = this->timeInterval;
-    dist.Recompute(*(UPoint*)(this), *(UPoint*)(&cup), geoid);
+    cup1.timeInterval.Intersection(cup2.timeInterval, dist.timeInterval);
+    dist.Recompute(*(UPoint*)(&cup1), *(UPoint*)(&cup2), geoid);
   }
   double dur = (dist.timeInterval.end - dist.timeInterval.start).ToDouble();
   if (!upperBound) { // prune sections below sumOfRadii
@@ -3186,66 +3297,36 @@ double CUPoint::DistanceIntegral(const CUPoint& cup, const bool upperBound,
       std::cerr << __PRETTY_FUNCTION__ << "Invalid geographic coord!" << endl;
       return DBL_MAX;
     }
-    integralValue1 = dist.Integrate();
-    if (isnan(integralValue1)) {
-      cout << "NaN processing" << endl;
-      CUPoint cup1part1(true),cup1part2(true), cup2part1(true), cup2part2(true);
-      Interval<Instant> iv = this->timeInterval;
-      Interval<Instant> iv1(iv.start, iv.start + (iv.end - iv.start) / 2, true,
-                            false);
-      Interval<Instant> iv2(iv1.start, iv.end, true, false);
-      this->AtIntervalCU(iv1, cup1part1);
-      this->AtIntervalCU(iv2, cup1part2);
-      cup.AtIntervalCU(iv1, cup2part1);
-      cup.AtIntervalCU(iv2, cup2part2);
-      UReal dist1(true), dist2(true);
-      cup1part1.Distance(cup2part1, dist1);
-      cup1part2.Distance(cup2part2, dist2);
-      double integral1 = dist1.Integrate();
-      double integral2 = dist2.Integrate();
-      if (isnan(integral1) && isnan(integral2)) {
-        integralValue1 = dist.Max(correct);
-        if (!correct) {
-          return DBL_MAX;
+    double integralValue(0.0), integralPart(0.0);
+//     cout << "Integrate  sqrt(" << dist.a << " * x^2 + " << dist.b 
+//          << " * x + " << dist.c << ")" << endl;
+//     datetime::DateTime splitDur(0, 3000, datetime::durationtype);    
+//     std::vector<UReal> parts;
+//     dist.Split(splitDur, parts);
+//     for (unsigned int i = 0; i < parts.size(); i++) {
+//       integralPart = parts[i].Integrate();
+      integralPart = dist.Integrate();
+      if (isnan(integralPart) || integralPart < 0.0 || isinf(integralPart)) {
+        UReal linPart1(true), linPart2(true);
+        dist.Linearize(linPart1, linPart2);
+        integralPart = linPart1.Integrate() + 
+                        (linPart2.IsDefined() ? linPart2.Integrate() : 0.0);
+//         cout << "  approx by " << linPart1.Integrate() << " + "
+//              << (linPart2.IsDefined() ? linPart2.Integrate() : 0.0) << endl;
+        if (isnan(integralPart) || integralPart < 0.0) {
+          cout << "#################§§§§§§§§§" << endl;
+          assert(false);
         }
       }
-      if (isnan(integral1) || isnan(integral2)) {
-        integralValue1 = (isnan(integral1) ? 2.0 * integral2 : 2.0 * integral1);
-        cout << "NaN : " << isnan(integral1) << " " << isnan(integral2) << endl;
-      }
-      else {
-        integralValue1 = integral1 + integral2;
-        cout << "after split: integralValue = " << integral1 << " + " 
-             << integral2 << endl;
-      }
-      cout << "NaN processed" << endl;
-    }
-//     datetime::DateTime oneMinute(0, 30000, datetime::durationtype);
-//     std::vector<CUPoint> parts1, parts2;
-//     this->Split(oneMinute, parts1);
-//     cup.Split(oneMinute, parts2);
-//     double integralSum = 0.0;
-//     for (unsigned int i = 0; i < parts1.size(); i++) {
-//       parts1[i].Distance(parts2[i], dist);
-//       integralSum += dist.Integrate();
-//     }
-    
-//     std::vector<UReal> parts;
-//     dist.Split(oneMinute, parts);
-//     double integralSum = 0.0;
-//     for (unsigned int i = 0; i < parts.size(); i++) {
-//       integralSum += parts[i].Integrate();
+      integralValue += integralPart;
 //       cout << "integralSum is now " << integralSum << endl;
 //     }
-    
-
-    
     DateTime dura(durationtype);
     dura.ReadFrom(dur);
-    result = integralValue1 + sumOfRadii * dur;
-    cout << "   urDist = " << dist << " ==> RESULTub = " << integralValue1
-         << " + " << sumOfRadii << " * " << dura << " = " << result 
-         << endl << endl;
+    result = integralValue + sumOfRadii * dur;
+//     cout << "   urDist = " << dist << " ==> RESULTub = " << integralValue
+//          << " + " << sumOfRadii << " * " << dura << " = " << result 
+//          << endl << endl;
   }
   return result;
 }
@@ -3274,7 +3355,8 @@ void CUPoint::DistanceAvg(const CUPoint& cup, const DateTime& duration,
     result.SetDefined(false);
     return;
   }
-  result.Set(true, this->DistanceAvg(cup, duration, upperBound, geoid));
+  result.Set(true, roundToNPlaces(this->DistanceAvg(cup, duration, upperBound, 
+                                                    geoid), 6));
 }
 
 void CUPoint::SetToConstantUnit(const Point& p, const double r) {
