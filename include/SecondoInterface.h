@@ -1092,7 +1092,6 @@ virtual std::string getHome() = 0;
 
  protected:
   void Init();                // Inititalize to  default values
-  void InitErrorMessages();
 
   void showTimes(double real, double cpu);
 

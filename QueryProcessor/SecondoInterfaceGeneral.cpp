@@ -44,87 +44,10 @@ extend to support additional parameters for error messages.
 
 using namespace std;
 
-SecondoInterface::ErrorMap SecondoInterface::errors;
 
-
-const string nlfolder = "temp_nested_list";
-
-
-SecondoInterface::SecondoInterface(bool isServer, NestedList* _nl)
+std::map<int,std::string> InitErrorMessages()
 {
-  Init();
-
-  serverInstance = isServer;
-  if(!_nl){
-    nl = new NestedList(nlfolder);
-    al = nl;
-    externalNL = false;
-  } else {
-    nl = _nl;
-    al = nl;
-    externalNL = true;
-  }
-  id = -1;
-}
-
-
-SecondoInterface::~SecondoInterface(){ } 
-
-void
-SecondoInterface::Init() {
-
-  initialized = false;
-  activeTransaction = false;
-  serverInstance = false;
-  nl = 0;
-  al = 0;
-  derivedObjPtr = 0;
-  printQueryAnalysis = false;
-
-  cmdReal = 0.0;
-  cmdCPU = 0.0;
-  queryReal = 0.0;
-  queryCPU = 0.0;
-  commitReal = 0.0;
-  outObjReal = 0.0;
-  copyReal = 0.0;
-
-  InitErrorMessages();
-}
-
-NestedList*
-SecondoInterface::GetNestedList()
-{
-  return (al);
-}
-
-bool
-SecondoInterface::ServerInstance()
-{
-  return serverInstance;
-}
-
-void
-SecondoInterface::showTimes(double real, double cpu)
-{
-  cmsg.info() << "Times (elapsed / cpu): " << real << " / " << cpu << endl;
-  cmsg.send();
-}
-
-void
-SecondoInterface::InitRTFlags(const string& configFile) {
-
-  // initialize runtime flags
-  string logMsgList = SmiProfile::GetParameter( "", "RTFlags", "",
-                                                configFile );
-  RTFlag::initByString(logMsgList);
-  RTFlag::showActiveFlags(cout);
-
-}
-
-void
-SecondoInterface::InitErrorMessages()
-{
+  std::map<int,std::string> errors;
 
   errors[ERR_NO_ERROR]
    = "No Error!";
@@ -316,7 +239,6 @@ after the error number have the following meaning:
  errors[ERR_FILE_NOT_EXISTS]
   = "File does not exist.";
 
-
  errors[ERR_UNKNOWN_RETURN_CODE]
   = "A function call returned with an unknown message. ";
 
@@ -325,6 +247,82 @@ after the error number have the following meaning:
 
  errors[ERR_SYSTEM_DIED]
   = "SECONDO server has gone away during query execution.";
+
+  return errors;
+}
+
+SecondoInterface::ErrorMap SecondoInterface::errors = InitErrorMessages();
+
+const string nlfolder = "temp_nested_list";
+
+SecondoInterface::SecondoInterface(bool isServer, NestedList* _nl)
+{
+  Init();
+
+  serverInstance = isServer;
+  if(!_nl){
+    nl = new NestedList(nlfolder);
+    al = nl;
+    externalNL = false;
+  } else {
+    nl = _nl;
+    al = nl;
+    externalNL = true;
+  }
+  id = -1;
+}
+
+
+SecondoInterface::~SecondoInterface(){ } 
+
+void
+SecondoInterface::Init() {
+
+  initialized = false;
+  activeTransaction = false;
+  serverInstance = false;
+  nl = 0;
+  al = 0;
+  derivedObjPtr = 0;
+  printQueryAnalysis = false;
+
+  cmdReal = 0.0;
+  cmdCPU = 0.0;
+  queryReal = 0.0;
+  queryCPU = 0.0;
+  commitReal = 0.0;
+  outObjReal = 0.0;
+  copyReal = 0.0;
+}
+
+NestedList*
+SecondoInterface::GetNestedList()
+{
+  return (al);
+}
+
+bool
+SecondoInterface::ServerInstance()
+{
+  return serverInstance;
+}
+
+void
+SecondoInterface::showTimes(double real, double cpu)
+{
+  cmsg.info() << "Times (elapsed / cpu): " << real << " / " << cpu << endl;
+  cmsg.send();
+}
+
+void
+SecondoInterface::InitRTFlags(const string& configFile) {
+
+  // initialize runtime flags
+  string logMsgList = SmiProfile::GetParameter( "", "RTFlags", "",
+                                                configFile );
+  RTFlag::initByString(logMsgList);
+  RTFlag::showActiveFlags(cout);
+
 }
 
 /*
