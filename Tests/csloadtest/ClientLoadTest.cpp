@@ -56,7 +56,7 @@ void handleSecondoResult(SecErrInfo err,  NestedList* nl, ListExpr res) {
 
 }
 
-void performConnection() {
+void performConnection(size_t objectNumber) {
    // create an interface to the secondo server
    // the paramneter must be true to communicate as client
    SecondoInterface* si = new SecondoInterfaceCS(true,0,false);
@@ -94,14 +94,27 @@ void performConnection() {
   si->Secondo("open database opt", res, err); 
   handleSecondoResult(err, nl, res);
 
+  // Delete
   res = nl->TheEmptyList(); 
-  si->Secondo("delete x", res, err); 
+  string deleteCommand = "delete x" + to_string(objectNumber);
+  cout << "Executing: " << deleteCommand << endl;
+  si->Secondo(deleteCommand, res, err); 
   handleSecondoResult(err, nl, res);
       
+  // Create
   res = nl->TheEmptyList();
-  si->Secondo("let x = 10", res, err); 
+  string queryCommand = "let x" + to_string(objectNumber) + " = 10";
+  cout << "Executing: " << queryCommand << endl;
+  si->Secondo(queryCommand, res, err); 
   handleSecondoResult(err, nl, res);
      
+  // Read
+  res = nl->TheEmptyList();
+  string letCommand = "query x" + to_string(objectNumber);
+  cout << "Executing: " << letCommand << endl;
+  si->Secondo(letCommand, res, err); 
+  handleSecondoResult(err, nl, res);
+
   // close connection
   si->Terminate();
 
@@ -109,9 +122,9 @@ void performConnection() {
   delete si;
 }
 
-void performMultipleConnections() {
+void performMultipleConnections(size_t objectNumber) {
   for(size_t i = 0; i < 10; i++) {
-    performConnection();
+    performConnection(objectNumber);
   }
 }
 
@@ -119,9 +132,12 @@ int main(int argc, char** argv){
 
   std::vector<future<void>> futures;
 
+  size_t counter = 0;
+  
   for(size_t i = 0; i < 10; i++) {
-    auto future = std::async(&performMultipleConnections);
+    future<void> future = std::async(&performMultipleConnections, counter);
     futures.push_back((std::move(future)));
+    counter++;
   }
 
   std::cout << "Waiting for futures" << endl;
