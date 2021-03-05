@@ -585,8 +585,6 @@ SmiEnvironment::Implementation::GetFileId( const bool isTemporary )
   if ( dbseq )
   {
     DbTxn* tid = 0;
-    DbLock lock;
-    u_int32_t locker = 0;
     db_recno_t seqno = SMI_SEQUENCE_FILEID;
     Dbt key( &seqno, sizeof(seqno) );
     Dbt data;
@@ -599,28 +597,6 @@ SmiEnvironment::Implementation::GetFileId( const bool isTemporary )
     {
       rc = dbenv->txn_begin( 0, &tid, 0 );
       SetBDBError(rc);
-    }
-
-    if( ( rc == 0 && useTransactions)) {
-      string lockName = stringutils::replaceAll(GetSecondoHome(),"/","_") 
-          + "_" + database + "_file_id";
-
-      // Create locker to make read/write operation atomar
-      rc = dbenv -> lock_id(&locker);
-
-      if(rc != 0) {
-        cerr << "Error: Locker error";
-      }
-
-      char lockNameStr[lockName.length()];
-      strcpy(lockNameStr, lockName.c_str());
-
-      Dbt dbt(lockNameStr, (u_int32_t) lockName.length());
-
-      rc = dbenv -> lock_get(locker, 0, &dbt, DB_LOCK_WRITE, &lock);
-      if(rc != 0) {
-        cerr << "Error: Unable to get lock";
-      }
     }
 
     if ( rc == 0 )
