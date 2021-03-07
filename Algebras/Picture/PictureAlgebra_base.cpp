@@ -777,7 +777,7 @@ public:
 };
 
 
-unsigned* pictureLabOffsetTable=0;
+unsigned* pictureLabOffsetTable = nullptr;
 
 
 class Lab{
@@ -852,7 +852,10 @@ class Lab{
 };
 
 void initLabOffsetTable(){
-   assert(!pictureLabOffsetTable);
+
+   if(pictureLabOffsetTable != nullptr) {
+      return;
+   }
 
    pictureLabOffsetTable = new unsigned[64*64*64];
    for(signed char r = 0; r < 64; r++)
@@ -933,6 +936,8 @@ void getHistHsv(Picture* picture, hist_hsv<dim, lab>* hist){
    const char* imgdata = picture->GetJPEGData (size);
    JPEGPicture rgb ((unsigned char *) imgdata, size);
 
+   initLabOffsetTable();
+   
    unsigned long int rgbSize;
    unsigned char* rgbData = rgb.GetImageData (rgbSize);
 
@@ -1142,13 +1147,13 @@ public:
         AddOperator(&getHistLab256Op);
         
         AddOperator(&importpictureop);
-
-
-        initLabOffsetTable();
-
     }
+
     ~PictureAlgebra() {
-         delete[] pictureLabOffsetTable;
+         if(pictureLabOffsetTable != nullptr) {
+         	delete[] pictureLabOffsetTable;
+		pictureLabOffsetTable = nullptr;
+	 }
      }
 };
 
