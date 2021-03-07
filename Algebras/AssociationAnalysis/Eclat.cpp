@@ -143,44 +143,23 @@ int eclatVM(Word *args, Word &result, int message, Word &local, Supplier s) {
   }
 }
 
-// Return an intersection of the given tidsets.
-std::unordered_set<int> intersection(const std::unordered_set<int> &tidset1,
-                                     const std::unordered_set<int> &tidset2) {
-  // We reduce the number of needed look-ups by using the tids of the smaller
-  // tidset.
-  std::unordered_set<int> tidset;
-  if (tidset1.size() < tidset2.size()) {
-    for (int tid : tidset1) {
-      if (tidset2.count(tid) > 0) {
-        tidset.insert(tid);
-      }
-    }
-  } else {
-    for (int tid : tidset2) {
-      if (tidset1.count(tid) > 0) {
-        tidset.insert(tid);
-      }
-    }
-  }
-  return tidset;
-}
-
 // Performs a bottom-up search of frequent itemsets by recursively combining
 // the atoms to larger itemsets and examining the support of the resulting
 // tidsets.
 void eclat(
     double minSupport, int transactionCount,
-    const std::vector<std::pair<std::vector<int>, std::unordered_set<int>>>
-        &atoms,
+    const std::vector<std::pair<std::vector<int>, std::vector<int>>> &atoms,
     std::vector<std::pair<std::vector<int>, double>> &collect) {
   for (std::size_t i = 0; i < atoms.size(); i += 1) {
     // Atom set for the next level.
-    std::vector<std::pair<std::vector<int>, std::unordered_set<int>>> newAtoms;
+    std::vector<std::pair<std::vector<int>, std::vector<int>>> newAtoms;
 
     for (size_t j = i + 1; j < atoms.size(); j += 1) {
       auto const &[itemset1, tidset1] = atoms[i];
       auto const &[itemset2, tidset2] = atoms[j];
-      std::unordered_set<int> tidset = intersection(tidset1, tidset2);
+      std::vector<int> tidset;
+      std::set_intersection(tidset1.cbegin(), tidset1.cend(), tidset2.cbegin(),
+                            tidset2.cend(), std::back_inserter(tidset));
       double support = (double)tidset.size() / (double)transactionCount;
       if (support >= minSupport) {
         std::vector<int> itemset;
@@ -208,14 +187,14 @@ eclatLI::eclatLI(GenericRelation *relation, double minSupport,
                  int itemsetAttr) {
   int transactionCount = relation->GetNoTuples();
 
-  std::vector<std::pair<int, std::unordered_set<int>>> atoms;
+  std::vector<std::pair<int, std::vector<int>>> atoms;
   TriangularMatrix triangularMatrix;
 
   // Collect all frequent items and populate the triangular matrix with the
   // support counts of all 2-itemsets.
   {
     // Mapping from an item to its tidset.
-    std::unordered_map<int, std::unordered_set<int>> itemTidsets;
+    std::unordered_map<int, std::set<int>> itemTidsets;
 
     // Database scan.
     std::unique_ptr<GenericRelationIterator> rit(relation->MakeScan());
@@ -243,7 +222,8 @@ eclatLI::eclatLI(GenericRelation *relation, double minSupport,
     for (auto const &[item, tidset] : itemTidsets) {
       double support = (double)tidset.size() / (double)transactionCount;
       if (support >= minSupport) {
-        atoms.emplace_back(item, tidset);
+        std::vector<int> tidsetv(tidset.cbegin(), tidset.cend());
+        atoms.emplace_back(item, tidsetv);
         std::vector<int> itemset = {item};
         this->frequentItemsets.emplace_back(itemset, support);
       }
@@ -264,7 +244,7 @@ eclatLI::eclatLI(GenericRelation *relation, double minSupport,
   // the triangular matrix for faster support checking.
   for (size_t i = 0; i < atoms.size(); i += 1) {
     // Atom set for the next level.
-    std::vector<std::pair<std::vector<int>, std::unordered_set<int>>> newAtoms;
+    std::vector<std::pair<std::vector<int>, std::vector<int>>> newAtoms;
 
     // Combine atoms to and see if the resulting itemset satisfies minSupport.
     for (size_t j = i + 1; j < atoms.size(); j += 1) {
@@ -279,7 +259,11 @@ eclatLI::eclatLI(GenericRelation *relation, double minSupport,
         // level of the bottom-up search.
         std::vector<int> itemset(std::min(item1, item2),
                                  std::max(item1, item2));
-        newAtoms.emplace_back(itemset, intersection(tidset1, tidset2));
+        std::vector<int> tidset;
+        std::set_intersection(tidset1.cbegin(), tidset1.cend(),
+                              tidset2.cbegin(), tidset2.cend(),
+                              std::back_inserter(tidset));
+        newAtoms.emplace_back(itemset, tidset);
         // Safe the itemset for the result stream.
         this->frequentItemsets.emplace_back(itemset, support);
       }
