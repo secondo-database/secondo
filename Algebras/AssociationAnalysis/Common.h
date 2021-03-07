@@ -28,24 +28,10 @@ January 2021 - April 2021, P. Fedorow for bachelor thesis.
 
 */
 
-#include "Apriori.h"
-#include "Eclat.h"
-#include "GenTransactions.h"
+#pragma once
 
-#include "Algebra.h"
+#include "NestedList.h"
 
 namespace AssociationAnalysis {
-class AssociationAnalysisAlgebra : public Algebra {
-public:
-  AssociationAnalysisAlgebra() : Algebra() {
-    AddOperator(genTransactionsInfo(), genTransactionsVM, genTransactionsTM);
-    AddOperator(aprioriInfo(), aprioriVM, aprioriTM);
-    AddOperator(eclatInfo(), eclatVM, eclatTM);
-  }
-};
+ListExpr frequentItemsetTupleType();
 } // namespace AssociationAnalysis
-
-extern "C" Algebra *InitializeAssociationAnalysisAlgebra(NestedList *,
-                                                         QueryProcessor *) {
-  return new AssociationAnalysis::AssociationAnalysisAlgebra();
-}

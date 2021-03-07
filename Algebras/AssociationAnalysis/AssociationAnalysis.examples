@@ -1,5 +1,5 @@
 Sequential : No
-Database   : berlintest
+Database   : assoctest
 Restore    : No
 
 Operator  : genTransactions
@@ -40,3 +40,9 @@ Signature : rel(tuple(...)) attr real -> stream(tuple(Itemset: intset, Support: 
 Example   : query genTransactions(1000, 5, 2, 2000, 1000) consume apriori[Itemset, 0.015] min[Support]
 Result    : 0.015
 Tolerance : 0.0001
+
+Operator  : eclat
+Number    : 1
+Signature : rel(tuple(...)) attr real -> stream(tuple(Itemset: intset, Support: real))
+Example   : query genTransactions(1000, 5, 2, 2000, 1000) consume eclat[Itemset, 0.015] count
+Result    : 64

@@ -28,24 +28,20 @@ January 2021 - April 2021, P. Fedorow for bachelor thesis.
 
 */
 
-#include "Apriori.h"
-#include "Eclat.h"
-#include "GenTransactions.h"
+#include "Common.h"
 
-#include "Algebra.h"
+#include "Algebras/Collection/IntSet.h"
+#include "NList.h"
+#include "StandardTypes.h"
 
 namespace AssociationAnalysis {
-class AssociationAnalysisAlgebra : public Algebra {
-public:
-  AssociationAnalysisAlgebra() : Algebra() {
-    AddOperator(genTransactionsInfo(), genTransactionsVM, genTransactionsTM);
-    AddOperator(aprioriInfo(), aprioriVM, aprioriTM);
-    AddOperator(eclatInfo(), eclatVM, eclatTM);
-  }
-};
-} // namespace AssociationAnalysis
-
-extern "C" Algebra *InitializeAssociationAnalysisAlgebra(NestedList *,
-                                                         QueryProcessor *) {
-  return new AssociationAnalysis::AssociationAnalysisAlgebra();
+ListExpr frequentItemsetTupleType() {
+  NList attrs =
+      NList(NList(NList().symbolAtom("Itemset"),
+                  NList().symbolAtom(collection::IntSet::BasicType())),
+            NList(NList().symbolAtom("Support"),
+                  NList().symbolAtom(CcReal::BasicType())));
+  ListExpr type = NList().tupleOf(attrs).listExpr();
+  return type;
 }
+} // namespace AssociationAnalysis
