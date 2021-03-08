@@ -37,6 +37,9 @@ January 2021 - April 2021, P. Fedorow for bachelor thesis.
 #include "StandardTypes.h"
 
 namespace AssociationAnalysis {
+
+// Returns the list representation of the tuple type that is used for the
+// generated transactions: tuple(Id: int, Itemset: intset)
 ListExpr genTransactionsTupleType() {
   NList attrs = NList(
       NList(NList().symbolAtom("Id"), NList().symbolAtom(CcInt::BasicType())),
@@ -46,23 +49,29 @@ ListExpr genTransactionsTupleType() {
   return type;
 }
 
+// Type mapping for the genTransactions operator.
 ListExpr genTransactionsTM(ListExpr args) {
   NList type(args);
 
   if (type.length() == 5) {
     for (int i = 1; i <= 5; i += 1) {
-      if (!type.elem(i).isSymbol(CcInt::BasicType())) {
-        return NList::typeError("Wrong argument type passed.");
+      const NList &arg = type.elem(i);
+      if (!arg.first().isSymbol(CcInt::BasicType()) ||
+          arg.second().intval() < 1) {
+        return NList::typeError("Argument number " + std::to_string(i) +
+                                " must be of type int and >= 1.");
       }
     }
   } else {
-    return NList::typeError("Wrong number of arguments passed.");
+    return NList::typeError("5 arguments expected but " +
+                            std::to_string(type.length()) + " received.");
   }
 
   NList tupleType = NList(genTransactionsTupleType());
   return NList().streamOf(tupleType).listExpr();
 }
 
+// Value mapping for the genTransactions operator.
 int genTransactionsVM(Word *args, Word &result, int message, Word &local,
                       Supplier s) {
   auto *li = (getTransactionsLI *)local.addr;
@@ -90,16 +99,19 @@ int genTransactionsVM(Word *args, Word &result, int message, Word &local,
   }
 }
 
-getTransactionsLI::getTransactionsLI(int numOfTransactions,
-                                     int transactionSizeMean,
-                                     int frequentItemsetSizeMean,
-                                     int numOfFrequentItemsets, int numOfItems)
+// Prepares the set of potentially frequent itemsets and everything else that is
+// needed for the generation of transactions.
+getTransactionsLI::getTransactionsLI(size_t numOfTransactions,
+                                     size_t transactionSizeMean,
+                                     size_t frequentItemsetSizeMean,
+                                     size_t numOfFrequentItemsets,
+                                     size_t numOfItems)
     : numOfTransactions(numOfTransactions), t(0),
-      genTransactionSize(transactionSizeMean - 1),
+      genTransactionSize((int)transactionSizeMean - 1),
       allowOversizedTransaction(false) {
   // Prepare the random number distributions.
   std::poisson_distribution<int> genFrequentItemsetSize(
-      frequentItemsetSizeMean - 1);
+      (int)frequentItemsetSizeMean - 1);
   std::uniform_int_distribution<int> genItem(1, numOfItems);
   std::exponential_distribution<float> genReuseFraction(2);
   std::exponential_distribution<double> genWeight(1);
@@ -108,33 +120,33 @@ getTransactionsLI::getTransactionsLI(int numOfTransactions,
 
   // Generate the first frequent itemset.
   {
-    int size = genFrequentItemsetSize(this->gen) + 1;
+    size_t size = genFrequentItemsetSize(this->gen) + 1;
     std::vector<int> itemset;
     itemset.reserve(size);
-    for (int i = 0; i < size; i += 1) {
+    for (size_t i = 0; i < size; i += 1) {
       itemset.push_back(genItem(this->gen));
     }
     this->potentialFrequentItemsets.push_back(itemset);
   }
 
   // Generate the rest of the frequent itemsets.
-  for (int i = 0; i < numOfFrequentItemsets; i += 1) {
-    int size = genFrequentItemsetSize(this->gen) + 1;
+  for (size_t i = 0; i < numOfFrequentItemsets; i += 1) {
+    size_t size = genFrequentItemsetSize(this->gen) + 1;
 
     std::vector<int> itemset;
 
     // Reuse items from the previously generated itemset.
     std::vector<int> &prevItemset = this->potentialFrequentItemsets[i];
     shuffle(prevItemset.begin(), prevItemset.end(), this->gen);
-    int reuseNum = (int)std::round(std::min(genReuseFraction(this->gen), 1.0f) *
-                                   prevItemset.size());
-    for (int j = 0; j < reuseNum; j += 1) {
+    size_t reuseNum = std::round(std::min(genReuseFraction(this->gen), 1.0f) *
+                                 prevItemset.size());
+    for (size_t j = 0; j < reuseNum; j += 1) {
       itemset.push_back(prevItemset[j]);
     }
 
     // Fill the itemset with random items until the desired size is
     // reached.
-    while ((int)itemset.size() < size) {
+    while (itemset.size() < size) {
       itemset.push_back(genItem(this->gen));
     }
 
@@ -144,7 +156,7 @@ getTransactionsLI::getTransactionsLI(int numOfTransactions,
   // Setup random number distribution for the itemset selection.
   std::vector<double> itemsetWeights;
   itemsetWeights.reserve(numOfFrequentItemsets);
-  for (int i = 0; i < numOfFrequentItemsets; i += 1) {
+  for (size_t i = 0; i < numOfFrequentItemsets; i += 1) {
     itemsetWeights.push_back(genWeight(this->gen));
   }
   this->genPotentialFrequentItemset.~discrete_distribution();
@@ -154,7 +166,7 @@ getTransactionsLI::getTransactionsLI(int numOfTransactions,
   // Setup corruption levels.
   std::normal_distribution randCorruptionLevel(0.5, (double)std::sqrt(0.1L));
   this->corruptionLevels.reserve(numOfFrequentItemsets);
-  for (int i = 0; i < numOfFrequentItemsets; i += 1) {
+  for (size_t i = 0; i < numOfFrequentItemsets; i += 1) {
     this->corruptionLevels.push_back(
         std::clamp(randCorruptionLevel(this->gen), 0.0, 1.0));
   }
@@ -164,15 +176,20 @@ getTransactionsLI::getTransactionsLI(int numOfTransactions,
       SecondoSystem::GetCatalog()->NumericType(genTransactionsTupleType()));
 }
 
+// Returns the next generated transaction as a tuple.
 Tuple *getTransactionsLI::getNext() {
   std::uniform_real_distribution<double> randCorruptionLevel(0, 1);
   if (this->t < this->numOfTransactions) {
-    int transactionSize = this->genTransactionSize(this->gen) + 1;
+    size_t transactionSize = this->genTransactionSize(this->gen) + 1;
     collection::IntSet transaction(true);
 
     // Fill transaction with items from the potential frequent itemsets
     // till the desired transaction size is reached.
-    while ((int)transaction.getSize() < transactionSize) {
+    size_t count = 0; // counter to ensure termination
+    while (transaction.getSize() < transactionSize &&
+           count < this->potentialFrequentItemsets.size()) {
+      count += 1;
+
       int index = this->genPotentialFrequentItemset(this->gen);
 
       std::vector<int> &itemset = this->potentialFrequentItemsets[index];
@@ -186,9 +203,9 @@ Tuple *getTransactionsLI::getNext() {
       }
       collection::IntSet corruptedItemset(std::set<int>(itemset.cbegin(), end));
 
-      if ((int)transaction.add(corruptedItemset).getSize() > transactionSize) {
+      if (transaction.add(corruptedItemset).getSize() > transactionSize) {
         if (transaction.getSize() == 0 &&
-            transactionSize < (int)corruptedItemset.getSize() &&
+            transactionSize < corruptedItemset.getSize() &&
             !this->allowOversizedTransaction) {
           // We would end up with an empty transaction here,
           // because the generated transaction is still empty and
@@ -210,7 +227,7 @@ Tuple *getTransactionsLI::getNext() {
     }
 
     auto tuple = new Tuple(this->tupleType);
-    tuple->PutAttribute(0, new CcInt(this->t));
+    tuple->PutAttribute(0, new CcInt((int)this->t));
     tuple->PutAttribute(1, new collection::IntSet(transaction));
 
     this->t += 1;
