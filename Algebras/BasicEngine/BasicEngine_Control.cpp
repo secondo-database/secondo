@@ -880,49 +880,49 @@ Returns true if everything is OK and there are no failure.
 
 */
 bool BasicEngine_Control::partTable(const string &tab, const string &key, 
-  const string &art, size_t slotnum, const string &geo_col, 
+  const string &partType, size_t slotnum, const string &geo_col, 
   float x0, float y0, float slotsize) {
 
   bool val = true;
 
-  if (boost::iequals(art, "RR")) {
+  if (boost::iequals(partType, "RR")) {
     val = partRoundRobin(tab, key, slotnum);
-  } else if (boost::iequals(art, "Hash")) {
+  } else if (boost::iequals(partType, "Hash")) {
     val = partHash(tab, key, slotnum);
-  } else if (boost::iequals(art, "Grid")) {
+  } else if (boost::iequals(partType, "Grid")) {
     val = partGrid(tab, key, geo_col,
                     slotnum, x0,  y0, slotsize);
   } else {
-    val = partFun(tab, key, art, slotnum);
+    val = partFun(tab, key, partType, slotnum);
   }
 
   if(!val) {
-    BOOST_LOG_TRIVIAL(error) 
-      << "Couldn't partition the table.";
-    return val;
+    BOOST_LOG_TRIVIAL(error) << "Couldn't partition the table.";
+    return false;
   }
 
   val = exportData(tab, key, remoteConnectionInfos.size());
 
   if(!val) {
     BOOST_LOG_TRIVIAL(error) << "Couldn't export the data from the table.";
-    return val;
+    return false;
   }
 
   val = getCreateTableSQL(tab);
 
   if(!val){
     BOOST_LOG_TRIVIAL(error) << "Couldn't create the structure-file";
-    return val;
+    return false;
   }
 
   val = exportToWorker(tab, tab, true);
 
   if(!val) {
     BOOST_LOG_TRIVIAL(error) << "Couldn't transfer the data to the worker.";
+    return false;
   }
 
-  return val;
+  return true;
 }
 
 /*
