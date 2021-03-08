@@ -83,6 +83,7 @@ struct eclatInfo : OperatorInfo {
                     "arguments are: the relation that contains the "
                     "transactions, the name of the attribute that contains the "
                     "items as an intset and the minimum support to look for.";
+    this->usesArgsInTypeMapping = true;
   }
 };
 } // namespace AssociationAnalysis

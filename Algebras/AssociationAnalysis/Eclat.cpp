@@ -36,10 +36,9 @@ January 2021 - April 2021, P. Fedorow for bachelor thesis.
 #include "StandardTypes.h"
 
 #include <algorithm>
-#include <iterator>
 #include <set>
 #include <string>
-#include <unordered_set>
+#include <unordered_map>
 #include <vector>
 
 namespace AssociationAnalysis {
@@ -85,20 +84,26 @@ ListExpr eclatTM(ListExpr args) {
 
   NList attrs;
   if (type.length() == 3) {
-    if (!type.elem(1).checkRel(attrs)) {
-      return NList::typeError("Wrong argument type passed.");
+    if (!type.elem(1).first().checkRel(attrs)) {
+      return NList::typeError(
+          "Argument number 1 must be of type rel(tuple(...)).");
     }
-    if (!type.isSymbol(2)) {
-      return NList::typeError("Wrong argument type passed.");
+    if (!type.elem(2).isSymbol(1)) {
+      return NList::typeError("Argument number 2 must name an attribute in the "
+                              "relation given as the first argument.");
     }
-    if (!type.elem(3).isSymbol(CcReal::BasicType())) {
-      return NList::typeError("Wrong argument type passed.");
+    if (!type.elem(3).first().isSymbol(CcReal::BasicType()) ||
+        type.elem(3).second().realval() <= 0.0 ||
+        type.elem(3).second().realval() >= 1.0) {
+      return NList::typeError(
+          "Argument number 3 must be of type real and in the interval (0,1].");
     }
   } else {
-    return NList::typeError("Wrong number of arguments passed.");
+    return NList::typeError("3 arguments expected but " +
+                            std::to_string(type.length()) + " received.");
   }
 
-  std::string itemsetAttrName = type.elem(2).str();
+  std::string itemsetAttrName = type.elem(2).first().str();
   int itemsetAttr = -1;
   for (int i = 1; i <= (int)attrs.length(); i += 1) {
     NList attr = attrs.elem(i);
@@ -108,8 +113,8 @@ ListExpr eclatTM(ListExpr args) {
   }
 
   if (itemsetAttr == -1) {
-    return NList::typeError(
-        "The given attribute was not found in the tuple description.");
+    return NList::typeError("Argument number 2 must name an attribute in the "
+                            "relation given as the first argument.");
   }
 
   NList tupleType = NList(frequentItemsetTupleType());
@@ -230,7 +235,7 @@ eclatLI::eclatLI(GenericRelation *relation, double minSupport,
     }
   }
 
-  // The atoms are sorted descending by their corresponding tidset size. This
+  // The atoms are sorted ascendingly by their corresponding tidset size. This
   // reduces the number of tidset intersections in the bottom-up search.
   std::sort(atoms.begin(), atoms.end(), [](auto &a, auto &b) -> bool {
     return a.second.size() < b.second.size();
