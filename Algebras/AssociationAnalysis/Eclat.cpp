@@ -257,8 +257,8 @@ eclatLI::eclatLI(GenericRelation *relation, double minSupport,
       if (support >= minSupport) {
         // Place the resulting itemset and tidset into the atom set for the next
         // level of the bottom-up search.
-        std::vector<int> itemset(std::min(item1, item2),
-                                 std::max(item1, item2));
+        std::vector<int> itemset(
+            {std::min(item1, item2), std::max(item1, item2)});
         std::vector<int> tidset;
         std::set_intersection(tidset1.cbegin(), tidset1.cend(),
                               tidset2.cbegin(), tidset2.cend(),

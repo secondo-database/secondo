@@ -1,48 +1,68 @@
-Sequential : No
+Sequential : Yes
 Database   : assoctest
 Restore    : No
 
 Operator  : genTransactions
 Number    : 1
 Signature : int int int int int -> stream(tuple([Id: int, Itemset: intset]))
-Example   : query genTransactions(1000, 5, 2, 2000, 1000) count
-Result    : 1000
+Example   : delete transactions
+Result    : ()
 
 Operator  : genTransactions
 Number    : 2
 Signature : int int int int int -> stream(tuple([Id: int, Itemset: intset]))
-Example   : query genTransactions(1000, 5, 2, 2000, 1000) filter[size(.Itemset) = 0] count
-Result    : 0
+Example   : let transactions = genTransactions(1000, 5, 2, 2000, 1000) consume
+Result    : ()
 
 Operator  : genTransactions
 Number    : 3
 Signature : int int int int int -> stream(tuple([Id: int, Itemset: intset]))
-Example   : query genTransactions(1000, 5, 2, 2000, 1000) extend[ItemsetSize: size(.Itemset)] avg[ItemsetSize]
+Example   : query transactions feed filter[size(.Itemset) = 0] count
+Result    : 0
+
+Operator  : genTransactions
+Number    : 4
+Signature : int int int int int -> stream(tuple([Id: int, Itemset: intset]))
+Example   : query transactions feed extend[ItemsetSize: size(.Itemset)] avg[ItemsetSize]
 Result    : 5.0
 Tolerance : 0.1
 
 Operator  : apriori
-Number    : 1
+Number    : 5
 Signature : rel(tuple(...)) attr real -> stream(tuple(Itemset: intset, Support: real))
-Example   : query genTransactions(1000, 5, 2, 2000, 1000) consume apriori[Itemset, 0.015] count
+Example   : query transactions apriori[Itemset, 0.015] count
 Result    : 64
 
 Operator  : apriori
-Number    : 2
+Number    : 6
 Signature : rel(tuple(...)) attr real -> stream(tuple(Itemset: intset, Support: real))
-Example   : query genTransactions(1000, 5, 2, 2000, 1000) consume apriori[Itemset, 0.015] filter[size(.Itemset) > 1] extend[ItemsetSize: size(.Itemset)] avg[ItemsetSize]
+Example   : query transactions apriori[Itemset, 0.015] filter[size(.Itemset) > 1] extend[ItemsetSize: size(.Itemset)] avg[ItemsetSize]
 Result    : 2.25
 Tolerance : 0.001
 
 Operator  : apriori
-Number    : 3
+Number    : 7
 Signature : rel(tuple(...)) attr real -> stream(tuple(Itemset: intset, Support: real))
-Example   : query genTransactions(1000, 5, 2, 2000, 1000) consume apriori[Itemset, 0.015] min[Support]
+Example   : query transactions apriori[Itemset, 0.015] min[Support]
 Result    : 0.015
 Tolerance : 0.0001
 
 Operator  : eclat
-Number    : 1
+Number    : 8
 Signature : rel(tuple(...)) attr real -> stream(tuple(Itemset: intset, Support: real))
-Example   : query genTransactions(1000, 5, 2, 2000, 1000) consume eclat[Itemset, 0.015] count
+Example   : query transactions eclat[Itemset, 0.015] count
 Result    : 64
+
+Operator  : eclat
+Number    : 9
+Signature : rel(tuple(...)) attr real -> stream(tuple(Itemset: intset, Support: real))
+Example   : query transactions eclat[Itemset, 0.015] filter[size(.Itemset) > 1] extend[ItemsetSize: size(.Itemset)] avg[ItemsetSize]
+Result    : 2.25
+Tolerance : 0.001
+
+Operator  : eclat
+Number    : 10
+Signature : rel(tuple(...)) attr real -> stream(tuple(Itemset: intset, Support: real))
+Example   : query transactions eclat[Itemset, 0.015] min[Support]
+Result    : 0.015
+Tolerance : 0.0001
