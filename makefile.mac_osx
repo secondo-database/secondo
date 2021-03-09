@@ -64,4 +64,13 @@ DLLEXT := dylib
 DLLFLAGS := -dynamiclib -flat_namespace
 DLLPREF := lib
 
+
+UNAME_M := $(shell uname -m)
+
+ifeq ($(UNAME_M),arm64)
+	DEFAULTCCFLAGS += -I/opt/homebrew/include
+	LDFLAGS += -L/opt/homebrew/lib
+	compileJava := false
+endif
+
 DEFAULTCCFLAGS += -DSECONDO_MAC_OSX
