@@ -242,7 +242,7 @@ string ConnectionPG::getPartitionRoundRobinSQL(const string &tab,
   const string &key, const string &anzSlots, const string &targetTab) {
 
   string select = "SELECT (nextval('temp_seq') %" + anzSlots + ""
-    " ) + 1 As slot," + key + " FROM " + tab;
+    " ) As slot," + key + " FROM " + tab;
 
   return "CREATE TEMP SEQUENCE IF NOT EXISTS temp_seq;"
     + getCreateTabSQL(targetTab, select);
@@ -262,7 +262,7 @@ string ConnectionPG::getPartitionHashSQL(const string &tab, const string &key,
 
   string select = "SELECT DISTINCT (get_byte(decode(md5(concat("
         "" + usedKey + ")),'hex'),15) %"
-        " " + anzSlots + " ) + 1 As slot,"
+        " " + anzSlots + " ) As slot,"
         "" + key +" FROM "+ tab;
 
   return getCreateTabSQL(targetTab, select);
@@ -350,7 +350,7 @@ bool ConnectionPG::createFunctionRandom(const string &tab,
       " for var_r in("
       "            select " + key + ""
       "            from " + tab + ")"
-      "        loop  slot := ceil(random() * " + anzSlots +" );"
+      "        loop  slot := floor(random() * " + anzSlots +" );"
       "        " + valueMap + ""
       "        return next;"
       " end loop;"
@@ -403,7 +403,7 @@ string ConnectionPG::getExportDataSQL(const string &tab, const string &join_tab,
   return "COPY (SELECT a.* FROM "+ tab +" a INNER JOIN " + join_tab  + " b "
             "" + getjoin(key) + " WHERE ((slot % "
             "" + to_string(numberOfWorker) + ") "
-            "+1) =" + nr + ") TO "
+            ") =" + nr + ") TO "
             "'" + path + filename + "' BINARY;";
 }
 
@@ -477,7 +477,7 @@ string ConnectionPG::getPartitionGridSQL(const std::string &tab,
         "OUT geom geometry) "
         "RETURNS SETOF record AS "
         "$$ "
-        "SELECT (i * nrow) + (j + 1) AS num, ST_Translate(cell,"
+        "SELECT (i * nrow) + j AS num, ST_Translate(cell,"
         " j * $3 + $5, i * $4 + $6) AS geom "
         "FROM generate_series(0, $1 - 1) AS i, "
         "generate_series(0, $2 - 1) AS j, "
@@ -525,12 +525,12 @@ string ConnectionPG::get_partShare(const string &tab, const string &key,
     const string &numberOfWorker){
       
   string query_exec;
-  string worker = "SELECT 1 as slot";
+  string worker = "SELECT 0 as slot";
 
   string usedKey(key);
   boost::replace_all(usedKey, ",", ",r.");
 
-  for(int i=2;i<=stoi(numberOfWorker);i++) {
+  for(int i=1; i < stoi(numberOfWorker); i++) {
     worker = worker + " UNION SELECT " + to_string(i) + " as slot";
   }
 

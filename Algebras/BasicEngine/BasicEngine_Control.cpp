@@ -671,7 +671,7 @@ bool BasicEngine_Control::exportToWorker(const string &sourceTable,
     SecondoInterfaceCS* si = connections[index]->getInterface();
 
     //sending data
-    string strindex = to_string(index+1);
+    string strindex = to_string(index);
     string remoteName = getFilenameForPartition(sourceTable, strindex);
     string localName = getFilePath() + remoteName;
 
@@ -709,7 +709,7 @@ bool BasicEngine_Control::exportToWorker(const string &sourceTable,
 
   for(size_t index = 0; index < connections.size(); index++){
     distributed2::ConnectionInfo* ci = connections[index];
-    string strindex = to_string(index + 1);
+    string strindex = to_string(index);
     string remoteName = getFilenameForPartition(sourceTable, strindex);
 
     std::future<bool> asyncResult = std::async(
@@ -810,8 +810,7 @@ bool BasicEngine_Control::exportData(const string &tab,
   string parttabname = getTableNameForPartitioning(tab, key);
   string strindex;
 
-  // Starting with 1 to <= numberOfWorker
-  for(size_t i=1; i<=remoteConnectionInfos.size(); i++) {
+  for(size_t i=0; i<remoteConnectionInfos.size(); i++) {
     strindex = to_string(i);
 
     string exportDataSQL = dbms_connection->getExportDataSQL(tab,
@@ -860,8 +859,7 @@ bool BasicEngine_Control::importData(const string &tab) {
   FileSystem::DeleteFileOrFolder(full_path);
 
   //import data (local files from worker)
-  // Starting with 1 to <= numberOfWorker
-  for(size_t i=1;i<=remoteConnectionInfos.size(); i++){
+  for(size_t i=0; i<remoteConnectionInfos.size(); i++){
     strindex = to_string(i);
     full_path = getFilePath() + getFilenameForPartition(tab, strindex);
     val = copy(full_path, tab, true) && val;
@@ -942,7 +940,7 @@ bool BasicEngine_Control::munion(const string &table) {
   //doing the export with one thread for each worker
   for(distributed2::ConnectionInfo* ci : connections) {
 
-    string strindex = to_string(i+1);
+    string strindex = to_string(i);
     string path = getFilePath() + getFilenameForPartition(table, strindex);
 
     string tableName = getCreateTableSQLName(table);
@@ -1340,7 +1338,7 @@ bool BasicEngine_Control::performExport(
   bool result = true;
 
   //export the table structure file
-  if(nr == "1") {
+  if(nr == "0") {
     //export tab structure
     cmd = "query be_struct('"+ table + "');";
     result = performSimpleSecondoCommand(ci, cmd);
