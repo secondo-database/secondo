@@ -31,6 +31,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <unistd.h>
 #include <stdio.h>
 
+#define _DARWIN_USE_64_BIT_INODE
+
 #ifdef DOLINUX
 
 #include <fcntl.h>
@@ -113,9 +115,9 @@ void dfs::io::file::deleteFile(const Str &filename) {
 
 long dfs::io::file::fileSize(const Str &filename) {
 #ifdef DOLINUX
-  struct stat64 s;
+  struct stat s;
   CStr cs = CStr(filename);
-  if (stat64(cs.cstr(), &s) == -1) {
+  if (stat(cs.cstr(), &s) == -1) {
     std::cout << "FAIL" << std::endl;
   }
   return s.st_size;
