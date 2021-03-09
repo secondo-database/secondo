@@ -165,7 +165,7 @@ std::string ConnectionMySQL::getCreateTableSQL(const std::string &table) {
 */
 std::string ConnectionMySQL::getPartitionRoundRobinSQL(
     const std::string &table, 
-    const std::string &key, const std::string &anzSlots, 
+    const std::string &key, const size_t anzSlots, 
     const std::string &targetTab) {
     
     // TODO
@@ -177,7 +177,7 @@ std::string ConnectionMySQL::getPartitionRoundRobinSQL(
 
 */
 std::string ConnectionMySQL::getPartitionHashSQL(const std::string &table, 
-    const std::string &key, const std::string &anzSlots, 
+    const std::string &key, const size_t anzSlots, 
     const std::string &targetTab) {
 
     // TODO
@@ -189,7 +189,7 @@ std::string ConnectionMySQL::getPartitionHashSQL(const std::string &table,
 
 */
 std::string ConnectionMySQL::getPartitionSQL(const std::string &table, 
-    const std::string &keyS, const std::string &anzSlots,
+    const std::string &keyS, const size_t anzSlots,
     const std::string &fun, const std::string &targetTab) {
 
     // TODO
@@ -202,7 +202,7 @@ std::string ConnectionMySQL::getPartitionSQL(const std::string &table,
 */
 std::string ConnectionMySQL::getPartitionGridSQL(const std::string &table,
     const std::string &key, const std::string &geo_col, 
-    const std::string &anzSlots, const std::string &x0, 
+    const size_t anzSlots, const std::string &x0, 
     const std::string &y0, const std::string &size, 
     const std::string &targetTab) {
  

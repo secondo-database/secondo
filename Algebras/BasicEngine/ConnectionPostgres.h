@@ -106,20 +106,20 @@ class ConnectionPG : public ConnectionGeneric {
   }
 
   std::string getPartitionRoundRobinSQL(const std::string &table, 
-    const std::string &key, const std::string &anzSlots, 
+    const std::string &key, const size_t anzSlots, 
     const std::string &targetTab);
 
   std::string getPartitionHashSQL(const std::string &table, 
-    const std::string &key, const std::string &anzSlots, 
+    const std::string &key, const size_t anzSlots, 
     const std::string &targetTab);
 
   std::string getPartitionSQL(const std::string &table, 
-    const std::string &keyS, const std::string &anzSlots,
+    const std::string &keyS, const size_t anzSlots,
     const std::string &fun, const std::string &targetTab);
 
   std::string getPartitionGridSQL(const std::string &table,
     const std::string &key, const std::string &geo_col, 
-    const std::string &anzSlots, const std::string &x0, 
+    const size_t anzSlots, const std::string &x0, 
     const std::string &y0, const std::string &size, 
     const std::string &targetTab);
 
@@ -179,7 +179,7 @@ class ConnectionPG : public ConnectionGeneric {
   bool getTypeFromQuery(const PGresult* res, ListExpr &resultList);
 
   bool createFunctionRandom(const std::string &table, 
-    const std::string &key, const std::string &numberOfWorker, 
+    const std::string &key, const size_t numberOfWorker, 
     std::string &select);
 
   bool createFunctionDDRandom(const std::string &table, 
@@ -191,7 +191,7 @@ class ConnectionPG : public ConnectionGeneric {
     std::string &valueMap, std::string &select);
 
   std::string get_partShare(const std::string &table, const std::string &key,
-    const std::string &numberOfWorker);
+    const size_t numberOfWorker);
 
   std::string getjoin(const std::string &key);
 };

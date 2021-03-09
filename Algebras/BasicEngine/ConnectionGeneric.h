@@ -64,20 +64,20 @@ class ConnectionGeneric {
         const std::string &table, const std::string &geo_col) = 0;
 
     virtual std::string getPartitionRoundRobinSQL(const std::string &table, 
-        const std::string &key, const std::string &anzSlots, 
+        const std::string &key, const size_t anzSlots, 
         const std::string &targetTab) = 0;
 
     virtual std::string getPartitionHashSQL(const std::string &table, 
-        const std::string &key, const std::string &anzSlots, 
+        const std::string &key, const size_t anzSlots, 
         const std::string &targetTab) = 0;
 
     virtual std::string getPartitionSQL(const std::string &table, 
-        const std::string &keyS, const std::string &anzSlots, 
+        const std::string &keyS, const size_t anzSlots, 
         const  std::string &fun, const std::string &targetTab) = 0;
 
     virtual std::string getPartitionGridSQL(const std::string &table, 
             const std::string &key,
-            const std::string &geo_col, const std::string &anzSlots, 
+            const std::string &geo_col, const size_t anzSlots, 
             const std::string &x0, const std::string &y0,
             const std::string &size, const std::string &targetTab) = 0;
 

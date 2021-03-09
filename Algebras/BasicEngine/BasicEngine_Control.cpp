@@ -437,13 +437,12 @@ bool BasicEngine_Control::partRoundRobin(const string &tab,
   bool val = false;
   string query_exec = "";
   string partTabName;
-  string anzSlots = to_string(slotnum);
 
   partTabName = getTableNameForPartitioning(tab, key);
   drop_table(partTabName);
 
   query_exec = dbms_connection->getPartitionRoundRobinSQL(tab, key,
-      anzSlots, partTabName);
+      slotnum, partTabName);
   
   if (query_exec != "") {
     val = dbms_connection->sendCommand(query_exec);
@@ -746,13 +745,12 @@ bool BasicEngine_Control::partHash(const string &tab,
   bool val = false;
   string query_exec = "";
   string partTabName;
-  string anzSlots = to_string(slotnum);
 
   partTabName = getTableNameForPartitioning(tab, key);
   drop_table(partTabName);
 
   query_exec = dbms_connection->getPartitionHashSQL(tab, key,
-    anzSlots, partTabName);
+    slotnum, partTabName);
   
   if (query_exec != "") {
     val = dbms_connection->sendCommand(query_exec);
@@ -775,14 +773,14 @@ bool BasicEngine_Control::partFun(const string &tab,
   bool val = false;
   string query_exec = "";
   string partTabName = getTableNameForPartitioning(tab,key);
-  string anzSlots;
+  size_t anzSlots;
 
   drop_table(partTabName);
 
   if (boost::iequals(fun, "share")){
-    anzSlots = to_string(remoteConnectionInfos.size());
+    anzSlots = remoteConnectionInfos.size();
   } else {
-    anzSlots = to_string(slotnum);
+    anzSlots = slotnum;
   }
 
   query_exec = dbms_connection->getPartitionSQL(tab, key,
@@ -1157,7 +1155,6 @@ bool BasicEngine_Control::partGrid(const std::string &tab,
   bool val = false;
   string query_exec = "";
   string partTabName;
-  string anzSlots = to_string(slotnum);
   string x_start = to_string(x0);
   string y_start = to_string(y0);
   string sizSlots = to_string(slotsize);
@@ -1171,9 +1168,8 @@ bool BasicEngine_Control::partGrid(const std::string &tab,
             "" + dbms_connection->getCreateGeoIndexSQL(tab, geo_col);
   val = dbms_connection->sendCommand(query_exec);
 
-  //
   query_exec = dbms_connection->getPartitionGridSQL(tab, key, geo_col, 
-    anzSlots, x_start, y_start, sizSlots, partTabName);
+    slotnum, x_start, y_start, sizSlots, partTabName);
 
   if (query_exec != "" && val) {
     val = dbms_connection->sendCommand(query_exec);

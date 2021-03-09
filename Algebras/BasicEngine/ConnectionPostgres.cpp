@@ -239,9 +239,10 @@ Creates a table in postgreSQL with the partitioned data by round robin.
 
 */
 string ConnectionPG::getPartitionRoundRobinSQL(const string &tab, 
-  const string &key, const string &anzSlots, const string &targetTab) {
+  const string &key, const size_t anzSlots, const string &targetTab) {
 
-  string select = "SELECT (nextval('temp_seq') %" + anzSlots + ""
+  string select = "SELECT (nextval('temp_seq') %" 
+    + to_string(anzSlots) + ""
     " ) As slot," + key + " FROM " + tab;
 
   return "CREATE TEMP SEQUENCE IF NOT EXISTS temp_seq;"
@@ -255,14 +256,14 @@ Creates a table in postgreSQL with the partitioned data by hash value.
 
 */
 string ConnectionPG::getPartitionHashSQL(const string &tab, const string &key,
-                  const string &anzSlots, const string &targetTab) {
+                  const size_t anzSlots, const string &targetTab) {
 
   string usedKey(key);
   boost::replace_all(usedKey, ",", ",'%_%',");
 
   string select = "SELECT DISTINCT (get_byte(decode(md5(concat("
         "" + usedKey + ")),'hex'),15) %"
-        " " + anzSlots + " ) As slot,"
+        " " + to_string(anzSlots) + " ) As slot,"
         "" + key +" FROM "+ tab;
 
   return getCreateTabSQL(targetTab, select);
@@ -323,7 +324,7 @@ and uses for that a function in postgres.
 
 */
 bool ConnectionPG::createFunctionRandom(const string &tab, 
-  const string &key, const string &anzSlots, 
+  const string &key, const size_t anzSlots, 
   string &select) {
 
   string query_exec;
@@ -350,7 +351,7 @@ bool ConnectionPG::createFunctionRandom(const string &tab,
       " for var_r in("
       "            select " + key + ""
       "            from " + tab + ")"
-      "        loop  slot := floor(random() * " + anzSlots +" );"
+      "        loop  slot := floor(random() * " + to_string(anzSlots) +" );"
       "        " + valueMap + ""
       "        return next;"
       " end loop;"
@@ -366,7 +367,7 @@ This function is for organizing the special partitioning functions.
 
 */
 string ConnectionPG::getPartitionSQL(const string &tab, const string &key, 
-  const string &anzSlots, const string &fun, const string &targetTab) {
+  const size_t anzSlots, const string &fun, const string &targetTab) {
 
   string select = "";
   string query = "";
@@ -460,7 +461,7 @@ The key specified a column which content is a object like a line or a polygon.
 */
 string ConnectionPG::getPartitionGridSQL(const std::string &tab, 
   const std::string &key, const std::string &geo_col, 
-  const std::string &anzSlots, const std::string &x0,
+  const size_t anzSlots, const std::string &x0,
   const std::string &y0, const std::string &size, 
   const std::string &targetTab) {
 
@@ -494,8 +495,8 @@ string ConnectionPG::getPartitionGridSQL(const std::string &tab,
 
   //creating the grid table
   query_exec ="CREATE TABLE " + gridTable + " as (SELECT * "
-                   "FROM ST_CreateGrid(" +  anzSlots + ","
-                   "" + anzSlots + ","+ size + "," 
+                   "FROM ST_CreateGrid(" +  to_string(anzSlots) + ","
+                   "" + to_string(anzSlots) + ","+ size + "," 
                    + size + ","+  x0 + "," + y0 +"));";
 
   sendCommand(query_exec,false);
@@ -522,7 +523,7 @@ Creates a table in postgreSQL with all date to all worker,
 
 */
 string ConnectionPG::get_partShare(const string &tab, const string &key, 
-    const string &numberOfWorker){
+    const size_t numberOfWorker){
       
   string query_exec;
   string worker = "SELECT 0 as slot";
@@ -530,7 +531,7 @@ string ConnectionPG::get_partShare(const string &tab, const string &key,
   string usedKey(key);
   boost::replace_all(usedKey, ",", ",r.");
 
-  for(int i=1; i < stoi(numberOfWorker); i++) {
+  for(size_t i=1; i < numberOfWorker; i++) {
     worker = worker + " UNION SELECT " + to_string(i) + " as slot";
   }
 
