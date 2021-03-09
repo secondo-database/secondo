@@ -97,7 +97,19 @@ PLLDFLAGS += -loptparser
 ifndef PL_VERSION
 JPLVER=10
 else
-JPLVER=$(shell if [ $(PL_VERSION) -lt 50200 ]; then  echo "10"; else if [ $(PL_VERSION) -lt 70000 ]; then echo "30"; else echo "70"; fi;  fi)
+
+ifeq ($(shell test $(PL_VERSION) -lt 50200; echo $$?),0)
+   JPLVER=10
+endif
+ifeq ($(shell test $(PL_VERSION) -lt 70000; echo $$?),0)
+   JPLVER=30
+endif
+ifeq ($(shell test $(PL_VERSION) -lt 82000; echo $$?),0)
+   JPLVER=70
+endif
+ifeq ($(shell test $(PL_VERSION) -ge 82000; echo $$?),0)
+   JPLVER=82
+endif
 
 endif 
 
