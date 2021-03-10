@@ -90,6 +90,39 @@ echo "**** remove temp dir *****"
 assert cd $SDK_DIR
 assert rm -rf temp
 
+## Arm based CPUs
+if [ $(uname -m | grep arm64 | wc -l) -eq 1 ]; then
+
+   SWI_VERSION=$(brew list --versions swi-prolog | tail -1 | cut -d " " -f 2)
+
+cat << EOF
+Please ensure that $HOME/.profile contains the following lines
+
+export LIBREADLINE="$HOME/secondo-sdk/lib/libreadline.a"
+export PL_LIB=swipl
+
+export SWI_VERSION=$SWI_VERSION
+export PATH=/opt/homebrew/Cellar/swi-prolog/$SWI_VERSION/bin:$PATH
+export SWI_HOME_DIR=/opt/homebrew/Cellar/swi-prolog/$SWI_VERSION/libexec/lib/swipl
+export PL_LIB_DIR=/opt/homebrew/Cellar/swi-prolog/$SWI_VERSION/libexec/lib/swipl/lib/arm64-darwin
+export PL_DLL_DIR=$PL_LIB_DIR
+export PL_LIB=swipl
+export PL_INCLUDE_DIR=$SWI_HOME_DIR/include
+export PL_VERSION=82000
+export JPL_DLL=$SWI_HOME_DIR/lib/arm64-darwin/libjpl.dylib
+export JPL_JAR=$SWI_HOME_DIR/lib/jpl.jar
+
+export BDB_DIR=/opt/homebrew
+export BERKELEY_DB_DIR=$BDB_DIR
+export BERKELEY_DB_LIB=db_cxx
+export BDB_INCLUDE_DIR=$BDB_DIR/include
+export BDB_LIB_DIR=$BDB_DIR/lib
+EOF
+  exit 0
+fi
+
+## Intel based CPUs
+
 # Integrate SWI prolog
 echo "modifying rpath for SWI prolog"
 JPL=$(find /Applications -name "libjpl.dylib")
