@@ -32,110 +32,14 @@ January 2021 - April 2021, P. Fedorow for bachelor thesis.
 
 #include "Common.h"
 
-#include "NList.h"
 #include "StandardTypes.h"
 
 #include <algorithm>
 #include <cmath>
-#include <string>
 #include <unordered_map>
 #include <vector>
 
 namespace AssociationAnalysis {
-
-// Type mapping for the fpGrowth operator.
-ListExpr fpGrowthTM(ListExpr args) {
-  NList type(args);
-
-  bool relativeSupport = false;
-  NList attrs;
-  if (type.length() == 3) {
-    if (!type.elem(1).first().checkRel(attrs)) {
-      return NList::typeError(
-          "Argument number 1 must be of type rel(tuple(...)).");
-    }
-    if (!type.elem(2).isSymbol(1)) {
-      return NList::typeError("Argument number 2 must name an attribute in the "
-                              "relation given as the first argument.");
-    }
-    if (type.elem(3).first().isSymbol(CcInt::BasicType())) {
-      if (type.elem(3).second().intval() <= 0) {
-        return NList::typeError("Argument number 3 must be of type int and > 0 "
-                                "or of type real and in the interval (0, 1).");
-      }
-    } else if (type.elem(3).first().isSymbol(CcReal::BasicType())) {
-      if (type.elem(3).second().realval() <= 0.0 ||
-          type.elem(3).second().realval() >= 1.0) {
-        return NList::typeError("Argument number 3 must be of type int and > 0 "
-                                "or of type real and in the interval (0, 1).");
-      } else {
-        relativeSupport = true;
-      }
-    } else {
-      return NList::typeError("Argument number 3 must be of type int and > 0 "
-                              "or of type real and in the interval (0, 1).");
-    }
-    if (!type.elem(3).first().isSymbol(CcInt::BasicType()) ||
-        type.elem(3).second().intval() <= 0) {
-    }
-  } else {
-    return NList::typeError("3 arguments expected but " +
-                            std::to_string(type.length()) + " received.");
-  }
-
-  std::string itemsetAttrName = type.elem(2).first().str();
-  int itemsetAttr = -1;
-  for (int i = 1; i <= (int)attrs.length(); i += 1) {
-    NList attr = attrs.elem(i);
-    if (attr.elem(1).isSymbol(itemsetAttrName)) {
-      itemsetAttr = i;
-    }
-  }
-
-  if (itemsetAttr == -1) {
-    return NList::typeError("Argument number 2 must name an attribute in the "
-                            "relation given as the first argument.");
-  }
-
-  NList tupleType = NList(frequentItemsetTupleType());
-  return NList(Symbols::APPEND(),
-               NList(NList().intAtom(itemsetAttr - 1),
-                     NList().boolAtom(relativeSupport)),
-               NList().streamOf(tupleType))
-      .listExpr();
-}
-
-// Value mapping for the fpGrowth operator.
-int fpGrowthVM(Word *args, Word &result, int message, Word &local, Supplier s) {
-  auto *li = (fpGrowthLI *)local.addr;
-  switch (message) {
-  case OPEN: {
-    delete li;
-    auto relation = (GenericRelation *)args[0].addr;
-    bool relativeSupport = ((CcBool *)args[4].addr)->GetBoolval();
-    int minSupport = 0;
-    if (relativeSupport) {
-      double support = ((CcReal *)args[2].addr)->GetRealval();
-      minSupport = (int)(std::ceil(support * (double)relation->GetNoTuples()));
-    } else {
-      minSupport = ((CcInt *)args[2].addr)->GetIntval();
-    }
-    int attrIndex = ((CcInt *)args[3].addr)->GetIntval();
-    local.addr = new fpGrowthLI(relation, minSupport, attrIndex);
-    return 0;
-  }
-  case REQUEST:
-    result.addr = li ? li->getNext() : nullptr;
-    return result.addr ? YIELD : CANCEL;
-  case CLOSE:
-    delete li;
-    local.addr = nullptr;
-    return 0;
-  default:
-    return 0;
-  }
-}
-
 // Implementation of an FP-Tree. It is used to efficiently mine frequent
 // itemsets.
 class FPTree {

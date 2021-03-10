@@ -102,9 +102,6 @@ private:
 };
 } // namespace
 
-// Type mapping for the apriori operator.
-ListExpr aprioriTM(ListExpr args);
-
 // Local info class for the apriori operator. Contains the implementation of the
 // apriori-algorithm.
 class aprioriLI {
@@ -112,7 +109,7 @@ public:
   // Finds all frequent itemsets that satisfy the support given by minSupport.
   // The itemset of a transaction is extracted from each tuple of the relation
   // by an index given by itemsetAttr.
-  aprioriLI(GenericRelation *relation, double minSupport, int itemsetAttr);
+  aprioriLI(GenericRelation *relation, int minSupport, int itemsetAttr);
 
   ~aprioriLI() { this->tupleType->DeleteIfAllowed(); }
 
@@ -129,9 +126,6 @@ private:
   // Describes the resulting tuple type: tuple(Itemset: intset, Support: real).
   TupleType *tupleType;
 };
-
-// Value mapping for the apriori operator.
-int aprioriVM(Word *args, Word &result, int message, Word &local, Supplier s);
 
 // Operator info for the apriori operator.
 struct aprioriInfo : OperatorInfo {

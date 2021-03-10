@@ -40,9 +40,6 @@ January 2021 - April 2021, P. Fedorow for bachelor thesis.
 
 namespace AssociationAnalysis {
 
-// Type mapping for the fpGrowth operator.
-ListExpr fpGrowthTM(ListExpr args);
-
 // Local info class for the fpGrowth operator. Contains the implementation of
 // the fp-growth-algorithm.
 class fpGrowthLI {
@@ -67,9 +64,6 @@ private:
   // Describes the resulting tuple type: tuple(Itemset: intset, Support: real).
   TupleType *tupleType;
 };
-
-// Value mapping for the fpGrowth operator.
-int fpGrowthVM(Word *args, Word &result, int message, Word &local, Supplier s);
 
 // Operator info for the fpGrowth operator.
 struct fpGrowthInfo : OperatorInfo {

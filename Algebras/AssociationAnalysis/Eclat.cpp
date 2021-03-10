@@ -32,12 +32,10 @@ January 2021 - April 2021, P. Fedorow for bachelor thesis.
 
 #include "Common.h"
 
-#include "NList.h"
 #include "StandardTypes.h"
 
 #include <algorithm>
 #include <set>
-#include <string>
 #include <unordered_map>
 #include <vector>
 
@@ -78,81 +76,11 @@ private:
   std::vector<std::vector<int>> matrix;
 };
 
-// Type mapping for the eclat operator.
-ListExpr eclatTM(ListExpr args) {
-  NList type(args);
-
-  NList attrs;
-  if (type.length() == 3) {
-    if (!type.elem(1).first().checkRel(attrs)) {
-      return NList::typeError(
-          "Argument number 1 must be of type rel(tuple(...)).");
-    }
-    if (!type.elem(2).isSymbol(1)) {
-      return NList::typeError("Argument number 2 must name an attribute in the "
-                              "relation given as the first argument.");
-    }
-    if (!type.elem(3).first().isSymbol(CcReal::BasicType()) ||
-        type.elem(3).second().realval() <= 0.0 ||
-        type.elem(3).second().realval() >= 1.0) {
-      return NList::typeError(
-          "Argument number 3 must be of type real and in the interval (0,1].");
-    }
-  } else {
-    return NList::typeError("3 arguments expected but " +
-                            std::to_string(type.length()) + " received.");
-  }
-
-  std::string itemsetAttrName = type.elem(2).first().str();
-  int itemsetAttr = -1;
-  for (int i = 1; i <= (int)attrs.length(); i += 1) {
-    NList attr = attrs.elem(i);
-    if (attr.elem(1).isSymbol(itemsetAttrName)) {
-      itemsetAttr = i;
-    }
-  }
-
-  if (itemsetAttr == -1) {
-    return NList::typeError("Argument number 2 must name an attribute in the "
-                            "relation given as the first argument.");
-  }
-
-  NList tupleType = NList(frequentItemsetTupleType());
-  return NList(Symbols::APPEND(), NList().intAtom(itemsetAttr - 1).enclose(),
-               NList().streamOf(tupleType))
-      .listExpr();
-}
-
-// Value mapping for the eclat operator.
-int eclatVM(Word *args, Word &result, int message, Word &local, Supplier s) {
-  auto *li = (eclatLI *)local.addr;
-  switch (message) {
-  case OPEN: {
-    delete li;
-    local.addr =
-        new eclatLI((GenericRelation *)args[0].addr,        // relation
-                    ((CcReal *)args[2].addr)->GetRealval(), // minSupport
-                    ((CcInt *)args[3].addr)->GetIntval()    // attrIndex
-        );
-    return 0;
-  }
-  case REQUEST:
-    result.addr = li ? li->getNext() : nullptr;
-    return result.addr ? YIELD : CANCEL;
-  case CLOSE:
-    delete li;
-    local.addr = nullptr;
-    return 0;
-  default:
-    return 0;
-  }
-}
-
 // Performs a bottom-up search of frequent itemsets by recursively combining
 // the atoms to larger itemsets and examining the support of the resulting
 // tidsets.
 void eclat(
-    double minSupport, int transactionCount,
+    int minSupport, int transactionCount,
     const std::vector<std::pair<std::vector<int>, std::vector<int>>> &atoms,
     std::vector<std::pair<std::vector<int>, double>> &collect) {
   for (std::size_t i = 0; i < atoms.size(); i += 1) {
@@ -165,8 +93,7 @@ void eclat(
       std::vector<int> tidset;
       std::set_intersection(tidset1.cbegin(), tidset1.cend(), tidset2.cbegin(),
                             tidset2.cend(), std::back_inserter(tidset));
-      double support = (double)tidset.size() / (double)transactionCount;
-      if (support >= minSupport) {
+      if ((int)tidset.size() >= minSupport) {
         std::vector<int> itemset;
         std::set_union(itemset1.cbegin(), itemset1.cend(), itemset2.cbegin(),
                        itemset2.cend(), std::back_inserter(itemset));
@@ -174,6 +101,7 @@ void eclat(
         // level of the bottom-up search.
         newAtoms.emplace_back(itemset, tidset);
         // The resulting itemset is frequent -> safe it.
+        double support = (double)tidset.size() / (double)transactionCount;
         collect.emplace_back(itemset, support);
       }
     }
@@ -188,8 +116,7 @@ void eclat(
 // Finds all frequent itemsets that satisfy the support given by minSupport.
 // The itemset of a transaction is extracted from each tuple of the relation
 // by an index given by itemsetAttr.
-eclatLI::eclatLI(GenericRelation *relation, double minSupport,
-                 int itemsetAttr) {
+eclatLI::eclatLI(GenericRelation *relation, int minSupport, int itemsetAttr) {
   int transactionCount = relation->GetNoTuples();
 
   std::vector<std::pair<int, std::vector<int>>> atoms;
@@ -225,11 +152,11 @@ eclatLI::eclatLI(GenericRelation *relation, double minSupport,
 
     // Find frequent items and insert them into the atom set.
     for (auto const &[item, tidset] : itemTidsets) {
-      double support = (double)tidset.size() / (double)transactionCount;
-      if (support >= minSupport) {
+      if ((int)tidset.size() >= minSupport) {
         std::vector<int> tidsetv(tidset.cbegin(), tidset.cend());
         atoms.emplace_back(item, tidsetv);
         std::vector<int> itemset = {item};
+        double support = (double)tidset.size() / (double)transactionCount;
         this->frequentItemsets.emplace_back(itemset, support);
       }
     }
@@ -255,11 +182,9 @@ eclatLI::eclatLI(GenericRelation *relation, double minSupport,
     for (size_t j = i + 1; j < atoms.size(); j += 1) {
       auto const &[item1, tidset1] = atoms[i];
       auto const &[item2, tidset2] = atoms[j];
-      // Compute the support by consulting the triangular matrix for the support
-      // count of the 2-itemset.
-      double support = (double)triangularMatrix.count(item1, item2) /
-                       (double)transactionCount;
-      if (support >= minSupport) {
+      // Compute the support count by consulting the triangular matrix for the
+      // support count of the 2-itemset.
+      if (triangularMatrix.count(item1, item2) >= minSupport) {
         // Place the resulting itemset and tidset into the atom set for the next
         // level of the bottom-up search.
         std::vector<int> itemset(
@@ -270,6 +195,8 @@ eclatLI::eclatLI(GenericRelation *relation, double minSupport,
                               std::back_inserter(tidset));
         newAtoms.emplace_back(itemset, tidset);
         // Safe the itemset for the result stream.
+        double support = (double)triangularMatrix.count(item1, item2) /
+                         (double)transactionCount;
         this->frequentItemsets.emplace_back(itemset, support);
       }
     }

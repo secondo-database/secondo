@@ -40,9 +40,6 @@ January 2021 - April 2021, P. Fedorow for bachelor thesis.
 
 namespace AssociationAnalysis {
 
-// Type mapping for the eclat operator.
-ListExpr eclatTM(ListExpr args);
-
 // Local info class for the eclat operator. Contains the implementation of the
 // eclat-algorithm.
 class eclatLI {
@@ -50,7 +47,7 @@ public:
   // Finds all frequent itemsets that satisfy the support given by minSupport.
   // The itemset of a transaction is extracted from each tuple of the relation
   // by an index given by itemsetAttr.
-  eclatLI(GenericRelation *relation, double minSupport, int itemsetAttr);
+  eclatLI(GenericRelation *relation, int minSupport, int itemsetAttr);
 
   ~eclatLI() { this->tupleType->DeleteIfAllowed(); }
 
@@ -67,9 +64,6 @@ private:
   // Describes the resulting tuple type: tuple(Itemset: intset, Support: real).
   TupleType *tupleType;
 };
-
-// Value mapping for the eclat operator.
-int eclatVM(Word *args, Word &result, int message, Word &local, Supplier s);
 
 // Operator info for the eclat operator.
 struct eclatInfo : OperatorInfo {

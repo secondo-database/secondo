@@ -30,8 +30,48 @@ January 2021 - April 2021, P. Fedorow for bachelor thesis.
 
 #pragma once
 
+#include "Algebra.h"
+#include "Algebras/Relation-C++/RelationAlgebra.h" // rel, trel, tuple
 #include "NestedList.h"
+#include "StandardTypes.h"
+
+#include <cmath>
 
 namespace AssociationAnalysis {
 ListExpr frequentItemsetTupleType();
+
+// Type mapping for a frequent itemset mining operator.
+ListExpr mineTM(ListExpr args);
+
+// Value mapping for a frequent itemset mining operator.
+template<class T>
+int mineVM(Word *args, Word &result, int message, Word &local, Supplier s) {
+  auto *li = (T *)local.addr;
+  switch (message) {
+  case OPEN: {
+    delete li;
+    auto relation = (GenericRelation *)args[0].addr;
+    bool relativeSupport = ((CcBool *)args[4].addr)->GetBoolval();
+    int minSupport = 0;
+    if (relativeSupport) {
+      double support = ((CcReal *)args[2].addr)->GetRealval();
+      minSupport = (int)(std::ceil(support * (double)relation->GetNoTuples()));
+    } else {
+      minSupport = ((CcInt *)args[2].addr)->GetIntval();
+    }
+    int attrIndex = ((CcInt *)args[3].addr)->GetIntval();
+    local.addr = new T(relation, minSupport, attrIndex);
+    return 0;
+  }
+  case REQUEST:
+    result.addr = li ? li->getNext() : nullptr;
+    return result.addr ? YIELD : CANCEL;
+  case CLOSE:
+    delete li;
+    local.addr = nullptr;
+    return 0;
+  default:
+    return 0;
+  }
+}
 } // namespace AssociationAnalysis
