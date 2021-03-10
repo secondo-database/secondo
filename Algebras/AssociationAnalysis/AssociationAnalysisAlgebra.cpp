@@ -30,6 +30,7 @@ January 2021 - April 2021, P. Fedorow for bachelor thesis.
 
 #include "Apriori.h"
 #include "Eclat.h"
+#include "FPGrowth.h"
 #include "GenTransactions.h"
 
 #include "Algebra.h"
@@ -41,6 +42,7 @@ public:
     AddOperator(genTransactionsInfo(), genTransactionsVM, genTransactionsTM);
     AddOperator(aprioriInfo(), aprioriVM, aprioriTM);
     AddOperator(eclatInfo(), eclatVM, eclatTM);
+    AddOperator(fpGrowthInfo(), fpGrowthVM, fpGrowthTM);
   }
 };
 } // namespace AssociationAnalysis

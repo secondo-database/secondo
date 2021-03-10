@@ -97,7 +97,7 @@ private:
   };
 
   // Nodes are stored in a vector and point to each other by using indexes into
-  // this vector.
+  // the same vector.
   std::vector<Node> nodes;
 };
 } // namespace
