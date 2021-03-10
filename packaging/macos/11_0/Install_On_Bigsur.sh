@@ -90,6 +90,12 @@ echo "**** remove temp dir *****"
 assert cd $SDK_DIR
 assert rm -rf temp
 
+if [ ! -d ~/secondo ]; then
+echo "**** Downloading the latest SECONDO version ****"
+git clone https://github.com/secondo-database/secondo.git ~/secondo
+fi
+
+
 ## Arm based CPUs
 if [ $(uname -m | grep arm64 | wc -l) -eq 1 ]; then
 
