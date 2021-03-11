@@ -103,6 +103,17 @@ SmiKey::~SmiKey()
 SmiKey&
 SmiKey::operator=( const SmiKey& other )
 {
+
+  // Check for self-assignment (smiKey = smiKey)
+  //
+  // Otherwise we would release "our" memory first (e.g., 
+  // calling FreeData() in SetKey()) and try to access 
+  // the "other" memory in the copy operation later, which 
+  // causes a 'use after free' bug.
+  if (this == &other) {
+      return *this;    
+  }
+
   SetKey( other.keyType, other.GetAddr(), other.keyLength );
   return *this;
 }
