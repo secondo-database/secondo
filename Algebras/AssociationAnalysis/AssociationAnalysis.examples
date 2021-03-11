@@ -29,65 +29,77 @@ Tolerance : 0.1
 
 Operator  : apriori
 Number    : 5
+Signature : rel(tuple(...)) attr int -> stream(tuple(Itemset: intset, Support: real))
+Example   : query transactions apriori[Itemset, 15] count
+Result    : 64
+
+Operator  : apriori
+Number    : 6
 Signature : rel(tuple(...)) attr real -> stream(tuple(Itemset: intset, Support: real))
 Example   : query transactions apriori[Itemset, 0.015] count
 Result    : 64
 
 Operator  : apriori
-Number    : 6
+Number    : 7
 Signature : rel(tuple(...)) attr real -> stream(tuple(Itemset: intset, Support: real))
 Example   : query transactions apriori[Itemset, 0.015] filter[size(.Itemset) > 1] extend[ItemsetSize: size(.Itemset)] avg[ItemsetSize]
 Result    : 2.25
 Tolerance : 0.001
 
 Operator  : apriori
-Number    : 7
+Number    : 8
 Signature : rel(tuple(...)) attr real -> stream(tuple(Itemset: intset, Support: real))
 Example   : query transactions apriori[Itemset, 0.015] min[Support]
 Result    : 0.015
 Tolerance : 0.0001
 
 Operator  : eclat
-Number    : 8
+Number    : 9
+Signature : rel(tuple(...)) attr int -> stream(tuple(Itemset: intset, Support: real))
+Example   : query transactions eclat[Itemset, 15] count
+Result    : 64
+
+Operator  : eclat
+Number    : 10
 Signature : rel(tuple(...)) attr real -> stream(tuple(Itemset: intset, Support: real))
 Example   : query transactions eclat[Itemset, 0.015] count
 Result    : 64
 
 Operator  : eclat
-Number    : 9
+Number    : 11
 Signature : rel(tuple(...)) attr real -> stream(tuple(Itemset: intset, Support: real))
 Example   : query transactions eclat[Itemset, 0.015] filter[size(.Itemset) > 1] extend[ItemsetSize: size(.Itemset)] avg[ItemsetSize]
 Result    : 2.25
 Tolerance : 0.001
 
 Operator  : eclat
-Number    : 10
+Number    : 12
 Signature : rel(tuple(...)) attr real -> stream(tuple(Itemset: intset, Support: real))
 Example   : query transactions eclat[Itemset, 0.015] min[Support]
 Result    : 0.015
 Tolerance : 0.0001
 
 Operator  : fpGrowth
-Number    : 11
+Number    : 13
 Signature : rel(tuple(...)) attr int -> stream(tuple(Itemset: intset, Support: real))
 Example   : query transactions fpGrowth[Itemset, 15] count
 Result    : 64
 
 Operator  : fpGrowth
-Number    : 12
+Number    : 14
 Signature : rel(tuple(...)) attr real -> stream(tuple(Itemset: intset, Support: real))
 Example   : query transactions fpGrowth[Itemset, 0.015] count
 Result    : 64
 
 Operator  : fpGrowth
-Number    : 13
+Number    : 15
 Signature : rel(tuple(...)) attr real -> stream(tuple(Itemset: intset, Support: real))
 Example   : query transactions fpGrowth[Itemset, 0.015] filter[size(.Itemset) > 1] extend[ItemsetSize: size(.Itemset)] avg[ItemsetSize]
 Result    : 2.25
 Tolerance : 0.001
 
 Operator  : fpGrowth
-Number    : 14
+Number    : 16
 Signature : rel(tuple(...)) attr real -> stream(tuple(Itemset: intset, Support: real))
 Example   : query transactions fpGrowth[Itemset, 0.015] min[Support]
 Result    : 0.015
