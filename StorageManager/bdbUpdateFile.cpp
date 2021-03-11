@@ -273,7 +273,8 @@ create an empty Db handle bdbFile with SmiFile::Implementation.
 
                       ok = SmiEnvironment::instance.impl->
                           InsertIntoCatalog(catalogEntry.entry, tid);
-                      if (SmiEnvironment::useTransactions)
+                        
+                      if (tid != 0)
                         {
                           if (ok)
                             {

@@ -490,7 +490,7 @@ bool SmiEnvironment::Implementation::SetFileId(SmiFileId id,
     }
   }
 
-  if(useTransactions) {
+  if(tid != 0) {
 
     if(operationSuccess) {
       rc = tid->commit( 0 );
@@ -617,7 +617,7 @@ SmiEnvironment::Implementation::GetFileId( const bool isTemporary )
       {
         if ( (rc = dbseq->put( tid, &key, &data, 0 )) == 0 )
         {
-          if ( useTransactions )
+          if ( tid != 0 )
           {
             rc = tid->commit( 0 );
             SetBDBError(rc);
@@ -626,7 +626,7 @@ SmiEnvironment::Implementation::GetFileId( const bool isTemporary )
         else
         {
           SetBDBError(rc);
-          if ( useTransactions )
+          if ( tid != 0 )
           {
             rc = tid->abort();
             SetBDBError(rc);
@@ -887,7 +887,7 @@ SmiEnvironment::Implementation::UpdateCatalog( bool onCommit )
       }
     }
     //instance.impl->bdbFilesToCatalog.clear();
-    if ( useTransactions )
+    if ( tid != 0 )
     {
       if ( ok )
       {
@@ -1509,7 +1509,7 @@ Transactions, logging and locking are enabled.
   }
   if (useTransactions) {
     db_timeout_t microSeconds = 0;
-    
+
     rc = dbenv->get_timeout(&microSeconds, DB_SET_LOCK_TIMEOUT);
     SetBDBError(rc);
     cout << "Lock timeout: " << microSeconds << " microseconds" << endl;
