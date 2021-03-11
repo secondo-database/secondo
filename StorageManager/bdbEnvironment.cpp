@@ -2114,11 +2114,7 @@ SmiEnvironment::GetCacheStatistics(CacheInfo& ci, vector<FileInfo*>& fi)
      {
        DB_MPOOL_FSTAT& fs = **fsp;
 
-
-       char tmp1[strlen(fs.file_name)+1];
-       strcpy(tmp1,fs.file_name);
-
-       string ml(tmp1);
+       string ml(fs.file_name);
 
        FileInfo* fstat = new FileInfo(0,
                                       ml,
