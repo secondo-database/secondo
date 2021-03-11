@@ -264,7 +264,7 @@ string ConnectionPG::getPartitionHashSQL(const string &tab, const string &key,
   string select = "SELECT DISTINCT (get_byte(decode(md5(concat("
         "" + usedKey + ")),'hex'),15) %"
         " " + to_string(anzSlots) + " ) As slot,"
-        "" + key +" FROM "+ tab;
+        "" + key + " FROM "+ tab;
 
   return getCreateTabSQL(targetTab, select);
 }

@@ -156,11 +156,30 @@ bool ConnectionMySQL::checkConnection() {
 */
 std::string ConnectionMySQL::getCreateTableSQL(const std::string &table) {
 
-    string creteTableSQL = "DROP TABLE IF EXISTS public." + table +";\n"
+    string createTableSQL = "DROP TABLE IF EXISTS " + table +";\n";
 
+    string getTableStructure = "SHOW CREATE TABLE " + table;
 
-    // TODO
-    return creteTableSQL
+    MYSQL_RES* res = sendQuery(getTableStructure);
+
+    if(res != nullptr) {
+        MYSQL_ROW row = mysql_fetch_row(res);
+
+        // 0 = Tablename
+        // 1 = Create Statement
+        char* createTable = row[1];
+        createTableSQL = createTableSQL + createTable;
+    }
+
+    if(res != nullptr) {
+        mysql_free_result(res);
+        res = nullptr;
+    }
+
+    BOOST_LOG_TRIVIAL(debug) 
+      << "Create table statement is: " << createTableSQL;
+
+    return createTableSQL;
 }
 
 /*
@@ -184,8 +203,17 @@ std::string ConnectionMySQL::getPartitionHashSQL(const std::string &table,
     const std::string &key, const size_t anzSlots, 
     const std::string &targetTab) {
 
-    // TODO
-    return string("");
+  string usedKey(key);
+  boost::replace_all(usedKey, ",", ",'%_%',");
+
+  string selectSQL = "SELECT DISTINCT md5(" + usedKey + ") % " 
+        + to_string(anzSlots) + " As slot, " + key
+        + " FROM "+ table;
+
+    BOOST_LOG_TRIVIAL(debug) 
+      << "Partition hash statement is: " << selectSQL;
+
+  return getCreateTabSQL(targetTab, selectSQL);
 }
 
 /*
@@ -223,8 +251,44 @@ std::string ConnectionMySQL::getExportDataSQL(const std::string &table,
     const std::string &nr, const std::string &path,
     size_t numberOfWorker) {
  
-    // TODO
-    return string("");
+    string filename = getFilenameForPartition(table, nr);
+
+    string exportSQL = "SELECT a.* FROM "+ table +" a INNER JOIN " 
+        + join_table  + " b " + getjoin(key) 
+        + " WHERE (slot % " + to_string(numberOfWorker) + ") = " + nr
+        + " INTO OUTFILE '" + path + filename + "';";
+
+    BOOST_LOG_TRIVIAL(debug) 
+      << "Export partition statement is: " << exportSQL;
+
+    return exportSQL;
+}
+
+
+/*
+6.14 ~getjoin~
+
+Returns the join-part of a join-Statement from a given key-list
+
+*/
+string ConnectionMySQL::getjoin(const string &key) {
+
+  string res= "ON ";
+  vector<string> result;
+  boost::split(result, key, boost::is_any_of(","));
+
+  for (size_t i = 0; i < result.size(); i++) {
+    if (i>0) {
+      res = res + " AND ";
+    }
+
+    string attribute = result[i];
+    boost::replace_all(attribute," ","");
+
+    res = res + "a." + attribute + " = b." + attribute;
+  }
+
+  return res;
 }
 
 /*
@@ -274,16 +338,7 @@ bool ConnectionMySQL::getTypeFromSQLQuery(const std::string &sqlQuery,
     return false;
   }
   
-  int mysqlExecRes = mysql_query(conn, usedSQLQuery.c_str());
-
-  if(mysqlExecRes != 0) {
-    BOOST_LOG_TRIVIAL(error) 
-      << "Unable to perform query" << usedSQLQuery
-      << mysql_error(conn);
-    return false;
-  }
-
-  MYSQL_RES *res = mysql_store_result(conn);
+  MYSQL_RES *res = sendQuery(usedSQLQuery.c_str());
 
   bool result = getTypeFromQuery(res, resultList);
 
@@ -292,7 +347,10 @@ bool ConnectionMySQL::getTypeFromSQLQuery(const std::string &sqlQuery,
       << "Unable to get type from SQL query" << usedSQLQuery;
   }
 
-  mysql_free_result(res);
+  if(res != nullptr) {
+     mysql_free_result(res);
+     res = nullptr;
+  }
 
   return result;
 }

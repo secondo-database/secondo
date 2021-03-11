@@ -173,6 +173,9 @@ class ConnectionMySQL : public ConnectionGeneric {
 
   MYSQL_RES* sendQuery(const std::string &query);
 
+  std::string getjoin(const std::string &key);
+
+
 };
 
 }; /* namespace BasicEngine */
