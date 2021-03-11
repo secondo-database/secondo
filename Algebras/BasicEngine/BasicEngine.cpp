@@ -41,6 +41,7 @@ Version 1.0 - Created - C.Behrndt - 2020
 #include <boost/log/core.hpp>
 #include <boost/log/expressions.hpp>
 #include <boost/log/trivial.hpp>
+#include <boost/algorithm/string/predicate.hpp>
 
 #include "Algebras/FText/FTextAlgebra.h"
 #include "StandardTypes.h"
@@ -895,24 +896,59 @@ string err = "\n {string, text} x {string, text} --> bool"
 
 */
 template<class T, class H>
-int be_copySFVM(Word* args,Word& result,int message
-          ,Word& local,Supplier s ){
+int be_copySFVM(Word* args, Word& result, int message,
+          Word& local, Supplier s) {
 
-  bool val = false;
   result = qp->ResultStorage(s);
 
-  T* from = (T*) args[0].addr;  //table
-  H* to = (H*) args[1].addr;    //path
+  T* source = (T*) args[0].addr;
+  H* destination = (H*) args[1].addr;
 
-  if(be_control){
-    val = be_control->copy(from->GetValue(),to->GetValue(),
-          (from->GetValue().length() >= to->GetValue().length()));
-  } else {
-    cout << noMaster << endl;
+  if(! source->IsDefined()) {
+    cerr << "Error: Source parameter is undefined" << endl;
+    ((CcBool*) result.addr)->Set(true, false);
+    return 0;
   }
 
-  ((CcBool *)result.addr)->Set(true, val);
+  if(! destination->IsDefined()) {
+    cerr << "Error: Destination  parameter is undefined" << endl;
+    ((CcBool*) result.addr)->Set(true, false);
+    return 0;
+  }
 
+  if(be_control == nullptr) {
+    cout << noMaster << endl;
+    return 0;
+  }
+ 
+  string sourceParameter = source->GetValue();
+  string destinationParameter = destination->GetValue();
+
+  if(boost::algorithm::starts_with(sourceParameter, "/") && 
+    ! boost::algorithm::starts_with(destinationParameter, "/") ) {
+
+    // Import (First parameter is a file, second a table)
+    bool beResult = be_control->importTable( 
+      destinationParameter, sourceParameter);
+
+    ((CcBool *)result.addr)->Set(true, beResult);
+    return 0;
+
+  } else if (! boost::algorithm::starts_with(sourceParameter, "/") && 
+    boost::algorithm::starts_with(destinationParameter, "/") ) {
+
+    // Export (First parameter is a table, second a file)
+    bool beResult = be_control->exportTable(
+      sourceParameter, destinationParameter);
+
+    ((CcBool *)result.addr)->Set(true, beResult);
+    return 0;
+  } 
+
+  cerr << "Error: Exactly one parameter has to be a "
+       << "absolute path, starting with '/'" << endl;
+  
+  ((CcBool *)result.addr)->Set(true, false);
   return 0;
 }
 

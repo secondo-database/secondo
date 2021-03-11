@@ -128,8 +128,11 @@ class ConnectionPG : public ConnectionGeneric {
     const std::string &nr, const std::string &path,
     size_t numberOfWorker);
 
-  std::string getCopySQL(const std::string &table, 
-    const std::string &full_path, bool direct);
+  std::string getImportTableSQL(
+        const std::string &table, const std::string &full_path);
+
+  std::string getExportTableSQL(
+        const std::string &table, const std::string &full_path);
 
   std::string getFilenameForPartition(const std::string &table, 
     const std::string &number) {

@@ -119,17 +119,25 @@ public:
     float x0 = 0, float y0 = 0, float slotsize = 0);
 
   bool drop_table(const std::string &tab) {
-    return sendCommand(dbms_connection->getDropTableSQL(tab), false);
+    std::string sqlQuery = dbms_connection->getDropTableSQL(tab);
+    return sendCommand(sqlQuery, false);
   }
 
   bool getCreateTableSQL(const std::string &tab);
 
-  bool copy(const std::string &tab, const std::string &full_path, bool direct) {
-    return sendCommand(dbms_connection->getCopySQL(tab, full_path, direct));
+  bool importTable(const std::string &tab, const std::string &full_path) {
+    std::string sqlQuery = dbms_connection->getImportTableSQL(tab, full_path);
+    return sendCommand(sqlQuery);
+  }
+
+  bool exportTable(const std::string &tab, const std::string &full_path) {
+    std::string sqlQuery = dbms_connection->getExportTableSQL(tab, full_path);
+    return sendCommand(sqlQuery);
   }
 
   bool createTab(const std::string &tab, const std::string &query) {
-     return sendCommand(dbms_connection->getCreateTabSQL(tab, query));
+    std::string sqlQuery = dbms_connection->getCreateTabSQL(tab, query);
+    return sendCommand(sqlQuery);
   }
 
   bool munion(const std::string &tab);

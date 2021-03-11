@@ -409,21 +409,27 @@ string ConnectionPG::getExportDataSQL(const string &tab, const string &join_tab,
 }
 
 /*
-6.13 ~get\_copy~
+6.13 ~getImportTableSQL~
 
-Creating a statement for exporting the data. If the variable direkt is true
-then tab where import the date from the filesystem. If the direkt variable is
-false them the tab where export to the filesystem.
+Creating a statement for exporting the data. 
 
 */
-string ConnectionPG::getCopySQL(const string &tab, 
-  const string &full_path, bool direct) {
+string ConnectionPG::getImportTableSQL(const std::string &table, 
+  const std::string &full_path) {
 
-  if (direct) {
-    return "COPY " + full_path + " FROM '" + tab + "' BINARY;";
-  }
+    return "COPY " + table + " FROM '" + full_path + "' BINARY;";
+}
 
-  return "COPY " + tab + " TO '" + full_path + "' BINARY;";
+/*
+6.14 ~getExportTableSQL~
+
+Creating a statement for exporting the data. 
+
+*/
+string ConnectionPG::getExportTableSQL(const std::string &table, 
+  const std::string &full_path) {
+
+  return "COPY " + table + " TO '" + full_path + "' BINARY;";
 }
 
 /*

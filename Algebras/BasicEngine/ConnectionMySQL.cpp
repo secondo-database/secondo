@@ -224,11 +224,22 @@ std::string ConnectionMySQL::getExportDataSQL(const std::string &table,
 }
 
 /*
-6.12 ~getCopySQL~
+6.12 ~getImportTableSQL~
 
 */
-std::string ConnectionMySQL::getCopySQL(const std::string &table, 
-    const std::string &full_path, bool direct) {
+std::string ConnectionMySQL::getImportTableSQL(const std::string &table, 
+    const std::string &full_path) {
+ 
+    // TODO
+    return string("");
+}
+
+/*
+6.12 ~getExportTableSQL~
+
+*/
+std::string ConnectionMySQL::getExportTableSQL(const std::string &table, 
+    const std::string &full_path) {
  
     // TODO
     return string("");

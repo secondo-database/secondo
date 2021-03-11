@@ -831,40 +831,40 @@ table will be created and after that starts the import from a file.
 Returns true if everything is OK and there are no failure.
 
 */
-bool BasicEngine_Control::importData(const string &tab) {
+bool BasicEngine_Control::importData(const string &table) {
 
-  bool val = true;
-  string full_path;
-  string cmd;
-  string strindex;
+  bool result = true;
 
-  //create Table
-  full_path = getFilePath() + getCreateTableSQLName(tab);
+  // create table structure
+  string structureFile = getFilePath() + getCreateTableSQLName(table);
 
   // Read data into memory
   ifstream inFile;
   stringstream strStream;
-  inFile.open(full_path);
+  inFile.open(structureFile);
   strStream << inFile.rdbuf();
-  cmd = strStream.str();
+  string cmd = strStream.str();
 
-  val = dbms_connection->sendCommand(cmd) && val;
+  result = dbms_connection->sendCommand(cmd);
   
-  if(!val) {
-    return val;
+  if(! result) {
+    return false;
   }
 
-  FileSystem::DeleteFileOrFolder(full_path);
+  FileSystem::DeleteFileOrFolder(structureFile);
 
   //import data (local files from worker)
   for(size_t i=0; i<remoteConnectionInfos.size(); i++){
-    strindex = to_string(i);
-    full_path = getFilePath() + getFilenameForPartition(tab, strindex);
-    val = copy(full_path, tab, true) && val;
-    FileSystem::DeleteFileOrFolder(full_path);
+    string strindex = to_string(i);
+    
+    string partitionFile = getFilePath() 
+      + getFilenameForPartition(table, strindex);
+
+    result = importTable(partitionFile, table) && result;
+    FileSystem::DeleteFileOrFolder(partitionFile);
   }
 
-  return val;
+  return result;
 }
 
 /*

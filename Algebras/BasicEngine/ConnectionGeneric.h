@@ -86,9 +86,11 @@ class ConnectionGeneric {
             const std::string &nr, const std::string &path,
             size_t numberOfWorker) = 0;
 
-    virtual std::string getCopySQL(
-        const std::string &table, const std::string &full_path, 
-        bool direct) = 0;
+    virtual std::string getImportTableSQL(
+        const std::string &table, const std::string &full_path) = 0;
+
+    virtual std::string getExportTableSQL(
+        const std::string &table, const std::string &full_path) = 0;
 
     virtual std::string getFilenameForPartition(
         const std::string &table, const std::string &number) = 0;
