@@ -1373,11 +1373,14 @@ bool SmiEnvironment::StartUp(const RunMode mode, const string& parmFile,
                                            configFile.c_str());
   db_timeout_t microSeconds = timeout_value;
   rc = dbenv->set_timeout(microSeconds, DB_SET_LOCK_TIMEOUT);
+  SetBDBError(rc);
   cout << "Lock timeout: " << microSeconds << " microseconds" << endl;
   timeout_value = SmiProfile::GetParameter("BerkeleyDB", "Timeout_TXN", 0,
                                            configFile.c_str() );
+
   microSeconds = timeout_value;
   rc = dbenv->set_timeout(microSeconds, DB_SET_TXN_TIMEOUT);
+  SetBDBError(rc);
   cout << "TXN  timeout: " << microSeconds << " microseconds" << endl;
   u_int32_t lockValue;
   lockValue = SmiProfile::GetParameter("BerkeleyDB", "MaxLockers", 0, 
@@ -1506,9 +1509,13 @@ Transactions, logging and locking are enabled.
   }
   if (useTransactions) {
     db_timeout_t microSeconds = 0;
+    
     rc = dbenv->get_timeout(&microSeconds, DB_SET_LOCK_TIMEOUT);
+    SetBDBError(rc);
     cout << "Lock timeout: " << microSeconds << " microseconds" << endl;
+
     rc = dbenv->get_timeout(&microSeconds, DB_SET_TXN_TIMEOUT);
+    SetBDBError(rc);
     cout << "TXN  timeout: " << microSeconds << " microseconds" << endl;
   }
   // --- Create temporary Berkeley DB environment
