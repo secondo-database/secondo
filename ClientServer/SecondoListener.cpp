@@ -170,11 +170,14 @@ SecondoListener::Execute()
           iostream& ss = client->GetSocketStream();
           ss << "<SecondoError>" << endl << "SECONDO-0001: Connection rejected."
              << endl << "</SecondoError>" << endl;
-          client->Close();
-          delete client;
+
           string errmsg = string("Client '") + client->GetPeerAddress() 
                           + "' not allowed.";
           LogMessage(errmsg);
+
+          client->Close();
+          delete client;
+          client = nullptr;
         }
       }
     }
@@ -190,11 +193,13 @@ SecondoListener::Execute()
   
   if (client) {
     delete client;
+    client = nullptr;
   }
   
   if (gate) {
     gate->Close();
     delete gate;
+    gate = nullptr;
   }
   
   ProcessFactory::ShutDown();
