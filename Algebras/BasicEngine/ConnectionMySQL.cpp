@@ -363,7 +363,7 @@ bool ConnectionMySQL::getTypeFromQuery(MYSQL_RES* res,
     ListExpr &resultList) {
 
     ListExpr attrList = nl->TheEmptyList();
-    ListExpr attrListBegin;
+    ListExpr attrListBegin = nl->TheEmptyList();
 
     int columns = mysql_num_fields(res);
     MYSQL_FIELD *fields = mysql_fetch_fields(res);
