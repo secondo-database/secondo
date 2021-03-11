@@ -155,8 +155,12 @@ bool ConnectionMySQL::checkConnection() {
 
 */
 std::string ConnectionMySQL::getCreateTableSQL(const std::string &table) {
+
+    string creteTableSQL = "DROP TABLE IF EXISTS public." + table +";\n"
+
+
     // TODO
-    return string("");
+    return creteTableSQL
 }
 
 /*
@@ -230,8 +234,7 @@ std::string ConnectionMySQL::getExportDataSQL(const std::string &table,
 std::string ConnectionMySQL::getImportTableSQL(const std::string &table, 
     const std::string &full_path) {
  
-    // TODO
-    return string("");
+    return "LOAD DATA INFILE '" + full_path + "' INTO TABLE " + table + ";";
 }
 
 /*
@@ -241,8 +244,7 @@ std::string ConnectionMySQL::getImportTableSQL(const std::string &table,
 std::string ConnectionMySQL::getExportTableSQL(const std::string &table, 
     const std::string &full_path) {
  
-    // TODO
-    return string("");
+    return "SELECT * INTO OUTFILE '" + full_path + "' FROM " + table + ";";
 }
 
 /*
