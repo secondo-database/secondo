@@ -1116,29 +1116,31 @@ Returns true if everything is OK and there are no failure.
 */
 bool BasicEngine_Control::runsql(const string &filepath) {
 
-  if (access(filepath.c_str(), 0) == 0) {
-
-    // Read file into memory
-    ifstream inFile;
-    stringstream strStream;
-
-    inFile.open(filepath);
-    strStream << inFile.rdbuf();
-    string query = strStream.str();
-
-    //execute the sql-Statement
-    if (query != "") {
-      bool result = dbms_connection->sendCommand(query);
-      return result;
-    }
-
-  } else {
+  if (access(filepath.c_str(), 0) != 0) {
     BOOST_LOG_TRIVIAL(error) 
       << "Couldn't find the file at path:" + filepath;
     return false;
   }
 
-  return false;
+  // Read file into memory
+  ifstream inFile;
+  stringstream strStream;
+
+  inFile.open(filepath);
+  strStream << inFile.rdbuf();
+  
+  // Split up SQL queries from file and execute them
+  string query;
+  while (getline(strStream, query, ';')) {
+    bool result = dbms_connection->sendCommand(query);
+
+    if(! result) {
+      BOOST_LOG_TRIVIAL(error) << "Unable to execute: " << query;
+      return false;
+    }
+  }
+
+  return true;
 }
 
 /*

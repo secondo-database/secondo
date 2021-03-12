@@ -168,7 +168,7 @@ std::string ConnectionMySQL::getCreateTableSQL(const std::string &table) {
         // 0 = Tablename
         // 1 = Create Statement
         char* createTable = row[1];
-        createTableSQL = createTableSQL + createTable;
+        createTableSQL = createTableSQL + createTable + ";";
     }
 
     if(res != nullptr) {

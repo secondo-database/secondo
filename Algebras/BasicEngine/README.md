@@ -57,8 +57,14 @@ echo 'secure_file_priv=""' >>  /etc/mysql/mysql.conf.d/mysqld.cnf
 In addition, AppArmor can prevent MySQL from reading/writing files into the home directory of the users. This can be solved by adding additional rules to the AppArmour configuration (`/etc/apparmor.d/usr.sbin.mysqld`).
 
 ```
-  /home/user1/filetransfer/ r,
-  /home/user1/filetransfer/** rwk,
+# Allow import / export of the SECONDO basic engine
+  @{HOME}/filetransfer/ r,
+  @{HOME}/filetransfer/** rwk,
+
+# Additional SECONDO database dirs should be also covered
+#
+#  /diskb/ r,
+#  /diskb/** rwk,
 ```
 
 After the configuration is changed, the changed AppArmour profile needs to be applied ( `sudo apparmor_parser -r /etc/apparmor.d/usr.sbin.mysqld`) and MySQL needs to be restarted (`sudo service mysql restart`). 
