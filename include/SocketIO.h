@@ -508,8 +508,8 @@ An I/O stream is available only for sockets created by the methods
 Defines the socket state.
 
 */
-   SocketBuffer* ioSocketBuffer; // Socket stream buffer
-   std::iostream*     ioSocketStream; // Socket I/O stream
+   SocketBuffer* ioSocketBuffer = nullptr;  // Socket stream buffer
+   std::iostream* ioSocketStream = nullptr; // Socket I/O stream
 };
 
 extern std::string GetProcessName();

@@ -172,24 +172,24 @@ UnixSocket::~UnixSocket()
     unlink( tracefile.c_str() );
   }
 
-  if ( ioSocketStream != 0 )
+  if ( ioSocketStream != nullptr )
   { 
     try{
        delete ioSocketStream;
     } catch(...) {
       // Ignore exception
     }
-    ioSocketStream=0;
+    ioSocketStream = nullptr;
   }
 
-  if ( ioSocketBuffer != 0 )
+  if ( ioSocketBuffer != nullptr )
   {
     try{
         delete ioSocketBuffer;
     } catch(...) {
       // Ignore exception
     }
-    ioSocketBuffer=0;
+    ioSocketBuffer = nullptr;
   }
 
   destroyTracing();
