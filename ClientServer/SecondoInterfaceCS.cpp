@@ -43,6 +43,7 @@ provides functions useful for the client and for the server implementation.
 #include <iostream>
 #include <fstream>
 #include <sstream>
+#include <unistd.h>
 
 //#define TRACE_ON 1
 #undef TRACE_ON
@@ -1007,7 +1008,11 @@ int SecondoInterfaceCS::sendFile( const string& localfilename,
                                   const bool allowOverwrite ){
 
    if(localfilename.empty() || serverFileName.empty()){
-        return ERR_INVALID_FILE_NAME;
+      return ERR_INVALID_FILE_NAME;
+   }
+
+   if(access(localfilename.c_str(), F_OK) != 0) {
+      return ERR_FILE_NOT_EXISTS;
    }
 
    iostream& iosock = server->GetSocketStream();
