@@ -120,3 +120,9 @@ Number    : 1
 Signature : {string, text} --> bool
 Example   : query be_share("cars")
 Result    : TRUE
+
+Operator  : be_validate_query
+Number    : 1
+Signature : {string, text} --> bool
+Example   : query be_validate_query("SELECT * FROM users")
+Result    : TRUE

@@ -681,6 +681,30 @@ ResultIteratorGeneric* ConnectionPG::performSQLSelectQuery(
 }
 
 
+/*
+6.16 Validate the given query
+
+*/
+bool ConnectionPG::validateQuery(const std::string &query) {
+
+    if( ! checkConnection()) {
+        BOOST_LOG_TRIVIAL(error) 
+             << "Connection check failed in validateQuery()";
+        return false;
+    }
+
+    string restrictedQuery = limitSQLQuery(query);
+
+    PGresult* res = sendQuery(restrictedQuery.c_str());
+
+    if(res == nullptr) {
+      return false;
+    }
+
+    PQclear(res);
+    res = nullptr;
+
+    return true;
+}
+
 }/* namespace BasicEngine */
-
-

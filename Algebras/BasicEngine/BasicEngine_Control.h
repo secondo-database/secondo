@@ -182,6 +182,8 @@ public:
 
   void shutdownAllConnections();
 
+  bool validateQuery(const std::string &query);
+
   bool performImport(distributed2::ConnectionInfo* ci,
         const std::string &table,
         const std::string &remoteCreateName,

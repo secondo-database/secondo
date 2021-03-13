@@ -2438,6 +2438,106 @@ Operator be_shareOp(
 );
 
 
+
+/*
+1.3 Operator  ~be\_validate\_query~
+
+Validate the syntqx of the given query 
+
+1.3.2 Type Mapping
+
+*/
+
+ListExpr be_validateQueryTM(ListExpr args){
+  string err = "\n {string, text} expected";
+
+  if(!nl->HasLength(args,1)){
+    return listutils::typeError("One argument expected. " + err);
+  }
+
+  if(!CcString::checkType(nl->First(args))
+      && !FText::checkType(nl->First(args))){
+    return listutils::typeError("Value of first argument have "
+        "to be a string or a text." + err);
+  }
+  
+  return nl->SymbolAtom(CcBool::BasicType());
+}
+
+
+/*
+1.3.3 Value Mapping
+
+*/
+template<class T>
+int be_validateQuerySFVM(Word* args,Word& result,int message,
+          Word& local,Supplier s ){
+
+  result = qp->ResultStorage(s);
+  bool validationResult = false;
+
+  T* query = (T*) args[0].addr;
+  CcBool* res = (CcBool*) result.addr;
+
+  if(! query->IsDefined()) {
+    cerr << "Query parameter has to be defined" << endl;
+    validationResult = false;
+  } else if (be_control == nullptr) {
+    cerr << "Please init basic engine first" << endl;
+    validationResult = false;
+  } else {
+    string queryString = query -> toText();
+    validationResult = be_control->validateQuery(queryString);
+  } 
+
+  res->Set(true, validationResult);
+
+  return 0;
+}
+
+/*
+1.3.3 Specification
+
+*/
+OperatorSpec be_validateQuerySpec(
+   "{string, text} --> bool",
+   "be_validate_query(_)",
+   "This operator validates the given SQL query.",
+   "query be_validate_query('SELECT * FROM users')"
+);
+
+/*
+1.3.4 ValueMapping Array
+
+*/
+ValueMapping be_validateQueryVM[] = {
+  be_validateQuerySFVM<CcString>,
+  be_validateQuerySFVM<FText>
+};
+
+/*
+1.3.5 Selection Function
+
+*/
+int be_validateQuerySelect(ListExpr args){
+  return CcString::checkType(nl->First(args)) ? 0 : 1;
+}
+
+/*
+1.3.6 Operator instance
+
+*/
+Operator be_validateQueryOp(
+  "be_validate_query",
+  be_validateQuerySpec.getStr(),
+  sizeof(be_validateQueryVM),
+  be_validateQueryVM,
+  be_validateQuerySelect,
+  be_validateQueryTM
+);
+
+
+
 /*
 1.15 Implementation of the Algebra
 
@@ -2471,6 +2571,7 @@ class BasicEngineAlgebra : public Algebra
     AddOperator(&be_repartRROp);
     AddOperator(&be_repartHashOp);
     AddOperator(&be_shareOp);
+    AddOperator(&be_validateQueryOp);
 
     // configure boost logger
     // TODO: Move to SECONDO core

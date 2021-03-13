@@ -967,7 +967,28 @@ Returns true if everything is OK and there are no failure.
 */
 bool BasicEngine_Control::mquery(const string &query,
                     const string &table) {
-                
+
+  // Perform query check
+  if(connections.empty()) {
+    cerr << "Unable to perform mquery, "
+         << "no connections are known" << endl;
+    return false;
+  }
+
+  string validateQuery = "query be_validate_query('" 
+    + query + "');";
+
+  distributed2::ConnectionInfo* validateConnection 
+    = connections[0];
+
+  bool validateResult = performSimpleSecondoCommand(
+    validateConnection, validateQuery);
+  
+  if(! validateResult) {
+    cerr << "Unable to validate query: " << validateQuery << endl;
+    return false;
+  }
+
   bool val = true;
   vector<std::future<bool>> futures;
 
@@ -1534,5 +1555,22 @@ bool BasicEngine_Control::shareTable(
   return true;
 }
 
+/**
+3.28 Validate the given query
+
+*/
+bool BasicEngine_Control::validateQuery(const std::string &sqlQuery) {
+
+  bool validateResult = dbms_connection->validateQuery(sqlQuery);
+
+  if(! validateResult) {
+    BOOST_LOG_TRIVIAL(error) 
+      << "Unable to validate SQL query: " << sqlQuery;
+
+    return false;
+  }
+
+  return true;
+}
 
 } /* namespace BasicEngine */

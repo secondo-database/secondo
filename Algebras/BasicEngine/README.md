@@ -196,6 +196,16 @@ query be_collect('SELECT count(*) FROM roads') consume
 ```
 
 ```
+# Share table with all worker
+query be_share('users');
+```
+
+```
+# Validate the given query
+query be_validate_query("SELECT * FROM users")
+```
+
+```
 # Partition and re-partition releation roads
 query be_part_hash("users", "firstname", 60)
 

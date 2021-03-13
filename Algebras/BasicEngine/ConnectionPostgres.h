@@ -88,6 +88,8 @@ class ConnectionPG : public ConnectionGeneric {
 
   bool checkConnection();
 
+  bool validateQuery(const std::string &query);
+
   std::string getCreateTableSQL(const std::string &table);
 
   std::string getDropTableSQL(const std::string &table) {

@@ -79,6 +79,8 @@ class ConnectionMySQL : public ConnectionGeneric {
 
   std::string getCreateTableSQL(const std::string &table);
 
+  bool validateQuery(const std::string &query);
+
   std::string getDropTableSQL(const std::string &table) {
     return "DROP TABLE IF EXISTS " + table + ";";
   }

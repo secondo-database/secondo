@@ -56,9 +56,7 @@ string ConnectionGeneric::limitSQLQuery(const std::string &query) {
         // Limit query to 1 result tuple
         resultQuery.append(" LIMIT 1;");
     }
-
-    cout << resultQuery << endl;
-
+    
     return resultQuery;
 }
 

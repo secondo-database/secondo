@@ -100,7 +100,7 @@ bool ConnectionMySQL::sendCommand(const std::string &command,
         if(print) {
             BOOST_LOG_TRIVIAL(error) 
                 << "Unable to perform command: " << command
-                << mysql_error(conn);
+                << " / " << mysql_error(conn);
         }
 
         return false;
@@ -120,7 +120,7 @@ MYSQL_RES* ConnectionMySQL::sendQuery(const std::string &query) {
   if(mysqlExecRes != 0) {
     BOOST_LOG_TRIVIAL(error) 
       << "Unable to perform query" << query
-      << mysql_error(conn);
+      << " / " << mysql_error(conn);
     return nullptr;
   }
 
@@ -473,4 +473,31 @@ ResultIteratorGeneric* ConnectionMySQL::performSQLSelectQuery(
 
     return new ResultIteratorMySQL(res, resultList);
 }
+
+/*
+6.16 Validate the given query
+
+*/
+bool ConnectionMySQL::validateQuery(const std::string &query) {
+
+    if( ! checkConnection()) {
+        BOOST_LOG_TRIVIAL(error) 
+             << "Connection check failed in validateQuery()";
+        return false;
+    }
+
+    string restrictedQuery = limitSQLQuery(query);
+
+    MYSQL_RES *res = sendQuery(restrictedQuery.c_str());
+
+    if(res == nullptr) {
+        return false;
+    }
+
+    mysql_free_result(res);
+    res = nullptr;
+
+    return true;
+}
+
 }

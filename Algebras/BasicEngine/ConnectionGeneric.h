@@ -52,6 +52,8 @@ class ConnectionGeneric {
 
     virtual bool checkConnection() = 0;
 
+    virtual bool validateQuery(const std::string &query) = 0;
+
     virtual bool sendCommand(const std::string &command, bool print = true) = 0;
 
     virtual std::string getCreateTableSQL(const std::string &tab) = 0;

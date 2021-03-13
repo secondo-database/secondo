@@ -34,6 +34,7 @@ operator be_struct alias BE_STRUCT pattern op (_)
 operator be_runsql alias BE_RUNSQL pattern op (_)
 
 operator be_share alias BE_SHARE pattern op (_)
+operator be_validate_query alias BE_VALIDATE_QUERY pattern op (_)
 
 operator be_part_rr alias BE_PART_RR pattern op (_,_,_)
 operator be_part_hash alias BE_PART_HASH pattern op (_,_,_)
