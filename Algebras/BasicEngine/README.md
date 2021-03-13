@@ -103,7 +103,7 @@ In addition, AppArmor can prevent MySQL from reading/writing files into the home
   @{HOME}/filetransfer/ r,
   @{HOME}/filetransfer/** rwk,
 
-# Additional SECONDO database dirs should be also covered
+# Additional SECONDO database directories should be also covered
 #
 #  /diskb/ r,
 #  /diskb/** rwk,
@@ -144,3 +144,65 @@ mysql> select * from users;
 +----+-----------+----------+------+
 6 rows in set (0.01 sec)
 ```
+
+
+## BasicEngine
+
+### Connecting to Postgres
+```
+let WorkersPG = [const rel(tuple([Host: string, Port: int,
+Config: string, DBUser: string, DBPass: string, DBPort: int, DBName: string])) value
+(
+     ("127.0.0.1" 50550 "SecondoConfig.ini" "user" "supersecret" 50507 "database")
+     ("127.0.0.1" 50551 "SecondoConfig.ini" "user" "supersecret" 50508 "database")
+     ("127.0.0.1" 50552 "SecondoConfig.ini" "user" "supersecret" 50509 "database")
+     ("127.0.0.1" 50553 "SecondoConfig.ini" "user" "supersecret" 50510 "database")
+     ("127.0.0.1" 50554 "SecondoConfig.ini" "user" "supersecret" 50511 "database")
+)]
+
+query be_init_cluster('pgsql', 'user', 'supersecret', 50506, 'database', WorkersPG)
+```
+
+### Connecting to MySQL
+```
+let WorkersMySQL = [const rel(tuple([Host: string, Port: int,
+Config: string, DBUser: string, DBPass: string, DBPort: int, DBName: string])) value
+(
+     ("127.0.0.1" 50550 "SecondoConfig.ini" "user" "supersecret" 13301 "database")
+     ("127.0.0.1" 50551 "SecondoConfig.ini" "user" "supersecret" 13302 "database")
+     ("127.0.0.1" 50552 "SecondoConfig.ini" "user" "supersecret" 13303 "database")
+     ("127.0.0.1" 50553 "SecondoConfig.ini" "user" "supersecret" 13304 "database")
+     ("127.0.0.1" 50554 "SecondoConfig.ini" "user" "supersecret" 13305 "database")
+)]
+
+query be_init_cluster('mysql', 'user', 'supersecret', 13300, 'database', WorkersMySQL)
+```
+
+### Demo queries
+```
+# Partition relation roads, count elements and reduce result
+query be_mcommand('CREATE EXTENSION postgis;')
+query be_command('CREATE EXTENSION postgis;')
+
+query be_mcommand("DROP TABLE roads")
+query be_mcommand("DROP TABLE roads_count")
+query be_part_hash("roads", "osm_id", 60)
+query be_mquery('select count(*) from roads', 'roads_count')
+query be_union('roads_count');
+
+query be_collect('select * from roads_count') consume
+query be_collect('select * from roads_count') sum[Count]
+query be_collect('select count(*) from roads') consume
+```
+
+```
+# Partition and re-partition releation roads
+query be_part_hash("users", "firstname", 60)
+
+query be_mcommand("DROP TABLE users")
+
+query be_repart_hash("users", "firstname", 60)
+query be_repart_hash("users", "lastname", 60)
+query be_repart_hash("users", "age", 60)
+```
+
