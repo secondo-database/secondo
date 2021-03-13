@@ -43,7 +43,6 @@ January 2021 - April 2021, P. Fedorow for bachelor thesis.
 #include <vector>
 
 namespace AssociationAnalysis {
-
 template <class FPTree, typename Id> class FPTreeImpl {
 public:
   // Inserts the given itemset into the FP-Tree.
@@ -466,16 +465,16 @@ private:
 
   size_t headerTableSize() { return this->headerTable.Size(); }
 
-  std::optional<int> headerLinkByItem(int item) {
+  size_t headerLinkByItem(int item) {
     for (int i = 0; i < this->headerTable.Size(); i += 1) {
       Header header{};
       this->headerTable.Get(i, header);
       if (header.item == item) {
-        return header.link == 0 ? std::nullopt
-                                : std::make_optional(header.link);
+        assert(header.link != 0);
+        return header.link;
       }
     }
-    return std::nullopt;
+    assert(false);
   }
 
   int headerItem(size_t index) {

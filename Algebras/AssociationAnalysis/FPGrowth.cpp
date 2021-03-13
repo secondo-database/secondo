@@ -43,21 +43,10 @@ January 2021 - April 2021, P. Fedorow for bachelor thesis.
 namespace AssociationAnalysis {
 // Implementation of an FP-Tree. It is used to efficiently mine frequent
 // itemsets.
-class FPTree {
+class FPTreeInMemory : public FPTreeImpl<FPTreeInMemory, std::size_t> {
 public:
-  explicit FPTree() : nodes(1) {}
-
-  // Inserts the given itemset into the FP-Tree.
-  void insert(const std::vector<int> &itemset) {
-    this->insert(0, 1, itemset.cbegin(), itemset.cend());
-  }
-
-  // Mines frequent itemsets with the given minSupport. The frequent itemsets
-  // are appended to the collect vector.
-  void mine(std::vector<std::pair<std::vector<int>, double>> &collect,
-            int transactionCount, int minSupport) {
-    this->mine(collect, transactionCount, minSupport, {});
-  }
+  explicit FPTreeInMemory(int transactionCount, int minSupport)
+      : transactionCount(transactionCount), minSupport(minSupport), nodes(1) {}
 
 private:
   // Represents a node of the FP-Tree.
@@ -70,13 +59,13 @@ private:
     int count;
 
     // Children indexes.
-    std::vector<size_t> children;
+    std::vector<std::size_t> children;
 
     // Parent index.
-    size_t parent;
+    std::size_t parent;
 
     // Index to the next node that holds the same item.
-    size_t link;
+    std::size_t link;
   };
 
   // Represents a row in the header table.
@@ -84,8 +73,14 @@ private:
     int item;
 
     // Index to the first node that holds the item.
-    size_t link;
+    std::size_t link;
   };
+
+  // The transaction count and the minSupport with which this FP-Tree was
+  // created. This numbers will be used while mining to check if a given itemset
+  // is frequent.
+  int transactionCount;
+  int minSupport;
 
   // Nodes are stored in a vector and point to each other by using indexes into
   // the same vector.
@@ -93,118 +88,6 @@ private:
 
   // A header table that is used to find nodes that hold a specific item.
   std::vector<Header> headerTable;
-
-  // Inserts the given itemset with the given count. Used to built conditional
-  // FP-Trees without need to inserting the same itemset repeatedly.
-  void insert(const std::vector<int> &itemset, int count) {
-    this->insert(0, count, itemset.cbegin(), itemset.cend());
-  }
-
-  // Inserts the head item of the given itemset into the appropriate child of
-  // the given node and calls the insert function recursively with the child and
-  // the remaining tail of the itemset. This process is repeated until the end
-  // of the itemset is reached.
-  void insert(size_t node, int count, std::vector<int>::const_iterator begin,
-              std::vector<int>::const_iterator end) {
-    if (begin != end) {
-      int item = *begin;
-
-      size_t child = 0;
-
-      // Try to find a child node for the item we want to insert.
-      for (size_t child_ : this->nodes[node].children) {
-        if (this->nodes[child_].item == item) {
-          child = child_;
-          break;
-        }
-      }
-
-      if (child != 0) {
-        // A child node already exists, so we just need to update the count.
-        this->nodes[child].count += count;
-      } else {
-        // No child node was found for the item we want to insert, so we create
-        // a new child node.
-        child = this->nodes.size();
-        nodes.push_back({.item = item, .count = count, .parent = node});
-
-        // Update the header table.
-        Header &header = this->header(item);
-        this->nodes[child].link = header.link;
-        header.link = child;
-
-        // Append the child on the current node.
-        this->nodes[node].children.push_back(child);
-      }
-
-      // Proceed with the rest of the itemset.
-      begin++;
-      insert(child, count, begin, end);
-    }
-  }
-
-  // Returns the count of the given item.
-  int count(int item) {
-    int count = 0;
-    size_t node = this->header(item).link;
-    while (node != 0) {
-      count += this->nodes[node].count;
-      node = this->nodes[node].link;
-    }
-    return count;
-  }
-
-  // Computes the conditional base of the given item. The conditional base of
-  // an item consists out of all prefix itemsets of the item.
-  std::vector<std::pair<int, std::vector<int>>>
-  computeConditionalBase(int item, int minSupport) {
-    std::vector<std::pair<int, std::vector<int>>> base;
-
-    // Mapping from an item to its count.
-    std::unordered_map<int, int> counts;
-
-    // Visit all nodes with the given item and collect the prefix itemsets into
-    // the base vector.
-    size_t node = this->header(item).link;
-    while (node != 0) {
-      // Built the prefix itemset by climbing up towards the root from the node
-      // and collecting the items of the visited node.
-      std::vector<int> prefix;
-      size_t parent = this->nodes[node].parent;
-      while (parent != 0) {
-        counts[this->nodes[parent].item] += this->nodes[node].count;
-        prefix.push_back(this->nodes[parent].item);
-        parent = this->nodes[parent].parent;
-      }
-      if (!prefix.empty()) {
-        // The items in the prefix itemset are ordered descendingly by their
-        // support count. As the base will be used to create an FP-Tree later,
-        // we reverse the itemset here before including it in the conditional
-        // base.
-        base.emplace_back(this->nodes[node].count,
-                          std::vector<int>(prefix.crbegin(), prefix.crend()));
-      }
-
-      // Visit the next node with the same item.
-      node = this->nodes[node].link;
-    }
-
-    // Not all items we collected to create the conditional base are necessarily
-    // frequent. Those that are not frequent will be filtered out here.
-    std::vector<std::pair<int, std::vector<int>>> cleanBase;
-    for (const auto &[count, itemset] : base) {
-      std::vector<int> cleanItemset;
-      for (int item : itemset) {
-        if (counts[item] >= minSupport) {
-          cleanItemset.push_back(item);
-        }
-      }
-      if (!cleanItemset.empty()) {
-        cleanBase.emplace_back(count, cleanItemset);
-      }
-    }
-    return cleanBase;
-  }
 
   // Returns the header that contains the given item. If a header with the given
   // item was not found a new header for this item is created and returned.
@@ -218,114 +101,95 @@ private:
     return this->headerTable[this->headerTable.size() - 1];
   }
 
-  // Increments the integer that the given vector of booleans/bits represents.
-  // Returns true on overflow, false otherwise. This function is used as helper
-  // to built all subsets of an another vector of the same size.
-  static bool increment(std::vector<bool> &bs) {
-    for (size_t i = 0; i < bs.size(); i += 1) {
-      if (bs[i]) {
-        bs[i] = false;
-      } else {
-        bs[i] = true;
-        return true;
+  std::size_t root() { return 0; }
+
+  std::optional<std::size_t> findChild(std::size_t node, int item) {
+    assert(node < this->nodes.size());
+    for (std::size_t child : this->nodes[node].children) {
+      if (this->nodes[child].item == item) {
+        return child;
       }
     }
-    return false;
+    return std::nullopt;
   }
 
-  // Mines frequent itemsets with the given minSupport. The frequent itemsets
-  // are appended to the collect vector.
-  void mine(std::vector<std::pair<std::vector<int>, double>> &collect,
-            int transactionCount, int minSupport,
-            const std::vector<int> &suffix) {
-    if (this->containsSinglePath()) {
-      // The FP-Tree is a single path. To obtain the frequent itemsets we have
-      // to generate all itemsets that result from concatenating all
-      // combinations of the items in this path with the given suffix. Not all
-      // itemsets generated in this way will be frequent, the support count of
-      // such an itemset is the lowest count of all the nodes that were used.
-      //
-      // As the items in the path are the only items in this FP-Tree we use the
-      // header table to get the items instead of traversing the nodes.
+  void addCount(std::size_t node, int count) {
+    assert(node < this->nodes.size());
+    this->nodes[node].count += count;
+  }
 
-      // We use a vector (named `include`) that represents an integer that is
-      // incremented with each step to help with the enumeration of all
-      // combinations of the items in the path. The indexes where the vector
-      // `include` is true are the indexes of items in the header table
-      // that will be included in the itemset we are building.
-      std::vector<bool> include(this->headerTable.size(), false);
-      while (FPTree::increment(include)) {
-        int minCount = -1;
+  std::size_t createChild(std::size_t node, int item, int count) {
+    assert(node < this->nodes.size());
+    // Create a new node.
+    std::size_t child = this->nodes.size();
+    this->nodes.push_back({.item = item, .count = count, .parent = node});
 
-        // Build the itemset.
-        std::vector<int> itemset;
-        assert(include.size() == headerTable.size());
-        for (size_t i = 0; i < include.size(); i += 1) {
-          if (include[i]) {
-            if (minCount == -1 ||
-                this->nodes[headerTable[i].link].count < minCount) {
-              // We are keeping track of the lowest count here, as that will
-              // be the support count of the itemset we are building.
-              minCount = this->nodes[headerTable[i].link].count;
-            }
-            itemset.push_back(this->headerTable[i].item);
-          }
-        }
-        itemset.insert(itemset.begin(), suffix.cbegin(), suffix.cend());
+    // Update the header table.
+    Header &header = this->header(item);
+    this->nodes[child].link = header.link;
+    header.link = child;
 
-        if (minCount >= minSupport) {
-          // We found a frequent itemset -> collect it.
-          double support = (double)minSupport / (double)transactionCount;
-          collect.emplace_back(itemset, support);
-        }
-      }
+    // Append the child on the given node.
+    this->nodes[node].children.push_back(child);
+
+    return child;
+  }
+
+  std::size_t headerTableSize() { return this->headerTable.size(); }
+
+  std::size_t headerLinkByItem(int item) {
+    std::size_t link = this->header(item).link;
+    assert(link != 0);
+    return link;
+  }
+
+  int headerItem(std::size_t index) {
+    assert(index < this->headerTable.size());
+    return this->headerTable[index].item;
+  }
+
+  std::size_t headerLink(std::size_t index) {
+    assert(index < this->headerTable.size());
+    return this->headerTable[index].link;
+  }
+
+  int nodeItem(std::size_t node) {
+    assert(node < this->nodes.size());
+    return this->nodes[node].item;
+  }
+
+  int nodeCount(std::size_t node) {
+    assert(node < this->nodes.size());
+    return this->nodes[node].count;
+  }
+
+  std::optional<std::size_t> nodeLink(std::size_t node) {
+    assert(node < this->nodes.size());
+    return this->nodes[node].link == 0
+               ? std::nullopt
+               : std::make_optional(this->nodes[node].link);
+  }
+
+  std::optional<std::size_t> nodeParent(std::size_t node) {
+    assert(node < this->nodes.size());
+    if (node == 0) {
+      return std::nullopt;
     } else {
-      // The FP-Tree is not a single path. In this case we generate an itemset
-      // for each item in the header table by appending the given suffix to it.
-      // The support count of the resulting itemset is the count of all the
-      // nodes that contain the header item that was used to generate the
-      // itemset.
-      //
-      // If the resulting itemset is frequent proceed the mining with a FP-Tree
-      // conditioned on the header item that was used to generate the itemset.
-      // The frequent itemset is passed a the new suffix for the mining in the
-      // conditional FP-Tree.
-      for (const auto &header : this->headerTable) {
-        int count = this->count(header.item);
-
-        if (count >= minSupport) {
-          // Build the itemset.
-          std::vector<int> itemset;
-          itemset.reserve(suffix.size() + 1);
-          itemset.push_back(header.item);
-          itemset.insert(itemset.end(), suffix.cbegin(), suffix.cend());
-
-          // We found a frequent itemset -> collect it.
-          double support = (double)count / (double)transactionCount;
-          collect.emplace_back(itemset, support);
-
-          // Proceed the mining within the FP-Tree conditioned by the current
-          // header item.
-          FPTree fpTreeConditioned;
-          for (auto &[count, itemset] :
-               this->computeConditionalBase(header.item, minSupport)) {
-            fpTreeConditioned.insert(itemset, count);
-          }
-          fpTreeConditioned.mine(collect, transactionCount, minSupport,
-                                 itemset);
-        }
-      }
+      assert(node < this->nodes.size());
+      return this->nodes[node].parent == 0
+                 ? std::nullopt
+                 : std::make_optional(this->nodes[node].parent);
     }
   }
 
-  // Returns true if the FP-Tree consists out of single path.
-  bool containsSinglePath() {
-    size_t node = 0;
-    while (this->nodes[node].children.size() == 1) {
-      node = this->nodes[node].children[0];
-    }
-    return this->nodes[node].children.empty();
+  std::vector<std::size_t> nodeChildren(std::size_t node) {
+    assert(node < this->nodes.size());
+    return this->nodes[node].children;
   }
+
+  // FPTreeImpl needs access to the private FP-Tree access/manipulation methods:
+  // root, addCount, createChild, etc.
+  friend class FPTreeImpl<FPTreeInMemory, std::size_t>;
 };
 
 // Finds all frequent itemsets that satisfy the support given by minSupport.
@@ -347,7 +211,7 @@ fpGrowthLI::fpGrowthLI(GenericRelation *relation, int minSupport,
     Tuple *t;
     while ((t = rit->GetNextTuple()) != nullptr) {
       auto transaction = (collection::IntSet *)t->GetAttribute(itemsetAttr);
-      for (size_t i = 0; i < transaction->getSize(); i += 1) {
+      for (std::size_t i = 0; i < transaction->getSize(); i += 1) {
         counts[transaction->get(i)] += 1;
       }
       t->DeleteIfAllowed();
@@ -372,7 +236,7 @@ fpGrowthLI::fpGrowthLI(GenericRelation *relation, int minSupport,
 
   // Scan database to create the FP-Tree and mine the frequent itemsets.
   {
-    FPTree fpTree;
+    FPTreeInMemory fpTree(transactionCount, minSupport);
 
     // Database scan.
     std::unique_ptr<GenericRelationIterator> rit(relation->MakeScan());
@@ -390,7 +254,7 @@ fpGrowthLI::fpGrowthLI(GenericRelation *relation, int minSupport,
       t->DeleteIfAllowed();
     }
 
-    fpTree.mine(this->frequentItemsets, transactionCount, minSupport);
+    fpTree.mine(this->frequentItemsets);
   }
 
   // Setup iterator for the result stream.
@@ -498,7 +362,7 @@ Word FPTreeT::In(const ListExpr typeInfo, const ListExpr instance,
     // Unserialize headers.
     if (in.third().isList()) {
       NList headers = in.third();
-      for (size_t i = 1; i < headers.length(); i += 1) {
+      for (std::size_t i = 1; i < headers.length(); i += 1) {
         if (headers.elem(i).isList() && headers.elem(i).length() == 2 &&
             headers.elem(i).first().isInt() &&
             headers.elem(i).second().isInt()) {
@@ -517,7 +381,7 @@ Word FPTreeT::In(const ListExpr typeInfo, const ListExpr instance,
     // Unserialize nodes.
     if (in.fourth().isList()) {
       NList nodes = in.fourth();
-      for (size_t i = 1; i < nodes.length(); i += 1) {
+      for (std::size_t i = 1; i < nodes.length(); i += 1) {
         if (nodes.elem(i).isList() && nodes.elem(i).length() == 6 &&
             nodes.elem(i).first().isInt() && nodes.elem(i).second().isInt() &&
             nodes.elem(i).third().isInt() && nodes.elem(i).fourth().isInt() &&
@@ -556,7 +420,7 @@ void FPTreeT::Delete(const ListExpr typeInfo, Word &w) {
   w.addr = nullptr;
 }
 
-bool FPTreeT::Open(SmiRecord &valueRecord, size_t &offset,
+bool FPTreeT::Open(SmiRecord &valueRecord, std::size_t &offset,
                    const ListExpr typeInfo, Word &value) {
   // Read transactionCount.
   int transactionCount;
@@ -579,7 +443,7 @@ bool FPTreeT::Open(SmiRecord &valueRecord, size_t &offset,
 
   // Read headerTable DbArray.
   {
-    size_t bufferSize = decltype(fpTree->headerTable)::headerSize();
+    std::size_t bufferSize = decltype(fpTree->headerTable)::headerSize();
     auto buffer = std::make_unique<char[]>(bufferSize);
     if (valueRecord.Read(buffer.get(), bufferSize, offset) != bufferSize) {
       return false;
@@ -594,7 +458,7 @@ bool FPTreeT::Open(SmiRecord &valueRecord, size_t &offset,
 
   // Read nodes DbArray.
   {
-    size_t bufferSize = decltype(fpTree->nodes)::headerSize();
+    std::size_t bufferSize = decltype(fpTree->nodes)::headerSize();
     auto buffer = std::make_unique<char[]>(bufferSize);
     if (valueRecord.Read(buffer.get(), bufferSize, offset) != bufferSize) {
       return false;
@@ -611,7 +475,7 @@ bool FPTreeT::Open(SmiRecord &valueRecord, size_t &offset,
   return true;
 }
 
-bool FPTreeT::Save(SmiRecord &valueRecord, size_t &offset,
+bool FPTreeT::Save(SmiRecord &valueRecord, std::size_t &offset,
                    const ListExpr typeInfo, Word &w) {
   offset = 0;
   auto fpTree = (FPTreeT *)w.addr;
@@ -637,7 +501,7 @@ bool FPTreeT::Save(SmiRecord &valueRecord, size_t &offset,
     SmiRecordFile *file = catalog->GetFlobFile();
     fpTree->headerTable.saveToFile(file, fpTree->headerTable);
 
-    size_t bufferSize = decltype(fpTree->headerTable)::headerSize();
+    std::size_t bufferSize = decltype(fpTree->headerTable)::headerSize();
     auto buffer = std::make_unique<char[]>(bufferSize);
     SmiSize headerOffset = 0;
     fpTree->headerTable.serializeHeader(buffer.get(), headerOffset);
@@ -656,7 +520,7 @@ bool FPTreeT::Save(SmiRecord &valueRecord, size_t &offset,
     SmiRecordFile *file = catalog->GetFlobFile();
     fpTree->nodes.saveToFile(file, fpTree->nodes);
 
-    size_t bufferSize = decltype(fpTree->nodes)::headerSize();
+    std::size_t bufferSize = decltype(fpTree->nodes)::headerSize();
     auto buffer = std::make_unique<char[]>(bufferSize);
     SmiSize headerOffset = 0;
     fpTree->nodes.serializeHeader(buffer.get(), headerOffset);
@@ -769,7 +633,7 @@ int createFpTreeVM(Word *args, Word &result, int message, Word &local,
     Tuple *t;
     while ((t = rit->GetNextTuple()) != nullptr) {
       auto transaction = (collection::IntSet *)t->GetAttribute(itemsetAttr);
-      for (size_t i = 0; i < transaction->getSize(); i += 1) {
+      for (std::size_t i = 0; i < transaction->getSize(); i += 1) {
         counts[transaction->get(i)] += 1;
       }
       t->DeleteIfAllowed();
