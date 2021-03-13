@@ -1,5 +1,47 @@
 ## Postgres specific setup
 
+```bash
+# Create a master postgres and 5 worker on different disks and ports
+sudo pg_createcluster 10 user_master -p 50506 
+sudo pg_createcluster 10 user_worker1 -p 50507 -d /home/user/postgres/worker1
+sudo pg_createcluster 10 user_worker2 -p 50508 -d /home/user/postgres/worker2
+sudo pg_createcluster 10 user_worker3 -p 50509 -d /diskb/user/postgres/worker3
+sudo pg_createcluster 10 user_worker4 -p 50510 -d /diskc/user/postgres/worker4
+sudo pg_createcluster 10 user_worker5 -p 50511 -d /diskd/user/postgres/worker5
+
+# Start the postgres installations
+sudo pg_ctlcluster 10 user_master start 
+sudo pg_ctlcluster 10 user_worker1 start 
+sudo pg_ctlcluster 10 user_worker2 start 
+sudo pg_ctlcluster 10 user_worker3 start 
+sudo pg_ctlcluster 10 user_worker4 start 
+sudo pg_ctlcluster 10 user_worker5 start 
+
+# Setup a user 'username' with password 'supersecret' (adjust the ports to your setup)
+for i in 50506 50507 50508 50509 50510 50511; do sudo su - postgres -c "psql -p $i -c 'CREATE ROLE username LOGIN SUPERUSER PASSWORD 'supersecret';"; done
+
+# Create a database named database
+for i in 50506 50507 50508 50509 50510 50511; do sudo su - postgres -c "psql -p $i -c 'CREATE DATABASE database;'"; done
+
+# List active postgres processes
+pg_lsclusters
+```
+
+```bash
+# Perform a SQL query on all local postgres worker installations
+for i in 50507 50508 50509 50510 50511; do sudo su - postgres -c "psql -p $i -d database -c 'SELECT * FROM users'"; done
+```
+
+```bash
+# Deinstallation
+sudo pg_dropcluster  --stop 10 user_master
+sudo pg_dropcluster  --stop 10 user_worker1 
+sudo pg_dropcluster  --stop 10 user_worker2
+sudo pg_dropcluster  --stop 10 user_worker3
+sudo pg_dropcluster  --stop 10 user_worker4
+sudo pg_dropcluster  --stop 10 user_worker5
+```
+
 ### Data for tests
 ```sql
 CREATE TABLE users (
