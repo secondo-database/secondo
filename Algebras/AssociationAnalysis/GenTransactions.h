@@ -46,9 +46,10 @@ class getTransactionsLI {
 public:
   // Prepares the set of potentially frequent itemsets and everything else that
   // is needed for the generation of transactions.
-  getTransactionsLI(size_t numOfTransactions, size_t transactionSizeMean,
-                    size_t frequentItemsetSizeMean,
-                    size_t numOfFrequentItemsets, size_t numOfItems);
+  getTransactionsLI(std::size_t numOfTransactions,
+                    std::size_t transactionSizeMean,
+                    std::size_t frequentItemsetSizeMean,
+                    std::size_t numOfFrequentItemsets, std::size_t numOfItems);
 
   ~getTransactionsLI() { this->tupleType->DeleteIfAllowed(); }
 
@@ -57,10 +58,10 @@ public:
 
 private:
   // The amount of transactions to be generated.
-  size_t numOfTransactions;
+  std::size_t numOfTransactions;
 
   // The amount of transactions already generated.
-  size_t t;
+  std::size_t t;
 
   // Random number distributions that are used to generate transactions.
   std::mt19937 gen;

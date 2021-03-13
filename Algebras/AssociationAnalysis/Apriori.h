@@ -72,14 +72,16 @@ public:
 
 private:
   // Specifies how many itemsets a node can hold before it is broken up.
-  static const size_t ITEMSET_THRESHOLD = 32;
+  static const std::size_t ITEMSET_THRESHOLD = 32;
 
   // Specifies how many children-nodes there are per interior node.
-  static const size_t CHILDREN_NUM = 128;
+  static const std::size_t CHILDREN_NUM = 128;
 
-  void insert(const std::vector<int> &itemset, size_t node, size_t depth);
+  void insert(const std::vector<int> &itemset, std::size_t node,
+              std::size_t depth);
 
-  void subset(const collection::IntSet *transaction, size_t node, size_t depth,
+  void subset(const collection::IntSet *transaction, std::size_t node,
+              std::size_t depth,
               std::vector<std::reference_wrapper<const std::vector<int>>>
                   &itemsets) const;
 
@@ -93,7 +95,7 @@ private:
 
     // If the node is an interior node than the indexes of the children nodes
     // are stored here.
-    std::vector<size_t> children;
+    std::vector<std::size_t> children;
   };
 
   // Nodes are stored in a vector and point to each other by using indexes into

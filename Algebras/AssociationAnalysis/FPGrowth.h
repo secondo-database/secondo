@@ -159,7 +159,7 @@ private:
   // Returns true on overflow, false otherwise. This function is used as helper
   // to built all subsets of an another vector of the same size.
   static bool increment(std::vector<bool> &bs) {
-    for (size_t i = 0; i < bs.size(); i += 1) {
+    for (std::size_t i = 0; i < bs.size(); i += 1) {
       if (bs[i]) {
         bs[i] = false;
       } else {
@@ -197,7 +197,7 @@ private:
         // Build the itemset.
         std::vector<int> itemset;
         assert(include.size() == this->fpTree().headerTableSize());
-        for (size_t i = 0; i < include.size(); i += 1) {
+        for (std::size_t i = 0; i < include.size(); i += 1) {
           if (include[i]) {
             Id link = this->fpTree().headerLink(i);
             int count = this->fpTree().nodeCount(link);
@@ -228,7 +228,7 @@ private:
       // conditioned on the header item that was used to generate the itemset.
       // The frequent itemset is passed a the new suffix for the mining in the
       // conditional FP-Tree.
-      for (size_t i = 0; i < this->fpTree().headerTableSize(); i += 1) {
+      for (std::size_t i = 0; i < this->fpTree().headerTableSize(); i += 1) {
         int headerItem = this->fpTree().headerItem(i);
         int count = this->count(headerItem);
 
@@ -331,11 +331,11 @@ public:
 
   static void Delete(ListExpr typeInfo, Word &w);
 
-  static bool Open(SmiRecord &valueRecord, size_t &offset, ListExpr typeInfo,
-                   Word &value);
+  static bool Open(SmiRecord &valueRecord, std::size_t &offset,
+                   ListExpr typeInfo, Word &value);
 
-  static bool Save(SmiRecord &valueRecord, size_t &offset, ListExpr typeInfo,
-                   Word &w);
+  static bool Save(SmiRecord &valueRecord, std::size_t &offset,
+                   ListExpr typeInfo, Word &w);
 
   static void Close(ListExpr typeInfo, Word &w);
 
@@ -463,9 +463,9 @@ private:
     return childId;
   }
 
-  size_t headerTableSize() { return this->headerTable.Size(); }
+  std::size_t headerTableSize() { return this->headerTable.Size(); }
 
-  size_t headerLinkByItem(int item) {
+  std::size_t headerLinkByItem(int item) {
     for (int i = 0; i < this->headerTable.Size(); i += 1) {
       Header header{};
       this->headerTable.Get(i, header);
@@ -477,15 +477,15 @@ private:
     assert(false);
   }
 
-  int headerItem(size_t index) {
-    assert(index < (size_t)this->headerTable.Size());
+  int headerItem(std::size_t index) {
+    assert(index < (std::size_t)this->headerTable.Size());
     Header header{};
     this->headerTable.Get(index, header);
     return header.item;
   }
 
-  int headerLink(size_t index) {
-    assert(index < (size_t)this->headerTable.Size());
+  int headerLink(std::size_t index) {
+    assert(index < (std::size_t)this->headerTable.Size());
     Header header{};
     this->headerTable.Get(index, header);
     return header.link;
