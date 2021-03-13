@@ -330,19 +330,7 @@ std::string ConnectionMySQL::getExportTableSQL(const std::string &table,
 bool ConnectionMySQL::getTypeFromSQLQuery(const std::string &sqlQuery, 
     ListExpr &resultList) {
 
-  string usedSQLQuery = sqlQuery;
-
-  string sqlQueryUpper = boost::to_upper_copy<std::string>(sqlQuery);
-
-  if(sqlQueryUpper.find("LIMIT") == std::string::npos) {
-    // Remove existing ";" at the query end, if exists
-    if(boost::algorithm::ends_with(usedSQLQuery, ";")) {
-      usedSQLQuery.pop_back();
-    }
-
-    // Limit query to 1 result tuple
-    usedSQLQuery = usedSQLQuery + " LIMIT 1;";
-  }
+  string usedSQLQuery = limitSQLQuery(sqlQuery);
 
   if( ! checkConnection()) {
     BOOST_LOG_TRIVIAL(error) 
@@ -351,6 +339,12 @@ bool ConnectionMySQL::getTypeFromSQLQuery(const std::string &sqlQuery,
   }
   
   MYSQL_RES *res = sendQuery(usedSQLQuery.c_str());
+
+  if(res == nullptr) {
+    BOOST_LOG_TRIVIAL(error) 
+      << "Unable to perform SQL query" << usedSQLQuery;
+      return false;
+  }
 
   bool result = getTypeFromQuery(res, resultList);
 

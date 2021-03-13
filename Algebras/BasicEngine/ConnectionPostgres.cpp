@@ -630,19 +630,7 @@ Get the SECONDO type of the given SQL query
 bool ConnectionPG::getTypeFromSQLQuery(const std::string &sqlQuery, 
     ListExpr &resultList) {
 
-  string usedSQLQuery = sqlQuery;
-
-  string sqlQueryUpper = boost::to_upper_copy<std::string>(sqlQuery);
-
-  if(sqlQueryUpper.find("LIMIT") == std::string::npos) {
-    // Remove existing ";" at the query end, if exists
-    if(boost::algorithm::ends_with(usedSQLQuery, ";")) {
-      usedSQLQuery.pop_back();
-    }
-
-    // Limit query to 1 result tuple
-    usedSQLQuery = usedSQLQuery + " LIMIT 1;";
-  }
+  string usedSQLQuery = limitSQLQuery(sqlQuery);
 
   if( ! checkConnection()) {
     BOOST_LOG_TRIVIAL(error) 

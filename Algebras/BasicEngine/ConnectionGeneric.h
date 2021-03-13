@@ -109,40 +109,9 @@ class ConnectionGeneric {
     virtual ResultIteratorGeneric* performSQLSelectQuery(
         const std::string &sqlQuery) = 0;
 
-    /*
-    5.2.1 ~dbUser~
-
-    The username for the database connection
-
-    */
-    std::string dbUser;
 
     /*
-    5.2.2 ~dbPass~
-
-    The password of the postgress connection
-
-    */
-    std::string dbPass;
-
-    /*
-    5.2.3 ~port~
-
-    The port of the database
-
-    */
-    int dbPort;
-
-    /*
-    5.2.4 ~dbname~
-
-    The Name of the Database.
-
-    */
-    std::string dbName;
-
-    /*
-    5.3 Private Methods
+    5.3 
 
     5.3.1 ~getDbPort~ Return the Port of the database
 
@@ -180,9 +149,47 @@ class ConnectionGeneric {
     std::string getDbPass() {
         return dbPass;
     }
+
+    protected:
+    /*
+    5.2.0 Try to limit the given SQL query to 1 result. 
+        
+    Needed to determine the type of the query result.
+    */
+    std::string limitSQLQuery(const std::string &query);
+
+    /*
+    5.2.1 ~dbUser~
+
+    The username for the database connection
+
+    */
+    std::string dbUser;
+
+    /*
+    5.2.2 ~dbPass~
+
+    The password of the postgress connection
+
+    */
+    std::string dbPass;
+
+    /*
+    5.2.3 ~port~
+
+    The port of the database
+
+    */
+    int dbPort;
+
+    /*
+    5.2.4 ~dbname~
+
+    The Name of the Database.
+
+    */
+    std::string dbName;
 };
-
-
 }
 
 #endif
