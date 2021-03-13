@@ -434,21 +434,12 @@ Returns true if everything is OK and there are no failure.
 bool BasicEngine_Control::partRoundRobin(const string &tab,
                     const string &key, size_t slotnum) {
 
-  bool val = false;
-  string query_exec = "";
-  string partTabName;
+  string partTabName = getTableNameForPartitioning(tab, key);
 
-  partTabName = getTableNameForPartitioning(tab, key);
   drop_table(partTabName);
 
-  query_exec = dbms_connection->getPartitionRoundRobinSQL(tab, key,
+  return dbms_connection->partitionRoundRobin(tab, key,
       slotnum, partTabName);
-  
-  if (query_exec != "") {
-    val = dbms_connection->sendCommand(query_exec);
-  }
-
-  return val;
 }
 
 /*

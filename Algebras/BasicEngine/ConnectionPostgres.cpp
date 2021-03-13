@@ -238,15 +238,34 @@ string ConnectionPG::getCreateTableSQL(const string &tab){
 Creates a table in postgreSQL with the partitioned data by round robin.
 
 */
-string ConnectionPG::getPartitionRoundRobinSQL(const string &tab, 
+bool ConnectionPG::partitionRoundRobin(const string &tab, 
   const string &key, const size_t anzSlots, const string &targetTab) {
 
-  string select = "SELECT (nextval('temp_seq') %" 
+  // Sequence counter
+  string createSequenceSQL = "CREATE TEMP SEQUENCE IF NOT EXISTS temp_seq;";
+
+  bool res = sendCommand(createSequenceSQL);
+
+  if(! res) {
+    BOOST_LOG_TRIVIAL(error) << "Unable to create sequence";
+    return false;
+  }
+
+  // Apply sequence counter to the relation
+  string selectSQL = "SELECT DISTINCT (nextval('temp_seq') %" 
     + to_string(anzSlots) + ""
     " ) As slot," + key + " FROM " + tab;
 
-  return "CREATE TEMP SEQUENCE IF NOT EXISTS temp_seq;"
-    + getCreateTabSQL(targetTab, select);
+  string createTableSQL = getCreateTabSQL(targetTab, selectSQL);
+
+  res = sendCommand(createTableSQL);
+
+  if(! res) {
+    BOOST_LOG_TRIVIAL(error) << "Unable to create round robin table";
+    return false;
+  }
+
+  return true;
 }
 
 /*
@@ -547,6 +566,13 @@ string ConnectionPG::get_partShare(const string &tab, const string &key,
   return query_exec;
 }
 
+
+/*
+6.16 ~getTypeFromQuery~
+
+Get the SECONDO type of the given PGresult
+
+*/
 bool ConnectionPG::getTypeFromQuery(const PGresult* res, ListExpr &resultList) {
 
   if (!res || PQresultStatus(res) != PGRES_TUPLES_OK) {

@@ -94,7 +94,7 @@ class ConnectionMySQL : public ConnectionGeneric {
                 " " + table + " USING GIST (" + geo_col + ");";
   }
 
-  std::string getPartitionRoundRobinSQL(const std::string &table, 
+  bool partitionRoundRobin(const std::string &table, 
     const std::string &key, const size_t anzSlots, 
     const std::string &targetTab);
 

@@ -181,18 +181,18 @@ query be_init_cluster('mysql', 'user', 'supersecret', 13300, 'database', Workers
 ### Demo queries
 ```
 # Partition relation roads, count elements and reduce result
-query be_mcommand('CREATE EXTENSION postgis;')
-query be_command('CREATE EXTENSION postgis;')
+query be_mcommand('CREATE EXTENSION postgis')
+query be_command('CREATE EXTENSION postgis')
 
 query be_mcommand("DROP TABLE roads")
 query be_mcommand("DROP TABLE roads_count")
 query be_part_hash("roads", "osm_id", 60)
-query be_mquery('select count(*) from roads', 'roads_count')
+query be_mquery('SELECT count(*) FROM roads', 'roads_count')
 query be_union('roads_count');
 
-query be_collect('select * from roads_count') consume
-query be_collect('select * from roads_count') sum[Count]
-query be_collect('select count(*) from roads') consume
+query be_collect('SELECT * FROM roads_count') consume
+query be_collect('SELECT * FROM roads_count') sum[Count]
+query be_collect('SELECT count(*) FROM roads') consume
 ```
 
 ```

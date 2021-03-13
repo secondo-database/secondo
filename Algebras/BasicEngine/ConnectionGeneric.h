@@ -63,7 +63,7 @@ class ConnectionGeneric {
     virtual std::string getCreateGeoIndexSQL(
         const std::string &table, const std::string &geo_col) = 0;
 
-    virtual std::string getPartitionRoundRobinSQL(const std::string &table, 
+    virtual bool partitionRoundRobin(const std::string &table, 
         const std::string &key, const size_t anzSlots, 
         const std::string &targetTab) = 0;
 

@@ -183,16 +183,28 @@ std::string ConnectionMySQL::getCreateTableSQL(const std::string &table) {
 }
 
 /*
-6.7 ~getPartitionRoundRobinSQL~
+6.7 ~partitionRoundRobin~
 
 */
-std::string ConnectionMySQL::getPartitionRoundRobinSQL(
-    const std::string &table, 
-    const std::string &key, const size_t anzSlots, 
-    const std::string &targetTab) {
+bool ConnectionMySQL::partitionRoundRobin(
+    const std::string &table, const std::string &key, 
+    const size_t slots, const std::string &targetTab) {
     
-    // TODO
-    return string("");
+    // Apply sequence counter to the relation
+    string selectSQL = "SELECT @n := ((@n + 1) % " 
+        + to_string(slots) + ") Slot, t.* "
+        + "FROM (SELECT @n:=0) AS initvars, " + table + " AS t";
+    
+    string createTableSQL = getCreateTabSQL(targetTab, selectSQL);
+
+    bool res = sendCommand(createTableSQL);
+
+    if(! res) {
+        BOOST_LOG_TRIVIAL(error) << "Unable to create round robin table";
+        return false;
+    }
+
+    return true;
 }
 
 /*
