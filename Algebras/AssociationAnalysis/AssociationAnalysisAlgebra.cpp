@@ -40,10 +40,15 @@ namespace AssociationAnalysis {
 class AssociationAnalysisAlgebra : public Algebra {
 public:
   AssociationAnalysisAlgebra() : Algebra() {
-    AddOperator(genTransactionsInfo(), genTransactionsVM, genTransactionsTM);
-    AddOperator(aprioriInfo(), mineVM<aprioriLI>, mineTM);
-    AddOperator(eclatInfo(), mineVM<eclatLI>, mineTM);
-    AddOperator(fpGrowthInfo(), mineVM<fpGrowthLI>, mineTM);
+    this->AddTypeConstructor(&fptreeTC);
+
+    this->AddOperator(genTransactionsInfo(), genTransactionsVM,
+                      genTransactionsTM);
+    this->AddOperator(aprioriInfo(), mineVM<aprioriLI>, mineTM);
+    this->AddOperator(eclatInfo(), mineVM<eclatLI>, mineTM);
+    this->AddOperator(fpGrowthInfo(), mineVM<fpGrowthLI>, mineTM);
+    this->AddOperator(createFpTreeInfo(), createFpTreeVM, createFpTreeTM);
+    this->AddOperator(mineFpTreeInfo(), mineFpTreeVM, mineFpTreeTM);
   }
 };
 } // namespace AssociationAnalysis

@@ -35,6 +35,30 @@ January 2021 - April 2021, P. Fedorow for bachelor thesis.
 #include "StandardTypes.h"
 
 namespace AssociationAnalysis {
+frequentItemsetStreamLI::frequentItemsetStreamLI(
+    std::vector<std::pair<std::vector<int>, double>> &&frequentItemsets)
+    : frequentItemsets(frequentItemsets), it(this->frequentItemsets.cbegin()),
+      tupleType(new TupleType(SecondoSystem::GetCatalog()->NumericType(
+          frequentItemsetTupleType()))) {}
+
+frequentItemsetStreamLI::~frequentItemsetStreamLI() {
+  this->tupleType->DeleteIfAllowed();
+}
+
+Tuple *frequentItemsetStreamLI::getNext() {
+  if (this->it != this->frequentItemsets.cend()) {
+    auto &[itemset, support] = *this->it;
+    auto tuple = new Tuple(this->tupleType);
+    tuple->PutAttribute(0, new collection::IntSet(std::set<int>(
+                               itemset.cbegin(), itemset.cend())));
+    tuple->PutAttribute(1, new CcReal(support));
+    this->it++;
+    return tuple;
+  } else {
+    return nullptr;
+  }
+}
+
 ListExpr frequentItemsetTupleType() {
   NList attrs =
       NList(NList(NList().symbolAtom("Itemset"),
@@ -46,7 +70,7 @@ ListExpr frequentItemsetTupleType() {
 }
 
 // Type mapping for a frequent itemset mining operator.
-ListExpr mineTM(ListExpr args) {
+ListExpr mineTM(ListExpr args, ListExpr returnType) {
   NList type(args);
 
   bool relativeSupport = false;
@@ -99,11 +123,15 @@ ListExpr mineTM(ListExpr args) {
                             "relation given as the first argument.");
   }
 
-  NList tupleType = NList(frequentItemsetTupleType());
   return NList(Symbols::APPEND(),
                NList(NList().intAtom(itemsetAttr - 1),
                      NList().boolAtom(relativeSupport)),
-               NList().streamOf(tupleType))
+               returnType)
       .listExpr();
+}
+
+ListExpr mineTM(ListExpr args) {
+  NList tupleType = NList(frequentItemsetTupleType());
+  return mineTM(args, NList().streamOf(tupleType).listExpr());
 }
 } // namespace AssociationAnalysis

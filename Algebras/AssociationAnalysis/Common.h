@@ -38,13 +38,35 @@ January 2021 - April 2021, P. Fedorow for bachelor thesis.
 #include <cmath>
 
 namespace AssociationAnalysis {
+class frequentItemsetStreamLI {
+public:
+  explicit frequentItemsetStreamLI(
+      std::vector<std::pair<std::vector<int>, double>> &&frequentItemsets);
+
+  ~frequentItemsetStreamLI();
+
+  // Returns the next frequent itemset as a tuple.
+  Tuple *getNext();
+
+private:
+  // Contains the frequent itemsets annotated by their support.
+  std::vector<std::pair<std::vector<int>, double>> frequentItemsets;
+
+  // Used to generate a stream of the frequent itemsets.
+  std::vector<std::pair<std::vector<int>, double>>::const_iterator it;
+
+  // Describes the resulting tuple type: tuple(Itemset: intset, Support: real).
+  TupleType *tupleType;
+};
+
 ListExpr frequentItemsetTupleType();
 
 // Type mapping for a frequent itemset mining operator.
+ListExpr mineTM(ListExpr args, ListExpr returnType);
 ListExpr mineTM(ListExpr args);
 
 // Value mapping for a frequent itemset mining operator.
-template<class T>
+template <class T>
 int mineVM(Word *args, Word &result, int message, Word &local, Supplier s) {
   auto *li = (T *)local.addr;
   switch (message) {

@@ -104,3 +104,21 @@ Signature : rel(tuple(...)) attr real -> stream(tuple(Itemset: intset, Support: 
 Example   : query transactions fpGrowth[Itemset, 0.015] min[Support]
 Result    : 0.015
 Tolerance : 0.0001
+
+Operator  : createFpTree
+Number    : 17
+Signature : rel(tuple(...)) attr real -> fptree
+Example   : delete transactionsFpTree
+Result    : ()
+
+Operator  : createFpTree
+Number    : 18
+Signature : rel(tuple(...)) attr real -> fptree
+Example   : let transactionsFpTree = transactions createFpTree[Itemset, 0.015]
+Result    : ()
+
+Operator  : mineFpTree
+Number    : 19
+Signature : fptree -> stream(tuple(Itemset: intset, Support: real))
+Example   : query transactionsFpTree mineFpTree count
+Result    : 64
