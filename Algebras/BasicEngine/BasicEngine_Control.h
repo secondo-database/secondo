@@ -140,9 +140,11 @@ public:
     return sendCommand(sqlQuery);
   }
 
-  bool munion(const std::string &tab);
+  bool shareTable(const std::string &table);
 
-  bool mquery(const std::string &query, const std::string &tab);
+  bool munion(const std::string &table);
+
+  bool mquery(const std::string &query, const std::string &table);
 
   bool mcommand(const std::string &query);
 

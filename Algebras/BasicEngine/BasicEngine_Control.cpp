@@ -668,14 +668,17 @@ bool BasicEngine_Control::exportToWorker(const string &sourceTable,
     int sendFileRes = si->sendFile(localName, remoteName, true);
 
     if (sendFileRes != 0) {
-      BOOST_LOG_TRIVIAL(error) << "Couldn't send the data to the worker.";
+      BOOST_LOG_TRIVIAL(error) << "Couldn't send the data to the worker: "
+        << " Localfile: " << localName << " Remotefile: "  << remoteName
+        << " Return code: " << sendFileRes;
       return false;
     }
 
     bool removeFileRes = (remove(localName.c_str()) == 0);
 
     if (!removeFileRes) {
-      BOOST_LOG_TRIVIAL(error) << "Couldn't remove the local file.";
+      BOOST_LOG_TRIVIAL(error) << "Couldn't remove the local file:" 
+        << localName;
       return false;
     }
 
@@ -685,7 +688,9 @@ bool BasicEngine_Control::exportToWorker(const string &sourceTable,
 
       if (sendFileRes != 0) {
         BOOST_LOG_TRIVIAL(error) 
-          << "Couldn't send the structure-file to the worker.";
+          << "Couldn't send the structure-file to the worker: " 
+          << " Localfile: " << localCreateName 
+          << " Remotefile: "  << remoteCreateName;
         return false;
       }
     }
@@ -761,27 +766,21 @@ Returns true if everything is OK and there are no failure.
 bool BasicEngine_Control::partFun(const string &tab,
     const string &key, const string &fun, size_t slotnum){
                 
-  bool val = false;
-  string query_exec = "";
-  string partTabName = getTableNameForPartitioning(tab,key);
-  size_t anzSlots;
+  
+  string partTabName = getTableNameForPartitioning(tab, key);
 
   drop_table(partTabName);
 
-  if (boost::iequals(fun, "share")){
-    anzSlots = remoteConnectionInfos.size();
-  } else {
-    anzSlots = slotnum;
+  string query_exec = dbms_connection->getPartitionSQL(tab, key,
+      slotnum, fun, partTabName);
+
+  if (query_exec == "") {
+    return false;
   }
 
-  query_exec = dbms_connection->getPartitionSQL(tab, key,
-      anzSlots, fun, partTabName);
-
-  if (query_exec != "") {
-    val = dbms_connection->sendCommand(query_exec);
-  }
-
-  return val;
+  bool result = dbms_connection->sendCommand(query_exec);
+    
+  return result;
 }
 
 /*
@@ -1470,6 +1469,65 @@ bool BasicEngine_Control::performSimpleSecondoCommand(
         << "Got unexpected result from server: " 
         << ci->getHost() << ":" << ci->getPort() << " "
         << res << " command was: " << command;
+    return false;
+  }
+
+  return true;
+}
+
+
+/*
+3.27 ~shareTable~
+
+Share the given table with all worker
+
+*/
+bool BasicEngine_Control::shareTable(
+      const std::string &table) {
+
+  // Create trlation schema file
+  bool createStructRes = getCreateTableSQL(table);
+
+  if(! createStructRes){
+    BOOST_LOG_TRIVIAL(error) << "Couldn't create the structure-file for"
+      << table;
+    return false;
+  }
+
+  // Export complete relation and duplicate as slots for the worker
+  string path = getFilePath();
+  string partZeroFile = getFilenameForPartition(table, "0");
+  string partZeroFullPath = path + partZeroFile;
+  string exportDataSQL = dbms_connection->getExportTableSQL(
+    table, partZeroFullPath);
+
+  bool exportDataRes = sendCommand(exportDataSQL);
+
+  if(!exportDataRes) {
+    BOOST_LOG_TRIVIAL(error) << "Unable to export from DB: "
+      << exportDataSQL;
+
+    return false;
+  }
+
+  // Copy parition 0 to partitions [1-n]
+  for(size_t i = 1; i<remoteConnectionInfos.size(); i++) {
+    string partitionFile = getFilenameForPartition(table, to_string(i));
+    string partitionFileFullPath = path + partitionFile;
+
+    BOOST_LOG_TRIVIAL(debug) << "Copy file " << partZeroFullPath 
+      << " to " << partitionFileFullPath;
+
+    ifstream src(partZeroFullPath, std::ios::binary);
+    ofstream dst(partitionFileFullPath, std::ios::binary);
+    dst << src.rdbuf();
+  }
+
+  // Transfer the data to the worker
+  bool transferRes = exportToWorker(table, table, true);
+
+  if(! transferRes) {
+    BOOST_LOG_TRIVIAL(error) << "Couldn't export the data to the worker";
     return false;
   }
 

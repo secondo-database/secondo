@@ -252,7 +252,7 @@ bool ConnectionPG::partitionRoundRobin(const string &tab,
   }
 
   // Apply sequence counter to the relation
-  string selectSQL = "SELECT DISTINCT (nextval('temp_seq') %" 
+  string selectSQL = "SELECT (nextval('temp_seq') %" 
     + to_string(anzSlots) + ""
     " ) As slot," + key + " FROM " + tab;
 
@@ -389,23 +389,19 @@ string ConnectionPG::getPartitionSQL(const string &tab, const string &key,
   const size_t anzSlots, const string &fun, const string &targetTab) {
 
   string select = "";
-  string query = "";
 
   if (boost::iequals(fun, "random")) {
     createFunctionRandom(tab, key, anzSlots, select);
-  } else if (boost::iequals(fun, "share")) {
-    select = get_partShare(tab, key, anzSlots);
   } else {
     BOOST_LOG_TRIVIAL(error)
-        << "Function " + fun + " not recognized! "
-        "Available functions are: RR, Hash, share and random.";
+        << "Function " + fun + " not recognized!";
   }
 
-  if(select != "") {
-    query = getCreateTabSQL(targetTab, select);
+  if(select == "") {
+    return "";
   }
 
-  return query;
+  return getCreateTabSQL(targetTab, select);
 }
 
 /*
@@ -540,32 +536,6 @@ string ConnectionPG::getPartitionGridSQL(const std::string &tab,
 
   return getCreateTabSQL(targetTab, query_exec);
 }
-
-/*
-6.16 ~get\_partShare~
-
-Creates a table in postgreSQL with all date to all worker,
-
-*/
-string ConnectionPG::get_partShare(const string &tab, const string &key, 
-    const size_t numberOfWorker){
-      
-  string query_exec;
-  string worker = "SELECT 0 as slot";
-
-  string usedKey(key);
-  boost::replace_all(usedKey, ",", ",r.");
-
-  for(size_t i=1; i < numberOfWorker; i++) {
-    worker = worker + " UNION SELECT " + to_string(i) + " as slot";
-  }
-
-  query_exec = "SELECT r." + usedKey + ", g.slot "
-                  "FROM (" + worker + ") g," + tab + " r";
-    
-  return query_exec;
-}
-
 
 /*
 6.16 ~getTypeFromQuery~

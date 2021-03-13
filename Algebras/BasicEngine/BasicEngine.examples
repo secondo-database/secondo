@@ -114,3 +114,9 @@ Number    : 1
 Signature : {string, text} x {string, text} x int --> bool
 Example   : query be_repart_hash("cars", "moid", 60)
 Result    : FALSE
+
+Operator  : be_share
+Number    : 1
+Signature : {string, text} --> bool
+Example   : query be_share("cars")
+Result    : TRUE

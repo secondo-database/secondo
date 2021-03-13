@@ -2340,6 +2340,102 @@ Operator be_repartHashOp(
 );
 
 
+/*
+1.3 Operator  ~be\_share~
+
+Share a relation with all worker
+
+1.3.2 Type Mapping
+
+*/
+
+ListExpr be_shareTM(ListExpr args){
+  string err = "\n {string, text} expected";
+
+  if(!nl->HasLength(args,1)){
+    return listutils::typeError("One argument expected. " + err);
+  }
+
+  if(!CcString::checkType(nl->First(args))
+      && !FText::checkType(nl->First(args))){
+    return listutils::typeError("Value of first argument have "
+        "to be a string or a text." + err);
+  }
+  
+  return nl->SymbolAtom(CcBool::BasicType());
+}
+
+
+/*
+1.3.3 Value Mapping
+
+*/
+template<class T>
+int be_shareSFVM(Word* args,Word& result,int message,
+          Word& local,Supplier s ){
+
+  result = qp->ResultStorage(s);
+  bool shareResult = false;
+
+  T* table = (T*) args[0].addr;
+  CcBool* res = (CcBool*) result.addr;
+
+  if(! table->IsDefined()) {
+    cerr << "Table parameter has to be defined" << endl;
+    shareResult = false;
+  } else if (be_control == nullptr) {
+    cerr << "Please init basic engine first" << endl;
+    shareResult = false;
+  } else {
+    string tableName = table -> toText();
+    shareResult = be_control->shareTable(tableName);
+  } 
+
+  res->Set(true, shareResult);
+
+  return 0;
+}
+
+/*
+1.3.3 Specification
+
+*/
+OperatorSpec be_shareSpec(
+   "{string, text} --> bool",
+   "be_share(_)",
+   "This operator shares the given relation with all workers.",
+   "query be_share('cars')"
+);
+
+/*
+1.3.4 ValueMapping Array
+
+*/
+ValueMapping be_shareVM[] = {
+  be_shareSFVM<CcString>,
+  be_shareSFVM<FText>
+};
+
+/*
+1.3.5 Selection Function
+
+*/
+int be_shareSelect(ListExpr args){
+  return CcString::checkType(nl->First(args))?0:1;
+}
+
+/*
+1.3.6 Operator instance
+
+*/
+Operator be_shareOp(
+  "be_share",
+  be_shareSpec.getStr(),
+  sizeof(be_shareVM),
+  be_shareVM,
+  be_shareSelect,
+  be_shareTM
+);
 
 
 /*
@@ -2374,6 +2470,7 @@ class BasicEngineAlgebra : public Algebra
     AddOperator(&be_partFunOp);
     AddOperator(&be_repartRROp);
     AddOperator(&be_repartHashOp);
+    AddOperator(&be_shareOp);
 
     // configure boost logger
     // TODO: Move to SECONDO core

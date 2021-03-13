@@ -193,9 +193,6 @@ class ConnectionPG : public ConnectionGeneric {
     const std::string &key, std::string &fields, 
     std::string &valueMap, std::string &select);
 
-  std::string get_partShare(const std::string &table, const std::string &key,
-    const size_t numberOfWorker);
-
   std::string getjoin(const std::string &key);
 };
 
