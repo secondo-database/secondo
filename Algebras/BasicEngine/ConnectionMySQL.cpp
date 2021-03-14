@@ -269,7 +269,7 @@ std::string ConnectionMySQL::getExportDataSQL(const std::string &table,
     string exportSQL = "SELECT a.* FROM "+ table +" a INNER JOIN " 
         + join_table  + " b " + getjoin(key) 
         + " WHERE (slot % " + to_string(numberOfWorker) + ") = " + nr
-        + " INTO OUTFILE '" + path + filename + "';";
+        + " INTO OUTFILE '" + path + filename + "' CHARACTER SET utf8;";
 
     BOOST_LOG_TRIVIAL(debug) 
       << "Export partition statement is: " << exportSQL;
@@ -311,7 +311,8 @@ string ConnectionMySQL::getjoin(const string &key) {
 std::string ConnectionMySQL::getImportTableSQL(const std::string &table, 
     const std::string &full_path) {
  
-    return "LOAD DATA INFILE '" + full_path + "' INTO TABLE " + table + ";";
+    return "LOAD DATA INFILE '" + full_path + "' INTO TABLE " + table 
+        + " CHARACTER SET utf8;";
 }
 
 /*
@@ -321,7 +322,8 @@ std::string ConnectionMySQL::getImportTableSQL(const std::string &table,
 std::string ConnectionMySQL::getExportTableSQL(const std::string &table, 
     const std::string &full_path) {
  
-    return "SELECT * INTO OUTFILE '" + full_path + "' FROM " + table + ";";
+    return "SELECT * INTO OUTFILE '" + full_path 
+        + "' CHARACTER SET utf8 FROM " + table + ";";
 }
 
 /*
