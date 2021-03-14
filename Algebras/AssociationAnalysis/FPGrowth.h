@@ -50,11 +50,15 @@ public:
     insert(this->fpTree().root(), 1, itemset.cbegin(), itemset.cend());
   }
 
+  // Inserts the given itemset with the given count into the FP-Tree.
+  void insert(const std::vector<int> &itemset, int count) {
+    insert(this->fpTree().root(), count, itemset.cbegin(), itemset.cend());
+  }
+
   // Mines frequent itemsets with the given minSupport. The frequent itemsets
   // are appended to the collect vector.
   void mine(std::vector<std::pair<std::vector<int>, double>> &collect) {
-    this->mine(collect, this->fpTree().transactionCount,
-               this->fpTree().minSupport, {});
+    this->mine(collect, {});
   }
 
 private:
@@ -173,8 +177,9 @@ private:
   // Mines frequent itemsets with the given minSupport. The frequent itemsets
   // are appended to the collect vector.
   void mine(std::vector<std::pair<std::vector<int>, double>> &collect,
-            int transactionCount, int minSupport,
             const std::vector<int> &suffix) {
+    int transactionCount = this->fpTree().transactionCount;
+    int minSupport = this->fpTree().minSupport;
     if (this->containsSinglePath()) {
       // The FP-Tree is a single path. To obtain the frequent itemsets we have
       // to generate all itemsets that result from concatenating all
@@ -211,7 +216,7 @@ private:
         }
         itemset.insert(itemset.begin(), suffix.cbegin(), suffix.cend());
 
-        if (minCount >= minSupport) {
+        if (minCount >= this->fpTree().minSupport) {
           // We found a frequent itemset -> collect it.
           double support = (double)minSupport / (double)transactionCount;
           collect.emplace_back(itemset, support);
@@ -248,13 +253,9 @@ private:
           FPTree fpTreeConditioned(transactionCount, minSupport);
           for (auto &[count, itemset] :
                this->computeConditionalBase(headerItem, minSupport)) {
-            // TODO: implement faster insert here
-            for (int i = 0; i < count; i += 1) {
-              fpTreeConditioned.insert(itemset);
-            }
+            fpTreeConditioned.insert(itemset, count);
           }
-          fpTreeConditioned.mine(collect, transactionCount, minSupport,
-                                 itemset);
+          fpTreeConditioned.mine(collect, itemset);
         }
       }
     }
