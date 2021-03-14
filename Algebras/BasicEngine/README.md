@@ -73,7 +73,164 @@ database=# select * from users;
 
 ## MySQL specific setup
 
-MySQL restricts file imports and exports to one specific directory. However, the BasicEngine requirest hat each user can import/export tables from the home directory of the user. 
+To utilize multiple disks in one system, `mysqld_multi` can be used to start multiple MySQL-Servers with different data directories. Add the following lines to your `/etc/mysql/mysql.cnf`:
+
+
+```
+[mysqld_multi]
+mysqld        = /usr/bin/mysqld_safe
+mysqladmin    = /usr/bin/mysqladmin
+log           = /var/log/mysql/mysqld_multi.log
+user          = mysql
+pass          = secret
+
+[mysqld1]
+user                    = mysql
+pid-file                = /var/run/mysqld/mysqld1.pid
+socket                  = /var/run/mysqld/mysqld1.sock
+basedir                 = /usr
+datadir                 = /home/user/mysql/worker1
+tmpdir                  = /tmp
+lc-messages-dir         = /usr/share/mysql
+bind-address            = 127.0.0.1
+query_cache_size        = 16M
+log_error               = /var/log/mysql/mysqld1_error.log
+expire_logs_days        = 10
+character-set-server    = utf8mb4
+collation-server        = utf8mb4_general_ci
+secure_file_priv        = ""
+port                    = 20101
+
+[mysqld2]
+user                    = mysql
+pid-file                = /var/run/mysqld/mysqld2.pid
+socket                  = /var/run/mysqld/mysqld2.sock
+basedir                 = /usr
+datadir                 = /home/user/mysql/worker2
+tmpdir                  = /tmp
+lc-messages-dir         = /usr/share/mysql
+bind-address            = 127.0.0.1
+query_cache_size        = 16M
+log_error               = /var/log/mysql/mysqld2_error.log
+expire_logs_days        = 10
+character-set-server    = utf8mb4
+collation-server        = utf8mb4_general_ci
+secure_file_priv        = ""
+port                    = 20102
+
+[mysqld3]
+user                    = mysql
+pid-file                = /var/run/mysqld/mysqld3.pid
+socket                  = /var/run/mysqld/mysqld3.sock
+basedir                 = /usr
+datadir                 = /diskb/user/mysql/worker3
+tmpdir                  = /tmp
+lc-messages-dir         = /usr/share/mysql
+bind-address            = 127.0.0.1
+query_cache_size        = 16M
+log_error               = /var/log/mysql/mysqld3_error.log
+expire_logs_days        = 10
+character-set-server    = utf8mb4
+collation-server        = utf8mb4_general_ci
+secure_file_priv        = ""
+port                    = 20103
+
+[mysqld4]
+user                    = mysql
+pid-file                = /var/run/mysqld/mysqld4.pid
+socket                  = /var/run/mysqld/mysqld4.sock
+basedir                 = /usr
+datadir                 = /diskc/user/mysql/worker4
+tmpdir                  = /tmp
+lc-messages-dir         = /usr/share/mysql
+bind-address            = 127.0.0.1
+query_cache_size        = 16M
+log_error               = /var/log/mysql/mysqld4_error.log
+expire_logs_days        = 10
+character-set-server    = utf8mb4
+collation-server        = utf8mb4_general_ci
+secure_file_priv        = ""
+port                    = 20104
+
+[mysqld5]
+user                    = mysql
+pid-file                = /var/run/mysqld/mysqld5.pid
+socket                  = /var/run/mysqld/mysqld5.sock
+basedir                 = /usr
+datadir                 = /diskd/user/mysql/worker5
+tmpdir                  = /tmp
+lc-messages-dir         = /usr/share/mysql
+bind-address            = 127.0.0.1
+query_cache_size        = 16M
+log_error               = /var/log/mysql/mysqld5_error.log
+expire_logs_days        = 10
+character-set-server    = utf8mb4
+collation-server        = utf8mb4_general_ci
+secure_file_priv        = ""
+port                    = 20105
+```
+
+You can list all your MySQL-Multi installations by calling ` mysqld_multi report`. 
+
+If you are using AppArmour, add the following lines to your MySQL-AppArmour configuration `/etc/apparmor.d/usr.sbin.mysqld`:
+
+```
+  /var/run/mysqld/ r,
+  /var/run/mysqld/** rwk,
+  /run/mysqld/ r,
+  /run/mysqld/** rwk,
+```
+
+and calling `apparmor_parser -r /etc/apparmor.d/usr.sbin.mysqld`.
+
+Now the data directories can be created and initialized:
+
+```
+mkdir -p /home/user/mysql/worker1
+mkdir -p /home/user/mysql/worker2
+mkdir -p /diskb/user/mysql/worker3
+mkdir -p /diskc/user/mysql/worker4
+mkdir -p /diskd/user/mysql/worker5
+
+chown mysql.mysql /home/user/mysql/worker1
+chown mysql.mysql /home/user/mysql/worker2
+chown mysql.mysql /diskb/user/mysql/worker3
+chown mysql.mysql /diskc/user/mysql/worker4
+chown mysql.mysql /diskd/user/mysql/worker5
+
+mysqld --initialize-insecure --user=mysql --datadir=/home/user/mysql/worker1
+mysqld --initialize-insecure --user=mysql --datadir=/home/user/mysql/worker2
+mysqld --initialize-insecure --user=mysql --datadir=/diskb/user/mysql/worker3
+mysqld --initialize-insecure --user=mysql --datadir=/diskc/user/mysql/worker4
+mysqld --initialize-insecure --user=mysql --datadir=/diskd/user/mysql/worker5
+```
+
+The MySQL installations can now be started by executing `mysqld_multi start`. The MySQL installations are now running. 
+
+
+```bash
+# Setup the user for mysql shutdown (see mysqld_multi setting above)
+for i in 20101 20102 20103 20104 20105; do mysql -u root -h 127.0.0.1 -P $i -e "GRANT SHUTDOWN ON *.* TO 'mysql'@'localhost' IDENTIFIED BY 'secret';"; done
+
+# Setup a user for the basic engine
+for i in 20101 20102 20103 20104 20105; do mysql -u root -h 127.0.0.1 -P $i -e "CREATE USER 'user'@'localhost' IDENTIFIED BY '123geheim456';"; done
+
+# Grant the file permission to the user
+for i in 20101 20102 20103 20104 20105; do mysql -u root -h 127.0.0.1 -P $i -e "GRANT FILE ON *.* TO 'user'@'localhost';"; done
+
+# Create the workerdb for the basic engine
+for i in 20101 20102 20103 20104 20105; do mysql -u root -h 127.0.0.1 -P $i -e "CREATE DATABASE workerdb;"; done
+
+# Grant the permissions for the database
+for i in 20101 20102 20103 20104 20105; do mysql -u root -h 127.0.0.1 -P $i -e "GRANT ALL ON workerdb.* TO 'user'@'localhost';"; done
+
+# Set a root password
+for i in 20101 20102 20103 20104 20105; do mysql -u root -h 127.0.0.1 -P $i -e "ALTER USER 'root'@'localhost' IDENTIFIED BY 'secret';"; done
+```
+
+### MySQL settings
+
+MySQL restricts file imports and exports to one specific directory. However, the BasicEngine requires that each user can import/export tables from the user's home directory. 
 
 ```sql
 select * INTO outfile "/tmp/table" from users;
@@ -89,7 +246,7 @@ mysql> SHOW VARIABLES LIKE "secure_file_priv";
 +------------------+-----------------------+
 ```
 
-To solve the problem the setting `secure_file_priv` has so be disabled.
+To solve the problem, the setting `secure_file_priv` has to be disabled.
 
 ```bash
 echo 'secure_file_priv=""' >>  /etc/mysql/mysql.conf.d/mysqld.cnf
@@ -103,7 +260,7 @@ In addition, AppArmor can prevent MySQL from reading/writing files into the home
   @{HOME}/filetransfer/ r,
   @{HOME}/filetransfer/** rwk,
 
-# Additional SECONDO database directories should be also covered
+# Additional SECONDO database directories should also be covered
 #
 #  /diskb/ r,
 #  /diskb/** rwk,
@@ -116,10 +273,10 @@ After the configuration is changed, the changed AppArmour profile needs to be ap
 ```sql
 
 CREATE TABLE users (
-  id              int AUTO_INCREMENT,
-  firstname           VARCHAR(100) NOT NULL,
+  id        int AUTO_INCREMENT,
+  firstname VARCHAR(100) NOT NULL,
   lastname  VARCHAR(100) NULL,
-  age INTEGER,
+  age       INTEGER,
   PRIMARY KEY (id)
 );
 
