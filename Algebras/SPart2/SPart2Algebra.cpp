@@ -76,7 +76,7 @@ TypeConstructor irgrid2d(
   // object creation and deletion
   IrregularGrid2D::CreateIrGrid2D, IrregularGrid2D::DeleteIrGrid2D,
   // object open, save
-  0, 0,
+  IrregularGrid2D::OpenIrGrid2D, IrregularGrid2D::SaveIrGrid2D,
   // object close and clone
   IrregularGrid2D::CloseIrGrid2D, IrregularGrid2D::CloneIrGrid2D,
   // cast function
@@ -103,7 +103,7 @@ TypeConstructor irgrid3d(
   // object creation and deletion
   IrregularGrid3D::CreateIrGrid3D, IrregularGrid3D::DeleteIrGrid3D,
   // object open, save
-  0, 0,
+  IrregularGrid3D::OpenIrGrid3D, IrregularGrid3D::SaveIrGrid3D,
   // object close and clone
   IrregularGrid3D::CloseIrGrid3D, IrregularGrid3D::CloneIrGrid3D,
   // cast function
@@ -130,7 +130,7 @@ TypeConstructor kdtree2d(
   // object creation and deletion
   KDTree2D::Create2DTree, KDTree2D::Delete2DTree,
   // object open, save
-  0, 0,
+  KDTree2D::Open2DTree, KDTree2D::Save2DTree,
   // object close and clone
   KDTree2D::Close2DTree, KDTree2D::Clone2DTree,
   // cast function
@@ -157,7 +157,7 @@ TypeConstructor kdtree3d(
   // object creation and deletion
   KDTree3D::Create3DTree, KDTree3D::Delete3DTree,
   // object open, save
-  0, 0,
+  KDTree3D::Open3DTree, KDTree3D::Save3DTree,
   // object close and clone
   KDTree3D::Close3DTree, KDTree3D::Clone3DTree,
   // cast function

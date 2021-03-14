@@ -975,6 +975,10 @@ KDTree2D::build2DTree() {
     }
 
   }
+
+  const double min[] { boundingBox->getMinX(), boundingBox->getMinY() };
+  const double max[] { boundingBox->getMaxX(), boundingBox->getMaxY() };
+  box.Set(true, min, max);
 }
 
 
@@ -1066,7 +1070,6 @@ KDTree2D::Out2DTree( ListExpr typeInfo, Word value ) {
       nl->RealAtom(b_box->getMinY()),
       nl->RealAtom(b_box->getMaxY()));
 
-    //ListExpr rowLstExpr = nl->Empty();
     ListExpr cellLstExpr = nl->Empty();
 
     int mode = kdtree2d->getMode();
@@ -1102,18 +1105,6 @@ KDTree2D::Out2DTree( ListExpr typeInfo, Word value ) {
             }
           }
         }
-
-        /*if(nodelist.size() > 0) {
-          ListExpr lastNodeLstExpr;
-          KDNodeList* curr_node = nodelist.back(); // root
-          while(!curr_node->isLeaf())
-          {
-            lastNodeLstExpr = nl->Append(lastNodeLstExpr,
-              nl->OneElemList
-            )
-          }
-          
-        }*/
     
     ListExpr kdtree2dLstExpr = nl->TwoElemList(bboxLstExpr, cellLstExpr);
     return kdtree2dLstExpr;
@@ -1217,6 +1208,7 @@ KDTree2D::In2DTree( const ListExpr typeInfo, const ListExpr instance,
     KDTree2D* kdtree = new KDTree2D(*bbox);
     kdtree->setPointsVector(points_vec);
     kdtree->setCellVector(cell_vec);
+    kdtree->box = *bbox;
 
     w.addr = kdtree;
     return w;
@@ -1227,6 +1219,121 @@ KDTree2D::In2DTree( const ListExpr typeInfo, const ListExpr instance,
 
     return w;
   }
+}
+
+bool
+KDTree2D::Open2DTree(SmiRecord& valueRecord,
+ size_t& offset, const ListExpr typeInfo, Word& value) 
+{
+  size_t size = sizeof(int);
+  size_t sizeD = sizeof(double);
+  size_t vsize = 0;
+  std::vector<Cell2DTree> cell_vec {};
+  double xmin=0.0, xmax=0.0, ymin=0.0, ymax=0.0;
+  double vxf=0.0, vxt=0.0, vyf=0.0, vyt=0.0;
+  int cId = 0;
+  bool ok = true;
+
+  ok = ok && valueRecord.Read( &xmin, sizeD, offset );
+  offset += sizeD;
+  ok = ok && valueRecord.Read( &xmax, sizeD, offset );
+  offset += sizeD;
+  ok = ok && valueRecord.Read( &ymin, sizeD, offset );
+  offset += sizeD;
+  ok = ok && valueRecord.Read( &ymax, sizeD, offset );
+  offset += sizeD;
+
+  double min[2], max[2];
+  min[0] = xmin;
+  min[1] = ymin;
+  max[0] = xmax;
+  max[1] = ymax;
+  Rectangle<2>* bbox = new Rectangle<2>(true, min, max);
+
+  // size of vector
+  ok = ok && valueRecord.Read( &vsize, sizeof(size_t), offset );
+  offset += sizeof(size_t);
+
+  for(size_t i = 0; i < vsize; i++)
+  {
+    Cell2DTree c;
+    ok = ok && valueRecord.Read( &vxf, sizeD, offset );
+    offset += sizeD;
+    ok = ok && valueRecord.Read( &vxt, sizeD, offset );
+    offset += sizeD;
+    ok = ok && valueRecord.Read( &vyf, sizeD, offset );
+    offset += sizeD;
+    ok = ok && valueRecord.Read( &vyt, sizeD, offset );
+    offset += sizeD;
+    ok = ok && valueRecord.Read( &cId, size, offset );
+    offset += size;
+    c.setValFromX(vxf);
+    c.setValToX(vxt);
+    c.setValFromY(vyf);
+    c.setValToY(vyt);
+    c.setCellId(cId);
+
+    cell_vec.push_back(c);
+  }
+
+  KDTree2D* kdtree = new KDTree2D(*bbox);
+  kdtree->setCellVector(cell_vec);
+  kdtree->mode = 3;
+
+  value.addr = kdtree;
+  return ok;
+}
+
+bool
+KDTree2D::Save2DTree (SmiRecord& valueRecord, size_t& offset,
+          const ListExpr typeInfo, Word& value)
+{
+  KDTree2D* kdtree2d = static_cast<KDTree2D*>( value.addr );
+  size_t size = sizeof(int);
+  size_t sizeD = sizeof(double);
+  size_t lsize = 0;
+  bool ok = true;
+
+   double minx = kdtree2d->box.getMinX();
+   double maxx = kdtree2d->box.getMaxX();
+   double miny = kdtree2d->box.getMinY();
+   double maxy = kdtree2d->box.getMaxY();
+
+   ok = ok && valueRecord.Write(&minx, sizeD, offset );
+   offset += sizeD;
+   ok = ok && valueRecord.Write(&maxx, sizeD, offset );
+   offset += sizeD;
+   ok = ok && valueRecord.Write(&miny, sizeD, offset );
+   offset += sizeD;
+   ok = ok && valueRecord.Write(&maxy, sizeD, offset );
+   offset += sizeD;
+
+  std::vector<Cell2DTree>* cells = &kdtree2d->getCellVector();
+  lsize = cells->size();
+  ok = ok && valueRecord.Write(&lsize, sizeof(size_t), offset );
+  offset += sizeof(size_t);
+  for(size_t i = 0; i < lsize; i++)
+  {
+    Cell2DTree* curr_cell = &cells->at(i);
+    double vfx = curr_cell->getValFromX();
+    double vtx = curr_cell->getValToX();
+    double vfy = curr_cell->getValFromY();
+    double vty = curr_cell->getValToY();
+    int cellId = curr_cell->getCellId();
+    ok = ok && valueRecord.Write(&vfx, sizeD, offset );
+    offset += sizeD;
+    ok = ok && valueRecord.Write(&vtx, sizeD, offset );
+    offset += sizeD;
+    ok = ok && valueRecord.Write(&vfy, sizeD, offset );
+    offset += sizeD;
+    ok = ok && valueRecord.Write(&vty, sizeD, offset );
+    offset += sizeD;
+    ok = ok && valueRecord.Write(&cellId, size, offset );
+    offset += size;
+    
+  }
+
+  return ok;
 }
 
 // This function checks whether the type constructor is applied correctly.
@@ -1683,6 +1790,7 @@ KDTree2D::Kdtree2dValueMapCellnos( Word* args, Word& result, int message,
     result = qp->ResultStorage(s);
     collection::IntSet* res = (collection::IntSet*) result.addr;
 
+    
     Rectangle<2> * b_box = input_kdtree2d_ptr->getBoundingBox();
     int mode_ = input_kdtree2d_ptr->getMode();
     

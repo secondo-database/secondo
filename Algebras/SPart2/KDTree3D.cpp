@@ -890,135 +890,6 @@ Tree3DMedStructure* node)
     preorderMedGrid3D(cell_right, node->getRight());
   }
 
- /* if (pointsPreOrdered.empty()) {
-    return;
-  }
-
-  boundBox->left = new Cell3DT();
-  Cell3DT* cell_left = boundBox->left;
-  boundBox->right = new Cell3DT();
-  Cell3DT* cell_right = boundBox->right;
-
-  std::vector<Tree3DMedStructure*> pointsPreOrdered_left; // < current
-  std::vector<Tree3DMedStructure*> pointsPreOrdered_right; // > current
-
-  if(pointsPreOrdered.front()->axis == 0) {
-
-  // divide list of points bei elements smaller and bigger than first element
-  for(int i = 1; i < (int)pointsPreOrdered.size(); i++ )
-  {
-    if(pointsPreOrdered.at(i)->getVal() < pointsPreOrdered.front()->getVal()) {
-      pointsPreOrdered_left.push_back(pointsPreOrdered.at(i));
-    } else if (pointsPreOrdered.at(i)->getVal() 
-        >= pointsPreOrdered.front()->getVal()) {
-      pointsPreOrdered_right.push_back(pointsPreOrdered.at(i));
-    }
-  }
-  
-  cell_left->value.x1 = boundBox->value.x1;
-  cell_left->value.x2 = pointsPreOrdered.front()->getVal();
-  cell_left->value.y1 = boundBox->value.y1;
-  cell_left->value.y2 = boundBox->value.y2;
-  cell_left->value.z1 = boundBox->value.z1;
-  cell_left->value.z2 = boundBox->value.z2;
-  cell_left->final = true;
-
-  cell_right->value.x1 = pointsPreOrdered.front()->getVal();
-  cell_right->value.x2 = boundBox->value.x2;
-  cell_right->value.y1 = boundBox->value.y1;
-  cell_right->value.y2 = boundBox->value.y2;
-  cell_right->value.z1 = boundBox->value.z1;
-  cell_right->value.z2 = boundBox->value.z2;
-  cell_right->final = true;
-
-  boundBox->final = false;
-  cellsPreorder.push_back(boundBox);
-  cellsPreorder.push_back(cell_right);
-  cellsPreorder.push_back(cell_left);
-
-  } else if (pointsPreOrdered.front()->axis == 1) {
-
-     // divide list of points in elements smaller and bigger than first element
-    for(int i = 1; i < (int)pointsPreOrdered.size(); i++ )
-    {
-      if(pointsPreOrdered.at(i)->getVal() 
-        < pointsPreOrdered.front()->getVal()) {
-        pointsPreOrdered_left.push_back(pointsPreOrdered.at(i));
-      } else if (pointsPreOrdered.at(i)->getVal() 
-        >= pointsPreOrdered.front()->getVal()) {
-        pointsPreOrdered_right.push_back(pointsPreOrdered.at(i));
-      }
-    }
-
-    cell_left->value.y1 = boundBox->value.y1;
-    cell_left->value.y2 = pointsPreOrdered.front()->getVal();
-    cell_left->value.x1 = boundBox->value.x1;
-    cell_left->value.x2 = boundBox->value.x2;
-    cell_left->value.z1 = boundBox->value.z1;
-    cell_left->value.z2 = boundBox->value.z2;
-    cell_left->final = true;
-
-
-    cell_right->value.y1 = pointsPreOrdered.front()->getVal();
-    cell_right->value.y2 = boundBox->value.y2;
-    cell_right->value.x1 = boundBox->value.x1;
-    cell_right->value.x2 = boundBox->value.x2;
-    cell_right->value.z1 = boundBox->value.z1;
-    cell_right->value.z2 = boundBox->value.z2;
-
-    cell_right->final = true;
-
-    boundBox->final = false;
-
-    cellsPreorder.push_back(boundBox);
-    cellsPreorder.push_back(cell_right);
-    cellsPreorder.push_back(cell_left);
-
-  } else if (pointsPreOrdered.front()->axis == 2) {
-
-     // divide list of points in elements smaller and bigger than first element
-    for(int i = 1; i < (int)pointsPreOrdered.size(); i++ )
-    {
-      if(pointsPreOrdered.at(i)->getVal() 
-        < pointsPreOrdered.front()->getVal()) {
-        pointsPreOrdered_left.push_back(pointsPreOrdered.at(i));
-      } else if (pointsPreOrdered.at(i)->getVal() 
-        >= pointsPreOrdered.front()->getVal()) {
-        pointsPreOrdered_right.push_back(pointsPreOrdered.at(i));
-      }
-    }
-
-    cell_left->value.y1 = boundBox->value.y1;
-    cell_left->value.y2 = boundBox->value.y2;
-    cell_left->value.x1 = boundBox->value.x1;
-    cell_left->value.x2 = boundBox->value.x2;
-    cell_left->value.z2 = pointsPreOrdered.front()->getVal();
-    cell_left->value.z1 = boundBox->value.z1;
-    cell_left->final = true;
-
-
-    cell_right->value.y1 = boundBox->value.y1;
-    cell_right->value.y2 = boundBox->value.y2;
-    cell_right->value.x1 = boundBox->value.x1;
-    cell_right->value.x2 = boundBox->value.x2;
-    cell_right->value.z1 = pointsPreOrdered.front()->getVal();
-    cell_right->value.z2 = boundBox->value.z2;
-    cell_right->final = true;
-
-    boundBox->final = false;
-
-    cellsPreorder.push_back(boundBox);
-    cellsPreorder.push_back(cell_right);
-    cellsPreorder.push_back(cell_left);
-
-  }
-
-  pointsPreOrdered.erase(pointsPreOrdered.begin());
-
-  
-  preorderMedGrid3D(cell_left, pointsPreOrdered_left);
-  preorderMedGrid3D(cell_right, pointsPreOrdered_right);
-  */
 }
 
 
@@ -1120,130 +991,7 @@ KDTree3D::preorderGrid3D (Cell3DT* boundBox,
       preorderGrid3D(cell_right, node->getRight());
     }
 
-  /*if (pointsPreOrdered.empty()) {
-    return;
-  }
 
-  boundBox->left = new Cell3DT();
-  Cell3DT* cell_left = boundBox->left;
-  boundBox->right = new Cell3DT();
-  Cell3DT* cell_right = boundBox->right;
-
-  std::vector<Tree3DStructure*> pointsPreOrdered_left; // < current
-  std::vector<Tree3DStructure*> pointsPreOrdered_right; // > current
-
-  if(pointsPreOrdered.front()->axis == 0) {
-
-  // divide list of points bei elements smaller and bigger than first element
-  for(int i = 1; i < (int)pointsPreOrdered.size(); i++ )
-  {
-    if(pointsPreOrdered.at(i)->x < pointsPreOrdered.front()->x) {
-      pointsPreOrdered_left.push_back(pointsPreOrdered.at(i));
-    } else if (pointsPreOrdered.at(i)->x > pointsPreOrdered.front()->x) {
-      pointsPreOrdered_right.push_back(pointsPreOrdered.at(i));
-    }
-  }
-  
-  cell_left->value.x1 = boundBox->value.x1;
-  cell_left->value.x2 = pointsPreOrdered.front()->x;
-  cell_left->value.y1 = boundBox->value.y1;
-  cell_left->value.y2 = boundBox->value.y2;
-  cell_left->value.z1 = boundBox->value.z1;
-  cell_left->value.z2 = boundBox->value.z2;
-  cell_left->final = true;
-
-  cell_right->value.x1 = pointsPreOrdered.front()->x;
-  cell_right->value.x2 = boundBox->value.x2;
-  cell_right->value.y1 = boundBox->value.y1;
-  cell_right->value.y2 = boundBox->value.y2;
-  cell_right->value.z1 = boundBox->value.z1;
-  cell_right->value.z2 = boundBox->value.z2;
-  cell_right->final = true;
-
-  boundBox->final = false;
-  cellsPreorder.push_back(boundBox);
-  cellsPreorder.push_back(cell_right);
-  cellsPreorder.push_back(cell_left);
-
-  } else if (pointsPreOrdered.front()->axis == 1) {
-
-     // divide list of points in elements smaller and bigger than first element
-    for(int i = 1; i < (int)pointsPreOrdered.size(); i++ )
-    {
-      if(pointsPreOrdered.at(i)->y < pointsPreOrdered.front()->y) {
-        pointsPreOrdered_left.push_back(pointsPreOrdered.at(i));
-      } else if (pointsPreOrdered.at(i)->y > pointsPreOrdered.front()->y) {
-        pointsPreOrdered_right.push_back(pointsPreOrdered.at(i));
-      }
-    }
-
-    cell_left->value.y1 = boundBox->value.y1;
-    cell_left->value.y2 = pointsPreOrdered.front()->y;
-    cell_left->value.x1 = boundBox->value.x1;
-    cell_left->value.x2 = boundBox->value.x2;
-    cell_left->value.z1 = boundBox->value.z1;
-    cell_left->value.z2 = boundBox->value.z2;
-    cell_left->final = true;
-
-
-    cell_right->value.y1 = pointsPreOrdered.front()->y;
-    cell_right->value.y2 = boundBox->value.y2;
-    cell_right->value.x1 = boundBox->value.x1;
-    cell_right->value.x2 = boundBox->value.x2;
-    cell_right->value.z1 = boundBox->value.z1;
-    cell_right->value.z2 = boundBox->value.z2;
-
-    cell_right->final = true;
-
-    boundBox->final = false;
-
-    cellsPreorder.push_back(boundBox);
-    cellsPreorder.push_back(cell_right);
-    cellsPreorder.push_back(cell_left);
-
-  } else if (pointsPreOrdered.front()->axis == 2) {
-
-     // divide list of points in elements smaller and bigger than first element
-    for(int i = 1; i < (int)pointsPreOrdered.size(); i++ )
-    {
-      if(pointsPreOrdered.at(i)->z < pointsPreOrdered.front()->z) {
-        pointsPreOrdered_left.push_back(pointsPreOrdered.at(i));
-      } else if (pointsPreOrdered.at(i)->z > pointsPreOrdered.front()->z) {
-        pointsPreOrdered_right.push_back(pointsPreOrdered.at(i));
-      }
-    }
-
-    cell_left->value.y1 = boundBox->value.y1;
-    cell_left->value.y2 = boundBox->value.y2;
-    cell_left->value.x1 = boundBox->value.x1;
-    cell_left->value.x2 = boundBox->value.x2;
-    cell_left->value.z2 = pointsPreOrdered.front()->z;
-    cell_left->value.z1 = boundBox->value.z1;
-    cell_left->final = true;
-
-
-    cell_right->value.y1 = boundBox->value.y1;
-    cell_right->value.y2 = boundBox->value.y2;
-    cell_right->value.x1 = boundBox->value.x1;
-    cell_right->value.x2 = boundBox->value.x2;
-    cell_right->value.z1 = pointsPreOrdered.front()->z;
-    cell_right->value.z2 = boundBox->value.z2;
-    cell_right->final = true;
-
-    boundBox->final = false;
-
-    cellsPreorder.push_back(boundBox);
-    cellsPreorder.push_back(cell_right);
-    cellsPreorder.push_back(cell_left);
-
-  }
-
-  pointsPreOrdered.erase(pointsPreOrdered.begin());
-
-
-  preorderGrid3D(cell_left, pointsPreOrdered_left);
-  preorderGrid3D(cell_right, pointsPreOrdered_right);
-  */
 }
 
 /*
@@ -1441,6 +1189,12 @@ KDTree3D::build3DTree() {
       setCellId3D(cellVector.at(e), rootMed);
     }
   }
+
+  const double min[] { boundingBox->getMinX(),
+   boundingBox->getMinY(), boundingBox->getMinZ() };
+  const double max[] { boundingBox->getMaxX(),
+   boundingBox->getMaxY(), boundingBox->getMaxZ() };
+  box.Set(true, min, max);
 
 }
 
@@ -1689,7 +1443,6 @@ KDTree3D::In3DTree( const ListExpr typeInfo, const ListExpr instance,
                   Cell3DTree ce = cell_vec.back();
                   cell_vec.pop_back();
                   ce.setCellId(nl->IntValue(clLst1));
-                  //c_ptr->setCellId(nl->IntValue(clLst1));
                   cell_vec.push_back(ce);
                   cellIds.insert(std::make_pair(
                   ((int)nl->IntValue(clLst1)), &ce));
@@ -1711,6 +1464,7 @@ KDTree3D::In3DTree( const ListExpr typeInfo, const ListExpr instance,
     KDTree3D* kdtree = new KDTree3D(*bbox);
     kdtree->setPointsVector(points_vec);
     kdtree->setCellVector(cell_vec);
+    kdtree->box = *bbox;
 
     w.addr = kdtree;
     return w;
@@ -1721,6 +1475,145 @@ KDTree3D::In3DTree( const ListExpr typeInfo, const ListExpr instance,
 
     return w;
   }
+}
+
+bool
+KDTree3D::Open3DTree(SmiRecord& valueRecord,
+ size_t& offset, const ListExpr typeInfo, Word& value) 
+{
+  size_t size = sizeof(int);
+  size_t sizeD = sizeof(double);
+  size_t vsize = 0;
+  std::vector<Cell3DTree> cell_vec {};
+  double xmin=0.0, xmax=0.0, ymin=0.0, ymax=0.0, zmin=0.0, zmax=0.0;
+  double vxf=0.0, vxt=0.0, vyf=0.0, vyt=0.0, vzf=0.0, vzt=0.0;
+  int cId = 0;
+  bool ok = true;
+
+  ok = ok && valueRecord.Read( &xmin, sizeD, offset );
+  offset += sizeD;
+  ok = ok && valueRecord.Read( &xmax, sizeD, offset );
+  offset += sizeD;
+  ok = ok && valueRecord.Read( &ymin, sizeD, offset );
+  offset += sizeD;
+  ok = ok && valueRecord.Read( &ymax, sizeD, offset );
+  offset += sizeD;
+  ok = ok && valueRecord.Read( &zmin, sizeD, offset );
+  offset += sizeD;
+  ok = ok && valueRecord.Read( &zmax, sizeD, offset );
+  offset += sizeD;
+
+  double min[3], max[3];
+  min[0] = xmin;
+  min[1] = ymin;
+  min[2] = zmin;
+  max[0] = xmax;
+  max[1] = ymax;
+  max[2] = zmax;
+  Rectangle<3>* bbox = new Rectangle<3>(true, min, max);
+
+  // size of vector
+  ok = ok && valueRecord.Read( &vsize, sizeof(size_t), offset );
+  offset += sizeof(size_t);
+
+  for(size_t i = 0; i < vsize; i++)
+  {
+    Cell3DTree c;
+    ok = ok && valueRecord.Read( &vxf, sizeD, offset );
+    offset += sizeD;
+    ok = ok && valueRecord.Read( &vxt, sizeD, offset );
+    offset += sizeD;
+    ok = ok && valueRecord.Read( &vyf, sizeD, offset );
+    offset += sizeD;
+    ok = ok && valueRecord.Read( &vyt, sizeD, offset );
+    offset += sizeD;
+    ok = ok && valueRecord.Read( &vzf, sizeD, offset );
+    offset += sizeD;
+    ok = ok && valueRecord.Read( &vzt, sizeD, offset );
+    offset += sizeD;
+    ok = ok && valueRecord.Read( &cId, size, offset );
+    offset += size;
+    c.setValFromX(vxf);
+    c.setValToX(vxt);
+    c.setValFromY(vyf);
+    c.setValToY(vyt);
+    c.setValFromZ(vzf);
+    c.setValToZ(vzt);
+    c.setCellId(cId);
+
+    cell_vec.push_back(c);
+  }
+
+  KDTree3D* kdtree = new KDTree3D(*bbox);
+  kdtree->setCellVector(cell_vec);
+  kdtree->mode = 3;
+
+  value.addr = kdtree;
+  return ok;
+}
+
+bool
+KDTree3D::Save3DTree (SmiRecord& valueRecord, size_t& offset,
+          const ListExpr typeInfo, Word& value)
+{
+  KDTree3D* kdtree3d = static_cast<KDTree3D*>( value.addr );
+  size_t size = sizeof(int);
+  size_t sizeD = sizeof(double);
+  size_t lsize = 0;
+  bool ok = true;
+
+   double minx = kdtree3d->box.getMinX();
+   double maxx = kdtree3d->box.getMaxX();
+   double miny = kdtree3d->box.getMinY();
+   double maxy = kdtree3d->box.getMaxY();
+   double minz = kdtree3d->box.getMinZ();
+   double maxz = kdtree3d->box.getMaxZ();
+
+   ok = ok && valueRecord.Write(&minx, sizeD, offset );
+   offset += sizeD;
+   ok = ok && valueRecord.Write(&maxx, sizeD, offset );
+   offset += sizeD;
+   ok = ok && valueRecord.Write(&miny, sizeD, offset );
+   offset += sizeD;
+   ok = ok && valueRecord.Write(&maxy, sizeD, offset );
+   offset += sizeD;
+   ok = ok && valueRecord.Write(&minz, sizeD, offset );
+   offset += sizeD;
+   ok = ok && valueRecord.Write(&maxz, sizeD, offset );
+   offset += sizeD;
+
+  std::vector<Cell3DTree>* cells = &kdtree3d->getCellVector();
+  lsize = cells->size();
+  ok = ok && valueRecord.Write(&lsize, sizeof(size_t), offset );
+  offset += sizeof(size_t);
+  for(size_t i = 0; i < lsize; i++)
+  {
+    Cell3DTree* curr_cell = &cells->at(i);
+    double vfx = curr_cell->getValFromX();
+    double vtx = curr_cell->getValToX();
+    double vfy = curr_cell->getValFromY();
+    double vty = curr_cell->getValToY();
+    double vfz = curr_cell->getValFromZ();
+    double vtz = curr_cell->getValToZ();
+    int cellId = curr_cell->getCellId();
+    ok = ok && valueRecord.Write(&vfx, sizeD, offset );
+    offset += sizeD;
+    ok = ok && valueRecord.Write(&vtx, sizeD, offset );
+    offset += sizeD;
+    ok = ok && valueRecord.Write(&vfy, sizeD, offset );
+    offset += sizeD;
+    ok = ok && valueRecord.Write(&vty, sizeD, offset );
+    offset += sizeD;
+    ok = ok && valueRecord.Write(&vfz, sizeD, offset );
+    offset += sizeD;
+    ok = ok && valueRecord.Write(&vtz, sizeD, offset );
+    offset += sizeD;
+    ok = ok && valueRecord.Write(&cellId, size, offset );
+    offset += size;
+    
+  }
+
+  return ok;
 }
 
 // This function checks whether the type constructor is applied correctly.

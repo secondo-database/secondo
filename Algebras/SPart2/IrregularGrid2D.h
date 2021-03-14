@@ -178,6 +178,12 @@ class IrregularGrid2D {
 
     static Word CloneIrGrid2D( const ListExpr typeInfo, const Word& w);
 
+    static bool OpenIrGrid2D( SmiRecord& valueRecord, size_t& offset, 
+                       const ListExpr typeInfo, Word& value);
+
+    static bool SaveIrGrid2D(SmiRecord& valueRecord, size_t& offset,
+                      const ListExpr typeInfo, Word& value);
+
     static int SizeOfIrGrid2D();
 
     static bool KindCheckIrGrid2D( ListExpr type, ListExpr& errorInfo);
@@ -197,6 +203,7 @@ class IrregularGrid2D {
   std::vector<RPoint> points{};
   // irregular grid bounding box
   Rectangle<2> * boundingBox;
+  Rectangle<2>  box;
   // number of rows and cells per row
   int rowCount, cellCount;
   // column (y-axis) vector with access to the section vectors (x-axes)

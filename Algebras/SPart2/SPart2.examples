@@ -22,7 +22,7 @@ Result   : (intset (1 3))
 Operator : scc_ir2d
 Number   : 1
 Signature: irgrid2d x rect2 x rect2 x int -> bool
-Example  : query scc_ir2d(([const rect value (0.1 0.4 0.1 0.4)] feed [const rect value (0.15 0.45 0.15 0.45)] feed concat feed [const rect value (0.5 0.9 0.5 0.9)] feed concat feed [const rect value (1.15 1.6 0.3 0.35)] feed concat feed [const rect value (0.1 0.3 1.2 1.5)] feed concat feed [const rect value (0.15 0.35 1.25 1.7)] feed concat create_irgrid2d [rectangle2(0.0, 2.0, 0.0, 2.0),2,2]), rectangle2(0.1, 0.15, 0.3 1.6), rectangle2(0.0, 1.0, 0.0, 0.5), 1)
+Example  : query scc_ir2d(([const rect value (0.1 0.4 0.1 0.4)] feed [const rect value (0.15 0.45 0.15 0.45)] feed concat feed [const rect value (0.5 0.9 0.5 0.9)] feed concat feed [const rect value (1.15 1.6 0.3 0.35)] feed concat feed [const rect value (0.1 0.3 1.2 1.5)] feed concat feed [const rect value (0.15 0.35 1.25 1.7)] feed concat create_irgrid2d [rectangle2(0.0, 2.0, 0.0, 2.0),2,2]), rectangle2(0.1, 0.15, 0.3, 1.6), rectangle2(0.0, 1.0, 0.0, 0.5), 1)
 Result   : TRUE
 
 Operator : getcell_ir2d

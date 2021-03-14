@@ -152,7 +152,7 @@ IrregularGrid3D::IrregularGrid3D() {
   boundingBox = nullptr;
   rowCount = 0;
   cellCount = 0;
-  layerCount = 0; //
+  layerCount = 0;
 }
 
 IrregularGrid3D::IrregularGrid3D(const IrregularGrid3D& g) {
@@ -344,7 +344,6 @@ IrregularGrid3D::buildGrid() {
   std::vector<CPoint> tmp_row_points_scell {};
 
 
-
   int pointIdx = 0;
   int point_counter = 0;
   for(int colIdx = 0; colIdx < rowCount; colIdx++) { //proof rows
@@ -503,9 +502,9 @@ IrregularGrid3D::buildGrid() {
   }
 
   // clear aux. vectors
-  if (points.size() > 0) {
+  /*if (points.size() > 0) {
     points.clear();
-  }
+  }*/
   
   if (tmp_row_points.size() > 0) {
     tmp_row_points.clear();
@@ -589,6 +588,12 @@ IrregularGrid3D::buildGrid() {
       }  
     }
   }
+
+  const double min[] { boundingBox->getMinX(),
+   boundingBox->getMinY(), boundingBox->getMinZ() };
+  const double max[] { boundingBox->getMaxX(),
+    boundingBox->getMaxY(), boundingBox->getMaxZ() };
+  box.Set(true, min, max);
 }
 
 bool
@@ -646,6 +651,8 @@ IrregularGrid3D::processInput(Stream<Rectangle<3>> rStream) {
       continue;
     }
     points.push_back(getCuboidCentre(next));
+    // free memory
+    delete next;
     next = rStream.request();
   }
   rStream.close();
@@ -750,6 +757,7 @@ ListExpr
 IrregularGrid3D::OutIrGrid3D( ListExpr typeInfo, Word value ) {
   IrregularGrid3D* irgrid3d = static_cast<IrregularGrid3D*>( value.addr );
   if (irgrid3d != nullptr) {
+
     Rectangle<3> * b_box = irgrid3d->getBoundingBox();
     ListExpr bboxLstExpr = nl->SixElemList(
       nl->RealAtom(b_box->getMinX()),
@@ -760,7 +768,6 @@ IrregularGrid3D::OutIrGrid3D( ListExpr typeInfo, Word value ) {
       nl->RealAtom(b_box->getMaxZ()));
 
     std::vector<VCell3D>* col = &irgrid3d->getColumnVector();
-
     ListExpr rowLstExpr = nl->Empty();
     ListExpr lastRowLstExpr;
     if (col->size() > 0) {
@@ -831,13 +838,15 @@ IrregularGrid3D::OutIrGrid3D( ListExpr typeInfo, Word value ) {
             }
           }
           lastRowLstExpr = nl->Append(lastRowLstExpr, cellLstExpr);
-        }
-      }
-    }
+        } 
+      } 
+    } 
     ListExpr irgrid3dLstExpr = nl->TwoElemList(bboxLstExpr, rowLstExpr);
     return irgrid3dLstExpr;
   } else {
-    return (nl->SymbolAtom(Symbol::UNDEFINED()));
+         return nl->TheEmptyList();
+
+    //return (nl->SymbolAtom(Symbol::UNDEFINED()));
   }
 }
 
@@ -1058,7 +1067,7 @@ IrregularGrid3D::InIrGrid3D( const ListExpr typeInfo, const ListExpr instance,
        row_cnt, cell_cnt, layer_cnt);
     irgrid->setColumnVector(column_vec);
     irgrid->setCellVector(cell_vec);
-
+    irgrid->box = *bbox;
     w.addr = irgrid;
     return w;
   } catch (int e) {
@@ -1113,6 +1122,275 @@ int
 IrregularGrid3D::SizeOfIrGrid3D()
 {
   return sizeof(IrregularGrid3D);
+}
+
+bool IrregularGrid3D::OpenIrGrid3D( SmiRecord& valueRecord, size_t& offset, 
+           const ListExpr typeInfo, Word& value){
+
+size_t size = sizeof(int);
+size_t sizeD = sizeof(double);
+int xr = 0, yb = 0, yt = 0;
+size_t cols = 0, rows = 0, cellsize = 0;
+std::vector<VCell3D> column_vec {};
+std::vector<HCell3D> cell_vec {};
+VCell3D vc;
+HCell3D hc;
+VCell3D* vc_ptr;
+HCell3D* hc_ptr;
+std::map<int, int> cellRef;
+std::map<int, int> NeighbRef;
+std::map<int, SCell> cellIds;
+
+double vf = 0.0, vt = 0.0; //column values
+double rvf = 0.0, rvt = 0.0; // row values
+double cvf = 0.0, cvt = 0.0; // cell values
+int rid = 0, cellid = 0, cellu = 0, celln = 0;
+double xmin=0.0, xmax=0.0, ymin=0.0, ymax=0.0, zmin=0.0, zmax=0.0;
+bool ok = true;
+
+ok = ok && valueRecord.Read( &xmin, sizeD, offset );
+offset += sizeD;
+ok = ok && valueRecord.Read( &xmax, sizeD, offset );
+offset += sizeD;
+ok = ok && valueRecord.Read( &ymin, sizeD, offset );
+offset += sizeD;
+ok = ok && valueRecord.Read( &ymax, sizeD, offset );
+offset += sizeD;
+ok = ok && valueRecord.Read( &zmin, sizeD, offset );
+offset += sizeD;
+ok = ok && valueRecord.Read( &zmax, sizeD, offset );
+offset += sizeD;
+
+ok = ok && valueRecord.Read( &xr, size, offset );
+offset += size;
+ok = ok && valueRecord.Read( &yb, size, offset );
+offset += size;
+ok = ok && valueRecord.Read( &yt, size, offset );
+offset += size;
+
+// colsize
+ok = ok && valueRecord.Read( &cols, sizeof(size_t), offset );
+offset += sizeof(size_t);
+for(size_t i = 0; i < cols; i++)
+{
+  vc = VCell3D();
+  ok = ok && valueRecord.Read( &vf, sizeD, offset );
+  offset += sizeD;
+  ok = ok && valueRecord.Read( &vt, sizeD, offset );
+  offset += sizeD;
+  vc.setValFrom(vf);
+  vc.setValTo(vt);
+  column_vec.push_back(vc);
+  vc_ptr = &(column_vec.back());
+
+  //rowsize
+  ok = ok && valueRecord.Read( &rows, sizeof(size_t), offset );
+  offset += sizeof(size_t);
+  for(size_t j = 0; j < rows; j++)
+  {
+    hc = HCell3D();
+    ok = ok && valueRecord.Read( &rvf, sizeD, offset );
+    offset += sizeD;
+    ok = ok && valueRecord.Read( &rvt, sizeD, offset );
+    offset += sizeD;
+    ok = ok && valueRecord.Read( &rid, size, offset );
+    offset += size;
+    hc.setValFrom(rvf);
+    hc.setValTo(rvt);
+    hc.setCellId(rid);
+    vc_ptr->getRow().push_back(hc);
+    cell_vec.push_back(hc);
+    hc_ptr = &(vc_ptr->getRow().back());
+
+    ok = ok && valueRecord.Read( &cellsize, sizeof(size_t), offset );
+    offset += sizeof(size_t);
+    for(size_t k = 0; k < cellsize; k++)
+    {
+      ok = ok && valueRecord.Read( &cvf, sizeD, offset );
+      offset += sizeD;
+      ok = ok && valueRecord.Read( &cvt, sizeD, offset );
+      offset += sizeD;
+      ok = ok && valueRecord.Read( &cellid, size, offset );
+      offset += size;
+      ok = ok && valueRecord.Read( &cellu, size, offset );
+      offset += size;
+      ok = ok && valueRecord.Read( &celln, size, offset );
+      offset += size;
+
+      SCell sc = SCell();
+      sc.setValFrom(cvf);
+      sc.setValTo(cvt);
+      sc.setCellId(cellid);
+      sc.setUpper(nullptr);
+      sc.setNeighbor(nullptr);
+      hc_ptr->getRect().push_back(sc);
+
+      int cellRefId = cellu;
+      if (cellRefId != -1) {
+        cellRef.insert(std::make_pair(
+        cellid, cellRefId));
+      }
+      cellIds.insert(std::make_pair(
+      cellid, sc));
+
+      int NeighbRefId = celln;
+      if(NeighbRefId != -1) {
+        NeighbRef.insert(std::make_pair(
+        cellid, NeighbRefId));
+      }
+      cellIds.insert(std::make_pair(
+      cellid, sc));
+
+    }
+  }
+}
+
+// update pointer
+    if (xr > 0 && yb > 0 && yt > 0) {
+      for(int colIdx = 0; colIdx < xr; colIdx++) {
+        VCell3D* vcell = &column_vec.at(colIdx);
+        std::vector<HCell3D>* row_vect = &vcell->getRow();
+        for(int cIdx = 0; cIdx < yb; cIdx++) {
+          HCell3D* hcell = &(*row_vect).at(cIdx);
+          std::vector<SCell>* cell_vect = &hcell->getRect();
+
+          for(int lIdx = 0; lIdx < yt; lIdx++) {
+            SCell* scell = &(*cell_vect).at(lIdx);
+            if(cellRef.find(scell->getCellId()) != cellRef.end()) {
+              int cell_ref = cellRef.at(scell->getCellId());
+              if(cellIds.find(cell_ref) != cellIds.end()) {
+                scell->setUpper(&cellIds.at(cell_ref));
+              }
+            }
+            if(NeighbRef.find(scell->getCellId()) != NeighbRef.end()) {
+              int neighb_ref = NeighbRef.at(scell->getCellId());
+              if(cellIds.find(neighb_ref) != cellIds.end()) {
+                scell->setNeighbor(&cellIds.at(neighb_ref));
+              }
+            }
+          }
+        }
+      }
+    }
+
+  const double min[] { xmin, ymin, zmin };
+  const double max[] { xmax, ymax, zmax };
+  Rectangle<3> *bbox = new Rectangle<3>(true, min, max);
+  IrregularGrid3D* irgrid = new IrregularGrid3D(*bbox,
+       xr, yb, yt);
+  irgrid->setColumnVector(column_vec);
+  irgrid->setCellVector(cell_vec);
+  irgrid->box = *bbox;
+  value.addr = irgrid;
+
+  return ok;
+}
+
+
+bool IrregularGrid3D::SaveIrGrid3D(SmiRecord& valueRecord, size_t& offset,
+          const ListExpr typeInfo, Word& value) {
+
+
+   IrregularGrid3D* r = static_cast<IrregularGrid3D*>( value.addr );
+
+   size_t size = sizeof(int);
+   size_t sizeD = sizeof(double);
+   bool ok = true;
+
+   double minx = r->box.getMinX();
+   double maxx = r->box.getMaxX();
+   double miny = r->box.getMinY();
+   double maxy = r->box.getMaxY(); 
+   double minz = r->box.getMinZ();
+   double maxz = r->box.getMaxZ(); 
+
+   ok = ok && valueRecord.Write(&minx, sizeD, offset );
+   offset += sizeD;
+   ok = ok && valueRecord.Write(&maxx, sizeD, offset );
+   offset += sizeD;
+   ok = ok && valueRecord.Write(&miny, sizeD, offset );
+   offset += sizeD;
+   ok = ok && valueRecord.Write(&maxy, sizeD, offset );
+   offset += sizeD;
+   ok = ok && valueRecord.Write(&minz, sizeD, offset );
+   offset += sizeD;
+   ok = ok && valueRecord.Write(&maxz, sizeD, offset );
+   offset += sizeD;
+
+   ok = ok && valueRecord.Write(&r->rowCount, size, offset );
+   offset += size;
+   ok = ok && valueRecord.Write(&r->cellCount, size, offset );
+   offset += size;
+   ok = ok && valueRecord.Write(&r->layerCount, size, offset );
+   offset += size;
+   
+   std::vector<VCell3D>* col = &r->getColumnVector();
+    size_t cols = col->size();
+    if (col->size() > 0) {
+      ok = ok && valueRecord.Write(&cols, sizeof(size_t), offset );
+      offset += sizeof(size_t);
+      for(size_t colIdx = 0; colIdx < col->size(); colIdx++) {
+        VCell3D* vcell = &col->at(colIdx);
+        double vf = vcell->getValFrom();
+        double vt = vcell->getValTo();
+        ok = ok && valueRecord.Write(&vf, sizeD, offset );
+        offset += sizeD;
+        ok = ok && valueRecord.Write(&vt, sizeD, offset );
+        offset += sizeD;
+
+        std::vector<HCell3D>* row_vect = &col->at(colIdx).getRow();
+        size_t rows = row_vect->size();
+        if (row_vect->size() > 0) {
+          ok = ok && valueRecord.Write(&rows, sizeof(size_t), offset );
+          offset += sizeof(size_t);
+          for(size_t rowIdx = 0; rowIdx < row_vect->size(); rowIdx++) {
+            HCell3D* row_cell = &row_vect->at(rowIdx);
+            double rvf = row_cell->getValFrom();
+            double rvt = row_cell->getValTo();
+            int ri = row_cell->getCellId();
+            ok = ok && valueRecord.Write(&rvf, sizeD, offset );
+            offset += sizeD;
+            ok = ok && valueRecord.Write(&rvt, sizeD, offset );
+            offset += sizeD;
+            ok = ok && valueRecord.Write(&ri, size, offset );
+            offset += size;
+
+            std::vector<SCell>* cell_vect = &row_vect->at(rowIdx).getRect();
+            size_t cellsize = cell_vect->size();
+            if(cell_vect->size() > 0) {
+              ok = ok && valueRecord.Write(&cellsize, sizeof(size_t), offset );
+              offset += sizeof(size_t);
+              for(size_t cellIdx = 0; cellIdx < cell_vect->size(); cellIdx++) {
+                SCell* cell_layer = &cell_vect->at(cellIdx);
+                double cvf = cell_layer->getValFrom();
+                double cvt = cell_layer->getValTo();
+                int ci = cell_layer->getCellId();
+                int cu = cell_layer->getUpper() != nullptr
+                    ? cell_layer->getUpper()->getCellId() : -1;
+                int cn = cell_layer->getNeighbor() != nullptr
+                    ? cell_layer->getNeighbor()->getCellId() : -1;
+
+                   ok = ok && valueRecord.Write(&cvf, sizeD, offset );
+                  offset += sizeD;
+                  ok = ok && valueRecord.Write(&cvt, sizeD, offset );
+                  offset += sizeD;
+                  ok = ok && valueRecord.Write(&ci, size, offset );
+                  offset += size;
+                  ok = ok && valueRecord.Write(&cu, size, offset );
+                  offset += size;
+                  ok = ok && valueRecord.Write(&cn, size, offset );
+                  offset += size;
+                  
+                
+              }
+            }
+          }
+        }
+        }    
+    }
+    return ok;
+   
+
 }
 
 /*
@@ -1406,7 +1684,7 @@ cellNum(IrregularGrid3D *input_irgrid3d_ptr,
     // check for 3d
     if(le == ri || bo == to || fr == ba)
     {
-      cell_ids->insert(0);
+      //cell_ids->insert(0);
       return; 
     }
 
@@ -1497,6 +1775,7 @@ IrregularGrid3D::IrGrid3dValueMapCellnos( Word* args, Word& result, int message,
     = static_cast<Rectangle<3>*>( args[1].addr );
 
   if (input_irgrid3d_ptr != nullptr && search_window_ptr != nullptr) {
+
     std::set<int> cell_ids;
 
     result = qp->ResultStorage(s);
@@ -1556,6 +1835,7 @@ IrregularGrid3D::IrGrid3dValueMapSCC( Word* args, Word& result, int message,
 
   if (input_irgrid3d_ptr != nullptr && search_window_ptr != nullptr
       && search_window_ptr_2 != nullptr) {
+
     std::set<int> cell_ids;
     std::set<int> cell_ids_2;
 
@@ -1631,6 +1911,7 @@ IrregularGrid3D::IrGrid3dValueMapGetCell(Word* args, Word& result, int message,
 
   if (input_irgrid3d_ptr != nullptr)
   {
+    
     result = qp->ResultStorage( s );
     Rectangle<3> *res = (Rectangle<3>*) result.addr;
 

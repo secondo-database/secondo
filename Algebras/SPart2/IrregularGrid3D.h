@@ -248,6 +248,12 @@ class IrregularGrid3D {
 
     static Word CloneIrGrid3D( const ListExpr typeInfo, const Word& w);
 
+    static bool OpenIrGrid3D( SmiRecord& valueRecord, size_t& offset, 
+                       const ListExpr typeInfo, Word& value);
+
+   static bool SaveIrGrid3D(SmiRecord& valueRecord, size_t& offset,
+                      const ListExpr typeInfo, Word& value);
+
     static int SizeOfIrGrid3D();
 
     static bool KindCheckIrGrid3D( ListExpr type, ListExpr& errorInfo);
@@ -267,6 +273,7 @@ class IrregularGrid3D {
   std::vector<CPoint> points{};
   // irregular grid bounding box
   Rectangle<3> * boundingBox;
+  Rectangle<3>  box;
   // number of rows and cells per row and layers (z-coordinate) per cell
   int rowCount, cellCount, layerCount;
   // column (y-axis) vector with access to the section vectors (x-axes)

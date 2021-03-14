@@ -281,6 +281,12 @@ class KDTree3D {
 
     static Word Clone3DTree( const ListExpr typeInfo, const Word& w);
 
+    static bool Open3DTree( SmiRecord& valueRecord, size_t& offset, 
+                       const ListExpr typeInfo, Word& value);
+
+    static bool Save3DTree(SmiRecord& valueRecord, size_t& offset,
+                      const ListExpr typeInfo, Word& value);
+
     static int SizeOf3DTree();
 
     static bool KindCheck3DTree (ListExpr type, ListExpr& errorInfo);
@@ -310,6 +316,7 @@ class KDTree3D {
     std::vector<Tree3DMedStructure*> kd3dmedListVec {};
 
     Rectangle<3> *boundingBox;
+    Rectangle<3> box;
     // mode = 1 => take middle of list for creation, else: median
     int mode; 
     std::vector<Cell3DTree> cellVector {};

@@ -241,6 +241,13 @@ class KDTree2D {
 
     static Word Clone2DTree( const ListExpr typeInfo, const Word& w);
 
+    static bool Open2DTree( SmiRecord& valueRecord, size_t& offset, 
+                       const ListExpr typeInfo, Word& value);
+
+    static bool Save2DTree(SmiRecord& valueRecord, size_t& offset,
+                      const ListExpr typeInfo, Word& value);
+
+
     static int SizeOf2DTree();
 
     static bool KindCheck2DTree (ListExpr type, ListExpr& errorInfo);
@@ -273,6 +280,7 @@ class KDTree2D {
     std::vector<KDMedList*> kdmedListVec {};
 
     Rectangle<2> *boundingBox;
+    Rectangle<2> box;
     int mode; // 1=>middle of list, 2=>median of points
     std::vector<Cell2DTree> cellVector {};
 

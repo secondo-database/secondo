@@ -373,6 +373,10 @@ IrregularGrid2D::buildGrid() {
       }
     }
   }
+
+  const double min[] { boundingBox->getMinX(), boundingBox->getMinY() };
+   const double max[] { boundingBox->getMaxX(), boundingBox->getMaxY() };
+  box.Set(true, min, max);
 }
 
 bool
@@ -713,7 +717,7 @@ IrregularGrid2D::InIrGrid2D( const ListExpr typeInfo, const ListExpr instance,
     correct = true;
     IrregularGrid2D* irgrid = new IrregularGrid2D(*bbox, row_cnt, cell_cnt);
     irgrid->setColumnVector(column_vec);
-
+    irgrid->box = *bbox;
     w.addr = irgrid;
     return w;
   } catch (int e) {
@@ -724,6 +728,186 @@ IrregularGrid2D::InIrGrid2D( const ListExpr typeInfo, const ListExpr instance,
     return w;
   }
 }
+
+bool
+IrregularGrid2D::OpenIrGrid2D(SmiRecord& valueRecord,
+ size_t& offset, const ListExpr typeInfo, Word& value) 
+{
+size_t size = sizeof(int);
+size_t sizeD = sizeof(double);
+int xr = 0, yb = 0;
+size_t cols = 0, rows = 0;
+double vf = 0.0, vt = 0.0; //column values
+double rvf = 0.0, rvt = 0.0; // row values
+int rid = 0, cellu = 0;
+double xmin=0.0, xmax=0.0, ymin=0.0, ymax=0.0;
+std::map<int, int> cellRef;
+std::map<int, HCell*> cellIds;
+
+std::vector<VCell> column_vec {};
+VCell vc;
+VCell* vc_ptr;
+bool ok = true;
+
+ok = ok && valueRecord.Read( &xmin, sizeD, offset );
+offset += sizeD;
+ok = ok && valueRecord.Read( &xmax, sizeD, offset );
+offset += sizeD;
+ok = ok && valueRecord.Read( &ymin, sizeD, offset );
+offset += sizeD;
+ok = ok && valueRecord.Read( &ymax, sizeD, offset );
+offset += sizeD;
+
+ok = ok && valueRecord.Read( &xr, size, offset );
+offset += size;
+ok = ok && valueRecord.Read( &yb, size, offset );
+offset += size;
+
+// colsize
+ok = ok && valueRecord.Read( &cols, sizeof(size_t), offset );
+offset += sizeof(size_t);
+for(size_t i = 0; i < cols; i++)
+{
+  vc = VCell();
+  ok = ok && valueRecord.Read( &vf, sizeD, offset );
+  offset += sizeD;
+  ok = ok && valueRecord.Read( &vt, sizeD, offset );
+  offset += sizeD;
+  vc.setValFrom(vf);
+  vc.setValTo(vt);
+  column_vec.push_back(vc);
+  vc_ptr = &(column_vec.back());
+
+  //rowsize
+  ok = ok && valueRecord.Read( &rows, sizeof(size_t), offset );
+  offset += sizeof(size_t);
+  for(size_t j = 0; j < rows; j++)
+  {
+    HCell* hc = new HCell();
+    ok = ok && valueRecord.Read( &rvf, sizeD, offset );
+    offset += sizeD;
+    ok = ok && valueRecord.Read( &rvt, sizeD, offset );
+    offset += sizeD;
+    ok = ok && valueRecord.Read( &rid, size, offset );
+    offset += size;
+    ok = ok && valueRecord.Read( &cellu, size, offset );
+    offset += size;
+    hc->setValFrom(rvf);
+    hc->setValTo(rvt);
+    hc->setCellId(rid);
+    hc->setUpper(nullptr);
+    vc_ptr->getRow().push_back(*hc);
+    int cellRefId = cellu;
+    if (cellRefId != -1) {
+      cellRef.insert(std::make_pair(
+      rid, cellRefId));
+    }
+    cellIds.insert(std::make_pair(
+    rid, hc));
+  }
+}
+// update pointer
+  if (xr > 0 && yb > 0) {
+    for(int colIdx = 0; colIdx < xr; colIdx++) {
+      VCell* vcell = &column_vec.at(colIdx);
+      std::vector<HCell>* row_vect = &vcell->getRow();
+      for(int cIdx = 0; cIdx < yb; cIdx++) {
+        HCell* hcell = &(*row_vect).at(cIdx);
+        if(cellRef.find(hcell->getCellId()) != cellRef.end()) {
+          int cell_ref = cellRef.at(hcell->getCellId());
+          if(cellIds.find(cell_ref) != cellIds.end()) {
+            hcell->setUpper(cellIds.at(cell_ref));
+          }
+        }
+      }
+    }
+  }
+
+  const double min[] { xmin, ymin };
+  const double max[] { xmax, ymax };
+  Rectangle<2> *bbox = new Rectangle<2>(true, min, max);
+  IrregularGrid2D* irgrid = new IrregularGrid2D(*bbox, xr, yb);
+  irgrid->setColumnVector(column_vec);
+  irgrid->box = *bbox;
+  value.addr = irgrid;
+
+  return ok;
+}
+
+bool
+IrregularGrid2D::SaveIrGrid2D(SmiRecord& valueRecord,
+ size_t& offset, const ListExpr typeInfo, Word& value) 
+{
+   IrregularGrid2D* r = static_cast<IrregularGrid2D*>( value.addr );
+
+   size_t size = sizeof(int);
+   size_t sizeD = sizeof(double);
+   bool ok = true;
+
+   double minx = r->box.getMinX();//->getMaxX();
+   double maxx = r->box.getMaxX();//->getMaxX();
+   double miny = r->box.getMinY();// b_box->getMinY();
+   double maxy = r->box.getMaxY(); // b_box->getMaxY();
+
+   ok = ok && valueRecord.Write(&minx, sizeD, offset );
+   offset += sizeD;
+   ok = ok && valueRecord.Write(&maxx, sizeD, offset );
+   offset += sizeD;
+   ok = ok && valueRecord.Write(&miny, sizeD, offset );
+   offset += sizeD;
+   ok = ok && valueRecord.Write(&maxy, sizeD, offset );
+   offset += sizeD;
+
+   ok = ok && valueRecord.Write(&r->rowCount, size, offset );
+   offset += size;
+   ok = ok && valueRecord.Write(&r->cellCount, size, offset );
+   offset += size;
+
+  std::vector<VCell>* col = &r->getColumnVector();
+  size_t cols = col->size();
+  if (col->size() > 0) {
+    ok = ok && valueRecord.Write(&cols, sizeof(size_t), offset );
+    offset += sizeof(size_t);
+    for(size_t colIdx = 0; colIdx < col->size(); colIdx++) {
+      VCell* vcell = &col->at(colIdx);
+      double vf = vcell->getValFrom();
+      double vt = vcell->getValTo();
+      ok = ok && valueRecord.Write(&vf, sizeD, offset );
+      offset += sizeD;
+      ok = ok && valueRecord.Write(&vt, sizeD, offset );
+      offset += sizeD;
+      
+
+      std::vector<HCell>* row_vect = &col->at(colIdx).getRow();
+      size_t rows = row_vect->size();
+      if (row_vect->size() > 0) {
+        ok = ok && valueRecord.Write(&rows, sizeof(size_t), offset );
+        offset += sizeof(size_t);          
+        for(size_t rowIdx = 0; rowIdx < row_vect->size(); rowIdx++) {
+          HCell* row_cell = &row_vect->at(rowIdx);
+          double rvf = row_cell->getValFrom();
+          double rvt = row_cell->getValTo();
+          int ri = row_cell->getCellId();
+          int ru = row_cell->getUpper() != nullptr
+            ? row_cell->getUpper()->getCellId() : -1;
+          ok = ok && valueRecord.Write(&rvf, sizeD, offset );
+          offset += sizeD;
+          ok = ok && valueRecord.Write(&rvt, sizeD, offset );
+          offset += sizeD;
+          ok = ok && valueRecord.Write(&ri, size, offset );
+          offset += size;
+          ok = ok && valueRecord.Write(&ru, size, offset );
+          offset += size;
+          
+          }
+        }
+      }
+    }
+
+  return ok;
+
+}
+
 
 // This function checks whether the type constructor is applied correctly.
 bool
