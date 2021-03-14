@@ -80,7 +80,7 @@ bool ConnectionMySQL::createConnection() {
         return false;
     }
 
-    mysql_real_connect(conn, "localhost", dbUser.c_str(), dbPass.c_str(),
+    mysql_real_connect(conn, "127.0.0.1", dbUser.c_str(), dbPass.c_str(),
             dbName.c_str(), dbPort, NULL, 0);
 
 
@@ -143,7 +143,8 @@ bool ConnectionMySQL::checkConnection() {
     int pingResult = mysql_ping(conn);
 
     if(pingResult != 0) {
-        BOOST_LOG_TRIVIAL(error) << "MySQL ping failed";
+        BOOST_LOG_TRIVIAL(error) << "MySQL ping failed"
+          << " / " << mysql_error(conn);
         return false;
     }
 
