@@ -101,8 +101,10 @@ private:
     return this->headerTable[this->headerTable.size() - 1];
   }
 
+  // Returns handle of the root node.
   std::size_t root() { return 0; }
 
+  // Returns handle of the child node with the given item.
   std::optional<std::size_t> findChild(std::size_t node, int item) {
     assert(node < this->nodes.size());
     for (std::size_t child : this->nodes[node].children) {
@@ -113,11 +115,13 @@ private:
     return std::nullopt;
   }
 
+  // Adds the given count to the given node.
   void addCount(std::size_t node, int count) {
     assert(node < this->nodes.size());
     this->nodes[node].count += count;
   }
 
+  // Creates a new child with the given item and count and returns its handle.
   std::size_t createChild(std::size_t node, int item, int count) {
     assert(node < this->nodes.size());
     // Create a new node.
@@ -135,34 +139,42 @@ private:
     return child;
   }
 
+  // Returns the number of entries in the header table.
   std::size_t headerTableSize() { return this->headerTable.size(); }
 
+  // Looks up the link for the given item in the header table.
   std::size_t headerLinkByItem(int item) {
     std::size_t link = this->header(item).link;
     assert(link != 0);
     return link;
   }
 
+  // Returns the item of the entry in the header table with the given index.
   int headerItem(std::size_t index) {
     assert(index < this->headerTable.size());
     return this->headerTable[index].item;
   }
 
+  // Returns the link handle of the entry in the header table with the given
+  // index.
   std::size_t headerLink(std::size_t index) {
     assert(index < this->headerTable.size());
     return this->headerTable[index].link;
   }
 
+  // Returns the item of the given node.
   int nodeItem(std::size_t node) {
     assert(node < this->nodes.size());
     return this->nodes[node].item;
   }
 
+  // Returns the count of the given node.
   int nodeCount(std::size_t node) {
     assert(node < this->nodes.size());
     return this->nodes[node].count;
   }
 
+  // Returns the link handle of the given node.
   std::optional<std::size_t> nodeLink(std::size_t node) {
     assert(node < this->nodes.size());
     return this->nodes[node].link == 0
@@ -170,6 +182,7 @@ private:
                : std::make_optional(this->nodes[node].link);
   }
 
+  // Returns the parent handle of the given node.
   std::optional<std::size_t> nodeParent(std::size_t node) {
     assert(node < this->nodes.size());
     if (node == 0) {
@@ -182,6 +195,7 @@ private:
     }
   }
 
+  // Returns the child handles of the given node.
   std::vector<std::size_t> nodeChildren(std::size_t node) {
     assert(node < this->nodes.size());
     return this->nodes[node].children;
@@ -564,6 +578,170 @@ void FPTreeT::reset(int transactionCount, int minSupport) {
   Node root{};
   this->nodes.Append(root);
   this->headerTable.clean();
+}
+
+// Returns handle of the root node.
+int FPTreeT::root() { return 0; }
+
+// Returns handle of the child node with the given item.
+std::optional<int> FPTreeT::findChild(int nodeIndex, int item) {
+  assert(nodeIndex >= 0 && nodeIndex < this->nodes.Size());
+  Node node{};
+  this->nodes.Get(nodeIndex, node);
+  int childIndex = node.child;
+  while (childIndex != 0) {
+    Node child{};
+    this->nodes.Get(childIndex, child);
+    if (child.item == item) {
+      return childIndex;
+    }
+    childIndex = child.nextChild;
+  }
+  return std::nullopt;
+}
+
+// Adds the given count to the given node.
+void FPTreeT::addCount(int nodeIndex, int count) {
+  assert(nodeIndex >= 0 && nodeIndex < this->nodes.Size());
+  Node node{};
+  this->nodes.Get(nodeIndex, node);
+  node.count += count;
+  this->nodes.Put(nodeIndex, node);
+}
+
+// Creates a new child with the given item and count and returns its handle.
+int FPTreeT::createChild(int nodeIndex, int item, int count) {
+  assert(nodeIndex >= 0 && nodeIndex < this->nodes.Size());
+
+  int childId = this->nodes.Size();
+
+  // Find the entry for the given item in the header table.
+  std::optional<int> headerIndex = std::nullopt;
+  for (int i = 0; i < this->headerTable.Size(); i += 1) {
+    Header header{};
+    this->headerTable.Get(i, header);
+    if (header.item == item) {
+      headerIndex = i;
+      break;
+    }
+  }
+  int childLink = 0;
+  if (headerIndex) {
+    // Header entry for the given item already exists -> update the link to the
+    // new child node.
+    Header header{};
+    this->headerTable.Get(*headerIndex, header);
+    childLink = header.link;
+    header.link = childId;
+    this->headerTable.Put(*headerIndex, header);
+  } else {
+    // Header entry for the given item does not exist yet -> create a new entry.
+    this->headerTable.Append((Header){.item = item, .link = childId});
+  }
+
+  // Create child node.
+  Node child{
+      .item = item, .count = count, .parent = nodeIndex, .link = childLink};
+  this->nodes.Append(child);
+
+  // Append the child node on the given node.
+  Node node{};
+  this->nodes.Get(nodeIndex, node);
+  if (node.child != 0) {
+    child.nextChild = node.child;
+    this->nodes.Put(childId, child);
+  }
+  node.child = childId;
+  this->nodes.Put(nodeIndex, node);
+
+  return childId;
+}
+
+// Returns the number of entries in the header table.
+std::size_t FPTreeT::headerTableSize() { return this->headerTable.Size(); }
+
+// Looks up the link for the given item in the header table.
+std::size_t FPTreeT::headerLinkByItem(int item) {
+  for (int i = 0; i < this->headerTable.Size(); i += 1) {
+    Header header{};
+    this->headerTable.Get(i, header);
+    if (header.item == item) {
+      assert(header.link != 0);
+      return header.link;
+    }
+  }
+  assert(false);
+}
+
+// Returns the item of the entry in the header table with the given index.
+int FPTreeT::headerItem(std::size_t index) {
+  assert(index < (std::size_t)this->headerTable.Size());
+  Header header{};
+  this->headerTable.Get(index, header);
+  return header.item;
+}
+
+// Returns the link handle of the entry in the header table with the given
+// index.
+int FPTreeT::headerLink(std::size_t index) {
+  assert(index < (std::size_t)this->headerTable.Size());
+  Header header{};
+  this->headerTable.Get(index, header);
+  return header.link;
+}
+
+// Returns the item of the given node.
+int FPTreeT::nodeItem(int nodeIndex) {
+  assert(nodeIndex < this->nodes.Size());
+  Node node{};
+  this->nodes.Get(nodeIndex, node);
+  return node.item;
+}
+
+// Returns the count of the given node.
+int FPTreeT::nodeCount(int nodeIndex) {
+  assert(nodeIndex < this->nodes.Size());
+  Node node{};
+  this->nodes.Get(nodeIndex, node);
+  return node.count;
+}
+
+// Returns the link handle of the given node.
+std::optional<int> FPTreeT::nodeLink(int nodeIndex) {
+  assert(nodeIndex < this->nodes.Size());
+  Node node{};
+  this->nodes.Get(nodeIndex, node);
+  return node.link == 0 ? std::nullopt : std::make_optional(node.link);
+}
+
+// Returns the parent handle of the given node.
+std::optional<int> FPTreeT::nodeParent(int nodeIndex) {
+  assert(nodeIndex < this->nodes.Size());
+  if (nodeIndex == 0) {
+    return std::nullopt;
+  } else {
+    Node node{};
+    this->nodes.Get(nodeIndex, node);
+    return node.parent == 0 ? std::nullopt : std::make_optional(node.parent);
+  }
+}
+
+// Returns the child handles of the given node.
+std::vector<int> FPTreeT::nodeChildren(int nodeIndex) {
+  assert(nodeIndex < this->nodes.Size());
+  Node node{};
+  this->nodes.Get(nodeIndex, node);
+  std::vector<int> children;
+  if (node.child != 0) {
+    int childId = node.child;
+    while (childId != 0) {
+      children.push_back(childId);
+      Node child{};
+      this->nodes.Get(childId, child);
+      childId = child.nextChild;
+    }
+  }
+  return children;
 }
 
 struct fptreeInfo : ConstructorInfo {
