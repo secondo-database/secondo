@@ -43,6 +43,8 @@ January 2021 - April 2021, P. Fedorow for bachelor thesis.
 #include <vector>
 
 namespace AssociationAnalysis {
+
+static int fpTreeCounter{0};
 template <class FPTree, typename Handle> class FPTreeImpl {
 public:
   // Inserts the given itemset into the FP-Tree.
@@ -250,6 +252,8 @@ private:
 
           // Proceed the mining within the FP-Tree conditioned by the current
           // header item.
+          fpTreeCounter += 1;
+          printf("%d\n", fpTreeCounter);
           FPTree fpTreeConditioned(transactionCount, minSupport);
           for (auto &[count, itemset] :
                this->computeConditionalBase(headerItem, minSupport)) {
@@ -357,6 +361,10 @@ private:
 
     // Index to the first node that holds the item.
     int link;
+
+    // Indexes (to other headers) used to look up specific items by binary
+    // search.
+    int left, right;
   };
 
   // Represents a node of the FP-Tree.
@@ -371,8 +379,9 @@ private:
     // First child index.
     int child;
 
-    // Next child index.
-    int nextChild;
+    // Indexes (to other nodes) used to look up specific child nodes by binary
+    // search.
+    int left, right;
 
     // Parent index.
     int parent;
@@ -436,6 +445,62 @@ private:
 
   // Returns the child handles of the given node.
   std::vector<int> nodeChildren(int nodeIndex);
+
+  template <class T>
+  static std::optional<int> binaryFind(const DbArray<T> &arr, int nodeIndex,
+                                       int item, int &lastVisitedNode) {
+    lastVisitedNode = nodeIndex;
+    if (nodeIndex >= arr.Size()) {
+      return std::nullopt;
+    }
+    T node;
+    arr.Get(nodeIndex, node);
+    if (item == node.item) {
+      return nodeIndex;
+    } else {
+      if (item < node.item) {
+        if (node.left == 0) {
+          return std::nullopt;
+        } else {
+          return binaryFind(arr, node.left, item, lastVisitedNode);
+        }
+      } else {
+        if (node.right == 0) {
+          return std::nullopt;
+        } else {
+          return binaryFind(arr, node.right, item, lastVisitedNode);
+        }
+      }
+    }
+  }
+
+  template <class T>
+  static void binaryInsert(DbArray<T> &arr, int nodeIndex, const T &node) {
+    assert(nodeIndex < arr.Size());
+    T currNode;
+    arr.Get(nodeIndex, currNode);
+    if (currNode.item == node.item) {
+      assert(false);
+    } else {
+      if (node.item < currNode.item) {
+        if (currNode.left == 0) {
+          currNode.left = arr.Size();
+          arr.Put(nodeIndex, currNode);
+          arr.Append(node);
+        } else {
+          return binaryInsert(arr, currNode.left, node);
+        }
+      } else {
+        if (currNode.right == 0) {
+          currNode.right = arr.Size();
+          arr.Put(nodeIndex, currNode);
+          arr.Append(node);
+        } else {
+          return binaryInsert(arr, currNode.right, node);
+        }
+      }
+    }
+  }
 
   // FPTreeImpl needs access to the private FP-Tree access/manipulation methods:
   // root, addCount, createChild, etc.

@@ -335,17 +335,23 @@ ListExpr FPTreeT::Out(ListExpr typeInfo, Word w) {
     Header header{};
     assert(fpTree->headerTable.Get(i, header));
     headers.append(
-        NList(NList().intAtom(header.item), NList().intAtom(header.link)));
+        NList(NList().intAtom(header.item), NList().intAtom(header.link),
+              NList().intAtom(header.left), NList().intAtom(header.right)));
   }
   // Serialize nodes.
   NList nodes;
   for (int i = 0; i < fpTree->nodes.Size(); i += 1) {
     Node node{};
     assert(fpTree->nodes.Get(i, node));
-    nodes.append(
-        NList(NList().intAtom(node.item), NList().intAtom(node.count),
-              NList().intAtom(node.child), NList().intAtom(node.nextChild),
-              NList().intAtom(node.parent), NList().intAtom(node.link)));
+    NList nodeRepr;
+    nodeRepr.append(NList().intAtom(node.item));
+    nodeRepr.append(NList().intAtom(node.count));
+    nodeRepr.append(NList().intAtom(node.child));
+    nodeRepr.append(NList().intAtom(node.left));
+    nodeRepr.append(NList().intAtom(node.right));
+    nodeRepr.append(NList().intAtom(node.parent));
+    nodeRepr.append(NList().intAtom(node.link));
+    nodes.append(nodeRepr);
   }
   return NList(NList().intAtom(fpTree->transactionCount),
                NList().intAtom(fpTree->minSupport), headers, nodes)
@@ -379,10 +385,14 @@ Word FPTreeT::In(const ListExpr typeInfo, const ListExpr instance,
       for (std::size_t i = 1; i < headers.length(); i += 1) {
         if (headers.elem(i).isList() && headers.elem(i).length() == 2 &&
             headers.elem(i).first().isInt() &&
-            headers.elem(i).second().isInt()) {
+            headers.elem(i).second().isInt() &&
+            headers.elem(i).third().isInt() &&
+            headers.elem(i).fourth().isInt()) {
           fpTree->headerTable.Append(
               Header{.item = headers.elem(i).first().intval(),
-                     .link = headers.elem(i).second().intval()});
+                     .link = headers.elem(i).second().intval(),
+                     .left = headers.elem(i).third().intval(),
+                     .right = headers.elem(i).fourth().intval()});
         } else {
           correct = false;
           return nullptr;
@@ -399,14 +409,15 @@ Word FPTreeT::In(const ListExpr typeInfo, const ListExpr instance,
         if (nodes.elem(i).isList() && nodes.elem(i).length() == 6 &&
             nodes.elem(i).first().isInt() && nodes.elem(i).second().isInt() &&
             nodes.elem(i).third().isInt() && nodes.elem(i).fourth().isInt() &&
-            nodes.elem(i).fifth().isInt() && nodes.elem(i).sixth().isInt()) {
-          fpTree->nodes.Append(
-              Node{.item = nodes.elem(i).first().intval(),
-                   .count = nodes.elem(i).second().intval(),
-                   .child = nodes.elem(i).third().intval(),
-                   .nextChild = nodes.elem(i).fourth().intval(),
-                   .parent = nodes.elem(i).fifth().intval(),
-                   .link = nodes.elem(i).sixth().intval()});
+            nodes.elem(i).fifth().isInt() && nodes.elem(i).sixth().isInt() &&
+            nodes.elem(i).seventh().isInt()) {
+          fpTree->nodes.Append(Node{.item = nodes.elem(i).first().intval(),
+                                    .count = nodes.elem(i).second().intval(),
+                                    .child = nodes.elem(i).third().intval(),
+                                    .left = nodes.elem(i).fourth().intval(),
+                                    .right = nodes.elem(i).fifth().intval(),
+                                    .parent = nodes.elem(i).sixth().intval(),
+                                    .link = nodes.elem(i).seventh().intval()});
         } else {
           correct = false;
           return nullptr;
@@ -588,16 +599,12 @@ std::optional<int> FPTreeT::findChild(int nodeIndex, int item) {
   assert(nodeIndex >= 0 && nodeIndex < this->nodes.Size());
   Node node{};
   this->nodes.Get(nodeIndex, node);
-  int childIndex = node.child;
-  while (childIndex != 0) {
-    Node child{};
-    this->nodes.Get(childIndex, child);
-    if (child.item == item) {
-      return childIndex;
-    }
-    childIndex = child.nextChild;
+  int ignore;
+  if (node.child == 0) {
+    return std::nullopt;
+  } else {
+    return binaryFind(this->nodes, node.child, item, ignore);
   }
-  return std::nullopt;
 }
 
 // Adds the given count to the given node.
@@ -616,15 +623,9 @@ int FPTreeT::createChild(int nodeIndex, int item, int count) {
   int childId = this->nodes.Size();
 
   // Find the entry for the given item in the header table.
-  std::optional<int> headerIndex = std::nullopt;
-  for (int i = 0; i < this->headerTable.Size(); i += 1) {
-    Header header{};
-    this->headerTable.Get(i, header);
-    if (header.item == item) {
-      headerIndex = i;
-      break;
-    }
-  }
+  int lastVisitedNode = 0;
+  std::optional<int> headerIndex =
+      binaryFind(this->headerTable, 0, item, lastVisitedNode);
   int childLink = 0;
   if (headerIndex) {
     // Header entry for the given item already exists -> update the link to the
@@ -636,23 +637,28 @@ int FPTreeT::createChild(int nodeIndex, int item, int count) {
     this->headerTable.Put(*headerIndex, header);
   } else {
     // Header entry for the given item does not exist yet -> create a new entry.
-    this->headerTable.Append((Header){.item = item, .link = childId});
+    if (this->headerTable.Size() == 0) {
+      this->headerTable.Append((Header){.item = item, .link = childId});
+    } else {
+      binaryInsert(this->headerTable, lastVisitedNode,
+                   (Header){.item = item, .link = childId});
+    }
   }
 
   // Create child node.
   Node child{
       .item = item, .count = count, .parent = nodeIndex, .link = childLink};
-  this->nodes.Append(child);
 
   // Append the child node on the given node.
   Node node{};
   this->nodes.Get(nodeIndex, node);
-  if (node.child != 0) {
-    child.nextChild = node.child;
-    this->nodes.Put(childId, child);
+  if (node.child == 0) {
+    node.child = childId;
+    this->nodes.Put(nodeIndex, node);
+    this->nodes.Append(child);
+  } else {
+    binaryInsert(this->nodes, node.child, child);
   }
-  node.child = childId;
-  this->nodes.Put(nodeIndex, node);
 
   return childId;
 }
@@ -662,13 +668,13 @@ std::size_t FPTreeT::headerTableSize() { return this->headerTable.Size(); }
 
 // Looks up the link for the given item in the header table.
 std::size_t FPTreeT::headerLinkByItem(int item) {
-  for (int i = 0; i < this->headerTable.Size(); i += 1) {
+  int ignore = 0;
+  std::optional<int> headerIndex =
+      binaryFind(this->headerTable, 0, item, ignore);
+  if (headerIndex) {
     Header header{};
-    this->headerTable.Get(i, header);
-    if (header.item == item) {
-      assert(header.link != 0);
-      return header.link;
-    }
+    this->headerTable.Get(*headerIndex, header);
+    return header.link;
   }
   assert(false);
 }
@@ -729,16 +735,23 @@ std::optional<int> FPTreeT::nodeParent(int nodeIndex) {
 // Returns the child handles of the given node.
 std::vector<int> FPTreeT::nodeChildren(int nodeIndex) {
   assert(nodeIndex < this->nodes.Size());
+  std::vector<int> children;
   Node node{};
   this->nodes.Get(nodeIndex, node);
-  std::vector<int> children;
   if (node.child != 0) {
-    int childId = node.child;
-    while (childId != 0) {
-      children.push_back(childId);
-      Node child{};
-      this->nodes.Get(childId, child);
-      childId = child.nextChild;
+    std::vector<int> visit = {node.child};
+    while (!visit.empty()) {
+      int visitIndex = visit[visit.size() - 1];
+      children.push_back(visitIndex);
+      visit.pop_back();
+      Node visitNode{};
+      this->nodes.Get(visitIndex, visitNode);
+      if (visitNode.left != 0) {
+        visit.push_back(visitNode.left);
+      }
+      if (visitNode.right != 0) {
+        visit.push_back(visitNode.right);
+      }
     }
   }
   return children;
