@@ -155,13 +155,18 @@ SecondoCheckpoint::Execute()
 
   // --- Clean up the environment
   rc = bdbEnv->close( 0 );
-  delete bdbEnv;
+  
+  int result = EXIT_CHECKPOINT_OK;
 
   if (rc != 0) {
     bdbEnv->err(rc, "%s", "env close failed!");
-    return EXIT_CHECKPOINT_FAIL;
-  }    
-  return EXIT_CHECKPOINT_OK;
+    result = EXIT_CHECKPOINT_FAIL;
+  }
+
+  delete bdbEnv;
+  bdbEnv = nullptr;
+
+  return result;
 }
 
 
