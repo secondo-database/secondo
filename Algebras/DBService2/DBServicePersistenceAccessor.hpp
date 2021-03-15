@@ -55,17 +55,8 @@ namespace DBService {
 
 class DBServicePersistenceAccessor {
 
-/*
 
-1.1.1.1 \textit{persistLocationInfo}
-
-This function persists the provided \textit{ConnectionID} and the corresponding
-\textit{LocationInfo} object into the respective SECONDO relation.
-
-*/
 public:
-    static bool persistLocationInfo(
-            ConnectionID connID, LocationInfo& locationInfo);
 
 /*
 
@@ -81,132 +72,6 @@ already.
 
 /*
 
-1.1.1.1 \textit{persistRelationInfo}
-
-This function persists the provided \textit{RelationInfo} object into the
-respective SECONDO relation.
-
-*/
-    static bool persistRelationInfo(
-            RelationInfo& relationInfo);
-
-
-
-/*
-1.1.1.1 ~persistDerivateInfo~
-
-This function persists the provide ~DerivateInfo~ object into the
-respective SECONDO relation.
-
-*/
-   static bool persistDerivateInfo(
-              DerivateInfo& derivateInfo);
-
-
-/*
-
-1.1.1.1 \textit{restoreLocationInfo}
-
-This function restores the persisted \textit{ConnectionIDs} and their
-corresponding \textit{LocationInfo} objects from the respective SECONDO
-relation.
-
-*/
-    static bool restoreLocationInfo(
-            std::map<ConnectionID, LocationInfo>& locations);
-
-/*
-
-1.1.1.1 \textit{restoreRelationInfo}
-
-This function restores the persisted \textit{RelationInfo} objects from the
-respective SECONDO relation.
-
-*/
-    static bool restoreRelationInfo(
-            DBServiceRelations& relations);
-
-/*
-1.1.1.1 ~restoreDerivateInfo~
-
-*/
-    static bool restoreDerivateInfo(
-              DBServiceDerivates& derivates);
-
-
-/*
-
-1.1.1.1 \textit{restoreLocationMapping}
-
-This function restores the mapping of relation to location from the respective
-SECONDO relation.
-
-*/
-    static bool restoreLocationMapping(
-            std::queue<
-            std::pair<std::string, std::pair<ConnectionID, bool> > >& mapping);
-
-/*
-
-1.1.1.1 \textit{updateLocationMapping}
-
-This function updates the replication status flag of the mapping of relation to
-location in the respective SECONDO relation.
-
-*/
-    static bool updateLocationMapping(
-            std::string relationID,
-            ConnectionID connID,
-            bool replicated);
-
-/*
-
-1.1.1.1 \textit{deleteRelationInfo}
-
-This function deletes a persisted \textit{RelationInfo} object and also triggers
-the deletion of the corresponding location mapping.
-
-*/
-    static bool deleteRelationInfo(RelationInfo& relationInfo);
-
-
-/*
-1.1.1 ~deleteDerivateInfo~
-
-This function deletes a persisted ~DerivateInfo~ object and also triggers 
-the deletion of the corresponding location mapping. Note that the 
-relation from that the derivateInfo depends on must be available.
-
-*/
-   static bool deleteDerivateInfo(DerivateInfo& derivateInfo,
-                                  RelationInfo& source);
-
-
-/*
-
-1.1.1.1 ~persistAllLocations~
-
-This function persists all locations passed as argument at once. All data that
-was persisted prior to the call of this function will be lost.
-
-*/
-    static bool persistAllLocations(DBServiceLocations dbsLocations);
-
-/*
-
-1.1.1.1 ~persistAllRelations~
-
-This function persists all relations passed as argument at once. All data that
-was persisted prior to the call of this function will be lost.
-
-*/
-    static bool persistAllReplicas(DBServiceRelations dbsRelations,
-                                   DBServiceDerivates dbsDerivates);
-
-
-
-/*
-
 1.1.1.1 ~getRecordCount~
 
 Retrieve the number of tuples that the specifies relation contains.
@@ -216,32 +81,8 @@ Retrieve the number of tuples that the specifies relation contains.
             const std::string& databaseName,
             const std::string& relationName);
 
-/*
 
-1.1.1.1 \textit{deleteLocationMapping}
-
-This function deletes the mapping of relation to location for a specified
-relation identifier and a given range of connections.
-
-*/
-    static bool deleteLocationMapping(std::string relationID,
-            ReplicaLocations::const_iterator nodesBegin,
-            ReplicaLocations::const_iterator nodesEnd);
 private:
-
-/*
-
-1.1.1.1 \textit{persistLocationMapping}
-
-This function persists the mapping of a relation to its replica locations.
-
-*/
-    static bool persistLocationMapping(
-            std::string relationID,
-            ReplicaLocations::const_iterator nodesBegin,
-            ReplicaLocations::const_iterator nodesEnd);
-
-
 
 /*
 
@@ -266,20 +107,6 @@ already exists.
             const std::string& relationName,
             const RelationDefinition& rel,
             const std::vector<std::vector<std::string> >& values);
-
-/*
-
-1.1.1.1 ~deleteAndCreate~
-
-This function deletes a relation in case it exists and recreates it using the
-given values.
-
-*/
-    static bool deleteAndCreate(
-            const std::string& relationName,
-            const RelationDefinition& rel,
-            const std::vector<std::vector<std::string> >& values);
-
 
 /*
 

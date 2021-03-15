@@ -35,7 +35,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <sstream>
 #include <algorithm>
 
+#include <loguru.hpp>
+
 #include <boost/algorithm/string.hpp>
+#include <boost/thread.hpp>
 
 using namespace std;
 
@@ -44,13 +47,14 @@ namespace DBService {
   //class Node;
 
   Relation::Relation() : Record::Record() {
+    
     setName("");
     setDatabase("");
   }
 
   Relation::Relation(string newRelationDatabase, string relationName) :
     Record::Record() {
-
+    
     setRelationDatabase(newRelationDatabase);
     setName(relationName);
   }
@@ -79,12 +83,17 @@ namespace DBService {
   }
 
   shared_ptr<DBService::Relation> Relation::build() {
+    
+    LOG_SCOPE_FUNCTION(INFO);
+
     shared_ptr<DBService::Relation> instance(new DBService::Relation());
     return instance;
   }
 
   shared_ptr<DBService::Relation> Relation::build(string relationDatabase,
     string relationName) {
+
+    LOG_SCOPE_FUNCTION(INFO);
 
     shared_ptr<DBService::Relation> instance(new DBService::Relation(
       relationDatabase, relationName));
@@ -95,6 +104,8 @@ namespace DBService {
   shared_ptr<DBService::Relation> Relation::build(string relationDatabase,
     string relationName, shared_ptr<DBService::Node> originalNode) {
 
+    LOG_SCOPE_FUNCTION(INFO);
+
     shared_ptr<DBService::Relation> instance(new DBService::Relation(
       relationDatabase, relationName, originalNode));
 
@@ -104,6 +115,8 @@ namespace DBService {
   shared_ptr<DBService::Relation> Relation::build(string relationDatabase,
     string relationName, string originalNodeHost, int originalNodePort,
     string originalNodeDisk) {
+
+    LOG_SCOPE_FUNCTION(INFO);
 
     shared_ptr<DBService::Relation> instance(new DBService::Relation(
       relationDatabase, relationName, originalNodeHost, originalNodePort,
@@ -161,7 +174,7 @@ namespace DBService {
     addReplica(replica);
   }
 
-  bool Relation::doesReplicaExist(shared_ptr<Replica> newReplica) {
+  bool Relation::doesReplicaExist(shared_ptr<Replica> newReplica) {    
     //TODO
     // if (find(replicas.begin(), replicas.end(), newReplica) != replicas.end())
 
@@ -175,6 +188,8 @@ namespace DBService {
 
   shared_ptr<Replica> Relation::findReplica(string targetHost,
     int targetPort, std::string replicaType) {
+
+    LOG_SCOPE_FUNCTION(INFO);
 
     /*
       In order to compare nodes including DNS name resolution
@@ -195,6 +210,8 @@ namespace DBService {
 
   shared_ptr<Replica> Relation::findReplicaByDerivativeId(string targetHost,
     int targetPort, int derivativeId) {
+
+    LOG_SCOPE_FUNCTION(INFO);
 
     string replicaType = Replica::replicaTypeDerivative;
 
@@ -221,18 +238,60 @@ namespace DBService {
 
   void Relation::updateReplicaStatus(string targetHost, int targetPort,
     std::string replicaStatus) {
+    
+    LOG_SCOPE_FUNCTION(INFO);
+    
+    /*
+      Hypothesis: 
+      It may happen that the dbservice is slower in creating the relation
+      than the replication has been completed. This is because the
+      relation is a much more complicated structure triggering a cascade
+      of insert statements.
 
-    shared_ptr<Replica> replica = findReplica(
-      targetHost, targetPort);
+      Therefore, it may happen that the update statement of a replica is 
+      triggered before the relation's replicas have been saved.
 
-    if(replica == nullptr)
-      throw "Couldn't find replica by targetHost and targetPort.";
+      In this case we defer the upgrade for a few seconds a try again.
+    */
+
+    shared_ptr<Replica> replica;
+    bool goOn = true;
+
+    do {
+
+      LOG_F(INFO, "Trying to find replica of relation %s...", 
+        getName().c_str());
+
+      replica = findReplica(targetHost, targetPort);
+      
+      if(replica == nullptr) {
+        LOG_F(WARNING, "Couldn't find replica of relation %s by targetHost %s "
+        " and targetPort %d. Will try again later.",
+        getName().c_str(), targetHost.c_str(), targetPort);
+
+        //TODO make configurable
+        int randomDuration = rand() % 5000;
+        boost::this_thread::sleep_for(
+          boost::chrono::milliseconds(randomDuration));
+
+      } else {
+
+        // A replica has been found.
+        LOG_F(INFO, "Found replica of relation %s...",
+          getName().c_str());
+        goOn = false;
+      }
+    } while (goOn);    
+    
 
     replica->setStatus(replicaStatus);
     replica->save();
   }
 
   void Relation::resetReplicas() {
+
+    LOG_SCOPE_FUNCTION(INFO);
+
     shared_ptr<DBService::Replica> replica;
 
     for(int i = 0; i < replicas.size(); i++) {
@@ -264,6 +323,9 @@ namespace DBService {
     => There is not reload functionality.
   */
   void Relation::loadOriginalNode(int originalNodeId) {
+
+    LOG_SCOPE_FUNCTION(INFO);
+
     if(originalNode == nullptr) {
       /*
         The node manager has already loaded nodes.
@@ -288,6 +350,9 @@ namespace DBService {
     Does not load derivative-replicas into the ~replicas~ vector.
   */
   void Relation::loadReplicas() {
+    
+    LOG_SCOPE_FUNCTION(INFO);
+
     if(replicas.empty()) {
       // Relation.cpp:113:16: error: no viable overloaded '='
       // replicas = Replica::findByRelationId(database, getId());
@@ -356,6 +421,9 @@ namespace DBService {
 
   shared_ptr<DBService::Derivative> Relation::addDerivative(
     string derivativeName, string function) {
+
+    LOG_SCOPE_FUNCTION(INFO);
+
     shared_ptr<Derivative> derivative = DBService::Derivative::build(
       derivativeName, function, shared_from_this());
 
@@ -383,6 +451,9 @@ namespace DBService {
   }
 
   void Relation::loadDerivatives() {
+
+    LOG_SCOPE_FUNCTION(INFO);
+    
     /*
       TODO There is a strong similarity between Replicas and Derivatives
         as both are dependent (composite) objects. Thus there is a lot of code

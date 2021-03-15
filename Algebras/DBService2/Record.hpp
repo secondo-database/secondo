@@ -165,7 +165,7 @@ namespace DBService
     }
 
     virtual std::string createStatement() const {
-      throw "createStatement is not implemented in Recor";
+      throw "createStatement is not implemented in Record";
     }
 
     virtual bool update()   {
@@ -173,7 +173,11 @@ namespace DBService
 
       std::string updateQuery = updateStatement();
 
-      dbAdapter->executeQueryWithoutResult(this->getDatabase(), updateQuery);
+      dbAdapter->executeQueryWithoutResult(this->getDatabase(), updateQuery,
+        true, // use transaction,
+        false // do not delete operator tree DestroyRootValue 
+        // (see Queryprocessor.cpp for more details on this)
+        );
 
       setClean();
       setNotNew();

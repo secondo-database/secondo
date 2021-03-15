@@ -30,12 +30,16 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 using namespace std;
 
+extern boost::mutex nlparsemtx;
+
 namespace DBService
 {
 
 ListExpr OperatorUseIncrementalMetadataUpdate::mapType(ListExpr nestedList)
 {
     print(nestedList, std::cout);
+
+    boost::lock_guard<boost::mutex> guard(nlparsemtx);
 
     if (!nl->HasLength(nestedList, 1))
     {

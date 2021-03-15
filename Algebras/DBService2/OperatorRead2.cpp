@@ -47,12 +47,17 @@ namespace fs = boost::filesystem;
 
 using namespace std;
 
+extern boost::mutex nlparsemtx;
+
 namespace DBService {
 
+//TODO Refactor. Code is too complex and barely readable.
 ListExpr OperatorRead2::mapType(ListExpr nestedList)
 {
     printFunction("OperatorRead2::mapType", std::cout);
     print(nestedList, std::cout);
+
+    boost::unique_lock<boost::mutex> nlLock(nlparsemtx);
 
     if(!nl->HasLength(nestedList, 2)) // rel x fun
     {
@@ -89,6 +94,12 @@ ListExpr OperatorRead2::mapType(ListExpr nestedList)
 
     bool relationLocallyAvailable;
     print("nl->First(nestedList)", nl->First(nestedList), std::cout);
+
+    // Not locking here may be risky
+    // TODO How to release the lock if the call is nested?
+    //   a shared_ptr of the lock could be passed or the lock in OperatorCommon 
+    //   could be removed assuming there is a lock in the invoking function
+
     ListExpr streamType = OperatorCommon::getStreamType(
             nl->OneElemList(nl->First(nl->First(nestedList))), 
                             relationLocallyAvailable);
@@ -160,6 +171,8 @@ int OperatorRead2::mapValue(Word* args,
                             Word& local,
                             Supplier s)
 {
+    boost::lock_guard<boost::mutex> guard(nlparsemtx);
+    
     //printFunction("OperatorRead2::mapValue");
     string relationName =
             static_cast<CcString*>(args[2].addr)->GetValue();

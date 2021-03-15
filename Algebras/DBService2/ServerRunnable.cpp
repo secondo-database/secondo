@@ -29,6 +29,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Algebras/DBService2/ReplicationServer.hpp"
 #include "Algebras/DBService2/ServerRunnable.hpp"
 
+#include <loguru.hpp>
+
 using namespace distributed2;
 
 namespace DBService {
@@ -48,6 +50,7 @@ ServerRunnable::~ServerRunnable()
 template <typename T>
 void ServerRunnable::createServer(int port)
 {
+    LOG_SCOPE_FUNCTION(INFO);
     T server(port);
     server.start();
 }
@@ -58,10 +61,15 @@ template void ServerRunnable::createServer<ReplicationServer>(int port);
 template <typename T>
 void ServerRunnable::run()
 {
+    LOG_SCOPE_FUNCTION(INFO);
     if(runner){
-       runner->join();
-       delete runner;
+        LOG_F(INFO, "%s", "Waiting for runner to joind...");
+        runner->join();
+        LOG_F(INFO, "%s", "Runners has joined. Deleting it.");
+        delete runner;
     }
+
+    LOG_F(INFO, "%s", "Creating new Server thread...");
     runner = new boost::thread(boost::bind(
             &ServerRunnable::createServer<T>,
             this,

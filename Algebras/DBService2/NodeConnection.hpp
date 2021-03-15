@@ -3,6 +3,8 @@
 
 #include  "Algebras/Distributed2/ConnectionInfo.h"
 
+#include <boost/thread/mutex.hpp>
+
 namespace DBService {
 
   /**
@@ -17,6 +19,17 @@ This way a
     std::string host;
     int port;
     std::string config;
+
+    //TODO a lock specific to a particular host & port connection would be
+    //  more efficient. However, there could be several NodeConnection objects
+    //  representing connections to a particular node (host, port).
+    //  Locking all connections across all NodeConnections is wasteful but 
+    //  simple.
+    // Alternatively, a NodeConnection pool could be implemented ensuring that
+    //  a node-connection to a particulat host, port is unique and whenever 
+    //  threads want to share access, a shared pointer to the object is created
+    //  secured by a lock on the level of the NodeConnection object.
+    static boost::mutex connectionMutex;
     
     void createAndSelectRemoteDBServiceDatabase();
 

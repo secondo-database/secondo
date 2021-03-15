@@ -39,11 +39,14 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Algebras/DBService2/DebugOutput.hpp"
 #include "Algebras/DBService2/SecondoUtilsLocal.hpp"
 #include "Algebras/DBService2/TraceSettings.hpp"
+#include "Algebras/DBService2/LockKeeper.hpp"
+
 
 using namespace std;
 using namespace distributed2;
 
 extern CMsg cmsg;
+extern boost::mutex nlparsemtx;
 
 namespace DBService {
 
@@ -115,7 +118,9 @@ bool SecondoUtilsLocal::executeQuery2(const string& queryAsString)
     string queryAsPreparedNestedListString;
 
     print("Acquiring lock for executeQuery2...", std::cout);
+
     boost::lock_guard<boost::mutex> lock(utilsMutex);
+    
     print("Done acquiring lock for executeQuery2.", std::cout);
 
     print("Preparing query for processing...", std::cout);
@@ -131,6 +136,11 @@ bool SecondoUtilsLocal::executeQuery2(const string& queryAsString)
             TraceSettings::getInstance()->isDebugTraceOn() ? 3 : 0;
 
     print("Actually executing query now ...", std::cout);
+
+    boost::lock_guard<boost::mutex> queryProcessorGuard(
+        // Dereference the shared_ptr to the mutex
+        *LockKeeper::getInstance()->getQueryProcessorMutex()
+    );
 
     return QueryProcessor::ExecuteQuery(
             queryAsPreparedNestedListString,
@@ -174,6 +184,12 @@ bool SecondoUtilsLocal::executeQuery(const string& queryAsString,
     bool success = true;
     bool correct, evaluable, defined, isFunction = false;
     string typeString(""), errorString("");
+
+    boost::lock_guard<boost::mutex> queryProcessorGuard(
+        // Dereference the shared_ptr to the mutex
+        *LockKeeper::getInstance()->getQueryProcessorMutex()
+    );
+
     try
     {
         success = QueryProcessor::ExecuteQuery(
@@ -276,7 +292,15 @@ SecondoUtilsLocal::createRelation(const string& queryAsString,
     bool isFunction = false;
 
     boost::lock_guard<boost::mutex> lock(utilsMutex);
+    boost::lock_guard<boost::mutex> guard(nlparsemtx);
+    
     NestedList* nli = SecondoSystem::GetNestedList();
+
+    boost::lock_guard<boost::mutex> queryProcessorGuard(
+        // Dereference the shared_ptr to the mutex
+        *LockKeeper::getInstance()->getQueryProcessorMutex()
+    );
+
     QueryProcessor* queryProcessor = new QueryProcessor( nli,
             SecondoSystem::GetAlgebraManager(),
             DEFAULT_GLOBAL_MEMORY);
@@ -355,7 +379,7 @@ bool SecondoUtilsLocal::executeQueryCommand(const string& queryAsString)
 }
 
 bool SecondoUtilsLocal::executeQueryCommand(const string& queryAsString,
-        ListExpr& resultList, string& errorMessage) {
+    ListExpr& resultList, string& errorMessage, bool destroyRootValue) {
     printFunction("SecondoUtilsLocal::executeQueryCommand (2 args)", std::cout);
     bool correct = false;
     bool evaluable = false;
@@ -364,6 +388,12 @@ bool SecondoUtilsLocal::executeQueryCommand(const string& queryAsString,
 
     print("Acquiring lock for executeQueryCommand...", std::cout);
     boost::lock_guard<boost::mutex> lock(utilsMutex);
+    boost::lock_guard<boost::mutex> guard(nlparsemtx);
+    boost::lock_guard<boost::mutex> queryProcessorGuard(
+        // Dereference the shared_ptr to the mutex
+        *LockKeeper::getInstance()->getQueryProcessorMutex()
+    );
+
     print("Done acquiring lock for executeQueryCommand.", std::cout);
 
     NestedList* nli = SecondoSystem::GetNestedList();
@@ -386,14 +416,14 @@ bool SecondoUtilsLocal::executeQueryCommand(const string& queryAsString,
         return false;
     }
     print("query converted to nested list string", std::cout);
-    print("queryAsNestedListString", queryAsNestedListString, std::cout);
+    // print("queryAsNestedListString", queryAsNestedListString, std::cout);
 
     ListExpr queryAsNestedList;
     if (!nl->ReadFromString(queryAsNestedListString, queryAsNestedList)) {
         print("could not convert string to list", std::cout);
     }
     print("nested list string converted to nested list", std::cout);
-    print("queryAsNestedList", queryAsNestedList, std::cout);
+    // print("queryAsNestedList", queryAsNestedList, std::cout);
 
     try {
         print("queryProcessor->Construct", std::cout);
@@ -416,7 +446,7 @@ bool SecondoUtilsLocal::executeQueryCommand(const string& queryAsString,
             print("resultList done", std::cout);
 
             // queryProcessor->Destroy(tree, true);
-            queryProcessor->Destroy(tree, false);
+            queryProcessor->Destroy(tree, destroyRootValue);
             print("queryProcessor->Destroy done", std::cout);
         }
 

@@ -37,6 +37,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "NestedList.h"
 #include "ListUtils.h"
 #include "QueryProcessor.h"
+#include "Algebras/DBService2/LockKeeper.hpp"
+
+extern boost::mutex nlparsemtx;
 
 namespace DBService{
 
@@ -57,6 +60,8 @@ DerivationClient::DerivationClient(
 void DerivationClient::start() {
 
    printFunction(__PRETTY_FUNCTION__, std::cout);
+         
+   boost::lock_guard<boost::mutex> guard(nlparsemtx);
 
    try{
      SecondoCatalog* ctlg = SecondoSystem::GetCatalog();
@@ -103,6 +108,11 @@ void DerivationClient::start() {
      std::string typeString, errorString;
      bool correct, evaluable, defined, isFunction;
   
+     boost::lock_guard<boost::mutex> queryProcessorGuard(
+       // Dereference the shared_ptr to the mutex
+       *LockKeeper::getInstance()->getQueryProcessorMutex()
+     );
+
      SecondoSystem::BeginTransaction();
      try{
        QueryProcessor::ExecuteQuery(fundeflist, QueryResult, typeString, 

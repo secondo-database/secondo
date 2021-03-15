@@ -33,6 +33,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 using namespace std;
 
 extern NestedList* nl;
+extern boost::mutex nlparsemtx;
 
 namespace DBService {
   
@@ -55,6 +56,8 @@ namespace DBService {
     int id;
 
     int index = 0;
+
+    boost::lock_guard<boost::mutex> guard(nlparsemtx);
 
     relationId        = nl->IntValue(nl->Nth(++index, recordAsNestedList));
     targetNodeId      = nl->IntValue(nl->Nth(++index, recordAsNestedList));

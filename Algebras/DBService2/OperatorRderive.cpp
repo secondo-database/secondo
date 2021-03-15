@@ -43,11 +43,15 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 using namespace std;
 
+extern boost::mutex nlparsemtx;
+
 namespace DBService {
 
 ListExpr OperatorRderive::mapType(ListExpr args)
 {
   // rel x string x fun
+
+  boost::lock_guard<boost::mutex> guard(nlparsemtx);
 
   if(!nl->HasLength(args,3)){
     return listutils::typeError("expected 3 arguments");

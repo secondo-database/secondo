@@ -32,6 +32,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <string>
 #include <sstream>
 
+#include <loguru.hpp>
+
 using namespace std;
 
 namespace DBService {
@@ -248,6 +250,8 @@ namespace DBService {
   }
 
   void Node::connectAndConfigure() {    
+    
+    LOG_SCOPE_FUNCTION(INFO);
 
     nodeConnection = make_shared<NodeConnection>(
       getHost().getHostname(),
@@ -255,11 +259,16 @@ namespace DBService {
       getConfig()
     );
     
+
+    //TODO isn't this "connect" redundant to the connect from 
+      //  the nodeConnections's constructor?
+    LOG_F(INFO, "%s", "Connecting to remote node...");
     nodeConnection->connect();
     
+    LOG_F(INFO, "%s", "Obtaining config params from remote node...");
     setComPort(nodeConnection->obtainRemoteConfigParamComPort());
     setTransferPort(nodeConnection->obtainRemoteConfigParamTransferPort());
-    setDiskPath(nodeConnection->obtainRemoteConfigParamDiskPath());
+    setDiskPath(nodeConnection->obtainRemoteConfigParamDiskPath());    
   }
 
   bool Node::isConnected() {

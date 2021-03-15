@@ -106,7 +106,7 @@ bool DBServiceClient::triggerReplication(const std::string& databaseName,
                                             const ListExpr relType,
                                             const bool async)
 {
-    LOG_SCOPE_FUNCTION(INFO);
+    //LOG_SCOPE_FUNCTION(INFO);
     printFunction("DBServiceClient::triggerReplication", std::cout);
     print("databaseName", databaseName, std::cout);
     print("relationName", relationName, std::cout);
@@ -213,6 +213,7 @@ fs::path DBServiceClient::retrieveReplicaAndGetFileName(
     string host;
     string transferPort;
     string dummyCommPort;
+    
     if(!getReplicaLocation(
             databaseName, relationName, otherObjects, host, transferPort,
             dummyCommPort))

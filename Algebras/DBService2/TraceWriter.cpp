@@ -35,6 +35,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 using namespace std;
 
+extern boost::mutex nlparsemtx;
+
 namespace DBService {
 
 TraceWriter::TraceWriter(string& context, int port, ostream& _out)
@@ -197,6 +199,7 @@ void TraceWriter::write(
     print(text, nestedList, *out);
     if(TraceSettings::getInstance()->isFileTraceOn())
     {
+        boost::lock_guard<boost::mutex> guard(nlparsemtx);
         *traceFile << "[Thread " << tid << "] " << endl;
         *traceFile << text << endl;
         *traceFile << "length: " << nl->ListLength(nestedList) << endl;

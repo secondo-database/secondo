@@ -30,6 +30,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 using namespace std;
 
 extern NestedList* nl;
+extern boost::mutex nlparsemtx;
 
 namespace DBService
 {
@@ -63,6 +64,7 @@ namespace DBService
           }
     */
 
+    boost::lock_guard<boost::mutex> guard(nlparsemtx);
 
     // Example of a record as nested list: 
     //   ('localhost' 1245 '' '/home/doesnt_exist/secondo' 9941 9942 1) 

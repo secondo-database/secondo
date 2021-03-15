@@ -32,10 +32,15 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 using namespace std;
 
+extern boost::mutex nlparsemtx;
+
 namespace DBService {
 
 ListExpr OperatorRELARG::mapType(ListExpr args)
 {
+
+  boost::lock_guard<boost::mutex> guard(nlparsemtx);
+
   if(!nl->HasMinLength(args,1)){
     return listutils::typeError("too less arguments");
   }

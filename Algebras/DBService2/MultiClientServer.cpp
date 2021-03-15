@@ -26,6 +26,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "Algebras/DBService2/MultiClientServer.hpp"
 
+#include <loguru.hpp>
+
 namespace DBService {
 
 
@@ -38,20 +40,27 @@ MultiClientServer::~MultiClientServer()
 
 int MultiClientServer::start()
 {
+    LOG_SCOPE_FUNCTION(INFO);
+
     listener = Socket::CreateGlobal("localhost", stringutils::int2str(port));
     if (!listener->IsOk())
     {
         return 1;
     }
 
-    const size_t MAX_THREADS = 256;
+    const size_t MAX_THREADS = 256; // 256
+    LOG_F(INFO, "%s", "Building thread pool...");
 
+    // Build a thread pool to respond to incoming communication requests
     boost::thread_group threads;
     for(size_t i = 0; i < MAX_THREADS; i++)
     {
         threads.create_thread(boost::bind(
                 &MultiClientServer::handleCommunicationThread, this));
     }
+
+    LOG_F(INFO, "%s", 
+        "Waiting for incoming connections to pass them to workers...");
 
     while(true)
     {
@@ -65,13 +74,21 @@ int MultiClientServer::start()
         socketBuffer.push(serverConnection);
         queueIndicator.notify_one();
 
-        boost::this_thread::sleep_for(boost::chrono::milliseconds(50));
+        //boost::this_thread::sleep_for(boost::chrono::milliseconds(50));
     }
 
+    LOG_F(INFO, "%s", "Interrupting all threads a queueGaurd.wait()...");
+
     threads.interrupt_all(); // interrupt the threads (at queueGuard.wait())
+
+    LOG_F(INFO, "%s", "Joining all threads. Waiting for them to finish...");
     threads.join_all(); // wait for all threads to finish
 
+    LOG_F(INFO, "%s", "Closing listener...");
+
     listener->Close();
+
+    LOG_F(INFO, "%s", "Done.");
     return 0;
 }
 

@@ -130,7 +130,7 @@ This function allows executing a query and accessing the result
     static bool executeQueryCommand(
             const std::string& queryAsString,
             ListExpr& resultList,
-            std::string& errorMessage);
+        std::string& errorMessage, bool destroyRootValue = false);
 
 /*
 

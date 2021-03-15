@@ -38,10 +38,14 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 using namespace std;
 using namespace distributed2;
 
+extern boost::mutex nlparsemtx;
+
 namespace DBService {
 
 ListExpr OperatorInitDBServiceWorker::mapType(ListExpr nestedList)
 {
+    boost::lock_guard<boost::mutex> guard(nlparsemtx);
+
     if (!nl->HasLength(nestedList, 0))
     {
         ErrorReporter::ReportError(

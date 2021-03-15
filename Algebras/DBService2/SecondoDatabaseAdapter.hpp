@@ -3,6 +3,8 @@
 
 #include "Algebras/DBService2/DatabaseAdapter.hpp"
 
+#include <boost/thread/mutex.hpp>
+
 #include <string>
 #include <vector>
 
@@ -19,6 +21,7 @@ namespace DBService
     protected:
 
     static std::shared_ptr<DatabaseAdapter> dbAdapter;
+    static boost::recursive_mutex utilsMutex;
 
     SecondoDatabaseAdapter();
     SecondoDatabaseAdapter(const SecondoDatabaseAdapter&);
@@ -38,7 +41,8 @@ namespace DBService
     int executeInsertQuery(std::string database, std::string query) override;
 
     void executeQueryWithoutResult(
-      std::string database, std::string query) override;
+      std::string database, std::string query, 
+      bool useTransaction = true, bool destroyRootValue = true) override;
 
     void executeCreateRelationQuery(std::string database, 
       std::string query) override;

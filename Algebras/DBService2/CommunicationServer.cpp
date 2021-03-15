@@ -60,6 +60,8 @@ using namespace std;
 
 namespace fs = boost::filesystem;
 
+extern boost::mutex nlparsemtx;
+
 namespace DBService {
 
 CommunicationServer::CommunicationServer(int port) :
@@ -81,23 +83,23 @@ CommunicationServer::CommunicationServer(int port) :
 
 CommunicationServer::~CommunicationServer()
 {
-    traceWriter->writeFunction("CommunicationServer::~CommunicationServer");
     LOG_SCOPE_FUNCTION(INFO);
+    traceWriter->writeFunction("CommunicationServer::~CommunicationServer");
 }
 
 int CommunicationServer::start()
 {
-    traceWriter->writeFunction("CommunicationServer::start");
     LOG_SCOPE_FUNCTION(INFO);
+    traceWriter->writeFunction("CommunicationServer::start");
 
     return MultiClientServer::start();
 }
 
 void CommunicationServer::lookupMinimumReplicaCount()
 {
+    LOG_SCOPE_FUNCTION(INFO);
     traceWriter->writeFunction(
             "CommunicationServer::lookupMinimumReplicaCount");
-    LOG_SCOPE_FUNCTION(INFO);
 
     string replicaNumber;
     SecondoUtilsLocal::readFromConfigFile(replicaNumber,
@@ -204,8 +206,8 @@ int CommunicationServer::communicate(iostream& io)
                                 "const* exception:");
         traceWriter->write(tid, exception);
 
-        LOG_F(ERROR, "CommunicationServer: communication char "
-            "const* exception: %s", exception);
+        // LOG_F(ERROR, "CommunicationServer: communication char "
+        //     "const* exception: %s", exception);
 
         return 2;
     } catch (std::string const* exception) {
@@ -213,8 +215,8 @@ int CommunicationServer::communicate(iostream& io)
                 const* exception:");
         traceWriter->write(tid, exception->c_str());
 
-        LOG_F(ERROR, "CommunicationServer: communication string "
-                     "exception: %s", exception->c_str());
+        // LOG_F(ERROR, "CommunicationServer: communication string "
+        //              "exception: %s", exception->c_str());
 
         return 2;    
     } catch (std::string const exception) {
@@ -790,6 +792,7 @@ bool CommunicationServer::handleRelTypeRequest(
             "CommunicationServer::handleRelTypeRequest");
     LOG_SCOPE_FUNCTION(INFO);
 
+
     string relID;
     CommunicationUtils::receiveLine(io, relID);
 
@@ -814,6 +817,9 @@ bool CommunicationServer::handleRelTypeRequest(
 
     LOG_F(INFO, "Filename: %s, Relation: %s",
             fileName.c_str(), relname.c_str());
+            
+    // Restrict access to the nested list
+    boost::lock_guard<boost::mutex> guard(nlparsemtx);
     
     SecondoCatalog* ctlg = SecondoSystem::GetCatalog();
     if(!ctlg->IsObjectName(relname)){
@@ -845,6 +851,9 @@ bool CommunicationServer::handleDerivedTypeRequest(
             "CommunicationServer::handleDerivedTypeRequest");
     LOG_SCOPE_FUNCTION(INFO);
 
+    // ensure to have only one access to the catalog
+    
+
     string relID;
     CommunicationUtils::receiveLine(io, relID);
     string derivedName;
@@ -868,6 +877,7 @@ bool CommunicationServer::handleDerivedTypeRequest(
     traceWriter->write("ObjectName ", objectName);
     LOG_F(INFO, "ObjectName: %s", objectName.c_str());
 
+    boost::lock_guard<boost::mutex> guard(nlparsemtx);
 
     SecondoCatalog* ctlg = SecondoSystem::GetCatalog();
     if(!ctlg->IsObjectName(objectName)){
@@ -895,6 +905,10 @@ bool CommunicationServer::handleTriggerDerivation(
     traceWriter->writeFunction(tid,
             "CommunicationServer::handleTriggerDerivation");
     LOG_SCOPE_FUNCTION(INFO);
+
+    // ensure to have only one access to the catalog
+    static boost::mutex mtx;
+    boost::lock_guard<boost::mutex> guard(mtx);
 
     // request derivation information
     CommunicationUtils::sendLine(io,
@@ -952,6 +966,10 @@ bool CommunicationServer::handleCreateDerivation(
 
     LOG_SCOPE_FUNCTION(INFO);
 
+    // ensure to have only one access to the catalog
+    static boost::mutex mtx;
+    boost::lock_guard<boost::mutex> guard(mtx);
+
     CommunicationUtils::sendLine(io,
             CommunicationProtocol::DerivationRequest());
 
@@ -988,6 +1006,10 @@ bool CommunicationServer::reportSuccessfulDerivation(
             "CommunicationServer::reportSuccessfulDerivation");
 
     LOG_SCOPE_FUNCTION(INFO);
+
+    // ensure to have only one access to the catalog
+    static boost::mutex mtx;
+    boost::lock_guard<boost::mutex> guard(mtx);
 
     CommunicationUtils::sendLine(io,
             CommunicationProtocol::ObjectRequest());

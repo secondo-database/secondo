@@ -37,11 +37,15 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 using namespace std;
 
+extern boost::mutex nlparsemtx;
+
 namespace DBService
 {
 
 ListExpr OperatorDDeleteDB::mapType(ListExpr nestedList)
 {
+   boost::lock_guard<boost::mutex> guard(nlparsemtx);
+
    if(nl->IsEmpty(nestedList)){
       return listutils::basicSymbol<CcBool>();
    }

@@ -31,6 +31,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "NList.h"
 
 #include <boost/algorithm/string.hpp>
+#include <boost/thread/mutex.hpp>
+
+#include <loguru.hpp>
 
 #include "Algebras/DBService2/SecondoDatabaseAdapter.hpp"
 #include "Algebras/DBService2/SecondoUtilsLocal.hpp"
@@ -41,11 +44,13 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 using namespace std;
 
 extern NestedList* nl;
+extern boost::mutex nlparsemtx;
 
 namespace DBService
 {
 
   shared_ptr<DatabaseAdapter> SecondoDatabaseAdapter::dbAdapter = nullptr;
+  boost::recursive_mutex SecondoDatabaseAdapter::utilsMutex;
 
   SecondoDatabaseAdapter::SecondoDatabaseAdapter() {
   }
@@ -82,17 +87,21 @@ namespace DBService
   int SecondoDatabaseAdapter::executeInsertQuery(
     string database, string insertQuery)
   {
+    LOG_SCOPE_FUNCTION(INFO);
+
     int recordId = -1;
     bool success = false;
 
-    printFunction("SecondoDatabaseAdapter::executeInsertQuery", std::cout);
+    boost::lock_guard<boost::recursive_mutex> lock(utilsMutex);
 
     print("Opening the database...", std::cout);
+    LOG_F(INFO, "Opening the database: %s", database.c_str());
 
     // Ensures acting on the DBService database.
     openDatabase(database);
 
     print("Building the insert query...", std::cout);
+    LOG_F(INFO, "%s", "Building the insert query...");
 
     // Later is must be defined which column contains the "TID" attribute.
     // Therefore, the project operator is used to make TID the first attribute 
@@ -105,17 +114,16 @@ namespace DBService
     ListExpr resultList;
 
     print("Executing the insert query...", std::cout);
+    LOG_F(INFO, "Executing the insert query: %s", insertQuery.c_str());
 
     try {
-
-      SecondoCatalog* catalog = SecondoSystem::GetCatalog();
-
+      
       // Without triggering the transaction, the relation creations would 
       // not be committed      
       SecondoSystem::BeginTransaction();
 
       success = SecondoUtilsLocal::executeQueryCommand(insertQuery, resultList,
-        errorMessage);
+        errorMessage, true);
 
       if(!SecondoSystem::CommitTransaction(true))
       {
@@ -127,22 +135,33 @@ namespace DBService
     {
       print("Couldn't execute create query. An Exception occured: ",
         string(e.what()), std::cout);
+      
+      LOG_F(ERROR, "Couldn't execute create query. An Exception occured: %s",
+        e.what());
     }
 
     if(success) {
-      print("resultList", resultList, std::cout);
+
+      boost::lock_guard<boost::mutex> guard(nlparsemtx);
+      //print("resultList", resultList, std::cout);
+      //TODO Add LOG_F
 
       ListExpr resultData = nl->Second(resultList);
       print("resultData", resultData, std::cout);
+      //TODO Add LOG_F
 
       int resultCount = nl->ListLength(resultData);
       print("ResultCount", resultCount, std::cout);
+      //TODO Add LOG_F
 
       // Inserting a record should return exactly one result containing the 
       // record's id.      
       if(resultCount != 1) {
         print("Exception: Found a resultCount != 1. Expected exactly one \
 result containing the record's id.", std::cout);
+
+        LOG_F(ERROR, "%s", "Exception: Found a resultCount != 1. "
+        "Expected exactly one result containing the record's id.");
 
         throw SecondoException("Found a resultCount != 1. Expected exactly \
 one result containing the record's id.");
@@ -152,6 +171,9 @@ one result containing the record's id.");
       if(nl->IsEmpty(resultData)) {
         print("Exception: Found empty result data. Should have found the \
 inserted record's id.", std::cout);
+
+        LOG_F(ERROR, "%s", "Exception: Found empty result data. "
+        "Should have found the inserted record's id.");
 
         throw SecondoException("Found empty result data. Should have found \
 the inserted record's id.");
@@ -165,6 +187,9 @@ the inserted record's id.");
     else {
       print("Exception: The record couldn't be inserted. " + errorMessage, 
         std::cout);
+      LOG_F(ERROR, "Exception: The record couldn't be inserted: %s ", 
+        errorMessage.c_str());
+
       throw SecondoException("The record couldn't be inserted." + 
         errorMessage);
     }
@@ -174,8 +199,11 @@ the inserted record's id.");
   void SecondoDatabaseAdapter::executeCreateRelationQuery(string database, 
     string query) {
 
+    LOG_SCOPE_FUNCTION(INFO);
     printFunction("SecondoDatabaseAdapter::executeCreateRelationQuery", 
       std::cout);
+
+    //boost::lock_guard<boost::recursive_mutex> lock(utilsMutex);    
 
     bool success = false;
 
@@ -184,6 +212,7 @@ the inserted record's id.");
     string errorMessage;
 
     print("Executing the query...", std::cout);
+    LOG_F(INFO, "Executing the query: %s", query.c_str());
 
     try
     {
@@ -197,24 +226,31 @@ the inserted record's id.");
 
       if(!SecondoSystem::CommitTransaction(true))
       {
+        LOG_F(ERROR, "%s", "CommitTransaction() failed!");
         throw SecondoException("CommitTransaction() failed!");
       }
 
     }
     catch(const std::exception& e)
     {
-      print("Couldn't execute the query. An Exception occured: ", 
+      print("Couldn't execute the query. An Exception occurred: ",
         string(e.what()), std::cout);
+      LOG_F(ERROR, "Couldn't execute the query. An Exception occurred: %s",
+            e.what());
     }
 
     if(success)
     {
       print("\tThe query has been executed successfully.", std::cout);
+      LOG_F(INFO, "%s", "The query has been executed successfully.");
     }
     else
     {
       print("Exception: The query couldn't be executed. " + errorMessage, 
         std::cout);
+      LOG_F(ERROR, "Couldn't execute the query. An Exception occurred: %s",
+        errorMessage.c_str());
+
       throw SecondoException("Exception: The query couldn't be executed. " + 
         errorMessage);
     }
@@ -222,10 +258,14 @@ the inserted record's id.");
 
 
   void SecondoDatabaseAdapter::executeQueryWithoutResult(
-      string database, string query) {
+    string database, string query, bool useTransaction, 
+    bool destroyRootValue) {
 
+    LOG_SCOPE_FUNCTION(INFO);
     printFunction("SecondoDatabaseAdapter::executeCreateRelationQuery", 
       std::cout);
+
+    boost::lock_guard<boost::recursive_mutex> lock(utilsMutex);
 
     bool success = false;
 
@@ -234,12 +274,15 @@ the inserted record's id.");
     string errorMessage;
 
     print("Executing the query...", std::cout);
+    LOG_F(INFO, "Executing the query: %s", query.c_str());
 
     try
     {
-      // Without triggering the transaction, the relation creations would not 
-      // be committed      
-      SecondoSystem::BeginTransaction();
+      if (useTransaction) {
+        // Without triggering the transaction, the relation creations would not 
+        // be committed      
+        SecondoSystem::BeginTransaction();
+      }
 
       ListExpr resultList;
 
@@ -248,26 +291,32 @@ the inserted record's id.");
       success = SecondoUtilsLocal::executeQueryCommand(query, resultList, 
         errorMessage);
 
-      if(!SecondoSystem::CommitTransaction(true))
+      if(useTransaction && !SecondoSystem::CommitTransaction(true))
       {
+        LOG_F(ERROR, "%s", "CommitTransaction() failed!");
         throw SecondoException("CommitTransaction() failed!");
       }
 
     }
     catch(const std::exception& e)
     {
-      print("Couldn't execute the query. An Exception occured: ", 
+      print("Couldn't execute the query. An Exception occurred: ",
         string(e.what()), std::cout);
+      LOG_F(ERROR, "Couldn't execute the query. An Exception occurred: %s",
+        e.what());
     }
 
     if(success)
     {
       print("\tThe query has been executed successfully.", std::cout);
+      LOG_F(INFO, "%s", "The query has been executed successfully.");
     }
     else
     {
       print("Exception: The query couldn't be executed. " + errorMessage, 
         std::cout);
+      LOG_F(ERROR, "Couldn't execute the query. An Exception occurred: %s",
+              errorMessage.c_str());
       throw SecondoException("Exception: The query couldn't be executed. " + 
         errorMessage);
     }
@@ -283,7 +332,10 @@ the inserted record's id.");
     string query) {
     bool success = false;
 
-    printFunction("SecondoDatabaseAdapter::executeQuery", std::cout);
+    printFunction("SecondoDatabaseAdapter::executeFindQuery", std::cout);
+    LOG_SCOPE_FUNCTION(INFO);
+
+    boost::lock_guard<boost::recursive_mutex> lock(utilsMutex);
 
     print("Opening the database...", std::cout);
 
@@ -294,6 +346,7 @@ the inserted record's id.");
     ListExpr resultList;
 
     print("Executing the query...", std::cout);
+    LOG_F(INFO, "Executing the query: %s", query.c_str());
 
     try {
 
@@ -306,19 +359,25 @@ the inserted record's id.");
 
       if(!SecondoSystem::CommitTransaction(true))
       {
+        LOG_F(ERROR, "%s", "CommitTransaction() failed!");
         throw SecondoException("CommitTransaction() failed!");
       }
 
     }
     catch(const std::exception& e) {
-      print("Couldn't execute query. An Exception occured: ", string(e.what()), 
+      print("Couldn't execute query. An Exception occurred: ", string(e.what()),
         std::cout);
+      LOG_F(ERROR, "Couldn't execute the query. An Exception occurred: %s",
+        e.what());
     }
 
-    print("resultList", resultList, std::cout);
+    LOG_F(INFO, "%s", "The query has been executed. Parsing the result...");
+    
 
     if(success) {
 
+      boost::lock_guard<boost::mutex> guard(nlparsemtx);
+      
       ListExpr resultData = nl->Second(resultList);
       print("resultData", resultData, std::cout);
 
@@ -328,6 +387,9 @@ the inserted record's id.");
     else {
       print("Exception: The find statement couldn't be executed: " + 
         errorMessage, std::cout);
+      LOG_F(ERROR, "Couldn't execute the find query. An Exception occurred: %s",
+            errorMessage.c_str());
+
       throw SecondoException("The find statement couldn't be executed: " + 
         errorMessage);
     }
@@ -343,6 +405,9 @@ the inserted record's id.");
   string SecondoDatabaseAdapter::getCurrentDatabase() {
     string currentDatabase;
 
+    LOG_SCOPE_FUNCTION(INFO);
+    //boost::lock_guard<boost::recursive_mutex> lock(utilsMutex);
+
     if(!isDatabaseOpen() == true)
       throw SecondoException("Can't determine current database as no database \
 is open.");
@@ -354,6 +419,10 @@ is open.");
 
   bool SecondoDatabaseAdapter::doesDatabaseExist(string database)
   {
+    LOG_SCOPE_FUNCTION(INFO);
+    //boost::lock_guard<boost::recursive_mutex> lock(utilsMutex);
+    boost::lock_guard<boost::mutex> guard(nlparsemtx);
+
     // Uppercase is also for getting the filenames right later as 
     // they are derived from the relation's db name.
     boost::to_upper(database);
@@ -384,8 +453,15 @@ is open.");
     }
   }
 
+  //TODO Continue to use LOG_F in the remainder of this class
+
   void SecondoDatabaseAdapter::openDatabase(string database)
   {
+    LOG_SCOPE_FUNCTION(INFO);
+
+    // Deadlock
+    //boost::lock_guard<boost::recursive_mutex> lock(utilsMutex);
+
     //TODO Make consistent. Check everywhere or nowhere.
     if(database == "")
       throw SecondoException("Can't open a database without a database name.");
@@ -432,6 +508,7 @@ Thus, can't open it.");
 
   void SecondoDatabaseAdapter::closeDatabase()
   {
+    LOG_SCOPE_FUNCTION(INFO);
     SecondoSystem* secondoSystem = SecondoSystem::GetInstance();
 
     // Only close if a db is open. Else do nothing.
@@ -443,6 +520,9 @@ Thus, can't open it.");
 
   void SecondoDatabaseAdapter::createDatabase(string database)
   {
+    LOG_SCOPE_FUNCTION(INFO);
+
+    boost::lock_guard<boost::recursive_mutex> lock(utilsMutex);
 
     // Can't create an existing database.
     if(doesDatabaseExist(database)) {
@@ -463,6 +543,9 @@ Thus, can't open it.");
   }
 
   void SecondoDatabaseAdapter::deleteDatabase(string database) {
+    LOG_SCOPE_FUNCTION(INFO);
+
+    boost::lock_guard<boost::recursive_mutex> lock(utilsMutex);
 
     // No database may be open during the deletion of a db.
     closeDatabase();
@@ -479,6 +562,8 @@ Thus, can't open it.");
   bool SecondoDatabaseAdapter::doesRelationExist(string database, 
     string relationName) {
 
+    LOG_SCOPE_FUNCTION(INFO);
+
     openDatabase(database);
     SecondoCatalog* catalog = SecondoSystem::GetCatalog();
 
@@ -487,6 +572,11 @@ Thus, can't open it.");
 
   void SecondoDatabaseAdapter::createRelation(string database, 
     string relationName, string createRelationStatement) {
+
+    LOG_SCOPE_FUNCTION(INFO);
+
+    boost::lock_guard<boost::recursive_mutex> lock(utilsMutex);
+
     openDatabase(database);
 
     if(doesRelationExist(database, relationName) == false)
@@ -497,6 +587,10 @@ Thus, can't open it.");
 
   bool SecondoDatabaseAdapter::isDatabaseOpen()
   {
+    LOG_SCOPE_FUNCTION(INFO);
+
+    //boost::lock_guard<boost::recursive_mutex> lock(utilsMutex);
+
     SecondoSystem* secondoSystem = SecondoSystem::GetInstance();
     return secondoSystem->IsDatabaseOpen();
   }

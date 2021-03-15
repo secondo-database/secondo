@@ -38,6 +38,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 using namespace std;
 
+extern boost::mutex nlparsemtx;
+
 namespace DBService {
 
 ListExpr OperatorCommon::getStreamType(
@@ -46,6 +48,9 @@ ListExpr OperatorCommon::getStreamType(
 {
     printFunction("OperatorCommon::getStreamType", std::cout);
     print(nestedList, std::cout);
+
+    // Assumption: the lock is in the invoking function.
+    // boost::lock_guard<boost::mutex> guard(nlparsemtx);
 
     if(!nl->HasMinLength(nestedList, 1))
     {
@@ -102,7 +107,10 @@ ListExpr OperatorCommon::getStreamType(
 ListExpr OperatorCommon::getRelType(
         ListExpr nestedList,
         bool& locallyAvailable)
-{
+{  
+  // Assumption: the lock is in the invoking function. 
+  //boost::lock_guard<boost::mutex> guard(nlparsemtx);
+
   ListExpr tr = getStreamType(nestedList, locallyAvailable);
   if(!Stream<Tuple>::checkType(tr)){
      return tr;
@@ -116,6 +124,9 @@ ListExpr OperatorCommon::getDerivedType(
             ListExpr args, 
             int X,
             bool & locallyAvailable){
+
+  // Assumption: the lock is in the invoking function.
+  //boost::lock_guard<boost::mutex> guard(nlparsemtx);
 
   locallyAvailable = false;
   if(!nl->HasMinLength(args,X+1))

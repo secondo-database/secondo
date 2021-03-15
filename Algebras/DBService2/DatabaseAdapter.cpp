@@ -80,7 +80,7 @@ DatabaseAdapter. Use subclass such as SecondoDatabaseAdapter.");
   }
 
   void DatabaseAdapter::executeQueryWithoutResult(string database, 
-    string query) {
+    string query, bool useTransaction, bool destroyRootValue) {
 
     throw SecondoException("executeQueryWithoutResult: Not implemented in \
 DatabaseAdapter. Use subclass such as SecondoDatabaseAdapter.");

@@ -36,6 +36,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Algebras/DBService2/ReplicationClient.hpp"
 #include "Algebras/DBService2/SecondoUtilsLocal.hpp"
 #include "Algebras/DBService2/ReplicationUtils.hpp"
+#include "Algebras/DBService2/LockKeeper.hpp"
+
+#include <loguru.hpp>
 
 #include "boost/filesystem.hpp"
 
@@ -43,6 +46,8 @@ namespace fs = boost::filesystem;
 
 using namespace std;
 using namespace distributed2;
+
+extern boost::mutex nlparsemtx;
 
 namespace DBService {
 
@@ -80,6 +85,8 @@ ReplicationClient::ReplicationClient(
   databaseName(databaseName),
   relationName(relationName)
 {
+    LOG_SCOPE_FUNCTION(INFO);
+    
     string context("ReplicationClient");
     traceWriter= unique_ptr<TraceWriter>
     (new TraceWriter(context, port, std::cout));
@@ -96,20 +103,26 @@ ReplicationClient::ReplicationClient(
 ReplicationClient::~ReplicationClient()
 {
     traceWriter->writeFunction("ReplicationClient::~ReplicationClient");
+    LOG_SCOPE_FUNCTION(INFO);
 }
 
 int ReplicationClient::start()
 {
+    LOG_SCOPE_FUNCTION(INFO);
     traceWriter->writeFunction("ReplicationClient::start");
     socket = Socket::Connect(server, stringutils::int2str(port),
             Socket::SockGlobalDomain, 3, 1);
+
     if (!socket)
     {
         traceWriter->write("socket initialization failed");
+        LOG_F(ERROR, "%s", "Socket initialization failed.");
+
         return 1;
     }
     if (!socket->IsOk())
     {
+        LOG_F(ERROR, "%s", "Socket not ok.");
         traceWriter->write("socket not ok");
         return 2;
     }
@@ -119,11 +132,15 @@ int ReplicationClient::start()
 int ReplicationClient::receiveReplica()
 {
     traceWriter->writeFunction("ReplicationClient::receiveReplica");
+    LOG_SCOPE_FUNCTION(INFO);
+
     try
     {
         if(start() != 0)
         {
             traceWriter->write("Could not connect to Server");
+            LOG_F(ERROR, "%s", "Could not connect to the ReplicationServer.");
+
             return false;
         }
 
@@ -131,34 +148,60 @@ int ReplicationClient::receiveReplica()
         if(!CommunicationUtils::receivedExpectedLine(io,
                 CommunicationProtocol::ReplicationServer()))
         {
-            traceWriter->write("not connected to ReplicationServer");
+            traceWriter->write("Not connected to ReplicationServer.");
+            LOG_F(ERROR, "%s", "Not connected to ReplicationServer.");
+
             return 1;
         }
         queue<string> sendBuffer;
         sendBuffer.push(CommunicationProtocol::ReplicationClient());
         sendBuffer.push(CommunicationProtocol::SendReplicaForStorage());
         sendBuffer.push(remoteFilename);
+
         traceWriter->write("remoteFilename", remoteFilename);
         traceWriter->write("localPath", localPath.string());
+
+        LOG_F(INFO, "remoteFilename: %s", remoteFilename.c_str());
+        LOG_F(INFO, "localPath: %s", localPath.string().c_str());
+
         CommunicationUtils::sendBatch(io, sendBuffer);
+
+
+        // Lock access to the nested list.
+        
 
         if(receiveFileFromServer())
         {
-            traceWriter->write("file received, create relation");
+            traceWriter->write("File received. Now creating relation...");
+            LOG_F(INFO, "%s", "File received. Now creating relation...");
+
+            LOG_F(INFO, "%s", "Acquiring the nlparsemtx...");
+            boost::unique_lock<boost::mutex> nlLock(nlparsemtx);
+            LOG_F(INFO, "%s", "Successfully acquired the nlparsemtx.");
+            
             ListExpr command = nl->TwoElemList(
                 nl->SymbolAtom("consume"),
                 nl->TwoElemList(
                     nl->SymbolAtom("ffeed5"),
                     nl->TextAtom(localPath.string()))); //  // remoteFilename
 
+            nlLock.unlock();
 
             //TODO Does this read the entire memory before writing it?
             //  If so, wouldn't it be more efficient to stream read and 
             //  stream write? Is this possible?
+
             Word result((void*)0);
             string typeString,errorString;
             bool correct,evaluable,defined,isFunction;
             SecondoSystem::BeginTransaction();
+
+            LOG_F(INFO, "%s", "Acquiring the QueryProcessorMutex...");
+            boost::lock_guard<boost::mutex> queryProcessorGuard(
+                // Dereference the shared_ptr to the mutex
+                *LockKeeper::getInstance()->getQueryProcessorMutex()
+            );
+            LOG_F(INFO, "%s", "Successfully acquired the QueryProcessorMutex.");
 
             // Generate a stream of tuples from ffeed5 and store into "result"
             try{
@@ -169,34 +212,55 @@ int ReplicationClient::receiveReplica()
                 correct = false;
             }
             if(!correct){
-               traceWriter->write("Error in creating relation from file");
-               SecondoSystem::AbortTransaction(true);
-               return 1;
+                traceWriter->write("Error in creating relation from file.");
+                LOG_F(ERROR, "%s", "Error in creating relation from file.");
+
+                SecondoSystem::AbortTransaction(true);
+                return 1;
             }
             ListExpr typeExpr;
+            
+            nlLock.lock();
             nl->ReadFromString(typeString,typeExpr);
+            nlLock.unlock();
+
             SecondoCatalog* ctlg = SecondoSystem::GetCatalog();
             string relName = ReplicationUtils::getRelName(
                 localPath.filename().string());
 
             // Create the relation by writing the "result"
             bool ok = ctlg->InsertObject(relName,"",typeExpr,result,true);
-            if(!ok){
+            
+            if(!ok){                
               traceWriter->write("Insertion relation " + relName + " failed");
+              LOG_F(ERROR, "Insertion of relation %s failed", 
+                relName.c_str());
+
               SecondoSystem::AbortTransaction(true);
               return 1;
             }
+
             ok = ctlg->CleanUp(false,true);
+
             if(!ok){
-               traceWriter->write("catalog->CleanUp failed");
-               SecondoSystem::AbortTransaction(true);
+                traceWriter->write("catalog->CleanUp failed");
+                LOG_F(ERROR, "%s", "catalog->CleanUp failed.");
+
+                SecondoSystem::AbortTransaction(true);
             } else {
-               traceWriter->write("Inserting relation " + relName 
+                traceWriter->write("Inserting relation " + relName 
                                   + " successful");
-               SecondoSystem::CommitTransaction(true);
+
+                LOG_F(INFO, "Insertion of the relation %s was successful.", 
+                    relName.c_str());
+                SecondoSystem::CommitTransaction(true);
             }
+
             traceWriter->write(
                     "Replication successful, notifying DBService master");
+            LOG_F(INFO, "%s", "Replication successful, notifying "
+                "the DBService master...");
+
             if(ok){
                reportSuccessfulReplication();
             }
@@ -204,6 +268,7 @@ int ReplicationClient::receiveReplica()
     } catch (...)
     {
         cerr << "ReplicationClient: communication error" << endl;
+        LOG_F(ERROR, "%s", "ReplicationClient: communication error.");
         return 5;
     }
     return 0;
@@ -214,14 +279,18 @@ int ReplicationClient::requestReplica(const string& functionAsNestedListString,
                                  const std::vector<std::string>& otherObjects)
 {
     traceWriter->writeFunction("ReplicationClient::requestReplica");
-    traceWriter->write("remoteFilename is", remoteFilename);
+    LOG_SCOPE_FUNCTION(INFO);
 
+    traceWriter->write("remoteFilename is", remoteFilename);
+    LOG_F(INFO, "The remoteFilename is: %s", remoteFilename.c_str());
 
     try
     {
         if(start() != 0)
         {
-            traceWriter->write("Could not connect to Server");
+            traceWriter->write("Could not connect to ReplicationServer.");
+            LOG_F(ERROR, "%s", "Could not connect to ReplicationServer.");
+
             return 1;
         }
 
@@ -230,6 +299,9 @@ int ReplicationClient::requestReplica(const string& functionAsNestedListString,
                 CommunicationProtocol::ReplicationServer()))
         {
             traceWriter->write("not connected to ReplicationServer");
+            LOG_F(ERROR, "%s", "Connected to a wrong server. "
+                "This is not a ReplicationServer.");
+
             return 2;
         }
         queue<string> sendBuffer;
@@ -241,6 +313,8 @@ int ReplicationClient::requestReplica(const string& functionAsNestedListString,
                 CommunicationProtocol::FunctionRequest()))
         {
             traceWriter->write("expected FunctionRequest");
+            LOG_F(ERROR, "%s", "Expected FunctionRequest.");
+
             return 3;
         }
         if(functionAsNestedListString.empty())
@@ -262,21 +336,28 @@ int ReplicationClient::requestReplica(const string& functionAsNestedListString,
                     CommunicationProtocol::FileName()))
             {
                 traceWriter->write("expected file name keyword");
+                LOG_F(ERROR, "%s", "Expected file name keyword.");
+
                 return 4;
             }
             CommunicationUtils::sendLine(io, remoteFilename);
             traceWriter->write("sent original filename");
+            LOG_F(INFO, "Sent original filename: %s", remoteFilename.c_str());
 
             if(!CommunicationUtils::receivedExpectedLine(io,
                     CommunicationProtocol::FileName()))
             {
                 traceWriter->write("expected file name keyword");
+                LOG_F(ERROR, "%s", "Expected file name keyword.");
+
                 return 5;
             }
 
             string newFileName;
             CommunicationUtils::receiveLine(io, newFileName);
             traceWriter->write("new filename is", newFileName);
+            LOG_F(INFO, "The new filename is: %s", newFileName.c_str());
+
             remoteFilename = remoteName = newFileName;
         }
 
@@ -287,6 +368,8 @@ int ReplicationClient::requestReplica(const string& functionAsNestedListString,
     } catch (...)
     {
         cerr << "ReplicationClient: communication error" << endl;
+        LOG_F(ERROR, "%s", "ReplicationClient: communication error.");
+
         return 4;
     }
     return 0;
@@ -294,8 +377,10 @@ int ReplicationClient::requestReplica(const string& functionAsNestedListString,
 
 bool ReplicationClient::receiveFileFromServer()
 {
+    LOG_SCOPE_FUNCTION(INFO);
     traceWriter->writeFunction("ReplicationClient::receiveFileFromServer");
     traceWriter->write("requesting file", remoteName);
+    LOG_F(INFO, "Requesting file: %s", remoteName.c_str());
 
     std::chrono::steady_clock::time_point begin =
             std::chrono::steady_clock::now();
@@ -305,9 +390,12 @@ bool ReplicationClient::receiveFileFromServer()
     if(rc != 0)
     {
         traceWriter->write("receive failed");
+        traceWriter->write("rc=", rc);
+
+        LOG_F(ERROR, "%s", "Failed to receive the replica file. "
+            "The return code was: %d", rc);
 
         //TODO Resolve error codes and explain them.
-        traceWriter->write("rc=", rc);
         return false;
     }else
     {
@@ -315,6 +403,11 @@ bool ReplicationClient::receiveFileFromServer()
         traceWriter->write("duration of receive [microseconds]",
                 std::chrono::duration_cast
                 <std::chrono::microseconds>(end - begin).count());
+
+        LOG_F(INFO, "Received the file successfully. "
+            "The file transfer took: %ld", std::chrono::duration_cast
+            <std::chrono::microseconds>(end - begin).count());
+
         return true;
     }
 }
@@ -323,6 +416,8 @@ void ReplicationClient::reportSuccessfulReplication()
 {
     traceWriter->writeFunction(
             "ReplicationClient::reportSuccessfulReplication");
+    
+    LOG_SCOPE_FUNCTION(INFO);
 
     string dbServiceHost;
     string dbServicePort;

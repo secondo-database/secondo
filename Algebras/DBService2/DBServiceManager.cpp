@@ -37,7 +37,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <boost/regex.hpp>
 #include <boost/algorithm/string/regex.hpp>
 
-#include <loguru.cc>
+#include <loguru.hpp>
 
 #include "Algebra.h"
 #include "NestedList.h"
@@ -76,6 +76,8 @@ namespace DBService
 
     DBServiceManager::DBServiceManager()
     {
+        loguru::set_thread_name("DBServiceManager");
+        
         printFunction("DBServiceManager::DBServiceManager", std::cout);
         LOG_SCOPE_FUNCTION(INFO);
 
@@ -98,7 +100,6 @@ namespace DBService
 
         restoreReplicaPlacementStrategyConfig();       
 
-        loguru::set_thread_name("DBServiceManager");
 
     }
 
@@ -247,6 +248,9 @@ namespace DBService
         LOG_SCOPE_FUNCTION(INFO);
 
         boost::lock_guard<boost::mutex> lock(managerMutex);
+
+        LOG_F(INFO, "%s", "Done acquiring lock.");
+        print("Done acquiring lock.", std::cout);
     
         shared_ptr<DBService::Relation> relation = DBService::Relation::build(
             string(databaseName), string(relationName),

@@ -65,7 +65,8 @@ namespace DBService
       Ensure that the database exists and has been opened.      
     */
     virtual void executeQueryWithoutResult(std::string database, 
-      std::string query);
+      std::string query, bool useTransaction = true, 
+      bool destroyRootValue = true); // should be false for updates
 
     /*
       Executes the statement to create a relation.

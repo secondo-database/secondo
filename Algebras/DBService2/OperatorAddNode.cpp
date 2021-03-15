@@ -35,6 +35,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Algebras/DBService2/DebugOutput.hpp"
 
 extern QueryProcessor* qp;
+extern boost::mutex nlparsemtx;
 
 namespace DBService
 {
@@ -42,6 +43,10 @@ namespace DBService
 ListExpr OperatorAddNode::mapType(ListExpr nestedList)
 {
     print(nestedList, std::cout);
+
+    // ensure to have only one access to the catalog
+    static boost::mutex mtx;
+    boost::lock_guard<boost::mutex> guard(nlparsemtx);
 
     if (!nl->HasLength(nestedList, 3))
     {
@@ -85,7 +90,6 @@ int OperatorAddNode::mapValue(Word* args,
     CcString* config = static_cast<CcString*>(args[2].addr);
 
     DBServiceClient* dbsClient = DBServiceClient::getInstance();
-
 
     print(host->GetValue(), std::cout);
     print(port->GetValue(), std::cout);
@@ -157,7 +161,7 @@ int OperatorAddNode::mapValue(Word* args,
      * will be opened
      * to satisfy this requirement for a successful operator execution.
      */
-    //SecondoSystem::BeginTransaction();
+    SecondoSystem::BeginTransaction();
 
     // Sets defined?=yes, success=true
     static_cast<CcBool*>(result.addr)->Set(true,success);

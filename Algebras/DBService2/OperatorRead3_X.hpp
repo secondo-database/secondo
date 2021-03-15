@@ -47,6 +47,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 namespace fs = boost::filesystem;
 
+extern boost::mutex nlparsemtx;
+
 namespace DBService {
 
 /*
@@ -131,6 +133,8 @@ ListExpr OperatorRead3_X<X>::mapType(ListExpr args)
 {
     printFunction(__PRETTY_FUNCTION__, std::cout);
     print(args, std::cout);
+
+    boost::lock_guard<boost::mutex> guard(nlparsemtx);
 
     if(!nl->HasLength(args, 2 + X )) // rel x Index^X x  fun
     {
@@ -294,6 +298,8 @@ int OperatorRead3_X<X>::mapValue(Word* args,
                             Supplier s)
 {
     //printFunction(__PRETTY_FUNCTION__);
+
+    boost::lock_guard<boost::mutex> guard(nlparsemtx);
 
     // arguments:
     // 0 : relation

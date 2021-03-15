@@ -34,12 +34,17 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Algebras/FText/FTextAlgebra.h"
 #include <sstream>
 
+extern boost::mutex nlparsemtx;
+
 namespace DBService
 {
 
 ListExpr OperatorCheckDBServiceStatus::mapType(ListExpr nestedList)
 {
     print(nestedList, std::cout);
+
+    // ensure to have only one access to the catalog
+    boost::lock_guard<boost::mutex> guard(nlparsemtx);
 
     if (!nl->HasLength(nestedList, 0))
     {
@@ -72,6 +77,7 @@ int OperatorCheckDBServiceStatus::mapValue(Word* args,
         r = out.str();
     }
 
+    //TODO Is here locking needed when accessing the qp?
     result = qp->ResultStorage(s);
     static_cast<FText*>(result.addr)->Set(dbServiceStarted,r);
     return 0;

@@ -53,7 +53,7 @@ namespace DBService
 
 */
 
-class CommunicationServer: public MultiClientServer
+class CommunicationServer : public MultiClientServer
 {
 /*
 

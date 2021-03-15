@@ -32,29 +32,43 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "NestedList.h"
 
+#include <loguru.hpp>
+
 using namespace std;
 
 extern NestedList* nl;
+extern boost::mutex nlparsemtx;
 
 namespace DBService {
+
+  boost::mutex NodeConnection::connectionMutex;
 
   NodeConnection::NodeConnection(string newHost, int newPort, 
     string newConfig) {
   
+    LOG_SCOPE_FUNCTION(INFO);
+
     host = newHost;
     port = newPort;
     config = newConfig;
 
-    connect();
+    // connect();
   }
 
   
   void NodeConnection::connect() {
+    LOG_SCOPE_FUNCTION(INFO);
+
     if (host == "" || port <= 0)
       throw "Can't connect without host and port.";
     
+
     //TODO learn about optional timeout and hartbeat params and make use 
     //  of them if helpful.
+
+    LOG_F(INFO, "%s", "Lock acquired. Now establishing the connection...");
+
+    boost::unique_lock<boost::mutex> connectionLock(connectionMutex);
 
     // Creating a connection
     shared_ptr<distributed2::ConnectionInfo> myConnection(      
@@ -64,6 +78,11 @@ namespace DBService {
     // Setting the connection and thus trigger the retrieval of config params.
     setConnectionInfo(myConnection);
 
+    LOG_F(INFO, "%s", "Releasing connection lock...");
+    
+    connectionLock.unlock();
+
+    LOG_F(INFO, "%s", "Creating and selecting the remote DBService database.");
     createAndSelectRemoteDBServiceDatabase();
   }
 
@@ -86,10 +105,13 @@ namespace DBService {
 
   void NodeConnection::startDBServiceWorker() {
     bool success; 
-
+    
+    LOG_SCOPE_FUNCTION(INFO);
     printFunction("NodeConnection::startDBServiceWorker", std::cout);    
 
     string queryInit("query initdbserviceworker()");
+
+    boost::lock_guard<boost::mutex> connectionGuard(connectionMutex);
 
     success = SecondoUtilsRemote::executeQuery(connection.get(), queryInit);
 
@@ -99,6 +121,10 @@ namespace DBService {
   }
 
   void NodeConnection::createAndSelectRemoteDBServiceDatabase() {
+
+    LOG_SCOPE_FUNCTION(INFO);
+
+    boost::lock_guard<boost::mutex> connectionGuard(connectionMutex);
     
     // Select and create the DBSERVICE database on the remote worker node
     connection->switchDatabase(
@@ -109,7 +135,9 @@ namespace DBService {
   }
 
   int NodeConnection::obtainRemoteConfigParamComPort() {
-    string comPortStr;    
+    LOG_SCOPE_FUNCTION(INFO);
+
+    string comPortStr;
 
     getRemoteConfigParam(comPortStr, connection.get(), "DBService", 
       "CommunicationPort");
@@ -118,7 +146,9 @@ namespace DBService {
   }
 
   int NodeConnection::obtainRemoteConfigParamTransferPort() {
-    string transferPortStr;    
+    LOG_SCOPE_FUNCTION(INFO);
+
+    string transferPortStr;
 
     getRemoteConfigParam(transferPortStr, connection.get(),
             "DBService", "FileTransferPort");
@@ -127,6 +157,8 @@ namespace DBService {
   }
 
   string NodeConnection::obtainRemoteConfigParamDiskPath() {
+    LOG_SCOPE_FUNCTION(INFO);
+
     string diskPath;
 
     getRemoteConfigParam(diskPath, connection.get(),
@@ -139,6 +171,8 @@ namespace DBService {
         distributed2::ConnectionInfo* connectionInfo, const char* section,
         const char* key)
   {
+
+    LOG_SCOPE_FUNCTION(INFO);
     printFunction("DBServiceManager::getConfigParamFromWorker", std::cout);
     
     string resultAsString;
@@ -149,6 +183,8 @@ namespace DBService {
           << "\", \""
           << key
           << "\")";
+
+    boost::lock_guard<boost::mutex> connectionGuard(connectionMutex);
     
     bool resultOk = SecondoUtilsRemote::executeQuery(
             connectionInfo,
@@ -165,6 +201,12 @@ namespace DBService {
       errMsg << "the remote query: " << query.str();
       throw(errMsg.str());        
     }
+
+    LOG_F(INFO, "%s", "Acquiring lock to parse config param results...");
+
+    // Lock access to the nested list.
+    // This lock causes a deadlock!!!!
+    boost::lock_guard<boost::mutex> guard(nlparsemtx);
 
     ListExpr resultAsNestedList;
     nl->ReadFromString(resultAsString, resultAsNestedList);

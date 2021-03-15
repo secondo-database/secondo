@@ -45,11 +45,16 @@ namespace fs = boost::filesystem;
 
 using namespace std;
 
+extern boost::mutex nlparsemtx;
+
 namespace DBService {
 
+//TODO Refactor. Code is too complex and barely readable.
 ListExpr OperatorRead::mapType(ListExpr nestedList)
 {
     print(nestedList, std::cout);
+
+    boost::unique_lock<boost::mutex> nlLock(nlparsemtx);
 
     if(!nl->HasLength(nestedList, 1))
     {
@@ -97,13 +102,24 @@ ListExpr OperatorRead::mapType(ListExpr nestedList)
         }
 
         print("fileName (path)", fileName.string(), std::cout);
+        
+        // ffeed5Info also needs to access the nested list        
+        nlLock.unlock();
 
         ffeed5Info info(fileName.string());
 
+
         if(info.isOK()){
-           feedTypeMapResult = nl->TwoElemList(
+            
+            // nlLock.lock(); 
+            // Not locking here may be risky
+            // TODO How to release the lock if the call is nested?
+            feedTypeMapResult = nl->TwoElemList(
                    nl->SymbolAtom(Symbol::STREAM()),
                    nl->Second(info.getRelType()));
+
+            // Reaquire the lock to protect the nl from other threads
+            nlLock.lock(); 
         }else
         {
             print("Could not determine relation type from file", std::cout);

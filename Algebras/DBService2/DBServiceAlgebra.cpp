@@ -48,6 +48,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Algebras/DBService2/OperatorTestDBService.hpp"
 
 #include <loguru.hpp>
+#include <loguru.cc> // linker error if this isn't included at least once.
 
 namespace DBService
 {

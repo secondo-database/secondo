@@ -37,9 +37,12 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Algebras/DBService2/OperatorWrite.hpp"
 #include "Algebras/DBService2/ReplicationUtils.hpp"
 
+#include "boost/filesystem.hpp"
 
 using namespace std;
 using namespace distributed2;
+
+extern boost::mutex nlparsemtx;
 
 namespace DBService
 {
@@ -48,6 +51,8 @@ ListExpr OperatorWrite::mapType(ListExpr nestedList)
 {
     printFunction("OperatorWrite::mapType", std::cout);
     print("nestedList", nestedList, std::cout);
+
+    boost::lock_guard<boost::mutex> guard(nlparsemtx);
 
     if (nl->ListLength(nestedList) != 3)
     {
@@ -98,7 +103,9 @@ int OperatorWrite::mapValue(
         Supplier s)
 {
 
-    printFunction("OperatorWrite::mapValue", std::cout);
+    printFunction("OperatorWrite::mapValue", std::cout);   
+
+    boost::lock_guard<boost::mutex> guard(nlparsemtx);
 
     ListExpr tupleType = nl->Second(qp->GetType(s));
     print("tupleType", tupleType, std::cout);
@@ -116,6 +123,8 @@ int OperatorWrite::mapValue(
     const string fileName =
             ReplicationUtils::getFileName(databaseName, relationName);
 
+    fs::path filePath = ReplicationUtils::expandFilenameToAbsPath(fileName);
+
     bool async = static_cast<CcBool*>(args[2].addr)->GetValue();
 
     int consumeResult=0;
@@ -131,7 +140,7 @@ int OperatorWrite::mapValue(
         {
             rel->Clear();
         }
-        BinRelWriter brw(fileName,relType,0);
+        BinRelWriter brw(as_const(filePath.string()), relType, 0);
         Stream<Tuple> stream(args[0]);
         stream.open();
 
@@ -161,6 +170,15 @@ int OperatorWrite::mapValue(
          return 1;
       }
     }
+
+    //TODO find out if there's a more elegant way...
+    /* The test suite will commit many transactions but Secondo will attempt 
+        to close
+     * the transaction for the given operator. Therefore, here a transaction 
+     * will be opened
+     * to satisfy this requirement for a successful operator execution.
+     */
+    //SecondoSystem::BeginTransaction();
 
     return consumeResult;
 }

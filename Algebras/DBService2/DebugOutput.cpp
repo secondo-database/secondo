@@ -33,6 +33,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <iostream>
 #include <sstream>
 
+extern boost::mutex nlparsemtx;
+
 namespace DBService
 {
 
@@ -88,9 +90,13 @@ void print(const char* text, std::ostream& out)
 }
 
 void print(ListExpr nestedList, std::ostream& out)
-{
+{    
     if(TraceSettings::getInstance()->isDebugTraceOn())
     {
+        // No locking: to avoid deadlocks. 
+        // -> the lock must be in the invoking function
+        //boost::lock_guard<boost::mutex> guard(nlparsemtx);
+        
         out << "length: " << nl->ListLength(nestedList) << endl;
         out << nl->ToString(nestedList).c_str() << endl;
 
@@ -120,8 +126,12 @@ void print(const char* text, int number, std::ostream& out)
 
 void print(const char* text, ListExpr nestedList, std::ostream& out)
 {
+
     if(TraceSettings::getInstance()->isDebugTraceOn())
     {
+        // No locking: to avoid deadlocks. 
+        // -> the lock must be in the invoking function
+
         out << text << endl;
         out << "length: " << nl->ListLength(nestedList) << endl;
         out << nl->ToString(nestedList).c_str() << endl;

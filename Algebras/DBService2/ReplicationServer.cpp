@@ -41,6 +41,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Algebras/DBService2/ReplicationServer.hpp"
 #include "Algebras/DBService2/ReplicationUtils.hpp"
 #include "Algebras/DBService2/SecondoUtilsLocal.hpp"
+#include "Algebras/DBService2/DatabaseAdapter.hpp"
+#include "Algebras/DBService2/LockKeeper.hpp"
 
 #include <loguru.hpp>
 
@@ -50,6 +52,8 @@ namespace fs = boost::filesystem;
 
 using namespace std;
 using namespace distributed2;
+
+extern boost::mutex nlparsemtx;
 
 namespace DBService {
 
@@ -81,6 +85,7 @@ int ReplicationServer::start()
     return MultiClientServer::start();
 }
 
+//TODO Refactor. Method too lengthy, too complex and logic is misplaced here.
 int ReplicationServer::communicate(iostream& io)
 {
     LOG_SCOPE_FUNCTION(INFO);
@@ -118,8 +123,9 @@ int ReplicationServer::communicate(iostream& io)
             if(!FileSystem::FileOrFolderExists(filepath.string()) &&
                !createFileFromRelation(filepath))
             {
-               traceWriter->write(tid, "file not found, notifying client");
-               LOG_F(INFO, "file not found, notifying client");
+               traceWriter->write(tid, "File not found, notifying client.");
+               LOG_F(INFO, "Filepath %s not found, notifying client.", 
+                filepath.string().c_str());
 
                CommunicationUtils::sendLine(io,
                     distributed2::FileTransferKeywords::FileNotFound());
@@ -298,7 +304,10 @@ void ReplicationServer::applyFunctionAndCreateNewFile(
     LOG_F(INFO, "newFileName: %s", newFileName.string().c_str());
     LOG_F(INFO, "FunctionList: %s", function.c_str());
 
+    // Lock access to the nested list.
+    boost::unique_lock<boost::mutex> nlLock(nlparsemtx);
 
+    // TODO Is this the global nexted list to be locked?
     NestedList* nl = SecondoSystem::GetNestedList();
     ListExpr funlist;
     if(!nl->ReadFromString(function,funlist)){
@@ -308,8 +317,6 @@ void ReplicationServer::applyFunctionAndCreateNewFile(
 
       return;
     }
-
-    
 
     if(!nl->HasLength(funlist,3 + otherObjects.size() )){
 
@@ -428,6 +435,12 @@ void ReplicationServer::applyFunctionAndCreateNewFile(
     LOG_F(INFO, "Executing query...");
 
     bool ok = false;
+
+    boost::lock_guard<boost::mutex> queryProcessorGuard(
+        // Dereference the shared_ptr to the mutex
+        *LockKeeper::getInstance()->getQueryProcessorMutex()
+    );
+
     try{
         ok = QueryProcessor::ExecuteQuery(
                     command,queryRes,typeStr,errMsg,correct,
@@ -500,32 +513,43 @@ bool ReplicationServer::createFileFromRelation(const fs::path& filepath){
     
     traceWriter->write("createFileFromRelation - Filepath", filepath.string());
     LOG_F(INFO, "Filepath: %s", filepath.string().c_str());
-    
+
+    std::shared_ptr<DatabaseAdapter> dbAdapter = DatabaseAdapter::getInstance();
 
     // consume5: store tuple stream into a file
-    string cmd = "(count (fconsume5 ( feed " + relname + "\
+    //string cmd = "(count (fconsume5 ( feed " + relname + "\
 ) '" + filepath.string() + "'))";
 
-    Word result;
+    stringstream query;
 
-    if(QueryProcessor::ExecuteQuery(cmd,result)){
-        traceWriter->write("file created from relation");
-        LOG_F(INFO, "File created from relation.");
+    // Here single quotes '' are used to cast into text and not string to 
+    // support long path names.
     
-        CcInt* res = (CcInt*) result.addr;
-        res->DeleteIfAllowed();
+    // query CitiesR feed fconsume5["/tmp/CitiesRR.bin"] count
+    query << "query " << relname << " feed fconsume5[\'" << filepath.string() 
+        << "\'] count";
 
-        return true;
-    } else {
+    string cmd = query.str();
+
+    try {
+        dbAdapter->executeQueryWithoutResult(databaseName, cmd, false);
+
+        traceWriter->write("The file has been created from the relation.");
+        LOG_F(INFO, "The file has been created from the relation.");
+    
+    } catch( SecondoException& e) {
         traceWriter->write(
             "problem in creating file from relation with command'"
                          + cmd + "'");
         
-        LOG_F(ERROR, "problem in creating file from relation with command: %s",
+        LOG_F(ERROR, "Problem in creating file from relation with command: %s",
             cmd.c_str());
+        LOG_F(ERROR, "A SecondoException occured: %s", e.what());
 
         return false;
     }
+
+    return true;
 }
 
 ///*

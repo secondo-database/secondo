@@ -6,6 +6,7 @@
 #include "NestedList.h"
 
 extern NestedList* nl;
+extern boost::mutex nlparsemtx;
 
 namespace DBService
 {
@@ -65,6 +66,8 @@ namespace DBService
         * 
         *  The list of records is the 2nd element
         */
+
+        boost::lock_guard<boost::mutex> guard(nlparsemtx);
 
         ListExpr recordList = nl->Second(resultList);    
 
