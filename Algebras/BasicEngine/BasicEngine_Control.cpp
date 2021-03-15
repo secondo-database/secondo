@@ -975,33 +975,63 @@ bool BasicEngine_Control::mquery(const string &query,
     return false;
   }
 
-  string validateQuery = "query be_validate_query('" 
-    + query + "');";
+  // Perform the query on the first worker to do a kind of 
+  // type checking
+  //
+  // 1) When the query returns an error, stop processing at 
+  //    this point. 
+  // 2) When the query returns a success result within 
+  //    one second, start the query on the remaining workers.
+  // 3) When the query runs for more then one second, assume 
+  //    that the query is ok and start them on the remaining
+  //    workers.
 
   distributed2::ConnectionInfo* validateConnection 
     = connections[0];
 
-  bool validateResult = performSimpleSecondoCommand(
-    validateConnection, validateQuery);
+  vector<std::future<bool>> futures;
+
+  std::future<bool> asyncResult = std::async(
+    &BasicEngine_Control::performBEQuery, 
+    this, validateConnection, table, query);
+
+  bool queryOk = true;
+
+  BOOST_LOG_TRIVIAL(debug) 
+      << "Waiting up to 1 sec for first result";
+
+  std::future_status futureStatus 
+    = asyncResult.wait_for(std::chrono::seconds(1));
   
-  if(! validateResult) {
-    cerr << "Unable to validate query: " << validateQuery << endl;
-    return false;
+  // Query result after one second
+  if (futureStatus == std::future_status::ready) {
+    queryOk = asyncResult.get();
+    BOOST_LOG_TRIVIAL(debug) 
+      << "Query result from first worker is: " << queryOk;
+  } else {
+    BOOST_LOG_TRIVIAL(debug) 
+      << "Query on master is still active, starting query on workers";
+    futures.push_back(std::move(asyncResult));
+  }
+  
+  if(queryOk) {
+    BOOST_LOG_TRIVIAL(debug) << "Starting query on worker";
+
+    // Perform the query on the remaining workers
+    for(auto it = connections.begin() + 1; 
+        it != connections.end(); it++) {
+
+      std::future<bool> asyncResult = std::async(
+      &BasicEngine_Control::performBEQuery, 
+      this, *it, table, query);
+          
+      futures.push_back(std::move(asyncResult));
+    }
   }
 
   bool val = true;
-  vector<std::future<bool>> futures;
 
-  //doing the query with one thread for each worker
-  for(distributed2::ConnectionInfo* ci : connections) {
-    std::future<bool> asyncResult = std::async(
-    &BasicEngine_Control::performBEQuery, 
-    this, ci, table, query);
-        
-    futures.push_back(std::move(asyncResult));
-  }
-
-  //waiting for finishing the threads
+  // Waiting for finishing the threads
   for(std::future<bool> &future : futures) {
     val = future.get() && val;
   }
