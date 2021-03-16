@@ -1008,35 +1008,35 @@ bool BasicEngine_Control::mquery(const string &query,
     queryOk = asyncResult.get();
     BOOST_LOG_TRIVIAL(debug) 
       << "Query result from first worker is: " << queryOk;
+
+    if(queryOk == false) {
+      return false;
+    }
   } else {
     BOOST_LOG_TRIVIAL(debug) 
       << "Query on master is still active, starting query on workers";
     futures.push_back(std::move(asyncResult));
   }
   
-  if(queryOk) {
-    BOOST_LOG_TRIVIAL(debug) << "Starting query on worker";
+  BOOST_LOG_TRIVIAL(debug) << "Starting query on worker";
 
-    // Perform the query on the remaining workers
-    for(auto it = connections.begin() + 1; 
-        it != connections.end(); it++) {
+  // Perform the query on the remaining workers
+  for(auto it = connections.begin() + 1; 
+      it != connections.end(); it++) {
 
-      std::future<bool> asyncResult = std::async(
-      &BasicEngine_Control::performBEQuery, 
-      this, *it, table, query);
-          
-      futures.push_back(std::move(asyncResult));
-    }
+    std::future<bool> asyncResult = std::async(
+    &BasicEngine_Control::performBEQuery, 
+    this, *it, table, query);
+        
+    futures.push_back(std::move(asyncResult));
   }
-
-  bool val = true;
 
   // Waiting for finishing the threads
   for(std::future<bool> &future : futures) {
-    val = future.get() && val;
+    queryOk = future.get() && queryOk;
   }
 
-  return val;
+  return queryOk;
 }
 
 /*
