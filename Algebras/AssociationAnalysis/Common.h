@@ -96,4 +96,10 @@ int mineVM(Word *args, Word &result, int message, Word &local, Supplier s) {
     return 0;
   }
 }
+
+// Increments the integer that the given vector of booleans/bits represents.
+// Returns true on overflow, false otherwise. This function is used as helper
+// to built all subsets of an another vector of the same size.
+bool increment(std::vector<bool> &bs);
+
 } // namespace AssociationAnalysis

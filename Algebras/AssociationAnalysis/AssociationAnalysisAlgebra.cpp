@@ -32,6 +32,7 @@ January 2021 - April 2021, P. Fedorow for bachelor thesis.
 #include "Common.h"
 #include "Eclat.h"
 #include "FPGrowth.h"
+#include "GenRules.h"
 #include "GenTransactions.h"
 
 #include "Algebra.h"
@@ -42,12 +43,13 @@ public:
   AssociationAnalysisAlgebra() : Algebra() {
     this->AddTypeConstructor(&fptreeTC);
 
-    this->AddOperator(genTransactionsInfo(), genTransactionsVM,
-                      genTransactionsTM);
     this->AddOperator(aprioriInfo(), mineVM<aprioriLI>, mineTM);
+    this->AddOperator(createFpTreeInfo(), createFpTreeVM, createFpTreeTM);
     this->AddOperator(eclatInfo(), mineVM<eclatLI>, mineTM);
     this->AddOperator(fpGrowthInfo(), mineVM<fpGrowthLI>, mineTM);
-    this->AddOperator(createFpTreeInfo(), createFpTreeVM, createFpTreeTM);
+    this->AddOperator(genStrongRulesInfo(), genStrongRulesVM, genStrongRulesTM);
+    this->AddOperator(genTransactionsInfo(), genTransactionsVM,
+                      genTransactionsTM);
     this->AddOperator(mineFpTreeInfo(), mineFpTreeVM, mineFpTreeTM);
   }
 };

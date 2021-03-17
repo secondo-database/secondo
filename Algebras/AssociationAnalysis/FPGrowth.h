@@ -44,7 +44,6 @@ January 2021 - April 2021, P. Fedorow for bachelor thesis.
 
 namespace AssociationAnalysis {
 
-static int fpTreeCounter{0};
 template <class FPTree, typename Handle> class FPTreeImpl {
 public:
   // Inserts the given itemset into the FP-Tree.
@@ -161,21 +160,6 @@ private:
     return cleanBase;
   }
 
-  // Increments the integer that the given vector of booleans/bits represents.
-  // Returns true on overflow, false otherwise. This function is used as helper
-  // to built all subsets of an another vector of the same size.
-  static bool increment(std::vector<bool> &bs) {
-    for (std::size_t i = 0; i < bs.size(); i += 1) {
-      if (bs[i]) {
-        bs[i] = false;
-      } else {
-        bs[i] = true;
-        return true;
-      }
-    }
-    return false;
-  }
-
   // Mines frequent itemsets with the given minSupport. The frequent itemsets
   // are appended to the collect vector.
   void mine(std::vector<std::pair<std::vector<int>, double>> &collect,
@@ -198,7 +182,7 @@ private:
       // `include` is true are the indexes of items in the header table
       // that will be included in the itemset we are building.
       std::vector<bool> include(this->fpTree().headerTableSize(), false);
-      while (FPTreeImpl<FPTree, Handle>::increment(include)) {
+      while (increment(include)) {
         int minCount = -1;
 
         // Build the itemset.
@@ -252,8 +236,6 @@ private:
 
           // Proceed the mining within the FP-Tree conditioned by the current
           // header item.
-          fpTreeCounter += 1;
-          printf("%d\n", fpTreeCounter);
           FPTree fpTreeConditioned(transactionCount, minSupport);
           for (auto &[count, itemset] :
                this->computeConditionalBase(headerItem, minSupport)) {

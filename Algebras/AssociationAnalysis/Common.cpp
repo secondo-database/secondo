@@ -134,4 +134,19 @@ ListExpr mineTM(ListExpr args) {
   NList tupleType = NList(frequentItemsetTupleType());
   return mineTM(args, NList().streamOf(tupleType).listExpr());
 }
+
+// Increments the integer that the given vector of booleans/bits represents.
+// Returns true on overflow, false otherwise. This function is used as helper
+// to built all subsets of an another vector of the same size.
+bool increment(std::vector<bool> &bs) {
+  for (std::size_t i = 0; i < bs.size(); i += 1) {
+    if (bs[i]) {
+      bs[i] = false;
+    } else {
+      bs[i] = true;
+      return true;
+    }
+  }
+  return false;
+}
 } // namespace AssociationAnalysis
