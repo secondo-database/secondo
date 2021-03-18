@@ -28,6 +28,14 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #define _CONNECTION_GENERIC_H_
 
 #include <string>
+#include <vector>
+
+#include "Attribute.h"
+#include "NestedList.h"
+#include "StandardTypes.h"
+#include "Algebra.h"
+#include "Stream.h"
+
 #include "ResultIteratorGeneric.h"
 
 namespace BasicEngine {
@@ -105,8 +113,11 @@ class ConnectionGeneric {
     virtual std::string getRenameTableSQL(const std::string &source, 
         const std::string &destination) = 0;
 
-    virtual bool getTypeFromSQLQuery(const std::string &sqlQuery, 
-         ListExpr &resultList) = 0;
+    virtual std::vector<std::tuple<std::string, std::string>> 
+        getTypeFromSQLQuery(const std::string &sqlQuery) = 0;
+
+    virtual ListExpr convertTypeVectorIntoSecondoNL(
+        const std::vector<std::tuple<std::string, std::string>> &types);
 
     virtual ResultIteratorGeneric* performSQLSelectQuery(
         const std::string &sqlQuery) = 0;

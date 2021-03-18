@@ -2072,10 +2072,9 @@ ListExpr be_collect_tm(ListExpr args) {
       "Plase call be_init_cluster() first.");
   }
 
-  ListExpr resultType;
-  bool sqlResult = be_control -> getTypeFromSQLQuery(queryValue, resultType);
-
-  if(!sqlResult) {
+  ListExpr resultType = be_control -> getTypeFromSQLQuery(queryValue);
+        
+  if(nl->IsEmpty(resultType)) {
      return listutils::typeError("Unable to evaluate"
        " the given SQL query.");
   }

@@ -1006,6 +1006,7 @@ bool BasicEngine_Control::mquery(const string &query,
   // Query result after one second
   if (futureStatus == std::future_status::ready) {
     queryOk = asyncResult.get();
+    
     BOOST_LOG_TRIVIAL(debug) 
       << "Query result from first worker is: " << queryOk;
 
@@ -1227,10 +1228,13 @@ bool BasicEngine_Control::partGrid(const std::string &tab,
 Get the SECONDO type for the given SQL query.
 
 */
- bool BasicEngine_Control::getTypeFromSQLQuery(const std::string &sqlQuery, 
-    ListExpr &resultList) {
+ ListExpr BasicEngine_Control::getTypeFromSQLQuery(
+   const std::string &sqlQuery) {
 
-   return dbms_connection->getTypeFromSQLQuery(sqlQuery, resultList);
+    std::vector<std::tuple<std::string, std::string>> types = 
+      dbms_connection->getTypeFromSQLQuery(sqlQuery);
+
+   return dbms_connection->convertTypeVectorIntoSecondoNL(types);
  }
 
 

@@ -538,24 +538,48 @@ string ConnectionPG::getPartitionGridSQL(const std::string &tab,
 }
 
 /*
-6.16 ~getTypeFromQuery~
+6.16 ~getTypeFromSQLQuery~
 
-Get the SECONDO type of the given PGresult
+Get the SECONDO type of the given SQL query
 
 */
-bool ConnectionPG::getTypeFromQuery(const PGresult* res, ListExpr &resultList) {
+std::vector<std::tuple<string, string>> 
+    ConnectionPG::getTypeFromSQLQuery(const std::string &sqlQuery) {
+
+  string usedSQLQuery = limitSQLQuery(sqlQuery);
+  vector<tuple<string, string>> result;
+
+  if( ! checkConnection()) {
+    BOOST_LOG_TRIVIAL(error) 
+      << "Connection is not ready in getTypeFromSQLQuery";
+    return result;
+  }
+  
+  PGresult* res = PQexec(conn, usedSQLQuery.c_str());
 
   if (!res || PQresultStatus(res) != PGRES_TUPLES_OK) {
     BOOST_LOG_TRIVIAL(error) 
       << "Unable to fetch type from non tuple returning result";
-    return false;
+    return result;
   }
 
+  result = getTypeFromQuery(res);
+
+  PQclear(res);
+
+  return result;
+}
+
+/*
+6.16 ~getTypeFromQuery~
+
+*/
+vector<std::tuple<std::string, std::string>> ConnectionPG::getTypeFromQuery(
+      PGresult* res) {
+
+  vector<tuple<string, string>> result;
   int columns = PQnfields(res);
   
-  ListExpr attrList = nl->TheEmptyList();
-  ListExpr attrListBegin;
-
   for(int i = 0; i < columns; i++) {
 
     int columnType = PQftype(res, i);
@@ -564,7 +588,6 @@ bool ConnectionPG::getTypeFromQuery(const PGresult* res, ListExpr &resultList) {
     // Ensure secondo is happy with the name
     attributeName[0] = toupper(attributeName[0]);
 
-    ListExpr attribute;
     string attributeType;
 
     // Convert to SECONDO attribute type
@@ -598,56 +621,9 @@ bool ConnectionPG::getTypeFromQuery(const PGresult* res, ListExpr &resultList) {
     }
 
     // Attribute name and type
-    attribute = nl->TwoElemList(
-      nl->SymbolAtom(attributeName), 
-      nl->SymbolAtom(attributeType)
-    );
-    
-    if(nl->IsEmpty(attrList)) {
-      attrList = nl -> OneElemList(attribute);
-      attrListBegin = attrList;
-    } else {
-      attrList = nl -> Append(attrList, attribute);
-    }
+    auto tuple = std::make_tuple(attributeName, attributeType);
+    result.push_back(tuple);
   }
-
-  resultList = nl->TwoElemList(
-             listutils::basicSymbol<Stream<Tuple> >(),
-             nl->TwoElemList(
-                 listutils::basicSymbol<Tuple>(),
-                  attrListBegin));
-
-  return true;
-}
-
-
-/*
-6.16 ~getTypeFromSQLQuery~
-
-Get the SECONDO type of the given SQL query
-
-*/
-bool ConnectionPG::getTypeFromSQLQuery(const std::string &sqlQuery, 
-    ListExpr &resultList) {
-
-  string usedSQLQuery = limitSQLQuery(sqlQuery);
-
-  if( ! checkConnection()) {
-    BOOST_LOG_TRIVIAL(error) 
-      << "Connection is not ready in getTypeFromSQLQuery";
-    return false;
-  }
-  
-  PGresult* res = PQexec(conn, usedSQLQuery.c_str());
-
-  bool result = getTypeFromQuery(res, resultList);
-
-  if(! result) {
-    BOOST_LOG_TRIVIAL(error) 
-      << "Unable to get type from SQL query" << usedSQLQuery;
-  }
-
-  PQclear(res);
 
   return result;
 }
@@ -667,11 +643,16 @@ ResultIteratorGeneric* ConnectionPG::performSQLSelectQuery(
     return nullptr;
   }
 
-  ListExpr resultList;
-  PGresult* res = PQexec(conn, sqlQuery.c_str());
-  bool result = getTypeFromQuery(res, resultList);
+  PGresult* res = sendQuery(sqlQuery.c_str());
 
-  if(!result) {
+  if(res == nullptr) {
+    return nullptr;
+  }    
+
+  vector<std::tuple<std::string, std::string>> types = getTypeFromQuery(res);
+  ListExpr resultList = convertTypeVectorIntoSecondoNL(types);
+
+  if(nl->IsEmpty(resultList)) {
     BOOST_LOG_TRIVIAL(error) 
       << "Unable to get tuple type form query: " << sqlQuery;
     return nullptr;

@@ -151,8 +151,8 @@ class ConnectionMySQL : public ConnectionGeneric {
     return "ALTER TABLE " + source + " RENAME TO " + destination + ";";
   }
 
-
-  bool getTypeFromSQLQuery(const std::string &sqlQuery, ListExpr &resultList);
+  std::vector<std::tuple<std::string, std::string>> getTypeFromSQLQuery(
+        const std::string &sqlQuery);
 
   ResultIteratorGeneric* performSQLSelectQuery(const std::string &sqlQuery);
 
@@ -171,13 +171,12 @@ class ConnectionMySQL : public ConnectionGeneric {
   */
   MYSQL* conn = nullptr;
 
-  bool getTypeFromQuery(MYSQL_RES* res, ListExpr &resultList);
-
   MYSQL_RES* sendQuery(const std::string &query);
 
   std::string getjoin(const std::string &key);
 
-
+  std::vector<std::tuple<std::string, std::string>> getTypeFromQuery(
+      MYSQL_RES* res);
 };
 
 }; /* namespace BasicEngine */

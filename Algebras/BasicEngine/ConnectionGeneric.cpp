@@ -34,6 +34,11 @@ using namespace std;
 
 namespace BasicEngine {
 
+/**
+
+1.1 Limit the given SQL query result
+
+*/
 string ConnectionGeneric::limitSQLQuery(const std::string &query) {
 
     string resultQuery = string(query);
@@ -56,8 +61,48 @@ string ConnectionGeneric::limitSQLQuery(const std::string &query) {
         // Limit query to 1 result tuple
         resultQuery.append(" LIMIT 1;");
     }
-    
+
     return resultQuery;
+}
+
+
+/**
+
+1.2 Get the SECONDO type of the given SQL query
+
+*/
+ListExpr ConnectionGeneric::convertTypeVectorIntoSecondoNL(
+    const std::vector<std::tuple<string, string>> &types) {
+
+    if(types.empty()) {
+        return nl->TheEmptyList();
+    }
+
+    ListExpr attrList = nl->TheEmptyList();
+    ListExpr attrListBegin = nl->TheEmptyList();
+
+    for(std::tuple<string, string> type : types) {
+        // Attribute name and type
+        ListExpr attribute = nl->TwoElemList(
+            nl->SymbolAtom(std::get<0>(type)), 
+            nl->SymbolAtom(std::get<1>(type))
+        );
+
+        if(nl->IsEmpty(attrList)) {
+          attrList = nl -> OneElemList(attribute);
+          attrListBegin = attrList;
+        } else {
+          attrList = nl -> Append(attrList, attribute);
+        }
+    }
+
+    ListExpr resultList = nl->TwoElemList(
+        listutils::basicSymbol<Stream<Tuple> >(),
+        nl->TwoElemList(
+            listutils::basicSymbol<Tuple>(),
+            attrListBegin));
+
+    return resultList;
 }
 
 }

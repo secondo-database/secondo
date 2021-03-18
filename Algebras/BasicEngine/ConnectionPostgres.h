@@ -159,8 +159,8 @@ class ConnectionPG : public ConnectionGeneric {
     return "ALTER TABLE " + source + " RENAME TO " + destination + ";";
   }
 
-
-  bool getTypeFromSQLQuery(const std::string &sqlQuery, ListExpr &resultList);
+  std::vector<std::tuple<std::string, std::string>> getTypeFromSQLQuery(
+        const std::string &sqlQuery);
 
   ResultIteratorGeneric* performSQLSelectQuery(const std::string &sqlQuery);
 
@@ -181,8 +181,6 @@ class ConnectionPG : public ConnectionGeneric {
 
   PGresult* sendQuery(const std::string &query);
 
-  bool getTypeFromQuery(const PGresult* res, ListExpr &resultList);
-
   bool createFunctionRandom(const std::string &table, 
     const std::string &key, const size_t numberOfWorker, 
     std::string &select);
@@ -196,6 +194,9 @@ class ConnectionPG : public ConnectionGeneric {
     std::string &valueMap, std::string &select);
 
   std::string getjoin(const std::string &key);
+
+  std::vector<std::tuple<std::string, std::string>> getTypeFromQuery(
+      PGresult* res);
 };
 
 }; /* namespace BasicEngine */

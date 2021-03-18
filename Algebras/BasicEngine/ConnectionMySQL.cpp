@@ -330,15 +330,16 @@ std::string ConnectionMySQL::getExportTableSQL(const std::string &table,
 6.13 ~getTypeFromSQLQuery~
 
 */
-bool ConnectionMySQL::getTypeFromSQLQuery(const std::string &sqlQuery, 
-    ListExpr &resultList) {
+std::vector<std::tuple<string, string>> 
+    ConnectionMySQL::getTypeFromSQLQuery(const std::string &sqlQuery) {
 
   string usedSQLQuery = limitSQLQuery(sqlQuery);
+  vector<tuple<string, string>> result;
 
   if( ! checkConnection()) {
     BOOST_LOG_TRIVIAL(error) 
       << "Connection is not ready in getTypeFromSQLQuery";
-    return false;
+    return result;
   }
   
   MYSQL_RES *res = sendQuery(usedSQLQuery.c_str());
@@ -346,15 +347,10 @@ bool ConnectionMySQL::getTypeFromSQLQuery(const std::string &sqlQuery,
   if(res == nullptr) {
     BOOST_LOG_TRIVIAL(error) 
       << "Unable to perform SQL query" << usedSQLQuery;
-      return false;
+      return result;
   }
 
-  bool result = getTypeFromQuery(res, resultList);
-
-  if(! result) {
-    BOOST_LOG_TRIVIAL(error) 
-      << "Unable to get type from SQL query" << usedSQLQuery;
-  }
+  result = getTypeFromQuery(res);
 
   if(res != nullptr) {
      mysql_free_result(res);
@@ -364,86 +360,69 @@ bool ConnectionMySQL::getTypeFromSQLQuery(const std::string &sqlQuery,
   return result;
 }
 
+
 /*
 6.14 ~getTypeFromQuery~
 
 */
-bool ConnectionMySQL::getTypeFromQuery(MYSQL_RES* res, 
-    ListExpr &resultList) {
+vector<tuple<string, string>> ConnectionMySQL::getTypeFromQuery(
+    MYSQL_RES* res) {
 
-    ListExpr attrList = nl->TheEmptyList();
-    ListExpr attrListBegin = nl->TheEmptyList();
+  vector<tuple<string, string>> result;
+  int columns = mysql_num_fields(res);
+  MYSQL_FIELD *fields = mysql_fetch_fields(res);
 
-    int columns = mysql_num_fields(res);
-    MYSQL_FIELD *fields = mysql_fetch_fields(res);
-
-    for(int i = 0; i < columns; i++) {       
-        enum_field_types columnType = fields[i].type;
+  for(int i = 0; i < columns; i++) {       
+    enum_field_types columnType = fields[i].type;
         
-        string attributeName = string(fields[i].name);
+    string attributeName = string(fields[i].name);
 
-        // Ensure secondo is happy with the name
-        attributeName[0] = toupper(attributeName[0]);
+    // Ensure secondo is happy with the name
+    attributeName[0] = toupper(attributeName[0]);
 
-        ListExpr attribute;
-        string attributeType;
+    string attributeType;
 
-        // Convert to SECONDO attribute type
-        switch(columnType) {
+    // Convert to SECONDO attribute type
+    switch(columnType) {
 #if LIBMYSQL_VERSION_ID >= 80000
-        case MYSQL_TYPE_BOOL:
-            attributeType = CcBool::BasicType();
-            break;
+    case MYSQL_TYPE_BOOL:
+        attributeType = CcBool::BasicType();
+        break;
 #endif
-        
-        case MYSQL_TYPE_STRING:
-        case MYSQL_TYPE_VARCHAR:
-        case MYSQL_TYPE_VAR_STRING:
-            attributeType = FText::BasicType();
-            break;
+    
+    case MYSQL_TYPE_STRING:
+    case MYSQL_TYPE_VARCHAR:
+    case MYSQL_TYPE_VAR_STRING:
+        attributeType = FText::BasicType();
+        break;
 
-        case MYSQL_TYPE_DECIMAL:
-        case MYSQL_TYPE_TINY:
-        case MYSQL_TYPE_SHORT:
-        case MYSQL_TYPE_LONG:
-        case MYSQL_TYPE_TIMESTAMP:
-        case MYSQL_TYPE_LONGLONG:
-            attributeType = CcInt::BasicType();
-            break;
+    case MYSQL_TYPE_DECIMAL:
+    case MYSQL_TYPE_TINY:
+    case MYSQL_TYPE_SHORT:
+    case MYSQL_TYPE_LONG:
+    case MYSQL_TYPE_TIMESTAMP:
+    case MYSQL_TYPE_LONGLONG:
+        attributeType = CcInt::BasicType();
+        break;
 
-        case MYSQL_TYPE_FLOAT:
-        case MYSQL_TYPE_DOUBLE:
-            attributeType = CcReal::BasicType();
-            break;
+    case MYSQL_TYPE_FLOAT:
+    case MYSQL_TYPE_DOUBLE:
+        attributeType = CcReal::BasicType();
+        break;
 
-        default:
-            BOOST_LOG_TRIVIAL(warning) 
-                << "Unknown column type: " << attributeName << " / " 
-                << columnType << " will be mapped to text";
-            attributeType = FText::BasicType();
-        }
-
-        // Attribute name and type
-        attribute = nl->TwoElemList(
-            nl->SymbolAtom(attributeName), 
-            nl->SymbolAtom(attributeType)
-        );
-        
-        if(nl->IsEmpty(attrList)) {
-            attrList = nl -> OneElemList(attribute);
-            attrListBegin = attrList;
-        } else {
-            attrList = nl -> Append(attrList, attribute);
-        }
+    default:
+        BOOST_LOG_TRIVIAL(warning) 
+            << "Unknown column type: " << attributeName << " / " 
+            << columnType << " will be mapped to text";
+        attributeType = FText::BasicType();
     }
 
-    resultList = nl->TwoElemList(
-        listutils::basicSymbol<Stream<Tuple> >(),
-        nl->TwoElemList(
-            listutils::basicSymbol<Tuple>(),
-            attrListBegin));
+    // Attribute name and type
+    auto tuple = std::make_tuple(attributeName, attributeType);
+    result.push_back(tuple);
+  }
 
-    return true;
+  return result;
 }
 
 /*
@@ -465,10 +444,10 @@ ResultIteratorGeneric* ConnectionMySQL::performSQLSelectQuery(
         return nullptr;
     }    
 
-    ListExpr resultList;
-    bool result = getTypeFromQuery(res, resultList);
+    vector<std::tuple<std::string, std::string>> types = getTypeFromQuery(res);
+    ListExpr resultList = convertTypeVectorIntoSecondoNL(types);
 
-    if(!result) {
+    if(nl->IsEmpty(resultList)) {
         BOOST_LOG_TRIVIAL(error) 
             << "Unable to get tuple type form query: " << sqlQuery;
             return nullptr;

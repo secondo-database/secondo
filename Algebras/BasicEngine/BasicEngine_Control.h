@@ -161,7 +161,7 @@ public:
     return dbms_connection->sendCommand(query, print);
   }
 
-  bool getTypeFromSQLQuery(const std::string &sqlQuery, ListExpr &resultList);
+  ListExpr getTypeFromSQLQuery(const std::string &sqlQuery);
 
   ResultIteratorGeneric* performSQLSelectQuery(const std::string &sqlQuery);
 
