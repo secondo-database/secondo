@@ -122,6 +122,9 @@ class ConnectionGeneric {
     virtual ResultIteratorGeneric* performSQLSelectQuery(
         const std::string &sqlQuery) = 0;
 
+    virtual std::string getAttributeProjectionSQLForTable(
+        const std::string &table, const std::string &prefix = "");
+    
 
     /*
     5.3 

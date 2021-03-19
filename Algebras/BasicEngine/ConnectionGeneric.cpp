@@ -25,8 +25,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 
+#include <vector>
 #include <boost/log/trivial.hpp>
 #include <boost/algorithm/string.hpp>
+#include <boost/algorithm/string/join.hpp>
 
 #include "ConnectionGeneric.h"
 
@@ -105,4 +107,43 @@ ListExpr ConnectionGeneric::convertTypeVectorIntoSecondoNL(
     return resultList;
 }
 
+/**
+ 
+1.3 Get the projection SQL for a table. 
+
+For a table with the attributes "a1 x .. x an" the string "(a1, ..., an)"
+is returned. This string can be used to remove attributes
+that are created for internal reasons like the slot id from tables.
+
+*/
+std::string ConnectionGeneric::getAttributeProjectionSQLForTable(
+        const std::string &table, const std::string &prefix) {
+
+
+    string selectSQL = "SELECT * FROM " + table + " LIMIT 1";
+
+    std::vector<std::tuple<std::string, std::string>> types =
+        getTypeFromSQLQuery(selectSQL);
+    
+    // Convert tuple<attributename, type> into attributename vector
+    vector<string> attributeNames;
+    for(auto type : types) {
+        string attributeName = std::get<0>(type);
+
+        // Append prefix (e.g., a.attributename)
+        if(! prefix.empty()) {
+            attributeName.insert(0, prefix + ".");
+        }
+
+        attributeNames.push_back(attributeName);
+    }
+    string projectString = boost::algorithm::join(attributeNames, ", ");
+
+    string resultString = "(";
+    resultString.append(projectString);
+    resultString.append(")");
+
+    return resultString;
 }
+
+} // Namespace
