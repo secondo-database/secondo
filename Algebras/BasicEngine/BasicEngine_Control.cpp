@@ -738,21 +738,19 @@ Returns true if everything is OK and there are no failure.
 bool BasicEngine_Control::partHash(const string &tab,
                     const string &key, size_t slotnum) {
 
-  bool val = false;
-  string query_exec = "";
-  string partTabName;
-
-  partTabName = getTableNameForPartitioning(tab, key);
+  string partTabName = getTableNameForPartitioning(tab, key);
   drop_table(partTabName);
 
-  query_exec = dbms_connection->getPartitionHashSQL(tab, key,
+  string query_exec = dbms_connection->getPartitionHashSQL(tab, key,
     slotnum, partTabName);
   
-  if (query_exec != "") {
-    val = dbms_connection->sendCommand(query_exec);
-  } 
+  if(query_exec.empty()) {
+    return false;
+  }
 
-  return val;
+  bool result = dbms_connection->sendCommand(query_exec);
+
+  return result;
 }
 
 /*
@@ -766,7 +764,6 @@ Returns true if everything is OK and there are no failure.
 bool BasicEngine_Control::partFun(const string &tab,
     const string &key, const string &fun, size_t slotnum){
                 
-  
   string partTabName = getTableNameForPartitioning(tab, key);
 
   drop_table(partTabName);
@@ -774,7 +771,7 @@ bool BasicEngine_Control::partFun(const string &tab,
   string query_exec = dbms_connection->getPartitionSQL(tab, key,
       slotnum, fun, partTabName);
 
-  if (query_exec == "") {
+  if (query_exec.empty()) {
     return false;
   }
 
