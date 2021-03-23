@@ -112,7 +112,7 @@ public:
     const std::string &key, const size_t slotnum);
 
   bool repartition_table_by_rr(const std::string &tab, 
-    const std::string &key, const size_t slotnum);
+    const size_t slotnum);
 
   bool partTable(const std::string &tab, const std::string &key, 
     const std::string &art, size_t slotnum, const std::string &geo_col = "", 
@@ -266,8 +266,7 @@ distributed2::ConnectionInfo* createAndInitConnection(
 distributed2::ConnectionInfo* createConnection(
   const RemoteConnectionInfo* remoteConnection);
 
-  bool partRoundRobin(const std::string &tab, const std::string &key, 
-    size_t slotnum);
+  bool partRoundRobin(const std::string &tab, size_t slotnum);
 
   bool partHash(const std::string &tab, const std::string &key, 
     size_t slotnum);

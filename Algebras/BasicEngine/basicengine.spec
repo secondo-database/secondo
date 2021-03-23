@@ -36,11 +36,11 @@ operator be_runsql alias BE_RUNSQL pattern op (_)
 operator be_share alias BE_SHARE pattern op (_)
 operator be_validate_query alias BE_VALIDATE_QUERY pattern op (_)
 
-operator be_part_rr alias BE_PART_RR pattern op (_,_,_)
+operator be_part_rr alias BE_PART_RR pattern op (_,_)
 operator be_part_hash alias BE_PART_HASH pattern op (_,_,_)
 operator be_part_fun alias BE_PART_FUN pattern op (_,_,_)
 operator be_part_grid alias BE_PART_GRID pattern op (_,_,_,_,_,_,_)
 
-operator be_repart_rr alias BE_REPART_RR pattern op (_,_,_)
+operator be_repart_rr alias BE_REPART_RR pattern op (_,_)
 operator be_repart_hash alias BE_REPART_HASH pattern op (_,_,_)
 

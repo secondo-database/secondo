@@ -289,14 +289,14 @@ to the worker and import the data
 
 1.2.1 Type Mapping
 
-This operator gets a tablename and key-list (semikolon seperated)
+This operator gets a tablename
 
 */
 ListExpr be_partRRTM(ListExpr args){
-string err = "{string, text} x {string, text} x int -> bool"
+string err = "{string, text} x int -> bool"
        "(tab-name, key, number of slots) expected";
 
-  if(!nl->HasLength(args,3)){
+  if(!nl->HasLength(args,2)){
     return listutils::typeError("Three arguments expected.\n " + err);
   }
   if(!CcString::checkType(nl->First(args))
@@ -304,13 +304,9 @@ string err = "{string, text} x {string, text} x int -> bool"
     return listutils::typeError("Value of first argument have "
                   "to be a string or a text.\n" + err);
   }
-  if(!CcString::checkType(nl->Second(args))
-        && !FText::checkType(nl->Second(args))){
+
+  if(!CcInt::checkType(nl->Second(args))){
     return listutils::typeError("Value of second argument have "
-                   "to be a string or a text.\n" + err);
-  }
-  if(!CcInt::checkType(nl->Third(args))){
-    return listutils::typeError("Value of third argument have "
                     "to be an integer.\n" + err);
   }
 
@@ -321,22 +317,21 @@ string err = "{string, text} x {string, text} x int -> bool"
 1.2.2 Value Mapping
 
 */
-template<class T, class H>
-int be_partRRSFVM(Word* args, Word& result, int message
-        , Word& local, Supplier s ){
+template<class T>
+int be_partRRSFVM(Word* args, Word& result, int message,
+        Word& local, Supplier s ){
 result = qp->ResultStorage(s);
 
 T* tab = (T*) args[0].addr;
-H* key = (H*) args[1].addr;
-CcInt* slot = (CcInt*) args[2].addr;
+CcInt* slot = (CcInt*) args[1].addr;
 
 bool val = false;
 CcBool* res = (CcBool*) result.addr;
 
   if(be_control && be_control->isMaster()){
     if (slot->GetIntval() > 0){
-      val = be_control->partTable(tab->toText(), key->toText()
-            ,"RR", slot->GetIntval());
+      val = be_control->partTable(tab->toText(),
+            "", "RR", slot->GetIntval());
     }else{
       cout << negSlots << endl;
     }
@@ -354,11 +349,10 @@ return 0;
 
 */
 OperatorSpec be_partRRSpec(
-   "{string, text} x {string, text} x int--> bool",
-   "be_part_rr(_,_,_)",
+   "{string, text} x int--> bool",
+   "be_part_rr(_,_)",
    "This operator distribute a relation by round-robin "
-   "to the worker. You can specified a multi key by separating "
-   "the fields with a comma. The number of slots have to be positiv "
+   "to the worker. The number of slots have to be positiv "
    "and should be a multiple of your number of workers.",
    "query be_part_rr('cars','moid',60)"
 );
@@ -368,10 +362,8 @@ OperatorSpec be_partRRSpec(
 
 */
 ValueMapping be_partRRVM[] = {
-  be_partRRSFVM<CcString,CcString>,
-  be_partRRSFVM<FText,CcString>,
-  be_partRRSFVM<CcString,FText>,
-  be_partRRSFVM<FText,FText>
+  be_partRRSFVM<CcString>,
+  be_partRRSFVM<FText>
 };
 
 /*
@@ -379,11 +371,7 @@ ValueMapping be_partRRVM[] = {
 
 */
 int be_partRRSelect(ListExpr args){
-  if(CcString::checkType(nl->First(args))){
-    return CcString::checkType(nl->Second(args))?0:2;
-  } else {
-    return CcString::checkType(nl->Second(args))?1:3;
-  }
+  return CcString::checkType(nl->First(args)) ? 0 : 1;
 };
 
 /*
@@ -2169,15 +2157,14 @@ to the worker and import the data
 1.2.2 Value Mapping
 
 */
-template<class T, class H>
+template<class T>
 int be_repartRRSFVM(Word* args, Word& result, int message,
         Word& local, Supplier s ){
 
   result = qp->ResultStorage(s);
 
   T* tab = (T*) args[0].addr;
-  H* key = (H*) args[1].addr;
-  CcInt* slot = (CcInt*) args[2].addr;
+  CcInt* slot = (CcInt*) args[1].addr;
 
   bool val = false;
   CcBool* res = (CcBool*) result.addr;
@@ -2187,8 +2174,8 @@ int be_repartRRSFVM(Word* args, Word& result, int message,
     val = false;
   } else {
     if (slot->GetIntval() > 0){
-      val = be_control->repartition_table_by_rr(tab->toText(), 
-        key->toText(), slot->GetIntval());
+      val = be_control->repartition_table_by_rr(
+        tab->toText(), slot->GetIntval());
     } else{
       cout << negSlots << endl;
     }
@@ -2204,13 +2191,12 @@ int be_repartRRSFVM(Word* args, Word& result, int message,
 
 */
 OperatorSpec be_repartRRSpec(
-   "{string, text} x {string, text} x int--> bool",
-   "be_repart_rr(_,_,_)",
+   "{string, text} x int--> bool",
+   "be_repart_rr(_,_)",
    "This operator repartition a relation by round-robin "
-   "to the worker. You can specified a multi key by separating "
-   "the fields with a comma. The number of slots have to be positiv "
+   "to the worker. The number of slots have to be positive "
    "and should be a multiple of your number of workers.",
-   "query be_repart_rr('cars','moid',60)"
+   "query be_repart_rr('cars', 60)"
 );
 
 /*
@@ -2218,10 +2204,8 @@ OperatorSpec be_repartRRSpec(
 
 */
 ValueMapping be_repartRRVM[] = {
-  be_repartRRSFVM<CcString,CcString>,
-  be_repartRRSFVM<FText,CcString>,
-  be_repartRRSFVM<CcString,FText>,
-  be_repartRRSFVM<FText,FText>
+  be_repartRRSFVM<CcString>,
+  be_repartRRSFVM<FText>
 };
 
 /*
@@ -2229,11 +2213,7 @@ ValueMapping be_repartRRVM[] = {
 
 */
 int be_repartRRSelect(ListExpr args){
-  if(CcString::checkType(nl->First(args))){
-    return CcString::checkType(nl->Second(args))?0:2;
-  } else {
-    return CcString::checkType(nl->Second(args))?1:3;
-  }
+  return CcString::checkType(nl->First(args)) ? 0 : 1;
 };
 
 /*

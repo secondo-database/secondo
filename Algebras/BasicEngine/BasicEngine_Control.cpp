@@ -431,14 +431,27 @@ The data were partitions in the database by round robin.
 Returns true if everything is OK and there are no failure.
 
 */
-bool BasicEngine_Control::partRoundRobin(const string &tab,
-                    const string &key, size_t slotnum) {
+bool BasicEngine_Control::partRoundRobin(const string &table,
+                    size_t slotnum) {
+  
+  vector<tuple<string, string>> attrs 
+    = dbms_connection->getTypeFromSQLQuery("SELECT * FROM " + table + ";");
 
-  string partTabName = getTableNameForPartitioning(tab, key);
+  if(attrs.empty()) {
+    BOOST_LOG_TRIVIAL(error) << "Unable to determine table layout for " 
+      << table;
+  }
+
+  tuple<string, string> firstAttibute = attrs[0];
+  string key = std::get<0>(firstAttibute);
+
+  BOOST_LOG_TRIVIAL(debug) << "Using key " + key + " for rr join";
+
+  string partTabName = getTableNameForPartitioning(table, key);
 
   drop_table(partTabName);
 
-  return dbms_connection->partitionRoundRobin(tab, key,
+  return dbms_connection->partitionRoundRobin(table, key,
       slotnum, partTabName);
 }
 
@@ -484,7 +497,7 @@ Repartition the given table - worker version
 
     // On the worker: Create export table
     if(repartitionMode == rr) {
-      bool partResult = partRoundRobin(table, key, slotnum);
+      bool partResult = partRoundRobin(table, slotnum);
       if(! partResult) {
           BOOST_LOG_TRIVIAL(error) << "Unable to partition table";
           return false;
@@ -561,12 +574,14 @@ Repartition the given table - master version
     string repartitionQuery = "query ";
     if(repartitionMode == rr) {
       repartitionQuery.append("be_repart_rr");
+      repartitionQuery.append("('" + table + "','" + key 
+        + "'," + to_string(slotnum) + ")");
     } else if(repartitionMode == hash) {
       repartitionQuery.append("be_repart_hash");
+      repartitionQuery.append("('" + table + "',"
+        + to_string(slotnum) + ")");
     }
 
-    repartitionQuery.append("('" + table + "','" + key 
-      + "'," + to_string(slotnum) + ")");
     BOOST_LOG_TRIVIAL(debug) << "Execute repartition job on worker: "
       << repartitionQuery;
 
@@ -628,11 +643,11 @@ Repartition the given table by round robin
 
 */
 bool BasicEngine_Control::repartition_table_by_rr(const std::string &table, 
-  const std::string &key, const size_t slotnum) {
+  const size_t slotnum) {
     
     BOOST_LOG_TRIVIAL(debug) << "Repartiton by rr called on " << table;
 
-    return repartition_table(table, key, slotnum, rr);
+    return repartition_table(table, "", slotnum, rr);
 }
 
 
@@ -869,7 +884,7 @@ bool BasicEngine_Control::partTable(const string &tab, const string &key,
   bool val = true;
 
   if (boost::iequals(partType, "RR")) {
-    val = partRoundRobin(tab, key, slotnum);
+    val = partRoundRobin(tab, slotnum);
   } else if (boost::iequals(partType, "Hash")) {
     val = partHash(tab, key, slotnum);
   } else if (boost::iequals(partType, "Grid")) {

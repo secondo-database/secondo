@@ -81,8 +81,8 @@ Result    : FALSE
 
 Operator  : be_part_rr
 Number    : 1
-Signature : {string, text} x {string, text} x int --> bool
-Example   : query be_part_rr("cars", "moid", 60)
+Signature : {string, text} x int --> bool
+Example   : query be_part_rr("cars", 60)
 Result    : FALSE
 
 Operator  : be_part_hash
@@ -105,8 +105,8 @@ Result    : FALSE
 
 Operator  : be_repart_rr
 Number    : 1
-Signature : {string, text} x {string, text} x int --> bool
-Example   : query be_repart_rr("cars", "moid", 60)
+Signature : {string, text} x int --> bool
+Example   : query be_repart_rr("cars", 60)
 Result    : FALSE
 
 Operator  : be_repart_hash
