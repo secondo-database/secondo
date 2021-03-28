@@ -502,6 +502,12 @@ Repartition the given table - worker version
           BOOST_LOG_TRIVIAL(error) << "Unable to partition table";
           return false;
       }
+    } else if(repartitionMode == random) {
+      bool partResult = partFun(table, key, "random", slotnum);
+      if(! partResult) {
+          BOOST_LOG_TRIVIAL(error) << "Unable to partition table";
+          return false;
+      }
     } else if(repartitionMode == hash) {
       bool partResult = partHash(table, key, slotnum);
       if(! partResult) {
@@ -576,10 +582,18 @@ Repartition the given table - master version
       repartitionQuery.append("be_repart_rr");
       repartitionQuery.append("('" + table + "','" + key 
         + "'," + to_string(slotnum) + ")");
+    } else if(repartitionMode == random) {
+      repartitionQuery.append("be_repart_random");
+      repartitionQuery.append("('" + table + "',"
+        + to_string(slotnum) + ")");
     } else if(repartitionMode == hash) {
       repartitionQuery.append("be_repart_hash");
       repartitionQuery.append("('" + table + "',"
         + to_string(slotnum) + ")");
+    } else {
+      BOOST_LOG_TRIVIAL(error) << "Unsupported repartition mode: "
+        << repartitionMode;
+      return false;
     }
 
     BOOST_LOG_TRIVIAL(debug) << "Execute repartition job on worker: "
@@ -648,6 +662,20 @@ bool BasicEngine_Control::repartition_table_by_rr(const std::string &table,
     BOOST_LOG_TRIVIAL(debug) << "Repartiton by rr called on " << table;
 
     return repartition_table(table, "", slotnum, rr);
+}
+
+/*
+3.8 ~repartition\_table\_by\_rr~
+
+Repartition the given table by round robin
+
+*/
+bool BasicEngine_Control::repartition_table_by_random(const std::string &table, 
+  const size_t slotnum) {
+    
+    BOOST_LOG_TRIVIAL(debug) << "Repartiton by random called on " << table;
+
+    return repartition_table(table, "", slotnum, random);
 }
 
 

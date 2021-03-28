@@ -281,15 +281,15 @@ Operator be_shutdown_cluster (
          be_shutdown_cluster_tm                 // type mapping
 );
 
-/*
-1.2 Operator  ~be\_partRR~
 
-Distribute a relation by Round-Robin, sends the data
+/*
+
+1.2 Operator  ~be\_part\_random~
+
+Distribute a relation by random, sends the data
 to the worker and import the data
 
-1.2.1 Type Mapping
-
-This operator gets a tablename
+1.2.2 Type Mapping
 
 */
 ListExpr be_partRRTM(ListExpr args){
@@ -312,6 +312,93 @@ string err = "{string, text} x int -> bool"
 
   return nl->SymbolAtom(CcBool::BasicType());
 }
+
+/*
+1.2.3 Value Mapping
+
+*/
+template<class T>
+int be_partRandomSFVM(Word* args, Word& result, int message,
+        Word& local, Supplier s ){
+result = qp->ResultStorage(s);
+
+T* tab = (T*) args[0].addr;
+CcInt* slot = (CcInt*) args[1].addr;
+
+bool val = false;
+CcBool* res = (CcBool*) result.addr;
+
+  if(be_control && be_control->isMaster()){
+    if (slot->GetIntval() > 0){
+      val = be_control->partTable(tab->toText(),
+            "", "RANDOM", slot->GetIntval());
+    }else{
+      cout << negSlots << endl;
+    }
+  }
+  else{
+    cout << noWorker << endl;
+  }
+  res->Set(true, val);
+
+return 0;
+}
+
+/*
+1.2.3 Specification
+
+*/
+OperatorSpec be_partRandomSpec(
+   "{string, text} x int--> bool",
+   "be_part_random(_,_)",
+   "This operator distribute a relation by random "
+   "to the worker. The number of slots have to be positiv "
+   "and should be a multiple of your number of workers.",
+   "query be_part_random('cars','moid',60)"
+);
+
+/*
+1.2.4 ValueMapping Array
+
+*/
+ValueMapping be_partRandomVM[] = {
+  be_partRandomSFVM<CcString>,
+  be_partRandomSFVM<FText>
+};
+
+/*
+1.2.5 Selection Function
+
+*/
+int be_partRandomSelect(ListExpr args){
+  return CcString::checkType(nl->First(args)) ? 0 : 1;
+};
+
+/*
+1.2.6 Operator instance
+
+*/
+Operator be_partRandomOp(
+  "be_part_random",
+  be_partRandomSpec.getStr(),
+  sizeof(be_partRandomVM),
+  be_partRandomVM,
+  be_partRandomSelect,
+  be_partRRTM
+);
+
+
+/*
+1.2 Operator  ~be\_partRR~
+
+Distribute a relation by Round-Robin, sends the data
+to the worker and import the data
+
+1.2.1 Type Mapping
+
+This operator gets a tablename
+
+*/
 
 /*
 1.2.2 Value Mapping
@@ -2082,6 +2169,8 @@ int be_collect_vm(Word* args, Word& result, int message,
   ResultIteratorGeneric* cli = (ResultIteratorGeneric*) local.addr;
   string sqlQuery = ((FText*) args[0].addr)->GetValue();
 
+qp->GetGlobalMemory();
+
   switch(message) {
     case OPEN: 
 
@@ -2149,9 +2238,92 @@ Operator be_collect_op (
 
 
 /*
-1.2 Operator  ~be\_repart\_rr~
+1.2 Operator  ~be\_repart\_random~
 
-Repartition a relation by Round-Robin, sends the data
+Repartition a relation by random, sends the data
+to the worker and import the data
+
+1.2.2 Value Mapping
+
+*/
+template<class T>
+int be_repartRandomSFVM(Word* args, Word& result, int message,
+        Word& local, Supplier s ){
+
+  result = qp->ResultStorage(s);
+
+  T* tab = (T*) args[0].addr;
+  CcInt* slot = (CcInt*) args[1].addr;
+
+  bool val = false;
+  CcBool* res = (CcBool*) result.addr;
+
+  if(be_control == nullptr){
+    cerr << "Please init basic engine first" << endl;
+    val = false;
+  } else {
+    if (slot->GetIntval() > 0){
+      val = be_control->repartition_table_by_random(
+        tab->toText(), slot->GetIntval());
+    } else{
+      cout << negSlots << endl;
+    }
+  }
+
+  res->Set(true, val);
+
+  return 0;
+}
+
+
+/*
+1.2.3 Specification
+
+*/
+OperatorSpec be_repartRandomSpec(
+   "{string, text} x int--> bool",
+   "be_repart_random(_,_)",
+   "This operator repartition a relation by random "
+   "to the worker. The number of slots have to be positive "
+   "and should be a multiple of your number of workers.",
+   "query be_repart_random('cars', 60)"
+);
+
+/*
+1.2.4 ValueMapping Array
+
+*/
+ValueMapping be_repartRandomVM[] = {
+  be_repartRandomSFVM<CcString>,
+  be_repartRandomSFVM<FText>
+};
+
+/*
+1.2.5 Selection Function
+
+*/
+int be_repartRandomSelect(ListExpr args){
+  return CcString::checkType(nl->First(args)) ? 0 : 1;
+};
+
+/*
+1.2.6 Operator instance
+
+*/
+Operator be_repartRandomOp(
+  "be_repart_random",
+  be_repartRandomSpec.getStr(),
+  sizeof(be_repartRandomVM),
+  be_repartRandomVM,
+  be_repartRandomSelect,
+  be_partRRTM
+);
+
+
+/*
+1.2 Operator  ~be\_repart\_random~
+
+Repartition a relation by random, sends the data
 to the worker and import the data
 
 1.2.2 Value Mapping
@@ -2180,11 +2352,12 @@ int be_repartRRSFVM(Word* args, Word& result, int message,
       cout << negSlots << endl;
     }
   }
-  
+
   res->Set(true, val);
 
   return 0;
 }
+
 
 /*
 1.2.3 Specification
@@ -2543,10 +2716,12 @@ class BasicEngineAlgebra : public Algebra
     AddOperator(&be_collect_op);
     be_collect_op.SetUsesArgsInTypeMapping();
 
+    AddOperator(&be_partRandomOp);
     AddOperator(&be_partRROp);
     AddOperator(&be_partHashOp);
     AddOperator(&be_partGridOp);
     AddOperator(&be_partFunOp);
+    AddOperator(&be_repartRandomOp);
     AddOperator(&be_repartRROp);
     AddOperator(&be_repartHashOp);
     AddOperator(&be_shareOp);

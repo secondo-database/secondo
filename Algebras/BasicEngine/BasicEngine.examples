@@ -79,6 +79,12 @@ Signature : {string, text} --> bool
 Example   : query be_runsql('/home/cbe/filetransfer/createroads.sql')
 Result    : FALSE
 
+Operator  : be_part_random
+Number    : 1
+Signature : {string, text} x int --> bool
+Example   : query be_part_random("cars", 60)
+Result    : FALSE
+
 Operator  : be_part_rr
 Number    : 1
 Signature : {string, text} x int --> bool
@@ -101,6 +107,12 @@ Operator  : be_part_grid
 Number    : 1
 Signature : {string, text} x {string, text} x real x real x real x int--> bool
 Example   : query be_part_grid('roads','gid','geod',5.8, 50.3,0.2,20)
+Result    : FALSE
+
+Operator  : be_repart_random
+Number    : 1
+Signature : {string, text} x int --> bool
+Example   : query be_repart_random("cars", 60)
 Result    : FALSE
 
 Operator  : be_repart_rr

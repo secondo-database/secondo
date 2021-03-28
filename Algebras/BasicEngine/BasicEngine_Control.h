@@ -54,7 +54,7 @@ namespace BasicEngine {
 2 ENum ~RepartitionMode~
 
 */
-enum RepartitionMode {hash, rr};
+enum RepartitionMode {hash, rr, random, grid};
 
 /*
 2 Struct ~RemoteConnectionInfo~
@@ -112,6 +112,9 @@ public:
     const std::string &key, const size_t slotnum);
 
   bool repartition_table_by_rr(const std::string &tab, 
+    const size_t slotnum);
+
+  bool repartition_table_by_random(const std::string &tab, 
     const size_t slotnum);
 
   bool partTable(const std::string &tab, const std::string &key, 
