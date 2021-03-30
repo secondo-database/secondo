@@ -53,7 +53,7 @@ namespace fs = boost::filesystem;
 using namespace std;
 using namespace distributed2;
 
-extern boost::mutex nlparsemtx;
+extern boost::recursive_mutex nlparsemtx;
 
 namespace DBService {
 
@@ -305,7 +305,7 @@ void ReplicationServer::applyFunctionAndCreateNewFile(
     LOG_F(INFO, "FunctionList: %s", function.c_str());
 
     // Lock access to the nested list.
-    boost::unique_lock<boost::mutex> nlLock(nlparsemtx);
+    boost::unique_lock<boost::recursive_mutex> nlLock(nlparsemtx);
 
     // TODO Is this the global nexted list to be locked?
     NestedList* nl = SecondoSystem::GetNestedList();

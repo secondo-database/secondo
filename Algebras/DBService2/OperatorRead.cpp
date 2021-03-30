@@ -45,7 +45,7 @@ namespace fs = boost::filesystem;
 
 using namespace std;
 
-extern boost::mutex nlparsemtx;
+extern boost::recursive_mutex nlparsemtx;
 
 namespace DBService {
 
@@ -54,7 +54,7 @@ ListExpr OperatorRead::mapType(ListExpr nestedList)
 {
     print(nestedList, std::cout);
 
-    boost::unique_lock<boost::mutex> nlLock(nlparsemtx);
+    boost::unique_lock<boost::recursive_mutex> nlLock(nlparsemtx);
 
     if(!nl->HasLength(nestedList, 1))
     {

@@ -44,7 +44,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 using namespace std;
 
 extern NestedList* nl;
-extern boost::mutex nlparsemtx;
+extern boost::recursive_mutex nlparsemtx;
 
 namespace DBService
 {
@@ -142,7 +142,7 @@ namespace DBService
 
     if(success) {
 
-      boost::lock_guard<boost::mutex> guard(nlparsemtx);
+      boost::lock_guard<boost::recursive_mutex> guard(nlparsemtx);
       //print("resultList", resultList, std::cout);
       //TODO Add LOG_F
 
@@ -376,7 +376,7 @@ the inserted record's id.");
 
     if(success) {
 
-      boost::lock_guard<boost::mutex> guard(nlparsemtx);
+      boost::lock_guard<boost::recursive_mutex> guard(nlparsemtx);
       
       ListExpr resultData = nl->Second(resultList);
       print("resultData", resultData, std::cout);
@@ -406,13 +406,14 @@ the inserted record's id.");
     string currentDatabase;
 
     LOG_SCOPE_FUNCTION(INFO);
-    //boost::lock_guard<boost::recursive_mutex> lock(utilsMutex);
-
+   
+    
     if(!isDatabaseOpen() == true)
       throw SecondoException("Can't determine current database as no database \
 is open.");
 
     currentDatabase = string(SecondoSystem::GetInstance()->GetDatabaseName());
+    boost::to_upper(currentDatabase);
 
     return currentDatabase;
   }
@@ -421,7 +422,7 @@ is open.");
   {
     LOG_SCOPE_FUNCTION(INFO);
     //boost::lock_guard<boost::recursive_mutex> lock(utilsMutex);
-    boost::lock_guard<boost::mutex> guard(nlparsemtx);
+    boost::lock_guard<boost::recursive_mutex> guard(nlparsemtx);
 
     // Uppercase is also for getting the filenames right later as 
     // they are derived from the relation's db name.
@@ -471,10 +472,15 @@ is open.");
     SecondoSystem* secondoSystem = SecondoSystem::GetInstance();
 
     if(isDatabaseOpen() == true) {
+      string currentDB = getCurrentDatabase();
+
+      LOG_F(INFO, "Current db: %s. Desired db: %s", currentDB.c_str(), 
+        database.c_str());
 
       // No need to open the db if it's already open.
-      if(getCurrentDatabase() == database)
+      if(currentDB == database)
       {
+        LOG_F(INFO, "%s", "Desired db already open.");
         print("\tDatabase " + database + " already open.", std::cout);
         return;
       }

@@ -43,7 +43,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 using namespace std;
 
-extern boost::mutex nlparsemtx;
+extern boost::recursive_mutex nlparsemtx;
 
 namespace DBService {
 
@@ -51,7 +51,7 @@ ListExpr OperatorRderive::mapType(ListExpr args)
 {
   // rel x string x fun
 
-  boost::lock_guard<boost::mutex> guard(nlparsemtx);
+  boost::lock_guard<boost::recursive_mutex> guard(nlparsemtx);
 
   if(!nl->HasLength(args,3)){
     return listutils::typeError("expected 3 arguments");
@@ -78,14 +78,21 @@ ListExpr OperatorRderive::mapType(ListExpr args)
   }
   string relname = nl->SymbolValue(nl->Second(nl->First(args)));
 
+  // JF: BUT WHY?
   // the remote name (second argument) must be a constant string
-  if(nl->AtomType(nl->Second(nl->Second(args)))!=StringType){
-    return listutils::typeError("the second arg must be a constant string");
-  }
-  string remoteName = nl->StringValue(nl->Second(nl->Second(args)));
-  if(!stringutils::isIdent(remoteName)){
-    return listutils::typeError("the second arg is not a valid identifier");
-  }
+  // This prevents querie such as: 
+  //  query CitiesR rderive["CitiesR_count_" + num2string(1), . count] 
+  //  = CitiesR count
+  // These queries are required to create derivatives using dmap.
+
+  //TODO Find a different way to test the input arguments.
+  // if(nl->AtomType(nl->Second(nl->Second(args)))!=StringType){
+  //   return listutils::typeError("the second arg must be a constant string");
+  // }
+  // string remoteName = nl->StringValue(nl->Second(nl->Second(args)));
+  // if(!stringutils::isIdent(remoteName)){
+  //   return listutils::typeError("the second arg is not a valid identifier");
+  // }
   ListExpr funtd = nl->Third(args);
   ListExpr funt = nl->First(funtd);
   ListExpr funarg = nl->Second(funt);

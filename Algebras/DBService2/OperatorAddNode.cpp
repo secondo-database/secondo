@@ -35,7 +35,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Algebras/DBService2/DebugOutput.hpp"
 
 extern QueryProcessor* qp;
-extern boost::mutex nlparsemtx;
+extern boost::recursive_mutex nlparsemtx;
 
 namespace DBService
 {
@@ -46,7 +46,7 @@ ListExpr OperatorAddNode::mapType(ListExpr nestedList)
 
     // ensure to have only one access to the catalog
     static boost::mutex mtx;
-    boost::lock_guard<boost::mutex> guard(nlparsemtx);
+    boost::lock_guard<boost::recursive_mutex> guard(nlparsemtx);
 
     if (!nl->HasLength(nestedList, 3))
     {

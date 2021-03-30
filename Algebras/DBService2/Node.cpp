@@ -277,7 +277,9 @@ namespace DBService {
 
   void Node::startWorker() {
     if (isConnected() == false) {
-      throw "Can't start the DBService worker on a disconnected node.";
+      LOG_F(ERROR, "%s", 
+        "Not connected to the worker. Connecing to remore worker...");
+      connectAndConfigure();
     }
     
     nodeConnection->startDBServiceWorker();

@@ -34,7 +34,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Algebras/FText/FTextAlgebra.h"
 #include <sstream>
 
-extern boost::mutex nlparsemtx;
+extern boost::recursive_mutex nlparsemtx;
 
 namespace DBService
 {
@@ -44,7 +44,7 @@ ListExpr OperatorCheckDBServiceStatus::mapType(ListExpr nestedList)
     print(nestedList, std::cout);
 
     // ensure to have only one access to the catalog
-    boost::lock_guard<boost::mutex> guard(nlparsemtx);
+    boost::lock_guard<boost::recursive_mutex> guard(nlparsemtx);
 
     if (!nl->HasLength(nestedList, 0))
     {

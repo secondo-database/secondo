@@ -30,7 +30,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 using namespace std;
 
 extern NestedList* nl;
-extern boost::mutex nlparsemtx;
+
+// extern boost::recursive_mutex nlparsemtx;
 
 namespace DBService
 {
@@ -64,7 +65,9 @@ namespace DBService
           }
     */
 
-    boost::lock_guard<boost::mutex> guard(nlparsemtx);
+    // The lock must be acquired in the invoking function, 
+    //    e.g. SecondoRecordAdapter.
+    //boost::lock_guard<boost::recursive_mutex> guard(nlparsemtx);
 
     // Example of a record as nested list: 
     //   ('localhost' 1245 '' '/home/doesnt_exist/secondo' 9941 9942 1) 

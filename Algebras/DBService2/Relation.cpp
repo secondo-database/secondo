@@ -517,7 +517,7 @@ namespace DBService {
 
     ret << ind << "{" << endl;
     ret << ind2 << "RelationName: " << getName() << ", " << endl;
-    ret << ind2 << "RelationDatabase:" << getRelationDatabase() << endl;
+    ret << ind2 << "RelationDatabase: " << getRelationDatabase() << endl;
     ret << ind << "}";
 
     return ret.str();

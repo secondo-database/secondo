@@ -46,7 +46,7 @@ using namespace std;
 using namespace distributed2;
 
 extern CMsg cmsg;
-extern boost::mutex nlparsemtx;
+extern boost::recursive_mutex nlparsemtx;
 
 namespace DBService {
 
@@ -292,7 +292,7 @@ SecondoUtilsLocal::createRelation(const string& queryAsString,
     bool isFunction = false;
 
     boost::lock_guard<boost::mutex> lock(utilsMutex);
-    boost::lock_guard<boost::mutex> guard(nlparsemtx);
+    boost::lock_guard<boost::recursive_mutex> guard(nlparsemtx);
     
     NestedList* nli = SecondoSystem::GetNestedList();
 
@@ -388,7 +388,7 @@ bool SecondoUtilsLocal::executeQueryCommand(const string& queryAsString,
 
     print("Acquiring lock for executeQueryCommand...", std::cout);
     boost::lock_guard<boost::mutex> lock(utilsMutex);
-    boost::lock_guard<boost::mutex> guard(nlparsemtx);
+    boost::lock_guard<boost::recursive_mutex> guard(nlparsemtx);
     boost::lock_guard<boost::mutex> queryProcessorGuard(
         // Dereference the shared_ptr to the mutex
         *LockKeeper::getInstance()->getQueryProcessorMutex()

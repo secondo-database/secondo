@@ -41,7 +41,7 @@ namespace fs = boost::filesystem;
 
 using namespace std;
 
-extern boost::mutex nlparsemtx;
+extern boost::recursive_mutex nlparsemtx;
 
 namespace DBService
 {
@@ -50,7 +50,7 @@ ListExpr OperatorDDelete::mapType(ListExpr nestedList)
 {
     print(nestedList, std::cout);
 
-    boost::lock_guard<boost::mutex> guard(nlparsemtx);
+    boost::lock_guard<boost::recursive_mutex> guard(nlparsemtx);
 
     if (!nl->HasLength(nestedList, 2) && !nl->HasLength(nestedList,3))
     {

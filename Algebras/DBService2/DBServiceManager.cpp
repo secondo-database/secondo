@@ -83,8 +83,10 @@ namespace DBService
 
         boost::lock_guard<boost::mutex> lock(managerMutex);
 
+        LOG_F(INFO, "%s", "Restoring configuration...");
         restoreConfiguration();
 
+        LOG_F(INFO, "%s", "Creating/verifying the DBService database...");
         //TODO Make configurable
         database = DatabaseEnvironment::production;
 
@@ -92,15 +94,21 @@ namespace DBService
 
         DatabaseSchema::migrate(database);
 
+        LOG_F(INFO, "%s", "Loading DBS Nodes...");
         nodeManager = make_unique<NodeManager>(database);
         nodeManager->load();
 
+        LOG_F(INFO, "%s", "Starting DBS Worker Nodes...");
+        nodeManager->startWorkers();
+
+        LOG_F(INFO, "%s", "Loading DBS Relations...");
         relationManager = make_unique<RelationManager>(database);
         relationManager->load();
 
+        LOG_F(INFO, "%s", "Restoring replica placement strategy config...");
         restoreReplicaPlacementStrategyConfig();       
 
-
+        LOG_F(INFO, "%s", "The DBServiceManager is now ready.");
     }
 
     DBServiceManager::~DBServiceManager()
@@ -149,14 +157,16 @@ namespace DBService
 
         if(!_instance)
         {
-            try {
+            LOG_F(INFO, "%s", "Creating DBServiceManager instance...");
+            //try {
                 _instance = new DBServiceManager();
                 active = true;
-            }
-            catch(...) {
-                _instance = 0;
-                active = false;
-            }
+            // }
+            // catch(...) {
+            //     LOG_F(ERROR, "%s", "Failed to start the DBService!");
+            //     _instance = 0;
+            //     active = false;
+            // }
         }
         return _instance;
     }

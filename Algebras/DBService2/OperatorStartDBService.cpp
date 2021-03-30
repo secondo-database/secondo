@@ -30,7 +30,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 using namespace std;
 
-extern boost::mutex nlparsemtx;
+extern boost::recursive_mutex nlparsemtx;
 
 namespace DBService
 {
@@ -39,7 +39,7 @@ ListExpr OperatorStartDBService::mapType(ListExpr nestedList)
 {
     print(nestedList, std::cout);
 
-    boost::lock_guard<boost::mutex> guard(nlparsemtx);
+    boost::lock_guard<boost::recursive_mutex> guard(nlparsemtx);
 
     if (!nl->HasLength(nestedList, 0))
     {
@@ -63,7 +63,7 @@ int OperatorStartDBService::mapValue(Word* args,
         res->Set(true,false);
         return 0;
     }
-    bool started =  DBServiceManager::getInstance() != 0;
+    bool started = DBServiceManager::getInstance() != 0;
 
 
     //TODO find out if there's a more elegant way...

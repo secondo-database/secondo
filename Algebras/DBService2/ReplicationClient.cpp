@@ -47,7 +47,7 @@ namespace fs = boost::filesystem;
 using namespace std;
 using namespace distributed2;
 
-extern boost::mutex nlparsemtx;
+extern boost::recursive_mutex nlparsemtx;
 
 namespace DBService {
 
@@ -176,7 +176,7 @@ int ReplicationClient::receiveReplica()
             LOG_F(INFO, "%s", "File received. Now creating relation...");
 
             LOG_F(INFO, "%s", "Acquiring the nlparsemtx...");
-            boost::unique_lock<boost::mutex> nlLock(nlparsemtx);
+            boost::unique_lock<boost::recursive_mutex> nlLock(nlparsemtx);
             LOG_F(INFO, "%s", "Successfully acquired the nlparsemtx.");
             
             ListExpr command = nl->TwoElemList(

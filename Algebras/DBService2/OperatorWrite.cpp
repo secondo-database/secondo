@@ -42,7 +42,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 using namespace std;
 using namespace distributed2;
 
-extern boost::mutex nlparsemtx;
+extern boost::recursive_mutex nlparsemtx;
 
 namespace DBService
 {
@@ -52,7 +52,7 @@ ListExpr OperatorWrite::mapType(ListExpr nestedList)
     printFunction("OperatorWrite::mapType", std::cout);
     print("nestedList", nestedList, std::cout);
 
-    boost::lock_guard<boost::mutex> guard(nlparsemtx);
+    boost::lock_guard<boost::recursive_mutex> guard(nlparsemtx);
 
     if (nl->ListLength(nestedList) != 3)
     {
@@ -105,7 +105,7 @@ int OperatorWrite::mapValue(
 
     printFunction("OperatorWrite::mapValue", std::cout);   
 
-    boost::lock_guard<boost::mutex> guard(nlparsemtx);
+    boost::lock_guard<boost::recursive_mutex> guard(nlparsemtx);
 
     ListExpr tupleType = nl->Second(qp->GetType(s));
     print("tupleType", tupleType, std::cout);

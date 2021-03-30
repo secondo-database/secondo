@@ -33,7 +33,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 using namespace std;
 
 extern NestedList* nl;
-extern boost::mutex nlparsemtx;
+// extern boost::recursive_mutex nlparsemtx;
 
 namespace DBService {
   
@@ -70,7 +70,7 @@ namespace DBService {
       Then each Record type only has to offer the attribute mapping.
     */
 
-    boost::lock_guard<boost::mutex> guard(nlparsemtx);
+//    boost::lock_guard<boost::recursive_mutex> guard(nlparsemtx);
 
     relationName      = nl->StringValue(nl->Nth(1, recordAsNestedList));
     relationDatabase  = nl->StringValue(nl->Nth(2, recordAsNestedList));

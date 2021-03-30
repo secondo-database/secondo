@@ -88,4 +88,10 @@ namespace DBService {
   vector<shared_ptr<Node> > NodeManager::getNodes() {
     return getAll();
   }
+
+  void NodeManager::startWorkers() {
+      for(auto& node : records) {
+        node->startWorker();
+      }
+  }
 }

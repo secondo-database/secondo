@@ -38,7 +38,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 using namespace std;
 
-extern boost::mutex nlparsemtx;
+extern boost::recursive_mutex nlparsemtx;
 
 namespace DBService {
 
@@ -50,7 +50,7 @@ ListExpr OperatorCommon::getStreamType(
     print(nestedList, std::cout);
 
     // Assumption: the lock is in the invoking function.
-    // boost::lock_guard<boost::mutex> guard(nlparsemtx);
+    // boost::lock_guard<boost::recursive_mutex> guard(nlparsemtx);
 
     if(!nl->HasMinLength(nestedList, 1))
     {
@@ -109,7 +109,7 @@ ListExpr OperatorCommon::getRelType(
         bool& locallyAvailable)
 {  
   // Assumption: the lock is in the invoking function. 
-  //boost::lock_guard<boost::mutex> guard(nlparsemtx);
+  //boost::lock_guard<boost::recursive_mutex> guard(nlparsemtx);
 
   ListExpr tr = getStreamType(nestedList, locallyAvailable);
   if(!Stream<Tuple>::checkType(tr)){
@@ -126,7 +126,7 @@ ListExpr OperatorCommon::getDerivedType(
             bool & locallyAvailable){
 
   // Assumption: the lock is in the invoking function.
-  //boost::lock_guard<boost::mutex> guard(nlparsemtx);
+  //boost::lock_guard<boost::recursive_mutex> guard(nlparsemtx);
 
   locallyAvailable = false;
   if(!nl->HasMinLength(args,X+1))

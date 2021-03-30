@@ -37,7 +37,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 using namespace std;
 
 extern NestedList* nl;
-extern boost::mutex nlparsemtx;
+extern boost::recursive_mutex nlparsemtx;
 
 namespace DBService {
 
@@ -206,7 +206,7 @@ namespace DBService {
 
     // Lock access to the nested list.
     // This lock causes a deadlock!!!!
-    boost::lock_guard<boost::mutex> guard(nlparsemtx);
+    boost::lock_guard<boost::recursive_mutex> guard(nlparsemtx);
 
     ListExpr resultAsNestedList;
     nl->ReadFromString(resultAsString, resultAsNestedList);

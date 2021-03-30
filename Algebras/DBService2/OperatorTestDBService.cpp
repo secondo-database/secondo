@@ -62,7 +62,7 @@ TODO Refactor tests and reduce their assumptions/dependencies about prior
 
 #include "Algebras/DBService2/ReplicaPlacementStrategyTest.cpp"
 
-extern boost::mutex nlparsemtx;
+extern boost::recursive_mutex nlparsemtx;
 
 namespace DBService
 {
@@ -72,7 +72,7 @@ namespace DBService
     printFunction("OperatorTestDBService::mapType", std::cout);
     print(nestedList, std::cout);
 
-    boost::lock_guard<boost::mutex> guard(nlparsemtx);
+    boost::lock_guard<boost::recursive_mutex> guard(nlparsemtx);
 
     if (!nl->HasLength(nestedList, 0))
     {

@@ -710,7 +710,7 @@ bool CommunicationClient::triggerDerivation(const string& databaseName,
         return false;
     }
     if(receivedLine == CommunicationProtocol::RelationNotExists()){
-        traceWriter->write("argument relation does not exists in DBService");
+        traceWriter->write("The given relation does not exists in DBService.");
         return false;
     }
     if(receivedLine != CommunicationProtocol::DerivationTriggered())

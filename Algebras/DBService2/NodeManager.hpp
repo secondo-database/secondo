@@ -38,6 +38,9 @@ namespace DBService {
     std::shared_ptr<Node> findByHostnameAndPort(std::string hostname, int port);    
 
     std::vector<std::shared_ptr<Node> > getNodes();
+
+    void startWorkers();
+
   };
 }
 #endif

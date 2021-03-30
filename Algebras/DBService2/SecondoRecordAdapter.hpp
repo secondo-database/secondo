@@ -6,7 +6,7 @@
 #include "NestedList.h"
 
 extern NestedList* nl;
-extern boost::mutex nlparsemtx;
+extern boost::recursive_mutex nlparsemtx;
 
 namespace DBService
 {
@@ -67,7 +67,7 @@ namespace DBService
         *  The list of records is the 2nd element
         */
 
-        boost::lock_guard<boost::mutex> guard(nlparsemtx);
+        boost::unique_lock<boost::recursive_mutex> nlLock(nlparsemtx);
 
         ListExpr recordList = nl->Second(resultList);    
 
@@ -76,7 +76,7 @@ namespace DBService
             // Obtain a record from the list of records.
             // ('localhost' 1245 '' '/home/doesnt_exist/secondo' 9941 9942 1) 
             ListExpr currentRecordNL = nl->First(recordList);
-
+            
             std::shared_ptr<RecordType> currentRecord = buildObjectFromNestedList(database, currentRecordNL);
                     
             currentRecord->setDatabase(database);
@@ -85,7 +85,7 @@ namespace DBService
             records.push_back(currentRecord);
 
             // Set the recordList to the reduced List without the currentRow        
-            recordList = nl->Rest(recordList);
+            recordList = nl->Rest(recordList);            
         }
 
       return records;

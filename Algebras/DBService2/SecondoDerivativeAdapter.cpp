@@ -33,7 +33,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 using namespace std;
 
 extern NestedList* nl;
-extern boost::mutex nlparsemtx;
+
+
+// extern boost::recursive_mutex nlparsemtx;
 
 namespace DBService {
   
@@ -50,7 +52,7 @@ namespace DBService {
     int relationId;    
     int id;
 
-    boost::lock_guard<boost::mutex> guard(nlparsemtx);
+//    boost::lock_guard<boost::recursive_mutex> guard(nlparsemtx);
 
     //TODO instead of 1, 2, use offset -> This way the adapter can also be used
     //  for joins where the offset may be different from 0

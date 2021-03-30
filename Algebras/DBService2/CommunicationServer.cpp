@@ -60,7 +60,7 @@ using namespace std;
 
 namespace fs = boost::filesystem;
 
-extern boost::mutex nlparsemtx;
+extern boost::recursive_mutex nlparsemtx;
 
 namespace DBService {
 
@@ -819,7 +819,7 @@ bool CommunicationServer::handleRelTypeRequest(
             fileName.c_str(), relname.c_str());
             
     // Restrict access to the nested list
-    boost::lock_guard<boost::mutex> guard(nlparsemtx);
+    boost::lock_guard<boost::recursive_mutex> guard(nlparsemtx);
     
     SecondoCatalog* ctlg = SecondoSystem::GetCatalog();
     if(!ctlg->IsObjectName(relname)){
@@ -877,7 +877,7 @@ bool CommunicationServer::handleDerivedTypeRequest(
     traceWriter->write("ObjectName ", objectName);
     LOG_F(INFO, "ObjectName: %s", objectName.c_str());
 
-    boost::lock_guard<boost::mutex> guard(nlparsemtx);
+    boost::lock_guard<boost::recursive_mutex> guard(nlparsemtx);
 
     SecondoCatalog* ctlg = SecondoSystem::GetCatalog();
     if(!ctlg->IsObjectName(objectName)){
