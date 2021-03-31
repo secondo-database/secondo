@@ -421,6 +421,7 @@ is open.");
   bool SecondoDatabaseAdapter::doesDatabaseExist(string database)
   {
     LOG_SCOPE_FUNCTION(INFO);
+    
     //boost::lock_guard<boost::recursive_mutex> lock(utilsMutex);
     boost::lock_guard<boost::recursive_mutex> guard(nlparsemtx);
 
@@ -459,6 +460,7 @@ is open.");
   void SecondoDatabaseAdapter::openDatabase(string database)
   {
     LOG_SCOPE_FUNCTION(INFO);
+    boost::to_upper(database);
 
     // Deadlock
     //boost::lock_guard<boost::recursive_mutex> lock(utilsMutex);
@@ -488,13 +490,14 @@ is open.");
 
     // A db is open and it's not the desired db...
 
+    // Deactivated for performance reasons.
     // Can't open a non-existent database.
-    if(!doesDatabaseExist(database)) {
-      print("\tDatabase " + database + " doesn't exist. Can't open it.", 
-        std::cout);
-      throw SecondoException("Database " + database + " doesn't exist. \
-Thus, can't open it.");
-    }
+//     if(!doesDatabaseExist(database)) {
+//       print("\tDatabase " + database + " doesn't exist. Can't open it.", 
+//         std::cout);
+//       throw SecondoException("Database " + database + " doesn't exist. \
+// Thus, can't open it.");
+//     }
 
     // Before opening a new db, the current db has to be closed.
     closeDatabase();

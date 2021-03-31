@@ -95,11 +95,16 @@ namespace DBService
         DatabaseSchema::migrate(database);
 
         LOG_F(INFO, "%s", "Loading DBS Nodes...");
-        nodeManager = make_unique<NodeManager>(database);
-        nodeManager->load();
+        dbsNodeManager = make_unique<dbsNodeManager>(database);
+        dbsNodeManager->load();
 
         LOG_F(INFO, "%s", "Starting DBS Worker Nodes...");
-        nodeManager->startWorkers();
+        dbsNodeManager->startWorkers();
+
+        LOG_F(INFO, "%s", "Loading Original Nodes...");
+        originalNodeManager = make_unique<dbsNodeManager>(database, 
+            Node::nodeTypeOriginal());
+        originalNodeManager->load();
 
         LOG_F(INFO, "%s", "Loading DBS Relations...");
         relationManager = make_unique<RelationManager>(database);
@@ -147,7 +152,7 @@ namespace DBService
         };
 
         replicaPlacementStrategy = make_shared<ReplicaPlacementStrategy>(
-            placementPolicy, nodeManager->getNodes());
+            placementPolicy, dbsNodeManager->getNodes());
     }
 
     DBServiceManager* DBServiceManager::getInstance()
@@ -229,13 +234,13 @@ namespace DBService
         // Adding the node to the in-memory store.
         // This also checks if the node has already been added.
         // Does silently ignore duplicate nodes.
-        nodeManager->add(node);
+        dbsNodeManager->add(node);
 
         // Starting the DBService Worker.
         node->startWorker();
 
         // Persisting the new node
-        nodeManager->save();
+        dbsNodeManager->save();
 
         //TODO What is any of the above step fails? 
         //  Add Exception handling, Retry or Removing of a failed node, ...
@@ -291,7 +296,7 @@ namespace DBService
          The list of nodes must be up to date as it may change of time, e.g.
          due to addNode invocations.
          */
-        replicaPlacementStrategy->setNodes(nodeManager->getNodes());
+        replicaPlacementStrategy->setNodes(dbsNodeManager->getNodes());
 
         success = replicaPlacementStrategy->doPlacement(relation);
 
@@ -494,12 +499,12 @@ catch(...)
         out << "* DBSERVICE WORKER NODES             *" << endl;
         out << "**************************************" << endl;
 
-        if(nodeManager->empty())
+        if(dbsNodeManager->empty())
         {
             out << "*** NONE ***" << endl;
         }
 
-        for(const auto& node : nodeManager->getAll())
+        for(const auto& node : dbsNodeManager->getAll())
         {
             out << node->str() << endl;
         }
@@ -590,10 +595,10 @@ catch(...)
         print("TargetNodeId: ", targetNodeId, std::cout);
         LOG_F(INFO, "TargetNodeId: %d", targetNodeId);
 
-        // The goal of using the nodeManager is to avoid
+        // The goal of using the dbsNodeManager is to avoid
         // loading nodes multiple times and thus producing in-memory duplicates
         // In this case an in-mem dup wouldn't do any harm, though.
-        auto targetNode = nodeManager->findById(targetNodeId);
+        auto targetNode = dbsNodeManager->findById(targetNodeId);
 
         if(targetNode == nullptr) {
             LOG_F(WARNING, "Didn't find target node for replica of db(%s) / \

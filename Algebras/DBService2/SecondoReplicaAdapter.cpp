@@ -39,7 +39,7 @@ namespace DBService {
   
   shared_ptr<DBService::Replica> 
     SecondoReplicaAdapter::buildObjectFromNestedList(string database, 
-    ListExpr recordAsNestedList) {
+    ListExpr recordAsNestedList, int offset) {
     /*
 
         RelationId : 3
@@ -55,7 +55,7 @@ namespace DBService {
     int derivativeId;
     int id;
 
-    int index = 0;
+    int index = offset;
 
     // boost::lock_guard<boost::recursive_mutex> guard(nlparsemtx);
 

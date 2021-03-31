@@ -30,7 +30,8 @@ namespace DBService
        * Returns a newly constructed Node object.
        */
       static std::shared_ptr<Node> buildObjectFromNestedList(
-        std::string database, ListExpr recordAsNestedList);      
+        std::string database, ListExpr recordAsNestedList, 
+        int resultListOffset = 0);
   };
 } // namespace DBService
 

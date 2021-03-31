@@ -39,7 +39,7 @@ namespace DBService {
   
   shared_ptr<DBService::Relation> 
     SecondoRelationAdapter::buildObjectFromNestedList(string database, 
-    ListExpr recordAsNestedList) {
+    ListExpr recordAsNestedList, int offset) {
     /*
 
       Name: string, Database: string, OriginalNodeId: int
@@ -72,16 +72,23 @@ namespace DBService {
 
 //    boost::lock_guard<boost::recursive_mutex> guard(nlparsemtx);
 
-    relationName      = nl->StringValue(nl->Nth(1, recordAsNestedList));
-    relationDatabase  = nl->StringValue(nl->Nth(2, recordAsNestedList));
-    originalNodeId    = nl->IntValue(nl->Nth(3, recordAsNestedList));
-    id                = nl->IntValue(nl->Nth(4, recordAsNestedList));
+    relationName = nl->StringValue(
+      nl->Nth(++offset, recordAsNestedList));
+
+    relationDatabase = nl->StringValue(
+      nl->Nth(++offset, recordAsNestedList));
+
+    originalNodeId = nl->IntValue(nl->Nth(
+      ++offset, recordAsNestedList));
+
+    id = nl->IntValue(nl->Nth(
+      ++offset, recordAsNestedList));
 
     shared_ptr<DBService::Relation> relation = DBService::Relation::build(
       relationDatabase, relationName);
     
     // Record
-    relation->setDatabase(database);    
+    relation->setDatabase(database);
     relation->setId(id);
 
     // Eager load original node.
@@ -90,9 +97,11 @@ namespace DBService {
         the relation object.
     */
     relation->loadOriginalNode(originalNodeId);
+
+
+    // 1+N issue when eager loading replicas
+    // relation->loadReplicas();
     
-    // Eacher load replicas
-    relation->loadReplicas();
     relation->loadDerivatives();
     relation->setClean();
     relation->setNotNew();

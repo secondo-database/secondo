@@ -13,7 +13,9 @@ namespace DBService {
 
     public:
 
-    static std::shared_ptr<DBService::Replica> buildObjectFromNestedList(std::string database, ListExpr recordAsNestedList);
+    static std::shared_ptr<DBService::Replica> buildObjectFromNestedList(
+      std::string database, ListExpr recordAsNestedList,
+      int resultListOffset = 0);
   };
 
 }

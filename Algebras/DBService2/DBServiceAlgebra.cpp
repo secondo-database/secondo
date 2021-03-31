@@ -145,7 +145,7 @@ DBServiceAlgebra::DBServiceAlgebra() :
     loguru::init(argc, argv);
 
     loguru::add_file("dbservice.log", loguru::Append,
-            loguru::Verbosity_MAX);
+            loguru::Verbosity_MAX); // Verbosity_ERROR
 
 }
 

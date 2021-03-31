@@ -37,7 +37,7 @@ namespace DBService
 {
   
   shared_ptr<Node> SecondoNodeAdapter::buildObjectFromNestedList(
-    string database, ListExpr recordAsNestedList) {
+    string database, ListExpr recordAsNestedList, int offset) {
 
     /*
       TODO This is similar to the type mapping problem in Algebras.
@@ -71,17 +71,17 @@ namespace DBService
 
     // Example of a record as nested list: 
     //   ('localhost' 1245 '' '/home/doesnt_exist/secondo' 9941 9942 1) 
-    string host       = nl->TextValue(nl->First(recordAsNestedList));
-    int port          = nl->IntValue(nl->Second(recordAsNestedList));
-    string config     = nl->TextValue(nl->Third(recordAsNestedList));
-    string diskPath   = nl->TextValue(nl->Fourth(recordAsNestedList));
-    int comPort       = nl->IntValue(nl->Fifth(recordAsNestedList));
-    int transferPort  = nl->IntValue(nl->Sixth(recordAsNestedList));
-    string type       = nl->StringValue(nl->Nth(7, recordAsNestedList));
+    string host = nl->TextValue(nl->Nth(offset + 1, recordAsNestedList));
+    int port = nl->IntValue(nl->Nth(offset + 2, recordAsNestedList));
+    string config = nl->TextValue(nl->Nth(offset + 3, recordAsNestedList));
+    string diskPath = nl->TextValue(nl->Nth(offset + 4, recordAsNestedList));
+    int comPort = nl->IntValue(nl->Nth(offset + 5, recordAsNestedList));
+    int transferPort = nl->IntValue(nl->Nth(offset + 6, recordAsNestedList));
+    string type = nl->StringValue(nl->Nth(offset + 7, recordAsNestedList));
 
     // Due to the appended "addid" operator, the id is always the 
     //  last item in the list
-    int recordId = nl->IntValue(nl->Nth(8, recordAsNestedList));
+    int recordId = nl->IntValue(nl->Nth(offset + 8, recordAsNestedList));
 
     //TODO There is no way to set the id in the contructor. Fix it.
     shared_ptr<Node> node = make_shared<Node>(host, port, config, diskPath, 

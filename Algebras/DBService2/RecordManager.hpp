@@ -4,6 +4,8 @@
 #include "Algebras/DBService2/DatabaseAdapter.hpp"
 #include "Algebras/DBService2/Query.hpp"
 
+#include <loguru.hpp>
+
 #include <vector>
 #include <sstream>
 
@@ -30,6 +32,9 @@ namespace DBService {
     public:
 
     RecordManager(std::string newDatabase) : loadQuery(RecordType::findAllQuery(newDatabase)) {
+
+      LOG_SCOPE_FUNCTION(INFO);
+
       if (newDatabase == "")
         throw "Can't use the empty string as a database name!";
     
@@ -46,6 +51,8 @@ namespace DBService {
     }
 
     bool add(std::shared_ptr<RecordType> record) {
+
+      LOG_SCOPE_FUNCTION(INFO);
 
       if(record->empty())
         throw "Cannot add empty record.";
@@ -71,14 +78,20 @@ namespace DBService {
       See ~RelationManager::deleteRelationsByRelationDatabase~ for an example.
     */
     void remove(std::shared_ptr<RecordType> record) {
+      
+      LOG_SCOPE_FUNCTION(INFO);
+      
       if (records.empty())
-      return;
+        return;
     
       // erase-remove https://en.wikipedia.org/wiki/Erase%E2%80%93remove_idiom
       records.erase(std::remove(records.begin(), records.end(), record), records.end());
     }
 
     std::shared_ptr<RecordType> find(std::shared_ptr<RecordType> record) {
+      
+      LOG_SCOPE_FUNCTION(INFO);
+
       typename std::vector<std::shared_ptr<RecordType>>::iterator it;
   
       for (it = records.begin(); it != records.end(); it++)
@@ -122,6 +135,8 @@ namespace DBService {
       implementations using the ~RecordManager~ class template.
     */
     void load() { 
+      LOG_SCOPE_FUNCTION(INFO);
+
       // Ensure acting upon the right database
       dbAdapter->openDatabase(database);
       
@@ -129,6 +144,9 @@ namespace DBService {
     }
 
     void save() {
+      
+      LOG_SCOPE_FUNCTION(INFO);
+
       // Ensure acting upon the right database
       dbAdapter->openDatabase(database);
 
@@ -168,6 +186,8 @@ namespace DBService {
       in-memory search.
     */
     std::shared_ptr<RecordType> findById(int id) {
+      LOG_SCOPE_FUNCTION(INFO);
+      
       for(auto& record : records) {
         if (record->getId() == id)
           return record;

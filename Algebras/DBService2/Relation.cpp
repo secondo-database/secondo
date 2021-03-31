@@ -619,7 +619,11 @@ original Node!";
     //  executable.
     //  Maybe there should be a database parameter and the function should be
     //  renamed to findAll instead of findAllStatement!
-    return Relation::query(database).feed().addid().consume().str();
+    //return Relation::query(database).feed().addid().consume().str();
+
+    return Relation::query(database).appendString("addid feed {dbsrel} "
+      "dbs_replicas feed {dbsrep} "
+      "symmjoin[tid2int(.TID_dbsrel) = ..RelationId_dbsrep]").consume().str();
   }
 
   vector<shared_ptr<Relation> > Relation::findAll(string database) {

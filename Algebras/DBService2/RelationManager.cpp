@@ -29,17 +29,23 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include <string>
 
+#include <loguru.hpp>
+
 using namespace std;
 
 namespace DBService {
   
   RelationManager::RelationManager(string newDatabase) : 
     RecordManager(newDatabase) { 
+
+    LOG_SCOPE_FUNCTION(INFO);
   }
   
   shared_ptr<DBService::Relation> RelationManager::findByDatabaseAndName(
       string relationDatabase, 
       string relationName) {
+
+    LOG_SCOPE_FUNCTION(INFO);
 
     shared_ptr<DBService::Relation> relationToFind = DBService::Relation::build(
       relationDatabase,
@@ -51,6 +57,8 @@ namespace DBService {
 
   shared_ptr<DBService::Node> RelationManager::findOriginalNode(
     shared_ptr<DBService::Node> nodeToFind) {
+
+    LOG_SCOPE_FUNCTION(INFO);
 
     shared_ptr<DBService::Node> currentNode;
 
@@ -70,6 +78,8 @@ namespace DBService {
   bool RelationManager::doesRelationHaveReplicas(
       string relationDatabase, 
       string relationName) {
+    
+    LOG_SCOPE_FUNCTION(INFO);
 
     shared_ptr<DBService::Relation> relation = findByDatabaseAndName(
       relationDatabase, relationName);
@@ -83,6 +93,8 @@ namespace DBService {
   shared_ptr<Replica> RelationManager::getRandomReplica(
     string relationDatabase, string relationName) {
     
+    LOG_SCOPE_FUNCTION(INFO);
+    
     auto relation = findByDatabaseAndName(relationDatabase, relationName);
     
     if (relation == nullptr)
@@ -92,6 +104,9 @@ namespace DBService {
   }
 
   bool RelationManager::doesDerivativeExist(string derivativeName) {
+
+    LOG_SCOPE_FUNCTION(INFO);
+
     for (auto& relation : records) {
       if (relation->doesDerivativeExist(derivativeName))
         return true;
@@ -102,6 +117,8 @@ namespace DBService {
 
   void RelationManager::deleteRelationsByRelationDatabase(
     string relationDatabase) {
+
+    LOG_SCOPE_FUNCTION(INFO);
 
     LOG_F(INFO, "%lu Relations to be checked for deletion.", records.size());
 
@@ -135,6 +152,8 @@ namespace DBService {
   void RelationManager::deleteRelationByDatabaseAndName(string relationDatabase,
     string relationName) {
 
+    LOG_SCOPE_FUNCTION(INFO);
+
     auto relation = findByDatabaseAndName(relationDatabase, relationName);
 
     if (relation != nullptr) {
@@ -153,6 +172,7 @@ namespace DBService {
   void RelationManager::deleteDerivativeByName(string relationDatabase,
     std::string relationName, std::string derivativeName) {
 
+    LOG_SCOPE_FUNCTION(INFO);
     
     auto relation = findByDatabaseAndName(relationDatabase, relationName);
 

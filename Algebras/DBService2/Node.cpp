@@ -278,7 +278,7 @@ namespace DBService {
   void Node::startWorker() {
     if (isConnected() == false) {
       LOG_F(ERROR, "%s", 
-        "Not connected to the worker. Connecing to remore worker...");
+        "Not connected to the worker. Connecing to remote worker...");
       connectAndConfigure();
     }
     

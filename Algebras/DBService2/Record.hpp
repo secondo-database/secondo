@@ -51,7 +51,7 @@ namespace DBService
     
     std::shared_ptr<DatabaseAdapter> dbAdapter;
     
-    static std::string getRelationName();       
+    static std::string getRelationName();
 
   public:
     Record()
@@ -260,7 +260,7 @@ namespace DBService
       Creates a Query to retrieve all record of the given RecordType.
     */
     static Query findAllQuery(std::string database) {
-      return RecordType::query(database).feed().addid().consume();      
+      return RecordType::query(database).feed().addid().consume();
     }
 
     /*

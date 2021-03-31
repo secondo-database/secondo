@@ -9,11 +9,14 @@ namespace DBService {
   class Derivative;
 
   class SecondoDerivativeAdapter : 
-    public SecondoRecordAdapter<DBService::Derivative, SecondoDerivativeAdapter> {
+    public SecondoRecordAdapter<DBService::Derivative, 
+      SecondoDerivativeAdapter> {
 
     public:
 
-    static std::shared_ptr<DBService::Derivative> buildObjectFromNestedList(std::string database, ListExpr recordAsNestedList);
+      static std::shared_ptr<DBService::Derivative> buildObjectFromNestedList(
+        std::string database, ListExpr recordAsNestedList,
+        int resultListOffset = 0);
   };
 
 }

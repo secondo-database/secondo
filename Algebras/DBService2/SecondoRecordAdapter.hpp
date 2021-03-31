@@ -39,16 +39,20 @@ namespace DBService
     public:
 
 
-      /*
-         TODO This method does have a dependency to the NestedList data type 
-           but it does not have no dependency on the structure of the nested list
-           as this is covered 
-         
+      /*         
          Builds a vector of shared_ptr T (Nodes) from a resultList obtained 
          e.g. by executing a find statement. 
 
+         The resultListOffset sets the offset from which relevant records
+         within the nested list are to be expected.
+         It is assumed that relevent entries are contained in the NL in a
+         particular attribute order.
       */      
-      static std::vector<std::shared_ptr<RecordType> > buildVectorFromNestedList(std::string database, std::shared_ptr<DatabaseAdapter> dbAdapter, ListExpr resultList)  {
+      static std::vector<std::shared_ptr<RecordType> > 
+        buildVectorFromNestedList(
+          std::string database, std::shared_ptr<DatabaseAdapter> dbAdapter, 
+          ListExpr resultList, int resultListOffset = 0)  {
+
         std::vector<std::shared_ptr<RecordType> > records;
 
         /* The resultList contains a header which we are not interested in.     
@@ -77,7 +81,9 @@ namespace DBService
             // ('localhost' 1245 '' '/home/doesnt_exist/secondo' 9941 9942 1) 
             ListExpr currentRecordNL = nl->First(recordList);
             
-            std::shared_ptr<RecordType> currentRecord = buildObjectFromNestedList(database, currentRecordNL);
+            std::shared_ptr<RecordType> currentRecord = 
+              buildObjectFromNestedList(database, currentRecordNL, 
+                resultListOffset);
                     
             currentRecord->setDatabase(database);
             currentRecord->setDatabaseAdapter(dbAdapter);
@@ -98,7 +104,9 @@ namespace DBService
       Input is a nested list.
       Returns a newly constructed Record object of the Type T (e.g. Node).
     */
-    static std::shared_ptr<RecordType> buildObjectFromNestedList(std::string database, ListExpr recordAsNestedList) {    
+    static std::shared_ptr<RecordType> buildObjectFromNestedList(
+      std::string database, ListExpr recordAsNestedList, 
+      int resultListOffset = 0) {
 
       /* 
         The static_cast makes the buildObjectFromNestedList implementation 
@@ -109,9 +117,9 @@ namespace DBService
 
         See: https://www.youtube.com/watch?v=-WV9vWjhI3g&ab_channel=BoQian
         */
-
-      // return SecondoRecordAdapter<RecordType, RecordAdapterType>::buildObjectFromNestedList(ListExpr recordAsNestedList);
-      return RecordAdapterType::buildObjectFromNestedList(database, recordAsNestedList);      
+      
+      return RecordAdapterType::buildObjectFromNestedList(
+        database, recordAsNestedList, resultListOffset);
     }
   };
 

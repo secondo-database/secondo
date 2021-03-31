@@ -41,7 +41,7 @@ namespace DBService {
   
   shared_ptr<DBService::Derivative> 
     SecondoDerivativeAdapter::buildObjectFromNestedList(string recordDatabase, 
-    ListExpr recordAsNestedList) {
+    ListExpr recordAsNestedList, int offset) {
     /*
 
       
@@ -52,14 +52,18 @@ namespace DBService {
     int relationId;    
     int id;
 
+// The lock must be acquired in the invoking method
 //    boost::lock_guard<boost::recursive_mutex> guard(nlparsemtx);
 
-    //TODO instead of 1, 2, use offset -> This way the adapter can also be used
-    //  for joins where the offset may be different from 0
-    derivativeName      = nl->StringValue(nl->Nth(1, recordAsNestedList));
-    derivativeFunction  = nl->StringValue(nl->Nth(2, recordAsNestedList));
-    relationId          = nl->IntValue(nl->Nth(3, recordAsNestedList));
-    id                  = nl->IntValue(nl->Nth(4, recordAsNestedList));
+    derivativeName      = nl->StringValue(nl->Nth(
+        offset + 1, recordAsNestedList));
+
+    derivativeFunction = nl->StringValue(nl->Nth(
+      offset + 2, recordAsNestedList));
+
+    relationId = nl->IntValue(nl->Nth(offset + 3, recordAsNestedList));
+
+    id = nl->IntValue(nl->Nth(offset + 4, recordAsNestedList));
 
     shared_ptr<DBService::Derivative> derivative = DBService::Derivative::build(
       derivativeName, derivativeFunction);
