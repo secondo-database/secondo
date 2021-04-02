@@ -45,4 +45,5 @@ operator be_part_grid alias BE_PART_GRID pattern op (_,_,_,_,_,_,_)
 operator be_repart_random alias BE_REPART_RANDOM pattern op (_,_)
 operator be_repart_rr alias BE_REPART_RR pattern op (_,_)
 operator be_repart_hash alias BE_REPART_HASH pattern op (_,_,_)
-
+operator be_repart_fun alias BE_REPART_FUN pattern op (_,_,_)
+operator be_repart_grid alias BE_REPART_GRID pattern op (_,_,_,_,_,_,_)

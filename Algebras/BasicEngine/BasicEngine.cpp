@@ -2321,9 +2321,9 @@ Operator be_repartRandomOp(
 
 
 /*
-1.2 Operator  ~be\_repart\_random~
+1.2 Operator  ~be\_repart\_rr~
 
-Repartition a relation by random, sends the data
+Repartition a relation by rr, sends the data
 to the worker and import the data
 
 1.2.2 Value Mapping
@@ -2489,6 +2489,209 @@ Operator be_repartHashOp(
   be_repartHashVM,
   be_repartHashSelect,
   be_partHashTM
+);
+
+
+/*
+1.14.2 Value Mapping for the operator ~be\_repart\_grid~
+
+*/
+template<class T, class H, class I>
+int be_repartGridSFVM(Word* args,Word& result,int message,
+          Word& local,Supplier s ){
+
+  result = qp->ResultStorage(s);
+
+  T* tab = (T*) args[0].addr;
+  H* key = (H*) args[1].addr;
+  I* geo_col = (I*) args[2].addr;
+  CcReal* xstart = (CcReal*) args[3].addr;
+  CcReal* ystart = (CcReal*) args[4].addr;
+  CcReal* slotsize = (CcReal*) args[5].addr;
+  CcInt* slot = (CcInt*) args[6].addr;
+
+  bool val = false;
+  CcBool* res = (CcBool*) result.addr;
+
+  if(be_control == nullptr) {
+    cerr << "Please init basic engine first" << endl;
+    val = false;
+  } else {
+    if (slot->GetIntval() > 0){
+        val = be_control->repartition_table_by_grid(tab->toText(),
+          key->toText(), slot->GetIntval(), geo_col->toText(),
+          xstart->GetValue(), ystart->GetValue(), slotsize->GetValue());
+    } else {
+      cout<< negSlots << endl;
+    }
+  } 
+
+  res->Set(true, val);
+
+  return 0;
+}
+
+/*
+1.14.3 Specification
+
+*/
+OperatorSpec be_repartGridSpec(
+   "{string, text} x {string, text} x {string, text} "
+   "x real x real x real x int --> bool",
+   "be_repart_grid(_,_,_,_,_,_,_)",
+   "This operator re-distribute a relation by specified grid "
+   "to the worker. You can specified the leftbottom coordinates and the "
+   "size and number of squares. This number of slots and size have to be "
+   "positiv. The column should be a geological attribut.",
+   "query be_repart_grid('roads','gid','geog',5.8, 50.3,0.2,20)"
+);
+
+/*
+1.14.4 ValueMapping Array
+
+*/
+ValueMapping be_repartGridVM[] = {
+  be_repartGridSFVM<CcString,CcString,CcString>,
+  be_repartGridSFVM<FText,CcString,CcString>,
+  be_repartGridSFVM<CcString,FText,CcString>,
+  be_repartGridSFVM<FText,FText,CcString>,
+  be_repartGridSFVM<CcString,CcString,FText>,
+  be_repartGridSFVM<FText,CcString,FText>,
+  be_repartGridSFVM<CcString,FText,FText>,
+  be_repartGridSFVM<FText,FText,FText>
+};
+
+/*
+1.14.5 Selection Function
+
+*/
+int be_repartGridSelect(ListExpr args){
+  if(CcString::checkType(nl->First(args))){
+    if(CcString::checkType(nl->Second(args))){
+      return CcString::checkType(nl->Third(args))?0:4;
+    }else{
+      return CcString::checkType(nl->Third(args))?2:6;
+    }
+  }else{
+    if(CcString::checkType(nl->Second(args))){
+      return CcString::checkType(nl->Third(args))?1:5;
+    }else{
+      return CcString::checkType(nl->Third(args))?3:7;
+    }
+  }
+}
+
+
+/*
+1.14.6 Operator instance
+
+*/
+Operator be_repartGridOp(
+  "be_repart_grid",
+  be_repartGridSpec.getStr(),
+  sizeof(be_repartHashVM),
+  be_repartGridVM,
+  be_repartGridSelect,
+  be_partGridTM
+);
+
+
+/*
+1.4.2 Value Mapping for the operator ~be\_repart\_fun~
+
+*/
+template<class T, class H, class N>
+int be_repartFunSFVM(Word* args,Word& result,int message
+          ,Word& local,Supplier s){
+
+  result = qp->ResultStorage(s);
+
+  T* tab = (T*) args[0].addr;
+  H* key = (H*) args[1].addr;
+  H* fun = (H*) args[2].addr;
+  CcInt* slot = (CcInt*) args[3].addr;
+
+  bool val = false;
+  CcBool* res = (CcBool*) result.addr;
+
+  if(be_control == nullptr) {
+    cerr << "Please init basic engine first" << endl;
+    val = false;
+  } else {
+    if (slot->GetIntval() > 0){
+      val = be_control->repartition_table_by_fun(tab->toText(), 
+        key->toText(), fun->toText(), slot->GetIntval());
+    } else {
+      cout<< negSlots << endl;
+    }
+  }
+
+  res->Set(true, val);
+
+  return 0;
+}
+
+/*
+1.4.3 Specification
+
+*/
+OperatorSpec be_repartFunSpec(
+   "{string, text} x {string, text} x {string, text} x int--> bool",
+   "be_repart_fun(_,_,_,_)",
+   "This operator redistribute a relation by a special function "
+   "to the worker. Special functions are RR, Hash and random. "
+   "You can specified a multi key by separating "
+   "the fields with a comma. The number of slots have to be positiv "
+   "and should be a multiple of your number of workers.",
+   "query be_repart_fun('cars','moid','random',60)"
+);
+
+/*
+1.4.4 ValueMapping Array
+
+*/
+ValueMapping be_repartFunVM[] = {
+  be_repartFunSFVM<CcString,CcString,CcString>,
+  be_repartFunSFVM<FText,CcString,CcString>,
+  be_repartFunSFVM<CcString,FText,CcString>,
+  be_repartFunSFVM<FText,FText,CcString>,
+  be_repartFunSFVM<CcString,CcString,FText>,
+  be_repartFunSFVM<FText,CcString,FText>,
+  be_repartFunSFVM<CcString,FText,FText>,
+  be_repartFunSFVM<FText,FText,FText>
+};
+
+/*
+1.4.5 Selection Function
+
+*/
+int be_repartFunSelect(ListExpr args){
+  if(CcString::checkType(nl->First(args))){
+    if(CcString::checkType(nl->Second(args))){
+      return CcString::checkType(nl->Third(args))?0:4;
+    }else{
+      return CcString::checkType(nl->Third(args))?2:6;
+    }
+  }else{
+    if(CcString::checkType(nl->Second(args))){
+      return CcString::checkType(nl->Third(args))?1:5;
+    }else{
+      return CcString::checkType(nl->Third(args))?3:7;
+    };
+  }
+};
+
+/*
+1.4.6 Operator instance
+
+*/
+Operator be_repartFunOp(
+  "be_repart_fun",
+  be_repartFunSpec.getStr(),
+  sizeof(be_repartFunVM),
+  be_repartFunVM,
+  be_repartFunSelect,
+  be_partFunTM
 );
 
 
@@ -2724,6 +2927,9 @@ class BasicEngineAlgebra : public Algebra
     AddOperator(&be_repartRandomOp);
     AddOperator(&be_repartRROp);
     AddOperator(&be_repartHashOp);
+    AddOperator(&be_repartGridOp);
+    AddOperator(&be_repartFunOp);
+
     AddOperator(&be_shareOp);
     AddOperator(&be_validateQueryOp);
 

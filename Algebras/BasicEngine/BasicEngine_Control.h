@@ -51,10 +51,29 @@ Version 1.0 - Created - C.Behrndt - 2020
 namespace BasicEngine {
 
 /*
-2 ENum ~RepartitionMode~
+2 ENum ~PartitionMode~
 
 */
-enum RepartitionMode {hash, rr, random, grid};
+enum PartitionMode {hash, rr, random, grid, fun};
+
+/*
+2 Struct ~PartitonData~
+
+*/
+typedef struct {
+  std::string table;
+  std::string key;
+  size_t slotnum;
+
+  // For fuction based partitioning
+  std::string partitionfun;
+
+  // For grid based partitioning
+  std::string attribute;
+  double xstart;
+  double ystart;
+  double slotsize;
+} PartitionData;
 
 /*
 2 Struct ~RemoteConnectionInfo~
@@ -96,23 +115,29 @@ public:
 
   bool checkAllConnections();
 
-  bool repartition_table(const std::string &tab, 
-    const std::string &key, const size_t slotnum, 
-    const RepartitionMode &repartitionMode);
+  bool repartition_table(const PartitionData &partitionData, 
+    const PartitionMode &repartitionMode);
 
-  bool repartition_table_worker(const std::string &tab, 
-    const std::string &key, const size_t slotnum, 
-    const RepartitionMode &repartitionMode);
+  bool repartition_table_worker(const PartitionData &partitionData, 
+    const PartitionMode &repartitionMode);
 
-  bool repartition_table_master(const std::string &tab, 
-    const std::string &key, const size_t slotnum, 
-    const RepartitionMode &repartitionMode);
+  bool repartition_table_master(const PartitionData &partitionData, 
+    const PartitionMode &repartitionMode);
 
   bool repartition_table_by_hash(const std::string &tab, 
     const std::string &key, const size_t slotnum);
 
   bool repartition_table_by_rr(const std::string &tab, 
     const size_t slotnum);
+
+  bool repartition_table_by_fun(const std::string &tab, 
+    const std::string &key, const std::string &fun, 
+    const size_t slotnum);
+
+  bool repartition_table_by_grid(const std::string &table, 
+    const std::string &key, const size_t slotnum, 
+    const std::string &attribute, double xstart, double ystart, 
+    double slotsize);
 
   bool repartition_table_by_random(const std::string &tab, 
     const size_t slotnum);
