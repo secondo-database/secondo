@@ -391,14 +391,14 @@ string BasicEngine_Control::getTableNameForPartitioning(
 }
 
 /*
-3.7 ~getCreateTableSQL~
+3.7 ~createSchemaSQL~
 
 Creates a table create statement from the input tab
 and store the statement in a file.
 Returns true if everything is OK and there are no failure.
 
 */
-bool BasicEngine_Control::getCreateTableSQL(const string &tab) {
+bool BasicEngine_Control::createSchemaSQL(const string &tab) {
 
   ofstream write;
   string statement;
@@ -432,21 +432,8 @@ Returns true if everything is OK and there are no failure.
 
 */
 bool BasicEngine_Control::partRoundRobin(const string &table,
-                    size_t slotnum) {
+                    const string &key, size_t slotnum) {
   
-  vector<tuple<string, string>> attrs 
-    = dbms_connection->getTypeFromSQLQuery("SELECT * FROM " + table + ";");
-
-  if(attrs.empty()) {
-    BOOST_LOG_TRIVIAL(error) << "Unable to determine table layout for " 
-      << table;
-  }
-
-  tuple<string, string> firstAttibute = attrs[0];
-  string key = std::get<0>(firstAttibute);
-
-  BOOST_LOG_TRIVIAL(debug) << "Using key " + key + " for rr join";
-
   string partTabName = getTableNameForPartitioning(table, key);
 
   drop_table(partTabName);
@@ -461,7 +448,7 @@ bool BasicEngine_Control::partRoundRobin(const string &table,
 Repartition the given table
 
 */
-bool BasicEngine_Control::repartition_table(const PartitionData &partitionData,
+bool BasicEngine_Control::repartition_table(PartitionData &partitionData,
   const PartitionMode &repartitionMode) {
 
    BOOST_LOG_TRIVIAL(debug) << "Repartiton on "
@@ -469,7 +456,7 @@ bool BasicEngine_Control::repartition_table(const PartitionData &partitionData,
     << " master: " << master;
 
     if(! master) {
-      return repartition_table_worker(partitionData, repartitionMode);
+      return partition_table(partitionData, repartitionMode, true);
     }
 
     return repartition_table_master(partitionData, repartitionMode);
@@ -481,29 +468,34 @@ bool BasicEngine_Control::repartition_table(const PartitionData &partitionData,
 Repartition the given table - worker version
 
 */
-  bool BasicEngine_Control::repartition_table_worker(
-    const PartitionData &partitionData,
-    const PartitionMode &repartitionMode) {
+  bool BasicEngine_Control::partition_table(
+    PartitionData &partitionData,
+    const PartitionMode &partitionMode,
+    const bool repartition) {
 
     // Open connections
     bool connectionCreateResult = createAllConnections();
-    if(!connectionCreateResult) {
+    if(! connectionCreateResult) {
       BOOST_LOG_TRIVIAL(error) << "Unable to open connections";
       return false;
     }
 
-    string repartTableName = getRepartitionTableName(partitionData.table);
+    // Create export table
+    if(partitionMode == rr) {
+      partitionData.key = getFirstAttributeNameFromTable(
+          partitionData.table);
 
-    // On the worker: Create export table
-    if(repartitionMode == rr) {
       bool partResult = partRoundRobin(partitionData.table, 
-        partitionData.slotnum);
-        
+        partitionData.key, partitionData.slotnum);
+
       if(! partResult) {
           BOOST_LOG_TRIVIAL(error) << "Unable to partition table";
           return false;
       }
-    } else if(repartitionMode == random) {
+    } else if(partitionMode == random) {
+      partitionData.key = getFirstAttributeNameFromTable(
+          partitionData.table);
+
       bool partResult = partFun(partitionData.table, 
         partitionData.key, "random", partitionData.slotnum);
 
@@ -511,7 +503,7 @@ Repartition the given table - worker version
           BOOST_LOG_TRIVIAL(error) << "Unable to partition table";
           return false;
       }
-    } else if(repartitionMode == hash) {
+    } else if(partitionMode == hash) {
       bool partResult = partHash(partitionData.table, 
         partitionData.key, partitionData.slotnum);
 
@@ -519,7 +511,7 @@ Repartition the given table - worker version
           BOOST_LOG_TRIVIAL(error) << "Unable to partition table";
           return false;
       }
-    } else if(repartitionMode == grid) {
+    } else if(partitionMode == grid) {
       bool partResult = partGrid(partitionData.table, 
         partitionData.key, partitionData.attribute, partitionData.slotnum,
         partitionData.xstart, partitionData.ystart, partitionData.slotsize);
@@ -528,7 +520,10 @@ Repartition the given table - worker version
           BOOST_LOG_TRIVIAL(error) << "Unable to partition table";
           return false;
       }
-    } else if(repartitionMode == fun) {
+    } else if(partitionMode == fun) {
+      partitionData.key = getFirstAttributeNameFromTable(
+          partitionData.table);
+
       bool partResult = partFun(partitionData.table, 
         partitionData.key, partitionData.partitionfun, partitionData.slotnum);
 
@@ -537,11 +532,11 @@ Repartition the given table - worker version
           return false;
       }
     } else {
-      BOOST_LOG_TRIVIAL(error) << "Unknown partition mode" << repartitionMode;
+      BOOST_LOG_TRIVIAL(error) << "Unknown partition mode" << partitionMode;
       return false;
     }
 
-    // On the worker: Export data
+    // Export data
     bool exportDataResult 
       = exportData(partitionData.table, 
         partitionData.key, remoteConnectionInfos.size());
@@ -551,9 +546,28 @@ Repartition the given table - worker version
       return false;
     }
 
-    // On the worker: Call transfer and import data
+    string destinationTable;
+    bool transferSchemaFile;
+
+    if(repartition) {
+      destinationTable = getRepartitionTableName(partitionData.table);
+      transferSchemaFile = false;
+    } else {
+      destinationTable = partitionData.table;
+
+      bool exportResult = createSchemaSQL(partitionData.table);
+
+      if(!exportResult){
+        BOOST_LOG_TRIVIAL(error) << "Couldn't create the structure-file";
+        return false;
+      }
+
+      transferSchemaFile = true;
+    }
+
+    // Call transfer and import data
     bool importResult = exportToWorker(partitionData.table, 
-      repartTableName, false);
+      destinationTable, transferSchemaFile);
 
     if(! importResult) {
       BOOST_LOG_TRIVIAL(error) << "Unable to transfer and import table data";
@@ -616,8 +630,9 @@ Repartition the given table - master version
         + to_string(partitionData.slotnum) + ")");
     } else if(repartitionMode == hash) {
       repartitionQuery.append("be_repart_hash");
-      repartitionQuery.append("('" + partitionData.table + "',"
-        + to_string(partitionData.slotnum) + ")");
+      repartitionQuery.append("('" + partitionData.table + "','" 
+        + partitionData.key 
+        + "'," + to_string(partitionData.slotnum) + ")");
     } else if(repartitionMode == grid) {
       repartitionQuery.append("be_repart_grid");
       repartitionQuery.append("('" + partitionData.table + "','"
@@ -679,69 +694,81 @@ Repartition the given table - master version
 }
 
 /*
-3.8 ~repartition\_table\_by\_hash~
+3.8 ~partition\_table\_by\_hash~
 
 Repartition the given table by round hash
 
 */
-bool BasicEngine_Control::repartition_table_by_hash(const std::string &table, 
-  const std::string &key, const size_t slotnum) {
+bool BasicEngine_Control::partition_table_by_hash(const std::string &table, 
+  const std::string &key, const size_t slotnum, const bool repartition) {
 
-    BOOST_LOG_TRIVIAL(debug) << "Repartiton by hash called on " << table;
+    BOOST_LOG_TRIVIAL(debug) << "Partiton by hash called on " << table;
 
     PartitionData partitionData = {};
     partitionData.table = table;
     partitionData.key = key;
     partitionData.slotnum = slotnum;
 
-    return repartition_table(partitionData, hash);
+    if(repartition) {
+      return repartition_table(partitionData, hash);
+    } else {
+      return partition_table(partitionData, hash, false);
+    }
 }
 
 /*
-3.8 ~repartition\_table\_by\_rr~
+3.8 ~partition\_table\_by\_rr~
 
 Repartition the given table by round robin
 
 */
-bool BasicEngine_Control::repartition_table_by_rr(const std::string &table, 
-  const size_t slotnum) {
+bool BasicEngine_Control::partition_table_by_rr(const std::string &table, 
+  const size_t slotnum, const bool repartition) {
     
-    BOOST_LOG_TRIVIAL(debug) << "Repartiton by rr called on " << table;
+    BOOST_LOG_TRIVIAL(debug) << "Partiton by rr called on " << table;
 
     PartitionData partitionData = {};
     partitionData.table = table;
     partitionData.slotnum = slotnum;
 
-    return repartition_table(partitionData, rr);
+    if(repartition) {
+      return repartition_table(partitionData, rr);
+    } else {
+      return partition_table(partitionData, rr, false);
+    }
 }
 
 /*
-3.8 ~repartition\_table\_by\_random~
+3.8 ~partition\_table\_by\_random~
 
 Repartition the given table by random
 
 */
-bool BasicEngine_Control::repartition_table_by_random(const std::string &table, 
-  const size_t slotnum) {
+bool BasicEngine_Control::partition_table_by_random(const std::string &table, 
+  const size_t slotnum, const bool repartition) {
     
-    BOOST_LOG_TRIVIAL(debug) << "Repartiton by random called on " << table;
+    BOOST_LOG_TRIVIAL(debug) << "Partiton by random called on " << table;
 
     PartitionData partitionData = {};
     partitionData.table = table;
     partitionData.slotnum = slotnum;
 
-    return repartition_table(partitionData, random);
+    if(repartition) {
+      return repartition_table(partitionData, random);
+    } else {
+      return partition_table(partitionData, random, false);
+    }
 }
 
 /*
-3.8 ~repartition\_table\_by\_random~
+3.8 ~partition\_table\_by\_random~
 
 Repartition the given table by random
 
 */
-bool BasicEngine_Control::repartition_table_by_fun(const std::string &table, 
+bool BasicEngine_Control::partition_table_by_fun(const std::string &table, 
     const std::string &key, const std::string &partitionfun, 
-    const size_t slotnum) {
+    const size_t slotnum, const bool repartition) {
 
     PartitionData partitionData = {};
     partitionData.table = table;
@@ -749,19 +776,23 @@ bool BasicEngine_Control::repartition_table_by_fun(const std::string &table,
     partitionData.partitionfun = fun;
     partitionData.slotnum = slotnum;
     
-    return repartition_table(partitionData, fun);
+    if(repartition) {
+      return repartition_table(partitionData, fun);
+    } else {
+      return partition_table(partitionData, fun, false);
+    }
 }
 
 /*
-3.8 ~repartition\_table\_by\_grid~
+3.8 ~partition\_table\_by\_grid~
 
 Repartition the given table by grid
 
 */    
-bool BasicEngine_Control::repartition_table_by_grid(const std::string &table, 
+bool BasicEngine_Control::partition_table_by_grid(const std::string &table, 
     const std::string &key, const size_t slotnum, 
-    const std::string &attribute, double xstart, double ystart, 
-    double slotsize) {
+    const std::string &attribute, const double xstart, const double ystart, 
+    const double slotsize, const bool repartition) {
     
     PartitionData partitionData = {};
     partitionData.table = table;
@@ -771,7 +802,11 @@ bool BasicEngine_Control::repartition_table_by_grid(const std::string &table,
     partitionData.ystart = ystart;
     partitionData.slotsize = slotsize;
 
-    return repartition_table(partitionData, grid);
+    if(repartition) {
+      return repartition_table(partitionData, grid);
+    } else {
+      return partition_table(partitionData, grid, false);
+    }
 }
 
 
@@ -991,60 +1026,6 @@ bool BasicEngine_Control::importData(const string &table) {
   }
 
   return result;
-}
-
-/*
-3.14 ~partTable~
-
-Partitions the data, export the data and
-import them into the worker.
-Returns true if everything is OK and there are no failure.
-
-*/
-bool BasicEngine_Control::partTable(const string &tab, const string &key, 
-  const string &partType, size_t slotnum, const string &geo_col, 
-  float x0, float y0, float slotsize) {
-
-  bool val = true;
-
-  if (boost::iequals(partType, "RR")) {
-    val = partRoundRobin(tab, slotnum);
-  } else if (boost::iequals(partType, "Hash")) {
-    val = partHash(tab, key, slotnum);
-  } else if (boost::iequals(partType, "Grid")) {
-    val = partGrid(tab, key, geo_col,
-                    slotnum, x0,  y0, slotsize);
-  } else {
-    val = partFun(tab, key, partType, slotnum);
-  }
-
-  if(!val) {
-    BOOST_LOG_TRIVIAL(error) << "Couldn't partition the table.";
-    return false;
-  }
-
-  val = exportData(tab, key, remoteConnectionInfos.size());
-
-  if(!val) {
-    BOOST_LOG_TRIVIAL(error) << "Couldn't export the data from the table.";
-    return false;
-  }
-
-  val = getCreateTableSQL(tab);
-
-  if(!val){
-    BOOST_LOG_TRIVIAL(error) << "Couldn't create the structure-file";
-    return false;
-  }
-
-  val = exportToWorker(tab, tab, true);
-
-  if(!val) {
-    BOOST_LOG_TRIVIAL(error) << "Couldn't transfer the data to the worker.";
-    return false;
-  }
-
-  return true;
 }
 
 /*
@@ -1677,7 +1658,7 @@ bool BasicEngine_Control::shareTable(
       const std::string &table) {
 
   // Create trlation schema file
-  bool createStructRes = getCreateTableSQL(table);
+  bool createStructRes = createSchemaSQL(table);
 
   if(! createStructRes){
     BOOST_LOG_TRIVIAL(error) << "Couldn't create the structure-file for"
@@ -1742,5 +1723,29 @@ bool BasicEngine_Control::validateQuery(const std::string &sqlQuery) {
 
   return true;
 }
+
+/**
+3.29 Get the first attribute name from the given table
+
+*/
+std::string BasicEngine_Control::getFirstAttributeNameFromTable(
+    const std::string &table) {
+    
+   vector<tuple<string, string>> attrs 
+    = dbms_connection->getTypeFromSQLQuery("SELECT * FROM " + table + ";");
+
+  if(attrs.empty()) {
+    BOOST_LOG_TRIVIAL(error) << "Unable to determine table layout for " 
+      << table;
+  }
+
+  tuple<string, string> firstAttibute = attrs[0];
+  string key = std::get<0>(firstAttibute);
+
+  BOOST_LOG_TRIVIAL(debug) << "Using key " + key + " for rr join";
+
+  return key;
+}
+ 
 
 } /* namespace BasicEngine */

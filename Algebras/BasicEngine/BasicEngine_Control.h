@@ -115,43 +115,41 @@ public:
 
   bool checkAllConnections();
 
-  bool repartition_table(const PartitionData &partitionData, 
+  bool repartition_table(PartitionData &partitionData, 
     const PartitionMode &repartitionMode);
 
-  bool repartition_table_worker(const PartitionData &partitionData, 
-    const PartitionMode &repartitionMode);
+  bool partition_table(PartitionData &partitionData, 
+    const PartitionMode &repartitionMode, const bool repartition);
 
   bool repartition_table_master(const PartitionData &partitionData, 
     const PartitionMode &repartitionMode);
 
-  bool repartition_table_by_hash(const std::string &tab, 
-    const std::string &key, const size_t slotnum);
+  bool partition_table_by_hash(const std::string &tab, 
+    const std::string &key, const size_t slotnum,
+    const bool repartition);
 
-  bool repartition_table_by_rr(const std::string &tab, 
-    const size_t slotnum);
+  bool partition_table_by_rr(const std::string &tab, 
+    const size_t slotnum, const bool repartition);
 
-  bool repartition_table_by_fun(const std::string &tab, 
+  bool partition_table_by_fun(const std::string &tab, 
     const std::string &key, const std::string &fun, 
-    const size_t slotnum);
+    const size_t slotnum, const bool repartition);
 
-  bool repartition_table_by_grid(const std::string &table, 
+  bool partition_table_by_grid(const std::string &table, 
     const std::string &key, const size_t slotnum, 
-    const std::string &attribute, double xstart, double ystart, 
-    double slotsize);
+    const std::string &attribute, const double xstart, 
+    const double ystart, const double slotsize, 
+    const bool repartition);
 
-  bool repartition_table_by_random(const std::string &tab, 
-    const size_t slotnum);
-
-  bool partTable(const std::string &tab, const std::string &key, 
-    const std::string &art, size_t slotnum, const std::string &geo_col = "", 
-    float x0 = 0, float y0 = 0, float slotsize = 0);
+  bool partition_table_by_random(const std::string &tab, 
+    const size_t slotnum, const bool repartition);
 
   bool drop_table(const std::string &tab) {
     std::string sqlQuery = dbms_connection->getDropTableSQL(tab);
     return sendCommand(sqlQuery, false);
   }
 
-  bool getCreateTableSQL(const std::string &tab);
+  bool createSchemaSQL(const std::string &tab);
 
   bool importTable(const std::string &tab, const std::string &full_path) {
     std::string sqlQuery = dbms_connection->getImportTableSQL(tab, full_path);
@@ -294,7 +292,8 @@ distributed2::ConnectionInfo* createAndInitConnection(
 distributed2::ConnectionInfo* createConnection(
   const RemoteConnectionInfo* remoteConnection);
 
-  bool partRoundRobin(const std::string &tab, size_t slotnum);
+  bool partRoundRobin(const std::string &tab, const std::string &key,
+   size_t slotnum);
 
   bool partHash(const std::string &tab, const std::string &key, 
     size_t slotnum);
@@ -337,6 +336,8 @@ distributed2::ConnectionInfo* createConnection(
 
   bool executeSecondoCommand(distributed2::ConnectionInfo* ci, 
     const std::string &command, const bool checkResult);
+
+  std::string getFirstAttributeNameFromTable(const std::string &table);
 
 };
 };  /* namespace BasicEngine */

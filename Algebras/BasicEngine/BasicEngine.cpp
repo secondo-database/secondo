@@ -330,8 +330,8 @@ CcBool* res = (CcBool*) result.addr;
 
   if(be_control && be_control->isMaster()){
     if (slot->GetIntval() > 0){
-      val = be_control->partTable(tab->toText(),
-            "", "RANDOM", slot->GetIntval());
+      val = be_control->partition_table_by_random(
+        tab->toText(), slot->GetIntval(), false);
     }else{
       cout << negSlots << endl;
     }
@@ -417,8 +417,8 @@ CcBool* res = (CcBool*) result.addr;
 
   if(be_control && be_control->isMaster()){
     if (slot->GetIntval() > 0){
-      val = be_control->partTable(tab->toText(),
-            "", "RR", slot->GetIntval());
+      val = be_control->partition_table_by_rr(
+        tab->toText(), slot->GetIntval(), false);
     }else{
       cout << negSlots << endl;
     }
@@ -528,8 +528,9 @@ int be_partHashSFVM(Word* args,Word& result,int message,
 
   if(be_control && be_control->isMaster()){
     if (slot->GetIntval() > 0){
-      val = be_control->partTable(tab->toText(), key->toText(),
-                "Hash",slot->GetIntval());
+      val = be_control->partition_table_by_hash(
+        tab->toText(), key->toText(),slot->GetIntval(),
+        false);
     } else {
       cout << negSlots << endl;
     }
@@ -653,8 +654,9 @@ CcBool* res = (CcBool*) result.addr;
 
   if(be_control && be_control -> isMaster()){
     if (slot->GetIntval() > 0){
-      val = be_control->partTable(tab->toText(), key->toText()
-                ,fun->toText(),slot->GetIntval());
+      val = be_control->partition_table_by_fun(
+        tab->toText(), key->toText(), 
+        fun->toText(),slot->GetIntval(), false);
     }else{
       cout<< negSlots << endl;
     }
@@ -1408,7 +1410,7 @@ int be_structSFVM(Word* args, Word& result, int message
 
   if(be_control){
     //export a create Statement to filetransfer
-    val = be_control->getCreateTableSQL(tab->GetValue());
+    val = be_control->createSchemaSQL(tab->GetValue());
   }
   else{
     cout << noMaster << endl;
@@ -2002,9 +2004,11 @@ CcBool* res = (CcBool*) result.addr;
 
   if(be_control && be_control -> isMaster()){
     if (slot->GetIntval() > 0){
-      val = be_control->partTable(tab->toText(),key->toText()
-            ,"Grid",slot->GetIntval(),geo_col->toText()
-      ,xstart->GetValue(),ystart->GetValue(),slotsize->GetValue());
+      val = be_control->partition_table_by_grid(
+        tab->toText(), key->toText(), 
+        slot->GetIntval(), geo_col->toText(),
+        xstart->GetValue(), ystart->GetValue(),
+        slotsize->GetValue(), false);
     }else{
       cout<< negSlots << endl;
     }
@@ -2263,8 +2267,8 @@ int be_repartRandomSFVM(Word* args, Word& result, int message,
     val = false;
   } else {
     if (slot->GetIntval() > 0){
-      val = be_control->repartition_table_by_random(
-        tab->toText(), slot->GetIntval());
+      val = be_control->partition_table_by_random(
+        tab->toText(), slot->GetIntval(), true);
     } else{
       cout << negSlots << endl;
     }
@@ -2346,8 +2350,8 @@ int be_repartRRSFVM(Word* args, Word& result, int message,
     val = false;
   } else {
     if (slot->GetIntval() > 0){
-      val = be_control->repartition_table_by_rr(
-        tab->toText(), slot->GetIntval());
+      val = be_control->partition_table_by_rr(
+        tab->toText(), slot->GetIntval(), true);
     } else{
       cout << negSlots << endl;
     }
@@ -2429,8 +2433,8 @@ int be_repartHashSFVM(Word* args,Word& result,int message,
     val = false;
   } else {
     if (slot->GetIntval() > 0){
-      val = be_control->repartition_table_by_hash(tab->toText(), 
-        key->toText(), slot->GetIntval());
+      val = be_control->partition_table_by_hash(tab->toText(), 
+        key->toText(), slot->GetIntval(), true);
     } else {
       cout << negSlots << endl;
     }
@@ -2518,9 +2522,10 @@ int be_repartGridSFVM(Word* args,Word& result,int message,
     val = false;
   } else {
     if (slot->GetIntval() > 0){
-        val = be_control->repartition_table_by_grid(tab->toText(),
+        val = be_control->partition_table_by_grid(tab->toText(),
           key->toText(), slot->GetIntval(), geo_col->toText(),
-          xstart->GetValue(), ystart->GetValue(), slotsize->GetValue());
+          xstart->GetValue(), ystart->GetValue(), slotsize->GetValue(), 
+          true);
     } else {
       cout<< negSlots << endl;
     }
@@ -2619,8 +2624,8 @@ int be_repartFunSFVM(Word* args,Word& result,int message
     val = false;
   } else {
     if (slot->GetIntval() > 0){
-      val = be_control->repartition_table_by_fun(tab->toText(), 
-        key->toText(), fun->toText(), slot->GetIntval());
+      val = be_control->partition_table_by_fun(tab->toText(), 
+        key->toText(), fun->toText(), slot->GetIntval(), true);
     } else {
       cout<< negSlots << endl;
     }
