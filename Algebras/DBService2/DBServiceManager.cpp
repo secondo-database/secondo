@@ -95,16 +95,21 @@ namespace DBService
         DatabaseSchema::migrate(database);
 
         LOG_F(INFO, "%s", "Loading DBS Nodes...");
-        dbsNodeManager = make_unique<dbsNodeManager>(database);
+        dbsNodeManager = make_unique<NodeManager>(database);
         dbsNodeManager->load();
 
         LOG_F(INFO, "%s", "Starting DBS Worker Nodes...");
         dbsNodeManager->startWorkers();
 
-        LOG_F(INFO, "%s", "Loading Original Nodes...");
-        originalNodeManager = make_unique<dbsNodeManager>(database, 
-            Node::nodeTypeOriginal());
-        originalNodeManager->load();
+        // LOG_F(INFO, "%s", "Loading Original Nodes...");
+        // originalNodeManager = make_unique<NodeManager>(database, 
+        //     Node::nodeTypeOriginal());
+        // // originalNodeManager->load();
+
+        // Building caches
+        auto replicas = Replica::findAll(database);
+        auto derivatives = Derivative::findAll(database);
+        auto relations = Relation::findAll(database);
 
         LOG_F(INFO, "%s", "Loading DBS Relations...");
         relationManager = make_unique<RelationManager>(database);

@@ -8,6 +8,7 @@
 #include <loguru.hpp>
 
 #include <vector>
+#include <map>
 #include <string>
 #include <sstream>
 #include <iostream>
@@ -53,6 +54,10 @@ namespace DBService
     
     static std::string getRelationName();
 
+    // Inline > the map will be specific to each RecordType
+    static inline std::map<int, std::shared_ptr<RecordType> > cache;
+    static inline bool cacheValidity = false;
+
   public:
     Record()
     {    
@@ -89,6 +94,14 @@ namespace DBService
       // Use the existing adapter by assigning its address as we "move"
       this->setDatabaseAdapter(DatabaseAdapter::getInstance());    
       this->setDatabase(original.getDatabase());
+    }
+
+    void setCacheValidity(bool newCacheValidity) {
+      cacheValidity = newCacheValidity;
+    }
+
+    bool getCacheValidity() {
+      return cacheValidity;
     }
 
     void setDirty()  {
@@ -161,6 +174,9 @@ namespace DBService
 
       setClean();
       setNotNew();
+
+      //TODO Add to cache. Requires shared_from_this().
+
       return true;
     }
 
@@ -227,7 +243,12 @@ namespace DBService
         database,
         query
       );
-     }
+
+      LOG_F(INFO, "%s", "Removing Record from cache...");
+      
+      // Remove object from cache
+      eraseFromCache(getId());
+    }
 
     virtual std::string destroyStatement() {
       throw "destroyStatement IS NOT IMPLEMENTED in Record.";
@@ -271,7 +292,130 @@ namespace DBService
     */
     static std::vector<std::shared_ptr<RecordType> > findMany(Query findQuery) {
       
-      return findQuery.retrieveVector<RecordType, RecordAdapter>();
+      LOG_SCOPE_FUNCTION(INFO);
+
+      std::vector<std::shared_ptr<RecordType> > manyRecords = 
+        findQuery.retrieveVector<RecordType, RecordAdapter>();
+
+      //TODO Currently there is no use of the cache for repeated calls to 
+      //  findMany. This could be added when needed.
+      syncToCache(manyRecords);
+
+      return manyRecords;
+    }
+
+    /*
+      Adds the given record to the cache if it hasn't been cached before.
+    */
+    static void syncToCache(std::vector<std::shared_ptr<RecordType> >       
+      recordsToSync) {
+
+        LOG_SCOPE_FUNCTION(INFO);
+        
+        for(auto& record : recordsToSync) {
+          syncToCache(record);
+        }
+
+        cacheValidity = true;
+    }
+
+    /*
+      Adds the given record to the cache if it doesn't exist, yet.
+    */
+    static void syncToCache(std::shared_ptr<RecordType> recordToSync) {
+        LOG_SCOPE_FUNCTION(INFO);
+        
+        // If the record doesn't exist in the cache, add it.
+        if (cache.find(recordToSync->getId()) == cache.end()) {
+          LOG_F(INFO, "Adding Record to the cache...");
+          cache[recordToSync->getId()] = recordToSync;
+        }
+    }
+
+    /*
+      Removes the record with the given recordId from the cache.
+    */
+    static void eraseFromCache(int recordId) {
+      LOG_SCOPE_FUNCTION(INFO);
+
+      cache.erase(recordId);
+    }
+
+
+    /*
+      Find a record by recordId.
+      Complexity: ~ O(LOG(n)).
+    */
+    static std::shared_ptr<RecordType> findOneInCache(int recordId) {
+      LOG_SCOPE_FUNCTION(INFO);
+
+      if(cache.find(recordId) != cache.end()) {
+        // Cache hit!
+        LOG_F(INFO, "%s", "Record cache hit!");
+        return cache[recordId];
+      }
+
+      return std::shared_ptr<RecordType>(nullptr);
+    }
+
+    /*
+      This is a more generic find method to find a single record.
+      It is less efficient but allows to pass a predicate to match records
+      according to the needs of a particular context.
+      
+      Complexity: ~ O(n).
+
+      Functor specifies the predicate used for comparison.
+
+      Examplary Functor: [=](int relationId, 
+        std::pair<int, std::shared_ptr<Derivative>> const& recordPair) 
+          { return recordPair.second->getRelationId() == relationId; }
+    */
+    template<typename Functor>
+    static std::shared_ptr<RecordType> findOneInCache(Functor& matchPredicate) {
+      std::shared_ptr<RecordType> record;
+
+      LOG_SCOPE_FUNCTION(INFO);
+
+      // foundIt: Iterator pointing to the found record. Pun intended.
+      auto foundIt = std::find_if(cache.begin(), cache.end(), matchPredicate);
+
+      if (foundIt != cache.end())
+        record = foundIt->second;
+      
+
+      // if no record is found, the shared_ptr compares with nullptr
+      return record;
+    }
+
+    template<typename Functor>
+    static std::vector<std::shared_ptr<RecordType> > 
+      findManyInCache(Functor& matchPredicate) {
+
+      LOG_SCOPE_FUNCTION(INFO);
+
+      std::vector<std::shared_ptr<RecordType> > records;
+      std::shared_ptr<RecordType> record;
+
+      // TODO Find more concise way to express the for loop.
+      /*
+        Move the foundIt iterator forward while finding more records for which
+        the matchPredicate is evaluated to true.
+      */
+      for(auto foundIt = 
+        std::find_if(cache.begin(), cache.end(), matchPredicate); 
+        foundIt != cache.end(); 
+        foundIt = std::find_if(++foundIt, cache.end(), matchPredicate)) {
+        
+        // Each find_if may set foundIt to cache.end() 
+        // if no further records match the predicate.
+        if (foundIt != cache.end()) {
+          records.push_back(foundIt->second);
+        }
+      }
+
+      // if no record is found, the shared_ptr compares with nullptr
+      return records;
     }
 
     /*
@@ -279,6 +423,8 @@ namespace DBService
     */
     static std::vector<std::shared_ptr<RecordType> > findAll(
       std::string database) {
+
+      LOG_SCOPE_FUNCTION(INFO);
 
       Query query = findAllQuery(database);
       return findMany(query);
@@ -290,14 +436,15 @@ namespace DBService
     }
 
     static Query deleteAllQuery(std::string database) {
-      return RecordType::query(database).feed().relation(RecordType::getRelationName()).deletedirect().consume();
+      return RecordType::query(database).feed().relation(
+        RecordType::getRelationName()).deletedirect().consume();
     }
 
     /*
       Generates the Query to delete the given record.
     */
     Query deleteRecordQuery(std::string database) {
-
+    
       // query dbs_relations deletebyid[tid(11)] consume
       return RecordType::query(database).deletebyid(getId()).consume();
     }
@@ -373,10 +520,25 @@ namespace DBService
       return Query(database, query.str());
     }
 
-    static std::shared_ptr<RecordType> findByTid(std::string database, int tid) {
-      Query findQuery = RecordType::query(database).feed().addid().filterByTid(tid).consume();
+    static std::shared_ptr<RecordType> findByTid(
+      std::string database, int tid) {
 
-      return findQuery.retrieveObject<RecordType, RecordAdapter>();
+      LOG_SCOPE_FUNCTION(INFO);
+      
+      std::shared_ptr<RecordType> record = findOneInCache(tid);
+
+      if (record != nullptr)
+        return record;
+
+      LOG_F(INFO, "%s", "Record cache miss! Retrieving from DB...");
+      
+      Query findQuery = RecordType::query(database).feed().addid().filterByTid(
+        tid).consume();
+
+      record = findQuery.retrieveObject<RecordType, RecordAdapter>();      
+      syncToCache(record);
+
+      return record;
     }
   };
 }

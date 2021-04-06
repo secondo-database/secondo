@@ -104,17 +104,18 @@ int OperatorAddNode::mapValue(Word* args,
 
     print("Adding node...", std::cout);
     
-    /* TODO Invoking the DBServiceManager directly from an Operator is an 
-      anti-pattern. It prevents the operator from being executable from
+    /* TODO Invoking the DBServiceManager directly from an Operator has 
+      drawbacks. It prevents the operator from being executable from
       SecondoClients which do not run the DBService processes.
-      This is very confusing to users and makes the usage of the DBService
+
+      This may be confusing to users and makes the usage of the DBService
       alegbra in distributed environments harder as it requires a strong
       tie between a particular Secondo TTY - the one which has been used to
       start the DBService - and its corresponding SecondoBDB process.
+      
       Due to the fact that the Secondo server process will die if the TTY 
       disconnects, the lifecycle of the DBService is tied to the SecondoTTY.
-      
-      This is absolutely not desirable. The SecondoBDB processes may run on a 
+      This is not desirable. The SecondoBDB processes may run on a 
       reliable server computer but the TTY may be executed on a personal 
       computer which may have to be put into standby or switched off from time 
       to time, e.g. during transportation.

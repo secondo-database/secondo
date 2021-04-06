@@ -28,6 +28,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Algebras/DBService2/DebugOutput.hpp"
 #include "Algebras/DBService2/OperatorStartDBService.hpp"
 
+#include <loguru.hpp>
+
 using namespace std;
 
 extern boost::recursive_mutex nlparsemtx;
@@ -37,6 +39,7 @@ namespace DBService
 
 ListExpr OperatorStartDBService::mapType(ListExpr nestedList)
 {
+    LOG_SCOPE_FUNCTION(INFO);
     print(nestedList, std::cout);
 
     boost::lock_guard<boost::recursive_mutex> guard(nlparsemtx);
@@ -57,14 +60,26 @@ int OperatorStartDBService::mapValue(Word* args,
                                Word& local,
                                Supplier s)
 {
+    LOG_SCOPE_FUNCTION(INFO);
     result = qp->ResultStorage(s);
     CcBool* res = (CcBool*) result.addr;
+
     if( DBServiceManager::isActive()){
-        res->Set(true,false);
+        res->Set(true,true);
         return 0;
     }
+
+    // If invoked using a TTY, the TTY may create a transaction but we need
+    // full control over transactions. So therefore we'll close any given 
+    // transaction to ensure that no transaction is running.
+    if(!SecondoSystem::CommitTransaction(true))
+    {
+        LOG_F(INFO, "%s", "There was no transaction running.");        
+    }
+
     bool started = DBServiceManager::getInstance() != 0;
 
+    LOG_F(INFO, "DBServiceManager instance available? %d", started);
 
     //TODO find out if there's a more elegant way...
     /* The test suite will commit many transactions but Secondo will attempt 
@@ -73,7 +88,13 @@ int OperatorStartDBService::mapValue(Word* args,
      * will be opened
      * to satisfy this requirement for a successful operator execution.
      */
+
+    
+    LOG_F(INFO, "%s", "Starting transaction... ");
+    
+
     SecondoSystem::BeginTransaction();
+    // qp->switchTransaction(s);
 
     res->Set(true,started);
     return 0;

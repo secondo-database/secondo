@@ -27,6 +27,11 @@ namespace DBService {
     private:
 
     /*
+      Volatile attribute used when loading derivatives from db.
+    */
+    int relationId;
+
+    /*
       Name of the Derivate (Secondo Object representing the Derivative).
     */
     std::string name;
@@ -175,6 +180,9 @@ namespace DBService {
     */
     static std::shared_ptr<Derivative> findOne(std::string database, 
       Query query);    
+
+    void setRelationId(int newRelationId);
+    int getRelationId();
 
     /*
      * Record END

@@ -29,9 +29,12 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include <sstream>
 
+#include <loguru.hpp>
+
 using namespace std;
 
 namespace DBService {
+
   Derivative::Derivative() : Record::Record() {
     setName("");
     setDatabase("");
@@ -118,8 +121,10 @@ namespace DBService {
     Creates a derivative Replica based on the provided relation Replica.
     Prevents adding Replica duplicates.
   */  
-  void Derivative::addDerivativeReplica(
+  void Derivative::addDerivativeReplica(    
     std::shared_ptr<Replica> relationReplica) {
+
+    LOG_SCOPE_FUNCTION(INFO);
 
     shared_ptr<Replica> derivativeReplica = make_shared<Replica>();
 
@@ -157,6 +162,8 @@ namespace DBService {
   void Derivative::addDerivativeReplicas(std::vector<std::shared_ptr<Replica> > 
       relationReplicas) {
       
+      LOG_SCOPE_FUNCTION(INFO);
+      
       for(auto& relationReplica : relationReplicas) {
         addDerivativeReplica(relationReplica);
       }
@@ -167,6 +174,8 @@ namespace DBService {
   }
 
   void Derivative::loadReplicas() {
+    LOG_SCOPE_FUNCTION(INFO);
+
     if (replicas.empty()) {
       vector<shared_ptr<Replica> > shrPtrReplicas = 
         Replica::findByDerivativeId(
@@ -190,6 +199,8 @@ namespace DBService {
   }
 
   void Derivative::saveReplicas() {
+    LOG_SCOPE_FUNCTION(INFO);
+
     if (getReplicaCount() <= 0)
       return;
     
@@ -208,6 +219,7 @@ namespace DBService {
 
   shared_ptr<Replica> Derivative::findReplica(string targetHost, 
     int targetPort) {
+    LOG_SCOPE_FUNCTION(INFO);
     
     DBService::Node nodeToFind(
       as_const(targetHost), as_const(targetPort), "");
@@ -223,6 +235,7 @@ namespace DBService {
 
   void Derivative::updateReplicaStatus(string targetHost, int targetPort, 
       string replicaStatus) {
+    LOG_SCOPE_FUNCTION(INFO);
 
     shared_ptr<Replica> replica = findReplica(
       targetHost, targetPort);
@@ -315,12 +328,22 @@ Function: string, RelationId: int])) value ()]";
   }
 
   shared_ptr<Derivative> Derivative::findOne(string database, Query query) {
+    LOG_SCOPE_FUNCTION(INFO);
+
     return query.retrieveObject<Derivative, SecondoDerivativeAdapter>();
   }
 
   vector<shared_ptr<Derivative> > Derivative::findAll(string database) {
+    LOG_SCOPE_FUNCTION(INFO);
+
     Query query = Derivative::query(database).feed().addid().consume();
-    return query.retrieveVector<Derivative, SecondoDerivativeAdapter>();
+    
+    std::vector<std::shared_ptr<Derivative> > manyRecords = 
+      query.retrieveVector<Derivative, SecondoDerivativeAdapter>();
+    
+    syncToCache(manyRecords);
+
+    return manyRecords;
   }
 
   bool Derivative::operator==(const DBService::Derivative &other) const {
@@ -337,6 +360,49 @@ Function: string, RelationId: int])) value ()]";
   vector<shared_ptr<Derivative> > Derivative::findByRelationId(
     string database, int relationId) {
 
+    LOG_SCOPE_FUNCTION(INFO);
+    LOG_F(INFO, "Looking for Derivatives with relationId %d...", relationId);
+
+    //TODO is there a way to use a template function with lamdas
+    // to make the cache lookup generic?
+
+    // Cache
+    vector<shared_ptr<Derivative> > resultsFromCache;
+
+    std::map<int, std::shared_ptr<Derivative> >::iterator it = cache.begin();
+
+    //TODO With a Derivative specific Map complexity can be reduced from linear
+    //  to log.
+    // while (it != cache.end()) {
+    //   auto currentDerivative = it->second;
+
+    //   if(currentDerivative->getRelationId() == relationId) {
+    //     LOG_F(INFO, "Cache relationId %d, relationId: %d", 
+    //       currentDerivative->getRelationId(), relationId);
+
+    //     resultsFromCache.push_back(currentDerivative);
+    //   }
+
+    //   it++;
+    // }
+
+    auto matchPredicate = [=](
+      std::pair<int, std::shared_ptr<Derivative>> const& currentPair) {
+        return currentPair.second->getRelationId() == relationId;
+    };
+
+    resultsFromCache = findManyInCache(matchPredicate);
+
+    if(cacheValidity == true) {
+      LOG_F(INFO, "Cache hit. Found %d cached Derivative(s).", 
+        resultsFromCache.size());
+
+      return resultsFromCache;
+    }
+
+    LOG_F(INFO, "%s", "Cache miss. Loading from DB...");
+
+    // DB Query
     Query query = DBService::Derivative::query(database).feed().filter(
       ".RelationId = ?", relationId).addid().consume();
     return query.retrieveVector<Derivative, SecondoDerivativeAdapter>();
@@ -349,6 +415,14 @@ Function: string, RelationId: int])) value ()]";
   void Derivative::deleteReplicas() {
     for(auto& replica : replicas)
       replica->destroy();
+  }
+
+  void Derivative::setRelationId(int newRelationId) {
+    relationId = newRelationId;
+  }
+
+  int Derivative::getRelationId() {
+    return relationId;
   }
 
   ostream &operator<<(ostream &os, Derivative const &derivative) {

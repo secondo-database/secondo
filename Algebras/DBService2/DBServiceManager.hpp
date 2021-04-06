@@ -351,15 +351,29 @@ Creates a \textit{ReplicaPlacementStrategy} based on the DBService config.
 
 /*
 
-1.1.1.1 \textit{nodeManager}
+1.1.1.1 \textit{dbsNodeManager}
 
-The \textit{NodeManager} encapsulates the lifecycle management of nodes. 
+The \textit{dbsNodeManager} encapsulates the lifecycle management of DBService 
+worker nodes.
 It maintains a list of nodes, provides accessor and persistency methods.
 This reduces the complexity of the \testit{DBServiceManager}.
 
 */
 
-    std::unique_ptr<NodeManager> nodeManager;
+    std::unique_ptr<NodeManager> dbsNodeManager;
+
+
+/*
+
+1.1.1.1 \textit{originalNodeManager}
+
+The \textit{originalNodeManager} is similar to the \textit{dbsNodeManager} but
+manages original Nodes. Original nodes are from which relations are replicated.
+Most likely these nodes are non-DBService nodes.
+
+*/
+
+    // std::unique_ptr<NodeManager> originalNodeManager;
 
 
 /*

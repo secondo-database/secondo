@@ -63,14 +63,19 @@ namespace DBService {
 
     relationId = nl->IntValue(nl->Nth(offset + 3, recordAsNestedList));
 
+
     id = nl->IntValue(nl->Nth(offset + 4, recordAsNestedList));
 
     shared_ptr<DBService::Derivative> derivative = DBService::Derivative::build(
       derivativeName, derivativeFunction);
     
     // Record
-    derivative->setDatabase(recordDatabase);    
+    derivative->setDatabase(recordDatabase);
     derivative->setId(id);
+
+    // Instead of eager loading the Relation, this volative attribute is 
+    // provided.
+    derivative->setRelationId(relationId);
 
     //Load Derivative Replicas
     derivative->loadReplicas();

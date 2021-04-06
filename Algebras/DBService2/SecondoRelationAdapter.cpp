@@ -100,7 +100,7 @@ namespace DBService {
 
 
     // 1+N issue when eager loading replicas
-    // relation->loadReplicas();
+    relation->loadReplicas();
     
     relation->loadDerivatives();
     relation->setClean();

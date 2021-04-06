@@ -31,6 +31,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include <string>
 #include <sstream>
+#include <map>
+
+#include <loguru.hpp>
 
 using namespace std;
 
@@ -312,6 +315,48 @@ value ()]";
 
   vector<shared_ptr<Replica> > Replica::findByRelationId(
       string database, int relationId) {
+    
+    LOG_SCOPE_FUNCTION(INFO);
+
+    //TODO is there a way to use a template function with lamdas
+    // to make the cache lookup generic?
+
+    // Cache
+    vector<shared_ptr<Replica> > resultsFromCache;
+    // std::map<int, std::shared_ptr<Replica> >::iterator it = cache.begin();
+
+    //TODO Remove
+    // while(it != cache.end()) {
+    //   auto currentReplica = it->second;
+
+    //   if(currentReplica->getRelationId() == relationId) {
+    //     LOG_F(INFO, "Cache relationId %d, relationId: %d",
+    //       currentReplica->getRelationId(), relationId);
+
+    //     resultsFromCache.push_back(currentReplica);
+    //   }
+
+    //   it++;
+    // }
+
+    auto matchPredicate = [=](
+      std::pair<int, std::shared_ptr<Replica>> const& currentReplicaPair) {
+        return currentReplicaPair.second->getRelationId() == relationId;
+    };
+
+    resultsFromCache = findManyInCache(matchPredicate);
+
+
+
+    if(cacheValidity == true) {
+      LOG_F(INFO, "Cache hit. Found %d cached Replicas.",
+        resultsFromCache.size());
+
+      return resultsFromCache;
+    }
+
+    LOG_F(INFO, "%s", "Cache miss. Loading from DB...");
+
     string type(Replica::replicaTypeRelation);
     Query query = DBService::Replica::query(database).feed().filter(
       ".RelationId = ?", relationId).filter(
@@ -323,6 +368,8 @@ value ()]";
   vector<shared_ptr<Replica> > Replica::findByRelationIdAndType(string database,
     int relationId, string replicaType) {
 
+    LOG_SCOPE_FUNCTION(INFO);
+
     Query query = DBService::Replica::query(database).feed().filter(
       ".RelationId = ?", relationId).filter(
         ".Type = ?", replicaType).addid().consume();
@@ -332,6 +379,47 @@ value ()]";
 
   vector<shared_ptr<Replica> > Replica::findByDerivativeId(string database, 
     int derivativeId) {
+
+    LOG_SCOPE_FUNCTION(INFO);
+
+    //TODO is there a way to use a template function with lamdas
+    // to make the cache lookup generic?
+
+    // Cache
+    vector<shared_ptr<Replica> > resultsFromCache;
+    
+    //TODO Remove
+    // std::map<int, std::shared_ptr<Replica> >::iterator it = cache.begin();
+    // while(it != cache.end()) {
+    //   auto currentReplica = it->second;
+
+    //   if(currentReplica->getDerivativeId() == derivativeId) {
+    //     LOG_F(INFO, "Cache derivativeId %d, derivativeId: %d",
+    //       currentReplica->getDerivativeId(), derivativeId);
+
+    //     resultsFromCache.push_back(currentReplica);
+    //   }
+
+    //   it++;
+    // }
+
+    auto matchPredicate = [=] (
+      std::pair<int, std::shared_ptr<Replica>> const& currentReplicaPair) {
+        return currentReplicaPair.second->getDerivativeId() == derivativeId;
+      };
+
+    resultsFromCache = findManyInCache(matchPredicate);
+
+
+    if(cacheValidity == true) {
+      LOG_F(INFO, "Cache hit. Found %d cached Replica(s).",
+        resultsFromCache.size());
+
+      return resultsFromCache;
+    }
+
+    LOG_F(INFO, "%s", "Cache miss. Loading from DB...");
+
     string replicaType = Replica::replicaTypeDerivative;
 
     Query query = DBService::Replica::query(database).feed().filter(
