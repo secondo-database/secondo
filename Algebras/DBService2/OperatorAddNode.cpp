@@ -34,6 +34,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Algebras/DBService2/OperatorAddNode.hpp"
 #include "Algebras/DBService2/DebugOutput.hpp"
 
+#include <loguru.hpp>
+
 extern QueryProcessor* qp;
 extern boost::recursive_mutex nlparsemtx;
 
@@ -43,6 +45,7 @@ namespace DBService
 ListExpr OperatorAddNode::mapType(ListExpr nestedList)
 {
     print(nestedList, std::cout);
+    LOG_SCOPE_FUNCTION(INFO);
 
     // ensure to have only one access to the catalog
     static boost::mutex mtx;
@@ -85,6 +88,16 @@ int OperatorAddNode::mapValue(Word* args,
                               Word& local,
                               Supplier s)
 {
+    LOG_SCOPE_FUNCTION(INFO);
+    
+    // If invoked using a TTY, the TTY may create a transaction but we need
+    // full control over transactions. So therefore we'll close any given 
+    // transaction to ensure that no transaction is running.
+    if(!SecondoSystem::CommitTransaction(true))
+    {
+        LOG_F(INFO, "%s", "There was no transaction running.");
+    }
+    
     CcString* host = static_cast<CcString*>(args[0].addr);
     CcInt* port = static_cast<CcInt*>(args[1].addr);
     CcString* config = static_cast<CcString*>(args[2].addr);
@@ -103,6 +116,7 @@ int OperatorAddNode::mapValue(Word* args,
     // }
 
     print("Adding node...", std::cout);
+    LOG_F(INFO, "%s", "Adding node...");
     
     /* TODO Invoking the DBServiceManager directly from an Operator has 
       drawbacks. It prevents the operator from being executable from
@@ -143,17 +157,20 @@ int OperatorAddNode::mapValue(Word* args,
         
         if (!success) {
             print("Couldn't add node using DBServiceManager.", std::cout);
+            LOG_F(ERROR, "%s", "Couldn't add node using DBServiceManager.");
             static_cast<CcBool*>(result.addr)->Set(false, false);
             return 1;
         }
     } else {
         print("Couldn't get DBService Client instance.", std::cout);
+        LOG_F(ERROR, "%s", "Couldn't get DBService Client instance.");
 
         static_cast<CcBool*>(result.addr)->Set(false, false);
         return 1;
     }
 
     print("Done adding node.", std::cout);
+    LOG_F(INFO, "%s", "Done adding node.");
 
     //TODO find out if there's a more elegant way...
     /* The test suite will commit many transactions but Secondo will attempt 

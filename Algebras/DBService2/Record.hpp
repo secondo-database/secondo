@@ -226,8 +226,8 @@ namespace DBService
 
       setClean();
       setNotNew();
-
-      //TODO Add to cache. Requires shared_from_this().
+      
+      syncToCache(this->shared_from_this());
 
       return true;
     }
