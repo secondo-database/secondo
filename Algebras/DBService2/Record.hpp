@@ -42,7 +42,7 @@ namespace DBService
     refactorings.
   */
   template <class RecordType, class RecordAdapter>
-  class Record {
+  class Record : public std::enable_shared_from_this<RecordType> {
   protected:
 
     bool isDirty;
@@ -56,9 +56,19 @@ namespace DBService
 
     // Inline > the map will be specific to each RecordType
     static inline std::map<int, std::shared_ptr<RecordType> > cache;
+
+    /* 
+      Cache validity is used to indicate if the cache became out of sync.
+      It will automatically be reactivated if the cache has been re-synched.
+    */
     static inline bool cacheValidity = false;
 
-  public:
+    /*
+      Turn on/off caching and - in contrast to cacheValidity - 
+      without automatic reactivation.
+    */
+    static inline bool _useCache = true;
+
     Record()
     {    
       // Default setting
@@ -96,11 +106,53 @@ namespace DBService
       this->setDatabase(original.getDatabase());
     }
 
-    void setCacheValidity(bool newCacheValidity) {
+  public:
+
+    // /*
+    //   Idea:
+    //   Create a build method that accepts all possible signatures of the
+    //   protected RecordType's constructor.
+
+    //   Source: https://bit.ly/2Q74j00
+    // */    
+    // static std::shared_ptr<RecordType> build(RecordType&& ... record) {
+    //   return std::shared_ptr<RecordType>(new RecordType(std::forward<RecordType>(t)...));
+    // }
+
+    static std::shared_ptr<RecordType> build() {
+      return std::shared_ptr<RecordType>(new RecordType());
+    }
+
+    static void setCacheValidity(bool newCacheValidity) {
       cacheValidity = newCacheValidity;
     }
 
-    bool getCacheValidity() {
+    static void setUseCache(bool newUseCache) {
+      _useCache = newUseCache;
+    }
+
+    static bool getUseCache() {
+      return _useCache;
+    }
+
+    static bool useCache() {
+      return getUseCache();
+    }
+
+    static inline void disableCache() {
+      _useCache = false;
+    }
+
+    /*
+      Marks the cache as invalid and thus prevents the use of the cache.
+
+      TODO Should this method also clear the cache?
+    */
+    static void invalidateCache() {
+      setCacheValidity(false);
+    }
+
+    static bool getCacheValidity() {
       return cacheValidity;
     }
 
@@ -325,6 +377,12 @@ namespace DBService
     static void syncToCache(std::shared_ptr<RecordType> recordToSync) {
         LOG_SCOPE_FUNCTION(INFO);
         
+        if(recordToSync == nullptr) {
+          LOG_F(WARNING, "%s", "Can't sync nullptr record.");
+          return;
+        }
+
+
         // If the record doesn't exist in the cache, add it.
         if (cache.find(recordToSync->getId()) == cache.end()) {
           LOG_F(INFO, "Adding Record to the cache...");
@@ -349,7 +407,7 @@ namespace DBService
     static std::shared_ptr<RecordType> findOneInCache(int recordId) {
       LOG_SCOPE_FUNCTION(INFO);
 
-      if(cache.find(recordId) != cache.end()) {
+      if(useCache() && cacheValidity && cache.find(recordId) != cache.end()) {
         // Cache hit!
         LOG_F(INFO, "%s", "Record cache hit!");
         return cache[recordId];
@@ -380,9 +438,8 @@ namespace DBService
       // foundIt: Iterator pointing to the found record. Pun intended.
       auto foundIt = std::find_if(cache.begin(), cache.end(), matchPredicate);
 
-      if (foundIt != cache.end())
+      if(useCache() && cacheValidity && foundIt != cache.end())
         record = foundIt->second;
-      
 
       // if no record is found, the shared_ptr compares with nullptr
       return record;
@@ -409,7 +466,7 @@ namespace DBService
         
         // Each find_if may set foundIt to cache.end() 
         // if no further records match the predicate.
-        if (foundIt != cache.end()) {
+        if(useCache() && cacheValidity && foundIt != cache.end()) {
           records.push_back(foundIt->second);
         }
       }

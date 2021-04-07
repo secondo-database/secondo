@@ -55,6 +55,11 @@ using Catch::Matchers::Equals;
 TEST_CASE("Constructing DBService::Relations")
 {
 
+  DBService::Derivative::disableCache();
+  DBService::Relation::disableCache();
+  DBService::Replica::disableCache();
+  DBService::Node::disableCache();
+
   const string test_db_name = DatabaseEnvironment::test;
 
   SECTION("Creating the Replica Relation required for Relations") {
@@ -469,6 +474,8 @@ filter[.RelationId = 1] addid consume");
     }
 
     SECTION("Load Relation with Replica") {
+
+      Replica::invalidateCache();
 
       //TODO Remove dependency to prio test cast. Use fixture.
       string relationNameWithReplica = "relationWithReplica";

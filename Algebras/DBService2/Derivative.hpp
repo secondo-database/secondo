@@ -22,7 +22,8 @@ namespace DBService {
     funtion.
   */
   class Derivative : 
-    public Record<DBService::Derivative, SecondoDerivativeAdapter>, public std::enable_shared_from_this<DBService::Derivative> {
+    //public Record<DBService::Derivative, SecondoDerivativeAdapter>, public std::enable_shared_from_this<DBService::Derivative> {
+    public Record<DBService::Derivative, SecondoDerivativeAdapter> {
 
     private:
 

@@ -26,8 +26,8 @@ namespace DBService {
     result of addNode operator invocations when setting up the DB Service 
     cluster.
   */
-  class Relation : public Record<DBService::Relation, SecondoRelationAdapter>, public std::enable_shared_from_this<DBService::Relation>  {    
-
+  //class Relation : public Record<DBService::Relation, SecondoRelationAdapter>, public std::enable_shared_from_this<DBService::Relation>  {    
+  class Relation : public Record<DBService::Relation, SecondoRelationAdapter> {
     private:
     std::string relationDatabase;
     std::string name;
@@ -44,11 +44,11 @@ namespace DBService {
     protected:
 
     /* 
-      The use of enable_shared_from_this requires that prio to making
+      The use of enable_shared_from_this requires that prior to making
       a shared_ptr from this, another shared_ptr for this object must exist.
       The easiest way to ensure this is to declare the constructor proteced
       and force the usage of factory methods called ~build~ which in turn
-      create a shared_ptr.
+      creates a shared_ptr.
     */
     Relation();
 

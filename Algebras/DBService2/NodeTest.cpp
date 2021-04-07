@@ -42,6 +42,11 @@ TEST_CASE("Constructing DBService::Nodes")
 
   const string test_db_name = DatabaseEnvironment::test;
 
+  // DBService::Derivative::disableCache();
+  // DBService::Relation::disableCache();
+  // DBService::Replica::disableCache();
+  DBService::Node::disableCache();
+
   //TODO Check if test database is selected, create and select it, if not.
 
   // Creating the nodes relation so that persistency tests will work.

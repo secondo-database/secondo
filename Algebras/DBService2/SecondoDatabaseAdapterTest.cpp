@@ -106,11 +106,14 @@ again") {
     REQUIRE(adapter->isDatabaseOpen() == true);
   }
 
-  SECTION("It should raise an exception attempting to open a non-existing \
-database") {
-    REQUIRE_THROWS_WITH(adapter->openDatabase("nonexistenddatabase"),
-      Contains("doesn't exist"));
-  }
+// The following test has been disabled as the check has been 
+//  disabled for performance reasons.
+
+//   SECTION("It should raise an exception attempting to open a non-existing \
+// database") {
+//     REQUIRE_THROWS_WITH(adapter->openDatabase("nonexistenddatabase"),
+//       Contains("doesn't exist"));
+//   }
 
   SECTION("Database lifecycle tests") {
 

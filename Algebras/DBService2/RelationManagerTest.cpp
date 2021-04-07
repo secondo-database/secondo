@@ -34,6 +34,11 @@ using namespace DBService;
 using namespace std;
 
 TEST_CASE("Constructing DBService::RelationManagers") {
+
+  DBService::Derivative::disableCache();
+  DBService::Relation::disableCache();
+  DBService::Replica::disableCache();
+  DBService::Node::disableCache();
   
   //TODO define the test_db_name centrally for all tests!
   const string test_db_name = "dbservice_test";

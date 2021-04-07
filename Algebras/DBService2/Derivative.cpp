@@ -393,7 +393,7 @@ Function: string, RelationId: int])) value ()]";
 
     resultsFromCache = findManyInCache(matchPredicate);
 
-    if(cacheValidity == true) {
+    if(useCache() && cacheValidity == true) {
       LOG_F(INFO, "Cache hit. Found %d cached Derivative(s).", 
         resultsFromCache.size());
 

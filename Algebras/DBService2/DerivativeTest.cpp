@@ -45,6 +45,11 @@ TEST_CASE("Constructing DBService::Derivatives")
 
   const string test_db_name = DatabaseEnvironment::test;
 
+  DBService::Derivative::disableCache();
+  DBService::Relation::disableCache();
+  DBService::Replica::disableCache();
+  DBService::Node::disableCache();
+
   SECTION("Building, Saving and Loading") {
 
     const string relationName = "Cities";
@@ -107,9 +112,11 @@ TEST_CASE("Constructing DBService::Derivatives")
 
     SECTION("Loading a Relation with a Derivative") {      
       Query query = DBService::Relation::queryByDatabaseAndName(test_db_name, 
-        test_db_name, "relationWithDerivative");      
+        test_db_name, "relationWithDerivative");  
+      
       shared_ptr<DBService::Relation> loadedRelation = 
         DBService::Relation::findOne(test_db_name, query);
+
 
       REQUIRE(loadedRelation->getDerivativeCount() == 1);
 
@@ -136,7 +143,8 @@ TEST_CASE("Constructing DBService::Derivatives")
       REQUIRE_NOTHROW(derivative->save());
     }
 
-    SECTION("Loading a Derivative with Replicas") {
+    SECTION("Loading a Derivative with Replicas") {      
+      
       Query query = DBService::Relation::queryByDatabaseAndName(
         test_db_name, test_db_name, "Foh4Taer");      
       shared_ptr<DBService::Relation> relation = DBService::Relation::findOne(
@@ -154,7 +162,8 @@ TEST_CASE("Constructing DBService::Derivatives")
 
     SECTION("Update Derivative Replica Status") {
       Query query = DBService::Relation::queryByDatabaseAndName(test_db_name, 
-        test_db_name, "Foh4Taer");      
+        test_db_name, "Foh4Taer");
+
       shared_ptr<DBService::Relation> relation = DBService::Relation::findOne(
         test_db_name, query);
       

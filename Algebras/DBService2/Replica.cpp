@@ -348,7 +348,7 @@ value ()]";
 
 
 
-    if(cacheValidity == true) {
+    if(useCache() && cacheValidity == true) {
       LOG_F(INFO, "Cache hit. Found %d cached Replicas.",
         resultsFromCache.size());
 
@@ -411,7 +411,7 @@ value ()]";
     resultsFromCache = findManyInCache(matchPredicate);
 
 
-    if(cacheValidity == true) {
+    if(useCache() && cacheValidity == true) {
       LOG_F(INFO, "Cache hit. Found %d cached Replica(s).",
         resultsFromCache.size());
 

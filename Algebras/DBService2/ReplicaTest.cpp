@@ -42,6 +42,11 @@ using Catch::Matchers::Contains;
 
 TEST_CASE("Constructing DBService::Replicas")
 {
+  DBService::Derivative::disableCache();
+  DBService::Relation::disableCache();
+  DBService::Replica::disableCache();
+  DBService::Node::disableCache();
+  
   const string test_db_name = DatabaseEnvironment::test;
 
   // Creating the replica relation is needed for testing relations already
