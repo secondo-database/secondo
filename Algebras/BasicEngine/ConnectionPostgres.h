@@ -96,8 +96,9 @@ class ConnectionPG : public ConnectionGeneric {
     return "DROP TABLE IF EXISTS " + table + ";";
   }
 
-  std::string getDropIndexSQL(const std::string& index) {
-    return "DROP INDEX IF EXISTS " + index + "_idx;";
+  std::string getDropIndexSQL(const std::string& table, 
+    const std::string &column) {
+    return "DROP INDEX IF EXISTS " + table + "_idx;";
   }
 
   std::string getCreateGeoIndexSQL(const std::string &table, 

@@ -68,7 +68,8 @@ class ConnectionGeneric {
 
     virtual std::string getDropTableSQL(const std::string &table) = 0;
 
-    virtual std::string getDropIndexSQL(const std::string &index) = 0;
+    virtual std::string getDropIndexSQL(const std::string &table, 
+        const std::string &column) = 0;
 
     virtual std::string getCreateGeoIndexSQL(
         const std::string &table, const std::string &geo_col) = 0;

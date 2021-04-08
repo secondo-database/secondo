@@ -1313,30 +1313,43 @@ bool BasicEngine_Control::partGrid(const std::string &tab,
   const std::string &key, const std::string &geo_col, 
   size_t slotnum, float x0, float y0, float slotsize) {
 
-  bool val = false;
-  string query_exec = "";
-  string partTabName;
   string x_start = to_string(x0);
   string y_start = to_string(y0);
   string sizSlots = to_string(slotsize);
 
-  //Dropping parttable
-  partTabName = getTableNameForPartitioning(tab,key);
+  // Dropping parttable
+  string partTabName = getTableNameForPartitioning(tab,key);
   drop_table(partTabName);
 
-  //creating Index on table
-  query_exec =  dbms_connection->getDropIndexSQL(tab) + " "
-            "" + dbms_connection->getCreateGeoIndexSQL(tab, geo_col);
-  val = dbms_connection->sendCommand(query_exec);
+  // Drop old index if exists (ignore failure when index does not exists)
+  string dropSQL = dbms_connection->getDropIndexSQL(tab, geo_col);
+  bool dropIndexRes = dbms_connection->sendCommand(dropSQL);
 
-  query_exec = dbms_connection->getPartitionGridSQL(tab, key, geo_col, 
-    slotnum, x_start, y_start, sizSlots, partTabName);
+  if(! dropIndexRes) {
+    BOOST_LOG_TRIVIAL(debug) 
+      << "Dropping index failied, ignoring. Maybe it does not exist.";
+  } 
 
-  if (query_exec != "" && val) {
-    val = dbms_connection->sendCommand(query_exec);
+  // Create new index
+  string createSQL = dbms_connection->getCreateGeoIndexSQL(tab, geo_col);
+  bool createIndexRes = dbms_connection->sendCommand(createSQL);
+
+  if(! createIndexRes) {
+    BOOST_LOG_TRIVIAL(error) 
+      << "Unable to create index on geo column";
+    return false;
   }
 
-  return val;
+  string createGridSQL = dbms_connection->getPartitionGridSQL(tab, 
+    key, geo_col, slotnum, x_start, y_start, sizSlots, partTabName);
+
+  if(createGridSQL.empty()) {
+    BOOST_LOG_TRIVIAL(error) 
+      << "Unable to determine create grid SQL";
+    return false;
+  }
+
+  return dbms_connection->sendCommand(createGridSQL);
 } 
 
 /*

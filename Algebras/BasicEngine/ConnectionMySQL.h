@@ -85,15 +85,16 @@ class ConnectionMySQL : public ConnectionGeneric {
     return "DROP TABLE IF EXISTS " + table + ";";
   }
 
-  std::string getDropIndexSQL(const std::string& index) {
-    return "DROP INDEX IF EXISTS " + index + "_idx;";
+  std::string getDropIndexSQL(const std::string& table, 
+    const std::string &column) {
+    
+    return "DROP INDEX " + column + " ON " + table +";";
   }
 
   std::string getCreateGeoIndexSQL(const std::string &table, 
     const std::string &geo_col) {
 
-    return "CREATE INDEX " + table + "_idx ON"
-                " " + table + " USING GIST (" + geo_col + ");";
+    return "ALTER TABLE " + table + " ADD SPATIAL INDEX(" + geo_col + ");";
   }
 
   bool partitionRoundRobin(const std::string &table, 
