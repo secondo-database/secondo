@@ -234,11 +234,28 @@ std::string ConnectionMySQL::getPartitionHashSQL(const std::string &table,
 
 */
 std::string ConnectionMySQL::getPartitionSQL(const std::string &table, 
-    const std::string &keyS, const size_t anzSlots,
+    const std::string &key, const size_t anzSlots,
     const std::string &fun, const std::string &targetTab) {
 
-    // TODO
-    return string("");
+    string usedKey(key);
+    boost::replace_all(usedKey, ",", ",'%_%',");
+
+    string selectSQL = "";
+    
+    if (boost::iequals(fun, "random")) {
+        selectSQL = "SELECT DISTINCT rand() % " 
+            + to_string(anzSlots) + " As slot, " + key
+            + " FROM "+ table;
+    } else {
+        BOOST_LOG_TRIVIAL(error) 
+                << "Unknown partitioning function: " << fun;
+        return "";
+    }
+
+    BOOST_LOG_TRIVIAL(debug) 
+        << "Partition hash statement is: " << selectSQL;
+
+  return getCreateTabSQL(targetTab, selectSQL);
 }
 
 /*
