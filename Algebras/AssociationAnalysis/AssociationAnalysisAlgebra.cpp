@@ -54,6 +54,8 @@ public:
     this->AddOperator(mineFpTreeInfo(), mineFpTreeVM, mineFpTreeTM);
     this->AddOperator(csvLoadTransactionsInfo(), csvLoadTransactionsVM,
                       csvLoadTransactionsTM);
+    this->AddOperator(csvSaveTransactionsInfo(), csvSaveTransactionsVM,
+                      csvSaveTransactionsTM);
   }
 };
 } // namespace AssociationAnalysis

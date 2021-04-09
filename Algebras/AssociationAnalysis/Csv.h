@@ -48,7 +48,6 @@ January 2021 - April 2021, P. Fedorow for bachelor thesis.
 #include <vector>
 
 namespace AssociationAnalysis {
-
 // Local info class for the csvLoadTransactions operator.
 class csvLoadTransactionsLI {
 public:
@@ -89,10 +88,31 @@ struct csvLoadTransactionsInfo : OperatorInfo {
     this->name = "csvLoadTransactions";
     this->signature = "text -> stream(tuple(Id: int, Itemset: intset))";
     this->syntax = "csvLoadTransactions(_)";
-    this->meaning = "Loads transactions from a transaction file. The parameter "
-                    "is expected to be a path to the file. The expected "
-                    "format is: one transaction per line, items are numbers "
-                    "separated by a single space.";
+    this->meaning =
+        "Loads transactions from a transaction file. The parameter is expected "
+        "to be the path of the import file. The expected format is: one "
+        "transaction per line, items are numbers separated by a single space.";
+    this->usesArgsInTypeMapping = true;
+  }
+};
+
+// Type mapping for the csvSaveTransactions operator.
+ListExpr csvSaveTransactionsTM(ListExpr args);
+
+// Value mapping for the csvSaveTransactions operator.
+int csvSaveTransactionsVM(Word *args, Word &result, int message, Word &local,
+                          Supplier s);
+
+// Operator info for the csvSaveTransactions operator.
+struct csvSaveTransactionsInfo : OperatorInfo {
+  csvSaveTransactionsInfo() : OperatorInfo() {
+    this->name = "csvSaveTransactions";
+    this->signature = "stream(tuple(...)) text attr -> bool";
+    this->syntax = "_ csvSaveTransactions[_, _]";
+    this->meaning =
+        "Saves transactions from a transaction file. The parameter is expected "
+        "to be the path of the export file. The expected format is: one "
+        "transaction per line, items are numbers separated by a single space.";
     this->usesArgsInTypeMapping = true;
   }
 };

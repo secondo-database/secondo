@@ -6,3 +6,4 @@ operator createFpTree alias CREATEFPTREE pattern _ op[_, _]
 operator mineFpTree alias MINEFPTREE pattern _ op[_]
 operator genStrongRules alias GENRULES pattern _ op[_]
 operator csvLoadTransactions alias CSVLOADTRANSACTION pattern op(_)
+operator csvSaveTransactions alias CSVSAVETRANSACTION pattern _ op[_, _]
