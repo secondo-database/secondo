@@ -40,42 +40,6 @@ January 2021 - April 2021, P. Fedorow for bachelor thesis.
 #include <vector>
 
 namespace AssociationAnalysis {
-
-// Implementation of a triangular matrix. It is used to efficiently determine
-// the support count of all 2-itemsets in a single database scan.
-class TriangularMatrix {
-public:
-  // Insert the given 2-itemset {a,b} into the triangular matrix and increase
-  // its support count.
-  void insert(std::size_t a, std::size_t b) {
-    auto [_a, _b] = std::minmax(a, b);
-    if (_b >= this->matrix.size()) {
-      // We need to enlarge the 2d matrix vector as it is not large enough to
-      // store the support count of the itemset {a,b}.
-      std::size_t size = _b + 1;
-      this->matrix.resize(size);
-      for (std::size_t i = 0; i < size; i += 1) {
-        this->matrix[i].resize(i + 1);
-      }
-    }
-    // Increase the support count.
-    this->matrix[_b][_a] += 1;
-  }
-
-  // Returns the support count of the given 2-itemset {a,b}.
-  int count(size_t a, size_t b) {
-    auto [_a, _b] = std::minmax(a, b);
-    if (_b < this->matrix.size() && _a < this->matrix[_b].size()) {
-      return this->matrix[_b][_a];
-    } else {
-      return 0;
-    }
-  }
-
-private:
-  std::vector<std::vector<int>> matrix;
-};
-
 // Performs a bottom-up search of frequent itemsets by recursively combining
 // the atoms to larger itemsets and examining the support of the resulting
 // tidsets.

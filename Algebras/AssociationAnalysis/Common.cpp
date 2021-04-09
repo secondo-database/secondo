@@ -167,4 +167,28 @@ bool increment(std::vector<bool> &bs) {
   }
   return false;
 }
+
+void TriangularMatrix::insert(std::size_t a, std::size_t b) {
+  auto [_a, _b] = std::minmax(a, b);
+  if (_b >= this->matrix.size()) {
+    // We need to enlarge the 2d matrix vector as it is not large enough to
+    // store the support count of the itemset {a,b}.
+    std::size_t size = _b + 1;
+    this->matrix.resize(size);
+    for (std::size_t i = 0; i < size; i += 1) {
+      this->matrix[i].resize(i + 1);
+    }
+  }
+  // Increase the support count.
+  this->matrix[_b][_a] += 1;
+}
+
+int TriangularMatrix::count(size_t a, size_t b) {
+  auto [_a, _b] = std::minmax(a, b);
+  if (_b < this->matrix.size() && _a < this->matrix[_b].size()) {
+    return this->matrix[_b][_a];
+  } else {
+    return 0;
+  }
+}
 } // namespace AssociationAnalysis

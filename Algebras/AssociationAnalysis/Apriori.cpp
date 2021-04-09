@@ -34,6 +34,7 @@ January 2021 - April 2021, P. Fedorow for bachelor thesis.
 
 #include "StandardTypes.h"
 
+#include <iterator>
 #include <memory>
 
 namespace AssociationAnalysis {
@@ -41,7 +42,8 @@ namespace AssociationAnalysis {
 enum Deoptimize {
   NoTransactionBitmap = 1 << 0,
   NoHashTree = 1 << 1,
-  NoPruning = 1 << 2
+  NoPruning = 1 << 2,
+  NoTriangularMatrix = 1 << 3,
 };
 
 // Implementation of a bitmap which represents an itemset. Each bit corresponds
@@ -326,11 +328,12 @@ aprioriLI::aprioriLI(GenericRelation *relation, int minSupport, int itemsetAttr,
                      int deoptimize) {
   int transactionCount = relation->GetNoTuples();
 
+  int k = 0;
   std::vector<std::set<std::vector<int>>> prevFrequentItemsets;
   prevFrequentItemsets.resize(2);
 
-  // Generate the set of frequent 1-Itemsets.
-  {
+  if (deoptimize & Deoptimize::NoTriangularMatrix) {
+    // Generate the frequent 1-Itemsets.
     // Count how many transactions contain any given item.
     std::unique_ptr<GenericRelationIterator> rit(relation->MakeScan());
     Tuple *t;
@@ -352,11 +355,61 @@ aprioriLI::aprioriLI(GenericRelation *relation, int minSupport, int itemsetAttr,
         this->frequentItemsets.emplace_back(itemset, support);
       }
     }
+    k = 2;
+  } else {
+    // Generate the frequent 1-Itemsets and 2-Itemsets.
+    // Count how many transactions contain any given item and any given item
+    // pair.
+    TriangularMatrix triangularMatrix;
+    std::unique_ptr<GenericRelationIterator> rit(relation->MakeScan());
+    Tuple *t;
+    std::unordered_map<int, int> counts;
+    while ((t = rit->GetNextTuple()) != nullptr) {
+      auto transaction = (collection::IntSet *)t->GetAttribute(itemsetAttr);
+      for (int i = 0; i < (int)transaction->getSize(); i += 1) {
+        counts[transaction->get(i)] += 1;
+        // Insert all 2-itemsets that are part of the transaction into the
+        // triangular matrix.
+        for (size_t j = i + 1; j < transaction->getSize(); j += 1) {
+          triangularMatrix.insert(transaction->get(i), transaction->get(j));
+        }
+      }
+      t->DeleteIfAllowed();
+    }
+    // Add any item as an 1-itemset to the frequent itemsets if it satisfies
+    // the minimum support.
+    for (auto const &[item, count] : counts) {
+      if (count >= minSupport) {
+        std::vector<int> itemset = {item};
+        prevFrequentItemsets[1].insert(itemset);
+        double support = (double)count / (double)transactionCount;
+        this->frequentItemsets.emplace_back(itemset, support);
+      }
+    }
+    // Find the frequent 2-itemsets by pairing up frequent items and checking
+    // their support by consulting the triangular matrix.
+    prevFrequentItemsets.resize(3);
+    auto cend = prevFrequentItemsets[1].cend();
+    for (auto it1 = prevFrequentItemsets[1].cbegin(); it1 != cend; it1++) {
+      for (auto it2 = std::next(it1); it2 != cend; it2++) {
+        int item1 = (*it1)[0];
+        int item2 = (*it2)[0];
+        if (triangularMatrix.count(item1, item2) >= minSupport) {
+          double support = (double)triangularMatrix.count(item1, item2) /
+                           (double)transactionCount;
+          std::vector<int> itemset(
+              {std::min(item1, item2), std::max(item1, item2)});
+          prevFrequentItemsets[2].insert(itemset);
+          this->frequentItemsets.emplace_back(itemset, support);
+        }
+      }
+    }
+    k = 3;
   }
 
   if ((deoptimize & Deoptimize::NoHashTree) &&
       (deoptimize & Deoptimize::NoTransactionBitmap)) {
-    for (int size = 2; !prevFrequentItemsets[size - 1].empty(); size += 1) {
+    for (int size = k; !prevFrequentItemsets[size - 1].empty(); size += 1) {
       auto candidates = genCandidates<std::vector<std::vector<int>>>(
           prevFrequentItemsets[size - 1], deoptimize & Deoptimize::NoPruning);
       if (candidates.empty()) {
@@ -397,7 +450,7 @@ aprioriLI::aprioriLI(GenericRelation *relation, int minSupport, int itemsetAttr,
   } else if ((deoptimize & Deoptimize::NoHashTree) &&
              !(deoptimize & Deoptimize::NoTransactionBitmap)) {
     ItemsetBitmap transactionBitmap;
-    for (int size = 2; !prevFrequentItemsets[size - 1].empty(); size += 1) {
+    for (int size = k; !prevFrequentItemsets[size - 1].empty(); size += 1) {
       auto candidates = genCandidates<std::vector<std::vector<int>>>(
           prevFrequentItemsets[size - 1], deoptimize & Deoptimize::NoPruning);
       if (candidates.empty()) {
@@ -442,7 +495,7 @@ aprioriLI::aprioriLI(GenericRelation *relation, int minSupport, int itemsetAttr,
     }
   } else if (!(deoptimize & Deoptimize::NoHashTree) &&
              (deoptimize & Deoptimize::NoTransactionBitmap)) {
-    for (int size = 2; !prevFrequentItemsets[size - 1].empty(); size += 1) {
+    for (int size = k; !prevFrequentItemsets[size - 1].empty(); size += 1) {
       auto candidates = genCandidates<ItemsetHashTree>(
           prevFrequentItemsets[size - 1], deoptimize & Deoptimize::NoPruning);
       if (candidates.empty()) {
@@ -483,7 +536,7 @@ aprioriLI::aprioriLI(GenericRelation *relation, int minSupport, int itemsetAttr,
     }
   } else {
     ItemsetBitmap transactionBitmap;
-    for (int size = 2; !prevFrequentItemsets[size - 1].empty(); size += 1) {
+    for (int size = k; !prevFrequentItemsets[size - 1].empty(); size += 1) {
       auto candidates = genCandidates<ItemsetHashTree>(
           prevFrequentItemsets[size - 1], deoptimize & Deoptimize::NoPruning);
       if (candidates.empty()) {

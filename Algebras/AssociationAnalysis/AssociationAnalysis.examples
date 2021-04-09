@@ -149,42 +149,90 @@ Result    : 1000
 
 Operator  : apriori
 Number    : 24
-Signature : rel(tuple(...)) attr int in t-> stream(tuple(Itemset: intset, Support: real))
+Signature : rel(tuple(...)) attr int int -> stream(tuple(Itemset: intset, Support: real))
 Example   : query transactions apriori[Itemset, 15, 1] count
 Result    : 64
 
 Operator  : apriori
 Number    : 25
-Signature : rel(tuple(...)) attr int in t-> stream(tuple(Itemset: intset, Support: real))
+Signature : rel(tuple(...)) attr int int -> stream(tuple(Itemset: intset, Support: real))
 Example   : query transactions apriori[Itemset, 15, 2] count
 Result    : 64
 
 Operator  : apriori
 Number    : 26
-Signature : rel(tuple(...)) attr int in t-> stream(tuple(Itemset: intset, Support: real))
+Signature : rel(tuple(...)) attr int int -> stream(tuple(Itemset: intset, Support: real))
 Example   : query transactions apriori[Itemset, 15, 3] count
 Result    : 64
 
 Operator  : apriori
 Number    : 27
-Signature : rel(tuple(...)) attr int in t-> stream(tuple(Itemset: intset, Support: real))
+Signature : rel(tuple(...)) attr int int -> stream(tuple(Itemset: intset, Support: real))
 Example   : query transactions apriori[Itemset, 15, 4] count
 Result    : 64
 
 Operator  : apriori
 Number    : 28
-Signature : rel(tuple(...)) attr int in t-> stream(tuple(Itemset: intset, Support: real))
+Signature : rel(tuple(...)) attr int int -> stream(tuple(Itemset: intset, Support: real))
 Example   : query transactions apriori[Itemset, 15, 5] count
 Result    : 64
 
 Operator  : apriori
 Number    : 29
-Signature : rel(tuple(...)) attr int in t-> stream(tuple(Itemset: intset, Support: real))
+Signature : rel(tuple(...)) attr int int -> stream(tuple(Itemset: intset, Support: real))
 Example   : query transactions apriori[Itemset, 15, 6] count
 Result    : 64
 
 Operator  : apriori
 Number    : 30
-Signature : rel(tuple(...)) attr int in t-> stream(tuple(Itemset: intset, Support: real))
+Signature : rel(tuple(...)) attr int int -> stream(tuple(Itemset: intset, Support: real))
 Example   : query transactions apriori[Itemset, 15, 7] count
+Result    : 64
+
+Operator  : apriori
+Number    : 31
+Signature : rel(tuple(...)) attr int int -> stream(tuple(Itemset: intset, Support: real))
+Example   : query transactions apriori[Itemset, 15, 8] count
+Result    : 64
+
+Operator  : apriori
+Number    : 32
+Signature : rel(tuple(...)) attr int int -> stream(tuple(Itemset: intset, Support: real))
+Example   : query transactions apriori[Itemset, 15, 9] count
+Result    : 64
+
+Operator  : apriori
+Number    : 33
+Signature : rel(tuple(...)) attr int int -> stream(tuple(Itemset: intset, Support: real))
+Example   : query transactions apriori[Itemset, 15, 10] count
+Result    : 64
+
+Operator  : apriori
+Number    : 34
+Signature : rel(tuple(...)) attr int int -> stream(tuple(Itemset: intset, Support: real))
+Example   : query transactions apriori[Itemset, 15, 11] count
+Result    : 64
+
+Operator  : apriori
+Number    : 35
+Signature : rel(tuple(...)) attr int int -> stream(tuple(Itemset: intset, Support: real))
+Example   : query transactions apriori[Itemset, 15, 12] count
+Result    : 64
+
+Operator  : apriori
+Number    : 36
+Signature : rel(tuple(...)) attr int int -> stream(tuple(Itemset: intset, Support: real))
+Example   : query transactions apriori[Itemset, 15, 13] count
+Result    : 64
+
+Operator  : apriori
+Number    : 37
+Signature : rel(tuple(...)) attr int int -> stream(tuple(Itemset: intset, Support: real))
+Example   : query transactions apriori[Itemset, 15, 14] count
+Result    : 64
+
+Operator  : apriori
+Number    : 38
+Signature : rel(tuple(...)) attr int int -> stream(tuple(Itemset: intset, Support: real))
+Example   : query transactions apriori[Itemset, 15, 15] count
 Result    : 64

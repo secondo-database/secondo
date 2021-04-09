@@ -109,4 +109,19 @@ int mineVM(Word *args, Word &result, int message, Word &local, Supplier s) {
 // to built all subsets of an another vector of the same size.
 bool increment(std::vector<bool> &bs);
 
+// Implementation of a triangular matrix. It is used to efficiently determine
+// the support count of all 2-itemsets in a single database scan.
+class TriangularMatrix {
+public:
+  // Insert the given 2-itemset {a,b} into the triangular matrix and increase
+  // its support count.
+  void insert(std::size_t a, std::size_t b);
+
+  // Returns the support count of the given 2-itemset {a,b}.
+  int count(size_t a, size_t b);
+
+private:
+  std::vector<std::vector<int>> matrix;
+};
+
 } // namespace AssociationAnalysis
