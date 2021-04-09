@@ -38,6 +38,12 @@ January 2021 - April 2021, P. Fedorow for bachelor thesis.
 
 namespace AssociationAnalysis {
 
+enum Deoptimize {
+  NoTransactionBitmap = 1 << 0,
+  NoHashTree = 1 << 1,
+  NoPruning = 1 << 2
+};
+
 // Implementation of a bitmap which represents an itemset. Each bit corresponds
 // to an item.
 class ItemsetBitmap {
@@ -202,74 +208,122 @@ void ItemsetHashTree::subset(
 }
 
 // Generates candidates of size k+1 given frequent itemsets of size k.
-ItemsetHashTree
-genCandidates(const std::set<std::vector<int>> &prevFrequentItemsets) {
-  std::vector<std::vector<int>> potentialCandidates;
-  // join step
-  for (const std::vector<int> &itemset1 : prevFrequentItemsets) {
-    for (const std::vector<int> &itemset2 : prevFrequentItemsets) {
-      if (&itemset1 == &itemset2) {
-        continue;
-      }
-      auto last1 = --itemset1.cend();
-      auto last2 = --itemset2.cend();
-      if (*last1 < *last2) {
-        auto it1 = itemset1.cbegin();
-        auto it2 = itemset2.cbegin();
-        bool match = true;
-        while (it1 != last1 && it2 != last2) {
-          if (*it1 != *it2) {
-            match = false;
-            break;
-          }
-          it1++;
-          it2++;
+template <class Candidates>
+Candidates genCandidates(const std::set<std::vector<int>> &prevFrequentItemsets,
+                         bool noPruning) {
+  if (noPruning) {
+    Candidates candidates;
+    for (const std::vector<int> &itemset1 : prevFrequentItemsets) {
+      for (const std::vector<int> &itemset2 : prevFrequentItemsets) {
+        if (&itemset1 == &itemset2) {
+          continue;
         }
-        if (match) {
-          std::vector<int> itemset;
-          itemset.reserve(itemset1.size() + 1);
-          auto it = itemset1.cbegin();
-          while (it != itemset1.cend() && *it < *last2) {
-            it++;
+        auto last1 = --itemset1.cend();
+        auto last2 = --itemset2.cend();
+        if (*last1 < *last2) {
+          auto it1 = itemset1.cbegin();
+          auto it2 = itemset2.cbegin();
+          bool match = true;
+          while (it1 != last1 && it2 != last2) {
+            if (*it1 != *it2) {
+              match = false;
+              break;
+            }
+            it1++;
+            it2++;
           }
-          itemset.insert(itemset.cend(), itemset1.cbegin(), it);
-          itemset.push_back(*last2);
-          itemset.insert(itemset.cend(), it, itemset1.cend());
-          potentialCandidates.push_back(itemset);
+          if (match) {
+            std::vector<int> itemset;
+            itemset.reserve(itemset1.size() + 1);
+            auto it = itemset1.cbegin();
+            while (it != itemset1.cend() && *it < *last2) {
+              it++;
+            }
+            itemset.insert(itemset.cend(), itemset1.cbegin(), it);
+            itemset.push_back(*last2);
+            itemset.insert(itemset.cend(), it, itemset1.cend());
+            if constexpr (std::is_same<Candidates, ItemsetHashTree>::value) {
+              candidates.insert(itemset);
+            } else {
+              candidates.push_back(itemset);
+            }
+          }
         }
       }
     }
-  }
-  // prune step
-  ItemsetHashTree candidates;
-  for (const std::vector<int> &candidate : potentialCandidates) {
-    bool prune = false;
-    for (size_t i = 0; i < candidate.size(); i += 1) {
-      std::vector<int> subset(candidate.size() - 1);
-      for (size_t j = 0; j < subset.size(); j += 1) {
-        if (j < i) {
-          subset[j] = candidate[j];
+    return candidates;
+  } else {
+    std::vector<std::vector<int>> potentialCandidates;
+    // join step
+    for (const std::vector<int> &itemset1 : prevFrequentItemsets) {
+      for (const std::vector<int> &itemset2 : prevFrequentItemsets) {
+        if (&itemset1 == &itemset2) {
+          continue;
+        }
+        auto last1 = --itemset1.cend();
+        auto last2 = --itemset2.cend();
+        if (*last1 < *last2) {
+          auto it1 = itemset1.cbegin();
+          auto it2 = itemset2.cbegin();
+          bool match = true;
+          while (it1 != last1 && it2 != last2) {
+            if (*it1 != *it2) {
+              match = false;
+              break;
+            }
+            it1++;
+            it2++;
+          }
+          if (match) {
+            std::vector<int> itemset;
+            itemset.reserve(itemset1.size() + 1);
+            auto it = itemset1.cbegin();
+            while (it != itemset1.cend() && *it < *last2) {
+              it++;
+            }
+            itemset.insert(itemset.cend(), itemset1.cbegin(), it);
+            itemset.push_back(*last2);
+            itemset.insert(itemset.cend(), it, itemset1.cend());
+            potentialCandidates.push_back(itemset);
+          }
+        }
+      }
+    }
+    // prune step
+    Candidates candidates;
+    for (const std::vector<int> &candidate : potentialCandidates) {
+      bool prune = false;
+      for (size_t i = 0; i < candidate.size(); i += 1) {
+        std::vector<int> subset(candidate.size() - 1);
+        for (size_t j = 0; j < subset.size(); j += 1) {
+          if (j < i) {
+            subset[j] = candidate[j];
+          } else {
+            subset[j] = candidate[j + 1];
+          }
+        }
+        if (prevFrequentItemsets.count(subset) == 0) {
+          prune = true;
+          break;
+        }
+      }
+      if (!prune) {
+        if constexpr (std::is_same<Candidates, ItemsetHashTree>::value) {
+          candidates.insert(candidate);
         } else {
-          subset[j] = candidate[j + 1];
+          candidates.push_back(candidate);
         }
       }
-      if (prevFrequentItemsets.count(subset) == 0) {
-        prune = true;
-        break;
-      }
     }
-    if (!prune) {
-      candidates.insert(candidate);
-    }
+    return candidates;
   }
-  return candidates;
 }
 
 // Finds all frequent itemsets that satisfy the support given by minSupport.
 // The itemset of a transaction is extracted from each tuple of the relation
 // by an index given by itemsetAttr.
-aprioriLI::aprioriLI(GenericRelation *relation, int minSupport,
-                     int itemsetAttr) {
+aprioriLI::aprioriLI(GenericRelation *relation, int minSupport, int itemsetAttr,
+                     int deoptimize) {
   int transactionCount = relation->GetNoTuples();
 
   std::vector<std::set<std::vector<int>>> prevFrequentItemsets;
@@ -300,11 +354,52 @@ aprioriLI::aprioriLI(GenericRelation *relation, int minSupport,
     }
   }
 
-  {
+  if ((deoptimize & Deoptimize::NoHashTree) &&
+      (deoptimize & Deoptimize::NoTransactionBitmap)) {
+    for (int size = 2; !prevFrequentItemsets[size - 1].empty(); size += 1) {
+      auto candidates = genCandidates<std::vector<std::vector<int>>>(
+          prevFrequentItemsets[size - 1], deoptimize & Deoptimize::NoPruning);
+      if (candidates.empty()) {
+        break;
+      }
+      // Count how many transactions contain any given candidate.
+      std::unique_ptr<GenericRelationIterator> rit(relation->MakeScan());
+      Tuple *t;
+      std::map<std::vector<int>, int> counts;
+      while ((t = rit->GetNextTuple()) != nullptr) {
+        auto transaction = (collection::IntSet *)t->GetAttribute(itemsetAttr);
+        for (const std::vector<int> &candidate : candidates) {
+          bool containsCandidate = true;
+          for (int item : candidate) {
+            // Check if the item is contained by binary search.
+            if (!transaction->contains(item)) {
+              containsCandidate = false;
+              break;
+            }
+          }
+          if (containsCandidate) {
+            counts[candidate] += 1;
+          }
+        }
+        t->DeleteIfAllowed();
+      }
+      // Add any candidate to the frequent itemsets if it satisfies the
+      // minimum support.
+      prevFrequentItemsets.resize(size + 1);
+      for (auto const &[itemset, count] : counts) {
+        if (count >= minSupport) {
+          prevFrequentItemsets[size].insert(itemset);
+          double support = (double)count / (double)transactionCount;
+          this->frequentItemsets.emplace_back(itemset, support);
+        }
+      }
+    }
+  } else if ((deoptimize & Deoptimize::NoHashTree) &&
+             !(deoptimize & Deoptimize::NoTransactionBitmap)) {
     ItemsetBitmap transactionBitmap;
     for (int size = 2; !prevFrequentItemsets[size - 1].empty(); size += 1) {
-      ItemsetHashTree candidates =
-          genCandidates(prevFrequentItemsets[size - 1]);
+      auto candidates = genCandidates<std::vector<std::vector<int>>>(
+          prevFrequentItemsets[size - 1], deoptimize & Deoptimize::NoPruning);
       if (candidates.empty()) {
         break;
       }
@@ -318,10 +413,100 @@ aprioriLI::aprioriLI(GenericRelation *relation, int minSupport,
         for (size_t i = 0; i < transaction->getSize(); i += 1) {
           transactionBitmap.insert(transaction->get(i));
         }
+        for (const std::vector<int> &candidate : candidates) {
+          bool containsCandidate = true;
+          for (int item : candidate) {
+            // Check if the item is contained in the transaction by a bitmap
+            // lookup.
+            if (!transactionBitmap.contains(item)) {
+              containsCandidate = false;
+              break;
+            }
+          }
+          if (containsCandidate) {
+            counts[candidate] += 1;
+          }
+        }
+        t->DeleteIfAllowed();
+      }
+      // Add any candidate to the frequent itemsets if it satisfies the
+      // minimum support.
+      prevFrequentItemsets.resize(size + 1);
+      for (auto const &[itemset, count] : counts) {
+        if (count >= minSupport) {
+          prevFrequentItemsets[size].insert(itemset);
+          double support = (double)count / (double)transactionCount;
+          this->frequentItemsets.emplace_back(itemset, support);
+        }
+      }
+    }
+  } else if (!(deoptimize & Deoptimize::NoHashTree) &&
+             (deoptimize & Deoptimize::NoTransactionBitmap)) {
+    for (int size = 2; !prevFrequentItemsets[size - 1].empty(); size += 1) {
+      auto candidates = genCandidates<ItemsetHashTree>(
+          prevFrequentItemsets[size - 1], deoptimize & Deoptimize::NoPruning);
+      if (candidates.empty()) {
+        break;
+      }
+      // Count how many transactions contain any given candidate.
+      std::unique_ptr<GenericRelationIterator> rit(relation->MakeScan());
+      Tuple *t;
+      std::map<std::vector<int>, int> counts;
+      while ((t = rit->GetNextTuple()) != nullptr) {
+        auto transaction = (collection::IntSet *)t->GetAttribute(itemsetAttr);
         for (const std::vector<int> &candidate :
              candidates.subset(transaction)) {
           bool containsCandidate = true;
           for (int item : candidate) {
+            // Check if the item is contained by binary search.
+            if (!transaction->contains(item)) {
+              containsCandidate = false;
+              break;
+            }
+          }
+          if (containsCandidate) {
+            counts[candidate] += 1;
+          }
+        }
+        t->DeleteIfAllowed();
+      }
+      // Add any candidate to the frequent itemsets if it satisfies the
+      // minimum support.
+      prevFrequentItemsets.resize(size + 1);
+      for (auto const &[itemset, count] : counts) {
+        if (count >= minSupport) {
+          prevFrequentItemsets[size].insert(itemset);
+          double support = (double)count / (double)transactionCount;
+          this->frequentItemsets.emplace_back(itemset, support);
+        }
+      }
+    }
+  } else {
+    ItemsetBitmap transactionBitmap;
+    for (int size = 2; !prevFrequentItemsets[size - 1].empty(); size += 1) {
+      auto candidates = genCandidates<ItemsetHashTree>(
+          prevFrequentItemsets[size - 1], deoptimize & Deoptimize::NoPruning);
+      if (candidates.empty()) {
+        break;
+      }
+      // Count how many transactions contain any given candidate.
+      std::unique_ptr<GenericRelationIterator> rit(relation->MakeScan());
+      Tuple *t;
+      std::map<std::vector<int>, int> counts;
+      while ((t = rit->GetNextTuple()) != nullptr) {
+        auto transaction = (collection::IntSet *)t->GetAttribute(itemsetAttr);
+        if (!(deoptimize & Deoptimize::NoTransactionBitmap)) {
+          transactionBitmap.reset();
+          for (size_t i = 0; i < transaction->getSize(); i += 1) {
+            transactionBitmap.insert(transaction->get(i));
+          }
+        }
+        for (const std::vector<int> &candidate :
+             candidates.subset(transaction)) {
+          bool containsCandidate = true;
+          for (int item : candidate) {
+            // Check if the item is contained in the transaction by a bitmap
+            // lookup.
             if (!transactionBitmap.contains(item)) {
               containsCandidate = false;
               break;

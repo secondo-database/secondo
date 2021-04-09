@@ -146,3 +146,45 @@ Number    : 23
 Signature : text -> stream(tuple(Id: int, Itemset: intset))
 Example   : query csvLoadTransactions('/tmp/assoctest_txs.txt') count;
 Result    : 1000
+
+Operator  : apriori
+Number    : 24
+Signature : rel(tuple(...)) attr int in t-> stream(tuple(Itemset: intset, Support: real))
+Example   : query transactions apriori[Itemset, 15, 1] count
+Result    : 64
+
+Operator  : apriori
+Number    : 25
+Signature : rel(tuple(...)) attr int in t-> stream(tuple(Itemset: intset, Support: real))
+Example   : query transactions apriori[Itemset, 15, 2] count
+Result    : 64
+
+Operator  : apriori
+Number    : 26
+Signature : rel(tuple(...)) attr int in t-> stream(tuple(Itemset: intset, Support: real))
+Example   : query transactions apriori[Itemset, 15, 3] count
+Result    : 64
+
+Operator  : apriori
+Number    : 27
+Signature : rel(tuple(...)) attr int in t-> stream(tuple(Itemset: intset, Support: real))
+Example   : query transactions apriori[Itemset, 15, 4] count
+Result    : 64
+
+Operator  : apriori
+Number    : 28
+Signature : rel(tuple(...)) attr int in t-> stream(tuple(Itemset: intset, Support: real))
+Example   : query transactions apriori[Itemset, 15, 5] count
+Result    : 64
+
+Operator  : apriori
+Number    : 29
+Signature : rel(tuple(...)) attr int in t-> stream(tuple(Itemset: intset, Support: real))
+Example   : query transactions apriori[Itemset, 15, 6] count
+Result    : 64
+
+Operator  : apriori
+Number    : 30
+Signature : rel(tuple(...)) attr int in t-> stream(tuple(Itemset: intset, Support: real))
+Example   : query transactions apriori[Itemset, 15, 7] count
+Result    : 64

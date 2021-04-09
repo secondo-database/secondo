@@ -210,7 +210,7 @@ private:
 // The itemset of a transaction is extracted from each tuple of the relation
 // by an index given by itemsetAttr.
 fpGrowthLI::fpGrowthLI(GenericRelation *relation, int minSupport,
-                       int itemsetAttr) {
+                       int itemsetAttr, int deoptimize) {
   int transactionCount = relation->GetNoTuples();
 
   std::vector<int> frequentItems;
@@ -904,7 +904,7 @@ int createFpTreeVM(Word *args, Word &result, int message, Word &local,
   } else {
     minSupport = ((CcInt *)args[2].addr)->GetIntval();
   }
-  int itemsetAttr = ((CcInt *)args[3].addr)->GetIntval();
+  int itemsetAttr = ((CcInt *)args[4].addr)->GetIntval();
 
   result = qp->ResultStorage(s);
   auto fpTree = (FPTreeT *)result.addr;

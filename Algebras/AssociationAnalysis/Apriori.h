@@ -111,7 +111,8 @@ public:
   // Finds all frequent itemsets that satisfy the support given by minSupport.
   // The itemset of a transaction is extracted from each tuple of the relation
   // by an index given by itemsetAttr.
-  aprioriLI(GenericRelation *relation, int minSupport, int itemsetAttr);
+  aprioriLI(GenericRelation *relation, int minSupport, int itemsetAttr,
+            int deoptimize);
 
   ~aprioriLI() { this->tupleType->DeleteIfAllowed(); }
 

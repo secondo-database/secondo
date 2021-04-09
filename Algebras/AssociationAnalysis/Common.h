@@ -79,7 +79,7 @@ int mineVM(Word *args, Word &result, int message, Word &local, Supplier s) {
   case OPEN: {
     delete li;
     auto relation = (GenericRelation *)args[0].addr;
-    bool relativeSupport = ((CcBool *)args[4].addr)->GetBoolval();
+    bool relativeSupport = ((CcBool *)args[5].addr)->GetBoolval();
     int minSupport = 0;
     if (relativeSupport) {
       double support = ((CcReal *)args[2].addr)->GetRealval();
@@ -87,8 +87,9 @@ int mineVM(Word *args, Word &result, int message, Word &local, Supplier s) {
     } else {
       minSupport = ((CcInt *)args[2].addr)->GetIntval();
     }
-    int attrIndex = ((CcInt *)args[3].addr)->GetIntval();
-    local.addr = new T(relation, minSupport, attrIndex);
+    int deoptimize = ((CcInt *)args[3].addr)->GetIntval();
+    int attrIndex = ((CcInt *)args[4].addr)->GetIntval();
+    local.addr = new T(relation, minSupport, attrIndex, deoptimize);
     return 0;
   }
   case REQUEST:

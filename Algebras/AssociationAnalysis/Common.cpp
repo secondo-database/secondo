@@ -82,9 +82,10 @@ ListExpr transactionsTupleType() {
 ListExpr mineTM(ListExpr args, ListExpr returnType) {
   NList type(args);
 
+  NList appendList;
   bool relativeSupport = false;
   NList attrs;
-  if (type.length() == 3) {
+  if (type.length() == 3 || type.length() == 4) {
     if (!type.elem(1).first().checkRel(attrs)) {
       return NList::typeError(
           "Argument number 1 must be of type rel(tuple(...)).");
@@ -113,8 +114,17 @@ ListExpr mineTM(ListExpr args, ListExpr returnType) {
     if (!type.elem(3).first().isSymbol(CcInt::BasicType()) ||
         type.elem(3).second().intval() <= 0) {
     }
+    if (type.length() == 4) {
+      if (!type.elem(4).first().isSymbol(CcInt::BasicType())) {
+        return NList::typeError(
+            "The optional argument number 4 must be of type int.");
+      }
+    } else {
+      // Add default value via the append-functionality.
+      appendList.append(NList().intAtom(0));
+    }
   } else {
-    return NList::typeError("3 arguments expected but " +
+    return NList::typeError("3 or 4 arguments expected but " +
                             std::to_string(type.length()) + " received.");
   }
 
@@ -132,11 +142,10 @@ ListExpr mineTM(ListExpr args, ListExpr returnType) {
                             "relation given as the first argument.");
   }
 
-  return NList(Symbols::APPEND(),
-               NList(NList().intAtom(itemsetAttr - 1),
-                     NList().boolAtom(relativeSupport)),
-               returnType)
-      .listExpr();
+  appendList.append(NList().intAtom(itemsetAttr - 1));
+  appendList.append(NList().boolAtom(relativeSupport));
+
+  return NList(Symbols::APPEND(), appendList, returnType).listExpr();
 }
 
 ListExpr mineTM(ListExpr args) {

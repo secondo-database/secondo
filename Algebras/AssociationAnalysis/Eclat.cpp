@@ -116,7 +116,8 @@ void eclat(
 // Finds all frequent itemsets that satisfy the support given by minSupport.
 // The itemset of a transaction is extracted from each tuple of the relation
 // by an index given by itemsetAttr.
-eclatLI::eclatLI(GenericRelation *relation, int minSupport, int itemsetAttr) {
+eclatLI::eclatLI(GenericRelation *relation, int minSupport, int itemsetAttr,
+                 int deoptimize) {
   int transactionCount = relation->GetNoTuples();
 
   std::vector<std::pair<int, std::vector<int>>> atoms;
