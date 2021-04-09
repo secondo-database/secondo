@@ -311,7 +311,6 @@ public:
   FPTreeT(int minSupport, int transactionCount);
 
   FPTreeT(SmiFileId nodeFileId, SmiRecordId nextNodeId, SmiFileId headerFileId,
-          SmiRecordId nextHeaderId, std::optional<SmiRecordId> headerRoot,
           SmiRecordId treeRoot, int transactionCount, int minSupport);
 
   ~FPTreeT() {
@@ -408,12 +407,6 @@ private:
   SmiHashFile headerFile;
   SmiRecordId nextHeaderId;
 
-  // Id of the header table (represented as a binary tree) root node.
-  std::optional<SmiRecordId> headerRoot;
-
-  // Id of the FP-Tree root node.
-  SmiRecordId treeRoot;
-
   // The transaction count and the minSupport with which this FP-Tree was
   // created. This numbers will be used while mining to check if a given itemset
   // is frequent.
@@ -422,6 +415,9 @@ private:
 
   // Returns handle of the root node.
   SmiRecordId root();
+
+  // Returns handle of the root header.
+  SmiRecordId headerRoot();
 
   // Returns handle of the child node with the given item.
   std::optional<SmiRecordId> findChild(SmiRecordId nodeId, int item);
