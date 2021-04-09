@@ -318,11 +318,43 @@ int mineFpTreeVM(Word *args, Word &result, int message, Word &local,
   }
 }
 
+/*
+  FPTree data type implementation
+
+*/
+
+FPTreeT::FPTreeT()
+    : nodeFile(SmiKey::KeyDataType::Integer, sizeof(Node), false),
+      nextNodeId(0),
+      headerFile(SmiKey::KeyDataType::Integer, sizeof(Header), false),
+      nextHeaderId(0), headerRoot(std::nullopt), transactionCount(0),
+      minSupport(0) {
+  this->nodeFile.Create();
+  this->headerFile.Create();
+  this->treeRoot = Node::create(this->nodeFile, this->nextNodeId, {});
+}
+
+FPTreeT::FPTreeT(SmiFileId nodeFileId, SmiRecordId nextNodeId,
+                 SmiFileId headerFileId, SmiRecordId nextHeaderId,
+                 std::optional<SmiRecordId> headerRoot, SmiRecordId treeRoot,
+                 int transactionCount, int minSupport)
+    : nodeFile(SmiKey::KeyDataType::Integer, sizeof(Node), false),
+      nextNodeId(nextNodeId),
+      headerFile(SmiKey::KeyDataType::Integer, sizeof(Header), false),
+      nextHeaderId(nextHeaderId), headerRoot(headerRoot), treeRoot(treeRoot),
+      transactionCount(transactionCount), minSupport(minSupport) {
+  this->nodeFile.Open(nodeFileId);
+  this->headerFile.Open(headerFileId);
+}
+
 FPTreeT::FPTreeT(int transactionCount, int minSupport)
-    : headerTable(0), nodes(1), transactionCount(transactionCount),
-      minSupport(minSupport) {
-  Node root{};
-  this->nodes.Append(root);
+    : nodeFile(SmiKey::KeyDataType::Integer, sizeof(Node), true), nextNodeId(0),
+      headerFile(SmiKey::KeyDataType::Integer, sizeof(Header), true),
+      nextHeaderId(0), headerRoot(std::nullopt),
+      transactionCount(transactionCount), minSupport(minSupport) {
+  this->nodeFile.Create();
+  this->headerFile.Create();
+  this->treeRoot = Node::create(this->nodeFile, this->nextNodeId, {});
 }
 
 std::string FPTreeT::BasicType() { return "fptree"; }
@@ -331,26 +363,24 @@ ListExpr FPTreeT::Out(ListExpr typeInfo, Word w) {
   auto fpTree = (FPTreeT *)w.addr;
   // Serialize headers.
   NList headers;
-  for (int i = 0; i < fpTree->headerTable.Size(); i += 1) {
-    Header header{};
-    assert(fpTree->headerTable.Get(i, header));
-    headers.append(
-        NList(NList().intAtom(header.item), NList().intAtom(header.link),
-              NList().intAtom(header.left), NList().intAtom(header.right)));
+  for (SmiRecordId id = 0; id < fpTree->nextHeaderId; id += 1) {
+    Header header = Header::read(fpTree->headerFile, id);
+    headers.append(NList(
+        NList().intAtom(header.item), NList().intAtom((int)header.link),
+        NList().intAtom((int)header.left), NList().intAtom((int)header.right)));
   }
   // Serialize nodes.
   NList nodes;
-  for (int i = 0; i < fpTree->nodes.Size(); i += 1) {
-    Node node{};
-    assert(fpTree->nodes.Get(i, node));
+  for (SmiRecordId id = 0; id < fpTree->nextNodeId; id += 1) {
+    Node node = Node::read(fpTree->nodeFile, id);
     NList nodeRepr;
     nodeRepr.append(NList().intAtom(node.item));
     nodeRepr.append(NList().intAtom(node.count));
-    nodeRepr.append(NList().intAtom(node.child));
-    nodeRepr.append(NList().intAtom(node.left));
-    nodeRepr.append(NList().intAtom(node.right));
-    nodeRepr.append(NList().intAtom(node.parent));
-    nodeRepr.append(NList().intAtom(node.link));
+    nodeRepr.append(NList().intAtom((int)node.child));
+    nodeRepr.append(NList().intAtom((int)node.left));
+    nodeRepr.append(NList().intAtom((int)node.right));
+    nodeRepr.append(NList().intAtom((int)node.parent));
+    nodeRepr.append(NList().intAtom((int)node.link));
     nodes.append(nodeRepr);
   }
   return NList(NList().intAtom(fpTree->transactionCount),
@@ -360,93 +390,159 @@ ListExpr FPTreeT::Out(ListExpr typeInfo, Word w) {
 
 Word FPTreeT::In(const ListExpr typeInfo, const ListExpr instance,
                  const int errorPos, ListExpr &errorInfo, bool &correct) {
-  std::unique_ptr<FPTreeT> fpTree;
   NList in(instance);
+  correct = false;
   if (in.isList() && in.length() == 4) {
     // Unserialize transactionCount.
-    if (!in.first().isSymbol(CcInt::BasicType())) {
-      correct = false;
+    if (!in.first().isInt()) {
       return nullptr;
     }
     int transactionCount = in.first().intval();
 
     // Unserialize minSupport.
-    if (!in.second().isSymbol(CcInt::BasicType())) {
-      correct = false;
+    if (!in.second().isInt()) {
       return nullptr;
     }
     int minSupport = in.second().intval();
 
-    fpTree = std::make_unique<FPTreeT>(transactionCount, minSupport);
-
     // Unserialize headers.
-    if (in.third().isList()) {
+    SmiHashFile headerFile(SmiKey::KeyDataType::Integer, true, false);
+    SmiRecordId nextHeaderId = 0;
+    headerFile.Create();
+    if (in.third().isList() && !in.third().isEmpty()) {
       NList headers = in.third();
-      for (std::size_t i = 1; i < headers.length(); i += 1) {
-        if (headers.elem(i).isList() && headers.elem(i).length() == 2 &&
+      for (std::size_t i = 1; i <= headers.length(); i += 1) {
+        if (headers.elem(i).isList() && headers.elem(i).length() == 4 &&
             headers.elem(i).first().isInt() &&
             headers.elem(i).second().isInt() &&
             headers.elem(i).third().isInt() &&
             headers.elem(i).fourth().isInt()) {
-          fpTree->headerTable.Append(
+          Header::create(
+              headerFile, nextHeaderId,
               Header{.item = headers.elem(i).first().intval(),
-                     .link = headers.elem(i).second().intval(),
-                     .left = headers.elem(i).third().intval(),
-                     .right = headers.elem(i).fourth().intval()});
+                     .link = (SmiRecordId)headers.elem(i).second().intval(),
+                     .left = (SmiRecordId)headers.elem(i).third().intval(),
+                     .right = (SmiRecordId)headers.elem(i).fourth().intval()});
         } else {
-          correct = false;
+          headerFile.Close();
+          headerFile.Remove();
           return nullptr;
         }
       }
     } else {
-      correct = false;
+      headerFile.Close();
+      headerFile.Remove();
       return nullptr;
     }
+    headerFile.Close();
     // Unserialize nodes.
-    if (in.fourth().isList()) {
+    SmiHashFile nodeFile(SmiKey::KeyDataType::Integer, true, false);
+    SmiRecordId nextNodeId = 0;
+    nodeFile.Create();
+    if (in.fourth().isList() && !in.fourth().isEmpty()) {
       NList nodes = in.fourth();
-      for (std::size_t i = 1; i < nodes.length(); i += 1) {
-        if (nodes.elem(i).isList() && nodes.elem(i).length() == 6 &&
+      for (std::size_t i = 1; i <= nodes.length(); i += 1) {
+        if (nodes.elem(i).isList() && nodes.elem(i).length() == 7 &&
             nodes.elem(i).first().isInt() && nodes.elem(i).second().isInt() &&
             nodes.elem(i).third().isInt() && nodes.elem(i).fourth().isInt() &&
             nodes.elem(i).fifth().isInt() && nodes.elem(i).sixth().isInt() &&
             nodes.elem(i).seventh().isInt()) {
-          fpTree->nodes.Append(Node{.item = nodes.elem(i).first().intval(),
-                                    .count = nodes.elem(i).second().intval(),
-                                    .child = nodes.elem(i).third().intval(),
-                                    .left = nodes.elem(i).fourth().intval(),
-                                    .right = nodes.elem(i).fifth().intval(),
-                                    .parent = nodes.elem(i).sixth().intval(),
-                                    .link = nodes.elem(i).seventh().intval()});
+          Node::create(
+              nodeFile, nextNodeId,
+              Node{.item = nodes.elem(i).first().intval(),
+                   .count = nodes.elem(i).second().intval(),
+                   .child = (SmiRecordId)nodes.elem(i).third().intval(),
+                   .left = (SmiRecordId)nodes.elem(i).fourth().intval(),
+                   .right = (SmiRecordId)nodes.elem(i).fifth().intval(),
+                   .parent = (SmiRecordId)nodes.elem(i).sixth().intval(),
+                   .link = (SmiRecordId)nodes.elem(i).seventh().intval()});
         } else {
-          correct = false;
+          nodeFile.Close();
+          nodeFile.Remove();
           return nullptr;
         }
       }
     } else {
-      correct = false;
+      nodeFile.Close();
+      nodeFile.Remove();
       return nullptr;
     }
+    nodeFile.Close();
+    // Create FP-tree.
+    correct = true;
+    return new FPTreeT(nodeFile.GetFileId(), nextNodeId, headerFile.GetFileId(),
+                       nextHeaderId, 0, 0, transactionCount, minSupport);
   } else {
-    correct = false;
     return nullptr;
   }
-  correct = true;
-  return fpTree.release();
 }
 
-Word FPTreeT::Create(const ListExpr typeInfo) { return new FPTreeT(0, 0); }
+Word FPTreeT::Create(const ListExpr typeInfo) { return new FPTreeT(); }
 
 void FPTreeT::Delete(const ListExpr typeInfo, Word &w) {
   auto fpTree = (FPTreeT *)w.addr;
-  fpTree->headerTable.Destroy();
-  fpTree->nodes.Destroy();
+  if (fpTree->nodeFile.IsOpen()) {
+    fpTree->nodeFile.Close();
+  }
+  fpTree->nodeFile.Drop();
+  if (fpTree->headerFile.IsOpen()) {
+    fpTree->headerFile.Close();
+  }
+  fpTree->headerFile.Drop();
   delete fpTree;
   w.addr = nullptr;
 }
 
 bool FPTreeT::Open(SmiRecord &valueRecord, std::size_t &offset,
                    const ListExpr typeInfo, Word &value) {
+  // Read nodeFileId.
+  SmiFileId nodeFileId;
+  if (valueRecord.Read(&nodeFileId, sizeof(nodeFileId), offset) !=
+      sizeof(nodeFileId)) {
+    return false;
+  }
+  offset += sizeof(nodeFileId);
+
+  // Read nextNodeId.
+  int nextNodeId;
+  if (valueRecord.Read(&nextNodeId, sizeof(nextNodeId), offset) !=
+      sizeof(nextNodeId)) {
+    return false;
+  }
+  offset += sizeof(nextNodeId);
+
+  // Read headerFileId.
+  SmiFileId headerFileId;
+  if (valueRecord.Read(&headerFileId, sizeof(headerFileId), offset) !=
+      sizeof(headerFileId)) {
+    return false;
+  }
+  offset += sizeof(headerFileId);
+
+  // Read nextHeaderId.
+  int nextHeaderId;
+  if (valueRecord.Read(&nextHeaderId, sizeof(nextHeaderId), offset) !=
+      sizeof(nextHeaderId)) {
+    return false;
+  }
+  offset += sizeof(nextHeaderId);
+
+  // Read headerRoot.
+  int headerRoot;
+  if (valueRecord.Read(&headerRoot, sizeof(headerRoot), offset) !=
+      sizeof(headerRoot)) {
+    return false;
+  }
+  offset += sizeof(headerRoot);
+
+  // Read treeRoot.
+  SmiRecordId treeRoot;
+  if (valueRecord.Read(&treeRoot, sizeof(treeRoot), offset) !=
+      sizeof(treeRoot)) {
+    return false;
+  }
+  offset += sizeof(treeRoot);
+
   // Read transactionCount.
   int transactionCount;
   if (valueRecord.Read(&transactionCount, sizeof(transactionCount), offset) !=
@@ -463,40 +559,11 @@ bool FPTreeT::Open(SmiRecord &valueRecord, std::size_t &offset,
   }
   offset += sizeof(minSupport);
 
-  std::unique_ptr<FPTreeT> fpTree =
-      std::make_unique<FPTreeT>(transactionCount, minSupport);
-
-  // Read headerTable DbArray.
-  {
-    std::size_t bufferSize = decltype(fpTree->headerTable)::headerSize();
-    auto buffer = std::make_unique<char[]>(bufferSize);
-    if (valueRecord.Read(buffer.get(), bufferSize, offset) != bufferSize) {
-      return false;
-    }
-    offset += bufferSize;
-    SmiSize headerOffset = 0;
-    fpTree->headerTable.restoreHeader(buffer.get(), headerOffset);
-    if (bufferSize != headerOffset) {
-      return false;
-    }
-  }
-
-  // Read nodes DbArray.
-  {
-    std::size_t bufferSize = decltype(fpTree->nodes)::headerSize();
-    auto buffer = std::make_unique<char[]>(bufferSize);
-    if (valueRecord.Read(buffer.get(), bufferSize, offset) != bufferSize) {
-      return false;
-    }
-    offset += bufferSize;
-    SmiSize headerOffset = 0;
-    fpTree->nodes.restoreHeader(buffer.get(), headerOffset);
-    if (bufferSize != headerOffset) {
-      return false;
-    }
-  }
-
-  value.addr = fpTree.release();
+  value.addr = new FPTreeT(nodeFileId, nextNodeId, headerFileId, nextHeaderId,
+                           (headerRoot == -1)
+                               ? std::nullopt
+                               : std::make_optional((SmiRecordId)headerRoot),
+                           treeRoot, transactionCount, minSupport);
   return true;
 }
 
@@ -504,6 +571,51 @@ bool FPTreeT::Save(SmiRecord &valueRecord, std::size_t &offset,
                    const ListExpr typeInfo, Word &w) {
   offset = 0;
   auto fpTree = (FPTreeT *)w.addr;
+
+  // Write nodeFileId.
+  SmiFileId nodeFileId = fpTree->nodeFile.GetFileId();
+  if (valueRecord.Write(&nodeFileId, sizeof(nodeFileId), offset) !=
+      sizeof(nodeFileId)) {
+    return false;
+  }
+  offset += sizeof(nodeFileId);
+
+  // Write nextNodeId.
+  if (valueRecord.Write(&fpTree->nextNodeId, sizeof(fpTree->nextNodeId),
+                        offset) != sizeof(fpTree->nextNodeId)) {
+    return false;
+  }
+  offset += sizeof(fpTree->nextNodeId);
+
+  // Write headerFileId.
+  SmiFileId headerFileId = fpTree->headerFile.GetFileId();
+  if (valueRecord.Write(&headerFileId, sizeof(headerFileId), offset) !=
+      sizeof(headerFileId)) {
+    return false;
+  }
+  offset += sizeof(headerFileId);
+
+  // Write nextHeaderId.
+  if (valueRecord.Write(&fpTree->nextHeaderId, sizeof(fpTree->nextHeaderId),
+                        offset) != sizeof(fpTree->nextHeaderId)) {
+    return false;
+  }
+  offset += sizeof(fpTree->nextHeaderId);
+
+  // Write headerRoot.
+  int headerRoot = fpTree->headerRoot ? (int)*fpTree->headerRoot : -1;
+  if (valueRecord.Write(&headerRoot, sizeof(headerRoot), offset) !=
+      sizeof(headerRoot)) {
+    return false;
+  }
+  offset += sizeof(headerRoot);
+
+  // Write treeRoot.
+  if (valueRecord.Write(&fpTree->treeRoot, sizeof(fpTree->treeRoot), offset) !=
+      sizeof(fpTree->treeRoot)) {
+    return false;
+  }
+  offset += sizeof(fpTree->treeRoot);
 
   // Write transactionCount.
   if (valueRecord.Write(&fpTree->transactionCount,
@@ -520,58 +632,38 @@ bool FPTreeT::Save(SmiRecord &valueRecord, std::size_t &offset,
   }
   offset += sizeof(fpTree->minSupport);
 
-  // Write headerTable DbArray.
-  {
-    SecondoCatalog *catalog = SecondoSystem::GetCatalog();
-    SmiRecordFile *file = catalog->GetFlobFile();
-    fpTree->headerTable.saveToFile(file, fpTree->headerTable);
-
-    std::size_t bufferSize = decltype(fpTree->headerTable)::headerSize();
-    auto buffer = std::make_unique<char[]>(bufferSize);
-    SmiSize headerOffset = 0;
-    fpTree->headerTable.serializeHeader(buffer.get(), headerOffset);
-    if (bufferSize != headerOffset) {
-      return false;
-    }
-    if (valueRecord.Write(buffer.get(), bufferSize, offset) != bufferSize) {
-      return false;
-    }
-    offset += headerOffset;
-  }
-
-  // Write nodes DbArray.
-  {
-    SecondoCatalog *catalog = SecondoSystem::GetCatalog();
-    SmiRecordFile *file = catalog->GetFlobFile();
-    fpTree->nodes.saveToFile(file, fpTree->nodes);
-
-    std::size_t bufferSize = decltype(fpTree->nodes)::headerSize();
-    auto buffer = std::make_unique<char[]>(bufferSize);
-    SmiSize headerOffset = 0;
-    fpTree->nodes.serializeHeader(buffer.get(), headerOffset);
-    if (bufferSize != headerOffset) {
-      return false;
-    }
-    if (valueRecord.Write(buffer.get(), bufferSize, offset) != bufferSize) {
-      return false;
-    }
-    offset += headerOffset;
-  }
-
   return true;
 }
 
 void FPTreeT::Close(const ListExpr typeInfo, Word &w) {
   delete (FPTreeT *)w.addr;
+  w.addr = nullptr;
 }
 
 Word FPTreeT::Clone(const ListExpr typeInfo, const Word &w) {
   Word result;
   auto source = (FPTreeT *)w.addr;
-  auto clone = new FPTreeT(source->transactionCount, source->minSupport);
-  clone->headerTable.copyFrom(source->headerTable);
-  clone->nodes.copyFrom(source->nodes);
-  return clone;
+  // Copy nodes.
+  SmiHashFile nodeFile(SmiKey::KeyDataType::Integer, true, false);
+  nodeFile.Create();
+  SmiRecordId nextNodeId = 0;
+  for (SmiRecordId i = 0; i < source->nextNodeId; i += 1) {
+    Node::create(nodeFile, nextNodeId, Node::read(source->nodeFile, i));
+  }
+  nodeFile.Close();
+  // Copy headers.
+  SmiHashFile headerFile(SmiKey::KeyDataType::Integer, true, false);
+  headerFile.Create();
+  SmiRecordId nextHeaderId = 0;
+  for (SmiRecordId i = 0; i < source->nextHeaderId; i += 1) {
+    Header::create(headerFile, nextHeaderId,
+                   Header::read(source->headerFile, i));
+  }
+  headerFile.Close();
+  // Create FP-tree clone.
+  return new FPTreeT(nodeFile.GetFileId(), nextNodeId, headerFile.GetFileId(),
+                     nextHeaderId, 0, 0, source->transactionCount,
+                     source->minSupport);
 }
 
 void *FPTreeT::Cast(void *addr) { return (new (addr) FPTreeT); }
@@ -583,178 +675,268 @@ bool FPTreeT::KindCheck(ListExpr type, ListExpr &errorInfo) {
 }
 
 void FPTreeT::reset(int transactionCount, int minSupport) {
+  if (this->nodeFile.IsOpen()) {
+    this->nodeFile.Truncate();
+  } else {
+    this->nodeFile.Create();
+  }
+  this->nextNodeId = 0;
+  if (this->headerFile.IsOpen()) {
+    this->headerFile.Truncate();
+  } else {
+    this->headerFile.Create();
+  }
+  this->nextHeaderId = 0;
   this->transactionCount = transactionCount;
   this->minSupport = minSupport;
-  this->nodes.clean();
-  Node root{};
-  this->nodes.Append(root);
-  this->headerTable.clean();
+  this->headerRoot = std::nullopt;
+  this->treeRoot = Node::create(this->nodeFile, this->nextNodeId, {});
+}
+
+void FPTreeT::Header::write(SmiRecord &record) const {
+  size_t offset = 0;
+  record.Write(&this->item, sizeof(this->item), offset);
+  offset += sizeof(this->item);
+  record.Write(&this->link, sizeof(this->link), offset);
+  offset += sizeof(this->link);
+  record.Write(&this->left, sizeof(this->left), offset);
+  offset += sizeof(this->left);
+  record.Write(&this->right, sizeof(this->right), offset);
+  offset += sizeof(this->right);
+}
+
+FPTreeT::Header FPTreeT::Header::read(SmiHashFile &file, SmiRecordId id) {
+  Header header{};
+  SmiRecord record;
+  file.SelectRecord(id, record);
+  size_t offset = 0;
+  record.Read(&header.item, sizeof(header.item), offset);
+  offset += sizeof(header.item);
+  record.Read(&header.link, sizeof(header.link), offset);
+  offset += sizeof(header.link);
+  record.Read(&header.left, sizeof(header.left), offset);
+  offset += sizeof(header.left);
+  record.Read(&header.right, sizeof(header.right), offset);
+  offset += sizeof(header.right);
+  record.Finish();
+  return header;
+}
+
+void FPTreeT::Header::write(SmiHashFile &file, SmiRecordId id,
+                            const Header &header) {
+  SmiRecord record;
+  file.SelectRecord(id, record, SmiFile::Update);
+  header.write(record);
+  record.Finish();
+}
+
+SmiRecordId FPTreeT::Header::create(SmiHashFile &file, SmiRecordId &nextId,
+                                    const Header &header) {
+  SmiRecordId id = nextId;
+  nextId += 1;
+  SmiRecord record;
+  file.InsertRecord(id, record);
+  header.write(record);
+  record.Finish();
+  return id;
+}
+
+void FPTreeT::Node::write(SmiRecord &record) const {
+  size_t offset = 0;
+  record.Write(&this->item, sizeof(this->item), offset);
+  offset += sizeof(this->item);
+  record.Write(&this->count, sizeof(this->count), offset);
+  offset += sizeof(this->count);
+  record.Write(&this->child, sizeof(this->child), offset);
+  offset += sizeof(this->child);
+  record.Write(&this->left, sizeof(this->left), offset);
+  offset += sizeof(this->left);
+  record.Write(&this->right, sizeof(this->right), offset);
+  offset += sizeof(this->right);
+  record.Write(&this->parent, sizeof(this->parent), offset);
+  offset += sizeof(this->parent);
+  record.Write(&this->link, sizeof(this->link), offset);
+  offset += sizeof(this->link);
+}
+
+FPTreeT::Node FPTreeT::Node::read(SmiHashFile &file, SmiRecordId id) {
+  Node node{};
+  SmiRecord record;
+  file.SelectRecord(id, record);
+  size_t offset = 0;
+  record.Read(&node.item, sizeof(node.item), offset);
+  offset += sizeof(node.item);
+  record.Read(&node.count, sizeof(node.count), offset);
+  offset += sizeof(node.count);
+  record.Read(&node.child, sizeof(node.child), offset);
+  offset += sizeof(node.child);
+  record.Read(&node.left, sizeof(node.left), offset);
+  offset += sizeof(node.left);
+  record.Read(&node.right, sizeof(node.right), offset);
+  offset += sizeof(node.right);
+  record.Read(&node.parent, sizeof(node.parent), offset);
+  offset += sizeof(node.parent);
+  record.Read(&node.link, sizeof(node.link), offset);
+  offset += sizeof(node.link);
+  record.Finish();
+  return node;
+}
+
+void FPTreeT::Node::write(SmiHashFile &file, SmiRecordId id, const Node &node) {
+  SmiRecord record;
+  file.SelectRecord(id, record, SmiFile::Update);
+  node.write(record);
+  record.Finish();
+}
+
+SmiRecordId FPTreeT::Node::create(SmiHashFile &file, SmiRecordId &nextId,
+                                  const Node &node) {
+  SmiRecord record;
+  SmiRecordId id = nextId;
+  nextId += 1;
+  file.InsertRecord(id, record);
+  node.write(record);
+  record.Finish();
+  return id;
 }
 
 // Returns handle of the root node.
-int FPTreeT::root() { return 0; }
+SmiRecordId FPTreeT::root() { return this->treeRoot; }
 
 // Returns handle of the child node with the given item.
-std::optional<int> FPTreeT::findChild(int nodeIndex, int item) {
-  assert(nodeIndex >= 0 && nodeIndex < this->nodes.Size());
-  Node node{};
-  this->nodes.Get(nodeIndex, node);
-  int ignore;
+std::optional<SmiRecordId> FPTreeT::findChild(SmiRecordId nodeId, int item) {
+  Node node = Node::read(this->nodeFile, nodeId);
   if (node.child == 0) {
     return std::nullopt;
   } else {
-    return binaryFind(this->nodes, node.child, item, ignore);
+    SmiRecordId ignore;
+    return binaryFind<Node>(this->nodeFile, node.child, item, ignore);
   }
 }
 
 // Adds the given count to the given node.
-void FPTreeT::addCount(int nodeIndex, int count) {
-  assert(nodeIndex >= 0 && nodeIndex < this->nodes.Size());
-  Node node{};
-  this->nodes.Get(nodeIndex, node);
+void FPTreeT::addCount(SmiRecordId nodeId, int count) {
+  Node node = Node::read(this->nodeFile, nodeId);
   node.count += count;
-  this->nodes.Put(nodeIndex, node);
+  Node::write(this->nodeFile, nodeId, node);
 }
 
 // Creates a new child with the given item and count and returns its handle.
-int FPTreeT::createChild(int nodeIndex, int item, int count) {
-  assert(nodeIndex >= 0 && nodeIndex < this->nodes.Size());
-
-  int childId = this->nodes.Size();
+SmiRecordId FPTreeT::createChild(SmiRecordId nodeId, int item, int count) {
+  // Create child node.
+  Node child{.item = item, .count = count, .parent = nodeId};
+  SmiRecordId childId = Node::create(this->nodeFile, this->nextNodeId, child);
 
   // Find the entry for the given item in the header table.
-  int lastVisitedNode = 0;
-  std::optional<int> headerIndex =
-      binaryFind(this->headerTable, 0, item, lastVisitedNode);
-  int childLink = 0;
-  if (headerIndex) {
-    // Header entry for the given item already exists -> update the link to the
-    // new child node.
-    Header header{};
-    this->headerTable.Get(*headerIndex, header);
-    childLink = header.link;
-    header.link = childId;
-    this->headerTable.Put(*headerIndex, header);
+  if (!this->headerRoot) {
+    this->headerRoot = Header::create(this->headerFile, this->nextHeaderId,
+                                      {.item = item, .link = childId});
   } else {
-    // Header entry for the given item does not exist yet -> create a new entry.
-    if (this->headerTable.Size() == 0) {
-      this->headerTable.Append((Header){.item = item, .link = childId});
+    SmiRecordId lastVisitedHeaderId = 0;
+    std::optional<SmiRecordId> headerId = binaryFind<Header>(
+        this->headerFile, *this->headerRoot, item, lastVisitedHeaderId);
+    if (headerId) {
+      // Header entry for the given item already exists -> update the link to
+      // the new child node.
+      Header header = Header::read(this->headerFile, *headerId);
+      child.link = header.link;
+      Node::write(this->nodeFile, childId, child);
+      header.link = childId;
+      Header::write(this->headerFile, *headerId, header);
     } else {
-      binaryInsert(this->headerTable, lastVisitedNode,
-                   (Header){.item = item, .link = childId});
+      // Header entry for the given item does not exist yet -> create a new
+      // entry.
+      binaryInsert<Header>(this->headerFile, lastVisitedHeaderId, item,
+                           Header::create(this->headerFile, this->nextHeaderId,
+                                          {.item = item, .link = childId}));
     }
   }
 
-  // Create child node.
-  Node child{
-      .item = item, .count = count, .parent = nodeIndex, .link = childLink};
-
   // Append the child node on the given node.
-  Node node{};
-  this->nodes.Get(nodeIndex, node);
+  Node node = Node::read(this->nodeFile, nodeId);
   if (node.child == 0) {
     node.child = childId;
-    this->nodes.Put(nodeIndex, node);
-    this->nodes.Append(child);
+    Node::write(this->nodeFile, nodeId, node);
   } else {
-    binaryInsert(this->nodes, node.child, child);
+    binaryInsert<Node>(this->nodeFile, node.child, item, childId);
   }
 
   return childId;
 }
 
 // Returns the number of entries in the header table.
-std::size_t FPTreeT::headerTableSize() { return this->headerTable.Size(); }
+std::size_t FPTreeT::headerTableSize() {
+  return (std::size_t)this->nextHeaderId;
+}
 
 // Looks up the link for the given item in the header table.
-std::size_t FPTreeT::headerLinkByItem(int item) {
-  int ignore = 0;
-  std::optional<int> headerIndex =
-      binaryFind(this->headerTable, 0, item, ignore);
-  if (headerIndex) {
-    Header header{};
-    this->headerTable.Get(*headerIndex, header);
-    return header.link;
+SmiRecordId FPTreeT::headerLinkByItem(int item) {
+  SmiRecordId ignore = 0;
+  std::optional<SmiRecordId> headerId =
+      binaryFind<Header>(this->headerFile, *this->headerRoot, item, ignore);
+  if (headerId) {
+    return Header::read(this->headerFile, *headerId).link;
   }
   assert(false);
 }
 
-// Returns the item of the entry in the header table with the given index.
-int FPTreeT::headerItem(std::size_t index) {
-  assert(index < (std::size_t)this->headerTable.Size());
-  Header header{};
-  this->headerTable.Get(index, header);
-  return header.item;
+// Returns the item of the entry in the header table with the given handle.
+int FPTreeT::headerItem(SmiRecordId id) {
+  return Header::read(this->headerFile, id).item;
 }
 
 // Returns the link handle of the entry in the header table with the given
 // index.
-int FPTreeT::headerLink(std::size_t index) {
-  assert(index < (std::size_t)this->headerTable.Size());
-  Header header{};
-  this->headerTable.Get(index, header);
-  return header.link;
+SmiRecordId FPTreeT::headerLink(SmiRecordId id) {
+  return Header::read(this->headerFile, id).link;
 }
 
 // Returns the item of the given node.
-int FPTreeT::nodeItem(int nodeIndex) {
-  assert(nodeIndex < this->nodes.Size());
-  Node node{};
-  this->nodes.Get(nodeIndex, node);
-  return node.item;
+int FPTreeT::nodeItem(SmiRecordId id) {
+  return Node::read(this->nodeFile, id).item;
 }
 
 // Returns the count of the given node.
-int FPTreeT::nodeCount(int nodeIndex) {
-  assert(nodeIndex < this->nodes.Size());
-  Node node{};
-  this->nodes.Get(nodeIndex, node);
-  return node.count;
+int FPTreeT::nodeCount(SmiRecordId id) {
+  return Node::read(this->nodeFile, id).count;
 }
 
 // Returns the link handle of the given node.
-std::optional<int> FPTreeT::nodeLink(int nodeIndex) {
-  assert(nodeIndex < this->nodes.Size());
-  Node node{};
-  this->nodes.Get(nodeIndex, node);
+std::optional<SmiRecordId> FPTreeT::nodeLink(SmiRecordId id) {
+  Node node = Node::read(this->nodeFile, id);
   return node.link == 0 ? std::nullopt : std::make_optional(node.link);
 }
 
 // Returns the parent handle of the given node.
-std::optional<int> FPTreeT::nodeParent(int nodeIndex) {
-  assert(nodeIndex < this->nodes.Size());
-  if (nodeIndex == 0) {
+std::optional<SmiRecordId> FPTreeT::nodeParent(SmiRecordId id) {
+  Node node = Node::read(this->nodeFile, id);
+  if (node.parent == this->treeRoot) {
     return std::nullopt;
   } else {
-    Node node{};
-    this->nodes.Get(nodeIndex, node);
-    return node.parent == 0 ? std::nullopt : std::make_optional(node.parent);
+    return std::make_optional(node.parent);
   }
 }
 
 // Returns the child handles of the given node.
-std::vector<int> FPTreeT::nodeChildren(int nodeIndex) {
-  assert(nodeIndex < this->nodes.Size());
-  std::vector<int> children;
-  Node node{};
-  this->nodes.Get(nodeIndex, node);
+std::vector<SmiRecordId> FPTreeT::nodeChildren(SmiRecordId nodeId) {
+  std::vector<SmiRecordId> ids;
+  Node node = Node::read(this->nodeFile, nodeId);
   if (node.child != 0) {
-    std::vector<int> visit = {node.child};
+    std::vector<SmiRecordId> visit = {node.child};
     while (!visit.empty()) {
-      int visitIndex = visit[visit.size() - 1];
-      children.push_back(visitIndex);
+      SmiRecordId id = visit.back();
       visit.pop_back();
-      Node visitNode{};
-      this->nodes.Get(visitIndex, visitNode);
-      if (visitNode.left != 0) {
-        visit.push_back(visitNode.left);
+      ids.push_back(id);
+      Node child = Node::read(this->nodeFile, id);
+      if (child.left != 0) {
+        visit.push_back(child.left);
       }
-      if (visitNode.right != 0) {
-        visit.push_back(visitNode.right);
+      if (child.right != 0) {
+        visit.push_back(child.right);
       }
     }
   }
-  return children;
+  return ids;
 }
 
 struct fptreeInfo : ConstructorInfo {

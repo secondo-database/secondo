@@ -43,7 +43,6 @@ January 2021 - April 2021, P. Fedorow for bachelor thesis.
 #include <vector>
 
 namespace AssociationAnalysis {
-
 template <class FPTree, typename Handle> class FPTreeImpl {
 public:
   // Inserts the given itemset into the FP-Tree.
@@ -187,17 +186,16 @@ private:
 
         // Build the itemset.
         std::vector<int> itemset;
-        assert(include.size() == this->fpTree().headerTableSize());
         for (std::size_t i = 0; i < include.size(); i += 1) {
           if (include[i]) {
-            Handle link = this->fpTree().headerLink(i);
+            Handle link = this->fpTree().headerLink((Handle)i);
             int count = this->fpTree().nodeCount(link);
             if (minCount == -1 || count < minCount) {
               // We are keeping track of the lowest count here, as that will
               // be the support count of the itemset we are building.
               minCount = count;
             }
-            itemset.push_back(this->fpTree().headerItem(i));
+            itemset.push_back(this->fpTree().headerItem((Handle)i));
           }
         }
         itemset.insert(itemset.begin(), suffix.cbegin(), suffix.cend());
@@ -220,7 +218,7 @@ private:
       // The frequent itemset is passed a the new suffix for the mining in the
       // conditional FP-Tree.
       for (std::size_t i = 0; i < this->fpTree().headerTableSize(); i += 1) {
-        int headerItem = this->fpTree().headerItem(i);
+        int headerItem = this->fpTree().headerItem((Handle)i);
         int count = this->count(headerItem);
 
         if (count >= minSupport) {
@@ -236,12 +234,15 @@ private:
 
           // Proceed the mining within the FP-Tree conditioned by the current
           // header item.
-          FPTree fpTreeConditioned(transactionCount, minSupport);
-          for (auto &[count, itemset] :
-               this->computeConditionalBase(headerItem, minSupport)) {
-            fpTreeConditioned.insert(itemset, count);
+          std::vector<std::pair<int, std::vector<int>>> base =
+              this->computeConditionalBase(headerItem, minSupport);
+          if (!base.empty()) {
+            FPTree fpTreeConditioned(transactionCount, minSupport);
+            for (auto &[count, itemset] : base) {
+              fpTreeConditioned.insert(itemset, count);
+            }
+            fpTreeConditioned.mine(collect, itemset);
           }
-          fpTreeConditioned.mine(collect, itemset);
         }
       }
     }
@@ -303,9 +304,24 @@ struct fpGrowthInfo : OperatorInfo {
   }
 };
 
-class FPTreeT : public FPTreeImpl<FPTreeT, int> {
+class FPTreeT : public FPTreeImpl<FPTreeT, SmiRecordId> {
 public:
+  FPTreeT();
+
   FPTreeT(int minSupport, int transactionCount);
+
+  FPTreeT(SmiFileId nodeFileId, SmiRecordId nextNodeId, SmiFileId headerFileId,
+          SmiRecordId nextHeaderId, std::optional<SmiRecordId> headerRoot,
+          SmiRecordId treeRoot, int transactionCount, int minSupport);
+
+  ~FPTreeT() {
+    if (this->nodeFile.IsOpen()) {
+      this->nodeFile.Close();
+    }
+    if (this->headerFile.IsOpen()) {
+      this->headerFile.Close();
+    }
+  }
 
   static std::string BasicType();
 
@@ -341,12 +357,18 @@ private:
   struct Header {
     int item;
 
-    // Index to the first node that holds the item.
-    int link;
+    // Id of the first node that holds the item.
+    SmiRecordId link;
 
-    // Indexes (to other headers) used to look up specific items by binary
+    // Ids (of other headers) used to look up specific items by binary
     // search.
-    int left, right;
+    SmiRecordId left, right;
+
+    void write(SmiRecord &record) const;
+    static Header read(SmiHashFile &file, SmiRecordId id);
+    static void write(SmiHashFile &file, SmiRecordId id, const Header &header);
+    static SmiRecordId create(SmiHashFile &file, SmiRecordId &nextId,
+                              const Header &header);
   };
 
   // Represents a node of the FP-Tree.
@@ -358,26 +380,39 @@ private:
     // node.
     int count;
 
-    // First child index.
-    int child;
+    // First child id.
+    SmiRecordId child;
 
-    // Indexes (to other nodes) used to look up specific child nodes by binary
+    // Ids (of other nodes) used to look up specific child nodes by binary
     // search.
-    int left, right;
+    SmiRecordId left, right;
 
-    // Parent index.
-    int parent;
+    // Parent id.
+    SmiRecordId parent;
 
-    // Index to the next node that holds the same item.
-    int link;
+    // Id of the next node that holds the same item.
+    SmiRecordId link;
+
+    void write(SmiRecord &record) const;
+    static Node read(SmiHashFile &file, SmiRecordId id);
+    static void write(SmiHashFile &file, SmiRecordId id, const Node &node);
+    static SmiRecordId create(SmiHashFile &file, SmiRecordId &nextId,
+                              const Node &node);
   };
 
-  // A header table that is used to find nodes that hold a specific item.
-  DbArray<Header> headerTable;
+  // This file holds all the nodes of the FP-Tree.
+  SmiHashFile nodeFile;
+  SmiRecordId nextNodeId;
 
-  // Nodes are stored in a DbArray and point to each other by using indexes into
-  // the same vector.
-  DbArray<Node> nodes;
+  // This file holds all the headers of the FP-Tree.
+  SmiHashFile headerFile;
+  SmiRecordId nextHeaderId;
+
+  // Id of the header table (represented as a binary tree) root node.
+  std::optional<SmiRecordId> headerRoot;
+
+  // Id of the FP-Tree root node.
+  SmiRecordId treeRoot;
 
   // The transaction count and the minSupport with which this FP-Tree was
   // created. This numbers will be used while mining to check if a given itemset
@@ -385,100 +420,90 @@ private:
   int transactionCount;
   int minSupport;
 
-  // Default constructor should only be accessible via the
-  FPTreeT() = default;
-
   // Returns handle of the root node.
-  int root();
+  SmiRecordId root();
 
   // Returns handle of the child node with the given item.
-  std::optional<int> findChild(int nodeIndex, int item);
+  std::optional<SmiRecordId> findChild(SmiRecordId nodeId, int item);
 
   // Adds the given count to the given node.
-  void addCount(int nodeIndex, int count);
+  void addCount(SmiRecordId nodeId, int count);
 
-  // Creates a new child with the given item and count and returns its handle.
-  int createChild(int nodeIndex, int item, int count);
+  // Creates a new child with the given item and count and returns its id.
+  SmiRecordId createChild(SmiRecordId nodeId, int item, int count);
 
   // Returns the number of entries in the header table.
   std::size_t headerTableSize();
 
   // Looks up the link for the given item in the header table.
-  std::size_t headerLinkByItem(int item);
+  SmiRecordId headerLinkByItem(int item);
 
-  // Returns the item of the entry in the header table with the given index.
-  int headerItem(std::size_t index);
+  // Returns the item of the entry in the header table with the given handle.
+  int headerItem(SmiRecordId index);
 
-  // Returns the link handle of the entry in the header table with the given
-  // index.
-  int headerLink(std::size_t index);
+  // Returns the link id of the entry in the header table with the given handle.
+  SmiRecordId headerLink(SmiRecordId index);
 
   // Returns the item of the given node.
-  int nodeItem(int nodeIndex);
+  int nodeItem(SmiRecordId nodeId);
 
   // Returns the count of the given node.
-  int nodeCount(int nodeIndex);
+  int nodeCount(SmiRecordId nodeId);
 
-  // Returns the link handle of the given node.
-  std::optional<int> nodeLink(int nodeIndex);
+  // Returns the link id of the given node.
+  std::optional<SmiRecordId> nodeLink(SmiRecordId nodeId);
 
-  // Returns the parent handle of the given node.
-  std::optional<int> nodeParent(int nodeIndex);
+  // Returns the parent id of the given node.
+  std::optional<SmiRecordId> nodeParent(SmiRecordId nodeId);
 
-  // Returns the child handles of the given node.
-  std::vector<int> nodeChildren(int nodeIndex);
+  // Returns the child id of the given node.
+  std::vector<SmiRecordId> nodeChildren(SmiRecordId nodeId);
 
   template <class T>
-  static std::optional<int> binaryFind(const DbArray<T> &arr, int nodeIndex,
-                                       int item, int &lastVisitedNode) {
-    lastVisitedNode = nodeIndex;
-    if (nodeIndex >= arr.Size()) {
-      return std::nullopt;
-    }
-    T node;
-    arr.Get(nodeIndex, node);
+  static std::optional<SmiRecordId> binaryFind(SmiHashFile &file,
+                                               SmiRecordId nodeId, int item,
+                                               SmiRecordId &lastId) {
+    lastId = nodeId;
+    T node = T::read(file, nodeId);
     if (item == node.item) {
-      return nodeIndex;
+      return nodeId;
     } else {
       if (item < node.item) {
         if (node.left == 0) {
           return std::nullopt;
         } else {
-          return binaryFind(arr, node.left, item, lastVisitedNode);
+          return binaryFind<T>(file, node.left, item, lastId);
         }
       } else {
         if (node.right == 0) {
           return std::nullopt;
         } else {
-          return binaryFind(arr, node.right, item, lastVisitedNode);
+          return binaryFind<T>(file, node.right, item, lastId);
         }
       }
     }
   }
 
   template <class T>
-  static void binaryInsert(DbArray<T> &arr, int nodeIndex, const T &node) {
-    assert(nodeIndex < arr.Size());
-    T currNode;
-    arr.Get(nodeIndex, currNode);
-    if (currNode.item == node.item) {
+  static void binaryInsert(SmiHashFile &file, SmiRecordId targetId, int item,
+                           SmiRecordId insertId) {
+    T target = T::read(file, targetId);
+    if (target.item == item) {
       assert(false);
     } else {
-      if (node.item < currNode.item) {
-        if (currNode.left == 0) {
-          currNode.left = arr.Size();
-          arr.Put(nodeIndex, currNode);
-          arr.Append(node);
+      if (item < target.item) {
+        if (target.left == 0) {
+          target.left = insertId;
+          T::write(file, targetId, target);
         } else {
-          return binaryInsert(arr, currNode.left, node);
+          return binaryInsert<T>(file, target.left, item, insertId);
         }
       } else {
-        if (currNode.right == 0) {
-          currNode.right = arr.Size();
-          arr.Put(nodeIndex, currNode);
-          arr.Append(node);
+        if (target.right == 0) {
+          target.right = insertId;
+          T::write(file, targetId, target);
         } else {
-          return binaryInsert(arr, currNode.right, node);
+          return binaryInsert<T>(file, target.right, item, insertId);
         }
       }
     }
@@ -486,7 +511,7 @@ private:
 
   // FPTreeImpl needs access to the private FP-Tree access/manipulation methods:
   // root, addCount, createChild, etc.
-  friend class FPTreeImpl<FPTreeT, int>;
+  friend class FPTreeImpl<FPTreeT, SmiRecordId>;
 
   // ConstructorFunctions needs access to the private constructor of this class.
   friend struct ConstructorFunctions<FPTreeT>;
