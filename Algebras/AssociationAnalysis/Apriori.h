@@ -135,6 +135,8 @@ struct aprioriInfo : OperatorInfo {
     this->name = "apriori";
     this->signature = "rel(tuple(...)) attr real -> stream(tuple(Itemset: "
                       "intset, Support: real))";
+    this->appendSignature("rel(tuple(...)) attr int -> stream(tuple(Itemset: "
+                          "intset, Support: real))");
     this->syntax = "_ apriori[_, _]";
     this->meaning = "Discovers the frequent itemsets in the given relation of "
                     "transactions by using the apriori-algorithm. The expected "

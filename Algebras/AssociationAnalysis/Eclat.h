@@ -71,6 +71,8 @@ struct eclatInfo : OperatorInfo {
     this->name = "eclat";
     this->signature = "rel(tuple(...)) attr real -> stream(tuple(Itemset: "
                       "intset, Support: real))";
+    this->appendSignature("rel(tuple(...)) attr int -> stream(tuple(Itemset: "
+                          "intset, Support: real))");
     this->syntax = "_ eclat[_, _]";
     this->meaning = "Discovers the frequent itemsets in the given relation of "
                     "transactions by using the eclat-algorithm. The expected "

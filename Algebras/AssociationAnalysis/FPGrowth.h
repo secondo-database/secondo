@@ -523,7 +523,8 @@ int createFpTreeVM(Word *args, Word &result, int message, Word &local,
 struct createFpTreeInfo : OperatorInfo {
   createFpTreeInfo() : OperatorInfo() {
     this->name = "createFpTree";
-    this->signature = "rel(tuple(...)) attr int -> fptree";
+    this->signature = "rel(tuple(...)) attr real -> fptree";
+    this->appendSignature("rel(tuple(...)) attr int -> fptree");
     this->syntax = "_ createFpTree[_, _]";
     this->meaning =
         "Creates an FP-Tree out of the transactions in the given relation. The "
