@@ -260,3 +260,9 @@ Number    : 42
 Signature : rel(tuple(...)) attr int -> stream(tuple(Itemset: intset, Support: real))
 Example   : query transactions fpGrowth[Itemset, 15, 1] count
 Result    : 64
+
+Operator  : mineFpTree
+Number    : 43
+Signature : fptree int -> stream(tuple(Itemset: intset, Support: real))
+Example   : query transactionsFpTree mineFpTree[15, 1] count
+Result    : 64

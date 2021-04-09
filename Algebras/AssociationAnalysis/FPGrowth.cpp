@@ -970,9 +970,10 @@ int createFpTreeVM(Word *args, Word &result, int message, Word &local,
 ListExpr mineFpTreeTM(ListExpr args) {
   NList type(args);
 
+  NList appendList;
   bool relativeSupport = false;
   NList attrs;
-  if (type.length() == 2) {
+  if (type.length() == 2 || type.length() == 3) {
     if (!type.elem(1).first().isSymbol(FPTreeT::BasicType())) {
       return NList::typeError("Argument number 1 must be of type fptree.");
     }
@@ -993,13 +994,24 @@ ListExpr mineFpTreeTM(ListExpr args) {
       return NList::typeError("Argument number 2 must be of type int and > 0 "
                               "or of type real and in the interval (0, 1).");
     }
+    if (type.length() == 3) {
+      if (!type.elem(3).first().isSymbol(CcInt::BasicType())) {
+        return NList::typeError(
+            "The optional argument number 3 must be of type int.");
+      }
+    } else {
+      // Add default value via the append-functionality.
+      appendList.append(NList().intAtom(0));
+    }
   } else {
     return NList::typeError("2 arguments expected but " +
                             std::to_string(type.length()) + " received.");
   }
 
+  appendList.append(NList().boolAtom(relativeSupport));
+
   NList tupleType = NList(frequentItemsetTupleType());
-  return NList(Symbols::APPEND(), NList().boolAtom(relativeSupport).enclose(),
+  return NList(Symbols::APPEND(), appendList,
                NList().streamOf(tupleType).listExpr())
       .listExpr();
 }
@@ -1011,7 +1023,8 @@ int mineFpTreeVM(Word *args, Word &result, int message, Word &local,
   case OPEN: {
     delete li;
     auto fpTree = (FPTreeT *)args[0].addr;
-    bool relativeSupport = ((CcBool *)args[2].addr)->GetBoolval();
+    int deoptimize = ((CcInt *)args[2].addr)->GetIntval();
+    bool relativeSupport = ((CcBool *)args[3].addr)->GetBoolval();
     int minSupport = 0;
     if (relativeSupport) {
       double support = ((CcReal *)args[1].addr)->GetRealval();
@@ -1021,7 +1034,7 @@ int mineFpTreeVM(Word *args, Word &result, int message, Word &local,
       minSupport = ((CcInt *)args[1].addr)->GetIntval();
     }
     std::vector<std::pair<std::vector<int>, double>> frequentItemsets;
-    fpTree->mine(frequentItemsets, minSupport, 0);
+    fpTree->mine(frequentItemsets, minSupport, deoptimize);
     local.addr = new frequentItemsetStreamLI(std::move(frequentItemsets));
     return 0;
   }
