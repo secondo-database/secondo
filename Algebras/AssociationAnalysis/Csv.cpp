@@ -170,10 +170,6 @@ int csvSaveTransactionsVM(Word *args, Word &result, int message, Word &local,
   auto transactions = new Stream<Tuple>(args[0]);
   std::string path = ((FText *)args[2].addr)->GetValue();
   int itemsetAttr = ((CcInt *)args[3].addr)->GetIntval();
-  (void)success;
-  (void)transactions;
-  (void)path;
-  (void)itemsetAttr;
 
   std::fstream file;
   file.open(path, std::ios::out);
