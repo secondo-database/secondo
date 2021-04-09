@@ -254,3 +254,9 @@ Number    : 41
 Signature : rel(tuple(...)) attr int -> stream(tuple(Itemset: intset, Support: real))
 Example   : query transactions eclat[Itemset, 15, 3] count
 Result    : 64
+
+Operator  : fpGrowth
+Number    : 42
+Signature : rel(tuple(...)) attr int -> stream(tuple(Itemset: intset, Support: real))
+Example   : query transactions fpGrowth[Itemset, 15, 1] count
+Result    : 64

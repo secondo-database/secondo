@@ -43,6 +43,11 @@ January 2021 - April 2021, P. Fedorow for bachelor thesis.
 #include <vector>
 
 namespace AssociationAnalysis {
+
+namespace {
+enum Deoptimize { NoSinglePathCheck = 1 << 0 };
+}
+
 template <class FPTree, typename Handle> class FPTreeImpl {
 public:
   // Inserts the given itemset into the FP-Tree.
@@ -58,8 +63,8 @@ public:
   // Mines frequent itemsets with the given minSupport. The frequent itemsets
   // are appended to the collect vector.
   void mine(std::vector<std::pair<std::vector<int>, double>> &collect,
-            int minSupport) {
-    this->mine(collect, {}, minSupport);
+            int minSupport, int deoptimize) {
+    this->mine(collect, {}, minSupport, deoptimize);
   }
 
 private:
@@ -163,9 +168,10 @@ private:
   // Mines frequent itemsets with the given minSupport. The frequent itemsets
   // are appended to the collect vector.
   void mine(std::vector<std::pair<std::vector<int>, double>> &collect,
-            const std::vector<int> &suffix, int minSupport) {
+            const std::vector<int> &suffix, int minSupport, int deoptimize) {
     int transactionCount = this->fpTree().transactionCount();
-    if (this->containsSinglePath()) {
+    if (!(deoptimize & Deoptimize::NoSinglePathCheck) &&
+        this->containsSinglePath()) {
       // The FP-Tree is a single path. To obtain the frequent itemsets we have
       // to generate all itemsets that result from concatenating all
       // combinations of the items in this path with the given suffix. Not all
@@ -241,7 +247,7 @@ private:
             for (auto &[count, itemset] : base) {
               fpTreeConditioned.insert(itemset, count);
             }
-            fpTreeConditioned.mine(collect, itemset, minSupport);
+            fpTreeConditioned.mine(collect, itemset, minSupport, deoptimize);
           }
         }
       }

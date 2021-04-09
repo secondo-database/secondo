@@ -268,7 +268,7 @@ fpGrowthLI::fpGrowthLI(GenericRelation *relation, int minSupport,
       t->DeleteIfAllowed();
     }
 
-    fpTree.mine(this->frequentItemsets, minSupport);
+    fpTree.mine(this->frequentItemsets, minSupport, deoptimize);
   }
 
   // Setup iterator for the result stream.
@@ -1021,7 +1021,7 @@ int mineFpTreeVM(Word *args, Word &result, int message, Word &local,
       minSupport = ((CcInt *)args[1].addr)->GetIntval();
     }
     std::vector<std::pair<std::vector<int>, double>> frequentItemsets;
-    fpTree->mine(frequentItemsets, minSupport);
+    fpTree->mine(frequentItemsets, minSupport, 0);
     local.addr = new frequentItemsetStreamLI(std::move(frequentItemsets));
     return 0;
   }
