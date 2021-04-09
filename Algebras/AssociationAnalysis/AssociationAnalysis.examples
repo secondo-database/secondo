@@ -119,12 +119,18 @@ Result    : ()
 
 Operator  : mineFpTree
 Number    : 19
-Signature : fptree -> stream(tuple(Itemset: intset, Support: real))
-Example   : query transactionsFpTree mineFpTree count
+Signature : fptree real -> stream(tuple(Itemset: intset, Support: real))
+Example   : query transactionsFpTree mineFpTree[0.015] count
+Result    : 64
+
+Operator  : mineFpTree
+Number    : 20
+Signature : fptree int -> stream(tuple(Itemset: intset, Support: real))
+Example   : query transactionsFpTree mineFpTree[15] count
 Result    : 64
 
 Operator  : genStrongRules
-Number    : 20
+Number    : 21
 Signature : stream(tuple(Itemset: intset, Support: real)) real -> stream(tuple(Itemset: intset, Support: real, Confidence: real))
 Example   : query transactions eclat[Itemset, 0.015] genStrongRules[0.5] count
 Result    : 9

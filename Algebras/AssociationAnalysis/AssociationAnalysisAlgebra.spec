@@ -3,5 +3,5 @@ operator apriori alias APRIORI pattern _ op[_, _]
 operator eclat alias ECLAT pattern _ op[_, _]
 operator fpGrowth alias FPGROWTH pattern _ op[_, _]
 operator createFpTree alias CREATEFPTREE pattern _ op[_, _]
-operator mineFpTree alias MINEFPTREE pattern _ op
+operator mineFpTree alias MINEFPTREE pattern _ op[_]
 operator genStrongRules alias GENRULES pattern _ op[_]

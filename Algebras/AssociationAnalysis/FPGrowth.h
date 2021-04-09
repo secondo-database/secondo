@@ -57,8 +57,9 @@ public:
 
   // Mines frequent itemsets with the given minSupport. The frequent itemsets
   // are appended to the collect vector.
-  void mine(std::vector<std::pair<std::vector<int>, double>> &collect) {
-    this->mine(collect, {});
+  void mine(std::vector<std::pair<std::vector<int>, double>> &collect,
+            int minSupport) {
+    this->mine(collect, {}, minSupport);
   }
 
 private:
@@ -162,9 +163,8 @@ private:
   // Mines frequent itemsets with the given minSupport. The frequent itemsets
   // are appended to the collect vector.
   void mine(std::vector<std::pair<std::vector<int>, double>> &collect,
-            const std::vector<int> &suffix) {
-    int transactionCount = this->fpTree().transactionCount;
-    int minSupport = this->fpTree().minSupport;
+            const std::vector<int> &suffix, int minSupport) {
+    int transactionCount = this->fpTree().transactionCount();
     if (this->containsSinglePath()) {
       // The FP-Tree is a single path. To obtain the frequent itemsets we have
       // to generate all itemsets that result from concatenating all
@@ -200,7 +200,7 @@ private:
         }
         itemset.insert(itemset.begin(), suffix.cbegin(), suffix.cend());
 
-        if (minCount >= this->fpTree().minSupport) {
+        if (minCount >= minSupport) {
           // We found a frequent itemset -> collect it.
           double support = (double)minSupport / (double)transactionCount;
           collect.emplace_back(itemset, support);
@@ -237,11 +237,11 @@ private:
           std::vector<std::pair<int, std::vector<int>>> base =
               this->computeConditionalBase(headerItem, minSupport);
           if (!base.empty()) {
-            FPTree fpTreeConditioned(transactionCount, minSupport);
+            FPTree fpTreeConditioned(transactionCount);
             for (auto &[count, itemset] : base) {
               fpTreeConditioned.insert(itemset, count);
             }
-            fpTreeConditioned.mine(collect, itemset);
+            fpTreeConditioned.mine(collect, itemset, minSupport);
           }
         }
       }
@@ -308,10 +308,10 @@ class FPTreeT : public FPTreeImpl<FPTreeT, SmiRecordId> {
 public:
   FPTreeT();
 
-  FPTreeT(int minSupport, int transactionCount);
+  FPTreeT(int transactionCount);
 
   FPTreeT(SmiFileId nodeFileId, SmiRecordId nextNodeId, SmiFileId headerFileId,
-          SmiRecordId treeRoot, int transactionCount, int minSupport);
+          SmiRecordId treeRoot, int transactionCount);
 
   ~FPTreeT() {
     if (this->nodeFile.IsOpen()) {
@@ -349,7 +349,9 @@ public:
 
   static bool KindCheck(ListExpr type, ListExpr &errorInfo);
 
-  void reset(int transactionCount, int minSupport);
+  void reset(int transactionCount);
+
+  int transactionCount() { return this->_transactionCount; }
 
 private:
   // Represents a row in the header table.
@@ -407,11 +409,9 @@ private:
   SmiHashFile headerFile;
   SmiRecordId nextHeaderId;
 
-  // The transaction count and the minSupport with which this FP-Tree was
-  // created. This numbers will be used while mining to check if a given itemset
-  // is frequent.
-  int transactionCount;
-  int minSupport;
+  // The transaction count with which this FP-Tree was created. This number to
+  // determine the support of a given itemset.
+  int _transactionCount;
 
   // Returns handle of the root node.
   SmiRecordId root();
@@ -543,8 +543,11 @@ int mineFpTreeVM(Word *args, Word &result, int message, Word &local,
 struct mineFpTreeInfo : OperatorInfo {
   mineFpTreeInfo() : OperatorInfo() {
     this->name = "mineFpTree";
-    this->signature = "fptree -> stream(tuple(Itemset: intset, Support: real))";
-    this->syntax = "_ mineFpTree[_, _]";
+    this->signature =
+        "fptree real -> stream(tuple(Itemset: intset, Support: real))";
+    this->appendSignature(
+        "fptree int -> stream(tuple(Itemset: intset, Support: real))");
+    this->syntax = "_ mineFpTree[_]";
     this->meaning = "Discovers the frequent itemsets in the given FP-Tree";
     this->usesArgsInTypeMapping = true;
   }

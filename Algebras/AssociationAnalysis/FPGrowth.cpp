@@ -45,8 +45,10 @@ namespace AssociationAnalysis {
 // itemsets.
 class FPTreeInMemory : public FPTreeImpl<FPTreeInMemory, std::size_t> {
 public:
-  explicit FPTreeInMemory(int transactionCount, int minSupport)
-      : transactionCount(transactionCount), minSupport(minSupport), nodes(1) {}
+  explicit FPTreeInMemory(int transactionCount)
+      : _transactionCount(transactionCount), nodes(1) {}
+
+  int transactionCount() { return _transactionCount; }
 
 private:
   // Represents a node of the FP-Tree.
@@ -76,11 +78,9 @@ private:
     std::size_t link;
   };
 
-  // The transaction count and the minSupport with which this FP-Tree was
-  // created. This numbers will be used while mining to check if a given itemset
-  // is frequent.
-  int transactionCount;
-  int minSupport;
+  // The transaction count with which this FP-Tree was created. This number to
+  // determine the support of a given itemset.
+  int _transactionCount;
 
   // Nodes are stored in a vector and point to each other by using indexes into
   // the same vector.
@@ -250,7 +250,7 @@ fpGrowthLI::fpGrowthLI(GenericRelation *relation, int minSupport,
 
   // Scan database to create the FP-Tree and mine the frequent itemsets.
   {
-    FPTreeInMemory fpTree(transactionCount, minSupport);
+    FPTreeInMemory fpTree(transactionCount);
 
     // Database scan.
     std::unique_ptr<GenericRelationIterator> rit(relation->MakeScan());
@@ -268,7 +268,7 @@ fpGrowthLI::fpGrowthLI(GenericRelation *relation, int minSupport,
       t->DeleteIfAllowed();
     }
 
-    fpTree.mine(this->frequentItemsets);
+    fpTree.mine(this->frequentItemsets, minSupport);
   }
 
   // Setup iterator for the result stream.
@@ -294,30 +294,6 @@ Tuple *fpGrowthLI::getNext() {
   }
 }
 
-int mineFpTreeVM(Word *args, Word &result, int message, Word &local,
-                 Supplier s) {
-  auto *li = (frequentItemsetStreamLI *)local.addr;
-  switch (message) {
-  case OPEN: {
-    delete li;
-    std::vector<std::pair<std::vector<int>, double>> frequentItemsets;
-    auto fpTree = (FPTreeT *)args[0].addr;
-    fpTree->mine(frequentItemsets);
-    local.addr = new frequentItemsetStreamLI(std::move(frequentItemsets));
-    return 0;
-  }
-  case REQUEST:
-    result.addr = li ? li->getNext() : nullptr;
-    return result.addr ? YIELD : CANCEL;
-  case CLOSE:
-    delete li;
-    local.addr = nullptr;
-    return 0;
-  default:
-    return 0;
-  }
-}
-
 /*
   FPTree data type implementation
 
@@ -327,7 +303,7 @@ FPTreeT::FPTreeT()
     : nodeFile(SmiKey::KeyDataType::Integer, sizeof(Node), false),
       nextNodeId(0),
       headerFile(SmiKey::KeyDataType::Integer, sizeof(Header), false),
-      nextHeaderId(0), transactionCount(0), minSupport(0) {
+      nextHeaderId(0), _transactionCount(0) {
   this->nodeFile.Create();
   this->headerFile.Create();
   Node::create(this->nodeFile, this->nextNodeId, {});
@@ -335,21 +311,19 @@ FPTreeT::FPTreeT()
 
 FPTreeT::FPTreeT(SmiFileId nodeFileId, SmiRecordId nextNodeId,
                  SmiFileId headerFileId, SmiRecordId nextHeaderId,
-                 int transactionCount, int minSupport)
+                 int transactionCount)
     : nodeFile(SmiKey::KeyDataType::Integer, sizeof(Node), false),
       nextNodeId(nextNodeId),
       headerFile(SmiKey::KeyDataType::Integer, sizeof(Header), false),
-      nextHeaderId(nextHeaderId), transactionCount(transactionCount),
-      minSupport(minSupport) {
+      nextHeaderId(nextHeaderId), _transactionCount(transactionCount) {
   this->nodeFile.Open(nodeFileId);
   this->headerFile.Open(headerFileId);
 }
 
-FPTreeT::FPTreeT(int transactionCount, int minSupport)
+FPTreeT::FPTreeT(int transactionCount)
     : nodeFile(SmiKey::KeyDataType::Integer, sizeof(Node), true), nextNodeId(0),
       headerFile(SmiKey::KeyDataType::Integer, sizeof(Header), true),
-      nextHeaderId(0), transactionCount(transactionCount),
-      minSupport(minSupport) {
+      nextHeaderId(0), _transactionCount(transactionCount) {
   this->nodeFile.Create();
   this->headerFile.Create();
   Node::create(this->nodeFile, this->nextNodeId, {});
@@ -381,8 +355,7 @@ ListExpr FPTreeT::Out(ListExpr typeInfo, Word w) {
     nodeRepr.append(NList().intAtom((int)node.link));
     nodes.append(nodeRepr);
   }
-  return NList(NList().intAtom(fpTree->transactionCount),
-               NList().intAtom(fpTree->minSupport), headers, nodes)
+  return NList(NList().intAtom(fpTree->_transactionCount), headers, nodes)
       .listExpr();
 }
 
@@ -390,25 +363,19 @@ Word FPTreeT::In(const ListExpr typeInfo, const ListExpr instance,
                  const int errorPos, ListExpr &errorInfo, bool &correct) {
   NList in(instance);
   correct = false;
-  if (in.isList() && in.length() == 4) {
+  if (in.isList() && in.length() == 3) {
     // Unserialize transactionCount.
     if (!in.first().isInt()) {
       return nullptr;
     }
     int transactionCount = in.first().intval();
 
-    // Unserialize minSupport.
-    if (!in.second().isInt()) {
-      return nullptr;
-    }
-    int minSupport = in.second().intval();
-
     // Unserialize headers.
     SmiHashFile headerFile(SmiKey::KeyDataType::Integer, true, false);
     SmiRecordId nextHeaderId = 0;
     headerFile.Create();
-    if (in.third().isList() && !in.third().isEmpty()) {
-      NList headers = in.third();
+    if (in.second().isList() && !in.second().isEmpty()) {
+      NList headers = in.second();
       for (std::size_t i = 1; i <= headers.length(); i += 1) {
         if (headers.elem(i).isList() && headers.elem(i).length() == 4 &&
             headers.elem(i).first().isInt() &&
@@ -437,8 +404,8 @@ Word FPTreeT::In(const ListExpr typeInfo, const ListExpr instance,
     SmiHashFile nodeFile(SmiKey::KeyDataType::Integer, true, false);
     SmiRecordId nextNodeId = 0;
     nodeFile.Create();
-    if (in.fourth().isList() && !in.fourth().isEmpty()) {
-      NList nodes = in.fourth();
+    if (in.third().isList() && !in.third().isEmpty()) {
+      NList nodes = in.third();
       for (std::size_t i = 1; i <= nodes.length(); i += 1) {
         if (nodes.elem(i).isList() && nodes.elem(i).length() == 7 &&
             nodes.elem(i).first().isInt() && nodes.elem(i).second().isInt() &&
@@ -469,7 +436,7 @@ Word FPTreeT::In(const ListExpr typeInfo, const ListExpr instance,
     // Create FP-tree.
     correct = true;
     return new FPTreeT(nodeFile.GetFileId(), nextNodeId, headerFile.GetFileId(),
-                       nextHeaderId, transactionCount, minSupport);
+                       nextHeaderId, transactionCount);
   } else {
     return nullptr;
   }
@@ -533,16 +500,8 @@ bool FPTreeT::Open(SmiRecord &valueRecord, std::size_t &offset,
   }
   offset += sizeof(transactionCount);
 
-  // Read minSupport.
-  int minSupport;
-  if (valueRecord.Read(&minSupport, sizeof(minSupport), offset) !=
-      sizeof(minSupport)) {
-    return false;
-  }
-  offset += sizeof(minSupport);
-
   value.addr = new FPTreeT(nodeFileId, nextNodeId, headerFileId, nextHeaderId,
-                           transactionCount, minSupport);
+                           transactionCount);
   return true;
 }
 
@@ -582,19 +541,12 @@ bool FPTreeT::Save(SmiRecord &valueRecord, std::size_t &offset,
   offset += sizeof(fpTree->nextHeaderId);
 
   // Write transactionCount.
-  if (valueRecord.Write(&fpTree->transactionCount,
-                        sizeof(fpTree->transactionCount),
-                        offset) != sizeof(fpTree->transactionCount)) {
+  if (valueRecord.Write(&fpTree->_transactionCount,
+                        sizeof(fpTree->_transactionCount),
+                        offset) != sizeof(fpTree->_transactionCount)) {
     return false;
   }
-  offset += sizeof(fpTree->transactionCount);
-
-  // Write minSupport.
-  if (valueRecord.Write(&fpTree->minSupport, sizeof(fpTree->minSupport),
-                        offset) != sizeof(fpTree->minSupport)) {
-    return false;
-  }
-  offset += sizeof(fpTree->minSupport);
+  offset += sizeof(fpTree->_transactionCount);
 
   return true;
 }
@@ -626,8 +578,7 @@ Word FPTreeT::Clone(const ListExpr typeInfo, const Word &w) {
   headerFile.Close();
   // Create FP-tree clone.
   return new FPTreeT(nodeFile.GetFileId(), nextNodeId, headerFile.GetFileId(),
-                     nextHeaderId, source->transactionCount,
-                     source->minSupport);
+                     nextHeaderId, source->_transactionCount);
 }
 
 void *FPTreeT::Cast(void *addr) { return (new (addr) FPTreeT); }
@@ -638,7 +589,7 @@ bool FPTreeT::KindCheck(ListExpr type, ListExpr &errorInfo) {
   return listutils::isSymbol(type, BasicType());
 }
 
-void FPTreeT::reset(int transactionCount, int minSupport) {
+void FPTreeT::reset(int transactionCount) {
   if (this->nodeFile.IsOpen()) {
     this->nodeFile.Truncate();
   } else {
@@ -651,8 +602,7 @@ void FPTreeT::reset(int transactionCount, int minSupport) {
     this->headerFile.Create();
   }
   this->nextHeaderId = 0;
-  this->transactionCount = transactionCount;
-  this->minSupport = minSupport;
+  this->_transactionCount = transactionCount;
   Node::create(this->nodeFile, this->nextNodeId, {});
 }
 
@@ -958,7 +908,7 @@ int createFpTreeVM(Word *args, Word &result, int message, Word &local,
 
   result = qp->ResultStorage(s);
   auto fpTree = (FPTreeT *)result.addr;
-  fpTree->reset(transactionCount, minSupport);
+  fpTree->reset(transactionCount);
 
   std::vector<int> frequentItems;
 
@@ -1019,16 +969,71 @@ int createFpTreeVM(Word *args, Word &result, int message, Word &local,
 
 ListExpr mineFpTreeTM(ListExpr args) {
   NList type(args);
-  if (type.isList() && type.length() == 1) {
+
+  bool relativeSupport = false;
+  NList attrs;
+  if (type.length() == 2) {
     if (!type.elem(1).first().isSymbol(FPTreeT::BasicType())) {
-      return NList::typeError("Argument must be of type fptree.");
+      return NList::typeError("Argument number 1 must be of type fptree.");
     }
-    NList tupleType = NList(frequentItemsetTupleType());
-    return NList().streamOf(tupleType).listExpr();
+    if (type.elem(2).first().isSymbol(CcInt::BasicType())) {
+      if (type.elem(2).second().intval() <= 0) {
+        return NList::typeError("Argument number 2 must be of type int and > 0 "
+                                "or of type real and in the interval (0, 1).");
+      }
+    } else if (type.elem(2).first().isSymbol(CcReal::BasicType())) {
+      if (type.elem(2).second().realval() <= 0.0 ||
+          type.elem(2).second().realval() >= 1.0) {
+        return NList::typeError("Argument number 2 must be of type int and > 0 "
+                                "or of type real and in the interval (0, 1).");
+      } else {
+        relativeSupport = true;
+      }
+    } else {
+      return NList::typeError("Argument number 2 must be of type int and > 0 "
+                              "or of type real and in the interval (0, 1).");
+    }
   } else {
-    return NList::typeError("1 argument expected but " +
+    return NList::typeError("2 arguments expected but " +
                             std::to_string(type.length()) + " received.");
   }
+
+  NList tupleType = NList(frequentItemsetTupleType());
+  return NList(Symbols::APPEND(), NList().boolAtom(relativeSupport).enclose(),
+               NList().streamOf(tupleType).listExpr())
+      .listExpr();
 }
 
+int mineFpTreeVM(Word *args, Word &result, int message, Word &local,
+                 Supplier s) {
+  auto *li = (frequentItemsetStreamLI *)local.addr;
+  switch (message) {
+  case OPEN: {
+    delete li;
+    auto fpTree = (FPTreeT *)args[0].addr;
+    bool relativeSupport = ((CcBool *)args[2].addr)->GetBoolval();
+    int minSupport = 0;
+    if (relativeSupport) {
+      double support = ((CcReal *)args[1].addr)->GetRealval();
+      minSupport =
+          (int)(std::ceil(support * (double)fpTree->transactionCount()));
+    } else {
+      minSupport = ((CcInt *)args[1].addr)->GetIntval();
+    }
+    std::vector<std::pair<std::vector<int>, double>> frequentItemsets;
+    fpTree->mine(frequentItemsets, minSupport);
+    local.addr = new frequentItemsetStreamLI(std::move(frequentItemsets));
+    return 0;
+  }
+  case REQUEST:
+    result.addr = li ? li->getNext() : nullptr;
+    return result.addr ? YIELD : CANCEL;
+  case CLOSE:
+    delete li;
+    local.addr = nullptr;
+    return 0;
+  default:
+    return 0;
+  }
+}
 } // namespace AssociationAnalysis
