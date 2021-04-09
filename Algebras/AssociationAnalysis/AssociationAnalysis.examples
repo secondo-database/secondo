@@ -134,3 +134,9 @@ Number    : 21
 Signature : stream(tuple(Itemset: intset, Support: real)) real -> stream(tuple(Itemset: intset, Support: real, Confidence: real))
 Example   : query transactions eclat[Itemset, 0.015] genStrongRules[0.5] count
 Result    : 9
+
+Operator  : csvLoadTransactions
+Number    : 22
+Signature : text -> stream(tuple(Id: int, Itemset: intset))
+Example   : query csvLoadTransactions('/home/paul/Downloads/OnlineRetailZZ.txt') count;
+Result    : 540455

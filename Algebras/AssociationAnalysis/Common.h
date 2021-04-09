@@ -59,7 +59,13 @@ private:
   TupleType *tupleType;
 };
 
+// Returns the list representation of the tuple type that is used for the
+// the frequent itemsets: tuple(Itemset: intset, Support: real)
 ListExpr frequentItemsetTupleType();
+
+// Returns the list representation of the tuple type that is used for the
+// generated transactions: tuple(Id: int, Itemset: intset)
+ListExpr transactionsTupleType();
 
 // Type mapping for a frequent itemset mining operator.
 ListExpr mineTM(ListExpr args, ListExpr returnType);

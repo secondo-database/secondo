@@ -32,6 +32,7 @@ January 2021 - April 2021, P. Fedorow for bachelor thesis.
 
 #include "Algebras/Collection/IntSet.h"
 #include "Algebras/Relation-C++/RelationAlgebra.h" // rel, trel, tuple
+#include "Common.h"
 #include "NList.h"
 #include "NestedList.h"
 #include "StandardTypes.h"
@@ -173,7 +174,7 @@ getTransactionsLI::getTransactionsLI(size_t numOfTransactions,
 
   // Setup resulting tuple type.
   this->tupleType = new TupleType(
-      SecondoSystem::GetCatalog()->NumericType(genTransactionsTupleType()));
+      SecondoSystem::GetCatalog()->NumericType(transactionsTupleType()));
 }
 
 // Returns the next generated transaction as a tuple.

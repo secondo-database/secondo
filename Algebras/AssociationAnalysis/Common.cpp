@@ -69,6 +69,15 @@ ListExpr frequentItemsetTupleType() {
   return type;
 }
 
+ListExpr transactionsTupleType() {
+  NList attrs = NList(
+      NList(NList().symbolAtom("Id"), NList().symbolAtom(CcInt::BasicType())),
+      NList(NList().symbolAtom("Itemset"),
+            NList().symbolAtom(collection::IntSet::BasicType())));
+  ListExpr type = NList().tupleOf(attrs).listExpr();
+  return type;
+}
+
 // Type mapping for a frequent itemset mining operator.
 ListExpr mineTM(ListExpr args, ListExpr returnType) {
   NList type(args);

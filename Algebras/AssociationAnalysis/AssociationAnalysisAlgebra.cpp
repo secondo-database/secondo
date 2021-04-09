@@ -30,6 +30,7 @@ January 2021 - April 2021, P. Fedorow for bachelor thesis.
 
 #include "Apriori.h"
 #include "Common.h"
+#include "Csv.h"
 #include "Eclat.h"
 #include "FPGrowth.h"
 #include "GenRules.h"
@@ -51,6 +52,8 @@ public:
     this->AddOperator(genTransactionsInfo(), genTransactionsVM,
                       genTransactionsTM);
     this->AddOperator(mineFpTreeInfo(), mineFpTreeVM, mineFpTreeTM);
+    this->AddOperator(csvLoadTransactionsInfo(), csvLoadTransactionsVM,
+                      csvLoadTransactionsTM);
   }
 };
 } // namespace AssociationAnalysis
