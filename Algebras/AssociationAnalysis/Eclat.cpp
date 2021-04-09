@@ -40,6 +40,9 @@ January 2021 - April 2021, P. Fedorow for bachelor thesis.
 #include <vector>
 
 namespace AssociationAnalysis {
+
+enum Deoptimize { NoTriangularMatrix = 1 << 0, NoReordering = 1 << 1 };
+
 // Performs a bottom-up search of frequent itemsets by recursively combining
 // the atoms to larger itemsets and examining the support of the resulting
 // tidsets.
@@ -85,11 +88,46 @@ eclatLI::eclatLI(GenericRelation *relation, int minSupport, int itemsetAttr,
   int transactionCount = relation->GetNoTuples();
 
   std::vector<std::pair<int, std::vector<int>>> atoms;
+  std::vector<std::pair<std::vector<int>, std::vector<int>>>
+      atomsNoTriangularMatrix;
   TriangularMatrix triangularMatrix;
 
-  // Collect all frequent items and populate the triangular matrix with the
-  // support counts of all 2-itemsets.
-  {
+  if (deoptimize & Deoptimize::NoTriangularMatrix) {
+    // Collect all frequent items.
+
+    // Mapping from an item to its tidset.
+    std::unordered_map<int, std::set<int>> itemTidsets;
+
+    // Database scan.
+    std::unique_ptr<GenericRelationIterator> rit(relation->MakeScan());
+    Tuple *t;
+    int tid = 0;
+    while ((t = rit->GetNextTuple()) != nullptr) {
+      auto transaction = (collection::IntSet *)t->GetAttribute(itemsetAttr);
+
+      for (size_t i = 0; i < transaction->getSize(); i += 1) {
+        // Insert the tid into the items tidset.
+        itemTidsets[transaction->get(i)].insert(tid);
+      }
+
+      tid += 1;
+      t->DeleteIfAllowed();
+    }
+
+    // Find frequent items and insert them into the atom set.
+    for (auto const &[item, tidset] : itemTidsets) {
+      if ((int)tidset.size() >= minSupport) {
+        std::vector<int> tidsetv(tidset.cbegin(), tidset.cend());
+        std::vector<int> itemset = {item};
+        atomsNoTriangularMatrix.emplace_back(itemset, tidsetv);
+        double support = (double)tidset.size() / (double)transactionCount;
+        this->frequentItemsets.emplace_back(itemset, support);
+      }
+    }
+  } else {
+    // Collect all frequent items and populate the triangular matrix with the
+    // support counts of all 2-itemsets.
+
     // Mapping from an item to its tidset.
     std::unordered_map<int, std::set<int>> itemTidsets;
 
@@ -127,48 +165,62 @@ eclatLI::eclatLI(GenericRelation *relation, int minSupport, int itemsetAttr,
     }
   }
 
-  // The atoms are sorted ascendingly by their corresponding tidset size. This
-  // reduces the number of tidset intersections in the bottom-up search.
-  std::sort(atoms.begin(), atoms.end(), [](auto &a, auto &b) -> bool {
-    return a.second.size() < b.second.size();
-  });
-
-  // Perform a bottom-up search of frequent itemsets by recursively combining
-  // the atoms to larger itemsets and examining the support of the
-  // resulting tidsets.
-  //
-  // We inline the first level of the eclat function here so that we can use
-  // the triangular matrix for faster support checking.
-  for (size_t i = 0; i < atoms.size(); i += 1) {
-    // Atom set for the next level.
-    std::vector<std::pair<std::vector<int>, std::vector<int>>> newAtoms;
-
-    // Combine atoms to and see if the resulting itemset satisfies minSupport.
-    for (size_t j = i + 1; j < atoms.size(); j += 1) {
-      auto const &[item1, tidset1] = atoms[i];
-      auto const &[item2, tidset2] = atoms[j];
-      // Compute the support count by consulting the triangular matrix for the
-      // support count of the 2-itemset.
-      if (triangularMatrix.count(item1, item2) >= minSupport) {
-        // Place the resulting itemset and tidset into the atom set for the next
-        // level of the bottom-up search.
-        std::vector<int> itemset(
-            {std::min(item1, item2), std::max(item1, item2)});
-        std::vector<int> tidset;
-        std::set_intersection(tidset1.cbegin(), tidset1.cend(),
-                              tidset2.cbegin(), tidset2.cend(),
-                              std::back_inserter(tidset));
-        newAtoms.emplace_back(itemset, tidset);
-        // Safe the itemset for the result stream.
-        double support = (double)triangularMatrix.count(item1, item2) /
-                         (double)transactionCount;
-        this->frequentItemsets.emplace_back(itemset, support);
-      }
+  if (!(deoptimize & Deoptimize::NoReordering)) {
+    // The atoms are sorted ascendingly by their corresponding tidset size.
+    // This reduces the number of tidset intersections in the bottom-up search.
+    if (deoptimize & Deoptimize::NoTriangularMatrix) {
+      std::sort(atomsNoTriangularMatrix.begin(), atomsNoTriangularMatrix.end(),
+                [](auto &a, auto &b) -> bool {
+                  return a.second.size() < b.second.size();
+                });
+    } else {
+      std::sort(atoms.begin(), atoms.end(), [](auto &a, auto &b) -> bool {
+        return a.second.size() < b.second.size();
+      });
     }
+  }
 
-    if (!newAtoms.empty()) {
-      // New atoms were found, use them to find larger itemsets.
-      eclat(minSupport, transactionCount, newAtoms, this->frequentItemsets);
+  if (deoptimize & Deoptimize::NoTriangularMatrix) {
+    eclat(minSupport, transactionCount, atomsNoTriangularMatrix,
+          this->frequentItemsets);
+  } else {
+    // Perform a bottom-up search of frequent itemsets by recursively combining
+    // the atoms to larger itemsets and examining the support of the
+    // resulting tidsets.
+    //
+    // We inline the first level of the eclat function here so that we can use
+    // the triangular matrix for faster support checking.
+    for (size_t i = 0; i < atoms.size(); i += 1) {
+      // Atom set for the next level.
+      std::vector<std::pair<std::vector<int>, std::vector<int>>> newAtoms;
+
+      // Combine atoms to and see if the resulting itemset satisfies minSupport.
+      for (size_t j = i + 1; j < atoms.size(); j += 1) {
+        auto const &[item1, tidset1] = atoms[i];
+        auto const &[item2, tidset2] = atoms[j];
+        // Compute the support count by consulting the triangular matrix for the
+        // support count of the 2-itemset.
+        if (triangularMatrix.count(item1, item2) >= minSupport) {
+          // Place the resulting itemset and tidset into the atom set for the
+          // next level of the bottom-up search.
+          std::vector<int> itemset(
+              {std::min(item1, item2), std::max(item1, item2)});
+          std::vector<int> tidset;
+          std::set_intersection(tidset1.cbegin(), tidset1.cend(),
+                                tidset2.cbegin(), tidset2.cend(),
+                                std::back_inserter(tidset));
+          newAtoms.emplace_back(itemset, tidset);
+          // Safe the itemset for the result stream.
+          double support = (double)triangularMatrix.count(item1, item2) /
+                           (double)transactionCount;
+          this->frequentItemsets.emplace_back(itemset, support);
+        }
+      }
+
+      if (!newAtoms.empty()) {
+        // New atoms were found, use them to find larger itemsets.
+        eclat(minSupport, transactionCount, newAtoms, this->frequentItemsets);
+      }
     }
   }
 

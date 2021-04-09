@@ -236,3 +236,21 @@ Number    : 38
 Signature : rel(tuple(...)) attr int int -> stream(tuple(Itemset: intset, Support: real))
 Example   : query transactions apriori[Itemset, 15, 15] count
 Result    : 64
+
+Operator  : eclat
+Number    : 39
+Signature : rel(tuple(...)) attr int -> stream(tuple(Itemset: intset, Support: real))
+Example   : query transactions eclat[Itemset, 15, 1] count
+Result    : 64
+
+Operator  : eclat
+Number    : 40
+Signature : rel(tuple(...)) attr int -> stream(tuple(Itemset: intset, Support: real))
+Example   : query transactions eclat[Itemset, 15, 2] count
+Result    : 64
+
+Operator  : eclat
+Number    : 41
+Signature : rel(tuple(...)) attr int -> stream(tuple(Itemset: intset, Support: real))
+Example   : query transactions eclat[Itemset, 15, 3] count
+Result    : 64
