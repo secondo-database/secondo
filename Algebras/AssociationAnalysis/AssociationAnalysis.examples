@@ -266,3 +266,9 @@ Number    : 43
 Signature : fptree int -> stream(tuple(Itemset: intset, Support: real))
 Example   : query transactionsFpTree mineFpTree[15, 1] count
 Result    : 64
+
+Operator  : extendItemNames
+Number    : 44
+Signature : stream(tuple(...)) text funlist -> stream(tuple(...))
+Example   : query transactions feed extendItemNames['/home/paul/Downloads/attrnames.txt'; ItemNames: Itemset] count
+Result    : 1000

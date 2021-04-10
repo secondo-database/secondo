@@ -56,6 +56,8 @@ public:
                       csvLoadTransactionsTM);
     this->AddOperator(csvSaveTransactionsInfo(), csvSaveTransactionsVM,
                       csvSaveTransactionsTM);
+    this->AddOperator(extendItemNamesInfo(), extendItemNamesVM,
+                      extendItemNamesTM);
   }
 };
 } // namespace AssociationAnalysis

@@ -32,13 +32,17 @@ January 2021 - April 2021, P. Fedorow for bachelor thesis.
 
 #include "Common.h"
 
+#include "Algebras/Collection/CollectionAlgebra.h"
+#include "Algebras/Collection/IntSet.h"
 #include "Algebras/FText/FTextAlgebra.h"
 #include "StandardTypes.h"
 
 #include <fstream>
 #include <iostream>
+#include <utility>
 
 namespace AssociationAnalysis {
+
 // Loads transactions from a csv.
 csvLoadTransactionsLI::csvLoadTransactionsLI(std::string path) {
   std::fstream file;
@@ -136,6 +140,10 @@ ListExpr csvSaveTransactionsTM(ListExpr args) {
       return NList::typeError(
           "Argument number 1 must be of type stream(tuple(...)).");
     }
+    if (!type.elem(2).isSymbol(1)) {
+      return NList::typeError("Argument number 2 must name an attribute in the "
+                              "tuple stream given as the first argument.");
+    }
     if (!type.elem(3).first().isSymbol(FText::BasicType())) {
       return NList::typeError("Argument number 3 must be of type text.");
     }
@@ -192,5 +200,167 @@ int csvSaveTransactionsVM(Word *args, Word &result, int message, Word &local,
     success->Set(true, false);
   }
   return 0;
+}
+
+extendItemNamesLI::extendItemNamesLI(
+    Stream<Tuple> *stream, const std::string &path,
+    std::vector<std::pair<int, int>> attrMapping, ListExpr tupleType)
+    : stream(stream), attrMapping(std::move(attrMapping)) {
+  this->tupleType =
+      new TupleType(SecondoSystem::GetCatalog()->NumericType(tupleType));
+  this->stream->open();
+  std::fstream file;
+  file.open(path, std::ios::in);
+  if (file.is_open()) {
+    std::string line;
+    while (std::getline(file, line)) {
+      std::istringstream lineStream(line);
+      std::string item, name;
+      std::getline(lineStream, item, ',');
+      std::getline(lineStream, name, '\n');
+      try {
+        this->nameMapping[std::stoi(item)] = name;
+      } catch (std::exception &e) {
+        continue;
+      }
+    }
+  }
+}
+
+// Returns the next tuple.
+Tuple *extendItemNamesLI::getNext() {
+  Tuple *t;
+  if ((t = this->stream->request())) {
+    auto *nt = new Tuple(this->tupleType);
+    for (int i = 0; i < t->GetNoAttributes(); i += 1) {
+      nt->CopyAttribute(i, t, i);
+    }
+    ListExpr textSetType = SecondoSystem::GetCatalog()->NumericType(
+        NList(NList().symbolAtom(Set::BasicType()),
+              NList().symbolAtom(FText::BasicType()))
+            .listExpr());
+    for (auto [itemsetAttr, namesAttr] : this->attrMapping) {
+      auto names = new collection::Collection(collection::CollectionType::set,
+                                              textSetType, 10);
+      names->SetDefined(true);
+      auto itemset = (collection::IntSet *)t->GetAttribute(itemsetAttr);
+      for (std::size_t i = 0; i < itemset->getSize(); i += 1) {
+        int item = itemset->get(i);
+        if (this->nameMapping.count(item) > 0) {
+          names->Insert(new FText(true, this->nameMapping[item]), 1);
+        }
+      }
+      nt->PutAttribute(namesAttr, names);
+    }
+    return nt;
+  }
+  return nullptr;
+}
+
+// Type mapping for the extendItemNames operator.
+ListExpr extendItemNamesTM(ListExpr args) {
+  NList type(args);
+
+  NList attrs;
+  NList newAttrs;
+  if (type.length() == 3) {
+    if (!type.elem(1).first().checkStreamTuple(attrs)) {
+      return NList::typeError(
+          "Argument number 1 must be of type stream(tuple(...)).");
+    }
+    newAttrs = attrs;
+    if (!type.elem(2).first().isSymbol(FText::BasicType())) {
+      return NList::typeError("Argument number 2 must be of type text.");
+    }
+    NList attrPairs = type.elem(3).first();
+    for (std::size_t i = 1; i <= attrPairs.length(); i += 1) {
+      if (attrPairs.elem(i).length() != 2) {
+        return NList::typeError(
+            "Argument number 3 must be a list of attribute pairs.");
+      }
+      std::string attrName = attrPairs.elem(i).second().str();
+      bool attrFound = false;
+      bool attrIsIntSet = false;
+      bool attrConflict = false;
+      for (std::size_t j = 1; j <= attrs.length(); j += 1) {
+        NList attr = attrs.elem(j);
+        if (attr.first().isSymbol(attrName)) {
+          attrFound = true;
+          attrIsIntSet =
+              attr.second().isSymbol(collection::IntSet::BasicType());
+        }
+        if (attr.first().isSymbol(attrPairs.elem(i).first().str())) {
+          attrConflict = true;
+        }
+      }
+      if (attrFound) {
+        if (!attrIsIntSet) {
+          return NList::typeError(
+              "Attribute " + attrName +
+              " is not an intset in the given tuple stream.");
+        }
+      } else {
+        return NList::typeError("Attribute " + attrName +
+                                " not found in the given tuple stream.");
+      }
+      if (attrConflict) {
+        return NList::typeError("Attribute " + attrPairs.elem(i).first().str() +
+                                " already exists in the given tuple stream.");
+      }
+      newAttrs.append(NList(attrPairs.elem(i).first(),
+                            NList(NList().symbolAtom(Set::BasicType()),
+                                  NList().symbolAtom(FText::BasicType()))));
+    }
+  } else {
+    return NList::typeError("3 arguments expected but " +
+                            std::to_string(type.length()) + " received.");
+  }
+
+  return NList().streamOf(NList().tupleOf(newAttrs)).listExpr();
+}
+
+// Value mapping for the extendItemNames operator.
+int extendItemNamesVM(Word *args, Word &result, int message, Word &local,
+                      Supplier s) {
+  auto *li = (extendItemNamesLI *)local.addr;
+  switch (message) {
+  case OPEN: {
+    delete li;
+    auto *stream = new Stream<Tuple>(args[0]);
+    std::string path = ((FText *)args[1].addr)->GetValue();
+    NList resultType(qp->GetType(s));
+    NList tupleType = resultType.second();
+    std::vector<std::pair<int, int>> attrMapping;
+    NList attrPairs(qp->GetType(args[2].addr));
+    for (std::size_t i = 1; i <= attrPairs.length(); i += 1) {
+      std::string namesAttrName = attrPairs.elem(i).first().str();
+      std::string itemsetAttrName = attrPairs.elem(i).second().str();
+      int namesAttr = -1;
+      int itemsetAttr = -1;
+      for (int j = 1; j <= (int)tupleType.second().length(); j += 1) {
+        if (tupleType.second().elem(j).first() == namesAttrName) {
+          namesAttr = j;
+        }
+        if (tupleType.second().elem(j).first() == itemsetAttrName) {
+          itemsetAttr = j;
+        }
+      }
+      assert(namesAttr != -1 && itemsetAttr != -1);
+      attrMapping.emplace_back(itemsetAttr - 1, namesAttr - 1);
+    };
+    local.addr =
+        new extendItemNamesLI(stream, path, attrMapping, tupleType.listExpr());
+    return 0;
+  }
+  case REQUEST:
+    result.addr = li ? li->getNext() : nullptr;
+    return result.addr ? YIELD : CANCEL;
+  case CLOSE:
+    delete li;
+    local.addr = nullptr;
+    return 0;
+  default:
+    return 0;
+  }
 }
 } // namespace AssociationAnalysis

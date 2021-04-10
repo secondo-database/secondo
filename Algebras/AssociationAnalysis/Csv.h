@@ -37,14 +37,15 @@ January 2021 - April 2021, P. Fedorow for bachelor thesis.
 
 #pragma once
 
-#include "Algebras/Collection/IntSet.h"
 #include "Algebras/Relation-C++/RelationAlgebra.h" // rel, trel, tuple
 #include "NestedList.h"
 #include "Operator.h"
 #include "Stream.h"
 
+#include <memory>
 #include <set>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace AssociationAnalysis {
@@ -116,4 +117,60 @@ struct csvSaveTransactionsInfo : OperatorInfo {
     this->usesArgsInTypeMapping = true;
   }
 };
+
+// Local info class for the extendItemNames operator.
+class extendItemNamesLI {
+public:
+  // Extends the tuples of a given tuple stream with a new attribute. This
+  // attribute assigns names to the itemset in the tuple.
+  extendItemNamesLI(Stream<Tuple> *stream, const std::string &path,
+                    std::vector<std::pair<int, int>> attrMapping,
+                    ListExpr tupleType);
+
+  ~extendItemNamesLI() {
+    this->tupleType->DeleteIfAllowed();
+    this->stream->close();
+  }
+
+  // Returns the next tuple.
+  Tuple *getNext();
+
+private:
+  // Incoming stream.
+  std::unique_ptr<Stream<Tuple>> stream;
+
+  // Mapping item->name.
+  std::unordered_map<int, std::string> nameMapping;
+
+  // Mapping (itemset attr)->(name attr).
+  std::vector<std::pair<int, int>> attrMapping;
+
+  // Describes the resulting tuple type.
+  TupleType *tupleType;
+};
+
+// Type mapping for the extendItemNames operator.
+ListExpr extendItemNamesTM(ListExpr args);
+
+// Value mapping for the extendItemNames operator.
+int extendItemNamesVM(Word *args, Word &result, int message, Word &local,
+                      Supplier s);
+
+// Operator info for the extendItemNames operator.
+struct extendItemNamesInfo : OperatorInfo {
+  extendItemNamesInfo() : OperatorInfo() {
+    this->name = "extendItemNames";
+    this->signature = "stream(tuple(...)) text attr attr -> stream(tuple(...))";
+    this->syntax = "_ extendItemNames[_, _, _]";
+    this->meaning =
+        "Extends the tuples of a given tuple stream with a new attribute. This "
+        "attribute assigns names to the itemset in the tuple. The first "
+        "parameter is expected to be a tuple stream. The names of the items "
+        "are expected to be in a csv which path is given by the second "
+        "parameter. The third parameter is the attribute name of the itemset. "
+        "The fourth parameter is the name of the new attribute.";
+    this->usesArgsInTypeMapping = true;
+  }
+};
+
 } // namespace AssociationAnalysis
