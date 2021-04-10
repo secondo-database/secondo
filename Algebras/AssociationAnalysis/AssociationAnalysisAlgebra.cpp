@@ -30,11 +30,11 @@ January 2021 - April 2021, P. Fedorow for bachelor thesis.
 
 #include "Apriori.h"
 #include "Common.h"
-#include "Csv.h"
 #include "Eclat.h"
 #include "FPGrowth.h"
 #include "GenRules.h"
 #include "GenTransactions.h"
+#include "ImportExport.h"
 
 #include "Algebra.h"
 
@@ -52,10 +52,10 @@ public:
     this->AddOperator(genTransactionsInfo(), genTransactionsVM,
                       genTransactionsTM);
     this->AddOperator(mineFpTreeInfo(), mineFpTreeVM, mineFpTreeTM);
-    this->AddOperator(csvLoadTransactionsInfo(), csvLoadTransactionsVM,
-                      csvLoadTransactionsTM);
-    this->AddOperator(csvSaveTransactionsInfo(), csvSaveTransactionsVM,
-                      csvSaveTransactionsTM);
+    this->AddOperator(loadTransactionsInfo(), loadTransactionsVM,
+                      loadTransactionsTM);
+    this->AddOperator(saveTransactionsInfo(), saveTransactionsVM,
+                      saveTransactionsTM);
     this->AddOperator(extendItemNamesInfo(), extendItemNamesVM,
                       extendItemNamesTM);
   }

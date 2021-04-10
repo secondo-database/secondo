@@ -135,16 +135,16 @@ Signature : stream(tuple(Itemset: intset, Support: real)) real -> stream(tuple(I
 Example   : query transactions eclat[Itemset, 0.015] genStrongRules[0.5] count
 Result    : 9
 
-Operator  : csvSaveTransactions
+Operator  : saveTransactions
 Number    : 22
 Signature : stream(tuple(...)) text attr -> bool
-Example   : query transactions feed csvSaveTransactions[Itemset, '/tmp/assoctest_txs.txt'];
+Example   : query transactions feed saveTransactions[Itemset, '/tmp/assoctest_txs.txt'];
 Result    : TRUE
 
-Operator  : csvLoadTransactions
+Operator  : loadTransactions
 Number    : 23
 Signature : text -> stream(tuple(Id: int, Itemset: intset))
-Example   : query csvLoadTransactions('/tmp/assoctest_txs.txt') count;
+Example   : query loadTransactions('/tmp/assoctest_txs.txt') count;
 Result    : 1000
 
 Operator  : apriori

@@ -49,13 +49,13 @@ January 2021 - April 2021, P. Fedorow for bachelor thesis.
 #include <vector>
 
 namespace AssociationAnalysis {
-// Local info class for the csvLoadTransactions operator.
-class csvLoadTransactionsLI {
+// Local info class for the loadTransactions operator.
+class loadTransactionsLI {
 public:
   // Loads transactions from a csv.
-  csvLoadTransactionsLI(std::string path);
+  loadTransactionsLI(std::string path);
 
-  ~csvLoadTransactionsLI() { this->tupleType->DeleteIfAllowed(); }
+  ~loadTransactionsLI() { this->tupleType->DeleteIfAllowed(); }
 
   // Returns the next rule as a tuple.
   Tuple *getNext();
@@ -76,19 +76,19 @@ private:
   TupleType *tupleType;
 };
 
-// Type mapping for the csvLoadTransactions operator.
-ListExpr csvLoadTransactionsTM(ListExpr args);
+// Type mapping for the loadTransactions operator.
+ListExpr loadTransactionsTM(ListExpr args);
 
-// Value mapping for the csvLoadTransactions operator.
-int csvLoadTransactionsVM(Word *args, Word &result, int message, Word &local,
-                          Supplier s);
+// Value mapping for the loadTransactions operator.
+int loadTransactionsVM(Word *args, Word &result, int message, Word &local,
+                       Supplier s);
 
-// Operator info for the csvLoadTransactions operator.
-struct csvLoadTransactionsInfo : OperatorInfo {
-  csvLoadTransactionsInfo() : OperatorInfo() {
-    this->name = "csvLoadTransactions";
+// Operator info for the loadTransactions operator.
+struct loadTransactionsInfo : OperatorInfo {
+  loadTransactionsInfo() : OperatorInfo() {
+    this->name = "loadTransactions";
     this->signature = "text -> stream(tuple(Id: int, Itemset: intset))";
-    this->syntax = "csvLoadTransactions(_)";
+    this->syntax = "loadTransactions(_)";
     this->meaning =
         "Loads transactions from a transaction file. The parameter is expected "
         "to be the path of the import file. The expected format is: one "
@@ -97,19 +97,19 @@ struct csvLoadTransactionsInfo : OperatorInfo {
   }
 };
 
-// Type mapping for the csvSaveTransactions operator.
-ListExpr csvSaveTransactionsTM(ListExpr args);
+// Type mapping for the saveTransactions operator.
+ListExpr saveTransactionsTM(ListExpr args);
 
-// Value mapping for the csvSaveTransactions operator.
-int csvSaveTransactionsVM(Word *args, Word &result, int message, Word &local,
-                          Supplier s);
+// Value mapping for the saveTransactions operator.
+int saveTransactionsVM(Word *args, Word &result, int message, Word &local,
+                       Supplier s);
 
-// Operator info for the csvSaveTransactions operator.
-struct csvSaveTransactionsInfo : OperatorInfo {
-  csvSaveTransactionsInfo() : OperatorInfo() {
-    this->name = "csvSaveTransactions";
+// Operator info for the saveTransactions operator.
+struct saveTransactionsInfo : OperatorInfo {
+  saveTransactionsInfo() : OperatorInfo() {
+    this->name = "saveTransactions";
     this->signature = "stream(tuple(...)) text attr -> bool";
-    this->syntax = "_ csvSaveTransactions[_, _]";
+    this->syntax = "_ saveTransactions[_, _]";
     this->meaning =
         "Saves transactions from a transaction file. The parameter is expected "
         "to be the path of the export file. The expected format is: one "

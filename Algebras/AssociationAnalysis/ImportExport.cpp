@@ -28,7 +28,7 @@ January 2021 - April 2021, P. Fedorow for bachelor thesis.
 
 */
 
-#include "Csv.h"
+#include "ImportExport.h"
 
 #include "Common.h"
 
@@ -44,7 +44,7 @@ January 2021 - April 2021, P. Fedorow for bachelor thesis.
 namespace AssociationAnalysis {
 
 // Loads transactions from a csv.
-csvLoadTransactionsLI::csvLoadTransactionsLI(std::string path) {
+loadTransactionsLI::loadTransactionsLI(std::string path) {
   std::fstream file;
   file.open(path, std::ios::in);
   if (file.is_open()) {
@@ -77,7 +77,7 @@ csvLoadTransactionsLI::csvLoadTransactionsLI(std::string path) {
 }
 
 // Returns the next transactions as a tuple.
-Tuple *csvLoadTransactionsLI::getNext() {
+Tuple *loadTransactionsLI::getNext() {
   if (this->it != this->transactions.cend()) {
     auto &transaction = *this->it;
     auto tuple = new Tuple(this->tupleType);
@@ -90,8 +90,8 @@ Tuple *csvLoadTransactionsLI::getNext() {
   }
 }
 
-// Type mapping for the csvLoadTransactions operator.
-ListExpr csvLoadTransactionsTM(ListExpr args) {
+// Type mapping for the loadTransactions operator.
+ListExpr loadTransactionsTM(ListExpr args) {
   NList type(args);
 
   if (type.length() == 1) {
@@ -108,15 +108,15 @@ ListExpr csvLoadTransactionsTM(ListExpr args) {
   return NList().streamOf(tupleType).listExpr();
 }
 
-// Value mapping for the csvLoadTransactions operator.
-int csvLoadTransactionsVM(Word *args, Word &result, int message, Word &local,
-                          Supplier s) {
-  auto *li = (csvLoadTransactionsLI *)local.addr;
+// Value mapping for the loadTransactions operator.
+int loadTransactionsVM(Word *args, Word &result, int message, Word &local,
+                       Supplier s) {
+  auto *li = (loadTransactionsLI *)local.addr;
   switch (message) {
   case OPEN: {
     delete li;
     std::string path = ((FText *)args[0].addr)->GetValue();
-    local.addr = new csvLoadTransactionsLI(path);
+    local.addr = new loadTransactionsLI(path);
     return 0;
   }
   case REQUEST:
@@ -131,7 +131,7 @@ int csvLoadTransactionsVM(Word *args, Word &result, int message, Word &local,
   }
 }
 
-ListExpr csvSaveTransactionsTM(ListExpr args) {
+ListExpr saveTransactionsTM(ListExpr args) {
   NList type(args);
 
   NList attrs;
@@ -171,8 +171,8 @@ ListExpr csvSaveTransactionsTM(ListExpr args) {
       .listExpr();
 }
 
-int csvSaveTransactionsVM(Word *args, Word &result, int message, Word &local,
-                          Supplier s) {
+int saveTransactionsVM(Word *args, Word &result, int message, Word &local,
+                       Supplier s) {
   result = qp->ResultStorage(s);
   auto success = (CcBool *)result.addr;
   auto transactions = new Stream<Tuple>(args[0]);
