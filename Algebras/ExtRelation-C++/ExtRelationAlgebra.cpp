@@ -15579,6 +15579,199 @@ Operator AGGRTYPEOp(
 
 
 
+/*
+2.10 Operator ~buffer~
+ 
+Decuples two streams by buffering up to n 
+elements. After the buffer is filled, the buffered 
+is emitted and re-filled.
+
+2.10.1 Type mapping function of operator ~buffer~
+
+Type mapping for ~buffer~ is
+
+----  ((stream (tuple ((x1 t1)...(xn tn))) int)   ->
+              ((stream (tuple ((x1 t1)...(xn tn))))
+
+  or ((stream T) int) -> (stream T)  for T in kind DATA
+----
+
+*/
+ListExpr BufferTypeMap( ListExpr args )
+{
+
+  if(nl->ListLength(args)!=2){
+    return listutils::typeError("two arguments expected");
+  }
+
+  string err = " stream(tuple(...) x int or stream(DATA) x int expected";
+
+  ListExpr stream = nl->First(args);
+  ListExpr count = nl->Second(args);
+
+  if(( !Stream<Tuple>::checkType(stream) &&
+       !Stream<Attribute>::checkType(stream) ) ||
+     !CcInt::checkType(count) ){
+    return listutils::typeError(err);
+  }
+  return stream;
+}
+
+/*
+2.10.2 Value mapping function of operator ~buffer~
+
+*/
+
+
+struct BufferLocalInfo
+{
+  BufferLocalInfo( const size_t maxTuples = 0 ):
+    maxTuples( maxTuples ), streamExhausted(false)
+    {}
+
+  std::queue<Word> buffer;
+  size_t maxTuples;
+  bool streamExhausted;
+};
+
+int Buffer(Word* args, Word& result, int message, Word& local, Supplier s)
+{
+  BufferLocalInfo *bli;
+  Word tupleWord;
+
+  bli = (BufferLocalInfo*) local.addr;
+
+  CcInt* maxTupleCCInt = ((CcInt*) args[1].addr);
+
+  switch(message)
+  {
+    case OPEN:
+
+      if ( bli ) delete bli;
+
+
+      if(! maxTupleCCInt->IsDefined()) {
+        cerr << "Error: Max buffer value is not defined" << endl;
+        return CANCEL;
+      }
+
+      bli = new BufferLocalInfo( maxTupleCCInt->GetIntval() );
+      local.setAddr( bli );
+
+      qp->Open(args[0].addr);
+      return 0;
+
+    case REQUEST:
+
+      // Case 1: We have buffered tuples
+      if(! bli -> buffer.empty()) {
+        //cout << "Debug: Serving request from queue" << endl;
+        result = bli -> buffer.front();
+        bli -> buffer.pop();
+        return YIELD;
+      }
+
+      // Case 2: Buffer is empty but stream is ready
+      if(! bli->streamExhausted) {
+        //cout << "Debug: Re-fill queue" << endl;
+
+        while(bli -> buffer.size() < bli -> maxTuples) {
+          qp->Request(args[0].addr, tupleWord);
+
+          if(! qp->Received(args[0].addr)) {
+            bli->streamExhausted = true;
+            break;
+          }
+
+          bli -> buffer.push(tupleWord);
+        }
+      }
+    
+      if(! bli -> buffer.empty()) {
+        result = bli -> buffer.front();
+        bli -> buffer.pop();
+        return YIELD;
+      }
+
+      //  Case 3: Buffer is empty and stream is exhauted
+      return CANCEL;
+
+    case CLOSE:
+      qp->Close(args[0].addr);
+      return 0;
+
+    case CLOSEPROGRESS:
+      if ( bli )
+      {
+        delete bli;
+        local.setAddr(0);
+      }
+      return 0;
+
+    case REQUESTPROGRESS:
+
+      ProgressInfo p1;
+      ProgressInfo* pRes;
+
+      pRes = (ProgressInfo*) result.addr;
+
+      if ( !bli )  {
+         return CANCEL;
+      }
+
+      if ( qp->RequestProgress(args[0].addr, &p1) )
+      {
+        pRes->Card = p1.Card;
+        pRes->CopySizes(p1);
+        pRes->Time = p1.Time;
+        pRes->Progress = p1.Progress;
+        pRes->BTime = p1.BTime;
+        pRes->BProgress = p1.BProgress;    
+        return YIELD;
+      } else {
+        return CANCEL;
+      }
+
+  }
+  return 0;
+}
+
+
+
+/*
+2.10.3 Specification of operator ~head~
+
+*/
+const string BufferSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                         "\"Example\" ) "
+                         "( "
+                         "<text>((stream (tuple([a1:d1, ... ,an:dn]"
+                         "))) x int) -> (stream (tuple([a1:d1, ... ,"
+                         "an:dn]))) or \n"
+                         "((stream T) int) -> (stream T), "
+                         "for T in kind DATA.</text--->"
+                         "<text>_ head [ _ ]</text--->"
+                         "<text>Decuples two streams by buffering up to n "
+                         "elements. After the buffer is filled, the buffered "
+                         "is emitted and re-filled.</text--->"
+                         "<text>query cities feed buffer[10] consume\n"
+                         "query intstream(1,1000) buffer[10] printstream count"
+                         "</text--->"
+                              ") )";
+
+/*
+2.10.4 Definition of operator ~buffer~
+
+*/
+Operator extrelbuffer (
+         "buffer",                 // name
+         BufferSpec,               // specification
+         Buffer,                   // value mapping
+         Operator::SimpleSelect, // trivial selection function
+         BufferTypeMap             // type mapping
+);
+
+
 
 
 /*
@@ -15643,6 +15836,7 @@ class ExtRelationAlgebra : public Algebra
     sio->SetUsesMemory();
 
     AddOperator(&extrelhead);
+    AddOperator(&extrelbuffer);
     AddOperator(&extrelsortby);
       extrelsortby.SetUsesMemory();
     AddOperator(&extrelsort);
@@ -15746,6 +15940,7 @@ class ExtRelationAlgebra : public Algebra
 // support for progress queries
    extrelextend.EnableProgress();
    extrelhead.EnableProgress();
+   extrelbuffer.EnableProgress();
    extrelsortby.EnableProgress();
    extrelsort.EnableProgress();
    extrelrdup.EnableProgress();

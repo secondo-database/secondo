@@ -111,6 +111,12 @@ Signature: stream(T) x int -> stream(T)
 Example  : query Trains feed head[7] count
 Result   : 7
 
+Operator : buffer
+Number   : 1
+Signature: stream(T) x int -> stream(T)
+Example  : query Trains feed buffer[10] count
+Result   : 562
+
 Operator : loopjoin
 Number   : 1
 Signature: ((stream tuple1) (fun (tuple1 -> stream(tuple2)))) -> (stream tuple1*tuple2)
