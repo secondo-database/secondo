@@ -15739,7 +15739,7 @@ int Buffer(Word* args, Word& result, int message, Word& local, Supplier s)
 
 
 /*
-2.10.3 Specification of operator ~head~
+2.10.3 Specification of operator ~buffer~
 
 */
 const string BufferSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
@@ -15750,7 +15750,7 @@ const string BufferSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                          "an:dn]))) or \n"
                          "((stream T) int) -> (stream T), "
                          "for T in kind DATA.</text--->"
-                         "<text>_ head [ _ ]</text--->"
+                         "<text>_ buffer [ _ ]</text--->"
                          "<text>Decuples two streams by buffering up to n "
                          "elements. After the buffer is filled, the buffered "
                          "is emitted and re-filled.</text--->"
