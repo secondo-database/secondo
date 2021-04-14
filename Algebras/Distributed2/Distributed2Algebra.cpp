@@ -18957,8 +18957,28 @@ assigmnet from slots to workers.
 
 */
 ListExpr collectBTM(ListExpr args){
-   // short version: same type mapping as collect2.
-   return collect2TM(args);
+  string err = "dfmatrix x string x int  [ x (int -> real) ]expected";
+  if(!nl->HasLength(args,3) && !nl->HasLength(args,4)){
+    return listutils::typeError(err+" (wrong number of args)");
+  }
+  if(   !DFMatrix::checkType(nl->First(args))
+     || !CcString::checkType(nl->Second(args))
+     || !CcInt::checkType(nl->Third(args))){
+     return  listutils::typeError(err);
+  }
+  if(nl->HasLength(args,4)){
+    ListExpr fun = nl->Fourth(args);
+    if(!listutils::isMap<1>(fun)) {
+      return listutils::typeError("fourth argument is not a unary function");
+    }
+   if(!CcInt::checkType(nl->Second(fun)) || !CcReal::checkType(nl->Third(fun))){
+      return listutils::typeError(err + 
+                                 "(fourth arg is not a function int -> real)");
+   }
+  }
+  return nl->TwoElemList( 
+              listutils::basicSymbol<DFArray>(),
+              nl->Second(nl->First(args)));
 }
 
 
@@ -19169,7 +19189,9 @@ class slotGetter{
 
 class StdSlotDistributor{
  public: 
-  static bool distribute(Word* args, DFArray* res) {
+  static bool distribute(Word* args, int noArgs,  DFArray* res) {
+     // the std distributor only evaluates thhe matrix size coming from
+     // the first argument. All other arguments are ignored. 
      DFMatrix* matrix = (DFMatrix*) args[0].addr;
      res->setStdMap(matrix->getSize());
      return true;
@@ -19179,7 +19201,9 @@ class StdSlotDistributor{
 
 class VectorSlotDistributor{
  public: 
-  static bool distribute(Word* args, DFArray* res) {
+  static bool distribute(Word* args, int noArgs,  DFArray* res) {
+     // args are 
+     // matrix, name, size, distvector
      DFMatrix* matrix = (DFMatrix*) args[0].addr;
      collection::Collection*  col = (collection::Collection*) args[3].addr;
      vector<uint32_t> mapping;
@@ -19432,13 +19456,45 @@ private:
 template<bool tupleSizes>
 class BalancedSlotDistributor{
  public: 
-  static bool distribute(Word* args, DFArray* res) {
+  static bool distribute(Word* args, int noArgs,  DFArray* res) {
      DFMatrix* matrix = (DFMatrix*) args[0].addr;
      vector<int> slotSizes = getSlotSizes(matrix);
-     vector<double> ss;
+     vector<int> ss1;
      for(auto s : slotSizes){
-       ss.push_back(s>=0?s:0);
+       ss1.push_back(s>=0?s:0);
      }
+     // we have three or four arguments 
+     // in the first case, the slotsizes a used directly.
+     // in the latter case, the fourth argument represents a function
+     // mapping the slot sizes to some other value
+     vector<double> ss;
+     if(noArgs==3){
+       for(auto s : ss1){
+          ss.push_back(s);
+       } 
+     } else if(noArgs==4){
+       Word fun  = args[3];
+       ArgVectorPointer funargs = qp->Argument(fun.addr);
+       CcInt*  a = new CcInt(false);
+       Word funres;
+       for(int s : ss1){
+          a->Set(true,s);
+          (*funargs[0]) = a;
+          qp->Request(fun.addr,funres);
+          CcReal* r = (CcReal*) funres.addr;
+          double dsize = 0;
+          if(r->IsDefined()){
+             dsize = r->GetValue();
+          }
+          if(dsize<0) {
+            dsize = 0;
+          }
+          ss.push_back(dsize);
+       }       
+       delete a;
+     } else {
+       assert(false);
+     }   
      vector<uint32_t> mapping = loadbalance::getMapping(ss,
                                                  matrix->numOfWorkers(),
                                                  false);  
@@ -19488,7 +19544,7 @@ int collect2VMT(Word* args, Word& result, int message,
 
    string constRel = "[ const " + getUDRelType(relType)+" value ()]";
 
-   if(!SlotDistributor::distribute(args, res)){
+   if(!SlotDistributor::distribute(args, qp->GetNoSons(s), res)){
      res->makeUndefined();
      return 0;
    }
@@ -19580,7 +19636,7 @@ Operator collectCOp(
 
 
 OperatorSpec collectBSpec(
-  "dfmatrix x string x int -> dfarray",
+  "dfmatrix x string x int  [ x (int -> real)] -> dfarray",
   " _ collectB[ _ , _] ",
   "Collects the slots of a matrix into a "
   " dfarray. The string is the name of the "
@@ -19589,7 +19645,10 @@ OperatorSpec collectBSpec(
   "port usable on all workers. A corresponding file transfer "
   "server is started automatically. The slots are collected "
   "using a  sophisticated load balancing algorithm based on "
-  "the number of tuples in each slot.",
+  "the number of tuples in each slot. If the optional function "
+  "is present, the sizes are not used directly for load balalncing "
+  "but the function is applied firtsly to the size and load balancing "
+  "uses these values instead of the sizes",
   "query m8 collectB[\"a8\",1238]"
 );
 
@@ -19717,13 +19776,14 @@ int loadBalanceVM(Word* args, Word& result, int message,
 };
 
 OperatorSpec loadBalanceSpec(
-   "stream(int) x int x bool -> stream(int) ",
+   "stream(real) x int x bool -> stream(int) ",
    " _ loadBalance[_,_] ",
    "Takes a stream of slotsizes (first argument),"
    " a number of workers, and a boolean specifying whether "
    "the 5 % reserve method should be used. It returns the "
    " mapping from the slots to the workers.",
-   " query intstream(1,10) loacBalance[3,FALSE] transformstream consume"
+   " query realstream(1.0,10.0,1.0) "
+   "loacBalance[3,FALSE] transformstream consume"
 );
 
 Operator loadBalanceOp(

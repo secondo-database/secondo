@@ -484,8 +484,15 @@ Remark    : requires a remote server
 
 Operator  : collectB
 Number    : 1
-Signature : dfmatrix x string x int -> dfarray
+Signature : dfmatrix x string x int [ (int -> real) ] -> dfarray
 Example   : query size(s7 partition["m7", hashvalue(.Attr,23),  0]  collectB["mys7", 1238] )
+Result    : bug
+Remark    : requires a remote server
+
+Operator  : collectB
+Number    : 1
+Signature : dfmatrix x string x int [ (int -> real) ] -> dfarray
+Example   : query size(s7 partition["m7", hashvalue(.Attr,23),  0]  collectB["mys7", 1238, fun(int i) 1.0*i*i] )
 Result    : bug
 Remark    : requires a remote server
 
@@ -940,8 +947,8 @@ Remark   : presence of a distributed secondo required
 
 Operator  : loadBalance 
 Number    : 1
-Signature : stream(int) x int x bool -> stream(int)
-Example   : query intstream(201,400) loadBalance[40, FALSE] count 
+Signature : stream(real) x int x bool -> stream(int)
+Example   : query realstream(201.0,400.0,1.0) loadBalance[40, FALSE] count 
 Result    : 200
 Remark   : presence of a distributed secondo required
 
