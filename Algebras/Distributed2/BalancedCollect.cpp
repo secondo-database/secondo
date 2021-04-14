@@ -53,9 +53,9 @@ A slot is represented by its number and the size.
 
 class Slot{
 public:
-  Slot(size_t _no, size_t _size): no(_no), size(_size) {}
+  Slot(size_t _no, double _size): no(_no), size(_size) {}
   size_t getNo() const { return no; }
-  size_t getSize() const { return size;}
+  double getSize() const { return size;}
   string toString() const{
     stringstream ss;
     ss << no <<"(" << size << ")";
@@ -69,7 +69,7 @@ public:
 
 private:
     size_t no;
-    size_t size;  
+    double size;  
 };
 
 std::ostream& operator<<(ostream& o, const Slot& s){
@@ -123,7 +123,7 @@ class DWorker{
 
 
        size_t getNoSlots() const { return slots.size(); }
-       size_t getNoElements() const { return size; } 
+       double getNoElements() const { return size; } 
 
        size_t getId () const{ return no; } 
 
@@ -131,7 +131,7 @@ class DWorker{
 
    private:
       size_t no;      // identifikator of this worker 
-      size_t size;    // summarized size of all slots
+      double size;    // summarized size of all slots
       vector<Slot> slots;
 };
 
@@ -222,7 +222,7 @@ private :
     };
 
     vector<DWorker> DWorkers;  // the workers
-    uint64_t completeSize;     // size of the whole relation
+    double completeSize;     // size of the whole relation
 
     // 5 percent 
     uint32_t getNoReserve(int noWorkers){
@@ -234,9 +234,8 @@ private :
 
    
    void reDistribute(uint32_t noReserve){
-      double avgSize = (double) completeSize / DWorkers.size();
+      double avgSize = completeSize / DWorkers.size();
       double maxSize = 1.03 * avgSize;
-
       
 
       priority_queue<DWorker, vector<DWorker>, wgreater> qreserve; 
@@ -314,8 +313,12 @@ private :
 };
 
 
+/*
+Returns a vektor having the size slotsizes.
+The content of each field is the assigned worker.
 
-vector<uint32_t> getMapping(const vector<uint32_t>& slotsizes,
+*/
+vector<uint32_t> getMapping(const vector<double>& slotsizes,
                             uint32_t noWorkers,
                             bool simple) {
 

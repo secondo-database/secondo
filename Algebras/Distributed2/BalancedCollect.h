@@ -57,7 +57,7 @@ worker having the smallest load.
 namespace distributed2 {
 namespace loadbalance {
 
-std::vector<uint32_t> getMapping(const std::vector<uint32_t>& slotsizes,
+std::vector<uint32_t> getMapping(const std::vector<double>& slotsizes,
                             uint32_t noWorkers,
                             bool simple); 
 }

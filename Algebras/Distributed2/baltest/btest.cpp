@@ -56,7 +56,7 @@ int main(int argc, char** argv){
      return 1;
    }
 
-   vector<uint32_t> slotsizes;
+   vector<double> slotsizes;
    ifstream in(argv[1]);
    string line;
    uint64_t completeSize = 0;
@@ -64,7 +64,7 @@ int main(int argc, char** argv){
        getline(in,line);
        trim(line);
        if(line.length()>0){
-         int s = atoi(line.c_str());
+         double s = atoi(line.c_str());
          slotsizes.push_back(s); 
          completeSize += s; 
        }
@@ -84,7 +84,8 @@ int main(int argc, char** argv){
    cout << "noWorkers : " << noWorkers << endl; 
    cout << " mode     : " << (simple?"simple":"complete") << endl;
    
-   vector<uint32_t> res = getMapping(slotsizes,noWorkers,simple);
+   vector<uint32_t> res = 
+         distributed2::loadbalance::getMapping(slotsizes,noWorkers,simple);
 
 
    if(res.size() != slotsizes.size()){

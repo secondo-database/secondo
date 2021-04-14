@@ -19435,7 +19435,7 @@ class BalancedSlotDistributor{
   static bool distribute(Word* args, DFArray* res) {
      DFMatrix* matrix = (DFMatrix*) args[0].addr;
      vector<int> slotSizes = getSlotSizes(matrix);
-     vector<uint32_t> ss;
+     vector<double> ss;
      for(auto s : slotSizes){
        ss.push_back(s>=0?s:0);
      }
@@ -19627,7 +19627,7 @@ Operator collectDOp(
 /*
 Operator loadBalance
 
-TypeMapping : stream(int) x int x bool  -> stream(int)
+TypeMapping : stream(real)  x int x bool  -> stream(int)
 
 slotsizes, number of workers , simple
 
@@ -19636,8 +19636,8 @@ ListExpr loadBalanceTM(ListExpr args){
   if(!nl->HasLength(args,3)){
      return listutils::typeError("3 args expected");
   }
-  if(!Stream<CcInt>::checkType(nl->First(args))){
-     return listutils::typeError("fisrt argument must be stream of int");
+  if(!Stream<CcReal>::checkType(nl->First(args))){
+     return listutils::typeError("first argument must be stream of real");
   }
   if(!CcInt::checkType(nl->Second(args))){
      return listutils::typeError("second arg is not an int");
@@ -19666,11 +19666,11 @@ public:
        }
        bool complete = s->GetValue();
        stream.open();
-       CcInt* v;
-       vector<uint32_t> slotSizes;
+       CcReal* v;
+       vector<double> slotSizes;
        while( (v=stream.request()) != 0) {
           if(v->IsDefined()){
-             int value = v->GetValue();
+             double value = v->GetValue();
              if(value >=0){
                  slotSizes.push_back(value);
              }
@@ -19690,7 +19690,7 @@ public:
        return res;
     }
 private:
-    Stream<CcInt> stream;
+    Stream<CcReal> stream;
     vector<uint32_t> result; 
     size_t pos ;
 
