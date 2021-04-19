@@ -4245,7 +4245,7 @@ struct BBSimInfo : OperatorInfo
     "x MBR1 x MBR2 x CcReal x CcReal x Rectangle"
     " -> Stream(Tuple(x))";
     syntax = "_ bbsim[_,_,_,_,_,_,_]";
-    meaning = "Filters out batches that are below the threshold"
+    meaning = "Filters out batch-batch pair that are below the threshold"
     "and return batch pairs in order of MBR size";
   }
 };
@@ -4259,7 +4259,7 @@ struct BTSimInfo : OperatorInfo
     "x attr x attr x attr x rect x real x real x rect"
     " -> Stream(Tuple(x))";
     syntax = "_ _ btsim[_,_,_,_,_,_,_]";
-    meaning = "Filters out trajectorys that are below the threshold";
+    meaning = "Filters out trajectory-batch that are below the threshold";
   }
 };
 
@@ -4273,7 +4273,8 @@ struct TTSimInfo : OperatorInfo
     " x CellGrid2D x real x real x rect"
     " -> Stream(Tuple(x))";
     syntax = "_ ttsim[_,_,_,_,_,_]";
-    meaning = "Filters out trajectorys that are below the threshold";
+    meaning = "Filters out trajectory-trajectory pair"
+    " that are below the threshold";
   }
 };
 
@@ -4287,7 +4288,7 @@ struct SimilarityInfo : OperatorInfo
     " -> Stream(Tuple(x))";
     syntax = "_ sim[_,_,_,_,_]";
     meaning =
-    "Filter out trajectories that are not similar";
+    "Filter out trajectory-trajectory pair that are not similar";
   }
 };
 
