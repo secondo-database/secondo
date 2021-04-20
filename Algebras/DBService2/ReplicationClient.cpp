@@ -134,8 +134,8 @@ int ReplicationClient::receiveReplica()
     traceWriter->writeFunction("ReplicationClient::receiveReplica");
     LOG_SCOPE_FUNCTION(INFO);
 
-    try
-    {
+    // try
+    // {
         if(start() != 0)
         {
             traceWriter->write("Could not connect to Server");
@@ -169,7 +169,6 @@ int ReplicationClient::receiveReplica()
 
         // Lock access to the nested list.
         
-
         if(receiveFileFromServer())
         {
             traceWriter->write("File received. Now creating relation...");
@@ -185,8 +184,6 @@ int ReplicationClient::receiveReplica()
                     nl->SymbolAtom("ffeed5"),
                     nl->TextAtom(localPath.string()))); //  // remoteFilename
 
-            nlLock.unlock();
-
             //TODO Does this read the entire memory before writing it?
             //  If so, wouldn't it be more efficient to stream read and 
             //  stream write? Is this possible?
@@ -196,45 +193,85 @@ int ReplicationClient::receiveReplica()
             bool correct,evaluable,defined,isFunction;
             SecondoSystem::BeginTransaction();
 
-            LOG_F(INFO, "%s", "Acquiring the QueryProcessorMutex...");
-            boost::lock_guard<boost::mutex> queryProcessorGuard(
-                // Dereference the shared_ptr to the mutex
-                *LockKeeper::getInstance()->getQueryProcessorMutex()
-            );
-            LOG_F(INFO, "%s", "Successfully acquired the QueryProcessorMutex.");
+            //LOG_F(INFO, "%s", "Acquiring the QueryProcessorMutex...");
+            
+            // // Establishing a timeout for locks
+            // std::shared_ptr<boost::timed_mutex> qpMutex =
+            //     LockKeeper::getInstance()->getQueryProcessorMutex();
+
+            // boost::unique_lock<boost::timed_mutex>
+            //     lock{ *qpMutex, boost::try_to_lock };
+
+        // if(lock.owns_lock() || 
+        //     lock.try_lock_for(boost::chrono::seconds{ 360 })) {
+        //     LOG_F(INFO, "%s", "Successfully acquired QueryProcessorMutex.");
+        // }
+        // else {
+        //     LOG_F(ERROR, "%s", "Acquisition of QueryProcessorMutex "
+        //         "failed due to timeout.");
+        //     return 1;
+        // }
+        
+        // boost::lock_guard<boost::recursive_mutex> queryProcessorGuard(
+        //     // Dereference the shared_ptr to the mutex
+        //     *LockKeeper::getInstance()->getQueryProcessorMutex()
+        // );
+        // LOG_F(INFO, "%s", "Successfully acquired the QueryProcessorMutex.");
 
             // Generate a stream of tuples from ffeed5 and store into "result"
             try{
+                std::chrono::steady_clock::time_point begin =
+                    std::chrono::steady_clock::now();
+                
                 QueryProcessor::ExecuteQuery(command, result, typeString,
                                   errorString,correct,evaluable,defined,
                                   isFunction);
+                
+                std::chrono::steady_clock::time_point end =
+                    std::chrono::steady_clock::now();
+                
+                LOG_F(INFO, "feed5 successful. Duration: %ld ms", 
+                    std::chrono::duration_cast
+                    <std::chrono::milliseconds>(end - begin).count());
             } catch(...){
+                LOG_F(ERROR, "%s", "Exception during feed5.");
                 correct = false;
             }
+
             if(!correct){
                 traceWriter->write("Error in creating relation from file.");
                 LOG_F(ERROR, "%s", "Error in creating relation from file.");
 
                 SecondoSystem::AbortTransaction(true);
                 return 1;
+            } else {
+                LOG_F(INFO, "%s", 
+                    "Successfully created the relation from file.");
             }
+
             ListExpr typeExpr;
             
-            nlLock.lock();
+            //nlLock.lock();
             nl->ReadFromString(typeString,typeExpr);
-            nlLock.unlock();
+            //nlLock.unlock();
 
             SecondoCatalog* ctlg = SecondoSystem::GetCatalog();
+
             string relName = ReplicationUtils::getRelName(
                 localPath.filename().string());
+
+            LOG_F(INFO, "%s", "Inserting the relation...");
+
+            std::chrono::steady_clock::time_point begin =
+                std::chrono::steady_clock::now();
 
             // Create the relation by writing the "result"
             bool ok = ctlg->InsertObject(relName,"",typeExpr,result,true);
             
-            if(!ok){                
+            if(!ok){
               traceWriter->write("Insertion relation " + relName + " failed");
               LOG_F(ERROR, "Insertion of relation %s failed", 
-                relName.c_str());
+                relName.c_str());            
 
               SecondoSystem::AbortTransaction(true);
               return 1;
@@ -247,6 +284,7 @@ int ReplicationClient::receiveReplica()
                 LOG_F(ERROR, "%s", "catalog->CleanUp failed.");
 
                 SecondoSystem::AbortTransaction(true);
+                return 1;
             } else {
                 traceWriter->write("Inserting relation " + relName 
                                   + " successful");
@@ -256,21 +294,30 @@ int ReplicationClient::receiveReplica()
                 SecondoSystem::CommitTransaction(true);
             }
 
+            std::chrono::steady_clock::time_point end =
+                std::chrono::steady_clock::now();
+
+            LOG_F(INFO, "Inserted relation. Duration: %ld ms", 
+                std::chrono::duration_cast
+                <std::chrono::milliseconds>(end - begin).count());
+
             traceWriter->write(
                     "Replication successful, notifying DBService master");
             LOG_F(INFO, "%s", "Replication successful, notifying "
                 "the DBService master...");
 
+            nlLock.unlock();
+
             if(ok){
                reportSuccessfulReplication();
             }
         }
-    } catch (...)
-    {
-        cerr << "ReplicationClient: communication error" << endl;
-        LOG_F(ERROR, "%s", "ReplicationClient: communication error.");
-        return 5;
-    }
+    // } catch (...)
+    // {
+    //     cerr << "ReplicationClient: communication error" << endl;
+    //     LOG_F(ERROR, "%s", "ReplicationClient: communication error.");
+    //     return 5;
+    // }
     return 0;
 }
 
@@ -387,8 +434,8 @@ bool ReplicationClient::receiveFileFromServer()
     int rc = receiveFile();
     std::chrono::steady_clock::time_point end =
             std::chrono::steady_clock::now();
-    if(rc != 0)
-    {
+
+    if(rc != 0) {
         traceWriter->write("receive failed");
         traceWriter->write("rc=", rc);
 
@@ -397,16 +444,16 @@ bool ReplicationClient::receiveFileFromServer()
 
         //TODO Resolve error codes and explain them.
         return false;
-    }else
-    {
+
+    } else {
         traceWriter->write("received file");
         traceWriter->write("duration of receive [microseconds]",
                 std::chrono::duration_cast
                 <std::chrono::microseconds>(end - begin).count());
 
         LOG_F(INFO, "Received the file successfully. "
-            "The file transfer took: %ld", std::chrono::duration_cast
-            <std::chrono::microseconds>(end - begin).count());
+            "The file transfer duration: %ld ms", std::chrono::duration_cast
+            <std::chrono::milliseconds>(end - begin).count());
 
         return true;
     }

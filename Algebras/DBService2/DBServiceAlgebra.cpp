@@ -46,6 +46,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Algebras/DBService2/OperatorRead3_X.hpp"
 #include "Algebras/DBService2/OperatorUseIncrementalMetadataUpdate.hpp"
 #include "Algebras/DBService2/OperatorTestDBService.hpp"
+#include "Algebras/DBService2/ReplicationUtils.hpp"
+
 
 #include <loguru.hpp>
 #include <loguru.cc> // linker error if this isn't included at least once.
@@ -144,7 +146,10 @@ DBServiceAlgebra::DBServiceAlgebra() :
     loguru::g_stderr_verbosity = loguru::Verbosity_OFF;
     loguru::init(argc, argv);
 
-    loguru::add_file("dbservice.log", loguru::Append,
+    fs::path dbServiceLogPath = 
+        ReplicationUtils::expandFilenameToAbsPath("dbservice.log");
+
+    loguru::add_file(dbServiceLogPath.c_str(), loguru::Append,
             loguru::Verbosity_MAX); // Verbosity_ERROR
 
 }

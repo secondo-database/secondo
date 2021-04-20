@@ -49,7 +49,10 @@ ListExpr OperatorAddNode::mapType(ListExpr nestedList)
 
     // ensure to have only one access to the catalog
     static boost::mutex mtx;
+
+    LOG_F(INFO, "%s", "Acquiring lock for nlparsemtx...");
     boost::lock_guard<boost::recursive_mutex> guard(nlparsemtx);
+    LOG_F(INFO, "%s", "Successfully acquired lock for nlparsemtx...");
 
     if (!nl->HasLength(nestedList, 3))
     {

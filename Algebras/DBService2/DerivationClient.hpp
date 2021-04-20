@@ -38,6 +38,8 @@ namespace DBService{
 This class derives a new object from a relation using a 
 function and inserts it into the database.
 
+It is executed on a DBService worker node.
+
 */
 
 

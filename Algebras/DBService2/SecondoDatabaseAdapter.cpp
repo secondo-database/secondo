@@ -92,7 +92,9 @@ namespace DBService
     int recordId = -1;
     bool success = false;
 
+    LOG_F(INFO, "%s", "Acquiring lock for utilsMutex...");
     boost::lock_guard<boost::recursive_mutex> lock(utilsMutex);
+    LOG_F(INFO, "%s", "Successfully acquired lock for utilsMutex.");
 
     print("Opening the database...", std::cout);
     LOG_F(INFO, "Opening the database: %s", database.c_str());
@@ -142,9 +144,10 @@ namespace DBService
 
     if(success) {
 
+      LOG_F(INFO, "%s", "Acquiring lock for nlparsemtx...");
       boost::lock_guard<boost::recursive_mutex> guard(nlparsemtx);
       //print("resultList", resultList, std::cout);
-      //TODO Add LOG_F
+      LOG_F(INFO, "%s", "Successfully acquired lock for nlparsemtx...");
 
       ListExpr resultData = nl->Second(resultList);
       print("resultData", resultData, std::cout);
@@ -265,7 +268,9 @@ the inserted record's id.");
     printFunction("SecondoDatabaseAdapter::executeCreateRelationQuery", 
       std::cout);
 
+    LOG_F(INFO, "%s", "Acquiring lock for utilsMutex...");
     boost::lock_guard<boost::recursive_mutex> lock(utilsMutex);
+    LOG_F(INFO, "%s", "Successfully acquired lock for utilsMutex.");
 
     bool success = false;
 
@@ -335,7 +340,9 @@ the inserted record's id.");
     printFunction("SecondoDatabaseAdapter::executeFindQuery", std::cout);
     LOG_SCOPE_FUNCTION(INFO);
 
+    LOG_F(INFO, "%s", "Acquiring lock for utilsMutex...");
     boost::lock_guard<boost::recursive_mutex> lock(utilsMutex);
+    LOG_F(INFO, "%s", "Successfully acquired lock for utilsMutex.");
 
     print("Opening the database...", std::cout);
 
@@ -376,7 +383,9 @@ the inserted record's id.");
 
     if(success) {
 
+      LOG_F(INFO, "%s", "Acquiring lock for nlparsemtx...");
       boost::lock_guard<boost::recursive_mutex> guard(nlparsemtx);
+      LOG_F(INFO, "%s", "Successfully acquired lock for nlparsemtx...");
       
       ListExpr resultData = nl->Second(resultList);
       print("resultData", resultData, std::cout);
@@ -423,7 +432,9 @@ is open.");
     LOG_SCOPE_FUNCTION(INFO);
     
     //boost::lock_guard<boost::recursive_mutex> lock(utilsMutex);
+    LOG_F(INFO, "%s", "Acquiring lock for nlparsemtx...");
     boost::lock_guard<boost::recursive_mutex> guard(nlparsemtx);
+    LOG_F(INFO, "%s", "Successfully acquired lock for nlparsemtx...");
 
     // Uppercase is also for getting the filenames right later as 
     // they are derived from the relation's db name.
@@ -531,7 +542,9 @@ is open.");
   {
     LOG_SCOPE_FUNCTION(INFO);
 
+    LOG_F(INFO, "%s", "Acquiring lock for utilsMutex...");
     boost::lock_guard<boost::recursive_mutex> lock(utilsMutex);
+    LOG_F(INFO, "%s", "Successfully acquired lock for utilsMutex...");
 
     // Can't create an existing database.
     if(doesDatabaseExist(database)) {
@@ -554,7 +567,9 @@ is open.");
   void SecondoDatabaseAdapter::deleteDatabase(string database) {
     LOG_SCOPE_FUNCTION(INFO);
 
+    LOG_F(INFO, "%s", "Acquiring lock for utilsMutex...");
     boost::lock_guard<boost::recursive_mutex> lock(utilsMutex);
+    LOG_F(INFO, "%s", "Successfully acquired lock for utilsMutex...");
 
     // No database may be open during the deletion of a db.
     closeDatabase();
@@ -584,7 +599,9 @@ is open.");
 
     LOG_SCOPE_FUNCTION(INFO);
 
+    LOG_F(INFO, "%s", "Acquiring lock for utilsMutex...");
     boost::lock_guard<boost::recursive_mutex> lock(utilsMutex);
+    LOG_F(INFO, "%s", "Successfully acquired lock for utilsMutex...");
 
     openDatabase(database);
 

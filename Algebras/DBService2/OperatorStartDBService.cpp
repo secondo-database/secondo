@@ -42,7 +42,9 @@ ListExpr OperatorStartDBService::mapType(ListExpr nestedList)
     LOG_SCOPE_FUNCTION(INFO);
     print(nestedList, std::cout);
 
+    LOG_F(INFO, "%s", "Acquiring lock for nlparsemtx...");
     boost::lock_guard<boost::recursive_mutex> guard(nlparsemtx);
+    LOG_F(INFO, "%s", "Successfully acquired lock for nlparsemtx...");
 
     if (!nl->HasLength(nestedList, 0))
     {

@@ -570,7 +570,7 @@ original Node!";
     os << endl;
 
     if(relation.getOriginalNode() != nullptr) {
-      os << ind2 << "Target Node: " << endl;
+      os << ind2 << "Original Node: " << endl;
       os << relation.getOriginalNode()->str(indentationLevel + 1) << endl;
     }
 

@@ -28,6 +28,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Algebras/DBService2/DebugOutput.hpp"
 #include "Algebras/DBService2/OperatorUseIncrementalMetadataUpdate.hpp"
 
+#include <loguru.hpp>
+
 using namespace std;
 
 extern boost::recursive_mutex nlparsemtx;
@@ -39,7 +41,9 @@ ListExpr OperatorUseIncrementalMetadataUpdate::mapType(ListExpr nestedList)
 {
     print(nestedList, std::cout);
 
+    LOG_F(INFO, "%s", "Acquiring lock for nlparsemtx...");
     boost::lock_guard<boost::recursive_mutex> guard(nlparsemtx);
+    LOG_F(INFO, "%s", "Successfully acquired lock for nlparsemtx...");
 
     if (!nl->HasLength(nestedList, 1))
     {

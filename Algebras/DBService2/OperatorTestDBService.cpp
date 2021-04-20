@@ -49,6 +49,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Algebras/DBService2/DBServiceManagerTest.cpp"
 #include "Algebras/DBService2/DerivativeTest.cpp"
 
+#include <loguru.hpp>
+
 /*
 
 This test creates all DBS relations and truncates all tables.
@@ -72,7 +74,9 @@ namespace DBService
     printFunction("OperatorTestDBService::mapType", std::cout);
     print(nestedList, std::cout);
 
+    LOG_F(INFO, "%s", "Acquiring lock for nlparsemtx...");
     boost::lock_guard<boost::recursive_mutex> guard(nlparsemtx);
+    LOG_F(INFO, "%s", "Successfully acquired lock for nlparsemtx...");
 
     if (!nl->HasLength(nestedList, 0))
     {

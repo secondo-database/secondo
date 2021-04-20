@@ -41,6 +41,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "DBServiceClient.hpp"
 #include "Stream.h"
 
+#include <loguru.hpp>
+
 using namespace std;
 
 extern boost::recursive_mutex nlparsemtx;
@@ -51,7 +53,9 @@ ListExpr OperatorRderive::mapType(ListExpr args)
 {
   // rel x string x fun
 
+  LOG_F(INFO, "%s", "Acquiring lock for nlparsemtx...");
   boost::lock_guard<boost::recursive_mutex> guard(nlparsemtx);
+  LOG_F(INFO, "%s", "Successfully acquired lock for nlparsemtx...");
 
   if(!nl->HasLength(args,3)){
     return listutils::typeError("expected 3 arguments");

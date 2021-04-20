@@ -85,24 +85,33 @@ void ReplicationClientRunnable::create(
 {
     print("ReplicationClientRunnable::create", std::cout);
     LOG_SCOPE_FUNCTION(INFO);
-    loguru::set_thread_name("ReplicationClientRunnable");
-
+    
+    // loguru::set_thread_name("ReplicationClientRunnable");
+    
+    LOG_F(INFO, "%s", "getFilePathOnDBServiceWorker");
     const fs::path localPath =
         ReplicationUtils::getFilePathOnDBServiceWorker(
                     databaseName,
                     relationName);
+                    
     const string remoteFilename =
         ReplicationUtils::getFileName(
                     databaseName,
                     relationName);
 
+
+    LOG_F(INFO, "%s", "Creating the ReplicationClient...");
     ReplicationClient client(targetHost,
                              targetTransferPort,
                              localPath,
                              remoteFilename,
                              databaseName,
                              relationName);
+
+    LOG_F(INFO, "%s", "ReceivingReplica...");
     client.receiveReplica();
+
+    LOG_F(INFO, "%s", "Done.");
 }
 
 } /* namespace DBService */

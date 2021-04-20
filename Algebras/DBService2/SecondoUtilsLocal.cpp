@@ -41,6 +41,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Algebras/DBService2/TraceSettings.hpp"
 #include "Algebras/DBService2/LockKeeper.hpp"
 
+#include <loguru.hpp>
 
 using namespace std;
 using namespace distributed2;
@@ -118,9 +119,9 @@ bool SecondoUtilsLocal::executeQuery2(const string& queryAsString)
     string queryAsPreparedNestedListString;
 
     print("Acquiring lock for executeQuery2...", std::cout);
-
+    LOG_F(INFO, "%s", "Acquiring lock for utilsMutex...");
     boost::lock_guard<boost::mutex> lock(utilsMutex);
-    
+    LOG_F(INFO, "%s", "Successfully acquired lock for utilsMutex...");
     print("Done acquiring lock for executeQuery2.", std::cout);
 
     print("Preparing query for processing...", std::cout);
@@ -137,10 +138,29 @@ bool SecondoUtilsLocal::executeQuery2(const string& queryAsString)
 
     print("Actually executing query now ...", std::cout);
 
-    boost::lock_guard<boost::mutex> queryProcessorGuard(
-        // Dereference the shared_ptr to the mutex
-        *LockKeeper::getInstance()->getQueryProcessorMutex()
-    );
+    // LOG_F(INFO, "%s", "Acquiring lock for executeQuery2...");
+    // boost::lock_guard<boost::recursive_mutex> queryProcessorGuard(
+    //     // Dereference the shared_ptr to the mutex
+    //     *LockKeeper::getInstance()->getQueryProcessorMutex()
+    // );
+    // LOG_F(INFO, "%s", "Successfully acquired lock for QueryProcessorMutex.");
+
+    // // Establishing a timeout for locks
+    // std::shared_ptr<boost::timed_mutex> qpMutex =
+    //     LockKeeper::getInstance()->getQueryProcessorMutex();
+
+    // boost::unique_lock<boost::timed_mutex>
+    //     queryProcessorLock{ *qpMutex, boost::try_to_lock };
+
+    // if(queryProcessorLock.owns_lock() ||
+    //     queryProcessorLock.try_lock_for(boost::chrono::seconds{ 360 })) {
+    //     LOG_F(INFO, "%s", "Successfully acquired QueryProcessorMutex.");
+    // }
+    // else {
+    //     LOG_F(ERROR, "%s", "Acquisition of QueryProcessorMutex "
+    //         "failed due to timeout.");
+    //     return false;
+    // }
 
     return QueryProcessor::ExecuteQuery(
             queryAsPreparedNestedListString,
@@ -185,10 +205,28 @@ bool SecondoUtilsLocal::executeQuery(const string& queryAsString,
     bool correct, evaluable, defined, isFunction = false;
     string typeString(""), errorString("");
 
-    boost::lock_guard<boost::mutex> queryProcessorGuard(
-        // Dereference the shared_ptr to the mutex
-        *LockKeeper::getInstance()->getQueryProcessorMutex()
-    );
+    // LOG_F(INFO, "%s", "Acquiring lock for executeQuery...");
+    // boost::lock_guard<boost::recursive_mutex> queryProcessorGuard(
+    //     // Dereference the shared_ptr to the mutex
+    //     *LockKeeper::getInstance()->getQueryProcessorMutex()
+    // );
+
+    // // Establishing a timeout for locks
+    // std::shared_ptr<boost::timed_mutex> qpMutex =
+    //     LockKeeper::getInstance()->getQueryProcessorMutex();
+
+    // boost::unique_lock<boost::timed_mutex>
+    //     queryProcessorLock{ *qpMutex, boost::try_to_lock };
+
+    // if(queryProcessorLock.owns_lock() ||
+    //     queryProcessorLock.try_lock_for(boost::chrono::seconds{ 360 })) {
+    //     LOG_F(INFO, "%s", "Successfully acquired QueryProcessorMutex.");
+    // }
+    // else {
+    //     LOG_F(ERROR, "%s", "Acquisition of QueryProcessorMutex "
+    //         "failed due to timeout.");
+    //     return false;
+    // }
 
     try
     {
@@ -296,10 +334,28 @@ SecondoUtilsLocal::createRelation(const string& queryAsString,
     
     NestedList* nli = SecondoSystem::GetNestedList();
 
-    boost::lock_guard<boost::mutex> queryProcessorGuard(
-        // Dereference the shared_ptr to the mutex
-        *LockKeeper::getInstance()->getQueryProcessorMutex()
-    );
+    // LOG_F(INFO, "%s", "Acquiring lock for createRelation...");
+    // boost::lock_guard<boost::recursive_mutex> queryProcessorGuard(
+    //     // Dereference the shared_ptr to the mutex
+    //     *LockKeeper::getInstance()->getQueryProcessorMutex()
+    // );
+
+    // // Establishing a timeout for locks
+    // std::shared_ptr<boost::timed_mutex> qpMutex =
+    //     LockKeeper::getInstance()->getQueryProcessorMutex();
+
+    // boost::unique_lock<boost::timed_mutex>
+    //     queryProcessorLock{ *qpMutex, boost::try_to_lock };
+
+    // if(queryProcessorLock.owns_lock() ||
+    //     queryProcessorLock.try_lock_for(boost::chrono::seconds{ 360 })) {
+    //     LOG_F(INFO, "%s", "Successfully acquired QueryProcessorMutex.");
+    // }
+    // else {
+    //     LOG_F(ERROR, "%s", "Acquisition of QueryProcessorMutex "
+    //         "failed due to timeout.");
+    //     return false;
+    // }
 
     QueryProcessor* queryProcessor = new QueryProcessor( nli,
             SecondoSystem::GetAlgebraManager(),
@@ -387,12 +443,34 @@ bool SecondoUtilsLocal::executeQueryCommand(const string& queryAsString,
     bool isFunction = false;
 
     print("Acquiring lock for executeQueryCommand...", std::cout);
+    LOG_F(INFO, "%s", "Acquiring lock for executeQueryCommand...");
     boost::lock_guard<boost::mutex> lock(utilsMutex);
+
+    LOG_F(INFO, "%s", "Acquiring lock for nlparsemtx...");
     boost::lock_guard<boost::recursive_mutex> guard(nlparsemtx);
-    boost::lock_guard<boost::mutex> queryProcessorGuard(
-        // Dereference the shared_ptr to the mutex
-        *LockKeeper::getInstance()->getQueryProcessorMutex()
-    );
+    LOG_F(INFO, "%s", "Successfully acquired lock for nlparsemtx...");
+        
+    // boost::lock_guard<boost::recursive_mutex> queryProcessorGuard(
+    //     // Dereference the shared_ptr to the mutex
+    //     *LockKeeper::getInstance()->getQueryProcessorMutex()
+    // );
+    
+    // // Establishing a timeout for locks
+    // std::shared_ptr<boost::timed_mutex> qpMutex =
+    //     LockKeeper::getInstance()->getQueryProcessorMutex();
+
+    // boost::unique_lock<boost::timed_mutex>
+    //     queryProcessorLock{ *qpMutex, boost::try_to_lock };
+
+    // if(queryProcessorLock.owns_lock() ||
+    //     queryProcessorLock.try_lock_for(boost::chrono::seconds{ 360 })) {
+    //     LOG_F(INFO, "%s", "Successfully acquired QueryProcessorMutex.");
+    // }
+    // else {
+    //     LOG_F(ERROR, "%s", "Acquisition of QueryProcessorMutex "
+    //         "failed due to timeout.");
+    //     return false;
+    // }
 
     print("Done acquiring lock for executeQueryCommand.", std::cout);
 

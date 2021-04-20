@@ -27,6 +27,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 #include "Algebras/DBService2/ReplicaPlacementStrategy.hpp"
 
+#include <random>
+#include <algorithm>
+
 using namespace std;
 
 namespace DBService {
@@ -68,7 +71,13 @@ namespace DBService {
     // Nodes selected for the placement
     vector<shared_ptr<Node> > selectedNodes;
 
-    for (const auto& node : nodes ) {
+    // Shuffle nodes to create a simple load balancing.
+    std::random_device rd;
+    std::mt19937 rng(rd());    
+    vector<shared_ptr<Node> > shuffledNodes = nodes;    
+    std::shuffle(shuffledNodes.begin(), shuffledNodes.end(), rng);
+
+    for(const auto& node : shuffledNodes) {
       if (isNodeCompliant(node, relation)) {        
         message << "Node " << node->getHost().getHostname() << ", ";
         message << node->getPort() << " is compliant.";        

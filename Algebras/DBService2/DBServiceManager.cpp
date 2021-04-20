@@ -81,7 +81,9 @@ namespace DBService
         printFunction("DBServiceManager::DBServiceManager", std::cout);
         LOG_SCOPE_FUNCTION(INFO);
 
+        LOG_F(INFO, "%s", "Acquiring lock for DBServiceManager...");
         boost::lock_guard<boost::mutex> lock(managerMutex);
+        LOG_F(INFO, "%s", "Successfully acquired lock for DBServiceManager...");
 
         LOG_F(INFO, "%s", "Restoring configuration...");
         restoreConfiguration();
@@ -205,7 +207,9 @@ namespace DBService
         printFunction("DBServiceManager::addNode", std::cout);
         LOG_SCOPE_FUNCTION(INFO);
 
+        LOG_F(INFO, "%s", "Acquiring lock for DBServiceManager...");
         boost::lock_guard<boost::mutex> lock(managerMutex);
+        LOG_F(INFO, "%s", "Successfully acquired lock for DBServiceManager...");
 
         if (!FileSystem::FileOrFolderExists(configPath)) {
             print("The given DBService config file does not exist.", std::cout);
@@ -267,7 +271,9 @@ namespace DBService
         printFunction("DBServiceManager::determineReplicaLocations", std::cout);
         LOG_SCOPE_FUNCTION(INFO);
 
+        LOG_F(INFO, "%s", "Acquiring lock for DBServiceManager...");
         boost::lock_guard<boost::mutex> lock(managerMutex);
+        LOG_F(INFO, "%s", "Successfully acquired lock for DBServiceManager...");
 
         LOG_F(INFO, "%s", "Done acquiring lock.");
         print("Done acquiring lock.", std::cout);
@@ -368,7 +374,10 @@ namespace DBService
 
         LOG_SCOPE_FUNCTION(INFO);
 
+        LOG_F(INFO, "%s", "Acquiring lock for DBServiceManager...");
         boost::lock_guard<boost::mutex> lock(managerMutex);
+        LOG_F(INFO, "%s", "Successfully acquired lock for DBServiceManager...");
+
         print("relID", relID, std::cout);
         LOG_F(INFO, "reldID: %s", relID.c_str());
 
@@ -408,7 +417,9 @@ namespace DBService
             std::cout);
         LOG_SCOPE_FUNCTION(INFO);
 
+        LOG_F(INFO, "%s", "Acquiring lock for DBServiceManager...");
         boost::lock_guard<boost::mutex> lock(managerMutex);
+        LOG_F(INFO, "%s", "Successfully acquired lock for DBServiceManager...");
 
         print("ObjectID", objectID, std::cout);
         print("replicaLocationHost", replicaLocationHost, std::cout);
@@ -456,7 +467,9 @@ namespace DBService
         LOG_F(INFO, "Relation: %s", relation.c_str());
         LOG_F(INFO, "Derivative name: %s", derivateName.c_str());
 
+        LOG_F(INFO, "%s", "Acquiring lock for DBServiceManager...");
         boost::lock_guard<boost::mutex> lock(managerMutex);
+        LOG_F(INFO, "%s", "Successfully acquired lock for DBServiceManager...");
 
         try
         {
@@ -547,9 +560,11 @@ catch(...)
         return doesExist;
     }
 
-    void DBServiceManager::addDerivative(std::string relationDatabase,
+    void DBServiceManager::addDerivative(std::string relationDatabase,        
         std::string relationName, std::string derivativeName,
         std::string derivativeFunction) {
+            
+        LOG_SCOPE_FUNCTION(INFO);
     
         auto relation = relationManager->findByDatabaseAndName(
             relationDatabase, relationName);

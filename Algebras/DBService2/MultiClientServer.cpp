@@ -48,13 +48,14 @@ int MultiClientServer::start()
         return 1;
     }
 
-    const size_t MAX_THREADS = 256; // 256
+    const size_t MAX_THREADS = 256; // 32; // 256
     LOG_F(INFO, "%s", "Building thread pool...");
 
     // Build a thread pool to respond to incoming communication requests
     boost::thread_group threads;
     for(size_t i = 0; i < MAX_THREADS; i++)
     {
+        // LOG_F(INFO, "Creating thread nr %d...", i);
         threads.create_thread(boost::bind(
                 &MultiClientServer::handleCommunicationThread, this));
     }
@@ -70,11 +71,18 @@ int MultiClientServer::start()
         {
             return 2;
         }
-        boost::unique_lock<boost::mutex> lock(queueGuard);
-        socketBuffer.push(serverConnection);
-        queueIndicator.notify_one();
 
-        //boost::this_thread::sleep_for(boost::chrono::milliseconds(50));
+        LOG_F(INFO, "%s", "Acquiring MultiClientServer lock...");
+        boost::unique_lock<boost::mutex> lock(queueGuard);
+        LOG_F(INFO, "%s", "Successfully acquired MultiClientServer lock.");
+
+        socketBuffer.push(serverConnection);
+
+        LOG_F(INFO, "%s", "queueIndicator.notify_one()...");
+        queueIndicator.notify_one();
+        LOG_F(INFO, "%s", "Done: queueIndicator.notify_one();");
+
+        boost::this_thread::sleep_for(boost::chrono::milliseconds(5));
     }
 
     LOG_F(INFO, "%s", "Interrupting all threads a queueGaurd.wait()...");
@@ -94,19 +102,27 @@ int MultiClientServer::start()
 
 bool MultiClientServer::handleCommunicationThread()
 {
+    LOG_SCOPE_FUNCTION(INFO);
+
     while(true)
     {
         //boost::this_thread::get_id();
         try
         {
+            LOG_F(INFO, "%s", "Acquiring MultiClientServer lock...");
             boost::unique_lock<boost::mutex> lock(queueGuard);
+            LOG_F(INFO, "%s", "Successfully acquired MultiClientServer lock.");
+            LOG_F(INFO, "%s", "Now waiting for the lock...");
             queueIndicator.wait(lock);
+            LOG_F(INFO, "%s", "Done waiting for the lock.");
         }
         catch (boost::thread_interrupted)
         {
+            LOG_F(ERROR, "%s", "Thread has been interrupted!");
             return false;
         }
 
+        LOG_F(INFO, "%s", "Acquiring MultiClientServer lock again...");
         boost::unique_lock<boost::mutex> lock(queueGuard);
 
         assert(!socketBuffer.empty());
@@ -114,8 +130,12 @@ bool MultiClientServer::handleCommunicationThread()
         Socket* server = socketBuffer.front();
         socketBuffer.pop();
 
+        LOG_F(INFO, "%s", "Unlocking MultiClientServer...");
         lock.unlock();
+
+        LOG_F(INFO, "%s", "Handling the communication request...");
         communicate(server->GetSocketStream());
+
     }
 }
 

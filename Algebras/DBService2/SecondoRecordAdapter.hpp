@@ -8,6 +8,8 @@
 extern NestedList* nl;
 extern boost::recursive_mutex nlparsemtx;
 
+#include <loguru.hpp>
+
 namespace DBService
 {
 
@@ -71,7 +73,9 @@ namespace DBService
         *  The list of records is the 2nd element
         */
 
+        LOG_F(INFO, "%s", "Acquiring lock for nlparsemtx...");
         boost::unique_lock<boost::recursive_mutex> nlLock(nlparsemtx);
+        LOG_F(INFO, "%s", "Successfully acquired lock for nlparsemtx...");
 
         ListExpr recordList = nl->Second(resultList);    
 

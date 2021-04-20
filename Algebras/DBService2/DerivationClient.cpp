@@ -68,7 +68,9 @@ namespace DBService{
     LOG_SCOPE_FUNCTION(INFO);
     printFunction(__PRETTY_FUNCTION__, std::cout);
             
+    LOG_F(INFO, "%s", "Acquiring lock for nlparsemtx...");
     boost::lock_guard<boost::recursive_mutex> guard(nlparsemtx);
+    LOG_F(INFO, "%s", "Successfully acquired lock for nlparsemtx...");
 
     try{
         SecondoCatalog* ctlg = SecondoSystem::GetCatalog();
@@ -116,10 +118,48 @@ namespace DBService{
         std::string typeString, errorString;
         bool correct, evaluable, defined, isFunction;
     
-        boost::lock_guard<boost::mutex> queryProcessorGuard(
-        // Dereference the shared_ptr to the mutex
-        *LockKeeper::getInstance()->getQueryProcessorMutex()
-        );
+        // LOG_F(INFO, "%s", "Acquiring lock for queryProcessorGuard...");
+        // boost::lock_guard<boost::recursive_mutex> queryProcessorGuard(
+        //     // Dereference the shared_ptr to the mutex
+        //     *LockKeeper::getInstance()->getQueryProcessorMutex()
+        // );
+        // LOG_F(INFO, "%s", 
+        //     "Successfully acquired lock for queryProcessorGuard.");
+
+
+        // //TODO Make lock timeout 300configurable
+        // if(!qpMutex->try_lock_for(boost::chrono::seconds(300))) {
+        //     LOG_F(ERROR, "%s", "Acquisition of QueryProcessorMutex "
+        //         "failed due to timeout.");
+        // }
+
+        // // Whenever qpMutex is dereferenced, a copy is created which isn't 
+        // possible as the object is marked as non-copyable.
+
+        // boost::timed_mutex& qpMutex2 = *qpMutex;
+
+        // // Create a lockguard for the timed_mutex
+        // boost::lock_guard<boost::mutex>
+        //     lock(qpMutex2, boost::adopt_lock_t());
+        
+        // Establishing a timeout for locks
+        // https://dieboostcppbibliotheken.de/boost.thread-synchronisation
+        
+        
+        // std::shared_ptr<boost::timed_mutex> qpMutex = 
+        //     LockKeeper::getInstance()->getQueryProcessorMutex();
+
+        // boost::unique_lock<boost::timed_mutex> 
+        //     lock{ *qpMutex, boost::try_to_lock };
+
+        // if(lock.owns_lock() || 
+        //     lock.try_lock_for(boost::chrono::seconds{ 360 })) {
+        //     LOG_F(INFO, "%s", "Successfully acquired QueryProcessorMutex.");
+        // } else {
+        //     LOG_F(ERROR, "%s", "Acquisition of QueryProcessorMutex "
+        //                  "failed due to timeout.");
+        //     return;
+        // }
 
         LOG_F(INFO, "%s", "Starting transaction to create derivative...");
 
@@ -152,7 +192,7 @@ namespace DBService{
         SecondoSystem::CommitTransaction(true);
 
         LOG_F(INFO, "%s", "Derivative has been created. "
-            "Notifying the DBService...");
+            "Notifying the DBService...");        
 
         // report success of operation
         derivationSuccessful();
@@ -162,7 +202,14 @@ namespace DBService{
     }
          
 
-
+    /*
+        TODO While success is reported to the DBService, failure isn't.
+            A failed creation of a derivative should be communicated to the 
+            DBService so that the DBServiceManager can mark the Derivation
+            as "failed". Also the reporting back could be used to provide
+            metadata about the failure helping the DBServiceManager to decide
+            on whether to re-attempt the creation later.
+    */
     void DerivationClient::derivationFailed(const std::string& error){
         LOG_SCOPE_FUNCTION(INFO);
         LOG_F(ERROR, "Failed to created derivative: %s", error.c_str());

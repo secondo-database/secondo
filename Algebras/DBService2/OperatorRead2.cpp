@@ -43,6 +43,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "boost/filesystem.hpp"
 
+#include <loguru.hpp>
+
 namespace fs = boost::filesystem;
 
 using namespace std;
@@ -57,7 +59,9 @@ ListExpr OperatorRead2::mapType(ListExpr nestedList)
     printFunction("OperatorRead2::mapType", std::cout);
     print(nestedList, std::cout);
 
+    LOG_F(INFO, "%s", "Acquiring lock for nlparsemtx...");
     boost::unique_lock<boost::recursive_mutex> nlLock(nlparsemtx);
+    LOG_F(INFO, "%s", "Successfully acquired lock for nlparsemtx...");
 
     if(!nl->HasLength(nestedList, 2)) // rel x fun
     {
@@ -171,7 +175,10 @@ int OperatorRead2::mapValue(Word* args,
                             Word& local,
                             Supplier s)
 {
+
+    LOG_F(INFO, "%s", "Acquiring lock for nlparsemtx...");
     boost::lock_guard<boost::recursive_mutex> guard(nlparsemtx);
+    LOG_F(INFO, "%s", "Successfully acquired lock for nlparsemtx...");
     
     //printFunction("OperatorRead2::mapValue");
     string relationName =

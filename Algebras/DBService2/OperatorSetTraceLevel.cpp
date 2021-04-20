@@ -33,6 +33,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Algebras/DBService2/OperatorSetTraceLevel.hpp"
 #include "Algebras/DBService2/TraceSettings.hpp"
 
+#include <loguru.hpp>
+
 extern boost::recursive_mutex nlparsemtx;
 
 namespace DBService {
@@ -40,7 +42,10 @@ namespace DBService {
 ListExpr OperatorSetTraceLevel::mapType(ListExpr nestedList)
 {
     print(nestedList, std::cout);
+
+    LOG_F(INFO, "%s", "Acquiring lock for nlparsemtx...");
     boost::lock_guard<boost::recursive_mutex> guard(nlparsemtx);
+    LOG_F(INFO, "%s", "Successfully acquired lock for nlparsemtx...");
 
     if (!nl->HasLength(nestedList, 1))
     {

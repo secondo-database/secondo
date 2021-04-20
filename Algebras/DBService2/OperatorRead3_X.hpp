@@ -45,6 +45,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Algebras/FText/FTextAlgebra.h"
 #include "Algebras/DBService2/DBServiceClient.hpp"
 
+#include <loguru.hpp>
+
 namespace fs = boost::filesystem;
 
 extern boost::recursive_mutex nlparsemtx;
@@ -134,7 +136,9 @@ ListExpr OperatorRead3_X<X>::mapType(ListExpr args)
     printFunction(__PRETTY_FUNCTION__, std::cout);
     print(args, std::cout);
 
+    LOG_F(INFO, "%s", "Acquiring lock for nlparsemtx...");
     boost::lock_guard<boost::recursive_mutex> guard(nlparsemtx);
+    LOG_F(INFO, "%s", "Successfully acquired lock for nlparsemtx...");
 
     if(!nl->HasLength(args, 2 + X )) // rel x Index^X x  fun
     {
@@ -299,7 +303,9 @@ int OperatorRead3_X<X>::mapValue(Word* args,
 {
     //printFunction(__PRETTY_FUNCTION__);
 
+    LOG_F(INFO, "%s", "Acquiring lock for nlparsemtx...");
     boost::lock_guard<boost::recursive_mutex> guard(nlparsemtx);
+    LOG_F(INFO, "%s", "Successfully acquired lock for nlparsemtx...");
 
     // arguments:
     // 0 : relation

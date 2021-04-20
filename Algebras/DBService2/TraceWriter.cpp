@@ -33,6 +33,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Algebras/DBService2/TraceSettings.hpp"
 #include "Algebras/DBService2/TraceWriter.hpp"
 
+#include <loguru.hpp>
+
 using namespace std;
 
 extern boost::recursive_mutex nlparsemtx;
@@ -199,7 +201,9 @@ void TraceWriter::write(
     print(text, nestedList, *out);
     if(TraceSettings::getInstance()->isFileTraceOn())
     {
+        LOG_F(INFO, "%s", "Acquiring lock for nlparsemtx...");
         boost::lock_guard<boost::recursive_mutex> guard(nlparsemtx);
+        LOG_F(INFO, "%s", "Successfully acquired lock for nlparsemtx...");
         *traceFile << "[Thread " << tid << "] " << endl;
         *traceFile << text << endl;
         *traceFile << "length: " << nl->ListLength(nestedList) << endl;

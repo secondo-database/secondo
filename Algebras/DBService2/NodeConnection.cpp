@@ -66,9 +66,11 @@ namespace DBService {
     //TODO learn about optional timeout and hartbeat params and make use 
     //  of them if helpful.
 
-    LOG_F(INFO, "%s", "Lock acquired. Now establishing the connection...");
-
+    LOG_F(INFO, "%s", "Acquiring connectionMutex lock...");
     boost::unique_lock<boost::mutex> connectionLock(connectionMutex);
+    LOG_F(INFO, "%s", "Successfully acquired connectionLock lock.");
+
+    LOG_F(INFO, "%s", "Now establishing the connection...");
 
     // Creating a connection
     shared_ptr<distributed2::ConnectionInfo> myConnection(      
@@ -111,7 +113,9 @@ namespace DBService {
 
     string queryInit("query initdbserviceworker()");
 
+    LOG_F(INFO, "%s", "Acquiring connectionMutex lock...");
     boost::lock_guard<boost::mutex> connectionGuard(connectionMutex);
+    LOG_F(INFO, "%s", "Successfully acquired connectionMutex lock.");
 
     success = SecondoUtilsRemote::executeQuery(connection.get(), queryInit);
 
@@ -124,7 +128,9 @@ namespace DBService {
 
     LOG_SCOPE_FUNCTION(INFO);
 
+    LOG_F(INFO, "%s", "Acquiring connectionMutex lock...");
     boost::lock_guard<boost::mutex> connectionGuard(connectionMutex);
+    LOG_F(INFO, "%s", "Successfully acquired connectionMutex lock.");
     
     // Select and create the DBSERVICE database on the remote worker node
     connection->switchDatabase(
@@ -184,7 +190,9 @@ namespace DBService {
           << key
           << "\")";
 
+    LOG_F(INFO, "%s", "Acquiring connectionMutex lock...");
     boost::lock_guard<boost::mutex> connectionGuard(connectionMutex);
+    LOG_F(INFO, "%s", "Successfully acquired connectionMutex lock.");
     
     bool resultOk = SecondoUtilsRemote::executeQuery(
             connectionInfo,
@@ -202,11 +210,11 @@ namespace DBService {
       throw(errMsg.str());        
     }
 
-    LOG_F(INFO, "%s", "Acquiring lock to parse config param results...");
-
+    LOG_F(INFO, "%s", "Acquiring lock for nlparsemtx...");
     // Lock access to the nested list.
-    // This lock causes a deadlock!!!!
+    // UNTRUE: This lock causes a deadlock!!!! 
     boost::lock_guard<boost::recursive_mutex> guard(nlparsemtx);
+    LOG_F(INFO, "%s", "Successfully acquired lock for nlparsemtx...");
 
     ListExpr resultAsNestedList;
     nl->ReadFromString(resultAsString, resultAsNestedList);

@@ -304,8 +304,10 @@ void ReplicationServer::applyFunctionAndCreateNewFile(
     LOG_F(INFO, "newFileName: %s", newFileName.string().c_str());
     LOG_F(INFO, "FunctionList: %s", function.c_str());
 
+    LOG_F(INFO, "%s", "Acquiring lock for nlparsemtx...");
     // Lock access to the nested list.
     boost::unique_lock<boost::recursive_mutex> nlLock(nlparsemtx);
+    LOG_F(INFO, "%s", "Successfully acquired lock for nlparsemtx...");
 
     // TODO Is this the global nexted list to be locked?
     NestedList* nl = SecondoSystem::GetNestedList();
@@ -436,10 +438,30 @@ void ReplicationServer::applyFunctionAndCreateNewFile(
 
     bool ok = false;
 
-    boost::lock_guard<boost::mutex> queryProcessorGuard(
-        // Dereference the shared_ptr to the mutex
-        *LockKeeper::getInstance()->getQueryProcessorMutex()
-    );
+    // LOG_F(INFO, "%s", "Acquiring lock for queryProcessorGuard...");
+    // boost::lock_guard<boost::recursive_mutex> queryProcessorGuard(
+    //     // Dereference the shared_ptr to the mutex
+    //     *LockKeeper::getInstance()->getQueryProcessorMutex()
+    // );
+    // LOG_F(INFO, "%s",
+    //     "Successfully acquired lock for queryProcessorGuard.");
+
+    // // Establishing a timeout for locks
+    // std::shared_ptr<boost::timed_mutex> qpMutex =
+    //     LockKeeper::getInstance()->getQueryProcessorMutex();
+
+    // boost::unique_lock<boost::timed_mutex>
+    //     lock{ *qpMutex, boost::try_to_lock };
+
+    // if(lock.owns_lock() ||
+    //     lock.try_lock_for(boost::chrono::seconds{ 360 })) {
+    //     LOG_F(INFO, "%s", "Successfully acquired QueryProcessorMutex.");
+    // }
+    // else {
+    //     LOG_F(ERROR, "%s", "Acquisition of QueryProcessorMutex "
+    //         "failed due to timeout.");
+    //     return;
+    // }
 
     try{
         ok = QueryProcessor::ExecuteQuery(
@@ -473,12 +495,12 @@ void ReplicationServer::applyFunctionAndCreateNewFile(
     LOG_F(INFO, "Query executed with result (bool): %d", ok);
 
     if(ok){
-       CcInt* result = (CcInt*) queryRes.addr;
-       result->DeleteIfAllowed();
-       traceWriter->write("Successfully created file from derivative");
-       LOG_F(INFO, "Successfully created file from derivative.");
-
-       return;
+        CcInt* result = (CcInt*) queryRes.addr;
+        result->DeleteIfAllowed();
+        traceWriter->write("Successfully created file from derivative");
+        LOG_F(INFO, "Successfully created file from derivative.");
+        
+        return;
     }
 
     // query not successful
@@ -518,7 +540,7 @@ bool ReplicationServer::createFileFromRelation(const fs::path& filepath){
 
     // consume5: store tuple stream into a file
     //string cmd = "(count (fconsume5 ( feed " + relname + "\
-) '" + filepath.string() + "'))";
+//) '" + filepath.string() + "'))";
 
     stringstream query;
 
@@ -593,7 +615,10 @@ int ReplicationServer::sendFile(iostream& io, fs::path& outfilepath) {
     io << FileTransferKeywords::Data() << endl;
     io << stringutils::any2str(length) << endl;
     io.flush();
-    size_t bufsize = 8192; //1048576;
+
+    // size_t bufsize = 8192; //1048576;
+    size_t bufsize = 65536; //1048576;
+
     char buffer[bufsize];
     while(!in.eof() && in.good()) {
         in.read(buffer, bufsize);

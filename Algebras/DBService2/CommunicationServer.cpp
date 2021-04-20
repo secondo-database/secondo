@@ -430,6 +430,15 @@ bool CommunicationServer::handleStartingSignalRequest(
     return true;
 }
 
+/*
+
+The CommunicationClient triggering this is located on the DBService Master.
+This CommunicationServer is running on a DBService Worker Node.
+It will trigger a ReplicationClientRunnable which in turn creates a
+ReplicationClient which then will retrieve the Relation from the original
+Node.
+
+*/
 bool CommunicationServer::handleTriggerFileTransferRequest(
         std::iostream& io, const boost::thread::id tid)
 {
@@ -471,12 +480,17 @@ bool CommunicationServer::handleTriggerFileTransferRequest(
           host.c_str(), port.c_str(), fileName.c_str(), databaseName.c_str(),
           relationName.c_str());
 
+    LOG_F(INFO, "%s", "Creating ReplicationClientRunnable...");
     ReplicationClientRunnable replicationClient(
             host,
             atoi(port.c_str()),
             databaseName,
             relationName);
+
+    LOG_F(INFO, "%s", "Running ReplicationClientRunnable...");
     replicationClient.run();
+    LOG_F(INFO, "%s", "Done running ReplicationClientRunnable.");
+
     return true;
 }
 
@@ -699,7 +713,10 @@ bool CommunicationServer::handleTriggerReplicaDeletion(
    
     // ensure to have only one access to the catalog
     static boost::mutex mtx;
+
+    LOG_F(INFO, "%s", "Acquiring lock for SecondoCatalog...");
     boost::lock_guard<boost::mutex> guard(mtx);
+    LOG_F(INFO, "%s", "Successfully acquired lock for SecondoCatalog.");
 
     traceWriter->write("database", databaseName);
     traceWriter->write("relation", relationName),
@@ -817,9 +834,11 @@ bool CommunicationServer::handleRelTypeRequest(
 
     LOG_F(INFO, "Filename: %s, Relation: %s",
             fileName.c_str(), relname.c_str());
-            
+
+    LOG_F(INFO, "%s", "Acquiring lock for nlparsemtx...");
     // Restrict access to the nested list
     boost::lock_guard<boost::recursive_mutex> guard(nlparsemtx);
+    LOG_F(INFO, "%s", "Successfully acquired lock for nlparsemtx...");
     
     SecondoCatalog* ctlg = SecondoSystem::GetCatalog();
     if(!ctlg->IsObjectName(relname)){
@@ -877,7 +896,9 @@ bool CommunicationServer::handleDerivedTypeRequest(
     traceWriter->write("ObjectName ", objectName);
     LOG_F(INFO, "ObjectName: %s", objectName.c_str());
 
+    LOG_F(INFO, "%s", "Acquiring lock for nlparsemtx...");
     boost::lock_guard<boost::recursive_mutex> guard(nlparsemtx);
+    LOG_F(INFO, "%s", "Successfully acquired lock for nlparsemtx...");
 
     SecondoCatalog* ctlg = SecondoSystem::GetCatalog();
     if(!ctlg->IsObjectName(objectName)){
@@ -906,9 +927,11 @@ bool CommunicationServer::handleTriggerDerivation(
             "CommunicationServer::handleTriggerDerivation");
     LOG_SCOPE_FUNCTION(INFO);
 
-    // ensure to have only one access to the catalog
+    LOG_F(INFO, "%s", "Acquiring lock for SecondoCatalog...");
+    // ensure to have only one access to the catalog    
     static boost::mutex mtx;
     boost::lock_guard<boost::mutex> guard(mtx);
+    LOG_F(INFO, "%s", "Successfully acquired lock for SecondoCatalog...");
 
     // request derivation information
     CommunicationUtils::sendLine(io,
@@ -966,9 +989,11 @@ bool CommunicationServer::handleCreateDerivation(
 
     LOG_SCOPE_FUNCTION(INFO);
 
+    LOG_F(INFO, "%s", "Acquiring lock for SecondoCatalog...");
     // ensure to have only one access to the catalog
     static boost::mutex mtx;
     boost::lock_guard<boost::mutex> guard(mtx);
+    LOG_F(INFO, "%s", "Successfully acquired lock for SecondoCatalog...");
 
     CommunicationUtils::sendLine(io,
             CommunicationProtocol::DerivationRequest());
@@ -1007,9 +1032,11 @@ bool CommunicationServer::reportSuccessfulDerivation(
 
     LOG_SCOPE_FUNCTION(INFO);
 
+    LOG_F(INFO, "%s", "Acquiring lock for SecondoCatalog...");
     // ensure to have only one access to the catalog
     static boost::mutex mtx;
     boost::lock_guard<boost::mutex> guard(mtx);
+    LOG_F(INFO, "%s", "Successfully acquired lock for SecondoCatalog...");
 
     CommunicationUtils::sendLine(io,
             CommunicationProtocol::ObjectRequest());
