@@ -18500,6 +18500,226 @@ class AReduceTask{
 };
 
 
+/*
+getTupleCounts
+
+Computes the counts of tuples for different slots of a dfmatrix for
+a single worker. If the template argument is false, instead of the count of the 
+tuples, the filesize of the relation file is used.
+
+*/
+template<bool tupleCount>
+class getTupleCounts{
+ public:
+    getTupleCounts(DFMatrix* _matrix,
+                  int _wnumber, 
+                  const std::string& _dbname):
+             matrix(_matrix),wnumber(_wnumber), dbname(_dbname),
+             finished(false){
+          runner = new boost::thread(&getTupleCounts::run,this);
+    }
+
+    ~getTupleCounts(){
+      runner->join();
+      finished= true;
+      delete runner;
+    }
+
+    int getResult(int slot){
+       if(!finished){
+           runner->join();
+           finished=true;
+       }
+       return counts[slot];
+    }
+
+ private:
+    DFMatrix* matrix;
+    int wnumber;
+    string dbname;
+    bool finished;
+    vector<int> counts;
+    boost::thread* runner;
+    
+
+    void run2() {
+      DArrayElement w = matrix->getWorker(wnumber);
+      ConnectionInfo * ci = algInstance->getWorkerConnection(w, dbname);
+      string name = matrix->getName();
+      string basename = ci->getSecondoHome( showCommands, commandLog) 
+                        + "/dfarrays/" + dbname + "/"
+                        + name + "/" + stringutils::int2str(wnumber) + "/"
+                        + name+"_";
+      int error;
+      string errMsg;
+      ListExpr resList = nl->TheEmptyList();
+      bool rewrite = false;
+      double runtime;
+      for(size_t slot=0; slot < matrix->getSize();slot++){
+         string filename = basename + stringutils::int2str(slot)+".bin";
+         string query;
+         if(tupleCount) {
+           query  = "query '"+filename+"' fcount5";
+         } else {
+           query = "query fileSize('"+filename+"')";
+         }
+         ci->simpleCommand(query, error, errMsg, resList, rewrite,
+                        runtime, showCommands, commandLog);
+         int count = getCount(error,resList);         
+         counts.push_back(count);
+      }
+
+      ci->deleteIfAllowed();
+   }
+
+/*
+version using a single query
+
+*/
+
+    void run() {
+      DArrayElement w = matrix->getWorker(wnumber);
+      ConnectionInfo * ci = algInstance->getWorkerConnection(w, dbname);
+      string name = matrix->getName();
+      string basename = ci->getSecondoHome( showCommands, commandLog) 
+                        + "/dfarrays/" + dbname + "/"
+                        + name + "/" + stringutils::int2str(wnumber) + "/"
+                        + name+"_";
+      stringstream query ;
+      query  << "query ";
+      query  <<  "[const rel(tuple([FileName : text])) value (" ;
+      for(size_t slot=0; slot < matrix->getSize();slot++){
+        query << "('" << basename << slot<< ".bin') ";
+      }
+      query << ")]";
+      query << " feed transformstream fileSizes[";
+      query << (tupleCount?"TRUE":"FALSE");
+      query << "] transformstream tconsume";
+      int error;
+      string errMsg;
+      ListExpr resList = nl->TheEmptyList();
+      bool rewrite = false;
+      double runtime;
+      ci->simpleCommand(query.str(), error, errMsg, resList, rewrite,
+                        runtime, showCommands, commandLog);
+
+      //cerr << nl->ToString(resList); 
+
+      if(error!=0){
+        fill(-1);
+      } else if(!nl->HasLength(resList,2)) {
+        fill(-2);
+      } else {
+        ListExpr vList = nl->Second(resList);
+        if(nl->AtomType(vList)!=NoAtom){
+          fill(-3);
+        } else {
+           while(!nl->IsEmpty(vList)){
+             ListExpr first = nl->First(vList);
+             vList = nl->Rest(vList);
+             if(!nl->HasLength(first,1)){
+                counts.push_back(-4);
+             } else {
+                ListExpr v = nl->First(first);
+                if(nl->AtomType(v) != IntType){
+                   counts.push_back(-5);
+                } else {
+                   counts.push_back(nl->IntValue(v));
+                }
+             }
+           }
+        }
+      }
+      nl->Destroy(resList);
+      ci->deleteIfAllowed();
+   }
+
+   void fill(int value){
+     for(size_t i=0;i<matrix->getSize(); i++) {
+        counts.push_back(value);
+     }
+   }
+
+
+   int getCount(int error, ListExpr& resList){
+       int res = -1;
+       if(error!=0){
+         cerr << "problem in executing query" << endl;
+       } else {
+         if(!nl->HasLength(resList,2)){
+           cerr << " unexpected result " << endl;
+         } else {
+            ListExpr rv = nl->Second(resList);
+            if(nl->AtomType(rv) != IntType){
+              cerr << " unexpected result " << endl
+                   << nl->ToString(resList) << endl;
+            } else {
+               res = nl->IntValue(rv);
+            }
+         }
+      }
+      return res;
+   }
+
+};
+
+template<bool tupleSizes>
+class matrixSlotSizes{
+
+public:
+  matrixSlotSizes(DFMatrix* _m) : matrix(_m){
+    if(matrix->IsDefined()){
+      noSlots = matrix->getSize();
+      start();
+      finish();
+    }
+  }
+  ~matrixSlotSizes() {
+     for( auto r : runners){
+        delete r;
+     }
+     runners.clear();
+     slotSizes.clear();
+  }
+
+  vector<int> getSlotSizes(){
+    return slotSizes;
+  }
+
+private:
+  DFMatrix* matrix;
+  size_t noSlots;
+  vector<int> slotSizes;
+  string dbname;
+  vector<getTupleCounts<tupleSizes>*> runners;
+
+  void finish(){
+     for( auto gtc : runners){
+        for(size_t i=0;i<noSlots;i++){
+          int t = gtc->getResult(i);
+          if(t>0){
+              slotSizes[i] += t;
+          }
+       }
+     }
+  }
+ 
+  void start(){
+     // init result
+     slotSizes.clear();
+     for(size_t i=0;i<noSlots;i++){
+       slotSizes.push_back(0);
+     }
+     dbname = SecondoSystem::GetInstance()->GetDatabaseName();
+     for(size_t i=0;i<matrix->numOfWorkers(); i++){
+        getTupleCounts<tupleSizes>* r = 
+                     new getTupleCounts<tupleSizes>(matrix, i, dbname);
+        runners.push_back(r);
+     }
+     
+  }
+};
+
 template<class R>
 class AReducer: public AReduceListener{
   public:
@@ -18514,21 +18734,68 @@ class AReducer: public AReduceListener{
 
    }
 
+   int* computeSlotOrderNatural(){
+       size_t noSlots = matrix1->getSize(); 
+       if(matrix2){
+          if(matrix2->getSize() < noSlots){
+            noSlots = matrix2->getSize();
+          }
+       }
+       int* result = new int[noSlots];
+       for(int slot=0;slot<(int) noSlots;slot++){
+         result[slot] = slot;
+       }
+       return result;
+
+   }
+ 
+   int* computeSlotOrder(){
+       size_t noSlots = matrix1->getSize(); 
+       if(matrix2){
+         // if both matrices are present, use the natural order of slots. 
+         return computeSlotOrderNatural();
+       }
+       matrixSlotSizes<false> mss(matrix1);
+       vector<int> slotsizes = mss.getSlotSizes();
+       while(slotsizes.size() > noSlots){
+           slotsizes.pop_back();
+       }
+       vector<pair<int,int> > slotSizePairs;
+       for(size_t i=0;i<slotsizes.size();i++){
+          pair<int,int> p(i,slotsizes[i]);
+          slotSizePairs.push_back(p);
+       }
+       struct{
+         bool operator()(pair<int,int> a, pair<int,int> b) const{
+            return (a.second > b.second) 
+                    || ((a.second==b.second) && (a.first < b.first));
+         }
+       } sizeLess;
+       sort(slotSizePairs.begin(),slotSizePairs.end(), sizeLess);
+       int* result = new int[noSlots];
+       for(int slot=0;slot<(int) noSlots;slot++){
+         result[slot] = slotSizePairs[slot].first;;
+       }
+       return result;
+   }
+
+
    void reduce(){
 
        // if matrix2 is not null, the matriox sizes are equal       
        // hence we can use always matrix1 to get the number of workers.
 
        // create Reduce Objects for each worker
-       for(size_t i=0;i<matrix1->numOfWorkers();i++){
-          tasks.push_back(new AReduceTask<R>(matrix1, matrix2,i,result,
+       for(size_t worker=0;worker<matrix1->numOfWorkers();worker++){
+          tasks.push_back(new AReduceTask<R>(matrix1, matrix2,worker,result,
                           port, funtext, relType1, relType2, isStream,this));
        } 
 
        // start a task on each worker (one by one, slot, worker)
-       slot = matrix1->numOfWorkers();
+       int* slotOrder = computeSlotOrder();
+       int slotIndex = matrix1->numOfWorkers();
        for(size_t i=0; i<matrix1->numOfWorkers();i++){
-         tasks[i]->process(i);  
+         tasks[i]->process(slotOrder[i]);  
        }
 
        size_t all = matrix1->getSize(); 
@@ -18538,7 +18805,7 @@ class AReducer: public AReduceListener{
           }
        }
 
-       while(slot < (int) all){ // not all slots are processed
+       while(slotIndex < (int) all){ // not all slots are processed
            boost::unique_lock<boost::mutex> lock(mtx);
            while(freeWorkers.empty()){
               cond.wait(lock);
@@ -18546,8 +18813,8 @@ class AReducer: public AReduceListener{
            // there is a new free worker
            int w = freeWorkers.front();
            freeWorkers.pop();
-           tasks[w]->process(slot);
-           slot++;
+           tasks[w]->process(slotOrder[slotIndex]);
+           slotIndex++;
        }
 
        // for all slots, a task was started
@@ -18556,6 +18823,7 @@ class AReducer: public AReduceListener{
        for(size_t i=0;i<tasks.size();i++){
           delete tasks[i];
        }
+       delete[] slotOrder;
    }
 
    void ready(int slot, int worker, boost::thread* theThread){
@@ -18578,7 +18846,6 @@ class AReducer: public AReduceListener{
     ListExpr  relType2;
     string    targetName;
     bool      isFile;
-    int       slot;
     queue<int> freeWorkers; 
     vector<AReduceTask<R>*> tasks;
     boost::condition_variable cond;
@@ -19233,225 +19500,7 @@ class VectorSlotDistributor{
 };
 
 
-/*
-getTupleCounts
 
-Computes the counts of tupless for different sloots of a dfmatrix for
-a single worker. If the template argument is false, instead of the count of the 
-tuples, the filesize of the relation file is used.
-
-*/
-template<bool tupleCount>
-class getTupleCounts{
- public:
-    getTupleCounts(DFMatrix* _matrix,
-                  int _wnumber, 
-                  const std::string& _dbname):
-             matrix(_matrix),wnumber(_wnumber), dbname(_dbname),
-             finished(false){
-          runner = new boost::thread(&getTupleCounts::run,this);
-    }
-
-    ~getTupleCounts(){
-      runner->join();
-      finished= true;
-      delete runner;
-    }
-
-    int getResult(int slot){
-       if(!finished){
-           runner->join();
-           finished=true;
-       }
-       return counts[slot];
-    }
-
- private:
-    DFMatrix* matrix;
-    int wnumber;
-    string dbname;
-    bool finished;
-    vector<int> counts;
-    boost::thread* runner;
-    
-
-    void run2() {
-      DArrayElement w = matrix->getWorker(wnumber);
-      ConnectionInfo * ci = algInstance->getWorkerConnection(w, dbname);
-      string name = matrix->getName();
-      string basename = ci->getSecondoHome( showCommands, commandLog) 
-                        + "/dfarrays/" + dbname + "/"
-                        + name + "/" + stringutils::int2str(wnumber) + "/"
-                        + name+"_";
-      int error;
-      string errMsg;
-      ListExpr resList = nl->TheEmptyList();
-      bool rewrite = false;
-      double runtime;
-      for(size_t slot=0; slot < matrix->getSize();slot++){
-         string filename = basename + stringutils::int2str(slot)+".bin";
-         string query;
-         if(tupleCount) {
-           query  = "query '"+filename+"' fcount5";
-         } else {
-           query = "query fileSize('"+filename+"')";
-         }
-         ci->simpleCommand(query, error, errMsg, resList, rewrite,
-                        runtime, showCommands, commandLog);
-         int count = getCount(error,resList);         
-         counts.push_back(count);
-      }
-
-      ci->deleteIfAllowed();
-   }
-
-/*
-version using a single query
-
-*/
-
-    void run() {
-      DArrayElement w = matrix->getWorker(wnumber);
-      ConnectionInfo * ci = algInstance->getWorkerConnection(w, dbname);
-      string name = matrix->getName();
-      string basename = ci->getSecondoHome( showCommands, commandLog) 
-                        + "/dfarrays/" + dbname + "/"
-                        + name + "/" + stringutils::int2str(wnumber) + "/"
-                        + name+"_";
-      stringstream query ;
-      query  << "query ";
-      query  <<  "[const rel(tuple([FileName : text])) value (" ;
-      for(size_t slot=0; slot < matrix->getSize();slot++){
-        query << "('" << basename << slot<< ".bin') ";
-      }
-      query << ")]";
-      query << " feed transformstream fileSizes[";
-      query << (tupleCount?"TRUE":"FALSE");
-      query << "] transformstream tconsume";
-      int error;
-      string errMsg;
-      ListExpr resList = nl->TheEmptyList();
-      bool rewrite = false;
-      double runtime;
-      ci->simpleCommand(query.str(), error, errMsg, resList, rewrite,
-                        runtime, showCommands, commandLog);
-
-      //cerr << nl->ToString(resList); 
-
-      if(error!=0){
-        fill(-1);
-      } else if(!nl->HasLength(resList,2)) {
-        fill(-2);
-      } else {
-        ListExpr vList = nl->Second(resList);
-        if(nl->AtomType(vList)!=NoAtom){
-          fill(-3);
-        } else {
-           while(!nl->IsEmpty(vList)){
-             ListExpr first = nl->First(vList);
-             vList = nl->Rest(vList);
-             if(!nl->HasLength(first,1)){
-                counts.push_back(-4);
-             } else {
-                ListExpr v = nl->First(first);
-                if(nl->AtomType(v) != IntType){
-                   counts.push_back(-5);
-                } else {
-                   counts.push_back(nl->IntValue(v));
-                }
-             }
-           }
-        }
-      }
-      nl->Destroy(resList);
-      ci->deleteIfAllowed();
-   }
-
-   void fill(int value){
-     for(size_t i=0;i<matrix->getSize(); i++) {
-        counts.push_back(value);
-     }
-   }
-
-
-   int getCount(int error, ListExpr& resList){
-       int res = -1;
-       if(error!=0){
-         cerr << "problem in executing query" << endl;
-       } else {
-         if(!nl->HasLength(resList,2)){
-           cerr << " unexpected result " << endl;
-         } else {
-            ListExpr rv = nl->Second(resList);
-            if(nl->AtomType(rv) != IntType){
-              cerr << " unexpected result " << endl
-                   << nl->ToString(resList) << endl;
-            } else {
-               res = nl->IntValue(rv);
-            }
-         }
-      }
-      return res;
-   }
-
-};
-
-template<bool tupleSizes>
-class matrixSlotSizes{
-
-public:
-  matrixSlotSizes(DFMatrix* _m) : matrix(_m){
-    if(matrix->IsDefined()){
-      noSlots = matrix->getSize();
-      start();
-      finish();
-    }
-  }
-  ~matrixSlotSizes() {
-     for( auto r : runners){
-        delete r;
-     }
-     runners.clear();
-     slotSizes.clear();
-  }
-
-  vector<int> getSlotSizes(){
-    return slotSizes;
-  }
-
-private:
-  DFMatrix* matrix;
-  size_t noSlots;
-  vector<int> slotSizes;
-  string dbname;
-  vector<getTupleCounts<tupleSizes>*> runners;
-
-  void finish(){
-     for( auto gtc : runners){
-        for(size_t i=0;i<noSlots;i++){
-          int t = gtc->getResult(i);
-          if(t>0){
-              slotSizes[i] += t;
-          }
-       }
-     }
-  }
- 
-  void start(){
-     // init result
-     slotSizes.clear();
-     for(size_t i=0;i<noSlots;i++){
-       slotSizes.push_back(0);
-     }
-     dbname = SecondoSystem::GetInstance()->GetDatabaseName();
-     for(size_t i=0;i<matrix->numOfWorkers(); i++){
-        getTupleCounts<tupleSizes>* r = 
-                     new getTupleCounts<tupleSizes>(matrix, i, dbname);
-        runners.push_back(r);
-     }
-     
-  }
-};
 
 template<bool tupleSizes>
 class BalancedSlotDistributor{
