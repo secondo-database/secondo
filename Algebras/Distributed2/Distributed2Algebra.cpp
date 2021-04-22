@@ -18772,6 +18772,15 @@ class AReducer: public AReduceListener{
          }
        } sizeLess;
        sort(slotSizePairs.begin(),slotSizePairs.end(), sizeLess);
+
+       bool printOrder = false;
+       if(printOrder){
+          cout << "process slots in the folloring order" << endl;
+          for(auto s : slotSizePairs){
+             cout << "slot : " << s.first << " \t size : " << s.second << endl;
+          }
+       }
+
        int* result = new int[noSlots];
        for(int slot=0;slot<(int) noSlots;slot++){
          result[slot] = slotSizePairs[slot].first;;
