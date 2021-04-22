@@ -175,10 +175,14 @@ public:
      return SetWord(new MPointer((MemoryObject*)0,true));
    }
 
-   static void Delete(const ListExpr t, Word& v){
+   static void Delete(const ListExpr t, Word& v) {
+     if(v.addr == nullptr) {
+       return;
+     }
+
      MPointer* p = (MPointer*) v.addr;
      delete p;
-     v.addr =0;
+     v.addr = nullptr;
    }
  
    static bool Open(SmiRecord& vR,
@@ -196,9 +200,13 @@ public:
    }
    
    static void Close(const ListExpr t, Word& v){
+       if(v.addr == nullptr) {
+         return;
+       }
+
        MPointer* p = (MPointer*) v.addr;
        delete p;
-       v.addr =0;
+       v.addr = nullptr;
    }
 
    static Word Clone(const ListExpr typeInfo, const Word& w){
