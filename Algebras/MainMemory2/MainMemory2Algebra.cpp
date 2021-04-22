@@ -4567,7 +4567,7 @@ ListExpr mcreatemtreeTM(ListExpr args){
   // check for supported type, extend if required
   int no = mtreehelper::getTypeNo(type,12);
   if(no <0){
-     return listutils::typeError("there is no known distance fuction for type "
+     return listutils::typeError("there is no known distance function for type "
                                + nl->ToString(type));
   }
 
