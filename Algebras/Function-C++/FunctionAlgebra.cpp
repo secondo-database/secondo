@@ -754,6 +754,229 @@ Operator whiledo (
     WhileDoTypeMap           // type mapping
 );
 
+/*
+Type Map Operator ARGX 
+
+*/
+template<int X>
+ListExpr ARGEFXTM(ListExpr args){
+
+  for(int i=0;i<X-1 && nl->HasMinLength(args,2) ;i++){
+    args = nl->Rest(args);
+  }
+
+  ListExpr res =  nl->First(args);
+  if(listutils::isAnyMap(res)){
+    // switch to result
+    while(!nl->HasLength(res,1)){
+      res = nl->Rest(res);
+    }
+    res = nl->First(res);
+  }
+  return res;
+}
+
+OperatorSpec ARGEFXSpec(
+  " A x B x C ... -> C",
+  " ARGX(X,B,C)",
+  " ARGEFX extract the Xth argument type from the input. If it is a "
+  "funtion, the result of this function is returned",
+  " query xyz"
+);
+
+Operator ARGEF1Op(
+  "ARGEF1",
+  ARGEFXSpec.getStr(),
+  0,
+  Operator::SimpleSelect,
+  ARGEFXTM<1> 
+);
+
+Operator ARGEF2Op(
+  "ARGEF2",
+  ARGEFXSpec.getStr(),
+  0,
+  Operator::SimpleSelect,
+  ARGEFXTM<2> 
+);
+
+Operator ARGEF3Op(
+  "ARGEF3",
+  ARGEFXSpec.getStr(),
+  0,
+  Operator::SimpleSelect,
+  ARGEFXTM<3> 
+);
+
+
+Operator ARGEF4Op(
+  "ARGEF4",
+  ARGEFXSpec.getStr(),
+  0,
+  Operator::SimpleSelect,
+  ARGEFXTM<4> 
+);
+
+Operator ARGEF5Op(
+  "ARGEF5",
+  ARGEFXSpec.getStr(),
+  0,
+  Operator::SimpleSelect,
+  ARGEFXTM<5> 
+);
+
+Operator ARGEF6Op(
+  "ARGEF6",
+  ARGEFXSpec.getStr(),
+  0,
+  Operator::SimpleSelect,
+  ARGEFXTM<6> 
+);
+
+
+/*
+2.5 Operator funseq
+
+This operator gets some  value and a sequence of functions. 
+The first function processes the value, the second function processes 
+the value as well as the result of the first funtion, the third function processes
+the value, the result of the first and the result of the second function and so on.
+The number of functions is restricted to 7.
+
+*/
+template<int nofuns>
+ListExpr funseqTM(ListExpr args){
+
+   if(!nl->HasLength(args,nofuns+1)){
+     return listutils::typeError("ANY x funlist expected");
+   }
+   vector<ListExpr> funargs;
+   funargs.push_back(nl->First(args)); // just overtak the initial value
+   ListExpr funs = nl->Rest(args);
+   if(nl->AtomType(funs) != NoAtom){
+     return listutils::typeError("second argument must be a list of functions");
+   }
+   if(!nl->HasLength(funs,nofuns)){
+     return listutils::typeError("invalid number of functions");
+   }
+   while(!nl->IsEmpty(funs)){
+     ListExpr fun = nl->First(funs);
+     funs = nl->Rest(funs);
+     if(!listutils::isAnyMap(fun)){
+       return listutils::typeError("found a non-funtion in function list");
+     }    
+     int noFunArgs = nl->ListLength(fun) -2 ; // map and result
+     if(noFunArgs<(int)funargs.size() ){
+       return listutils::typeError("found function with too less arguments");
+     }
+     if(noFunArgs> nofuns){
+       return listutils::typeError("found function with too much arguments");
+     }
+     // check arguments types
+     fun = nl->Rest(fun); // remove leading map
+     for(size_t a = 0; a < funargs.size(); a++){
+        if(!nl->Equal(nl->First(fun),funargs[a])){
+          return listutils::typeError("wrong funtion argument found");
+        }
+        fun = nl->Rest(fun);
+     }
+     // remaining arguemnts are filled up with the last argument
+     while(!nl->HasLength(fun,1)){
+        if(!nl->Equal(nl->First(fun),funargs.back())){
+          return listutils::typeError("wrong funtion argument found");
+        }
+        fun = nl->Rest(fun);
+     }
+     funargs.push_back(nl->First(fun)); 
+   }
+   ListExpr result = funargs.back();
+   return result;
+}
+
+
+int
+funseqVM(Word* args, Word& result, int message, Word& local, Supplier s){
+  int noArgs = qp->GetNoSons(s);
+  vector<Word> arguments;
+  // the first arguments is just the argument given in the to the operator
+  arguments.push_back(args[0]);
+  for(int f = 1;f<noArgs;f++){
+    Word fun = args[f];
+    ArgVectorPointer funargs = qp->Argument(fun.addr);
+    for(size_t fa = 0; fa < arguments.size();fa++){
+      (*funargs)[fa] = arguments[fa];
+    }
+    for(int fa = arguments.size(); fa < noArgs; fa++){
+      (*funargs)[fa] = arguments.back();
+    } 
+    Word funresult;
+    qp->Request(fun.addr, funresult);
+    arguments.push_back(funresult);
+  }
+  qp->DeleteResultStorage(s);
+  qp->ChangeResultStorage(s,arguments.back());
+  result = qp->ResultStorage(s);  
+  qp->ReInitResultStorage(qp->GetSon(s,noArgs-1));
+  return 0;
+}
+
+OperatorSpec funseqSpec(
+   "A x (A -> X) x (A x X -> Y) x (A x X x Y -> Z) ... -> Z",
+   " A funsq [funlist] ",
+   "Applies a set of function to an object. Each function can  "
+   "use the initial argument and the result of all functions "
+   "on it's left side. Function result cannot be streams.",
+   "query 1 funseq[ fun( a : int) a + 1.0, fun (b : int, c : real) b * c]"
+);
+
+Operator funseq1Op(
+  "funseq1",
+  funseqSpec.getStr(),
+  funseqVM,
+  Operator::SimpleSelect,
+  funseqTM<1>
+);
+
+Operator funseq2Op(
+  "funseq2",
+  funseqSpec.getStr(),
+  funseqVM,
+  Operator::SimpleSelect,
+  funseqTM<2>
+);
+
+Operator funseq3Op(
+  "funseq3",
+  funseqSpec.getStr(),
+  funseqVM,
+  Operator::SimpleSelect,
+  funseqTM<3>
+);
+
+Operator funseq4Op(
+  "funseq4",
+  funseqSpec.getStr(),
+  funseqVM,
+  Operator::SimpleSelect,
+  funseqTM<4>
+);
+
+Operator funseq5Op(
+  "funseq5",
+  funseqSpec.getStr(),
+  funseqVM,
+  Operator::SimpleSelect,
+  funseqTM<5>
+);
+
+Operator funseq6Op(
+  "funseq6",
+  funseqSpec.getStr(),
+  funseqVM,
+  Operator::SimpleSelect,
+  funseqTM<6>
+);
+
 
 /*
 3 Creating the Algebra
@@ -770,6 +993,18 @@ class FunctionAlgebra : public Algebra
     AddOperator( &within );
     AddOperator( &within2 );
     AddOperator( &whiledo );
+    AddOperator( &ARGEF1Op );
+    AddOperator( &ARGEF2Op );
+    AddOperator( &ARGEF3Op );
+    AddOperator( &ARGEF4Op );
+    AddOperator( &ARGEF5Op );
+    AddOperator( &ARGEF6Op );
+    AddOperator( &funseq1Op );
+    AddOperator( &funseq2Op );
+    AddOperator( &funseq3Op );
+    AddOperator( &funseq4Op );
+    AddOperator( &funseq5Op );
+    AddOperator( &funseq6Op );
   }
   ~FunctionAlgebra() {};
 };

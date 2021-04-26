@@ -42,3 +42,43 @@ Number   : 1
 Signature: a x (a -> bool) x (a -> a) -> stream(a)
 Example  : query 1 whiledo[ . < 10; . + 1; TRUE] count
 Result   : 10
+
+Operator  : funseq1
+Number    : 1
+Signature : a x (a -> b) -> b 
+Example   : query 2 funseq1[ . + 3 ]
+Result    : 5
+
+Operator  : funseq2
+Number    : 1
+Signature : a x (a -> b) x (a x b -> c) -> c  ...
+Example   : query 2 funseq2[ . + 3.0, (. + ..) * 2 ]
+Result    : 14.0 
+ 
+Operator  : funseq3
+Number    : 1
+Signature : a x (a -> b) x (a x b -> c) x (a x b x c -> d) -> d 
+Example   : query 1 funseq3[ 1 + .,  . + .., . + .. + $3  ]
+Result    : 6 
+
+
+Operator  : funseq4
+Number    : 1
+Signature : a x (a -> b) x (a x b -> c) x (a x b x c -> d)  x (a x b x c x d -> e) -> e  
+Example   : query 1 funseq4[ 1 + .,  . + .., . + .. + $3 , $1 + $2 + $3 + $4  ]
+Result    : 12 
+
+
+Operator  : funseq5
+Number    : 1
+Signature : a x (a -> b) x (a x b -> c) x (a x b x c -> d)  x ... -> e  
+Example   : query 1 funseq5[ 1 + .,  . + .., . + .. + $3 , $1 + $2 + $3 + $4, $1 + $2 + $3 + $4 + $5 ]
+Result    : 24 
+
+Operator  : funseq6
+Number    : 1
+Signature : a x (a -> b) x (a x b -> c) x (a x b x c -> d)  x ... -> e  
+Example   : query 1 funseq6[ 1 + .,  . + .., . + .. + $3 , $1 + $2 + $3 + $4, $1 + $2 + $3 + $4 + $5, $2 * $6 ]
+Result    : 48 
+
+
