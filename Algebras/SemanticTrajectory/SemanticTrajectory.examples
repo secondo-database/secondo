@@ -1,61 +1,63 @@
-Database : semtrajtest
+Database : ctest
 Restore  : YES
-
-Operator : sim
-Number   : 1
-Signature: stream(tuple(x)) x a1 x a2 x real x real x rect -> stream(tuple(x))
-Example  : query sim(st1, st2, r1, 0.5)
-Result   : Under construction
-
-Operator : makeuniquelistwords
-Number   : 1
-Signature: stream(tuple(a1 t1) ...(an tn) ) x ai -> uniquestringarray
-Example  : query stopwords feed makeuniquelistwords[Words]
-Result   : (uniquestringarray ("able" "about" "above") )
 
 Operator : makesemtraj
 Number   : 1
-Signature: stream(tuple(a1 t1) ...(an tn) ) x ai x aj x ak -> semantictrajectory
-Example  : query Raw feed sortby [TripId asc] groupby[TripId; DayTrip: group feed makesemtraj [Longitude, Latitude, Semantics]] count;
+Signature: stream(Tuple(x)) x a1 x a2 x a3 -> semantictrajectory
+Example  : query CRaw feed groupby[TripId; DayTrip: group feed makesemtraj[Longitude, Latitude, Semantics]] count;
 Result   : 4
-
-Operator : stbox
-Number   : 1
-Signature: semantictrajectory -> rectangle
-Example  : query stbox(st2)
-Result   : (rect (1.4 4.5 8.6 10.5))
-
-Operator : makesum
-Signature: stream x 1 x semantictrajectory x CellGrid2D x attr x attr x attr-> semantictrajectory
-Example  : query joinWordTrips feed replaceAttr[DayTrip: .WordList2 afeed makesummaries[.TripId2, .DayTrip, Grid, KeywordId, Cnt, Word]]  project[TripId2, DayTrip] count
-Result   : 201
 
 Operator : extractkeywords
 Number   : 1
 Signature: semantictrajectory -> stream(string)
-Example  : query CTrips feed extendstream[Keyword: .DayTrip extractkeywords] project[Keyword] count
-Result   : 24942
+Example  : query CTrips feed extendstream[Keyword: .DayTrip extractkeywords] project[Keyword] count;
+Result   : 30
+
+Operator : stbox
+Number   : 1
+Signature: semantictrajectory -> rectangle
+Example  : query CTrips feed extend[Box: stbox(.DayTrip)] project[Box] transformstream collect_box[TRUE];
+Result   : (rect (0.6 7.3 0.7 7.4))
+
+
+Operator : makeuniquelistwords
+Number   : 1
+Signature: stream(Tuple(x)) x a1 -> uniquestringarray
+Example  : query Keywords feed makeuniquelistwords[Keyword]
+Result   : (uniquestringarray ("area" "camp" "diversity" "hunting" "private" "protected" "bear" "habitat" "open" "closed" "deer" "warning") )
 
 Operator : batches
 Number   : 1
-Signature: stream(tuple(x)) x ax1 x ax2 x real -> stream(tuple(x))
-Example  : query Node0Trips feed batches[DayTrip, BatchId, 0.07] count;
-Result   : 49
+Signature: stream(Tuple(x)) x a1 x a2 x real -> stream(tuple(x))
+Example  : query preBatch feed batches[DayTrip, BatchId, 8.0] count;
+Result   : 4
 
 Operator : bbsim
 Number   : 1
-Signature: stream(tuple(x)) x a1 x a2 x a3 x a4 x real X Rectangle -> stream(tuple(x))
-Example  : query batchpairs feed bbsim[BatchId, BatchId_2, BatchMBR, BatchMBR_2, 0.07] count;
-Result   : Under construction
+Signature: stream(Tuple(x)) x a1 x a2 x a3 x a4 x real x real x Rectangle -> stream(tuple(x))
+Example  : query BPair feed bbsim[BatchId, BatchId_t2, BatchMBR, BatchMBR_t2, 0.5, 1.3, space] count;
+Result   : 1
 
 Operator : btsim
 Number   : 1
-Signature: stream(tuple(x)) x rect x a1 -> stream(tuple(x))
-Example  : query batchpairs feed btsim[.DayTrip, BatchMBR_2] count;
-Result   : Under construction
+Signature: stream(Tuple(x)) x stream(Tuple(y)) x a1 x a2 x a3 x rect x ccReal x ccReal x rect -> stream(tuple(x))
+Example  : query BFJoin1 feed extend[NewTripList: fun(t: TUPLE) attr(t, TripList) afeed attr(t, WordList2_t2) afeed btsim[DayTrip, Word_t2, Cnt_t2, attr(t, BatchMBR_t2), 0.5, 1.3, space] aconsume] count;
+Result   : 1
 
 Operator : ttsim
 Number   : 1
-Signature: stream(tuple(x)) x a1 x a2 x CellGrid2D x real x real x rect -> stream(tuple(x))
-Example  : query batchpairs feed btsim[.DayTrip, BatchMBR_2] count;
-Result   : Under construction
+Signature: stream(Tuple(x)) x a1 x a2 x CellGrid2D x real x real x rect -> stream(Tuple(x))
+Example  : query newpairs feed ttsim[DayTrip, DayTrip_t2, Grid, 0.5, 1.3, space] count;
+Result   : 1
+
+Operator : sim
+Number   : 1
+Signature: stream(Tuple(x)) x a1 x a2 x CellGrid2D x real x real x rect -> stream(tuple(x))
+Example  : query BFJoin3 feed sim[DayTrip, DayTrip_t2, 0.5, 1.3, space] count;
+Result   : 0
+
+Operator : makesum
+Number   : 1
+Signature: stream(Tuple(x)) x int x semantictrajectory x CellGrid2D x a1 x a2 x a3 -> semantictrajectory
+Example  : query joinTrips feed replaceAttr[DayTrip: .WordList2 afeed makesum[.TripId2, .DayTrip, Grid, KeywordId, Cnt, Word]]  project[TripId2, DayTrip] count;
+Result   : 4

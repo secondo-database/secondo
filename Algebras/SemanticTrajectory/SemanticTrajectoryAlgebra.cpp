@@ -2235,7 +2235,7 @@ ListExpr MakesummariesTM( ListExpr args )
 {
   if( (nl->ListLength(args) == 7)
     && listutils::isTupleStream(nl->First(args))
-    && listutils::isNumericType(nl->Second(args))
+    && CcInt::checkType(nl->Second(args))
     && SemanticTrajectory::checkType(nl->Third(args))
     && CellGrid2D::checkType(nl->Fourth(args))
     && listutils::isSymbol(nl->Fifth(args))
