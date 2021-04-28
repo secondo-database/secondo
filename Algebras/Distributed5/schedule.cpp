@@ -834,6 +834,9 @@ private:
                     std::chrono::high_resolution_clock::now() - start);
             TaskStatistics::report("selecting local job",
                                    ((double)duration.count()) / 1000000);
+
+
+            // Select new job, if not already selected
             if (job == nullptr)
             {
                 start = std::chrono::high_resolution_clock::now();
@@ -843,7 +846,11 @@ private:
                         std::chrono::high_resolution_clock::now() - start);
                 TaskStatistics::report("selecting global job",
                                        ((double)duration.count()) / 1000000);
-            } else {
+            } 
+
+            // Execute job
+            if(job != nullptr)
+            {
                 auto start = std::chrono::high_resolution_clock::now();
                 if (!job->run())
                 {
@@ -858,7 +865,7 @@ private:
 
                 delete job;
                 job = nullptr;
-                
+
                 continue;
             }
 

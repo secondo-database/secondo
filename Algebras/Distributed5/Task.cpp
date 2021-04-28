@@ -1047,11 +1047,11 @@ void TaskDataItem::merge(TaskDataItem *other)
     boost::lock_guard<boost::shared_mutex> lock(mutex);
     for (auto otherLocations : other->locationsByServer)
     {
-        auto ownLocations = locationsByServer[otherLocations.first];
-        for (auto loc : otherLocations.second)
+        auto &ownLocations = locationsByServer[otherLocations.first];
+        for (auto &loc : otherLocations.second)
         {
             bool found = false;
-            for (auto ownLoc : ownLocations)
+            for (auto &ownLoc : ownLocations)
             {
                 if (ownLoc == loc)
                 {
