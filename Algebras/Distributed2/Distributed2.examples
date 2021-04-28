@@ -490,9 +490,9 @@ Result    : bug
 Remark    : requires a remote server
 
 Operator  : collectB
-Number    : 1
+Number    : 2
 Signature : dfmatrix x string x int [ (int -> real) ] -> dfarray
-Example   : query size(s7 partition["m7", hashvalue(.Attr,23),  0]  collectB["mys7", 1238, fun(int i) 1.0*i*i] )
+Example   : query size(s7 partition["m7", hashvalue(.Attr,23),  0]  collectB["mys7", 1238, fun(int: i) 1.0*i*i] )
 Result    : bug
 Remark    : requires a remote server
 
