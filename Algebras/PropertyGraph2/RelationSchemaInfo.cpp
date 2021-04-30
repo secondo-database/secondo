@@ -31,7 +31,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 using namespace std;
 
 //------------------------------------------------------------------
-namespace pgraph
+namespace pgraph2
 {
 
 //----------------------------------------------------------------------------
@@ -65,7 +65,7 @@ RelationSchemaInfo::RelationSchemaInfo()
 RelationSchemaInfo::~RelationSchemaInfo()
 {
    for(auto&& o : Attributes) delete o;
-   Attributes.clear();      
+   Attributes.clear();
 }
 
 //----------------------------------------------------------------------------
@@ -78,7 +78,7 @@ RelationSchemaInfo::RelationSchemaInfo(ListExpr list)
 void RelationSchemaInfo::Dump()
 {
    cout << "Attributes:" <<endl;
-    for (auto&& f:Attributes) 
+    for (auto&& f:Attributes)
     {
        cout << " - "<< f->Name<<endl;
     }
@@ -87,9 +87,10 @@ void RelationSchemaInfo::Dump()
 //----------------------------------------------------------------------------
 void RelationSchemaInfo::LoadFromList(ListExpr list)
 {
-   if (nl->ToString( nl->First(list))!="rel")
-      throw  PGraphException("no relation!");
-   
+   if (nl->ToString( nl->First(list))!="rel" && \
+   nl->ToString( nl->First(list))!="orel")
+      throw  PGraph2Exception("no relation!");
+
    list=nl->Second(nl->Second(list));
    int i=0;
    while (nl->ListLength(list)>0)
@@ -109,7 +110,7 @@ void RelationSchemaInfo::LoadFromList(ListExpr list)
 //----------------------------------------------------------------------------
 AttrInfo* RelationSchemaInfo::GetAttrInfo(string name)
 {
-   
+
     for(unsigned int i=0; i<Attributes.size();i++)
     {
        if (Attributes[i]->Name==name)
@@ -129,8 +130,8 @@ int RelationSchemaInfo::GetAttrCount()
 {
    return Attributes.size();
 }
-    
 
 
 
-} // namespace pgraph
+
+} // namespace pgraph2

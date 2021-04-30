@@ -38,13 +38,13 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <string>
 
 //------------------------------------------------------------------
-namespace pgraph
+namespace pgraph2
 {
 
 const bool LOG_COLORED=true;
-const std::string LOGOP_COL = LOG_COLORED?"\033[32m":"";  
-const std::string LOGOP_COL_ERR = LOG_COLORED?"\033[91m":"";  
-const std::string LOG_COL_OFF = LOG_COLORED?"\033[0m":"";  
+const std::string LOGOP_COL = LOG_COLORED?"\033[32m":"";
+const std::string LOGOP_COL_ERR = LOG_COLORED?"\033[91m":"";
+const std::string LOG_COL_OFF = LOG_COLORED?"\033[0m":"";
 
 extern int debugLevel;
 void setDebugLevel(int level);
@@ -53,7 +53,7 @@ void setDebugLevel(int level);
 inline void LOG_() {};
 template<typename Head, typename... Args>
 void LOG_(const Head& head, const Args&... args )
-{ 
+{
     std::cout << head << " ";
     LOG_(args...);
 }
@@ -61,37 +61,37 @@ void LOG_(const Head& head, const Args&... args )
 //------------------------------------------------------------------
 template<typename... Args>
 void LOGERR(const Args&... args )
-{ 
+{
     if (LOG_COLORED) std::cout <<LOGOP_COL_ERR;
 
     LOG_(args...);
-    
+
     if (LOG_COLORED)
         std::cout << LOG_COL_OFF<<"\n";
-    else        
+    else
         std::cout << "\n";
 }
-    
+
 
 //------------------------------------------------------------------
 template<typename... Args>
 void LOG(int level, const Args&... args )
-{ 
+{
     if (level>debugLevel) return;
     //std::cout << "PGRAPH | ";
     LOG_(args...);
-    
+
     if (LOG_COLORED)
         std::cout << LOG_COL_OFF<<"\n";
-    else        
+    else
         std::cout << "\n";
-    
+
 
 }
 //------------------------------------------------------------------
 template<typename... Args>
 void LOGOP(int level, const std::string source, const Args&... args )
-{ 
+{
 
     if (level>debugLevel) return;
     //std::cout << "PGRAPH | ";
@@ -102,12 +102,12 @@ void LOGOP(int level, const std::string source, const Args&... args )
 
 
     LOG_(args...);
-    
+
     if (LOG_COLORED)
         std::cout << LOG_COL_OFF<<"\n";
-    else        
+    else
         std::cout << "\n";
-    
+
 }
 //------------------------------------------------------------------
 
@@ -136,41 +136,43 @@ int GetNextListIndex(ListExpr list);
 ListExpr GetTupleDefFromObject(std::string name);
 
 int QueryRelationCount(std::string relname);
-Relation* OpenRelation(std::string relname); 
-Relation* OpenRelation(std::string relname, ListExpr &relinfo); 
-mm2algebra::MemoryRelObject* QueryMemRelation(std::string relname); 
+Relation* OpenRelation(std::string relname);
+Relation* OpenRelation(std::string relname, ListExpr &relinfo);
+mm2algebra::MemoryRelObject* QueryMemRelation(std::string relname);
 bool queryValueDouble(std::string cmd, double &val);
-Relation* ExecuteQuery(std::string query); 
+bool queryValueDouble(std::string cmd, double &val, size_t availMem);
+Relation* ExecuteQuery(std::string query);
 void DoLet(std::string objName, std::string  commandText);
+void DoLetCompute(std::string objName, std::string  commandText);
 //------------------------------------------------------------------
-void ReplaceStringInPlace(std::string& subject, const std::string& 
+void ReplaceStringInPlace(std::string& subject, const std::string&
    search, const std::string& replace);
 bool FirstUpper(const std::string& word);
 double round(double x, int n);
 
 //------------------------------------------------------------------
-class PGraphException : public std::exception {
+class PGraph2Exception : public std::exception {
 
   public:
 
-    PGraphException() : msgStr("Unknown Error") {}
+    PGraph2Exception() : msgStr("Unknown Error") {}
 
-    PGraphException(const std::string& Msg) : 
+    PGraph2Exception(const std::string& Msg) :
       exception(), msgStr("PGRAPH-Exception: " + Msg) {}
 
-    PGraphException(const PGraphException& rhs) : 
+    PGraph2Exception(const PGraph2Exception& rhs) :
       std::exception(), msgStr(rhs.msgStr) {}
 
-    virtual ~PGraphException() throw() {}
+    virtual ~PGraph2Exception() throw() {}
 
     virtual const char* what() const throw() {
       return msgStr.c_str();
     }
 
-    const std::string msg() { 
+    const std::string msg() {
       return msgStr;
     }
-  
+
   protected:
     std::string msgStr;
 };

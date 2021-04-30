@@ -33,7 +33,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 using namespace std;
 
-namespace pgraph {
+namespace pgraph2 {
 
 
 //-----------------------------------------------------------------------------
@@ -87,17 +87,17 @@ ListExpr QueryOutputFields::StreamTypeDefinition(QueryAliasList *aliaslist,
                ai=&alias;
 
          if (ai==NULL)     
-            throw PGraphException("no node alias defined for "+f->NodeAlias);
+            throw PGraph2Exception("no node alias defined for "+f->NodeAlias);
          if (ai->TypeName=="")   
-            throw PGraphException("no type found for alias "+f->NodeAlias);
+            throw PGraph2Exception("no type found for alias "+f->NodeAlias);
 
          RelationInfo *ri= pgmem->RelRegistry.GetRelationInfo(ai->TypeName);
          if (ri==NULL)
-               throw PGraphException("unknown typename"+ai->TypeName);
+               throw PGraph2Exception("unknown typename"+ai->TypeName);
 
          AttrInfo *ati = ri->RelSchema.GetAttrInfo(f->PropertyName);
          if (ati==NULL)
-            throw PGraphException("propertyname not found: "+f->PropertyName);
+            throw PGraph2Exception("propertyname not found: "+f->PropertyName);
 
          f->datatype=ati->TypeName;   
       }
@@ -150,7 +150,7 @@ void QueryAliasList::AddNode(std::string aliasname, std::string typename_)
    for(auto&& item : list)
    {
       if ((item.AliasName!="") && (item.AliasName==aliasname))
-         throw PGraphException("alias redeclared !");
+         throw PGraph2Exception("alias redeclared !");
    }
 
    QueryAliasInfo aliasinfo;
@@ -166,7 +166,7 @@ void QueryAliasList::AddEdge(std::string aliasname, std::string typename_)
    for(auto&& item : list)
    {
       if ((item.AliasName!="") && (item.AliasName==aliasname))
-         throw PGraphException("alias redeclared !");
+         throw PGraph2Exception("alias redeclared !");
    }
 
    QueryAliasInfo aliasinfo;

@@ -40,10 +40,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 using namespace std;
 
 //------------------------------------------------------------------
-namespace pgraph
+namespace pgraph2
 {
 
-   int debugLevel = 0;   
+   int debugLevel = 0;
        // The default loglevel - the first step in the typemapping functions
        // will be quiet until the point where the log option is processed.
        // this makes it perhaps necesssary to adjust the default value here.
@@ -126,7 +126,7 @@ ListExpr GetTupleDefFromObject(string name)
 }
 
 //----------------------------------------------------------------------------
-// distance to the next non-atom entry 
+// distance to the next non-atom entry
 // -1: not sub list found
 int GetNextListIndex(ListExpr list)
 {
@@ -136,7 +136,7 @@ int GetNextListIndex(ListExpr list)
     while (i<=max)
     {
       ListExpr item=nl->Nth(i,list);
-      if (!nl->IsAtom(item)) 
+      if (!nl->IsAtom(item))
          return i-1;
       i++;
     }
@@ -144,9 +144,9 @@ int GetNextListIndex(ListExpr list)
 }
 
 //----------------------------------------------------------------------------
-bool FirstUpper(const string& word) 
-{ 
-      return word.size() && std::isupper(word[0]); 
+bool FirstUpper(const string& word)
+{
+      return word.size() && std::isupper(word[0]);
 }
 
 //-----------------------------------------------------------------------------
@@ -162,7 +162,7 @@ string GetArgValue(ListExpr args, int pos)
 {
    NList list(args);
    return list.elem(pos).second().str();
-  //return nl->Text2String(nl->Second(nl->Nth(pos, args))); 
+  //return nl->Text2String(nl->Second(nl->Nth(pos, args)));
   // above failed as it will not respect different string types
 }
 
@@ -202,12 +202,12 @@ int  GetArgCount(ListExpr args)
 //-----------------------------------------------------------------------------
 void CheckArgCount(ListExpr args, int min, int max)
 {
-   if ( nl->ListLength(args)<min || nl->ListLength(args)>max )  
+   if ( nl->ListLength(args)<min || nl->ListLength(args)>max )
    {
       if (min==max)
-         throw PGraphException("Expecting "+ to_string(min)+" arguments ");
+         throw PGraph2Exception("Expecting "+ to_string(min)+" arguments ");
       else
-         throw PGraphException("Expecting "+ to_string(min)+"-"+
+         throw PGraph2Exception("Expecting "+ to_string(min)+"-"+
                  to_string(max)+" arguments ");
    }
 }
@@ -215,35 +215,35 @@ void CheckArgCount(ListExpr args, int min, int max)
 //-----------------------------------------------------------------------------
 void CheckArgType(ListExpr args, int pos, string typename_)
 {
-   if ( nl->ToString(nl->First(nl->Nth(pos,args))) != typename_ ) 
-      throw PGraphException("Argument #"+to_string(pos)+" has to be of type "+
+   if ( nl->ToString(nl->First(nl->Nth(pos,args))) != typename_ )
+      throw PGraph2Exception("Argument #"+to_string(pos)+" has to be of type "+
           typename_);
 }
 
 //-----------------------------------------------------------------------------
 void CheckArgTypeIsTupleStream(ListExpr args, int pos)
 {
-   if (!Stream<Tuple>::checkType( nl->First(nl->Nth(pos,args)) )) 
-      throw PGraphException("Argument #"+to_string(pos)+
+   if (!Stream<Tuple>::checkType( nl->First(nl->Nth(pos,args)) ))
+      throw PGraph2Exception("Argument #"+to_string(pos)+
           " has to be a tuple stream");
 }
 
 //-----------------------------------------------------------------------------
-int QueryRelationCount(string relname) 
+int QueryRelationCount(string relname)
 {
   string querystring = "(count (feed " + relname + "))";
-  
+
   Word resultWord;
   int i=-1;
   if ( QueryProcessor::ExecuteQuery(querystring, resultWord) )
    {
-      
+
       i=((CcInt*)resultWord.addr)->GetIntval();
       cout << " count: "<< i<< "\n";
       ((CcInt*)resultWord.addr)->DeleteIfAllowed();
     }
     else
-       throw PGraphException("Error in executing  query: "+querystring);
+       throw PGraph2Exception("Error in executing  query: "+querystring);
 
 
   return i;
@@ -269,6 +269,24 @@ bool queryValueDouble(string cmd, double &val){
 }
 
 //-----------------------------------------------------------------------------
+//
+bool queryValueDouble(string cmd, double &val, size_t availMem){
+   Word res;
+   bool success = QueryProcessor::ExecuteQuery(cmd,res, availMem);
+   if(!success){
+     return false;
+   }
+   CcReal* s = (CcReal*) res.addr;
+   if(!s->IsDefined()){
+      s->DeleteIfAllowed();
+      return false;
+   }
+   val = s->GetValue();
+   s->DeleteIfAllowed();
+   return true;
+}
+
+//-----------------------------------------------------------------------------
 double round(double x, int n) {
    int d = 0;
    if((x * pow(10, n + 1)) - (floor(x * pow(10, n))) > 4) d = 1;
@@ -277,9 +295,9 @@ double round(double x, int n) {
    }
 
 //-----------------------------------------------------------------------------
-mm2algebra::MemoryRelObject* QueryMemRelation(string relname) 
+mm2algebra::MemoryRelObject* QueryMemRelation(string relname)
 {
-   mm2algebra::MemCatalog *memCatalog = 
+   mm2algebra::MemCatalog *memCatalog =
        mm2algebra::MemCatalog::getInstance();
 
    if (memCatalog->isObject(relname)) {
@@ -287,38 +305,38 @@ mm2algebra::MemoryRelObject* QueryMemRelation(string relname)
       //string s=mo->getObjectTypeExpr();
       return (mm2algebra::MemoryRelObject*) mo;
    }
-   
-   throw PGraphException("Error reading relation : "+relname);
+
+   throw PGraph2Exception("Error reading relation : "+relname);
 }
 
 //-----------------------------------------------------------------------------
-Relation* OpenRelation(string relname) 
+Relation* OpenRelation(string relname)
 {
    ListExpr s;
    return OpenRelation(relname, s);
 }
 
 //-----------------------------------------------------------------------------
-Relation* OpenRelation(string relname, ListExpr &reltype) 
+Relation* OpenRelation(string relname, ListExpr &reltype)
 {
    SecondoCatalog* catalog = SecondoSystem::GetCatalog();
    reltype=catalog->GetObjectTypeExpr(relname);
-  
+
    if (catalog->IsObjectName(relname)) {
       bool defined;
       Word word;
       catalog->GetObject(relname, word, defined);
       return (Relation*) word.addr;
    }
-   throw PGraphException("Error reading relation : "+relname);
+   throw PGraph2Exception("Error reading relation : "+relname);
 }
 
 //-----------------------------------------------------------------------------
-Relation*  ExecuteQuery(string query) 
+Relation*  ExecuteQuery(string query)
 {
-  
+
    Word resultWord;
-   
+
    Word queryResult;
    std::string typeString = "";
    std::string errorString = "";
@@ -328,14 +346,14 @@ Relation*  ExecuteQuery(string query)
    bool isFunction;
    ListExpr q;
    nl->ReadFromString(query,q);
-   if (qp->ExecuteQuery(q, queryResult, 
-                    typeString, errorString, correct, 
+   if (qp->ExecuteQuery(q, queryResult,
+                    typeString, errorString, correct,
                     evaluable, defined, isFunction))
    {
       //nl->ReadFromString(typeString, reltype);
-      return ( Relation* ) queryResult.addr;    
+      return ( Relation* ) queryResult.addr;
    }
-   throw PGraphException("Error executing query : "+query);
+   throw PGraph2Exception("Error executing query : "+query);
 }
 
 //-----------------------------------------------------------------------------
@@ -345,12 +363,12 @@ void DoLet(string objName, string  commandText)
 {
    ListExpr valueExpr = nl->TheEmptyList();
   if ( !nl->ReadFromString( commandText, valueExpr ) )
-      throw PGraphException("[DoLet] Parsing commandtext");
+      throw PGraph2Exception("[DoLet] Parsing commandtext");
 
 
    QueryProcessor& qp = *SecondoSystem::GetQueryProcessor();
    SecondoCatalog& ctlg = *SecondoSystem::GetCatalog();
-  
+
    NestedList& nl = *SecondoSystem::GetNestedList();
    bool correct = false;
    bool evaluable = false;
@@ -405,10 +423,43 @@ void DoLet(string objName, string  commandText)
         //cout << "DoLet x\n";
       } catch (SI_Error err) {
         // errorCode = err;
-        throw PGraphException("SI_Error DoLet");
+        throw PGraph2Exception("SI_Error DoLet");
          qp.Destroy( tree, true );
-      }  
+      }
 }
 
+//--------------------------------------------------------------------------
+void DoLetCompute(string objName, string  commandText)
+// see QueryProcessor/SecondointerfaceTTY.cpp
+{
+   ListExpr valueExpr = nl->TheEmptyList();
+  if ( !nl->ReadFromString( commandText, valueExpr ) )
+      throw PGraph2Exception("[DoLet] Parsing commandtext");
 
-} // namespace pgraph
+
+   QueryProcessor& qp = *SecondoSystem::GetQueryProcessor();
+   SecondoCatalog& ctlg = *SecondoSystem::GetCatalog();
+
+   NestedList& nl = *SecondoSystem::GetNestedList();
+   bool defined = true;
+   ListExpr resultType = nl.TheEmptyList();
+
+   try {
+        ListExpr list = nl.TheEmptyList();
+        list = qp.AnnotateX( valueExpr, defined );
+
+        resultType = nl.Second( list );
+
+        //cout << "DoLet eval or function\n";
+        string typeName = "";
+        ctlg.CreateObject(objName, typeName, resultType, 0);
+
+        ctlg.UpdateObject( objName, SetWord( valueExpr ) );
+
+    } catch (SI_Error err) {
+        // errorCode = err;
+        throw PGraph2Exception("SI_Error DoLet");
+      }
+}
+
+} // namespace pgraph2

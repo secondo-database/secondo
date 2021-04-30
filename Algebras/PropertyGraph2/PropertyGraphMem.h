@@ -31,15 +31,17 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "ListUtils.h"
 #include "NList.h"
 
+#include "../OrderedRelation/OrderedRelationAlgebra.h"
+
 #include "MPointer.h"
 #include "MemoryObject.h"
 
 #include "RelationSchemaInfo.h"
 #include "Utils.h"
 
-namespace pgraph {
+namespace pgraph2 {
 
-class PGraph; // forward as mutual usage
+class PGraph2; // forward as mutual usage
 class NodeRelInfo; // forward as mutual usage
 class EdgeRelInfo; // forward as mutual usage
 class RelationInfo;
@@ -60,7 +62,7 @@ class RelationRegistry
 {
    int Counter=0;
    std::map<std::string,int>  RelationIds;
-   
+
 public:
    std::vector<RelationInfo*>  RelationInfos;
 
@@ -86,7 +88,7 @@ public:
    std::string Name;
    std::string IdFieldName;
    int RelId;
-   int IdAttrIndex=0;   // faster access to id field   
+   int IdAttrIndex=0;   // faster access to id field
    int FromAttrIndex=0;   // faster access to id field
    int ToAttrIndex=0;
    RelationSchemaInfo RelSchema;
@@ -97,7 +99,7 @@ public:
 
 struct Edge
 {
-   Edge(int edgeid, int relid,int from,int to) { EdgeId=edgeid; 
+   Edge(int edgeid, int relid,int from,int to) { EdgeId=edgeid;
       RelId=relid; FromNodeId=from; ToNodeId=to; }
    int FromNodeId;
    int ToNodeId;
@@ -107,10 +109,10 @@ struct Edge
 
 class AdjacencyList
 {
-public:   
+public:
    ~AdjacencyList();
    int NodeGlobalCounter=0;
-   
+
    // both use the same index to get to the relId for further metadata
    std::vector<Tuple*> NodeList;
    std::vector<int> NodeRelIdList;
@@ -125,14 +127,13 @@ public:
    std::vector<Edge*> EdgeInfo;
 
    void AddNodeTuple(int relId, Tuple *tuple);
-   void AddEdgeTuple(int relId, Tuple *tuple, RelationInfo *fromrel, 
+   void AddEdgeTuple(int relId, Tuple *tuple, RelationInfo *fromrel,
       int fromID, RelationInfo *torel, int toID);
-   
+
    void Clear();
 };
 
-
-class MemoryGraphObject : public mm2algebra::MemoryObject 
+class MemoryGraphObject : public mm2algebra::MemoryObject
 {
    public:
       MemoryGraphObject(){
@@ -146,7 +147,7 @@ class MemoryGraphObject : public mm2algebra::MemoryObject
       static std::string BasicType(){
          return "mpgraph";
       }
-      
+
       static bool checkType( ListExpr list){
          if(!nl->HasLength(list,1)){
              return false;
@@ -157,7 +158,7 @@ class MemoryGraphObject : public mm2algebra::MemoryObject
 
          return true;
       }
-          
+
       MemoryObject* clone(){
          LOG(10, "MemoryObject* clone");
          return new MemoryGraphObject(objectTypeExpr, getDatabase());
@@ -168,7 +169,7 @@ class MemoryGraphObject : public mm2algebra::MemoryObject
 
    private:
    protected:
-     
+
         ~MemoryGraphObject();
 
 public:
@@ -183,11 +184,17 @@ public:
 
    int    IsLoaded() { return initstate==1; }
 
-   void   LoadData(PGraph *pg, bool forcerebuildStatistics);
-   void   LoadNodeRelation(std::string memrelname, NodeRelInfo *relinfo, 
+   void   LoadData(PGraph2 *pg, bool forcerebuildStatistics);
+   void   LoadData2(PGraph2 *pg, bool forcerebuildStatistics, Supplier s);
+   void   LoadNodeRelation(std::string memrelname, NodeRelInfo *relinfo,
+                           bool rebuildStatistics);
+   int GetRelCount(std::string relname);
+   void   LoadNodeRelation2(std::string memrelname, NodeRelInfo *relinfo,
                            bool rebuildStatistics);
    void   LoadEdgeRelation(std::string memrelname, EdgeRelInfo *relinfo,
                            bool rebuildStatistics);
+   void   LoadEdgeRelation2(std::string memrelname, EdgeRelInfo *relinfo,
+                           bool rebuildStatistics, Supplier s);
 };
 }
 

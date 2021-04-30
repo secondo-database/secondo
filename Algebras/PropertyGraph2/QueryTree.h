@@ -29,20 +29,20 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "NestedList.h"
 #include "ListUtils.h"
 #include "NList.h"
-#include <list> 
+#include <list>
 #include "PropertyGraphMem.h"
 #include "QueryOutputFields.h"
 #include "QueryFilterFields.h"
 
 
-namespace pgraph {
+namespace pgraph2 {
 
 class QueryTreeEdge;
 class PGraphQueryProcessor;
 class QueryTreeNode;
 class QueryTreeState;
 
-enum QueryTreeMatchStateEnum { NOT_INITIALIZED, MATCH_AVAILABLE, 
+enum QueryTreeMatchStateEnum { NOT_INITIALIZED, MATCH_AVAILABLE,
        NO_FURTHER_MATCH };
 
 //-----------------------------------------------------------------------------
@@ -60,7 +60,7 @@ public:
 class QueryTreeBase
 {
 public:
-   virtual ~QueryTreeBase() = default; 
+   virtual ~QueryTreeBase() = default;
 
    std::string Alias="";
    std::string TypeName="";
@@ -80,7 +80,7 @@ public:
    // state while matching
    uint current_nodeid=-1;
 
-   int _uid; 
+   int _uid;
    std::list<QueryTreeEdge*> Edges;
 
    double CalcCost();
@@ -97,6 +97,7 @@ public:
    // state while matching
    uint current_edgeindex=-1;
    uint current_edgeid=-1;
+   uint current_edge_tonodeid=-1;
 
    QueryTreeNode *FromNode;
    QueryTreeNode *ToNode;
@@ -137,7 +138,7 @@ public:
    void Clear();
    std::string DumpTreeAsList(QueryTreeNode *n=NULL, int level=0,
                               std::ostringstream *data=NULL);
-   void DumpTreeDot(QueryTreeNode *n, std::string fn, 
+   void DumpTreeDot(QueryTreeNode *n, std::string fn,
        std::ostringstream *data=NULL);
 
    // static helpers

@@ -32,7 +32,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 using namespace std;
 
-namespace pgraph {
+namespace pgraph2 {
 
 //----------------------------------------------------------------------------
 QueryFilter* QueryFilter::Clone()
@@ -179,7 +179,7 @@ void QueryTree::ReadFilters(list<QueryFilter*> &filters, ListExpr list)
    while(!nl->IsEmpty(list))
    {
       if (nl->ListLength(nl->First(list))!=2)
-         throw PGraphException("Node filter expects a list of (name value) "
+         throw PGraph2Exception("Node filter expects a list of (name value) "
           "lists!");
 
       QueryFilter *f=new QueryFilter();
@@ -260,9 +260,9 @@ void QueryTree::ReadEdges(QueryTreeNode *n, ListExpr list)
     {    
        // detect entries      
        int idx=GetNextListIndex(list);
-       if (idx==0) throw PGraphException("invalid format -no "
+       if (idx==0) throw PGraph2Exception("invalid format -no "
             "edge information !");
-       if (idx>3) throw PGraphException("invalid format - edge "
+       if (idx>3) throw PGraph2Exception("invalid format - edge "
              "information max 3 items!");
        if (idx<1) break; // no following node list found
 
@@ -298,7 +298,7 @@ void QueryTree::ReadEdges(QueryTreeNode *n, ListExpr list)
 
     }
     if (!nl->IsEmpty(list)) {
-        throw PGraphException("invalid format - unexpected list entries " 
+        throw PGraph2Exception("invalid format - unexpected list entries " 
              "after edge node");
     }
 }
@@ -330,7 +330,7 @@ void QueryTree::Validate()
      std::list<std::string>::iterator  it = std::find(aliases.begin(),
          aliases.end(), f->NodeAlias);
      if (it==aliases.end())
-        throw new PGraphException("some outputfiled aliases do not exist!");
+        throw new PGraph2Exception("some outputfiled aliases do not exist!");
 
    }*/
 }
@@ -380,12 +380,12 @@ void QueryTree::ReadQueryTree(ListExpr alist)
     try
     {
         if (nl->ListLength(alist)==0)
-        throw PGraphException("At least a list with at least on node "
+        throw PGraph2Exception("At least a list with at least on node "
         "is required");
 
         Root=QueryTree::ReadNode(alist);
     }
-    catch(PGraphException &e)
+    catch(PGraph2Exception &e)
     {
         Clear();
         throw;

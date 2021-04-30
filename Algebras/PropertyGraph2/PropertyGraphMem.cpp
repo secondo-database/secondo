@@ -37,15 +37,17 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Symbols.h"
 
 #include "../Relation-C++/RelationAlgebra.h"
+#include "../OrderedRelation/OrderedRelationAlgebra.h"
 
 #include "MPointer.h"
 #include "Mem.h"
 #include "MemoryObject.h"
 #include "MemCatalog.h"
 
+#include "PropertyGraphQueryProcessor.h"
 #include "Utils.h"
 #include "PropertyGraphMem.h"
-#include "PropertyGraph.h"
+#include "PropertyGraph2.h"
 #include "RelationSchemaInfo.h"
 
 using namespace std;
@@ -54,7 +56,7 @@ using namespace std;
 extern NestedList* nl;
 extern QueryProcessor *qp;
 
-namespace pgraph {
+namespace pgraph2 {
 
 
 //-----------------------------------------------------------------------------
@@ -65,7 +67,7 @@ void RelationRegistry::Clear()
 
    //
    for(auto&& r : RelationInfos) delete r;
-   RelationInfos.clear();      
+   RelationInfos.clear();
 
 }
 
@@ -78,20 +80,20 @@ bool RelationRegistry::IsIndexed(std::string relation,std::string attr)
        AttrInfo *ai =ri->RelSchema.GetAttrInfo(attr);
        if (ai!=NULL)
           return ai->Indexed;
-          
+
     }
     return false;
 }
 
 //-----------------------------------------------------------------------------
-RelationInfo *RelationRegistry::AddRelation(string name,  
+RelationInfo *RelationRegistry::AddRelation(string name,
      RelationRoleType role)
 {
     RelationInfo *ri=new RelationInfo();
     ri->Name=name;
     ri->roleType = role;
     ri->RelId=Counter++;
-     
+
     RelationInfos.push_back(ri);
     RelationIds[ri->Name]=ri->RelId;
 
@@ -135,7 +137,7 @@ void AdjacencyList::AddNodeTuple(int relId, Tuple *tuple)
 }
 
 //-----------------------------------------------------------------------------
-void AdjacencyList::AddEdgeTuple(int relId, Tuple *tuple, 
+void AdjacencyList::AddEdgeTuple(int relId, Tuple *tuple,
     RelationInfo *fromrel, int fromID, RelationInfo *torel, int toID)
 {
    LOGOP(30, "AdjacencyList::AddEdgeTuple","relId ",relId, " | ",
@@ -145,9 +147,9 @@ void AdjacencyList::AddEdgeTuple(int relId, Tuple *tuple,
 
    // ignore if not exiting
    if (fromrel->IdTranslationTable.find(fromID)==fromrel->
-          IdTranslationTable.end()) 
+          IdTranslationTable.end())
       return;
-   if (torel->IdTranslationTable.find(toID)==torel->IdTranslationTable.end()) 
+   if (torel->IdTranslationTable.find(toID)==torel->IdTranslationTable.end())
       return;
 
    // get from object
@@ -194,7 +196,7 @@ void AdjacencyList::Clear()
 
    //
    for(auto&& tuple : NodeList)  tuple->DeleteIfAllowed();
-   NodeList.clear();      
+   NodeList.clear();
 
     //
    for(auto&& tuple : EdgeList) tuple->DeleteIfAllowed();
@@ -202,8 +204,9 @@ void AdjacencyList::Clear()
 
    //
    for(auto&& edge : EdgeInfo) delete edge;
-   EdgeInfo.clear();      
+   EdgeInfo.clear();
 }
+
 
 //-----------------------------------------------------------------------------
 RelationInfo::~RelationInfo()
@@ -232,14 +235,14 @@ string MemoryGraphObject::DumpInfo()
 
    info += " - statistics: \n";
    info += "   - noderelations: \n";
-   
+
    for(auto&& n: RelRegistry.RelationInfos)
    {
       RelStatistics *rs=n->statistics;
       if (n->roleType==RoleNode) {
          info += "    - "+n->Name;
          if (rs!=NULL)
-            info+=+"   CARD: "+to_string(rs->cardinality); 
+            info+=+"   CARD: "+to_string(rs->cardinality);
          info += " \n";
       }
    }
@@ -251,7 +254,7 @@ string MemoryGraphObject::DumpInfo()
          info += "    - "+n->Name;
          if (rs!=NULL)
             info+=+"   CARDFW: "+to_string(rs->avgcardForward)+
-               " CARDBW: "+to_string(rs->avgcardBackward); 
+               " CARDBW: "+to_string(rs->avgcardBackward);
          info += "\n";
       }
    }
@@ -267,31 +270,31 @@ MemoryGraphObject::~MemoryGraphObject()
 }
 
 //-----------------------------------------------------------------------------
-void MemoryGraphObject::LoadNodeRelation(string memrelname, 
+void MemoryGraphObject::LoadNodeRelation(string memrelname,
       NodeRelInfo *nrelinfo, bool rebuildStatistics)
 {
    LOGOP(10,"MemoryGraphObject::LoadNodeRelation", "loading "+
       nrelinfo->name);
 
    // get relation info
-   ListExpr reltype = 
+   ListExpr reltype =
       SecondoSystem::GetCatalog()->GetObjectTypeExpr(nrelinfo->name);
    if (nl->IsEmpty(reltype))
       throw SecondoException("relation not found");
 
    // register relation
-   RelationInfo* relinfo=RelRegistry.AddRelation(nrelinfo->name, 
+   RelationInfo* relinfo=RelRegistry.AddRelation(nrelinfo->name,
       RelationRoleType::RoleNode);
    relinfo->InitRelSchema(reltype);
    relinfo->IdFieldName=nrelinfo->idattr;
 
-   // 
+   //
    relinfo->IdAttrIndex=
       relinfo->RelSchema.GetAttrInfo(nrelinfo->idattr)->Index;
 
    //
    mm2algebra::MemoryRelObject* relation=QueryMemRelation(memrelname);
-   if (relation==NULL) PGraphException("couldn't open relation:"+memrelname);
+   if (relation==NULL) PGraph2Exception("couldn't open relation:"+memrelname);
 
    int counter=0;
    for(auto&& tuple : *relation->getmmrel() )
@@ -306,16 +309,59 @@ void MemoryGraphObject::LoadNodeRelation(string memrelname,
 
       memSize+=tuple->GetSize();
    }
-   
+
    // update as counted anyways (will be persistent)
    nrelinfo->StatCardinality=counter;
 
    relinfo->statistics=new RelStatistics();
    relinfo->statistics->cardinality=counter;
 }
+//-----------------------------------------------------------------------------
+int MemoryGraphObject::GetRelCount(std::string relname) {
+   Word resultword;
+   string querystring="(count (feed " +relname+ " ))";
+   QueryProcessor::ExecuteQuery(querystring, resultword);
+   int relcount = ((CcInt*)resultword.addr)->GetIntval();
+   return relcount;
+   }
 
 //-----------------------------------------------------------------------------
-void MemoryGraphObject::LoadEdgeRelation(string memrelname,  
+void MemoryGraphObject::LoadNodeRelation2(string memrelname,
+      NodeRelInfo *nrelinfo, bool rebuildStatistics)
+{
+   LOGOP(10,"MemoryGraphObject::LoadNodeRelation", "loading "+
+      nrelinfo->name);
+
+   // get relation info
+   ListExpr reltype =
+      SecondoSystem::GetCatalog()->GetObjectTypeExpr(nrelinfo->name);
+   if (nl->IsEmpty(reltype))
+      throw SecondoException("relation not found");
+
+   // register relation
+   RelationInfo* relinfo=RelRegistry.AddRelation(nrelinfo->name,
+      RelationRoleType::RoleNode);
+   relinfo->InitRelSchema(reltype);
+   relinfo->IdFieldName=nrelinfo->idattr;
+
+   //
+   relinfo->IdAttrIndex=
+      relinfo->RelSchema.GetAttrInfo(nrelinfo->idattr)->Index;
+
+   if (rebuildStatistics)
+   {
+       int counter=GetRelCount(memrelname);
+
+       // update as counted anyways (will be persistent)
+       nrelinfo->StatCardinality=counter;
+    }
+       relinfo->statistics=new RelStatistics();
+       relinfo->statistics->cardinality=nrelinfo->StatCardinality;
+
+}
+
+//-----------------------------------------------------------------------------
+void MemoryGraphObject::LoadEdgeRelation(string memrelname,
        EdgeRelInfo *erelinfo, bool rebuildStatistics)
 {
    LOGOP(10,"MemoryGraphObject::LoadEdgeRelation", "loading "+erelinfo
@@ -327,23 +373,23 @@ void MemoryGraphObject::LoadEdgeRelation(string memrelname,
       throw SecondoException("relation not found");
 
    // register relation
-   RelationInfo* relinfo=RelRegistry.AddRelation(erelinfo->EdgeRelName, 
+   RelationInfo* relinfo=RelRegistry.AddRelation(erelinfo->EdgeRelName,
       RelationRoleType::RoleEdge);
    relinfo->InitRelSchema(reltype);
    relinfo->FromName=erelinfo->FromRelName;
    relinfo->ToName=erelinfo->ToRelName;
-   
+
    //
    RelationInfo *fromrel = RelRegistry.GetRelationInfo(erelinfo->FromRelName);
    RelationInfo *torel = RelRegistry.GetRelationInfo(erelinfo->ToRelName);
 
-   if (fromrel==NULL) 
-       throw PGraphException("Relation not found: "+erelinfo->FromRelName);
-   if (torel==NULL) 
-       throw PGraphException("Relation not found: "+erelinfo->ToRelName);
+   if (fromrel==NULL)
+       throw PGraph2Exception("Relation not found: "+erelinfo->FromRelName);
+   if (torel==NULL)
+       throw PGraph2Exception("Relation not found: "+erelinfo->ToRelName);
 
    mm2algebra::MemoryRelObject* relation=QueryMemRelation(memrelname);
-   if (relation==NULL) PGraphException("could not open relation: "+memrelname);
+   if (relation==NULL) PGraph2Exception("could not open relation: "+memrelname);
 
    relinfo->FromAttrIndex=
       relinfo->RelSchema.GetAttrInfo(erelinfo->FromIdName)->Index;
@@ -357,12 +403,12 @@ void MemoryGraphObject::LoadEdgeRelation(string memrelname,
          tuple->GetAttribute(relinfo->FromAttrIndex))->GetValue();
       int toid=((CcInt*)tuple->GetAttribute(relinfo->ToAttrIndex))->GetValue();
 
-      // add to adjacency list 
+      // add to adjacency list
       // (from,toid are relative and need to be translated to global id)
       AdjList.AddEdgeTuple(relinfo->RelId, tuple, fromrel, fromid,
             torel, toid);
    }
-   
+
    // get persistent statistics
    relinfo->statistics=new RelStatistics();
    relinfo->statistics->avgcardForward=erelinfo->StatAvgForward;
@@ -376,7 +422,7 @@ void MemoryGraphObject::LoadEdgeRelation(string memrelname,
       string query="(avg (groupby2 (smouterjoin (rename (mfeed "+mrelprefix+
           fromrel->Name+") n) (rename (mfeed "+mrelprefix+erelinfo->EdgeRelName+
           ") e) "+fromrel->IdFieldName+"_n "+erelinfo->FromIdName+"_e) ("+
-          fromrel->IdFieldName+"_n) ( (C (fun (t TUPLE) (agg int) "  
+          fromrel->IdFieldName+"_n) ( (C (fun (t TUPLE) (agg int) "
           " (ifthenelse (isempty (attr t "+erelinfo->FromIdName+"_e)) agg "
           "(+ agg 1)) ) 0 ) ) ) C) ";
       LOGOP(30,"MemoryGraphObject::LoadEdgeRelation",
@@ -410,6 +456,93 @@ void MemoryGraphObject::LoadEdgeRelation(string memrelname,
 }
 
 //-----------------------------------------------------------------------------
+void MemoryGraphObject::LoadEdgeRelation2(string memrelname,
+       EdgeRelInfo *erelinfo, bool rebuildStatistics, Supplier s)
+{
+   LOGOP(10,"MemoryGraphObject::LoadEdgeRelation", "loading "+erelinfo
+         ->EdgeRelName);
+
+   ListExpr reltype= SecondoSystem::GetCatalog()
+         ->GetObjectTypeExpr(erelinfo->EdgeRelName);
+   if (nl->IsEmpty(reltype))
+      throw SecondoException("relation not found");
+
+   // register relation
+   RelationInfo* relinfo=RelRegistry.AddRelation(erelinfo->EdgeRelName,
+      RelationRoleType::RoleEdge);
+   relinfo->InitRelSchema(reltype);
+   relinfo->FromName=erelinfo->FromRelName;
+   relinfo->ToName=erelinfo->ToRelName;
+
+   //
+   RelationInfo *fromrel = RelRegistry.GetRelationInfo(erelinfo->FromRelName);
+   RelationInfo *torel = RelRegistry.GetRelationInfo(erelinfo->ToRelName);
+
+   if (fromrel==NULL)
+       throw PGraph2Exception("Relation not found: "+erelinfo->FromRelName);
+   if (torel==NULL)
+       throw PGraph2Exception("Relation not found: "+erelinfo->ToRelName);
+
+   relinfo->FromAttrIndex=
+      relinfo->RelSchema.GetAttrInfo(erelinfo->FromIdName)->Index;
+   relinfo->ToAttrIndex=
+      relinfo->RelSchema.GetAttrInfo(erelinfo->ToIdName)->Index;
+
+   // get persistent statistics
+   relinfo->statistics=new RelStatistics();
+   relinfo->statistics->cardinality=erelinfo->StatCardinality;
+   relinfo->statistics->avgcardForward=erelinfo->StatAvgForward;
+   relinfo->statistics->avgcardBackward=erelinfo->StatAvgBackward;
+
+   size_t maxmemory = qp->GetMemorySize(s) * 1024 * 1024; //max memory in bytes
+   size_t availableMem = maxmemory/4;
+
+   // Loading statistics if necessary
+   if(rebuildStatistics)
+   {
+      LOGOP(10,"MemoryGraphObject::LoadEdgeRelation","getting edge statistics");
+      double d=0;
+      string query="(avg (groupby2 (smouterjoin (rename (feed "+
+          fromrel->Name+") n) (rename (feed "+erelinfo->EdgeRelName+
+          ") e) "+fromrel->IdFieldName+"_n "+erelinfo->FromIdName+"_e) ("+
+          fromrel->IdFieldName+"_n) ( (C (fun (t TUPLE) (agg int) "
+          " (ifthenelse (isempty (attr t "+erelinfo->FromIdName+"_e)) agg "
+          "(+ agg 1)) ) 0 ) ) ) C) ";
+      LOGOP(30,"MemoryGraphObject::LoadEdgeRelation",
+         "getting avg of forward relations per "+fromrel->Name,query);
+      if (!queryValueDouble(query,d,availableMem))
+      {
+         cout << "failed." << endl;
+      };
+      relinfo->statistics->avgcardForward=d;
+
+      d=0;
+      query="(avg (groupby2 (smouterjoin (rename (feed "+
+         torel->Name+") n) (rename (feed "+
+         erelinfo->EdgeRelName+") e) "+torel->IdFieldName+"_n "+
+         erelinfo->ToIdName+"_e) ("+torel->IdFieldName+
+         "_n) ( (C (fun (t TUPLE) (agg int) (ifthenelse (isempty (attr t "+
+         erelinfo->ToIdName+"_e)) agg (+ agg 1)) ) 0 ) ) ) C) ";
+      LOGOP(30,"MemoryGraphObject::LoadEdgeRelation",
+         "getting avg of backward relations per "+torel->Name,query);
+      queryValueDouble(query,d,availableMem);
+      relinfo->statistics->avgcardBackward=d;
+
+
+      int counter=GetRelCount(memrelname);
+      relinfo->statistics->cardinality=counter;
+      // keep persistent
+      erelinfo->StatCardinality=counter;
+      erelinfo->StatAvgForward=relinfo->statistics->avgcardForward;
+      erelinfo->StatAvgBackward=relinfo->statistics->avgcardBackward;
+   }
+
+   LOGOP(30,"MemoryGraphObject::LoadEdgeRelation","finished" );
+
+
+}
+
+//-----------------------------------------------------------------------------
 void MemoryGraphObject::Clear()
 {
    initstate=0;
@@ -422,13 +555,13 @@ void MemoryGraphObject::Clear()
 
 
 //-----------------------------------------------------------------------------
-void MemoryGraphObject::LoadData(PGraph *pg, bool forcerebuildStatistics)
+void MemoryGraphObject::LoadData(PGraph2 *pg, bool forcerebuildStatistics)
 {
    if (initstate==1)
    {
       Clear();
    }
-   
+
    mrelprefix=pg->name+"_rel_";
 
    // load relations as memory objects
@@ -452,6 +585,11 @@ void MemoryGraphObject::LoadData(PGraph *pg, bool forcerebuildStatistics)
    {
       string idxname=pg->name+"_idx_"+item.first;
       ReplaceStringInPlace(idxname,".","_");
+      string isdefined="(isdefined (deleteObject \""+idxname+"\"))";
+      Word resultword;
+      QueryProcessor::ExecuteQuery(isdefined, resultword);
+      CcBool* zeiger = (CcBool*) resultword.addr;
+        delete zeiger;
       string expr="(mcreateAVLtree "+mrelprefix+item.second->name+" "+
          item.second->attr+")";
       LOGOP(10,"MemoryGraphObject::LoadData", " create index: "+idxname);
@@ -463,10 +601,10 @@ void MemoryGraphObject::LoadData(PGraph *pg, bool forcerebuildStatistics)
    if (!forcerebuildStatistics)
    {
       for(auto&& item:pg->_nodeRelations)
-         if (item.second->StatCardinality<0) 
+         if (item.second->StatCardinality<0)
             { forcerebuildStatistics=true; break;};
       for(auto&& item:pg->_edgeRelations)
-         if (item.second->StatAvgForward<0 || item.second->StatAvgBackward<0) 
+         if (item.second->StatAvgForward<0 || item.second->StatAvgBackward<0)
             { forcerebuildStatistics=true; break;};
    }
 
@@ -476,22 +614,22 @@ void MemoryGraphObject::LoadData(PGraph *pg, bool forcerebuildStatistics)
 
    // load node relations
    for(auto&& item:pg->_nodeRelations)
-      LoadNodeRelation( mrelprefix+item.second->name, item.second, 
+      LoadNodeRelation( mrelprefix+item.second->name, item.second,
          forcerebuildStatistics);
 
    // preallocate vectors
-   LOGOP(10,"MemoryGraphObject::LoadData", " resize adjlist ", 
+   LOGOP(10,"MemoryGraphObject::LoadData", " resize adjlist ",
       AdjList.NodeGlobalCounter);
    AdjList.OutGoingRels.resize( AdjList.NodeGlobalCounter );
    AdjList.InGoingRels.resize( AdjList.NodeGlobalCounter );
-   
+
    // load edge relations
    for(auto&& item : pg->_edgeRelations)
-      LoadEdgeRelation( mrelprefix+item.second->EdgeRelName, item.second, 
+      LoadEdgeRelation( mrelprefix+item.second->EdgeRelName, item.second,
          forcerebuildStatistics);
 
    // mark attributes as indexed
-   for(auto&& item:pg->_Indexes) 
+   for(auto&& item:pg->_Indexes)
    {
       RelationInfo *ri=RelRegistry.GetRelationInfo(item.second->name);
       if (ri!=NULL)
@@ -502,6 +640,76 @@ void MemoryGraphObject::LoadData(PGraph *pg, bool forcerebuildStatistics)
       }
    }
 
+   //change structure
+   pg->structure="memory";
+
+   //
+   initstate=1;
+}
+
+//-----------------------------------------------------------------------------
+void MemoryGraphObject::LoadData2(PGraph2 *pg,
+ bool forcerebuildStatistics, Supplier s)
+{
+   if (initstate==1)
+   {
+      Clear();
+   }
+
+   for(auto&& item:pg->_Indexes)
+   {
+      string indexname=pg->name+"_idx_"+item.first;
+      ReplaceStringInPlace(indexname,".","_");
+      string orgrelname=item.second->name+"P";
+      string isdefined="(isdefined (deleteObject \""+indexname+"\"))";
+      Word resultword;
+      QueryProcessor::ExecuteQuery(isdefined, resultword);
+      CcBool* zeiger = (CcBool*) resultword.addr;
+        delete zeiger;
+      //orgrelname=orgrelname.substr(0, orgrelname.size()-5);
+      string querystring = "(createbtree "+orgrelname+" "+item.second->attr+")";
+      DoLet(indexname,querystring);
+   }
+   // check for missing statistics
+   if (!forcerebuildStatistics)
+   {
+      for(auto&& item:pg->_nodeRelations)
+         if (item.second->StatCardinality<0)
+            { forcerebuildStatistics=true; break;};
+      for(auto&& item:pg->_edgeRelations)
+         if (item.second->StatAvgForward<0 || item.second->StatAvgBackward<0)
+            { forcerebuildStatistics=true; break;};
+   }
+
+   if (forcerebuildStatistics)
+      LOGOP(10,"MemoryGraphObject::LoadData", "needs to update statistics ...");
+
+
+   // load node relations
+   for(auto&& item:pg->_nodeRelations)
+      LoadNodeRelation2( item.second->name, item.second,
+         forcerebuildStatistics);
+
+   // load edge relations
+   for(auto&& item : pg->_edgeRelations)
+      LoadEdgeRelation2( item.second->EdgeRelName, item.second,
+         forcerebuildStatistics, s);
+
+   // mark attributes as indexed
+   for(auto&& item:pg->_Indexes)
+   {
+      RelationInfo *ri=RelRegistry.GetRelationInfo(item.second->name);
+      if (ri!=NULL)
+      {
+            AttrInfo *ai = ri->RelSchema.GetAttrInfo(item.second->attr);
+            if (ai!=NULL)
+               ai->Indexed=true;
+      }
+   }
+
+   //change structure
+   pg->structure="orel";
+
    //
    initstate=1;
 }
@@ -510,7 +718,7 @@ void MemoryGraphObject::LoadData(PGraph *pg, bool forcerebuildStatistics)
 void MemoryGraphObject::DumpGraphDot(string filename)
 {
 
-   ostringstream *data=new ostringstream(); 
+   ostringstream *data=new ostringstream();
    *data << "digraph g {\n";
    *data << "  rankdir = TB; \n";
    *data << "  subgraph { \n";
@@ -518,12 +726,12 @@ void MemoryGraphObject::DumpGraphDot(string filename)
    map<string,vector<string>> ranks;
 
    for(unsigned int i=0; i<AdjList.NodeList.size(); i++) {
-      
+
          RelationInfo *relinfo=RelRegistry.GetRelationInfo(
                AdjList.NodeRelIdList[i]);
          Tuple *tuple=AdjList.NodeList[i];
 
-         // node         
+         // node
          *data <<"n"<< i << + "[label=<:"+relinfo->Name << "["
             << to_string(i) << "]" "<BR/>";
          for (int a=0; a<relinfo->RelSchema.GetAttrCount();a++)
@@ -532,12 +740,12 @@ void MemoryGraphObject::DumpGraphDot(string filename)
             *data << ai->Name <<" =  " << ai->GetStringVal(tuple) << "<BR/>\n";
 
          }
-         *data<<">]\n";    
+         *data<<">]\n";
 
          // rank
          ranks[relinfo->Name].push_back("n"+to_string(i));
 
-         // outgoing 
+         // outgoing
          for (unsigned int a=0; a<AdjList.OutGoingRels[i].size(); a++)
          {
             Edge *e= AdjList.EdgeInfo[AdjList.OutGoingRels[i].at(a)];
@@ -545,15 +753,15 @@ void MemoryGraphObject::DumpGraphDot(string filename)
             *data << " [label=<";
             RelationInfo *reledge=RelRegistry.GetRelationInfo(e->RelId);
             *data<<":"<<reledge->Name << " ["<< e->EdgeId <<"]";
-            *data<<">]\n";    
+            *data<<">]\n";
         }
 
     }
 
-   for(auto&& r : ranks) 
+   for(auto&& r : ranks)
    {
        *data << "{rank = same; ";
-       for(auto&& rn : r.second) 
+       for(auto&& rn : r.second)
           *data<<rn<<";";
        *data<<" }\n";
    }
@@ -562,9 +770,9 @@ void MemoryGraphObject::DumpGraphDot(string filename)
    *data<<"}}\n";
    std::ofstream outfile;
    outfile.open(filename, std::ios_base::trunc);
-   outfile << data->str();     
+   outfile << data->str();
    delete data;
-   
+
 }
 
 }//namespace

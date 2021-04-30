@@ -33,7 +33,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 using namespace std;
 
-namespace pgraph {
+namespace pgraph2 {
 
 //----------------------------------------------------------------------------
 QueryGraph::QueryGraph(RelationRegistry *relreg)
@@ -184,7 +184,7 @@ void QueryGraph::addEdge(string edgelias, string typename_,string alias,
    Edges.push_back(e);
 
    if ((e.ToNode==NULL)||(e.FromNode==NULL))
-      throw PGraphException("edge #"+to_string(NextEdgeID)+
+      throw PGraph2Exception("edge #"+to_string(NextEdgeID)+
           " could not be connected");
 
    NextEdgeID++;
@@ -209,7 +209,7 @@ void QueryGraph::Validate()
    {
       if (n.TypeName!="")  {
          RelationInfo *relinfo = RelRegistry->GetRelationInfo(n.TypeName);
-         if (relinfo==NULL) throw PGraphException("undefined node type: "+
+         if (relinfo==NULL) throw PGraph2Exception("undefined node type: "+
             n.TypeName );
       }
    }
@@ -217,7 +217,7 @@ void QueryGraph::Validate()
    {
       if (e.TypeName!="")  {
          RelationInfo *relinfo = RelRegistry->GetRelationInfo(e.TypeName);
-         if (relinfo==NULL) throw PGraphException("undefined edge type: "+
+         if (relinfo==NULL) throw PGraph2Exception("undefined edge type: "+
              e.TypeName );
       }
    }
@@ -225,11 +225,11 @@ void QueryGraph::Validate()
    CompleteTypes();
 
    if (!IsConnected())
-        throw PGraphException("query graph is not connected and cycle free");
+        throw PGraph2Exception("query graph is not connected and cycle free");
 
    for (auto&& n : Nodes) 
    {
-      if (n.TypeName=="") throw PGraphException("missing node type"+
+      if (n.TypeName=="") throw PGraph2Exception("missing node type"+
          (n.Alias!=""?" for alias "+n.Alias:""));
 
       RelationInfo *relinfo = RelRegistry->GetRelationInfo(n.TypeName);
@@ -249,12 +249,12 @@ void QueryGraph::Validate()
    }
    for (auto&& e : Edges) 
    {
-      if (e.TypeName=="") throw PGraphException("missing edge type"+
+      if (e.TypeName=="") throw PGraph2Exception("missing edge type"+
           (e.Alias!=""?" for alias "+e.Alias:""));
 
       RelationInfo *relinfo = RelRegistry->GetRelationInfo(e.TypeName);
       if (relinfo==NULL)
-         throw PGraphException("undefined edge type: "+e.TypeName );
+         throw PGraph2Exception("undefined edge type: "+e.TypeName );
 
    }
 
@@ -301,7 +301,7 @@ QueryTree *QueryGraph::CreateOptimalQueryTree(string forcealias)
 {
     //TODO
     if (Nodes.size()==0)
-      throw PGraphException("no QueryGraph!");
+      throw PGraph2Exception("no QueryGraph!");
 
    QueryTree *bestSoFar=NULL;
    QueryTree *forced=NULL;
@@ -462,7 +462,7 @@ void checkOrcompleteType(QueryAliasList *aliaslist, string typename_,
    else
    {
       if (n->TypeName!=typename_)
-         throw PGraphException("Type conflict: "+n->TypeName+" != "+typename_);
+         throw PGraph2Exception("Type conflict: "+n->TypeName+" != "+typename_);
    }
 }
 
@@ -514,7 +514,7 @@ void QueryGraph::ReadQueryGraph(ListExpr alist)
     try
     {
         if (nl->ListLength(alist)==0)
-            throw PGraphException("At least a list with at least one "
+            throw PGraph2Exception("At least a list with at least one "
                " node is required");
          
          for(int pass=1; pass<=2;pass++)
@@ -567,7 +567,7 @@ void QueryGraph::ReadQueryGraph(ListExpr alist)
             }
          }
     }
-    catch(PGraphException &e)
+    catch(PGraph2Exception &e)
     {
         throw;
     }
