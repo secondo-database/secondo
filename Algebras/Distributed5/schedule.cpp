@@ -571,9 +571,9 @@ public:
 
         for (size_t i = 0; i < results.size(); i++)
         {
-            TaskDataItem *&result = results[i];
+            TaskDataItem*& result = results[i];
             string oname = result->getObjectName();
-            TaskDataItem *existing = 0;
+            TaskDataItem* existing = nullptr;
             {
                 boost::lock_guard<boost::mutex> lock(dataItemsMutex);
 
@@ -586,7 +586,7 @@ public:
                     existing = pair.first->second;
                 }
             }
-            if (existing != 0)
+            if (existing != nullptr)
             {
                 if (existing != result)
                 {
