@@ -34,7 +34,7 @@ Result    : file
 Operator  : intersection
 Number    : 1
 Signature : mpoint x fmregion -> mpoint
-Example   : query mpoint1 intersection fmregion1
+Example   : query intersection(mpoint1, fmregion1)
 Result    : file
 
 Operator  : fmrinterpolate
