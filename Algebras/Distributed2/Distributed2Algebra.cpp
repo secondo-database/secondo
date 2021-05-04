@@ -18755,7 +18755,7 @@ class AReducer: public AReduceListener{
          // if both matrices are present, use the natural order of slots. 
          return computeSlotOrderNatural();
        }
-       matrixSlotSizes<false> mss(matrix1);
+       matrixSlotSizes<true> mss(matrix1);
        vector<int> slotsizes = mss.getSlotSizes();
        while(slotsizes.size() > noSlots){
            slotsizes.pop_back();
@@ -18773,9 +18773,9 @@ class AReducer: public AReduceListener{
        } sizeLess;
        sort(slotSizePairs.begin(),slotSizePairs.end(), sizeLess);
 
-       bool printOrder = false;
+       bool printOrder = true;
        if(printOrder){
-          cout << "process slots in the folloring order" << endl;
+          cout << "process slots in the following order" << endl;
           for(auto s : slotSizePairs){
              cout << "slot : " << s.first << " \t size : " << s.second << endl;
           }
@@ -18791,7 +18791,7 @@ class AReducer: public AReduceListener{
 
    void reduce(){
 
-       // if matrix2 is not null, the matriox sizes are equal       
+       // if matrix2 is not null, the matrix sizes are equal       
        // hence we can use always matrix1 to get the number of workers.
 
        // create Reduce Objects for each worker
