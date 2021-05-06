@@ -45,8 +45,6 @@ Author: Catherine Higgins
 // Needed for Flob Array
 #include "Algebras/Rectangle/RectangleAlgebra.h"
 // for bounding box
-#include "Algebras/Raster2/UniqueStringArray.h"
-// for operator stopword
 #include "../../Tools/Flob/Flob.h"
 // Needed for flob
 #include "Algebras/Rectangle/CellGrid.h"
@@ -61,8 +59,6 @@ Author: Catherine Higgins
 #include "StringUtils.h"
 //This is needed to tokenized strings
 #include "Algebras/Geoid/Geoid.h"
-// #include "SecondoInterface.h"
-// #include "RelationAlgebra.h"
 #include <vector>
 
 extern NestedList* nl;
@@ -1488,7 +1484,7 @@ double SemanticTrajectory::Sim(int i, int y,
   + (1 - alpha) * TextualScore(i, y, st);
   return result;
 }
-/* TODO can this be done outside of the ST) */
+
 double SemanticTrajectory::GetDiagonal(
   Rectangle<2>& rec){
   double x1 = rec.getMinX();
@@ -1530,11 +1526,6 @@ double SemanticTrajectory::TextualScore(int i, int y,
   SemanticTrajectory& st)
 {
 
-    /*
-    GetStrings
-    Tokenize into two list
-    Compare for numMatches
-    */
     bool success = false;
     std::string s1;
     success = GetString(i, s1);
@@ -1542,59 +1533,119 @@ double SemanticTrajectory::TextualScore(int i, int y,
     std::string s2;
     success = st.GetString(y, s2);
     assert(success);
-    std::list<std::string> tokenlist;
-    std::list<std::string> tokenlist2;
-
-    stringutils::StringTokenizer st1(s1, " ");
-    while(st1.hasNextToken())
+    if (s1.length() > 0 && s2.length() > 0)
     {
-      std::string eval = st1.nextToken();
-      tokenlist.push_back(eval);
-    }
 
-    /*Retrieve values of second string*/
-    stringutils::StringTokenizer st2(s2, " ");
-    while(st2.hasNextToken())
-    {
-      std::string eval = st2.nextToken();
-      tokenlist2.push_back(eval);
-    }
-
-    int numMatches= 0;
-    int sumOfBoth =
-    tokenlist.size() + tokenlist2.size();
-    std::list<std::string>::iterator it;
-    for(it = tokenlist.begin();
-     it != tokenlist.end();
-     it++)
-    {
-      bool flag = false;
-      std::list<std::string>::iterator it2;
-      for(it2 = tokenlist2.begin();
-      it2 != tokenlist2.end();
-      it2++)
+      int numMatches = 0;
+      stringutils::StringTokenizer st1(s1, " ");
+      stringutils::StringTokenizer st2(s2, " ");
+      int numToken1 = 0;
+      int numToken2 = 0;
+      std::string eval = "";
+      std::string eval2 = "";
+      bool done1 = false;
+      bool done2 = false;
+      if (st1.hasNextToken())
       {
-          if((*it).compare(*it2) == 0)
-          {
-            if (flag == false)
-            {
-
-                numMatches = numMatches + 1;
-                flag = true;
-            }
-            it2 =tokenlist2.erase(it2);
-          }
+        eval = st1.nextToken();
+        numToken1++;
+      } else {
+        done1 = true;
       }
+      if (st2.hasNextToken())
+      {
+        eval2 = st2.nextToken();
+        numToken2++;
+      } else {
+        done2 = true;
+      }
+      std::string prev_str = "";
+      int duplicate = 0;
+      while(!done1 || !done2)
+      {
+        if((eval).compare(eval2) == 0)
+        {
+          if ((prev_str).compare(eval) != 0)
+          {
+            numMatches++;
+          } else {
+            duplicate = duplicate + 2;
+          }
+          prev_str = eval;
+
+          if (st1.hasNextToken())
+          {
+            eval = st1.nextToken();
+            numToken1++;
+          } else {
+            done1 = true;
+          }
+          if (st2.hasNextToken())
+          {
+            eval2 = st2.nextToken();
+            numToken2++;
+          } else {
+            done2 = true;
+          }
+        }
+
+        else if ((eval).compare(eval2) < 0) {
+          if ((prev_str).compare(eval) == 0 || (prev_str).compare(eval2) == 0)
+          {
+            duplicate++;
+          } else {
+            prev_str = "";
+          }
+          if (st1.hasNextToken())
+          {
+            eval = st1.nextToken();
+            numToken1++;
+          } else
+          {
+            done1 = true;
+            if (st2.hasNextToken())
+            {
+              eval2 = st2.nextToken();
+              numToken2++;
+            } else { done2 = true;}
+          }
+
+        } else {
+          if ((prev_str).compare(eval) == 0 || (prev_str).compare(eval2) == 0)
+          {
+            duplicate++;
+          } else {
+            prev_str = "";
+          }
+          if (st2.hasNextToken())
+          {
+            eval2 = st2.nextToken();
+            numToken2++;
+          }
+          else
+          {
+            done2 = true;
+            if (st1.hasNextToken())
+            {
+              eval = st1.nextToken();
+              numToken1++;
+            } else { done1 = true;}
+          }
+        }
+      }
+
+      if (numMatches == 0.0)
+      {
+        return 0.0;
+      }
+      double uniquewords = (double)
+      (numToken2 + numToken1 - duplicate - numMatches);
+      double result = (double) numMatches / uniquewords;
+      return result;
     }
 
 
-    double uniquewords =
-    (double) (sumOfBoth - numMatches);
-
-
-    double result = (double) numMatches / uniquewords;
-
-    return result;
+    return 0.0;
 }
 
 double SemanticTrajectory::Similarity(
@@ -1639,109 +1690,6 @@ OPERATOR Functions
 
 */
 
-/*
-@author Catherine Higgins
-Operator ~makeuniquelistwords~
-
-*/
-
-ListExpr TypeMapMakeUniqueListWords(ListExpr args)
-{
-
-  // Check to see if it's the right number of arguments
-  if (!nl->HasLength(args, 2))
-  {
-    return
-    listutils::typeError("Wrong number of arguments");
-  }
-
-  // Make sure each param is of right type
-  std::string err = "stream(tuple) x attr_1 expected";
-
-  ListExpr stream = nl->First(args);
-  ListExpr attrname_word = nl->Second(args);
-
-  if(!listutils::isTupleStream(stream)){
-    return  listutils::typeError(
-    "first parameter must be"
-    " a tuple stream");
-  }
-
-  if(!listutils::isSymbol(attrname_word)){
-    return
-    listutils::typeError("second parameter must"
-    "be an attribute name");
-  }
-
-  ListExpr type;
-  // extract the attribute list
-  ListExpr attrList = nl->Second(nl->Second(stream));
-
-  // Get the index for the longitude
-  std::string name =
-  nl->SymbolValue(attrname_word);
-  int index1 = listutils::findAttribute(
-    attrList, name, type);
-  if(index1==0){
-    return
-    listutils::typeError(
-      "attribute name " + name +
-      " unknown in tuple stream");
-  }
-
-
-  std::string restype =
-  raster2::UniqueStringArray::BasicType();
-
-
-  ListExpr indexes = nl->OneElemList(
-                       nl->IntAtom(index1-1)
-                     );
-
-  return
-  nl->ThreeElemList(nl->SymbolAtom(Symbol::APPEND()),
-                           indexes,
-                           nl->SymbolAtom(restype));
-}
-
-
-
-
-int MapValueMakeUniqueListWords(
-  Word* args,
-  Word& result,
-  int message,
-  Word& local,
-  Supplier s)
-{
-
-  result = qp->ResultStorage(s);
-  raster2::UniqueStringArray* res =
-  static_cast<
-  raster2::UniqueStringArray*>(result.addr);
-
-  int noargs = qp->GetNoSons(s);
-  int idx = ((CcInt*)args[noargs-1].addr)->GetValue();
-
-  Stream<Tuple> stream(args[0]);
-  Tuple* tuple;
-  stream.open();
-  while((tuple = stream.request()))
-  {
-
-    CcString* str =
-    (CcString*) tuple->GetAttribute(idx);
-    res->AddString(str->GetValue());
-    tuple->DeleteIfAllowed();
-  }
-
-  stream.close();
-  res->Finalize();
-  return 0;
-}
-
-
-
 
 
 /*
@@ -1752,7 +1700,7 @@ Operator ~makesemtraj~
 ListExpr TypeMapMakeSemtraj(ListExpr args){
 
   // Check to see if it's the right number of arguments
-  if (nl->HasLength(args, 4) || nl->HasLength(args, 5))
+  if (nl->HasLength(args, 4))
   {
     // Make sure each param is of right type
     std::string err = "stream(tuple) x attr_1 x"
@@ -1762,17 +1710,7 @@ ListExpr TypeMapMakeSemtraj(ListExpr args){
     ListExpr attrname_longitude = nl->Second(args);
     ListExpr attrname_latitude = nl->Third(args);
     ListExpr attrname_semantics = nl->Fourth(args);
-    if (nl->HasLength(args, 5))
-    {
-      if(!raster2::UniqueStringArray::checkType(
-        nl->Fifth(args)))
-      {
-          return
-          listutils::typeError(
-            "Fifth args must be of"
-            "type UniqueStringArray");
-      }
-    }
+
     if(!listutils::isTupleStream(stream)){
       return
       listutils::typeError(
@@ -1869,20 +1807,6 @@ ListExpr TypeMapMakeSemtraj(ListExpr args){
 }
 
 
-int makesemtrajSelect( ListExpr args )
-{
-  NList type(args);
-  if (nl->HasLength(args, 5) &&
-  type.fifth().isSymbol(
-  raster2::UniqueStringArray::BasicType()))
-  {
-    return 1;
-  }
-  else
-  {
-    return 0;
-  }
-}
 
 
 int MakeSemTrajMV(Word* args, Word& result,
@@ -1918,114 +1842,42 @@ int MakeSemTrajMV(Word* args, Word& result,
     Coordinate c(x1, y1);
     res->AddCoordinate(c);
     std::string str = sem->GetValue();
-    if (str[str.length()] == '"')
+    std::string resu = "";
+    for (size_t i = 0; i < str.size(); ++i)
     {
-        res->AddString(str.substr(0, str.length()-1));
-    }
-    else {
-        res->AddString(sem->GetValue());
-    }
-    // if (!res->bbox.IsDefined()){
-      if (res->GetNumCoordinates() == 1)
-      {
-        c_x1 = x1;
-        c_y1 = y1;
-        c_x2 = x1;
-        c_y2 = y1;
+      if ((str[i] >= 'a' && str[i] <= 'z')
+      || (str[i] >= 'A' && str[i] <= 'Z') || str[i] == ' ') {
+        resu = resu + str[i];
       }
-      else
-      {
-        c_x1 = std::min(c_x1, x1);
-        c_y1 = std::min(c_y1, y1);
-        c_x2 = std::max(c_x2, x1);
-        c_y2 = std::max(c_y2, y1);
+    }
 
-      }
-    // } // end of if
-
-    tuple->DeleteIfAllowed();
-  }
-  if (c_x1 < c_x2 && c_y1 < c_y2)
-  {
-    double mind[2];
-    double maxd[2];
-    mind[0] = c_x1;
-    mind[1] = c_y1;
-    maxd[0] = c_x2;
-    maxd[1] = c_y2;
-    res->SetBoundingBox(true, mind, maxd);
-  }
-  stream.close();
-  return 0;
-}
-
-int MakeSemTrajMVwStop(Word* args, Word& result,
-                      int message, Word& local,
-                      Supplier s){
-
-
-  result = qp->ResultStorage(s);
-  SemanticTrajectory* res =
-  static_cast<SemanticTrajectory*>(result.addr);
-  raster2::UniqueStringArray* stopwords =
-  static_cast<
-  raster2::UniqueStringArray*>(args[4].addr);
-
-  int noargs = qp->GetNoSons(s);
-  int idx1 = ((CcInt*)args[noargs-3].addr)->GetValue();
-  int idx2 = ((CcInt*)args[noargs-2].addr)->GetValue();
-  int idx3 = ((CcInt*)args[noargs-1].addr)->GetValue();
-
-  double c_x1;
-  double c_y1;
-  double c_x2;
-  double c_y2;
-  // Get StopWords once
-  std::list<std::string> sw;
-  sw = stopwords->GetUniqueStringArray();
-  Stream<Tuple> stream(args[0]);
-  Tuple* tuple;
-  stream.open();
-  while((tuple = stream.request()))
-  {
-    std::string holdresult = "";
-    CcReal* x = (CcReal*) tuple->GetAttribute(idx1);
-    CcReal* y = (CcReal*) tuple->GetAttribute(idx2);
-    CcString* sem = (CcString*)
-     tuple->GetAttribute(idx3);
-    double x1 = x->GetValue();
-    double y1 = y->GetValue();
-    Coordinate c(x1, y1);
-    res->AddCoordinate(c);
-
-    /* TO DO handle the apostrophes */
-    /* Tokenize string first and
-    filter out any stop words */
-    stringutils::StringTokenizer st(
-      sem->GetValue(), " ");
-
-    while(st.hasNextToken())
+    std::list<std::string> tokenlist;
+    stringutils::StringTokenizer st1(resu, " ");
+    while(st1.hasNextToken())
     {
-      std::string eval = st.nextToken();
+      std::string eval = st1.nextToken();
       stringutils::trim(eval);
       stringutils::toLower(eval);
-      if(std::find(
-        sw.begin(),
-        sw.end(),
-        eval) == sw.end())
-      {
-        if(holdresult.empty())
-        {
-            holdresult = eval;
-        }
-        else
-        {
-          holdresult = holdresult + " " + eval;
-        }
-      }
+      tokenlist.push_back(eval);
+    }
+    std::string finalstr = "";
+    tokenlist.sort(SemanticTrajectory::compare_nocase);
+    int size = tokenlist.size();
+    int i = 0;
+    for(const auto &word : tokenlist)
+    {
+     if (i != size - 1)
+     {
+        finalstr += word + " ";
+     }
+     else
+     {
+        finalstr += word;
+     }
+     i++;
     }
 
-    res->AddString(holdresult);
+    res->AddString(finalstr);
 
     if (res->GetNumCoordinates() == 1)
     {
@@ -2056,9 +1908,348 @@ int MakeSemTrajMVwStop(Word* args, Word& result,
     res->SetBoundingBox(true, mind, maxd);
   }
   stream.close();
-  res->Finalize();
   return 0;
 }
+
+ListExpr TypeMapMakeSemtraj2(ListExpr args){
+  // Check to see if it's the right number of arguments
+  if (nl->HasLength(args, 6))
+  {
+    // Make sure each param is of right type
+    std::string err = "stream(tuple) x stream(tuple) x a1 x"
+    " a2 x a3 x a4 expected";
+
+    ListExpr stream = nl->First(args);
+    ListExpr stream2 = nl->Second(args);
+    ListExpr attrname_longitude = nl->Third(args);
+    ListExpr attrname_latitude = nl->Fourth(args);
+    ListExpr attrname_semantics = nl->Fifth(args);
+    ListExpr attrname_elem = nl->Sixth(args);
+
+    if(!listutils::isTupleStream(stream)){
+      return
+      listutils::typeError(
+        "first parameter must be a tuple stream");
+    }
+    if(!listutils::isTupleStream(stream2)){
+      return
+      listutils::typeError(
+        "first parameter must be a tuple stream");
+    }
+    if(!listutils::isSymbol(attrname_longitude)){
+      return
+      listutils::typeError("second parameter must"
+      "be an attribute name");
+    }
+
+    if(!listutils::isSymbol(attrname_latitude)){
+      return
+      listutils::typeError("third parameter must"
+      " be an attribute name");
+    }
+
+    if(!listutils::isSymbol(attrname_semantics)){
+      return
+      listutils::typeError("fourth parameter must"
+      "be an attribute name");
+    }
+    if(!listutils::isSymbol(attrname_elem)){
+      return
+      listutils::typeError("fourth parameter must"
+      "be an attribute name");
+    }
+    ListExpr type;
+    // extract the attribute list
+    ListExpr attrList = nl->Second(nl->Second(stream));
+    ListExpr attrList2 = nl->Second(nl->Second(stream2));
+    // Get the index for the longitude
+    std::string name =
+    nl->SymbolValue(attrname_longitude);
+    int index1 =
+    listutils::findAttribute(attrList, name, type);
+    if(index1==0){
+      return
+      listutils::typeError(
+        "attribute name " + name +
+       " unknown in tuple"
+       " stream");
+    }
+    if(!CcReal::checkType(type)){
+      return
+      listutils::typeError("attribute '" + name +
+      "' must be of type 'real'");
+    }
+
+    name = nl->SymbolValue(attrname_latitude);
+
+    int index2 =
+    listutils::findAttribute(attrList, name, type);
+
+    if(index2==0){
+      return
+      listutils::typeError("attribute name " + name +
+      " unknown in tuple stream");
+    }
+    if(!CcReal::checkType(type)){
+      return
+      listutils::typeError("attribute '" + name +
+      "' must be of type 'real'");
+    }
+
+    name = nl->SymbolValue(attrname_semantics);
+    int index3 =
+    listutils::findAttribute(attrList, name, type);
+    if(index3==0){
+      return
+      listutils::typeError("attribute name " + name +
+      " unknown in tuple stream");
+    }
+    if(!CcString::checkType(type)){
+      return
+      listutils::typeError("attribute '" + name +
+      "' must be of type 'string'");
+    }
+
+    name = nl->SymbolValue(attrname_elem);
+    int index4 =
+    listutils::findAttribute(attrList2, name, type);
+    if(index4==0){
+      return
+      listutils::typeError("attribute elem " + name +
+      " unknown in tuple stream");
+    }
+    if(!CcString::checkType(type)){
+      return
+      listutils::typeError("attribute '" + name +
+      "' must be of type 'string'");
+    }
+    std::string restype =
+    SemanticTrajectory::BasicType();
+
+
+    ListExpr indexes = nl->FourElemList(
+                         nl->IntAtom(index1-1),
+                         nl->IntAtom(index2-1),
+                         nl->IntAtom(index3-1),
+                         nl->IntAtom(index4-1));
+
+    return
+    nl->ThreeElemList(nl->SymbolAtom(Symbol::APPEND()),
+                             indexes,
+                             nl->SymbolAtom(restype));
+  }
+  return
+  listutils::typeError("Wrong number of arguments");
+
+}
+
+
+
+
+int MakeSemTrajMV2(Word* args, Word& result,
+                      int message, Word& local,
+                      Supplier s){
+
+
+  result = qp->ResultStorage(s);
+  SemanticTrajectory* res =
+   static_cast<SemanticTrajectory*>(result.addr);
+
+  int noargs = qp->GetNoSons(s);
+
+  int idx1 = ((CcInt*)args[noargs-4].addr)->GetValue();
+  int idx2 = ((CcInt*)args[noargs-3].addr)->GetValue();
+  int idx3 = ((CcInt*)args[noargs-2].addr)->GetValue();
+  int idx4 = ((CcInt*)args[noargs-1].addr)->GetValue();
+
+  //Prepare stop list
+  Stream<Tuple> stream2(args[1]);
+  unsigned int bucketnum = 800;
+  std::hash<std::string> str_hash;
+  std::vector<std::string*>** hashTable;
+  hashTable = new std::vector<std::string*>*[bucketnum];
+  for (unsigned int i = 0; i < bucketnum; i++)
+  {
+    hashTable[i] = 0;
+  }
+  Tuple* tuple2;
+  stream2.open();
+  while((tuple2 = stream2.request()))
+  {
+    CcString* stopw = (CcString*)
+    tuple2->GetAttribute(idx4);
+    std::string stw = stopw->GetValue();
+    std::string resu = "";
+    for (size_t i = 0; i < stw.size(); ++i)
+    {
+      if ((stw[i] >= 'a' && stw[i] <= 'z') ||
+       (stw[i] >= 'A' && stw[i] <= 'Z')) {
+        resu = resu + stw[i];
+      }
+    }
+    stringutils::trim(resu);
+    stringutils::toLower(resu);
+    std::string* stn = new std::string(resu);
+    size_t hash = str_hash(resu) % bucketnum;
+
+    if (!hashTable[hash])
+    {
+      hashTable[hash] = new std::vector<std::string*>();
+    }
+    hashTable[hash]->push_back(stn);
+    tuple2->DeleteIfAllowed();
+  }
+  stream2.close();
+
+  double c_x1;
+  double c_y1;
+  double c_x2;
+  double c_y2;
+  Stream<Tuple> stream(args[0]);
+  Tuple* tuple;
+  stream.open();
+  unsigned int bucketpos = 0;
+  while((tuple = stream.request()))
+  {
+    CcReal* x = (CcReal*) tuple->GetAttribute(idx1);
+    CcReal* y = (CcReal*) tuple->GetAttribute(idx2);
+    CcString* sem = (CcString*)
+    tuple->GetAttribute(idx3);
+    if ((sem->GetValue()).length() > 0)
+    {
+      std::string str = sem->GetValue();
+      std::string resu = "";
+      for (size_t i = 0; i < str.size(); ++i)
+      {
+        if ((str[i] >= 'a' && str[i] <= 'z') ||
+         (str[i] >= 'A' && str[i] <= 'Z') || str[i] == ' ') {
+          resu = resu + str[i];
+        }
+      }
+
+      std::list<std::string> tokenlist;
+      stringutils::StringTokenizer st1(resu, " ");
+      const std::vector<std::string*>* bucket;
+      size_t hash = 0;
+      while(st1.hasNextToken())
+      {
+        std::string eval = st1.nextToken();
+        stringutils::trim(eval);
+        stringutils::toLower(eval);
+
+        bucket = 0;
+        hash = str_hash(eval) % bucketnum;
+
+        bucket = hashTable[hash];
+        bucketpos =0;
+        if(bucket)
+        {
+            bool flag = true;
+            while(bucketpos < bucket->size())
+            {
+              std::string* e = (*bucket)[bucketpos];
+              if ((e)->compare(eval) == 0)
+              {
+                flag = false;
+                break;
+              }
+              bucketpos++;
+            }
+            if (flag)
+            {
+              // hash function is not good
+              // Good words having same hash as stopwords
+              tokenlist.push_back(eval);
+            }
+
+        }
+        else
+        {
+
+          tokenlist.push_back(eval);
+        }
+
+      }
+      std::string finalstr = "";
+      tokenlist.sort(SemanticTrajectory::compare_nocase);
+      int size = tokenlist.size();
+      int i = 0;
+      for(const auto &word : tokenlist)
+      {
+       if (i != size - 1)
+       {
+          finalstr += word + " ";
+       }
+       else
+       {
+          finalstr += word;
+       }
+       i++;
+      }
+
+      res->AddString(finalstr);
+    }
+    else
+    {
+      res->AddString("");
+    }
+    double x1 = x->GetValue();
+    double y1 = y->GetValue();
+
+    Coordinate c(x1, y1);
+    res->AddCoordinate(c);
+
+
+    if (res->GetNumCoordinates() == 1)
+    {
+      c_x1 = x1;
+      c_y1 = y1;
+      c_x2 = x1;
+      c_y2 = y1;
+    }
+    else
+    {
+      c_x1 = std::min(c_x1, x1);
+      c_y1 = std::min(c_y1, y1);
+      c_x2 = std::max(c_x2, x1);
+      c_y2 = std::max(c_y2, y1);
+
+    }
+
+    tuple->DeleteIfAllowed();
+  }
+  if (c_x1 < c_x2 && c_y1 < c_y2)
+  {
+    double mind[2];
+    double maxd[2];
+    mind[0] = c_x1;
+    mind[1] = c_y1;
+    maxd[0] = c_x2;
+    maxd[1] = c_y2;
+    res->SetBoundingBox(true, mind, maxd);
+  }
+
+  for (unsigned int i = 0; i< bucketnum; i++)
+  {
+    std::vector<std::string*>* v = hashTable[i];
+    if (v)
+    {
+      for(unsigned int j = 0; j < v->size(); j++)
+      {
+        std::string* stn = (*v)[j];
+        delete stn;
+
+      }
+      (v)->clear();
+      delete hashTable[i];
+      hashTable[i] = 0;
+    }
+  }
+  delete hashTable;
+  stream.close();
+  return 0;
+}
+
 
 /*
 Operator ~"stbox"~
@@ -2132,21 +2323,18 @@ int extractkeywordMapV(Word* args, Word& result,
     int visitedwords = 0;
     std::list<std::string>::iterator it;
     int numOfWords = 0;
-    // raster2::UniqueStringArray* strArr;
     std::list<std::string> wordList;
     TheWords(std::list<std::string>& list)
     {
       wordList = list;
       numOfWords = wordList.size();
       it = wordList.begin();
-
-      // strArr = static_cast<raster2::UniqueStringArray*>(addr);
-      // numCoordinates = strArr->Get();
     }
 
     bool getNextWord(std::string& el)
     {
       el = *it;
+      stringutils::trim(el);
       it++;
       visitedwords++;
       return true;
@@ -2201,7 +2389,6 @@ int extractkeywordMapV(Word* args, Word& result,
       }
       else
       {
-        // localgrid->deleteInnerGrid();
 
         result.addr = 0;
         return CANCEL;
@@ -2584,8 +2771,9 @@ int SimilarityMapValue( Word* args, Word& result,
 ListExpr TTSimTypeMap(ListExpr args)
 {
 
+
   std::string err = "stream(tuple) x attr1 x "
-               "attr2 x gridcell2D x real x real x rect";
+               "attr2 x real x real x rect x Grid";
   if(!nl->HasLength(args, 7))
   {
     return listutils::typeError(err);
@@ -2593,10 +2781,10 @@ ListExpr TTSimTypeMap(ListExpr args)
   ListExpr stream1 = nl->First(args);
   ListExpr attr1 = nl->Second(args); // semtraj1
   ListExpr attr2 = nl->Third(args); //  semtraj2
-  ListExpr attr3 = nl->Fourth(args); // gridcell2D
-  ListExpr attr4 = nl->Fifth(args); // real
-  ListExpr attr5 = nl->Sixth(args); // Real
-  ListExpr attr6 = nl->Seventh(args); // Rect
+  ListExpr attr4 = nl->Fourth(args); // real
+  ListExpr attr5 = nl->Fifth(args); // Real
+  ListExpr attr6 = nl->Sixth(args); // Rect
+  ListExpr attr7 = nl->Seventh(args); // Rect
   if (!Stream<Tuple>::checkType(stream1))
   {
     return listutils::typeError(err + "(first arg is not a tuple sream)");
@@ -2608,21 +2796,21 @@ ListExpr TTSimTypeMap(ListExpr args)
   if(!listutils::isSymbol(attr2)){
     return listutils::typeError(err + "(second attrname is not valid)");
   }
-  if(!CellGrid2D::checkType(attr3))
-  {
-    return listutils::typeError(err + "(third arg must be CellGrid2D");
-  }
   if (!CcReal::checkType(attr4))
   {
-    return listutils::typeError(err + "5th arg must be a real");
+    return listutils::typeError(err + "4th arg must be a real");
   }
   if (!CcReal::checkType(attr5))
   {
-    return listutils::typeError(err + "6th arg must be a real");
+    return listutils::typeError(err + "5th arg must be a real");
   }
   if (!Rectangle<2>::checkType(attr6))
   {
-    return listutils::typeError(err + "7th arg must be a rectangle");
+    return listutils::typeError(err + "6th arg must be a rectangle");
+  }
+  if(!CellGrid2D::checkType(attr7))
+  {
+    return listutils::typeError(err + "(third arg must be CellGrid2D");
   }
   if(!listutils::isSymbol(attr1)){
     return listutils::typeError(err + "(first attrname is not valid)");
@@ -2647,6 +2835,8 @@ ListExpr TTSimTypeMap(ListExpr args)
     return listutils::typeError(attrname2+
                      " is not an attribute of the second stream");
   }
+
+
 
 
   ListExpr indexList = nl->TwoElemList(
@@ -2680,7 +2870,8 @@ class TTInfo
       const ListExpr _resType,
       const int _index1, const int _index2,
       double _alpha, double _threshold, double _diag, double _wx, double _wy) :
-      hashTable1(0), hashTable2(0), bucket(0), bucket2(0), bucketnum(bucknum),
+      hashTable(0), hashTable2(0), bucket(0),
+      bucketnum(bucknum),
       stream1(_stream1),
       tt(0),
       index1(_index1), index2(_index2),
@@ -2689,135 +2880,164 @@ class TTInfo
       {
         tt = new TupleType(_resType);
         stream1.open();
+        InitializeTables();
       }
     ~TTInfo()
     {
       stream1.close();
-      clearTable();
+
       tt->DeleteIfAllowed();
     }
     size_t getBucket(std::string& str)
     {
       return str_hash(str) % bucketnum;
     }
-    void getTablesReady(SemanticTrajectory& st1, SemanticTrajectory& st2)
+    void InitializeTables()
     {
-      if(!hashTable1)
+      if(!hashTable)
       {
-        hashTable1 = new std::vector<int>*[bucketnum];
+
+        hashTable = new std::vector<std::string*>*[bucketnum];
         for (unsigned int i = 0; i < bucketnum; i++)
         {
-          hashTable1[i] = 0;
-        }
-
-        for (int i = 0; i < st1.GetNumWords(); i++)
-        {
-           std::string holdValue = "";
-           bool success = st1.GetStringSum(i, holdValue);
-           if(success)
-           {
-             int ctn = st1.GetWord(i).count;
-             size_t hash = getBucket(holdValue);
-
-             if (!hashTable1[hash])
-             {
-               hashTable1[hash] = new std::vector<int>();
-             }
-             hashTable1[hash]->push_back(ctn);
-           }
-
+          hashTable[i] = 0;
         }
       }
+
       if(!hashTable2)
       {
-        hashTable2 = new std::vector<int>*[bucketnum];
+        hashTable2 = new std::vector<std::string*>*[bucketnum];
         for (unsigned int i = 0; i < bucketnum; i++)
         {
           hashTable2[i] = 0;
         }
-
-        for (int i = 0; i < st2.GetNumWords(); i++)
-        {
-           std::string holdValue = "";
-           bool success = st2.GetStringSum(i, holdValue);
-           if(success)
-           {
-             int ctn = st2.GetWord(i).count;
-             size_t hash = getBucket(holdValue);
-
-             if (!hashTable2[hash])
-             {
-               hashTable2[hash] = new std::vector<int>();
-             }
-             hashTable2[hash]->push_back(ctn);
-           }
-
-        }
       }
+    }
+    void getTablesReady(SemanticTrajectory& st1, SemanticTrajectory& st2)
+    {
+
+      for (int i = 0; i < st1.GetNumWords(); i++)
+      {
+       std::string holdValue = "";
+       bool success = st1.GetStringSum(i, holdValue);
+       if(success)
+       {
+
+         size_t hash = getBucket(holdValue);
+
+         if (!hashTable[hash])
+         {
+           hashTable[hash] = new std::vector<std::string*>();
+         }
+         std::string* stn = new std::string(holdValue);
+         hashTable[hash]->push_back(stn);
+       }
+
+      }
+
+      for (int i = 0; i < st2.GetNumWords(); i++)
+      {
+       std::string holdValue = "";
+       bool success = st2.GetStringSum(i, holdValue);
+       if(success)
+       {
+
+         size_t hash = getBucket(holdValue);
+
+         if (!hashTable2[hash])
+         {
+           hashTable2[hash] = new std::vector<std::string*>();
+         }
+         std::string* stn = new std::string(holdValue);
+         hashTable2[hash]->push_back(stn);
+       }
+
+      }
+
+
     }
     Tuple* nextTuple()
     {
-      int count = 1;
+
       Tuple* res = new Tuple(tt);
       while((res = stream1.request()))
       {
 
-        count++;
-        SemanticTrajectory* st1 =
-        (SemanticTrajectory*) res->GetAttribute(index1);
-        SemanticTrajectory* st2 =
-        (SemanticTrajectory*) res->GetAttribute(index2);
+      SemanticTrajectory* st1 =
+      (SemanticTrajectory*) res->GetAttribute(index1);
+      SemanticTrajectory* st2 =
+      (SemanticTrajectory*) res->GetAttribute(index2);
 
-        getTablesReady(*st1, *st2);
-        double result1 = 0.0;
-        double result2 = 0.0;
-        double result = 0.0;
-        double ts = textualScore(*st1, *st2);
-        result2 = (1 - alpha ) * ts;
+      getTablesReady(*st1, *st2);
+      double result1 = 0.0;
+      double result2 = 0.0;
+      double result = 0.0;
+      double ts = 0.0;
+      ts = textualScore(*st1, *st2);
 
-        double dist =
-        MinDistAux(*st1, *st2, wx, wy);
+      result2 = (1 - alpha ) * ts;
+      double dist = 0.0;
+      dist =
+      MinDistAux(*st1, *st2, wx, wy);
 
-        double normalizedScore = 0.0;
-        if (dist != 0)
-        {
-          normalizedScore = 1 - (double)(dist/diag);
-        }
-        else {
-          normalizedScore = 1;
-        }
-        result1 = alpha * normalizedScore;
-        result = result1 + result2;
-
-        if (result > threshold)
-        {
-          return res;
-        }
+      double normalizedScore = 0.0;
+      if (dist != 0.0)
+      {
+        normalizedScore = 1 - (double)(dist/diag);
       }
+      else {
+        normalizedScore = 1;
+      }
+      result1 = alpha * normalizedScore;
+      result = result1 + result2;
+      clearContent();
+
+      if (result > threshold)
+      {
+        return res;
+      }
+    }
       return 0;
     }
-    void clearTable(){
+    void clearContent()
+    {
+
       for (unsigned int i = 0; i< bucketnum; i++)
       {
-        std::vector<int>* v = hashTable1[i];
+        std::vector<std::string*>* v = hashTable[i];
         if (v)
         {
-          (*v).clear();
-          delete hashTable1[i];
-          hashTable1[i] = 0;
+          for(unsigned int j = 0; j < v->size(); j++)
+          {
+            std::string* stn = (*v)[j];
+            delete stn;
+
+          }
+          (v)->clear();
+          delete hashTable[i];
+          hashTable[i] = 0;
         }
       }
+
       for (unsigned int i = 0; i< bucketnum; i++)
       {
-        std::vector<int>* v = hashTable2[i];
+        std::vector<std::string*>* v = hashTable2[i];
         if (v)
         {
-          (*v).clear();
+          for(unsigned int j = 0; j < v->size(); j++)
+          {
+               std::string* stn = (*v)[j];
+               delete stn;
+
+          }
+          (v)->clear();
           delete hashTable2[i];
           hashTable2[i] = 0;
         }
       }
+
     }
+
     double MinDistAux(SemanticTrajectory& st1,
       SemanticTrajectory& st2, double wx, double wy) {
 
@@ -2829,7 +3049,7 @@ class TTInfo
       DbArray<Cell>* Ay = new DbArray<Cell>(0);
       Ay->Append(valuesSt1);
       Ay->Append(valuesSt2);
-  //Using copy construtor here
+
       Ax->Sort(SemanticTrajectory::CompareX);
       Ay->Sort(SemanticTrajectory::CompareY);
       int32_t m = Ax->Size();
@@ -2850,13 +3070,14 @@ class TTInfo
       return result;
     }
 
-    double MinDistUtils(
-        SemanticTrajectory& st1, SemanticTrajectory&st2,
+    double MinDistUtils(SemanticTrajectory& st1,
+        SemanticTrajectory&st2,
         DbArray<Cell>& Ax,
         DbArray<Cell>& Ay, int32_t m, double wx, double wy)
     {
 
       double minD = DBL_MAX;
+
       if (m > 3)
       {
 
@@ -2865,7 +3086,7 @@ class TTInfo
         DbArray<Cell>* AxL = new DbArray<Cell>(0);
         Cell cell1;
         Ax.Get(0,cell1);
-        Ax.copyTo(*AxL, 0, n,0);
+        Ax.copyTo(*AxL, 0, n, 0);
         DbArray<Cell>* AxR = new DbArray<Cell>(0);
         Ax.copyTo(*AxR, n, m-n, 0);
         DbArray<Cell>* AyL = new DbArray<Cell>(0);
@@ -2953,10 +3174,11 @@ class TTInfo
 
 
         DbArray<Cell>* Am = new DbArray<Cell>(0);
-        for (int i = 0; i < m; i++)
+        for (int i = 0; i < Ay.Size(); i++)
         {
           Cell x;
           Cell y;
+
           Ax.Get(n, x);
           Ay.Get(i, y);
           if (fabs(y.GetX() - x.GetX()) < minD)
@@ -2976,6 +3198,7 @@ class TTInfo
             Am->Get(j, c2);
             if (c1.GetId() != c2.GetId())
             {
+
               double tempmin = GetCellDist(c1,c2, wx, wy);
 
               if (tempmin < minD)
@@ -2997,6 +3220,7 @@ class TTInfo
       else
       {
           minD = BruteForce(Ax, m, wx, wy);
+
       }
       return minD;
     }
@@ -3156,90 +3380,83 @@ class TTInfo
     {
 
           double TSim = 0.0;
+          unsigned int bucketpos = 0;
           for(int i = 0; i < st1.GetNumCoordinates(); i++)
            {
-            int numMatches = 0;
             std::string holdvalue;
             st1.GetString(i, holdvalue);
-            stringutils::StringTokenizer parse_st1(holdvalue, " ");
-            while(parse_st1.hasNextToken())
-            {
-              std::string eval = parse_st1.nextToken();
 
-              stringutils::trim(eval);
-              size_t hash = getBucket(eval);
-              bucket = hashTable2[hash];
-              if(bucket)
+            if (holdvalue.length() > 0)
+            {
+              stringutils::StringTokenizer parse_st1(holdvalue, " ");
+              while(parse_st1.hasNextToken())
               {
-                if(bucket->size()> 1)
+                std::string eval = parse_st1.nextToken();
+                stringutils::trim(eval);
+                size_t hash = getBucket(eval);
+                bucket = 0;
+                bucket = hashTable2[hash];
+                bucketpos = 0;
+                if(bucket)
                 {
-                  //This value has been seen Before
-                  int p = (*bucket)[0];
-                  if (p != i)
+                  while(bucketpos < bucket->size())
                   {
-                    numMatches = numMatches + 1;
+                    std::string* check = (*bucket)[bucketpos];
+                    if ((check)->compare(eval) == 0)
+                    {
+                      TSim = TSim + ((double) 1/st1.GetNumCoordinates());
+                      break;
+                    }
+                    bucketpos++;
                   }
-                }
-                else {
-                    numMatches = numMatches + 1;
-                    hashTable2[hash]->push_back(i);
                 }
               }
             }
-
-            if (numMatches != 0)
-            {
-              TSim = TSim + ((double) 1/st1.GetNumCoordinates());
-
-            }
-
           }
           for(int i = 0; i < st2.GetNumTextData(); i++)
           {
-            int numMatches = 0;
+
             std::string holdvalue;
             st2.GetString(i, holdvalue);
-            stringutils::StringTokenizer parse_st2(holdvalue, " ");
-            while(parse_st2.hasNextToken())
+            if (holdvalue.length() > 0)
             {
-              std::string eval = parse_st2.nextToken();
-              stringutils::trim(eval);
+              stringutils::StringTokenizer parse_st2(holdvalue, " ");
 
-              size_t hash = getBucket(eval);
-              bucket2 = hashTable1[hash];
-              if(bucket2)
+              while(parse_st2.hasNextToken())
               {
-                if(bucket2->size()>1)
+
+                std::string eval = parse_st2.nextToken();
+                stringutils::trim(eval);
+                size_t hash = getBucket(eval);
+                bucket = 0;
+                bucket = hashTable[hash];
+                bucketpos = 0;
+                if(bucket)
                 {
-                  //This value has been seen Before
-                  int p = (*bucket2)[0];
-                  if (p != i)
+                  while(bucketpos < bucket->size())
                   {
-                    numMatches = numMatches + 1;
+
+                    std::string* check = (*bucket)[bucketpos];
+                    if ((check)->compare(eval) == 0)
+                    {
+
+                      TSim = TSim + ((double) 1/st2.GetNumCoordinates());
+                      break;
+                    }
+                    bucketpos++;
                   }
-                }
-                else {
-                    numMatches = numMatches + 1;
-                    hashTable1[hash]->push_back(1);
+
                 }
               }
             }
-
-            if (numMatches != 0)
-            {
-              TSim = TSim + ((double) 1/st2.GetNumCoordinates());
-
-            }
-
           }
           return TSim;
         }
   private:
 
-    std::vector<int>** hashTable1;
-    std::vector<int>** hashTable2;
-    const std::vector<int>* bucket;
-    const std::vector<int>* bucket2;
+    std::vector<std::string*>** hashTable;
+    std::vector<std::string*>** hashTable2;
+    const std::vector<std::string*>* bucket;
     unsigned int bucketnum;
     Stream<Tuple> stream1;
     TupleType* tt;
@@ -3258,7 +3475,6 @@ class TTInfo
 int TTSimMapValue( Word* args, Word& result,
                    int message, Word& local, Supplier s ){
 
-
    TTInfo* li = (TTInfo*) local.addr;
    switch(message){
      case OPEN: { if(li){
@@ -3268,16 +3484,16 @@ int TTSimMapValue( Word* args, Word& result,
                   int noargs = qp->GetNoSons(s);
                   int idx1 = ((CcInt*)args[noargs-2].addr)->GetValue();
                   int idx2 = ((CcInt*)args[noargs-1].addr)->GetValue();
-                  CellGrid2D* grid = static_cast<CellGrid2D*>(args[3].addr);
-                  CcReal * alpha = static_cast<CcReal*>(args[4].addr);
-                  CcReal * thresh = static_cast<CcReal*>(args[5].addr);
-                  Rectangle<2>* rec = static_cast<Rectangle<2>*>(args[6].addr);
+                  CellGrid2D* grid = static_cast<CellGrid2D*>(args[6].addr);
+                  CcReal * alpha = static_cast<CcReal*>(args[3].addr);
+                  CcReal * thresh = static_cast<CcReal*>(args[4].addr);
+                  Rectangle<2>* rec = static_cast<Rectangle<2>*>(args[5].addr);
                   double diagonal = GetDiag(*rec);
                   double wx = grid->getXw();
                   double wy = grid->getYw();
 
                   local.addr = new TTInfo(
-                               999,
+                               100,
                                args[0],
                                ttype,
                                idx1,
@@ -3305,11 +3521,8 @@ int TTSimMapValue( Word* args, Word& result,
    }
    return 0;
 
+
 }
-
-
-
-
 
 
 /*
@@ -3444,24 +3657,28 @@ class BatchBatchInfo
         {
           CcInt* id1 = (CcInt*) res->GetAttribute(index1);
           CcInt* id2 = (CcInt*) res->GetAttribute(index2);
-          if(id1->GetIntval() < id2->GetIntval())
+          if(id1->GetIntval() < id2->GetIntval()
+          || id1->GetIntval() == id2->GetIntval())
           {
-            count++;
 
             Rectangle<2>* r1 = (Rectangle<2>*) res->GetAttribute(index3);
             Rectangle<2>* r2 = (Rectangle<2>*) res->GetAttribute(index4);
 
             const Geoid* geoid = 0;
             double distance = r1->Distance(*r2, geoid);
-
-            double normalizedScore = 1 - (double)(distance/diag);
+            double normalizedScore = 0.0;
+            if (distance == 0.0) {
+              normalizedScore = 1;
+            }
+            else
+            {
+              normalizedScore = 1 - (double)(distance/diag);
+            }
 
             double result = alpha * normalizedScore * 2 + (1-alpha) * 2;
 
             if (result > threshold)
             {
-
-
               if (r1->Area() < r2->Area())
               {
 
@@ -3769,20 +3986,14 @@ Purpose: To compare the similarity between to batch MBR's for pruning
 ListExpr BTSimTypeMap(ListExpr args)
 {
 
-
   std::string err = "stream(tuple) x  x "
                "";
-
   if(!nl->HasLength(args, 9))
   {
-
     return listutils::typeError(err);
   }
   ListExpr stream1 = nl->First(args);
   ListExpr stream2 = nl->Second(args);
-
-  // ListExpr st1 = nl->Second(args);
-  // ListExpr attr1 = nl->Second(args); // batch 1 id
   ListExpr batchMBR = nl->Sixth(args);
   ListExpr st1 = nl->Third(args);
   ListExpr word = nl->Fourth(args);
@@ -3874,6 +4085,13 @@ ListExpr BTSimTypeMap(ListExpr args)
 
 class BatchTrajInfo
 {
+  struct WordInfo
+  {
+
+    CcString* str;
+    CcInt* count;
+  };
+
   public:
 
     BatchTrajInfo(unsigned int bucknum,
@@ -3881,7 +4099,7 @@ class BatchTrajInfo
       const ListExpr _resType,
       const int _index1, const int _index2, const int _index3,
       double _alpha, double _threshold, double _diag) :
-      hashTable(0), bucket(0), bucketnum(bucknum), bmbr(_rect),
+      hashTable(0), bucket(0), bucketPos(0), bucketnum(bucknum), bmbr(_rect),
       stream1(_stream1),
       stream2(_stream2),
       tt(0),
@@ -3910,12 +4128,13 @@ class BatchTrajInfo
     void clearTable(){
       for (unsigned int i = 0; i< bucketnum; i++)
       {
-        std::vector<CcInt*>* v = hashTable[i];
+        std::vector<WordInfo*>* v = hashTable[i];
         if (v)
         {
           for(unsigned int j = 0; j < v->size(); j++)
           {
-            (*v)[j]->DeleteIfAllowed();
+            delete (*v)[j];
+
           }
           delete hashTable[i];
           hashTable[i] = 0;
@@ -3932,7 +4151,7 @@ class BatchTrajInfo
 
       if (!hashTable)
       {
-        hashTable = new std::vector<CcInt*>*[bucketnum];
+        hashTable = new std::vector<WordInfo*>*[bucketnum];
         for (unsigned int i = 0; i < bucketnum; i++)
         {
           hashTable[i] = 0;
@@ -3946,19 +4165,17 @@ class BatchTrajInfo
       {
         wordTuple = static_cast<Tuple*>(tuple.addr);
         CcString* str1 = (CcString*) wordTuple->GetAttribute(index2);
-        CcInt* id2 = (CcInt*) wordTuple->GetAttribute(index3);
+        CcInt* ctn = (CcInt*) wordTuple->GetAttribute(index3);
         size_t hash = getBucket(str1);
+
         if (!hashTable[hash])
         {
-          hashTable[hash] = new std::vector<CcInt*>();
+          hashTable[hash] = new std::vector<WordInfo*>();
         }
-        hashTable[hash]->push_back(id2);
-        // This is the part you need to use
-
-        hash = getBucket(str1);
-        bucket = hashTable[hash];
-        // CcInt* p = (*bucket)[0];
-
+        WordInfo* rInfo = new WordInfo;
+        rInfo->count = ctn;
+        rInfo->str = str1;
+        hashTable[hash]->push_back(rInfo);
         sumOfBoth = sumOfBoth + 1;
         qp->Request(stream2.addr, tuple);
       }
@@ -4009,8 +4226,9 @@ class BatchTrajInfo
         return 0;
     }
   private:
-    std::vector<CcInt*>** hashTable;
-    const std::vector<CcInt*>* bucket;
+    std::vector<WordInfo*>** hashTable;
+    const std::vector<WordInfo*>* bucket;
+    unsigned int bucketPos;
     unsigned int bucketnum;
     Rectangle<2> bmbr;
     Stream<Tuple> stream1;
@@ -4027,74 +4245,97 @@ class BatchTrajInfo
 
     double EuclidDistRT(double x1,
         double y1,
-      double x2,
-    double y2)
+        double x2,
+        double y2)
     {
       return sqrt(pow((x1 - x2),2) + pow((y1 - y2),2));
     }
 
-    double RelevanceBT(Rectangle<2>& mbr, double x, double y,
-      std::string& objectwords, double alpha, double diag){
-
+    double RelevanceBT(Rectangle<2>& mbr, double x,
+        double y,
+        std::string& objectwords, double alpha,
+        double diag)
+    {
       double result1 = 0.0;
       double result2 = 0.0;
-      double textscore = getTextualScore(objectwords);
-
-      result2 = (1-alpha) * textscore;
+      double textscore = 0.0;
+      if (objectwords.length() > 0)
+      {
+        textscore = getTextualScoreBT(objectwords);
+      }
+      result2 = (1 - alpha) * textscore;
       double dist = getDistanceBT(mbr, x, y);
-      double normalizedScore = 1 - (double) (dist/diag);
-
+      double normalizedScore = 0.0;
+      if (dist == 0.0)
+      {
+        normalizedScore  = 1;
+      }
+      else
+      {
+        normalizedScore = 1 - (double) (dist/diag);
+      }
       result1 = alpha * normalizedScore;
-
       return result1 + result2;
 
     }
 
-    double getTextualScore(std::string& objectwords)
+    double getTextualScoreBT(std::string& objectwords)
     {
 
       int numMatches = 0;
-      int countinside = 0;
+      int count = 0;
+      int duplicate = 0;
+      std::string prev_str = "";
       stringutils::StringTokenizer parse1(objectwords, " ");
+
       while(parse1.hasNextToken())
       {
         std::string eval = parse1.nextToken();
 
-        stringutils::trim(eval);
         CcString* stn = new CcString(true, eval);
         size_t hash = getBucket(stn);
+        bucket = 0;
         bucket = hashTable[hash];
-        // CcInt* p = (*bucket)[0];
+        bucketPos = 0;
 
-        if(bucket)
+
+        // There is a match
+        if (bucket)
         {
-
-          // CcInt* p = (*bucket)[0];
-          if(bucket->size() > 1)
+          // Find the match
+          while(bucketPos < bucket->size())
           {
+            WordInfo* p = (*bucket)[bucketPos];
 
-            //This value has been seen Before
+            if((prev_str).compare(eval) == 0)
+            {
+                //This match seen before
+                duplicate++;
+                break;
+            }
+            else if (((p->str)->GetValue()).compare(eval) == 0)
+            {
+              numMatches++;
+              prev_str = eval;
+
+              break;
+            }
+            bucketPos++;
           }
-          else {
-            CcInt* val = new CcInt(true, 0);
-            hashTable[hash]->push_back(val);
-            numMatches = numMatches + 1;
-          }
-
-
+        } else {
+          prev_str = "";
         }
-        countinside = countinside + 1;
 
-
+        count = count + 1;
 
       }
-
-      double uniquewords = (double)((sumOfBoth +countinside) - numMatches);
 
       if (numMatches == 0)
       {
         return 0.0;
       }
+      double uniquewords = (double)
+      (sumOfBoth + count - (duplicate + numMatches));
       return (double) numMatches / uniquewords;
     }
 
@@ -4246,7 +4487,8 @@ struct BBSimInfo : OperatorInfo
     " -> Stream(Tuple(x))";
     syntax = "_ bbsim[_,_,_,_,_,_,_]";
     meaning = "Filters out batch-batch pair that are below the threshold"
-    "and return batch pairs in order of MBR size";
+    "and return the batch pair tuple"
+    "with the batch with the largest Area 1st in tuple";
   }
 };
 
@@ -4270,7 +4512,7 @@ struct TTSimInfo : OperatorInfo
   {
     name = "ttsim";
     signature = "Stream(Tuple(x)) x attr x attr"
-    " x CellGrid2D x real x real x rect"
+    " x real x real x rect x CellGrid2D"
     " -> Stream(Tuple(x))";
     syntax = "_ ttsim[_,_,_,_,_,_]";
     meaning = "Filters out trajectory-trajectory pair"
@@ -4288,7 +4530,7 @@ struct SimilarityInfo : OperatorInfo
     " -> Stream(Tuple(x))";
     syntax = "_ sim[_,_,_,_,_]";
     meaning =
-    "Filter out trajectory-trajectory pair that are not similar";
+    "Filter out trajectory-trajectory pair that are below threshold";
   }
 };
 
@@ -4320,6 +4562,21 @@ struct MakeSemTrajInfo : OperatorInfo
   }
 };
 
+struct MakeSemTrajInfo2 : OperatorInfo
+{
+  MakeSemTrajInfo2()
+  {
+    name = "makesemtraj2";
+    signature =
+    "stream(tuple(a1 t1) ...(an tn) ) "
+    " x ai x aj x ak-> semantictrajectory";
+    syntax = "_ _ makesemtraj2 [_,_,_,_]";
+    meaning =
+    "Convert stream of tuples"
+    " into a semantictrajectory datatype"
+    " + removes stopwords";
+  }
+};
 
 struct MakeUniqueListWordsInfo : OperatorInfo
 {
@@ -4450,14 +4707,13 @@ class SemanticTrajectoryAlgebra : public Algebra
       SimilarityMapValue,
       SimilarityTypeMap);
 
-      ValueMapping makesemMV[] = {
-        MakeSemTrajMV,
-        MakeSemTrajMVwStop,
-        0};
       AddOperator(MakeSemTrajInfo(),
-       makesemMV,
-       makesemtrajSelect,
+       MakeSemTrajMV,
        TypeMapMakeSemtraj);
+
+       AddOperator(MakeSemTrajInfo2(),
+        MakeSemTrajMV2,
+        TypeMapMakeSemtraj2);
       AddOperator(
         STBboxInfo(),
         STbboxMapValue,
@@ -4470,10 +4726,6 @@ class SemanticTrajectoryAlgebra : public Algebra
       AddOperator( ExtractKeywordsInfo(),
       extractkeywordMapV,
       extractkeywordsTM);
-
-      AddOperator( MakeUniqueListWordsInfo(),
-      MapValueMakeUniqueListWords,
-      TypeMapMakeUniqueListWords );
 
       AddOperator ( BatchesInfo(),
       BatchesVM,
