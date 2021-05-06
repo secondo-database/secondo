@@ -7,6 +7,12 @@ Signature: stream(Tuple(x)) x a1 x a2 x a3 -> semantictrajectory
 Example  : query CRaw feed groupby[TripId; DayTrip: group feed makesemtraj[Longitude, Latitude, Semantics]] count;
 Result   : 4
 
+Operator : makesemtraj2
+Number   : 1
+Signature: stream(Tuple(x)) x stream(Tuple(x)) x a1 x a2 x a3 x a4-> semantictrajectory
+Example  : query CRaw feed groupby[TripId; DayTrip: group feed stopwords feed makesemtraj2[Longitude, Latitude, Semantics, Elem]] count;
+Result   : 4
+
 Operator : extractkeywords
 Number   : 1
 Signature: semantictrajectory -> stream(string)
@@ -18,13 +24,6 @@ Number   : 1
 Signature: semantictrajectory -> rectangle
 Example  : query CTrips feed extend[Box: stbox(.DayTrip)] project[Box] transformstream collect_box[TRUE];
 Result   : (rect (0.6 7.3 0.7 7.4))
-
-
-Operator : makeuniquelistwords
-Number   : 1
-Signature: stream(Tuple(x)) x a1 -> uniquestringarray
-Example  : query Keywords feed makeuniquelistwords[Keyword]
-Result   : (uniquestringarray ("area" "camp" "diversity" "hunting" "private" "protected" "bear" "habitat" "open" "closed" "deer" "warning") )
 
 Operator : batches
 Number   : 1
@@ -46,8 +45,8 @@ Result   : 1
 
 Operator : ttsim
 Number   : 1
-Signature: stream(Tuple(x)) x a1 x a2 x CellGrid2D x real x real x rect -> stream(Tuple(x))
-Example  : query newpairs feed ttsim[DayTrip, DayTrip_t2, Grid, 0.5, 1.3, space] count;
+Signature: stream(Tuple(x)) x a1 x a2 x real x real x rect x CellGrid2D -> stream(Tuple(x))
+Example  : query newpairs feed ttsim[DayTrip, DayTrip_t2, 0.5, 1.3, space, Grid] count;
 Result   : 1
 
 Operator : sim

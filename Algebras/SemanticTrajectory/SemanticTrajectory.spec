@@ -17,10 +17,13 @@
 #along with SECONDO; if not, write to the Free Software
 #Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-operator similarity alias SIMILARITY pattern op (_,_,_,_)
+operator sim alias SIM pattern _ op[_,_,_,_,_]
 operator makesemtraj alias MAKESEMTRAJ pattern _ op [_, _, _]
-operator makeuniquelistwords alias MAKEUNIQUELISTWORDS pattern _ op [_]
+operator makesemtraj2 alias MAKESEMTRAJ2 pattern _ _op [_, _, _,_]
 operator stbox alias STBOX pattern op (_)
-operator makesummaries alias MAKESUMMARIES pattern _ op [_,_,_,_,_]
+operator makesum alias MAKESUM pattern _ op [_,_,_,_,_,_]
 operator extractkeywords alias extractkeywords pattern _ op
 operator batches alias BATCHES pattern _ op[_,_,_]
+operator bbsim alias BBSIM pattern _ op[_,_,_,_,_,_,_]
+operator btsim alias BTSIM pattern  _ _ op[_,_,_,_,_]
+operator ttsim alias TTSIM pattern  _ op[_,_,_,_,_,_]
