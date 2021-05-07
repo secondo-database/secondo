@@ -114,8 +114,11 @@ struct TaskScheduleInfo
 public:
     Task *task;
     boost::shared_mutex mutex;
+
+    // Position, Successor, Target Position
     std::unordered_set<tuple<size_t, TaskScheduleInfo *, size_t>, tuple3_hash>
         successors;
+    
     vector<TaskDataItem *> arguments;
     optional<vector<TaskDataItem *>> results;
     optional<pair<WorkerLocation, int>> reservation;
@@ -776,12 +779,18 @@ private:
             string cmd = "query staticFileTransferator(" +
                          std::to_string(fileTransferPort) +
                          ",10)";
+
+            ConnectionInfo* ci = location.getWorkerConnection();
+
             double duration =
-                Task::runCommand(location.getWorkerConnection(),
+                Task::runCommand(ci,
                                  cmd,
                                  "open file transferator",
                                  false,
                                  "");
+
+            ci -> deleteIfAllowed();
+            ci = nullptr;
 
             TaskStatistics::report("remote open file transferator", duration);
         }
@@ -817,7 +826,7 @@ private:
         ensureWorkerCheckedLocations.emplace();
 
         // Connect to the worker
-        location.getWorkerConnection();
+        ConnectionInfo* ci = location.getWorkerConnection();
 
         // Ensure file transferrator is open
         ensureFileTransferrator(location);
@@ -928,6 +937,8 @@ private:
         {
             boost::lock_guard<boost::mutex> lock(threadsMutex);
             runningThreads--;
+            ci -> deleteIfAllowed();
+            ci = nullptr;
         }
         threadSignal.notify_all();
     }
@@ -1023,6 +1034,7 @@ private:
                 if (storedLocation.getWorkerLocation() != preferredLocation)
                 {
                     ConnectionInfo *ci = location.getWorkerConnection();
+
                     // copy file into worker
                     Task::runCommand(
                         ci,
@@ -1039,6 +1051,9 @@ private:
                         "copy file to correct worker");
                     result->addLocation(
                         TaskDataLocation(preferredLocation, File, false));
+
+                    ci -> deleteIfAllowed();
+                    ci = nullptr;
                 }
                 else
                 {
@@ -1280,11 +1295,14 @@ public:
 
         try
         {
-            ConnectionInfo *targetCI = location.getWorkerConnection();
+            ConnectionInfo* targetCI = location.getWorkerConnection();
 
             duration = Task::runCommand(
                 targetCI, cmd, "transfer file", false,
                 "(int " + std::to_string(count + 1) + ")");
+
+            targetCI -> deleteIfAllowed();
+            targetCI = nullptr;
         }
         catch (exception &e)
         {
@@ -1370,7 +1388,7 @@ public:
 
         try
         {
-            ConnectionInfo *ci = location.getWorkerConnection();
+            ConnectionInfo* ci = location.getWorkerConnection();
             string cmd;
             string description;
 
@@ -1414,6 +1432,9 @@ public:
                     true,
                     "()");
             }
+
+            ci->deleteIfAllowed();
+            ci = nullptr;
         }
         catch (exception &e)
         {
@@ -1476,7 +1497,8 @@ public:
 
         try
         {
-            ConnectionInfo *ci = location.getWorkerConnection();
+            ConnectionInfo* ci = location.getWorkerConnection();
+
             // Save Object in a file
             string oname = data->getObjectName();
             string fname = location.getFilePath(data);
@@ -1484,6 +1506,9 @@ public:
                          " saveObjectToFile['" + fname + "']";
             duration = Task::runCommand(ci, cmd, "save object to file",
                                         false, "");
+
+            ci -> deleteIfAllowed();
+            ci = nullptr;
         }
         catch (exception &e)
         {
@@ -1889,7 +1914,7 @@ void Scheduler::collectGarbagge(WorkerLocation &location)
         {
             if (!filesList.empty())
             {
-                ConnectionInfo *ci = location.getWorkerConnection();
+                ConnectionInfo* ci = location.getWorkerConnection();
 
                 string removeQuery =
                     "query [const rel(tuple([X: text])) value (" +
@@ -1901,12 +1926,16 @@ void Scheduler::collectGarbagge(WorkerLocation &location)
                     removeQuery,
                     "remove temporary files",
                     false, "");
+
+                ci -> deleteIfAllowed();
+                ci = nullptr;
+
                 TaskStatistics::report("remote remove files", duration);
             }
 
             if (objectsList.size() > 0)
             {
-                ConnectionInfo *ci = location.getWorkerConnection();
+                ConnectionInfo* ci = location.getWorkerConnection();
 
                 for (auto objName : objectsList)
                 {
@@ -1918,6 +1947,9 @@ void Scheduler::collectGarbagge(WorkerLocation &location)
                         false, "");
                     TaskStatistics::report("remote remove object", duration);
                 }
+
+                ci -> deleteIfAllowed();
+                ci = nullptr;
             }
         }
         catch (exception &e)
