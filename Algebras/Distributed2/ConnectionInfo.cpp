@@ -35,7 +35,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "FileAttribute.h"
 
 
-extern boost::mutex nlparsemtx;
+extern boost::recursive_mutex nlparsemtx;
 boost::mutex createRelMut;
 boost::mutex copylistmutex;
 
@@ -566,7 +566,7 @@ void ConnectionInfo::simpleCommandFromList(const std::string& command1,
 
     ListExpr cmd = mynl->TheEmptyList();
     {
-        boost::lock_guard < boost::mutex > guard(nlparsemtx);
+        boost::lock_guard<boost::recursive_mutex> guard(nlparsemtx);
         if (!mynl->ReadFromString(command, cmd))
         {
             error = 3;
@@ -788,7 +788,9 @@ ConnectionInfo* ConnectionInfo::createConnection(const std::string& host,
                                                  const int heartbeat)
 {
 
-    NestedList* mynl = new NestedList("temp_nested_list");
+    NestedList* mynl = new NestedList("temp_nested_list_" 
+        + std::to_string(port));
+        
     SecondoInterfaceCS* si = new SecondoInterfaceCS(true, mynl, true);
     std::string user = "";
     std::string passwd = "";

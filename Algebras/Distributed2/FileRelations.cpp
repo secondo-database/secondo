@@ -42,7 +42,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "FileSystem.h"
 
 
-boost::mutex nlparsemtx;
+boost::recursive_mutex nlparsemtx;
 
 
 BinRelWriter::BinRelWriter(const std::string& _filename,
@@ -328,7 +328,7 @@ void ffeed5Info::readHeader(TupleType* tt){
   std::string list(buffer,length);
   delete[] buffer;
   {
-     boost::lock_guard<boost::mutex> guard(nlparsemtx);
+     boost::lock_guard<boost::recursive_mutex> guard(nlparsemtx);
      ok = nl->ReadFromString(list,fileTypeList); 
      ListExpr tupleType = nl->Second(fileTypeList);
      if(tt){

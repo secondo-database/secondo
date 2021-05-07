@@ -55,7 +55,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "DFSTools.h"
 #include "BalancedCollect.h"
 
-extern boost::mutex nlparsemtx;
+extern boost::recursive_mutex nlparsemtx;
 
 using namespace std;
 
@@ -1083,7 +1083,7 @@ ListExpr replaceSymbols(ListExpr list,
        if(it==replacements.end()){
          return list;
        } else {
-         boost::lock_guard<boost::mutex> lock(nlparsemtx); 
+         boost::lock_guard<boost::recursive_mutex> lock(nlparsemtx); 
          ListExpr res;
          nl->ReadFromString(it->second, res);
          return res;
@@ -1138,7 +1138,7 @@ template<typename T>
 ListExpr fun2cmd(const string& fundef, const vector<T>& funargs){
   ListExpr funlist; 
   {
-     boost::lock_guard<boost::mutex> guard(nlparsemtx);
+     boost::lock_guard<boost::recursive_mutex> guard(nlparsemtx);
      if(!nl->ReadFromString(fundef,funlist)){
        cerr << "Function is not a nested list" << endl;
        return nl->TheEmptyList();
@@ -1884,7 +1884,7 @@ ListExpr rqueryTM(ListExpr args){
    string typeList = nl->Text2String(nl->Second(reslist));
    ListExpr resType;
    {
-      boost::lock_guard<boost::mutex> guard(nlparsemtx);
+      boost::lock_guard<boost::recursive_mutex> guard(nlparsemtx);
       if(!nl->ReadFromString(typeList,resType)){
         return listutils::typeError("getTypeNL returns no "
                                     "valid list expression");
@@ -4131,7 +4131,7 @@ bool  getQueryType(const string& query1, int serverNo,
    string typeList = nl->Text2String(nl->Second(reslist));
    ListExpr resType;
    {
-      boost::lock_guard<boost::mutex> guard(nlparsemtx);
+      boost::lock_guard<boost::recursive_mutex> guard(nlparsemtx);
       if(!nl->ReadFromString(typeList,resType)){
          errMsg = "getTypeNL returns no valid list expression";
          return false;
@@ -6200,7 +6200,7 @@ ListExpr ffeed5TM(ListExpr args){
   delete [] buffer;
   ListExpr relType;
   {
-     boost::lock_guard<boost::mutex> guard(nlparsemtx);
+     boost::lock_guard<boost::recursive_mutex> guard(nlparsemtx);
      if(!nl->ReadFromString(typeS, relType)){
          in.close();
          return listutils::typeError("problem in determining rel type");
@@ -6758,7 +6758,7 @@ int createDArrayVMT(Word* args, Word& result, int message,
            string typeDescr = nl->Text2String(nl->Second(tuple));
            ListExpr typelist;
           {
-           boost::lock_guard<boost::mutex> guard(nlparsemtx);
+           boost::lock_guard<boost::recursive_mutex> guard(nlparsemtx);
            if(nl->ReadFromString(typeDescr, typelist)){
              if(nl->Equal(typelist, expType)){
                 bool ok;
@@ -17654,7 +17654,7 @@ class partitionInfo{
         ListExpr streamFun = fsfeed;
         if(!sfun.empty()){
            ListExpr sfunl;
-           { boost::lock_guard<boost::mutex> guard(nlparsemtx);
+           { boost::lock_guard<boost::recursive_mutex> guard(nlparsemtx);
              bool ok = nl->ReadFromString(sfun, sfunl);
              if(!ok){
                cerr << "error in parsing list: " << sfun << endl;
@@ -17667,7 +17667,7 @@ class partitionInfo{
 
         ListExpr dfunl;
         
-        { boost::lock_guard<boost::mutex> guard(nlparsemtx);
+        { boost::lock_guard<boost::recursive_mutex> guard(nlparsemtx);
           bool ok = nl->ReadFromString(dfun, dfunl); 
           if(!ok){
               cerr << "problem in parsing function" << endl;
