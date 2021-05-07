@@ -334,7 +334,7 @@ vector<TaskDataItem *> PartitionFunctionTask::run(
     string cmd = "(query (count " + distribute + "))";
     string description = "partitionFS";
 
-    auto *ci = location.getWorkerConnection();
+    ConnectionInfo* ci = location.getWorkerConnection();
 
     // create the target directory
     string targetDir = location.getFileDirectory(&result);
@@ -379,6 +379,9 @@ vector<TaskDataItem *> PartitionFunctionTask::run(
 #ifdef TASK_VERIFY_COUNTS
     TaskDataItem::verifyCount(countSumOfFragments, compareCount);
 #endif
+
+    ci -> deleteIfAllowed();
+    ci = nullptr;
 
     return results;
 }
@@ -455,20 +458,27 @@ int Task::getId()
 
 std::string WorkerLocation::getFileBase(const TaskDataItem *data) const
 {
-    ConnectionInfo *ci = getWorkerConnection();
+    ConnectionInfo* ci = getWorkerConnection();
     string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
     string name = data->getName();
     size_t slot = data->getSlot();
     size_t vslot = data->getVerticalSlot();
+    
     string slotPrefix =
         vslot != 0
             ? "_" + std::to_string(slot) +
                   "_" + std::to_string(vslot - 1)
             : "_" + std::to_string(slot);
-    return ci->getSecondoHome(false, commandLog) +
+    
+    string fileBase = ci->getSecondoHome(false, commandLog) +
            "/dfarrays/" + dbname + "/" +
            name + "/" +
            name + slotPrefix;
+
+    ci -> deleteIfAllowed();
+    ci = nullptr;
+
+    return fileBase;
 }
 
 std::string WorkerLocation::getFilePath(const TaskDataItem *data) const
@@ -478,12 +488,18 @@ std::string WorkerLocation::getFilePath(const TaskDataItem *data) const
 
 std::string WorkerLocation::getFileDirectory(const TaskDataItem *data) const
 {
-    ConnectionInfo *ci = getWorkerConnection();
+    ConnectionInfo* ci = getWorkerConnection();
     string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
     string name = data->getName();
-    return ci->getSecondoHome(false, commandLog) +
+
+    string fileDir = ci->getSecondoHome(false, commandLog) +
            "/dfarrays/" + dbname + "/" +
            name + "/";
+
+    ci -> deleteIfAllowed();
+    ci = nullptr;
+
+    return fileDir;
 }
 
 std::string TaskDataLocation::getValueArgument(const TaskDataItem *data) const
@@ -525,13 +541,17 @@ std::string TaskDataLocation::getValueArgument(const TaskDataItem *data) const
 
 size_t TaskDataLocation::getValueCount(const TaskDataItem *data) const
 {
-    auto *ci = getWorkerConnection();
+    auto* ci = getWorkerConnection();
     std::string result;
     try
     {
         Task::runCommand(
             ci, "(query (count (feed " + getValueArgument(data) + ")))",
             "count data items", true, "", false, &result);
+
+        ci -> deleteIfAllowed();
+        ci = nullptr;
+
         return TaskDataItem::parseCount(result);
     }
     catch (exception &e)
@@ -549,6 +569,10 @@ string TaskDataLocation::getValue(const TaskDataItem *data) const
         Task::runCommand(
             ci, "(query " + getValueArgument(data) + ")",
             "get value", true, "", false, &result);
+
+        ci -> deleteIfAllowed();
+        ci = nullptr;
+
         return result;
     }
     catch (exception &e)
@@ -631,9 +655,11 @@ vector<TaskDataItem *> FunctionTask::store(
             ? DataStorageType::File
             : DataStorageType::Object;
 
-    ConnectionInfo *ci = location.getWorkerConnection();
+    ConnectionInfo* ci = location.getWorkerConnection();
+
     TaskDataItem result(resultName, slot, resultContentType,
                         TaskDataLocation(location, storageType, true));
+    
     string name2 = result.getObjectName();
     string cmd;
 
@@ -697,6 +723,9 @@ vector<TaskDataItem *> FunctionTask::store(
         TaskDataItem::verifyCount(count, expectedCount);
     data->setCount(count);
 #endif
+
+    ci -> deleteIfAllowed();
+    ci = nullptr;
 
     return vector{data};
 }
