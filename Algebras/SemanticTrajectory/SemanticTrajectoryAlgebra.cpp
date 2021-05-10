@@ -1681,6 +1681,7 @@ double SemanticTrajectory::Similarity(
 
 
   double result  = rightTotal + leftTotal;
+  cout << result << endl;
   return result;
 }
 
@@ -2991,7 +2992,7 @@ class TTInfo
       result1 = alpha * normalizedScore;
       result = result1 + result2;
       clearContent();
-
+      cout << result1 << " r2 " << result2 << " " << threshold << endl;
       if (result > threshold)
       {
         return res;
@@ -3705,8 +3706,8 @@ class BatchBatchInfo
     double alpha;
     double threshold;
     double diag;
-    int count = 0;
-    int count1 = 0;
+
+
 
     Tuple* reverseBatches(Tuple* t1)
     {
@@ -4108,7 +4109,7 @@ class BatchTrajInfo
        alpha(_alpha), threshold(_threshold),
        diag(_diag), wordTuple(0), sumOfBoth(0)
       {
-        this->stream2 = stream2;
+        // this->stream2 = stream2;
         wordTuple =0;
         tt = new TupleType(_resType);
 
