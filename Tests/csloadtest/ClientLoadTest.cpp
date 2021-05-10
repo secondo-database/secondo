@@ -49,7 +49,7 @@ void handleSecondoResult(SecErrInfo err,  NestedList* nl, ListExpr res) {
     cout << "Error during command. Error code :" << err.code << endl;
     cout << "Error message = " << err.msg << endl;
   } else {
-    cout << "Command successful processed" << endl;
+    cout << "Command successfully processed" << endl;
     cout << "Result is:" << endl;
     cout << nl->ToString(res) << endl << endl;
   }
@@ -84,7 +84,7 @@ void performConnection(size_t objectNumber) {
   }
   
   // connected
-  cout << "SecondoInterface successfull initialized" << endl;
+  cout << "SecondoInterface successfully initialized" << endl;
 
   NestedList* nl = si->GetNestedList();
   NList::setNLRef(nl);
@@ -124,7 +124,7 @@ void performConnection(size_t objectNumber) {
 
 void performMultipleConnections(size_t objectNumber) {
   for(size_t i = 0; i < 10; i++) {
-    performConnection(objectNumber);
+    performConnection(4);
   }
 }
 

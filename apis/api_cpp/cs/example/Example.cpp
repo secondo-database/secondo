@@ -80,7 +80,7 @@ int main(int argc, char** argv){
   }
   
   // connected
-  cout << "SecondoInterface successfull initialized" << endl;
+  cout << "SecondoInterface successfully initialized" << endl;
 
 
   
@@ -101,16 +101,16 @@ int main(int argc, char** argv){
        // this is the command to communicate with secondo
         si->Secondo(command, res, err); 
 
-        // check whether command was successful
+        // check whether command was successfully
         if(err.code!=0){ 
           // if the error code is different to zero, an error is occurred
           cout << "Error during command. Error code :" << err.code << endl;
           cout << "Error message = " << err.msg << endl;
         } else {
-          // command was successful
+          // command was successfully
           // do what ever you want to de with the result list
           // in this little example, the result is just printed out
-          cout << "Command successful processed" << endl;
+          cout << "Command successfully processed" << endl;
           cout << "Result is:" << endl;
           cout << nl->ToString(res) << endl << endl;
         }

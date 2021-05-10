@@ -5313,7 +5313,7 @@ static bool createRemoteDistrDB(string host, int port)
     }
   
   if (retVal)
-    cout << "  ... successful";
+    cout << "  ... successfully";
   else
     cout << "  ... failed";
   cout << endl;
