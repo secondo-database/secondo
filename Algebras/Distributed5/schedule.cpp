@@ -618,7 +618,7 @@ public:
 
 #ifdef DEBUG_JOB_SELECTION
         cout << "Got result from " << task->getId() << ": "
-             << result->toString() << endl;
+             << task->toString() << " / " << task->toString() << endl;
 #endif
 
         map<TaskDataItem *, size_t> refs;
