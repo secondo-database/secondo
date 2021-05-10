@@ -263,6 +263,7 @@ public:
         : fileTransferPort(fileTransferPort),
           resultInObjectForm(resultInObjectForm) {}
 
+
     //joins all running threads
     void join()
     {
@@ -304,12 +305,21 @@ public:
         taskInfo.clear();
 
         // delete all data
+        // cout << "Calling Destructor " << dataItems.size() << endl;
+        for(pair<const string, TaskDataItem*> item : dataItems) {
+            TaskDataItem* taskItem = item.second;
+            dataReferences.erase(taskItem);
+            delete taskItem;
+        }
+        dataItems.clear();
+
+        // cout << "Clearing dataReferences " << dataReferences.size() << endl;
         for (auto &pair : dataReferences)
         {
-            delete pair.first;
+           TaskDataItem* item = pair.first;
+           delete item;
         }
         dataReferences.clear();
-        dataItems.clear();
 
         // clear line from progress output
         cout << "\x1b[2K\r" << flush;
@@ -1921,6 +1931,7 @@ void Scheduler::collectGarbagge(WorkerLocation &location)
                     filesList +
                     ")] feed extend[ OK: removeFile(.X) ] " +
                     "count + 1";
+                
                 double duration = Task::runCommand(
                     ci,
                     removeQuery,
