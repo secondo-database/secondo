@@ -28,6 +28,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "schedule.h"
 #include <unordered_set>
+#include <chrono>
+#include <thread>
 
 using namespace std;
 using namespace distributed2;
@@ -1296,6 +1298,10 @@ public:
         if(tuples.size() == 0) {
             cerr << "ERROR: Got empty file transfer task. Dataitem count " 
                 << dataItems.size() << endl;
+
+            // TODO: Replace by blocking until the job can be executed
+            chrono::seconds duration(5);
+            this_thread::sleep_for(duration);
         } else {
             string relation =
                 string("[const rel(tuple([P: text, S: text, T: text])) ") +
