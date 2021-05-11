@@ -1293,6 +1293,11 @@ public:
             scheduler.updateActiveFileTransfers(pair.first, pair.second);
         }
 
+        if(tuples.size() == 0) {
+            cerr << "ERROR: Got empty file transfer task. Dataitem count " 
+                << dataItems.size() << endl;
+        }
+
         string relation =
             string("[const rel(tuple([P: text, S: text, T: text])) ") +
             "value (" + tuples + ")]";
