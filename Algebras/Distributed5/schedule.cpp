@@ -1296,43 +1296,43 @@ public:
         if(tuples.size() == 0) {
             cerr << "ERROR: Got empty file transfer task. Dataitem count " 
                 << dataItems.size() << endl;
-        }
+        } else {
+            string relation =
+                string("[const rel(tuple([P: text, S: text, T: text])) ") +
+                "value (" + tuples + ")]";
+            string port = std::to_string(scheduler.getFileTransferPort());
+            string cmd = "query " + relation + " feed extend[ " +
+                        "OK: getFileTCP(.P, .S, " + port + ", TRUE, .T) ] " +
+                        "count + 1";
 
-        string relation =
-            string("[const rel(tuple([P: text, S: text, T: text])) ") +
-            "value (" + tuples + ")]";
-        string port = std::to_string(scheduler.getFileTransferPort());
-        string cmd = "query " + relation + " feed extend[ " +
-                     "OK: getFileTCP(.P, .S, " + port + ", TRUE, .T) ] " +
-                     "count + 1";
+            double duration = 0;
 
-        double duration = 0;
-
-        try
-        {
-            ConnectionInfo* targetCI = location.getWorkerConnection();
-
-            duration = Task::runCommand(
-                targetCI, cmd, "transfer file", false,
-                "(int " + std::to_string(count + 1) + ")");
-
-            targetCI -> deleteIfAllowed();
-            targetCI = nullptr;
-        }
-        catch (exception &e)
-        {
-            string list = "";
-            for (auto data : usedDataItems)
+            try
             {
-                list += " - " + data->toString() + "\n";
-            }
-            scheduler.addError(string(e.what()) + "\n" +
-                               "while copying\n" + list +
-                               "to " + location.toString());
-            return false;
-        }
+                ConnectionInfo* targetCI = location.getWorkerConnection();
 
-        TaskStatistics::report("remote transfer files", duration);
+                duration = Task::runCommand(
+                    targetCI, cmd, "transfer file", false,
+                    "(int " + std::to_string(count + 1) + ")");
+
+                targetCI -> deleteIfAllowed();
+                targetCI = nullptr;
+            }
+            catch (exception &e)
+            {
+                string list = "";
+                for (auto data : usedDataItems)
+                {
+                    list += " - " + data->toString() + "\n";
+                }
+                scheduler.addError(string(e.what()) + "\n" +
+                                "while copying\n" + list +
+                                "to " + location.toString());
+                return false;
+            }
+
+            TaskStatistics::report("remote transfer files", duration);
+        }
 
         for (auto pair : transfersPerServer)
         {
