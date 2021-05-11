@@ -117,7 +117,8 @@ namespace pregel {
   auto functionText = (FText *) args[2].addr;
   auto addressIndexInt = (CcInt *) args[3].addr;
 
-  PRECONDITION(PregelContext::get().isSetUp(),
+  PRECONDITION(PregelContext::get().isSetUp()
+               || PregelContext::get().isReady(),
    "Please run \"query setupPregel(...) first.\"")
 
   std::string function = functionText->GetValue();
@@ -195,3 +196,4 @@ namespace pregel {
   return index;
  }
 }
+
