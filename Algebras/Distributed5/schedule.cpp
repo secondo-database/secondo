@@ -1296,9 +1296,11 @@ public:
         }
 
         if(tuples.size() == 0) {
+
+#ifdef DEBUG_JOB_SELECTION
             cerr << "ERROR: Got empty file transfer task. Dataitem count " 
                 << dataItems.size() << endl;
-
+#endif
             // TODO: Replace by blocking until the job can be executed
             chrono::seconds duration(5);
             this_thread::sleep_for(duration);
