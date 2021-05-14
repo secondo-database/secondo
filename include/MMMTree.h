@@ -602,7 +602,7 @@ class MTreeLeafNode: public MTreeNode<T,DistComp>{
 3.1 Constructor
 
 */
-     MTreeLeafNode(const int _minEntries, const int _maxEntries, const T Or):
+     MTreeLeafNode(const int _minEntries, const int _maxEntries, const T& Or):
         node_t(Or,0,0,_minEntries,_maxEntries){
          Objects = new T*[node_t::maxEntries+1];
          for(int i=0;i<node_t::maxEntries+1;i++){
