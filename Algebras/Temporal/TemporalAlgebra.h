@@ -7218,7 +7218,9 @@ Mapping<Unit, Alpha>::~Mapping()
 {
   if( canDestroy ) {
     units.Destroy();
-  }    
+  } else {
+    //units.destroyIfNonPersistent();
+  }   
 }
 
 /*
@@ -9310,7 +9312,7 @@ int MappingUnits(Word* args, Word& result, int message, Word& local, Supplier s)
         return CANCEL;
       }
       if(    !localinfo->sonIsObjectNode
-          && qp->RequestProgress(args[0].addr, &p1) ) {
+          && qp->RequestProgress(qp->GetSon(s,0), &p1) ) {
         // the son is a computed result node
         // just copy everything
         pRes->CopyBlocking(p1);
