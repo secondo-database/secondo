@@ -1,0 +1,286 @@
+#restore Workers from WorkerPregel2;
+restore Workers from Worker32Pregel;
+
+let NWorkers = Workers count;
+
+let part = fun (id: int) id mod NWorkers;
+
+
+query isdefined(deleteObject("AuthorB2"));
+query isdefined(deleteObject("PlayB2"));
+query isdefined(deleteObject("ProductionB2"));
+query isdefined(deleteObject("CompanyB2"));
+query isdefined(deleteObject("UserB2"));
+query isdefined(deleteObject("ReviewB2"));
+query isdefined(deleteObject("PerformanceB2"));
+query isdefined(deleteObject("VenueB2"));
+query isdefined(deleteObject("StreetB2"));
+query isdefined(deleteObject("CityB2"));
+query isdefined(deleteObject("CountryB2"));
+
+query isdefined(deleteObject("AuthorB1"));
+query isdefined(deleteObject("PlayB1"));
+query isdefined(deleteObject("ProductionB1"));
+query isdefined(deleteObject("CompanyB1"));
+query isdefined(deleteObject("UserB1"));
+query isdefined(deleteObject("ReviewB1"));
+query isdefined(deleteObject("PerformanceB1"));
+query isdefined(deleteObject("VenueB1"));
+query isdefined(deleteObject("StreetB1"));
+query isdefined(deleteObject("CityB1"));
+query isdefined(deleteObject("CountryB1"));
+
+let AuthorB1 = AuthorP feed
+  ddistribute4["", part(.Authorid), NWorkers, Workers]
+  dmap["AuthorB1", . feed oconsume[Authorid]];
+let AuthorB2 = AuthorB1 makeSimple[FALSE, "Author"];
+delete AuthorB1;
+
+let PlayB1 = PlayP feed
+  ddistribute4["", part(.Playid), NWorkers, Workers]
+  dmap["PlayB1", . feed oconsume[Playid]];
+let PlayB2 = PlayB1 makeSimple[FALSE, "Play"];
+delete PlayB1;
+
+let ProductionB1 = ProductionP feed
+  ddistribute4["", part(.Productionid), NWorkers, Workers]
+  dmap["PlayB1", . feed oconsume[Productionid]];
+let ProductionB2 = ProductionB1 makeSimple[FALSE, "Production"];
+delete ProductionB1;
+
+let CompanyB1 = CompanyP feed
+  ddistribute4["", part(.Companyid), NWorkers, Workers]
+  dmap["CompanyB1", . feed oconsume[Companyid]];
+let CompanyB2 = CompanyB1 makeSimple[FALSE, "Company"];
+delete CompanyB1;
+
+let UserB1 = UserP feed
+  ddistribute4["", part(.Userid), NWorkers, Workers]
+  dmap["UserB1", . feed oconsume[Userid]];
+let UserB2 = UserB1 makeSimple[FALSE, "User"];
+delete UserB1;
+
+let ReviewB1 = ReviewP feed
+  ddistribute4["", part(.Reviewid), NWorkers, Workers]
+  dmap["ReviewB1", . feed oconsume[Reviewid]];
+let ReviewB2 = ReviewB1 makeSimple[FALSE, "Review"];
+delete ReviewB1;
+
+let PerformanceB1 = PerformanceP feed
+  ddistribute4["", part(.Performanceid), NWorkers, Workers]
+  dmap["PerformanceB1", . feed oconsume[Performanceid]];
+let PerformanceB2 = PerformanceB1 makeSimple[FALSE, "Performance"];
+delete PerformanceB1;
+
+let VenueB1 = VenueP feed
+  ddistribute4["", part(.Venueid), NWorkers, Workers]
+  dmap["VenueB1", . feed oconsume[Venueid]];
+let VenueB2 = VenueB1 makeSimple[FALSE, "Venue"];
+delete VenueB1;
+
+let StreetB1 = StreetP feed
+  ddistribute4["", part(.Streetid), NWorkers, Workers]
+  dmap["StreetB1", . feed oconsume[Streetid]];
+let StreetB2 = StreetB1 makeSimple[FALSE, "Street"];
+delete StreetB1;
+
+let CityB1 = CityP feed
+  ddistribute4["", part(.Cityid), NWorkers, Workers]
+  dmap["CityB1", . feed oconsume[Cityid]];
+let CityB2 = CityB1 makeSimple[FALSE, "City"];
+delete CityB1;
+
+let CountryB1 = CountryP feed
+  ddistribute4["", part(.Countryid), NWorkers, Workers]
+  dmap["CountryB1", . feed oconsume[Countryid]];
+let CountryB2 = CountryB1 makeSimple[FALSE, "Country"];
+delete CountryB1;
+
+
+
+
+
+query isdefined(deleteObject("WROTE_PLAYB1"));
+query isdefined(deleteObject("PRODUCTION_OFB1"));
+query isdefined(deleteObject("PRODUCEDB1"));
+query isdefined(deleteObject("PERFORMANCE_OFB1"));
+query isdefined(deleteObject("VENUEB1"));
+query isdefined(deleteObject("STREETB1"));
+query isdefined(deleteObject("CITYB1"));
+query isdefined(deleteObject("COUNTRYB1"));
+query isdefined(deleteObject("BASED_INB1"));
+query isdefined(deleteObject("WROTE_REVIEWB1"));
+query isdefined(deleteObject("REVIEW_OFB1"));
+
+query isdefined(deleteObject("WROTE_PLAYB2"));
+query isdefined(deleteObject("PRODUCTION_OFB2"));
+query isdefined(deleteObject("PRODUCEDB2"));
+query isdefined(deleteObject("PERFORMANCE_OFB2"));
+query isdefined(deleteObject("VENUEB2"));
+query isdefined(deleteObject("STREETB2"));
+query isdefined(deleteObject("CITYB2"));
+query isdefined(deleteObject("COUNTRYB2"));
+query isdefined(deleteObject("BASED_INB2"));
+query isdefined(deleteObject("WROTE_REVIEWB2"));
+query isdefined(deleteObject("REVIEW_OFB2"));
+
+let WROTE_PLAYB1 = WROTE_PLAYp feed
+  ddistribute4["", part(.Authorid), NWorkers, Workers]
+  dmap["WROTE_PLAYB1", . feed oconsume[Authorid]];
+let WROTE_PLAYB2 = WROTE_PLAYB1 makeSimple[FALSE, "WROTE_PLAY"];
+delete WROTE_PLAYB1;
+
+let PRODUCTION_OFB1 = PRODUCTION_OFp feed
+  ddistribute4["", part(.Productionid), NWorkers, Workers]
+  dmap["PRODUCTION_OFB1", . feed oconsume[Productionid]];
+let PRODUCTION_OFB2 = PRODUCTION_OFB1 makeSimple[FALSE, "PRODUCTION_OF"];
+delete PRODUCTION_OFB1;
+
+let PRODUCEDB1 = PRODUCEDp feed
+  ddistribute4["", part(.Companyid), NWorkers, Workers]
+  dmap["PRODUCEDB1", . feed oconsume[Companyid]];
+let PRODUCEDB2 = PRODUCEDB1 makeSimple[FALSE, "PRODUCED"];
+delete PRODUCEDB1;
+
+let PERFORMANCE_OFB1 = PERFORMANCE_OFp feed
+  ddistribute4["", part(.Performanceid), NWorkers, Workers]
+  dmap["PERFORMANCE_OFB1", . feed oconsume[Performanceid]];
+let PERFORMANCE_OFB2 = PERFORMANCE_OFB1 makeSimple[FALSE, "PERFORMANCE_OF"];
+delete PERFORMANCE_OFB1;
+
+let VENUEB1 = VENUEp feed
+  ddistribute4["", part(.Performanceid), NWorkers, Workers]
+  dmap["VENUEB1", . feed oconsume[Performanceid]];
+let VENUEB2 = VENUEB1 makeSimple[FALSE, "VENUE"];
+delete VENUEB1;
+
+let STREETB1 = STREETp feed
+  ddistribute4["", part(.Venueid), NWorkers, Workers]
+  dmap["STREETB1", . feed oconsume[Venueid]];
+let STREETB2 = STREETB1 makeSimple[FALSE, "STREET"];
+delete STREETB1;
+
+let CITYB1 = CITYp feed
+  ddistribute4["", part(.Streetid), NWorkers, Workers]
+  dmap["CITYB1", . feed oconsume[Streetid]];
+let CITYB2 = CITYB1 makeSimple[FALSE, "CITY"];
+delete CITYB1;
+
+let COUNTRYB1 = COUNTRYp feed
+  ddistribute4["", part(.Cityid), NWorkers, Workers]
+  dmap["COUNTRYB1", . feed oconsume[Cityid]];
+let COUNTRYB2 = COUNTRYB1 makeSimple[FALSE, "COUNTRY"];
+delete COUNTRYB1;
+
+let BASED_INB1 = BASED_INp feed
+  ddistribute4["", part(.Companyid), NWorkers, Workers]
+  dmap["BASED_INB1", . feed oconsume[Companyid]];
+let BASED_INB2 = BASED_INB1 makeSimple[FALSE, "BASED_IN"];
+delete BASED_INB1;
+
+let WROTE_REVIEWB1 = WROTE_REVIEWp feed
+  ddistribute4["", part(.Userid), NWorkers, Workers]
+  dmap["WROTE_REVIEWB1", . feed oconsume[Userid]];
+let WROTE_REVIEWB2 = WROTE_REVIEWB1 makeSimple[FALSE, "WROTE_REVIEW"];
+delete WROTE_REVIEWB1;
+
+let REVIEW_OFB1 = REVIEW_OFp feed
+  ddistribute4["", part(.Reviewid), NWorkers, Workers]
+  dmap["REVIEW_OFB1", . feed oconsume[Reviewid]];
+let REVIEW_OFB2 = REVIEW_OFB1 makeSimple[FALSE, "REVIEW_OF"];
+delete REVIEW_OFB1;
+
+
+
+
+query isdefined(deleteObject("WROTE_PLAYB1_B"));
+query isdefined(deleteObject("PRODUCTION_OFB1_B"));
+query isdefined(deleteObject("PRODUCEDB1_B"));
+query isdefined(deleteObject("PERFORMANCE_OFB1_B"));
+query isdefined(deleteObject("VENUEB1_B"));
+query isdefined(deleteObject("STREETB1_B"));
+query isdefined(deleteObject("CITYB1_B"));
+query isdefined(deleteObject("COUNTRYB1_B"));
+query isdefined(deleteObject("BASED_INB1_B"));
+query isdefined(deleteObject("WROTE_REVIEWB1_B"));
+query isdefined(deleteObject("REVIEW_OFB1_B"));
+
+query isdefined(deleteObject("WROTE_PLAYB2_B"));
+query isdefined(deleteObject("PRODUCTION_OFB2_B"));
+query isdefined(deleteObject("PRODUCEDB2_B"));
+query isdefined(deleteObject("PERFORMANCE_OFB2_B"));
+query isdefined(deleteObject("VENUEB2_B"));
+query isdefined(deleteObject("STREETB2_B"));
+query isdefined(deleteObject("CITYB2_B"));
+query isdefined(deleteObject("COUNTRYB2_B"));
+query isdefined(deleteObject("BASED_INB2_B"));
+query isdefined(deleteObject("WROTE_REVIEWB2_B"));
+query isdefined(deleteObject("REVIEW_OFB2_B"));
+
+
+let WROTE_PLAYB1_B = WROTE_PLAYp feed
+  ddistribute4["", part(.Playid), NWorkers, Workers]
+  dmap["WROTE_PLAYB1_B", . feed oconsume[Playid]];
+let WROTE_PLAYB2_B = WROTE_PLAYB1_B makeSimple[FALSE, "WROTE_PLAY_B"];
+delete WROTE_PLAYB1_B;
+
+let PRODUCTION_OFB1_B = PRODUCTION_OFp feed
+  ddistribute4["", part(.Playid), NWorkers, Workers]
+  dmap["PRODUCTION_OFB1_B", . feed oconsume[Playid]];
+let PRODUCTION_OFB2_B = PRODUCTION_OFB1_B makeSimple[FALSE, "PRODUCTION_OF_B"];
+delete PRODUCTION_OFB1_B;
+
+let PRODUCEDB1_B = PRODUCEDp feed
+  ddistribute4["", part(.Productionid), NWorkers, Workers]
+  dmap["PRODUCEDB1_B", . feed oconsume[Productionid]];
+let PRODUCEDB2_B = PRODUCEDB1_B makeSimple[FALSE, "PRODUCED_B"];
+delete PRODUCEDB1_B;
+
+let PERFORMANCE_OFB1_B = PERFORMANCE_OFp feed
+  ddistribute4["", part(.Productionid), NWorkers, Workers]
+  dmap["PERFORMANCE_OFB1_B", . feed oconsume[Productionid]];
+let PERFORMANCE_OFB2_B = PERFORMANCE_OFB1_B makeSimple[FALSE, "PERFORMANCE_OF_B"];
+delete PERFORMANCE_OFB1_B;
+
+let VENUEB1_B = VENUEp feed
+  ddistribute4["", part(.Venueid), NWorkers, Workers]
+  dmap["VENUEB1_B", . feed oconsume[Venueid]];
+let VENUEB2_B = VENUEB1_B makeSimple[FALSE, "VENUE_B"];
+delete VENUEB1_B;
+
+let STREETB1_B = STREETp feed
+  ddistribute4["", part(.Streetid), NWorkers, Workers]
+  dmap["STREETB1_B", . feed oconsume[Streetid]];
+let STREETB2_B = STREETB1_B makeSimple[FALSE, "STREET_B"];
+delete STREETB1_B;
+
+let CITYB1_B = CITYp feed
+  ddistribute4["", part(.Cityid), NWorkers, Workers]
+  dmap["CITYB1_B", . feed oconsume[Cityid]];
+let CITYB2_B = CITYB1_B makeSimple[FALSE, "CITY_B"];
+delete CITYB1_B;
+
+let COUNTRYB1_B = COUNTRYp feed
+  ddistribute4["", part(.Countryid), NWorkers, Workers]
+  dmap["COUNTRYB1_B", . feed oconsume[Countryid]];
+let COUNTRYB2_B = COUNTRYB1_B makeSimple[FALSE, "COUNTRY_B"];
+delete COUNTRYB1_B;
+
+let BASED_INB1_B = BASED_INp feed
+  ddistribute4["", part(.Cityid), NWorkers, Workers]
+  dmap["BASED_INB1_B", . feed oconsume[Cityid]];
+let BASED_INB2_B = BASED_INB1_B makeSimple[FALSE, "BASED_IN_B"];
+delete BASED_INB1_B;
+
+let WROTE_REVIEWB1_B = WROTE_REVIEWp feed
+  ddistribute4["", part(.Reviewid), NWorkers, Workers]
+  dmap["WROTE_REVIEWB1_B", . feed oconsume[Reviewid]];
+let WROTE_REVIEWB2_B = WROTE_REVIEWB1_B makeSimple[FALSE, "WROTE_REVIEW_B"];
+delete WROTE_REVIEWB1_B;
+
+let REVIEW_OFB1_B = REVIEW_OFp feed
+  ddistribute4["", part(.Performanceid), NWorkers, Workers]
+  dmap["REVIEW_OFB1_B", . feed oconsume[Performanceid]];
+let REVIEW_OFB2_B = REVIEW_OFB1_B makeSimple[FALSE, "REVIEW_OF_B"];
+delete REVIEW_OFB1_B;
+

@@ -168,8 +168,6 @@ objects, use the ~info~ operator.
 
 */
    SECONDO> query p2 info;
-
-   SECONDO> @../Algebras/PropertyGraph/sample-dblp/info
 /*
 
 
@@ -242,5 +240,15 @@ the following command:
    SECONDO> query createSDArray("Results", Workers) dsummarize 
     filter[not(.Name = "Ralf Hartmut Gueting")] sortby[Name] 
     groupby[Name; Cnt:group count] sortby[Cnt:desc] head[5] consume;
+
+/*
+
+To delete the results and start a new query they can be deleted with the command:
+
+*/
+   SECONDO> qquery createSDArray("Results", Workers) 
+   dmap["", . feed . deletedirect count] getValue
+
+
 
 

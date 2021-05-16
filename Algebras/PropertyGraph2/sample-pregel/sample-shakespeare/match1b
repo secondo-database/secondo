@@ -1,0 +1,38 @@
+# open database pgraph1;
+# query p1 loadgraph;
+
+query p1 
+match1b ['
+(  
+   (theater Venue ( (Name "Theatre Royal") ))
+   STREET 
+   ( Street 
+     CITY
+     (
+        (newcastle City ( (Name "Newcastle") ))
+     )
+   )
+   VENUE <-
+   ( Performance 
+     PERFORMANCE_OF
+     ( 
+       Production  
+       PRODUCTION_OF
+       ( 
+         (play Play)  
+         w WROTE_PLAY <-
+         ( 
+	    (bard Author ( (Lastname "Shakespeare") ))
+         )
+       )
+     )           
+   )
+)',
+'( ((w Year) > 1608 ))',
+'( ((theater Name) Name) ((play Title) Playtitle) ((newcastle Name) CityName) ((bard Lastname) BardName)  ((w Year) Year ) )'
+];
+
+
+
+
+

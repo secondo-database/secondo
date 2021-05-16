@@ -1,0 +1,128 @@
+#open database pgraph1;
+
+# OBJECTS
+
+query isdefined(deleteObject("AuthorP"));
+query isdefined(deleteObject("PlayP"));
+query isdefined(deleteObject("ProductionP"));
+query isdefined(deleteObject("CompanyP"));
+query isdefined(deleteObject("UserP"));
+query isdefined(deleteObject("ReviewP"));
+query isdefined(deleteObject("PerformanceP"));
+query isdefined(deleteObject("VenueP"));
+query isdefined(deleteObject("StreetP"));
+query isdefined(deleteObject("CityP"));
+query isdefined(deleteObject("CountryP"));
+
+let AuthorP = [ const rel(tuple([Authorid : int, Firstname : string, Lastname : string])) value () ];
+query AuthorP inserttuple[1, "William", "Shakespeare"] count;
+query AuthorP inserttuple[2, "Caryl", "Churchill"] count;
+query AuthorP inserttuple[3, "George Bernard", "Shaw"] count;
+
+let PlayP = [ const rel(tuple([Playid : int, Title : string])) value () ];
+query PlayP inserttuple[1, "The Tempest"] count;
+query PlayP inserttuple[2, "Julius Caesar"] count;
+query PlayP inserttuple[3, "The After Dinner Joke"] count;
+query PlayP inserttuple[4, "The PlayPboy of the Western World"] count;
+
+let ProductionP = [ const rel(tuple([Productionid : int, Name : string])) value () ];
+query ProductionP inserttuple[1, "The Tempest"] count;
+query ProductionP inserttuple[2, "Julius Caesar"] count;
+query ProductionP inserttuple[3, "The After Dinner Joke"] count;
+
+let CompanyP = [ const rel(tuple([Companyid : int, Name : string])) value () ];
+query CompanyP inserttuple[1, "RSC"] count;
+
+let UserP = [ const rel(tuple([Userid : int, Name : string])) value () ];
+query UserP inserttuple[1, "Billy"] count;
+
+let ReviewP = [ const rel(tuple([Reviewid : int, Rating : int, ReviewP:string])) value () ];
+query ReviewP inserttuple[1, 5, "This was great!"] count;
+
+let PerformanceP = [ const rel(tuple([Performanceid : int, Date : string])) value () ];
+query PerformanceP inserttuple[1, "20061121"] count;
+query PerformanceP inserttuple[2, "20120729"] count;
+
+let VenueP = [ const rel(tuple([Venueid : int, Name : string])) value () ];
+query VenueP inserttuple[1, "Theatre Royal"] count;
+
+let StreetP = [ const rel(tuple([Streetid : int, Name : string])) value () ];
+query StreetP inserttuple[1, "Grey StreetP"] count;
+
+let CityP = [ const rel(tuple([Cityid : int, Name : string])) value () ];
+query CityP inserttuple[1, "Stratford upon Avon"] count;
+query CityP inserttuple[2, "Newcastle"] count;
+
+let CountryP = [ const rel(tuple([Countryid : int, Name : string])) value () ];
+query CountryP inserttuple[1, "England"] count;
+query CountryP inserttuple[2, "Tyne and Wear"] count;
+
+# RELATIONS
+
+query isdefined(deleteObject("WROTE_PLAYp"));
+query isdefined(deleteObject("PRODUCTION_OFp"));
+query isdefined(deleteObject("PRODUCEDp"));
+query isdefined(deleteObject("PERFORMANCE_OFp"));
+query isdefined(deleteObject("VENUEp"));
+query isdefined(deleteObject("STREETp"));
+query isdefined(deleteObject("CITYp"));
+query isdefined(deleteObject("COUNTRYp"));
+query isdefined(deleteObject("BASED_INp"));
+query isdefined(deleteObject("WROTE_REVIEWp"));
+query isdefined(deleteObject("REVIEW_OFp"));
+
+# AuthorP->PlayP
+let WROTE_PLAYp = [ const rel(tuple([Authorid : int, Playid : int, Year : int, Cost : real])) value () ];
+query WROTE_PLAYp inserttuple[1, 1, 1610, 1.0] count;
+query WROTE_PLAYp inserttuple[1, 2, 1599, 1.0] count;
+query WROTE_PLAYp inserttuple[2, 3, 1844, 1.0] count;
+query WROTE_PLAYp inserttuple[3, 4, 1890, 1.0] count;
+
+# ProductionP->PlayP
+let PRODUCTION_OFp = [ const rel(tuple([Productionid : int, Playid : int, Cost : real])) value () ];
+query PRODUCTION_OFp inserttuple[1, 1, 1.0] count;
+query PRODUCTION_OFp inserttuple[2, 2, 1.0] count;
+query PRODUCTION_OFp inserttuple[3, 3, 1.0] count;
+
+# CompanyP->ProductionP
+let PRODUCEDp = [ const rel(tuple([Companyid : int, Productionid : int, Cost : real])) value () ];
+query PRODUCEDp inserttuple[1, 1, 1.0] count;
+query PRODUCEDp inserttuple[1, 2, 1.0] count;
+
+# PerformanceP->ProductionP
+let PERFORMANCE_OFp = [ const rel(tuple([Performanceid : int, Productionid : int, Cost : real])) value () ];
+query PERFORMANCE_OFp inserttuple[1, 1, 1.0] count;
+query PERFORMANCE_OFp inserttuple[2, 2, 1.0] count;
+
+# PerformanceP->VenueP
+let VENUEp = [ const rel(tuple([Performanceid : int, Venueid : int, Cost : real])) value () ];
+query VENUEp inserttuple[1, 1, 1.0] count;
+query VENUEp inserttuple[2, 1, 1.0] count;
+
+# VenueP->StreetP
+let STREETp = [ const rel(tuple([Venueid : int, Streetid : int, Cost : real])) value () ];
+query STREETp inserttuple[1, 1, 1.0] count;
+
+# StreetP->CityP
+let CITYp = [ const rel(tuple([Streetid : int, Cityid : int, Cost : real])) value () ];
+query CITYp inserttuple[1, 2, 1.0] count;
+
+# CityP->CountryP
+let COUNTRYp = [ const rel(tuple([Cityid : int, Countryid : int, Cost : real])) value () ];
+query COUNTRYp inserttuple[1, 1, 1.0] count;
+query COUNTRYp inserttuple[2, 2, 1.0] count;
+
+# CompanyP->CityP
+let BASED_INp = [ const rel(tuple([Companyid : int, Cityid : int, Cost : real])) value () ];
+query BASED_INp inserttuple[1, 1, 1.0] count;
+
+# UserP->ReviewP
+let WROTE_REVIEWp = [ const rel(tuple([Userid : int, Reviewid : int, Cost : real])) value () ];
+query WROTE_REVIEWp inserttuple[1, 1, 1.0] count;
+
+# ReviewP->PerformanceP
+let REVIEW_OFp = [ const rel(tuple([Reviewid : int, Performanceid : int, Cost : real])) value () ];
+query REVIEW_OFp inserttuple[1, 2, 1.0] count;
+
+
+
