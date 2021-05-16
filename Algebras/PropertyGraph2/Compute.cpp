@@ -135,7 +135,7 @@ void Compute::CreateInitialMessage()
 
             if (!samefilter)
             {
-                if (v.at(i).at(4) == "string")
+                if (v.at(i).at(4) == "string" || v.at(i).at(4) == "text")
                 {
                     filterf=filterf+"filter[."+v.at(i).at(1)+v.at(i).at(2)+"\""
                     +v.at(i).at(3)+"\"] ";
@@ -525,7 +525,19 @@ std::string Compute::GetOutputFieldsWithoutDatatype(bool initial)
                             +", "+it->second.at(i).at(1)+": 0";
                     }
                 }
-
+                if (it->second.at(i).at(3) == "text")
+                {
+                    if (i==0 && it==outputfields.begin())
+                    {
+                        outputstring=outputstring
+                            +it->second.at(i).at(1)+": ''";
+                    }
+                    else
+                    {
+                        outputstring=outputstring+", "
+                            +it->second.at(i).at(1)+": ''";
+                    }
+                }
             }
         }
 
@@ -602,8 +614,9 @@ std::string Compute::ReadMessages()
         if (messageslist.at(i)->lastmessage == true)
         {
             std::string tmpprojectstring="projectextend[; "+tuplestring+"] \n";
-            ReplaceStringInPlace(tmpprojectstring,"int","0");
-            ReplaceStringInPlace(tmpprojectstring,"string","\"\"");
+            ReplaceStringInPlace(tmpprojectstring," int","0");
+            ReplaceStringInPlace(tmpprojectstring," string","\"\"");
+            ReplaceStringInPlace(tmpprojectstring," text","''");
             messagestring=messagestring+tmpprojectstring;
         }
         else
@@ -1233,7 +1246,8 @@ void Message::CreateFilterString()
 
                         if (!samefilter)
                         {
-                            if (filterv.at(i).at(4) == "string")
+                            if (filterv.at(i).at(4) == "string" ||
+                                filterv.at(i).at(4) == "text")
                             {
                                 if (filterv.at(i).at(2) == "<>")
                                 {
@@ -1306,7 +1320,8 @@ void Message::CreateFilterString()
 
                         if (!samefilter)
                         {
-                            if (filterv.at(i).at(4) == "string")
+                            if (filterv.at(i).at(4) == "string"||
+                                filterv.at(i).at(4) == "text")
                             {
                                 if (filterv.at(i).at(2) == "<>")
                                 {
@@ -1382,7 +1397,8 @@ void Message::CreateFilterString()
                     }
                     if (!samefilter)
                     {
-                        if (filterv.at(i).at(4) == "string")
+                        if (filterv.at(i).at(4) == "string"||
+                            filterv.at(i).at(4) == "text")
                         {
                             if (filterv.at(i).at(2) == "<>")
                             {
@@ -1445,7 +1461,8 @@ void Message::CreateFilterString()
             filterv=GetGlobalFilters(actnodename);
             for (uint i=0; i<filterv.size(); i++)
             {
-                if (filterv.at(i).at(4) == "string")
+                if (filterv.at(i).at(4) == "string"||
+                    filterv.at(i).at(4) == "text")
                 {
                     if (filterv.at(i).at(2) == "<>")
                     {
