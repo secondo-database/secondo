@@ -1,0 +1,149 @@
+#open database pgraph2;
+
+#------------------------------------
+# create subset of DBLP database
+#------------------------------------
+query isdefined(deleteObject("DocumentP"));
+let DocumentP = [ const rel(tuple([ 
+  Type: string, 
+  Docid: int, 
+  Authors: text, 
+  Title: text, 
+  Booktitle: text, 
+  Pages: string, 
+  Year: string, 
+  Journal: text, 
+  Volume: string, 
+  Number: string, 
+  Month: string, 
+  Url: text, 
+  School: text, 
+  Publisher: text, 
+  Isbn: string
+  ] )) value () 
+];
+# !!!!! THIS IS THE POINT WHERE THE SUBSET OF THE DATA CAN BE DEFINED !!!!!!!
+query Document_raw feed filter[(.Authors contains "Gueting") or (.Year="2017")]  DocumentP insert count;
+# !!!!! FROM THAT POINT ONLY DATA WILL BE TRANSFORMED,   !!!!!!!!!
+# !!!!! THAT IS CONNECTED TO THIS SUBSET   !!!!!!!
+
+#------------------------------------
+# create IS_AUTHOR relation
+#------------------------------------
+query isdefined(deleteObject("AUTHOR_OFp")); 
+let AUTHOR_OFp = [ const rel(tuple([
+  Authorid: int,
+  Docid: int,
+  Cost: real] )) value ()
+];
+query DocumentP feed {d} Authordoc_raw feed {a} hashjoin[Docid_d, Docid_a] projectextend[; Authorid: .Authorid_a, Docid: .Docid_a, Cost: 1.0] 
+   AUTHOR_OFp insert count;
+
+#------------------------------------
+# create Author relation
+#------------------------------------
+query isdefined(deleteObject("AuthorP")); 
+let AuthorP = [ const rel(tuple([
+  Name: string,
+  Lclastname: string,
+  Authorid: int] )) value ()
+];
+query Author_raw feed {a} AUTHOR_OFp feed sortby[Authorid asc] groupby[Authorid; Cnt:group count] {ad} hashjoin[Authorid_a, Authorid_ad] 
+    project[Name_a,Lclastname_a,Authorid_a] renameAttr[Name:Name_a,Lclastname:Lclastname_a,Authorid:Authorid_a] AuthorP insert count;
+
+#------------------------------------
+# create Keyword relation
+#------------------------------------
+query isdefined(deleteObject("KeywordP")); 
+let KeywordP = [ const rel(tuple([
+   Wordid: int,
+   Word: string] )) value ()
+];
+query Keyword_raw feed {k} DocumentP feed {d} hashjoin[Docid_k, Docid_d] sortby[Word_k]
+    groupby[Word_k; Cnt:group count] addcounter[Wordid,100]
+    project[Wordid,Word_k] renameAttr[Word:Word_k] KeywordP insert count;
+
+#------------------------------------
+# create KEYWORD_OF relation
+#------------------------------------
+query isdefined(deleteObject("KEYWORD_OFp")); 
+let KEYWORD_OFp = [ const rel(tuple([
+   Docid: int,
+   Wordid: int,
+   Cost: real] )) value ()
+];
+query Keyword_raw feed {k} DocumentP feed {d} hashjoin[Docid_k, Docid_d] {d} KeywordP feed {k} hashjoin[Word_k_d,Word_k]  
+   projectextend[; Docid: .Docid_d_d, Wordid: .Wordid_k, Cost: 1.0] KEYWORD_OFp insert count;
+
+#------------------------------------
+# create Publisher relation
+#------------------------------------
+query isdefined(deleteObject("PublisherP")); 
+let PublisherP = [ const rel(tuple([
+   Publisherid: int,
+   Name: text] )) value ()
+];
+query DocumentP feed renameAttr[Name:"Publisher"] filter[not(.Name="")] sortby[Name asc] groupby[Name; Cnt:group count] addcounter[Publisherid,100]
+    project[Publisherid,Name] PublisherP insert count;
+
+#------------------------------------
+# create PUBLISHED_BY relation
+#------------------------------------
+query isdefined(deleteObject("PUBLISHED_BYp")); 
+let PUBLISHED_BYp = [ const rel(tuple([
+   Docid: int,
+   Publisherid: int,
+   Cost: real] )) value ()
+];
+query DocumentP feed {d} PublisherP feed {p} hashjoin[Publisher_d, Name_p] 
+   projectextend[; Docid: .Docid_d, Publisherid: .Publisherid_p, Cost: 1.0] PUBLISHED_BYp insert count;
+
+#------------------------------------
+# create Conference relation
+#------------------------------------
+query isdefined(deleteObject("ConferenceP")); 
+let ConferenceP = [ const rel(tuple([
+   Conferenceid: int,
+   Name: text ] )) value ()
+];
+query DocumentP feed filter[.Type="inproceedings"] renameAttr[Name:Booktitle] sortby[Name asc] 
+   groupby[Name; Cnt:group count] addcounter[Conferenceid,100] project[Conferenceid,Name] ConferenceP insert count;
+
+#------------------------------------
+# create PUBLISHED_AT relation
+#------------------------------------
+query isdefined(deleteObject("PUBLISHED_ATp")); 
+let PUBLISHED_ATp = [ const rel(tuple([
+   Docid: int,
+   Conferenceid: int,
+   Year : string,
+   Cost: real] )) value ()
+];
+query DocumentP feed filter[.Type="inproceedings"] {d} ConferenceP feed {c} hashjoin[Booktitle_d, Name_c] 
+   projectextend[; Docid: .Docid_d, Conferenceid: .Conferenceid_c, Year: .Year_d, Cost: 1.0] PUBLISHED_ATp insert count;
+
+#------------------------------------
+# create Collection relation
+#------------------------------------
+query isdefined(deleteObject("CollectionP")); 
+let CollectionP = [ const rel(tuple([
+   Collectionid: int,
+   Year:string,
+   Name: text ] )) value ()
+];
+query DocumentP feed filter[.Type="incollection"] projectextend[Booktitle,Year;Sort:.Booktitle+"#"+.Year]  
+    renameAttr[Name:Booktitle] sortby[Sort asc] groupby[Sort,Year,Name; Cnt:group count] addcounter[Collectionid,100] 
+    project[Collectionid,Year,Name] CollectionP insert count;
+
+#------------------------------------
+# create PART_OF relation
+#------------------------------------
+query isdefined(deleteObject("PART_OFp")); 
+let PART_OFp = [ const rel(tuple([
+   Docid: int,
+   Collectionid: int,
+   Cost: real] )) value ()
+];
+query DocumentP feed filter[.Type="incollection"] projectextend[Docid;Sort:.Booktitle+"#"+.Year] {d} 
+   CollectionP feed projectextend[Collectionid;Sort:.Name+"#"+.Year] {c}  hashjoin[Sort_d, Sort_c] projectextend[; Docid: .Docid_d, Collectionid: .Collectionid_c, Cost: 1.0]
+   PART_OFp insert count;

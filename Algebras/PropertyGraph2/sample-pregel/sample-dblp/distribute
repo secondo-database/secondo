@@ -1,0 +1,149 @@
+restore Workers from WorkerPregel2;
+#restore Workers from Worker32Pregel;
+
+let NWorkers = Workers count;
+
+let part = fun (id: int) id mod NWorkers;
+
+
+query isdefined(deleteObject("DocumentB1"));
+query isdefined(deleteObject("AuthorB1"));
+query isdefined(deleteObject("KeywordB1"));
+query isdefined(deleteObject("PublisherB1"));
+query isdefined(deleteObject("ConferenceB1"));
+query isdefined(deleteObject("CollectionB1"));
+
+query isdefined(deleteObject("DocumentB2"));
+query isdefined(deleteObject("AuthorB2"));
+query isdefined(deleteObject("KeywordB2"));
+query isdefined(deleteObject("PublisherB2"));
+query isdefined(deleteObject("ConferenceB2"));
+query isdefined(deleteObject("CollectionB2"));
+
+
+query isdefined(deleteObject("AUTHOR_OFB1"));
+query isdefined(deleteObject("AUTHOR_OFB1_B"));
+query isdefined(deleteObject("KEYWORD_OFB1"));
+query isdefined(deleteObject("KEYWORD_OFB1_B"));
+query isdefined(deleteObject("PUBLISHED_BYB1"));
+query isdefined(deleteObject("PUBLISHED_BYB1_B"));
+query isdefined(deleteObject("PUBLISHED_ATB1"));
+query isdefined(deleteObject("PUBLISHED_ATB1_B"));
+query isdefined(deleteObject("PART_OFB1"));
+query isdefined(deleteObject("PART_OFB1_B"));
+
+query isdefined(deleteObject("AUTHOR_OFB2"));
+query isdefined(deleteObject("AUTHOR_OFB2_B"));
+query isdefined(deleteObject("KEYWORD_OFB2"));
+query isdefined(deleteObject("KEYWORD_OFB2_B"));
+query isdefined(deleteObject("PUBLISHED_BYB2"));
+query isdefined(deleteObject("PUBLISHED_BYB2_B"));
+query isdefined(deleteObject("PUBLISHED_ATB2"));
+query isdefined(deleteObject("PUBLISHED_ATB2_B"));
+query isdefined(deleteObject("PART_OFB2"));
+query isdefined(deleteObject("PART_OFB2_B"));
+
+
+let DocumentB1 = DocumentP feed
+  ddistribute4["", part(.Docid), NWorkers, Workers]
+  dmap["DocumentB1", . feed oconsume[Docid]];
+let DocumentB2 = DocumentB1 makeSimple[FALSE, "Document"];
+delete DocumentB1;
+
+let AuthorB1 = AuthorP feed
+  ddistribute4["", part(.Authorid), NWorkers, Workers]
+  dmap["AuthorB1", . feed oconsume[Authorid]];
+let AuthorB2 = AuthorB1 makeSimple[FALSE, "Author"];
+delete AuthorB1;
+
+let AUTHOR_OFB1 = AUTHOR_OFp feed
+  ddistribute4["", part(.Authorid), NWorkers, Workers]
+  dmap["AUTHOR_OFB1", . feed oconsume[Authorid]];
+let AUTHOR_OFB2 = AUTHOR_OFB1 makeSimple[FALSE, "AUTHOR_OF"];
+delete AUTHOR_OFB1;
+
+let AUTHOR_OFB1_B = AUTHOR_OFp feed
+  ddistribute4["", part(.Docid), NWorkers, Workers]
+  dmap["AUTHOR_OFB1_B", . feed oconsume[Docid]];
+let AUTHOR_OFB2_B = AUTHOR_OFB1_B makeSimple[FALSE, "AUTHOR_OF_B"];
+delete AUTHOR_OFB1_B;
+
+
+let KeywordB1 = KeywordP feed
+  ddistribute4["", part(.Wordid), NWorkers, Workers]
+  dmap["KeywordB1", . feed oconsume[Wordid]];
+let KeywordB2 = KeywordB1 makeSimple[FALSE, "Keyword"];
+delete KeywordB1;
+
+let KEYWORD_OFB1 = KEYWORD_OFp feed
+  ddistribute4["", part(.Docid), NWorkers, Workers]
+  dmap["KEYWORD_OFB1", . feed oconsume[Docid]];
+let KEYWORD_OFB2 = KEYWORD_OFB1 makeSimple[FALSE, "KEYWORD_OF"];
+delete KEYWORD_OFB1;
+
+let KEYWORD_OFB1_B = KEYWORD_OFp feed
+  ddistribute4["", part(.Wordid), NWorkers, Workers]
+  dmap["KEYWORD_OFB1_B", . feed oconsume[Wordid]];
+let KEYWORD_OFB2_B = KEYWORD_OFB1_B makeSimple[FALSE, "KEYWORD_OF_B"];
+delete KEYWORD_OFB1_B;
+
+
+let PublisherB1 = PublisherP feed
+  ddistribute4["", part(.Publisherid), NWorkers, Workers]
+  dmap["PublisherB1", . feed oconsume[Publisherid]];
+let PublisherB2 = PublisherB1 makeSimple[FALSE, "Publisher"];
+delete PublisherB1;
+
+let PUBLISHED_BYB1 = PUBLISHED_BYp feed
+  ddistribute4["", part(.Docid), NWorkers, Workers]
+  dmap["PUBLISHED_BYB1", . feed oconsume[Docid]];
+let PUBLISHED_BYB2 = PUBLISHED_BYB1 makeSimple[FALSE, "PUBLISHED_BY"];
+delete PUBLISHED_BYB1;
+
+let PUBLISHED_BYB1_B = PUBLISHED_BYp feed
+  ddistribute4["", part(.Publisherid), NWorkers, Workers]
+  dmap["PUBLISHED_BYB1_B", . feed oconsume[Publisherid]];
+let PUBLISHED_BYB2_B = PUBLISHED_BYB1_B makeSimple[FALSE, "PUBLISHED_BY_B"];
+delete PUBLISHED_BYB1_B;
+
+
+let ConferenceB1 = ConferenceP feed
+  ddistribute4["", part(.Conferenceid), NWorkers, Workers]
+  dmap["ConferenceB1", . feed oconsume[Conferenceid]];
+let ConferenceB2 = ConferenceB1 makeSimple[FALSE, "Conference"];
+delete ConferenceB1;
+
+let PUBLISHED_ATB1 = PUBLISHED_ATp feed
+  ddistribute4["", part(.Docid), NWorkers, Workers]
+  dmap["PUBLISHED_ATB1", . feed oconsume[Docid]];
+let PUBLISHED_ATB2 = PUBLISHED_ATB1 makeSimple[FALSE, "PUBLISHED_AT"];
+delete PUBLISHED_ATB1;
+
+let PUBLISHED_ATB1_B = PUBLISHED_ATp feed
+  ddistribute4["", part(.Conferenceid), NWorkers, Workers]
+  dmap["PUBLISHED_ATB1_B", . feed oconsume[Conferenceid]];
+let PUBLISHED_ATB2_B = PUBLISHED_ATB1_B makeSimple[FALSE, "PUBLISHED_AT_B"];
+delete PUBLISHED_ATB1_B;
+
+
+
+
+let CollectionB1 = CollectionP feed
+  ddistribute4["", part(.Collectionid), NWorkers, Workers]
+  dmap["CollectionB1", . feed oconsume[Collectionid]];
+let CollectionB2 = CollectionB1 makeSimple[FALSE, "Collection"];
+delete CollectionB1;
+
+let PART_OFB1 = PART_OFp feed
+  ddistribute4["", part(.Docid), NWorkers, Workers]
+  dmap["PART_OFB1", . feed oconsume[Docid]];
+let PART_OFB2 = PART_OFB1 makeSimple[FALSE, "PART_OF"];
+delete PART_OFB1;
+
+let PART_OFB1_B = PART_OFp feed
+  ddistribute4["", part(.Collectionid), NWorkers, Workers]
+  dmap["PART_OFB1_B", . feed oconsume[Collectionid]];
+let PART_OFB2_B = PART_OFB1_B makeSimple[FALSE, "PART_OF_B"];
+delete PART_OFB1_B;
+
+

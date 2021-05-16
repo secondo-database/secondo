@@ -1,0 +1,23 @@
+#open database pgraph2;
+#query meminit (1524);
+#query p2 loadgraph;
+
+# Queries the top 5 co-authors publications of "Ralf Hartmut Gueting" 
+# The results will be grouped and show the Authors with the sum of
+# joint publications.
+
+# Note the direction argument "<-" to match an edge in reverse direction.
+
+query p2
+match1b ['
+(  
+   ( auth Author  ( (Name "Ralf Hartmut Gueting") ) )
+   AUTHOR_OF
+   ( (doc Document) 
+     AUTHOR_OF <-
+     ( (Author) )
+   )
+)',
+'',
+'(  ((auth Name) Name)  )'
+]; 

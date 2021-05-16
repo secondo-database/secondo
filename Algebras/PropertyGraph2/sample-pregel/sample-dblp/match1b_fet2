@@ -1,0 +1,26 @@
+#open database pgraph2;
+#query meminit (1524);
+#query p2 loadgraph;
+
+# Queries the top 5 co-authors publications of "Ralf Hartmut Gueting" 
+# The results will be grouped and show the Authors with the sum of
+# joint publications.
+
+# The starting nodes for the subgraph match are taken from the
+# tuple stream (first argument).
+# Note the direction argument "<-" to match an edge in reverse direction.
+
+query p2
+match1b ['
+(  
+   (key Keyword ( (Word "database" ) ) )
+   KEYWORD_OF
+   ( (doc Document) )
+   AUTHOR_OF <-
+   ( (auth Author) )
+)',
+'',
+'(  ((auth Name) Name)  )'
+] 
+consume;
+
