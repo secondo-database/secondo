@@ -176,6 +176,7 @@ public:
    AdjacencyList AdjList;
    RelationRegistry RelRegistry;
 
+   int pregelcounter=0;
    int initstate=0;
    std::string DumpInfo();
    void   DumpGraphDot(std::string filename);

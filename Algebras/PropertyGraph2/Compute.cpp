@@ -835,6 +835,46 @@ void Compute::runPregelCommands()
 }
 
 //----------------------------------------------------------------------------
+void Compute::runPregelCommandsSecond()
+{
+    Word resultword;
+
+    string deleteResMem="(remotePregelCommand"
+    "'query isdefined(deleteObject(\"ResultsMemory\"));')";
+    string remoteResMem="(remotePregelCommand 'let ResultsMemory"
+        " = Results feed mconsume;')";
+    string setpregelfunc="(setPregelFunction Compute Partition)";
+    string initpregelmes="(initPregelMessages(feed InitialMessages))";
+    string startpregel="(startPregel -1)";
+    string remoteResUp="(remotePregelCommand 'update Results := "
+        "ResultsMemory mfeed consume')";
+    string dsummarize="(consume (dsummarize (createSDArray "
+        "\"Results\" Workers)))";
+
+    QueryProcessor::ExecuteQuery(deleteResMem, resultword);
+    QueryProcessor::ExecuteQuery(remoteResMem, resultword);
+
+    if (structure == "pregelmemory")
+    {
+        string createremoteobj="(executeScript 'createremoteobjects.sec'"
+            " TRUE FALSE)";
+        Word reswremote;
+        QueryProcessor::ExecuteQuery(createremoteobj,reswremote);
+        CcBool* zeigerremote = (CcBool*) reswremote.addr;
+        delete zeigerremote;
+    }
+
+    QueryProcessor::ExecuteQuery(setpregelfunc, resultword);
+    QueryProcessor::ExecuteQuery(initpregelmes, resultword);
+    QueryProcessor::ExecuteQuery(startpregel, resultword);
+    QueryProcessor::ExecuteQuery(remoteResUp, resultword);
+
+    CcBool* zeiger = (CcBool*) resultword.addr;
+    delete zeiger;
+
+}
+
+//----------------------------------------------------------------------------
 void Compute::getEndResults()
 {
     std::ofstream ofs;
@@ -913,6 +953,17 @@ void Compute::runPregel()
     //getEndResults();
 }
 
+//----------------------------------------------------------------------------
+void Compute::runPregelSecondTime()
+{
+    CreateObjects();
+
+    ShareObjects();
+    if (structure == "pregelmemory")
+        createRemoteObjectsFile();
+    runPregelCommandsSecond();
+    //getEndResults();
+}
 
 //----------------------------------------------------------------------------
 Tuple *Compute::ReadNextResultTuplePregel()

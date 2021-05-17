@@ -90,10 +90,12 @@ public:
    std::string ReadMessages();
 
    void runPregel();
+   void runPregelSecondTime();
    void CreateObjects();
    void createRemoteObjectsFile();
    void ShareObjects();
    void runPregelCommands();
+   void runPregelCommandsSecond();
    void getEndResults();
 
    Tuple *ReadNextResultTuplePregel();

@@ -1410,11 +1410,20 @@ int match1b_OpFun2 (Word* args, Word& result, int message,
                 pg->structure=="pregelmemory")
                 throw PGraph2Exception("Pregelmemory not usable,"
                     "because not all Edges have the attribute 'Cost'");
-
+        if (pgp->pgraphMem->pregelcounter == 0) {
             compute=new Compute(pgp,tree,pg->structure);
             compute->CreateComputeFunction();
             cout << compute->gesamtstring << endl;
             compute->runPregel();
+            pgp->pgraphMem->pregelcounter ++;
+        }
+        else
+        {
+            compute=new Compute(pgp,tree,pg->structure);
+            compute->CreateComputeFunction();
+            cout << compute->gesamtstring << endl;
+            compute->runPregelSecondTime();
+        }
 
         }
         catch(PGraph2Exception &e)
