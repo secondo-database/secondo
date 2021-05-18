@@ -1,0 +1,35 @@
+query isdefined(deleteObject("Document"));
+query isdefined(deleteObject("Author"));
+query isdefined(deleteObject("Keyword"));
+query isdefined(deleteObject("Publisher"));
+query isdefined(deleteObject("Conference"));
+query isdefined(deleteObject("Collection"));
+
+let Document = DocumentP feed oconsume[Docid];
+let Author = AuthorP feed oconsume[Authorid];
+let Keyword = KeywordP feed oconsume[Wordid];
+let Publisher = PublisherP feed oconsume[Publisherid];
+let Conference = ConferenceP feed oconsume[Conferenceid];
+let Collection = CollectionP feed oconsume[Collectionid];
+
+query isdefined(deleteObject("AUTHOR_OF"));
+query isdefined(deleteObject("AUTHOR_OF_B"));
+query isdefined(deleteObject("KEYWORD_OF"));
+query isdefined(deleteObject("KEYWORD_OF_B"));
+query isdefined(deleteObject("PUBLISHED_BY"));
+query isdefined(deleteObject("PUBLISHED_BY_B"));
+query isdefined(deleteObject("PUBLISHED_AT"));
+query isdefined(deleteObject("PUBLISHED_AT_B"));
+query isdefined(deleteObject("PART_OF"));
+query isdefined(deleteObject("PART_OF_B"));
+
+let AUTHOR_OF = AUTHOR_OFp feed oconsume[Authorid];
+let AUTHOR_OF_B = AUTHOR_OFp feed oconsume[Docid];
+let KEYWORD_OF = KEYWORD_OFp feed oconsume[Docid];
+let KEYWORD_OF_B = KEYWORD_OFp feed oconsume[Wordid];
+let PUBLISHED_BY = PUBLISHED_BYp feed oconsume[Docid];
+let PUBLISHED_BY_B = PUBLISHED_BYp feed oconsume[Publisherid];
+let PUBLISHED_AT = PUBLISHED_ATp feed oconsume[Docid];
+let PUBLISHED_AT_B = PUBLISHED_ATp feed oconsume[Conferenceid];
+let PART_OF = PART_OFp feed oconsume[Docid];
+let PART_OF_B = PART_OFp feed oconsume[Collectionid];

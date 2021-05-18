@@ -1,0 +1,26 @@
+#open database pgraph2;
+#query meminit (1524);
+#query p2 loadgraph;
+
+# Queries the top 5 co-authors of publications of "Ralf Hartmut Gueting"
+# The results will be grouped and show the Authors with the sum of
+# joint publications.
+
+# As the node a2 is specifying a unique property (Name)m the corresponding
+# index will be used to the accelerate the query. For comparision see
+# match2-coauthors-slow not using the index. 
+
+query p2 
+match2 ['
+(
+   ( a )
+   ( a2 ( (Name "Ralf Hartmut Gueting") ))
+   (doc Document)
+   (a2  AUTHOR_OF doc)
+   (a  AUTHOR_OF doc)
+)',
+'(  ((a Name) <> "Ralf Hartmut Gueting")  ) ',
+'(  ((a Name) Name)  )'] 
+sortby[Name] groupby[Name; Cnt:group count] sortby[Cnt:desc] head[5] consume;
+
+

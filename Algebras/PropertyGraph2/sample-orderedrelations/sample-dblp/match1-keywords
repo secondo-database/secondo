@@ -1,0 +1,29 @@
+#open database pgraph2;
+#query meminit (1524);
+#query p2 loadgraph;
+
+# Queries the conferences and publication titles
+# where "Ralf Hartmut Gueting" presenets a paper that is
+# indexed with a keyword containing "tempo"
+
+# The starting nodes for the subgraph match are taken from the
+# tuple stream (first argument).
+# Note the direction argument "<-" to match an edge in reverse direction.
+
+query p2
+    Document feed 
+match1 
+['
+(  
+   (doc Document)
+   p PUBLISHED_AT
+   ( (conf Conference) )
+   KEYWORD_OF <-
+   ( (k Keyword) )
+   AUTHOR_OF <-
+   ( (a Author  ( (Name "Ralf Hartmut Gueting")) ) )
+)',
+'( ((k Word) contains "tempo")  )',
+'( ((conf Name) Name)  ((p Year) Year)  ((doc Title) Title) )'
+]  consume;
+

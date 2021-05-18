@@ -1,0 +1,295 @@
+/*
+----
+This file is part of SECONDO.
+
+Copyright (C) 2012, University in Hagen
+Faculty of Mathematic and Computer Science,
+Database Systems for New Applications.
+
+SECONDO is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or
+(at your option) any later version.
+
+SECONDO is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with SECONDO; if not, write to the Free Software
+Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+----
+
+\tableofcontents
+
+\newpage
+
+1 Overview
+
+DBLP is a large collection of bibligraphy data. As the data is structured well 
+it is possible to transfer a subset to a property graph.
+
+\begin{figure}[h]
+    \centerline{
+        \includegraphics[width=1\textwidth]{schema.eps}}
+\end{figure}
+
+
+2 Prepare data 
+
+2.1 Create database
+
+Create a SECONDO database named "pgraph2".
+
+*/
+   SECONDO> create database pgraph2; 
+   SECONDO> open database pgraph2; 
+/*
+
+As this database is quite huge, it is necessary to adjust the available memory 
+in ~SecondoConfig.ini~ to at least 2GB:
+
+*/
+
+[QueryProcessor]
+GlobalMemory=2048
+
+/*
+
+In the script files the following statement exposes additional memory to the MainMemoryAlgebra:
+
+*/
+
+query meminit (1524);
+
+/*
+
+2.2 Import relations
+
+To import the raw data to SECONDO follow the following steps:
+
+  1 Download the raw data from https://dblp.uni-trier.de/xml/dblp.xml.gz
+
+  2 Make sure, SECONDO is (temporary) compiled without transaction support as transaction    
+    logging will use a huge amount of system resources. \\
+    (See bin/SecondoConfig.ini value "RTFlags += SMI:NoTransactions")
+
+  3 Use the application in Tools/Converter/Dblp2Secondo to generate the 
+    following import files: \\ Document, Authordoc, Author, Keyword. \\
+    (Follow the instructions in the contained READ.ME file)
+    Before importing (!) the relations using the script ~restore\_objs~, rename 
+    the relations in the let-statement to Document\_raw, Author\_raw, Authordoc\_raw, 
+    Keyword\_raw. This allows to use these names in the node relations later.
+
+
+2.3 Transform relations to property graph
+
+As the complete dataset is very large, it is possible to convert a subset 
+to the property graph. Currently it will take all publications from 2017
+and all documents where the author contains the word "gueting"
+(About 320.000 records.)
+To create the relations with the subset you can use the script:
+
+*/
+   SECONDO> @../Algebras/PropertyGraph2/sample-pregel/sample-dblp/createrels_subset
+/*
+
+With the use of Secondo-Pregel it is also possible to query large graphs. To use
+the complete dblp-database, you can run the following script:
+
+*/
+   SECONDO> @../Algebras/PropertyGraph2/sample-pregel/sample-dblp/createrels
+/*
+
+The imported data will be split to nodes and edge relations to represent a graph.
+These relations will be taken to define the graph later.
+
+2.4 Create Ordered Relations
+
+The following scripts creates the Ordered-Relations which are used for the property graph:
+
+*/
+   SECONDO> @../Algebras/PropertyGraph2/sample-pregel/sample-dblp/create_orel
+/*
+
+With these Relations it is possible
+to query a persistent and non-distributed graph.
+
+
+3 Creating a property graph 
+
+A property graph has to be defined before matching operators can be
+used to query the graph. This is done be registering the node and edge
+relations. (This could be seen as the schema of the graph)
+
+*/
+   SECONDO> @../Algebras/PropertyGraph/sample-dblp/create
+/*
+
+At first a PropertyGraph object is created. The argument "p2" is 
+used to prefix objects in the memory catalog to keep the data
+of multiple graphs separated. 
+
+*/
+
+let p2=createpgraph("p2");
+
+/*
+
+To define the schema of the graph, the script ~create~ uses the 
+following operators to register the property graph:
+
+  * ~createpgraph(name)~ to create a property graph object
+
+  * ~addnodesrel[relname,fromclause,toclause]~ to register node relations
+
+  * ~addedgesrel[relanme,propertyname, indexname]~ to register edge relations
+
+  * ~addnodeindex[relanme]~ to register node property indexes
+
+This configuration will be saved in the database and will 
+be available between sessions.
+
+To get information about the configuration of a property graph 
+objects, use the ~info~ operator.
+
+*/
+   SECONDO> query p2 info;
+/*
+
+
+4 Loading the property graph
+
+To be able to query the property graph with ordered relations, 
+it needs to be loaded with the Operator loadgraphorel.
+This will create the statistics of the graph (at the first excecution) and
+additional structures to support the match operators.
+
+*/
+   SECONDO> query p2 loadgraphorel;
+/*
+
+After loading the graph, the structure of the graph has been set to "orel".
+
+5 Sample Queries
+
+Now the prerequisites have been created to query the graph with persistent
+ordered relations. 
+Therefore the PropertyGraph Algebra defines three matching operators, namely
+
+- ~match1~: Uses a query tree and a stream of input nodes to match subgraphs 
+            starting from the root node trying to matching edge by edge and node by node 
+            
+- ~match2~: Takes only a query graph. A query tree is derived automatically by selecting
+            the optimal start node. The input node relation is internally opened.
+
+- ~match3~: Queries are written in cypher, a popular graph query language.
+
+
+5.1 Query 'coauthor'
+
+Queries the top 5 co-authors of publications of "Ralf Hartmut Gueting".
+In the following this query will be expressed by the three match-operators.
+
+The results will be grouped and show the authors with the sum of joint publications.
+
+
+5.1.1 match1
+
+The starting nodes for the subgraph match are taken from the
+tuple stream (first argument).
+Note the direction argument "$<$-" to match an edge in reverse direction.
+
+
+Also available as sciptfile:
+
+*/
+   SECONDO> @../Algebras/PropertyGraph/sample-dblp/match1-coauthors
+/*
+
+5.1.2 match2
+
+A query graph is given as a list. The optimal start node is 
+determined automatically and the corresponding tuple stream is 
+used internally. (Note that the reverse direction for edges
+are not necessary here)
+
+Also available as sciptfile:
+
+*/
+   SECONDO> @../Algebras/PropertyGraph/sample-dblp/match2-coauthors
+/*
+
+NOTE:
+There is an additional script, that forces to choose an adverse strategy.
+It will take much more time to succeed.
+
+*/
+   SECONDO> @../Algebras/PropertyGraph/sample-dblp/match2-coauthors-slow
+/*
+
+5.1.3 match3
+
+The query is expressed as Cypher expression.
+
+
+Also available as sciptfile:
+
+*/
+   SECONDO> @../Algebras/PropertyGraph/sample-dblp/match3-coauthors
+/*
+
+5.2 Query 'keywords'
+
+Queries the conferences and publication titles where "Ralf Hartmut Gueting" 
+presented a paper that is indexed with a keyword containing "tempo"
+
+5.2.1 match1
+
+The starting nodes for the subgraph match are taken from the
+tuple stream (first argument).
+Note the direction argument "$<$-" to match an edge in reverse direction.
+
+
+Also available as sciptfile:
+
+*/
+   SECONDO> @../Algebras/PropertyGraph/sample-dblp/match1-keywords
+/*
+
+5.2.2 match2
+
+A query graph is given as a list. The optimal start node is 
+determined automatically and the corresponding tuple stream is 
+used internally. (Note that the reverse direction for edges
+are not necessary here)
+
+
+Also available as sciptfile:
+
+*/
+   SECONDO> @../Algebras/PropertyGraph/sample-dblp/match2-keywords
+/*
+
+5.2.3 match3
+
+The query is expressed as Cypher expression.
+In this sample, the query tree is expressed by two pathes, that
+are combined by the node alias 'doc'. Also the node types of the aliases 
+'k', 'a' and 'doc' are derived from the edge types. Note, The Year is
+an edge property
+
+Also available as sciptfile:
+
+*/
+   SECONDO> @../Algebras/PropertyGraph/sample-dblp/match3-keywords
+/*
+
+6 References
+
+  [CYP20] https://neo4j.com/docs/cypher-manual/current/
+
+*/
+
+

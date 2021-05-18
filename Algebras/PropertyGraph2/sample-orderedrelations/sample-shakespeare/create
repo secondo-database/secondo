@@ -1,0 +1,35 @@
+query isdefined(deleteObject("p1"));
+let p1=createpgraph("p1");
+
+query p1 addnodesrel["Author","Authorid"];
+query p1 addnodesrel["Play","Playid"];
+query p1 addnodesrel["Production","Productionid"];
+query p1 addnodesrel["Company","Companyid"];
+query p1 addnodesrel["User","Userid"];
+query p1 addnodesrel["Review","Reviewid"];
+query p1 addnodesrel["Performance","Performanceid"];
+query p1 addnodesrel["Venue","Venueid"];
+query p1 addnodesrel["Street","Streetid"];
+query p1 addnodesrel["City","Cityid"];
+query p1 addnodesrel["Country","Countryid"];
+
+query p1 addedgesrel["WROTE_PLAY","Authorid=Author.Authorid","Playid=Play.Playid"];
+#query p1 addedgesrel["WROTE_PLAY_B","IdFrom=Play.Id","IdTo=Author.Id"];
+query p1 addedgesrel["PRODUCTION_OF","Productionid=Production.Productionid","Playid=Play.Playid"];
+#query p1 addedgesrel["PRODUCTION_OF_B","IdFrom=Play.Id","IdTo=Production.Id"];
+query p1 addedgesrel["PRODUCED","Companyid=Company.Companyid","Productionid=Production.Productionid"];
+#query p1 addedgesrel["PRODUCED_B","IdFrom=Production.Id","IdTo=Company.Id"];
+query p1 addedgesrel["PERFORMANCE_OF","Performanceid=Performance.Performanceid","Productionid=Production.Productionid"];
+#query p1 addedgesrel["PERFORMANCE_OF_B","IdFrom=Production.Id","IdTo=Performance.Id"];
+query p1 addedgesrel["VENUE","Performanceid=Performance.Performanceid","Venueid=Venue.Venueid"];
+#query p1 addedgesrel["VENUE_B","IdFrom=Venue.Id","IdTo=Performance.Id"];
+query p1 addedgesrel["STREET","Venueid=Venue.Venueid","Streetid=Street.Streetid"];
+#query p1 addedgesrel["STREET_B","IdFrom=Street.Id","IdTo=Venue.Id"];
+query p1 addedgesrel["CITY","Streetid=Street.Streetid","Cityid=City.Cityid"];
+#query p1 addedgesrel["CITY_B","IdFrom=City.Id","IdTo=Street.Id"];
+query p1 addedgesrel["COUNTRY","Cityid=City.Cityid","Countryid=Country.Countyid"];
+#query p1 addedgesrel["COUNTRY_B","IdFrom=Country.Id","IdTo=City.Id"];
+query p1 addedgesrel["WROTE_REVIEW","Userid=User.Userid","Reviewid=Review.Reviewid"];
+#query p1 addedgesrel["WROTE_REVIEW_B","IdFrom=Review.Id","IdTo=User.Id"];
+query p1 addedgesrel["REVIEW_OF","Reviewid=Review.Reviewid","Performanceid=Performance.Performanceid"];
+#query p1 addedgesrel["REVIEW_OF_B","IdFrom=Performance.Id","IdTo=Review.Id"];
