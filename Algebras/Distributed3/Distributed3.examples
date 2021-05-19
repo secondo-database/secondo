@@ -1,0 +1,78 @@
+Database : berlintest
+Restore  : No 
+
+Operator  : fdistribute2tes
+Number    : 1
+Signature : stream(tuple) x int x (tuple->int) x int x int -> stream(tuple)
+Example   : query strassen feed fdistribute2tes[4567, hashvalue(.Name,997), 55,7] count
+Result    : 3212
+
+Operator  : distribute2tes
+Number    : 1
+Signature : stream(tuple) x int x (tuple->int) x int x int -> stream(tuple)
+Example   : query strassen feed distribute2tes[4567, hashvalue(.Name,997), 55, 5] count
+Result    : 3212
+
+Operator  : partitiondmap
+Number    : 1
+Signature : d[f]array x string x fun x int x fun -> d[f]array
+Example   : query s7 partitiondmap["localName", hashvalue(.Attr,23), 80, . count]
+Result    : bug
+Remark    : remote server required
+
+Operator : setuptes
+Number   : 1
+Signature: rel(tuple)  -> bool;
+Example  : query setuptes(Workers)
+Result   : FALSE
+
+Operator : killtes
+Number   : 1
+Signature: -> bool;
+Example  : query killtes()
+Result   : TRUE
+
+Operator : resettes
+Number   : 1
+Signature: -> bool;
+Example  : query resettes()
+Result   : TRUE
+
+Operator : testests
+Number   : 1
+Signature: int x rel(tuple)  -> bool;
+Example  : query testests(4,strassen)
+Result   : TRUE
+
+Operator : setTupleType
+Number   : 1
+Signature: int x rel -> bool
+Example  : query setTupleType(4,strassen)
+Result   : TRUE
+
+Operator : startLoopbackTESClient
+Number   : 1
+Signature: int -> bool
+Example  : query startLoopbackTESClient(-1);
+Result   : FALSE
+
+Operator : startTESServer
+Number   : 1
+Signature: int -> bool
+Example  : query startMessageServer(41446);
+Result   : TRUE
+
+Operator : startTESClient
+Number   : 1
+Signature: int x string x int -> bool
+Example  : query startTESClient(1, "localhost", 1445);
+Result   : FALSE
+
+Operator : feedtes
+Number   : 1
+Signature: int x int -> stream(tuple)
+Example  : query feedtes(345, 33)
+Result   : bug
+Remark   : not tested
+
+
