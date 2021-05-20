@@ -24,11 +24,10 @@
 ########################################################################
 
 # inlcude global definitions
-include ../../makefile.env
+include ../../../makefile.env
 #CURRENT_ALGEBRA := Distributed3Algebra
 
 # expand compile flags if necessary
-CCFLAGS += -Werror
 #CCFLAGS += $(ALG_INC_DIRS) 
 CCFLAGS += -D BOOST_LOG_DYN_LINK
 
@@ -37,14 +36,7 @@ CCFLAGS += -D BOOST_LOG_DYN_LINK
 .PHONY: all
 all: check_dependencies $(OBJECTS) 
 #$(LIBOBJ)
-	make -C Operators
-	make -C Operators/Interface2TES
-	make -C Operators/Messaging
-	make -C Operators/OnMaster
-	make -C Operators/Worker
-	make -C MessageBroker
-	make -C Helpers
-	
+
 check_dependencies:
 	$(check-algebra-dependencies)
 
@@ -52,9 +44,6 @@ check_dependencies:
 ifneq ($(MAKECMDGOALS),clean)
 include $(DEP_FILES)
 endif
-
-.PHONY: deps
-deps: $(DEP_FILES)
 
 # generic rule for creating a library
 #$(LIBOBJ): $(OBJECTS)
@@ -64,10 +53,3 @@ deps: $(DEP_FILES)
 .PHONY: clean
 clean:
 	$(clean-algebra)
-	make -C Operators clean
-	make -C Operators/Interface2TES
-	make -C Operators/Messaging clean	
-	make -C Operators/OnMaster clean
-	make -C Operators/Worker clean
-	make -C MessageBroker clean
-	make -C Helpers clean
