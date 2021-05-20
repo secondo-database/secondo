@@ -45,13 +45,13 @@ public:
     this->AddTypeConstructor(&fptreeTC);
 
     this->AddOperator(aprioriInfo(), mineVM<aprioriLI>, mineTM);
-    this->AddOperator(createFpTreeInfo(), createFpTreeVM, createFpTreeTM);
+//     this->AddOperator(createFpTreeInfo(), createFpTreeVM, createFpTreeTM);
     this->AddOperator(eclatInfo(), mineVM<eclatLI>, mineTM);
     this->AddOperator(fpGrowthInfo(), mineVM<fpGrowthLI>, mineTM);
     this->AddOperator(genStrongRulesInfo(), genStrongRulesVM, genStrongRulesTM);
     this->AddOperator(genTransactionsInfo(), genTransactionsVM,
                       genTransactionsTM);
-    this->AddOperator(mineFpTreeInfo(), mineFpTreeVM, mineFpTreeTM);
+//     this->AddOperator(mineFpTreeInfo(), mineFpTreeVM, mineFpTreeTM);
     this->AddOperator(loadTransactionsInfo(), loadTransactionsVM,
                       loadTransactionsTM);
     this->AddOperator(saveTransactionsInfo(), saveTransactionsVM,
