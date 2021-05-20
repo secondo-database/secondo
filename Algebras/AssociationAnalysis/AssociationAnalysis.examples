@@ -3,18 +3,6 @@ Database   : assoctest
 Restore    : No
 
 Operator  : genTransactions
-Number    : 1
-Signature : int int int int int -> stream(tuple([Id: int, Itemset: intset]))
-Example   : delete transactions
-Result    : ()
-
-Operator  : genTransactions
-Number    : 2
-Signature : int int int int int -> stream(tuple([Id: int, Itemset: intset]))
-Example   : let transactions = genTransactions(1000, 5, 2, 2000, 1000) consume
-Result    : ()
-
-Operator  : genTransactions
 Number    : 3
 Signature : int int int int int -> stream(tuple([Id: int, Itemset: intset]))
 Example   : query transactions feed filter[size(.Itemset) = 0] count
@@ -104,30 +92,6 @@ Signature : rel(tuple(...)) attr real -> stream(tuple(Itemset: intset, Support: 
 Example   : query transactions fpGrowth[Itemset, 0.015] min[Support]
 Result    : 0.015
 Tolerance : 0.0001
-
-Operator  : createFpTree
-Number    : 17
-Signature : rel(tuple(...)) attr real -> fptree
-Example   : delete transactionsFpTree
-Result    : ()
-
-Operator  : createFpTree
-Number    : 18
-Signature : rel(tuple(...)) attr real -> fptree
-Example   : let transactionsFpTree = transactions createFpTree[Itemset, 0.015]
-Result    : ()
-
-Operator  : mineFpTree
-Number    : 19
-Signature : fptree real -> stream(tuple(Itemset: intset, Support: real))
-Example   : query transactionsFpTree mineFpTree[0.015] count
-Result    : 64
-
-Operator  : mineFpTree
-Number    : 20
-Signature : fptree int -> stream(tuple(Itemset: intset, Support: real))
-Example   : query transactionsFpTree mineFpTree[15] count
-Result    : 64
 
 Operator  : genStrongRules
 Number    : 21
@@ -261,14 +225,8 @@ Signature : rel(tuple(...)) attr int -> stream(tuple(Itemset: intset, Support: r
 Example   : query transactions fpGrowth[Itemset, 15, 1] count
 Result    : 64
 
-Operator  : mineFpTree
-Number    : 43
-Signature : fptree int -> stream(tuple(Itemset: intset, Support: real))
-Example   : query transactionsFpTree mineFpTree[15, 1] count
-Result    : 64
-
 Operator  : extendItemNames
 Number    : 44
 Signature : stream(tuple(...)) text funlist -> stream(tuple(...))
-Example   : query transactions feed extendItemNames['/home/paul/Downloads/attrnames.txt'; ItemNames: Itemset] count
+Example   : query transactions feed extendItemNames['../Algebras/AssociationAnalysis/attrnames.txt'; ItemNames: Itemset] count
 Result    : 1000
