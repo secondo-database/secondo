@@ -287,7 +287,7 @@ void SetupTES::resetTES() {
                                            int messageServerPortIndex,
                                            int configIndex,
                                            std::string &dbName,
-                                           int workerNumber) {  {
+                                           int workerNumber) {
   auto hostString = (CcString *) tuple->GetAttribute(hostIndex);
   auto portInt = (CcInt *) tuple->GetAttribute(portIndex);
   auto messageServerPortInt = (CcInt *) tuple->GetAttribute(
