@@ -698,6 +698,9 @@ ALGEBRAS     += JNetAlgebra
 #ALGEBRA_DIRS += PyStream
 #ALGEBRAS     += PyStreamAlgebra
 
+#ALGEBRA_DIRS += AssociationAnalysis
+#ALGEBRAS     += AssociationAnalysisAlgebra
+
 #ALGEBRA_DIRS += ParThread
 #ALGEBRAS     += ParThreadAlgebra
 #the flag is used to activate code in QueryProcessor
