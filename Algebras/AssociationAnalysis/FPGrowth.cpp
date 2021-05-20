@@ -126,7 +126,12 @@ private:
     assert(node < this->nodes.size());
     // Create a new node.
     std::size_t child = this->nodes.size();
-    this->nodes.push_back({.item = item, .count = count, .parent = node});
+    Node childNode;
+    childNode.item = item;
+    childNode.count = count;
+    childNode.parent = node;
+    this->nodes.push_back(childNode);
+//     this->nodes.push_back({.item = item, .count = count, .parent = node});
 
     // Update the header table.
     Header &header = this->header(item);
@@ -243,8 +248,8 @@ fpGrowthLI::fpGrowthLI(GenericRelation *relation, int minSupport,
               [](auto &a, auto &b) -> bool { return a.second > b.second; });
 
     frequentItems.reserve(frequentItemSupportPairs.size());
-    for (const auto &[item, _] : frequentItemSupportPairs) {
-      frequentItems.push_back(item);
+    for (const auto supportPair : frequentItemSupportPairs) {
+      frequentItems.push_back(supportPair.first);
     }
   }
 
@@ -740,7 +745,12 @@ void FPTreeT::addCount(SmiRecordId nodeId, int count) {
 // Creates a new child with the given item and count and returns its handle.
 SmiRecordId FPTreeT::createChild(SmiRecordId nodeId, int item, int count) {
   // Create child node.
-  Node child{.item = item, .count = count, .parent = nodeId};
+  Node child;
+  child.item = item;
+  child.count = count;
+  child.parent = nodeId;
+  
+//   Node child{.item = item, .count = count, .parent = nodeId};
   SmiRecordId childId = Node::create(this->nodeFile, this->nextNodeId, child);
 
   // Find the entry for the given item in the header table.
@@ -940,8 +950,8 @@ int createFpTreeVM(Word *args, Word &result, int message, Word &local,
               [](auto &a, auto &b) -> bool { return a.second > b.second; });
 
     frequentItems.reserve(frequentItemSupportPairs.size());
-    for (const auto &[item, _] : frequentItemSupportPairs) {
-      frequentItems.push_back(item);
+    for (const auto supportPair : frequentItemSupportPairs) {
+      frequentItems.push_back(supportPair.first);
     }
   }
 
