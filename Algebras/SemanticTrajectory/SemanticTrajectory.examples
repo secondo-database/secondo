@@ -10,7 +10,7 @@ Result   : 4
 Operator : makesemtraj2
 Number   : 1
 Signature: stream(Tuple(x)) x stream(Tuple(x)) x a1 x a2 x a3 x a4-> semantictrajectory
-Example  : query CRaw feed groupby[TripId; DayTrip: group feed stopwords feed makesemtraj2[Longitude, Latitude, Semantics, Elem]] count;
+Example  : query CRaw feed groupby[TripId; DayTrip: group feed stopWords feed makesemtraj2[Longitude, Latitude, Semantics, Elem]] count;
 Result   : 4
 
 Operator : extractkeywords
@@ -31,28 +31,28 @@ Signature: stream(Tuple(x)) x a1 x a2 x real -> stream(tuple(x))
 Example  : query preBatch feed batches[DayTrip, BatchId, 8.0] count;
 Result   : 4
 
-Operator : bbsim
+Operator : filterbbsim
 Number   : 1
 Signature: stream(Tuple(x)) x a1 x a2 x a3 x a4 x real x real x Rectangle -> stream(tuple(x))
-Example  : query BPair feed bbsim[BatchId, BatchId_t2, BatchMBR, BatchMBR_t2, 0.5, 1.3, space] count;
-Result   : 1
+Example  : query BPair feed filterbbsim[BatchId, BatchId_t2, BatchMBR, BatchMBR_t2, 0.5, 1.3, space] count;
+Result   : 3
 
-Operator : btsim
+Operator : filterbtsim
 Number   : 1
 Signature: stream(Tuple(x)) x stream(Tuple(y)) x a1 x a2 x a3 x rect x ccReal x ccReal x rect -> stream(tuple(x))
-Example  : query BFJoin1 feed extend[NewTripList: fun(t: TUPLE) attr(t, TripList) afeed attr(t, WordList2_t2) afeed btsim[DayTrip, Word_t2, Cnt_t2, attr(t, BatchMBR_t2), 0.5, 1.3, space] aconsume] count;
-Result   : 1
+Example  : query BFJoin1 feed extend[NewTripList: fun(t: TUPLE) attr(t, TripList) afeed attr(t, WordList2_t2) afeed filterbtsim[DayTrip, Word_t2, Cnt_t2, attr(t, BatchMBR_t2), 0.5, 1.3, space] aconsume] count;
+Result   : 3
 
-Operator : ttsim
+Operator : filterttsim
 Number   : 1
 Signature: stream(Tuple(x)) x a1 x a2 x real x real x rect x CellGrid2D -> stream(Tuple(x))
-Example  : query newpairs feed ttsim[DayTrip, DayTrip_t2, 0.5, 1.3, space, Grid] count;
-Result   : 1
+Example  : query newpairs feed filterttsim[DayTrip, DayTrip_t2, 0.5, 1.3, space, Grid] count;
+Result   : 3
 
-Operator : sim
+Operator : filtersim
 Number   : 1
 Signature: stream(Tuple(x)) x a1 x a2 x CellGrid2D x real x real x rect -> stream(tuple(x))
-Example  : query BFJoin3 feed sim[DayTrip, DayTrip_t2, 0.5, 1.3, space] count;
+Example  : query BFJoin3 feed filtersim[DayTrip, DayTrip_t2, 0.5, 1.3, space] count;
 Result   : 0
 
 Operator : makesum
@@ -60,3 +60,45 @@ Number   : 1
 Signature: stream(Tuple(x)) x int x semantictrajectory x CellGrid2D x a1 x a2 x a3 -> semantictrajectory
 Example  : query joinTrips feed replaceAttr[DayTrip: .WordList2 afeed makesum[.TripId2, .DayTrip, Grid, KeywordId, Cnt, Word]]  project[TripId2, DayTrip] count;
 Result   : 4
+
+Operator : sim
+Number   : 1
+Signature: semantictrajectory x semantictrajectory x rectangle x real -> real
+Example  : query join3 feed filter[sim(.Trip, .Trip_t2, space, 0.5) >= 1.3] count
+Result   : 0
+
+Operator : ttsim
+Number   : 1
+Signature: semantictrajectory x semantictrajectory x real x rectangle x CellGrid2D -> real
+Example  : query join2 feed loopjoin[fun(t: TUPLE) attr(t, B2) getTrips {t2} filter[(ttsim(attr(t, Trip), .Trip_t2, 0.5, space, Grid) >= 1.3)]] count;
+Result   : 3
+
+Operator : bbsim
+Number   : 1
+Signature: batch x batch x real x rectangle -> real
+Example  : query batchlist feed batchlist feed {t2} symmjoin[(.BatchId <= ..BatchId_t2) and (bbsim(.Batch,..Batch_t2, 0.5, space) >= 1.3)] count;
+Result   : 3
+
+Operator : btsim
+Number   : 1
+Signature: batch x semantictrajectory x  real x rectangle -> real
+Example  : query sortedjoin1 feed loopjoin[fun(t: TUPLE) attr(t, B1) getTrips filter[(btsim(attr(t, B2), .Trip, 0.5, space) >= 1.3)]] count;
+Result   : 6
+
+Operator : buildbatch
+Number   : 1
+Signature: Tuple(x) x int x attr x attr x rect -> batch
+Example  : query FBatches feed extend[Batch: .WordList2 afeed .TripList afeed buildbatch[.BatchId, Word, Cnt,TripId, DayTrip, .BatchMBR]] project[BatchId, Batch] count
+Result   : 2
+
+Operator : getTrips
+Number   : 1
+Signature: batch -> Stream(Tuple(X))
+Example  : query b2 getTrips count;
+Result   : 1
+
+Operator : largerbatch
+Number   : 1
+Signature: batch x batch -> bool
+Example  : query largerbatch(b2, b3);
+Result   : TRUE

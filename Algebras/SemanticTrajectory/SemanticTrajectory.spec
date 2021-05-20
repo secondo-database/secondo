@@ -17,13 +17,20 @@
 #along with SECONDO; if not, write to the Free Software
 #Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-operator sim alias SIM pattern _ op[_,_,_,_,_]
 operator makesemtraj alias MAKESEMTRAJ pattern _ op [_, _, _]
 operator makesemtraj2 alias MAKESEMTRAJ2 pattern _ _op [_, _, _,_]
+operator sim alias SIM pattern op (_,_,_,_)
+operator ttsim alias TTSIM pattern op (_,_,_,_,_)
+operator bbsim alias BBSIM pattern op (_,_,_,_)
+operator btsim alias BTSIM pattern op (_,_,_,_)
 operator stbox alias STBOX pattern op (_)
 operator makesum alias MAKESUM pattern _ op [_,_,_,_,_,_]
 operator extractkeywords alias extractkeywords pattern _ op
 operator batches alias BATCHES pattern _ op[_,_,_]
-operator bbsim alias BBSIM pattern _ op[_,_,_,_,_,_,_]
-operator btsim alias BTSIM pattern  _ _ op[_,_,_,_,_]
-operator ttsim alias TTSIM pattern  _ op[_,_,_,_,_,_]
+operator filterbbsim alias FILTERBBSIM pattern _ op[_,_,_,_,_,_,_]
+operator filterbtsim alias FILTERBTSIM pattern  _ _ op[_,_,_,_,_]
+operator filterttsim alias FILTERTTSIM pattern  _ op[_,_,_,_,_,_]
+operator filtersim alias FILTERSIM pattern _ op[_,_,_,_,_]
+operator buildbatch alias BUILDBATCH pattern _ _op[_,_,_,_,_,_]
+operator getTrips alias GETTRIPS pattern _ op
+operator largerbatch alias LARGERBATCH pattern op(_, _)
