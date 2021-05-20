@@ -466,7 +466,7 @@ ListExpr PDTSTM(ListExpr args) {
   }
   ListExpr tuple = nl->Second(relation);
   if(!Tuple::checkType(tuple)){
-    return listutils::typeError("subtype of d[f]array's " +
+    return listutils::typeError("subtype of d[f]array's " 
                                 "relation is not a tuple");
   }
   if (nl->HasLength(args,2)) {
@@ -925,7 +925,7 @@ ListExpr partitiondmapTM(ListExpr args){
   
   //cout << "\nargs in partitiondmapTM:";
   //nl->WriteListExpr(args);
-  string err = "expected: d[f]array(rel(Tuple)) x string x (Tuple -> int) " +
+  string err = "expected: d[f]array(rel(Tuple)) x string x (Tuple -> int) "
                      "x int x "
                "(stream(Tuple) -> X)";
 
@@ -1348,7 +1348,7 @@ Distributed3Algebra::Distributed3Algebra(){
    AddOperator(&SetupTES::setupTES);
    AddOperator(&SetTupleType::setTupleType);
    AddOperator(&StartLoopbackTESClient::startLoopbackTESClient);
-   AddOperator(&TESTests::testests);
+   //AddOperator(&TESTests::testests);
  
 }
 
