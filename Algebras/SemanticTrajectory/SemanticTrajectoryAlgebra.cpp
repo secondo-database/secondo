@@ -5627,7 +5627,171 @@ ListExpr TTSimTypeMap(ListExpr args)
   return NList(CcReal::BasicType()).listExpr();
 }
 
+double SemanticTrajectory::textualScoreTT(SemanticTrajectory& st2)
+{
+  std::vector<std::string*>** hashTable;
+  std::vector<std::string*>** hashTable2;
+  const std::vector<std::string*>* bucket;
+  std::hash<std::string> str_hash;
+  unsigned int bucketnum = 100;
 
+
+  hashTable = new std::vector<std::string*>*[bucketnum];
+  for (unsigned int i = 0; i < bucketnum; i++)
+  {
+    hashTable[i] = 0;
+  }
+
+  hashTable2 = new std::vector<std::string*>*[bucketnum];
+  for (unsigned int i = 0; i < bucketnum; i++)
+  {
+    hashTable2[i] = 0;
+  }
+  for (int i = 0; i < GetNumWords(); i++)
+  {
+   std::string holdValue = "";
+   bool success = GetStringSum(i, holdValue);
+   if(success)
+   {
+
+     size_t hash = str_hash(holdValue) % bucketnum;
+
+     if (!hashTable[hash])
+     {
+       hashTable[hash] = new std::vector<std::string*>();
+     }
+     std::string* stn = new std::string(holdValue);
+     hashTable[hash]->push_back(stn);
+   }
+
+  }
+
+  for (int i = 0; i < st2.GetNumWords(); i++)
+  {
+   std::string holdValue = "";
+   bool success = st2.GetStringSum(i, holdValue);
+   if(success)
+   {
+
+     size_t hash = str_hash(holdValue) % bucketnum;
+
+     if (!hashTable2[hash])
+     {
+       hashTable2[hash] = new std::vector<std::string*>();
+     }
+     std::string* stn = new std::string(holdValue);
+     hashTable2[hash]->push_back(stn);
+   }
+
+  }
+  double TSim = 0.0;
+  unsigned int bucketpos = 0;
+  for(int i = 0; i < GetNumCoordinates(); i++)
+  {
+    std::string holdvalue;
+    GetSemString(i, holdvalue);
+
+    if (holdvalue.length() > 0)
+    {
+      stringutils::StringTokenizer parse_st1(holdvalue, " ");
+      while(parse_st1.hasNextToken())
+      {
+        std::string eval = parse_st1.nextToken();
+        stringutils::trim(eval);
+        size_t hash = str_hash(eval) % bucketnum;;
+        bucket = 0;
+        bucket = hashTable2[hash];
+        bucketpos = 0;
+        if(bucket)
+        {
+          while(bucketpos < bucket->size())
+          {
+            std::string* check = (*bucket)[bucketpos];
+            if ((check)->compare(eval) == 0)
+            {
+              TSim = TSim + ((double) 1/GetNumCoordinates());
+              break;
+            }
+            bucketpos++;
+          }
+        }
+      }
+    }
+  }
+  for(int i = 0; i < st2.GetNumTextData(); i++)
+  {
+
+    std::string holdvalue;
+    st2.GetSemString(i, holdvalue);
+    if (holdvalue.length() > 0)
+    {
+      stringutils::StringTokenizer parse_st2(holdvalue, " ");
+
+      while(parse_st2.hasNextToken())
+      {
+
+        std::string eval = parse_st2.nextToken();
+        stringutils::trim(eval);
+        size_t hash = str_hash(eval) % bucketnum;
+        bucket = 0;
+        bucket = hashTable[hash];
+        bucketpos = 0;
+        if(bucket)
+        {
+          while(bucketpos < bucket->size())
+          {
+
+            std::string* check = (*bucket)[bucketpos];
+            if ((check)->compare(eval) == 0)
+            {
+
+              TSim = TSim + ((double) 1/st2.GetNumCoordinates());
+              break;
+            }
+            bucketpos++;
+          }
+
+        }
+      }
+    }
+  }
+
+  for (unsigned int i = 0; i< bucketnum; i++)
+  {
+    std::vector<std::string*>* v = hashTable[i];
+    if (v)
+    {
+      for(unsigned int j = 0; j < v->size(); j++)
+      {
+        std::string* stn = (*v)[j];
+        delete stn;
+
+      }
+      (v)->clear();
+      delete hashTable[i];
+      hashTable[i] = 0;
+    }
+  }
+
+  for (unsigned int i = 0; i< bucketnum; i++)
+  {
+    std::vector<std::string*>* v = hashTable2[i];
+    if (v)
+    {
+      for(unsigned int j = 0; j < v->size(); j++)
+      {
+           std::string* stn = (*v)[j];
+           delete stn;
+
+      }
+      (v)->clear();
+      delete hashTable2[i];
+      hashTable2[i] = 0;
+    }
+  }
+  delete hashTable; delete hashTable2;
+  return TSim;
+}
 
 
 
