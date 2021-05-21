@@ -697,11 +697,11 @@ void Compute::CreateObjects()
             int maxid2 = GetMaxId(relinfo->ToName,ainfo2->Name);
             if (maxid >= maxid2)
             {
-                Edges[mapiterator->first]=maxid;
+                Edges[mapiterator->first]=maxid+1;
             }
             else
             {
-                Edges[mapiterator->first]=maxid2;
+                Edges[mapiterator->first]=maxid2+1;
             }
             stringstream ss;
             ss << Edges[mapiterator->first];
