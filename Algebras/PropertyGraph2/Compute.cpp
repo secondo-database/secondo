@@ -768,7 +768,7 @@ void Compute::CreateObjects()
     }
     else if (structure == "pregelpersistent")
     {
-        DoLet("Compute",computelist);
+        DoLetCompute("Compute",computelist);
     }
 
 }
