@@ -935,146 +935,146 @@ ostream& operator<<(ostream& os, const OpNode& node) {
   }
 
 
-  /*
+/*
 
-  The fields of the tree have the following meaning:
+The fields of the tree have the following meaning:
 
-    * ~evaluable~: True iff this node is an object, an indirect object, or
-  an operator which is neither (the root of a subtree representing) a
-  function argument nor a stream argument. This means the query evaluator
-  can compute the value of this subtree directly.
+  * ~evaluable~: True iff this node is an object, an indirect object, or
+an operator which is neither (the root of a subtree representing) a
+function argument nor a stream argument. This means the query evaluator
+can compute the value of this subtree directly.
 
-    * ~typeExpr~: Any node (subtree) of an operator tree has an associated
-  type. This type expression is stored here; it can be looked up by the
-  evaluation function of the operator belonging to this node via the
-  procedure ~getType~.
+  * ~typeExpr~: Any node (subtree) of an operator tree has an associated
+type. This type expression is stored here; it can be looked up by the
+evaluation function of the operator belonging to this node via the
+procedure ~getType~.
 
-  A node can then have one of three forms. It can represent an object (a
-  simple value or a pointer to something); in that case
+A node can then have one of three forms. It can represent an object (a
+simple value or a pointer to something); in that case
 
-    * ~value~ contains that object,
+  * ~value~ contains that object,
 
-    * ~valNo~ is an index into the array ~values~ and ~value~ has been
-  copied from that entry. Since ~value~ cannot be printed, a procedure
-  showing the structure of the operator tree (~ListOfTree~, see below)
-  will print ~valNo~ instead. The entries ~funNumber~ and ~funNo~
-  explained below play a similar role.
+  * ~valNo~ is an index into the array ~values~ and ~value~ has been
+copied from that entry. Since ~value~ cannot be printed, a procedure
+showing the structure of the operator tree (~ListOfTree~, see below)
+will print ~valNo~ instead. The entries ~funNumber~ and ~funNo~
+explained below play a similar role.
 
-    * ~isRoot~ is a flag that tells if the object is the root of a
-  query processor tree. It is used to destroy the tree correctly.
+  * ~isRoot~ is a flag that tells if the object is the root of a
+query processor tree. It is used to destroy the tree correctly.
 
-    * ~isConstant~ is a flag that tells if the object contains a
-  constant value or a variable value.
+  * ~isConstant~ is a flag that tells if the object contains a
+constant value or a variable value.
 
-  It can be an ``indirect object'' which is accessible through an argument
-  vector attached to a subtree representing a function argument:
+It can be an ``indirect object'' which is accessible through an argument
+vector attached to a subtree representing a function argument:
 
-    * ~vector~ points to that argument vector,
+  * ~vector~ points to that argument vector,
 
-    * ~funNumber~ is an index into global array ~ArgVectors~; that entry
-  was used to assign the argument vector here.
+  * ~funNumber~ is an index into global array ~ArgVectors~; that entry
+was used to assign the argument vector here.
 
-    * ~argIndex~ is the position of the object within the argument vector.
+  * ~argIndex~ is the position of the object within the argument vector.
 
-  Finally, the node can represent an operator:
+Finally, the node can represent an operator:
 
-    * ~algebraId~ and ~opFunId~ identify the operator's evaluation function,
+  * ~algebraId~ and ~opFunId~ identify the operator's evaluation function,
 
-    * ~noSons~: number of arguments for this operator,
+  * ~noSons~: number of arguments for this operator,
 
-    * ~sons~: pointers to the sons,
+  * ~sons~: pointers to the sons,
 
-    * ~sonresults~: an argument vector used to store results computed by stream
-      operators on the OPEN message,
+  * ~sonresults~: an argument vector used to store results computed by stream
+    operators on the OPEN message,
 
-    * ~isFun~: true iff the node is the root of a function argument,
+  * ~isFun~: true iff the node is the root of a function argument,
 
-    * ~funArgs~: pointer to the argument vector for a function node; only
-  used, if ~isFun~ is true,
+  * ~funArgs~: pointer to the argument vector for a function node; only
+used, if ~isFun~ is true,
 
-    * ~funNo~ is also an index into global array ~ArgVectors~; that entry
-  was used to assign the argument vector here.
+  * ~funNo~ is also an index into global array ~ArgVectors~; that entry
+was used to assign the argument vector here.
 
-    * ~isStream~: true if this operator produces an output stream,
+  * ~isStream~: true if this operator produces an output stream,
 
-    * ~local~: used to keep the ~local~ parameter of a stream operator
-  between calls,
+  * ~local~: used to keep the ~local~ parameter of a stream operator
+    between calls,
 
-    * ~local2~: used to keep the ~local~ parameter of an operator
-       even if the stream operator chain (open request* close) is used 
-       several times
+  * ~local2~: used to keep the ~local~ parameter of an operator
+    even if the stream operator chain (open request close) is used
+    several times.
 
-    * ~received~: true iff the last call of this stream operator returned YIELD.
+  * ~received~: true iff the last call of this stream operator returned YIELD.
 
-    * ~resultAlgId~ and ~resultTypeId~ describe the result type of the
-  operator application.
+  * ~resultAlgId~ and ~resultTypeId~ describe the result type of the
+    operator application.
 
-    * ~resultWord~: data structure for the result value.
+  * ~resultWord~: data structure for the result value.
 
-    * ~counterNo~: the number of a counter associated with this node. If this
-      number is greater than 0 (between 1 and MAXCOUNTERS), then for every
-      evaluation request received by the node the counter ~counterNo~ is
-      incremented.
+  * ~counterNo~: the number of a counter associated with this node. If this
+    number is greater than 0 (between 1 and MAXCOUNTERS), then for every
+    evaluation request received by the node the counter ~counterNo~ is
+    incremented.
 
-    * ~selectivity~: for an operator implementing a selection or join
-      predicate, the selectivity of that predicate. Can be used to
-      observe selectivity during query processing, e.g. for progress
-      estimation.
+  * ~selectivity~: for an operator implementing a selection or join
+    predicate, the selectivity of that predicate. Can be used to
+    observe selectivity during query processing, e.g. for progress
+    estimation.
 
-    * ~predCost~: similarly the predicate cost, in milliseconds. Selectivity
-     and predicate cost are, for example, obtained by the optimizer in
-     evaluating a sample query.
+  * ~predCost~: similarly the predicate cost, in milliseconds. Selectivity
+    and predicate cost are, for example, obtained by the optimizer in
+    evaluating a sample query.
 
-    * ~supportsProgress~: whether this operator replies to PROGRESS messages.
-       Can be set by an operator's evaluation function via ~enableProgress~.
+  * ~supportsProgress~: whether this operator replies to PROGRESS messages.
+      Can be set by an operator's evaluation function via ~enableProgress~.
 
-    * ~usesMemory~: whether this operator uses internal memory (i.e., a 
-      large memory buffer.
+  * ~usesMemory~: whether this operator uses internal memory (i.e., a 
+    large memory buffer.
 
-    * ~memorySize~: the amount of memory allocated to this operator, in MB
-
-
-  The three kinds of nodes will be represented graphically as follows:
+  * ~memorySize~: the amount of memory allocated to this operator, in MB
 
 
+The three kinds of nodes will be represented graphically as follows:
 
-                  Figure 1: Three kinds of nodes [Figure1.eps]
 
-  For an operator node, the top left field shows the operator rather than
-  its ~algebraId~ and ~opFunId~. The other fields in the top row are
-  ~noSons~, ~isFun~, ~funArgs~, and ~isStream~; the last five fields are
-  omitted in this representation. The bottom row, of course, shows the
-  ~sons~ array.
 
-  The structure of the operator tree is illustrated by the representation
-  of the following executable query:
+                Figure 1: Three kinds of nodes [Figure1.eps]
 
-  ----        (filter (feed cities)
-                  (fun (c city)
-                          (> (attribute c pop .)
-                                  500000)))
-  ----
+For an operator node, the top left field shows the operator rather than
+its ~algebraId~ and ~opFunId~. The other fields in the top row are
+~noSons~, ~isFun~, ~funArgs~, and ~isStream~; the last five fields are
+omitted in this representation. The bottom row, of course, shows the
+~sons~ array.
 
-  Here ~attribute~ is an operator with three arguments, namely, a tuple,
-  an attribute name within that tuple, and a number giving the position of
-  the attribute within the tuple. However, the user does not have to
-  supply this number; it will be inferred and added in type checking. This
-  is what is meant by the dot (the dot is not written, only shown here to
-  indicate the missing argument). Note that one has to work with numbers
-  rather than names, for two reasons: (1) the argument types, and hence,
-  the tuple type, are not available anymore, and (2) efficiency.
+The structure of the operator tree is illustrated by the representation
+of the following executable query:
 
-  The operator tree for this query looks as shown in Figure 2.
+----        (filter (feed cities)
+                (fun (c city)
+                        (> (attribute c pop .)
+                                500000)))
+----
 
-                  Figure 2: Operator Tree [Figure2.eps]
+Here ~attribute~ is an operator with three arguments, namely, a tuple,
+an attribute name within that tuple, and a number giving the position of
+the attribute within the tuple. However, the user does not have to
+supply this number; it will be inferred and added in type checking. This
+is what is meant by the dot (the dot is not written, only shown here to
+indicate the missing argument). Note that one has to work with numbers
+rather than names, for two reasons: (1) the argument types, and hence,
+the tuple type, are not available anymore, and (2) efficiency.
 
-  Here oval nodes represent data objects represented externally from the
-  operator tree. At the bottom an argument vector is shown.
+The operator tree for this query looks as shown in Figure 2.
 
-  The following procedure ~ListOfTree~ is very useful for testing; it maps
-  a tree into a list expression which we can then print.
+                Figure 2: Operator Tree [Figure2.eps]
 
-  */
+Here oval nodes represent data objects represented externally from the
+operator tree. At the bottom an argument vector is shown.
+
+The following procedure ~ListOfTree~ is very useful for testing; it maps
+a tree into a list expression which we can then print.
+
+*/
 
   void
   QueryProcessor::BuildDotDescr( void* node, DotSpec& dot)
@@ -1107,11 +1107,11 @@ ostream& operator<<(ostream& os, const OpNode& node) {
   ListExpr
   QueryProcessor::ListOfTree( void* node, ostream& os )
   {
-  /*
-  Represents an operator tree through a list expression. Used for testing.
-  Additonally more detailed information is printed to ~os~
+/*
+Represents an operator tree through a list expression. Used for testing.
+Additonally more detailed information is printed to ~os~
 
-  */
+*/
     OpTree tree = static_cast<OpTree>( node );
     ListExpr list = nl->TheEmptyList();
     ListExpr last = nl->TheEmptyList();
@@ -2208,7 +2208,7 @@ function index.
         cerr << "Please contact the programmer of the used opertor to fix it"
              << endl;
         // constant value given as pointer
-	unsigned long ptr = nl->IntValue(nl->Second(nl->Second(expr)));
+        unsigned long ptr = nl->IntValue(nl->Second(nl->Second(expr)));
         value = SetWord( ptr);
         isPointer = true;
         correct = true;
