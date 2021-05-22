@@ -25,27 +25,29 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 [1] SemanticTrajectory Algebra
 Author: Catherine Higgins
 
+1 Overview
 
+Briefly describe here what this algebra is for.
+
+2 Defines, includes, and constants
 
 */
+
 
 
 #include "SemanticTrajectoryAlgebra.h"
 #include "Algebra.h"
 #include "NestedList.h"
-// Used for importing and exporting the objects
 #include "QueryProcessor.h"
 #include "StandardTypes.h"
-// This is needed for CcInt, CcReal
 #include "Attribute.h"
 #include "Symbols.h"
 #include "ListUtils.h"
-// Needed for ListExpr functions
 #include "Algebras/Relation-C++/RelationAlgebra.h"
-// use of tuple
 #include "Algebras/Rectangle/CellGrid.h"
 #include "Stream.h"
-// Needed to process streams
+
+
 extern NestedList* nl;
 extern QueryProcessor *qp;
 
@@ -54,414 +56,484 @@ using std::cout;
 using std::endl;
 namespace semtraj {
 
-  /*
+/*
 
-  Non-stardard constructor must be used when using Flobs or DbArrays
-  Initialize each type of Flob to 0
+3 Implementation of class SemanticTrajectory
 
-  */
+3.1 Constructors and Destructor
 
-  SemanticTrajectory::SemanticTrajectory(int dummy):
-    Attribute(true),
-    coordinates(0),
-    semantics(0),
-    semantics_Flob(0),
-    cells(0),
-    words(0),
-    words_Flob(0),
-    bbox(false)
+*/
+
+/*
+Non-stardard constructor must be used when using Flobs or DbArrays
+Initialize each type of Flob to 0
+
+*/
+
+SemanticTrajectory::SemanticTrajectory(int dummy):
+  Attribute(true),
+  coordinates(0),
+  semantics(0),
+  semantics_Flob(0),
+  cells(0),
+  words(0),
+  words_Flob(0),
+  bbox(false)
+{
+
+}
+
+SemanticTrajectory::
+SemanticTrajectory(const SemanticTrajectory& st) :
+  Attribute(st.IsDefined()),
+  coordinates(st.coordinates.Size()),
+  semantics(st.semantics.Size()),
+  semantics_Flob(st.semantics_Flob.getSize()),
+  cells(st.cells.Size()),
+  words(st.words.Size()),
+  words_Flob(st.words_Flob.getSize()),
+  bbox(st.bbox)
+{
+
+  bool success = false;
+  success = semantics.Append(st.semantics);
+  assert(success);
+  success = coordinates.Append(st.coordinates);
+  assert(success);
+  success = semantics_Flob.copyFrom(st.semantics_Flob);
+  assert(success);
+  success = cells.Append(st.cells);
+  assert(success);
+  success = words.Append(st.words);
+  success = words_Flob.copyFrom(st.words_Flob);
+  assert(success);
+  bbox = st.bbox;
+  // Maybe add here bbox is defined ?
+  // Is that part of the rectangle class
+
+}
+
+SemanticTrajectory::~SemanticTrajectory()
+{
+
+}
+
+SemanticTrajectory& SemanticTrajectory::
+operator=(const SemanticTrajectory& st)
+{
+  SetDefined(st.IsDefined());
+
+  bool success = false;
+  success = semantics.clean();
+  assert(success);
+  success = semantics.copyFrom(st.semantics);
+  assert(success);
+  success = coordinates.clean();
+  assert(success);
+  success = coordinates.copyFrom(st.coordinates);
+  assert(success);
+  success = semantics_Flob.clean();
+  assert(success);
+  success = semantics_Flob.copyFrom(st.semantics_Flob);
+  bbox = st.bbox;
+  success = cells.clean();
+  assert(success);
+  success = cells.Append(st.cells);
+  assert(success);
+  success = words.clean();
+  assert(success);
+  success = words.Append(st.words);
+  success = words_Flob.clean();
+  assert(success);
+  success = words_Flob.copyFrom(st.words_Flob);
+  return *this;
+}
+
+/*
+3.2 Functions implementing virtual
+function from class
+
+*/
+/*
+i == 0 return coordinates
+i == 1 return st\_TextData
+i == 2 return st\_TextFlob
+i == 3 returns cells
+i == 4 returns words
+
+*/
+Flob *SemanticTrajectory::GetFLOB(const int i)
+{
+  Flob* stFlob = 0;
+  if (i == 0) {
+    stFlob = &coordinates;
+  } else if (i == 1) {
+    stFlob = &semantics;
+  } else if (i == 2) {
+    stFlob = &semantics_Flob;
+  } else if (i == 3) {
+    stFlob = &cells;
+  } else if (i == 4) {
+    stFlob = &words;
+  } else if (i == 5)
   {
-
+    stFlob = &words_Flob;
   }
+  return stFlob;
+}
 
-  SemanticTrajectory::
-  SemanticTrajectory(const SemanticTrajectory& st) :
-    Attribute(st.IsDefined()),
-    coordinates(st.coordinates.Size()),
-    semantics(st.semantics.Size()),
-    semantics_Flob(st.semantics_Flob.getSize()),
-    cells(st.cells.Size()),
-    words(st.words.Size()),
-    words_Flob(st.words_Flob.getSize()),
-    bbox(st.bbox)
+
+void SemanticTrajectory::CopyFrom(
+  const Attribute* right)
+{
+
+  if(right != 0)
   {
-
-    bool success = false;
-    success = semantics.Append(st.semantics);
-    assert(success);
-    success = coordinates.Append(st.coordinates);
-    assert(success);
-    success = semantics_Flob.copyFrom(st.semantics_Flob);
-    assert(success);
-    success = cells.Append(st.cells);
-    assert(success);
-    success = words.Append(st.words);
-    success = words_Flob.copyFrom(st.words_Flob);
-    assert(success);
-    bbox = st.bbox;
-  }
-
-  SemanticTrajectory::~SemanticTrajectory()
-  {
-
-  }
-
-  SemanticTrajectory& SemanticTrajectory::
-  operator=(const SemanticTrajectory& st)
-  {
-    SetDefined(st.IsDefined());
-    bool success = false;
-    success = semantics.clean();
-    assert(success);
-    success = semantics.copyFrom(st.semantics);
-    assert(success);
-    success = coordinates.clean();
-    assert(success);
-    success = coordinates.copyFrom(st.coordinates);
-    assert(success);
-    success = semantics_Flob.clean();
-    assert(success);
-    success = semantics_Flob.copyFrom(st.semantics_Flob);
-    bbox = st.bbox;
-    success = cells.clean();
-    assert(success);
-    success = cells.Append(st.cells);
-    assert(success);
-    success = words.clean();
-    assert(success);
-    success = words.Append(st.words);
-    success = words_Flob.clean();
-    assert(success);
-    success = words_Flob.copyFrom(st.words_Flob);
-    return *this;
-  }
-
-
-  /*
-
-  i == 0 return coordinates
-  i == 1 return st\_TextData
-  i == 2 return st\_TextFlob
-  i == 3 returns cells
-  i == 4 returns words
-
-  */
-
-  Flob *SemanticTrajectory::GetFLOB(const int i)
-  {
-    Flob* stFlob = 0;
-    if (i == 0) {
-      stFlob = &coordinates;
-    } else if (i == 1) {
-      stFlob = &semantics;
-    } else if (i == 2) {
-      stFlob = &semantics_Flob;
-    } else if (i == 3) {
-      stFlob = &cells;
-    } else if (i == 4) {
-      stFlob = &words;
-    } else if (i == 5)
+    const SemanticTrajectory* st =
+    static_cast<
+    const SemanticTrajectory*>(right);
+    if(st != 0)
     {
-      stFlob = &words_Flob;
+      *this = *st;
     }
-    return stFlob;
   }
+}
 
-  /*
-  This takes the attribute we wish to CopyFrom
+SemanticTrajectory*
+SemanticTrajectory::Clone() const
+{
 
-  */
-  void SemanticTrajectory::CopyFrom(
-    const Attribute* right)
+  SemanticTrajectory *st =
+  new SemanticTrajectory(*this);
+  assert(st != 0);
+  return st;
+
+}
+
+/*
+3.3 The mandatory set of algebra support functions
+
+3.3.1 Out-function
+
+*/
+
+
+/*
+List represenation
+TODO UPDATE THIS INFO AS IT IS NOT UP TO DATE
+ ((id xl xr yl yr)...(id xl xr yl yr))
+Nested list of two: first is a 4 coordinates to represent a rectangle
+
+*/
+
+
+ListExpr
+SemanticTrajectory::Out(
+  ListExpr typeInfo,
+  Word value )
+{
+
+  // the addr pointer of value
+  SemanticTrajectory* st =
+  (SemanticTrajectory*)(value.addr);
+  if (!st->IsDefined()) {
+      return nl->SymbolAtom(Symbol::UNDEFINED());
+  }
+  if( st->IsEmpty() )
   {
+    return (nl->TheEmptyList());
+  }
+  else
+  {
+    std::string holdValue;
+    bool success = st->GetSemString(0, holdValue);
 
-    if(right != 0)
+    if (success == false) {
+      holdValue = "";
+    }
+    ListExpr result =
+      nl->OneElemList(
+        nl->ThreeElemList(
+          nl->RealAtom(st->GetCoordinate(0).x),
+          nl->RealAtom(st->GetCoordinate(0).y),
+          nl->TextAtom(holdValue)));
+    ListExpr last = result;
+
+    for( int i = 1; i < st->GetNumCoordinates(); i++ )
     {
-      const SemanticTrajectory* st =
-      static_cast<
-      const SemanticTrajectory*>(right);
-      if(st != 0)
-      {
-        *this = *st;
+      bool success = st->GetSemString(i, holdValue);
+      if (success == false) {
+        holdValue = "";
       }
+
+      last = nl->Append(last,
+               nl->ThreeElemList(
+               nl->RealAtom(st->GetCoordinate(i).x),
+               nl->RealAtom(st->GetCoordinate(i).y),
+               nl->TextAtom(holdValue)));
+
     }
-  }
 
-  SemanticTrajectory*
-  SemanticTrajectory::Clone() const
-  {
+    ListExpr textual = nl->Empty();
+    ListExpr spatial = nl->Empty();
 
-    SemanticTrajectory *st =
-    new SemanticTrajectory(*this);
-    assert(st != 0);
-    return st;
-
-  }
-  /*
-    List represenation
-    TODO UPDATE THIS INFO AS IT IS NOT UP TO DATE
-     ((id xl xr yl yr)...(id xl xr yl yr))
-    Nested list of two: first is a 4 coordinates
-    to represent a rectangle
-
-  */
-
-
-  ListExpr
-  SemanticTrajectory::Out(
-    ListExpr typeInfo,
-    Word value )
-  {
-
-    // the addr pointer of value
-    SemanticTrajectory* st =
-    (SemanticTrajectory*)(value.addr);
-    if (!st->IsDefined()) {
-        return nl->SymbolAtom(Symbol::UNDEFINED());
-    }
-    if( st->IsEmpty() )
+    /* Need to retrieve spatial information if any */
+    if (!st->IsEmptySpatialSum())
     {
-      return (nl->TheEmptyList());
+
+      spatial =
+          nl->OneElemList(
+            nl->ThreeElemList(
+              nl->IntAtom(st->GetCell(0).tripId),
+              nl->IntAtom(st->GetCell(0).origx),
+              nl->IntAtom(st->GetCell(0).origy)
+            )
+          );
+       ListExpr spatiallast = spatial;
+
+       for( int i = 1; i < st->GetNumCells(); i++ )
+       {
+         spatiallast = nl->Append(spatiallast,
+               nl->ThreeElemList(
+                 nl->IntAtom(st->GetCell(i).tripId),
+                 nl->IntAtom(st->GetCell(i).origx),
+                 nl->IntAtom(st->GetCell(i).origy)
+               )
+           );
+        }
+
     }
-    else
+
+    if (!st->IsEmptyTextualSum())
     {
+
       std::string holdValue;
-      bool success = st->GetSemString(0, holdValue);
+      bool success = st->GetStringSum(0, holdValue);
 
       if (success == false) {
         holdValue = "";
       }
-      ListExpr result =
-        nl->OneElemList(
-          nl->ThreeElemList(
-            nl->RealAtom(st->GetCoordinate(0).x),
-            nl->RealAtom(st->GetCoordinate(0).y),
-            nl->TextAtom(holdValue)));
-      ListExpr last = result;
-
-      for( int i = 1; i < st->GetNumCoordinates(); i++ )
-      {
-        bool success = st->GetSemString(i, holdValue);
-        if (success == false) {
-          holdValue = "";
-        }
-
-        last = nl->Append(last,
-                 nl->ThreeElemList(
-                 nl->RealAtom(st->GetCoordinate(i).x),
-                 nl->RealAtom(st->GetCoordinate(i).y),
-                 nl->TextAtom(holdValue)));
-
-      }
-
-      ListExpr textual = nl->Empty();
-      ListExpr spatial = nl->Empty();
-
-      /* Need to retrieve spatial information if any */
-      if (!st->IsEmptySpatialSum())
-      {
-
-        spatial =
-            nl->OneElemList(
-              nl->ThreeElemList(
-                nl->IntAtom(st->GetCell(0).tripId),
-                nl->IntAtom(st->GetCell(0).origx),
-                nl->IntAtom(st->GetCell(0).origy)
-              )
-            );
-         ListExpr spatiallast = spatial;
-
-         for( int i = 1; i < st->GetNumCells(); i++ )
-         {
-           spatiallast = nl->Append(spatiallast,
-                 nl->ThreeElemList(
-                   nl->IntAtom(st->GetCell(i).tripId),
-                   nl->IntAtom(st->GetCell(i).origx),
-                   nl->IntAtom(st->GetCell(i).origy)
-                 )
-             );
-          }
-
-      }
-
-      if (!st->IsEmptyTextualSum())
-      {
-
-        std::string holdValue;
-        bool success = st->GetStringSum(0, holdValue);
-
-        if (success == false) {
-          holdValue = "";
-        }
-        textual =
-            nl->OneElemList(
-              nl->ThreeElemList(
-                nl->IntAtom(st->GetWord(0).indexId),
-                nl->IntAtom(st->GetWord(0).count),
-                nl->TextAtom(holdValue)
-              )
-            );
-         ListExpr textuallast = textual;
-         for( int i = 1; i < st->GetNumWords(); i++ )
-         {
-
-           bool success = st->GetStringSum(i, holdValue);
-
-           if (success == false) {
-             holdValue = "";
-           }
-           textuallast = nl->Append(textuallast,
-                 nl->ThreeElemList(
-                   nl->IntAtom(st->GetWord(i).indexId),
-                   nl->IntAtom(st->GetWord(i).count),
-                   nl->TextAtom(holdValue)
-                 )
-             );
-          }
-
-      }
-
-      ListExpr final =
-        nl->FourElemList(
-          nl->FourElemList(
-            nl->RealAtom(st->bbox.getMinX()),
-            nl->RealAtom(st->bbox.getMinY()),
-            nl->RealAtom(st->bbox.getMaxX()),
-            nl->RealAtom(st->bbox.getMaxY())
-          ),
-          spatial,
-          textual,
-          result
+      textual =
+          nl->OneElemList(
+            nl->ThreeElemList(
+              nl->IntAtom(st->GetWord(0).indexId),
+              nl->IntAtom(st->GetWord(0).count),
+              nl->TextAtom(holdValue)
+            )
           );
+       ListExpr textuallast = textual;
+       for( int i = 1; i < st->GetNumWords(); i++ )
+       {
 
-      return final;
+         bool success = st->GetStringSum(i, holdValue);
+
+         if (success == false) {
+           holdValue = "";
+         }
+         textuallast = nl->Append(textuallast,
+               nl->ThreeElemList(
+                 nl->IntAtom(st->GetWord(i).indexId),
+                 nl->IntAtom(st->GetWord(i).count),
+                 nl->TextAtom(holdValue)
+               )
+           );
+        }
+
     }
-  }
 
-  /*
-    List represenation
-    Nested list of four:
+    ListExpr final =
+      nl->FourElemList(
+        nl->FourElemList(
+          nl->RealAtom(st->bbox.getMinX()),
+          nl->RealAtom(st->bbox.getMinY()),
+          nl->RealAtom(st->bbox.getMaxX()),
+          nl->RealAtom(st->bbox.getMaxY())
+        ),
+        spatial,
+        textual,
+        result
+        );
+
+    return final;
+  }
+}
+
+/*
+3.3.2 In-function
+
+*/
+
+/*
+  List represenation
+  Nested list of four:
     first nested list: Represents bounding box which is a 4 coordinates
-    to represent a rectangle
+     to represent a rectangle
     second nested list: Represents the spatial summary
     (this can be expected to be empty until operator is makespatialsum
-    is called)
+     is called)
     third nested list: Represents the textual summary
     (this can be expected to be empty until operator is called)
     fourth nested list: Represents the trajectory data
 
-  */
+*/
 
-  /* The bouding box get's calculated everytime */
+/* The bouding box get's calculated everytime */
 
-  Word
-  SemanticTrajectory::In(
-  const ListExpr typeInfo,
-  const ListExpr instance,
-  const int errorPos,
-  ListExpr& errorInfo,
-  bool& correct )
+Word
+SemanticTrajectory::In(
+const ListExpr typeInfo,
+const ListExpr instance,
+const int errorPos,
+ListExpr& errorInfo,
+bool& correct )
+{
+
+  Word word;
+  correct = false;
+  SemanticTrajectory* st = new SemanticTrajectory(0);
+  st->SetDefined(true);
+
+  // This is if list is undefined
+  //  ~ setDefined to false
+  if(listutils::isSymbolUndefined( instance ))
+  {
+    st->SetDefined(false);
+    correct = true;
+    word.addr = st;
+    return word;
+  }
+
+  if (nl != 0)
   {
 
-    Word word;
-    correct = false;
-    SemanticTrajectory* st = new SemanticTrajectory(0);
-    st->SetDefined(true);
-
-    // This is if list is undefined
-    //  ~ setDefined to false
-    if(listutils::isSymbolUndefined( instance ))
+    int nListLength = nl->ListLength(instance);
+    // If list has 4 arguments
+    // and undefined content
+    //~ setDefined to false
+    if (nListLength == 4 &&
+    nl->IsAtom(nl->Fourth(instance)) &&
+    nl->AtomType(nl->Fourth(instance)) == SymbolType &&
+    listutils::isSymbolUndefined(nl->Fourth(instance)))
     {
+      correct = true;
       st->SetDefined(false);
       correct = true;
       word.addr = st;
       return word;
     }
 
-    if (nl != 0)
+    if (nListLength == 4)
     {
-
-      int nListLength = nl->ListLength(instance);
-      // If list has 4 arguments
-      // and undefined content
-      //~ setDefined to false
-      if (nListLength == 4 &&
-      nl->IsAtom(nl->Fourth(instance)) &&
-      nl->AtomType(nl->Fourth(instance)) == SymbolType &&
-      listutils::isSymbolUndefined(nl->Fourth(instance)))
+      ListExpr first = nl->Empty();
+      ListExpr rest = nl->Fourth(instance);
+      double mind[2];
+      double maxd[2];
+      double c_x1;
+      double c_y1;
+      double c_x2;
+      double c_y2;
+      /* TODO Add check here to make sure
+      list rest is at least two points
+       to be valid semantic trajectory (maybe)*/
+      while (nl->IsEmpty(rest) == false)
       {
-        correct = true;
-        st->SetDefined(false);
-        correct = true;
-        word.addr = st;
-        return word;
+        first = nl->First( rest );
+        rest = nl->Rest( rest );
+
+        if( nl->ListLength(first) == 3 &&
+            nl->IsAtom(nl->First(first)) &&
+            nl->AtomType(nl->First(first))
+            == RealType &&
+            nl->IsAtom(nl->Second(first)) &&
+            nl->AtomType(nl->Second(first))
+            == RealType &&
+            nl->IsAtom(nl->Third(first)))
+        {
+          double x1 = nl->RealValue(nl->First(first));
+          double y1 = nl->RealValue(nl->Second(first));
+          Coordinate c(x1, y1);
+          st->AddCoordinate(c);
+          bool typeString =
+          nl->AtomType(nl->Third(first)) == StringType;
+          bool typeText =
+          nl->AtomType(nl->Third(first)) == TextType;
+          std::string stringValue;
+          if (typeString == true)
+          {
+            stringValue =
+            nl->StringValue(nl->Third(first));
+          }
+          if (typeText == true)
+          {
+            stringValue =
+            nl->TextValue(nl->Third(first));
+          }
+
+          st->AddSemString(stringValue);
+
+          /* Set bounding box here */
+          if (st->GetNumCoordinates() == 1)
+          {
+            c_x1 = x1;
+            c_y1 = y1;
+            c_x2 = x1;
+            c_y2 = y1;
+          }
+          else
+          {
+            c_x1 = std::min(c_x1, x1);
+            c_y1 = std::min(c_y1, y1);
+            c_x2 = std::max(c_x2, x1);
+            c_y2 = std::max(c_y2, y1);
+
+          }
+        }
+        else
+        {
+          correct = false;
+          delete st;
+          return SetWord( Address(0) );
+        }
+        if (c_x1 < c_x2 && c_y1 < c_y2)
+        {
+          mind[0] = c_x1;
+          mind[1] = c_y1;
+          maxd[0] = c_x2;
+          maxd[1] = c_y2;
+          st->bbox.Set(true, mind, maxd);
+        }
       }
-
-      if (nListLength == 4)
+      /* TODO add extra checks and conditions */
+      /* Extract info for spatial summary if any */
+      if (!listutils::isSymbolUndefined(
+        nl->Second(instance)))
       {
+
         ListExpr first = nl->Empty();
-        ListExpr rest = nl->Fourth(instance);
-        double mind[2];
-        double maxd[2];
-        double c_x1;
-        double c_y1;
-        double c_x2;
-        double c_y2;
-        /* TODO Add check here to make sure
-        list rest is at least two points
-         to be valid semantic trajectory (maybe)*/
+        ListExpr rest = nl->Second(instance);
+
         while (nl->IsEmpty(rest) == false)
         {
           first = nl->First( rest );
           rest = nl->Rest( rest );
-
           if( nl->ListLength(first) == 3 &&
               nl->IsAtom(nl->First(first)) &&
               nl->AtomType(nl->First(first))
-              == RealType &&
+              == IntType &&
               nl->IsAtom(nl->Second(first)) &&
               nl->AtomType(nl->Second(first))
-              == RealType &&
-              nl->IsAtom(nl->Third(first)))
+              == IntType &&
+              nl->IsAtom(nl->Third(first)) &&
+              nl->AtomType(nl->Third(first))
+              == IntType
+            )
           {
-            double x1 = nl->RealValue(nl->First(first));
-            double y1 = nl->RealValue(nl->Second(first));
-            Coordinate c(x1, y1);
-            st->AddCoordinate(c);
-            bool typeString =
-            nl->AtomType(nl->Third(first)) == StringType;
-            bool typeText =
-            nl->AtomType(nl->Third(first)) == TextType;
-            std::string stringValue;
-            if (typeString == true)
-            {
-              stringValue =
-              nl->StringValue(nl->Third(first));
-            }
-            if (typeText == true)
-            {
-              stringValue =
-              nl->TextValue(nl->Third(first));
-            }
+            Cell c(nl->IntValue(nl->First(first)),
+                   nl->IntValue(nl->Second(first)),
+                   nl->IntValue(nl->Third(first))
+                 );
+            st->AddCell(c);
 
-            st->AddSemString(stringValue);
-
-            /* Set bounding box here */
-            if (st->GetNumCoordinates() == 1)
-            {
-              c_x1 = x1;
-              c_y1 = y1;
-              c_x2 = x1;
-              c_y2 = y1;
-            }
-            else
-            {
-              c_x1 = std::min(c_x1, x1);
-              c_y1 = std::min(c_y1, y1);
-              c_x2 = std::max(c_x2, x1);
-              c_y2 = std::max(c_y2, y1);
-
-            }
           }
           else
           {
@@ -469,762 +541,1304 @@ namespace semtraj {
             delete st;
             return SetWord( Address(0) );
           }
-          if (c_x1 < c_x2 && c_y1 < c_y2)
+
+
+        } // end of while
+      } // end of if
+      /* TODO add extra checks and conditions */
+      /* Extract info for textual summary if any */
+      if (!listutils::isSymbolUndefined(nl->Third(instance)))
+      {
+        ListExpr first = nl->Empty();
+        ListExpr rest = nl->Third(instance);
+
+        while (nl->IsEmpty(rest) == false)
+        {
+          first = nl->First( rest );
+          rest = nl->Rest( rest );
+          if( nl->ListLength(first) == 3 &&
+              nl->IsAtom(nl->First(first)) &&
+              nl->AtomType(nl->First(first))
+              == IntType &&
+              nl->IsAtom(nl->Second(first)) &&
+              nl->AtomType(nl->Second(first))
+              == IntType && nl->IsAtom(nl->Third(first))
+            )
           {
-            mind[0] = c_x1;
-            mind[1] = c_y1;
-            maxd[0] = c_x2;
-            maxd[1] = c_y2;
-            st->bbox.Set(true, mind, maxd);
+
+            bool typeString =
+            nl->AtomType(nl->Third(first)) == StringType;
+
+            std::string stringValue;
+            if (typeString == true)
+            {
+              stringValue =
+              nl->StringValue(nl->Third(first));
+            } else {
+              stringValue =
+              nl->TextValue(nl->Third(first));
+            }
+
+            st->AddStringSum(stringValue,
+              nl->IntValue(nl->First(first)),
+              nl->IntValue(nl->Second(first)));
+
+          }
+          else
+          {
+            correct = false;
+            delete st;
+            return SetWord( Address(0) );
           }
         }
-        /* TODO add extra checks and conditions */
-        /* Extract info for spatial summary if any */
-        if (!listutils::isSymbolUndefined(
-          nl->Second(instance)))
-        {
+      }
 
-          ListExpr first = nl->Empty();
-          ListExpr rest = nl->Second(instance);
+    } // end of if n ===4
+    correct = true;
+    return SetWord(st);
+  } // end of n != 0
 
-          while (nl->IsEmpty(rest) == false)
-          {
-            first = nl->First( rest );
-            rest = nl->Rest( rest );
-            if( nl->ListLength(first) == 3 &&
-                nl->IsAtom(nl->First(first)) &&
-                nl->AtomType(nl->First(first))
-                == IntType &&
-                nl->IsAtom(nl->Second(first)) &&
-                nl->AtomType(nl->Second(first))
-                == IntType &&
-                nl->IsAtom(nl->Third(first)) &&
-                nl->AtomType(nl->Third(first))
-                == IntType
-              )
-            {
-              Cell c(nl->IntValue(nl->First(first)),
-                     nl->IntValue(nl->Second(first)),
-                     nl->IntValue(nl->Third(first))
-                   );
-              st->AddCell(c);
-
-            }
-            else
-            {
-              correct = false;
-              delete st;
-              return SetWord( Address(0) );
-            }
-
-
-          } // end of while
-        } // end of if
-        /* TODO add extra checks and conditions */
-        /* Extract info for textual summary if any */
-        if (!listutils::isSymbolUndefined(nl->Third(instance)))
-        {
-          ListExpr first = nl->Empty();
-          ListExpr rest = nl->Third(instance);
-
-          while (nl->IsEmpty(rest) == false)
-          {
-            first = nl->First( rest );
-            rest = nl->Rest( rest );
-            if( nl->ListLength(first) == 3 &&
-                nl->IsAtom(nl->First(first)) &&
-                nl->AtomType(nl->First(first))
-                == IntType &&
-                nl->IsAtom(nl->Second(first)) &&
-                nl->AtomType(nl->Second(first))
-                == IntType && nl->IsAtom(nl->Third(first))
-              )
-            {
-
-              bool typeString =
-              nl->AtomType(nl->Third(first)) == StringType;
-
-              std::string stringValue;
-              if (typeString == true)
-              {
-                stringValue =
-                nl->StringValue(nl->Third(first));
-              } else {
-                stringValue =
-                nl->TextValue(nl->Third(first));
-              }
-
-              st->AddStringSum(stringValue,
-                nl->IntValue(nl->First(first)),
-                nl->IntValue(nl->Second(first)));
-
-            }
-            else
-            {
-              correct = false;
-              delete st;
-              return SetWord( Address(0) );
-            }
-          }
-        }
-
-      } // end of if n ===4
-      correct = true;
-      return SetWord(st);
-    } // end of n != 0
-
-    return word;
-  }
-
-
-  /*
-  3.3
-  Function Describing the Signature
-  of the Type Constructor
-  TODO update when textual sum is added
-
-  */
-  ListExpr
-  SemanticTrajectory::Property()
-  {
-    return
-    (nl->TwoElemList(
-       nl->FiveElemList(
-          nl->StringAtom("Signature"),
-          nl->StringAtom("Example Type List"),
-          nl->StringAtom("List Rep"),
-          nl->StringAtom("Example List"),
-          nl->StringAtom("Remarks")),
-       nl->FiveElemList(nl->StringAtom(
-          "->" + Kind::DATA()
-          ),
-          nl->StringAtom(
-          SemanticTrajectory::BasicType()
-          ),
-          nl->TextAtom(
-            "((minx miny maxx maxy)"
-          "((tripid xl1 xr1 yl1 yr1)"
-          "(tripid xl xr yl yr))"
-          "()(<x1> <y1> <Text1>)..."
-          "(<xn> <yn> <Text2>))"),
-          nl->TextAtom(
-          "((3.2 15.4 6.34 15.4)"
-          "()()"
-          "((3.2 15.4 text1)"
-          "(6.34 20.8 text2)))"),
-          nl->TextAtom(
-          "x- and y-coordinates"
-          " must be "
-          "of type real."))));
-  }
-
-  /*
-  3.4 Kind Checking Function
-
-  This function checks whether the type constructor is applied correctly.
-  Since type constructor ~semanticTrajectory~ does
-  not have arguments, this is trivial.
-
-  */
-  bool
-  SemanticTrajectory::KindCheck(
-    ListExpr type,
-    ListExpr& errorInfo )
-  {
-    return (nl->IsEqual(
-      type,
-      SemanticTrajectory::BasicType() ));
-  }
-
-  /*
-
-  3.5 ~Create~-function
-
-  */
-  Word SemanticTrajectory::Create(
-    const ListExpr typeInfo)
-  {
-    SemanticTrajectory* st = new SemanticTrajectory(0);
-    return (SetWord(st));
-  }
-
-
-
-
-  void SemanticTrajectory::Destroy()
-  {
-
-    semantics.Destroy();
-    semantics_Flob.destroy();
-    coordinates.Destroy();
-    cells.Destroy();
-    words.Destroy();
-    words_Flob.destroy();
-  }
-
-  /*
-  3.6 ~Delete~-function
-
-  */
-  void SemanticTrajectory::Delete(
-    const ListExpr typeInfo,
-    Word& w)
-  {
-
-    SemanticTrajectory* st =
-    (SemanticTrajectory*)w.addr;
-    st->Destroy();
-    delete st;
-  }
-
-  /*
-  3.6 ~Open~-function
-
-  */
-  bool
-  SemanticTrajectory::Open(
-               SmiRecord& valueRecord,
-               size_t& offset,
-               const ListExpr typeInfo,
-               Word& value )
-  {
-
-    SemanticTrajectory *st =
-    (SemanticTrajectory*)Attribute::Open(
-      valueRecord, offset, typeInfo );
-    value.setAddr( st );
-
-    return true;
-  }
-
-  /*
-  3.7 ~Save~-function
-
-  */
-  bool
-  SemanticTrajectory::Save( SmiRecord& valueRecord,
-               size_t& offset,
-               const ListExpr typeInfo,
-               Word& value )
-  {
-
-    SemanticTrajectory *st =
-    (SemanticTrajectory *)value.addr;
-    Attribute::Save( valueRecord, offset, typeInfo, st );
-    return true;
-  }
-
-  /*
-  3.8 ~Close~-function
-
-  */
-  void SemanticTrajectory::Close(
-    const ListExpr typeInfo,
-    Word& w)
-  {
-
-    SemanticTrajectory* st = (SemanticTrajectory*)w.addr;
-    delete st;
-  }
-
-  Word SemanticTrajectory::Clone(
-    const ListExpr typeInfo,
-    const Word& rWord)
-  {
-
-    Word word;
-    SemanticTrajectory* pSemanticTrajectory =
-    static_cast<SemanticTrajectory*>(rWord.addr);
-    if (pSemanticTrajectory != 0)
-    {
-      word.addr =
-      new SemanticTrajectory(*pSemanticTrajectory);
-      assert(word.addr != 0);
-    }
-    return word;
-  }
-
-
-  /*
-  3.9 ~SizeOf~-function
-
-  */
-  int SemanticTrajectory::SizeOfObj()
-  {
-    return sizeof(SemanticTrajectory);
-  }
-
-  /*
-  3.10 ~Cast~-function
-
-  */
-  void* SemanticTrajectory::Cast(void* addr)
-  {
-
-    return (new (addr) SemanticTrajectory);
-  }
+  return word;
+}
 
 /*
-Add a coordinate to the DbArray
+3.3.3 Property function
 
 */
+ListExpr
+SemanticTrajectory::Property()
+{
+   return
+   (nl->TwoElemList(
+      nl->FiveElemList(
+         nl->StringAtom("Signature"),
+         nl->StringAtom("Example Type List"),
+         nl->StringAtom("List Rep"),
+         nl->StringAtom("Example List"),
+         nl->StringAtom("Remarks")),
+      nl->FiveElemList(nl->StringAtom(
+         "->" + Kind::DATA()
+         ),
+         nl->StringAtom(
+         SemanticTrajectory::BasicType()
+         ),
+         nl->TextAtom(
+           "((minx miny maxx maxy)"
+         "((tripid xl1 xr1 yl1 yr1)"
+         "(tripid xl xr yl yr))"
+         "()(<x1> <y1> <Text1>)..."
+         "(<xn> <yn> <Text2>))"),
+         nl->TextAtom(
+         "((3.2 15.4 6.34 15.4)"
+         "()()"
+         "((3.2 15.4 text1)"
+         "(6.34 20.8 text2)))"),
+         nl->TextAtom(
+         "x- and y-coordinates"
+         " must be "
+         "of type real."))));
+ }
+
+/*
+3.3.4 Kind Checking Function
+
+*/
+bool
+SemanticTrajectory::KindCheck(
+   ListExpr type,
+   ListExpr& errorInfo )
+{
+   return (nl->IsEqual(
+     type,
+     SemanticTrajectory::BasicType() ));
+ }
+
+/*
+3.3.5 ~Create~-function
+
+*/
+Word SemanticTrajectory::Create(
+   const ListExpr typeInfo)
+{
+   SemanticTrajectory* st = new SemanticTrajectory(0);
+   return (SetWord(st));
+ }
+
+/*
+3.3.6 ~Destroy~-function
+
+*/
+void SemanticTrajectory::Destroy()
+{
+
+   semantics.Destroy();
+   semantics_Flob.destroy();
+   coordinates.Destroy();
+   cells.Destroy();
+   words.Destroy();
+   words_Flob.destroy();
+ }
+
+/*
+3.3.7 ~Delete~-function
+
+*/
+void SemanticTrajectory::Delete(
+ const ListExpr typeInfo,
+ Word& w)
+{
+
+ SemanticTrajectory* st =
+ (SemanticTrajectory*)w.addr;
+ st->Destroy();
+ delete st;
+}
+
+/*
+3.3.8 ~Open~-function
+
+*/
+bool
+SemanticTrajectory::Open(
+            SmiRecord& valueRecord,
+            size_t& offset,
+            const ListExpr typeInfo,
+            Word& value )
+{
+
+ SemanticTrajectory *st =
+ (SemanticTrajectory*)Attribute::Open(
+   valueRecord, offset, typeInfo );
+ value.setAddr( st );
+
+ return true;
+}
+
+/*
+3.3.9 ~Save~-function
+
+*/
+bool
+SemanticTrajectory::Save( SmiRecord& valueRecord,
+            size_t& offset,
+            const ListExpr typeInfo,
+            Word& value )
+{
+
+ SemanticTrajectory *st =
+ (SemanticTrajectory *)value.addr;
+ Attribute::Save( valueRecord, offset, typeInfo, st );
+ return true;
+}
+
+/*
+3.3.10 ~Close~-function
+
+*/
+void SemanticTrajectory::Close(
+ const ListExpr typeInfo,
+ Word& w)
+{
+
+ SemanticTrajectory* st = (SemanticTrajectory*)w.addr;
+ delete st;
+}
+
+/*
+3.3.11 Clone funtion
+
+*/
+Word SemanticTrajectory::Clone(
+ const ListExpr typeInfo,
+ const Word& rWord)
+{
+
+ Word word;
+ SemanticTrajectory* pSemanticTrajectory =
+ static_cast<SemanticTrajectory*>(rWord.addr);
+ if (pSemanticTrajectory != 0)
+ {
+   word.addr =
+   new SemanticTrajectory(*pSemanticTrajectory);
+   assert(word.addr != 0);
+ }
+ return word;
+}
+
+/*
+3.3.12 ~SizeOf~-function
+
+*/
+int SemanticTrajectory::SizeOfObj()
+{
+ return sizeof(SemanticTrajectory);
+}
+
+/*
+3.3.13 ~Cast~-function
+
+*/
+void* SemanticTrajectory::Cast(void* addr)
+{
+
+ return (new (addr) SemanticTrajectory);
+}
+
+
+/*
+3.4 Implementation of new functions
+
+3.4.1 Add Coordinate function
+Responsible for adding a <x,y> Coordinate object
+to DbArray coordinates
+
+*/
+
 void SemanticTrajectory::
 AddCoordinate(
-  const Coordinate& c)
+ const Coordinate& c)
 {
-  coordinates.Append(c);
+ coordinates.Append(c);
 
 }
 
+/*
+3.4.2 GetCoordinate function
+TODO
+
+*/
 Coordinate SemanticTrajectory::
 GetCoordinate( int i ) const
 {
-  assert( 0 <= i && i < GetNumCoordinates() );
-  Coordinate c;
-  coordinates.Get( i, &c );
-  return c;
+ assert( 0 <= i && i < GetNumCoordinates() );
+ Coordinate c;
+ coordinates.Get( i, &c );
+ return c;
 }
 
 /*
-This function is responsible of adding a string to the Text
+3.4.3 Placeholder function
+TODO
 
 */
-
 bool SemanticTrajectory::
 AddSemString(const std::string& stString)
 {
 
-  if (!stString.empty())
-  {
-    TextData td;
-    td.Offset = semantics_Flob.getSize();
-    td.Length = stString.length();
-    bool success = semantics.Append(td);
-    assert(success);
-    semantics_Flob.write(
-      stString.c_str(),
-      td.Length,
-      td.Offset);
-    return true;
-  }
-  return false;
+ if (!stString.empty())
+ {
+   TextData td;
+   td.Offset = semantics_Flob.getSize();
+   td.Length = stString.length();
+   bool success = semantics.Append(td);
+   assert(success);
+   semantics_Flob.write(
+     stString.c_str(),
+     td.Length,
+     td.Offset);
+   return true;
+ }
+ return false;
 }
 
+/*
+3.4.4 Placeholder function
+TODO
+
+*/
 bool SemanticTrajectory::
 GetSemString(int index, std::string& rString) const
 {
 
-  bool success = false;
-  int numString = semantics.Size();
-  if (index < numString)
-  {
-      TextData textData;
-      success = semantics.Get(index, &textData);
-      if (success == true)
-      {
-        SmiSize bufferSize = textData.Length + 1;
-        char* pBuffer = new char[bufferSize];
-        if (pBuffer != 0)
-        {
-          memset(
-            pBuffer,
-            0,
-            bufferSize * sizeof(char));
-          success = semantics_Flob.read(
-            pBuffer,
-            textData.Length,
-            textData.Offset);
-        }
-        if(success == true)
-        {
-          rString = pBuffer;
-        }
-        delete [] pBuffer;
-      }
-  }
-  return success;
+ bool success = false;
+ int numString = semantics.Size();
+ if (index < numString)
+ {
+     TextData textData;
+     success = semantics.Get(index, &textData);
+     if (success == true)
+     {
+       SmiSize bufferSize = textData.Length + 1;
+       char* pBuffer = new char[bufferSize];
+       if (pBuffer != 0)
+       {
+         memset(
+           pBuffer,
+           0,
+           bufferSize * sizeof(char));
+         success = semantics_Flob.read(
+           pBuffer,
+           textData.Length,
+           textData.Offset);
+       }
+       if(success == true)
+       {
+         rString = pBuffer;
+       }
+       delete [] pBuffer;
+     }
+ }
+ return success;
 }
 
+/*
+3.4.5 Placeholder function
+TODO
+
+*/
 bool SemanticTrajectory::AddStringSum(
-  const std::string& stString, int id, int count)
+ const std::string& stString, int id, int count)
 {
-  if (!stString.empty())
-  {
-    WordST td;
-    td.Offset = words_Flob.getSize();
-    td.Length = stString.length();
-    td.indexId = id;
-    td.count = count;
-    bool success = words.Append(td);
-    assert(success);
-    words_Flob.write(
-      stString.c_str(),
-      td.Length,
-      td.Offset);
-    return true;
-  }
-  return false;
+ if (!stString.empty())
+ {
+   WordST td;
+   td.Offset = words_Flob.getSize();
+   td.Length = stString.length();
+   td.indexId = id;
+   td.count = count;
+   bool success = words.Append(td);
+   assert(success);
+   words_Flob.write(
+     stString.c_str(),
+     td.Length,
+     td.Offset);
+   return true;
+ }
+ return false;
 }
 
+/*
+3.4.6 Placeholder function
+TODO
+
+*/
 bool SemanticTrajectory::
 GetStringSum(int index, std::string& rString) const
 {
 
-  bool success = false;
-  int numString = words.Size();
-  if (index < numString)
-  {
-      WordST textData;
-      success = words.Get(index, &textData);
-      if (success == true)
-      {
-        SmiSize bufferSize = textData.Length + 1;
-        char* pBuffer = new char[bufferSize];
-        if (pBuffer != 0)
-        {
-          memset(
-            pBuffer,
-            0,
-            bufferSize * sizeof(char));
-            success = words_Flob.read(
-            pBuffer,
-            textData.Length,
-            textData.Offset);
-        }
-        if(success == true)
-        {
-          rString = pBuffer;
-        }
-        delete [] pBuffer;
-      }
-  }
-  return success;
+ bool success = false;
+ int numString = words.Size();
+ if (index < numString)
+ {
+     WordST textData;
+     success = words.Get(index, &textData);
+     if (success == true)
+     {
+       SmiSize bufferSize = textData.Length + 1;
+       char* pBuffer = new char[bufferSize];
+       if (pBuffer != 0)
+       {
+         memset(
+           pBuffer,
+           0,
+           bufferSize * sizeof(char));
+           success = words_Flob.read(
+           pBuffer,
+           textData.Length,
+           textData.Offset);
+       }
+       if(success == true)
+       {
+         rString = pBuffer;
+       }
+       delete [] pBuffer;
+     }
+ }
+ return success;
 }
 
+/*
+3.4.7 Placeholder function
+TODO
+
+*/
 std::list<std::string> SemanticTrajectory::GetStringArray() const
 {
 
 
-  std::list<std::string> stringArray;
+ std::list<std::string> stringArray;
 
-  int nStrings = semantics.Size();
-  bool bOK = false;
-  std::string holdString;
+ int nStrings = semantics.Size();
+ bool bOK = false;
+ std::string holdString;
 
-  for(int i = 0; i < nStrings; i++)
-  {
-    bOK = GetSemString(i, holdString);
-    stringutils::StringTokenizer parse(holdString, " ");
-    if (bOK == true)
-    {
-      while(parse.hasNextToken())
-      {
-        std::string eval = parse.nextToken();
-        stringutils::trim(eval);
-        stringArray.push_back(eval);
-       }
-    }
-  }
-  stringArray.sort(SemanticTrajectory::compare_nocase);
-  return stringArray;
+ for(int i = 0; i < nStrings; i++)
+ {
+   bOK = GetSemString(i, holdString);
+   stringutils::StringTokenizer parse(holdString, " ");
+   if (bOK == true)
+   {
+     while(parse.hasNextToken())
+     {
+       std::string eval = parse.nextToken();
+       stringutils::trim(eval);
+       stringArray.push_back(eval);
+      }
+   }
+ }
+ stringArray.sort(SemanticTrajectory::compare_nocase);
+ return stringArray;
 }
 
 
-
-
-
-
 /*
-Add a cell to the DbArray
+3.4.8 Placeholder function
+TODO
 
 */
 void SemanticTrajectory::
 AddCell(const Cell& c)
 {
-  cells.Append(c);
+ cells.Append(c);
 }
 
+/*
+3.4.9 Placeholder function
+TODO
+
+*/
 DbArray<Cell> SemanticTrajectory::
 GetCellList() const
 {
-  assert(IsDefined());
-  return cells;
+ assert(IsDefined());
+ return cells;
 }
 
+/*
+3.4.9 Placeholder function
+TODO
+
+*/
 DbArray<WordST> SemanticTrajectory::
 GetTextSumList() const
 {
-  assert(IsDefined());
-  return words;
+ assert(IsDefined());
+ return words;
 }
 
 
-
-
 /*
-
-Operator helper functions
+3.5 Operator helper functions
 
 */
 
 double SemanticTrajectory::Relevance(int i,
-  SemanticTrajectory& st,
-  double diag, double alpha)
+ SemanticTrajectory& st,
+ double diag, double alpha)
 {
-  // Return the max of all return similarity equation
+ // Return the max of all return similarity equation
 
-  double max = -999999; /*TODO use a max varialble */
-  int numOfCoor2 = st.GetNumCoordinates();
-  for (int y = 0; y <numOfCoor2; y++)
-  {
-    double temp = Sim(i,y,st, diag, alpha);
+ double max = -999999; /*TODO use a max varialble */
+ int numOfCoor2 = st.GetNumCoordinates();
+ for (int y = 0; y <numOfCoor2; y++)
+ {
+   double temp = Sim(i,y,st, diag, alpha);
 
-    if (temp > max)
-    {
-      max = temp;
-    }
-  }
+   if (temp > max)
+   {
+     max = temp;
+   }
+ }
 
-  return max;
+ return max;
 }
-
-
-double SemanticTrajectory::Sim(int i, int y,
-  SemanticTrajectory& st,
-  double diag, double alpha)
-{
-  double dist = SpatialDist(i, y, st);
-
-  double normalizedscore = 1 - (double)(dist/diag);
-  // It's inversly proportional to the
-  //  distance so we need to substract from 1
-  double result = alpha * normalizedscore
-  + double (1 - alpha) * TextualScore(i, y, st);
-  return result;
-}
-
-double SemanticTrajectory::GetDiagonal(
-  Rectangle<2>& rec)
-{
-  double x1 = rec.getMinX();
-  double y1 = rec.getMinY();
-  double x2 = rec.getMaxX();
-  double y2 = rec.getMaxY();
-  double result = sqrt(pow((x1 - x2),2)
-  + pow((y1 - y2),2));
-  return result;
-}
-
-double GetDiag(
-  Rectangle<2>& rec)
-{
-  double x1 = rec.getMinX();
-  double y1 = rec.getMinY();
-  double x2 = rec.getMaxX();
-  double y2 = rec.getMaxY();
-  double result = sqrt(pow((x1 - x2),2)
-  + pow((y1 - y2),2));
-  return result;
-}
-
-double SemanticTrajectory::SpatialDist(int i, int y,
-  SemanticTrajectory& st)
-{
-  double x1 = GetCoordinate(i).x;
-  double y1 = GetCoordinate(i).y;
-  double x2 = st.GetCoordinate(y).x;
-  double y2 = st.GetCoordinate(y).y;
-
-  double result =
-  sqrt(pow((x1 - x2),2)
-  + pow((y1 - y2),2));
-  return result;
-}
-
-
-double SemanticTrajectory::TextualScore(int i, int y,
-  SemanticTrajectory& st)
-{
-
-    bool success = false;
-    std::string s1;
-    success = GetSemString(i, s1);
-    assert(success);
-    std::string s2;
-    success = st.GetSemString(y, s2);
-    assert(success);
-    if (s1.length() > 0 && s2.length() > 0)
-    {
-
-      int numMatches = 0;
-      stringutils::StringTokenizer st1(s1, " ");
-      stringutils::StringTokenizer st2(s2, " ");
-      int numToken1 = 0;
-      int numToken2 = 0;
-      std::string eval = "";
-      std::string eval2 = "";
-      bool done1 = false;
-      bool done2 = false;
-      if (st1.hasNextToken())
-      {
-        eval = st1.nextToken();
-        numToken1++;
-      } else {
-        done1 = true;
-      }
-      if (st2.hasNextToken())
-      {
-        eval2 = st2.nextToken();
-        numToken2++;
-      } else {
-        done2 = true;
-      }
-      std::string prev_str = "";
-      int duplicate = 0;
-      while(!done1 || !done2)
-      {
-        if((eval).compare(eval2) == 0)
-        {
-          if ((prev_str).compare(eval) != 0)
-          {
-            numMatches++;
-          } else {
-            duplicate = duplicate + 2;
-          }
-          prev_str = eval;
-
-          if (st1.hasNextToken())
-          {
-            eval = st1.nextToken();
-            numToken1++;
-          } else {
-            done1 = true;
-          }
-          if (st2.hasNextToken())
-          {
-            eval2 = st2.nextToken();
-            numToken2++;
-          } else {
-            done2 = true;
-          }
-        }
-
-        else if ((eval).compare(eval2) < 0) {
-          if ((prev_str).compare(eval) == 0 || (prev_str).compare(eval2) == 0)
-          {
-            duplicate++;
-          } else {
-            prev_str = "";
-          }
-          if (st1.hasNextToken())
-          {
-            eval = st1.nextToken();
-            numToken1++;
-          } else
-          {
-            done1 = true;
-            if (st2.hasNextToken())
-            {
-              eval2 = st2.nextToken();
-              numToken2++;
-            } else { done2 = true;}
-          }
-
-        } else {
-          if ((prev_str).compare(eval) == 0 || (prev_str).compare(eval2) == 0)
-          {
-            duplicate++;
-          } else {
-            prev_str = "";
-          }
-          if (st2.hasNextToken())
-          {
-            eval2 = st2.nextToken();
-            numToken2++;
-          }
-          else
-          {
-            done2 = true;
-            if (st1.hasNextToken())
-            {
-              eval = st1.nextToken();
-              numToken1++;
-            } else { done1 = true;}
-          }
-        }
-      }
-
-      if (numMatches == 0.0)
-      {
-        return 0.0;
-      }
-      double uniquewords = (double)
-      (numToken2 + numToken1 - duplicate - numMatches);
-      double result = (double) numMatches / uniquewords;
-      return result;
-    }
-
-
-    return 0.0;
-}
-
-double SemanticTrajectory::Similarity(
-  SemanticTrajectory& st,
-  double diag,
-  double alpha)
-{
-
-  int numCoordinates1 = GetNumCoordinates();
-  double sumOfRelevance1 = 0;
-  double leftTotal = 0;
-
-  for (int i = 0; i < numCoordinates1; i++)
-  {
-    sumOfRelevance1 =
-    sumOfRelevance1 + Relevance(i, st, diag, alpha);
-  }
-
-  leftTotal =
-  sumOfRelevance1 / (double) numCoordinates1;
-
-  int numCoordinates2 = st.GetNumCoordinates();
-  double sumOfRelevance2 = 0;
-  double rightTotal = 0;
-  for (int i = 0; i < numCoordinates2; i++)
-  {
-    sumOfRelevance2 =
-    sumOfRelevance2 + st.Relevance(
-    i, *this, diag, alpha);
-  }
-  rightTotal =
-  sumOfRelevance2 / (double) numCoordinates2;
-
-
-  double result  = rightTotal + leftTotal;
-
-  return result;
-}
-
-
-
 
 /*
-Batch Functions
+3.5.2 Placename Function
+TODO
 
 */
+double SemanticTrajectory::Sim(int i, int y,
+ SemanticTrajectory& st,
+ double diag, double alpha)
+{
+ double dist = SpatialDist(i, y, st);
+
+ double normalizedscore = 1 - (double)(dist/diag);
+ // It's inversly proportional to the
+ //  distance so we need to substract from 1
+ double result = alpha * normalizedscore
+ + double (1 - alpha) * TextualScore(i, y, st);
+ return result;
+}
+
+/*
+3.5.3 Placename Function
+TODO
+
+*/
+double SemanticTrajectory::GetDiagonal(
+ Rectangle<2>& rec)
+{
+ double x1 = rec.getMinX();
+ double y1 = rec.getMinY();
+ double x2 = rec.getMaxX();
+ double y2 = rec.getMaxY();
+ double result = sqrt(pow((x1 - x2),2)
+ + pow((y1 - y2),2));
+ return result;
+}
+
+/*
+3.5.4 Placename Function
+TODO
+
+*/
+double GetDiag(
+ Rectangle<2>& rec)
+{
+ double x1 = rec.getMinX();
+ double y1 = rec.getMinY();
+ double x2 = rec.getMaxX();
+ double y2 = rec.getMaxY();
+ double result = sqrt(pow((x1 - x2),2)
+ + pow((y1 - y2),2));
+ return result;
+}
+
+/*
+3.5.5 Placename Function
+TODO
+
+*/
+double SemanticTrajectory::SpatialDist(int i, int y,
+ SemanticTrajectory& st)
+{
+ double x1 = GetCoordinate(i).x;
+ double y1 = GetCoordinate(i).y;
+ double x2 = st.GetCoordinate(y).x;
+ double y2 = st.GetCoordinate(y).y;
+
+ double result =
+ sqrt(pow((x1 - x2),2)
+ + pow((y1 - y2),2));
+ return result;
+}
+
+/*
+3.5.6 Placename Function
+TODO
+
+*/
+double SemanticTrajectory::TextualScore(int i, int y,
+ SemanticTrajectory& st)
+{
+
+   bool success = false;
+   std::string s1;
+   success = GetSemString(i, s1);
+   assert(success);
+   std::string s2;
+   success = st.GetSemString(y, s2);
+   assert(success);
+   if (s1.length() > 0 && s2.length() > 0)
+   {
+
+     int numMatches = 0;
+     stringutils::StringTokenizer st1(s1, " ");
+     stringutils::StringTokenizer st2(s2, " ");
+     int numToken1 = 0;
+     int numToken2 = 0;
+     std::string eval = "";
+     std::string eval2 = "";
+     bool done1 = false;
+     bool done2 = false;
+     if (st1.hasNextToken())
+     {
+       eval = st1.nextToken();
+       numToken1++;
+     } else {
+       done1 = true;
+     }
+     if (st2.hasNextToken())
+     {
+       eval2 = st2.nextToken();
+       numToken2++;
+     } else {
+       done2 = true;
+     }
+     std::string prev_str = "";
+     int duplicate = 0;
+     while(!done1 || !done2)
+     {
+       if((eval).compare(eval2) == 0)
+       {
+         if ((prev_str).compare(eval) != 0)
+         {
+           numMatches++;
+         } else {
+           duplicate = duplicate + 2;
+         }
+         prev_str = eval;
+
+         if (st1.hasNextToken())
+         {
+           eval = st1.nextToken();
+           numToken1++;
+         } else {
+           done1 = true;
+         }
+         if (st2.hasNextToken())
+         {
+           eval2 = st2.nextToken();
+           numToken2++;
+         } else {
+           done2 = true;
+         }
+       }
+
+       else if ((eval).compare(eval2) < 0) {
+         if ((prev_str).compare(eval) == 0 || (prev_str).compare(eval2) == 0)
+         {
+           duplicate++;
+         } else {
+           prev_str = "";
+         }
+         if (st1.hasNextToken())
+         {
+           eval = st1.nextToken();
+           numToken1++;
+         } else
+         {
+           done1 = true;
+           if (st2.hasNextToken())
+           {
+             eval2 = st2.nextToken();
+             numToken2++;
+           } else { done2 = true;}
+         }
+
+       } else {
+         if ((prev_str).compare(eval) == 0 || (prev_str).compare(eval2) == 0)
+         {
+           duplicate++;
+         } else {
+           prev_str = "";
+         }
+         if (st2.hasNextToken())
+         {
+           eval2 = st2.nextToken();
+           numToken2++;
+         }
+         else
+         {
+           done2 = true;
+           if (st1.hasNextToken())
+           {
+             eval = st1.nextToken();
+             numToken1++;
+           } else { done1 = true;}
+         }
+       }
+     }
+
+     if (numMatches == 0.0)
+     {
+       return 0.0;
+     }
+     double uniquewords = (double)
+     (numToken2 + numToken1 - duplicate - numMatches);
+     double result = (double) numMatches / uniquewords;
+     return result;
+   }
+
+
+   return 0.0;
+}
+
+/*
+3.5.7 Placename Function
+TODO
+
+*/
+double SemanticTrajectory::Similarity(
+ SemanticTrajectory& st,
+ double diag,
+ double alpha)
+{
+
+ int numCoordinates1 = GetNumCoordinates();
+ double sumOfRelevance1 = 0;
+ double leftTotal = 0;
+
+ for (int i = 0; i < numCoordinates1; i++)
+ {
+   sumOfRelevance1 =
+   sumOfRelevance1 + Relevance(i, st, diag, alpha);
+ }
+
+ leftTotal =
+ sumOfRelevance1 / (double) numCoordinates1;
+
+ int numCoordinates2 = st.GetNumCoordinates();
+ double sumOfRelevance2 = 0;
+ double rightTotal = 0;
+ for (int i = 0; i < numCoordinates2; i++)
+ {
+   sumOfRelevance2 =
+   sumOfRelevance2 + st.Relevance(
+   i, *this, diag, alpha);
+ }
+ rightTotal =
+ sumOfRelevance2 / (double) numCoordinates2;
+
+
+ double result  = rightTotal + leftTotal;
+
+ return result;
+}
+/*
+3.5.8 Placename Function
+TODO
+
+*/
+double SemanticTrajectory::textualScoreTT(SemanticTrajectory& st2)
+{
+  std::vector<std::string*>** hashTable;
+  std::vector<std::string*>** hashTable2;
+  const std::vector<std::string*>* bucket;
+  std::hash<std::string> str_hash;
+  unsigned int bucketnum = 100;
+
+
+  hashTable = new std::vector<std::string*>*[bucketnum];
+  for (unsigned int i = 0; i < bucketnum; i++)
+  {
+    hashTable[i] = 0;
+  }
+
+  hashTable2 = new std::vector<std::string*>*[bucketnum];
+  for (unsigned int i = 0; i < bucketnum; i++)
+  {
+    hashTable2[i] = 0;
+  }
+  for (int i = 0; i < GetNumWords(); i++)
+  {
+   std::string holdValue = "";
+   bool success = GetStringSum(i, holdValue);
+   if(success)
+   {
+
+     size_t hash = str_hash(holdValue) % bucketnum;
+
+     if (!hashTable[hash])
+     {
+       hashTable[hash] = new std::vector<std::string*>();
+     }
+     std::string* stn = new std::string(holdValue);
+     hashTable[hash]->push_back(stn);
+   }
+
+  }
+
+  for (int i = 0; i < st2.GetNumWords(); i++)
+  {
+   std::string holdValue = "";
+   bool success = st2.GetStringSum(i, holdValue);
+   if(success)
+   {
+
+     size_t hash = str_hash(holdValue) % bucketnum;
+
+     if (!hashTable2[hash])
+     {
+       hashTable2[hash] = new std::vector<std::string*>();
+     }
+     std::string* stn = new std::string(holdValue);
+     hashTable2[hash]->push_back(stn);
+   }
+
+  }
+  double TSim = 0.0;
+  unsigned int bucketpos = 0;
+  for(int i = 0; i < GetNumCoordinates(); i++)
+  {
+    std::string holdvalue;
+    GetSemString(i, holdvalue);
+
+    if (holdvalue.length() > 0)
+    {
+      stringutils::StringTokenizer parse_st1(holdvalue, " ");
+      while(parse_st1.hasNextToken())
+      {
+        std::string eval = parse_st1.nextToken();
+        stringutils::trim(eval);
+        size_t hash = str_hash(eval) % bucketnum;;
+        bucket = 0;
+        bucket = hashTable2[hash];
+        bucketpos = 0;
+        if(bucket)
+        {
+          while(bucketpos < bucket->size())
+          {
+            std::string* check = (*bucket)[bucketpos];
+            if ((check)->compare(eval) == 0)
+            {
+              TSim = TSim + ((double) 1/GetNumCoordinates());
+              break;
+            }
+            bucketpos++;
+          }
+        }
+      }
+    }
+  }
+  for(int i = 0; i < st2.GetNumTextData(); i++)
+  {
+
+    std::string holdvalue;
+    st2.GetSemString(i, holdvalue);
+    if (holdvalue.length() > 0)
+    {
+      stringutils::StringTokenizer parse_st2(holdvalue, " ");
+
+      while(parse_st2.hasNextToken())
+      {
+
+        std::string eval = parse_st2.nextToken();
+        stringutils::trim(eval);
+        size_t hash = str_hash(eval) % bucketnum;
+        bucket = 0;
+        bucket = hashTable[hash];
+        bucketpos = 0;
+        if(bucket)
+        {
+          while(bucketpos < bucket->size())
+          {
+
+            std::string* check = (*bucket)[bucketpos];
+            if ((check)->compare(eval) == 0)
+            {
+
+              TSim = TSim + ((double) 1/st2.GetNumCoordinates());
+              break;
+            }
+            bucketpos++;
+          }
+
+        }
+      }
+    }
+  }
+
+  for (unsigned int i = 0; i< bucketnum; i++)
+  {
+    std::vector<std::string*>* v = hashTable[i];
+    if (v)
+    {
+      for(unsigned int j = 0; j < v->size(); j++)
+      {
+        std::string* stn = (*v)[j];
+        delete stn;
+
+      }
+      (v)->clear();
+      delete hashTable[i];
+      hashTable[i] = 0;
+    }
+  }
+
+  for (unsigned int i = 0; i< bucketnum; i++)
+  {
+    std::vector<std::string*>* v = hashTable2[i];
+    if (v)
+    {
+      for(unsigned int j = 0; j < v->size(); j++)
+      {
+           std::string* stn = (*v)[j];
+           delete stn;
+
+      }
+      (v)->clear();
+      delete hashTable2[i];
+      hashTable2[i] = 0;
+    }
+  }
+  delete hashTable; delete hashTable2;
+  return TSim;
+}
+/*
+3.5.9 Placename Function
+TODO
+
+*/
+double SemanticTrajectory::MinDistAux(
+   SemanticTrajectory& st2, double wx, double wy)
+{
+
+  DbArray<Cell>* Ax = new DbArray<Cell>(0);
+  DbArray<Cell> valuesSt1 = GetCellList();
+  DbArray<Cell> valuesSt2 = st2.GetCellList();
+  Ax->Append(valuesSt1);
+  Ax->Append(valuesSt2);
+  DbArray<Cell>* Ay = new DbArray<Cell>(0);
+  Ay->Append(valuesSt1);
+  Ay->Append(valuesSt2);
+
+  Ax->Sort(SemanticTrajectory::CompareX);
+  Ay->Sort(SemanticTrajectory::CompareY);
+  int32_t m = Ax->Size();
+  double result = 0.0;
+  for (int i = 0; i < Ax->Size(); i++)
+  {
+    Cell c;
+    Ax->Get(i, &c);
+
+  }
+  for (int i = 0; i < Ay->Size(); i++)
+  {
+    Cell c;
+    Ay->Get(i, &c);
+
+  }
+  result = MinDistUtils(*Ax, *Ay, m, wx, wy);
+  return result;
+}
+/*
+3.5.10 Placename Function
+TODO
+
+*/
+double SemanticTrajectory::MinDistUtils(
+    DbArray<Cell>& Ax,
+    DbArray<Cell>& Ay, int32_t m, double wx, double wy)
+{
+
+  double minD = DBL_MAX;
+
+  if (m > 3)
+  {
+
+    int n = m/2;
+
+    DbArray<Cell>* AxL = new DbArray<Cell>(0);
+    Cell cell1;
+    Ax.Get(0,cell1);
+    Ax.copyTo(*AxL, 0, n, 0);
+    DbArray<Cell>* AxR = new DbArray<Cell>(0);
+    Ax.copyTo(*AxR, n, m-n, 0);
+    DbArray<Cell>* AyL = new DbArray<Cell>(0);
+    DbArray<Cell>* AyR = new DbArray<Cell>(0);
+
+    double minDL = 0.0;
+    double minDR = 0.0;
+
+
+    for (int i = 0; i < Ay.Size(); i++)
+    {
+      Cell celly, cellx;
+      Ay.Get(i, celly);
+      Ax.Get(n, cellx);
+      if(celly.GetX() <= cellx.GetX())
+      {
+        AyL->Append(celly);
+      }
+      else
+      {
+        AyR->Append(celly);
+      }
+    }
+
+    /* Check to see if AxL has
+        cells from both C1 and C2 */
+    if (AyL->Size() != 0){
+      Cell cellAyL;
+      AyL->Get(0, cellAyL);
+      int32_t firstId = cellAyL.GetId();
+      bool both = false;
+      for (int i = 1; i < AyL->Size(); i++)
+      {
+        AyL->Get(i, cellAyL);
+        if (cellAyL.GetId() != firstId)
+        {
+          both = true;
+          break;
+        }
+      }
+      if (both == true)
+      {
+
+        minDL = MinDistUtils(*AxL, *AyL, n, wx, wy);
+
+      }
+      else
+      {
+        minDL = DBL_MAX;
+      }
+    } else {
+      minDL = DBL_MAX;
+    }
+    if (AyR->Size() != 0)
+    {
+      Cell cellAyR;
+      AyR->Get(0, cellAyR);
+      int32_t firstId = cellAyR.GetId();
+      bool both = false;
+      for (int i = 1; i < AyR->Size(); i++)
+      {
+        AyR->Get(i, cellAyR);
+        if (cellAyR.GetId() != firstId)
+        {
+          both = true;
+          break;
+        }
+      }
+      if (both == true)
+      {
+
+        minDR = MinDistUtils(*AxR, *AyR, m-n, wx, wy);
+
+      }
+      else
+      {
+        minDR = DBL_MAX;
+      }
+    }
+    else {
+      minDR = DBL_MAX;
+    }
+
+    minD = minDL > minDR ? minDR : minDL;
+
+
+    DbArray<Cell>* Am = new DbArray<Cell>(0);
+    for (int i = 0; i < Ay.Size(); i++)
+    {
+      Cell x;
+      Cell y;
+
+      Ax.Get(n, x);
+      Ay.Get(i, y);
+      if (fabs(y.GetX() - x.GetX()) < minD)
+      {
+        Am->Append(y);
+      }
+    }
+
+
+    for (int i = 0; i < Am->Size(); i++)
+    {
+      for (int j = i + 1; j < Am->Size(); j++)
+      {
+        Cell c1;
+        Cell c2;
+        Am->Get(i, c1);
+        Am->Get(j, c2);
+        if (c1.GetId() != c2.GetId())
+        {
+
+          double tempmin = GetCellDist(c1,c2, wx, wy);
+
+          if (tempmin < minD)
+          {
+            minD = tempmin;
+          }
+        }
+      }
+    }
+
+    //Don't forget to delete the DbArrays
+    // that were initialized here
+    delete Am;
+    delete AyR;
+    delete AyL;
+    delete AxR;
+    delete AxL;
+  }
+  else
+  {
+      minD = BruteForce(Ax, m, wx, wy);
+
+  }
+  return minD;
+}
+/*
+3.5.11 Placename Function
+TODO
+
+*/
+double SemanticTrajectory::GetCellDist(
+Cell& c1, Cell& c2, double wx, double wy)
+{
+
+  double result;
+  //Are they the same cell
+  if (c1.GetX() == c2.GetX()
+&& c1.GetY() == c2.GetY())
+  {
+    return 0.0;
+  }
+
+  //c1 and c2 on the same x Axis
+  if (c1.GetX() == c2.GetX())
+  {
+    // if c1 is above c2
+    // Take bottom corner of c1 and top corner of c2
+    if(c1.GetY() > c2.GetY())
+    {
+      int32_t y2 = (int32_t)(c2.GetY() + 1);
+      return
+      EuclidDist(c1.GetX(), c1.GetY(),
+      c2.GetX(), y2, wx, wy);
+    }
+    // if c1 is below c2
+    // Take top corner of c1 and bottom corner of c2
+    else
+    {
+      int32_t y1 = (int32_t)(c1.GetY() + 1);
+      return
+      EuclidDist(c1.GetX(),
+      y1,
+      c2.GetX(),
+      c2.GetY(), wx, wy);
+    }
+  }
+  //c1 and c2 on the same y axis
+  if (c1.GetY() == c2.GetY())
+  {
+    // if c1 is to the right of c2
+    if(c1.GetX() > c2.GetX())
+    {
+      int32_t x2 = (int32_t)(c2.GetX() + 1);
+      return
+      EuclidDist(c1.GetX(), c1.GetY(),
+      x2, c2.GetY(), wx, wy);
+    }
+    // if c1 is to the left of c2
+    else
+    {
+      int32_t x1 = (int32_t)(c1.GetX() + 1);
+      return
+      EuclidDist(x1,
+      c1.GetY(),
+      c2.GetX(), c2.GetY(), wx, wy);
+    }
+  }
+  // if c1 is above c2
+  if (c1.GetY() > c2.GetY())
+  {
+    // if c1 is to the right of c2
+    if (c1.GetX() > c2.GetX())
+    {
+      int32_t x2 = (int32_t)(c2.GetX() + 1);
+      int32_t y2 = (int32_t)(c2.GetY() + 1);
+      return
+      EuclidDist(c1.GetX(),
+      c1.GetY(),
+      x2,
+      y2, wx, wy);
+    }
+    // if c1 is to the left c2
+    //
+    else
+    {
+
+      int32_t x1 = (int32_t)(c1.GetX() + 1);
+      int32_t y2 = (int32_t)(c2.GetY() + 1);
+      return
+      EuclidDist(x1, c1.GetY(),
+      c2.GetX(), y2, wx, wy);
+    }
+  }
+  // if c1 is below c2
+  else
+  {
+    // if c1 is to the right of c2
+    if (c1.GetX() > c2.GetX())
+    {
+      int32_t x1 = (c1.GetX() + 1);
+      int32_t x2 = (c2.GetX() + 1);
+      return
+      EuclidDist(
+        x1,
+        c1.GetY(),
+        x2,
+        c2.GetY(), wx, wy);
+    }
+    // if c1 is to the left c2
+    else
+    {
+      int32_t x1 = (c1.GetX() + 1);
+      int32_t y1 = (c1.GetY() + 1);
+      return
+      EuclidDist(
+      x1,y1,
+        c2.GetX(),
+        c2.GetY(), wx, wy);
+    }
+  }
+  return result;
+}
+/*
+3.5.12 Placename Function
+TODO
+
+*/
+double SemanticTrajectory::BruteForce(
+DbArray<Cell>& Ax,
+int32_t m, double wx, double wy)
+{
+
+  double minD = DBL_MAX;
+  for (int i = 0; i < Ax.Size(); i++)
+  {
+    for (int j = i + 1; j < Ax.Size(); j++)
+    {
+      Cell c1;
+      Cell c2;
+      Ax.Get(i, c1);
+      Ax.Get(j, c2);
+      if (c1.GetId() != c2.GetId())
+      {
+        double tempmin = GetCellDist(c1,c2, wx, wy);
+
+        if (tempmin < minD)
+        {
+          minD = tempmin;
+        }
+      }
+    }
+  }
+  return minD;
+}
+/*
+3.5.13 Placename Function
+TODO
+
+*/
+double SemanticTrajectory::EuclidDist(int32_t x1,
+    int32_t y1,
+    int32_t x2,
+    int32_t y2, double wx, double wy) const
+{
+    double x11 = (double) x1*wx;
+    double x21 = (double) x2*wx;
+    double y11 =  (double) y1*wy;
+    double y21 = (double) y2*wy;
+
+    return sqrt(pow((x11 - x21),2) + pow((y11 - y21),2));
+}
+
+/*
+4 Implementation of class Batch
+
+4.1 Constructors and Destructor
+
+*/
+
 Batch::Batch(int dummy):
-  Attribute(true),
-  batchwords(0),
-  batchwords_Flob(0),
-  trips(0),
-  bcells(0),
-  bwords(0),
-  bwords_Flob(0),
-  bcoordinates(0),
-  bsemantics(0),
-  bsemantics_Flob(0),
-  bbox(false),
-  batchId(0)
+    Attribute(true),
+    batchwords(0),
+    batchwords_Flob(0),
+    trips(0),
+    bcells(0),
+    bwords(0),
+    bwords_Flob(0),
+    bcoordinates(0),
+    bsemantics(0),
+    bsemantics_Flob(0),
+    bbox(false),
+    batchId(0)
 {
 
 }
@@ -1328,14 +1942,10 @@ operator=(const Batch& b)
   return *this;
 }
 
-
-
 /*
-
-TODO Update explain what each are for
+4.2 Implementation of virtual functions
 
 */
-
 Flob *Batch::GetFLOB(const int i)
 {
   Flob* stFlob = 0;
@@ -1387,13 +1997,14 @@ Batch::Clone() const
   return b;
 
 }
+
 /*
-3.3
-Function Describing the Signature
-of the Type Constructor
-TODO update when textual sum is added
+4.3 The mandatory set of algebra support functions
+
+4.3.1 Placename holder
 
 */
+
 ListExpr
 Batch::Property()
 {
@@ -1429,7 +2040,7 @@ Batch::Property()
 }
 
 /*
-3.4 Kind Checking Function
+4.3.2 Placename holder
 
 */
 bool
@@ -1443,8 +2054,7 @@ Batch::KindCheck(
 }
 
 /*
-
-3.5 ~Create~-function
+4.3.3 Placename holder
 
 */
 Word Batch::Create(
@@ -1454,6 +2064,10 @@ Word Batch::Create(
   return (SetWord(b));
 }
 
+/*
+4.3.4 Placename holder
+
+*/
 void Batch::Destroy()
 {
   batchwords.Destroy();
@@ -1468,7 +2082,7 @@ void Batch::Destroy()
 }
 
 /*
-3.6 ~Delete~-function
+4.3.5 Placename holder
 
 */
 void Batch::Delete(
@@ -1483,7 +2097,7 @@ void Batch::Delete(
 }
 
 /*
-3.6 ~Open~-function
+4.3.6 Placename holder
 
 */
 bool
@@ -1503,7 +2117,7 @@ Batch::Open(
 }
 
 /*
-3.7 ~Save~-function
+4.3.7 Placename holder
 
 */
 bool
@@ -1520,7 +2134,7 @@ Batch::Save( SmiRecord& valueRecord,
 }
 
 /*
-3.8 ~Close~-function
+4.3.8 Placename holder
 
 */
 void Batch::Close(
@@ -1532,6 +2146,10 @@ void Batch::Close(
   delete b;
 }
 
+/*
+4.3.9 Placename holder
+
+*/
 Word Batch::Clone(
   const ListExpr typeInfo,
   const Word& rWord)
@@ -1551,7 +2169,7 @@ Word Batch::Clone(
 
 
 /*
-3.9 ~SizeOf~-function
+4.3.10 Placename holder
 
 */
 int Batch::SizeOfObj()
@@ -1560,7 +2178,7 @@ int Batch::SizeOfObj()
 }
 
 /*
-3.10 ~Cast~-function
+4.3.11 Placename holder
 
 */
 void* Batch::Cast(void* addr)
@@ -1568,6 +2186,10 @@ void* Batch::Cast(void* addr)
   return (new (addr) Batch);
 }
 
+/*
+4.3.12 Placename holder
+
+*/
 ListExpr
 Batch::Out(
   ListExpr typeInfo,
@@ -1915,12 +2537,16 @@ Batch::Out(
   }
 }
 
+
+/*
+4.3.13 Placename holder
+
+*/
 /*
   List represenation
   Nested list of 4:
     first nl: Represents the batchId
-    second nested list:
-    Represents bounding box which is a 4 coordinates
+    second nested list: Represents bounding box which is a 4 coordinates
      to represent a rectangle
     third nested list: Represents the wordlist
     fourth nested list: Represents the triplist
@@ -2293,10 +2919,12 @@ bool& correct )
 }
 
 
+/*
+4.4 Implementation of helper functions for class Batch
 
-/*  3.11 ~ Helpher functions */
+4.4.1 Placeholder name
 
-/* Functions for Batch WordList */
+*/
 
 bool Batch::
 GetBSumString(int index, std::string& rString) const
@@ -2333,6 +2961,10 @@ GetBSumString(int index, std::string& rString) const
   return success;
 }
 
+/*
+4.4.2 Placeholder name
+
+*/
 bool Batch::AddBSumString(
   const std::string& stString, int id, int count)
 {
@@ -2356,10 +2988,9 @@ bool Batch::AddBSumString(
 }
 
 /*
-Functions for Trip WordSummary
+4.4.3 Placeholder name
 
 */
-
 bool Batch::AddBWord(
   const std::string& stString, int id, int count)
 {
@@ -2380,6 +3011,10 @@ bool Batch::AddBWord(
   return false;
 }
 
+/*
+4.4.4 Placeholder name
+
+*/
 bool Batch::
 GetBWord(int index, std::string& rString) const
 {
@@ -2417,10 +3052,9 @@ GetBWord(int index, std::string& rString) const
 }
 
 /*
-Functions for Trip bSemantics
+4.4.5 Placeholder name
 
 */
-
 bool Batch::AddBSemString(const std::string& str)
 {
   if (!str.empty()) {
@@ -2437,6 +3071,11 @@ bool Batch::AddBSemString(const std::string& str)
   }
   return false;
 }
+
+/*
+4.4.6 Placeholder name
+
+*/
 bool Batch::GetBSemString(int index, std::string& str) const
 {
   bool success = false;
@@ -2470,17 +3109,249 @@ bool Batch::GetBSemString(int index, std::string& str) const
   return success;
 }
 
+/*
+4.4.7 Placeholder name
+
+*/
 void Batch::AddBCoordinate(const Coordinate& c)
 {
   bcoordinates.Append(c);
 }
 
 /*
-Operator ~makesemtraj~
+4.5 Operator helper functions for Batch
+
+4.5.1 RelevanceSumBT function
 
 */
+double Batch::RelevanceSumBT(Rectangle<2>& mbr,
+  SemanticTrajectory& st,
+  double alpha,
+  double diag)
+{
 
-ListExpr TypeMapMakeSemtraj(ListExpr args){
+  double relevancesum = 0.0;
+  double finalres = 0.0;
+  int sumWords = 0;
+  std::vector<std::string*>** hashTable;
+  const std::vector<std::string*>* bucket;
+  std::hash<std::string> str_hash;
+  unsigned int bucketPos = 0;
+  unsigned int bucketnum = 900;
+
+  hashTable = new std::vector<std::string*>*[bucketnum];
+  for (unsigned int i = 0; i < bucketnum; i++)
+  {
+    hashTable[i] = 0;
+  }
+
+
+  if (!IsEmptyWordList())
+  {
+    for (int i = 0; i < GetWordListSize(); i++)
+    {
+
+      std::string holdValue;
+      bool success = GetBSumString(i, holdValue);
+      assert(success);
+      std::string* stn = new std::string(holdValue);
+      size_t hash = str_hash(holdValue) % bucketnum;
+
+      if (!hashTable[hash])
+      {
+        hashTable[hash] = new std::vector<std::string*>();
+      }
+      hashTable[hash]->push_back(stn);
+
+      sumWords++;
+    }
+  }
+
+  for (int i = 0; i < st.GetNumCoordinates(); i++)
+  {
+
+    double LH = 0;
+    double RH = 0;
+    std::string holdvalue;
+    st.GetSemString(i, holdvalue);
+    if (holdvalue.length() > 0 && double (1-alpha) > 0)
+    {
+      // Do the textual stuff;
+      int numMatches = 0, count = 0, duplicate = 0;
+      std::string prev_str = "";
+      stringutils::StringTokenizer tokenizer(holdvalue, " ");
+
+      while(tokenizer.hasNextToken())
+      {
+        std::string eval = tokenizer.nextToken();
+        size_t hash = str_hash(eval) % bucketnum;
+        bucket = 0;
+        bucket = hashTable[hash];
+        bucketPos = 0;
+        // There is a match
+        if (bucket)
+        {
+          // Find the match
+          while(bucketPos < bucket->size())
+          {
+            std::string* p = (*bucket)[bucketPos];
+            if((prev_str).compare(eval) == 0)
+            {
+                //This match seen before
+                duplicate++;
+                break;
+            }
+            else if ((*p).compare(eval) == 0)
+            {
+              numMatches++;
+              prev_str = eval;
+              break;
+            }
+            bucketPos++;
+          }
+        } else {
+          prev_str = "";
+        }
+        count++;
+      }
+      double textualscore = 0;
+      if (!numMatches == 0)
+      {
+        double uniquewords = (double)
+        (sumWords + count - (duplicate + numMatches));
+        textualscore = (double) numMatches / uniquewords;
+      }
+
+      RH = double (1 - alpha) * textualscore;
+    }
+    if (alpha > 0)
+    {
+      double dist =
+      getDistanceBT(mbr, st.GetCoordinate(i).x, st.GetCoordinate(i).y);
+      double normalizedScore = 0.0;
+      if (dist == 0.0)
+      {
+        normalizedScore  = 1;
+      }
+      else
+      {
+        normalizedScore = 1 - (double) (dist/diag);
+      }
+      LH = alpha * normalizedScore;
+    }
+    double localrel = LH + RH;
+
+    relevancesum = relevancesum + localrel;
+  }
+  if (relevancesum > 0)
+  {
+    finalres = relevancesum / st.GetNumCoordinates();
+  }
+
+  for (unsigned int i = 0; i< bucketnum; i++)
+  {
+    std::vector<std::string*>* v = hashTable[i];
+    if (v)
+    {
+      for(unsigned int j = 0; j < v->size(); j++)
+      {
+        delete (*v)[j];
+
+      }
+      delete hashTable[i];
+      hashTable[i] = 0;
+    }
+  }
+
+  return finalres;
+
+}
+
+/*
+4.5.2 getDistanceBT function
+
+*/
+double Batch::getDistanceBT(Rectangle<2>& mbr, double x, double y)
+{
+  double xmin = mbr.getMinX();
+  double ymin = mbr.getMinY();
+  double xmax = mbr.getMaxX();
+  double ymax = mbr.getMaxY();
+  if (xmin <= x && x <= xmax && ymin <= y && y <= ymax)
+  {
+    return 0.0;
+  }
+  // Upper quadrant
+  if (ymin > y)
+  {
+      //left
+      if (xmax < x) {
+        return EuclidDistRT(x, y, xmax ,ymin);
+      }
+      //Center
+      if (xmin <= x && x <= xmax) {
+        return EuclidDistRT(x, y, x ,ymin);
+      }
+      //Right
+      if(xmin > x)
+      {
+        return EuclidDistRT(x, y, xmin, ymin);
+      }
+  }
+  else
+  {
+    //left
+    if (xmax < x) {
+      return EuclidDistRT(x, y, xmax ,ymax);
+    }
+    //Center
+    if (xmin <= x && x <= xmax) {
+      return EuclidDistRT(x, y, x ,ymax);
+    }
+    //Right
+    if(xmin > x)
+    {
+      return EuclidDistRT(x, y, xmin, ymax);
+    }
+  }
+
+  if (ymin <= y && y <= ymax)
+  {
+      if (x < xmin)
+      {
+        return EuclidDistRT(x, y, xmin, y);
+      }
+      if (x > xmax)
+      {
+        return EuclidDistRT(x, y, xmax, y);
+      }
+  }
+
+  return 0.0;
+}
+
+/*
+4.5.3 getDistanceBT function
+
+*/
+double Batch::EuclidDistRT(double x1,
+    double y1,
+    double x2,
+    double y2)
+{
+  return sqrt(pow((x1 - x2),2) + pow((y1 - y2),2));
+}
+
+/*
+5 Operators
+
+5.1 Operator makesemtraj.
+
+5.1.1 Type map for ~makesemtraj~
+
+*/
+ListExpr TypeMapMakeSemtraj(ListExpr args)
+{
 
   // Check to see if it's the right number of arguments
   if (nl->HasLength(args, 4))
@@ -2589,9 +3460,13 @@ ListExpr TypeMapMakeSemtraj(ListExpr args){
 
 }
 
+/*
+5.1.2 Value map for  ~makesemtraj~
+
+*/
 int MakeSemTrajMV(Word* args, Word& result,
-                      int message, Word& local,
-                      Supplier s)
+int message, Word& local,
+Supplier s)
 {
 
   result = qp->ResultStorage(s);
@@ -2645,9 +3520,7 @@ int MakeSemTrajMV(Word* args, Word& result,
     tokenlist.sort(SemanticTrajectory::compare_nocase);
     int size = tokenlist.size();
     int i = 0;
-    for(
-      const auto &word :
-      tokenlist)
+    for(const auto &word : tokenlist)
     {
      if (i != size - 1)
      {
@@ -2694,6 +3567,12 @@ int MakeSemTrajMV(Word* args, Word& result,
   return 0;
 }
 
+/*
+5.2 Operator ~makesemtraj2~
+
+5.2.1 Type map for ~makesemtraj2~
+
+*/
 ListExpr TypeMapMakeSemtraj2(ListExpr args)
 {
   // Check to see if it's the right number of arguments
@@ -2824,8 +3703,13 @@ ListExpr TypeMapMakeSemtraj2(ListExpr args)
   }
   return
   listutils::typeError("Wrong number of arguments");
+
 }
 
+/*
+5.1.3 Value map for  ~makesemtraj2~
+
+*/
 int MakeSemTrajMV2(Word* args, Word& result,
                       int message, Word& local,
                       Supplier s)
@@ -3031,12 +3915,13 @@ int MakeSemTrajMV2(Word* args, Word& result,
   return 0;
 }
 
+
 /*
-Operator ~"stbox"~
+5.3 Operator ~stbox~
+
+5.3.1 Type map for ~stbox~
 
 */
-
-
 ListExpr STboxTM(ListExpr args)
 {
   std::string errmsg =
@@ -3050,6 +3935,10 @@ ListExpr STboxTM(ListExpr args)
   return (nl->SymbolAtom( Rectangle<2>::BasicType()));
 }
 
+/*
+5.3.2 Value map for  ~stbox~
+
+*/
 int STbboxMapValue(Word* args, Word& result,
    int message,
    Word& local,
@@ -3065,13 +3954,12 @@ int STbboxMapValue(Word* args, Word& result,
     return 0;
 }
 
-
-
 /*
-Operator ~ uniquekeywords
+5.4 Operator ~extractkeywords~
+
+5.4.1 Type map for ~extractkeywords~
 
 */
-
 ListExpr
 extractkeywordsTM( ListExpr args )
 {
@@ -3088,6 +3976,11 @@ extractkeywordsTM( ListExpr args )
   return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
+
+/*
+5.4.2 Value map for  ~extractkeywords~
+
+*/
 int extractkeywordMapV(Word* args, Word& result,
   int message,
   Word& local,
@@ -3194,8 +4087,12 @@ return 0;
 
 }
 
-//TypeMapping for operator ~ makesummaries ~
+/*
+5.5 Operator ~makesummaries~
 
+5.5.1 Type map for ~makesummaries~
+
+*/
 ListExpr MakesummariesTM( ListExpr args )
 {
   if( (nl->ListLength(args) == 7)
@@ -3270,8 +4167,10 @@ ListExpr MakesummariesTM( ListExpr args )
   "cellgrid2d x attr_WordId x attr_Ctn x attr_Word).");
 }
 
-//ValueMapping for operator ~ makespatialsum ~
+/*
+5.5.2 Value map for  ~makesummaries~
 
+*/
 int MakesummariesMV(Word* args, Word& result,
    int message,
    Word& local,
@@ -3361,6 +4260,12 @@ int MakesummariesMV(Word* args, Word& result,
   return 0;
 }
 
+/*
+5.6 Operator ~filtersim~
+
+5.6.1 Type map for ~filtersim~
+
+*/
 ListExpr FilterSimTypeMap(ListExpr args)
 {
 
@@ -3444,6 +4349,10 @@ ListExpr FilterSimTypeMap(ListExpr args)
                                   attrList1)));
 }
 
+/*
+5.6.2 Class for  ~filtersim~
+
+*/
 class SIMData
 {
   public:
@@ -3498,6 +4407,10 @@ class SIMData
 
 };
 
+/*
+5.6.3 Value map for  ~filtersim~
+
+*/
 int FilterSimMapValue( Word* args, Word& result,
                    int message, Word& local, Supplier s )
 {
@@ -3545,6 +4458,13 @@ int FilterSimMapValue( Word* args, Word& result,
 
 }
 
+
+/*
+5.7 Operator ~filterttsim~
+
+5.7.1 Type map for ~filterttsim~
+
+*/
 ListExpr FilterTTSimTypeMap(ListExpr args)
 {
 
@@ -3634,6 +4554,10 @@ ListExpr FilterTTSimTypeMap(ListExpr args)
                                   attrList1)));
 }
 
+/*
+5.7.2 Class for  ~filterttsim~
+
+*/
 class TTInfo
 {
   public:
@@ -4258,6 +5182,10 @@ class TTInfo
 
 };
 
+/*
+5.7.3 Value map for  ~filterttsim~
+
+*/
 int FilterTTSimMapValue( Word* args, Word& result,
                    int message, Word& local, Supplier s )
 {
@@ -4310,12 +5238,14 @@ int FilterTTSimMapValue( Word* args, Word& result,
 
 
 }
+
+
 /*
-Operator for BBSim
-Purpose: To compare the similarity between to batch MBR's for pruning
+5.8 Operator ~filterbbsim~
+
+5.8.1 Type map for ~filterbbsim~
 
 */
-
 ListExpr FilterBBSimTypeMap(ListExpr args)
 {
   std::string err = "stream(tuple) x attr1 x "
@@ -4568,6 +5498,12 @@ int FilterBBSimMapValue( Word* args, Word& result,
 
 }
 
+/*
+5.9 Operator ~batches~
+
+5.9.1 Type map for ~batches~
+
+*/
 ListExpr BatchesTM(ListExpr args)
 {
   std::string err = "stream(tuple) x attr1 x "
@@ -4764,11 +5700,11 @@ int BatchesVM( Word* args, Word& result,
 
 
 /*
-Operator for BTSim
+5.10 Operator ~btsim~
+
+5.10.1 Type map for ~btsim~
 
 */
-
-
 ListExpr BTSimTypeMap(ListExpr args)
 {
 
@@ -4789,221 +5725,12 @@ ListExpr BTSimTypeMap(ListExpr args)
   if (!CcReal::checkType(nl->Third(args)) ||
   !Rectangle<2>::checkType(nl->Fourth(args)))
   {
-      return listutils::typeError("third and fourth argument"
-      "of real and rectangle");
+      return
+      listutils::typeError("3rd and 4th arg of real and rectangle");
   }
 
   return NList(CcReal::BasicType()).listExpr();
 
-}
-
-double Batch::RelevanceSumBT(Rectangle<2>& mbr,
-   SemanticTrajectory& st, double alpha,
-    double diag)
-{
-
-  double relevancesum = 0.0;
-  double finalres = 0.0;
-  int sumWords = 0;
-  std::vector<std::string*>** hashTable;
-  const std::vector<std::string*>* bucket;
-  std::hash<std::string> str_hash;
-  unsigned int bucketPos = 0;
-  unsigned int bucketnum = 900;
-
-  hashTable = new std::vector<std::string*>*[bucketnum];
-  for (unsigned int i = 0; i < bucketnum; i++)
-  {
-    hashTable[i] = 0;
-  }
-
-
-  if (!IsEmptyWordList())
-  {
-    for (int i = 0; i < GetWordListSize(); i++)
-    {
-
-      std::string holdValue;
-      bool success = GetBSumString(i, holdValue);
-      assert(success);
-      std::string* stn = new std::string(holdValue);
-      size_t hash = str_hash(holdValue) % bucketnum;
-
-      if (!hashTable[hash])
-      {
-        hashTable[hash] = new std::vector<std::string*>();
-      }
-      hashTable[hash]->push_back(stn);
-
-      sumWords++;
-    }
-  }
-
-  for (int i = 0; i < st.GetNumCoordinates(); i++)
-  {
-
-    double LH = 0;
-    double RH = 0;
-    std::string holdvalue;
-    st.GetSemString(i, holdvalue);
-    if (holdvalue.length() > 0 && double (1-alpha) > 0)
-    {
-      // Do the textual stuff;
-      int numMatches = 0, count = 0, duplicate = 0;
-      std::string prev_str = "";
-      stringutils::StringTokenizer tokenizer(holdvalue, " ");
-
-      while(tokenizer.hasNextToken())
-      {
-        std::string eval = tokenizer.nextToken();
-        size_t hash = str_hash(eval) % bucketnum;
-        bucket = 0;
-        bucket = hashTable[hash];
-        bucketPos = 0;
-        // There is a match
-        if (bucket)
-        {
-          // Find the match
-          while(bucketPos < bucket->size())
-          {
-            std::string* p = (*bucket)[bucketPos];
-            if((prev_str).compare(eval) == 0)
-            {
-                //This match seen before
-                duplicate++;
-                break;
-            }
-            else if ((*p).compare(eval) == 0)
-            {
-              numMatches++;
-              prev_str = eval;
-              break;
-            }
-            bucketPos++;
-          }
-        } else {
-          prev_str = "";
-        }
-        count++;
-      }
-      double textualscore = 0;
-      if (!numMatches == 0)
-      {
-        double uniquewords = (double)
-        (sumWords + count - (duplicate + numMatches));
-        textualscore = (double) numMatches / uniquewords;
-      }
-
-      RH = double (1 - alpha) * textualscore;
-    }
-    if (alpha > 0)
-    {
-      double dist = getDistanceBT(mbr, st.GetCoordinate(i).x,
-       st.GetCoordinate(i).y);
-      double normalizedScore = 0.0;
-      if (dist == 0.0)
-      {
-        normalizedScore  = 1;
-      }
-      else
-      {
-        normalizedScore = 1 - (double) (dist/diag);
-      }
-      LH = alpha * normalizedScore;
-    }
-    double localrel = LH + RH;
-
-    relevancesum = relevancesum + localrel;
-  }
-  if (relevancesum > 0)
-  {
-    finalres = relevancesum / st.GetNumCoordinates();
-  }
-
-  for (unsigned int i = 0; i< bucketnum; i++)
-  {
-    std::vector<std::string*>* v = hashTable[i];
-    if (v)
-    {
-      for(unsigned int j = 0; j < v->size(); j++)
-      {
-        delete (*v)[j];
-
-      }
-      delete hashTable[i];
-      hashTable[i] = 0;
-    }
-  }
-
-  return finalres;
-
-}
-
-double Batch::getDistanceBT(Rectangle<2>& mbr, double x, double y)
-{
-  double xmin = mbr.getMinX();
-  double ymin = mbr.getMinY();
-  double xmax = mbr.getMaxX();
-  double ymax = mbr.getMaxY();
-  if (xmin <= x && x <= xmax && ymin <= y && y <= ymax)
-  {
-    return 0.0;
-  }
-  // Upper quadrant
-  if (ymin > y)
-  {
-      //left
-      if (xmax < x) {
-        return EuclidDistRT(x, y, xmax ,ymin);
-      }
-      //Center
-      if (xmin <= x && x <= xmax) {
-        return EuclidDistRT(x, y, x ,ymin);
-      }
-      //Right
-      if(xmin > x)
-      {
-        return EuclidDistRT(x, y, xmin, ymin);
-      }
-  }
-  else
-  {
-    //left
-    if (xmax < x) {
-      return EuclidDistRT(x, y, xmax ,ymax);
-    }
-    //Center
-    if (xmin <= x && x <= xmax) {
-      return EuclidDistRT(x, y, x ,ymax);
-    }
-    //Right
-    if(xmin > x)
-    {
-      return EuclidDistRT(x, y, xmin, ymax);
-    }
-  }
-
-  if (ymin <= y && y <= ymax)
-  {
-      if (x < xmin)
-      {
-        return EuclidDistRT(x, y, xmin, y);
-      }
-      if (x > xmax)
-      {
-        return EuclidDistRT(x, y, xmax, y);
-      }
-  }
-
-  return 0.0;
-}
-
-double Batch::EuclidDistRT(double x1,
-    double y1,
-    double x2,
-    double y2)
-{
-  return sqrt(pow((x1 - x2),2) + pow((y1 - y2),2));
 }
 
 int BTSimMapValue( Word* args, Word& result,
@@ -5031,7 +5758,12 @@ int BTSimMapValue( Word* args, Word& result,
   return 0;
 }
 
+/*
+5.11 Operator ~filterbtsim~
 
+5.11.1 Type map for ~filterbtsim~
+
+*/
 ListExpr FilterBTSimTypeMap(ListExpr args)
 {
 
@@ -5129,6 +5861,7 @@ ListExpr FilterBTSimTypeMap(ListExpr args)
                                 nl->TwoElemList(
                                   nl->SymbolAtom(Tuple::BasicType()),
                                   attrList1)));
+
 }
 
 class BatchTrajInfo
@@ -5327,8 +6060,8 @@ class BatchTrajInfo
 
     }
 
-    double getTextualScoreBT(std::string& objectwords)
-    {
+double getTextualScoreBT(std::string& objectwords)
+{
 
       int numMatches = 0;
       int count = 0;
@@ -5387,8 +6120,8 @@ class BatchTrajInfo
       return (double) numMatches / uniquewords;
     }
 
-    double getDistanceBT(Rectangle<2>& mbr, double x, double y)
-    {
+double getDistanceBT(Rectangle<2>& mbr, double x, double y)
+{
       double xmin = mbr.getMinX();
       double ymin = mbr.getMinY();
       double xmax = mbr.getMaxX();
@@ -5502,6 +6235,12 @@ int FilterBTSimMapValue( Word* args, Word& result,
 
 }
 
+/*
+5.12 Operator ~sim~
+
+5.12.1 Type map for ~sim~
+
+*/
 ListExpr SimTypeMap(ListExpr args)
 {
 
@@ -5511,26 +6250,23 @@ ListExpr SimTypeMap(ListExpr args)
   Rectangle<2>::BasicType(),
   CcReal::BasicType()))
   {
-    return NList::typeError("Expecting two semantic trajectories,"
-    "a rectangle<2> and a real value for the alpha");
+    return NList::typeError("Expecting two semantic"
+     "trajectories, a rectangle<2> and a real value for the alpha");
   }
   return NList(CcReal::BasicType()).listExpr();
 }
 
-int SimMapValue(Word* args, Word& result,
+int SimMapValue(Word* args,
+  Word& result,
   int message,
   Word& local,
   Supplier s)
 {
 
-  SemanticTrajectory* st1 =
-  static_cast<SemanticTrajectory*>(args[0].addr);
-  SemanticTrajectory* st2 =
-  static_cast<SemanticTrajectory*>(args[1].addr);
-  Rectangle<2>* rec =
-  static_cast<Rectangle<2>*>(args[2].addr);
-  CcReal * alpha =
-  static_cast<CcReal*>(args[3].addr);
+  SemanticTrajectory* st1 = static_cast<SemanticTrajectory*>(args[0].addr);
+  SemanticTrajectory* st2 = static_cast<SemanticTrajectory*>(args[1].addr);
+  Rectangle<2>* rec = static_cast<Rectangle<2>*>(args[2].addr);
+  CcReal * alpha = static_cast<CcReal*>(args[3].addr);
 
   result = qp->ResultStorage(s);
   double diag = st1->GetDiagonal(*rec);
@@ -5541,25 +6277,32 @@ int SimMapValue(Word* args, Word& result,
   return 0;
 }
 
+/*
+5.13 Operator ~bbsim~
+
+5.13.1 Type map for ~bbsim~
+
+*/
 ListExpr BBSimTypeMap(ListExpr args)
 {
 
   if(!Batch::checkType(nl->First(args))
   && !Batch::checkType(nl->Second(args)))
   {
-    return listutils::typeError("expecting two tuples"
-    "for first and second arguments");
+    return listutils::
+    typeError("expecting two tuples for first and second arguments");
   }
   if (!CcReal::checkType(nl->Third(args)) ||
   !Rectangle<2>::checkType(nl->Fourth(args))){
-      return listutils::typeError("third and fourth argument of"
-      "real and rectangle");
+      return listutils::
+      typeError("third and fourth argument of real and rectangle");
   }
 
   return NList(CcReal::BasicType()).listExpr();
 }
 
-int BBSimMapValue(Word* args, Word& result,
+int BBSimMapValue(Word* args,
+  Word& result,
   int message,
   Word& local,
   Supplier s)
@@ -5597,6 +6340,12 @@ int BBSimMapValue(Word* args, Word& result,
   return 0;
 }
 
+/*
+5.14 Operator ~ttsim~
+
+5.14.1 Type map for ~ttsim~
+
+*/
 ListExpr TTSimTypeMap(ListExpr args)
 {
 
@@ -5609,195 +6358,829 @@ ListExpr TTSimTypeMap(ListExpr args)
   if(!SemanticTrajectory::checkType(nl->First(args))
   && !SemanticTrajectory::checkType(nl->Second(args)))
   {
-    return listutils::typeError("expecting two first arguments"
-     "to first arguments to be semantictrajectory");
+    return listutils::
+    typeError("expecting two first arguments to first"
+    "arguments to be semantictrajectory");
   }
   if (!CcReal::checkType(nl->Third(args))){
-      return listutils::typeError("third argument should be a real");
+      return listutils::
+      typeError("third argument should be a real");
   }
   if (!Rectangle<2>::checkType(nl->Fourth(args)))
   {
-    return listutils::typeError("fourth argument should be a rectangle");
+    return listutils::
+    typeError("fourth argument should be a rectangle");
   }
   if(!CellGrid2D::checkType(nl->Fifth(args)))
   {
-    return listutils::typeError(err + "(5th arg must be CellGrid2D");
+    return listutils::
+    typeError(err + "(5th arg must be CellGrid2D");
   }
 
   return NList(CcReal::BasicType()).listExpr();
 }
 
-double SemanticTrajectory::textualScoreTT(SemanticTrajectory& st2)
+int TTSimMapValue(Word* args,
+  Word& result,
+  int message,
+  Word& local,
+  Supplier s)
 {
-  std::vector<std::string*>** hashTable;
-  std::vector<std::string*>** hashTable2;
-  const std::vector<std::string*>* bucket;
-  std::hash<std::string> str_hash;
-  unsigned int bucketnum = 100;
 
-
-  hashTable = new std::vector<std::string*>*[bucketnum];
-  for (unsigned int i = 0; i < bucketnum; i++)
+  result = qp->ResultStorage(s);
+  CcReal* res = static_cast<CcReal*>(result.addr);
+  SemanticTrajectory* s1 = static_cast<SemanticTrajectory*>( args[0].addr );
+  SemanticTrajectory* s2 = static_cast<SemanticTrajectory*>( args[1].addr );
+  CcReal * alpha = static_cast<CcReal*>(args[2].addr);
+  Rectangle<2>* rec = static_cast<Rectangle<2>*>(args[3].addr);
+  CellGrid2D* grid = static_cast<CellGrid2D*>(args[4].addr);
+  double LH = 0.0;
+  double RH = 0.0;
+  double textualscore = 0.0;
+  double distancescore = 0.0;
+  double alpha1 = alpha->GetValue();
+  double textalpha = double (1 - alpha1);
+  if (textalpha > 0)
   {
-    hashTable[i] = 0;
+    textualscore = s1->textualScoreTT(*s2);
+    RH = double(1-textalpha) * textualscore;
   }
 
-  hashTable2 = new std::vector<std::string*>*[bucketnum];
-  for (unsigned int i = 0; i < bucketnum; i++)
-  {
-    hashTable2[i] = 0;
-  }
-  for (int i = 0; i < GetNumWords(); i++)
-  {
-   std::string holdValue = "";
-   bool success = GetStringSum(i, holdValue);
-   if(success)
-   {
-
-     size_t hash = str_hash(holdValue) % bucketnum;
-
-     if (!hashTable[hash])
-     {
-       hashTable[hash] = new std::vector<std::string*>();
-     }
-     std::string* stn = new std::string(holdValue);
-     hashTable[hash]->push_back(stn);
-   }
-
-  }
-
-  for (int i = 0; i < st2.GetNumWords(); i++)
-  {
-   std::string holdValue = "";
-   bool success = st2.GetStringSum(i, holdValue);
-   if(success)
-   {
-
-     size_t hash = str_hash(holdValue) % bucketnum;
-
-     if (!hashTable2[hash])
-     {
-       hashTable2[hash] = new std::vector<std::string*>();
-     }
-     std::string* stn = new std::string(holdValue);
-     hashTable2[hash]->push_back(stn);
-   }
-
-  }
-  double TSim = 0.0;
-  unsigned int bucketpos = 0;
-  for(int i = 0; i < GetNumCoordinates(); i++)
-  {
-    std::string holdvalue;
-    GetSemString(i, holdvalue);
-
-    if (holdvalue.length() > 0)
-    {
-      stringutils::StringTokenizer parse_st1(holdvalue, " ");
-      while(parse_st1.hasNextToken())
-      {
-        std::string eval = parse_st1.nextToken();
-        stringutils::trim(eval);
-        size_t hash = str_hash(eval) % bucketnum;;
-        bucket = 0;
-        bucket = hashTable2[hash];
-        bucketpos = 0;
-        if(bucket)
-        {
-          while(bucketpos < bucket->size())
-          {
-            std::string* check = (*bucket)[bucketpos];
-            if ((check)->compare(eval) == 0)
-            {
-              TSim = TSim + ((double) 1/GetNumCoordinates());
-              break;
-            }
-            bucketpos++;
-          }
-        }
-      }
-    }
-  }
-  for(int i = 0; i < st2.GetNumTextData(); i++)
+  if (alpha1 > 0)
   {
 
-    std::string holdvalue;
-    st2.GetSemString(i, holdvalue);
-    if (holdvalue.length() > 0)
-    {
-      stringutils::StringTokenizer parse_st2(holdvalue, " ");
+    double wx = grid->getXw();
+    double wy = grid->getYw();
+    distancescore = s1->MinDistAux(*s2, wx, wy);
 
-      while(parse_st2.hasNextToken())
-      {
-
-        std::string eval = parse_st2.nextToken();
-        stringutils::trim(eval);
-        size_t hash = str_hash(eval) % bucketnum;
-        bucket = 0;
-        bucket = hashTable[hash];
-        bucketpos = 0;
-        if(bucket)
-        {
-          while(bucketpos < bucket->size())
-          {
-
-            std::string* check = (*bucket)[bucketpos];
-            if ((check)->compare(eval) == 0)
-            {
-
-              TSim = TSim + ((double) 1/st2.GetNumCoordinates());
-              break;
-            }
-            bucketpos++;
-          }
-
-        }
-      }
-    }
   }
-
-  for (unsigned int i = 0; i< bucketnum; i++)
+  double normalizedScore = 0.0;
+  if (distancescore != 0.0)
   {
-    std::vector<std::string*>* v = hashTable[i];
-    if (v)
-    {
-      for(unsigned int j = 0; j < v->size(); j++)
-      {
-        std::string* stn = (*v)[j];
-        delete stn;
-
-      }
-      (v)->clear();
-      delete hashTable[i];
-      hashTable[i] = 0;
-    }
+    double diag = s1->GetDiagonal(*rec);
+    normalizedScore = 1 - (double)(distancescore/diag);
   }
-
-  for (unsigned int i = 0; i< bucketnum; i++)
-  {
-    std::vector<std::string*>* v = hashTable2[i];
-    if (v)
-    {
-      for(unsigned int j = 0; j < v->size(); j++)
-      {
-           std::string* stn = (*v)[j];
-           delete stn;
-
-      }
-      (v)->clear();
-      delete hashTable2[i];
-      hashTable2[i] = 0;
-    }
+  else {
+    normalizedScore = 1;
   }
-  delete hashTable; delete hashTable2;
-  return TSim;
+  LH = alpha1 * normalizedScore;
+  double answer = LH + RH;
+
+  res->Set(true, answer);
+
+
+
+  return 0;
 }
+
+
+/*
+5.15 Operator ~buildbatch~
+
+5.15.1 Type map for ~buildbatch~
+
+*/
+ListExpr BuildBatchTypeMap(ListExpr args)
+{
+
+  // Check to see if it's the right number of arguments
+  if (nl->HasLength(args, 8))
+  {
+    // Make sure each param is of right type
+    std::string err = "stream(tuple) x stream(tuple) x Ccint x"
+    " attr_2 x attr_3 x attr_4 x attr_5 x rect expected";
+
+    ListExpr stream = nl->First(args);
+    ListExpr stream2 = nl->Second(args);
+    ListExpr BatchId = nl->Third(args);
+    ListExpr attrname_word = nl->Fourth(args);
+    ListExpr attrname_ctn = nl->Fifth(args);
+    ListExpr attrname_tripid = nl->Sixth(args);
+    ListExpr attrname_st = nl->Seventh(args);
+    ListExpr r1 = nl->Eigth(args);
+
+    if(!listutils::isTupleStream(stream)){
+      return
+      listutils::typeError(
+        "first parameter must be a tuple stream");
+    }
+    if(!listutils::isTupleStream(stream2)){
+      return
+      listutils::typeError(
+        "second parameter must be a tuple stream");
+    }
+    if (!CcInt::checkType(BatchId))
+    {
+      return listutils::typeError(err + "3rd arg must be a int");
+    }
+    if(!listutils::isSymbol(attrname_word)){
+      return
+      listutils::typeError("4th parameter must"
+      "be an attribute name");
+    }
+
+    if(!listutils::isSymbol(attrname_ctn)){
+      return
+      listutils::typeError("5th parameter must"
+      " be an attribute name");
+    }
+    if(!listutils::isSymbol(attrname_tripid)){
+      return
+      listutils::typeError("5th parameter must"
+      "be an attribute name");
+    }
+
+    if(!listutils::isSymbol(attrname_st)){
+      return
+      listutils::typeError("6th parameter must"
+      " be an attribute name");
+    }
+    if (!Rectangle<2>::checkType(r1))
+    {
+      return listutils::typeError(err + "6th arg must be a rectangle");
+    }
+
+    ListExpr type;
+    // extract the attribute list
+    ListExpr attrList = nl->Second(nl->Second(stream));
+    ListExpr attrList2 = nl->Second(nl->Second(stream2));
+    // Get the index for the longitude
+    std::string name =
+    nl->SymbolValue(attrname_word);
+    int index1 =
+    listutils::findAttribute(attrList, name, type);
+    if(index1==0)
+    {
+      return
+      listutils::typeError(
+        "attribute name " + name +
+       " unknown in tuple"
+       " stream");
+    }
+    if(!CcString::checkType(type))
+    {
+      return
+      listutils::typeError("attribute "
+      + name +
+      "  must be of type real");
+    }
+
+    name = nl->SymbolValue(attrname_ctn);
+
+    int index2 =
+    listutils::findAttribute(attrList, name, type);
+
+    if(index2==0){
+      return
+      listutils::typeError("attribute name " + name +
+      " unknown in tuple stream");
+    }
+    if(!CcInt::checkType(type)){
+      return
+      listutils::typeError("attribute '" + name +
+      "' must be of type 'real'");
+    }
+    name = nl->SymbolValue(attrname_tripid);
+    int index3 =
+    listutils::findAttribute(attrList2, name, type);
+
+    if(index3==0){
+      return
+      listutils::typeError("attribute name " + name +
+      " unknown in tuple stream");
+    }
+    if(!CcInt::checkType(type)){
+      return
+      listutils::typeError("attribute '" + name +
+      "' must be of type 'real'");
+    }
+    name = nl->SymbolValue(attrname_st);
+    int index4 =
+    listutils::findAttribute(attrList2, name, type);
+
+    if(index4==0){
+      return
+      listutils::typeError("attribute name " + name +
+      " unknown in tuple stream");
+    }
+    if(!SemanticTrajectory::checkType(type)){
+      return
+      listutils::typeError("attribute '" + name +
+      "' must be of type 'real'");
+    }
+    std::string restype =
+    Batch::BasicType();
+
+
+    ListExpr indexes = nl->FourElemList(
+                         nl->IntAtom(index1-1),
+                         nl->IntAtom(index2-1),
+                         nl->IntAtom(index3-1),
+                         nl->IntAtom(index4-1)
+                       );
+
+    return
+    nl->ThreeElemList(nl->SymbolAtom(Symbol::APPEND()),
+                             indexes,
+                             nl->SymbolAtom(restype));
+  }
+  return
+  listutils::typeError("Wrong number of arguments");
+
+}
+
+int BuildBatchMapValue(Word* args, Word& result,
+                      int message, Word& local,
+                      Supplier s)
+{
+
+  result = qp->ResultStorage(s);
+  Batch* b =
+   static_cast<Batch*>(result.addr);
+   b->Clear();
+  int noargs = qp->GetNoSons(s);
+
+  int idx1 = ((CcInt*)args[noargs-4].addr)->GetValue();
+  int idx2 = ((CcInt*)args[noargs-3].addr)->GetValue();
+  int idx3 = ((CcInt*)args[noargs-2].addr)->GetValue();
+  int idx4 = ((CcInt*)args[noargs-1].addr)->GetValue();
+
+  Stream<Tuple> stream(args[0]);
+  Stream<Tuple> stream2(args[1]);
+  CcInt * batchId = static_cast<CcInt*>(args[2].addr);
+  Rectangle<2>* rec = static_cast<Rectangle<2>*>(args[7].addr);
+  b->SetBatchId(batchId->GetValue());
+  Tuple* tuple;
+  stream.open();
+  while((tuple = stream.request()))
+  {
+    CcString* x = (CcString*) tuple->GetAttribute(idx1);
+    CcInt* y = (CcInt*) tuple->GetAttribute(idx2);
+
+    b->AddBSumString(x->GetValue(), -1, y->GetValue());
+    tuple->DeleteIfAllowed();
+  }
+
+  double mind[2];
+  double maxd[2];
+  mind[0] = rec->getMinX();
+  mind[1] = rec->getMinY();
+  maxd[0] = rec->getMaxX();
+  maxd[1] = rec->getMaxY();
+  b->SetBoundingBox(true, mind, maxd);
+  stream2.open();
+  //Initialize indexcounters
+  int coordcounters = 0;
+  int cellcounters = 0;
+  int sumwordscounter = 0;
+
+  while((tuple = stream2.request()))
+  {
+
+    SemanticTrajectory* st = (SemanticTrajectory*) tuple->GetAttribute(idx4);
+    CcInt* id = (CcInt*) tuple->GetAttribute(idx3);
+    Trip t;
+    double mind[2];
+    double maxd[2];
+    const Rectangle<2> r = st->GetBoundingBox();
+    mind[0] = r.getMinX();
+    mind[1] = r.getMinY();
+    maxd[0] = r.getMaxX();
+    maxd[1] = r.getMaxY();
+    t.SetBoundingBox(true, mind, maxd);
+    t.SetId(id->GetValue());
+
+    /* TODO Collect the Coordinate information */
+    t.SetStartCoordsIdx(coordcounters);
+    for (int i = 0; i < st->GetNumCoordinates(); i++)
+    {
+      Coordinate c = st->GetCoordinate(i);
+      b->AddBCoordinate(c);
+      std::string holdValue = "";
+      st->GetSemString(i, holdValue);
+      b->AddBSemString(holdValue);
+      coordcounters++;
+    }
+    t.SetEndCoordsIdx(coordcounters);
+
+    /* TODO Collect the Cell information */
+    t.SetStartCellsIdx(cellcounters);
+    for (int i = 0; i < st->GetNumCells(); i++)
+    {
+
+      Cell c = st->GetCell(i);
+      b->AddBCell(c);
+      cellcounters++;
+    }
+    t.SetEndCellsIdx(cellcounters);
+
+
+    /* TODO Collect the Summary Information */
+    t.SetStartSumWordsIdx(sumwordscounter);
+    for (int i = 0; i < st->GetNumWords(); i++)
+    {
+      std::string holdValue = "";
+      bool success = st->GetStringSum(i, holdValue);
+      assert(success);
+      int id = st->GetWord(i).indexId;
+      int count = st->GetWord(i).count;
+      b->AddBWord(holdValue, id, count);
+      sumwordscounter++;
+    }
+    t.SetEndSumWordsIdx(sumwordscounter);
+
+    b->AddTrip(t);
+
+    tuple->DeleteIfAllowed();
+  }
+
+  stream.close();
+  stream2.close();
+  return 0;
+}
+/*
+5.16 Operator ~getTrips~
+
+5.16.1 Type map for ~getTrips~
+
+*/
+ListExpr GetTripsTypeMap(ListExpr args)
+{
+  if (!nl->HasLength(args, 1)) {
+    return listutils::typeError("Only takes one argument");
+  }
+  if (!Batch::checkType(nl->First(args))) {
+    return listutils::typeError("Needs a batch");
+  }
+  return nl->TwoElemList(
+    nl->SymbolAtom(Symbol::STREAM()),
+    nl->TwoElemList(
+     nl->SymbolAtom(Tuple::BasicType()),
+     nl->TwoElemList(
+         nl->TwoElemList(nl->SymbolAtom("TripId"),
+                         nl->SymbolAtom(CcInt::BasicType())
+                       ),
+         nl->TwoElemList(nl->SymbolAtom("Trip"),
+                         nl->SymbolAtom(SemanticTrajectory::BasicType())
+                        )
+
+     )
+   ));
+}
+
+class TripInfo
+{
+
+public:
+  TripInfo(const ListExpr _resType,
+     int numTrips, Batch& bt) :
+     tt(0),visitedtrip(0),
+     numOfTrips(numTrips),
+     curidx(0), b(bt)
+  {
+    tt = new TupleType(_resType);
+  }
+  ~TripInfo() {
+    tt->DeleteIfAllowed();
+  }
+  int getIndex()
+  {
+    if (visitedtrip < numOfTrips)
+    {
+      curidx = visitedtrip;
+      visitedtrip++;
+      return curidx;
+    }
+    return -1;
+  }
+  int getTripId() {
+    Trip t = b.GetTrip(curidx);
+    return t.GetId();
+  }
+  Tuple* nextTuple()
+  {
+    Tuple* res = new Tuple(tt);
+    /* Create ST */
+    Trip t = b.GetTrip(curidx);
+    int id = t.GetId();
+
+    res->PutAttribute(0, new CcInt(true, id));
+
+    SemanticTrajectory* st  = new SemanticTrajectory(0);
+    double mind[2];
+    double maxd[2];
+    Rectangle<2> bbox = b.GetBoundingBox();
+    mind[0] = bbox.getMinX();
+    mind[1] = bbox.getMinY();
+    maxd[0] = bbox.getMaxX();
+    maxd[1] = bbox.getMaxY();
+    st->SetBoundingBox(true, mind, maxd);
+    int startCellIdx = t.GetStartCellsIdx();
+    int endCellIdx = t.GetEndCellsIdx();
+    if (startCellIdx < endCellIdx)
+    {
+        for (int i = startCellIdx; i < endCellIdx; i++)
+        {
+          Cell c = b.GetBCell(i);
+          st->AddCell(c);
+        }
+    }
+    int startTSumIdx = t.GetStartSumWordsIdx();
+    int endTSumIdx = t.GetEndSumWordsIdx();
+    if (startTSumIdx < endTSumIdx)
+    {
+      for (int i = startTSumIdx; i < endTSumIdx; i++)
+      {
+        WordST  wordInfo = b.GetBWordInfo(i);
+        std::string holdValue = "";
+        b.GetBWord(i, holdValue);
+        st->AddStringSum(holdValue, wordInfo.indexId, wordInfo.count);
+      }
+    }
+    int startCoordsIdx = t.GetStartCoordsIdx();
+    int endCoordsIdx = t.GetEndCoordsIdx();
+    if (startCoordsIdx < endCoordsIdx)
+    {
+      for (int i = startCoordsIdx; i < endCoordsIdx; i++)
+      {
+        std::string holdvalue = "";
+        b.GetBSemString(i, holdvalue);
+        Coordinate c = b.GetBCoordinate(i);
+        st->AddCoordinate(c);
+        st->AddSemString(holdvalue);
+      }
+    }
+
+    res->PutAttribute(1, st);
+    return res;
+  }
+  Rectangle<2> getBoundingBox() {
+    return b.GetBoundingBox();
+  }
+  private:
+    TupleType* tt;
+    int visitedtrip;
+    int numOfTrips;
+    int curidx;
+    Batch b;
+
+};
+
+int GetTripsValueMap(Word* args, Word& result,
+  int message,
+  Word& local,
+  Supplier s)
+{
+
+  TripInfo* localtrip =
+  (TripInfo*) local.addr;
+
+  switch(message)
+  {
+
+    case OPEN: // Initialize the local storage
+    {
+
+      if(localtrip)
+      {
+        delete localtrip;
+        localtrip = 0;
+      }
+
+      Batch* b =
+      static_cast<Batch*>(args[0].addr);
+      int numoftrips = b->GetNumTrips();
+      local.addr =
+      new TripInfo(nl->Second(GetTupleResultType(s)), numoftrips, *b);
+
+
+      return 0;
+    }
+    case REQUEST: // returnthe next stream element
+    {
+      int localidx = localtrip->getIndex();
+
+      if (localidx >= 0)
+      {
+        result.addr = localtrip->nextTuple();
+        return YIELD;
+      }
+      else
+      {
+        result.addr = 0;
+        return CANCEL;
+      }
+    }
+    case CLOSE:
+    {
+      if (localtrip != 0)
+      {
+        delete localtrip;
+        local.addr = 0;
+      }
+      return 0;
+    }
+    default:
+    {
+      // This should never happen
+      return -1;
+    }
+  }
+return 0;
+
+}
+
+/*
+5.17 Operator ~largerbatch~
+
+5.17.1 Type map for ~largerbatch~
+
+*/
+ListExpr LargerBatchTypeMap(ListExpr args)
+{
+  if (!nl->HasLength(args, 2)) {
+    return listutils::typeError("Only takes one argument");
+  }
+  if (!Batch::checkType(nl->First(args)) &&
+    !Batch::checkType(nl->Second(args))) {
+    return listutils::typeError("Needs a batch");
+  }
+  return NList(CcBool::BasicType()).listExpr();
+}
+
+int LargerBatchValueMap(Word* args, Word& result,
+  int message,
+  Word& local,
+  Supplier s)
+{
+  Batch *b1 = static_cast<Batch*>( args[0].addr );
+  Batch *b2 = static_cast<Batch*>( args[1].addr );
+  Rectangle<2> r1 = b1->GetBoundingBox();
+  Rectangle<2> r2 = b2->GetBoundingBox();
+
+  result = qp->ResultStorage(s);
+
+  CcBool* b = static_cast<CcBool*>( result.addr );
+  b->Set(true, r1.Area() > r2.Area());
+
+  return 0;
+}
+
+
+/*
+6 Operator Info
+
+*/
+struct LargerBatchInfo : OperatorInfo
+{
+  LargerBatchInfo()
+  {
+    name = "largerbatch";
+    signature = "batch x batch -> bool";
+    syntax = "largerbatch(_,_)";
+    meaning =
+    "Compares area of two batches and"
+    "returns true if first param is the largest batch";
+  }
+};
+
+struct GetTripsInfo : OperatorInfo
+{
+  GetTripsInfo()
+  {
+    name = "getTrips";
+    signature = "batch -> Stream(x)"
+    "batch -> Stream(x)";
+    syntax = "_ getTrips";
+    meaning =
+    "Get all trips data from a batch as a tuple with id and semantictrajectory";
+  }
+};
+
+struct BuildBatchInfo : OperatorInfo
+{
+  BuildBatchInfo()
+  {
+    name = "buildbatch";
+    signature = "stream(tulple(X)) x stream(tuple(y))"
+    "int x a1 x a2 x a3 x a4 x rectangle -> batch";
+    syntax = "_ _ buildbatch[_,_,_,_,_,_]";
+    meaning =
+    "Pass a tuple stream to convert object into Batch Datatype";
+  }
+};
+
+struct BatchesInfo : OperatorInfo
+{
+  BatchesInfo()
+  {
+    name = "batches";
+    signature = "stream(tulple(X)) x "
+    "a1 x a2 x real -> Stream (tuple(X))";
+    syntax = "_ batches[_,_,_]";
+    meaning =
+    "Assigns batchid to a list of semantictrajectory "
+    "~attribute a1 should be the ST"
+    "attribute a2 should batchId field"
+    " and attribute a3 should be the diagonal threshold value";
+  }
+};
+
+struct BBSimInfo : OperatorInfo
+{
+  BBSimInfo()
+  {
+    name = "bbsim";
+    signature = "Batch x Batch x CcReal x Rectangle"
+    " -> CcReal";
+    syntax = "bbsim(_,_,_,_)";
+    meaning = "Evaluates two batch type"
+    "in order to calculate the spatial-textual distance and returns score";
+  }
+};
+
+struct BTSimInfo : OperatorInfo
+{
+  BTSimInfo()
+  {
+    name = "btsim";
+    signature = "Batch x SemanticTrajectory "
+    "x CcReal x Rectangle"
+    " -> CcReal";
+    syntax = "btsim(_,_,_,_)";
+    meaning = "Evaluates trajectory-batch pair"
+     "using an uppberbound evaluation and returns score";
+  }
+};
+
+struct FilterBBSimInfo : OperatorInfo
+{
+  FilterBBSimInfo()
+  {
+    name = "filterbbsim";
+    signature = "Stream(Tuple(x)) x id1 x id2"
+    "x MBR1 x MBR2 x CcReal x CcReal x Rectangle"
+    " -> Stream(Tuple(x))";
+    syntax = "_ filterbbsim[_,_,_,_,_,_,_]";
+    meaning = "Filters out batch-batch pair that are below the threshold"
+    "using an uppberbound evaluation"
+    "and return the batch pair tuple"
+    "with the batch with the largest Area 1st in tuple";
+  }
+};
+
+struct FilterBTSimInfo : OperatorInfo
+{
+  FilterBTSimInfo()
+  {
+    name = "filterbtsim";
+    signature = "Stream(Tuple(x)) x Stream(Tuple(x)) "
+    "x attr x attr x attr x rect x real x real x rect"
+    " -> Stream(Tuple(x))";
+    syntax = "_ _ filterbtsim[_,_,_,_,_,_,_]";
+    meaning = "Filters out trajectory-batch pair"
+     "that are below the threshold"
+     "using an uppberbound evaluation";
+  }
+};
+
+struct FilterTTSimInfo : OperatorInfo
+{
+  FilterTTSimInfo()
+  {
+    name = "filterttsim";
+    signature = "Stream(Tuple(x)) x attr x attr"
+    " x real x real x rect x CellGrid2D"
+    " -> Stream(Tuple(x))";
+    syntax = "_ filterttsim[_,_,_,_,_,_]";
+    meaning = "Filters out trajectory-trajectory pair"
+    " that are below the threshold"
+    "using an uppberbound evaluation";
+  }
+};
+
+struct FilterSimInfo : OperatorInfo
+{
+  FilterSimInfo()
+  {
+    name = "filtersim";
+    signature = "Stream(Tuple(x)) x attr x attr x "
+    " real x real x rect"
+    " -> Stream(Tuple(x))";
+    syntax = "_ filtersim[_,_,_,_,_]";
+    meaning =
+    "Filter out trajectory-trajectory pair that are below threshold"
+    "by evaluating all the points";
+  }
+};
+
+struct TTSimInfo : OperatorInfo
+{
+  TTSimInfo()
+  {
+    name = "ttsim";
+    signature = "semantictrajectory x semantictrajectory x real x "
+    " rectangle x CellGrid2D -> real";
+    syntax = "ttsim (_,_,_,_,_)";
+    meaning = "Returns the upperbound score between"
+     "two values semantictrajectory";
+  }
+};
+
+struct SimInfo : OperatorInfo
+{
+  SimInfo()
+  {
+    name = "sim";
+    signature = SemanticTrajectory::BasicType() + " x "
+    + SemanticTrajectory::BasicType()
+    + " x " + Rectangle<2>::BasicType() + " x "
+     + CcReal::BasicType() + " -> " + CcReal::BasicType();
+    syntax = "sim(_,_,_,_)";
+    meaning = "Get similarity score of two semantic Trajectories";
+  }
+};
+
+struct STBboxInfo : OperatorInfo
+{
+  STBboxInfo()
+  {
+    name = "stbox";
+    signature = SemanticTrajectory::BasicType()
+    + " -> " + Rectangle<2>::BasicType();
+    syntax = "stbox(_)";
+    meaning = "Returns the bounding box"
+    "of a semantic trajectory";
+  }
+};
+
+struct MakeSemTrajInfo : OperatorInfo
+{
+  MakeSemTrajInfo()
+  {
+    name = "makesemtraj";
+    signature =
+    "stream(tuple(a1 t1) ...(an tn) ) "
+    " x ai x aj x ak-> semantictrajectory";
+    syntax = "_ makesemtraj [_,_,_]";
+    meaning =
+    "Convert stream of tuples"
+    " into a semantictrajectory datatype";
+  }
+};
+
+struct MakeSemTrajInfo2 : OperatorInfo
+{
+  MakeSemTrajInfo2()
+  {
+    name = "makesemtraj2";
+    signature =
+    "stream(tuple(a1 t1) ...(an tn) ) "
+    " x ai x aj x ak-> semantictrajectory";
+    syntax = "_ _ makesemtraj2 [_,_,_,_]";
+    meaning =
+    "Convert stream of tuples"
+    " into a semantictrajectory datatype"
+    " + removes stopwords";
+  }
+};
+
+struct MakeSummariesInfo : OperatorInfo
+{
+  MakeSummariesInfo()
+  {
+    name = "makesum";
+    signature =
+    "stream(tuple) x int x semantictrajectory x "
+    "cellgrid2d x attr x attr x attr"
+    " -> semantictrajectory";
+    syntax = "_ makesum [_,_,_,_,_,_]";
+    meaning =
+    "Retrieves cell origin coordinates from"
+    "a semantictrajectory to create spatial and textual summary";
+  }
+};
+
+struct ExtractKeywordsInfo : OperatorInfo
+{
+  ExtractKeywordsInfo()
+  {
+    name = "extractkeywords";
+    signature =
+    "semantictrajectory -> stream(string)";
+    syntax = "_ extractkeywords";
+    meaning =
+    "Extracts semanticTrajectory string and"
+    " converts it into a"
+    "a stream of words";
+  }
+};
 
 
 
 
 /*
-3.11 Creation of the Type Constructor Instance
+7 Type Constructor for SemanticTrajectory
 
 */
 TypeConstructor semantictrajectory (
@@ -5827,37 +7210,43 @@ TypeConstructor semantictrajectory (
   SemanticTrajectory::KindCheck);
   //kind checking function
 
-  TypeConstructor batch (
-    Batch::BasicType(),
-    //name
-    Batch::Property,
-    //property function
-    Batch::Out,
-    Batch::In,
-    //Out and In functions
-    0,
-    0,
-    //SaveTo and RestoreFrom functions
-    Batch::Create,
-    Batch::Delete,
-    //object creation and deletion
-    Batch::Open,
-    Batch::Save,
-    //object open and save
-    Batch::Close,
-    Batch::Clone,
-    //object close and clone
-    Batch::Cast,
-    //cast function
-    Batch::SizeOfObj,
-    //sizeof function
-    Batch::KindCheck);
-    //kind checking function
 
 
 
 /*
-4 SemanticTrajectoryAlgebra
+8 Type Constructor for Batch
+
+*/
+TypeConstructor batch (
+  Batch::BasicType(),
+  //name
+  Batch::Property,
+  //property function
+  Batch::Out,
+  Batch::In,
+  //Out and In functions
+  0,
+  0,
+  //SaveTo and RestoreFrom functions
+  Batch::Create,
+  Batch::Delete,
+  //object creation and deletion
+  Batch::Open,
+  Batch::Save,
+  //object open and save
+  Batch::Close,
+  Batch::Clone,
+  //object close and clone
+  Batch::Cast,
+  //cast function
+  Batch::SizeOfObj,
+  //sizeof function
+  Batch::KindCheck);
+  //kind checking function
+
+
+/*
+9 SemanticTrajectoryAlgebra
 
 */
 class SemanticTrajectoryAlgebra : public Algebra
@@ -5871,98 +7260,98 @@ class SemanticTrajectoryAlgebra : public Algebra
       AddTypeConstructor(&batch);
       batch.AssociateKind(Kind::DATA());
 
-      // AddOperator(
-      // BuildBatchInfo(),
-      // BuildBatchMapValue,
-      // BuildBatchTypeMap);
-      //
-      // AddOperator(
-      //   LargerBatchInfo(),
-      //   LargerBatchValueMap,
-      //   LargerBatchTypeMap
-      // );
-      //
-      // AddOperator(
-      //   GetTripsInfo(),
-      //   GetTripsValueMap,
-      //   GetTripsTypeMap
-      // );
-      //
-      // AddOperator(
-      //   FilterBBSimInfo(),
-      //   FilterBBSimMapValue,
-      //   FilterBBSimTypeMap
-      // );
-      //
-      // AddOperator(
-      //   BBSimInfo(),
-      //   BBSimMapValue,
-      //   BBSimTypeMap
-      // );
-      //
-      // AddOperator(
-      //   FilterBTSimInfo(),
-      //   FilterBTSimMapValue,
-      //   FilterBTSimTypeMap
-      // );
-      //
-      // AddOperator(
-      //   BTSimInfo(),
-      //   BTSimMapValue,
-      //   BTSimTypeMap
-      // );
-      //
-      // AddOperator(
-      //   FilterTTSimInfo(),
-      //   FilterTTSimMapValue,
-      //   FilterTTSimTypeMap
-      // );
-      //
-      // AddOperator(
-      //   TTSimInfo(),
-      //   TTSimMapValue,
-      //   TTSimTypeMap
-      // );
-      //
-      // AddOperator(
-      //   FilterSimInfo(),
-      //   FilterSimMapValue,
-      //   FilterSimTypeMap);
-      //
-      // AddOperator(
-      //   SimInfo(),
-      //   SimMapValue,
-      //   SimTypeMap);
-      //
-      // AddOperator(
-      //  MakeSemTrajInfo(),
-      //  MakeSemTrajMV,
-      //  TypeMapMakeSemtraj);
-      //
-      //  AddOperator(
-      //   MakeSemTrajInfo2(),
-      //   MakeSemTrajMV2,
-      //   TypeMapMakeSemtraj2);
-      //
-      // AddOperator(
-      //   STBboxInfo(),
-      //   STbboxMapValue,
-      //   STboxTM);
-      //
-      // AddOperator(
-      //   MakeSummariesInfo(),
-      //   MakesummariesMV,
-      //   MakesummariesTM );
-      //
-      // AddOperator(
-      //   ExtractKeywordsInfo(),
-      //   extractkeywordMapV,
-      //   extractkeywordsTM);
-      //
-      // AddOperator (
-      //   BatchesInfo(),
-      //   BatchesVM,
-      //   BatchesTM);
+      AddOperator(
+      BuildBatchInfo(),
+      BuildBatchMapValue,
+      BuildBatchTypeMap);
+
+      AddOperator(
+        LargerBatchInfo(),
+        LargerBatchValueMap,
+        LargerBatchTypeMap
+      );
+
+      AddOperator(
+        GetTripsInfo(),
+        GetTripsValueMap,
+        GetTripsTypeMap
+      );
+
+      AddOperator(
+        FilterBBSimInfo(),
+        FilterBBSimMapValue,
+        FilterBBSimTypeMap
+      );
+
+      AddOperator(
+        BBSimInfo(),
+        BBSimMapValue,
+        BBSimTypeMap
+      );
+
+      AddOperator(
+        FilterBTSimInfo(),
+        FilterBTSimMapValue,
+        FilterBTSimTypeMap
+      );
+
+      AddOperator(
+        BTSimInfo(),
+        BTSimMapValue,
+        BTSimTypeMap
+      );
+
+      AddOperator(
+        FilterTTSimInfo(),
+        FilterTTSimMapValue,
+        FilterTTSimTypeMap
+      );
+
+      AddOperator(
+        TTSimInfo(),
+        TTSimMapValue,
+        TTSimTypeMap
+      );
+
+      AddOperator(
+        FilterSimInfo(),
+        FilterSimMapValue,
+        FilterSimTypeMap);
+
+      AddOperator(
+        SimInfo(),
+        SimMapValue,
+        SimTypeMap);
+
+      AddOperator(
+       MakeSemTrajInfo(),
+       MakeSemTrajMV,
+       TypeMapMakeSemtraj);
+
+       AddOperator(
+        MakeSemTrajInfo2(),
+        MakeSemTrajMV2,
+        TypeMapMakeSemtraj2);
+
+      AddOperator(
+        STBboxInfo(),
+        STbboxMapValue,
+        STboxTM);
+
+      AddOperator(
+        MakeSummariesInfo(),
+        MakesummariesMV,
+        MakesummariesTM );
+
+      AddOperator(
+        ExtractKeywordsInfo(),
+        extractkeywordMapV,
+        extractkeywordsTM);
+
+      AddOperator (
+        BatchesInfo(),
+        BatchesVM,
+        BatchesTM);
 
     }
     ~SemanticTrajectoryAlgebra() {};
@@ -5971,18 +7360,17 @@ class SemanticTrajectoryAlgebra : public Algebra
 
 
 /*
-
-5 Initialization
+10 Eureka! Initialization
 
 */
 
-  extern "C"
-  Algebra*
-  InitializeSemanticTrajectoryAlgebra(NestedList *nlRef,
-    QueryProcessor *qpRef)
-  {
-    nl = nlRef;
-    qp = qpRef;
-    return (new SemanticTrajectoryAlgebra());
-  }
+extern "C"
+Algebra*
+InitializeSemanticTrajectoryAlgebra(NestedList *nlRef,
+  QueryProcessor *qpRef)
+{
+  nl = nlRef;
+  qp = qpRef;
+  return (new SemanticTrajectoryAlgebra());
+}
 } // end of namespace
