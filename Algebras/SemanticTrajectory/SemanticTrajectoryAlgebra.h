@@ -35,37 +35,32 @@ Author: Catherine Higgins
 
 
 #include "../../Tools/Flob/DbArray.h"
-// Needed for Flob Array
+/* Needed for Flob Array */
 #include "../../Tools/Flob/Flob.h"
-// Needed for flob
+/* Needed for Flob */
 #include "Algebras/Rectangle/RectangleAlgebra.h"
-// for bounding box
+/* for bounding box */
 #include <iostream>
 #include <string>
 #include <cmath>
 #include <float.h>
-// This is needed for DBL_MAX
+/* This is needed for DBL_MAX */
 #include "StringUtils.h"
-//This is needed to tokenized strings
+/* This is needed to tokenized strings */
 #include "Algebras/Geoid/Geoid.h"
 #include <vector>
 namespace semtraj {
 
-  /*
+/*
 
-    1 Data structures for semantictrajectory datatype
+1 Data structs for Class Batch and SemanticTrajectory
 
-    1.1 Struct for a coordinate point <x, y> of type real
-
-  */
+*/
 
   struct Coordinate
   {
     Coordinate() {}
-  /*
-  Do not use this constructor.
-
-  */
+    /* Do not use this constructor */
     Coordinate( double xcoord, double ycoord ):
       x( xcoord ), y( ycoord )
       {}
@@ -86,8 +81,7 @@ namespace semtraj {
 
 
   /*
-
-  1.2 Struct for holding a Text data relating to each coordinate point
+  Struct for holding a Text data relating to each coordinate point
   Used to hold position of where each string begins in a Flob
   Flob contains each string associated to each coordinate point
 
@@ -101,17 +95,14 @@ namespace semtraj {
 
 
   /*
-  1.3 Holds the coordinates of data points in a gridcell2D
+  Holds the coordinates of data points in a gridcell2D
   Used for the trajectory pruning (divide and conquer)
 
   */
   struct Cell
   {
     Cell() {}
-  /*
-  Do not use this constructor.
-
-  */
+  /* Do not use this constructor. */
 
     Cell( int32_t id, int32_t x, int32_t y ):
       tripId( id), origx( x ), origy( y )
@@ -141,7 +132,6 @@ namespace semtraj {
 
 
   /*
-  1.4
   Struct for textual summary
   Holds the index number of a word and it's frequency
 
@@ -150,10 +140,7 @@ namespace semtraj {
   struct WordST
   {
     WordST() {}
-  /*
-  Do not use this constructor.
-
-  */
+  /* Do not use this constructor. */
 
     WordST( int32_t id, int32_t count ):
       indexId( id), count( count )
@@ -182,7 +169,6 @@ namespace semtraj {
   };
 
   /*
-  1.5
   Struct for batch grouping operator batche
 
   */
@@ -190,10 +176,7 @@ namespace semtraj {
   struct BatchGroup
   {
     BatchGroup() {}
-  /*
-  Do not use this constructor.
-
-  */
+  /* Do not use this constructor. */
 
     BatchGroup(Rectangle<2> mbr2):
       mbr(mbr2)
@@ -218,7 +201,7 @@ namespace semtraj {
     {
       return mbr;
     }
-    // Search for ID
+    /* Search for ID */
 
     ~BatchGroup(){}
 
@@ -226,7 +209,6 @@ namespace semtraj {
   };
 
   /*
-  1.6
   Struct to hold the batch summary for words
   Works in conjunction with batchwords_Flob flob
   Part of the ST component
@@ -275,7 +257,6 @@ namespace semtraj {
   */
 
   /*
-  1.7
   Struct to hold the trip summary information
 
   */
@@ -363,19 +344,22 @@ namespace semtraj {
   };
 
 
-  /*
+/*
 
-  2 Class SemanticTrajectory
+2 Class SemanticTrajectory
 
-  */
+*/
   class SemanticTrajectory : public Attribute
   {
 
     public:
 
       SemanticTrajectory(int dummy);
-      //must initialize the attribute and the DbArray
-      // using non-standard constructor
+      /*
+      must initialize the attribute and the DbArray
+      using non-standard constructor
+
+      */
       ~SemanticTrajectory();
 
 
@@ -414,6 +398,7 @@ namespace semtraj {
       }
       /*
       Functions for Attribute type
+
       */
       int NumOfFLOBs() const {
         return 6; }
@@ -553,6 +538,7 @@ namespace semtraj {
       DbArray<WordST> GetTextSumList() const;
       /*
       OPERATOR HELPER FUNCTIONS
+
       */
 
       double Similarity(SemanticTrajectory& st, double diag,
@@ -570,6 +556,7 @@ namespace semtraj {
       /*
       OPERATOR HELPER FUNCTIONS
       FOR TTSim
+
       */
       double MinDistAux( SemanticTrajectory& st2, double wx, double wy);
       double MinDistUtils(DbArray<Cell>& Ax,
@@ -631,49 +618,31 @@ namespace semtraj {
       }
 
     private:
-      /*
-      Constructor should never be used
-      */
+      /* Constructor should never be used */
       SemanticTrajectory() {}
-      /*
-      DbArray to hold coordinate points
-      */
+      /* DbArray to hold coordinate points */
       DbArray<Coordinate> coordinates;
-
-      /*
-      Holds position of each Text at each coordinate
-      */
+      /* Holds position of each Text at each coordinate */
       DbArray<TextData> semantics;
-      /*
-      Holds all characters for one semantic trajectory
-      */
+      /* Holds all characters for one semantic trajectory */
       Flob semantics_Flob;
-      /*
-      DbArray to hold Cell data
-      */
+      /* DbArray to hold Cell data */
       DbArray<Cell> cells;
-      /*
-      DbArray to hold word data
-      */
+      /* DbArray to hold word data */
       DbArray<WordST> words;
-      /*
-
-      */
       Flob words_Flob;
-      /*
-      The bounding box that encloses the SemanticTrajectory
-      */
+      /* The bounding box that encloses the SemanticTrajectory */
       Rectangle<2> bbox;
   };
 
 
 
 
-  /*
+/*
 
-  3 Class Batch
+2 Class Batch
 
-  */
+*/
 
   class Batch : public Attribute
   {
@@ -686,9 +655,7 @@ namespace semtraj {
       Batch(const Batch& b);
       Batch& operator=(const Batch& b);
 
-      /*
-      Functions for Attribute type
-      */
+      /* Functions for Attribute type */
       int NumOfFLOBs() const {
         return 9; }
       Flob *GetFLOB(const int i);
@@ -753,7 +720,7 @@ namespace semtraj {
           bsemantics.clean();
           bsemantics_Flob.clean();
           bbox.SetDefined(false);
-          // batchId.SetDefined(false);
+
       }
       /* For Batch WordSummary */
       bool GetBSumString(int index, std::string& rString) const;
@@ -888,20 +855,13 @@ namespace semtraj {
 
 
     private:
-      /*
-      Constructor should never be used
-      */
+      /* Constructor should never be used */
       Batch() {}
 
-      /*
-      DbArray to hold word data
-      */
+      /* DbArray to hold word data */
       DbArray<BatchWord> batchwords;
 
-      /*
-      Flob to hold the words
-      */
-
+      /* Flob to hold the words */
       Flob batchwords_Flob;
 
       /* DbArray to hold Trip info */
@@ -918,29 +878,19 @@ namespace semtraj {
       /* Flob to hold actual string information for bwords */
       Flob bwords_Flob;
 
-      /*
-      DbArray to hold coordinate points
-      */
+      /* DbArray to hold coordinate points */
       DbArray<Coordinate> bcoordinates;
 
-      /*
-      Holds position of each Text at each coordinate
-      */
+      /* Holds position of each Text at each coordinate */
       DbArray<TextData> bsemantics;
-      /*
-      Holds all characters for one semantic trajectory
-      */
+      /* Holds all characters for one semantic trajectory */
       Flob bsemantics_Flob;
 
-      /*
-      The bounding box that encloses the batch
-      */
+      /* The bounding box that encloses the batch */
       Rectangle<2> bbox;
 
       int batchId;
   };
 
-
-
-} // end of namespace
+} /* end of namespace */
 #endif
