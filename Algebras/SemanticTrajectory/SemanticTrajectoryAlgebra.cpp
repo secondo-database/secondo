@@ -794,7 +794,6 @@ Responsible for adding a <x,y> Coordinate object
 to DbArray coordinates
 
 */
-
 void SemanticTrajectory::
 AddCoordinate(
  const Coordinate& c)
@@ -806,7 +805,7 @@ AddCoordinate(
 /*
 3.4.2 GetCoordinate function
 
-Retrieve a Coordinate from the DbArra
+Retrieve a Coordinate from the DbArray coordinates
 
 */
 Coordinate SemanticTrajectory::
@@ -819,8 +818,7 @@ GetCoordinate( int i ) const
 }
 
 /*
-3.4.3 Placeholder function
-TODO
+3.4.3 AddSemString function
 
 */
 bool SemanticTrajectory::
@@ -844,8 +842,7 @@ AddSemString(const std::string& stString)
 }
 
 /*
-3.4.4 Placeholder function
-TODO
+3.4.4 GetSemString function
 
 */
 bool SemanticTrajectory::
@@ -885,7 +882,6 @@ GetSemString(int index, std::string& rString) const
 
 /*
 3.4.5 Placeholder function
-TODO
 
 */
 bool SemanticTrajectory::AddStringSum(
@@ -910,8 +906,7 @@ bool SemanticTrajectory::AddStringSum(
 }
 
 /*
-3.4.6 Placeholder function
-TODO
+3.4.6 GetStringSum function
 
 */
 bool SemanticTrajectory::
@@ -950,8 +945,8 @@ GetStringSum(int index, std::string& rString) const
 }
 
 /*
-3.4.7 Placeholder function
-TODO
+3.4.7 GetStringArray function
+
 
 */
 std::list<std::string> SemanticTrajectory::GetStringArray() const
@@ -984,7 +979,8 @@ std::list<std::string> SemanticTrajectory::GetStringArray() const
 
 
 /*
-3.4.8 Placeholder function
+3.4.8 AddCell function
+
 TODO
 
 */
@@ -995,7 +991,8 @@ AddCell(const Cell& c)
 }
 
 /*
-3.4.9 Placeholder function
+3.4.9 GetCellList function
+
 TODO
 
 */
@@ -1007,7 +1004,8 @@ GetCellList() const
 }
 
 /*
-3.4.9 Placeholder function
+3.4.9 GetTextSumList function
+
 TODO
 
 */
@@ -1021,6 +1019,8 @@ GetTextSumList() const
 
 /*
 3.5 Operator helper functions
+
+3.5.1 Relevance Function
 
 */
 
@@ -2924,7 +2924,7 @@ bool& correct )
 /*
 4.4 Implementation of helper functions for class Batch
 
-4.4.1 Placeholder name
+4.4.1 GetBSumString name
 
 */
 
@@ -2964,7 +2964,7 @@ GetBSumString(int index, std::string& rString) const
 }
 
 /*
-4.4.2 Placeholder name
+4.4.2 AddBSumString Function
 
 */
 bool Batch::AddBSumString(
@@ -2990,7 +2990,7 @@ bool Batch::AddBSumString(
 }
 
 /*
-4.4.3 Placeholder name
+4.4.3 AddBWord Function
 
 */
 bool Batch::AddBWord(
@@ -3014,7 +3014,7 @@ bool Batch::AddBWord(
 }
 
 /*
-4.4.4 Placeholder name
+4.4.4 GetBWord Function
 
 */
 bool Batch::
@@ -3054,7 +3054,7 @@ GetBWord(int index, std::string& rString) const
 }
 
 /*
-4.4.5 Placeholder name
+4.4.5 AddBSemString Function
 
 */
 bool Batch::AddBSemString(const std::string& str)
@@ -3075,7 +3075,7 @@ bool Batch::AddBSemString(const std::string& str)
 }
 
 /*
-4.4.6 Placeholder name
+4.4.6 GetBSemString Function
 
 */
 bool Batch::GetBSemString(int index, std::string& str) const
@@ -3112,7 +3112,7 @@ bool Batch::GetBSemString(int index, std::string& str) const
 }
 
 /*
-4.4.7 Placeholder name
+4.4.7 AddBCoordinate name
 
 */
 void Batch::AddBCoordinate(const Coordinate& c)
