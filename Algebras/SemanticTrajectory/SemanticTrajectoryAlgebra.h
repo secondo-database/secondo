@@ -275,7 +275,7 @@ namespace semtraj {
       begin_idxCells(0),
       end_idxCells(0),
       bbox(0)
-      {}
+    {}
 
     Trip(const Trip& t) :
     id( t.id),
@@ -317,7 +317,8 @@ namespace semtraj {
     void SetEndSumWordsIdx(int val) { end_idxSumWords = val; }
     void SetEndCellsIdx(int val) { end_idxCells = val;}
 
-    const Rectangle<2> GetBoundingBox() const {
+    const Rectangle<2> GetBoundingBox() const
+    {
       return bbox;
     }
 
