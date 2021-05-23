@@ -821,8 +821,7 @@ GetCoordinate( int i ) const
 3.4.3 AddSemString function
 
 */
-bool SemanticTrajectory::
-AddSemString(const std::string& stString)
+bool SemanticTrajectory::AddSemString(const std::string& stString)
 {
 
  if (!stString.empty())
@@ -881,7 +880,14 @@ GetSemString(int index, std::string& rString) const
 }
 
 /*
-3.4.5 Placeholder function
+3.4.5 AddStringSum function
+
+*/
+
+/*
+Each trajectory has textual summary which consists of all the
+individual unique words found in one semantic SemanticTrajectory
+This function adds a string to the Flob X and string info to DbArray X.
 
 */
 bool SemanticTrajectory::AddStringSum(
