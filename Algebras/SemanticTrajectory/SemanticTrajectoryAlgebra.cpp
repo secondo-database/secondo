@@ -789,6 +789,7 @@ void* SemanticTrajectory::Cast(void* addr)
 3.4 Implementation of new functions
 
 3.4.1 Add Coordinate function
+
 Responsible for adding a <x,y> Coordinate object
 to DbArray coordinates
 
@@ -804,7 +805,8 @@ AddCoordinate(
 
 /*
 3.4.2 GetCoordinate function
-TODO
+
+Retrieve a Coordinate from the DbArra
 
 */
 Coordinate SemanticTrajectory::
@@ -7360,7 +7362,7 @@ class SemanticTrajectoryAlgebra : public Algebra
 
 
 /*
-10 Eureka! Initialization
+10 Initialization
 
 */
 

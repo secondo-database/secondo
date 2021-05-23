@@ -26,7 +26,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 [1] SemanticTrajectory Algebra
 Author: Catherine Higgins
 
+1 Overview
 
+2 Defines, includes, and constants
 
 */
 
@@ -51,11 +53,12 @@ Author: Catherine Higgins
 #include <vector>
 namespace semtraj {
 
-/*
+  /*
+  3 Structs for Class Batch and SemanticTrajectory
 
-1 Data structs for Class Batch and SemanticTrajectory
+  3.1 struct Coordinate
 
-*/
+  */
 
   struct Coordinate
   {
@@ -79,7 +82,10 @@ namespace semtraj {
     double y;
   };
 
+  /*
+  3.2 Struct TextData
 
+  */
   /*
   Struct for holding a Text data relating to each coordinate point
   Used to hold position of where each string begins in a Flob
@@ -93,6 +99,11 @@ namespace semtraj {
     SmiSize Length;
   };
 
+
+  /*
+  3.3 Struct Cell
+
+  */
 
   /*
   Holds the coordinates of data points in a gridcell2D
@@ -130,7 +141,10 @@ namespace semtraj {
     int32_t origy;
   };
 
+  /*
+  3.4 Struct WordST
 
+  */
   /*
   Struct for textual summary
   Holds the index number of a word and it's frequency
@@ -168,6 +182,10 @@ namespace semtraj {
 
   };
 
+  /*
+  3.5 Struct BatchGroup
+
+  */
   /*
   Struct for batch grouping operator batche
 
@@ -209,12 +227,15 @@ namespace semtraj {
   };
 
   /*
+  3.6 Struct BatchWord
+
+  */
+  /*
   Struct to hold the batch summary for words
   Works in conjunction with batchwords_Flob flob
   Part of the ST component
 
   */
-
 
 
   struct BatchWord
@@ -252,7 +273,7 @@ namespace semtraj {
   };
 
   /*
-  Structs used with the Batch Class
+  3.7 Struct Trip
 
   */
 
@@ -288,7 +309,8 @@ namespace semtraj {
     bbox(t.bbox)
     {}
 
-    Trip& operator=(const Trip& t){
+    Trip& operator=(const Trip& t)
+    {
       id = t.id;
       begin_idxCoords = t.begin_idxCoords;
       end_idxCoords = t.end_idxCoords;
@@ -342,556 +364,557 @@ namespace semtraj {
     int end_idxCells;
     Rectangle<2> bbox;
 
-  };
-
-
-/*
-
-2 Class SemanticTrajectory
-
-*/
-  class SemanticTrajectory : public Attribute
-  {
-
-    public:
-
-      SemanticTrajectory(int dummy);
-      /*
-      must initialize the attribute and the DbArray
-      using non-standard constructor
-
-      */
-      ~SemanticTrajectory();
-
-
-      SemanticTrajectory(const SemanticTrajectory& st);
-      SemanticTrajectory& operator=(const SemanticTrajectory& st);
-
-      void InitializeST()
-      {
-        SetDefined(true);
-      }
-
-      bool EndST(const SemanticTrajectory& st)
-      {
-        if (!IsDefined())
-        {
-          Clear();
-          SetDefined(false);
-          return false;
-        }
-        coordinates.copyFrom(st.coordinates);
-        semantics.copyFrom(st.semantics);
-        semantics_Flob.copyFrom(st.semantics_Flob);
-        bbox = st.bbox;
-        return true;
-      }
-
-      void Clear()
-      {
-          coordinates.clean();
-          semantics.clean();
-          semantics_Flob.clean();
-          cells.clean();
-          words.clean();
-          words_Flob.clean();
-          bbox.SetDefined(false);
-      }
-      /*
-      Functions for Attribute type
-
-      */
-      int NumOfFLOBs() const {
-        return 6; }
-      Flob *GetFLOB(const int i);
-      int Compare(const Attribute*) const {
-        return 0;}
-      bool Adjacent(const Attribute*) const {
-        return false;}
-      SemanticTrajectory *Clone() const;
-      size_t Sizeof() const {
-        return sizeof(*this);}
-      size_t HashValue() const {
-        return 0;}
-      void CopyFrom(const Attribute* right);
-
-      /* Functions for semantic datatype */
-      bool AddSemString(const std::string& stString);
-      bool GetSemString(int index, std::string& rString) const;
-      bool AddStringSum(const std::string& stString, int id, int count);
-      void AddCoordinate( const Coordinate& p);
-      void Destroy();
-      Coordinate GetCoordinate( int i ) const;
-      bool GetStringSum(int index, std::string& rString) const;
-      int GetNumCoordinates() const {
-        return coordinates.Size(); }
-      int GetNumTextData() const {
-        return  semantics.Size(); }
-      const bool IsEmpty() const {
-        return GetNumCoordinates() == 0
-        && GetNumTextData() == 0; }
-      const Rectangle<2> GetBoundingBox( ) const {
-        return bbox; }
-      void SetBoundingBox(const bool defined,
-        const double *min,
-        const double *max)
-      {
-        bbox.Set(true, min, max);
-      }
-      std::list<std::string> GetStringArray() const;
-
-      /* Functions for spatial summary */
-      void AddCell( const Cell& c);
-      Cell GetCell( int i ) const {
-        assert( 0 <= i && i < GetNumCells() );
-        Cell c;
-        cells.Get( i, &c );
-        return c;
-      }
-
-      int GetNumCells() const { return cells.Size(); }
-      const bool IsEmptySpatialSum() const {
-        return GetNumCells() == 0;}
-      DbArray<Cell> GetCellList() const;
-
-
-      static int CompareX(const void* a, const void* b)
-      {
-        const double ax = ((Cell*)a)->GetX();
-        const double bx = ((Cell*)b)->GetX();
-        if (ax < bx)
-        {
-          return -1;
-        }
-        else
-        {
-          return (ax == bx) ? 0 : 1;
-        }
-      }
-
-      static int CompareY(const void* a, const void* b)
-      {
-        const double ax = ((Cell*)a)->GetY();
-        const double bx = ((Cell*)b)->GetY();
-        if (ax < bx)
-        {
-          return -1;
-        }
-        else
-        {
-          return (ax == bx) ? 0 : 1;
-        }
-      }
-      static int CompareString(const void* a, const void* b)
-      {
-        std::string str1 = ((CcString*)a)->GetValue();
-        std::string str2 = ((CcString*)b)->GetValue();
-        int res = str1.compare(str2);
-        return res;
-
-      }
-      static bool
-      compare_nocase (const std::string& first,
-        const std::string& second)
-      {
-        unsigned int i=0;
-        while ( (i<first.length()) && (i<second.length()) )
-        {
-          if (first[i] < second[i]) return true;
-          else if (first[i]>second[i]) return false;
-          ++i;
-        }
-        return ( first.length() < second.length() );
-      }
-      /* Functions for textual summary */
-      WordST GetWord( int i) const
-      {
-        assert( 0 <= i && i < GetNumWords() );
-        WordST w;
-        words.Get( i, &w );
-        return w;
-      }
-      int GetNumWords() const { return words.Size(); }
-      const bool IsEmptyTextualSum() const {
-        return GetNumWords() == 0;
-      }
-      static int CompareIndex(const void* a, const void* b)
-      {
-        const int32_t w1 = ((WordST*)a)->GetIdxId();
-        const int32_t w2 = ((WordST*)b)->GetIdxId();
-        if (w1 < w2)
-        {
-          return -1;
-        }
-        else
-        {
-          return (w1 == w2) ? 0 : 1;
-        }
-      }
-      bool FindIdx(const int& key, int& pos)
-      {
-          return words.Find(&key, CompareIndex, pos);
-      }
-      bool replaceWord(WordST& w, int i)
-      {
-        return words.Put(i, w);
-      }
-      DbArray<WordST> GetTextSumList() const;
-      /*
-      OPERATOR HELPER FUNCTIONS
-
-      */
-
-      double Similarity(SemanticTrajectory& st, double diag,
-        double alpha);
-      double Relevance(int index,SemanticTrajectory& st,
-        double diag, double alpha);
-      double Sim(int i, int y, SemanticTrajectory& st,
-        double diag, double alpha);
-      double SpatialDist(int i, int y,
-        SemanticTrajectory& st);
-      double TextualScore(int i, int y,
-        SemanticTrajectory& st);
-      double GetDiagonal(Rectangle<2> &rec);
-
-      /*
-      OPERATOR HELPER FUNCTIONS
-      FOR TTSim
-
-      */
-      double MinDistAux( SemanticTrajectory& st2, double wx, double wy);
-      double MinDistUtils(DbArray<Cell>& Ax,
-        DbArray<Cell>& Ay, int32_t m, double wx, double wy);
-      double EuclidDist(int32_t x1,
-          int32_t y1,
-          int32_t x2,
-          int32_t y2, double wx, double wy) const;
-      double BruteForce(
-      DbArray<Cell>& Ax,
-      int32_t m, double wx, double wy);
-      double GetCellDist(
-      Cell& c1, Cell& c2, double wx, double wy);
-      double textualScoreTT(SemanticTrajectory& st2);
-
-
-      /* The usual functions */
-      static Word In( const ListExpr typeInfo,
-        const ListExpr instance,
-        const int errorPos,
-        ListExpr& errorInfo,
-        bool& correct );
-
-      static ListExpr Out( ListExpr typeInfo, Word value );
-
-      static Word Create( const ListExpr typeInfo );
-
-      static void Delete(
-        const ListExpr typeInfo,
-        Word& w );
-
-      static void Close(
-        const ListExpr typeInfo,
-        Word& w );
-
-      static bool Save( SmiRecord& valueRecord, size_t& offset,
-                            const ListExpr typeInfo, Word& value    );
-
-      static bool Open( SmiRecord& valueRecord, size_t& offset,
-                            const ListExpr typeInfo, Word& value    );
-
-      static Word Clone( const ListExpr typeInfo,
-        const Word& w );
-
-      static bool KindCheck( ListExpr type,
-        ListExpr& errorInfo );
-
-      static int SizeOfObj();
-
-      static ListExpr Property();
-
-      static void* Cast(void* addr);
-
-      static const std::
-      string BasicType() { return "semantictrajectory"; }
-      static const bool checkType(const ListExpr type)
-      {
-        return listutils::isSymbol(type, BasicType());
-      }
-
-    private:
-      /* Constructor should never be used */
-      SemanticTrajectory() {}
-      /* DbArray to hold coordinate points */
-      DbArray<Coordinate> coordinates;
-      /* Holds position of each Text at each coordinate */
-      DbArray<TextData> semantics;
-      /* Holds all characters for one semantic trajectory */
-      Flob semantics_Flob;
-      /* DbArray to hold Cell data */
-      DbArray<Cell> cells;
-      /* DbArray to hold word data */
-      DbArray<WordST> words;
-      Flob words_Flob;
-      /* The bounding box that encloses the SemanticTrajectory */
-      Rectangle<2> bbox;
-  };
-
+};
 
 
 
 /*
 
-2 Class Batch
+4 Class SemanticTrajectory
+
+*/
+class SemanticTrajectory : public Attribute
+{
+
+  public:
+
+    SemanticTrajectory(int dummy);
+    /*
+    must initialize the attribute and the DbArray
+    using non-standard constructor
+
+    */
+    ~SemanticTrajectory();
+
+
+    SemanticTrajectory(const SemanticTrajectory& st);
+    SemanticTrajectory& operator=(const SemanticTrajectory& st);
+
+    void InitializeST()
+    {
+      SetDefined(true);
+    }
+
+    bool EndST(const SemanticTrajectory& st)
+    {
+      if (!IsDefined())
+      {
+        Clear();
+        SetDefined(false);
+        return false;
+      }
+      coordinates.copyFrom(st.coordinates);
+      semantics.copyFrom(st.semantics);
+      semantics_Flob.copyFrom(st.semantics_Flob);
+      bbox = st.bbox;
+      return true;
+    }
+
+    void Clear()
+    {
+        coordinates.clean();
+        semantics.clean();
+        semantics_Flob.clean();
+        cells.clean();
+        words.clean();
+        words_Flob.clean();
+        bbox.SetDefined(false);
+    }
+    /*
+    Functions for Attribute type
+
+    */
+    int NumOfFLOBs() const {
+      return 6; }
+    Flob *GetFLOB(const int i);
+    int Compare(const Attribute*) const {
+      return 0;}
+    bool Adjacent(const Attribute*) const {
+      return false;}
+    SemanticTrajectory *Clone() const;
+    size_t Sizeof() const {
+      return sizeof(*this);}
+    size_t HashValue() const {
+      return 0;}
+    void CopyFrom(const Attribute* right);
+
+    /* Functions for semantic datatype */
+    bool AddSemString(const std::string& stString);
+    bool GetSemString(int index, std::string& rString) const;
+    bool AddStringSum(const std::string& stString, int id, int count);
+    void AddCoordinate( const Coordinate& p);
+    void Destroy();
+    Coordinate GetCoordinate( int i ) const;
+    bool GetStringSum(int index, std::string& rString) const;
+    int GetNumCoordinates() const {
+      return coordinates.Size(); }
+    int GetNumTextData() const {
+      return  semantics.Size(); }
+    const bool IsEmpty() const {
+      return GetNumCoordinates() == 0
+      && GetNumTextData() == 0; }
+    const Rectangle<2> GetBoundingBox( ) const {
+      return bbox; }
+    void SetBoundingBox(const bool defined,
+      const double *min,
+      const double *max)
+    {
+      bbox.Set(true, min, max);
+    }
+    std::list<std::string> GetStringArray() const;
+
+    /* Functions for spatial summary */
+    void AddCell( const Cell& c);
+    Cell GetCell( int i ) const {
+      assert( 0 <= i && i < GetNumCells() );
+      Cell c;
+      cells.Get( i, &c );
+      return c;
+    }
+
+    int GetNumCells() const { return cells.Size(); }
+    const bool IsEmptySpatialSum() const {
+      return GetNumCells() == 0;}
+    DbArray<Cell> GetCellList() const;
+
+
+    static int CompareX(const void* a, const void* b)
+    {
+      const double ax = ((Cell*)a)->GetX();
+      const double bx = ((Cell*)b)->GetX();
+      if (ax < bx)
+      {
+        return -1;
+      }
+      else
+      {
+        return (ax == bx) ? 0 : 1;
+      }
+    }
+
+    static int CompareY(const void* a, const void* b)
+    {
+      const double ax = ((Cell*)a)->GetY();
+      const double bx = ((Cell*)b)->GetY();
+      if (ax < bx)
+      {
+        return -1;
+      }
+      else
+      {
+        return (ax == bx) ? 0 : 1;
+      }
+    }
+    static int CompareString(const void* a, const void* b)
+    {
+      std::string str1 = ((CcString*)a)->GetValue();
+      std::string str2 = ((CcString*)b)->GetValue();
+      int res = str1.compare(str2);
+      return res;
+
+    }
+    static bool
+    compare_nocase (const std::string& first,
+      const std::string& second)
+    {
+      unsigned int i=0;
+      while ( (i<first.length()) && (i<second.length()) )
+      {
+        if (first[i] < second[i]) return true;
+        else if (first[i]>second[i]) return false;
+        ++i;
+      }
+      return ( first.length() < second.length() );
+    }
+    /* Functions for textual summary */
+    WordST GetWord( int i) const
+    {
+      assert( 0 <= i && i < GetNumWords() );
+      WordST w;
+      words.Get( i, &w );
+      return w;
+    }
+    int GetNumWords() const { return words.Size(); }
+    const bool IsEmptyTextualSum() const {
+      return GetNumWords() == 0;
+    }
+    static int CompareIndex(const void* a, const void* b)
+    {
+      const int32_t w1 = ((WordST*)a)->GetIdxId();
+      const int32_t w2 = ((WordST*)b)->GetIdxId();
+      if (w1 < w2)
+      {
+        return -1;
+      }
+      else
+      {
+        return (w1 == w2) ? 0 : 1;
+      }
+    }
+    bool FindIdx(const int& key, int& pos)
+    {
+        return words.Find(&key, CompareIndex, pos);
+    }
+    bool replaceWord(WordST& w, int i)
+    {
+      return words.Put(i, w);
+    }
+    DbArray<WordST> GetTextSumList() const;
+    /*
+    OPERATOR HELPER FUNCTIONS
+
+    */
+
+    double Similarity(SemanticTrajectory& st, double diag,
+      double alpha);
+    double Relevance(int index,SemanticTrajectory& st,
+      double diag, double alpha);
+    double Sim(int i, int y, SemanticTrajectory& st,
+      double diag, double alpha);
+    double SpatialDist(int i, int y,
+      SemanticTrajectory& st);
+    double TextualScore(int i, int y,
+      SemanticTrajectory& st);
+    double GetDiagonal(Rectangle<2> &rec);
+
+    /*
+    OPERATOR HELPER FUNCTIONS
+    FOR TTSim
+
+    */
+    double MinDistAux( SemanticTrajectory& st2, double wx, double wy);
+    double MinDistUtils(DbArray<Cell>& Ax,
+      DbArray<Cell>& Ay, int32_t m, double wx, double wy);
+    double EuclidDist(int32_t x1,
+        int32_t y1,
+        int32_t x2,
+        int32_t y2, double wx, double wy) const;
+    double BruteForce(
+    DbArray<Cell>& Ax,
+    int32_t m, double wx, double wy);
+    double GetCellDist(
+    Cell& c1, Cell& c2, double wx, double wy);
+    double textualScoreTT(SemanticTrajectory& st2);
+
+
+    /* The usual functions */
+    static Word In( const ListExpr typeInfo,
+      const ListExpr instance,
+      const int errorPos,
+      ListExpr& errorInfo,
+      bool& correct );
+
+    static ListExpr Out( ListExpr typeInfo, Word value );
+
+    static Word Create( const ListExpr typeInfo );
+
+    static void Delete(
+      const ListExpr typeInfo,
+      Word& w );
+
+    static void Close(
+      const ListExpr typeInfo,
+      Word& w );
+
+    static bool Save( SmiRecord& valueRecord, size_t& offset,
+                          const ListExpr typeInfo, Word& value    );
+
+    static bool Open( SmiRecord& valueRecord, size_t& offset,
+                          const ListExpr typeInfo, Word& value    );
+
+    static Word Clone( const ListExpr typeInfo,
+      const Word& w );
+
+    static bool KindCheck( ListExpr type,
+      ListExpr& errorInfo );
+
+    static int SizeOfObj();
+
+    static ListExpr Property();
+
+    static void* Cast(void* addr);
+
+    static const std::
+    string BasicType() { return "semantictrajectory"; }
+    static const bool checkType(const ListExpr type)
+    {
+      return listutils::isSymbol(type, BasicType());
+    }
+
+  private:
+    /* Constructor should never be used */
+    SemanticTrajectory() {}
+    /* DbArray to hold coordinate points */
+    DbArray<Coordinate> coordinates;
+    /* Holds position of each Text at each coordinate */
+    DbArray<TextData> semantics;
+    /* Holds all characters for one semantic trajectory */
+    Flob semantics_Flob;
+    /* DbArray to hold Cell data */
+    DbArray<Cell> cells;
+    /* DbArray to hold word data */
+    DbArray<WordST> words;
+    Flob words_Flob;
+    /* The bounding box that encloses the SemanticTrajectory */
+    Rectangle<2> bbox;
+};
+
+
+
+
+/*
+
+5 Class Batch
 
 */
 
-  class Batch : public Attribute
-  {
+class Batch : public Attribute
+{
 
-    public:
+  public:
 
-      Batch(int dummy);
-      ~Batch();
+    Batch(int dummy);
+    ~Batch();
 
-      Batch(const Batch& b);
-      Batch& operator=(const Batch& b);
+    Batch(const Batch& b);
+    Batch& operator=(const Batch& b);
 
-      /* Functions for Attribute type */
-      int NumOfFLOBs() const {
-        return 9; }
-      Flob *GetFLOB(const int i);
-      int Compare(const Attribute*) const {
-        return 0;}
-      bool Adjacent(const Attribute*) const {
-        return false;}
-      Batch *Clone() const;
-      size_t Sizeof() const {
-        return sizeof(*this);}
-      size_t HashValue() const {
-        return 0;}
-      void CopyFrom(const Attribute* right);
-      void Destroy();
+    /* Functions for Attribute type */
+    int NumOfFLOBs() const {
+      return 9; }
+    Flob *GetFLOB(const int i);
+    int Compare(const Attribute*) const {
+      return 0;}
+    bool Adjacent(const Attribute*) const {
+      return false;}
+    Batch *Clone() const;
+    size_t Sizeof() const {
+      return sizeof(*this);}
+    size_t HashValue() const {
+      return 0;}
+    void CopyFrom(const Attribute* right);
+    void Destroy();
 
-      /* The usual functions */
-      static Word In( const ListExpr typeInfo,
-        const ListExpr instance,
-        const int errorPos,
-        ListExpr& errorInfo,
-        bool& correct );
+    /* The usual functions */
+    static Word In( const ListExpr typeInfo,
+      const ListExpr instance,
+      const int errorPos,
+      ListExpr& errorInfo,
+      bool& correct );
 
-      static ListExpr Out( ListExpr typeInfo, Word value );
-      static Word Create( const ListExpr typeInfo );
-      static void Delete(
-        const ListExpr typeInfo,
-        Word& w );
-      static void Close(
-        const ListExpr typeInfo,
-        Word& w );
-      static bool Save( SmiRecord& valueRecord, size_t& offset,
-                            const ListExpr typeInfo, Word& value    );
-      static bool Open( SmiRecord& valueRecord, size_t& offset,
-                            const ListExpr typeInfo, Word& value    );
-      static Word Clone( const ListExpr typeInfo,
-        const Word& w );
-      static bool KindCheck( ListExpr type,
-        ListExpr& errorInfo );
-      static int SizeOfObj();
-      static ListExpr Property();
-      static void* Cast(void* addr);
-      static const std::
-      string BasicType() { return "batch"; }
-      static const bool checkType(const ListExpr type)
-      {
-        return listutils::isSymbol(type, BasicType());
-      }
-
-
-      void Clear()
-      {
-          batchwords.clean();
-          batchwords_Flob.clean();
-          trips.clean();
-          bcells.clean();
-          bwords.clean();
-          bcoordinates.clean();
-          bsemantics.clean();
-          bsemantics_Flob.clean();
-          bwords_Flob.clean();
-          bcoordinates.clean();
-          bsemantics.clean();
-          bsemantics_Flob.clean();
-          bbox.SetDefined(false);
-
-      }
-      /* For Batch WordSummary */
-      bool GetBSumString(int index, std::string& rString) const;
-      bool AddBSumString(const std::string& stString,
-        int id, int count);
-      int GetWordListSize() const { return batchwords.Size(); }
-
-      const bool IsEmptyWordList() const {
-        return GetWordListSize() == 0;}
-
-      BatchWord GetBSumWord( int i) const {
-        assert( 0 <= i && i < GetWordListSize() );
-        BatchWord w;
-        batchwords.Get( i, &w );
-        return w;
-      }
-
-      /*
-      For Trip Information
-
-      */
-      void AddTrip(const Trip& t) { trips.Append(t); }
-
-      Trip GetTrip(int i) const {
-        assert(0 <= i && i < GetNumTrips());
-        Trip t;
-        trips.Get(i, &t);
-        return t;
-      }
-
-      int GetNumTrips() const { return trips.Size(); }
-
-      const bool IsEmptyTripList() const {
-        return GetNumTrips() == 0;
-      }
-
-      /*
-      For Trip Spatial Information
-
-      */
-      void AddBCell(const Cell& c) { bcells.Append(c);}
-      Cell GetBCell (int i) const {
-        assert(0 <= i && i < GetNumBCells());
-        Cell c;
-        bcells.Get(i, &c);
-        return c;
-      }
-      int GetNumBCells() const { return bcells.Size(); }
-      const bool IsEmptySpatialSum() const {
-        return GetNumBCells() == 0; }
-
-      /*
-      For Trip Word Summary information
-
-      */
-
-      bool AddBWord(const std::string& stString,
-        int id, int count);
-      bool GetBWord(int index,
-        std::string& rString) const;
+    static ListExpr Out( ListExpr typeInfo, Word value );
+    static Word Create( const ListExpr typeInfo );
+    static void Delete(
+      const ListExpr typeInfo,
+      Word& w );
+    static void Close(
+      const ListExpr typeInfo,
+      Word& w );
+    static bool Save( SmiRecord& valueRecord, size_t& offset,
+                          const ListExpr typeInfo, Word& value    );
+    static bool Open( SmiRecord& valueRecord, size_t& offset,
+                          const ListExpr typeInfo, Word& value    );
+    static Word Clone( const ListExpr typeInfo,
+      const Word& w );
+    static bool KindCheck( ListExpr type,
+      ListExpr& errorInfo );
+    static int SizeOfObj();
+    static ListExpr Property();
+    static void* Cast(void* addr);
+    static const std::
+    string BasicType() { return "batch"; }
+    static const bool checkType(const ListExpr type)
+    {
+      return listutils::isSymbol(type, BasicType());
+    }
 
 
-      WordST GetBWordInfo( int i) const
-      {
-        assert( 0 <= i && i < GetNumBWords() );
-        WordST w;
-        bwords.Get( i, &w );
-        return w;
-      }
-      int GetNumBWords() const { return bwords.Size(); }
+    void Clear()
+    {
+        batchwords.clean();
+        batchwords_Flob.clean();
+        trips.clean();
+        bcells.clean();
+        bwords.clean();
+        bcoordinates.clean();
+        bsemantics.clean();
+        bsemantics_Flob.clean();
+        bwords_Flob.clean();
+        bcoordinates.clean();
+        bsemantics.clean();
+        bsemantics_Flob.clean();
+        bbox.SetDefined(false);
+
+    }
+    /* For Batch WordSummary */
+    bool GetBSumString(int index, std::string& rString) const;
+    bool AddBSumString(const std::string& stString,
+      int id, int count);
+    int GetWordListSize() const { return batchwords.Size(); }
+
+    const bool IsEmptyWordList() const {
+      return GetWordListSize() == 0;}
+
+    BatchWord GetBSumWord( int i) const {
+      assert( 0 <= i && i < GetWordListSize() );
+      BatchWord w;
+      batchwords.Get( i, &w );
+      return w;
+    }
+
+    /*
+    For Trip Information
+
+    */
+    void AddTrip(const Trip& t) { trips.Append(t); }
+
+    Trip GetTrip(int i) const {
+      assert(0 <= i && i < GetNumTrips());
+      Trip t;
+      trips.Get(i, &t);
+      return t;
+    }
+
+    int GetNumTrips() const { return trips.Size(); }
+
+    const bool IsEmptyTripList() const {
+      return GetNumTrips() == 0;
+    }
+
+    /*
+    For Trip Spatial Information
+
+    */
+    void AddBCell(const Cell& c) { bcells.Append(c);}
+    Cell GetBCell (int i) const {
+      assert(0 <= i && i < GetNumBCells());
+      Cell c;
+      bcells.Get(i, &c);
+      return c;
+    }
+    int GetNumBCells() const { return bcells.Size(); }
+    const bool IsEmptySpatialSum() const {
+      return GetNumBCells() == 0; }
+
+    /*
+    For Trip Word Summary information
+
+    */
+
+    bool AddBWord(const std::string& stString,
+      int id, int count);
+    bool GetBWord(int index,
+      std::string& rString) const;
+
+
+    WordST GetBWordInfo( int i) const
+    {
+      assert( 0 <= i && i < GetNumBWords() );
+      WordST w;
+      bwords.Get( i, &w );
+      return w;
+    }
+    int GetNumBWords() const { return bwords.Size(); }
 
 
 
-      /* For Trip Semantics information */
-      bool AddBSemString(const std::string& stString);
-      bool GetBSemString(int index, std::string& rString) const;
+    /* For Trip Semantics information */
+    bool AddBSemString(const std::string& stString);
+    bool GetBSemString(int index, std::string& rString) const;
 
-      /* For Trip Coordinates information */
-      int GetNumBCoordinates() const {
-        return bcoordinates.Size(); }
-      const bool IsEmptyBCoordinates() const {
-        return bcoordinates.Size() == 0; }
-      void AddBCoordinate(const Coordinate& c);
-
-
-      Coordinate GetBCoordinate( int i) const
-      {
-        assert( 0 <= i && i < GetNumBCoordinates() );
-        Coordinate c;
-        bcoordinates.Get( i, &c );
-        return c;
-      }
-      /* For Batch Bounding box */
-      const Rectangle<2> GetBoundingBox( ) const {
-        return bbox; }
-      void SetBoundingBox(const bool defined,
-        const double *min,
-        const double *max)
-      {
-        bbox.Set(true, min, max);
-      }
-
-      void SetBatchId(const int val)
-      {
-        batchId = val;
-      }
-      int GetBatchId()
-      {
-        return batchId;
-      }
+    /* For Trip Coordinates information */
+    int GetNumBCoordinates() const {
+      return bcoordinates.Size(); }
+    const bool IsEmptyBCoordinates() const {
+      return bcoordinates.Size() == 0; }
+    void AddBCoordinate(const Coordinate& c);
 
 
-      /* TODO this needs to be improved */
-      const bool IsEmpty() const {
-        return GetWordListSize() == 0; }
-      /* TODO need to add batch word function */
+    Coordinate GetBCoordinate( int i) const
+    {
+      assert( 0 <= i && i < GetNumBCoordinates() );
+      Coordinate c;
+      bcoordinates.Get( i, &c );
+      return c;
+    }
+    /* For Batch Bounding box */
+    const Rectangle<2> GetBoundingBox( ) const {
+      return bbox; }
+    void SetBoundingBox(const bool defined,
+      const double *min,
+      const double *max)
+    {
+      bbox.Set(true, min, max);
+    }
 
-      /*
-      Helper functions for btsim
-
-      */
-      double RelevanceSumBT(Rectangle<2>& mbr,
-        SemanticTrajectory& st,
-          double alpha,
-          double diag);
-      double getDistanceBT(Rectangle<2>& mbr,
-        double x, double y);
-      double EuclidDistRT(double x1,
-          double y1,
-          double x2,
-          double y2);
+    void SetBatchId(const int val)
+    {
+      batchId = val;
+    }
+    int GetBatchId()
+    {
+      return batchId;
+    }
 
 
-    private:
-      /* Constructor should never be used */
-      Batch() {}
+    /* TODO this needs to be improved */
+    const bool IsEmpty() const {
+      return GetWordListSize() == 0; }
+    /* TODO need to add batch word function */
 
-      /* DbArray to hold word data */
-      DbArray<BatchWord> batchwords;
+    /*
+    Helper functions for btsim
 
-      /* Flob to hold the words */
-      Flob batchwords_Flob;
+    */
+    double RelevanceSumBT(Rectangle<2>& mbr,
+      SemanticTrajectory& st,
+        double alpha,
+        double diag);
+    double getDistanceBT(Rectangle<2>& mbr,
+      double x, double y);
+    double EuclidDistRT(double x1,
+        double y1,
+        double x2,
+        double y2);
 
-      /* DbArray to hold Trip info */
 
-      DbArray<Trip> trips;
+  private:
+    /* Constructor should never be used */
+    Batch() {}
 
-      /* DbArray to hold Trip Spatial Information */
+    /* DbArray to hold word data */
+    DbArray<BatchWord> batchwords;
 
-      DbArray<Cell> bcells;
+    /* Flob to hold the words */
+    Flob batchwords_Flob;
 
-      /* DbArray to hold ST Trip summary */
-      DbArray<WordST> bwords;
+    /* DbArray to hold Trip info */
 
-      /* Flob to hold actual string information for bwords */
-      Flob bwords_Flob;
+    DbArray<Trip> trips;
 
-      /* DbArray to hold coordinate points */
-      DbArray<Coordinate> bcoordinates;
+    /* DbArray to hold Trip Spatial Information */
 
-      /* Holds position of each Text at each coordinate */
-      DbArray<TextData> bsemantics;
-      /* Holds all characters for one semantic trajectory */
-      Flob bsemantics_Flob;
+    DbArray<Cell> bcells;
 
-      /* The bounding box that encloses the batch */
-      Rectangle<2> bbox;
+    /* DbArray to hold ST Trip summary */
+    DbArray<WordST> bwords;
 
-      int batchId;
-  };
+    /* Flob to hold actual string information for bwords */
+    Flob bwords_Flob;
+
+    /* DbArray to hold coordinate points */
+    DbArray<Coordinate> bcoordinates;
+
+    /* Holds position of each Text at each coordinate */
+    DbArray<TextData> bsemantics;
+    /* Holds all characters for one semantic trajectory */
+    Flob bsemantics_Flob;
+
+    /* The bounding box that encloses the batch */
+    Rectangle<2> bbox;
+
+    int batchId;
+};
 
 } /* end of namespace */
 #endif
