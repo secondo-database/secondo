@@ -72,9 +72,19 @@ string timestr(double t) {
     struct tm *tm;
     char buf[32], ret[40];
     time_t ti;
-    ti = t/1000+3600;
+    ti = t/1000;
 
+    char *tz;
+    tz = getenv("TZ");
+    setenv("TZ", "UTC", 1);
+    tzset();
     tm = gmtime(&ti);
+    if (tz)
+        setenv("TZ", tz, 1);
+    else
+        unsetenv("TZ");
+    tzset();
+
     strftime(buf, sizeof(buf), "%F-%T", tm);
     sprintf(ret, "%s.%03d", buf, (int) fmod(t,1000));
     return ret;
