@@ -23,53 +23,37 @@
 #
 ########################################################################
 
-
+# inlcude global definitions
+include ../../../makefile.env
 CURRENT_ALGEBRA := Distributed3Algebra
 
-
-ALGEBRA_DEPENDENCIES := StandardAlgebra
-ALGEBRA_DEPENDENCIES += RelationAlgebra
-ALGEBRA_DEPENDENCIES += FunctionAlgebra
-ALGEBRA_DEPENDENCIES += ArrayAlgebra
-ALGEBRA_DEPENDENCIES += FTextAlgebra
-ALGEBRA_DEPENDENCIES += DFSAlgebra
-ALGEBRA_DEPENDENCIES += Distributed2Algebra
-
-
-
-# include global definitions
-include ../../makefile.env
-
-
 # expand compile flags if necessary
-CCFLAGS += -Werror 
+CCFLAGS += -Werror
+#CCFLAGS += $(ALG_INC_DIRS) 
+CCFLAGS += -D BOOST_LOG_DYN_LINK
 
 # create objects and algebra library. The values for the variables
 # OBJECTS and LIBOBJ are computed automatically by makefile.env 
-
 .PHONY: all
 all: check_dependencies $(OBJECTS) $(LIBOBJ)
-	make -C tes
-	make -C tes/Operators
-	make -C tes/Operators/Interface2TES
-	make -C tes/Operators/Messaging
-	make -C tes/Operators/OnMaster
-	make -C tes/Operators/OnWorker
-	make -C tes/MessageBroker
-	make -C tes/Helpers
-
-
+	#make -C Operators
+	#make -C Operators/Interface2TES
+	#make -C Operators/Messaging
+	#make -C Operators/OnMaster
+	#make -C Operators/OnWorker
+	#make -C MessageBroker
+	#make -C Helpers
+	
 check_dependencies:
 	$(check-algebra-dependencies)
-
 
 # include pre-computed dependencies
 ifneq ($(MAKECMDGOALS),clean)
 include $(DEP_FILES)
 endif
+
 .PHONY: deps
 deps: $(DEP_FILES)
-
 
 # generic rule for creating a library
 $(LIBOBJ): $(OBJECTS)
@@ -79,12 +63,10 @@ $(LIBOBJ): $(OBJECTS)
 .PHONY: clean
 clean:
 	$(clean-algebra)
-	make -C tes clean
-	make -C tes/Operators clean
-	make -C tes/Operators/Interface2TES clean
-	make -C tes/Operators/Messaging clean
-	make -C tes/Operators/OnMaster clean
-	make -C tes/Operators/OnWorker clean
-	make -C tes/MessageBroker clean
-	make -C tes/Helpers clean
-
+	#make -C Operators clean
+	#make -C Operators/Interface2TES clean
+	#make -C Operators/Messaging clean	
+	#make -C Operators/OnMaster clean
+	#make -C Operators/OnWorker clean
+	#make -C MessageBroker clean
+	#make -C Helpers clean
