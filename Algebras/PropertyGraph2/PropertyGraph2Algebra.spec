@@ -17,7 +17,7 @@ operator createpgraph alias CREATEPGRAPH pattern op (_)
 operator createmempgraph alias CREATEMEMPGRAPH pattern op (_)
 
 operator match1 alias MATCH1 pattern _ _ op[_,_,_]
-operator match1b alias MATCH1B pattern _ op[_,_,_]
+operator match1b alias MATCH1B pattern _ op[_,_,_,_]
 operator match2 alias MATCH2 pattern _ op[_,_,_,_]
 operator match3 alias MATCH3 pattern _ op[_,_]
 

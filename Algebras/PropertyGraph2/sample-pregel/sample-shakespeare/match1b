@@ -29,7 +29,8 @@ match1b ['
    )
 )',
 '( ((w Year) > 1608 ))',
-'( ((theater Name) Name) ((play Title) Playtitle) ((newcastle Name) CityName) ((bard Lastname) BardName)  ((w Year) Year ) )'
+'( ((theater Name) Name) ((play Title) Playtitle) ((newcastle Name) CityName) ((bard Lastname) BardName)  ((w Year) Year ) )',
+''
 ];
 
 

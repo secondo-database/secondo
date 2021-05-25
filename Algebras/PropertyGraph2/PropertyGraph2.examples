@@ -81,8 +81,8 @@ Result   : (bool)
 
 Operator : match1b
 Number   : 15
-Signature: graph x string x string x string -> string
-Example  : query p1 match1b["(query as list)","filters","fields"]
+Signature: graph x string x string x string x string -> string
+Example  : query p1 match1b["(query as list)","filters","fields","stream"]
 Result   : (bool)
 
 

@@ -44,6 +44,8 @@ class Compute
 {
 public:
    Compute(PGraphQueryProcessor *pgp,QueryTree *tree, std::string pgstructure);
+   Compute(PGraphQueryProcessor *pgp,QueryTree *tree, std::string pgstructure,
+   std::string tmptuplestream);
    ~Compute();
 
    PGraphQueryProcessor *pgprocessor;
@@ -55,6 +57,9 @@ public:
 
    int messagecounter=0;
    std::string structure="";
+
+   bool withtuplestream=false;
+   std::string tuplestream="";
 
    std::string tuplestring="";
    std::string projectstring="";
@@ -108,17 +113,18 @@ public:
    Message(PGraphQueryProcessor *pgp, QueryTreeEdge *qedge, \
     std::map<std::string, std::vector<std::vector<std::string>>>* outputs, \
     std::map<std::string, std::vector<std::vector<std::string>>>* filters, \
-    int indx, bool goback, uint senderid, std::string pgstructure);
+    int indx, bool goback, uint senderid, std::string pgstructure, \
+    bool withtuplestream);
 
    Message(PGraphQueryProcessor *pgp, std::string actnode, \
    std::map<std::string, std::vector<std::vector<std::string>>>* outputs, \
    std::map<std::string, std::vector<std::vector<std::string>>>* filters, \
-   int indx, bool last, std::string pgstructure);
+   int indx, bool last, std::string pgstructure, bool withtuplestream);
 
    Message(PGraphQueryProcessor *pgp, QueryTreeEdge *qedge, \
    std::map<std::string, std::vector<std::vector<std::string>>>* outputs, \
    std::map<std::string, std::vector<std::vector<std::string>>>* filters, \
-   int indx, uint senderid, std::string pgstructure);
+   int indx, uint senderid, std::string pgstructure, bool withtuplestream);
 
    ~Message();
 
@@ -136,6 +142,7 @@ public:
 
    bool lastmessage=false;
    bool gobackmessage=false;
+   bool tuplestream=false;
 
    RelationInfo *relinfofromnode=NULL;
    RelationInfo *relinfotonode=NULL;

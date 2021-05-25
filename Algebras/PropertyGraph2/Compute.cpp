@@ -55,6 +55,17 @@ std::string pgstructure)
 }
 
 //----------------------------------------------------------------------------
+Compute::Compute(PGraphQueryProcessor *pgp,QueryTree *tree, \
+   std::string pgstructure, std::string tmptuplestream)
+{
+    pgprocessor=pgp;
+    querytree=tree;
+    structure=pgstructure;
+    tuplestream = tmptuplestream;
+    withtuplestream=true;
+}
+
+//----------------------------------------------------------------------------
 Compute::~Compute()
 {
     for (uint i=0; i<messageslist.size(); i++)
@@ -114,10 +125,13 @@ void Compute::CreateInitialMessage()
 
     }
 
+
     string filterf="";
     std::vector<std::vector<std::string>> v;
     std::map<std::string, std::vector<std::vector<std::string>>>::iterator\
      itf = filterfields.find(querytree->Root->TypeName);
+    if (!withtuplestream)
+    {
     if (itf != filterfields.end())
     {
         v=filterfields[querytree->Root->TypeName];
@@ -163,17 +177,66 @@ void Compute::CreateInitialMessage()
 
         }
     }
+    }
 
 
     string outputfi = GetOutputFieldsWithoutDatatype(true);
 
     RelationInfo *relinforoot = pgprocessor->pgraphMem->\
         RelRegistry.GetRelationInfo(querytree->Root->TypeName);
+    if (!withtuplestream)
+    {
     initialmessage="let InitialMessages = "+querytree->Root->TypeName
         +"P feed "+filterf+"projectextend[; NodeId: ."+relinforoot->IdFieldName
         +", Partition: part(."+relinforoot->IdFieldName
         +"), Message: \""+querytree->Root->TypeName+"1\","
         +sender+", "+outputfi+"] consume;\n\n\n";
+    }
+    else
+    {
+
+    static const size_t npos = -1;
+    size_t pos;
+    string initialtuple=tuplestream;
+    string rest="";
+    RelationInfo *relinfoinitial;
+    pos = initialtuple.find(" ");
+
+    while (pos != std::string::npos)
+    {
+    pos = initialtuple.find(" ");
+    rest = initialtuple.substr(pos+1);
+    initialtuple.erase(pos,npos);
+    cout << "erster Tupelstrom: " << initialtuple << endl;
+
+    relinfoinitial = pgprocessor->pgraphMem->\
+        RelRegistry.GetRelationInfo(initialtuple);
+    if (relinfoinitial != NULL) break;
+
+    initialtuple = initialtuple.substr(0, initialtuple.size()-1);
+    cout << "zweiter Tupelstrom: " << initialtuple << endl;
+    relinfoinitial = pgprocessor->pgraphMem->\
+        RelRegistry.GetRelationInfo(initialtuple);
+    if (relinfoinitial != NULL) break;
+
+    initialtuple=rest;
+    cout << "dritter Tupelstrom: " << initialtuple << endl;
+    pos = initialtuple.find(" ");
+    }
+
+    if (relinfoinitial == NULL)
+    {
+        throw PGraph2Exception("initial relation not found");
+    }
+    else
+    {
+    initialmessage="let InitialMessages = "+tuplestream
+        +" projectextend[; NodeId: ."+relinfoinitial->IdFieldName
+        +", Partition: part(."+relinfoinitial->IdFieldName
+        +"), Message: \""+querytree->Root->TypeName+"1\","
+        +sender+", "+outputfi+"] consume;\n\n\n";
+    }
+    }
 }
 
 //----------------------------------------------------------------------------
@@ -567,7 +630,7 @@ void Compute::CreateMessages()
                 senderindex=sendervec.size()+1;
                 Message *message=new Message(pgprocessor, \
                     actedge,outputs,filters,messagecounter, \
-                    senderindex, structure);
+                    senderindex, structure, withtuplestream);
                 message->CreateMessageString();
                 messageslist.push_back(message);
                 sendervec.push_back(true);
@@ -584,7 +647,8 @@ void Compute::CreateMessages()
             }
             Message *message=new Message(pgprocessor, \
                 pgprocessor->poslist.at(senderindex),outputs,filters, \
-                messagecounter, goback, senderindex+1, structure);
+                messagecounter, goback, senderindex+1, structure, \
+                withtuplestream);
             message->CreateMessageString();
             messageslist.push_back(message);
             actnodename=pgprocessor->poslist.at(senderindex)->\
@@ -597,7 +661,7 @@ void Compute::CreateMessages()
     }
     last=true;
     Message *message=new Message(pgprocessor,actnodename, \
-        outputs,filters,messagecounter, last, structure);
+        outputs,filters,messagecounter, last, structure, withtuplestream);
     message->CreateMessageString();
     messageslist.push_back(message);
 
@@ -1025,7 +1089,8 @@ Tuple *Compute::ReadNextResultTuplePregel()
 Message::Message(PGraphQueryProcessor *pgp, QueryTreeEdge *qedge, \
     std::map<std::string, std::vector<std::vector<std::string>>>* outputs, \
     std::map<std::string, std::vector<std::vector<std::string>>>* filters, \
-    int indx, bool goback, uint senderid, std::string pgstructure)
+    int indx, bool goback, uint senderid, std::string pgstructure, \
+    bool withtuplestream)
 {
     pgprocess=pgp;
     edge=qedge;
@@ -1035,6 +1100,7 @@ Message::Message(PGraphQueryProcessor *pgp, QueryTreeEdge *qedge, \
     gobackmessage=goback;
     gotosender=senderid;
     structure=pgstructure;
+    tuplestream=withtuplestream;
 
     relinfofromnode=pgprocess->pgraphMem->RelRegistry.\
         GetRelationInfo(edge->FromNode->TypeName);
@@ -1046,7 +1112,7 @@ Message::Message(PGraphQueryProcessor *pgp, QueryTreeEdge *qedge, \
 Message::Message(PGraphQueryProcessor *pgp, std::string actnode, \
     std::map<std::string, std::vector<std::vector<std::string>>>* outputs, \
     std::map<std::string, std::vector<std::vector<std::string>>>* filters, \
-    int indx, bool last, std::string pgstructure)
+    int indx, bool last, std::string pgstructure, bool withtuplestream)
 {
     pgprocess=pgp;
     actnodename=actnode;
@@ -1055,13 +1121,14 @@ Message::Message(PGraphQueryProcessor *pgp, std::string actnode, \
     messageindex=indx;
     lastmessage=last;
     structure=pgstructure;
+    tuplestream=withtuplestream;
 }
 
 //----------------------------------------------------------------------------
 Message::Message(PGraphQueryProcessor *pgp, QueryTreeEdge *qedge, \
     std::map<std::string, std::vector<std::vector<std::string>>>* outputs, \
     std::map<std::string, std::vector<std::vector<std::string>>>* filters, \
-    int indx, uint senderid, std::string pgstructure)
+    int indx, uint senderid, std::string pgstructure, bool withtuplestream)
 {
     pgprocess=pgp;
     edge=qedge;
@@ -1070,6 +1137,7 @@ Message::Message(PGraphQueryProcessor *pgp, QueryTreeEdge *qedge, \
     messageindex=indx;
     gofromsender=senderid;
     structure=pgstructure;
+    tuplestream=withtuplestream;
 
     relinfofromnode=pgprocess->pgraphMem->RelRegistry.\
         GetRelationInfo(edge->FromNode->TypeName);
@@ -1276,7 +1344,7 @@ void Message::CreateFilterString()
         if (!gobackmessage)
         {
             //Baue Filterstring zusammen
-            if (messageindex>1)
+            if (tuplestream || messageindex>1)
             //Root rausgenommen, da Filter schon in InitialMessage
             {
                 if (CheckForGlobalFilters(edge->FromNode->TypeName))

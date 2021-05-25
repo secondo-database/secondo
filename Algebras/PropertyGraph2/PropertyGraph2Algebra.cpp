@@ -1294,11 +1294,12 @@ ListExpr match1b_OpTm2( ListExpr args )
    {
       LOGOP(30,"match1b_OpTm2", nl->ToString(args));
 
-      CheckArgCount(args,4,4);
+      CheckArgCount(args,5,5);
       CheckArgType(args,1,PGraph2::BasicType());
       CheckArgType(args,2,FText::BasicType());
       CheckArgType(args,3,FText::BasicType());
       CheckArgType(args,4,FText::BasicType());
+      CheckArgType(args,5,FText::BasicType());
 
       //
       PGraph2 *pg = getPGraph2Object(args);
@@ -1369,6 +1370,13 @@ int match1b_OpFun2 (Word* args, Word& result, int message,
         ListExpr filterlist =  GetArg_FTEXT_AS_LIST(args[2].addr );
         ListExpr fieldlist =  GetArg_FTEXT_AS_LIST(args[3].addr );
 
+        string initialmessage = "";
+        CcString *intmessage = static_cast<CcString*>( args[4].addr );
+        if (intmessage!=NULL)
+        {
+            initialmessage = GetArg_FTEXT_AS_STRING(args[4].addr );
+        }
+
         // prepare query processor
         pgp = new PGraphQueryProcessor(pg, getPGraph2MemoryObject(pg));
         if (pgp->pgraphMem ==NULL || !pgp->pgraphMem->IsLoaded())
@@ -1391,6 +1399,11 @@ int match1b_OpFun2 (Word* args, Word& result, int message,
             if (pg->dumpQueryTree)
                 tree->DumpTreeDot(NULL,"querytree.dot");
 
+        cout << "DIES SIND DIE INITIALMESSAGES +++++++++++" << endl;
+        cout << "DIES SIND DIE INITIALMESSAGES +++++++++++" << endl;
+        cout << "DIES SIND DIE INITIALMESSAGES +++++++++++" << endl;
+        cout << initialmessage << endl;
+
             //Check if all edges have the attribute 'Cost'
             uint countercost=0;
             for (uint i=0; i<pgp->poslist.size(); i++)
@@ -1410,18 +1423,24 @@ int match1b_OpFun2 (Word* args, Word& result, int message,
                 pg->structure=="pregelmemory")
                 throw PGraph2Exception("Pregelmemory not usable,"
                     "because not all Edges have the attribute 'Cost'");
-        if (pgp->pgraphMem->pregelcounter == 0) {
+
+        if (initialmessage.empty())
+        {
             compute=new Compute(pgp,tree,pg->structure);
-            compute->CreateComputeFunction();
-            cout << compute->gesamtstring << endl;
+        }
+        else
+        {
+            compute=new Compute(pgp,tree,pg->structure,initialmessage);
+        }
+        compute->CreateComputeFunction();
+        cout << compute->gesamtstring << endl;
+
+        if (pgp->pgraphMem->pregelcounter == 0) {
             compute->runPregel();
             pgp->pgraphMem->pregelcounter ++;
         }
         else
         {
-            compute=new Compute(pgp,tree,pg->structure);
-            compute->CreateComputeFunction();
-            cout << compute->gesamtstring << endl;
             compute->runPregelSecondTime();
         }
 

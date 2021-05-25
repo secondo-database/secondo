@@ -20,7 +20,8 @@ match1b ['
    ( (auth Author) )
 )',
 '',
-'(  ((auth Name) Name)  )'
+'(  ((auth Name) Name)  )',
+''
 ] 
 consume;
 
