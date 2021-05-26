@@ -494,7 +494,7 @@ bool& correct )
           delete st;
           return SetWord( Address(0) );
         }
-        if (c_x1 < c_x2 && c_y1 < c_y2)
+        if (c_x1 <= c_x2 && c_y1 <= c_y2)
         {
           mind[0] = c_x1;
           mind[1] = c_y1;
@@ -3561,7 +3561,7 @@ Supplier s)
 
     tuple->DeleteIfAllowed();
   }
-  if (c_x1 < c_x2 && c_y1 < c_y2)
+  if (c_x1 <= c_x2 && c_y1 <= c_y2)
   {
     double mind[2];
     double maxd[2];
