@@ -56,7 +56,6 @@ public:
   }
 
   ~TESContext(){
-    std::cout << "\n~TESContext() aufgerufen";
     reset();
     /* map-destructor: "This destroys all container elements, 
        and deallocates all the storage capacity 
