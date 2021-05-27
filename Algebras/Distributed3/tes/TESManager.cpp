@@ -16,7 +16,6 @@ TESManager& TESManager::getInstance() {
   return manager;
 }
 TESManager::~TESManager() {
-  std::cout << "~TESManager() aufgerufen";
   //reset(); // funktioniert nicht mit reset(true)
 }
 // TODO mit BOOST_LOG_TRIVIAL immer Fehler bei der Ausführung
