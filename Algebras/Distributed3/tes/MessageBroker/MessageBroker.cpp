@@ -19,7 +19,6 @@ namespace distributed3 {
  MessageBroker::MessageBroker() {}
  
  MessageBroker::~MessageBroker() { // TODO destroy inboxes and loopInboxes 
-  std::cout << "\n~MessageBroker()";
 
   //clear(loopInboxes);
   
