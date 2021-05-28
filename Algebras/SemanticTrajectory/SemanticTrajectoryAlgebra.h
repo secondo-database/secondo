@@ -567,13 +567,13 @@ class SemanticTrajectory : public Attribute
 
     double Similarity(SemanticTrajectory& st, double diag,
       double alpha);
-    double Relevance(int index,SemanticTrajectory& st,
-      double diag, double alpha);
-    double Sim(int i, int y, SemanticTrajectory& st,
+    double Relevance(int index, std::string& str, SemanticTrajectory& st,
+       double diag, double alpha);
+    double Sim(int i, int y, std::string& str, SemanticTrajectory& st,
       double diag, double alpha);
     double SpatialDist(int i, int y,
       SemanticTrajectory& st);
-    double TextualScore(int i, int y,
+    double TextualScore(std::string& str, int y,
       SemanticTrajectory& st);
     double GetDiagonal(Rectangle<2> &rec);
 
