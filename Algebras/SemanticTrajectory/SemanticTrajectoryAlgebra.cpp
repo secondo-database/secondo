@@ -46,7 +46,7 @@ Briefly describe here what this algebra is for.
 #include "Algebras/Relation-C++/RelationAlgebra.h"
 #include "Algebras/Rectangle/CellGrid.h"
 #include "Stream.h"
-
+#include "Algebras/FText/FTextAlgebra.h"
 
 extern NestedList* nl;
 extern QueryProcessor *qp;
@@ -745,7 +745,7 @@ void SemanticTrajectory::Close(
 }
 
 /*
-3.3.11 Clone funtion
+3.3.11 ~Clone~ funtion
 
 */
 Word SemanticTrajectory::Clone(
@@ -788,7 +788,7 @@ void* SemanticTrajectory::Cast(void* addr)
 /*
 3.4 Implementation of new functions
 
-3.4.1 Add Coordinate function
+3.4.1 ~AddCoordinate~ function
 
 Responsible for adding a <x,y> Coordinate object
 to DbArray coordinates
@@ -803,7 +803,7 @@ AddCoordinate(
 }
 
 /*
-3.4.2 GetCoordinate function
+3.4.2 ~GetCoordinate~ function
 
 Retrieve a Coordinate from the DbArray coordinates
 
@@ -818,30 +818,36 @@ GetCoordinate( int i ) const
 }
 
 /*
-3.4.3 AddSemString function
+3.4.3 ~AddSemString~ function
 
 */
 bool SemanticTrajectory::AddSemString(const std::string& stString)
 {
+/*
+Important that even if a string is Empty
+that the information is stored in the
+semantics DbArray. If not this might
+impact the position of the string in the Out:: function
 
- if (!stString.empty())
- {
+*/
    TextData td;
    td.Offset = semantics_Flob.getSize();
    td.Length = stString.length();
    bool success = semantics.Append(td);
    assert(success);
-   semantics_Flob.write(
-     stString.c_str(),
-     td.Length,
-     td.Offset);
-   return true;
- }
- return false;
+   if (!stString.empty())
+   {
+     semantics_Flob.write(
+       stString.c_str(),
+       td.Length,
+       td.Offset);
+   }
+
+ return true;
 }
 
 /*
-3.4.4 GetSemString function
+3.4.4 ~GetSemString~ function
 
 */
 bool SemanticTrajectory::
@@ -880,7 +886,7 @@ GetSemString(int index, std::string& rString) const
 }
 
 /*
-3.4.5 AddStringSum function
+3.4.5 ~AddStringSum~ function
 
 */
 
@@ -912,7 +918,7 @@ bool SemanticTrajectory::AddStringSum(
 }
 
 /*
-3.4.6 GetStringSum function
+3.4.6 ~GetStringSum~ function
 
 */
 bool SemanticTrajectory::
@@ -985,7 +991,7 @@ std::list<std::string> SemanticTrajectory::GetStringArray() const
 
 
 /*
-3.4.8 AddCell function
+3.4.8 ~AddCell~ function
 
 TODO
 
@@ -1010,7 +1016,7 @@ GetCellList() const
 }
 
 /*
-3.4.9 GetTextSumList function
+3.4.9 ~GetTextSumList~ function
 
 TODO
 
@@ -1026,13 +1032,14 @@ GetTextSumList() const
 /*
 3.5 Operator helper functions
 
-3.5.1 Relevance Function
+3.5.1 ~Relevance~ Function
 
 */
 
 double SemanticTrajectory::Relevance(int i,
- SemanticTrajectory& st,
- double diag, double alpha)
+std::string& str,
+SemanticTrajectory& st,
+double diag, double alpha)
 {
  // Return the max of all return similarity equation
 
@@ -1040,7 +1047,7 @@ double SemanticTrajectory::Relevance(int i,
  int numOfCoor2 = st.GetNumCoordinates();
  for (int y = 0; y <numOfCoor2; y++)
  {
-   double temp = Sim(i,y,st, diag, alpha);
+   double temp = Sim(i, y, str, st, diag, alpha);
 
    if (temp > max)
    {
@@ -1052,12 +1059,12 @@ double SemanticTrajectory::Relevance(int i,
 }
 
 /*
-3.5.2 Placename Function
+3.5.2 ~Sim~ Function
 TODO
 
 */
 double SemanticTrajectory::Sim(int i, int y,
- SemanticTrajectory& st,
+ std::string& str, SemanticTrajectory& st,
  double diag, double alpha)
 {
  double dist = SpatialDist(i, y, st);
@@ -1065,13 +1072,20 @@ double SemanticTrajectory::Sim(int i, int y,
  double normalizedscore = 1 - (double)(dist/diag);
  // It's inversly proportional to the
  //  distance so we need to substract from 1
- double result = alpha * normalizedscore
- + double (1 - alpha) * TextualScore(i, y, st);
- return result;
+ double LS = alpha * normalizedscore;
+
+ double textscore = 0.0;
+ if (str.length() > 0)
+ {
+   textscore = TextualScore(str, y, st);
+ }
+
+ double RH = double (1 - alpha) * textscore;
+ return LS + RH;
 }
 
 /*
-3.5.3 Placename Function
+3.5.3 ~GetDiagonal~ Function
 TODO
 
 */
@@ -1088,7 +1102,7 @@ double SemanticTrajectory::GetDiagonal(
 }
 
 /*
-3.5.4 Placename Function
+3.5.4 ~GetDiag~ Function
 TODO
 
 */
@@ -1105,7 +1119,7 @@ double GetDiag(
 }
 
 /*
-3.5.5 Placename Function
+3.5.5 ~SpatialDist~ Function
 TODO
 
 */
@@ -1124,26 +1138,26 @@ double SemanticTrajectory::SpatialDist(int i, int y,
 }
 
 /*
-3.5.6 Placename Function
-TODO
+3.5.6 TextualScore Function
+
+Used with operator sim to return the textual score between
+two trajectories
 
 */
-double SemanticTrajectory::TextualScore(int i, int y,
+double SemanticTrajectory::TextualScore(std::string& str, int y,
  SemanticTrajectory& st)
 {
 
    bool success = false;
-   std::string s1;
-   success = GetSemString(i, s1);
-   assert(success);
    std::string s2;
    success = st.GetSemString(y, s2);
+
    assert(success);
-   if (s1.length() > 0 && s2.length() > 0)
+   if (str.length() > 0 && s2.length() > 0)
    {
 
      int numMatches = 0;
-     stringutils::StringTokenizer st1(s1, " ");
+     stringutils::StringTokenizer st1(str, " ");
      stringutils::StringTokenizer st2(s2, " ");
      int numToken1 = 0;
      int numToken2 = 0;
@@ -1169,6 +1183,7 @@ double SemanticTrajectory::TextualScore(int i, int y,
      int duplicate = 0;
      while(!done1 || !done2)
      {
+
        if((eval).compare(eval2) == 0)
        {
          if ((prev_str).compare(eval) != 0)
@@ -1268,11 +1283,16 @@ double SemanticTrajectory::Similarity(
  int numCoordinates1 = GetNumCoordinates();
  double sumOfRelevance1 = 0;
  double leftTotal = 0;
-
+ bool success = false;
+ std::string str;
  for (int i = 0; i < numCoordinates1; i++)
  {
+
+   success = GetSemString(i, str);
+
+   assert(success);
    sumOfRelevance1 =
-   sumOfRelevance1 + Relevance(i, st, diag, alpha);
+   sumOfRelevance1 + Relevance(i, str, st, diag, alpha);
  }
 
  leftTotal =
@@ -1283,9 +1303,13 @@ double SemanticTrajectory::Similarity(
  double rightTotal = 0;
  for (int i = 0; i < numCoordinates2; i++)
  {
+
+   success = st.GetSemString(i, str);
+
+   assert(success);
    sumOfRelevance2 =
    sumOfRelevance2 + st.Relevance(
-   i, *this, diag, alpha);
+   i, str, *this, diag, alpha);
  }
  rightTotal =
  sumOfRelevance2 / (double) numCoordinates2;
@@ -2218,7 +2242,7 @@ Batch::Out(
   {
 
     ListExpr textual = nl->Empty();
-    // ListExpr trips = nl->Empty();
+
 
     /* Need to retrieve equivalent of WordList */
     if (!b->IsEmptyWordList())
@@ -2256,14 +2280,15 @@ Batch::Out(
           }
 
         }
+/*
+Retrive the tripList
 
-    /* Retrive the tripList */
+*/
     ListExpr result;
     if (!b->IsEmptyTripList())
     {
 
       Trip t = b->GetTrip(0);
-
 
       /* Retrieve cell information */
       int getStartIdx = t.GetStartCellsIdx();
@@ -2281,7 +2306,6 @@ Batch::Out(
               )
             );
 
-        // #endif
          ListExpr spatiallast = spatial;
          count++;
          for( int i = count; i < getEndIdx; i++ )
@@ -2350,7 +2374,6 @@ Batch::Out(
       {
         std::string holdValue;
         bool success = b->GetBSemString(count2, holdValue);
-
         if (success == false) {
           holdValue = "";
         }
@@ -2476,10 +2499,13 @@ Batch::Out(
         int count2 = getStartIdx2;
         int getEndIdx2 = t.GetEndCoordsIdx();
         ListExpr tripdata = nl->Empty();
+
         if (getStartIdx2 < getEndIdx2)
         {
           std::string holdValue;
           bool success = b->GetBSemString(count2, holdValue);
+
+
 
           if (success == false) {
             holdValue = "";
@@ -2497,7 +2523,6 @@ Batch::Out(
           {
             std::string holdValue;
             bool success = b->GetBSemString(i, holdValue);
-
             if (success == false) {
               holdValue = "";
             }
@@ -3065,19 +3090,19 @@ GetBWord(int index, std::string& rString) const
 */
 bool Batch::AddBSemString(const std::string& str)
 {
+
+  TextData td;
+  td.Offset = bsemantics_Flob.getSize();
+  td.Length = str.length();
+  bool success = bsemantics.Append(td);
+  assert(success);
   if (!str.empty()) {
-    TextData td;
-    td.Offset = bsemantics_Flob.getSize();
-    td.Length = str.length();
-    bool success = bsemantics.Append(td);
-    assert(success);
     bsemantics_Flob.write(
       str.c_str(),
       td.Length,
       td.Offset);
-    return true;
   }
-  return false;
+  return true;
 }
 
 /*
@@ -3086,14 +3111,18 @@ bool Batch::AddBSemString(const std::string& str)
 */
 bool Batch::GetBSemString(int index, std::string& str) const
 {
+
   bool success = false;
   int numString = bsemantics.Size();
+
+
   if (index < numString)
   {
       TextData textData;
       success = bsemantics.Get(index, &textData);
       if (success == true)
       {
+
         SmiSize bufferSize = textData.Length + 1;
         char* pBuffer = new char[bufferSize];
         if (pBuffer != 0)
@@ -3137,6 +3166,7 @@ double Batch::RelevanceSumBT(Rectangle<2>& mbr,
   double alpha,
   double diag)
 {
+
 
   double relevancesum = 0.0;
   double finalres = 0.0;
@@ -3270,7 +3300,7 @@ double Batch::RelevanceSumBT(Rectangle<2>& mbr,
       hashTable[i] = 0;
     }
   }
-
+  delete hashTable;
   return finalres;
 
 }
@@ -3358,6 +3388,7 @@ double Batch::EuclidDistRT(double x1,
 5.1.1 Type map for ~makesemtraj~
 
 */
+
 ListExpr TypeMapMakeSemtraj(ListExpr args)
 {
 
@@ -3443,7 +3474,7 @@ ListExpr TypeMapMakeSemtraj(ListExpr args)
       listutils::typeError("attribute name " + name +
       " unknown in tuple stream");
     }
-    if(!CcString::checkType(type)){
+    if(!CcString::checkType(type) && !FText::checkType(type)){
       return
       listutils::typeError("attribute '" + name +
       "' must be of type 'string'");
@@ -3472,6 +3503,7 @@ ListExpr TypeMapMakeSemtraj(ListExpr args)
 5.1.2 Value map for  ~makesemtraj~
 
 */
+template <class T>
 int MakeSemTrajMV(Word* args, Word& result,
 int message, Word& local,
 Supplier s)
@@ -3498,7 +3530,7 @@ Supplier s)
   {
     CcReal* x = (CcReal*) tuple->GetAttribute(idx1);
     CcReal* y = (CcReal*) tuple->GetAttribute(idx2);
-    CcString* sem = (CcString*)
+    T* sem = (T*)
     tuple->GetAttribute(idx3);
     double x1 = x->GetValue();
     double y1 = y->GetValue();
@@ -3506,6 +3538,10 @@ Supplier s)
     Coordinate c(x1, y1);
     res->AddCoordinate(c);
     std::string str = sem->GetValue();
+/*
+This section here is to remove any special characters
+
+*/
     std::string resu = "";
     for (size_t i = 0; i < str.size(); ++i)
     {
@@ -3514,7 +3550,6 @@ Supplier s)
         resu = resu + str[i];
       }
     }
-
     std::list<std::string> tokenlist;
     stringutils::StringTokenizer st1(resu, " ");
     while(st1.hasNextToken())
@@ -3528,19 +3563,28 @@ Supplier s)
     tokenlist.sort(SemanticTrajectory::compare_nocase);
     int size = tokenlist.size();
     int i = 0;
-    for(const auto &word : tokenlist)
+    for (std::list<std::string>::iterator it =
+    tokenlist.begin();
+    it != tokenlist.end();
+    ++it)
     {
-     if (i != size - 1)
-     {
-        finalstr += word + " ";
-     }
-     else
-     {
-        finalstr += word;
-     }
-     i++;
+      if (i < size - 1)
+      {
+         finalstr += *it + " ";
+      }
+      else
+      {
+         finalstr += *it;
+      }
+      i++;
     }
+/*
+Double spaces in String seems to not be removed earlier on.
+Extra trim needed at the end to remove extra space at the start
+of the string.
 
+*/
+    stringutils::trim(finalstr);
     res->AddSemString(finalstr);
 
     if (res->GetNumCoordinates() == 1)
@@ -3574,6 +3618,26 @@ Supplier s)
   stream.close();
   return 0;
 }
+
+ValueMapping makesemtrajFuns[] =
+{MakeSemTrajMV<FText>, MakeSemTrajMV<CcString>};
+
+int makesemtrajSelect(ListExpr args)
+{
+  ListExpr type;
+  ListExpr attrList = nl->Second(nl->Second(nl->First(args)));
+  std::string name = nl->SymbolValue(nl->Fourth(args));
+  listutils::findAttribute(attrList, name, type);
+  if(CcString::checkType(type))
+  {
+    return 1;
+  }
+  else
+  {
+    return 0;
+  }
+}
+
 
 /*
 5.2 Operator ~makesemtraj2~
@@ -3675,7 +3739,8 @@ ListExpr TypeMapMakeSemtraj2(ListExpr args)
       listutils::typeError("attribute name " + name +
       " unknown in tuple stream");
     }
-    if(!CcString::checkType(type)){
+    if(!CcString::checkType(type) && !FText::checkType(type))
+    {
       return
       listutils::typeError("attribute '" + name +
       "' must be of type 'string'");
@@ -5745,7 +5810,6 @@ int BTSimMapValue( Word* args, Word& result,
                    int message, Word& local, Supplier s )
 {
 
-
   Batch* b = static_cast<Batch*>( args[0].addr );
   SemanticTrajectory* st = static_cast<SemanticTrajectory*>( args[1].addr );
   CcReal * alpha = static_cast<CcReal*>(args[2].addr);
@@ -6280,6 +6344,7 @@ int SimMapValue(Word* args,
   double diag = st1->GetDiagonal(*rec);
 
   double answer = st1->Similarity(*st2, diag, alpha->GetValue());
+
   ((CcReal*) result.addr)->Set(answer);
 
   return 0;
@@ -6343,6 +6408,7 @@ int BBSimMapValue(Word* args,
   }
 
   double answer = alpha1 * normalizedScore * 2 + double (1-alpha1) * 2;
+
   ((CcReal*) result.addr)->Set(answer);
 
   return 0;
@@ -6636,8 +6702,11 @@ int BuildBatchMapValue(Word* args, Word& result,
   maxd[0] = rec->getMaxX();
   maxd[1] = rec->getMaxY();
   b->SetBoundingBox(true, mind, maxd);
+/*
+Retrieval of Trip information for batch starts here
+
+*/
   stream2.open();
-  //Initialize indexcounters
   int coordcounters = 0;
   int cellcounters = 0;
   int sumwordscounter = 0;
@@ -6660,13 +6729,18 @@ int BuildBatchMapValue(Word* args, Word& result,
 
     /* TODO Collect the Coordinate information */
     t.SetStartCoordsIdx(coordcounters);
+
     for (int i = 0; i < st->GetNumCoordinates(); i++)
     {
+
       Coordinate c = st->GetCoordinate(i);
       b->AddBCoordinate(c);
       std::string holdValue = "";
       st->GetSemString(i, holdValue);
+
+
       b->AddBSemString(holdValue);
+
       coordcounters++;
     }
     t.SetEndCoordsIdx(coordcounters);
@@ -6698,6 +6772,7 @@ int BuildBatchMapValue(Word* args, Word& result,
     t.SetEndSumWordsIdx(sumwordscounter);
 
     b->AddTrip(t);
+
 
     tuple->DeleteIfAllowed();
   }
@@ -7333,7 +7408,8 @@ class SemanticTrajectoryAlgebra : public Algebra
 
       AddOperator(
        MakeSemTrajInfo(),
-       MakeSemTrajMV,
+       makesemtrajFuns,
+       makesemtrajSelect,
        TypeMapMakeSemtraj);
 
        AddOperator(
