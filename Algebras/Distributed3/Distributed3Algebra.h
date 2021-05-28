@@ -144,6 +144,16 @@ connections.
 
     void disableDFS();
     
+    static ListExpr replaceWrite(ListExpr list, const std::string& writeVer, 
+                      const std::string& name);
+                      
+    template<typename T>
+    static ListExpr fun2cmd(ListExpr funlist, const std::vector<T>& funargs);
+    
+    template<typename T>
+    static ListExpr fun2cmd(const std::string& fundef, 
+                            const std::vector<T>& funargs);
+    
     static Distributed3Algebra* getAlgebra();
     static void setAlgebra(Distributed3Algebra* algebra);
 

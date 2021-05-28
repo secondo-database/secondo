@@ -34,6 +34,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "tes/TESClient.h"
 #include "tes/typedefs.h"
 //#include "tes/Operators/Tests/TESTests.h"
+#include "./DmapPdmap.h"
 #include "tes/Operators/Interface2TES/Distribute2TES.h"
 #include "tes/Operators/Interface2TES/FeedTES.h"
 #include "tes/Operators/Messaging/StartTESClient.h"
@@ -53,7 +54,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Algebras/Distributed2/CommandLogger.h"
 #include "Algebras/Relation-C++/OperatorConsume.h"
 #include "Bash.h"
-//#include "fsrel.h"
+#include "Algebras/Distributed2/fsrel.h"
 //#include "fobj.h"
 //#include "FileRelations.h"
 //#include "FileSystem.h"
@@ -324,7 +325,8 @@ ListExpr replaceSymbols(ListExpr list,
 }
 
 template<typename T>
-ListExpr fun2cmd(ListExpr funlist, const vector<T>& funargs){
+ListExpr Distributed3Algebra::fun2cmd(ListExpr funlist, 
+                                      const vector<T>& funargs){
   if(!nl->HasLength(funlist, 2+ funargs.size())){
     return nl->TheEmptyList();
   } 
@@ -353,7 +355,8 @@ ListExpr fun2cmd(ListExpr funlist, const vector<T>& funargs){
 }
 
 template<typename T>
-ListExpr fun2cmd(const string& fundef, const vector<T>& funargs){
+ListExpr Distributed3Algebra::fun2cmd(const string& fundef, 
+                                      const vector<T>& funargs){
   ListExpr funlist; 
   {
      boost::lock_guard<boost::mutex> guard(nlparsemtx);
@@ -365,8 +368,9 @@ ListExpr fun2cmd(const string& fundef, const vector<T>& funargs){
   return fun2cmd<T>(funlist, funargs);
 }
 
-ListExpr replaceWrite(ListExpr list, const string& writeVer, 
-                      const string& name){
+ListExpr Distributed3Algebra::replaceWrite(ListExpr list, 
+                                           const string& writeVer, 
+                                           const string& name){
   if(nl->IsEmpty(list)){
      return nl->TheEmptyList();
   }
@@ -376,20 +380,25 @@ ListExpr replaceWrite(ListExpr list, const string& writeVer,
           if(listutils::isSymbol(nl->First(list), writeVer)) {
             return nl->FourElemList(
                        nl->SymbolAtom("write"),
-                       replaceWrite(nl->Second(list), writeVer, name),
+                       Distributed3Algebra::replaceWrite(
+                                   nl->Second(list), writeVer, name),
                        nl->StringAtom(name),
                        nl->BoolAtom(false));
           }
        }
 
 
-       ListExpr first = nl->OneElemList( replaceWrite(nl->First(list),
+       ListExpr first = nl->OneElemList( Distributed3Algebra::replaceWrite(
+                                               nl->First(list),
                                                writeVer,
                                                name));
        ListExpr last = first;
        list = nl->Rest(list);
        while(!nl->IsEmpty(list)){
-          last = nl->Append(last, replaceWrite(nl->First(list),writeVer,name));
+          last = nl->Append(last, Distributed3Algebra::replaceWrite(
+                                    nl->First(list),
+                                    writeVer,
+                                    name));
           list = nl->Rest(list);
        }
        return first;
@@ -434,9 +443,97 @@ void writeLog(distributed2::ConnectionInfo* ci, const string& cmd,
   }
 }
 
+/*
+17 TypeMapOperator ~DPD1~
+
+*/
+ListExpr DPD1TM(ListExpr args){
+  //std::cout << "args ind DPD1TM:";
+  //nl->WriteListExpr(args);
+  
+  if(!nl->HasLength(args,2)) {
+    return listutils::typeError("2 arguments expected") ;
+  }
+    ListExpr arg = nl->First(args);
+    if(distributed2::DArray::checkType(arg) ){
+       if(!Relation::checkType(nl->Second(arg))){
+          return listutils::typeError("darray's subtype musts be a relation");
+       }
+       return nl->Second(arg); // return the relation
+    } 
+    if(distributed2::DFArray::checkType(arg)){
+       return nl->TwoElemList( listutils::basicSymbol<distributed2::fsrel>(),
+                               nl->Second(nl->Second(arg)));
+    }
+    return listutils::typeError("first arg is not a d[f]array");
+  
+}
+
+
+OperatorSpec DPD1Spec(
+  "d[f]array(rela(tuple(X))) x A -> frel(tuple(X)) ",
+  " DPD1(_,_)",
+  "Type Map Operator",
+  "query DPD1(test) getTypeNL"
+);
+
+
+Operator DPD1Op(
+  "DPD1",
+  DPD1Spec.getStr(),
+  0,
+  Operator::SimpleSelect,
+  DPD1TM
+);
 
 /*
-17 TypeMapOperator ~PDTS~
+17 TypeMapOperator ~DPD2~
+
+*/
+ListExpr DPD2TM(ListExpr args){
+
+  //std::cout << "args ind DPD2TM:";
+  //nl->WriteListExpr(args);
+  
+  if(!nl->HasLength(args,3)){
+    return listutils::typeError("3 arguments expected") ;
+  }
+
+  ListExpr arg = nl->Third(args);
+  if(!listutils::isMap<1>(arg) && !listutils::isMap<2>(arg)){
+    return listutils::typeError("third arg is not a function");
+  } 
+  // extract function result 
+  while(!nl->HasLength(arg,1)){
+    arg = nl->Rest(arg);
+  }
+  arg = nl->First(arg);
+  if(!Stream<Tuple>::checkType(arg)){
+    return listutils::typeError("function result is not a tuple stream");
+  }
+  ListExpr res =  nl->Second(arg);
+  return res;
+}
+
+
+OperatorSpec DPD2Spec(
+  "d[f]array(rela(tuple(X))) x A -> frel(tuple(X)) or  "
+  "B x C x (frel(tuple(D) -> stream(tuple(E)) ) -> tuple(E)",
+  " DPD2(_,_,_)",
+  "Type Map Operator",
+  "query DPD2(test) getTypeNL"
+);
+
+
+Operator DPD2Op(
+  "DPD2",
+  DPD2Spec.getStr(),
+  0,
+  Operator::SimpleSelect,
+  DPD2TM
+);
+/*
+18 TypeMapOperator ~PDTS~
 
 */
 
@@ -465,7 +562,79 @@ ListExpr PDTSTM(ListExpr args) {
                            nl->Second(relation));
   
 }
+/*
+17 TypeMapOperator ~DPD4~
+
+*/
+ListExpr DPD4TM(ListExpr args){
+  //std::cout << "args in DPD4TM: ";
+  //nl->WriteListExpr(args);
+  if(   !nl->HasLength(args,2) 
+     && !nl->HasLength(args,3) 
+     && !nl->HasLength(args,5) ){
+    return listutils::typeError("2,3 or 5 arguments expected") ;
+  }
+
+  if(nl->HasLength(args,2)){
+    ListExpr arg = nl->First(args);
+    if(distributed2::DArray::checkType(arg) ){
+       if(!Relation::checkType(nl->Second(arg))){
+          return listutils::typeError("darray's subtype muts be a relation");
+       }
+       return nl->Second(arg); // return the relation
+    } 
+    if(distributed2::DFArray::checkType(arg)){
+       return nl->TwoElemList( listutils::basicSymbol<distributed2::fsrel>(),
+                               nl->Second(nl->Second(arg)));
+    }
+    return listutils::typeError("first arg is not a d[f]array");
+  }
   
+  if(nl->HasLength(args,3)){
+    ListExpr arg = nl->Third(args);
+    if(!listutils::isMap<1>(arg) && !listutils::isMap<2>(arg)){
+      return listutils::typeError("third arg is not a function");
+    } 
+    // extract function result 
+    while(!nl->HasLength(arg,1)){
+      arg = nl->Rest(arg);
+    }
+    arg = nl->First(arg);
+    if(!Stream<Tuple>::checkType(arg)){
+      return listutils::typeError("function result is not a tuple stream");
+    }
+    ListExpr res =  nl->Second(arg);
+    return res;
+  }
+  // five arguments
+  ListExpr arg = nl->Fourth(args);
+  if(!listutils::isMap<1>(arg) && !listutils::isMap<2>(arg)){
+    return listutils::typeError("fourth arg is not a function");
+  }
+ 
+  return nl->TwoElemList(
+                      listutils::basicSymbol<Stream<Tuple> >(),
+                      nl->Second(arg)); // (tuple (...))
+  
+}
+
+
+OperatorSpec DPD4Spec(
+  "d[f]array(rela(tuple(X))) x A -> frel(tuple(X)) or  "
+  "B x C x (frel(tuple(D) -> stream(tuple(E)) ) -> tuple(E)",
+  " DPD4(_,_,_)",
+  "Type Map Operator",
+  "query DPD4(test) getTypeNL"
+);
+
+
+Operator DPD4Op(
+  "DPD4",
+  DPD4Spec.getStr(),
+  0,
+  Operator::SimpleSelect,
+  DPD4TM
+);
 
 OperatorSpec PDTSSpec(
   "darray(rel(Tuple)) -> Tuple or  "
@@ -865,14 +1034,14 @@ class partitiondmapInfo{
       funargs.push_back(funarg1);
       funargs.push_back(funarg2);
              // we convert the function into a usual commando
-      ListExpr cmdList = fun2cmd(dmapfunString, funargs);
+      ListExpr cmdList = Distributed3Algebra::fun2cmd(dmapfunString, funargs);
              // we replace write3 symbols in the commando for dbservice support
       string n = array->getObjectNameForSlot(slotNumber);
       if (replaceWrite2) {
         string name2 = resultArray->getObjectNameForSlot(slotNumber);
-        cmdList = replaceWrite(cmdList, "write2",name2);
+        cmdList = Distributed3Algebra::replaceWrite(cmdList, "write2",name2);
       }
-      cmdList = replaceWrite(cmdList, "write3",n);
+      cmdList = Distributed3Algebra::replaceWrite(cmdList, "write3",n);
    //cout << "\ncmdList";
    //nl->WriteListExpr(cmdList);
       return nl->ToString(cmdList);
@@ -923,22 +1092,19 @@ ListExpr partitiondmapTM(ListExpr args){
     return listutils::typeError(err + " wrong number of args");
   }
  
-  // check for internal correctness (uses Args in type mapping)
+ 
   ListExpr array = nl->First(args); 
   ListExpr name = nl->Second(args); 
   ListExpr partitionfunction = nl->Third(args); 
   ListExpr numberOfSlots = nl->Fourth(args);
   ListExpr dmapfunction = nl->Fifth(args); 
-  //cout << "\npartitionfunction: ";
-  //nl->WriteListExpr(partitionfunction);
-  //cout << "\ndmapfunction: ";
-  //nl->WriteListExpr(dmapfunction);
   
+  // check for internal correctness (uses Args in type mapping)
   if(   !nl->HasLength(array,2) 
-    || !nl->HasLength(name,2)
-    || !nl->HasLength(partitionfunction,2) 
-    || !nl->HasLength(numberOfSlots,2) 
-    || !nl->HasLength(dmapfunction,2) ){
+     || !nl->HasLength(name,2)
+     || !nl->HasLength(partitionfunction,2) 
+     || !nl->HasLength(numberOfSlots,2) 
+     || !nl->HasLength(dmapfunction,2) ){
     return listutils::typeError("internal error"); 
   }
 
@@ -947,11 +1113,6 @@ ListExpr partitiondmapTM(ListExpr args){
  ListExpr partitionfunctionType = nl->First(partitionfunction);
  ListExpr numberOfSlotsType = nl->First(numberOfSlots);
  ListExpr dmapfunctionType = nl->First(dmapfunction);
- 
- //cout << "\npartitionfunctionType: ";
-  //nl->WriteListExpr(partitionfunctionType);
-  //cout << "\ndmapfunctionType: ";
-  //nl->WriteListExpr(dmapfunctionType);
  
   // first arg array
   if(!distributed2::DFArray::checkType(arrayType) && 
@@ -978,6 +1139,9 @@ ListExpr partitiondmapTM(ListExpr args){
     return listutils::typeError(err + ", fourth argument must be of type int");
   }
   // fifth arg dmap function
+  //cout << "nl->Second(dmapfunctionType): ";
+  //nl->WriteListExpr(nl->Second(dmapfunctionType));
+  
   if(!Stream<Tuple>::checkType(nl->Second(dmapfunctionType))) {
    return listutils::typeError(
                         err + " subtype of dmap function is not a stream");
@@ -991,12 +1155,12 @@ ListExpr partitiondmapTM(ListExpr args){
                             nl->Third(dmapfunctionType));
      addedFunArg = true;
   }
-  //cout << "\ndmapfunctionType nach addedFunArg:";
-  //nl->WriteListExpr(dmapfunctionType);
+
   if(!listutils::isMap<2>(dmapfunctionType)){
     return listutils::typeError(
            err + " fifth arg should be a function with one or two arguments");
   } 
+  
   if(!CcInt::checkType(nl->Third(dmapfunctionType))){             
     return listutils::typeError("last function argument must be of type int");
   }  
@@ -1076,8 +1240,7 @@ ListExpr partitiondmapTM(ListExpr args){
                   );
 
   /*****************  Bestimmung des Rückgabetyps    *************/
-  //cout << "\ndmaprfun:";
-  //nl->WriteListExpr(dmaprfun);
+
   ListExpr dmapfunRes = nl->Fourth(dmapfunctionType);
 
   // allowed result types are streams of tuples and
@@ -1170,7 +1333,7 @@ int partitiondmapVMT(Word* args, Word& result, int message,
      newNumberOfSlots->GetValue() > 0){
      numberOfSlots = newNumberOfSlots->GetValue();
   }
-  // TODO ccname in localName umbenennen ??
+  
   if(!array->IsDefined() || !ccname->IsDefined()){
       resultArray->makeUndefined();
       return 0;
@@ -1325,7 +1488,12 @@ Distributed3Algebra::Distributed3Algebra(){
 
    AddOperator(&partitiondmapOp);
    partitiondmapOp.SetUsesArgsInTypeMapping();
+   AddOperator(&DmapPdmap::dmapPdmapOp);
+   DmapPdmap::dmapPdmapOp.SetUsesArgsInTypeMapping();
    AddOperator(&PDTSOp);
+   AddOperator(&DPD1Op);
+   AddOperator(&DPD2Op);
+   AddOperator(&DPD4Op);
    AddOperator(&Distribute2TES::distribute2TES);
    AddOperator(&FeedTES::feedTES);
    FeedTES::feedTES.SetUsesArgsInTypeMapping();
@@ -1342,7 +1510,6 @@ Distributed3Algebra::Distributed3Algebra(){
 
 
 Distributed3Algebra::~Distributed3Algebra(){
-
    boost::lock_guard<boost::mutex> guard(mtx);
    for(size_t i=0;i<connections.size();i++){
       delete connections[i];

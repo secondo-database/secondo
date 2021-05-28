@@ -20,6 +20,13 @@ Example   : query s7 partitiondmap["localName", hashvalue(.Attr,23), 80, . count
 Result    : bug
 Remark    : remote server required
 
+Operator  : dmapPdmap
+Number    : 1
+Signature : d[f]array x string  x fun x fun x int x fun -> d[f]array
+Example   : query s7 dmapPdmap["a2", . feed head[23], hashvalue(.AttrName, 13), 47, . count]
+Result    : bug
+Remark    : remote server required
+
 Operator : setuptes
 Number   : 1
 Signature: rel(tuple)  -> bool;
