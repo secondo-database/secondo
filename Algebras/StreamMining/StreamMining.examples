@@ -1,0 +1,10 @@
+Database : berlintest
+Restore  : NO
+
+
+Operator : reservoir
+Number   : 1
+Signature: ((stream int)) -> ((stream T))
+Example  : query intstream(1,10) reservoir[3] count
+Result   : 3
+
