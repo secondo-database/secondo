@@ -673,9 +673,10 @@ private:
   void
   DeleteTreeContent(AvlTreeNode<InternalLineSegment*, SweepStateData*> *node)
   {
-    if (node != NULL) {
-      if (node->Value != NULL) {
+    if (node != nullptr) {
+      if (node->Value != nullptr) {
         delete node->Value;
+        node -> Value = nullptr;
       }
 
       DeleteTreeContent(node->Left);
@@ -710,10 +711,10 @@ public:
 */
   ~SweepState()
   {
-    if (_tree != NULL) {
+    if (_tree != nullptr) {
       DeleteTreeContent(_tree->GetRoot());
       delete _tree;
-      _tree = NULL;
+      _tree = nullptr;
     }
   }
 
@@ -842,8 +843,23 @@ public:
   {
     SetAssumeYEqual(false);
 
+    if(segment == nullptr) {
+      std::cerr << "Warning: Remove called with null segmet" << endl;
+      return;
+    }
+
     AvlTreeNode<InternalLineSegment*, SweepStateData*>* treeNode =
         segment->GetTreeNode();
+
+    if(treeNode == nullptr) {
+      std::cerr << "Warning: Remove called on empty tree node" << endl;
+      return;
+    }
+
+    if(treeNode->Value == nullptr) {
+      std::cerr << "Warning: Remove called on empty tree node value" << endl;
+      return;
+    }
 
     if (treeNode->Value->Remove(segment)) {
       segment->SetTreeNode(NULL);
@@ -853,7 +869,12 @@ public:
       AvlTreeNode<InternalLineSegment*, SweepStateData*>* nextNode =
           treeNode->GetNext();
 
-      delete treeNode->Value;
+
+      if(treeNode->Value != nullptr) {
+        delete treeNode->Value;
+        treeNode->Value = nullptr;
+      }
+
       _tree->Remove(treeNode);
 
       if (prevNode != NULL && nextNode != NULL) {
@@ -1133,7 +1154,7 @@ private:
 
   std::vector<InternalLineSegment*> _processedInternalSegments;
 
-  SweepEvent* _nextHalfSegmentSweepEvent;
+  SweepEvent* _nextHalfSegmentSweepEvent = nullptr;
   size_t _intersectionCount;
 
   SweepState *_state;

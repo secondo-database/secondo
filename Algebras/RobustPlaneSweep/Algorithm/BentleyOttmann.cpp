@@ -93,7 +93,7 @@ void BentleyOttmann::FetchInput()
 */
 void BentleyOttmann::SetNextStartEndEvent()
 {
-  if (!_startEndEvents.empty()) {
+  if (! _startEndEvents.empty()) {
     _nextHalfSegmentSweepEvent = _startEndEvents.front();
     _startEndEvents.pop();
   } else if (_nextDataValid) {
@@ -153,10 +153,16 @@ void BentleyOttmann::SetNextStartEndEvent()
       _startEndEvents.push(*i);
     }
 
-    _nextHalfSegmentSweepEvent = _startEndEvents.front();
-    _startEndEvents.pop();
+    if(_startEndEvents.empty()) {
+      cout << "Warning: Got empty list of start events" << endl;
+      _nextHalfSegmentSweepEvent = nullptr;
+    } else {
+      _nextHalfSegmentSweepEvent = _startEndEvents.front();
+      _startEndEvents.pop();
+    }
+
   } else {
-    _nextHalfSegmentSweepEvent = NULL;
+    _nextHalfSegmentSweepEvent = nullptr;
   }
 }
 
