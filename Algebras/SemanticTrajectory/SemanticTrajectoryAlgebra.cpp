@@ -981,8 +981,11 @@ std::list<std::string> SemanticTrajectory::GetStringArray() const
      {
        std::string eval = parse.nextToken();
        stringutils::trim(eval);
-       stringArray.push_back(eval);
-      }
+       if (eval.length() > 0)
+       {
+          stringArray.push_back(eval);
+       }
+     }
    }
  }
  stringArray.sort(SemanticTrajectory::compare_nocase);
@@ -1151,7 +1154,6 @@ double SemanticTrajectory::TextualScore(std::string& str, int y,
    bool success = false;
    std::string s2;
    success = st.GetSemString(y, s2);
-
    assert(success);
    if (str.length() > 0 && s2.length() > 0)
    {
@@ -1159,98 +1161,64 @@ double SemanticTrajectory::TextualScore(std::string& str, int y,
      int numMatches = 0;
      stringutils::StringTokenizer st1(str, " ");
      stringutils::StringTokenizer st2(s2, " ");
-     int numToken1 = 0;
-     int numToken2 = 0;
+     int numToken1 = str.length();
+     int numToken2 = s2.length();
      std::string eval = "";
      std::string eval2 = "";
-     bool done1 = false;
-     bool done2 = false;
+     bool noToks1 = false;
+     bool noToks2 = false;
      if (st1.hasNextToken())
      {
        eval = st1.nextToken();
-       numToken1++;
      } else {
-       done1 = true;
+       noToks1 = true;
      }
      if (st2.hasNextToken())
      {
        eval2 = st2.nextToken();
-       numToken2++;
      } else {
-       done2 = true;
+       noToks2 = true;
      }
-     std::string prev_str = "";
-     int duplicate = 0;
-     while(!done1 || !done2)
+
+     while(!noToks2 && !noToks1)
      {
 
        if((eval).compare(eval2) == 0)
        {
-         if ((prev_str).compare(eval) != 0)
-         {
-           numMatches++;
-         } else {
-           duplicate = duplicate + 2;
-         }
-         prev_str = eval;
+         numMatches++;
 
          if (st1.hasNextToken())
          {
            eval = st1.nextToken();
-           numToken1++;
          } else {
-           done1 = true;
+           noToks1 = true;
          }
          if (st2.hasNextToken())
          {
            eval2 = st2.nextToken();
-           numToken2++;
          } else {
-           done2 = true;
+           noToks2 = true;
          }
        }
 
        else if ((eval).compare(eval2) < 0) {
-         if ((prev_str).compare(eval) == 0 || (prev_str).compare(eval2) == 0)
-         {
-           duplicate++;
-         } else {
-           prev_str = "";
-         }
+
          if (st1.hasNextToken())
          {
            eval = st1.nextToken();
-           numToken1++;
-         } else
-         {
-           done1 = true;
-           if (st2.hasNextToken())
-           {
-             eval2 = st2.nextToken();
-             numToken2++;
-           } else { done2 = true;}
+         } else {
+           noToks1 = true;
          }
 
        } else {
-         if ((prev_str).compare(eval) == 0 || (prev_str).compare(eval2) == 0)
-         {
-           duplicate++;
-         } else {
-           prev_str = "";
-         }
+
          if (st2.hasNextToken())
          {
            eval2 = st2.nextToken();
-           numToken2++;
          }
          else
          {
-           done2 = true;
-           if (st1.hasNextToken())
-           {
-             eval = st1.nextToken();
-             numToken1++;
-           } else { done1 = true;}
+           noToks2 = true;
          }
        }
      }
@@ -1260,7 +1228,7 @@ double SemanticTrajectory::TextualScore(std::string& str, int y,
        return 0.0;
      }
      double uniquewords = (double)
-     (numToken2 + numToken1 - duplicate - numMatches);
+     (numToken2 + numToken1 - numMatches);
      double result = (double) numMatches / uniquewords;
      return result;
    }
@@ -1511,24 +1479,14 @@ double SemanticTrajectory::MinDistAux(
   Ay->Sort(SemanticTrajectory::CompareY);
   int32_t m = Ax->Size();
   double result = 0.0;
-  for (int i = 0; i < Ax->Size(); i++)
-  {
-    Cell c;
-    Ax->Get(i, &c);
 
-  }
-  for (int i = 0; i < Ay->Size(); i++)
-  {
-    Cell c;
-    Ay->Get(i, &c);
-
-  }
   result = MinDistUtils(*Ax, *Ay, m, wx, wy);
+  delete Ay;
+  delete Ax;
   return result;
 }
 /*
-3.5.10 Placename Function
-TODO
+3.5.10 MinDistUtils Function
 
 */
 double SemanticTrajectory::MinDistUtils(
@@ -1544,8 +1502,6 @@ double SemanticTrajectory::MinDistUtils(
     int n = m/2;
 
     DbArray<Cell>* AxL = new DbArray<Cell>(0);
-    Cell cell1;
-    Ax.Get(0,cell1);
     Ax.copyTo(*AxL, 0, n, 0);
     DbArray<Cell>* AxR = new DbArray<Cell>(0);
     Ax.copyTo(*AxR, n, m-n, 0);
@@ -1561,6 +1517,7 @@ double SemanticTrajectory::MinDistUtils(
       Cell celly, cellx;
       Ay.Get(i, celly);
       Ax.Get(n, cellx);
+
       if(celly.GetX() <= cellx.GetX())
       {
         AyL->Append(celly);
@@ -1571,7 +1528,7 @@ double SemanticTrajectory::MinDistUtils(
       }
     }
 
-    /* Check to see if AxL has
+    /* Check to see if AyL has
         cells from both C1 and C2 */
     if (AyL->Size() != 0){
       Cell cellAyL;
@@ -1685,7 +1642,7 @@ double SemanticTrajectory::MinDistUtils(
   return minD;
 }
 /*
-3.5.11 Placename Function
+3.5.11 GetCellDist Function
 TODO
 
 */
@@ -1802,7 +1759,7 @@ Cell& c1, Cell& c2, double wx, double wy)
   return result;
 }
 /*
-3.5.12 Placename Function
+3.5.12 BruteForce Function
 TODO
 
 */
@@ -1831,6 +1788,7 @@ int32_t m, double wx, double wy)
       }
     }
   }
+
   return minD;
 }
 /*
@@ -3175,7 +3133,7 @@ double Batch::RelevanceSumBT(Rectangle<2>& mbr,
   const std::vector<std::string*>* bucket;
   std::hash<std::string> str_hash;
   unsigned int bucketPos = 0;
-  unsigned int bucketnum = 900;
+  unsigned int bucketnum = 500;
 
   hashTable = new std::vector<std::string*>*[bucketnum];
   for (unsigned int i = 0; i < bucketnum; i++)
@@ -3215,48 +3173,42 @@ double Batch::RelevanceSumBT(Rectangle<2>& mbr,
     if (holdvalue.length() > 0 && double (1-alpha) > 0)
     {
       // Do the textual stuff;
-      int numMatches = 0, count = 0, duplicate = 0;
-      std::string prev_str = "";
+      int numMatches = 0;
       stringutils::StringTokenizer tokenizer(holdvalue, " ");
 
       while(tokenizer.hasNextToken())
       {
         std::string eval = tokenizer.nextToken();
-        size_t hash = str_hash(eval) % bucketnum;
-        bucket = 0;
-        bucket = hashTable[hash];
-        bucketPos = 0;
-        // There is a match
-        if (bucket)
+        if (eval.length() > 0)
         {
-          // Find the match
-          while(bucketPos < bucket->size())
+          size_t hash = str_hash(eval) % bucketnum;
+          bucket = 0;
+          bucket = hashTable[hash];
+          bucketPos = 0;
+          // There is a match
+          if (bucket)
           {
-            std::string* p = (*bucket)[bucketPos];
-            if((prev_str).compare(eval) == 0)
+            // Find the match
+            while(bucketPos < bucket->size())
             {
-                //This match seen before
-                duplicate++;
+              std::string* p = (*bucket)[bucketPos];
+
+              if ((*p).compare(eval) == 0)
+              {
+                numMatches++;
                 break;
+              }
+              bucketPos++;
             }
-            else if ((*p).compare(eval) == 0)
-            {
-              numMatches++;
-              prev_str = eval;
-              break;
-            }
-            bucketPos++;
           }
-        } else {
-          prev_str = "";
         }
-        count++;
       }
+
       double textualscore = 0;
       if (!numMatches == 0)
       {
         double uniquewords = (double)
-        (sumWords + count - (duplicate + numMatches));
+        (sumWords + holdvalue.length() - numMatches);
         textualscore = (double) numMatches / uniquewords;
       }
 
@@ -3557,10 +3509,15 @@ This section here is to remove any special characters
       std::string eval = st1.nextToken();
       stringutils::trim(eval);
       stringutils::toLower(eval);
-      tokenlist.push_back(eval);
+      if (eval.length() > 1 )
+      {
+        tokenlist.push_back(eval);
+      }
     }
     std::string finalstr = "";
     tokenlist.sort(SemanticTrajectory::compare_nocase);
+    tokenlist.unique();
+
     int size = tokenlist.size();
     int i = 0;
     for (std::list<std::string>::iterator it =
@@ -3874,42 +3831,42 @@ int MakeSemTrajMV2(Word* args, Word& result,
         std::string eval = st1.nextToken();
         stringutils::trim(eval);
         stringutils::toLower(eval);
-
-        bucket = 0;
-        hash = str_hash(eval) % bucketnum;
-
-        bucket = hashTable[hash];
-        bucketpos =0;
-        if(bucket)
+        if (eval.length() > 1)
         {
-            bool flag = true;
-            while(bucketpos < bucket->size())
-            {
-              std::string* e = (*bucket)[bucketpos];
-              if ((e)->compare(eval) == 0)
+          bucket = 0;
+          hash = str_hash(eval) % bucketnum;
+
+          bucket = hashTable[hash];
+          bucketpos =0;
+          if(bucket)
+          {
+              bool flag = true;
+              while(bucketpos < bucket->size())
               {
-                flag = false;
-                break;
+                std::string* e = (*bucket)[bucketpos];
+                if ((e)->compare(eval) == 0)
+                {
+                  flag = false;
+                  break;
+                }
+                bucketpos++;
               }
-              bucketpos++;
-            }
-            if (flag)
-            {
-              // hash function is not good
-              // Good words having same hash as stopwords
-              tokenlist.push_back(eval);
-            }
+              if (flag)
+              {
+                tokenlist.push_back(eval);
+              }
 
+          }
+          else
+          {
+
+            tokenlist.push_back(eval);
+          }
         }
-        else
-        {
-
-          tokenlist.push_back(eval);
-        }
-
       }
       std::string finalstr = "";
       tokenlist.sort(SemanticTrajectory::compare_nocase);
+      tokenlist.unique();
       int size = tokenlist.size();
       int i = 0;
       for(const auto &word : tokenlist)
@@ -4079,6 +4036,7 @@ int extractkeywordMapV(Word* args, Word& result,
 
     bool getNextWord(std::string& el)
     {
+
       el = *it;
       stringutils::trim(el);
       it++;
@@ -5823,10 +5781,12 @@ int BTSimMapValue( Word* args, Word& result,
   double distance = bmbr.Distance(st->GetBoundingBox(), geoid);
   double normalizedScore = 1 - (double)(distance/diag);
   double RH = alpha1 * normalizedScore + double (1-alpha1);
+  // double LH = 0.0;
   double LH = b->RelevanceSumBT(bmbr, *st, alpha1, diag);
   result = qp->ResultStorage(s);
   double answer = LH + RH;
   ((CcReal*) result.addr)->Set(answer);
+
   return 0;
 }
 
@@ -6136,9 +6096,8 @@ double getTextualScoreBT(std::string& objectwords)
 {
 
       int numMatches = 0;
-      int count = 0;
-      int duplicate = 0;
-      std::string prev_str = "";
+      int count = objectwords.length();
+
       stringutils::StringTokenizer parse1(objectwords, " ");
 
       while(parse1.hasNextToken())
@@ -6160,26 +6119,15 @@ double getTextualScoreBT(std::string& objectwords)
           {
             WordInfo* p = (*bucket)[bucketPos];
 
-            if((prev_str).compare(eval) == 0)
-            {
-                //This match seen before
-                duplicate++;
-                break;
-            }
-            else if (((p->str)->GetValue()).compare(eval) == 0)
+
+            if (((p->str)->GetValue()).compare(eval) == 0)
             {
               numMatches++;
-              prev_str = eval;
-
               break;
             }
             bucketPos++;
           }
-        } else {
-          prev_str = "";
         }
-
-        count = count + 1;
 
       }
 
@@ -6188,7 +6136,7 @@ double getTextualScoreBT(std::string& objectwords)
         return 0.0;
       }
       double uniquewords = (double)
-      (sumOfBoth + count - (duplicate + numMatches));
+      (sumOfBoth + count - numMatches);
       return (double) numMatches / uniquewords;
     }
 
@@ -6346,7 +6294,7 @@ int SimMapValue(Word* args,
   double answer = st1->Similarity(*st2, diag, alpha->GetValue());
 
   ((CcReal*) result.addr)->Set(answer);
-
+  // cout << answer << endl;
   return 0;
 }
 
@@ -6473,11 +6421,11 @@ int TTSimMapValue(Word* args,
   double textualscore = 0.0;
   double distancescore = 0.0;
   double alpha1 = alpha->GetValue();
-  double textalpha = double (1 - alpha1);
+  double textalpha = 1.0 - alpha1;
   if (textalpha > 0)
   {
     textualscore = s1->textualScoreTT(*s2);
-    RH = double(1-textalpha) * textualscore;
+    RH = (1.0 - textalpha) * textualscore;
   }
 
   if (alpha1 > 0)
