@@ -26,7 +26,7 @@
 include ./makefile.env
 
 ifneq ($(CURDIR),$(BUILDDIR))
-  $(error SECONDO_BUID_DIR has another value than the current directory. \
+  $(error SECONDO_BUILD_DIR has another value than the current directory. \
     Please check your environment setup! Go to the root of your SECONDO \
     tree and enter the command setvar )
 endif
