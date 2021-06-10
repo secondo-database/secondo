@@ -5,7 +5,7 @@
 
 [10] Example for Using the Distributed Query Optimizer
 
-Ralf Hartmut G[ue]ting, 30.7.2012
+Ralf Hartmut G[ue]ting, 30.7.2020
 
 This script allows one to create a small distributed example database based on database ~opt~ and use the distributed query optimizer with it.
 
@@ -64,7 +64,7 @@ The variable ~myPort~ must be set to a port number exclusive to this user.
 Then run this script with the SecondoPLTTY interface from the Optimizer directory. This kind of script can be executed with
 
 ----
-@%../bin/Scripts/DistOptExemple.posec
+@%../bin/Scripts/DistOptExample.posec
 ----
 
 This is explained in the Secondo User Manual, Section 5.16.
