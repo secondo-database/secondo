@@ -2186,13 +2186,25 @@ void CompTriangle::PolygonContourPoint(unsigned int no_cyc, int no_p_contour[],
   }
 //  cout<<"get all boundary line"<<endl;
   SpacePartition* sp = new SpacePartition();
-  for(unsigned int i = 0;i < no_cyc;i++){
+  
+  for(size_t i = 0; i < no_cyc; i++){
+
       sl_contour[i]->EndBulkLoad();
       vector<MyHalfSegment> mhs;
-      sp->ReorderLine(sl_contour[i], mhs);
+      SimpleLine* line = sl_contour[i];
+
+      if(! line->IsDefined()) {
+         cout << "Ignoring undefined line" << endl;
+         continue;
+      }
+
+      sp->ReorderLine(line, mhs);
+
       vector<Point> ps;
-      for(unsigned int j = 0;j < mhs.size();j++)
+      
+      for(size_t j = 0; j < mhs.size(); j++) {
         ps.push_back(mhs[j].from);
+      }
 
       bool clock;
       if(0.0f < Area(ps)){//points counter-clockwise order
