@@ -32,7 +32,7 @@ bool arraySubtypeEqualsFunctionArgument(ListExpr arrayType,
 /** returns the result type of the functions type */
 
 ListExpr getResultType(ListExpr function) {
-  ListExpr res = fu nction;
+  ListExpr res = function;
   while(!nl->HasLength(res,1)){
      res = nl->Rest(res);
   }
@@ -80,6 +80,7 @@ ListExpr replaceTypeOperator(ListExpr functionValue, ListExpr replacement) {
 ListExpr DmapPdmap::typeMapping(ListExpr args){
   // TODO delegieren an TypeMapper-Objekt
   // DmapPdmapTypeMapper : TypeMapper, der alle Hilfsmethoden enthält.
+  //DmapPdmapTypeMapper tm{args};
   std::cout << "\nargs in dmapPdmap :";
   nl->WriteListExpr(args);
   std::string err = "expected: d[f]array(rel(tuple(X))) x string x "
