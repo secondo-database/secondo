@@ -327,10 +327,13 @@ ListExpr replaceSymbols(ListExpr list,
 template<typename T>
 ListExpr Distributed3Algebra::fun2cmd(ListExpr funlist, 
                                       const vector<T>& funargs){
+  cout << "\nin fun2cmd(ListExpr, vector&)";
   if(!nl->HasLength(funlist, 2+ funargs.size())){
+    cout << "\nhier1";
     return nl->TheEmptyList();
   } 
   if(!listutils::isSymbol(nl->First(funlist),"fun")){
+  cout << "\nhier2";
     return nl->TheEmptyList();
   }
   funlist = nl->Rest(funlist);
@@ -357,6 +360,7 @@ ListExpr Distributed3Algebra::fun2cmd(ListExpr funlist,
 template<typename T>
 ListExpr Distributed3Algebra::fun2cmd(const string& fundef, 
                                       const vector<T>& funargs){
+  cout << "\nin fun2cmd(string&, vector&)";
   ListExpr funlist; 
   {
      boost::lock_guard<boost::mutex> guard(nlparsemtx);
@@ -365,6 +369,8 @@ ListExpr Distributed3Algebra::fun2cmd(const string& fundef,
        return nl->TheEmptyList();
      }
   }
+  cout << "\nfunlist: ";
+  nl->WriteListExpr(funlist);
   return fun2cmd<T>(funlist, funargs);
 }
 
@@ -1042,8 +1048,8 @@ class partitiondmapInfo{
         cmdList = Distributed3Algebra::replaceWrite(cmdList, "write2",name2);
       }
       cmdList = Distributed3Algebra::replaceWrite(cmdList, "write3",n);
-   //cout << "\ncmdList";
-   //nl->WriteListExpr(cmdList);
+     cout << "\ncmdList";
+     nl->WriteListExpr(cmdList);
       return nl->ToString(cmdList);
     }
     
@@ -1375,6 +1381,9 @@ int partitiondmapVMT(Word* args, Word& result, int message,
   
   ListExpr relType = nl->Second(qp->GetType(qp->GetSon(s,0)));
   string relTypeString = nl->ToString(relType);
+  cout << "\nrelType: ";
+  nl->WriteListExpr(relType);
+  
   //ListExpr tupleType = nl->Second(relType);
   //string tupleTypeString = nl->ToString(tupleType);
   
