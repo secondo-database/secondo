@@ -1,0 +1,196 @@
+/*
+//paragraph [10] title: [{\Large \bf ]  [}]
+//[star] [$*$]
+//[ue] [\"{u}]
+
+[10] Example for Using the Distributed Query Optimizer Based on DRel
+
+Ralf Hartmut G[ue]ting, 17.6.2021
+
+This script allows one to create a small distributed example database based on database ~opt~ and use the distributed query optimizer with it. In this script, distributed relations of type ~drel~ are used.
+
+1 Preliminaries
+
+1.2 Preparing the Database
+
+  1 Database ~opt~ must be present.
+
+  2 Remote monitors have been started for a given ~Workers~ relation.
+
+The following steps must be done manually:
+
+----
+open database opt
+
+restore Workers from ...
+
+let myPort = ...
+----
+
+The ~Workers~ relation must fit the Cluster file for which monitors have been started.
+
+The variable ~myPort~ must be set to a port number exclusive to this user.
+
+
+Then run this script with the SecondoPLTTY interface from the Optimizer directory. This kind of script can be executed with
+
+----
+@%../bin/Scripts/DistOptExampleDRel.posec
+----
+
+This is explained in the Secondo User Manual, Section 5.16.
+
+*/
+
+
+distributedRelsAvailable
+
+/*
+Creates the three distributed relations
+
+  * SEC2DISTRIBUTED
+
+  * SEC2DISTINDEXES
+
+  * SEC2WORKERS
+
+which serve to provide the optimizer with information about distributed relations and indexes as well as the available workers. However, working with drels we do not need to describe distributed relations explicitly in the table ~SEC2DISTRIBUTED~.
+
+
+
+4 Create Distributed Relations
+
+A distributed relation of type ~drel~ must follow the naming scheme
+
+----	<relation>_DR_<suffix>
+----
+
+Here ~relation~ will be the name of a relation on the master to be used for sampling. It may contain the complete distributed relation which has been distributed from it or just a small sample. In case the drel is created by the optimizer, the sample is created automatically. The suffix is arbitrary (but without \_) and serves to distinguish distinct distributed versions of the same relation.
+
+*/
+
+update SEC2WORKERS := Workers;
+
+let plz_DR_Ort = plz dreldistribute["plz_DR_Ort", HASH, Ort, 40, Workers]
+
+queryDistributedRels
+
+/*
+The last command makes the new distributed relation known to the optimizer.
+ 
+*/
+
+
+/*
+The query
+
+*/
+select count(*) from plz_d
+
+/*
+works already and executes the plan:
+
+----
+query plz_DR_Ort drel2darray  dmap["", .  feed count] getValue 
+  tie[(.  + .. )]
+----
+
+*/
+
+let Orte_DR_Random = 
+  Orte dreldistribute["Orte_DR_Random", RANDOM, 40, Workers]
+
+queryDistributedRels
+
+/*
+5 Some Example Queries
+
+Some example queries that can be run are the following:
+
+----
+select * from plz_d where Ort = "Hannover"
+
+select count(*) from [Orte_d as o, plz_d as p] where o.Ort = p.Ort
+
+select Ort from Orte_d
+
+select count(*) from plz_d
+
+select[Ort, min(plz) as Smallest, count(*) as Anzahl] from plz_d 
+where Ort starts "Mann" groupby Ort
+
+select [Ort, Kennzeichen, BevT, count(*) as AnzahlPLZ, min(p.PLZ) as MinPLZ,
+  max(p.PLZ) as MaxPLZ, avg(p.PLZ) as DurchschnittsPLZ]
+from [Orte_d, plz_d as p]
+where Ort = p.Ort
+groupby [Ort, Kennzeichen, BevT]
+
+----
+
+3 Describing Distributed Indexes
+
+On each slot of a darray representing a distributed relation we can create an index. The optimizer currently supports B-tree and R-tree indexes.
+
+Such an index is decribed in the relation SEC2DISTINDEXES with fields:
+
+  * ~DistObj~: the darray or drel object representing the distributed relation
+
+  * ~Attr~: the indexed attribute
+
+  * ~IndexType~: the type of the index (~btree~ or ~rtree~)
+
+  * ~IndexObj~: the darray representing the distributed index
+
+All attributes are of type ~string~.
+
+
+6 Creating an Index
+
+A distributed index on a ~drel~ can be created in two ways: 
+
+  * using the Distributed2Algebra
+  
+  * using the DRelAlgebra
+  
+In both cases the distributed index needs to be described in SEC2DISTINDEXES to be recognized by the optimizer. There is no naming convention needed for the optimizer, as the relationship between index and underlying distributed relation is described explicitly in the table.
+
+  
+6.1 Using the Distributed2Algebra
+
+In this case we create the index on the darray component of the drel. 
+
+*/
+let plzDROrt_Ort = plz_DR_Ort drel2darray 
+  dmap["plzDROrt_Ort", . createbtree[Ort]] 
+
+insert into SEC2DISTINDEXES values
+  ["plz_DR_Ort", "Ort", "btree", "plzDROrt_Ort"]
+
+
+/*
+6.2 Using the DRelAlgebra
+
+*/
+let plzDROrt_PLZ_btree = plz_DR_Ort 
+  drelcreatebtree["plzDROrt_PLZ_btree", PLZ]
+
+insert into SEC2DISTINDEXES values
+  ["plz_DR_Ort", "PLZ", "btree", "plzDROrt_PLZ_btree"]
+
+
+/*
+7 Using an Index
+
+----
+select * from plz_d where Ort = "Unna"
+
+select * from plz_d where Ort starts "Hann"
+
+select * from plz_d where PLZ = 44225
+----
+
+*/
+
+
+
+
