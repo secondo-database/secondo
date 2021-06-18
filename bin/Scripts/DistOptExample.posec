@@ -15,6 +15,8 @@ This script allows one to create a small distributed example database based on d
 
 Within the file ~calloptimizer.pl~ in directory ~secondo/Optimizer~ the loaded modules must be configured as shown here (currently line 827 ff). The standard configuration has [optimizerNewProperties] and [distributed] commented out. They must be loaded and [optimizer] commented out, as shown.
 
+This is not necessary any more in recent versions of the optimizer (from 2021) as there is only one version of the optimizer now and [distributed] is loaded by default.
+
 ----
 % The files for the standard optimization procedure will be
 % loaded by default!
@@ -72,10 +74,10 @@ This is explained in the Secondo User Manual, Section 5.16.
 */
 
 
-select count(*) from plz_d
+distributedRelsAvailable
 
 /*
-This leads to an error message because a distributed relation ~plz\_d~ is not yet known. However, it has triggered the distributed optimizer to create the three distributed relations
+Creates the three distributed relations
 
   * SEC2DISTRIBUTED
 
@@ -84,6 +86,8 @@ This leads to an error message because a distributed relation ~plz\_d~ is not ye
   * SEC2WORKERS
 
 which serve to provide the optimizer with information about distributed relations and indexes as well as the available workers.
+
+
 
 2 Describing Distributed Relations
 
