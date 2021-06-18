@@ -27,7 +27,7 @@ std::string DmapPdmapTypeMapper::err() {
 }
 bool DmapPdmapTypeMapper::rightNumberOfArgs() {
   if(!nl->HasLength(args,6)){ 
-    msg = "wrong number of args";
+    msg = "wrong number of args in specification file";
     return false;
   }
   return true;

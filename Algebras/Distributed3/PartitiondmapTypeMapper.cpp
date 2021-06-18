@@ -24,7 +24,7 @@ std::string PartitiondmapTypeMapper::err() {
 }
 bool PartitiondmapTypeMapper::rightNumberOfArgs() {
   if(!nl->HasLength(args,5)){ 
-    msg = "wrong number of args";
+    msg = "wrong number of args in specification file";
     return false;
   }
   return true;
