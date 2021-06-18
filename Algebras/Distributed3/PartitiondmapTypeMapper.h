@@ -17,7 +17,7 @@ class PartitiondmapTypeMapper : public DPDTypeMapper {
   bool rightNumberOfArgs();
   bool checkArgs();
   bool checkInterdependencies();
-  ListExpr result();
+  ListExpr append();
   ListExpr appendPartition();
 };
 

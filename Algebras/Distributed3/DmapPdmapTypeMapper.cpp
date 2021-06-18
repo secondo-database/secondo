@@ -96,17 +96,14 @@ bool DmapPdmapTypeMapper::checkInterdependencies() {
   
   return true;
 }
-ListExpr DmapPdmapTypeMapper::result() {
-    return  nl->ThreeElemList(
-                   nl->SymbolAtom(Symbols::APPEND()),
-                   nl->FiveElemList(
+
+ListExpr DmapPdmapTypeMapper::append() {
+  return nl->FiveElemList(
                      nl->TextAtom(nl->ToString(appendDmap1())), // dmap1
                      nl->TextAtom(nl->ToString(appendPartition())), // partition
                      nl->TextAtom(nl->ToString(appendDmap2())),  //  dmap2
                      nl->BoolAtom(isRel()),               //  dmap2
-                     nl->BoolAtom(isStream())),           //  dmap2
-                   resultType());  
-  
+                     nl->BoolAtom(isStream()));
 }
 ListExpr DmapPdmapTypeMapper::appendDmap1() {
   ListExpr arrayType = nl->First(array);

@@ -54,16 +54,15 @@ bool PartitiondmapTypeMapper::checkInterdependencies() {
   }
   return true;
 }
-ListExpr PartitiondmapTypeMapper::result() {
-  return nl->ThreeElemList(
-                   nl->SymbolAtom(Symbols::APPEND()),
-                   nl->FourElemList(
+
+ListExpr PartitiondmapTypeMapper::append() {
+  return nl->FourElemList(
                        nl->TextAtom(nl->ToString(appendPartition())),
                          nl->TextAtom(nl->ToString(appendDmap2())),  //  dmap
                          nl->BoolAtom(isRel()),               //  dmap
-                         nl->BoolAtom(isStream())),           //  dmap
-                   resultType());  
+                         nl->BoolAtom(isStream()));
 }
+
 ListExpr PartitiondmapTypeMapper::appendPartition() {
   ListExpr relation = nl->Second(nl->First(array));
   return replaceTypeOperator(nl->Second(partitionfunction), 

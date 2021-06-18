@@ -18,7 +18,7 @@ class DmapPdmapTypeMapper : public DPDTypeMapper {
   bool checkArgs();
   bool checkDmap1Type();
   bool checkInterdependencies();
-  ListExpr result();
+  ListExpr append();
   ListExpr appendDmap1();
   ListExpr appendPartition();
 

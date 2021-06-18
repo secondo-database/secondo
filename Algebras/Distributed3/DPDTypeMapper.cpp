@@ -190,6 +190,12 @@ bool DPDTypeMapper::checkDmap2Type() {
   return true;
 }
 
+ListExpr DPDTypeMapper::result() {
+    return  nl->ThreeElemList(
+                   nl->SymbolAtom(Symbols::APPEND()),
+                   append(), 
+                   resultType());  
+}
 
 ListExpr DPDTypeMapper::appendDmap2() {
   return replaceTypeOperator(nl->Second(dmap2),

@@ -42,7 +42,8 @@ class DPDTypeMapper {
   
   virtual bool checkInterdependencies() = 0;
   
-  virtual ListExpr result() = 0;
+  ListExpr result();
+  virtual ListExpr append() = 0;
   virtual ListExpr appendPartition() = 0;
   ListExpr appendDmap2();
   ListExpr resultType();
