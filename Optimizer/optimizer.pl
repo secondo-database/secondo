@@ -1475,8 +1475,22 @@ plan_to_atom(dbobject(Name), ExtName) :-	% fapra 2015/16
 % objects not to be distributed for queries: dbotherobject, dbindexobject,
 % dbdistindexobject.
 
+plan_to_atom(DBObject, Access) :-
+  DBObject = dbotherobject(Name, drel),
+  dcName2externalName(DCname, Name),       % convert to DC-spelling
+  ( dcName2externalName(DCname,ExtName)    % if Name is known
+    -> true
+    ; ( write_list(['\nERROR:\tCannot translate \'',dbobject(DCname),'\'.']),
+        throw(error_Internal(optimizer_plan_to_atom(dbobject(DCname),
+                                                  ExtName)::missingData)),
+        fail
+      )
+  ),
+  atom_concat(ExtName, ' drel2darray ', Access),
+  !.
+
 plan_to_atom(DBObject, ExtName) :-
-  ( DBObject = dbotherobject(Name) ; DBObject = dbindexobject(Name) ;
+  ( DBObject = dbotherobject(Name, _) ; DBObject = dbindexobject(Name) ;
     DBObject = dbdistindexobject(Name) ),
   dcName2externalName(DCname, Name),       % convert to DC-spelling
   ( dcName2externalName(DCname,ExtName)    % if Name is known
@@ -10381,18 +10395,20 @@ sqlToPlan(QueryText, ResultText, Costs) :-
            ( ( Exc = error_SQL(ErrorTerm),
                ( ErrorTerm=(_::ErrorCode::Message) ; ErrorTerm=(_::Message) )
              ) %% Problems with the SQL query itself:
-             -> my_concat_atom(['SQL ERROR (usually a user error): \n',
+             -> my_concat_atom(['\n\nSQL ERROR (usually a user error): ',
                        Message],'', MessageToSend)
              ;  ( ( Exc = error_Internal(ErrorTerm),
                     (   ErrorTerm = (_::ErrorCode::Message)
                       ; ErrorTerm = (_::Message)
                     )
                   )
-                  -> my_concat_atom(['Internal ERROR (usually a problem with\c
+                  -> my_concat_atom(
+                       ['\n\nInternal ERROR (usually a problem with\c
                              the ', 'knowledge base):\n',Message],'',
                                   MessageToSend)
                   %% all other exceptions:
-                  ;  my_concat_atom(['Unclassified ERROR (usually a bug):\n',
+                  ;  my_concat_atom(
+                       ['\n\nUnclassified ERROR (usually a bug):\n',
                                   Exc], '',MessageToSend)
                 )
            ),
@@ -10872,7 +10888,7 @@ defaultExceptionHandler(G) :-
                     )
                 )
           ),
-          ( errorHandlingRethrow  % retract errorHandlingRethrow to quit quitely
+          ( errorHandlingRethrow  % retract errorHandlingRethrow to quit quietly
             -> throw(Exception)   % assert errorHandlingRethrow to re-throw
             ;  ( print_message(error,Exception), % all exceptions!
                   fail             % With not(errorHandlingRethrow), the error

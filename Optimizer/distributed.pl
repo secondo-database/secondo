@@ -122,6 +122,7 @@ part of the query (function of dmap or dmap2).
 
 */
 
+
 :- dynamic(replicatedObject/1).
 :- dynamic(shared/1).	% has already been shared once in this session
 
@@ -133,7 +134,7 @@ replicateObjects2 :-
   not(shared(X)),
   atom_string(X, XString),
   plan_to_atom(share(value_expr(string, XString), true, 
-    dbotherobject(sec2workers)), Query),
+    dbotherobject(sec2workers, _)), Query),
   atom_concat('query ', Query, Command),
   secondo(Command),
   assert(shared(X)),
@@ -249,12 +250,12 @@ Treat translation into distributed arguments. The properties we use are...
 
 % Translate into object found in SEC2DISTRIBUTED.
 distributedarg(N) translatesD [Object, P] :-
-  X = [distribution(DistType, DCDistAttr, DistParam),
-  distributedobjecttype(DistObjType)],
   argument(N, Rel),
   Rel = rel(DCName, _),
   distributedRels(rel(DCName, _), Object, DistObjType, _,
     DistType, DistAttr, DistParam),
+  X = [distribution(DistType, DCDistAttr, DistParam),
+  distributedobjecttype(DistObjType)],
   ( (DistType = spatial) -> P = X 
     ; append(X, [disjointpartitioning], P) 
   ),
@@ -801,7 +802,7 @@ transform2DPlan(count(Plan), DistPlan, count(SeqPlan)) :-
 transform2DPlan(Plan, Plan, seqstart) :-
   (   Plan = dmap(_, _, _) 
     ; Plan = dmap2(_, _, _, _, _)
-    ; Plan = dmap(dbotherobject(_), _, _)
+    ; Plan = dmap(dbotherobject(_, _), _, _)
     ; Plan = dproduct(_, _, _, _, _)
     ; Plan = areduce2(_, _, _, _, _)
   ),
@@ -811,7 +812,7 @@ transform2DPlan(predinfo(Plan, _, _), DistPlan, SeqPlan) :-
   transform2DPlan(Plan, DistPlan, SeqPlan),
   !.
 
-transform2DPlan(dbotherobject(X), dbotherobject(X), seqstart) :-
+transform2DPlan(dbotherobject(X, Y), dbotherobject(X, Y), seqstart) :-
   !.
 
 transform2DPlan(Plan, Plan, mygoodness) :-
@@ -1082,7 +1083,7 @@ mergeDmaps(
 
   
 mergeDmaps(Plan, Plan) :-
-  ( Plan = dmap(dbotherobject(_), _, _) 
+  ( Plan = dmap(dbotherobject(_, _), _, _) 
     ; Plan = dmap2(_, _, _, _, _) 	% this case to be improved
     ; Plan = dproduct(_, _, _, _, _)
   ),
@@ -1307,6 +1308,7 @@ feedRenameRelation2(_, Rel, _, feed(Rel)).
 
 
 
+
 /*
 11 Extensions to File ~database.pl~
 
@@ -1350,7 +1352,8 @@ removeDistributedSuffix(DRel, ORel) :-
     atom_concat(X,'_d', DRel),
     atom_string(ORel, X),
     isDistributedRelation(rel(ORel, _)),!,
-    assertOnce(isDistributedQuery).
+    assertOnce(isDistributedQuery),
+    checkDistributedSystem.
 
 
 removeDistributedSuffix(ORel, DRel) :-
@@ -1439,14 +1442,16 @@ distributedRels(rel(Rel, Var), ObjName, DistObjType, NSlots,
   PartType, DistAttr, DistParam) :-
     not(storedDistributedRelation(_, _, _, _, _, _, _)),
     ground(Var), !,% first argument instantiated - but do not match against Var
-    queryDistributedRels,!,
+    queryDistributedRels, !,
+    checkDistributedSystem,
     storedDistributedRelation(rel(Rel, _), ObjName, 
     DistObjType, NSlots, PartType, DistAttr, DistParam).
 
 distributedRels(rel(Rel,Var), ObjName, DistObjType, NSlots, 
   PartType, DistAttr, DistParam) :-
     not(storedDistributedRelation(_, _, _, _, _, _, _)),
-    queryDistributedRels,!,
+    queryDistributedRels, !,
+    checkDistributedSystem,
     storedDistributedRelation(rel(Rel, Var), ObjName, 
     DistObjType, NSlots, PartType, DistAttr, DistParam).
 
@@ -1477,86 +1482,119 @@ storeDistributedRel(RelName, ObjName, DistObjType, NSlots,
   PartType, DistAttr, DistParam) :-
   downcase_atom(RelName, DCRelName),
   downcase_atom(ObjName, DCObjName),
+  term_to_atom(DOType, DistObjType),
   assert(storedDistributedRelation(rel(DCRelName, '*'), 
-         dbotherobject(DCObjName), 
-         DistObjType, NSlots, PartType, DistAttr, DistParam)),
+         dbotherobject(DCObjName, DOType), 
+         DOType, NSlots, PartType, DistAttr, DistParam)),
   !.
 
 storeDistributedRel(_, _, _, _, _) :- !.
 
 spelledDistributedRel(Rel, Rel2, Case) :-
-    spelled(Rel,Rel2,Case);
+    spelled(Rel, Rel2, Case);
     (ansi_format([fg(red)], 'Warning: listed object "~w" in SEC2DISTRIBUTED \c
       relation does not exist => ignored for further processing \n',[Rel]),
       fail),
     !.
+    
+/*
+----	storeDRels :- 
+----
 
-/* 
-The availibility of workers related to the distributed relations used
-in the current query needs to be checked before creating an execution plan.
+Lookup distributed relations represented as ~drel~ in the Secondo catalog and create the corresponding ~storedDistributedRelation~ facts.
 
-We have to distinguish between the type of distribution. Replicated 
-objects and relations are shared to all workers, available at distribution
-time. Therefore it's not possible to backtrack workers involved at this
-moment.
-
-Shared relations can be executed even not the complete set of workers are
-online, for other distribution types all workers are necessary.
-
-To provide a possibility to test the distributed queries without 
-executing it on the worker, its possible to disable the connectivity 
-check by setting the fact 'disableWorkerCheck'
- 
 */
 
-:- dynamic(disableWorkerCheck/0).
-%:-   assert(disableWorkerCheck).
+storeDRels :-
+  secondoCatalogInfo(_, Name, _, [[drel, [rel, [tuple, Attrs]], _]]),
+  my_concat_atom([Rel, 'DR', _], '_', Name),
+  downcase_atom(Name, DCObjName),
+  downcase_atom(Rel, DCRel),
+  atom_concat('query ', Name, QueryAtom),
+  secondo(QueryAtom, DRel),
+  DRel = [_, [[_, NSlots, _], Distribution]],
+  distr(Distribution, Attrs, PartType, DistAttr, DistParam),
+  assert(storedDistributedRelation(rel(DCRel, '*'), 
+         dbotherobject(DCObjName, drel), 
+         drel, NSlots, PartType, DistAttr, DistParam)),
+  fail.
+  
 
-%check the entries in SEC2DISTRIBUTED
-checkOnlineWorkers :-
-    disableWorkerCheck,!.
+% distr(Distribution, Attrs, PartType, DistAttr, DistParam)
 
-checkOnlineWorkers :-
-    secondo('query SEC2WORKERS',[_,ListOfWorkers]),!,
-    maplist(maplist(stringWithoutQuotes), ListOfWorkers, StrippedListOfWorkers),
-    checkOnlineWorker(StrippedListOfWorkers),
-    !.
+distr(['"RANDOM"'], _, "random", "*", "*").
 
-%check workers listed in d(f)array
-checkOnlineWorkers(_, _) :-
-    disableWorkerCheck,!.
+distr(['"HASH"', N], Attrs, "function", DistAttr, "*") :-
+  nth0(N, Attrs, [Attr, _]),
+  atom_string(Attr, DistAttr).
 
-%first parameter must be a d(f)array
-checkOnlineWorkers(_, 'share').
 
-checkOnlineWorkers(ObjName, _) :- 
-    string_concat('query ',ObjName, SecondoQueryStr),
-%   string_to_atom(SecondoQueryStr,SecondoQuery), 
-    atom_string(SecondoQuery, SecondoQueryStr), 
-    secondo(SecondoQuery,[_, [_,_,ListOfWorkers]]),
-    checkOnlineWorker(ListOfWorkers),
-    !.
+/*
+11.4 Check availability of workers
 
-checkOnlineWorker([]).
+We only perform two simple checks before the first query is executed:
 
-checkOnlineWorker([[Host,Port,_]|T]) :-
-    onlineWorker(Host,Port,_),!,
-    checkOnlineWorker(T).
+  * The SEC2WORKERS relation is not empty.
+  
+  * Connections either exist or can be created, which means monitors are running.
 
-checkOnlineWorker([[Host,Port,Config]|T]) :-
-    format(atom(SecondoQuery),'query connect("~w",~w,"~w")',
-      [Host,Port,Config]), 
-    secondo(SecondoQuery,[bool, Result]),!,
-    (Result == true
-    -> assert(onlineWorker(Host,Port,Config));
-    cancelOnlineWorkerCheck(Host,Port,Config)),!,
-    checkOnlineWorker(T).
-    
-%worker offline
-cancelOnlineWorkerCheck(Host,Port,Config) :-
-    ansi_format([fg(red)], 'Warning: connection to server \c
-    host: "~w", port: ~w, config: "~w" failed \n', [Host,Port,Config]),
-    fail,!.
+*/
+:- dynamic(distributedSystemOK/0).
+
+checkDistributedSystem :-
+  distributedSystemOK,
+  !.
+
+checkDistributedSystem :-
+  checkDatabaseOpen,
+  checkWorkers,
+  checkConnectivity,
+  assert(distributedSystemOK).
+  
+  
+checkDatabaseOpen :-
+  isDatabaseOpen,
+  !.
+  
+checkDatabaseOpen :-
+  my_concat_atom(
+    ['Database is not open.'], '', ErrMsg),
+  throw(error_SQL(distributed_checkWorkers::noDatabase::ErrMsg)),
+  fail.
+
+  
+checkWorkers :-
+  secondo('query SEC2WORKERS count', [int, Cnt]),
+  Cnt > 0,
+  !.
+  
+checkWorkers :-
+  my_concat_atom(
+    ['SEC2WORKERS relation is empty.'], '', ErrMsg),
+  throw(error_SQL(distributed_checkWorkers::noWorkers::ErrMsg)),
+  fail.
+
+
+checkConnectivity :-
+  secondo('query checkConnections() count', [int, Cnt]),
+  Cnt > 0,
+  !.
+  
+checkConnectivity :- 
+  secondo('query SEC2WORKERS feed head[1] consume', Result),
+  Result = [_Type, [[Host, Port, Config]]],
+  my_concat_atom(['query connect(', Host, ', ', Port, ', ', Config, ')'], '',
+    Query),
+  secondo(Query, [bool, true]),
+  secondo('query disconnect()', _),
+  !.
+  
+checkConnectivity :-
+  my_concat_atom(
+    ['RemoteMonitors for distributed workers are not running.'], '', ErrMsg),
+  throw(error_SQL(distributed_checkConnectivity::noMonitors::ErrMsg)),
+  fail.
+ 
 
 /* 
 The system- relation SEC2DISTRIBUTED contains information about
@@ -1576,6 +1614,7 @@ queryDistributedRels :-
   !,
   maplist(maplist(stringWithoutQuotes), Tuples, ObjList),
   storeDistributedRels(ObjList),
+  not(storeDRels),
   !.
 
 distributedRelsAvailable :-
@@ -1617,10 +1656,11 @@ distributedRelsAvailable :-
 
 % switch to dynamic predicate sometime in the future
 
-distributedIndex(dbotherobject(DistRelObj), DCAttr, IndexType, 
+distributedIndex(dbotherobject(DistRelObj, Type), DCAttr, IndexType, 
     dbdistindexobject(IndexObj)) :-
   distributedIndex2(DowncaseAtomTuples),
-  member([DistRelObj, DCAttr, IndexType, IndexObj], DowncaseAtomTuples).
+  member([DistRelObj, DCAttr, IndexType, IndexObj], DowncaseAtomTuples),
+  distObjectType(DistRelObj, Type).
 
 
 distributedIndex2(DowncaseAtomTuples) :-
@@ -1630,6 +1670,13 @@ distributedIndex2(DowncaseAtomTuples) :-
   maplist(maplist(downcase_atom), AtomTuples, DowncaseAtomTuples),
   !.
 
+distObjectType(DistRelObj, drel) :-
+  secondoCatalogInfo(_, Name, _, [[drel, _, _]]),
+  downcase_atom(Name, DistRelObj),
+  !.
+  
+distObjectType(_, darray).
+  
 
 
 /*
