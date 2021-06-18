@@ -32,7 +32,7 @@ public:
 
   void reset() { // TODO könnte auch in den Destruktor !
     for (auto it = eid2TupleType.begin(); it != eid2TupleType.end(); ++it) {
-      std::cout << "\ndelete " << (*it).first;
+      //std::cout << "\ndelete " << (*it).first;
       if((*it).second){
        ((*it).second)->DeleteIfAllowed();
        ((*it).second) = nullptr;

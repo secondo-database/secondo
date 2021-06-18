@@ -34,7 +34,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "tes/TESClient.h"
 #include "tes/typedefs.h"
 //#include "tes/Operators/Tests/TESTests.h"
-#include "./DmapPdmap.h"
+//#include "./DmapPdmap.h"
+#include "./DmapPdmapTypeMapper.h"
+#include "./PartitiondmapTypeMapper.h"
 #include "tes/Operators/Interface2TES/Distribute2TES.h"
 #include "tes/Operators/Interface2TES/FeedTES.h"
 #include "tes/Operators/Messaging/StartTESClient.h"
@@ -327,13 +329,11 @@ ListExpr replaceSymbols(ListExpr list,
 template<typename T>
 ListExpr Distributed3Algebra::fun2cmd(ListExpr funlist, 
                                       const vector<T>& funargs){
-  cout << "\nin fun2cmd(ListExpr, vector&)";
+
   if(!nl->HasLength(funlist, 2+ funargs.size())){
-    cout << "\nhier1";
     return nl->TheEmptyList();
   } 
   if(!listutils::isSymbol(nl->First(funlist),"fun")){
-  cout << "\nhier2";
     return nl->TheEmptyList();
   }
   funlist = nl->Rest(funlist);
@@ -360,7 +360,6 @@ ListExpr Distributed3Algebra::fun2cmd(ListExpr funlist,
 template<typename T>
 ListExpr Distributed3Algebra::fun2cmd(const string& fundef, 
                                       const vector<T>& funargs){
-  cout << "\nin fun2cmd(string&, vector&)";
   ListExpr funlist; 
   {
      boost::lock_guard<boost::mutex> guard(nlparsemtx);
@@ -369,8 +368,6 @@ ListExpr Distributed3Algebra::fun2cmd(const string& fundef,
        return nl->TheEmptyList();
      }
   }
-  cout << "\nfunlist: ";
-  nl->WriteListExpr(funlist);
   return fun2cmd<T>(funlist, funargs);
 }
 
@@ -454,8 +451,6 @@ void writeLog(distributed2::ConnectionInfo* ci, const string& cmd,
 
 */
 ListExpr DPD1TM(ListExpr args){
-  //std::cout << "args ind DPD1TM:";
-  //nl->WriteListExpr(args);
   
   if(!nl->HasLength(args,2)) {
     return listutils::typeError("2 arguments expected") ;
@@ -659,30 +654,30 @@ Operator PDTSOp(
 );
 
 template<class A>
-class partitiondmapInfo{
+class dpdInfo{
 
   public:
 
-    partitiondmapInfo(A* _array, 
+    dpdInfo(A* _array, 
                       distributed2::DArrayBase* _resultArray, 
                       size_t _workerNumber,
                       distributed2::ConnectionInfo* _ci, 
-                      /*const string& _sfun, */ 
+                      const string& _dmap1funString, 
                       const string& _partitionfunString,
                       ListExpr _relType, 
                       bool _isRel, 
                       bool _isStream, 
                       const string& _dmapfunString,
-                      const string& _dbname, 
+                      //const string& _dbname, 
                       int _eid):
         array(_array), 
         resultArray(_resultArray), // make undefined when something goes wrong
         numberOfSlots((int) resultArray->getSize()), // O(1)
         numberOfWorkers((int) resultArray->numOfWorkers()), // O(1)
         workerNumber(_workerNumber), 
-        ci(_ci), /*sfun(_sfun),*/ 
+        ci(_ci),
+        dmap1funString(_dmap1funString), 
         partitionfunString(_partitionfunString), 
-        //targetName(_targetName), 
         targetName(resultArray->getName()),
         sourceName(array->getName()), 
         relType(_relType), 
@@ -695,10 +690,10 @@ class partitiondmapInfo{
           dbname = SecondoSystem::GetInstance()->GetDatabaseName();
           //numberOfWorkers darf nicht 0 sein.
           ci->copy();
-          runner = new boost::thread(&partitiondmapInfo::run,this);
+          runner = new boost::thread(&dpdInfo::run,this);
     }
 
-    ~partitiondmapInfo(){
+    ~dpdInfo(){
         runner->join();
         delete runner;
         ci->deleteIfAllowed();
@@ -711,7 +706,7 @@ class partitiondmapInfo{
      int numberOfWorkers;
      size_t workerNumber;
      distributed2::ConnectionInfo* ci;
-     string sfun;
+     string dmap1funString;
      string partitionfunString;
      string targetName;
      string sourceName;
@@ -797,25 +792,22 @@ class partitiondmapInfo{
         }
         ss << ")"; // end of value list
 
-
-
         string rel = " ( (rel(tuple((T string)))) " + ss.str() + ")";
 
         // the query in user syntax would be
         // query rel feed projecttransformstream[T] fdistribute7[
         // fun, numberOfSlots, dir+"/"+targetName, TRUE] count
 
-
         string stream1 = "(projecttransformstream (feed " + rel + ") T )";
         string stream2 =   "(feedS " + stream1 
                          + "("+nl->ToString(relType) 
                          + " ()))"; 
         string stream3 = stream2;
-        /*
-        if(!sfun.empty()){
-          stream3 = "("+ sfun + "(consume "+  stream2 + "))";
+        
+        if(!dmap1funString.empty()){
+          stream3 = "("+ dmap1funString + "(consume "+  stream2 + "))";
         }
-        */
+        
         return stream3;
      }
      
@@ -837,7 +829,7 @@ class partitiondmapInfo{
                                     nl->OneElemList(
                                        nl->TwoElemList(
                                             nl->SymbolAtom("T"),
-                                            listutils::basicSymbol<FText>()))));
+                                          listutils::basicSymbol<FText>()))));
 
         // build all texts
         bool first = true;
@@ -868,7 +860,7 @@ class partitiondmapInfo{
                               feed,
                               nl->SymbolAtom("T"));
 
-        string streamer = "fsfeed5";
+        string streamer = dmap1funString.empty()?"fsfeed5":"createFSrel";
 
         ListExpr fsfeed = nl->ThreeElemList(
                                 nl->SymbolAtom(streamer),
@@ -876,6 +868,18 @@ class partitiondmapInfo{
                                 relTemp);
       
         ListExpr streamFun = fsfeed;
+        if(!dmap1funString.empty()){
+           ListExpr sfunl;
+           // activate in Distributed2Algebra
+           //{ boost::lock_guard<boost::recursive_mutex> guard(nlparsemtx); 
+             bool ok = nl->ReadFromString(dmap1funString, sfunl);
+             if(!ok){
+               cerr << "error in parsing list: " << dmap1funString << endl;
+               return "";
+             }
+           //} activate in Distribute2Algebra 
+           streamFun = nl->TwoElemList( sfunl, fsfeed);
+        }        
         return nl->ToString(streamFun);
      }
     
@@ -884,9 +888,7 @@ class partitiondmapInfo{
        vector<size_t> result;
        for (size_t i = 0; i< (size_t)numberOfSlots; ++i) {
          if (i % numOfWorkers == workerNumber) {
-           //cout << "\nworkerNumber " << workerNumber << " mit slot: " 
-           //<< i; // 
-           result.push_back(i); // für workerNumber 12 slots 12 und 52
+           result.push_back(i);
          }
        }
        return result; // should be moved
@@ -904,12 +906,12 @@ class partitiondmapInfo{
       if(isStream) {
         for( size_t slot : slotsOfWorker()) { 
           runners.push_back(
-               new boost::thread(&partitiondmapInfo::frun,this,slot));
+               new boost::thread(&dpdInfo::frun,this,slot));
         } 
       } else {
         for( size_t slot : slotsOfWorker()) {
           runners.push_back(
-               new boost::thread(&partitiondmapInfo::drun,this,slot));
+               new boost::thread(&dpdInfo::drun,this,slot));
         }
       }
       wait_for_and_delete(runners);
@@ -991,8 +993,7 @@ class partitiondmapInfo{
         cmd = "(query (count (fconsume5 "+ cmd +" '"+ fname2
             + "'"+aa+" )))";
       }
-  //cout << "\ncmd: \n";
-  //cout << cmd;
+
       ci->simpleCommandFromList(cmd,err,errMsg,r,false, runtime,
                               showCommands, commandLog, false,
                               algInstance->getTimeout());
@@ -1002,66 +1003,37 @@ class partitiondmapInfo{
          //error = true;
       }
     }
-      /*
-          if(error){
-             mapper->changeConnection(ci,nr,cmd,err,errMsg,reconnect,
-                                      numtries,usedWorkers);
-             if(!ci){
-                cerr << "change worker has returned 0, give up" << endl;
-                return;
-             }
-           } else { // successful finished command
-           
-#ifdef DPROGRESS
-              ci->getInterface()
-              ->removeMessageHandler(algInstance->progressObserver->
-               getProgressListener(mapper->array->getObjectNameForSlot(nr), 
-               mapper->array->getWorkerForSlot(nr)));
-               algInstance->progressObserver->
-         commitWorkingOnSlotFinished(mapper->array->getObjectNameForSlot(nr), 
-         mapper->array->getWorkerForSlot(nr));
-#endif
-           
-                 return;   
-           }
-           // nexttrie
-         //  usleep(100);
-       //  } while(numtries>0); // repeat  
-       */     
+       
     }
     
     
     string getcmd(const int slotNumber, bool replaceWrite2) {
       string funarg1 = "(feedtes "  + stringutils::int2str(eid) + " " 
                                     + stringutils::int2str(slotNumber) + ")";
-      string funarg2 = stringutils::int2str(slotNumber);
-   //cout << "\nfunarg1, funarg2: " << funarg1 << ", " << funarg2;
+      //string funarg2 = stringutils::int2str(slotNumber);
+
       vector<string> funargs;
       funargs.push_back(funarg1);
-      funargs.push_back(funarg2);
+      //funargs.push_back(funarg2);
              // we convert the function into a usual commando
+             
       ListExpr cmdList = Distributed3Algebra::fun2cmd(dmapfunString, funargs);
-             // we replace write3 symbols in the commando for dbservice support
+            // we replace write3 symbols in the commando for dbservice support
       string n = array->getObjectNameForSlot(slotNumber);
       if (replaceWrite2) {
         string name2 = resultArray->getObjectNameForSlot(slotNumber);
         cmdList = Distributed3Algebra::replaceWrite(cmdList, "write2",name2);
       }
       cmdList = Distributed3Algebra::replaceWrite(cmdList, "write3",n);
-     cout << "\ncmdList";
-     nl->WriteListExpr(cmdList);
       return nl->ToString(cmdList);
     }
     
     
     void drun(const int slotNumber) {
-      //cout << "\nin drun";
-      
       string funcmd = getcmd(slotNumber,true);
       string name2 = resultArray->getObjectNameForSlot(slotNumber);
       string cmd = "(let " + name2 + " = " + funcmd + ")";
-      //cout << "\ncmd :" << cmd;
-          
+
       int err; string errMsg; string r;
       double runtime;
       ci->simpleCommandFromList(cmd,err,errMsg,r,false, runtime,
@@ -1085,284 +1057,101 @@ class partitiondmapInfo{
 */
    
 ListExpr partitiondmapTM(ListExpr args){
-  
-  //cout << "\nargs in partitiondmapTM:";
-  //nl->WriteListExpr(args);
-  string err = "expected: d[f]array(rel(Tuple)) x string x (Tuple -> int) "
-                     "x int x "
-               "(stream(Tuple) -> X)";
+   
+  PartitiondmapTypeMapper tm{args};
+  tm.printValues();
 
-  /***** partition and dmap ***/
-
-  if(!nl->HasLength(args,5)){
-    return listutils::typeError(err + " wrong number of args");
-  }
- 
- 
-  ListExpr array = nl->First(args); 
-  ListExpr name = nl->Second(args); 
-  ListExpr partitionfunction = nl->Third(args); 
-  ListExpr numberOfSlots = nl->Fourth(args);
-  ListExpr dmapfunction = nl->Fifth(args); 
-  
-  // check for internal correctness (uses Args in type mapping)
-  if(   !nl->HasLength(array,2) 
-     || !nl->HasLength(name,2)
-     || !nl->HasLength(partitionfunction,2) 
-     || !nl->HasLength(numberOfSlots,2) 
-     || !nl->HasLength(dmapfunction,2) ){
-    return listutils::typeError("internal error"); 
-  }
-
- ListExpr arrayType = nl->First(array);
- ListExpr nameType = nl->First(name);
- ListExpr partitionfunctionType = nl->First(partitionfunction);
- ListExpr numberOfSlotsType = nl->First(numberOfSlots);
- ListExpr dmapfunctionType = nl->First(dmapfunction);
- 
-  // first arg array
-  if(!distributed2::DFArray::checkType(arrayType) && 
-     !distributed2::DArray::checkType(arrayType)){
-    return listutils::typeError(err + ", first arg of wrong type");
-  }
-  ListExpr relation = nl->Second(arrayType);
-  if(!Relation::checkType(relation)){
-    return listutils::typeError(err + ", array subtype is not a relation");
-  }
-  // second arg name
-  if(!CcString::checkType(nameType)) {
-    return listutils::typeError(err + ", second arg is not a string");
-  }
-  // third arg partition function
-  if(!listutils::isMap<1>(partitionfunctionType)){
-    return listutils::typeError(err + ", third arg is not a fun");
-  } 
-  if(!CcInt::checkType(nl->Third(partitionfunctionType))){
-    return listutils::typeError(err + " fun result is not an int");
-  }
-  // fourth arg newSlotNumber
-  if(!CcInt::checkType(numberOfSlotsType)){
-    return listutils::typeError(err + ", fourth argument must be of type int");
-  }
-  // fifth arg dmap function
-  //cout << "nl->Second(dmapfunctionType): ";
-  //nl->WriteListExpr(nl->Second(dmapfunctionType));
-  
-  if(!Stream<Tuple>::checkType(nl->Second(dmapfunctionType))) {
-   return listutils::typeError(
-                        err + " subtype of dmap function is not a stream");
-  }
-  // zusätzliches Argument für dmapfunction TODO wird das gebraucht?
-  bool addedFunArg= false;
-  if(listutils::isMap<1>(dmapfunctionType)){
-     dmapfunctionType = nl->FourElemList( nl->First(dmapfunctionType),
-                            nl->Second(dmapfunctionType),
-                            listutils::basicSymbol<CcInt>(), 
-                            nl->Third(dmapfunctionType));
-     addedFunArg = true;
-  }
-
-  if(!listutils::isMap<2>(dmapfunctionType)){
-    return listutils::typeError(
-           err + " fifth arg should be a function with one or two arguments");
-  } 
-  
-  if(!CcInt::checkType(nl->Third(dmapfunctionType))){             
-    return listutils::typeError("last function argument must be of type int");
-  }  
-  // Ende zusätzliches Argument
-  
-  // tuple types must be equal in d[f]array, 
-  //partition function and dmap function
-  if(!nl->Equal(nl->Second(relation), nl->Second(partitionfunctionType)) || 
-     !nl->Equal(nl->Second(relation), 
-                nl->Second(nl->Second(dmapfunctionType)))){
-    return listutils::typeError(
-    " tuple types of darray's relation and of functions [sub]subtypes differ");
-  }
-  
-  /*************       Appending     ***************/
-  
-  // Partition, no difference to partitionTM
-  ListExpr partitionfunquery = nl->Second(partitionfunction);
-  //cout << "\npartitionfunquery: ";
-  //nl->WriteListExpr(partitionfunquery);
-  ListExpr partitionfunarg = nl->Second(partitionfunquery);
-  //cout << "\npartitionfunarg: ";
-  //nl->WriteListExpr(partitionfunarg);
-  
-  
-  ListExpr dat = nl->Second(relation);
-  //cout << "\ndat: ";
-  //nl->WriteListExpr(dat);
-
-  ListExpr partitionrfunargs = nl->TwoElemList(
-                        nl->First(partitionfunarg),
-                        dat);
-  ListExpr partitionrfun = nl->ThreeElemList(                //
-                         nl->First(partitionfunquery),       // fun
-                         partitionrfunargs,          // (tuple ((...)...(...)))
-                         nl->Third(partitionfunquery));      // (hashvalue
-                                                      // (attr elem_1 ...) 119)
-  //cout << "\npartitionrfun:";
-  //nl->WriteListExpr(partitionrfun);  
-  
-  // dmap
-  
-  ListExpr funArg1 = nl->Second(dmapfunctionType);                 
-  ListExpr funArg2 =  nl->Third(dmapfunctionType); // ???????? Wozu?
-  
-  
-  // the dmap function definition
-  ListExpr dmapfunquery = nl->Second(dmapfunction); 
-  
-  if(addedFunArg){
-    string a1name = nl->SymbolValue(nl->First(nl->Second(dmapfunquery)));
-    string a2name = a1name + "_add42";
-    dmapfunquery = nl->FourElemList(
-       nl->First(dmapfunquery), // symbol fun
-       nl->Second(dmapfunquery), // first argument
-       nl->TwoElemList( nl->SymbolAtom(a2name) , 
-                        listutils::basicSymbol<CcInt>()), // add arg
-       nl->Third(dmapfunquery) // fundef
-    ); 
-  }
-  //cout << "\ndmapfunqery:";
-  //nl->WriteListExpr(dmapfunquery);
-  // we have to replace the given  
-  // function argument types by their real types due to
-  // usage of type map operators 
-  ListExpr dmaprfunarg1 = 
-  nl->TwoElemList(nl->First(nl->Second(dmapfunquery)), funArg1); // funArg1 
-                                 //in dmap Relation, in partitiondmap stream
-  ListExpr dmaprfunarg2 = 
-       nl->TwoElemList( nl->First(nl->Third(dmapfunquery)), funArg2);
-
-  ListExpr dmaprfun = nl->FourElemList(
-                    nl->First(dmapfunquery),  // symbol fun
-                    dmaprfunarg1,
-                    dmaprfunarg2,
-                    nl->Fourth(dmapfunquery) 
-                  );
-
-  /*****************  Bestimmung des Rückgabetyps    *************/
-
-  ListExpr dmapfunRes = nl->Fourth(dmapfunctionType);
-
-  // allowed result types are streams of tuples and
-  // non-stream objects
-  
-  bool isRel = Relation::checkType(dmapfunRes);
-  bool isStream = Stream<Tuple>::checkType(dmapfunRes);
-
-  if(listutils::isStream(dmapfunRes) && !isStream){
-    return listutils::typeError("function produces a stream of non-tuples.");
-  }
-  
-  // compute the subtype of the resulting array
-  if(isStream){
-    dmapfunRes = nl->TwoElemList(
-               listutils::basicSymbol<Relation>(),
-               nl->Second(dmapfunRes));
-  }
-  
-  // determine the result array type
-  // is the origin function result is a tuple stream,
-  // the result will be a dfarray, otherwise a darray
-  ListExpr resType = nl->TwoElemList(
-               isStream?listutils::basicSymbol<distributed2::DFArray>()
-                       :listutils::basicSymbol<distributed2::DArray>(),
-               dmapfunRes);
-      
-  //cout << "\npartitionrfun";
-  //nl->WriteListExpr(partitionrfun);
-  //cout << "\nnl->TextAtom(nl->ToString(partitionrfun))";
-  //nl->WriteListExpr(nl->TextAtom(nl->ToString(partitionrfun)));
-  
-  
-  /***** dmap second part *****/
-  // TODO hierher!!          
-
-  ListExpr res =  nl->ThreeElemList(
-                   nl->SymbolAtom(Symbols::APPEND()),
-                   nl->FourElemList(
-                       nl->TextAtom(nl->ToString(partitionrfun)),  // partition
-                         nl->TextAtom(nl->ToString(dmaprfun)),  //  dmap
-                         nl->BoolAtom(isRel),               //  dmap
-                         nl->BoolAtom(isStream)),           //  dmap
-                   resType);                               
-  // TODO
-  //cout << "\nresType: "; 
-  //nl->WriteListExpr(resType);
-  return res;
+  return tm.typeMapping();
 }
 
+
+
 template<class A>
-int partitiondmapVMT(Word* args, Word& result, int message,
-                    Word& local, Supplier s ){
+int dpdVMT(Word* args, Word& result,
+                   int message, Word& local, Supplier s) {
+  
+
+   A* array = (A*) args[0].addr;
+   CcString* ccname = (CcString*) args[1].addr;
+   CcInt* newNumberOfSlots;
+   string dmap1funString="";
+   string partitionfunString="";
+   string dmap2funString="";
+   bool isRel;
+   bool isStream;
+   ListExpr relType; // setTupleType
+
+   if(qp->GetNoSons(s)==9){ 
+      // without additional function
+      // third arg is the function, we get the text
+      newNumberOfSlots = (CcInt*) args[3].addr;
+      partitionfunString = ((FText*) args[5].addr)->GetValue();
+      dmap2funString = ((FText*) args[6].addr)->GetValue();
+      isRel = ((CcBool*) args[7].addr)->GetValue();
+      isStream = ((CcBool*) args[8].addr)->GetValue();
+      relType = nl->Second(qp->GetType(qp->GetSon(s,0)));
+   } else if(qp->GetNoSons(s)==11){
+      // args[2], args[3] and args[5] are the functions
+      newNumberOfSlots = (CcInt*) args[4].addr;
+      dmap1funString = ((FText*) args[6].addr)->GetValue(); 
+      partitionfunString = ((FText*) args[7].addr)->GetValue();
+      dmap2funString = ((FText*) args[8].addr)->GetValue();
+      isRel = ((CcBool*) args[9].addr)->GetValue();
+      isStream = ((CcBool*) args[10].addr)->GetValue();
+      relType = nl->TwoElemList(listutils::basicSymbol<Relation>(),
+                                nl->Second(qp->GetType(qp->GetSon(s,2)))); 
+      
+   } else {
+      assert(false); // invalid number of arguments
+      ccname = 0;
+      newNumberOfSlots = 0;
+   }
+   string relTypeString = nl->ToString(relType); // setTupleType
    
- 
-  
-/*
-  #ifdef DPROGRESS
-    algInstance->progressObserver->mappingCallback(qp->GetId(s), array);
-  #endif
-*/  
 
-   /*********** arguments and values  ***************/
-  A* array = (A*) args[0].addr;
-  CcString* ccname = (CcString*) args[1].addr;
-  CcInt* newNumberOfSlots = (CcInt*) args[3].addr;
-  string partitionfunString = ((FText*) args[5].addr)->GetValue(); 
-  string dmapfunString = ((FText*) args[6].addr)->GetValue();
-  bool isRel = ((CcBool*) args[7].addr)->GetValue();
-  bool isStream = ((CcBool*) args[8].addr)->GetValue();
-  string dbname = SecondoSystem::GetInstance()->GetDatabaseName();      
-  
-  
-  /************** setting the result type **********************/
-  
-  result = qp->ResultStorage(s);
-  distributed2::DArrayBase* resultArray; // supertype of DFArray and DArray
-  if(isStream){
-    resultArray = (distributed2::DFArray*) result.addr;
-  } else {
-    resultArray  = (distributed2::DArray*)  result.addr;
-  }
- 
-  
+   /************** setting the result type **********************/
    
-  /************* Checks from partition in order to return early **************/
-  int numberOfSlots = array->getSize();
+   result = qp->ResultStorage(s);
+   distributed2::DArrayBase* resultArray; // supertype of DFArray and DArray
+   if(isStream){
+     resultArray = (distributed2::DFArray*) result.addr;
+   } else {
+     resultArray  = (distributed2::DArray*)  result.addr;
+   }
 
-  if(newNumberOfSlots->IsDefined() &&
-     newNumberOfSlots->GetValue() > 0){
-     numberOfSlots = newNumberOfSlots->GetValue();
-  }
-  
-  if(!array->IsDefined() || !ccname->IsDefined()){
-      resultArray->makeUndefined();
-      return 0;
-  }
+   /************* Checks from partition in order to return early **********/
+   
+   int numberOfSlots = array->getSize();
 
-  string targetName = ccname->GetValue();
-  if(targetName.size()==0){
-     targetName = algInstance->getTempName();
-  }
-  if(!stringutils::isIdent(targetName)){
-    resultArray->makeUndefined();
-    return 0;
-  }
+   if(newNumberOfSlots->IsDefined() &&
+      newNumberOfSlots->GetValue() > 0){
+      numberOfSlots = newNumberOfSlots->GetValue();
+   }
+   
+   if(!array->IsDefined() || !ccname->IsDefined()){
+       resultArray->makeUndefined();
+       return 0;
+   }
 
-  if(targetName == array->getName()){
-    resultArray->makeUndefined();
-    return 0;
-  }
+   string targetName = ccname->GetValue();
+   if(targetName.size()==0){
+      targetName = algInstance->getTempName();
+   }
+
+   if(!stringutils::isIdent(targetName)){
+     resultArray->makeUndefined();
+     return 0;
+   }
+
+   if(targetName == array->getName()){
+     resultArray->makeUndefined();
+     return 0;
+   }
+   
+   resultArray->set((size_t)numberOfSlots, targetName, array->getWorker());
   
-  resultArray->set((size_t)numberOfSlots, targetName, array->getWorker());
   
-  
-  /************************ TES *********************/
+    /************************ TES *********************/
   
   //TESManager tesm = TESManager::getInstance();
   //int eid = tesm.getExchangeID();
@@ -1379,13 +1168,10 @@ int partitiondmapVMT(Word* args, Word& result, int message,
     return 0; 
   }
   
-  ListExpr relType = nl->Second(qp->GetType(qp->GetSon(s,0)));
-  string relTypeString = nl->ToString(relType);
-  cout << "\nrelType: ";
-  nl->WriteListExpr(relType);
+  string dbname = SecondoSystem::GetInstance()->GetDatabaseName();
   
-  //ListExpr tupleType = nl->Second(relType);
-  //string tupleTypeString = nl->ToString(tupleType);
+  bool showCommands = false;
+  distributed2::CommandLog commandLog;
   
   {
     int err;
@@ -1400,7 +1186,8 @@ int partitiondmapVMT(Word* args, Word& result, int message,
         worker != nullptr; worker = workers()) {
       ConnectionInfo* ci = worker->connection;
     */ 
-   for(size_t workerNumber=0;workerNumber<array->numOfWorkers();workerNumber++){
+   for(size_t workerNumber=0;workerNumber<array->numOfWorkers();
+                                                             workerNumber++){
      distributed2::DArrayElement de = array->getWorker(workerNumber);
      distributed2::ConnectionInfo* ci = 
          algInstance->getWorkerConnection(de,dbname);
@@ -1408,43 +1195,45 @@ int partitiondmapVMT(Word* args, Word& result, int message,
         string cmd = "(query (setTupleType " + stringutils::int2str(eid) + 
                                         " (" +     relTypeString + " ()) " +
                                 stringutils::int2str(numberOfSlots) + ") )";
-        //cout << "\ncmd: " << cmd;
+      
         ci->simpleCommandFromList(cmd, err, errMsg, res2, false, runtime,
                             showCommands, commandLog, false,
                             algInstance->getTimeout());
         if(err){
           cerr << "setTupleType failed on worker " 
                << workerNumber << endl;
-               //<< worker->workernr << endl;
-          writeLog(ci, cmd,errMsg);
+          writeLog(ci, cmd,errMsg); 
           return 0;
         }
       }
     }
   }
-  
-  vector<partitiondmapInfo<A>*> infos; 
-  /*
-  for(size_t workerNumber=0;workerNumber<array->numOfWorkers();workerNumber++){
-     DArrayElement de = array->getWorker(workerNumber);
-     ConnectionInfo* ci = algInstance->getWorkerConnection(de,dbname);
-  */
-  
+  ListExpr arrayRelType = nl->Second(qp->GetType(qp->GetSon(s,0)));
+  vector<dpdInfo<A>*> infos;
+   
   auto workers = TESManager::getInstance().getWorkers();
   for (WorkerConfig *worker = workers();
        worker != nullptr; worker = workers()) {
     distributed2::ConnectionInfo* ci = worker->connection;
     int workerNumber = worker->workernr; 
     if(ci){
-       partitiondmapInfo<A>* info = 
-         new partitiondmapInfo<A>(array, resultArray, workerNumber, ci,
-                 partitionfunString, /*dfunText,  targetName, */
-                 relType, isRel, isStream, dmapfunString, dbname, eid);  
+       dpdInfo<A>* info = 
+         new dpdInfo<A>(array, 
+                              resultArray, 
+                              workerNumber, 
+                              ci,
+                              dmap1funString, 
+                              partitionfunString,
+                              arrayRelType, 
+                              isRel, 
+                              isStream, 
+                              dmap2funString, 
+                              eid);  
 
        infos.push_back(info);
     }
   }
-
+  
   for(size_t i=0;i<infos.size();i++){
       delete infos[i];
   }
@@ -1452,9 +1241,10 @@ int partitiondmapVMT(Word* args, Word& result, int message,
   return 0;
 }
 
+
 ValueMapping partitiondmapVM[] = {
-   partitiondmapVMT<distributed2::DArray>,
-   partitiondmapVMT<distributed2::DFArray>,
+   dpdVMT<distributed2::DArray>,
+   dpdVMT<distributed2::DFArray>,
 };
 
 int partitiondmapSelect(ListExpr args){
@@ -1488,6 +1278,48 @@ Operator partitiondmapOp(
   partitiondmapTM
 );
 
+ListExpr dmapPdmapTM(ListExpr args){
+
+  DmapPdmapTypeMapper tm{args};
+  tm.printValues();
+   
+  return tm.typeMapping();
+}
+
+int dmapPdmapSelect(ListExpr args){
+  ListExpr arg1 = nl->First(args);
+  if(distributed2::DArray::checkType(arg1)) return 0;
+  if(distributed2::DFArray::checkType(arg1)) return 1;
+  return -1;
+}
+
+ValueMapping dmapPdmapVM[] = {
+     dpdVMT<distributed2::DArray>,
+     dpdVMT<distributed2::DFArray>,
+};
+
+OperatorSpec dmapPdmapSpec(
+ "d[f]array(rel(Tuple)) x string  -> d[f]array",
+  "_ dmapPdmap[_]",
+  "Redistributes the contents of a d[f]array value "
+  "according to the first function "
+  "and applies the second function to the newly distributed tuples. "
+  "The string argument suggests a local name on the workers, "
+  "the int argument determines the number of slots "
+  "of the redistribution. If this value is smaller or equal to "
+  "zero, the number of slots is overtaken from the d[f]array argument.",
+  "query d45strassen dmapPdmap[\"zdrun451\"]"
+);
+
+Operator dmapPdmapOp(
+  "dmapPdmap",
+  dmapPdmapSpec.getStr(),
+  2,
+  dmapPdmapVM,
+  dmapPdmapSelect,
+  dmapPdmapTM
+);
+
 
 /*
 3 Implementation of the Algebra
@@ -1497,8 +1329,8 @@ Distributed3Algebra::Distributed3Algebra(){
 
    AddOperator(&partitiondmapOp);
    partitiondmapOp.SetUsesArgsInTypeMapping();
-   AddOperator(&DmapPdmap::dmapPdmapOp);
-   DmapPdmap::dmapPdmapOp.SetUsesArgsInTypeMapping();
+   AddOperator(&dmapPdmapOp);
+   dmapPdmapOp.SetUsesArgsInTypeMapping();
    AddOperator(&PDTSOp);
    AddOperator(&DPD1Op);
    AddOperator(&DPD2Op);
@@ -1526,8 +1358,6 @@ Distributed3Algebra::~Distributed3Algebra(){
    connections.clear();
    //closeAllWorkers();
    TESManager::getInstance().reset();
-   //std::cout << "\n Distributed3Algebra::closeAllWorkers(): " 
-   //<< closeAllWorkers() << " Verbindungen zerstört";
    connections.clear();
    TESManager::getInstance().reset();
 
