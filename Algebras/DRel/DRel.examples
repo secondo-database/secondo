@@ -117,6 +117,13 @@ Example   : query darray1 drel2darray
 Result    : bug
 Remark    : remote server required
 
+Operator  : darray2drel
+Number    : 1
+Signature : darray x distType x string -> drel
+Example   : query darray1 darray2drel[HASH, "Nr"]
+Result    : bug
+Remark    : remote server required
+
 Operator  : count
 Number    : 1
 Signature : drel -> int

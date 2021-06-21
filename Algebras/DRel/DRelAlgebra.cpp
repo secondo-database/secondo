@@ -57,6 +57,7 @@ extern Operator drelspatialpartitionOp;
 extern Operator compareDistTypeOp;
 extern Operator drelcollect_boxOp;
 extern Operator drel2darrayOp;
+extern Operator darray2drelOp;
 
 extern Operator countOp;
 extern Operator lcountOp;
@@ -149,6 +150,8 @@ DRelAlgebra::DRelAlgebra() {
     AddOperator( &compareDistTypeOp );
     AddOperator( &drelcollect_boxOp );
     AddOperator( &drel2darrayOp );
+    AddOperator( &darray2drelOp );
+    darray2drelOp.SetUsesArgsInTypeMapping( );
 
     AddOperator( &countOp );
     AddOperator( &lcountOp );
