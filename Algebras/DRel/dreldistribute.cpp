@@ -26,7 +26,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 
 
-1 Implementation of the secondo operator dreldistribute and drelfdistribute
+1 Implementation of the Secondo operators dreldistribute and drelfdistribute
 
 */
 //#define DRELDEBUG
@@ -93,7 +93,7 @@ namespace drel {
 1 ~createStreamOpTree~
 
 Creates a new operator tree to open a stream for a relation. For the
-relation the type of the relation is nessecarry as a ListExpr. The
+relation the type of the relation is necessary as a ListExpr. The
 user is responsible for the right type of the relation.
 
 */
@@ -135,7 +135,7 @@ user is responsible for the right type of the relation.
 2 ~createReplicationOpTree~
 
 Creates a new operator tree to open a stream for a relation to replicate
-the relation. For the relation the type of the relation is nessecarry as
+the relation. For the relation the type of the relation is necessary as
 a ListExpr. The user is responsible for the right type of the relation.
 Of each tuple n tuple will be in the stream. n is the number of array
 fields wich will be used to distribute the stream. For the distribution
@@ -227,12 +227,12 @@ the distributed tuple.
 
 Creates a new operator tree to open a stream for a relation to distribute
 the relation by spatial. For the relation the type of the relation is
-nessecarry as a ListExpr. The user is responsible for the right type of
-the relation. For the distribution the stream get two new attributes. The
+necessary as a ListExpr. The user is responsible for the right type of
+the relation. For the distribution the stream gets two new attributes. The
 first attribute is Cell to get the number of the field to distribute each
 tuple. The second argument is Original. This attribute is used to reduce
 dublicates while collecting the distributed tuple. The grid argument is
-used to distirbute the tuple.
+used to distribute the tuple.
 
 */
     template<class T>
@@ -897,7 +897,7 @@ Value mapping of the distribute operator to distribute by hash.
                 nl->SymbolAtom( "attr" ),
                 nl->SymbolAtom( "t" ),
                 nl->SymbolAtom( attrName ) ), // Attributname for hashfunction
-            nl->IntAtom( 99999 ) );
+            nl->IntAtom( 999997 ) );
 
         ListExpr funList =
             nl->ThreeElemList(
