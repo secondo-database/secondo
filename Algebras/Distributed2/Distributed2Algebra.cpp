@@ -19239,12 +19239,35 @@ OperatorSpec areduce2Spec(
 
 Operator areduce2Op(
   "areduce2",
-  areduceSpec.getStr(),
+  areduce2Spec.getStr(),
   2,
   areduceVM,
   areduceSelect,
   areduce2TM
 );
+
+OperatorSpec areduce2FSpec(
+  "dfmatrix(rel(X)) x dfmatrix(rel(Y) x string x (fsrel(X) x "
+  "fsrel(Y) -> Z) x int x (int x int -> int) -> d[f]array(Z)",
+  "_ _ areduce2[_,_,_] ",
+  "Works quite similar to the areduce2 operator. The only " 
+  "difference is the possibility to change the order in that "
+  "the slots will be processed by a function (last argument) "
+  "The arguments to this function are the sizes of both slots "
+  " and the slots are processed in descending order of the "
+  "function results.",
+  "query dfm1 dfm2 areduce2[ \"molly\", . feed  .. feed product , 1236, "
+         "   fun(x1 : int, x2 : int) x1 * x2]"
+);
+Operator areduce2FOp(
+  "areduce2F",
+  areduce2FSpec.getStr(),
+  2,
+  areduceVM,
+  areduceSelect,
+  areduce2TM
+);
+
 
 /*
 29 collect2
@@ -24744,6 +24767,8 @@ Distributed2Algebra::Distributed2Algebra(){
    AddOperator (&areduce2Op);
    areduce2Op.SetUsesArgsInTypeMapping();
 
+   AddOperator (&areduce2FOp);
+   areduce2FOp.SetUsesArgsInTypeMapping();
 
    AddOperator(&collect2Op);
    AddOperator(&collectCOp);

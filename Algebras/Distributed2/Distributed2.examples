@@ -525,6 +525,13 @@ Example   : query m8a m8b  areduce2["a9", . feed  ..  feed product count, 1236] 
 Result    : bug
 Remark    : under develeopment
 
+Operator  : areduce2F
+Number    : 1
+Signature : dfmatrix(rel(X)) x  dfmatrix(rel(Y)) x string x (fsrel(X) x fsrel(Y) ->Z) x int -> d[f]array(Z)
+Example   : query m8a m8b  areduce2F["a9", . feed  ..  feed product count, 1236, fun(x1 : int, x2 : int) x1 * x2] getValue
+Result    : bug
+Remark    : under develeopment
+
 Operator  : AREDUCEARG1 
 Number    : 1
 Signature : dfmatrix(rel(x))  x  ... -> stream(x)

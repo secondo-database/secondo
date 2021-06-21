@@ -117,6 +117,7 @@ operator fileSizes alias FILESIZES pattern _ op[_]
 
 operator areduce alias AREDUCE pattern _ op [_ , fun, _] implicit parameter elem type AREDUCEARG1 
 operator areduce2 alias AREDUCE2 pattern _ _ op [_ , fun, _] implicit parameters elem1, elem2 types AREDUCEARG1 , AREDUCEARG2
+operator areduce2F alias AREDUCE2F pattern _ _ op [_ , fun, _,_] implicit parameters elem1, elem2 types AREDUCEARG1 , AREDUCEARG2
 
 
 operator saveAttr alias SAVEATTR pattern _ op[_] 
