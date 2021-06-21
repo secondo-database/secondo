@@ -9,6 +9,7 @@
 # Note the direction argument "<-" to match an edge in reverse direction.
 
 query p2
+AuthorP feed
 match1b ['
 (  
    ( auth Author  ( (Name "Ralf Hartmut Gueting") ) )
@@ -20,5 +21,5 @@ match1b ['
 )',
 '',
 '(  ((auth Name) Name)  )',
-''
+'AuthorP feed'
 ]; 

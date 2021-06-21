@@ -1294,22 +1294,23 @@ ListExpr match1b_OpTm2( ListExpr args )
    {
       LOGOP(30,"match1b_OpTm2", nl->ToString(args));
 
-      CheckArgCount(args,5,5);
+      CheckArgCount(args,6,6);
       CheckArgType(args,1,PGraph2::BasicType());
-      CheckArgType(args,2,FText::BasicType());
+      CheckArgTypeIsTupleStream(args,2);
       CheckArgType(args,3,FText::BasicType());
       CheckArgType(args,4,FText::BasicType());
       CheckArgType(args,5,FText::BasicType());
+      CheckArgType(args,6,FText::BasicType());
 
       //
       PGraph2 *pg = getPGraph2Object(args);
 
       // get alias list from query tree
       QueryTree *tree=new QueryTree();
-      tree->ReadQueryTree(GetArgValue(args,2));
+      tree->ReadQueryTree(GetArgValue(args,3));
       //
       QueryOutputFields of;
-      of.ReadFromList(GetArgValue(args,4));
+      of.ReadFromList(GetArgValue(args,5));
 
       MemoryGraphObject *pgm = getPGraph2MemoryObject(pg);
       if (pgm==NULL || !pgm->IsLoaded())
@@ -1366,15 +1367,15 @@ int match1b_OpFun2 (Word* args, Word& result, int message,
 
         PGraph2 *pg = static_cast<PGraph2*>( args[0].addr );
 
-        string querylist = GetArg_FTEXT_AS_STRING(args[1].addr );
-        ListExpr filterlist =  GetArg_FTEXT_AS_LIST(args[2].addr );
-        ListExpr fieldlist =  GetArg_FTEXT_AS_LIST(args[3].addr );
+        string querylist = GetArg_FTEXT_AS_STRING(args[2].addr );
+        ListExpr filterlist =  GetArg_FTEXT_AS_LIST(args[3].addr );
+        ListExpr fieldlist =  GetArg_FTEXT_AS_LIST(args[4].addr );
 
         string initialmessage = "";
-        CcString *intmessage = static_cast<CcString*>( args[4].addr );
+        CcString *intmessage = static_cast<CcString*>( args[5].addr );
         if (intmessage!=NULL)
         {
-            initialmessage = GetArg_FTEXT_AS_STRING(args[4].addr );
+            initialmessage = GetArg_FTEXT_AS_STRING(args[5].addr );
         }
 
         // prepare query processor
@@ -1398,11 +1399,6 @@ int match1b_OpFun2 (Word* args, Word& result, int message,
             //pgp->SetInputTupleType(qp->GetSupplierTypeExpr(qp->GetSon(s,1)));
             if (pg->dumpQueryTree)
                 tree->DumpTreeDot(NULL,"querytree.dot");
-
-        cout << "DIES SIND DIE INITIALMESSAGES +++++++++++" << endl;
-        cout << "DIES SIND DIE INITIALMESSAGES +++++++++++" << endl;
-        cout << "DIES SIND DIE INITIALMESSAGES +++++++++++" << endl;
-        cout << initialmessage << endl;
 
             //Check if all edges have the attribute 'Cost'
             uint countercost=0;
