@@ -1725,7 +1725,7 @@ class replaceElemLI{
         Attribute* funarg = stream.request();
         if(!funarg){ return 0; }
         // put this argument to the argument vector
-        (*funargs[0]) = funarg;
+        (*funargs)[0] = funarg;
         // 
         Word funres;
         qp->Request(fun.addr, funres);
