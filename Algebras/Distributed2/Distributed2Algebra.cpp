@@ -18748,18 +18748,65 @@ class AReducer: public AReduceListener{
        return result;
 
    }
+
+   vector<int> combineSlotSizes(vector<int>& slotsizes1,
+                                vector<int>& slotsizes2,
+                                void* function){
+      // default : add the sizes
+      if(function==nullptr){
+         vector<int> result;
+         for(size_t i=0;i<slotsizes1.size();i++){
+           result.push_back(slotsizes1[i] + slotsizes2[i]);
+         }
+         return result;
+      }
+      // user defined function
+      ArgVectorPointer funargs = qp->Argument(function);
+      Word funres;
+      CcInt* a1 = new CcInt(true,0);
+      CcInt* a2 = new CcInt(true,0);
+      vector<int> result;
+      for(size_t i=0;i<slotsizes1.size();i++){
+         a1->Set(true,slotsizes1[i]);
+         a2->Set(true,slotsizes2[i]);
+         (*funargs)[0] = a1;
+         (*funargs)[1] = a2;
+         qp->Request(function,funres);
+         CcInt* fr = (CcInt*) funres.addr;
+         if(fr->IsDefined()){
+           result.push_back(fr->GetValue());
+         } else {
+           result.push_back(0);
+         }
+      }
+      delete a1;
+      delete a2; 
+      return result;
+   }
  
-   int* computeSlotOrder(){
-       size_t noSlots = matrix1->getSize(); 
-       if(matrix2){
-         // if both matrices are present, use the natural order of slots. 
-         return computeSlotOrderNatural();
+   int* computeSlotOrder( void* function){
+       matrixSlotSizes<true> mss1(matrix1);
+       vector<int> slotsizes1 = mss1.getSlotSizes();
+       
+       vector<int> slotsizes;
+       size_t noSlots;
+       if(!matrix2){
+         slotsizes = slotsizes1;
+         noSlots = matrix1->getSize();
+       } else {
+         matrixSlotSizes<true> mss2(matrix2);
+         vector<int> slotsizes2 = mss2.getSlotSizes();
+         noSlots = min(matrix1->getSize() , matrix2->getSize());
+         while(slotsizes1.size() > noSlots){
+           slotsizes1.pop_back();
+         } 
+         while(slotsizes2.size() > noSlots){
+           slotsizes2.pop_back();
+         }
+         slotsizes = combineSlotSizes(slotsizes1, slotsizes2, function); 
        }
-       matrixSlotSizes<true> mss(matrix1);
-       vector<int> slotsizes = mss.getSlotSizes();
-       while(slotsizes.size() > noSlots){
-           slotsizes.pop_back();
-       }
+     
+
        vector<pair<int,int> > slotSizePairs;
        for(size_t i=0;i<slotsizes.size();i++){
           pair<int,int> p(i,slotsizes[i]);
@@ -18789,7 +18836,7 @@ class AReducer: public AReduceListener{
    }
 
 
-   void reduce(){
+   void reduce(void* function){
 
        // if matrix2 is not null, the matrix sizes are equal       
        // hence we can use always matrix1 to get the number of workers.
@@ -18801,7 +18848,7 @@ class AReducer: public AReduceListener{
        } 
 
        // start a task on each worker (one by one, slot, worker)
-       int* slotOrder = computeSlotOrder();
+       int* slotOrder = computeSlotOrder(function);
        int slotIndex = matrix1->numOfWorkers();
        for(size_t i=0; i<matrix1->numOfWorkers();i++){
          tasks[i]->process(slotOrder[i]);  
@@ -18879,13 +18926,18 @@ int areduceVMT(Word* args, Word& result, int message,
 
 
    DFMatrix* matrix2 = 0;
-   int o = 0;
+   int o1 = 0;
+   int o2 = 0;
 
    int resSize = matrix1->getSize();
 
    ListExpr relType2 = nl->TheEmptyList();
 
-   if(qp->GetNoSons(s)==7){
+   void* function = 0;
+
+   if(qp->GetNoSons(s)==7 || qp->GetNoSons(s) == 8){
+      // areduce 2 with or without sorting function
+
       matrix2 = (DFMatrix*) args[1].addr;
       if(!matrix2->IsDefined()){
          res->makeUndefined();
@@ -18902,14 +18954,19 @@ int areduceVMT(Word* args, Word& result, int message,
       }
 
       relType2 = nl->Second( qp->GetType(qp->GetSon(s,1)));
-      o = 1;
+      o1 = 1;
+      o2 = 1;
+      if(qp->GetNoSons(s) ==8){
+        function = args[5].addr;
+        o2 = 2;
+      } 
    }
 
 
 
 
-   CcString* ResName = (CcString*) args[o+1].addr;
-   CcInt* Port = (CcInt*) args[o+3].addr;
+   CcString* ResName = (CcString*) args[o1+1].addr;
+   CcInt* Port = (CcInt*) args[o1+3].addr;
 
 
    if(!Port->IsDefined() || !ResName->IsDefined()){
@@ -18948,15 +19005,15 @@ int areduceVMT(Word* args, Word& result, int message,
 
    // now, on each worker host, a file transferator is listen
 
-   string funtext = ((FText*) args[o+4].addr)->GetValue();
-   bool isStream = ((CcBool*) args[o+5].addr)->GetValue();
+   string funtext = ((FText*) args[o2+4].addr)->GetValue();
+   bool isStream = ((CcBool*) args[o2+5].addr)->GetValue();
 
    ListExpr relType1 = nl->Second( qp->GetType(qp->GetSon(s,0)));
    
    AReducer<R> reducer(matrix1, matrix2,  res, port, funtext, 
                        isStream, relType1, relType2);
 
-   reducer.reduce();
+   reducer.reduce(function);
 
 
    return 0;
@@ -19025,10 +19082,10 @@ unpreocessed slot is assigned to this worker.
 ListExpr areduce2TM(ListExpr args){  
 
   string err = "dfmatrix(rel(X)) x dfmatrix(rel(Y)) x string x (fsrel(X) x "
-               "fsrel(Y) -> Z) x int expected";
+               "fsrel(Y) -> Z) x int [x (int x int -> int)] expected";
 
   // check length
-  if(!nl->HasLength(args,5)){
+  if(!nl->HasLength(args,5) && !nl->HasLength(args,6)){
     return listutils::typeError(err + " (wrong number of args)");
   }
 
@@ -19060,6 +19117,25 @@ ListExpr areduce2TM(ListExpr args){
      || !CcInt::checkType(a5t)){
     return listutils::typeError(err);
   }
+
+
+  // the optional 6th attribute must be a function int x int -> int
+  if(nl->HasLength(args,6)){
+     ListExpr a6t = nl->First(nl->Sixth(args));
+     if(!listutils::isMap<2>(a6t)){
+       return listutils::typeError("the optional 6th argument must "
+                                   "be a binary function");
+     }
+     a6t = nl->Rest(a6t); // remove the leading "map"
+     while(!nl->IsEmpty(a6t)){
+        if(!CcInt::checkType(nl->First(a6t))){
+          return listutils::typeError("6th argument not (int x int -> int)");
+        }
+        a6t = nl->Rest(a6t);
+     }
+  }
+
+
 
   // Check function arguments
   ListExpr fa1 = nl->Second(a4t);
