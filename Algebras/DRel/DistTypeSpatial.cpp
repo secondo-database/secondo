@@ -186,8 +186,8 @@ Returns the grid.
 /*
 6.8 ~allowedAttrType~
 
-Returns ture if the given ListExpr is the nested list representation
-of a suported type to distribute by spatial2d.
+Returns true if the given ListExpr is the nested list representation
+of a supported type to distribute by spatial2d.
 
 */
     template<class T>
@@ -205,8 +205,8 @@ of a suported type to distribute by spatial2d.
 /*
 6.9 ~allowedAttrType~
 
-Returns ture if the given ListExpr is the nested list representation
-of a suported type to distribute by spatial3d.
+Returns true if the given ListExpr is the nested list representation
+of a supported type to distribute by spatial3d.
 
 */
     template<class T>
