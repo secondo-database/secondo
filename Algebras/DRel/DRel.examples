@@ -119,6 +119,13 @@ Remark    : remote server required
 
 Operator  : darray2drel
 Number    : 1
+Signature : darray x distType -> drel
+Example   : query darray1 darray2drel[RANDOM]
+Result    : bug
+Remark    : remote server required
+
+Operator  : darray2drel
+Number    : 2
 Signature : darray x distType x string -> drel
 Example   : query darray1 darray2drel[HASH, "Nr"]
 Result    : bug
