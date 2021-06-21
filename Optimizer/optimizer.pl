@@ -7258,6 +7258,7 @@ We introduce ~select~, ~from~, ~where~, ~as~, etc. as PROLOG operators:
 :- op(950, xfx,  values).% for update, insert
 :- op(950,  fx,  index).
 :- op(950,  fx,  table).
+:- op(948,  fx,  distributed).
 :- op(945,  fx,  on).
 :- op(940, xfx,  into).  % for update, insert
 :- op(940,  fx,  distinct).
@@ -7372,7 +7373,9 @@ newQuery :-
   clearSelectivityQuery,
   clearIsDistributedQuery,	% fapra 2015/16
   clearIsLocalQuery,		% fapra 2015/16
-  retractall(nslots(_, _)).	% distributed
+  retractall(nslots(_, _)),	% distributed
+  retractall(distributedResult).	% distributed
+
 
 
 clearVariables       :- retractall(variable(_, _)).
@@ -7421,12 +7424,11 @@ lookup(select Attrs from Rels where Preds,
     -> registerSelfJoins(Preds2List, 1); true). % needed for entropy optimizer
 %LargeQueries end
 
+
 /*
 Standard version of lookup.
 
 */
-
-
 lookup(select Attrs from Rels where Preds,
         select Attrs2 from Rels2List where Preds2List) :-
   lookupRels(Rels, Rels2),
@@ -7742,6 +7744,14 @@ duplicateAttrs(Rel) :-
 11.3.4 Modification of the Select-Clause
 
 */
+
+% Support for distributed results.  % fapra distributed
+% mMakes a difference only for distributed queries
+
+lookupAttrs(distributed X, Y) :-
+  lookupAttrs(X, Y),
+  assert(distributedResult).
+
 
 lookupAttrs(distinct X, distinct Y) :-
   lookupAttrs(X, Y).

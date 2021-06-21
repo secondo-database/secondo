@@ -701,17 +701,26 @@ The following predicates transform a mixed distributed and sequential plan into 
 ---- transformDPlan(+Plan, -Plan2) :-
 ----
 
-Transform a preliminary plan ~Plan~ into a ~Plan2~ composed correctly of distributed and sequential operations.
+Transform a preliminary plan ~Plan~ into a ~Plan2~ composed correctly of distributed and sequential operations. If a distributed result was requested in the query, ignore the final sequential operations.
 
 */
 
 
 % special treatment of pure counting query on a relation, plan is
 % already finished by queryToPlan.
+
+transformDPlan(tie(getValue(Plan), _), Plan) :-
+  distributedResult,
+  !.
+
 transformDPlan(Plan, Plan) :-
   Plan = tie(_, _).
 
 
+transformDPlan(Plan, DistributedPlan) :-
+  distributedResult, !,
+  transform2DPlan(Plan, DistributedPlan, _).
+  
 
 transformDPlan(Plan, Plan2) :-
 	write('Here is the plan to be transformed: '), nl,
