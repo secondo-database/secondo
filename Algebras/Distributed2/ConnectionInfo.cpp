@@ -86,8 +86,8 @@ ConnectionInfo::ConnectionInfo(const std::string& _host,
         requestPath = si->getRequestFilePath();
         sendPath = si->getSendFilePath();
 
-	std::cerr << "Created a new connection to " << host << ":" 
-	          << port << " (PID: " << serverPID << ")" << std::endl;
+        std::cerr << "Created a new connection to " << host << ":" 
+                  << port << " (PID: " << serverPID << ")" << std::endl;
 
         if(timeout>0){
            stopTimeout(false);
