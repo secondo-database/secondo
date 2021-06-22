@@ -246,7 +246,9 @@ DFSType* filesystem = 0;
         << "_" << nextNameNumber();
     return ss.str();
   }
-
+  
+  // TODO for some reason the tempName is too long in Distributed3Algebra
+  // so the sh is commented
   string Distributed3Algebra::getTempName(){
      boost::lock_guard<boost::mutex> guard1(workerMtx);
      boost::lock_guard<boost::mutex> guard2(mtx);
@@ -262,21 +264,23 @@ DFSType* filesystem = 0;
          ci = it->second.second;
      }
      int spid;
-     size_t sh;
+     //size_t sh;
      if(ci){
-        sh = stringutils::hashCode(ci->getHost());
+        //sh = stringutils::hashCode(ci->getHost());
         spid = ci->serverPid();
      } else {
         spid = rand();
-        sh = rand();
+        //sh = rand();
      }
      stringstream ss;
      ss << "TMP_" << WinUnix::getpid() 
-        << "_" << sh 
+        //<< "_" << sh 
         << "_" << spid 
         << "_" << nextNameNumber();
+    
     return ss.str();
   }
+
   
  int Distributed3Algebra::closeAllWorkers(){
     boost::lock_guard<boost::mutex> guard(workerMtx);
@@ -1059,7 +1063,7 @@ class dpdInfo{
 ListExpr partitiondmapTM(ListExpr args){
    
   PartitiondmapTypeMapper tm{args};
-  tm.printValues();
+  //tm.printValues();
 
   return tm.typeMapping();
 }
@@ -1137,7 +1141,8 @@ int dpdVMT(Word* args, Word& result,
    if(targetName.size()==0){
       targetName = algInstance->getTempName();
    }
-
+   //cout << "\ntargetName: " << targetName;
+   
    if(!stringutils::isIdent(targetName)){
      resultArray->makeUndefined();
      return 0;
@@ -1281,7 +1286,7 @@ Operator partitiondmapOp(
 ListExpr dmapPdmapTM(ListExpr args){
 
   DmapPdmapTypeMapper tm{args};
-  tm.printValues();
+  //tm.printValues();
    
   return tm.typeMapping();
 }
