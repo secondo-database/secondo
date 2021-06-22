@@ -30,12 +30,12 @@ class DPDTypeMapper {
   bool isRel();
   bool isStream();
   
-  virtual bool rightNumberOfArgs() = 0;
+  bool rightNumberOfArgs();
+  virtual int numberOfArgs() = 0;
   bool usesArgsInTypeMapping();
   virtual bool checkArgs() = 0;
   bool checkArrayType();
   bool checkNameType();
-  //bool checkDmap1Type();
   bool checkPartitionType();
   bool checkNumberOfSlotsType();
   bool checkDmap2Type();

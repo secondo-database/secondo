@@ -25,12 +25,9 @@ std::string DmapPdmapTypeMapper::err() {
            "(tuple(Y)->int) x int x"
            "(stream(tuple(Y)) -> Z)";  
 }
-bool DmapPdmapTypeMapper::rightNumberOfArgs() {
-  if(!nl->HasLength(args,6)){ 
-    msg = "wrong number of args in specification file";
-    return false;
-  }
-  return true;
+
+int DmapPdmapTypeMapper::numberOfArgs() {
+  return 6;
 }
 bool DmapPdmapTypeMapper::checkArgs() {
   if (   !checkArrayType()

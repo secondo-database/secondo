@@ -14,7 +14,7 @@ class DmapPdmapTypeMapper : public DPDTypeMapper {
   public:
   DmapPdmapTypeMapper(ListExpr& args);
   std::string err();
-  bool rightNumberOfArgs();
+  int numberOfArgs();
   bool checkArgs();
   bool checkDmap1Type();
   bool checkInterdependencies();

@@ -14,7 +14,7 @@ class PartitiondmapTypeMapper : public DPDTypeMapper {
   public:
   PartitiondmapTypeMapper(ListExpr& args);
   std::string err();
-  bool rightNumberOfArgs();
+  int numberOfArgs();
   bool checkArgs();
   bool checkInterdependencies();
   ListExpr append();

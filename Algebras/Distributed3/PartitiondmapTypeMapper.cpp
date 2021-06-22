@@ -22,12 +22,9 @@ std::string PartitiondmapTypeMapper::err() {
   return "expected: d[f]array(rel(Tuple)) x string x (Tuple -> int) "
                      "x int x (stream(Tuple) -> X)";
 }
-bool PartitiondmapTypeMapper::rightNumberOfArgs() {
-  if(!nl->HasLength(args,5)){ 
-    msg = "wrong number of args in specification file";
-    return false;
-  }
-  return true;
+
+int PartitiondmapTypeMapper::numberOfArgs() {
+  return 5;
 }
 bool PartitiondmapTypeMapper::checkArgs() {
   if (   !checkArrayType()

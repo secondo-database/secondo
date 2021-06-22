@@ -111,11 +111,20 @@ bool DPDTypeMapper::isStream() {
   return Stream<Tuple>::checkType(getResultType(nl->First(dmap2)));
 }
 
+bool DPDTypeMapper::rightNumberOfArgs() {
+  if(!nl->HasLength(args,numberOfArgs())){ 
+    msg = "wrong number of args in specification file";
+    return false;
+  }
+  return true;
+}
+
 bool DPDTypeMapper::usesArgsInTypeMapping() {
   ListExpr tmp = args;
   while(!nl->IsEmpty(tmp)){
      if(!nl->HasLength(nl->First(tmp),2)){
-       msg = "internal error";
+       msg = "please set SetUsesArgsInTypeMapping() "
+             "for this operator in Constructor of Algebra";
        return false;
      }
      tmp = nl->Rest(tmp);
@@ -207,10 +216,9 @@ ListExpr DPDTypeMapper::resultType() {
   ListExpr dmap2funRes = getResultType(nl->First(dmap2));
   // allowed result types are streams of tuples and
   // non-stream objects
-  bool isStream = Stream<Tuple>::checkType(dmap2funRes);
-  
+ 
   // compute the subtype of the resulting array
-  if(isStream){
+  if(isStream()){
     dmap2funRes = nl->TwoElemList(
                listutils::basicSymbol<Relation>(),
                nl->Second(dmap2funRes));
@@ -219,7 +227,7 @@ ListExpr DPDTypeMapper::resultType() {
   // is the origin function result is a tuple stream,
   // the result will be a dfarray, otherwise a darray
   return nl->TwoElemList(
-               isStream?listutils::basicSymbol<distributed2::DFArray>()
+               isStream()?listutils::basicSymbol<distributed2::DFArray>()
                        :listutils::basicSymbol<distributed2::DArray>(),
                dmap2funRes);
 }
