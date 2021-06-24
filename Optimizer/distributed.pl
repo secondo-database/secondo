@@ -253,15 +253,16 @@ distributedarg(N) translatesD [Object, P] :-
   argument(N, Rel),
   Rel = rel(DCName, _),
   distributedRels(rel(DCName, _), Object, DistObjType, _,
-    DistType, DistAttr, DistParam),
-  X = [distribution(DistType, DCDistAttr, DistParam),
-  distributedobjecttype(DistObjType)],
+    DistType, DistAttrList, DistParam),
+  maplist(downcase_atom, DistAttrList, DCDistAttrList),
+  findall(distribution(DistType, Y, DistParam), member(Y, DCDistAttrList), 
+    DistList),
+  append(DistList, [distributedobjecttype(DistObjType)], X),
   ( (DistType = spatial) -> P = X 
     ; append(X, [disjointpartitioning], P) 
-  ),
-  downcase_atom(DistAttr, DCDistAttr).
+  ).
 
-
+  
 /* 
 
 5.2 Translation of Selections that Concern Distributed Relations
@@ -295,17 +296,18 @@ distributedselect(Arg, pr(Cond, rel(_, Var))) translatesD
 % Use btree index for a starts predicate.
 distributedselect(arg(N), pr(Attr starts Val, rel(_, Var)))
   translatesD [dmap2(IndexObj, RelObj, value_expr(string, ""), 
-    Range2, myPort), 
-    [distribution(DistType, DCDistAttr, DistParam), 
-       distributedobjecttype(dfarray), disjointpartitioning]] :-
+    Range2, myPort), P] :-
     argument(N, rel(DCName, _)),
     distributedRels(rel(DCName, _), RelObj, _, _,
-      DistType, DistAttr, DistParam),
+      DistType, DistAttrList, DistParam),
+    maplist(downcase_atom, DistAttrList, DCDistAttrList),
+    findall(distribution(DistType, Y, DistParam), member(Y, DCDistAttrList), 
+      DistList),
+    append(DistList, [distributedobjecttype(dfarray)], P),     
     ( DistType = spatial 
       -> Range2 = filter(Range, Original)  % remove duplicates
       ;  Range2 = Range
     ),
-    downcase_atom(DistAttr, DCDistAttr),
     attrnameDCAtom(Attr, DCAttr),
    	write('we got here'), nl, nl, nl, 
     % Lookup a btree index for the relation + attribute
@@ -318,17 +320,18 @@ distributedselect(arg(N), pr(Attr starts Val, rel(_, Var)))
 % Use btree index for predicate =.
 distributedselect(arg(N), pr(Attr = Val, rel(_, Var)))
   translatesD [dmap2(IndexObj, RelObj, value_expr(string, ""), 
-    Exactmatch2, myPort), 
-    [distribution(DistType, DCDistAttr, DistParam), 
-       distributedobjecttype(dfarray), disjointpartitioning]] :-
+    Exactmatch2, myPort), P] :-
     argument(N, rel(DCName, _)),
     distributedRels(rel(DCName, _), RelObj, _, _,
-      DistType, DistAttr, DistParam),
+      DistType, DistAttrList, DistParam),
+    maplist(downcase_atom, DistAttrList, DCDistAttrList),
+    findall(distribution(DistType, Y, DistParam), member(Y, DCDistAttrList), 
+      DistList),
+    append(DistList, [distributedobjecttype(dfarray)], P),           
     ( DistType = spatial 
       -> Exactmatch2 = filter(Exactmatch, Original)  % remove duplicates
       ;  Exactmatch2 = Exactmatch
     ),
-    downcase_atom(DistAttr, DCDistAttr),
     attrnameDCAtom(Attr, DCAttr),
    	write('we got here'), nl, nl, nl, 
     % Lookup a btree index for the relation + attribute
@@ -345,25 +348,25 @@ distributedselect(arg(N), pr(Attr = Val, rel(_, Var)))
 % Use spatial index for an intersection predicate.
 distributedselect(arg(N), pr(Attr intersects Val, rel(_, Var)) )
   translatesD [dmap2(IndexObj, RelObj, value_expr(string, ""), 
-    filter(Intersection, Pred), myPort),
-    [distribution(DistType, DCDistAttr, DistParam), 
-      distributedobjecttype(dfarray), disjointpartitioning]] :-
+    filter(Intersection, Pred), myPort), P] :-
     argument(N, rel(DCName, _)),
     % We need a materialized argument relation to use the index
     distributedRels(rel(DCName, _), RelObj, _, _,
-      DistType, DistAttr, DistParam),
+      DistType, DistAttrList, DistParam),
+    maplist(downcase_atom, DistAttrList, DCDistAttrList),
+    findall(distribution(DistType, Y, DistParam), member(Y, DCDistAttrList), 
+      DistList),
+    append(DistList, [distributedobjecttype(dfarray)], P),             
     ( DistType = spatial 
       -> Pred = and(Attr intersects Val, Original)  % remove duplicates
       ;  Pred = (Attr intersects Val)
     ),
-    downcase_atom(DistAttr, DCDistAttr),
     % Lookup an rtree index for the relation + attribute
     attrnameDCAtom(Attr, DCAttr),
     distributedIndex(RelObj, DCAttr, rtree, IndexObj),
     renameStream(windowintersects(dot, dotdot, Val),
       Var, Intersection),
     renamedRelAttr(attr(original, 1, u), Var, Original).
-
 
 
 /*
@@ -1491,10 +1494,11 @@ storeDistributedRel(RelName, ObjName, DistObjType, NSlots,
   PartType, DistAttr, DistParam) :-
   downcase_atom(RelName, DCRelName),
   downcase_atom(ObjName, DCObjName),
-  term_to_atom(DOType, DistObjType),
+  term_to_atom(DOType, DistObjType), % works only with lower case strings
+  my_concat_atom(DistAttrList, '_', DistAttr),
   assert(storedDistributedRelation(rel(DCRelName, '*'), 
          dbotherobject(DCObjName, DOType), 
-         DOType, NSlots, PartType, DistAttr, DistParam)),
+         DOType, NSlots, PartType, DistAttrList, DistParam)),
   !.
 
 storeDistributedRel(_, _, _, _, _) :- !.
@@ -1523,9 +1527,10 @@ storeDRels :-
   secondo(QueryAtom, DRel),
   DRel = [_, [[_, NSlots, _], Distribution]],
   distr(Distribution, Attrs, PartType, DistAttr, DistParam),
+  my_concat_atom(DistAttrList, '_', DistAttr),
   assert(storedDistributedRelation(rel(DCRel, '*'), 
          dbotherobject(DCObjName, drel), 
-         drel, NSlots, PartType, DistAttr, DistParam)),
+         drel, NSlots, PartType, DistAttrList, DistParam)),
   fail.
   
 
