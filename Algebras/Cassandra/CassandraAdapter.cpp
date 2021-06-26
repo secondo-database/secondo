@@ -43,11 +43,10 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <arpa/inet.h>
-#include <uv.h>
 
 #include <cassert>
 #include <cassandra.h>
-
+#include <uv.h>
 
 #include "CassandraHelper.h"
 #include "CassandraAdapter.h"
@@ -103,8 +102,15 @@ void CassandraAdapter::connect(bool singleNodeLoadBalancing) {
 
      // Set high bytes watermark to 2MB, so each connection can
      // have 1 MB of data pending        
+     //
+     // Watermarks are deprecated since version 2.8 of the driver
+     // see https://datastax-oss.atlassian.net/browse/CPP-538
+
+#if (CASS_VERSION_MAJOR < 2 || \
+(CASS_VERSION_MAJOR == 2 && CASS_VERSION_MINOR < 8))
      cass_cluster_set_write_bytes_high_water_mark(cluster, 2 * 1024 * 1024);
-     
+#endif
+
      // Switch to single node policy
      if(singleNodeLoadBalancing) {
          cass_cluster_set_whitelist_filtering(cluster, contactpoint.c_str());
