@@ -97,7 +97,7 @@ public:
 
       // create an interface to the secondo server
       // the paramneter must be true to communicate as client
-      si = new SecondoInterfaceCS(true, mynl);
+      si = new SecondoInterfaceCS(true, mynl, false);
 
       // define the name of the configuration file
       string config = "Config.ini";
@@ -114,7 +114,7 @@ public:
   
      // try to connect
      if(!si->Initialize(user, passwd, secondoHost, secondoPort, 
-                       config, errMsg, multiUser)) {
+                       config, "", errMsg, multiUser)) {
 
         // connection failed, handle error
         cerr << "Cannot initialize secondo system" << endl;
@@ -267,7 +267,8 @@ public:
      cout << "[Info] Canceling worker: " << secondoPort << endl;
             
      NestedList* nestedList = new NestedList();
-     SecondoInterface* controlSecondo = new SecondoInterfaceCS(true, mynl);
+     SecondoInterface* controlSecondo 
+         = new SecondoInterfaceCS(true, mynl, false);
 
      string config = "Config.ini";
      controlSecondo->InitRTFlags(config);
@@ -280,7 +281,7 @@ public:
   
      // try to connect
      if(controlSecondo->Initialize(user, passwd, secondoHost, secondoPort, 
-                       config, errMsg, multiUser)) {
+                       config, "", errMsg, multiUser)) {
          
          // Set queryCanceled = true. Otherwise, the worker will 
          // insert a entry into the system table, that the current

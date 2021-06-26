@@ -86,26 +86,26 @@ public:
       pthread_mutex_unlock(&mutex);
    }
    
-   ostream& debug() {
+   std::ostream& debug() {
       return logfile;
    }
    
-   ostream& info() {
+   std::ostream& info() {
       return logfile;
    }
    
-   ostream& warn() {
+   std::ostream& warn() {
       return cout;
    }
    
-   ostream& error() {
+   std::ostream& error() {
       return cout;
    }
    
    static Logger *instance;
       
 private:
-   ofstream logfile;
+   std::ofstream logfile;
    pthread_mutex_t mutex;
 };
 
