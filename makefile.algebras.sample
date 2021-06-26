@@ -588,6 +588,11 @@ ALGEBRAS     += JNetAlgebra
 
 #ALGEBRA_DIRS += Cassandra
 #ALGEBRAS     += CassandraAlgebra
+#ALGEBRA_DEPS += uv cassandra
+#ALGEBRA_INCLUDE_DIRS += $(DSECONDO_DIR)/driver/cpp-driver/include
+#ALGEBRA_INCLUDE_DIRS += $(DSECONDO_DIR)/driver/libuv/include
+#ALGEBRA_DEP_DIRS += $(DSECONDO_DIR)/driver/libuv/.libs
+#ALGEBRA_DEP_DIRS += $(DSECONDO_DIR)/driver/cpp-driver 
 
 #ALGEBRA_DIRS += Flock
 #ALGEBRAS += FlockAlgebra
