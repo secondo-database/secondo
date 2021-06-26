@@ -38,7 +38,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <boost/thread.hpp>
 #include <boost/thread/lock_guard.hpp>
 #include <boost/thread/mutex.hpp>
-#include "semaphore.h"
+#include "secsemaphore.h"
 #include <bounded_buffer.hpp>
 #include <vector>
 #include <queue>
