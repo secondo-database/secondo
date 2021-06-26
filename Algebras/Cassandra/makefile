@@ -33,6 +33,7 @@ include ../../makefile.env
 # OBJECTS and LIBOBJ are computed automatically by makefile.env 
 .PHONY: all
 all: $(OBJECTS) $(LIBOBJ)
+	$(MAKE) -C tools
 
 # include pre-computed dependencies
 -include $(DEP_FILES)
@@ -50,3 +51,5 @@ $(LIBOBJ): $(OBJECTS)
 .PHONY: clean
 clean:
 	$(clean-algebra)
+	$(MAKE) -C tools clean
+

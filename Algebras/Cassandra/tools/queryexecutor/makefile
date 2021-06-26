@@ -16,10 +16,10 @@ ifndef $(BERKELEY_DB_LIB)
 endif
 
 .PHONY: all
-all: Config.ini Queryexecutor$(EXEEXT) Algebra
+all: Config.ini Queryexecutor$(EXEEXT) 
 
 
-LDFLAGS:=-L../../../../api_cpp/cs/lib/ -lsecondo    -lfl -ly -lstdc++ 
+LDFLAGS:=-L${SECONDO_BUILD_DIR}/apis/api_cpp/cs/lib/ -lsecondo    -lfl -ly -lstdc++ 
 ifeq ($(SECONDO_PLATFORM),win32)
 LDFLAGS+=-lwsock32 -lws2_32
 endif
@@ -36,9 +36,6 @@ LDFLAGS += -lssl -lcrypto -lz -luv -lcassandra
  
 LDFLAGS += $(ALGDEPS)
 
-Algebra:
-	$(MAKE) -C ../../
-
 Config.ini: $(SECONDO_BUILD_DIR)/bin/SecondoConfig.ini
 	cp $(SECONDO_BUILD_DIR)/bin/SecondoConfig.ini ./Config.ini 
 	sed -i -e "s#SecondoHome=.*#SecondoHome=$(CURDIR)/nltemp#g" Config.ini
@@ -52,7 +49,7 @@ Queryexecutor$(EXEEXT): queryexecutor.o heartbeat.o
 heartbeat.o: heartbeat.cpp 
 	$(CPPC) -c -o heartbeat.o $(CCFLAGS) heartbeat.cpp -I../../ -I$(BDBINCLUDE) 
 
-queryexecutor.o: queryexecutor.cpp Algebra 
+queryexecutor.o: queryexecutor.cpp 
 	$(CPPC) -c -o queryexecutor.o $(CCFLAGS) queryexecutor.cpp -I../../ -I$(BDBINCLUDE) 
 
 
