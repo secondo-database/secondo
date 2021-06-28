@@ -6507,6 +6507,11 @@ checkDest(n(Name, _), n(Name, _), N, found) :- write('Destination node '),
 
 checkDest(_, _, _, notfound).
 
+resultProperties(P, NSlots) :-
+  highNode(N),
+  center(_, node(n(N, _), _, [_, [[N, P]]])),
+  nslots(N, NSlots).
+
 /*
 Some auxiliary functions for testing:
 
@@ -9650,7 +9655,7 @@ translateDistanceQuery(Query, X, Y, HeadCount, StreamOut,
 
 
 /*
- 14.4.5 Predicate queryToPlan
+14.4.5 Predicate queryToPlan
 
 ----    queryToPlan(+Query, -Plan, -Cost) :-
 ----
@@ -10990,6 +10995,40 @@ sql(Term, SecondoQueryRest) :- defaultExceptionHandler((
   query(Query, _)
  )).
 
+
+
+
+% Create a new distributed object as the result of a query.
+% Info about it needs to be written into the system relation SEC2DISTRIBUTED
+
+let(X, Term) :- defaultExceptionHandler((
+  isDatabaseOpen,
+  mOptimize(Term, Query, Cost),
+  distributedResult,
+  my_concat_atom([Rel, 'D', _], '_', X),
+      nl, write('The best plan is: '), nl, nl, write(Query), nl, nl,
+  write('Estimated Cost: '), write(Cost), nl, nl,
+  my_concat_atom(['let ', X, ' = ', Query], '', Command),
+  secondo(Command),
+  resultProperties(P, NSlots),
+  member(distribution(DType, DAttr, DParam), P),
+  member(distributedobjecttype(DOType), P),
+  atom_string(Rel, RelS),
+  atom_string(X, XS),
+  atom_string(DOType, DOTypeS),
+  atom_string(DAttr, DAttrS),
+  Values = [RelS, XS, DOTypeS, NSlots, DType, DAttrS, DParam],
+  plan_to_atom(inserttuple(rel(sec2distributed, *), Values), Query2),
+  my_concat_atom(['query ', Query2, ' count'], '', Command2),
+  secondo(Command2)
+  )),
+  !.
+ 
+% This works:
+% let(plzn_D_2, select distributed * from plz_d where ort starts "U")
+
+% regular version
+
 let(X, Term) :- defaultExceptionHandler((
   isDatabaseOpen,
   mOptimize(Term, Query, Cost),
@@ -10997,7 +11036,7 @@ let(X, Term) :- defaultExceptionHandler((
   write('Estimated Cost: '), write(Cost), nl, nl,
   my_concat_atom(['let ', X, ' = ', Query], '', Command),
   secondo(Command)
- )).
+  )).
 
 let(X, Term, SecondoQueryRest) :- defaultExceptionHandler((
   isDatabaseOpen,
@@ -11007,7 +11046,7 @@ let(X, Term, SecondoQueryRest) :- defaultExceptionHandler((
   write('Estimated Cost: '), write(Cost), nl, nl,
   my_concat_atom(['let ', X, ' = ', Query], '', Command),
   secondo(Command)
- )).
+  )).
 
 /*
 ----    sqlNoQuery(+Term)
