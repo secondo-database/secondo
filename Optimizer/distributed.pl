@@ -303,7 +303,8 @@ distributedselect(arg(N), pr(Attr starts Val, rel(_, Var)))
     maplist(downcase_atom, DistAttrList, DCDistAttrList),
     findall(distribution(DistType, Y, DistParam), member(Y, DCDistAttrList), 
       DistList),
-    append(DistList, [distributedobjecttype(dfarray)], P),     
+    append(DistList, [distributedobjecttype(dfarray), 
+      disjointpartitioning], P),     
     ( DistType = spatial 
       -> Range2 = filter(Range, Original)  % remove duplicates
       ;  Range2 = Range
@@ -327,7 +328,8 @@ distributedselect(arg(N), pr(Attr = Val, rel(_, Var)))
     maplist(downcase_atom, DistAttrList, DCDistAttrList),
     findall(distribution(DistType, Y, DistParam), member(Y, DCDistAttrList), 
       DistList),
-    append(DistList, [distributedobjecttype(dfarray)], P),           
+    append(DistList, [distributedobjecttype(dfarray), 
+      disjointpartitioning], P),           
     ( DistType = spatial 
       -> Exactmatch2 = filter(Exactmatch, Original)  % remove duplicates
       ;  Exactmatch2 = Exactmatch
@@ -356,7 +358,8 @@ distributedselect(arg(N), pr(Attr intersects Val, rel(_, Var)) )
     maplist(downcase_atom, DistAttrList, DCDistAttrList),
     findall(distribution(DistType, Y, DistParam), member(Y, DCDistAttrList), 
       DistList),
-    append(DistList, [distributedobjecttype(dfarray)], P),             
+    append(DistList, [distributedobjecttype(dfarray), 
+      disjointpartitioning], P),             
     ( DistType = spatial 
       -> Pred = and(Attr intersects Val, Original)  % remove duplicates
       ;  Pred = (Attr intersects Val)
