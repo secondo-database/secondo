@@ -1563,6 +1563,60 @@ bool rewriteRestore(string& cmd){
    return true;   
 }
 
+
+/*
+~rewriteLet~
+
+This function checkes whether cmd is in form 
+let IDENT = expr 
+and expr starts with one of the keywords select, union, or intersection
+
+In this case, the command is returned as let(IDENT,expr) 
+Otherwise the command is returns completely unchanged
+
+*/
+
+std::string rewriteLet(std::string& cmd){
+   stringutils::StringTokenizer st(cmd," \t\n",true);
+   if(!st.hasNextToken()){
+      return cmd;
+   }
+   string first = st.nextToken();
+   if(first!="let"){
+     return cmd;
+   }
+   if(!st.hasNextToken()){
+     return cmd;
+   }
+   string ident = st.nextToken();
+   if(!stringutils::isIdent(ident)){
+      return cmd;
+   } 
+   if(!st.hasNextToken()){
+      return cmd;
+   }
+   string assign = st.nextToken();
+   if(assign!="="){
+      return cmd;
+   }
+   string rest = st.getRest();
+   if(!st.hasNextToken()){
+      return cmd;
+   }
+   string sqlindicator = st.nextToken();
+   if(sqlindicator == "select" 
+      || sqlindicator == "union"
+      || sqlindicator == "intersection"){
+     string res = "let(" + ident+"," + rest+")";
+     if(plttydebug){
+        cout << "rewite let command to " << res << endl;
+     }
+     return res;
+   }
+   return cmd;
+}
+
+
 /*
 ~processCommand~
 
@@ -1572,6 +1626,9 @@ appropriate command handler.
 */
 bool processCommand(string& cmd){
   stringutils::trim(cmd);
+
+  cmd = rewriteLet(cmd);
+
   bool  isDot = !cmd.empty() && (cmd[cmd.length()-1]=='.');
   if(IsInternalCommand(cmd)){
      if(plttydebug){
