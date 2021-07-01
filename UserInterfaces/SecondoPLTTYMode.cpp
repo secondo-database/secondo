@@ -237,6 +237,96 @@ string term2string(term_t t){
    return res;
 }
 
+bool isWhiteSpace(char c){
+ string ws = " \r\n\t";
+ for(size_t i=0;i<ws.length();i++){
+    if(ws[i]==c) return true;
+ }
+ return false;
+}
+
+/*
+~removeOuterBrackets~
+
+This function removes outer rounf brackets from a string.
+If the source is not included into round brackets, the original 
+string is returned. 
+
+*/
+
+bool hasOuterBrackets(string& src, bool remove){
+  // states
+  // 0 : at the beginning (white spaces are ignored)
+  // 1 : open bracket at start found
+  // 2 : within a double quoted string
+  // 3 : within a single quoted string
+  // 4 :: opening bracket closed
+  // 5 : within double quoted string after backslash 
+  // 6 : within single quoted string after backslash
+  int state = 0;
+  int bcount = 0;
+  for(size_t i=0;i<src.length(); i++){
+    char c =  src[i];
+    switch(state){
+       case 0 : if(isWhiteSpace(c)){
+
+                } else if(c=='('){
+                   state = 1;
+                   bcount++;      
+                } else {
+                  return false;
+                }
+                break;
+       case 1 : if( c=='(') {
+                   bcount++;
+                } else if(c==')'){
+                   bcount--;
+                   if(bcount==0) {
+                       state = 4;
+                   }
+                } else if(c=='"'){
+                   state = 2;
+                } else if(c=='\''){
+                   state = 3;
+                } 
+                break;
+       case 4  : if(!isWhiteSpace(c)){ // chars after closing bracket found
+                    return false;
+                 }
+                 break;
+       case 2 : if(c=='"'){
+                   state = 1;  
+                 } else if(c=='\\'){
+                    state = 5; 
+                 }
+                 break;
+       case 3 : if(c=='\''){
+                   state = 1;  
+                 } else if(c=='\\'){
+                    state = 6; 
+                 }
+                 break;
+       case 5 : state = 2;
+                break;
+       case 6 : state = 3;
+                break;
+       default : cout << "error in finding surrounding brackets" << endl;
+                 return false;
+       
+    }
+  } 
+  if(bcount!=0) {
+      return false;  // closing bracked not found
+  }
+  if(remove){
+     src= src.substr(src.find_first_of('(')+1);
+     src = src.substr(0,src.find_last_of(')'));
+  }
+  return true;
+}
+
+
+
 /*
 ~checkSQLCommand~
 
@@ -839,6 +929,10 @@ This function updates the optimizer's catalog.
 
 */
 bool updateOptCatalog(){
+   if(plttydebug){
+      cout << "Updating the optimizer's catalog" << endl;
+   }
+
    fid_t fid = PL_open_foreign_frame();
    static predicate_t p;
    p=PL_predicate("updateCatalog",0,"");
@@ -1603,11 +1697,25 @@ std::string rewriteLet(std::string& cmd){
    if(!st.hasNextToken()){
       return cmd;
    }
-   string sqlindicator = st.nextToken();
+   hasOuterBrackets(rest, true);
+   stringutils::StringTokenizer st2(rest," \t\n",true);
+   if(!st2.hasNextToken()){
+      return cmd;
+   }
+   string sqlindicator = st2.nextToken();
    if(sqlindicator == "select" 
       || sqlindicator == "union"
       || sqlindicator == "intersection"){
-     string res = "let(" + ident+"," + rest+")";
+
+     bool correct;
+     string errMsg;
+     string conv = checkSQLCommand(rest, correct, errMsg);
+     if(!correct){
+        cout << "sql part of an let command not correct :" << rest << endl;
+        cout << errMsg << endl; 
+        return cmd;
+     }
+     string res = "let(" + ident+"," + conv+")";
      if(plttydebug){
         cout << "rewite let command to " << res << endl;
      }
