@@ -242,12 +242,12 @@ namespace raster2 {
      ListExpr arg1 = nl->First(args);
      ListExpr arg2 = nl->Second(args);
  
-    string err = "mpoint x stype expected";
+    string err = "mpoint x (m)stype expected";
     if(!temporalalgebra::MPoint::checkType(arg1)){
         return listutils::typeError(err + " (first arg is not an mpoint)");
     }
     if(!util::isSType(arg2) && !util::isMSType(arg2)){
-        return listutils::typeError(err + " (second arg is not an stype)");
+        return listutils::typeError(err + " (second arg is not an (m)stype)");
     }
 
     std::string vname = nl->SymbolValue(arg2);

@@ -29,6 +29,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "../sreal.h"
 #include "../sint.h"
 #include "../sstring.h"
+#include "../msbool.h"
+#include "../msreal.h"
+#include "../msint.h"
+#include "../msstring.h"
 #include "Algebras/Temporal/TemporalAlgebra.h"
 #include "Algebras/RTree/RTreeAlgebra.h"
 #include "CellIterator.h"
@@ -57,9 +61,21 @@ namespace raster2 {
         appendSignature(temporalalgebra::MPoint::BasicType() + " compose "
             + sstring::BasicType() + "-> " 
             + temporalalgebra::MString::BasicType());
+        appendSignature(temporalalgebra::MPoint::BasicType() + " compose "
+            + msbool::BasicType() + "-> " 
+            + temporalalgebra::MBool::BasicType());
+        appendSignature(temporalalgebra::MPoint::BasicType() + " compose "
+            + msreal::BasicType() + "-> " 
+            + temporalalgebra::MReal::BasicType());
+        appendSignature(temporalalgebra::MPoint::BasicType() + " compose "
+            + msint::BasicType() + "-> " 
+            + temporalalgebra::MInt::BasicType());
+        appendSignature(temporalalgebra::MPoint::BasicType() + " compose "
+            + msstring::BasicType() + "-> " 
+            + temporalalgebra::MString::BasicType());
 
         syntax    = "_ compose _";
-        meaning   = "merges mpoint and sT into mT";
+        meaning   = "merges mpoint and (m)sT into mT";
       }          
     };
 }
