@@ -2998,4 +2998,182 @@ Tuple* SpadeLI::getNextResult() {
   return GetPatternsLI::getNextResult(*(vdb->agg), tupleType);
 }
 
+/*
+  Class ~SplSemTraj~, functions for Secondo data type used for splitter
+
+*/
+ListExpr SplSemTraj::Property() {
+  return nl->TwoElemList(
+    nl->FourElemList(
+      nl->StringAtom("Signature"), nl->StringAtom("Example Type List"),
+      nl->StringAtom("List Rep"), nl->StringAtom("Example List")),
+    nl->FourElemList (
+      nl->StringAtom("-> SIMPLE"), 
+      nl->StringAtom(SplSemTraj::BasicType()),
+      nl->StringAtom("((t_1, l_1, c_1), ..., (t_n, l_n, c_n))"),
+      nl->StringAtom("((2021-09-09-12:45:00, (7.4512, 51.493), Stadion))")));
+  }
+
+Word SplSemTraj::In(const ListExpr typeInfo, const ListExpr instance,
+                    const int errorPos, ListExpr& errorInfo, bool& correct) {
+  correct = false;
+  return SetWord(Address(0));
+}
+
+ListExpr SplSemTraj::Out(ListExpr typeInfo, Word value) {
+  SplSemTraj *sst = (SplSemTraj*)value.addr;
+  if (sst->isEmpty()) {
+    return nl->Empty();
+  }
+  ListExpr resultList = nl->OneElemList(sst->get(0).toListExpr());
+  ListExpr resultListTemp = resultList;
+  for (int i = 1; i < sst->size(); i++) {
+    resultListTemp = nl->Append(resultListTemp, sst->get(i).toListExpr());
+  }
+  return resultList;
+}
+
+Word SplSemTraj::Create(const ListExpr typeInfo) {
+  Word w;
+  w.addr = (new SplSemTraj());
+  return w;
+}
+
+void SplSemTraj::Delete(const ListExpr typeInfo, Word& w) {
+  SplSemTraj *sst = (SplSemTraj*)w.addr;
+  delete sst;
+  w.addr = 0;
+}
+
+bool SplSemTraj::Save(SmiRecord& valueRecord, size_t& offset,
+                      const ListExpr typeInfo, Word& value) {
+  SplSemTraj *sst = (SplSemTraj*)value.addr;
+  int size = sst->size();
+  if (!valueRecord.Write(&size, sizeof(int), offset)) {
+    return false;
+  }
+  offset += sizeof(int);
+  for (int i = 0; i < size; i++) {
+    SplTSPlace tsPlace = sst->get(i);
+    if (!valueRecord.Write(&tsPlace.inst, sizeof(DateTime), offset)) {
+      return false;
+    }
+    offset += sizeof(DateTime);
+    if (!valueRecord.Write(&tsPlace.loc, sizeof(Point), offset)) {
+      return false;
+    }
+    offset += sizeof(Point);
+    int catLength = tsPlace.cat.length();
+    if (!valueRecord.Write(&catLength, sizeof(int), offset)) {
+      return false;
+    }
+    offset += sizeof(int);
+    char* catChars = new char[catLength + 1];
+    char catArray[catLength + 1];
+    strcpy(catArray, tsPlace.cat.c_str());
+    memcpy(catChars, &catArray, catLength + 1);
+    if (!valueRecord.Write(catChars, catLength + 1, offset)) {
+      return false;
+    }
+    offset += catLength + 1;
+  }
+  return true;
+}
+
+bool SplSemTraj::Open(SmiRecord& valueRecord, size_t& offset,
+                      const ListExpr typeInfo, Word& value) {
+  int size = 0;
+  if (!valueRecord.Read(&size, sizeof(int), offset)) {
+    return false;
+  }
+  offset += sizeof(int);
+  SplSemTraj *sst = new SplSemTraj();
+  DateTime inst(instanttype);
+  Point loc(true);
+  int catLength = 0;
+  for (int i = 0; i < size; i++) {
+    if (!valueRecord.Read(&inst, sizeof(DateTime), offset)) {
+      return false;
+    }
+    offset += sizeof(DateTime);
+    if (!valueRecord.Read(&loc, sizeof(Point), offset)) {
+      return false;
+    }
+    offset += sizeof(Point);
+    if (!valueRecord.Read(&catLength, sizeof(int), offset)) {
+      return false;
+    }
+    offset += sizeof(int);    
+    char* catChars = new char[catLength + 1];
+    char catArray[catLength + 1];
+    memcpy(&catArray, catChars, catLength + 1);
+    offset += catLength + 1;
+    delete[] catChars;
+    string cat(catArray);
+    SplTSPlace tsPlace(inst, loc, cat);
+    sst->append(tsPlace);   
+  }
+  return true;
+}
+
+void SplSemTraj::Close(const ListExpr typeInfo, Word& w) {
+  SplSemTraj *sst = (SplSemTraj*)w.addr;
+  delete sst;
+  w.addr = 0;
+}
+
+Word SplSemTraj::Clone(const ListExpr typeInfo, const Word& w) {
+  SplSemTraj *sst = (SplSemTraj*)w.addr;
+  Word res;
+  res.addr = new SplSemTraj(*sst);
+  return res;
+}
+
+int SplSemTraj::SizeOfObj() {
+  return sizeof(SplSemTraj);
+}
+
+bool SplSemTraj::TypeCheck(ListExpr type, ListExpr& errorInfo) {
+  return nl->IsEqual(type, BasicType());
+}
+
+void SplSemTraj::convertFromMPointMLabel(const MPoint& mp, const MLabel& ml,
+                                         const Geoid *geoid /* = 0 */) {
+  clear();
+  DateTime inst(instanttype);
+  UPoint up(true);
+  IPoint ip(true);
+  Point pt(true);
+  ILabel il(true);
+  for (int i = 0; i < mp.GetNoComponents(); i++) {
+    mp.Get(i, up);
+    inst = up.timeInterval.start;
+    up.TemporalFunction(inst, pt, geoid, true);
+    ml.AtInstant(inst, il);
+    SplTSPlace tsPlace(inst, pt, il.value.GetLabel());
+    append(tsPlace);
+  }
+}
+
+/*
+  Type constructor for secondo type ~splsemtraj~, used for splitter
+ 
+*/
+
+TypeConstructor splSemTrajTC(
+  SplSemTraj::BasicType(),
+  SplSemTraj::Property,
+  SplSemTraj::Out,
+  SplSemTraj::In,
+  0, 0,
+  SplSemTraj::Create,
+  SplSemTraj::Delete,
+  SplSemTraj::Open,
+  SplSemTraj::Save,
+  SplSemTraj::Close,
+  SplSemTraj::Clone,
+  0,
+  SplSemTraj::SizeOfObj,
+  SplSemTraj::TypeCheck);
+
 }

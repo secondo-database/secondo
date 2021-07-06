@@ -127,6 +127,7 @@ struct compareLabelSeqs {
 extern TypeConstructor fptreeTC;
 extern TypeConstructor projecteddbTC;
 extern TypeConstructor verticaldbTC;
+extern TypeConstructor splSemTrajTC;
 
 /*
 
@@ -521,5 +522,152 @@ struct SpadeLI {
   unsigned int minNoAtoms, maxNoAtoms;
   TupleType *tupleType;
 };
+
+/*
+  Used for operator ~splitter~
+ 
+*/
+struct SplPlace {
+  SplPlace() : loc(false), cat("") {}
   
+  SplPlace(const Point& l, const std::string& c) : loc(l), cat(c) {
+    assert(loc.IsDefined());
+  }
+  ~SplPlace() {}
+  
+  bool operator==(const SplPlace& p) const {
+    return AlmostEqual(loc, p.loc) && cat == p.cat;
+  }
+  
+  Point loc;
+  std::string cat;
+};
+
+struct SplTSPlace : SplPlace {
+  SplTSPlace() {}
+  
+  SplTSPlace(const Instant& t, const Point& l, const std::string& c) :
+      SplPlace(l, c), inst(t) {
+    assert(inst.IsDefined());
+  }
+  ~SplTSPlace() {}
+  
+  
+  ListExpr toListExpr() const {
+    return nl->ThreeElemList(inst.ToListExpr(false),
+                             nl->TwoElemList(nl->RealAtom(loc.GetX()),
+                                             nl->RealAtom(loc.GetY())),
+                             nl->StringAtom(cat));
+  }
+  
+  datetime::DateTime inst;
+};
+
+struct {
+  bool operator()(SplTSPlace& p, SplTSPlace& q) const {
+    return p.inst < q.inst;
+  }
+} tsPlaceCmp;
+
+struct SplGSequence {
+  SplGSequence(const datetime::DateTime& dur) : deltaT(dur) {}
+  ~SplGSequence() {}
+  
+  int size() const {
+    return placeSeq.size();
+  }
+  
+  SplPlace get(const int i) const {
+    assert (i >= 0 && (unsigned int)i < placeSeq.size());
+    return placeSeq[i];
+  }
+  
+  
+  datetime::DateTime deltaT; // maximum transition time
+  std::vector<SplPlace> placeSeq; // consider only groups of size 1
+};
+
+class SplSemTraj {
+ public:
+  SplSemTraj() {}
+  
+  SplSemTraj(const SplSemTraj& sst) : tsPlaces(sst.getTSPlaces()) {}
+  
+  SplSemTraj(const int size) {
+    tsPlaces.resize(size);
+  }
+   
+  SplSemTraj(const datetime::DateTime& t, const Point& l, const std::string& c){
+    SplTSPlace p(t, l, c);
+    this->clear();
+    this->append(p);
+  }
+  
+  ~SplSemTraj() {}
+  
+  static const std::string BasicType() {return "splsemtraj";}
+  static ListExpr Property();
+  static Word In(const ListExpr typeInfo, const ListExpr instance,
+                 const int errorPos, ListExpr& errorInfo, bool& correct);
+  static ListExpr Out(ListExpr typeInfo, Word value);
+  static Word Create(const ListExpr typeInfo);
+  static void Delete(const ListExpr typeInfo, Word& w);
+  static bool Save(SmiRecord& valueRecord, size_t& offset,
+                   const ListExpr typeInfo, Word& value);
+  static bool Open(SmiRecord& valueRecord, size_t& offset,
+                   const ListExpr typeInfo, Word& value);
+  static void Close(const ListExpr typeInfo, Word& w);
+  static Word Clone(const ListExpr typeInfo, const Word& w);
+  static int SizeOfObj();
+  static bool TypeCheck(ListExpr type, ListExpr& errorInfo);
+  static bool checkType(ListExpr t) {return listutils::isSymbol(t,BasicType());}
+  
+  void clear() {
+    tsPlaces.clear();
+  }
+  
+  void append(const SplTSPlace& p) {
+    tsPlaces.push_back(p);
+  }
+  
+  int size() const {
+    return tsPlaces.size();
+  }
+  
+  std::vector<SplTSPlace> getTSPlaces() const {
+    return tsPlaces;
+  }
+  
+  bool isEmpty() const {
+    return size() == 0;
+  }
+  
+  SplTSPlace get(const int i) const {
+    assert(i >= 0 && (unsigned int)i < tsPlaces.size());
+    return tsPlaces[i];
+  }
+  
+  Instant firstInst() const {
+    if (isEmpty()) {
+      datetime::DateTime result(datetime::instanttype);
+      result.SetDefined(false);
+      return result;
+    }
+    return get(0).inst;
+  }
+  
+  void sort() {
+    std::sort(tsPlaces.begin(), tsPlaces.end(), tsPlaceCmp);
+  }
+  
+  void convertFromMPointMLabel(const temporalalgebra::MPoint& mp,
+                               const MLabel& ml, const Geoid* geoid = 0);
+
+ private:
+  std::vector<SplTSPlace> tsPlaces;
+};
+
+
+
+
 }
