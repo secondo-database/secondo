@@ -781,13 +781,12 @@ class RangeIterator{
 
       RangeIterator(const node_t* root, const T& _q, 
                     const double _range, const DistComp& _di):
-            s(),q(_q), range(_range), di(_di), noDistFunCalls(0) {
+            s(),q(_q), range(_range), di(_di) {
          if(!root){
            return;
          }
          di.reset();
          if((root->centerDist(q, di) - range <= root->getRadius() )){
-             noDistFunCalls++;
              s.push(std::pair<const node_t*,int>(root,-1));
              findNext();
          } 
@@ -811,7 +810,7 @@ class RangeIterator{
       }
       
       int getNoDistFunCalls() const {
-        return noDistFunCalls;
+        return di.getNoDistFunCalls();
       }
 
 
@@ -820,7 +819,6 @@ class RangeIterator{
       T q;
       double range;
       DistComp di;
-      int noDistFunCalls;
 
       void findNext(){
          while(!s.empty()){
@@ -833,7 +831,6 @@ class RangeIterator{
                                  (leafnode_t*) top.first;
                 while(top.second < leaf->getCount()){
                     double dist = di(*(leaf->getObject(top.second)),q);
-                    noDistFunCalls++;
                     if(dist<=range){
                         s.push(top);
                         return;
@@ -847,7 +844,6 @@ class RangeIterator{
                 std::pair<node_t*, int> 
                             cand(inner->getSon(top.second),-1);
                 if(cand.first->minDist(q,di) <= range){
-                   noDistFunCalls++;
                    s.push(cand);
                 } 
               }
@@ -945,10 +941,9 @@ class NNIterator{
 
 */ 
    NNIterator(node_t* root, T& _ref, DistComp _di ):
-      ref(_ref), q(), di(_di), noDistFunCalls(0) {
+      ref(_ref), q(), di(_di) {
       if(root!=0){
         double dist = root->minDist(ref, di);
-        noDistFunCalls++;
         q.push(nncontent_t(dist,root));
       }
    }
@@ -971,7 +966,6 @@ class NNIterator{
             for(int i=0;i<leaf->getCount();i++){
                T* o = leaf->getObject(i);
                double dist = di( *o,ref);
-               noDistFunCalls++;
                q.push(nncontent_t(dist,o));
             }
           } else {
@@ -979,7 +973,6 @@ class NNIterator{
              for(int i=0;i<inner->getCount(); i++){
                 node_t* son = inner->getSon(i);
                 double dist = son->minDist(ref, di);
-                noDistFunCalls++;
                 q.push(nncontent_t(dist, son));
              }
           }
@@ -990,7 +983,7 @@ class NNIterator{
    }
   
    int getNoDistFunCalls() const {
-     return noDistFunCalls;
+     return di.getNoDistFunCalls();
    }
    
    size_t distStorageSize() const {
@@ -1003,7 +996,6 @@ class NNIterator{
                           std::vector<nncontent_t >, 
                           std::greater<nncontent_t > > q;
       DistComp di;
-      int noDistFunCalls;
 };
 
 

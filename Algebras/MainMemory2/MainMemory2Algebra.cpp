@@ -407,7 +407,7 @@ struct hash_pair {
 
 class DistStorage {
  public: 
-  DistStorage() {}
+  DistStorage() : noDistFunCalls(0) {}
   
   ~DistStorage() {
     clear();
@@ -437,9 +437,19 @@ class DistStorage {
   
   void clear() {
     storedDists.clear();
+    noDistFunCalls = 0;
   }
   
- private: 
+  void increment() {
+    noDistFunCalls++;
+  }
+  
+  int getNoDistFunCalls() const {
+    return noDistFunCalls;
+  }
+  
+ private:
+  int noDistFunCalls;
   std::unordered_map<std::pair<TupleId,TupleId>, double, hash_pair> storedDists;
 };
 
@@ -476,6 +486,7 @@ class StdDistComp{
         const T* t1 = o1.getKey();
         const T* t2 = o2.getKey();
         dist = mtreehelper::distance(t1, t2, geoid);
+        distStorage.increment();
         distStorage.storeDist(tid1, tid2, dist);
       }
       return dist;
@@ -498,6 +509,10 @@ class StdDistComp{
     
     size_t distStorageSize() const {
       return distStorage.size();
+    }
+    
+    int getNoDistFunCalls() const {
+      return distStorage.getNoDistFunCalls();
     }
 
   protected:
@@ -545,6 +560,7 @@ class StdDistCompExt : public StdDistComp<pair<T, U> > {
       const pair<T, U>* p2 = o2.getKey();
       dist = mtreehelper::distance(p1, p2, alpha,
                                  ((StdDistComp<pair<T, U> >*)this)->getGeoid());
+      StdDistComp<pair<T, U> >::distStorage.increment();
       this->distStorage.storeDist(tid1, tid2, dist);
     }
     return dist;
