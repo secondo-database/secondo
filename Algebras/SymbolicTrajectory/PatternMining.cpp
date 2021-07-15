@@ -3002,6 +3002,15 @@ Tuple* SpadeLI::getNextResult() {
   Class ~SplSemTraj~, functions for Secondo data type used for splitter
 
 */
+int tsPlaceCmp(const void *a, const void *b) {
+  SplTSPlace *tsp1 = new ((void*)a)SplTSPlace,
+             *tsp2 = new ((void*)b)SplTSPlace;
+  if (tsp1->inst == tsp2->inst) {
+    return 0;
+  }
+  return tsp1->inst < tsp2->inst ? -1 : 1;
+}
+
 ListExpr SplSemTraj::Property() {
   return nl->TwoElemList(
     nl->FourElemList(
@@ -3011,130 +3020,210 @@ ListExpr SplSemTraj::Property() {
       nl->StringAtom("-> SIMPLE"), 
       nl->StringAtom(SplSemTraj::BasicType()),
       nl->StringAtom("((t_1, l_1, c_1), ..., (t_n, l_n, c_n))"),
-      nl->StringAtom("((2021-09-09-12:45:00, (7.4512, 51.493), Stadion))")));
+      nl->StringAtom("((2021-09-09-12:45, (7.4512, 51.493), Stadion))")));
   }
 
-Word SplSemTraj::In(const ListExpr typeInfo, const ListExpr instance,
-                    const int errorPos, ListExpr& errorInfo, bool& correct) {
-  correct = false;
-  return SetWord(Address(0));
+// Word SplSemTraj::In(const ListExpr typeInfo, const ListExpr instance,
+//                     const int errorPos, ListExpr& errorInfo, bool& correct) {
+//   correct = false;
+//   return SetWord(Address(0));
+// }
+
+bool SplSemTraj::ReadFrom(ListExpr LE, const ListExpr typeInfo) {
+  clear();
+  if (listutils::isSymbolUndefined(LE)) {
+    SetDefined(false);
+    return true;
+  }
+  SetDefined(true);
+  if (nl->IsEmpty(LE)) {
+    return true;
+  }
+  if (nl->IsAtom(LE)) {
+    return false;
+  }
+  ListExpr rest = LE;
+  SplTSPlace tsp;
+  while (!nl->IsEmpty(rest)) {
+    ListExpr first = nl->First(LE);
+    if (!tsp.fromList(first)) {
+      return false;
+    }
+    cout << tsp.toString() << endl;
+    append(tsp);
+    rest = nl->Rest(rest);
+  }
+  cout << "size = " << size() << "; " << toString() << endl;
+  return true;
 }
 
-ListExpr SplSemTraj::Out(ListExpr typeInfo, Word value) {
-  SplSemTraj *sst = (SplSemTraj*)value.addr;
-  if (sst->isEmpty()) {
+ListExpr SplSemTraj::ToListExpr(ListExpr typeInfo) const {
+  if (!IsDefined()) {
+    return listutils::getUndefined();
+  }
+  if (isEmpty()) {
     return nl->Empty();
   }
-  ListExpr resultList = nl->OneElemList(sst->get(0).toListExpr());
+  ListExpr resultList = nl->OneElemList(get(0).toListExpr());
   ListExpr resultListTemp = resultList;
-  for (int i = 1; i < sst->size(); i++) {
-    resultListTemp = nl->Append(resultListTemp, sst->get(i).toListExpr());
+  for (int i = 1; i < size(); i++) {
+    resultListTemp = nl->Append(resultListTemp, get(i).toListExpr());
   }
   return resultList;
 }
 
-Word SplSemTraj::Create(const ListExpr typeInfo) {
-  Word w;
-  w.addr = (new SplSemTraj());
-  return w;
-}
-
-void SplSemTraj::Delete(const ListExpr typeInfo, Word& w) {
-  SplSemTraj *sst = (SplSemTraj*)w.addr;
-  delete sst;
-  w.addr = 0;
-}
-
-bool SplSemTraj::Save(SmiRecord& valueRecord, size_t& offset,
-                      const ListExpr typeInfo, Word& value) {
-  SplSemTraj *sst = (SplSemTraj*)value.addr;
-  int size = sst->size();
-  if (!valueRecord.Write(&size, sizeof(int), offset)) {
-    return false;
+int SplSemTraj::Compare(const Attribute* arg) const {
+  if (!IsDefined()) {
+    return arg->IsDefined() ? -1 : 0;       
   }
-  offset += sizeof(int);
-  for (int i = 0; i < size; i++) {
-    SplTSPlace tsPlace = sst->get(i);
-    if (!valueRecord.Write(&tsPlace.inst, sizeof(DateTime), offset)) {
-      return false;
-    }
-    offset += sizeof(DateTime);
-    if (!valueRecord.Write(&tsPlace.loc, sizeof(Point), offset)) {
-      return false;
-    }
-    offset += sizeof(Point);
-    int catLength = tsPlace.cat.length();
-    if (!valueRecord.Write(&catLength, sizeof(int), offset)) {
-      return false;
-    }
-    offset += sizeof(int);
-    char* catChars = new char[catLength + 1];
-    char catArray[catLength + 1];
-    strcpy(catArray, tsPlace.cat.c_str());
-    memcpy(catChars, &catArray, catLength + 1);
-    if (!valueRecord.Write(catChars, catLength + 1, offset)) {
-      return false;
-    }
-    offset += catLength + 1;
+  if (!arg->IsDefined()) {
+    return 1;
   }
-  return true;
-}
-
-bool SplSemTraj::Open(SmiRecord& valueRecord, size_t& offset,
-                      const ListExpr typeInfo, Word& value) {
-  int size = 0;
-  if (!valueRecord.Read(&size, sizeof(int), offset)) {
-    return false;
+  SplSemTraj* sst = (SplSemTraj*)arg;
+  if (isEmpty()) {
+    return sst->isEmpty() ? 0 : 1;
   }
-  offset += sizeof(int);
-  SplSemTraj *sst = new SplSemTraj();
-  DateTime inst(instanttype);
-  Point loc(true);
-  int catLength = 0;
-  for (int i = 0; i < size; i++) {
-    if (!valueRecord.Read(&inst, sizeof(DateTime), offset)) {
-      return false;
-    }
-    offset += sizeof(DateTime);
-    if (!valueRecord.Read(&loc, sizeof(Point), offset)) {
-      return false;
-    }
-    offset += sizeof(Point);
-    if (!valueRecord.Read(&catLength, sizeof(int), offset)) {
-      return false;
-    }
-    offset += sizeof(int);    
-    char* catChars = new char[catLength + 1];
-    char catArray[catLength + 1];
-    memcpy(&catArray, catChars, catLength + 1);
-    offset += catLength + 1;
-    delete[] catChars;
-    string cat(catArray);
-    SplTSPlace tsPlace(inst, loc, cat);
-    sst->append(tsPlace);   
+  if (sst->isEmpty()) {
+    return 1;
   }
-  return true;
+  if (size() != sst->size()) {
+    return size() < sst->size() ? -1 : 1;
+  }
+  for (int i = 0; i < size(); i++) {
+    SplTSPlace ts1 = get(i);
+    SplTSPlace ts2 = sst->get(i);
+    if (ts1.inst != ts2.inst) {
+      return ts1.inst < ts2.inst;
+    }
+  }
+  return 0;
 }
 
-void SplSemTraj::Close(const ListExpr typeInfo, Word& w) {
-  SplSemTraj *sst = (SplSemTraj*)w.addr;
-  delete sst;
-  w.addr = 0;
+bool SplSemTraj::Adjacent(const Attribute* arg) const {
+  return false;
 }
 
-Word SplSemTraj::Clone(const ListExpr typeInfo, const Word& w) {
-  SplSemTraj *sst = (SplSemTraj*)w.addr;
-  Word res;
-  res.addr = new SplSemTraj(*sst);
-  return res;
+Attribute* SplSemTraj::Clone() const {
+  return new SplSemTraj(*this);
 }
 
-int SplSemTraj::SizeOfObj() {
+size_t SplSemTraj::HashValue() const {
+  if (!IsDefined() || isEmpty()) {
+    return 0;
+  }
+  return firstInst().GetAllMilliSeconds() * size() % 1024;
+}
+
+void SplSemTraj::CopyFrom(const Attribute* arg) {
+  tsPlaces.copyFrom(((SplSemTraj*)arg)->getTSPlaces());
+}
+
+bool SplSemTraj::CheckKind(ListExpr type, ListExpr& errorInfo) {
+  return checkType(type);
+} 
+
+// Word SplSemTraj::Create(const ListExpr typeInfo) {
+//   Word w;
+//   w.addr = (new SplSemTraj());
+//   return w;
+// }
+// 
+// void SplSemTraj::Delete(const ListExpr typeInfo, Word& w) {
+//   SplSemTraj *sst = (SplSemTraj*)w.addr;
+//   delete sst;
+//   w.addr = 0;
+// }
+
+// bool SplSemTraj::Save(SmiRecord& valueRecord, size_t& offset,
+//                       const ListExpr typeInfo, Word& value) {
+//   SplSemTraj *sst = (SplSemTraj*)value.addr;
+//   int size = sst->size();
+//   if (!valueRecord.Write(&size, sizeof(int), offset)) {
+//     return false;
+//   }
+//   offset += sizeof(int);
+//   for (int i = 0; i < size; i++) {
+//     SplTSPlace tsPlace = sst->get(i);
+//     if (!valueRecord.Write(&tsPlace.inst, sizeof(DateTime), offset)) {
+//       return false;
+//     }
+//     offset += sizeof(DateTime);
+//     if (!valueRecord.Write(&tsPlace.loc, sizeof(Point), offset)) {
+//       return false;
+//     }
+//     offset += sizeof(Point);
+//     int catLength = tsPlace.cat.length();
+//     if (!valueRecord.Write(&catLength, sizeof(int), offset)) {
+//       return false;
+//     }
+//     offset += sizeof(int);
+//     char* catChars = new char[catLength + 1];
+//     char catArray[catLength + 1];
+//     strcpy(catArray, tsPlace.cat.c_str());
+//     memcpy(catChars, &catArray, catLength + 1);
+//     if (!valueRecord.Write(catChars, catLength + 1, offset)) {
+//       return false;
+//     }
+//     offset += catLength + 1;
+//   }
+//   return true;
+// }
+
+// bool SplSemTraj::Open(SmiRecord& valueRecord, size_t& offset,
+//                       const ListExpr typeInfo, Word& value) {
+//   int size = 0;
+//   if (!valueRecord.Read(&size, sizeof(int), offset)) {
+//     return false;
+//   }
+//   offset += sizeof(int);
+//   SplSemTraj *sst = new SplSemTraj();
+//   DateTime inst(instanttype);
+//   Point loc(true);
+//   int catLength = 0;
+//   for (int i = 0; i < size; i++) {
+//     if (!valueRecord.Read(&inst, sizeof(DateTime), offset)) {
+//       return false;
+//     }
+//     offset += sizeof(DateTime);
+//     if (!valueRecord.Read(&loc, sizeof(Point), offset)) {
+//       return false;
+//     }
+//     offset += sizeof(Point);
+//     if (!valueRecord.Read(&catLength, sizeof(int), offset)) {
+//       return false;
+//     }
+//     offset += sizeof(int);    
+//     char* catChars = new char[catLength + 1];
+//     char catArray[catLength + 1];
+//     memcpy(&catArray, catChars, catLength + 1);
+//     offset += catLength + 1;
+//     delete[] catChars;
+//     string cat(catArray);
+//     SplTSPlace tsPlace(inst, loc, cat);
+//     sst->append(tsPlace);   
+//   }
+//   return true;
+// }
+
+// void SplSemTraj::Close(const ListExpr typeInfo, Word& w) {
+//   SplSemTraj *sst = (SplSemTraj*)w.addr;
+//   delete sst;
+//   w.addr = 0;
+// }
+// 
+// Word SplSemTraj::Clone(const ListExpr typeInfo, const Word& w) {
+//   SplSemTraj *sst = (SplSemTraj*)w.addr;
+//   Word res;
+//   res.addr = new SplSemTraj(*sst);
+//   return res;
+// }
+
+size_t SplSemTraj::Sizeof() const {
   return sizeof(SplSemTraj);
 }
 
-bool SplSemTraj::TypeCheck(ListExpr type, ListExpr& errorInfo) {
-  return nl->IsEqual(type, BasicType());
+void SplSemTraj::sort() {
+  tsPlaces.Sort(tsPlaceCmp);
 }
 
 void SplSemTraj::convertFromMPointMLabel(const MPoint& mp, const MLabel& ml,
@@ -3150,7 +3239,8 @@ void SplSemTraj::convertFromMPointMLabel(const MPoint& mp, const MLabel& ml,
     inst = up.timeInterval.start;
     up.TemporalFunction(inst, pt, geoid, true);
     ml.AtInstant(inst, il);
-    SplTSPlace tsPlace(inst, pt, il.value.GetLabel());
+    CcString cat(true, il.value.GetLabel());
+    SplTSPlace tsPlace(inst, pt, cat);
     append(tsPlace);
   }
 }
@@ -3160,20 +3250,33 @@ void SplSemTraj::convertFromMPointMLabel(const MPoint& mp, const MLabel& ml,
  
 */
 
-TypeConstructor splSemTrajTC(
-  SplSemTraj::BasicType(),
-  SplSemTraj::Property,
-  SplSemTraj::Out,
-  SplSemTraj::In,
-  0, 0,
-  SplSemTraj::Create,
-  SplSemTraj::Delete,
-  SplSemTraj::Open,
-  SplSemTraj::Save,
-  SplSemTraj::Close,
-  SplSemTraj::Clone,
-  0,
-  SplSemTraj::SizeOfObj,
-  SplSemTraj::TypeCheck);
+// TypeConstructor SplSemTrajTC(
+//    SplSemTraj::BasicType(),        // name of the type
+//    SplSemTraj::Property,             // property function
+//    SplSemTraj::ToListExpr, InSplSemTraj,        // out and in function
+//    0, 0,                       // deprecated, don't think about it
+//    CreateSplSemTraj, DeleteSplSemTraj, // creation and deletion 
+//    OpenAttribute<SplSemTraj>,       // open function
+//    SaveAttribute<SplSemTraj>,        //  save functions
+//    CloseSplSemTraj, CloneSplSemTraj,   // close and clone functions
+//    CastSplSemTraj,                 // cast function
+//    SizeOfSplSemTraj,               // sizeOf function
+//    SplSemTrajTypeCheck);           // type checking function
+
+// TypeConstructor splSemTrajTC(
+//   SplSemTraj::BasicType(),
+//   SplSemTraj::Property,
+//   SplSemTraj::Out,
+//   SplSemTraj::In,
+//   0, 0,
+//   SplSemTraj::Create,
+//   SplSemTraj::Delete,
+//   SplSemTraj::Open,
+//   SplSemTraj::Save,
+//   SplSemTraj::Close,
+//   SplSemTraj::Clone,
+//   0,
+//   SplSemTraj::SizeOfObj,
+//   SplSemTraj::TypeCheck);
 
 }

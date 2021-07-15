@@ -55,7 +55,7 @@ namespace stj {
 
 */
 GenTC<PatPersistent> patternTC;
-
+GenTC<SplSemTraj> splsemtrajTC;
 
 
 /*
@@ -4123,7 +4123,7 @@ class SymbolicTrajectoryAlgebra : public Algebra {
   AddTypeConstructor(&fptreeTC);
   AddTypeConstructor(&projecteddbTC);
   AddTypeConstructor(&verticaldbTC);
-  AddTypeConstructor(&splSemTrajTC);
+  AddTypeConstructor(&splsemtrajTC);
   
 //   AddTypeConstructor(&tileareasTC);
   

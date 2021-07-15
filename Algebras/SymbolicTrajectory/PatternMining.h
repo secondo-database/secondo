@@ -528,9 +528,9 @@ struct SpadeLI {
  
 */
 struct SplPlace {
-  SplPlace() : loc(false), cat("") {}
+  SplPlace() : loc(false), cat(false) {}
   
-  SplPlace(const Point& l, const std::string& c) : loc(l), cat(c) {
+  SplPlace(const Point& l, const CcString& c) : loc(l), cat(c) {
     assert(loc.IsDefined());
   }
   ~SplPlace() {}
@@ -540,34 +540,73 @@ struct SplPlace {
   }
   
   Point loc;
-  std::string cat;
+  CcString cat;
 };
 
 struct SplTSPlace : SplPlace {
-  SplTSPlace() {}
+  SplTSPlace() : SplPlace(), inst(0.0) {}
   
-  SplTSPlace(const Instant& t, const Point& l, const std::string& c) :
+  SplTSPlace(const Instant& t, const Point& l, const CcString& c) :
       SplPlace(l, c), inst(t) {
     assert(inst.IsDefined());
   }
   ~SplTSPlace() {}
   
   
+  bool operator<(SplTSPlace& p) {
+    return inst < p.inst;
+  }
+  
+  std::string toString() const {
+    std::stringstream str;
+    str << "(" << inst << ", " << loc << ", " << cat << ")";
+    return str.str();
+  }
+  
+  bool fromList(ListExpr src) {
+    if (!nl->HasLength(src, 3)) {
+      return false;
+    }
+    if (!inst.ReadFrom(nl->First(src), false)) {
+      return false;
+    }
+    if (!nl->HasLength(nl->Second(src), 2)) {
+      return false;
+    }
+    if (!listutils::isNumeric(nl->First(nl->Second(src))) || 
+        !listutils::isNumeric(nl->Second(nl->Second(src)))) {
+      return false; 
+    }
+    loc.Set(true, listutils::getNumValue(nl->First(nl->Second(src))),
+                  listutils::getNumValue(nl->Second(nl->Second(src))));
+    cout << loc << endl;
+    if (!nl->IsAtom(nl->Third(src))) {
+      return false;
+    }
+    if (nl->AtomType(nl->Third(src)) != StringType) {
+      return false;
+    }
+    if (listutils::isSymbolUndefined(nl->Third(src))) {
+      cat.SetDefined(false);
+    }
+    else {
+      cat.Set(true, nl->StringValue(nl->Third(src)));
+    }
+    cout << cat << endl;
+    return true;
+  }
+  
   ListExpr toListExpr() const {
+    cout << endl << inst << "   " << loc << "   \"" << cat.GetValue() << "\"" 
+         << endl;
     return nl->ThreeElemList(inst.ToListExpr(false),
                              nl->TwoElemList(nl->RealAtom(loc.GetX()),
                                              nl->RealAtom(loc.GetY())),
-                             nl->StringAtom(cat));
+                             nl->StringAtom(cat.GetValue(), true));
   }
   
   datetime::DateTime inst;
 };
-
-struct {
-  bool operator()(SplTSPlace& p, SplTSPlace& q) const {
-    return p.inst < q.inst;
-  }
-} tsPlaceCmp;
 
 struct SplGSequence {
   SplGSequence(const datetime::DateTime& dur) : deltaT(dur) {}
@@ -587,54 +626,60 @@ struct SplGSequence {
   std::vector<SplPlace> placeSeq; // consider only groups of size 1
 };
 
-class SplSemTraj {
+class SplSemTraj : public Attribute {
  public:
   SplSemTraj() {}
-  
-  SplSemTraj(const SplSemTraj& sst) : tsPlaces(sst.getTSPlaces()) {}
-  
-  SplSemTraj(const int size) {
-    tsPlaces.resize(size);
-  }
+    
+  SplSemTraj(const int dummy) : Attribute(true), tsPlaces(0) {}
    
-  SplSemTraj(const datetime::DateTime& t, const Point& l, const std::string& c){
+  SplSemTraj(const datetime::DateTime& t, const Point& l, const CcString& c)
+      : Attribute(true) {
     SplTSPlace p(t, l, c);
     this->clear();
     this->append(p);
+  }
+  
+  SplSemTraj(const SplSemTraj& sst) : 
+                              Attribute(sst.IsDefined()), tsPlaces(sst.size()) {
+    tsPlaces.copyFrom(sst.getTSPlaces());
+  }
+  
+  SplSemTraj& operator=(const SplSemTraj& src) {
+    SetDefined(src.IsDefined());
+    tsPlaces.copyFrom(src.getTSPlaces());
+    return *this;
   }
   
   ~SplSemTraj() {}
   
   static const std::string BasicType() {return "splsemtraj";}
   static ListExpr Property();
-  static Word In(const ListExpr typeInfo, const ListExpr instance,
-                 const int errorPos, ListExpr& errorInfo, bool& correct);
-  static ListExpr Out(ListExpr typeInfo, Word value);
-  static Word Create(const ListExpr typeInfo);
-  static void Delete(const ListExpr typeInfo, Word& w);
-  static bool Save(SmiRecord& valueRecord, size_t& offset,
-                   const ListExpr typeInfo, Word& value);
-  static bool Open(SmiRecord& valueRecord, size_t& offset,
-                   const ListExpr typeInfo, Word& value);
-  static void Close(const ListExpr typeInfo, Word& w);
-  static Word Clone(const ListExpr typeInfo, const Word& w);
-  static int SizeOfObj();
-  static bool TypeCheck(ListExpr type, ListExpr& errorInfo);
+  bool ReadFrom(ListExpr LE, const ListExpr typeInfo);
+  ListExpr ToListExpr(ListExpr typeInfo) const;
+  int Compare(const Attribute* arg) const;
+  bool Adjacent(const Attribute* arg) const;
+  Attribute* Clone() const;
+  size_t HashValue() const;
+  void CopyFrom(const Attribute* arg);
+  int NumOfFLOBs() const {return 1;}
+  Flob* GetFLOB(const int i) {assert(i == 0); return &tsPlaces;}
+  size_t Sizeof() const;
   static bool checkType(ListExpr t) {return listutils::isSymbol(t,BasicType());}
+  static bool CheckKind(ListExpr type, ListExpr& errorInfo);
   
   void clear() {
-    tsPlaces.clear();
+    tsPlaces.clean();
   }
   
   void append(const SplTSPlace& p) {
-    tsPlaces.push_back(p);
+    tsPlaces.Append(p);
   }
   
   int size() const {
-    return tsPlaces.size();
+    return tsPlaces.Size();
   }
   
-  std::vector<SplTSPlace> getTSPlaces() const {
+  DbArray<SplTSPlace> getTSPlaces() const {
     return tsPlaces;
   }
   
@@ -643,8 +688,10 @@ class SplSemTraj {
   }
   
   SplTSPlace get(const int i) const {
-    assert(i >= 0 && (unsigned int)i < tsPlaces.size());
-    return tsPlaces[i];
+    assert(i >= 0 && i < size());
+    SplTSPlace tsp;
+    tsPlaces.Get(i, tsp);
+    return tsp;
   }
   
   Instant firstInst() const {
@@ -656,15 +703,25 @@ class SplSemTraj {
     return get(0).inst;
   }
   
-  void sort() {
-    std::sort(tsPlaces.begin(), tsPlaces.end(), tsPlaceCmp);
+  std::string toString() const {
+    std::stringstream str;
+    str << "(" << endl;
+    SplTSPlace tsp;
+    for (int i = 0; i < size(); i++) {
+      tsPlaces.Get(i, tsp);
+      str << tsp.toString() << endl;
+    }
+    str << ")" << endl;
+    return str.str();
   }
+  
+  void sort();
   
   void convertFromMPointMLabel(const temporalalgebra::MPoint& mp,
                                const MLabel& ml, const Geoid* geoid = 0);
 
  private:
-  std::vector<SplTSPlace> tsPlaces;
+  DbArray<SplTSPlace> tsPlaces;
 };
 
 
