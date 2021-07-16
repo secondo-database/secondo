@@ -279,6 +279,13 @@ SmiEnvironment::Implementation::FreeDbHandle( DbHandleIndex idx )
 }
 
 void
+SmiEnvironment::Implementation::DeleteDbHandle( DbHandleIndex idx )
+{
+  int flag = 0;
+  instance.impl->dbHandles[idx].closeAndDeleteHandle(flag);
+}
+
+void
 SmiEnvironment::Implementation::CloseDbHandles()
 {
   SmiEnvironment::Implementation& env = (*(instance.impl));
