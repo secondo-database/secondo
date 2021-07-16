@@ -528,37 +528,55 @@ struct SpadeLI {
  
 */
 struct SplPlace {
-  SplPlace() : loc(false), cat(false) {}
+  SplPlace() {}
   
-  SplPlace(const Point& l, const CcString& c) : loc(l), cat(c) {
-    assert(loc.IsDefined());
+  SplPlace(const Point& l, const std::string& c) : x(l.GetX()), y(l.GetY()) {
+    assert(l.IsDefined());
+    strcpy(cat, c.c_str());
   }
+  
   ~SplPlace() {}
   
   bool operator==(const SplPlace& p) const {
-    return AlmostEqual(loc, p.loc) && cat == p.cat;
+    return AlmostEqual(x, p.x) && AlmostEqual(y, p.y) && cat == p.cat;
   }
   
-  Point loc;
-  CcString cat;
+  double x, y;
+  char cat[48];
 };
 
 struct SplTSPlace : SplPlace {
-  SplTSPlace() : SplPlace(), inst(0.0) {}
+  SplTSPlace() : SplPlace() {}
   
-  SplTSPlace(const Instant& t, const Point& l, const CcString& c) :
-      SplPlace(l, c), inst(t) {
-    assert(inst.IsDefined());
+  SplTSPlace(const Instant& t, const Point& l, const std::string& c) :
+      SplPlace(l, c) {
+    assert(t.IsDefined());
+    instDbl = t.ToDouble();
   }
+  
+  SplTSPlace(const SplTSPlace& src) {
+    instDbl = src.instDbl;
+    x = src.x;
+    y = src.y;
+    strcpy(cat, src.cat);
+  }
+  
   ~SplTSPlace() {}
   
   
+  SplTSPlace operator=(const SplTSPlace& p) {
+    SplTSPlace res(p);
+    return res;
+  }
+  
   bool operator<(SplTSPlace& p) {
-    return inst < p.inst;
+    return instDbl < p.instDbl;
   }
   
   std::string toString() const {
     std::stringstream str;
+    Instant inst(instDbl);
+    Point loc(true, x, y);
     str << "(" << inst << ", " << loc << ", " << cat << ")";
     return str.str();
   }
@@ -567,9 +585,11 @@ struct SplTSPlace : SplPlace {
     if (!nl->HasLength(src, 3)) {
       return false;
     }
+    Instant inst;
     if (!inst.ReadFrom(nl->First(src), false)) {
       return false;
     }
+    instDbl = inst.ToDouble();
     if (!nl->HasLength(nl->Second(src), 2)) {
       return false;
     }
@@ -577,9 +597,8 @@ struct SplTSPlace : SplPlace {
         !listutils::isNumeric(nl->Second(nl->Second(src)))) {
       return false; 
     }
-    loc.Set(true, listutils::getNumValue(nl->First(nl->Second(src))),
-                  listutils::getNumValue(nl->Second(nl->Second(src))));
-    cout << loc << endl;
+    x = listutils::getNumValue(nl->First(nl->Second(src)));
+    y = listutils::getNumValue(nl->Second(nl->Second(src)));
     if (!nl->IsAtom(nl->Third(src))) {
       return false;
     }
@@ -587,25 +606,26 @@ struct SplTSPlace : SplPlace {
       return false;
     }
     if (listutils::isSymbolUndefined(nl->Third(src))) {
-      cat.SetDefined(false);
+      std::string undef("undefined");
+      strcpy(cat, undef.c_str());
     }
     else {
-      cat.Set(true, nl->StringValue(nl->Third(src)));
+      std::string strvalue = nl->StringValue(nl->Third(src));
+      strcpy(cat, strvalue.c_str());
     }
-    cout << cat << endl;
     return true;
   }
   
   ListExpr toListExpr() const {
-    cout << endl << inst << "   " << loc << "   \"" << cat.GetValue() << "\"" 
-         << endl;
+    std::string catstr(cat);
+    Instant inst(instDbl);
+    Point loc(true, x, y);
     return nl->ThreeElemList(inst.ToListExpr(false),
-                             nl->TwoElemList(nl->RealAtom(loc.GetX()),
-                                             nl->RealAtom(loc.GetY())),
-                             nl->StringAtom(cat.GetValue(), true));
+                             nl->TwoElemList(nl->RealAtom(x), nl->RealAtom(y)),
+                             nl->StringAtom(catstr));
   }
   
-  datetime::DateTime inst;
+  double instDbl;
 };
 
 struct SplGSequence {
@@ -630,10 +650,10 @@ class SplSemTraj : public Attribute {
  public:
   SplSemTraj() {}
     
-  SplSemTraj(const int dummy) : Attribute(true), tsPlaces(0) {}
+  SplSemTraj(const int dummy) : Attribute(true), tsPlaces(1) {}
    
-  SplSemTraj(const datetime::DateTime& t, const Point& l, const CcString& c)
-      : Attribute(true) {
+  SplSemTraj(const datetime::DateTime& t, const Point& l, const std::string& c)
+      : Attribute(true), tsPlaces(1) {
     SplTSPlace p(t, l, c);
     this->clear();
     this->append(p);
@@ -695,12 +715,16 @@ class SplSemTraj : public Attribute {
   }
   
   Instant firstInst() const {
-    if (isEmpty()) {
-      datetime::DateTime result(datetime::instanttype);
-      result.SetDefined(false);
+    datetime::DateTime result(datetime::instanttype);
+    result.SetDefined(false);
+    if (!IsDefined()) {
       return result;
     }
-    return get(0).inst;
+    if (isEmpty()) {
+      return result;
+    }
+    result.ReadFrom(get(0).instDbl);
+    return result;
   }
   
   std::string toString() const {

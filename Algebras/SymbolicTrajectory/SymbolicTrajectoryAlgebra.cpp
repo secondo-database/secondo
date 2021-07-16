@@ -4108,6 +4108,68 @@ Operator jaccardsim(jaccardsimSpec(), jaccardsimVMs, jaccardsimSelect,
                     jaccardsimTM);
 
 /*
+\section{Operator ~createsplsemtraj~}
+
+\subsection{Type Mapping}
+
+*/
+ListExpr createsplsemtrajTM(ListExpr args) {
+  const string errMsg = "mpoint x mlabel expected";
+  if (!nl->HasLength(args, 2) && !nl->HasLength(args, 3)) {
+    return listutils::typeError(errMsg);
+  }
+  if (!MPoint::checkType(nl->First(args)) || 
+      !MLabel::checkType(nl->Second(args))) {
+    return listutils::typeError(errMsg);
+  }
+  if (nl->HasLength(args, 3)) {
+    if (!Geoid::checkType(nl->Third(args))) {
+      return listutils::typeError(errMsg);
+    }
+  }
+  return nl->SymbolAtom(SplSemTraj::BasicType());
+}
+
+/*
+\subsection{Value Mappings}
+
+*/
+int createsplsemtrajVM(Word* args, Word& result, int message, Word& local, 
+                       Supplier s) {
+  MPoint* mp = static_cast<MPoint*>(args[0].addr);
+  MLabel* ml = static_cast<MLabel*>(args[1].addr);
+  Geoid* geoid = 0;
+  result = qp->ResultStorage(s);
+  SplSemTraj* res = (SplSemTraj*)result.addr;
+  if (!mp->IsDefined() || !ml->IsDefined()) {
+    res->SetDefined(false);
+    return 0;
+  }
+  if (qp->GetNoSons(s) == 3) {
+    geoid = static_cast<Geoid*>(args[2].addr);
+  }
+  res->convertFromMPointMLabel(*mp, *ml, geoid);
+  return 0;
+}
+
+/*
+\subsection{Operator Info}
+
+*/
+struct createsplsemtrajSpec : OperatorInfo {
+  createsplsemtrajSpec() {
+    name      = "createsplsemtraj";
+    signature = "mpoint x mlabel -> splsemtraj";
+    syntax    = "createsplsemtraj(_, _)";
+    meaning   = "Transforms an mpoint with corresponding mlabel into a "
+                "splsemtraj.";
+  }
+};
+
+Operator createsplsemtraj(createsplsemtrajSpec(), createsplsemtrajVM,
+                          createsplsemtrajTM);
+
+/*
 \section{Class ~SymbolicTrajectoryAlgebra~}
 
 */
@@ -4124,6 +4186,7 @@ class SymbolicTrajectoryAlgebra : public Algebra {
   AddTypeConstructor(&projecteddbTC);
   AddTypeConstructor(&verticaldbTC);
   AddTypeConstructor(&splsemtrajTC);
+  splsemtrajTC.AssociateKind(Kind::DATA());
   
 //   AddTypeConstructor(&tileareasTC);
   
@@ -4285,6 +4348,7 @@ class SymbolicTrajectoryAlgebra : public Algebra {
   AddOperator(&cosinesim);
   AddOperator(&jaccardsim);
   
+  AddOperator(&createsplsemtraj);
   
   }
   ~SymbolicTrajectoryAlgebra() {}
