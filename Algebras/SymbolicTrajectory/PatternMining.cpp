@@ -3148,4 +3148,33 @@ void SplSemTraj::convertFromMPointMLabel(const MPoint& mp, const MLabel& ml,
   }
 }
 
+bool SplSemTraj::contains(const SplPlace& sp, const double deltaT,
+                          const double tolerance, const Geoid* geoid) const {
+  Point p1(true), p2(true, sp.x, sp.y);
+  for (int i = 0; i < size(); i++) {
+    SplTSPlace tsp = get(i);
+    p1.Set(tsp.x, tsp.y);
+    if (tsp.cat == sp.cat && p1.Distance(p2, geoid) <= tolerance &&
+        tsp.instDbl < deltaT) {
+      return true;
+    }
+  }
+  return false;
+}
+
+SplSemTraj SplSemTraj::postfix(const int pos) const {
+    assert(pos >= 0 && pos < size());
+    SplSemTraj result(1);
+    Instant t_m(0.0), t_i(0.0);
+    t_m.ReadFrom(get(pos).instDbl);
+    for (int i = pos + 1; i < size(); i++) {
+      SplTSPlace tsp = get(i);
+      t_i.ReadFrom(tsp.instDbl);
+      t_i -= t_m;
+      tsp.instDbl = t_i.ToDouble();
+      result.append(tsp);
+    }
+    return result;
+  }
+
 }

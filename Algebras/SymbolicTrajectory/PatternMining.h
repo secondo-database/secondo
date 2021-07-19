@@ -629,7 +629,10 @@ struct SplTSPlace : SplPlace {
 };
 
 struct SplGSequence {
-  SplGSequence(const datetime::DateTime& dur) : deltaT(dur) {}
+  SplGSequence(const datetime::DateTime& dur) {
+    deltaT = dur.ToDouble();
+  }
+  
   ~SplGSequence() {}
   
   int size() const {
@@ -641,8 +644,27 @@ struct SplGSequence {
     return placeSeq[i];
   }
   
+  void append(const SplPlace& sp) {
+    placeSeq.push_back(sp);
+  }
   
-  datetime::DateTime deltaT; // maximum transition time
+  bool overlapsWith(const SplGSequence& s, const double tolerance,
+                    const Geoid* geoid = 0) const {
+    if (size() != s.size()) {
+      return false;
+    }
+    Point p1(true), p2(true);
+    for (int i = 0; i < size(); i++) {
+      p1.Set(get(i).x, get(i).y);
+      p2.Set(s.get(i).x, s.get(i).y);
+      if (p1.Distance(p2, geoid) > tolerance) {
+        return false;
+      }
+    }
+    return true;
+  }  
+  
+  double deltaT; // maximum transition time
   std::vector<SplPlace> placeSeq; // consider only groups of size 1
 };
 
@@ -743,6 +765,11 @@ class SplSemTraj : public Attribute {
   
   void convertFromMPointMLabel(const temporalalgebra::MPoint& mp,
                                const MLabel& ml, const Geoid* geoid = 0);
+  
+  bool contains(const SplPlace& sp, const double deltaT, const double tolerance,
+                const Geoid* geoid = 0) const;
+  
+  SplSemTraj postfix(const int pos) const;
 
  private:
   DbArray<SplTSPlace> tsPlaces;
