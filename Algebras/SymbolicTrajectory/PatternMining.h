@@ -763,6 +763,8 @@ class SplSemTraj : public Attribute {
   
   void sort();
   
+  int find(const SplPlace& sp, const double tolerance,const Geoid* geoid) const;
+  
   void convertFromMPointMLabel(const temporalalgebra::MPoint& mp,
                                const MLabel& ml, const Geoid* geoid = 0);
   

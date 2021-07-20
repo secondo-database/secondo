@@ -3129,6 +3129,21 @@ void SplSemTraj::sort() {
   tsPlaces.Sort(tsPlaceCmp);
 }
 
+int SplSemTraj::find(const SplPlace& sp, const double tolerance, 
+                     const Geoid *geoid) const {
+  Point p1(true), p2(true, sp.x, sp.y);
+  for (int i = 0; i < size(); i++) {
+    SplTSPlace tsp = get(i);
+    if (tsp.cat == sp.cat) {
+      p1.Set(tsp.x, tsp.y);
+      if (p1.Distance(p2, geoid) <= tolerance) {
+        return i;
+      }
+    }
+  }
+  return -1;
+}
+
 void SplSemTraj::convertFromMPointMLabel(const MPoint& mp, const MLabel& ml,
                                          const Geoid *geoid /* = 0 */) {
   clear();
