@@ -90,6 +90,10 @@ echo "**** remove temp dir *****"
 assert cd $SDK_DIR
 assert rm -rf temp
 
+echo "Copy configuration files"
+assert cd $SDK_DIR
+assert cp $START_DIR/scripts/secondo* .
+
 if [ ! -d ~/secondo ]; then
 echo "**** Downloading the latest SECONDO version ****"
 git clone https://github.com/secondo-database/secondo.git ~/secondo
@@ -165,18 +169,5 @@ else
   echo 'source $SECONDO_SDK/secondorc'          >>$HOME/.profile
   echo "export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$SWIPLDIR" >>$HOME/.profile
 fi
-
-if [ -e $HOME/secondo ]; then
-  echo "There is a version of Secondo"
-else
-  cd $HOME
-  echo "Unpack Secondo sources"
-  tar -xzf $START_DIR/secondo*.tgz
-fi
-
- 
-echo "Copy configuration files"
-assert cd $SDK_DIR
-assert cp $START_DIR/scripts/secondo* .
 
 
