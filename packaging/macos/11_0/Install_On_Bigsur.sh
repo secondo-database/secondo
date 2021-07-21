@@ -108,11 +108,16 @@ if [ $(uname -m | grep arm64 | wc -l) -eq 1 ]; then
 cat << EOF
 Please ensure that $HOME/.profile contains the following lines
 
+export SECONDO_SDK=\$HOME/secondo-sdk
+export SECONDO_PLATFORM=mac_osx
+export SECONDO_BUILD_DIR=\$HOME/secondo
+source $SECONDO_SDK/secondorc
+
 export LIBREADLINE="$HOME/secondo-sdk/lib/libreadline.a"
 export PL_LIB=swipl
 
 export SWI_VERSION=$SWI_VERSION
-export PATH=/opt/homebrew/Cellar/swi-prolog/$SWI_VERSION/bin:$PATH
+export PATH=/opt/homebrew/Cellar/swi-prolog/$SWI_VERSION/bin:\$PATH
 export SWI_HOME_DIR=/opt/homebrew/Cellar/swi-prolog/$SWI_VERSION/libexec/lib/swipl
 export PL_LIB_DIR=/opt/homebrew/Cellar/swi-prolog/$SWI_VERSION/libexec/lib/swipl/lib/arm64-darwin
 export PL_DLL_DIR=$PL_LIB_DIR
