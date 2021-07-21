@@ -4689,6 +4689,8 @@ int mcreatemtreeVMTStream (Word* args, Word& result, int message,
 //                              usedMem, 
 //                              nl->ToString(typeList), 
 //                              !flobused, getDBname());
+   mtreehelper::increaseCounter("counterMCreateMTree", 
+                          mtree->getmtree()->getDistComp().getNoDistFunCalls());
    res->setPointer(mtree);
    mtree->deleteIfAllowed();
    return 0;
@@ -4754,6 +4756,8 @@ int mcreatemtreeVMTMP (Word* args, Word& result, int message,
 //                              usedMem, 
 //                              nl->ToString(typeList), 
 //                              !flobused, getDBname());
+   mtreehelper::increaseCounter("counterMCreateMTree", 
+                          mtree->getmtree()->getDistComp().getNoDistFunCalls());
    res->setPointer(mtree);
    mtree->deleteIfAllowed();
    return 0;
@@ -5037,6 +5041,8 @@ int mcreatemtree2StreamVM(Word* args, Word& result, int message, Word& local,
   MemoryMtreeObject<pair<Spa, Sym>, StdDistCompExt<Spa, Sym> >*
      mtree = new MemoryMtreeObject<pair<Spa, Sym>, StdDistCompExt<Spa, Sym> > 
                 (tree, usedMem, nl->ToString(typeList), !flobused, getDBname());
+  mtreehelper::increaseCounter("counterMCreateMTree", 
+                          mtree->getmtree()->getDistComp().getNoDistFunCalls());
   res->setPointer(mtree);
   mtree->deleteIfAllowed();
   return 0;
@@ -5108,6 +5114,8 @@ int mcreatemtree2MRelVM(Word* args, Word& result, int message, Word& local,
   MemoryMtreeObject<pair<Spa, Sym>, StdDistCompExt<Spa, Sym> >*
      mtree = new MemoryMtreeObject<pair<Spa, Sym>, StdDistCompExt<Spa, Sym> > 
                 (tree, usedMem, nl->ToString(typeList), !flobused, getDBname());
+  mtreehelper::increaseCounter("counterMCreateMTree", 
+                          mtree->getmtree()->getDistComp().getNoDistFunCalls());
   res->setPointer(mtree);
   mtree->deleteIfAllowed();
   return 0;
