@@ -1,0 +1,22 @@
+# SECONDO ENVIRONMENT SETUP FOR Mac OS X 
+#
+# Since Sept. 2006, M. Spiekermann
+
+#
+export SECONDO_LDFLAGS="-L$SECONDO_SDK/lib"
+
+
+# If the OptimizerServer crashes at runtime try to use it
+# with the jpl libraries provided by SWI-Prolog instead of
+# compiling it (see also Jpl/readme.txt).
+
+
+#JAVA
+export J2SDK_ROOT="/System/Library/Frameworks/JavaVM.framework"
+
+#PD System
+export PD_DVI_VIEWER=xdvi
+export PD_PS_VIEWER=gv
+
+#Readline support
+export readline=true
