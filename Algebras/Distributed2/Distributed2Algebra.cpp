@@ -18842,15 +18842,19 @@ class AReducer: public AReduceListener{
        // hence we can use always matrix1 to get the number of workers.
 
        // create Reduce Objects for each worker
-       for(size_t worker=0;worker<matrix1->numOfWorkers();worker++){
+       size_t maxStart = matrix1->numOfWorkers();
+       if(result->getSize() < maxStart){
+         maxStart = result->getSize();
+       }
+       for(size_t worker=0;worker<maxStart;worker++){
           tasks.push_back(new AReduceTask<R>(matrix1, matrix2,worker,result,
                           port, funtext, relType1, relType2, isStream,this));
        } 
 
        // start a task on each worker (one by one, slot, worker)
        int* slotOrder = computeSlotOrder(function);
-       int slotIndex = matrix1->numOfWorkers();
-       for(size_t i=0; i<matrix1->numOfWorkers();i++){
+       int slotIndex = maxStart;
+       for(size_t i=0; i<maxStart;i++){
          tasks[i]->process(slotOrder[i]);  
        }
 
