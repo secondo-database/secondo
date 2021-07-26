@@ -21580,6 +21580,369 @@ Operator mmergejoinprojectOp(
    mmergejoinprojectTM
 );
 
+/*
+9 N-tree support
+
+6.1 ~mcreatentree~: Creation of an N-tree 
+
+6.1.1 Type Mapping
+
+We support two variants. The first variant gets a tuple stream, the name of the
+attribute to index and the attribute name of a tid attribute. The second gets a 
+main memory relation and the attribute to be indexed.
+
+*/
+
+ListExpr mcreatentreeTM(ListExpr args) {
+  string err = "expected: stream(tuple) x attrname x attrname x int x int "
+               "[x geoid] or MREL x attrname x int x int [x geoid]";
+
+  // ensure at least 2 arguments
+  if (!nl->HasMinLength(args, 4)) {
+    return listutils::typeError(err + " (less than 4 arguments)");
+  }
+  bool isTS = Stream<Tuple>::checkType(nl->First(args));
+  bool isMP = MPointer::checkType(nl->First(args));
+  if (!isTS && !isMP) {
+    return listutils::typeError(err + " (first arg is neither a tuple stream "
+                                      "nor an mpointer)");
+  }
+  if (nl->AtomType(nl->Second(args)) != SymbolType) {
+    return listutils::typeError(err + " (second argument is not a valid "
+                                      "attribute name)");
+  }
+  if (!CcInt::checkType(nl->Fourth(args))) {
+    return listutils::typeError(err + " (fourth argument is not an integer)");
+  }
+  bool geoidPresent = false;
+  if (isTS) {
+    if(!nl->HasLength(args, 5) && !nl->HasLength(args, 6)){
+      return listutils::typeError("for a tuplestream, "
+                                  "5 or 6 arguments are required");
+    }
+    if (nl->AtomType(nl->Third(args)) != SymbolType) {
+      return listutils::typeError(err + " (third argument is not a valid "
+                                        "attribute name)");
+    }
+    if (!CcInt::checkType(nl->Fifth(args))) {
+      return listutils::typeError(err + " (fifth argument is not an integer)");
+    }
+    if (nl->HasLength(args, 6)) {
+      if (!Geoid::checkType(nl->Sixth(args))) {
+         return listutils::typeError("sixth argument is not a geoid");
+      }
+      geoidPresent = true;
+    }
+  } 
+  else { // main memory relation case
+    if (!nl->HasLength(args, 4) && !nl->HasLength(args, 5)) {
+      return listutils::typeError("for an mpointer, 4 or 5 "
+                                  "arguments are required");
+    }
+    if (!CcInt::checkType(nl->Third(args))) {
+      return listutils::typeError(err + " (third argument is not an integer)");
+    }
+    if (nl->HasLength(args, 5)) {
+      if (!Geoid::checkType(nl->Fifth(args))) {
+        return listutils::typeError("fifth argument is not a geoid");
+      }
+      geoidPresent = true;
+    }
+  }
+  // extract tuple type from first argument
+  ListExpr tupletype;
+  if (isMP) {
+    ListExpr mpt = nl->Second(nl->Second(nl->First(args)));
+    if (!Relation::checkType(mpt)) {
+      return listutils::typeError(" mpointer to a non-relation");
+    }
+    tupletype = nl->Second(mpt);
+  }
+  else {
+    tupletype = nl->Second(nl->First(args));
+  }
+  ListExpr attrList = nl->Second(tupletype);
+  string name = nl->SymbolValue(nl->Second(args));
+  ListExpr type;
+  int index1 = listutils::findAttribute(attrList, name, type);
+  if (!index1) {
+    return listutils::typeError("attribute " + name + " not part of the tuple");
+  }
+  // support geoid only for point, mpoint, cupoint, cmpoint
+  if (geoidPresent) {
+    if(!Point::checkType(type) && !temporalalgebra::MPoint::checkType(type) &&
+       !temporalalgebra::CUPoint::checkType(type) &&
+       !temporalalgebra::CMPoint::checkType(type)) {
+      return listutils::typeError("geoid support only for (m|cu|cm|eps)point");
+    }
+  }
+  int index2 = -1;
+  if (isTS) {
+     string tidname = nl->SymbolValue(nl->Third(args));
+     ListExpr tidtype;
+     index2 = listutils::findAttribute(attrList, tidname, tidtype);
+     if (!index2) {
+        return listutils::typeError("attribute " + tidname + "does not exist");
+     }
+     if (!TupleIdentifier::checkType(tidtype)) {
+       return listutils::typeError("attribute " + tidname + " not of type tid");
+    }
+  }
+  // check for supported type, extend if required
+  int no = mtreehelper::getTypeNo(type, 12);
+  if (no <0) {
+     return listutils::typeError("no distance function available for type "
+                                 + nl->ToString(type));
+  }
+  ListExpr resType = MPointer::wrapType( 
+                        Mem::wrapType(
+                          nl->TwoElemList(
+                             listutils::basicSymbol<
+                               MemoryMtreeObject<Point,StdDistComp<Point> > >(),
+                             type
+                          )));
+  ListExpr appendList;
+  if (isTS) {
+    if (geoidPresent) {
+      appendList = nl->ThreeElemList(nl->IntAtom(index1 - 1),
+                                     nl->IntAtom(index2 - 1),
+                                     nl->StringAtom(nl->ToString(type)));
+    }
+    else {
+      appendList = nl->FourElemList(
+                     nl->TwoElemList(listutils::basicSymbol<Geoid>(),
+                                     listutils::getUndefined()), 
+                     nl->IntAtom(index1 - 1), nl->IntAtom(index2 - 1),
+                     nl->StringAtom(nl->ToString(type)));
+
+    }
+  }
+  else {
+    if (geoidPresent) {
+      appendList = nl->TwoElemList(nl->IntAtom(index1 - 1), 
+                                   nl->StringAtom(nl->ToString(type)));
+    }
+    else {
+      appendList = nl->ThreeElemList( 
+                               nl->TwoElemList(listutils::basicSymbol<Geoid>(),
+                                               listutils::getUndefined()), 
+                               nl->IntAtom(index1 - 1), 
+                               nl->StringAtom(nl->ToString(type)));
+    }
+  }
+  ListExpr result = nl->ThreeElemList(nl->SymbolAtom(Symbols::APPEND()),
+                                      appendList, resType);
+  return result;
+}
+
+/*
+6.2 Value Mapping template
+
+*/
+template<class T>
+int mcreatentreeVMTStream(Word* args, Word& result, int message, Word& local,
+                          Supplier s) {
+  result = qp->ResultStorage(s);
+  MPointer* res = (MPointer*)result.addr;
+  Geoid* geoid = (Geoid*)args[5].addr;
+  int index1 = ((CcInt*)args[6].addr)->GetValue(); 
+  int index2 = ((CcInt*)args[7].addr)->GetValue(); 
+  if (!geoid->IsDefined()) {
+    geoid = 0;
+  }
+  StdDistComp<T> dc(geoid);
+  CcInt* ccDegree = (CcInt*)args[3].addr;
+  CcInt* ccMaxLeafSize = (CcInt*)args[4].addr;
+  if (!ccDegree->IsDefined() || !ccMaxLeafSize->IsDefined()) {
+    res->setPointer(0);
+    return 0;
+  }
+  NTree<MTreeEntry<T>, StdDistComp<T> >* tree =
+    new NTree<MTreeEntry<T>, StdDistComp<T> >(ccDegree->GetValue(),
+                                              ccMaxLeafSize->GetValue(), dc);
+  Stream<Tuple> stream(args[0]);
+  stream.open();
+  Tuple* tuple;
+  bool flobused = false;
+  while ((tuple = stream.request())) {
+    T* attr = (T*)tuple->GetAttribute(index1);
+    TupleIdentifier* tid = (TupleIdentifier*)tuple->GetAttribute(index2);
+    if (tid->IsDefined()) {
+      flobused = flobused || (attr->NumOfFLOBs() > 0);
+      MTreeEntry<T> entry(*attr, tid->GetTid());
+      tree->insert(entry);
+    }
+    tuple->DeleteIfAllowed();
+  }
+  stream.close();
+  size_t usedMem = tree->memSize();
+  ListExpr typeList = nl->Second(qp->GetType(s));
+  MemoryNtreeObject<T, StdDistComp<T> >* ntree = 
+      new MemoryNtreeObject<T, StdDistComp<T> >(
+          tree, usedMem, nl->ToString(typeList), !flobused, getDBname());
+  res->setPointer(ntree);
+  ntree->deleteIfAllowed();
+  return 0;
+}
+
+
+template<class T>
+int mcreatentreeVMTMP(Word* args, Word& result, int message, Word& local,
+                      Supplier s) {
+//    result = qp->ResultStorage(s);
+//    MPointer* res = (MPointer*) result.addr;
+//    MPointer* mrelp = (MPointer*) args[0].addr;
+//    if(mrelp->isNull()){
+//      res->setPointer(0);
+//      return 0;
+//    }
+//    Geoid* geoid = (Geoid*) args[2].addr;
+//    int index1 = ((CcInt*) args[3].addr)->GetValue(); 
+//    string tn = ((CcString*) args[4].addr)->GetValue();
+// 
+//    if(!geoid->IsDefined()){
+//      geoid = 0;
+//    }
+// 
+//    MemoryRelObject* mrel = (MemoryRelObject*) mrelp->GetValue();
+//    vector<Tuple*>* v = mrel->getmmrel();
+// 
+// 
+//    StdDistComp<T> dc(geoid);
+// //    typedef pair<T,TupleId> treeentry_t;
+//    MMMTree<MTreeEntry<T>, StdDistComp<T> >* tree =
+//      new MMMTree<MTreeEntry<T>, StdDistComp<T> >(4, 8, dc);
+// //    MMMTree<treeentry_t,StdDistComp<T>,MemCloner<treeentry_t>  >* tree = 
+// //            new MMMTree<treeentry_t,StdDistComp<T>, 
+// //                        MemCloner<treeentry_t> >(4,8,dc);
+// 
+//    Tuple* tuple;
+//    bool flobused = false;
+//    if(v){
+//      for(size_t i=0;i<v->size();i++){
+//        tuple = v->at(i);
+//        if(tuple){
+//          T* attr = (T*) tuple->GetAttribute(index1);
+// //          T copy = *attr;
+//          flobused = flobused || (attr->NumOfFLOBs()>0);
+//          MTreeEntry<T> entry(*attr, i+1);
+// //          pair<T,TupleId> p(copy, i+1);
+//          tree->insert(entry);
+//          entry.Destroy();
+//        }
+//      }
+//    }
+//    size_t usedMem = tree->memSize();
+//    ListExpr typeList = nl->Second(qp->GetType(s));
+//    MemoryMtreeObject<T, StdDistComp<T> >* mtree = 
+//           new MemoryMtreeObject<T, StdDistComp<T> > (tree,  
+//                              usedMem, 
+//                              nl->ToString(typeList), 
+//                              !flobused, getDBname());
+//    mtreehelper::increaseCounter("counterMCreateMTree", 
+//                        mtree->getmtree()->getDistComp().getNoDistFunCalls());
+//    res->setPointer(mtree);
+//    mtree->deleteIfAllowed();
+   return 0;
+}
+
+
+/*
+6.3 Selection Function and Value Mapping Array
+
+*/
+int mcreatentreeSelect(ListExpr args) {
+  int o1;
+  string attrName = nl->SymbolValue(nl->Second(args));
+  ListExpr attrList;
+  if (Stream<Tuple>::checkType(nl->First(args))) {
+    o1 = 0;
+    attrList = nl->Second(nl->Second(nl->First(args)));
+  }
+  else {
+    o1 = 12;
+    attrList=nl->Second(nl->Second(nl->Second(nl->Second(nl->First(args)))));
+          //  mpointer   mem         rel       tuple 
+  }
+  ListExpr type;
+  listutils::findAttribute(attrList, attrName, type);
+  return o1 + mtreehelper::getTypeNo(type, 12);
+}
+
+ // note: if adding attributes with flobs, the value mapping must be changed
+
+ValueMapping mcreatentreeVM[] = {
+//   mcreatentreeVMTStream<mtreehelper::t1>,
+//   mcreatentreeVMTStream<mtreehelper::t2>,
+//   mcreatentreeVMTStream<mtreehelper::t3>,
+//   mcreatentreeVMTStream<mtreehelper::t4>,
+//   mcreatentreeVMTStream<mtreehelper::t5>,
+//   mcreatentreeVMTStream<mtreehelper::t6>,
+//   mcreatentreeVMTStream<mtreehelper::t7>,
+//   mcreatentreeVMTStream<mtreehelper::t8>,
+//   mcreatentreeVMTStream<mtreehelper::t9>,
+//   mcreatentreeVMTStream<mtreehelper::t10>,
+//   mcreatentreeVMTStream<mtreehelper::t11>,
+//   mcreatentreeVMTStream<mtreehelper::t12>,
+//   mcreatentreeVMTMP<mtreehelper::t1>,
+//   mcreatentreeVMTMP<mtreehelper::t2>,
+//   mcreatentreeVMTMP<mtreehelper::t3>,
+//   mcreatentreeVMTMP<mtreehelper::t4>,
+//   mcreatentreeVMTMP<mtreehelper::t5>,
+//   mcreatentreeVMTMP<mtreehelper::t6>,
+//   mcreatentreeVMTMP<mtreehelper::t7>,
+//   mcreatentreeVMTMP<mtreehelper::t8>,
+//   mcreatentreeVMTMP<mtreehelper::t9>,
+//   mcreatentreeVMTMP<mtreehelper::t10>,
+//   mcreatentreeVMTMP<mtreehelper::t11>,
+//   mcreatentreeVMTMP<mtreehelper::t12>
+};
+
+OperatorSpec mcreatentreeSpec(
+  "stream(tuple) x attrname x attrname x int x int [x geoid] -> "
+  "mpointer(mem(mtree X))||\n"
+  "MREL(tuple) x attrname x int x int [x geoid] -> , mpointer(mem(mtree X))",
+  "tuplestream  mcreatemtree[ indexAttr, TID_attr, degree, maxLeafSize, [, "
+  "geoid] ] ||\n"
+  "mrel mcreatemtree[indexAttr, degree, maxLeafSize, [, geoid] ]",
+  "This operator creates an N-tree in main memory. "
+  "The first argument is a stream or a main memory relation containing the "
+  "tuples to be indexed. The second argument refers to the attribute "
+  "over that the index is built. The next two arguments represent the degree of"
+  " the tree and and maximum number of entries in a leaf.\n"
+  "If the tuples are provided as a stream, "
+  "the third argument refers to an attribute inside the tuple containg its "
+  "tuple id. The last argument is optional. It must be of type geoid and "
+  "can only be used if the index-attribute is of type point, mpoint, cupoint, "
+  "or cmpoint. If this argument is present, the distance between two objects "
+  "is computed as geographic distance on this geoid instead of using the "
+  "Euclidean distance.\n In detail, the following types are supported:\n\n"
+  "  * point:   p1->Distance(*p2, geoid)\n"
+  "  * string:  stringutils::ld->(s1->GetValue(), s2->GetValue())\n"
+  "  * int:     abs(i1->GetValue() - i2->GetValue())\n"
+  "  * real:    abs(r1->GetValue() - r2->GetValue())\n"
+  "  * rect<d>: r1->Distance(*r2)\n"
+  "  * mpoint:  mp1->DistanceAvg(*mp2, geoid)\n"
+  "  * cupoint: cup1->DistanceAvg(*cup2, true, geoid)\n"
+  "  * cmpoint: cmp1->DistanceAvg(*cmp2, true, geoid)\n",
+  "let kinos_ntree_GeoData =  kinos feed addid mcreatentree[GeoData, 5, 8, TID]"
+);
+
+Operator mcreatentreeOp(
+   "mcreatentree",
+   mcreatentreeSpec.getStr(),
+   24,
+   mcreatentreeVM,
+   mcreatentreeSelect,
+   mcreatentreeTM
+);
+
+
+
+
+
+
+
 
 
 

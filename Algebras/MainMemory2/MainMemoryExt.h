@@ -769,6 +769,58 @@ class MemoryMtreeObject : public MemoryObject {
         };
 };
 
+template <class T, class DistComp> 
+class MemoryNtreeObject : public MemoryObject {
+
+ public:
+  typedef std::pair<T, TupleId> treeentry_t;
+  typedef NTree<MTreeEntry<T>, DistComp> tree_t;
+
+  MemoryNtreeObject(tree_t* _ntree, size_t _memSize, 
+  const std::string& _objectTypeExpr, bool _flob, const std::string& _database){
+    ntree = _ntree;
+    memSize = _memSize;
+    objectTypeExpr =_objectTypeExpr;
+    flob = _flob;
+    database = _database;
+  };
+
+  tree_t* getntree() {
+      return ntree;
+  };
+
+  static std::string BasicType() {
+      return "ntree";
+  }
+
+  static bool checkType(ListExpr list) {
+    if (!nl->HasLength(list, 2)) {
+      return false;
+    }
+    if (!listutils::isSymbol(nl->First(list), BasicType())) {
+      return false;
+    }
+    return T::checkType(nl->Second(list));
+  }
+    
+  MemoryObject* clone() {
+    return new MemoryNtreeObject<T, DistComp>(ntree->clone(), memSize, 
+                                              objectTypeExpr, flob, database);
+  }
+
+
+ private:
+  tree_t* ntree;
+  MemoryNtreeObject();
+  
+ protected:
+  ~MemoryNtreeObject() {
+    if (ntree) {
+      delete ntree;
+    }
+  };
+};
+
 class AttrComp{
 
     public:

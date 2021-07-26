@@ -34,6 +34,10 @@ It is as powerful as the M-tree but supports more efficient range and nearest
 neighbor searches.
 
 */
+inline constexpr double tolerance = 500.0;
+
+template<class T, class DistComp>
+class NTreeAux;
 
 /*
 1 class NTreeNode
@@ -42,13 +46,13 @@ neighbor searches.
 template<class T, class DistComp>
 class NTreeNode {
  public:
-  typedef MTreeNode<T,DistComp> node_t;
+  typedef NTreeNode<T, DistComp> node_t;
   
   virtual ~NTreeNode() {}
   
   virtual bool isLeaf() const = 0;
   
-  virtual size_t subTreeMemSize() const = 0;
+  virtual size_t memSize() const = 0;
   
   const T* getCenter() const {
     return &center;
@@ -90,6 +94,8 @@ class NTreeNode {
     return dc(center, node->center);
   }
   
+  virtual void split(DistComp& dc, const int partitionStrategy = 0) = 0;
+  
   virtual void clear(const bool deleteContent) = 0;
   
   virtual std::ostream& print(std::ostream& out, DistComp& dc) const = 0;
@@ -102,7 +108,6 @@ class NTreeNode {
   NTreeNode(const T& c, const int d, const int mls) :
       center(c), degree(d), maxLeafSize(mls), parent(0), count(0) {}
    
- private:
   T center;
   int degree;
   int maxLeafSize;
@@ -144,8 +149,16 @@ class NTreeInnerNode : public NTreeNode<T, DistComp> {
     }
   }
   
-  bool isLeaf() const {
+  virtual bool isLeaf() const {
     return false;
+  }
+  
+  size_t memSize() const {
+    size_t res = sizeof(*this) + sizeof(void*) * node_t::degree + 1;
+    for (int i = 0; i < node_t::count; i++) {
+      res += children[i]->memSize();
+    }
+    return res;
   }
   
   node_t* getChild(const int i) {
@@ -154,18 +167,23 @@ class NTreeInnerNode : public NTreeNode<T, DistComp> {
     return children[i];
   }
   
-  node_t* getNearestChild(const T& o, DistComp& dc) const {
-    node_t* result = 0;
+  int getNearestChildPos(const T& o, DistComp& dc) const {
     double currentDist = std::numeric_limits<double>::max();
+    int result = -1;
     for (int i = 0; i < node_t::count; i++) {
       const T* c = (children[i])->getCenter();
-      double dist = dc(c, o);
+      double dist = dc(*c, o);
       if (dist < currentDist) {
-        result = children[i];
+        result = i;
         currentDist = dist;
       }
     }
     return result;
+  }
+  
+  node_t* getNearestChild(const T& o, DistComp& dc) const {
+    int pos = getNearestChildPos(o, dc);
+    return children[pos];
   }
   
   void storeChild(node_t* newChild, DistComp& dc) {
@@ -181,6 +199,17 @@ class NTreeInnerNode : public NTreeNode<T, DistComp> {
       }
     }
     return -1;
+  }
+  
+  innernode_t* clone() {
+    innernode_t* res;
+    res = new innernode_t(node_t::center, node_t::degree, node_t::maxLeafSize);
+    res->count = node_t::count;
+    for (int i = 0; i < node_t::count; i++) {
+      res->children[i] = children[i]->clone();
+      res->children[i]->setParent(res);
+    }  
+    return res;
   }
   
   std::ostream& print(std::ostream& out, DistComp& dc) const {
@@ -200,6 +229,10 @@ class NTreeInnerNode : public NTreeNode<T, DistComp> {
     }
     out << ")";
     return out;
+  }
+  
+  void split(DistComp& dc, const int partitionStrategy = 0) {
+    
   }
 
   int getNoLeaves() const {
@@ -225,17 +258,9 @@ class NTreeInnerNode : public NTreeNode<T, DistComp> {
     }
     return sum + 1;
   }
-
-  size_t memSize() const {
-    size_t res = sizeof(*this) + sizeof(void*) * node_t::degree;
-    for (int i = 0; i < node_t::count; i++) {
-      res += children[i]->memSize();
-    }
-    return res;
-  }
    
  private:
-  NTreeNode<T, DistComp> children[]; 
+  node_t** children;
 };
 
 /*
@@ -246,7 +271,8 @@ template<class T, class DistComp>
 class NTreeLeafNode : public NTreeNode<T, DistComp> {
  public:
   typedef NTreeLeafNode<T, DistComp> leafnode_t;
-  typedef NTreeNode<T, DistComp> node_t; 
+  typedef NTreeNode<T, DistComp> node_t;
+  typedef NTreeInnerNode<T, DistComp> innernode_t;
   
   NTreeLeafNode(const T& c, const int d, const int mls) : node_t(c, d, mls) {
     entries = new T*[node_t::maxLeafSize + 1];
@@ -264,7 +290,17 @@ class NTreeLeafNode : public NTreeNode<T, DistComp> {
     delete[] entries;
   }
   
-  bool isLeaf() const {
+  void clear(const bool deleteContent) {
+    for (int i = 0; i < node_t::count; i++) {
+      if (deleteContent) {
+        delete entries[i];
+      }
+      entries[i] = 0;
+    }
+    node_t::count = 0;
+  }
+  
+  virtual bool isLeaf() const {
     return true;
   }
   
@@ -287,6 +323,16 @@ class NTreeLeafNode : public NTreeNode<T, DistComp> {
   void store(const T& o, DistComp& dc) {
     entries[node_t::count] = new T(o);
     node_t::count++;
+  }
+  
+  leafnode_t* clone() {
+    leafnode_t* res;
+    res = new leafnode_t(node_t::center, node_t::degree, node_t::maxLeafSize);
+    res->count = node_t::count;
+    for (int i = 0; i < node_t::count; i++) {
+      res->entries[i] = new T(*entries[i]);
+    }  
+    return res;
   }
   
   std::ostream& print(std::ostream& out, DistComp& dc) const {
@@ -315,12 +361,25 @@ class NTreeLeafNode : public NTreeNode<T, DistComp> {
     return res;
   }
   
-  void split(const int partitionStrategy = 0) {
-    
+  void split(DistComp& dc, const int partitionStrategy = 0) {
+    innernode_t currentNode(node_t::center, node_t::degree,node_t::maxLeafSize);
+    currentNode.setParent(this->parent);
+    T** newCenters = NTreeAux<T, DistComp>::computeCenters(entries, 
+                                                           node_t::count, 0);
+    for (int i = 0; i < node_t::degree; i++) { // create new leaves for centers
+      leafnode_t leaf(*(newCenters[i]), node_t::degree, node_t::maxLeafSize);
+      leaf.store(*(newCenters[i]), dc);
+      currentNode.storeChild(&leaf, dc);
+    }
+    // assign further entries to new leaves
+    for (int i = node_t::degree + 1; i < node_t::count; i++) {
+      int newPos = currentNode.getNearestChildPos(*(newCenters[i]), dc);
+      (currentNode.getChild(newPos))->store(*(newCenters[i]), dc);
+    }
   }
   
  private:
-  T entries[];  
+  T** entries;
 };
 
 /*
@@ -340,7 +399,7 @@ class NTree {
   typedef NTreeInnerNode<T, DistComp> innernode_t;
   
   NTree(const int d, const int mls, DistComp& di) :
-      degree(d), maxLeafSize(mls), root(0), dc(di) {}
+      degree(d), maxLeafSize(mls), root(0), dc(di), partitionStrategy(0) {}
   
   ~NTree() {
     if (root) {
@@ -406,26 +465,42 @@ class NTree {
     return root;
   }
   
+  ntree_t* clone() {
+    ntree_t* res = new ntree_t(degree, maxLeafSize, dc);
+    if (root) {
+      res->root = root->clone();
+    }
+    return res;
+  }
+  
   
  private:
   int degree;
   int maxLeafSize;
   node_t* root;
   DistComp dc;
+  int partitionStrategy;
 
   
-  static node_t* insert(node_t* root, const T& o, DistComp& dc) {
+  static node_t* insert(node_t* root, const T& o, DistComp& dc,
+                        const int partitionStrategy = 0) {
     node_t* child = root;
-    while (!child->isLeaf()) {
+    bool distanceWithinTolerance = true;
+    while (!child->isLeaf() && distanceWithinTolerance) {
       child = ((innernode_t*)child)->getNearestChild(o, dc);
+      distanceWithinTolerance = (dc(*(child->getCenter()), o) <= tolerance);
     }
-    ((leafnode_t*)child)->store(o, dc);
-    if (((leafnode_t*)child)->isOverflow()) {
-      return split(root, child, dc);
+    if (!child->isLeaf()) {
+      // TODO: create new leaf node as child of child
     }
-    return child;
+    else {
+      ((leafnode_t*)child)->store(o, dc);
+      if (((leafnode_t*)child)->isOverflow()) {
+        ((leafnode_t*)child)->split(dc, partitionStrategy);
+      }
+    }
+    return root;
   }
-  
 };
 
 template<class T, class DistComp>
@@ -436,9 +511,9 @@ class NTreeAux {
 //   typedef NTree<T, DistComp> ntree_t;
 //   typedef NTreeInnerNode<T, DistComp> innernode_t; 
    
-  static T* computeCenters(const T entries[], const int size, 
-                           const int strategy = 0) {
-    T result[] = new T[node_t::degree];
+  static T** computeCenters(T** entries, const int size, 
+                            const int strategy = 0) {
+    T** result = new T*[size];
     switch (strategy) {
       case 0: { // random
         std::vector<int> positions;
@@ -446,7 +521,7 @@ class NTreeAux {
           positions.push_back(i);
         }
         std::random_shuffle(positions.begin(), positions.end());
-        for (int i = 0; i < node_t::degree; i++) {
+        for (int i = 0; i < size; i++) {
           result[i] = entries[positions[i]].clone();
         }
         return result;
