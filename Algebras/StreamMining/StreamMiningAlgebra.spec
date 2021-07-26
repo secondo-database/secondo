@@ -19,3 +19,5 @@
 
 operator reservoir alias RESERVOIR pattern _ op [_]
 
+operator tilted alias TILTEd pattern _ op [_]
+

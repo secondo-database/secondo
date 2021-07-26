@@ -27,9 +27,10 @@ CURRENT_ALGEBRA := StreamMiningAlgebra
 
 #INSERT FURTHER DEPENDENCIES HERE IF REQUIRED
 ALGEBRA_DEPENDENCIES := StandardAlgebra
-ALGEBRA_DEPENDENCIES := StreamAlgebra
+ALGEBRA_DEPENDENCIES += StreamAlgebra
 ALGEBRA_DEPENDENCIES += RelationAlgebra
 ALGEBRA_DEPENDENCIES += TupleIdentifierAlgebra
+ALGEBRA_DEPENDENCIES += ArrayAlgebra
 
 
 # inlcude global definitions
