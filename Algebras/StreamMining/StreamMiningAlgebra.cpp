@@ -43,7 +43,7 @@ It provides the following operators:
     The type (natural, logarithmic, progressive logarithmic) depends 
     on the provided int. 
 
-  * bloom: stream x float x int [->] bloomfilter
+  * bloom: stream x real x int [->] bloomfilter
     Creates a Bloomfilter for a Stream with maximum error probability float and size int.  
 
   * cbloom: bloomfilter x T [->] bool
@@ -396,13 +396,13 @@ ListExpr errorInfo = nl->OneElemList(nl->SymbolAtom("ErrorInfo"));
   }
 
   // test second argument for int
-  if(type.second() != NList(CcInt::BasicType())) {
-    return NList::typeError("Operator reservoir expects an int "
+  if(type.second() != NList(CcReal::BasicType())) {
+    return NList::typeError("Operator reservoir expects a real "
                             "as second argument");
   }
 
-    if(type.third() != NList(CcReal::BasicType())) {
-    return NList::typeError("Operator reservoir expects a real "
+    if(type.third() != NList(CcInt::BasicType())) {
+    return NList::typeError("Operator reservoir expects an int "
                             "as third argument");
   }
   

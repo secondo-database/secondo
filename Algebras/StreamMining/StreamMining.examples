@@ -1,5 +1,7 @@
+Sequential: Yes
 Database : berlintest
 Restore  : NO
+
 
 
 Operator : reservoir
@@ -8,3 +10,14 @@ Signature: ((stream int)) -> ((stream T))
 Example  : query intstream(1,10) reservoir[3] count
 Result   : 3
 
+Operator : bloom
+Number   : 2
+Signature: stream(T) x float x int -> bloomfilter, T in DATA or X in TUPLE
+Example  : query intstream(1,100) bloom[0.01, 100] cbloom[1]
+Result   : TRUE
+
+Operator : cbloom
+Number   : 3
+Signature: bloomfilter x T -> bool, T in DATA or T in TUPLE
+Example  : query intstream(1,100) bloom[0.01, 100] cbloom[1]
+Result   : TRUE

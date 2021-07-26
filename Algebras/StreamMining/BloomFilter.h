@@ -70,7 +70,7 @@ namespace eschbach {
   static ListExpr Property();
 
 
-   static const string BasicType() {
+   static const std::string BasicType() {
     return "bloomfilter";
   }
 
