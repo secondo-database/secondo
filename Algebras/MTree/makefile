@@ -25,8 +25,6 @@
 DOCU_FILES = MT1 MTreeAlgebra.h \
 	MTree.h MTreeBase.h MTreeConfig.h MTreeSplitpol.h
 
-DOCU = docu
-
 # inlcude global definitions
 include ../../makefile.env
 
@@ -36,7 +34,7 @@ CCFLAGS += -Werror
 # create objects and algebra library. The values for the variables
 # OBJECTS and LIBOBJ are computed automatically by makefile.env
 .PHONY: all
-all: $(OBJECTS) $(LIBOBJ) $(DOCU)
+all: $(OBJECTS) $(LIBOBJ) mtree_docu
 
 # include pre-computed dependencies
 ifneq ($(MAKECMDGOALS),clean)
@@ -53,7 +51,8 @@ $(LIBOBJ): $(OBJECTS)
 # generic rule for cleaning all generated files
 .PHONY: clean
 clean:
+	rm -f mtree_docu
 	$(clean-algebra)
 
-docu:	$(DOCU_FILES)
+mtree_docu: $(DOCU_FILES)
 	cat $^ > mtree_docu
