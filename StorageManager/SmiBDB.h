@@ -277,13 +277,21 @@ class SmiDbHandleEntry
       return handle!=0;
     }
 
-    inline int closeAndDeleteHandle(u_int32_t flag){
-        if(!handle){
+    inline int closeAndDeleteHandle(u_int32_t flag) {
+
+        if(handle == nullptr) {
           return 1;
         }
+
+        if (inUse) {
+          std::cerr << "Error: Unable to delete DBHandle that is in use" 
+               << getFileName() << std::endl;
+          return 0;
+        }
+        
         int rc = handle->close(flag);
         delete handle;
-        handle=0;
+        handle = nullptr;
         return rc; 
     }
 
@@ -309,7 +317,7 @@ struct SmiCatalogEntry
   SmiCatalogEntry() : fileId(0), isKeyed(false), isFixed(false)
   {
     memset(fileName, 0, (2*SMI_MAX_NAMELEN+2) * sizeof(char));
-  }	  
+  }
 };
 /*
 Defines the structure of the entries in the file catalog.
@@ -322,8 +330,8 @@ struct SmiDropFilesEntry
 {
   SmiDropFilesEntry(SmiFileId id, bool b) : fileId(id), dropOnCommit(b)
   {
-    assert(fileId != 0);	  
-  }	  
+    assert(fileId != 0);
+  }
   SmiFileId fileId;
   bool      dropOnCommit;
 };
