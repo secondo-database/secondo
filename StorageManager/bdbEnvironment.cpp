@@ -292,8 +292,25 @@ SmiEnvironment::Implementation::FreeDbHandle( DbHandleIndex idx )
 void
 SmiEnvironment::Implementation::DeleteDbHandle( DbHandleIndex idx )
 {
-  int flag = 0;
-  instance.impl->dbHandles[idx].closeAndDeleteHandle(flag);
+    int flag = 0;
+
+    if ( dontSyncDiskCache ) {
+      flag = DB_NOSYNC;
+    }
+    
+    if (traceDBHandles)
+    {
+        string f = instance.impl->dbHandles[idx].getFileName();
+        cerr << "delete handle for idx = "
+              << idx << " (" << f << ")" << endl;
+    }
+
+    int rc = instance.impl->dbHandles[idx].closeAndDeleteHandle( flag );
+    SetBDBError(rc);
+    
+    instance.impl->dbHandles[idx].setNextFree(
+                                  instance.impl->firstFreeDbHandle);
+    instance.impl->firstFreeDbHandle = idx;
 }
 
 void
@@ -302,32 +319,17 @@ SmiEnvironment::Implementation::CloseDbHandles()
   SmiEnvironment::Implementation& env = (*(instance.impl));
   unsigned int size = env.dbHandles.size();
   int closed = 0;
-  int flag = 0;
-
-  if ( dontSyncDiskCache ) {
-    flag = DB_NOSYNC;
-  }
 
   if (traceDBHandles)
     cerr << "CloseDbHandles (size = " << size << ")" << endl;
+
   for ( DbHandleIndex idx = 1; idx < size; idx++ )
   {
     if ( !instance.impl->dbHandles[idx].isInUse() &&
           instance.impl->dbHandles[idx].hasHandle())
     {
+      DeleteDbHandle(idx);
       closed++;
-
-      if (traceDBHandles)
-      {
-	        string f = instance.impl->dbHandles[idx].getFileName();
-          cerr << "closing handle for idx = "
-               << idx << " (" << f << ")" << endl;
-      }
-      int rc = instance.impl->dbHandles[idx].closeAndDeleteHandle( flag );
-      SetBDBError(rc);
-      instance.impl->dbHandles[idx].setNextFree(
-                                    instance.impl->firstFreeDbHandle);
-      instance.impl->firstFreeDbHandle = idx;
     }
   }
 
