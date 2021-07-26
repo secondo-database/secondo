@@ -147,7 +147,7 @@ boost::interprocess::shared_memory_object* SmiEnvironment::file_id_shm=0;
 
 
 
-bool traceDBHandles = RTFlag::isActive("SMI:traceHandles");
+bool traceDBHandles = false;
 
 SmiEnvironment::SmiType SmiEnvironment::smiType = SmiEnvironment::SmiBerkeleyDB;
 
@@ -171,7 +171,6 @@ SmiEnvironment::Implementation::Implementation(const bool log_auto_remove)
   SmiDbHandleEntry dummy(0);
   dbHandles.push_back( dummy );
   firstFreeDbHandle = 0;
-
 }
 
 SmiEnvironment::Implementation::~Implementation()
@@ -197,6 +196,11 @@ SmiEnvironment::Implementation::AllocateDbHandle()
   #ifdef THREAD_SAFE
      boost::lock_guard<boost::recursive_mutex> guard(env_impl_mtx);
   #endif
+
+  // Read trace flag here, because class instance is initialized
+  // before RTFlags are parsed
+  traceDBHandles = RTFlag::isActive("SMI:traceHandles");
+
   DbHandleIndex idx = instance.impl->firstFreeDbHandle;
 
   if (traceDBHandles)
@@ -275,6 +279,13 @@ SmiEnvironment::Implementation::GetDbHandle( DbHandleIndex idx )
 void
 SmiEnvironment::Implementation::FreeDbHandle( DbHandleIndex idx )
 {
+  if (traceDBHandles)
+  {
+    string f = instance.impl->dbHandles[idx].getFileName();
+    cerr << "free handle for idx = "
+        << idx << " (" << f << ")" << endl;
+  }
+
   instance.impl->dbHandles[idx].setInUse(false);
 }
 
