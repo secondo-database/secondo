@@ -79,7 +79,7 @@ using namespace std;
 
 extern NestedList* nl;
 extern QueryProcessor *qp;
-
+extern AlgebraManager* am;
 
 namespace eschbach {
 
@@ -95,17 +95,17 @@ namespace eschbach {
 
 
 ScalableBloomFilter::ScalableBloomFilter
-(const float falsePositiveProbability, const long expectedInput) {
+(const float inputFP, const size_t expectedInput) {
   
   defined = true; 
   //Initialisierung der für die C++ Implementierung benötigten Variablen 
-  this->falsePositiveProbability = falsePositiveProbability;
+  falsePositiveProbability = inputFP;
   expectedInserts = expectedInput;
-  filterSize = optimalSize(expectedInserts, falsePositiveProbability);
-  numHashfunctions = optimalHashes(expectedInserts, filterSize);
+  filterSize = optimalSize(expectedInput, inputFP);
+  numHashfunctions = optimalHashes(expectedInput, filterSize);
   //initialize the vector with as many bits as you expect entries; 
   //values are standard initialized which means false for bool values
-  filter.resize(expectedInserts);
+  filter.resize(filterSize);
   assert (numHashfunctions>0);
 }
 
@@ -148,17 +148,21 @@ ScalableBloomFilter::getFilterSize() {
 void
 ScalableBloomFilter::initialize(float fp, size_t entries) {
   defined = true;
-  numHashfunctions = optimalHashes(entries, filterSize);
   falsePositiveProbability = fp;
   expectedInserts = entries;
   filterSize = optimalSize(entries, fp);
+  numHashfunctions = optimalHashes(entries, filterSize);
   filter.resize(filterSize);
 }
 
 size_t
 ScalableBloomFilter::optimalSize(const long expectedInserts, 
                                 const double fPProb) {
-  return (size_t) (-expectedInserts*log(fPProb)/ pow(log(2),2));
+  size_t optimalSize = -expectedInserts*log(fPProb)/ pow(log(2),2);
+  if (optimalSize < 1) {
+    return 1; 
+  }
+  return optimalSize;
 }
 
 long
@@ -245,7 +249,9 @@ Support Functions for Persistent Sorage
 Word
 ScalableBloomFilter::Create( const ListExpr typeInfo )
 {
-  return (SetWord( new ScalableBloomFilter( 0, 0 ) ));
+  Word w; 
+  w.addr = (new ScalableBloomFilter(0.1, 10));
+  return w;
 }
 
 void
@@ -351,7 +357,7 @@ ListExpr errorInfo = nl->OneElemList(nl->SymbolAtom("ErrorInfo"));
   if(!(   type.first().hasLength(2)
        && type.first().first().isSymbol(sym.STREAM()))){
     return NList::typeError( "Operator reservoir expects a stream "
-                             " as first argument");
+                             "as first argument");
   }
 
   // test second argument for int
@@ -391,18 +397,18 @@ ListExpr errorInfo = nl->OneElemList(nl->SymbolAtom("ErrorInfo"));
   // test first argument for stream
   if(!(   type.first().hasLength(2)
        && type.first().first().isSymbol(sym.STREAM()))){
-    return NList::typeError( "Operator reservoir expects a stream "
-                             " as first argument");
+    return NList::typeError( "Operator bloom expects a stream "
+                             "as first argument");
   }
 
   // test second argument for int
   if(type.second() != NList(CcReal::BasicType())) {
-    return NList::typeError("Operator reservoir expects a real "
+    return NList::typeError("Operator bloom expects a real "
                             "as second argument");
   }
 
     if(type.third() != NList(CcInt::BasicType())) {
-    return NList::typeError("Operator reservoir expects an int "
+    return NList::typeError("Operator bloom expects an int "
                             "as third argument");
   }
   
@@ -412,12 +418,10 @@ ListExpr errorInfo = nl->OneElemList(nl->SymbolAtom("ErrorInfo"));
           && streamtype.first().isSymbol(sym.TUPLE())
           && IsTupleDescription(streamtype.second().listExpr())
          )
-     && !(am->CheckKind(Kind::DATA(),streamtype.listExpr(),errorInfo))){
-      return NList::typeError("Operator reservoir expects a "
+          && !(am->CheckKind(Kind::DATA(),streamtype.listExpr(),errorInfo))){
+      return NList::typeError("Operator bloom expects a "
                               "stream of DATA or TUPLE.");
   }
-
-
 
   // result is a bloomfilter
   return nl->OneElemList(nl->SymbolAtom(ScalableBloomFilter::BasicType()));
@@ -443,7 +447,7 @@ cbloomTM(ListExpr args) {
   // test second argument for DATA or TUPLE
   if(!(type.second().isAtom()) || 
      listutils::isTupleStream(nl->Second(nl->Second(args)))) { 
-    return NList::typeError("Operator reservoir expects a TUPLE " 
+    return NList::typeError("Operator cbloom expects a TUPLE " 
                             "or DATA type as second argument");
   }
   return NList(CcBool::BasicType()).listExpr();
@@ -580,8 +584,7 @@ int reservoirSelect(ListExpr args){
 /*
 2.3.2 Operator ~bloom~
 */
-template<class T>
-int bloomVMT(Word* args, Word& result,
+int bloomVM(Word* args, Word& result,
            int message, Word& local, Supplier s){
   
   //take the parameters values supplied with the operator
@@ -602,79 +605,106 @@ int bloomVMT(Word* args, Word& result,
 
   //initialize the Filter with the values provided by the operator
   bloomFilter->initialize(fpProb->GetValue(),insertElements->GetValue());
+  cout << "After init() the bloom Filter has the values: " << endl;
+  cout << "Filtersize: " <<  bloomFilter->getFilterSize() <<endl;
+  cout << "Number of Hashes: " << bloomFilter->getNumberHashes()<< endl;
+  cout << "Defined: " << bloomFilter->getDefined() << endl;
+  cout << endl;
 
+  
   //Get the stream provided by the operator
-  Stream<T> stream(args[0]);
+  Stream<CcInt> stream(args[0]);
 
   //open the stream 
   stream.open();
   
   //Stream Elements will be saved here for use
-  T* streamElement;
+  CcInt* streamElement = stream.request();
 
-  //Streamelement hashvalues will be stored to be processed in one go
-  vector<size_t> hashvalues;
-  hashvalues.resize(bloomFilter->getNumberHashes());
-  
   /*Get the size of the Filter so we can %mod the hash 
   results to map to an index in the filter*/
   size_t filterSize = bloomFilter->getFilterSize();
+  int nHash = bloomFilter->getNumberHashes();
 
+  vector<size_t> hashvalues;
+
+ 
   //Prepare buffer for the MurmurHash3 output storage
   uint64_t mHash[2]; 
 
-  
   //while the stream can still provide elements:
-  while ((streamElement = stream.request())) {
+  while ((streamElement != 0)) {
+    hashvalues.reserve(nHash);
+    cout << "Entered while loop with elem " << *streamElement << endl;
     
     //Use the secondo Default Hashfunction to calculate h1    
-    size_t h1 = streamElement -> HashValue() % filterSize;
+    MurmurHash3_x64_128(streamElement, sizeof(streamElement), 0, mHash);
+    size_t h1 = mHash[0] % filterSize;
+    cout << "Result of first Hashfunction is " << mHash[0] << endl;
     hashvalues.push_back(h1);
 
-    /*64 Bit Version chosen, because of my System. 
-    Should we change this 64 bit? */
-    MurmurHash3_x64_128(streamElement, sizeof(streamElement), 0, mHash);
-    size_t h2 = mHash[0] % filterSize;
+    //more than 1 Hash is needed (probably always the case)
+    if (nHash > 1) {
+      /*64 Bit Version chosen, because of my System. 
+      Should we change this 64 bit? */
+      //MurmurHash3_x64_128(streamElement, sizeof(streamElement), 0, mHash);
+      size_t h2 = mHash[1] % filterSize;
+      hashvalues.push_back(h2);
+      cout << "Result of second Hashfunction is " << mHash[1] << endl;
+
     
-    //hash the streamelement for the appropriate number of times
-    for (int i = 0; i < bloomFilter->getNumberHashes(); i++) {
-      /*dereference the pointer of the Streamelement to 
-      hash Streamelements themselves and compute h_i according 
-      to Mitzenmacher and Kirschbaum*/
-      int elemHashValue = (h1 + i * h2 + i * i) % filterSize;
-      //order of elements is irrelevant; must only be set in the  filter  
-      hashvalues.push_back(elemHashValue);
+      //hash the streamelement for the appropriate number of times
+      for (int i = 2; i < nHash; i++) {
+          size_t h_i = (h1 + i * h2 + i * i) % filterSize;
+          //order of elements is irrelevant; must only be set in the  filter 
+          hashvalues.push_back(h_i);
+          cout << "Pushed " << h_i << " into the Hashvalue Vector" << endl;
+      }
+    } 
+    
+  
+    bloomFilter->add(hashvalues);
+    cout << "Added Hashvalues of Element " << *streamElement <<  
+    " to Bloomfilter"<< endl;
+
+    for (size_t elem : hashvalues) {
+      int i = 0; 
+      cout << "Hashvalue " << i << " is: " << elem << endl;
+      i++;
     }
-    
+
+    //delete old hashvalues vector
+    hashvalues.clear();
+
     streamElement->DeleteIfAllowed();
     /*set the bits corresponding to the elements 
     hashed values in the bloomfilter*/
-    bloomFilter->add(hashvalues);
+
+    //assign next Element from the Stream
+    streamElement = stream.request();   
   }
   
+  /*cout << "Final value of Bloomfilter is " << endl;
+  
+  for (bool elem : bloomFilter->getFilter()) {
+    int j = 0; 
+    cout << "Element " << j << " is: " << elem <<endl;
+    j++;
+  }*/
+
+  int truth = std::count(bloomFilter->getFilter().begin(), 
+  bloomFilter->getFilter().end(), true);
+  cout << "Number of true values in the filter is " << truth << endl;
+
   stream.close();
+  cout << "closed the stream" <<endl;
 
   result.setAddr(bloomFilter);
+  cout << "Set result Address << endl";
 
   return 0;
 }
 
-//value Mapping Array
-ValueMapping bloomVM[] = { 
-              bloomVMT<Tuple>,
-              bloomVMT<Attribute>
-};  
-
-// Selection Function
-int bloomSelect(ListExpr args){
-   if (Stream<Attribute>::checkType(nl->First(args))) {
-     return 1;
-   } else if (Stream<Tuple>::checkType(nl->First(args))){
-     return 0;
-   } else {
-     return -1;
-   }
-}
 
 /*
 2.3.3 Operator ~cbloom~
@@ -782,9 +812,8 @@ Operator reservoirOp(
 Operator bloomOp(
   "bloom",
   bloomSpec.getStr(),
-  2,
   bloomVM,
-  bloomSelect, 
+  Operator::SimpleSelect,
   bloomTM
 );
 
@@ -810,6 +839,14 @@ class StreamMiningAlgebra : public Algebra
  public:
   StreamMiningAlgebra() : Algebra()
   {
+
+    //Reigstration of Types
+    AddTypeConstructor(&scalableBloomFilterTC);
+
+    //Usage possibilities of the Types
+    scalableBloomFilterTC.AssociateKind(Kind::SIMPLE());
+
+    //Registration of Operators
     AddOperator(&reservoirOp);
     AddOperator(&bloomOp);
     AddOperator(&cbloomOp);

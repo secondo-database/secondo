@@ -29,7 +29,7 @@ namespace eschbach {
     class ScalableBloomFilter
 {
   public:
-  ScalableBloomFilter(const float inputErrorRate, const long expectedInput);
+  ScalableBloomFilter(const float inputErrorRate, const size_t expectedInput);
   ScalableBloomFilter(const ScalableBloomFilter& rhs);
   ~ScalableBloomFilter(){}
 
