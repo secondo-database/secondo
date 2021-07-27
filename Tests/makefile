@@ -60,6 +60,9 @@ TESTNAMES += base64encoder
 # Nested List: Parsing lists and converting from text to binary format
 TESTNAMES += nlchecker 
 
+# Raw BDB test
+TESTNAMES += testRawBDB 
+
 ifdef file
 TESTFILES := $(file)
 else
