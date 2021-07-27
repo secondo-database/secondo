@@ -123,6 +123,7 @@ file.
 #include "GenOps.h"
 #include "Stream.h"
 #include "Algebras/Spatial/DLine.h"
+#include "Algebras/SymbolicTrajectoryBasic/SymbolicTrajectoryBasicAlgebra.h"
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
@@ -12098,9 +12099,11 @@ ListExpr TypeMapApproximate(ListExpr args){
     restype = MBool::BasicType();
   }else if (listutils::isSymbol(type,CcString::BasicType())){
     restype = MString::BasicType();
+  }else if (listutils::isSymbol(type,stj::Label::BasicType())){
+    restype = stj::MLabel::BasicType();
   } else {
     return listutils::typeError("third argument is not an allowed type "
-                                 "(point, real, int, bool, string)");
+                                 "(point, real, int, bool, string, label)");
   }
 
   // check optional arguments
@@ -13961,6 +13964,8 @@ int ApproximateSelect(ListExpr args){
     return 3;
   } else if(type == MString::BasicType()){
     return 4;
+  } else if(type == stj::MLabel::BasicType()){
+    return 5;
   }
   return -1;
 }
@@ -17632,6 +17637,7 @@ ValueMapping approximatemap[] = {
   ApproximateMvalue<MInt, UInt, CcInt, false>,
   ApproximateMvalue<MBool, UBool, CcBool, false>,
   ApproximateMvalue<MString, UString, CcString, false>,
+  ApproximateMvalue<stj::MLabel, stj::ULabel, stj::Label, false>
 };
 
 ValueMapping minmap[] = { VM_Min<UReal, CcReal>,
@@ -18052,7 +18058,7 @@ const std::string TemporalSpecLinearize =
 const std::string TemporalSpecApproximate =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>stream(tuple(a1: t1) (...(an,tn) x ai x aj [ x bool ] [ x duration ]"
-  "-> mtj , (ti = instant, tj in {real,point,int,bool,string)</text--->"
+  "-> mtj , (ti = instant, tj in {real,point,int,bool,string,label)</text--->"
   "<text>_ approximate [ i, j, mc, dt_split ] </text--->"
   "<text>Computes a moving type from the time/value pairs of the stream "
   "argument. i/j indicate the attribute names for the time/value data within "
@@ -18900,7 +18906,7 @@ Operator temporallinearize2( "linearize2",
 
 Operator temporalapproximate( "approximate",
                            TemporalSpecApproximate,
-                           5,
+                           6,
                            approximatemap,
                            ApproximateSelect,
                            TypeMapApproximate );

@@ -510,6 +510,8 @@ class UBasic : public temporalalgebra::ConstTemporalUnit<B> {
   UBasic() : temporalalgebra::ConstTemporalUnit<B>(true) {}
   explicit UBasic(bool def) : temporalalgebra::ConstTemporalUnit<B>(def) {}
   explicit UBasic(const temporalalgebra::SecInterval &iv, const B& val);
+  UBasic(const temporalalgebra::Interval<datetime::DateTime>& iv,
+         const B& b1, const B& b2);
   UBasic(const UBasic& ub);
   
   ~UBasic() {}
@@ -1003,6 +1005,13 @@ template<class B>
 UBasic<B>::UBasic(const temporalalgebra::SecInterval &iv, const B& val)
     : temporalalgebra::ConstTemporalUnit<B>(iv, val) {
   this->SetDefined(iv.IsDefined() && val.IsDefined());
+}
+
+template<class B>
+UBasic<B>::UBasic(const temporalalgebra::Interval<datetime::DateTime>& iv,
+     const B& b1, const B& b2) : temporalalgebra::ConstTemporalUnit<B>(iv, b1) {
+  assert(b1 == b2);
+  this->SetDefined(iv.IsDefined() && b1.IsDefined());
 }
 
 template<class B>
