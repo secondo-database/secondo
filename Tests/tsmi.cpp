@@ -881,8 +881,10 @@ void TestFileCreation( )
 
 
        cout << "Close: " << kf.Close() << endl;
+       cout << "Remove: " << kf.Remove() << endl;
+
        cout << "Commit: " << SmiEnvironment::CommitTransaction() << endl;
-       Pause();
+       usleep(100000); 
        cout << "Begin: " << SmiEnvironment::BeginTransaction() << endl;
     }
     else
