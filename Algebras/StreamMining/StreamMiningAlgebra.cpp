@@ -611,24 +611,24 @@ int bloomVM(Word* args, Word& result,
   cout << "Defined: " << bloomFilter->getDefined() << endl;
   cout << endl;
 
-  
   //Get the stream provided by the operator
   Stream<CcInt> stream(args[0]);
 
   //open the stream 
   stream.open();
   
-  //Stream Elements will be saved here for use
+  //Pointers to stream elements will be saved here for use
   CcInt* streamElement = stream.request();
 
   /*Get the size of the Filter so we can %mod the hash 
   results to map to an index in the filter*/
   size_t filterSize = bloomFilter->getFilterSize();
-  int nHash = bloomFilter->getNumberHashes();
 
+  /*Get number of Hashfunctions so reserving the hash results
+  vector will be faster*/
+  int nHash = bloomFilter->getNumberHashes();
   vector<size_t> hashvalues;
 
- 
   //Prepare buffer for the MurmurHash3 output storage
   uint64_t mHash[2]; 
 
@@ -637,17 +637,15 @@ int bloomVM(Word* args, Word& result,
     hashvalues.reserve(nHash);
     cout << "Entered while loop with elem " << *streamElement << endl;
     
-    //Use the secondo Default Hashfunction to calculate h1    
-    MurmurHash3_x64_128(streamElement, sizeof(streamElement), 0, mHash);
+    /*64 Bit Version chosen, because of my System. 
+    Should we change this 64 bit? */    
+    MurmurHash3_x64_128(streamElement, sizeof(*streamElement), 0, mHash);
     size_t h1 = mHash[0] % filterSize;
     cout << "Result of first Hashfunction is " << mHash[0] << endl;
     hashvalues.push_back(h1);
 
     //more than 1 Hash is needed (probably always the case)
     if (nHash > 1) {
-      /*64 Bit Version chosen, because of my System. 
-      Should we change this 64 bit? */
-      //MurmurHash3_x64_128(streamElement, sizeof(streamElement), 0, mHash);
       size_t h2 = mHash[1] % filterSize;
       hashvalues.push_back(h2);
       cout << "Result of second Hashfunction is " << mHash[1] << endl;
@@ -662,23 +660,24 @@ int bloomVM(Word* args, Word& result,
       }
     } 
     
-  
+    /*set the bits corresponding to the elements 
+    hashed values in the bloomfilter*/
     bloomFilter->add(hashvalues);
+    
     cout << "Added Hashvalues of Element " << *streamElement <<  
     " to Bloomfilter"<< endl;
 
+    int i = 0; 
     for (size_t elem : hashvalues) {
-      int i = 0; 
       cout << "Hashvalue " << i << " is: " << elem << endl;
       i++;
     }
 
-    //delete old hashvalues vector
+    //delete old hashvalues from the vector
     hashvalues.clear();
 
     streamElement->DeleteIfAllowed();
-    /*set the bits corresponding to the elements 
-    hashed values in the bloomfilter*/
+
 
     //assign next Element from the Stream
     streamElement = stream.request();   
@@ -686,8 +685,8 @@ int bloomVM(Word* args, Word& result,
   
   /*cout << "Final value of Bloomfilter is " << endl;
   
+  int j = 0; 
   for (bool elem : bloomFilter->getFilter()) {
-    int j = 0; 
     cout << "Element " << j << " is: " << elem <<endl;
     j++;
   }*/
@@ -700,7 +699,7 @@ int bloomVM(Word* args, Word& result,
   cout << "closed the stream" <<endl;
 
   result.setAddr(bloomFilter);
-  cout << "Set result Address << endl";
+  cout << "Set result Address" << endl;
 
   return 0;
 }
