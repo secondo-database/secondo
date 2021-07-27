@@ -868,6 +868,33 @@ void TestCompBtreeFiles( bool makeUnique )
 #endif
 }
 
+void TestFileCreation( )
+{
+  while(true) {
+    SmiBtreeFile kf( SmiKey::String, false );
+    if ( kf.Create() )
+    {
+       cout << "String BtreeFile created FileId=" << kf.GetFileId() << endl;
+       cout << "BtreeFile name   =" << kf.GetName() << endl;
+       cout << "BtreeFile context=" << kf.GetContext() << endl;
+       cout << "(Returncodes: 1 = ok, 0 = error )" << endl;
+
+
+       cout << "Close: " << kf.Close() << endl;
+       cout << "Commit: " << SmiEnvironment::CommitTransaction() << endl;
+       Pause();
+       cout << "Begin: " << SmiEnvironment::BeginTransaction() << endl;
+    }
+    else
+    {
+      cout << "BtreeFile create failed:" 
+          << SmiEnvironment::GetLastErrorCode() << endl;
+    }
+  }
+}
+
+
+
 // --- Main
 
 int main( int argc, char* argv[] )
@@ -885,7 +912,8 @@ int main( int argc, char* argv[] )
          << "  -6:  Test SmiBtreeFiles (Float duplicate keys)" << endl 
          << "  -7:  Test SmiBtreeFiles (Composite duplicate keys)" << endl
          << "  -8 [REC_SIZE MAX_RECORDS]:  " 
-         << "Performance tests for scanning RecordFiles" << endl;
+         << "Performance tests for scanning RecordFiles" << endl
+         << "  -9:  Test SmiBtreeFiles re-creation and locks" << endl; 
     exit(1); 
   }
 
@@ -1015,6 +1043,12 @@ int main( int argc, char* argv[] )
       TestFileScan();
       break;
       }
+      case 9 : {
+      cout << "*** Test BTree re-creation ***" << endl;
+      TestFileCreation();
+      break;
+      }
+
 
       default: {
       cout << "Error: Unkown mode!" << endl;
