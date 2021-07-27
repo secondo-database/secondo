@@ -94,6 +94,8 @@ class NTreeNode {
     return dc(center, node->center);
   }
   
+  virtual void store(const T& o, DistComp& dc) = 0;
+  
   virtual void split(DistComp& dc, const int partitionStrategy = 0) = 0;
   
   virtual void clear(const bool deleteContent) = 0;
@@ -115,6 +117,9 @@ class NTreeNode {
   int count;
 };
 
+template<class T, class DistComp>
+class NTreeLeafNode;
+
 /*
 2 class NTreeInnerNode
 
@@ -124,6 +129,7 @@ class NTreeInnerNode : public NTreeNode<T, DistComp> {
  public:
   typedef NTreeInnerNode<T, DistComp> innernode_t;
   typedef NTreeNode<T, DistComp> node_t;
+  typedef NTreeLeafNode<T, DistComp> leafnode_t;
   
   NTreeInnerNode(const T& o, const int d, const int mls) : node_t(o, d, mls) {
     children = new node_t*[node_t::degree];
@@ -186,9 +192,23 @@ class NTreeInnerNode : public NTreeNode<T, DistComp> {
     return children[pos];
   }
   
+  void store(const T& o, DistComp& dc) {
+    int pos = getNearestChildPos(o, dc);
+    double dist = dc(*(getChild(pos)), o);
+    if (dist <= tolerance) { // store in existing child node/subtree
+      getChild(pos)->store(o, dc);
+    }
+    else { // store in new child node
+      leafnode_t* newChild = new leafnode_t(o, node_t::degree, 
+                                            node_t::maxLeafSize);
+      storeChild(newChild, dc);
+    }
+  }
+  
   void storeChild(node_t* newChild, DistComp& dc) {
     children[node_t::count] = newChild;
     node_t::count++;
+    newChild->store(newChild->getCenter(), dc);
     newChild->setParent(this, dc);
   }
   
@@ -522,7 +542,7 @@ class NTreeAux {
         }
         std::random_shuffle(positions.begin(), positions.end());
         for (int i = 0; i < size; i++) {
-          result[i] = entries[positions[i]].clone();
+          result[i] = entries[positions[i]]->clone();
         }
         return result;
         break;

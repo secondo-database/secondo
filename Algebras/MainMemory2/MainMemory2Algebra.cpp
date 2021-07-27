@@ -21872,7 +21872,7 @@ int mcreatentreeSelect(ListExpr args) {
  // note: if adding attributes with flobs, the value mapping must be changed
 
 ValueMapping mcreatentreeVM[] = {
-//   mcreatentreeVMTStream<mtreehelper::t1>,
+//   mcreatentreeVMTStream<mtreehelper::t1>
 //   mcreatentreeVMTStream<mtreehelper::t2>,
 //   mcreatentreeVMTStream<mtreehelper::t3>,
 //   mcreatentreeVMTStream<mtreehelper::t4>,
