@@ -294,6 +294,11 @@ Signature : MMTREE(T) x MREL(X)  x T -> stream(X)
 Example   : query mKinos_GeoData_mtree2 mKinos mdistScan[alexanderplatz] head[17] extend[D : distance(.GeoData, alexanderplatz)] max[D]  <= 2000.0
 Result    : TRUE
 
+Operator  : mcreatentree
+Number    : 1909
+Signature : stream(tuple) x IDENT x IDENT x int x int [x geoid] -> (mpointer(mem(ntree ...) )
+Example   : let mkinos_GeoData_ntree =  Kinos feed addid head[0] mcreatentree[GeoData, TID, 4, 8]
+Result    : ()
 
 Operator  : mcreateAVLtree
 Number    : 56

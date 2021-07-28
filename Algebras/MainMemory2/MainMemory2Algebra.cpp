@@ -497,7 +497,7 @@ class StdDistComp{
 //     }
 
     ostream& print( const MTreeEntry<T>& e,  ostream& o){
-       o << "<"; e.getKey()->Print(o); o << e.getTid() << ">";
+       o << "<("; e.getKey()->Print(o); o << ", " << e.getTid() << ")>";
        return o;
     }
     
@@ -21594,6 +21594,7 @@ main memory relation and the attribute to be indexed.
 */
 
 ListExpr mcreatentreeTM(ListExpr args) {
+  cout << "--- start TM ---" << endl;
   string err = "expected: stream(tuple) x attrname x attrname x int x int "
                "[x geoid] or MREL x attrname x int x int [x geoid]";
 
@@ -21757,6 +21758,14 @@ int mcreatentreeVMTStream(Word* args, Word& result, int message, Word& local,
     res->setPointer(0);
     return 0;
   }
+  int degree = ccDegree->GetValue();
+  int maxLeafSize = ccMaxLeafSize->GetValue();
+  if (degree < 1 || maxLeafSize < 1 || degree > maxLeafSize) {
+    cout << "invalid parameters: degree=" << degree << ", maxLeafSize=" 
+         << maxLeafSize << endl;
+    res->setPointer(0);
+    return 0;
+  }
   NTree<MTreeEntry<T>, StdDistComp<T> >* tree =
     new NTree<MTreeEntry<T>, StdDistComp<T> >(ccDegree->GetValue(),
                                               ccMaxLeafSize->GetValue(), dc);
@@ -21764,16 +21773,23 @@ int mcreatentreeVMTStream(Word* args, Word& result, int message, Word& local,
   stream.open();
   Tuple* tuple;
   bool flobused = false;
+  int partitionStrategy = 0; // TODO: add parameter
+  cout << "*** start loop";
   while ((tuple = stream.request())) {
     T* attr = (T*)tuple->GetAttribute(index1);
+    cout << endl << "  insert " << *attr << endl;
     TupleIdentifier* tid = (TupleIdentifier*)tuple->GetAttribute(index2);
     if (tid->IsDefined()) {
       flobused = flobused || (attr->NumOfFLOBs() > 0);
+      cout << "   TID = " << tid->GetTid() << endl;
       MTreeEntry<T> entry(*attr, tid->GetTid());
-      tree->insert(entry);
+      tree->insert(entry, partitionStrategy);
     }
     tuple->DeleteIfAllowed();
+    cout << "  "; tree->print(cout);
   }
+  cout << "*** end loop" << endl;
+  tree->print(cout);
   stream.close();
   size_t usedMem = tree->memSize();
   ListExpr typeList = nl->Second(qp->GetType(s));
@@ -21872,30 +21888,30 @@ int mcreatentreeSelect(ListExpr args) {
  // note: if adding attributes with flobs, the value mapping must be changed
 
 ValueMapping mcreatentreeVM[] = {
-//   mcreatentreeVMTStream<mtreehelper::t1>
-//   mcreatentreeVMTStream<mtreehelper::t2>,
-//   mcreatentreeVMTStream<mtreehelper::t3>,
-//   mcreatentreeVMTStream<mtreehelper::t4>,
-//   mcreatentreeVMTStream<mtreehelper::t5>,
-//   mcreatentreeVMTStream<mtreehelper::t6>,
-//   mcreatentreeVMTStream<mtreehelper::t7>,
-//   mcreatentreeVMTStream<mtreehelper::t8>,
-//   mcreatentreeVMTStream<mtreehelper::t9>,
-//   mcreatentreeVMTStream<mtreehelper::t10>,
-//   mcreatentreeVMTStream<mtreehelper::t11>,
-//   mcreatentreeVMTStream<mtreehelper::t12>,
-//   mcreatentreeVMTMP<mtreehelper::t1>,
-//   mcreatentreeVMTMP<mtreehelper::t2>,
-//   mcreatentreeVMTMP<mtreehelper::t3>,
-//   mcreatentreeVMTMP<mtreehelper::t4>,
-//   mcreatentreeVMTMP<mtreehelper::t5>,
-//   mcreatentreeVMTMP<mtreehelper::t6>,
-//   mcreatentreeVMTMP<mtreehelper::t7>,
-//   mcreatentreeVMTMP<mtreehelper::t8>,
-//   mcreatentreeVMTMP<mtreehelper::t9>,
-//   mcreatentreeVMTMP<mtreehelper::t10>,
-//   mcreatentreeVMTMP<mtreehelper::t11>,
-//   mcreatentreeVMTMP<mtreehelper::t12>
+  mcreatentreeVMTStream<mtreehelper::t1>,
+  mcreatentreeVMTStream<mtreehelper::t2>,
+  mcreatentreeVMTStream<mtreehelper::t3>,
+  mcreatentreeVMTStream<mtreehelper::t4>,
+  mcreatentreeVMTStream<mtreehelper::t5>,
+  mcreatentreeVMTStream<mtreehelper::t6>,
+  mcreatentreeVMTStream<mtreehelper::t7>,
+  mcreatentreeVMTStream<mtreehelper::t8>,
+  mcreatentreeVMTStream<mtreehelper::t9>,
+  mcreatentreeVMTStream<mtreehelper::t10>,
+  mcreatentreeVMTStream<mtreehelper::t11>,
+  mcreatentreeVMTStream<mtreehelper::t12>,
+  mcreatentreeVMTMP<mtreehelper::t1>,
+  mcreatentreeVMTMP<mtreehelper::t2>,
+  mcreatentreeVMTMP<mtreehelper::t3>,
+  mcreatentreeVMTMP<mtreehelper::t4>,
+  mcreatentreeVMTMP<mtreehelper::t5>,
+  mcreatentreeVMTMP<mtreehelper::t6>,
+  mcreatentreeVMTMP<mtreehelper::t7>,
+  mcreatentreeVMTMP<mtreehelper::t8>,
+  mcreatentreeVMTMP<mtreehelper::t9>,
+  mcreatentreeVMTMP<mtreehelper::t10>,
+  mcreatentreeVMTMP<mtreehelper::t11>,
+  mcreatentreeVMTMP<mtreehelper::t12>
 };
 
 OperatorSpec mcreatentreeSpec(
@@ -21936,15 +21952,6 @@ Operator mcreatentreeOp(
    mcreatentreeSelect,
    mcreatentreeTM
 );
-
-
-
-
-
-
-
-
-
 
 /*
 23 Algebra Definition
@@ -22033,6 +22040,8 @@ class MainMemory2Algebra : public Algebra {
           AddOperator(&matchbelowSOp);
 
           AddOperator(&gettuplesOp);
+          
+          AddOperator(&mcreatentreeOp);
           
   ////////////////////// MainMemory2Algebra////////////////////////////
           
