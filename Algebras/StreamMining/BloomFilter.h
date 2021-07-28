@@ -34,12 +34,15 @@ namespace eschbach {
   ~ScalableBloomFilter(){}
 
   //Getter und Setter
-  bool getDefined();
+  bool getDefined() const;
   void setDefined();
-  bool getElement(size_t index); 
-  int getNumberHashes();
-  size_t getFilterSize();
-  std::vector<bool> getFilter(); 
+  size_t getInserts() const; 
+  float getFP() const;
+  bool getElement(size_t index) const;
+  int getNumberHashes() const;
+  size_t getFilterSize() const;
+  std::vector<bool> getFilter() const;
+  void setFilter(std::vector<bool> filter); 
 
   //Auxiliary Functions
   void initialize(float fp, size_t entries);
@@ -59,8 +62,14 @@ namespace eschbach {
 
   static void     Delete( const ListExpr typeInfo, Word& w );
 
+  /*static void     Open(SmiRecord& valueRecord, size_t& offset, 
+                         const ListExpr typeInfo, Word& value);
+  */
   static void     Close( const ListExpr typeInfo, Word& w );
 
+  /*static bool     Save(SmiRecord & valueRecord , size_t & offset,
+                       const ListExpr typeInfo , Word & value);
+  */
   static Word     Clone( const ListExpr typeInfo, const Word& w );
 
   static bool     KindCheck( ListExpr type, ListExpr& errorInfo );

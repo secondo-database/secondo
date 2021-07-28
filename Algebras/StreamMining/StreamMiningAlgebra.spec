@@ -19,7 +19,7 @@
 
 operator reservoir alias RESERVOIR pattern _ op[_]
 
-operator tilted alias TILTEd pattern _ op[_]
+operator tilted alias TILTED pattern _ op[_]
 
 operator bloom alias BLOOM pattern _ op[_,_]
 

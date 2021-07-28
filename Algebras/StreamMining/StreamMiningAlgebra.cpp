@@ -110,12 +110,15 @@ ScalableBloomFilter::ScalableBloomFilter
 }
 
 ScalableBloomFilter::ScalableBloomFilter(const ScalableBloomFilter& rhs):
-  falsePositiveProbability(rhs.falsePositiveProbability), 
-  expectedInserts(rhs.expectedInserts){}
+  defined(rhs.defined),
+  falsePositiveProbability(rhs.falsePositiveProbability),
+  expectedInserts(rhs.expectedInserts),
+  filter(rhs.filter)
+  {}
 
 //Setter and Getter
 bool
-ScalableBloomFilter::getDefined() {
+ScalableBloomFilter::getDefined() const {
   return defined;
 }
 
@@ -124,25 +127,42 @@ ScalableBloomFilter::setDefined() {
   defined = true;
 }
 
+size_t
+ScalableBloomFilter::getInserts() const{
+  return expectedInserts;
+}
+
+float
+ScalableBloomFilter::getFP() const{
+  return falsePositiveProbability;
+}
+
 vector<bool> 
-ScalableBloomFilter::getFilter() {
+ScalableBloomFilter::getFilter() const{
   return filter;
 }
 
+void 
+ScalableBloomFilter::setFilter(vector<bool> inputFilter) {
+  filter = inputFilter;
+}
+
 bool
-ScalableBloomFilter::getElement(size_t index) {
+ScalableBloomFilter::getElement(size_t index) const{
   return filter[index];
 } 
 
 int
-ScalableBloomFilter::getNumberHashes() {
+ScalableBloomFilter::getNumberHashes() const{
   return numHashfunctions;
 }
 
 size_t
-ScalableBloomFilter::getFilterSize() {
+ScalableBloomFilter::getFilterSize() const{
   return filterSize;
 }
+
+
 
 //Auxiliary Functions
 void
@@ -171,7 +191,6 @@ ScalableBloomFilter::optimalHashes(const long expectedInserts,
   return (long) max(1, (int) round((long) filterSize/expectedInserts * log(2)));
 }
 
-//Create, Delete, Clone and Close must be implemented;
 bool 
 ScalableBloomFilter::contains(vector<size_t> hashResults) const {
   bool present = true;
@@ -212,12 +231,40 @@ ScalableBloomFilter::isSaturated(const ScalableBloomFilter& b) {
 Word
 ScalableBloomFilter::In(const ListExpr typeInfo, const ListExpr instance,
                 const int errorPos, ListExpr& errorInfo, bool& correct) {
-  ScalableBloomFilter* newBloomfilter;
-  newBloomfilter = new ScalableBloomFilter(0.8, 10000);
-  return SetWord(newBloomfilter);
-}
-  //Out-Function to turn List Representation into Class Representation
+  
+  Word result = SetWord(Address(0));
+  correct = false;
+  NList list (instance); 
 
+  if(list.length() != 3){
+    cmsg.inFunError("expected three arguments");
+    return result; 
+  }
+
+  NList first = list.first();
+  NList second = list.second();
+  NList third = list.third();
+  NList index;
+
+  if(!first.isReal() || !second.isInt() || !third.isList()) {
+    cmsg.inFunError("expected three numbers");
+    return result;
+  } 
+
+  if (third.first().isBool()) {
+    float fp = first.realval();
+    size_t inserts = second.intval();
+    ScalableBloomFilter* bloom = new ScalableBloomFilter(fp, inserts);
+    for (size_t i = 0; i < bloom->getFilterSize(); i++) {
+      index = third.first();
+      third.rest();
+      bloom -> getFilter()[i] = index.boolval();
+    }
+  }
+  return result;
+}
+
+//Out-Function to turn List Representation into Class Representation
 ListExpr
 ScalableBloomFilter::Out(ListExpr typeInfo, Word value) {
   ScalableBloomFilter* bloomfilter = 
@@ -226,21 +273,20 @@ ScalableBloomFilter::Out(ListExpr typeInfo, Word value) {
     return listutils::getUndefined();
   }
 
-  ListExpr element; 
-  ListExpr list = nl -> TheEmptyList();
-  ListExpr last = nl -> TheEmptyList(); 
+  ListExpr elementList = nl -> OneElemList(nl->BoolAtom(
+                              bloomfilter->getElement(0)));
+  ListExpr last = elementList; 
 
-  for (size_t i = 0; i < bloomfilter -> getFilter().size(); i++) {
-    element = bloomfilter -> getElement(i);
-    
-    if (i == 0) {
-      list = nl -> OneElemList(element);
-      last = list;
-    } else {
-      last = nl -> Append(last, element);
-    }
+  for (size_t i = 0; i < bloomfilter -> getFilter().size(); i++) {    
+      last = nl -> Append(last, nl->BoolAtom(bloomfilter->getElement(i)));
   }
-  return list;
+
+  ListExpr returnList = nl -> ThreeElemList(
+                              nl -> RealAtom(bloomfilter->getFP()),
+                              nl -> IntAtom(bloomfilter->getFilterSize()),
+                              last);
+
+  return returnList;
 }
 
 /*
@@ -261,6 +307,40 @@ ScalableBloomFilter::Delete( const ListExpr typeInfo, Word& w )
   w.addr = 0;
 }
 
+/*void
+ScalableBloomFilter::Open(SmiRecord& valueRecord, size_t& offset, const ListExpr typeInfo,
+                         Word& value) 
+{
+  size_t size = sizeof ( double );
+
+
+  double x ,y ,r ;
+  bool ok = ( valueRecord . Read (& x , size , offset ) == size );
+  offset += size ;
+  ok = ok && ( valueRecord . Read (& y , size , offset ) == size );
+  offset += size ;
+  ok = ok && ( valueRecord . Read (& r , size , offset ) == size );
+  offset += size ;
+  if ( ok ){
+    value . addr = new ScalableBloomFilter(x ,y , r );
+  } else {
+    value . addr =  0;
+  }
+}
+
+
+bool 
+ScalableBloomFilter::Save(SmiRecord & valueRecord , size_t & offset ,
+const ListExpr typeInfo , Word & value) {
+  ScalableBloomFilter* bloomFilter = static_cast<ScalableBloomFilter*> (value.addr);
+  size_t size = sizeof(bool);
+  bool defined = bloomFilter->getDefined();
+  bool ok = valueRecord.Write(&defined, size, offset);
+  offset+-size;
+
+}
+*/ 
+
 void
 ScalableBloomFilter::Close( const ListExpr typeInfo, Word& w )
 {
@@ -268,11 +348,12 @@ ScalableBloomFilter::Close( const ListExpr typeInfo, Word& w )
   w.addr = 0;
 }
 
+
 Word
 ScalableBloomFilter::Clone( const ListExpr typeInfo, const Word& w )
 {
-  ScalableBloomFilter* p = static_cast<ScalableBloomFilter*>( w.addr );
-  return SetWord( new ScalableBloomFilter(*p) );
+  ScalableBloomFilter* oldFilter = static_cast<ScalableBloomFilter*>( w.addr );
+  return SetWord( new ScalableBloomFilter(*oldFilter) );
 }
 
 
@@ -319,7 +400,7 @@ TypeConstructor scalableBloomFilterTC( bi, bf );
 2.2 Type Mapping Functions
 
 These functions check whether the correct argument types are supplied for an
-operator; if so, returns a list expression for the result type, otherwise the
+operator; if so, returns a elementList expression for the result type, otherwise the
 symbol ~typeerror~.
 
 
@@ -424,7 +505,7 @@ ListExpr errorInfo = nl->OneElemList(nl->SymbolAtom("ErrorInfo"));
   }
 
   // result is a bloomfilter
-  return nl->OneElemList(nl->SymbolAtom(ScalableBloomFilter::BasicType()));
+  return NList(ScalableBloomFilter::BasicType()).listExpr();
 }
 
 /*
@@ -445,12 +526,13 @@ cbloomTM(ListExpr args) {
   }
 
   // test second argument for DATA or TUPLE
-  if(!(type.second().isAtom()) || 
-     listutils::isTupleStream(nl->Second(nl->Second(args)))) { 
-    return NList::typeError("Operator cbloom expects a TUPLE " 
-                            "or DATA type as second argument");
-  }
-  return NList(CcBool::BasicType()).listExpr();
+  if(type.second().isAtom()) {
+      return NList(CcBool::BasicType()).listExpr(); 
+  } else if (listutils::isTupleStream(nl->Second(nl->Second(args)))) {
+      return NList(CcBool::BasicType()).listExpr(); 
+  }    
+  return NList::typeError("Operator cbloom expects a TUPLE " 
+                       "or DATA type as second argument");
 }
 
 
@@ -626,7 +708,7 @@ int bloomVM(Word* args, Word& result,
 
   /*Get number of Hashfunctions so reserving the hash results
   vector will be faster*/
-  int nHash = bloomFilter->getNumberHashes();
+  int nbrHashes = bloomFilter->getNumberHashes();
   vector<size_t> hashvalues;
 
   //Prepare buffer for the MurmurHash3 output storage
@@ -634,7 +716,7 @@ int bloomVM(Word* args, Word& result,
 
   //while the stream can still provide elements:
   while ((streamElement != 0)) {
-    hashvalues.reserve(nHash);
+    hashvalues.reserve(nbrHashes);
     cout << "Entered while loop with elem " << *streamElement << endl;
     
     /*64 Bit Version chosen, because of my System. 
@@ -645,14 +727,14 @@ int bloomVM(Word* args, Word& result,
     hashvalues.push_back(h1);
 
     //more than 1 Hash is needed (probably always the case)
-    if (nHash > 1) {
+    if (nbrHashes > 1) {
       size_t h2 = mHash[1] % filterSize;
       hashvalues.push_back(h2);
       cout << "Result of second Hashfunction is " << mHash[1] << endl;
 
     
       //hash the streamelement for the appropriate number of times
-      for (int i = 2; i < nHash; i++) {
+      for (int i = 2; i < nbrHashes; i++) {
           size_t h_i = (h1 + i * h2 + i * i) % filterSize;
           //order of elements is irrelevant; must only be set in the  filter 
           hashvalues.push_back(h_i);
@@ -683,17 +765,13 @@ int bloomVM(Word* args, Word& result,
     streamElement = stream.request();   
   }
   
-  /*cout << "Final value of Bloomfilter is " << endl;
+  cout << "Final value of Bloomfilter is " << endl;
   
-  int j = 0; 
+  int j = 0;
   for (bool elem : bloomFilter->getFilter()) {
     cout << "Element " << j << " is: " << elem <<endl;
     j++;
-  }*/
-
-  int truth = std::count(bloomFilter->getFilter().begin(), 
-  bloomFilter->getFilter().end(), true);
-  cout << "Number of true values in the filter is " << truth << endl;
+  }
 
   stream.close();
   cout << "closed the stream" <<endl;
@@ -723,27 +801,36 @@ int cbloomVMT(Word* args, Word& result,
   //Make the Storage provided by QP easily usable
   CcBool* b = (CcBool*) result.addr;
 
-  //prepare a vector to take in the Hashresults
-  vector<size_t> hashResults; 
-
   //Prepare buffer for the MurmurHash3 output storage
-  uint64_t mHash[2]; 
+  uint64_t mHash[2];
 
   //Take Size of the bloomFilter
   size_t filterSize = bloomFilter -> getFilterSize();
 
-  int h1 = searchEle -> HashValue() % filterSize;
-  
-  MurmurHash3_x64_128(searchEle, sizeof(searchEle), 0, mHash);
-  int h2 = mHash[0] % filterSize;
+  //Take number of hashfunctions used by the bloomFilter
+  int nbrHashes = bloomFilter -> getNumberHashes();
 
-  for (int i = 0; i < bloomFilter -> getNumberHashes(); i++) {
-    int elemHashValue = (h1 + i * h2 + i * i) % filterSize;
+  //prepare a vector to take in the Hashresults
+  vector<size_t> hashValues; 
+  hashValues.reserve(nbrHashes);
+
+  //hash the Searchelement
+  MurmurHash3_x64_128(searchEle, sizeof(*searchEle), 0, mHash);
+  
+  size_t h1 = mHash[0]% filterSize;
+  hashValues.push_back(h1);
+  
+  size_t h2 = mHash[1] % filterSize;
+  hashValues.push_back(h2);
+
+  for (int i = 2; i < nbrHashes; i++) {
+    size_t h_i = (h1 + i * h2 + i * i) % filterSize;
     //order of elements is irrelevant; must only be set in the  filter  
-    hashResults.push_back(elemHashValue);
+    hashValues.push_back(h_i);
   }
 
-  b->Set(true, bloomFilter->contains(hashResults));
+  bool contains = bloomFilter->contains(hashValues);
+  b->Set(true, contains);
 
   return 0;
 }
@@ -790,7 +877,7 @@ int cbloomSelect(ListExpr args){
    "scalablebloomfilter x T -> bool, T = TUPLE or T = DATA",
    "_ cbloom [_]",
    "Checks for the presence of Element T in a supplied Bloomfilter",
-   "query cbloom([const scalablebloomfilter value (10, 0.001)])"
+   "query intstream(1,10000) bloom[10, 0.001] cbloom[1]"
   );
 
 
