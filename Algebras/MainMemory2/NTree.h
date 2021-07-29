@@ -37,6 +37,9 @@ neighbor searches.
 template<class T, class DistComp>
 class NTreeAux;
 
+template<class T, class DistComp>
+class NTreeInnerNode;
+
 /*
 1 class NTreeNode
 
@@ -45,6 +48,7 @@ template<class T, class DistComp>
 class NTreeNode {
  public:
   typedef NTreeNode<T, DistComp> node_t;
+  typedef NTreeInnerNode<T, DistComp> innernode_t;
   
   virtual ~NTreeNode() {}
   
@@ -81,12 +85,17 @@ class NTreeNode {
 
   virtual node_t* clone() = 0;
 
-  node_t* getParent() {
+  innernode_t* getParent() {
     return parent;
   }
   
-  void setParent(node_t* p) {
+  int getPosInParent() {
+    return posInParent;
+  }
+  
+  void setParent(innernode_t* p, const int pos) {
     parent = p;
+    posInParent = pos;
   }
   
   double centerDist(const T& o, DistComp& dc) const {
@@ -109,12 +118,14 @@ class NTreeNode {
   
  protected:
   NTreeNode(const T& c, const int d, const int mls) :
-      center(c), degree(d), maxLeafSize(mls), parent(0), count(0) {}
+    center(c), degree(d), maxLeafSize(mls), parent(0), posInParent(-1), count(0)
+    {}
    
   T center;
   int degree;
   int maxLeafSize;
-  node_t* parent;
+  innernode_t* parent;
+  int posInParent;
   int count;
 };
 
@@ -188,30 +199,33 @@ class NTreeInnerNode : public NTreeNode<T, DistComp> {
     return result;
   }
   
+  void setChild(const int pos, node_t* child, const bool deleteCurrent) {
+    assert(pos >= 0);
+    assert(pos < node_t::degree);
+    if (children[pos] && deleteCurrent) {
+      delete children[pos];
+    }
+    children[pos] = child;
+  }
+  
   node_t* getNearestChild(const T& o, DistComp& dc) const {
     int pos = getNearestChildPos(o, dc);
     return children[pos];
   }
   
   void insert(const T& o, DistComp& dc, const int partitionStrategy = 0) {
-    if (node_t::count < node_t::degree) { // add new child node
+    if (node_t::count == 0) { // add new child node
       children[node_t::count] = new leafnode_t(o, node_t::degree, 
                                                node_t::maxLeafSize);
-      (children[node_t::count])->setParent(this);
+      (children[node_t::count])->insert(o, dc, partitionStrategy);
+      (children[node_t::count])->setParent(this, node_t::count);
       node_t::count++;
     }
-    else { // inner node full, proceed to nearest child
+    else { // insert into child with nearest center
       int pos = getNearestChildPos(o, dc);
       children[pos]->insert(o, dc, partitionStrategy);
     }
   }
-  
-//   void storeChild(node_t* newChild, DistComp& dc) {
-//     children[node_t::count] = newChild;
-//     node_t::count++;
-//     newChild->store(*(newChild->getCenter()), dc);
-//     newChild->setParent(this);
-//   }
   
   int getChildPos(const node_t* child) const {
     for (int i = 0; i < node_t::count; i++) {
@@ -228,7 +242,7 @@ class NTreeInnerNode : public NTreeNode<T, DistComp> {
     res->count = node_t::count;
     for (int i = 0; i < node_t::count; i++) {
       res->children[i] = children[i]->clone();
-      res->children[i]->setParent(res);
+      res->children[i]->setParent(res, i);
     }  
     return res;
   }
@@ -252,7 +266,7 @@ class NTreeInnerNode : public NTreeNode<T, DistComp> {
     return out;
   }
   
-  void split(DistComp& dc, const int partitionStrategy = 0) {}
+  void split(DistComp& dc, const int partitionStrategy = 0) {} //only for leaves
 
   int getNoLeaves() const {
     int sum = 0;
@@ -346,7 +360,7 @@ class NTreeLeafNode : public NTreeNode<T, DistComp> {
   void insert(const T& o, DistComp& dc, const int partitionStrategy = 0) {
     entries[node_t::count] = new T(o);
     node_t::count++;
-    if (node_t::count == node_t::maxLeafSize) {
+    if (node_t::count > node_t::maxLeafSize) {
       split(dc, partitionStrategy);
     }
   }
@@ -388,21 +402,26 @@ class NTreeLeafNode : public NTreeNode<T, DistComp> {
   }
   
   void split(DistComp& dc, const int partitionStrategy = 0) {
-    //TODO: split from father (?)
-    leafnode_t* thisLeafToDelete = this;
-    innernode_t* newInnerNode = new innernode_t(node_t::center, node_t::degree,
-                                                node_t::maxLeafSize);
-    newInnerNode->setParent(this->parent);
-    T** newCenters = NTreeAux<T, DistComp>::computeCenters(entries, 
-                                                           node_t::count, 0);
-    for (int i = 0; i < node_t::degree; i++) { // create new leaves for centers
-      newInnerNode->insert(*(newCenters[i]), dc, partitionStrategy);    
-    }
-    // assign further entries to new leaves
-    for (int i = node_t::degree + 1; i < node_t::count; i++) {
-      newInnerNode->insert(*(newCenters[i]), dc, partitionStrategy);
-    }
-    delete thisLeafToDelete;
+//     leafnode_t* thisLeafToDelete = this;
+//     std::pair<T*, T*> newCenters = 
+//        NTreeAux<T,DistComp>::computeCenters(entries, partitionStrategy);
+//     leafnode_t* newLeaf1 = new leafnode_t(*(newCenters.first), 
+//         node_t::degree, node_t::maxLeafSize);
+//     leafnode_t* newLeaf2 = new leafnode_t(*(newCenters.second), 
+//         node_t::degree, node_t::maxLeafSize);
+//     for (int i = 0; i < node_t::count; i++) {
+//       double dist1 = dc(*entries[i], *(newCenters.first));
+//       double dist2 = dc(*entries[i], *(newCenters.second));
+//       if (dist1 <= dist2) {
+//         newLeaf1->insert(entries[i]->clone());
+//       }
+//       else {
+//         newLeaf2->insert(entries[i]->clone());
+//       }
+//       this->getParent()->deleteChild(this->getPosInParent());
+//       this->getParent()->addLeaf(newLeaf1);
+//       this->getParent()->addLeaf(newLeaf2);
+//     }
   }
   
  private:
@@ -469,7 +488,7 @@ class NTree {
   
   void insert(T& o, const int partitionStrategy = 0) {
     if (!root) {
-      root = new leafnode_t(o, degree, maxLeafSize);
+      root = new innernode_t(o, degree, maxLeafSize);
     }
     root = insert(root, o, dc, partitionStrategy);
   }
@@ -514,20 +533,6 @@ class NTree {
   static node_t* insert(node_t* root, const T& o, DistComp& dc,
                         const int partitionStrategy = 0) {
     root->insert(o, dc, partitionStrategy);
-//     node_t* child = root;
-//     while (!child->isLeaf()) {
-//       child = ((innernode_t*)child)->getNearestChild(o, dc);
-//       distanceWithinTolerance = (dc(*(child->getCenter()), o) <= tolerance);
-//     }
-//     if (!child->isLeaf()) {
-//       // TODO: create new leaf node as child of child
-//     }
-//     else {
-//       ((leafnode_t*)child)->store(o, dc);
-//       if (((leafnode_t*)child)->isOverflow()) {
-//         ((leafnode_t*)child)->split(dc, partitionStrategy);
-//       }
-//     }
     return root;
   }
 };
