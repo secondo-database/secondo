@@ -468,6 +468,7 @@ ListExpr errorInfo = nl->OneElemList(nl->SymbolAtom("ErrorInfo"));
 ListExpr
 createbloomfilterTM( ListExpr args ) {
 NList type(args);
+NList streamtype = type.first();
 NList appendList;
 
 ListExpr errorInfo = nl->OneElemList(nl->SymbolAtom("ErrorInfo"));
@@ -478,41 +479,38 @@ ListExpr errorInfo = nl->OneElemList(nl->SymbolAtom("ErrorInfo"));
                             "four arguments");
   }
 
-  // test first argument for stream
-  if(!(   type.first().hasLength(2)
-       && type.first().first().isSymbol(sym.STREAM()))){
-    return NList::typeError( "Operator createbloomfilter expects a stream "
-                             "as first argument");
+  // test first argument for being a tuple stream
+  if(!Stream<Attribute>::checkType(nl->First(args))) {
+    return NList::typeError( "Operator createbloomfilter expects an "
+                             "Attribute Stream as first argument");
   }
 
   //test second argument for a valid Attribute Name
-  
   if (!type.second().isSymbol()){
-    return NList::typeError("Operator createbloomfilter a valid "
-                            "Attribute Name as second argument)");
+    return NList::typeError("Operator createbloomfilter expects a valid "
+                            "Attribute Name as second argument");
   }
 
   // test third argument for real
   if(type.third() != NList(CcReal::BasicType())) {
     return NList::typeError("Operator createbloomfilter expects a real "
-                            "as second argument");
+                            "value as second argument");
   }
 
   //test fourth argument for int
   if(type.fourth() != NList(CcInt::BasicType())) {
     return NList::typeError("Operator createbloomfilter expects an int "
-                            "as third argument");
+                            "value as third argument");
   }
   
   // stream elements must be in kind tuple (X) with X in DATA
-  NList streamtype = type.first().second();
-  if(   !(   streamtype.hasLength(2)
+  if(!(streamtype.hasLength(2)
           && streamtype.first().isSymbol(sym.TUPLE())
           && IsTupleDescription(streamtype.second().listExpr())
          )
           && !(am->CheckKind(Kind::DATA(),streamtype.listExpr(),errorInfo))){
-      return NList::typeError("Operator createbloomfilter expects a "
-                              "stream of");
+      return NList::typeError("Operator createbloomfilter can only handle "
+                              "Attributetype Tuple values");
   }
 
   //extract index of the attribute we intend to hash
@@ -550,18 +548,17 @@ bloomcontainsTM(ListExpr args) {
 
   // test first argument for scalablebloomfilter
   if(type.first() != NList(ScalableBloomFilter::BasicType())){
-    return NList::typeError( "Operator bloomcontains expects a "
+    return NList::typeError("Operator bloomcontains expects a "
                             "Bloomfilter as first argument");
   }
 
   // test second argument for DATA or TUPLE
   if(type.second().isAtom()) {
-      return NList(CcBool::BasicType()).listExpr(); 
-  } else if (listutils::isTupleStream(nl->Second(nl->Second(args)))) {
-      return NList(CcBool::BasicType()).listExpr(); 
+    return NList(CcBool::BasicType()).listExpr(); 
   }    
-  return NList::typeError("Operator bloomcontains expects a TUPLE " 
-                       "or DATA type as second argument");
+
+  return NList::typeError("Operator bloomcontains expects an  " 
+                          "ATTRIBUTE as second argument");
 }
 
 
@@ -695,7 +692,7 @@ int reservoirSelect(ListExpr args){
 /*
 2.3.2 Operator ~createbloomfilter~
 */
-int createbloomfilterVMT(Word* args, Word& result,
+int createbloomfilterVM(Word* args, Word& result,
            int message, Word& local, Supplier s){
   
   //take the parameters values supplied with the operator
@@ -814,7 +811,7 @@ int createbloomfilterVMT(Word* args, Word& result,
 /*
 2.3.3 Operator ~bloomcontains~
 */
-int bloomcontainsVMT(Word* args, Word& result,
+int bloomcontainsVM(Word* args, Word& result,
            int message, Word& local, Supplier s){
   
   //take the parameters values supplied with the operator
@@ -914,18 +911,18 @@ Operator reservoirOp(
 );
 
 Operator createbloomfilterOp(
-  "bloom",
-  bloomSpec.getStr(),
-  bloomVM,
+  "createbloomfilter",
+  createbloomfilterSpec.getStr(),
+  createbloomfilterVM,
   Operator::SimpleSelect,
-  bloomTM
+  createbloomfilterTM
 );
 
 Operator bloomcontainsOp(
   "bloomcontains",
-  bloomcontains.getStr(),
+  bloomcontainsSpec.getStr(),
   bloomcontainsVM,
-  bloomcontainsSelect, 
+  Operator::SimpleSelect, 
   bloomcontainsTM
 );
 

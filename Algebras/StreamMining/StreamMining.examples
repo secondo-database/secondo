@@ -13,11 +13,11 @@ Result   : 3
 Operator : createbloomfilter
 Number   : 2
 Signature: (stream(tuple(X)) x ATTR) x int x real ->  bloomfilter, X in DATA
-Example  : query Kinos feed createbloomfilter[Name, 300, 0.01] cbloom["Astor"]
+Example  : query Kinos feed createbloomfilter[Name,300,0.01] bloomcontains["Astor"]
 Result   : TRUE
 
 Operator : bloomcontains
 Number   : 3
 Signature: bloomfilter x T -> bool, T in DATA or T in TUPLE
-Example  : query Kinos feed createbloomfilter[Name, 300, 0.01] cbloom["Berlino"]
+Example  : query Kinos feed createbloomfilter[Name,300,0.01] bloomcontains["Berlino"]
 Result   : FALSE
