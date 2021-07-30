@@ -213,15 +213,31 @@ class NTreeInnerNode : public NTreeNode<T, DistComp> {
     return children[pos];
   }
   
+  void deleteChild(const int pos) {
+    assert(pos >= 0);
+    assert(pos < node_t::count);
+    if (children[pos]) {
+      delete children[pos];
+      children[pos] = 0;
+    }
+  }
+  
+  void addChild(node_t* child) {
+    assert(node_t::count < node_t::degree);
+    children[node_t::count] = child;
+    child->setParent(this, node_t::count);
+    node_t::count++;
+  }
+  
   void insert(const T& o, DistComp& dc, const int partitionStrategy = 0) {
-    if (node_t::count == 0) { // add new child node
+    if (node_t::count < node_t::degree) { // add new child node
       children[node_t::count] = new leafnode_t(o, node_t::degree, 
                                                node_t::maxLeafSize);
       (children[node_t::count])->insert(o, dc, partitionStrategy);
       (children[node_t::count])->setParent(this, node_t::count);
       node_t::count++;
     }
-    else { // insert into child with nearest center
+    else { // node full; insert into child with nearest center
       int pos = getNearestChildPos(o, dc);
       children[pos]->insert(o, dc, partitionStrategy);
     }
@@ -403,25 +419,24 @@ class NTreeLeafNode : public NTreeNode<T, DistComp> {
   
   void split(DistComp& dc, const int partitionStrategy = 0) {
 //     leafnode_t* thisLeafToDelete = this;
-//     std::pair<T*, T*> newCenters = 
-//        NTreeAux<T,DistComp>::computeCenters(entries, partitionStrategy);
-//     leafnode_t* newLeaf1 = new leafnode_t(*(newCenters.first), 
-//         node_t::degree, node_t::maxLeafSize);
-//     leafnode_t* newLeaf2 = new leafnode_t(*(newCenters.second), 
-//         node_t::degree, node_t::maxLeafSize);
-//     for (int i = 0; i < node_t::count; i++) {
-//       double dist1 = dc(*entries[i], *(newCenters.first));
-//       double dist2 = dc(*entries[i], *(newCenters.second));
-//       if (dist1 <= dist2) {
-//         newLeaf1->insert(entries[i]->clone());
-//       }
-//       else {
-//         newLeaf2->insert(entries[i]->clone());
-//       }
-//       this->getParent()->deleteChild(this->getPosInParent());
-//       this->getParent()->addLeaf(newLeaf1);
-//       this->getParent()->addLeaf(newLeaf2);
-//     }
+    innernode_t* newInnerNode = new innernode_t(this->center, node_t::degree, 
+                                                node_t::maxLeafSize);
+    T** newCenters = NTreeAux<T, DistComp>::computeCenters(entries, 
+                                              node_t::count, partitionStrategy);
+    for (int i = 0; i < node_t::degree; i++) { // create new leaves
+      leafnode_t* newLeaf = new leafnode_t(*(newCenters[i]), node_t::degree, 
+                                           node_t::maxLeafSize);
+      newInnerNode->addChild(newLeaf);
+    }
+    for (int i = 0; i < node_t::count; i++) { // spread rem. entr.
+      newInnerNode->insert(*(newCenters[i]), dc, partitionStrategy);
+    }
+    this->getParent()->setChild(this->posInParent, newInnerNode, true);
+    
+    
+    
+//     thisLeafToDelete->clear(false);
+//     delete thisLeafToDelete;
   }
   
  private:
