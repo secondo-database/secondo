@@ -21,7 +21,7 @@ operator reservoir alias RESERVOIR pattern _ op[_]
 
 operator tilted alias TILTED pattern _ op[_]
 
-operator bloom alias BLOOM pattern _ op[_,_]
+operator createbloomfilter alias BLOOM pattern _ op[_,_,_]
 
-operator cbloom alias CBLOOM pattern _op[_]
+operator bloomcontains alias BLOOMC pattern _op[_]
 

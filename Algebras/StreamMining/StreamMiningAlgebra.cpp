@@ -43,10 +43,10 @@ It provides the following operators:
     The type (natural, logarithmic, progressive logarithmic) depends 
     on the provided int. 
 
-  * bloom: stream x real x int [->] bloomfilter
+  * createbloomfilter: stream x real x int [->] bloomfilter
     Creates a Bloomfilter for a Stream with maximum error probability float and size int.  
 
-  * cbloom: bloomfilter x T [->] bool
+  * bloomcontains: bloomfilter x T [->] bool
     Checks whether the provided Argument of Type T is present in the filter
 
 1 Preliminaries
@@ -368,7 +368,7 @@ struct scalableBloomFilterInfo : ConstructorInfo {
     name         = ScalableBloomFilter::BasicType();
     signature    = "-> " + Kind::SIMPLE();
     typeExample  = ScalableBloomFilter::BasicType();
-    listRep      =  "(true, false, false, false, true)";
+    listRep      =  "()";
     valueExample = "(4 12 2 8)";
     remarks      = "";
   }
@@ -415,7 +415,7 @@ Type mapping for ~tilted~ is
 
 Type mapping for ~bloom~ is
 
-----    (stream T) x real x int -> scalablebloomfilter
+----    (stream(tuple(X)) x ATTR) x int x real -> bloomfilter
 
 Type mapping for ~cbloom~ is
 ----    scalablebloomfilter x T -> bool
@@ -463,65 +463,94 @@ ListExpr errorInfo = nl->OneElemList(nl->SymbolAtom("ErrorInfo"));
 }
 
 /*
-2.2.2 Operator ~bloom~
+2.2.2 Operator ~createbloomfilter~
 */
 ListExpr
-bloomTM( ListExpr args ) {
+createbloomfilterTM( ListExpr args ) {
 NList type(args);
+NList appendList;
+
 ListExpr errorInfo = nl->OneElemList(nl->SymbolAtom("ErrorInfo"));
 
   // three arguments must be supplied
-  if (type.length() != 3){
-    return NList::typeError("Operator bloom expects three arguments");
+  if (type.length() != 4){
+    return NList::typeError("Operator createbloomfilter expects "
+                            "four arguments");
   }
 
   // test first argument for stream
   if(!(   type.first().hasLength(2)
        && type.first().first().isSymbol(sym.STREAM()))){
-    return NList::typeError( "Operator bloom expects a stream "
+    return NList::typeError( "Operator createbloomfilter expects a stream "
                              "as first argument");
   }
 
-  // test second argument for int
-  if(type.second() != NList(CcReal::BasicType())) {
-    return NList::typeError("Operator bloom expects a real "
+  //test second argument for a valid Attribute Name
+  
+  if (!type.second().isSymbol()){
+    return NList::typeError("Operator createbloomfilter a valid "
+                            "Attribute Name as second argument)");
+  }
+
+  // test third argument for real
+  if(type.third() != NList(CcReal::BasicType())) {
+    return NList::typeError("Operator createbloomfilter expects a real "
                             "as second argument");
   }
 
-    if(type.third() != NList(CcInt::BasicType())) {
-    return NList::typeError("Operator bloom expects an int "
+  //test fourth argument for int
+  if(type.fourth() != NList(CcInt::BasicType())) {
+    return NList::typeError("Operator createbloomfilter expects an int "
                             "as third argument");
   }
   
-  // stream elements must be in kind DATA or (tuple X)
+  // stream elements must be in kind tuple (X) with X in DATA
   NList streamtype = type.first().second();
   if(   !(   streamtype.hasLength(2)
           && streamtype.first().isSymbol(sym.TUPLE())
           && IsTupleDescription(streamtype.second().listExpr())
          )
           && !(am->CheckKind(Kind::DATA(),streamtype.listExpr(),errorInfo))){
-      return NList::typeError("Operator bloom expects a "
-                              "stream of DATA or TUPLE.");
+      return NList::typeError("Operator createbloomfilter expects a "
+                              "stream of");
   }
 
-  // result is a bloomfilter
-  return NList(ScalableBloomFilter::BasicType()).listExpr();
+  //extract index of the attribute we intend to hash
+  NList attrList = type.first().second().second();
+  ListExpr type2;
+  string attrName = type.second().str();
+  int attrIndex = listutils::findAttribute(attrList.listExpr(), 
+                                           attrName, type2);
+
+  if (attrIndex <= 0) {
+    return NList::typeError("Attribute " + attrName + 
+                            "not found in tuple");
+  }
+
+
+  appendList.append(NList().intAtom(attrIndex));
+
+  /* result is a bloomfilter and we append the index of 
+     the attribute of the tuples which will be hashed to create our filter 
+  */
+  return NList(Symbols::APPEND(), appendList, 
+               ScalableBloomFilter::BasicType()).listExpr();
 }
 
 /*
-2.2.3 Operator ~cbloom~
+2.2.3 Operator ~bloomcontains~
 */
 ListExpr
-cbloomTM(ListExpr args) {
+bloomcontainsTM(ListExpr args) {
   NList type(args); 
   // two arguments must be supplied
   if (type.length() != 2){
-    return NList::typeError("Operator cbloom expects two arguments");
+    return NList::typeError("Operator bloomcontains expects two arguments");
   }
 
   // test first argument for scalablebloomfilter
   if(type.first() != NList(ScalableBloomFilter::BasicType())){
-    return NList::typeError( "Operator cbloom expects a "
+    return NList::typeError( "Operator bloomcontains expects a "
                             "Bloomfilter as first argument");
   }
 
@@ -531,7 +560,7 @@ cbloomTM(ListExpr args) {
   } else if (listutils::isTupleStream(nl->Second(nl->Second(args)))) {
       return NList(CcBool::BasicType()).listExpr(); 
   }    
-  return NList::typeError("Operator cbloom expects a TUPLE " 
+  return NList::typeError("Operator bloomcontains expects a TUPLE " 
                        "or DATA type as second argument");
 }
 
@@ -664,14 +693,17 @@ int reservoirSelect(ListExpr args){
 
 
 /*
-2.3.2 Operator ~bloom~
+2.3.2 Operator ~createbloomfilter~
 */
-int bloomVM(Word* args, Word& result,
+int createbloomfilterVMT(Word* args, Word& result,
            int message, Word& local, Supplier s){
   
   //take the parameters values supplied with the operator
   CcReal* fpProb = (CcReal*) args[1].addr;
   CcInt* insertElements = (CcInt*) args[2].addr;
+  CcInt* attrIndexPointer = (CcInt*) args[4].addr;
+
+  int attrIndex = attrIndexPointer->GetIntval();
 
   //Get the Resultstorage provided by the Query Processor
   result = qp -> ResultStorage(s);
@@ -694,13 +726,15 @@ int bloomVM(Word* args, Word& result,
   cout << endl;
 
   //Get the stream provided by the operator
-  Stream<CcInt> stream(args[0]);
+  Stream<Tuple> stream(args[0]);
 
   //open the stream 
   stream.open();
   
   //Pointers to stream elements will be saved here for use
-  CcInt* streamElement = stream.request();
+  Tuple* streamTuple = (Tuple*) stream.request();
+
+  Attribute* streamElement; 
 
   /*Get the size of the Filter so we can %mod the hash 
   results to map to an index in the filter*/
@@ -715,23 +749,21 @@ int bloomVM(Word* args, Word& result,
   uint64_t mHash[2]; 
 
   //while the stream can still provide elements:
-  while ((streamElement != 0)) {
+  while ((streamTuple != 0)) {
     hashvalues.reserve(nbrHashes);
-    cout << "Entered while loop with elem " << *streamElement << endl;
+
+    streamElement = (Attribute*) streamTuple->GetAttribute(attrIndex);
     
     /*64 Bit Version chosen, because of my System. 
     Should we change this 64 bit? */    
     MurmurHash3_x64_128(streamElement, sizeof(*streamElement), 0, mHash);
     size_t h1 = mHash[0] % filterSize;
-    cout << "Result of first Hashfunction is " << mHash[0] << endl;
     hashvalues.push_back(h1);
 
     //more than 1 Hash is needed (probably always the case)
     if (nbrHashes > 1) {
       size_t h2 = mHash[1] % filterSize;
       hashvalues.push_back(h2);
-      cout << "Result of second Hashfunction is " << mHash[1] << endl;
-
     
       //hash the streamelement for the appropriate number of times
       for (int i = 2; i < nbrHashes; i++) {
@@ -745,9 +777,6 @@ int bloomVM(Word* args, Word& result,
     /*set the bits corresponding to the elements 
     hashed values in the bloomfilter*/
     bloomFilter->add(hashvalues);
-    
-    cout << "Added Hashvalues of Element " << *streamElement <<  
-    " to Bloomfilter"<< endl;
 
     int i = 0; 
     for (size_t elem : hashvalues) {
@@ -762,7 +791,7 @@ int bloomVM(Word* args, Word& result,
 
 
     //assign next Element from the Stream
-    streamElement = stream.request();   
+    streamTuple = stream.request();   
   }
   
   cout << "Final value of Bloomfilter is " << endl;
@@ -782,18 +811,15 @@ int bloomVM(Word* args, Word& result,
   return 0;
 }
 
-
 /*
-2.3.3 Operator ~cbloom~
+2.3.3 Operator ~bloomcontains~
 */
-
-template<class T>
-int cbloomVMT(Word* args, Word& result,
+int bloomcontainsVMT(Word* args, Word& result,
            int message, Word& local, Supplier s){
   
   //take the parameters values supplied with the operator
   ScalableBloomFilter* bloomFilter = (ScalableBloomFilter*) args[0].addr;
-  T* searchEle = (T*) args[1].addr;
+  Attribute* searchEle = (Attribute*) args[1].addr;
 
   //Get the Resultstorage provided by the Query Processor
   result = qp -> ResultStorage(s);
@@ -802,7 +828,7 @@ int cbloomVMT(Word* args, Word& result,
   CcBool* b = (CcBool*) result.addr;
 
   //Prepare buffer for the MurmurHash3 output storage
-  uint64_t mHash[2];
+  uint64_t cmHash[2];
 
   //Take Size of the bloomFilter
   size_t filterSize = bloomFilter -> getFilterSize();
@@ -815,12 +841,12 @@ int cbloomVMT(Word* args, Word& result,
   hashValues.reserve(nbrHashes);
 
   //hash the Searchelement
-  MurmurHash3_x64_128(searchEle, sizeof(*searchEle), 0, mHash);
+  MurmurHash3_x64_128(searchEle, sizeof(*searchEle), 0, cmHash);
   
-  size_t h1 = mHash[0]% filterSize;
+  size_t h1 = cmHash[0]% filterSize;
   hashValues.push_back(h1);
   
-  size_t h2 = mHash[1] % filterSize;
+  size_t h2 = cmHash[1] % filterSize;
   hashValues.push_back(h2);
 
   for (int i = 2; i < nbrHashes; i++) {
@@ -829,28 +855,19 @@ int cbloomVMT(Word* args, Word& result,
     hashValues.push_back(h_i);
   }
 
+  cout << "Hashvalues of Searchelement in cbloom: " << endl;
+  cout << endl;
+
+  int i = 0;
+  for (size_t elem : hashValues) {
+    cout << "Elem " << i << " value: " << elem << endl;
+    i++;
+  }
+
   bool contains = bloomFilter->contains(hashValues);
   b->Set(true, contains);
 
   return 0;
-}
-
-//value Mapping Array
-ValueMapping cbloomVM[] = { 
-             cbloomVMT<Tuple>,
-             cbloomVMT<Attribute>
-};  
-
-// Selection Function
-int cbloomSelect(ListExpr args){
-  NList type(args);
-   if (type.second().isAtom()) {
-     return 1;
-   } else if (nl->SymbolAtom(sym.TUPLE())){
-     return 0;
-   } else {
-     return -1;
-   }
 }
 
 
@@ -866,16 +883,17 @@ int cbloomSelect(ListExpr args){
    "query intstream(1,1000) reservoir[10] count"
   );
 
-  OperatorSpec bloomSpec(
+  OperatorSpec createbloomfilterSpec(
    "stream(X) x int -> bloom filter",
-   "_ bloom [_ , _]",
-   "Creates a Bloomfilter of a supplied stream",
+   "_ createbloomfilter [_,_,_]",
+   "Creates a Bloomfilter of a supplied stream with the given ",
+   "False Positive rate for the expected number of inserts",
    "query intstream(1,10000) bloom[10, 0.001]"
   );
 
-  OperatorSpec cbloomSpec(
+  OperatorSpec bloomcontainsSpec(
    "scalablebloomfilter x T -> bool, T = TUPLE or T = DATA",
-   "_ cbloom [_]",
+   "_ bloomcontains [_]",
    "Checks for the presence of Element T in a supplied Bloomfilter",
    "query intstream(1,10000) bloom[10, 0.001] cbloom[1]"
   );
@@ -895,7 +913,7 @@ Operator reservoirOp(
   reservoirTM
 );
 
-Operator bloomOp(
+Operator createbloomfilterOp(
   "bloom",
   bloomSpec.getStr(),
   bloomVM,
@@ -903,13 +921,12 @@ Operator bloomOp(
   bloomTM
 );
 
-Operator cbloomOp(
-  "cbloom",
-  cbloomSpec.getStr(),
-  2,
-  cbloomVM,
-  cbloomSelect, 
-  cbloomTM
+Operator bloomcontainsOp(
+  "bloomcontains",
+  bloomcontains.getStr(),
+  bloomcontainsVM,
+  bloomcontainsSelect, 
+  bloomcontainsTM
 );
 
 
@@ -934,8 +951,8 @@ class StreamMiningAlgebra : public Algebra
 
     //Registration of Operators
     AddOperator(&reservoirOp);
-    AddOperator(&bloomOp);
-    AddOperator(&cbloomOp);
+    AddOperator(&createbloomfilterOp);
+    AddOperator(&bloomcontainsOp);
   }
   ~StreamMiningAlgebra() {};
 };
