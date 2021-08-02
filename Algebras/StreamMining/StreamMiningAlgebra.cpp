@@ -113,6 +113,7 @@ ScalableBloomFilter::ScalableBloomFilter(const ScalableBloomFilter& rhs):
   defined(rhs.defined),
   falsePositiveProbability(rhs.falsePositiveProbability),
   expectedInserts(rhs.expectedInserts),
+  numHashfunctions(rhs.numHashfunctions),
   filter(rhs.filter)
   {}
 
@@ -468,8 +469,10 @@ ListExpr errorInfo = nl->OneElemList(nl->SymbolAtom("ErrorInfo"));
 ListExpr
 createbloomfilterTM( ListExpr args ) {
 NList type(args);
-NList streamtype = type.first();
+NList streamtype = type.first().second();
 NList appendList;
+
+ListExpr a = nl->First(args);
 
 ListExpr errorInfo = nl->OneElemList(nl->SymbolAtom("ErrorInfo"));
 
@@ -480,9 +483,9 @@ ListExpr errorInfo = nl->OneElemList(nl->SymbolAtom("ErrorInfo"));
   }
 
   // test first argument for being a tuple stream
-  if(!Stream<Attribute>::checkType(nl->First(args))) {
-    return NList::typeError( "Operator createbloomfilter expects an "
-                             "Attribute Stream as first argument");
+  if(!Stream<Tuple>::checkType(a)){
+    return NList::typeError( "Operator createbloomfilter expects a "
+                             "Tuple Stream as first argument");
   }
 
   //test second argument for a valid Attribute Name
@@ -518,10 +521,10 @@ ListExpr errorInfo = nl->OneElemList(nl->SymbolAtom("ErrorInfo"));
   ListExpr type2;
   string attrName = type.second().str();
   int attrIndex = listutils::findAttribute(attrList.listExpr(), 
-                                           attrName, type2);
+                                           attrName, type2) - 1;
 
-  if (attrIndex <= 0) {
-    return NList::typeError("Attribute " + attrName + 
+  if (attrIndex < 0) {
+    return NList::typeError("Attribute " + attrName + " "
                             "not found in tuple");
   }
 
@@ -696,9 +699,13 @@ int createbloomfilterVM(Word* args, Word& result,
            int message, Word& local, Supplier s){
   
   //take the parameters values supplied with the operator
-  CcReal* fpProb = (CcReal*) args[1].addr;
-  CcInt* insertElements = (CcInt*) args[2].addr;
+  CcReal* fpProb = (CcReal*) args[2].addr;
+  cout << "Expected FP is: " << fpProb -> GetValue() << endl;
+  CcInt* insertElements = (CcInt*) args[3].addr;
+  cout << "Expected inserts are: " << insertElements -> GetValue() << endl;
   CcInt* attrIndexPointer = (CcInt*) args[4].addr;
+  cout << "Looking for Attribute at Index: " 
+       << attrIndexPointer ->GetValue() << endl; 
 
   int attrIndex = attrIndexPointer->GetIntval();
 
