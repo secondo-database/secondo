@@ -619,7 +619,11 @@ class MTreeEntry {
 
   MTreeEntry( const MTreeEntry& src): key(src.key), tid(src.tid) {
     bringToMemory(&key); 
-  } 
+  }
+  
+  MTreeEntry(const bool def) : key(def), tid(0) {
+    bringToMemory(&key);
+  }
   
   void bringToMemory(void* v) {}
   

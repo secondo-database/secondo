@@ -296,8 +296,8 @@ Result    : TRUE
 
 Operator  : mcreatentree
 Number    : 1909
-Signature : stream(tuple) x IDENT x IDENT x int x int [x geoid] -> (mpointer(mem(ntree ...) )
-Example   : let mkinos_GeoData_ntree =  Kinos feed addid head[0] mcreatentree[GeoData, TID, 4, 8]
+Signature : MREL x IDENT x int x int [x geoid] -> (mpointer(mem(ntree ...) )
+Example   : let mkinos_GeoData_ntree = mKinos mcreatentree[GeoData, 4, 8]
 Result    : ()
 
 Operator  : mcreateAVLtree

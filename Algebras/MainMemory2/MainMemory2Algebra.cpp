@@ -21740,126 +21740,120 @@ ListExpr mcreatentreeTM(ListExpr args) {
 6.2 Value Mapping template
 
 */
+// template<class T>
+// int mcreatentreeVMTStream(Word* args, Word& result, int message, Word& local,
+//                           Supplier s) {
+//   result = qp->ResultStorage(s);
+//   MPointer* res = (MPointer*)result.addr;
+//   Geoid* geoid = (Geoid*)args[5].addr;
+//   int index1 = ((CcInt*)args[6].addr)->GetValue(); 
+//   int index2 = ((CcInt*)args[7].addr)->GetValue(); 
+//   if (!geoid->IsDefined()) {
+//     geoid = 0;
+//   }
+//   StdDistComp<T> dc(geoid);
+//   CcInt* ccDegree = (CcInt*)args[3].addr;
+//   CcInt* ccMaxLeafSize = (CcInt*)args[4].addr;
+//   if (!ccDegree->IsDefined() || !ccMaxLeafSize->IsDefined()) {
+//     res->setPointer(0);
+//     return 0;
+//   }
+//   int degree = ccDegree->GetValue();
+//   int maxLeafSize = ccMaxLeafSize->GetValue();
+//   if (degree < 1 || maxLeafSize < 1 || degree > maxLeafSize) {
+//     cout << "invalid parameters: degree=" << degree << ", maxLeafSize=" 
+//          << maxLeafSize << endl;
+//     res->setPointer(0);
+//     return 0;
+//   }
+//   NTree<MTreeEntry<T>, StdDistComp<T> >* tree =
+//     new NTree<MTreeEntry<T>, StdDistComp<T> >(ccDegree->GetValue(),
+//                                               ccMaxLeafSize->GetValue(), dc);
+//   Stream<Tuple> stream(args[0]);
+//   stream.open();
+//   Tuple* tuple;
+//   bool flobused = false;
+//   int partitionStrategy = 0; // TODO: add parameter
+//   cout << "*** start loop";
+//   while ((tuple = stream.request())) {
+//     T* attr = (T*)tuple->GetAttribute(index1);
+//     cout << endl << "  insert " << *attr << endl;
+//     TupleIdentifier* tid = (TupleIdentifier*)tuple->GetAttribute(index2);
+//     if (tid->IsDefined()) {
+//       flobused = flobused || (attr->NumOfFLOBs() > 0);
+//       cout << "   TID = " << tid->GetTid() << endl;
+//       MTreeEntry<T> entry(*attr, tid->GetTid());
+//       tree->insert(entry, partitionStrategy);
+//     }
+//     tuple->DeleteIfAllowed();
+//     cout << "  "; tree->print(cout);
+//   }
+//   cout << "*** end loop" << endl;
+//   tree->print(cout);
+//   stream.close();
+//   size_t usedMem = tree->memSize();
+//   ListExpr typeList = nl->Second(qp->GetType(s));
+//   MemoryNtreeObject<T, StdDistComp<T> >* ntree = 
+//       new MemoryNtreeObject<T, StdDistComp<T> >(
+//           tree, usedMem, nl->ToString(typeList), !flobused, getDBname());
+//   res->setPointer(ntree);
+//   ntree->deleteIfAllowed();
+//   return 0;
+// }
+
+
 template<class T>
-int mcreatentreeVMTStream(Word* args, Word& result, int message, Word& local,
-                          Supplier s) {
+int mcreatentreeVMT(Word* args, Word& result, int message, Word& local,
+                    Supplier s) {
   result = qp->ResultStorage(s);
   MPointer* res = (MPointer*)result.addr;
-  Geoid* geoid = (Geoid*)args[5].addr;
-  int index1 = ((CcInt*)args[6].addr)->GetValue(); 
-  int index2 = ((CcInt*)args[7].addr)->GetValue(); 
+  MPointer* mrelp = (MPointer*)args[0].addr;
+  if (mrelp->isNull()) {
+    res->setPointer(0);
+    return 0;
+  }
+  Geoid* geoid = (Geoid*)args[4].addr;
+  int index = ((CcInt*)args[5].addr)->GetValue(); 
+//    string tn = ((CcString*) args[4].addr)->GetValue();
   if (!geoid->IsDefined()) {
     geoid = 0;
   }
-  StdDistComp<T> dc(geoid);
-  CcInt* ccDegree = (CcInt*)args[3].addr;
-  CcInt* ccMaxLeafSize = (CcInt*)args[4].addr;
-  if (!ccDegree->IsDefined() || !ccMaxLeafSize->IsDefined()) {
-    res->setPointer(0);
-    return 0;
-  }
-  int degree = ccDegree->GetValue();
-  int maxLeafSize = ccMaxLeafSize->GetValue();
+  MemoryRelObject* mrel = (MemoryRelObject*) mrelp->GetValue();
+  int degree = ((CcInt*)args[2].addr)->GetValue();
+  int maxLeafSize = ((CcInt*)args[3].addr)->GetValue();
   if (degree < 1 || maxLeafSize < 1 || degree > maxLeafSize) {
     cout << "invalid parameters: degree=" << degree << ", maxLeafSize=" 
-         << maxLeafSize << endl;
+        << maxLeafSize << endl;
     res->setPointer(0);
     return 0;
   }
-  NTree<MTreeEntry<T>, StdDistComp<T> >* tree =
-    new NTree<MTreeEntry<T>, StdDistComp<T> >(ccDegree->GetValue(),
-                                              ccMaxLeafSize->GetValue(), dc);
-  Stream<Tuple> stream(args[0]);
-  stream.open();
-  Tuple* tuple;
-  bool flobused = false;
   int partitionStrategy = 0; // TODO: add parameter
-  cout << "*** start loop";
-  while ((tuple = stream.request())) {
-    T* attr = (T*)tuple->GetAttribute(index1);
-    cout << endl << "  insert " << *attr << endl;
-    TupleIdentifier* tid = (TupleIdentifier*)tuple->GetAttribute(index2);
-    if (tid->IsDefined()) {
-      flobused = flobused || (attr->NumOfFLOBs() > 0);
-      cout << "   TID = " << tid->GetTid() << endl;
-      MTreeEntry<T> entry(*attr, tid->GetTid());
-      tree->insert(entry, partitionStrategy);
-    }
-    tuple->DeleteIfAllowed();
-    cout << "  "; tree->print(cout);
+  vector<Tuple*>* v = mrel->getmmrel();
+  vector<MTreeEntry<T> > contents;
+  bool flobused = false;
+  T* attr = 0;
+  for (size_t i = 0; i < v->size(); i++) {
+    attr = (T*)(v->at(i)->GetAttribute(index));
+    MTreeEntry<T> entry(*attr, i + 1);
+    contents.push_back(entry);
+    flobused = flobused || (attr->NumOfFLOBs() > 0);
   }
-  cout << "*** end loop" << endl;
-  tree->print(cout);
-  stream.close();
+  StdDistComp<T> dc(geoid);
+  NTree<MTreeEntry<T>, StdDistComp<T> >* tree =
+      new NTree<MTreeEntry<T>, StdDistComp<T> >(degree, maxLeafSize, dc);
+  tree->build(contents, partitionStrategy);
   size_t usedMem = tree->memSize();
   ListExpr typeList = nl->Second(qp->GetType(s));
   MemoryNtreeObject<T, StdDistComp<T> >* ntree = 
-      new MemoryNtreeObject<T, StdDistComp<T> >(
-          tree, usedMem, nl->ToString(typeList), !flobused, getDBname());
+      new MemoryNtreeObject<T, StdDistComp<T> >(tree, usedMem, 
+                                nl->ToString(typeList), !flobused, getDBname());
+  mtreehelper::increaseCounter("counterMCreateMTree", 
+                          ntree->getntree()->getDistComp().getNoDistFunCalls());
   res->setPointer(ntree);
   ntree->deleteIfAllowed();
   return 0;
-}
+  
 
-
-template<class T>
-int mcreatentreeVMTMP(Word* args, Word& result, int message, Word& local,
-                      Supplier s) {
-//    result = qp->ResultStorage(s);
-//    MPointer* res = (MPointer*) result.addr;
-//    MPointer* mrelp = (MPointer*) args[0].addr;
-//    if(mrelp->isNull()){
-//      res->setPointer(0);
-//      return 0;
-//    }
-//    Geoid* geoid = (Geoid*) args[2].addr;
-//    int index1 = ((CcInt*) args[3].addr)->GetValue(); 
-//    string tn = ((CcString*) args[4].addr)->GetValue();
-// 
-//    if(!geoid->IsDefined()){
-//      geoid = 0;
-//    }
-// 
-//    MemoryRelObject* mrel = (MemoryRelObject*) mrelp->GetValue();
-//    vector<Tuple*>* v = mrel->getmmrel();
-// 
-// 
-//    StdDistComp<T> dc(geoid);
-// //    typedef pair<T,TupleId> treeentry_t;
-//    MMMTree<MTreeEntry<T>, StdDistComp<T> >* tree =
-//      new MMMTree<MTreeEntry<T>, StdDistComp<T> >(4, 8, dc);
-// //    MMMTree<treeentry_t,StdDistComp<T>,MemCloner<treeentry_t>  >* tree = 
-// //            new MMMTree<treeentry_t,StdDistComp<T>, 
-// //                        MemCloner<treeentry_t> >(4,8,dc);
-// 
-//    Tuple* tuple;
-//    bool flobused = false;
-//    if(v){
-//      for(size_t i=0;i<v->size();i++){
-//        tuple = v->at(i);
-//        if(tuple){
-//          T* attr = (T*) tuple->GetAttribute(index1);
-// //          T copy = *attr;
-//          flobused = flobused || (attr->NumOfFLOBs()>0);
-//          MTreeEntry<T> entry(*attr, i+1);
-// //          pair<T,TupleId> p(copy, i+1);
-//          tree->insert(entry);
-//          entry.Destroy();
-//        }
-//      }
-//    }
-//    size_t usedMem = tree->memSize();
-//    ListExpr typeList = nl->Second(qp->GetType(s));
-//    MemoryMtreeObject<T, StdDistComp<T> >* mtree = 
-//           new MemoryMtreeObject<T, StdDistComp<T> > (tree,  
-//                              usedMem, 
-//                              nl->ToString(typeList), 
-//                              !flobused, getDBname());
-//    mtreehelper::increaseCounter("counterMCreateMTree", 
-//                        mtree->getmtree()->getDistComp().getNoDistFunCalls());
-//    res->setPointer(mtree);
-//    mtree->deleteIfAllowed();
-   return 0;
 }
 
 
@@ -21868,67 +21862,41 @@ int mcreatentreeVMTMP(Word* args, Word& result, int message, Word& local,
 
 */
 int mcreatentreeSelect(ListExpr args) {
-  int o1;
   string attrName = nl->SymbolValue(nl->Second(args));
-  ListExpr attrList;
-  if (Stream<Tuple>::checkType(nl->First(args))) {
-    o1 = 0;
-    attrList = nl->Second(nl->Second(nl->First(args)));
-  }
-  else {
-    o1 = 12;
-    attrList=nl->Second(nl->Second(nl->Second(nl->Second(nl->First(args)))));
+  ListExpr attrList = nl->Second(nl->Second(nl->Second(nl->Second(nl->First(
+                                                                      args)))));
           //  mpointer   mem         rel       tuple 
-  }
   ListExpr type;
   listutils::findAttribute(attrList, attrName, type);
-  return o1 + mtreehelper::getTypeNo(type, 12);
+  return mtreehelper::getTypeNo(type, 12);
 }
 
  // note: if adding attributes with flobs, the value mapping must be changed
 
 ValueMapping mcreatentreeVM[] = {
-  mcreatentreeVMTStream<mtreehelper::t1>,
-  mcreatentreeVMTStream<mtreehelper::t2>,
-  mcreatentreeVMTStream<mtreehelper::t3>,
-  mcreatentreeVMTStream<mtreehelper::t4>,
-  mcreatentreeVMTStream<mtreehelper::t5>,
-  mcreatentreeVMTStream<mtreehelper::t6>,
-  mcreatentreeVMTStream<mtreehelper::t7>,
-  mcreatentreeVMTStream<mtreehelper::t8>,
-  mcreatentreeVMTStream<mtreehelper::t9>,
-  mcreatentreeVMTStream<mtreehelper::t10>,
-  mcreatentreeVMTStream<mtreehelper::t11>,
-  mcreatentreeVMTStream<mtreehelper::t12>,
-  mcreatentreeVMTMP<mtreehelper::t1>,
-  mcreatentreeVMTMP<mtreehelper::t2>,
-  mcreatentreeVMTMP<mtreehelper::t3>,
-  mcreatentreeVMTMP<mtreehelper::t4>,
-  mcreatentreeVMTMP<mtreehelper::t5>,
-  mcreatentreeVMTMP<mtreehelper::t6>,
-  mcreatentreeVMTMP<mtreehelper::t7>,
-  mcreatentreeVMTMP<mtreehelper::t8>,
-  mcreatentreeVMTMP<mtreehelper::t9>,
-  mcreatentreeVMTMP<mtreehelper::t10>,
-  mcreatentreeVMTMP<mtreehelper::t11>,
-  mcreatentreeVMTMP<mtreehelper::t12>
+  mcreatentreeVMT<mtreehelper::t1>,
+  mcreatentreeVMT<mtreehelper::t2>,
+  mcreatentreeVMT<mtreehelper::t3>,
+  mcreatentreeVMT<mtreehelper::t4>,
+  mcreatentreeVMT<mtreehelper::t5>,
+  mcreatentreeVMT<mtreehelper::t6>,
+  mcreatentreeVMT<mtreehelper::t7>,
+  mcreatentreeVMT<mtreehelper::t8>,
+  mcreatentreeVMT<mtreehelper::t9>,
+  mcreatentreeVMT<mtreehelper::t10>,
+  mcreatentreeVMT<mtreehelper::t11>,
+  mcreatentreeVMT<mtreehelper::t12>
 };
 
 OperatorSpec mcreatentreeSpec(
-  "stream(tuple) x attrname x attrname x int x int [x geoid] -> "
-  "mpointer(mem(mtree X))||\n"
-  "MREL(tuple) x attrname x int x int [x geoid] -> , mpointer(mem(mtree X))",
-  "tuplestream  mcreatemtree[ indexAttr, TID_attr, degree, maxLeafSize, [, "
-  "geoid] ] ||\n"
-  "mrel mcreatemtree[indexAttr, degree, maxLeafSize, [, geoid] ]",
+  "MREL(tuple) x attrname x int x int [x geoid] -> , mpointer(mem(mtree X))\n",
+  "mrel mcreatemtree[indexAttr, degree, maxLeafSize, [, geoid] ]\n",
   "This operator creates an N-tree in main memory. "
-  "The first argument is a stream or a main memory relation containing the "
+  "The first argument is a main memory relation containing the "
   "tuples to be indexed. The second argument refers to the attribute "
   "over that the index is built. The next two arguments represent the degree of"
   " the tree and and maximum number of entries in a leaf.\n"
-  "If the tuples are provided as a stream, "
-  "the third argument refers to an attribute inside the tuple containg its "
-  "tuple id. The last argument is optional. It must be of type geoid and "
+  "The last argument is optional. It must be of type geoid and "
   "can only be used if the index-attribute is of type point, mpoint, cupoint, "
   "or cmpoint. If this argument is present, the distance between two objects "
   "is computed as geographic distance on this geoid instead of using the "
@@ -21941,13 +21909,13 @@ OperatorSpec mcreatentreeSpec(
   "  * mpoint:  mp1->DistanceAvg(*mp2, geoid)\n"
   "  * cupoint: cup1->DistanceAvg(*cup2, true, geoid)\n"
   "  * cmpoint: cmp1->DistanceAvg(*cmp2, true, geoid)\n",
-  "let kinos_ntree_GeoData =  kinos feed addid mcreatentree[GeoData, 5, 8, TID]"
+  "let kinosM_ntree_GeoData =  kinosM mcreatentree[GeoData, 5, 8]"
 );
 
 Operator mcreatentreeOp(
    "mcreatentree",
    mcreatentreeSpec.getStr(),
-   24,
+   12,
    mcreatentreeVM,
    mcreatentreeSelect,
    mcreatentreeTM
