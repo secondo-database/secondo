@@ -72,6 +72,7 @@ It provides the following operators:
 #include <string>
 #include <iostream>   
 #include <vector>
+#include <bitset>
 #include <cmath>
 
 
@@ -109,13 +110,13 @@ ScalableBloomFilter::ScalableBloomFilter
   assert (numHashfunctions>0);
 }
 
-ScalableBloomFilter::ScalableBloomFilter(const ScalableBloomFilter& rhs):
-  defined(rhs.defined),
-  falsePositiveProbability(rhs.falsePositiveProbability),
-  expectedInserts(rhs.expectedInserts),
-  numHashfunctions(rhs.numHashfunctions),
-  filter(rhs.filter)
-  {}
+ScalableBloomFilter::ScalableBloomFilter(const ScalableBloomFilter& rhs) {
+  defined = rhs.defined;
+  falsePositiveProbability = rhs.falsePositiveProbability;
+  expectedInserts = rhs.expectedInserts;
+  numHashfunctions = rhs.numHashfunctions;
+  filter = rhs.filter;
+}
 
 //Setter and Getter
 bool
@@ -151,7 +152,11 @@ ScalableBloomFilter::setFilter(vector<bool> inputFilter) {
 bool
 ScalableBloomFilter::getElement(size_t index) const{
   return filter[index];
-} 
+}
+
+void ScalableBloomFilter::setElement(size_t index, bool value) {
+  filter[index] = value;
+}
 
 int
 ScalableBloomFilter::getNumberHashes() const{
@@ -215,6 +220,19 @@ ScalableBloomFilter::add(vector<size_t> hashResults) {
       }
     }
   }
+}
+
+string 
+ScalableBloomFilter::filterToBinary(vector<bool> convFilter) {
+  string binValue =""; 
+  for (bool value : filter) {
+    if (value) {
+      binValue = binValue + "1"; 
+    } else {
+      binValue = binValue + "0";
+    }
+  }
+  return binValue;
 }
 
 /* Wird erst für die scalable Version benötigt
@@ -304,43 +322,88 @@ ScalableBloomFilter::Create( const ListExpr typeInfo )
 void
 ScalableBloomFilter::Delete( const ListExpr typeInfo, Word& w )
 {
-  delete static_cast<ScalableBloomFilter*>( w.addr );
+  delete (ScalableBloomFilter*) w.addr;
   w.addr = 0;
 }
 
-/*void
-ScalableBloomFilter::Open(SmiRecord& valueRecord, size_t& offset, const ListExpr typeInfo,
-                         Word& value) 
-{
-  size_t size = sizeof ( double );
+bool
+ScalableBloomFilter::Open(SmiRecord& valueRecord, size_t& offset, 
+                         const ListExpr typeInfo, Word& value) 
+{  
+  float fp; 
+  size_t inserts;
+  size_t binaryFilterLength;
+  string binaryFilter;
 
 
-  double x ,y ,r ;
-  bool ok = ( valueRecord . Read (& x , size , offset ) == size );
-  offset += size ;
-  ok = ok && ( valueRecord . Read (& y , size , offset ) == size );
-  offset += size ;
-  ok = ok && ( valueRecord . Read (& r , size , offset ) == size );
-  offset += size ;
-  if ( ok ){
-    value . addr = new ScalableBloomFilter(x ,y , r );
+  size_t size = sizeof(float);
+  bool ok = (valueRecord.Read (&fp, size, offset) == size);
+  offset += size;
+
+  size = sizeof(size_t);
+  ok = ok && (valueRecord.Read (&inserts, size, offset) == size);
+  offset += size;
+
+  ok = ok && (valueRecord.Read (&binaryFilterLength, size, offset) == size);
+  offset += size;
+  cout << "Read Binary String for Filter is read as: " << endl;
+  cout << binaryFilterLength << endl;
+
+  size = binaryFilterLength;
+  cout << "Size of the Binary Filter to Read in is set as: " << endl;
+  cout << size << endl;
+  ok = ok && (valueRecord.Read (&binaryFilter, size, offset) == size);
+  cout << binaryFilter;
+  
+  if (ok) {
+    ScalableBloomFilter* openBloom = new ScalableBloomFilter(fp, inserts);
+    for (auto value : binaryFilter) {
+      openBloom->getFilter().push_back(value == '1');
+    }
+    value.addr = openBloom;
   } else {
-    value . addr =  0;
+    value.addr =  0;
   }
-}
+
+  return ok;
+} 
 
 
 bool 
 ScalableBloomFilter::Save(SmiRecord & valueRecord , size_t & offset ,
 const ListExpr typeInfo , Word & value) {
-  ScalableBloomFilter* bloomFilter = static_cast<ScalableBloomFilter*> (value.addr);
-  size_t size = sizeof(bool);
-  bool defined = bloomFilter->getDefined();
-  bool ok = valueRecord.Write(&defined, size, offset);
-  offset+-size;
+  ScalableBloomFilter* bloomFilter = static_cast<ScalableBloomFilter*>
+                                    (value.addr);
+  
+  size_t size = sizeof(float);
+  bool ok = valueRecord.Write(&fp, size, offset);
+  offset+=size;
 
+  size = sizeof(size_t);
+  size_t inserts = bloomFilter -> getInserts();
+  ok = ok && valueRecord.Write(&inserts, size, offset);
+  offset+=size;
+
+  string filterAsBinary = bloomFilter -> 
+                          filterToBinary(bloomFilter->getFilter());
+  size_t binaryLength = sizeof(filterAsBinary); 
+
+  ok = ok && valueRecord.Write(&binaryLength, size, offset);
+  offset+=size;
+
+  size = binaryLength;
+  ok = ok && valueRecord.Write(&filterAsBinary, size, offset);
+  offset+=size;
+  cout << "Save Ok: " << + ok << endl;
+  cout << "Save Offset is: " << endl;
+  cout << offset << endl;
+  cout << endl;
+  cout << "Filter as String has Value: " << endl; 
+  cout << filterAsBinary << endl;
+
+  return true;
 }
-*/ 
+
 
 void
 ScalableBloomFilter::Close( const ListExpr typeInfo, Word& w )
@@ -353,8 +416,8 @@ ScalableBloomFilter::Close( const ListExpr typeInfo, Word& w )
 Word
 ScalableBloomFilter::Clone( const ListExpr typeInfo, const Word& w )
 {
-  ScalableBloomFilter* oldFilter = static_cast<ScalableBloomFilter*>( w.addr );
-  return SetWord( new ScalableBloomFilter(*oldFilter) );
+  ScalableBloomFilter* oldFilter = (ScalableBloomFilter*) w.addr;
+  return SetWord( new ScalableBloomFilter(*oldFilter));
 }
 
 
@@ -384,12 +447,14 @@ struct scalableBloomFilterFunctions :
 
   scalableBloomFilterFunctions()
   {
-    create = ScalableBloomFilter::Create;
     in = ScalableBloomFilter::In;
     out = ScalableBloomFilter::Out;
+    create = ScalableBloomFilter::Create;
     deletion = ScalableBloomFilter::Delete;
-    clone = ScalableBloomFilter::Clone;
+    open = ScalableBloomFilter::Open;
+    save = ScalableBloomFilter::Save;
     close = ScalableBloomFilter::Close;
+    clone = ScalableBloomFilter::Clone;
   }
 };
 
@@ -700,12 +765,8 @@ int createbloomfilterVM(Word* args, Word& result,
   
   //take the parameters values supplied with the operator
   CcReal* fpProb = (CcReal*) args[2].addr;
-  cout << "Expected FP is: " << fpProb -> GetValue() << endl;
   CcInt* insertElements = (CcInt*) args[3].addr;
-  cout << "Expected inserts are: " << insertElements -> GetValue() << endl;
   CcInt* attrIndexPointer = (CcInt*) args[4].addr;
-  cout << "Looking for Attribute at Index: " 
-       << attrIndexPointer ->GetValue() << endl; 
 
   int attrIndex = attrIndexPointer->GetIntval();
 
@@ -723,11 +784,14 @@ int createbloomfilterVM(Word* args, Word& result,
 
   //initialize the Filter with the values provided by the operator
   bloomFilter->initialize(fpProb->GetValue(),insertElements->GetValue());
-  cout << "After init() the bloom Filter has the values: " << endl;
-  cout << "Filtersize: " <<  bloomFilter->getFilterSize() <<endl;
-  cout << "Number of Hashes: " << bloomFilter->getNumberHashes()<< endl;
-  cout << "Defined: " << bloomFilter->getDefined() << endl;
-  cout << endl;
+
+  cout << "After init() Bloom Filter Values are: " << endl;
+  cout << "Defined: " + bloomFilter->getDefined() << endl;
+  cout << "Nbr of Hashes: " + bloomFilter->getNumberHashes() << endl;
+  cout << "FP: " << + bloomFilter->getFP() << endl;
+  cout << "Expected Inserts " << + bloomFilter->getInserts() << endl;
+  cout << "Filter Size: " << + bloomFilter->getFilterSize() << endl;
+
 
   //Get the stream provided by the operator
   Stream<Tuple> stream(args[0]);
@@ -774,19 +838,12 @@ int createbloomfilterVM(Word* args, Word& result,
           size_t h_i = (h1 + i * h2 + i * i) % filterSize;
           //order of elements is irrelevant; must only be set in the  filter 
           hashvalues.push_back(h_i);
-          cout << "Pushed " << h_i << " into the Hashvalue Vector" << endl;
       }
     } 
     
     /*set the bits corresponding to the elements 
     hashed values in the bloomfilter*/
     bloomFilter->add(hashvalues);
-
-    int i = 0; 
-    for (size_t elem : hashvalues) {
-      cout << "Hashvalue " << i << " is: " << elem << endl;
-      i++;
-    }
 
     //delete old hashvalues from the vector
     hashvalues.clear();
@@ -798,19 +855,9 @@ int createbloomfilterVM(Word* args, Word& result,
     streamTuple = stream.request();   
   }
   
-  cout << "Final value of Bloomfilter is " << endl;
-  
-  int j = 0;
-  for (bool elem : bloomFilter->getFilter()) {
-    cout << "Element " << j << " is: " << elem <<endl;
-    j++;
-  }
-
   stream.close();
-  cout << "closed the stream" <<endl;
 
   result.setAddr(bloomFilter);
-  cout << "Set result Address" << endl;
 
   return 0;
 }
@@ -857,15 +904,6 @@ int bloomcontainsVM(Word* args, Word& result,
     size_t h_i = (h1 + i * h2 + i * i) % filterSize;
     //order of elements is irrelevant; must only be set in the  filter  
     hashValues.push_back(h_i);
-  }
-
-  cout << "Hashvalues of Searchelement in cbloom: " << endl;
-  cout << endl;
-
-  int i = 0;
-  for (size_t elem : hashValues) {
-    cout << "Elem " << i << " value: " << elem << endl;
-    i++;
   }
 
   bool contains = bloomFilter->contains(hashValues);

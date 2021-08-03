@@ -39,6 +39,7 @@ namespace eschbach {
   size_t getInserts() const; 
   float getFP() const;
   bool getElement(size_t index) const;
+  void setElement(size_t index, bool value);
   int getNumberHashes() const;
   size_t getFilterSize() const;
   std::vector<bool> getFilter() const;
@@ -50,6 +51,7 @@ namespace eschbach {
   void add(std::vector<size_t> hashResults);
   size_t optimalSize (const long expectedInserts, const double fPProb);
   long optimalHashes (const long expectedInserts, const long filterSize);
+  std::string filterToBinary(std::vector<bool> filter);
 
   //Support Functions
   static Word     In( const ListExpr typeInfo, const ListExpr instance,
@@ -62,14 +64,14 @@ namespace eschbach {
 
   static void     Delete( const ListExpr typeInfo, Word& w );
 
-  /*static void     Open(SmiRecord& valueRecord, size_t& offset, 
+  static bool     Open(SmiRecord& valueRecord, size_t& offset, 
                          const ListExpr typeInfo, Word& value);
-  */
+  
   static void     Close( const ListExpr typeInfo, Word& w );
 
-  /*static bool     Save(SmiRecord & valueRecord , size_t & offset,
+  static bool     Save(SmiRecord & valueRecord , size_t & offset,
                        const ListExpr typeInfo , Word & value);
-  */
+  
   static Word     Clone( const ListExpr typeInfo, const Word& w );
 
   static bool     KindCheck( ListExpr type, ListExpr& errorInfo );
