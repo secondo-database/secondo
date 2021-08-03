@@ -356,12 +356,12 @@ namespace mtreehelper{
     return  "mtree";
   }
 
-  bool checkType(ListExpr type, ListExpr subtype){
-    if(!nl->HasLength(type,2)){
-       return  false;
+  bool checkType(ListExpr type, ListExpr subtype) {
+    if (!nl->HasLength(type,2)) {
+      return false;
     }
-    if(!listutils::isSymbol(nl->First(type), BasicType())){
-       return false;
+    if (!listutils::isSymbol(nl->First(type), BasicType())) {
+      return false;
     }
     if(getTypeNo(subtype, 12) < 0){
       return false;
@@ -499,6 +499,14 @@ class StdDistComp{
     ostream& print( const MTreeEntry<T>& e,  ostream& o){
        o << "<("; e.getKey()->Print(o); o << ", " << e.getTid() << ")>";
        return o;
+    }
+    
+    ostream& print(const MTreeEntry<T>& e, const bool printContents,ostream& o){
+      if (printContents) {
+        return print(e, o);
+      }
+      o << e.getTid();
+      return o;
     }
     
     Geoid* getGeoid() const {
@@ -850,6 +858,56 @@ MemoryMtreeObject<K, StdDistComp<K> >* getMtree(MPointer* t){
 template<class T, class K, class L>
 MemoryMtreeObject<pair<K, L>, StdDistCompExt<K, L> >* getMtree(MPointer* t) {
   return (MemoryMtreeObject<pair<K, L>, StdDistCompExt<K, L> >*)((*t)());
+}
+
+template<class T, class K>
+MemoryNtreeObject<K, StdDistComp<K> >* getNtree(T* name) {
+  if(!name->IsDefined()){
+    return 0;
+  }
+  string n = name->GetValue();
+  if(!catalog->isMMOnlyObject(n)){
+    return 0;
+  } 
+  ListExpr type = nl->Second(catalog->getMMObjectTypeExpr(n));
+  if(!MemoryNtreeObject<K, StdDistComp<K> >::checkType(type)){
+    return 0;
+  }
+  if(!K::checkType(nl->Second(type))){
+     return 0;
+  }
+  return (MemoryNtreeObject<K, StdDistComp<K> >*)catalog->getMMObject(n);
+}
+
+template<class T, class K, class L>
+MemoryNtreeObject<pair<K, L>, StdDistCompExt<K, L> >* getNtree(T* name) {
+  if (!name->IsDefined()) {
+    return 0;
+  }
+  string n = name->GetValue();
+  if (!catalog->isMMOnlyObject(n)) {
+    return 0;
+  } 
+  ListExpr type = nl->Second(catalog->getMMObjectTypeExpr(n));
+  cout << "type is " << nl->ToString(type);
+  if (!MemoryNtreeObject<Tuple, StdDistCompExt<K, L> >::checkType(type)) {
+    return 0;
+  }
+  if (!Tuple::checkType(nl->Second(type))) {
+     return 0;
+  }
+  return (MemoryNtreeObject<pair<K, L>, StdDistCompExt<K, L> >*) 
+          catalog->getMMObject(n);
+}
+
+template<class T, class K>
+MemoryNtreeObject<K, StdDistComp<K> >* getNtree(MPointer* t){
+   return (MemoryNtreeObject<K, StdDistComp<K> >*) ((*t)());
+}
+
+template<class T, class K, class L>
+MemoryNtreeObject<pair<K, L>, StdDistCompExt<K, L> >* getNtree(MPointer* t) {
+  return (MemoryNtreeObject<pair<K, L>, StdDistCompExt<K, L> >*)((*t)());
 }
 
 template<class T>
@@ -5846,34 +5904,33 @@ Operator mdistRange
 
 */
 ListExpr mdistRangeTM(ListExpr args) {
-  string err="MTREE(T) x MREL x T (x U) x real expected";
+  string err = "MTREE(T) x MREL x T (x U) x real expected";
   if (!nl->HasLength(args,4) && !nl->HasLength(args, 5)) {
     return listutils::typeError(err + " (wrong number of args)");
   }
-
   ListExpr a1 = nl->First(args);
   ListExpr a2 = nl->Second(args);
-  if(MPointer::checkType(a1)){
+  if (MPointer::checkType(a1)) { 
     a1 = nl->Second(a1);
   }
-  if(!Mem::checkType(a1)){
+  if (!Mem::checkType(a1)) {
     return listutils::typeError("first arg is not a memory object");
   }
-  if(MPointer::checkType(a2)){
+  if (MPointer::checkType(a2)) {
     a2 = nl->Second(a2);
   }
-  if(!Mem::checkType(a2)){
+  if (!Mem::checkType(a2)) {
     return listutils::typeError("2nd arg is not a memory object");
   }
   a1 = nl->Second(a1);
   a2 = nl->Second(a2);
-  if(!Relation::checkType(a2)){
+  if (!Relation::checkType(a2)) {
     return listutils::typeError("second arg is not a relation");
   }
   ListExpr a3 = nl->Third(args);
   ListExpr a4 = nl->Fourth(args);
   if (nl->HasLength(args, 4)) {
-    if (!mtreehelper::checkType(a1, a3)){
+    if (!mtreehelper::checkType(a1, a3)) {
       return listutils::typeError("first arg is not a mtree over " 
                                   + nl->ToString(a3));
     }
@@ -6102,6 +6159,7 @@ int mdistRangeScanSelect(ListExpr args){
     int res = type1 + 3 * type2 + o1 + o2;
     return res;
   }
+  
 }
 
 // note: if adding attributes with flobs, the value mapping must be changed
@@ -6232,6 +6290,276 @@ Operator mdistRangeOp(
    mdistRangeTM
 );
 
+/*
+Operator mdistRangeN
+
+*/
+ListExpr mdistRangeNTM(ListExpr args) {
+  string err = "NTREE(T) x MREL x T (x U) x real expected";
+  if (!nl->HasLength(args, 4) && !nl->HasLength(args, 5)) {
+    return listutils::typeError(err + " (wrong number of args)");
+  }
+  ListExpr a1 = nl->First(args);
+  ListExpr a2 = nl->Second(args);
+  if (MPointer::checkType(a1)) { 
+    a1 = nl->Second(a1);
+  }
+  if (!Mem::checkType(a1)) {
+    return listutils::typeError("first arg is not a memory object");
+  }
+  if (MPointer::checkType(a2)) {
+    a2 = nl->Second(a2);
+  }
+  if (!Mem::checkType(a2)) {
+    return listutils::typeError("2nd arg is not a memory object");
+  }
+  a1 = nl->Second(a1);
+  a2 = nl->Second(a2);
+  if (!Relation::checkType(a2)) {
+    return listutils::typeError("second arg is not a relation");
+  }
+  ListExpr a3 = nl->Third(args);
+  ListExpr a4 = nl->Fourth(args);
+  if (nl->HasLength(args, 4)) {
+    if (!mtreehelper::checkType(a1, a3)) { // TODO check type correctly
+      return listutils::typeError("first arg is not a mtree over " 
+                                  + nl->ToString(a3));
+    }
+  }
+  else {
+    if (!mtreehelper::checkType(a1, nl->SymbolAtom(Tuple::BasicType()))) {
+      return listutils::typeError("first arg is not an ntree over tuples");
+    }
+    if (!temporalalgebra::MPoint::checkType(a3) &&
+        !temporalalgebra::CUPoint::checkType(a3) &&
+        !temporalalgebra::CMPoint::checkType(a3)) {
+      return listutils::typeError("third arg is not a (m|cu|cm)point");
+    }
+    if (!stj::isSymbolicType(a4)) {
+      return listutils::typeError("fourth arg is not an mlabel(s) / mplace(s)");
+    }
+    a4 = nl->Fifth(args);
+  }
+  if (!CcReal::checkType(a4)) {
+    return listutils::typeError(err + "final arg is not a real");
+  }
+  return nl->TwoElemList(
+                listutils::basicSymbol<Stream<Tuple> >(),
+                nl->Second(a2)); 
+}
+
+template<class T, class Dist>
+class distRangeNInfo {
+ public:
+  distRangeNInfo(MemoryNtreeObject<T, Dist>* ntree, MemoryRelObject* mrel, 
+                 T* ref, double dist) {
+    rel = mrel->getmmrel();
+    MTreeEntry<T> p(*ref, 0);
+//  TODO:   it = ntree->getntree()->rangeSearch(p, dist);
+  }
+
+  ~distRangeNInfo() {
+    delete it;
+  }
+
+  Tuple* next() {
+    while (true) {
+      const MTreeEntry<T>* p = it->next();
+      if (!p) {
+        return 0;
+      }
+      if (p->getTid() <= rel->size()) {
+        Tuple* res = (*rel)[p->getTid() - 1];
+        if (res) { // ignore deleted tuples
+          res->IncReference();
+          return res;
+        }
+      }
+    }
+    return 0;
+  }
+  
+  size_t getNoDistFunCalls() {
+    return it->getNoDistFunCalls();
+  }
+     
+ private:
+  vector<Tuple*>* rel;
+  RangeIterator<MTreeEntry<T>, Dist>* it;
+};
+
+template<class K, class T, class R>
+int mdistRangeNVMT(Word* args, Word& result, int message, Word& local,
+                   Supplier s) {
+  distRangeNInfo<K, StdDistComp<K> >* li = 
+                                (distRangeNInfo<K, StdDistComp<K> >*)local.addr;
+  switch (message) {
+    case OPEN : {
+      if (li) {
+        delete li;
+        local.addr = 0;
+      }
+      R* relN = (R*)args[1].addr;
+      MemoryRelObject* rel = getMemRel(relN, nl->Second(qp->GetType(s)));
+      if (!rel) {
+        return 0;
+      }
+      CcReal* dist = (CcReal*)args[3].addr;
+      if (!dist->IsDefined()) {
+        return 0;
+      }
+      double d = dist->GetValue();
+      if (d < 0) {
+        return 0;
+      }
+      T* treeN = (T*)args[0].addr;
+      MemoryNtreeObject<K, StdDistComp<K> >* n = getNtree<T, K>(treeN);
+      if (!n) {
+        return 0;
+      }
+      K* key = (K*)args[2].addr;
+      local.addr = new distRangeNInfo<K, StdDistComp<K> >(n, rel, key, d);
+      return 0;
+    }
+    case REQUEST: {
+      result.addr = li ? li->next() : 0;
+      return result.addr ? YIELD : CANCEL;
+    }
+    case CLOSE : {
+      if (li) {
+        mtreehelper::increaseCounter("counterMDistRangeN", 
+                                     li->getNoDistFunCalls());
+        delete li;
+        local.addr = 0;
+      }
+      return 0;
+    }
+   }
+   return -1;
+}
+
+int mdistRangeNSelect(ListExpr args) {
+  int o1 = -1;
+  int o2 = -1;
+  ListExpr a1 = nl->First(args);
+  ListExpr a2 = nl->Second(args);
+  if (nl->HasLength(args, 4)) {
+    ListExpr typeL = nl->Third(args);
+    int type =  mtreehelper::getTypeNo(typeL,12);
+    if(Mem::checkType(a1)) o1=0;
+    if(MPointer::checkType(a1)) o1=24;
+    if(o1<0) return -1; 
+
+    if(Mem::checkType(a2)) o2=0;
+    if(MPointer::checkType(a2)) o2=12;
+    if(o2<0) return -1; 
+   
+    int res =  type + o1 + o2;
+    return res;
+  }
+  return -1;
+//   else { TODO!
+//     ListExpr typeList1 = nl->Third(args);
+//     ListExpr typeList2 = nl->Fourth(args);
+//     int type1 = mtreehelper::getTypeNo(typeList1, 12) - 9;
+//     int type2 = stj::getTypeNo(typeList2);
+//     if (Mem::checkType(a1)) {
+//       o1 = 48;
+//     }
+//     if (MPointer::checkType(a1)) {
+//       o1 = 72;
+//     }
+//     if (o1 < 0) {
+//       return -1;
+//     }
+// 
+//     if (Mem::checkType(a2)) {
+//       o2 = 0;
+//     }
+//     if (MPointer::checkType(a2)) {
+//       o2 = 12;
+//     }
+//     if (o2 < 0) {
+//       return -1;
+//     }
+//     int res = type1 + 3 * type2 + o1 + o2;
+//     return res;
+//   }
+}
+
+ValueMapping mdistRangeNVM[] = {
+  mdistRangeNVMT<mtreehelper::t1,Mem,Mem>,
+  mdistRangeNVMT<mtreehelper::t2,Mem,Mem>,
+  mdistRangeNVMT<mtreehelper::t3,Mem,Mem>,
+  mdistRangeNVMT<mtreehelper::t4,Mem,Mem>,
+  mdistRangeNVMT<mtreehelper::t5,Mem,Mem>,
+  mdistRangeNVMT<mtreehelper::t6,Mem,Mem>,
+  mdistRangeNVMT<mtreehelper::t7,Mem,Mem>,
+  mdistRangeNVMT<mtreehelper::t8,Mem,Mem>,
+  mdistRangeNVMT<mtreehelper::t9,Mem,Mem>,
+  mdistRangeNVMT<mtreehelper::t10,Mem,Mem>,
+  mdistRangeNVMT<mtreehelper::t11,Mem,Mem>,
+  mdistRangeNVMT<mtreehelper::t12,Mem,Mem>,
+  
+  mdistRangeNVMT<mtreehelper::t1,Mem,MPointer>,
+  mdistRangeNVMT<mtreehelper::t2,Mem,MPointer>,
+  mdistRangeNVMT<mtreehelper::t3,Mem,MPointer>,
+  mdistRangeNVMT<mtreehelper::t4,Mem,MPointer>,
+  mdistRangeNVMT<mtreehelper::t5,Mem,MPointer>,
+  mdistRangeNVMT<mtreehelper::t6,Mem,MPointer>,
+  mdistRangeNVMT<mtreehelper::t7,Mem,MPointer>,
+  mdistRangeNVMT<mtreehelper::t8,Mem,MPointer>,
+  mdistRangeNVMT<mtreehelper::t9,Mem,MPointer>,
+  mdistRangeNVMT<mtreehelper::t10,Mem,MPointer>,
+  mdistRangeNVMT<mtreehelper::t11,Mem,MPointer>,
+  mdistRangeNVMT<mtreehelper::t12,Mem,MPointer>,
+  
+  mdistRangeNVMT<mtreehelper::t1,MPointer,Mem>,
+  mdistRangeNVMT<mtreehelper::t2,MPointer,Mem>,
+  mdistRangeNVMT<mtreehelper::t3,MPointer,Mem>,
+  mdistRangeNVMT<mtreehelper::t4,MPointer,Mem>,
+  mdistRangeNVMT<mtreehelper::t5,MPointer,Mem>,
+  mdistRangeNVMT<mtreehelper::t6,MPointer,Mem>,
+  mdistRangeNVMT<mtreehelper::t7,MPointer,Mem>,
+  mdistRangeNVMT<mtreehelper::t8,MPointer,Mem>,
+  mdistRangeNVMT<mtreehelper::t9,MPointer,Mem>,
+  mdistRangeNVMT<mtreehelper::t10,MPointer,Mem>,
+  mdistRangeNVMT<mtreehelper::t11,MPointer,Mem>,
+  mdistRangeNVMT<mtreehelper::t12,MPointer,Mem>,
+  
+  mdistRangeNVMT<mtreehelper::t1,MPointer,MPointer>,
+  mdistRangeNVMT<mtreehelper::t2,MPointer,MPointer>,
+  mdistRangeNVMT<mtreehelper::t3,MPointer,MPointer>,
+  mdistRangeNVMT<mtreehelper::t4,MPointer,MPointer>,
+  mdistRangeNVMT<mtreehelper::t5,MPointer,MPointer>,
+  mdistRangeNVMT<mtreehelper::t6,MPointer,MPointer>,
+  mdistRangeNVMT<mtreehelper::t7,MPointer,MPointer>,
+  mdistRangeNVMT<mtreehelper::t8,MPointer,MPointer>,
+  mdistRangeNVMT<mtreehelper::t9,MPointer,MPointer>,
+  mdistRangeNVMT<mtreehelper::t10,MPointer,MPointer>,
+  mdistRangeNVMT<mtreehelper::t11,MPointer,MPointer>,
+  mdistRangeNVMT<mtreehelper::t12,MPointer,MPointer>
+};
+
+OperatorSpec mdistRangeNSpec(
+  "NTREE x MREL  x T (x U) x real -> stream(tuple) , NTREE, "
+  "MREL represented as string, mem, or mpointer",
+  "mem_ntree mem_rel mdistRange[keyAttr, maxDist] ",
+  "Retrieves those tuples from a memory relation "
+  "having a distance smaller or equals to a given dist "
+  "to a key value (or pair of key values). This operation is aided by a memory "
+  "based n-tree.",
+  "query mkinos_ntree mKinos mdistRange[ alexanderplatz , 2000.0] count"
+);
+
+Operator mdistRangeNOp(
+   "mdistRangeN",
+   mdistRangeNSpec.getStr(),
+   48,
+   mdistRangeNVM,
+   mdistRangeNSelect,
+   mdistRangeNTM
+);
 
 /*
 Operator ~mdistScan~
@@ -21594,7 +21922,6 @@ main memory relation and the attribute to be indexed.
 */
 
 ListExpr mcreatentreeTM(ListExpr args) {
-  cout << "--- start TM ---" << endl;
   string err = "expected: stream(tuple) x attrname x attrname x int x int "
                "[x geoid] or MREL x attrname x int x int [x geoid]";
 
@@ -21842,6 +22169,8 @@ int mcreatentreeVMT(Word* args, Word& result, int message, Word& local,
   NTree<MTreeEntry<T>, StdDistComp<T> >* tree =
       new NTree<MTreeEntry<T>, StdDistComp<T> >(degree, maxLeafSize, dc);
   tree->build(contents, partitionStrategy);
+//   cout << "entries: " << tree->getNoEntries() << ", nodes: " 
+//        << tree->getNoNodes() << ", leaves: " << tree->getNoLeaves() << endl;
   size_t usedMem = tree->memSize();
   ListExpr typeList = nl->Second(qp->GetType(s));
   MemoryNtreeObject<T, StdDistComp<T> >* ntree = 
@@ -21998,6 +22327,7 @@ class MainMemory2Algebra : public Algebra {
           AddOperator(&mdistScan2Op);
 
           AddOperator(&mdistRangeOp);
+          AddOperator(&mdistRangeNOp);
 
           AddOperator(&mdistScanOp);
 

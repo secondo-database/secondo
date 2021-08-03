@@ -52,6 +52,7 @@ operator mdistRange2 alias MDISTRANGE2 pattern _ op [_,_]
 operator mdistScan2 alias MDISTSCAN2 pattern _ op [_]
 
 operator mdistRange alias MDISTRANGE pattern _ _ op [_,_]
+operator mdistRangeN alias MDISTRANGEN pattern _ _ op [_,_]
 operator mdistScan alias MDISTSCAN  pattern _ _ op [_]
 
 operator mexactmatchS alias MEXACTMATCHS pattern _ op [_]
