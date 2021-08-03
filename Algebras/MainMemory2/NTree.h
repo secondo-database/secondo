@@ -321,7 +321,7 @@ class NTreeInnerNode : public NTreeNode<T, DistComp> {
     result.resize(node_t::degree);
     switch (strategy) {
       case 0: { // random
-        std::vector<int> positions;
+        std::vector<int> positions(contents.size());
         for (unsigned int i = 0; i < contents.size(); i++) {
           positions[i] = i;
         }
