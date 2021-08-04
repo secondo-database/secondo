@@ -4170,6 +4170,131 @@ Operator createsplsemtraj(createsplsemtrajSpec(), createsplsemtrajVM,
                           createsplsemtrajTM);
 
 /*
+\section{Operator ~splitter~}
+
+\subsection{Type Mapping}
+
+*/
+ListExpr splitterTM(ListExpr args) {
+  if (nl->ListLength(args) != 4) {
+    return listutils::typeError("Four arguments expected.");
+  }
+  if (!Stream<Tuple>::checkType(nl->First(args))) {
+    return listutils::typeError("First argument must be a stream.");
+  }
+  if (!Tuple::checkType(nl->First(nl->Rest(nl->First(args))))) {
+    return listutils::typeError("First argument must be a tuple stream.");
+  }
+  if (nl->AtomType(nl->Second(args)) != SymbolType) {
+    return listutils::typeError("Second argument must be an attribute name.");
+  }
+  if (!CcReal::checkType(nl->Third(args))) {
+    return listutils::typeError("Third argument must be a real number.");
+  }
+  if (!Duration::checkType(nl->Fourth(args))) {
+    return listutils::typeError("Fourth argument must be a duration.");
+  }
+  ListExpr attrList =
+            nl->First(nl->Rest(nl->First(nl->Rest(nl->First(args)))));
+  ListExpr attrType;
+  string attrName = nl->SymbolValue(nl->Second(args));
+  int i = listutils::findAttribute(attrList, attrName, attrType);
+  if (i == 0) {
+    return listutils::typeError("Attribute " + attrName + " not found.");
+  }
+  if (!SplSemTraj::checkType(attrType)) {
+    return listutils::typeError("Wrong attribute type, must be splsemtraj.");
+  }
+  return nl->ThreeElemList(nl->SymbolAtom(Symbol::APPEND()),
+                nl->OneElemList(nl->IntAtom(i - 1)),
+                nl->TwoElemList(listutils::basicSymbol<Stream<SplSemTraj> >(),
+                                listutils::basicSymbol<SplSemTraj>()));
+}
+
+/*
+\subsection{Local Info Class}
+
+*/
+class SplitterLI {
+ public:
+  SplitterLI(Word& s, double sm, DateTime* mtt, int attrNo) : pos(0) {
+    
+  }
+  
+  SplSemTraj* next() {
+    assert(pos < result.size());
+    pos++;
+    return &result[pos - 1];
+  }
+
+ private:
+  vector<SplSemTraj> result;
+  unsigned int pos;
+};
+
+/*
+\subsection{Value Mapping}
+
+*/
+int splitterVM(Word* args, Word& result, int message, Word& local, Supplier s) {
+  SplitterLI* li = (SplitterLI*)local.addr;
+  switch (message) {
+    case OPEN: {
+      if (li) {
+        delete li;
+        local.addr = 0;
+      }
+      CcReal *suppmin = static_cast<CcReal*>(args[2].addr);
+      DateTime *mtt = static_cast<DateTime*>(args[3].addr);
+      CcInt *attrNo = static_cast<CcInt*>(args[4].addr);
+      if (suppmin->IsDefined() && mtt->IsDefined()) {
+        local.addr = new SplitterLI(args[0], suppmin->GetValue(), mtt,
+                                    (int)attrNo->GetValue());
+      }
+      else {
+        cout << "undefined argument(s)" << endl;
+      }
+      return 0;
+    }
+    case REQUEST: {
+      result.addr = li ? li->next() : 0;
+      return result.addr ? YIELD : CANCEL;
+    }
+    case CLOSE: {
+      if (li) {
+        delete li;
+        local.addr = 0;
+      }
+      return 0;
+    }
+  }
+  return 0;
+}
+
+/*
+\subsection{Operator Info}
+
+*/
+const string splitterSpec =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text> stream(tuple(X)) x ATTR x real x duration -> "
+      "stream(splsemtraj)"  "</text--->"
+  "<text> tuplestream splitter[attrname, suppmin, deltaT] </text--->"
+  "<text> Computes all fine-grained pattern according to Splitter algorithm."
+      " The second argument must be the name of an attribute in the tuple "
+      "stream of the type splsemtraj. The remaining parameters represent "
+      "the minimum support and the maximum transition time.</text--->"
+  "<text> query Dotraj feed extend[SST: createsplsemtraj([const mpoint value "
+      "(((\"2012-01-01\" \"2012-01-01-00:30\" TRUE FALSE) (7.0 51.0 7.1 51.1)))"
+      "], .Trajectory, )] splitter[SST, 0.5, create_duration(0, 7200000)] "
+      "count</text--->) )";
+
+Operator splitter("splitter", splitterSpec, splitterVM, Operator::SimpleSelect,
+                  splitterTM);
+
+
+
+/*
 \section{Class ~SymbolicTrajectoryAlgebra~}
 
 */
@@ -4349,6 +4474,8 @@ class SymbolicTrajectoryAlgebra : public Algebra {
   AddOperator(&jaccardsim);
   
   AddOperator(&createsplsemtraj);
+  
+  AddOperator(&splitter);
   
   }
   ~SymbolicTrajectoryAlgebra() {}

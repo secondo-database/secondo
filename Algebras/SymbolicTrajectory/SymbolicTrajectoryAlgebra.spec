@@ -40,3 +40,4 @@ operator cosinesim alias COSINESIM pattern op ( _ , _)
 operator jaccard alias JACCARD pattern op ( _ , _ )
 operator tfidf alias TFIDF pattern op ( _ , _ )
 operator createsplsemtraj alias CREATESPLSEMTRAJ pattern op ( _ , _ )
+operator splitter alias SPLITTER pattern _ op [ _ , _ , _ ]
