@@ -43,11 +43,14 @@ It provides the following operators:
     The type (natural, logarithmic, progressive logarithmic) depends 
     on the provided int. 
 
-  * createbloomfilter: stream x real x int [->] bloomfilter
+  * createbloomfilter: stream(tuple(X)) x ATTR x int x real ->  bloomfilter
     Creates a Bloomfilter for a Stream with maximum error probability float and size int.  
 
   * bloomcontains: bloomfilter x T [->] bool
     Checks whether the provided Argument of Type T is present in the filter
+  
+  * createcountmin: stream(tuple(X)) x ATTR x real x real -> countmin
+    Creates a Count-Min Sketch for a given Stream
 
 1 Preliminaries
 
@@ -68,6 +71,7 @@ It provides the following operators:
 #include "Algebras/Relation-C++/RelationAlgebra.h"
 #include "MurmurHash.h"
 #include "BloomFilter.h"
+#include "CountMinSketch.h"
 
 #include <string>
 #include <iostream>   
@@ -79,7 +83,7 @@ It provides the following operators:
 using namespace std;
 
 extern NestedList* nl;
-extern QueryProcessor *qp;
+extern QueryProcessor* qp;
 extern AlgebraManager* am;
 
 namespace eschbach {
@@ -88,16 +92,15 @@ namespace eschbach {
 
 2 Algebra Implementation
 
-2.1 Data Structure - Class ~BloomFilter~
+2.1 Data Structures
 
-2.1.1 The Class
+2.1.1 Class ~BloomFilter~
 
 */
 
 
 ScalableBloomFilter::ScalableBloomFilter
 (const float inputFP, const size_t expectedInput) {
-  
   defined = true; 
   //Initialisierung der für die C++ Implementierung benötigten Variablen 
   falsePositiveProbability = inputFP;
@@ -156,7 +159,6 @@ ScalableBloomFilter::getElement(size_t index) const{
 
 void ScalableBloomFilter::setElement(size_t index, bool value) {
   filter[index] = value;
-  cout << "Set Element at Index " << index << " to " << value << endl;
 }
 
 int
@@ -221,19 +223,6 @@ ScalableBloomFilter::add(vector<size_t> hashResults) {
       }
     }
   }
-}
-
-string 
-ScalableBloomFilter::filterToBinary(vector<bool> convFilter) {
-  string binValue =""; 
-  for (bool value : filter) {
-    if (value) {
-      binValue = binValue + "1"; 
-    } else {
-      binValue = binValue + "0";
-    }
-  }
-  return binValue;
 }
 
 /* Wird erst für die scalable Version benötigt
@@ -327,6 +316,7 @@ ScalableBloomFilter::Delete( const ListExpr typeInfo, Word& w )
   w.addr = 0;
 }
 
+
 bool
 ScalableBloomFilter::Open(SmiRecord& valueRecord, size_t& offset, 
                          const ListExpr typeInfo, Word& value) 
@@ -350,7 +340,6 @@ ScalableBloomFilter::Open(SmiRecord& valueRecord, size_t& offset,
   for (size_t i = 0;  i < filterSize; i++) {
     ok = ok && valueRecord.Read (&filterElement, sizeof(bool), offset);
     offset += sizeof(bool);
-    cout << filterElement;
     openBloom -> setElement(i, filterElement);   
   }
 
@@ -385,11 +374,9 @@ const ListExpr typeInfo , Word & value) {
   
   for (size_t i = 0; i < filterSize; i++) {
     filterElement = bloomFilter->getElement(i);
-    cout << filterElement;
     ok = ok && valueRecord.Write(&filterElement, sizeof(bool), offset);
     offset+=sizeof(bool);
   }
-  cout << endl;
   return true;
 }
 
@@ -434,7 +421,7 @@ Creation of the Type Constructor Instance
 struct scalableBloomFilterFunctions : 
        ConstructorFunctions<ScalableBloomFilter> {
 
-  scalableBloomFilterFunctions()
+ scalableBloomFilterFunctions()
   {
     in = ScalableBloomFilter::In;
     out = ScalableBloomFilter::Out;
@@ -450,6 +437,308 @@ struct scalableBloomFilterFunctions :
 scalableBloomFilterInfo bi;
 scalableBloomFilterFunctions bf;
 TypeConstructor scalableBloomFilterTC( bi, bf );
+
+
+/*
+2.1.2 Class ~CountMinSketch~
+*/
+
+CountMinSketch::CountMinSketch
+(const float epsilon, const float delta) {
+  defined = true;
+  eps = epsilon;
+  this->delta = delta;
+  width = ceil(exp(1)/eps);
+  depth = ceil(log(1/delta));
+  counters = new int *[depth];
+  for (size_t i = 0; i < depth; i++) {
+    counters[i] = new int[width];
+    for (size_t j = 0; j < depth; j++) {
+      counters[i][j] = 0;
+    }
+  }
+} 
+
+CountMinSketch::CountMinSketch
+(const CountMinSketch& rhs) {
+  defined = rhs.defined;
+  eps = rhs.eps;
+  delta = rhs.delta; 
+  width = rhs.width; 
+  depth = rhs.depth;
+  counters = rhs.counters;
+  totalCount = rhs.totalCount;
+}
+
+//Setter and Getter
+bool 
+CountMinSketch::getDefined() {
+  return defined;
+}
+
+size_t 
+CountMinSketch::getTotalCount() {
+  return totalCount;
+}
+
+size_t
+CountMinSketch::getWidth() {
+  return width;
+}
+
+size_t
+CountMinSketch::getDepth() {
+  return depth;
+}
+
+float
+CountMinSketch::getEpsilon() {
+  return eps;
+}
+
+float
+CountMinSketch::getDelta() {
+  return delta;
+}
+
+//Auxiliary Functions
+void 
+CountMinSketch::initialize(float eps, float delt) {
+  defined = true;
+  this->eps = eps; 
+  this->delta = delt; 
+  this->width = ceil(exp(1)/eps);
+  this->depth = ceil(log(1/delta));
+  this-> counters = new int *[depth];
+  for (size_t i = 0; i < depth; i++) {
+    counters[i] = new int[width];
+    for (size_t j = 0; j < depth; j++) {
+      counters[i][j] = 0;
+    }
+  }
+}
+
+void 
+CountMinSketch::increaseCount(u_int64_t hashValue) {
+  totalCount++;
+  for (size_t i = 0; i < depth; i++) {
+    counters[i][hashValue] = counters[i][hashValue] + 1;
+  }
+}
+
+int 
+CountMinSketch::estimateFrequency(vector<size_t> hashValues) {
+  int minVal = 0;
+  int compareValue = 0;
+  size_t hashValue = 0;
+    for (size_t i = 0; i < depth; i++) {
+      hashValue = hashValues[i];
+      compareValue = counters[i][hashValue] = counters[i][hashValue];
+      minVal = (minVal < compareValue) ? minVal : compareValue;
+    } 
+  return minVal;
+}
+
+/*
+~In~/~Out~ Functions
+*/
+
+//In-Function to turn List Representation into Class Representation
+Word
+CountMinSketch::In(const ListExpr typeInfo, const ListExpr instance,
+                const int errorPos, ListExpr& errorInfo, bool& correct) {
+  
+  Word result = SetWord(Address(0));
+  correct = false;
+  NList list (instance); 
+
+  if(list.length() != 3){
+    cmsg.inFunError("expected three arguments");
+    return result; 
+  }
+
+  NList first = list.first();
+  NList second = list.second();
+  NList third = list.third();
+  NList index;
+
+  if(!first.isReal() || !second.isInt()) {
+    cmsg.inFunError("expected two numbers");
+    return result;
+  } 
+
+  if (!third.isList()) {
+    cmsg.inFunError("Expected a List of Boolvalues");
+  }
+
+  if (third.first().isBool()) {
+    float fp = first.realval();
+    size_t inserts = second.intval();
+    ScalableBloomFilter* bloom = new ScalableBloomFilter(fp, inserts);
+    for (size_t i = 0; i < bloom->getFilterSize(); i++) {
+      index = third.first();
+      third.rest();
+      bloom -> getFilter()[i] = index.boolval();
+    }
+  }
+  return result;
+}
+
+//Out-Function (Dummy)
+ListExpr
+CountMinSketch::Out(ListExpr typeInfo, Word value) {
+  CountMinSketch* cms = 
+                       static_cast<CountMinSketch*> (value.addr);
+  if(!cms -> getDefined()) {
+    return listutils::getUndefined();
+  }
+
+  ListExpr elementList = nl -> OneElemList(nl->BoolAtom(0));
+ 
+
+  return elementList;
+}
+
+/*
+Support Functions for Persistent Sorage
+*/
+Word
+CountMinSketch::Create( const ListExpr typeInfo )
+{
+  Word w; 
+  w.addr = (new CountMinSketch(0.1, 10));
+  return w;
+}
+
+void
+CountMinSketch::Delete( const ListExpr typeInfo, Word& w )
+{
+  delete (CountMinSketch*) w.addr;
+  w.addr = 0;
+}
+
+/* Save and Open 
+bool
+ScalableBloomFilter::Open(SmiRecord& valueRecord, size_t& offset, 
+                         const ListExpr typeInfo, Word& value) 
+{  
+  float fp; 
+  size_t inserts;
+  size_t filterSize;
+  bool filterElement;
+
+  bool ok = valueRecord.Read (&fp, sizeof(float), offset);
+  offset += sizeof(float);
+
+  ok = ok && valueRecord.Read (&inserts, sizeof(size_t), offset);
+  offset += sizeof(size_t);
+
+  ok = ok && valueRecord.Read (&filterSize, sizeof(size_t), offset);
+  offset += sizeof(size_t);
+
+  ScalableBloomFilter* openBloom = new ScalableBloomFilter(fp, inserts);
+
+  for (size_t i = 0;  i < filterSize; i++) {
+    ok = ok && valueRecord.Read (&filterElement, sizeof(bool), offset);
+    offset += sizeof(bool);
+    openBloom -> setElement(i, filterElement);   
+  }
+
+  if (ok) {
+    value.addr = openBloom;
+  } else {
+    value.addr =  0;
+  }
+  return true;
+} 
+
+
+bool 
+ScalableBloomFilter::Save(SmiRecord & valueRecord , size_t & offset ,
+const ListExpr typeInfo , Word & value) {
+  ScalableBloomFilter* bloomFilter = static_cast<ScalableBloomFilter*>
+                                    (value.addr);
+
+  float fp = bloomFilter->getFP();
+  size_t inserts = bloomFilter -> getInserts();
+  size_t filterSize = bloomFilter -> getFilterSize();     
+  bool filterElement;                                 
+
+  bool ok = valueRecord.Write(&fp, sizeof(float), offset);
+  offset+=sizeof(float);
+
+  ok = ok && valueRecord.Write(&inserts, sizeof(size_t), offset);
+  offset+=sizeof(size_t);
+  
+  ok = ok && valueRecord.Write(&filterSize, sizeof(size_t), offset);
+  offset+=sizeof(size_t);
+  
+  for (size_t i = 0; i < filterSize; i++) {
+    filterElement = bloomFilter->getElement(i);
+    ok = ok && valueRecord.Write(&filterElement, sizeof(bool), offset);
+    offset+=sizeof(bool);
+  }
+  return true;
+}
+*/
+
+void
+CountMinSketch::Close( const ListExpr typeInfo, Word& w )
+{
+  delete static_cast<CountMinSketch*>( w.addr );
+  w.addr = 0;
+}
+
+
+Word
+CountMinSketch::Clone( const ListExpr typeInfo, const Word& w )
+{
+  CountMinSketch* oldSketch = (CountMinSketch*) w.addr;
+  return SetWord( new CountMinSketch(*oldSketch));
+}
+
+/*
+Type Description
+*/
+
+struct countMinSketchInfo : ConstructorInfo {
+
+  countMinSketchInfo() {
+
+    name         = CountMinSketch::BasicType();
+    signature    = "-> " + Kind::SIMPLE();
+    typeExample  = CountMinSketch::BasicType();
+    listRep      =  "()";
+    valueExample = "(4 12 2 8)";
+    remarks      = "";
+  }
+};
+
+/*
+Creation of the Type Constructor Instance
+*/
+
+struct countMinSketchFunctions : 
+       ConstructorFunctions<CountMinSketch> {
+
+  countMinSketchFunctions()
+  {
+    in = CountMinSketch::In;
+    out = CountMinSketch::Out;
+    create = CountMinSketch::Create;
+    deletion = CountMinSketch::Delete;
+    //open = CountMinSketch::Open;
+    //save = CountMinSketch::Save;
+    close = CountMinSketch::Close;
+    clone = CountMinSketch::Clone;
+  }
+};
+
+countMinSketchInfo ci;
+countMinSketchFunctions cf;
+TypeConstructor countMinSketchTC( ci, cf );
+
+
 
 /*
 2.2 Type Mapping Functions
@@ -617,6 +906,109 @@ bloomcontainsTM(ListExpr args) {
   return NList::typeError("Operator bloomcontains expects an  " 
                           "ATTRIBUTE as second argument");
 }
+
+
+/*
+2.2.4 Operator ~createcountmin~
+*/
+ListExpr
+createcountminTM( ListExpr args ) {
+NList type(args);
+NList streamtype = type.first().second();
+NList appendList;
+
+ListExpr a = nl->First(args);
+
+ListExpr errorInfo = nl->OneElemList(nl->SymbolAtom("ErrorInfo"));
+
+  // three arguments must be supplied
+  if (type.length() != 4){
+    return NList::typeError("Operator createcountmin expects "
+                            "four arguments");
+  }
+
+  // test first argument for being a tuple stream
+  if(!Stream<Tuple>::checkType(a)){
+    return NList::typeError( "Operator createcountmin expects a "
+                             "Tuple Stream as first argument");
+  }
+
+  //test second argument for a valid Attribute Name
+  if (!type.second().isSymbol()){
+    return NList::typeError("Operator createcountmin expects a valid "
+                            "Attribute Name as second argument");
+  }
+
+  // test third argument for real
+  if(type.third() != NList(CcReal::BasicType())) {
+    return NList::typeError("Operator createcountmin expects a real "
+                            "value as second argument");
+  }
+
+  //test fourth argument for int
+  if(type.fourth() != NList(CcReal::BasicType())) {
+    return NList::typeError("Operator createcountmin expects a real "
+                            "value as third argument");
+  }
+  
+  // stream elements must be in kind tuple (X) with X in DATA
+  if(!(streamtype.hasLength(2)
+          && streamtype.first().isSymbol(sym.TUPLE())
+          && IsTupleDescription(streamtype.second().listExpr())
+         )
+          && !(am->CheckKind(Kind::DATA(),streamtype.listExpr(),errorInfo))){
+      return NList::typeError("Operator createbloomfilter can only handle "
+                              "Attributetype Tuple values");
+  }
+
+  //extract index of the attribute we intend to hash
+  NList attrList = type.first().second().second();
+  ListExpr type2;
+  string attrName = type.second().str();
+  int attrIndex = listutils::findAttribute(attrList.listExpr(), 
+                                           attrName, type2) - 1;
+
+  if (attrIndex < 0) {
+    return NList::typeError("Attribute " + attrName + " "
+                            "not found in tuple");
+  }
+
+
+  appendList.append(NList().intAtom(attrIndex));
+
+  /* result is a bloomfilter and we append the index of 
+     the attribute of the tuples which will be hashed to create our filter 
+  */
+  return NList(Symbols::APPEND(), appendList, 
+               CountMinSketch::BasicType()).listExpr();
+}
+
+/*
+2.2.5 Operator ~cmscount~
+*/
+ListExpr
+cmscountTM(ListExpr args) {
+  NList type(args); 
+  // two arguments must be supplied
+  if (type.length() != 2){
+    return NList::typeError("Operator cmscount expects two arguments");
+  }
+
+  // test first argument for scalablebloomfilter
+  if(type.first() != NList(CountMinSketch::BasicType())){
+    return NList::typeError("Operator cmscount expects a "
+                            "Count Min Sketch as first argument");
+  }
+
+  // test second argument for DATA or TUPLE
+  if(type.second().isAtom()) {
+    return NList(CcInt::BasicType()).listExpr(); 
+  }    
+
+  return NList::typeError("Operator cmscount expects an  " 
+                          "ATTRIBUTE as second argument");
+}
+
 
 
 /*
@@ -838,6 +1230,7 @@ int createbloomfilterVM(Word* args, Word& result,
     hashvalues.clear();
 
     streamElement->DeleteIfAllowed();
+    streamTuple->DeleteIfAllowed();
 
 
     //assign next Element from the Stream
@@ -901,6 +1294,146 @@ int bloomcontainsVM(Word* args, Word& result,
   return 0;
 }
 
+/*
+2.3.4 Operator ~createcountmin~
+*/
+int createcountminVM(Word* args, Word& result,
+           int message, Word& local, Supplier s){
+  
+  //take the parameters values supplied with the operator
+  CcReal* epsilon = (CcReal*) args[2].addr;
+  CcInt* delta = (CcInt*) args[3].addr;
+  CcInt* attrIndexPointer = (CcInt*) args[4].addr;
+
+  int attrIndex = attrIndexPointer->GetIntval();
+
+  //Get the Resultstorage provided by the Query Processor
+  result = qp -> ResultStorage(s);
+
+  //Make the Storage provided by QP easily usable
+  CountMinSketch* cms = (CountMinSketch*) result.addr;
+
+  //initialize the Filter with the values provided by the operator
+  cms->initialize(epsilon->GetValue(),delta->GetValue());
+
+  cout << "After init() CMS Values are: " << endl;
+  cout << "Defined: " + cms->getDefined() << endl;
+  cout << "Width: " + cms->getWidth() << endl;
+  cout << "Depth: " << + cms->getDepth() << endl;
+  cout << "Total Count " << + cms->getTotalCount() << endl;
+  cout << "Epsilon: " << + cms->getEpsilon() << endl;
+  cout << "Delta: " << + cms->getDelta() << endl;
+
+
+  //Get the stream provided by the operator
+  Stream<Tuple> stream(args[0]);
+
+  //open the stream 
+  stream.open();
+  
+  //Pointers to stream elements will be saved here for use
+  Tuple* streamTuple = (Tuple*) stream.request();
+
+  Attribute* streamElement; 
+
+  /*Get the size of the Filter so we can %mod the hash 
+  results to map to an index in the filter*/
+  size_t counterSize = cms->getWidth();
+
+  /*Get number of Hashfunctions so reserving the hash results
+  vector will be faster*/
+  int nbrHashes = cms->getDepth();
+
+  //Prepare buffer for the MurmurHash3 output storage
+  uint64_t mHash[2]; 
+
+  //while the stream can still provide elements:
+  while ((streamTuple != 0)) {
+
+    streamElement = (Attribute*) streamTuple->GetAttribute(attrIndex);
+    
+    /*64 Bit Version chosen, because of my System. 
+    Should we change this 64 bit? */    
+    MurmurHash3_x64_128(streamElement, sizeof(*streamElement), 0, mHash);
+    size_t h1 = mHash[0] % counterSize;
+    cms->increaseCount(h1);
+
+    //more than 1 Hash is needed (probably always the case)
+    if (nbrHashes > 1) {
+      size_t h2 = mHash[1] % counterSize;
+      cms->increaseCount(h1);
+      //hash the streamelement for the appropriate number of times
+      for (int i = 2; i < nbrHashes; i++) {
+          size_t h_i = (h1 + i * h2 + i * i) % counterSize;
+          cms->increaseCount(h_i);
+      }
+    } 
+
+    streamElement->DeleteIfAllowed();
+
+
+    //assign next Element from the Stream
+    streamTuple = stream.request();   
+  }
+  
+  stream.close();
+
+  result.setAddr(cms);
+
+  return 0;
+}
+
+/*
+2.3.5 Operator ~cmsCount~
+*/
+int cmscountVM(Word* args, Word& result,
+           int message, Word& local, Supplier s){
+  
+  //take the parameters values supplied with the operator
+  CountMinSketch* cms = (CountMinSketch*) args[0].addr;
+  Attribute* searchEle = (Attribute*) args[1].addr;
+
+  //Get the Resultstorage provided by the Query Processor
+  result = qp -> ResultStorage(s);
+
+  //Make the Storage provided by QP easily usable
+  CcBool* b = (CcBool*) result.addr;
+
+  //Prepare buffer for the MurmurHash3 output storage
+  uint64_t cmHash[2];
+
+  //Take Size of the bloomFilter
+  size_t filterSize = cms -> getWidth();
+
+  //Take number of hashfunctions used by the bloomFilter
+  int nbrHashes = cms -> getDepth();
+
+  //prepare a vector to take in the Hashresults
+  vector<size_t> hashValues; 
+  hashValues.reserve(nbrHashes);
+
+  //hash the Searchelement
+  MurmurHash3_x64_128(searchEle, sizeof(*searchEle), 0, cmHash);
+  
+  size_t h1 = cmHash[0]% filterSize;
+  hashValues.push_back(h1);
+  
+  size_t h2 = cmHash[1] % filterSize;
+  hashValues.push_back(h2);
+
+  for (int i = 2; i < nbrHashes; i++) {
+    size_t h_i = (h1 + i * h2 + i * i) % filterSize;
+    //order of elements is irrelevant; must only be set in the  filter  
+    hashValues.push_back(h_i);
+  }
+
+  int count = cms->estimateFrequency(hashValues);
+  b->Set(true, count);
+
+  return 0;
+}
+
+
 
 /*
 2.4 Description of Operators
@@ -915,18 +1448,33 @@ int bloomcontainsVM(Word* args, Word& result,
   );
 
   OperatorSpec createbloomfilterSpec(
-   "stream(X) x int -> bloom filter",
+   "stream(tuple(X)) x ATTR x int x real ->  bloomfilter",
    "_ createbloomfilter [_,_,_]",
    "Creates a Bloomfilter of a supplied stream with the given ",
    "False Positive rate for the expected number of inserts",
-   "query intstream(1,10000) bloom[10, 0.001]"
+   "query Kinos feed createbloomfilter[Name,0.01,100] bloomcontains[\"Astor\"]"
   );
 
   OperatorSpec bloomcontainsSpec(
    "scalablebloomfilter x T -> bool, T = TUPLE or T = DATA",
    "_ bloomcontains [_]",
    "Checks for the presence of Element T in a supplied Bloomfilter",
-   "query intstream(1,10000) bloom[10, 0.001] cbloom[1]"
+   "query Kinos feed createbloomfilter[Name,0.01,100] bloomcontains[\"Astor\"]"
+  );
+
+  OperatorSpec createcountminSpec(
+   "stream(tuple(X)) x ATTR x int x real ->  countminsketch",
+   "_ createcountminSpec [_,_,_]",
+   "Creates Count Mint Sketch for the supplied stream",
+   "query Kinos feed createcountmin[Name,0.01,0.9] cmscount[\"Astor\"]"
+  );
+
+  OperatorSpec cmscountSpec(
+   "countminsketch x T -> bool, T = TUPLE or T = DATA",
+   "_ bloomcontains [_]",
+   "Gives an estimate of how often an Element appeared in the Stream the ",
+   "Count Min Sketch was created for"
+   "query Kinos feed createcountmin[Name,0.01,0.9] cmscount[\"Astor\"]"
   );
 
 
@@ -960,7 +1508,22 @@ Operator bloomcontainsOp(
   bloomcontainsTM
 );
 
+Operator createcountminOp(
+  "createcountmin",
+  createcountminSpec.getStr(),
+  createcountminVM,
+  Operator::SimpleSelect, 
+  createcountminTM
+);
 
+
+Operator cmscountOp(
+  "cmscount",
+  cmscountSpec.getStr(),
+  cmscountVM,
+  Operator::SimpleSelect, 
+  cmscountTM
+);
 
 
 /*
@@ -976,14 +1539,18 @@ class StreamMiningAlgebra : public Algebra
 
     //Reigstration of Types
     AddTypeConstructor(&scalableBloomFilterTC);
+    AddTypeConstructor(&countMinSketchTC);
 
     //Usage possibilities of the Types
     scalableBloomFilterTC.AssociateKind(Kind::SIMPLE());
+    countMinSketchTC.AssociateKind(Kind::SIMPLE());
 
     //Registration of Operators
     AddOperator(&reservoirOp);
     AddOperator(&createbloomfilterOp);
     AddOperator(&bloomcontainsOp);
+    AddOperator(&createcountminOp);
+    AddOperator(&cmscountOp);
   }
   ~StreamMiningAlgebra() {};
 };

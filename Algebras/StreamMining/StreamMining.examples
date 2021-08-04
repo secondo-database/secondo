@@ -13,11 +13,23 @@ Result   : 3
 Operator : createbloomfilter
 Number   : 2
 Signature: (stream(tuple(X)) x ATTR) x int x real ->  bloomfilter, X in DATA
-Example  : query Kinos feed createbloomfilter[Name,300,0.01] bloomcontains["Astor"]
+Example  : query Kinos feed createbloomfilter[Name,0.01,300] bloomcontains["Astor"]
 Result   : TRUE
 
 Operator : bloomcontains
 Number   : 3
 Signature: bloomfilter x T -> bool, T in DATA or T in TUPLE
-Example  : query Kinos feed createbloomfilter[Name,300,0.01] bloomcontains["Berlino"]
+Example  : query Kinos feed createbloomfilter[Name,0.01,300] bloomcontains["Berlino"]
 Result   : FALSE
+
+Operator : createcountmin
+Number   : 4
+Signature: (stream(tuple(X)) x ATTR) x int x real ->  countminsketch, X in DATA
+Example  : query Kinos feed createcountmin[Name,0.01,0.9] cmscount["Astor"]
+Result   : 1
+
+Operator : cmscount
+Number   : 5
+Signature: countminsketch x T -> bool, T in DATA or T in TUPLE
+Example  : query Kinos feed createcountmin[Name,0.01,0.9] cmscount["Berlino"]
+Result   : 0

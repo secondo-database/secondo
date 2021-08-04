@@ -25,3 +25,7 @@ operator createbloomfilter alias BLOOM pattern _ op[_,_,_]
 
 operator bloomcontains alias BLOOMC pattern _op[_]
 
+operator createcountmin alias CMS pattern _op[_,_,_]
+
+operator cmscount alias CMSCOUTN pattern _op[_]
+
