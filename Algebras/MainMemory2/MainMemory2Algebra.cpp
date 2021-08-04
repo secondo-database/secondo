@@ -356,17 +356,25 @@ namespace mtreehelper{
     return  "mtree";
   }
 
-  bool checkType(ListExpr type, ListExpr subtype) {
+  bool checkType(ListExpr type, ListExpr subtype, string basicType) {
     if (!nl->HasLength(type,2)) {
       return false;
     }
-    if (!listutils::isSymbol(nl->First(type), BasicType())) {
+    if (!listutils::isSymbol(nl->First(type), basicType)) {
       return false;
     }
     if(getTypeNo(subtype, 12) < 0){
       return false;
     }
     return nl->Equal(nl->Second(type), subtype);
+  }
+  
+  bool checkType(ListExpr type, ListExpr subtype) {
+    return checkType(type, subtype, BasicType());
+  }
+  
+  bool checkTypeN(ListExpr type, ListExpr subtype) {
+    return checkType(type, subtype, "ntree");
   }
 
   void increaseCounter(const string& objName, const int numberToBeAdded) {
@@ -6291,7 +6299,7 @@ Operator mdistRangeOp(
 );
 
 /*
-Operator mdistRangeN
+Operator ~mdistRangeN~
 
 */
 ListExpr mdistRangeNTM(ListExpr args) {
@@ -6321,8 +6329,8 @@ ListExpr mdistRangeNTM(ListExpr args) {
   ListExpr a3 = nl->Third(args);
   ListExpr a4 = nl->Fourth(args);
   if (nl->HasLength(args, 4)) {
-    if (!mtreehelper::checkType(a1, a3)) { // TODO check type correctly
-      return listutils::typeError("first arg is not a mtree over " 
+    if (!mtreehelper::checkTypeN(a1, a3)) {
+      return listutils::typeError("first arg is not an ntree over " 
                                   + nl->ToString(a3));
     }
   }
@@ -6355,7 +6363,7 @@ class distRangeNInfo {
                  T* ref, double dist) {
     rel = mrel->getmmrel();
     MTreeEntry<T> p(*ref, 0);
-//  TODO:   it = ntree->getntree()->rangeSearch(p, dist);
+    it = ntree->getntree()->rangeSearch(p, dist);
   }
 
   ~distRangeNInfo() {
@@ -6364,12 +6372,12 @@ class distRangeNInfo {
 
   Tuple* next() {
     while (true) {
-      const MTreeEntry<T>* p = it->next();
-      if (!p) {
+      const TupleId tid = it->next();
+      if ((int)tid == -1) {
         return 0;
       }
-      if (p->getTid() <= rel->size()) {
-        Tuple* res = (*rel)[p->getTid() - 1];
+      if (tid <= rel->size()) {
+        Tuple* res = (*rel)[tid - 1];
         if (res) { // ignore deleted tuples
           res->IncReference();
           return res;
@@ -6385,7 +6393,7 @@ class distRangeNInfo {
      
  private:
   vector<Tuple*>* rel;
-  RangeIterator<MTreeEntry<T>, Dist>* it;
+  RangeIteratorN<MTreeEntry<T>, Dist>* it;
 };
 
 template<class K, class T, class R>
@@ -22026,7 +22034,7 @@ ListExpr mcreatentreeTM(ListExpr args) {
                         Mem::wrapType(
                           nl->TwoElemList(
                              listutils::basicSymbol<
-                               MemoryMtreeObject<Point,StdDistComp<Point> > >(),
+                               MemoryNtreeObject<Point,StdDistComp<Point> > >(),
                              type
                           )));
   ListExpr appendList;
@@ -22067,68 +22075,6 @@ ListExpr mcreatentreeTM(ListExpr args) {
 6.2 Value Mapping template
 
 */
-// template<class T>
-// int mcreatentreeVMTStream(Word* args, Word& result, int message, Word& local,
-//                           Supplier s) {
-//   result = qp->ResultStorage(s);
-//   MPointer* res = (MPointer*)result.addr;
-//   Geoid* geoid = (Geoid*)args[5].addr;
-//   int index1 = ((CcInt*)args[6].addr)->GetValue(); 
-//   int index2 = ((CcInt*)args[7].addr)->GetValue(); 
-//   if (!geoid->IsDefined()) {
-//     geoid = 0;
-//   }
-//   StdDistComp<T> dc(geoid);
-//   CcInt* ccDegree = (CcInt*)args[3].addr;
-//   CcInt* ccMaxLeafSize = (CcInt*)args[4].addr;
-//   if (!ccDegree->IsDefined() || !ccMaxLeafSize->IsDefined()) {
-//     res->setPointer(0);
-//     return 0;
-//   }
-//   int degree = ccDegree->GetValue();
-//   int maxLeafSize = ccMaxLeafSize->GetValue();
-//   if (degree < 1 || maxLeafSize < 1 || degree > maxLeafSize) {
-//     cout << "invalid parameters: degree=" << degree << ", maxLeafSize=" 
-//          << maxLeafSize << endl;
-//     res->setPointer(0);
-//     return 0;
-//   }
-//   NTree<MTreeEntry<T>, StdDistComp<T> >* tree =
-//     new NTree<MTreeEntry<T>, StdDistComp<T> >(ccDegree->GetValue(),
-//                                               ccMaxLeafSize->GetValue(), dc);
-//   Stream<Tuple> stream(args[0]);
-//   stream.open();
-//   Tuple* tuple;
-//   bool flobused = false;
-//   int partitionStrategy = 0; // TODO: add parameter
-//   cout << "*** start loop";
-//   while ((tuple = stream.request())) {
-//     T* attr = (T*)tuple->GetAttribute(index1);
-//     cout << endl << "  insert " << *attr << endl;
-//     TupleIdentifier* tid = (TupleIdentifier*)tuple->GetAttribute(index2);
-//     if (tid->IsDefined()) {
-//       flobused = flobused || (attr->NumOfFLOBs() > 0);
-//       cout << "   TID = " << tid->GetTid() << endl;
-//       MTreeEntry<T> entry(*attr, tid->GetTid());
-//       tree->insert(entry, partitionStrategy);
-//     }
-//     tuple->DeleteIfAllowed();
-//     cout << "  "; tree->print(cout);
-//   }
-//   cout << "*** end loop" << endl;
-//   tree->print(cout);
-//   stream.close();
-//   size_t usedMem = tree->memSize();
-//   ListExpr typeList = nl->Second(qp->GetType(s));
-//   MemoryNtreeObject<T, StdDistComp<T> >* ntree = 
-//       new MemoryNtreeObject<T, StdDistComp<T> >(
-//           tree, usedMem, nl->ToString(typeList), !flobused, getDBname());
-//   res->setPointer(ntree);
-//   ntree->deleteIfAllowed();
-//   return 0;
-// }
-
-
 template<class T>
 int mcreatentreeVMT(Word* args, Word& result, int message, Word& local,
                     Supplier s) {
@@ -22181,10 +22127,7 @@ int mcreatentreeVMT(Word* args, Word& result, int message, Word& local,
   res->setPointer(ntree);
   ntree->deleteIfAllowed();
   return 0;
-  
-
 }
-
 
 /*
 6.3 Selection Function and Value Mapping Array

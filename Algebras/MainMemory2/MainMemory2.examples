@@ -297,8 +297,14 @@ Result    : TRUE
 Operator  : mcreatentree
 Number    : 1909
 Signature : MREL x IDENT x int x int [x geoid] -> (mpointer(mem(ntree ...) )
-Example   : let mkinos_GeoData_ntree = mKinos mcreatentree[GeoData, 4, 8]
+Example   : let mKinos_GeoData_ntree = mKinos mcreatentree[GeoData, 4, 8]
 Result    : ()
+
+Operator  : mdistRangeN
+Number    : 1910
+Signature : NTREE(T) x MREL(X) x T (x U) x real -> stream(tuple(X))
+Example   : query mKinos_GeoData_ntree mKinos mdistRangeN[alexanderplatz, 2000.0] count
+Result    : 17
 
 Operator  : mcreateAVLtree
 Number    : 56

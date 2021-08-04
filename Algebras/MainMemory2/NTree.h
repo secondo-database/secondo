@@ -56,6 +56,8 @@ class NTreeNode {
   
   virtual size_t memSize() const = 0;
   
+  virtual node_t* getChild(const int i) = 0;
+  
   virtual T* getCenter(const int childPos) const = 0;
   
   int getDegree() const {
@@ -74,18 +76,15 @@ class NTreeNode {
   
   virtual bool isOverflow() const = 0;
   
-//   virtual void insert(const T& o, DistComp& dc, 
-//                       const int partitionStrategy = 0) = 0;
-  
   int getCount() const {
     return count;
   }
+  
+  virtual T* getObject(const int pos) = 0;
+  
+  virtual double getMinDist(const T& q, DistComp& dc) const = 0;
 
   virtual node_t* clone() = 0;
-  
-  double centerDist(const T& o, const int childPos, DistComp& dc) const {
-    return dc(*getCenter(), o);
-  }
   
   virtual void build(std::vector<T>& contents, DistComp& dc,
                      const int partitionStrategy = 0) = 0;
@@ -171,6 +170,10 @@ class NTreeInnerNode : public NTreeNode<T, DistComp> {
     return children[i];
   }
   
+  T* getObject(const int pos) { // only for leaves
+    assert(false); 
+  }
+  
   T* getCenter(const int childPos) const {
     assert(childPos >= 0);
     assert(childPos < node_t::degree);
@@ -220,20 +223,6 @@ class NTreeInnerNode : public NTreeNode<T, DistComp> {
     node_t::count++;
   }
   
-//   void insert(const T& o, DistComp& dc, const int partitionStrategy = 0) {
-//     if (node_t::count < node_t::degree) { // add new child node
-//       children[node_t::count] = new leafnode_t(o, node_t::degree, 
-//                                                node_t::maxLeafSize);
-//       (children[node_t::count])->insert(o, dc, partitionStrategy);
-//       (children[node_t::count])->setParent(this, node_t::count);
-//       node_t::count++;
-//     }
-//     else { // node full; insert into child with nearest center
-//       int pos = getNearestChildPos(o, dc);
-//       children[pos]->insert(o, dc, partitionStrategy);
-//     }
-//   }
-  
   int findChild(const node_t* child) const {
     for (int i = 0; i < node_t::count; i++) {
       if (children[i] == child) {
@@ -241,6 +230,18 @@ class NTreeInnerNode : public NTreeNode<T, DistComp> {
       }
     }
     return -1;
+  }
+  
+  double getMinDist(const T& q, DistComp& dc) const {
+    double result = std::numeric_limits<double>::max();
+    double dist;
+    for (int i = 0; i < node_t::count; i++) {
+      dist = dc(*(centers[i]), q);
+      if (dist < result) {
+        result = dist;
+      }
+    }
+    return result;
   }
   
   innernode_t* clone() {
@@ -475,8 +476,20 @@ class NTreeLeafNode : public NTreeNode<T, DistComp> {
     return node_t::count > node_t::maxLeafSize;
   }
   
-  T* getCenter(const int childPos) const {
-    return 0;
+  node_t* getChild(const int i) { // only for inner nodes
+    assert(false);
+  }
+  
+  T* getCenter(const int childPos) const { // only for inner nodes
+    assert(false);
+  }
+  
+  T* getObject(const int pos) {
+    return entries[pos];
+  }
+  
+  double getMinDist(const T& q, DistComp& dc) const { // only for inner nodes
+    assert(false);
   }
   
   void insert(std::vector<T>& contents) {
@@ -531,85 +544,69 @@ class NTreeLeafNode : public NTreeNode<T, DistComp> {
   T** entries;
 };
 
-// template <class T, class DistComp>
-// class RangeIteratorN{
-//  public:
-//   typedef RangeIteratorN<T, DistComp> rangeiterator_t;
-//   typedef NTreeNode<T, DistComp> node_t;
-//   typedef NTreeLeafNode<T, DistComp> leafnode_t;
-//   typedef NTreeInnerNode<T, DistComp> innernode_t;
-// 
-//   RangeIterator(const node_t* root, const T& q, const double r, 
-//                 const DistComp& di) : s(), queryObject(q), range(r), dc(di) {
-//     if (!root) {
-//       return;
-//     }
-//     if ((root->centerDist(q, di) - range <= root->getRadius() )){
-//         s.push(std::pair<const node_t*,int>(root,-1));
-//         findNext();
-//     } 
-//   }
-// 
-//       bool hasNext(){
-//           return !s.empty();
-//       }
-//   
-//       const T* next(){
-//        if(s.empty()){
-//           return 0;
-//        }
-//        std::pair<const node_t*,int> top = s.top();
-//        findNext();
-//        return ((leafnode_t*)top.first)->getObject(top.second);
-//       }
-// 
-//       size_t noComparisons() const{
-//           return di.getCount();
-//       }
-//       
-//       int getNoDistFunCalls() const {
-//         return di.getNoDistFunCalls();
-//       }
-// 
-// 
-//    private:
-//       std::stack<std::pair<const node_t*, int> > s;
-//       T queryObject;
-//       double range;
-//       DistComp dc;
-// 
-//       void findNext(){
-//          while(!s.empty()){
-//            std::pair<const node_t*, int> top = s.top();
-//            s.pop();
-//            top.second++; // ignore current result
-//            if(top.second < top.first->getCount() ){
-//              if(top.first->isLeaf()){
-//                 leafnode_t* leaf = 
-//                                  (leafnode_t*) top.first;
-//                 while(top.second < leaf->getCount()){
-//                     double dist = di(*(leaf->getObject(top.second)),q);
-//                     if(dist<=range){
-//                         s.push(top);
-//                         return;
-//                     } else {
-//                        top.second++;
-//                     }
-//                 }
-//              }   else { // an inner node
-//                 innernode_t* inner = (innernode_t*) top.first;
-//                 s.push(top);
-//                 std::pair<node_t*, int> 
-//                             cand(inner->getSon(top.second),-1);
-//                 if(cand.first->minDist(q,di) <= range){
-//                    s.push(cand);
-//                 } 
-//               }
-//            }
-//          }
-// 
-//       }
-// };
+template <class T, class DistComp>
+class RangeIteratorN {
+ public:
+  typedef RangeIteratorN<T, DistComp> rangeiterator_t;
+  typedef NTreeNode<T, DistComp> node_t;
+  typedef NTreeLeafNode<T, DistComp> leafnode_t;
+  typedef NTreeInnerNode<T, DistComp> innernode_t;
+
+  RangeIteratorN(node_t* root, const T& q, const double r, 
+                 const DistComp& di) : pos(0), queryObject(q), range(r), dc(di){
+    results.clear();
+    if (!root) {
+      return;
+    }
+    collectResults(root);
+  }
+  
+  void collectResults(node_t* node) {
+    if (node->isLeaf()) {
+      for (int i = 0; i < node->getCount(); i++) {
+        if (dc(*(node->getObject(i)), queryObject) <= range) {
+          results.push_back(node->getObject(i)->getTid());
+        }
+      }
+    }
+    else { // inner node
+      double minDist = node->getMinDist(queryObject, dc);
+      for (int i = 0; i < node->getCount(); i++) {
+        T* c = node->getCenter(i);
+//         cout << "  " << *(queryObject.getKey()) << *(c->getKey()) << " § " 
+//              << dc(*c, queryObject) << " $ " 
+//              << minDist + 2 * range << "  ?" << endl;
+        if (dc(*c, queryObject) <= minDist + 2 * range) {
+          collectResults(node->getChild(i));
+        } 
+      }
+    }
+  }
+
+  const TupleId next() {
+    assert(pos >= 0);
+    if (pos >= (int)results.size()) {
+      return -1;
+    }
+    pos++;
+    return results[pos - 1];
+  }
+
+  size_t noComparisons() const{
+      return dc.getCount();
+  }
+  
+  int getNoDistFunCalls() const {
+    return dc.getNoDistFunCalls();
+  }
+
+ private:
+  std::vector<TupleId> results;
+  int pos;
+  T queryObject;
+  double range;
+  DistComp dc;
+};
 
 /*
 4 class NTree
@@ -621,7 +618,7 @@ template<class T, class DistComp>
 class NTree {
  public:
   typedef NTreeLeafNode<T, DistComp> leafnode_t;
-  typedef RangeIterator<T, DistComp> rangeiterator_t;
+  typedef RangeIteratorN<T, DistComp> rangeiterator_t;
 //   typedef NNIterator<T, DistComp> nniterator_t;
   typedef NTreeNode<T, DistComp> node_t;
   typedef NTree<T, DistComp> ntree_t;
