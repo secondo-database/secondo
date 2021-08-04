@@ -156,6 +156,7 @@ ScalableBloomFilter::getElement(size_t index) const{
 
 void ScalableBloomFilter::setElement(size_t index, bool value) {
   filter[index] = value;
+  cout << "Set Element at Index " << index << " to " << value << endl;
 }
 
 int
@@ -332,40 +333,33 @@ ScalableBloomFilter::Open(SmiRecord& valueRecord, size_t& offset,
 {  
   float fp; 
   size_t inserts;
-  size_t binaryFilterLength;
-  string binaryFilter;
+  size_t filterSize;
+  bool filterElement;
 
+  bool ok = valueRecord.Read (&fp, sizeof(float), offset);
+  offset += sizeof(float);
 
-  size_t size = sizeof(float);
-  bool ok = (valueRecord.Read (&fp, size, offset) == size);
-  offset += size;
+  ok = ok && valueRecord.Read (&inserts, sizeof(size_t), offset);
+  offset += sizeof(size_t);
 
-  size = sizeof(size_t);
-  ok = ok && (valueRecord.Read (&inserts, size, offset) == size);
-  offset += size;
+  ok = ok && valueRecord.Read (&filterSize, sizeof(size_t), offset);
+  offset += sizeof(size_t);
 
-  ok = ok && (valueRecord.Read (&binaryFilterLength, size, offset) == size);
-  offset += size;
-  cout << "Read Binary String for Filter is read as: " << endl;
-  cout << binaryFilterLength << endl;
+  ScalableBloomFilter* openBloom = new ScalableBloomFilter(fp, inserts);
 
-  size = binaryFilterLength;
-  cout << "Size of the Binary Filter to Read in is set as: " << endl;
-  cout << size << endl;
-  ok = ok && (valueRecord.Read (&binaryFilter, size, offset) == size);
-  cout << binaryFilter;
-  
+  for (size_t i = 0;  i < filterSize; i++) {
+    ok = ok && valueRecord.Read (&filterElement, sizeof(bool), offset);
+    offset += sizeof(bool);
+    cout << filterElement;
+    openBloom -> setElement(i, filterElement);   
+  }
+
   if (ok) {
-    ScalableBloomFilter* openBloom = new ScalableBloomFilter(fp, inserts);
-    for (auto value : binaryFilter) {
-      openBloom->getFilter().push_back(value == '1');
-    }
     value.addr = openBloom;
   } else {
     value.addr =  0;
   }
-
-  return ok;
+  return true;
 } 
 
 
@@ -374,33 +368,28 @@ ScalableBloomFilter::Save(SmiRecord & valueRecord , size_t & offset ,
 const ListExpr typeInfo , Word & value) {
   ScalableBloomFilter* bloomFilter = static_cast<ScalableBloomFilter*>
                                     (value.addr);
-  
-  size_t size = sizeof(float);
-  bool ok = valueRecord.Write(&fp, size, offset);
-  offset+=size;
 
-  size = sizeof(size_t);
+  float fp = bloomFilter->getFP();
   size_t inserts = bloomFilter -> getInserts();
-  ok = ok && valueRecord.Write(&inserts, size, offset);
-  offset+=size;
+  size_t filterSize = bloomFilter -> getFilterSize();     
+  bool filterElement;                                 
 
-  string filterAsBinary = bloomFilter -> 
-                          filterToBinary(bloomFilter->getFilter());
-  size_t binaryLength = sizeof(filterAsBinary); 
+  bool ok = valueRecord.Write(&fp, sizeof(float), offset);
+  offset+=sizeof(float);
 
-  ok = ok && valueRecord.Write(&binaryLength, size, offset);
-  offset+=size;
-
-  size = binaryLength;
-  ok = ok && valueRecord.Write(&filterAsBinary, size, offset);
-  offset+=size;
-  cout << "Save Ok: " << + ok << endl;
-  cout << "Save Offset is: " << endl;
-  cout << offset << endl;
+  ok = ok && valueRecord.Write(&inserts, sizeof(size_t), offset);
+  offset+=sizeof(size_t);
+  
+  ok = ok && valueRecord.Write(&filterSize, sizeof(size_t), offset);
+  offset+=sizeof(size_t);
+  
+  for (size_t i = 0; i < filterSize; i++) {
+    filterElement = bloomFilter->getElement(i);
+    cout << filterElement;
+    ok = ok && valueRecord.Write(&filterElement, sizeof(bool), offset);
+    offset+=sizeof(bool);
+  }
   cout << endl;
-  cout << "Filter as String has Value: " << endl; 
-  cout << filterAsBinary << endl;
-
   return true;
 }
 
