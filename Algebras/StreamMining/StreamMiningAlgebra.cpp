@@ -450,13 +450,9 @@ CountMinSketch::CountMinSketch
   this->delta = delta;
   width = ceil(exp(1)/eps);
   depth = ceil(log(1/delta));
-  counters = new int *[depth];
-  for (size_t i = 0; i < depth; i++) {
-    counters[i] = new int[width];
-    for (size_t j = 0; j < depth; j++) {
-      counters[i][j] = 0;
-    }
-  }
+  matrix.resize(depth);
+  for (size_t i = 0; i < depth; i++)
+    matrix[i].resize(width);
 } 
 
 CountMinSketch::CountMinSketch
@@ -466,7 +462,7 @@ CountMinSketch::CountMinSketch
   delta = rhs.delta; 
   width = rhs.width; 
   depth = rhs.depth;
-  counters = rhs.counters;
+  matrix = rhs.matrix;
   totalCount = rhs.totalCount;
 }
 
@@ -501,41 +497,52 @@ CountMinSketch::getDelta() {
   return delta;
 }
 
+std::vector<std::vector<int>>
+CountMinSketch::getMatrix() {
+  return matrix;
+}
+
 //Auxiliary Functions
 void 
 CountMinSketch::initialize(float eps, float delt) {
   defined = true;
   this->eps = eps; 
   this->delta = delt; 
-  this->width = ceil(exp(1)/eps);
-  this->depth = ceil(log(1/delta));
-  this-> counters = new int *[depth];
-  for (size_t i = 0; i < depth; i++) {
-    counters[i] = new int[width];
-    for (size_t j = 0; j < depth; j++) {
-      counters[i][j] = 0;
-    }
-  }
+  width = ceil(exp(1)/eps);
+  depth = ceil(log(1/delta));
+  matrix.resize(depth);
+  for (size_t i = 0; i < depth; i++)
+    matrix[i].resize(width);
+  totalCount = 0;
 }
 
 void 
-CountMinSketch::increaseCount(u_int64_t hashValue) {
+CountMinSketch::increaseCount(vector<size_t> hashValues) {
   totalCount++;
+  int hashValue;
   for (size_t i = 0; i < depth; i++) {
-    counters[i][hashValue] = counters[i][hashValue] + 1;
+    hashValue = hashValues[i];
+    matrix[i][hashValue] = matrix[i][hashValue] + 1;
   }
 }
 
 int 
 CountMinSketch::estimateFrequency(vector<size_t> hashValues) {
-  int minVal = 0;
-  int compareValue = 0;
-  size_t hashValue = 0;
-    for (size_t i = 0; i < depth; i++) {
-      hashValue = hashValues[i];
-      compareValue = counters[i][hashValue] = counters[i][hashValue];
-      minVal = (minVal < compareValue) ? minVal : compareValue;
-    } 
+  int minVal;
+  int compareValue;
+
+  //use the Hashvalues of the Searchelement as Index
+  size_t hashedIndex = hashValues[0];
+
+  //Assume that the first hash is the minimum Frequency
+  minVal = matrix[0][hashedIndex];
+
+  for (size_t i = 1; i < depth; i++) {
+    hashedIndex = hashValues[i];
+    compareValue = matrix[i][hashedIndex];
+    minVal = minVal < compareValue ? minVal : compareValue;
+  } 
+
   return minVal;
 }
 
@@ -606,7 +613,7 @@ Word
 CountMinSketch::Create( const ListExpr typeInfo )
 {
   Word w; 
-  w.addr = (new CountMinSketch(0.1, 10));
+  w.addr = (new CountMinSketch(0.1, 0.5));
   return w;
 }
 
@@ -1302,7 +1309,7 @@ int createcountminVM(Word* args, Word& result,
   
   //take the parameters values supplied with the operator
   CcReal* epsilon = (CcReal*) args[2].addr;
-  CcInt* delta = (CcInt*) args[3].addr;
+  CcReal* delta = (CcReal*) args[3].addr;
   CcInt* attrIndexPointer = (CcInt*) args[4].addr;
 
   int attrIndex = attrIndexPointer->GetIntval();
@@ -1317,12 +1324,21 @@ int createcountminVM(Word* args, Word& result,
   cms->initialize(epsilon->GetValue(),delta->GetValue());
 
   cout << "After init() CMS Values are: " << endl;
+  cout << endl;
   cout << "Defined: " + cms->getDefined() << endl;
-  cout << "Width: " + cms->getWidth() << endl;
-  cout << "Depth: " << + cms->getDepth() << endl;
-  cout << "Total Count " << + cms->getTotalCount() << endl;
   cout << "Epsilon: " << + cms->getEpsilon() << endl;
   cout << "Delta: " << + cms->getDelta() << endl;
+  cout << "Width: "  << endl;
+  cout <<  cms->getWidth();
+  cout << endl;
+  cout << "Depth: " << + cms->getDepth() << endl;
+  cout << "Total Count " << + cms->getTotalCount() << endl;
+
+  cout << "VV enthält: " << cms->getMatrix().size() << endl;
+
+  for (size_t i = 0; i < cms->getDepth(); i++) {
+    cout << "V" << i << " length is: " << cms->getMatrix()[i].size() << endl;
+  }
 
 
   //Get the stream provided by the operator
@@ -1338,11 +1354,14 @@ int createcountminVM(Word* args, Word& result,
 
   /*Get the size of the Filter so we can %mod the hash 
   results to map to an index in the filter*/
-  size_t counterSize = cms->getWidth();
+  size_t width = cms->getWidth();
 
   /*Get number of Hashfunctions so reserving the hash results
   vector will be faster*/
-  int nbrHashes = cms->getDepth();
+  int depth = cms->getDepth();
+
+  //prepare a vector to take in the Hashresults
+  vector<size_t> hashValues; 
 
   //Prepare buffer for the MurmurHash3 output storage
   uint64_t mHash[2]; 
@@ -1355,26 +1374,44 @@ int createcountminVM(Word* args, Word& result,
     /*64 Bit Version chosen, because of my System. 
     Should we change this 64 bit? */    
     MurmurHash3_x64_128(streamElement, sizeof(*streamElement), 0, mHash);
-    size_t h1 = mHash[0] % counterSize;
-    cms->increaseCount(h1);
+    size_t h1 = mHash[0] % width;
+    hashValues.push_back(h1);
 
     //more than 1 Hash is needed (probably always the case)
-    if (nbrHashes > 1) {
-      size_t h2 = mHash[1] % counterSize;
-      cms->increaseCount(h1);
+    if (depth > 1) {
+      size_t h2 = mHash[1] % width;
+      hashValues.push_back(h2);
       //hash the streamelement for the appropriate number of times
-      for (int i = 2; i < nbrHashes; i++) {
-          size_t h_i = (h1 + i * h2 + i * i) % counterSize;
-          cms->increaseCount(h_i);
+      for (int i = 2; i < depth; i++) {
+          size_t h_i = (h1 + i * h2 + i * i) % width;
+          hashValues.push_back(h_i);
       }
     } 
 
-    streamElement->DeleteIfAllowed();
+    /*Increase element Counter in the 
+    Count Min Sketch*/
+    cms->increaseCount(hashValues);
+    
+    //delete old hashvalues from the vector
+    hashValues.clear();;
 
+    streamElement->DeleteIfAllowed();
+    streamTuple->DeleteIfAllowed();
 
     //assign next Element from the Stream
     streamTuple = stream.request();   
   }
+
+
+  for (size_t i = 0; i < cms->getDepth(); i++) {
+    cout << "Vector " << i << " looks like: " << endl; 
+    for (size_t j = 0; j < cms->getWidth(); j++) {
+       cout << cms->getMatrix()[i][j];
+    }
+    cout << endl;
+  }
+  cout << endl;
+  cout << "Total Elements processed: " << cms->getTotalCount();
   
   stream.close();
 
@@ -1397,38 +1434,39 @@ int cmscountVM(Word* args, Word& result,
   result = qp -> ResultStorage(s);
 
   //Make the Storage provided by QP easily usable
-  CcBool* b = (CcBool*) result.addr;
+  CcInt* b = (CcInt*) result.addr;
 
   //Prepare buffer for the MurmurHash3 output storage
   uint64_t cmHash[2];
 
   //Take Size of the bloomFilter
-  size_t filterSize = cms -> getWidth();
+  size_t width = cms -> getWidth();
 
   //Take number of hashfunctions used by the bloomFilter
-  int nbrHashes = cms -> getDepth();
+  int depth = cms -> getDepth();
 
   //prepare a vector to take in the Hashresults
   vector<size_t> hashValues; 
-  hashValues.reserve(nbrHashes);
+  hashValues.reserve(depth);
 
   //hash the Searchelement
   MurmurHash3_x64_128(searchEle, sizeof(*searchEle), 0, cmHash);
   
-  size_t h1 = cmHash[0]% filterSize;
+  size_t h1 = cmHash[0]% width;
   hashValues.push_back(h1);
   
-  size_t h2 = cmHash[1] % filterSize;
+  size_t h2 = cmHash[1] % width;
   hashValues.push_back(h2);
 
-  for (int i = 2; i < nbrHashes; i++) {
-    size_t h_i = (h1 + i * h2 + i * i) % filterSize;
+  for (int i = 2; i < depth; i++) {
+    size_t h_i = (h1 + i * h2 + i * i) % width;
     //order of elements is irrelevant; must only be set in the  filter  
     hashValues.push_back(h_i);
   }
+  
+  int estimate = cms->estimateFrequency(hashValues);
 
-  int count = cms->estimateFrequency(hashValues);
-  b->Set(true, count);
+  b->Set(true, estimate);
 
   return 0;
 }

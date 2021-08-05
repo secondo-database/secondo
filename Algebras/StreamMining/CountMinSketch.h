@@ -31,13 +31,7 @@ namespace eschbach {
   public:
   CountMinSketch(const float epsilon, const float delta);
   CountMinSketch(const CountMinSketch& rhs);
-  ~CountMinSketch() {
-    unsigned int i;
-    for (i = 0; i < depth; i++) {
-      delete[] counters[i];
-    }
-    delete[] counters;
-  }
+  ~CountMinSketch() {}
 
 
   //Getter und Setter
@@ -47,10 +41,11 @@ namespace eschbach {
   float getEpsilon();
   float getDelta();
   size_t getTotalCount();
+  std::vector<std::vector<int>> getMatrix();
 
   //Auxiliary Functions
   void initialize(const float epsilon, const float delta);
-  void increaseCount(u_int64_t hashedItemValue);
+  void increaseCount(std::vector<size_t> hashValues);
   int estimateFrequency(std::vector<size_t> hashValues);
 
   //Support Functions
@@ -98,7 +93,7 @@ namespace eschbach {
     size_t width;
     size_t depth;
     size_t totalCount;
-    int **counters;
-};
+    std::vector<std::vector<int>> matrix;
+  };
 
 }
