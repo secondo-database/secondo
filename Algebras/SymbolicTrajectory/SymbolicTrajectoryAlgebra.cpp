@@ -4218,7 +4218,76 @@ ListExpr splitterTM(ListExpr args) {
 class SplitterLI {
  public:
   SplitterLI(Word& s, double sm, DateTime* mtt, int attrNo) : pos(0) {
-    
+    initialProjection(s, sm, mtt, attrNo);
+  }
+  
+  void initialProjection(Word& s, double sm, DateTime* mtt, int attrNo) {
+    map<string, set<int> > freqItems;
+    computeFrequentItems(s, attrNo, sm, freqItems);
+    for (auto it : freqItems) {
+      insertPostfixes(it);
+    }
+    // cout << postfixesToString() << endl;
+  }
+  
+  string postfixesToString() const {
+    stringstream str;
+    for (auto it : postfixes) {
+      str << it.first << " : ";
+      for (auto it2 : it.second) {
+        str << it2.toString() << endl;
+      }
+    }
+    return str.str();
+  }
+  
+  void insertPostfixes(pair<string, set<int> > freqItem) {
+    vector<SplSemTraj> pftemp;
+    for (auto it : freqItem.second) {
+      source[it].computePostfixes(freqItem.first, pftemp);
+      if (postfixes.find(freqItem.first) == postfixes.end()) { // not found
+        postfixes[freqItem.first] = pftemp;
+      }
+      else { // entry for freqItem already present
+        postfixes[freqItem.first].insert(postfixes[freqItem.first].end(),
+                                         pftemp.begin(), pftemp.end());
+      }
+    }
+  } 
+  
+  void computeFrequentItems(Word& s, int attrNo, double sm, 
+                            map<string, set<int> >& freqItems) {
+    // collect all labels with occurrences
+    map<string, set<int> > allItems;
+    Stream<Tuple> stream(s);
+    stream.open();
+    Tuple* tuple = stream.request();
+    int counter = 0;
+    while (tuple) {
+      SplSemTraj* sst = (SplSemTraj*)(tuple->GetAttribute(attrNo));
+      for (int i = 0; i < sst->size(); i++) {
+        string label(sst->get(i).cat);
+        if (allItems.find(label) == allItems.end()) { // not found
+          set<int> occs = {counter};
+          allItems[label] = occs;
+        }
+        else {
+          allItems[label].insert(counter);
+        }
+      }
+      source.push_back(*sst);
+      tuple->DeleteIfAllowed();
+      tuple = stream.request();
+      counter++;
+    }
+    stream.close();
+    // retrieve frequent labels
+    unsigned int freqmin = ceil(counter * sm);
+    for (auto it : allItems) {
+      if (it.second.size() >= freqmin) {
+        freqItems.insert(it);
+      }
+    }
   }
   
   SplSemTraj* next() {
@@ -4228,8 +4297,9 @@ class SplitterLI {
   }
 
  private:
-  vector<SplSemTraj> result;
-  unsigned int pos;
+  vector<SplSemTraj> source, result;
+  map<string, vector<SplSemTraj> > postfixes;
+  unsigned int freqmin, pos;
 };
 
 /*
@@ -4257,7 +4327,7 @@ int splitterVM(Word* args, Word& result, int message, Word& local, Supplier s) {
       return 0;
     }
     case REQUEST: {
-      result.addr = li ? li->next() : 0;
+      result.addr = /*li ? li->next() : */0;
       return result.addr ? YIELD : CANCEL;
     }
     case CLOSE: {

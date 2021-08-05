@@ -3144,6 +3144,18 @@ int SplSemTraj::find(const SplPlace& sp, const double tolerance,
   return -1;
 }
 
+set<int> SplSemTraj::getPositions(string label) const {
+  set<int> result;
+  for (int i = 0; i < size(); i++) {
+    SplTSPlace tsp = get(i);
+    string currentLabel(tsp.cat);
+    if (currentLabel == label) {
+      result.insert(i);
+    }
+  }
+  return result;
+}
+
 void SplSemTraj::convertFromMPointMLabel(const MPoint& mp, const MLabel& ml,
                                          const Geoid *geoid /* = 0 */) {
   clear();
@@ -3178,18 +3190,32 @@ bool SplSemTraj::contains(const SplPlace& sp, const double deltaT,
 }
 
 SplSemTraj SplSemTraj::postfix(const int pos) const {
-    assert(pos >= 0 && pos < size());
-    SplSemTraj result(1);
-    Instant t_m(0.0), t_i(0.0);
-    t_m.ReadFrom(get(pos).instDbl);
-    for (int i = pos + 1; i < size(); i++) {
-      SplTSPlace tsp = get(i);
-      t_i.ReadFrom(tsp.instDbl);
-      t_i -= t_m;
-      tsp.instDbl = t_i.ToDouble();
-      result.append(tsp);
-    }
-    return result;
+  assert(pos >= 0 && pos < size());
+  SplSemTraj result(1);
+  DateTime t_m(0.0), t_i(0.0);
+  t_m.ReadFrom(get(pos).instDbl);
+  t_m.SetType(durationtype);
+  for (int i = pos + 1; i < size(); i++) {
+    SplTSPlace tsp = get(i);
+    t_i.ReadFrom(tsp.instDbl);
+    t_i -= t_m;
+    tsp.instDbl = t_i.ToDouble();
+    result.append(tsp);
   }
+  return result;
+}
 
+void SplSemTraj::computePostfixes(string label, vector<SplSemTraj>& result) 
+                                                                         const {
+  result.clear();
+  set<int> labelPos = getPositions(label);
+  for (auto it : labelPos) {
+    SplSemTraj pf = postfix(it);
+    if (!pf.isEmpty()) {
+      result.push_back(pf);
+    }
+  }
+  
+}
+  
 }

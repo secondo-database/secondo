@@ -765,6 +765,8 @@ class SplSemTraj : public Attribute {
   
   int find(const SplPlace& sp, const double tolerance,const Geoid* geoid) const;
   
+  std::set<int> getPositions(std::string label) const;
+  
   void convertFromMPointMLabel(const temporalalgebra::MPoint& mp,
                                const MLabel& ml, const Geoid* geoid = 0);
   
@@ -772,6 +774,9 @@ class SplSemTraj : public Attribute {
                 const Geoid* geoid = 0) const;
   
   SplSemTraj postfix(const int pos) const;
+  
+  void computePostfixes(std::string label, std::vector<SplSemTraj>& result) 
+       const;
 
  private:
   DbArray<SplTSPlace> tsPlaces;
