@@ -32,7 +32,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <functional>
 #include "StringUtils.h"
 
-#ifdef READLINE
+#ifdef HAVE_LIBREADLINE
   #include <stdio.h>
   #include <readline/readline.h>
   #include <readline/history.h>
@@ -63,7 +63,7 @@ bool getCommand(istream& in,
   {
     line = "";
     showPrompt( first );
-    #ifdef READLINE
+    #ifdef HAVE_LIBREADLINE
       if(isStdInput){
          char* cline = readline(prompt.c_str());
          line = string(cline);
@@ -149,7 +149,7 @@ bool getCommand(istream& in,
   else
      end += 1;
   cmdRet = cmdRet.substr(0,end);
-  #ifdef READLINE
+  #ifdef HAVE_LIBREADLINE
      if(complete && (cmdRet.length()>0) && isStdInput){
         // get the last entry from the history if avaiable
         int noe = history_length;

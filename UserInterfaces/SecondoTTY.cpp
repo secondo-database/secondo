@@ -75,7 +75,7 @@ then you will be prompted for the filename.
 #include <ctype.h>
 #include "getCommand.h"
 
-#ifdef READLINE
+#ifdef HAVE_LIBREADLINE
   #include <stdio.h>
   #include <readline/readline.h>
   #include <readline/history.h>
@@ -436,7 +436,7 @@ SecondoTTY::ShowPrompt( const bool first )
 
   prompt = first ? prompt_first : prompt_next;
 
-  #ifdef READLINE
+  #ifdef HAVE_LIBREADLINE
     rl_set_prompt( prompt.c_str() );
   #else
     cout << prompt;
@@ -748,7 +748,7 @@ SecondoTTY::Execute()
 }
 
 
-#ifdef READLINE
+#ifdef HAVE_LIBREADLINE
 /*
 15 Keyword extraction
 
@@ -846,7 +846,7 @@ char** secondo_completion(const char* text, int start, int end){
 int SecondoTTYMode(const TTYParameter& tp)
 {
   SecondoTTY* appPointer = new SecondoTTY( tp );
-#ifdef READLINE
+#ifdef HAVE_LIBREADLINE
   rl_initialize();
   rl_readline_name = "secondo";
   rl_attempted_completion_function = secondo_completion;
@@ -880,7 +880,7 @@ int SecondoTTYMode(const TTYParameter& tp)
   int rc = appPointer->Execute();
   delete appPointer;
 
-#ifdef READLINE
+#ifdef HAVE_LIBREADLINE
   /* 
    * save the last HISTORY_FILE_ENTRIES elements of the 
    * history to a file 

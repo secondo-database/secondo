@@ -81,7 +81,7 @@ prolog engine. All generated solutions are printed out.
 #include "getCommand.h"
 
 
-#ifdef READLINE
+#ifdef HAVE_LIBREADLINE
   #include <stdio.h>
   #include <readline/readline.h>
   #include <readline/history.h>
@@ -139,7 +139,7 @@ string prompt = "";
 
 void ShowPrompt( const bool first ) {
   prompt = first ? "SecondoPLTTY => ": "SecondoPLTTY -> ";
-  #ifdef READLINE
+  #ifdef HAVE_LIBREADLINE
     rl_set_prompt( prompt.c_str() );
   #else
     cout << prompt;
@@ -1810,7 +1810,7 @@ The function ~secondo\_completion~  enables
 tab extension if the readline library is used.
 
 */
-#ifdef READLINE
+#ifdef HAVE_LIBREADLINE
 extern char** secondo_completion(const char* text, int start, int end);
 #endif
 
@@ -1834,7 +1834,7 @@ int SecondoPLTTYMode(TTYParameter& tp)
     exit(1);
   }
 
-#ifdef READLINE
+#ifdef HAVE_LIBREADLINE
   rl_initialize();
   rl_readline_name = "secondopl";
   rl_attempted_completion_function = secondo_completion;
@@ -1929,7 +1929,7 @@ int SecondoPLTTYMode(TTYParameter& tp)
       ok = pltty::processScript("@"+tp.iFileName);
   }
 
-#ifdef READLINE
+#ifdef HAVE_LIBREADLINE
   /* 
    * save the last HISTORY_FILE_ENTRIES elements of the 
    * history to a file 

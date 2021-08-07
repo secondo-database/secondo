@@ -44,12 +44,12 @@ ifneq ($(smitype),ora)
 APPLOBJECTS += TestRunner.$(OBJEXT)
 endif
 
+# Secondo is always build using the readline library
+# the environment variable "readline" is no longer used
+CCFLAGS += -DHAVE_LIBREADLINE
 
-ifeq ($(readline),true)
-CCFLAGS += -DREADLINE
 ifneq ($(optimizer),"true")
 RL_LD_FLAG = -lreadline -lncurses
-endif
 endif
 
 # Some optional switches used for providing a prolog
