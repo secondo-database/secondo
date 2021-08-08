@@ -794,7 +794,7 @@ SmiFile::Open( const SmiFileId fileid, const string& context /* = "Default" */ )
       rc = impl->bdbFile->open( tid, bdbName.c_str(), 0, bdbType, flags, 0 );
       fileId = fileid;
       if (trace) {
-        cerr << "opening by id =" << fileid << ", "<< *this << endl;
+        cerr << "opening by id = " << fileid << ", "<< *this << endl;
       }
       SmiEnvironment::SetBDBErrorD( rc, "could not open file " + bdbName );
       if ( rc == 0 )
@@ -837,30 +837,37 @@ SmiFile::Close( const bool sync /* = true */)
   TRACE("SmiFile::Close")
   int rc = 0;
 
+  if (trace) {
+    cout << "SmiFile::Close " << *this 
+         << " / opened = " << opened 
+         << " / tmpFile = " << impl->isTemporaryFile
+         << endl;
+  }
+
   if ( opened )
   {
     ctr++;
     // --- The current Berkeley DB handle is freed, but a new one is
     // --- allocated for possible reuse of this SmiFile instance
     opened = false;
+
     if ( !impl->isTemporaryFile )
     {
       SmiEnvironment::Implementation::FreeDbHandle( impl->bdbHandle );
       impl->noHandle = true;
-    //  if(impl->bdbFile){
-    //    impl->bdbFile->close(0);
-    //    delete impl->bdbFile;
-    //    impl->bdbFile=0;
-    //    impl->noHandle=true;
-    //    SmiEnvironment::Implementation::DeleteDbHandle( impl->bdbHandle );
-    //  }
+
+      if(impl->bdbFile) {
+        SmiEnvironment::Implementation::DeleteDbHandle( impl->bdbHandle );
+      }
     }
     else
     {
       uint32_t flags = sync?0:DB_NOSYNC;
       rc = impl->bdbFile->close( flags );
+      
       if (trace)
         cerr << "closing " << *this << endl;
+
       SmiEnvironment::SetBDBError( rc );
       delete impl->bdbFile;
 
@@ -918,7 +925,8 @@ SmiFile::Truncate()
 bool
 SmiFile::Remove()
 {
-  //cerr << endl << "removing " <<  impl->bdbName << endl;
+  if (trace)
+     cerr << endl << "Removing " << impl->bdbName << endl;
 
   int rc = 0;
   if(opened){
@@ -926,7 +934,9 @@ SmiFile::Remove()
       return false;
     }
   }
+
   rc = impl->bdbFile->remove( impl->bdbName.c_str(), 0, 0 );
+
   SmiEnvironment::SetBDBError(rc);
   if ( rc == 0 ) {
     if(impl->bdbFile){
@@ -934,7 +944,10 @@ SmiFile::Remove()
        impl->bdbFile = 0;
     }
   }
-  //cerr << endl << "End removing " <<  impl->bdbName << endl;
+  	
+  if (trace)
+     cerr << endl << "End removing " << impl->bdbName << endl;
+  
   return rc == 0;
 }
 
