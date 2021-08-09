@@ -41,6 +41,8 @@ namespace eschbach {
   float getEpsilon();
   float getDelta();
   size_t getTotalCount();
+  int getElement(int counterNumber, int elementIndex);
+  void setElement(int counterNumber, int elementIndex, int value);
   std::vector<std::vector<int>> getMatrix();
 
   //Auxiliary Functions

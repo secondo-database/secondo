@@ -497,6 +497,16 @@ CountMinSketch::getDelta() {
   return delta;
 }
 
+int
+CountMinSketch::getElement(int counterNumber, int index) {
+  return matrix[counterNumber][index];
+}
+
+void 
+CountMinSketch::setElement(int counterNumber, int index, int value) {
+  matrix[counterNumber][index] = value;
+}
+
 std::vector<std::vector<int>>
 CountMinSketch::getMatrix() {
   return matrix;
@@ -624,35 +634,45 @@ CountMinSketch::Delete( const ListExpr typeInfo, Word& w )
   w.addr = 0;
 }
 
-/* Save and Open 
+//Save and Open 
 bool
-ScalableBloomFilter::Open(SmiRecord& valueRecord, size_t& offset, 
+CountMinSketch::Open(SmiRecord& valueRecord, size_t& offset, 
                          const ListExpr typeInfo, Word& value) 
 {  
-  float fp; 
-  size_t inserts;
-  size_t filterSize;
-  bool filterElement;
+  float epsilon;
+  float delta; 
+  size_t width;
+  size_t depth;
+  int counterEle;
 
-  bool ok = valueRecord.Read (&fp, sizeof(float), offset);
+  bool ok = valueRecord.Read (&epsilon, sizeof(float), offset);
   offset += sizeof(float);
 
-  ok = ok && valueRecord.Read (&inserts, sizeof(size_t), offset);
+  ok = valueRecord.Read (&delta, sizeof(float), offset);
+  offset += sizeof(float);
+
+  ok = ok && valueRecord.Read (&width, sizeof(size_t), offset);
   offset += sizeof(size_t);
 
-  ok = ok && valueRecord.Read (&filterSize, sizeof(size_t), offset);
+  ok = ok && valueRecord.Read (&depth, sizeof(size_t), offset);
   offset += sizeof(size_t);
 
-  ScalableBloomFilter* openBloom = new ScalableBloomFilter(fp, inserts);
+  CountMinSketch* openCMS = new CountMinSketch(epsilon, delta);
 
-  for (size_t i = 0;  i < filterSize; i++) {
-    ok = ok && valueRecord.Read (&filterElement, sizeof(bool), offset);
-    offset += sizeof(bool);
-    openBloom -> setElement(i, filterElement);   
+  for (size_t i = 0; i < depth; i++) {
+    cout << "Counter Number " << i << " has the following elements: ";
+    cout << endl;
+    for (size_t j = 0; j < width; j++) {
+        ok = ok && valueRecord.Read (&counterEle, sizeof(int), offset);
+        offset+=sizeof(int); 
+        openCMS -> setElement(i,j,counterEle);
+        cout << counterEle;   
+    }
+    cout << endl;
   }
 
   if (ok) {
-    value.addr = openBloom;
+    value.addr = openCMS;
   } else {
     value.addr =  0;
   }
@@ -661,33 +681,43 @@ ScalableBloomFilter::Open(SmiRecord& valueRecord, size_t& offset,
 
 
 bool 
-ScalableBloomFilter::Save(SmiRecord & valueRecord , size_t & offset ,
+CountMinSketch::Save(SmiRecord & valueRecord , size_t & offset ,
 const ListExpr typeInfo , Word & value) {
-  ScalableBloomFilter* bloomFilter = static_cast<ScalableBloomFilter*>
+  CountMinSketch* cms = static_cast<CountMinSketch*>
                                     (value.addr);
 
-  float fp = bloomFilter->getFP();
-  size_t inserts = bloomFilter -> getInserts();
-  size_t filterSize = bloomFilter -> getFilterSize();     
-  bool filterElement;                                 
+  float epsilon = cms->getEpsilon();
+  float delta = cms -> getDelta();
+  size_t width = cms -> getWidth();
+  size_t depth = cms -> getDepth();
+  int counterEle;                                 
 
-  bool ok = valueRecord.Write(&fp, sizeof(float), offset);
+  bool ok = valueRecord.Write(&epsilon, sizeof(float), offset);
   offset+=sizeof(float);
 
-  ok = ok && valueRecord.Write(&inserts, sizeof(size_t), offset);
+  ok = ok && valueRecord.Write(&delta, sizeof(float), offset);
+  offset+=sizeof(float);
+  
+  ok = ok && valueRecord.Write(&width, sizeof(size_t), offset);
+  offset+=sizeof(size_t);
+
+  ok = ok && valueRecord.Write(&depth, sizeof(size_t), offset);
   offset+=sizeof(size_t);
   
-  ok = ok && valueRecord.Write(&filterSize, sizeof(size_t), offset);
-  offset+=sizeof(size_t);
-  
-  for (size_t i = 0; i < filterSize; i++) {
-    filterElement = bloomFilter->getElement(i);
-    ok = ok && valueRecord.Write(&filterElement, sizeof(bool), offset);
-    offset+=sizeof(bool);
+
+  for (size_t i = 0; i < depth; i++) {
+    for (size_t j = 0; j < width; j++) {
+        counterEle = cms->getElement(i,j);
+        ok = ok && valueRecord.Write(&counterEle, sizeof(int), offset);
+        offset+=sizeof(int);
+        cout << counterEle;
+    }
   }
+
+  cout << endl;
   return true;
 }
-*/
+
 
 void
 CountMinSketch::Close( const ListExpr typeInfo, Word& w )
@@ -734,8 +764,8 @@ struct countMinSketchFunctions :
     out = CountMinSketch::Out;
     create = CountMinSketch::Create;
     deletion = CountMinSketch::Delete;
-    //open = CountMinSketch::Open;
-    //save = CountMinSketch::Save;
+    open = CountMinSketch::Open;
+    save = CountMinSketch::Save;
     close = CountMinSketch::Close;
     clone = CountMinSketch::Clone;
   }
@@ -1412,6 +1442,8 @@ int createcountminVM(Word* args, Word& result,
   }
   cout << endl;
   cout << "Total Elements processed: " << cms->getTotalCount();
+  cout << "----------------------------------------------" << endl;
+  cout << endl;
   
   stream.close();
 
@@ -1421,7 +1453,7 @@ int createcountminVM(Word* args, Word& result,
 }
 
 /*
-2.3.5 Operator ~cmsCount~
+2.3.5 Operator ~cmscount~
 */
 int cmscountVM(Word* args, Word& result,
            int message, Word& local, Supplier s){
@@ -1463,7 +1495,7 @@ int cmscountVM(Word* args, Word& result,
     //order of elements is irrelevant; must only be set in the  filter  
     hashValues.push_back(h_i);
   }
-  
+
   int estimate = cms->estimateFrequency(hashValues);
 
   b->Set(true, estimate);
