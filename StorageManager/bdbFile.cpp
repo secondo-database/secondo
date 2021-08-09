@@ -857,7 +857,7 @@ SmiFile::Close( const bool sync /* = true */)
       impl->noHandle = true;
 
       if(impl->bdbFile) {
-        SmiEnvironment::Implementation::DeleteDbHandle( impl->bdbHandle );
+        //SmiEnvironment::Implementation::DeleteDbHandle( impl->bdbHandle );
       }
     }
     else
