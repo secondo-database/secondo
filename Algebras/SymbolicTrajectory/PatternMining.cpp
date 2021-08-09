@@ -3205,17 +3205,172 @@ SplSemTraj SplSemTraj::postfix(const int pos) const {
   return result;
 }
 
-void SplSemTraj::computePostfixes(string label, vector<SplSemTraj>& result) 
+void SplSemTraj::computePostfixes(SplPlace sp, vector<SplSemTraj>& result) 
                                                                          const {
   result.clear();
-  set<int> labelPos = getPositions(label);
+  set<int> labelPos = getPositions(sp.cat);
   for (auto it : labelPos) {
     SplSemTraj pf = postfix(it);
     if (!pf.isEmpty()) {
       result.push_back(pf);
     }
   }
+}
+
+/*
+Implementation of class ~Splitter~, used for operator ~splitter~
+
+*/
+Splitter::Splitter(Word& s, const double sm, DateTime& mtt, const double e,
+                   Geoid* g, const int attrNo) :
+      postfixes(SplPlaceSorter(e, g)), pos(0), deltaT(mtt), eps(e), geoid(g) {
+  initialProjection(s, sm, attrNo);
+}
   
+void Splitter::initialProjection(Word& s, const double sm, const int attrNo) {
+  map<SplPlace, set<int>, SplPlaceSorter> freqItems(SplPlaceSorter(eps, geoid));
+  computeFrequentItems(s, attrNo, sm, freqItems);
+  cout << freqItems.size() << endl;
+  for (auto it : freqItems) {
+    insertPostfixes(it);
+  }  
+  for (auto it : freqItems) {
+    SplSemTraj sst(1);
+    SplTSPlace tsp(DateTime(0.0), Point(true, it.first.x, it.first.y),
+                   it.first.cat);
+    sst.append(tsp);
+    // TODO: output snippets
+    prefixSpan(sst, postfixes[it.first]);
+  }
+}
+
+void Splitter::prefixSpan(SplSemTraj& prefix, vector<SplSemTraj> pf) {
+  map<SplPlace, set<int>, SplPlaceSorter> localFreqItems(SplPlaceSorter(eps,
+                                                                        geoid));
+  cout << "Call prefixSpan for sst " << prefix.toString() << endl;
+  computeLocalFreqItems(prefix.last(), pf, localFreqItems);
+  cout << freqItemsToString(localFreqItems) << endl;
+  map<SplPlace, vector<SplSemTraj>, SplPlaceSorter> 
+                                       newPostfixes(SplPlaceSorter(eps, geoid));
+  for (auto it : localFreqItems) {
+    SplSemTraj p(prefix);
+    SplTSPlace tsp(DateTime(0.0), Point(true, it.first.x, it.first.y),
+                   it.first.cat);
+    p.append(tsp);
+    vector<SplSemTraj> pftemp;
+    for (auto pos : it.second) {
+      pf[pos].computePostfixes(it.first, pftemp);
+      if (newPostfixes.find(it.first) == newPostfixes.end()) { // not found
+        newPostfixes[it.first] = pftemp;
+      }
+      else { // entry for freq item already present
+        newPostfixes[it.first].insert(newPostfixes[it.first].end(),
+                                      pftemp.begin(), pftemp.end());
+      }
+    }
+    prefixSpan(p, newPostfixes[it.first]);
+  }
+  // TODO: improvse postfix management and output
+//   cout << postfixesToString(p, newPostfixes) << endl;
+  // TODO: grow and output snippets
+}
+
+string Splitter::postfixesToString(SplSemTraj pref, 
+                        map<SplPlace, vector<SplSemTraj>, SplPlaceSorter>& pf) {
+  stringstream str;
+  for (auto it : pf) {
+    str << "Postfixes of " << it.first.toString() << " : " << endl;
+    for (auto it2 : it.second) {
+      str << "    " << it2.toString() << endl;
+    }
+  }
+  return str.str();
+}
+
+string Splitter::freqItemsToString(map<SplPlace, set<int>, 
+                                     SplPlaceSorter>& freqItems) {
+  stringstream str;
+  for (auto it : freqItems) {
+    str << "Freq item " << it.first.toString() << " : ";
+    for (auto it2 : it.second) {
+      str << it2 << ", ";
+    }
+    str << endl;
+  }
+  str << endl;
+  return str.str();
+}
+
+void Splitter::insertPostfixes(pair<SplPlace, set<int> > freqItem) {
+  vector<SplSemTraj> pftemp;
+  for (auto it : freqItem.second) {
+    source[it].computePostfixes(freqItem.first, pftemp);
+    if (postfixes.find(freqItem.first) == postfixes.end()) { // not found
+      postfixes[freqItem.first] = pftemp;
+    }
+    else { // entry for freqItem already present
+      postfixes[freqItem.first].insert(postfixes[freqItem.first].end(),
+                                        pftemp.begin(), pftemp.end());
+    }
+  }
+} 
+
+void Splitter::computeFrequentItems(Word& s, const int attrNo, const double sm, 
+                           map<SplPlace, set<int>, SplPlaceSorter>& freqItems) {
+  // collect all SplPlaces with occurrences
+  map<SplPlace, set<int>, SplPlaceSorter> allItems(SplPlaceSorter(eps, geoid));
+  Stream<Tuple> stream(s);
+  stream.open();
+  Tuple* tuple = stream.request();
+  int counter = 0;
+  while (tuple) {
+    SplSemTraj* sst = (SplSemTraj*)(tuple->GetAttribute(attrNo));
+    cout << sst->toString() << endl;
+    for (int i = 0; i < sst->size(); i++) {
+      SplPlace sp(sst->get(i));
+      allItems[sp].insert(counter);
+    }
+    source.push_back(*sst);
+    tuple->DeleteIfAllowed();
+    tuple = stream.request();
+    counter++;
+  }
+  stream.close();
+  // retrieve frequent labels
+  freqmin = ceil(counter * sm);
+  for (auto it : allItems) {
+    if (it.second.size() >= freqmin) {
+      freqItems.insert(it);
+    }
+  }
+}
+
+void Splitter::computeLocalFreqItems(SplTSPlace tsp, vector<SplSemTraj> pf, 
+                          map<SplPlace, set<int>, SplPlaceSorter >& freqItems) {
+  map<SplPlace, set<int>, SplPlaceSorter> allItems(SplPlaceSorter(eps, geoid));
+  int counter = 0;
+  for (auto it : pf) {
+    for (int i = 0; i < it.size(); i++) {
+      SplTSPlace spl(it.get(i));
+      if (i > 0 || !spl.almostEqual(tsp, eps, geoid)) { // first place != spl
+        if (spl.instDbl < deltaT.ToDouble()) { // 
+          allItems[spl].insert(counter);
+        }
+      }
+    }
+    counter++;
+  }
+  for (auto it : allItems) {
+    if (it.second.size() >= freqmin) {
+      freqItems.insert(it);
+    }
+  }
+}
+
+SplSemTraj* Splitter::next() {
+  assert(pos < result.size());
+  pos++;
+  return &result[pos - 1];
 }
   
 }

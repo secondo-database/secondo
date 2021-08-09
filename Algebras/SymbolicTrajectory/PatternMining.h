@@ -541,6 +541,19 @@ struct SplPlace {
     return AlmostEqual(x, p.x) && AlmostEqual(y, p.y) && cat == p.cat;
   }
   
+  bool almostEqual(SplPlace& p, const double eps, const Geoid* geoid = 0) const{
+    Point p1(true, x, y), p2(true, p.x, p.y);
+    std::string c1(cat), c2(p.cat);
+    return (c1 == c2 && p1.Distance(p2, geoid) <= eps);
+  }
+  
+  std::string toString() const {
+    std::stringstream str;
+    Point loc(true, x, y);
+    str << "(" << loc << ", " << cat << ")";
+    return str.str();
+  }
+  
   double x, y;
   char cat[48];
 };
@@ -763,6 +776,11 @@ class SplSemTraj : public Attribute {
   
   void sort();
   
+  SplTSPlace last() const {
+    assert(!isEmpty());
+    return get(size() - 1);
+  }
+  
   int find(const SplPlace& sp, const double tolerance,const Geoid* geoid) const;
   
   std::set<int> getPositions(std::string label) const;
@@ -775,14 +793,59 @@ class SplSemTraj : public Attribute {
   
   SplSemTraj postfix(const int pos) const;
   
-  void computePostfixes(std::string label, std::vector<SplSemTraj>& result) 
+  void computePostfixes(SplPlace sp, std::vector<SplSemTraj>& result) 
        const;
 
  private:
   DbArray<SplTSPlace> tsPlaces;
 };
 
+struct SplPlaceSorter {
+  SplPlaceSorter(double e, Geoid* g = 0) : eps(e), geoid(g) {}
+  
+  bool operator()(const SplPlace sp1, const SplPlace sp2) const {
+    Point p1(true, sp1.x, sp1.y), p2(true, sp2.x, sp2.y);
+    std::string c1(sp1.cat), c2(sp2.cat);
+//     cout << "  " << p1 << p2 << ", dist = " << p1.Distance(p2, geoid) << c1 
+//          << " < " << c2 << " ? " << ((c1 < c2) || (c1 == c2 && p1 < p2 &&
+//              p1.Distance(p2, geoid) >= eps) ? "TRUE" : "FALSE") << endl;
+    return (c1 < c2) || (c1 == c2 && p1 < p2 && p1.Distance(p2, geoid) >= eps);
+  }
+  
+  double eps;
+  Geoid* geoid;
+};
 
+/*
+Class ~Splitter~, used for operator ~splitter~
+
+*/
+class Splitter {
+ public:
+  Splitter(Word& s, const double sm, datetime::DateTime& mtt, const double e,
+           Geoid* g, const int attrNo);
+  
+  void initialProjection(Word& s, const double sm, const int attrNo);
+  void prefixSpan(SplSemTraj& prefix, std::vector<SplSemTraj> pf);
+  std::string postfixesToString(SplSemTraj pref, 
+            std::map<SplPlace, std::vector<SplSemTraj>, SplPlaceSorter>& postf);
+  std::string freqItemsToString(std::map<SplPlace, std::set<int>, 
+                                  SplPlaceSorter>& freqItems);
+  void insertPostfixes(std::pair<SplPlace, std::set<int> > freqItem);
+  void computeFrequentItems(Word& s, const int attrNo, const double sm, 
+                 std::map<SplPlace, std::set<int>, SplPlaceSorter >& freqItems);
+  void computeLocalFreqItems(SplTSPlace tsp, std::vector<SplSemTraj> pf,
+                 std::map<SplPlace, std::set<int>, SplPlaceSorter >& freqItems);
+  SplSemTraj* next();
+  
+ private:
+  std::vector<SplSemTraj> source, result;
+  std::map<SplPlace, std::vector<SplSemTraj>, SplPlaceSorter> postfixes;
+  unsigned int freqmin, pos;
+  datetime::DateTime deltaT;
+  double eps;
+  Geoid *geoid;
+};
 
 
 }

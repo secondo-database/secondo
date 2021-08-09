@@ -231,6 +231,6 @@ Result    : TRUE
 
 Operator  : splitter
 Number    : 1
-Signature : stream(tuple(X)) x ATTR x real x duration -> stream(splsemtraj)
-Example   : query Dotraj feed extend[SST: createsplsemtraj([const mpoint value ((("2012-01-01" "2012-01-01-00:30" TRUE FALSE) (7.0 51.0 7.1 51.1)))], .Trajectory)] splitter[SST, 0.5, create_duration(0, 7200000)] count
-Result    : 5
+Signature : stream(tuple(X)) x ATTR x real x duration x real [x geoid] -> stream(splsemtraj)
+Example   : query Dotraj feed extend[SST: createsplsemtraj([const mpoint value ((("2012-01-01" "2012-01-01-00:30" TRUE FALSE) (7.0 51.0 7.1 51.1)))], .Trajectory)] splitter[SST, 0.5, create_duration(0, 7200000), 1000.0] count
+Result    : 0

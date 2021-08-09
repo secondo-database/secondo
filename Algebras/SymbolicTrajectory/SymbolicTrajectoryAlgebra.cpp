@@ -4176,8 +4176,8 @@ Operator createsplsemtraj(createsplsemtrajSpec(), createsplsemtrajVM,
 
 */
 ListExpr splitterTM(ListExpr args) {
-  if (nl->ListLength(args) != 4) {
-    return listutils::typeError("Four arguments expected.");
+  if (!nl->HasLength(args, 5) && !nl->HasLength(args, 6)) {
+    return listutils::typeError("Five or six arguments expected.");
   }
   if (!Stream<Tuple>::checkType(nl->First(args))) {
     return listutils::typeError("First argument must be a stream.");
@@ -4193,6 +4193,14 @@ ListExpr splitterTM(ListExpr args) {
   }
   if (!Duration::checkType(nl->Fourth(args))) {
     return listutils::typeError("Fourth argument must be a duration.");
+  }
+  if (!CcReal::checkType(nl->Fifth(args))) {
+    return listutils::typeError("Fifth argument must be a real number.");
+  }
+  if (nl->HasLength(args, 6)) {
+    if (!Geoid::checkType(nl->Sixth(args))) {
+      return listutils::typeError("Sixth argument must be a geoid.");
+    }
   }
   ListExpr attrList =
             nl->First(nl->Rest(nl->First(nl->Rest(nl->First(args)))));
@@ -4212,114 +4220,29 @@ ListExpr splitterTM(ListExpr args) {
 }
 
 /*
-\subsection{Local Info Class}
-
-*/
-class SplitterLI {
- public:
-  SplitterLI(Word& s, double sm, DateTime* mtt, int attrNo) : pos(0) {
-    initialProjection(s, sm, mtt, attrNo);
-  }
-  
-  void initialProjection(Word& s, double sm, DateTime* mtt, int attrNo) {
-    map<string, set<int> > freqItems;
-    computeFrequentItems(s, attrNo, sm, freqItems);
-    for (auto it : freqItems) {
-      insertPostfixes(it);
-    }
-    // cout << postfixesToString() << endl;
-  }
-  
-  string postfixesToString() const {
-    stringstream str;
-    for (auto it : postfixes) {
-      str << it.first << " : ";
-      for (auto it2 : it.second) {
-        str << it2.toString() << endl;
-      }
-    }
-    return str.str();
-  }
-  
-  void insertPostfixes(pair<string, set<int> > freqItem) {
-    vector<SplSemTraj> pftemp;
-    for (auto it : freqItem.second) {
-      source[it].computePostfixes(freqItem.first, pftemp);
-      if (postfixes.find(freqItem.first) == postfixes.end()) { // not found
-        postfixes[freqItem.first] = pftemp;
-      }
-      else { // entry for freqItem already present
-        postfixes[freqItem.first].insert(postfixes[freqItem.first].end(),
-                                         pftemp.begin(), pftemp.end());
-      }
-    }
-  } 
-  
-  void computeFrequentItems(Word& s, int attrNo, double sm, 
-                            map<string, set<int> >& freqItems) {
-    // collect all labels with occurrences
-    map<string, set<int> > allItems;
-    Stream<Tuple> stream(s);
-    stream.open();
-    Tuple* tuple = stream.request();
-    int counter = 0;
-    while (tuple) {
-      SplSemTraj* sst = (SplSemTraj*)(tuple->GetAttribute(attrNo));
-      for (int i = 0; i < sst->size(); i++) {
-        string label(sst->get(i).cat);
-        if (allItems.find(label) == allItems.end()) { // not found
-          set<int> occs = {counter};
-          allItems[label] = occs;
-        }
-        else {
-          allItems[label].insert(counter);
-        }
-      }
-      source.push_back(*sst);
-      tuple->DeleteIfAllowed();
-      tuple = stream.request();
-      counter++;
-    }
-    stream.close();
-    // retrieve frequent labels
-    unsigned int freqmin = ceil(counter * sm);
-    for (auto it : allItems) {
-      if (it.second.size() >= freqmin) {
-        freqItems.insert(it);
-      }
-    }
-  }
-  
-  SplSemTraj* next() {
-    assert(pos < result.size());
-    pos++;
-    return &result[pos - 1];
-  }
-
- private:
-  vector<SplSemTraj> source, result;
-  map<string, vector<SplSemTraj> > postfixes;
-  unsigned int freqmin, pos;
-};
-
-/*
 \subsection{Value Mapping}
 
 */
 int splitterVM(Word* args, Word& result, int message, Word& local, Supplier s) {
-  SplitterLI* li = (SplitterLI*)local.addr;
+  Splitter* li = (Splitter*)local.addr;
   switch (message) {
     case OPEN: {
       if (li) {
         delete li;
         local.addr = 0;
       }
+      int attrNoPos = (qp->GetNoSons(s) == 7 ? 6 : 5);
       CcReal *suppmin = static_cast<CcReal*>(args[2].addr);
       DateTime *mtt = static_cast<DateTime*>(args[3].addr);
-      CcInt *attrNo = static_cast<CcInt*>(args[4].addr);
-      if (suppmin->IsDefined() && mtt->IsDefined()) {
-        local.addr = new SplitterLI(args[0], suppmin->GetValue(), mtt,
-                                    (int)attrNo->GetValue());
+      CcReal *eps = static_cast<CcReal*>(args[4].addr);
+      Geoid *geoid = 0;
+      if (qp->GetNoSons(s) == 7) {
+        geoid = static_cast<Geoid*>(args[5].addr);
+      }
+      CcInt *attrNo = static_cast<CcInt*>(args[attrNoPos].addr);
+      if (suppmin->IsDefined() && mtt->IsDefined() && eps->IsDefined()) {
+        local.addr = new Splitter(args[0], suppmin->GetValue(), *mtt, 
+                               eps->GetValue(), geoid, (int)attrNo->GetValue());
       }
       else {
         cout << "undefined argument(s)" << endl;
@@ -4347,17 +4270,19 @@ int splitterVM(Word* args, Word& result, int message, Word& local, Supplier s) {
 */
 const string splitterSpec =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "( <text> stream(tuple(X)) x ATTR x real x duration -> "
+  "( <text> stream(tuple(X)) x ATTR x real x duration x real [x geoid]-> "
       "stream(splsemtraj)"  "</text--->"
-  "<text> tuplestream splitter[attrname, suppmin, deltaT] </text--->"
+  "<text> tuplestream splitter[attrname, suppmin, deltaT, eps] </text--->"
   "<text> Computes all fine-grained pattern according to Splitter algorithm."
       " The second argument must be the name of an attribute in the tuple "
       "stream of the type splsemtraj. The remaining parameters represent "
-      "the minimum support and the maximum transition time.</text--->"
+      "the minimum support, the maximum transition time, and the spatial "
+      "tolerance, i.e., two places with the same label are treated as identical"
+      " if their distance is no more than eps.</text--->"
   "<text> query Dotraj feed extend[SST: createsplsemtraj([const mpoint value "
       "(((\"2012-01-01\" \"2012-01-01-00:30\" TRUE FALSE) (7.0 51.0 7.1 51.1)))"
-      "], .Trajectory, )] splitter[SST, 0.5, create_duration(0, 7200000)] "
-      "count</text--->) )";
+      "], .Trajectory, )] splitter[SST, 0.5, create_duration(0, 7200000), "
+      "1000.0] count</text--->) )";
 
 Operator splitter("splitter", splitterSpec, splitterVM, Operator::SimpleSelect,
                   splitterTM);
