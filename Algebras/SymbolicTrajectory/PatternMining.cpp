@@ -3205,14 +3205,15 @@ SplSemTraj SplSemTraj::postfix(const int pos) const {
   return result;
 }
 
-void SplSemTraj::computePostfixes(SplPlace sp, vector<SplSemTraj>& result) 
-                                                                         const {
-  result.clear();
+void SplSemTraj::addPostfixes(SplPlace sp, const double eps, const Geoid* geoid,
+                              vector<SplSemTraj>& result) const {
   set<int> labelPos = getPositions(sp.cat);
   for (auto it : labelPos) {
-    SplSemTraj pf = postfix(it);
-    if (!pf.isEmpty()) {
-      result.push_back(pf);
+    if (it >= 1) {
+      SplSemTraj pf = postfix(it);
+      if (!pf.isEmpty() && !pf.first().almostEqual(sp, eps, geoid)) {
+        result.push_back(pf);
+      }
     }
   }
 }
@@ -3222,25 +3223,25 @@ Implementation of class ~Splitter~, used for operator ~splitter~
 
 */
 Splitter::Splitter(Word& s, const double sm, DateTime& mtt, const double e,
-                   Geoid* g, const int attrNo) :
-      postfixes(SplPlaceSorter(e, g)), pos(0), deltaT(mtt), eps(e), geoid(g) {
+           Geoid* g, const int attrNo) : pos(0), deltaT(mtt), eps(e), geoid(g) {
   initialProjection(s, sm, attrNo);
 }
   
 void Splitter::initialProjection(Word& s, const double sm, const int attrNo) {
   map<SplPlace, set<int>, SplPlaceSorter> freqItems(SplPlaceSorter(eps, geoid));
   computeFrequentItems(s, attrNo, sm, freqItems);
-  cout << freqItems.size() << endl;
+  cout << freqItemsToString(freqItems) << endl;  
   for (auto it : freqItems) {
-    insertPostfixes(it);
-  }  
-  for (auto it : freqItems) {
+    vector<SplSemTraj> postfixes;
+    for (auto i : it.second) {
+      source[i].addPostfixes(it.first, eps, geoid, postfixes);
+    }
     SplSemTraj sst(1);
     SplTSPlace tsp(DateTime(0.0), Point(true, it.first.x, it.first.y),
                    it.first.cat);
     sst.append(tsp);
-    // TODO: output snippets
-    prefixSpan(sst, postfixes[it.first]);
+    addSnippets(sst);
+    prefixSpan(sst, postfixes);
   }
 }
 
@@ -3257,32 +3258,21 @@ void Splitter::prefixSpan(SplSemTraj& prefix, vector<SplSemTraj> pf) {
     SplTSPlace tsp(DateTime(0.0), Point(true, it.first.x, it.first.y),
                    it.first.cat);
     p.append(tsp);
-    vector<SplSemTraj> pftemp;
+    vector<SplSemTraj> postfixes;
     for (auto pos : it.second) {
-      pf[pos].computePostfixes(it.first, pftemp);
-      if (newPostfixes.find(it.first) == newPostfixes.end()) { // not found
-        newPostfixes[it.first] = pftemp;
-      }
-      else { // entry for freq item already present
-        newPostfixes[it.first].insert(newPostfixes[it.first].end(),
-                                      pftemp.begin(), pftemp.end());
-      }
+      pf[pos].addPostfixes(it.first, eps, geoid, postfixes);
     }
-    prefixSpan(p, newPostfixes[it.first]);
+    addSnippets(p);
+//     cout << postfixesToString(p, postfixes) << endl;
+    prefixSpan(p, postfixes);
   }
-  // TODO: improvse postfix management and output
-//   cout << postfixesToString(p, newPostfixes) << endl;
-  // TODO: grow and output snippets
 }
 
-string Splitter::postfixesToString(SplSemTraj pref, 
-                        map<SplPlace, vector<SplSemTraj>, SplPlaceSorter>& pf) {
+string Splitter::postfixesToString(SplSemTraj pref, vector<SplSemTraj>& pf) {
   stringstream str;
-  for (auto it : pf) {
-    str << "Postfixes of " << it.first.toString() << " : " << endl;
-    for (auto it2 : it.second) {
-      str << "    " << it2.toString() << endl;
-    }
+  str << "Postfixes of " << pref.toString() << " : " << endl;
+  for (auto sst : pf) {
+    str << "    " << sst.toString() << endl;
   }
   return str.str();
 }
@@ -3290,6 +3280,10 @@ string Splitter::postfixesToString(SplSemTraj pref,
 string Splitter::freqItemsToString(map<SplPlace, set<int>, 
                                      SplPlaceSorter>& freqItems) {
   stringstream str;
+  if (freqItems.empty()) {
+    str << "No frequent items" << endl;
+    return str.str();
+  }
   for (auto it : freqItems) {
     str << "Freq item " << it.first.toString() << " : ";
     for (auto it2 : it.second) {
@@ -3301,20 +3295,6 @@ string Splitter::freqItemsToString(map<SplPlace, set<int>,
   return str.str();
 }
 
-void Splitter::insertPostfixes(pair<SplPlace, set<int> > freqItem) {
-  vector<SplSemTraj> pftemp;
-  for (auto it : freqItem.second) {
-    source[it].computePostfixes(freqItem.first, pftemp);
-    if (postfixes.find(freqItem.first) == postfixes.end()) { // not found
-      postfixes[freqItem.first] = pftemp;
-    }
-    else { // entry for freqItem already present
-      postfixes[freqItem.first].insert(postfixes[freqItem.first].end(),
-                                        pftemp.begin(), pftemp.end());
-    }
-  }
-} 
-
 void Splitter::computeFrequentItems(Word& s, const int attrNo, const double sm, 
                            map<SplPlace, set<int>, SplPlaceSorter>& freqItems) {
   // collect all SplPlaces with occurrences
@@ -3324,13 +3304,13 @@ void Splitter::computeFrequentItems(Word& s, const int attrNo, const double sm,
   Tuple* tuple = stream.request();
   int counter = 0;
   while (tuple) {
-    SplSemTraj* sst = (SplSemTraj*)(tuple->GetAttribute(attrNo));
-    cout << sst->toString() << endl;
-    for (int i = 0; i < sst->size(); i++) {
-      SplPlace sp(sst->get(i));
+    SplSemTraj sst(*(SplSemTraj*)(tuple->GetAttribute(attrNo)));
+    cout << sst.toString() << endl;
+    for (int i = 0; i < sst.size(); i++) {
+      SplPlace sp(sst.get(i));
       allItems[sp].insert(counter);
     }
-    source.push_back(*sst);
+    source.push_back(sst);
     tuple->DeleteIfAllowed();
     tuple = stream.request();
     counter++;
@@ -3367,10 +3347,24 @@ void Splitter::computeLocalFreqItems(SplTSPlace tsp, vector<SplSemTraj> pf,
   }
 }
 
+void Splitter::addSnippets(SplSemTraj sst) {
+  if (sst.isEmpty()) {
+    return;
+  }
+//   if (sst.size() == 1 || sst.size() == 2) {
+    result.push_back(new SplSemTraj(sst));
+//     return;
+//   }
+  
+}
+
 SplSemTraj* Splitter::next() {
-  assert(pos < result.size());
+  assert(pos <= result.size());
+  if (pos == result.size()) {
+    return 0;
+  }
   pos++;
-  return &result[pos - 1];
+  return result[pos - 1];
 }
   
 }

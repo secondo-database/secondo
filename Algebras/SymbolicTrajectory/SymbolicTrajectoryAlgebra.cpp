@@ -4250,7 +4250,7 @@ int splitterVM(Word* args, Word& result, int message, Word& local, Supplier s) {
       return 0;
     }
     case REQUEST: {
-      result.addr = /*li ? li->next() : */0;
+      result.addr = li ? li->next() : 0;
       return result.addr ? YIELD : CANCEL;
     }
     case CLOSE: {

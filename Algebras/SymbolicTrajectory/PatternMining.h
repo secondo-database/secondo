@@ -781,6 +781,11 @@ class SplSemTraj : public Attribute {
     return get(size() - 1);
   }
   
+  SplTSPlace first() const {
+    assert(!isEmpty());
+    return get(0);
+  }
+  
   int find(const SplPlace& sp, const double tolerance,const Geoid* geoid) const;
   
   std::set<int> getPositions(std::string label) const;
@@ -793,8 +798,8 @@ class SplSemTraj : public Attribute {
   
   SplSemTraj postfix(const int pos) const;
   
-  void computePostfixes(SplPlace sp, std::vector<SplSemTraj>& result) 
-       const;
+  void addPostfixes(SplPlace sp, const double eps, const Geoid* geoid,
+                    std::vector<SplSemTraj>& result) const;
 
  private:
   DbArray<SplTSPlace> tsPlaces;
@@ -827,20 +832,20 @@ class Splitter {
   
   void initialProjection(Word& s, const double sm, const int attrNo);
   void prefixSpan(SplSemTraj& prefix, std::vector<SplSemTraj> pf);
-  std::string postfixesToString(SplSemTraj pref, 
-            std::map<SplPlace, std::vector<SplSemTraj>, SplPlaceSorter>& postf);
+  std::string postfixesToString(SplSemTraj pref, std::vector<SplSemTraj>& pf);
   std::string freqItemsToString(std::map<SplPlace, std::set<int>, 
                                   SplPlaceSorter>& freqItems);
-  void insertPostfixes(std::pair<SplPlace, std::set<int> > freqItem);
   void computeFrequentItems(Word& s, const int attrNo, const double sm, 
                  std::map<SplPlace, std::set<int>, SplPlaceSorter >& freqItems);
   void computeLocalFreqItems(SplTSPlace tsp, std::vector<SplSemTraj> pf,
                  std::map<SplPlace, std::set<int>, SplPlaceSorter >& freqItems);
+  void addSnippets(SplSemTraj sst);
   SplSemTraj* next();
   
  private:
-  std::vector<SplSemTraj> source, result;
-  std::map<SplPlace, std::vector<SplSemTraj>, SplPlaceSorter> postfixes;
+  std::vector<SplSemTraj> source;
+  std::vector<SplSemTraj*> result; // TODO: integrate num of occurrences
+//   std::map<SplPlace, std::vector<SplSemTraj>, SplPlaceSorter> postfixes;
   unsigned int freqmin, pos;
   datetime::DateTime deltaT;
   double eps;
