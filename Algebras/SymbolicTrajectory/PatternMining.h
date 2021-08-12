@@ -764,11 +764,14 @@ class SplSemTraj : public Attribute {
   
   std::string toString() const {
     std::stringstream str;
-    str << "(" << endl;
+    str << "( ";
     SplTSPlace tsp;
     for (int i = 0; i < size(); i++) {
       tsPlaces.Get(i, tsp);
-      str << tsp.toString() << endl;
+      str << "  " << tsp.toString();
+      if (i < size() - 1) {
+        str << endl;
+      }
     }
     str << ")" << endl;
     return str.str();
@@ -791,7 +794,7 @@ class SplSemTraj : public Attribute {
   std::set<int> getPositions(std::string label) const;
   
   void convertFromMPointMLabel(const temporalalgebra::MPoint& mp,
-                               const MLabel& ml, const Geoid* geoid = 0);
+              const MLabel& ml, const double tolerance, const Geoid* geoid = 0);
   
   bool contains(const SplPlace& sp, const double deltaT, const double tolerance,
                 const Geoid* geoid = 0) const;
@@ -830,6 +833,9 @@ class Splitter {
   Splitter(Word& s, const double sm, datetime::DateTime& mtt, const double e,
            Geoid* g, const int attrNo);
   
+  ~Splitter();
+  
+  static TupleType* getTupleType();
   void initialProjection(Word& s, const double sm, const int attrNo);
   void prefixSpan(SplSemTraj& prefix, std::vector<SplSemTraj> pf);
   std::string postfixesToString(SplSemTraj pref, std::vector<SplSemTraj>& pf);
@@ -839,17 +845,17 @@ class Splitter {
                  std::map<SplPlace, std::set<int>, SplPlaceSorter >& freqItems);
   void computeLocalFreqItems(SplTSPlace tsp, std::vector<SplSemTraj> pf,
                  std::map<SplPlace, std::set<int>, SplPlaceSorter >& freqItems);
-  void addSnippets(SplSemTraj sst);
-  SplSemTraj* next();
+  void addSnippets(SplSemTraj sst, const int freq);
+  Tuple* next();
   
  private:
   std::vector<SplSemTraj> source;
-  std::vector<SplSemTraj*> result; // TODO: integrate num of occurrences
-//   std::map<SplPlace, std::vector<SplSemTraj>, SplPlaceSorter> postfixes;
+  std::vector<std::pair<SplSemTraj, double> > result;
   unsigned int freqmin, pos;
   datetime::DateTime deltaT;
   double eps;
   Geoid *geoid;
+  TupleType* tupleType;
 };
 
 

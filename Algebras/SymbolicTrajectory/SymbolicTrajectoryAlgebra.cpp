@@ -4114,16 +4114,17 @@ Operator jaccardsim(jaccardsimSpec(), jaccardsimVMs, jaccardsimSelect,
 
 */
 ListExpr createsplsemtrajTM(ListExpr args) {
-  const string errMsg = "mpoint x mlabel expected";
-  if (!nl->HasLength(args, 2) && !nl->HasLength(args, 3)) {
+  const string errMsg = "mpoint x mlabel x real [x geoid] expected";
+  if (!nl->HasLength(args, 3) && !nl->HasLength(args, 4)) {
     return listutils::typeError(errMsg);
   }
   if (!MPoint::checkType(nl->First(args)) || 
-      !MLabel::checkType(nl->Second(args))) {
+      !MLabel::checkType(nl->Second(args)) ||
+      !CcReal::checkType(nl->Third(args))) {
     return listutils::typeError(errMsg);
   }
-  if (nl->HasLength(args, 3)) {
-    if (!Geoid::checkType(nl->Third(args))) {
+  if (nl->HasLength(args, 4)) {
+    if (!Geoid::checkType(nl->Fourth(args))) {
       return listutils::typeError(errMsg);
     }
   }
@@ -4138,17 +4139,18 @@ int createsplsemtrajVM(Word* args, Word& result, int message, Word& local,
                        Supplier s) {
   MPoint* mp = static_cast<MPoint*>(args[0].addr);
   MLabel* ml = static_cast<MLabel*>(args[1].addr);
+  CcReal* tol = static_cast<CcReal*>(args[2].addr);
   Geoid* geoid = 0;
   result = qp->ResultStorage(s);
   SplSemTraj* res = (SplSemTraj*)result.addr;
-  if (!mp->IsDefined() || !ml->IsDefined()) {
+  if (!mp->IsDefined() || !ml->IsDefined() || !tol->IsDefined()) {
     res->SetDefined(false);
     return 0;
   }
-  if (qp->GetNoSons(s) == 3) {
-    geoid = static_cast<Geoid*>(args[2].addr);
+  if (qp->GetNoSons(s) == 4) {
+    geoid = static_cast<Geoid*>(args[3].addr);
   }
-  res->convertFromMPointMLabel(*mp, *ml, geoid);
+  res->convertFromMPointMLabel(*mp, *ml, tol->GetValue(), geoid);
   return 0;
 }
 
@@ -4213,10 +4215,16 @@ ListExpr splitterTM(ListExpr args) {
   if (!SplSemTraj::checkType(attrType)) {
     return listutils::typeError("Wrong attribute type, must be splsemtraj.");
   }
+  ListExpr outputAttrs = nl->TwoElemList(
+                       nl->TwoElemList(nl->SymbolAtom("Pattern"),
+                                       nl->SymbolAtom(FText::BasicType())),
+                       nl->TwoElemList(nl->SymbolAtom("Support"),
+                                       nl->SymbolAtom(CcReal::BasicType())));
   return nl->ThreeElemList(nl->SymbolAtom(Symbol::APPEND()),
-                nl->OneElemList(nl->IntAtom(i - 1)),
-                nl->TwoElemList(listutils::basicSymbol<Stream<SplSemTraj> >(),
-                                listutils::basicSymbol<SplSemTraj>()));
+                           nl->OneElemList(nl->IntAtom(i - 1)),
+                           nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
+                             nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()),
+                                             outputAttrs)));
 }
 
 /*

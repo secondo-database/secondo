@@ -3157,21 +3157,28 @@ set<int> SplSemTraj::getPositions(string label) const {
 }
 
 void SplSemTraj::convertFromMPointMLabel(const MPoint& mp, const MLabel& ml,
-                                         const Geoid *geoid /* = 0 */) {
+                         const double tolerance, const Geoid *geoid /* = 0 */) {
   clear();
   DateTime inst(instanttype);
   UPoint up(true);
   IPoint ip(true);
-  Point pt(true);
+  Point pt(true), lastpt(false);
   ILabel il(true);
+  string cat, lastcat;
   for (int i = 0; i < mp.GetNoComponents(); i++) {
     mp.Get(i, up);
     inst = up.timeInterval.start;
     up.TemporalFunction(inst, pt, geoid, true);
     ml.AtInstant(inst, il);
-    string cat(il.value.GetLabel());
-    SplTSPlace tsPlace(inst, pt, cat);
-    append(tsPlace);
+    if (il.value.IsDefined()) {
+      cat = il.value.GetLabel().substr(0, 48);
+      if (i == 0 || cat != lastcat || pt.Distance(lastpt, geoid) > tolerance) {
+        SplTSPlace tsPlace(inst, pt, cat);
+        append(tsPlace);
+        lastpt = pt;
+        lastcat = cat;
+      }
+    }
   }
 }
 
@@ -3224,13 +3231,30 @@ Implementation of class ~Splitter~, used for operator ~splitter~
 */
 Splitter::Splitter(Word& s, const double sm, DateTime& mtt, const double e,
            Geoid* g, const int attrNo) : pos(0), deltaT(mtt), eps(e), geoid(g) {
+  tupleType = getTupleType();
   initialProjection(s, sm, attrNo);
+}
+
+Splitter::~Splitter() {
+  tupleType->DeleteIfAllowed();
+}
+
+TupleType* Splitter::getTupleType() {
+  SecondoCatalog* sc = SecondoSystem::GetCatalog();
+  ListExpr resultTupleType = nl->TwoElemList(
+    nl->SymbolAtom(Tuple::BasicType()),
+    nl->TwoElemList(nl->TwoElemList(nl->SymbolAtom("Pattern"),
+                                    nl->SymbolAtom(FText::BasicType())),
+                    nl->TwoElemList(nl->SymbolAtom("Support"),
+                                    nl->SymbolAtom(CcReal::BasicType()))));
+  ListExpr numResultTupleType = sc->NumericType(resultTupleType);
+  return new TupleType(numResultTupleType);
 }
   
 void Splitter::initialProjection(Word& s, const double sm, const int attrNo) {
   map<SplPlace, set<int>, SplPlaceSorter> freqItems(SplPlaceSorter(eps, geoid));
   computeFrequentItems(s, attrNo, sm, freqItems);
-  cout << freqItemsToString(freqItems) << endl;  
+//   cout << freqItemsToString(freqItems) << endl;  
   for (auto it : freqItems) {
     vector<SplSemTraj> postfixes;
     for (auto i : it.second) {
@@ -3240,17 +3264,20 @@ void Splitter::initialProjection(Word& s, const double sm, const int attrNo) {
     SplTSPlace tsp(DateTime(0.0), Point(true, it.first.x, it.first.y),
                    it.first.cat);
     sst.append(tsp);
-    addSnippets(sst);
+    addSnippets(sst, it.second.size());
     prefixSpan(sst, postfixes);
   }
 }
 
 void Splitter::prefixSpan(SplSemTraj& prefix, vector<SplSemTraj> pf) {
+  if (prefix.size() >= 4) {
+    return;
+  }
   map<SplPlace, set<int>, SplPlaceSorter> localFreqItems(SplPlaceSorter(eps,
                                                                         geoid));
-  cout << "Call prefixSpan for sst " << prefix.toString() << endl;
+//   cout << "Call prefixSpan for sst " << prefix.toString() << endl;
   computeLocalFreqItems(prefix.last(), pf, localFreqItems);
-  cout << freqItemsToString(localFreqItems) << endl;
+//   cout << freqItemsToString(localFreqItems) << endl;
   map<SplPlace, vector<SplSemTraj>, SplPlaceSorter> 
                                        newPostfixes(SplPlaceSorter(eps, geoid));
   for (auto it : localFreqItems) {
@@ -3262,7 +3289,7 @@ void Splitter::prefixSpan(SplSemTraj& prefix, vector<SplSemTraj> pf) {
     for (auto pos : it.second) {
       pf[pos].addPostfixes(it.first, eps, geoid, postfixes);
     }
-    addSnippets(p);
+    addSnippets(p, it.second.size());
 //     cout << postfixesToString(p, postfixes) << endl;
     prefixSpan(p, postfixes);
   }
@@ -3305,7 +3332,6 @@ void Splitter::computeFrequentItems(Word& s, const int attrNo, const double sm,
   int counter = 0;
   while (tuple) {
     SplSemTraj sst(*(SplSemTraj*)(tuple->GetAttribute(attrNo)));
-    cout << sst.toString() << endl;
     for (int i = 0; i < sst.size(); i++) {
       SplPlace sp(sst.get(i));
       allItems[sp].insert(counter);
@@ -3347,24 +3373,26 @@ void Splitter::computeLocalFreqItems(SplTSPlace tsp, vector<SplSemTraj> pf,
   }
 }
 
-void Splitter::addSnippets(SplSemTraj sst) {
+void Splitter::addSnippets(SplSemTraj sst, const int freq) {
   if (sst.isEmpty()) {
     return;
   }
-//   if (sst.size() == 1 || sst.size() == 2) {
-    result.push_back(new SplSemTraj(sst));
-//     return;
-//   }
-  
+  result.push_back(make_pair(sst, (double)freq / source.size()));
 }
 
-SplSemTraj* Splitter::next() {
+Tuple* Splitter::next() {
   assert(pos <= result.size());
   if (pos == result.size()) {
     return 0;
   }
+  
+  Tuple *tuple = new Tuple(tupleType);
+  FText* pattern = new FText(true, result[pos].first.toString());
+  tuple->PutAttribute(0, pattern);
+  CcReal* ccsupp = new CcReal(true, result[pos].second);
+  tuple->PutAttribute(1, ccsupp);
   pos++;
-  return result[pos - 1];
+  return tuple;
 }
   
 }
