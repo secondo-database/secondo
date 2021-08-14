@@ -30,10 +30,9 @@ endif
 
 
 
-all: SelectNL DBArray.class Java_ListExpr langClasses
+all: DBArray.class Java_ListExpr langClasses
 
-.PHONY: SelectNL
-SelectNL:
+ListExpr.java:
 	@echo "/* " > ListExpr.tmp
 	@echo "This file is created automatically. Please don't edit it. " >> ListExpr.tmp
 	@echo "If changes are requiered at the ListExpr class, make them in the" >> ListExpr.tmp
@@ -45,19 +44,19 @@ SelectNL:
 
 langClasses: IntByReference.class ServerErrorCodes.class SecondoInterface.class \
              ESInterface.class ListExpr.class MyDataInputStream.class MyDataOutputStream.class \
-             MessageListener.class
+             MessageListener.class 
 
 CP:=$(CLASSPATH):$(JARS)
 
-Java_ListExpr:
+Java_ListExpr: ListExpr.java 
 	$(MAKE) -C JavaListExpr all
 
 
-ListExpr.class: ListExpr.java
+ListExpr.class: ListExpr.java Java_ListExpr
 	$(JAVAC) $(JAVACFLAGS) -classpath $(CP) ListExpr.java
 
 #////////////// generic rules
-%.class: %.java
+%.class: %.java ListExpr.java Java_ListExpr 
 	$(JAVAC) $(JAVACFLAGS) -classpath $(CP) $<
 
 

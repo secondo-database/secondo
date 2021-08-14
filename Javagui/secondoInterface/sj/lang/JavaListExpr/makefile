@@ -51,9 +51,9 @@ NLParser.java NLSymbol.java: NLParser.cup
 # It generates the files NLParser.java and NLSymbol.java
 	$(JAVA) -classpath $(CLASSPATH) $(CUP_CLASS) -parser NLParser -symbols NLSymbol -interface < $<
 
-NLParser.class NLSymbol.class: NLParser.java NLSymbol.java ../ListExpr.java
+NLParser.class NLSymbol.class: $(SCANERCLASSES) NLParser.java ../ListExpr.java
 # It generates the files NLParser.class and NLSymbol.class
-	$(JAVAC) $(JAVACFLAGS) -classpath $(CLASSPATH)  $+
+	$(JAVAC) $(JAVACFLAGS) -classpath $(CLASSPATH) NLParser.java NLSymbol.java ../ListExpr.java
 
 Stack.class: Stack.java
 	$(JAVAC) $(JAVACFLAGS) -classpath $(CLASSPATH)  Stack.java
