@@ -77,20 +77,25 @@ removedoc:
 	(rm -fr $(DOCPATH))
 
 
+# SECONDO uses javac and make to compile Java files. Make calls javac for each *.java file. 
+# Javac compiles this file AND all dependencies. If make is executed in parallel (-j > 1), 
+# then the same files might be built at the same time. This leads to a race condition 
+# and errors during the build. Therefore the parallelism was set manually to 1. 
+
 .PHONY: makedirs
 makedirs:
 	rm -rf sj
 	$(MAKE) -C secondoInterface SecondoInterface.jar
-	$(MAKE) -C communication all
-	$(MAKE) -C extern all
-	$(MAKE) -C components all
-	$(MAKE) -C viewer all
-	$(MAKE) -C project all
-	$(MAKE) -C gui all
-	$(MAKE) -C viewer viewers
-	$(MAKE) -C tools all
-	$(MAKE) -C stlib all
-	$(MAKE) -C mmdb all
+	$(MAKE) -j 1 -C communication all
+	$(MAKE) -j 1 -C extern all
+	$(MAKE) -j 1 -C components all
+	$(MAKE) -j 1 -C viewer all
+	$(MAKE) -j 1 -C project all
+	$(MAKE) -j 1 -C gui all
+	$(MAKE) -j 1 -C viewer viewers
+	$(MAKE) -j 1 -C tools all
+	$(MAKE) -j 1 -C stlib all
+	$(MAKE) -j 1 -C mmdb all
 
 
 .PHONY: clean # removes the documentation and all .class files
