@@ -1,11 +1,12 @@
 CLASSPATH = ..
+JAVAFILES := $(wildcard *.java)
 
 .PHONY: all
 all: Main.class
 	$(MAKE) -C runtime all
 
-%.class: %.java
-	javac -classpath $(CLASSPATH) $<
+Main.class: $(JAVAFILES)
+	javac -classpath $(CLASSPATH) Main.java
 
 .PHONY: clean
 clean: 
