@@ -20,7 +20,7 @@ endif
 
 
 OBJECTS := NestedText.o lex.yy.o lex2.yy.o
-GENFILES := lex.yy.cpp lex2.yy.cpp SpecParser.tab.cpp SpecParser.tab.hpp
+GENFILES := lex.yy.cpp lex2.yy.cpp SpecParser.tab.cpp
 
 all: $(GENFILES) $(OBJECTS) Parser$(EXEEXT) Parser2$(EXEEXT)
 
@@ -38,7 +38,7 @@ lex.yy.cpp lex2.yy.cpp: ../SpecLex.l
 NestedText.cpp: ../NestedText.cpp
 	$(CP) $< $@     
 
-SpecParser.tab.cpp SpecParser.tab.hpp: ../SpecParser.y
+SpecParser.tab.cpp: ../SpecParser.y
 	$(YACC) -d -o $@ $<
 
 Parser$(EXEEXT): SpecParser.tab.o lex.yy.o NestedText.o
