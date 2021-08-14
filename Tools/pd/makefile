@@ -83,21 +83,21 @@ SCRIPTS = pd2ascii pd2html pd2tex pd2dvi pd2ps pd2pdf pdshow pdview checkpd pdpr
 TEMPORARYS = PDLex.c enumerate.c linecheck.c tabcheck.c y.tab.c
 
 
-.PHONY all:
+.PHONY: all
 all: $(OBJECTS) $(APPS) $(DOCU)
 	@chmod ugo+x $(SCRIPTS)
 
 maketex: PDMaketex.c PDParser.y PDLex.c PDParserDS.c $(OBJECTS) 
-	$(YACC) PDParser.y
-	$(CC) $(OPTIONS) -o $@ $< y.tab.c $(OBJECTS) $(LINKLIBS)
+	$(YACC) PDParser.y -o PDParser.tab.c
+	$(CC) $(OPTIONS) -o $@ $< PDParser.tab.c $(OBJECTS) $(LINKLIBS)
 
 makehtml: PDMakeHTML.c PDParserHTML.y PDLex.c PDParserDS.c $(OBJECTS)
-	$(YACC) PDParserHTML.y
-	$(CC) $(OPTIONS) -o $@ $< y.tab.c $(OBJECTS) $(LINKLIBS)
+	$(YACC) PDParserHTML.y -o PDParserHTML.tab.c
+	$(CC) $(OPTIONS) -o $@ $< PDParserHTML.tab.c $(OBJECTS) $(LINKLIBS)
 
 makeascii: PDMakeASCII.c PDParserASCII.y PDLex.c PDParserDS.c $(OBJECTS)
-	$(YACC) PDParserASCII.y
-	$(CC) $(OPTIONS) -o $@ $< y.tab.c $(OBJECTS) $(LINKLIBS)
+	$(YACC) PDParserASCII.y -o PDParserASCII.tab.c
+	$(CC) $(OPTIONS) -o $@ $< PDParserASCII.tab.c $(OBJECTS) $(LINKLIBS)
 
 pdtabs: pdtabs.c
 	$(CC) -o $@ $< 
@@ -130,7 +130,7 @@ docu: $(DOCU_FILES)
 docuhtml: $(DOCU_HTML_FILES)
 	cat $^ > $@
 
-.PHONY dist:
+.PHONY: dist
 dist: pd.tar.gz
 
 pd.tar.gz:
@@ -140,7 +140,8 @@ pd.tar.gz:
 
 INST_DIR = $(prefix)/pd
 EPS_FILES = $(shell find ./Figures -name "*.eps")
-.PHONY install:
+
+.PHONY: install
 install: $(OBJECTS) $(SCRIPTS)
 	install -d $(INST_DIR)
 	install -m744 -d $(INST_DIR)/Figures
@@ -150,7 +151,7 @@ install: $(OBJECTS) $(SCRIPTS)
 	install $(SCRIPTS) $(INST_DIR)
 	install pd.header $(INST_DIR)
 
-.PHONY clean:
+.PHONY: clean
 clean:
-	rm -f $(OBJECTS) $(APPS) $(DOCU) $(TEMPORARYS) *.exe 
+	rm -f $(OBJECTS) $(APPS) $(DOCU) $(TEMPORARYS) *.exe *.tab.c 
 
