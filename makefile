@@ -126,7 +126,7 @@ endif
 
 
 .PHONY: API
-API: makedirs buildlibs buildAlgebras
+API: makedirs buildlibs buildAlgebras buildapps
 	$(MAKE) -C apis
 
 
@@ -192,7 +192,7 @@ optimizer2: makedirs buildlibs buildAlgebras
 
 
 .PHONY: optserver
-optserver: makedirs buildlibs buildAlgebras
+optserver: makedirs buildlibs buildAlgebras buildapps
 ifeq ($(compileJava),"true")
 ifeq ($(optimizer),"true")
 ifeq ($(j2sdkIsPresent),"true")
