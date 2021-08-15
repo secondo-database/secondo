@@ -78,9 +78,9 @@ ALL_TARGETS = makedirs \
 	$(OPTIMIZER_SERVER) \
 	java2 \
 	tests \
-        examples \
+    examples \
 	update-config  \
-  API
+	API
 
 .PHONY: all
 all: jnicheck $(ALL_TARGETS) 
@@ -111,7 +111,7 @@ kernel: makedirs buildlibs buildAlgebras
 linkonly: buildapps
 
 .PHONY: examples 
-examples:
+examples: kernel
 	$(MAKE) -C Algebras examples
 
 .PHONY: jnicheck
@@ -126,7 +126,7 @@ endif
 
 
 .PHONY: API
-API:
+API: makedirs buildlibs buildAlgebras
 	$(MAKE) -C apis
 
 
@@ -159,12 +159,12 @@ makedirs:
 libs: makedirs buildlibs
 
 .PHONY: buildAlgebras
-buildAlgebras:
+buildAlgebras: buildlibs
 	$(MAKE) -C Algebras buildlibs
 
 
 .PHONY: buildlibs
-buildlibs:
+buildlibs: makedirs
 	@echo ; echo  " *** Creating library files *** "; echo
 	$(MAKE) -f ./makefile.libs
 
@@ -192,7 +192,7 @@ optimizer2: makedirs buildlibs buildAlgebras
 
 
 .PHONY: optserver
-optserver:
+optserver: makedirs buildlibs buildAlgebras
 ifeq ($(compileJava),"true")
 ifeq ($(optimizer),"true")
 ifeq ($(j2sdkIsPresent),"true")
@@ -219,7 +219,7 @@ endif
 
 
 .PHONY: buildapps
-buildapps: 
+buildapps: buildlibs buildAlgebras
 	@echo ; echo  " *** Linking Applications *** "; echo
 	$(MAKE) -C UserInterfaces buildapp
 	$(MAKE) -C ClientServer buildapp
