@@ -37,7 +37,7 @@ ALGEBRA_DEPENDENCIES += TupleIdentifier
 # expand compile flags if necessary
 CCFLAGS += $(ALG_INC_DIRS) 
 
-CCFLAGS += -Werror -std=c++11
+CCFLAGS += -Werror
 
 
 
@@ -51,7 +51,7 @@ check_dependencies:
 
 # include pre-computed dependencies
 ifneq ($(MAKECMDGOALS),clean)
-include $(DEP_FILES)
+-include $(DEP_FILES)
 endif
 
 # generic rule for creating a library
@@ -62,3 +62,4 @@ $(LIBOBJ): $(OBJECTS)
 .PHONY: clean
 clean:
 	$(clean-algebra)
+
