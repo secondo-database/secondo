@@ -25,11 +25,23 @@ Result   : FALSE
 Operator : createcountmin
 Number   : 4
 Signature: (stream(tuple(X)) x ATTR) x int x real ->  countminsketch, X in DATA
-Example  : query Kinos feed createcountmin[Name,0.01,0.9] cmscount["Astor"]
+Example  : query Kinos feed createcountmin[Name,0.01,0.1] cmscount["Astor"]
 Result   : 1
 
 Operator : cmscount
 Number   : 5
 Signature: countminsketch x T -> bool, T in DATA or T in TUPLE
-Example  : query Kinos feed createcountmin[Name,0.01,0.9] cmscount["Berlino"]
+Example  : query Kinos feed createcountmin[Name,0.01,0.1] cmscount["Berlino"]
 Result   : 0
+
+Operator : createams
+Number   : 6
+Signature: stream(tuple(X)) x ATTR x int x real -> amssketch
+Example  : query Kinos feed createams[Name,0.01,0.1] amsestimate
+Result   : 22
+
+Operator : amsestimate
+Number   : 7
+Signature: amssketch -> real
+Example  : query Kinos feed createams[Name,0.01,0.1] amsestimate
+Result   : 22

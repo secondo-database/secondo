@@ -27,5 +27,8 @@ operator bloomcontains alias BLOOMC pattern _op[_]
 
 operator createcountmin alias CMS pattern _op[_,_,_]
 
-operator cmscount alias CMSCOUTN pattern _op[_]
+operator cmscount alias CMSCOUNT pattern _op[_]
 
+operator createams alias AMS pattern _op[_,_,_]
+
+operator amsestimate alias AMSESTIMATE pattern _op

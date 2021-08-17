@@ -1203,7 +1203,7 @@ amsSketch::getConstantTwB(int index) {
 void
 amsSketch::setConstantsTw(int index, long a, long b) {
   twConstants[index][0] = a;
-  twConstants[index][1] =b;
+  twConstants[index][1] = b;
 }
 
 int
@@ -1982,7 +1982,7 @@ cmscountTM(ListExpr args) {
          << isNumeric << endl;
     appendList.append(NList().boolAtom(isNumeric));
     return NList(Symbols::APPEND(), appendList,
-               CountMinSketch::BasicType()).listExpr();
+               CcBool::BasicType()).listExpr();
   } 
 
   return NList::typeError("Operator cmscount expects an  " 
@@ -2699,47 +2699,54 @@ int amsestimateVM(Word* args, Word& result,
 */
 
   OperatorSpec reservoirSpec(
-   "stream(X) x int -> stream(T), T = TUPLE or T = DATA",
-   "_ reservoir [_] ",
-   "Creates a reservoir sample of a supplied stream of a given size ",
-   "query intstream(1,1000) reservoir[10] count"
+    "stream(X) x int -> stream(T), T = TUPLE or T = DATA",
+    "_ reservoir [_] ",
+    "Creates a reservoir sample of a supplied stream of a given size ",
+    "query intstream(1,1000) reservoir[10] count"
   );
 
   OperatorSpec createbloomfilterSpec(
-   "stream(tuple(X)) x ATTR x real ->  bloomfilter",
-   "_ createbloomfilter [_,_,_]",
-   "Creates a Bloomfilter of a supplied stream with the given ",
-   "False Positive rate for the expected number of inserts",
-   "query Kinos feed createbloomfilter[Name,0.01,100] bloomcontains[\"Astor\"]"
+    "stream(tuple(X)) x ATTR x real ->  bloomfilter",
+    "_ createbloomfilter [_,_,_]",
+    "Creates a Bloomfilter of a supplied stream with the given ",
+    "False Positive rate for the expected number of inserts",
+    "query Kinos feed createbloomfilter[Name,0.01,100] bloomcontains[\"Astor\"]"
   );
 
   OperatorSpec bloomcontainsSpec(
-   "scalablebloomfilter x T -> bool, T = TUPLE or T = DATA",
-   "_ bloomcontains [_]",
-   "Checks for the presence of Element T in a supplied Bloomfilter",
-   "query Kinos feed createbloomfilter[Name,0.01,100] bloomcontains[\"Astor\"]"
+    "scalablebloomfilter x T -> bool, T = TUPLE or T = DATA",
+    "_ bloomcontains [_]",
+    "Checks for the presence of Element T in a supplied Bloomfilter",
+    "query Kinos feed createbloomfilter[Name,0.01,100] bloomcontains[\"Astor\"]"
   );
 
   OperatorSpec createcountminSpec(
-   "stream(tuple(X)) x ATTR x int x real ->  countminsketch",
-   "_ createcountminSpec [_,_,_]",
-   "Creates Count Mint Sketch for the supplied stream",
-   "query Kinos feed createcountmin[Name,0.01,0.9] cmscount[\"Astor\"]"
+    "stream(tuple(X)) x ATTR x int x real ->  countminsketch",
+    "_ createcountminSpec [_,_,_]",
+    "Creates Count Mint Sketch for the supplied stream",
+    "query Kinos feed createcountmin[Name,0.01,0.9] cmscount[\"Astor\"]"
   );
 
   OperatorSpec cmscountSpec(
-   "countminsketch x T -> bool, T = TUPLE or T = DATA",
-   "_ cmscountSpec [_]",
-   "Gives an estimate of how often an Element appeared in the Stream the ",
-   "Count Min Sketch was created for"
-   "query Kinos feed createcountmin[Name,0.01,0.9] cmscount[\"Astor\"]"
+    "countminsketch x T -> bool, T = TUPLE or T = DATA",
+    "_ cmscountSpec [_]",
+    "Gives an estimate of how often an Element appeared in the Stream the ",
+    "Count Min Sketch was created for"
+    "query Kinos feed createcountmin[Name,0.01,0.9] cmscount[\"Astor\"]"
   );
 
   OperatorSpec createamsSpec(
-    "stream(tuple(X)) x ATTR x int x real ->  countminsketch",
-   "_ createamsSpec [_,_,_]",
-   "Creates an AMS Sketch fpor the supplied stream", 
-   "query Kinos feed createams[Name,0.01,0.9] amsestimate"
+    "stream(tuple(X)) x ATTR x int x real ->  amssketch",
+    "_ createamsSpec [_,_,_]",
+    "Creates an AMS Sketch fpor the supplied stream", 
+     "query Kinos feed createams[Name,0.01,0.9] amsestimate"
+  );
+
+  OperatorSpec amsestimateSpec(
+    "amssketch -> real",
+    "_ amsestimate ",
+    "Creates and estimate of the F_2 Moment of the ",
+    "given AMS-Sketch"
   );
   
 
@@ -2789,6 +2796,22 @@ Operator cmscountOp(
   cmscountTM
 );
 
+Operator createamsOp(
+  "createams",
+  createamsSpec.getStr(),
+  createamsVM,
+  Operator::SimpleSelect,
+  createamsTM
+);
+
+Operator amsestimateOp(
+  "amsestimate",
+  amsestimateSpec.getStr(),
+  amsestimateVM,
+  Operator::SimpleSelect,
+  amsestimateTM
+);
+
 
 /*
 2.6 The algebra class
@@ -2815,6 +2838,8 @@ class StreamMiningAlgebra : public Algebra
     AddOperator(&bloomcontainsOp);
     AddOperator(&createcountminOp);
     AddOperator(&cmscountOp);
+    AddOperator(&createamsOp);
+    AddOperator(&amsestimateOp);
   }
   ~StreamMiningAlgebra() {};
 };
