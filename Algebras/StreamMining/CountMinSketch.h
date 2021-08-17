@@ -54,8 +54,8 @@ namespace eschbach {
   //Auxiliary Functions
   void initialize(const float epsilon, const float delta);
   void generateConstants(int index);
-  void increaseCount(int hashedEleValue);
-  int estimateFrequency(int hashedEleValue);
+  void increaseCount(long hashedEleValue);
+  int estimateFrequency(long hashedEleValue);
 
   //Support Functions
   static Word     In( const ListExpr typeInfo, const ListExpr instance,

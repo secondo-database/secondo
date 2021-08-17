@@ -782,6 +782,7 @@ CountMinSketch::initialize(float eps, float delt) {
     for (long constant : counterHashes) {
       cout << constant << endl; 
     }
+    j++;
   }
 
 
@@ -800,9 +801,9 @@ CountMinSketch::generateConstants(int index) {
 }
 
 void 
-CountMinSketch::increaseCount(int hashedEleValue) {
+CountMinSketch::increaseCount(long hashedEleValue) {
   totalCount++;
-  int hashValue;
+  size_t hashValue;
   long a;
   long b;
   // Use our 2wise independent hash function
@@ -817,7 +818,7 @@ CountMinSketch::increaseCount(int hashedEleValue) {
 }
 
 int 
-CountMinSketch::estimateFrequency(int hashedEleValue) {
+CountMinSketch::estimateFrequency(long hashedEleValue) {
   int minVal;
   int compareValue;
   long a;
@@ -839,6 +840,7 @@ CountMinSketch::estimateFrequency(int hashedEleValue) {
     minVal = minVal < compareValue ? minVal : compareValue;
   } 
 
+  cout << "Found minum value to be " << minVal << endl;
   return minVal;
 }
 
@@ -1198,6 +1200,12 @@ amsSketch::getConstantTwB(int index) {
   return twConstants[index][1];
 }
 
+void
+amsSketch::setConstantsTw(int index, long a, long b) {
+  twConstants[index][0] = a;
+  twConstants[index][1] =b;
+}
+
 int
 amsSketch::getConstantFwA(int index) {
   return fwConstants[index][0];
@@ -1213,6 +1221,15 @@ amsSketch::getConstantFwC(int index) {
 }int
 amsSketch::getConstantFwD(int index) {
   return fwConstants[index][3];
+}
+
+void
+amsSketch::setConstantsFw(int index, long a, long b,
+                          long c, long d) {
+  fwConstants[index][0] = a;
+  fwConstants[index][1] = b;
+  fwConstants[index][2] = c;
+  fwConstants[index][3] = d;
 }
 
 
@@ -1910,10 +1927,14 @@ ListExpr errorInfo = nl->OneElemList(nl->SymbolAtom("ErrorInfo"));
 
   //extract index of the attribute we intend to hash
   NList attrList = type.first().second().second();
-  ListExpr type2;
+  ListExpr attrType;
   string attrName = type.second().str();
   int attrIndex = listutils::findAttribute(attrList.listExpr(), 
-                                           attrName, type2) - 1;
+                                           attrName, attrType) - 1;
+
+  //Save whether the Attribute Type we have to hash is a number
+  // so we can modify the way we hash;
+  bool isNumeric = listutils::isNumericType(attrType);
 
   if (attrIndex < 0) {
     return NList::typeError("Attribute " + attrName + " "
@@ -1921,9 +1942,12 @@ ListExpr errorInfo = nl->OneElemList(nl->SymbolAtom("ErrorInfo"));
   }
 
 
-  appendList.append(NList().intAtom(attrIndex));
 
-  /* result is a Count Min Sketch and we append the index of 
+
+  appendList.append(NList().intAtom(attrIndex));
+  appendList.append(NList().boolAtom(isNumeric));
+
+  /* result is a Count Min Sketch and we append the index and type of 
      the attribute of the tuples which will be hashed to create our filter 
   */
   return NList(Symbols::APPEND(), appendList,
@@ -1936,7 +1960,9 @@ ListExpr errorInfo = nl->OneElemList(nl->SymbolAtom("ErrorInfo"));
 */
 ListExpr
 cmscountTM(ListExpr args) {
-  NList type(args); 
+  NList type(args);
+  NList appendList;
+
   // two arguments must be supplied
   if (type.length() != 2){
     return NList::typeError("Operator cmscount expects two arguments");
@@ -1950,8 +1976,14 @@ cmscountTM(ListExpr args) {
 
   // test second argument for DATA or TUPLE
   if(type.second().isAtom()) {
-    return NList(CcInt::BasicType()).listExpr(); 
-  }    
+    //check if the searchelement is numeric
+    bool isNumeric = listutils::isNumericType(type.second().listExpr());
+    cout << "cms Count identifies search element as numeric: " 
+         << isNumeric << endl;
+    appendList.append(NList().boolAtom(isNumeric));
+    return NList(Symbols::APPEND(), appendList,
+               CountMinSketch::BasicType()).listExpr();
+  } 
 
   return NList::typeError("Operator cmscount expects an  " 
                           "ATTRIBUTE as second argument");
@@ -2013,23 +2045,55 @@ ListExpr errorInfo = nl->OneElemList(nl->SymbolAtom("ErrorInfo"));
 
   //extract index of the attribute we intend to hash
   NList attrList = type.first().second().second();
-  ListExpr type2;
+  ListExpr attrType;
   string attrName = type.second().str();
   int attrIndex = listutils::findAttribute(attrList.listExpr(), 
-                                           attrName, type2) - 1;
+                                           attrName, attrType) - 1;
 
+  //Save whether the Attribute Type we have to hash is a number
+  // so we can modify the way we hash;
+  bool isNumeric = listutils::isNumericType(attrType);
+  
   if (attrIndex < 0) {
     return NList::typeError("Attribute " + attrName + " "
                             "not found in tuple");
   }
 
-
   appendList.append(NList().intAtom(attrIndex));
+  appendList.append(NList().boolAtom(isNumeric));
+
+  /* result is a AMS Sketch and we append the index and type of 
+     the attribute of the tuples which will be hashed to create our filter 
+  */
 
   return NList(Symbols::APPEND(), appendList, 
                amsSketch::BasicType()).listExpr();
 }
 
+
+/*
+2.2.7 Operator ~amsestimate~
+
+*/
+ListExpr
+amsestimateTM(ListExpr args) {
+  NList type(args);
+  NList appendList;
+
+  // two arguments must be supplied
+  if (type.length() != 1){
+    return NList::typeError("Operator amsestimate expects one arguments");
+  }
+
+  // test first argument for scalablebloomfilter
+  if(type.first() != NList(amsSketch::BasicType())){
+    return NList::typeError("Operator amsestimate expects a "
+                            "AMS Sketch as argument");
+  }
+
+  //check if the searchelement is numeric
+  return NList(amsSketch::BasicType()).listExpr(); 
+}
 
 /*
 2.3 Value Mapping Functions
@@ -2311,7 +2375,7 @@ int bloomcontainsVM(Word* args, Word& result,
   result = qp -> ResultStorage(s);
 
   //Make the Storage provided by QP easily usable
-  CcBool* b = (CcBool*) result.addr;
+  CcBool* res = (CcBool*) result.addr;
 
   //Get the amount of Hashfunctions each subfilter uses
   vector<int> hashIterations = bloomFilter -> getFilterHashes();
@@ -2355,7 +2419,7 @@ int bloomcontainsVM(Word* args, Word& result,
     }
   }
 
-  b->Set(true, included);
+  res->Set(true, included);
 
   return 0;
 }
@@ -2371,8 +2435,12 @@ int createcountminVM(Word* args, Word& result,
   CcReal* epsilon = (CcReal*) args[2].addr;
   CcReal* delta = (CcReal*) args[3].addr;
   CcInt* attrIndexPointer = (CcInt*) args[4].addr;
+  CcBool* attrIsNumeric = (CcBool*) args[5].addr;
 
   int attrIndex = attrIndexPointer->GetIntval();
+  bool attrNumeric = attrIsNumeric->GetValue();
+
+  cout << "In the VM AttrIsNumeric has value: " << attrNumeric << endl;
 
   //Get the Resultstorage provided by the Query Processor
   result = qp -> ResultStorage(s);
@@ -2412,28 +2480,25 @@ int createcountminVM(Word* args, Word& result,
 
   Attribute* streamElement;
 
-  cout << "TupleType of the current Tuple is: " << endl;
-  cout << streamTuple -> GetTupleType()->GetAttributeType(attrIndex).typeId; 
   /*check if the Attributes we are going to hash is
     any form of text
   */
    
 
-  if (streamTuple->GetTupleType()->GetAttributeType(attrIndex).typeId >= 3) {
-
-    cout << "Identified Attribute Type as String";
+  if (!attrNumeric) {
+    cout << "Identified Attribute Type as String" << endl;
     //Prepare buffer for the MurmurHash3 output storage for Strings
     uint64_t mHash[2]; 
     while ((streamTuple != 0)) {
       streamElement = (Attribute*) streamTuple->GetAttribute(attrIndex);
       MurmurHash3_x64_128(streamElement, sizeof(*streamElement), 0, mHash);
-      size_t h1 = mHash[0];
+      long h1 = mHash[0];
       cms->increaseCount(h1);
       streamTuple->DeleteIfAllowed();
       streamTuple = stream.request();   
 
     }
-  };
+  }
   
   //while the stream can still provide elements:
   while ((streamTuple != 0)) {
@@ -2483,36 +2548,34 @@ int cmscountVM(Word* args, Word& result,
   //take the parameters values supplied with the operator
   CountMinSketch* cms = (CountMinSketch*) args[0].addr;
   CcInt* searchEle = (CcInt*) args[1].addr;
-  
+  CcInt* attrIsNumeric = (CcInt*) args[2].addr;
+  bool attrNumeric = attrIsNumeric->GetValue();
 
   //Get the Resultstorage provided by the Query Processor
   result = qp -> ResultStorage(s);
 
   //Make the Storage provided by QP easily usable
-  CcInt* b = (CcInt*) result.addr;
+  CcInt* res = (CcInt*) result.addr;
   
   //prepare the result
-  int estimate;
+  int estimate = 0;
 
-/*
   //Prepare buffer for the MurmurHash3 output storage
   uint64_t cmHash[2];
 
-    
-  MurmurHash3_x64_128(searchEle, sizeof(*searchEle), 0, cmHash);
-
-
-  if (streamTuple->GetTupleType()->GetAttributeType(attrIndex).typeId >= 3) {
+  //Search element is a string and we have to modulate
+  //the way we hash slightly
+  if (!attrNumeric) {
+    cout << "cmsCount identified the Searchelement as Text" << endl;
       MurmurHash3_x64_128(searchEle, sizeof(*searchEle), 0, cmHash);
-      size_t h1 = cmHash[0]
-      estimate = cms->estimateFrequency(h1);
+      long h1 = cmHash[0];
+      estimate = cms->estimateFrequency(h1);    
+  } else {
+    //hash the Searchelement
+    estimate = cms->estimateFrequency(searchEle->GetValue());
   }
-  */
 
-  //hash the Searchelement
-  estimate = cms->estimateFrequency(searchEle->GetValue());
-
-  b->Set(true, estimate);
+  res->Set(true, estimate);
 
   return 0;
 }
@@ -2528,8 +2591,11 @@ int createamsVM(Word* args, Word& result,
   CcReal* epsilon = (CcReal*) args[2].addr;
   CcReal* delta = (CcReal*) args[3].addr;
   CcInt* attrIndexPointer = (CcInt*) args[4].addr;
+  CcBool* attrIsNumeric = (CcBool*) args[5].addr;
 
   int attrIndex = attrIndexPointer->GetIntval();
+  bool attrNumeric = attrIsNumeric->GetValue();
+
 
   //Get the Resultstorage provided by the Query Processor
   result = qp -> ResultStorage(s);
@@ -2537,7 +2603,7 @@ int createamsVM(Word* args, Word& result,
   /*CMS Datastructure is used since CMS and AMS only differ 
     in the way they use Hashfunctions to process updates.
   */
-  CountMinSketch* ams = (CountMinSketch*) result.addr;
+  amsSketch* ams = (amsSketch*) result.addr;
 
   //initialize the Filter with the values provided by the operator
   ams->initialize(epsilon->GetValue(),delta->GetValue());
@@ -2553,55 +2619,32 @@ int createamsVM(Word* args, Word& result,
 
   Attribute* streamElement; 
 
-  /*Get the size of the Filter so we can %mod the hash 
-  results to map to an index in the filter*/
-  size_t width = ams->getWidth();
+  if (!attrNumeric) {
+    cout << "Identified Attribute Type as String" << endl;
+    //Prepare buffer for the MurmurHash3 output storage for Strings
+    uint64_t mHash[2]; 
+    while ((streamTuple != 0)) {
+      streamElement = (Attribute*) streamTuple->GetAttribute(attrIndex);
+      MurmurHash3_x64_128(streamElement, sizeof(*streamElement), 0, mHash);
+      long h1 = mHash[0];
+      ams->changeWeight(h1);
+      streamTuple->DeleteIfAllowed();
+      streamTuple = stream.request();   
+    }
+  }
 
-  /*Get number of Hashfunctions so reserving the hash results
-  vector will be faster*/
-  int depth = ams->getDepth();
-
-  //prepare a vector to take in the Hashresults
-  vector<size_t> hashValues; 
-
-  //Prepare buffer for the MurmurHash3 output storage
-  uint64_t mHash[2]; 
 
   //while the stream can still provide elements:
   while ((streamTuple != 0)) {
-
-    streamElement = (Attribute*) streamTuple->GetAttribute(attrIndex);
-    
-    /*64 Bit Version chosen, because of my System. 
-    Should we change this 64 bit? */    
-    MurmurHash3_x64_128(streamElement, sizeof(*streamElement), 0, mHash);
-    size_t h1 = mHash[0] % width;
-    hashValues.push_back(h1);
-
-    //more than 1 Hash is needed (probably always the case)
-    if (depth > 1) {
-      size_t h2 = mHash[1] % width;
-      hashValues.push_back(h2);
-      //hash the streamelement for the appropriate number of times
-      for (int i = 2; i < depth; i++) {
-          size_t h_i = (h1 + i * h2 + i * i) % width;
-          hashValues.push_back(h_i);
-      }
-    } 
-
-    /*Increase element Counter in the 
-    Count Min Sketch*/
-    //ams->increaseCount(hashValues);
-    
-    //delete old hashvalues from the vector
-    hashValues.clear();;
+    CcInt* intElement;
+    intElement = (CcInt*) streamTuple->GetAttribute(attrIndex);
+    ams->changeWeight(intElement -> GetValue());
 
     streamTuple->DeleteIfAllowed();
 
     //assign next Element from the Stream
     streamTuple = stream.request();   
-  }
-
+    } 
 
   for (size_t i = 0; i < ams->getDepth(); i++) {
     cout << "Vector " << i << " looks like: " << endl; 
@@ -2621,6 +2664,34 @@ int createamsVM(Word* args, Word& result,
 
   return 0;
 }
+
+/*
+2.3.6 Operator ~amsestimate~
+
+*/
+int amsestimateVM(Word* args, Word& result,
+           int message, Word& local, Supplier s){
+  
+  //take the parameters values supplied with the operator
+  amsSketch* ams = (amsSketch*) args[0].addr;
+
+  //Get the Resultstorage provided by the Query Processor
+  result = qp -> ResultStorage(s);
+
+  //Make the Storage provided by QP easily usable
+  CcReal* res = (CcReal*) result.addr;
+  
+  //prepare the result
+  int estimate = 0;
+
+  estimate = ams -> estimateInnerProduct();
+
+  res->Set(true, estimate);
+
+  return 0;
+}
+
+
 
 /*
 2.4 Description of Operators
@@ -2658,12 +2729,19 @@ int createamsVM(Word* args, Word& result,
 
   OperatorSpec cmscountSpec(
    "countminsketch x T -> bool, T = TUPLE or T = DATA",
-   "_ bloomcontains [_]",
+   "_ cmscountSpec [_]",
    "Gives an estimate of how often an Element appeared in the Stream the ",
    "Count Min Sketch was created for"
    "query Kinos feed createcountmin[Name,0.01,0.9] cmscount[\"Astor\"]"
   );
 
+  OperatorSpec createamsSpec(
+    "stream(tuple(X)) x ATTR x int x real ->  countminsketch",
+   "_ createamsSpec [_,_,_]",
+   "Creates an AMS Sketch fpor the supplied stream", 
+   "query Kinos feed createams[Name,0.01,0.9] amsestimate"
+  );
+  
 
 /*
 2.5 Operator Instances
@@ -2702,7 +2780,6 @@ Operator createcountminOp(
   Operator::SimpleSelect, 
   createcountminTM
 );
-
 
 Operator cmscountOp(
   "cmscount",
