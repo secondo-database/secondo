@@ -25,6 +25,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "ListUtils.h"
 #include "AlgebraTypes.h"
 
+# define LONG_PRIME 4294967311l
+
 namespace eschbach {
     class CountMinSketch
 {
@@ -43,12 +45,17 @@ namespace eschbach {
   size_t getTotalCount();
   int getElement(int counterNumber, int elementIndex);
   void setElement(int counterNumber, int elementIndex, int value);
+  long getConstantA(int index);
+  long getConstantB(int index);
+  void setConstants(int counterNumber, long a, long b);
+  std::vector<std::vector<long>> getConstants();
   std::vector<std::vector<int>> getMatrix();
 
   //Auxiliary Functions
   void initialize(const float epsilon, const float delta);
-  void increaseCount(std::vector<size_t> hashValues);
-  int estimateFrequency(std::vector<size_t> hashValues);
+  void generateConstants(int index);
+  void increaseCount(int hashedEleValue);
+  int estimateFrequency(int hashedEleValue);
 
   //Support Functions
   static Word     In( const ListExpr typeInfo, const ListExpr instance,
@@ -96,6 +103,7 @@ namespace eschbach {
     size_t depth;
     size_t totalCount;
     std::vector<std::vector<int>> matrix;
+    std::vector<std::vector<long>> hashConstants;
   };
 
 }

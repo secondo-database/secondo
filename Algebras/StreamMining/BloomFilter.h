@@ -29,29 +29,36 @@ namespace eschbach {
     class ScalableBloomFilter
 {
   public:
-  ScalableBloomFilter(const float inputErrorRate, const size_t expectedInput);
+  ScalableBloomFilter(const double inputErrorRate);
   ScalableBloomFilter(const ScalableBloomFilter& rhs);
   ~ScalableBloomFilter(){}
 
   //Getter und Setter
   bool getDefined() const;
   void setDefined();
-  size_t getInserts() const; 
-  float getFP() const;
-  bool getElement(size_t index) const;
-  void setElement(size_t index, bool value);
-  int getNumberHashes() const;
-  size_t getFilterSize() const;
-  std::vector<bool> getFilter() const;
-  void setFilter(std::vector<bool> filter); 
+  size_t getCurMaxInserts() const; 
+  double getFP() const;
+  double getRolFP();
+  bool getElement(size_t filterIndex, size_t eleIndex) const;
+  bool setElement(size_t filterIndex, size_t eleIndex, bool value);
+  void setElementOpen(size_t filterIndex, size_t eleIndex, bool value);
+  int getCurNumberHashes() const;
+  std::vector<int> getFilterHashes() const;
+  void setFilterHashes(std::vector<int> nbrHashes);
+  size_t getCurFilterSize() const;
+  size_t getBloomSize() const; 
+  std::vector<bool> getSubFilter(size_t index);
+  void setSubFilter(std::vector<bool>);
+  std::vector<std::vector<bool>> getFilterList();
 
   //Auxiliary Functions
-  void initialize(float fp, size_t entries);
-  bool contains(std::vector<size_t> hashResults) const;
+  void initialize(double fp);
+  bool contains(std::vector<size_t> hashResults, int filterIndex) const;
   void add(std::vector<size_t> hashResults);
-  size_t optimalSize (const long expectedInserts, const double fPProb);
-  long optimalHashes (const long expectedInserts, const long filterSize);
-  std::string filterToBinary(std::vector<bool> filter);
+  bool isSaturated();
+  size_t optimalSize (const long maxInserts, const double fPProb);
+  long optimalHashes (const long maxInserts, const long filterSize);
+  void updateFilterValues(); 
 
   //Support Functions
   static Word     In( const ListExpr typeInfo, const ListExpr instance,
@@ -93,29 +100,21 @@ namespace eschbach {
     ScalableBloomFilter() {}
     friend struct  ConstructorFunctions<ScalableBloomFilter>;
 
-
-    bool defined;
-
-    //int DEFAULT_SIZE= 4096;
-    //float MAX_FILL = 0.5f;
-    //int HASH_SEED = 123;
-    //int GROWTH_RATE = 2; 
-    //float TIGHTENING_RATIO = 0.8;
-    //int BITS_PER_ENTRY = 64;
-    //long maxBits; 
+    //Constants for Filter Creation
+    int DEFAULT_SIZE= 4096;
+    int GROWTH_RATE = 2; 
+    double TIGHTENING_RATIO = 0.8;
     
+    bool defined;
     int numHashfunctions;
-    float falsePositiveProbability;
-    size_t expectedInserts;
+    double falsePositiveProbability;
+    double rollingFP;
+    size_t maxInserts;
     size_t filterSize;
-    std::vector<bool> filter;
-
-    //int insertions;
-
-    //arrayalgebra::Array test1;
-    //pointcloud2::BitArray test2;
-    //ScalableBloomFilter* subFilter;
-    //std::vector<std::vector<bool>> filterList;
+    size_t currentInserts;
+    int curFilterIndex;
+    std::vector<int> ithFilterHashes;
+    std::vector<std::vector<bool>> filterList;
 };
 
 }
