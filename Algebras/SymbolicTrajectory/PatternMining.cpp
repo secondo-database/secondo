@@ -3229,8 +3229,9 @@ void SplSemTraj::addPostfixes(SplPlace sp, const double eps, const Geoid* geoid,
 Implementation of class ~Splitter~, used for operator ~splitter~
 
 */
-Splitter::Splitter(Word& s, const double sm, DateTime& mtt, const double e,
-           Geoid* g, const int attrNo) : pos(0), deltaT(mtt), eps(e), geoid(g) {
+Splitter::Splitter(Word& s, const double sm, DateTime& mtt, const int mna,
+                   const double e, Geoid* g, const int attrNo) : 
+                        pos(0), deltaT(mtt), maxNoAtoms(mna), eps(e), geoid(g) {
   tupleType = getTupleType();
   initialProjection(s, sm, attrNo);
 }
@@ -3255,22 +3256,33 @@ void Splitter::initialProjection(Word& s, const double sm, const int attrNo) {
   map<SplPlace, set<int>, SplPlaceSorter> freqItems(SplPlaceSorter(eps, geoid));
   computeFrequentItems(s, attrNo, sm, freqItems);
 //   cout << freqItemsToString(freqItems) << endl;  
-  for (auto it : freqItems) {
-    vector<SplSemTraj> postfixes;
-    for (auto i : it.second) {
-      source[i].addPostfixes(it.first, eps, geoid, postfixes);
+  if (maxNoAtoms == 1) {
+    for (auto it : freqItems) {
+      SplSemTraj sst(1);
+      SplTSPlace tsp(DateTime(0.0), Point(true, it.first.x, it.first.y),
+                     it.first.cat);
+      sst.append(tsp);
+      addSnippets(sst, it.second.size());
     }
-    SplSemTraj sst(1);
-    SplTSPlace tsp(DateTime(0.0), Point(true, it.first.x, it.first.y),
-                   it.first.cat);
-    sst.append(tsp);
-    addSnippets(sst, it.second.size());
-    prefixSpan(sst, postfixes);
+  }
+  else {
+    for (auto it : freqItems) {
+      vector<SplSemTraj> postfixes;
+      for (auto i : it.second) {
+        source[i].addPostfixes(it.first, eps, geoid, postfixes);
+      }
+      SplSemTraj sst(1);
+      SplTSPlace tsp(DateTime(0.0), Point(true, it.first.x, it.first.y),
+                    it.first.cat);
+      sst.append(tsp);
+      addSnippets(sst, it.second.size());
+      prefixSpan(sst, postfixes);
+    }
   }
 }
 
 void Splitter::prefixSpan(SplSemTraj& prefix, vector<SplSemTraj> pf) {
-  if (prefix.size() >= 4) {
+  if (prefix.size() >= maxNoAtoms) {
     return;
   }
   map<SplPlace, set<int>, SplPlaceSorter> localFreqItems(SplPlaceSorter(eps,

@@ -631,6 +631,7 @@ struct SplTSPlace : SplPlace {
   
   ListExpr toListExpr() const {
     std::string catstr(cat);
+    catstr = catstr.substr(0, 48);
     Instant inst(instDbl);
     Point loc(true, x, y);
     return nl->ThreeElemList(inst.ToListExpr(false),
@@ -830,8 +831,8 @@ Class ~Splitter~, used for operator ~splitter~
 */
 class Splitter {
  public:
-  Splitter(Word& s, const double sm, datetime::DateTime& mtt, const double e,
-           Geoid* g, const int attrNo);
+  Splitter(Word& s, const double sm, datetime::DateTime& mtt, const int mna,
+           const double e, Geoid* g, const int attrNo);
   
   ~Splitter();
   
@@ -853,6 +854,7 @@ class Splitter {
   std::vector<std::pair<SplSemTraj, double> > result;
   unsigned int freqmin, pos;
   datetime::DateTime deltaT;
+  int maxNoAtoms;
   double eps;
   Geoid *geoid;
   TupleType* tupleType;

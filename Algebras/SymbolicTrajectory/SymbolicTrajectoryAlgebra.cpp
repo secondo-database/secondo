@@ -4178,8 +4178,8 @@ Operator createsplsemtraj(createsplsemtrajSpec(), createsplsemtrajVM,
 
 */
 ListExpr splitterTM(ListExpr args) {
-  if (!nl->HasLength(args, 5) && !nl->HasLength(args, 6)) {
-    return listutils::typeError("Five or six arguments expected.");
+  if (!nl->HasLength(args, 6) && !nl->HasLength(args, 7)) {
+    return listutils::typeError("Six or seven arguments expected.");
   }
   if (!Stream<Tuple>::checkType(nl->First(args))) {
     return listutils::typeError("First argument must be a stream.");
@@ -4196,12 +4196,15 @@ ListExpr splitterTM(ListExpr args) {
   if (!Duration::checkType(nl->Fourth(args))) {
     return listutils::typeError("Fourth argument must be a duration.");
   }
-  if (!CcReal::checkType(nl->Fifth(args))) {
-    return listutils::typeError("Fifth argument must be a real number.");
+  if (!CcInt::checkType(nl->Fifth(args))) {
+    return listutils::typeError("Fifth argument must be an integer.");
   }
-  if (nl->HasLength(args, 6)) {
-    if (!Geoid::checkType(nl->Sixth(args))) {
-      return listutils::typeError("Sixth argument must be a geoid.");
+  if (!CcReal::checkType(nl->Sixth(args))) {
+    return listutils::typeError("Sixth argument must be a real number.");
+  }
+  if (nl->HasLength(args, 7)) {
+    if (!Geoid::checkType(nl->Seventh(args))) {
+      return listutils::typeError("Seventh argument must be a geoid.");
     }
   }
   ListExpr attrList =
@@ -4239,18 +4242,33 @@ int splitterVM(Word* args, Word& result, int message, Word& local, Supplier s) {
         delete li;
         local.addr = 0;
       }
-      int attrNoPos = (qp->GetNoSons(s) == 7 ? 6 : 5);
+      int attrNoPos = (qp->GetNoSons(s) == 8 ? 7 : 6);
       CcReal *suppmin = static_cast<CcReal*>(args[2].addr);
       DateTime *mtt = static_cast<DateTime*>(args[3].addr);
-      CcReal *eps = static_cast<CcReal*>(args[4].addr);
+      CcInt* maxNoAtoms = static_cast<CcInt*>(args[4].addr);
+      CcReal *eps = static_cast<CcReal*>(args[5].addr);
       Geoid *geoid = 0;
-      if (qp->GetNoSons(s) == 7) {
-        geoid = static_cast<Geoid*>(args[5].addr);
+      if (qp->GetNoSons(s) == 8) {
+        geoid = static_cast<Geoid*>(args[6].addr);
       }
       CcInt *attrNo = static_cast<CcInt*>(args[attrNoPos].addr);
-      if (suppmin->IsDefined() && mtt->IsDefined() && eps->IsDefined()) {
+      if (suppmin->IsDefined() && mtt->IsDefined() && eps->IsDefined() && 
+          maxNoAtoms->IsDefined()) {
+        if (suppmin->GetValue() <= 0.0 || suppmin->GetValue() > 1.0) {
+          cout << "invalid parameter, suppmin must be in (0,1]." << endl;
+          return 0;
+        }
+        if (maxNoAtoms->GetValue() < 1) {
+          cout << "invalid parameter, maxNoAtoms must be >= 1." << endl;
+          return 0;
+        }
+        if (eps->GetValue() < 0.0) {
+          cout << "invalid parameter, eps (tolerance) must >= 0." << endl;
+          return 0;
+        }
         local.addr = new Splitter(args[0], suppmin->GetValue(), *mtt, 
-                               eps->GetValue(), geoid, (int)attrNo->GetValue());
+                                  maxNoAtoms->GetValue(), eps->GetValue(), 
+                                  geoid, (int)attrNo->GetValue());
       }
       else {
         cout << "undefined argument(s)" << endl;
