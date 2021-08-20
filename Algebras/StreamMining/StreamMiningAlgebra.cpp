@@ -74,6 +74,8 @@ It provides the following operators:
 #include "BloomFilter.h"
 #include "CountMinSketch.h"
 #include "amsSketch.h"
+#include "lossyCounter.h"
+#include "counterPair.h"
 
 #include <string>
 #include <iostream>   
@@ -287,7 +289,7 @@ ScalableBloomFilter::isSaturated() {
   return currentInserts >= maxInserts; 
 }
 
-// Update the parameters and and a new Filter to our Scalable Bloom
+// Update the parameters and add a new Subfilter to our Scalable Bloom
 void
 ScalableBloomFilter::updateFilterValues() {
   cout << endl;
@@ -978,10 +980,12 @@ CountMinSketch::Open(SmiRecord& valueRecord, size_t& offset,
   i = 0;
   for (vector <int> counter : openCMS -> getMatrix()) {
     cout << "After Opening Counter Number " << i 
-         << " has the following elements: ";
+         << " has the following elements: " << endl;;
     for (int count : counter) {
       cout << count;
     }
+    cout << endl;
+    cout << endl;
     i++;
   }
 
@@ -1186,16 +1190,16 @@ amsSketch::getElement(int counterNumber, int index) {
 }
 
 void 
-amsSketch::setElement(int counterNumber, int index, int value) {
-  matrix[counterNumber][index] = value;
+amsSketch::updateElement(int counterNumber, int index, int value) {
+  matrix[counterNumber][index] += value;
 }
 
-int
+long
 amsSketch::getConstantTwA(int index) {
   return twConstants[index][0];
 }
 
-int
+long
 amsSketch::getConstantTwB(int index) {
   return twConstants[index][1];
 }
@@ -1206,19 +1210,22 @@ amsSketch::setConstantsTw(int index, long a, long b) {
   twConstants[index][1] = b;
 }
 
-int
+long
 amsSketch::getConstantFwA(int index) {
   return fwConstants[index][0];
+}
 
-}int
+long
 amsSketch::getConstantFwB(int index) {
   return fwConstants[index][1];
+}
 
-}int
+long
 amsSketch::getConstantFwC(int index) {
   return fwConstants[index][2];
+}
 
-}int
+long
 amsSketch::getConstantFwD(int index) {
   return fwConstants[index][3];
 }
@@ -1296,6 +1303,9 @@ amsSketch::generateFwConstants(int index) {
   long b = long(float(rand())*float(LONG_PRIME)/float(RAND_MAX));
   long c = long(float(rand())*float(LONG_PRIME)/float(RAND_MAX));
   long d = long(float(rand())*float(LONG_PRIME)/float(RAND_MAX));
+  cout << "FW-Constants generated for Row " << index << " are: " << endl;
+  cout << "a: " << a << " b: "  << b << " c: " << c << " d: " << d << endl;
+  cout << endl;
   setConstantsFw(index, a, b, c, d);
 }
 
@@ -1412,15 +1422,15 @@ amsSketch::changeWeight(size_t value) {
     hashIndex = ((twa*value+twb) % LONG_PRIME) % width;
 
     //Compute the Value we will use to update the counter
-    updateValue = fwa*pow(value,3) + fwb*pow(value,2) 
-                  + fwc*value + fwd % LONG_PRIME % 2 - 1; 
+    updateValue = 2*((long)(fwa*pow(value,3) + (int)fwb*pow(value,2) 
+                  + fwc*value + fwd) % LONG_PRIME % 2)- 1;
 
     //Commit the change
-    setElement(i, hashIndex, updateValue); 
+    updateElement(i, hashIndex, updateValue); 
   }
 }
 
-int 
+float 
 amsSketch::estimateInnerProduct() {
   int medianArray[depth]; 
   int joinSize;
@@ -1487,9 +1497,9 @@ amsSketch::In(const ListExpr typeInfo, const ListExpr instance,
 //Out-Function (Dummy)
 ListExpr
 amsSketch::Out(ListExpr typeInfo, Word value) {
-  amsSketch* cms = 
+  amsSketch* ams = 
                        static_cast<amsSketch*> (value.addr);
-  if(!cms -> getDefined()) {
+  if(!ams -> getDefined()) {
     return listutils::getUndefined();
   }
 
@@ -1526,7 +1536,7 @@ amsSketch::Open(SmiRecord& valueRecord, size_t& offset,
   float delta; 
   size_t width;
   size_t depth;
-  int constantTwA, constantTwB, constantFwA, 
+  long constantTwA, constantTwB, constantFwA, 
       constantFwB, constantFwC, constantFwD;
   int counterEle;
 
@@ -1543,6 +1553,8 @@ amsSketch::Open(SmiRecord& valueRecord, size_t& offset,
   offset += sizeof(size_t);
 
   amsSketch* openAMS = new amsSketch(epsilon, delta);
+  openAMS -> getConstantsTw().clear(); 
+  openAMS -> getConstantsFw().clear();
 
   for (size_t i = 0; i < depth; i++) {
     ok = ok && valueRecord.Read (&constantTwA, sizeof(long), offset);
@@ -1550,6 +1562,7 @@ amsSketch::Open(SmiRecord& valueRecord, size_t& offset,
     ok = ok && valueRecord.Read (&constantTwB, sizeof(long), offset);
     offset+=sizeof(long);
     openAMS->setConstantsTw(i, constantTwA, constantTwB);
+
     ok = ok && valueRecord.Read (&constantFwA, sizeof(long), offset);
     offset+=sizeof(long); 
     ok = ok && valueRecord.Read (&constantFwB, sizeof(long), offset);
@@ -1560,17 +1573,23 @@ amsSketch::Open(SmiRecord& valueRecord, size_t& offset,
     offset+=sizeof(long);
     openAMS ->setConstantsFw(i, constantFwA,constantFwB,
                              constantFwC,constantFwD);
+
+  cout << "For Counter " << i << " the opened constants Vaues are: " << endl; 
+  cout << "TwA: " << constantTwA << " TwB: " << constantTwB << endl; 
+  cout << "FwA: " << constantFwA << " FwB: " << constantFwB << " FwC: " 
+       << constantFwC << " FwD: " << constantFwD << endl;
   }
 
   for (size_t i = 0; i < depth; i++) {
-    cout << "Counter Number " << i << " has the following elements: ";
+    cout << "Opened Counter Number " << i << " has the following elements: ";
     cout << endl;
     for (size_t j = 0; j < width; j++) {
         ok = ok && valueRecord.Read (&counterEle, sizeof(int), offset);
         offset+=sizeof(int); 
-        openAMS -> setElement(i,j,counterEle);
+        openAMS -> updateElement(i,j,counterEle);
         cout << counterEle;   
     }
+    cout << endl;
     cout << endl;
   }
 
@@ -1594,7 +1613,9 @@ const ListExpr typeInfo , Word & value) {
   size_t width = ams -> getWidth();
   size_t depth = ams -> getDepth();
   long hashConstantTwA, hashConstantTwB, hashConstantFwA, hashConstantFwB, 
-      hashConstantFwC, hashConstantFwD, counterEle;
+      hashConstantFwC, hashConstantFwD; 
+      
+  int counterEle;
 
   bool ok = valueRecord.Write(&epsilon, sizeof(float), offset);
   offset+=sizeof(float);
@@ -1627,16 +1648,26 @@ const ListExpr typeInfo , Word & value) {
     offset+=sizeof(long);
     ok = ok && valueRecord.Write(&hashConstantFwD, sizeof(long), offset);
     offset+=sizeof(long);
+
+  cout << "For Counter " << i << " the saved constants Values are: " << endl; 
+  cout << "TwA: " << hashConstantTwA << " TwB: " << hashConstantTwB << endl; 
+  cout << "FwA: " << hashConstantFwA << " FwB: " << hashConstantFwB << " FwC: " 
+                  << hashConstantFwC << " FwD: " << hashConstantFwD << endl;
+
+
   }
   
 
   for (size_t i = 0; i < depth; i++) {
+    cout << "Saving Counter Values of Counter " << i << endl;
     for (size_t j = 0; j < width; j++) {
         counterEle = ams->getElement(i,j);
         ok = ok && valueRecord.Write(&counterEle, sizeof(int), offset);
         offset+=sizeof(int);
         cout << counterEle;
     }
+    cout << endl;
+    cout << endl;
   }
 
   cout << endl;
@@ -1701,6 +1732,468 @@ struct amsSketchFunctions :
 amsSketchInfo ai;
 amsSketchFunctions af;
 TypeConstructor amsSketchTC( ai, af );
+
+
+/*
+2.1.4 Class ~lossyCounter~
+
+*/
+lossyCounter::lossyCounter
+(const float epsilon) {
+  defined = true; 
+  this->epsilon = epsilon; 
+  eleCounter = 0; 
+  windowSize = ceil(1/epsilon);
+  windowIndex = 1;
+  frequencyList;
+}
+
+lossyCounter::lossyCounter
+(const lossyCounter& rhs) {
+  defined = rhs.defined;
+  epsilon = rhs.epsilon;
+  eleCounter = rhs.eleCounter;
+  windowSize = rhs.windowSize;
+  windowIndex = rhs.windowIndex;
+  frequencyList = rhs.frequencyList;
+}
+
+
+//Setter and Getter
+bool lossyCounter::getDefined() {
+  return defined;
+} 
+
+void lossyCounter::setDefined(bool value) {
+  defined = value;
+} 
+
+size_t lossyCounter::getEleCounter() {
+  return eleCounter;
+} 
+
+float lossyCounter::getEpsilon() {
+  return epsilon;
+} 
+
+long lossyCounter::getCurrentWindowIndex() {
+  return windowIndex;
+} 
+
+int lossyCounter::getWindowSize() {
+  return windowSize;
+}
+
+int lossyCounter::getElement(int index){
+  return frequencyList.at(index).getItem();
+}
+
+//Auxiliary Functions
+
+///Handles incoming Streamelements
+void lossyCounter::addElement(int element) {
+  bool newElem = true;
+  if (elementPresent(element)) {
+    incrCount(element);
+    newElem = false;
+  } else {
+    insertElement(element);
+  }
+
+  if (eleCounter % windowSize == 0) {
+    reduce();
+    updateWindowIndex();
+  }
+}
+
+//Increase the Frequencycount of a Streamelement which
+//was already present
+void lossyCounter::incrCount(int element) {
+  frequencyList.at(element).setFrequency();
+  eleCounter++;
+}
+
+//Inserts previously unencountered Elements into our element list
+void lossyCounter::insertElement(int element) {
+  int maxError = windowIndex-1;
+  //newly inserted Elements will always have Frequency 1
+  counterPair value(element, 1, maxError);
+
+  frequencyList.insert({element, value});
+  eleCounter++;
+}
+
+//Checks whether a streamelement is already present in the list of elements
+bool lossyCounter::elementPresent(int element) {
+  if (frequencyList.find(element) == frequencyList.end()) {
+    return false;
+  } else {
+    return true;
+  }
+}
+
+//Updates the currently used Window
+void lossyCounter::updateWindowIndex() {
+  windowIndex = ceil(eleCounter/windowSize);
+}
+
+//Removes the Items below the Frequency Threshold
+void lossyCounter::reduce() {
+  vector<int> deletionList;
+  for (auto elements : frequencyList) {
+    counterPair elem = elements.second; 
+    if ((elem.getFrequency() + elem.getMaxError()) < windowIndex) {
+      deletionList.push_back(elements.first);
+    }
+  }
+  for (int elem : deletionList) {
+    frequencyList.erase(elem);
+  }
+}
+
+//Get the Frequent items which surpase the minsupport threshold
+vector<int> lossyCounter::getFrequentElements(double minSupport) {
+  vector<int> resultList; 
+  for (auto elements : frequencyList) {
+    counterPair elem = elements.second;
+    if (elem.frequency >= ((minSupport - epsilon) * eleCounter)) {
+      resultList.push_back(elem.getItem());
+    }
+  }
+  return resultList;
+}
+
+//Get the frequency of a single Element
+long lossyCounter::estimateCount(int elem) {
+  if (!(frequencyList.find(elem) == frequencyList.end())) {
+    counterPair elemData = frequencyList.at(elem);    
+    long elemFrequency = elemData.getFrequency();
+    return elemFrequency;
+  } else {
+    return 0;
+  }
+}
+
+//Just dummy Functions
+//~In~/~Out~ Functions
+Word
+lossyCounter::In(const ListExpr typeInfo, const ListExpr instance,
+                const int errorPos, ListExpr& errorInfo, bool& correct) {
+  
+  Word result = SetWord(Address(0));
+  correct = false;
+  NList list (instance); 
+
+  if(list.length() != 3){
+    cmsg.inFunError("expected three arguments");
+    return result; 
+  }
+
+  NList first = list.first();
+  NList second = list.second();
+  NList third = list.third();
+  NList index;
+
+  return result;
+}
+
+//Out-Function to turn List Representation into Class Representation
+//Currently Dummy
+
+ListExpr lossyCounter::Out(ListExpr typeInfo, Word value) {
+  lossyCounter* lc = 
+                       static_cast<lossyCounter*> (value.addr);
+  
+  if(!lc -> getDefined()) {
+    return listutils::getUndefined();
+  }
+
+  ListExpr returnList = nl -> OneElemList(nl -> BoolAtom(true));
+
+  return returnList;
+}
+
+
+//Support Functions for Persistent Sorage
+
+Word
+lossyCounter::Create( const ListExpr typeInfo )
+{
+  Word w; 
+  w.addr = (new lossyCounter(0.1));
+  return w;
+}
+
+void
+lossyCounter::Delete( const ListExpr typeInfo, Word& w )
+{
+  delete (lossyCounter*) w.addr;
+  w.addr = 0;
+}
+
+//Open and Save functions which will be implemented later
+
+bool
+ScalableBloomFilter::Open(SmiRecord& valueRecord, size_t& offset, 
+                         const ListExpr typeInfo, Word& value) 
+{  
+  double fp;
+  size_t maxInserts = 8;
+  size_t subFilterSize;
+  int nbrSubFilters;
+  int nbrHashFunctions;
+  vector<int> hashFunctionsPerFilter;
+  vector<bool> insertionVector;
+  bool filterElement;
+
+  bool ok = valueRecord.Read (&fp, sizeof(double), offset);
+  offset += sizeof(double);
+
+  cout << "Open FP: " << fp << endl;
+
+  ScalableBloomFilter* openBloom = new ScalableBloomFilter(fp);
+
+  ok = ok && valueRecord.Read (&nbrSubFilters, sizeof(int), offset);
+  offset += sizeof(int);
+
+  cout << "Open Nbr Subfilters: " << nbrSubFilters << endl;
+
+  openBloom->getFilterList().reserve(nbrSubFilters);
+
+  hashFunctionsPerFilter.reserve(nbrSubFilters);
+  for (int i = 0; i < (nbrSubFilters); i++) {
+    ok = ok && valueRecord.Read(&nbrHashFunctions, sizeof(int), offset);
+    hashFunctionsPerFilter.push_back(nbrHashFunctions);
+    offset += sizeof(int);
+  }
+
+  int i = 0; 
+  cout << "Open Hashfunctions per filter: " << endl;
+  for (int nbr : hashFunctionsPerFilter) {
+    cout << "Filter " << i << " has " << nbr << " Hashes" << endl;
+    i++;
+  }
+
+  openBloom -> getFilterHashes().clear();
+  openBloom -> getFilterHashes().reserve(hashFunctionsPerFilter.size());
+  openBloom -> setFilterHashes(hashFunctionsPerFilter);
+  
+  
+  cout << "Nbr of Hashfunctions saved per Filter in OpenBloom: " << endl;
+
+  for (int nbr : openBloom -> getFilterHashes()) {
+    int i = 0; 
+    cout << "Filter " << i << " Hashes: " << nbr << endl;
+    i++;
+  }
+  
+  subFilterSize=openBloom->optimalSize(maxInserts, fp);
+  for (size_t j = 0; j < subFilterSize; j++) {
+    ok = ok && valueRecord.Read (&filterElement, sizeof(bool), offset);
+    offset += sizeof(bool);
+    openBloom->setElement(0,j, filterElement);
+  }
+
+  fp *= 0.8;
+  maxInserts*=2;
+
+  cout << endl;
+  cout << "Beginning to Copy Subfilter values" << endl;  
+  for (int i = 1;  i < nbrSubFilters; i++) {
+    cout << endl;
+    cout << "Beginning Work on Subfilter " << i << endl;
+    cout << endl;
+    subFilterSize=openBloom->optimalSize(maxInserts, fp);
+    cout << "Size of Subfilter " << i << " determined to be: " 
+         << subFilterSize << endl;
+    cout << endl;
+    insertionVector.reserve(subFilterSize);
+
+    for (size_t j = 0; j < subFilterSize; j++) {
+      ok = ok && valueRecord.Read (&filterElement, sizeof(bool), offset);
+      offset += sizeof(bool);
+      insertionVector.push_back(filterElement);
+    }
+    
+    cout << "Subfilter " << i << " has the form: " << endl;
+    for (bool elem  : insertionVector) {
+      cout << elem; 
+    }
+    cout << endl;
+    
+    cout << "Pushing insertion Vector into FilterList: " << endl;
+    openBloom -> setSubFilter(insertionVector);
+    cout << endl;
+
+    cout << "FilterList now has " << 
+        openBloom -> getFilterList().size() << " SubFilters" << endl; 
+    cout << endl;
+
+    insertionVector.clear();
+    cout << endl; 
+    cout << endl;
+
+    fp *= 0.8;
+    maxInserts*=2;
+
+  }
+
+  cout << "The opened Bloomfilter has the values: ";
+  int indiz = 0; 
+  for (vector<bool> subfilter : openBloom -> getFilterList()) {
+    cout << endl;
+    cout << "Opened Subfilter " << indiz << " has the form: " << endl;
+    cout << endl;
+    for (bool filterValue : subfilter) {
+      cout << filterValue;
+    }
+    indiz++;
+  }
+
+  if (ok) {
+    value.addr = openBloom;
+  } else {
+    value.addr =  0;
+  }
+
+  return true;
+} 
+
+
+bool 
+ScalableBloomFilter::Save(SmiRecord & valueRecord , size_t & offset ,
+const ListExpr typeInfo , Word & value) {
+  ScalableBloomFilter* bloomFilter = static_cast<ScalableBloomFilter*>
+                                    (value.addr);
+  
+  double fp = bloomFilter->getFP();
+  int nbrSubFilters = bloomFilter->getFilterList().size();
+  vector<int> hashfunctionsPerFilter = bloomFilter -> getFilterHashes();
+
+  cout << endl;
+  cout << "Saved FP: " << fp << endl;
+
+  bool ok = valueRecord.Write(&fp, sizeof(double), offset);
+  offset+=sizeof(double);
+
+  //The number of Filters is equivalent to the different number of 
+  // Hashfunctions we save. Hence we only need to save one of these 
+  // updateFilterValues
+  ok = ok && valueRecord.Write(&nbrSubFilters, sizeof(int), offset);
+  offset+=sizeof(int);
+
+  cout << "Saved Nbr Subfilters: " << nbrSubFilters << endl;
+
+  cout << "Saved Nbr of Hashfunctions per Filter: " << endl;
+
+  int i = 0; 
+
+  //Save the amount of Hashfunctions each Subfilter uses
+  for (int nbr : hashfunctionsPerFilter) {
+    ok = ok && valueRecord.Write(&nbr, sizeof(int), offset);
+    offset+=sizeof(int);
+    cout << i << ":" << nbr << endl;
+    i++;
+  }
+
+  cout << endl;
+
+  
+  i = 0;
+  for (vector<bool> subFilter : bloomFilter->getFilterList()) {
+    cout << "Subfilter " << i << ":" << endl;
+    for (bool elem : subFilter) {
+      ok = ok && valueRecord.Write(&elem, sizeof(bool), offset);
+      offset+=sizeof(bool);
+      cout << elem;
+    }
+    i++; 
+    cout <<endl;
+  }
+  return true;
+}
+
+
+void
+lossyCounter::Close( const ListExpr typeInfo, Word& w )
+{
+  delete static_cast<lossyCounter*>( w.addr );
+  w.addr = 0;
+}
+
+Word
+lossyCounter::Clone( const ListExpr typeInfo, const Word& w ) {
+  lossyCounter* oldCounter = (lossyCounter*) w.addr;
+  return SetWord( new lossyCounter(*oldCounter));
+}
+
+//Type Description
+
+struct lossyCounterInfo : ConstructorInfo {
+
+  lossyCounterInfo() {
+
+    name         = lossyCounter::BasicType();
+    signature    = "-> " + Kind::SIMPLE();
+    typeExample  = lossyCounter::BasicType();
+    listRep      =  "()";
+    valueExample = "(4 12 2 8)";
+    remarks      = "";
+  }
+};
+
+//Creation of the Type Constructor Instance
+
+struct lossyCounterFunctions : 
+       ConstructorFunctions<lossyCounter> {
+
+ lossyCounterFunctions()
+  {
+    in = lossyCounter::In;
+    out = lossyCounter::Out;
+    create = lossyCounter::Create;
+    deletion = lossyCounter::Delete;
+    open = lossyCounter::Open;
+    save = lossyCounter::Save;
+    close = lossyCounter::Close;
+    clone = lossyCounter::Clone;
+  }
+};
+
+lossyCounterInfo li;
+lossyCounterFunctions lf;
+TypeConstructor lossyCounterTC( li, lf );
+
+
+
+
+
+/*
+2.1.4.1 Class ~counterPair~
+
+*/
+counterPair::counterPair
+(int item, long frequency, long maxError) {
+  this -> item = item; 
+  this -> frequency = frequency;
+  this -> maxError = maxError;
+}
+
+int counterPair::getItem() {
+  return item; 
+}
+
+long counterPair::getFrequency() {
+  return frequency;
+}
+
+void counterPair::setFrequency() {
+  frequency++;
+}
+
+long counterPair::getMaxError() {
+  return maxError;
+}
 
 
 /*
@@ -1982,7 +2475,7 @@ cmscountTM(ListExpr args) {
          << isNumeric << endl;
     appendList.append(NList().boolAtom(isNumeric));
     return NList(Symbols::APPEND(), appendList,
-               CcBool::BasicType()).listExpr();
+               CcInt::BasicType()).listExpr();
   } 
 
   return NList::typeError("Operator cmscount expects an  " 
@@ -2093,6 +2586,109 @@ amsestimateTM(ListExpr args) {
 
   //check if the searchelement is numeric
   return NList(amsSketch::BasicType()).listExpr(); 
+}
+
+
+/*
+2.2.8 Operator ~createlossycounter~
+
+*/
+
+ListExpr
+lcfrequentTM( ListExpr args ) {
+NList type(args);
+NList streamtype = type.first().second();
+NList appendList;
+
+ListExpr a = nl->First(args);
+
+ListExpr errorInfo = nl->OneElemList(nl->SymbolAtom("ErrorInfo"));
+
+  // three arguments must be supplied
+  if (type.length() != 2){
+    return NList::typeError("Operator lcfrequent expects "
+                            "two arguments");
+  }
+
+  // test first argument for being a tuple stream
+  if(!Stream<Tuple>::checkType(a)){
+    return NList::typeError( "Operator lcfrequent expects a "
+                             "Tuple Stream as first argument");
+  }
+
+  //test second argument for a valid Attribute Name
+  if (!type.second().isSymbol()){
+    return NList::typeError("Operator lcfrequent expects a valid "
+                            "Attribute Name as second argument");
+  }
+
+  // test third argument for real
+  if(type.third() != NList(CcReal::BasicType())) {
+    return NList::typeError("Operator lcfrequent expects a real "
+                            "value as second argument");
+  }
+  
+  // stream elements must be in kind tuple (X) with X in DATA
+  if(!(streamtype.hasLength(2)
+          && streamtype.first().isSymbol(sym.TUPLE())
+          && IsTupleDescription(streamtype.second().listExpr())
+         )
+          && !(am->CheckKind(Kind::DATA(),streamtype.listExpr(),errorInfo))){
+      return NList::typeError("Operator lcfrequent can only handle "
+                              "Attributetype Tuple values");
+  }
+
+  //extract index of the attribute we intend to hash
+  NList attrList = type.first().second().second();
+  ListExpr attrType;
+  string attrName = type.second().str();
+  int attrIndex = listutils::findAttribute(attrList.listExpr(), 
+                                           attrName, attrType) - 1;
+
+  if (attrIndex < 0) {
+    return NList::typeError("Attribute " + attrName + " "
+                            "not found in tuple");
+  }
+
+
+  appendList.append(NList().intAtom(attrIndex));
+
+  /* result is a bloomfilter and we append the index of 
+     the attribute of the tuples which will be hashed to create our filter 
+
+  */
+  return NList(Symbols::APPEND(), appendList, 
+               lossyCounter::BasicType()).listExpr();
+}
+
+/*
+2.2.9 Operator ~lcfrequent~
+
+*/
+ListExpr
+lcfrequentTM(ListExpr args) {
+  NList type(args);
+  NList appendList;
+
+  // two arguments must be supplied
+  if (type.length() != 2){
+    return NList::typeError("Operator lcfrequent expects two arguments");
+  }
+
+  // test first argument for being an lossycounter
+  if(type.first() != NList(lossyCounter::BasicType())){
+    return NList::typeError("Operator lcfrequent expects a "
+                            "lossy counter as first argument");
+  }
+
+  // test second argument for real
+  if(type.second() != NList(CcReal::BasicType())){
+    return NList::typeError("Operator lcfrequent expects a "
+                            "real value as second argument");
+  }
+
+  //check if the searchelement is numeric
+  return NList(Relation::BasicType()).listExpr(); 
 }
 
 /*
@@ -2608,6 +3204,25 @@ int createamsVM(Word* args, Word& result,
   //initialize the Filter with the values provided by the operator
   ams->initialize(epsilon->GetValue(),delta->GetValue());
 
+
+  cout << "After init() AMS Values are: " << endl;
+  cout << endl;
+  cout << "Defined: " + ams->getDefined() << endl;
+  cout << "Epsilon: " << + ams->getEpsilon() << endl;
+  cout << "Delta: " << + ams->getDelta() << endl;
+  cout << "Width: "  << endl;
+  cout <<  ams->getWidth();
+  cout << endl;
+  cout << "Depth: " << + ams->getDepth() << endl;
+  cout << "Total Count " << + ams->getTotalCount() << endl;
+
+  cout << "VV enthält: " << ams->getMatrix().size() << endl;
+
+  for (size_t i = 0; i < ams->getDepth(); i++) {
+    cout << "V" << i << " length is: " << ams->getMatrix()[i].size() << endl;
+  }
+
+
   //Get the stream provided by the operator
   Stream<Tuple> stream(args[0]);
 
@@ -2682,14 +3297,111 @@ int amsestimateVM(Word* args, Word& result,
   CcReal* res = (CcReal*) result.addr;
   
   //prepare the result
-  int estimate = 0;
-
-  estimate = ams -> estimateInnerProduct();
+  float estimate = ams -> estimateInnerProduct();
 
   res->Set(true, estimate);
 
   return 0;
 }
+
+/*
+2.3.7 Operator ~createlossycounter~
+
+*/
+int createlossycounterVM(Word* args, Word& result,
+           int message, Word& local, Supplier s){
+  
+  //take the parameters values supplied with the operator
+  CcReal* maxError = (CcReal*) args[2].addr;
+  CcInt* attrIndexPointer = (CcInt*) args[3].addr;
+
+  int attrIndex = attrIndexPointer->GetIntval();
+
+  //Get the Resultstorage provided by the Query Processor
+  result = qp -> ResultStorage(s);
+
+  //Make the Storage provided by QP easily usable
+  lossyCounter* lc = (lossyCounter*) result.addr;
+
+  cout << "After init() lc Values are: " << endl;
+  cout << "Defined: " << lc->getDefined() << endl;
+  cout << "Epsilon: " << lc->getEpsilon() << endl;
+  cout << "eleCounter " << lc->getEleCounter() << endl;
+  cout << "Window Size: " << + lc->getWindowSize() << endl;
+  cout << "Window Index: " << lc -> getCurrentWindowIndex() << endl;
+
+
+  //Get the stream provided by the operator
+  Stream<Tuple> stream(args[0]);
+
+  //open the stream 
+  stream.open();
+  
+  //Pointers to stream elements will be saved here for use
+  Tuple* streamTuple = (Tuple*) stream.request();
+
+  CcInt* streamElement; 
+
+  //while the stream can still provide elements:
+  while ((streamTuple != 0)) {
+    streamElement = (CcInt*) streamTuple->GetAttribute(attrIndex);
+    int elementValue = streamElement -> GetIntval();
+
+    lc -> addElement(elementValue);
+
+    streamTuple->DeleteIfAllowed();
+
+    //assign next Element from the Stream
+    streamTuple = stream.request();   
+  
+  }
+  stream.close();
+
+  result.setAddr(lc);
+
+  return 0;
+}
+
+/*
+2.3.8 Operator ~lcfrequent~
+
+*/
+int lcfrequentVM(Word* args, Word& result,
+           int message, Word& local, Supplier s){
+  
+  //Get the Lossy Counter provided by the operator
+  lossyCounter* lc = (lossyCounter*) args[0].addr;
+  
+  //take the parameters values supplied with the operator
+  CcReal* support = (CcReal*) args[1].addr;
+  float supportThreshold = support->GetValue();
+
+  //Get the Resultstorage provided by the Query Processor
+  result = qp -> ResultStorage(s);
+
+  //Make the Storage provided by QP easily usable
+  Relation* frequentItemsRel = (Relation*) result.addr;
+
+  //Prepare the Elements need for creating the output relation
+  
+  Attribute* a = (CcInt*) lc ->getElement(0); 
+  TupleType* tt = new TupleType(1);
+
+  for (int item : lc->getFrequentElements(supportThreshold)) {
+    Tuple* tuple = new Tuple(tt);
+    tuple -> PutAttribute(0,a);
+    frequentItemsRel -> AppendTuple(tuple);
+    tuple -> DeleteIfAllowed();
+  }
+
+  tt->DeleteIfAllowed();
+
+
+  result.setAddr(frequentItemsRel);
+
+  return 0;
+}
+
 
 
 
@@ -2747,6 +3459,20 @@ int amsestimateVM(Word* args, Word& result,
     "_ amsestimate ",
     "Creates and estimate of the F_2 Moment of the ",
     "given AMS-Sketch"
+  );
+
+  OperatorSpec creatlossycounterSpec(
+    "stream(tuple(X)) x ATTR x real ->  lossycounter",
+    "_ createlossycounter [_,_]",
+    "Creates a lossy Counter the supplied stream",
+    "query intstream(0,100) createlossycounter lcfrequent"
+  );
+
+  OperatorSpec lcfrequentSpec(
+    "lossycounter(X) -> ATTRList",
+    "_ lcfrequent [_]",
+    "Displays the items determined to be frequent by the lossy Counter",
+    "query intstream(0,100) createlossycounter lcfrequent"
   );
   
 
@@ -2827,6 +3553,7 @@ class StreamMiningAlgebra : public Algebra
     //Reigstration of Types
     AddTypeConstructor(&scalableBloomFilterTC);
     AddTypeConstructor(&countMinSketchTC);
+    AddTypeConstructor(&amsSketchTC);
 
     //Usage possibilities of the Types
     scalableBloomFilterTC.AssociateKind(Kind::SIMPLE());

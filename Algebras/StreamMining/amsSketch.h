@@ -44,13 +44,13 @@ namespace eschbach {
   float getDelta();
   size_t getTotalCount();
   int getElement(int counterNumber, int elementIndex);
-  void setElement(int counterNumber, int elementIndex, int value);
-  int getConstantTwA(int index);
-  int getConstantTwB(int index);
-  int getConstantFwA(int index);
-  int getConstantFwB(int index);  
-  int getConstantFwC(int index);
-  int getConstantFwD(int index);
+  void updateElement(int counterNumber, int elementIndex, int value);
+  long getConstantTwA(int index);
+  long getConstantTwB(int index);
+  long getConstantFwA(int index);
+  long getConstantFwB(int index);  
+  long getConstantFwC(int index);
+  long getConstantFwD(int index);
 
 
   std::vector<std::vector<long>> getConstantsTw();
@@ -64,7 +64,7 @@ namespace eschbach {
   void generateConstants(int index);
   void generateFwConstants(int index);
   void changeWeight(size_t value);
-  int estimateInnerProduct();
+  float estimateInnerProduct();
 
   void swap(int* a, int* b);
   int partition(int arr[], int l, int r);
@@ -101,7 +101,7 @@ namespace eschbach {
 
 
    static const std::string BasicType() {
-    return "amsSketch";
+    return "amssketch";
   }
 
   static const bool checkType (const ListExpr list) {
