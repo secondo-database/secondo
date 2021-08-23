@@ -425,7 +425,7 @@ done
 Shapefiles are loaded into MySQL using [ogr2ogr](https://gdal.org/drivers/vector/mysql.html).
 
 ```
-# Ensure gdal-bin is installed (contains ogr2ogr)
+# Ensure gdal-bin is installed (contains ogr2ogr and ogrinfo)
 apt-get install gdal-bin
 
 # Download data
@@ -453,7 +453,28 @@ ogr2ogr -f MySQL MySQL:$MYSQL_DB,user=$MYSQL_USER,password=$MYSQL_PASS,port=$MYS
 ogr2ogr -f MySQL MySQL:$MYSQL_DB,user=$MYSQL_USER,password=$MYSQL_PASS,port=$MYSQL_MASTER_PORT gis_osm_transport_free_1.shp -nln transport -update -overwrite -lco engine=INNODB
 ogr2ogr -f MySQL MySQL:$MYSQL_DB,user=$MYSQL_USER,password=$MYSQL_PASS,port=$MYSQL_MASTER_PORT gis_osm_water_a_free_1.shp -nln water -update -overwrite -lco engine=INNODB
 ogr2ogr -f MySQL MySQL:$MYSQL_DB,user=$MYSQL_USER,password=$MYSQL_PASS,port=$MYSQL_MASTER_PORT gis_osm_waterways_free_1.shp -nln waterways -update -overwrite -lco engine=INNODB
+```
 
 # Retrieve summery information
-ogrinfo MySQL:$MYSQL_DB,user=$MYSQL_USER,password=$MYSQL_PASS buildings -so
+```
+ogrinfo MySQL:$MYSQL_DB,user=$MYSQL_USER,password=$MYSQL_PASS,port=$MYSQL_MASTER_PORT buildings -so
+
+Layer name: buildings
+Geometry: Polygon
+Feature Count: 116182
+Extent: (5.866689, 50.363445) - (9.409564, 52.531316)
+Layer SRS WKT:
+GEOGCS["GCS_WGS_1984",
+    DATUM["WGS_1984",
+        SPHEROID["WGS_84",6378137,298.257223563]],
+    PRIMEM["Greenwich",0],
+    UNIT["Degree",0.017453292519943295],
+    AUTHORITY["EPSG","4326"]]
+FID Column = OGR_FID
+Geometry Column NOT NULL = 
+osm_id: String (10.0)
+code: Real (4.0)
+fclass: String (28.0)
+name: String (100.0)
+type: String (20.0)
 ```
