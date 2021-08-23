@@ -434,10 +434,10 @@ cd nrw_data
 wget http://download.geofabrik.de/europe/germany/nordrhein-westfalen-latest-free.shp.zip
 unzip nordrhein-westfalen-latest-free.shp.zip 
 
-export $MYSQL_USER=...
-export $MYSQL_PASS=...
-export $MYSQL_DB=masterdb
-export $MYSQL_MASTER_PORT=20101
+export MYSQL_USER=...
+export MYSQL_PASS=...
+export MYSQL_DB=masterdb
+export MYSQL_MASTER_PORT=20101
 
 # Import shapefiles into MySQl
 # (-nln layername)
