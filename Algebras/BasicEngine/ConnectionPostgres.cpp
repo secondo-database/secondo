@@ -490,23 +490,32 @@ string ConnectionPG::getPartitionGridSQL(const std::string &tab,
   string gridTable = "grid_tab";
   string gridCol = "geom";
 
-  //Creating function
+  // Create a static grid, by generating a polygon with the desired
+  // cell size for each tile and using ST_Translate to move the tile 
+  // onto the right position afterwards.
+  //
+  // Used Paramters:
+  // $1 is nrow
+  // $2 is ncol
+  // $3 is xsize
+  // $4 is ysize
+  // $5 is x0
+  // $6 is y0
+  // $7 is num
+  // $8 is geom
   query_exec = "CREATE OR REPLACE FUNCTION ST_CreateGrid("
-        "nrow integer, ncol integer, "
-        "xsize float8, ysize float8, "
-        "x0 float8, y0 float8, "
-        "OUT num integer, "
-        "OUT geom geometry) "
-        "RETURNS SETOF record AS "
-        "$$ "
-        "SELECT (i * nrow) + j AS num, ST_Translate(cell,"
-        " j * $3 + $5, i * $4 + $6) AS geom "
-        "FROM generate_series(0, $1 - 1) AS i, "
-        "generate_series(0, $2 - 1) AS j, "
-        "( "
-        "SELECT ('POLYGON((0 0,0 '||$4||','||$3||' '||$4||','||$3||' 0,0 0))')"
-        "::geometry AS cell) AS foo; "
-        "$$ LANGUAGE sql IMMUTABLE STRICT;";
+    "nrow integer, ncol integer, xsize float8, ysize float8, "
+    "x0 float8, y0 float8, OUT num integer, OUT geom geometry) "
+    "RETURNS SETOF record AS "
+    "$$ "
+    "SELECT (i * nrow) + j AS num, ST_Translate(cell,"
+    " j * $3 + $5, i * $4 + $6) AS geom "
+    "FROM generate_series(0, $1 - 1) AS i, "
+    "generate_series(0, $2 - 1) AS j, "
+    "( "
+    "SELECT ('POLYGON((0 0, 0 '||$4||', '||$3||' '||$4||', '||$3||' 0, 0 0))')"
+    "::geometry AS cell) AS foo; "
+    "$$ LANGUAGE sql IMMUTABLE STRICT;";
     
   sendCommand(query_exec,false);
 
