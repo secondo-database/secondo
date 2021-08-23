@@ -183,22 +183,22 @@ If you are using AppArmour, add the following lines to your MySQL-AppArmour conf
 
 and calling `apparmor_parser -r /etc/apparmor.d/usr.sbin.mysqld`.
 
-Now the data directories can be created and initialized:
+Now the data directories can be created and initialized. In the following example, one MySQL master MySQL-installation (port 20101) and four worker MySQL-installations (port 20102 20103 20104 20105) are made:
 
 ```
+mkdir -p /home/user/mysql/master
 mkdir -p /home/user/mysql/worker1
-mkdir -p /home/user/mysql/worker2
-mkdir -p /diskb/user/mysql/worker3
-mkdir -p /diskc/user/mysql/worker4
-mkdir -p /diskd/user/mysql/worker5
+mkdir -p /diskb/user/mysql/worker2
+mkdir -p /diskc/user/mysql/worker3
+mkdir -p /diskd/user/mysql/worker4
 
+chown mysql.mysql /home/user/mysql/master
 chown mysql.mysql /home/user/mysql/worker1
-chown mysql.mysql /home/user/mysql/worker2
-chown mysql.mysql /diskb/user/mysql/worker3
-chown mysql.mysql /diskc/user/mysql/worker4
-chown mysql.mysql /diskd/user/mysql/worker5
+chown mysql.mysql /diskb/user/mysql/worker2
+chown mysql.mysql /diskc/user/mysql/worker3
+chown mysql.mysql /diskd/user/mysql/worker4
 
-mysqld --initialize-insecure --user=mysql --datadir=/home/user/mysql/worker1
+mysqld --initialize-insecure --user=mysql --datadir=/home/user/mysql/master
 mysqld --initialize-insecure --user=mysql --datadir=/home/user/mysql/worker2
 mysqld --initialize-insecure --user=mysql --datadir=/diskb/user/mysql/worker3
 mysqld --initialize-insecure --user=mysql --datadir=/diskc/user/mysql/worker4
@@ -218,13 +218,19 @@ for i in 20101 20102 20103 20104 20105; do mysql -u root -h 127.0.0.1 -P $i -e "
 # Grant the file permission to the user
 for i in 20101 20102 20103 20104 20105; do mysql -u root -h 127.0.0.1 -P $i -e "GRANT FILE ON *.* TO 'user'@'localhost';"; done
 
-# Create the workerdb for the basic engine
-for i in 20101 20102 20103 20104 20105; do mysql -u root -h 127.0.0.1 -P $i -e "CREATE DATABASE workerdb;"; done
+# Create the masterdb
+mysql -u root -h 127.0.0.1 -P 20101 -e "CREATE DATABASE master CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
 
-# Grant the permissions for the database
-for i in 20101 20102 20103 20104 20105; do mysql -u root -h 127.0.0.1 -P $i -e "GRANT ALL ON workerdb.* TO 'user'@'localhost';"; done
+# Create the workerdb for the basic engine (UTF-8 encoding is required for importing shapefiles later)
+for i in 20102 20103 20104 20105; do mysql -u root -h 127.0.0.1 -P $i -e "CREATE DATABASE workerdb CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"; done
 
-# Set a root password
+# Grant the permissions for the master database
+mysql -u root -h 127.0.0.1 -P 20101 -e "GRANT ALL ON masterdb.* TO 'user'@'localhost';"
+
+# Grant the permissions for the worker database
+for i in 20102 20103 20104 20105; do mysql -u root -h 127.0.0.1 -P $i -e "GRANT ALL ON workerdb.* TO 'user'@'localhost';"; done
+
+# Set a root password ('secret' should be replaced by a real password)
 for i in 20101 20102 20103 20104 20105; do mysql -u root -h 127.0.0.1 -P $i -e "ALTER USER 'root'@'localhost' IDENTIFIED BY 'secret';"; done
 ```
 
@@ -310,14 +316,14 @@ mysql> select * from users;
 let WorkersPG = [const rel(tuple([Host: string, Port: int,
 Config: string, DBUser: string, DBPass: string, DBPort: int, DBName: string])) value
 (
-     ("127.0.0.1" 50550 "SecondoConfig.ini" "user" "supersecret" 50507 "database")
-     ("127.0.0.1" 50551 "SecondoConfig.ini" "user" "supersecret" 50508 "database")
-     ("127.0.0.1" 50552 "SecondoConfig.ini" "user" "supersecret" 50509 "database")
-     ("127.0.0.1" 50553 "SecondoConfig.ini" "user" "supersecret" 50510 "database")
-     ("127.0.0.1" 50554 "SecondoConfig.ini" "user" "supersecret" 50511 "database")
+     ("127.0.0.1" 50550 "SecondoConfig.ini" "user" "supersecret" 50507 "workerdb")
+     ("127.0.0.1" 50551 "SecondoConfig.ini" "user" "supersecret" 50508 "workerdb")
+     ("127.0.0.1" 50552 "SecondoConfig.ini" "user" "supersecret" 50509 "workerdb")
+     ("127.0.0.1" 50553 "SecondoConfig.ini" "user" "supersecret" 50510 "workerdb")
+     ("127.0.0.1" 50554 "SecondoConfig.ini" "user" "supersecret" 50511 "workerdb")
 )]
 
-query be_init_cluster('pgsql', 'user', 'supersecret', 50506, 'database', WorkersPG)
+query be_init_cluster('pgsql', 'user', 'supersecret', 50506, 'masterdb', WorkersPG)
 ```
 
 ### Connecting to MySQL
@@ -325,14 +331,14 @@ query be_init_cluster('pgsql', 'user', 'supersecret', 50506, 'database', Workers
 let WorkersMySQL = [const rel(tuple([Host: string, Port: int,
 Config: string, DBUser: string, DBPass: string, DBPort: int, DBName: string])) value
 (
-     ("127.0.0.1" 50550 "SecondoConfig.ini" "user" "supersecret" 13301 "database")
-     ("127.0.0.1" 50551 "SecondoConfig.ini" "user" "supersecret" 13302 "database")
-     ("127.0.0.1" 50552 "SecondoConfig.ini" "user" "supersecret" 13303 "database")
-     ("127.0.0.1" 50553 "SecondoConfig.ini" "user" "supersecret" 13304 "database")
-     ("127.0.0.1" 50554 "SecondoConfig.ini" "user" "supersecret" 13305 "database")
+     ("127.0.0.1" 50550 "SecondoConfig.ini" "user" "supersecret" 13301 "workerdb")
+     ("127.0.0.1" 50551 "SecondoConfig.ini" "user" "supersecret" 13302 "workerdb")
+     ("127.0.0.1" 50552 "SecondoConfig.ini" "user" "supersecret" 13303 "workerdb")
+     ("127.0.0.1" 50553 "SecondoConfig.ini" "user" "supersecret" 13304 "workerdb")
+     ("127.0.0.1" 50554 "SecondoConfig.ini" "user" "supersecret" 13305 "workerdb")
 )]
 
-query be_init_cluster('mysql', 'user', 'supersecret', 13300, 'database', WorkersMySQL)
+query be_init_cluster('mysql', 'user', 'supersecret', 13300, 'masterdb', WorkersMySQL)
 ```
 
 ### Demo queries
@@ -350,6 +356,8 @@ query be_union('roads_count');
 query be_collect('SELECT * FROM roads_count') consume
 query be_collect('SELECT * FROM roads_count') sum[Count]
 query be_collect('SELECT count(*) FROM roads') consume
+
+query be_partGrid(’roads’, ’gid’, ’geog’, 5.8, 50.3, 0.2, 20);
 ```
 
 ```
@@ -373,3 +381,79 @@ query be_repart_hash("users", "lastname", 60)
 query be_repart_hash("users", "age", 60)
 ```
 
+## Working with spatial data
+
+In this section, the handling of spatial data with the BasicEngine is shown.
+
+### Import OSM Data (Postgres)
+
+```
+# Ensure Postgis is installed (contains shp2pgsql)
+apt-get install postgis
+
+# Download data
+mkdir nrw_data
+cd nrw_data
+wget http://download.geofabrik.de/europe/germany/nordrhein-westfalen-latest-free.shp.zip
+unzip nordrhein-westfalen-latest-free.shp.zip 
+
+# Convert to Postgres 
+# (-s = projection, -d = drop table -G = use the geography type)
+shp2pgsql -s 4326 -d -G gis_osm_buildings_a_free_1 public.buildings > buildings.sql
+shp2pgsql -s 4326 -d -G gis_osm_landuse_a_free_1 public.landuse > landuse.sql
+shp2pgsql -s 4326 -d -G gis_osm_natural_free_1 public.natural > natural.sql
+shp2pgsql -s 4326 -d -G gis_osm_places_free_1 public.places > places.sql
+shp2pgsql -s 4326 -d -G gis_osm_pofw_a_free_1 public.pofw > pofw.sql
+shp2pgsql -s 4326 -d -G gis_osm_pois_free_1 public.pois > pois.sql
+shp2pgsql -s 4326 -d -G gis_osm_railways_free_1 public.railway > railway.sql
+shp2pgsql -s 4326 -d -G gis_osm_roads_free_1 public.roads > roads.sql
+shp2pgsql -s 4326 -d -G gis_osm_traffic_free_1 public.traffic > traffic.sql
+shp2pgsql -s 4326 -d -G gis_osm_transport_free_1 public.transport > transport.sql
+shp2pgsql -s 4326 -d -G gis_osm_water_a_free_1 public.water > water.sql
+shp2pgsql -s 4326 -d -G gis_osm_waterways_free_1 public.waterways > waterways.sql
+
+# Import SQL into Postgres
+for i in *.sql; do 
+  echo "Importing $i"
+  psql -h localhost -p 5432 -U <USER> -d <DATABASE> -f $i
+done
+```
+
+
+### Import OSM Data (MySQL)
+
+Shapefiles are loaded into MySQL using [ogr2ogr](https://gdal.org/drivers/vector/mysql.html).
+
+```
+# Ensure gdal-bin is installed (contains ogr2ogr)
+apt-get install gdal-bin
+
+# Download data
+mkdir nrw_data
+cd nrw_data
+wget http://download.geofabrik.de/europe/germany/nordrhein-westfalen-latest-free.shp.zip
+unzip nordrhein-westfalen-latest-free.shp.zip 
+
+export $MYSQL_USER=...
+export $MYSQL_PASS=...
+export $MYSQL_DB=masterdb
+export $MYSQL_MASTER_PORT=20101
+
+# Import shapefiles into MySQl
+# (-nln layername)
+ogr2ogr -f MySQL MySQL:$MYSQL_DB,user=$MYSQL_USER,password=$MYSQL_PASS,port=$MYSQL_MASTER_PORT gis_osm_buildings_a_free_1.shp -nln buildings -update -overwrite -lco engine=INNODB
+ogr2ogr -f MySQL MySQL:$MYSQL_DB,user=$MYSQL_USER,password=$MYSQL_PASS,port=$MYSQL_MASTER_PORT gis_osm_landuse_a_free_1.shp -nln landuse -update -overwrite -lco engine=INNODB
+ogr2ogr -f MySQL MySQL:$MYSQL_DB,user=$MYSQL_USER,password=$MYSQL_PASS,port=$MYSQL_MASTER_PORT gis_osm_natural_free_1.shp -nln natural -update -overwrite -lco engine=INNODB
+ogr2ogr -f MySQL MySQL:$MYSQL_DB,user=$MYSQL_USER,password=$MYSQL_PASS,port=$MYSQL_MASTER_PORT gis_osm_places_free_1.shp -nln places -update -overwrite -lco engine=INNODB
+ogr2ogr -f MySQL MySQL:$MYSQL_DB,user=$MYSQL_USER,password=$MYSQL_PASS,port=$MYSQL_MASTER_PORT gis_osm_pofw_a_free_1.shp -nln pofw -update -overwrite -lco engine=INNODB
+ogr2ogr -f MySQL MySQL:$MYSQL_DB,user=$MYSQL_USER,password=$MYSQL_PASS,port=$MYSQL_MASTER_PORT gis_osm_pois_free_1.shp -nln pois -update -overwrite -lco engine=INNODB
+ogr2ogr -f MySQL MySQL:$MYSQL_DB,user=$MYSQL_USER,password=$MYSQL_PASS,port=$MYSQL_MASTER_PORT gis_osm_railways_free_1.shp -nln railways -update -overwrite -lco engine=INNODB
+ogr2ogr -f MySQL MySQL:$MYSQL_DB,user=$MYSQL_USER,password=$MYSQL_PASS,port=$MYSQL_MASTER_PORT gis_osm_roads_free_1.shp -nln roads -update -overwrite -lco engine=INNODB
+ogr2ogr -f MySQL MySQL:$MYSQL_DB,user=$MYSQL_USER,password=$MYSQL_PASS,port=$MYSQL_MASTER_PORT gis_osm_traffic_free_1.shp -nln traffic -update -overwrite -lco engine=INNODB
+ogr2ogr -f MySQL MySQL:$MYSQL_DB,user=$MYSQL_USER,password=$MYSQL_PASS,port=$MYSQL_MASTER_PORT gis_osm_transport_free_1.shp -nln transport -update -overwrite -lco engine=INNODB
+ogr2ogr -f MySQL MySQL:$MYSQL_DB,user=$MYSQL_USER,password=$MYSQL_PASS,port=$MYSQL_MASTER_PORT gis_osm_water_a_free_1.shp -nln water -update -overwrite -lco engine=INNODB
+ogr2ogr -f MySQL MySQL:$MYSQL_DB,user=$MYSQL_USER,password=$MYSQL_PASS,port=$MYSQL_MASTER_PORT gis_osm_waterways_free_1.shp -nln waterways -update -overwrite -lco engine=INNODB
+
+# Retrieve summery information
+ogrinfo MySQL:$MYSQL_DB,user=$MYSQL_USER,password=$MYSQL_PASS buildings -so
+```
