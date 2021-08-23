@@ -75,7 +75,6 @@ It provides the following operators:
 #include "CountMinSketch.h"
 #include "amsSketch.h"
 #include "lossyCounter.h"
-#include "counterPair.h"
 
 #include <string>
 #include <iostream>   
@@ -1745,7 +1744,6 @@ lossyCounter::lossyCounter
   eleCounter = 0; 
   windowSize = ceil(1/epsilon);
   windowIndex = 1;
-  frequencyList;
 }
 
 lossyCounter::lossyCounter
@@ -1760,42 +1758,57 @@ lossyCounter::lossyCounter
 
 
 //Setter and Getter
-bool lossyCounter::getDefined() {
+bool 
+lossyCounter::getDefined() {
   return defined;
 } 
 
-void lossyCounter::setDefined(bool value) {
+void 
+lossyCounter::setDefined(bool value) {
   defined = value;
 } 
 
-size_t lossyCounter::getEleCounter() {
+size_t 
+lossyCounter::getEleCounter() {
   return eleCounter;
 } 
 
-float lossyCounter::getEpsilon() {
+float 
+lossyCounter::getEpsilon() {
   return epsilon;
 } 
 
-long lossyCounter::getCurrentWindowIndex() {
+long 
+lossyCounter::getCurrentWindowIndex() {
   return windowIndex;
 } 
 
-int lossyCounter::getWindowSize() {
+int 
+lossyCounter::getWindowSize() {
   return windowSize;
 }
 
-int lossyCounter::getElement(int index){
+int 
+lossyCounter::getElement(int index){
   return frequencyList.at(index).getItem();
 }
 
 //Auxiliary Functions
+void
+lossyCounter::initialize(const float epsilon) {
+  defined = true; 
+  this->epsilon = epsilon; 
+  eleCounter = 0; 
+  windowSize = ceil(1/epsilon);
+  windowIndex = 1;
+  frequencyList.insert({0, counterPair(0,0,0)});
+}
 
 ///Handles incoming Streamelements
-void lossyCounter::addElement(int element) {
-  bool newElem = true;
+void 
+lossyCounter::addElement(int element) {
   if (elementPresent(element)) {
     incrCount(element);
-    newElem = false;
   } else {
     insertElement(element);
   }
@@ -1808,13 +1821,15 @@ void lossyCounter::addElement(int element) {
 
 //Increase the Frequencycount of a Streamelement which
 //was already present
-void lossyCounter::incrCount(int element) {
+void 
+lossyCounter::incrCount(int element) {
   frequencyList.at(element).setFrequency();
   eleCounter++;
 }
 
 //Inserts previously unencountered Elements into our element list
-void lossyCounter::insertElement(int element) {
+void 
+lossyCounter::insertElement(int element) {
   int maxError = windowIndex-1;
   //newly inserted Elements will always have Frequency 1
   counterPair value(element, 1, maxError);
@@ -1824,7 +1839,8 @@ void lossyCounter::insertElement(int element) {
 }
 
 //Checks whether a streamelement is already present in the list of elements
-bool lossyCounter::elementPresent(int element) {
+bool 
+lossyCounter::elementPresent(int element) {
   if (frequencyList.find(element) == frequencyList.end()) {
     return false;
   } else {
@@ -1833,12 +1849,14 @@ bool lossyCounter::elementPresent(int element) {
 }
 
 //Updates the currently used Window
-void lossyCounter::updateWindowIndex() {
+void 
+lossyCounter::updateWindowIndex() {
   windowIndex = ceil(eleCounter/windowSize);
 }
 
 //Removes the Items below the Frequency Threshold
-void lossyCounter::reduce() {
+void 
+lossyCounter::reduce() {
   vector<int> deletionList;
   for (auto elements : frequencyList) {
     counterPair elem = elements.second; 
@@ -1852,7 +1870,10 @@ void lossyCounter::reduce() {
 }
 
 //Get the Frequent items which surpase the minsupport threshold
-vector<int> lossyCounter::getFrequentElements(double minSupport) {
+//Min Frequency to get returned is minSupport*eleCounter
+//While max deviation is epsilon*eleCounter
+vector<int> 
+lossyCounter::getFrequentElements(double minSupport) {
   vector<int> resultList; 
   for (auto elements : frequencyList) {
     counterPair elem = elements.second;
@@ -1934,185 +1955,18 @@ lossyCounter::Delete( const ListExpr typeInfo, Word& w )
 //Open and Save functions which will be implemented later
 
 bool
-ScalableBloomFilter::Open(SmiRecord& valueRecord, size_t& offset, 
-                         const ListExpr typeInfo, Word& value) 
-{  
-  double fp;
-  size_t maxInserts = 8;
-  size_t subFilterSize;
-  int nbrSubFilters;
-  int nbrHashFunctions;
-  vector<int> hashFunctionsPerFilter;
-  vector<bool> insertionVector;
-  bool filterElement;
-
-  bool ok = valueRecord.Read (&fp, sizeof(double), offset);
-  offset += sizeof(double);
-
-  cout << "Open FP: " << fp << endl;
-
-  ScalableBloomFilter* openBloom = new ScalableBloomFilter(fp);
-
-  ok = ok && valueRecord.Read (&nbrSubFilters, sizeof(int), offset);
-  offset += sizeof(int);
-
-  cout << "Open Nbr Subfilters: " << nbrSubFilters << endl;
-
-  openBloom->getFilterList().reserve(nbrSubFilters);
-
-  hashFunctionsPerFilter.reserve(nbrSubFilters);
-  for (int i = 0; i < (nbrSubFilters); i++) {
-    ok = ok && valueRecord.Read(&nbrHashFunctions, sizeof(int), offset);
-    hashFunctionsPerFilter.push_back(nbrHashFunctions);
-    offset += sizeof(int);
-  }
-
-  int i = 0; 
-  cout << "Open Hashfunctions per filter: " << endl;
-  for (int nbr : hashFunctionsPerFilter) {
-    cout << "Filter " << i << " has " << nbr << " Hashes" << endl;
-    i++;
-  }
-
-  openBloom -> getFilterHashes().clear();
-  openBloom -> getFilterHashes().reserve(hashFunctionsPerFilter.size());
-  openBloom -> setFilterHashes(hashFunctionsPerFilter);
-  
-  
-  cout << "Nbr of Hashfunctions saved per Filter in OpenBloom: " << endl;
-
-  for (int nbr : openBloom -> getFilterHashes()) {
-    int i = 0; 
-    cout << "Filter " << i << " Hashes: " << nbr << endl;
-    i++;
-  }
-  
-  subFilterSize=openBloom->optimalSize(maxInserts, fp);
-  for (size_t j = 0; j < subFilterSize; j++) {
-    ok = ok && valueRecord.Read (&filterElement, sizeof(bool), offset);
-    offset += sizeof(bool);
-    openBloom->setElement(0,j, filterElement);
-  }
-
-  fp *= 0.8;
-  maxInserts*=2;
-
-  cout << endl;
-  cout << "Beginning to Copy Subfilter values" << endl;  
-  for (int i = 1;  i < nbrSubFilters; i++) {
-    cout << endl;
-    cout << "Beginning Work on Subfilter " << i << endl;
-    cout << endl;
-    subFilterSize=openBloom->optimalSize(maxInserts, fp);
-    cout << "Size of Subfilter " << i << " determined to be: " 
-         << subFilterSize << endl;
-    cout << endl;
-    insertionVector.reserve(subFilterSize);
-
-    for (size_t j = 0; j < subFilterSize; j++) {
-      ok = ok && valueRecord.Read (&filterElement, sizeof(bool), offset);
-      offset += sizeof(bool);
-      insertionVector.push_back(filterElement);
-    }
-    
-    cout << "Subfilter " << i << " has the form: " << endl;
-    for (bool elem  : insertionVector) {
-      cout << elem; 
-    }
-    cout << endl;
-    
-    cout << "Pushing insertion Vector into FilterList: " << endl;
-    openBloom -> setSubFilter(insertionVector);
-    cout << endl;
-
-    cout << "FilterList now has " << 
-        openBloom -> getFilterList().size() << " SubFilters" << endl; 
-    cout << endl;
-
-    insertionVector.clear();
-    cout << endl; 
-    cout << endl;
-
-    fp *= 0.8;
-    maxInserts*=2;
-
-  }
-
-  cout << "The opened Bloomfilter has the values: ";
-  int indiz = 0; 
-  for (vector<bool> subfilter : openBloom -> getFilterList()) {
-    cout << endl;
-    cout << "Opened Subfilter " << indiz << " has the form: " << endl;
-    cout << endl;
-    for (bool filterValue : subfilter) {
-      cout << filterValue;
-    }
-    indiz++;
-  }
-
-  if (ok) {
-    value.addr = openBloom;
-  } else {
-    value.addr =  0;
-  }
-
+lossyCounter::Open(SmiRecord& valueRecord, size_t& offset, 
+                         const ListExpr typeInfo, Word& value) {
   return true;
 } 
 
 
 bool 
-ScalableBloomFilter::Save(SmiRecord & valueRecord , size_t & offset ,
+lossyCounter::Save(SmiRecord & valueRecord , size_t & offset ,
 const ListExpr typeInfo , Word & value) {
-  ScalableBloomFilter* bloomFilter = static_cast<ScalableBloomFilter*>
-                                    (value.addr);
   
-  double fp = bloomFilter->getFP();
-  int nbrSubFilters = bloomFilter->getFilterList().size();
-  vector<int> hashfunctionsPerFilter = bloomFilter -> getFilterHashes();
-
-  cout << endl;
-  cout << "Saved FP: " << fp << endl;
-
-  bool ok = valueRecord.Write(&fp, sizeof(double), offset);
-  offset+=sizeof(double);
-
-  //The number of Filters is equivalent to the different number of 
-  // Hashfunctions we save. Hence we only need to save one of these 
-  // updateFilterValues
-  ok = ok && valueRecord.Write(&nbrSubFilters, sizeof(int), offset);
-  offset+=sizeof(int);
-
-  cout << "Saved Nbr Subfilters: " << nbrSubFilters << endl;
-
-  cout << "Saved Nbr of Hashfunctions per Filter: " << endl;
-
-  int i = 0; 
-
-  //Save the amount of Hashfunctions each Subfilter uses
-  for (int nbr : hashfunctionsPerFilter) {
-    ok = ok && valueRecord.Write(&nbr, sizeof(int), offset);
-    offset+=sizeof(int);
-    cout << i << ":" << nbr << endl;
-    i++;
-  }
-
-  cout << endl;
-
-  
-  i = 0;
-  for (vector<bool> subFilter : bloomFilter->getFilterList()) {
-    cout << "Subfilter " << i << ":" << endl;
-    for (bool elem : subFilter) {
-      ok = ok && valueRecord.Write(&elem, sizeof(bool), offset);
-      offset+=sizeof(bool);
-      cout << elem;
-    }
-    i++; 
-    cout <<endl;
-  }
   return true;
 }
-
 
 void
 lossyCounter::Close( const ListExpr typeInfo, Word& w )
@@ -2153,8 +2007,8 @@ struct lossyCounterFunctions :
     out = lossyCounter::Out;
     create = lossyCounter::Create;
     deletion = lossyCounter::Delete;
-    open = lossyCounter::Open;
-    save = lossyCounter::Save;
+    //open = lossyCounter::Open;
+    //save = lossyCounter::Save;
     close = lossyCounter::Close;
     clone = lossyCounter::Clone;
   }
@@ -2163,9 +2017,6 @@ struct lossyCounterFunctions :
 lossyCounterInfo li;
 lossyCounterFunctions lf;
 TypeConstructor lossyCounterTC( li, lf );
-
-
-
 
 
 /*
@@ -2179,21 +2030,26 @@ counterPair::counterPair
   this -> maxError = maxError;
 }
 
-int counterPair::getItem() {
+int 
+counterPair::getItem() {
   return item; 
 }
 
-long counterPair::getFrequency() {
+long 
+counterPair::getFrequency() {
   return frequency;
 }
 
-void counterPair::setFrequency() {
+void 
+counterPair::setFrequency() {
   frequency++;
 }
 
-long counterPair::getMaxError() {
+long 
+counterPair::getMaxError() {
   return maxError;
 }
+
 
 
 /*
@@ -2585,7 +2441,7 @@ amsestimateTM(ListExpr args) {
   }
 
   //check if the searchelement is numeric
-  return NList(amsSketch::BasicType()).listExpr(); 
+  return NList(CcReal::BasicType()).listExpr(); 
 }
 
 
@@ -2595,7 +2451,7 @@ amsestimateTM(ListExpr args) {
 */
 
 ListExpr
-lcfrequentTM( ListExpr args ) {
+createlossycounterTM( ListExpr args ) {
 NList type(args);
 NList streamtype = type.first().second();
 NList appendList;
@@ -2605,27 +2461,27 @@ ListExpr a = nl->First(args);
 ListExpr errorInfo = nl->OneElemList(nl->SymbolAtom("ErrorInfo"));
 
   // three arguments must be supplied
-  if (type.length() != 2){
-    return NList::typeError("Operator lcfrequent expects "
+  if (type.length() != 3){
+    return NList::typeError("Operator createlossycounter expects "
                             "two arguments");
   }
 
   // test first argument for being a tuple stream
   if(!Stream<Tuple>::checkType(a)){
-    return NList::typeError( "Operator lcfrequent expects a "
+    return NList::typeError( "Operator createlossycounter expects a "
                              "Tuple Stream as first argument");
   }
 
   //test second argument for a valid Attribute Name
   if (!type.second().isSymbol()){
-    return NList::typeError("Operator lcfrequent expects a valid "
+    return NList::typeError("Operator createlossycounter expects a valid "
                             "Attribute Name as second argument");
   }
 
   // test third argument for real
   if(type.third() != NList(CcReal::BasicType())) {
-    return NList::typeError("Operator lcfrequent expects a real "
-                            "value as second argument");
+    return NList::typeError("Operator createlossycounter expects a real "
+                            "value as third argument");
   }
   
   // stream elements must be in kind tuple (X) with X in DATA
@@ -2634,7 +2490,7 @@ ListExpr errorInfo = nl->OneElemList(nl->SymbolAtom("ErrorInfo"));
           && IsTupleDescription(streamtype.second().listExpr())
          )
           && !(am->CheckKind(Kind::DATA(),streamtype.listExpr(),errorInfo))){
-      return NList::typeError("Operator lcfrequent can only handle "
+      return NList::typeError("Operator createlossycounter can only handle "
                               "Attributetype Tuple values");
   }
 
@@ -2653,8 +2509,7 @@ ListExpr errorInfo = nl->OneElemList(nl->SymbolAtom("ErrorInfo"));
 
   appendList.append(NList().intAtom(attrIndex));
 
-  /* result is a bloomfilter and we append the index of 
-     the attribute of the tuples which will be hashed to create our filter 
+  /* Result is a stream of the same type 
 
   */
   return NList(Symbols::APPEND(), appendList, 
@@ -2668,7 +2523,6 @@ ListExpr errorInfo = nl->OneElemList(nl->SymbolAtom("ErrorInfo"));
 ListExpr
 lcfrequentTM(ListExpr args) {
   NList type(args);
-  NList appendList;
 
   // two arguments must be supplied
   if (type.length() != 2){
@@ -2690,6 +2544,40 @@ lcfrequentTM(ListExpr args) {
   //check if the searchelement is numeric
   return NList(Relation::BasicType()).listExpr(); 
 }
+
+/*
+2.2.9 Operator ~outlier~
+
+*/
+ListExpr
+outlierTM(ListExpr args) {
+  NList type(args);
+  NList stream = type.first();
+
+  // two arguments must be supplied
+  if (type.length() != 2){
+    return NList::typeError("Operator outlier expects one argument");
+  }
+
+
+  // test first argument for being an lossycounter
+  if(!(Stream<CcInt>::checkType(stream.listExpr()) || 
+       Stream<CcReal>::checkType(stream.listExpr()))) {
+    return NList::typeError("Operator outlier expects an "
+                            "int or real Stream");
+  }
+
+
+  // test second argument for real
+  if(type.second() != NList(CcReal::BasicType())){
+    return NList::typeError("Operator outlier expects a "
+                            "real value as second argument");
+  }
+
+  //Result type is a stream of the same type as the input stream
+  return type.first().listExpr();  
+}
+
 
 /*
 2.3 Value Mapping Functions
@@ -3314,6 +3202,7 @@ int createlossycounterVM(Word* args, Word& result,
   //take the parameters values supplied with the operator
   CcReal* maxError = (CcReal*) args[2].addr;
   CcInt* attrIndexPointer = (CcInt*) args[3].addr;
+  float epsilon = maxError -> GetValue();
 
   int attrIndex = attrIndexPointer->GetIntval();
 
@@ -3322,6 +3211,8 @@ int createlossycounterVM(Word* args, Word& result,
 
   //Make the Storage provided by QP easily usable
   lossyCounter* lc = (lossyCounter*) result.addr;
+
+  lc -> initialize(epsilon);
 
   cout << "After init() lc Values are: " << endl;
   cout << "Defined: " << lc->getDefined() << endl;
@@ -3363,9 +3254,9 @@ int createlossycounterVM(Word* args, Word& result,
 }
 
 /*
+
 2.3.8 Operator ~lcfrequent~
 
-*/
 int lcfrequentVM(Word* args, Word& result,
            int message, Word& local, Supplier s){
   
@@ -3401,9 +3292,132 @@ int lcfrequentVM(Word* args, Word& result,
 
   return 0;
 }
+*/
+
+/*
+2.3.9 Operator ~outlier~
+
+*/
+template<class T> class outlierInfo{
+  public:
+    outlierInfo(Word inputStream, float zScoreInput):
+      stream(inputStream), mean(0), variance(0), zThreshhold(zScoreInput), 
+      lastOut(-1), counter(0){
+        stream.open();
+        init(); 
+      }
+
+    ~outlierInfo() {
+      for(size_t index = lastOut+1; index < outlierHistory.size(); index++) {
+        outlierHistory[index]->DeleteIfAllowed(); 
+      }
+      stream.close();
+    }
+
+    T* next() {
+      lastOut++; 
+      if (lastOut >= outlierHistory.size()) {
+        return 0;
+      }
+      T* outlier = outlierHistory[lastOut];
+      outlierHistory[lastOut] = 0;
+      return outlier;
+    }
+
+    private:
+      Stream<T> stream; 
+      double mean; 
+      double variance;
+      float zThreshhold;
+      size_t lastOut;
+      size_t counter;
+      vector<T*> outlierHistory;
+
+    void init() {
+      T* data; 
+      while ((data = stream.request()) != nullptr) {
+      //Decide whether data is an outlier and save it
+      check(data);
+      }
+    }
+
+    /*Check whether the currently handled Streamelement
+      surpases our treshholds and save it if it does
+    */
+    void check(T* data) {
+      float zscore = (data -> getValue() - mean)/sqrt(variance);
+
+    if((zscore < (-1*zThreshhold)) || (zscore > zThreshhold)) {
+      outlierHistory.push_back(data);
+      return;
+    }
+    update(data);
+  }
 
 
+  //Update mean, variance and the counter
+  void update(T* data) {
+    //Calculate the first part of the variance for the i+1th element
+    variance = ((variance + pow(mean, 2)* counter + 
+                pow(data, 2))/counter+1);
+    //Calculate the mean for the i+1th element
+    mean = ((mean * counter) + data)/(counter+1);
+    //finish the calculation of the variance
+    variance = variance - pow(mean,2);
+    counter++;
+  }
+};
 
+template<class T>
+int outlierVMT(Word* args, Word& result,
+           int message, Word& local, Supplier s){
+
+  outlierInfo<T>* outlier = (outlierInfo<T>*) local.addr;
+  switch(message){
+    case OPEN: {
+                   if(outlier) {
+                     delete outlier;
+                     local.addr = 0;
+                   }
+                   CcReal* threshold = (CcReal*) args[1].addr;
+                   if(threshold->IsDefined()){
+                      int zThreshold = threshold->GetValue();
+                      if(zThreshold>1) {
+                        local.addr = new reservoirInfo<T>(args[0], zThreshold);
+                      }
+                   }
+                   return 0;
+                } 
+      case REQUEST : result.addr = outlier?outlier->next():0;
+                     return result.addr?YIELD:CANCEL;
+      case CLOSE : {
+                      if(outlier){
+                        delete outlier;
+                        local.addr = 0;
+                       }
+                       return 0;
+                   }
+
+  }
+  return -1;
+}
+
+//value Mapping Array
+ValueMapping outlierVM[] = { 
+              outlierVMT<Tuple>,
+              outlierVMT<Attribute>
+};  
+
+// Selection Function
+int outlierSelect(ListExpr args){
+   if (Stream<Attribute>::checkType(nl->First(args))) {
+     return 1;
+   } else if (Stream<Tuple>::checkType(nl->First(args))){
+     return 0;
+   } else {
+     return -1;
+   }
+}
 
 /*
 2.4 Description of Operators
@@ -3411,7 +3425,7 @@ int lcfrequentVM(Word* args, Word& result,
 */
 
   OperatorSpec reservoirSpec(
-    "stream(X) x int -> stream(T), T = TUPLE or T = DATA",
+    "stream(T) x int -> stream(T), T = TUPLE or T = DATA",
     "_ reservoir [_] ",
     "Creates a reservoir sample of a supplied stream of a given size ",
     "query intstream(1,1000) reservoir[10] count"
@@ -3473,6 +3487,14 @@ int lcfrequentVM(Word* args, Word& result,
     "_ lcfrequent [_]",
     "Displays the items determined to be frequent by the lossy Counter",
     "query intstream(0,100) createlossycounter lcfrequent"
+  );
+
+  OperatorSpec outlierSpec(
+    "stream(T) x real -> stream(T), T = int or T = real",
+    "_ outlier [_]",
+    "Determines outliers for an int/real stream according to the ",
+    "passed Z-Score Threshold.",
+    "query intstream(0,100) outliers[1] consume"
   );
   
 
@@ -3538,6 +3560,14 @@ Operator amsestimateOp(
   amsestimateTM
 );
 
+Operator outlierOp(
+  "outlier",
+  outlierSpec.getStr(),
+  2,
+  outlierVM,
+  outlierSelect,
+  outlierTM
+);
 
 /*
 2.6 The algebra class
@@ -3558,6 +3588,8 @@ class StreamMiningAlgebra : public Algebra
     //Usage possibilities of the Types
     scalableBloomFilterTC.AssociateKind(Kind::SIMPLE());
     countMinSketchTC.AssociateKind(Kind::SIMPLE());
+    amsSketchTC.AssociateKind(Kind::SIMPLE());
+
 
     //Registration of Operators
     AddOperator(&reservoirOp);
@@ -3567,6 +3599,7 @@ class StreamMiningAlgebra : public Algebra
     AddOperator(&cmscountOp);
     AddOperator(&createamsOp);
     AddOperator(&amsestimateOp);
+    AddOperator(&outlierOp);
   }
   ~StreamMiningAlgebra() {};
 };

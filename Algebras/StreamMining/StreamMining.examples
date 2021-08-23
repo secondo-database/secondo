@@ -6,7 +6,7 @@ Restore  : NO
 
 Operator : reservoir
 Number   : 1
-Signature: ((stream int)) -> ((stream T))
+Signature: (stream(T) x int) -> stream(T)
 Example  : query intstream(1,10) reservoir[3] count
 Result   : 3
 
@@ -45,3 +45,9 @@ Number   : 7
 Signature: amssketch -> real
 Example  : query Kinos feed createams[Name,0.01,0.1] amsestimate
 Result   : 22
+
+Operator : amsestimate
+Number   : 8
+Signature: (stream(T) x int) -> stream(T)
+Example  : query intstream(1,100) outlier[3] count
+Result   : 3

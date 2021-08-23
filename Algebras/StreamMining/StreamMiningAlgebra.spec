@@ -32,3 +32,5 @@ operator cmscount alias CMSCOUNT pattern _op[_]
 operator createams alias AMS pattern _op[_,_,_]
 
 operator amsestimate alias AMSESTIMATE pattern _op
+
+operator outlier alias OUTLIER pattern _op[_]
