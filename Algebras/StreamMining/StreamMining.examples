@@ -46,7 +46,7 @@ Signature: amssketch -> real
 Example  : query Kinos feed createams[Name,0.01,0.1] amsestimate
 Result   : 22
 
-Operator : amsestimate
+Operator : outlier
 Number   : 8
 Signature: (stream(T) x int) -> stream(T)
 Example  : query intstream(1,100) outlier[3] count
