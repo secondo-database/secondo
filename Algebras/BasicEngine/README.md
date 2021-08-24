@@ -441,6 +441,7 @@ export MYSQL_MASTER_PORT=20101
 
 # Import shapefiles into MySQL
 # (-nln layername)
+# (-skipfailures to ignore some UTF-8 encoding errors)
 #
 # Use the MyISAM storage engine for performance reasons. 
 # ogr2ogr does not encapsulate the inserts in bulk transactions. 
@@ -448,18 +449,18 @@ export MYSQL_MASTER_PORT=20101
 # the INNODB storage engine is used, which leads to poor import 
 # performance. 
 # 
-ogr2ogr -f MySQL MySQL:$MYSQL_DB,user=$MYSQL_USER,password=$MYSQL_PASS,port=$MYSQL_MASTER_PORT gis_osm_buildings_a_free_1.shp -nln buildings -update -overwrite -lco engine=MyISAM
-ogr2ogr -f MySQL MySQL:$MYSQL_DB,user=$MYSQL_USER,password=$MYSQL_PASS,port=$MYSQL_MASTER_PORT gis_osm_landuse_a_free_1.shp -nln landuse -update -overwrite -lco engine=MyISAM
-ogr2ogr -f MySQL MySQL:$MYSQL_DB,user=$MYSQL_USER,password=$MYSQL_PASS,port=$MYSQL_MASTER_PORT gis_osm_natural_free_1.shp -nln natural -update -overwrite -lco engine=MyISAM
-ogr2ogr -f MySQL MySQL:$MYSQL_DB,user=$MYSQL_USER,password=$MYSQL_PASS,port=$MYSQL_MASTER_PORT gis_osm_places_free_1.shp -nln places -update -overwrite -lco engine=MyISAM
-ogr2ogr -f MySQL MySQL:$MYSQL_DB,user=$MYSQL_USER,password=$MYSQL_PASS,port=$MYSQL_MASTER_PORT gis_osm_pofw_a_free_1.shp -nln pofw -update -overwrite -lco engine=MyISAM
-ogr2ogr -f MySQL MySQL:$MYSQL_DB,user=$MYSQL_USER,password=$MYSQL_PASS,port=$MYSQL_MASTER_PORT gis_osm_pois_free_1.shp -nln pois -update -overwrite -lco engine=MyISAM
-ogr2ogr -f MySQL MySQL:$MYSQL_DB,user=$MYSQL_USER,password=$MYSQL_PASS,port=$MYSQL_MASTER_PORT gis_osm_railways_free_1.shp -nln railways -update -overwrite -lco engine=MyISAM
-ogr2ogr -f MySQL MySQL:$MYSQL_DB,user=$MYSQL_USER,password=$MYSQL_PASS,port=$MYSQL_MASTER_PORT gis_osm_roads_free_1.shp -nln roads -update -overwrite -lco engine=MyISAM
-ogr2ogr -f MySQL MySQL:$MYSQL_DB,user=$MYSQL_USER,password=$MYSQL_PASS,port=$MYSQL_MASTER_PORT gis_osm_traffic_free_1.shp -nln traffic -update -overwrite -lco engine=MyISAM
-ogr2ogr -f MySQL MySQL:$MYSQL_DB,user=$MYSQL_USER,password=$MYSQL_PASS,port=$MYSQL_MASTER_PORT gis_osm_transport_free_1.shp -nln transport -update -overwrite -lco engine=MyISAM
-ogr2ogr -f MySQL MySQL:$MYSQL_DB,user=$MYSQL_USER,password=$MYSQL_PASS,port=$MYSQL_MASTER_PORT gis_osm_water_a_free_1.shp -nln water -update -overwrite -lco engine=MyISAM
-ogr2ogr -f MySQL MySQL:$MYSQL_DB,user=$MYSQL_USER,password=$MYSQL_PASS,port=$MYSQL_MASTER_PORT gis_osm_waterways_free_1.shp -nln waterways -update -overwrite -lco engine=MyISAM
+ogr2ogr -f MySQL MySQL:$MYSQL_DB,user=$MYSQL_USER,password=$MYSQL_PASS,port=$MYSQL_MASTER_PORT gis_osm_buildings_a_free_1.shp -nln buildings -update -overwrite -lco engine=MyISAM -skipfailures
+ogr2ogr -f MySQL MySQL:$MYSQL_DB,user=$MYSQL_USER,password=$MYSQL_PASS,port=$MYSQL_MASTER_PORT gis_osm_landuse_a_free_1.shp -nln landuse -update -overwrite -lco engine=MyISAM -skipfailures
+ogr2ogr -f MySQL MySQL:$MYSQL_DB,user=$MYSQL_USER,password=$MYSQL_PASS,port=$MYSQL_MASTER_PORT gis_osm_natural_free_1.shp -nln natural -update -overwrite -lco engine=MyISAM -skipfailures
+ogr2ogr -f MySQL MySQL:$MYSQL_DB,user=$MYSQL_USER,password=$MYSQL_PASS,port=$MYSQL_MASTER_PORT gis_osm_places_free_1.shp -nln places -update -overwrite -lco engine=MyISAM -skipfailures
+ogr2ogr -f MySQL MySQL:$MYSQL_DB,user=$MYSQL_USER,password=$MYSQL_PASS,port=$MYSQL_MASTER_PORT gis_osm_pofw_a_free_1.shp -nln pofw -update -overwrite -lco engine=MyISAM -skipfailures
+ogr2ogr -f MySQL MySQL:$MYSQL_DB,user=$MYSQL_USER,password=$MYSQL_PASS,port=$MYSQL_MASTER_PORT gis_osm_pois_free_1.shp -nln pois -update -overwrite -lco engine=MyISAM -skipfailures
+ogr2ogr -f MySQL MySQL:$MYSQL_DB,user=$MYSQL_USER,password=$MYSQL_PASS,port=$MYSQL_MASTER_PORT gis_osm_railways_free_1.shp -nln railways -update -overwrite -lco engine=MyISAM -skipfailures
+ogr2ogr -f MySQL MySQL:$MYSQL_DB,user=$MYSQL_USER,password=$MYSQL_PASS,port=$MYSQL_MASTER_PORT gis_osm_roads_free_1.shp -nln roads -update -overwrite -lco engine=MyISAM -skipfailures
+ogr2ogr -f MySQL MySQL:$MYSQL_DB,user=$MYSQL_USER,password=$MYSQL_PASS,port=$MYSQL_MASTER_PORT gis_osm_traffic_free_1.shp -nln traffic -update -overwrite -lco engine=MyISAM -skipfailures
+ogr2ogr -f MySQL MySQL:$MYSQL_DB,user=$MYSQL_USER,password=$MYSQL_PASS,port=$MYSQL_MASTER_PORT gis_osm_transport_free_1.shp -nln transport -update -overwrite -lco engine=MyISAM -skipfailures
+ogr2ogr -f MySQL MySQL:$MYSQL_DB,user=$MYSQL_USER,password=$MYSQL_PASS,port=$MYSQL_MASTER_PORT gis_osm_water_a_free_1.shp -nln water -update -overwrite -lco engine=MyISAM -skipfailures
+ogr2ogr -f MySQL MySQL:$MYSQL_DB,user=$MYSQL_USER,password=$MYSQL_PASS,port=$MYSQL_MASTER_PORT gis_osm_waterways_free_1.shp -nln waterways -update -overwrite -lco engine=MyISAM -skipfailures
 
 # Change storage backend in MySQL to InnoDB
 for i in buildings landuse natural places pofw pois railways roads traffic transport water waterways; do
