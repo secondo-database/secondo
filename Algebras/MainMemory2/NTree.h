@@ -409,7 +409,7 @@ class NTreeInnerNode : public NTreeNode<T, DistComp> {
     node_t::count = node_t::degree;
   }
    
- private:
+ protected:
   T** centers;
   node_t** children;
 };
@@ -726,6 +726,94 @@ class NTree {
     root->insert(o, dc, partitionStrategy);
     return root;
   }
+};
+
+/*
+2 class NTreeOptInnerNode
+
+*/
+template<class T, class DistComp>
+class NTree2InnerNode : public NTreeInnerNode<T, DistComp> {
+ public:
+  typedef NTree2InnerNode<T, DistComp> innernode_t;
+  typedef NTreeNode<T, DistComp> node_t;
+  typedef NTreeLeafNode<T, DistComp> leafnode_t;
+  
+  void precomputeDistances(DistComp& dc) {
+    double maxDist = 0.0;
+    maxDistPos = std::make_pair(0, 0);
+    for (int i = 0; i < node_t::degree; i++) {
+      for (int j = 0; j < i; j++) {
+        distances[i][j] = dc(*(innernode_t::centers[i]), 
+                             *(innernode_t::centers[j]));
+        distances[j][i] = distances[i][j];
+        if (distances[i][j] > maxDist) {
+          maxDistPos = std::make_pair(i, j);
+          maxDist = distances[i][j];
+        }
+      }
+    }
+    for (int i = 0; i < node_t::degree; i++) {
+      distances2d[i] = std::make_pair(distances[maxDistPos.first][i],
+                                      distances[maxDistPos.second][i]);
+    }
+  }
+  
+  void build(std::vector<T>& contents, DistComp& dc,
+             const int partitionStrategy = 0) { // contents.size > maxLeafSize
+    computeCenters(contents, partitionStrategy);
+    precomputeDistances(dc);
+    std::vector<std::vector<T> > partitions;
+    partition(contents, dc, partitions);
+//     printPartitions(contents, partitions, dc, true, cout);
+    for (int i = 0; i < node_t::degree; i++) {
+      if ((int)partitions[i].size() <= node_t::maxLeafSize) {
+        leafnode_t* newLeaf = new leafnode_t(node_t::degree, 
+                                            node_t::maxLeafSize, partitions[i]);
+        innernode_t::children[i] = newLeaf;
+      }
+      else {
+        innernode_t* newInnerNode = new innernode_t(node_t::degree,   
+                                                    node_t::maxLeafSize);
+        innernode_t::children[i] = newInnerNode;
+        newInnerNode->build(partitions[i], dc, partitionStrategy);
+      }
+    }
+    node_t::count = node_t::degree;
+  }
+  
+  int getNearestChildPos(const T& o, DistComp& dc) const { // TODO: change
+    double currentDist = std::numeric_limits<double>::max();
+    int result = -1;
+    for (int i = 0; i < node_t::count; i++) {
+      const T* c = innernode_t::getCenter(i);
+      double dist = dc(*c, o);
+      if (dist < currentDist) {
+        result = i;
+        currentDist = dist;
+      }
+    }
+    return result;
+  }
+  
+ private:
+  double distances[node_t::degree][node_t::degree]; // matrix of pairw. c. dist.
+  std::pair<int, int> maxDistPos; // center pos with maximum distance
+  std::pair<double, double> distances2d[node_t::degree]; // vector
+};
+
+/*
+4 class NTree2
+
+This is the main class of this file. It implements a main memory-based N-tree
+with optimizations w.r.t. the number of distance function calls.
+
+*/
+template<class T, class DistComp>
+class NTree2 : public NTree<T, DistComp> {
+  typedef NTree2InnerNode<T, DistComp> innernode_t;
+  
+  
 };
 
 #endif
