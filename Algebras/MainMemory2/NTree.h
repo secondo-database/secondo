@@ -180,7 +180,7 @@ class NTreeInnerNode : public NTreeNode<T, DistComp> {
     return centers[childPos];
   }
   
-  int getNearestChildPos(const T& o, DistComp& dc) const {
+  int getNearestCenterPos(const T& o, DistComp& dc) const {
     double currentDist = std::numeric_limits<double>::max();
     int result = -1;
     for (int i = 0; i < node_t::count; i++) {
@@ -204,7 +204,7 @@ class NTreeInnerNode : public NTreeNode<T, DistComp> {
   }
   
   node_t* getNearestChild(const T& o, DistComp& dc) const {
-    int pos = getNearestChildPos(o, dc);
+    int pos = getNearestCenterPos(o, dc);
     return children[pos];
   }
   
@@ -729,6 +729,25 @@ class NTree {
 };
 
 /*
+2 struct DistVectorContents
+
+Auxiliary class for sorting a vector with distances
+
+*/
+struct DistVectorContents {
+  DistVectorContents(const int p, const std::pair<double, double>& dm) :
+      pos(p), distmax(dm) {}
+      
+  bool operator<(const DistVectorContents& dvc) {
+    return distObj2d < dvc.distObj2d;
+  }
+  
+  int pos;
+  std::pair<double, double> distmax;
+  double distObj2d;
+};
+
+/*
 2 class NTreeOptInnerNode
 
 */
@@ -739,24 +758,30 @@ class NTree2InnerNode : public NTreeInnerNode<T, DistComp> {
   typedef NTreeNode<T, DistComp> node_t;
   typedef NTreeLeafNode<T, DistComp> leafnode_t;
   
-  void precomputeDistances(DistComp& dc) {
+  void precomputeDistances(DistComp& dc, const int refPointsStrategy = 0) {
     double maxDist = 0.0;
-    maxDistPos = std::make_pair(0, 0);
+    refDistPos = std::make_pair(0, 0);
     for (int i = 0; i < node_t::degree; i++) {
       for (int j = 0; j < i; j++) {
         distances[i][j] = dc(*(innernode_t::centers[i]), 
                              *(innernode_t::centers[j]));
-        distances[j][i] = distances[i][j];
-        if (distances[i][j] > maxDist) {
-          maxDistPos = std::make_pair(i, j);
-          maxDist = distances[i][j];
+        distances[j][i] = distances[i][j]; // copy to right upper triangle
+        if (refPointsStrategy == 0) { // select points with maximum distance
+          if (distances[i][j] > maxDist) { // update maxDistPos
+            refDistPos = std::make_pair(i, j);
+            maxDist = distances[i][j];
+          }
         }
       }
     }
-    for (int i = 0; i < node_t::degree; i++) {
-      distances2d[i] = std::make_pair(distances[maxDistPos.first][i],
-                                      distances[maxDistPos.second][i]);
+    for (int i = 0; i < node_t::degree; i++) { // compute 2d distance vector
+      distances2d[i] = std::make_pair(distances[refDistPos.first][i],
+                                      distances[refDistPos.second][i]);
     }
+  }
+  
+  double dist2d(std::pair<double, double>& v1, std::pair<double, double>& v2) {
+    return sqrt(pow(v1.first - v2.first, 2) + pow(v1.second - v2.second, 2));
   }
   
   void build(std::vector<T>& contents, DistComp& dc,
@@ -782,24 +807,25 @@ class NTree2InnerNode : public NTreeInnerNode<T, DistComp> {
     node_t::count = node_t::degree;
   }
   
-  int getNearestChildPos(const T& o, DistComp& dc) const { // TODO: change
-    double currentDist = std::numeric_limits<double>::max();
-    int result = -1;
-    for (int i = 0; i < node_t::count; i++) {
-      const T* c = innernode_t::getCenter(i);
-      double dist = dc(*c, o);
-      if (dist < currentDist) {
-        result = i;
-        currentDist = dist;
-      }
+  int getPosInRadius(const T& o, DistComp& dc) const {
+    std::pair<double, double> odist = 
+                  make_pair(dc(o, *(innernode_t::centers[refDistPos.first])),
+                            dc(o, *(innernode_t::centers[refDistPos.second])));
+    std::vector<DistVectorContents> distVector;
+    for (unsigned int i = 0; i < node_t::degree; i++) {
+      DistVectorContents dvc(i, distances2d[i]);
+      dvc.distObj2d = dist2d(distances2d[i], odist);
+      distVector.push_back(dvc);
     }
-    return result;
+    std::sort(distVector.begin(), distVector.end());
+    // TODO: ...
+    return 1909;
   }
   
  private:
   double distances[node_t::degree][node_t::degree]; // matrix of pairw. c. dist.
-  std::pair<int, int> maxDistPos; // center pos with maximum distance
-  std::pair<double, double> distances2d[node_t::degree]; // vector
+  std::pair<int, int> refDistPos; // two reference center positions
+  std::pair<double, double> distances2d[node_t::degree]; // dist. to maxDistPos
 };
 
 /*
