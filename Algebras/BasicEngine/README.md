@@ -397,6 +397,13 @@ query be_repart_hash("users", "lastname", 60)
 query be_repart_hash("users", "age", 60)
 ```
 
+```sql
+# Build example grid
+CALL ST_CREATE_STATIC_GRID(100, 100, 0.5, 0.5, 0, 0); 
+
+# List grid in MySQL
+SELECT id, ST_AsWKT(cell), ST_SRID(cell) FROM grid_table;
+```
 
 ```
 # Partition spatial data (postgres)
@@ -424,6 +431,7 @@ unzip nordrhein-westfalen-latest-free.shp.zip
 
 # Convert to Postgres 
 # (-s = projection, -d = drop table -G = use the geography type)
+# 4326 is WGS 84
 shp2pgsql -s 4326 -d -G gis_osm_buildings_a_free_1 public.buildings > buildings.sql
 shp2pgsql -s 4326 -d -G gis_osm_landuse_a_free_1 public.landuse > landuse.sql
 shp2pgsql -s 4326 -d -G gis_osm_natural_free_1 public.natural > natural.sql
@@ -485,18 +493,28 @@ ogr2ogr -f MySQL MySQL:$MYSQL_DB,user=$MYSQL_USER,password=$MYSQL_PASS,port=$MYS
 ogr2ogr -f MySQL MySQL:$MYSQL_DB,user=$MYSQL_USER,password=$MYSQL_PASS,port=$MYSQL_MASTER_PORT,host=127.0.0.1 gis_osm_traffic_free_1.shp -nln traffic -update -overwrite -lco engine=MyISAM -skipfailures
 ogr2ogr -f MySQL MySQL:$MYSQL_DB,user=$MYSQL_USER,password=$MYSQL_PASS,port=$MYSQL_MASTER_PORT,host=127.0.0.1 gis_osm_transport_free_1.shp -nln transport -update -overwrite -lco engine=MyISAM -skipfailures
 ogr2ogr -f MySQL MySQL:$MYSQL_DB,user=$MYSQL_USER,password=$MYSQL_PASS,port=$MYSQL_MASTER_PORT,host=127.0.0.1 gis_osm_water_a_free_1.shp -nln water -update -overwrite -lco engine=MyISAM -skipfailures
-ogr2ogr -f MySQL MySQL:$MYSQL_DB,user=$MYSQL_USER,password=$MYSQL_PASS,port=$MYSQL_MASTER_PORT,host=127.0.0.1 gis_osm_waterways_free_1.shp -nln waterways -update -overwrite -lco engine=MyISAM -skipfailures
+ogr2ogr -f MySQL MySQL:$MYSQL_DB,user=$MYSQL_USER,password=$MYSQL_PASS,port=$MYSQL_MASTER_PORT,host=127.0.0.1 gis_osm_waterways_free_1.shp -nln waterways -update -overwrite -lco engine=MyISAM -skipfailures -t_srs EPSG:4326
+
+# Change SIRD to 4326 (WGS84)
+for i in buildings landuse natural places pofw pois railways roads traffic transport water waterways; do
+   echo "Converting table $i to INNODB storage engine"
+   mysql -u $MYSQL_USER -p$MYSQL_PASS --port $MYSQL_MASTER_PORT -h 127.0.0.1 $MYSQL_DB -e "UPDATE table SET SHAPE = ST_GeomFromText(ST_AsText(SHAPE), 4326);"
+done
+
 
 # Change storage backend in MySQL to InnoDB
 for i in buildings landuse natural places pofw pois railways roads traffic transport water waterways; do
    echo "Converting table $i to INNODB storage engine"
-   mysql -u $MYSQL_USER -p$MYSQL_PASS --port $MYSQL_MASTER_PORT $MYSQL_DB -e "ALTER TABLE $i ENGINE=InnoDB;"
+   mysql -u $MYSQL_USER -p$MYSQL_PASS --port $MYSQL_MASTER_PORT -h 127.0.0.1 $MYSQL_DB -e "ALTER TABLE $i ENGINE=InnoDB;"
 done
+
+
+
 ``` 
 
-# Retrieve summery information
+# Retrieve summary information
 ```
-ogrinfo MySQL:$MYSQL_DB,user=$MYSQL_USER,password=$MYSQL_PASS,port=$MYSQL_MASTER_PORT buildings -so
+ogrinfo MySQL:$MYSQL_DB,user=$MYSQL_USER,password=$MYSQL_PASS,port=$MYSQL_MASTER_PORT,host=127.0.0.1 buildings -so
 
 Layer name: buildings
 Geometry: Polygon
@@ -516,4 +534,11 @@ code: Real (4.0)
 fclass: String (28.0)
 name: String (100.0)
 type: String (20.0)
+
+
+# Fetch information about the SRID 4326
+SELECT * FROM INFORMATION_SCHEMA.ST_SPATIAL_REFERENCE_SYSTEMS WHERE SRS_ID = 4326\G
+
+# Get the SRID of the spatial data
+SELECT ST_SRID(SHAPE) FROM waterways LIMIT 1;
 ```
