@@ -79,6 +79,18 @@ bool ConnectionPG::createConnection() {
       + " dbname=" + dbName + " connect_timeout=10";
   
   conn = PQconnectdb(keyword.c_str());
+  
+  if (PQstatus(conn) == CONNECTION_BAD) {
+    BOOST_LOG_TRIVIAL(error) << "Unable to connect to PostgresSQL: "
+      << PQerrorMessage(conn);
+    
+    if(conn != nullptr) {
+      PQfinish(conn);
+      conn = nullptr;
+    }
+
+    return false;
+  }
 
   return true;
 }

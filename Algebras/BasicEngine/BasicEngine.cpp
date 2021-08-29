@@ -110,17 +110,20 @@ ConnectionGeneric* getAndInitDatabaseConnection(const string &dbType,
       connection = new ConnectionPG(dbUser, dbPass, dbPort, dbName);
     } else if(ConnectionMySQL::DBTYPE == dbType) {
       connection = new ConnectionMySQL(dbUser, dbPass, dbPort, dbName);
+    } else {
+      BOOST_LOG_TRIVIAL(error) << "Unsupported database type: " << dbType;
+      return nullptr;
     }
 
     if(connection == nullptr) {
-      BOOST_LOG_TRIVIAL(error) << "Unsupported database type: " << dbType;
+      BOOST_LOG_TRIVIAL(error) << "Unable to establish database connection";
       return nullptr;
     }
 
     bool connectionResult = connection->createConnection();
 
     if(! connectionResult) {
-      BOOST_LOG_TRIVIAL(error) << "Unable to establish database connection ";
+      BOOST_LOG_TRIVIAL(error) << "Database connection check failed";
       return nullptr;
     }
 
@@ -1642,8 +1645,8 @@ int init_be_workerSFVM(Word* args, Word& result, int message,
     return 0;
   } 
 
-  cerr << endl << "Error: Unsupported database type: " 
-        << dbtype->toText() << endl;
+  cerr << endl << "Error: Unable to connect to database: " 
+       << dbtype->toText() << endl;
   ((CcBool*) result.addr)->Set(false, false);
   
   return 0;
@@ -1778,8 +1781,8 @@ int be_init_sf_vm(Word* args, Word& result, int message,
       return 0;
   } 
 
-  cerr << endl << "Error: Unsupported database type: " 
-        << dbtype->toText() << endl;
+  cerr << endl << "Error: Unable to connect to database: " 
+       << dbtype->toText() << endl;
   ((CcBool*)result.addr)->Set(false, false);
 
   return 0;

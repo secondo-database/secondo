@@ -80,9 +80,20 @@ bool ConnectionMySQL::createConnection() {
         return false;
     }
 
-    mysql_real_connect(conn, "127.0.0.1", dbUser.c_str(), dbPass.c_str(),
-            dbName.c_str(), dbPort, NULL, 0);
+    if(mysql_real_connect(conn, "127.0.0.1", 
+            dbUser.c_str(), dbPass.c_str(),
+            dbName.c_str(), dbPort, NULL, 0) == nullptr) {
 
+        BOOST_LOG_TRIVIAL(error) << "Unable to connect to MySQL server: "
+            << mysql_error(conn);
+
+        if(conn != nullptr) {
+            mysql_close(conn);
+            conn = nullptr;
+        }
+
+        return false;
+    }
 
     return true;
 }

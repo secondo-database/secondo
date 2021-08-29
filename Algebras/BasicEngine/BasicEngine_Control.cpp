@@ -1327,7 +1327,7 @@ bool BasicEngine_Control::partGrid(const std::string &tab,
 
   if(! dropIndexRes) {
     BOOST_LOG_TRIVIAL(debug) 
-      << "Dropping index failied, ignoring. Maybe it does not exist.";
+      << "Dropping index failed, ignoring. Maybe it does not exist.";
   } 
 
   // Create new index
