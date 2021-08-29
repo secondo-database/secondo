@@ -265,8 +265,8 @@ SecondoInterfaceCS::Initialize( const string& user, const string& pswd,
             else
             {
               cout << "Unidentifiable response from server: " << line << endl;
-              cout << "accepted are" << "<SecondoIntro>" << endl;
-              cout << "         and" << "<SecondoError>" << endl;
+              cout << "accepted are <SecondoIntro>" << endl;
+              cout << "         and <SecondoError>" << endl;
             }
           }
           else if ( line == "<SecondoError>" ) {
@@ -275,8 +275,8 @@ SecondoInterfaceCS::Initialize( const string& user, const string& pswd,
             getline( iosock, line );
           } else {
             cout << "Unidentifiable response from server: " << line << endl;
-            cout << "accepted are" << "<SecondoOk/>" << endl;
-            cout << "         and" << "<SecondoError>" << endl;
+            cout << "accepted are <SecondoOk/>" << endl;
+            cout << "         and <SecondoError>" << endl;
           }
         } catch(...){
            cout << "some exception occurred" << endl;
