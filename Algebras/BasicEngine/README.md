@@ -210,29 +210,45 @@ The MySQL installations can now be started by executing `mysqld_multi start`. Th
 
 ```bash
 # Setup the user for mysql shutdown (see mysqld_multi setting above)
+#
+# Note: '...' has to be replaced by concrete values
+#
+export MYSQL_USER=...
+export MYSQL_PASSWORD=...
+export MYSQL_MASTER_DB...
+export MYSQL_WORKER_DB=...
+
 for i in 20101 20102 20103 20104 20105; do mysql -u root -h 127.0.0.1 -P $i -e "GRANT SHUTDOWN ON *.* TO 'mysql'@'localhost' IDENTIFIED BY 'secret';"; done
 
 # Setup a user for the basic engine
-for i in 20101 20102 20103 20104 20105; do mysql -u root -h 127.0.0.1 -P $i -e "CREATE USER 'user'@'localhost' IDENTIFIED BY '123geheim456';"; done
+# MySQL dinstingushes between users that are connecting over a pipe (host=LOCALHOST) and users that are connecting 
+# over the network (HOST='%'). To be able to connect from both sources, the user has to created twice. 
+for i in 20101 20102 20103 20104 20105; do mysql -u root -h 127.0.0.1 -P $i -e "CREATE USER '$MYSQL_USER'@'localhost' IDENTIFIED BY '$MYSQL_PASSWORD';"; done
+for i in 20101 20102 20103 20104 20105; do mysql -u root -h 127.0.0.1 -P $i -e "CREATE USER '$MYSQL_USER'@'%' IDENTIFIED BY '$MYSQL_PASSWORD';"; done
 
 # Grant the file permission to the user
-for i in 20101 20102 20103 20104 20105; do mysql -u root -h 127.0.0.1 -P $i -e "GRANT FILE ON *.* TO 'user'@'localhost';"; done
+for i in 20101 20102 20103 20104 20105; do mysql -u root -h 127.0.0.1 -P $i -e "GRANT FILE ON *.* TO '$MYSQL_USER'@'localhost';"; done
+for i in 20101 20102 20103 20104 20105; do mysql -u root -h 127.0.0.1 -P $i -e "GRANT FILE ON *.* TO '$MYSQL_USER'@'%';"; done
 
 # Create the masterdb
-mysql -u root -h 127.0.0.1 -P 20101 -e "CREATE DATABASE master CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+mysql -u root -h 127.0.0.1 -P 20101 -e "CREATE DATABASE $MYSQL_MASTER_DB CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
 
 # Create the workerdb for the basic engine (UTF-8 encoding is required for importing shapefiles later)
-for i in 20102 20103 20104 20105; do mysql -u root -h 127.0.0.1 -P $i -e "CREATE DATABASE workerdb CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"; done
+for i in 20102 20103 20104 20105; do mysql -u root -h 127.0.0.1 -P $i -e "CREATE DATABASE $MYSQL_WORKER_DB CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"; done
 
 # Grant the permissions for the master database
-mysql -u root -h 127.0.0.1 -P 20101 -e "GRANT ALL ON masterdb.* TO 'user'@'localhost';"
+mysql -u root -h 127.0.0.1 -P 20101 -e "GRANT ALL ON $MYSQL_MASTER_DB.* TO '$MYSQL_USER'@'localhost';"
+mysql -u root -h 127.0.0.1 -P 20101 -e "GRANT ALL ON $MYSQL_MASTER_DB.* TO '$MYSQL_USER'@'%';"
 
 # Grant the permissions for the worker database
-for i in 20102 20103 20104 20105; do mysql -u root -h 127.0.0.1 -P $i -e "GRANT ALL ON workerdb.* TO 'user'@'localhost';"; done
+for i in 20102 20103 20104 20105; do mysql -u root -h 127.0.0.1 -P $i -e "GRANT ALL ON $MYSQL_WORKER_DB.* TO '$MYSQL_USER'@'localhost';"; done
+for i in 20102 20103 20104 20105; do mysql -u root -h 127.0.0.1 -P $i -e "GRANT ALL ON $MYSQL_WORKER_DB.* TO '$MYSQL_USER'@'%';"; done
 
 # Set a root password ('secret' should be replaced by a real password)
 for i in 20101 20102 20103 20104 20105; do mysql -u root -h 127.0.0.1 -P $i -e "ALTER USER 'root'@'localhost' IDENTIFIED BY 'secret';"; done
+for i in 20101 20102 20103 20104 20105; do mysql -u root -h 127.0.0.1 -P $i -e "ALTER USER 'root'@'localhost' IDENTIFIED BY '%';"; done
 ```
+
 
 ### MySQL settings
 
@@ -381,6 +397,12 @@ query be_repart_hash("users", "lastname", 60)
 query be_repart_hash("users", "age", 60)
 ```
 
+
+```
+# Partition spatial data
+query be_part_grid('water','gid', 'geog', 5.8, 50.3, 0.2, 20)
+```
+
 ## Working with spatial data
 
 In this section, the handling of spatial data with the BasicEngine is shown.
@@ -449,18 +471,18 @@ export MYSQL_MASTER_PORT=20101
 # the INNODB storage engine is used, which leads to poor import 
 # performance. 
 # 
-ogr2ogr -f MySQL MySQL:$MYSQL_DB,user=$MYSQL_USER,password=$MYSQL_PASS,port=$MYSQL_MASTER_PORT gis_osm_buildings_a_free_1.shp -nln buildings -update -overwrite -lco engine=MyISAM -skipfailures
-ogr2ogr -f MySQL MySQL:$MYSQL_DB,user=$MYSQL_USER,password=$MYSQL_PASS,port=$MYSQL_MASTER_PORT gis_osm_landuse_a_free_1.shp -nln landuse -update -overwrite -lco engine=MyISAM -skipfailures
-ogr2ogr -f MySQL MySQL:$MYSQL_DB,user=$MYSQL_USER,password=$MYSQL_PASS,port=$MYSQL_MASTER_PORT gis_osm_natural_free_1.shp -nln natural -update -overwrite -lco engine=MyISAM -skipfailures
-ogr2ogr -f MySQL MySQL:$MYSQL_DB,user=$MYSQL_USER,password=$MYSQL_PASS,port=$MYSQL_MASTER_PORT gis_osm_places_free_1.shp -nln places -update -overwrite -lco engine=MyISAM -skipfailures
-ogr2ogr -f MySQL MySQL:$MYSQL_DB,user=$MYSQL_USER,password=$MYSQL_PASS,port=$MYSQL_MASTER_PORT gis_osm_pofw_a_free_1.shp -nln pofw -update -overwrite -lco engine=MyISAM -skipfailures
-ogr2ogr -f MySQL MySQL:$MYSQL_DB,user=$MYSQL_USER,password=$MYSQL_PASS,port=$MYSQL_MASTER_PORT gis_osm_pois_free_1.shp -nln pois -update -overwrite -lco engine=MyISAM -skipfailures
-ogr2ogr -f MySQL MySQL:$MYSQL_DB,user=$MYSQL_USER,password=$MYSQL_PASS,port=$MYSQL_MASTER_PORT gis_osm_railways_free_1.shp -nln railways -update -overwrite -lco engine=MyISAM -skipfailures
-ogr2ogr -f MySQL MySQL:$MYSQL_DB,user=$MYSQL_USER,password=$MYSQL_PASS,port=$MYSQL_MASTER_PORT gis_osm_roads_free_1.shp -nln roads -update -overwrite -lco engine=MyISAM -skipfailures
-ogr2ogr -f MySQL MySQL:$MYSQL_DB,user=$MYSQL_USER,password=$MYSQL_PASS,port=$MYSQL_MASTER_PORT gis_osm_traffic_free_1.shp -nln traffic -update -overwrite -lco engine=MyISAM -skipfailures
-ogr2ogr -f MySQL MySQL:$MYSQL_DB,user=$MYSQL_USER,password=$MYSQL_PASS,port=$MYSQL_MASTER_PORT gis_osm_transport_free_1.shp -nln transport -update -overwrite -lco engine=MyISAM -skipfailures
-ogr2ogr -f MySQL MySQL:$MYSQL_DB,user=$MYSQL_USER,password=$MYSQL_PASS,port=$MYSQL_MASTER_PORT gis_osm_water_a_free_1.shp -nln water -update -overwrite -lco engine=MyISAM -skipfailures
-ogr2ogr -f MySQL MySQL:$MYSQL_DB,user=$MYSQL_USER,password=$MYSQL_PASS,port=$MYSQL_MASTER_PORT gis_osm_waterways_free_1.shp -nln waterways -update -overwrite -lco engine=MyISAM -skipfailures
+ogr2ogr -f MySQL MySQL:$MYSQL_DB,user=$MYSQL_USER,password=$MYSQL_PASS,port=$MYSQL_MASTER_PORT,host=127.0.0.1 gis_osm_buildings_a_free_1.shp -nln buildings -update -overwrite -lco engine=MyISAM -skipfailures
+ogr2ogr -f MySQL MySQL:$MYSQL_DB,user=$MYSQL_USER,password=$MYSQL_PASS,port=$MYSQL_MASTER_PORT,host=127.0.0.1 gis_osm_landuse_a_free_1.shp -nln landuse -update -overwrite -lco engine=MyISAM -skipfailures
+ogr2ogr -f MySQL MySQL:$MYSQL_DB,user=$MYSQL_USER,password=$MYSQL_PASS,port=$MYSQL_MASTER_PORT,host=127.0.0.1 gis_osm_natural_free_1.shp -nln natural -update -overwrite -lco engine=MyISAM -skipfailures
+ogr2ogr -f MySQL MySQL:$MYSQL_DB,user=$MYSQL_USER,password=$MYSQL_PASS,port=$MYSQL_MASTER_PORT,host=127.0.0.1 gis_osm_places_free_1.shp -nln places -update -overwrite -lco engine=MyISAM -skipfailures
+ogr2ogr -f MySQL MySQL:$MYSQL_DB,user=$MYSQL_USER,password=$MYSQL_PASS,port=$MYSQL_MASTER_PORT,host=127.0.0.1 gis_osm_pofw_a_free_1.shp -nln pofw -update -overwrite -lco engine=MyISAM -skipfailures
+ogr2ogr -f MySQL MySQL:$MYSQL_DB,user=$MYSQL_USER,password=$MYSQL_PASS,port=$MYSQL_MASTER_PORT,host=127.0.0.1 gis_osm_pois_free_1.shp -nln pois -update -overwrite -lco engine=MyISAM -skipfailures
+ogr2ogr -f MySQL MySQL:$MYSQL_DB,user=$MYSQL_USER,password=$MYSQL_PASS,port=$MYSQL_MASTER_PORT,host=127.0.0.1 gis_osm_railways_free_1.shp -nln railways -update -overwrite -lco engine=MyISAM -skipfailures
+ogr2ogr -f MySQL MySQL:$MYSQL_DB,user=$MYSQL_USER,password=$MYSQL_PASS,port=$MYSQL_MASTER_PORT,host=127.0.0.1 gis_osm_roads_free_1.shp -nln roads -update -overwrite -lco engine=MyISAM -skipfailures
+ogr2ogr -f MySQL MySQL:$MYSQL_DB,user=$MYSQL_USER,password=$MYSQL_PASS,port=$MYSQL_MASTER_PORT,host=127.0.0.1 gis_osm_traffic_free_1.shp -nln traffic -update -overwrite -lco engine=MyISAM -skipfailures
+ogr2ogr -f MySQL MySQL:$MYSQL_DB,user=$MYSQL_USER,password=$MYSQL_PASS,port=$MYSQL_MASTER_PORT,host=127.0.0.1 gis_osm_transport_free_1.shp -nln transport -update -overwrite -lco engine=MyISAM -skipfailures
+ogr2ogr -f MySQL MySQL:$MYSQL_DB,user=$MYSQL_USER,password=$MYSQL_PASS,port=$MYSQL_MASTER_PORT,host=127.0.0.1 gis_osm_water_a_free_1.shp -nln water -update -overwrite -lco engine=MyISAM -skipfailures
+ogr2ogr -f MySQL MySQL:$MYSQL_DB,user=$MYSQL_USER,password=$MYSQL_PASS,port=$MYSQL_MASTER_PORT,host=127.0.0.1 gis_osm_waterways_free_1.shp -nln waterways -update -overwrite -lco engine=MyISAM -skipfailures
 
 # Change storage backend in MySQL to InnoDB
 for i in buildings landuse natural places pofw pois railways roads traffic transport water waterways; do
