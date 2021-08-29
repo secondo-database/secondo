@@ -333,7 +333,7 @@ WHILE cur_row < rows DO
       
       SET polygon = concat('POLYGON((', cell_p0, ',', cell_p1, ',', cell_p2, 
         ',', cell_p3, ',', cell_p0, '))');
-      INSERT INTO grid_table(cell) values(ST_PolyFromText(polygon));
+      INSERT INTO grid_table(cell) values(ST_PolyFromText(polygon, 4326));
 
       SET cur_column = cur_column + 1;
    END WHILE;
