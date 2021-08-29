@@ -399,8 +399,11 @@ query be_repart_hash("users", "age", 60)
 
 
 ```
-# Partition spatial data
+# Partition spatial data (postgres)
 query be_part_grid('water','gid', 'geog', 5.8, 50.3, 0.2, 20)
+
+# Partition spatial data (MySQL)
+query be_part_grid('water', 'OGR_FID', 'SHAPE', 5.8, 50.3, 0.2, 20)
 ```
 
 ## Working with spatial data

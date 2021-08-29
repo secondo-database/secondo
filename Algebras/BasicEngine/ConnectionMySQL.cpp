@@ -283,18 +283,17 @@ std::string ConnectionMySQL::getPartitionGridSQL(const std::string &table,
     // Drop old procedure
     string dropProcedure = "DROP PROCEDURE IF EXISTS ST_CREATE_STATIC_GRID;";
 
-    MYSQL_RES *res = sendQuery(dropProcedure.c_str());
+    bool res = sendCommand(dropProcedure.c_str());
 
-    if(res == nullptr) {
+    if(!res) {
         BOOST_LOG_TRIVIAL(error) 
-        << "Unable to perform SQL query " << dropProcedure;
+        << "Unable to perform SQL query " << dropProcedure            
+        << mysql_error(conn);
         return "";
     }
 
     // Create new procedure
     const char* createProcedure = R"ENDSQL(
-DELIMITER $$
-
 CREATE PROCEDURE ST_CREATE_STATIC_GRID(IN rows INTEGER, IN columns INTEGER,
     IN xsize FLOAT, IN ysize FLOAT, IN x0 FLOAT, IN y0 FLOAT)
 
@@ -343,14 +342,12 @@ END WHILE;
 
 COMMIT;
 
-END $$
-
-DELIMITER ;
+END;
 )ENDSQL";
 
-    res = sendQuery(createProcedure);
+    res = sendCommand(createProcedure);
 
-    if(res == nullptr) {
+    if(! res) {
         BOOST_LOG_TRIVIAL(error) 
         << "Unable to perform SQL query " << createProcedure;
         return "";
@@ -361,9 +358,9 @@ DELIMITER ;
         + ", " + to_string(anzSlots) + ", " + size + " , " + size + ", " 
         + x0 + ", " + y0 + ");";
 
-    res = sendQuery(createCell.c_str());
+    res = sendCommand(createCell.c_str());
 
-    if(res == nullptr) {
+    if(!res) {
         BOOST_LOG_TRIVIAL(error) 
         << "Unable to perform SQL query " << createCell;
         return "";
@@ -373,9 +370,9 @@ DELIMITER ;
     boost::replace_all(usedKey, ",", ",r.");
 
     string query_exec = "SELECT r." + usedKey + ", "
-               "g.num AS slot "
+               "g.id AS slot "
                "FROM grid_table g INNER JOIN "+ table + " r "
-               "ON ST_INTERSECTS(g.geom, r."+ geo_col +")";
+               "ON ST_INTERSECTS(g.cell, r."+ geo_col +")";
 
     return getCreateTabSQL(targetTab, query_exec);
 }

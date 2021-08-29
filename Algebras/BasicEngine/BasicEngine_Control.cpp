@@ -800,6 +800,7 @@ bool BasicEngine_Control::partition_table_by_grid(const std::string &table,
     partitionData.attribute = attribute;
     partitionData.xstart = xstart;
     partitionData.ystart = ystart;
+    partitionData.slotnum = slotnum;
     partitionData.slotsize = slotsize;
 
     if(repartition) {
