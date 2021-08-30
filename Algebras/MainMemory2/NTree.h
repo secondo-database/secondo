@@ -713,7 +713,7 @@ class NTree {
   }
   
   
- private:
+ protected:
   int degree;
   int maxLeafSize;
   node_t* root;
@@ -755,10 +755,24 @@ template<class T, class DistComp>
 class NTree2InnerNode : public NTreeInnerNode<T, DistComp> {
  public:
   typedef NTree2InnerNode<T, DistComp> innernode_t;
+  typedef NTreeInnerNode<T, DistComp> innernode_base_t;
   typedef NTreeNode<T, DistComp> node_t;
   typedef NTreeLeafNode<T, DistComp> leafnode_t;
   
-  void precomputeDistances(DistComp& dc, const int refPointsStrategy = 0) {
+  NTree2InnerNode(const int d, const int mls, const int m) : 
+      innernode_base_t(d, mls), refPtsMethod(m) {}
+  
+  virtual ~NTree2InnerNode() {
+    clear(true);
+  }
+  
+  virtual void clear(const bool deleteContent) {
+    ((innernode_base_t*)this)->clear(deleteContent);
+    distances.clear();
+    distances2d.clear();
+  }
+  
+  void precomputeDistances(DistComp& dc) {
     double maxDist = 0.0;
     refDistPos = std::make_pair(0, 0);
     for (int i = 0; i < node_t::degree; i++) {
@@ -766,7 +780,7 @@ class NTree2InnerNode : public NTreeInnerNode<T, DistComp> {
         distances[i][j] = dc(*(innernode_t::centers[i]), 
                              *(innernode_t::centers[j]));
         distances[j][i] = distances[i][j]; // copy to right upper triangle
-        if (refPointsStrategy == 0) { // select points with maximum distance
+        if (refPtsMethod == 0) { // select points with maximum distance
           if (distances[i][j] > maxDist) { // update maxDistPos
             refDistPos = std::make_pair(i, j);
             maxDist = distances[i][j];
@@ -807,25 +821,46 @@ class NTree2InnerNode : public NTreeInnerNode<T, DistComp> {
     node_t::count = node_t::degree;
   }
   
-  int getPosInRadius(const T& o, DistComp& dc) const {
-    std::pair<double, double> odist = 
+  int getNearestCenterPos(const T& o, DistComp& dc) const { // use dist vectors
+    bool cand[node_t::degree] = {true};
+    std::pair<double, double> odist2d = 
                   make_pair(dc(o, *(innernode_t::centers[refDistPos.first])),
                             dc(o, *(innernode_t::centers[refDistPos.second])));
-    std::vector<DistVectorContents> distVector;
-    for (unsigned int i = 0; i < node_t::degree; i++) {
+    DistVectorContents W[node_t::degree];
+    for (int i = 0; i < node_t::degree; i++) {
       DistVectorContents dvc(i, distances2d[i]);
-      dvc.distObj2d = dist2d(distances2d[i], odist);
-      distVector.push_back(dvc);
+      dvc.distObj2d = dist2d(distances2d[i], odist2d);
+      W[i] = dvc;
     }
-    std::sort(distVector.begin(), distVector.end());
-    // TODO: ...
-    return 1909;
+    // sort W by dist to odist2d
+    std::sort(W.begin(), W.end());
+    double Dq[node_t::degree] = {DBL_MAX};
+    for (int i = 0; i < node_t::degree; i++) {
+      if (cand[i]) {
+        Dq[W[i]] = dc(*(innernode_t::centers[W[i].pos]), o);
+        for (int j = 0; j < node_t::degree; j++) {
+          if (distances[i][W[i].pos] > 2 * Dq[W[i].pos]) {
+            cand[i] = false;
+          }
+        }
+      }
+    }
+    auto it = std::min_element(std::begin(Dq), std::end(Dq));
+    return std::distance(std::begin(Dq), it);
+  }
+  
+  innernode_t* clone() {
+    innernode_t* res = ((innernode_base_t*)this)->clone();
+    res->distances = this->distances;
+    res->refDistPos = this->refDistPos;
+    res->distances2d = this->distances2d;
   }
   
  private:
   double distances[node_t::degree][node_t::degree]; // matrix of pairw. c. dist.
   std::pair<int, int> refDistPos; // two reference center positions
   std::pair<double, double> distances2d[node_t::degree]; // dist. to maxDistPos
+  int refPtsMethod; // 0: maxDist, 1: random, 2: median dist
 };
 
 /*
@@ -837,9 +872,32 @@ with optimizations w.r.t. the number of distance function calls.
 */
 template<class T, class DistComp>
 class NTree2 : public NTree<T, DistComp> {
+ public:
   typedef NTree2InnerNode<T, DistComp> innernode_t;
+  typedef NTree2<T, DistComp> ntree_t;
   
+  NTree2(const int d, const int mls, const int m, DistComp& di) :
+      NTree<T, DistComp>(d, mls, di), root2(0), refPtsMethod(m) {}
   
+  ~NTree2() {
+//     if (this->root2) {
+//       delete this->root2;
+//     }
+  }
+  
+  ntree_t* clone() {
+    ntree_t* res = 0;
+//     ntree_t* res = new ntree_t(this->degree, this->maxLeafSize, 
+//                                this->refPtsMethod, this->dc);
+//     if (this->root2) {
+//       res->root2 = this->root2->clone();
+//     }
+    return res;
+  }
+  
+ protected:
+  innernode_t* root2;
+  int refPtsMethod; // 0: maxDist, 1: random, 2: median dist
 };
 
 #endif

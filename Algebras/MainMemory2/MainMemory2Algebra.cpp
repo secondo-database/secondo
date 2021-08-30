@@ -21923,25 +21923,25 @@ Operator mmergejoinprojectOp(
 
 6.1.1 Type Mapping
 
-We support two variants. The first variant gets a tuple stream, the name of the
-attribute to index and the attribute name of a tid attribute. The second gets a 
-main memory relation and the attribute to be indexed.
+Applied for operators ~mcreatentree~ and ~mcreatentree2~
 
 */
-
+template<bool useNTree2>
 ListExpr mcreatentreeTM(ListExpr args) {
-  string err = "expected: stream(tuple) x attrname x attrname x int x int "
-               "[x geoid] or MREL x attrname x int x int [x geoid]";
-
-  // ensure at least 2 arguments
-  if (!nl->HasMinLength(args, 4)) {
-    return listutils::typeError(err + " (less than 4 arguments)");
+  string err = (!useNTree2 ? "expected: MREL x attrname x int x int [x geoid]" :
+                       "expected: MREL x attrname x int x int x int [x geoid]");
+  if (useNTree2) {
+    if (!nl->HasLength(args, 5) && !nl->HasLength(args, 6)) {
+      return listutils::typeError(" (5 or 6 arguments are required");
+    }
   }
-  bool isTS = Stream<Tuple>::checkType(nl->First(args));
-  bool isMP = MPointer::checkType(nl->First(args));
-  if (!isTS && !isMP) {
-    return listutils::typeError(err + " (first arg is neither a tuple stream "
-                                      "nor an mpointer)");
+  else {
+    if (!nl->HasLength(args, 4) && !nl->HasLength(args, 5)) {
+      return listutils::typeError(" (4 or 5 arguments are required");
+    }
+  }
+  if (!MPointer::checkType(nl->First(args))) {
+    return listutils::typeError(err + " (first arg is not an mpointer)");
   }
   if (nl->AtomType(nl->Second(args)) != SymbolType) {
     return listutils::typeError(err + " (second argument is not a valid "
@@ -21951,33 +21951,21 @@ ListExpr mcreatentreeTM(ListExpr args) {
     return listutils::typeError(err + " (fourth argument is not an integer)");
   }
   bool geoidPresent = false;
-  if (isTS) {
-    if(!nl->HasLength(args, 5) && !nl->HasLength(args, 6)){
-      return listutils::typeError("for a tuplestream, "
-                                  "5 or 6 arguments are required");
-    }
-    if (nl->AtomType(nl->Third(args)) != SymbolType) {
-      return listutils::typeError(err + " (third argument is not a valid "
-                                        "attribute name)");
-    }
+  if (!CcInt::checkType(nl->Third(args))) {
+    return listutils::typeError(err + " (third argument is not an integer)");
+  }
+  if (useNTree2) {
     if (!CcInt::checkType(nl->Fifth(args))) {
       return listutils::typeError(err + " (fifth argument is not an integer)");
     }
     if (nl->HasLength(args, 6)) {
       if (!Geoid::checkType(nl->Sixth(args))) {
-         return listutils::typeError("sixth argument is not a geoid");
+        return listutils::typeError("sixth argument is not a geoid");
       }
       geoidPresent = true;
     }
-  } 
-  else { // main memory relation case
-    if (!nl->HasLength(args, 4) && !nl->HasLength(args, 5)) {
-      return listutils::typeError("for an mpointer, 4 or 5 "
-                                  "arguments are required");
-    }
-    if (!CcInt::checkType(nl->Third(args))) {
-      return listutils::typeError(err + " (third argument is not an integer)");
-    }
+  }
+  else {
     if (nl->HasLength(args, 5)) {
       if (!Geoid::checkType(nl->Fifth(args))) {
         return listutils::typeError("fifth argument is not a geoid");
@@ -21987,16 +21975,11 @@ ListExpr mcreatentreeTM(ListExpr args) {
   }
   // extract tuple type from first argument
   ListExpr tupletype;
-  if (isMP) {
-    ListExpr mpt = nl->Second(nl->Second(nl->First(args)));
-    if (!Relation::checkType(mpt)) {
-      return listutils::typeError(" mpointer to a non-relation");
-    }
-    tupletype = nl->Second(mpt);
+  ListExpr mpt = nl->Second(nl->Second(nl->First(args)));
+  if (!Relation::checkType(mpt)) {
+    return listutils::typeError(" mpointer to a non-relation");
   }
-  else {
-    tupletype = nl->Second(nl->First(args));
-  }
+  tupletype = nl->Second(mpt);
   ListExpr attrList = nl->Second(tupletype);
   string name = nl->SymbolValue(nl->Second(args));
   ListExpr type;
@@ -22006,65 +21989,40 @@ ListExpr mcreatentreeTM(ListExpr args) {
   }
   // support geoid only for point, mpoint, cupoint, cmpoint
   if (geoidPresent) {
-    if(!Point::checkType(type) && !temporalalgebra::MPoint::checkType(type) &&
-       !temporalalgebra::CUPoint::checkType(type) &&
-       !temporalalgebra::CMPoint::checkType(type)) {
+    if (!Point::checkType(type) && !temporalalgebra::MPoint::checkType(type) &&
+        !temporalalgebra::CUPoint::checkType(type) &&
+        !temporalalgebra::CMPoint::checkType(type)) {
       return listutils::typeError("geoid support only for (m|cu|cm|eps)point");
-    }
-  }
-  int index2 = -1;
-  if (isTS) {
-     string tidname = nl->SymbolValue(nl->Third(args));
-     ListExpr tidtype;
-     index2 = listutils::findAttribute(attrList, tidname, tidtype);
-     if (!index2) {
-        return listutils::typeError("attribute " + tidname + "does not exist");
-     }
-     if (!TupleIdentifier::checkType(tidtype)) {
-       return listutils::typeError("attribute " + tidname + " not of type tid");
     }
   }
   // check for supported type, extend if required
   int no = mtreehelper::getTypeNo(type, 12);
-  if (no <0) {
+  if (no < 0) {
      return listutils::typeError("no distance function available for type "
                                  + nl->ToString(type));
   }
-  ListExpr resType = MPointer::wrapType( 
-                        Mem::wrapType(
-                          nl->TwoElemList(
-                             listutils::basicSymbol<
-                               MemoryNtreeObject<Point,StdDistComp<Point> > >(),
-                             type
-                          )));
-  ListExpr appendList;
-  if (isTS) {
-    if (geoidPresent) {
-      appendList = nl->ThreeElemList(nl->IntAtom(index1 - 1),
-                                     nl->IntAtom(index2 - 1),
-                                     nl->StringAtom(nl->ToString(type)));
-    }
-    else {
-      appendList = nl->FourElemList(
-                     nl->TwoElemList(listutils::basicSymbol<Geoid>(),
-                                     listutils::getUndefined()), 
-                     nl->IntAtom(index1 - 1), nl->IntAtom(index2 - 1),
-                     nl->StringAtom(nl->ToString(type)));
-
-    }
+  ListExpr resType;
+  if (useNTree2) {
+    resType = MPointer::wrapType(Mem::wrapType(nl->TwoElemList(
+       listutils::basicSymbol<MemoryNtree2Object<Point,StdDistComp<Point> > >(),
+       type)));
   }
   else {
-    if (geoidPresent) {
-      appendList = nl->TwoElemList(nl->IntAtom(index1 - 1), 
-                                   nl->StringAtom(nl->ToString(type)));
-    }
-    else {
-      appendList = nl->ThreeElemList( 
-                               nl->TwoElemList(listutils::basicSymbol<Geoid>(),
-                                               listutils::getUndefined()), 
-                               nl->IntAtom(index1 - 1), 
-                               nl->StringAtom(nl->ToString(type)));
-    }
+    resType = MPointer::wrapType(Mem::wrapType(nl->TwoElemList(
+        listutils::basicSymbol<MemoryNtreeObject<Point,StdDistComp<Point> > >(),
+        type)));
+  }
+  ListExpr appendList;
+  if (geoidPresent) {
+    appendList = nl->TwoElemList(nl->IntAtom(index1 - 1), 
+                                 nl->StringAtom(nl->ToString(type)));
+  }
+  else {
+    appendList = nl->ThreeElemList( 
+                   nl->TwoElemList(listutils::basicSymbol<Geoid>(),
+                                   listutils::getUndefined()), 
+                   nl->IntAtom(index1 - 1), 
+                   nl->StringAtom(nl->ToString(type)));
   }
   ListExpr result = nl->ThreeElemList(nl->SymbolAtom(Symbols::APPEND()),
                                       appendList, resType);
@@ -22190,7 +22148,148 @@ Operator mcreatentreeOp(
    12,
    mcreatentreeVM,
    mcreatentreeSelect,
-   mcreatentreeTM
+   mcreatentreeTM<false>
+);
+
+/*
+6.2 Value Mapping template
+
+*/
+template<class T>
+int mcreatentree2VMT(Word* args, Word& result, int message, Word& local,
+                     Supplier s) {
+  result = qp->ResultStorage(s);
+  MPointer* res = (MPointer*)result.addr;
+  MPointer* mrelp = (MPointer*)args[0].addr;
+  if (mrelp->isNull()) {
+    res->setPointer(0);
+    return 0;
+  }
+  Geoid* geoid = (Geoid*)args[5].addr;
+  int index = ((CcInt*)args[6].addr)->GetValue(); 
+//    string tn = ((CcString*) args[4].addr)->GetValue();
+  if (!geoid->IsDefined()) {
+    geoid = 0;
+  }
+  MemoryRelObject* mrel = (MemoryRelObject*) mrelp->GetValue();
+  CcInt *ccDegree = ((CcInt*)args[2].addr);
+  CcInt *ccMaxLeafSize = ((CcInt*)args[3].addr);
+  CcInt *ccRefPtsMethod = ((CcInt*)args[4].addr);
+  if (!ccDegree->IsDefined() || !ccMaxLeafSize->IsDefined() || 
+      !ccRefPtsMethod->IsDefined()) {
+    cout << "undefined input parameter" << endl;
+    res->setPointer(0);
+    return 0;
+  }  
+  int degree = ccDegree->GetValue();
+  int maxLeafSize = ccMaxLeafSize->GetValue();
+  int refPtsMethod = ccRefPtsMethod->GetValue();
+  if (degree < 1 || maxLeafSize < 1 || degree > maxLeafSize) {
+    cout << "invalid parameters: degree=" << degree << ", maxLeafSize=" 
+        << maxLeafSize << endl;
+    res->setPointer(0);
+    return 0;
+  }
+  if (refPtsMethod < 0 || refPtsMethod > 2) {
+    cout << "invalid parameter: refPtsMethod must be in {0, 1, 2}" << endl;
+    res->setPointer(0);
+    return 0;
+  }
+  int partitionStrategy = 0; // TODO: add parameter
+  vector<Tuple*>* v = mrel->getmmrel();
+  vector<MTreeEntry<T> > contents;
+  bool flobused = false;
+  T* attr = 0;
+  for (size_t i = 0; i < v->size(); i++) {
+    attr = (T*)(v->at(i)->GetAttribute(index));
+    MTreeEntry<T> entry(*attr, i + 1);
+    contents.push_back(entry);
+    flobused = flobused || (attr->NumOfFLOBs() > 0);
+  }
+  StdDistComp<T> dc(geoid);
+  NTree2<MTreeEntry<T>, StdDistComp<T> >* tree =
+      new NTree2<MTreeEntry<T>, StdDistComp<T> >(degree, maxLeafSize, 
+                                                 refPtsMethod, dc);
+  tree->build(contents, partitionStrategy);
+//   cout << "entries: " << tree->getNoEntries() << ", nodes: " 
+//        << tree->getNoNodes() << ", leaves: " << tree->getNoLeaves() << endl;
+  size_t usedMem = tree->memSize();
+  ListExpr typeList = nl->Second(qp->GetType(s));
+  MemoryNtree2Object<T, StdDistComp<T> >* ntree2 = 
+      new MemoryNtree2Object<T, StdDistComp<T> >(tree, usedMem, 
+                                nl->ToString(typeList), !flobused, getDBname());
+  mtreehelper::increaseCounter("counterMCreateMTree2", 
+                        ntree2->getntree2()->getDistComp().getNoDistFunCalls());
+  res->setPointer(ntree2);
+  ntree2->deleteIfAllowed();
+  return 0;
+}
+
+/*
+6.3 Selection Function and Value Mapping Array
+
+*/
+int mcreatentree2Select(ListExpr args) {
+  string attrName = nl->SymbolValue(nl->Second(args));
+  ListExpr attrList = nl->Second(nl->Second(nl->Second(nl->Second(nl->First(
+                                                                      args)))));
+          //  mpointer   mem         rel       tuple 
+  ListExpr type;
+  listutils::findAttribute(attrList, attrName, type);
+  return mtreehelper::getTypeNo(type, 12);
+}
+
+ // note: if adding attributes with flobs, the value mapping must be changed
+
+ValueMapping mcreatentree2VM[] = {
+  mcreatentree2VMT<mtreehelper::t1>,
+  mcreatentree2VMT<mtreehelper::t2>,
+  mcreatentree2VMT<mtreehelper::t3>,
+  mcreatentree2VMT<mtreehelper::t4>,
+  mcreatentree2VMT<mtreehelper::t5>,
+  mcreatentree2VMT<mtreehelper::t6>,
+  mcreatentree2VMT<mtreehelper::t7>,
+  mcreatentree2VMT<mtreehelper::t8>,
+  mcreatentree2VMT<mtreehelper::t9>,
+  mcreatentree2VMT<mtreehelper::t10>,
+  mcreatentree2VMT<mtreehelper::t11>,
+  mcreatentree2VMT<mtreehelper::t12>
+};
+
+OperatorSpec mcreatentree2Spec(
+  "MREL(tuple) x attrname x int x int x int [x geoid] -> mpointer(mem(mtree X))"
+  "\n",
+  "mrel mcreatemtree[indexAttr, degree, maxLeafSize, refPtsMethod [, geoid]]\n",
+  "This operator creates an N-tree2 in main memory. "
+  "The first argument is a main memory relation containing the "
+  "tuples to be indexed. The second argument refers to the attribute "
+  "over that the index is built. The next two arguments represent the degree of"
+  " the tree and and maximum number of entries in a leaf.\n"
+  "The fifth argument represents the selection method for r1 and r2: (0 <=> "
+  "maxDist,  1 <=> random,  2 <=> median dist)\n"
+  "The last argument is optional. It must be of type geoid and "
+  "can only be used if the index-attribute is of type point, mpoint, cupoint, "
+  "or cmpoint. If this argument is present, the distance between two objects "
+  "is computed as geographic distance on this geoid instead of using the "
+  "Euclidean distance.\n In detail, the following types are supported:\n\n"
+  "  * point:   p1->Distance(*p2, geoid)\n"
+  "  * string:  stringutils::ld->(s1->GetValue(), s2->GetValue())\n"
+  "  * int:     abs(i1->GetValue() - i2->GetValue())\n"
+  "  * real:    abs(r1->GetValue() - r2->GetValue())\n"
+  "  * rect<d>: r1->Distance(*r2)\n"
+  "  * mpoint:  mp1->DistanceAvg(*mp2, geoid)\n"
+  "  * cupoint: cup1->DistanceAvg(*cup2, true, geoid)\n"
+  "  * cmpoint: cmp1->DistanceAvg(*cmp2, true, geoid)\n",
+  "let kinosM_ntree_GeoData =  kinosM mcreatentree[GeoData, 5, 8]"
+);
+
+Operator mcreatentree2Op(
+   "mcreatentree2",
+   mcreatentree2Spec.getStr(),
+   12,
+   mcreatentree2VM,
+   mcreatentree2Select,
+   mcreatentreeTM<true>
 );
 
 /*
@@ -22283,6 +22382,8 @@ class MainMemory2Algebra : public Algebra {
           AddOperator(&gettuplesOp);
           
           AddOperator(&mcreatentreeOp);
+          
+          AddOperator(&mcreatentree2Op);
           
   ////////////////////// MainMemory2Algebra////////////////////////////
           
