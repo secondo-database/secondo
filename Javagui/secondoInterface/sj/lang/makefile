@@ -48,15 +48,16 @@ langClasses: IntByReference.class ServerErrorCodes.class SecondoInterface.class 
 
 CP:=$(CLASSPATH):$(JARS)
 
+.PHONY: Java_ListExpr
 Java_ListExpr: ListExpr.java 
 	$(MAKE) -C JavaListExpr all
 
 
-ListExpr.class: ListExpr.java Java_ListExpr
+ListExpr.class: ListExpr.java | Java_ListExpr
 	$(JAVAC) $(JAVACFLAGS) -classpath $(CP) ListExpr.java
 
 #////////////// generic rules
-%.class: %.java ListExpr.java Java_ListExpr 
+%.class: %.java ListExpr.java | Java_ListExpr 
 	$(JAVAC) $(JAVACFLAGS) -classpath $(CP) $<
 
 
