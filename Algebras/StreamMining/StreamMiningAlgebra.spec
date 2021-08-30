@@ -33,4 +33,8 @@ operator createams alias AMS pattern _op[_,_,_]
 
 operator amsestimate alias AMSESTIMATE pattern _op
 
+operator createlossycounter alias LC pattern _op[_,_]
+
+operator lcfrequent alias FREQ pattern _op[_]
+
 operator outlier alias OUTLIER pattern _op[_,_]

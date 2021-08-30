@@ -46,6 +46,7 @@ namespace eschbach {
   long getCurrentWindowIndex();
   int getWindowSize();
   int getElement(int index);
+  std::unordered_map<int, counterPair> getFrequencyList();
 
   //Auxiliary Functions
   void initialize(const float epsilon);

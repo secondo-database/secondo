@@ -1793,12 +1793,17 @@ lossyCounter::getElement(int index){
   return frequencyList.at(index).getItem();
 }
 
+std::unordered_map<int, counterPair>
+lossyCounter::getFrequencyList() {
+  return frequencyList;
+}
+
 //Auxiliary Functions
 void
 lossyCounter::initialize(const float epsilon) {
   defined = true; 
   this->epsilon = epsilon; 
-  eleCounter = 0; 
+  eleCounter = 1; 
   windowSize = ceil(1/epsilon);
   windowIndex = 1;
   frequencyList.insert({0, counterPair(0,0,0)});
@@ -2523,6 +2528,8 @@ ListExpr errorInfo = nl->OneElemList(nl->SymbolAtom("ErrorInfo"));
 ListExpr
 lcfrequentTM(ListExpr args) {
   NList type(args);
+  ListExpr outlist = nl -> TheEmptyList();
+
 
   // two arguments must be supplied
   if (type.length() != 2){
@@ -2541,8 +2548,23 @@ lcfrequentTM(ListExpr args) {
                             "real value as second argument");
   }
 
-  //check if the searchelement is numeric
-  return NList(Relation::BasicType()).listExpr(); 
+    outlist = 
+    nl->TwoElemList(
+      nl->SymbolAtom(Symbol::STREAM()),
+      nl->TwoElemList(
+        nl->SymbolAtom(Tuple::BasicType()),
+        nl->OneElemList(
+          nl->TwoElemList(
+            nl->SymbolAtom("Value"),
+            nl->SymbolAtom(CcInt::BasicType())))));
+
+  //Return an Attribute Stream
+
+  cout << endl;
+  cout << "Return type of lcfrequent() is: " << endl;
+  cout << nl->ToString(outlist);
+  cout << endl;
+  return outlist;
 }
 
 /*
@@ -2600,26 +2622,9 @@ outlierTM(ListExpr args) {
   cout << "Detected Attribute Type to be: " << attrTest << endl;;
   cout << endl;
 
-  if (attrTest == CcInt::BasicType()) {
-    cout << endl;
-    cout << "Appended int " << endl;
-    cout << endl;   
+  if (attrTest == CcInt::BasicType()) { 
     appendList.append(NList().intAtom(0));
-  } else if (attrTest == CcReal::BasicType()) {
-    cout << endl;
-    cout << "Appended Real " << endl;
-    cout << endl;
-    appendList.append(NList().intAtom(1));
-  } else {
-    return NList::typeError("Operator outlier only works with "
-                            "int and real attributes");
-  }
-
-  /* Result type is a stream of the same type as the input stream.
-     we append the index of the Attribute we intend to check for outliers
-  */
-
-  outlist = 
+    outlist = 
     nl->TwoElemList(
       nl->SymbolAtom(Symbol::STREAM()),
       nl->TwoElemList(
@@ -2634,12 +2639,32 @@ outlierTM(ListExpr args) {
         )
       )
     );
+  } else if (attrTest == CcReal::BasicType()) {
+    appendList.append(NList().intAtom(1));
+    outlist = 
+      nl->TwoElemList(
+        nl->SymbolAtom(Symbol::STREAM()),
+        nl->TwoElemList(
+          nl->SymbolAtom(Tuple::BasicType()),
+          nl->TwoElemList(
+            nl->TwoElemList(
+              nl->SymbolAtom("Value"),
+              nl->SymbolAtom(CcReal::BasicType())),       
+            nl->TwoElemList(
+              nl->SymbolAtom("StreamIndex"),
+              nl->SymbolAtom(CcInt::BasicType()))
+        )
+      )
+    );
+  } else {
+    return NList::typeError("Operator outlier only works with "
+                            "int and real attributes");
+  }
 
-  cout << endl;
-  cout << "ResultList I created is: " << endl;
-  cout << nl->ToString(outlist) << endl;
-  cout << "ResultList if taken over from input stream is: " << endl; 
-  cout << nl->ToString(type.first().listExpr()) << endl;
+  /* Result type is a stream of Tuples with the queried attribute value
+     and its corresponding index in the stream.
+  */
+
   return NList(Symbols::APPEND(), appendList,
                outlist).listExpr();
 
@@ -3314,6 +3339,14 @@ int createlossycounterVM(Word* args, Word& result,
   
   }
   stream.close();
+  
+  cout << endl;
+  cout << "At the end the FrequencyList contains: " << endl;
+  for (auto elem : lc ->getFrequencyList()) {
+    cout << "Element : " << elem.second.getItem() << " has frequency: " 
+         << elem.second.getFrequency() << " and max error " 
+         << elem.second.getMaxError() << endl;
+  }
 
   result.setAddr(lc);
 
@@ -3321,45 +3354,102 @@ int createlossycounterVM(Word* args, Word& result,
 }
 
 /*
-
 2.3.8 Operator ~lcfrequent~
+
+*/
+
+class lcFrequentInfo{
+  public: 
+    lcFrequentInfo(lossyCounter* counter, float minSup) : 
+  pos(0), support(minSup) {
+      
+      if (counter -> getDefined()) {
+        resultList = counter->getFrequentElements(minSup);
+        cout << endl;
+        cout << 
+        "In lcFrequent() the resultList has the following values: " 
+        << endl;
+        for (auto elem : resultList) {
+          cout << elem << endl;
+        }
+      }
+
+      typeList = nl->TwoElemList(
+            nl->SymbolAtom(Tuple::BasicType()),
+            nl->OneElemList(
+              nl->TwoElemList(
+                nl->SymbolAtom("Value"),
+                nl->SymbolAtom(CcInt::BasicType())
+              )
+            )
+          );
+
+      cout << endl;
+      cout << "Construction of the tuple yielded the following Type: ";
+      cout << nl->ToString(typeList) << endl; 
+      cout << endl;
+
+      SecondoCatalog* sc = SecondoSystem::GetCatalog();
+      numTypeList = sc->NumericType(typeList);
+      tupleType = new TupleType(numTypeList);
+    }
+
+    ~lcFrequentInfo() {
+        tupleType -> DeleteIfAllowed();
+    }
+
+    Tuple* getNext() {
+      if(pos >= resultList.size()){
+            return 0;
+      }
+      Tuple* newTuple = new Tuple(tupleType);
+      CcInt* res = new CcInt(true, resultList.at(pos));
+      newTuple -> PutAttribute(0, res);
+      pos++;
+      return newTuple;
+    }
+    private:
+      size_t pos; 
+      float support;
+      vector<int> resultList;
+      TupleType* tupleType;
+      ListExpr typeList;
+      ListExpr numTypeList;
+
+};
 
 int lcfrequentVM(Word* args, Word& result,
            int message, Word& local, Supplier s){
-  
-  //Get the Lossy Counter provided by the operator
-  lossyCounter* lc = (lossyCounter*) args[0].addr;
-  
-  //take the parameters values supplied with the operator
-  CcReal* support = (CcReal*) args[1].addr;
-  float supportThreshold = support->GetValue();
 
-  //Get the Resultstorage provided by the Query Processor
-  result = qp -> ResultStorage(s);
-
-  //Make the Storage provided by QP easily usable
-  Relation* frequentItemsRel = (Relation*) result.addr;
-
-  //Prepare the Elements need for creating the output relation
-  
-  Attribute* a = (CcInt*) lc ->getElement(0); 
-  TupleType* tt = new TupleType(1);
-
-  for (int item : lc->getFrequentElements(supportThreshold)) {
-    Tuple* tuple = new Tuple(tt);
-    tuple -> PutAttribute(0,a);
-    frequentItemsRel -> AppendTuple(tuple);
-    tuple -> DeleteIfAllowed();
+    lcFrequentInfo* freqInf = (lcFrequentInfo*) local.addr;
+    switch(message){
+      case OPEN: {
+                  if(freqInf) {
+                    delete freqInf;
+                    local.addr = 0;
+                  }
+                  CcReal* minSupport = (CcReal*) args[1].addr;
+                  if (minSupport -> IsDefined()) {
+                    float minSup = minSupport->GetValue();
+                    if ((minSup > 0) && (minSup <= 1)) {
+                      local.addr = new 
+                      lcFrequentInfo((lossyCounter*) args[0].addr, minSup);
+                    }
+                  }
+                  return 0;
+                }
+      case REQUEST: result.addr = freqInf?freqInf->getNext():0;
+                    return result.addr?YIELD:CANCEL;
+      case CLOSE: {
+                    if(freqInf){
+                      delete freqInf;
+                      local.addr = 0;
+                    }
+                   return 0;
+                  }
   }
-
-  tt->DeleteIfAllowed();
-
-
-  result.setAddr(frequentItemsRel);
-
-  return 0;
+    return -1;
 }
-*/
 
 /*
 2.3.9 Operator ~outlier~
@@ -3458,8 +3548,6 @@ class outlierInfo{
         CcInt* index = new CcInt(true, counter);
         newTuple -> PutAttribute(0, attrValue);
         newTuple -> PutAttribute(1, index);
-
-
         outlierHistory.push_back(newTuple);
         int value = attrValue ->GetIntval();
         intUpdate(value);
@@ -3659,7 +3747,7 @@ outlierVM(Word* args, Word& result,
     "given AMS-Sketch"
   );
 
-  OperatorSpec creatlossycounterSpec(
+  OperatorSpec createlossycounterSpec(
     "stream(tuple(X)) x ATTR x real ->  lossycounter",
     "_ createlossycounter [_,_]",
     "Creates a lossy Counter the supplied stream",
@@ -3667,7 +3755,7 @@ outlierVM(Word* args, Word& result,
   );
 
   OperatorSpec lcfrequentSpec(
-    "lossycounter(X) -> ATTRList",
+    "lossycounter(X) -> stream(ATTR)",
     "_ lcfrequent [_]",
     "Displays the items determined to be frequent by the lossy Counter",
     "query intstream(0,100) createlossycounter lcfrequent"
@@ -3744,6 +3832,22 @@ Operator amsestimateOp(
   amsestimateTM
 );
 
+Operator createlossycounterOp(
+  "createlossycounter",
+  createlossycounterSpec.getStr(),
+  createlossycounterVM,
+  Operator::SimpleSelect,
+  createlossycounterTM
+);
+
+Operator lcfrequentOp(
+  "lcfrequent",
+  lcfrequentSpec.getStr(),
+  lcfrequentVM,
+  Operator::SimpleSelect,
+  lcfrequentTM
+);
+
 Operator outlierOp(
   "outlier",
   outlierSpec.getStr(),
@@ -3767,11 +3871,14 @@ class StreamMiningAlgebra : public Algebra
     AddTypeConstructor(&scalableBloomFilterTC);
     AddTypeConstructor(&countMinSketchTC);
     AddTypeConstructor(&amsSketchTC);
+    AddTypeConstructor(&lossyCounterTC);
 
     //Usage possibilities of the Types
     scalableBloomFilterTC.AssociateKind(Kind::SIMPLE());
     countMinSketchTC.AssociateKind(Kind::SIMPLE());
     amsSketchTC.AssociateKind(Kind::SIMPLE());
+    lossyCounterTC.AssociateKind(Kind::SIMPLE());
+
 
 
     //Registration of Operators
@@ -3782,6 +3889,8 @@ class StreamMiningAlgebra : public Algebra
     AddOperator(&cmscountOp);
     AddOperator(&createamsOp);
     AddOperator(&amsestimateOp);
+    AddOperator(&createlossycounterOp);
+    AddOperator(&lcfrequentOp);
     AddOperator(&outlierOp);
   }
   ~StreamMiningAlgebra() {};

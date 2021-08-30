@@ -46,8 +46,20 @@ Signature: amssketch -> real
 Example  : query Kinos feed createams[Name,0.01,0.1] amsestimate
 Result   : 22
 
-Operator : outlier
+Operator : createlossycounter
 Number   : 8
+Signature: stream(tuple(X)) x ATTR x real -> lossycounter
+Example  : query intstream(1,100) createlossycounter[Elem,0.01] lcfrequent[0.1] count
+Result   : 0
+
+Operator : lcfrequent
+Number   : 9
+Signature: lossycounter x real -> stream(tuple(x))
+Example  : query intstream(1,100) createlossycounter[Elem,0.01] lcfrequent[0.1] count
+Result   : 0
+
+Operator : outlier
+Number   : 10
 Signature: (stream(T) x int) -> stream(T)
 Example  : query intstream(1,100) outlier[Elem,3] count
-Result   : 3
+Result   : 100
