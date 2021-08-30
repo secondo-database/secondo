@@ -49,5 +49,5 @@ Result   : 22
 Operator : outlier
 Number   : 8
 Signature: (stream(T) x int) -> stream(T)
-Example  : query intstream(1,100) outlier[3] count
+Example  : query intstream(1,100) outlier[Elem,3] count
 Result   : 3

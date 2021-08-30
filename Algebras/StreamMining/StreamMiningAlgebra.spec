@@ -33,4 +33,4 @@ operator createams alias AMS pattern _op[_,_,_]
 
 operator amsestimate alias AMSESTIMATE pattern _op
 
-operator outlier alias OUTLIER pattern _op[_]
+operator outlier alias OUTLIER pattern _op[_,_]
