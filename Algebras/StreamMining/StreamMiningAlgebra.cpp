@@ -2517,7 +2517,7 @@ ListExpr errorInfo = nl->OneElemList(nl->SymbolAtom("ErrorInfo"));
   /* Result is a stream of the same type 
 
   */
-  return NList(Symbols::APPEND(), appendList, 
+  return NList(Symbols::APPEND(), appendList,
                lossyCounter::BasicType()).listExpr();
 }
 
@@ -2609,22 +2609,21 @@ outlierTM(ListExpr args) {
   string attrName = type.second().str();
   int attrIndex = listutils::findAttribute(attrList.listExpr(), 
                                            attrName, attrType) - 1;
+  appendList.append(NList().intAtom(attrIndex));
+  appendList.append(NList().stringAtom(nl->ToString(attrType)));
+
 
   if (attrIndex < 0) {
     return NList::typeError("Attribute " + attrName + " "
                             "not found in tuple");
   } 
+  if ((nl->ToString(attrType) != CcInt::BasicType()) &&
+       nl->ToString(attrType) != CcReal::BasicType()) {
+        return NList::typeError("Operator outlier only works with "
+                                "int and real attributes");
+  }
 
-  appendList.append(NList().intAtom(attrIndex));
-  
-  string attrTest = nl->SymbolValue(attrType);
-  cout << endl;
-  cout << "Detected Attribute Type to be: " << attrTest << endl;;
-  cout << endl;
-
-  if (attrTest == CcInt::BasicType()) { 
-    appendList.append(NList().intAtom(0));
-    outlist = 
+  outlist = 
     nl->TwoElemList(
       nl->SymbolAtom(Symbol::STREAM()),
       nl->TwoElemList(
@@ -2632,34 +2631,18 @@ outlierTM(ListExpr args) {
           nl->TwoElemList(
             nl->TwoElemList(
               nl->SymbolAtom("Value"),
-              nl->SymbolAtom(CcInt::BasicType())),       
+              nl->SymbolAtom(nl->SymbolValue(attrType))),       
             nl->TwoElemList(
               nl->SymbolAtom("StreamIndex"),
               nl->SymbolAtom(CcInt::BasicType()))
         )
       )
     );
-  } else if (attrTest == CcReal::BasicType()) {
-    appendList.append(NList().intAtom(1));
-    outlist = 
-      nl->TwoElemList(
-        nl->SymbolAtom(Symbol::STREAM()),
-        nl->TwoElemList(
-          nl->SymbolAtom(Tuple::BasicType()),
-          nl->TwoElemList(
-            nl->TwoElemList(
-              nl->SymbolAtom("Value"),
-              nl->SymbolAtom(CcReal::BasicType())),       
-            nl->TwoElemList(
-              nl->SymbolAtom("StreamIndex"),
-              nl->SymbolAtom(CcInt::BasicType()))
-        )
-      )
-    );
-  } else {
-    return NList::typeError("Operator outlier only works with "
-                            "int and real attributes");
-  }
+
+    cout << endl; 
+    cout << "In outlierTM outlist has the form: " << endl; 
+    cout << nl->ToString(outlist) << endl;
+
 
   /* Result type is a stream of Tuples with the queried attribute value
      and its corresponding index in the stream.
@@ -3457,40 +3440,24 @@ int lcfrequentVM(Word* args, Word& result,
 */
 class outlierInfo{
   public:
-    outlierInfo(Word inputStream, int zScoreInput, int index, int type):
+    outlierInfo(Word inputStream, int zScoreInput, int index, string type):
       stream(inputStream), zThreshhold(zScoreInput), attrIndex(index),  
       attrType(type), mean(0), variance(0), lastOut(-1), counter(0){
         stream.open();
 
-        if (attrType == 0) {
-          typeList = nl->TwoElemList(
-            nl->SymbolAtom(Tuple::BasicType()),
+        typeList = nl->TwoElemList(
+          nl->SymbolAtom(Tuple::BasicType()),
+          nl->TwoElemList(
             nl->TwoElemList(
-              nl->TwoElemList(
-                nl->SymbolAtom("Value"),
-                nl->SymbolAtom(CcInt::BasicType())
-              ),
-              nl->TwoElemList(
-                nl->SymbolAtom("StreamIndex"),
-                nl->SymbolAtom(CcInt::BasicType())
-              )
-            )
-          );
-        } else {
-          typeList = nl->TwoElemList(
-            nl->SymbolAtom(Tuple::BasicType()),
+              nl->SymbolAtom("Value"),
+              nl->SymbolAtom(attrType)
+            ),
             nl->TwoElemList(
-              nl->TwoElemList(
-                nl->SymbolAtom("Value"),
-                nl->SymbolAtom(CcReal::BasicType())
-              ),
-              nl->TwoElemList(
-                nl->SymbolAtom("StreamIndex"),
-                nl->SymbolAtom(CcInt::BasicType())
-              )
+              nl->SymbolAtom("StreamIndex"),
+              nl->SymbolAtom(CcInt::BasicType())
             )
-          );
-        }
+          )
+        );
 
         cout << endl;
         cout << "Construction of the tuple yielded the following Type: ";
@@ -3525,7 +3492,7 @@ class outlierInfo{
       Stream<Tuple> stream; 
       int zThreshhold;
       int attrIndex;
-      int attrType;
+      string attrType;
       double mean; 
       double variance;
       int lastOut;
@@ -3540,7 +3507,7 @@ class outlierInfo{
       Tuple* oldTuple;
       Tuple* newTuple = new Tuple(tupleType);
       //The attribute we are searching outliers for is an Int attribute
-      if (attrType == 0) {      
+      if (attrType == "int") {      
         oldTuple = stream.request(); 
         //We will consider the first Tuple Value to be an outlier since we 
         //have no way of knowing what the stream will actually look like
@@ -3551,7 +3518,6 @@ class outlierInfo{
         outlierHistory.push_back(newTuple);
         int value = attrValue ->GetIntval();
         intUpdate(value);
-
         while ((oldTuple = stream.request()) != nullptr) {
           Tuple* newTuple = new Tuple(tupleType);
           CcInt* attrValue = (CcInt*) oldTuple->GetAttribute(attrIndex);
@@ -3579,6 +3545,16 @@ class outlierInfo{
           intUpdate(value);
         }
       } else {
+        oldTuple = stream.request(); 
+        //We will consider the first Tuple Value to be an outlier since we 
+        //have no way of knowing what the stream will actually look like
+        CcReal* attrValue = (CcReal*) oldTuple->GetAttribute(attrIndex);
+        CcInt* index = new CcInt(true, counter);
+        newTuple -> PutAttribute(0, attrValue);
+        newTuple -> PutAttribute(1, index);
+        outlierHistory.push_back(newTuple);
+        double value = attrValue ->GetValue();
+        realUpdate(value);
         while ((oldTuple= stream.request()) != nullptr) {
           Tuple* newTuple = new Tuple(tupleType);
           CcReal* attrValue = (CcReal*) oldTuple->GetAttribute(attrIndex);
@@ -3600,7 +3576,7 @@ class outlierInfo{
       surpases our treshholds and save it if it does
     */
     bool checkInt(int data) {
-      float zscore;
+      int zscore;
       if (data == 0) {
         zscore = 0;
       } else {
@@ -3613,8 +3589,15 @@ class outlierInfo{
     }
 
     bool checkReal(double data) {
-      float zscore = (data - mean)/sqrt(variance);
-
+      float zscore;
+      if (data == 0) {
+        zscore = 0;
+      } else {
+        zscore = (data - mean)/sqrt(variance);
+      }
+      cout << endl; 
+      cout << "ZScore of element (" << data << ") is: " << zscore << endl;
+      cout << endl;
       if((zscore < (-1*zThreshhold)) || (zscore > zThreshhold)) {
         return true;
       }
@@ -3638,13 +3621,15 @@ class outlierInfo{
     counter++;
   }
 
-  void realUpdate(double data) {
+  void realUpdate(float data) {
     
     //Calculate the first part of the variance for the i+1th element
-    variance = ((variance + pow(mean, 2)* counter + 
-                pow(data, 2))/counter+1);
+    variance = ((variance + pow(mean, 2))* counter + 
+                pow(data, 2))/(counter+1);
+
     //Calculate the mean for the i+1th element
     mean = ((mean * counter) + data)/(counter+1);
+
     //finish the calculation of the variance
     variance = variance - pow(mean,2);
     counter++;
@@ -3664,11 +3649,12 @@ outlierVM(Word* args, Word& result,
                    }
                    CcInt* threshold = (CcInt*) args[2].addr;
                    CcInt* attrIndex = (CcInt*) args[3].addr;
-                   CcInt* attrType = (CcInt*) args[4].addr;
+                   CcString* attrType = (CcString*) args[4].addr;
                    if(threshold->IsDefined()){
                       int zThreshold = threshold->GetValue();
                       int index = attrIndex -> GetValue();
-                      int type = attrType ->GetValue();
+                      string type = attrType ->GetValue();
+                                            cout << endl;
                       if(zThreshold>1) {
                         local.addr = new outlierInfo(args[0], zThreshold, 
                                                      index, type);
