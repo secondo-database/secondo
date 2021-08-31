@@ -481,10 +481,13 @@ export MYSQL_MASTER_PORT=20101
 # Therefore, one transaction per insert would be performed when 
 # the INNODB storage engine is used, which leads to poor import 
 # performance. 
+#
+# 'natural' is a reserved keyword in SQL. Therefore, the natural data
+# is imported into the table natural_data
 # 
 ogr2ogr -f MySQL MySQL:$MYSQL_DB,user=$MYSQL_USER,password=$MYSQL_PASS,port=$MYSQL_MASTER_PORT,host=127.0.0.1 gis_osm_buildings_a_free_1.shp -nln buildings -update -overwrite -lco engine=MyISAM -skipfailures
 ogr2ogr -f MySQL MySQL:$MYSQL_DB,user=$MYSQL_USER,password=$MYSQL_PASS,port=$MYSQL_MASTER_PORT,host=127.0.0.1 gis_osm_landuse_a_free_1.shp -nln landuse -update -overwrite -lco engine=MyISAM -skipfailures
-ogr2ogr -f MySQL MySQL:$MYSQL_DB,user=$MYSQL_USER,password=$MYSQL_PASS,port=$MYSQL_MASTER_PORT,host=127.0.0.1 gis_osm_natural_free_1.shp -nln natural -update -overwrite -lco engine=MyISAM -skipfailures
+ogr2ogr -f MySQL MySQL:$MYSQL_DB,user=$MYSQL_USER,password=$MYSQL_PASS,port=$MYSQL_MASTER_PORT,host=127.0.0.1 gis_osm_natural_free_1.shp -nln natural_data -update -overwrite -lco engine=MyISAM -skipfailures
 ogr2ogr -f MySQL MySQL:$MYSQL_DB,user=$MYSQL_USER,password=$MYSQL_PASS,port=$MYSQL_MASTER_PORT,host=127.0.0.1 gis_osm_places_free_1.shp -nln places -update -overwrite -lco engine=MyISAM -skipfailures
 ogr2ogr -f MySQL MySQL:$MYSQL_DB,user=$MYSQL_USER,password=$MYSQL_PASS,port=$MYSQL_MASTER_PORT,host=127.0.0.1 gis_osm_pofw_a_free_1.shp -nln pofw -update -overwrite -lco engine=MyISAM -skipfailures
 ogr2ogr -f MySQL MySQL:$MYSQL_DB,user=$MYSQL_USER,password=$MYSQL_PASS,port=$MYSQL_MASTER_PORT,host=127.0.0.1 gis_osm_pois_free_1.shp -nln pois -update -overwrite -lco engine=MyISAM -skipfailures
@@ -493,23 +496,19 @@ ogr2ogr -f MySQL MySQL:$MYSQL_DB,user=$MYSQL_USER,password=$MYSQL_PASS,port=$MYS
 ogr2ogr -f MySQL MySQL:$MYSQL_DB,user=$MYSQL_USER,password=$MYSQL_PASS,port=$MYSQL_MASTER_PORT,host=127.0.0.1 gis_osm_traffic_free_1.shp -nln traffic -update -overwrite -lco engine=MyISAM -skipfailures
 ogr2ogr -f MySQL MySQL:$MYSQL_DB,user=$MYSQL_USER,password=$MYSQL_PASS,port=$MYSQL_MASTER_PORT,host=127.0.0.1 gis_osm_transport_free_1.shp -nln transport -update -overwrite -lco engine=MyISAM -skipfailures
 ogr2ogr -f MySQL MySQL:$MYSQL_DB,user=$MYSQL_USER,password=$MYSQL_PASS,port=$MYSQL_MASTER_PORT,host=127.0.0.1 gis_osm_water_a_free_1.shp -nln water -update -overwrite -lco engine=MyISAM -skipfailures
-ogr2ogr -f MySQL MySQL:$MYSQL_DB,user=$MYSQL_USER,password=$MYSQL_PASS,port=$MYSQL_MASTER_PORT,host=127.0.0.1 gis_osm_waterways_free_1.shp -nln waterways -update -overwrite -lco engine=MyISAM -skipfailures -t_srs EPSG:4326
+ogr2ogr -f MySQL MySQL:$MYSQL_DB,user=$MYSQL_USER,password=$MYSQL_PASS,port=$MYSQL_MASTER_PORT,host=127.0.0.1 gis_osm_waterways_free_1.shp -nln waterways -update -overwrite -lco engine=MyISAM -skipfailures
 
-# Change SIRD to 4326 (WGS84)
-for i in buildings landuse natural places pofw pois railways roads traffic transport water waterways; do
-   echo "Converting table $i to INNODB storage engine"
-   mysql -u $MYSQL_USER -p$MYSQL_PASS --port $MYSQL_MASTER_PORT -h 127.0.0.1 $MYSQL_DB -e "UPDATE table SET SHAPE = ST_GeomFromText(ST_AsText(SHAPE), 4326);"
+# Change SRID to 4326 (WGS84)
+for i in buildings landuse natural_data places pofw pois railways roads traffic transport water waterways; do
+   echo "Fixig the spatial reference identifier (SRID) of the spatial data in table $i"
+   mysql -u $MYSQL_USER -p$MYSQL_PASS --port $MYSQL_MASTER_PORT -h 127.0.0.1 $MYSQL_DB -e "UPDATE $i SET SHAPE = ST_GeomFromText(ST_AsText(SHAPE), 4326);"
 done
 
-
 # Change storage backend in MySQL to InnoDB
-for i in buildings landuse natural places pofw pois railways roads traffic transport water waterways; do
+for i in buildings landuse natural_data places pofw pois railways roads traffic transport water waterways; do
    echo "Converting table $i to INNODB storage engine"
    mysql -u $MYSQL_USER -p$MYSQL_PASS --port $MYSQL_MASTER_PORT -h 127.0.0.1 $MYSQL_DB -e "ALTER TABLE $i ENGINE=InnoDB;"
 done
-
-
-
 ``` 
 
 # Retrieve summary information
@@ -536,7 +535,7 @@ name: String (100.0)
 type: String (20.0)
 
 
-# Fetch information about the SRID 4326
+# Fetch information about the SIRD 4326
 SELECT * FROM INFORMATION_SCHEMA.ST_SPATIAL_REFERENCE_SYSTEMS WHERE SRS_ID = 4326\G
 
 # Get the SRID of the spatial data
