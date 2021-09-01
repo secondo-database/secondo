@@ -2862,6 +2862,7 @@ int createbloomfilterVM(Word* args, Word& result,
 
     streamElement = (Attribute*) streamTuple->GetAttribute(attrIndex);
     
+    
     /*64 Bit Version chosen, because of my System. 
     Should we change this 64 bit? */    
     MurmurHash3_x64_128(streamElement, sizeof(*streamElement), 0, mHash);
@@ -3438,6 +3439,7 @@ int lcfrequentVM(Word* args, Word& result,
 2.3.9 Operator ~outlier~
 
 */
+template<class T, class S>
 class outlierInfo{
   public:
     outlierInfo(Word inputStream, int zScoreInput, int index, string type):
@@ -3506,24 +3508,23 @@ class outlierInfo{
     void init() {
       Tuple* oldTuple;
       Tuple* newTuple = new Tuple(tupleType);
-      //The attribute we are searching outliers for is an Int attribute
-      if (attrType == "int") {      
-        oldTuple = stream.request(); 
-        //We will consider the first Tuple Value to be an outlier since we 
-        //have no way of knowing what the stream will actually look like
-        CcInt* attrValue = (CcInt*) oldTuple->GetAttribute(attrIndex);
-        CcInt* index = new CcInt(true, counter);
-        newTuple -> PutAttribute(0, attrValue);
-        newTuple -> PutAttribute(1, index);
-        outlierHistory.push_back(newTuple);
-        int value = attrValue ->GetIntval();
-        intUpdate(value);
-        while ((oldTuple = stream.request()) != nullptr) {
+      //The attribute we are searching outliers for is an Int attribute    
+      oldTuple = stream.request(); 
+      //We will consider the first Tuple Value to be an outlier since we 
+      //have no way of knowing what the stream will actually look like
+      T* attrValue = (T*) oldTuple->GetAttribute(attrIndex);
+      CcInt* index = new CcInt(true, counter);
+      newTuple -> PutAttribute(0, attrValue);
+      newTuple -> PutAttribute(1, index);
+      outlierHistory.push_back(newTuple);
+      S value = (S) attrValue->GetValue();
+      updateData(value);
+      while ((oldTuple = stream.request()) != nullptr) {
           Tuple* newTuple = new Tuple(tupleType);
-          CcInt* attrValue = (CcInt*) oldTuple->GetAttribute(attrIndex);
+          T* attrValue = (T*) oldTuple->GetAttribute(attrIndex);
           CcInt* index = new CcInt(true, counter);
-          int value = attrValue ->GetIntval();
-          if (checkInt(value)) {
+          S value = attrValue ->GetValue();
+          if (checkData(value)) {
             newTuple -> PutAttribute(0, attrValue);
             newTuple -> PutAttribute(1, index);
             outlierHistory.push_back(newTuple);
@@ -3531,9 +3532,9 @@ class outlierInfo{
               cout << endl;
               cout << "Outlier history now contains: " << endl; 
               for (auto elem : outlierHistory) {
-                CcInt* attrValue = (CcInt*) elem->GetAttribute(0);
+               T* attrValue = (T*) elem->GetAttribute(0);
                 CcInt* attrIndex = (CcInt*) elem->GetAttribute(1);
-                int attr = attrValue -> GetValue();
+                S attr = attrValue -> GetValue();
                 int index = attrIndex -> GetValue();
                 cout << "Value: " << attr << " Index: " << index << endl;
                 cout << endl;
@@ -3542,8 +3543,10 @@ class outlierInfo{
           } else {
             oldTuple -> DeleteIfAllowed();
           }
-          intUpdate(value);
+          updateData(value);
         }
+      
+      /*
       } else {
         oldTuple = stream.request(); 
         //We will consider the first Tuple Value to be an outlier since we 
@@ -3570,12 +3573,12 @@ class outlierInfo{
           realUpdate(value);
         }
       }
+      */
     }
-
     /*Check whether the currently handled Streamelement
       surpases our treshholds and save it if it does
     */
-    bool checkInt(int data) {
+    bool checkData(S data) {
       int zscore;
       if (data == 0) {
         zscore = 0;
@@ -3588,29 +3591,11 @@ class outlierInfo{
       return false;
     }
 
-    bool checkReal(double data) {
-      float zscore;
-      if (data == 0) {
-        zscore = 0;
-      } else {
-        zscore = (data - mean)/sqrt(variance);
-      }
-      cout << endl; 
-      cout << "ZScore of element (" << data << ") is: " << zscore << endl;
-      cout << endl;
-      if((zscore < (-1*zThreshhold)) || (zscore > zThreshhold)) {
-        return true;
-      }
-      return false;
-    }
-
   //Update mean, variance and the counter
-  void intUpdate(int data) {    
+  void updateData(S data) {    
     //Calculate the first part of the variance for the i+1th element
     variance = ((variance + pow(mean, 2)) * counter + 
                 pow(data, 2))/(counter+1);
-
-                
 
     //Calculate the mean for the i+1th element
     mean = ((mean * counter) + data)/(counter+1);
@@ -3620,27 +3605,13 @@ class outlierInfo{
 
     counter++;
   }
-
-  void realUpdate(float data) {
-    
-    //Calculate the first part of the variance for the i+1th element
-    variance = ((variance + pow(mean, 2))* counter + 
-                pow(data, 2))/(counter+1);
-
-    //Calculate the mean for the i+1th element
-    mean = ((mean * counter) + data)/(counter+1);
-
-    //finish the calculation of the variance
-    variance = variance - pow(mean,2);
-    counter++;
-  }
 };
 
-int 
-outlierVM(Word* args, Word& result,
+template<class T, class S> int
+outlierVMT(Word* args, Word& result,
            int message, Word& local, Supplier s){
 
-  outlierInfo* outlier = (outlierInfo*) local.addr;
+  outlierInfo<T,S>* outlier = (outlierInfo<T,S>*) local.addr;
   switch(message){
     case OPEN: {
                    if(outlier) {
@@ -3656,7 +3627,7 @@ outlierVM(Word* args, Word& result,
                       string type = attrType ->GetValue();
                                             cout << endl;
                       if(zThreshold>1) {
-                        local.addr = new outlierInfo(args[0], zThreshold, 
+                        local.addr = new outlierInfo<T,S>(args[0], zThreshold, 
                                                      index, type);
                       }
                    }
@@ -3675,6 +3646,30 @@ outlierVM(Word* args, Word& result,
 
   }
   return -1;
+}
+
+//value Mapping Array
+ValueMapping outlierVM[] = { 
+              outlierVMT<CcInt, int>,
+              outlierVMT<CcReal, float>
+};  
+
+// Selection Function
+int outlierSelect(ListExpr args){
+  NList type(args);
+  NList attrList = type.third();
+  cout << endl;
+  cout << "In the outlier Selection Function "
+       << "the Argument type is determined as: " 
+       << type.third().toStringAtom() << endl;
+  cout << endl;
+   if (type.third().toStringAtom() == CcInt::BasicType()) {
+     return 0;
+   } else if (type.second().toStringAtom() == CcReal::BasicType()){
+     return 1;
+   } else {
+     return -1;
+   }
 }
 
 /*
@@ -3837,8 +3832,9 @@ Operator lcfrequentOp(
 Operator outlierOp(
   "outlier",
   outlierSpec.getStr(),
+  2,
   outlierVM,
-  Operator::SimpleSelect,
+  outlierSelect,
   outlierTM
 );
 
