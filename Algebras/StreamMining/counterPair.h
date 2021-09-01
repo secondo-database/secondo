@@ -26,23 +26,24 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "StandardTypes.h"
 
 namespace eschbach {
+    template<class T>
     class counterPair
 {
   public:
-  counterPair(int item, long frequency, long maxError);
+  counterPair(T item, long frequency, long maxError);
   ~counterPair() {}
-  int item; 
-  long frequency;
-  long maxError;
+  T item; 
+  int frequency;
+  int maxError;
 
 
 
   //Getter und Setter
-  int getItem(); 
-  void setItem();
-  long getFrequency(); 
+  T getItem(); 
+  void setItem(T item);
+  int getFrequency(); 
   void setFrequency();
-  long getMaxError();
+  int getMaxError();
   void setMaxError();
   };
 }

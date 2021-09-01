@@ -30,11 +30,11 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 
 namespace eschbach {
+    template<class T>
     class lossyCounter
 {
   public:
   lossyCounter(const float epsilon);
-  lossyCounter(const lossyCounter& rhs);
   ~lossyCounter() {}
 
 
@@ -45,56 +45,19 @@ namespace eschbach {
   float getEpsilon(); 
   long getCurrentWindowIndex();
   int getWindowSize();
-  int getElement(int index);
-  std::unordered_map<int, counterPair> getFrequencyList();
+  T getElement(int index);
+  std::unordered_map<T, counterPair<T>> getFrequencyList();
 
   //Auxiliary Functions
   void initialize(const float epsilon);
-  void incrCount(int element); 
-  void addElement(int element);
-  void insertElement(int element);
-  bool elementPresent(int element);
+  void incrCount(T element); 
+  void addElement(T element);
+  void insertElement(T element);
+  bool elementPresent(T element);
   void reduce();
   void updateWindowIndex(); 
-  std::vector<int> getFrequentElements(double minSupport);
-  long estimateCount(int element);
-
-
-  //Support Functions
-  static Word     In( const ListExpr typeInfo, const ListExpr instance,
-                      const int errorPos, ListExpr& errorInfo, bool& correct );
-  
-  static ListExpr Out( ListExpr typeInfo, Word value );
-
-  //Storage Record
-  static Word     Create( const ListExpr typeInfo );
-
-  static void     Delete( const ListExpr typeInfo, Word& w );
-
-  static bool     Open(SmiRecord& valueRecord, size_t& offset, 
-                         const ListExpr typeInfo, Word& value);
-  
-  static void     Close( const ListExpr typeInfo, Word& w );
-
-  static bool     Save(SmiRecord & valueRecord , size_t & offset,
-                       const ListExpr typeInfo , Word & value);
-  
-  static Word     Clone( const ListExpr typeInfo, const Word& w );
-
-  static bool     KindCheck( ListExpr type, ListExpr& errorInfo );
-
-  static int      SizeOfObj();
-
-  static ListExpr Property();
-
-
-   static const std::string BasicType() {
-    return "lossycounter";
-  }
-
-  static const bool checkType (const ListExpr list) {
-    return listutils::isSymbol(list, BasicType());
-  }
+  std::vector<T> getFrequentElements(double minSupport);
+  long estimateCount(T element);
 
   private:
     lossyCounter() {}
@@ -104,7 +67,7 @@ namespace eschbach {
     size_t eleCounter; 
     int windowSize; 
     long windowIndex;
-    std::unordered_map<int, counterPair> frequencyList;
+    std::unordered_map<T, counterPair<T>> frequencyList;
   };
 
 }
