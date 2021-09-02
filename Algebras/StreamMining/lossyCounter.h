@@ -41,7 +41,7 @@ namespace eschbach {
   //Getter und Setter
   void setDefined(bool value); 
   bool getDefined(); 
-  size_t getEleCounter(); 
+  int getEleCounter(); 
   float getEpsilon(); 
   long getCurrentWindowIndex();
   int getWindowSize();
