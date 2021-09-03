@@ -75,6 +75,9 @@ It provides the following operators:
 #include "CountMinSketch.h"
 #include "amsSketch.h"
 #include "lossyCounter.h"
+#include "cPoint.h";
+#include "Cluster.h";
+#include "kMeans.h";
 
 #include <string>
 #include <iostream>   
@@ -99,7 +102,6 @@ namespace eschbach {
 2.1.1 Class ~BloomFilter~
 
 */
-
 ScalableBloomFilter::ScalableBloomFilter
 (const double inputFP) {
   defined = true; 
@@ -354,7 +356,6 @@ ScalableBloomFilter::In(const ListExpr typeInfo, const ListExpr instance,
 
 //Out-Function to turn List Representation into Class Representation
 //Currently Dummy
-
 ListExpr
 ScalableBloomFilter::Out(ListExpr typeInfo, Word value) {
   ScalableBloomFilter* bloomfilter = 
@@ -381,7 +382,6 @@ ScalableBloomFilter::Out(ListExpr typeInfo, Word value) {
 
 
 //Support Functions for Persistent Sorage
-
 Word
 ScalableBloomFilter::Create( const ListExpr typeInfo )
 {
@@ -595,7 +595,6 @@ ScalableBloomFilter::Clone( const ListExpr typeInfo, const Word& w ) {
 
 
 //Type Description
-
 struct scalableBloomFilterInfo : ConstructorInfo {
 
   scalableBloomFilterInfo() {
@@ -611,7 +610,6 @@ struct scalableBloomFilterInfo : ConstructorInfo {
 
 
 //Creation of the Type Constructor Instance
-
 struct scalableBloomFilterFunctions : 
        ConstructorFunctions<ScalableBloomFilter> {
 
@@ -638,7 +636,6 @@ TypeConstructor scalableBloomFilterTC( bi, bf );
 2.1.2 Class ~CountMinSketch~
 
 */
-
 CountMinSketch::CountMinSketch
 (const float epsilon, const float delta) {
   defined = true;
@@ -792,7 +789,6 @@ CountMinSketch::initialize(float eps, float delt) {
 // We use the fact that pairwise independent Hashfunctions are easy
 // to generate with h(x) = ax + b % p, with p being a big prime, and a
 // b being constants. In this function we generate the constants.
-
 void
 CountMinSketch::generateConstants(int index) {
   long a = long(float(rand())*float(LONG_PRIME)/float(RAND_MAX));
@@ -906,7 +902,6 @@ CountMinSketch::Out(ListExpr typeInfo, Word value) {
 
 
 //Support Functions for Persistent Sorage
-
 Word
 CountMinSketch::Create( const ListExpr typeInfo )
 {
@@ -1063,8 +1058,6 @@ CountMinSketch::Clone( const ListExpr typeInfo, const Word& w )
 
 
 //Type Description
-
-
 struct countMinSketchInfo : ConstructorInfo {
 
   countMinSketchInfo() {
@@ -1080,8 +1073,6 @@ struct countMinSketchInfo : ConstructorInfo {
 
 
 //Creation of the Type Constructor Instance
-
-
 struct countMinSketchFunctions : 
        ConstructorFunctions<CountMinSketch> {
 
@@ -1108,7 +1099,6 @@ TypeConstructor countMinSketchTC( ci, cf );
 2.1.3 Class ~amsSketch~
 
 */
-
 amsSketch::amsSketch
 (const float epsilon, const float delta) {
   defined = true;
@@ -1238,7 +1228,6 @@ amsSketch::setConstantsFw(int index, long a, long b,
   fwConstants[index][3] = d;
 }
 
-
 vector<vector<long>>
 amsSketch::getConstantsFw() {
   return fwConstants;
@@ -1285,7 +1274,6 @@ amsSketch::initialize(float eps, float delt) {
 // We use the fact that pairwise independent Hashfunctions are easy
 // to generate with h(x) = ax + b % p, with p being a big prime, and a
 // b beign constants. In this function we generate the constants.
-
 void
 amsSketch::generateConstants(int index) {
   long a = long(float(rand())*float(LONG_PRIME)/float(RAND_MAX));
@@ -1295,7 +1283,6 @@ amsSketch::generateConstants(int index) {
 
 // In contrast to Count-Min we also need a four-wise independent hash
 //  Function. These are given by h(x) = ax^3 + bx^2 + cx + d % p.
-
 void 
 amsSketch::generateFwConstants(int index) {
   long a = long(float(rand())*float(LONG_PRIME)/float(RAND_MAX));
@@ -1384,7 +1371,6 @@ amsSketch::medianDecider(int arr[], int l, int r, int k, int& a, int& b) {
     return;
 }
 
-
 int
 amsSketch::findMedian(int medianArray[]) {
   int a = -1;
@@ -1452,7 +1438,6 @@ amsSketch::estimateInnerProduct() {
 
 //~In~/~Out~ Functions
 
-
 //In-Function to turn List Representation into Class Representation
 Word
 amsSketch::In(const ListExpr typeInfo, const ListExpr instance,
@@ -1510,7 +1495,6 @@ amsSketch::Out(ListExpr typeInfo, Word value) {
 
 
 //Support Functions for Persistent Sorage
-
 Word
 amsSketch::Create( const ListExpr typeInfo )
 {
@@ -1600,7 +1584,6 @@ amsSketch::Open(SmiRecord& valueRecord, size_t& offset,
   return true;
 } 
 
-
 bool 
 amsSketch::Save(SmiRecord & valueRecord , size_t & offset ,
 const ListExpr typeInfo , Word & value) {
@@ -1673,14 +1656,12 @@ const ListExpr typeInfo , Word & value) {
   return true;
 }
 
-
 void
 amsSketch::Close( const ListExpr typeInfo, Word& w )
 {
   delete static_cast<amsSketch*>( w.addr );
   w.addr = 0;
 }
-
 
 Word
 amsSketch::Clone( const ListExpr typeInfo, const Word& w )
@@ -1693,7 +1674,6 @@ amsSketch::Clone( const ListExpr typeInfo, const Word& w )
 Type Description
 
 */
-
 struct amsSketchInfo : ConstructorInfo {
 
   amsSketchInfo() {
@@ -1711,7 +1691,6 @@ struct amsSketchInfo : ConstructorInfo {
 Creation of the Type Constructor Instance
 
 */
-
 struct amsSketchFunctions : 
        ConstructorFunctions<amsSketch> {
 
@@ -1923,6 +1902,68 @@ counterPair<T>::getMaxError() {
   return maxError;
 }
 
+/*
+2.1.5 Class ~streamCluster~
+
+2.1.5.1 Class ~cPoint~
+
+*/
+cPoint::cPoint(int id, string coordinates) {
+  pointId = id; 
+  values = stringToVec(coordinates);
+  dimensions = values.size(); 
+  //Assign ID=0, because the Point will not have
+  //an assigned Cluster at the start
+  clusterId = 0; 
+}
+
+int
+cPoint::getDimensions() {
+  return dimensions;
+}
+
+int
+cPoint::getCluster() {
+  return clusterId;
+}
+
+int 
+cPoint::getId() {
+  return pointId;
+}
+
+void
+cPoint::setCluster(int index) {
+  clusterId = index;
+}
+
+double
+cPoint::getVal(int index) {
+  return values[index];
+}
+
+//implement how to read data from stream
+vector<double>
+cPoint::stringToVec(string &coordinates) {
+  vector<double> dummy; 
+  return dummy;
+}
+
+/*
+2.1.5.2 Class ~Cluster~
+
+*/
+Cluster::Cluster(int id, cPoint centroid) {
+  clusterId = id; 
+  for (int i = 0; i < centroid.getDimensions(); i++) {
+    clusterCentroid.push_back(centroid.getVal(i));
+  }
+  addPoint(centroid);
+}
+
+Cluster::Cluster()
+
+
 
 
 /*
@@ -2053,13 +2094,11 @@ ListExpr errorInfo = nl->OneElemList(nl->SymbolAtom("ErrorInfo"));
                             "not found in tuple");
   }
 
-
-  appendList.append(NList().intAtom(attrIndex));
-
   /* result is a bloomfilter and we append the index of 
      the attribute of the tuples which will be hashed to create our filter 
-
   */
+  appendList.append(NList().intAtom(attrIndex));
+
   return NList(Symbols::APPEND(), appendList, 
                ScalableBloomFilter::BasicType()).listExpr();
 }
@@ -2082,7 +2121,7 @@ bloomcontainsTM(ListExpr args) {
                             "Bloomfilter as first argument");
   }
 
-  // test second argument for DATA or TUPLE
+  // test second argument for DATA
   if(type.second().isAtom()) {
     return NList(CcBool::BasicType()).listExpr(); 
   }    
@@ -2101,9 +2140,7 @@ createcountminTM( ListExpr args ) {
 NList type(args);
 NList streamtype = type.first().second();
 NList appendList;
-
-ListExpr a = nl->First(args);
-
+ListExpr streamType = nl->First(args);
 ListExpr errorInfo = nl->OneElemList(nl->SymbolAtom("ErrorInfo"));
 
   // three arguments must be supplied
@@ -2113,7 +2150,7 @@ ListExpr errorInfo = nl->OneElemList(nl->SymbolAtom("ErrorInfo"));
   }
 
   // test first argument for being a tuple stream
-  if(!Stream<Tuple>::checkType(a)){
+  if(!Stream<Tuple>::checkType(streamType)){
     return NList::typeError( "Operator createcountmin expects a "
                              "Tuple Stream as first argument");
   }
@@ -2154,7 +2191,7 @@ ListExpr errorInfo = nl->OneElemList(nl->SymbolAtom("ErrorInfo"));
                                            attrName, attrType) - 1;
 
   //Save whether the Attribute Type we have to hash is a number
-  // so we can modify the way we hash;
+  //so we can modify the way we hash;
   bool isNumeric = listutils::isNumericType(attrType);
 
   if (attrIndex < 0) {
@@ -2162,15 +2199,11 @@ ListExpr errorInfo = nl->OneElemList(nl->SymbolAtom("ErrorInfo"));
                             "not found in tuple");
   }
 
-
-
-
-  appendList.append(NList().intAtom(attrIndex));
-  appendList.append(NList().boolAtom(isNumeric));
-
   /* result is a Count Min Sketch and we append the index and type of 
      the attribute of the tuples which will be hashed to create our filter 
   */
+  appendList.append(NList().intAtom(attrIndex));
+  appendList.append(NList().boolAtom(isNumeric));
   return NList(Symbols::APPEND(), appendList,
                CountMinSketch::BasicType()).listExpr();
 }
@@ -2219,9 +2252,7 @@ createamsTM( ListExpr args ) {
 NList type(args);
 NList streamtype = type.first().second();
 NList appendList;
-
-ListExpr a = nl->First(args);
-
+ListExpr streamType = nl->First(args);
 ListExpr errorInfo = nl->OneElemList(nl->SymbolAtom("ErrorInfo"));
 
   // three arguments must be supplied
@@ -2231,7 +2262,7 @@ ListExpr errorInfo = nl->OneElemList(nl->SymbolAtom("ErrorInfo"));
   }
 
   // test first argument for being a tuple stream
-  if(!Stream<Tuple>::checkType(a)){
+  if(!Stream<Tuple>::checkType(streamType)){
     return NList::typeError( "Operator createams expects a "
                              "Tuple Stream as first argument");
   }
@@ -2280,13 +2311,11 @@ ListExpr errorInfo = nl->OneElemList(nl->SymbolAtom("ErrorInfo"));
                             "not found in tuple");
   }
 
-  appendList.append(NList().intAtom(attrIndex));
-  appendList.append(NList().boolAtom(isNumeric));
-
   /* result is a AMS Sketch and we append the index and type of 
      the attribute of the tuples which will be hashed to create our filter 
   */
-
+  appendList.append(NList().intAtom(attrIndex));
+  appendList.append(NList().boolAtom(isNumeric));
   return NList(Symbols::APPEND(), appendList, 
                amsSketch::BasicType()).listExpr();
 }
@@ -2327,9 +2356,7 @@ NList type(args);
 NList streamtype = type.first().second();
 NList appendList;
 ListExpr outlist = nl->TheEmptyList();
-
-ListExpr a = nl->First(args);
-
+ListExpr streamType = nl->First(args);
 ListExpr errorInfo = nl->OneElemList(nl->SymbolAtom("ErrorInfo"));
 
   // three arguments must be supplied
@@ -2339,7 +2366,7 @@ ListExpr errorInfo = nl->OneElemList(nl->SymbolAtom("ErrorInfo"));
   }
 
   // test first argument for being a tuple stream
-  if(!Stream<Tuple>::checkType(a)){
+  if(!Stream<Tuple>::checkType(streamType)){
     return NList::typeError( "Operator createlossycounter expects a "
                              "Tuple Stream as first argument");
   }
@@ -2381,7 +2408,8 @@ ListExpr errorInfo = nl->OneElemList(nl->SymbolAtom("ErrorInfo"));
   appendList.append(NList().stringAtom(nl->ToString(attrType)));
   
 
-  /* Result is a  Tuple Stream consisting of (Item, Frequency, Delta)
+  /* Result is a  Tuple Stream consisting of (Item, Frequency, Delta,
+     Epsilon,EleCount) and we appended attribute Index and Type
   */
   outlist = 
     nl->TwoElemList(
@@ -2503,7 +2531,9 @@ lcfrequentTM(ListExpr args) {
 
         
 
-  //Return an Attribute Stream
+  /* Result is a  Tuple Stream consisting of (Item, Frequency, Delta) 
+     and we appended attribute Index and Type
+  */
   cout << endl;
   cout << "Return type of lcfrequent() is: " << endl;
   cout << nl->ToString(NList(Symbols::APPEND(), appendList,
@@ -2532,13 +2562,13 @@ outlierTM(ListExpr args) {
 
   // test first argument for being a tuple stream
   if(!Stream<Tuple>::checkType(stream.listExpr())){
-    return NList::typeError( "Operator createcountmin expects a "
+    return NList::typeError( "Operator outlier expects a "
                              "Tuple Stream as first argument");
   }
 
   //test second argument for a valid Attribute Name
   if (!type.second().isSymbol()){
-    return NList::typeError("Operator createcountmin expects a valid "
+    return NList::typeError("Operator outlier expects a valid "
                             "Attribute Name as second argument");
   }
 
@@ -2555,9 +2585,6 @@ outlierTM(ListExpr args) {
   string attrName = type.second().str();
   int attrIndex = listutils::findAttribute(attrList.listExpr(), 
                                            attrName, attrType) - 1;
-  appendList.append(NList().intAtom(attrIndex));
-  appendList.append(NList().stringAtom(nl->ToString(attrType)));
-
 
   if (attrIndex < 0) {
     return NList::typeError("Attribute " + attrName + " "
@@ -2591,9 +2618,11 @@ outlierTM(ListExpr args) {
 
 
   /* Result type is a stream of Tuples with the queried attribute value
-     and its corresponding index in the stream.
+     and its corresponding index in the stream. We also appended
+     the attribute index and type for the Value Mapping
   */
-
+  appendList.append(NList().intAtom(attrIndex));
+  appendList.append(NList().stringAtom(nl->ToString(attrType)));
   return NList(Symbols::APPEND(), appendList,
                outlist).listExpr();
 
@@ -3114,7 +3143,6 @@ int createamsVM(Word* args, Word& result,
   //initialize the Filter with the values provided by the operator
   ams->initialize(epsilon->GetValue(),delta->GetValue());
 
-
   cout << "After init() AMS Values are: " << endl;
   cout << endl;
   cout << "Defined: " + ams->getDefined() << endl;
@@ -3218,8 +3246,6 @@ int amsestimateVM(Word* args, Word& result,
 2.3.7 Operator ~createlossycounter~
 
 */
-
-
 template<class T, class S> 
 class createlossycounterInfo{
     public: 
@@ -3617,8 +3643,6 @@ int lcfrequentSelect(ListExpr args){
   }
 }
 
-
-
 /*
 2.3.9 Operator ~outlier~
 
@@ -3730,8 +3754,8 @@ class outlierInfo{
         }
     }
 
-    /*Check whether the currently handled Streamelement
-      surpases our treshholds and save it if it does
+    /*Check whether the currently handled Streamelements
+      z-Score surpases our treshholds and save it if it does
     */
     bool checkData(S data) {
       int zscore;

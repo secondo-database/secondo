@@ -61,7 +61,6 @@ namespace eschbach {
 
   private:
     lossyCounter() {}
-    friend struct ConstructorFunctions<lossyCounter>;
     bool defined;
     float epsilon; 
     size_t eleCounter; 
