@@ -28,7 +28,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "cPoint.h"
 
 namespace eschbach {
-    template<class T>
     class kMeans
 {
   public:
@@ -38,7 +37,7 @@ namespace eschbach {
 
 
     //Auxiliary
-    void cluster(vector<Point> &all_points)
+    void cluster(vector<cPoint> &all_points);
 
   private: 
     kMeans() {}
@@ -50,10 +49,6 @@ namespace eschbach {
 
     //Auxiliary
     void clearClusters(); 
-    int getClosestClusterId(Point point); 
-
-
-
-
+    int getClosestClusterId(cPoint point); 
   };
 }

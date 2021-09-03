@@ -1961,9 +1961,170 @@ Cluster::Cluster(int id, cPoint centroid) {
   addPoint(centroid);
 }
 
-Cluster::Cluster()
+int
+Cluster::getId() {
+  return clusterId; 
+}
 
+cPoint
+Cluster::getPoint(int pos) {
+  return points[pos];
+}
 
+int
+Cluster::getSize() {
+  return points.size();
+}
+
+double
+Cluster::getCentroidByPos(int pos) {
+  return centroid[pos];
+}
+
+void
+Cluster::setCentroidByPos(int pos, double val) {
+  clusterCentroid[pos] = val;
+}
+
+//Auxilliary Functions
+void 
+Cluster::addPoint(cPoint p){
+  p.setCluster(this->clusterId);
+  points.push_back(p);
+}
+
+bool
+Cluster::removePoint(int pointId) {
+  int size = points.size();
+
+  for (int i = 0; i < size; i++) {
+    if (points[i].getId() == pointId) {
+      points.erase(points.begin()+i);
+      return true;
+    }
+  }
+  return false;
+}
+
+void
+Cluster::removeAllPoints() {
+  points.clear();
+}
+
+/*
+2.1.5.2 Class ~kMeans~
+
+*/
+kMeans::kMeans(int k, int iterations) {
+  this->k = k; 
+  this->iterations = iterations;
+}
+
+void
+kMeans::clearClusters() {
+  for (int i = 0; i < k; i++) {
+    clusters[i].removeAllPoints();
+  }
+}
+
+int
+kMeans::getClosestClusterId(cPoint point) {
+  double sum = 0.0; 
+  double minDist;
+  int closestClusterId; 
+
+  if(dimensions==1) {
+    minDist = abs(clusters[0].getCentroidByPos(0) - point.getVal(0));
+  } else {
+    for (int i = 0; i < dimensions; i++) {
+      sum += pow(clusters[0].getCentroidByPos(i) - point.getVal(i), 2.0);
+    }
+    minDist = sqrt(sum);
+  }
+  closestClusterId = clusters[0].getId();
+
+  for (int i = 1; i < k; i++) {
+    double dist;
+    sum = 0.0; 
+
+    if (dimensions == 1) {
+      dist = abs(clusters[i].getCentroidByPos(0) - point.getVal(0));
+    } else {
+      for (int j = 0; j < dimensions; j++) {
+        sum+=pow(clusters[i].getCentroidByPos(j)-point.getVal(j),2.0);
+      }
+    dist = sqrt(sum); 
+    }
+
+    if (dist < minDist) {
+      minDist = dist; 
+      closestClusterId = clusters[i].getId();
+    }
+  }
+  return closestClusterId;
+}
+
+void
+kMeans::cluster(vector<cPoint> &allPoints) {
+  totalPoints = allPoints.size();
+  dimensions = allPoints[0].getDimensions();
+
+  vector<int> usedPointIds; 
+
+  for (int i = 1; i <= k; i++) {
+    while(true) {
+      int index = rand() % totalPoints;
+
+      if(find(usedPointIds.begin(), usedPointIds.end(), index) ==
+          usedPointIds.end()) {
+            usedPointIds.push_back(index);
+            allPoints[index].setCluster(i);
+            Cluster cluster(i, allPoints[index]);
+            clusters.push_back(cluster);
+            break;
+      }
+    }
+  }
+
+  int iteration = 1; 
+  while (true) {
+    bool done = true; 
+
+    for (int i = 0; i < totalPoints; i++) {
+      int currentClusterId = allPoints[i].getCluster();
+      int nearestClusterId = getClosestClusterId(allPoints[i]);
+
+      if (currentClusterId != nearestClusterId) {
+        allPoints[i].setCluster(nearestClusterId);
+        done = false;
+      }
+    }
+    clearClusters();
+
+    for(int i = 0; i < totalPoints; i++) {
+      clusters[allPoints[i].getCluster()-1].addPoint(allPoints[i]);
+    }
+
+    for (int i = 0; i < k; i++) {
+      int clusterSize = clusters[i].getSize();
+
+      for (int j = 0; j < dimensions; j++) {
+        double sum = 0.0;
+        if (clusterSize > 0) {
+          for (int p = 0; p < clusterSize; p++) {
+            sum += clusters[i].gePoint(p).getVal(j);
+          }
+          clusters[i].setCentroidByPos(j, sum/clusterSize);
+        }
+      }
+    }
+
+    if (done || iteration >= iterations) {
+      break; 
+    }
+    iteration++;
+  }
+}
 
 
 /*
