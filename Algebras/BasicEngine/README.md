@@ -541,3 +541,17 @@ SELECT * FROM INFORMATION_SCHEMA.ST_SPATIAL_REFERENCE_SYSTEMS WHERE SRS_ID = 432
 # Get the SRID of the spatial data
 SELECT ST_SRID(SHAPE) FROM waterways LIMIT 1;
 ```
+
+# Import and Export MySQL relations with Shape datatypes
+```sql
+-- Regular import and export of relations with SHAPE datatype fails
+SELECT * FROM water INTO OUTFILE "/tmp/water" CHARACTER SET utf8mb4;
+CREATE TABLE water_import  SELECT * FROM water limit 0;
+LOAD DATA INFILE "/tmp/water" into table water_import CHARACTER SET utf8;
+ERROR 1416 (22003): Cannot get geometry object from data you send to the GEOMETRY field
+
+-- Datatype has to be serialized manually
+SELECT OGR_FID,ST_AsWKT(SHAPE),ST_SRID(SHAPE),osm_id,code,fclass,name FROM water INTO OUTFILE "/tmp/water" CHARACTER SET utf8mb4;
+CREATE TABLE water_import  SELECT * FROM water limit 0;
+LOAD DATA INFILE "/tmp/water" into table water_import CHARACTER SET utf8 (@col1, @col2, @col3, @col4, @col5, @col6, @col7) SET `OGR_FID` = @col1, SHAPE = ST_PolygonFromText(@col2, @col3), osm_id = @col4, code = @col5, fclass = @col6, name = @col7;
+```
