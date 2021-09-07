@@ -41,10 +41,10 @@ class NTreeInnerNode;
 1 class NTreeNode
 
 */
-template<class T, class DistComp>
+template<class T, class DistComp, bool opt>
 class NTreeNode {
  public:
-  typedef NTreeNode<T, DistComp> node_t;
+  typedef NTreeNode<T, DistComp, opt> node_t;
 //   typedef NTreeInnerNode<T, DistComp> innernode_t;
   
   virtual ~NTreeNode() {}
@@ -99,12 +99,10 @@ class NTreeNode {
    
   int degree;
   int maxLeafSize;
-//   innernode_t* parent;
-//   int posInParent;
   int count;
 };
 
-template<class T, class DistComp>
+template<class T, class DistComp, bool opt>
 class NTreeLeafNode;
 
 /*
@@ -136,13 +134,14 @@ struct DistVectorContents {
 
 */
 template<class T, class DistComp, bool opt>
-class NTreeInnerNode : public NTreeNode<T, DistComp> {
+class NTreeInnerNode : public NTreeNode<T, DistComp, opt> {
  public:
   typedef NTreeInnerNode<T, DistComp, opt> innernode_t;
-  typedef NTreeNode<T, DistComp> node_t;
-  typedef NTreeLeafNode<T, DistComp> leafnode_t;
+  typedef NTreeNode<T, DistComp, opt> node_t;
+  typedef NTreeLeafNode<T, DistComp, opt> leafnode_t;
   
   using node_t::degree;
+  using node_t::maxLeafSize;
   
   NTreeInnerNode(const int d, const int mls) : node_t(d, mls) {
     centers = new T*[node_t::degree];
@@ -463,10 +462,9 @@ class NTreeInnerNode : public NTreeNode<T, DistComp> {
   void precomputeDistances(DistComp& dc) {
     double maxDist = 0.0;
     refDistPos = std::make_pair(0, 0);
-    for (int i = 0; i < node_t::degree; i++) {
+    for (int i = 0; i < degree; i++) {
       for (int j = 0; j < i; j++) {
-        distances[i][j] = dc(*(innernode_t::centers[i]), 
-                             *(innernode_t::centers[j]));
+        distances[i][j] = dc(*(centers[i]), *(centers[j]));
         distances[j][i] = distances[i][j]; // copy to right upper triangle
         if (refPtsMethod == 0) { // select points with maximum distance
           if (distances[i][j] > maxDist) { // update maxDistPos
@@ -476,7 +474,7 @@ class NTreeInnerNode : public NTreeNode<T, DistComp> {
         }
       }
     }
-    for (int i = 0; i < node_t::degree; i++) { // compute 2d distance vector
+    for (int i = 0; i < degree; i++) { // compute 2d distance vector
       distances2d[i] = std::make_pair(distances[refDistPos.first][i],
                                       distances[refDistPos.second][i]);
     }
@@ -491,20 +489,22 @@ class NTreeInnerNode : public NTreeNode<T, DistComp> {
     std::vector<std::vector<T> > partitions;
     partition(contents, dc, partitions);
 //     printPartitions(contents, partitions, dc, true, cout);
-    for (int i = 0; i < node_t::degree; i++) {
-      if ((int)partitions[i].size() <= node_t::maxLeafSize) {
-        leafnode_t* newLeaf = new leafnode_t(node_t::degree, 
-                                            node_t::maxLeafSize, partitions[i]);
+    for (int i = 0; i < degree; i++) {
+      if ((int)partitions[i].size() <= maxLeafSize) {
+        leafnode_t* newLeaf = new leafnode_t(degree,maxLeafSize, partitions[i]);
         children[i] = newLeaf;
       }
       else {
-        innernode_t* newInnerNode = new innernode_t(node_t::degree,   
-                                                    node_t::maxLeafSize);
-        children[i] = newInnerNode;
-        newInnerNode->build(partitions[i], dc, partitionStrategy);
+        if (opt) {
+          children[i] = new innernode_t(degree, maxLeafSize, refPtsMethod);
+        }
+        else {
+          children[i] = new innernode_t(degree, maxLeafSize);
+        }
+        children[i]->build(partitions[i], dc, partitionStrategy);
       }
     }
-    node_t::count = node_t::degree;
+    node_t::count = degree;
   }
    
  protected:
@@ -522,11 +522,11 @@ class NTreeInnerNode : public NTreeNode<T, DistComp> {
 3 class NTreeLeafNode
 
 */
-template<class T, class DistComp>
-class NTreeLeafNode : public NTreeNode<T, DistComp> {
+template<class T, class DistComp, bool opt>
+class NTreeLeafNode : public NTreeNode<T, DistComp, opt> {
  public:
-  typedef NTreeLeafNode<T, DistComp> leafnode_t;
-  typedef NTreeNode<T, DistComp> node_t;
+  typedef NTreeLeafNode<T, DistComp, opt> leafnode_t;
+  typedef NTreeNode<T, DistComp, opt> node_t;
 //   typedef NTreeInnerNode<T, DistComp> innernode_t;
   
   NTreeLeafNode(const int d, const int mls) : node_t(d, mls) {
@@ -652,8 +652,8 @@ template <class T, class DistComp, bool opt>
 class RangeIteratorN {
  public:
   typedef RangeIteratorN<T, DistComp, opt> rangeiterator_t;
-  typedef NTreeNode<T, DistComp> node_t;
-  typedef NTreeLeafNode<T, DistComp> leafnode_t;
+  typedef NTreeNode<T, DistComp, opt> node_t;
+  typedef NTreeLeafNode<T, DistComp, opt> leafnode_t;
   typedef NTreeInnerNode<T, DistComp, opt> innernode_t;
 
   RangeIteratorN(node_t* root, const T& q, const double r, 
@@ -722,10 +722,10 @@ This is the main class of this file. It implements a main memory-based N-tree
 template<class T, class DistComp, bool opt>
 class NTree {
  public:
-  typedef NTreeLeafNode<T, DistComp> leafnode_t;
+  typedef NTreeLeafNode<T, DistComp, opt> leafnode_t;
   typedef RangeIteratorN<T, DistComp, opt> rangeiterator_t;
 //   typedef NNIterator<T, DistComp> nniterator_t;
-  typedef NTreeNode<T, DistComp> node_t;
+  typedef NTreeNode<T, DistComp, opt> node_t;
   typedef NTree<T, DistComp, opt> ntree_t;
   typedef NTreeInnerNode<T, DistComp, opt> innernode_t;
   
@@ -784,7 +784,12 @@ class NTree {
       root = new leafnode_t(degree, maxLeafSize, contents);
     }
     else {
-      root = new innernode_t(degree, maxLeafSize);
+      if (opt) {
+        root = new innernode_t(degree, maxLeafSize, refPtsMethod);
+      }
+      else {
+        root = new innernode_t(degree, maxLeafSize);
+      }
       root->build(contents, dc, partitionStrategy);
     }
 //     print(cout);
