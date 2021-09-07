@@ -773,15 +773,16 @@ class MemoryMtreeObject : public MemoryObject {
         };
 };
 
-template <class T, class DistComp> 
+template <class T, class DistComp, bool opt> // false: N-tree. true: N-tree2
 class MemoryNtreeObject : public MemoryObject {
 
  public:
   typedef std::pair<T, TupleId> treeentry_t;
-  typedef NTree<MTreeEntry<T>, DistComp> tree_t;
+  typedef NTree<MTreeEntry<T>, DistComp, opt> tree_t;
 
   MemoryNtreeObject(tree_t* _ntree, size_t _memSize, 
-  const std::string& _objectTypeExpr, bool _flob, const std::string& _database){
+                    const std::string& _objectTypeExpr, bool _flob, 
+                    const std::string& _database) {
     ntree = _ntree;
     memSize = _memSize;
     objectTypeExpr =_objectTypeExpr;
@@ -790,11 +791,11 @@ class MemoryNtreeObject : public MemoryObject {
   };
 
   tree_t* getntree() {
-      return ntree;
+    return ntree;
   };
 
   static std::string BasicType() {
-      return "ntree";
+    return (opt ? "ntree2" : "ntree");
   }
 
   static bool checkType(ListExpr list) {
@@ -808,8 +809,8 @@ class MemoryNtreeObject : public MemoryObject {
   }
     
   MemoryObject* clone() {
-    return new MemoryNtreeObject<T, DistComp>(ntree->clone(), memSize, 
-                                              objectTypeExpr, flob, database);
+    return new MemoryNtreeObject<T, DistComp, opt>(ntree->clone(), memSize, 
+                                                objectTypeExpr, flob, database);
   }
 
 
@@ -821,58 +822,6 @@ class MemoryNtreeObject : public MemoryObject {
   ~MemoryNtreeObject() {
     if (ntree) {
       delete ntree;
-    }
-  };
-};
-
-template <class T, class DistComp> 
-class MemoryNtree2Object : public MemoryObject {
-
- public:
-  typedef std::pair<T, TupleId> treeentry_t;
-  typedef NTree2<MTreeEntry<T>, DistComp> tree_t;
-
-  MemoryNtree2Object(tree_t* _ntree2, size_t _memSize, 
-  const std::string& _objectTypeExpr, bool _flob, const std::string& _database){
-    ntree2 = _ntree2;
-    memSize = _memSize;
-    objectTypeExpr =_objectTypeExpr;
-    flob = _flob;
-    database = _database;
-  };
-
-  tree_t* getntree2() {
-      return ntree2;
-  };
-
-  static std::string BasicType() {
-      return "ntree2";
-  }
-
-  static bool checkType(ListExpr list) {
-    if (!nl->HasLength(list, 2)) {
-      return false;
-    }
-    if (!listutils::isSymbol(nl->First(list), BasicType())) {
-      return false;
-    }
-    return T::checkType(nl->Second(list));
-  }
-    
-  MemoryObject* clone() {
-    return new MemoryNtree2Object<T, DistComp>(ntree2->clone(), memSize, 
-                                              objectTypeExpr, flob, database);
-  }
-
-
- private:
-  tree_t* ntree2;
-  MemoryNtree2Object();
-  
- protected:
-  ~MemoryNtree2Object() {
-    if (ntree2) {
-      delete ntree2;
     }
   };
 };

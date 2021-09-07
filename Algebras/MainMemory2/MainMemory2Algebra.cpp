@@ -868,8 +868,8 @@ MemoryMtreeObject<pair<K, L>, StdDistCompExt<K, L> >* getMtree(MPointer* t) {
   return (MemoryMtreeObject<pair<K, L>, StdDistCompExt<K, L> >*)((*t)());
 }
 
-template<class T, class K>
-MemoryNtreeObject<K, StdDistComp<K> >* getNtree(T* name) {
+template<class T, class K, bool opt>
+MemoryNtreeObject<K, StdDistComp<K>, opt>* getNtree(T* name) {
   if(!name->IsDefined()){
     return 0;
   }
@@ -878,17 +878,17 @@ MemoryNtreeObject<K, StdDistComp<K> >* getNtree(T* name) {
     return 0;
   } 
   ListExpr type = nl->Second(catalog->getMMObjectTypeExpr(n));
-  if(!MemoryNtreeObject<K, StdDistComp<K> >::checkType(type)){
+  if(!MemoryNtreeObject<K, StdDistComp<K>, opt>::checkType(type)){
     return 0;
   }
   if(!K::checkType(nl->Second(type))){
      return 0;
   }
-  return (MemoryNtreeObject<K, StdDistComp<K> >*)catalog->getMMObject(n);
+  return (MemoryNtreeObject<K, StdDistComp<K>, opt>*)catalog->getMMObject(n);
 }
 
-template<class T, class K, class L>
-MemoryNtreeObject<pair<K, L>, StdDistCompExt<K, L> >* getNtree(T* name) {
+template<class T, class K, class L, bool opt>
+MemoryNtreeObject<pair<K, L>, StdDistCompExt<K, L>, opt>* getNtree(T* name) {
   if (!name->IsDefined()) {
     return 0;
   }
@@ -898,24 +898,24 @@ MemoryNtreeObject<pair<K, L>, StdDistCompExt<K, L> >* getNtree(T* name) {
   } 
   ListExpr type = nl->Second(catalog->getMMObjectTypeExpr(n));
   cout << "type is " << nl->ToString(type);
-  if (!MemoryNtreeObject<Tuple, StdDistCompExt<K, L> >::checkType(type)) {
+  if (!MemoryNtreeObject<Tuple, StdDistCompExt<K, L>, opt>::checkType(type)) {
     return 0;
   }
   if (!Tuple::checkType(nl->Second(type))) {
      return 0;
   }
-  return (MemoryNtreeObject<pair<K, L>, StdDistCompExt<K, L> >*) 
+  return (MemoryNtreeObject<pair<K, L>, StdDistCompExt<K, L>, opt>*) 
           catalog->getMMObject(n);
 }
 
-template<class T, class K>
-MemoryNtreeObject<K, StdDistComp<K> >* getNtree(MPointer* t){
-   return (MemoryNtreeObject<K, StdDistComp<K> >*) ((*t)());
+template<class T, class K, bool opt>
+MemoryNtreeObject<K, StdDistComp<K>, opt>* getNtree(MPointer* t){
+   return (MemoryNtreeObject<K, StdDistComp<K>, opt>*) ((*t)());
 }
 
-template<class T, class K, class L>
-MemoryNtreeObject<pair<K, L>, StdDistCompExt<K, L> >* getNtree(MPointer* t) {
-  return (MemoryNtreeObject<pair<K, L>, StdDistCompExt<K, L> >*)((*t)());
+template<class T, class K, class L, bool opt>
+MemoryNtreeObject<pair<K, L>, StdDistCompExt<K, L>, opt>* getNtree(MPointer* t){
+  return (MemoryNtreeObject<pair<K, L>, StdDistCompExt<K, L>, opt>*)((*t)());
 }
 
 template<class T>
@@ -6356,10 +6356,10 @@ ListExpr mdistRangeNTM(ListExpr args) {
                 nl->Second(a2)); 
 }
 
-template<class T, class Dist>
+template<class T, class Dist, bool opt>
 class distRangeNInfo {
  public:
-  distRangeNInfo(MemoryNtreeObject<T, Dist>* ntree, MemoryRelObject* mrel, 
+  distRangeNInfo(MemoryNtreeObject<T, Dist, opt>* ntree, MemoryRelObject* mrel, 
                  T* ref, double dist) {
     rel = mrel->getmmrel();
     MTreeEntry<T> p(*ref, 0);
@@ -6393,14 +6393,14 @@ class distRangeNInfo {
      
  private:
   vector<Tuple*>* rel;
-  RangeIteratorN<MTreeEntry<T>, Dist>* it;
+  RangeIteratorN<MTreeEntry<T>, Dist, opt>* it;
 };
 
 template<class K, class T, class R>
 int mdistRangeNVMT(Word* args, Word& result, int message, Word& local,
                    Supplier s) {
-  distRangeNInfo<K, StdDistComp<K> >* li = 
-                                (distRangeNInfo<K, StdDistComp<K> >*)local.addr;
+  distRangeNInfo<K, StdDistComp<K>, false>* li = 
+                          (distRangeNInfo<K, StdDistComp<K>, false>*)local.addr;
   switch (message) {
     case OPEN : {
       if (li) {
@@ -6421,12 +6421,13 @@ int mdistRangeNVMT(Word* args, Word& result, int message, Word& local,
         return 0;
       }
       T* treeN = (T*)args[0].addr;
-      MemoryNtreeObject<K, StdDistComp<K> >* n = getNtree<T, K>(treeN);
+      MemoryNtreeObject<K, StdDistComp<K>, false>* n = 
+                                                   getNtree<T, K, false>(treeN);
       if (!n) {
         return 0;
       }
       K* key = (K*)args[2].addr;
-      local.addr = new distRangeNInfo<K, StdDistComp<K> >(n, rel, key, d);
+      local.addr = new distRangeNInfo<K, StdDistComp<K>, false>(n, rel, key, d);
       return 0;
     }
     case REQUEST: {
@@ -22004,12 +22005,14 @@ ListExpr mcreatentreeTM(ListExpr args) {
   ListExpr resType;
   if (useNTree2) {
     resType = MPointer::wrapType(Mem::wrapType(nl->TwoElemList(
-       listutils::basicSymbol<MemoryNtree2Object<Point,StdDistComp<Point> > >(),
+       listutils::basicSymbol<MemoryNtreeObject<Point, StdDistComp<Point>, 
+                                                true> >(),
        type)));
   }
   else {
     resType = MPointer::wrapType(Mem::wrapType(nl->TwoElemList(
-        listutils::basicSymbol<MemoryNtreeObject<Point,StdDistComp<Point> > >(),
+        listutils::basicSymbol<MemoryNtreeObject<Point, StdDistComp<Point>,
+                                                 false> >(),
         type)));
   }
   ListExpr appendList;
@@ -22070,17 +22073,17 @@ int mcreatentreeVMT(Word* args, Word& result, int message, Word& local,
     flobused = flobused || (attr->NumOfFLOBs() > 0);
   }
   StdDistComp<T> dc(geoid);
-  NTree<MTreeEntry<T>, StdDistComp<T> >* tree =
-      new NTree<MTreeEntry<T>, StdDistComp<T> >(degree, maxLeafSize, dc);
+  NTree<MTreeEntry<T>, StdDistComp<T>, false>* tree =
+      new NTree<MTreeEntry<T>, StdDistComp<T>, false>(degree, maxLeafSize, dc);
   tree->build(contents, partitionStrategy);
 //   cout << "entries: " << tree->getNoEntries() << ", nodes: " 
 //        << tree->getNoNodes() << ", leaves: " << tree->getNoLeaves() << endl;
   size_t usedMem = tree->memSize();
   ListExpr typeList = nl->Second(qp->GetType(s));
-  MemoryNtreeObject<T, StdDistComp<T> >* ntree = 
-      new MemoryNtreeObject<T, StdDistComp<T> >(tree, usedMem, 
+  MemoryNtreeObject<T, StdDistComp<T>, false>* ntree = 
+      new MemoryNtreeObject<T, StdDistComp<T>, false>(tree, usedMem, 
                                 nl->ToString(typeList), !flobused, getDBname());
-  mtreehelper::increaseCounter("counterMCreateMTree", 
+  mtreehelper::increaseCounter("counterMCreateNTree", 
                           ntree->getntree()->getDistComp().getNoDistFunCalls());
   res->setPointer(ntree);
   ntree->deleteIfAllowed();
@@ -22207,19 +22210,19 @@ int mcreatentree2VMT(Word* args, Word& result, int message, Word& local,
     flobused = flobused || (attr->NumOfFLOBs() > 0);
   }
   StdDistComp<T> dc(geoid);
-  NTree2<MTreeEntry<T>, StdDistComp<T> >* tree =
-      new NTree2<MTreeEntry<T>, StdDistComp<T> >(degree, maxLeafSize, 
-                                                 refPtsMethod, dc);
+  NTree<MTreeEntry<T>, StdDistComp<T>, true>* tree =
+      new NTree<MTreeEntry<T>, StdDistComp<T>, true>(degree, maxLeafSize, 
+                                                     refPtsMethod, dc);
   tree->build(contents, partitionStrategy);
 //   cout << "entries: " << tree->getNoEntries() << ", nodes: " 
 //        << tree->getNoNodes() << ", leaves: " << tree->getNoLeaves() << endl;
   size_t usedMem = tree->memSize();
   ListExpr typeList = nl->Second(qp->GetType(s));
-  MemoryNtree2Object<T, StdDistComp<T> >* ntree2 = 
-      new MemoryNtree2Object<T, StdDistComp<T> >(tree, usedMem, 
+  MemoryNtreeObject<T, StdDistComp<T>, true>* ntree2 = 
+      new MemoryNtreeObject<T, StdDistComp<T>, true>(tree, usedMem, 
                                 nl->ToString(typeList), !flobused, getDBname());
-  mtreehelper::increaseCounter("counterMCreateMTree2", 
-                        ntree2->getntree2()->getDistComp().getNoDistFunCalls());
+  mtreehelper::increaseCounter("counterMCreateNTree2", 
+                         ntree2->getntree()->getDistComp().getNoDistFunCalls());
   res->setPointer(ntree2);
   ntree2->deleteIfAllowed();
   return 0;
