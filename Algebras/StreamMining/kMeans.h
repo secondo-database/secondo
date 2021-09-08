@@ -34,7 +34,7 @@ namespace eschbach {
   kMeans(int k, int iterations);
   ~kMeans(){}
     //Getter und Setter
-
+    std::vector<Cluster> getClusters();
 
     //Auxiliary
     void cluster(vector<cPoint> &all_points);
@@ -44,7 +44,7 @@ namespace eschbach {
     int k; 
     int iterations; 
     int dimensions;
-    int totalPoints; 
+    int totalNbrPoints; 
     std::vector<Cluster> clusters;
 
     //Auxiliary

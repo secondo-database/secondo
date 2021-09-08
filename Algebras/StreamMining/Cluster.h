@@ -34,7 +34,7 @@ namespace eschbach {
   ~Cluster(){};
     //Getter und Setter
     int getId();
-    cPoint gePoint(int index);
+    cPoint getPoint(int index);
     int getSize();
     double getCentroidByPos(int pos);
     void setCentroidByPos(int pos, double val);

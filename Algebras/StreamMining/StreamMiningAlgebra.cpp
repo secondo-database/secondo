@@ -84,6 +84,7 @@ It provides the following operators:
 #include <vector>
 #include <cmath>
 #include <time.h>
+#include <chrono>
 
 
 using namespace std;
@@ -1903,15 +1904,15 @@ counterPair<T>::getMaxError() {
 }
 
 /*
-2.1.5 Class ~streamCluster~
+2.1.5 Class ~STREAM~
 
 2.1.5.1 Class ~cPoint~
 
 */
-cPoint::cPoint(int id, string coordinates) {
+cPoint::cPoint(int id, int coordinates) {
   pointId = id; 
-  values = stringToVec(coordinates);
-  dimensions = values.size(); 
+  value = coordinates;
+  dimensions = 1; 
   //Assign ID=0, because the Point will not have
   //an assigned Cluster at the start
   clusterId = 0; 
@@ -1939,14 +1940,7 @@ cPoint::setCluster(int index) {
 
 double
 cPoint::getVal(int index) {
-  return values[index];
-}
-
-//implement how to read data from stream
-vector<double>
-cPoint::stringToVec(string &coordinates) {
-  vector<double> dummy; 
-  return dummy;
+  return value;
 }
 
 /*
@@ -1978,7 +1972,7 @@ Cluster::getSize() {
 
 double
 Cluster::getCentroidByPos(int pos) {
-  return centroid[pos];
+  return clusterCentroid[pos];
 }
 
 void
@@ -2020,6 +2014,11 @@ kMeans::kMeans(int k, int iterations) {
   this->iterations = iterations;
 }
 
+vector<Cluster>
+kMeans::getClusters() {
+  return clusters;
+}
+
 void
 kMeans::clearClusters() {
   for (int i = 0; i < k; i++) {
@@ -2027,12 +2026,16 @@ kMeans::clearClusters() {
   }
 }
 
+//Determine the closest Centroid for a given point
 int
 kMeans::getClosestClusterId(cPoint point) {
   double sum = 0.0; 
   double minDist;
   int closestClusterId; 
 
+  //assign the point to the first cluster and calculate 
+  //the distance to its centroid. Only change
+  //that assignment if a closer centroid is found
   if(dimensions==1) {
     minDist = abs(clusters[0].getCentroidByPos(0) - point.getVal(0));
   } else {
@@ -2043,6 +2046,7 @@ kMeans::getClosestClusterId(cPoint point) {
   }
   closestClusterId = clusters[0].getId();
 
+  //check the points distance to other clusters
   for (int i = 1; i < k; i++) {
     double dist;
     sum = 0.0; 
@@ -2056,6 +2060,8 @@ kMeans::getClosestClusterId(cPoint point) {
     dist = sqrt(sum); 
     }
 
+    //if a closer cluster is found save the distance to its centroid
+    //and change the Id of the closest cluster
     if (dist < minDist) {
       minDist = dist; 
       closestClusterId = clusters[i].getId();
@@ -2064,21 +2070,30 @@ kMeans::getClosestClusterId(cPoint point) {
   return closestClusterId;
 }
 
+//We pass a vector of all Points we will work on (i.e. all
+//cPoints of the current Streamblock)
 void
 kMeans::cluster(vector<cPoint> &allPoints) {
-  totalPoints = allPoints.size();
+  totalNbrPoints = allPoints.size();
   dimensions = allPoints[0].getDimensions();
 
   vector<int> usedPointIds; 
 
+  //Initialize k Clusters with random centroids
   for (int i = 1; i <= k; i++) {
     while(true) {
-      int index = rand() % totalPoints;
 
+      //Generate random index to choose centroids from 
+      //all cPoints present in the current Streamblock
+      int index = rand() % totalNbrPoints;
+
+      //make sure no potential cPoint is selected twice as centroid
       if(find(usedPointIds.begin(), usedPointIds.end(), index) ==
           usedPointIds.end()) {
             usedPointIds.push_back(index);
             allPoints[index].setCluster(i);
+            //The used cPoint at index becomes the centroid of 
+            //the i-th cluster
             Cluster cluster(i, allPoints[index]);
             clusters.push_back(cluster);
             break;
@@ -2086,11 +2101,13 @@ kMeans::cluster(vector<cPoint> &allPoints) {
     }
   }
 
-  int iteration = 1; 
+  int iteration = 1;
+  //Just continue running this loop; Break condition is below 
   while (true) {
     bool done = true; 
 
-    for (int i = 0; i < totalPoints; i++) {
+    //Add all Points to their respective Clusters
+    for (int i = 0; i < totalNbrPoints; i++) {
       int currentClusterId = allPoints[i].getCluster();
       int nearestClusterId = getClosestClusterId(allPoints[i]);
 
@@ -2099,12 +2116,18 @@ kMeans::cluster(vector<cPoint> &allPoints) {
         done = false;
       }
     }
+
+    //Clear current Cluster allocation of points in order to 
+    //redistribute Points after finding closer Centroids
     clearClusters();
 
-    for(int i = 0; i < totalPoints; i++) {
+    //Reassign the Points to their new Clusters
+    for(int i = 0; i < totalNbrPoints; i++) {
+      //cluster index is Id-1
       clusters[allPoints[i].getCluster()-1].addPoint(allPoints[i]);
     }
 
+    //Calculate the Centroids of each new Cluster
     for (int i = 0; i < k; i++) {
       int clusterSize = clusters[i].getSize();
 
@@ -2112,7 +2135,7 @@ kMeans::cluster(vector<cPoint> &allPoints) {
         double sum = 0.0;
         if (clusterSize > 0) {
           for (int p = 0; p < clusterSize; p++) {
-            sum += clusters[i].gePoint(p).getVal(j);
+            sum += clusters[i].getPoint(p).getVal(j);
           }
           clusters[i].setCentroidByPos(j, sum/clusterSize);
         }
@@ -2196,7 +2219,56 @@ ListExpr errorInfo = nl->OneElemList(nl->SymbolAtom("ErrorInfo"));
 }
 
 /*
-2.2.2 Operator ~createbloomfilter~
+2.2.2 Operator ~tiltedtime~
+
+*/
+ListExpr
+tiltedtime( ListExpr args ) {
+NList type(args);
+ListExpr errorInfo = nl->OneElemList(nl->SymbolAtom("ErrorInfo"));
+
+  // three arguments must be supplied
+  if (type.length() != 3){
+    return NList::typeError("Operator tiltedtime expects two arguments");
+  }
+
+  // test first argument for stream
+  if(!(   type.first().hasLength(2)
+       && type.first().first().isSymbol(sym.STREAM()))){
+    return NList::typeError( "Operator tiltedtime expects a stream "
+                             "as first argument");
+  }
+
+  // test second argument for int
+  if(type.second() != NList(CcInt::BasicType())) {
+    return NList::typeError("Operator tiltedtime expects an int "
+                            "as second argument");
+  }
+
+  // test second argument for int
+  if(type.second() != NList(CcInt::BasicType())) {
+    return NList::typeError("Operator tiltedtime expects an int "
+                            "as third argument");
+  }
+  
+  // stream elements must be in kind DATA or (tuple X)
+  NList streamtype = type.first().second();
+  if(   !(   streamtype.hasLength(2)
+          && streamtype.first().isSymbol(sym.TUPLE())
+          && IsTupleDescription(streamtype.second().listExpr())
+         )
+     && !(am->CheckKind(Kind::DATA(),streamtype.listExpr(),errorInfo))){
+      return NList::typeError("Operator tiltedtime expects a "
+                              "stream of DATA or TUPLE.");
+  }
+
+  // result is the type of the first argument
+  return type.first().listExpr();
+}
+
+
+/*
+2.2.3 Operator ~createbloomfilter~
 
 */
 ListExpr
@@ -2265,7 +2337,7 @@ ListExpr errorInfo = nl->OneElemList(nl->SymbolAtom("ErrorInfo"));
 }
 
 /*
-2.2.3 Operator ~bloomcontains~
+2.2.4 Operator ~bloomcontains~
 
 */
 ListExpr
@@ -2293,7 +2365,7 @@ bloomcontainsTM(ListExpr args) {
 
 
 /*
-2.2.4 Operator ~createcountmin~
+2.2.5 Operator ~createcountmin~
 
 */
 ListExpr
@@ -2370,7 +2442,7 @@ ListExpr errorInfo = nl->OneElemList(nl->SymbolAtom("ErrorInfo"));
 }
 
 /*
-2.2.5 Operator ~cmscount~
+2.2.6 Operator ~cmscount~
 
 */
 ListExpr
@@ -2405,7 +2477,7 @@ cmscountTM(ListExpr args) {
 }
 
 /*
-2.2.6 Operator ~createams~
+2.2.7 Operator ~createams~
 
 */
 ListExpr
@@ -2483,7 +2555,7 @@ ListExpr errorInfo = nl->OneElemList(nl->SymbolAtom("ErrorInfo"));
 
 
 /*
-2.2.7 Operator ~amsestimate~
+2.2.8 Operator ~amsestimate~
 
 */
 ListExpr
@@ -2508,7 +2580,7 @@ amsestimateTM(ListExpr args) {
 
 
 /*
-2.2.8 Operator ~createlossycounter~
+2.2.9 Operator ~createlossycounter~
 
 */
 ListExpr
@@ -2610,7 +2682,7 @@ ListExpr errorInfo = nl->OneElemList(nl->SymbolAtom("ErrorInfo"));
 }
 
 /*
-2.2.9 Operator ~lcfrequent~
+2.2.10 Operator ~lcfrequent~
 
 */
 ListExpr
@@ -2705,7 +2777,7 @@ lcfrequentTM(ListExpr args) {
 }
 
 /*
-2.2.9 Operator ~outlier~
+2.2.11 Operator ~outlier~
 
 */
 ListExpr
@@ -2789,6 +2861,100 @@ outlierTM(ListExpr args) {
 
 }
 
+/*
+2.2.12 Operator ~streamcluster~
+
+*/
+ListExpr
+streamclusterTM(ListExpr args) {
+  NList type(args);
+  NList stream = type.first();
+  NList appendList;
+  ListExpr outlist = nl -> TheEmptyList();
+
+  // two arguments must be supplied
+  if (type.length() != 4){
+    return NList::typeError("Operator streamcluster expects four arguments");
+  }
+
+  // test first argument for being a tuple stream
+  if(!Stream<Tuple>::checkType(stream.listExpr())){
+    return NList::typeError( "Operator streamcluster expects a "
+                             "Tuple Stream as first argument");
+  }
+
+  //test second argument for a valid Attribute Name
+  if (!type.second().isSymbol()){
+    return NList::typeError("Operator streamcluster expects a valid "
+                            "Attribute Name as second argument");
+  }
+
+  // test third argument for real
+  if(type.third() != NList(CcInt::BasicType())){
+    return NList::typeError("Operator streamcluster expects an"
+                            "int value as third argument");
+  }
+
+  // test fourth argument for real
+  if(type.fourth() != NList(CcInt::BasicType())){
+    return NList::typeError("Operator streamcluster expects an"
+                            "int value as fourth argument");
+  }
+
+
+  //extract index of the attribute we intend to hash
+  NList attrList = type.first().second().second();
+  ListExpr attrType;
+  string attrName = type.second().str();
+  int attrIndex = listutils::findAttribute(attrList.listExpr(), 
+                                           attrName, attrType) - 1;
+
+  if (attrIndex < 0) {
+    return NList::typeError("Attribute " + attrName + " "
+                            "not found in tuple");
+  } 
+  if ((nl->ToString(attrType) != CcInt::BasicType()) &&
+       nl->ToString(attrType) != CcReal::BasicType()) {
+        return NList::typeError("Operator streamcluster only works with "
+                                "int and real attributes");
+  }
+
+  outlist = 
+    nl->TwoElemList(
+      nl->SymbolAtom(Symbol::STREAM()),
+      nl->TwoElemList(
+          nl->SymbolAtom(Tuple::BasicType()),
+          nl->ThreeElemList(
+            nl->TwoElemList(
+              nl->SymbolAtom("ClusterId"),
+              nl->SymbolAtom(CcInt::BasicType())),       
+            nl->TwoElemList(
+              nl->SymbolAtom("Centroid"),
+              nl->SymbolAtom(CcReal::BasicType())),
+            nl->TwoElemList(
+              nl->SymbolAtom("Centroid Size"),
+              nl->SymbolAtom(CcInt::BasicType())
+            )
+         )
+      )
+    );
+
+    cout << endl; 
+    cout << "In streamclusterTM outlist has the form: " << endl; 
+    cout << nl->ToString(outlist) << endl;
+
+
+  /* Result type is a stream of Tuples with the queried attribute value
+     and its corresponding index in the stream. We also appended
+     the attribute index and type for the Value Mapping
+  */
+  appendList.append(NList().intAtom(attrIndex));
+  appendList.append(NList().stringAtom(nl->ToString(attrType)));
+  return NList(Symbols::APPEND(), appendList,
+               outlist).listExpr();
+
+}
+
 
 /*
 2.3 Value Mapping Functions
@@ -2804,7 +2970,8 @@ Templates are used to deal with the different Types of Streams
 the operator handles
 
 */
-template<class T> class reservoirInfo{
+template<class T> 
+class reservoirInfo{
   public: 
     reservoirInfo(Word inputStream, size_t inputSampleSize): 
                   stream(inputStream), sampleSize(inputSampleSize), 
@@ -2812,6 +2979,7 @@ template<class T> class reservoirInfo{
     stream.open();
     init();                               
 }
+
 ~reservoirInfo() {
   for(size_t index = lastOut+1; index < reservoir.size(); index++) {
     reservoir[index]->DeleteIfAllowed(); 
@@ -2922,7 +3090,157 @@ int reservoirSelect(ListExpr args){
 
 
 /*
-2.3.2 Operator ~createbloomfilter~
+2.3.2 Operator ~tiltedtime~
+
+*/
+template<class T> 
+class tiltedtimeInfo{
+  public: 
+    tiltedtimeInfo(Word inputStream, int inputWindowSize): 
+                  stream(inputStream), windowSize(inputWindowSize), 
+                  counter(0),lastOut(-1), currentFrameNumber(0) {
+    stream.open();
+    //We denote the starting time of the stream
+    startTime = chrono::high_resolution_clock::now();
+    //Initialize the first bucket
+    reservoir.resize(1);
+    init();                               
+}
+
+~reservoirInfo() {
+  for(size_t vectorIndex = lastOut+1; 
+     vectorIndex < reservoir.size(); vectorIndex++) {
+    for (size_t eleIndex = 0; i < reservoir[vectorIndex].size(); i++) {
+      reservoir[vectorIndex][eleIndex]->DeleteIfAllowed(); 
+    }
+  }
+  stream.close();
+}
+
+//Returns the Elements in the reservoir in case of requests
+T* next() {
+  lastOut++; 
+  if(lastOut >= (int)reservoir.size()) {
+    return 0;
+  }
+  T* resElement = reservoir[lastOut];
+  reservoir[lastOut] = 0;
+  return resElement;
+}
+
+private: 
+  Stream<T> stream; 
+  int windowSize;
+  int lastOut;
+  int currentFrameNumber;
+  vector<vector<T*>> reservoir;
+  auto startTime;
+  auto currentTime; 
+  auto passedTime;
+
+  void init() {
+    T* data;
+    reservoir[0].reserve(windowSize);
+    //While the Argumentstream can still supply Data/Tuples 
+    while ((data = stream.request()) != nullptr) {
+      //save the time of receiving the Streamelement
+      currentTime = chrono::high_resolution_clock::now();
+      //save the difference between the starting time of the stream and 
+      //the time of receiving the element in microseconds.
+      //A finer time unit (mb nanoseconds) could be chosen; 
+      //need to talk about this    
+      passedTime = chrono::duration_cast<std::chrono::microseconds>
+                   (currentTime - startTime);
+      insert(data);
+    } 
+  }
+
+  //Decides whether to include Data/Tuples from the Stream into the reservoir
+  void insert(T* data) {
+    //Normalize the passed time to seconds
+    float timeStamp = passedTime.count() * 1e-6;
+    
+    //We have to fulfill (log2(timestmap)-windowSize <= currentFrameNumber 
+    //<= log2(T))
+    if ((log2(timeStamp)-windowSize < currentFrameNumber) &&
+        (log2(timeStamp) > currentFrameNumber)) {
+      currentFrameNumber = floor(timeStamp);
+    }
+
+    for (int i = currentFrameNumber; i > 0; i--) {
+      if (((timeStamp % pow(2,i)) == 0) && ((timeStamp % (2,(i+1))) != 0)) {
+        if (reservoir[i].size() < windowSize) {
+          //We pushback, so that the oldest elements are always
+          //at the end of the vector
+          reservoir[i].push_back(data);
+          break;
+        } else {
+          //insert the new element at the front
+          reservoir[i].insert(reservoir[i].begin(), data);
+          //remove the last element, because it is the oldest
+          reservoir[i].back()->DeleteIfAllowed();
+          reservoir[i].pop_back();
+          break;
+        }
+      }
+    }
+  }
+};
+
+template<class T>
+int tiltedtimeVMT(Word* args, Word& result,
+           int message, Word& local, Supplier s){
+
+  tiltedtimeInfo<T>* tti = (tiltedtimeInfo<T>*) local.addr;
+  switch(message){
+    case OPEN: {
+                   if(tti) {
+                     delete tti;
+                     local.addr = 0;
+                   }
+                   CcInt* reservoirSize = (CcInt*) args[1].addr;
+                   if(reservoirSize->IsDefined()){
+                      int size = reservoirSize->GetValue();
+                      if(size>0) {
+                        local.addr = new reservoirInfo<T>(args[0], size);
+                      }
+                   }
+                   return 0;
+                } 
+      case REQUEST : result.addr = tti?tti->next():0;
+                     return result.addr?YIELD:CANCEL;
+      case CLOSE : {
+                      if(tti){
+                        delete tti;
+                        local.addr = 0;
+                       }
+                       return 0;
+                   }
+
+  }
+  return -1;
+}
+
+//value Mapping Array
+ValueMapping tiltedtimeVM[] = { 
+              tiltedtimeVMT<Tuple>,
+              tiltedtimeVMT<Attribute>
+};  
+
+// Selection Function
+int tiltedtimeSelect(ListExpr args){
+   if (Stream<Attribute>::checkType(nl->First(args))) {
+     return 1;
+   } else if (Stream<Tuple>::checkType(nl->First(args))){
+     return 0;
+   } else {
+     return -1;
+   }
+}
+
+
+/*
+2.3.3 Operator ~createbloomfilter~
 
 */
 int createbloomfilterVM(Word* args, Word& result,
@@ -3055,7 +3373,7 @@ int createbloomfilterVM(Word* args, Word& result,
 }
 
 /*
-2.3.3 Operator ~bloomcontains~
+2.3.4 Operator ~bloomcontains~
 
 */
 int bloomcontainsVM(Word* args, Word& result,
@@ -3121,7 +3439,7 @@ int bloomcontainsVM(Word* args, Word& result,
 }
 
 /*
-2.3.4 Operator ~createcountmin~
+2.3.5 Operator ~createcountmin~
 
 */
 int createcountminVM(Word* args, Word& result,
@@ -3235,7 +3553,7 @@ int createcountminVM(Word* args, Word& result,
 }
 
 /*
-2.3.5 Operator ~cmscount~
+2.3.6 Operator ~cmscount~
 
 */
 int cmscountVM(Word* args, Word& result,
@@ -3277,7 +3595,7 @@ int cmscountVM(Word* args, Word& result,
 }
 
 /*
-2.3.5 Operator ~createams~
+2.3.7 Operator ~createams~
 
 */
 int createamsVM(Word* args, Word& result,
@@ -3380,7 +3698,7 @@ int createamsVM(Word* args, Word& result,
 }
 
 /*
-2.3.6 Operator ~amsestimate~
+2.3.8 Operator ~amsestimate~
 
 */
 int amsestimateVM(Word* args, Word& result,
@@ -3404,7 +3722,7 @@ int amsestimateVM(Word* args, Word& result,
 }
 
 /*
-2.3.7 Operator ~createlossycounter~
+2.3.9 Operator ~createlossycounter~
 
 */
 template<class T, class S> 
@@ -3604,7 +3922,7 @@ int createlossycounterSelect(ListExpr args){
 
 
 /*
-2.3.8 Operator ~lcfrequent~
+2.3.10 Operator ~lcfrequent~
 
 */
 template<class T>
@@ -3805,7 +4123,7 @@ int lcfrequentSelect(ListExpr args){
 }
 
 /*
-2.3.9 Operator ~outlier~
+2.3.11 Operator ~outlier~
 
 */
 template<class T, class S>
@@ -3894,7 +4212,7 @@ class outlierInfo{
           S value = attrValue->GetValue();
           if (checkData(value)) {
             newTuple -> PutAttribute(0, attrValue);
-            newTuple -> PutAttribute(1, index);
+            newTuple -> PutAttribute(1, index);int
             outlierHistory.push_back(newTuple);
             if (outlierHistory.size() == 1589) {
               cout << endl;
@@ -4012,6 +4330,159 @@ int outlierSelect(ListExpr args){
   }
 }
 
+
+/*
+2.3.12 Operator ~streamcluster~
+
+*/
+class streamclusterInfo{
+  public:
+    streamclusterInfo(Word inputStream, int index, string type,
+                      int iter, int nbrClusters):
+      stream(inputStream), attrIndex(index), attrType(type), lastOut(-1),
+      iterations(iter), k(nbrClusters){
+        stream.open();
+
+        //We appended the attribute Type in the TM and use it to create our
+        //output tuple
+        typeList = nl->TwoElemList(
+          nl->SymbolAtom(Tuple::BasicType()),
+          nl->ThreeElemList(
+            nl->TwoElemList(
+              nl->SymbolAtom("ClusterId"),
+              nl->SymbolAtom(CcInt::BasicType())
+            ),
+            nl->TwoElemList(
+              nl->SymbolAtom("Centroid"),
+              nl->SymbolAtom(CcReal::BasicType())
+            ),
+            nl->TwoElemList(
+              nl->SymbolAtom("Centroid Size"),
+              nl->SymbolAtom(CcInt::BasicType())
+            )
+          )
+        );
+
+        SecondoCatalog* sc = SecondoSystem::GetCatalog();
+        numTypeList = sc->NumericType(typeList);
+        tupleType = new TupleType(numTypeList);
+        init();
+      }
+
+    ~streamclusterInfo() {
+      for(size_t index = lastOut+1; index < clusterInformation.size(); 
+          index++) {
+        clusterInformation[index]->DeleteIfAllowed();
+        tupleType -> DeleteIfAllowed();
+      }
+      stream.close();
+    }
+
+    Tuple* next() {
+      lastOut++; 
+      if (lastOut >= (int) clusterInformation.size()) {
+        return 0;
+      }
+      Tuple* cluster = clusterInformation[lastOut];
+      clusterInformation[lastOut] = 0;
+      return cluster;
+    }
+
+    private:
+      Stream<Tuple> stream; 
+      int attrIndex;
+      string attrType;
+      int lastOut;
+      int iterations;
+      int k;
+      vector<Tuple*> clusterInformation;
+      vector<cPoint> readData;  
+      TupleType* tupleType;
+      ListExpr typeList;
+      ListExpr numTypeList;
+
+
+    void init() {
+      Tuple* oldTuple;
+      while ((oldTuple = stream.request()) != nullptr) {
+        int id = 0;
+        CcInt* attrValue = (CcInt*) oldTuple->GetAttribute(attrIndex);
+        int value = (int) attrValue->GetValue();
+        cPoint point(id, value);
+        readData.push_back(point);
+        oldTuple->DeleteIfAllowed();
+      }
+      compute();
+    }
+
+    void compute() {
+      kMeans clusteringTest(k,iterations);
+      clusteringTest.cluster(readData);
+      for (Cluster currentCluster : clusteringTest.getClusters()) {
+        Tuple* newTuple = new Tuple(tupleType);
+        int clusterId = currentCluster.getId();
+        CcInt* attrId = new CcInt(true, clusterId);
+        int clusterSize = currentCluster.getSize();
+        CcInt* attrSize = new CcInt(true, clusterSize);
+        double clusterCentroid = currentCluster.getCentroidByPos(0);
+        CcReal* attrCentroid = new CcReal(true, clusterCentroid);
+        newTuple -> PutAttribute(0, attrId);
+        newTuple -> PutAttribute(1, attrCentroid);
+        newTuple -> PutAttribute(2, attrSize);
+        cout << endl;
+        cout << "Pushing back Cluster: " << clusterId << " with Centroid: " 
+             << clusterCentroid << " and size: " << clusterSize << endl;
+        cout << endl; 
+        clusterInformation.push_back(newTuple);        
+      }
+      cout << "At the end of compute() the Tuple Vector has size: " 
+           << clusterInformation.size() << endl;
+    }
+};
+
+int
+streamclusterVM(Word* args, Word& result,
+           int message, Word& local, Supplier s){
+
+  streamclusterInfo* cluster = (streamclusterInfo*) local.addr;
+  switch(message){
+    case OPEN: {
+                   if(cluster) {
+                     delete cluster;
+                     local.addr = 0;
+                   }
+                   CcInt* iterations = (CcInt*) args[2].addr;
+                   CcInt* nbrOfClusters = (CcInt*) args[3].addr;
+                   CcInt* attrIndex = (CcInt*) args[4].addr;
+                   CcString* attrType = (CcString*) args[5].addr;
+                   if(iterations->IsDefined() && nbrOfClusters->IsDefined()){
+                      int iter = iterations->GetValue();
+                      int k = nbrOfClusters -> GetValue();
+                      int index = attrIndex -> GetValue();
+                      string type = attrType ->GetValue();
+                                            cout << endl;
+                      if(k>1) {
+                        local.addr = new streamclusterInfo(args[0], index, 
+                                                           type, iter, k);
+                      }
+                   }
+                   return 0;
+                } 
+      case REQUEST :
+      result.addr = cluster?cluster->next():0;
+                     return result.addr?YIELD:CANCEL;
+      case CLOSE : {
+                      if(cluster){
+                        delete cluster;
+                        local.addr = 0;
+                       }
+                       return 0;
+                   }
+
+  }
+  return -1;
+}
+
 /*
 2.4 Description of Operators
 
@@ -4083,11 +4554,19 @@ int outlierSelect(ListExpr args){
   );
 
   OperatorSpec outlierSpec(
-    "stream(T) x real -> stream(T), T = int or T = real",
-    "_ outlier [_]",
+    "stream(T) x ATTR x real -> stream(T), T = int or T = real",
+    "_ outlier [_,_]",
     "Determines outliers for an int/real stream according to the ",
     "passed Z-Score Threshold.",
-    "query intstream(0,100) outliers[1] consume"
+    "query intstream(0,100) outliers[Elem, 3] consume"
+  );
+
+  OperatorSpec streamclusterSpec(
+    "stream(T) x ATTR x int x int -> stream(T), T = int or T = real",
+    "_ streamcluster [_,_,_]",
+    "Determines Cluster for an int/real stream using ",
+    "the number of iterations and clusters passed",
+    "query intstream(0,100) outliers[Elem,2,3] consume"
   );
   
 
@@ -4180,6 +4659,14 @@ Operator outlierOp(
   outlierVM,
   outlierSelect,
   outlierTM
+);
+
+Operator streamclusterOp(
+  "streamcluster",
+  streamclusterSpec.getStr(),
+  streamclusterVM,
+  Operator::SimpleSelect,
+  streamclusterTM
 );
 
 /*

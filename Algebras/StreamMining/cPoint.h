@@ -29,7 +29,7 @@ namespace eschbach {
     class cPoint
 {
   public:
-  cPoint(int id, string coordinates);
+  cPoint(int id, int coordinates);
   ~cPoint(){};
     //Getter und Setter
     int getDimensions();
@@ -38,15 +38,12 @@ namespace eschbach {
     int getId();
     double getVal(int index);
 
-    //Auxiliary
-    std::vector<double> stringToVec(std::string &coordinates);
-
   private: 
     cPoint() {}
     int pointId;
     int clusterId;
     int dimensions;
-    std::vector<double> values; 
+    int value;
 
     //Auxiliary
     void clearClusters(); 
