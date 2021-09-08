@@ -83,7 +83,7 @@ class NTreeNode {
 
   virtual node_t* clone() = 0;
   
-  virtual void build(std::vector<T>& contents, DistComp& dc,
+  virtual void build(std::vector<T>& contents, DistComp& dc, int depth,
                      const int partitionStrategy = 0) = 0;
   
   virtual void clear(const bool deleteContent) = 0;
@@ -143,7 +143,8 @@ class NTreeInnerNode : public NTreeNode<T, DistComp, opt> {
   using node_t::degree;
   using node_t::maxLeafSize;
   
-  NTreeInnerNode(const int d, const int mls) : node_t(d, mls) {
+  NTreeInnerNode(const int d, const int mls) : 
+      node_t(d, mls), distances(0), distances2d(0) {
     centers = new T*[node_t::degree];
     children = new node_t*[node_t::degree];
     for (int i = 0; i < node_t::degree; i++) {
@@ -428,10 +429,16 @@ class NTreeInnerNode : public NTreeNode<T, DistComp, opt> {
     for (unsigned int i = 0; i < contents.size(); i++) {
       double minDist = std::numeric_limits<double>::max();
       for (int j = 0; j < node_t::degree; j++) {
-        dist = dc(contents[i], *centers[j]);
-        if (dist < minDist) {
-          minDist = dist;
+        if (contents[i].getTid() == centers[j]->getTid()) {
           partitionPos = j;
+          j = degree;
+        }
+        else {
+          dist = dc(contents[i], *centers[j]);
+          if (dist < minDist) {
+            minDist = dist;
+            partitionPos = j;
+          }
         }
       }
       partitions[partitionPos].push_back(contents[i]);
@@ -480,8 +487,15 @@ class NTreeInnerNode : public NTreeNode<T, DistComp, opt> {
     }
   }
   
-  void build(std::vector<T>& contents, DistComp& dc,
+  void build(std::vector<T>& contents, DistComp& dc, int depth,
              const int partitionStrategy = 0) { // contents.size > maxLeafSize
+    std::string spaces;
+//     for (int i = 0; i < depth; i++) {
+//       spaces += "  ";
+//     }
+//     cout << spaces << "depth " << depth << ", " << contents.size()
+//          << " elems" << endl;
+    depth++;
     computeCenters(contents, partitionStrategy);
     if (opt) {
       precomputeDistances(dc);
@@ -501,7 +515,7 @@ class NTreeInnerNode : public NTreeNode<T, DistComp, opt> {
         else {
           children[i] = new innernode_t(degree, maxLeafSize);
         }
-        children[i]->build(partitions[i], dc, partitionStrategy);
+        children[i]->build(partitions[i], dc, depth, partitionStrategy);
       }
     }
     node_t::count = degree;
@@ -604,7 +618,7 @@ class NTreeLeafNode : public NTreeNode<T, DistComp, opt> {
     node_t::count += contents.size();
   }
   
-  void build(std::vector<T>& contents, DistComp& dc,
+  void build(std::vector<T>& contents, DistComp& dc, int depth,
              const int partitionStrategy = 0) {
     assert(false);
   }
@@ -790,7 +804,7 @@ class NTree {
       else {
         root = new innernode_t(degree, maxLeafSize);
       }
-      root->build(contents, dc, partitionStrategy);
+      root->build(contents, dc, 0, partitionStrategy);
     }
 //     print(cout);
   }
