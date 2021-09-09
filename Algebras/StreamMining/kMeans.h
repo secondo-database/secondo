@@ -25,7 +25,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Attribute.h"
 #include "StandardTypes.h"
 #include "Cluster.h"
-#include "cPoint.h"
 
 namespace eschbach {
     class kMeans
@@ -37,7 +36,7 @@ namespace eschbach {
     std::vector<Cluster> getClusters();
 
     //Auxiliary
-    void cluster(vector<cPoint> &all_points);
+    void cluster(std::vector<cPoint> &all_points);
 
   private: 
     kMeans() {}

@@ -75,9 +75,7 @@ It provides the following operators:
 #include "CountMinSketch.h"
 #include "amsSketch.h"
 #include "lossyCounter.h"
-#include "cPoint.h";
-#include "Cluster.h";
-#include "kMeans.h";
+#include "kMeans.h"
 
 #include <string>
 #include <iostream>   
@@ -2223,13 +2221,13 @@ ListExpr errorInfo = nl->OneElemList(nl->SymbolAtom("ErrorInfo"));
 
 */
 ListExpr
-tiltedtime( ListExpr args ) {
+tiltedtimeTM( ListExpr args ) {
 NList type(args);
 ListExpr errorInfo = nl->OneElemList(nl->SymbolAtom("ErrorInfo"));
 
   // three arguments must be supplied
   if (type.length() != 3){
-    return NList::typeError("Operator tiltedtime expects two arguments");
+    return NList::typeError("Operator tiltedtime expects three arguments");
   }
 
   // test first argument for stream
@@ -3096,21 +3094,23 @@ int reservoirSelect(ListExpr args){
 template<class T> 
 class tiltedtimeInfo{
   public: 
-    tiltedtimeInfo(Word inputStream, int inputWindowSize): 
-                  stream(inputStream), windowSize(inputWindowSize), 
-                  counter(0),lastOut(-1), currentFrameNumber(0) {
+    tiltedtimeInfo(Word inputStream, int inputWindowSize, int type): 
+                  stream(inputStream), frameSize(inputWindowSize), 
+                  lastOut(-1), maxFrameNumber(0), nextFrameIndex(0) {
     stream.open();
     //We denote the starting time of the stream
     startTime = chrono::high_resolution_clock::now();
     //Initialize the first bucket
     reservoir.resize(1);
+    reservoir[0].resize(frameSize);
     init();                               
 }
 
-~reservoirInfo() {
-  for(size_t vectorIndex = lastOut+1; 
-     vectorIndex < reservoir.size(); vectorIndex++) {
-    for (size_t eleIndex = 0; i < reservoir[vectorIndex].size(); i++) {
+~tiltedtimeInfo() {
+  for(size_t vectorIndex = lastOut+1; vectorIndex < reservoir.size(); 
+      vectorIndex++) {
+    for (size_t eleIndex = 0; eleIndex < reservoir[vectorIndex].size(); 
+         eleIndex++) {
       reservoir[vectorIndex][eleIndex]->DeleteIfAllowed(); 
     }
   }
@@ -3119,28 +3119,35 @@ class tiltedtimeInfo{
 
 //Returns the Elements in the reservoir in case of requests
 T* next() {
-  lastOut++; 
-  if(lastOut >= (int)reservoir.size()) {
+  lastOut++;
+  //We will run through the different Frames from bottom to 
+  //top. Only the top window could be partially filled
+  if((lastOut >= (int)reservoir[nextFrameIndex].size()) && 
+     (nextFrameIndex >= (int)reservoir.size())) {
     return 0;
   }
-  T* resElement = reservoir[lastOut];
-  reservoir[lastOut] = 0;
+  T* resElement = reservoir[nextFrameIndex][lastOut];
+  reservoir[nextFrameIndex][lastOut] = 0;
+  nextFrameIndex++;
   return resElement;
 }
 
 private: 
   Stream<T> stream; 
-  int windowSize;
+  int frameSize;
   int lastOut;
-  int currentFrameNumber;
+  int maxFrameNumber;
+  int nextFrameIndex;
   vector<vector<T*>> reservoir;
-  auto startTime;
-  auto currentTime; 
-  auto passedTime;
+  vector<T*> outputReservoir;
+  std::chrono::time_point<std::chrono::high_resolution_clock> startTime;
+  std::chrono::time_point<std::chrono::high_resolution_clock> currentTime;
+  std::chrono::duration<double> passedTime;
+  int count = 0;
 
   void init() {
     T* data;
-    reservoir[0].reserve(windowSize);
+    reservoir[0].reserve(frameSize);
     //While the Argumentstream can still supply Data/Tuples 
     while ((data = stream.request()) != nullptr) {
       //save the time of receiving the Streamelement
@@ -3149,7 +3156,7 @@ private:
       //the time of receiving the element in microseconds.
       //A finer time unit (mb nanoseconds) could be chosen; 
       //need to talk about this    
-      passedTime = chrono::duration_cast<std::chrono::microseconds>
+      passedTime = chrono::duration_cast<std::chrono::seconds>
                    (currentTime - startTime);
       insert(data);
     } 
@@ -3158,21 +3165,29 @@ private:
   //Decides whether to include Data/Tuples from the Stream into the reservoir
   void insert(T* data) {
     //Normalize the passed time to seconds
-    float timeStamp = passedTime.count() * 1e-6;
-    
-    //We have to fulfill (log2(timestmap)-windowSize <= currentFrameNumber 
+    int timeStamp = passedTime.count();
+    cout << endl; 
+    cout << "Timestamp for argument with Index " << count 
+         << " argument is: " << timeStamp << endl;
+    cout << endl; 
+    count++; 
+
+    //We have to fulfill (log2(timestmap)-windowSize <= maxFrameNumber 
     //<= log2(T))
-    if ((log2(timeStamp)-windowSize < currentFrameNumber) &&
-        (log2(timeStamp) > currentFrameNumber)) {
-      currentFrameNumber = floor(timeStamp);
+    if ((log2(timeStamp)-frameSize <= maxFrameNumber) &&
+        (log2(timeStamp) > maxFrameNumber)) {
+      maxFrameNumber = floor(log2(timeStamp));
     }
 
-    for (int i = currentFrameNumber; i > 0; i--) {
-      if (((timeStamp % pow(2,i)) == 0) && ((timeStamp % (2,(i+1))) != 0)) {
-        if (reservoir[i].size() < windowSize) {
+    bool inserted = false; 
+    for (int i = maxFrameNumber; i >= 0; i--) {
+      if ((squareMod(timeStamp, i) == 0) && 
+          (squareMod(timeStamp, (i+1)) != 0)) {
+        if ((int) reservoir[i].size() < frameSize) {
           //We pushback, so that the oldest elements are always
           //at the end of the vector
           reservoir[i].push_back(data);
+          inserted = true;
           break;
         } else {
           //insert the new element at the front
@@ -3180,10 +3195,44 @@ private:
           //remove the last element, because it is the oldest
           reservoir[i].back()->DeleteIfAllowed();
           reservoir[i].pop_back();
+          inserted = true;
+          break;
+        }
+      }
+
+      //none of the previous i fulfilled our requirement and thus 
+      //i > maxFrameNumber so we have to insert the element into 
+      //the frame with the highest index 
+      if (!inserted) {
+        if ((int) reservoir[maxFrameNumber].size() < frameSize) {
+          reservoir[maxFrameNumber].push_back(data);
+        } else {
+          reservoir[maxFrameNumber].insert(
+                                   reservoir[maxFrameNumber].begin(), data);
+          //remove the last element, because it is the oldest
+          reservoir[maxFrameNumber].back()->DeleteIfAllowed();
+          reservoir[maxFrameNumber].pop_back();
           break;
         }
       }
     }
+  }
+
+  //nothing implemented for negatives, cause the exponent cant be < 0 
+  int
+  squareMod(int timeStamp, int exp) {
+    int result;
+    if (exp == 0) {
+      result = 1;
+    } else if (exp == 1) {
+      result = 2; 
+    } else if ((exp % 2) == 0) {
+      result = squareMod(2*2, exp/2);
+    } else {
+      result = 2*squareMod(2*2, (exp-1)/2);
+    }
+    result = timeStamp/result;
+    return result;
   }
 };
 
@@ -3199,10 +3248,12 @@ int tiltedtimeVMT(Word* args, Word& result,
                      local.addr = 0;
                    }
                    CcInt* reservoirSize = (CcInt*) args[1].addr;
+                   CcInt* ttType = (CcInt*) args[2].addr; 
                    if(reservoirSize->IsDefined()){
                       int size = reservoirSize->GetValue();
+                      int type = ttType->GetValue();
                       if(size>0) {
-                        local.addr = new reservoirInfo<T>(args[0], size);
+                        local.addr = new tiltedtimeInfo<T>(args[0], size, type);
                       }
                    }
                    return 0;
@@ -4212,7 +4263,7 @@ class outlierInfo{
           S value = attrValue->GetValue();
           if (checkData(value)) {
             newTuple -> PutAttribute(0, attrValue);
-            newTuple -> PutAttribute(1, index);int
+            newTuple -> PutAttribute(1, index);
             outlierHistory.push_back(newTuple);
             if (outlierHistory.size() == 1589) {
               cout << endl;
@@ -4495,6 +4546,14 @@ streamclusterVM(Word* args, Word& result,
     "query intstream(1,1000) reservoir[10] count"
   );
 
+   OperatorSpec tiltedtimeSpec(
+    "stream(T) x int x int -> stream(T), T = TUPLE or T = DATA",
+    "_ reservoir [_] ",
+    "Creates either a natural, logarithmic or progressive logarthmic",
+    " sample of a stream, depending on the third argument",
+    "query intstream(1,1000) tiltedtime[3,10] count"
+  );
+
   OperatorSpec createbloomfilterSpec(
     "stream(tuple(X)) x ATTR x real ->  bloomfilter",
     "_ createbloomfilter [_,_,_]",
@@ -4582,6 +4641,15 @@ Operator reservoirOp(
   reservoirVM,
   reservoirSelect, 
   reservoirTM
+);
+
+Operator tiltedtimeOp(
+  "tiltedtime",
+  tiltedtimeSpec.getStr(),
+  2,
+  tiltedtimeVM,
+  tiltedtimeSelect, 
+  tiltedtimeTM
 );
 
 Operator createbloomfilterOp(
