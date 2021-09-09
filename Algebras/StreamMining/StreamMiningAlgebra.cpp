@@ -4548,7 +4548,7 @@ streamclusterVM(Word* args, Word& result,
 
    OperatorSpec tiltedtimeSpec(
     "stream(T) x int x int -> stream(T), T = TUPLE or T = DATA",
-    "_ reservoir [_] ",
+    "_ tiltedtime [_,_] ",
     "Creates either a natural, logarithmic or progressive logarthmic",
     " sample of a stream, depending on the third argument",
     "query intstream(1,1000) tiltedtime[3,10] count"

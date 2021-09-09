@@ -19,7 +19,7 @@
 
 operator reservoir alias RESERVOIR pattern _ op[_]
 
-operator tilted alias TILTED pattern _ op[_]
+operator tiltedtime alias TILTED pattern _op[_,_]
 
 operator createbloomfilter alias BLOOM pattern _ op[_,_]
 
@@ -38,3 +38,5 @@ operator createlossycounter alias LC pattern _op[_,_]
 operator lcfrequent alias FREQ pattern _op[_]
 
 operator outlier alias OUTLIER pattern _op[_,_]
+
+operator streamcluster alias CLUSTER pattern _op[_,_,_]

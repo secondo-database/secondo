@@ -10,56 +10,68 @@ Signature: (stream(T) x int) -> stream(T)
 Example  : query intstream(1,10) reservoir[3] count
 Result   : 3
 
-Operator : createbloomfilter
+Operator : tiltedtime
 Number   : 2
+Signature: (stream(T) x int x int) -> stream(T)
+Example  : query intstream(1,10) tiltedtime[10,3] count
+Result   : 3
+
+Operator : createbloomfilter
+Number   : 3
 Signature: (stream(tuple(X)) x ATTR) x int x real ->  bloomfilter, X in DATA
 Example  : query Kinos feed createbloomfilter[Name,0.01] bloomcontains["Astor"]
 Result   : TRUE
 
 Operator : bloomcontains
-Number   : 3
+Number   : 4
 Signature: bloomfilter x T -> bool, T in DATA or T in TUPLE
 Example  : query Kinos feed createbloomfilter[Name,0.01] bloomcontains["Berlino"]
 Result   : FALSE
 
 Operator : createcountmin
-Number   : 4
+Number   : 5
 Signature: (stream(tuple(X)) x ATTR) x int x real ->  countminsketch, X in DATA
 Example  : query Kinos feed createcountmin[Name,0.01,0.1] cmscount["Astor"]
 Result   : 1
 
 Operator : cmscount
-Number   : 5
+Number   : 6
 Signature: countminsketch x T -> bool, T in DATA or T in TUPLE
 Example  : query Kinos feed createcountmin[Name,0.01,0.1] cmscount["Berlino"]
 Result   : 0
 
 Operator : createams
-Number   : 6
+Number   : 7
 Signature: stream(tuple(X)) x ATTR x int x real -> amssketch
 Example  : query Kinos feed createams[Name,0.01,0.1] amsestimate
 Result   : 22
 
 Operator : amsestimate
-Number   : 7
+Number   : 8
 Signature: amssketch -> real
 Example  : query Kinos feed createams[Name,0.01,0.1] amsestimate
 Result   : 22
 
 Operator : createlossycounter
-Number   : 8
+Number   : 9
 Signature: stream(tuple(X)) x ATTR x real -> lossycounter
 Example  : query intstream(1,100) createlossycounter[Elem,0.01] lcfrequent[0.1] count
 Result   : 0
 
 Operator : lcfrequent
-Number   : 9
+Number   : 10
 Signature: lossycounter x real -> stream(tuple(x))
 Example  : query intstream(1,100) createlossycounter[Elem,0.01] lcfrequent[0.1] count
 Result   : 0
 
 Operator : outlier
-Number   : 10
+Number   : 11
 Signature: (stream(T) x int) -> stream(T)
 Example  : query intstream(1,100) outlier[Elem,3] count
 Result   : 100
+
+Operator : streamcluster
+Number   : 12
+Signature: (stream(T) x ATTR x int x int) -> stream(T)
+Example  : query intstream(1,100) streamcluster[Elem,3,3] count
+Result   : 3
