@@ -388,8 +388,10 @@ std::string ConnectionMySQL::getExportDataSQL(const std::string &table,
  
     string filename = getFilenameForPartition(table, nr);
 
-    string exportSQL = "SELECT a.* FROM "+ table +" a INNER JOIN " 
-        + join_table  + " b " + getjoin(key) 
+    string attributes = getFieldNamesForExport(table, "a.");
+
+    string exportSQL = "SELECT " + attributes + " FROM " + table 
+        + " a INNER JOIN " + join_table  + " b " + getjoin(key) 
         + " WHERE (slot % " + to_string(numberOfWorker) + ") = " + nr
         + " INTO OUTFILE '" + path + filename + "' CHARACTER SET utf8;";
 
@@ -399,6 +401,65 @@ std::string ConnectionMySQL::getExportDataSQL(const std::string &table,
     return exportSQL;
 }
 
+
+/*
+6.11 ~getExportColumns~
+
+Regular import and export of MySQL relations with SHAPE datatype fail. 
+
+Cannot get geometry object from data you send to the GEOMETRY field
+
+Therefore, all geometry fields have to be serialized manually to text. 
+In addition, the spatial reference identifier (SRID) has to be exported.
+
+This method returns the column description for an export that can be used
+in queries like SELECT thisResult FROM table INTO OUTFILE. 
+
+*/
+
+std::string ConnectionMySQL::getFieldNamesForExport(
+    const std::string &table, const std::string &fieldPrefix) {
+
+  string sqlQuery = "SELECT * FROM " + table + " LIMIT 1";
+
+  MYSQL_RES *res = sendQuery(sqlQuery.c_str());
+
+  if(res == nullptr) {
+    throw SecondoException("Unable to read table structure");
+  }
+
+  int columns = mysql_num_fields(res);
+  MYSQL_FIELD *fields = mysql_fetch_fields(res);
+
+  std::vector<std::string> columnNames;
+
+  for(int i = 0; i < columns; i++) {       
+    enum_field_types columnType = fields[i].type;
+    string attributeName = string(fields[i].name);
+
+    string renamedField = fieldPrefix + attributeName;
+
+    if(columnType == MYSQL_TYPE_GEOMETRY) {
+        columnNames.push_back("ST_AsWKT(" + renamedField + ")");
+        columnNames.push_back("ST_SRID(" + renamedField + ")");
+    } else {
+        columnNames.push_back(renamedField);
+    }
+  }
+
+  mysql_free_result(res);
+  res = nullptr;
+
+  // Join attribute names as string
+  string attributeNames = std::accumulate(
+                            std::begin(columnNames), 
+                            std::end(columnNames), string(),
+                            [](string &ss, string &s) {
+                                    return ss.empty() ? s : ss + "," + s;
+                            });
+
+   return attributeNames;
+}
 
 /*
 6.14 ~getjoin~
@@ -444,7 +505,9 @@ std::string ConnectionMySQL::getImportTableSQL(const std::string &table,
 std::string ConnectionMySQL::getExportTableSQL(const std::string &table, 
     const std::string &full_path) {
  
-    return "SELECT * INTO OUTFILE '" + full_path 
+    string attributes = getFieldNamesForExport(table);
+ 
+    return "SELECT " + attributes + " INTO OUTFILE '" + full_path 
         + "' CHARACTER SET utf8 FROM " + table + ";";
 }
 

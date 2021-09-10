@@ -178,7 +178,11 @@ class ConnectionMySQL : public ConnectionGeneric {
 
   std::vector<std::tuple<std::string, std::string>> getTypeFromQuery(
       MYSQL_RES* res);
-};
+
+  std::string getFieldNamesForExport(
+    const std::string &table, const std::string &fieldPrefix = "");
+
+  };
 
 }; /* namespace BasicEngine */
 #endif //_ConnectionMySQL_H_
