@@ -490,12 +490,81 @@ string ConnectionMySQL::getjoin(const string &key) {
 /*
 6.12 ~getImportTableSQL~
 
+When the table contains a SHAPE attribute, the geometry was serialized into
+two attributes (TEXT, SRID) see ~getFieldNamesForExport~. These attributes
+needs to be handled in a special way.
+
 */
 std::string ConnectionMySQL::getImportTableSQL(const std::string &table, 
     const std::string &full_path) {
  
-    return "LOAD DATA INFILE '" + full_path + "' INTO TABLE " + table 
-        + " CHARACTER SET utf8;";
+  string sqlQuery = "SELECT * FROM " + table + " LIMIT 1";
+
+  MYSQL_RES *res = sendQuery(sqlQuery.c_str());
+
+  if(res == nullptr) {
+    throw SecondoException("Unable to read table structure");
+  }
+
+  int columns = mysql_num_fields(res);
+  MYSQL_FIELD *fields = mysql_fetch_fields(res);
+
+  int importColumns = 0;
+
+  // Column name, source
+  std::string importColumnSQL;
+
+  for(int i = 0; i < columns; i++) {       
+    enum_field_types columnType = fields[i].type;
+    string attributeName = string(fields[i].name);
+    
+    if(i == 0) {
+        importColumnSQL = "SET `" + attributeName + "` = ";
+    } else {
+        importColumnSQL.append(", `" + attributeName + "` = ");
+    }
+
+    string thisColumn = "@col" + to_string(importColumns);
+
+    if(columnType == MYSQL_TYPE_GEOMETRY) {
+        string nextColumn = "@col" + to_string(importColumns + 1);
+        importColumnSQL.append("ST_PolygonFromText(" + thisColumn 
+            + ", " + nextColumn + ")");
+        importColumns += 2;
+    } else {
+        importColumnSQL.append(thisColumn);
+        importColumns++;
+    }
+  }
+
+  mysql_free_result(res);
+  res = nullptr;
+
+  // Generate column string
+  string columnSQL = "";
+  for(int i = 0; i < importColumns; i++) {
+      string thisColumn = "@col" + to_string(i);
+
+      if(i == 0) {
+          columnSQL.append("(" + thisColumn);
+      } else {
+          columnSQL.append(", " + thisColumn);
+      }
+  }
+  columnSQL.append(")");
+
+  // Import example
+  // LOAD DATA INFILE "/tmp/water" into table water_import CHARACTER SET 
+  //   utf8 (@col0, @col1, @col2, @col3, @col4, @col5, @col6) 
+  //   SET `OGR_FID` = @col0, SHAPE = ST_PolygonFromText(@col1, @col2), 
+  //   osm_id = @col3, code = @col4, fclass = @col5, name = @col6;
+
+   string loadSQL = "LOAD DATA INFILE '" + full_path + "' INTO TABLE " + table 
+        + " CHARACTER SET utf8 " + columnSQL + " " + importColumnSQL + ";";
+
+  //  BOOST_LOG_TRIVIAL(error) << "Import query is: " << loadSQL;
+
+   return loadSQL;
 }
 
 /*
