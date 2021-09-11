@@ -390,7 +390,7 @@ std::string ConnectionMySQL::getExportDataSQL(const std::string &table,
 
     string attributes = getFieldNamesForExport(table, "a.");
 
-    string exportSQL = "SELECT " + attributes + " FROM " + table 
+    string exportSQL = "SELECT DISTINCT " + attributes + " FROM " + table 
         + " a INNER JOIN " + join_table  + " b " + getjoin(key) 
         + " WHERE (slot % " + to_string(numberOfWorker) + ") = " + nr
         + " INTO OUTFILE '" + path + filename + "' CHARACTER SET utf8;";
@@ -453,7 +453,8 @@ std::string ConnectionMySQL::getFieldNamesForExport(
   // Join attribute names as string
   string attributeNames = std::accumulate(
                             std::begin(columnNames), 
-                            std::end(columnNames), string(),
+                            std::end(columnNames), 
+                            string(),
                             [](string &ss, string &s) {
                                     return ss.empty() ? s : ss + "," + s;
                             });
