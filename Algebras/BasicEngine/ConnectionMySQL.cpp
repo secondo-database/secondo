@@ -563,7 +563,7 @@ std::string ConnectionMySQL::getImportTableSQL(const std::string &table,
    string loadSQL = "LOAD DATA INFILE '" + full_path + "' INTO TABLE " + table 
         + " CHARACTER SET utf8 " + columnSQL + " " + importColumnSQL + ";";
 
-  //  BOOST_LOG_TRIVIAL(error) << "Import query is: " << loadSQL;
+   BOOST_LOG_TRIVIAL(debug) << "Import query is: " << loadSQL;
 
    return loadSQL;
 }
