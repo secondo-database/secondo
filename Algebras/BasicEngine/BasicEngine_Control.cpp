@@ -814,7 +814,7 @@ bool BasicEngine_Control::partition_table_by_grid(const std::string &table,
 /*
 3.9 ~exportToWorker~
 
-The data of a partitions table were sanded to the worker
+The data of a partitions table were sended to the worker
 and after that imported by the worker.
 Returns true if everything is OK and there are no failure.
 

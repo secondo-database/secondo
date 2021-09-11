@@ -2901,6 +2901,229 @@ Operator be_validateQueryOp(
 
 
 
+
+
+/*
+1.3 Operator  ~be\_grid\_create~
+
+Create a new grid with the given name and 
+specification
+
+1.3.2 Type Mapping
+
+*/
+
+ListExpr be_gridCreateTM(ListExpr args){
+string err = "\n {string, text} x real x real x real x int--> bool"
+             "(grid name, x-value, y-value, slot size, number of slots)"
+             " expected";
+
+  if(!nl->HasLength(args,5)){
+    return listutils::typeError("Seven arguments expected. " + err);
+  }
+
+  if(!CcString::checkType(nl->First(args))
+      && !FText::checkType(nl->First(args))){
+    return listutils::typeError("Value of first argument have "
+        "to be a string or a text." + err);
+  }
+
+  if(!CcReal::checkType(nl->Second(args))){
+    return listutils::typeError("Value of second argument have "
+        "to be an real." + err);
+  }
+
+  if(!CcReal::checkType(nl->Third(args))){
+    return listutils::typeError("Value of third argument have "
+        "to be an real." + err);
+  }
+
+  if(!CcReal::checkType(nl->Fourth(args))){
+    return listutils::typeError("Value of fourth argument have "
+        "to be an real." + err);
+  }
+
+  if(!CcInt::checkType(nl->Fifth(args))){
+    return listutils::typeError("Value of fifth argument have "
+        "to be an integer." + err);
+  }
+
+  return nl->SymbolAtom(CcBool::BasicType());
+}
+
+
+/*
+1.3.3 Value Mapping
+
+*/
+template<class T>
+int be_GridCreateSFVM(Word* args,Word& result,int message,
+          Word& local,Supplier s ){
+
+  result = qp->ResultStorage(s);
+  bool validationResult = false;
+
+  T* query = (T*) args[0].addr;
+  CcBool* res = (CcBool*) result.addr;
+
+  if(! query->IsDefined()) {
+    cerr << "Query parameter has to be defined" << endl;
+    validationResult = false;
+  } else if (be_control == nullptr) {
+    cerr << "Please init basic engine first" << endl;
+    validationResult = false;
+  } else {
+    //TODO: Implement
+  } 
+
+  res->Set(true, validationResult);
+
+  return 0;
+}
+
+/*
+1.3.3 Specification
+
+*/
+OperatorSpec be_gridCreateSpec(
+   "{string, text} x real x real x real x int --> bool",
+   "be_repart_grid(_)",
+   "This operator creates a new grid with the given name and specification.",
+   "query be_repart_grid('mygrid', 5.8, 50.3, 0.2, 20)"
+);
+
+/*
+1.3.4 ValueMapping Array
+
+*/
+ValueMapping be_gridCreateVM[] = {
+  be_GridCreateSFVM<CcString>,
+  be_GridCreateSFVM<FText>
+};
+
+/*
+1.3.5 Selection Function
+
+*/
+int be_gridCreateSelect(ListExpr args){
+  return CcString::checkType(nl->First(args)) ? 0 : 1;
+}
+
+/*
+1.3.6 Operator instance
+
+*/
+Operator be_gridCreateOp(
+  "be_grid_create",
+  be_gridCreateSpec.getStr(),
+  sizeof(be_gridCreateVM),
+  be_gridCreateVM,
+  be_gridCreateSelect,
+  be_gridCreateTM
+);
+
+
+
+
+/*
+1.3 Operator  ~be\_grid\_delete~
+
+Delete the given grid
+
+1.3.2 Type Mapping
+
+*/
+
+ListExpr be_gridDeleteTM(ListExpr args){
+  string err = "\n {string, text} expected";
+
+  if(!nl->HasLength(args,1)){
+    return listutils::typeError("One argument expected. " + err);
+  }
+
+  if(!CcString::checkType(nl->First(args))
+      && !FText::checkType(nl->First(args))){
+    return listutils::typeError("Value of first argument have "
+        "to be a string or a text." + err);
+  }
+  
+  return nl->SymbolAtom(CcBool::BasicType());
+}
+
+
+/*
+1.3.3 Value Mapping
+
+*/
+template<class T>
+int be_GridDeleteSFVM(Word* args,Word& result,int message,
+          Word& local,Supplier s ){
+
+  result = qp->ResultStorage(s);
+  bool validationResult = false;
+
+  T* query = (T*) args[0].addr;
+  CcBool* res = (CcBool*) result.addr;
+
+  if(! query->IsDefined()) {
+    cerr << "Query parameter has to be defined" << endl;
+    validationResult = false;
+  } else if (be_control == nullptr) {
+    cerr << "Please init basic engine first" << endl;
+    validationResult = false;
+  } else {
+    //TODO: Implement
+  } 
+
+  res->Set(true, validationResult);
+
+  return 0;
+}
+
+/*
+1.3.3 Specification
+
+*/
+OperatorSpec be_gridDeleteSpec(
+   "{string, text} --> bool",
+   "be_grid_delete(_)",
+   "This operator deletes the grid with the given name.",
+   "query be_delete_grid('mygrid')"
+);
+
+/*
+1.3.4 ValueMapping Array
+
+*/
+ValueMapping be_gridDeleteVM[] = {
+  be_GridDeleteSFVM<CcString>,
+  be_GridDeleteSFVM<FText>
+};
+
+/*
+1.3.5 Selection Function
+
+*/
+int be_gridDeleteSelect(ListExpr args){
+  return CcString::checkType(nl->First(args)) ? 0 : 1;
+}
+
+/*
+1.3.6 Operator instance
+
+*/
+Operator be_gridDeleteOp(
+  "be_grid_delete",
+  be_gridDeleteSpec.getStr(),
+  sizeof(be_gridDeleteVM),
+  be_gridDeleteVM,
+  be_gridDeleteSelect,
+  be_gridDeleteTM
+);
+
+
+
+
 /*
 1.15 Implementation of the Algebra
 
@@ -2940,6 +3163,8 @@ class BasicEngineAlgebra : public Algebra
 
     AddOperator(&be_shareOp);
     AddOperator(&be_validateQueryOp);
+    AddOperator(&be_gridCreateOp);
+    AddOperator(&be_gridDeleteOp);
 
     // configure boost logger
     // TODO: Move to SECONDO core

@@ -46,13 +46,13 @@ Result    : FALSE
 Operator  : be_copy
 Number    : 1
 Signature : {string, text} x {string, text} --> bool
-Example   : query be_copy('cars','/home/filetransfers/cars_3.bin')
+Example   : query be_copy('cars', '/home/filetransfers/cars_3.bin')
 Result    : FALSE
 
 Operator  : be_mquery
 Number    : 1
 Signature : {string, text} x {string, text} --> bool
-Example   : query be_mquery('select * from cars where Speed = 30','cars_short')
+Example   : query be_mquery('select * from cars where Speed = 30', 'cars_short')
 Result    : FALSE
 
 Operator  : be_mcommand
@@ -100,7 +100,7 @@ Result    : FALSE
 Operator  : be_part_fun
 Number    : 1
 Signature : {string, text} x {string, text} x int --> bool
-Example   : query be_part_fun("cars", "moid","random",60)
+Example   : query be_part_fun("cars", "moid", "random", 60)
 Result    : FALSE
 
 Operator  : be_part_grid
@@ -130,7 +130,7 @@ Result    : FALSE
 Operator  : be_repart_fun
 Number    : 1
 Signature : {string, text} x {string, text} x int --> bool
-Example   : query be_repart_fun("cars", "moid","random",60)
+Example   : query be_repart_fun("cars", "moid", "random", 60)
 Result    : FALSE
 
 Operator  : be_repart_grid
@@ -151,3 +151,14 @@ Signature : {string, text} --> bool
 Example   : query be_validate_query("SELECT * FROM users")
 Result    : TRUE
 
+Operator  : be_grid_create
+Number    : 1
+Signature : string x real x real x real x int --> bool
+Example   : query be_grid_create('mygrid', 5.8, 50.3, 0.2, 20)
+Result    : FALSE
+
+Operator  : be_grid_delete
+Number    : 1
+Signature : string
+Example   : query be_grid_delete('mygrid')
+Result    : FALSE
