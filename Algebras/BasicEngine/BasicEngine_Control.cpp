@@ -1760,6 +1760,37 @@ std::string BasicEngine_Control::getFirstAttributeNameFromTable(
 
   return key;
 }
- 
+
+/**
+3.30 Create a grid with the given parameter
+
+*/
+bool BasicEngine_Control::createGrid(const std::string &gridName, 
+  double startX, double startY, double cellSize, int cellsX, int cellsY) {
+
+    string gridTable = "grid_" + gridName;
+
+
+    return false;
+}
+
+
+/**
+3.31 Delete the grid with the given name
+
+*/
+bool BasicEngine_Control::deleteGrid(std::string &gridName) {
+
+  string gridTable = "grid_" + gridName;
+  string sqlQuery = "DROP TABLE " + gridTable;
+
+  // Delete grid on master
+  bool masterResult = sendCommand(sqlQuery, true);
+
+  // Delete grid on worker
+  bool workerResult = mcommand(sqlQuery);
+
+  return masterResult && workerResult;
+}
 
 } /* namespace BasicEngine */

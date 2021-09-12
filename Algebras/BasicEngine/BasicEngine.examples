@@ -153,8 +153,8 @@ Result    : TRUE
 
 Operator  : be_grid_create
 Number    : 1
-Signature : string x real x real x real x int --> bool
-Example   : query be_grid_create('mygrid', 5.8, 50.3, 0.2, 20)
+Signature : string x real x real x real x int x int --> bool
+Example   : query be_grid_create('mygrid', 5.8, 50.3, 0.2, 20, 20)
 Result    : FALSE
 
 Operator  : be_grid_delete

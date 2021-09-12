@@ -2900,9 +2900,6 @@ Operator be_validateQueryOp(
 );
 
 
-
-
-
 /*
 1.3 Operator  ~be\_grid\_create~
 
@@ -2914,12 +2911,12 @@ specification
 */
 
 ListExpr be_gridCreateTM(ListExpr args){
-string err = "\n {string, text} x real x real x real x int--> bool"
+string err = "\n {string, text} x real x real x real x int x int --> bool"
              "(grid name, x-value, y-value, slot size, number of slots)"
              " expected";
 
-  if(!nl->HasLength(args,5)){
-    return listutils::typeError("Seven arguments expected. " + err);
+  if(!nl->HasLength(args,6)){
+    return listutils::typeError("Six arguments expected. " + err);
   }
 
   if(!CcString::checkType(nl->First(args))
@@ -2947,6 +2944,11 @@ string err = "\n {string, text} x real x real x real x int--> bool"
     return listutils::typeError("Value of fifth argument have "
         "to be an integer." + err);
   }
+  
+  if(!CcInt::checkType(nl->Sixth(args))){
+    return listutils::typeError("Value of sixth argument have "
+        "to be an integer." + err);
+  }
 
   return nl->SymbolAtom(CcBool::BasicType());
 }
@@ -2958,25 +2960,46 @@ string err = "\n {string, text} x real x real x real x int--> bool"
 */
 template<class T>
 int be_GridCreateSFVM(Word* args,Word& result,int message,
-          Word& local,Supplier s ){
+          Word& local,Supplier s) {
 
   result = qp->ResultStorage(s);
-  bool validationResult = false;
+  bool operationResult = false;
 
-  T* query = (T*) args[0].addr;
+  T* gridName = (T*) args[0].addr;
+  CcReal* startX = (CcReal*) args[1].addr;
+  CcReal* startY = (CcReal*) args[2].addr;
+  CcReal* cellSize = (CcReal*) args[3].addr;
+  CcInt* cellsX = (CcInt*) args[4].addr;
+  CcInt* cellsY = (CcInt*) args[5].addr;
+  
   CcBool* res = (CcBool*) result.addr;
 
-  if(! query->IsDefined()) {
-    cerr << "Query parameter has to be defined" << endl;
-    validationResult = false;
-  } else if (be_control == nullptr) {
-    cerr << "Please init basic engine first" << endl;
-    validationResult = false;
-  } else {
-    //TODO: Implement
-  } 
+  try {
+    if(! gridName->IsDefined()) {
+      cerr << "GridName parameter has to be defined" << endl;
+      operationResult = false;
+    } else if (be_control == nullptr) {
+      cerr << "Please init basic engine first" << endl;
+      operationResult = false;
+    } else {
+        string gridNameString = gridName -> toText();
+        double startXDouble = startX -> GetValue();
+        double startYDouble = startY -> GetValue();
+        double cellSizeDouble = cellSize -> GetValue();
+        int cellsXInt = cellsX -> GetValue();
+        int cellsYInt = cellsY -> GetValue();
+        
+        operationResult = be_control -> createGrid(gridNameString, 
+          startXDouble, startYDouble, cellSizeDouble, cellsXInt, 
+          cellsYInt);
+    } 
 
-  res->Set(true, validationResult);
+    res->Set(true, operationResult);
+  } catch (SecondoException &e) {
+    BOOST_LOG_TRIVIAL(error) 
+      << "Got error during the creation of the grid" << e.what();
+    res->Set(true, false);
+  }
 
   return 0;
 }
@@ -2986,10 +3009,12 @@ int be_GridCreateSFVM(Word* args,Word& result,int message,
 
 */
 OperatorSpec be_gridCreateSpec(
-   "{string, text} x real x real x real x int --> bool",
+   "{string, text} x real x real x real x int x int--> bool",
    "be_repart_grid(_)",
-   "This operator creates a new grid with the given name and specification.",
-   "query be_repart_grid('mygrid', 5.8, 50.3, 0.2, 20)"
+   "This operator creates a new grid with the given name and specification."
+   "(1) Name of the grid, (2) start x, (3) start y, (4) cell size x/y, "
+   "(5) cells x, (6) cells y",
+   "query be_repart_grid('mygrid', 5.8, 50.3, 0.2, 20, 20)"
 );
 
 /*
@@ -3060,22 +3085,29 @@ int be_GridDeleteSFVM(Word* args,Word& result,int message,
           Word& local,Supplier s ){
 
   result = qp->ResultStorage(s);
-  bool validationResult = false;
+  bool operationResult = false;
 
-  T* query = (T*) args[0].addr;
+  T* gridName = (T*) args[0].addr;
   CcBool* res = (CcBool*) result.addr;
 
-  if(! query->IsDefined()) {
-    cerr << "Query parameter has to be defined" << endl;
-    validationResult = false;
-  } else if (be_control == nullptr) {
-    cerr << "Please init basic engine first" << endl;
-    validationResult = false;
-  } else {
-    //TODO: Implement
-  } 
+ try {
+    if(! gridName->IsDefined()) {
+      cerr << "Grid name has to be defined" << endl;
+      operationResult = false;
+    } else if (be_control == nullptr) {
+      cerr << "Please init basic engine first" << endl;
+      operationResult = false;
+    } else {
+      string gridNameString = gridName -> toText();
+      operationResult = be_control -> deleteGrid(gridNameString);
+    } 
 
-  res->Set(true, validationResult);
+    res->Set(true, operationResult);
+  } catch (SecondoException &e) {
+    BOOST_LOG_TRIVIAL(error) 
+      << "Got error during the creation of the grid" << e.what();
+    res->Set(true, false);
+  }
 
   return 0;
 }
