@@ -312,6 +312,12 @@ Signature : NTREE(T) x MREL(X) x T (x U) x real -> stream(tuple(X))
 Example   : query mKinos_GeoData_ntree mKinos mdistRangeN[alexanderplatz, 2000.0] count
 Result    : 17
 
+Operator  : mdistRangeN2
+Number    : 1912
+Signature : NTREE2(T) x MREL(X) x T (x U) x real -> stream(tuple(X))
+Example   : query mKinos_GeoData_ntree2 mKinos mdistRangeN2[alexanderplatz, 2000.0] count
+Result    : 17
+
 Operator  : mcreateAVLtree
 Number    : 56
 Signature : stream(tuple) x IDENT x IDENT -> mpointer(mem(avltree ))

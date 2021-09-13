@@ -376,6 +376,10 @@ namespace mtreehelper{
   bool checkTypeN(ListExpr type, ListExpr subtype) {
     return checkType(type, subtype, "ntree");
   }
+  
+  bool checkTypeN2(ListExpr type, ListExpr subtype) {
+    return checkType(type, subtype, "ntree2");
+  }
 
   void increaseCounter(const string& objName, const int numberToBeAdded) {
     SecondoCatalog* sc = SecondoSystem::GetCatalog();
@@ -5498,8 +5502,6 @@ Operator minsertmtreeOp(
    minsertmtreeTM
 );
 
-
-
 /*
 Operator ~mdistRange2~
 
@@ -6301,7 +6303,10 @@ Operator mdistRangeOp(
 /*
 Operator ~mdistRangeN~
 
+Type Mapping, used for mdistRangeN (useN2==false) and mdistRangeN2 (useN2==true)
+
 */
+template<bool useN2>
 ListExpr mdistRangeNTM(ListExpr args) {
   string err = "NTREE(T) x MREL x T (x U) x real expected";
   if (!nl->HasLength(args, 4) && !nl->HasLength(args, 5)) {
@@ -6329,14 +6334,27 @@ ListExpr mdistRangeNTM(ListExpr args) {
   ListExpr a3 = nl->Third(args);
   ListExpr a4 = nl->Fourth(args);
   if (nl->HasLength(args, 4)) {
-    if (!mtreehelper::checkTypeN(a1, a3)) {
-      return listutils::typeError("first arg is not an ntree over " 
-                                  + nl->ToString(a3));
+    if (!useN2) {
+      if (!mtreehelper::checkTypeN(a1, a3)) {
+        return listutils::typeError("first arg is not an ntree over " 
+                                    + nl->ToString(a3));
+      }
+    }
+    else {
+      if (!mtreehelper::checkTypeN2(a1, a3)) {
+        return listutils::typeError("first arg is not an ntree2 over " 
+                                    + nl->ToString(a3));
+      }
     }
   }
   else {
     if (!mtreehelper::checkType(a1, nl->SymbolAtom(Tuple::BasicType()))) {
-      return listutils::typeError("first arg is not an ntree over tuples");
+      if (!useN2) {
+        return listutils::typeError("first arg is not an ntree over tuples");
+      }
+      else {
+        return listutils::typeError("first arg is not an ntree2 over tuples");
+      }
     }
     if (!temporalalgebra::MPoint::checkType(a3) &&
         !temporalalgebra::CUPoint::checkType(a3) &&
@@ -6356,11 +6374,11 @@ ListExpr mdistRangeNTM(ListExpr args) {
                 nl->Second(a2)); 
 }
 
-template<class T, class Dist, bool opt>
+template<class T, class Dist>
 class distRangeNInfo {
  public:
-  distRangeNInfo(MemoryNtreeObject<T, Dist, opt>* ntree, MemoryRelObject* mrel, 
-                 T* ref, double dist) {
+  distRangeNInfo(MemoryNtreeObject<T, Dist, false>* ntree,
+                 MemoryRelObject* mrel, T* ref, double dist) {
     rel = mrel->getmmrel();
     MTreeEntry<T> p(*ref, 0);
     it = ntree->getntree()->rangeSearch(p, dist);
@@ -6393,14 +6411,14 @@ class distRangeNInfo {
      
  private:
   vector<Tuple*>* rel;
-  RangeIteratorN<MTreeEntry<T>, Dist, opt>* it;
+  RangeIteratorN<MTreeEntry<T>, Dist, false>* it;
 };
 
 template<class K, class T, class R>
 int mdistRangeNVMT(Word* args, Word& result, int message, Word& local,
                    Supplier s) {
-  distRangeNInfo<K, StdDistComp<K>, false>* li = 
-                          (distRangeNInfo<K, StdDistComp<K>, false>*)local.addr;
+  distRangeNInfo<K, StdDistComp<K> >* li = 
+                                (distRangeNInfo<K, StdDistComp<K> >*)local.addr;
   switch (message) {
     case OPEN : {
       if (li) {
@@ -6427,7 +6445,7 @@ int mdistRangeNVMT(Word* args, Word& result, int message, Word& local,
         return 0;
       }
       K* key = (K*)args[2].addr;
-      local.addr = new distRangeNInfo<K, StdDistComp<K>, false>(n, rel, key, d);
+      local.addr = new distRangeNInfo<K, StdDistComp<K> >(n, rel, key, d);
       return 0;
     }
     case REQUEST: {
@@ -6553,12 +6571,12 @@ ValueMapping mdistRangeNVM[] = {
 OperatorSpec mdistRangeNSpec(
   "NTREE x MREL  x T (x U) x real -> stream(tuple) , NTREE, "
   "MREL represented as string, mem, or mpointer",
-  "mem_ntree mem_rel mdistRange[keyAttr, maxDist] ",
+  "mem_ntree mem_rel mdistRangeN[keyAttr, maxDist] ",
   "Retrieves those tuples from a memory relation "
   "having a distance smaller or equals to a given dist "
   "to a key value (or pair of key values). This operation is aided by a memory "
   "based n-tree.",
-  "query mkinos_ntree mKinos mdistRange[ alexanderplatz , 2000.0] count"
+  "query mkinos_ntree mKinos mdistRangeN[alexanderplatz, 2000.0] count"
 );
 
 Operator mdistRangeNOp(
@@ -6567,7 +6585,176 @@ Operator mdistRangeNOp(
    48,
    mdistRangeNVM,
    mdistRangeNSelect,
-   mdistRangeNTM
+   mdistRangeNTM<false>
+);
+
+/*
+Operator ~mdistRangeN2~
+
+*/
+template<class T, class Dist>
+class distRangeN2Info {
+ public:
+  distRangeN2Info(MemoryNtreeObject<T, Dist, true>* ntree2,
+                  MemoryRelObject* mrel, T* ref, double dist) {
+    rel = mrel->getmmrel();
+    MTreeEntry<T> p(*ref, 0);
+    it = ntree2->getntree()->rangeSearch(p, dist);
+  }
+
+  ~distRangeN2Info() {
+    delete it;
+  }
+
+  Tuple* next() {
+    while (true) {
+      const TupleId tid = it->next();
+      if ((int)tid == -1) {
+        return 0;
+      }
+      if (tid <= rel->size()) {
+        Tuple* res = (*rel)[tid - 1];
+        if (res) { // ignore deleted tuples
+          res->IncReference();
+          return res;
+        }
+      }
+    }
+    return 0;
+  }
+  
+  size_t getNoDistFunCalls() {
+    return it->getNoDistFunCalls();
+  }
+     
+ private:
+  vector<Tuple*>* rel;
+  RangeIteratorN<MTreeEntry<T>, Dist, true>* it;
+};
+
+template<class K, class T, class R>
+int mdistRangeN2VMT(Word* args, Word& result, int message, Word& local,
+                    Supplier s) {
+  distRangeN2Info<K, StdDistComp<K> >* li = 
+                               (distRangeN2Info<K, StdDistComp<K> >*)local.addr;
+  switch (message) {
+    case OPEN : {
+      if (li) {
+        delete li;
+        local.addr = 0;
+      }
+      R* relN = (R*)args[1].addr;
+      MemoryRelObject* rel = getMemRel(relN, nl->Second(qp->GetType(s)));
+      if (!rel) {
+        return 0;
+      }
+      CcReal* dist = (CcReal*)args[3].addr;
+      if (!dist->IsDefined()) {
+        return 0;
+      }
+      double d = dist->GetValue();
+      if (d < 0) {
+        return 0;
+      }
+      T* treeN = (T*)args[0].addr;
+      MemoryNtreeObject<K, StdDistComp<K>, false>* n = 
+                                                   getNtree<T, K, false>(treeN);
+      if (!n) {
+        return 0;
+      }
+      K* key = (K*)args[2].addr;
+      local.addr = new distRangeNInfo<K, StdDistComp<K> >(n, rel, key, d);
+      return 0;
+    }
+    case REQUEST: {
+      result.addr = li ? li->next() : 0;
+      return result.addr ? YIELD : CANCEL;
+    }
+    case CLOSE : {
+      if (li) {
+        mtreehelper::increaseCounter("counterMDistRangeN", 
+                                     li->getNoDistFunCalls());
+        delete li;
+        local.addr = 0;
+      }
+      return 0;
+    }
+   }
+   return -1;
+}
+
+ValueMapping mdistRangeN2VM[] = {
+  mdistRangeN2VMT<mtreehelper::t1,Mem,Mem>,
+  mdistRangeN2VMT<mtreehelper::t2,Mem,Mem>,
+  mdistRangeN2VMT<mtreehelper::t3,Mem,Mem>,
+  mdistRangeN2VMT<mtreehelper::t4,Mem,Mem>,
+  mdistRangeN2VMT<mtreehelper::t5,Mem,Mem>,
+  mdistRangeN2VMT<mtreehelper::t6,Mem,Mem>,
+  mdistRangeN2VMT<mtreehelper::t7,Mem,Mem>,
+  mdistRangeN2VMT<mtreehelper::t8,Mem,Mem>,
+  mdistRangeN2VMT<mtreehelper::t9,Mem,Mem>,
+  mdistRangeN2VMT<mtreehelper::t10,Mem,Mem>,
+  mdistRangeN2VMT<mtreehelper::t11,Mem,Mem>,
+  mdistRangeN2VMT<mtreehelper::t12,Mem,Mem>,
+  
+  mdistRangeN2VMT<mtreehelper::t1,Mem,MPointer>,
+  mdistRangeN2VMT<mtreehelper::t2,Mem,MPointer>,
+  mdistRangeN2VMT<mtreehelper::t3,Mem,MPointer>,
+  mdistRangeN2VMT<mtreehelper::t4,Mem,MPointer>,
+  mdistRangeN2VMT<mtreehelper::t5,Mem,MPointer>,
+  mdistRangeN2VMT<mtreehelper::t6,Mem,MPointer>,
+  mdistRangeN2VMT<mtreehelper::t7,Mem,MPointer>,
+  mdistRangeN2VMT<mtreehelper::t8,Mem,MPointer>,
+  mdistRangeN2VMT<mtreehelper::t9,Mem,MPointer>,
+  mdistRangeN2VMT<mtreehelper::t10,Mem,MPointer>,
+  mdistRangeN2VMT<mtreehelper::t11,Mem,MPointer>,
+  mdistRangeN2VMT<mtreehelper::t12,Mem,MPointer>,
+  
+  mdistRangeN2VMT<mtreehelper::t1,MPointer,Mem>,
+  mdistRangeN2VMT<mtreehelper::t2,MPointer,Mem>,
+  mdistRangeN2VMT<mtreehelper::t3,MPointer,Mem>,
+  mdistRangeN2VMT<mtreehelper::t4,MPointer,Mem>,
+  mdistRangeN2VMT<mtreehelper::t5,MPointer,Mem>,
+  mdistRangeN2VMT<mtreehelper::t6,MPointer,Mem>,
+  mdistRangeN2VMT<mtreehelper::t7,MPointer,Mem>,
+  mdistRangeN2VMT<mtreehelper::t8,MPointer,Mem>,
+  mdistRangeN2VMT<mtreehelper::t9,MPointer,Mem>,
+  mdistRangeN2VMT<mtreehelper::t10,MPointer,Mem>,
+  mdistRangeN2VMT<mtreehelper::t11,MPointer,Mem>,
+  mdistRangeN2VMT<mtreehelper::t12,MPointer,Mem>,
+  
+  mdistRangeN2VMT<mtreehelper::t1,MPointer,MPointer>,
+  mdistRangeN2VMT<mtreehelper::t2,MPointer,MPointer>,
+  mdistRangeN2VMT<mtreehelper::t3,MPointer,MPointer>,
+  mdistRangeN2VMT<mtreehelper::t4,MPointer,MPointer>,
+  mdistRangeN2VMT<mtreehelper::t5,MPointer,MPointer>,
+  mdistRangeN2VMT<mtreehelper::t6,MPointer,MPointer>,
+  mdistRangeN2VMT<mtreehelper::t7,MPointer,MPointer>,
+  mdistRangeN2VMT<mtreehelper::t8,MPointer,MPointer>,
+  mdistRangeN2VMT<mtreehelper::t9,MPointer,MPointer>,
+  mdistRangeN2VMT<mtreehelper::t10,MPointer,MPointer>,
+  mdistRangeN2VMT<mtreehelper::t11,MPointer,MPointer>,
+  mdistRangeN2VMT<mtreehelper::t12,MPointer,MPointer>
+};
+
+OperatorSpec mdistRangeN2Spec(
+  "NTREE2 x MREL  x T (x U) x real -> stream(tuple) , NTREE2, "
+  "MREL represented as string, mem, or mpointer",
+  "mem_ntree2 mem_rel mdistRangeN2[keyAttr, maxDist] ",
+  "Retrieves those tuples from a memory relation "
+  "having a distance smaller or equal to a given distance "
+  "to a key value (or pair of key values). This operation is aided by a memory "
+  "based ntree2.",
+  "query mkinos_ntree2 mKinos mdistRangeN2[alexanderplatz, 2000.0] count"
+);
+
+Operator mdistRangeN2Op(
+   "mdistRangeN2",
+   mdistRangeN2Spec.getStr(),
+   48,
+   mdistRangeN2VM,
+   mdistRangeNSelect,
+   mdistRangeNTM<true>
 );
 
 /*
@@ -22373,6 +22560,7 @@ class MainMemory2Algebra : public Algebra {
 
           AddOperator(&mdistRangeOp);
           AddOperator(&mdistRangeNOp);
+          AddOperator(&mdistRangeN2Op);
 
           AddOperator(&mdistScanOp);
 

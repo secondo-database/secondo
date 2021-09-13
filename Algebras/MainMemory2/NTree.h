@@ -490,11 +490,11 @@ class NTreeInnerNode : public NTreeNode<T, DistComp, opt> {
   void build(std::vector<T>& contents, DistComp& dc, int depth,
              const int partitionStrategy = 0) { // contents.size > maxLeafSize
     std::string spaces;
-//     for (int i = 0; i < depth; i++) {
-//       spaces += "  ";
-//     }
+    for (int i = 0; i < depth; i++) {
+      spaces += "  ";
+    }
 //     cout << spaces << "depth " << depth << ", " << contents.size()
-//          << " elems" << endl;
+//          << " elems, counter = " << dc.getNoDistFunCalls() << endl;
     depth++;
     computeCenters(contents, partitionStrategy);
     if (opt) {
@@ -505,8 +505,7 @@ class NTreeInnerNode : public NTreeNode<T, DistComp, opt> {
 //     printPartitions(contents, partitions, dc, true, cout);
     for (int i = 0; i < degree; i++) {
       if ((int)partitions[i].size() <= maxLeafSize) {
-        leafnode_t* newLeaf = new leafnode_t(degree,maxLeafSize, partitions[i]);
-        children[i] = newLeaf;
+        children[i] = new leafnode_t(degree, maxLeafSize, partitions[i]);
       }
       else {
         if (opt) {
