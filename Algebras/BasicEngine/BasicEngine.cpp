@@ -2981,6 +2981,9 @@ int be_GridCreateSFVM(Word* args,Word& result,int message,
     } else if (be_control == nullptr) {
       cerr << "Please init basic engine first" << endl;
       operationResult = false;
+    } else if(! be_control -> isMaster()) {
+      cout << noWorker << endl;
+      operationResult = false;
     } else {
         string gridNameString = gridName -> toText();
         double startXDouble = startX -> GetValue();
@@ -3096,6 +3099,9 @@ int be_GridDeleteSFVM(Word* args,Word& result,int message,
       operationResult = false;
     } else if (be_control == nullptr) {
       cerr << "Please init basic engine first" << endl;
+      operationResult = false;
+    } else if(! be_control -> isMaster()) {
+      cout << noWorker << endl;
       operationResult = false;
     } else {
       string gridNameString = gridName -> toText();

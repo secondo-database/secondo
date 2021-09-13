@@ -1770,8 +1770,30 @@ bool BasicEngine_Control::createGrid(const std::string &gridName,
 
     string gridTable = "grid_" + gridName;
 
+    // 1st step: Create a grid table
+    bool creationResult = dbms_connection -> createGridTable(gridTable);
 
-    return false;
+    if(! creationResult) {
+      BOOST_LOG_TRIVIAL(error) << "Creation of the grid table has failed";
+      return false;
+    }
+
+    // 2nd step: insert cells
+    for(int ix = 0; ix < cellsX; ix++) {
+      double cellX = startX + (ix * cellSize);
+
+      for(int iy = 0; iy < cellsY; iy++) {
+        double cellY = startY + (iy * cellSize);
+
+        dbms_connection -> insertRectangle(gridTable, cellX, cellY, 
+          cellSize, cellSize);
+      }
+    }
+
+    // 3nd step: Share the grid will all workers
+    bool shareResult = shareTable(gridTable);
+
+    return shareResult;
 }
 
 

@@ -125,7 +125,11 @@ class ConnectionGeneric {
 
     virtual std::string getAttributeProjectionSQLForTable(
         const std::string &table, const std::string &prefix = "");
-    
+
+    virtual bool createGridTable(const std::string &table) = 0;
+
+    virtual bool insertRectangle(const std::string &table, 
+        double x, double y, double sizeX, double sizeY) = 0;
 
     /*
     5.3 

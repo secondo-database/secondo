@@ -157,6 +157,11 @@ class ConnectionMySQL : public ConnectionGeneric {
 
   ResultIteratorGeneric* performSQLSelectQuery(const std::string &sqlQuery);
 
+  bool createGridTable(const std::string &table);
+
+  bool insertRectangle(const std::string &table, 
+        double x, double y, double sizeX, double sizeY);
+
   // The DB Type
   inline static const std::string DBTYPE = "mysql";
 

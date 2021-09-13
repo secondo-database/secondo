@@ -709,4 +709,61 @@ bool ConnectionPG::validateQuery(const std::string &query) {
     return true;
 }
 
+
+
+/*
+6.17 Create the table for the grid
+
+*/
+bool ConnectionPG::createGridTable(const std::string &table) {
+
+    string createTable = "CREATE TABLE " + table + " (id " 
+        + " SERIAL PRIMARY KEY, "
+        + " cell geometry NOT NULL);";
+
+    PGresult *res = sendQuery(createTable.c_str());
+
+    if(res == nullptr) {
+        BOOST_LOG_TRIVIAL(error) 
+            << "Unable to execute: " + createTable;
+        return false;
+    }
+
+    PQclear(res);
+    res = nullptr;
+
+    return true;
+}
+
+/*
+6.17 Insert a rectangle into the grid table
+
+*/
+bool ConnectionPG::insertRectangle(const std::string &table, 
+        double x, double y, double sizeX, double sizeY) {
+
+    string polygon = "POLYGON((" + to_string(x) + " " + to_string(y) + 
+        "," + to_string(x+sizeX) + " " + to_string(y) + 
+        "," + to_string(x+sizeX) + " " + to_string(y+sizeY) + 
+        "," + to_string(x) + " " + to_string(y+sizeY) + 
+        "," + to_string(x) + " " + to_string(y) + "))";
+
+
+    string insertSQL = "INSERT INTO " + table 
+        + "(cell) values(ST_Polygon('" + polygon + "'::geometry, 4326))";
+
+    PGresult *res = sendQuery(insertSQL.c_str());
+
+    if(res == nullptr) {
+        BOOST_LOG_TRIVIAL(error) 
+            << "Unable to execute: " + insertSQL;
+        return false;
+    }
+
+    PQclear(res);
+    res = nullptr;
+
+    return true;
+}
+
 }/* namespace BasicEngine */

@@ -737,4 +737,61 @@ bool ConnectionMySQL::validateQuery(const std::string &query) {
     return true;
 }
 
+
+/*
+6.17 Create the table for the grid
+
+*/
+bool ConnectionMySQL::createGridTable(const std::string &table) {
+
+    string createTable = "CREATE TABLE " + table + " (id " 
+        + " BIGINT NOT NULL AUTO_INCREMENT, "
+        + " cell POLYGON NOT NULL, "
+        + " PRIMARY KEY(id))";
+
+    MYSQL_RES *res = sendQuery(createTable.c_str());
+
+    if(res == nullptr) {
+        BOOST_LOG_TRIVIAL(error) 
+            << "Unable to execute: " + createTable;
+        return false;
+    }
+
+    mysql_free_result(res);
+    res = nullptr;
+
+    return true;
+}
+
+/*
+6.17 Insert a rectangle into the grid table
+
+*/
+bool ConnectionMySQL::insertRectangle(const std::string &table, 
+        double x, double y, double sizeX, double sizeY) {
+
+    string polygon = "POLYGON((" + to_string(x) + " " + to_string(y) + 
+        "," + to_string(x+sizeX) + " " + to_string(y) + 
+        "," + to_string(x+sizeX) + " " + to_string(y+sizeY) + 
+        "," + to_string(x) + " " + to_string(y+sizeY) + 
+        "," + to_string(x) + " " + to_string(y) + "))";
+
+
+    string insertSQL = "INSERT INTO " + table 
+        + "(cell) values(ST_PolyFromText('" + polygon + "', 4326))";
+
+    MYSQL_RES *res = sendQuery(insertSQL.c_str());
+
+    if(res == nullptr) {
+        BOOST_LOG_TRIVIAL(error) 
+            << "Unable to execute: " + insertSQL;
+        return false;
+    }
+
+    mysql_free_result(res);
+    res = nullptr;
+
+    return true;
+}
+
 }
