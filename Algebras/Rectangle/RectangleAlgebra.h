@@ -289,8 +289,11 @@ virtual double getMaxX() const override {
 // are manually guarded by checking the dimension 
 // before the array is accessed.
 
+#ifdef __clang__
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Warray-bounds"
+#endif
+
 virtual double getMinY() const override { 
   return dim < 2 ? 0 : min[1]; 
 }
@@ -306,7 +309,10 @@ virtual double getMinZ() const override {
 virtual double getMaxZ() const override { 
   return dim < 3 ? 0 : max[2]; 
 }
+
+#ifdef __clang__
 #pragma clang diagnostic pop
+#endif
 
 /*
 Intervallength for a certain dimension.
