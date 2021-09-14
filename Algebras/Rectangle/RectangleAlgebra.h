@@ -285,6 +285,12 @@ virtual double getMaxX() const override {
   return max[0]; 
 }
 
+// Array bounds in the following four methods
+// are manually guarded by checking the dimension 
+// before the array is accessed.
+
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Warray-bounds"
 virtual double getMinY() const override { 
   return dim < 2 ? 0 : min[1]; 
 }
@@ -300,7 +306,7 @@ virtual double getMinZ() const override {
 virtual double getMaxZ() const override { 
   return dim < 3 ? 0 : max[2]; 
 }
-
+#pragma clang diagnostic pop
 
 /*
 Intervallength for a certain dimension.
