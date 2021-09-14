@@ -513,8 +513,8 @@ Repartition the given table - worker version
       }
     } else if(partitionMode == grid) {
       bool partResult = partGrid(partitionData.table, 
-        partitionData.key, partitionData.attribute, partitionData.slotnum,
-        partitionData.xstart, partitionData.ystart, partitionData.slotsize);
+        partitionData.key, partitionData.attribute, partitionData.gridname, 
+        partitionData.slotnum);
 
       if(! partResult) {
           BOOST_LOG_TRIVIAL(error) << "Unable to partition table";
@@ -636,9 +636,8 @@ Repartition the given table - master version
     } else if(repartitionMode == grid) {
       repartitionQuery.append("be_repart_grid");
       repartitionQuery.append("('" + partitionData.table + "','"
-      + partitionData.key + "','" + partitionData.attribute + "',"
-      + to_string(partitionData.xstart) + ',' + to_string(partitionData.ystart)
-      + ',' + to_string(partitionData.slotsize) + ','
+      + partitionData.key + "','" + partitionData.attribute + "','"
+      + partitionData.gridname + "',"
       + to_string(partitionData.slotnum) + ")");
     } else if(repartitionMode == fun) {
       repartitionQuery.append("be_repart_fun");
@@ -791,17 +790,15 @@ Repartition the given table by grid
 */    
 bool BasicEngine_Control::partition_table_by_grid(const std::string &table, 
     const std::string &key, const size_t slotnum, 
-    const std::string &attribute, const double xstart, const double ystart, 
-    const double slotsize, const bool repartition) {
+    const std::string &attribute, const std::string &gridname, 
+    const bool repartition) {
     
     PartitionData partitionData = {};
     partitionData.table = table;
     partitionData.key = key;
     partitionData.attribute = attribute;
-    partitionData.xstart = xstart;
-    partitionData.ystart = ystart;
+    partitionData.gridname = gridname;
     partitionData.slotnum = slotnum;
-    partitionData.slotsize = slotsize;
 
     if(repartition) {
       return repartition_table(partitionData, grid);
@@ -809,7 +806,6 @@ bool BasicEngine_Control::partition_table_by_grid(const std::string &table,
       return partition_table(partitionData, grid, false);
     }
 }
-
 
 /*
 3.9 ~exportToWorker~
@@ -1312,11 +1308,7 @@ Returns true if everything is OK and there are no failure.
 */
 bool BasicEngine_Control::partGrid(const std::string &tab, 
   const std::string &key, const std::string &geo_col, 
-  size_t slotnum, float x0, float y0, float slotsize) {
-
-  string x_start = to_string(x0);
-  string y_start = to_string(y0);
-  string sizSlots = to_string(slotsize);
+  const std::string &gridname, size_t slotnum) {
 
   // Dropping parttable
   string partTabName = getTableNameForPartitioning(tab,key);
@@ -1331,18 +1323,8 @@ bool BasicEngine_Control::partGrid(const std::string &tab,
       << "Dropping index failed, ignoring. Maybe it does not exist.";
   } 
 
-  // Create new index
-  string createSQL = dbms_connection->getCreateGeoIndexSQL(tab, geo_col);
-  bool createIndexRes = dbms_connection->sendCommand(createSQL);
-
-  if(! createIndexRes) {
-    BOOST_LOG_TRIVIAL(error) 
-      << "Unable to create index on geo column";
-    return false;
-  }
-
   string createGridSQL = dbms_connection->getPartitionGridSQL(tab, 
-    key, geo_col, slotnum, x_start, y_start, sizSlots, partTabName);
+    key, geo_col, slotnum, gridname, partTabName);
 
   if(createGridSQL.empty()) {
     BOOST_LOG_TRIVIAL(error) 

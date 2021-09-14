@@ -101,13 +101,6 @@ class ConnectionPG : public ConnectionGeneric {
     return "DROP INDEX IF EXISTS " + table + "_idx;";
   }
 
-  std::string getCreateGeoIndexSQL(const std::string &table, 
-    const std::string &geo_col) {
-
-    return "CREATE INDEX " + table + "_idx ON"
-                " " + table + " USING GIST (" + geo_col + ");";
-  }
-
   bool partitionRoundRobin(const std::string &table, 
     const std::string &key, const size_t anzSlots, 
     const std::string &targetTab);
@@ -122,8 +115,7 @@ class ConnectionPG : public ConnectionGeneric {
 
   std::string getPartitionGridSQL(const std::string &table,
     const std::string &key, const std::string &geo_col, 
-    const size_t anzSlots, const std::string &x0, 
-    const std::string &y0, const std::string &size, 
+    const size_t anzSlots, const std::string &gridname, 
     const std::string &targetTab);
 
   std::string getExportDataSQL(const std::string &table, 

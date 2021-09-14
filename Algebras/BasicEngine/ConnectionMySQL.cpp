@@ -275,103 +275,15 @@ std::string ConnectionMySQL::getPartitionSQL(const std::string &table,
 */
 std::string ConnectionMySQL::getPartitionGridSQL(const std::string &table,
     const std::string &key, const std::string &geo_col, 
-    const size_t anzSlots, const std::string &x0, 
-    const std::string &y0, const std::string &size, 
+    const size_t anzSlots, const::string &gridName, 
     const std::string &targetTab) {
- 
-    
-    // Drop old procedure
-    string dropProcedure = "DROP PROCEDURE IF EXISTS ST_CREATE_STATIC_GRID;";
-
-    bool res = sendCommand(dropProcedure.c_str());
-
-    if(!res) {
-        BOOST_LOG_TRIVIAL(error) 
-        << "Unable to perform SQL query " << dropProcedure            
-        << mysql_error(conn);
-        return "";
-    }
-
-    // Create new procedure
-    const char* createProcedure = R"ENDSQL(
-CREATE PROCEDURE ST_CREATE_STATIC_GRID(IN rows INTEGER, IN columns INTEGER,
-    IN xsize FLOAT, IN ysize FLOAT, IN x0 FLOAT, IN y0 FLOAT)
-
-BEGIN
-
--- Declare variables
-DECLARE cur_row INTEGER DEFAULT 0;
-DECLARE cur_column INTEGER DEFAULT 0;
-DECLARE polygon VARCHAR(255);
-DECLARE cell_x0, cell_x1, cell_y0, cell_y1 FLOAT;
-DECLARE cell_p0, cell_p1, cell_p2, cell_p3 VARCHAR(32);
-
-DROP TABLE IF EXISTS grid_table;
-
-CREATE TABLE grid_table ( 
-    id BIGINT NOT NULL AUTO_INCREMENT, 
-    cell POLYGON NOT NULL,
-    PRIMARY KEY(id)
-);
-
--- Create cells
-START TRANSACTION;
-
-WHILE cur_row < rows DO
-   SET cur_column = 0;
-   WHILE cur_column < columns DO
-      SET cell_x0 = x0 + (cur_column * xsize);
-      SET cell_y0 = y0 + (cur_row * ysize);
-
-      SET cell_x1 = cell_x0 + xsize;
-      SET cell_y1 = cell_y0 + ysize;
-
-      SET cell_p0 = concat(cell_x0, ' ', cell_y0);
-      SET cell_p1 = concat(cell_x1, ' ', cell_y0);
-      SET cell_p2 = concat(cell_x1, ' ', cell_y1);
-      SET cell_p3 = concat(cell_x0, ' ', cell_y1);
-      
-      SET polygon = concat('POLYGON((', cell_p0, ',', cell_p1, ',', cell_p2, 
-        ',', cell_p3, ',', cell_p0, '))');
-      INSERT INTO grid_table(cell) values(ST_PolyFromText(polygon, 4326));
-
-      SET cur_column = cur_column + 1;
-   END WHILE;
-   SET cur_row = cur_row + 1;
-END WHILE;
-
-COMMIT;
-
-END;
-)ENDSQL";
-
-    res = sendCommand(createProcedure);
-
-    if(! res) {
-        BOOST_LOG_TRIVIAL(error) 
-        << "Unable to perform SQL query " << createProcedure;
-        return "";
-    }
-
-    // Execute procedure to create table
-    string createCell = "CALL ST_CREATE_STATIC_GRID(" + to_string(anzSlots) 
-        + ", " + to_string(anzSlots) + ", " + size + " , " + size + ", " 
-        + x0 + ", " + y0 + ");";
-
-    res = sendCommand(createCell.c_str());
-
-    if(!res) {
-        BOOST_LOG_TRIVIAL(error) 
-        << "Unable to perform SQL query " << createCell;
-        return "";
-    }
 
     string usedKey(key);
     boost::replace_all(usedKey, ",", ",r.");
 
     string query_exec = "SELECT r." + usedKey + ", "
                "g.id AS slot "
-               "FROM grid_table g INNER JOIN "+ table + " r "
+               "FROM " + gridName + " g INNER JOIN " + table + " r "
                "ON ST_INTERSECTS(g.cell, r."+ geo_col +")";
 
     return getCreateTabSQL(targetTab, query_exec);
@@ -754,6 +666,17 @@ bool ConnectionMySQL::createGridTable(const std::string &table) {
     if(res == nullptr) {
         BOOST_LOG_TRIVIAL(error) 
             << "Unable to execute: " + createTable;
+        return false;
+    }
+
+    // Create index
+    string createIndex = "ALTER TABLE " + table + " ADD SPATIAL INDEX(cell);";
+
+    res = sendQuery(createIndex.c_str());
+
+    if(res == nullptr) {
+        BOOST_LOG_TRIVIAL(error) 
+            << "Unable to execute: " + createIndex;
         return false;
     }
 

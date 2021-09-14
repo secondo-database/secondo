@@ -91,12 +91,6 @@ class ConnectionMySQL : public ConnectionGeneric {
     return "DROP INDEX " + column + " ON " + table +";";
   }
 
-  std::string getCreateGeoIndexSQL(const std::string &table, 
-    const std::string &geo_col) {
-
-    return "ALTER TABLE " + table + " ADD SPATIAL INDEX(" + geo_col + ");";
-  }
-
   bool partitionRoundRobin(const std::string &table, 
     const std::string &key, const size_t anzSlots, 
     const std::string &targetTab);
@@ -111,8 +105,7 @@ class ConnectionMySQL : public ConnectionGeneric {
 
   std::string getPartitionGridSQL(const std::string &table,
     const std::string &key, const std::string &geo_col, 
-    const size_t anzSlots, const std::string &x0, 
-    const std::string &y0, const std::string &size, 
+    const size_t anzSlots, const std::string &gridname, 
     const std::string &targetTab);
 
   std::string getExportDataSQL(const std::string &table, 

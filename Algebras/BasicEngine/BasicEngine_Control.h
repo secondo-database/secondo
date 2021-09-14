@@ -70,9 +70,7 @@ typedef struct {
 
   // For grid based partitioning
   std::string attribute;
-  double xstart;
-  double ystart;
-  double slotsize;
+  std::string gridname;
 } PartitionData;
 
 /*
@@ -137,8 +135,7 @@ public:
 
   bool partition_table_by_grid(const std::string &table, 
     const std::string &key, const size_t slotnum, 
-    const std::string &attribute, const double xstart, 
-    const double ystart, const double slotsize, 
+    const std::string &attribute, const std::string &gridname, 
     const bool repartition);
 
   bool partition_table_by_random(const std::string &tab, 
@@ -307,8 +304,7 @@ distributed2::ConnectionInfo* createConnection(
          const std::string &fun, size_t slotnum);
 
   bool partGrid(const std::string &tab, const std::string &key, 
-    const std::string &geo_col, size_t slotnum, 
-    float x0, float y0, float slotsize);
+    const std::string &geo_col, const std::string &gridname, size_t slotsize);
 
   bool exportData(const std::string &tab, const std::string &key,
          size_t slotnum);

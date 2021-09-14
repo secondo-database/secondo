@@ -105,8 +105,8 @@ Result    : FALSE
 
 Operator  : be_part_grid
 Number    : 1
-Signature : {string, text} x {string, text} x {string, text} x real x real x real x int --> bool
-Example   : query be_part_grid('roads', 'gid', 'geod', 5.8, 50.3, 0.2, 20)
+Signature : {string, text} x {string, text} x {string, text} x {string, text} x int --> bool
+Example   : query be_part_grid('roads', 'gid', 'geod', 20)
 Result    : FALSE
 
 Operator  : be_repart_random
@@ -135,8 +135,8 @@ Result    : FALSE
 
 Operator  : be_repart_grid
 Number    : 1
-Signature : {string, text} x {string, text} x {string, text} x real x real x real x int --> bool
-Example   : query be_repart_grid('roads', 'gid', 'geod', 5.8, 50.3, 0.2, 20)
+Signature : {string, text} x {string, text} x {string, text} x {string, text} x int --> bool
+Example   : query be_repart_grid('roads', 'gid', 'geod', 'mygrid', 20)
 Result    : FALSE
 
 Operator  : be_share

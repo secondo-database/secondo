@@ -494,65 +494,15 @@ The key specified a column which content is a object like a line or a polygon.
 */
 string ConnectionPG::getPartitionGridSQL(const std::string &tab, 
   const std::string &key, const std::string &geo_col, 
-  const size_t anzSlots, const std::string &x0,
-  const std::string &y0, const std::string &size, 
+  const size_t anzSlots, const std::string &gridName, 
   const std::string &targetTab) {
-
-  string query_exec;
-  string gridTable = "grid_tab";
-  string gridCol = "geom";
-
-  // Create a static grid, by generating a polygon with the desired
-  // cell size for each tile and using ST_Translate to move the tile 
-  // onto the right position afterwards.
-  //
-  // Used Paramters:
-  // $1 is nrow
-  // $2 is ncol
-  // $3 is xsize
-  // $4 is ysize
-  // $5 is x0
-  // $6 is y0
-  // $7 is num
-  // $8 is geom
-  query_exec = "CREATE OR REPLACE FUNCTION ST_CreateGrid("
-    "nrow integer, ncol integer, xsize float8, ysize float8, "
-    "x0 float8, y0 float8, OUT num integer, OUT geom geometry) "
-    "RETURNS SETOF record AS "
-    "$$ "
-    "SELECT (i * nrow) + j AS num, ST_Translate(cell,"
-    " j * $3 + $5, i * $4 + $6) AS geom "
-    "FROM generate_series(0, $1 - 1) AS i, "
-    "generate_series(0, $2 - 1) AS j, "
-    "( "
-    "SELECT ('POLYGON((0 0, 0 '||$4||', '||$3||' '||$4||', '||$3||' 0, 0 0))')"
-    "::geometry AS cell) AS foo; "
-    "$$ LANGUAGE sql IMMUTABLE STRICT;";
-    
-  sendCommand(query_exec,false);
-
-  //Creating the new grid
-  query_exec = getDropTableSQL(gridTable);
-  sendCommand(query_exec, false);
-
-  //creating the grid table
-  query_exec ="CREATE TABLE " + gridTable + " as (SELECT * "
-                   "FROM ST_CreateGrid(" +  to_string(anzSlots) + ","
-                   "" + to_string(anzSlots) + ","+ size + "," 
-                   + size + ","+  x0 + "," + y0 +"));";
-
-  sendCommand(query_exec,false);
-
-  //creating index on grid
-  query_exec = getCreateGeoIndexSQL(gridTable, gridCol);
-  sendCommand(query_exec, false);
 
   string usedKey(key);
   boost::replace_all(usedKey, ",", ",r.");
 
-  query_exec = "SELECT r." + usedKey + ", "
+  string query_exec = "SELECT r." + usedKey + ", "
                       "g.num as slot "
-               "FROM " + gridTable + " g INNER JOIN "+ tab + " r "
+               "FROM " + gridName + " g INNER JOIN "+ tab + " r "
                      "ON ST_INTERSECTS(g.geom,r."+ geo_col +")";
 
   return getCreateTabSQL(targetTab, query_exec);
@@ -726,6 +676,18 @@ bool ConnectionPG::createGridTable(const std::string &table) {
     if(res == nullptr) {
         BOOST_LOG_TRIVIAL(error) 
             << "Unable to execute: " + createTable;
+        return false;
+    }
+
+    // Create index on grid
+    string createIndex = "CREATE INDEX " + table + "_idx ON"
+                " " + table + " USING GIST (cell);";
+
+    res = sendQuery(createIndex.c_str());
+
+    if(res == nullptr) {
+        BOOST_LOG_TRIVIAL(error) 
+            << "Unable to execute: " + createIndex;
         return false;
     }
 

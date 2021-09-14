@@ -71,9 +71,6 @@ class ConnectionGeneric {
     virtual std::string getDropIndexSQL(const std::string &table, 
         const std::string &column) = 0;
 
-    virtual std::string getCreateGeoIndexSQL(
-        const std::string &table, const std::string &geo_col) = 0;
-
     virtual bool partitionRoundRobin(const std::string &table, 
         const std::string &key, const size_t anzSlots, 
         const std::string &targetTab) = 0;
@@ -89,8 +86,7 @@ class ConnectionGeneric {
     virtual std::string getPartitionGridSQL(const std::string &table, 
             const std::string &key,
             const std::string &geo_col, const size_t anzSlots, 
-            const std::string &x0, const std::string &y0,
-            const std::string &size, const std::string &targetTab) = 0;
+            const std::string &gridname, const std::string &targetTab) = 0;
 
     virtual std::string getExportDataSQL(const std::string &table, 
             const std::string &join_table, const std::string &key, 

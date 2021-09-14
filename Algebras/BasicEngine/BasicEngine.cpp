@@ -1943,42 +1943,41 @@ leftbottom coordinates number of slots per row and column
 */
 ListExpr be_partGridTM(ListExpr args){
 string err = "\n {string, text} x {string, text} x {string, text} "
-             "x real x real x real x int--> bool"
-             "(tab-name,geo_col,x-value,y-value,slot size,number of slots)"
+             "x {string, text} x int --> bool"
+             "(tab-name,geo_col,primary key, grid name, number of slots)"
              " expected";
-  if(!nl->HasLength(args,7)){
-    return listutils::typeError("Seven arguments expected. " + err);
+
+  if(!nl->HasLength(args,5)){
+    return listutils::typeError("Five arguments expected. " + err);
   }
+
   if(!CcString::checkType(nl->First(args))
       && !FText::checkType(nl->First(args))){
     return listutils::typeError("Value of first argument have "
         "to be a string or a text." + err);
   }
+
   if(!CcString::checkType(nl->Second(args))
       && !FText::checkType(nl->Second(args))){
     return listutils::typeError("Value of second argument have "
         "to be a string or a text." + err);
   }
+
   if(!CcString::checkType(nl->Third(args))
       && !FText::checkType(nl->Third(args))){
     return listutils::typeError("Value of third argument have "
         "to be a string or a text." + err);
   }
-  if(!CcReal::checkType(nl->Fourth(args))){
+
+  if(!CcString::checkType(nl->Fourth(args))
+      && !FText::checkType(nl->Fourth(args))){
     return listutils::typeError("Value of fourth argument have "
-        "to be an real." + err);
+        "to be a string or a text." + err);
   }
-  if(!CcReal::checkType(nl->Fifth(args))){
+
+  if(!CcInt::checkType(nl->Fifth(args))){
     return listutils::typeError("Value of fifth argument have "
-        "to be an real." + err);
-  }
-  if(!CcReal::checkType(nl->Sixth(args))){
-    return listutils::typeError("Value of sixth argument have "
-        "to be an real." + err);
-  }
-  if(!CcInt::checkType(nl->Seventh(args))){
-    return listutils::typeError("Value of seventh argument have "
-        "to be an integer." + err);
+        "to be a int." + err);
   }
 
   return nl->SymbolAtom(CcBool::BasicType());
@@ -1988,7 +1987,7 @@ string err = "\n {string, text} x {string, text} x {string, text} "
 1.14.2 Value Mapping
 
 */
-template<class T, class H, class I>
+template<class T, class H, class I, class K>
 int be_partGridSFVM(Word* args,Word& result,int message
           ,Word& local,Supplier s ){
 
@@ -1997,10 +1996,8 @@ result = qp->ResultStorage(s);
 T* tab = (T*) args[0].addr;
 H* key = (H*) args[1].addr;
 I* geo_col = (I*) args[2].addr;
-CcReal* xstart = (CcReal*) args[3].addr;
-CcReal* ystart = (CcReal*) args[4].addr;
-CcReal* slotsize = (CcReal*) args[5].addr;
-CcInt* slot = (CcInt*) args[6].addr;
+K* gridname = (K*) args[3].addr;
+CcInt* slot = (CcInt*) args[4].addr;
 
 bool val = false;
 CcBool* res = (CcBool*) result.addr;
@@ -2010,8 +2007,7 @@ CcBool* res = (CcBool*) result.addr;
       val = be_control->partition_table_by_grid(
         tab->toText(), key->toText(), 
         slot->GetIntval(), geo_col->toText(),
-        xstart->GetValue(), ystart->GetValue(),
-        slotsize->GetValue(), false);
+        gridname->toText(), false);
     }else{
       cout<< negSlots << endl;
     }
@@ -2030,13 +2026,13 @@ CcBool* res = (CcBool*) result.addr;
 */
 OperatorSpec be_partGridSpec(
    "{string, text} x {string, text} x {string, text} "
-   "x real x real x real x int --> bool",
-   "be_part_grid(_,_,_,_,_,_,_)",
+   "x {string, text} x int --> bool",
+   "be_part_grid(_,_,_,_,_)",
    "This operator distribute a relation by specified grid "
-   "to the worker. You can specified the leftbottom coordinates and the "
-   "size and number of squares. This number of slots and size have to be "
-   "positiv. The column should be a geological attribut.",
-   "query be_part_grid('roads','gid','geog',5.8, 50.3,0.2,20)"
+   "to the worker. You can specified the name of the grid. "
+   "The number of slots and size have to be "
+   "positive. The column should be a spatial attribute",
+   "query be_part_grid('roads','gid','geog','mygrid',20)"
 );
 
 /*
@@ -2044,14 +2040,22 @@ OperatorSpec be_partGridSpec(
 
 */
 ValueMapping be_partGridVM[] = {
-  be_partGridSFVM<CcString,CcString,CcString>,
-  be_partGridSFVM<FText,CcString,CcString>,
-  be_partGridSFVM<CcString,FText,CcString>,
-  be_partGridSFVM<FText,FText,CcString>,
-  be_partGridSFVM<CcString,CcString,FText>,
-  be_partGridSFVM<FText,CcString,FText>,
-  be_partGridSFVM<CcString,FText,FText>,
-  be_partGridSFVM<FText,FText,FText>
+  be_partGridSFVM<CcString,CcString,CcString,CcString>,
+  be_partGridSFVM<FText,CcString,CcString,CcString>,
+  be_partGridSFVM<CcString,FText,CcString,CcString>,
+  be_partGridSFVM<FText,FText,CcString,CcString>,
+  be_partGridSFVM<CcString,CcString,FText,CcString>,
+  be_partGridSFVM<FText,CcString,FText,CcString>,
+  be_partGridSFVM<CcString,FText,FText,CcString>,
+  be_partGridSFVM<FText,FText,FText,CcString>,
+  be_partGridSFVM<CcString,CcString,CcString,FText>,
+  be_partGridSFVM<FText,CcString,CcString,FText>,
+  be_partGridSFVM<CcString,FText,CcString,FText>,
+  be_partGridSFVM<FText,FText,CcString,FText>,
+  be_partGridSFVM<CcString,CcString,FText,FText>,
+  be_partGridSFVM<FText,CcString,FText,FText>,
+  be_partGridSFVM<CcString,FText,FText,FText>,
+  be_partGridSFVM<FText,FText,FText,FText>
 };
 
 /*
@@ -2059,17 +2063,34 @@ ValueMapping be_partGridVM[] = {
 
 */
 int be_partGridSelect(ListExpr args){
-  if(CcString::checkType(nl->First(args))){
-    if(CcString::checkType(nl->Second(args))){
-      return CcString::checkType(nl->Third(args))?0:4;
+
+  if(CcString::checkType(nl->Fourth(args))) {
+    if(CcString::checkType(nl->First(args))){
+      if(CcString::checkType(nl->Second(args))){
+        return CcString::checkType(nl->Third(args))?0:4;
+      }else{
+        return CcString::checkType(nl->Third(args))?2:6;
+      }
     }else{
-      return CcString::checkType(nl->Third(args))?2:6;
+      if(CcString::checkType(nl->Second(args))){
+        return CcString::checkType(nl->Third(args))?1:5;
+      }else{
+        return CcString::checkType(nl->Third(args))?3:7;
+      }
     }
-  }else{
-    if(CcString::checkType(nl->Second(args))){
-      return CcString::checkType(nl->Third(args))?1:5;
+  } else {
+    if(CcString::checkType(nl->First(args))){
+      if(CcString::checkType(nl->Second(args))){
+        return CcString::checkType(nl->Third(args))?8:12;
+      }else{
+        return CcString::checkType(nl->Third(args))?10:14;
+      }
     }else{
-      return CcString::checkType(nl->Third(args))?3:7;
+      if(CcString::checkType(nl->Second(args))){
+        return CcString::checkType(nl->Third(args))?9:13;
+      }else{
+        return CcString::checkType(nl->Third(args))?12:15;
+      }
     }
   }
 }
@@ -2503,7 +2524,7 @@ Operator be_repartHashOp(
 1.14.2 Value Mapping for the operator ~be\_repart\_grid~
 
 */
-template<class T, class H, class I>
+template<class T, class H, class I, class K>
 int be_repartGridSFVM(Word* args,Word& result,int message,
           Word& local,Supplier s ){
 
@@ -2512,10 +2533,8 @@ int be_repartGridSFVM(Word* args,Word& result,int message,
   T* tab = (T*) args[0].addr;
   H* key = (H*) args[1].addr;
   I* geo_col = (I*) args[2].addr;
-  CcReal* xstart = (CcReal*) args[3].addr;
-  CcReal* ystart = (CcReal*) args[4].addr;
-  CcReal* slotsize = (CcReal*) args[5].addr;
-  CcInt* slot = (CcInt*) args[6].addr;
+  K* gridname = (K*) args[3].addr;
+  CcInt* slot = (CcInt*) args[4].addr;
 
   bool val = false;
   CcBool* res = (CcBool*) result.addr;
@@ -2525,10 +2544,10 @@ int be_repartGridSFVM(Word* args,Word& result,int message,
     val = false;
   } else {
     if (slot->GetIntval() > 0){
-        val = be_control->partition_table_by_grid(tab->toText(),
-          key->toText(), slot->GetIntval(), geo_col->toText(),
-          xstart->GetValue(), ystart->GetValue(), slotsize->GetValue(), 
-          true);
+      val = be_control->partition_table_by_grid(
+        tab->toText(), key->toText(), 
+        slot->GetIntval(), geo_col->toText(),
+        gridname->toText(), true);
     } else {
       cout<< negSlots << endl;
     }
@@ -2545,13 +2564,13 @@ int be_repartGridSFVM(Word* args,Word& result,int message,
 */
 OperatorSpec be_repartGridSpec(
    "{string, text} x {string, text} x {string, text} "
-   "x real x real x real x int --> bool",
-   "be_repart_grid(_,_,_,_,_,_,_)",
+   "x {string, text} x int --> bool",
+   "be_repart_grid(_,_,_,_,_)",
    "This operator re-distribute a relation by specified grid "
-   "to the worker. You can specified the leftbottom coordinates and the "
-   "size and number of squares. This number of slots and size have to be "
-   "positiv. The column should be a geological attribut.",
-   "query be_repart_grid('roads','gid','geog',5.8, 50.3,0.2,20)"
+   "to the worker. You can specified the name of the grid. "
+   "The number of slots and size have to be "
+   "positive. The column should be a spatial attribute",
+   "query be_repart_grid('roads','gid','geog','mygrid',20)"
 );
 
 /*
@@ -2559,14 +2578,22 @@ OperatorSpec be_repartGridSpec(
 
 */
 ValueMapping be_repartGridVM[] = {
-  be_repartGridSFVM<CcString,CcString,CcString>,
-  be_repartGridSFVM<FText,CcString,CcString>,
-  be_repartGridSFVM<CcString,FText,CcString>,
-  be_repartGridSFVM<FText,FText,CcString>,
-  be_repartGridSFVM<CcString,CcString,FText>,
-  be_repartGridSFVM<FText,CcString,FText>,
-  be_repartGridSFVM<CcString,FText,FText>,
-  be_repartGridSFVM<FText,FText,FText>
+  be_repartGridSFVM<CcString,CcString,CcString,CcString>,
+  be_repartGridSFVM<FText,CcString,CcString,CcString>,
+  be_repartGridSFVM<CcString,FText,CcString,CcString>,
+  be_repartGridSFVM<FText,FText,CcString,CcString>,
+  be_repartGridSFVM<CcString,CcString,FText,CcString>,
+  be_repartGridSFVM<FText,CcString,FText,CcString>,
+  be_repartGridSFVM<CcString,FText,FText,CcString>,
+  be_repartGridSFVM<FText,FText,FText,CcString>,
+  be_repartGridSFVM<CcString,CcString,CcString,FText>,
+  be_repartGridSFVM<FText,CcString,CcString,FText>,
+  be_repartGridSFVM<CcString,FText,CcString,FText>,
+  be_repartGridSFVM<FText,FText,CcString,FText>,
+  be_repartGridSFVM<CcString,CcString,FText,FText>,
+  be_repartGridSFVM<FText,CcString,FText,FText>,
+  be_repartGridSFVM<CcString,FText,FText,FText>,
+  be_repartGridSFVM<FText,FText,FText,FText>
 };
 
 /*
@@ -2574,17 +2601,33 @@ ValueMapping be_repartGridVM[] = {
 
 */
 int be_repartGridSelect(ListExpr args){
-  if(CcString::checkType(nl->First(args))){
-    if(CcString::checkType(nl->Second(args))){
-      return CcString::checkType(nl->Third(args))?0:4;
+  if(CcString::checkType(nl->Fourth(args))) {
+    if(CcString::checkType(nl->First(args))){
+      if(CcString::checkType(nl->Second(args))){
+        return CcString::checkType(nl->Third(args))?0:4;
+      }else{
+        return CcString::checkType(nl->Third(args))?2:6;
+      }
     }else{
-      return CcString::checkType(nl->Third(args))?2:6;
+      if(CcString::checkType(nl->Second(args))){
+        return CcString::checkType(nl->Third(args))?1:5;
+      }else{
+        return CcString::checkType(nl->Third(args))?3:7;
+      }
     }
-  }else{
-    if(CcString::checkType(nl->Second(args))){
-      return CcString::checkType(nl->Third(args))?1:5;
+  } else {
+    if(CcString::checkType(nl->First(args))){
+      if(CcString::checkType(nl->Second(args))){
+        return CcString::checkType(nl->Third(args))?8:12;
+      }else{
+        return CcString::checkType(nl->Third(args))?10:14;
+      }
     }else{
-      return CcString::checkType(nl->Third(args))?3:7;
+      if(CcString::checkType(nl->Second(args))){
+        return CcString::checkType(nl->Third(args))?9:13;
+      }else{
+        return CcString::checkType(nl->Third(args))?12:15;
+      }
     }
   }
 }
