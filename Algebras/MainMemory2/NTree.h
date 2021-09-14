@@ -26,6 +26,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #define NTREE_H
 
 #include <limits>
+#include <random>
 
 /*
 Implementation of the N-tree
@@ -400,7 +401,8 @@ class NTreeInnerNode : public NTreeNode<T, DistComp, opt> {
         for (unsigned int i = 0; i < contents.size(); i++) {
           positions[i] = i;
         }
-        std::random_shuffle(positions.begin(), positions.end());
+        std::shuffle(positions.begin(), positions.end(), 
+                     std::mt19937(std::random_device()()));
         for (int i = 0; i < node_t::degree; i++) {
           centers[i] = new T(contents[positions[i]]);
         } // node_t::degree random positions between 0 and contents.size() - 1
