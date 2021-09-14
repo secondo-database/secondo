@@ -2264,7 +2264,6 @@ ListExpr errorInfo = nl->OneElemList(nl->SymbolAtom("ErrorInfo"));
   return type.first().listExpr();
 }
 
-
 /*
 2.2.3 Operator ~createbloomfilter~
 
@@ -2360,7 +2359,6 @@ bloomcontainsTM(ListExpr args) {
   return NList::typeError("Operator bloomcontains expects an  " 
                           "ATTRIBUTE as second argument");
 }
-
 
 /*
 2.2.5 Operator ~createcountmin~
@@ -2551,7 +2549,6 @@ ListExpr errorInfo = nl->OneElemList(nl->SymbolAtom("ErrorInfo"));
                amsSketch::BasicType()).listExpr();
 }
 
-
 /*
 2.2.8 Operator ~amsestimate~
 
@@ -2575,7 +2572,6 @@ amsestimateTM(ListExpr args) {
   //check if the searchelement is numeric
   return NList(CcReal::BasicType()).listExpr(); 
 }
-
 
 /*
 2.2.9 Operator ~createlossycounter~
@@ -3096,13 +3092,20 @@ class tiltedtimeInfo{
   public: 
     tiltedtimeInfo(Word inputStream, int inputWindowSize, int type): 
                   stream(inputStream), frameSize(inputWindowSize), 
-                  lastOut(-1), maxFrameNumber(0), nextFrameIndex(0) {
+                  lastOut(-1), maxFrameIndex(0), nextFrameIndex(0),
+                  timeStamp(0), count(0) {
     stream.open();
     //We denote the starting time of the stream
     startTime = chrono::high_resolution_clock::now();
     //Initialize the first bucket
+    cout << endl;
+    cout << "Initial reservoir size is: " << reservoir.size() << endl; 
     reservoir.resize(1);
-    reservoir[0].resize(frameSize);
+    cout << "Reservoir size after constructor is: " 
+         << reservoir.size() << endl; 
+    reservoir[0].resize(frameSize-1);
+    cout << "First initialized Window after constructor has size: " 
+         << reservoir[0].size() << endl;
     init();                               
 }
 
@@ -3119,6 +3122,12 @@ class tiltedtimeInfo{
 
 //Returns the Elements in the reservoir in case of requests
 T* next() {
+  cout << endl;
+  cout << "Number of buckets at the end of the stream is: " 
+       << reservoir.size() << " while maxFrameIndex is:  " 
+       << maxFrameIndex << " and windowSize is: " << reservoir[0].size() 
+       << endl;
+  cout << endl; 
   lastOut++;
   //We will run through the different Frames from bottom to 
   //top. Only the top window could be partially filled
@@ -3136,18 +3145,18 @@ private:
   Stream<T> stream; 
   int frameSize;
   int lastOut;
-  int maxFrameNumber;
+  int maxFrameIndex;
   int nextFrameIndex;
   vector<vector<T*>> reservoir;
   vector<T*> outputReservoir;
   std::chrono::time_point<std::chrono::high_resolution_clock> startTime;
   std::chrono::time_point<std::chrono::high_resolution_clock> currentTime;
   std::chrono::duration<double> passedTime;
-  int count = 0;
+  int timeStamp;
+  int count;
 
   void init() {
     T* data;
-    reservoir[0].reserve(frameSize);
     //While the Argumentstream can still supply Data/Tuples 
     while ((data = stream.request()) != nullptr) {
       //save the time of receiving the Streamelement
@@ -3164,54 +3173,69 @@ private:
 
   //Decides whether to include Data/Tuples from the Stream into the reservoir
   void insert(T* data) {
-    //Normalize the passed time to seconds
-    int timeStamp = passedTime.count();
+    //int timeStamp = passedTime.count();
+    cout << "When starting to insert reservoir size is: " 
+         << reservoir.size() << endl; 
+    timeStamp = (timeStamp+1)*4;
     cout << endl; 
     cout << "Timestamp for argument with Index " << count 
-         << " argument is: " << timeStamp << endl;
+         << " is: " << timeStamp << endl;
     cout << endl; 
+    
     count++; 
-
-    //We have to fulfill (log2(timestmap)-windowSize <= maxFrameNumber 
+    //We have to fulfill (log2(timestmap)-windowSize <= maxFrameIndex 
     //<= log2(T))
-    if ((log2(timeStamp)-frameSize <= maxFrameNumber) &&
-        (log2(timeStamp) > maxFrameNumber)) {
-      maxFrameNumber = floor(log2(timeStamp));
-    }
-
+    calculateMaxIndex();
+    
     bool inserted = false; 
-    for (int i = maxFrameNumber; i >= 0; i--) {
-      if ((squareMod(timeStamp, i) == 0) && 
-          (squareMod(timeStamp, (i+1)) != 0)) {
+    for (int i = maxFrameIndex; i >= 0; i--) {
+      cout << endl; 
+      cout << "Trying to find insert Window Index for T: " 
+           << timeStamp << endl; 
+      if (checkIndex(i)) {
+            cout << "Found window index to be: " << i << endl;
         if ((int) reservoir[i].size() < frameSize) {
+          cout << "Chosen Window with index " << i << " still has room" << endl;
+          cout << endl;
           //We pushback, so that the oldest elements are always
           //at the end of the vector
+          cout << "Trying to insert Data" << endl;
+          cout << "Current size of the reservoir we push into is: " 
+               << reservoir[i].size() << endl;
           reservoir[i].push_back(data);
+          cout << "Inserted Data" << endl;
           inserted = true;
           break;
         } else {
           //insert the new element at the front
           reservoir[i].insert(reservoir[i].begin(), data);
           //remove the last element, because it is the oldest
-          reservoir[i].back()->DeleteIfAllowed();
+          reservoir[i][reservoir[i].size()-1]->DeleteIfAllowed();
           reservoir[i].pop_back();
           inserted = true;
           break;
         }
       }
-
       //none of the previous i fulfilled our requirement and thus 
       //i > maxFrameNumber so we have to insert the element into 
       //the frame with the highest index 
       if (!inserted) {
-        if ((int) reservoir[maxFrameNumber].size() < frameSize) {
-          reservoir[maxFrameNumber].push_back(data);
+        cout << "No i fulfilled the inequality; inserting into maxframe" 
+             << endl;
+        if ((int) reservoir[maxFrameIndex].size() < frameSize) {
+          cout << endl;
+          cout << "Window we tried to insert into was not full yet" <<endl;  
+          reservoir[maxFrameIndex].push_back(data);
+          break;
         } else {
-          reservoir[maxFrameNumber].insert(
-                                   reservoir[maxFrameNumber].begin(), data);
+          cout << endl;
+          cout << "Window we tried to insert into was full already" << endl;
+          cout << endl;
+          reservoir[maxFrameIndex].insert(
+                                   reservoir[maxFrameIndex].begin(), data);
           //remove the last element, because it is the oldest
-          reservoir[maxFrameNumber].back()->DeleteIfAllowed();
-          reservoir[maxFrameNumber].pop_back();
+          reservoir[maxFrameIndex].back()->DeleteIfAllowed();
+          reservoir[maxFrameIndex].pop_back();
           break;
         }
       }
@@ -3220,19 +3244,47 @@ private:
 
   //nothing implemented for negatives, cause the exponent cant be < 0 
   int
-  squareMod(int timeStamp, int exp) {
-    int result;
+  squareMod(long base, long exp) {
+    cout << endl;
+    cout << "Calculating squareMod with base: " << base 
+         << " and exp: " << exp << endl;
     if (exp == 0) {
-      result = 1;
+      return 1;
     } else if (exp == 1) {
-      result = 2; 
+      return base; 
     } else if ((exp % 2) == 0) {
-      result = squareMod(2*2, exp/2);
+      return squareMod(base*base, exp/2);
     } else {
-      result = 2*squareMod(2*2, (exp-1)/2);
+      return 2*(squareMod(base*base, (exp-1)/2));
     }
-    result = timeStamp/result;
-    return result;
+  }
+ 
+  bool
+  checkIndex(int i) {     
+    bool condition1 = (timeStamp % squareMod(2,i)) == 0;
+    bool condition2 = (timeStamp % squareMod(2, (i+1))) != 0;
+    return condition1 && condition2;
+  }
+
+  void
+  calculateMaxIndex() {
+    cout << endl;
+    cout << "Recalculating maxFrameIndex" << endl;
+    float lowerBound = log2(timeStamp)-frameSize;
+    float upperBound = log2(timeStamp);
+    if (lowerBound > maxFrameIndex) {
+      //This way we always fullfil frameIndex <= log2(timeStamp)
+      maxFrameIndex = floor(upperBound);
+      cout << endl;
+      cout << "maxFrameIndex was too small and was readjusted to: " 
+           << maxFrameIndex << endl;
+      //resize the reservoir so that we can access reservoir[maxFrameIndex]
+      if (maxFrameIndex > (int) reservoir.size()) {
+        cout <<  "maxFrameIndex is bigger then reservoir size" << endl;
+        reservoir.resize(maxFrameIndex+1);
+        cout << "Resized reservoir to size: " << reservoir.size() << endl; 
+      }
+    }
   }
 };
 
@@ -3275,14 +3327,11 @@ int tiltedtimeVMT(Word* args, Word& result,
 //value Mapping Array
 ValueMapping tiltedtimeVM[] = { 
               tiltedtimeVMT<Tuple>,
-              tiltedtimeVMT<Attribute>
 };  
 
 // Selection Function
 int tiltedtimeSelect(ListExpr args){
-   if (Stream<Attribute>::checkType(nl->First(args))) {
-     return 1;
-   } else if (Stream<Tuple>::checkType(nl->First(args))){
+   if (Stream<Tuple>::checkType(nl->First(args))){
      return 0;
    } else {
      return -1;
@@ -4761,6 +4810,7 @@ class StreamMiningAlgebra : public Algebra
 
     //Registration of Operators
     AddOperator(&reservoirOp);
+    AddOperator(&tiltedtimeOp);
     AddOperator(&createbloomfilterOp);
     AddOperator(&bloomcontainsOp);
     AddOperator(&createcountminOp);
@@ -4770,6 +4820,7 @@ class StreamMiningAlgebra : public Algebra
     AddOperator(&createlossycounterOp);
     AddOperator(&lcfrequentOp);
     AddOperator(&outlierOp);
+    AddOperator(&streamclusterOp);
   }
   ~StreamMiningAlgebra() {};
 };
