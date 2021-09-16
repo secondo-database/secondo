@@ -3092,29 +3092,28 @@ class tiltedtimeInfo{
   public: 
     tiltedtimeInfo(Word inputStream, int inputWindowSize, int type): 
                   stream(inputStream), frameSize(inputWindowSize), 
-                  lastOut(-1), maxFrameIndex(0), nextFrameIndex(0),
+                  lastOut(0), maxFrameIndex(0), nextFrameIndex(0),
                   timeStamp(0), count(0) {
     stream.open();
     //We denote the starting time of the stream
     startTime = chrono::high_resolution_clock::now();
-    //Initialize the first bucket
-    cout << endl;
-    cout << "Initial reservoir size is: " << reservoir.size() << endl; 
-    reservoir.resize(1);
-    cout << "Reservoir size after constructor is: " 
-         << reservoir.size() << endl; 
-    reservoir[0].resize(frameSize-1);
-    cout << "First initialized Window after constructor has size: " 
-         << reservoir[0].size() << endl;
     init();                               
-}
+  }
+
 
 ~tiltedtimeInfo() {
-  for(size_t vectorIndex = lastOut+1; vectorIndex < reservoir.size(); 
-      vectorIndex++) {
-    for (size_t eleIndex = 0; eleIndex < reservoir[vectorIndex].size(); 
-         eleIndex++) {
-      reservoir[vectorIndex][eleIndex]->DeleteIfAllowed(); 
+  for(size_t windowIndex = nextFrameIndex; windowIndex < reservoir.size(); 
+      windowIndex++) {
+    cout << endl;
+    cout << "Starting to parse window " << windowIndex << endl;
+    if (reservoir[windowIndex].size() != 0) {
+      cout << "Window " << windowIndex << " does contain elements" << endl;
+      for (size_t eleIndex = lastOut+1; 
+           eleIndex < reservoir[windowIndex].size(); eleIndex++) {
+        cout << "Trying to delete Item " << eleIndex 
+             << " of window " << windowIndex << endl; 
+        reservoir[windowIndex][eleIndex]->DeleteIfAllowed(); 
+      }
     }
   }
   stream.close();
@@ -3122,22 +3121,52 @@ class tiltedtimeInfo{
 
 //Returns the Elements in the reservoir in case of requests
 T* next() {
+  cout << "nextFrameIndex in next() is: " << nextFrameIndex  << endl;
   cout << endl;
   cout << "Number of buckets at the end of the stream is: " 
-       << reservoir.size() << " while maxFrameIndex is:  " 
+       << reservoir.size() << " while maxFrameIndex is: " 
        << maxFrameIndex << " and windowSize is: " << reservoir[0].size() 
        << endl;
   cout << endl; 
-  lastOut++;
-  //We will run through the different Frames from bottom to 
-  //top. Only the top window could be partially filled
+  cout << "Number of entries in the Buckets are: " << endl; 
+  for (auto vector : reservoir) {
+    cout << vector.size() << " " << endl;
+  }
+
+  //We exhausted all elements in the current window
+  if (((lastOut >= (int) reservoir[nextFrameIndex].size()) 
+       || (reservoir[nextFrameIndex].size() == 0)) 
+       && (nextFrameIndex < (int) reservoir.size())) {
+         cout << "Exhausted a bucket" << endl;
+    //Theoretically successive Windows could be empty
+    //We need to prevent returning items from them
+    nextFrameIndex++;
+    lastOut = 0;
+    while (int i = 0 < reservoir.size()) {
+      //Window does not have any entries, we continue increasing
+      //the Windowindex
+      if (reservoir[nextFrameIndex].size() == 0) {
+        cout << "nextBucket.size=0; increasing bucket index" << endl;
+        nextFrameIndex++;
+        i++;
+      } else {
+        cout << "nextbucket has Items" << endl;
+        break;
+      }
+    }
+  }
+
+  //We passed through the last window; All elements have been passed
   if((lastOut >= (int)reservoir[nextFrameIndex].size()) && 
      (nextFrameIndex >= (int)reservoir.size())) {
+      cout << "Exhausted all items; returning 0" << endl;
     return 0;
   }
+
   T* resElement = reservoir[nextFrameIndex][lastOut];
   reservoir[nextFrameIndex][lastOut] = 0;
-  nextFrameIndex++;
+  lastOut++;
+  cout << "returning tuple" << endl;
   return resElement;
 }
 
@@ -3152,11 +3181,12 @@ private:
   std::chrono::time_point<std::chrono::high_resolution_clock> startTime;
   std::chrono::time_point<std::chrono::high_resolution_clock> currentTime;
   std::chrono::duration<double> passedTime;
-  int timeStamp;
+  size_t timeStamp;
   int count;
 
   void init() {
     T* data;
+    reservoir.reserve(1);
     //While the Argumentstream can still supply Data/Tuples 
     while ((data = stream.request()) != nullptr) {
       //save the time of receiving the Streamelement
@@ -3176,7 +3206,7 @@ private:
     //int timeStamp = passedTime.count();
     cout << "When starting to insert reservoir size is: " 
          << reservoir.size() << endl; 
-    timeStamp = (timeStamp+1)*4;
+    timeStamp = rand() % 79;
     cout << endl; 
     cout << "Timestamp for argument with Index " << count 
          << " is: " << timeStamp << endl;
@@ -3187,35 +3217,44 @@ private:
     //<= log2(T))
     calculateMaxIndex();
     
-    bool inserted = false; 
+    bool inserted = false;
+    cout << endl; 
+    cout << "Trying to find insert Window Index for T: " 
+         << timeStamp << endl; 
     for (int i = maxFrameIndex; i >= 0; i--) {
-      cout << endl; 
-      cout << "Trying to find insert Window Index for T: " 
-           << timeStamp << endl; 
       if (checkIndex(i)) {
             cout << "Found window index to be: " << i << endl;
         if ((int) reservoir[i].size() < frameSize) {
           cout << "Chosen Window with index " << i << " still has room" << endl;
           cout << endl;
-          //We pushback, so that the oldest elements are always
+          //We insert, so that the oldest elements are always
           //at the end of the vector
           cout << "Trying to insert Data" << endl;
-          cout << "Current size of the reservoir we push into is: " 
+          cout << "Current size of the Window we insert into is: " 
                << reservoir[i].size() << endl;
-          reservoir[i].push_back(data);
+          reservoir[i].insert(reservoir[i].begin(), data);
           cout << "Inserted Data" << endl;
           inserted = true;
           break;
         } else {
+          cout << endl;
+          cout << "Window we want to insert into is full" << endl;
+          //remove the last element, because it i s the oldest
+          reservoir[i].back()->DeleteIfAllowed();
+          cout << "Window size after deleteifallowed() is: " 
+               << reservoir[i].size() << endl;
+          reservoir[i].pop_back();
+          cout << "Poped the element at the back size now: " 
+               << reservoir[i].size() << endl; 
           //insert the new element at the front
           reservoir[i].insert(reservoir[i].begin(), data);
-          //remove the last element, because it is the oldest
-          reservoir[i][reservoir[i].size()-1]->DeleteIfAllowed();
-          reservoir[i].pop_back();
+          cout << "Inserted new element at the front" << endl;
+          cout << "Window size is now: " << reservoir[i].size() << endl;
           inserted = true;
           break;
         }
       }
+    }
       //none of the previous i fulfilled our requirement and thus 
       //i > maxFrameNumber so we have to insert the element into 
       //the frame with the highest index 
@@ -3225,45 +3264,48 @@ private:
         if ((int) reservoir[maxFrameIndex].size() < frameSize) {
           cout << endl;
           cout << "Window we tried to insert into was not full yet" <<endl;  
-          reservoir[maxFrameIndex].push_back(data);
-          break;
+          reservoir[maxFrameIndex].insert(
+                       reservoir[maxFrameIndex].begin(), data);
         } else {
           cout << endl;
           cout << "Window we tried to insert into was full already" << endl;
           cout << endl;
-          reservoir[maxFrameIndex].insert(
-                                   reservoir[maxFrameIndex].begin(), data);
           //remove the last element, because it is the oldest
           reservoir[maxFrameIndex].back()->DeleteIfAllowed();
+          cout << "Window size after deleteifallowed() is: " 
+               << reservoir[maxFrameIndex].size() << endl;
           reservoir[maxFrameIndex].pop_back();
-          break;
+          cout << "Poped the element at the back size now: " 
+               << reservoir[maxFrameIndex].size() << endl;     
+          cout << "Inserted new element at the front" << " ";
+          reservoir[maxFrameIndex].insert(
+                                   reservoir[maxFrameIndex].begin(), data);
+          cout << "Window size is now: " 
+               << reservoir[maxFrameIndex].size() << endl;
         }
       }
-    }
   }
 
   //nothing implemented for negatives, cause the exponent cant be < 0 
   int
-  squareMod(long base, long exp) {
-    cout << endl;
-    cout << "Calculating squareMod with base: " << base 
-         << " and exp: " << exp << endl;
+  squareExp(long base, long exp) {
     if (exp == 0) {
       return 1;
     } else if (exp == 1) {
       return base; 
     } else if ((exp % 2) == 0) {
-      return squareMod(base*base, exp/2);
+      return squareExp(base*base, exp/2);
     } else {
-      return 2*(squareMod(base*base, (exp-1)/2));
+      return base*(squareExp(base*base, (exp-1)/2));
     }
   }
  
   bool
-  checkIndex(int i) {     
-    bool condition1 = (timeStamp % squareMod(2,i)) == 0;
-    bool condition2 = (timeStamp % squareMod(2, (i+1))) != 0;
-    return condition1 && condition2;
+  checkIndex(int i) {
+    long condition = squareExp(2,i);     
+    bool equality = (timeStamp % condition) == 0;
+    bool inequality = (timeStamp % (2*condition)) != 0;
+    return equality && inequality;
   }
 
   void
@@ -3327,12 +3369,15 @@ int tiltedtimeVMT(Word* args, Word& result,
 //value Mapping Array
 ValueMapping tiltedtimeVM[] = { 
               tiltedtimeVMT<Tuple>,
+              tiltedtimeVMT<Attribute>,
 };  
 
 // Selection Function
 int tiltedtimeSelect(ListExpr args){
    if (Stream<Tuple>::checkType(nl->First(args))){
      return 0;
+   } else if (Stream<Attribute>::checkType(nl->First(args))){
+     return 1;
    } else {
      return -1;
    }
