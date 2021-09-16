@@ -22,6 +22,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 
+#ifndef CLUSTER_H
+#define CLUSTER_H
+
 #include "Attribute.h"
 #include "StandardTypes.h"
 #include "cPoint.h"
@@ -52,3 +55,4 @@ namespace eschbach {
     std::vector<cPoint> points; 
   };
 }
+#endif

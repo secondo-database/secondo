@@ -22,6 +22,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 
+#ifndef CPOINT_H
+#define CPOINT_H
+
 #include "Attribute.h"
 #include "StandardTypes.h"
 
@@ -36,14 +39,14 @@ namespace eschbach {
     int getCluster();
     void setCluster(int clusterIndex);
     int getId();
-    double getVal(int index);
+    int getVal(int index);
 
   private: 
     cPoint() {}
     int pointId;
     int clusterId;
     int dimensions;
-    int value;
+    std::vector<int> values;
 
     //Auxiliary
     void clearClusters(); 
@@ -54,3 +57,4 @@ namespace eschbach {
 
   };
 }
+#endif

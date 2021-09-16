@@ -75,6 +75,8 @@ It provides the following operators:
 #include "CountMinSketch.h"
 #include "amsSketch.h"
 #include "lossyCounter.h"
+#include "cPoint.h"
+#include "Cluster.h"
 #include "kMeans.h"
 
 #include <string>
@@ -1909,7 +1911,7 @@ counterPair<T>::getMaxError() {
 */
 cPoint::cPoint(int id, int coordinates) {
   pointId = id; 
-  value = coordinates;
+  values.push_back(coordinates);
   dimensions = 1; 
   //Assign ID=0, because the Point will not have
   //an assigned Cluster at the start
@@ -1936,9 +1938,9 @@ cPoint::setCluster(int index) {
   clusterId = index;
 }
 
-double
+int
 cPoint::getVal(int index) {
-  return value;
+  return values[index];
 }
 
 /*
@@ -2933,11 +2935,6 @@ streamclusterTM(ListExpr args) {
       )
     );
 
-    cout << endl; 
-    cout << "In streamclusterTM outlist has the form: " << endl; 
-    cout << nl->ToString(outlist) << endl;
-
-
   /* Result type is a stream of Tuples with the queried attribute value
      and its corresponding index in the stream. We also appended
      the attribute index and type for the Value Mapping
@@ -3186,7 +3183,11 @@ private:
 
   void init() {
     T* data;
-    reservoir.reserve(1);
+    reservoir.resize(1);
+    reservoir[0].reserve(frameSize);
+    data = stream.request(); 
+    reservoir[0].push_back(data);
+    cout << "In init reservoir[0].size() = " << reservoir[0].size() << endl;
     //While the Argumentstream can still supply Data/Tuples 
     while ((data = stream.request()) != nullptr) {
       //save the time of receiving the Streamelement
@@ -3206,7 +3207,7 @@ private:
     //int timeStamp = passedTime.count();
     cout << "When starting to insert reservoir size is: " 
          << reservoir.size() << endl; 
-    timeStamp = rand() % 79;
+    timeStamp = timeStamp + rand() % 10;
     cout << endl; 
     cout << "Timestamp for argument with Index " << count 
          << " is: " << timeStamp << endl;
@@ -4483,11 +4484,13 @@ int outlierSelect(ListExpr args){
 class streamclusterInfo{
   public:
     streamclusterInfo(Word inputStream, int index, string type,
-                      int iter, int nbrClusters):
+                      int nbrClusters, int iter):
       stream(inputStream), attrIndex(index), attrType(type), lastOut(-1),
-      iterations(iter), k(nbrClusters){
+      k(nbrClusters), iterations(iter){
+        
+        cout << endl; 
+        cout << "Created new StreamClusterInfo" << endl;
         stream.open();
-
         //We appended the attribute Type in the TM and use it to create our
         //output tuple
         typeList = nl->TwoElemList(
@@ -4507,10 +4510,11 @@ class streamclusterInfo{
             )
           )
         );
-
         SecondoCatalog* sc = SecondoSystem::GetCatalog();
         numTypeList = sc->NumericType(typeList);
         tupleType = new TupleType(numTypeList);
+        cout << "Return Tuple Type from Info has the form: " << endl; 
+        cout << nl->ToString(typeList) << endl;
         init();
       }
 
@@ -4538,8 +4542,8 @@ class streamclusterInfo{
       int attrIndex;
       string attrType;
       int lastOut;
-      int iterations;
       int k;
+      int iterations;
       vector<Tuple*> clusterInformation;
       vector<cPoint> readData;  
       TupleType* tupleType;
@@ -4548,20 +4552,35 @@ class streamclusterInfo{
 
 
     void init() {
+      cout << endl;
+      cout << "Init() streamClusterInfo" << endl;
       Tuple* oldTuple;
+      int id = 0;
       while ((oldTuple = stream.request()) != nullptr) {
-        int id = 0;
         CcInt* attrValue = (CcInt*) oldTuple->GetAttribute(attrIndex);
         int value = (int) attrValue->GetValue();
+        cout << "Stream Tuple Attr Value is: " << value << endl;
         cPoint point(id, value);
+        cout << "test" << endl;
+        cout << "Created new point with ID " << point.getId() 
+             << " and Value " << point.getVal(0) << endl;
         readData.push_back(point);
+        id++;
         oldTuple->DeleteIfAllowed();
       }
       compute();
     }
 
     void compute() {
+      cout << endl;
+      cout << "Starting compute()" << endl;
       kMeans clusteringTest(k,iterations);
+      cout << "Created new kMeans Structure" << endl; 
+      cout << "Points handed over for Clustering are: " << endl; 
+      for (auto point : readData) {
+        cout << "ID: " << point.getId() << " Value: " 
+                       << point.getVal(0) << endl; 
+      }
       clusteringTest.cluster(readData);
       for (Cluster currentCluster : clusteringTest.getClusters()) {
         Tuple* newTuple = new Tuple(tupleType);
@@ -4596,8 +4615,8 @@ streamclusterVM(Word* args, Word& result,
                      delete cluster;
                      local.addr = 0;
                    }
-                   CcInt* iterations = (CcInt*) args[2].addr;
-                   CcInt* nbrOfClusters = (CcInt*) args[3].addr;
+                   CcInt* nbrOfClusters = (CcInt*) args[2].addr;
+                   CcInt* iterations = (CcInt*) args[3].addr;
                    CcInt* attrIndex = (CcInt*) args[4].addr;
                    CcString* attrType = (CcString*) args[5].addr;
                    if(iterations->IsDefined() && nbrOfClusters->IsDefined()){
@@ -4608,7 +4627,7 @@ streamclusterVM(Word* args, Word& result,
                                             cout << endl;
                       if(k>1) {
                         local.addr = new streamclusterInfo(args[0], index, 
-                                                           type, iter, k);
+                                                           type, k, iter);
                       }
                    }
                    return 0;
@@ -4718,7 +4737,7 @@ streamclusterVM(Word* args, Word& result,
     "stream(T) x ATTR x int x int -> stream(T), T = int or T = real",
     "_ streamcluster [_,_,_]",
     "Determines Cluster for an int/real stream using ",
-    "the number of iterations and clusters passed",
+    "the number of clusters and iterations passed",
     "query intstream(0,100) outliers[Elem,2,3] consume"
   );
   

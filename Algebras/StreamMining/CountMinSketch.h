@@ -21,6 +21,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
 */
+
+#ifndef COUNTMINSKETCH_H
+#define COUNTMINSKETCH_H
+
 #include "NestedList.h"
 #include "ListUtils.h"
 #include "AlgebraTypes.h"
@@ -105,5 +109,5 @@ namespace eschbach {
     std::vector<std::vector<int>> matrix;
     std::vector<std::vector<long>> hashConstants;
   };
-
 }
+#endif

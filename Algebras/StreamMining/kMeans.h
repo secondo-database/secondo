@@ -22,6 +22,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 
+#ifndef KMEANS_H
+#define KMEANS_H
+
 #include "Attribute.h"
 #include "StandardTypes.h"
 #include "Cluster.h"
@@ -51,3 +54,4 @@ namespace eschbach {
     int getClosestClusterId(cPoint point); 
   };
 }
+#endif
