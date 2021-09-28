@@ -38,6 +38,7 @@ namespace eschbach {
     //Getter und Setter
     int getId();
     cPoint getPoint(int index);
+    std::vector<cPoint> getAllPoints();
     int getSize();
     double getCentroidByPos(int pos);
     void setCentroidByPos(int pos, double val);

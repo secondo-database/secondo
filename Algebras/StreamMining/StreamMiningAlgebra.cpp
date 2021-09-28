@@ -82,6 +82,7 @@ It provides the following operators:
 #include <string>
 #include <iostream>   
 #include <vector>
+#include <forward_list>
 #include <cmath>
 #include <time.h>
 #include <chrono>
@@ -105,16 +106,27 @@ namespace eschbach {
 */
 ScalableBloomFilter::ScalableBloomFilter
 (const double inputFP) {
-  defined = true; 
+  defined = true;
+  cout << "Set defined in Constructor with param" << endl; 
   currentInserts = 0;
+  cout << "Set current inserts in Constructor with param" << endl; 
   curFilterIndex = 0;
+  cout << "Set current FilterIndex in Constructor with param" << endl; 
   falsePositiveProbability = inputFP;
+  cout << "Set cfalse positive prob to " << inputFP 
+       << " in Constructor with param" << endl; 
   rollingFP = inputFP;
   
   //Start out with a smaller filter, so not too much space is wasted
   maxInserts = DEFAULT_SIZE;
   filterSize = optimalSize(maxInserts, inputFP);
+  cout << "Calculated filterSize " << filterSize  
+       << " in Constructor with param" << endl; 
+
   numHashfunctions = optimalHashes(maxInserts, filterSize);
+  cout << "Calculated numHashfunctions " << numHashfunctions 
+       << " in Constructor with param" << endl; 
+
 
   //initialize the vector with as many bits as you expect entries; 
   //values are standard initialized which means false for bool values
@@ -308,6 +320,7 @@ ScalableBloomFilter::updateFilterValues() {
   cout << "Filter now: " << endl;
   cout << "Current Filter Index: " << curFilterIndex << endl;
   cout << "Subfilters: " << filterList.size() << endl;
+  cout << "Filter made for " << getCurMaxInserts() << " entries" << endl;
   cout << "Current Filter Size: " << filterSize << endl;
   cout << "Current Hashes: " << numHashfunctions << endl;
   cout << "Previous Amount of Hashes in NbrHashesVector: " 
@@ -324,34 +337,8 @@ ScalableBloomFilter::In(const ListExpr typeInfo, const ListExpr instance,
                 const int errorPos, ListExpr& errorInfo, bool& correct) {
   
   Word result = SetWord(Address(0));
-  correct = false;
-  NList list (instance); 
-
-  if(list.length() != 3){
-    cmsg.inFunError("expected three arguments");
-    return result; 
-  }
-
-  NList first = list.first();
-  NList second = list.second();
-  NList third = list.third();
-  NList index;
-
-  if(!first.isReal() || !second.isInt() || !third.isList()) {
-    cmsg.inFunError("expected three numbers");
-    return result;
-  } 
-
-  if (third.first().isBool()) {
-    float fp = first.realval();
-    size_t curFilterSize = second.intval();
-    ScalableBloomFilter* bloom = new ScalableBloomFilter(fp);
-    for (size_t i = 0; i < curFilterSize; i++) {
-      index = third.first();
-      third.rest();
-      bloom -> getSubFilter(0)[i] = index.boolval();
-    }
-  }
+  cmsg.inFunError("The Bloomfilter Datastructure "
+                  "does not Support In-Functions");
   return result;
 }
 
@@ -359,24 +346,10 @@ ScalableBloomFilter::In(const ListExpr typeInfo, const ListExpr instance,
 //Currently Dummy
 ListExpr
 ScalableBloomFilter::Out(ListExpr typeInfo, Word value) {
-  ScalableBloomFilter* bloomfilter = 
-                       static_cast<ScalableBloomFilter*> (value.addr);
-  if(!bloomfilter -> getDefined()) {
-    return listutils::getUndefined();
-  }
-
-  ListExpr elementList = nl -> OneElemList(nl->BoolAtom(
-                              bloomfilter->getElement(0,0)));
-  ListExpr last = elementList; 
-
-  for (size_t i = 0; i < bloomfilter -> getSubFilter(0).size(); i++) {    
-      last = nl -> Append(last, nl->BoolAtom(bloomfilter->getElement(i,i)));
-  }
-
-  ListExpr returnList = nl -> ThreeElemList(
-                              nl -> RealAtom(bloomfilter->getFP()),
-                              nl -> IntAtom(bloomfilter->getCurFilterSize()),
-                              last);
+  ListExpr returnList 
+           = nl -> TwoElemList(
+                    nl -> StringAtom("Bloomfilter created successfully."),
+                    nl -> StringAtom("It does not support console output"));
 
   return returnList;
 }
@@ -404,7 +377,7 @@ ScalableBloomFilter::Open(SmiRecord& valueRecord, size_t& offset,
                          const ListExpr typeInfo, Word& value) 
 {  
   double fp;
-  size_t maxInserts = 8;
+  size_t maxInserts = 64;
   size_t subFilterSize;
   int nbrSubFilters;
   int nbrHashFunctions;
@@ -417,6 +390,9 @@ ScalableBloomFilter::Open(SmiRecord& valueRecord, size_t& offset,
 
   cout << "Open FP: " << fp << endl;
 
+  //By constructing a new Bloomfilter with the saved fp 
+  //the new Filter will already have a subfilter with the 
+  //correct size. 
   ScalableBloomFilter* openBloom = new ScalableBloomFilter(fp);
 
   ok = ok && valueRecord.Read (&nbrSubFilters, sizeof(int), offset);
@@ -424,8 +400,10 @@ ScalableBloomFilter::Open(SmiRecord& valueRecord, size_t& offset,
 
   cout << "Open Nbr Subfilters: " << nbrSubFilters << endl;
 
+  //reserve the amount of Subfilter we know we will have
   openBloom->getFilterList().reserve(nbrSubFilters);
 
+  //We will have as many "layers" of hashfunctions as filters
   hashFunctionsPerFilter.reserve(nbrSubFilters);
   for (int i = 0; i < (nbrSubFilters); i++) {
     ok = ok && valueRecord.Read(&nbrHashFunctions, sizeof(int), offset);
@@ -440,6 +418,8 @@ ScalableBloomFilter::Open(SmiRecord& valueRecord, size_t& offset,
     i++;
   }
 
+  //clear out the number of Hashes that were determined in the 
+  //constructor
   openBloom -> getFilterHashes().clear();
   openBloom -> getFilterHashes().reserve(hashFunctionsPerFilter.size());
   openBloom -> setFilterHashes(hashFunctionsPerFilter);
@@ -603,9 +583,9 @@ struct scalableBloomFilterInfo : ConstructorInfo {
     name         = ScalableBloomFilter::BasicType();
     signature    = "-> " + Kind::SIMPLE();
     typeExample  = ScalableBloomFilter::BasicType();
-    listRep      =  "()";
-    valueExample = "(4 12 2 8)";
-    remarks      = "";
+    listRep      =  "Listrepresentation does not exist";
+    valueExample = "(0 1 1 0)";
+    remarks      = "In- and Out-Functions are disabled";
   }
 };
 
@@ -1430,6 +1410,12 @@ amsSketch::estimateInnerProduct() {
     medianArray[i] = sum;
   }
 
+  cout << endl; 
+  cout << "Medians present in the Median array are: " << endl; 
+
+  for (auto elem : medianArray) {
+    cout << elem << " " << endl; 
+  }
   joinSize = findMedian(medianArray);
 
   //Return the Median of sum of squares of elements of the rows
@@ -1965,6 +1951,11 @@ Cluster::getPoint(int pos) {
   return points[pos];
 }
 
+vector<cPoint> 
+Cluster::getAllPoints() {
+  return points;
+}
+
 int
 Cluster::getSize() {
   return points.size();
@@ -2113,6 +2104,10 @@ kMeans::cluster(vector<cPoint> &allPoints) {
 
       if (currentClusterId != nearestClusterId) {
         allPoints[i].setCluster(nearestClusterId);
+        //A Cluster assignment changed and we have to continue
+        //Checking whether this has any cascading effects.
+        //The loop will run again, in case the maximum number 
+        //of iterations has not yet been reached
         done = false;
       }
     }
@@ -2123,7 +2118,8 @@ kMeans::cluster(vector<cPoint> &allPoints) {
 
     //Reassign the Points to their new Clusters
     for(int i = 0; i < totalNbrPoints; i++) {
-      //cluster index is Id-1
+      //cluster index in cluster is Id-1,  due to Cluster id starting
+      //at 1
       clusters[allPoints[i].getCluster()-1].addPoint(allPoints[i]);
     }
 
@@ -2142,6 +2138,9 @@ kMeans::cluster(vector<cPoint> &allPoints) {
       }
     }
 
+    //Break the loop if no changes to point/cluster assignments
+    //occured OR the maximum number of iterations according to 
+    //operator usage is reached
     if (done || iteration >= iterations) {
       break; 
     }
@@ -2283,7 +2282,7 @@ ListExpr errorInfo = nl->OneElemList(nl->SymbolAtom("ErrorInfo"));
   // three arguments must be supplied
   if (type.length() != 3){
     return NList::typeError("Operator createbloomfilter expects "
-                            "four arguments");
+                            "three arguments");
   }
 
   // test first argument for being a tuple stream
@@ -2355,7 +2354,7 @@ bloomcontainsTM(ListExpr args) {
 
   // test second argument for DATA
   if(type.second().isAtom()) {
-    return NList(CcBool::BasicType()).listExpr(); 
+    return NList(CcString::BasicType()).listExpr(); 
   }    
 
   return NList::typeError("Operator bloomcontains expects an  " 
@@ -2866,7 +2865,6 @@ streamclusterTM(ListExpr args) {
   NList type(args);
   NList stream = type.first();
   NList appendList;
-  ListExpr outlist = nl -> TheEmptyList();
 
   // two arguments must be supplied
   if (type.length() != 4){
@@ -2915,34 +2913,32 @@ streamclusterTM(ListExpr args) {
                                 "int and real attributes");
   }
 
-  outlist = 
-    nl->TwoElemList(
-      nl->SymbolAtom(Symbol::STREAM()),
-      nl->TwoElemList(
-          nl->SymbolAtom(Tuple::BasicType()),
-          nl->ThreeElemList(
-            nl->TwoElemList(
-              nl->SymbolAtom("ClusterId"),
-              nl->SymbolAtom(CcInt::BasicType())),       
-            nl->TwoElemList(
-              nl->SymbolAtom("Centroid"),
-              nl->SymbolAtom(CcReal::BasicType())),
-            nl->TwoElemList(
-              nl->SymbolAtom("Centroid Size"),
-              nl->SymbolAtom(CcInt::BasicType())
-            )
-         )
-      )
-    );
+  //Our intention is to add every Tuples Cluster ID in - in relation
+  //to the Attribute we are clustering for - as Attribute to the Tuple
+  //Therefore, we append a new Attribute to the existing Tuple
+  //Attribute List.
+  type.first().second().second().append(
+                                nl->TwoElemList(
+                                  nl->SymbolAtom("ClusterID"), 
+                                  nl->SymbolAtom(CcInt::BasicType())));
+
+  //Save the number of Tuple Attributes so we can add 
+  //the clusterID in the VM at the right index
+  int newAttrIndex = type.first().second().second().length()-1;
+
 
   /* Result type is a stream of Tuples with the queried attribute value
      and its corresponding index in the stream. We also appended
-     the attribute index and type for the Value Mapping
+     the attribute index, -type and amount of ATtributes for the Value
+     Mapping
   */
   appendList.append(NList().intAtom(attrIndex));
   appendList.append(NList().stringAtom(nl->ToString(attrType)));
+  appendList.append(NList().intAtom(newAttrIndex));
+
+  
   return NList(Symbols::APPEND(), appendList,
-               outlist).listExpr();
+               type.first()).listExpr();
 
 }
 
@@ -3411,12 +3407,35 @@ int createbloomfilterVM(Word* args, Word& result,
   */
 
   //initialize the Filter with the values provided by the operator
+  int i = 0; 
+  cout << "Beefore init() " <<
+           "the in createbloomfilter() created filter had values: " << endl;
+   cout << "Defined: " << bloomFilter->getDefined() << endl;
+  cout << "Nbr of Hashes: " << bloomFilter->getCurNumberHashes() << endl;
+  cout << "Hashvector saves: " << bloomFilter->getFilterHashes().size() << endl;
+  cout << "with Hashvector "; 
+  for (auto hashnbr :  bloomFilter->getFilterHashes()) {
+    cout << i << ": " << hashnbr << " " << endl;
+    i++;
+  }
+  cout << "FP: " << + bloomFilter->getFP() << endl;
+  cout << "Filter currently made for Inserts " << 
+           bloomFilter->getCurMaxInserts() << endl;
+  cout << "Current Filter Size: " <<  bloomFilter->getCurFilterSize() << endl;
+  cout << "Overall having " << bloomFilter->getFilterList().size() 
+                            << " Filters" << endl;
+
   bloomFilter->initialize(fpProb->GetValue());
 
   cout << "After init() Bloom Filter Values are: " << endl;
   cout << "Defined: " << bloomFilter->getDefined() << endl;
   cout << "Nbr of Hashes: " << bloomFilter->getCurNumberHashes() << endl;
   cout << "Hashvector saves: " << bloomFilter->getFilterHashes().size() << endl;
+  cout << "with Hashvector "; 
+  for (auto hashnbr :  bloomFilter->getFilterHashes()) {
+    cout << i << ": " << hashnbr << " " << endl;
+    i++;
+  }
   cout << "FP: " << + bloomFilter->getFP() << endl;
   cout << "Filter currently made for Inserts " << 
            bloomFilter->getCurMaxInserts() << endl;
@@ -3450,6 +3469,7 @@ int createbloomfilterVM(Word* args, Word& result,
 
   //while the stream can still provide elements:
   while ((streamTuple != 0)) {
+    int counter = 1;
     if (bloomFilter->isSaturated()) {
       cout << "Filter " << bloomFilter->getFilterList().size() - 1 
            << " is full" << endl;
@@ -3480,6 +3500,7 @@ int createbloomfilterVM(Word* args, Word& result,
           //order of elements is irrelevant; must only be set in the  filter 
           hashvalues.push_back(h_i);
       }
+      counter++;
     } 
     
     /*set the bits corresponding to the elements 
@@ -3531,28 +3552,48 @@ int bloomcontainsVM(Word* args, Word& result,
   ScalableBloomFilter* bloomFilter = (ScalableBloomFilter*) args[0].addr;
   Attribute* searchEle = (Attribute*) args[1].addr;
 
+  string resultString = "The Search Element is not present in the Filter";
+
   //Get the Resultstorage provided by the Query Processor
   result = qp -> ResultStorage(s);
 
   //Make the Storage provided by QP easily usable
-  CcBool* res = (CcBool*) result.addr;
+  CcString* res = (CcString*) result.addr;
 
   //Get the amount of Hashfunctions each subfilter uses
   vector<int> hashIterations = bloomFilter -> getFilterHashes();
+  cout << "In Bloomcontains() " << endl;
+  cout << "The filter we are using for search has " 
+       << hashIterations.size() << "Subfilters" << endl;
+  int i = 0;
+  for (auto nbr : hashIterations) {
+    cout << "Filter " << i << " uses " << nbr << " Hashfunctions" << endl;;
+    i++;
+  }
 
   //Prepare buffer for the MurmurHash3 output storage
   uint64_t cmHash[2];
 
   //Take Size of the bloomFilter
   size_t nbrOfFilters = bloomFilter -> getFilterList().size();
+  cout << "The number of Filters is " << nbrOfFilters << endl; 
+  i = 0; 
+  for (auto ele : bloomFilter->getFilterList()) {
+    cout << "Filter " << i << " has size " << ele.size() << endl;
+    i++;
+  }
 
   //prepare a vector to take in the Hashresults
   vector<size_t> hashValues; 
  
   for (size_t i = 0; i < nbrOfFilters; i++) {
+    cout << "Hashing Searchelement for Filter " << i << endl; 
     hashValues.clear();
     hashValues.reserve(hashIterations[i]);
+    cout << "For Filter " << i << " we will hash " 
+         << hashIterations[i] << " times" << endl;
     size_t filterSize = bloomFilter->getFilterList()[i].size();
+    cout << "Filter size of Filter " << i << " is: " << filterSize << endl;
 
     //hash the Searchelement
     MurmurHash3_x64_128(searchEle, sizeof(*searchEle), 0, cmHash);
@@ -3560,17 +3601,19 @@ int bloomcontainsVM(Word* args, Word& result,
     size_t h1 = cmHash[0] % filterSize;
     hashValues.push_back(h1);
 
-    size_t h2 = 1;
-
-    if (hashIterations[i] >= 2) {
-      h2 = cmHash[1] % filterSize;
+    if (hashIterations[i] > 1) {
+      size_t h2 = cmHash[1] % filterSize;
       hashValues.push_back(h2);
+
+
+      for (int j = 2; j < hashIterations[i]; j++) {
+        size_t h_i = (h1 + j * h2 + j * j) % filterSize;
+        hashValues.push_back(h_i);
+      }
     }
 
-    for (int j = 2; j < hashIterations[i]; j++) {
-      size_t h_i = (h1 + i * h2 + i * i) % filterSize;
-      hashValues.push_back(h_i);
-    }
+    cout << "At the end of the lookup we will search for " 
+         << hashValues.size() << " Hashvalues" << endl;
 
     //Element is contained in one of the Subfilters
     if (bloomFilter->contains(hashValues, i)) {
@@ -3579,7 +3622,12 @@ int bloomcontainsVM(Word* args, Word& result,
     }
   }
 
-  res->Set(true, included);
+  if (!included) {
+    res->Set(true, resultString);
+  } else {
+    resultString = "The Search Element is present in the Filter";
+    res->Set(true, resultString);
+  }
 
   return 0;
 }
@@ -4483,16 +4531,21 @@ int outlierSelect(ListExpr args){
 */
 class streamclusterInfo{
   public:
-    streamclusterInfo(Word inputStream, int index, string type,
-                      int nbrClusters, int iter):
-      stream(inputStream), attrIndex(index), attrType(type), lastOut(-1),
-      k(nbrClusters), iterations(iter){
+    streamclusterInfo(Word inputStream, size_t _maxMem, int index, string type,
+                      int lastAttrIndex, int nbrClusters, int iter):
+      stream(inputStream), maxMem(_maxMem), attrIndex(index), attrType(type),
+      newAttrIndex(lastAttrIndex), k(nbrClusters), 
+      iterations(iter), lastOut(-1){
         
         cout << endl; 
         cout << "Created new StreamClusterInfo" << endl;
         stream.open();
-        //We appended the attribute Type in the TM and use it to create our
-        //output tuple
+        
+        /*Not needed since we will append the ClusterID to the 
+          Tuple
+
+        We appended the attribute Type in the TM and use it to create our
+        output tuple
         typeList = nl->TwoElemList(
           nl->SymbolAtom(Tuple::BasicType()),
           nl->ThreeElemList(
@@ -4510,63 +4563,80 @@ class streamclusterInfo{
             )
           )
         );
+        
         SecondoCatalog* sc = SecondoSystem::GetCatalog();
         numTypeList = sc->NumericType(typeList);
         tupleType = new TupleType(numTypeList);
+
         cout << "Return Tuple Type from Info has the form: " << endl; 
         cout << nl->ToString(typeList) << endl;
+        */
         init();
       }
 
     ~streamclusterInfo() {
       for(size_t index = lastOut+1; index < clusterInformation.size(); 
-          index++) {
+      index++) {
         clusterInformation[index]->DeleteIfAllowed();
-        tupleType -> DeleteIfAllowed();
       }
+      //tupleType -> DeleteIfAllowed();
       stream.close();
     }
 
     Tuple* next() {
       lastOut++; 
+      if (lastOut >= (int) buffer.size()) {
+        return 0;
+      }
+      Tuple* cluster = buffer[lastOut];
+      buffer[lastOut] = 0;
+      return cluster;
+      
+      /* Ausgabe Clustercentroiden etc. 
       if (lastOut >= (int) clusterInformation.size()) {
         return 0;
       }
       Tuple* cluster = clusterInformation[lastOut];
       clusterInformation[lastOut] = 0;
       return cluster;
+      */
     }
 
     private:
-      Stream<Tuple> stream; 
+      Stream<Tuple> stream;
+      size_t maxMem;
       int attrIndex;
       string attrType;
-      int lastOut;
+      int newAttrIndex;
       int k;
       int iterations;
+      int lastOut;
       vector<Tuple*> clusterInformation;
       vector<cPoint> readData;  
+      vector<Tuple*> buffer;
+      
+      /* Not needed for now
       TupleType* tupleType;
       ListExpr typeList;
-      ListExpr numTypeList;
+      ListExpr numTypeList;*/
 
 
     void init() {
       cout << endl;
       cout << "Init() streamClusterInfo" << endl;
-      Tuple* oldTuple;
+      Tuple* streamTuple;
       int id = 0;
-      while ((oldTuple = stream.request()) != nullptr) {
-        CcInt* attrValue = (CcInt*) oldTuple->GetAttribute(attrIndex);
+      while ((streamTuple = stream.request()) != nullptr) {
+        CcInt* attrValue = (CcInt*) streamTuple->GetAttribute(attrIndex);
         int value = (int) attrValue->GetValue();
         cout << "Stream Tuple Attr Value is: " << value << endl;
         cPoint point(id, value);
-        cout << "test" << endl;
-        cout << "Created new point with ID " << point.getId() 
-             << " and Value " << point.getVal(0) << endl;
+        cout << "Created new point with ID: " << point.getId() 
+             << " and Value: " << point.getVal(0) << endl;
+        cout << endl;
         readData.push_back(point);
         id++;
-        oldTuple->DeleteIfAllowed();
+        buffer.push_back(streamTuple);
       }
       compute();
     }
@@ -4574,15 +4644,36 @@ class streamclusterInfo{
     void compute() {
       cout << endl;
       cout << "Starting compute()" << endl;
-      kMeans clusteringTest(k,iterations);
+      kMeans kMeansEnv(k,iterations);
       cout << "Created new kMeans Structure" << endl; 
       cout << "Points handed over for Clustering are: " << endl; 
       for (auto point : readData) {
         cout << "ID: " << point.getId() << " Value: " 
                        << point.getVal(0) << endl; 
       }
-      clusteringTest.cluster(readData);
-      for (Cluster currentCluster : clusteringTest.getClusters()) {
+      cout << endl;
+
+      cout << "Tuples present in the buffer are: " << endl;
+      int index = 0;
+      for (auto tuple : buffer) {
+        cout << "Index: " << index << " Value: " 
+             << ((CcInt*) tuple->GetAttribute(attrIndex))->GetValue() << endl;
+        index++;
+      }
+      cout << endl;
+
+      kMeansEnv.cluster(readData);
+      for (Cluster currentCluster : kMeansEnv.getClusters()) {
+        cout << "Cluster: " << currentCluster.getId() 
+             << " with centroid: " << currentCluster.getCentroidByPos(0) 
+             << " contains the points: " << endl;
+        for (cPoint point : currentCluster.getAllPoints()) {
+          cout << "ID: " << point.getId() << " Value: " 
+               << point.getVal(0) << endl;
+        }
+        
+        /* Building the Centroids here, not thought through 
+           what to do with this after Feedback
         Tuple* newTuple = new Tuple(tupleType);
         int clusterId = currentCluster.getId();
         CcInt* attrId = new CcInt(true, clusterId);
@@ -4597,11 +4688,46 @@ class streamclusterInfo{
         cout << "Pushing back Cluster: " << clusterId << " with Centroid: " 
              << clusterCentroid << " and size: " << clusterSize << endl;
         cout << endl; 
-        clusterInformation.push_back(newTuple);        
+        clusterInformation.push_back(newTuple);     
+        */   
       }
-      cout << "At the end of compute() the Tuple Vector has size: " 
-           << clusterInformation.size() << endl;
+      //cout << "At the end of compute() the Tuple Vector has size: " 
+      //    << clusterInformation.size() << endl;
+      appendIDs(kMeansEnv);
     }
+
+  void appendIDs(kMeans env) {
+    cout << endl;
+    cout << "In appendIDs() we are" << endl;
+    for (Cluster currentCluster : env.getClusters()) {
+      cout << endl;
+      cout << "Gathering Data from Cluster: " << currentCluster.getId() << endl;
+      for (cPoint point : currentCluster.getAllPoints()) {
+        cout << "Creating new Attribute" << endl; 
+        CcInt* clusterIndex = new CcInt(true, currentCluster.getId());
+        clusterIndex ->Copy(); 
+        cout << "Created Attribute has value: " 
+             << clusterIndex->GetValue() << endl;
+        cout << "Trying to append new Attribute to the tuple with value: " 
+        << ((CcInt*) buffer[point.getId()]->
+           GetAttribute(attrIndex))->
+           GetValue() 
+        << endl;
+        buffer[point.getId()]->PutAttribute(newAttrIndex,clusterIndex);
+        cout << "Appended Attribute has Value: " 
+        << ((CcInt*) buffer[point.getId()]->
+           GetAttribute(newAttrIndex))->
+           GetValue()
+        << endl;
+        cout << "Elem Value is: " 
+        << ((CcInt*) buffer[point.getId()]->
+        GetAttribute(attrIndex))->
+        GetValue() 
+        << endl;
+
+      }
+    }
+  }
 };
 
 int
@@ -4619,15 +4745,17 @@ streamclusterVM(Word* args, Word& result,
                    CcInt* iterations = (CcInt*) args[3].addr;
                    CcInt* attrIndex = (CcInt*) args[4].addr;
                    CcString* attrType = (CcString*) args[5].addr;
+                   CcInt* putAttrIndex = (CcInt*) args[6].addr;
                    if(iterations->IsDefined() && nbrOfClusters->IsDefined()){
                       int iter = iterations->GetValue();
                       int k = nbrOfClusters -> GetValue();
                       int index = attrIndex -> GetValue();
                       string type = attrType ->GetValue();
-                                            cout << endl;
+                      int putIndex = putAttrIndex ->GetValue();
                       if(k>1) {
-                        local.addr = new streamclusterInfo(args[0], index, 
-                                                           type, k, iter);
+                        local.addr = new streamclusterInfo(args[0], 
+                                     qp->GetMemorySize(s)*1024*1024*64,
+                                     index, type, putIndex, k, iter);
                       }
                    }
                    return 0;
@@ -4669,10 +4797,10 @@ streamclusterVM(Word* args, Word& result,
 
   OperatorSpec createbloomfilterSpec(
     "stream(tuple(X)) x ATTR x real ->  bloomfilter",
-    "_ createbloomfilter [_,_,_]",
+    "_ createbloomfilter [_,_]",
     "Creates a Bloomfilter of a supplied stream with the given ",
     "False Positive rate for the expected number of inserts",
-    "query Kinos feed createbloomfilter[Name,0.01,100] bloomcontains[\"Astor\"]"
+    "query Kinos feed createbloomfilter[Name,0.01] bloomcontains[\"Astor\"]"
   );
 
   OperatorSpec bloomcontainsSpec(
@@ -4698,9 +4826,9 @@ streamclusterVM(Word* args, Word& result,
   );
 
   OperatorSpec createamsSpec(
-    "stream(tuple(X)) x ATTR x int x real ->  amssketch",
+    "stream(tuple(X)) x ATTR x real x real ->  amssketch",
     "_ createamsSpec [_,_,_]",
-    "Creates an AMS Sketch fpor the supplied stream", 
+    "Creates an AMS Sketch for the supplied stream", 
      "query Kinos feed createams[Name,0.01,0.9] amsestimate"
   );
 
@@ -4885,6 +5013,9 @@ class StreamMiningAlgebra : public Algebra
     AddOperator(&lcfrequentOp);
     AddOperator(&outlierOp);
     AddOperator(&streamclusterOp);
+    //Assure that the Operator has a set part of the
+    //Main Memory at its disposal
+    streamclusterOp.SetUsesMemory();
   }
   ~StreamMiningAlgebra() {};
 };

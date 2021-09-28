@@ -101,11 +101,13 @@ namespace eschbach {
   }
 
   private:
-    ScalableBloomFilter() {}
+    ScalableBloomFilter() {
+      cout << "Used Scalalble Constructor without Param" << endl;
+    }
     friend struct  ConstructorFunctions<ScalableBloomFilter>;
 
     //Constants for Filter Creation
-    int DEFAULT_SIZE= 4096;
+    int DEFAULT_SIZE= 64;
     int GROWTH_RATE = 2; 
     double TIGHTENING_RATIO = 0.8;
     
