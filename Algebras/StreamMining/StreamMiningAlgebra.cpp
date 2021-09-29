@@ -94,6 +94,18 @@ extern NestedList* nl;
 extern QueryProcessor* qp;
 extern AlgebraManager* am;
 
+//Make sure twe are using the correct Hashing algorithm
+//depending on the Systemarchitecture. Only works for 
+//64/128 Bit Systems. 
+#if INTPTR_MAX == INT64_MAX
+  #define murmur(a,b,c,d) MurmurHash3_x64_128(a, b, c, d)
+#elif INTPTR_MAX == INT32_MAX
+  #define murmur(a,b,c,d) MurmurHash3_x86_128(a, b, c, d)
+// 32-bit
+#else
+#error Unknown pointer size or missing size macros!
+#endif
+
 namespace eschbach {
 
 /*
@@ -2420,10 +2432,6 @@ ListExpr errorInfo = nl->OneElemList(nl->SymbolAtom("ErrorInfo"));
   int attrIndex = listutils::findAttribute(attrList.listExpr(), 
                                            attrName, attrType) - 1;
 
-  //Save whether the Attribute Type we have to hash is a number
-  //so we can modify the way we hash;
-  bool isNumeric = listutils::isNumericType(attrType);
-
   if (attrIndex < 0) {
     return NList::typeError("Attribute " + attrName + " "
                             "not found in tuple");
@@ -2433,7 +2441,6 @@ ListExpr errorInfo = nl->OneElemList(nl->SymbolAtom("ErrorInfo"));
      the attribute of the tuples which will be hashed to create our filter 
   */
   appendList.append(NList().intAtom(attrIndex));
-  appendList.append(NList().boolAtom(isNumeric));
   return NList(Symbols::APPEND(), appendList,
                CountMinSketch::BasicType()).listExpr();
 }
@@ -2460,11 +2467,6 @@ cmscountTM(ListExpr args) {
 
   // test second argument for DATA or TUPLE
   if(type.second().isAtom()) {
-    //check if the searchelement is numeric
-    bool isNumeric = listutils::isNumericType(type.second().listExpr());
-    cout << "cms Count identifies search element as numeric: " 
-         << isNumeric << endl;
-    appendList.append(NList().boolAtom(isNumeric));
     return NList(Symbols::APPEND(), appendList,
                CcInt::BasicType()).listExpr();
   } 
@@ -2531,10 +2533,6 @@ ListExpr errorInfo = nl->OneElemList(nl->SymbolAtom("ErrorInfo"));
   string attrName = type.second().str();
   int attrIndex = listutils::findAttribute(attrList.listExpr(), 
                                            attrName, attrType) - 1;
-
-  //Save whether the Attribute Type we have to hash is a number
-  // so we can modify the way we hash;
-  bool isNumeric = listutils::isNumericType(attrType);
   
   if (attrIndex < 0) {
     return NList::typeError("Attribute " + attrName + " "
@@ -2545,7 +2543,6 @@ ListExpr errorInfo = nl->OneElemList(nl->SymbolAtom("ErrorInfo"));
      the attribute of the tuples which will be hashed to create our filter 
   */
   appendList.append(NList().intAtom(attrIndex));
-  appendList.append(NList().boolAtom(isNumeric));
   return NList(Symbols::APPEND(), appendList, 
                amsSketch::BasicType()).listExpr();
 }
@@ -3391,6 +3388,7 @@ int createbloomfilterVM(Word* args, Word& result,
   //take the parameters values supplied with the operator
   CcReal* fpProb = (CcReal*) args[2].addr;
   CcInt* attrIndexPointer = (CcInt*) args[3].addr;
+  Attribute* streamElement;
 
   int attrIndex = attrIndexPointer->GetIntval();
 
@@ -3453,8 +3451,6 @@ int createbloomfilterVM(Word* args, Word& result,
   //Pointers to stream elements will be saved here for use
   Tuple* streamTuple = (Tuple*) stream.request();
 
-  Attribute* streamElement; 
-
   //Get the size of the Filter so we can %mod the hash 
   //results to map to an index in the filter
   size_t filterSize = bloomFilter->getCurFilterSize();
@@ -3481,11 +3477,13 @@ int createbloomfilterVM(Word* args, Word& result,
     hashvalues.reserve(nbrHashes);
 
     streamElement = (Attribute*) streamTuple->GetAttribute(attrIndex);
-    
+
+    size_t secondoHash = streamElement->HashValue();
+    size_t* hashPointer = &secondoHash; 
     
     /*64 Bit Version chosen, because of my System. 
     Should we change this 64 bit? */    
-    MurmurHash3_x64_128(streamElement, sizeof(*streamElement), 0, mHash);
+    murmur(hashPointer, sizeof(secondoHash), 0, mHash);
     size_t h1 = mHash[0] % filterSize;
     hashvalues.push_back(h1);
 
@@ -3551,6 +3549,8 @@ int bloomcontainsVM(Word* args, Word& result,
   //take the parameters values supplied with the operator
   ScalableBloomFilter* bloomFilter = (ScalableBloomFilter*) args[0].addr;
   Attribute* searchEle = (Attribute*) args[1].addr;
+  size_t secondoHash = searchEle->HashValue();
+  size_t* hashpointer = &secondoHash; 
 
   string resultString = "The Search Element is not present in the Filter";
 
@@ -3596,7 +3596,7 @@ int bloomcontainsVM(Word* args, Word& result,
     cout << "Filter size of Filter " << i << " is: " << filterSize << endl;
 
     //hash the Searchelement
-    MurmurHash3_x64_128(searchEle, sizeof(*searchEle), 0, cmHash);
+    murmur(hashpointer, sizeof(secondoHash), 0, cmHash);
   
     size_t h1 = cmHash[0] % filterSize;
     hashValues.push_back(h1);
@@ -3643,12 +3643,8 @@ int createcountminVM(Word* args, Word& result,
   CcReal* epsilon = (CcReal*) args[2].addr;
   CcReal* delta = (CcReal*) args[3].addr;
   CcInt* attrIndexPointer = (CcInt*) args[4].addr;
-  CcBool* attrIsNumeric = (CcBool*) args[5].addr;
 
   int attrIndex = attrIndexPointer->GetIntval();
-  bool attrNumeric = attrIsNumeric->GetValue();
-
-  cout << "In the VM AttrIsNumeric has value: " << attrNumeric << endl;
 
   //Get the Resultstorage provided by the Query Processor
   result = qp -> ResultStorage(s);
@@ -3688,44 +3684,20 @@ int createcountminVM(Word* args, Word& result,
 
   Attribute* streamElement;
 
-  /*check if the Attributes we are going to hash is
-    any form of text
-  */
-   
-
-  if (!attrNumeric) {
+  //check if our Attribute is of a non-numeric type
     cout << "Identified Attribute Type as String" << endl;
     //Prepare buffer for the MurmurHash3 output storage for Strings
     uint64_t mHash[2]; 
     while ((streamTuple != 0)) {
       streamElement = (Attribute*) streamTuple->GetAttribute(attrIndex);
-      MurmurHash3_x64_128(streamElement, sizeof(*streamElement), 0, mHash);
+      size_t secondoHash = streamElement->HashValue();
+      size_t* hashPointer = &secondoHash; 
+      murmur(hashPointer, sizeof(secondoHash), 0, mHash);
       long h1 = mHash[0];
       cms->increaseCount(h1);
       streamTuple->DeleteIfAllowed();
       streamTuple = stream.request();   
-
     }
-  }
-  
-  //while the stream can still provide elements:
-  while ((streamTuple != 0)) {
-    CcInt* intElement;
-    intElement = (CcInt*) streamTuple->GetAttribute(attrIndex);
-
-    /*Increase element Counter in the 
-    Count Min Sketch
-
-    */
-
-    cms->increaseCount(intElement -> GetIntval());
-    
-    streamTuple->DeleteIfAllowed();
-
-    //assign next Element from the Stream
-    streamTuple = stream.request();   
-  }
-
 
   for (size_t i = 0; i < cms->getDepth(); i++) {
     cout << "Vector " << i << " looks like: " << endl; 
@@ -3756,8 +3728,8 @@ int cmscountVM(Word* args, Word& result,
   //take the parameters values supplied with the operator
   CountMinSketch* cms = (CountMinSketch*) args[0].addr;
   CcInt* searchEle = (CcInt*) args[1].addr;
-  CcInt* attrIsNumeric = (CcInt*) args[2].addr;
-  bool attrNumeric = attrIsNumeric->GetValue();
+  size_t secondoHash = searchEle->HashValue();
+  size_t* hashpointer = &secondoHash;
 
   //Get the Resultstorage provided by the Query Processor
   result = qp -> ResultStorage(s);
@@ -3773,15 +3745,11 @@ int cmscountVM(Word* args, Word& result,
 
   //Search element is a string and we have to modulate
   //the way we hash slightly
-  if (!attrNumeric) {
+  
     cout << "cmsCount identified the Searchelement as Text" << endl;
-      MurmurHash3_x64_128(searchEle, sizeof(*searchEle), 0, cmHash);
+      murmur(hashpointer, sizeof(secondoHash), 0, cmHash);
       long h1 = cmHash[0];
       estimate = cms->estimateFrequency(h1);    
-  } else {
-    //hash the Searchelement
-    estimate = cms->estimateFrequency(searchEle->GetValue());
-  }
 
   res->Set(true, estimate);
 
@@ -3799,11 +3767,8 @@ int createamsVM(Word* args, Word& result,
   CcReal* epsilon = (CcReal*) args[2].addr;
   CcReal* delta = (CcReal*) args[3].addr;
   CcInt* attrIndexPointer = (CcInt*) args[4].addr;
-  CcBool* attrIsNumeric = (CcBool*) args[5].addr;
 
   int attrIndex = attrIndexPointer->GetIntval();
-  bool attrNumeric = attrIsNumeric->GetValue();
-
 
   //Get the Resultstorage provided by the Query Processor
   result = qp -> ResultStorage(s);
@@ -3845,32 +3810,19 @@ int createamsVM(Word* args, Word& result,
 
   Attribute* streamElement; 
 
-  if (!attrNumeric) {
     cout << "Identified Attribute Type as String" << endl;
     //Prepare buffer for the MurmurHash3 output storage for Strings
     uint64_t mHash[2]; 
     while ((streamTuple != 0)) {
       streamElement = (Attribute*) streamTuple->GetAttribute(attrIndex);
-      MurmurHash3_x64_128(streamElement, sizeof(*streamElement), 0, mHash);
+      size_t secondoHash = streamElement->HashValue();
+      size_t* hashPointer = &secondoHash; 
+      murmur(hashPointer, sizeof(secondoHash), 0, mHash);
       long h1 = mHash[0];
       ams->changeWeight(h1);
       streamTuple->DeleteIfAllowed();
       streamTuple = stream.request();   
     }
-  }
-
-
-  //while the stream can still provide elements:
-  while ((streamTuple != 0)) {
-    CcInt* intElement;
-    intElement = (CcInt*) streamTuple->GetAttribute(attrIndex);
-    ams->changeWeight(intElement -> GetValue());
-
-    streamTuple->DeleteIfAllowed();
-
-    //assign next Element from the Stream
-    streamTuple = stream.request();   
-    } 
 
   for (size_t i = 0; i < ams->getDepth(); i++) {
     cout << "Vector " << i << " looks like: " << endl; 
