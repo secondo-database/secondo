@@ -1308,7 +1308,9 @@ Returns true if everything is OK and there are no failure.
 */
 bool BasicEngine_Control::partGrid(const std::string &tab, 
   const std::string &key, const std::string &geo_col, 
-  const std::string &gridname, size_t slotnum) {
+  const std::string &gridName, size_t slotnum) {
+
+  string gridTable = "grid_" + gridName;
 
   // Dropping parttable
   string partTabName = getTableNameForPartitioning(tab,key);
@@ -1324,7 +1326,7 @@ bool BasicEngine_Control::partGrid(const std::string &tab,
   } 
 
   string createGridSQL = dbms_connection->getPartitionGridSQL(tab, 
-    key, geo_col, slotnum, gridname, partTabName);
+    key, geo_col, slotnum, gridTable, partTabName);
 
   if(createGridSQL.empty()) {
     BOOST_LOG_TRIVIAL(error) 
