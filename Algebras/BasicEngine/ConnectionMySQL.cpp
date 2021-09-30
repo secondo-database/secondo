@@ -659,29 +659,28 @@ bool ConnectionMySQL::createGridTable(const std::string &table) {
     string createTable = "CREATE TABLE " + table + " (id " 
         + " BIGINT NOT NULL AUTO_INCREMENT, "
         + " cell POLYGON NOT NULL, "
-        + " PRIMARY KEY(id))";
+        + " PRIMARY KEY(id));";
 
-    MYSQL_RES *res = sendQuery(createTable.c_str());
+    bool res = sendCommand(createTable.c_str());
 
-    if(res == nullptr) {
+    if(res == false) {
         BOOST_LOG_TRIVIAL(error) 
-            << "Unable to execute: " + createTable;
+            << "Unable to execute: " << createTable
+            << mysql_error(conn);
         return false;
     }
 
     // Create index
     string createIndex = "ALTER TABLE " + table + " ADD SPATIAL INDEX(cell);";
 
-    res = sendQuery(createIndex.c_str());
+    res = sendCommand(createIndex.c_str());
 
-    if(res == nullptr) {
+    if(res == false) {
         BOOST_LOG_TRIVIAL(error) 
-            << "Unable to execute: " + createIndex;
+            << "Unable to execute: " << createIndex
+            << mysql_error(conn);
         return false;
     }
-
-    mysql_free_result(res);
-    res = nullptr;
 
     return true;
 }
@@ -703,18 +702,40 @@ bool ConnectionMySQL::insertRectangle(const std::string &table,
     string insertSQL = "INSERT INTO " + table 
         + "(cell) values(ST_PolyFromText('" + polygon + "', 4326))";
 
-    MYSQL_RES *res = sendQuery(insertSQL.c_str());
+    bool res = sendCommand(insertSQL.c_str());
 
-    if(res == nullptr) {
+    if(res == false) {
         BOOST_LOG_TRIVIAL(error) 
-            << "Unable to execute: " + insertSQL;
+            << "Unable to execute: " << insertSQL
+            << mysql_error(conn);;
         return false;
     }
 
-    mysql_free_result(res);
-    res = nullptr;
-
     return true;
+}
+
+/*
+6.18 Start a new transaction
+
+*/
+bool ConnectionMySQL::beginTransaction() {
+    return sendCommand("START TRANSACTION;");
+}
+
+/*
+6.19 Abort a transaction
+
+*/
+bool ConnectionMySQL::abortTransaction() {
+    return sendCommand("ROLLBACK;");
+}
+
+/*
+6.20 Commit a transaction
+
+*/
+bool ConnectionMySQL::commitTransaction() {
+    return sendCommand("COMMIT;");
 }
 
 }

@@ -728,4 +728,29 @@ bool ConnectionPG::insertRectangle(const std::string &table,
     return true;
 }
 
+
+/*
+6.18 Start a new transaction
+
+*/
+bool ConnectionPG::beginTransaction() {
+    return sendCommand("START TRANSACTION;");
+}
+
+/*
+6.19 Abort a transaction
+
+*/
+bool ConnectionPG::abortTransaction() {
+    return sendCommand("ROLLBACK;");
+}
+
+/*
+6.20 Commit a transaction
+
+*/
+bool ConnectionPG::commitTransaction() {
+    return sendCommand("COMMIT;");
+}
+
 }/* namespace BasicEngine */

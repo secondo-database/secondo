@@ -127,6 +127,12 @@ class ConnectionGeneric {
     virtual bool insertRectangle(const std::string &table, 
         double x, double y, double sizeX, double sizeY) = 0;
 
+    virtual bool beginTransaction() = 0;
+
+    virtual bool abortTransaction() = 0;
+    
+    virtual bool commitTransaction() = 0;
+
     /*
     5.3 
 

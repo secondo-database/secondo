@@ -1760,6 +1760,8 @@ bool BasicEngine_Control::createGrid(const std::string &gridName,
       return false;
     }
 
+    dbms_connection -> beginTransaction();
+
     // 2nd step: insert cells
     for(int ix = 0; ix < cellsX; ix++) {
       double cellX = startX + (ix * cellSize);
@@ -1771,6 +1773,9 @@ bool BasicEngine_Control::createGrid(const std::string &gridName,
           cellSize, cellSize);
       }
     }
+
+    dbms_connection -> commitTransaction();
+
 
     // 3nd step: Share the grid will all workers
     bool shareResult = shareTable(gridTable);
