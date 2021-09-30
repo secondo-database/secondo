@@ -407,12 +407,14 @@ SELECT id, ST_AsWKT(cell), ST_SRID(cell) FROM grid_table;
 
 ```
 # Partition spatial data (postgres)
-query be_create_grid('mygrid', 5.8, 50.3, 0.2, 20, 20);
+query be_grid_creaet('mygrid', 5.8, 50.3, 0.2, 20, 20);
 query be_part_grid('water','gid', 'geog', 'mygrid', 20);
+query be_grid_delete('mygrid);
 
 # Partition spatial data (MySQL)
-query be_create_grid('mygrid', 5.8, 50.3, 0.2, 20, 20);
-query be_part_grid('water', 'OGR_FID', 'SHAPE', 'mygrid', 20)
+query be_grid_create('mygrid', 5.8, 50.3, 0.2, 20, 20);
+query be_part_grid('water', 'OGR_FID', 'SHAPE', 'mygrid', 20);
+query be_grid_delete('mygrid);
 ```
 
 ## Working with spatial data
