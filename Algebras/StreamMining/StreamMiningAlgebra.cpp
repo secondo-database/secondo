@@ -69,6 +69,7 @@ It provides the following operators:
 #include "ListUtils.h"
 #include "Algebras/Standard-C++/LongInt.h"
 #include "Algebras/Relation-C++/RelationAlgebra.h"
+#include "Algebras/Spatial/Point.h"
 
 #include "MurmurHash.h"
 #include "BloomFilter.h"
@@ -455,57 +456,21 @@ ScalableBloomFilter::Open(SmiRecord& valueRecord, size_t& offset,
   fp *= 0.8;
   maxInserts*=2;
 
-  cout << endl;
-  cout << "Beginning to Copy Subfilter values" << endl;  
   for (int i = 1;  i < nbrSubFilters; i++) {
-    cout << endl;
-    cout << "Beginning Work on Subfilter " << i << endl;
-    cout << endl;
     subFilterSize=openBloom->optimalSize(maxInserts, fp);
-    cout << "Size of Subfilter " << i << " determined to be: " 
-         << subFilterSize << endl;
-    cout << endl;
     insertionVector.reserve(subFilterSize);
-
+    
     for (size_t j = 0; j < subFilterSize; j++) {
       ok = ok && valueRecord.Read (&filterElement, sizeof(bool), offset);
       offset += sizeof(bool);
       insertionVector.push_back(filterElement);
     }
     
-    cout << "Subfilter " << i << " has the form: " << endl;
-    for (bool elem  : insertionVector) {
-      cout << elem; 
-    }
-    cout << endl;
-    
-    cout << "Pushing insertion Vector into FilterList: " << endl;
     openBloom -> setSubFilter(insertionVector);
-    cout << endl;
-
-    cout << "FilterList now has " << 
-        openBloom -> getFilterList().size() << " SubFilters" << endl; 
-    cout << endl;
-
     insertionVector.clear();
-    cout << endl; 
-    cout << endl;
-
     fp *= 0.8;
     maxInserts*=2;
 
-  }
-
-  cout << "The opened Bloomfilter has the values: ";
-  int indiz = 0; 
-  for (vector<bool> subfilter : openBloom -> getFilterList()) {
-    cout << endl;
-    cout << "Opened Subfilter " << indiz << " has the form: " << endl;
-    cout << endl;
-    for (bool filterValue : subfilter) {
-      cout << filterValue;
-    }
-    indiz++;
   }
 
   if (ok) {
@@ -597,7 +562,7 @@ struct scalableBloomFilterInfo : ConstructorInfo {
     typeExample  = ScalableBloomFilter::BasicType();
     listRep      =  "Listrepresentation does not exist";
     valueExample = "(0 1 1 0)";
-    remarks      = "In- and Out-Functions are disabled";
+    remarks      = "In- and Out-Functions are dummies";
   }
 };
 
@@ -784,8 +749,8 @@ CountMinSketch::initialize(float eps, float delt) {
 // b being constants. In this function we generate the constants.
 void
 CountMinSketch::generateConstants(int index) {
-  long a = long(float(rand())*float(LONG_PRIME)/float(RAND_MAX));
-  long b = long(float(rand())*float(LONG_PRIME)/float(RAND_MAX));
+  long a = (rand() % LONG_PRIME)-1;
+  long b = (rand() % LONG_PRIME)-1;
   cout << "generateConstants() a: " << a << " b: " << b << endl;
   setConstants(index, a, b);
 }
@@ -843,54 +808,20 @@ CountMinSketch::In(const ListExpr typeInfo, const ListExpr instance,
                 const int errorPos, ListExpr& errorInfo, bool& correct) {
   
   Word result = SetWord(Address(0));
-  correct = false;
-  NList list (instance); 
-
-  if(list.length() != 3){
-    cmsg.inFunError("expected three arguments");
-    return result; 
-  }
-
-  NList first = list.first();
-  NList second = list.second();
-  NList third = list.third();
-  NList index;
-
-  if(!first.isReal() || !second.isInt()) {
-    cmsg.inFunError("expected two numbers");
-    return result;
-  } 
-
-  if (!third.isList()) {
-    cmsg.inFunError("Expected a List of Boolvalues");
-  }
-
-  if (third.first().isBool()) {
-    float fp = first.realval();
-    size_t inserts = second.intval();
-    ScalableBloomFilter* bloom = new ScalableBloomFilter(fp);
-    for (size_t i = 0; i < inserts; i++) {
-      index = third.first();
-      third.rest();
-      bloom -> getSubFilter(i)[i] = index.boolval();
-    }
-  }
+  cmsg.inFunError("The CountMinSketch Datastructure "
+                  "does not Support In-Functions");
   return result;
 }
 
 //Out-Function (Dummy)
 ListExpr
 CountMinSketch::Out(ListExpr typeInfo, Word value) {
-  CountMinSketch* cms = 
-                       static_cast<CountMinSketch*> (value.addr);
-  if(!cms -> getDefined()) {
-    return listutils::getUndefined();
-  }
+  ListExpr returnList 
+           = nl -> TwoElemList(
+                    nl -> StringAtom("CountMinSketch created successfully."),
+                    nl -> StringAtom("It does not support console output"));
 
-  ListExpr elementList = nl -> OneElemList(nl->BoolAtom(0));
- 
-
-  return elementList;
+  return returnList;
 }
 
 
@@ -1058,9 +989,9 @@ struct countMinSketchInfo : ConstructorInfo {
     name         = CountMinSketch::BasicType();
     signature    = "-> " + Kind::SIMPLE();
     typeExample  = CountMinSketch::BasicType();
-    listRep      =  "()";
+    listRep      =  "Listrepresentation does not exist";
     valueExample = "(4 12 2 8)";
-    remarks      = "";
+    remarks      = "In- and Out-Functions are dummies";
   }
 };
 
@@ -1269,8 +1200,8 @@ amsSketch::initialize(float eps, float delt) {
 // b beign constants. In this function we generate the constants.
 void
 amsSketch::generateConstants(int index) {
-  long a = long(float(rand())*float(LONG_PRIME)/float(RAND_MAX));
-  long b = long(float(rand())*float(LONG_PRIME)/float(RAND_MAX));
+  long a = (rand() % LONG_PRIME)-1;
+  long b = (rand() % LONG_PRIME)-1;
   setConstantsTw(index, a, b);
 }
 
@@ -1278,10 +1209,10 @@ amsSketch::generateConstants(int index) {
 //  Function. These are given by h(x) = ax^3 + bx^2 + cx + d % p.
 void 
 amsSketch::generateFwConstants(int index) {
-  long a = long(float(rand())*float(LONG_PRIME)/float(RAND_MAX));
-  long b = long(float(rand())*float(LONG_PRIME)/float(RAND_MAX));
-  long c = long(float(rand())*float(LONG_PRIME)/float(RAND_MAX));
-  long d = long(float(rand())*float(LONG_PRIME)/float(RAND_MAX));
+  long a = (rand() % LONG_PRIME)-1;
+  long b = (rand() % LONG_PRIME)-1;
+  long c = (rand() % LONG_PRIME)-1;
+  long d = (rand() % LONG_PRIME)-1;
   cout << "FW-Constants generated for Row " << index << " are: " << endl;
   cout << "a: " << a << " b: "  << b << " c: " << c << " d: " << d << endl;
   cout << endl;
@@ -1400,8 +1331,8 @@ amsSketch::changeWeight(size_t value) {
     hashIndex = ((twa*value+twb) % LONG_PRIME) % width;
 
     //Compute the Value we will use to update the counter
-    updateValue = 2*((long)(fwa*pow(value,3) + (int)fwb*pow(value,2) 
-                  + fwc*value + fwd) % LONG_PRIME % 2)- 1;
+    updateValue = 2*((long)((fwa*pow(value,3)) + (int)(fwb*pow(value,2)) 
+                  + fwc*value + fwd) % LONG_PRIME % 2)-1;
 
     //Commit the change
     updateElement(i, hashIndex, updateValue); 
@@ -1441,55 +1372,21 @@ amsSketch::estimateInnerProduct() {
 Word
 amsSketch::In(const ListExpr typeInfo, const ListExpr instance,
                 const int errorPos, ListExpr& errorInfo, bool& correct) {
-  
   Word result = SetWord(Address(0));
-  correct = false;
-  NList list (instance); 
-
-  if(list.length() != 3){
-    cmsg.inFunError("expected three arguments");
-    return result; 
-  }
-
-  NList first = list.first();
-  NList second = list.second();
-  NList third = list.third();
-  NList index;
-
-  if(!first.isReal() || !second.isInt()) {
-    cmsg.inFunError("expected two numbers");
-    return result;
-  } 
-
-  if (!third.isList()) {
-    cmsg.inFunError("Expected a List of Boolvalues");
-  }
-
-  if (third.first().isBool()) {
-    float fp = first.realval();
-    size_t inserts = second.intval();
-    amsSketch* ams = new amsSketch(fp, inserts);
-    for (size_t i = 0; i < ams->getDelta(); i++) {
-      index = third.first();
-      third.rest();
-    }
-  }
+  cmsg.inFunError("The AMS-Sketch Datastructure "
+                  "does not Support In-Functions");
   return result;
 }
 
 //Out-Function (Dummy)
 ListExpr
 amsSketch::Out(ListExpr typeInfo, Word value) {
-  amsSketch* ams = 
-                       static_cast<amsSketch*> (value.addr);
-  if(!ams -> getDefined()) {
-    return listutils::getUndefined();
-  }
+  ListExpr returnList 
+           = nl -> TwoElemList(
+                    nl -> StringAtom("AMS-Sketch created successfully."),
+                    nl -> StringAtom("It does not support console output"));
 
-  ListExpr elementList = nl -> OneElemList(nl->BoolAtom(0));
- 
-
-  return elementList;
+  return returnList;
 }
 
 
@@ -2938,6 +2835,31 @@ streamclusterTM(ListExpr args) {
                type.first()).listExpr();
 
 }
+
+
+/*
+2.13 Generator Operator
+
+*/
+
+ListExpr
+pointgenTM(ListExpr args)  {
+  if(!nl->HasLength(args,1)){
+   return NList::typeError("Operator pointGen expects "
+                           "only one argument");
+  }
+  
+  if(!listutils::isSymbol(nl->First(args), CcInt::BasicType())) {
+    return NList::typeError("Operator pointGen expects "
+                           " an int argument");
+  }
+
+  return nl->TwoElemList(nl->SymbolAtom(Stream<Point>::BasicType()),
+                         nl->SymbolAtom(Point::BasicType()));
+
+}
+
+
 
 
 /*
@@ -4728,6 +4650,87 @@ streamclusterVM(Word* args, Word& result,
 }
 
 /*
+2.3.12 Operator ~pointgen~
+
+*/
+
+int
+pointgenVM(Word* args, Word& result,
+           int message, Word& local, Supplier s) {
+  
+  struct Range {
+    int current;
+    int last;
+    int card;
+    double* attrSize;
+    double* attrSizeExt;
+
+  Range(CcInt* amount):
+    attrSize(0), attrSizeExt(0)
+  {
+    if (amount->IsDefined()) {
+      current = 0; 
+      last = amount -> GetIntval();
+    } else {
+        current = 1;
+        last = 0;
+      }
+    
+    srand(time(NULL)+getpid());
+    card = last - current+1; 
+    attrSize    = new double[1];
+    attrSizeExt = new double[1];
+    attrSize[0] = amount->Sizeof();   
+    attrSizeExt[0] = amount->Sizeof();
+  }
+
+    ~Range() {
+      delete[] attrSize;
+      delete[] attrSizeExt;
+    }
+  };
+
+  Range* range = static_cast<Range*>(local.addr);
+
+  switch( message )
+  {
+    case OPEN: {
+      CcInt* amount = static_cast<CcInt*>( args[0].addr );
+      if(range){
+        delete range;
+      }
+      range = new Range(amount);
+      local.addr = range;
+      
+      return 0;
+    }
+    case REQUEST: { 
+      if(!range) {
+        return CANCEL;
+      } else if ( range->current <= range->last ) {
+        int x = rand() % 1000; 
+        int y = rand() % 1000;    
+        Point* elem = new Point(true, x, y);
+        result.addr = elem;
+        range->current++;
+        return YIELD;
+      } else {
+        result.addr = 0;
+        return CANCEL;
+      }
+    }
+    case CLOSE: {
+      if (range != 0) {
+        delete range;
+        local.addr = 0;
+      }
+      return 0;
+    }
+  }
+  return -1;
+}
+
+/*
 2.4 Description of Operators
 
 */
@@ -4819,6 +4822,13 @@ streamclusterVM(Word* args, Word& result,
     "Determines Cluster for an int/real stream using ",
     "the number of clusters and iterations passed",
     "query intstream(0,100) outliers[Elem,2,3] consume"
+  );
+
+  OperatorSpec pointgenSpec(
+    "int -> stream(point)",
+    "pointgen (_)",
+    "Creates random points with x- and y-Coordinate < 1000 ",
+    "until the amount specified is reached"
   );
   
 
@@ -4930,6 +4940,14 @@ Operator streamclusterOp(
   streamclusterTM
 );
 
+Operator pointgenOp(
+  "pointgen",
+  pointgenSpec.getStr(),
+  pointgenVM,
+  Operator::SimpleSelect,
+  pointgenTM
+);
+
 /*
 2.6 The algebra class
 
@@ -4968,6 +4986,8 @@ class StreamMiningAlgebra : public Algebra
     //Assure that the Operator has a set part of the
     //Main Memory at its disposal
     streamclusterOp.SetUsesMemory();
+
+    AddOperator(&pointgenOp);
   }
   ~StreamMiningAlgebra() {};
 };

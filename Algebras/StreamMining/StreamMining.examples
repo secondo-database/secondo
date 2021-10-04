@@ -75,3 +75,9 @@ Number   : 12
 Signature: (stream(T) x ATTR x int x int) -> stream(T)
 Example  : query intstream(1,100) streamcluster[Elem,3,3] count
 Result   : 3
+
+Operator : pointgen
+Number   : 13
+Signature: int -> stream(point) 
+Example  : query pointgen(1000) count
+Result   : 1000
