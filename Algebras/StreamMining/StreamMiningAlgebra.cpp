@@ -2669,6 +2669,7 @@ lcfrequentTM(ListExpr args) {
 2.2.11 Operator ~outlier~
 
 */
+
 ListExpr
 outlierTM(ListExpr args) {
   NList type(args);
@@ -2754,6 +2755,7 @@ outlierTM(ListExpr args) {
 2.2.12 Operator ~streamcluster~
 
 */
+
 ListExpr
 streamclusterTM(ListExpr args) {
   NList type(args);
@@ -2840,6 +2842,8 @@ streamclusterTM(ListExpr args) {
 /*
 2.13 Generator Operator
 
+2.13.1 Operator ~pointgen~ 
+
 */
 
 ListExpr
@@ -2856,6 +2860,32 @@ pointgenTM(ListExpr args)  {
 
   return nl->TwoElemList(nl->SymbolAtom(Stream<Point>::BasicType()),
                          nl->SymbolAtom(Point::BasicType()));
+
+}
+
+/*
+2.13.1 Operator ~stringgen~ 
+
+*/
+ListExpr
+stringgenTM(ListExpr args)  {
+  if(!nl->HasLength(args,2)){
+   return NList::typeError("Operator stringgen expects "
+                           "two arguments");
+  }
+  
+  if(!listutils::isSymbol(nl->First(args), CcInt::BasicType())) {
+    return NList::typeError("Operator stringgen expects "
+                           " an int argument as first argument");
+  }
+
+  if(!listutils::isSymbol(nl->Second(args), CcInt::BasicType())) {
+    return NList::typeError("Operator stringgen expects "
+                           " an int argument as seconds argument");
+  }
+
+  return nl->TwoElemList( listutils::basicSymbol<Stream<CcString > >(),
+                          listutils::basicSymbol<CcString>());
 
 }
 
@@ -4650,7 +4680,7 @@ streamclusterVM(Word* args, Word& result,
 }
 
 /*
-2.3.12 Operator ~pointgen~
+2.3.13 Operator ~pointgen~
 
 */
 
@@ -4661,32 +4691,30 @@ pointgenVM(Word* args, Word& result,
   struct Range {
     int current;
     int last;
-    int card;
     double* attrSize;
     double* attrSizeExt;
 
-  Range(CcInt* amount):
+    Range(CcInt* amount):
     attrSize(0), attrSizeExt(0)
-  {
-    if (amount->IsDefined()) {
-      current = 0; 
-      last = amount -> GetIntval();
-    } else {
-        current = 1;
-        last = 0;
+    {
+      if (amount->IsDefined()) {
+        current = 1; 
+        last = amount -> GetIntval();
+      } else {
+          current = 1;
+          last = 0;
       }
     
-    srand(time(NULL)+getpid());
-    card = last - current+1; 
-    attrSize    = new double[1];
-    attrSizeExt = new double[1];
-    attrSize[0] = amount->Sizeof();   
-    attrSizeExt[0] = amount->Sizeof();
-  }
+      srand(time(NULL)+getpid());
+      attrSize    = new double[1];
+      attrSizeExt = new double[1];
+      attrSize[0] = amount->Sizeof();   
+      attrSizeExt[0] = amount->Sizeof();
+    }
 
     ~Range() {
-      delete[] attrSize;
-      delete[] attrSizeExt;
+    delete[] attrSize;
+    delete[] attrSizeExt;
     }
   };
 
@@ -4729,6 +4757,109 @@ pointgenVM(Word* args, Word& result,
   }
   return -1;
 }
+
+/*
+2.3.14 Operator ~stringgen~
+
+*/
+
+class stringgenInfo{
+  public:
+  stringgenInfo(int amount, int strLength): 
+  max(amount), length(strLength), 
+  start(0), current(0)
+   {
+    
+    srand(time(NULL)+getpid());
+  }
+
+  ~stringgenInfo(){}
+
+
+  string strGen() {
+    
+    string tempString;
+    static const char alphanum[] =
+      "0123456789"
+      "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+      "abcdefghijklmnopqrstuvwxyz";    
+    
+    tempString.reserve(length); 
+
+    for (int i = 0; i < length; i++) {
+      tempString += alphanum[rand() % (sizeof(alphanum) - 1)];
+    }
+
+    return tempString;
+  }
+
+  void inc() {
+    current++;
+  }
+
+  bool done() {
+    return current > max; 
+  }
+
+  private:
+    int max;
+    int length;
+    int start;  
+    int current;
+};
+
+
+
+int
+stringgenVM(Word* args, Word& result,
+           int message, Word& local, Supplier s) {
+
+  stringgenInfo* strInfo = static_cast<stringgenInfo*>(local.addr);
+
+  switch( message )
+  {
+    case OPEN: {
+      if(strInfo){
+        delete strInfo;
+      }
+      CcInt* attrAmount = static_cast<CcInt*>( args[0].addr);
+      CcInt* attrLength = static_cast<CcInt*>( args[1].addr);
+      int length = attrLength -> GetIntval();
+      int amount = attrAmount -> GetIntval() - 1; 
+      if ((amount > 0) && (length > 0)) {
+        local.addr = new stringgenInfo(amount, length);
+      }
+      return 0;
+
+    }
+    case REQUEST: { 
+      if(!strInfo) {
+        return CANCEL;
+      } else if (!strInfo->done()) {
+        string attr = strInfo->strGen();
+        CcString* elem = new CcString(true, attr);
+        result.addr = elem;
+        strInfo->inc();
+        return YIELD;
+      } else {
+        result.addr = 0;
+        return CANCEL;
+      }
+    }
+    case CLOSE: {
+      if (strInfo != 0) {
+        delete strInfo;
+        local.addr = 0;
+      }
+      return 0;
+    }
+  }
+  return -1;
+}
+
+
+
+
 
 /*
 2.4 Description of Operators
@@ -4831,6 +4962,12 @@ pointgenVM(Word* args, Word& result,
     "until the amount specified is reached"
   );
   
+  OperatorSpec stringgenSpec(
+    "int x int-> stream(point)",
+    "stringgen (_,_)",
+    "Creates random string values of a length",
+    "until the amount specified is reached"
+  );
 
 /*
 2.5 Operator Instances
@@ -4948,6 +5085,14 @@ Operator pointgenOp(
   pointgenTM
 );
 
+Operator stringgenOp(
+  "stringgen",
+  stringgenSpec.getStr(),
+  stringgenVM,
+  Operator::SimpleSelect,
+  stringgenTM
+);
+
 /*
 2.6 The algebra class
 
@@ -4987,7 +5132,9 @@ class StreamMiningAlgebra : public Algebra
     //Main Memory at its disposal
     streamclusterOp.SetUsesMemory();
 
+    //Gen Operator for testing
     AddOperator(&pointgenOp);
+    AddOperator(&stringgenOp);
   }
   ~StreamMiningAlgebra() {};
 };

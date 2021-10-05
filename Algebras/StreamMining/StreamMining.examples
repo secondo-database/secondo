@@ -81,3 +81,9 @@ Number   : 13
 Signature: int -> stream(point) 
 Example  : query pointgen(1000) count
 Result   : 1000
+
+Operator : stringgen
+Number   : 14
+Signature: int x int -> stream(string) 
+Example  : query stringgen(1000,12) count
+Result   : 1000

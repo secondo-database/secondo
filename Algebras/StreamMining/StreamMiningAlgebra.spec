@@ -42,3 +42,5 @@ operator outlier alias OUTLIER pattern _op[_,_]
 operator streamcluster alias CLUSTER pattern _op[_,_,_]
 
 operator pointgen alias POINTGEN pattern op(_)
+
+operator stringgen alias STRINGGEN pattern op(_,_)
