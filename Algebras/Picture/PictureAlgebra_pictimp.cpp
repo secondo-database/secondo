@@ -64,7 +64,7 @@ SECONDO to use ~Picture~ plus basic SECONDO operators on ~picture~.
 #include <ctime>
 #include <sstream>
 #include <array>
-
+#include <stdexcept>
 
 
 using namespace std;
@@ -375,7 +375,10 @@ void Picture::Set(char* imgdata,
                   string cat,
                   bool isp,
                   string dt) {
-    if (PA_DEBUG) cerr << "Picture::Set()-2 called" << endl;
+
+    if (PA_DEBUG) 
+         cerr << "Picture::Set()-2 for " 
+              << fn << " called" << endl;
 
     strcpy(filename, fn.c_str());
     strcpy(category, cat.c_str());
@@ -386,7 +389,12 @@ void Picture::Set(char* imgdata,
     jpegData.resize(size);
     jpegData.write(imgdata, size);
 
-    createHistograms(imgdata, size);
+    try {
+       createHistograms(imgdata, size);
+    } catch (std::runtime_error &e) {
+       cerr << "Got exception: " << e.what() << endl;
+       SetDefined(false);
+    }
 
     if (PA_DEBUG) cerr << "Picture::Set()-2 done" << endl;
 }

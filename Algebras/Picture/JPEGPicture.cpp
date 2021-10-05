@@ -50,6 +50,17 @@ of the methods implemented here.
 
 */
 
+void libjpegErrorToExceptionHandler ( j_common_ptr cinfo )
+{
+    char jpegLastErrorMsg[JMSG_LENGTH_MAX];
+    /* Create the message */
+    ( *( cinfo->err->format_message ) ) ( cinfo, jpegLastErrorMsg );
+
+    /* Jump to the setjmp point */
+    throw std::runtime_error( jpegLastErrorMsg ); 
+}
+
+
 // create object from a JPEG File
 JPEGPicture::JPEGPicture(char *filename)
 {
@@ -185,6 +196,7 @@ void JPEGPicture::ReadJPEGHeader(unsigned char *JPEGBuffer,
       memset(&errorMgr, 0, sizeof(jpeg_error_mgr));
 
       cinfo.err = jpeg_std_error(&errorMgr);
+      errorMgr.error_exit = libjpegErrorToExceptionHandler;
 
       jpeg_create_decompress(&cinfo);
 
