@@ -6110,7 +6110,7 @@ int mdistRangeVMT2(Word* args, Word& result, int message, Word& local,
     }
     case CLOSE : {
       if (li) {
-        mtreehelper::increaseCounter("counterMDistRange", 
+        mtreehelper::increaseCounter("counterMDistRange2", 
                                      li->getNoDistFunCalls());
         delete li;
         local.addr = 0;
@@ -6672,7 +6672,7 @@ int mdistRangeN2VMT(Word* args, Word& result, int message, Word& local,
     }
     case CLOSE : {
       if (li) {
-        mtreehelper::increaseCounter("counterMDistRangeN", 
+        mtreehelper::increaseCounter("counterMDistRangeN2", 
                                      li->getNoDistFunCalls());
         delete li;
         local.addr = 0;

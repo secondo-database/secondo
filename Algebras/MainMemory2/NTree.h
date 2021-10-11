@@ -113,6 +113,8 @@ Auxiliary struct for sorting a vector with distances
 
 */
 struct DistVectorContents {
+  DistVectorContents() {}
+  
   DistVectorContents(const int p, const std::pair<double, double>& dm) :
       pos(p), distmax(dm) {}
       
@@ -222,10 +224,12 @@ class NTreeInnerNode : public NTreeNode<T, DistComp, opt> {
   
   int getNearestCenterPos(const T& o, DistComp& dc) const {
     if (opt) { // N-tree2
-      bool cand[node_t::degree] = {true};
+      bool cand[node_t::degree];
+      std::fill_n(cand, degree, true);
       std::pair<double, double> odist2d = 
-                   make_pair(dc(o, *(innernode_t::centers[refDistPos.first])),
+              std::make_pair(dc(o, *(innernode_t::centers[refDistPos.first])),
                              dc(o, *(innernode_t::centers[refDistPos.second])));
+      
       DistVectorContents W[node_t::degree];
       for (int i = 0; i < node_t::degree; i++) {
         DistVectorContents dvc(i, distances2d[i]);
@@ -233,20 +237,39 @@ class NTreeInnerNode : public NTreeNode<T, DistComp, opt> {
         W[i] = dvc;
       }
       // sort W by dist to odist2d
-      std::sort(W.begin(), W.end());
-      double Dq[node_t::degree] = {DBL_MAX};
+//       for (int i = 0; i < degree; i++) {
+//         cout << "(" << W[i].pos << ", " << W[i].distObj2d << "),  ";
+//       }
+//       cout << endl;
+      std::sort(W, W + degree);
+//       for (int i = 0; i < degree; i++) {
+//         cout << "(" << W[i].pos << ", " << W[i].distObj2d << "),  ";
+//       }
+//       cout << endl << endl;
+      double Dq[degree];
+      std::fill_n(Dq, degree, DBL_MAX);
       for (int i = 0; i < node_t::degree; i++) {
         if (cand[i]) {
-          Dq[W[i]] = dc(*(innernode_t::centers[W[i].pos]), o);
+          Dq[W[i].pos] = dc(*(innernode_t::centers[W[i].pos]), o);
           for (int j = 0; j < node_t::degree; j++) {
-            if (distances[i][W[i].pos] > 2 * Dq[W[i].pos]) {
-              cand[i] = false;
+            if (distances[j][W[i].pos] > 2 * Dq[W[i].pos]) {
+//               cout << "set cand[" << j << "] to FALSE" << endl;
+              cand[j] = false;
             }
+//             else {
+//               cout << "no change because " << distances[j][W[i].pos]
+//                    << " <= 2 * " << Dq[W[i].pos] << " = " << 2 * Dq[W[i].pos]
+//                    << endl;
+//             }
           }
         }
       }
-      auto it = std::min_element(std::begin(Dq), std::end(Dq));
-      return std::distance(std::begin(Dq), it);
+//       for (int i = 0; i < degree; i++) {
+//         cout << Dq[i] << "  ";
+//       }
+      auto it = std::min_element(Dq, Dq + degree);
+//       cout << endl << "gNCP: Return " << std::distance(Dq, it) << endl;
+      return std::distance(Dq, it);
     }
     else { // N-tree
       double currentDist = std::numeric_limits<double>::max();
@@ -427,23 +450,41 @@ class NTreeInnerNode : public NTreeNode<T, DistComp, opt> {
     partitions.clear();
     partitions.resize(node_t::degree);
     double dist;
-    int partitionPos;
-    for (unsigned int i = 0; i < contents.size(); i++) {
-      double minDist = std::numeric_limits<double>::max();
-      for (int j = 0; j < node_t::degree; j++) {
-        if (contents[i].getTid() == centers[j]->getTid()) {
-          partitionPos = j;
-          j = degree;
-        }
-        else {
-          dist = dc(contents[i], *centers[j]);
-          if (dist < minDist) {
-            minDist = dist;
+    int partitionPos = -1;
+    if (opt) { // NTree2
+      for (unsigned int i = 0; i < contents.size(); i++) {
+        for (int j = 0; j < degree; j++) {
+          if (contents[i].getTid() == centers[j]->getTid()) {
             partitionPos = j;
+            j = degree;
           }
         }
+        if (partitionPos == -1) {
+//           cout << "call gNCP for contents # " << i << endl;
+          partitionPos = getNearestCenterPos(contents[i], dc);
+        }
+        partitions[partitionPos].push_back(contents[i]);
+        partitionPos = -1;
       }
-      partitions[partitionPos].push_back(contents[i]);
+    }
+    else { // NTree
+      for (unsigned int i = 0; i < contents.size(); i++) {
+        double minDist = std::numeric_limits<double>::max();
+        for (int j = 0; j < node_t::degree; j++) {
+          if (contents[i].getTid() == centers[j]->getTid()) {
+            partitionPos = j;
+            j = degree;
+          }
+          else {
+            dist = dc(contents[i], *centers[j]);
+            if (dist < minDist) {
+              minDist = dist;
+              partitionPos = j;
+            }
+          }
+        }
+        partitions[partitionPos].push_back(contents[i]);
+      }
     }
   }
   
@@ -529,7 +570,7 @@ class NTreeInnerNode : public NTreeNode<T, DistComp, opt> {
   // only used for N-tree2, i.e., opt = true
   double** distances; // matrix of pairwise center distances
   std::pair<int, int> refDistPos; // two reference center positions
-  std::pair<double, double>* distances2d; // distances to maxDistPos
+  std::pair<double, double>* distances2d; // distances to refDistPos
   int refPtsMethod; // 0: maxDist, 1: random, 2: median dist
 };
 
