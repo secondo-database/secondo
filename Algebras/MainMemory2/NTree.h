@@ -222,7 +222,7 @@ class NTreeInnerNode : public NTreeNode<T, DistComp, opt> {
     return centers[childPos];
   }
   
-  int getNearestCenterPos(const T& o, DistComp& dc) const {
+  int getNearestCenterPos(const T& o, DistComp& dc, double& minDist) const {
     if (opt) { // N-tree2
       bool cand[node_t::degree];
       std::fill_n(cand, degree, true);
@@ -268,6 +268,7 @@ class NTreeInnerNode : public NTreeNode<T, DistComp, opt> {
 //         cout << Dq[i] << "  ";
 //       }
       auto it = std::min_element(Dq, Dq + degree);
+      minDist = *it;
 //       cout << endl << "gNCP: Return " << std::distance(Dq, it) << endl;
       return std::distance(Dq, it);
     }
@@ -296,7 +297,8 @@ class NTreeInnerNode : public NTreeNode<T, DistComp, opt> {
   }
   
   node_t* getNearestChild(const T& o, DistComp& dc) const {
-    int pos = getNearestCenterPos(o, dc);
+    double dummy;
+    int pos = getNearestCenterPos(o, dc, dummy);
     return children[pos];
   }
   
@@ -449,7 +451,7 @@ class NTreeInnerNode : public NTreeNode<T, DistComp, opt> {
                  std::vector<std::vector<T> >& partitions) {
     partitions.clear();
     partitions.resize(node_t::degree);
-    double dist;
+    double dist, minDist;
     int partitionPos = -1;
     if (opt) { // NTree2
       for (unsigned int i = 0; i < contents.size(); i++) {
@@ -461,7 +463,7 @@ class NTreeInnerNode : public NTreeNode<T, DistComp, opt> {
         }
         if (partitionPos == -1) {
 //           cout << "call gNCP for contents # " << i << endl;
-          partitionPos = getNearestCenterPos(contents[i], dc);
+          partitionPos = getNearestCenterPos(contents[i], dc, minDist);
         }
         partitions[partitionPos].push_back(contents[i]);
         partitionPos = -1;
@@ -469,7 +471,7 @@ class NTreeInnerNode : public NTreeNode<T, DistComp, opt> {
     }
     else { // NTree
       for (unsigned int i = 0; i < contents.size(); i++) {
-        double minDist = std::numeric_limits<double>::max();
+        minDist = std::numeric_limits<double>::max();
         for (int j = 0; j < node_t::degree; j++) {
           if (contents[i].getTid() == centers[j]->getTid()) {
             partitionPos = j;
@@ -528,6 +530,12 @@ class NTreeInnerNode : public NTreeNode<T, DistComp, opt> {
       distances2d[i] = std::make_pair(distances[refDistPos.first][i],
                                       distances[refDistPos.second][i]);
     }
+  }
+  
+  double getPrecomputedDist(const int pos1, const int pos2) const {
+    assert(pos1 >= 0 && pos1 < node_t::degree);
+    assert(pos2 >= 0 && pos2 < node_t::degree);
+    return distances[pos1][pos2];
   }
   
   void build(std::vector<T>& contents, DistComp& dc, int depth,
@@ -730,15 +738,39 @@ class RangeIteratorN {
       }
     }
     else { // inner node
-      double minDist = node->getMinDist(queryObject, dc);
-      for (int i = 0; i < node->getCount(); i++) {
-        T* c = node->getCenter(i);
-//         cout << "  " << *(queryObject.getKey()) << *(c->getKey()) << " § " 
-//              << dc(*c, queryObject) << " $ " 
-//              << minDist + 2 * range << "  ?" << endl;
-        if (dc(*c, queryObject) <= minDist + 2 * range) {
-          collectResults(node->getChild(i));
-        } 
+      if (opt) { // N-tree2
+        bool cand[node->getCount()];
+        std::fill_n(cand, node->getCount(), false);
+        double minDist;
+        int nnq = ((innernode_t*)node)->getNearestCenterPos(queryObject, dc,
+                                                            minDist);
+        for (int i = 0; i < node->getCount(); i++) {
+          if (((innernode_t*)node)->getPrecomputedDist(i, nnq) <= 2 * range) {
+            cand[i] = true;
+          }
+        }
+        for (int i = 0; i < node->getCount(); i++) {
+          if (!cand[i]) {
+            // insert final condition!
+          }
+        }
+        for (int i = 0; i < node->getCount(); i++) {
+          if (cand[i]) {
+            collectResults(node->getChild(i));
+          }
+        }
+      }
+      else { // N-tree
+        double minDist = node->getMinDist(queryObject, dc);
+        for (int i = 0; i < node->getCount(); i++) {
+          T* c = node->getCenter(i);
+  //         cout << "  " << *(queryObject.getKey()) << *(c->getKey()) << " § "
+  //              << dc(*c, queryObject) << " $ " 
+  //              << minDist + 2 * range << "  ?" << endl;
+          if (dc(*c, queryObject) <= minDist + 2 * range) {
+            collectResults(node->getChild(i));
+          } 
+        }
       }
     }
   }
