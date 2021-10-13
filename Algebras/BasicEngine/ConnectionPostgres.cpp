@@ -728,4 +728,53 @@ bool ConnectionPG::insertRectangle(const std::string &table,
     return true;
 }
 
+
+
+/*
+6.18 Add a new column to the table
+
+*/
+void ConnectionPG::addColumnToTable(const std::string &table, 
+    const std::string &name, SQLAttribute type) {
+
+    string sql = "ALTER TABLE " + table + " ADD COLUMN " + name;
+
+    switch(type) {
+        case SQLAttribute::sqlinteger:
+            sql.append(" INTEGER");
+        break;
+
+        default:
+            throw new SecondoException("Unsupported datatyepe: " + type);
+    }
+
+
+   bool res = sendCommand(sql.c_str());
+
+   if(res == false) {
+        BOOST_LOG_TRIVIAL(error) 
+            << "Unable to execute: " << sql;
+        throw SecondoException("Unable to add column to table");
+   }
+}
+
+/*
+6.19 Remove a column from a table
+
+*/
+void ConnectionPG::removeColumnFromTable(const std::string &table,
+    const std::string &name) {
+
+    string sql = "ALTER TABLE " + table + " DROP COLUMN " + name;
+    
+    bool res = sendCommand(sql.c_str());
+
+   if(res == false) {
+        BOOST_LOG_TRIVIAL(error) 
+            << "Unable to execute: " << sql;
+        throw SecondoException("Unable to remove column to table");
+   }
+
+}
+
 }/* namespace BasicEngine */

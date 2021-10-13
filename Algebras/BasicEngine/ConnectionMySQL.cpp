@@ -707,11 +707,60 @@ bool ConnectionMySQL::insertRectangle(const std::string &table,
     if(res == false) {
         BOOST_LOG_TRIVIAL(error) 
             << "Unable to execute: " << insertSQL
-            << mysql_error(conn);;
+            << mysql_error(conn);
         return false;
     }
 
     return true;
+}
+
+/*
+6.18 Add a new column to the table
+
+*/
+void ConnectionMySQL::addColumnToTable(const std::string &table, 
+    const std::string &name, SQLAttribute type) {
+
+    string sql = "ALTER TABLE " + table + " ADD COLUMN " + name;
+
+    switch(type) {
+        case SQLAttribute::sqlinteger:
+            sql.append(" INTEGER");
+        break;
+
+        default:
+            throw new SecondoException("Unsupported datatyepe: " + type);
+    }
+
+
+   bool res = sendCommand(sql.c_str());
+
+   if(res == false) {
+        BOOST_LOG_TRIVIAL(error) 
+            << "Unable to execute: " << sql
+            << mysql_error(conn);
+        throw SecondoException("Unable to add column to table");
+   }
+}
+
+/*
+6.19 Remove a column from a table
+
+*/
+void ConnectionMySQL::removeColumnFromTable(const std::string &table,
+    const std::string &name) {
+
+    string sql = "ALTER TABLE " + table + " DROP COLUMN " + name;
+    
+    bool res = sendCommand(sql.c_str());
+
+   if(res == false) {
+        BOOST_LOG_TRIVIAL(error) 
+            << "Unable to execute: " << sql
+            << mysql_error(conn);
+        throw SecondoException("Unable to remove column to table");
+   }
+
 }
 
 }

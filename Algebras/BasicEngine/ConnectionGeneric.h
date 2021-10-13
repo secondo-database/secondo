@@ -40,6 +40,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 namespace BasicEngine {
 
+enum SQLAttribute {
+    sqlinteger
+};
+
 class ConnectionGeneric {
 
     public:
@@ -132,6 +136,12 @@ class ConnectionGeneric {
     virtual bool abortTransaction();
     
     virtual bool commitTransaction();
+
+    virtual void addColumnToTable(const std::string &table, 
+        const std::string &name, SQLAttribute type) = 0;
+
+    virtual void removeColumnFromTable(const std::string &table,
+        const std::string &name) = 0;
 
     /*
     5.3 
