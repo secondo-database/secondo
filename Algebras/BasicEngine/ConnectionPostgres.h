@@ -162,12 +162,6 @@ class ConnectionPG : public ConnectionGeneric {
   bool insertRectangle(const std::string &table, 
         double x, double y, double sizeX, double sizeY);
 
-  virtual bool beginTransaction();
-
-  virtual bool abortTransaction();
-    
-  virtual bool commitTransaction();
-
   // The DB Type
   inline static const std::string DBTYPE = "pgsql";
 

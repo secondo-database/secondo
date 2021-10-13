@@ -146,4 +146,29 @@ std::string ConnectionGeneric::getAttributeProjectionSQLForTable(
     return resultString;
 }
 
+
+/*
+1.4 Start a new transaction
+
+*/
+bool ConnectionGeneric::beginTransaction() {
+    return sendCommand("START TRANSACTION;");
+}
+
+/*
+1.5 Abort a transaction
+
+*/
+bool ConnectionGeneric::abortTransaction() {
+    return sendCommand("ROLLBACK;");
+}
+
+/*
+1.6 Commit a transaction
+
+*/
+bool ConnectionGeneric::commitTransaction() {
+    return sendCommand("COMMIT;");
+}
+
 } // Namespace
