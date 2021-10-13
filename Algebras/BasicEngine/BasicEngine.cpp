@@ -154,28 +154,36 @@ int be_shutdown_vm(Word* args, Word& result, int message,
 
   result = qp->ResultStorage(s);
 
-  if(be_control != nullptr) {
+  try {
+    if(be_control != nullptr) {
 
-    if(be_control->isMaster()) {
-      cout << "Error: Can not shutdown worker, we are in master mode." 
-          << endl;
-      cout << "Please use be_shutdown_cluster() instead." 
-          << endl << endl;
+      if(be_control->isMaster()) {
+        cout << "Error: Can not shutdown worker, we are in master mode." 
+            << endl;
+        cout << "Please use be_shutdown_cluster() instead." 
+            << endl << endl;
+        ((CcBool*)result.addr)->Set(true, false);
+        return 0;
+      }
+
+      cout << "Shutting down basic engine worker" << endl;
+      delete be_control;
+      be_control = nullptr;
+      
+      ((CcBool*)result.addr)->Set(true, true);
+      return 0;
+    } else {
+      cout << "Basic engine worker is not active" << endl;
       ((CcBool*)result.addr)->Set(true, false);
       return 0;
     }
-
-    cout << "Shutting down basic engine worker" << endl;
-    delete be_control;
-    be_control = nullptr;
-    
-    ((CcBool*)result.addr)->Set(true, true);
-    return 0;
-  } else {
-    cout << "Basic engine worker is not active" << endl;
+  } catch (SecondoException &e) {
+    BOOST_LOG_TRIVIAL(error) 
+      << "Got error while shutting down basic engine " << e.what();
     ((CcBool*)result.addr)->Set(true, false);
-    return 0;
   }
+
+  return 0;
 }
 
 /*
@@ -225,40 +233,47 @@ int be_shutdown_cluster_vm(Word* args, Word& result, int message,
         Word& local, Supplier s) {
   
   result = qp->ResultStorage(s);
+  try {
+    if(be_control != nullptr) {
 
-  if(be_control != nullptr) {
+      if(! be_control->isMaster()) {
+        cout << "Error: Can not shutdown worker nodes, we are not" 
+            << " in master mode" << endl;
+        cout << "Please use be_shutdown to shutdown the local engine."
+            << endl << endl;
+        ((CcBool*)result.addr)->Set(false, true);
+        return 0;
+      }
 
-    if(! be_control->isMaster()) {
-      cout << "Error: Can not shutdown worker nodes, we are not" 
-          << " in master mode" << endl;
-      cout << "Please use be_shutdown to shutdown the local engine."
-          << endl << endl;
-      ((CcBool*)result.addr)->Set(false, true);
+      cout << "Shutting down basic engine worker" << endl;
+      bool shutdownResult = be_control->shutdownWorker();
+
+      if(! shutdownResult) {
+        cout << "Error: Shutdown of the workers failed" << endl 
+            << endl;
+      
+        ((CcBool*)result.addr)->Set(true, false);
+        return 0;
+      }
+
+      cout << "Shutting down basic engine master" << endl;
+      delete be_control;
+      be_control = nullptr;
+
+      ((CcBool*)result.addr)->Set(true, true);
       return 0;
-    }
-
-    cout << "Shutting down basic engine worker" << endl;
-    bool shutdownResult = be_control->shutdownWorker();
-
-    if(! shutdownResult) {
-      cout << "Error: Shutdown of the workers failed" << endl 
-           << endl;
-    
+    } else {
+      cout << "Basic engine is not active" << endl;
       ((CcBool*)result.addr)->Set(true, false);
       return 0;
     }
-
-    cout << "Shutting down basic engine master" << endl;
-    delete be_control;
-    be_control = nullptr;
-
-    ((CcBool*)result.addr)->Set(true, true);
-    return 0;
-  } else {
-    cout << "Basic engine is not active" << endl;
-    ((CcBool*)result.addr)->Set(true, false);
-    return 0;
+   } catch (SecondoException &e) {
+      BOOST_LOG_TRIVIAL(error) 
+        << "Got error while shutdown basic engine " << e.what();
+      ((CcBool*)result.addr)->Set(true, false);
   }
+
+  return 0;
 }
 
 /*
@@ -331,6 +346,7 @@ CcInt* slot = (CcInt*) args[1].addr;
 bool val = false;
 CcBool* res = (CcBool*) result.addr;
 
+try {
   if(be_control && be_control->isMaster()){
     if (slot->GetIntval() > 0){
       val = be_control->partition_table_by_random(
@@ -338,12 +354,15 @@ CcBool* res = (CcBool*) result.addr;
     }else{
       cout << negSlots << endl;
     }
-  }
-  else{
+  } else{
     cout << noWorker << endl;
   }
   res->Set(true, val);
-
+ } catch (SecondoException &e) {
+    BOOST_LOG_TRIVIAL(error) 
+      << "Got error while partitioning table " << e.what();
+    res->Set(true, false);
+ }
 return 0;
 }
 
@@ -418,19 +437,23 @@ CcInt* slot = (CcInt*) args[1].addr;
 bool val = false;
 CcBool* res = (CcBool*) result.addr;
 
+try {
   if(be_control && be_control->isMaster()){
     if (slot->GetIntval() > 0){
       val = be_control->partition_table_by_rr(
         tab->toText(), slot->GetIntval(), false);
-    }else{
+    } else {
       cout << negSlots << endl;
     }
-  }
-  else{
+  } else{
     cout << noWorker << endl;
   }
   res->Set(true, val);
-
+ } catch (SecondoException &e) {
+    BOOST_LOG_TRIVIAL(error) 
+      << "Got error while partitioning table " << e.what();
+    res->Set(true, false);
+}
 return 0;
 }
 
@@ -528,20 +551,25 @@ int be_partHashSFVM(Word* args,Word& result,int message,
 
   bool val = false;
   CcBool* res = (CcBool*) result.addr;
-
-  if(be_control && be_control->isMaster()){
-    if (slot->GetIntval() > 0){
-      val = be_control->partition_table_by_hash(
-        tab->toText(), key->toText(),slot->GetIntval(),
-        false);
+  try {
+    if(be_control && be_control->isMaster()){
+      if (slot->GetIntval() > 0){
+        val = be_control->partition_table_by_hash(
+          tab->toText(), key->toText(),slot->GetIntval(),
+          false);
+      } else {
+        cout << negSlots << endl;
+      }
     } else {
-      cout << negSlots << endl;
+      cout << noWorker << endl;
     }
-  } else {
-    cout << noWorker << endl;
-  }
 
-  res->Set(true, val);
+    res->Set(true, val);
+   } catch (SecondoException &e) {
+    BOOST_LOG_TRIVIAL(error) 
+      << "Got error while partitioning table " << e.what();
+    res->Set(true, false);
+  }
 
   return 0;
 }
@@ -643,8 +671,9 @@ string err = "\n {string, text} x {string, text} x {string, text} x int--> bool"
 
 */
 template<class T, class H, class N>
-int be_partFunSFVM(Word* args,Word& result,int message
-          ,Word& local,Supplier s ){
+int be_partFunSFVM(Word* args,Word& result,int message,
+  Word& local,Supplier s ) {
+
 result = qp->ResultStorage(s);
 
 T* tab = (T*) args[0].addr;
@@ -655,20 +684,25 @@ CcInt* slot = (CcInt*) args[3].addr;
 bool val = false;
 CcBool* res = (CcBool*) result.addr;
 
+try {
   if(be_control && be_control -> isMaster()){
     if (slot->GetIntval() > 0){
       val = be_control->partition_table_by_fun(
         tab->toText(), key->toText(), 
         fun->toText(),slot->GetIntval(), false);
-    }else{
+    } else {
       cout<< negSlots << endl;
     }
-  }
-  else{
+  } else{
     cout << noWorker << endl;
   }
 
   res->Set(true, val);
+} catch (SecondoException &e) {
+    BOOST_LOG_TRIVIAL(error) 
+      << "Got error while partitioning table " << e.what();
+  res->Set(true, false);
+}
 
 return 0;
 }
@@ -783,17 +817,24 @@ int be_querySFVM(Word* args,Word& result,int message,Word& local,Supplier s ) {
   T* query = (T*) args[0].addr;
   H* resultTab = (H*) args[1].addr;
 
-  if(be_control) {
-    //Delete target Table, ignore failure
-    be_control->drop_table(resultTab->toText());
+  try {
+    if(be_control) {
+      //Delete target Table, ignore failure
+      be_control->drop_table(resultTab->toText());
 
-    //execute the query
-    val=be_control->createTab(resultTab->toText(),query->toText());
-  } else {
-    cout << noMaster << endl;
+      //execute the query
+      val=be_control->createTab(resultTab->toText(),query->toText());
+    } else {
+      cout << noMaster << endl;
+    }
+
+    ((CcBool *)result.addr)->Set(true, val);
+
+  } catch (SecondoException &e) {
+    BOOST_LOG_TRIVIAL(error) 
+      << "Got error while executing query operator " << e.what();
+    ((CcBool *)result.addr)->Set(true, false);
   }
-
-  ((CcBool *)result.addr)->Set(true, val);
 
   return 0;
 }
@@ -886,15 +927,19 @@ int be_commandSFVM(Word* args, Word& result, int message
 
   T* query = (T*) args[0].addr;
 
-  if(be_control){
-    val = be_control->sendCommand(query->GetValue(),true);
-  }
-  else{
-    cout << noMaster << endl;
-  }
+  try {
+    if(be_control){
+      val = be_control->sendCommand(query->GetValue(),true);
+    } else {
+      cout << noMaster << endl;
+    }
 
-  ((CcBool *)result.addr)->Set(true, val);
-
+    ((CcBool *)result.addr)->Set(true, val);
+  } catch (SecondoException &e) {
+    BOOST_LOG_TRIVIAL(error) 
+      << "Got error while executing command operator " << e.what();
+    ((CcBool *)result.addr)->Set(true, false);
+  }
   return 0;
 }
 
@@ -1001,35 +1046,40 @@ int be_copySFVM(Word* args, Word& result, int message,
     ((CcBool *)result.addr)->Set(true, false);
     return 0;
   }
- 
-  string sourceParameter = source->GetValue();
-  string destinationParameter = destination->GetValue();
+  try {
+    string sourceParameter = source->GetValue();
+    string destinationParameter = destination->GetValue();
 
-  if(boost::algorithm::starts_with(sourceParameter, "/") && 
-    ! boost::algorithm::starts_with(destinationParameter, "/") ) {
+    if(boost::algorithm::starts_with(sourceParameter, "/") && 
+      ! boost::algorithm::starts_with(destinationParameter, "/") ) {
 
-    // Import (First parameter is a file, second a table)
-    bool beResult = be_control->importTable( 
-      destinationParameter, sourceParameter);
+      // Import (First parameter is a file, second a table)
+      bool beResult = be_control->importTable( 
+        destinationParameter, sourceParameter);
 
-    ((CcBool *)result.addr)->Set(true, beResult);
-    return 0;
+      ((CcBool *)result.addr)->Set(true, beResult);
+      return 0;
 
-  } else if (! boost::algorithm::starts_with(sourceParameter, "/") && 
-    boost::algorithm::starts_with(destinationParameter, "/") ) {
+    } else if (! boost::algorithm::starts_with(sourceParameter, "/") && 
+      boost::algorithm::starts_with(destinationParameter, "/") ) {
 
-    // Export (First parameter is a table, second a file)
-    bool beResult = be_control->exportTable(
-      sourceParameter, destinationParameter);
+      // Export (First parameter is a table, second a file)
+      bool beResult = be_control->exportTable(
+        sourceParameter, destinationParameter);
 
-    ((CcBool *)result.addr)->Set(true, beResult);
-    return 0;
-  } 
+      ((CcBool *)result.addr)->Set(true, beResult);
+      return 0;
+    } 
 
-  cerr << "Error: Exactly one parameter has to be a "
-       << "absolute path, starting with '/'" << endl;
-  
-  ((CcBool *)result.addr)->Set(true, false);
+    cerr << "Error: Exactly one parameter has to be a "
+        << "absolute path, starting with '/'" << endl;
+    
+    ((CcBool *)result.addr)->Set(true, false);
+   } catch (SecondoException &e) {
+    BOOST_LOG_TRIVIAL(error) 
+      << "Got error while executing copy operator " << e.what();
+    ((CcBool *)result.addr)->Set(true, false);
+  }
   return 0;
 }
 
@@ -1128,14 +1178,20 @@ int be_mquerySFVM(Word* args, Word& result, int message,
   T* query = (T*) args[0].addr;
   H* tab = (H*) args[1].addr;
 
-  if(be_control && be_control -> isMaster()){
-    val = be_control->mquery(query->toText(), tab->toText() );
-  } else {
-    cout << noWorker << endl;
+  try {
+    if(be_control && be_control -> isMaster()){
+      val = be_control->mquery(query->toText(), tab->toText() );
+    } else {
+      cout << noWorker << endl;
+    }
+
+    ((CcBool *)result.addr)->Set(true, val);
+
+  } catch (SecondoException &e) {
+    BOOST_LOG_TRIVIAL(error) 
+      << "Got error while executing mquery operator " << e.what();
+    ((CcBool *)result.addr)->Set(true, false);
   }
-
-  ((CcBool *)result.addr)->Set(true, val);
-
   return 0;
 }
 
@@ -1227,14 +1283,20 @@ int be_mcommandSFVM(Word* args, Word& result, int message
   result = qp->ResultStorage(s);
   T* query = (T*) args[0].addr;
 
-  if(be_control && be_control -> isMaster()){
-    val = be_control->mcommand(query->toText());
-  } else{
-    cout << noWorker << endl;
+  try {
+    if(be_control && be_control -> isMaster()){
+      val = be_control->mcommand(query->toText());
+    } else{
+      cout << noWorker << endl;
+    }
+
+    ((CcBool *)result.addr)->Set(true, val);
+
+  } catch (SecondoException &e) {
+    BOOST_LOG_TRIVIAL(error) 
+      << "Got error while execute mcommand " << e.what();
+    ((CcBool *)result.addr)->Set(true, false);
   }
-
-  ((CcBool *)result.addr)->Set(true, val);
-
   return 0;
 }
 
@@ -1319,13 +1381,19 @@ int be_unionSFVM(Word* args, Word& result, int message
   T* tab = (T*) args[0].addr;
   bool val;
 
-  if(be_control && be_control -> isMaster()) {
-    val = be_control->munion(tab->toText());
-  } else {
-    cout << noWorker << endl;
-  }
+  try {
+    if(be_control && be_control -> isMaster()) {
+      val = be_control->munion(tab->toText());
+    } else {
+      cout << noWorker << endl;
+    }
 
-  ((CcBool *)result.addr)->Set(true, val);
+    ((CcBool *)result.addr)->Set(true, val);
+  } catch (SecondoException &e) {
+    BOOST_LOG_TRIVIAL(error) 
+      << "Got error while executing union operator" << e.what();
+    ((CcBool *)result.addr)->Set(true, false);
+  }
 
   return 0;
 }
@@ -1411,16 +1479,21 @@ int be_structSFVM(Word* args, Word& result, int message
   result = qp->ResultStorage(s);
   T* tab = (T*) args[0].addr;
 
-  if(be_control){
-    //export a create Statement to filetransfer
-    val = be_control->createSchemaSQL(tab->GetValue());
-  }
-  else{
-    cout << noMaster << endl;
-  }
+  try {
 
-  ((CcBool *)result.addr)->Set(true, val);
+    if(be_control){
+      //export a create Statement to filetransfer
+      val = be_control->createSchemaSQL(tab->GetValue());
+    } else{
+      cout << noMaster << endl;
+    }
 
+    ((CcBool *)result.addr)->Set(true, val);
+   } catch (SecondoException &e) {
+    BOOST_LOG_TRIVIAL(error) 
+      << "Got error while create table structure " << e.what();
+    ((CcBool *)result.addr)->Set(true, false);
+  }
   return 0;
 }
 
@@ -1616,40 +1689,47 @@ int init_be_workerSFVM(Word* args, Word& result, int message,
   string dbTypeValue = dbtype->toText();
   string workerRelationNameValue = workerRelationName->toText();
   
-  ConnectionGeneric* dbConnection = getAndInitDatabaseConnection(
-      dbTypeValue, dbUserValue, dbPassValue, portValue, dbNameValue);
 
-  if(dbConnection != nullptr) {
-    be_control = new BasicEngine_Control(dbConnection, worker, 
-      workerRelationNameValue, true);
-      
-    bool createConnectionResult = be_control -> createAllConnections();
+  try {
+    ConnectionGeneric* dbConnection = getAndInitDatabaseConnection(
+        dbTypeValue, dbUserValue, dbPassValue, portValue, dbNameValue);
 
-    if(! createConnectionResult) {
-      cerr << "Error: Connection error, please check the previous messages"
-           << " for error messages." << endl << endl;
-      ((CcBool*) result.addr)->Set(true, false);
+    if(dbConnection != nullptr) {
+      be_control = new BasicEngine_Control(dbConnection, worker, 
+        workerRelationNameValue, true);
+        
+      bool createConnectionResult = be_control -> createAllConnections();
+
+      if(! createConnectionResult) {
+        cerr << "Error: Connection error, please check the previous messages"
+            << " for error messages." << endl << endl;
+        ((CcBool*) result.addr)->Set(true, false);
+        return 0;
+      }
+
+      bool connectionsAvailable = be_control->checkAllConnections();
+
+      if(! connectionsAvailable) {
+        cerr << "Error: Not all connections available, please check the"
+            << " previous messages for error messages." << endl << endl;
+        ((CcBool*) result.addr)->Set(true, false);
+        return 0;
+      } 
+
+      ((CcBool*) result.addr)->Set(true, true);
       return 0;
+      } 
+
+      cerr << endl << "Error: Unable to connect to database: " 
+          << dbtype->toText() << endl;
+      ((CcBool*) result.addr)->Set(true, false);
+    } catch (SecondoException &e) {
+      BOOST_LOG_TRIVIAL(error) 
+        << "Got error while init connections " << e.what();
+      ((CcBool*) result.addr)->Set(true, false);
     }
 
-    bool connectionsAvailable = be_control->checkAllConnections();
-
-    if(! connectionsAvailable) {
-      cerr << "Error: Not all connections available, please check the"
-           << " previous messages for error messages." << endl << endl;
-      ((CcBool*) result.addr)->Set(true, false);
-      return 0;
-    } 
-
-    ((CcBool*) result.addr)->Set(true, true);
     return 0;
-  } 
-
-  cerr << endl << "Error: Unable to connect to database: " 
-       << dbtype->toText() << endl;
-  ((CcBool*) result.addr)->Set(false, false);
-  
-  return 0;
 }
 
 /*
@@ -1769,21 +1849,27 @@ int be_init_sf_vm(Word* args, Word& result, int message,
   string dbTypeValue = dbtype->toText();
   string workerRelationNameValue = workerRelationName->toText();
 
-  ConnectionGeneric* dbConnection = getAndInitDatabaseConnection(
-      dbTypeValue, dbUserValue, dbPassValue, portValue, dbNameValue);
+  try {
+    ConnectionGeneric* dbConnection = getAndInitDatabaseConnection(
+        dbTypeValue, dbUserValue, dbPassValue, portValue, dbNameValue);
 
-  if(dbConnection != nullptr) {
-    be_control = new BasicEngine_Control(dbConnection, worker, 
-      workerRelationNameValue, false);
+    if(dbConnection != nullptr) {
+      be_control = new BasicEngine_Control(dbConnection, worker, 
+        workerRelationNameValue, false);
 
-      bool connectionState = dbConnection->checkConnection();
-      ((CcBool*)result.addr)->Set(true, connectionState);
-      return 0;
-  } 
+        bool connectionState = dbConnection->checkConnection();
+        ((CcBool*)result.addr)->Set(true, connectionState);
+        return 0;
+    } 
 
-  cerr << endl << "Error: Unable to connect to database: " 
-       << dbtype->toText() << endl;
-  ((CcBool*)result.addr)->Set(false, false);
+    cerr << endl << "Error: Unable to connect to database: " 
+        << dbtype->toText() << endl;
+    ((CcBool*)result.addr)->Set(true, false);
+  } catch (SecondoException &e) {
+    BOOST_LOG_TRIVIAL(error) 
+      << "Got error while init the basic engine " << e.what();
+    ((CcBool*)result.addr)->Set(true, false);
+  }
 
   return 0;
 }
@@ -1871,16 +1957,22 @@ int be_runsqlSFVM(Word* args, Word& result, int message
   T* path = (T*) args[0].addr;
   bool val;
 
-  result = qp->ResultStorage(s);
+  try {
+    result = qp->ResultStorage(s);
 
-  if(be_control){
-    val = be_control->runsql(path->toText());
-  }
-  else{
-    cout << noMaster << endl;
-  }
+    if(be_control){
+      val = be_control->runsql(path->toText());
+    }
+    else{
+      cout << noMaster << endl;
+    }
 
-  ((CcBool *)result.addr)->Set(true, val);
+    ((CcBool *)result.addr)->Set(true, val);
+  }  catch (SecondoException &e) {
+    BOOST_LOG_TRIVIAL(error) 
+      << "Got error while executing SQL " << e.what();
+    ((CcBool *)result.addr)->Set(true, false);
+  }
 
   return 0;
 }
@@ -2002,20 +2094,25 @@ CcInt* slot = (CcInt*) args[4].addr;
 bool val = false;
 CcBool* res = (CcBool*) result.addr;
 
+try {
   if(be_control && be_control -> isMaster()){
     if (slot->GetIntval() > 0){
       val = be_control->partition_table_by_grid(
         tab->toText(), key->toText(), 
         slot->GetIntval(), geo_col->toText(),
         gridname->toText(), false);
-    }else{
-      cout<< negSlots << endl;
-    }
+      } else{
+        cout<< negSlots << endl;
+      }
   } else {
-    cout << noWorker << endl;
+      cout << noWorker << endl;
   }
-
   res->Set(true, val);
+} catch (SecondoException &e) {
+  BOOST_LOG_TRIVIAL(error) 
+    << "Got error while partitioning table " << e.what();
+  res->Set(true, false);
+}
 
   return 0;
 }
@@ -2197,45 +2294,51 @@ int be_collect_vm(Word* args, Word& result, int message,
   ResultIteratorGeneric* cli = (ResultIteratorGeneric*) local.addr;
   string sqlQuery = ((FText*) args[0].addr)->GetValue();
 
-qp->GetGlobalMemory();
+  qp->GetGlobalMemory();
 
-  switch(message) {
-    case OPEN: 
+  try {
+    switch(message) {
+      case OPEN: 
 
-      if (cli != nullptr) {
-        delete cli;
-        cli = nullptr;
-      }
+        if (cli != nullptr) {
+          delete cli;
+          cli = nullptr;
+        }
 
-      cli = be_control -> performSQLSelectQuery(sqlQuery);
-      local.setAddr( cli );
-      return 0;
-
-    case REQUEST:
-      
-      // Operator not ready
-      if ( ! cli ) {
-        return CANCEL;
-      }
-      
-      // Fetch next tuple from database
-      if(cli->hasNextTuple()) {
-        result.addr = cli -> getNextTuple();
-        return YIELD;
-      } else {
-        return CANCEL;
-      }
-
-    case CLOSE:
-      if(cli) {
-        delete cli;
-        cli = nullptr;
+        cli = be_control -> performSQLSelectQuery(sqlQuery);
         local.setAddr( cli );
-      }
+        return 0;
 
-      return 0;
+      case REQUEST:
+        
+        // Operator not ready
+        if ( ! cli ) {
+          return CANCEL;
+        }
+        
+        // Fetch next tuple from database
+        if(cli->hasNextTuple()) {
+          result.addr = cli -> getNextTuple();
+          return YIELD;
+        } else {
+          return CANCEL;
+        }
+
+      case CLOSE:
+        if(cli) {
+          delete cli;
+          cli = nullptr;
+          local.setAddr( cli );
+        }
+
+        return 0;
+      }
+   } catch (SecondoException &e) {
+    BOOST_LOG_TRIVIAL(error) 
+      << "Got exception during processing " << e.what();
+    return CANCEL;
   }
-  
+
   return 0;    
 }
 
@@ -2285,20 +2388,26 @@ int be_repartRandomSFVM(Word* args, Word& result, int message,
 
   bool val = false;
   CcBool* res = (CcBool*) result.addr;
-
-  if(be_control == nullptr){
-    cerr << "Please init basic engine first" << endl;
-    val = false;
-  } else {
-    if (slot->GetIntval() > 0){
-      val = be_control->partition_table_by_random(
-        tab->toText(), slot->GetIntval(), true);
-    } else{
-      cout << negSlots << endl;
+ 
+  try {
+    if(be_control == nullptr){
+      cerr << "Please init basic engine first" << endl;
+      val = false;
+    } else {
+      if (slot->GetIntval() > 0){
+        val = be_control->partition_table_by_random(
+          tab->toText(), slot->GetIntval(), true);
+      } else{
+        cout << negSlots << endl;
+      }
     }
-  }
 
-  res->Set(true, val);
+    res->Set(true, val);
+  } catch (SecondoException &e) {
+    BOOST_LOG_TRIVIAL(error) 
+      << "Got error while repartitioning the table " << e.what();
+    res->Set(true, false);
+  }
 
   return 0;
 }
@@ -2369,19 +2478,25 @@ int be_repartRRSFVM(Word* args, Word& result, int message,
   bool val = false;
   CcBool* res = (CcBool*) result.addr;
 
-  if(be_control == nullptr){
-    cerr << "Please init basic engine first" << endl;
-    val = false;
-  } else {
-    if (slot->GetIntval() > 0){
-      val = be_control->partition_table_by_rr(
-        tab->toText(), slot->GetIntval(), true);
-    } else{
-      cout << negSlots << endl;
+  try {
+    if(be_control == nullptr){
+      cerr << "Please init basic engine first" << endl;
+      val = false;
+    } else {
+      if (slot->GetIntval() > 0){
+        val = be_control->partition_table_by_rr(
+          tab->toText(), slot->GetIntval(), true);
+      } else{
+        cout << negSlots << endl;
+      }
     }
-  }
 
-  res->Set(true, val);
+    res->Set(true, val);
+  } catch (SecondoException &e) {
+    BOOST_LOG_TRIVIAL(error) 
+      << "Got error while repartitioning the table" << e.what();
+    res->Set(true, false);
+  }
 
   return 0;
 }
@@ -2452,19 +2567,25 @@ int be_repartHashSFVM(Word* args,Word& result,int message,
   bool val = false;
   CcBool* res = (CcBool*) result.addr;
 
-  if(be_control == nullptr) {
-    cerr << "Please init basic engine first" << endl;
-    val = false;
-  } else {
-    if (slot->GetIntval() > 0){
-      val = be_control->partition_table_by_hash(tab->toText(), 
-        key->toText(), slot->GetIntval(), true);
+  try {
+    if(be_control == nullptr) {
+      cerr << "Please init basic engine first" << endl;
+      val = false;
     } else {
-      cout << negSlots << endl;
-    }
-  } 
+      if (slot->GetIntval() > 0){
+        val = be_control->partition_table_by_hash(tab->toText(), 
+          key->toText(), slot->GetIntval(), true);
+      } else {
+        cout << negSlots << endl;
+      }
+    } 
 
-  res->Set(true, val);
+    res->Set(true, val);
+  } catch (SecondoException &e) {
+    BOOST_LOG_TRIVIAL(error) 
+      << "Got error while repartitioning the table " << e.what();
+    res->Set(true, false);
+  }
 
   return 0;
 }
@@ -2539,21 +2660,27 @@ int be_repartGridSFVM(Word* args,Word& result,int message,
   bool val = false;
   CcBool* res = (CcBool*) result.addr;
 
-  if(be_control == nullptr) {
-    cerr << "Please init basic engine first" << endl;
-    val = false;
-  } else {
-    if (slot->GetIntval() > 0){
-      val = be_control->partition_table_by_grid(
-        tab->toText(), key->toText(), 
-        slot->GetIntval(), geo_col->toText(),
-        gridname->toText(), true);
+  try {
+    if(be_control == nullptr) {
+      cerr << "Please init basic engine first" << endl;
+      val = false;
     } else {
-      cout<< negSlots << endl;
-    }
-  } 
+      if (slot->GetIntval() > 0){
+        val = be_control->partition_table_by_grid(
+          tab->toText(), key->toText(), 
+          slot->GetIntval(), geo_col->toText(),
+          gridname->toText(), true);
+      } else {
+        cout<< negSlots << endl;
+      }
+    } 
 
-  res->Set(true, val);
+    res->Set(true, val);
+  } catch (SecondoException &e) {
+    BOOST_LOG_TRIVIAL(error) 
+      << "Got error while repartitioning the table " << e.what();
+    res->Set(true, false);
+  }
 
   return 0;
 }
@@ -2665,19 +2792,25 @@ int be_repartFunSFVM(Word* args,Word& result,int message
   bool val = false;
   CcBool* res = (CcBool*) result.addr;
 
-  if(be_control == nullptr) {
-    cerr << "Please init basic engine first" << endl;
-    val = false;
-  } else {
-    if (slot->GetIntval() > 0){
-      val = be_control->partition_table_by_fun(tab->toText(), 
-        key->toText(), fun->toText(), slot->GetIntval(), true);
+  try {
+    if(be_control == nullptr) {
+      cerr << "Please init basic engine first" << endl;
+      val = false;
     } else {
-      cout<< negSlots << endl;
+      if (slot->GetIntval() > 0){
+        val = be_control->partition_table_by_fun(tab->toText(), 
+          key->toText(), fun->toText(), slot->GetIntval(), true);
+      } else {
+        cout<< negSlots << endl;
+      }
     }
-  }
 
-  res->Set(true, val);
+    res->Set(true, val);
+  } catch (SecondoException &e) {
+    BOOST_LOG_TRIVIAL(error) 
+      << "Got error during the repartitioning of the table " << e.what();
+    res->Set(true, false);
+  }
 
   return 0;
 }
@@ -2786,18 +2919,24 @@ int be_shareSFVM(Word* args,Word& result,int message,
   T* table = (T*) args[0].addr;
   CcBool* res = (CcBool*) result.addr;
 
-  if(! table->IsDefined()) {
-    cerr << "Table parameter has to be defined" << endl;
-    shareResult = false;
-  } else if (be_control == nullptr) {
-    cerr << "Please init basic engine first" << endl;
-    shareResult = false;
-  } else {
-    string tableName = table -> toText();
-    shareResult = be_control->shareTable(tableName);
-  } 
+  try {
+    if(! table->IsDefined()) {
+      cerr << "Table parameter has to be defined" << endl;
+      shareResult = false;
+    } else if (be_control == nullptr) {
+      cerr << "Please init basic engine first" << endl;
+      shareResult = false;
+    } else {
+      string tableName = table -> toText();
+      shareResult = be_control->shareTable(tableName);
+    } 
 
-  res->Set(true, shareResult);
+    res->Set(true, shareResult);
+  } catch (SecondoException &e) {
+    BOOST_LOG_TRIVIAL(error) 
+      << "Got error during the sharing of the table " << e.what();
+    res->Set(true, false);
+  }
 
   return 0;
 }
@@ -2885,18 +3024,24 @@ int be_validateQuerySFVM(Word* args,Word& result,int message,
   T* query = (T*) args[0].addr;
   CcBool* res = (CcBool*) result.addr;
 
-  if(! query->IsDefined()) {
-    cerr << "Query parameter has to be defined" << endl;
-    validationResult = false;
-  } else if (be_control == nullptr) {
-    cerr << "Please init basic engine first" << endl;
-    validationResult = false;
-  } else {
-    string queryString = query -> toText();
-    validationResult = be_control->validateQuery(queryString);
-  } 
+  try {
+    if(! query->IsDefined()) {
+      cerr << "Query parameter has to be defined" << endl;
+      validationResult = false;
+    } else if (be_control == nullptr) {
+      cerr << "Please init basic engine first" << endl;
+      validationResult = false;
+    } else {
+      string queryString = query -> toText();
+      validationResult = be_control->validateQuery(queryString);
+    } 
 
-  res->Set(true, validationResult);
+    res->Set(true, validationResult);
+  } catch (SecondoException &e) {
+    BOOST_LOG_TRIVIAL(error) 
+      << "Got error during the query validation " << e.what();
+    res->Set(true, false);
+  }
 
   return 0;
 }

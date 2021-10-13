@@ -44,6 +44,9 @@ enum SQLAttribute {
     sqlinteger
 };
 
+// The attribute name for the distribution
+#define cellnumer_column_name = "be_cellnumber";
+
 class ConnectionGeneric {
 
     public:
