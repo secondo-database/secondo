@@ -146,7 +146,7 @@ public:
     return sendCommand(sqlQuery, false);
   }
 
-  bool createSchemaSQL(const std::string &tab);
+  bool exportTableCreateStatementSQL(const std::string &tab);
 
   bool importTable(const std::string &tab, const std::string &full_path) {
     std::string sqlQuery = dbms_connection->getImportTableSQL(tab, full_path);

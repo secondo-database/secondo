@@ -391,14 +391,14 @@ string BasicEngine_Control::getTableNameForPartitioning(
 }
 
 /*
-3.7 ~createSchemaSQL~
+3.7 ~exportTableCreateStatementSQL~
 
 Creates a table create statement from the input tab
 and store the statement in a file.
 Returns true if everything is OK and there are no failure.
 
 */
-bool BasicEngine_Control::createSchemaSQL(const string &tab) {
+bool BasicEngine_Control::exportTableCreateStatementSQL(const string &tab) {
 
   ofstream write;
   string statement;
@@ -555,7 +555,7 @@ Repartition the given table - worker version
     } else {
       destinationTable = partitionData.table;
 
-      bool exportResult = createSchemaSQL(partitionData.table);
+      bool exportResult = exportTableCreateStatementSQL(partitionData.table);
 
       if(!exportResult){
         BOOST_LOG_TRIVIAL(error) << "Couldn't create the structure-file";
@@ -1656,7 +1656,7 @@ bool BasicEngine_Control::shareTable(
       const std::string &table) {
 
   // Create trlation schema file
-  bool createStructRes = createSchemaSQL(table);
+  bool createStructRes = exportTableCreateStatementSQL(table);
 
   if(! createStructRes){
     BOOST_LOG_TRIVIAL(error) << "Couldn't create the structure-file for"

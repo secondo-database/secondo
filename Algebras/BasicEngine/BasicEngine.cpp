@@ -1483,7 +1483,7 @@ int be_structSFVM(Word *args, Word &result, int message, Word &local,
 
     if (be_control) {
       // export a create Statement to filetransfer
-      val = be_control->createSchemaSQL(tab->GetValue());
+      val = be_control->exportTableCreateStatementSQL(tab->GetValue());
     } else {
       cout << noMaster << endl;
     }
