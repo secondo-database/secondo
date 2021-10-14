@@ -22248,7 +22248,7 @@ int mcreatentreeVMT(Word* args, Word& result, int message, Word& local,
     res->setPointer(0);
     return 0;
   }
-  int partitionStrategy = 0; // TODO: add parameter
+  int partitionStrategy = 0; // TODO: currently random; add parameter
   vector<Tuple*>* v = mrel->getmmrel();
   vector<MTreeEntry<T> > contents;
   bool flobused = false;
@@ -22364,28 +22364,28 @@ int mcreatentree2VMT(Word* args, Word& result, int message, Word& local,
   MemoryRelObject* mrel = (MemoryRelObject*) mrelp->GetValue();
   CcInt *ccDegree = ((CcInt*)args[2].addr);
   CcInt *ccMaxLeafSize = ((CcInt*)args[3].addr);
-  CcInt *ccRefPtsMethod = ((CcInt*)args[4].addr);
+  CcInt *ccCandOrder = ((CcInt*)args[4].addr);
   if (!ccDegree->IsDefined() || !ccMaxLeafSize->IsDefined() || 
-      !ccRefPtsMethod->IsDefined()) {
-    cout << "undefined input parameter" << endl;
+      !ccCandOrder->IsDefined()) {
+    cout << "at least one undefined input parameter" << endl;
     res->setPointer(0);
     return 0;
   }  
   int degree = ccDegree->GetValue();
   int maxLeafSize = ccMaxLeafSize->GetValue();
-  int refPtsMethod = ccRefPtsMethod->GetValue();
   if (degree < 1 || maxLeafSize < 1 || degree > maxLeafSize) {
-    cout << "invalid parameters: degree=" << degree << ", maxLeafSize=" 
+    cout << "invalid parameter(s): degree=" << degree << ", maxLeafSize=" 
         << maxLeafSize << endl;
     res->setPointer(0);
     return 0;
   }
-  if (refPtsMethod < 0 || refPtsMethod > 2) {
-    cout << "invalid parameter: refPtsMethod must be in {0, 1, 2}" << endl;
+  if (ccCandOrder->GetValue() < 0 || ccCandOrder->GetValue() > 2) {
+    cout << "invalid parameter: candOrder must be in {0, 1, 2}" << endl;
     res->setPointer(0);
     return 0;
   }
-  int partitionStrategy = 0; // TODO: add parameter
+  CandOrder candOrder = static_cast<CandOrder>(ccCandOrder->GetValue());
+  int partitionStrategy = 0; // TODO: currently random; add parameter
   vector<Tuple*>* v = mrel->getmmrel();
   vector<MTreeEntry<T> > contents;
   bool flobused = false;
@@ -22399,7 +22399,7 @@ int mcreatentree2VMT(Word* args, Word& result, int message, Word& local,
   StdDistComp<T> dc(geoid);
   NTree<MTreeEntry<T>, StdDistComp<T>, true>* tree =
       new NTree<MTreeEntry<T>, StdDistComp<T>, true>(degree, maxLeafSize, 
-                                                     refPtsMethod, dc);
+                                                     candOrder, dc);
   tree->build(contents, partitionStrategy);
 //   cout << "entries: " << tree->getNoEntries() << ", nodes: " 
 //        << tree->getNoNodes() << ", leaves: " << tree->getNoLeaves() << endl;
@@ -22449,14 +22449,14 @@ ValueMapping mcreatentree2VM[] = {
 OperatorSpec mcreatentree2Spec(
   "MREL(tuple) x attrname x int x int x int [x geoid] -> mpointer(mem(mtree X))"
   "\n",
-  "mrel mcreatemtree[indexAttr, degree, maxLeafSize, refPtsMethod [, geoid]]\n",
+  "mrel mcreatemtree[indexAttr, degree, maxLeafSize, candOrder [, geoid]]\n",
   "This operator creates an N-tree2 in main memory. "
   "The first argument is a main memory relation containing the "
   "tuples to be indexed. The second argument refers to the attribute "
   "over that the index is built. The next two arguments represent the degree of"
   " the tree and and maximum number of entries in a leaf.\n"
-  "The fifth argument represents the selection method for r1 and r2: (0 <=> "
-  "maxDist,  1 <=> random,  2 <=> median dist)\n"
+  "The fifth argument represents the candidate ordering: (0 <=> random order, "
+  "1 <=> use two reference points, 2 <=> use three reference points)\n"
   "The last argument is optional. It must be of type geoid and "
   "can only be used if the index-attribute is of type point, mpoint, cupoint, "
   "or cmpoint. If this argument is present, the distance between two objects "

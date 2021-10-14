@@ -35,17 +35,24 @@ It is as powerful as the M-tree but supports more efficient range and nearest
 neighbor searches.
 
 */
-template<class T, class DistComp, bool opt>
+
+/*
+1 enum CandOrder
+
+*/
+enum CandOrder {RANDOM, PIVOT2, PIVOT3};
+
+template<class T, class DistComp, bool useNtree2>
 class NTreeInnerNode;
 
 /*
 1 class NTreeNode
 
 */
-template<class T, class DistComp, bool opt>
+template<class T, class DistComp, bool useNtree2>
 class NTreeNode {
  public:
-  typedef NTreeNode<T, DistComp, opt> node_t;
+  typedef NTreeNode<T, DistComp, useNtree2> node_t;
 //   typedef NTreeInnerNode<T, DistComp> innernode_t;
   
   virtual ~NTreeNode() {}
@@ -103,7 +110,7 @@ class NTreeNode {
   int count;
 };
 
-template<class T, class DistComp, bool opt>
+template<class T, class DistComp, bool useNtree2>
 class NTreeLeafNode;
 
 /*
@@ -112,14 +119,13 @@ class NTreeLeafNode;
 Auxiliary struct for sorting a vector with distances
 
 */
-struct DistVectorContents {
-  DistVectorContents() {}
+struct PosDistPair {
+  PosDistPair() {}
   
-  DistVectorContents(const int p, const std::pair<double, double>& dm) :
-      pos(p), distmax(dm) {}
+  PosDistPair(const int p) : pos(p) {}
       
-  bool operator<(const DistVectorContents& dvc) {
-    return distObj2d < dvc.distObj2d;
+  bool operator<(const PosDistPair& pdp) {
+    return distEuclid < pdp.distEuclid;
   }
   
   static double dist2d(const std::pair<double, double>& v1,
@@ -127,27 +133,34 @@ struct DistVectorContents {
     return sqrt(pow(v1.first - v2.first, 2) + pow(v1.second - v2.second, 2));
   }
   
+  static double dist3d(const std::tuple<double, double, double>& t1,
+                       const std::tuple<double, double, double>& t2) {
+    return sqrt(pow(std::get<0>(t1) - std::get<0>(t2), 2) +
+                pow(std::get<1>(t1) - std::get<1>(t2), 2) +
+                pow(std::get<2>(t1) - std::get<2>(t2), 2));
+  }
+  
   int pos;
-  std::pair<double, double> distmax;
-  double distObj2d;
+//   std::pair<double, double> distmax;
+  double distEuclid;
 };
 
 /*
 2 class NTreeInnerNode
 
 */
-template<class T, class DistComp, bool opt>
-class NTreeInnerNode : public NTreeNode<T, DistComp, opt> {
+template<class T, class DistComp, bool useNtree2>
+class NTreeInnerNode : public NTreeNode<T, DistComp, useNtree2> {
  public:
-  typedef NTreeInnerNode<T, DistComp, opt> innernode_t;
-  typedef NTreeNode<T, DistComp, opt> node_t;
-  typedef NTreeLeafNode<T, DistComp, opt> leafnode_t;
+  typedef NTreeInnerNode<T, DistComp, useNtree2> innernode_t;
+  typedef NTreeNode<T, DistComp, useNtree2> node_t;
+  typedef NTreeLeafNode<T, DistComp, useNtree2> leafnode_t;
   
   using node_t::degree;
   using node_t::maxLeafSize;
   
   NTreeInnerNode(const int d, const int mls) : 
-      node_t(d, mls), distances(0), distances2d(0) {
+      node_t(d, mls), distMatrix(0), distances2d(0), distances3d(0) {
     centers = new T*[node_t::degree];
     children = new node_t*[node_t::degree];
     for (int i = 0; i < node_t::degree; i++) {
@@ -156,17 +169,37 @@ class NTreeInnerNode : public NTreeNode<T, DistComp, opt> {
     }
   }
   
-  NTreeInnerNode(const int d, const int mls, const int m) : innernode_t(d, mls){
-    distances = new double*[degree];
-    for (int i = 0; i < degree; i++) {
-      distances[i] = new double[degree];
-    }
-    distances2d = new std::pair<double, double>[degree];
-    refPtsMethod = m;
+  NTreeInnerNode(const int d, const int mls, const CandOrder c) : 
+                                                           innernode_t(d, mls) {
+    candOrder = c;
   }
   
   virtual ~NTreeInnerNode() {
     clear(true);
+  }
+  
+  void initAuxStructures() {
+    distMatrix = new double*[node_t::degree];
+    for (int i = 0; i < node_t::degree; i++) {
+      distMatrix[i] = new double[node_t::degree];
+    }
+    switch (candOrder) {
+      case RANDOM: {
+        break;
+      }
+      case PIVOT2: {
+        distances2d = new std::pair<double, double>[node_t::degree];
+        std::get<2>(refDistPos) = -1;
+        break;
+      }
+      case PIVOT3: {
+        distances3d = new std::tuple<double, double, double>[node_t::degree];
+        break;
+      }
+      default: {
+        assert(false);
+      }
+    }
   }
   
   virtual void clear(const bool deleteContent) {
@@ -185,12 +218,17 @@ class NTreeInnerNode : public NTreeNode<T, DistComp, opt> {
       delete[] centers;
       delete[] children;
     }
-    if (opt) {
+    if (useNtree2) {
       for (int i = 0; i < degree; i++) {
-        delete[] distances[i];
+        delete[] distMatrix[i];
       }
-      delete[] distances;
-      delete[] distances2d;
+      delete[] distMatrix;
+      if (candOrder == PIVOT2) {
+        delete[] distances2d;
+      }
+      else if (candOrder == PIVOT3) {
+        delete[] distances3d;
+      }
     }
   }
   
@@ -202,6 +240,14 @@ class NTreeInnerNode : public NTreeNode<T, DistComp, opt> {
     size_t res = sizeof(*this) + sizeof(void*) * node_t::degree;
     for (int i = 0; i < node_t::count; i++) {
       res += children[i]->memSize();
+    }
+    res += node_t::degree * node_t::degree * sizeof(double);
+    res += 3 * sizeof(int);
+    if (candOrder == PIVOT2) {
+      res += node_t::degree * 2 * sizeof(double);
+    }
+    else if (candOrder == PIVOT3) {
+      res += node_t::degree * 3 * sizeof(double);
     }
     return res;
   }
@@ -222,26 +268,40 @@ class NTreeInnerNode : public NTreeNode<T, DistComp, opt> {
     return centers[childPos];
   }
   
-  int getNearestCenterPos(const T& o, DistComp& dc, double& minDist) const {
-    if (opt) { // N-tree2
+  int getNearestCenterPos(const T& o, DistComp& dc, double& minDist) {
+    if (useNtree2) { // N-tree2
       bool cand[node_t::degree];
       std::fill_n(cand, degree, true);
-      std::pair<double, double> odist2d = 
-              std::make_pair(dc(o, *(innernode_t::centers[refDistPos.first])),
-                             dc(o, *(innernode_t::centers[refDistPos.second])));
-      
-      DistVectorContents W[node_t::degree];
+      std::pair<double, double> odist2d;
+      std::tuple<double, double, double> odist3d;
+      if (candOrder == PIVOT2) {
+        odist2d = std::make_pair(dc(o, *(centers[std::get<0>(refDistPos)])),
+                                 dc(o, *(centers[std::get<1>(refDistPos)])));
+      }
+      else if (candOrder == PIVOT3) {
+        odist3d = std::make_tuple(dc(o, *(centers[std::get<0>(refDistPos)])),
+                                  dc(o, *(centers[std::get<1>(refDistPos)])),
+                                  dc(o, *(centers[std::get<2>(refDistPos)])));
+      }
+      PosDistPair W[node_t::degree];
       for (int i = 0; i < node_t::degree; i++) {
-        DistVectorContents dvc(i, distances2d[i]);
-        dvc.distObj2d = DistVectorContents::dist2d(distances2d[i], odist2d);
-        W[i] = dvc;
+        PosDistPair pdp(i);
+        if (candOrder == PIVOT2) {
+          pdp.distEuclid = PosDistPair::dist2d(distances2d[i], odist2d);
+        }
+        else if (candOrder == PIVOT3) {
+          pdp.distEuclid = PosDistPair::dist3d(distances3d[i], odist3d);
+        }
+        W[i] = pdp;
       }
       // sort W by dist to odist2d
 //       for (int i = 0; i < degree; i++) {
 //         cout << "(" << W[i].pos << ", " << W[i].distObj2d << "),  ";
 //       }
 //       cout << endl;
-      std::sort(W, W + degree);
+      if (candOrder != RANDOM) {
+        std::sort(W, W + degree);
+      }
 //       for (int i = 0; i < degree; i++) {
 //         cout << "(" << W[i].pos << ", " << W[i].distObj2d << "),  ";
 //       }
@@ -252,12 +312,12 @@ class NTreeInnerNode : public NTreeNode<T, DistComp, opt> {
         if (cand[i]) {
           Dq[W[i].pos] = dc(*(innernode_t::centers[W[i].pos]), o);
           for (int j = 0; j < node_t::degree; j++) {
-            if (distances[j][W[i].pos] > 2 * Dq[W[i].pos]) {
+            if (distMatrix[j][W[i].pos] > 2 * Dq[W[i].pos]) {
 //               cout << "set cand[" << j << "] to FALSE" << endl;
               cand[j] = false;
             }
 //             else {
-//               cout << "no change because " << distances[j][W[i].pos]
+//               cout << "no change because " << distMatrix[j][W[i].pos]
 //                    << " <= 2 * " << Dq[W[i].pos] << " = " << 2 * Dq[W[i].pos]
 //                    << endl;
 //             }
@@ -275,7 +335,7 @@ class NTreeInnerNode : public NTreeNode<T, DistComp, opt> {
     else { // N-tree
       double currentDist = std::numeric_limits<double>::max();
       int result = -1;
-      for (int i = 0; i < node_t::count; i++) {
+      for (int i = 0; i < node_t::degree; i++) {
         const T* c = getCenter(i);
         double dist = dc(*c, o);
         if (dist < currentDist) {
@@ -346,8 +406,8 @@ class NTreeInnerNode : public NTreeNode<T, DistComp, opt> {
       res->centers[i] = new T(*(centers[i]));
       res->children[i] = children[i]->clone();
     }
-    if (opt) {
-      res->distances = this->distances;
+    if (useNtree2) {
+      res->distMatrix = this->distMatrix;
       res->refDistPos = this->refDistPos;
       res->distances2d = this->distances2d;
     }    
@@ -434,11 +494,11 @@ class NTreeInnerNode : public NTreeNode<T, DistComp, opt> {
         break;
       }
       case 1: { // spatially balanced
-        
+        // TODO
         break;
       }
       case 2: { // distance-constrained
-        
+        // TODO
         break;
       }
       default: {
@@ -453,7 +513,7 @@ class NTreeInnerNode : public NTreeNode<T, DistComp, opt> {
     partitions.resize(node_t::degree);
     double dist, minDist;
     int partitionPos = -1;
-    if (opt) { // NTree2
+    if (useNtree2) { // NTree2
       for (unsigned int i = 0; i < contents.size(); i++) {
         for (int j = 0; j < degree; j++) {
           if (contents[i].getTid() == centers[j]->getTid()) {
@@ -513,29 +573,52 @@ class NTreeInnerNode : public NTreeNode<T, DistComp, opt> {
   
   void precomputeDistances(DistComp& dc) {
     double maxDist = 0.0;
-    refDistPos = std::make_pair(0, 0);
-    for (int i = 0; i < degree; i++) {
-      for (int j = 0; j < i; j++) {
-        distances[i][j] = dc(*(centers[i]), *(centers[j]));
-        distances[j][i] = distances[i][j]; // copy to right upper triangle
-        if (refPtsMethod == 0) { // select points with maximum distance
-          if (distances[i][j] > maxDist) { // update maxDistPos
-            refDistPos = std::make_pair(i, j);
-            maxDist = distances[i][j];
+    refDistPos = std::make_tuple(-1, -1, -1);
+    if (candOrder == PIVOT2 || candOrder == PIVOT3) {
+      for (int i = 0; i < degree; i++) {
+        for (int j = 0; j < i; j++) {
+          distMatrix[i][j] = dc(*(centers[i]), *(centers[j]));
+          distMatrix[j][i] = distMatrix[i][j]; // fill right upper triangle
+          // select points with maximum distance between each other
+          if (distMatrix[i][j] > maxDist) { // update refDistPos
+            std::get<0>(refDistPos) = i;
+            std::get<1>(refDistPos) = j;
+            maxDist = distMatrix[i][j];
           }
         }
       }
+      if (candOrder == PIVOT2) {
+        for (int i = 0; i < degree; i++) { // compute 2d distance vector
+          distances2d[i].first = distMatrix[std::get<0>(refDistPos)][i];
+          distances2d[i].second = distMatrix[std::get<1>(refDistPos)][i];
+        }
+      }
     }
-    for (int i = 0; i < degree; i++) { // compute 2d distance vector
-      distances2d[i] = std::make_pair(distances[refDistPos.first][i],
-                                      distances[refDistPos.second][i]);
+    if (candOrder == PIVOT3) { // find point with max distance to first two pts
+      maxDist = 0.0;
+      double distSum;
+      for (int i = 0; i < degree; i++) {
+        if (i != std::get<0>(refDistPos) && i != std::get<1>(refDistPos)) {
+          distSum = distMatrix[i][std::get<0>(refDistPos)] + 
+                    distMatrix[i][std::get<1>(refDistPos)];
+          if (distSum > maxDist) {
+            std::get<2>(refDistPos) = i;
+            maxDist = distSum;
+          }
+        }
+      }
+      for (int i = 0; i < degree; i++) { // compute 3d distance vector
+        std::get<0>(distances3d[i]) = distMatrix[std::get<0>(refDistPos)][i];
+        std::get<1>(distances3d[i]) = distMatrix[std::get<1>(refDistPos)][i];
+        std::get<2>(distances3d[i]) = distMatrix[std::get<2>(refDistPos)][i];
+      }
     }
   }
   
   double getPrecomputedDist(const int pos1, const int pos2) const {
     assert(pos1 >= 0 && pos1 < node_t::degree);
     assert(pos2 >= 0 && pos2 < node_t::degree);
-    return distances[pos1][pos2];
+    return distMatrix[pos1][pos2];
   }
   
   void build(std::vector<T>& contents, DistComp& dc, int depth,
@@ -548,7 +631,8 @@ class NTreeInnerNode : public NTreeNode<T, DistComp, opt> {
 //          << " elems, counter = " << dc.getNoDistFunCalls() << endl;
     depth++;
     computeCenters(contents, partitionStrategy);
-    if (opt) {
+    if (useNtree2) {
+      initAuxStructures();
       precomputeDistances(dc);
     }
     std::vector<std::vector<T> > partitions;
@@ -559,8 +643,8 @@ class NTreeInnerNode : public NTreeNode<T, DistComp, opt> {
         children[i] = new leafnode_t(degree, maxLeafSize, partitions[i]);
       }
       else {
-        if (opt) {
-          children[i] = new innernode_t(degree, maxLeafSize, refPtsMethod);
+        if (useNtree2) {
+          children[i] = new innernode_t(degree, maxLeafSize, candOrder);
         }
         else {
           children[i] = new innernode_t(degree, maxLeafSize);
@@ -575,22 +659,23 @@ class NTreeInnerNode : public NTreeNode<T, DistComp, opt> {
   T** centers;
   node_t** children;
   
-  // only used for N-tree2, i.e., opt = true
-  double** distances; // matrix of pairwise center distances
-  std::pair<int, int> refDistPos; // two reference center positions
-  std::pair<double, double>* distances2d; // distances to refDistPos
-  int refPtsMethod; // 0: maxDist, 1: random, 2: median dist
+  // only used for N-tree2, i.e., useNtree2 = true
+  double** distMatrix; // matrix of pairwise center distances
+  std::tuple<int, int, int> refDistPos; // 2 or 3 reference center positions
+  std::pair<double, double>* distances2d; // 2d distances to refDistPos
+  std::tuple<double, double, double>* distances3d; // 3d distances to refDistPos
+  CandOrder candOrder; // 0: random, 1: two pivots, 2: three pivots
 };
 
 /*
 3 class NTreeLeafNode
 
 */
-template<class T, class DistComp, bool opt>
-class NTreeLeafNode : public NTreeNode<T, DistComp, opt> {
+template<class T, class DistComp, bool useNtree2>
+class NTreeLeafNode : public NTreeNode<T, DistComp, useNtree2> {
  public:
-  typedef NTreeLeafNode<T, DistComp, opt> leafnode_t;
-  typedef NTreeNode<T, DistComp, opt> node_t;
+  typedef NTreeLeafNode<T, DistComp, useNtree2> leafnode_t;
+  typedef NTreeNode<T, DistComp, useNtree2> node_t;
 //   typedef NTreeInnerNode<T, DistComp> innernode_t;
   
   NTreeLeafNode(const int d, const int mls) : node_t(d, mls) {
@@ -712,13 +797,13 @@ class NTreeLeafNode : public NTreeNode<T, DistComp, opt> {
   T** entries;
 };
 
-template <class T, class DistComp, bool opt>
+template <class T, class DistComp, bool useNtree2>
 class RangeIteratorN {
  public:
-  typedef RangeIteratorN<T, DistComp, opt> rangeiterator_t;
-  typedef NTreeNode<T, DistComp, opt> node_t;
-  typedef NTreeLeafNode<T, DistComp, opt> leafnode_t;
-  typedef NTreeInnerNode<T, DistComp, opt> innernode_t;
+  typedef RangeIteratorN<T, DistComp, useNtree2> rangeiterator_t;
+  typedef NTreeNode<T, DistComp, useNtree2> node_t;
+  typedef NTreeLeafNode<T, DistComp, useNtree2> leafnode_t;
+  typedef NTreeInnerNode<T, DistComp, useNtree2> innernode_t;
 
   RangeIteratorN(node_t* root, const T& q, const double r, 
                  const DistComp& di) : pos(0), queryObject(q), range(r), dc(di){
@@ -738,20 +823,25 @@ class RangeIteratorN {
       }
     }
     else { // inner node
-      if (opt) { // N-tree2
+      if (useNtree2) { // N-tree2
         bool cand[node->getCount()];
         std::fill_n(cand, node->getCount(), false);
         double minDist;
         int nnq = ((innernode_t*)node)->getNearestCenterPos(queryObject, dc,
                                                             minDist);
-        for (int i = 0; i < node->getCount(); i++) {
-          if (((innernode_t*)node)->getPrecomputedDist(i, nnq) <= 2 * range) {
+        for (int i = 0; i < node->getCount(); i++) { // compute C'
+          if (((innernode_t*)node)->getPrecomputedDist(i, nnq) <= 
+              2 * minDist + 2 * range) {
             cand[i] = true;
           }
         }
-        for (int i = 0; i < node->getCount(); i++) {
-          if (!cand[i]) {
-            // insert final condition!
+        for (int i = 0; i < node->getCount(); i++) { // compute RC
+          if (cand[i]) {
+            if (((innernode_t*)node)->getPrecomputedDist(i, nnq) > 2 * range) {
+              if (dc(*(node->getCenter(i)), queryObject) > minDist + 2 * range){
+                cand[i] = false;
+              }
+            }
           }
         }
         for (int i = 0; i < node->getCount(); i++) {
@@ -804,26 +894,26 @@ class RangeIteratorN {
 4 class NTree
 
 This is the main class of this file. It implements a main memory-based N-tree
-(opt = false) and an N-tree2 (opt = true).
+(useNtree2 = false) and an N-tree2 (useNtree2 = true).
 
 */
-template<class T, class DistComp, bool opt>
+template<class T, class DistComp, bool useNtree2>
 class NTree {
  public:
-  typedef NTreeLeafNode<T, DistComp, opt> leafnode_t;
-  typedef RangeIteratorN<T, DistComp, opt> rangeiterator_t;
+  typedef NTreeLeafNode<T, DistComp, useNtree2> leafnode_t;
+  typedef RangeIteratorN<T, DistComp, useNtree2> rangeiterator_t;
 //   typedef NNIterator<T, DistComp> nniterator_t;
-  typedef NTreeNode<T, DistComp, opt> node_t;
-  typedef NTree<T, DistComp, opt> ntree_t;
-  typedef NTreeInnerNode<T, DistComp, opt> innernode_t;
+  typedef NTreeNode<T, DistComp, useNtree2> node_t;
+  typedef NTree<T, DistComp, useNtree2> ntree_t;
+  typedef NTreeInnerNode<T, DistComp, useNtree2> innernode_t;
   
   NTree(const int d, const int mls, DistComp& di) :
       degree(d), maxLeafSize(mls), root(0), dc(di), partitionStrategy(0),
-      refPtsMethod(0) {}
+      candOrder(RANDOM) {}
       
-  NTree(const int d, const int mls, const int m, DistComp& di) :
+  NTree(const int d, const int mls, const CandOrder c, DistComp& di) :
       degree(d), maxLeafSize(mls), root(0), dc(di), partitionStrategy(0),
-      refPtsMethod(m) {}
+      candOrder(c) {}
   
   ~NTree() {
     if (root) {
@@ -872,8 +962,8 @@ class NTree {
       root = new leafnode_t(degree, maxLeafSize, contents);
     }
     else {
-      if (opt) {
-        root = new innernode_t(degree, maxLeafSize, refPtsMethod);
+      if (useNtree2) {
+        root = new innernode_t(degree, maxLeafSize, candOrder);
       }
       else {
         root = new innernode_t(degree, maxLeafSize);
@@ -922,7 +1012,7 @@ class NTree {
   node_t* root;
   DistComp dc;
   int partitionStrategy;
-  int refPtsMethod; // 0: maxDist, 1: random, 2: median dist
+  CandOrder candOrder; // 0: random, 1: two ref points, 2: three ref points
   
   static node_t* insert(node_t* root, const T& o, DistComp& dc,
                         const int partitionStrategy = 0) {
