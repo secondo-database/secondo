@@ -29,9 +29,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "ResultIteratorGeneric.h"
 
+#include <postgres.h>
 #include <catalog/pg_type.h>
 #include <libpq-fe.h>
-#include <postgres.h>
+
 
 namespace BasicEngine {
 class ResultIteratorPostgres : public ResultIteratorGeneric {
