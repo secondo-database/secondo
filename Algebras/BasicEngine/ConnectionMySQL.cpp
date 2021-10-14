@@ -25,6 +25,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 #include "ConnectionMySQL.h"
+#include "BasicEngineControl.h"
 
 using namespace std;
 
@@ -205,7 +206,8 @@ bool ConnectionMySQL::partitionRoundRobin(const std::string &table,
 
   // Apply sequence counter to the relation
   string selectSQL = "SELECT @n := ((@n + 1) % " + to_string(slots) +
-                     ") Slot, t.* " + "FROM (SELECT @n:=0) AS initvars, " +
+                     ") " + be_partition_slot + ", t.* " + 
+                     "FROM (SELECT @n:=0) AS initvars, " +
                      table + " AS t";
 
   string createTableSQL = getCreateTableFromPredicateSQL(targetTab, selectSQL);
@@ -232,7 +234,7 @@ std::string ConnectionMySQL::getPartitionHashSQL(const std::string &table,
   boost::replace_all(usedKey, ",", ",'%_%',");
 
   string selectSQL = "SELECT DISTINCT md5(" + usedKey + ") % " 
-        + to_string(anzSlots) + " As slot, " + key
+        + to_string(anzSlots) + " As " + be_partition_slot + ", " + key
         + " FROM "+ table;
 
     BOOST_LOG_TRIVIAL(debug) 
@@ -255,9 +257,10 @@ std::string ConnectionMySQL::getPartitionSQL(const std::string &table,
     string selectSQL = "";
     
     if (boost::iequals(fun, "random")) {
-        selectSQL = "SELECT DISTINCT rand() % " 
-            + to_string(anzSlots) + " As slot, " + key
-            + " FROM "+ table;
+        selectSQL = "SELECT DISTINCT rand() % " + 
+            to_string(anzSlots) + " As " + 
+            be_partition_slot + ", " + key + 
+            " FROM "+ table;
     } else {
         BOOST_LOG_TRIVIAL(error) 
                 << "Unknown partitioning function: " << fun;
@@ -285,7 +288,8 @@ std::string ConnectionMySQL::getExportDataSQL(const std::string &table,
 
     string exportSQL = "SELECT DISTINCT " + attributes + " FROM " + table 
         + " a INNER JOIN " + join_table  + " b " + getjoin(key) 
-        + " WHERE (slot % " + to_string(numberOfWorker) + ") = " + nr
+        + " WHERE (" + be_partition_slot + " % " + to_string(numberOfWorker) 
+        + ") = " + nr
         + " INTO OUTFILE '" + path + filename + "' CHARACTER SET utf8;";
 
     BOOST_LOG_TRIVIAL(debug) 

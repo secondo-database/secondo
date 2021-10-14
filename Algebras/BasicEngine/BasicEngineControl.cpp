@@ -462,6 +462,31 @@ bool BasicEngine_Control::repartition_table(PartitionData &partitionData,
     return repartition_table_master(partitionData, repartitionMode);
   }
 
+/**
+3.8 Drop the attribute from the given table
+
+*/
+  void BasicEngine_Control::dropAttributeIfExists(const std::string &table, 
+    const std::string &attributeToRemove) {
+
+    std::vector<std::tuple<std::string, std::string>> attributes = 
+      dbms_connection -> getTypeFromSQLQuery("SELECT * from " + table);
+
+
+    for(std::tuple<std::string, std::string> attribute : attributes) {
+      string attributeName = std::get<0>(attribute);
+      if(attributeName == attributeToRemove) {
+
+        BOOST_LOG_TRIVIAL(debug) << "Found partitioning attribute " 
+          << attributeToRemove  << " on table " << table 
+          << ", removing ";
+
+        dbms_connection -> removeColumnFromTable(table, attributeToRemove);
+        return;
+      }
+    }
+  }
+
 /*
 3.8 ~repartition\_table\_worker~
 
@@ -478,6 +503,11 @@ Repartition the given table - worker version
       BOOST_LOG_TRIVIAL(error) << "Unable to open connections";
       return false;
     }
+
+    // Remove old cellnumber and slotnumber attributes 
+    // (e.g., needed for repartition the table)
+    dropAttributeIfExists(partitionData.table, be_partition_cellnumber);
+    dropAttributeIfExists(partitionData.table, be_partition_slot);
 
     bool partResult = false;
     partitionData.key = getFirstAttributeNameFromTable(partitionData.table);

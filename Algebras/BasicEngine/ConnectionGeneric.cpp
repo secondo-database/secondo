@@ -31,6 +31,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <boost/algorithm/string/join.hpp>
 
 #include "ConnectionGeneric.h"
+#include "BasicEngineControl.h"
 
 using namespace std;
 
@@ -186,8 +187,9 @@ std::string ConnectionGeneric::getPartitionGridSQL(
   boost::replace_all(usedKey, ",", ",r.");
 
   string query_exec = "SELECT r." + usedKey +
-                      ", g.id AS cellno, g.id % " +
-                      to_string(noOfSlots) + " as slot FROM " + gridName +
+                      ", g.id AS " + be_partition_cellnumber + ", g.id % " +
+                      to_string(noOfSlots) + " as " + be_partition_slot + 
+                      " FROM " + gridName +
                       " g INNER JOIN " + table +
                       " r ON ST_INTERSECTS(g.cell, r." + geo_col + ")";
 

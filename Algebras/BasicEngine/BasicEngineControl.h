@@ -56,6 +56,14 @@ namespace BasicEngine {
 */
 enum PartitionMode {hash, rr, random, grid, fun};
 
+
+/*
+2 The attribute names for the distribution
+
+*/
+#define be_partition_cellnumber "becellnumber"
+#define be_partition_slot "beslot"
+
 /*
 2 Struct ~PartitonData~
 
@@ -340,6 +348,9 @@ distributed2::ConnectionInfo* createConnection(
     const std::string &command, const bool checkResult);
 
   std::string getFirstAttributeNameFromTable(const std::string &table);
+
+  void dropAttributeIfExists(const std::string &table, 
+    const std::string &attribute);
 
 };
 };  /* namespace BasicEngine */

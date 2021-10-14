@@ -34,6 +34,7 @@ Version 1.0 - Created - C.Behrndt - 2020
 
 */
 #include "ConnectionPostgres.h"
+#include "BasicEngineControl.h"
 
 using namespace std;
 
@@ -266,7 +267,7 @@ bool ConnectionPG::partitionRoundRobin(const string &tab,
   // Apply sequence counter to the relation
   string selectSQL = "SELECT (nextval('temp_seq') %" 
     + to_string(anzSlots) + ""
-    " ) As slot," + key + " FROM " + tab;
+    " ) As " + be_partition_cellnumber + "," + key + " FROM " + tab;
 
   string createTableSQL = getCreateTableFromPredicateSQL(targetTab, selectSQL);
 
@@ -294,7 +295,7 @@ string ConnectionPG::getPartitionHashSQL(const string &tab, const string &key,
 
   string select = "SELECT DISTINCT (get_byte(decode(md5(concat("
         "" + usedKey + ")),'hex'),15) %"
-        " " + to_string(anzSlots) + " ) As slot,"
+        " " + to_string(anzSlots) + " ) As " + be_partition_cellnumber + ","
         "" + key + " FROM "+ tab;
 
   return getCreateTableFromPredicateSQL(targetTab, select);
@@ -358,22 +359,24 @@ bool ConnectionPG::createFunctionRandom(const string &tab,
   const string &key, const size_t anzSlots, 
   string &select) {
 
-  string query_exec;
+  string query_exec = "DROP FUNCTION fun()";
+  sendCommand(query_exec, false);
+
+  select.append("SELECT ");
+  select.append(be_partition_cellnumber);
+  select.append(" ");
+
   string fields;
   string valueMap;
-
-  query_exec = "DROP FUNCTION fun()";
-  sendCommand(query_exec,false);
-
-  select.append("SELECT slot ");
-
-  getFieldInfoFunction(tab,key,fields,valueMap,select);
+  getFieldInfoFunction(tab, key, fields, valueMap, select);
 
   select.append(" FROM fun()");
 
+  string cellnumber_string = be_partition_cellnumber;
+
   query_exec = "create or replace function fun() "
       "returns table ("
-      " slot integer " + fields + ") "
+      " " + cellnumber_string + " integer " + fields + ") "
       "language plpgsql"
       " as $$ "
       " declare "
@@ -382,7 +385,8 @@ bool ConnectionPG::createFunctionRandom(const string &tab,
       " for var_r in("
       "            select " + key + ""
       "            from " + tab + ")"
-      "        loop  slot := floor(random() * " + to_string(anzSlots) +" );"
+      "        loop  " + be_partition_cellnumber + 
+      " := floor(random() * " + to_string(anzSlots) +" );"
       "        " + valueMap + ""
       "        return next;"
       " end loop;"
@@ -429,7 +433,7 @@ string ConnectionPG::getExportDataSQL(const string &tab, const string &join_tab,
   string filename = getFilenameForPartition(tab, nr);
   
   return "COPY (SELECT a.* FROM "+ tab +" a INNER JOIN " + join_tab  + " b "
-            "" + getjoin(key) + " WHERE ((slot % "
+            "" + getjoin(key) + " WHERE ((" + be_partition_cellnumber + " % "
             "" + to_string(numberOfWorker) + ") "
             ") =" + nr + ") TO "
             "'" + path + filename + "' BINARY;";
