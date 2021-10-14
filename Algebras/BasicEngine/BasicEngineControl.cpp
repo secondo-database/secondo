@@ -480,36 +480,36 @@ Repartition the given table - worker version
     }
 
     bool partResult = false;
+    partitionData.key = getFirstAttributeNameFromTable(partitionData.table);
 
-    // Create export table
-    if (partitionMode == rr) {
-      partitionData.key = getFirstAttributeNameFromTable(partitionData.table);
-
+    switch (partitionMode) {
+    case PartitionMode::rr:
       partResult = partRoundRobin(partitionData.table, partitionData.key,
                                   partitionData.slotnum);
+      break;
 
-    } else if (partitionMode == random) {
-      partitionData.key = getFirstAttributeNameFromTable(partitionData.table);
-
+    case PartitionMode::random:
       partResult = partFun(partitionData.table, partitionData.key, "random",
                            partitionData.slotnum);
+      break;
 
-    } else if (partitionMode == hash) {
+    case PartitionMode::hash:
       partResult = partHash(partitionData.table, partitionData.key,
                             partitionData.slotnum);
+      break;
 
-    } else if (partitionMode == grid) {
+    case PartitionMode::grid:
       partResult = partGrid(partitionData.table, partitionData.key,
                             partitionData.attribute, partitionData.gridname,
                             partitionData.slotnum);
+      break;
 
-    } else if (partitionMode == fun) {
-      partitionData.key = getFirstAttributeNameFromTable(partitionData.table);
-
+    case PartitionMode::fun:
       partResult = partFun(partitionData.table, partitionData.key,
                            partitionData.partitionfun, partitionData.slotnum);
+      break;
 
-    } else {
+    default:
       BOOST_LOG_TRIVIAL(error) << "Unknown partition mode" << partitionMode;
       return false;
     }
