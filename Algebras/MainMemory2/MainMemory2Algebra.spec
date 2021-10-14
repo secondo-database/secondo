@@ -63,7 +63,7 @@ operator matchbelowS alias MATCHBELOWS pattern _ op[_]
 operator gettuples alias GETTUPLES pattern _ _ op
 
 operator mcreatentree alias MCREATENTREE pattern _ op [_,_,_,_]
-operator mcreatentree2 alias MCREATENTREE pattern _ op [_,_,_,_,_]
+operator mcreatentree2 alias MCREATENTREE pattern _ op [_,_,_,_,_,_]
 
 
 operator mwrap alias MWRAP pattern op(_)

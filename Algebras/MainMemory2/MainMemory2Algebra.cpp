@@ -22117,10 +22117,10 @@ Applied for operators ~mcreatentree~ and ~mcreatentree2~
 template<bool useNTree2>
 ListExpr mcreatentreeTM(ListExpr args) {
   string err = (!useNTree2 ? "expected: MREL x attrname x int x int [x geoid]" :
-                       "expected: MREL x attrname x int x int x int [x geoid]");
+                 "expected: MREL x attrname x int x int x int x int [x geoid]");
   if (useNTree2) {
-    if (!nl->HasLength(args, 5) && !nl->HasLength(args, 6)) {
-      return listutils::typeError(" (5 or 6 arguments are required");
+    if (!nl->HasLength(args, 6) && !nl->HasLength(args, 7)) {
+      return listutils::typeError(" (6 or 7 arguments are required");
     }
   }
   else {
@@ -22146,9 +22146,12 @@ ListExpr mcreatentreeTM(ListExpr args) {
     if (!CcInt::checkType(nl->Fifth(args))) {
       return listutils::typeError(err + " (fifth argument is not an integer)");
     }
-    if (nl->HasLength(args, 6)) {
-      if (!Geoid::checkType(nl->Sixth(args))) {
-        return listutils::typeError("sixth argument is not a geoid");
+    if (!CcInt::checkType(nl->Sixth(args))) {
+      return listutils::typeError(err + " (sixth argument is not an integer)");
+    }
+    if (nl->HasLength(args, 7)) {
+      if (!Geoid::checkType(nl->Seventh(args))) {
+        return listutils::typeError("seventh argument is not a geoid");
       }
       geoidPresent = true;
     }
@@ -22355,8 +22358,8 @@ int mcreatentree2VMT(Word* args, Word& result, int message, Word& local,
     res->setPointer(0);
     return 0;
   }
-  Geoid* geoid = (Geoid*)args[5].addr;
-  int index = ((CcInt*)args[6].addr)->GetValue(); 
+  Geoid* geoid = (Geoid*)args[6].addr;
+  int index = ((CcInt*)args[7].addr)->GetValue(); 
 //    string tn = ((CcString*) args[4].addr)->GetValue();
   if (!geoid->IsDefined()) {
     geoid = 0;
@@ -22365,8 +22368,9 @@ int mcreatentree2VMT(Word* args, Word& result, int message, Word& local,
   CcInt *ccDegree = ((CcInt*)args[2].addr);
   CcInt *ccMaxLeafSize = ((CcInt*)args[3].addr);
   CcInt *ccCandOrder = ((CcInt*)args[4].addr);
+  CcInt *ccPMethod = ((CcInt*)args[5].addr);
   if (!ccDegree->IsDefined() || !ccMaxLeafSize->IsDefined() || 
-      !ccCandOrder->IsDefined()) {
+      !ccCandOrder->IsDefined() || !ccPMethod->IsDefined()) {
     cout << "at least one undefined input parameter" << endl;
     res->setPointer(0);
     return 0;
@@ -22385,6 +22389,12 @@ int mcreatentree2VMT(Word* args, Word& result, int message, Word& local,
     return 0;
   }
   CandOrder candOrder = static_cast<CandOrder>(ccCandOrder->GetValue());
+  if (ccPMethod->GetValue() < 0 || ccPMethod->GetValue() > 1) {
+    cout << "invalid parameter: pruningMethod must be in {0, 1}" << endl;
+    res->setPointer(0);
+    return 0;
+  }
+  PruningMethod pMethod = static_cast<PruningMethod>(ccPMethod->GetValue());
   int partitionStrategy = 0; // TODO: currently random; add parameter
   vector<Tuple*>* v = mrel->getmmrel();
   vector<MTreeEntry<T> > contents;
@@ -22399,7 +22409,7 @@ int mcreatentree2VMT(Word* args, Word& result, int message, Word& local,
   StdDistComp<T> dc(geoid);
   NTree<MTreeEntry<T>, StdDistComp<T>, true>* tree =
       new NTree<MTreeEntry<T>, StdDistComp<T>, true>(degree, maxLeafSize, 
-                                                     candOrder, dc);
+                                                     candOrder, pMethod, dc);
   tree->build(contents, partitionStrategy);
 //   cout << "entries: " << tree->getNoEntries() << ", nodes: " 
 //        << tree->getNoNodes() << ", leaves: " << tree->getNoLeaves() << endl;
@@ -22447,16 +22457,19 @@ ValueMapping mcreatentree2VM[] = {
 };
 
 OperatorSpec mcreatentree2Spec(
-  "MREL(tuple) x attrname x int x int x int [x geoid] -> mpointer(mem(mtree X))"
-  "\n",
-  "mrel mcreatemtree[indexAttr, degree, maxLeafSize, candOrder [, geoid]]\n",
+  "MREL(tuple) x attrname x int x int x int x int [x geoid] -> "
+  "mpointer(mem(mtree X))\n",
+  "mrel mcreatemtree[indexAttr, degree, maxLeafSize, candOrder, pruningMethod "
+  "[, geoid]]\n",
   "This operator creates an N-tree2 in main memory. "
   "The first argument is a main memory relation containing the "
   "tuples to be indexed. The second argument refers to the attribute "
   "over that the index is built. The next two arguments represent the degree of"
   " the tree and and maximum number of entries in a leaf.\n"
-  "The fifth argument represents the candidate ordering: (0 <=> random order, "
-  "1 <=> use two reference points, 2 <=> use three reference points)\n"
+  "The fifth argument represents the candidate ordering (0 <=> random order, "
+  "1 <=> use two reference points, 2 <=> use three reference points).\n"
+  "The sixth argument is for selecting the pruning method (0 <=> simple, 1 <=> "
+  "minDist-based).\n"
   "The last argument is optional. It must be of type geoid and "
   "can only be used if the index-attribute is of type point, mpoint, cupoint, "
   "or cmpoint. If this argument is present, the distance between two objects "

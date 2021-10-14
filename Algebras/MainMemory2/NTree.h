@@ -37,10 +37,11 @@ neighbor searches.
 */
 
 /*
-1 enum CandOrder
+1 Enums for candidate ordering and pruning method
 
 */
 enum CandOrder {RANDOM, PIVOT2, PIVOT3};
+enum PruningMethod {SIMPLE, MINDIST};
 
 template<class T, class DistComp, bool useNtree2>
 class NTreeInnerNode;
@@ -167,11 +168,14 @@ class NTreeInnerNode : public NTreeNode<T, DistComp, useNtree2> {
       centers[i] = 0;
       children[i] = 0;
     }
+    candOrder = RANDOM;
+    pMethod = SIMPLE;
   }
   
-  NTreeInnerNode(const int d, const int mls, const CandOrder c) : 
-                                                           innernode_t(d, mls) {
+  NTreeInnerNode(const int d, const int mls, const CandOrder c, 
+                 const PruningMethod pm) : innernode_t(d, mls) {
     candOrder = c;
+    pMethod = pm;
   }
   
   virtual ~NTreeInnerNode() {
@@ -274,6 +278,9 @@ class NTreeInnerNode : public NTreeNode<T, DistComp, useNtree2> {
       std::fill_n(cand, degree, true);
       std::pair<double, double> odist2d;
       std::tuple<double, double, double> odist3d;
+      minDist = DBL_MAX;
+      double tempDist, d_ij;
+      int result = 0;
       if (candOrder == PIVOT2) {
         odist2d = std::make_pair(dc(o, *(centers[std::get<0>(refDistPos)])),
                                  dc(o, *(centers[std::get<1>(refDistPos)])));
@@ -308,29 +315,34 @@ class NTreeInnerNode : public NTreeNode<T, DistComp, useNtree2> {
 //       cout << endl << endl;
       double Dq[degree];
       std::fill_n(Dq, degree, DBL_MAX);
-      for (int i = 0; i < node_t::degree; i++) {
+      for (int i = 0; i < node_t::degree; i++) { // TODO: use ordering!
         if (cand[i]) {
-          Dq[W[i].pos] = dc(*(innernode_t::centers[W[i].pos]), o);
+          tempDist = dc(*(innernode_t::centers[W[i].pos]), o);
+          Dq[W[i].pos] = tempDist;
+          if (tempDist < minDist) {
+            minDist = tempDist;
+            result = i;
+          }
           for (int j = 0; j < node_t::degree; j++) {
-            if (distMatrix[j][W[i].pos] > 2 * Dq[W[i].pos]) {
-//               cout << "set cand[" << j << "] to FALSE" << endl;
-              cand[j] = false;
+            d_ij = distMatrix[j][W[i].pos];
+            if (pMethod == SIMPLE) {
+              if (d_ij > 2 * tempDist) {
+//                 cout << "set cand[" << j << "] to FALSE" << endl;
+                cand[j] = false;
+              }
             }
-//             else {
-//               cout << "no change because " << distMatrix[j][W[i].pos]
-//                    << " <= 2 * " << Dq[W[i].pos] << " = " << 2 * Dq[W[i].pos]
-//                    << endl;
-//             }
+            else if (pMethod == MINDIST) {
+              if (d_ij < tempDist - minDist || d_ij > tempDist + minDist) {
+                cand[j] = false;
+              }
+            }
           }
         }
       }
 //       for (int i = 0; i < degree; i++) {
 //         cout << Dq[i] << "  ";
 //       }
-      auto it = std::min_element(Dq, Dq + degree);
-      minDist = *it;
-//       cout << endl << "gNCP: Return " << std::distance(Dq, it) << endl;
-      return std::distance(Dq, it);
+      return result;
     }
     else { // N-tree
       double currentDist = std::numeric_limits<double>::max();
@@ -644,7 +656,7 @@ class NTreeInnerNode : public NTreeNode<T, DistComp, useNtree2> {
       }
       else {
         if (useNtree2) {
-          children[i] = new innernode_t(degree, maxLeafSize, candOrder);
+          children[i] = new innernode_t(degree, maxLeafSize, candOrder,pMethod);
         }
         else {
           children[i] = new innernode_t(degree, maxLeafSize);
@@ -664,7 +676,8 @@ class NTreeInnerNode : public NTreeNode<T, DistComp, useNtree2> {
   std::tuple<int, int, int> refDistPos; // 2 or 3 reference center positions
   std::pair<double, double>* distances2d; // 2d distances to refDistPos
   std::tuple<double, double, double>* distances3d; // 3d distances to refDistPos
-  CandOrder candOrder; // 0: random, 1: two pivots, 2: three pivots
+  CandOrder candOrder; // random, two pivots, three pivots
+  PruningMethod pMethod; // simple, minDist-based
 };
 
 /*
@@ -909,11 +922,12 @@ class NTree {
   
   NTree(const int d, const int mls, DistComp& di) :
       degree(d), maxLeafSize(mls), root(0), dc(di), partitionStrategy(0),
-      candOrder(RANDOM) {}
+      candOrder(RANDOM), pMethod(SIMPLE) {}
       
-  NTree(const int d, const int mls, const CandOrder c, DistComp& di) :
+  NTree(const int d, const int mls, const CandOrder c, const PruningMethod pm,
+        DistComp& di) :
       degree(d), maxLeafSize(mls), root(0), dc(di), partitionStrategy(0),
-      candOrder(c) {}
+      candOrder(c), pMethod(pm) {}
   
   ~NTree() {
     if (root) {
@@ -963,7 +977,7 @@ class NTree {
     }
     else {
       if (useNtree2) {
-        root = new innernode_t(degree, maxLeafSize, candOrder);
+        root = new innernode_t(degree, maxLeafSize, candOrder, pMethod);
       }
       else {
         root = new innernode_t(degree, maxLeafSize);
@@ -1012,7 +1026,8 @@ class NTree {
   node_t* root;
   DistComp dc;
   int partitionStrategy;
-  CandOrder candOrder; // 0: random, 1: two ref points, 2: three ref points
+  CandOrder candOrder; // random, two ref points, three ref points
+  PruningMethod pMethod; // simple, minDist-based
   
   static node_t* insert(node_t* root, const T& o, DistComp& dc,
                         const int partitionStrategy = 0) {
