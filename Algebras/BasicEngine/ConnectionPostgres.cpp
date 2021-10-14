@@ -486,29 +486,6 @@ string ConnectionPG::getjoin(const string &key) {
 }
 
 /*
-6.15 ~get\_partGrid~
-
-Creates a table in postgreSQL with the partitioned data by a grid.
-The key specified a column which content is a object like a line or a polygon.
-
-*/
-string ConnectionPG::getPartitionGridSQL(const std::string &tab, 
-  const std::string &key, const std::string &geo_col, 
-  const size_t anzSlots, const std::string &gridName, 
-  const std::string &targetTab) {
-
-  string usedKey(key);
-  boost::replace_all(usedKey, ",", ",r.");
-
-  string query_exec = "SELECT r." + usedKey + ", "
-                      "g.num as slot "
-               "FROM " + gridName + " g INNER JOIN "+ tab + " r "
-                     "ON ST_INTERSECTS(g.geom,r."+ geo_col +")";
-
-  return getCreateTableFromPredicateSQL(targetTab, query_exec);
-}
-
-/*
 6.16 ~getTypeFromSQLQuery~
 
 Get the SECONDO type of the given SQL query

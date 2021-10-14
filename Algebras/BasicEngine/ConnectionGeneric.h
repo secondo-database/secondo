@@ -90,9 +90,9 @@ public:
   virtual std::string getPartitionGridSQL(const std::string &table,
                                           const std::string &key,
                                           const std::string &geo_col,
-                                          const size_t anzSlots,
+                                          const size_t noOfSlots,
                                           const std::string &gridname,
-                                          const std::string &targetTab) = 0;
+                                          const std::string &targetTab);
 
   virtual std::string
   getExportDataSQL(const std::string &table, const std::string &join_table,

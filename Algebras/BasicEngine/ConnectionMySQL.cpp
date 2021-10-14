@@ -271,26 +271,6 @@ std::string ConnectionMySQL::getPartitionSQL(const std::string &table,
 }
 
 /*
-6.10 ~getPartitionGridSQL~
-
-*/
-std::string ConnectionMySQL::getPartitionGridSQL(const std::string &table,
-    const std::string &key, const std::string &geo_col, 
-    const size_t anzSlots, const::string &gridName, 
-    const std::string &targetTab) {
-
-    string usedKey(key);
-    boost::replace_all(usedKey, ",", ",r.");
-
-    string query_exec = "SELECT r." + usedKey + ", "
-               "g.id AS slot "
-               "FROM " + gridName + " g INNER JOIN " + table + " r "
-               "ON ST_INTERSECTS(g.cell, r."+ geo_col +")";
-
-    return getCreateTableFromPredicateSQL(targetTab, query_exec);
-}
-
-/*
 6.11 ~getExportDataSQL~
 
 */

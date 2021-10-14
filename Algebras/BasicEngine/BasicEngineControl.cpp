@@ -432,14 +432,14 @@ Returns true if everything is OK and there are no failure.
 
 */
 bool BasicEngine_Control::partRoundRobin(const string &table,
-                    const string &key, size_t slotnum) {
+                    const string &key, size_t numberOfSlots) {
   
-  string partTabName = getTableNameForPartitioning(table, key);
+  string destinationTable = getTableNameForPartitioning(table, key);
 
-  drop_table(partTabName);
+  drop_table(destinationTable);
 
   return dbms_connection->partitionRoundRobin(table, key,
-      slotnum, partTabName);
+      numberOfSlots, destinationTable);
 }
 
 /*

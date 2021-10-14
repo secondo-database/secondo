@@ -99,13 +99,6 @@ public:
                               const size_t anzSlots, const std::string &fun,
                               const std::string &targetTab);
 
-  std::string getPartitionGridSQL(const std::string &table,
-                                  const std::string &key,
-                                  const std::string &geo_col,
-                                  const size_t anzSlots,
-                                  const std::string &gridname,
-                                  const std::string &targetTab);
-
   std::string getExportDataSQL(const std::string &table,
                                const std::string &join_table,
                                const std::string &key, const std::string &nr,

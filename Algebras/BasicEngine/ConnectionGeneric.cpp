@@ -171,4 +171,27 @@ bool ConnectionGeneric::commitTransaction() {
     return sendCommand("COMMIT;");
 }
 
+/*
+1.7 ~getPartitionGridSQL~
+
+Creates a table in with grid partitioned data.
+
+*/
+std::string ConnectionGeneric::getPartitionGridSQL(
+    const std::string &table, const std::string &key,
+    const std::string &geo_col, const size_t noOfSlots,
+    const ::string &gridName, const std::string &targetTable) {
+
+  string usedKey(key);
+  boost::replace_all(usedKey, ",", ",r.");
+
+  string query_exec = "SELECT r." + usedKey +
+                      ", g.id AS cellno, g.id % " +
+                      to_string(noOfSlots) + " as slot FROM " + gridName +
+                      " g INNER JOIN " + table +
+                      " r ON ST_INTERSECTS(g.cell, r." + geo_col + ")";
+
+  return getCreateTableFromPredicateSQL(targetTable, query_exec);
+}
+
 } // Namespace
