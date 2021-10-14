@@ -468,80 +468,62 @@ bool BasicEngine_Control::repartition_table(PartitionData &partitionData,
 Repartition the given table - worker version
 
 */
-  bool BasicEngine_Control::partition_table(
-    PartitionData &partitionData,
-    const PartitionMode &partitionMode,
-    const bool repartition) {
+  bool BasicEngine_Control::partition_table(PartitionData &partitionData,
+                                            const PartitionMode &partitionMode,
+                                            const bool repartition) {
 
     // Open connections
     bool connectionCreateResult = createAllConnections();
-    if(! connectionCreateResult) {
+    if (!connectionCreateResult) {
       BOOST_LOG_TRIVIAL(error) << "Unable to open connections";
       return false;
     }
 
+    bool partResult = false;
+
     // Create export table
-    if(partitionMode == rr) {
-      partitionData.key = getFirstAttributeNameFromTable(
-          partitionData.table);
+    if (partitionMode == rr) {
+      partitionData.key = getFirstAttributeNameFromTable(partitionData.table);
 
-      bool partResult = partRoundRobin(partitionData.table, 
-        partitionData.key, partitionData.slotnum);
+      partResult = partRoundRobin(partitionData.table, partitionData.key,
+                                  partitionData.slotnum);
 
-      if(! partResult) {
-          BOOST_LOG_TRIVIAL(error) << "Unable to partition table";
-          return false;
-      }
-    } else if(partitionMode == random) {
-      partitionData.key = getFirstAttributeNameFromTable(
-          partitionData.table);
+    } else if (partitionMode == random) {
+      partitionData.key = getFirstAttributeNameFromTable(partitionData.table);
 
-      bool partResult = partFun(partitionData.table, 
-        partitionData.key, "random", partitionData.slotnum);
+      partResult = partFun(partitionData.table, partitionData.key, "random",
+                           partitionData.slotnum);
 
-      if(! partResult) {
-          BOOST_LOG_TRIVIAL(error) << "Unable to partition table";
-          return false;
-      }
-    } else if(partitionMode == hash) {
-      bool partResult = partHash(partitionData.table, 
-        partitionData.key, partitionData.slotnum);
+    } else if (partitionMode == hash) {
+      partResult = partHash(partitionData.table, partitionData.key,
+                            partitionData.slotnum);
 
-      if(! partResult) {
-          BOOST_LOG_TRIVIAL(error) << "Unable to partition table";
-          return false;
-      }
-    } else if(partitionMode == grid) {
-      bool partResult = partGrid(partitionData.table, 
-        partitionData.key, partitionData.attribute, partitionData.gridname, 
-        partitionData.slotnum);
+    } else if (partitionMode == grid) {
+      partResult = partGrid(partitionData.table, partitionData.key,
+                            partitionData.attribute, partitionData.gridname,
+                            partitionData.slotnum);
 
-      if(! partResult) {
-          BOOST_LOG_TRIVIAL(error) << "Unable to partition table";
-          return false;
-      }
-    } else if(partitionMode == fun) {
-      partitionData.key = getFirstAttributeNameFromTable(
-          partitionData.table);
+    } else if (partitionMode == fun) {
+      partitionData.key = getFirstAttributeNameFromTable(partitionData.table);
 
-      bool partResult = partFun(partitionData.table, 
-        partitionData.key, partitionData.partitionfun, partitionData.slotnum);
+      partResult = partFun(partitionData.table, partitionData.key,
+                           partitionData.partitionfun, partitionData.slotnum);
 
-      if(! partResult) {
-          BOOST_LOG_TRIVIAL(error) << "Unable to partition table";
-          return false;
-      }
     } else {
       BOOST_LOG_TRIVIAL(error) << "Unknown partition mode" << partitionMode;
       return false;
     }
 
+    if (!partResult) {
+      BOOST_LOG_TRIVIAL(error) << "Unable to partition table" << partitionMode;
+      return false;
+    }
+
     // Export data
-    bool exportDataResult 
-      = exportData(partitionData.table, 
-        partitionData.key, remoteConnectionInfos.size());
-    
-    if(! exportDataResult) {
+    bool exportDataResult = exportData(partitionData.table, partitionData.key,
+                                       remoteConnectionInfos.size());
+
+    if (!exportDataResult) {
       BOOST_LOG_TRIVIAL(error) << "Unable to export table data";
       return false;
     }
@@ -549,7 +531,7 @@ Repartition the given table - worker version
     string destinationTable;
     bool transferSchemaFile;
 
-    if(repartition) {
+    if (repartition) {
       destinationTable = getRepartitionTableName(partitionData.table);
       transferSchemaFile = false;
     } else {
@@ -557,7 +539,7 @@ Repartition the given table - worker version
 
       bool exportResult = exportTableCreateStatementSQL(partitionData.table);
 
-      if(!exportResult){
+      if (!exportResult) {
         BOOST_LOG_TRIVIAL(error) << "Couldn't create the structure-file";
         return false;
       }
@@ -566,17 +548,16 @@ Repartition the given table - worker version
     }
 
     // Call transfer and import data
-    bool importResult = exportToWorker(partitionData.table, 
-      destinationTable, transferSchemaFile);
+    bool importResult = exportToWorker(partitionData.table, destinationTable,
+                                       transferSchemaFile);
 
-    if(! importResult) {
+    if (!importResult) {
       BOOST_LOG_TRIVIAL(error) << "Unable to transfer and import table data";
       return false;
     }
 
     return true;
   }
-
 
 /*
 3.8 ~repartition\_table\_master~
