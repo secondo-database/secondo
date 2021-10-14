@@ -105,17 +105,6 @@ public:
   virtual std::string getExportTableSQL(const std::string &table,
                                         const std::string &full_path) = 0;
 
-  virtual std::string getFilenameForPartition(const std::string &table,
-                                              const std::string &number) = 0;
-
-  virtual std::string getCreateTableFromPredicateSQL(const std::string &table,
-                                      const std::string &query) = 0;
-
-  virtual std::string getCopySchemaSQL(const std::string &table) = 0;
-
-  virtual std::string getRenameTableSQL(const std::string &source,
-                                        const std::string &destination) = 0;
-
   virtual std::vector<std::tuple<std::string, std::string>>
   getTypeFromSQLQuery(const std::string &sqlQuery) = 0;
 
@@ -145,6 +134,29 @@ public:
 
   virtual void removeColumnFromTable(const std::string &table,
                                      const std::string &name) = 0;
+
+  std::string getFilenameForPartition(const std::string &table,
+                                      const std::string &number) {
+
+    return table + "_" + std::to_string(WinUnix::getpid()) + "_" + number +
+           ".bin";
+  }
+
+  std::string getCreateTableFromPredicateSQL(const std::string &table,
+                                             const std::string &query) {
+
+    return "CREATE TABLE " + table + " AS (" + query + ")";
+  }
+
+  std::string getCopySchemaSQL(const std::string &table) {
+    return "SELECT * FROM " + table + " LIMIT 0";
+  }
+
+  std::string getRenameTableSQL(const std::string &source,
+                                const std::string &destination) {
+
+    return "ALTER TABLE " + source + " RENAME TO " + destination + ";";
+  }
 
   /*
   5.3

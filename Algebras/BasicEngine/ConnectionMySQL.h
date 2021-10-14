@@ -113,29 +113,6 @@ public:
   std::string getExportTableSQL(const std::string &table,
                                 const std::string &full_path);
 
-  std::string getFilenameForPartition(const std::string &table,
-                                      const std::string &number) {
-
-    return table + "_" + std::to_string(WinUnix::getpid()) + "_" + number +
-           ".bin";
-  }
-
-  std::string getCreateTableFromPredicateSQL(const std::string &table,
-                              const std::string &query) {
-
-    return "CREATE TABLE " + table + " AS (" + query + ")";
-  }
-
-  std::string getCopySchemaSQL(const std::string &table) {
-    return "SELECT * FROM " + table + " LIMIT 0";
-  }
-
-  std::string getRenameTableSQL(const std::string &source,
-                                const std::string &destination) {
-
-    return "ALTER TABLE " + source + " RENAME TO " + destination + ";";
-  }
-
   std::vector<std::tuple<std::string, std::string>>
   getTypeFromSQLQuery(const std::string &sqlQuery);
 
