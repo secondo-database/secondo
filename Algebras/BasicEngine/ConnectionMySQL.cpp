@@ -198,25 +198,26 @@ std::string ConnectionMySQL::getCreateTableSQL(const std::string &table) {
 6.7 ~partitionRoundRobin~
 
 */
-bool ConnectionMySQL::partitionRoundRobin(
-    const std::string &table, const std::string &key, 
-    const size_t slots, const std::string &targetTab) {
-    
-    // Apply sequence counter to the relation
-    string selectSQL = "SELECT @n := ((@n + 1) % " 
-        + to_string(slots) + ") Slot, t.* "
-        + "FROM (SELECT @n:=0) AS initvars, " + table + " AS t";
-    
-    string createTableSQL = getCreateTabSQL(targetTab, selectSQL);
+bool ConnectionMySQL::partitionRoundRobin(const std::string &table,
+                                          const std::string &key,
+                                          const size_t slots,
+                                          const std::string &targetTab) {
 
-    bool res = sendCommand(createTableSQL);
+  // Apply sequence counter to the relation
+  string selectSQL = "SELECT @n := ((@n + 1) % " + to_string(slots) +
+                     ") Slot, t.* " + "FROM (SELECT @n:=0) AS initvars, " +
+                     table + " AS t";
 
-    if(! res) {
-        BOOST_LOG_TRIVIAL(error) << "Unable to create round robin table";
-        return false;
-    }
+  string createTableSQL = getCreateTableFromPredicateSQL(targetTab, selectSQL);
 
-    return true;
+  bool res = sendCommand(createTableSQL);
+
+  if (!res) {
+    BOOST_LOG_TRIVIAL(error) << "Unable to create round robin table";
+    return false;
+  }
+
+  return true;
 }
 
 /*
@@ -237,7 +238,7 @@ std::string ConnectionMySQL::getPartitionHashSQL(const std::string &table,
     BOOST_LOG_TRIVIAL(debug) 
       << "Partition hash statement is: " << selectSQL;
 
-  return getCreateTabSQL(targetTab, selectSQL);
+  return getCreateTableFromPredicateSQL(targetTab, selectSQL);
 }
 
 /*
@@ -266,7 +267,7 @@ std::string ConnectionMySQL::getPartitionSQL(const std::string &table,
     BOOST_LOG_TRIVIAL(debug) 
         << "Partition hash statement is: " << selectSQL;
 
-  return getCreateTabSQL(targetTab, selectSQL);
+  return getCreateTableFromPredicateSQL(targetTab, selectSQL);
 }
 
 /*
@@ -286,7 +287,7 @@ std::string ConnectionMySQL::getPartitionGridSQL(const std::string &table,
                "FROM " + gridName + " g INNER JOIN " + table + " r "
                "ON ST_INTERSECTS(g.cell, r."+ geo_col +")";
 
-    return getCreateTabSQL(targetTab, query_exec);
+    return getCreateTableFromPredicateSQL(targetTab, query_exec);
 }
 
 /*

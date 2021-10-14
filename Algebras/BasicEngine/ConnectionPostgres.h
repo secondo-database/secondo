@@ -134,7 +134,7 @@ public:
            ".bin";
   }
 
-  std::string getCreateTabSQL(const std::string &table,
+  std::string getCreateTableFromPredicateSQL(const std::string &table,
                               const std::string &query) {
 
     return "CREATE TABLE " + table + " AS (" + query + ")";

@@ -159,7 +159,8 @@ public:
   }
 
   bool createTab(const std::string &tab, const std::string &query) {
-    std::string sqlQuery = dbms_connection->getCreateTabSQL(tab, query);
+    std::string sqlQuery =
+        dbms_connection->getCreateTableFromPredicateSQL(tab, query);
     return sendCommand(sqlQuery);
   }
 

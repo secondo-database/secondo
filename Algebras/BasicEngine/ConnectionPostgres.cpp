@@ -268,7 +268,7 @@ bool ConnectionPG::partitionRoundRobin(const string &tab,
     + to_string(anzSlots) + ""
     " ) As slot," + key + " FROM " + tab;
 
-  string createTableSQL = getCreateTabSQL(targetTab, selectSQL);
+  string createTableSQL = getCreateTableFromPredicateSQL(targetTab, selectSQL);
 
   res = sendCommand(createTableSQL);
 
@@ -297,7 +297,7 @@ string ConnectionPG::getPartitionHashSQL(const string &tab, const string &key,
         " " + to_string(anzSlots) + " ) As slot,"
         "" + key + " FROM "+ tab;
 
-  return getCreateTabSQL(targetTab, select);
+  return getCreateTableFromPredicateSQL(targetTab, select);
 }
 
 /*
@@ -413,7 +413,7 @@ string ConnectionPG::getPartitionSQL(const string &tab, const string &key,
     return "";
   }
 
-  return getCreateTabSQL(targetTab, select);
+  return getCreateTableFromPredicateSQL(targetTab, select);
 }
 
 /*
@@ -505,7 +505,7 @@ string ConnectionPG::getPartitionGridSQL(const std::string &tab,
                "FROM " + gridName + " g INNER JOIN "+ tab + " r "
                      "ON ST_INTERSECTS(g.geom,r."+ geo_col +")";
 
-  return getCreateTabSQL(targetTab, query_exec);
+  return getCreateTableFromPredicateSQL(targetTab, query_exec);
 }
 
 /*

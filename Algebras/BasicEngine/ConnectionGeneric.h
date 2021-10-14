@@ -108,7 +108,7 @@ public:
   virtual std::string getFilenameForPartition(const std::string &table,
                                               const std::string &number) = 0;
 
-  virtual std::string getCreateTabSQL(const std::string &table,
+  virtual std::string getCreateTableFromPredicateSQL(const std::string &table,
                                       const std::string &query) = 0;
 
   virtual std::string getCopySchemaSQL(const std::string &table) = 0;

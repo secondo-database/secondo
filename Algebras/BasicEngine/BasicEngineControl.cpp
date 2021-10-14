@@ -1759,8 +1759,7 @@ bool BasicEngine_Control::createGrid(const std::string &gridName,
 
     dbms_connection -> commitTransaction();
 
-
-    // 3nd step: Share the grid will all workers
+    // 3rd step: Share the grid will all workers
     bool shareResult = shareTable(gridTable);
 
     return shareResult;
