@@ -30,202 +30,194 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <string>
 #include <vector>
 
+#include "Algebra.h"
 #include "Attribute.h"
 #include "NestedList.h"
 #include "StandardTypes.h"
-#include "Algebra.h"
 #include "Stream.h"
 
 #include "ResultIteratorGeneric.h"
 
 namespace BasicEngine {
 
-enum SQLAttribute {
-    sqlinteger
-};
+enum SQLAttribute { sqlinteger };
 
 // The attribute name for the distribution
 #define cellnumer_column_name = "be_cellnumber";
 
 class ConnectionGeneric {
 
-    public:
+public:
+  ConnectionGeneric(const std::string &_dbUser, const std::string &_dbPass,
+                    const int _dbPort, const std::string &_dbName)
+      : dbUser(_dbUser), dbPass(_dbPass), dbPort(_dbPort), dbName(_dbName) {}
 
-    ConnectionGeneric(const std::string &_dbUser, const std::string &_dbPass, 
-       const int _dbPort, const std::string &_dbName) : dbUser(_dbUser),
-       dbPass(_dbPass), dbPort(_dbPort), dbName(_dbName) {
+  virtual ~ConnectionGeneric() {}
 
-    }
+  virtual std::string getDbType() = 0;
 
-    virtual ~ConnectionGeneric() {
+  virtual bool createConnection() = 0;
 
-    }
+  virtual bool checkConnection() = 0;
 
-    virtual std::string getDbType() = 0;
+  virtual bool validateQuery(const std::string &query) = 0;
 
-    virtual bool createConnection() = 0;
+  virtual bool sendCommand(const std::string &command, bool print = true) = 0;
 
-    virtual bool checkConnection() = 0;
+  virtual std::string getCreateTableSQL(const std::string &tab) = 0;
 
-    virtual bool validateQuery(const std::string &query) = 0;
+  virtual std::string getDropTableSQL(const std::string &table) = 0;
 
-    virtual bool sendCommand(const std::string &command, bool print = true) = 0;
+  virtual std::string getDropIndexSQL(const std::string &table,
+                                      const std::string &column) = 0;
 
-    virtual std::string getCreateTableSQL(const std::string &tab) = 0;
+  virtual bool partitionRoundRobin(const std::string &table,
+                                   const std::string &key,
+                                   const size_t anzSlots,
+                                   const std::string &targetTab) = 0;
 
-    virtual std::string getDropTableSQL(const std::string &table) = 0;
+  virtual std::string getPartitionHashSQL(const std::string &table,
+                                          const std::string &key,
+                                          const size_t anzSlots,
+                                          const std::string &targetTab) = 0;
 
-    virtual std::string getDropIndexSQL(const std::string &table, 
-        const std::string &column) = 0;
+  virtual std::string getPartitionSQL(const std::string &table,
+                                      const std::string &keyS,
+                                      const size_t anzSlots,
+                                      const std::string &fun,
+                                      const std::string &targetTab) = 0;
 
-    virtual bool partitionRoundRobin(const std::string &table, 
-        const std::string &key, const size_t anzSlots, 
-        const std::string &targetTab) = 0;
+  virtual std::string getPartitionGridSQL(const std::string &table,
+                                          const std::string &key,
+                                          const std::string &geo_col,
+                                          const size_t anzSlots,
+                                          const std::string &gridname,
+                                          const std::string &targetTab) = 0;
 
-    virtual std::string getPartitionHashSQL(const std::string &table, 
-        const std::string &key, const size_t anzSlots, 
-        const std::string &targetTab) = 0;
+  virtual std::string
+  getExportDataSQL(const std::string &table, const std::string &join_table,
+                   const std::string &key, const std::string &nr,
+                   const std::string &path, size_t numberOfWorker) = 0;
 
-    virtual std::string getPartitionSQL(const std::string &table, 
-        const std::string &keyS, const size_t anzSlots, 
-        const  std::string &fun, const std::string &targetTab) = 0;
+  virtual std::string getImportTableSQL(const std::string &table,
+                                        const std::string &full_path) = 0;
 
-    virtual std::string getPartitionGridSQL(const std::string &table, 
-            const std::string &key,
-            const std::string &geo_col, const size_t anzSlots, 
-            const std::string &gridname, const std::string &targetTab) = 0;
+  virtual std::string getExportTableSQL(const std::string &table,
+                                        const std::string &full_path) = 0;
 
-    virtual std::string getExportDataSQL(const std::string &table, 
-            const std::string &join_table, const std::string &key, 
-            const std::string &nr, const std::string &path,
-            size_t numberOfWorker) = 0;
+  virtual std::string getFilenameForPartition(const std::string &table,
+                                              const std::string &number) = 0;
 
-    virtual std::string getImportTableSQL(
-        const std::string &table, const std::string &full_path) = 0;
+  virtual std::string getCreateTabSQL(const std::string &table,
+                                      const std::string &query) = 0;
 
-    virtual std::string getExportTableSQL(
-        const std::string &table, const std::string &full_path) = 0;
+  virtual std::string getCopySchemaSQL(const std::string &table) = 0;
 
-    virtual std::string getFilenameForPartition(
-        const std::string &table, const std::string &number) = 0;
+  virtual std::string getRenameTableSQL(const std::string &source,
+                                        const std::string &destination) = 0;
 
-    virtual std::string getCreateTabSQL(
-        const std::string &table, const std::string &query) = 0;
+  virtual std::vector<std::tuple<std::string, std::string>>
+  getTypeFromSQLQuery(const std::string &sqlQuery) = 0;
 
-    virtual std::string getCopySchemaSQL(const std::string &table) = 0;
+  virtual ListExpr convertTypeVectorIntoSecondoNL(
+      const std::vector<std::tuple<std::string, std::string>> &types);
 
-    virtual std::string getRenameTableSQL(const std::string &source, 
-        const std::string &destination) = 0;
+  virtual ResultIteratorGeneric *
+  performSQLSelectQuery(const std::string &sqlQuery) = 0;
 
-    virtual std::vector<std::tuple<std::string, std::string>> 
-        getTypeFromSQLQuery(const std::string &sqlQuery) = 0;
+  virtual std::string
+  getAttributeProjectionSQLForTable(const std::string &table,
+                                    const std::string &prefix = "");
 
-    virtual ListExpr convertTypeVectorIntoSecondoNL(
-        const std::vector<std::tuple<std::string, std::string>> &types);
+  virtual bool createGridTable(const std::string &table) = 0;
 
-    virtual ResultIteratorGeneric* performSQLSelectQuery(
-        const std::string &sqlQuery) = 0;
+  virtual bool insertRectangle(const std::string &table, double x, double y,
+                               double sizeX, double sizeY) = 0;
 
-    virtual std::string getAttributeProjectionSQLForTable(
-        const std::string &table, const std::string &prefix = "");
+  virtual bool beginTransaction();
 
-    virtual bool createGridTable(const std::string &table) = 0;
+  virtual bool abortTransaction();
 
-    virtual bool insertRectangle(const std::string &table, 
-        double x, double y, double sizeX, double sizeY) = 0;
+  virtual bool commitTransaction();
 
-    virtual bool beginTransaction();
+  virtual void addColumnToTable(const std::string &table,
+                                const std::string &name, SQLAttribute type) = 0;
 
-    virtual bool abortTransaction();
-    
-    virtual bool commitTransaction();
+  virtual void removeColumnFromTable(const std::string &table,
+                                     const std::string &name) = 0;
 
-    virtual void addColumnToTable(const std::string &table, 
-        const std::string &name, SQLAttribute type) = 0;
+  /*
+  5.3
 
-    virtual void removeColumnFromTable(const std::string &table,
-        const std::string &name) = 0;
+  5.3.1 ~getDbPort~ Return the Port of the database
 
-    /*
-    5.3 
+  */
+  int getDbPort() { return dbPort; }
 
-    5.3.1 ~getDbPort~ Return the Port of the database
+  /*
+  5.3.2 ~getDbName~
 
-    */
-    int getDbPort() {
-        return dbPort;
-    }
+  Return the name of the database.
 
-    /*
-    5.3.2 ~getDbName~
+  */
+  std::string getDbName() { return dbName; }
 
-    Return the name of the database.
+  /*
+  5.3.3 ~getDbUser~
 
-    */
-    std::string getDbName() {
-        return dbName;
-    }
+  Return the user of the database.
 
-    /*
-    5.3.3 ~getDbUser~
+  */
+  std::string getDbUser() { return dbUser; }
 
-    Return the user of the database.
+  /*
+  5.3.4 ~getDbPass~
 
-    */
-    std::string getDbUser() {
-        return dbUser;
-    }
+  Return the password of the database.
 
-    /*
-    5.3.4 ~getDbPass~
+  */
+  std::string getDbPass() { return dbPass; }
 
-    Return the password of the database.
+protected:
+  /*
+  5.2.0 Try to limit the given SQL query to 1 result.
 
-    */
-    std::string getDbPass() {
-        return dbPass;
-    }
+  Needed to determine the type of the query result.
+  */
+  std::string limitSQLQuery(const std::string &query);
 
-    protected:
-    /*
-    5.2.0 Try to limit the given SQL query to 1 result. 
-        
-    Needed to determine the type of the query result.
-    */
-    std::string limitSQLQuery(const std::string &query);
+  /*
+  5.2.1 ~dbUser~
 
-    /*
-    5.2.1 ~dbUser~
+  The username for the database connection
 
-    The username for the database connection
+  */
+  std::string dbUser;
 
-    */
-    std::string dbUser;
+  /*
+  5.2.2 ~dbPass~
 
-    /*
-    5.2.2 ~dbPass~
+  The password of the postgress connection
 
-    The password of the postgress connection
+  */
+  std::string dbPass;
 
-    */
-    std::string dbPass;
+  /*
+  5.2.3 ~port~
 
-    /*
-    5.2.3 ~port~
+  The port of the database
 
-    The port of the database
+  */
+  int dbPort;
 
-    */
-    int dbPort;
+  /*
+  5.2.4 ~dbname~
 
-    /*
-    5.2.4 ~dbname~
+  The Name of the Database.
 
-    The Name of the Database.
-
-    */
-    std::string dbName;
+  */
+  std::string dbName;
 };
-}
+} // namespace BasicEngine
 
 #endif

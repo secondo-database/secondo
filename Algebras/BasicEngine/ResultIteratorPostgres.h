@@ -29,41 +29,39 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "ResultIteratorGeneric.h"
 
-#include <postgres.h>
-#include <libpq-fe.h>
 #include <catalog/pg_type.h>
-
+#include <libpq-fe.h>
+#include <postgres.h>
 
 namespace BasicEngine {
-   class ResultIteratorPostgres : public ResultIteratorGeneric {
-       public:
+class ResultIteratorPostgres : public ResultIteratorGeneric {
+public:
+  ResultIteratorPostgres(PGresult *res, ListExpr &type)
+      : ResultIteratorGeneric(type), res(res) {
 
-        ResultIteratorPostgres(PGresult* res, ListExpr &type) 
-           : ResultIteratorGeneric(type), res(res) {
+    if (ready) {
+      totalTuples = PQntuples(res);
+    } else {
+      totalTuples = 0;
+    }
+  }
 
-            if(ready) {
-                totalTuples = PQntuples(res);
-            } else {
-                totalTuples = 0;
-            }
-        }
+  virtual ~ResultIteratorPostgres() {
+    if (res != nullptr) {
+      PQclear(res);
+      res = nullptr;
+    }
+  }
 
-        virtual ~ResultIteratorPostgres() {
-            if(res != nullptr) {
-                PQclear(res);
-                res = nullptr;
-            }
-        }
+  virtual bool hasNextTuple();
+  virtual Tuple *getNextTuple();
 
-        virtual bool hasNextTuple();
-        virtual Tuple* getNextTuple();
+private:
+  PGresult *res = nullptr;
 
-       private:
-        PGresult* res = nullptr;
-
-        int currentTuple = 0;
-        int totalTuples = 0;
-   };
-}
+  int currentTuple = 0;
+  int totalTuples = 0;
+};
+} // namespace BasicEngine
 
 #endif

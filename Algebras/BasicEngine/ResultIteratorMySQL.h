@@ -32,35 +32,33 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <mysql.h>
 
 namespace BasicEngine {
-   class ResultIteratorMySQL : public ResultIteratorGeneric {
-       public:
+class ResultIteratorMySQL : public ResultIteratorGeneric {
+public:
+  ResultIteratorMySQL(MYSQL_RES *res, ListExpr &type)
+      : ResultIteratorGeneric(type), res(res) {
 
-        ResultIteratorMySQL(MYSQL_RES* res, ListExpr &type) 
-           : ResultIteratorGeneric(type), res(res) {
+    if (ready) {
+      totalTuples = mysql_num_rows(res);
+    } else {
+      totalTuples = 0;
+    }
+  }
 
-            if(ready) {
-                totalTuples = mysql_num_rows(res);
-            } else {
-                totalTuples = 0;
-            }
+  virtual ~ResultIteratorMySQL() {
+    if (res != nullptr) {
+      mysql_free_result(res);
+      res = nullptr;
+    }
+  }
 
-        }
+  virtual bool hasNextTuple();
+  virtual Tuple *getNextTuple();
 
-        virtual ~ResultIteratorMySQL() {
-            if(res != nullptr) {
-                mysql_free_result(res);
-                res = nullptr;
-            }
-        }
-
-        virtual bool hasNextTuple();
-        virtual Tuple* getNextTuple();
-
-       private:
-        MYSQL_RES* res = nullptr;
-        int currentTuple = 0;
-        int totalTuples = 0;
-   };
-}
+private:
+  MYSQL_RES *res = nullptr;
+  int currentTuple = 0;
+  int totalTuples = 0;
+};
+} // namespace BasicEngine
 
 #endif
