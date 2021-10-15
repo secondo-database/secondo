@@ -585,9 +585,10 @@ class NTreeInnerNode : public NTreeNode<T, DistComp, useNtree2> {
   
   void precomputeDistances(DistComp& dc) {
     double maxDist = 0.0;
-    refDistPos = std::make_tuple(-1, -1, -1);
+    refDistPos = std::make_tuple(0, 0, 0);
     if (candOrder == PIVOT2 || candOrder == PIVOT3) {
       for (int i = 0; i < degree; i++) {
+        distMatrix[i][i] = 0.0;
         for (int j = 0; j < i; j++) {
           distMatrix[i][j] = dc(*(centers[i]), *(centers[j]));
           distMatrix[j][i] = distMatrix[i][j]; // fill right upper triangle
@@ -601,7 +602,13 @@ class NTreeInnerNode : public NTreeNode<T, DistComp, useNtree2> {
       }
       if (candOrder == PIVOT2) {
         for (int i = 0; i < degree; i++) { // compute 2d distance vector
+//           cout << "i = " << i << ", std::get<0>(refDistPos) = " 
+//                << std::get<0>(refDistPos) << ", dist = " 
+//                << distMatrix[std::get<0>(refDistPos)][i];
           distances2d[i].first = distMatrix[std::get<0>(refDistPos)][i];
+//           cout << ", std::get<1>(refDistPos) = " << std::get<1>(refDistPos) 
+//                << ", dist = " << distMatrix[std::get<1>(refDistPos)][i] 
+//                << endl;
           distances2d[i].second = distMatrix[std::get<1>(refDistPos)][i];
         }
       }
