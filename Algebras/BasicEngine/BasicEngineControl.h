@@ -303,16 +303,16 @@ distributed2::ConnectionInfo* createAndInitConnection(
 distributed2::ConnectionInfo* createConnection(
   const RemoteConnectionInfo* remoteConnection);
 
-  bool partRoundRobin(const std::string &tab, const std::string &key,
+  std::string partRoundRobin(const std::string &tab, const std::string &key,
    size_t slotnum);
 
-  bool partHash(const std::string &tab, const std::string &key, 
+  std::string partHash(const std::string &tab, const std::string &key, 
     size_t slotnum);
 
-  bool partFun(const std::string &tab, const std::string &key,
+  std::string partFun(const std::string &tab, const std::string &key,
          const std::string &fun, size_t slotnum);
 
-  bool partGrid(const std::string &tab, const std::string &key, 
+  std::string partGrid(const std::string &tab, const std::string &key, 
     const std::string &geo_col, const std::string &gridname, size_t slotsize);
 
   bool exportData(const std::string &tab, const std::string &key,

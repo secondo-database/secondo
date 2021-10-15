@@ -431,15 +431,21 @@ The data were partitions in the database by round robin.
 Returns true if everything is OK and there are no failure.
 
 */
-bool BasicEngine_Control::partRoundRobin(const string &table,
+string BasicEngine_Control::partRoundRobin(const string &table,
                     const string &key, size_t numberOfSlots) {
   
   string destinationTable = getTableNameForPartitioning(table, key);
 
   drop_table(destinationTable);
 
-  return dbms_connection->partitionRoundRobin(table, key,
+  bool result = dbms_connection->partitionRoundRobin(table, key,
       numberOfSlots, destinationTable);
+
+  if(! result) {
+    throw new SecondoException("Unable to perform round robin partitioning");
+  }
+
+  return destinationTable;
 }
 
 /*
@@ -509,43 +515,38 @@ Repartition the given table - worker version
     dropAttributeIfExists(partitionData.table, be_partition_cellnumber);
     dropAttributeIfExists(partitionData.table, be_partition_slot);
 
-    bool partResult = false;
+    string resultTable;
     partitionData.key = getFirstAttributeNameFromTable(partitionData.table);
 
     switch (partitionMode) {
     case PartitionMode::rr:
-      partResult = partRoundRobin(partitionData.table, partitionData.key,
+      resultTable = partRoundRobin(partitionData.table, partitionData.key,
                                   partitionData.slotnum);
       break;
 
     case PartitionMode::random:
-      partResult = partFun(partitionData.table, partitionData.key, "random",
+      resultTable = partFun(partitionData.table, partitionData.key, "random",
                            partitionData.slotnum);
       break;
 
     case PartitionMode::hash:
-      partResult = partHash(partitionData.table, partitionData.key,
+      resultTable = partHash(partitionData.table, partitionData.key,
                             partitionData.slotnum);
       break;
 
     case PartitionMode::grid:
-      partResult = partGrid(partitionData.table, partitionData.key,
+      resultTable = partGrid(partitionData.table, partitionData.key,
                             partitionData.attribute, partitionData.gridname,
                             partitionData.slotnum);
       break;
 
     case PartitionMode::fun:
-      partResult = partFun(partitionData.table, partitionData.key,
+      resultTable = partFun(partitionData.table, partitionData.key,
                            partitionData.partitionfun, partitionData.slotnum);
       break;
 
     default:
       BOOST_LOG_TRIVIAL(error) << "Unknown partition mode" << partitionMode;
-      return false;
-    }
-
-    if (!partResult) {
-      BOOST_LOG_TRIVIAL(error) << "Unable to partition table" << partitionMode;
       return false;
     }
 
@@ -584,6 +585,18 @@ Repartition the given table - worker version
     if (!importResult) {
       BOOST_LOG_TRIVIAL(error) << "Unable to transfer and import table data";
       return false;
+    }
+
+    // Delete the temporary repartition table
+    if (!repartition) {
+      BOOST_LOG_TRIVIAL(debug) << "Deleting temporary table" << resultTable;
+      string deleteTable = dbms_connection->getDropTableSQL(resultTable);
+      bool deleteResult = dbms_connection->sendCommand(deleteTable);
+
+      if (!deleteResult) {
+        BOOST_LOG_TRIVIAL(error)
+            << "Unable to delete temporary table" << resultTable;
+      }
     }
 
     return true;
@@ -917,7 +930,7 @@ The data were partitions in the database by an hash value.
 Returns true if everything is OK and there are no failure.
 
 */
-bool BasicEngine_Control::partHash(const string &tab,
+string BasicEngine_Control::partHash(const string &tab,
                     const string &key, size_t slotnum) {
 
   string partTabName = getTableNameForPartitioning(tab, key);
@@ -927,12 +940,16 @@ bool BasicEngine_Control::partHash(const string &tab,
     slotnum, partTabName);
   
   if(query_exec.empty()) {
-    return false;
+    throw new SecondoException("Unable to partiton table, empty command");
   }
 
   bool result = dbms_connection->sendCommand(query_exec);
 
-  return result;
+  if(!result) {
+    throw new SecondoException("Unable to partiton table");
+  }
+    
+  return partTabName;
 }
 
 /*
@@ -940,10 +957,9 @@ bool BasicEngine_Control::partHash(const string &tab,
 
 The data were partitions in the database by an defined function.
 This function have to be defined before using it.
-Returns true if everything is OK and there are no failure.
 
 */
-bool BasicEngine_Control::partFun(const string &tab,
+string BasicEngine_Control::partFun(const string &tab,
     const string &key, const string &fun, size_t slotnum){
                 
   string partTabName = getTableNameForPartitioning(tab, key);
@@ -954,12 +970,16 @@ bool BasicEngine_Control::partFun(const string &tab,
       slotnum, fun, partTabName);
 
   if (query_exec.empty()) {
-    return false;
+    throw new SecondoException("Unable to partiton table, empty command");
   }
 
   bool result = dbms_connection->sendCommand(query_exec);
+
+  if(!result) {
+    throw new SecondoException("Unable to partiton table");
+  }
     
-  return result;
+  return partTabName;
 }
 
 /*
@@ -1317,7 +1337,7 @@ The data were partitions in the database by a grid.
 Returns true if everything is OK and there are no failure.
 
 */
-bool BasicEngine_Control::partGrid(const std::string &tab, 
+string BasicEngine_Control::partGrid(const std::string &tab, 
   const std::string &key, const std::string &geo_col, 
   const std::string &gridName, size_t slotnum) {
 
@@ -1342,10 +1362,16 @@ bool BasicEngine_Control::partGrid(const std::string &tab,
   if(createGridSQL.empty()) {
     BOOST_LOG_TRIVIAL(error) 
       << "Unable to determine create grid SQL";
-    return false;
+    throw new SecondoException("Unable to determine create grid SQL");
   }
 
-  return dbms_connection->sendCommand(createGridSQL);
+  bool result = dbms_connection->sendCommand(createGridSQL);
+
+  if(! result) {
+    throw new SecondoException("Unable to perform grid paritioning");
+  }
+
+  return partTabName;
 } 
 
 /*
