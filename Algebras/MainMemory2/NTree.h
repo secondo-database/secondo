@@ -306,7 +306,7 @@ class NTreeInnerNode : public NTreeNode<T, DistComp, useNtree2> {
 //         cout << "(" << W[i].pos << ", " << W[i].distObj2d << "),  ";
 //       }
 //       cout << endl;
-      if (candOrder != RANDOM) {
+      if (candOrder == PIVOT2 || candOrder == PIVOT3) {
         std::sort(W, W + degree);
       }
 //       for (int i = 0; i < degree; i++) {
@@ -321,9 +321,9 @@ class NTreeInnerNode : public NTreeNode<T, DistComp, useNtree2> {
           Dq[W[i].pos] = tempDist;
           if (tempDist < minDist) {
             minDist = tempDist;
-            result = i;
+            result = W[i].pos;
           }
-          for (int j = 0; j < node_t::degree; j++) {
+          for (int j = 0; j < node_t::degree; j++) {//prune according to pMethod
             d_ij = distMatrix[j][W[i].pos];
             if (pMethod == SIMPLE) {
               if (d_ij > 2 * tempDist) {
