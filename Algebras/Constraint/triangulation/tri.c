@@ -6,7 +6,7 @@
 static int initialise(n)
      int n;
 {
-  register int i;
+  int i;
 
   for (i = 1; i <= n; i++)
     seg[i].is_inserted = FALSE;
@@ -48,7 +48,7 @@ int triangulate_polygon(ncontours, cntr, vertices, triangles)
      double (*vertices)[2];
      int (*triangles)[3];
 {
-  register int i;
+  int i;
   int nmonpoly, ccount, npoints, genus;
   int n;
 

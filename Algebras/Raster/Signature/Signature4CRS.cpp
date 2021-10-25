@@ -55,7 +55,7 @@ sizeOfBlock( sizeOfBlock )
   mbr.max = max;
   unsigned potency = 0x1lu >> sizeOfBlock;
   map = new RasterMap4CRS::Header( id, mbr, dx, dy, potency ) ;
-  register unsigned i, j, step;
+  unsigned i, j, step;
   Weight current;
   GroupOfBits bits0 = 0, bits1 = 0;
 

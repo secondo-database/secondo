@@ -88,7 +88,7 @@ static int get_vertex_positions(v0, v1, ip, iq)
      int *iq;
 {
   vertexchain_t *vp0, *vp1;
-  register int i;
+  int i;
   double angle, temp;
   int tp, tq;
 
@@ -207,7 +207,7 @@ static int make_new_monotone_poly(mcur, v0, v1)
 int monotonate_trapezoids(n)
      int n;
 {
-  register int i;
+  int i;
   int tr_start;
 
   memset((void *)vert, 0, sizeof(vert));
@@ -569,7 +569,7 @@ int triangulate_monotone_polygons(nvert, nmonpoly, op)
      int nmonpoly;
      int op[][3];
 {
-  register int i;
+  int i;
   point_t ymax, ymin;
   int p, vfirst, posmax, posmin, v;
   int vcount, processed;
@@ -665,7 +665,7 @@ static int triangulate_single_polygon(nvert, posmax, side, op)
      int side;
      int op[][3];
 {
-  register int v;
+  int v;
   int rc[SEGSIZE], ri = 0;	/* reflex chain */
   int endv, tmp, vpos;
   

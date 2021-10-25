@@ -86,7 +86,7 @@ int generate_random_ordering(int n)
 {
   struct timeval tval;
   struct timezone tzone;
-  register int i;
+  int i;
   int m, st[SEGSIZE], *p;
 
   choose_idx = 1;
@@ -110,7 +110,7 @@ int generate_random_ordering(int n)
 
 static int initialise(int n)
 {
-  register int i;
+  int i;
 
   for (i = 1; i <= n; i++)
     seg[i].is_inserted = FALSE;
@@ -300,7 +300,7 @@ static int init_query_structure(int segnum)
 
 int math_N(int n, int h)
 {
-  register int i;
+  int i;
   double v;
 
   for (i = 0, v = (int) n; i < h; i++)
@@ -313,7 +313,7 @@ int math_N(int n, int h)
 
 int math_logstar_n(int n)
 {
-  register int i;
+  int i;
   double v;
 
   for (i = 0, v = (double) n; v >= 1; i++)
@@ -1181,7 +1181,7 @@ Main routine to perform trapezoidation
 int construct_trapezoids(int nseg)
 
 {
-  register int i;
+  int i;
   int root, h;
 
   /* Add the first segment and get the query structure and trapezoid */
@@ -1275,7 +1275,7 @@ static int get_vertex_positions(int v0, int v1, int *ip, int *iq)
 
 {
   vertexchain_t *vp0, *vp1;
-  register int i;
+  int i;
   double angle, temp;
   int tp, tq;
 
@@ -1683,7 +1683,7 @@ static int traverse_polygon(int mcur, int trnum, int from, int dir)
 int monotonate_trapezoids(int n)
 
 {
-  register int i;
+  int i;
   int tr_start;
 
   memset((void *)vert, 0, sizeof(vert));
@@ -1760,7 +1760,7 @@ int monotonate_trapezoids(int n)
 static int triangulate_single_polygon(int nvert, int posmax,
                                       int side, int op[][3])
 {
-  register int v;
+  int v;
   int rc[SEGSIZE], ri = 0;  /* reflex chain */
   int endv, tmp, vpos;
 
@@ -1843,7 +1843,7 @@ static int triangulate_single_polygon(int nvert, int posmax,
 int triangulate_monotone_polygons(int nvert, int nmonpoly, int op[][3])
 
 {
-  register int i;
+  int i;
   point_t ymax, ymin;
   int p, vfirst, posmax, posmin, v;
   int vcount, processed;
@@ -1958,7 +1958,7 @@ vector<double> vertices_y, int (*triangles)[3])
 {
 //  cout<<"ncontours "<<ncontours<<endl;
 
-  register int i;
+  int i;
   int nmonpoly, ccount, npoints, genus;
   int n;
 

@@ -73,7 +73,7 @@ Poligon::~Poligon()
 
 void Poligon::move( long x, long y )
 {
-  register unsigned i;
+  unsigned i;
 
   for( i = 0; i < numberOfPoints; i++ )
   {
@@ -167,7 +167,7 @@ void Poligon::turn( int a )
   double rad = (a * 3.14159) / 180.0,
          senA = sin( rad ),
          cosA = cos( rad );
-  register unsigned i;
+  unsigned i;
 
   for( i = 0; i < numberOfPoints; i++ )
   {
@@ -187,7 +187,7 @@ void Poligon::scale( int factor )
   if( factor != 0 )
   {
     double multiplier = (factor > 0 ? factor : -1.0 / factor);
-    register unsigned i;
+    unsigned i;
 
     for( i = 0; i < numberOfPoints; i++ )
     {
@@ -199,7 +199,7 @@ void Poligon::scale( int factor )
 
 void Poligon::scaleF( double factor )
 {
-  register unsigned i;
+  unsigned i;
 
   for( i = 0; i < numberOfPoints; i++ )
   {

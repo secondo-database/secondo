@@ -1042,7 +1042,7 @@ static int find_new_roots(segnum)
 int construct_trapezoids(nseg)
      int nseg;
 {
-  register int i;
+  int i;
   int root, h;
   
   /* Add the first segment and get the query structure and trapezoid */

@@ -24,7 +24,7 @@ int generate_random_ordering(n)
   choose_idx = 1;
   //struct timeval tval;
   //struct timezone tzone;
-  register int i;
+  int i;
   int m, st[SEGSIZE], *p;
 
 
@@ -68,7 +68,7 @@ int read_segments(filename, genus)
 {
   FILE *infile;
   int ccount;
-  register int i;
+  int i;
   int ncontours, npoints, first, last;
 
   if ((infile = fopen(filename, "r")) == NULL)
@@ -135,7 +135,7 @@ int read_segments(filename, genus)
 int math_logstar_n(n)
      int n;
 {
-  register int i;
+  int i;
   double v;
 
   for (i = 0, v = (double) n; v >= 1; i++)
@@ -149,7 +149,7 @@ int math_N(n, h)
      int n;
      int h;
 {
-  register int i;
+  int i;
   double v;
 
   for (i = 0, v = (int) n; i < h; i++)
