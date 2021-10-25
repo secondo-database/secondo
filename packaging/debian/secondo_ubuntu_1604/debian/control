@@ -4,7 +4,7 @@ Priority: extra
 Maintainer: Jan Nidzwetzki <jnidzwetzki@gmx.de>
 Build-Depends: debhelper (>= 5), flex, bison, libdb5.3, libdb5.3-dev, libdb5.3++, libdb5.3++-dev, db5.3-util, libjpeg62, libjpeg62-dev, libgsl-dev, libreadline-dev, librecode-dev, libgmp-dev, libncurses-dev, libxml2-dev, libboost-all-dev, libxml2-dev, openjdk-8-jdk, swi-prolog-nox, swi-prolog-java, swi-prolog, libquadmath0, libgmp-dev, libgmp10, libboost-thread-dev, libboost-thread1.58.0, libboost-system-dev, libboost-system1.58.0 
 Standards-Version: 3.9.6
-Homepage: http://dna.fernuni-hagen.de/Secondo.html 
+Homepage: https://secondo-database.github.io/
 
 Package: secondo
 Architecture: any
