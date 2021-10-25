@@ -194,7 +194,7 @@ bool Crypt::validate(const char* pw, const char* epw){
 
 char * Crypt::crypt(const char* pw, const char* salt)
 {
-        register int i, j, c;
+        int i, j, c;
         int temp;
         static char block[66], iobuf[16];
         for(i=0; i<66; i++)
@@ -254,7 +254,7 @@ char * Crypt::crypt(const char* pw, const char* salt)
 
 void Crypt::setkey(char* key)
 {
-        register int i, j, k;
+        int i, j, k;
         int t;
 
         /*
@@ -304,7 +304,7 @@ void Crypt::setkey(char* key)
 void Crypt::encrypt(char* block, int edflag)
 {
         int i, ii;
-        register int t, j, k;
+        int t, j, k;
 
         /*
          * First, permute the bits in the input
