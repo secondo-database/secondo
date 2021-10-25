@@ -45,7 +45,11 @@ extern int yylex();
 
 string* yacc_outtext;
 
-typedef char cstring[50];
+// Cstring is used in 
+// sprintf(params[1], "%.64s_%d",paramname,paramno);
+// %d prints up to 11 bytes
+// %s prints up to 64 bytes
+typedef char cstring[128];
 
 cstring paramname; // temporarly variable
 

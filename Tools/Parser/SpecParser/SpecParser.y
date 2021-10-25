@@ -706,7 +706,7 @@ void print_complex_postfix(){
        (*yaccrules2) << (*currenttranslation.implicitNames)[i] << "\");" 
                      << endl;
        (*yaccrules2) << "     sprintf(params[" << (i+1) <<"]"
-                     << ", \"%s_%d\",paramname,paramno);" 
+                     << ", \"%.64s_%d\",paramname,paramno);" 
                      << endl;
        (*yaccrules2) << "     p = pair<int,string>("<< (i+1) << ", params[" << (i+1) << "]);" << endl;
        (*yaccrules2) << "     paramstack.push(p);" << endl;
