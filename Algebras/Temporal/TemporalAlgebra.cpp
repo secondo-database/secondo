@@ -7750,28 +7750,30 @@ it to the result.
   delayValueAtUnitStartTime = val; \
   delayUnitStartTime = t; \
   atUnitStart = false; \
-  if(debugme) cout<<"\n\t\tStartUnit ("<<val<<" @ "; t.Print(cout); cout<<" )";
+  if(debugme) { cout<<"\n\t\tStartUnit ("<<val<<" @ "; \
+       t.Print(cout); cout<<" )"; }
 
 #define _endunit(val, t) \
   delayValueAtUnitEndTime=val; \
   delayUnitEndTime=t; \
   atUnitStart = true; \
-  if(debugme) cout<<"\n\t\tEndUnit ("<<val<<" @ "; t.Print(cout); cout<<" )";
+  if(debugme) { cout<<"\n\t\tEndUnit ("<<val<<" @ "; \
+     t.Print(cout); cout<<" )"; }
 
 #define _createunitpar(val1, t1, val2, t2) \
   intr.start=t1; intr.end=t2; \
   runit= new UReal(intr, val1 * 86400, val2 * 86400); \
   delayRes->Add(*runit); \
   delete runit; \
-  if(debugme) cout<<"\n\t\tCreateUnit" ;
+  if(debugme) { cout<<"\n\t\tCreateUnit"; }
 
 #define _createunit \
   intr.start= delayUnitStartTime; intr.end=delayUnitEndTime; \
   runit= new UReal(intr, delayValueAtUnitStartTime * 86400, \
       delayValueAtUnitEndTime * 86400); \
   delayRes->Add(*runit); \
-  if(debugme) cout<<"\n\t\tCreateIntermediateUnit ("; \
-      runit->Print(cout); cout<<" )"; \
+  if(debugme) { cout<<"\n\t\tCreateIntermediateUnit ("; \
+      runit->Print(cout); cout<<" )"; } \
   delete runit;
 
 MReal* MPoint::DelayOperator(const MPoint* actual, const Geoid* geoid)
