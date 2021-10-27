@@ -5549,8 +5549,8 @@ double getSweepAreas(vector< Rectangle<dim> > BBox)
     coversweep[j] = 0.0;
   }
 
-  double x[dim-1];
-  set<int> xindex[dim-1];
+  double x[dim];
+  set<int> xindex[dim];
   unsigned int di;
   bool again;
   set<int>::iterator indexIter;
