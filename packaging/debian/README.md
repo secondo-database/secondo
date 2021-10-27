@@ -4,17 +4,14 @@ This package provides the needed tools to build Debian packages for the [SECONDO
 
 # SECONDO build using docker
 ```bash
-docker run -it ubuntu:18.04
-apt-get update
-apt-get install git vim wget rsync dpkg-dev screen -y
-cd secondo-debian/ubuntu_1804
-./build.sh
-```
-
-```bash
 docker create --name ubuntu-20-10 -it ubuntu:20.10
 docker start ubuntu-20-10
 docker exec -it ubuntu-20-10 /bin/bash
+
+apt-get install git vim wget rsync dpkg-dev screen -y
+cd /root
+git clone https://github.com/secondo-database/secondo.git
+
 
 docker stop ubuntu-20-10
 docker rm ubuntu-20-10

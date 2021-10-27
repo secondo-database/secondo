@@ -12,7 +12,7 @@ cd $SECONDO_BUILD_DIR
 # Link our debian files to the package
 if [ ! -h debian ]; then
    rmdir debian
-   ln -s packaging/debian/secondo_ubuntu_2110 debian
+   ln -s packaging/debian/secondo_ubuntu_2110/debian debian
 fi 
 
 cp makefile.algebras.sample makefile.algebras
