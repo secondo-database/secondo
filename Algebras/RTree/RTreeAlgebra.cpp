@@ -5517,13 +5517,13 @@ double getSweepAreas(vector< Rectangle<dim> > BBox)
   if (BBox.empty()) return 0.0;  //area of empty rectangle is 0
 
   quad_node* quadTreeYZ;
-  set<double> xVals[dim-1];
+  set<double> xVals[dim];
   set<double> yVals;
   set<double> zVals;
-  multiset<event, eventComp> insertMBR[dim-1];
-  multiset<event, eventComp> deleteMBR[dim-1];
-  multiset<event, eventComp>::iterator iterateInsert[dim-1];
-  multiset<event, eventComp>::iterator iterateDelete[dim-1];
+  multiset<event, eventComp> insertMBR[dim];
+  multiset<event, eventComp> deleteMBR[dim];
+  multiset<event, eventComp>::iterator iterateInsert[dim];
+  multiset<event, eventComp>::iterator iterateDelete[dim];
 
   for (unsigned int i=0; i<BBox.size(); i++)
   //build sorted lists of values and events
@@ -5542,7 +5542,7 @@ double getSweepAreas(vector< Rectangle<dim> > BBox)
   }
   quadTreeYZ = buildTree(yVals, zVals);
 
-  set<double>::iterator xValiter[dim-1];
+  set<double>::iterator xValiter[dim];
   double coversweep[dim];
   for (unsigned int j=0; j<dim; j++)
   {
