@@ -45,7 +45,7 @@ build-stamp: configure
 	export JPL_JAR=$(SWI_HOME_DIR)/lib/jpl.jar; \
 	export PL_LIB=swipl ; \
 	export PATH=$(PATH):$(shell pwd)/secondo/api_cpp/direct ; \
-	($(MAKE); cd Javagui;$(MAKE) demo)
+	($(MAKE) -j 8; cd Javagui;$(MAKE) demo)
 
 install: build
 	dh_testdir
