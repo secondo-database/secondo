@@ -363,7 +363,7 @@ namespace mtreehelper{
     if (!listutils::isSymbol(nl->First(type), basicType)) {
       return false;
     }
-    if(getTypeNo(subtype, 12) < 0){
+    if(getTypeNo(subtype, 12) < 0) {
       return false;
     }
     return nl->Equal(nl->Second(type), subtype);
@@ -373,12 +373,9 @@ namespace mtreehelper{
     return checkType(type, subtype, BasicType());
   }
   
-  bool checkTypeN(ListExpr type, ListExpr subtype) {
-    return checkType(type, subtype, "ntree");
-  }
-  
-  bool checkTypeN2(ListExpr type, ListExpr subtype) {
-    return checkType(type, subtype, "ntree2");
+  bool checkTypeN(ListExpr type, ListExpr subtype, int variant) {
+    string ntreetype = "ntree" + (variant > 1 ? to_string(variant) : "");
+    return checkType(type, subtype, ntreetype);
   }
 
   void increaseCounter(const string& objName, const int numberToBeAdded) {
@@ -872,27 +869,27 @@ MemoryMtreeObject<pair<K, L>, StdDistCompExt<K, L> >* getMtree(MPointer* t) {
   return (MemoryMtreeObject<pair<K, L>, StdDistCompExt<K, L> >*)((*t)());
 }
 
-template<class T, class K, bool opt>
-MemoryNtreeObject<K, StdDistComp<K>, opt>* getNtree(T* name) {
-  if(!name->IsDefined()){
+template<class T, class K, int variant>
+MemoryNtreeObject<K, StdDistComp<K>, variant>* getNtreeX(T* name) {
+  if (!name->IsDefined()) {
     return 0;
   }
   string n = name->GetValue();
-  if(!catalog->isMMOnlyObject(n)){
+  if (!catalog->isMMOnlyObject(n)) {
     return 0;
   } 
   ListExpr type = nl->Second(catalog->getMMObjectTypeExpr(n));
-  if(!MemoryNtreeObject<K, StdDistComp<K>, opt>::checkType(type)){
+  if (!MemoryNtreeObject<K, StdDistComp<K>, variant>::checkType(type)) {
     return 0;
   }
-  if(!K::checkType(nl->Second(type))){
+  if (!K::checkType(nl->Second(type))) {
      return 0;
   }
-  return (MemoryNtreeObject<K, StdDistComp<K>, opt>*)catalog->getMMObject(n);
+  return (MemoryNtreeObject<K,StdDistComp<K>, variant>*)catalog->getMMObject(n);
 }
 
-template<class T, class K, class L, bool opt>
-MemoryNtreeObject<pair<K, L>, StdDistCompExt<K, L>, opt>* getNtree(T* name) {
+template<class T, class K, class L, int variant>
+MemoryNtreeObject<pair<K,L>, StdDistCompExt<K,L>, variant>* getNtreeX(T* name) {
   if (!name->IsDefined()) {
     return 0;
   }
@@ -902,24 +899,25 @@ MemoryNtreeObject<pair<K, L>, StdDistCompExt<K, L>, opt>* getNtree(T* name) {
   } 
   ListExpr type = nl->Second(catalog->getMMObjectTypeExpr(n));
   cout << "type is " << nl->ToString(type);
-  if (!MemoryNtreeObject<Tuple, StdDistCompExt<K, L>, opt>::checkType(type)) {
+  if (!MemoryNtreeObject<Tuple, StdDistCompExt<K,L>, variant>::checkType(type)){
     return 0;
   }
   if (!Tuple::checkType(nl->Second(type))) {
      return 0;
   }
-  return (MemoryNtreeObject<pair<K, L>, StdDistCompExt<K, L>, opt>*) 
+  return (MemoryNtreeObject<pair<K, L>, StdDistCompExt<K, L>, variant>*) 
           catalog->getMMObject(n);
 }
 
-template<class T, class K, bool opt>
-MemoryNtreeObject<K, StdDistComp<K>, opt>* getNtree(MPointer* t){
-   return (MemoryNtreeObject<K, StdDistComp<K>, opt>*) ((*t)());
+template<class T, class K, int variant>
+MemoryNtreeObject<K, StdDistComp<K>, variant>* getNtreeX(MPointer* t) {
+   return (MemoryNtreeObject<K, StdDistComp<K>, variant>*) ((*t)());
 }
 
-template<class T, class K, class L, bool opt>
-MemoryNtreeObject<pair<K, L>, StdDistCompExt<K, L>, opt>* getNtree(MPointer* t){
-  return (MemoryNtreeObject<pair<K, L>, StdDistCompExt<K, L>, opt>*)((*t)());
+template<class T, class K, class L, int variant>
+MemoryNtreeObject<pair<K, L>, StdDistCompExt<K, L>, variant>* 
+                                                        getNtreeX(MPointer* t) {
+  return (MemoryNtreeObject<pair<K,L>, StdDistCompExt<K, L>, variant>*)((*t)());
 }
 
 template<class T>
@@ -6303,10 +6301,10 @@ Operator mdistRangeOp(
 /*
 Operator ~mdistRangeN~
 
-Type Mapping, used for mdistRangeN (useN2==false) and mdistRangeN2 (useN2==true)
+Type Mapping, used for mdistRangeN, mdistRangeN2, and mdistRangeN5
 
 */
-template<bool useN2>
+template<int variant>
 ListExpr mdistRangeNTM(ListExpr args) {
   string err = "NTREE(T) x MREL x T (x U) x real expected";
   if (!nl->HasLength(args, 4) && !nl->HasLength(args, 5)) {
@@ -6334,27 +6332,16 @@ ListExpr mdistRangeNTM(ListExpr args) {
   ListExpr a3 = nl->Third(args);
   ListExpr a4 = nl->Fourth(args);
   if (nl->HasLength(args, 4)) {
-    if (!useN2) {
-      if (!mtreehelper::checkTypeN(a1, a3)) {
-        return listutils::typeError("first arg is not an ntree over " 
-                                    + nl->ToString(a3));
-      }
-    }
-    else {
-      if (!mtreehelper::checkTypeN2(a1, a3)) {
-        return listutils::typeError("first arg is not an ntree2 over " 
-                                    + nl->ToString(a3));
-      }
+    if (!mtreehelper::checkTypeN(a1, a3, variant)) {
+      return listutils::typeError("first arg is not an ntree" + 
+                              to_string(variant) + " over " + nl->ToString(a3));
     }
   }
   else {
-    if (!mtreehelper::checkType(a1, nl->SymbolAtom(Tuple::BasicType()))) {
-      if (!useN2) {
-        return listutils::typeError("first arg is not an ntree over tuples");
-      }
-      else {
-        return listutils::typeError("first arg is not an ntree2 over tuples");
-      }
+    if (!mtreehelper::checkTypeN(a1, nl->SymbolAtom(Tuple::BasicType()), 
+                                 variant)) {
+      return listutils::typeError("first arg is not an ntree" +
+                                  to_string(variant) + " over tuples");
     }
     if (!temporalalgebra::MPoint::checkType(a3) &&
         !temporalalgebra::CUPoint::checkType(a3) &&
@@ -6369,19 +6356,18 @@ ListExpr mdistRangeNTM(ListExpr args) {
   if (!CcReal::checkType(a4)) {
     return listutils::typeError(err + "final arg is not a real");
   }
-  return nl->TwoElemList(
-                listutils::basicSymbol<Stream<Tuple> >(),
-                nl->Second(a2)); 
+  return nl->TwoElemList(listutils::basicSymbol<Stream<Tuple> >(),
+                         nl->Second(a2)); 
 }
 
-template<class T, class Dist>
+template<class T, class Dist, int variant>
 class distRangeNInfo {
  public:
-  distRangeNInfo(MemoryNtreeObject<T, Dist, false>* ntree,
-                 MemoryRelObject* mrel, T* ref, double dist) {
+  distRangeNInfo(MemoryNtreeObject<T, Dist, variant>* ntreeX,
+                 MemoryRelObject* mrel, T* ref, double range) {
     rel = mrel->getmmrel();
     MTreeEntry<T> p(*ref, 0);
-    it = ntree->getntree()->rangeSearch(p, dist);
+    it = ntreeX->getNtreeX()->rangeSearch(p, range);
   }
 
   ~distRangeNInfo() {
@@ -6411,14 +6397,14 @@ class distRangeNInfo {
      
  private:
   vector<Tuple*>* rel;
-  RangeIteratorN<MTreeEntry<T>, Dist, false>* it;
+  RangeIteratorN<MTreeEntry<T>, Dist, variant>* it;
 };
 
 template<class K, class T, class R>
 int mdistRangeNVMT(Word* args, Word& result, int message, Word& local,
                    Supplier s) {
-  distRangeNInfo<K, StdDistComp<K> >* li = 
-                                (distRangeNInfo<K, StdDistComp<K> >*)local.addr;
+  distRangeNInfo<K, StdDistComp<K>, 1>* li = 
+                              (distRangeNInfo<K, StdDistComp<K>, 1>*)local.addr;
   switch (message) {
     case OPEN : {
       if (li) {
@@ -6430,22 +6416,21 @@ int mdistRangeNVMT(Word* args, Word& result, int message, Word& local,
       if (!rel) {
         return 0;
       }
-      CcReal* dist = (CcReal*)args[3].addr;
-      if (!dist->IsDefined()) {
+      CcReal* range = (CcReal*)args[3].addr;
+      if (!range->IsDefined()) {
         return 0;
       }
-      double d = dist->GetValue();
-      if (d < 0) {
+      double r = range->GetValue();
+      if (r < 0.0) {
         return 0;
       }
       T* treeN = (T*)args[0].addr;
-      MemoryNtreeObject<K, StdDistComp<K>, false>* n = 
-                                                   getNtree<T, K, false>(treeN);
+      MemoryNtreeObject<K, StdDistComp<K>, 1>* n = getNtreeX<T, K, 1>(treeN);
       if (!n) {
         return 0;
       }
       K* key = (K*)args[2].addr;
-      local.addr = new distRangeNInfo<K, StdDistComp<K> >(n, rel, key, d);
+      local.addr = new distRangeNInfo<K, StdDistComp<K>, 1>(n, rel, key, r);
       return 0;
     }
     case REQUEST: {
@@ -6585,58 +6570,18 @@ Operator mdistRangeNOp(
    48,
    mdistRangeNVM,
    mdistRangeNSelect,
-   mdistRangeNTM<false>
+   mdistRangeNTM<1>
 );
 
 /*
 Operator ~mdistRangeN2~
 
 */
-template<class T, class Dist>
-class distRangeN2Info {
- public:
-  distRangeN2Info(MemoryNtreeObject<T, Dist, true>* ntree2,
-                  MemoryRelObject* mrel, T* ref, double dist) {
-    rel = mrel->getmmrel();
-    MTreeEntry<T> p(*ref, 0);
-    it = ntree2->getntree()->rangeSearch(p, dist);
-  }
-
-  ~distRangeN2Info() {
-    delete it;
-  }
-
-  Tuple* next() {
-    while (true) {
-      const TupleId tid = it->next();
-      if ((int)tid == -1) {
-        return 0;
-      }
-      if (tid <= rel->size()) {
-        Tuple* res = (*rel)[tid - 1];
-        if (res) { // ignore deleted tuples
-          res->IncReference();
-          return res;
-        }
-      }
-    }
-    return 0;
-  }
-  
-  size_t getNoDistFunCalls() {
-    return it->getNoDistFunCalls();
-  }
-     
- private:
-  vector<Tuple*>* rel;
-  RangeIteratorN<MTreeEntry<T>, Dist, true>* it;
-};
-
 template<class K, class T, class R>
 int mdistRangeN2VMT(Word* args, Word& result, int message, Word& local,
                     Supplier s) {
-  distRangeN2Info<K, StdDistComp<K> >* li = 
-                               (distRangeN2Info<K, StdDistComp<K> >*)local.addr;
+  distRangeNInfo<K, StdDistComp<K>, 2>* li = 
+                              (distRangeNInfo<K, StdDistComp<K>, 2>*)local.addr;
   switch (message) {
     case OPEN : {
       if (li) {
@@ -6648,22 +6593,21 @@ int mdistRangeN2VMT(Word* args, Word& result, int message, Word& local,
       if (!rel) {
         return 0;
       }
-      CcReal* dist = (CcReal*)args[3].addr;
-      if (!dist->IsDefined()) {
+      CcReal* range = (CcReal*)args[3].addr;
+      if (!range->IsDefined()) {
         return 0;
       }
-      double d = dist->GetValue();
-      if (d < 0) {
+      double r = range->GetValue();
+      if (r < 0) {
         return 0;
       }
       T* treeN = (T*)args[0].addr;
-      MemoryNtreeObject<K, StdDistComp<K>, false>* n = 
-                                                   getNtree<T, K, false>(treeN);
+      MemoryNtreeObject<K, StdDistComp<K>, 2>* n = getNtreeX<T, K, 2>(treeN);
       if (!n) {
         return 0;
       }
       K* key = (K*)args[2].addr;
-      local.addr = new distRangeNInfo<K, StdDistComp<K> >(n, rel, key, d);
+      local.addr = new distRangeNInfo<K, StdDistComp<K>, 2>(n, rel, key, r);
       return 0;
     }
     case REQUEST: {
@@ -6754,7 +6698,135 @@ Operator mdistRangeN2Op(
    48,
    mdistRangeN2VM,
    mdistRangeNSelect,
-   mdistRangeNTM<true>
+   mdistRangeNTM<2>
+);
+
+/*
+Operator ~mdistRangeN5~
+
+*/
+template<class K, class T, class R>
+int mdistRangeN5VMT(Word* args, Word& result, int message, Word& local,
+                    Supplier s) {
+  distRangeNInfo<K, StdDistComp<K>, 5>* li = 
+                              (distRangeNInfo<K, StdDistComp<K>, 5>*)local.addr;
+  switch (message) {
+    case OPEN : {
+      if (li) {
+        delete li;
+        local.addr = 0;
+      }
+      R* relN = (R*)args[1].addr;
+      MemoryRelObject* rel = getMemRel(relN, nl->Second(qp->GetType(s)));
+      if (!rel) {
+        return 0;
+      }
+      CcReal* range = (CcReal*)args[3].addr;
+      if (!range->IsDefined()) {
+        return 0;
+      }
+      double r = range->GetValue();
+      if (r < 0) {
+        return 0;
+      }
+      T* treeN = (T*)args[0].addr;
+      MemoryNtreeObject<K, StdDistComp<K>, 5>* n = getNtreeX<T, K, 5>(treeN);
+      if (!n) {
+        return 0;
+      }
+      K* key = (K*)args[2].addr;
+      local.addr = new distRangeNInfo<K, StdDistComp<K>, 5>(n, rel, key, r);
+      return 0;
+    }
+    case REQUEST: {
+      result.addr = li ? li->next() : 0;
+      return result.addr ? YIELD : CANCEL;
+    }
+    case CLOSE : {
+      if (li) {
+        mtreehelper::increaseCounter("counterMDistRangeN5", 
+                                     li->getNoDistFunCalls());
+        delete li;
+        local.addr = 0;
+      }
+      return 0;
+    }
+   }
+   return -1;
+}
+
+ValueMapping mdistRangeN5VM[] = {
+  mdistRangeN5VMT<mtreehelper::t1,Mem,Mem>,
+  mdistRangeN5VMT<mtreehelper::t2,Mem,Mem>,
+  mdistRangeN5VMT<mtreehelper::t3,Mem,Mem>,
+  mdistRangeN5VMT<mtreehelper::t4,Mem,Mem>,
+  mdistRangeN5VMT<mtreehelper::t5,Mem,Mem>,
+  mdistRangeN5VMT<mtreehelper::t6,Mem,Mem>,
+  mdistRangeN5VMT<mtreehelper::t7,Mem,Mem>,
+  mdistRangeN5VMT<mtreehelper::t8,Mem,Mem>,
+  mdistRangeN5VMT<mtreehelper::t9,Mem,Mem>,
+  mdistRangeN5VMT<mtreehelper::t10,Mem,Mem>,
+  mdistRangeN5VMT<mtreehelper::t11,Mem,Mem>,
+  mdistRangeN5VMT<mtreehelper::t12,Mem,Mem>,
+  
+  mdistRangeN5VMT<mtreehelper::t1,Mem,MPointer>,
+  mdistRangeN5VMT<mtreehelper::t2,Mem,MPointer>,
+  mdistRangeN5VMT<mtreehelper::t3,Mem,MPointer>,
+  mdistRangeN5VMT<mtreehelper::t4,Mem,MPointer>,
+  mdistRangeN5VMT<mtreehelper::t5,Mem,MPointer>,
+  mdistRangeN5VMT<mtreehelper::t6,Mem,MPointer>,
+  mdistRangeN5VMT<mtreehelper::t7,Mem,MPointer>,
+  mdistRangeN5VMT<mtreehelper::t8,Mem,MPointer>,
+  mdistRangeN5VMT<mtreehelper::t9,Mem,MPointer>,
+  mdistRangeN5VMT<mtreehelper::t10,Mem,MPointer>,
+  mdistRangeN5VMT<mtreehelper::t11,Mem,MPointer>,
+  mdistRangeN5VMT<mtreehelper::t12,Mem,MPointer>,
+  
+  mdistRangeN5VMT<mtreehelper::t1,MPointer,Mem>,
+  mdistRangeN5VMT<mtreehelper::t2,MPointer,Mem>,
+  mdistRangeN5VMT<mtreehelper::t3,MPointer,Mem>,
+  mdistRangeN5VMT<mtreehelper::t4,MPointer,Mem>,
+  mdistRangeN5VMT<mtreehelper::t5,MPointer,Mem>,
+  mdistRangeN5VMT<mtreehelper::t6,MPointer,Mem>,
+  mdistRangeN5VMT<mtreehelper::t7,MPointer,Mem>,
+  mdistRangeN5VMT<mtreehelper::t8,MPointer,Mem>,
+  mdistRangeN5VMT<mtreehelper::t9,MPointer,Mem>,
+  mdistRangeN5VMT<mtreehelper::t10,MPointer,Mem>,
+  mdistRangeN5VMT<mtreehelper::t11,MPointer,Mem>,
+  mdistRangeN5VMT<mtreehelper::t12,MPointer,Mem>,
+  
+  mdistRangeN5VMT<mtreehelper::t1,MPointer,MPointer>,
+  mdistRangeN5VMT<mtreehelper::t2,MPointer,MPointer>,
+  mdistRangeN5VMT<mtreehelper::t3,MPointer,MPointer>,
+  mdistRangeN5VMT<mtreehelper::t4,MPointer,MPointer>,
+  mdistRangeN5VMT<mtreehelper::t5,MPointer,MPointer>,
+  mdistRangeN5VMT<mtreehelper::t6,MPointer,MPointer>,
+  mdistRangeN5VMT<mtreehelper::t7,MPointer,MPointer>,
+  mdistRangeN5VMT<mtreehelper::t8,MPointer,MPointer>,
+  mdistRangeN5VMT<mtreehelper::t9,MPointer,MPointer>,
+  mdistRangeN5VMT<mtreehelper::t10,MPointer,MPointer>,
+  mdistRangeN5VMT<mtreehelper::t11,MPointer,MPointer>,
+  mdistRangeN5VMT<mtreehelper::t12,MPointer,MPointer>
+};
+
+OperatorSpec mdistRangeN5Spec(
+  "NTREE2 x MREL  x T (x U) x real -> stream(tuple) , NTREE2, "
+  "MREL represented as string, mem, or mpointer",
+  "mem_ntree2 mem_rel mdistRangeN5[keyAttr, maxDist] ",
+  "Retrieves those tuples from a memory relation "
+  "having a distance smaller or equal to a given distance "
+  "to a key value (or pair of key values). This operation is aided by a memory "
+  "based ntree2.",
+  "query mkinos_ntree2 mKinos mdistRangeN2[alexanderplatz, 2000.0] count"
+);
+
+Operator mdistRangeN5Op(
+   "mdistRangeN5",
+   mdistRangeN5Spec.getStr(),
+   48,
+   mdistRangeN5VM,
+   mdistRangeNSelect,
+   mdistRangeNTM<5>
 );
 
 /*
@@ -22111,14 +22183,15 @@ Operator mmergejoinprojectOp(
 
 6.1.1 Type Mapping
 
-Applied for operators ~mcreatentree~ and ~mcreatentree2~
+Applied for operators ~mcreatentree~, ~mcreatentree2~, and ~mcreatentree5~
 
 */
-template<bool useNTree2>
+template<int variant>
 ListExpr mcreatentreeTM(ListExpr args) {
-  string err = (!useNTree2 ? "expected: MREL x attrname x int x int [x geoid]" :
+  bool useParams = (variant == 2); // two integer args for pivots and pruning
+  string err = (!useParams ? "expected: MREL x attrname x int x int [x geoid]" :
                  "expected: MREL x attrname x int x int x int x int [x geoid]");
-  if (useNTree2) {
+  if (useParams) {
     if (!nl->HasLength(args, 6) && !nl->HasLength(args, 7)) {
       return listutils::typeError(" (6 or 7 arguments are required");
     }
@@ -22142,7 +22215,7 @@ ListExpr mcreatentreeTM(ListExpr args) {
   if (!CcInt::checkType(nl->Third(args))) {
     return listutils::typeError(err + " (third argument is not an integer)");
   }
-  if (useNTree2) {
+  if (useParams) {
     if (!CcInt::checkType(nl->Fifth(args))) {
       return listutils::typeError(err + " (fifth argument is not an integer)");
     }
@@ -22193,16 +22266,16 @@ ListExpr mcreatentreeTM(ListExpr args) {
                                  + nl->ToString(type));
   }
   ListExpr resType;
-  if (useNTree2) {
+  if (useParams) {
     resType = MPointer::wrapType(Mem::wrapType(nl->TwoElemList(
        listutils::basicSymbol<MemoryNtreeObject<Point, StdDistComp<Point>, 
-                                                true> >(),
+                                                variant> >(),
        type)));
   }
   else {
     resType = MPointer::wrapType(Mem::wrapType(nl->TwoElemList(
         listutils::basicSymbol<MemoryNtreeObject<Point, StdDistComp<Point>,
-                                                 false> >(),
+                                                 variant> >(),
         type)));
   }
   ListExpr appendList;
@@ -22226,7 +22299,7 @@ ListExpr mcreatentreeTM(ListExpr args) {
 6.2 Value Mapping template
 
 */
-template<class T>
+template<class T, int variant>
 int mcreatentreeVMT(Word* args, Word& result, int message, Word& local,
                     Supplier s) {
   result = qp->ResultStorage(s);
@@ -22263,18 +22336,20 @@ int mcreatentreeVMT(Word* args, Word& result, int message, Word& local,
     flobused = flobused || (attr->NumOfFLOBs() > 0);
   }
   StdDistComp<T> dc(geoid);
-  NTree<MTreeEntry<T>, StdDistComp<T>, false>* tree =
-      new NTree<MTreeEntry<T>, StdDistComp<T>, false>(degree, maxLeafSize, dc);
+  NTree<MTreeEntry<T>, StdDistComp<T>, variant>* tree =
+     new NTree<MTreeEntry<T>, StdDistComp<T>, variant>(degree, maxLeafSize, dc);
   tree->build(contents, partitionStrategy);
 //   cout << "entries: " << tree->getNoEntries() << ", nodes: " 
 //        << tree->getNoNodes() << ", leaves: " << tree->getNoLeaves() << endl;
   size_t usedMem = tree->memSize();
   ListExpr typeList = nl->Second(qp->GetType(s));
-  MemoryNtreeObject<T, StdDistComp<T>, false>* ntree = 
-      new MemoryNtreeObject<T, StdDistComp<T>, false>(tree, usedMem, 
+  MemoryNtreeObject<T, StdDistComp<T>, variant>* ntree = 
+      new MemoryNtreeObject<T, StdDistComp<T>, variant>(tree, usedMem, 
                                 nl->ToString(typeList), !flobused, getDBname());
-  mtreehelper::increaseCounter("counterMCreateNTree", 
-                          ntree->getntree()->getDistComp().getNoDistFunCalls());
+  string objName = "counterMCreateNTree" +
+                   (variant > 1 ? to_string(variant) : "");
+  mtreehelper::increaseCounter(objName,
+                         ntree->getNtreeX()->getDistComp().getNoDistFunCalls());
   res->setPointer(ntree);
   ntree->deleteIfAllowed();
   return 0;
@@ -22297,18 +22372,18 @@ int mcreatentreeSelect(ListExpr args) {
  // note: if adding attributes with flobs, the value mapping must be changed
 
 ValueMapping mcreatentreeVM[] = {
-  mcreatentreeVMT<mtreehelper::t1>,
-  mcreatentreeVMT<mtreehelper::t2>,
-  mcreatentreeVMT<mtreehelper::t3>,
-  mcreatentreeVMT<mtreehelper::t4>,
-  mcreatentreeVMT<mtreehelper::t5>,
-  mcreatentreeVMT<mtreehelper::t6>,
-  mcreatentreeVMT<mtreehelper::t7>,
-  mcreatentreeVMT<mtreehelper::t8>,
-  mcreatentreeVMT<mtreehelper::t9>,
-  mcreatentreeVMT<mtreehelper::t10>,
-  mcreatentreeVMT<mtreehelper::t11>,
-  mcreatentreeVMT<mtreehelper::t12>
+  mcreatentreeVMT<mtreehelper::t1, 1>,
+  mcreatentreeVMT<mtreehelper::t2, 1>,
+  mcreatentreeVMT<mtreehelper::t3, 1>,
+  mcreatentreeVMT<mtreehelper::t4, 1>,
+  mcreatentreeVMT<mtreehelper::t5, 1>,
+  mcreatentreeVMT<mtreehelper::t6, 1>,
+  mcreatentreeVMT<mtreehelper::t7, 1>,
+  mcreatentreeVMT<mtreehelper::t8, 1>,
+  mcreatentreeVMT<mtreehelper::t9, 1>,
+  mcreatentreeVMT<mtreehelper::t10, 1>,
+  mcreatentreeVMT<mtreehelper::t11, 1>,
+  mcreatentreeVMT<mtreehelper::t12, 1>
 };
 
 OperatorSpec mcreatentreeSpec(
@@ -22341,10 +22416,12 @@ Operator mcreatentreeOp(
    12,
    mcreatentreeVM,
    mcreatentreeSelect,
-   mcreatentreeTM<false>
+   mcreatentreeTM<1>
 );
 
 /*
+Operator ~mcreatentree2~ 
+
 6.2 Value Mapping template
 
 */
@@ -22407,19 +22484,19 @@ int mcreatentree2VMT(Word* args, Word& result, int message, Word& local,
     flobused = flobused || (attr->NumOfFLOBs() > 0);
   }
   StdDistComp<T> dc(geoid);
-  NTree<MTreeEntry<T>, StdDistComp<T>, true>* tree =
-      new NTree<MTreeEntry<T>, StdDistComp<T>, true>(degree, maxLeafSize, 
-                                                     candOrder, pMethod, dc);
+  NTree<MTreeEntry<T>, StdDistComp<T>, 2>* tree =
+      new NTree<MTreeEntry<T>, StdDistComp<T>, 2>(degree, maxLeafSize, 
+                                                  candOrder, pMethod, dc);
   tree->build(contents, partitionStrategy);
 //   cout << "entries: " << tree->getNoEntries() << ", nodes: " 
 //        << tree->getNoNodes() << ", leaves: " << tree->getNoLeaves() << endl;
   size_t usedMem = tree->memSize();
   ListExpr typeList = nl->Second(qp->GetType(s));
-  MemoryNtreeObject<T, StdDistComp<T>, true>* ntree2 = 
-      new MemoryNtreeObject<T, StdDistComp<T>, true>(tree, usedMem, 
+  MemoryNtreeObject<T, StdDistComp<T>, 2>* ntree2 = 
+      new MemoryNtreeObject<T, StdDistComp<T>, 2>(tree, usedMem, 
                                 nl->ToString(typeList), !flobused, getDBname());
   mtreehelper::increaseCounter("counterMCreateNTree2", 
-                         ntree2->getntree()->getDistComp().getNoDistFunCalls());
+                        ntree2->getNtreeX()->getDistComp().getNoDistFunCalls());
   res->setPointer(ntree2);
   ntree2->deleteIfAllowed();
   return 0;
@@ -22483,7 +22560,7 @@ OperatorSpec mcreatentree2Spec(
   "  * mpoint:  mp1->DistanceAvg(*mp2, geoid)\n"
   "  * cupoint: cup1->DistanceAvg(*cup2, true, geoid)\n"
   "  * cmpoint: cmp1->DistanceAvg(*cmp2, true, geoid)\n",
-  "let kinosM_ntree_GeoData =  kinosM mcreatentree[GeoData, 5, 8]"
+  "let kinosM_ntree_GeoData =  kinosM mcreatentree2[GeoData, 5, 8, 1, 0]"
 );
 
 Operator mcreatentree2Op(
@@ -22492,8 +22569,61 @@ Operator mcreatentree2Op(
    12,
    mcreatentree2VM,
    mcreatentree2Select,
-   mcreatentreeTM<true>
+   mcreatentreeTM<2>
 );
+
+/*
+Operator ~mcreatentree5~
+
+*/
+ValueMapping mcreatentree5VM[] = {
+  mcreatentreeVMT<mtreehelper::t1, 5>,
+  mcreatentreeVMT<mtreehelper::t2, 5>,
+  mcreatentreeVMT<mtreehelper::t3, 5>,
+  mcreatentreeVMT<mtreehelper::t4, 5>,
+  mcreatentreeVMT<mtreehelper::t5, 5>,
+  mcreatentreeVMT<mtreehelper::t6, 5>,
+  mcreatentreeVMT<mtreehelper::t7, 5>,
+  mcreatentreeVMT<mtreehelper::t8, 5>,
+  mcreatentreeVMT<mtreehelper::t9, 5>,
+  mcreatentreeVMT<mtreehelper::t10, 5>,
+  mcreatentreeVMT<mtreehelper::t11, 5>,
+  mcreatentreeVMT<mtreehelper::t12, 5>
+};
+
+OperatorSpec mcreatentree5Spec(
+  "MREL(tuple) x attrname x int x int [x geoid] -> , mpointer(mem(mtree X))\n",
+  "mrel mcreatemtree5[indexAttr, degree, maxLeafSize, [, geoid] ]\n",
+  "This operator creates an N-tree5 in main memory. "
+  "The first argument is a main memory relation containing the "
+  "tuples to be indexed. The second argument refers to the attribute "
+  "over that the index is built. The next two arguments represent the degree of"
+  " the tree and and maximum number of entries in a leaf.\n"
+  "The last argument is optional. It must be of type geoid and "
+  "can only be used if the index-attribute is of type point, mpoint, cupoint, "
+  "or cmpoint. If this argument is present, the distance between two objects "
+  "is computed as geographic distance on this geoid instead of using the "
+  "Euclidean distance.\n In detail, the following types are supported:\n\n"
+  "  * point:   p1->Distance(*p2, geoid)\n"
+  "  * string:  stringutils::ld->(s1->GetValue(), s2->GetValue())\n"
+  "  * int:     abs(i1->GetValue() - i2->GetValue())\n"
+  "  * real:    abs(r1->GetValue() - r2->GetValue())\n"
+  "  * rect<d>: r1->Distance(*r2)\n"
+  "  * mpoint:  mp1->DistanceAvg(*mp2, geoid)\n"
+  "  * cupoint: cup1->DistanceAvg(*cup2, true, geoid)\n"
+  "  * cmpoint: cmp1->DistanceAvg(*cmp2, true, geoid)\n",
+  "let kinosM_ntree_GeoData =  kinosM mcreatentree5[GeoData, 5, 8]"
+);
+
+Operator mcreatentree5Op(
+   "mcreatentree5",
+   mcreatentree5Spec.getStr(),
+   12,
+   mcreatentree5VM,
+   mcreatentreeSelect,
+   mcreatentreeTM<5>
+);
+
 
 /*
 23 Algebra Definition
@@ -22574,6 +22704,7 @@ class MainMemory2Algebra : public Algebra {
           AddOperator(&mdistRangeOp);
           AddOperator(&mdistRangeNOp);
           AddOperator(&mdistRangeN2Op);
+          AddOperator(&mdistRangeN5Op);
 
           AddOperator(&mdistScanOp);
 
@@ -22586,8 +22717,8 @@ class MainMemory2Algebra : public Algebra {
           AddOperator(&gettuplesOp);
           
           AddOperator(&mcreatentreeOp);
-          
           AddOperator(&mcreatentree2Op);
+          AddOperator(&mcreatentree5Op);
           
   ////////////////////// MainMemory2Algebra////////////////////////////
           

@@ -773,29 +773,29 @@ class MemoryMtreeObject : public MemoryObject {
         };
 };
 
-template <class T, class DistComp, bool opt> // false: N-tree. true: N-tree2
+template <class T, class DistComp, int variant>
 class MemoryNtreeObject : public MemoryObject {
 
  public:
   typedef std::pair<T, TupleId> treeentry_t;
-  typedef NTree<MTreeEntry<T>, DistComp, opt> tree_t;
+  typedef NTree<MTreeEntry<T>, DistComp, variant> tree_t;
 
-  MemoryNtreeObject(tree_t* _ntree, size_t _memSize, 
+  MemoryNtreeObject(tree_t* _ntreeX, size_t _memSize, 
                     const std::string& _objectTypeExpr, bool _flob, 
                     const std::string& _database) {
-    ntree = _ntree;
+    ntreeX = _ntreeX;
     memSize = _memSize;
     objectTypeExpr =_objectTypeExpr;
     flob = _flob;
     database = _database;
   };
 
-  tree_t* getntree() {
-    return ntree;
+  tree_t* getNtreeX() {
+    return ntreeX;
   };
 
   static std::string BasicType() {
-    return (opt ? "ntree2" : "ntree");
+    return "ntree" + (variant > 1 ? std::to_string(variant) : "");
   }
 
   static bool checkType(ListExpr list) {
@@ -809,19 +809,19 @@ class MemoryNtreeObject : public MemoryObject {
   }
     
   MemoryObject* clone() {
-    return new MemoryNtreeObject<T, DistComp, opt>(ntree->clone(), memSize, 
-                                                objectTypeExpr, flob, database);
+    return new MemoryNtreeObject<T, DistComp, variant>(ntreeX->clone(), 
+                                       memSize, objectTypeExpr, flob, database);
   }
 
 
  private:
-  tree_t* ntree;
+  tree_t* ntreeX;
   MemoryNtreeObject();
   
  protected:
   ~MemoryNtreeObject() {
-    if (ntree) {
-      delete ntree;
+    if (ntreeX) {
+      delete ntreeX;
     }
   };
 };
