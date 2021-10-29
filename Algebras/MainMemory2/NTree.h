@@ -63,6 +63,10 @@ struct PosDistPair {
   bool operator<(const PosDistPair& pdp) {
     return distEuclid < pdp.distEuclid;
   }
+ 
+  friend bool operator<(const PosDistPair& pair1, const PosDistPair& pair2) {
+    return pair1.distEuclid < pair2.distEuclid;
+  }
   
   static double dist2d(const std::pair<double, double>& v1,
                        const std::pair<double, double>& v2) {
