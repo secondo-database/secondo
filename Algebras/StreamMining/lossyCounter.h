@@ -38,7 +38,7 @@ namespace eschbach {
     class lossyCounter
 {
   public:
-  lossyCounter(const float epsilon);
+  lossyCounter(const double epsilon);
   ~lossyCounter() {}
 
 
@@ -46,14 +46,14 @@ namespace eschbach {
   void setDefined(bool value); 
   bool getDefined(); 
   int getEleCounter(); 
-  float getEpsilon(); 
+  double getEpsilon(); 
   long getCurrentWindowIndex();
   int getWindowSize();
   T getElement(int index);
   std::unordered_map<T, counterPair<T>> getFrequencyList();
 
   //Auxiliary Functions
-  void initialize(const float epsilon);
+  void initialize(const double epsilon);
   void incrCount(T element); 
   void addElement(T element);
   void insertElement(T element);
@@ -66,7 +66,7 @@ namespace eschbach {
   private:
     lossyCounter() {}
     bool defined;
-    float epsilon; 
+    double epsilon; 
     size_t eleCounter; 
     int windowSize; 
     long windowIndex;

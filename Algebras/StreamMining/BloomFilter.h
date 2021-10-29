@@ -63,6 +63,7 @@ namespace eschbach {
   size_t optimalSize (const long maxInserts, const double fPProb);
   long optimalHashes (const long maxInserts, const long filterSize);
   void updateFilterValues(); 
+  size_t Sizeof() const;
 
   //Support Functions
   static Word     In( const ListExpr typeInfo, const ListExpr instance,
@@ -107,7 +108,7 @@ namespace eschbach {
     friend struct  ConstructorFunctions<ScalableBloomFilter>;
 
     //Constants for Filter Creation
-    int DEFAULT_SIZE= 64;
+    int DEFAULT_SIZE= 4096;
     int GROWTH_RATE = 2; 
     double TIGHTENING_RATIO = 0.8;
     

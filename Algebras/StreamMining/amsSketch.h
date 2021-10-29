@@ -35,7 +35,7 @@ namespace eschbach {
     class amsSketch
 {
   public:
-  amsSketch(const float epsilon, const float delta);
+  amsSketch(const double epsilon, const double delta);
   amsSketch(const amsSketch& rhs);
   ~amsSketch() {}
 
@@ -44,8 +44,8 @@ namespace eschbach {
   bool getDefined();
   size_t getWidth();
   size_t getDepth();
-  float getEpsilon();
-  float getDelta();
+  double getEpsilon();
+  double getDelta();
   size_t getTotalCount();
   int getElement(int counterNumber, int elementIndex);
   void updateElement(int counterNumber, int elementIndex, int value);
@@ -64,17 +64,17 @@ namespace eschbach {
   std::vector<std::vector<int>> getMatrix();
 
   //Auxiliary Functions
-  void initialize(const float epsilon, const float delta);
+  void initialize(const double epsilon, const double delta);
   void generateConstants(int index);
   void generateFwConstants(int index);
   void changeWeight(size_t value);
-  float estimateInnerProduct();
+  int estimateInnerProduct();
 
   void swap(int* a, int* b);
   int partition(int arr[], int l, int r);
   int randomPartition(int arr[], int l, int r);
   void medianDecider(int arr[], int l, int r, int k, int& a, int& b);
-  int findMedian(int arr[]);
+  int findMedian(int arr[], int size);
 
   //Support Functions
   static Word     In( const ListExpr typeInfo, const ListExpr instance,
@@ -116,8 +116,8 @@ namespace eschbach {
     amsSketch() {}
     friend struct ConstructorFunctions<amsSketch>;
     bool defined;
-    float eps;
-    float delta; 
+    double eps;
+    double delta; 
     size_t width;
     size_t depth;
     size_t totalCount;

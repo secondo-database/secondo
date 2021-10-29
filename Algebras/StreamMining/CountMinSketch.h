@@ -35,7 +35,7 @@ namespace eschbach {
     class CountMinSketch
 {
   public:
-  CountMinSketch(const float epsilon, const float delta);
+  CountMinSketch(const double epsilon, const double delta);
   CountMinSketch(const CountMinSketch& rhs);
   ~CountMinSketch() {}
 
@@ -44,9 +44,10 @@ namespace eschbach {
   bool getDefined();
   size_t getWidth();
   size_t getDepth();
-  float getEpsilon();
-  float getDelta();
+  double getEpsilon();
+  double getDelta();
   size_t getTotalCount();
+  void setTotalCount(size_t count);
   int getElement(int counterNumber, int elementIndex);
   void setElement(int counterNumber, int elementIndex, int value);
   long getConstantA(int index);
@@ -56,7 +57,7 @@ namespace eschbach {
   std::vector<std::vector<int>> getMatrix();
 
   //Auxiliary Functions
-  void initialize(const float epsilon, const float delta);
+  void initialize(const double epsilon, const double delta);
   void generateConstants(int index);
   void increaseCount(long hashedEleValue);
   int estimateFrequency(long hashedEleValue);

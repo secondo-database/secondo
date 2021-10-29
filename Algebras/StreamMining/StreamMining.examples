@@ -87,3 +87,99 @@ Number   : 14
 Signature: int x int -> stream(string) 
 Example  : query stringgen(1000,12) count
 Result   : 1000
+
+Operator : intgen
+Number   : 15
+Signature: int x int -> stream(int) 
+Example  : query intgen(1000) count
+Result   : 1000
+
+Operator : realgen
+Number   : 16
+Signature: int x real x real x int -> stream(real) 
+Example  : query realgen(1000,1.0,2.0) count
+Result   : 1000
+
+Operator : massquerybloom
+Number   : 17
+Signature: Stream(T) x bloomfilter x ATTR -> stream(T),
+Example  : query intstream(1,100) massquerybloom[(intstream(1,100) createbloomfilter[Elem,0.01]), Elem] count 
+Result   : 0
+
+Operator : inttuplegen
+Number   : 18
+Signature: int -> Stream(T(Elem int)),
+Example  : query inttuplegen(100) count 
+Result   : 100
+
+Operator : stringtuplegen
+Number   : 19
+Signature: int x int -> Stream(T(Elem string)),
+Example  : query stringtuplegen(100,10) count 
+Result   : 100
+
+Operator : bloomfalsepositive
+Number   : 29
+Signature: Bloomfilterx int x int x int -> int,
+Example  : query bloomfalsepositive(inttuplegen(10000) createbloomfilter[Elem,0.1], 10000, 1, 1) count 
+Result   : 10000
+
+Operator : geometricdist
+Number   : 21
+Signature: int x real -> Stream(int),
+Example  : query geometricdist(10000, 0.3) count
+Result   : 10000
+
+Operator : uniformdist
+Number   : 22
+Signature: int x int x real -> Stream(int),
+Example  : query uniformdist(10000, 1, 100) count
+Result   : 10000
+
+Operator : normaldist
+Number   : 23
+Signature: int x int x int -> Stream(int),
+Example  : query uniformdist(10000, 0, 1) count
+Result   : 10000
+
+Operator : normaldistreal
+Number   : 24
+Signature: int x int x int -> Stream(real),
+Example  : query uniformdist(10000, 0, 1) count
+Result   : 10000
+
+Operator : distinctcount
+Number   : 25
+Signature: Stream(T) x ATTR -> Stream(T(ATTR Value, ATTR Frequency))"
+Example  : query Kinos feed distinctcount[Name] count
+Result   : 83
+
+Operator : cmsoverreport
+Number   : 26
+Signature: Stream(T) x countminsketch x ATTR -> stream(T),
+Example  : query intstream(1,100) cmsoverreport[(intstream(1,100) createbloomfilter[Elem,0.01]), Elem] count 
+Result   : 0
+
+Operator : switchingdist
+Number   : 27
+Signature: int x int x int xreal -> Stream(int),
+Example  : query switchingdist(100,0,1,0.3) count 
+Result   : 100
+
+Operator : samplegen
+Number   : 28
+Signature: int x int -> Stream(int),
+Example  : query switchingdist(100,10) count 
+Result   : 100
+
+Operator : lossycompare
+Number   : 29
+Signature: Stream(T) x Stream(T) x int x real x real-> Stream(T),
+Example  : query intstream(1,100) createlossycounter[Elem,0.1] intstream(1,100) createlossycounter[Elem,0.1] lossycompare(100,0.01,0.02) count
+Result   : 100
+
+Operator : empiricaldist
+Number   : 30
+Signature: Stream(T) x int -> Stream((Value T f_n(T)),
+Example  : query intstream(1,100) feed empiricaldist[100] count
+Result   : 100

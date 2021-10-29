@@ -44,3 +44,35 @@ operator streamcluster alias CLUSTER pattern _op[_,_,_]
 operator pointgen alias POINTGEN pattern op(_)
 
 operator stringgen alias STRINGGEN pattern op(_,_)
+
+operator intgen alias INTGEN pattern op(_,_)
+
+operator realgen alias REALGEN pattern op(_,_,_,_)
+
+operator massquerybloom alias MASSBLOOM pattern _op[_,_]
+
+operator inttuplegen alias INTTUPLEGEN pattern op(_)
+
+operator stringtuplegen alias STRINGTUPLEGEN pattern op(_,_)
+
+operator bloomfalsepositive alias BLOOMFALSEPOSITIVE pattern op(_,_,_,_)
+
+operator geometricdist alias GEOMETRICDIST pattern op(_,_)
+
+operator uniformdist alias UNIFORMDIST pattern op(_,_,_)
+
+operator normaldist alias NORMALDIST pattern op (_,_,_)
+
+operator normaldistreal alias NORMALDISTREAL pattern op (_,_,_)
+
+operator distinctcount alias DISTINCTCOUNT pattern _op[_]
+
+operator cmsoverreport alias CMSOVERREPORT pattern _op[_,_]
+
+operator switchingdist alias SWITCHINGDIST pattern op(_,_,_,_)
+
+operator samplegen alias SAMPLEGEN pattern op(_,_)
+
+operator lossycompare alias LOSSYCOMPARE pattern _ _op[_,_,_]
+
+operator empiricaldist alias EMPIRICALDIST pattern _op[_]
