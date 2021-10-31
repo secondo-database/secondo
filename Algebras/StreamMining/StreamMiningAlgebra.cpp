@@ -27,25 +27,13 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 [1] Stream Mining Algebra
 
-October 2021, T. Eschbach implemented this Algebra as part of his Bachelor Thesis
+November 2021, Eschbach, Tobias implemented this Algebra as part of his Bachelor Thesis
 
 
 0 Overview 
 
-This algebra can be used to apply different Datamining techniques to Streams. 
-It provides the following operators:
+This algebra includes several different Operators for Streammining techniques. 
 
-  * reservoir: stream x int x real [->] (stream)
-    Creates a reservoir sample of size int for a stream
-
-  * createbloomfilter: stream(tuple(X)) x ATTR x real ->  bloomfilter
-    Creates a Bloomfilter for a Stream with maximum error probability float and size int.  
-
-  * bloomcontains: bloomfilter x T [->] bool
-    Checks whether the provided Argument of Type T is present in the filter
-  
-  * createcountmin: stream(tuple(X)) x ATTR x real x real -> countmin
-    Creates a Count-Min Sketch for a given Stream
 
 1 Preliminaries
 
@@ -124,13 +112,24 @@ ScalableBloomFilter::ScalableBloomFilter
 (const double inputFP) {
   defined = true;
   currentInserts = 0;
+  //We start with only 1 subfilter, with index 0
+  //this is the filter we will use until it is full
   curFilterIndex = 0;
   falsePositiveProbability = inputFP; 
+  //rolling false positive probability is only updated
+  //with the tightening ratio, after a new subfilter
+  //gets inserted
   rollingFP = inputFP;
   
   //Start out with a smaller filter, so not too much space is wasted
   maxInserts = DEFAULT_SIZE;
+  //calculate the necessary number of bits to achieve our FP 
+  //Which depends on the amount of elements the filter is
+  //designed for (4096 statically in our case)
   filterSize = optimalSize(maxInserts, inputFP);
+  //Calculate the necessary number of hashfunctions to guarantee
+  //our false positive probaiblity, considering the number of bits
+  //in our subfilter and the number of inserts it was made for
   numHashfunctions = optimalHashes(maxInserts, filterSize);
 
   //initialize the vector with as many bits as you expect entries; 
@@ -337,6 +336,7 @@ ScalableBloomFilter::updateFilterValues() {
   maxInserts *= GROWTH_RATE;
   //Inserts start by 0 again for the new subfilter
   currentInserts = 0; 
+  //Rolling is fp*tightening ration for every subsequent filter
   rollingFP *= TIGHTENING_RATIO;
   filterSize = optimalSize(maxInserts,rollingFP);
   numHashfunctions = optimalHashes(maxInserts, filterSize);
@@ -392,14 +392,24 @@ ScalableBloomFilter::Delete( const ListExpr typeInfo, Word& w )
 
 bool
 ScalableBloomFilter::Open(SmiRecord& valueRecord, size_t& offset, 
-                         const ListExpr typeInfo, Word& value) 
+                        const ListExpr typeInfo, Word& value) 
 {  
+  //The false positive probability of first subfilter of the bloomfilter we open
   double fp;
+  //The number of elements the first subfilter was created for (always the same)
   size_t maxInserts = 4096;
+  //The size (could also be calculated)
   size_t subFilterSize;
+  //The overall number of subfilters of the bloomfilter we saved
   int nbrSubFilters;
+  //The number of Hashfunctions a subfilter of the Filter we saved
+  //uses
   int nbrHashFunctions;
+  //Storage so that we can assign the correct number of hashfunctions
+  //to each subfilter
   vector<int> hashFunctionsPerFilter;
+  //Storage for subfilter values if subfilter index is > 0 
+  //Direct insertions are not feasible then
   vector<bool> insertionVector;
   bool filterElement;
 
@@ -435,7 +445,8 @@ ScalableBloomFilter::Open(SmiRecord& valueRecord, size_t& offset,
   openBloom -> getFilterHashes().reserve(hashFunctionsPerFilter.size());
   openBloom -> setFilterHashes(hashFunctionsPerFilter);
    
-  //Read the values of the first saved subfilter
+  //Read the values of the first saved subfilter into the subfilter
+  //the new instance has, because of its creation
   subFilterSize=openBloom->optimalSize(maxInserts, fp);
   for (size_t j = 0; j < subFilterSize; j++) {
     ok = ok && valueRecord.Read (&filterElement, sizeof(bool), offset);
@@ -447,9 +458,14 @@ ScalableBloomFilter::Open(SmiRecord& valueRecord, size_t& offset,
   fp *= 0.8;
   maxInserts*=2;
 
-  //Read the values of the following subfilters
+  //Read the values of the following subfilters into the provided
+  //vector<bool> and insert the whole new vector at once. 
+  //Reading the values by the method used for the first filter
+  //results in a crash
   for (int i = 1;  i < nbrSubFilters; i++) {
     subFilterSize=openBloom->optimalSize(maxInserts, fp);
+    //Reserve space to speed up the creation at least a little
+    //it is way too slow as is
     insertionVector.reserve(subFilterSize);
     
     for (size_t j = 0; j < subFilterSize; j++) {
@@ -480,9 +496,12 @@ ScalableBloomFilter::Save(SmiRecord & valueRecord , size_t & offset ,
 const ListExpr typeInfo , Word & value) {
   ScalableBloomFilter* bloomFilter = static_cast<ScalableBloomFilter*>
                                     (value.addr);
-  
+  //Save the False Positive Probablity we gave as argument
+  //during filter creation
   double fp = bloomFilter->getFP();
+  //Storing the number of subfilters the Bloomfilter has 
   int nbrSubFilters = bloomFilter->getFilterList().size();
+  //Storage fo the amount of Hashfunctions assigned to each subfilter
   vector<int> hashfunctionsPerFilter = bloomFilter -> getFilterHashes();
 
   bool ok = valueRecord.Write(&fp, sizeof(double), offset);
@@ -604,7 +623,11 @@ CountMinSketch::CountMinSketch
   defined = true;
   eps = epsilon;
   this->delta = delta;
+  //Calculate the width of our matrix, according to the
+  //formulate provided in the literature 
   width = ceil(exp(1)/eps);
+  //Calculate the depth of our matrix according to the 
+  //formula provided in the litearture
   depth = ceil(log(1/delta));
   //This matrix could be made into an array
   //should be better re: memory consumption
@@ -748,6 +771,8 @@ CountMinSketch::generateConstants(int index) {
   setConstants(index, a, b);
 }
 
+//Increasing an items count always happens 
+//at its hashed index
 void 
 CountMinSketch::increaseCount(long hashedEleValue) {
 
@@ -765,6 +790,8 @@ CountMinSketch::increaseCount(long hashedEleValue) {
   }
 }
 
+//The smallest value the CMS saved for an element is 
+//the count we retrieve
 int 
 CountMinSketch::estimateFrequency(long hashedEleValue) {
   int minVal;
@@ -780,6 +807,8 @@ CountMinSketch::estimateFrequency(long hashedEleValue) {
   //Assume that the first value is the amount of times the item appeared
   minVal = getElement(0, hashedIndex);
 
+  //loop through the rest of the values. If any is smaller than the current
+  //smallest observed, that becomes the new minimum
   for (size_t i = 1; i < depth; i++) {
     a = getConstantA(i);
     b = getConstantB(i);
@@ -836,14 +865,25 @@ CountMinSketch::Delete( const ListExpr typeInfo, Word& w )
 bool
 CountMinSketch::Open(SmiRecord& valueRecord, size_t& offset, 
                          const ListExpr typeInfo, Word& value) 
-{  
+{ 
+  //Retrieve the epsilon value used 
   double epsilon;
+  //Retrieve the delta 
   double delta; 
+  //Retrieve the width (even though) this could
+  //be calculated from epsilon
   size_t width;
+  //Retrieve the width (even though) this could
+  //be calculated from delta
   size_t depth;
+  //Retrieve the totalEleCount, so that we can 
+  //control whether the error guarantees are fulfilled
+  //When opening a saved filter
   size_t totalEleCount;
+  //Retrieve the constants of the hashfuncion for a row
   long constantA;
   long constantB;
+  //Retrieve he actual count in a row that the CMS had saved
   int counterEle;
 
   bool ok = valueRecord.Read (&epsilon, sizeof(double), offset);
@@ -902,14 +942,21 @@ CountMinSketch::Save(SmiRecord & valueRecord , size_t & offset ,
 const ListExpr typeInfo , Word & value) {
   CountMinSketch* cms = static_cast<CountMinSketch*>
                                     (value.addr);
-
+                                    
+  //storage for the epsilon value our created CMS had 
   double epsilon = cms->getEpsilon();
+  //storage for the delta value our created CMS had 
   double delta = cms -> getDelta();
+  //storage for the width our CMS had (could be calculated)
   size_t width = cms -> getWidth();
+  //storage for the depth our CMS had (could be calculated)
   size_t depth = cms -> getDepth();
+  //storage for the elements the CMS has processed
   size_t totalEleCount = cms -> getTotalCount();   
+  //storage for the hashconstants for each row
   long hashConstantA;
   long hashConstantB;
+  //storage for the counter values for every row
   int counterEle;
                          
   bool ok = valueRecord.Write(&epsilon, sizeof(double), offset);
@@ -1019,8 +1066,11 @@ amsSketch::amsSketch
   //The width of the matrix has to be initialized differently
   //in comparison with the CMS
   width = ceil(1/pow(eps,2));
+  //The depth is initalized the same way
   depth = ceil(log(1/delta));
   
+  //Resizing so that no memory reallocations 
+  //are necessary later on
   matrix.resize(depth);
   for (size_t i = 0; i < depth; i++) {
     matrix[i].resize(width);
@@ -1310,8 +1360,11 @@ amsSketch::findMedian(int medianArray[], int arraySize) {
 void 
 amsSketch::changeWeight(size_t value) {
   totalCount++;
+  //index of the hashed element
   int hashIndex;
+  //value gained from the 4-wise independent hash of the row
   int updateValue;
+  //Two-wise and Four-wise constants of the row
   long twa, twb ,fwa, fwb, fwc, fwd;
 
   //Extraction of the constants for the Hashfunctions for each (ith) row
@@ -1337,9 +1390,14 @@ amsSketch::changeWeight(size_t value) {
 //Function to calculate the self-join size of the monitored stream
 int 
 amsSketch::estimateInnerProduct() {
+  //Array used to gather the sums of squares of the values
+  //and sort it afterwards to gain the value
   int medianArray[depth]; 
+  //output
   int joinSize;
+  //used to insert the sums into the array
   int sum = 0;
+  //variable used to save arraysize gathered by pointer arithmetic
   int arraySize;
 
   //Calculate the sum of the squares of all row Elements for each row
@@ -1410,6 +1468,9 @@ amsSketch::Open(SmiRecord& valueRecord, size_t& offset,
   double delta; 
   size_t width;
   size_t depth;
+  //The Only difference to the CMS storage is the 
+  //additional variables for the 4-wise 
+  //hashing constants
   long constantTwA, constantTwB, constantFwA, 
       constantFwB, constantFwC, constantFwD;
   int counterEle;
@@ -1475,6 +1536,8 @@ const ListExpr typeInfo , Word & value) {
   double delta = ams -> getDelta();
   size_t width = ams -> getWidth();
   size_t depth = ams -> getDepth();
+  //Again the only difference to the CMS saving are the 
+  //additional 4-wise constants
   long hashConstantTwA, hashConstantTwB, hashConstantFwA, hashConstantFwB, 
       hashConstantFwC, hashConstantFwD; 
       
@@ -1587,9 +1650,13 @@ template<class T>
 lossyCounter<T>::lossyCounter
 (const double eps) {
   defined = true; 
+  //The errorbound
   epsilon = eps; 
+  //The number of Elements seen
   eleCounter = 0; 
+  //The conceptual bucket size
   windowSize = ceil(1/epsilon);
+  //Initialize the conceptual window index
   windowIndex = 1;
 }
 
@@ -1642,6 +1709,10 @@ lossyCounter<T>::initialize(const double eps) {
   eleCounter = 0; 
   windowSize = ceil(1/epsilon);
   windowIndex = 1;
+  //For some reason the Hashmap cannot be used 
+  //if i do not make this initialization
+  //The value will be removed if not elements are 
+  //counted, so this is of no consequence
   frequencyList.insert({0, counterPair(0,0,0)});
 }
 
@@ -1764,10 +1835,13 @@ counterPair<T>::counterPair
   this -> maxError = maxError;
 }
 
+//Allows us to retrive the Attribute values 
+//we are counting
 template<class T> T
 counterPair<T>::getItem() {
   return item; 
 }
+
 
 template<class T> int 
 counterPair<T>::getFrequency() {
@@ -2889,17 +2963,17 @@ streamclusterTM(ListExpr args) {
 ListExpr
 pointgenTM(ListExpr args)  {
   if(!nl->HasLength(args,2)){
-   return NList::typeError("Operator pointGen expects "
+   return NList::typeError("Operator pointgen expects "
                            "two arguments");
   }
   
   if(!listutils::isSymbol(nl->First(args), CcInt::BasicType())) {
-    return NList::typeError("Operator pointGen expects an int "
+    return NList::typeError("Operator pointgen expects an int "
                             "as first argument");
   }
 
   if(!listutils::isSymbol(nl->First(args), CcInt::BasicType())) {
-    return NList::typeError("Operator pointGen expects an int "
+    return NList::typeError("Operator pointgen expects an int "
                             "as first argument");
   }
 
@@ -3032,11 +3106,16 @@ massquerybloomTM(ListExpr args)  {
   string attrName = type.third().str();
   int attrIndex = listutils::findAttribute(attrList.listExpr(), 
                                            attrName, attrType) - 1;
-
+                                           
   if (attrIndex < 0) {
     return NList::typeError("Attribute " + attrName + " "
                             "not found in tuple");
   } 
+
+  string attributeType = nl->ToString(attrType);
+  if (nl->ToString(attrType)=="point") {
+    attributeType = "string";  
+  }
 
   outlist = 
     nl->TwoElemList(
@@ -3046,7 +3125,7 @@ massquerybloomTM(ListExpr args)  {
           nl->TwoElemList(
             nl->TwoElemList(
               nl->SymbolAtom("Value"),
-              nl->SymbolAtom(nl->SymbolValue(attrType))
+              nl->SymbolAtom(attributeType)
             ),
             nl->TwoElemList(
               nl->SymbolAtom("Found"),
@@ -3059,6 +3138,7 @@ massquerybloomTM(ListExpr args)  {
   appendList.append(NList().intAtom(attrIndex));
   appendList.append(NList().stringAtom(nl->ToString(attrType)));
 
+  cout << "In TM outlist has the form: " << nl->ToString(outlist) << endl;
   return NList(Symbols::APPEND(), appendList,
                outlist).listExpr();
 }
@@ -3722,10 +3802,12 @@ int reservoirVMT(Word* args, Word& result,
                    CcInt* reservoirSize = (CcInt*) args[1].addr;
                    CcReal* bias = (CcReal*) args[2].addr;
                    if(reservoirSize->IsDefined()){
-                      int size = reservoirSize->GetValue();
-                      double biasF = bias ->GetValue();
-                      if(size>0 && ((biasF > 0) && (biasF < 1))) {
-                        local.addr = new reservoirInfo<T>(args[0], size, biasF);
+                      if(reservoirSize->GetIntval()>0 && 
+                        ((bias->GetRealval() > 0) 
+                         && (bias->GetRealval() < 1))) {
+                        local.addr = new reservoirInfo<T>(args[0], 
+                                                  reservoirSize->GetIntval(), 
+                                                  bias->GetRealval());
                       }
                    }
                    return 0;
@@ -3857,6 +3939,9 @@ private:
   int lastOut;
   int maxFrameIndex;
   int nextFrameIndex;
+  //If this should ever be used further, without getting
+  //completely altered, this should become a vector of 
+  //Lists.
   vector<vector<T*>> reservoir;
   vector<T*> outputReservoir;
   std::chrono::time_point<std::chrono::high_resolution_clock> startTime;
@@ -4026,11 +4111,11 @@ int tiltedtimeVMT(Word* args, Word& result,
                      delete tti;
                      local.addr = 0;
                    }
-                   CcInt* reservoirSize = (CcInt*) args[1].addr;
-                   if(reservoirSize->IsDefined()){
-                      int size = reservoirSize->GetValue();
-                      if(size>0) {
-                        local.addr = new tiltedtimeInfo<T>(args[0], size);
+                   CcInt* snapLimit = (CcInt*) args[1].addr;
+                   if(snapLimit->IsDefined()){
+                      if(snapLimit->GetIntval()>0) {
+                        local.addr = new tiltedtimeInfo<T>(args[0], 
+                                                    snapLimit->GetIntval());
                       }
                    }
                    return 0;
@@ -4192,7 +4277,8 @@ int bloomcontainsVM(Word* args, Word& result,
   size_t secondoHash = searchEle->HashValue();
   size_t* hashpointer = &secondoHash; 
 
-  cout << "SecondoHash of the Searchele is in bloomcontains is : " 
+  cout << "SecondoHash of the Searchele " 
+       << searchEle <<" in bloomcontains is : " 
        << secondoHash << endl;
 
   string resultString = "The Search Element is not present in the Filter";
@@ -4548,12 +4634,12 @@ int createlossycounterVMT(Word* args, Word& result,
                    CcInt* attrIndex = (CcInt*) args[3].addr;
                    CcString* attrType = (CcString*) args[4].addr;
                    if(epsilon->IsDefined()){
-                      double error = epsilon->GetValue();
-                      int index = attrIndex -> GetValue();
-                      string type = attrType ->GetValue();
-                      if((error < 1) && (error > 0)) {
+                      if((epsilon->GetRealval() < 1) 
+                      && (epsilon->GetRealval() > 0)) {
                         local.addr = new createlossycounterInfo<T,S>(args[0], 
-                                     error, index, type);
+                                                        epsilon->GetRealval(), 
+                                                        attrIndex->GetIntval(), 
+                                                        attrType->GetValue());
                       }
                    }
                    return 0;
@@ -4757,11 +4843,12 @@ int lcfrequentVMT(Word* args, Word& result,
                   CcReal* minSupport = (CcReal*) args[1].addr;
                   CcString* attrType = (CcString*) args[2].addr;
                   if (minSupport -> IsDefined()) {
-                    double minSup = minSupport->GetValue();
-                    string type = attrType->GetValue();
-                    if ((minSup > 0) && (minSup <= 1)) {
+                    if ((minSupport->GetRealval() > 0) 
+                         && (minSupport->GetRealval() <= 1)) {
                       local.addr = new 
-                      lcFrequentInfo<T>(args[0].addr, minSup, type);
+                      lcFrequentInfo<T>(args[0].addr, 
+                                        minSupport->GetRealval(), 
+                                        attrType->GetValue());
                     }
                   }
                   return 0;
@@ -4895,7 +4982,6 @@ class outlierInfo{
         oldTuple->DeleteIfAllowed();
         while ((oldTuple = stream.request()) != nullptr) {
           S value = ((T*) oldTuple->GetAttribute(attrIndex))->GetValue();
-          updateData(value);
           if (checkData(value)) {
             newTuple = new Tuple(tupleType);
             CcInt* index = new CcInt(true, counter);
@@ -4907,6 +4993,7 @@ class outlierInfo{
           } else {
             oldTuple -> DeleteIfAllowed();
           }
+          updateData(value);
         }
       }
 
@@ -4914,7 +5001,7 @@ class outlierInfo{
       z-Score surpases our treshholds and save it if it does
       */
       bool checkData(S data) {
-        int zscore;
+        double zscore;
         //Variance can only be zero if the stream consists
         //of a single element
         if ((counter <= 2) || (variance==0)) {
@@ -4951,16 +5038,17 @@ outlierVMT(Word* args, Word& result,
                      delete outlier;
                      local.addr = 0;
                    }
+                   //z-score threshold after which items surpassing it
+                   //will be declared as outlier
                    CcInt* threshold = (CcInt*) args[2].addr;
                    CcInt* attrIndex = (CcInt*) args[3].addr;
                    CcString* attrType = (CcString*) args[4].addr;
                    if(threshold->IsDefined()){
-                      int zThreshold = threshold->GetValue();
-                      int index = attrIndex -> GetValue();
-                      string type = attrType ->GetValue();
-                      if(zThreshold>=1) {
-                        local.addr = new outlierInfo<T,S>(args[0], zThreshold, 
-                                                          index, type);
+                      if(threshold->GetIntval()>=1) {
+                        local.addr = new outlierInfo<T,S>(args[0], 
+                                            threshold->GetIntval(), 
+                                            attrIndex->GetValue(), 
+                                            attrType->GetValue());
                       }
                    }
                    return 0;
@@ -5175,21 +5263,22 @@ streamclusterVM(Word* args, Word& result,
                      delete cluster;
                      local.addr = 0;
                    }
-                   CcInt* nbrOfClusters = (CcInt*) args[2].addr;
+                   //Number of Clusters that will be generated
+                   CcInt* k = (CcInt*) args[2].addr;
                    CcInt* iterations = (CcInt*) args[3].addr;
                    CcInt* attrIndex = (CcInt*) args[4].addr;
                    CcString* attrType = (CcString*) args[5].addr;
                    //CcInt* putAttrIndex = (CcInt*) args[6].addr;
-                   if(iterations->IsDefined() && nbrOfClusters->IsDefined()){
-                      int iter = iterations->GetValue();
-                      int k = nbrOfClusters -> GetValue();
-                      int index = attrIndex -> GetValue();
+                   if(iterations->IsDefined() && k->IsDefined()){
                       //int putIndex = putAttrIndex -> GetValue();
                       string type = attrType ->GetValue();
-                      if(k>1) {
+                      if(k->GetIntval()>1) {
                         local.addr = new streamclusterInfo(args[0], 
                                      qp->GetMemorySize(s)*1024*1024*64,
-                                     index, type, k, iter);
+                                     attrIndex->GetIntval(), 
+                                     attrType->GetValue(), 
+                                     k->GetIntval(), 
+                                     iterations->GetIntval());
                       }
                    }
                    return 0;
@@ -5268,10 +5357,8 @@ pointgenVM(Word* args, Word& result,
         return CANCEL;
       } else if ( range->current <= range->last ) {
         //See struct comment
-        int x = rand() % limit; 
-        int y = rand() % limit;    
-        Point* elem = new Point(true, x, y);
-        result.addr = elem;
+        result.addr = new Point(true, rand() % limit, 
+                                      rand() % limit);
         range->current++;
         return YIELD;
       } else {
@@ -5359,12 +5446,11 @@ stringgenVM(Word* args, Word& result,
       if(strInfo){
         delete strInfo;
       }
-      CcInt* attrAmount = static_cast<CcInt*>( args[0].addr);
-      CcInt* attrLength = static_cast<CcInt*>( args[1].addr);
-      int length = attrLength -> GetIntval();
-      int amount = attrAmount -> GetIntval(); 
-      if ((amount > 0) && (length > 0)) {
-        local.addr = new stringgenInfo(amount, length);
+      CcInt* amount = static_cast<CcInt*>( args[0].addr);
+      CcInt* length = static_cast<CcInt*>( args[1].addr);
+      if ((amount->GetIntval() > 0) && (length->GetIntval() > 0)) {
+        local.addr = new stringgenInfo(amount->GetIntval(), 
+                                       length->GetIntval());
       }
       return 0;
 
@@ -5373,9 +5459,7 @@ stringgenVM(Word* args, Word& result,
       if(!strInfo) {
         return CANCEL;
       } else if (!strInfo->done()) {
-        string attr = strInfo->strGen();
-        CcString* elem = new CcString(true, attr);
-        result.addr = elem;
+        result.addr = new CcString(true, strInfo->strGen());;
         strInfo->inc();
         return YIELD;
       } else {
@@ -5442,12 +5526,12 @@ intgenVM(Word* args, Word& result,
       if(intInfo){
         delete intInfo;
       }
-      CcInt* attrAmount = static_cast<CcInt*>( args[0].addr);
-      CcInt* attrMax = static_cast<CcInt*>( args[1].addr);
-      int amount = attrAmount -> GetIntval(); 
-      int max = attrMax -> GetIntval();
-      if ((amount > 0) && (max > 0)) {
-        local.addr = new intgenInfo(amount, max);
+      CcInt* amount = static_cast<CcInt*>( args[0].addr);
+      CcInt* upperlimit = static_cast<CcInt*>( args[1].addr);
+      if ((amount -> GetIntval() > 0) && (upperlimit -> GetIntval() > 0)) {
+        local.addr = new intgenInfo(
+                                  amount -> GetIntval(),
+                                  upperlimit -> GetIntval());
       }
       return 0;
 
@@ -5502,7 +5586,7 @@ class realgenInfo{
 double draw() {
 
    double base = distr(generator);
-   //Used to ensure we get the requested amount of decimals
+  //Used to ensure we get the requested amount of decimals
    double result = round(base*factor)/factor;
    return result;
   }
@@ -5529,16 +5613,16 @@ realgenVM(Word* args, Word& result,
       if(realInfo){
         delete realInfo;
       }
-      CcInt* attrAmount = static_cast<CcInt*>( args[0].addr);
-      CcReal* attrMin = static_cast<CcReal*>( args[1].addr);
-      CcReal* attrMax = static_cast<CcReal*>( args[2].addr);
-      CcInt* attrDecimals = static_cast<CcInt*>( args[3].addr);
-      int amount = attrAmount -> GetIntval(); 
-      double min = attrMin -> GetValue();
-      double max = attrMax -> GetValue();
-      int decimals = attrDecimals->GetIntval();
-      if ((amount > 0) && (min > 0) && (max > min)) {
-        local.addr = new realgenInfo(amount, min, max, decimals);
+      CcInt* amount = static_cast<CcInt*>( args[0].addr);
+      CcReal* min = static_cast<CcReal*>( args[1].addr);
+      CcReal* max = static_cast<CcReal*>( args[2].addr);
+      CcInt* decimals = static_cast<CcInt*>( args[3].addr);
+      if ((amount->GetIntval() > 0) && (min->GetRealval() >= 0) 
+          && (max->GetRealval() > min->GetRealval())) {
+        local.addr = new realgenInfo(amount->GetIntval(), 
+                                     min->GetRealval(), 
+                                     max->GetRealval(), 
+                                     decimals->GetIntval());
       }
       return 0;
 
@@ -5585,6 +5669,15 @@ class massquerybloomInfo{
 
       stream.open();
 
+      //in case we want to check point types we need this workaround
+      //since i did not find a method to assing point values 
+      //as single value for a symbol atom
+      //Point will be represented by a string, so it can be identified
+      //for evaluation
+      if (type == "point") {
+        tempType = "point";
+        attrType ="string";
+      }
       typeList = nl->TwoElemList(
           nl->SymbolAtom(Tuple::BasicType()),
           nl->TwoElemList(
@@ -5598,7 +5691,6 @@ class massquerybloomInfo{
             )         
           )
         );
-
       SecondoCatalog* sc = SecondoSystem::GetCatalog();
       numTypeList = sc->NumericType(typeList);
       tupleType = new TupleType(numTypeList);
@@ -5626,6 +5718,7 @@ class massquerybloomInfo{
     private:
       Stream<Tuple> stream;
       string attrType;
+      string tempType;
       int attrIndex;
       int lastOut;
       ScalableBloomFilter* filter;
@@ -5675,12 +5768,26 @@ class massquerybloomInfo{
           //we only reach this, if the element is not present in any filter
           //The Element is not present and we create a new tuple
           if (i == (nbrOfFilter-1)) {
-            T* attrValue = (T*) oldTuple->GetAttribute(attrIndex);
-            attrValue->Copy();
-            newTuple->PutAttribute(0, attrValue);
-            newTuple->PutAttribute(1, new CcBool(true, false));
-            annotated.push_back(newTuple);
-            oldTuple->DeleteIfAllowed();
+            //checking point types requires a this workaround
+            if (tempType == "point") {
+              T* pointAttr = (T*) oldTuple->GetAttribute(attrIndex);
+              string coordinates = ""; 
+              double x = pointAttr->getMinX();
+              double y = pointAttr->getMaxY();
+              coordinates =std::to_string(x) + "," +std::to_string(y);
+              CcString* attrValue = new CcString();
+              newTuple->PutAttribute(0, attrValue);
+              newTuple->PutAttribute(1, new CcBool(true, false));
+              annotated.push_back(newTuple);
+              oldTuple->DeleteIfAllowed();              
+            } else {
+              T* attrValue = (T*) oldTuple->GetAttribute(attrIndex);
+              attrValue->Copy();
+              newTuple->PutAttribute(0, attrValue);
+              newTuple->PutAttribute(1, new CcBool(true, false));
+              annotated.push_back(newTuple);
+              oldTuple->DeleteIfAllowed();
+            }
           }
         }
       }
@@ -5701,15 +5808,15 @@ int massquerybloomVMT(Word* args, Word& result,
                   ScalableBloomFilter* filter = 
                   (ScalableBloomFilter*) args[1].addr;
 
-                  CcInt* attrIndex = (CcInt*) args[3].addr;
+                  CcInt* index = (CcInt*) args[3].addr;
                   CcString* attrType = (CcString*) args[4].addr;
 
                   if (filter -> getDefined()) {
-                    int index = attrIndex->GetValue();
-                    string type = attrType->GetValue();
                     local.addr = new 
-                    massquerybloomInfo<T,S>(args[0], filter,
-                                       index, type);
+                    massquerybloomInfo<T,S>(args[0], 
+                                            filter,
+                                            index->GetIntval(), 
+                                            attrType->GetValue());
                   }
                   return 0;
                 }
@@ -5731,7 +5838,8 @@ ValueMapping  massquerybloomVM[] = {
               massquerybloomVMT<CcInt,int>,
               massquerybloomVMT<CcReal,double>,
               massquerybloomVMT<CcString,string>,
-              massquerybloomVMT<CcBool,bool>
+              massquerybloomVMT<CcBool,bool>,
+              massquerybloomVMT<Point,string>
 };  
 
 // Selection Function
@@ -5750,6 +5858,9 @@ int massquerybloomSelect(ListExpr args){
     return 2;
   } else if (nl->ToString(attrType) == CcBool::BasicType()) {
     return 3;
+  } else if (nl->ToString(attrType) == Point::BasicType()) {
+    cout << "Chose Points in massqueryselect" << endl;
+    return 4;
   } else {
     return -1;
   }
@@ -5824,12 +5935,11 @@ inttuplegenVM(Word* args, Word& result,
   switch( message )
   {
     case OPEN: { // initialize the local storage
-      CcInt* i1 = (CcInt*) args[0].addr;
-      int max = i1 -> GetIntval(); 
+      CcInt* max = (CcInt*) args[0].addr;
       if(tupgen){
         delete tupgen;
       }
-      tupgen = new inttuplegenInfo(max);
+      tupgen = new inttuplegenInfo(max->GetIntval());
       local.addr = tupgen;
 
       return 0;
@@ -5937,7 +6047,6 @@ class stringtuplegenInfo{
 };
 
 int
-//A Memory Leak is present within this Operator
 stringtuplegenVM(Word* args, Word& result,
                     int message, Word& local, Supplier s)
 {
@@ -5946,16 +6055,15 @@ stringtuplegenVM(Word* args, Word& result,
 
   switch( message )
   {
-    case OPEN: { // initialize the local storage
-      CcInt* i1 = (CcInt*) args[0].addr;
-      int max = i1 -> GetIntval(); 
-      CcInt* i2 = (CcInt*) args[1].addr;
-      int length = i2 -> GetIntval(); 
+    case OPEN: { 
+      CcInt* amount = (CcInt*) args[0].addr;
+      CcInt* length = (CcInt*) args[1].addr;
 
       if(strtuplegen){
         delete strtuplegen;
       }
-      strtuplegen = new stringtuplegenInfo(max, length);
+      strtuplegen = new stringtuplegenInfo(amount->GetIntval(), 
+                                           length->GetIntval());
       local.addr = strtuplegen;
 
       return 0;
@@ -6188,12 +6296,12 @@ geometricdistVM(Word* args, Word& result,
       if(geoInfo){
         delete geoInfo;
       }
-      CcInt* attrAmount = static_cast<CcInt*>( args[0].addr);
-      CcReal* attrProb = static_cast<CcReal*>( args[1].addr);
-      int amount = attrAmount -> GetIntval(); 
-      double prob = attrProb -> GetValue();
-      if ((amount > 0) && (prob > 0 && prob < 1)) {
-        local.addr = new geometricdistInfo(amount, prob);
+      CcInt* amount = static_cast<CcInt*>( args[0].addr);
+      CcReal* probability = static_cast<CcReal*>( args[1].addr);
+      if ((amount->GetIntval() > 0) && (probability->GetRealval() > 0 
+           && probability->GetRealval() < 1)) {
+        local.addr = new geometricdistInfo(amount->GetIntval(), 
+                                           probability->GetRealval());
       }
       return 0;
     }
@@ -6272,15 +6380,15 @@ uniformdistVM(Word* args, Word& result,
       if(uniInfo){
         delete uniInfo;
       }
-      CcInt* attrAmount = static_cast<CcInt*>( args[0].addr);
-      CcInt* attrLowerL = static_cast<CcInt*>( args[1].addr);
-      CcInt* attrUpperL = static_cast<CcInt*>( args[2].addr);
-      int amount = attrAmount -> GetIntval(); 
-      int lower = attrLowerL -> GetValue();
-      int upper = attrUpperL -> GetValue();
-      if ((amount > 0) && (lower > 0 && upper <= INT32_MAX) 
-          && (lower < upper)) {
-        local.addr = new uniformdistInfo(amount, lower, upper);
+      CcInt* amount = static_cast<CcInt*>( args[0].addr);
+      CcInt* lowerlimit = static_cast<CcInt*>( args[1].addr);
+      CcInt* upperlimit = static_cast<CcInt*>( args[2].addr);
+      if ((amount->GetIntval() > 0) && (lowerlimit->GetIntval() > 0 && 
+           upperlimit->GetIntval() <= INT32_MAX) 
+          && (lowerlimit->GetIntval() < upperlimit->GetIntval())) {
+        local.addr = new uniformdistInfo(amount->GetIntval(),
+                                         lowerlimit->GetIntval(), 
+                                         upperlimit->GetIntval());
       }
       return 0;
     }
@@ -6357,16 +6465,13 @@ normaldistVM(Word* args, Word& result,
       if(normalInfo){
         delete normalInfo;
       }
-      CcInt* attrAmount = static_cast<CcInt*>( args[0].addr);
-      CcInt* attrMean = static_cast<CcInt*>( args[1].addr);
-      CcInt* attrDev = static_cast<CcInt*>( args[2].addr);
-      int amount = attrAmount -> GetIntval(); 
-      int mean = attrMean -> GetIntval();
-      int stdDev = attrDev -> GetIntval();
-      if ((amount > 0) && (stdDev >= 0)) {
-        local.addr = new normaldistInfo(amount, 
-                                        mean, 
-                                        stdDev);
+      CcInt* amount = static_cast<CcInt*>( args[0].addr);
+      CcInt* mean = static_cast<CcInt*>( args[1].addr);
+      CcInt* stdDev = static_cast<CcInt*>( args[2].addr);
+      if ((amount->GetIntval() > 0) && (stdDev->GetIntval() >= 0)) {
+        local.addr = new normaldistInfo(amount->GetIntval(),
+                                        mean->GetIntval(),
+                                        stdDev->GetIntval());
       }
       return 0;
     }
@@ -6445,16 +6550,13 @@ normaldistrealVM(Word* args, Word& result,
       if(normalInfo){
         delete normalInfo;
       }
-      CcInt* attrAmount = static_cast<CcInt*>( args[0].addr);
-      CcReal* attrMean = static_cast<CcReal*>( args[1].addr);
-      CcReal* attrDev = static_cast<CcReal*>( args[2].addr);
-      int amount = attrAmount -> GetIntval(); 
-      double mean = attrMean -> GetRealval();
-      double stdDev = attrDev -> GetRealval();
-      if ((amount > 0) && (stdDev >= 0)) {
-        local.addr = new normaldistrealInfo(amount, 
-                                        mean, 
-                                        stdDev);
+      CcInt* amount = static_cast<CcInt*>( args[0].addr);
+      CcReal* mean = static_cast<CcReal*>( args[1].addr);
+      CcReal* stdDev = static_cast<CcReal*>( args[2].addr);
+      if ((amount->GetIntval() > 0) && (stdDev->GetRealval() >= 0)) {
+        local.addr = new normaldistrealInfo(amount->GetIntval(),
+                                            mean->GetRealval(),
+                                            stdDev->GetRealval());
       }
       return 0;
     }
@@ -6582,11 +6684,11 @@ int distinctcountVMT(Word* args, Word& result,
                     delete distInfo;
                     local.addr = 0;
                   }
-                  CcInt* attrIndex = (CcInt*) args[2].addr;
-                  CcString* attrType = (CcString*) args[3].addr;
-                  int index = attrIndex -> GetIntval(); 
-                  string type = attrType -> GetValue();
-                  local.addr = new distinctcountInfo<T,S>(args[0], index, type);
+                  CcInt* index = (CcInt*) args[2].addr;
+                  CcString* type = (CcString*) args[3].addr;
+                  local.addr = new distinctcountInfo<T,S>(args[0], 
+                                                          index->GetValue(), 
+                                                          type->GetValue());
                   return 0;
     }
     case REQUEST: 
@@ -6668,8 +6770,6 @@ class cmsoverreportInfo{
             )         
           )
         );
-
-      cout << "Output in cms overreport is: " << nl->ToString(typeList) << endl;
 
       SecondoCatalog* sc = SecondoSystem::GetCatalog();
       numTypeList = sc->NumericType(typeList);
@@ -6769,19 +6869,18 @@ int cmsoverreportVMT(Word* args, Word& result,
                   CountMinSketch* cms = 
                   (CountMinSketch*) args[1].addr;
 
-                  CcInt* attrCount = (CcInt*) args[3].addr;
-                  CcReal* attrEps = (CcReal*) args[4].addr;
+                  CcInt* eleCount = (CcInt*) args[3].addr;
+                  CcReal* epsilon = (CcReal*) args[4].addr;
                   CcInt* attrIndex = (CcInt*) args[5].addr;
                   CcString* attrType = (CcString*) args[6].addr;
-
                   if (cms -> getDefined()) {
-                    int index = attrIndex->GetValue();
-                    string type = attrType->GetValue();
-                    int count = attrCount->GetValue();
-                    double eps = attrEps->GetValue();
                     local.addr = new 
-                    cmsoverreportInfo<T>(args[0], cms, count,
-                                       eps, index, type);
+                    cmsoverreportInfo<T>(args[0], 
+                                         cms, 
+                                         eleCount->GetIntval(),
+                                         epsilon->GetRealval(), 
+                                         attrIndex->GetIntval(), 
+                                         attrType->GetValue());
                   }
                   return 0;
                 }
@@ -6892,19 +6991,15 @@ switchingdistVM(Word* args, Word& result,
       if(swdinfo){
         delete swdinfo;
       }
-      CcInt* attrAmount = static_cast<CcInt*>( args[0].addr);
-      CcInt* attrMean = static_cast<CcInt*>( args[1].addr);
-      CcInt* attrDev = static_cast<CcInt*>( args[2].addr);
-      CcReal* attrSwitchPrt = static_cast<CcReal*>( args[3].addr);
-      int amount = attrAmount -> GetIntval(); 
-      int mean = attrMean -> GetIntval();
-      int stdDev = attrDev -> GetIntval();
-      double switchPct = attrSwitchPrt -> GetValue();
+      CcInt* amount = static_cast<CcInt*>( args[0].addr);
+      CcInt* mean = static_cast<CcInt*>( args[1].addr);
+      CcInt* stdDev = static_cast<CcInt*>( args[2].addr);
+      CcReal* switchpct = static_cast<CcReal*>( args[3].addr);
       if ((amount > 0) && (stdDev >= 0)) {
-        local.addr = new switchingdistInfo(amount, 
-                                        mean, 
-                                        stdDev,
-                                        switchPct);
+        local.addr = new switchingdistInfo(amount->GetIntval(),
+                                           mean->GetIntval(),
+                                           stdDev->GetIntval(),
+                                           switchpct->GetRealval());
       }
       return 0;
     }
@@ -6980,7 +7075,7 @@ class samplegenInfo{
       rolling++;
     }
     Tuple* generatedTuple = new Tuple(tupleType); 
-    CcInt* attrValue = new CcInt(true, generator());
+    CcInt* attrValue = new CcInt(true, generator() % rolling);
     CcInt* attrTimestamp = new CcInt(true, rolling);
     generatedTuple -> PutAttribute(0, attrValue);
     generatedTuple -> PutAttribute(1, attrTimestamp);
@@ -7011,13 +7106,11 @@ samplegenVM(Word* args, Word& result,
       if(sampgen){
         delete sampgen;
       }
-      CcInt* attrAmount = static_cast<CcInt*>( args[0].addr);
-      CcInt* attrInterval = static_cast<CcInt*>( args[1].addr);
-      int amount = attrAmount -> GetIntval(); 
-      int interval = attrInterval -> GetIntval();
-      if (amount > 0) {
-        local.addr = new samplegenInfo(amount, 
-                                        interval);
+      CcInt* amount = static_cast<CcInt*>( args[0].addr);
+      CcInt* interval = static_cast<CcInt*>( args[1].addr);
+      if (amount->GetIntval()> 0) {
+        local.addr = new samplegenInfo(amount->GetIntval(), 
+                                       interval->GetIntval());
       }
       return 0;
     }
@@ -7236,15 +7329,10 @@ int lossycompareVMT(Word* args, Word& result,
 
   lossycompareInfo<T,S>* lcInfo = 
     static_cast<lossycompareInfo<T,S>*>(local.addr);
-  CcInt* attrN = (CcInt*) args[2].addr;
-  CcReal* attrEps = (CcReal*) args[3].addr;
-  CcReal* attrSup = (CcReal*) args[4].addr;
-  CcString* attrType = (CcString*) args[5].addr;
-  int n = attrN ->GetValue();
-  double eps = attrEps -> GetRealval();
-  double sup = attrSup -> GetRealval();
-  string type = attrType -> GetValue();
-
+  CcInt* n = (CcInt*) args[2].addr;
+  CcReal* epsilon = (CcReal*) args[3].addr;
+  CcReal* minsup = (CcReal*) args[4].addr;
+  CcString* type = (CcString*) args[5].addr;
   switch( message )
   {
     case OPEN: {
@@ -7253,10 +7341,10 @@ int lossycompareVMT(Word* args, Word& result,
       }
         local.addr = new lossycompareInfo<T,S>(args[0], 
                                           args[1],
-                                          n,
-                                          eps,
-                                          sup,
-                                          type);
+                                          n->GetIntval(),
+                                          epsilon->GetRealval(),
+                                          minsup->GetRealval(),
+                                          type->GetValue());
     }
     case REQUEST : result.addr = lcInfo?lcInfo->next():0;
                   return result.addr?YIELD:CANCEL;
@@ -7307,12 +7395,12 @@ int lossycompareSelect(ListExpr args){
 */
 
   OperatorSpec reservoirSpec(
-    "stream(T) x int -> stream(T), T = TUPLE or T = DATA",
-    "_ reservoir [_] ",
+    "stream(T) x int x real-> stream(T), T = TUPLE or T = DATA",
+    "_ reservoir [_,_] ",
     "Creates a biased reservoir sample of a supplied stream of a given size "
     "the second argument specifies the reservoir size, the third argument " 
     " specifies the inclusion Probablity",
-    "query intstream(1,1000) reservoir[10] count"
+    "query intstream(1,1000) reservoir[10,0.7] count"
   );
 
    OperatorSpec tiltedtimeSpec(
@@ -7491,12 +7579,12 @@ int lossycompareSelect(ListExpr args){
 
   OperatorSpec bloomfalsepositiveSpec(
     "bloomfilter x int x int x int -> int",
-    "bloomfalsepositve(_,_,_)",
+    "bloomfalsepositve(_,_,_,_)",
     "Generates random int, string or point values and checks "
     "the values for membership in a provided Bloom Filter "
-    "The first argument is the amount of Elements to generate, "
-    "the second the type (1 = int, 2 = string, 3 = point) and "
-    "the last the lower limit the generated int values can take. "
+    "The second argument is the amount of Elements to generate, "
+    "the third the type (1 = int, 2 = string, 3 = point) and "
+    "the last the lower limit the generated values can take. "
     "These were used to test the p(FP) of Bloomfilters",
     "query bloomfalsepositive [<bloomfilter>, 100, 1, 10000]"
   );
@@ -7541,7 +7629,7 @@ int lossycompareSelect(ListExpr args){
   OperatorSpec distinctcountSpec(
     "Stream(T) x ATTR -> Stream(tuple(ATTR Value, ATTR Frequency))"
     "T in Int, Real, String, Bool",
-    "_ distinctcount(_)",
+    "_ distinctcount[_]",
     "Gives an accurate distinct count of the Attribute values of a "
     "set Attribute of a Tuple Stream. The second Argument provides "
     "the Attributes Name whose values should be counted",
@@ -7550,19 +7638,20 @@ int lossycompareSelect(ListExpr args){
 
   OperatorSpec cmsoverreportSpec(
     "Stream(Tuple) x countminsketch x ATTR -> stream(real)",
-    "_ cmsoverreport(_,_)",
+    "_ cmsoverreport[_,_,_,_]",
     "Compares the accurate count of elements with the one made"
     "by a CMS. The first argument has to be a Tuplestream created "
-    "via the ~distinctcount~ Operator, the second one a CMS and the "
-    "third the Attribute Name of the Element from the Stream. Since " 
-    "this is restricted to distinctcount Streams it will be Value",
+    "via the ~distinctcount~ Operator, the second one a CMS, the "
+    "third the Attribute Name of the Element from the Stream, the fourth " 
+    "the amount of items consumed to create the CMS and the fifth the "
+    "epsilon that was used. The name will always be: Value",
     "query intstream(1,100) transformstream distinctcount[Elem] "
-    "cmsoverreport[<countmin>, Value]"
+    "cmsoverreport[<countmin>, Value,10000,0.01]"
   );
 
   OperatorSpec switchingdistSpec(
     "int x int x int -> Stream(int)",
-    "normaldist(_,_,_,_)",
+    "switchingdist(_,_,_,_)",
     "Generates a uniformly distributed Stream of integer numbers, "
     "but introduces a breakpoint after a number of elements "
     "the first argument is the amount to be generated, the second "
@@ -7574,7 +7663,7 @@ int lossycompareSelect(ListExpr args){
 
   OperatorSpec samplegenSpec(
     "int x int -> Stream(int)",
-    "samplegendist(_,_)",
+    "samplegen(_,_)",
     "Generates a Stream of Tuples with timestamps, which are split into "
     "windows. Each window element contains the same timestamp. The size "
     "of the Window is user determind. The first argument determines the "
@@ -7584,14 +7673,17 @@ int lossycompareSelect(ListExpr args){
   );
 
   OperatorSpec lossycompareSpec(
-    "Stream(tuple(X int)) x Stream(T(tuple(X int))) -> Stream(tuple(X int))",
-    "_ _ lossycompare",
+    "Stream(tuple(X int)) x Stream(T(tuple(X int))) x int x real x real"
+    "-> Stream(tuple(X int)) ",
+    "_ _ lossycompare[_,_,_]",
     "Generates a Stream of Elements and the error guarantee which they " 
     "violated. Violations are coded, as 1 for a frequentElement not being "
     "in output of ~lcfrequent~, 2 for an Item being a false positive "
     "violating the errorguarantee and 3 for the Element being overcounted "
     "too much by ~lcfrequent~. Only works with streams from ~distinctcount~ "
-    "and ~lcfrequent~ being the first and second argument respectively.",
+    "and ~lcfrequent~ being the first and second argument respectively. "
+    "The third argument is the amount of Elements used in the creation of the "
+    "Streams, the fourth the used epsilon and the fifth the Minimum Support",
     "query <distinctcount rel> feed <lcfrequent rel> feed lossycompare consume"
   );
 
@@ -7738,7 +7830,7 @@ Operator realgenOp(
 Operator massquerybloomOp(
   "massquerybloom",
   massquerybloomSpec.getStr(),
-  4,
+  5,
   massquerybloomVM,
   massquerybloomSelect,
   massquerybloomTM

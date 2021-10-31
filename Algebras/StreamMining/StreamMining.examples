@@ -2,11 +2,10 @@ Sequential: Yes
 Database : berlintest
 Restore  : NO
 
-
 Operator : reservoir
 Number   : 1
-Signature: (stream(T) x int) -> stream(T)
-Example  : query intstream(1,10) reservoir[3] count
+Signature: (stream(T) x int x real) -> stream(T)
+Example  : query intstream(1,10) reservoir[3,0.8] count
 Result   : 3
 
 Operator : tiltedtime
@@ -43,17 +42,17 @@ Operator : createams
 Number   : 7
 Signature: stream(tuple(X)) x ATTR x int x real -> amssketch
 Example  : query Kinos feed createams[Name,0.01,0.1] amsestimate
-Result   : 22
+Result   : 83
 
 Operator : amsestimate
 Number   : 8
 Signature: amssketch -> real
 Example  : query Kinos feed createams[Name,0.01,0.1] amsestimate
-Result   : 22
+Result   : 83
 
 Operator : createlossycounter
 Number   : 9
-Signature: stream(tuple(X)) x ATTR x real -> lossycounter
+Signature: stream(tuple(X)) x ATTR x real -> stream(tuple(X int real int int))
 Example  : query intstream(1,100) createlossycounter[Elem,0.01] lcfrequent[0.1] count
 Result   : 0
 
@@ -65,13 +64,13 @@ Result   : 0
 
 Operator : outlier
 Number   : 11
-Signature: (stream(T) x int) -> stream(T)
-Example  : query intstream(1,100) outlier[Elem,3] count
-Result   : 100
+Signature: (stream(T) x int) -> stream(tuple(T, int))
+Example  : query intstream(1,100) transformstream outlier[Elem,3] count
+Result   : 98
 
 Operator : streamcluster
 Number   : 12
-Signature: (stream(T) x ATTR x int x int) -> stream(T)
+Signature: (stream(T) x ATTR x int x int) -> stream(tuple(int real int)
 Example  : query intstream(1,100) streamcluster[Elem,3,3] count
 Result   : 3
 
@@ -102,25 +101,25 @@ Result   : 1000
 Operator : massquerybloom
 Number   : 17
 Signature: Stream(T) x bloomfilter x ATTR -> stream(T),
-Example  : query intstream(1,100) massquerybloom[(intstream(1,100) createbloomfilter[Elem,0.01]), Elem] count 
+Example  : query intstream(1,100) transformstream massquerybloom[intstream(1,100) transformstream createbloomfilter[Elem,0.01],Elem] count;
 Result   : 0
 
 Operator : inttuplegen
 Number   : 18
-Signature: int -> Stream(T(Elem int)),
+Signature: int -> Stream(T(int)),
 Example  : query inttuplegen(100) count 
 Result   : 100
 
 Operator : stringtuplegen
 Number   : 19
-Signature: int x int -> Stream(T(Elem string)),
+Signature: int x int -> Stream(T(string)),
 Example  : query stringtuplegen(100,10) count 
 Result   : 100
 
 Operator : bloomfalsepositive
 Number   : 29
 Signature: Bloomfilterx int x int x int -> int,
-Example  : query bloomfalsepositive(inttuplegen(10000) createbloomfilter[Elem,0.1], 10000, 1, 1) count 
+Example  : query bloomfalsepositive(intstream(1,10000) transformstream createbloomfilter[Elem,0.1], 10000, 1, 1) count;
 Result   : 10000
 
 Operator : geometricdist
@@ -156,7 +155,7 @@ Result   : 83
 Operator : cmsoverreport
 Number   : 26
 Signature: Stream(T) x countminsketch x ATTR -> stream(T),
-Example  : query intstream(1,100) cmsoverreport[(intstream(1,100) createbloomfilter[Elem,0.01]), Elem, 10000,0.01] count 
+Example  : query intstream(1,100) transformstream cmsoverreport[(intstream(1,100) transformstream createcountmin[Elem,0.01,0.01]),Elem,10000,0.01] count;
 Result   : 0
 
 Operator : switchingdist
@@ -174,8 +173,8 @@ Result   : 100
 Operator : lossycompare
 Number   : 29
 Signature: Stream(T) x Stream(T) x int x real x real-> Stream(T),
-Example  : query intstream(1,100) createlossycounter[Elem,0.1] intstream(1,100) createlossycounter[Elem,0.1] lossycompare(100,0.01,0.02) count
-Result   : 100
+Example  : query intstream(1,100) transformstream createlossycounter[Elem,0.1] intstream(1,100) transformstream createlossycounter[Elem,0.005] lcfrequent[0.05] lossycompare[100,0.01,0.02] count;
+Result   : 0
 
 Operator : empiricaldist
 Number   : 30

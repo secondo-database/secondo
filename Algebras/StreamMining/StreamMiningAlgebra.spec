@@ -17,7 +17,7 @@
 #along with SECONDO; if not, write to the Free Software
 #Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-operator reservoir alias RESERVOIR pattern _ op[_]
+operator reservoir alias RESERVOIR pattern _ op[_,_]
 
 operator tiltedtime alias TILTED pattern _op[_,_]
 
@@ -74,5 +74,3 @@ operator switchingdist alias SWITCHINGDIST pattern op(_,_,_,_)
 operator samplegen alias SAMPLEGEN pattern op(_,_)
 
 operator lossycompare alias LOSSYCOMPARE pattern _ _op[_,_,_]
-
-operator empiricaldist alias EMPIRICALDIST pattern _op[_]
