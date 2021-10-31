@@ -3,7 +3,6 @@ Database : berlintest
 Restore  : NO
 
 
-
 Operator : reservoir
 Number   : 1
 Signature: (stream(T) x int) -> stream(T)
@@ -157,7 +156,7 @@ Result   : 83
 Operator : cmsoverreport
 Number   : 26
 Signature: Stream(T) x countminsketch x ATTR -> stream(T),
-Example  : query intstream(1,100) cmsoverreport[(intstream(1,100) createbloomfilter[Elem,0.01]), Elem] count 
+Example  : query intstream(1,100) cmsoverreport[(intstream(1,100) createbloomfilter[Elem,0.01]), Elem, 10000,0.01] count 
 Result   : 0
 
 Operator : switchingdist

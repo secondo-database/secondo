@@ -67,7 +67,7 @@ operator normaldistreal alias NORMALDISTREAL pattern op (_,_,_)
 
 operator distinctcount alias DISTINCTCOUNT pattern _op[_]
 
-operator cmsoverreport alias CMSOVERREPORT pattern _op[_,_]
+operator cmsoverreport alias CMSOVERREPORT pattern _op[_,_,_,_]
 
 operator switchingdist alias SWITCHINGDIST pattern op(_,_,_,_)
 

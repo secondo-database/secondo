@@ -90,7 +90,7 @@ extern NestedList* nl;
 extern QueryProcessor* qp;
 extern AlgebraManager* am;
 
-//Make sure twe are using the correct Hashing algorithm
+//Make sure that we are using the correct Hashing algorithm
 //depending on the Systemarchitecture. Only works for 
 //32/64 Bit Systems. 
 #if INTPTR_MAX == INT64_MAX
@@ -112,6 +112,14 @@ namespace eschbach {
 2.1.1 Class ~BloomFilter~
 
 */
+//Effectively the way I construct this cannot be correct
+//When the QP storage is assigned with e.g. " ScalableBloomFilter* bloomFilter 
+//= (ScalableBloomFilter*) result.addr;" the call goes to this constructor first
+//but then Create() function is called, and I have to use initialize() after. 
+//There has to be a right way to do this, but I have not figured it out. 
+//The way this is, either the assignments in initialize, or those made here
+//are superflous, but deleting either results in Problems. 
+//This is the case for every Object. 
 ScalableBloomFilter::ScalableBloomFilter
 (const double inputFP) {
   defined = true;
@@ -173,6 +181,7 @@ ScalableBloomFilter::getSubFilter(size_t index){
   return filterList[index];
 }
 
+//Implemented because of the open function
 void 
 ScalableBloomFilter::setSubFilter(vector<bool> inputSubFilter) {
   filterList.push_back(inputSubFilter);
@@ -183,6 +192,7 @@ ScalableBloomFilter::getFilterList() {
   return filterList;
 } 
 
+//Implemented because of the open function
 bool
 ScalableBloomFilter::getElement(size_t filterIndex, size_t eleIndex) const{
   return filterList[filterIndex][eleIndex];
@@ -246,29 +256,40 @@ ScalableBloomFilter::initialize(double fp) {
   ithFilterHashes.push_back(numHashfunctions);
 }
 
+//Calculate the Number of bits needed for a given FP
+//considering the Number of items we build our Filter 
+//for. This happens according to 
 size_t
 ScalableBloomFilter::optimalSize(const long expectedInserts, 
                                 const double fPProb) {
-  size_t optimalSize = -expectedInserts*log(fPProb)/ pow(log(2),2);
+  //we use the ceiling of the calculated number of bits. At worst this
+  //adds one bit to our subfilter size.
+  size_t optimalSize = ceil(-expectedInserts*log(fPProb)/ pow(log(2),2));
   if (optimalSize < 1) {
     return 1; 
   }
   return optimalSize;
 }
 
+//Calculate the number of Hashfunctions needed to guarantee our 
+//FP considering the Number of items and the calculated filter size
 long
 ScalableBloomFilter::optimalHashes(const long expectedInserts, 
                                    const long filterSize) {
   return (long) max(1, (int) round((long) filterSize/expectedInserts * log(2)));
 }
 
-
+//Akwardly constructed, should be refactored: 
+//Receives a vector of the calculated Hashvalues of an element and the
+//index of the subfilter these Hashvalues should be present in if
+//the element is actually 
 bool 
 ScalableBloomFilter::contains(vector<size_t> hashResults, 
                               int filterIndex) const {
   bool present = true;    
   if (defined) {
     for (size_t index : hashResults) {
+      //If even one bit is not set, the element can not be present
       if (!filterList[filterIndex][index]) {
         present = false;
         break;
@@ -282,29 +303,39 @@ void
 ScalableBloomFilter::add(vector<size_t> hashResults) {
   if (defined) {
   //Use this Value to determine if adding an elements Hashvalues increases
-  //the filters Fillrate 
+  //the amount of items in the filter. We do this since the filter is 
+  //constructed for a certain number of distinct items. 
   bool alreadyAdded = true;
     for (size_t eleIndex : hashResults) {
+      //Check should be superflous, but the whole class should be refactured 
+      //and time is too short to do this now.
       if ((eleIndex >= 0) && (eleIndex < filterSize)) {
+        //This sets all bits corresponding to the hashes of an element 
+        //if any were unset the bool becomes false and 
+        //we added a new distinct element
         alreadyAdded &= setElement(curFilterIndex, eleIndex, true);
       }
     }
+    //New distinct element added. Counter has to be increased
     if (!alreadyAdded) {
       currentInserts++;
     }
   }
 }
 
+//Checks if the current Filter has processed as many distinct 
+//Elements as it was constructed for
 bool
 ScalableBloomFilter::isSaturated() {
   return currentInserts >= maxInserts; 
 }
 
-// Update the parameters and add a new Subfilter to our Scalable Bloom
+// Update the parameter vaöies and add a new Subfilter to our Scalable Bloom
 void
 ScalableBloomFilter::updateFilterValues() {
   curFilterIndex++;
   maxInserts *= GROWTH_RATE;
+  //Inserts start by 0 again for the new subfilter
   currentInserts = 0; 
   rollingFP *= TIGHTENING_RATIO;
   filterSize = optimalSize(maxInserts,rollingFP);
@@ -319,6 +350,8 @@ ScalableBloomFilter::updateFilterValues() {
 
 //~In~/~Out~ Functions
 
+//As we discussed: In and Out Functions should only be dummies, since 
+//Listrepresentations of the Sketches would not make any sense
 Word
 ScalableBloomFilter::In(const ListExpr typeInfo, const ListExpr instance,
                 const int errorPos, ListExpr& errorInfo, bool& correct) {
@@ -329,14 +362,12 @@ ScalableBloomFilter::In(const ListExpr typeInfo, const ListExpr instance,
   return result;
 }
 
-//Out-Function to turn List Representation into Class Representation
-//Currently Dummy
 ListExpr
 ScalableBloomFilter::Out(ListExpr typeInfo, Word value) {
   ListExpr returnList 
            = nl -> TwoElemList(
-                    nl -> StringAtom("Bloomfilter queried successfully."),
-                    nl -> StringAtom("It does not support console output"));
+                    nl -> StringAtom("Bloomfilter operation successfull, but "),
+                    nl -> StringAtom("console output is not supported"));
 
   return returnList;
 }
@@ -372,6 +403,7 @@ ScalableBloomFilter::Open(SmiRecord& valueRecord, size_t& offset,
   vector<bool> insertionVector;
   bool filterElement;
 
+  
   bool ok = valueRecord.Read (&fp, sizeof(double), offset);
   offset += sizeof(double);
 
@@ -383,11 +415,14 @@ ScalableBloomFilter::Open(SmiRecord& valueRecord, size_t& offset,
   ok = ok && valueRecord.Read (&nbrSubFilters, sizeof(int), offset);
   offset += sizeof(int);
 
-  //reserve the amount of Subfilter we know we will have
+  //reserve the amount of Subfilters we know we will have
+  //in the FilterList
   openBloom->getFilterList().reserve(nbrSubFilters);
 
   //We will have as many "layers" of hashfunctions as filters
   hashFunctionsPerFilter.reserve(nbrSubFilters);
+
+  //See how many hashfunctions each filter uses
   for (int i = 0; i < (nbrSubFilters); i++) {
     ok = ok && valueRecord.Read(&nbrHashFunctions, sizeof(int), offset);
     hashFunctionsPerFilter.push_back(nbrHashFunctions);
@@ -399,7 +434,8 @@ ScalableBloomFilter::Open(SmiRecord& valueRecord, size_t& offset,
   openBloom -> getFilterHashes().clear();
   openBloom -> getFilterHashes().reserve(hashFunctionsPerFilter.size());
   openBloom -> setFilterHashes(hashFunctionsPerFilter);
-  
+   
+  //Read the values of the first saved subfilter
   subFilterSize=openBloom->optimalSize(maxInserts, fp);
   for (size_t j = 0; j < subFilterSize; j++) {
     ok = ok && valueRecord.Read (&filterElement, sizeof(bool), offset);
@@ -407,9 +443,11 @@ ScalableBloomFilter::Open(SmiRecord& valueRecord, size_t& offset,
     openBloom->setElement(0,j, filterElement);
   }
 
+  //Update the parameters after inserting the first subfilter
   fp *= 0.8;
   maxInserts*=2;
 
+  //Read the values of the following subfilters
   for (int i = 1;  i < nbrSubFilters; i++) {
     subFilterSize=openBloom->optimalSize(maxInserts, fp);
     insertionVector.reserve(subFilterSize);
@@ -455,6 +493,7 @@ const ListExpr typeInfo , Word & value) {
   // updateFilterValues
   ok = ok && valueRecord.Write(&nbrSubFilters, sizeof(int), offset);
   offset+=sizeof(int);
+  
 
   //Save the amount of Hashfunctions each Subfilter uses
   for (int nbr : hashfunctionsPerFilter) {
@@ -462,6 +501,9 @@ const ListExpr typeInfo , Word & value) {
     offset+=sizeof(int);
   }
 
+  //Save the subfilter Values. This method of saving is highly 
+  //ineffective. Even for just 4096 we are reading >39000 bool
+  //values. This should be changed asap.
   for (vector<bool> subFilter : bloomFilter->getFilterList()) {
     for (bool elem : subFilter) {
       ok = ok && valueRecord.Write(&elem, sizeof(bool), offset);
@@ -485,13 +527,17 @@ ScalableBloomFilter::Clone( const ListExpr typeInfo, const Word& w ) {
   return SetWord( new ScalableBloomFilter(*oldFilter));
 }
 
+//Will not return the correct size (with or without) *this
+//See below.
 int
 ScalableBloomFilter::SizeOfObj()
 {
-
   return sizeof(ScalableBloomFilter);
 }
 
+//These were attempts to get an exact measure of a Bloomfilters 
+//size before our discussion to use /usr/bin/time -f "%M" . 
+//Since it is a dynamic structure none will work anyhow. 
 size_t 
 ScalableBloomFilter::Sizeof() const {
   size_t filterSizeByte;
@@ -551,6 +597,8 @@ TypeConstructor scalableBloomFilterTC( bi, bf );
 2.1.2 Class ~CountMinSketch~
 
 */
+//Comment Re: constructor made in Bloomfilter 
+//also applies here
 CountMinSketch::CountMinSketch
 (const double epsilon, const double delta) {
   defined = true;
@@ -558,11 +606,18 @@ CountMinSketch::CountMinSketch
   this->delta = delta;
   width = ceil(exp(1)/eps);
   depth = ceil(log(1/delta));
+  //This matrix could be made into an array
+  //should be better re: memory consumption
+  //Since we are using a vector, we resize everything
+  //at the start, so that no memory reallocations will 
+  //have to happen later on. This should negate
+  //the disadvantages of the vector.
   matrix.resize(depth);
   for (size_t i = 0; i < depth; i++)
     matrix[i].resize(width);
   totalCount = 0;
 
+  //We need as many hashfunctions as we have rows. 
   hashConstants.resize(depth);
 
   for (size_t i = 0; i < depth; i++) {
@@ -671,6 +726,8 @@ CountMinSketch::initialize(double eps, double delt) {
   // set seed for the generation of constants 
   // for the choice of hashfunctions from the 
   // pairwise independent family (ax + b % p)
+  // Only called here, since initialize will
+  // always be called after the vector. 
   srand(time(NULL)+getpid());
 
   hashConstants.resize(depth);
@@ -736,8 +793,7 @@ CountMinSketch::estimateFrequency(long hashedEleValue) {
 
 //~In~/~Out~ Functions
 
-//Currently a Dummy
-//In-Function to turn List Representation into Class Representation
+//Not needed, as discussed
 Word
 CountMinSketch::In(const ListExpr typeInfo, const ListExpr instance,
                 const int errorPos, ListExpr& errorInfo, bool& correct) {
@@ -753,8 +809,8 @@ ListExpr
 CountMinSketch::Out(ListExpr typeInfo, Word value) {
   ListExpr returnList 
            = nl -> TwoElemList(
-                    nl -> StringAtom("CountMinSketch created successfully."),
-                    nl -> StringAtom("It does not support console output"));
+                    nl -> StringAtom("CMS operation successfull, "),
+                    nl -> StringAtom("but console output is not supported"));
 
   return returnList;
 }
@@ -807,8 +863,12 @@ CountMinSketch::Open(SmiRecord& valueRecord, size_t& offset,
 
   CountMinSketch* openCMS = new CountMinSketch(epsilon, delta);
 
+  //total Count is required for our estimate. 
   openCMS -> setTotalCount(totalEleCount);
 
+  //Constants are read in and stored pairwise(1 pair on each "level")
+  //of our saving vector so the allocation to the proper matrix 
+  //row is easy
   for (size_t i = 0; i < depth; i++) {
     ok = ok && valueRecord.Read (&constantA, sizeof(long), offset);
     offset+=sizeof(long); 
@@ -817,17 +877,9 @@ CountMinSketch::Open(SmiRecord& valueRecord, size_t& offset,
     openCMS->setConstants(i, constantA, constantB);
   }
 
-  int i = 0;
-  cout << "After Opening HashConstants for Counter " << i << " are: ";
-  for (vector<long> constants : openCMS -> getConstants()) {
-    for (long constant : constants) {
-      cout << constant << endl;
-    }
-    cout << endl;
-    i++;
-  }
-
-
+  //Reading the counter values is the same as with the boolfilter
+  //Needs an urgent rework; because otherwise saving the synopsis
+  //is really impractical. 
   for (size_t i = 0; i < depth; i++) {
     for (size_t j = 0; j < width; j++) {
         ok = ok && valueRecord.Read (&counterEle, sizeof(int), offset);
@@ -835,19 +887,6 @@ CountMinSketch::Open(SmiRecord& valueRecord, size_t& offset,
         openCMS -> setElement(i,j,counterEle);
     }
   }
-
-  i = 0;
-  for (vector <int> counter : openCMS -> getMatrix()) {
-    cout << "After Opening Counter Number " << i 
-         << " has the following elements: " << endl;;
-    for (int count : counter) {
-      cout << count;
-    }
-    cout << endl;
-    cout << endl;
-    i++;
-  }
-
 
   if (ok) {
     value.addr = openCMS;
@@ -857,7 +896,7 @@ CountMinSketch::Open(SmiRecord& valueRecord, size_t& offset,
   return true;
 } 
 
-
+//Saving is exactly identical to Bloom
 bool 
 CountMinSketch::Save(SmiRecord & valueRecord , size_t & offset ,
 const ListExpr typeInfo , Word & value) {
@@ -873,7 +912,6 @@ const ListExpr typeInfo , Word & value) {
   long hashConstantB;
   int counterEle;
                          
-
   bool ok = valueRecord.Write(&epsilon, sizeof(double), offset);
   offset+=sizeof(double);
 
@@ -969,11 +1007,17 @@ TypeConstructor countMinSketchTC( ci, cf );
 2.1.3 Class ~amsSketch~
 
 */
+//Previous comments re: Constructor also apply here. 
+//Constructor is identical to CMS constructor except
+//for the generation of fourwise independent hashing
+//constants.
 amsSketch::amsSketch
 (const double epsilon, const double delta) {
   defined = true;
   eps = epsilon;
   this->delta = delta;
+  //The width of the matrix has to be initialized differently
+  //in comparison with the CMS
   width = ceil(1/pow(eps,2));
   depth = ceil(log(1/delta));
   
@@ -991,7 +1035,6 @@ amsSketch::amsSketch
   // The only difference between CMS and AMS is the
   // requirement for a 4-wise independent Hashfamily
   // the constants required are saved here
-  
   fwConstants.resize(depth);
   for (size_t i = 0; i < depth; i++) {
     fwConstants[i].resize(4);
@@ -1163,7 +1206,8 @@ amsSketch::generateFwConstants(int index) {
 }
 
 // Auxiliary function in the determination of the median of 
-// squared sums of row values
+// squared sums of row values. Swaps the two elements 
+//so that we receive a furhter sorted array
 void 
 amsSketch::swap(int* a, int* b)
 {
@@ -1172,80 +1216,86 @@ amsSketch::swap(int* a, int* b)
     *b = temp;
 }
 
+//Sort the array according to the pivot
 int 
-amsSketch::partition(int arr[], int l, int r)
+amsSketch::partition(int arr[], int lIndex, int rIndex)
 {
-    int lst = arr[r];
-    int i = l;
-    int j = l;
-    while (j < r) {
+    int lst = arr[rIndex];
+    int i = lIndex;
+    int j = lIndex;
+    while (j < rIndex) {
         if (arr[j] < lst) {
             swap(&arr[i], &arr[j]);
             i++;
         }
         j++;
     }
-    swap(&arr[i], &arr[r]);
+    swap(&arr[i], &arr[rIndex]);
     return i;
 }
 
 int 
-amsSketch::randomPartition(int arr[], int l, int r)
+amsSketch::randomPartition(int arr[], int lIndex, int rIndex)
 {
-    int n = r - l + 1;
+    int n = rIndex - lIndex + 1;
     int pivot = rand() % n;
-    swap(&arr[l + pivot], &arr[r]);
-    return partition(arr, l, r);
+    swap(&arr[lIndex + pivot], &arr[rIndex]);
+    return partition(arr, lIndex, rIndex);
 }
 
+//Implementation of quickselect to sort the array and find the median
 void
-amsSketch::medianDecider(int arr[], int l, int r, int k, int& a, int& b) {
-  // if l < r
-    if (l <= r) {
-        // Find the partition index
-        int partitionIndex = randomPartition(arr, l, r);
+amsSketch::medianDecider(int arr[], int lIndex, int rIndex, 
+                         int mIndex, int& a, int& b) {
+  // if lIndex < mIndex
+    if (lIndex <= rIndex) {
+        // Find the pivotElement index
+        int partitionIndex = randomPartition(arr, lIndex, rIndex);
  
-        // If partion index = k, then
+        // If partion index = mIndex, then
         // we found the median of odd
         // number element in medianArray[]
-        if (partitionIndex == k) {
+        if (partitionIndex == mIndex) {
             b = arr[partitionIndex];
             if (a != -1)
                 return;
         }
  
-        // If index = k - 1, then we get
+        // If index = mIndex - 1, then we get
         // a & b as middle element of
         // medianArray[]
-        else if (partitionIndex == k - 1) {
+        else if (partitionIndex == mIndex - 1) {
             a = arr[partitionIndex];
             if (b != -1)
                 return;
         }
  
-        // If partitionIndex >= k then
+        // If partitionIndex >= mIndex then
         // find the index in first half
         // of the medianArray[]
-        if (partitionIndex >= k)
-            return medianDecider(arr, l, partitionIndex - 1,
-                              k, a, b);
+        if (partitionIndex >= mIndex)
+            return medianDecider(arr, lIndex, partitionIndex - 1,
+                              mIndex, a, b);
  
         // If partitionIndex <= k then
         // find the index in second half
         // of the medianArray[]
         else
           return medianDecider(arr, partitionIndex + 1,
-                              r, k, a, b);
+                              rIndex, mIndex, a, b);
     }
     return;
 }
 
+//function used to find the median of the sum of squares array we build
 int
 amsSketch::findMedian(int medianArray[], int arraySize) {
   int a = -1;
   int b = -1;
   int median;
 
+  //Median position differs between arrays with an uneven vs even
+  //amount of elements.
   if (arraySize % 2 == 1) {
     medianDecider(medianArray, 0, arraySize - 1, arraySize / 2, a, b);
     median = b;
@@ -1256,6 +1306,7 @@ amsSketch::findMedian(int medianArray[], int arraySize) {
   return median;
 }
 
+//Function used to compute the effect of an element arriving
 void 
 amsSketch::changeWeight(size_t value) {
   totalCount++;
@@ -1283,6 +1334,7 @@ amsSketch::changeWeight(size_t value) {
   }
 }
 
+//Function to calculate the self-join size of the monitored stream
 int 
 amsSketch::estimateInnerProduct() {
   int medianArray[depth]; 
@@ -1312,7 +1364,7 @@ amsSketch::estimateInnerProduct() {
 
 //~In~/~Out~ Functions
 
-//In-Function to turn List Representation into Class Representation
+//In- and Out- Functions are as discussed.
 Word
 amsSketch::In(const ListExpr typeInfo, const ListExpr instance,
                 const int errorPos, ListExpr& errorInfo, bool& correct) {
@@ -1322,13 +1374,12 @@ amsSketch::In(const ListExpr typeInfo, const ListExpr instance,
   return result;
 }
 
-//Out-Function (Dummy)
 ListExpr
 amsSketch::Out(ListExpr typeInfo, Word value) {
   ListExpr returnList 
            = nl -> TwoElemList(
-                    nl -> StringAtom("AMS-Sketch created successfully."),
-                    nl -> StringAtom("It does not support console output"));
+                    nl -> StringAtom("AMS Sketch operation succesfull,"),
+                    nl -> StringAtom("but console output is not supported"));
 
   return returnList;
 }
@@ -1396,27 +1447,14 @@ amsSketch::Open(SmiRecord& valueRecord, size_t& offset,
     offset+=sizeof(long);
     openAMS ->setConstantsFw(i, constantFwA,constantFwB,
                              constantFwC,constantFwD);
-
-  cout << "For Counter " << i << " the opened constants Vaues are: " << endl; 
-  cout << endl,
-  cout << "TwA: " << constantTwA << " TwB: " << constantTwB << endl; 
-  cout << "FwA: " << constantFwA << " FwB: " << constantFwB << " FwC: " 
-       << constantFwC << " FwD: " << constantFwD << endl;
-       cout << endl;
   }
-  cout << endl;
 
   for (size_t i = 0; i < depth; i++) {
-    cout << "Opened Counter Number " << i << " has the following elements: ";
-    cout << endl;
     for (size_t j = 0; j < width; j++) {
         ok = ok && valueRecord.Read (&counterEle, sizeof(int), offset);
         offset+=sizeof(int); 
         openAMS -> updateElement(i,j,counterEle);
-        cout << counterEle << " ";   
     }
-    cout << endl;
-    cout << endl;
   }
 
   if (ok) {
@@ -1473,29 +1511,15 @@ const ListExpr typeInfo , Word & value) {
     offset+=sizeof(long);
     ok = ok && valueRecord.Write(&hashConstantFwD, sizeof(long), offset);
     offset+=sizeof(long);
-
-  cout << "For Counter " << i << " the saved constants Values are: " << endl; 
-  cout << "TwA: " << hashConstantTwA << " TwB: " << hashConstantTwB << endl; 
-  cout << "FwA: " << hashConstantFwA << " FwB: " << hashConstantFwB << " FwC: " 
-                  << hashConstantFwC << " FwD: " << hashConstantFwD << endl;
-                  cout << endl;
   }
-  cout << endl;
   
-
   for (size_t i = 0; i < depth; i++) {
-    cout << "Saving Counter Values of Counter " << i << endl;
     for (size_t j = 0; j < width; j++) {
         counterEle = ams->getElement(i,j);
         ok = ok && valueRecord.Write(&counterEle, sizeof(int), offset);
         offset+=sizeof(int);
-        cout << counterEle << " ";
     }
-    cout << endl;
-    cout << endl;
   }
-
-  cout << endl;
   return true;
 }
 
@@ -1524,9 +1548,9 @@ struct amsSketchInfo : ConstructorInfo {
     name         = amsSketch::BasicType();
     signature    = "-> " + Kind::SIMPLE();
     typeExample  = amsSketch::BasicType();
-    listRep      =  "()";
+    listRep      =  "Listrepresentation does not exist";
     valueExample = "(4 12 2 8)";
-    remarks      = "";
+    remarks      = "In- and Out-Functions are dummies";
   }
 };
 
@@ -1615,10 +1639,8 @@ template<class T> void
 lossyCounter<T>::initialize(const double eps) {
   defined = true; 
   epsilon = eps; 
-  cout << "Epsilon in init() is "  << this->epsilon << endl;
   eleCounter = 0; 
   windowSize = ceil(1/epsilon);
-  cout << "Windowsize in init() is "  << windowSize << endl;
   windowIndex = 1;
   frequencyList.insert({0, counterPair(0,0,0)});
 }
@@ -1627,13 +1649,21 @@ lossyCounter<T>::initialize(const double eps) {
 template<class T> void 
 lossyCounter<T>::addElement(T element) {
   if (elementPresent(element)) {
+    //The element is already present and we 
+    //only need to increase its counter
     incrCount(element);
   } else {
+    //We create a new counter in the map for an element
+    //since it was not present
     insertElement(element);
   }
-
+  //After handling the element our current bucket/window 
+  //is full and we have to remove all counters 
+  //which no longer fulfill our threshold. 
   if (eleCounter % windowSize == 0) {
+    //remove the elements
     reduce();
+    //increase the current bucket/window index
     updateWindowIndex();
   }
 }
@@ -1646,7 +1676,7 @@ lossyCounter<T>::incrCount(T element) {
   eleCounter++;
 }
 
-//Inserts previously unencountered Elements into our element list
+//Insert previously unencountered Element into our element list
 template<class T> void 
 lossyCounter<T>::insertElement(T element) {
   int maxError = windowIndex-1;
@@ -1673,16 +1703,21 @@ lossyCounter<T>::updateWindowIndex() {
   windowIndex++;
 }
 
-//Removes the Items below the Frequency Threshold
+//Removes the Items below the Frequency Threshold. The usage of the 
+//Second vector to save the elements which we mark for deletion is
+//probably easily improveable (mb. by just saving the keys)
 template<class T> void 
 lossyCounter<T>::reduce() {
   vector<T> deletionList;
   for (auto elements : frequencyList) {
     counterPair elem = elements.second;
+    //item does no longer pass the threshold
     if ((elem.getFrequency() + elem.getMaxError()) < windowIndex) {
+      //mark the element for deletion
       deletionList.push_back(elements.first);
     }
   }
+  //remove all elements which were marked for deletion
   for (T elem : deletionList) {
     frequencyList.erase(elem);
   }
@@ -1703,7 +1738,8 @@ lossyCounter<T>::getFrequentElements(double minSupport) {
   return resultList;
 }
 
-//Get the frequency of a single Element
+//Get the frequency of a single Element. This has no Operator
+//part, but would be very easy to include
 template<class T> long
 lossyCounter<T>::estimateCount(T elem) {
   if (!(frequencyList.find(elem) == frequencyList.end())) {
@@ -1719,6 +1755,7 @@ lossyCounter<T>::estimateCount(T elem) {
 2.1.4.1 Class ~counterPair~
 
 */
+//This class is only auxiliary for the lossy counter
 template<class T>
 counterPair<T>::counterPair
 (T item, long frequency, long maxError) {
@@ -1753,6 +1790,8 @@ counterPair<T>::getMaxError() {
 2.1.5.1 Class ~cPoint~
 
 */
+//This Implementation is fully working for int and real
+//values. To create 
 cPoint::cPoint(int id, int coordinates) {
   pointId = id; 
   values.push_back(coordinates);
@@ -2091,7 +2130,7 @@ NList type(args);
 ListExpr errorInfo = nl->OneElemList(nl->SymbolAtom("ErrorInfo"));
 
   // three arguments must be supplied
-  if (type.length() != 3){
+  if (type.length() != 2){
     return NList::typeError("Operator tiltedtime expects three arguments");
   }
 
@@ -2108,12 +2147,6 @@ ListExpr errorInfo = nl->OneElemList(nl->SymbolAtom("ErrorInfo"));
                             "as second argument");
   }
 
-  // test second argument for int
-  if(type.second() != NList(CcInt::BasicType())) {
-    return NList::typeError("Operator tiltedtime expects an int "
-                            "as third argument");
-  }
-  
   // stream elements must be in kind DATA or (tuple X)
   NList streamtype = type.first().second();
   if(   !(   streamtype.hasLength(2)
@@ -2139,7 +2172,7 @@ NList type(args);
 NList streamtype = type.first().second();
 NList appendList;
 
-ListExpr a = nl->First(args);
+ListExpr stream = nl->First(args);
 
 ListExpr errorInfo = nl->OneElemList(nl->SymbolAtom("ErrorInfo"));
 
@@ -2150,7 +2183,7 @@ ListExpr errorInfo = nl->OneElemList(nl->SymbolAtom("ErrorInfo"));
   }
 
   // test first argument for being a tuple stream
-  if(!Stream<Tuple>::checkType(a)){
+  if(!Stream<Tuple>::checkType(stream)){
     return NList::typeError( "Operator createbloomfilter expects a "
                              "Tuple Stream as first argument");
   }
@@ -2179,18 +2212,23 @@ ListExpr errorInfo = nl->OneElemList(nl->SymbolAtom("ErrorInfo"));
 
   //extract index of the attribute we intend to hash
   NList attrList = type.first().second().second();
-  ListExpr type2;
+  ListExpr attrType;
   string attrName = type.second().str();
-  int attrIndex = listutils::findAttribute(attrList.listExpr(), 
-                                           attrName, type2) - 1;
 
+  //Already modifying the attrIndex to point to the correct
+  //index here
+  int attrIndex = listutils::findAttribute(attrList.listExpr(), 
+                                           attrName, attrType) - 1;
+
+  //Attribute name is not present in the Tuple
   if (attrIndex < 0) {
     return NList::typeError("Attribute " + attrName + " "
                             "not found in tuple");
   }
 
   /* result is a bloomfilter and we append the index of 
-     the attribute of the tuples which will be hashed to create our filter 
+     the attribute in the tuples, so that we can hash 
+     the correct values
   */
   appendList.append(NList().intAtom(attrIndex));
 
@@ -2221,8 +2259,8 @@ bloomcontainsTM(ListExpr args) {
     return NList(CcString::BasicType()).listExpr(); 
   }    
 
-  return NList::typeError("Operator bloomcontains expects an  " 
-                          "ATTRIBUTE as second argument");
+  return NList::typeError("Operator bloomcontains expects an argument of " 
+                          " type DATA as second argument");
 }
 
 /*
@@ -2258,13 +2296,13 @@ ListExpr errorInfo = nl->OneElemList(nl->SymbolAtom("ErrorInfo"));
   // test third argument for real
   if(type.third() != NList(CcReal::BasicType())) {
     return NList::typeError("Operator createcountmin expects a real "
-                            "value as second argument");
+                            "value as third argument");
   }
 
   //test fourth argument for int
   if(type.fourth() != NList(CcReal::BasicType())) {
     return NList::typeError("Operator createcountmin expects a real "
-                            "value as third argument");
+                            "value as fourth argument");
   }
   
   // stream elements must be in kind tuple (X) with X in DATA
@@ -2281,16 +2319,20 @@ ListExpr errorInfo = nl->OneElemList(nl->SymbolAtom("ErrorInfo"));
   NList attrList = type.first().second().second();
   ListExpr attrType;
   string attrName = type.second().str();
+
+  //Already modifying the attrIndex to point to the correct
+  //index here
   int attrIndex = listutils::findAttribute(attrList.listExpr(), 
                                            attrName, attrType) - 1;
 
+  //Attribute Name is not present in the Tuples of the Stream
   if (attrIndex < 0) {
     return NList::typeError("Attribute " + attrName + " "
                             "not found in tuple");
   }
 
-  /* result is a Count Min Sketch and we append the index and type of 
-     the attribute of the tuples which will be hashed to create our filter 
+  /* result is a Count Min Sketch and we append the index of the 
+     attribute of the tuples which will be hashed to create our sketch 
   */
   appendList.append(NList().intAtom(attrIndex));
   return NList(Symbols::APPEND(), appendList,
@@ -2317,14 +2359,14 @@ cmscountTM(ListExpr args) {
                             "Count Min Sketch as first argument");
   }
 
-  // test second argument for DATA or TUPLE
+  // test second argument for DATA 
   if(type.second().isAtom()) {
     return NList(Symbols::APPEND(), appendList,
                CcInt::BasicType()).listExpr();
   } 
 
-  return NList::typeError("Operator cmscount expects an  " 
-                          "ATTRIBUTE as second argument");
+  return NList::typeError("Operator cmscount expects an argument" 
+                          " of Type DATA as second argument");
 }
 
 /*
@@ -2360,12 +2402,12 @@ ListExpr errorInfo = nl->OneElemList(nl->SymbolAtom("ErrorInfo"));
   // test third argument for real
   if(type.third() != NList(CcReal::BasicType())) {
     return NList::typeError("Operator createams expects a real "
-                            "value as second argument");
+                            "value as third argument");
   }
 
   //test fourth argument for int
   if(type.fourth() != NList(CcReal::BasicType())) {
-    return NList::typeError("Operator createams expects a real "
+    return NList::typeError("Operator fourth expects a real "
                             "value as third argument");
   }
   
@@ -2383,15 +2425,17 @@ ListExpr errorInfo = nl->OneElemList(nl->SymbolAtom("ErrorInfo"));
   NList attrList = type.first().second().second();
   ListExpr attrType;
   string attrName = type.second().str();
+  //Already modifying the attrIndex to point to the correct
+  //index here
   int attrIndex = listutils::findAttribute(attrList.listExpr(), 
                                            attrName, attrType) - 1;
-  
+  //Attribute Name is not present in the Tuples of the Stream
   if (attrIndex < 0) {
     return NList::typeError("Attribute " + attrName + " "
                             "not found in tuple");
   }
 
-  /* result is a AMS Sketch and we append the index and type of 
+  /* result is a AMS Sketch and we append the index of 
      the attribute of the tuples which will be hashed to create our filter 
   */
   appendList.append(NList().intAtom(attrIndex));
@@ -2410,16 +2454,16 @@ amsestimateTM(ListExpr args) {
 
   // two arguments must be supplied
   if (type.length() != 1){
-    return NList::typeError("Operator amsestimate expects one arguments");
+    return NList::typeError("Operator amsestimate expects one argument");
   }
 
   // test first argument for scalablebloomfilter
   if(type.first() != NList(amsSketch::BasicType())){
-    return NList::typeError("Operator amsestimate expects a "
+    return NList::typeError("Operator amsestimate expects an "
                             "AMS Sketch as argument");
   }
 
-  //check if the searchelement is numeric
+  //Only the selfjoin Size will be returned, this is a simple int
   return NList(CcInt::BasicType()).listExpr(); 
 }
 
@@ -2481,12 +2525,15 @@ ListExpr errorInfo = nl->OneElemList(nl->SymbolAtom("ErrorInfo"));
     return NList::typeError("Attribute " + attrName + " "
                             "not found in tuple");
   }
+
   appendList.append(NList().intAtom(attrIndex));
   appendList.append(NList().stringAtom(nl->ToString(attrType)));
   
 
-  /* Result is a  Tuple Stream consisting of (Item, Frequency, Delta,
-     Epsilon,EleCount) and we appended attribute Index and Type
+  /* Result is a Tuple Stream consisting of (Item, Frequency, Delta,
+     Epsilon,EleCount) and the appended attribute Index and Type.
+     Epsilon and Elementcount are appended, because we need the information
+     in the ~lcfrequent~ Operator. 
   */
   outlist = 
     nl->TwoElemList(
@@ -2545,7 +2592,7 @@ lcfrequentTM(ListExpr args) {
                              "as first argument");
   }
 
-  //Every Stream of LossyCounter type will consist of 
+  //Every Stream generated by the ~createlossycounter~ Operator will consist of 
   //(Value, Frequency, Delta, Error, EleCount) so we check for that
 
   string value = 
@@ -2562,7 +2609,7 @@ lcfrequentTM(ListExpr args) {
   if(!( value == "Value") && (frq == "Frequency") && (dlt == "Delta") &&
       (err == "Epsilon") && (cnt == "EleCount")){
     return NList::typeError( "Operator lcfrequent expects a Stream generated "
-                             "from a Lossy Counter as first argument");
+                             "from ~createlossycounter~ as first argument");
   }
 
   // test second argument for real
@@ -2580,6 +2627,7 @@ lcfrequentTM(ListExpr args) {
 
   appendList.append(NList().stringAtom(nl->ToString(attrType)));
   
+  //Generate the type of the Stream we will create
   outlist = 
     nl->TwoElemList(
       nl->SymbolAtom(Symbol::STREAM()),
@@ -2600,7 +2648,7 @@ lcfrequentTM(ListExpr args) {
         )     
       );
 
-//Typelist for use with ~lossycompare
+//Typelist for use with ~lossycompare~. 
 //outlist = 
 //    nl->TwoElemList(
 //     nl->SymbolAtom(Symbol::STREAM()),
@@ -2692,11 +2740,6 @@ outlierTM(ListExpr args) {
       )
     );
 
-    cout << endl; 
-    cout << "In outlierTM outlist has the form: " << endl; 
-    cout << nl->ToString(outlist) << endl;
-
-
   /* Result type is a stream of Tuples with the queried attribute value
      and its corresponding index in the stream. We also appended
      the attribute index and type for the Value Mapping
@@ -2768,7 +2811,11 @@ streamclusterTM(ListExpr args) {
                                 "int and real attributes");
   }
 
-  /*
+  /* This was the Typemap created when trying to simply append a 
+     new clusterID Attribute to the existing Tuple. The detection
+     of the Index and creation of the new tupletype in the list 
+     work fine and might be helpful at some point
+
   Our intention is to add every Tuples Cluster ID - in relation
   to the Attribute we are clustering for - as Attribute to the Tuple
   Therefore, we append a new Attribute to the existing Tuple
@@ -2837,17 +2884,23 @@ streamclusterTM(ListExpr args) {
 2.13.1 Operator ~pointgen~ 
 
 */
-
+//Test generator to receive random point attributes
+//Only basic checks implemented
 ListExpr
 pointgenTM(ListExpr args)  {
-  if(!nl->HasLength(args,1)){
+  if(!nl->HasLength(args,2)){
    return NList::typeError("Operator pointGen expects "
-                           "only one argument");
+                           "two arguments");
   }
   
   if(!listutils::isSymbol(nl->First(args), CcInt::BasicType())) {
-    return NList::typeError("Operator pointGen expects "
-                           " an int argument");
+    return NList::typeError("Operator pointGen expects an int "
+                            "as first argument");
+  }
+
+  if(!listutils::isSymbol(nl->First(args), CcInt::BasicType())) {
+    return NList::typeError("Operator pointGen expects an int "
+                            "as first argument");
   }
 
   return nl->TwoElemList(nl->SymbolAtom(Stream<Point>::BasicType()),
@@ -3005,15 +3058,6 @@ massquerybloomTM(ListExpr args)  {
 
   appendList.append(NList().intAtom(attrIndex));
   appendList.append(NList().stringAtom(nl->ToString(attrType)));
-
-  cout << "In TM attributeType is: " << nl->ToString(attrType) << endl;
-  cout << endl;
-  cout << "AppendList has the form:" 
-       << nl->ToString(appendList.listExpr()) << endl;
-  cout <<endl;
-  cout << "The full return List has the form: " 
-       << nl->ToString(NList(Symbols::APPEND(), appendList,
-               outlist).listExpr()) << endl;
 
   return NList(Symbols::APPEND(), appendList,
                outlist).listExpr();
@@ -3224,7 +3268,7 @@ normaldistTM(ListExpr args)  {
 }
 
 /*
-2.13.11 Operator ~normaldist~
+2.13.11 Operator ~normaldistreal~
 
 */
 ListExpr
@@ -3233,22 +3277,22 @@ normaldistrealTM(ListExpr args)  {
   NList stream = type.first();
 
   if(!nl->HasLength(args,3)){
-   return NList::typeError("Operator normaldist expects "
+   return NList::typeError("Operator normaldistreal expects "
                            "three arguments");
   }
 
   if(type.first() != NList(CcInt::BasicType())){
-    return NList::typeError("Operator normaldist expects an "
+    return NList::typeError("Operator normaldistreal expects an "
                             "int value as first argument");
   }
 
   if (type.second() !=  NList(CcReal::BasicType())){
-    return NList::typeError("Operator normaldist expects an "
+    return NList::typeError("Operator normaldistreal expects an "
                             "real value as second argument");
   }
 
     if (type.third() !=  NList(CcReal::BasicType())){
-    return NList::typeError("Operator normaldist expects an "
+    return NList::typeError("Operator normaldistreal expects an "
                             "real value as third argument");
   }
 
@@ -3322,9 +3366,6 @@ distinctcountTM(ListExpr args)  {
         )
       );
 
-  cout << endl; 
-  cout << "distinctcount outlist looks like: " << endl; 
-  cout << nl->ToString(outlist) << endl;
   return NList(Symbols::APPEND(), appendList,
                outlist).listExpr();
 }
@@ -3336,15 +3377,14 @@ distinctcountTM(ListExpr args)  {
 ListExpr
 cmsoverreportTM(ListExpr args)  {
   NList type(args);
-  NList streamtype = type.first().second();
   NList appendList;
   ListExpr outlist = nl->TheEmptyList();
   ListExpr streamType = nl->First(args);
 
   // three arguments must be supplied
-  if (type.length() != 3){
+  if (type.length() != 5){
     return NList::typeError("Operator cmsoverreport expects "
-                            "two arguments");
+                            "five arguments");
   }
 
   // test first argument for being a tuple stream
@@ -3366,6 +3406,22 @@ cmsoverreportTM(ListExpr args)  {
                             "Attribute Name as third argument");
   }
 
+  if(type.fourth() !=  NList(CcInt::BasicType())){
+    return NList::typeError("Operator cmsoverreport expects an "
+                            "int value as fourth argument");
+  }
+
+
+  if(type.fifth() !=  NList(CcReal::BasicType())){
+    return NList::typeError("Operator cmsoverreport expects a "
+                            "real value as fifth argument");
+  }
+
+
+
+
+  //We ensure, that the Tuplestream is one created by ~distinctcount~
+  //All of these have the form (Value Frequency)
   string value = 
   nl->ToString((type.first().second().second().first().first()).listExpr());
   string frq = 
@@ -3399,24 +3455,24 @@ cmsoverreportTM(ListExpr args)  {
       nl->SymbolAtom(Symbol::STREAM()),
       nl->TwoElemList(
           nl->SymbolAtom(Tuple::BasicType()),
-          nl->OneElemList
-            (
-          /*
+          nl->ThreeElemList
+          (
             nl->TwoElemList(
               nl->SymbolAtom("Value"),
               nl->SymbolAtom(nl->SymbolValue(attrType))
-            ), */      
+            ),      
             nl->TwoElemList(
               nl->SymbolAtom("Overcount"),
               nl->SymbolAtom(CcReal::BasicType())
+            ),
+            nl->TwoElemList(
+              nl->SymbolAtom("Error"),
+              nl->SymbolAtom(CcInt::BasicType())
             )
           )
         )
       );
 
-  cout << endl; 
-  cout << "distinctcount outlist looks like: " << endl; 
-  cout << nl->ToString(outlist) << endl;
   return NList(Symbols::APPEND(), appendList,
                outlist).listExpr();
 }
@@ -3447,7 +3503,7 @@ switchingdistTM(ListExpr args)  {
 
   if (type.third() !=  NList(CcInt::BasicType())){
     return NList::typeError("Operator switchingdist expects an "
-                            "real value as third argument");
+                            "int value as third argument");
   }
 
   if (type.fourth() !=  NList(CcReal::BasicType())){
@@ -3526,23 +3582,23 @@ lossycompareTM(ListExpr args)  {
   if(!listutils::isTupleStream(nl->First(args)) ||
      !listutils::isTupleStream(nl->Second(args))){
     ErrorReporter::ReportError("Operator lossycompare expects two "
-                              " tuple streams first arguments");
+                              " tuple streams as first arguments");
     return nl->TypeError();
   }
 
   if (type.third() !=  NList(CcInt::BasicType())){
     return NList::typeError("Operator lossycompare expects an "
-                            "int value as second argument");
+                            "int value as third argument");
   }
 
   if (type.fourth() !=  NList(CcReal::BasicType())){
     return NList::typeError("Operator lossycompare expects an "
-                            "real value as second argument");
+                            "real value as fourth argument");
   }
 
   if (type.fifth() !=  NList(CcReal::BasicType())){
     return NList::typeError("Operator lossycompare expects an "
-                            "real value as second argument");
+                            "real value as fifth argument");
   }
 
 
@@ -3580,12 +3636,8 @@ lossycompareTM(ListExpr args)  {
 Creates a biased reservoir Sample (stream) of the passed stream.
 
 */
-
-/*
-Templates are used to deal with the different Types of Streams 
-the operator handles
-
-*/
+//Templates are used to deal with the different Types of Streams 
+//the operator handles
 template<class T> 
 class reservoirInfo{
   public: 
@@ -3714,10 +3766,12 @@ int reservoirSelect(ListExpr args){
 2.3.2 Operator ~tiltedtime~
 
 */
+//This Operator creates a progressive logarithmic TTF for 
+//Tuples.
 template<class T> 
 class tiltedtimeInfo{
   public: 
-    tiltedtimeInfo(Word inputStream, int inputWindowSize, int type): 
+    tiltedtimeInfo(Word inputStream, int inputWindowSize): 
                   stream(inputStream), frameSize(inputWindowSize), 
                   lastOut(0), maxFrameIndex(0), nextFrameIndex(0),
                   timeStamp(0), count(0) {
@@ -3973,12 +4027,10 @@ int tiltedtimeVMT(Word* args, Word& result,
                      local.addr = 0;
                    }
                    CcInt* reservoirSize = (CcInt*) args[1].addr;
-                   CcInt* ttType = (CcInt*) args[2].addr; 
                    if(reservoirSize->IsDefined()){
                       int size = reservoirSize->GetValue();
-                      int type = ttType->GetValue();
                       if(size>0) {
-                        local.addr = new tiltedtimeInfo<T>(args[0], size, type);
+                        local.addr = new tiltedtimeInfo<T>(args[0], size);
                       }
                    }
                    return 0;
@@ -4019,6 +4071,8 @@ int tiltedtimeSelect(ListExpr args){
 2.3.3 Operator ~createbloomfilter~
 
 */
+//This Operator creates a Bloom Filter regarding a certain 
+//Attributes values in a Tuplestream
 int createbloomfilterVM(Word* args, Word& result,
            int message, Word& local, Supplier s){
   
@@ -4035,12 +4089,6 @@ int createbloomfilterVM(Word* args, Word& result,
   //Make the Storage provided by QP easily usable
   ScalableBloomFilter* bloomFilter = (ScalableBloomFilter*) result.addr;
 
-  /* Implementieren, dass Filter Instanz gereinigt wird, wenn er bereits besteht
-  if (bloomFilter->getFilter.size() > 0) {
-    bloomFilter->Clear();
-  }
-  */
-
   //initialize the Filter with the values provided by the operator
   bloomFilter->initialize(fpProb->GetValue());
 
@@ -4053,11 +4101,11 @@ int createbloomfilterVM(Word* args, Word& result,
   //Pointers to stream elements will be saved here for use
   Tuple* streamTuple = (Tuple*) stream.request();
 
-  //Get the size of the Filter so we can %mod the hash 
+  //Get the size of the Filter so we can mod the hash 
   //results to map to an index in the filter
   size_t filterSize = bloomFilter->getCurFilterSize();
 
-  //Get number of Hashfunctions so reserving the hash results
+  //Get number of Hashfunctions so using the hash results
   //vector will be faster
   int nbrHashes = bloomFilter->getCurNumberHashes();
   vector<size_t> hashvalues;
@@ -4067,6 +4115,10 @@ int createbloomfilterVM(Word* args, Word& result,
 
   //while the stream can still provide elements:
   while ((streamTuple != 0)) {
+    //If we have added the number of elements the Filter was made for 
+    //update the parameters (fp, filtersize) and add a new subfilter
+    //Also update the variables relevant for hashing.
+    //
     if (bloomFilter->isSaturated()) {
       bloomFilter->updateFilterValues();
       nbrHashes = bloomFilter->getCurNumberHashes();
@@ -4076,11 +4128,14 @@ int createbloomfilterVM(Word* args, Word& result,
 
     streamElement = (Attribute*) streamTuple->GetAttribute(attrIndex);
 
+    //We make use of the HashValue() function so that we can use Elements of
+    //any type. Using MurmurHash straight on the Attribute does not deliver 
+    //deterministic results. 
     size_t secondoHash = streamElement->HashValue();
-    size_t* hashPointer = &secondoHash; 
+    size_t* hashPointer = &secondoHash;
     
     /*murmur type used is depending on the systemarchitecture
-      Way it is used is defined in the Macro at the start
+      the way it is used is defined in the Macro at the start
      */    
     murmur(hashPointer, sizeof(secondoHash), 0, mHash);
     size_t h1 = mHash[0] % filterSize;
@@ -4123,6 +4178,8 @@ int createbloomfilterVM(Word* args, Word& result,
 2.3.4 Operator ~bloomcontains~
 
 */
+//This Operator allows us to make membership queries regarding a search element
+//and a bloomfilter
 int bloomcontainsVM(Word* args, Word& result,
            int message, Word& local, Supplier s){
 
@@ -4131,8 +4188,12 @@ int bloomcontainsVM(Word* args, Word& result,
   //take the parameters values supplied with the operator
   ScalableBloomFilter* bloomFilter = (ScalableBloomFilter*) args[0].addr;
   Attribute* searchEle = (Attribute*) args[1].addr;
+  
   size_t secondoHash = searchEle->HashValue();
   size_t* hashpointer = &secondoHash; 
+
+  cout << "SecondoHash of the Searchele is in bloomcontains is : " 
+       << secondoHash << endl;
 
   string resultString = "The Search Element is not present in the Filter";
 
@@ -4159,6 +4220,8 @@ int bloomcontainsVM(Word* args, Word& result,
     hashValues.reserve(hashIterations[i]);
  
     size_t filterSize = bloomFilter->getFilterList()[i].size();
+    cout << "FilterSize of Filter: " << i << "determined by bloomcontains is: " 
+         << filterSize << endl;
 
     //hash the Searchelement
     murmur(hashpointer, sizeof(secondoHash), 0, cmHash);
@@ -4175,7 +4238,6 @@ int bloomcontainsVM(Word* args, Word& result,
           hashValues.push_back(h_i);
         }
     }
-    
     //Element is contained in one of the Subfilters
     if (bloomFilter->contains(hashValues, i)) {
       included = true; 
@@ -4197,6 +4259,8 @@ int bloomcontainsVM(Word* args, Word& result,
 2.3.5 Operator ~createcountmin~
 
 */
+//This Operator creates a Count-Min-Sketch regarding a certain 
+//Attributes values in a Tuplestream
 int createcountminVM(Word* args, Word& result,
            int message, Word& local, Supplier s){
   
@@ -4246,6 +4310,8 @@ int createcountminVM(Word* args, Word& result,
 2.3.6 Operator ~cmscount~
 
 */
+//This Operator allows us to get the estimated frequency of an
+//Element in a Stream for which we created a CMS
 int cmscountVM(Word* args, Word& result,
            int message, Word& local, Supplier s){
   
@@ -4273,6 +4339,8 @@ int cmscountVM(Word* args, Word& result,
 2.3.7 Operator ~createams~
 
 */
+//This Operator creates an AMS Sketch to track the F_2
+//Moment of a Stream given an Attribute
 int createamsVM(Word* args, Word& result,
            int message, Word& local, Supplier s){
   
@@ -4324,6 +4392,8 @@ int createamsVM(Word* args, Word& result,
 2.3.8 Operator ~amsestimate~
 
 */
+//This Operator allows us to estimate the self join Size 
+//of a Stream for which we created an AMS
 int amsestimateVM(Word* args, Word& result,
            int message, Word& local, Supplier s){
   
@@ -4348,6 +4418,8 @@ int amsestimateVM(Word* args, Word& result,
 2.3.9 Operator ~createlossycounter~
 
 */
+//This Operator allows us to create a Lossy Counter 
+//for a certain Attribute in a Tuplestream
 template<class T, class S> 
 class createlossycounterInfo{
     public: 
@@ -4356,6 +4428,9 @@ class createlossycounterInfo{
     stream(inputStream), error(epsilon), attrIndex(index), attrType(type), 
     lastOut(-1), counter(epsilon){
       stream.open();
+      
+      //Create the TupleType so we can output the values we 
+      //want with our tuple stream
       typeList = nl->TwoElemList(
           nl->SymbolAtom(Tuple::BasicType()),
           nl->FiveElemList(
@@ -4378,9 +4453,12 @@ class createlossycounterInfo{
             nl->TwoElemList(
               nl->SymbolAtom("Element Count"),
               nl->SymbolAtom(CcInt::BasicType())
-            )            
+            )
           )
-        );
+      );
+
+      //Registering the Tupletype and making it useable for 
+      //new tuples
       SecondoCatalog* sc = SecondoSystem::GetCatalog();
       numTypeList = sc->NumericType(typeList);
       tupleType = new TupleType(numTypeList);
@@ -4422,6 +4500,7 @@ class createlossycounterInfo{
       while ((oldTuple = stream.request()) != nullptr) {
           T* tupleAttr = (T*) oldTuple->GetAttribute(attrIndex);
           S value = tupleAttr ->GetValue();
+          //the counter structure will handle the data
           counter.addElement(value);
           oldTuple -> DeleteIfAllowed();
       }
@@ -4529,6 +4608,8 @@ int createlossycounterSelect(ListExpr args){
 2.3.10 Operator ~lcfrequent~
 
 */
+//This Operator allows us to retrieve the frequent Items
+//surpassing the minsupport threshold from a lossy counter
 template<class T>
 class lcFrequentInfo{
   public: 
@@ -4608,29 +4689,32 @@ class lcFrequentInfo{
       ListExpr numTypeList;
 
     void init() {
+      //We get the first tuple while not in the loop so that 
+      //we have access to the epsilon and nbrOfElements value
+      //which do not change for any of the tuples
       Tuple* oldTuple = stream.request();
       epsilon = ((CcReal*) oldTuple->GetAttribute(3))->GetValue();
       nbrElements = ((CcInt*) oldTuple->GetAttribute(4))->GetValue();
       int frequency = ((CcInt*) oldTuple->GetAttribute(1))->GetValue();
-       if (isFrequent(frequency)) {
-          Tuple* newTuple = new Tuple(tupleType);
-          T* attrValue = (T*) oldTuple->GetAttribute(0);
-          //Since we are going to delete the old tuple we have to make sure 
-          //the reference count of the Attributes we want to carry over into 
-          //the new tuple does not go to 0.
-          attrValue -> Copy();
-          CcInt* attrFrequency = (CcInt*)oldTuple->GetAttribute(1);
-          attrFrequency -> Copy();
-          CcInt* attrDelta = (CcInt*) oldTuple->GetAttribute(2);
-          attrDelta -> Copy();
-          newTuple->PutAttribute(0, attrValue);
-          newTuple->PutAttribute(1, attrFrequency);
-          //newTuple->PutAttribute(2, attrDelta);
-          aboveMinSup.push_back(newTuple);
-          oldTuple->DeleteIfAllowed();
-        } else {
-          oldTuple->DeleteIfAllowed();
-        }
+      if (isFrequent(frequency)) {
+        Tuple* newTuple = new Tuple(tupleType);
+        T* attrValue = (T*) oldTuple->GetAttribute(0);
+        //Since we are going to delete the old tuple we have to make sure 
+        //the reference count of the Attributes we want to carry over into 
+        //the new tuple does not go to 0.
+        attrValue -> Copy();
+        CcInt* attrFrequency = (CcInt*)oldTuple->GetAttribute(1);
+        attrFrequency -> Copy();
+        CcInt* attrDelta = (CcInt*) oldTuple->GetAttribute(2);
+        attrDelta -> Copy();
+        newTuple->PutAttribute(0, attrValue);
+        newTuple->PutAttribute(1, attrFrequency);
+        newTuple->PutAttribute(2, attrDelta);
+        aboveMinSup.push_back(newTuple);
+        oldTuple->DeleteIfAllowed();
+      } else {
+        oldTuple->DeleteIfAllowed();
+      }
       while ((oldTuple = stream.request()) != nullptr) {
         int frequency = ((CcInt*) oldTuple->GetAttribute(1))->GetValue();
         if (isFrequent(frequency)) {
@@ -4643,7 +4727,7 @@ class lcFrequentInfo{
           attrDelta -> Copy();
           newTuple->PutAttribute(0, attrValue);
           newTuple->PutAttribute(1, attrFrequency);
-          //newTuple->PutAttribute(2, attrDelta);
+          newTuple->PutAttribute(2, attrDelta);
           aboveMinSup.push_back(newTuple);
           oldTuple->DeleteIfAllowed();
         } else {
@@ -4652,9 +4736,11 @@ class lcFrequentInfo{
       }
     }
 
-      bool isFrequent(int frequency) {
-        return ((minSupport-epsilon)*nbrElements) <= frequency;
-      }
+    //Determines whether an item is frequent when considering 
+    //the parameters
+    bool isFrequent(int frequency) {
+      return ((minSupport-epsilon)*nbrElements) <= frequency;
+    }
 };
 
 template<class T>
@@ -4727,6 +4813,8 @@ int lcfrequentSelect(ListExpr args){
 2.3.11 Operator ~outlier~
 
 */
+//This Operator tries to Implement a form of anomaly detection
+//for certain Attribute in a Tuplestream
 template<class T, class S>
 class outlierInfo{
   public:
@@ -4758,54 +4846,54 @@ class outlierInfo{
         init();
       }
 
-    ~outlierInfo() {
-      for(size_t index = lastOut+1; index < outlierHistory.size(); index++) {
-        outlierHistory[index]->DeleteIfAllowed();
+      ~outlierInfo() {
+        for(size_t index = lastOut+1; index < outlierHistory.size(); index++) {
+          outlierHistory[index]->DeleteIfAllowed();
+        }
+        tupleType -> DeleteIfAllowed();
+        stream.close();
       }
-      tupleType -> DeleteIfAllowed();
-      stream.close();
-    }
 
-    Tuple* next() {
-      lastOut++; 
-      if (lastOut >= (int) outlierHistory.size()) {
-        return 0;
+      Tuple* next() {
+        lastOut++; 
+        if (lastOut >= (int) outlierHistory.size()) {
+          return 0;
+        }
+        Tuple* outlier = outlierHistory[lastOut];
+        outlierHistory[lastOut] = 0;
+        return outlier;
       }
-      Tuple* outlier = outlierHistory[lastOut];
-      outlierHistory[lastOut] = 0;
-      return outlier;
-    }
 
-    private:
-      Stream<Tuple> stream; 
-      int zThreshhold;
-      int attrIndex;
-      string attrType;
-      double oldMean;
-      double newMean;
-      double oldSsq;
-      double newSsq;
-      double variance;
-      double stdDev;
-      int lastOut;
-      size_t counter;
-      vector<Tuple*> outlierHistory;
+      private:
+        Stream<Tuple> stream; 
+        int zThreshhold;
+        int attrIndex;
+        string attrType;
+        double oldMean;
+        double newMean;
+        double oldSsq;
+        double newSsq;
+        double variance;
+        double stdDev;
+        int lastOut;
+        size_t counter;
+        vector<Tuple*> outlierHistory;
       
-      TupleType* tupleType;
-      ListExpr typeList;
-      ListExpr numTypeList;
+        TupleType* tupleType;
+        ListExpr typeList;
+        ListExpr numTypeList;
 
 
-    void init() {
-      Tuple* oldTuple = stream.request();
-      Tuple* newTuple = new Tuple(tupleType);
-      //We will consider the first Tuple Value to be an outlier since we 
-      //have no way of knowing what the stream will actually look like
-      //We use the second template type to be able to handle the values
-      oldMean = ((T*) oldTuple->GetAttribute(attrIndex))->GetValue();
-      counter++;
-      oldTuple->DeleteIfAllowed();
-      while ((oldTuple = stream.request()) != nullptr) {
+      void init() {
+        Tuple* oldTuple = stream.request();
+        Tuple* newTuple = new Tuple(tupleType);
+        //We will consider the first Tuple Value to be an outlier since we 
+        //have no way of knowing what the stream will actually look like
+        //We use the second template type to be able to handle the values
+        oldMean = ((T*) oldTuple->GetAttribute(attrIndex))->GetValue();
+        counter++;
+        oldTuple->DeleteIfAllowed();
+        while ((oldTuple = stream.request()) != nullptr) {
           S value = ((T*) oldTuple->GetAttribute(attrIndex))->GetValue();
           updateData(value);
           if (checkData(value)) {
@@ -4820,34 +4908,36 @@ class outlierInfo{
             oldTuple -> DeleteIfAllowed();
           }
         }
-    }
+      }
 
-    /*Check whether the currently handled Streamelements
+      /*Check whether the currently handled Streamelements
       z-Score surpases our treshholds and save it if it does
-    */
-    bool checkData(S data) {
-      int zscore;
-      if ((counter <= 2) || (variance==0)) {
-        zscore = 0;
+      */
+      bool checkData(S data) {
+        int zscore;
+        //Variance can only be zero if the stream consists
+        //of a single element
+        if ((counter <= 2) || (variance==0)) {
+          zscore = 0;
+          return false;
+        }
+        zscore = (data - newMean)/stdDev;
+        if((zscore < (-1*zThreshhold)) || (zscore > zThreshhold)) {
+          return true; 
+        }
         return false;
       }
-      zscore = (data - newMean)/stdDev;
-      if((zscore < (-1*zThreshhold)) || (zscore > zThreshhold)) {
-        return true; 
-      }
-      return false;
-    }
 
-  //Update mean, variance and the counter
-  void updateData(S data) {
-    counter++;
-    newMean = oldMean + ((data - oldMean)/counter);
-    newSsq = oldSsq + (data - oldMean)*(data - newMean);
-    oldMean = newMean;
-    oldSsq = newSsq;
-    variance = newSsq/(counter-1);
-    stdDev = sqrt(variance);
-  }
+      //Update mean, variance, counter and stdDeviation
+      void updateData(S data) {
+        counter++;
+        newMean = oldMean + ((data - oldMean)/counter);
+        newSsq = oldSsq + (data - oldMean)*(data - newMean);
+        oldMean = newMean;
+        oldSsq = newSsq;
+        variance = newSsq/(counter-1);
+        stdDev = sqrt(variance);
+      }
 };
 
 template<class T, class S> int
@@ -4919,6 +5009,9 @@ int outlierSelect(ListExpr args){
 2.3.12 Operator ~streamcluster~
 
 */
+//This Operator uses k-mean clustering to return the 
+//centroids and their size for a certain Attribute of a
+//Tuplestream
 class streamclusterInfo{
   public:
     streamclusterInfo(Word inputStream, size_t _maxMem, int index, string type,
@@ -4927,8 +5020,6 @@ class streamclusterInfo{
       k(nbrClusters), 
       iterations(iter), lastOut(-1){
         
-        cout << endl; 
-        cout << "Created new StreamClusterInfo" << endl;
         stream.open();
       
         typeList = nl->TwoElemList(
@@ -4996,18 +5087,12 @@ class streamclusterInfo{
 
 
     void init() {
-      cout << endl;
-      cout << "Init() streamClusterInfo" << endl;
       Tuple* streamTuple;
       int id = 0;
       while ((streamTuple = stream.request()) != nullptr) {
         CcInt* attrValue = (CcInt*) streamTuple->GetAttribute(attrIndex);
         int value = (int) attrValue->GetValue();
-        cout << "Stream Tuple Attr Value is: " << value << endl;
         cPoint point(id, value);
-        cout << "Created new point with ID: " << point.getId() 
-             << " and Value: " << point.getVal(0) << endl;
-        cout << endl;
         readData.push_back(point);
         id++;
         buffer.push_back(streamTuple);
@@ -5016,36 +5101,15 @@ class streamclusterInfo{
     }
 
     void compute() {
-      cout << endl;
-      cout << "Starting compute()" << endl;
+      //create the environment of cluster and points
       kMeans kMeansEnv(k,iterations);
-      cout << "Created new kMeans Structure" << endl; 
-      cout << "Points handed over for Clustering are: " << endl; 
-      for (auto point : readData) {
-        cout << "ID: " << point.getId() << " Value: " 
-                       << point.getVal(0) << endl; 
-      }
-      cout << endl;
-
-      cout << "Tuples present in the buffer are: " << endl;
-      int index = 0;
-      for (auto tuple : buffer) {
-        cout << "Index: " << index << " Value: " 
-             << ((CcInt*) tuple->GetAttribute(attrIndex))->GetValue() << endl;
-        index++;
-      }
-      cout << endl;
-
+      //Cluster the points we created from the stream tuples we received so far
+      //Currently this will only call when the stream is terminated/results are 
+      //queried. If this is supposed to be implemented in the STREAM Algorithm 
+      //This should be called after the end of each block
       kMeansEnv.cluster(readData);
-      for (Cluster currentCluster : kMeansEnv.getClusters()) {
-        cout << "Cluster: " << currentCluster.getId() 
-             << " with centroid: " << currentCluster.getCentroidByPos(0) 
-             << " contains the points: " << endl;
-        for (cPoint point : currentCluster.getAllPoints()) {
-          cout << "ID: " << point.getId() << " Value: " 
-               << point.getVal(0) << endl;
-        }
-        
+      //Create  the Tuples from the Clusters we generated
+      for (Cluster currentCluster : kMeansEnv.getClusters()) {        
         Tuple* newTuple = new Tuple(tupleType);
         int clusterId = currentCluster.getId();
         CcInt* attrId = new CcInt(true, clusterId);
@@ -5056,15 +5120,12 @@ class streamclusterInfo{
         newTuple -> PutAttribute(0, attrId);
         newTuple -> PutAttribute(1, attrCentroid);
         newTuple -> PutAttribute(2, attrSize);
-        cout << endl;
-        cout << "Pushing back Cluster: " << clusterId << " with Centroid: " 
-             << clusterCentroid << " and size: " << clusterSize << endl;
-        cout << endl; 
         clusterInformation.push_back(newTuple);     
       }
-      cout << "At the end of compute() the Tuple Vector has size: " 
-           << clusterInformation.size() << endl;
-     // appendIDs(kMeansEnv);
+      //We talked about creating a Tuplestream with all original values present
+      //and only appending their Cluster ID. This Method was supposed to do this
+      //sadly i was unable to fix the errors this throws
+      // appendIDs(kMeansEnv);
     }
 
   /*Only needed if we want to try to append the IDs
@@ -5152,7 +5213,8 @@ streamclusterVM(Word* args, Word& result,
 2.3.13 Operator ~pointgen~
 
 */
-
+//Test Generator Implemented to create two dimensional 
+//random point instances with set maximum x/y-coordinates
 int
 pointgenVM(Word* args, Word& result,
            int message, Word& local, Supplier s) {
@@ -5173,12 +5235,10 @@ pointgenVM(Word* args, Word& result,
           current = 1;
           last = 0;
       }
-    
+      //Implemented this before reading up on the overhaul 
+      //of random numbers in c++11. Operator is just used for
+      //test data gen, so was left as is.
       srand(time(NULL)+getpid());
-      attrSize    = new double[1];
-      attrSizeExt = new double[1];
-      attrSize[0] = amount->Sizeof();   
-      attrSizeExt[0] = amount->Sizeof();
     }
 
     ~Range() {
@@ -5188,6 +5248,8 @@ pointgenVM(Word* args, Word& result,
   };
 
   Range* range = static_cast<Range*>(local.addr);
+  CcInt* attrLimit =  static_cast<CcInt*>( args[1].addr );
+  int limit = attrLimit -> GetIntval();
 
   switch( message )
   {
@@ -5205,8 +5267,9 @@ pointgenVM(Word* args, Word& result,
       if(!range) {
         return CANCEL;
       } else if ( range->current <= range->last ) {
-        int x = rand() % 10000; 
-        int y = rand() % 10000;    
+        //See struct comment
+        int x = rand() % limit; 
+        int y = rand() % limit;    
         Point* elem = new Point(true, x, y);
         result.addr = elem;
         range->current++;
@@ -5231,6 +5294,9 @@ pointgenVM(Word* args, Word& result,
 2.3.14 Operator ~stringgen~
 
 */
+//Test Generator Implemented to create random string
+//instances. Modifications have to be done in the 
+//class and not via paramater
 class stringgenInfo{
   public:
   stringgenInfo(int amount, int strLength): 
@@ -5248,9 +5314,9 @@ class stringgenInfo{
     
     string tempString;
     static const char alphanum[] =
-      "019"
-      "JYZ"
-      "abc";    
+      "0123456789"
+      "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+      "abcdefghijklmnopqrstuvwxyz";    
     
     tempString.reserve(length); 
 
@@ -5279,8 +5345,6 @@ class stringgenInfo{
     int current;
     std::mt19937 generator;
     std::normal_distribution<> normaldist;
-
-
 };
 
 int
@@ -5334,6 +5398,8 @@ stringgenVM(Word* args, Word& result,
 2.3.14 Operator ~intgen~
 
 */
+//Test Generator Implemented to create random integer
+//instances. 
 class intgenInfo{
   public:
   intgenInfo(int amount, int max): 
@@ -5413,6 +5479,8 @@ intgenVM(Word* args, Word& result,
 2.3.14 Operator ~realgen~
 
 */
+//Test Generator Implemented to create random real
+//instances. 
 class realgenInfo{
   public:
   realgenInfo(int amount, double min, double max, int decimals): 
@@ -5434,6 +5502,7 @@ class realgenInfo{
 double draw() {
 
    double base = distr(generator);
+   //Used to ensure we get the requested amount of decimals
    double result = round(base*factor)/factor;
    return result;
   }
@@ -5502,6 +5571,10 @@ realgenVM(Word* args, Word& result,
 2.3.15 Operator ~massquerybloom~ 
 
 */
+//This Operator is used to send several membership queries to the Bloom
+//Filter. It takes a Tuplestream, a Bloomfilter and an Attribute Name 
+//and will query every Tuples Value of the Attribute with Attribute Name
+//for membership in the Bloomfilter
 template <class T, class S>
 class massquerybloomInfo{
   public: 
@@ -5568,14 +5641,13 @@ class massquerybloomInfo{
       Tuple* oldTuple;
       Attribute* streamElement;
       vector<size_t> hashValues;
+      //The method for querying is the exact same as in ~bloomcontains~
       while ((oldTuple = stream.request()) != nullptr) {
         Tuple* newTuple = new Tuple(tupleType);
         streamElement = (Attribute*) oldTuple->GetAttribute(attrIndex);
         size_t secondoHash = streamElement->HashValue();
         size_t* hashpointer = &secondoHash;
-        bool contained;
         for (int i = 0; i < nbrOfFilter; i++) {
-          contained = false; 
           uint64_t cmHash[2];
           hashValues.clear();
           hashValues.reserve(hashIterations[i]);
@@ -5593,23 +5665,26 @@ class massquerybloomInfo{
               hashValues.push_back(h_i); 
             }
           }
-          if (contained) {
+          //If the Elements hashes are all present in one 
+          //subfilter the element is present and we can 
+          //search for the next element
+          if (filter->contains(hashValues, i)) {
+            oldTuple -> DeleteIfAllowed();
             break;
           }
-        }
-        if (contained) {
-          oldTuple -> DeleteIfAllowed();
-        } else {
-          T* attrValue = (T*) oldTuple->GetAttribute(attrIndex);
-          attrValue->Copy();
-          CcBool* present = new CcBool(true, false);
-          newTuple->PutAttribute(0, attrValue);
-          newTuple->PutAttribute(1, present);
-          annotated.push_back(newTuple);
-          oldTuple->DeleteIfAllowed();
+          //we only reach this, if the element is not present in any filter
+          //The Element is not present and we create a new tuple
+          if (i == (nbrOfFilter-1)) {
+            T* attrValue = (T*) oldTuple->GetAttribute(attrIndex);
+            attrValue->Copy();
+            newTuple->PutAttribute(0, attrValue);
+            newTuple->PutAttribute(1, new CcBool(true, false));
+            annotated.push_back(newTuple);
+            oldTuple->DeleteIfAllowed();
+          }
         }
       }
-    }     
+    }
 };
 
 template <class T, class S>
@@ -5664,10 +5739,9 @@ int massquerybloomSelect(ListExpr args){
   NList type(args);
   NList attrList = type.first().second().second();
   ListExpr attrType;
-  string attrName = type.second().str();
+  string attrName = type.third().str();
   listutils::findAttribute(attrList.listExpr(), 
                            attrName, attrType);
-  
   if (nl->ToString(attrType) == CcInt::BasicType()) {
     return 0;
   } else if (nl->ToString(attrType) == CcReal::BasicType()){
@@ -5686,6 +5760,9 @@ int massquerybloomSelect(ListExpr args){
 2.3.16 Operator ~inttuplegenVM~
 
 */
+//A Generator for random int tuples. Only Implemented
+//to have a comparison how fast the operators can work
+//without a ~transformstream~ or feed from a relation
 class inttuplegenInfo{
   public:
   inttuplegenInfo(int amount): 
@@ -5783,7 +5860,8 @@ inttuplegenVM(Word* args, Word& result,
 2.3.17 Operator ~stringtuplegenVM~
 
 */
-//A Memory Leak is present within this Operator
+
+
 class stringtuplegenInfo{
   public:
   stringtuplegenInfo(int amount, int strlength): 
@@ -5909,7 +5987,11 @@ stringtuplegenVM(Word* args, Word& result,
 
 */
 //Operator is solely suitable to check for false positives. 
-//User has to take care that the filter passed and the 
+//It will generate random elements of int, string or point type
+//which will then be checked for membership in a Bloom Filter. 
+//Argument bounds should be chosen so that the Elements cannot 
+//Be present in the filter, in order to test FP probability. 
+//The User has to take care that the filter passed and the 
 //attrIdentifier (1 = int, 2 = string, 3 = point) are congruent
 int
 bloomfalsepositiveVM(Word* args, Word& result,
@@ -5920,7 +6002,7 @@ bloomfalsepositiveVM(Word* args, Word& result,
   int elementsToGen = i1 -> GetIntval(); 
   CcInt* i2 = (CcInt*) args[2].addr;
   int typeToGen = i2 -> GetIntval(); 
-  CcInt* i3 = (CcInt*) args[2].addr;
+  CcInt* i3 = (CcInt*) args[3].addr;
   int lowerIntLimit = i3 -> GetIntval(); 
   int falselyPresent = 0;
 
@@ -5952,14 +6034,17 @@ bloomfalsepositiveVM(Word* args, Word& result,
     return tempString;
   };
 
+  //Generate int values
   if (typeToGen == 1) {
     while (current < elementsToGen) {
       size_t intValue = lowerIntLimit + rand() / 
                       (RAND_MAX / (RAND_MAX - lowerIntLimit+1)+1);
       size_t* intPointer = &intValue; 
 
-      //no translation to Attribute is necessary;
-      //Secondo HashValue for int is the int itself
+      //no wrapping in CcInt is necessary;
+      //Secondo HashValue() for CcInt is the int itself
+      //Afterwards the hashing is taking place just like in
+      //~bloomcontains~
       for (size_t i = 0; i < nbrOfFilters; i++) {
         hashValues.clear();
         hashValues.reserve(hashIterations[i]);
@@ -5975,15 +6060,21 @@ bloomfalsepositiveVM(Word* args, Word& result,
               hashValues.push_back(h_i);
             }
           }
+          //If the filter contains the value it has to be a false
+          //positive since we should purposely generate values that 
+          //cannot be present
           if (filter->contains(hashValues, i)) {
             falselyPresent++; 
           }
           current++;
       }
     } 
+  //generate string values
   } else if (typeToGen == 2) {
       while (current < elementsToGen) {
         string stringValue = string_gen(); 
+        //We have to generate a CcString to  use its
+        //HashValue() function
         CcString* stringAttr= new CcString(true, stringValue);
         size_t secondoHash = stringAttr->HashValue();
         size_t* hashpointer = &secondoHash;
@@ -6015,6 +6106,7 @@ bloomfalsepositiveVM(Word* args, Word& result,
                     (RAND_MAX / (RAND_MAX - lowerIntLimit+1)+1);
         int y = lowerIntLimit + rand() / 
                     (RAND_MAX / (RAND_MAX - lowerIntLimit+1)+1);
+        //Wrap in Point, to use HashValue()
         Point* point = new Point(true, x, y);
         size_t secondoHash = point->HashValue();
         size_t* hashpointer = &secondoHash;
@@ -6050,6 +6142,8 @@ bloomfalsepositiveVM(Word* args, Word& result,
 2.3.19 Operator ~geometricdist~
 
 */
+//One of several operators for the creation of 
+//randomly distributed data for Data Structure Tests
 class geometricdistInfo{
   public:
   geometricdistInfo(int samples, double probability ): 
@@ -6107,8 +6201,7 @@ geometricdistVM(Word* args, Word& result,
       if(!geoInfo) {
         return CANCEL;
       } else if (!geoInfo->done()) {
-        int attr = geoInfo->draw();
-        result.addr = new CcInt(true, attr);
+        result.addr = new CcInt(true, geoInfo->draw());
         return YIELD;
       } else {
         result.addr = 0;
@@ -6131,6 +6224,10 @@ geometricdistVM(Word* args, Word& result,
 2.3.20 Operator ~uniformdist~
 
 */
+//Generates uniformly distributed numbers within an 
+//Interval determined by lowerL and upperL
+//Can easily be used for real value generation 
+//by changing the types
 class uniformdistInfo{
   public:
   uniformdistInfo(int samples, int lowerL, int upperL): 
@@ -6191,8 +6288,7 @@ uniformdistVM(Word* args, Word& result,
       if(!uniInfo) {
         return CANCEL;
       } else if (!uniInfo->done()) {
-        int attr = uniInfo->draw();
-        result.addr = new CcInt(true, attr);
+        result.addr = new CcInt(true, uniInfo->draw());
         return YIELD;
       } else {
         result.addr = 0;
@@ -6210,6 +6306,8 @@ uniformdistVM(Word* args, Word& result,
   return -1;
 }
 
+//Generates normaly distributed numbers around a mean
+//with a stdDev
 /*
 2.3.21 Operator ~normaldist~
 
@@ -6276,8 +6374,7 @@ normaldistVM(Word* args, Word& result,
       if(!normalInfo) {
         return CANCEL;
       } else if (!normalInfo->done()) {
-        int attr = normalInfo->draw();
-        result.addr = new CcInt(true, attr);
+        result.addr = new CcInt(true, normalInfo->draw());
         return YIELD;
       } else {
         result.addr = 0;
@@ -6365,8 +6462,7 @@ normaldistrealVM(Word* args, Word& result,
       if(!normalInfo) {
         return CANCEL;
       } else if (!normalInfo->done()) {
-        double attr = normalInfo->draw();
-        result.addr = new CcReal(true, attr);
+        result.addr = new CcReal(true, normalInfo->draw());
         return YIELD;
       } else {
         result.addr = 0;
@@ -6384,6 +6480,9 @@ normaldistrealVM(Word* args, Word& result,
   return -1;
 }
 
+//This Operator was written to be able to determine the 
+//accuracy of the values provided by the Lossy Counter 
+//and the CMS 
 /*
 2.3.22 Operator ~distinctcount~
 
@@ -6437,6 +6536,7 @@ class distinctcountInfo{
     string attrType;
     int lastOut; 
     vector<S> distinct;
+    //we use the Hashmap to save the distinct elements
     std::map<S,int> distr;
 
     TupleType* tupleType;
@@ -6537,29 +6637,39 @@ int distinctcountSelect(ListExpr args){
 2.3.23 Operator ~cmsoverreport~
 
 */
+//Used to determine the size of the error, and the overcount guarantees
+//given by the CMS. This only works in combination with a feed from 
+//the ~distinctcount~ operator. I created a relation with let ~distinctcount~
+//and used feed on that one afterward
 template <class T>
 class cmsoverreportInfo{
   public: 
     cmsoverreportInfo(Word inputStream, CountMinSketch* countmin, 
-                       int index, string type): 
-                   stream(inputStream), attrType (type), 
-                   attrIndex(index), lastOut(-1), cms(countmin){
+                      int count, double eps, int index, string type): 
+                   stream(inputStream), cms(countmin), n(count), error(eps),
+                   attrIndex(index), attrType (type), lastOut(-1){
 
       stream.open();
 
       typeList = nl->TwoElemList(
           nl->SymbolAtom(Tuple::BasicType()),
-          nl->OneElemList(
-            /*nl->TwoElemList(
+          nl->ThreeElemList(
+            nl->TwoElemList(
               nl->SymbolAtom("Value"),
               nl->SymbolAtom(attrType)
-            ),*/
+            ),
             nl->TwoElemList(
               nl->SymbolAtom("Overcount"),
               nl->SymbolAtom(CcReal::BasicType())
+            ),
+            nl->TwoElemList(
+              nl->SymbolAtom("Error"),
+              nl->SymbolAtom(CcInt::BasicType())
             )         
           )
         );
+
+      cout << "Output in cms overreport is: " << nl->ToString(typeList) << endl;
 
       SecondoCatalog* sc = SecondoSystem::GetCatalog();
       numTypeList = sc->NumericType(typeList);
@@ -6587,14 +6697,18 @@ class cmsoverreportInfo{
 
     private:
       Stream<Tuple> stream;
-      string attrType;
-      int attrIndex;
-      int lastOut;
       CountMinSketch* cms;
-      vector<Tuple*> annotated;
+      int n; 
+      double error;
+
+      int attrIndex;
+      string attrType;
+      int lastOut;
+
       int cmsEstimate; 
       int realCount;
       double overestimation;
+      vector<Tuple*> annotated;
       
       TupleType* tupleType;
       ListExpr typeList;
@@ -6610,16 +6724,28 @@ class cmsoverreportInfo{
         size_t secondoHash = streamElement->HashValue();
         cmsEstimate = cms->estimateFrequency(secondoHash);
         realCount = streamElementFreq->GetValue();
+        //The CMS count surpasses the accurate count of an Element
         if (cmsEstimate > realCount) {
+          //Working with the percentage of the overcount 
+          //Tests were also done with the average total overcount 
+          //(estimate - realcount)
           overestimation = (cmsEstimate/realCount)*100;
-          Tuple* newTuple = new Tuple(tupleType);
-          /* 
+          Tuple* newTuple = new Tuple(tupleType); 
           T* attrValue = (T*) oldTuple->GetAttribute(attrIndex);
           attrValue->Copy(); 
           newTuple->PutAttribute(0, attrValue);
-          */  
           CcReal* attrOverestimation = new CcReal(true, overestimation);       
-          newTuple->PutAttribute(0, attrOverestimation);
+          newTuple->PutAttribute(1, attrOverestimation);
+          //Error guarantee was violated
+          if (!(cmsEstimate <= (realCount + (error*n)))) {
+            CcInt* attrError = new CcInt(true,1);
+            newTuple->PutAttribute(2, attrError);
+          //error guarantee was not violated, but we need
+          //an output for the tuple
+          } else {
+            CcInt* attrError = new CcInt(true,0);
+            newTuple->PutAttribute(2, attrError);
+          }
           annotated.push_back(newTuple);
           oldTuple->DeleteIfAllowed();
         } else {
@@ -6643,15 +6769,19 @@ int cmsoverreportVMT(Word* args, Word& result,
                   CountMinSketch* cms = 
                   (CountMinSketch*) args[1].addr;
 
-                  CcInt* attrIndex = (CcInt*) args[3].addr;
-                  CcString* attrType = (CcString*) args[4].addr;
+                  CcInt* attrCount = (CcInt*) args[3].addr;
+                  CcReal* attrEps = (CcReal*) args[4].addr;
+                  CcInt* attrIndex = (CcInt*) args[5].addr;
+                  CcString* attrType = (CcString*) args[6].addr;
 
                   if (cms -> getDefined()) {
                     int index = attrIndex->GetValue();
                     string type = attrType->GetValue();
+                    int count = attrCount->GetValue();
+                    double eps = attrEps->GetValue();
                     local.addr = new 
-                    cmsoverreportInfo<T>(args[0], cms,
-                                       index, type);
+                    cmsoverreportInfo<T>(args[0], cms, count,
+                                       eps, index, type);
                   }
                   return 0;
                 }
@@ -6702,6 +6832,9 @@ int  cmsoverreportSelect(ListExpr args){
 2.3.24 Operator ~switchingdist~
 
 */
+//Generates normally distributed numbers, but introduces  a 
+//break point, after which the normaldistribution will shift. 
+//Currently not parameter implemented, but hardcoded.
 class switchingdistInfo{
   public:
   switchingdistInfo(int samples, int mean, int stdDev, double reroll): 
@@ -6709,6 +6842,8 @@ class switchingdistInfo{
   current(0), generator{std::random_device{}()},
   normaldist(std::normal_distribution<> (mean,stdDev))
   {
+    //Determine the point at which the user wants 
+    //to switch the mean and stdDev of distribution
     switchPoint = floor(maxElements*switchPct);       
   }
 
@@ -6716,6 +6851,7 @@ class switchingdistInfo{
 
   int draw() {
     if(current == switchPoint) {
+      //set the severity of the breakpoint here
       std::normal_distribution<>::param_type d2(10, 5);
       normaldist.param(d2);
     }
@@ -6776,8 +6912,7 @@ switchingdistVM(Word* args, Word& result,
       if(!swdinfo) {
         return CANCEL;
       } else if (!swdinfo->done()) {
-        int attr = swdinfo->draw();
-        result.addr = new CcInt(true, attr);
+        result.addr = new CcInt(true, swdinfo->draw());
         return YIELD;
       } else {
         result.addr = 0;
@@ -6799,6 +6934,12 @@ switchingdistVM(Word* args, Word& result,
 2.3.25 Operator ~samplegen~
 
 */
+//Used to test the ~reservoir~ Operator by creating a user determined
+//amount of samples, which are split into windows of user given size. 
+//Each window only contains the same timestamp values and the time stamps
+//will increase by 1 after each window
+//since other values than timestamp are irrelevant for testing the reservoir
+//no further ways to generate exist
 class samplegenInfo{
   public:
   samplegenInfo(int samples, int windowSize): 
@@ -6831,6 +6972,10 @@ class samplegenInfo{
   }
 
   Tuple* next() {
+    //Increases the number after the user determined
+    //No padding exists at the end so an interval of 10
+    //with 15 samples will result in ten 0, but only five 
+    //1 values
     if ((current % interval) == 0) {
       rolling++;
     }
@@ -6997,8 +7142,7 @@ class lossycompareInfo{
     for (auto element : buffer1) {
       //These are the items that are frequent by an accurate count
       if (element.second >= falseNegativeThresh) {
-        cout << "Item " << element.first << " with freq: " << element.second 
-             << " should be present in lcfrequent" << endl;
+
         //Even though the Item is frequent, it is not present in our results
         //generated by ~lcfrequent~: This is a false negative
         if (buffer2.find(element.first) == buffer2.end()) {
@@ -7165,209 +7309,290 @@ int lossycompareSelect(ListExpr args){
   OperatorSpec reservoirSpec(
     "stream(T) x int -> stream(T), T = TUPLE or T = DATA",
     "_ reservoir [_] ",
-    "Creates a reservoir sample of a supplied stream of a given size ",
+    "Creates a biased reservoir sample of a supplied stream of a given size "
+    "the second argument specifies the reservoir size, the third argument " 
+    " specifies the inclusion Probablity",
     "query intstream(1,1000) reservoir[10] count"
   );
 
    OperatorSpec tiltedtimeSpec(
-    "stream(T) x int x int -> stream(T), T = TUPLE or T = DATA",
+    "stream(tuple(X)) x int x int -> stream(T), T = TUPLE or T = DATA",
     "_ tiltedtime [_,_] ",
-    "Creates either a natural, logarithmic or progressive logarthmic",
-    " sample of a stream, depending on the third argument",
+    "Creates a progressive logarithmic tilted time frame of a stream "
+    "the second argument specifies the Attribute Name of which we take "
+    "snapshots, the third the amount of snapshots we will take",
     "query intstream(1,1000) tiltedtime[3,10] count"
   );
 
   OperatorSpec createbloomfilterSpec(
     "stream(tuple(X)) x ATTR x real ->  bloomfilter",
     "_ createbloomfilter [_,_]",
-    "Creates a Bloomfilter of a supplied stream with the given ",
-    "False Positive rate for the expected number of inserts",
-    "query Kinos feed createbloomfilter[Name,0.01] bloomcontains[\"Astor\"]"
+    "Creates a Bloom Filter for an Attribute of a supplied Tuplestream"
+    "The second argument specifies the name of the Attribute whose "
+    "values we create the filter for, the third the false positive "
+    "probability",
+    "query Kinos feed createbloomfilter[Name,0.01]"
   );
 
   OperatorSpec bloomcontainsSpec(
-    "scalablebloomfilter x T -> bool, T = TUPLE or T = DATA",
+    "scalablebloomfilter x T -> bool, T = DATA",
     "_ bloomcontains [_]",
-    "Checks for the presence of Element T in a supplied Bloomfilter",
-    "query Kinos feed createbloomfilter[Name,0.01,100] bloomcontains[\"Astor\"]"
+    "Checks for the presence of an Element of type T in a supplied Bloomfilter."
+    "The first argument specifies the Filter, the second the search element",
+    "query Kinos feed createbloomfilter[Name,0.01] bloomcontains[\"Astor\"]"
   );
 
   OperatorSpec createcountminSpec(
     "stream(tuple(X)) x ATTR x int x real ->  countminsketch",
     "_ createcountminSpec [_,_,_]",
-    "Creates Count Mint Sketch for the supplied stream",
-    "query Kinos feed createcountmin[Name,0.01,0.9] cmscount[\"Astor\"]"
+    "Creates a Count Mint Sketch for an Attribute of a supplied Tuplestream "
+    "the second argument specifies the name of the Attribute whose values we "
+    "use to create the filter, the third the errorbound and the fourth the "
+    "inverse probability that the values are within the errorbound",
+    "query Kinos feed createcountmin[Name,0.01,0.1]"
   );
 
   OperatorSpec cmscountSpec(
     "countminsketch x T -> bool, T = TUPLE or T = DATA",
     "_ cmscountSpec [_]",
-    "Gives an estimate of how often an Element appeared in the Stream the ",
-    "Count Min Sketch was created for"
-    "query Kinos feed createcountmin[Name,0.01,0.9] cmscount[\"Astor\"]"
+    "Gives an estimate of how often an Element appeared in the Stream the "
+    "Count Min Sketch was created for. The second argument presents the  "
+    "element whose count we retrieve. Ensuring that was made for the values "
+    "you search is user responsiblity. The Sketch might deliver counts for "
+    "unrelated search terms too.", 
+    "query Kinos feed createcountmin[Name,0.01,0.1] cmscount[\"Astor\"]"
   );
 
   OperatorSpec createamsSpec(
     "stream(tuple(X)) x ATTR x real x real ->  amssketch",
     "_ createamsSpec [_,_,_]",
-    "Creates an AMS Sketch for the supplied stream", 
-     "query Kinos feed createams[Name,0.01,0.9] amsestimate"
+    "Creates an AMS Sketch for an Attribute of a supplied Tuplestream "
+    "the first argument specifies the name of the Attribute whose values we "
+    "use to create the filter, the second the errorbound and the third the "
+    "inverse probability that the values are within the errorbound",
+    "query Kinos feed createams[Name,0.01,0.1]"
   );
 
   OperatorSpec amsestimateSpec(
-    "amssketch -> real",
+    "amssketch -> int",
     "_ amsestimate ",
-    "Creates and estimate of the F_2 Moment of the ",
-    "given AMS-Sketch"
+    "Creates an estimate of the selfjoin Size of the Stream "
+    "which the passed AMS Sketch was created for regarding the "
+    "Attribute it was created for",
+    "query Kinos feed createams[Name,0.01,0.1] amsestimate"
   );
 
   OperatorSpec createlossycounterSpec(
-    "stream(tuple(X)) x ATTR x real -> lossycounter",
+    "stream(tuple(X)) x ATTR x real -> stream(tuple(X int real int int))",
     "_ createlossycounter [_,_]",
-    "Creates a lossy Counter the supplied stream",
-    "query intstream(0,100) createlossycounter lcfrequent"
+    "Creates a lossy Counter for an Attributes values in "
+    "the supplied Tuple Stream. The second argument specifies "
+    "the name of the Attribute whose values we count, the second "
+    "the errorbound",
+    "query Kinos feed createlossycounter[Name, 0.005] lcfrequent"
   );
 
   OperatorSpec lcfrequentSpec(
-    "lossycounter(X) -> stream(ATTR)",
+    "stream(tuple(X int int int real)) -> stream(tuple(X int int))",
     "_ lcfrequent [_]",
-    "Displays the items determined to be frequent by the lossy Counter",
-    "query intstream(0,100) createlossycounter lcfrequent"
+    "Further mines the Tuplestream created by the ~createlossycounter~ "
+    "Operator. The argument is the minimum Support of the Items that "
+    "are returned",
+    "query Kinos feed createlossycounter[Name,0.001] lcfrequent[0.01]"
   );
 
   OperatorSpec outlierSpec(
-    "stream(T) x ATTR x real -> stream(T), T = int or T = real",
+    "stream(tuple(T)) x ATTR x real -> stream(tuple(T, int)), T = int or real",
     "_ outlier [_,_]",
-    "Determines outliers for an int/real stream according to the ",
-    "passed Z-Score Threshold.",
-    "query intstream(0,100) outliers[Elem, 3] consume"
+    "Determines the Outlier of a Tuplestream regarding to an int "
+    "or real Attribute. Is sadly not very precise. The second argument "
+    "is the Name of the Attribute we monitor, the third the z-score "
+    "from which on we will consider an Element as outlier.",
+    "query intstream(0,100) transformstream outliers[Elem, 3] consume"
   );
 
   OperatorSpec streamclusterSpec(
-    "stream(T) x ATTR x int x int -> outlierstream(T), T = int or T = real",
+    "stream(T) x ATTR x int x int -> outlierstream(tuple(int real int)) "
+    "T = int or T = real",
     "_ streamcluster [_,_,_]",
-    "Determines Cluster for an int/real stream using ",
-    "the number of clusters and iterations passed",
-    "query intstream(0,100) outliers[Elem,2,3] consume"
+    "Runs the k-means Algorithm on the Attribute of the Tuple whose name "
+    "is supplied. The name is the second Argument, the number of "
+    "clusters to be generated the second and the third the number of "
+    "iterations the Algorithm will run.",
+    "query intstream(0,100) transformstream streamcluster[Elem,2,3] consume"
   );
 
+  //The following Operator are the ones created for testing the 
+  //implemented Data Structures
   OperatorSpec pointgenSpec(
-    "int -> stream(point)",
-    "pointgen (_)",
-    "Creates random points with x- and y-Coordinate < 1000 ",
-    "until the amount specified is reached"
+    "int x int -> stream(point)",
+    "pointgen (_,_)",
+    "Creates points with x- and y-Coordinate random two dimensional "
+    "coordinates. First argument is the amount, second the maximum value "
+    "a coordinate can take",
+    "query pointgen(10,100) count"
   );
   
   OperatorSpec stringgenSpec(
-    "int x int-> stream(point)",
+    "int x int-> stream(string)",
     "stringgen (_,_)",
-    "Creates random string values of a length",
-    "until the amount specified is reached"
+    "Creates random string values out of a certain set of characters. " 
+    "The first argument specifies the amount, the second the length",
+    "query stringgen(10,3) count"
   );
 
   OperatorSpec intgenSpec(
-    "int -> stream(int)",
-    "intgen (_)",
-    "Creates random integer values",
-    "until the amount specified is reached"
+    "int x int-> stream(int)",
+    "stringgen (_,_)",
+    "Creates random integer values that have certain maximum. " 
+    "The first argument specifies the amount, the second the maximum",
+    "query intgen(10,100) count"
   );
   
   OperatorSpec realgenSpec(
-    "int x real x real -> stream(real)",
-    "realgen (_,_,_)",
-    "Creates random real values between min/max vlue",
-    "until the amount specified is reached"
+    "int x real x real x int-> stream(real)",
+    "stringgen (_,_)",
+    "Creates random real values in a certain range with a determined "
+    "amount of decimals. The first argument specifies the amount, the "
+    "second the minimum, the third the maximum and the fourth the "
+    "amount of decimals",
+    "query realgen(100,0.01,2.0,3) count"
   );
 
   OperatorSpec massquerybloomSpec(
-    "Stream(T) x bloomfilter x ATTR -> stream(T)",
+    "Stream(Tuple(X)) x bloomfilter x ATTR -> stream(tuple(x bool))",
     "_ massquerybloomOp [_,_]",
-    "Querys a bloomfilter to find out which ",
-    "of a streams Attribute values are not present"
+    "Sends membership queries to the Bloomfilter regarding all Attribute "
+    "Values of a requested Attribute in the Tuplestream. The first argument "
+    "is the Tuplestream, the second the Bloomfilter to query and the "
+    "third the Attribute Name of the Attribute whose values we query",
+    "query int(1,100) transformstream massquerybloom[<bloomfilter>, Elem]" 
+
   );
 
   OperatorSpec inttuplegenSpec(
     "int -> stream(Tuple(Elem int))",
     "inttuplegen(_)",
-    "Creates a Tuple Stream consisting of a set amount ",
-    " of single int Attribute Tuples"
+    "Creates a Tuple Stream consisting of a set amount "
+    "of single int Attribute Tuples. The argument determines " 
+    "the amount of tuples that will be created",
+    "query inttuplegen(1,100) createbloomfilter[Elem,0.1]"
   );
 
   OperatorSpec stringtuplegenSpec(
-    "int -> stream(Tuple(Elem string))",
+    "int x int -> stream(Tuple(Elem string))",
     "stringtuplegen(_,_)",
-    "Creates a Tuple Stream consisting of a set amount ",
-    " of single str Attribute Tuples of set length"
+    "Creates a Tuple Stream consisting of a set amount "
+    "of string Attribute Tuples. The first argument determines " 
+    "the amount of tuples that will be created, the second their "
+    "length",
+    "query inttuplegen(1,100) createbloomfilter[Elem,0.1]"
   );
 
   OperatorSpec bloomfalsepositiveSpec(
     "bloomfilter x int x int x int -> int",
     "bloomfalsepositve(_,_,_)",
-    "Generates Attributes not Present in Bloomfilter ",
-    " to test p(FP)"
+    "Generates random int, string or point values and checks "
+    "the values for membership in a provided Bloom Filter "
+    "The first argument is the amount of Elements to generate, "
+    "the second the type (1 = int, 2 = string, 3 = point) and "
+    "the last the lower limit the generated int values can take. "
+    "These were used to test the p(FP) of Bloomfilters",
+    "query bloomfalsepositive [<bloomfilter>, 100, 1, 10000]"
   );
 
   OperatorSpec geometricdistSpec(
     "int x real -> Stream(int)",
     "geometricdist(_,_)",
-    "Generates a geometrically distributed Stream of numbers ",
-    " to test a CMS"
+    "Generates a geometrically distributed Stream of numbers "
+    "the first argument is the amount to be generated, the second "
+    "the success probability for each try",
+    "query geometricdist(100,0.2) consume"
   );
 
   OperatorSpec uniformdistSpec(
-    "int x int x int-> Stream(int)",
+    "int x int x int -> Stream(int)",
     "uniformdist(_,_,_)",
-    "Generates a uniformly distributed Stream of numbers ",
-    " to test a CMS"
+    "Generates a uniformly distributed Stream of numbers "
+    "the first argument is the amount to be generated, the second "
+    "the upper limit of the numbers generated and the third the "
+    "lower limit",
+    "query uniformdist(100,1,100) consume"
   );
 
   OperatorSpec normaldistSpec(
     "int x int x int -> Stream(int)",
     "normaldist(_,_,_)",
-    "Generates a normally distributed Stream of numbers ",
-    " to test a CMS"
+    "Generates a uniformly distributed Stream of integer numbers "
+    "the first argument is the amount to be generated, the second "
+    "the mean and the third the standard Deviation",
+    "query normaldist(100,0,1) consume"
   );
 
   OperatorSpec normaldistrealSpec(
-    "int x real x int -> Stream(real)",
+    "int x real x real -> Stream(real)",
     "normaldist(_,_,_)",
-    "Generates a normally distributed Stream of numbers ",
-    " to test a CMS"
+    "Generates a uniformly distributed Stream of real numbers "
+    "the first argument is the amount to be generated, the second "
+    "the mean and the third the standard Deviation",
+    "query geometricdist(100,0.0,1.0) consume"
   );
 
   OperatorSpec distinctcountSpec(
-    "Stream(T) x ATTR -> Stream(T(ATTR Value, ATTR Frequency))",
+    "Stream(T) x ATTR -> Stream(tuple(ATTR Value, ATTR Frequency))"
+    "T in Int, Real, String, Bool",
     "_ distinctcount(_)",
-    "Counts the distinct elements of a Stream and their Frequency",
-    " to test a CMS"
+    "Gives an accurate distinct count of the Attribute values of a "
+    "set Attribute of a Tuple Stream. The second Argument provides "
+    "the Attributes Name whose values should be counted",
+    "query intstream(1,100) transformstream distinctcount[Elem] consume"
   );
 
   OperatorSpec cmsoverreportSpec(
-    "Stream(T) x countminsketch x ATTR -> stream(T)",
+    "Stream(Tuple) x countminsketch x ATTR -> stream(real)",
     "_ cmsoverreport(_,_)",
-    "Counts the difference between elements of a Stream and their Frequency",
-    " to test a CMS"
+    "Compares the accurate count of elements with the one made"
+    "by a CMS. The first argument has to be a Tuplestream created "
+    "via the ~distinctcount~ Operator, the second one a CMS and the "
+    "third the Attribute Name of the Element from the Stream. Since " 
+    "this is restricted to distinctcount Streams it will be Value",
+    "query intstream(1,100) transformstream distinctcount[Elem] "
+    "cmsoverreport[<countmin>, Value]"
   );
 
   OperatorSpec switchingdistSpec(
-    "int x int x int x real-> Stream(int)",
-    "normaldist(_,_,_)",
-    "Generates a normally distributed Stream of numbers ",
-    " to test a CMS"
+    "int x int x int -> Stream(int)",
+    "normaldist(_,_,_,_)",
+    "Generates a uniformly distributed Stream of integer numbers, "
+    "but introduces a breakpoint after a number of elements "
+    "the first argument is the amount to be generated, the second "
+    "the mean, the third the standard Deviation of the initial "
+    "distribution, the fourth is the percentage of samples generated "
+    "after which the shift to the other distribution should occur",
+    "query switchingdist(100,0,1,0.3) consume"
   );
 
   OperatorSpec samplegenSpec(
     "int x int -> Stream(int)",
     "samplegendist(_,_)",
-    "Generates a Stream of values repeating for an interval",
-    " to test a CMS"
+    "Generates a Stream of Tuples with timestamps, which are split into "
+    "windows. Each window element contains the same timestamp. The size "
+    "of the Window is user determind. The first argument determines the "
+    "amount of samples generated. The second the window size. No padding "
+    "exists",
+    "query samplegen(100,10) count"
   );
 
   OperatorSpec lossycompareSpec(
-    "Stream(T) x Stream(T) -> Stream(T)",
+    "Stream(tuple(X int)) x Stream(T(tuple(X int))) -> Stream(tuple(X int))",
     "_ _ lossycompare",
-    "Generates a Stream of values from comparison of frequencies",
-    " to test a CMS"
+    "Generates a Stream of Elements and the error guarantee which they " 
+    "violated. Violations are coded, as 1 for a frequentElement not being "
+    "in output of ~lcfrequent~, 2 for an Item being a false positive "
+    "violating the errorguarantee and 3 for the Element being overcounted "
+    "too much by ~lcfrequent~. Only works with streams from ~distinctcount~ "
+    "and ~lcfrequent~ being the first and second argument respectively.",
+    "query <distinctcount rel> feed <lcfrequent rel> feed lossycompare consume"
   );
 
 /*
