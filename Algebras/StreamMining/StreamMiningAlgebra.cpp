@@ -103,7 +103,7 @@ namespace eschbach {
 //Effectively the way I construct this cannot be correct
 //When the QP storage is assigned with e.g. " ScalableBloomFilter* bloomFilter 
 //= (ScalableBloomFilter*) result.addr;" the call goes to this constructor first
-//but then Create() function is called, and I have to use initialize() after. 
+//but then the Create() function is called, and I have to use initialize(). 
 //There has to be a right way to do this, but I have not figured it out. 
 //The way this is, either the assignments in initialize, or those made here
 //are superflous, but deleting either results in Problems. 
@@ -1653,10 +1653,7 @@ lossyCounter<T>::lossyCounter
   //The errorbound
   epsilon = eps; 
   //The number of Elements seen
-  eleCounter = 0; 
-  //The conceptual bucket size
-  windowSize = ceil(1/epsilon);
-  //Initialize the conceptual window index
+  eleCounter = 0; add an Element 
   windowIndex = 1;
 }
 
@@ -5691,6 +5688,7 @@ class massquerybloomInfo{
             )         
           )
         );
+        
       SecondoCatalog* sc = SecondoSystem::GetCatalog();
       numTypeList = sc->NumericType(typeList);
       tupleType = new TupleType(numTypeList);

@@ -35,8 +35,12 @@ namespace eschbach {
   public:
   counterPair(T item, long frequency, long maxError);
   ~counterPair() {}
+  //The actual element
   T item; 
+  //The frequency of an element in the stream
   int frequency;
+  //The bucket/window index - 1 Value inserted at 
+  //an elements counter creation
   int maxError;
 
 
@@ -47,6 +51,8 @@ namespace eschbach {
   int getFrequency(); 
   void setFrequency();
   int getMaxError();
+  //Setter not implemented, cause the error is always
+  //fixed when a counter is created
   void setMaxError();
   };
 }

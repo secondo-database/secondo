@@ -54,22 +54,37 @@ namespace eschbach {
 
   //Auxiliary Functions
   void initialize(const double epsilon);
-  void incrCount(T element); 
+  //An Element was already present, increase its counter frequency value
+  void incrCount(T element);
+  //Function that determines how to handle an element
   void addElement(T element);
+  //Element was not present and a counter has to be created
   void insertElement(T element);
+  //Checks if an element is present within the counter structure
   bool elementPresent(T element);
+  //Function to remove counters from the  map that no longer
+  //satisfy the threshold
   void reduce();
+  //increase our window index
   void updateWindowIndex(); 
+  //Return the counters whose frequency exceeds our minimum 
+  //support
   std::vector<T> getFrequentElements(double minSupport);
+  //Estimate of a single elements count. No operator implementation
   long estimateCount(T element);
 
   private:
     lossyCounter() {}
     bool defined;
-    double epsilon; 
-    size_t eleCounter; 
+    //allowed error rate
+    double epsilon;
+    //Amount of elements seen 
+    size_t eleCounter;
+    //Conceptual bucket/window size
     int windowSize; 
+    //Current bucket/window index
     long windowIndex;
+    //Structure used for storing the counters
     std::unordered_map<T, counterPair<T>> frequencyList;
   };
 

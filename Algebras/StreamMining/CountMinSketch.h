@@ -58,8 +58,11 @@ namespace eschbach {
 
   //Auxiliary Functions
   void initialize(const double epsilon, const double delta);
+  //Generates the constants for every rows hashfunction
   void generateConstants(int index);
+  //Increases an elements counter
   void increaseCount(long hashedEleValue);
+  //Gets the counter of an element
   int estimateFrequency(long hashedEleValue);
 
   //Support Functions
@@ -102,12 +105,21 @@ namespace eschbach {
     CountMinSketch() {}
     friend struct ConstructorFunctions<CountMinSketch>;
     bool defined;
-    float eps;
-    float delta; 
+    //Errorbound
+    double eps;
+    //Inverse Probability of the answers being
+    //within the errorbound
+    double delta; 
+    //Width of the Matrix
     size_t width;
+    //Depth of the Matrix
     size_t depth;
+    //Amount of elements seen
     size_t totalCount;
+    //2d structure for the counters
     std::vector<std::vector<int>> matrix;
+    //Vector for saving the hashConstants calculated
+    //for each row of the matrix
     std::vector<std::vector<long>> hashConstants;
   };
 }

@@ -44,15 +44,22 @@ namespace eschbach {
     void setCentroidByPos(int pos, double val);
 
     //Auxiliary
+    //Add a point to this cluster
     void addPoint(cPoint point);
+    //remove a point from this cluster
     bool removePoint(int pointId);
+    //clear cluster
     void removeAllPoints();
 
 
   private: 
     Cluster(){}
+    //a Clusters Id
     int clusterId;
+    //saving the value of the current cluster centroid for 
+    //calculations
     std::vector<double> clusterCentroid; 
+    //Points belonging to this cluster
     std::vector<cPoint> points; 
   };
 }

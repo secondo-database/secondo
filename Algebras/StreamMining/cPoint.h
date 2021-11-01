@@ -43,13 +43,24 @@ namespace eschbach {
 
   private: 
     cPoint() {}
+    //The Id of a Point used for k-means
+    //ids will be created progressively
+    //When new elements arrive from a stream
     int pointId;
+    //The Id of the CLuster the point is currently
+    //assigned to
     int clusterId;
+    //The Dimensions of a Point. For int and real
+    //Values this will be 1
     int dimensions;
+    //The values of a point. Will also only be 1 
+    //for int and real values
     std::vector<int> values;
 
     //Auxiliary
     void clearClusters(); 
+    //Will calculate the closest clusterID to assign the 
+    //point
     int getClosestClusterId(cPoint point); 
 
 

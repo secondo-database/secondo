@@ -57,11 +57,29 @@ namespace eschbach {
 
   //Auxiliary Functions
   void initialize(double fp);
+  //Check whether an Element is included, receives the Index of the filter
+  //the hashvalues contained in hashResults are for. 
+  //Hashing should be object internal, instead of the current method 
+  //in the operators. Would need a refactor.
   bool contains(std::vector<size_t> hashResults, int filterIndex) const;
+  //Sets the bits in the current filter for all indexes present in 
+  //hashresults
   void add(std::vector<size_t> hashResults);
+  //Checks whether a filter has processed more unique elements 
+  //than it was created for
   bool isSaturated();
+  //Calculates the size of the current subfilter considering 
+  //the demanded p(FP) and the size of objects this 
+  //should be created for
   size_t optimalSize (const long maxInserts, const double fPProb);
+  //Calculates the optimal number of hashes for the current subfilter
+  //considering its size and the number of inserts it is created for
   long optimalHashes (const long maxInserts, const long filterSize);
+  //Called when a new subfilter is added, because the old one is saturated.
+  //Updates the parameters by applying growth rate, tightening ratio, etc. 
+  //I do not know whether it is possible in C++ but in Java i would have
+  //created a bloomfilter which has bloomfilters as Member variable 
+  //mb this is something a refactoring could do here as well
   void updateFilterValues(); 
   size_t Sizeof() const;
 
@@ -103,24 +121,43 @@ namespace eschbach {
 
   private:
     ScalableBloomFilter() {
-      cout << "Used Scalalble Constructor without Param" << endl;
     }
     friend struct  ConstructorFunctions<ScalableBloomFilter>;
 
     //Constants for Filter Creation
+    //Size of Elements we create the filter for
     int DEFAULT_SIZE= 4096;
+    //Growth rate for the subsequent subfilter
     int GROWTH_RATE = 2; 
+    //Tightening Ratio of the errorbound
     double TIGHTENING_RATIO = 0.8;
     
     bool defined;
+    //Number of hash functions the current subfilter has 
+    //calculated as optimum
     int numHashfunctions;
+    //User parameter
     double falsePositiveProbability;
+    //FP for the current subfilter
+    //for the first filter this equals 
+    //falsePositiveProbablity
     double rollingFP;
+    //The mximum number of inserts the current subfilter can
+    //handle. 4096 for the first filter
     size_t maxInserts;
+    //Number of bits in the current subfilter (vector) in
+    //our case. Has to be saved for the modulo reduction
     size_t filterSize;
+    //The amount of distinct elements we inserted into the 
+    //current subfilter
     size_t currentInserts;
+    //Currently active subfilter
     int curFilterIndex;
+    //Saves vector[i] saves how many hashes are needed for 
+    //the ith subfilter
     std::vector<int> ithFilterHashes;
+    //The actual bloomfilter consisting of a list of 
+    //subfilters
     std::vector<std::vector<bool>> filterList;
   };
 }

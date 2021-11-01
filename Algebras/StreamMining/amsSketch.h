@@ -65,9 +65,13 @@ namespace eschbach {
 
   //Auxiliary Functions
   void initialize(const double epsilon, const double delta);
+  //Generates the 2-wise constants for every rows 2-wise hashfunction
   void generateConstants(int index);
+  //Generates the 4-wise constants for every rows 4-wise hashfunction
   void generateFwConstants(int index);
+  //Increases or decreases an elements counter
   void changeWeight(size_t value);
+  //Retrieves the estimation of the selfjoin size
   int estimateInnerProduct();
 
   void swap(int* a, int* b);
@@ -116,13 +120,24 @@ namespace eschbach {
     amsSketch() {}
     friend struct ConstructorFunctions<amsSketch>;
     bool defined;
+    //Errorbound
     double eps;
+    //Inverse Probability of the answers being
+    //within the errorbound
     double delta; 
+    //Width of the Matrix
     size_t width;
+    //Depth of the Matrix
     size_t depth;
+    //Amount of elements seen
     size_t totalCount;
+    //2d structure for the counters
     std::vector<std::vector<int>> matrix;
+    //Vector for saving the 2-wise hashConstants calculated
+    //for each row of the matrix
     std::vector<std::vector<long>> twConstants;
+    //Vector for saving the 4-wise hashConstants calculated
+    //for each row of the matrix
     std::vector<std::vector<long>> fwConstants;
   };
 }

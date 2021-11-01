@@ -39,14 +39,22 @@ namespace eschbach {
     std::vector<Cluster> getClusters();
 
     //Auxiliary
+    //Fcuntion called to actually cluster the process
+    //Vector of all points is passed by reference so
+    //work done directly carries over
     void cluster(std::vector<cPoint> &all_points);
 
   private: 
     kMeans() {}
     int k; 
+    //The number of iterations handed to the operator
     int iterations; 
+    //The dimensions of the values. Will always be 1
+    //for int and real
     int dimensions;
+    //The total number of points currently being handled
     int totalNbrPoints; 
+    //The Clusters build so far
     std::vector<Cluster> clusters;
 
     //Auxiliary
