@@ -1,0 +1,233 @@
+# SECONDO ENVIRONMENT CONFIGURATION
+#
+# Feb 2005. Markus Spiekermann
+#
+# The file ".secondorc" must be executed at startup of a bash.
+# Copy this file into your $HOME directory and add the line 
+#
+#   source $SECONDO_SDK/secondorc [Root of Secondo source files]
+#
+# at the end of file $HOME/.bashrc.
+#
+
+SECONDO_BUILD_DIR=$HOME/secondo
+
+declare -i ERR=0
+
+# Some function definitions
+
+# $1: message
+# $2: directory
+function checkDir {
+
+if ! [ -d $2 ]; then
+  printf "%s"   "Error: $1 Directory \"${2}\" is "
+  printf "%s\n\n" "not present!"
+  let ERR++
+  return 1
+fi
+return 0
+}
+
+
+# $1: variable name 
+# $2: variable value 
+function checkVar {
+
+#printf "%s\n\n"   "Debug: Testing $1 $2 !"
+
+if [[ -z "$1" ]]; then
+  printf "%s\n\n"   "Error: Variable $1 is not set!"
+  let ERR++
+  return 1
+fi
+
+if [[ "$1" == "$2" ]]; then
+  printf "%s\n\n"   "Error: Variable $1 is not set to $2!"
+  let ERR++
+  return 2 
+fi
+
+
+return 0
+}
+
+# define short variables for important base directories
+buildDir=$SECONDO_BUILD_DIR
+sdkDir=$SECONDO_SDK
+platform=$SECONDO_PLATFORM
+
+# include alias definitions and default values
+checkDir "Testing if variable SECONDO_SDK points to an existing directory." $sdkDir
+
+checkDir "Testing if variable SECONDO_BUILD_DIR points to an existing directory." $buildDir
+
+# test if $buildDir seems to be a SECONDO source tree 
+checkDir "SECONDO_BUILD_DIR seems not to point to a secondo source tree" ${buildDir}/Algebras/Standard-C++
+
+if [ "$platform" != "linux" ]; then
+ if [ "$platform" != "linux64" ]; then
+  if [ "$platform" != "mac_osx" ]; then
+    if [ "$platform" != "win32" ]; then
+      printf "%s\n" "Error: SECONDO_PLATFORM must be set to linux, linux64, mac_osx or win32!"
+      let ERR++
+    fi
+  fi
+ fi
+fi 
+
+echo "ERR="$ERR
+if [ $ERR -eq 0 ]; then
+
+
+# include platform specific definitions
+export SECONDO_LDFLAGS="-L$SECONDO_SDK/lib"
+export J2SDK_ROOT="/System/Library/Frameworks/JavaVM.framework"
+export PD_DVI_VIEWER=xdvi
+export PD_PS_VIEWER=gv
+
+# set common variables
+checkDir "SECONDO_SDK" $SECONDO_SDK
+checkVar "SECONDO_PLATFORM" $SECONDO_PLATFORM
+checkDir "J2SDK_ROOT" $J2SDK_ROOT
+
+if [ -z $SETVAR_FIRST_CALL ]; then
+  export SETVAR_FIRST_CALL="true"
+  export COPY_OF_PATH=$PATH
+  export COPY_OF_LD_PATH=$LD_LIBRARY_PATH
+fi
+
+PATH=$COPY_OF_PATH
+LD_LIBRARY_PATH=$COPY_OF_LD_PATH
+
+export SECONDO_CONFIG=${SECONDO_BUILD_DIR}/bin/SecondoConfig.ini
+
+# GCC: Set up search paths for header files and libraries
+# Command line -I and -L switches will have a higher rule of 
+# precendence. Finally, some built in paths like /usr/include and
+# usr/lib will be used.  
+sdk=$SECONDO_SDK
+binPaths="$sdk/bin:"
+libPaths="$sdk/lib:"
+incPaths="$sdk/include:"
+
+export CPLUS_INCLUDE_PATH=$incPaths
+export C_INCLUDE_PATH=$CPLUS_INCLUDE_PATH
+export LIBRARY_PATH=$libPaths:${SECONDO_BUILD_DIR}/lib
+
+# JNI
+export JNI_INIT=${SECONDO_BUILD_DIR}/bin/JNI.ini
+
+## Extend the search path
+PATH=.:${J2SDK_ROOT}/bin:$binPaths:${PATH}
+
+# The runtime linker uses different variables on Linux and Windows
+if [ $SECONDO_PLATFORM != "win32" ]; then
+
+   checkVar "PL_LIB_DIR" $PL_LIB_DIR
+   pathList=${J2SDK_ROOT}/$J2SDK_LIB
+   pathList=${pathList}:${J2SDK_ROOT}/$J2SDK_JVMLIB
+   pathList=${pathList}:${libPaths}
+   pathList=${pathList}:${SECONDO_BUILD_DIR}/lib
+   pathList=${pathList}:${PL_LIB_DIR}
+   pathList=${pathList}:${LD_LIBRARY_PATH}
+
+   LD_LIBRARY_PATH=.:${pathList}
+
+else
+
+   checkVar "MINGW_DIR" $MINGW_DIR
+   pathList=${J2SDK_ROOT}/jre/bin/client
+   pathList=${pathList}:${MINGW_DIR}
+   pathList=${pathList}:${libPaths}
+   pathList=${pathList}:${SECONDO_BUILD_DIR}/lib
+   pathList=${pathList}:${SECONDO_SDK}/pl/bin
+
+   PATH=${PATH}:${pathList}
+fi
+
+# Some general path extensions
+PATH=${PATH}:${SECONDO_BUILD_DIR}/Tools/pd
+PATH=${PATH}:${SECONDO_BUILD_DIR}/CM-Scripts
+PATH=${PATH}:${SECONDO_BUILD_DIR}/bin
+
+export PATH LD_LIBRARY_PATH
+
+# PD related settings
+export PD_HEADER=${SECONDO_BUILD_DIR}/Tools/pd/pd.header
+
+# Check if important directories are present
+checkDir "Testing J2SDK_ROOT " $J2SDK_ROOT
+checkDir "Testing PL_LIB_DIR " $PL_LIB_DIR
+
+if [ $ERR -ne 0 ]; then
+  printf "%s"   "Please check your installation and consult the configuration files"
+fi
+
+# Displays environment informations importatnt for SECONDO
+echo ""
+echo "Environment variables used by SECONDO:"
+echo "--------------------------------------"
+env | grep -e "\(SECONDO_\|^PATH\|LIBRARY\|INCLUDE\|BERKELEY\|PL_\|J2SDK\|CVSROOT\)" \
+    | sort \
+    | sed -e 's#\(.*\)=\(.*\)#\1 = "\2" \
+--#g'
+
+gcc --version | head -n1
+echo "--"
+flex --version | head -n1
+echo "--"
+bison --version | head -n1
+echo "--"
+db_archive -V | head -n1
+
+plcmd="swipl"
+echo "--"
+echo "halt." | $plcmd > /tmp/pl$$-version 2>&1;  cat /tmp/pl$$-version | head -n1
+echo "--"
+
+
+# end of $ERR == 0 
+fi
+
+ 
+printf "\n%s\n"  "In case of trouble consult the environment setup files:"
+printf "%s\n"    "  ${sdkDir}/secondo.config.*"
+printf "%s\n\n"  "  ${sdkDir}/secondo.setroot"
+
+export LIBREADLINE="$HOME/secondo-sdk/lib/libreadline.a"
+export PL_LIB=swipl
+
+export SWI_VERSION=8.2.4
+export PATH=/opt/homebrew/Cellar/swi-prolog/$SWI_VERSION/bin:$PATH
+export SWI_HOME_DIR=/opt/homebrew/Cellar/swi-prolog/$SWI_VERSION/libexec/lib/swipl
+export PL_LIB_DIR=/opt/homebrew/Cellar/swi-prolog/$SWI_VERSION/libexec/lib/swipl/lib/arm64-darwin
+export PL_DLL_DIR=$PL_LIB_DIR
+export PL_LIB=swipl
+export PL_INCLUDE_DIR=$SWI_HOME_DIR/include
+export PL_VERSION=82000
+export JPL_DLL=$SWI_HOME_DIR/lib/arm64-darwin/libjpl.dylib
+export JPL_JAR=$SWI_HOME_DIR/lib/jpl.jar
+
+export BDB_DIR=/opt/homebrew
+export BERKELEY_DB_DIR=$BDB_DIR
+export BERKELEY_DB_LIB=db_cxx
+export BDB_INCLUDE_DIR=$BDB_DIR/include
+export BDB_LIB_DIR=$BDB_DIR/lib
+
+#export SWI_HOME_DIR=/Applications/SWI-Prolog.app/Contents/swipl/
+#export PL_LIB_DIR=/Applications/SWI-Prolog.app/Contents/Frameworks/
+#export PL_DLL_DIR=$PL_LIB_DIR
+#export PL_LIB=swipl
+#export PL_INCLUDE_DIR=$SWI_HOME_DIR/include
+#export PL_VERSION=70000
+#export JPL_DLL=$SWI_HOME_DIR/lib/x86_64-darwin/libjpl.dylib
+#export JPL_JAR=$SWI_HOME_DIR/lib/jpl.jar
+
+
+#export BDB_DIR=$HOME/BDB
+#export BERKELEY_DB_DIR=$BDB_DIR
+#export BERKELEY_DB_LIB=db_cxx
+#export BDB_INCLUDE_DIR=$BDB_DIR/include
+#export BDB_LIB_DIR=$BDB_DIR/lib
+
