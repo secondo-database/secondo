@@ -726,7 +726,7 @@ void ConnectionPG::addColumnToTable(const std::string &table,
         break;
 
         default:
-            throw new SecondoException("Unsupported datatyepe: " + type);
+            throw SecondoException("Unsupported datatyepe: " + type);
     }
 
 

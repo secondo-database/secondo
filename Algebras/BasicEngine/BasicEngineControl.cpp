@@ -442,7 +442,7 @@ string BasicEngine_Control::partRoundRobin(const string &table,
       numberOfSlots, destinationTable);
 
   if(! result) {
-    throw new SecondoException("Unable to perform round robin partitioning");
+    throw SecondoException("Unable to perform round robin partitioning");
   }
 
   return destinationTable;
@@ -940,13 +940,13 @@ string BasicEngine_Control::partHash(const string &tab,
     slotnum, partTabName);
   
   if(query_exec.empty()) {
-    throw new SecondoException("Unable to partiton table, empty command");
+    throw SecondoException("Unable to partiton table, empty command");
   }
 
   bool result = dbms_connection->sendCommand(query_exec);
 
   if(!result) {
-    throw new SecondoException("Unable to partiton table");
+    throw SecondoException("Unable to partiton table");
   }
     
   return partTabName;
@@ -970,13 +970,13 @@ string BasicEngine_Control::partFun(const string &tab,
       slotnum, fun, partTabName);
 
   if (query_exec.empty()) {
-    throw new SecondoException("Unable to partiton table, empty command");
+    throw SecondoException("Unable to partiton table, empty command");
   }
 
   bool result = dbms_connection->sendCommand(query_exec);
 
   if(!result) {
-    throw new SecondoException("Unable to partiton table");
+    throw SecondoException("Unable to partiton table");
   }
     
   return partTabName;
@@ -1362,13 +1362,13 @@ string BasicEngine_Control::partGrid(const std::string &tab,
   if(createGridSQL.empty()) {
     BOOST_LOG_TRIVIAL(error) 
       << "Unable to determine create grid SQL";
-    throw new SecondoException("Unable to determine create grid SQL");
+    throw SecondoException("Unable to determine create grid SQL");
   }
 
   bool result = dbms_connection->sendCommand(createGridSQL);
 
   if(! result) {
-    throw new SecondoException("Unable to perform grid paritioning");
+    throw SecondoException("Unable to perform grid paritioning");
   }
 
   return partTabName;
@@ -1772,6 +1772,8 @@ std::string BasicEngine_Control::getFirstAttributeNameFromTable(
   if(attrs.empty()) {
     BOOST_LOG_TRIVIAL(error) << "Unable to determine table layout for " 
       << table;
+    throw SecondoException("Unable to determine table layout for " 
+      + table);
   }
 
   tuple<string, string> firstAttibute = attrs[0];

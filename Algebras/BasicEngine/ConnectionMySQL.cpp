@@ -131,7 +131,7 @@ MYSQL_RES* ConnectionMySQL::sendQuery(const std::string &query) {
 
   if(mysqlExecRes != 0) {
     BOOST_LOG_TRIVIAL(error) 
-      << "Unable to perform query" << query
+      << "Unable to perform query " << query
       << " / " << mysql_error(conn);
     return nullptr;
   }
@@ -491,15 +491,15 @@ std::vector<std::tuple<string, string>>
   if( ! checkConnection()) {
     BOOST_LOG_TRIVIAL(error) 
       << "Connection is not ready in getTypeFromSQLQuery";
-    return result;
+    throw SecondoException("Connection is not ready in getTypeFromSQLQuery");
   }
   
   MYSQL_RES *res = sendQuery(usedSQLQuery.c_str());
 
   if(res == nullptr) {
-    BOOST_LOG_TRIVIAL(error) 
-      << "Unable to perform SQL query" << usedSQLQuery;
-      return result;
+    BOOST_LOG_TRIVIAL(error)  << "Unable to perform SQL query" << usedSQLQuery;
+    throw SecondoException("Unable to perform SQL query in getTypeFromSQLQuery"
+                           + usedSQLQuery);
   }
 
   result = getTypeFromQuery(res);
@@ -714,7 +714,7 @@ void ConnectionMySQL::addColumnToTable(const std::string &table,
         break;
 
         default:
-            throw new SecondoException("Unsupported datatyepe: " + type);
+            throw SecondoException("Unsupported datatyepe: " + type);
     }
 
 
