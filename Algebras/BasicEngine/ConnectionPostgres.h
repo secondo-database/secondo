@@ -79,7 +79,7 @@ public:
 
   std::string getDbType() { return DBTYPE; }
 
-  bool sendCommand(const std::string &command, bool print = true);
+  bool sendCommand(const std::string &command, bool printErrors = true);
 
   bool createConnection();
 

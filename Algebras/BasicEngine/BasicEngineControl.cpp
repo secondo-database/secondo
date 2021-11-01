@@ -1349,7 +1349,7 @@ string BasicEngine_Control::partGrid(const std::string &tab,
 
   // Drop old index if exists (ignore failure when index does not exists)
   string dropSQL = dbms_connection->getDropIndexSQL(tab, geo_col);
-  bool dropIndexRes = dbms_connection->sendCommand(dropSQL);
+  bool dropIndexRes = dbms_connection->sendCommand(dropSQL, false);
 
   if(! dropIndexRes) {
     BOOST_LOG_TRIVIAL(debug) 

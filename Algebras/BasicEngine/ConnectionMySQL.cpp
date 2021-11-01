@@ -104,12 +104,12 @@ bool ConnectionMySQL::createConnection() {
 
 */
 bool ConnectionMySQL::sendCommand(const std::string &command, 
-    bool print) {
+    bool printErrors) {
 
     int mysqlExecRes = mysql_query(conn, command.c_str());
 
     if(mysqlExecRes != 0) {
-        if(print) {
+        if(printErrors) {
             BOOST_LOG_TRIVIAL(error) 
                 << "Unable to perform command: " << command
                 << " / " << mysql_error(conn);

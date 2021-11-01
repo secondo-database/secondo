@@ -124,7 +124,7 @@ Sending a command to postgres.
 Returns TRUE if the execution was ok.
 
 */
-bool ConnectionPG::sendCommand(const string &command, bool print) {
+bool ConnectionPG::sendCommand(const string &command, bool printErrors) {
   
   const char *query_exec = command.c_str();
 
@@ -135,7 +135,7 @@ bool ConnectionPG::sendCommand(const string &command, bool print) {
   PGresult* res = PQexec(conn, query_exec);
 
   if (!res) {
-    if(print) {
+    if(printErrors) {
       BOOST_LOG_TRIVIAL(error) 
         << "Error with Command: " << command;
     }
@@ -144,7 +144,7 @@ bool ConnectionPG::sendCommand(const string &command, bool print) {
   } 
   
   if(PQresultStatus(res) != PGRES_COMMAND_OK) {
-    if(print) {
+    if(printErrors) {
       BOOST_LOG_TRIVIAL(error) 
         << "Error with Command: " << command
         << " error is: " <<  PQresultErrorMessage(res);
