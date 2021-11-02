@@ -1089,7 +1089,6 @@ bool BasicEngine_Control::munion(const string &table) {
   int workerId = 0;
   vector<std::future<bool>> futures;
   string basePath = getBasePath();
-  string schemaFile = getSchemaFile(table);
 
   //doing the export with one thread for each worker
   for(distributed2::ConnectionInfo* ci : connections) {
@@ -1100,7 +1099,7 @@ bool BasicEngine_Control::munion(const string &table) {
 
     std::future<bool> asyncResult = std::async(
       &BasicEngine_Control::performExport, 
-      this, ci, workerId, table, exportFile, schemaFile, partitionFile);
+      this, ci, workerId, table, exportFile, partitionFile);
         
     futures.push_back(std::move(asyncResult));
 
@@ -1531,6 +1530,61 @@ bool BasicEngine_Control::performImport(
 }
 
 /*
+3.25 ~requestRemoteSchema~
+
+Request the remote schema for a table
+
+*/
+string BasicEngine_Control::requestRemoteTableSchema(
+    const std::string &table, distributed2::ConnectionInfo *ci) {
+
+  string basePath = getBasePath();
+  string schemaFile = getSchemaFile(table);
+
+  // export tab structure
+  string cmd = "query be_struct('" + table + "');";
+  bool result = performSimpleSecondoCommand(ci, cmd);
+
+  if (!result) {
+    BOOST_LOG_TRIVIAL(error) << "Unable to execute SECONDO command" << cmd;
+  }
+
+  // move the structure-file into the request-folder
+  string from = basePath + "/" + schemaFile;
+  string to = ci->getRequestPath() + "/" + schemaFile;
+  cmd = "query moveFile('" + from + "','" + to + "')";
+  result = performSimpleSecondoCommand(ci, cmd);
+
+  if (!result) {
+    BOOST_LOG_TRIVIAL(error) << "Unable to execute SECONDO command" << cmd;
+  }
+
+  // Requesting file from worker
+  result = (ci->requestFile(schemaFile, from, true) == 0);
+
+  if (!result) {
+    BOOST_LOG_TRIVIAL(error)
+        << "Error while requesting struct file" << schemaFile << " / " << from;
+  }
+
+  // delete create file on system
+  cmd = "query removeFile('" + to + "')";
+  result = performSimpleSecondoCommand(ci, cmd);
+
+  if (!result) {
+    BOOST_LOG_TRIVIAL(error)
+        << "Error while requesting struct file" << schemaFile << " / " << from;
+  }
+
+  string exportedSchemaFile = basePath + "/" + schemaFile;
+
+  BOOST_LOG_TRIVIAL(debug) << "Schema of table " << table << " exported to "
+                           << exportedSchemaFile;
+
+  return exportedSchemaFile;
+}
+
+/*
 3.25 ~performExport~
 
 Perform the data export operation.
@@ -1541,7 +1595,6 @@ bool BasicEngine_Control::performExport(
       size_t workerId,
       const std::string &table, 
       const std::string &exportFile, 
-      const std::string &schemaFile, 
       const std::string &partitionFile) {
 
   std::string from;
@@ -1552,47 +1605,12 @@ bool BasicEngine_Control::performExport(
 
   //export the table structure file
   if(workerId == 0) {
-    //export tab structure
-    cmd = "query be_struct('"+ table + "');";
-    result = performSimpleSecondoCommand(ci, cmd);
-
-    if(! result) {
+    try {
+      requestRemoteTableSchema(table, ci);
+    } catch(SecondoException &e) {
       BOOST_LOG_TRIVIAL(error) 
-          << "Unable to execute SECONDO command" << cmd;
+        << "Unable to request remote schema" << e.what();
       return false;
-    }
-
-    //move the structure-file into the request-folder
-    from = basePath + "/" + schemaFile;
-    to = ci->getRequestPath() + "/" + schemaFile;
-    cmd ="query moveFile('"+ from + "','" + to +"')";
-    result = performSimpleSecondoCommand(ci, cmd);
-
-    if(! result) {
-      BOOST_LOG_TRIVIAL(error) 
-          << "Unable to execute SECONDO command" << cmd;
-      return false;
-    }
-
-    //sending file to master
-    result = (ci->requestFile(schemaFile,from,true)==0);
-
-    if(! result) {
-      BOOST_LOG_TRIVIAL(error) 
-        << "Error while requesting struct file"
-        << schemaFile << " / " << from;
-        return false;
-    }
-    
-    //delete create file on system
-    cmd ="query removeFile('"+ to + "')";
-    result = performSimpleSecondoCommand(ci, cmd);
-    
-    if(! result) {
-      BOOST_LOG_TRIVIAL(error) 
-        << "Error while requesting struct file"
-        << schemaFile << " / " << from;
-        return false;
     }
   }
 

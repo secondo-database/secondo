@@ -157,6 +157,9 @@ public:
   void exportTableCreateStatementSQL(const std::string &table, 
     const std::string &renameExportTable = "");
 
+  std::string requestRemoteTableSchema(
+    const std::string &table, distributed2::ConnectionInfo *ci);
+
   bool importTable(const std::string &tab, const std::string &full_path) {
     std::string sqlQuery = dbms_connection->getImportTableSQL(tab, full_path);
     return sendCommand(sqlQuery);
@@ -227,8 +230,7 @@ public:
         size_t workerId,
         const std::string &table, 
         const std::string &path, 
-        const std::string &remoteCreateName, 
-        const std::string &remoteName);
+        const std::string &partitionFile);
 
   bool performBEQuery(distributed2::ConnectionInfo* ci,
         const std::string &table, 
