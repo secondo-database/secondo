@@ -223,9 +223,9 @@ public:
         const bool importSchema);
 
   bool performExport(distributed2::ConnectionInfo* ci,
+        int workerId,
         const std::string &table, 
         const std::string &path, 
-        const std::string &nr,
         const std::string &remoteCreateName, 
         const std::string &remoteName);
 
@@ -323,18 +323,12 @@ distributed2::ConnectionInfo* createConnection(
   bool exportToWorker(const std::string &sourceTable, 
     const std::string &destinationTable, const bool exportSchema);
 
-  std::string getCreateTableSQLName(const std::string &tab) {
-    return "create" + tab + ".sql";
+  std::string getSchemaFile(const std::string &table) {
+    return "schema_" + table + ".sql";
   }
 
-  std::string getFilenameForPartition(const std::string &tab, 
-    const std::string &nr) {
-  
-    return dbms_connection->getFilenameForPartition(tab, nr);
-  }
-
-  std::string getFilePath() {
-    return std::string("/home/") + getenv("USER") + "/filetransfer/";
+  std::string getBasePath() {
+    return std::string("/home/") + getenv("USER") + "/filetransfer";
   }
 
   std::string getTableNameForPartitioning(const std::string &tab, 

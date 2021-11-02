@@ -133,13 +133,6 @@ public:
   virtual void removeColumnFromTable(const std::string &table,
                                      const std::string &name) = 0;
 
-  std::string getFilenameForPartition(const std::string &table,
-                                      const std::string &number) {
-
-    return table + "_" + std::to_string(WinUnix::getpid()) + "_" + number +
-           ".bin";
-  }
-
   std::string getCreateTableFromPredicateSQL(const std::string &table,
                                              const std::string &query) {
 
@@ -154,6 +147,14 @@ public:
                                 const std::string &destination) {
 
     return "ALTER TABLE " + source + " RENAME TO " + destination + ";";
+  }
+
+
+  std::string getFilenameForPartition(const std::string &table,
+                                      const std::string &partitionNumber) {
+
+    return table + "_" + std::to_string(WinUnix::getpid()) 
+      + "_" + partitionNumber + ".bin";
   }
 
   /*

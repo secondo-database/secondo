@@ -406,15 +406,16 @@ bool BasicEngine_Control::exportTableCreateStatementSQL(const string &tab) {
 
   statement = dbms_connection->getCreateTableSQL(tab);
 
-  if (statement.length() > 0){
-    write.open(getFilePath() + getCreateTableSQLName(tab));
+  if (statement.length() > 0) {
+    string filename = getBasePath() + "/" + getSchemaFile(tab);
+    write.open(filename);
     if (write.is_open()){
       write << statement;
       write.close();
       val = write.good();
     } else { 
       BOOST_LOG_TRIVIAL(error) 
-        << "Couldn't write file into "<< getFilePath() 
+        << "Couldn't write file into " << filename
         << ". Please check the folder and permissions.";
     }
   } else { 
@@ -848,8 +849,8 @@ bool BasicEngine_Control::exportToWorker(const string &sourceTable,
     return false;
   }
 
-  string remoteCreateName = getCreateTableSQLName(sourceTable);
-  string localCreateName = getFilePath() + remoteCreateName;
+  string remoteCreateName = getSchemaFile(sourceTable);
+  string localCreateName = getBasePath() + "/" + remoteCreateName;
 
   for(size_t index = 0; index < connections.size(); index++){
     
@@ -857,8 +858,9 @@ bool BasicEngine_Control::exportToWorker(const string &sourceTable,
 
     //sending data
     string strindex = to_string(index);
-    string remoteName = getFilenameForPartition(sourceTable, strindex);
-    string localName = getFilePath() + remoteName;
+    string remoteName 
+      = dbms_connection -> getFilenameForPartition(sourceTable, strindex);
+    string localName = getBasePath() + "/" + remoteName;
 
     int sendFileRes = si->sendFile(localName, remoteName, true);
 
@@ -900,7 +902,8 @@ bool BasicEngine_Control::exportToWorker(const string &sourceTable,
   for(size_t index = 0; index < connections.size(); index++){
     distributed2::ConnectionInfo* ci = connections[index];
     string strindex = to_string(index);
-    string remoteName = getFilenameForPartition(sourceTable, strindex);
+    string remoteName = dbms_connection 
+      -> getFilenameForPartition(sourceTable, strindex);
 
     std::future<bool> asyncResult = std::async(
       &BasicEngine_Control::performImport, 
@@ -993,7 +996,7 @@ bool BasicEngine_Control::exportData(const string &tab,
   const string &key, size_t slotnum){
 
   bool val = true;
-  string path = getFilePath();
+  string path = getBasePath() + "/";
   string parttabname = getTableNameForPartitioning(tab, key);
   string strindex;
 
@@ -1025,7 +1028,7 @@ bool BasicEngine_Control::importData(const string &table) {
   bool result = true;
 
   // create table structure
-  string structureFile = getFilePath() + getCreateTableSQLName(table);
+  string structureFile = getBasePath() + "/" + getSchemaFile(table);
 
   // Read data into memory
   ifstream inFile;
@@ -1042,12 +1045,14 @@ bool BasicEngine_Control::importData(const string &table) {
 
   FileSystem::DeleteFileOrFolder(structureFile);
 
+  string basePath = getBasePath();
+
   //import data (local files from worker)
   for(size_t i=0; i<remoteConnectionInfos.size(); i++){
     string strindex = to_string(i);
     
-    string partitionFile = getFilePath() 
-      + getFilenameForPartition(table, strindex);
+    string partitionFile = basePath + "/" +
+      dbms_connection -> getFilenameForPartition(table, strindex);
 
     result = importTable(partitionFile, table) && result;
     FileSystem::DeleteFileOrFolder(partitionFile);
@@ -1067,25 +1072,25 @@ Returns true if everything is OK and there are no failure.
 bool BasicEngine_Control::munion(const string &table) {
 
   bool val = true;
-  int i = 0;
+  int workerId = 0;
   vector<std::future<bool>> futures;
+  string basePath = getBasePath();
 
   //doing the export with one thread for each worker
   for(distributed2::ConnectionInfo* ci : connections) {
 
-    string strindex = to_string(i);
-    string path = getFilePath() + getFilenameForPartition(table, strindex);
-
-    string tableName = getCreateTableSQLName(table);
-    string filename = getFilenameForPartition(table, strindex);
+    string partitionFile 
+      = dbms_connection -> getFilenameForPartition(table, to_string(workerId));
+    string exportFile = basePath + "/" + partitionFile;
+    string schemaFile = getSchemaFile(table);
 
     std::future<bool> asyncResult = std::async(
       &BasicEngine_Control::performExport, 
-      this, ci, table, path, strindex, tableName, filename);
+      this, ci, workerId, table, exportFile, schemaFile, partitionFile);
         
     futures.push_back(std::move(asyncResult));
 
-    i++;
+    workerId++;
   }
 
   //waiting for finishing the threads
@@ -1093,7 +1098,7 @@ bool BasicEngine_Control::munion(const string &table) {
     val = future.get() && val;
   }
 
-  //import in local PG-Master
+  //import in local database
   if(val) {
     BOOST_LOG_TRIVIAL(debug) << "Starting data import on master";
     val = importData(table);
@@ -1519,83 +1524,105 @@ Perform the data export operation.
 */
 bool BasicEngine_Control::performExport(
       distributed2::ConnectionInfo* ci,
+      int workerId,
       const std::string &table, 
-      const std::string &path, 
-      const std::string &nr,
-      const std::string &remoteCreateName, 
-      const std::string &remoteName) {
-
+      const std::string &exportFile, 
+      const std::string &schemaFile, 
+      const std::string &partitionFile) {
 
   std::string from;
   std::string to;
   std::string cmd;
-  std::string transfer_path = path.substr(0,path.find(remoteName));
+  string basePath = getBasePath();
   bool result = true;
 
   //export the table structure file
-  if(nr == "0") {
+  if(workerId == 0) {
     //export tab structure
     cmd = "query be_struct('"+ table + "');";
     result = performSimpleSecondoCommand(ci, cmd);
 
+    if(! result) {
+      BOOST_LOG_TRIVIAL(error) 
+          << "Unable to execute SECONDO command" << cmd;
+      return false;
+    }
+
     //move the structure-file into the request-folder
-    if(result) {
-      from = transfer_path + remoteCreateName;
-      to = ci->getRequestPath() + "/" + remoteCreateName;
-      cmd ="query moveFile('"+ from + "','" + to +"')";
-      result = performSimpleSecondoCommand(ci, cmd);
+    from = basePath + "/" + schemaFile;
+    to = ci->getRequestPath() + "/" + schemaFile;
+    cmd ="query moveFile('"+ from + "','" + to +"')";
+    result = performSimpleSecondoCommand(ci, cmd);
+
+    if(! result) {
+      BOOST_LOG_TRIVIAL(error) 
+          << "Unable to execute SECONDO command" << cmd;
+      return false;
     }
 
     //sending file to master
-    if(result) {
-      result = (ci->requestFile(remoteCreateName,from,true)==0);
+    result = (ci->requestFile(schemaFile,from,true)==0);
 
-      if(! result) {
-        BOOST_LOG_TRIVIAL(error) 
-          << "Error while requesting struct file"
-          << remoteCreateName << " / " << from;
-      }
+    if(! result) {
+      BOOST_LOG_TRIVIAL(error) 
+        << "Error while requesting struct file"
+        << schemaFile << " / " << from;
+        return false;
     }
     
     //delete create file on system
     cmd ="query removeFile('"+ to + "')";
-    if(result) {
-      result = performSimpleSecondoCommand(ci, cmd);
+    result = performSimpleSecondoCommand(ci, cmd);
+    
+    if(! result) {
+      BOOST_LOG_TRIVIAL(error) 
+        << "Error while requesting struct file"
+        << schemaFile << " / " << from;
+        return false;
     }
   }
 
   //export the date to a file
-  cmd = "query be_copy('"+ table + "','"+ path+"');";
-  if (result) {
-    result = performSimpleSecondoCommand(ci, cmd);
+  cmd = "query be_copy('"+ table + "','"+ exportFile + "');";
+  result = performSimpleSecondoCommand(ci, cmd);
+  if(! result) {
+    BOOST_LOG_TRIVIAL(error) 
+        << "Unable to execute SECONDO command" << cmd;
+    return false;
   }
 
   //move the data-file to the request-folder
-  to = ci->getRequestPath() + "/" + remoteName;
-  cmd = "query moveFile('"+ path + "','" + to +"')";
-  if(result) {
-    result = performSimpleSecondoCommand(ci, cmd);
+  to = ci->getRequestPath() + "/" + partitionFile;
+  cmd = "query moveFile('"+ exportFile + "','" + to +"')";
+  result = performSimpleSecondoCommand(ci, cmd);
+
+  if(! result) {
+    BOOST_LOG_TRIVIAL(error) 
+        << "Unable to execute SECONDO command" << cmd;
+    return false;
   }
 
   //sendig the File to the master
-  if(result) {
-    result =(ci->requestFile(remoteName ,
-                          transfer_path + remoteName ,true)==0);
+  result =(ci->requestFile(partitionFile,
+                        basePath + "/" + partitionFile ,true)==0);
 
-    if(! result) {
-      BOOST_LOG_TRIVIAL(error) 
-          << "Error while requesting export file"
-          << remoteName << " / " << transfer_path + remoteName;
-    }
+  if(! result) {
+    BOOST_LOG_TRIVIAL(error) 
+        << "Error while requesting export file"
+        << partitionFile << " / " << basePath + "/" + partitionFile;
+      return false;
   }
-
+  
   //delete data file on system
-  if(result) {
-    cmd = "query removeFile('"+ to + "')";
-    result = performSimpleSecondoCommand(ci, cmd);
+  cmd = "query removeFile('"+ to + "')";
+  result = performSimpleSecondoCommand(ci, cmd);
+  if(! result) {
+    BOOST_LOG_TRIVIAL(error) 
+        << "Unable to execute SECONDO command" << cmd;
+    return false;
   }
 
-  return result;
+  return true;
 }
 
 /*
@@ -1686,7 +1713,7 @@ bool BasicEngine_Control::performSimpleSecondoCommand(
 /*
 3.27 ~shareTable~
 
-Share the given table with all worker
+Share the given table with all workers
 
 */
 bool BasicEngine_Control::shareTable(
@@ -1702,9 +1729,9 @@ bool BasicEngine_Control::shareTable(
   }
 
   // Export complete relation and duplicate as slots for the worker
-  string path = getFilePath();
-  string partZeroFile = getFilenameForPartition(table, "0");
-  string partZeroFullPath = path + partZeroFile;
+  string path = getBasePath();
+  string partZeroFile = dbms_connection -> getFilenameForPartition(table, "0");
+  string partZeroFullPath = path + "/" + partZeroFile;
   string exportDataSQL = dbms_connection->getExportTableSQL(
     table, partZeroFullPath);
 
@@ -1719,8 +1746,9 @@ bool BasicEngine_Control::shareTable(
 
   // Copy parition 0 to partitions [1-n]
   for(size_t i = 1; i<remoteConnectionInfos.size(); i++) {
-    string partitionFile = getFilenameForPartition(table, to_string(i));
-    string partitionFileFullPath = path + partitionFile;
+    string partitionFile = 
+      dbms_connection -> getFilenameForPartition(table, to_string(i));
+    string partitionFileFullPath = path + "/" + partitionFile;
 
     BOOST_LOG_TRIVIAL(debug) << "Copy file " << partZeroFullPath 
       << " to " << partitionFileFullPath;
