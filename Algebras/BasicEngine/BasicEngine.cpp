@@ -1474,21 +1474,19 @@ template <class T>
 int be_structSFVM(Word *args, Word &result, int message, Word &local,
                   Supplier s) {
 
-  bool val = false;
-
   result = qp->ResultStorage(s);
   T *tab = (T *)args[0].addr;
 
   try {
 
     if (be_control) {
-      // export a create Statement to filetransfer
-      val = be_control->exportTableCreateStatementSQL(tab->GetValue());
+      be_control->exportTableCreateStatementSQL(tab->GetValue());
+      ((CcBool *)result.addr)->Set(true, true);
     } else {
       cout << noMaster << endl;
+      ((CcBool *)result.addr)->Set(true, false);
     }
 
-    ((CcBool *)result.addr)->Set(true, val);
   } catch (SecondoException &e) {
     BOOST_LOG_TRIVIAL(error)
         << "Got error while create table structure " << e.what();

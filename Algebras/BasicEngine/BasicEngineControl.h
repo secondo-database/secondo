@@ -154,7 +154,8 @@ public:
     return sendCommand(sqlQuery, false);
   }
 
-  bool exportTableCreateStatementSQL(const std::string &tab);
+  void exportTableCreateStatementSQL(const std::string &table, 
+    const std::string &renameExportTable = "");
 
   bool importTable(const std::string &tab, const std::string &full_path) {
     std::string sqlQuery = dbms_connection->getImportTableSQL(tab, full_path);
@@ -223,7 +224,7 @@ public:
         const bool importSchema);
 
   bool performExport(distributed2::ConnectionInfo* ci,
-        int workerId,
+        size_t workerId,
         const std::string &table, 
         const std::string &path, 
         const std::string &remoteCreateName, 

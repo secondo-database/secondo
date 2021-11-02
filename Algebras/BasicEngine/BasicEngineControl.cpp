@@ -398,31 +398,49 @@ and store the statement in a file.
 Returns true if everything is OK and there are no failure.
 
 */
-bool BasicEngine_Control::exportTableCreateStatementSQL(const string &tab) {
+void BasicEngine_Control::exportTableCreateStatementSQL(
+    const string &table, const string &renameExportTable) {
 
-  ofstream write;
-  string statement;
-  bool val = false;
+  string filename = getBasePath() + "/" + getSchemaFile(table);
 
-  statement = dbms_connection->getCreateTableSQL(tab);
+  // Build the create table staement in SQL
+  string statement = dbms_connection->getCreateTableSQL(table);
 
-  if (statement.length() > 0) {
-    string filename = getBasePath() + "/" + getSchemaFile(tab);
-    write.open(filename);
-    if (write.is_open()){
-      write << statement;
-      write.close();
-      val = write.good();
-    } else { 
-      BOOST_LOG_TRIVIAL(error) 
-        << "Couldn't write file into " << filename
-        << ". Please check the folder and permissions.";
-    }
-  } else { 
-     BOOST_LOG_TRIVIAL(error) << "Table " << tab << " not found.";
+  if (statement.empty()) {
+    BOOST_LOG_TRIVIAL(error) << "Unable to get create statement for " << table
+                             << " does the table exists?";
+    throw SecondoException("Unable to build create statement for " + table +
+                           " does the table exists?");
   }
 
-   return val;
+  // Rename the table to create if needed
+  if (!renameExportTable.empty()) {
+    size_t start_pos = statement.find(table);
+    if (start_pos == std::string::npos) {
+      throw SecondoException("Unable to replace table " + table);
+    }
+
+    statement.replace(start_pos, table.length(), renameExportTable);
+  }
+
+  // Write the SQL statement into the given output file
+  ofstream write;
+  write.open(filename);
+
+  if (!write.is_open()) {
+    BOOST_LOG_TRIVIAL(error) << "Couldn't write file into " << filename
+                             << ". Please check the folder and permissions.";
+    throw SecondoException("Could not open file for writing: " + filename);
+  }
+
+  write << statement;
+  write.close();
+  bool writeResult = write.good();
+
+  if (!writeResult) {
+    BOOST_LOG_TRIVIAL(error) << "Writing file " << filename << " failed.";
+    throw SecondoException("Unable to write file: " + filename);
+  }
 }
 
 /*
@@ -568,14 +586,7 @@ Repartition the given table - worker version
       transferSchemaFile = false;
     } else {
       destinationTable = partitionData.table;
-
-      bool exportResult = exportTableCreateStatementSQL(partitionData.table);
-
-      if (!exportResult) {
-        BOOST_LOG_TRIVIAL(error) << "Couldn't create the structure-file";
-        return false;
-      }
-
+      exportTableCreateStatementSQL(partitionData.table);
       transferSchemaFile = true;
     }
 
@@ -992,21 +1003,24 @@ Exporting the data from the DBMS to a local file.
 Returns true if everything is OK and there are no failure.
 
 */
-bool BasicEngine_Control::exportData(const string &tab, 
+bool BasicEngine_Control::exportData(const string &table, 
   const string &key, size_t slotnum){
 
   bool val = true;
   string path = getBasePath() + "/";
-  string parttabname = getTableNameForPartitioning(tab, key);
+  string parttabname = getTableNameForPartitioning(table, key);
   string strindex;
 
   for(size_t i=0; i<remoteConnectionInfos.size(); i++) {
     strindex = to_string(i);
 
-    string exportDataSQL = dbms_connection->getExportDataSQL(tab,
-          parttabname, key, strindex, path, slotnum);
+    string exportFile 
+      = dbms_connection -> getFilenameForPartition(table, strindex);
 
-    BOOST_LOG_TRIVIAL(debug) << "Export table from DB: "
+    string exportDataSQL = dbms_connection->getExportDataSQL(table,
+          parttabname, key, strindex, exportFile, slotnum);
+
+    BOOST_LOG_TRIVIAL(debug) << "Export table from DB: "s
       << exportDataSQL;
         
     val = sendCommand(exportDataSQL) && val;
@@ -1075,6 +1089,7 @@ bool BasicEngine_Control::munion(const string &table) {
   int workerId = 0;
   vector<std::future<bool>> futures;
   string basePath = getBasePath();
+  string schemaFile = getSchemaFile(table);
 
   //doing the export with one thread for each worker
   for(distributed2::ConnectionInfo* ci : connections) {
@@ -1082,7 +1097,6 @@ bool BasicEngine_Control::munion(const string &table) {
     string partitionFile 
       = dbms_connection -> getFilenameForPartition(table, to_string(workerId));
     string exportFile = basePath + "/" + partitionFile;
-    string schemaFile = getSchemaFile(table);
 
     std::future<bool> asyncResult = std::async(
       &BasicEngine_Control::performExport, 
@@ -1524,7 +1538,7 @@ Perform the data export operation.
 */
 bool BasicEngine_Control::performExport(
       distributed2::ConnectionInfo* ci,
-      int workerId,
+      size_t workerId,
       const std::string &table, 
       const std::string &exportFile, 
       const std::string &schemaFile, 
@@ -1720,13 +1734,7 @@ bool BasicEngine_Control::shareTable(
       const std::string &table) {
 
   // Create trlation schema file
-  bool createStructRes = exportTableCreateStatementSQL(table);
-
-  if(! createStructRes){
-    BOOST_LOG_TRIVIAL(error) << "Couldn't create the structure-file for"
-      << table;
-    return false;
-  }
+  exportTableCreateStatementSQL(table);
 
   // Export complete relation and duplicate as slots for the worker
   string path = getBasePath();

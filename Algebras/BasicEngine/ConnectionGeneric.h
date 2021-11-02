@@ -95,7 +95,7 @@ public:
   virtual std::string
   getExportDataSQL(const std::string &table, const std::string &join_table,
                    const std::string &key, const std::string &nr,
-                   const std::string &path, size_t numberOfWorker) = 0;
+                   const std::string &exportFile, size_t numberOfWorker) = 0;
 
   virtual std::string getImportTableSQL(const std::string &table,
                                         const std::string &full_path) = 0;

@@ -427,16 +427,14 @@ Creating a statement for exporting the data from a portioning table.
 
 */
 string ConnectionPG::getExportDataSQL(const string &tab, const string &join_tab,
-                  const string &key, const string &nr, const string &path,
+                  const string &key, const string &nr, const string &exportFile,
                   size_t numberOfWorker) {
-
-  string filename = getFilenameForPartition(tab, nr);
   
   return "COPY (SELECT a.* FROM "+ tab +" a INNER JOIN " + join_tab  + " b "
             "" + getjoin(key) + " WHERE ((" + be_partition_cellnumber + " % "
             "" + to_string(numberOfWorker) + ") "
             ") =" + nr + ") TO "
-            "'" + path + filename + "' BINARY;";
+            "'" + exportFile + "' BINARY;";
 }
 
 /*

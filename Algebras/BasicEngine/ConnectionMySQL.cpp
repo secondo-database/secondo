@@ -279,18 +279,16 @@ std::string ConnectionMySQL::getPartitionSQL(const std::string &table,
 */
 std::string ConnectionMySQL::getExportDataSQL(const std::string &table, 
     const std::string &join_table, const std::string &key, 
-    const std::string &nr, const std::string &path,
+    const std::string &nr, const std::string &exportFile,
     size_t numberOfWorker) {
  
-    string filename = getFilenameForPartition(table, nr);
-
     string attributes = getFieldNamesForExport(table, "a.");
 
     string exportSQL = "SELECT DISTINCT " + attributes + " FROM " + table 
         + " a INNER JOIN " + join_table  + " b " + getjoin(key) 
         + " WHERE (" + be_partition_slot + " % " + to_string(numberOfWorker) 
         + ") = " + nr
-        + " INTO OUTFILE '" + path + filename + "' CHARACTER SET utf8;";
+        + " INTO OUTFILE '" + exportFile + "' CHARACTER SET utf8;";
 
     BOOST_LOG_TRIVIAL(debug) 
       << "Export partition statement is: " << exportSQL;
