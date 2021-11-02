@@ -53,7 +53,7 @@ Implementation.
 3.1 Constructor
 
 */
-BasicEngine_Control::BasicEngine_Control(ConnectionGeneric* _dbms_connection, 
+BasicEngineControl::BasicEngineControl(ConnectionGeneric* _dbms_connection, 
     Relation* _workerRelation, std::string _workerRelationName, 
     bool _isMaster) : dbms_connection(_dbms_connection),
     workerRelationName(_workerRelationName), master(_isMaster) {
@@ -103,7 +103,7 @@ Creating a specified and saves it in the connections vector.
 Additionally add an entry to the importer vector.
 
 */
-ConnectionInfo* BasicEngine_Control::createConnection(
+ConnectionInfo* BasicEngineControl::createConnection(
     const RemoteConnectionInfo* remoteConnection) {
 
   string config = string(remoteConnection->config);
@@ -111,8 +111,8 @@ ConnectionInfo* BasicEngine_Control::createConnection(
   ConnectionInfo* ci = ConnectionInfo::createConnection(
       remoteConnection->host, stoi(remoteConnection->port), 
       config, 
-      BasicEngine_Control::defaultTimeout, 
-      BasicEngine_Control::defaultHeartbeat);
+      BasicEngineControl::defaultTimeout, 
+      BasicEngineControl::defaultHeartbeat);
 
   if (ci == nullptr) {  
     BOOST_LOG_TRIVIAL(error) 
@@ -124,7 +124,7 @@ ConnectionInfo* BasicEngine_Control::createConnection(
   } 
   
   bool switchResult = ci->switchDatabase(remoteConnection->dbName, 
-    true, false, true, BasicEngine_Control::defaultTimeout);
+    true, false, true, BasicEngineControl::defaultTimeout);
 
   if(! switchResult) { 
     BOOST_LOG_TRIVIAL(error) 
@@ -143,7 +143,7 @@ ConnectionInfo* BasicEngine_Control::createConnection(
 3.2 Destructor
 
 */
-BasicEngine_Control::~BasicEngine_Control() {
+BasicEngineControl::~BasicEngineControl() {
     if(dbms_connection != nullptr) {
       delete dbms_connection;
       dbms_connection = nullptr;
@@ -163,7 +163,7 @@ BasicEngine_Control::~BasicEngine_Control() {
 Shutdown all connections
 
 */
-void BasicEngine_Control::shutdownAllConnections() {
+void BasicEngineControl::shutdownAllConnections() {
 
   // Delete connections
   for(distributed2::ConnectionInfo* ci: connections) {
@@ -181,7 +181,7 @@ void BasicEngine_Control::shutdownAllConnections() {
 Init the basic engine on the given worker
 
 */
-bool BasicEngine_Control::initBasicEngineOnWorker(ConnectionInfo* ci, 
+bool BasicEngineControl::initBasicEngineOnWorker(ConnectionInfo* ci, 
   const RemoteConnectionInfo* remoteConnectionInfo) {
 
     string dbType = dbms_connection->getDbType();
@@ -203,7 +203,7 @@ bool BasicEngine_Control::initBasicEngineOnWorker(ConnectionInfo* ci,
 Init the basic engine on the given worker
 
 */
-bool BasicEngine_Control::executeSecondoCommand(ConnectionInfo* ci, 
+bool BasicEngineControl::executeSecondoCommand(ConnectionInfo* ci, 
   const string &command, const bool checkResult) {
 
     string errMsg;
@@ -213,7 +213,7 @@ bool BasicEngine_Control::executeSecondoCommand(ConnectionInfo* ci,
     CommandLog commandLog;
 
     ci->simpleCommand(command,err,res,false,
-      rt,false,commandLog,true, BasicEngine_Control::defaultTimeout);
+      rt,false,commandLog,true, BasicEngineControl::defaultTimeout);
 
     if(err != 0) {
       BOOST_LOG_TRIVIAL(error) 
@@ -243,7 +243,7 @@ bool BasicEngine_Control::executeSecondoCommand(ConnectionInfo* ci,
 Init the basic engine on the given worker
 
 */
-bool BasicEngine_Control::exportWorkerRelationToWorker(ConnectionInfo* ci, 
+bool BasicEngineControl::exportWorkerRelationToWorker(ConnectionInfo* ci, 
   const optional<string> &workerRelationFileName) {
 
       if(! workerRelationFileName.has_value()) {
@@ -256,7 +256,7 @@ bool BasicEngine_Control::exportWorkerRelationToWorker(ConnectionInfo* ci,
 
       return ci->createOrUpdateRelationFromBinFile(
         workerRelationName, workerRelationFileName.value(), false, 
-        commandLog, true, false, BasicEngine_Control::defaultTimeout);
+        commandLog, true, false, BasicEngineControl::defaultTimeout);
 }
 
 /*
@@ -265,7 +265,7 @@ bool BasicEngine_Control::exportWorkerRelationToWorker(ConnectionInfo* ci,
 Creating all connection from the worker relation.
 
 */
-bool BasicEngine_Control::createAllConnections(){
+bool BasicEngineControl::createAllConnections(){
 
   optional<string> workerRelationFileName = nullopt;
 
@@ -299,7 +299,7 @@ bool BasicEngine_Control::createAllConnections(){
     remoteConnectionInfos) {
 
     std::future<ConnectionInfo*> asyncResult = std::async(
-        &BasicEngine_Control::createAndInitConnection, 
+        &BasicEngineControl::createAndInitConnection, 
         this, 
         remoteConnectionInfo, 
         workerRelationFileName);
@@ -332,7 +332,7 @@ bool BasicEngine_Control::createAllConnections(){
   return true;
 }
 
-ConnectionInfo* BasicEngine_Control::createAndInitConnection(
+ConnectionInfo* BasicEngineControl::createAndInitConnection(
   const RemoteConnectionInfo* remoteConnectionInfo, 
   const optional<string> &workerRelationFileName) {
 
@@ -378,7 +378,7 @@ ConnectionInfo* BasicEngine_Control::createAndInitConnection(
 Returns a name of a table with the keys included.
 
 */
-string BasicEngine_Control::getTableNameForPartitioning(
+string BasicEngineControl::getTableNameForPartitioning(
   const string &tab, const string &key) {
 
   string usedKey(key);
@@ -398,7 +398,7 @@ and store the statement in a file.
 Returns true if everything is OK and there are no failure.
 
 */
-void BasicEngine_Control::exportTableCreateStatementSQL(
+void BasicEngineControl::exportTableCreateStatementSQL(
     const string &table, const string &renameExportTable) {
 
   string filename = getBasePath() + "/" + getSchemaFile(table);
@@ -450,7 +450,7 @@ The data were partitions in the database by round robin.
 Returns true if everything is OK and there are no failure.
 
 */
-string BasicEngine_Control::partRoundRobin(const string &table,
+string BasicEngineControl::partRoundRobin(const string &table,
                     const string &key, size_t numberOfSlots) {
   
   string destinationTable = getTableNameForPartitioning(table, key);
@@ -473,7 +473,7 @@ string BasicEngine_Control::partRoundRobin(const string &table,
 Repartition the given table
 
 */
-bool BasicEngine_Control::repartition_table(PartitionData &partitionData,
+bool BasicEngineControl::repartition_table(PartitionData &partitionData,
   const PartitionMode &repartitionMode) {
 
    BOOST_LOG_TRIVIAL(debug) << "Repartiton on "
@@ -491,7 +491,7 @@ bool BasicEngine_Control::repartition_table(PartitionData &partitionData,
 3.8 Drop the attribute from the given table
 
 */
-  void BasicEngine_Control::dropAttributeIfExists(const std::string &table, 
+  void BasicEngineControl::dropAttributeIfExists(const std::string &table, 
     const std::string &attributeToRemove) {
 
     std::vector<std::tuple<std::string, std::string>> attributes = 
@@ -518,7 +518,7 @@ bool BasicEngine_Control::repartition_table(PartitionData &partitionData,
 Repartition the given table - worker version
 
 */
-  bool BasicEngine_Control::partition_table(PartitionData &partitionData,
+  bool BasicEngineControl::partition_table(PartitionData &partitionData,
                                             const PartitionMode &partitionMode,
                                             const bool repartition) {
 
@@ -620,7 +620,7 @@ Repartition the given table - worker version
 Repartition the given table - master version
 
 */
-  bool BasicEngine_Control::repartition_table_master(
+  bool BasicEngineControl::repartition_table_master(
     const PartitionData &partitionData,
     const PartitionMode &repartitionMode) {
 
@@ -734,7 +734,7 @@ Repartition the given table - master version
 Repartition the given table by round hash
 
 */
-bool BasicEngine_Control::partition_table_by_hash(const std::string &table, 
+bool BasicEngineControl::partition_table_by_hash(const std::string &table, 
   const std::string &key, const size_t slotnum, const bool repartition) {
 
     BOOST_LOG_TRIVIAL(debug) << "Partiton by hash called on " << table;
@@ -757,7 +757,7 @@ bool BasicEngine_Control::partition_table_by_hash(const std::string &table,
 Repartition the given table by round robin
 
 */
-bool BasicEngine_Control::partition_table_by_rr(const std::string &table, 
+bool BasicEngineControl::partition_table_by_rr(const std::string &table, 
   const size_t slotnum, const bool repartition) {
     
     BOOST_LOG_TRIVIAL(debug) << "Partiton by rr called on " << table;
@@ -779,7 +779,7 @@ bool BasicEngine_Control::partition_table_by_rr(const std::string &table,
 Repartition the given table by random
 
 */
-bool BasicEngine_Control::partition_table_by_random(const std::string &table, 
+bool BasicEngineControl::partition_table_by_random(const std::string &table, 
   const size_t slotnum, const bool repartition) {
     
     BOOST_LOG_TRIVIAL(debug) << "Partiton by random called on " << table;
@@ -801,7 +801,7 @@ bool BasicEngine_Control::partition_table_by_random(const std::string &table,
 Repartition the given table by random
 
 */
-bool BasicEngine_Control::partition_table_by_fun(const std::string &table, 
+bool BasicEngineControl::partition_table_by_fun(const std::string &table, 
     const std::string &key, const std::string &partitionfun, 
     const size_t slotnum, const bool repartition) {
 
@@ -824,7 +824,7 @@ bool BasicEngine_Control::partition_table_by_fun(const std::string &table,
 Repartition the given table by grid
 
 */    
-bool BasicEngine_Control::partition_table_by_grid(const std::string &table, 
+bool BasicEngineControl::partition_table_by_grid(const std::string &table, 
     const std::string &key, const size_t slotnum, 
     const std::string &attribute, const std::string &gridname, 
     const bool repartition) {
@@ -851,7 +851,7 @@ and after that imported by the worker.
 Returns true if everything is OK and there are no failure.
 
 */
-bool BasicEngine_Control::exportToWorker(const string &sourceTable, 
+bool BasicEngineControl::exportToWorker(const string &sourceTable, 
   const string &destinationTable, const bool exportSchema) {
 
 
@@ -917,7 +917,7 @@ bool BasicEngine_Control::exportToWorker(const string &sourceTable,
       -> getFilenameForPartition(sourceTable, strindex);
 
     std::future<bool> asyncResult = std::async(
-      &BasicEngine_Control::performImport, 
+      &BasicEngineControl::performImport, 
       this, ci, destinationTable, remoteCreateName, 
       remoteName, exportSchema);
 
@@ -944,7 +944,7 @@ The data were partitions in the database by an hash value.
 Returns true if everything is OK and there are no failure.
 
 */
-string BasicEngine_Control::partHash(const string &tab,
+string BasicEngineControl::partHash(const string &tab,
                     const string &key, size_t slotnum) {
 
   string partTabName = getTableNameForPartitioning(tab, key);
@@ -973,7 +973,7 @@ The data were partitions in the database by an defined function.
 This function have to be defined before using it.
 
 */
-string BasicEngine_Control::partFun(const string &tab,
+string BasicEngineControl::partFun(const string &tab,
     const string &key, const string &fun, size_t slotnum){
                 
   string partTabName = getTableNameForPartitioning(tab, key);
@@ -1003,7 +1003,7 @@ Exporting the data from the DBMS to a local file.
 Returns true if everything is OK and there are no failure.
 
 */
-bool BasicEngine_Control::exportData(const string &table, 
+bool BasicEngineControl::exportData(const string &table, 
   const string &key, size_t slotnum){
 
   bool val = true;
@@ -1037,7 +1037,7 @@ table will be created and after that starts the import from a file.
 Returns true if everything is OK and there are no failure.
 
 */
-bool BasicEngine_Control::importData(const string &table) {
+bool BasicEngineControl::importData(const string &table) {
 
   bool result = true;
 
@@ -1083,7 +1083,7 @@ The master imports them into the local db.
 Returns true if everything is OK and there are no failure.
 
 */
-bool BasicEngine_Control::munion(const string &table) {
+bool BasicEngineControl::munion(const string &table) {
 
   bool val = true;
   int workerId = 0;
@@ -1098,7 +1098,7 @@ bool BasicEngine_Control::munion(const string &table) {
     string exportFile = basePath + "/" + partitionFile;
 
     std::future<bool> asyncResult = std::async(
-      &BasicEngine_Control::performExport, 
+      &BasicEngineControl::performExport, 
       this, ci, workerId, table, exportFile, partitionFile);
         
     futures.push_back(std::move(asyncResult));
@@ -1128,7 +1128,7 @@ and stores the result in a table.
 Returns true if everything is OK and there are no failure.
 
 */
-bool BasicEngine_Control::mquery(const string &query,
+bool BasicEngineControl::mquery(const string &query,
                     const string &table) {
 
   // Perform query check
@@ -1155,7 +1155,7 @@ bool BasicEngine_Control::mquery(const string &query,
   vector<std::future<bool>> futures;
 
   std::future<bool> asyncResult = std::async(
-    &BasicEngine_Control::performBEQuery, 
+    &BasicEngineControl::performBEQuery, 
     this, validateConnection, table, query);
 
   bool queryOk = true;
@@ -1189,7 +1189,7 @@ bool BasicEngine_Control::mquery(const string &query,
       it != connections.end(); it++) {
 
     std::future<bool> asyncResult = std::async(
-    &BasicEngine_Control::performBEQuery, 
+    &BasicEngineControl::performBEQuery, 
     this, *it, table, query);
         
     futures.push_back(std::move(asyncResult));
@@ -1210,7 +1210,7 @@ The multi command sends and execute a query to all worker.
 Returns true if everything is OK and there are no failure.
 
 */
-bool BasicEngine_Control::mcommand(const string &query) {
+bool BasicEngineControl::mcommand(const string &query) {
 
   bool val = true;
   vector<std::future<bool>> futures;
@@ -1218,7 +1218,7 @@ bool BasicEngine_Control::mcommand(const string &query) {
   //doing the command with one thread for each worker
   for(distributed2::ConnectionInfo* ci : connections) {
     std::future<bool> asyncResult = std::async(
-    &BasicEngine_Control::performBECommand, 
+    &BasicEngineControl::performBECommand, 
     this, ci, query);
         
     futures.push_back(std::move(asyncResult));
@@ -1239,7 +1239,7 @@ The multi command sends and execute a query to all worker.
 Returns true if everything is OK and there are no failure.
 
 */
-bool BasicEngine_Control::msecondocommand(const string &query) {
+bool BasicEngineControl::msecondocommand(const string &query) {
 
   bool val = true;
   vector<std::future<bool>> futures;
@@ -1247,7 +1247,7 @@ bool BasicEngine_Control::msecondocommand(const string &query) {
   //doing the command with one thread for each worker
   for(distributed2::ConnectionInfo* ci : connections) {
     std::future<bool> asyncResult = std::async(
-    &BasicEngine_Control::performSimpleSecondoCommand, 
+    &BasicEngineControl::performSimpleSecondoCommand, 
     this, ci, query);
         
     futures.push_back(std::move(asyncResult));
@@ -1267,7 +1267,7 @@ bool BasicEngine_Control::msecondocommand(const string &query) {
 Shutdown the remote worker
 
 */
-bool BasicEngine_Control::shutdownWorker() {
+bool BasicEngineControl::shutdownWorker() {
 
    bool result = true;
    string shutdownCommand("query be_shutdown()");
@@ -1287,7 +1287,7 @@ Checking the Connection to the secondary Master System and to the Worker.
 Returns true if everything is OK and there are no failure.
 
 */
-bool BasicEngine_Control::checkAllConnections() {
+bool BasicEngineControl::checkAllConnections() {
 
   const int defaultTimeout = 0;
 
@@ -1319,7 +1319,7 @@ Runs a query from a file.
 Returns true if everything is OK and there are no failure.
 
 */
-bool BasicEngine_Control::runsql(const string &filepath) {
+bool BasicEngineControl::runsql(const string &filepath) {
 
   if (access(filepath.c_str(), 0) != 0) {
     BOOST_LOG_TRIVIAL(error) 
@@ -1355,7 +1355,7 @@ The data were partitions in the database by a grid.
 Returns true if everything is OK and there are no failure.
 
 */
-string BasicEngine_Control::partGrid(const std::string &tab, 
+string BasicEngineControl::partGrid(const std::string &tab, 
   const std::string &key, const std::string &geo_col, 
   const std::string &gridName, size_t slotnum) {
 
@@ -1398,7 +1398,7 @@ string BasicEngine_Control::partGrid(const std::string &tab,
 Get the SECONDO type for the given SQL query.
 
 */
- ListExpr BasicEngine_Control::getTypeFromSQLQuery(
+ ListExpr BasicEngineControl::getTypeFromSQLQuery(
    const std::string &sqlQuery) {
 
     std::vector<std::tuple<std::string, std::string>> types = 
@@ -1414,7 +1414,7 @@ Get the SECONDO type for the given SQL query.
 Get the SECONDO type for the given SQL query.
 
 */
- ResultIteratorGeneric* BasicEngine_Control::performSQLSelectQuery(
+ ResultIteratorGeneric* BasicEngineControl::performSQLSelectQuery(
    const std::string &sqlQuery) {
 
    return dbms_connection->performSQLSelectQuery(sqlQuery);
@@ -1427,7 +1427,7 @@ Get the SECONDO type for the given SQL query.
 Export the worker relation into a file.
 
 */
-string BasicEngine_Control::exportWorkerRelation(
+string BasicEngineControl::exportWorkerRelation(
   const string &relationName) {
 
   // Output file
@@ -1490,7 +1490,7 @@ string BasicEngine_Control::exportWorkerRelation(
 Starting the data import operation.
 
 */
-bool BasicEngine_Control::performImport(
+bool BasicEngineControl::performImport(
       distributed2::ConnectionInfo* ci,
       const std::string &table,
       const std::string &remoteCreateName,
@@ -1535,7 +1535,7 @@ bool BasicEngine_Control::performImport(
 Request the remote schema for a table
 
 */
-string BasicEngine_Control::requestRemoteTableSchema(
+string BasicEngineControl::requestRemoteTableSchema(
     const std::string &table, distributed2::ConnectionInfo *ci) {
 
   string basePath = getBasePath();
@@ -1590,7 +1590,7 @@ string BasicEngine_Control::requestRemoteTableSchema(
 Perform the data export operation.
 
 */
-bool BasicEngine_Control::performExport(
+bool BasicEngineControl::performExport(
       distributed2::ConnectionInfo* ci,
       size_t workerId,
       const std::string &table, 
@@ -1663,7 +1663,7 @@ bool BasicEngine_Control::performExport(
 Starting a query at the worker.
 
 */
-bool BasicEngine_Control::performBEQuery(
+bool BasicEngineControl::performBEQuery(
       distributed2::ConnectionInfo* ci,
       const std::string &table, 
       const std::string &query) {
@@ -1686,7 +1686,7 @@ bool BasicEngine_Control::performBEQuery(
 Starting a command at the worker.
 
 */
-bool BasicEngine_Control::performBECommand(
+bool BasicEngineControl::performBECommand(
       distributed2::ConnectionInfo* ci,
       const std::string &command) {
 
@@ -1708,7 +1708,7 @@ Returns true if everything is OK and there are no failure.
 Displays an error massage if something goes wrong.
 
 */
-bool BasicEngine_Control::performSimpleSecondoCommand(
+bool BasicEngineControl::performSimpleSecondoCommand(
       distributed2::ConnectionInfo* ci, const std::string &command) {
   
   int err = 0;
@@ -1748,7 +1748,7 @@ bool BasicEngine_Control::performSimpleSecondoCommand(
 Share the given table with all workers
 
 */
-bool BasicEngine_Control::shareTable(
+bool BasicEngineControl::shareTable(
       const std::string &table) {
 
   // Create trlation schema file
@@ -1799,7 +1799,7 @@ bool BasicEngine_Control::shareTable(
 3.28 Validate the given query
 
 */
-bool BasicEngine_Control::validateQuery(const std::string &sqlQuery) {
+bool BasicEngineControl::validateQuery(const std::string &sqlQuery) {
 
   bool validateResult = dbms_connection->validateQuery(sqlQuery);
 
@@ -1817,7 +1817,7 @@ bool BasicEngine_Control::validateQuery(const std::string &sqlQuery) {
 3.29 Get the first attribute name from the given table
 
 */
-std::string BasicEngine_Control::getFirstAttributeNameFromTable(
+std::string BasicEngineControl::getFirstAttributeNameFromTable(
     const std::string &table) {
     
    vector<tuple<string, string>> attrs 
@@ -1842,7 +1842,7 @@ std::string BasicEngine_Control::getFirstAttributeNameFromTable(
 3.30 Create a grid with the given parameter
 
 */
-bool BasicEngine_Control::createGrid(const std::string &gridName, 
+bool BasicEngineControl::createGrid(const std::string &gridName, 
   double startX, double startY, double cellSize, int cellsX, int cellsY) {
 
     string gridTable = "grid_" + gridName;
@@ -1882,7 +1882,7 @@ bool BasicEngine_Control::createGrid(const std::string &gridName,
 3.31 Delete the grid with the given name
 
 */
-bool BasicEngine_Control::deleteGrid(std::string &gridName) {
+bool BasicEngineControl::deleteGrid(std::string &gridName) {
 
   string gridTable = "grid_" + gridName;
   string sqlQuery = "DROP TABLE " + gridTable;

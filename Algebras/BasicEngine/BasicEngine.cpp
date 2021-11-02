@@ -60,7 +60,7 @@ namespace BasicEngine {
 dbs\_con is a pointer to a connection, for example to postgres
 
 */
-BasicEngine_Control* be_control = nullptr;
+BasicEngineControl* be_control = nullptr;
 
 /*
 noMaster is just a default string for an error massage.
@@ -1692,7 +1692,7 @@ int init_be_workerSFVM(Word *args, Word &result, int message, Word &local,
         dbTypeValue, dbUserValue, dbPassValue, portValue, dbNameValue);
 
     if (dbConnection != nullptr) {
-      be_control = new BasicEngine_Control(dbConnection, worker,
+      be_control = new BasicEngineControl(dbConnection, worker,
                                            workerRelationNameValue, true);
 
       bool createConnectionResult = be_control->createAllConnections();
@@ -1853,7 +1853,7 @@ int be_init_sf_vm(Word* args, Word& result, int message,
         dbTypeValue, dbUserValue, dbPassValue, portValue, dbNameValue);
 
     if (dbConnection != nullptr) {
-      be_control = new BasicEngine_Control(dbConnection, worker,
+      be_control = new BasicEngineControl(dbConnection, worker,
                                            workerRelationNameValue, false);
 
       bool connectionState = dbConnection->checkConnection();

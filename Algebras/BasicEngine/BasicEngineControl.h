@@ -33,8 +33,8 @@ Checked - 2020
 Version 1.0 - Created - C.Behrndt - 2020
 
 */
-#ifndef _BasicEngine_Control_H_
-#define _BasicEngine_Control_H_
+#ifndef _BasicEngineControl_H_
+#define _BasicEngineControl_H_
 
 #include <optional>
 #include <memory>
@@ -101,7 +101,7 @@ struct RemoteConnectionInfo {
 This class represents the controling from the system.
 
 */
-class BasicEngine_Control {
+class BasicEngineControl {
 
 public:
 
@@ -109,11 +109,11 @@ public:
 2.1 Public Methods
 
 */
-  BasicEngine_Control(ConnectionGeneric* _dbms_connection, 
+  BasicEngineControl(ConnectionGeneric* _dbms_connection, 
     Relation* _workerRelation, std::string _workerRelationName, 
     bool _isMaster);
 
-  virtual ~BasicEngine_Control();
+  virtual ~BasicEngineControl();
 
   ConnectionGeneric* getDBMSConnection() {
     return dbms_connection;
@@ -352,4 +352,4 @@ distributed2::ConnectionInfo* createConnection(
 };
 };  /* namespace BasicEngine */
 
-#endif //_BasicEngine_Control_H_
+#endif //_BasicEngineControl_H_
