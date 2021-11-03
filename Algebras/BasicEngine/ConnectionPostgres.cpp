@@ -293,7 +293,7 @@ string ConnectionPG::getPartitionHashSQL(const string &tab, const string &key,
   string usedKey(key);
   boost::replace_all(usedKey, ",", ",'%_%',");
 
-  string select = "SELECT DISTINCT (get_byte(decode(md5(concat("
+  string select = "SELECT (get_byte(decode(md5(concat("
         "" + usedKey + ")),'hex'),15) %"
         " " + to_string(anzSlots) + " ) As " + be_partition_cellnumber + ","
         "t.* FROM "+ tab + " AS t";

@@ -233,7 +233,7 @@ std::string ConnectionMySQL::getPartitionHashSQL(const std::string &table,
   string usedKey(key);
   boost::replace_all(usedKey, ",", ",'%_%',");
 
-  string selectSQL = "SELECT DISTINCT md5(" + usedKey + ") % " 
+  string selectSQL = "SELECT md5(" + usedKey + ") % " 
         + to_string(anzSlots) + " As " + be_partition_slot + 
         ", t.* FROM "+ table + " AS t";
 
@@ -257,7 +257,7 @@ std::string ConnectionMySQL::getPartitionSQL(const std::string &table,
     string selectSQL = "";
     
     if (boost::iequals(fun, "random")) {
-        selectSQL = "SELECT DISTINCT rand() % " + 
+        selectSQL = "SELECT rand() % " + 
             to_string(anzSlots) + " As " + 
             be_partition_slot + ", t.* FROM " 
             + table + " AS t";
@@ -268,7 +268,7 @@ std::string ConnectionMySQL::getPartitionSQL(const std::string &table,
     }
 
     BOOST_LOG_TRIVIAL(debug) 
-        << "Partition hash statement is: " << selectSQL;
+        << "Partition SQL statement is: " << selectSQL;
 
   return getCreateTableFromPredicateSQL(targetTab, selectSQL);
 }

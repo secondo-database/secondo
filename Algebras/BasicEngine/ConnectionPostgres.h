@@ -154,10 +154,6 @@ private:
 
   PGresult *sendQuery(const std::string &query);
 
-  bool createFunctionRandom(const std::string &table, const std::string &key,
-                            const size_t numberOfWorker, std::string &select);
-
-
   std::string getjoin(const std::string &key);
 
   std::vector<std::tuple<std::string, std::string>>
