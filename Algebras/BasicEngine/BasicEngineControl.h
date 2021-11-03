@@ -306,8 +306,7 @@ distributed2::ConnectionInfo* createAndInitConnection(
 distributed2::ConnectionInfo* createConnection(
   const RemoteConnectionInfo* remoteConnection);
 
-  std::string partRoundRobin(const std::string &tab, const std::string &key,
-   size_t slotnum);
+  std::string partRoundRobin(const std::string &tab, size_t slotnum);
 
   std::string partHash(const std::string &tab, const std::string &key, 
     size_t slotnum);

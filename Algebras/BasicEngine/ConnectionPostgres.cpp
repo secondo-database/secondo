@@ -252,7 +252,7 @@ Creates a table in postgreSQL with the partitioned data by round robin.
 
 */
 bool ConnectionPG::partitionRoundRobin(const string &tab, 
-  const string &key, const size_t anzSlots, const string &targetTab) {
+  const size_t anzSlots, const string &targetTab) {
 
   // Sequence counter
   string createSequenceSQL = "CREATE TEMP SEQUENCE IF NOT EXISTS temp_seq;";

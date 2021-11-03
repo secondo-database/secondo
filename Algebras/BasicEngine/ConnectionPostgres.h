@@ -98,7 +98,7 @@ public:
     return "DROP INDEX IF EXISTS " + table + "_idx;";
   }
 
-  bool partitionRoundRobin(const std::string &table, const std::string &key,
+  bool partitionRoundRobin(const std::string &table,
                            const size_t anzSlots, const std::string &targetTab);
 
   std::string getPartitionHashSQL(const std::string &table,

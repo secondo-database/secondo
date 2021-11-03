@@ -467,7 +467,7 @@ OperatorSpec be_partRRSpec(
    "This operator distribute a relation by round-robin "
    "to the worker. The number of slots have to be positiv "
    "and should be a multiple of your number of workers.",
-   "query be_part_rr('cars','moid',60)"
+   "query be_part_rr('cars',60)"
 );
 
 /*

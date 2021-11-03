@@ -451,13 +451,13 @@ Returns true if everything is OK and there are no failure.
 
 */
 string BasicEngineControl::partRoundRobin(const string &table,
-                    const string &key, size_t numberOfSlots) {
+                    size_t numberOfSlots) {
   
   string destinationTable = getTableNameForPartitioning(table, key);
 
   drop_table(destinationTable);
 
-  bool result = dbms_connection->partitionRoundRobin(table, key,
+  bool result = dbms_connection->partitionRoundRobin(table, 
       numberOfSlots, destinationTable);
 
   if(! result) {
@@ -539,8 +539,7 @@ Repartition the given table - worker version
 
     switch (partitionMode) {
     case PartitionMode::rr:
-      resultTable = partRoundRobin(partitionData.table, partitionData.key,
-                                  partitionData.slotnum);
+      resultTable = partRoundRobin(partitionData.table, partitionData.slotnum);
       break;
 
     case PartitionMode::random:

@@ -70,7 +70,6 @@ public:
                                       const std::string &column) = 0;
 
   virtual bool partitionRoundRobin(const std::string &table,
-                                   const std::string &key,
                                    const size_t anzSlots,
                                    const std::string &targetTab) = 0;
 
