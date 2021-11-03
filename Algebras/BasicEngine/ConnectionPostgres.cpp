@@ -313,7 +313,7 @@ string ConnectionPG::getPartitionSQL(const string &table, const string &key,
   string selectSQL = "";
 
   if (boost::iequals(fun, "random")) {
-      selectSQL = "SELECT random() * 10000 % " + 
+      selectSQL = "SELECT (random() * 10000)::int % " + 
             to_string(anzSlots) + " As " + 
             be_partition_slot + ", t.* FROM " 
             + table + " AS t";
