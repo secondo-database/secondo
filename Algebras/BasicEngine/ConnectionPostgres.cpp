@@ -267,7 +267,7 @@ bool ConnectionPG::partitionRoundRobin(const string &tab,
   // Apply sequence counter to the relation
   string selectSQL = "SELECT (nextval('temp_seq') %" 
     + to_string(anzSlots) + ""
-    " ) As " + be_partition_cellnumber + "," + key + " FROM " + tab;
+    " ) As " + be_partition_cellnumber + ",t.* FROM " + tab + " AS t";
 
   string createTableSQL = getCreateTableFromPredicateSQL(targetTab, selectSQL);
 
@@ -296,103 +296,9 @@ string ConnectionPG::getPartitionHashSQL(const string &tab, const string &key,
   string select = "SELECT DISTINCT (get_byte(decode(md5(concat("
         "" + usedKey + ")),'hex'),15) %"
         " " + to_string(anzSlots) + " ) As " + be_partition_cellnumber + ","
-        "" + key + " FROM "+ tab;
+        "t.* FROM "+ tab + " AS t";
 
   return getCreateTableFromPredicateSQL(targetTab, select);
-}
-
-/*
-6.9 ~getFieldInfoFunction~
-
-This function collects all information about fields and value Mappings.
-This is needed for a special definition of a partitioning function.
-
-*/
-void ConnectionPG::getFieldInfoFunction(const string &tab, 
-  const string &key, string &fields, string &valueMap, 
-  string &select) {
-
-  string query_exec;
-  PGresult* res;
-
-  string usedKey(key);
-  boost::replace_all(usedKey, ",","','");
-
-  query_exec ="SELECT a.attname as column_name,a.attname || '_orig' as t,"
-        "pg_catalog.format_type(a.atttypid, a.atttypmod) as column_type"
-        " FROM pg_catalog.pg_attribute a "
-        " INNER JOIN (SELECT oid FROM pg_catalog.pg_class WHERE relname ='"
-        "" + tab + "' AND pg_catalog.pg_table_is_visible(oid)) b"
-        "  ON a.attrelid = b.oid"
-        " WHERE a.attnum > 0 "
-        " AND NOT a.attisdropped and a.attname in ('"
-        "" + usedKey + "');";
-  
-  res = sendQuery(query_exec);
-
-  for (int i = 0; i<PQntuples(res) ; i++){
-    fields.append(",");
-    fields.append(PQgetvalue (res,i,1));
-    fields.append(" ");
-    fields.append(PQgetvalue(res,i,2)) ;
-
-    valueMap.append(PQgetvalue (res,i,1));
-    valueMap.append(" := var_r.");
-    valueMap.append(PQgetvalue(res,i,0));
-    valueMap.append(";");
-
-    select.append(",");
-    select.append(PQgetvalue (res,i,1));
-    select.append(" AS ");
-    select.append(PQgetvalue(res,i,0));
-  }
-}
-
-/*
-6.10 ~createFunctionRandom~
-
-Creates a table in postgreSQL with the partitioned data by random
-and uses for that a function in postgres.
-
-*/
-bool ConnectionPG::createFunctionRandom(const string &tab, 
-  const string &key, const size_t anzSlots, 
-  string &select) {
-
-  string query_exec = "DROP FUNCTION fun()";
-  sendCommand(query_exec, false);
-
-  select.append("SELECT ");
-  select.append(be_partition_cellnumber);
-  select.append(" ");
-
-  string fields;
-  string valueMap;
-  getFieldInfoFunction(tab, key, fields, valueMap, select);
-
-  select.append(" FROM fun()");
-
-  string cellnumber_string = be_partition_cellnumber;
-
-  query_exec = "create or replace function fun() "
-      "returns table ("
-      " " + cellnumber_string + " integer " + fields + ") "
-      "language plpgsql"
-      " as $$ "
-      " declare "
-      "    var_r record;"
-      " begin"
-      " for var_r in("
-      "            select " + key + ""
-      "            from " + tab + ")"
-      "        loop  " + be_partition_cellnumber + 
-      " := floor(random() * " + to_string(anzSlots) +" );"
-      "        " + valueMap + ""
-      "        return next;"
-      " end loop;"
-      " end; $$;";
-
-  return sendCommand(query_exec);
 }
 
 /*
@@ -401,23 +307,26 @@ bool ConnectionPG::createFunctionRandom(const string &tab,
 This function is for organizing the special partitioning functions.
 
 */
-string ConnectionPG::getPartitionSQL(const string &tab, const string &key, 
+string ConnectionPG::getPartitionSQL(const string &table, const string &key, 
   const size_t anzSlots, const string &fun, const string &targetTab) {
 
-  string select = "";
+  string selectSQL = "";
 
   if (boost::iequals(fun, "random")) {
-    createFunctionRandom(tab, key, anzSlots, select);
+      selectSQL = "SELECT random() * 10000 % " + 
+            to_string(anzSlots) + " As " + 
+            be_partition_slot + ", t.* FROM " 
+            + table + " AS t";
   } else {
     BOOST_LOG_TRIVIAL(error)
         << "Function " + fun + " not recognized!";
-  }
-
-  if(select == "") {
     return "";
   }
 
-  return getCreateTableFromPredicateSQL(targetTab, select);
+  BOOST_LOG_TRIVIAL(debug) 
+        << "Partition SQL statement is: " << selectSQL;
+
+  return getCreateTableFromPredicateSQL(targetTab, selectSQL);
 }
 
 /*

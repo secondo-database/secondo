@@ -157,13 +157,6 @@ private:
   bool createFunctionRandom(const std::string &table, const std::string &key,
                             const size_t numberOfWorker, std::string &select);
 
-  bool createFunctionDDRandom(const std::string &table, const std::string &key,
-                              const std::string &numberOfWorker,
-                              const std::string &select);
-
-  void getFieldInfoFunction(const std::string &table, const std::string &key,
-                            std::string &fields, std::string &valueMap,
-                            std::string &select);
 
   std::string getjoin(const std::string &key);
 

@@ -495,7 +495,7 @@ bool BasicEngineControl::repartition_table(PartitionData &partitionData,
     const std::string &attributeToRemove) {
 
     std::vector<std::tuple<std::string, std::string>> attributes = 
-      dbms_connection -> getTypeFromSQLQuery("SELECT * from " + table);
+      dbms_connection -> getTypeFromSQLQuery("SELECT * FROM " + table);
 
 
     for(std::tuple<std::string, std::string> attribute : attributes) {
@@ -600,17 +600,15 @@ Repartition the given table - worker version
     }
 
     // Delete the temporary repartition table
-    if (!repartition) {
-      BOOST_LOG_TRIVIAL(debug) << "Deleting temporary table" << resultTable;
-      string deleteTable = dbms_connection->getDropTableSQL(resultTable);
-      bool deleteResult = dbms_connection->sendCommand(deleteTable);
+    BOOST_LOG_TRIVIAL(debug) << "Deleting temporary table" << resultTable;
+    string deleteTable = dbms_connection->getDropTableSQL(resultTable);
+    bool deleteResult = dbms_connection->sendCommand(deleteTable);
 
-      if (!deleteResult) {
-        BOOST_LOG_TRIVIAL(error)
-            << "Unable to delete temporary table" << resultTable;
-      }
+    if (!deleteResult) {
+      BOOST_LOG_TRIVIAL(error)
+          << "Unable to delete temporary table" << resultTable;
     }
-
+    
     return true;
   }
 
