@@ -200,7 +200,6 @@ std::string ConnectionMySQL::getCreateTableSQL(const std::string &table) {
 
 */
 bool ConnectionMySQL::partitionRoundRobin(const std::string &table,
-                                          const std::string &key,
                                           const size_t slots,
                                           const std::string &targetTab) {
 

@@ -453,7 +453,7 @@ Returns true if everything is OK and there are no failure.
 string BasicEngineControl::partRoundRobin(const string &table,
                     size_t numberOfSlots) {
   
-  string destinationTable = getTableNameForPartitioning(table, key);
+  string destinationTable = getTableNameForPartitioning(table, "random");
 
   drop_table(destinationTable);
 
