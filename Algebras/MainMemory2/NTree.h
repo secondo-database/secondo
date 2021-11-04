@@ -1056,7 +1056,7 @@ class RangeIteratorN {
 //             cout << "evaluate subtree" << endl;
           if (distPnnq <= 2 * distQnnq + 2 * range) {
             if (distPnnq <= 2 * range ||
-                dc(*(node->getCenter(i)), queryObject) > distQnnq + 2*range) {
+                dc(*(node->getCenter(i)), queryObject) <= distQnnq + 2*range) {
               collectResultsNtree2(node->getChild(i));
             }
           }
