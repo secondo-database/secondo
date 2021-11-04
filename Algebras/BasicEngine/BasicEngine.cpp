@@ -46,6 +46,7 @@ Version 1.0 - Created - C.Behrndt - 2020
 #include "Algebras/FText/FTextAlgebra.h"
 #include "StandardTypes.h"
 #include "BasicEngineControl.h"
+#include "GridManager.h"
 #include "ConnectionPostgres.h"
 #include "ConnectionMySQL.h"
 
@@ -3172,12 +3173,12 @@ int be_GridCreateSFVM(Word *args, Word &result, int message, Word &local,
       double startXDouble = startX->GetValue();
       double startYDouble = startY->GetValue();
       double cellSizeDouble = cellSize->GetValue();
-      int cellsXInt = cellsX->GetValue();
-      int cellsYInt = cellsY->GetValue();
+      size_t cellsXInt = cellsX->GetValue();
+      size_t cellsYInt = cellsY->GetValue();
 
-      operationResult =
-          be_control->createGrid(gridNameString, startXDouble, startYDouble,
-                                 cellSizeDouble, cellsXInt, cellsYInt);
+      GridManager::createGrid(be_control, gridNameString, startXDouble, 
+        startYDouble, cellSizeDouble, cellsXInt, cellsYInt);
+      operationResult = true;
     }
 
     res->Set(true, operationResult);
@@ -3288,7 +3289,8 @@ int be_GridDeleteSFVM(Word *args, Word &result, int message, Word &local,
       operationResult = false;
     } else {
       string gridNameString = gridName->toText();
-      operationResult = be_control->deleteGrid(gridNameString);
+      GridManager::deleteGrid(be_control, gridNameString);
+      operationResult = true;
     }
 
     res->Set(true, operationResult);

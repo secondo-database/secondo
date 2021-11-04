@@ -242,11 +242,6 @@ public:
   bool performSimpleSecondoCommand(distributed2::ConnectionInfo* ci,
         const std::string &command);
 
-  bool createGrid(const std::string &gridName, double startX, 
-    double startY, double cellSize, int cellsX, int cellsY);
-
-  bool deleteGrid(std::string &gridName);
-
   static const size_t defaultTimeout = 0;
 
   static const int defaultHeartbeat = 0;
@@ -347,6 +342,10 @@ distributed2::ConnectionInfo* createConnection(
 
   void dropAttributeIfExists(const std::string &table, 
     const std::string &attribute);
+
+  ConnectionGeneric* getDbmsConnection() {
+    return dbms_connection;
+  }
 
 };
 };  /* namespace BasicEngine */
