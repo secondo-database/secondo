@@ -444,30 +444,6 @@ void BasicEngineControl::exportTableCreateStatementSQL(
 }
 
 /*
-3.8 ~partRoundRobin~
-
-The data were partitions in the database by round robin.
-Returns true if everything is OK and there are no failure.
-
-*/
-string BasicEngineControl::partRoundRobin(const string &table,
-                    size_t numberOfSlots) {
-  
-  string destinationTable = getTableNameForPartitioning(table, "random");
-
-  dropTable(destinationTable);
-
-  bool result = dbms_connection->partitionRoundRobin(table, 
-      numberOfSlots, destinationTable);
-
-  if(! result) {
-    throw SecondoException("Unable to perform round robin partitioning");
-  }
-
-  return destinationTable;
-}
-
-/*
 3.8 ~repartition\_table~
 
 Repartition the given table
@@ -935,6 +911,24 @@ bool BasicEngineControl::exportToWorker(const string &sourceTable,
 }
 
 /*
+3.8 ~partRoundRobin~
+
+The data were partitions in the database by round robin.
+Returns true if everything is OK and there are no failure.
+
+*/
+string BasicEngineControl::partRoundRobin(const string &table,
+                    size_t numberOfSlots) {
+  
+  string destinationTable = getTableNameForPartitioning(table, "random");
+  dropTable(destinationTable);
+
+  dbms_connection->partitionRoundRobin(table, numberOfSlots, destinationTable);
+
+  return destinationTable;
+}
+
+/*
 3.10 ~partHash~
 
 The data were partitions in the database by an hash value.
@@ -947,19 +941,8 @@ string BasicEngineControl::partHash(const string &tab,
   string partTabName = getTableNameForPartitioning(tab, key);
   dropTable(partTabName);
 
-  string query_exec = dbms_connection->getPartitionHashSQL(tab, key,
-    slotnum, partTabName);
+  dbms_connection->partitionHash(tab, key, slotnum, partTabName);
   
-  if(query_exec.empty()) {
-    throw SecondoException("Unable to partiton table, empty command");
-  }
-
-  bool result = dbms_connection->sendCommand(query_exec);
-
-  if(!result) {
-    throw SecondoException("Unable to partiton table");
-  }
-    
   return partTabName;
 }
 
@@ -974,24 +957,45 @@ string BasicEngineControl::partFun(const string &tab,
     const string &key, const string &fun, size_t slotnum){
                 
   string partTabName = getTableNameForPartitioning(tab, key);
-
   dropTable(partTabName);
 
-  string query_exec = dbms_connection->getPartitionSQL(tab, key,
-      slotnum, fun, partTabName);
+  dbms_connection->partitionFunc(tab, key, slotnum, fun, partTabName);
 
-  if (query_exec.empty()) {
-    throw SecondoException("Unable to partiton table, empty command");
-  }
-
-  bool result = dbms_connection->sendCommand(query_exec);
-
-  if(!result) {
-    throw SecondoException("Unable to partiton table");
-  }
-    
   return partTabName;
 }
+
+
+/*
+3.20 ~partGrid~
+
+The data were partitions in the database by a grid.
+Returns true if everything is OK and there are no failure.
+
+*/
+string BasicEngineControl::partGrid(const std::string &tab, 
+  const std::string &key, const std::string &geo_col, 
+  const std::string &gridName, size_t slotnum) {
+
+  string gridTable = "grid_" + gridName;
+
+  // Dropping parttable
+  string partTabName = getTableNameForPartitioning(tab,key);
+  dropTable(partTabName);
+
+  // Drop old index if exists (ignore failure when index does not exists)
+  string dropSQL = dbms_connection->getDropIndexSQL(tab, geo_col);
+  bool dropIndexRes = dbms_connection->sendCommand(dropSQL, false);
+
+  if(! dropIndexRes) {
+    BOOST_LOG_TRIVIAL(debug) 
+      << "Dropping index failed, ignoring. Maybe it does not exist.";
+  } 
+
+  dbms_connection->partitionGrid(tab, key, geo_col, slotnum, 
+    gridTable, partTabName);
+
+  return partTabName;
+} 
 
 /*
 3.12 ~exportData~
@@ -1344,50 +1348,6 @@ bool BasicEngineControl::runsql(const string &filepath) {
 
   return true;
 }
-
-/*
-3.20 ~partGrid~
-
-The data were partitions in the database by a grid.
-Returns true if everything is OK and there are no failure.
-
-*/
-string BasicEngineControl::partGrid(const std::string &tab, 
-  const std::string &key, const std::string &geo_col, 
-  const std::string &gridName, size_t slotnum) {
-
-  string gridTable = "grid_" + gridName;
-
-  // Dropping parttable
-  string partTabName = getTableNameForPartitioning(tab,key);
-  dropTable(partTabName);
-
-  // Drop old index if exists (ignore failure when index does not exists)
-  string dropSQL = dbms_connection->getDropIndexSQL(tab, geo_col);
-  bool dropIndexRes = dbms_connection->sendCommand(dropSQL, false);
-
-  if(! dropIndexRes) {
-    BOOST_LOG_TRIVIAL(debug) 
-      << "Dropping index failed, ignoring. Maybe it does not exist.";
-  } 
-
-  string createGridSQL = dbms_connection->getPartitionGridSQL(tab, 
-    key, geo_col, slotnum, gridTable, partTabName);
-
-  if(createGridSQL.empty()) {
-    BOOST_LOG_TRIVIAL(error) 
-      << "Unable to determine create grid SQL";
-    throw SecondoException("Unable to determine create grid SQL");
-  }
-
-  bool result = dbms_connection->sendCommand(createGridSQL);
-
-  if(! result) {
-    throw SecondoException("Unable to perform grid paritioning");
-  }
-
-  return partTabName;
-} 
 
 /*
 3.21 ~getTypeFromSQLQuery~

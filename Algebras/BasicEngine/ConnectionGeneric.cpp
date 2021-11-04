@@ -178,7 +178,7 @@ bool ConnectionGeneric::commitTransaction() {
 Creates a table in with grid partitioned data.
 
 */
-std::string ConnectionGeneric::getPartitionGridSQL(
+void ConnectionGeneric::partitionGrid(
     const std::string &table, const std::string &key,
     const std::string &geo_col, const size_t noOfSlots,
     const ::string &gridName, const std::string &targetTable) {
@@ -193,7 +193,14 @@ std::string ConnectionGeneric::getPartitionGridSQL(
                       " g INNER JOIN " + table +
                       " r ON ST_INTERSECTS(g.cell, r." + geo_col + ")";
 
-  return getCreateTableFromPredicateSQL(targetTable, query_exec);
+  string partitionSQL = getCreateTableFromPredicateSQL(targetTable, query_exec);
+
+  bool partitionResult = sendCommand(partitionSQL);
+
+  if(!partitionResult) {
+    throw SecondoException("Unable to partiton table");
+  }
+
 }
 
 } // Namespace

@@ -199,15 +199,14 @@ std::string ConnectionMySQL::getCreateTableSQL(const std::string &table) {
 6.7 ~partitionRoundRobin~
 
 */
-bool ConnectionMySQL::partitionRoundRobin(const std::string &table,
+void ConnectionMySQL::partitionRoundRobin(const std::string &table,
                                           const size_t slots,
                                           const std::string &targetTab) {
 
   // Apply sequence counter to the relation
-  string selectSQL = "SELECT @n := ((@n + 1) % " + to_string(slots) +
-                     ") " + be_partition_slot + ", t.* " + 
-                     "FROM (SELECT @n:=0) AS initvars, " +
-                     table + " AS t";
+  string selectSQL = "SELECT @n := ((@n + 1) % " + to_string(slots) + ") " +
+                     be_partition_slot + ", t.* " +
+                     "FROM (SELECT @n:=0) AS initvars, " + table + " AS t";
 
   string createTableSQL = getCreateTableFromPredicateSQL(targetTab, selectSQL);
 
@@ -215,61 +214,72 @@ bool ConnectionMySQL::partitionRoundRobin(const std::string &table,
 
   if (!res) {
     BOOST_LOG_TRIVIAL(error) << "Unable to create round robin table";
-    return false;
+    throw SecondoException(
+        "Error in rr paritioning: Unable to create round robin table");
   }
-
-  return true;
 }
 
 /*
 6.8 ~getPartitionHashSQL~
 
 */
-std::string ConnectionMySQL::getPartitionHashSQL(const std::string &table, 
-    const std::string &key, const size_t anzSlots, 
-    const std::string &targetTab) {
+void ConnectionMySQL::partitionHash(const std::string &table,
+                                    const std::string &key,
+                                    const size_t anzSlots,
+                                    const std::string &targetTab) {
 
   string usedKey(key);
   boost::replace_all(usedKey, ",", ",'%_%',");
 
-  string selectSQL = "SELECT md5(" + usedKey + ") % " 
-        + to_string(anzSlots) + " As " + be_partition_slot + 
-        ", t.* FROM "+ table + " AS t";
+  string selectSQL = "SELECT md5(" + usedKey + ") % " + to_string(anzSlots) +
+                     " As " + be_partition_slot + ", t.* FROM " + table +
+                     " AS t";
 
-    BOOST_LOG_TRIVIAL(debug) 
-      << "Partition hash statement is: " << selectSQL;
+  BOOST_LOG_TRIVIAL(debug) << "Partition hash statement is: " << selectSQL;
 
-  return getCreateTableFromPredicateSQL(targetTab, selectSQL);
+  string createTableSQL = getCreateTableFromPredicateSQL(targetTab, selectSQL);
+
+  bool res = sendCommand(createTableSQL);
+
+  if (!res) {
+    BOOST_LOG_TRIVIAL(error) << "Unable to execute hash partitioning";
+    throw SecondoException("Error in hash paritioning");
+  }
 }
 
 /*
 6.9 ~getPartitionSQL~
 
 */
-std::string ConnectionMySQL::getPartitionSQL(const std::string &table, 
-    const std::string &key, const size_t anzSlots,
-    const std::string &fun, const std::string &targetTab) {
+void ConnectionMySQL::partitionFunc(const std::string &table,
+                                    const std::string &key,
+                                    const size_t anzSlots,
+                                    const std::string &fun,
+                                    const std::string &targetTab) {
 
-    string usedKey(key);
-    boost::replace_all(usedKey, ",", ",'%_%',");
+  string usedKey(key);
+  boost::replace_all(usedKey, ",", ",'%_%',");
 
-    string selectSQL = "";
-    
-    if (boost::iequals(fun, "random")) {
-        selectSQL = "SELECT rand() % " + 
-            to_string(anzSlots) + " As " + 
-            be_partition_slot + ", t.* FROM " 
-            + table + " AS t";
-    } else {
-        BOOST_LOG_TRIVIAL(error) 
-                << "Unknown partitioning function: " << fun;
-        return "";
-    }
+  string selectSQL = "";
 
-    BOOST_LOG_TRIVIAL(debug) 
-        << "Partition SQL statement is: " << selectSQL;
+  if (boost::iequals(fun, "random")) {
+    selectSQL = "SELECT rand() % " + to_string(anzSlots) + " As " +
+                be_partition_slot + ", t.* FROM " + table + " AS t";
+  } else {
+    BOOST_LOG_TRIVIAL(error) << "Unknown partitioning function: " << fun;
+    throw SecondoException("Function " + fun + " not recognized!");
+  }
 
-  return getCreateTableFromPredicateSQL(targetTab, selectSQL);
+  BOOST_LOG_TRIVIAL(debug) << "Partition SQL statement is: " << selectSQL;
+
+  string createTableSQL = getCreateTableFromPredicateSQL(targetTab, selectSQL);
+
+  bool res = sendCommand(createTableSQL);
+
+  if (!res) {
+    BOOST_LOG_TRIVIAL(error) << "Unable to execute func partitioning";
+    throw SecondoException("Error in func paritioning");
+  }
 }
 
 /*

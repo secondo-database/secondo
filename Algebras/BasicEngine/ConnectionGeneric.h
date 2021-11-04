@@ -69,30 +69,30 @@ public:
   virtual std::string getDropIndexSQL(const std::string &table,
                                       const std::string &column) = 0;
 
-  virtual bool partitionRoundRobin(const std::string &table,
+  virtual void partitionRoundRobin(const std::string &table,
                                    const size_t anzSlots,
                                    const std::string &targetTab) = 0;
 
-  virtual std::string getPartitionHashSQL(const std::string &table,
+  virtual void partitionHash(const std::string &table,
                                           const std::string &key,
                                           const size_t anzSlots,
                                           const std::string &targetTab) = 0;
 
-  virtual std::string getPartitionSQL(const std::string &table,
-                                      const std::string &keyS,
+  virtual void partitionFunc(const std::string &table,
+                                      const std::string &key,
                                       const size_t anzSlots,
                                       const std::string &fun,
                                       const std::string &targetTab) = 0;
 
-  virtual std::string getPartitionGridSQL(const std::string &table,
+  virtual void partitionGrid(const std::string &table,
                                           const std::string &key,
                                           const std::string &geo_col,
                                           const size_t noOfSlots,
                                           const std::string &gridname,
                                           const std::string &targetTab);
 
-  virtual std::string
-  getExportDataSQL(const std::string &table, const std::string &join_table,
+  virtual std::string getExportDataSQL(const std::string &table, 
+                  const std::string &join_table,
                    const std::string &key, const std::string &nr,
                    const std::string &exportFile, size_t numberOfWorker) = 0;
 

@@ -251,7 +251,7 @@ string ConnectionPG::getCreateTableSQL(const string &tab){
 Creates a table in postgreSQL with the partitioned data by round robin.
 
 */
-bool ConnectionPG::partitionRoundRobin(const string &tab, 
+void ConnectionPG::partitionRoundRobin(const string &tab, 
   const size_t anzSlots, const string &targetTab) {
 
   // Sequence counter
@@ -261,7 +261,8 @@ bool ConnectionPG::partitionRoundRobin(const string &tab,
 
   if(! res) {
     BOOST_LOG_TRIVIAL(error) << "Unable to create sequence";
-    return false;
+    throw SecondoException(
+      "Error in rr paritioning: Unable to create sequence");
   }
 
   // Apply sequence counter to the relation
@@ -275,20 +276,20 @@ bool ConnectionPG::partitionRoundRobin(const string &tab,
 
   if(! res) {
     BOOST_LOG_TRIVIAL(error) << "Unable to create round robin table";
-    return false;
+    throw SecondoException(
+      "Error in rr paritioning: Unable to create round robin table");
   }
-
-  return true;
 }
 
 /*
-6.7 ~get\_partHash~
+6.7 ~partitionHash~
 
 Creates a table in postgreSQL with the partitioned data by hash value.
 
 */
-string ConnectionPG::getPartitionHashSQL(const string &tab, const string &key,
-                  const size_t anzSlots, const string &targetTab) {
+void ConnectionPG::partitionHash(const string &tab, const string &key,
+                                 const size_t anzSlots,
+                                 const string &targetTab) {
 
   string usedKey(key);
   boost::replace_all(usedKey, ",", ",'%_%',");
@@ -298,35 +299,46 @@ string ConnectionPG::getPartitionHashSQL(const string &tab, const string &key,
         " " + to_string(anzSlots) + " ) As " + be_partition_cellnumber + ","
         "t.* FROM "+ tab + " AS t";
 
-  return getCreateTableFromPredicateSQL(targetTab, select);
+  string createTableSQL = getCreateTableFromPredicateSQL(targetTab, select);
+
+  bool res = sendCommand(createTableSQL);
+
+  if(! res) {
+    BOOST_LOG_TRIVIAL(error) << "Unable to execute hash partitioning";
+    throw SecondoException("Error in hash paritioning");
+  }
 }
 
 /*
-6.11 ~get\_partFun~
+6.11 ~partitionFunc~
 
 This function is for organizing the special partitioning functions.
 
 */
-string ConnectionPG::getPartitionSQL(const string &table, const string &key, 
-  const size_t anzSlots, const string &fun, const string &targetTab) {
+void ConnectionPG::partitionFunc(const string &table, const string &key,
+                                 const size_t anzSlots, const string &fun,
+                                 const string &targetTab) {
 
   string selectSQL = "";
 
   if (boost::iequals(fun, "random")) {
-      selectSQL = "SELECT (random() * 10000)::int % " + 
-            to_string(anzSlots) + " As " + 
-            be_partition_slot + ", t.* FROM " 
-            + table + " AS t";
+    selectSQL = "SELECT (random() * 10000)::int % " + to_string(anzSlots) +
+                " As " + be_partition_slot + ", t.* FROM " + table + " AS t";
   } else {
-    BOOST_LOG_TRIVIAL(error)
-        << "Function " + fun + " not recognized!";
-    return "";
+    BOOST_LOG_TRIVIAL(error) << "Function " << fun << " not recognized!";
+    throw SecondoException("Function " + fun + " not recognized!");
   }
 
-  BOOST_LOG_TRIVIAL(debug) 
-        << "Partition SQL statement is: " << selectSQL;
+  BOOST_LOG_TRIVIAL(debug) << "Partition SQL statement is: " << selectSQL;
 
-  return getCreateTableFromPredicateSQL(targetTab, selectSQL);
+  string createTableSQL = getCreateTableFromPredicateSQL(targetTab, selectSQL);
+
+  bool res = sendCommand(createTableSQL);
+
+  if (!res) {
+    BOOST_LOG_TRIVIAL(error) << "Unable to execute func partitioning";
+    throw SecondoException("Error in func paritioning");
+  }
 }
 
 /*
