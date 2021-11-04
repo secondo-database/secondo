@@ -455,7 +455,7 @@ string BasicEngineControl::partRoundRobin(const string &table,
   
   string destinationTable = getTableNameForPartitioning(table, "random");
 
-  drop_table(destinationTable);
+  dropTable(destinationTable);
 
   bool result = dbms_connection->partitionRoundRobin(table, 
       numberOfSlots, destinationTable);
@@ -945,7 +945,7 @@ string BasicEngineControl::partHash(const string &tab,
                     const string &key, size_t slotnum) {
 
   string partTabName = getTableNameForPartitioning(tab, key);
-  drop_table(partTabName);
+  dropTable(partTabName);
 
   string query_exec = dbms_connection->getPartitionHashSQL(tab, key,
     slotnum, partTabName);
@@ -975,7 +975,7 @@ string BasicEngineControl::partFun(const string &tab,
                 
   string partTabName = getTableNameForPartitioning(tab, key);
 
-  drop_table(partTabName);
+  dropTable(partTabName);
 
   string query_exec = dbms_connection->getPartitionSQL(tab, key,
       slotnum, fun, partTabName);
@@ -1360,7 +1360,7 @@ string BasicEngineControl::partGrid(const std::string &tab,
 
   // Dropping parttable
   string partTabName = getTableNameForPartitioning(tab,key);
-  drop_table(partTabName);
+  dropTable(partTabName);
 
   // Drop old index if exists (ignore failure when index does not exists)
   string dropSQL = dbms_connection->getDropIndexSQL(tab, geo_col);

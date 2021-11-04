@@ -820,10 +820,10 @@ int be_querySFVM(Word* args,Word& result,int message,Word& local,Supplier s ) {
   try {
     if(be_control) {
       //Delete target Table, ignore failure
-      be_control->drop_table(resultTab->toText());
+      be_control->dropTable(resultTab->toText());
 
       //execute the query
-      val=be_control->createTab(resultTab->toText(),query->toText());
+      val=be_control->createTable(resultTab->toText(),query->toText());
     } else {
       cout << noMaster << endl;
     }
