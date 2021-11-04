@@ -318,12 +318,10 @@ class NTreeNode {
   
  protected:
   NTreeNode(const int d, const int mls) :
-    degree(d), maxLeafSize(mls), count(0), distMatrix(0), distances2d(0),
-    distances3d(0), candOrder(RANDOM), pMethod(SIMPLE) {}
+    degree(d), maxLeafSize(mls), count(0), noDistComp(0), distMatrix(0),
+    distances2d(0), distances3d(0), candOrder(RANDOM), pMethod(SIMPLE) {}
    
-  int degree;
-  int maxLeafSize;
-  int count;
+  int degree, maxLeafSize, count, noDistComp; 
   
   // only used for N-tree2, i.e., variant == 2
   double** distMatrix; // matrix of pairwise center distances
@@ -350,6 +348,7 @@ class NTreeInnerNode : public NTreeNode<T, DistComp, variant> {
   
   using node_t::degree;
   using node_t::maxLeafSize;
+  using node_t::noDistComp;
   using node_t::distMatrix;
   using node_t::refDistPos;
   using node_t::distances2d;
@@ -728,6 +727,7 @@ class NTreeInnerNode : public NTreeNode<T, DistComp, variant> {
              const int partitionStrategy = 0) { // contents.size > maxLeafSize
 //     cout << spaces << "depth " << depth << ", " << contents.size()
 //          << " elems, counter = " << dc.getNoDistFunCalls() << endl;
+    int noDistFunCallsBefore = dc.getNoDistFunCalls();
     depth++;
     computeCenters(contents, partitionStrategy);
     if (variant == 2) {
@@ -737,6 +737,8 @@ class NTreeInnerNode : public NTreeNode<T, DistComp, variant> {
     std::vector<std::vector<T> > partitions;
     partition(contents, dc, partitions);
 //     printPartitions(contents, partitions, depth, dc, false, cout);
+    int noDistFunCallsAfter = dc.getNoDistFunCalls();
+    noDistComp = noDistFunCallsAfter - noDistFunCallsBefore;
     for (int i = 0; i < degree; i++) {
       if ((int)partitions[i].size() <= maxLeafSize) {
         children[i] = new leafnode_t(degree, maxLeafSize, dc, 
@@ -775,6 +777,7 @@ class NTreeLeafNode : public NTreeNode<T, DistComp, variant> {
   
   using node_t::degree;
   using node_t::maxLeafSize;
+  using node_t::noDistComp;
   using node_t::distMatrix;
   using node_t::refDistPos;
   using node_t::distances2d;
@@ -793,10 +796,13 @@ class NTreeLeafNode : public NTreeNode<T, DistComp, variant> {
                 const TupleId centerTid, std::vector<T>& contents) : 
                                                          NTreeLeafNode(d, mls) {
     insert(contents, centerTid);
+    int noDistFunCallsBefore = dc.getNoDistFunCalls();
     if (variant == 2) {
       node_t::initAuxStructures(getNoEntries());
       node_t::precomputeDistances(dc, true);
     }
+    int noDistFunCallsAfter = dc.getNoDistFunCalls();
+    noDistComp = noDistFunCallsAfter - noDistFunCallsBefore;
   }
   
   ~NTreeLeafNode() {
@@ -953,6 +959,37 @@ class NTreeLeafNode : public NTreeNode<T, DistComp, variant> {
   T** entries;
 };
 
+/*
+9 struct NTreeStat
+
+This type is applied for counting (expensive) distance computations per inner 
+node and per leaf.
+
+*/
+struct NTreeStat {
+  NTreeStat() : noInnerNodes(0), noLeaves(0), noDCInnerNodes(0), noDCLeaves(0){}
+  
+  std::ostream& print(std::ostream& out, const int noDCTotal = 0,
+                      const bool isSearch = false) {
+    if (noDCTotal > 0) {
+      noDCInnerNodes = noDCTotal - noDCLeaves;
+    }
+    out << (isSearch ? "SEARCH" : "TREE") << " STATISTICS:" << endl;
+    out << (isSearch ? "------" : "----") << "-----------" << endl;
+    out << (isSearch ? "visited: " : "created: ") << noInnerNodes 
+        << " inner nodes, " << noLeaves << " leaves" << endl;
+    double avgDCInnerNode = (double)noDCInnerNodes / noInnerNodes;
+    double avgDCLeaves = (double)noDCLeaves / noLeaves;
+    out << "number of distance computations: " << noDCInnerNodes
+         << " at inner nodes (avg. = " << avgDCInnerNode << "), " 
+         << noDCLeaves << " at leaves (avg. = " << avgDCLeaves << ")." << endl;
+    return out;
+  }
+  
+  int noInnerNodes, noLeaves;
+  int noDCInnerNodes, noDCLeaves;
+};
+
 template <class T, class DistComp, int variant>
 class RangeIteratorN {
  public:
@@ -970,14 +1007,17 @@ class RangeIteratorN {
     switch (variant) {
       case 1: {
         collectResultsNtree(root);
+        stat.print(cout, dc.getNoDistFunCalls(), true);
         break;
       }
       case 2: {
         collectResultsNtree2(root);
+        stat.print(cout, dc.getNoDistFunCalls(), true);
         break;
       }
       case 5: {
         collectResultsNtree5(root);
+        stat.print(cout, dc.getNoDistFunCalls(), true);
         break;
       }
       default: {
@@ -992,23 +1032,29 @@ class RangeIteratorN {
       for (int i = 0; i < ((leafnode_t*)node)->getNoEntries(); i++) {
         results.push_back(((leafnode_t*)node)->getObject(i)->getTid());
       }
+      stat.noLeaves++;
     }
     else {
       for (int i = 0; i < ((innernode_t*)node)->getCount(); i++) {
         reportEntireSubtree(((innernode_t*)node)->getChild(i));
       }
+      stat.noInnerNodes++;
     }
   }
   
   void collectResultsNtree(node_t* node) {
     if (node->isLeaf()) {
+      int noDistFunCallsBefore = dc.getNoDistFunCalls();
       for (int i = 0; i < node->getCount(); i++) {
         if (dc(*(node->getObject(i)), queryObject) <= range) {
           results.push_back(node->getObject(i)->getTid());
         }
       }
+      int noDistFunCallsAfter = dc.getNoDistFunCalls();
+      stat.noLeaves++;
+      stat.noDCLeaves+= noDistFunCallsAfter - noDistFunCallsBefore;
     }
-    else {
+    else { // inner node
       double minDist = node->getMinDist(queryObject, dc);
       for (int i = 0; i < node->getCount(); i++) {
         T* c = node->getCenter(i);
@@ -1019,11 +1065,13 @@ class RangeIteratorN {
           collectResultsNtree(node->getChild(i));
         } 
       }
+      stat.noInnerNodes++;
     }
   }
   
   void collectResultsNtree2(node_t* node) {
     if (node->isLeaf()) {
+      int noDistFunCallsBefore = dc.getNoDistFunCalls();
       double distQnnq, distPnnq;
       int nnq = ((leafnode_t*)node)->getNearestCenterPos(queryObject, dc,
                                                           distQnnq);
@@ -1040,6 +1088,9 @@ class RangeIteratorN {
           }
         } // else: ignore entry
       }
+      int noDistFunCallsAfter = dc.getNoDistFunCalls();
+      stat.noLeaves++;
+      stat.noDCLeaves+= noDistFunCallsAfter - noDistFunCallsBefore;
     }
     else { // inner node
       double distQnnq, distPnnq, maxDist;
@@ -1062,16 +1113,21 @@ class RangeIteratorN {
           }
         } // else: ignore subtree
       }
+      stat.noInnerNodes++;
     }
   }
   
   void collectResultsNtree5(node_t* node) {
     if (node->isLeaf()) {
+      int noDistFunCallsBefore = dc.getNoDistFunCalls();
       for (int i = 0; i < node->getNoEntries(); i++) {
         if (dc(queryObject, *(node->getObject(i))) <= range) {
           results.push_back(node->getObject(i)->getTid());
         }
       }
+      int noDistFunCallsAfter = dc.getNoDistFunCalls();
+      stat.noLeaves++;
+      stat.noDCLeaves+= noDistFunCallsAfter - noDistFunCallsBefore;
     }
     else { // inner node
       for (int i = 0; i < node->getDegree(); i++) {
@@ -1083,6 +1139,7 @@ class RangeIteratorN {
           collectResultsNtree5(node->getChild(i));
         }
       }
+      stat.noInnerNodes++;
     }
   }
 
@@ -1109,6 +1166,7 @@ class RangeIteratorN {
   T queryObject;
   double range;
   DistComp dc;
+  NTreeStat stat; // statistics
 };
 
 /*
@@ -1192,6 +1250,8 @@ class NTree {
       root->build(contents, dc, -1, partitionStrategy);
     }
 //     print(cout);
+    computeStatistics(root);
+    stat.print(cout);
   }
   
   std::ostream& print(std::ostream& out) {
@@ -1226,6 +1286,20 @@ class NTree {
     return new rangeiterator_t(root, q, range, dc);
   }
   
+  void computeStatistics(node_t* ptr) {
+    if (ptr->isLeaf()) {
+      stat.noLeaves++;
+      stat.noDCLeaves += ((leafnode_t*)ptr)->noDistComp;
+    }
+    else {
+      stat.noInnerNodes++;
+      stat.noDCInnerNodes += ((innernode_t*)ptr)->noDistComp;
+      for (int i = 0; i < degree; i++) {
+        computeStatistics(ptr->getChild(i));
+      }
+    }
+  }
+  
   
  protected:
   int degree;
@@ -1235,6 +1309,7 @@ class NTree {
   int partitionStrategy;
   CandOrder candOrder; // random, two ref points, three ref points
   PruningMethod pMethod; // simple, minDist-based
+  NTreeStat stat; // statistics
   
   static node_t* insert(node_t* root, const T& o, DistComp& dc,
                         const int partitionStrategy = 0) {
