@@ -207,4 +207,56 @@ void ConnectionGeneric::partitionGrid(
 
 }
 
+/*
+6.19 Remove a column from a table
+
+*/
+void ConnectionGeneric::removeColumnFromTable(const std::string &table,
+    const std::string &name) {
+
+    string sql = sqlDialect -> getRemoveColumnFromTableSQL(table, name);
+    
+    bool res = sendCommand(sql.c_str());
+
+   if(res == false) {
+        BOOST_LOG_TRIVIAL(error) 
+            << "Unable to execute: " << sql;
+        throw SecondoException("Unable to remove column to table");
+   }
+
+}
+
+/*
+6.20 Drop a table
+
+*/
+void ConnectionGeneric::dropTable(const std::string &table) {
+  string sql = sqlDialect -> getDropTableSQL(table);
+
+  bool res = sendCommand(sql.c_str());
+
+  if (res == false) {
+    BOOST_LOG_TRIVIAL(error)
+        << "Unable to execute: " << sql;
+    throw SecondoException("Unable to drop table");
+  }
+}
+
+/*
+6.21 Drop an index from a table
+
+*/
+void ConnectionGeneric::dropIndex(const std::string &table,
+                                const std::string &column) {
+
+  string sql = sqlDialect -> getDropIndexSQL(table, column);
+
+  bool res = sendCommand(sql.c_str());
+
+  if (res == false) {
+    BOOST_LOG_TRIVIAL(error) << "Unable to execute: " << sql;
+    throw SecondoException("Unable to drop index");
+  }
+}
+
 } // Namespace

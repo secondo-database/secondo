@@ -33,9 +33,15 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 namespace BasicEngine {
 
 class SQLDialectPostgres : public SQLDialect {
-    public:
+
+public:
+  std::string getDropIndexSQL(const std::string &table,
+                              const std::string &column) {
+
+    return "DROP INDEX IF EXISTS " + table + "_idx;";
+  }
 };
 
-}
+} // namespace BasicEngine
 
 #endif

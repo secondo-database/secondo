@@ -633,8 +633,6 @@ bool ConnectionPG::insertRectangle(const std::string &table,
     return true;
 }
 
-
-
 /*
 6.18 Add a new column to the table
 
@@ -661,55 +659,6 @@ void ConnectionPG::addColumnToTable(const std::string &table,
             << "Unable to execute: " << sql;
         throw SecondoException("Unable to add column to table");
    }
-}
-
-/*
-6.19 Remove a column from a table
-
-*/
-void ConnectionPG::removeColumnFromTable(const std::string &table,
-    const std::string &name) {
-
-    string sql = "ALTER TABLE " + table + " DROP COLUMN " + name;
-    
-    bool res = sendCommand(sql.c_str());
-
-   if(res == false) {
-        BOOST_LOG_TRIVIAL(error) 
-            << "Unable to execute: " << sql;
-        throw SecondoException("Unable to remove column to table");
-   }
-}
-
-/*
-6.20 Drop a table
-
-*/
-void ConnectionPG::dropTable(const std::string &table) {
-  string sql = "DROP TABLE IF EXISTS " + table + ";";
-
-  bool res = sendCommand(sql.c_str());
-
-  if (res == false) {
-    BOOST_LOG_TRIVIAL(error) << "Unable to execute: " << sql;
-    throw SecondoException("Unable to drop table");
-  }
-}
-
-/*
-6.21 Drop an index from a table
-
-*/
-void ConnectionPG::dropIndex(const std::string &table,
-                             const std::string &column) {
-  string sql = "DROP INDEX IF EXISTS " + table + "_idx;";
-
-  bool res = sendCommand(sql.c_str());
-
-  if (res == false) {
-    BOOST_LOG_TRIVIAL(error) << "Unable to execute: " << sql;
-    throw SecondoException("Unable to drop index");
-  }
 }
 
 }/* namespace BasicEngine */

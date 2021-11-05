@@ -33,37 +33,48 @@ namespace BasicEngine {
 class SQLDialect {
     public:
 
-    std::string getDropTableSQL(const std::string table) {
+    virtual ~SQLDialect() {}
+
+    virtual std::string getDropTableSQL(const std::string &table) {
         return "DROP TABLE IF EXISTS " + table + ";";
     }
 
-    std::string getCreateTableFromPredicateSQL(const std::string &table,
+    virtual std::string getCreateTableFromPredicateSQL(const std::string &table,
                                                 const std::string &query) {
 
         return "CREATE TABLE " + table + " AS (" + query + ")";
     }
 
-    std::string getCopySchemaSQL(const std::string &table) {
+    virtual std::string getCopySchemaSQL(const std::string &table) {
         return "SELECT * FROM " + table + " LIMIT 0";
     }
 
-    std::string getRenameTableSQL(const std::string &source,
+    virtual std::string getRenameTableSQL(const std::string &source,
                                     const std::string &destination) {
 
         return "ALTER TABLE " + source + " RENAME TO " + destination + ";";
     }
 
-    std::string getBeginTransactionSQL() {
+    virtual std::string getBeginTransactionSQL() {
         return "START TRANSACTION;";
     }
 
-    std::string getAbortTransactionSQL() {
+    virtual std::string getAbortTransactionSQL() {
         return "ROLLBACK;";
     }
 
-    std::string getCommitTransactionSQL() {
+    virtual std::string getCommitTransactionSQL() {
         return "COMMIT;";
     }
+
+    virtual std::string getRemoveColumnFromTableSQL(const std::string &table,
+                    const std::string &name) {
+        return "ALTER TABLE " + table + " DROP COLUMN " + name;
+    }
+
+    // Abstract SQL queries
+    virtual std::string getDropIndexSQL(const std::string &table,
+                                const std::string &column) = 0;
 
 };
 

@@ -71,10 +71,10 @@ public:
 
   virtual std::string getCreateTableSQL(const std::string &table) = 0;
 
-  virtual void dropTable(const std::string &table) = 0;
+  virtual void dropTable(const std::string &table);
 
   virtual void dropIndex(const std::string &table,
-                         const std::string &column) = 0;
+                         const std::string &column) ;
 
   virtual void partitionRoundRobin(const std::string &table,
                                    const size_t anzSlots,
@@ -137,7 +137,7 @@ public:
                                 const std::string &name, SQLAttribute type) = 0;
 
   virtual void removeColumnFromTable(const std::string &table,
-                                     const std::string &name) = 0;
+                                     const std::string &name);
 
 
   std::string getFilenameForPartition(const std::string &table,

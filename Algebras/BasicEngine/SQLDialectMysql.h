@@ -33,7 +33,14 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 namespace BasicEngine {
 
 class SQLDialectMySQL : public SQLDialect {
+
     public:
+    std::string getDropIndexSQL(const std::string &table,
+                                const std::string &column) {
+
+        return "DROP INDEX " + column + " ON " + table + ";";
+    }
+
 };
 
 }
