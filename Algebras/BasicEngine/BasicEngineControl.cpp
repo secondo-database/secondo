@@ -1024,7 +1024,7 @@ bool BasicEngineControl::exportData(const string &table,
     BOOST_LOG_TRIVIAL(debug) << "Export table from DB: "s
       << exportDataSQL;
         
-    val = sendCommand(exportDataSQL) && val;
+    val = dbms_connection->sendCommand(exportDataSQL) && val;
   }
 
   return val;
@@ -1718,7 +1718,7 @@ bool BasicEngineControl::shareTable(
   string exportDataSQL = dbms_connection->getExportTableSQL(
     table, partZeroFullPath);
 
-  bool exportDataRes = sendCommand(exportDataSQL);
+  bool exportDataRes = dbms_connection->sendCommand(exportDataSQL);
 
   if(!exportDataRes) {
     BOOST_LOG_TRIVIAL(error) << "Unable to export from DB: "

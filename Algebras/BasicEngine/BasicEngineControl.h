@@ -151,7 +151,7 @@ public:
 
   bool dropTable(const std::string &table) {
     std::string sqlQuery = dbms_connection->getDropTableSQL(table);
-    return sendCommand(sqlQuery, false);
+    return dbms_connection->sendCommand(sqlQuery, false);
   }
 
   void exportTableCreateStatementSQL(const std::string &table, 
@@ -162,18 +162,18 @@ public:
 
   bool importTable(const std::string &tab, const std::string &full_path) {
     std::string sqlQuery = dbms_connection->getImportTableSQL(tab, full_path);
-    return sendCommand(sqlQuery);
+    return dbms_connection->sendCommand(sqlQuery);
   }
 
   bool exportTable(const std::string &tab, const std::string &full_path) {
     std::string sqlQuery = dbms_connection->getExportTableSQL(tab, full_path);
-    return sendCommand(sqlQuery);
+    return dbms_connection->sendCommand(sqlQuery);
   }
 
   bool createTable(const std::string &tab, const std::string &query) {
     std::string sqlQuery =
         dbms_connection->getCreateTableFromPredicateSQL(tab, query);
-    return sendCommand(sqlQuery);
+    return dbms_connection->sendCommand(sqlQuery);
   }
 
   bool shareTable(const std::string &table);
@@ -192,10 +192,6 @@ public:
     const RemoteConnectionInfo* remoteConnectionInfo);
 
   bool shutdownWorker();
-
-  bool sendCommand(const std::string &query, bool print=true) {
-    return dbms_connection->sendCommand(query, print);
-  }
 
   ListExpr getTypeFromSQLQuery(const std::string &sqlQuery);
 

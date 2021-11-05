@@ -929,7 +929,8 @@ int be_commandSFVM(Word *args, Word &result, int message, Word &local,
 
   try {
     if (be_control) {
-      val = be_control->sendCommand(query->GetValue(), true);
+      ConnectionGeneric *dbms_connection = be_control->getDBMSConnection();
+      val = dbms_connection->sendCommand(query->GetValue(), true);
     } else {
       cout << noMaster << endl;
     }

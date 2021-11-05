@@ -88,7 +88,8 @@ void GridManager::deleteGrid(BasicEngineControl *basicEngineControl,
   string sqlQuery = "DROP TABLE " + gridTable;
 
   // Delete grid on master
-  bool masterResult = basicEngineControl->sendCommand(sqlQuery, true);
+  ConnectionGeneric *dbms_connection = basicEngineControl->getDBMSConnection();
+  bool masterResult = dbms_connection->sendCommand(sqlQuery, true);
 
   if (!masterResult) {
     BOOST_LOG_TRIVIAL(error) << "Unable to delete grid on master";
