@@ -112,20 +112,17 @@ ConnectionGeneric* getAndInitDatabaseConnection(const string &dbType,
     } else if(ConnectionMySQL::DBTYPE == dbType) {
       connection = new ConnectionMySQL(dbUser, dbPass, dbPort, dbName);
     } else {
-      BOOST_LOG_TRIVIAL(error) << "Unsupported database type: " << dbType;
-      return nullptr;
+      throw SecondoException("Unsupported database type: " + dbType);
     }
 
     if(connection == nullptr) {
-      BOOST_LOG_TRIVIAL(error) << "Unable to establish database connection";
-      return nullptr;
+      throw SecondoException("Unable to establish database connection");
     }
 
     bool connectionResult = connection->createConnection();
 
     if(! connectionResult) {
-      BOOST_LOG_TRIVIAL(error) << "Database connection check failed";
-      return nullptr;
+      throw SecondoException("Database connection check failed");
     }
 
     return connection;
@@ -1693,38 +1690,31 @@ int init_be_workerSFVM(Word *args, Word &result, int message, Word &local,
     ConnectionGeneric *dbConnection = getAndInitDatabaseConnection(
         dbTypeValue, dbUserValue, dbPassValue, portValue, dbNameValue);
 
-    if (dbConnection != nullptr) {
-      be_control = new BasicEngineControl(dbConnection, worker,
-                                           workerRelationNameValue, true);
+    be_control = new BasicEngineControl(dbConnection, worker,
+                                        workerRelationNameValue, true);
 
-      bool createConnectionResult = be_control->createAllConnections();
+    bool createConnectionResult = be_control->createAllConnections();
 
-      if (!createConnectionResult) {
-        cerr << "Error: Connection error, please check the previous messages"
-             << " for error messages." << endl
-             << endl;
-        ((CcBool *)result.addr)->Set(true, false);
-        return 0;
-      }
-
-      bool connectionsAvailable = be_control->checkAllConnections();
-
-      if (!connectionsAvailable) {
-        cerr << "Error: Not all connections available, please check the"
-             << " previous messages for error messages." << endl
-             << endl;
-        ((CcBool *)result.addr)->Set(true, false);
-        return 0;
-      }
-
-      ((CcBool *)result.addr)->Set(true, true);
+    if (!createConnectionResult) {
+      cerr << "Error: Connection error, please check the previous messages"
+           << " for error messages." << endl
+           << endl;
+      ((CcBool *)result.addr)->Set(true, false);
       return 0;
     }
 
-    cerr << endl
-         << "Error: Unable to connect to database: " << dbtype->toText()
-         << endl;
-    ((CcBool *)result.addr)->Set(true, false);
+    bool connectionsAvailable = be_control->checkAllConnections();
+
+    if (!connectionsAvailable) {
+      cerr << "Error: Not all connections available, please check the"
+           << " previous messages for error messages." << endl
+           << endl;
+      ((CcBool *)result.addr)->Set(true, false);
+      return 0;
+    }
+
+    ((CcBool *)result.addr)->Set(true, true);
+    return 0;
   } catch (SecondoException &e) {
     BOOST_LOG_TRIVIAL(error) << "Got error while init connections " << e.what();
     ((CcBool *)result.addr)->Set(true, false);
@@ -1854,19 +1844,13 @@ int be_init_sf_vm(Word* args, Word& result, int message,
     ConnectionGeneric *dbConnection = getAndInitDatabaseConnection(
         dbTypeValue, dbUserValue, dbPassValue, portValue, dbNameValue);
 
-    if (dbConnection != nullptr) {
-      be_control = new BasicEngineControl(dbConnection, worker,
-                                           workerRelationNameValue, false);
+    be_control = new BasicEngineControl(dbConnection, worker,
+                                        workerRelationNameValue, false);
 
-      bool connectionState = dbConnection->checkConnection();
-      ((CcBool *)result.addr)->Set(true, connectionState);
-      return 0;
-    }
+    bool connectionState = dbConnection->checkConnection();
+    ((CcBool *)result.addr)->Set(true, connectionState);
+    return 0;
 
-    cerr << endl
-         << "Error: Unable to connect to database: " << dbtype->toText()
-         << endl;
-    ((CcBool *)result.addr)->Set(true, false);
   } catch (SecondoException &e) {
     BOOST_LOG_TRIVIAL(error)
         << "Got error while init the basic engine " << e.what();
