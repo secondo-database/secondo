@@ -36,6 +36,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "StandardTypes.h"
 #include "Stream.h"
 
+#include "SQLDialect.h"
 #include "ResultIteratorGeneric.h"
 
 namespace BasicEngine {
@@ -47,9 +48,15 @@ class ConnectionGeneric {
 public:
   ConnectionGeneric(const std::string &_dbUser, const std::string &_dbPass,
                     const int _dbPort, const std::string &_dbName)
-      : dbUser(_dbUser), dbPass(_dbPass), dbPort(_dbPort), dbName(_dbName) {}
+      : dbUser(_dbUser), dbPass(_dbPass), dbPort(_dbPort), dbName(_dbName) {
+  }
 
-  virtual ~ConnectionGeneric() {}
+  virtual ~ConnectionGeneric() {
+    if (sqlDialect != nullptr) {
+      delete sqlDialect;
+      sqlDialect = nullptr;
+    }
+  }
 
   virtual std::string getDbType() = 0;
 
@@ -62,12 +69,12 @@ public:
   virtual bool sendCommand(const std::string &command, 
                            bool printErrors = true) = 0;
 
-  virtual std::string getCreateTableSQL(const std::string &tab) = 0;
+  virtual std::string getCreateTableSQL(const std::string &table) = 0;
 
-  virtual std::string getDropTableSQL(const std::string &table) = 0;
+  virtual void dropTable(const std::string &table) = 0;
 
-  virtual std::string getDropIndexSQL(const std::string &table,
-                                      const std::string &column) = 0;
+  virtual void dropIndex(const std::string &table,
+                         const std::string &column) = 0;
 
   virtual void partitionRoundRobin(const std::string &table,
                                    const size_t anzSlots,
@@ -109,10 +116,10 @@ public:
       const std::vector<std::tuple<std::string, std::string>> &types);
 
   virtual ResultIteratorGeneric *
-  performSQLSelectQuery(const std::string &sqlQuery) = 0;
+    performSQLSelectQuery(const std::string &sqlQuery) = 0;
 
   virtual std::string
-  getAttributeProjectionSQLForTable(const std::string &table,
+    getAttributeProjectionSQLForTable(const std::string &table,
                                     const std::string &prefix = "");
 
   virtual bool createGridTable(const std::string &table) = 0;
@@ -131,22 +138,6 @@ public:
 
   virtual void removeColumnFromTable(const std::string &table,
                                      const std::string &name) = 0;
-
-  std::string getCreateTableFromPredicateSQL(const std::string &table,
-                                             const std::string &query) {
-
-    return "CREATE TABLE " + table + " AS (" + query + ")";
-  }
-
-  std::string getCopySchemaSQL(const std::string &table) {
-    return "SELECT * FROM " + table + " LIMIT 0";
-  }
-
-  std::string getRenameTableSQL(const std::string &source,
-                                const std::string &destination) {
-
-    return "ALTER TABLE " + source + " RENAME TO " + destination + ";";
-  }
 
 
   std::string getFilenameForPartition(const std::string &table,
@@ -188,7 +179,18 @@ public:
   */
   std::string getDbPass() { return dbPass; }
 
+  /*
+  5.3.4 ~getSQLDialect~
+
+  Get the used SQL dialect
+
+  */
+  SQLDialect* getSQLDialect() { return sqlDialect; }
+
 protected:
+
+  virtual SQLDialect* buildSQLDialect() = 0;
+
   /*
   5.2.0 Try to limit the given SQL query to 1 result.
 
@@ -227,6 +229,12 @@ protected:
 
   */
   std::string dbName;
+
+  /*
+  5.2.5
+
+  */
+  SQLDialect* sqlDialect = nullptr;
 };
 } // namespace BasicEngine
 

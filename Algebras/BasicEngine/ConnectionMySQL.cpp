@@ -43,6 +43,8 @@ ConnectionMySQL::ConnectionMySQL(const std::string &_dbUser,
   const std::string &_dbPass, const int _dbPort, 
   const std::string &_dbName) : ConnectionGeneric(
     _dbUser, _dbPass, _dbPort, _dbName) {
+
+    sqlDialect = buildSQLDialect();
 }
 
 /*
@@ -208,7 +210,8 @@ void ConnectionMySQL::partitionRoundRobin(const std::string &table,
                      be_partition_slot + ", t.* " +
                      "FROM (SELECT @n:=0) AS initvars, " + table + " AS t";
 
-  string createTableSQL = getCreateTableFromPredicateSQL(targetTab, selectSQL);
+  string createTableSQL = sqlDialect 
+    -> getCreateTableFromPredicateSQL(targetTab, selectSQL);
 
   bool res = sendCommand(createTableSQL);
 
@@ -237,7 +240,8 @@ void ConnectionMySQL::partitionHash(const std::string &table,
 
   BOOST_LOG_TRIVIAL(debug) << "Partition hash statement is: " << selectSQL;
 
-  string createTableSQL = getCreateTableFromPredicateSQL(targetTab, selectSQL);
+  string createTableSQL = sqlDialect 
+    -> getCreateTableFromPredicateSQL(targetTab, selectSQL);
 
   bool res = sendCommand(createTableSQL);
 
@@ -272,7 +276,8 @@ void ConnectionMySQL::partitionFunc(const std::string &table,
 
   BOOST_LOG_TRIVIAL(debug) << "Partition SQL statement is: " << selectSQL;
 
-  string createTableSQL = getCreateTableFromPredicateSQL(targetTab, selectSQL);
+  string createTableSQL = sqlDialect 
+    -> getCreateTableFromPredicateSQL(targetTab, selectSQL);
 
   bool res = sendCommand(createTableSQL);
 
@@ -755,4 +760,37 @@ void ConnectionMySQL::removeColumnFromTable(const std::string &table,
 
 }
 
+/*
+6.20 Drop a table
+
+*/
+void ConnectionMySQL::dropTable(const std::string &table) {
+  string sql = "DROP TABLE IF EXISTS " + table + ";";
+
+  bool res = sendCommand(sql.c_str());
+
+  if (res == false) {
+    BOOST_LOG_TRIVIAL(error)
+        << "Unable to execute: " << sql << mysql_error(conn);
+    throw SecondoException("Unable to drop table");
+  }
 }
+
+/*
+6.21 Drop an index from a table
+
+*/
+void ConnectionMySQL::dropIndex(const std::string &table,
+                                const std::string &column) {
+
+  string sql = "DROP INDEX " + column + " ON " + table + ";";
+
+  bool res = sendCommand(sql.c_str());
+
+  if (res == false) {
+    BOOST_LOG_TRIVIAL(error)
+        << "Unable to execute: " << sql << mysql_error(conn);
+    throw SecondoException("Unable to drop index");
+  }
+}
+} // namespace BasicEngine

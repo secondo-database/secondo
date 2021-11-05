@@ -153,7 +153,8 @@ std::string ConnectionGeneric::getAttributeProjectionSQLForTable(
 
 */
 bool ConnectionGeneric::beginTransaction() {
-    return sendCommand("START TRANSACTION;");
+    std::string sql = sqlDialect -> getBeginTransactionSQL();
+    return sendCommand(sql);
 }
 
 /*
@@ -161,7 +162,8 @@ bool ConnectionGeneric::beginTransaction() {
 
 */
 bool ConnectionGeneric::abortTransaction() {
-    return sendCommand("ROLLBACK;");
+    std::string sql = sqlDialect -> getAbortTransactionSQL();
+    return sendCommand(sql);
 }
 
 /*
@@ -169,7 +171,8 @@ bool ConnectionGeneric::abortTransaction() {
 
 */
 bool ConnectionGeneric::commitTransaction() {
-    return sendCommand("COMMIT;");
+    std::string sql = sqlDialect -> getCommitTransactionSQL();
+    return sendCommand(sql);
 }
 
 /*
@@ -193,7 +196,8 @@ void ConnectionGeneric::partitionGrid(
                       " g INNER JOIN " + table +
                       " r ON ST_INTERSECTS(g.cell, r." + geo_col + ")";
 
-  string partitionSQL = getCreateTableFromPredicateSQL(targetTable, query_exec);
+  string partitionSQL = sqlDialect 
+    -> getCreateTableFromPredicateSQL(targetTable, query_exec);
 
   bool partitionResult = sendCommand(partitionSQL);
 

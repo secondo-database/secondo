@@ -46,6 +46,7 @@ Version 1.0 - Created - C.Behrndt - 2020
 #include "WinUnix.h"
 
 #include "ConnectionGeneric.h"
+#include "SQLDialectPostgres.h"
 #include "ResultIteratorPostgres.h"
 
 #include <boost/log/trivial.hpp>
@@ -89,14 +90,9 @@ public:
 
   std::string getCreateTableSQL(const std::string &table);
 
-  std::string getDropTableSQL(const std::string &table) {
-    return "DROP TABLE IF EXISTS " + table + ";";
-  }
+  void dropTable(const std::string &table);
 
-  std::string getDropIndexSQL(const std::string &table,
-                              const std::string &column) {
-    return "DROP INDEX IF EXISTS " + table + "_idx;";
-  }
+  void dropIndex(const std::string &table, const std::string &column);
 
   void partitionRoundRobin(const std::string &table,
                            const size_t anzSlots, const std::string &targetTab);
@@ -140,6 +136,11 @@ public:
 
   // The DB Type
   inline static const std::string DBTYPE = "pgsql";
+
+protected: 
+  SQLDialect* buildSQLDialect() {
+    return new SQLDialectPostgres();
+  }
 
 private:
   /*

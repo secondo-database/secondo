@@ -37,6 +37,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "WinUnix.h"
 
 #include "ConnectionGeneric.h"
+#include "SQLDialectMysql.h"
 #include "ResultIteratorMySQL.h"
 
 #include <bits/stdc++.h>
@@ -78,15 +79,9 @@ public:
 
   bool validateQuery(const std::string &query);
 
-  std::string getDropTableSQL(const std::string &table) {
-    return "DROP TABLE IF EXISTS " + table + ";";
-  }
+  void dropTable(const std::string &table);
 
-  std::string getDropIndexSQL(const std::string &table,
-                              const std::string &column) {
-
-    return "DROP INDEX " + column + " ON " + table + ";";
-  }
+  void dropIndex(const std::string &table, const std::string &column);
 
   void partitionRoundRobin(const std::string &table, const size_t anzSlots,
                            const std::string &targetTab);
@@ -131,6 +126,11 @@ public:
 
   // The DB Type
   inline static const std::string DBTYPE = "mysql";
+
+protected: 
+  SQLDialect* buildSQLDialect() {
+    return new SQLDialectMySQL();
+  }
 
 private:
   /*

@@ -149,11 +149,6 @@ public:
   bool partitionTableByRandom(const std::string &tab, 
     const size_t slotnum, const bool repartition);
 
-  bool dropTable(const std::string &table) {
-    std::string sqlQuery = dbms_connection->getDropTableSQL(table);
-    return dbms_connection->sendCommand(sqlQuery, false);
-  }
-
   void exportTableCreateStatementSQL(const std::string &table, 
     const std::string &renameExportTable = "");
 
@@ -172,7 +167,8 @@ public:
 
   bool createTable(const std::string &tab, const std::string &query) {
     std::string sqlQuery =
-        dbms_connection->getCreateTableFromPredicateSQL(tab, query);
+        dbms_connection->getSQLDialect()
+        ->getCreateTableFromPredicateSQL(tab, query);
     return dbms_connection->sendCommand(sqlQuery);
   }
 

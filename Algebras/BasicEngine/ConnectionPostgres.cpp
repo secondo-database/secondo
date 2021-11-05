@@ -52,6 +52,8 @@ ConnectionPG::ConnectionPG(const std::string &_dbUser,
   const std::string &_dbPass, const int _dbPort, 
   const std::string &_dbName) : ConnectionGeneric(
     _dbUser, _dbPass, _dbPort, _dbName) {
+
+    sqlDialect = buildSQLDialect();
 }
 
 /*
@@ -270,7 +272,8 @@ void ConnectionPG::partitionRoundRobin(const string &tab,
     + to_string(anzSlots) + ""
     " ) As " + be_partition_cellnumber + ",t.* FROM " + tab + " AS t";
 
-  string createTableSQL = getCreateTableFromPredicateSQL(targetTab, selectSQL);
+  string createTableSQL = sqlDialect 
+    -> getCreateTableFromPredicateSQL(targetTab, selectSQL);
 
   res = sendCommand(createTableSQL);
 
@@ -299,7 +302,8 @@ void ConnectionPG::partitionHash(const string &tab, const string &key,
         " " + to_string(anzSlots) + " ) As " + be_partition_cellnumber + ","
         "t.* FROM "+ tab + " AS t";
 
-  string createTableSQL = getCreateTableFromPredicateSQL(targetTab, select);
+  string createTableSQL = sqlDialect 
+    -> getCreateTableFromPredicateSQL(targetTab, select);
 
   bool res = sendCommand(createTableSQL);
 
@@ -331,7 +335,8 @@ void ConnectionPG::partitionFunc(const string &table, const string &key,
 
   BOOST_LOG_TRIVIAL(debug) << "Partition SQL statement is: " << selectSQL;
 
-  string createTableSQL = getCreateTableFromPredicateSQL(targetTab, selectSQL);
+  string createTableSQL = sqlDialect 
+    -> getCreateTableFromPredicateSQL(targetTab, selectSQL);
 
   bool res = sendCommand(createTableSQL);
 
@@ -674,7 +679,37 @@ void ConnectionPG::removeColumnFromTable(const std::string &table,
             << "Unable to execute: " << sql;
         throw SecondoException("Unable to remove column to table");
    }
+}
 
+/*
+6.20 Drop a table
+
+*/
+void ConnectionPG::dropTable(const std::string &table) {
+  string sql = "DROP TABLE IF EXISTS " + table + ";";
+
+  bool res = sendCommand(sql.c_str());
+
+  if (res == false) {
+    BOOST_LOG_TRIVIAL(error) << "Unable to execute: " << sql;
+    throw SecondoException("Unable to drop table");
+  }
+}
+
+/*
+6.21 Drop an index from a table
+
+*/
+void ConnectionPG::dropIndex(const std::string &table,
+                             const std::string &column) {
+  string sql = "DROP INDEX IF EXISTS " + table + "_idx;";
+
+  bool res = sendCommand(sql.c_str());
+
+  if (res == false) {
+    BOOST_LOG_TRIVIAL(error) << "Unable to execute: " << sql;
+    throw SecondoException("Unable to drop index");
+  }
 }
 
 }/* namespace BasicEngine */

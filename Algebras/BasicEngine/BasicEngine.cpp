@@ -804,23 +804,30 @@ string err = "\n {string, text} x {string, text} --> bool"
 1.5.2 Value Mapping
 
 */
-template<class T, class H>
-int be_querySFVM(Word* args,Word& result,int message,Word& local,Supplier s ) {
+template <class T, class H>
+int be_querySFVM(Word *args, Word &result, int message, Word &local,
+                 Supplier s) {
 
   string query_exec;
   bool val = false;
   result = qp->ResultStorage(s);
 
-  T* query = (T*) args[0].addr;
-  H* resultTab = (H*) args[1].addr;
+  T *query = (T *)args[0].addr;
+  H *resultTab = (H *)args[1].addr;
 
   try {
-    if(be_control) {
-      //Delete target Table, ignore failure
-      be_control->dropTable(resultTab->toText());
+    if (be_control) {
+      // Delete target Table, ignore failure
+      string tablename = resultTab->toText();
+      try {
+        be_control->getDBMSConnection()->dropTable(tablename);
+      } catch (SecondoException &e) {
+        BOOST_LOG_TRIVIAL(debug)
+            << "Unable to delete old table " << tablename << ". Ignoring.";
+      }
 
-      //execute the query
-      val=be_control->createTable(resultTab->toText(),query->toText());
+      // execute the query
+      val = be_control->createTable(resultTab->toText(), query->toText());
     } else {
       cout << noMaster << endl;
     }
@@ -828,8 +835,8 @@ int be_querySFVM(Word* args,Word& result,int message,Word& local,Supplier s ) {
     ((CcBool *)result.addr)->Set(true, val);
 
   } catch (SecondoException &e) {
-    BOOST_LOG_TRIVIAL(error) 
-      << "Got error while executing query operator " << e.what();
+    BOOST_LOG_TRIVIAL(error)
+        << "Got error while executing query operator " << e.what();
     ((CcBool *)result.addr)->Set(true, false);
   }
 

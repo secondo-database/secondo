@@ -576,14 +576,8 @@ Repartition the given table - worker version
 
     // Delete the temporary repartition table
     BOOST_LOG_TRIVIAL(debug) << "Deleting temporary table" << resultTable;
-    string deleteTable = dbms_connection->getDropTableSQL(resultTable);
-    bool deleteResult = dbms_connection->sendCommand(deleteTable);
-
-    if (!deleteResult) {
-      BOOST_LOG_TRIVIAL(error)
-          << "Unable to delete temporary table" << resultTable;
-    }
-    
+    dbms_connection->dropTable(resultTable);
+   
     return true;
   }
 
@@ -600,7 +594,8 @@ Repartition the given table - master version
     string repartTableName = getRepartitionTableName(partitionData.table);
 
     // On the worker: Drop old re-partition table if exists
-    string dropTableSQL = dbms_connection ->getDropTableSQL(repartTableName);
+    string dropTableSQL = dbms_connection -> getSQLDialect()
+      ->getDropTableSQL(repartTableName);
     BOOST_LOG_TRIVIAL(debug) << "Delete old re-parition table: "
       << dropTableSQL;
 
@@ -613,8 +608,8 @@ Repartition the given table - master version
     }
 
     // On the worker: Create destination table with same structure
-    string copySchemaSQL = dbms_connection->getCopySchemaSQL(
-      partitionData.table);
+    string copySchemaSQL = dbms_connection->getSQLDialect()
+      ->getCopySchemaSQL(partitionData.table);
 
     BOOST_LOG_TRIVIAL(debug) << "Copy schema of table: "
       << copySchemaSQL;
@@ -671,7 +666,7 @@ Repartition the given table - master version
     }
 
     // On the worker: Drop source table
-    string dropSourceTableSQL = dbms_connection 
+    string dropSourceTableSQL = dbms_connection -> getSQLDialect()
       -> getDropTableSQL(partitionData.table);
 
     BOOST_LOG_TRIVIAL(debug) << "Delete source table: "
@@ -686,8 +681,8 @@ Repartition the given table - master version
     }
 
     // On the worker: Rename destination table to source table 
-    string renameTableSQL = dbms_connection ->getRenameTableSQL(
-      repartTableName, partitionData.table);
+    string renameTableSQL = dbms_connection -> getSQLDialect() 
+      -> getRenameTableSQL(repartTableName, partitionData.table);
     BOOST_LOG_TRIVIAL(debug) << "Rename table: " << renameTableSQL;
 
     bool renameTableResult = mcommand(renameTableSQL);
@@ -921,9 +916,9 @@ string BasicEngineControl::partRoundRobin(const string &table,
                     size_t numberOfSlots) {
   
   string destinationTable = getTableNameForPartitioning(table, "random");
-  dropTable(destinationTable);
-
-  dbms_connection->partitionRoundRobin(table, numberOfSlots, destinationTable);
+  dbms_connection -> dropTable(destinationTable);
+  dbms_connection -> partitionRoundRobin(table, 
+    numberOfSlots, destinationTable);
 
   return destinationTable;
 }
@@ -939,9 +934,8 @@ string BasicEngineControl::partHash(const string &tab,
                     const string &key, size_t slotnum) {
 
   string partTabName = getTableNameForPartitioning(tab, key);
-  dropTable(partTabName);
-
-  dbms_connection->partitionHash(tab, key, slotnum, partTabName);
+  dbms_connection -> dropTable(partTabName);
+  dbms_connection -> partitionHash(tab, key, slotnum, partTabName);
   
   return partTabName;
 }
@@ -957,9 +951,8 @@ string BasicEngineControl::partFun(const string &tab,
     const string &key, const string &fun, size_t slotnum){
                 
   string partTabName = getTableNameForPartitioning(tab, key);
-  dropTable(partTabName);
-
-  dbms_connection->partitionFunc(tab, key, slotnum, fun, partTabName);
+  dbms_connection -> dropTable(partTabName);
+  dbms_connection -> partitionFunc(tab, key, slotnum, fun, partTabName);
 
   return partTabName;
 }
@@ -980,17 +973,12 @@ string BasicEngineControl::partGrid(const std::string &tab,
 
   // Dropping parttable
   string partTabName = getTableNameForPartitioning(tab,key);
-  dropTable(partTabName);
+  dbms_connection -> dropTable(partTabName);
 
   // Drop old index if exists (ignore failure when index does not exists)
-  string dropSQL = dbms_connection->getDropIndexSQL(tab, geo_col);
-  bool dropIndexRes = dbms_connection->sendCommand(dropSQL, false);
+  dbms_connection->dropIndex(tab, geo_col);
 
-  if(! dropIndexRes) {
-    BOOST_LOG_TRIVIAL(debug) 
-      << "Dropping index failed, ignoring. Maybe it does not exist.";
-  } 
-
+  // Perform partitoning
   dbms_connection->partitionGrid(tab, key, geo_col, slotnum, 
     gridTable, partTabName);
 
