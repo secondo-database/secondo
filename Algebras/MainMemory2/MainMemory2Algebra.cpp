@@ -451,6 +451,9 @@ class DistStorage {
   
   void increment() {
     noDistFunCalls++;
+    if (getNoDistFunCalls() % 1000 == 0) {
+      cout << ".";
+    }
   }
   
   int getNoDistFunCalls() const {

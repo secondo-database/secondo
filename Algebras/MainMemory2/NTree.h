@@ -737,6 +737,7 @@ class NTreeInnerNode : public NTreeNode<T, DistComp, variant> {
     std::vector<std::vector<T> > partitions;
     partition(contents, dc, partitions);
 //     printPartitions(contents, partitions, depth, dc, false, cout);
+    cout << ".";
     int noDistFunCallsAfter = dc.getNoDistFunCalls();
     noDistComp = noDistFunCallsAfter - noDistFunCallsBefore;
     for (int i = 0; i < degree; i++) {
@@ -1007,17 +1008,14 @@ class RangeIteratorN {
     switch (variant) {
       case 1: {
         collectResultsNtree(root);
-        stat.print(cout, dc.getNoDistFunCalls(), true);
         break;
       }
       case 2: {
         collectResultsNtree2(root);
-        stat.print(cout, dc.getNoDistFunCalls(), true);
         break;
       }
       case 5: {
         collectResultsNtree5(root);
-        stat.print(cout, dc.getNoDistFunCalls(), true);
         break;
       }
       default: {
@@ -1025,6 +1023,7 @@ class RangeIteratorN {
         break;
       }
     }
+    stat.print(cout, dc.getNoDistFunCalls(), true);
   }
   
   void reportEntireSubtree(node_t* node) {
@@ -1251,6 +1250,7 @@ class NTree {
     }
 //     print(cout);
     computeStatistics(root);
+    cout << endl;
     stat.print(cout);
   }
   
