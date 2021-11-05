@@ -34,15 +34,24 @@ namespace BasicEngine {
 
 class SQLDialectMySQL : public SQLDialect {
 
-    public:
-    std::string getDropIndexSQL(const std::string &table,
-                                const std::string &column) {
+public:
+  std::string getDropIndexSQL(const std::string &table,
+                              const std::string &column) {
 
-        return "DROP INDEX " + column + " ON " + table + ";";
-    }
+    return "DROP INDEX " + column + " ON " + table + ";";
+  }
 
+  std::string getExportDataForWorkerSQL(const std::string &table,
+                                        const std::string &exportFile, 
+                                        size_t worker,
+                                        size_t numberOfWorker) {
+
+    return "SELECT * FROM " + table + " WHERE (" + be_partition_slot + " % " +
+           std::to_string(numberOfWorker) + ") = " + std::to_string(worker) +
+           " INTO OUTFILE '" + exportFile + "' CHARACTER SET utf8;";
+  }
 };
 
-}
+} // namespace BasicEngine
 
 #endif

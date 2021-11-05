@@ -259,4 +259,29 @@ void ConnectionGeneric::dropIndex(const std::string &table,
   }
 }
 
+
+/*
+6.12 ~exportDataForWorker~
+
+Creating a statement for exporting the data from a portioning table.
+
+*/
+void ConnectionGeneric::exportDataForWorker(const string &table, 
+                  const string &exportFile,
+                  size_t worker,
+                  size_t numberOfWorker) {
+  
+    string exportDataSQL = sqlDialect -> getExportDataForWorkerSQL(
+            table, exportFile, worker, numberOfWorker);
+
+    BOOST_LOG_TRIVIAL(debug) 
+      << "Export partition statement is: " << exportDataSQL;
+
+    bool exportResult = sendCommand(exportDataSQL);
+
+    if(! exportResult) {
+      throw SecondoException("Unable to export data: " + exportDataSQL);
+    }
+}
+
 } // Namespace

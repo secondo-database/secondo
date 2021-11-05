@@ -40,6 +40,19 @@ public:
 
     return "DROP INDEX IF EXISTS " + table + "_idx;";
   }
+
+
+  std::string getExportDataForWorkerSQL(const std::string &table,
+                                    const std::string &exportFile, 
+                                    size_t worker,
+                                    size_t numberOfWorker) {
+
+    return "COPY (SELECT * FROM " + table 
+            + " WHERE ((" + be_partition_slot + " % " 
+            + std::to_string(numberOfWorker) + ") "
+            ") =" + std::to_string(worker) + ") TO "
+            "'" + exportFile + "' BINARY;";
+  }
 };
 
 } // namespace BasicEngine

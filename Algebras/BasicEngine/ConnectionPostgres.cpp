@@ -347,23 +347,6 @@ void ConnectionPG::partitionFunc(const string &table, const string &key,
 }
 
 /*
-6.12 ~get\_exportData~
-
-Creating a statement for exporting the data from a portioning table.
-
-*/
-string ConnectionPG::getExportDataSQL(const string &tab, const string &join_tab,
-                  const string &key, const string &nr, const string &exportFile,
-                  size_t numberOfWorker) {
-  
-  return "COPY (SELECT a.* FROM "+ tab +" a INNER JOIN " + join_tab  + " b "
-            "" + getjoin(key) + " WHERE ((" + be_partition_cellnumber + " % "
-            "" + to_string(numberOfWorker) + ") "
-            ") =" + nr + ") TO "
-            "'" + exportFile + "' BINARY;";
-}
-
-/*
 6.13 ~getImportTableSQL~
 
 Creating a statement for exporting the data. 
@@ -385,32 +368,6 @@ string ConnectionPG::getExportTableSQL(const std::string &table,
   const std::string &full_path) {
 
   return "COPY " + table + " TO '" + full_path + "' BINARY;";
-}
-
-/*
-6.14 ~getjoin~
-
-Returns the join-part of a join-Statement from a given key-list
-
-*/
-string ConnectionPG::getjoin(const string &key) {
-
-  string res= "ON ";
-  vector<string> result;
-  boost::split(result, key, boost::is_any_of(","));
-
-  for (size_t i = 0; i < result.size(); i++) {
-    if (i>0) {
-      res = res + " AND ";
-    }
-
-    string attribute = result[i];
-    boost::replace_all(attribute," ","");
-
-    res = res + "a." + attribute + " = b." + attribute;
-  }
-
-  return res;
 }
 
 /*

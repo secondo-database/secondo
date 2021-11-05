@@ -91,17 +91,15 @@ public:
                                       const std::string &fun,
                                       const std::string &targetTab) = 0;
 
-  virtual void partitionGrid(const std::string &table,
-                                          const std::string &key,
-                                          const std::string &geo_col,
-                                          const size_t noOfSlots,
-                                          const std::string &gridname,
-                                          const std::string &targetTab);
+  virtual void partitionGrid(const std::string &table, const std::string &key,
+                             const std::string &geo_col, const size_t noOfSlots,
+                             const std::string &gridname,
+                             const std::string &targetTab);
 
-  virtual std::string getExportDataSQL(const std::string &table, 
-                  const std::string &join_table,
-                   const std::string &key, const std::string &nr,
-                   const std::string &exportFile, size_t numberOfWorker) = 0;
+  virtual void exportDataForWorker(const std::string &table,
+                                       const std::string &exportFile, 
+                                       size_t worker,
+                                       size_t numberOfWorker);
 
   virtual std::string getImportTableSQL(const std::string &table,
                                         const std::string &full_path) = 0;
@@ -141,10 +139,10 @@ public:
 
 
   std::string getFilenameForPartition(const std::string &table,
-                                      const std::string &partitionNumber) {
+                                      size_t &partitionNumber) {
 
     return table + "_" + std::to_string(WinUnix::getpid()) 
-      + "_" + partitionNumber + ".bin";
+      + "_" + std::to_string(partitionNumber) + ".bin";
   }
 
   /*

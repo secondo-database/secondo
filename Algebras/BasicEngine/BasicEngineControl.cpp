@@ -545,7 +545,7 @@ Repartition the given table - worker version
     }
 
     // Export data
-    bool exportDataResult = exportData(partitionData.table, partitionData.key,
+    bool exportDataResult = exportData(resultTable,
                                        remoteConnectionInfos.size());
 
     if (!exportDataResult) {
@@ -836,9 +836,8 @@ bool BasicEngineControl::exportToWorker(const string &sourceTable,
     SecondoInterfaceCS* si = connections[index]->getInterface();
 
     //sending data
-    string strindex = to_string(index);
     string remoteName 
-      = dbms_connection -> getFilenameForPartition(sourceTable, strindex);
+      = dbms_connection -> getFilenameForPartition(sourceTable, index);
     string localName = getBasePath() + "/" + remoteName;
 
     int sendFileRes = si->sendFile(localName, remoteName, true);
@@ -880,9 +879,8 @@ bool BasicEngineControl::exportToWorker(const string &sourceTable,
 
   for(size_t index = 0; index < connections.size(); index++){
     distributed2::ConnectionInfo* ci = connections[index];
-    string strindex = to_string(index);
     string remoteName = dbms_connection 
-      -> getFilenameForPartition(sourceTable, strindex);
+      -> getFilenameForPartition(sourceTable, index);
 
     std::future<bool> asyncResult = std::async(
       &BasicEngineControl::performImport, 
@@ -992,30 +990,21 @@ Exporting the data from the DBMS to a local file.
 Returns true if everything is OK and there are no failure.
 
 */
-bool BasicEngineControl::exportData(const string &table, 
-  const string &key, size_t slotnum){
+bool BasicEngineControl::exportData(const string &table,
+                                    size_t noOfWorker) {
 
-  bool val = true;
-  string path = getBasePath() + "/";
-  string parttabname = getTableNameForPartitioning(table, key);
-  string strindex;
+  try {
+    for (size_t i = 0; i < remoteConnectionInfos.size(); i++) {
 
-  for(size_t i=0; i<remoteConnectionInfos.size(); i++) {
-    strindex = to_string(i);
+      string exportFile = dbms_connection->getFilenameForPartition(table, i);
 
-    string exportFile 
-      = dbms_connection -> getFilenameForPartition(table, strindex);
-
-    string exportDataSQL = dbms_connection->getExportDataSQL(table,
-          parttabname, key, strindex, exportFile, slotnum);
-
-    BOOST_LOG_TRIVIAL(debug) << "Export table from DB: "s
-      << exportDataSQL;
-        
-    val = dbms_connection->sendCommand(exportDataSQL) && val;
+      dbms_connection->exportDataForWorker(table, exportFile, i, noOfWorker);
+    }
+  } catch (SecondoException &e) {
+    return false;
   }
 
-  return val;
+  return true;
 }
 
 /*
@@ -1052,10 +1041,8 @@ bool BasicEngineControl::importData(const string &table) {
 
   //import data (local files from worker)
   for(size_t i=0; i<remoteConnectionInfos.size(); i++){
-    string strindex = to_string(i);
-    
-    string partitionFile = basePath + "/" +
-      dbms_connection -> getFilenameForPartition(table, strindex);
+   string partitionFile = basePath + "/" +
+      dbms_connection -> getFilenameForPartition(table, i);
 
     result = importTable(partitionFile, table) && result;
     FileSystem::DeleteFileOrFolder(partitionFile);
@@ -1075,7 +1062,7 @@ Returns true if everything is OK and there are no failure.
 bool BasicEngineControl::munion(const string &table) {
 
   bool val = true;
-  int workerId = 0;
+  size_t workerId = 0;
   vector<std::future<bool>> futures;
   string basePath = getBasePath();
 
@@ -1083,7 +1070,7 @@ bool BasicEngineControl::munion(const string &table) {
   for(distributed2::ConnectionInfo* ci : connections) {
 
     string partitionFile 
-      = dbms_connection -> getFilenameForPartition(table, to_string(workerId));
+      = dbms_connection -> getFilenameForPartition(table, workerId);
     string exportFile = basePath + "/" + partitionFile;
 
     std::future<bool> asyncResult = std::async(
@@ -1701,7 +1688,9 @@ bool BasicEngineControl::shareTable(
 
   // Export complete relation and duplicate as slots for the worker
   string path = getBasePath();
-  string partZeroFile = dbms_connection -> getFilenameForPartition(table, "0");
+  size_t workerIdZero = 0;
+  string partZeroFile = dbms_connection 
+    -> getFilenameForPartition(table, workerIdZero);
   string partZeroFullPath = path + "/" + partZeroFile;
   string exportDataSQL = dbms_connection->getExportTableSQL(
     table, partZeroFullPath);
@@ -1718,7 +1707,7 @@ bool BasicEngineControl::shareTable(
   // Copy parition 0 to partitions [1-n]
   for(size_t i = 1; i<remoteConnectionInfos.size(); i++) {
     string partitionFile = 
-      dbms_connection -> getFilenameForPartition(table, to_string(i));
+      dbms_connection -> getFilenameForPartition(table, i);
     string partitionFileFullPath = path + "/" + partitionFile;
 
     BOOST_LOG_TRIVIAL(debug) << "Copy file " << partZeroFullPath 

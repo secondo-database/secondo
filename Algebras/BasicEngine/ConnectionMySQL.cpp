@@ -261,9 +261,6 @@ void ConnectionMySQL::partitionFunc(const std::string &table,
                                     const std::string &fun,
                                     const std::string &targetTab) {
 
-  string usedKey(key);
-  boost::replace_all(usedKey, ",", ",'%_%',");
-
   string selectSQL = "";
 
   if (boost::iequals(fun, "random")) {
@@ -286,30 +283,6 @@ void ConnectionMySQL::partitionFunc(const std::string &table,
     throw SecondoException("Error in func paritioning");
   }
 }
-
-/*
-6.11 ~getExportDataSQL~
-
-*/
-std::string ConnectionMySQL::getExportDataSQL(const std::string &table, 
-    const std::string &join_table, const std::string &key, 
-    const std::string &nr, const std::string &exportFile,
-    size_t numberOfWorker) {
- 
-    string attributes = getFieldNamesForExport(table, "a.");
-
-    string exportSQL = "SELECT DISTINCT " + attributes + " FROM " + table 
-        + " a INNER JOIN " + join_table  + " b " + getjoin(key) 
-        + " WHERE (" + be_partition_slot + " % " + to_string(numberOfWorker) 
-        + ") = " + nr
-        + " INTO OUTFILE '" + exportFile + "' CHARACTER SET utf8;";
-
-    BOOST_LOG_TRIVIAL(debug) 
-      << "Export partition statement is: " << exportSQL;
-
-    return exportSQL;
-}
-
 
 /*
 6.11 ~getExportColumns~
@@ -369,32 +342,6 @@ std::string ConnectionMySQL::getFieldNamesForExport(
                             });
 
    return attributeNames;
-}
-
-/*
-6.14 ~getjoin~
-
-Returns the join-part of a join-Statement from a given key-list
-
-*/
-string ConnectionMySQL::getjoin(const string &key) {
-
-  string res= "ON ";
-  vector<string> result;
-  boost::split(result, key, boost::is_any_of(","));
-
-  for (size_t i = 0; i < result.size(); i++) {
-    if (i>0) {
-      res = res + " AND ";
-    }
-
-    string attribute = result[i];
-    boost::replace_all(attribute," ","");
-
-    res = res + "a." + attribute + " = b." + attribute;
-  }
-
-  return res;
 }
 
 /*

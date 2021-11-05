@@ -28,6 +28,14 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #ifndef BASIC_ENGINE_SQL_DIALECT
 #define BASIC_ENGINE_SQL_DIALECT
 
+
+/*
+2 The attribute names for the distribution
+
+*/
+#define be_partition_cellnumber "becellnumber"
+#define be_partition_slot "beslot"
+
 namespace BasicEngine {
 
 class SQLDialect {
@@ -75,6 +83,11 @@ class SQLDialect {
     // Abstract SQL queries
     virtual std::string getDropIndexSQL(const std::string &table,
                                 const std::string &column) = 0;
+
+    virtual std::string getExportDataForWorkerSQL(const std::string &table, 
+                  const std::string &exportFile,
+                  size_t worker,
+                  size_t numberOfWorker);
 
 };
 

@@ -93,12 +93,6 @@ public:
                      const size_t anzSlots, const std::string &fun,
                      const std::string &targetTab);
 
-  std::string getExportDataSQL(const std::string &table,
-                               const std::string &join_table,
-                               const std::string &key, const std::string &nr,
-                               const std::string &exportFile,
-                               size_t numberOfWorker);
-
   std::string getCopySQL(const std::string &table, const std::string &full_path,
                          bool direct);
 
@@ -144,8 +138,6 @@ private:
   MYSQL *conn = nullptr;
 
   MYSQL_RES *sendQuery(const std::string &query);
-
-  std::string getjoin(const std::string &key);
 
   std::vector<std::tuple<std::string, std::string>>
   getTypeFromQuery(MYSQL_RES *res);

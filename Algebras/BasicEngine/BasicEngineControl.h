@@ -56,14 +56,6 @@ namespace BasicEngine {
 */
 enum PartitionMode {hash, rr, random, grid, fun};
 
-
-/*
-2 The attribute names for the distribution
-
-*/
-#define be_partition_cellnumber "becellnumber"
-#define be_partition_slot "beslot"
-
 /*
 2 Struct ~PartitonData~
 
@@ -304,8 +296,7 @@ distributed2::ConnectionInfo* createConnection(
   std::string partGrid(const std::string &tab, const std::string &key, 
     const std::string &geo_col, const std::string &gridname, size_t slotsize);
 
-  bool exportData(const std::string &tab, const std::string &key,
-         size_t slotnum);
+  bool exportData(const std::string &table, size_t noOfWorker);
 
   bool importData(const std::string &tab);
 
