@@ -88,21 +88,20 @@ public:
     return "DROP INDEX " + column + " ON " + table + ";";
   }
 
-  void partitionRoundRobin(const std::string &table,
-                           const size_t anzSlots, const std::string &targetTab);
+  void partitionRoundRobin(const std::string &table, const size_t anzSlots,
+                           const std::string &targetTab);
 
-  void partitionHash(const std::string &table,
-                                  const std::string &key, const size_t anzSlots,
-                                  const std::string &targetTab);
+  void partitionHash(const std::string &table, const std::string &key,
+                     const size_t anzSlots, const std::string &targetTab);
 
   void partitionFunc(const std::string &table, const std::string &keyS,
-                              const size_t anzSlots, const std::string &fun,
-                              const std::string &targetTab);
+                     const size_t anzSlots, const std::string &fun,
+                     const std::string &targetTab);
 
   std::string getExportDataSQL(const std::string &table,
                                const std::string &join_table,
                                const std::string &key, const std::string &nr,
-                               const std::string &exportFile, 
+                               const std::string &exportFile,
                                size_t numberOfWorker);
 
   std::string getCopySQL(const std::string &table, const std::string &full_path,

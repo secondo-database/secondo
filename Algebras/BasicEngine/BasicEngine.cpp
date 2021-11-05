@@ -349,7 +349,7 @@ int be_partRandomSFVM(Word *args, Word &result, int message, Word &local,
   try {
     if (be_control && be_control->isMaster()) {
       if (slot->GetIntval() > 0) {
-        val = be_control->partition_table_by_random(tab->toText(),
+        val = be_control->partitionTableByRandom(tab->toText(),
                                                     slot->GetIntval(), false);
       } else {
         cout << negSlots << endl;
@@ -441,7 +441,7 @@ int be_partRRSFVM(Word *args, Word &result, int message, Word &local,
   try {
     if (be_control && be_control->isMaster()) {
       if (slot->GetIntval() > 0) {
-        val = be_control->partition_table_by_rr(tab->toText(),
+        val = be_control->partitionTableByRR(tab->toText(),
                                                 slot->GetIntval(), false);
       } else {
         cout << negSlots << endl;
@@ -555,7 +555,7 @@ int be_partHashSFVM(Word *args, Word &result, int message, Word &local,
   try {
     if (be_control && be_control->isMaster()) {
       if (slot->GetIntval() > 0) {
-        val = be_control->partition_table_by_hash(tab->toText(), key->toText(),
+        val = be_control->partitionTableByHash(tab->toText(), key->toText(),
                                                   slot->GetIntval(), false);
       } else {
         cout << negSlots << endl;
@@ -687,7 +687,7 @@ int be_partFunSFVM(Word *args, Word &result, int message, Word &local,
   try {
     if (be_control && be_control->isMaster()) {
       if (slot->GetIntval() > 0) {
-        val = be_control->partition_table_by_fun(tab->toText(), key->toText(),
+        val = be_control->partitionTableByFun(tab->toText(), key->toText(),
                                                  fun->toText(),
                                                  slot->GetIntval(), false);
       } else {
@@ -2096,7 +2096,7 @@ int be_partGridSFVM(Word *args, Word &result, int message, Word &local,
   try {
     if (be_control && be_control->isMaster()) {
       if (slot->GetIntval() > 0) {
-        val = be_control->partition_table_by_grid(
+        val = be_control->partitionTableByGrid(
             tab->toText(), key->toText(), slot->GetIntval(), geo_col->toText(),
             gridname->toText(), false);
       } else {
@@ -2393,7 +2393,7 @@ int be_repartRandomSFVM(Word *args, Word &result, int message, Word &local,
       val = false;
     } else {
       if (slot->GetIntval() > 0) {
-        val = be_control->partition_table_by_random(tab->toText(),
+        val = be_control->partitionTableByRandom(tab->toText(),
                                                     slot->GetIntval(), true);
       } else {
         cout << negSlots << endl;
@@ -2481,7 +2481,7 @@ int be_repartRRSFVM(Word *args, Word &result, int message, Word &local,
       val = false;
     } else {
       if (slot->GetIntval() > 0) {
-        val = be_control->partition_table_by_rr(tab->toText(),
+        val = be_control->partitionTableByRR(tab->toText(),
                                                 slot->GetIntval(), true);
       } else {
         cout << negSlots << endl;
@@ -2569,7 +2569,7 @@ int be_repartHashSFVM(Word *args, Word &result, int message, Word &local,
       val = false;
     } else {
       if (slot->GetIntval() > 0) {
-        val = be_control->partition_table_by_hash(tab->toText(), key->toText(),
+        val = be_control->partitionTableByHash(tab->toText(), key->toText(),
                                                   slot->GetIntval(), true);
       } else {
         cout << negSlots << endl;
@@ -2662,7 +2662,7 @@ int be_repartGridSFVM(Word *args, Word &result, int message, Word &local,
       val = false;
     } else {
       if (slot->GetIntval() > 0) {
-        val = be_control->partition_table_by_grid(
+        val = be_control->partitionTableByGrid(
             tab->toText(), key->toText(), slot->GetIntval(), geo_col->toText(),
             gridname->toText(), true);
       } else {
@@ -2793,7 +2793,7 @@ int be_repartFunSFVM(Word *args, Word &result, int message, Word &local,
       val = false;
     } else {
       if (slot->GetIntval() > 0) {
-        val = be_control->partition_table_by_fun(tab->toText(), key->toText(),
+        val = be_control->partitionTableByFun(tab->toText(), key->toText(),
                                                  fun->toText(),
                                                  slot->GetIntval(), true);
       } else {

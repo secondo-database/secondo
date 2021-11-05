@@ -121,32 +121,32 @@ public:
 
   bool checkAllConnections();
 
-  bool repartition_table(PartitionData &partitionData, 
+  bool repartitionTable(PartitionData &partitionData, 
     const PartitionMode &repartitionMode);
 
-  bool partition_table(PartitionData &partitionData, 
+  bool partitionTable(PartitionData &partitionData, 
     const PartitionMode &repartitionMode, const bool repartition);
 
-  bool repartition_table_master(const PartitionData &partitionData, 
+  bool repartitionTableMaster(const PartitionData &partitionData, 
     const PartitionMode &repartitionMode);
 
-  bool partition_table_by_hash(const std::string &tab, 
+  bool partitionTableByHash(const std::string &tab, 
     const std::string &key, const size_t slotnum,
     const bool repartition);
 
-  bool partition_table_by_rr(const std::string &tab, 
+  bool partitionTableByRR(const std::string &tab, 
     const size_t slotnum, const bool repartition);
 
-  bool partition_table_by_fun(const std::string &tab, 
+  bool partitionTableByFun(const std::string &tab, 
     const std::string &key, const std::string &fun, 
     const size_t slotnum, const bool repartition);
 
-  bool partition_table_by_grid(const std::string &table, 
+  bool partitionTableByGrid(const std::string &table, 
     const std::string &key, const size_t slotnum, 
     const std::string &attribute, const std::string &gridname, 
     const bool repartition);
 
-  bool partition_table_by_random(const std::string &tab, 
+  bool partitionTableByRandom(const std::string &tab, 
     const size_t slotnum, const bool repartition);
 
   bool dropTable(const std::string &table) {

@@ -449,7 +449,7 @@ void BasicEngineControl::exportTableCreateStatementSQL(
 Repartition the given table
 
 */
-bool BasicEngineControl::repartition_table(PartitionData &partitionData,
+bool BasicEngineControl::repartitionTable(PartitionData &partitionData,
   const PartitionMode &repartitionMode) {
 
    BOOST_LOG_TRIVIAL(debug) << "Repartiton on "
@@ -457,10 +457,10 @@ bool BasicEngineControl::repartition_table(PartitionData &partitionData,
     << " master: " << master;
 
     if(! master) {
-      return partition_table(partitionData, repartitionMode, true);
+      return partitionTable(partitionData, repartitionMode, true);
     }
 
-    return repartition_table_master(partitionData, repartitionMode);
+    return repartitionTableMaster(partitionData, repartitionMode);
   }
 
 /**
@@ -494,7 +494,7 @@ bool BasicEngineControl::repartition_table(PartitionData &partitionData,
 Repartition the given table - worker version
 
 */
-  bool BasicEngineControl::partition_table(PartitionData &partitionData,
+  bool BasicEngineControl::partitionTable(PartitionData &partitionData,
                                             const PartitionMode &partitionMode,
                                             const bool repartition) {
 
@@ -593,7 +593,7 @@ Repartition the given table - worker version
 Repartition the given table - master version
 
 */
-  bool BasicEngineControl::repartition_table_master(
+  bool BasicEngineControl::repartitionTableMaster(
     const PartitionData &partitionData,
     const PartitionMode &repartitionMode) {
 
@@ -707,7 +707,7 @@ Repartition the given table - master version
 Repartition the given table by round hash
 
 */
-bool BasicEngineControl::partition_table_by_hash(const std::string &table, 
+bool BasicEngineControl::partitionTableByHash(const std::string &table, 
   const std::string &key, const size_t slotnum, const bool repartition) {
 
     BOOST_LOG_TRIVIAL(debug) << "Partiton by hash called on " << table;
@@ -718,9 +718,9 @@ bool BasicEngineControl::partition_table_by_hash(const std::string &table,
     partitionData.slotnum = slotnum;
 
     if(repartition) {
-      return repartition_table(partitionData, hash);
+      return repartitionTable(partitionData, hash);
     } else {
-      return partition_table(partitionData, hash, false);
+      return partitionTable(partitionData, hash, false);
     }
 }
 
@@ -730,7 +730,7 @@ bool BasicEngineControl::partition_table_by_hash(const std::string &table,
 Repartition the given table by round robin
 
 */
-bool BasicEngineControl::partition_table_by_rr(const std::string &table, 
+bool BasicEngineControl::partitionTableByRR(const std::string &table, 
   const size_t slotnum, const bool repartition) {
     
     BOOST_LOG_TRIVIAL(debug) << "Partiton by rr called on " << table;
@@ -740,9 +740,9 @@ bool BasicEngineControl::partition_table_by_rr(const std::string &table,
     partitionData.slotnum = slotnum;
 
     if(repartition) {
-      return repartition_table(partitionData, rr);
+      return repartitionTable(partitionData, rr);
     } else {
-      return partition_table(partitionData, rr, false);
+      return partitionTable(partitionData, rr, false);
     }
 }
 
@@ -752,7 +752,7 @@ bool BasicEngineControl::partition_table_by_rr(const std::string &table,
 Repartition the given table by random
 
 */
-bool BasicEngineControl::partition_table_by_random(const std::string &table, 
+bool BasicEngineControl::partitionTableByRandom(const std::string &table, 
   const size_t slotnum, const bool repartition) {
     
     BOOST_LOG_TRIVIAL(debug) << "Partiton by random called on " << table;
@@ -762,9 +762,9 @@ bool BasicEngineControl::partition_table_by_random(const std::string &table,
     partitionData.slotnum = slotnum;
 
     if(repartition) {
-      return repartition_table(partitionData, random);
+      return repartitionTable(partitionData, random);
     } else {
-      return partition_table(partitionData, random, false);
+      return partitionTable(partitionData, random, false);
     }
 }
 
@@ -774,7 +774,7 @@ bool BasicEngineControl::partition_table_by_random(const std::string &table,
 Repartition the given table by random
 
 */
-bool BasicEngineControl::partition_table_by_fun(const std::string &table, 
+bool BasicEngineControl::partitionTableByFun(const std::string &table, 
     const std::string &key, const std::string &partitionfun, 
     const size_t slotnum, const bool repartition) {
 
@@ -785,9 +785,9 @@ bool BasicEngineControl::partition_table_by_fun(const std::string &table,
     partitionData.slotnum = slotnum;
     
     if(repartition) {
-      return repartition_table(partitionData, fun);
+      return repartitionTable(partitionData, fun);
     } else {
-      return partition_table(partitionData, fun, false);
+      return partitionTable(partitionData, fun, false);
     }
 }
 
@@ -797,7 +797,7 @@ bool BasicEngineControl::partition_table_by_fun(const std::string &table,
 Repartition the given table by grid
 
 */    
-bool BasicEngineControl::partition_table_by_grid(const std::string &table, 
+bool BasicEngineControl::partitionTableByGrid(const std::string &table, 
     const std::string &key, const size_t slotnum, 
     const std::string &attribute, const std::string &gridname, 
     const bool repartition) {
@@ -810,9 +810,9 @@ bool BasicEngineControl::partition_table_by_grid(const std::string &table,
     partitionData.slotnum = slotnum;
 
     if(repartition) {
-      return repartition_table(partitionData, grid);
+      return repartitionTable(partitionData, grid);
     } else {
-      return partition_table(partitionData, grid, false);
+      return partitionTable(partitionData, grid, false);
     }
 }
 
