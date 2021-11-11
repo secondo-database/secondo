@@ -725,7 +725,7 @@ class NTreeInnerNode : public NTreeNode<T, DistComp, variant> {
   
   void build(std::vector<T>& contents, DistComp& dc, int depth,
              const int partitionStrategy = 0) { // contents.size > maxLeafSize
-//     cout << spaces << "depth " << depth << ", " << contents.size()
+//     cout << "start BUILD, " << "depth " << depth << ", " << contents.size()
 //          << " elems, counter = " << dc.getNoDistFunCalls() << endl;
     int noDistFunCallsBefore = dc.getNoDistFunCalls();
     depth++;
@@ -737,7 +737,6 @@ class NTreeInnerNode : public NTreeNode<T, DistComp, variant> {
     std::vector<std::vector<T> > partitions;
     partition(contents, dc, partitions);
 //     printPartitions(contents, partitions, depth, dc, false, cout);
-    cout << ".";
     int noDistFunCallsAfter = dc.getNoDistFunCalls();
     noDistComp = noDistFunCallsAfter - noDistFunCallsBefore;
     for (int i = 0; i < degree; i++) {

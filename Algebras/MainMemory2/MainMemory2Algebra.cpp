@@ -451,9 +451,6 @@ class DistStorage {
   
   void increment() {
     noDistFunCalls++;
-    if (getNoDistFunCalls() % 1000 == 0) {
-      cout << ".";
-    }
   }
   
   int getNoDistFunCalls() const {
@@ -499,6 +496,14 @@ class StdDistComp{
         const T* t2 = o2.getKey();
         dist = mtreehelper::distance(t1, t2, geoid);
         distStorage.increment();
+        if (getNoDistFunCalls() % 10000 == 0) {
+          cout << "|";
+          std::cout.flush();
+        }
+        else if (getNoDistFunCalls() % 1000 == 0) {
+          cerr << ".";
+          std::cout.flush();
+        }
         distStorage.storeDist(tid1, tid2, dist);
       }
       return dist;
