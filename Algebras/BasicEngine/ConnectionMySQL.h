@@ -79,10 +79,6 @@ public:
 
   bool validateQuery(const std::string &query);
 
-  void dropTable(const std::string &table);
-
-  void dropIndex(const std::string &table, const std::string &column);
-
   void partitionRoundRobin(const std::string &table, const size_t anzSlots,
                            const std::string &targetTab);
 
@@ -114,10 +110,7 @@ public:
 
   virtual void addColumnToTable(const std::string &table,
                                 const std::string &name, SQLAttribute type);
-
-  virtual void removeColumnFromTable(const std::string &table,
-                                     const std::string &name);
-
+                                
   // The DB Type
   inline static const std::string DBTYPE = "mysql";
 

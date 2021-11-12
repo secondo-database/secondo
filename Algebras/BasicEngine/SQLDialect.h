@@ -41,6 +41,8 @@ namespace BasicEngine {
 class SQLDialect {
     public:
 
+    SQLDialect() {}
+
     virtual ~SQLDialect() {}
 
     virtual std::string getDropTableSQL(const std::string &table) {
@@ -87,7 +89,7 @@ class SQLDialect {
     virtual std::string getExportDataForWorkerSQL(const std::string &table, 
                   const std::string &exportFile,
                   size_t worker,
-                  size_t numberOfWorker);
+                  size_t numberOfWorker) = 0;
 
 };
 
