@@ -146,6 +146,7 @@ Attribute.h), ~AttributeType~, and ~RelationDescriptor~.
 #include <map>
 #include <list>
 #include <deque>
+#include <atomic>
 
 //define macro TRACE_ON if trace outputs are needed
 //#define TRACE_ON
@@ -157,12 +158,6 @@ Attribute.h), ~AttributeType~, and ~RelationDescriptor~.
 #include "NestedList.h"
 #include "Counter.h"
 #include "Algebras/TupleIdentifier/TupleIdentifier.h"
-
-#ifdef THREAD_SAFE
-#include "boost/thread/mutex.hpp"
-#include "boost/thread/lock_guard.hpp"
-#endif 
-
 
 #define MAX_NUM_OF_ATTR 10
 
@@ -291,18 +286,14 @@ The destructor.
 */
     inline bool DeleteIfAllowed()
     {
-#ifdef THREAD_SAFE
-    mtx.lock();
-#endif     
       assert( refs > 0 );
       refs--;
       bool del = refs==0;
-#ifdef THREAD_SAFE
-    mtx.unlock();
-#endif
+
       if( del ){
         delete this;
       } 
+
       return del;
     }
 
@@ -326,9 +317,6 @@ references to it.
 */
     inline void IncReference()
     {
-#ifdef THREAD_SAFE
-      boost::lock_guard<boost::mutex> guard(mtx);
-#endif      
       refs++;
     }
 /*
@@ -407,18 +395,13 @@ Array of attribute type descriptions.
 Sum of all attribute sizes.
 
 */
-    int refs;
+    std::atomic<int> refs;
 /*
 A reference counter.
 
 */
 
     int coreSize;
-
-#ifdef THREAD_SAFE
-    boost::mutex mtx;
-#endif
-
 };
 
 std::ostream& operator<<(std::ostream& o, const TupleType& tt);
@@ -723,6 +706,7 @@ the objects.
     static const std::string BasicType(){
       return "tuple";
     }
+
     static bool checkType(const ListExpr type){
       return listutils::isTupleDescription(type);
     }
