@@ -33,8 +33,8 @@ Checked - 2020
 Version 1.0 - Created - C.Behrndt - 2020
 
 */
-#ifndef _ConnectionPG_H_
-#define _ConnectionPG_H_
+#ifndef _ConnectionPostgres_H_
+#define _ConnectionPostgres_H_
 
 #include "Algebra.h"
 #include "Algebras/FText/FTextAlgebra.h"
@@ -61,22 +61,22 @@ Version 1.0 - Created - C.Behrndt - 2020
 namespace BasicEngine {
 
 /*
-5 Class ~ConnectionPG~
+5 Class ~ConnectionPostgres~
 
 This class represents the controling from the system.
 
 */
-class ConnectionPG : public ConnectionGeneric {
+class ConnectionPostgres : public ConnectionGeneric {
 
 public:
   /*
   5.1 Public Methods
 
   */
-  ConnectionPG(const std::string &_dbUser, const std::string &_dbPass,
+  ConnectionPostgres(const std::string &_dbUser, const std::string &_dbPass,
                const int _dbPort, const std::string &_dbName);
 
-  virtual ~ConnectionPG();
+  virtual ~ConnectionPostgres();
 
   std::string getDbType() { return DBTYPE; }
 
@@ -147,4 +147,4 @@ private:
 };
 
 };     /* namespace BasicEngine */
-#endif //_ConnectionPG_H_
+#endif //_ConnectionPostgres_H_

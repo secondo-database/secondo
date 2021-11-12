@@ -41,14 +41,14 @@ using namespace std;
 namespace BasicEngine {
 
 /*
-6 Class ~ConnectionPG~
+6 Class ~ConnectionPostgres~
 
 Implementation.
 
 6.1 ~Constructor~
 
 */
-ConnectionPG::ConnectionPG(const std::string &_dbUser, 
+ConnectionPostgres::ConnectionPostgres(const std::string &_dbUser, 
   const std::string &_dbPass, const int _dbPort, 
   const std::string &_dbName) : ConnectionGeneric(
     _dbUser, _dbPass, _dbPort, _dbName) {
@@ -60,7 +60,7 @@ ConnectionPG::ConnectionPG(const std::string &_dbUser,
 6.1.1 Destructor
 
 */
-ConnectionPG::~ConnectionPG() {
+ConnectionPostgres::~ConnectionPostgres() {
   if(conn != nullptr) {
     PQfinish(conn);
     conn = nullptr;
@@ -71,7 +71,7 @@ ConnectionPG::~ConnectionPG() {
 6.2 ~createConnection~
 
 */
-bool ConnectionPG::createConnection() {
+bool ConnectionPostgres::createConnection() {
 
   if(conn != nullptr) {
     return false;
@@ -104,7 +104,7 @@ bool ConnectionPG::createConnection() {
 Returns TRUE if the connection is ok.
 
 */
-bool ConnectionPG::checkConnection() {
+bool ConnectionPostgres::checkConnection() {
 
   if(conn == nullptr) {
     return false;
@@ -126,7 +126,7 @@ Sending a command to postgres.
 Returns TRUE if the execution was ok.
 
 */
-bool ConnectionPG::sendCommand(const string &command, bool printErrors) {
+bool ConnectionPostgres::sendCommand(const string &command, bool printErrors) {
   
   const char *query_exec = command.c_str();
 
@@ -172,7 +172,7 @@ Sending a query to postgres.
 Returns the Result of the query.
 
 */
-PGresult* ConnectionPG::sendQuery(const string &query) {
+PGresult* ConnectionPostgres::sendQuery(const string &query) {
    
   const char *query_exec = query.c_str();
 
@@ -207,7 +207,7 @@ Creates a Create-Statement of a given table and
 return this string.
 
 */
-string ConnectionPG::getCreateTableSQL(const string &tab){
+string ConnectionPostgres::getCreateTableSQL(const string &tab){
 
   string query_exec;
   PGresult* res;
@@ -253,7 +253,7 @@ string ConnectionPG::getCreateTableSQL(const string &tab){
 Creates a table in postgreSQL with the partitioned data by round robin.
 
 */
-void ConnectionPG::partitionRoundRobin(const string &tab, 
+void ConnectionPostgres::partitionRoundRobin(const string &tab, 
   const size_t anzSlots, const string &targetTab) {
 
   // Sequence counter
@@ -290,7 +290,7 @@ void ConnectionPG::partitionRoundRobin(const string &tab,
 Creates a table in postgreSQL with the partitioned data by hash value.
 
 */
-void ConnectionPG::partitionHash(const string &tab, const string &key,
+void ConnectionPostgres::partitionHash(const string &tab, const string &key,
                                  const size_t anzSlots,
                                  const string &targetTab) {
 
@@ -319,7 +319,7 @@ void ConnectionPG::partitionHash(const string &tab, const string &key,
 This function is for organizing the special partitioning functions.
 
 */
-void ConnectionPG::partitionFunc(const string &table, const string &key,
+void ConnectionPostgres::partitionFunc(const string &table, const string &key,
                                  const size_t anzSlots, const string &fun,
                                  const string &targetTab) {
 
@@ -352,7 +352,7 @@ void ConnectionPG::partitionFunc(const string &table, const string &key,
 Creating a statement for exporting the data. 
 
 */
-string ConnectionPG::getImportTableSQL(const std::string &table, 
+string ConnectionPostgres::getImportTableSQL(const std::string &table, 
   const std::string &full_path) {
 
     return "COPY " + table + " FROM '" + full_path + "' BINARY;";
@@ -364,7 +364,7 @@ string ConnectionPG::getImportTableSQL(const std::string &table,
 Creating a statement for exporting the data. 
 
 */
-string ConnectionPG::getExportTableSQL(const std::string &table, 
+string ConnectionPostgres::getExportTableSQL(const std::string &table, 
   const std::string &full_path) {
 
   return "COPY " + table + " TO '" + full_path + "' BINARY;";
@@ -377,7 +377,7 @@ Get the SECONDO type of the given SQL query
 
 */
 std::vector<std::tuple<string, string>> 
-    ConnectionPG::getTypeFromSQLQuery(const std::string &sqlQuery) {
+    ConnectionPostgres::getTypeFromSQLQuery(const std::string &sqlQuery) {
 
   string usedSQLQuery = limitSQLQuery(sqlQuery);
   vector<tuple<string, string>> result;
@@ -407,8 +407,8 @@ std::vector<std::tuple<string, string>>
 6.16 ~getTypeFromQuery~
 
 */
-vector<std::tuple<std::string, std::string>> ConnectionPG::getTypeFromQuery(
-      PGresult* res) {
+vector<std::tuple<std::string, std::string>> 
+  ConnectionPostgres::getTypeFromQuery(PGresult* res) {
 
   vector<tuple<string, string>> result;
   int columns = PQnfields(res);
@@ -467,7 +467,7 @@ vector<std::tuple<std::string, std::string>> ConnectionPG::getTypeFromQuery(
 Perform the given query and return a result iterator
 
 */
-ResultIteratorGeneric* ConnectionPG::performSQLSelectQuery(
+ResultIteratorGeneric* ConnectionPostgres::performSQLSelectQuery(
   const std::string &sqlQuery) {
 
   if( ! checkConnection()) {
@@ -499,7 +499,7 @@ ResultIteratorGeneric* ConnectionPG::performSQLSelectQuery(
 6.16 Validate the given query
 
 */
-bool ConnectionPG::validateQuery(const std::string &query) {
+bool ConnectionPostgres::validateQuery(const std::string &query) {
 
     if( ! checkConnection()) {
         BOOST_LOG_TRIVIAL(error) 
@@ -527,7 +527,7 @@ bool ConnectionPG::validateQuery(const std::string &query) {
 6.17 Create the table for the grid
 
 */
-bool ConnectionPG::createGridTable(const std::string &table) {
+bool ConnectionPostgres::createGridTable(const std::string &table) {
 
     string createTable = "CREATE TABLE " + table + " (id " 
         + " SERIAL PRIMARY KEY, "
@@ -563,7 +563,7 @@ bool ConnectionPG::createGridTable(const std::string &table) {
 6.17 Insert a rectangle into the grid table
 
 */
-bool ConnectionPG::insertRectangle(const std::string &table, 
+bool ConnectionPostgres::insertRectangle(const std::string &table, 
         double x, double y, double sizeX, double sizeY) {
 
     string polygon = "POLYGON((" + to_string(x) + " " + to_string(y) + 
@@ -594,7 +594,7 @@ bool ConnectionPG::insertRectangle(const std::string &table,
 6.18 Add a new column to the table
 
 */
-void ConnectionPG::addColumnToTable(const std::string &table, 
+void ConnectionPostgres::addColumnToTable(const std::string &table, 
     const std::string &name, SQLAttribute type) {
 
     string sql = "ALTER TABLE " + table + " ADD COLUMN " + name;

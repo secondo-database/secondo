@@ -50,7 +50,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 namespace BasicEngine {
 
 /*
-5 Class ~ConnectionPG~
+5 Class ~ConnectionPostgres~
 
 This class represents the controling from the system.
 

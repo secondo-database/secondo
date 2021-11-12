@@ -32,7 +32,7 @@ using namespace std;
 namespace BasicEngine {
 
 /*
-6 Class ~ConnectionPG~
+6 Class ~ConnectionPostgres~
 
 Implementation.
 

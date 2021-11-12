@@ -107,8 +107,8 @@ ConnectionGeneric* getAndInitDatabaseConnection(const string &dbType,
 
     ConnectionGeneric* connection = nullptr;
 
-    if(ConnectionPG::DBTYPE == dbType) {
-      connection = new ConnectionPG(dbUser, dbPass, dbPort, dbName);
+    if(ConnectionPostgres::DBTYPE == dbType) {
+      connection = new ConnectionPostgres(dbUser, dbPass, dbPort, dbName);
     } else if(ConnectionMySQL::DBTYPE == dbType) {
       connection = new ConnectionMySQL(dbUser, dbPass, dbPort, dbName);
     } else {
