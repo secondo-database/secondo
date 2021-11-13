@@ -411,10 +411,10 @@ Keep the optimizer informed by tracking 'open', 'close', 'restore', 'let' and
 Send ~SecondoExecutableExpression~ to the Secondo kernel (using secondo/2) and
 print the returned result onto the screen.
 
-Do NOT keep the optimizer informed by tracking 'open', 'close', 'rstore',
+Do NOT keep the optimizer informed by tracking 'open', 'close', 'restore',
 'let' or 'delete' commands within ~SecondoExecutableExpression~.
 
-This variant is useful within automaically triggered queries to secondo, e.g.
+This variant is useful within automatically triggered queries to Secondo, e.g.
 deleting or creating objects used by the optimizer (like samples, indexes, small
 objects). This command should never be used by the user!
 
@@ -516,7 +516,7 @@ secondo(X) :-
   ),
   ( member(Command,['let ', 'derive ']) % if this is a let/derive command,
     -> ( % we need to test, whether the (downcased) objectname is not
-         % already used in the DB and the name is a valid itentifier
+         % already used in the DB and the name is a valid identifier
          sub_atom(X,PosEq,1,_,'='),
          Namelength is PosEq - CommandLength, !,
          sub_atom(X,CommandLength,Namelength,_,ExtObjNameA),
@@ -525,7 +525,7 @@ secondo(X) :-
          ( secondoCatalogInfo(DCobjName,ExtOther,_,_) % already used?
            -> ( write_list(['\nERROR:\tCannot create object \'',
                            ExtObjName,'\'.\n','--->\tThere already ',
-                          'exits an object named \'',ExtOther,'\'!\n']),
+                          'exists an object named \'', ExtOther,'\'!\n']),
                 nl,
                 !, fail
               )
@@ -638,7 +638,7 @@ secondo(X) :-
         )
   ), !.
 
-% Variant of execulting a command on the Secondo kernel
+% Variant of executing a command on the Secondo kernel
 % without updating the internal optimizer knowledge base.
 % Not to be used by the user!
 secondo_direct(X) :-
