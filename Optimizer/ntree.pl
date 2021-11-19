@@ -62,7 +62,21 @@ euclidean3(Trip, L) :-
   candidates2(L).
   
   
+% centers :- load centers as Prolog facts
+:- dynamic center/5.
+
+centers :-
+  secondo('query Centers', [_, Values]),
+  retractall(center(_, _, _, _, _)),
+  centers2(Values).
   
+centers2([]).
+
+centers2([ [N, TripId, Trip, MaxDist, Size] | Values]) :-
+  assert(center(N, TripId, Trip, MaxDist, Size)),
+  centers2(Values).
+  
+
   
 
   
@@ -108,9 +122,9 @@ reset :- delete 'p1', delete 'p2', delete 'p3', delete 'current', delete 'pos',
 delete 'd1', delete 'd2', delete 'd3'.
  
 init :-
-  let 'Centers = Centers4 feed moconsume[N]',
-  let 'Distances = Distances4 feed mconsume',
-  let 'TestTrips = TestTrips100CM500 feed moconsume[Ind]',
+  let 'Centers = Centers3551F feed moconsume[N]',
+  let 'Distances = Distances3551 feed mconsume',
+  let 'TestTrips = TestTrips2389 feed moconsume[Ind]',
   let 'p1 = Centers mfeed filter[.N = 1] extract[Trip]',
   let 'p2 = Centers mfeed filter[.N = 2] extract[Trip]',
   let 'p3 = Centers mfeed filter[.N = 3] extract[Trip]',
@@ -130,6 +144,7 @@ init :-
   retractall(nCenters(_)),
   secondo('query Centers count', [_, C]),
   assert(nCenters(C)),
+  centers,
   distances.
   
 init2 :-
@@ -259,25 +274,30 @@ range(Trip, Radius, CountClosest, CountTotal, NCenters, Centers, Method,
   CountTotal is CountClosest + Count2.
   
 addCenters(Trip, Radius, Count, NCenters, Centers) :-
-  retractall(rangeCenter(_, _)),
+  retractall(rangeCenter(_, _, _)),
   retractall(evalCnt(_)),
   \+ addCenter(Trip, Radius),
-  findall([X, A], rangeCenter(X, A), Centers),
+  findall([X, A, Kind], rangeCenter(X, A, Kind), Centers),
   length(Centers, NCenters),
   findall(U, evalCnt(U), L2),
   length(L2, Count).
 
-:- dynamic rangeCenter/2.
+:- dynamic rangeCenter/3.
 :- dynamic evalCnt/1.
 
 addCenter(Trip, Radius) :-
   dmin(Nnq, Dmin),
   distM(Nnq, X, A),
+  center(X, _, _, _, _),
   A < 2 * (Dmin + Radius),
-  ( A < 2 * Radius 
-      -> assert(rangeCenter(X, A)) ;
-    (dist(X, Trip, D), D < Dmin + 2 * Radius) 
-      -> assert(rangeCenter(X, D));
+  ( (A < 2 * Radius
+  	% , A < Radius + Dmin + MaxDist
+  	)	% new: maxDist pruning
+      -> assert(rangeCenter(X, A, dist_nnq)) ;
+    (dist(X, Trip, D), D < Dmin + 2 * Radius
+    	% , D < Radius + MaxDist
+    	) 		% new: maxDist pruning
+      -> assert(rangeCenter(X, D, dist_q));
     true
   ),
   fail.
