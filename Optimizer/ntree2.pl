@@ -33,7 +33,7 @@ candidates2([ [N, _] | L]) :-
   
   
 % centers :- load centers as Prolog facts
-:- dynamic center/4.
+:- dynamic center/5.
 
 centers :-
   secondo('query Centers', [_, Values]),
@@ -85,9 +85,9 @@ evalDistance(Center, Trip, Dist) :-
 :- dynamic nCenters/1.
 
 init :-
-  let 'Centers = CentersL1_17F feed moconsume[N]',
-  let 'Distances = DistancesL1_17 feed mconsume',
-  let 'TestTrips = TestTrips17_50 feed moconsume[Ind]',
+  let 'Centers = Centers3526F feed moconsume[N]',
+  let 'Distances = Distances3526 feed mconsume',
+  let 'TestTrips = TestTrips2389 feed moconsume[Ind]',
   retractall(nCenters(_)),
   secondo('query Centers count', [_, C]),
   assert(nCenters(C)),
@@ -153,7 +153,8 @@ rangeSearch2(Q, R) :- \+ rangeSearch2a(Q, R),
     M, ' results.']).
 
 rangeSearch2a(Q, R) :-
-  candidates(0, 99),
+  nCenters(N), N1 is N - 1,
+  candidates(0, N1),
   retractall(returned(_, _)),
   retractall(searched(_, _)),
   retractall(distance(_, _)),
