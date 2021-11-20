@@ -85,8 +85,8 @@ evalDistance(Center, Trip, Dist) :-
 :- dynamic nCenters/1.
 
 init :-
-  let 'Centers = Centers3526F feed moconsume[N]',
-  let 'Distances = Distances3526 feed mconsume',
+  let 'Centers = Centers15F feed moconsume[N]',
+  let 'Distances = Distances15 feed mconsume',
   let 'TestTrips = TestTrips2389 feed moconsume[Ind]',
   retractall(nCenters(_)),
   secondo('query Centers count', [_, C]),
@@ -107,9 +107,9 @@ countDistEvals(N) :-
   length(L, N).
   
 countResults(N) :-
-  findall([C, U], returned(C, U), L),
+  findall([C, U], returned(C, U, _), L),
   length(L, N1),
-  findall([X, Y], searched(X, Y), L2),
+  findall([X, Y], searched(X, Y, _), L2),
   length(L2, N2),
   N is N1 + N2.
   
@@ -135,19 +135,34 @@ checkDistances(Trip, Bound) :-
    Query),
    secondo(Query).
    
+   
+:- dynamic dmin/2.
+   
+updateDmin(N, D) :-
+  dmin(_, Dmin),
+  D < Dmin,
+  retractall(dmin(_, _)),
+  assert(dmin(N, D)),
+  !.
+  
+updateDmin(_, _).
+   
   
 
-% rangeSearch2(Q, R, Res) :- perform a range query with query object Q (a trip 
-% number) and Radius R. Results are returned in Res.
+% rangeSearch2(Q, R) :- perform a range query with query object Q 
+% (a trip number) and Radius R. 
 
 % to be called with an empty list Res
-:- dynamic returned/2.
-:- dynamic searched/2.
+:- dynamic returned/3.
+:- dynamic searched/3.
 :- dynamic distance/2.
 
 
-rangeSearch2(Q, R) :- \+ rangeSearch2a(Q, R),
+rangeSearch2(Q, R) :- 
+  assert(dmin(10000, 1000000.0)),
+  \+ rangeSearch2a(Q, R),
   countDistEvals(N),
+  \+ pruneSearched(R),
   countResults(M),
   write_list(['There have been ', N, ' distance evaluations and ', 
     M, ' results.']).
@@ -155,13 +170,15 @@ rangeSearch2(Q, R) :- \+ rangeSearch2a(Q, R),
 rangeSearch2a(Q, R) :-
   nCenters(N), N1 is N - 1,
   candidates(0, N1),
-  retractall(returned(_, _)),
-  retractall(searched(_, _)),
+  retractall(returned(_, _, _)),
+  retractall(searched(_, _, _)),
   retractall(distance(_, _)),
   candidate(CenterI),
   retract(candidate(CenterI)),
   evalDistance(CenterI, Q, Dist),
-
+  updateDmin(CenterI, Dist),
+  dmin(_, Dmin),
+    write('Dmin = '), write(Dmin), nl,
   \+ prune2(CenterI, Dist, R),
     countCands(M),
     write_list(['Remaining candidates: ', M]), nl, nl,
@@ -173,9 +190,9 @@ rangeSearch2a(Q, R) :-
       write_list(['Sum = ', Sum, 
         '; Difference = ', Diff]), nl,
   ( R > Dist + MaxDist
-      -> ( write('returned'), nl, nl, assert(returned(CenterI, Size)));
-    R > Dist - MaxDist
-      -> ( write('searched'), nl, nl, assert(searched(CenterI, Size)));
+      -> ( write('returned'), nl, nl, assert(returned(CenterI, Dist, Size)));
+    R > Dist - MaxDist 
+      -> ( write('searched'), nl, nl, assert(searched(CenterI, Dist, Size)));
       write('ignored'), nl, nl, nl ),
   fail.
   
@@ -187,7 +204,7 @@ prune2(CenterI, Dist, R) :-
   center(CenterJ, _, _, MaxDist, Size),
       write_list(['CenterJ = ', CenterJ]), nl, 
   ( R > Dist + DistIJ + MaxDist
-      -> ( write('reported'), nl, nl, assert(returned(CenterJ, Size)), 
+      -> ( write('reported'), nl, nl, assert(returned(CenterJ, Dist, Size)), 
            retract(candidate(CenterJ))) ;
     ( abs(Dist - DistIJ, Diff),                        
       R < Diff - MaxDist ) 
@@ -195,7 +212,29 @@ prune2(CenterI, Dist, R) :-
       true ),
   fail.
       
-
+pruneSearched(Radius) :-
+  dmin(_, Dmin),
+  searched(Center, Dist, Size),
+  Dist > Dmin + 2 * Radius,
+  retract(searched(Center, Dist, Size)),
+    write('Pruned center '), write(Center), nl,
+  fail.
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
 
 
 
