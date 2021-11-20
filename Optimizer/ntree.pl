@@ -122,8 +122,8 @@ reset :- delete 'p1', delete 'p2', delete 'p3', delete 'current', delete 'pos',
 delete 'd1', delete 'd2', delete 'd3'.
  
 init :-
-  let 'Centers = Centers3551F feed moconsume[N]',
-  let 'Distances = Distances3551 feed mconsume',
+  let 'Centers = Centers85F feed moconsume[N]',
+  let 'Distances = Distances85 feed mconsume',
   let 'TestTrips = TestTrips2389 feed moconsume[Ind]',
   let 'p1 = Centers mfeed filter[.N = 1] extract[Trip]',
   let 'p2 = Centers mfeed filter[.N = 2] extract[Trip]',
@@ -185,7 +185,8 @@ updateDmin(N, D) :-
   dmin(_, Dmin),
   D < Dmin,
   retractall(dmin(_, _)),
-  assert(dmin(N, D)).
+  assert(dmin(N, D)),
+  !.
   
 updateDmin(_, _).
 
