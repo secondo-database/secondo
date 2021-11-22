@@ -399,7 +399,7 @@ class NTreeInnerNode : public NTreeNode<T, DistComp, variant> {
         delete[] maxDist;
       }
     }
-    if (variant == 2) {
+    if (variant == 2 || variant == 6) {
       node_t::deleteAuxStructures(degree);
     }
   }
@@ -446,7 +446,7 @@ class NTreeInnerNode : public NTreeNode<T, DistComp, variant> {
   }
   
   int getNearestCenterPos(const T& o, DistComp& dc, double& minDist) {
-    if (variant == 2) { // N-tree2
+    if (variant == 2 || variant == 6) { // N-tree2
       std::tuple<double, double, double> odist3d;
       if (candOrder == PIVOT2) {
         odist3d = std::make_tuple(dc(o, *(centers[std::get<0>(refDistPos)])),
@@ -653,7 +653,7 @@ class NTreeInnerNode : public NTreeNode<T, DistComp, variant> {
     partitions.resize(node_t::degree);
     double dist(-1.0), centerDist(-1.0);
     int partitionPos = -1;
-    if (variant == 2) { // NTree2
+    if (variant == 2 || variant == 6) { // NTree2
       for (unsigned int i = 0; i < contents.size(); i++) {
         for (int j = 0; j < degree; j++) {
           if (contents[i].getTid() == centers[j]->getTid()) {
@@ -730,7 +730,7 @@ class NTreeInnerNode : public NTreeNode<T, DistComp, variant> {
     int noDistFunCallsBefore = dc.getNoDistFunCalls();
     depth++;
     computeCenters(contents, partitionStrategy);
-    if (variant == 2) {
+    if (variant == 2 || variant == 6) {
       node_t::initAuxStructures(degree);
       node_t::precomputeDistances(dc, false);
     }
@@ -1017,6 +1017,10 @@ class RangeIteratorN {
         collectResultsNtree5(root);
         break;
       }
+      case 6: {
+        collectResultsNtree6(root);
+        break;
+      }
       default: {
         assert(false);
         break;
@@ -1140,6 +1144,64 @@ class RangeIteratorN {
       stat.noInnerNodes++;
     }
   }
+  
+  void collectResultsNtree6(node_t* node) {
+    int noCands = (node->isLeaf() ? node->getNoEntries() : node->getDegree());
+    bool cand[noCands];
+    std::fill_n(cand, noCands, true);
+    double u, d_ij;
+    if (node->isLeaf()) {
+      for (int i = 0; i < noCands; i++) {
+        if (cand[i]) {
+          u = dc(queryObject, *((leafnode_t*)node)->getObject(i));
+          for (int j = i + 1; j < noCands; j++) { // prune2
+            if (cand[j]) {
+              d_ij = node->getPrecomputedDist(i, j, true);
+              if (range > u + d_ij) {
+                results.push_back(node->getObject(j)->getTid());
+                cand[j] = false;
+              }
+              else if (range < abs(u - d_ij)) {
+                cand[j] = false;
+              }
+            }
+          }
+          if (cand[i] && range > u) {
+            results.push_back(node->getObject(i)->getTid());
+            cand[i] = false;
+          }
+        }
+      }
+    }
+    else { // inner node
+      for (int i = 0; i < noCands; i++) {
+        if (cand[i]) {
+          u = dc(queryObject, *((innernode_t*)node)->getCenter(i));
+          for (int j = i + 1; j < noCands; j++) { // prune2
+            if (cand[j]) {
+              d_ij = node->getPrecomputedDist(i, j, true);
+              if (range > u + d_ij + ((innernode_t*)node)->getMaxDist(j)) {
+                reportEntireSubtree(node->getChild(j));
+                cand[j] = false;
+              }
+              else if (range < abs(u - d_ij) - 
+                      ((innernode_t*)node)->getMaxDist(j)) {
+                cand[j] = false;
+              }
+            }
+          }
+          if (cand[i]) {
+            if (range > u + ((innernode_t*)node)->getMaxDist(i)) {
+              reportEntireSubtree(node->getChild(i));
+            }
+            else if (range > u - ((innernode_t*)node)->getMaxDist(i)) {
+              collectResultsNtree5(node->getChild(i));
+            }
+          }
+        }
+      }
+    }
+  }
 
   const TupleId next() {
     assert(pos >= 0);
@@ -1171,7 +1233,7 @@ class RangeIteratorN {
 4 class NTree
 
 This is the main class of this file. It implements a main memory-based N-tree,
-N-tree2, and N-tree5 (controlled by ~variant~).
+N-tree2, N-tree5, and N-tree6 (controlled by ~variant~).
 
 */
 template<class T, class DistComp, int variant>
@@ -1186,7 +1248,12 @@ class NTree {
   
   NTree(const int d, const int mls, DistComp& di) :
       degree(d), maxLeafSize(mls), root(0), dc(di), partitionStrategy(0),
-      candOrder(RANDOM), pMethod(SIMPLE) {}
+      candOrder(RANDOM), pMethod(SIMPLE) {
+    if (variant > 2) {
+      candOrder = PIVOT2;
+      pMethod = MINDIST;
+    }
+  }
       
   NTree(const int d, const int mls, const CandOrder c, const PruningMethod pm,
         DistComp& di) :

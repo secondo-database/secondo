@@ -55,6 +55,7 @@ operator mdistRange alias MDISTRANGE pattern _ _ op [_,_]
 operator mdistRangeN alias MDISTRANGEN pattern _ _ op [_,_]
 operator mdistRangeN2 alias MDISTRANGEN2 pattern _ _ op [_,_]
 operator mdistRangeN5 alias MDISTRANGEN5 pattern _ _ op [_,_]
+operator mdistRangeN6 alias MDISTRANGEN6 pattern _ _ op [_,_]
 operator mdistScan alias MDISTSCAN  pattern _ _ op [_]
 
 operator mexactmatchS alias MEXACTMATCHS pattern _ op [_]
@@ -66,6 +67,7 @@ operator gettuples alias GETTUPLES pattern _ _ op
 operator mcreatentree alias MCREATENTREE pattern _ op [_,_,_,_]
 operator mcreatentree2 alias MCREATENTREE2 pattern _ op [_,_,_,_,_,_]
 operator mcreatentree5 alias MCREATENTREE5 pattern _ op [_,_,_,_]
+operator mcreatentree6 alias MCREATENTREE5 pattern _ op [_,_,_,_]
 
 operator mwrap alias MWRAP pattern op(_)
 operator mwrap2 alias MWRAP2 pattern op(_,_)

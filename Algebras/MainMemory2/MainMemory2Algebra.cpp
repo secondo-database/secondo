@@ -6307,9 +6307,9 @@ Operator mdistRangeOp(
 );
 
 /*
-Operator ~mdistRangeN~
+Operator ~mdistRangeNx~
 
-Type Mapping, used for mdistRangeN, mdistRangeN2, and mdistRangeN5
+Type Mapping, used for mdistRangeN, mdistRangeN2, mdistRangeN5, and mdistRangeN6
 
 */
 template<int variant>
@@ -6818,14 +6818,14 @@ ValueMapping mdistRangeN5VM[] = {
 };
 
 OperatorSpec mdistRangeN5Spec(
-  "NTREE2 x MREL  x T (x U) x real -> stream(tuple) , NTREE2, "
+  "NTREE5 x MREL  x T (x U) x real -> stream(tuple) , NTREE2, "
   "MREL represented as string, mem, or mpointer",
-  "mem_ntree2 mem_rel mdistRangeN5[keyAttr, maxDist] ",
+  "mem_ntree5 mem_rel mdistRangeN5[keyAttr, maxDist] ",
   "Retrieves those tuples from a memory relation "
   "having a distance smaller or equal to a given distance "
   "to a key value (or pair of key values). This operation is aided by a memory "
-  "based ntree2.",
-  "query mkinos_ntree2 mKinos mdistRangeN2[alexanderplatz, 2000.0] count"
+  "based ntree5.",
+  "query mkinos_ntree5 mKinos mdistRangeN5[alexanderplatz, 2000.0] count"
 );
 
 Operator mdistRangeN5Op(
@@ -6835,6 +6835,134 @@ Operator mdistRangeN5Op(
    mdistRangeN5VM,
    mdistRangeNSelect,
    mdistRangeNTM<5>
+);
+
+/*
+Operator ~mdistRangeN6~
+
+*/
+template<class K, class T, class R>
+int mdistRangeN6VMT(Word* args, Word& result, int message, Word& local,
+                    Supplier s) {
+  distRangeNInfo<K, StdDistComp<K>, 6>* li = 
+                              (distRangeNInfo<K, StdDistComp<K>, 6>*)local.addr;
+  switch (message) {
+    case OPEN : {
+      if (li) {
+        delete li;
+        local.addr = 0;
+      }
+      R* relN = (R*)args[1].addr;
+      MemoryRelObject* rel = getMemRel(relN, nl->Second(qp->GetType(s)));
+      if (!rel) {
+        return 0;
+      }
+      CcReal* range = (CcReal*)args[3].addr;
+      if (!range->IsDefined()) {
+        return 0;
+      }
+      double r = range->GetValue();
+      if (r < 0) {
+        return 0;
+      }
+      T* treeN = (T*)args[0].addr;
+      MemoryNtreeObject<K, StdDistComp<K>, 6>* n = getNtreeX<T, K, 6>(treeN);
+      if (!n) {
+        return 0;
+      }
+      K* key = (K*)args[2].addr;
+      local.addr = new distRangeNInfo<K, StdDistComp<K>, 6>(n, rel, key, r);
+      return 0;
+    }
+    case REQUEST: {
+      result.addr = li ? li->next() : 0;
+      return result.addr ? YIELD : CANCEL;
+    }
+    case CLOSE : {
+      if (li) {
+        mtreehelper::increaseCounter("counterMDistRangeN6", 
+                                     li->getNoDistFunCalls());
+        delete li;
+        local.addr = 0;
+      }
+      return 0;
+    }
+   }
+   return -1;
+}
+
+ValueMapping mdistRangeN6VM[] = {
+  mdistRangeN6VMT<mtreehelper::t1,Mem,Mem>,
+  mdistRangeN6VMT<mtreehelper::t2,Mem,Mem>,
+  mdistRangeN6VMT<mtreehelper::t3,Mem,Mem>,
+  mdistRangeN6VMT<mtreehelper::t4,Mem,Mem>,
+  mdistRangeN6VMT<mtreehelper::t5,Mem,Mem>,
+  mdistRangeN6VMT<mtreehelper::t6,Mem,Mem>,
+  mdistRangeN6VMT<mtreehelper::t7,Mem,Mem>,
+  mdistRangeN6VMT<mtreehelper::t8,Mem,Mem>,
+  mdistRangeN6VMT<mtreehelper::t9,Mem,Mem>,
+  mdistRangeN6VMT<mtreehelper::t10,Mem,Mem>,
+  mdistRangeN6VMT<mtreehelper::t11,Mem,Mem>,
+  mdistRangeN6VMT<mtreehelper::t12,Mem,Mem>,
+  
+  mdistRangeN6VMT<mtreehelper::t1,Mem,MPointer>,
+  mdistRangeN6VMT<mtreehelper::t2,Mem,MPointer>,
+  mdistRangeN6VMT<mtreehelper::t3,Mem,MPointer>,
+  mdistRangeN6VMT<mtreehelper::t4,Mem,MPointer>,
+  mdistRangeN6VMT<mtreehelper::t5,Mem,MPointer>,
+  mdistRangeN6VMT<mtreehelper::t6,Mem,MPointer>,
+  mdistRangeN6VMT<mtreehelper::t7,Mem,MPointer>,
+  mdistRangeN6VMT<mtreehelper::t8,Mem,MPointer>,
+  mdistRangeN6VMT<mtreehelper::t9,Mem,MPointer>,
+  mdistRangeN6VMT<mtreehelper::t10,Mem,MPointer>,
+  mdistRangeN6VMT<mtreehelper::t11,Mem,MPointer>,
+  mdistRangeN6VMT<mtreehelper::t12,Mem,MPointer>,
+  
+  mdistRangeN6VMT<mtreehelper::t1,MPointer,Mem>,
+  mdistRangeN6VMT<mtreehelper::t2,MPointer,Mem>,
+  mdistRangeN6VMT<mtreehelper::t3,MPointer,Mem>,
+  mdistRangeN6VMT<mtreehelper::t4,MPointer,Mem>,
+  mdistRangeN6VMT<mtreehelper::t5,MPointer,Mem>,
+  mdistRangeN6VMT<mtreehelper::t6,MPointer,Mem>,
+  mdistRangeN6VMT<mtreehelper::t7,MPointer,Mem>,
+  mdistRangeN6VMT<mtreehelper::t8,MPointer,Mem>,
+  mdistRangeN6VMT<mtreehelper::t9,MPointer,Mem>,
+  mdistRangeN6VMT<mtreehelper::t10,MPointer,Mem>,
+  mdistRangeN6VMT<mtreehelper::t11,MPointer,Mem>,
+  mdistRangeN6VMT<mtreehelper::t12,MPointer,Mem>,
+  
+  mdistRangeN6VMT<mtreehelper::t1,MPointer,MPointer>,
+  mdistRangeN6VMT<mtreehelper::t2,MPointer,MPointer>,
+  mdistRangeN6VMT<mtreehelper::t3,MPointer,MPointer>,
+  mdistRangeN6VMT<mtreehelper::t4,MPointer,MPointer>,
+  mdistRangeN6VMT<mtreehelper::t5,MPointer,MPointer>,
+  mdistRangeN6VMT<mtreehelper::t6,MPointer,MPointer>,
+  mdistRangeN6VMT<mtreehelper::t7,MPointer,MPointer>,
+  mdistRangeN6VMT<mtreehelper::t8,MPointer,MPointer>,
+  mdistRangeN6VMT<mtreehelper::t9,MPointer,MPointer>,
+  mdistRangeN6VMT<mtreehelper::t10,MPointer,MPointer>,
+  mdistRangeN6VMT<mtreehelper::t11,MPointer,MPointer>,
+  mdistRangeN6VMT<mtreehelper::t12,MPointer,MPointer>
+};
+
+OperatorSpec mdistRangeN6Spec(
+  "NTREE6 x MREL  x T (x U) x real -> stream(tuple) , NTREE6, "
+  "MREL represented as string, mem, or mpointer",
+  "mem_ntree2 mem_rel mdistRangeN6[keyAttr, maxDist] ",
+  "Retrieves those tuples from a memory relation "
+  "having a distance smaller or equal to a given distance "
+  "to a key value (or pair of key values). This operation is aided by a memory "
+  "based ntree6.",
+  "query mkinos_ntree6 mKinos mdistRangeN6[alexanderplatz, 2000.0] count"
+);
+
+Operator mdistRangeN6Op(
+   "mdistRangeN6",
+   mdistRangeN6Spec.getStr(),
+   48,
+   mdistRangeN6VM,
+   mdistRangeNSelect,
+   mdistRangeNTM<6>
 );
 
 /*
@@ -22191,7 +22319,7 @@ Operator mmergejoinprojectOp(
 
 6.1.1 Type Mapping
 
-Applied for operators ~mcreatentree~, ~mcreatentree2~, and ~mcreatentree5~
+Applied for operators ~mcreatentree~, ~mcreatentree2~, ~mcreatentree5~, and ~mcreatentree6~.
 
 */
 template<int variant>
@@ -22632,6 +22760,57 @@ Operator mcreatentree5Op(
    mcreatentreeTM<5>
 );
 
+/*
+Operator ~mcreatentree6~
+
+*/
+ValueMapping mcreatentree6VM[] = {
+  mcreatentreeVMT<mtreehelper::t1, 6>,
+  mcreatentreeVMT<mtreehelper::t2, 6>,
+  mcreatentreeVMT<mtreehelper::t3, 6>,
+  mcreatentreeVMT<mtreehelper::t4, 6>,
+  mcreatentreeVMT<mtreehelper::t5, 6>,
+  mcreatentreeVMT<mtreehelper::t6, 6>,
+  mcreatentreeVMT<mtreehelper::t7, 6>,
+  mcreatentreeVMT<mtreehelper::t8, 6>,
+  mcreatentreeVMT<mtreehelper::t9, 6>,
+  mcreatentreeVMT<mtreehelper::t10, 6>,
+  mcreatentreeVMT<mtreehelper::t11, 6>,
+  mcreatentreeVMT<mtreehelper::t12, 6>
+};
+
+OperatorSpec mcreatentree6Spec(
+  "MREL(tuple) x attrname x int x int [x geoid] -> , mpointer(mem(mtree X))\n",
+  "mrel mcreatemtree6[indexAttr, degree, maxLeafSize, [, geoid] ]\n",
+  "This operator creates an N-tree6 in main memory. "
+  "The first argument is a main memory relation containing the "
+  "tuples to be indexed. The second argument refers to the attribute "
+  "over that the index is built. The next two arguments represent the degree of"
+  " the tree and and maximum number of entries in a leaf.\n"
+  "The last argument is optional. It must be of type geoid and "
+  "can only be used if the index-attribute is of type point, mpoint, cupoint, "
+  "or cmpoint. If this argument is present, the distance between two objects "
+  "is computed as geographic distance on this geoid instead of using the "
+  "Euclidean distance.\n In detail, the following types are supported:\n\n"
+  "  * point:   p1->Distance(*p2, geoid)\n"
+  "  * string:  stringutils::ld->(s1->GetValue(), s2->GetValue())\n"
+  "  * int:     abs(i1->GetValue() - i2->GetValue())\n"
+  "  * real:    abs(r1->GetValue() - r2->GetValue())\n"
+  "  * rect<d>: r1->Distance(*r2)\n"
+  "  * mpoint:  mp1->DistanceAvg(*mp2, geoid)\n"
+  "  * cupoint: cup1->DistanceAvg(*cup2, true, geoid)\n"
+  "  * cmpoint: cmp1->DistanceAvg(*cmp2, true, geoid)\n",
+  "let kinosM_ntree_GeoData =  kinosM mcreatentree5[GeoData, 5, 8]"
+);
+
+Operator mcreatentree6Op(
+   "mcreatentree6",
+   mcreatentree6Spec.getStr(),
+   12,
+   mcreatentree6VM,
+   mcreatentreeSelect,
+   mcreatentreeTM<6>
+);
 
 /*
 23 Algebra Definition
@@ -22713,6 +22892,7 @@ class MainMemory2Algebra : public Algebra {
           AddOperator(&mdistRangeNOp);
           AddOperator(&mdistRangeN2Op);
           AddOperator(&mdistRangeN5Op);
+          AddOperator(&mdistRangeN6Op);
 
           AddOperator(&mdistScanOp);
 
@@ -22727,6 +22907,7 @@ class MainMemory2Algebra : public Algebra {
           AddOperator(&mcreatentreeOp);
           AddOperator(&mcreatentree2Op);
           AddOperator(&mcreatentree5Op);
+          AddOperator(&mcreatentree6Op);
           
   ////////////////////// MainMemory2Algebra////////////////////////////
           
