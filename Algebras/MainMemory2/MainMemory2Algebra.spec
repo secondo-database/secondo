@@ -67,7 +67,8 @@ operator gettuples alias GETTUPLES pattern _ _ op
 operator mcreatentree alias MCREATENTREE pattern _ op [_,_,_,_]
 operator mcreatentree2 alias MCREATENTREE2 pattern _ op [_,_,_,_,_,_]
 operator mcreatentree5 alias MCREATENTREE5 pattern _ op [_,_,_,_]
-operator mcreatentree6 alias MCREATENTREE5 pattern _ op [_,_,_,_]
+operator mcreatentree6 alias MCREATENTREE6 pattern _ op [_,_,_,_]
+operator mcreatentree7 alias MCREATENTREE7 pattern _ op [_,_,_,_]
 
 operator mwrap alias MWRAP pattern op(_)
 operator mwrap2 alias MWRAP2 pattern op(_,_)

@@ -6408,11 +6408,11 @@ class distRangeNInfo {
   RangeIteratorN<MTreeEntry<T>, Dist, variant>* it;
 };
 
-template<class K, class T, class R>
+template<class K, class T, class R, int variant>
 int mdistRangeNVMT(Word* args, Word& result, int message, Word& local,
                    Supplier s) {
-  distRangeNInfo<K, StdDistComp<K>, 1>* li = 
-                              (distRangeNInfo<K, StdDistComp<K>, 1>*)local.addr;
+  distRangeNInfo<K, StdDistComp<K>, variant>* li = 
+                        (distRangeNInfo<K, StdDistComp<K>, variant>*)local.addr;
   switch (message) {
     case OPEN : {
       if (li) {
@@ -6433,12 +6433,13 @@ int mdistRangeNVMT(Word* args, Word& result, int message, Word& local,
         return 0;
       }
       T* treeN = (T*)args[0].addr;
-      MemoryNtreeObject<K, StdDistComp<K>, 1>* n = getNtreeX<T, K, 1>(treeN);
+      MemoryNtreeObject<K, StdDistComp<K>, variant>* n = 
+                                                getNtreeX<T, K, variant>(treeN);
       if (!n) {
         return 0;
       }
       K* key = (K*)args[2].addr;
-      local.addr = new distRangeNInfo<K, StdDistComp<K>, 1>(n, rel, key, r);
+      local.addr = new distRangeNInfo<K, StdDistComp<K>, variant>(n, rel,key,r);
       return 0;
     }
     case REQUEST: {
@@ -6447,8 +6448,9 @@ int mdistRangeNVMT(Word* args, Word& result, int message, Word& local,
     }
     case CLOSE : {
       if (li) {
-        mtreehelper::increaseCounter("counterMDistRangeN", 
-                                     li->getNoDistFunCalls());
+        string counterName = "counterMDistRangeN" + 
+                             (variant > 1 ? to_string(variant) : "");
+        mtreehelper::increaseCounter(counterName, li->getNoDistFunCalls());
         delete li;
         local.addr = 0;
       }
@@ -6507,58 +6509,59 @@ int mdistRangeNSelect(ListExpr args) {
 //   }
 }
 
+template<int variant>
 ValueMapping mdistRangeNVM[] = {
-  mdistRangeNVMT<mtreehelper::t1,Mem,Mem>,
-  mdistRangeNVMT<mtreehelper::t2,Mem,Mem>,
-  mdistRangeNVMT<mtreehelper::t3,Mem,Mem>,
-  mdistRangeNVMT<mtreehelper::t4,Mem,Mem>,
-  mdistRangeNVMT<mtreehelper::t5,Mem,Mem>,
-  mdistRangeNVMT<mtreehelper::t6,Mem,Mem>,
-  mdistRangeNVMT<mtreehelper::t7,Mem,Mem>,
-  mdistRangeNVMT<mtreehelper::t8,Mem,Mem>,
-  mdistRangeNVMT<mtreehelper::t9,Mem,Mem>,
-  mdistRangeNVMT<mtreehelper::t10,Mem,Mem>,
-  mdistRangeNVMT<mtreehelper::t11,Mem,Mem>,
-  mdistRangeNVMT<mtreehelper::t12,Mem,Mem>,
+  mdistRangeNVMT<mtreehelper::t1,Mem,Mem,variant>,
+  mdistRangeNVMT<mtreehelper::t2,Mem,Mem,variant>,
+  mdistRangeNVMT<mtreehelper::t3,Mem,Mem,variant>,
+  mdistRangeNVMT<mtreehelper::t4,Mem,Mem,variant>,
+  mdistRangeNVMT<mtreehelper::t5,Mem,Mem,variant>,
+  mdistRangeNVMT<mtreehelper::t6,Mem,Mem,variant>,
+  mdistRangeNVMT<mtreehelper::t7,Mem,Mem,variant>,
+  mdistRangeNVMT<mtreehelper::t8,Mem,Mem,variant>,
+  mdistRangeNVMT<mtreehelper::t9,Mem,Mem,variant>,
+  mdistRangeNVMT<mtreehelper::t10,Mem,Mem,variant>,
+  mdistRangeNVMT<mtreehelper::t11,Mem,Mem,variant>,
+  mdistRangeNVMT<mtreehelper::t12,Mem,Mem,variant>,
   
-  mdistRangeNVMT<mtreehelper::t1,Mem,MPointer>,
-  mdistRangeNVMT<mtreehelper::t2,Mem,MPointer>,
-  mdistRangeNVMT<mtreehelper::t3,Mem,MPointer>,
-  mdistRangeNVMT<mtreehelper::t4,Mem,MPointer>,
-  mdistRangeNVMT<mtreehelper::t5,Mem,MPointer>,
-  mdistRangeNVMT<mtreehelper::t6,Mem,MPointer>,
-  mdistRangeNVMT<mtreehelper::t7,Mem,MPointer>,
-  mdistRangeNVMT<mtreehelper::t8,Mem,MPointer>,
-  mdistRangeNVMT<mtreehelper::t9,Mem,MPointer>,
-  mdistRangeNVMT<mtreehelper::t10,Mem,MPointer>,
-  mdistRangeNVMT<mtreehelper::t11,Mem,MPointer>,
-  mdistRangeNVMT<mtreehelper::t12,Mem,MPointer>,
+  mdistRangeNVMT<mtreehelper::t1,Mem,MPointer,variant>,
+  mdistRangeNVMT<mtreehelper::t2,Mem,MPointer,variant>,
+  mdistRangeNVMT<mtreehelper::t3,Mem,MPointer,variant>,
+  mdistRangeNVMT<mtreehelper::t4,Mem,MPointer,variant>,
+  mdistRangeNVMT<mtreehelper::t5,Mem,MPointer,variant>,
+  mdistRangeNVMT<mtreehelper::t6,Mem,MPointer,variant>,
+  mdistRangeNVMT<mtreehelper::t7,Mem,MPointer,variant>,
+  mdistRangeNVMT<mtreehelper::t8,Mem,MPointer,variant>,
+  mdistRangeNVMT<mtreehelper::t9,Mem,MPointer,variant>,
+  mdistRangeNVMT<mtreehelper::t10,Mem,MPointer,variant>,
+  mdistRangeNVMT<mtreehelper::t11,Mem,MPointer,variant>,
+  mdistRangeNVMT<mtreehelper::t12,Mem,MPointer,variant>,
   
-  mdistRangeNVMT<mtreehelper::t1,MPointer,Mem>,
-  mdistRangeNVMT<mtreehelper::t2,MPointer,Mem>,
-  mdistRangeNVMT<mtreehelper::t3,MPointer,Mem>,
-  mdistRangeNVMT<mtreehelper::t4,MPointer,Mem>,
-  mdistRangeNVMT<mtreehelper::t5,MPointer,Mem>,
-  mdistRangeNVMT<mtreehelper::t6,MPointer,Mem>,
-  mdistRangeNVMT<mtreehelper::t7,MPointer,Mem>,
-  mdistRangeNVMT<mtreehelper::t8,MPointer,Mem>,
-  mdistRangeNVMT<mtreehelper::t9,MPointer,Mem>,
-  mdistRangeNVMT<mtreehelper::t10,MPointer,Mem>,
-  mdistRangeNVMT<mtreehelper::t11,MPointer,Mem>,
-  mdistRangeNVMT<mtreehelper::t12,MPointer,Mem>,
+  mdistRangeNVMT<mtreehelper::t1,MPointer,Mem,variant>,
+  mdistRangeNVMT<mtreehelper::t2,MPointer,Mem,variant>,
+  mdistRangeNVMT<mtreehelper::t3,MPointer,Mem,variant>,
+  mdistRangeNVMT<mtreehelper::t4,MPointer,Mem,variant>,
+  mdistRangeNVMT<mtreehelper::t5,MPointer,Mem,variant>,
+  mdistRangeNVMT<mtreehelper::t6,MPointer,Mem,variant>,
+  mdistRangeNVMT<mtreehelper::t7,MPointer,Mem,variant>,
+  mdistRangeNVMT<mtreehelper::t8,MPointer,Mem,variant>,
+  mdistRangeNVMT<mtreehelper::t9,MPointer,Mem,variant>,
+  mdistRangeNVMT<mtreehelper::t10,MPointer,Mem,variant>,
+  mdistRangeNVMT<mtreehelper::t11,MPointer,Mem,variant>,
+  mdistRangeNVMT<mtreehelper::t12,MPointer,Mem,variant>,
   
-  mdistRangeNVMT<mtreehelper::t1,MPointer,MPointer>,
-  mdistRangeNVMT<mtreehelper::t2,MPointer,MPointer>,
-  mdistRangeNVMT<mtreehelper::t3,MPointer,MPointer>,
-  mdistRangeNVMT<mtreehelper::t4,MPointer,MPointer>,
-  mdistRangeNVMT<mtreehelper::t5,MPointer,MPointer>,
-  mdistRangeNVMT<mtreehelper::t6,MPointer,MPointer>,
-  mdistRangeNVMT<mtreehelper::t7,MPointer,MPointer>,
-  mdistRangeNVMT<mtreehelper::t8,MPointer,MPointer>,
-  mdistRangeNVMT<mtreehelper::t9,MPointer,MPointer>,
-  mdistRangeNVMT<mtreehelper::t10,MPointer,MPointer>,
-  mdistRangeNVMT<mtreehelper::t11,MPointer,MPointer>,
-  mdistRangeNVMT<mtreehelper::t12,MPointer,MPointer>
+  mdistRangeNVMT<mtreehelper::t1,MPointer,MPointer,variant>,
+  mdistRangeNVMT<mtreehelper::t2,MPointer,MPointer,variant>,
+  mdistRangeNVMT<mtreehelper::t3,MPointer,MPointer,variant>,
+  mdistRangeNVMT<mtreehelper::t4,MPointer,MPointer,variant>,
+  mdistRangeNVMT<mtreehelper::t5,MPointer,MPointer,variant>,
+  mdistRangeNVMT<mtreehelper::t6,MPointer,MPointer,variant>,
+  mdistRangeNVMT<mtreehelper::t7,MPointer,MPointer,variant>,
+  mdistRangeNVMT<mtreehelper::t8,MPointer,MPointer,variant>,
+  mdistRangeNVMT<mtreehelper::t9,MPointer,MPointer,variant>,
+  mdistRangeNVMT<mtreehelper::t10,MPointer,MPointer,variant>,
+  mdistRangeNVMT<mtreehelper::t11,MPointer,MPointer,variant>,
+  mdistRangeNVMT<mtreehelper::t12,MPointer,MPointer,variant>
 };
 
 OperatorSpec mdistRangeNSpec(
@@ -6576,7 +6579,7 @@ Operator mdistRangeNOp(
    "mdistRangeN",
    mdistRangeNSpec.getStr(),
    48,
-   mdistRangeNVM,
+   mdistRangeNVM<1>,
    mdistRangeNSelect,
    mdistRangeNTM<1>
 );
@@ -6585,109 +6588,6 @@ Operator mdistRangeNOp(
 Operator ~mdistRangeN2~
 
 */
-template<class K, class T, class R>
-int mdistRangeN2VMT(Word* args, Word& result, int message, Word& local,
-                    Supplier s) {
-  distRangeNInfo<K, StdDistComp<K>, 2>* li = 
-                              (distRangeNInfo<K, StdDistComp<K>, 2>*)local.addr;
-  switch (message) {
-    case OPEN : {
-      if (li) {
-        delete li;
-        local.addr = 0;
-      }
-      R* relN = (R*)args[1].addr;
-      MemoryRelObject* rel = getMemRel(relN, nl->Second(qp->GetType(s)));
-      if (!rel) {
-        return 0;
-      }
-      CcReal* range = (CcReal*)args[3].addr;
-      if (!range->IsDefined()) {
-        return 0;
-      }
-      double r = range->GetValue();
-      if (r < 0) {
-        return 0;
-      }
-      T* treeN = (T*)args[0].addr;
-      MemoryNtreeObject<K, StdDistComp<K>, 2>* n = getNtreeX<T, K, 2>(treeN);
-      if (!n) {
-        return 0;
-      }
-      K* key = (K*)args[2].addr;
-      local.addr = new distRangeNInfo<K, StdDistComp<K>, 2>(n, rel, key, r);
-      return 0;
-    }
-    case REQUEST: {
-      result.addr = li ? li->next() : 0;
-      return result.addr ? YIELD : CANCEL;
-    }
-    case CLOSE : {
-      if (li) {
-        mtreehelper::increaseCounter("counterMDistRangeN2", 
-                                     li->getNoDistFunCalls());
-        delete li;
-        local.addr = 0;
-      }
-      return 0;
-    }
-   }
-   return -1;
-}
-
-ValueMapping mdistRangeN2VM[] = {
-  mdistRangeN2VMT<mtreehelper::t1,Mem,Mem>,
-  mdistRangeN2VMT<mtreehelper::t2,Mem,Mem>,
-  mdistRangeN2VMT<mtreehelper::t3,Mem,Mem>,
-  mdistRangeN2VMT<mtreehelper::t4,Mem,Mem>,
-  mdistRangeN2VMT<mtreehelper::t5,Mem,Mem>,
-  mdistRangeN2VMT<mtreehelper::t6,Mem,Mem>,
-  mdistRangeN2VMT<mtreehelper::t7,Mem,Mem>,
-  mdistRangeN2VMT<mtreehelper::t8,Mem,Mem>,
-  mdistRangeN2VMT<mtreehelper::t9,Mem,Mem>,
-  mdistRangeN2VMT<mtreehelper::t10,Mem,Mem>,
-  mdistRangeN2VMT<mtreehelper::t11,Mem,Mem>,
-  mdistRangeN2VMT<mtreehelper::t12,Mem,Mem>,
-  
-  mdistRangeN2VMT<mtreehelper::t1,Mem,MPointer>,
-  mdistRangeN2VMT<mtreehelper::t2,Mem,MPointer>,
-  mdistRangeN2VMT<mtreehelper::t3,Mem,MPointer>,
-  mdistRangeN2VMT<mtreehelper::t4,Mem,MPointer>,
-  mdistRangeN2VMT<mtreehelper::t5,Mem,MPointer>,
-  mdistRangeN2VMT<mtreehelper::t6,Mem,MPointer>,
-  mdistRangeN2VMT<mtreehelper::t7,Mem,MPointer>,
-  mdistRangeN2VMT<mtreehelper::t8,Mem,MPointer>,
-  mdistRangeN2VMT<mtreehelper::t9,Mem,MPointer>,
-  mdistRangeN2VMT<mtreehelper::t10,Mem,MPointer>,
-  mdistRangeN2VMT<mtreehelper::t11,Mem,MPointer>,
-  mdistRangeN2VMT<mtreehelper::t12,Mem,MPointer>,
-  
-  mdistRangeN2VMT<mtreehelper::t1,MPointer,Mem>,
-  mdistRangeN2VMT<mtreehelper::t2,MPointer,Mem>,
-  mdistRangeN2VMT<mtreehelper::t3,MPointer,Mem>,
-  mdistRangeN2VMT<mtreehelper::t4,MPointer,Mem>,
-  mdistRangeN2VMT<mtreehelper::t5,MPointer,Mem>,
-  mdistRangeN2VMT<mtreehelper::t6,MPointer,Mem>,
-  mdistRangeN2VMT<mtreehelper::t7,MPointer,Mem>,
-  mdistRangeN2VMT<mtreehelper::t8,MPointer,Mem>,
-  mdistRangeN2VMT<mtreehelper::t9,MPointer,Mem>,
-  mdistRangeN2VMT<mtreehelper::t10,MPointer,Mem>,
-  mdistRangeN2VMT<mtreehelper::t11,MPointer,Mem>,
-  mdistRangeN2VMT<mtreehelper::t12,MPointer,Mem>,
-  
-  mdistRangeN2VMT<mtreehelper::t1,MPointer,MPointer>,
-  mdistRangeN2VMT<mtreehelper::t2,MPointer,MPointer>,
-  mdistRangeN2VMT<mtreehelper::t3,MPointer,MPointer>,
-  mdistRangeN2VMT<mtreehelper::t4,MPointer,MPointer>,
-  mdistRangeN2VMT<mtreehelper::t5,MPointer,MPointer>,
-  mdistRangeN2VMT<mtreehelper::t6,MPointer,MPointer>,
-  mdistRangeN2VMT<mtreehelper::t7,MPointer,MPointer>,
-  mdistRangeN2VMT<mtreehelper::t8,MPointer,MPointer>,
-  mdistRangeN2VMT<mtreehelper::t9,MPointer,MPointer>,
-  mdistRangeN2VMT<mtreehelper::t10,MPointer,MPointer>,
-  mdistRangeN2VMT<mtreehelper::t11,MPointer,MPointer>,
-  mdistRangeN2VMT<mtreehelper::t12,MPointer,MPointer>
-};
 
 OperatorSpec mdistRangeN2Spec(
   "NTREE2 x MREL  x T (x U) x real -> stream(tuple) , NTREE2, "
@@ -6704,7 +6604,7 @@ Operator mdistRangeN2Op(
    "mdistRangeN2",
    mdistRangeN2Spec.getStr(),
    48,
-   mdistRangeN2VM,
+   mdistRangeNVM<2>,
    mdistRangeNSelect,
    mdistRangeNTM<2>
 );
@@ -6713,110 +6613,6 @@ Operator mdistRangeN2Op(
 Operator ~mdistRangeN5~
 
 */
-template<class K, class T, class R>
-int mdistRangeN5VMT(Word* args, Word& result, int message, Word& local,
-                    Supplier s) {
-  distRangeNInfo<K, StdDistComp<K>, 5>* li = 
-                              (distRangeNInfo<K, StdDistComp<K>, 5>*)local.addr;
-  switch (message) {
-    case OPEN : {
-      if (li) {
-        delete li;
-        local.addr = 0;
-      }
-      R* relN = (R*)args[1].addr;
-      MemoryRelObject* rel = getMemRel(relN, nl->Second(qp->GetType(s)));
-      if (!rel) {
-        return 0;
-      }
-      CcReal* range = (CcReal*)args[3].addr;
-      if (!range->IsDefined()) {
-        return 0;
-      }
-      double r = range->GetValue();
-      if (r < 0) {
-        return 0;
-      }
-      T* treeN = (T*)args[0].addr;
-      MemoryNtreeObject<K, StdDistComp<K>, 5>* n = getNtreeX<T, K, 5>(treeN);
-      if (!n) {
-        return 0;
-      }
-      K* key = (K*)args[2].addr;
-      local.addr = new distRangeNInfo<K, StdDistComp<K>, 5>(n, rel, key, r);
-      return 0;
-    }
-    case REQUEST: {
-      result.addr = li ? li->next() : 0;
-      return result.addr ? YIELD : CANCEL;
-    }
-    case CLOSE : {
-      if (li) {
-        mtreehelper::increaseCounter("counterMDistRangeN5", 
-                                     li->getNoDistFunCalls());
-        delete li;
-        local.addr = 0;
-      }
-      return 0;
-    }
-   }
-   return -1;
-}
-
-ValueMapping mdistRangeN5VM[] = {
-  mdistRangeN5VMT<mtreehelper::t1,Mem,Mem>,
-  mdistRangeN5VMT<mtreehelper::t2,Mem,Mem>,
-  mdistRangeN5VMT<mtreehelper::t3,Mem,Mem>,
-  mdistRangeN5VMT<mtreehelper::t4,Mem,Mem>,
-  mdistRangeN5VMT<mtreehelper::t5,Mem,Mem>,
-  mdistRangeN5VMT<mtreehelper::t6,Mem,Mem>,
-  mdistRangeN5VMT<mtreehelper::t7,Mem,Mem>,
-  mdistRangeN5VMT<mtreehelper::t8,Mem,Mem>,
-  mdistRangeN5VMT<mtreehelper::t9,Mem,Mem>,
-  mdistRangeN5VMT<mtreehelper::t10,Mem,Mem>,
-  mdistRangeN5VMT<mtreehelper::t11,Mem,Mem>,
-  mdistRangeN5VMT<mtreehelper::t12,Mem,Mem>,
-  
-  mdistRangeN5VMT<mtreehelper::t1,Mem,MPointer>,
-  mdistRangeN5VMT<mtreehelper::t2,Mem,MPointer>,
-  mdistRangeN5VMT<mtreehelper::t3,Mem,MPointer>,
-  mdistRangeN5VMT<mtreehelper::t4,Mem,MPointer>,
-  mdistRangeN5VMT<mtreehelper::t5,Mem,MPointer>,
-  mdistRangeN5VMT<mtreehelper::t6,Mem,MPointer>,
-  mdistRangeN5VMT<mtreehelper::t7,Mem,MPointer>,
-  mdistRangeN5VMT<mtreehelper::t8,Mem,MPointer>,
-  mdistRangeN5VMT<mtreehelper::t9,Mem,MPointer>,
-  mdistRangeN5VMT<mtreehelper::t10,Mem,MPointer>,
-  mdistRangeN5VMT<mtreehelper::t11,Mem,MPointer>,
-  mdistRangeN5VMT<mtreehelper::t12,Mem,MPointer>,
-  
-  mdistRangeN5VMT<mtreehelper::t1,MPointer,Mem>,
-  mdistRangeN5VMT<mtreehelper::t2,MPointer,Mem>,
-  mdistRangeN5VMT<mtreehelper::t3,MPointer,Mem>,
-  mdistRangeN5VMT<mtreehelper::t4,MPointer,Mem>,
-  mdistRangeN5VMT<mtreehelper::t5,MPointer,Mem>,
-  mdistRangeN5VMT<mtreehelper::t6,MPointer,Mem>,
-  mdistRangeN5VMT<mtreehelper::t7,MPointer,Mem>,
-  mdistRangeN5VMT<mtreehelper::t8,MPointer,Mem>,
-  mdistRangeN5VMT<mtreehelper::t9,MPointer,Mem>,
-  mdistRangeN5VMT<mtreehelper::t10,MPointer,Mem>,
-  mdistRangeN5VMT<mtreehelper::t11,MPointer,Mem>,
-  mdistRangeN5VMT<mtreehelper::t12,MPointer,Mem>,
-  
-  mdistRangeN5VMT<mtreehelper::t1,MPointer,MPointer>,
-  mdistRangeN5VMT<mtreehelper::t2,MPointer,MPointer>,
-  mdistRangeN5VMT<mtreehelper::t3,MPointer,MPointer>,
-  mdistRangeN5VMT<mtreehelper::t4,MPointer,MPointer>,
-  mdistRangeN5VMT<mtreehelper::t5,MPointer,MPointer>,
-  mdistRangeN5VMT<mtreehelper::t6,MPointer,MPointer>,
-  mdistRangeN5VMT<mtreehelper::t7,MPointer,MPointer>,
-  mdistRangeN5VMT<mtreehelper::t8,MPointer,MPointer>,
-  mdistRangeN5VMT<mtreehelper::t9,MPointer,MPointer>,
-  mdistRangeN5VMT<mtreehelper::t10,MPointer,MPointer>,
-  mdistRangeN5VMT<mtreehelper::t11,MPointer,MPointer>,
-  mdistRangeN5VMT<mtreehelper::t12,MPointer,MPointer>
-};
-
 OperatorSpec mdistRangeN5Spec(
   "NTREE5 x MREL  x T (x U) x real -> stream(tuple) , NTREE2, "
   "MREL represented as string, mem, or mpointer",
@@ -6832,7 +6628,7 @@ Operator mdistRangeN5Op(
    "mdistRangeN5",
    mdistRangeN5Spec.getStr(),
    48,
-   mdistRangeN5VM,
+   mdistRangeNVM<5>,
    mdistRangeNSelect,
    mdistRangeNTM<5>
 );
@@ -6841,110 +6637,6 @@ Operator mdistRangeN5Op(
 Operator ~mdistRangeN6~
 
 */
-template<class K, class T, class R>
-int mdistRangeN6VMT(Word* args, Word& result, int message, Word& local,
-                    Supplier s) {
-  distRangeNInfo<K, StdDistComp<K>, 6>* li = 
-                              (distRangeNInfo<K, StdDistComp<K>, 6>*)local.addr;
-  switch (message) {
-    case OPEN : {
-      if (li) {
-        delete li;
-        local.addr = 0;
-      }
-      R* relN = (R*)args[1].addr;
-      MemoryRelObject* rel = getMemRel(relN, nl->Second(qp->GetType(s)));
-      if (!rel) {
-        return 0;
-      }
-      CcReal* range = (CcReal*)args[3].addr;
-      if (!range->IsDefined()) {
-        return 0;
-      }
-      double r = range->GetValue();
-      if (r < 0) {
-        return 0;
-      }
-      T* treeN = (T*)args[0].addr;
-      MemoryNtreeObject<K, StdDistComp<K>, 6>* n = getNtreeX<T, K, 6>(treeN);
-      if (!n) {
-        return 0;
-      }
-      K* key = (K*)args[2].addr;
-      local.addr = new distRangeNInfo<K, StdDistComp<K>, 6>(n, rel, key, r);
-      return 0;
-    }
-    case REQUEST: {
-      result.addr = li ? li->next() : 0;
-      return result.addr ? YIELD : CANCEL;
-    }
-    case CLOSE : {
-      if (li) {
-        mtreehelper::increaseCounter("counterMDistRangeN6", 
-                                     li->getNoDistFunCalls());
-        delete li;
-        local.addr = 0;
-      }
-      return 0;
-    }
-   }
-   return -1;
-}
-
-ValueMapping mdistRangeN6VM[] = {
-  mdistRangeN6VMT<mtreehelper::t1,Mem,Mem>,
-  mdistRangeN6VMT<mtreehelper::t2,Mem,Mem>,
-  mdistRangeN6VMT<mtreehelper::t3,Mem,Mem>,
-  mdistRangeN6VMT<mtreehelper::t4,Mem,Mem>,
-  mdistRangeN6VMT<mtreehelper::t5,Mem,Mem>,
-  mdistRangeN6VMT<mtreehelper::t6,Mem,Mem>,
-  mdistRangeN6VMT<mtreehelper::t7,Mem,Mem>,
-  mdistRangeN6VMT<mtreehelper::t8,Mem,Mem>,
-  mdistRangeN6VMT<mtreehelper::t9,Mem,Mem>,
-  mdistRangeN6VMT<mtreehelper::t10,Mem,Mem>,
-  mdistRangeN6VMT<mtreehelper::t11,Mem,Mem>,
-  mdistRangeN6VMT<mtreehelper::t12,Mem,Mem>,
-  
-  mdistRangeN6VMT<mtreehelper::t1,Mem,MPointer>,
-  mdistRangeN6VMT<mtreehelper::t2,Mem,MPointer>,
-  mdistRangeN6VMT<mtreehelper::t3,Mem,MPointer>,
-  mdistRangeN6VMT<mtreehelper::t4,Mem,MPointer>,
-  mdistRangeN6VMT<mtreehelper::t5,Mem,MPointer>,
-  mdistRangeN6VMT<mtreehelper::t6,Mem,MPointer>,
-  mdistRangeN6VMT<mtreehelper::t7,Mem,MPointer>,
-  mdistRangeN6VMT<mtreehelper::t8,Mem,MPointer>,
-  mdistRangeN6VMT<mtreehelper::t9,Mem,MPointer>,
-  mdistRangeN6VMT<mtreehelper::t10,Mem,MPointer>,
-  mdistRangeN6VMT<mtreehelper::t11,Mem,MPointer>,
-  mdistRangeN6VMT<mtreehelper::t12,Mem,MPointer>,
-  
-  mdistRangeN6VMT<mtreehelper::t1,MPointer,Mem>,
-  mdistRangeN6VMT<mtreehelper::t2,MPointer,Mem>,
-  mdistRangeN6VMT<mtreehelper::t3,MPointer,Mem>,
-  mdistRangeN6VMT<mtreehelper::t4,MPointer,Mem>,
-  mdistRangeN6VMT<mtreehelper::t5,MPointer,Mem>,
-  mdistRangeN6VMT<mtreehelper::t6,MPointer,Mem>,
-  mdistRangeN6VMT<mtreehelper::t7,MPointer,Mem>,
-  mdistRangeN6VMT<mtreehelper::t8,MPointer,Mem>,
-  mdistRangeN6VMT<mtreehelper::t9,MPointer,Mem>,
-  mdistRangeN6VMT<mtreehelper::t10,MPointer,Mem>,
-  mdistRangeN6VMT<mtreehelper::t11,MPointer,Mem>,
-  mdistRangeN6VMT<mtreehelper::t12,MPointer,Mem>,
-  
-  mdistRangeN6VMT<mtreehelper::t1,MPointer,MPointer>,
-  mdistRangeN6VMT<mtreehelper::t2,MPointer,MPointer>,
-  mdistRangeN6VMT<mtreehelper::t3,MPointer,MPointer>,
-  mdistRangeN6VMT<mtreehelper::t4,MPointer,MPointer>,
-  mdistRangeN6VMT<mtreehelper::t5,MPointer,MPointer>,
-  mdistRangeN6VMT<mtreehelper::t6,MPointer,MPointer>,
-  mdistRangeN6VMT<mtreehelper::t7,MPointer,MPointer>,
-  mdistRangeN6VMT<mtreehelper::t8,MPointer,MPointer>,
-  mdistRangeN6VMT<mtreehelper::t9,MPointer,MPointer>,
-  mdistRangeN6VMT<mtreehelper::t10,MPointer,MPointer>,
-  mdistRangeN6VMT<mtreehelper::t11,MPointer,MPointer>,
-  mdistRangeN6VMT<mtreehelper::t12,MPointer,MPointer>
-};
-
 OperatorSpec mdistRangeN6Spec(
   "NTREE6 x MREL  x T (x U) x real -> stream(tuple) , NTREE6, "
   "MREL represented as string, mem, or mpointer",
@@ -6960,7 +6652,7 @@ Operator mdistRangeN6Op(
    "mdistRangeN6",
    mdistRangeN6Spec.getStr(),
    48,
-   mdistRangeN6VM,
+   mdistRangeNVM<6>,
    mdistRangeNSelect,
    mdistRangeNTM<6>
 );
@@ -22319,7 +22011,8 @@ Operator mmergejoinprojectOp(
 
 6.1.1 Type Mapping
 
-Applied for operators ~mcreatentree~, ~mcreatentree2~, ~mcreatentree5~, and ~mcreatentree6~.
+Applied for operators ~mcreatentree~, ~mcreatentree2~, ~mcreatentree5~,
+~mcreatentree6~, and ~mcreatentree7~.
 
 */
 template<int variant>
@@ -22813,6 +22506,58 @@ Operator mcreatentree6Op(
 );
 
 /*
+Operator ~mcreatentree7~
+
+*/
+ValueMapping mcreatentree7VM[] = {
+  mcreatentreeVMT<mtreehelper::t1, 7>,
+  mcreatentreeVMT<mtreehelper::t2, 7>,
+  mcreatentreeVMT<mtreehelper::t3, 7>,
+  mcreatentreeVMT<mtreehelper::t4, 7>,
+  mcreatentreeVMT<mtreehelper::t5, 7>,
+  mcreatentreeVMT<mtreehelper::t6, 7>,
+  mcreatentreeVMT<mtreehelper::t7, 7>,
+  mcreatentreeVMT<mtreehelper::t8, 7>,
+  mcreatentreeVMT<mtreehelper::t9, 7>,
+  mcreatentreeVMT<mtreehelper::t10, 7>,
+  mcreatentreeVMT<mtreehelper::t11, 7>,
+  mcreatentreeVMT<mtreehelper::t12, 7>
+};
+
+OperatorSpec mcreatentree7Spec(
+  "MREL(tuple) x attrname x int x int [x geoid] -> , mpointer(mem(mtree X))\n",
+  "mrel mcreatemtree7[indexAttr, degree, maxLeafSize, [, geoid] ]\n",
+  "This operator creates an N-tree7 in main memory. "
+  "The first argument is a main memory relation containing the "
+  "tuples to be indexed. The second argument refers to the attribute "
+  "over that the index is built. The next two arguments represent the degree of"
+  " the tree and and maximum number of entries in a leaf.\n"
+  "The last argument is optional. It must be of type geoid and "
+  "can only be used if the index-attribute is of type point, mpoint, cupoint, "
+  "or cmpoint. If this argument is present, the distance between two objects "
+  "is computed as geographic distance on this geoid instead of using the "
+  "Euclidean distance.\n In detail, the following types are supported:\n\n"
+  "  * point:   p1->Distance(*p2, geoid)\n"
+  "  * string:  stringutils::ld->(s1->GetValue(), s2->GetValue())\n"
+  "  * int:     abs(i1->GetValue() - i2->GetValue())\n"
+  "  * real:    abs(r1->GetValue() - r2->GetValue())\n"
+  "  * rect<d>: r1->Distance(*r2)\n"
+  "  * mpoint:  mp1->DistanceAvg(*mp2, geoid)\n"
+  "  * cupoint: cup1->DistanceAvg(*cup2, true, geoid)\n"
+  "  * cmpoint: cmp1->DistanceAvg(*cmp2, true, geoid)\n",
+  "let kinosM_ntree_GeoData =  kinosM mcreatentree5[GeoData, 5, 8]"
+);
+
+Operator mcreatentree7Op(
+   "mcreatentree7",
+   mcreatentree7Spec.getStr(),
+   12,
+   mcreatentree7VM,
+   mcreatentreeSelect,
+   mcreatentreeTM<7>
+);
+
+/*
 23 Algebra Definition
 
 */
@@ -22908,6 +22653,7 @@ class MainMemory2Algebra : public Algebra {
           AddOperator(&mcreatentree2Op);
           AddOperator(&mcreatentree5Op);
           AddOperator(&mcreatentree6Op);
+          AddOperator(&mcreatentree7Op);
           
   ////////////////////// MainMemory2Algebra////////////////////////////
           

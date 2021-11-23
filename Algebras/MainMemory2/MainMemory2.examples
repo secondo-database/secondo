@@ -318,6 +318,12 @@ Signature : MREL x IDENT x int x int [x geoid] -> (mpointer(mem(ntree ...) )
 Example   : let mKinos_GeoData_ntree6 = mKinos mcreatentree6[GeoData, 4, 8]
 Result    : ()
 
+Operator  : mcreatentree7
+Number    : 1917
+Signature : MREL x IDENT x int x int [x geoid] -> (mpointer(mem(ntree ...) )
+Example   : let mKinos_GeoData_ntree7 = mKinos mcreatentree7[GeoData, 4, 8]
+Result    : ()
+
 Operator  : mdistRangeN
 Number    : 1910
 Signature : NTREE(T) x MREL(X) x T (x U) x real -> stream(tuple(X))
