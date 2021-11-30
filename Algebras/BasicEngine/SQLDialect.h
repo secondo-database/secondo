@@ -84,13 +84,12 @@ class SQLDialect {
 
     // Abstract SQL queries
     virtual std::string getDropIndexSQL(const std::string &table,
-                                const std::string &column) = 0;
+                                        const std::string &column) = 0;
 
-    virtual std::string getExportDataForWorkerSQL(const std::string &table, 
-                  const std::string &exportFile,
-                  size_t worker,
-                  size_t numberOfWorker) = 0;
-
+    virtual std::string
+    getExportDataForPartitionSQL(const std::string &table,
+                                 const std::string &exportFile,
+                                 size_t partition) = 0;
 };
 
 }

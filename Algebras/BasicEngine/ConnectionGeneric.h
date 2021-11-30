@@ -96,10 +96,9 @@ public:
                              const std::string &gridname,
                              const std::string &targetTab);
 
-  virtual void exportDataForWorker(const std::string &table,
+  virtual void exportDataForPartition(const std::string &table,
                                        const std::string &exportFile, 
-                                       size_t worker,
-                                       size_t numberOfWorker);
+                                       size_t partition);
 
   virtual std::string getImportTableSQL(const std::string &table,
                                         const std::string &full_path) = 0;

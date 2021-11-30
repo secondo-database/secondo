@@ -51,13 +51,13 @@ Version 1.0 - Created - C.Behrndt - 2020
 namespace BasicEngine {
 
 /*
-2 ENum ~PartitionMode~
+1.0 ENum ~PartitionMode~
 
 */
 enum PartitionMode {hash, rr, random, grid, fun};
 
 /*
-2 Struct ~PartitonData~
+1.1 Struct ~PartitonData~
 
 */
 typedef struct {
@@ -74,7 +74,7 @@ typedef struct {
 } PartitionData;
 
 /*
-2 Struct ~RemoteConnectionInfo~
+1.2 Struct ~RemoteConnectionInfo~
 
 */
 struct RemoteConnectionInfo {
@@ -86,6 +86,12 @@ struct RemoteConnectionInfo {
   std::string dbPort;
   std::string dbName;
 };
+
+/*
+1.3 identifyer for distributed tables
+
+*/
+#define DISTRIBUTED_TABLE_MARKER "_D"
 
 /*
 2 Class ~BasicEngine\_Control~
@@ -296,7 +302,9 @@ distributed2::ConnectionInfo* createConnection(
   std::string partGrid(const std::string &tab, const std::string &key, 
     const std::string &geo_col, const std::string &gridname, size_t slotsize);
 
-  bool exportData(const std::string &table, size_t noOfWorker);
+  std::map<size_t, size_t> exportAllPartitions(const std::string &table,
+                                               size_t noOfPartitions,
+                                               size_t noOfWorker);
 
   bool importData(const std::string &tab);
 

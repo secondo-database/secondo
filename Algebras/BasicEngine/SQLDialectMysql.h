@@ -41,14 +41,13 @@ public:
     return "DROP INDEX " + column + " ON " + table + ";";
   }
 
-  std::string getExportDataForWorkerSQL(const std::string &table,
+  std::string getExportDataForPartitionSQL(const std::string &table,
                                         const std::string &exportFile, 
-                                        size_t worker,
-                                        size_t numberOfWorker) {
+                                        size_t partition) {
 
-    return "SELECT * FROM " + table + " WHERE (" + be_partition_slot + " % " +
-           std::to_string(numberOfWorker) + ") = " + std::to_string(worker) +
-           " INTO OUTFILE '" + exportFile + "' CHARACTER SET utf8;";
+    return "SELECT * FROM " + table + " WHERE (" + be_partition_slot 
+          + " = " + std::to_string(partition) + " INTO OUTFILE '" 
+          + exportFile + "' CHARACTER SET utf8;";
   }
 };
 

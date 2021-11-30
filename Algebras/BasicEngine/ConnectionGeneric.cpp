@@ -266,13 +266,12 @@ void ConnectionGeneric::dropIndex(const std::string &table,
 Creating a statement for exporting the data from a portioning table.
 
 */
-void ConnectionGeneric::exportDataForWorker(const string &table, 
+void ConnectionGeneric::exportDataForPartition(const string &table, 
                   const string &exportFile,
-                  size_t worker,
-                  size_t numberOfWorker) {
+                  size_t partition) {
   
-    string exportDataSQL = sqlDialect -> getExportDataForWorkerSQL(
-            table, exportFile, worker, numberOfWorker);
+    string exportDataSQL = sqlDialect -> getExportDataForPartitionSQL(
+            table, exportFile, partition);
 
     BOOST_LOG_TRIVIAL(debug) 
       << "Export partition statement is: " << exportDataSQL;

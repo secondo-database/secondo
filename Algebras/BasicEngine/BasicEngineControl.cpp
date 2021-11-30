@@ -265,7 +265,7 @@ bool BasicEngineControl::exportWorkerRelationToWorker(ConnectionInfo* ci,
 Creating all connection from the worker relation.
 
 */
-bool BasicEngineControl::createAllConnections(){
+bool BasicEngineControl::createAllConnections() {
 
   optional<string> workerRelationFileName = nullopt;
 
@@ -279,17 +279,10 @@ bool BasicEngineControl::createAllConnections(){
     return false;
   }
 
-  // Share the worker relation with the clients
+  // Export the worker relation with the clients
   if(master) {
-    try {
-      string exportedFile = exportWorkerRelation(workerRelationName);
-      workerRelationFileName.emplace(exportedFile); 
-    } catch(std::exception &e) {
-      BOOST_LOG_TRIVIAL(error) 
-        << "Got an exception during export worker relation" 
-        << e.what();
-      return false;
-    }
+    string exportedFile = exportWorkerRelation(workerRelationName);
+    workerRelationFileName.emplace(exportedFile); 
   }
 
   vector<std::future<ConnectionInfo*>> connectionFutures;
@@ -540,18 +533,16 @@ Repartition the given table - worker version
       break;
 
     default:
-      BOOST_LOG_TRIVIAL(error) << "Unknown partition mode" << partitionMode;
+      BOOST_LOG_TRIVIAL(error) << "Unknown partition mode: " << partitionMode;
       return false;
     }
 
-    // Export data
-    bool exportDataResult = exportData(resultTable,
-                                       remoteConnectionInfos.size());
+    // Export all partitions of the relation into the filesystem and 
+    // generate a mapping between the paritions and the worker
+    map<size_t, size_t> partitionWorkerMapping = exportAllPartitions(
+        resultTable, partitionData.slotnum, remoteConnectionInfos.size());
 
-    if (!exportDataResult) {
-      BOOST_LOG_TRIVIAL(error) << "Unable to export table data";
-      return false;
-    }
+    // TODO: Handle created mapping properly and return a DArray
 
     string destinationTable;
     bool transferSchemaFile;
@@ -981,30 +972,38 @@ string BasicEngineControl::partGrid(const std::string &tab,
     gridTable, partTabName);
 
   return partTabName;
-} 
+}
 
 /*
-3.12 ~exportData~
+3.12 ~exportAllPartitions~
 
-Exporting the data from the DBMS to a local file.
-Returns true if everything is OK and there are no failure.
+Exports all paritions of the given table into files into the filesystem
+
+The mapping between the partitions and the worker will be returned
 
 */
-bool BasicEngineControl::exportData(const string &table,
-                                    size_t noOfWorker) {
+std::map<size_t, size_t> BasicEngineControl::exportAllPartitions(
+    const string &table, size_t noOfPartitions, size_t noOfWorker) {
 
-  try {
-    for (size_t i = 0; i < remoteConnectionInfos.size(); i++) {
-
-      string exportFile = dbms_connection->getFilenameForPartition(table, i);
-
-      dbms_connection->exportDataForWorker(table, exportFile, i, noOfWorker);
-    }
-  } catch (SecondoException &e) {
-    return false;
+  // Create the mapping between the partitions and the worker
+  std::map<size_t, size_t> partitionWorkerMapping;
+  for (size_t partition = 0; partition < noOfPartitions; partition++) {
+    size_t worker = partition % noOfWorker;
+    partitionWorkerMapping[partition] = worker;
+    BOOST_LOG_TRIVIAL(debug)
+        << "Mapped partition " << partition << " to worker " << worker;
   }
 
-  return true;
+  // Export the partitions
+  for (auto iter = partitionWorkerMapping.cbegin();
+       iter != partitionWorkerMapping.cend(); iter++) {
+    size_t partition = iter->first;
+    string exportFile =
+        dbms_connection->getFilenameForPartition(table, partition);
+    dbms_connection->exportDataForPartition(table, exportFile, partition);
+  }
+
+  return partitionWorkerMapping;
 }
 
 /*
@@ -1188,10 +1187,9 @@ Returns true if everything is OK and there are no failure.
 */
 bool BasicEngineControl::mcommand(const string &query) {
 
-  bool val = true;
   vector<std::future<bool>> futures;
 
-  //doing the command with one thread for each worker
+  // Executing the command in a parallel manner
   for(distributed2::ConnectionInfo* ci : connections) {
     std::future<bool> asyncResult = std::async(
     &BasicEngineControl::performBECommand, 
@@ -1200,12 +1198,13 @@ bool BasicEngineControl::mcommand(const string &query) {
     futures.push_back(std::move(asyncResult));
   }
 
-  //waiting for finishing the threads
+  // Check that all futures are executed sucesfully
+  bool futureSucess = true;
   for(std::future<bool> &future : futures) {
-    val = future.get() && val;
+    futureSucess = future.get() && futureSucess;
   }
 
-  return val;
+  return futureSucess;
 }
 
 /*
