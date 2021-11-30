@@ -270,7 +270,7 @@ void ConnectionPostgres::partitionRoundRobin(const string &tab,
   // Apply sequence counter to the relation
   string selectSQL = "SELECT (nextval('temp_seq') %" 
     + to_string(anzSlots) + ""
-    " ) As " + be_partition_cellnumber + ",t.* FROM " + tab + " AS t";
+    " ) As " + be_partition_slot + ",t.* FROM " + tab + " AS t";
 
   string createTableSQL = sqlDialect 
     -> getCreateTableFromPredicateSQL(targetTab, selectSQL);
@@ -299,7 +299,7 @@ void ConnectionPostgres::partitionHash(const string &tab, const string &key,
 
   string select = "SELECT (get_byte(decode(md5(concat("
         "" + usedKey + ")),'hex'),15) %"
-        " " + to_string(anzSlots) + " ) As " + be_partition_cellnumber + ","
+        " " + to_string(anzSlots) + " ) As " + be_partition_slot + ","
         "t.* FROM "+ tab + " AS t";
 
   string createTableSQL = sqlDialect 
