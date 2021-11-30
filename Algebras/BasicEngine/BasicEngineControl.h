@@ -302,9 +302,9 @@ distributed2::ConnectionInfo* createConnection(
   std::string partGrid(const std::string &tab, const std::string &key, 
     const std::string &geo_col, const std::string &gridname, size_t slotsize);
 
-  std::map<size_t, size_t> exportAllPartitions(const std::string &table,
-                                               size_t noOfPartitions,
-                                               size_t noOfWorker);
+  std::map<size_t, distributed2::ConnectionInfo *>
+  exportAllPartitions(const std::string &table, size_t noOfPartitions,
+                      size_t noOfWorker);
 
   bool importData(const std::string &tab);
 

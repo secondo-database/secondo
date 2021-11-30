@@ -539,7 +539,7 @@ Repartition the given table - worker version
 
     // Export all partitions of the relation into the filesystem and 
     // generate a mapping between the paritions and the worker
-    map<size_t, size_t> partitionWorkerMapping = exportAllPartitions(
+    map<size_t, ConnectionInfo*> partitionWorkerMapping = exportAllPartitions(
         resultTable, partitionData.slotnum, remoteConnectionInfos.size());
 
     // TODO: Handle created mapping properly and return a DArray
@@ -982,13 +982,14 @@ Exports all paritions of the given table into files into the filesystem
 The mapping between the partitions and the worker will be returned
 
 */
-std::map<size_t, size_t> BasicEngineControl::exportAllPartitions(
+std::map<size_t, ConnectionInfo*> BasicEngineControl::exportAllPartitions(
     const string &table, size_t noOfPartitions, size_t noOfWorker) {
 
   // Create the mapping between the partitions and the worker
-  std::map<size_t, size_t> partitionWorkerMapping;
+  std::map<size_t, ConnectionInfo*> partitionWorkerMapping;
   for (size_t partition = 0; partition < noOfPartitions; partition++) {
-    size_t worker = partition % noOfWorker;
+    size_t workerId = partition % noOfWorker;
+    ConnectionInfo* worker = connections[workerId];
     partitionWorkerMapping[partition] = worker;
     BOOST_LOG_TRIVIAL(debug)
         << "Mapped partition " << partition << " to worker " << worker;
