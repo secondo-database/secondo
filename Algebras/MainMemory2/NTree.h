@@ -255,7 +255,7 @@ class NTreeNode {
 //       }
     return result;
   }
-  
+    
   void precomputeDistances(DistComp& dc, const bool isLeaf) {
     double maxDist = 0.0;
     refDistPos = std::make_tuple(0, 0, 0);
@@ -1021,6 +1021,10 @@ class RangeIteratorN {
         collectResultsNtree6(root);
         break;
       }
+      case 7: {
+        collectResultsNtree7(root);
+        break;
+      }
       default: {
         assert(false);
         break;
@@ -1201,6 +1205,53 @@ class RangeIteratorN {
         }
       }
     }
+  }
+  
+  int rangeCenters2(node_t* node, const T& o, DistComp& dc, const double r) {
+    // used for collectResultsNtree7
+    // TODO: change: adapt to new invocation structure
+    double d_min, d_iq, maxDist_i;
+    int c_q;
+    if (node->isLeaf) {
+      c_q = ((leafnode_t*)node)->getNearestCenterPos(o, dc, d_min);
+      for (int i = 0; i < node->getCount(); i++) {
+        d_iq = node->getPrecomputedDist(c_q, i, true);
+        if (d_iq + d_min <= r) {
+          results.push_back(node->getObject(i)->getTid());
+        }
+        else if (d_iq - d_min <= r) {
+          if (dc(((leafnode_t*)node)->getObject(i), o) <= r) {
+            results.push_back(node->getObject(i)->getTid());
+          }
+        }
+      }
+    }
+    else {
+      c_q = ((innernode_t*)node)->getNearestCenterPos(o, dc, d_min);
+      for (int i = 0; i < node->getCount(); i++) {
+        if (i != c_q) {
+          d_iq = node->getPrecomputedDist(c_q, i, false);
+          maxDist_i = node->getMaxDist(i);
+          if (d_iq + d_min + maxDist_i <= r) {
+            reportEntireSubtree(node->getChild(i));
+          }
+          else if (d_iq - d_min - maxDist_i <= r && d_iq <= 2 * d_min + 2 * r) {
+            if (d_iq <= 2 * r) {
+              collectResultsNtree7(node->getChild(i));
+            }
+            else if (dc(queryObject, node->getChild(i)) <= d_min + 2 * r) {
+              collectResultsNtree7(node->getChild(i));
+            }
+          }
+        }
+      }
+    }
+    
+    return c_q;
+  }
+  
+  void collectResultsNtree7(node_t* node) { // rangeCenters2(C, q, r)
+    
   }
 
   const TupleId next() {

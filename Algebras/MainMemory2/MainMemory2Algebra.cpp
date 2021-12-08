@@ -6309,7 +6309,8 @@ Operator mdistRangeOp(
 /*
 Operator ~mdistRangeNx~
 
-Type Mapping, used for mdistRangeN, mdistRangeN2, mdistRangeN5, and mdistRangeN6
+Type Mapping, used for mdistRangeN, mdistRangeN2, mdistRangeN5, mdistRangeN6,
+and mdistRange7
 
 */
 template<int variant>
@@ -6655,6 +6656,30 @@ Operator mdistRangeN6Op(
    mdistRangeNVM<6>,
    mdistRangeNSelect,
    mdistRangeNTM<6>
+);
+
+/*
+Operator ~mdistRangeN7~
+
+*/
+OperatorSpec mdistRangeN7Spec(
+  "NTREE6 x MREL  x T (x U) x real -> stream(tuple) , NTREE6, "
+  "MREL represented as string, mem, or mpointer",
+  "mem_ntree7 mem_rel mdistRangeN7[keyAttr, maxDist] ",
+  "Retrieves those tuples from a memory relation "
+  "having a distance smaller or equal to a given distance "
+  "to a key value (or pair of key values). This operation is aided by a memory "
+  "based ntree7.",
+  "query mkinos_ntree7 mKinos mdistRangeN7[alexanderplatz, 2000.0] count"
+);
+
+Operator mdistRangeN7Op(
+   "mdistRangeN7",
+   mdistRangeN7Spec.getStr(),
+   48,
+   mdistRangeNVM<7>,
+   mdistRangeNSelect,
+   mdistRangeNTM<7>
 );
 
 /*
@@ -22638,6 +22663,7 @@ class MainMemory2Algebra : public Algebra {
           AddOperator(&mdistRangeN2Op);
           AddOperator(&mdistRangeN5Op);
           AddOperator(&mdistRangeN6Op);
+          AddOperator(&mdistRangeN7Op);
 
           AddOperator(&mdistScanOp);
 
