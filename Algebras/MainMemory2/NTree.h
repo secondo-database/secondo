@@ -1207,51 +1207,123 @@ class RangeIteratorN {
     }
   }
   
-  int rangeCenters2(node_t* node, const T& o, DistComp& dc, const double r) {
-    // used for collectResultsNtree7
-    // TODO: change: adapt to new invocation structure
-    double d_min, d_iq, maxDist_i;
-    int c_q;
-    if (node->isLeaf) {
-      c_q = ((leafnode_t*)node)->getNearestCenterPos(o, dc, d_min);
-      for (int i = 0; i < node->getCount(); i++) {
-        d_iq = node->getPrecomputedDist(c_q, i, true);
-        if (d_iq + d_min <= r) {
+  void prune2(node_t* node, bool cand[], int noCands, int c_i, double u) {
+    double d_ij, maxDist_j;
+    if (node->isLeaf()) {
+      for (int j = 0; j < noCands; j++) {
+        if (cand[j]) {
+          d_ij = node->getPrecomputedDist(c_i, j, true);
+          if (range > u + d_ij) {
+            results.push_back(node->getObject(j)->getTid());
+            cand[j] = false;
+          }
+          else if (range < abs(u - d_ij)) {
+            cand[j] = false;
+          }
+        }
+      }
+    }
+    else { // inner node
+      for (int j = 0; j < noCands; j++) {
+        if (cand[j]) {
+          d_ij = node->getPrecomputedDist(c_i, j, true);
+          maxDist_j = ((innernode_t*)node)->getMaxDist(j);
+          if (range > u + d_ij + maxDist_j) {
+            reportEntireSubtree(node->getChild(j));
+            cand[j] = false;
+          }
+          else if (range < abs(u - d_ij) - maxDist_j) {
+            cand[j] = false;
+          }
+        }
+      }
+    }
+  }
+  
+  void rangeSearch2(node_t* node) { // used by collectResultsNtree7
+    int noCands = (node->isLeaf() ? node->getNoEntries() : node->getDegree());
+//     int nn_q;
+    bool cand[noCands], cand2[noCands]; // cand <=> C, cand2 <=> C'
+    std::fill_n(cand, noCands, true);
+    std::fill_n(cand2, noCands, false);
+    double us[noCands];
+    std::fill_n(us, noCands, DBL_MAX);
+    double u, maxDist_i;
+    double d_min = DBL_MAX;
+    for (int i = 0; i < noCands; i++) {
+      if (node->isLeaf()) {
+        u = dc(queryObject, *((leafnode_t*)node)->getObject(i));
+      }
+      else { // inner node
+        u = dc(queryObject, *((innernode_t*)node)->getCenter(i));
+      }
+      if (u < d_min) {
+//         nn_q = i;
+        d_min = u;
+      }
+      prune2(node, cand, noCands, i, u);
+      if (node->isLeaf()) {
+        if (range > u) {
           results.push_back(node->getObject(i)->getTid());
         }
-        else if (d_iq - d_min <= r) {
-          if (dc(((leafnode_t*)node)->getObject(i), o) <= r) {
+      }
+      else { // inner node
+        maxDist_i = ((innernode_t*)node)->getMaxDist(i);
+        if (range > u + maxDist_i) {
+          reportEntireSubtree(node);
+        }
+        else if (range > u - maxDist_i) {
+          cand2[i] = true;
+        }
+      }
+    }
+    for (int i = 0; i < noCands; i++) {
+      if (cand2[i] && us[i] <= d_min + 2 * range) {
+        rangeSearch2(node->getChild(i));
+      }
+    }
+    
+  }
+  
+  // combines rangeCenters2(C, q, r) and rangeSearch(q, r, p)
+  void collectResultsNtree7(node_t* node) { 
+    double d_min, d_iq, maxDist_i;
+    int c_q;
+    if (node->isLeaf()) {
+      c_q = ((leafnode_t*)node)->getNearestCenterPos(queryObject, dc, d_min);
+      for (int i = 0; i < node->getCount(); i++) {
+        d_iq = node->getPrecomputedDist(c_q, i, true);
+        if (d_iq + d_min <= range) {
+          results.push_back(node->getObject(i)->getTid());
+        }
+        else if (d_iq - d_min <= range) {
+          if (dc(((leafnode_t*)node)->getObject(i), queryObject) <= range) {
             results.push_back(node->getObject(i)->getTid());
           }
         }
       }
     }
     else {
-      c_q = ((innernode_t*)node)->getNearestCenterPos(o, dc, d_min);
+      c_q = ((innernode_t*)node)->getNearestCenterPos(queryObject, dc, d_min);
       for (int i = 0; i < node->getCount(); i++) {
         if (i != c_q) {
           d_iq = node->getPrecomputedDist(c_q, i, false);
-          maxDist_i = node->getMaxDist(i);
-          if (d_iq + d_min + maxDist_i <= r) {
+          maxDist_i = ((innernode_t*)node)->getMaxDist(i);
+          if (d_iq + d_min + maxDist_i <= range) {
             reportEntireSubtree(node->getChild(i));
           }
-          else if (d_iq - d_min - maxDist_i <= r && d_iq <= 2 * d_min + 2 * r) {
-            if (d_iq <= 2 * r) {
-              collectResultsNtree7(node->getChild(i));
+          else if (d_iq - d_min - maxDist_i <= range &&
+                   d_iq <= 2 * d_min + 2 * range) {
+            if (d_iq <= 2 * range) {
+              rangeSearch2(node->getChild(i));
             }
-            else if (dc(queryObject, node->getChild(i)) <= d_min + 2 * r) {
-              collectResultsNtree7(node->getChild(i));
+            else if (dc(queryObject, node->getChild(i)) <= d_min + 2 * range) {
+              rangeSearch2(node->getChild(i));
             }
           }
         }
       }
     }
-    
-    return c_q;
-  }
-  
-  void collectResultsNtree7(node_t* node) { // rangeCenters2(C, q, r)
-    
   }
 
   const TupleId next() {
