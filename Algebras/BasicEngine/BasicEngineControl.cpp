@@ -442,7 +442,7 @@ void BasicEngineControl::exportTableCreateStatementSQL(
 Repartition the given table
 
 */
-bool BasicEngineControl::repartitionTable(PartitionData &partitionData,
+DArray BasicEngineControl::repartitionTable(PartitionData &partitionData,
   const PartitionMode &repartitionMode) {
 
    BOOST_LOG_TRIVIAL(debug) << "Repartiton on "
@@ -487,7 +487,7 @@ bool BasicEngineControl::repartitionTable(PartitionData &partitionData,
 Repartition the given table - worker version
 
 */
-  bool BasicEngineControl::partitionTable(PartitionData &partitionData,
+  DArray BasicEngineControl::partitionTable(PartitionData &partitionData,
                                             const PartitionMode &partitionMode,
                                             const bool repartition) {
 
@@ -569,7 +569,11 @@ Repartition the given table - worker version
     BOOST_LOG_TRIVIAL(debug) << "Deleting temporary table" << resultTable;
     dbms_connection->dropTable(resultTable);
    
-    return true;
+    //TODO: Replace by actual DArray
+    std::vector<uint32_t> m;
+    DArray result(m,"");
+
+    return result;
   }
 
 /*
@@ -578,7 +582,7 @@ Repartition the given table - worker version
 Repartition the given table - master version
 
 */
-  bool BasicEngineControl::repartitionTableMaster(
+  DArray BasicEngineControl::repartitionTableMaster(
     const PartitionData &partitionData,
     const PartitionMode &repartitionMode) {
 
@@ -684,7 +688,11 @@ Repartition the given table - master version
         return false;
     }
 
-    return true;
+    // TODO: replace by actual DARray
+    std::vector<uint32_t> m;
+    DArray result(m,"");
+
+    return result;
 }
 
 /*
@@ -693,7 +701,7 @@ Repartition the given table - master version
 Repartition the given table by round hash
 
 */
-bool BasicEngineControl::partitionTableByHash(const std::string &table, 
+ DArray BasicEngineControl::partitionTableByHash(const std::string &table, 
   const std::string &key, const size_t slotnum, const bool repartition) {
 
     BOOST_LOG_TRIVIAL(debug) << "Partiton by hash called on " << table;
@@ -716,7 +724,7 @@ bool BasicEngineControl::partitionTableByHash(const std::string &table,
 Repartition the given table by round robin
 
 */
-bool BasicEngineControl::partitionTableByRR(const std::string &table, 
+DArray BasicEngineControl::partitionTableByRR(const std::string &table, 
   const size_t slotnum, const bool repartition) {
     
     BOOST_LOG_TRIVIAL(debug) << "Partiton by rr called on " << table;
@@ -738,7 +746,7 @@ bool BasicEngineControl::partitionTableByRR(const std::string &table,
 Repartition the given table by random
 
 */
-bool BasicEngineControl::partitionTableByRandom(const std::string &table, 
+DArray BasicEngineControl::partitionTableByRandom(const std::string &table, 
   const size_t slotnum, const bool repartition) {
     
     BOOST_LOG_TRIVIAL(debug) << "Partiton by random called on " << table;
@@ -760,7 +768,7 @@ bool BasicEngineControl::partitionTableByRandom(const std::string &table,
 Repartition the given table by random
 
 */
-bool BasicEngineControl::partitionTableByFun(const std::string &table, 
+DArray BasicEngineControl::partitionTableByFun(const std::string &table, 
     const std::string &key, const std::string &partitionfun, 
     const size_t slotnum, const bool repartition) {
 
@@ -783,7 +791,7 @@ bool BasicEngineControl::partitionTableByFun(const std::string &table,
 Repartition the given table by grid
 
 */    
-bool BasicEngineControl::partitionTableByGrid(const std::string &table, 
+DArray BasicEngineControl::partitionTableByGrid(const std::string &table, 
     const std::string &key, const size_t slotnum, 
     const std::string &attribute, const std::string &gridname, 
     const bool repartition) {

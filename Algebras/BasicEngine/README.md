@@ -365,7 +365,10 @@ query be_command('CREATE EXTENSION postgis')
 
 query be_mcommand("DROP TABLE roads")
 query be_mcommand("DROP TABLE roads_count")
-query be_part_hash("roads", "osm_id", 60)
+
+let roadsHash = be_part_hash("roads", "osm_id", 60)
+query roadsHash;
+
 query be_mquery('SELECT count(*) FROM roads', 'roads_count')
 query be_union('roads_count');
 
@@ -373,7 +376,9 @@ query be_collect('SELECT * FROM roads_count') consume
 query be_collect('SELECT * FROM roads_count') sum[Count]
 query be_collect('SELECT count(*) FROM roads') consume
 
-query be_partGrid(’roads’, ’gid’, ’geog’, 5.8, 50.3, 0.2, 20);
+query be_grid_create('mygrid', 5.8, 50.3, 0.2, 20, 20);
+let roadsGrid = be_partGrid(’roads’, ’gid’, ’geog’, 'mygrid', 20);
+query roadsGrid;
 ```
 
 ```
@@ -559,3 +564,16 @@ SELECT OGR_FID,ST_AsWKT(SHAPE),ST_SRID(SHAPE),osm_id,code,fclass,name FROM water
 CREATE TABLE water_import  SELECT * FROM water limit 0;
 LOAD DATA INFILE "/tmp/water" into table water_import CHARACTER SET utf8 (@col1, @col2, @col3, @col4, @col5, @col6, @col7) SET `OGR_FID` = @col1, SHAPE = ST_PolygonFromText(@col2, @col3), osm_id = @col4, code = @col5, fclass = @col6, name = @col7;
 ```
+
+# Todo
+
+[ ] Return `DArray` in partition functions
+[ ] Test partitioning based on slots
+[ ] Return `DArray` in repartition functions
+[ ] Test repartitioning based on slots
+[ ] Change mcommand to work on `DArray`s
+[ ] Change mquery to work on `DArray`s
+[ ] Implement mcommand2 operator for two `DArray`s
+[ ] Implement mquery2 operator for two `DArray`s
+[ ] Implement `gridintersects` SQL predicate
+

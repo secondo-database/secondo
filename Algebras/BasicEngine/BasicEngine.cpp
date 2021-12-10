@@ -44,6 +44,7 @@ Version 1.0 - Created - C.Behrndt - 2020
 #include <boost/algorithm/string/predicate.hpp>
 
 #include "Algebras/FText/FTextAlgebra.h"
+#include "Algebras/Distributed2/DArray.h"
 #include "StandardTypes.h"
 #include "BasicEngineControl.h"
 #include "GridManager.h"
@@ -308,7 +309,7 @@ to the worker and import the data
 
 */
 ListExpr be_partRRTM(ListExpr args){
-string err = "{string, text} x int -> bool"
+string err = "{string, text} x int --> DArray(SQLREL)"
        "(tab-name, key, number of slots) expected";
 
   if(!nl->HasLength(args,2)){
@@ -325,7 +326,7 @@ string err = "{string, text} x int -> bool"
                     "to be an integer.\n" + err);
   }
 
-  return nl->SymbolAtom(CcBool::BasicType());
+  return nl->SymbolAtom(DArray::BasicType());
 }
 
 /*
@@ -339,26 +340,31 @@ int be_partRandomSFVM(Word *args, Word &result, int message, Word &local,
 
   T *tab = (T *)args[0].addr;
   CcInt *slot = (CcInt *)args[1].addr;
-
-  bool val = false;
-  CcBool *res = (CcBool *)result.addr;
+  DArray *res = (DArray *)result.addr;
 
   try {
-    if (be_control && be_control->isMaster()) {
-      if (slot->GetIntval() > 0) {
-        val = be_control->partitionTableByRandom(tab->toText(),
-                                                    slot->GetIntval(), false);
-      } else {
-        cout << negSlots << endl;
-      }
-    } else {
+
+    if (be_control == nullptr || !be_control->isMaster()) {
       cout << noWorker << endl;
+      res->makeUndefined();
+      return 0;
     }
-    res->Set(true, val);
+
+    if (slot->GetIntval() <= 0) {
+      cout << negSlots << endl;
+      res->makeUndefined();
+      return 0;
+    }
+
+    DArray val = be_control->partitionTableByRandom(tab->toText(),
+                                                      slot->GetIntval(), false);
+    res->copyFrom(val);
+
   } catch (SecondoException &e) {
     BOOST_LOG_TRIVIAL(error)
         << "Got error while partitioning table " << e.what();
-    res->Set(true, false);
+    res->makeUndefined();
+    return 0;
   }
   return 0;
 }
@@ -368,7 +374,7 @@ int be_partRandomSFVM(Word *args, Word &result, int message, Word &local,
 
 */
 OperatorSpec be_partRandomSpec(
-   "{string, text} x int--> bool",
+   "{string, text} x int --> DArray(SQLREL)",
    "be_part_random(_,_)",
    "This operator distribute a relation by random "
    "to the worker. The number of slots have to be positiv "
@@ -431,26 +437,30 @@ int be_partRRSFVM(Word *args, Word &result, int message, Word &local,
 
   T *tab = (T *)args[0].addr;
   CcInt *slot = (CcInt *)args[1].addr;
-
-  bool val = false;
-  CcBool *res = (CcBool *)result.addr;
+  DArray *res = (DArray *)result.addr;
 
   try {
-    if (be_control && be_control->isMaster()) {
-      if (slot->GetIntval() > 0) {
-        val = be_control->partitionTableByRR(tab->toText(),
-                                                slot->GetIntval(), false);
-      } else {
-        cout << negSlots << endl;
-      }
-    } else {
+    if (be_control == nullptr || !be_control->isMaster()) {
       cout << noWorker << endl;
+      res->makeUndefined();
+      return 0;
     }
-    res->Set(true, val);
+
+    if (slot->GetIntval() <= 0) {
+      cout << negSlots << endl;
+      res->makeUndefined();
+      return 0;
+    }
+
+    DArray val =
+        be_control->partitionTableByRR(tab->toText(), slot->GetIntval(), false);
+    res->copyFrom(val);
+
   } catch (SecondoException &e) {
     BOOST_LOG_TRIVIAL(error)
         << "Got error while partitioning table " << e.what();
-    res->Set(true, false);
+    res->makeUndefined();
+    return 0;
   }
   return 0;
 }
@@ -460,7 +470,7 @@ int be_partRRSFVM(Word *args, Word &result, int message, Word &local,
 
 */
 OperatorSpec be_partRRSpec(
-   "{string, text} x int--> bool",
+   "{string, text} x int --> DArray(SQLREL)",
    "be_part_rr(_,_)",
    "This operator distribute a relation by round-robin "
    "to the worker. The number of slots have to be positiv "
@@ -510,7 +520,7 @@ This operator gets a tablename and key-list (semikolon seperated)
 
 */
 ListExpr be_partHashTM(ListExpr args){
-string err = "\n {string, text} x {string, text} x int--> bool"
+string err = "\n {string, text} x {string, text} x int --> DArray(SQLREL)"
        "(tab-name, key, number of slots) expected";
   if(!nl->HasLength(args,3)){
     return listutils::typeError("Three arguments expected. " + err);
@@ -530,7 +540,7 @@ string err = "\n {string, text} x {string, text} x int--> bool"
         "to be an integer." + err);
   }
 
-  return nl->SymbolAtom(CcBool::BasicType());
+  return nl->SymbolAtom(DArray::BasicType());
 }
 
 /*
@@ -546,26 +556,30 @@ int be_partHashSFVM(Word *args, Word &result, int message, Word &local,
   T *tab = (T *)args[0].addr;
   H *key = (H *)args[1].addr;
   CcInt *slot = (CcInt *)args[2].addr;
+  DArray *res = (DArray *)result.addr;
 
-  bool val = false;
-  CcBool *res = (CcBool *)result.addr;
   try {
-    if (be_control && be_control->isMaster()) {
-      if (slot->GetIntval() > 0) {
-        val = be_control->partitionTableByHash(tab->toText(), key->toText(),
-                                                  slot->GetIntval(), false);
-      } else {
-        cout << negSlots << endl;
-      }
-    } else {
+    if (be_control == nullptr || !be_control->isMaster()) {
       cout << noWorker << endl;
+      res->makeUndefined();
+      return 0;
     }
 
-    res->Set(true, val);
+    if (slot->GetIntval() <= 0) {
+      cout << negSlots << endl;
+      res->makeUndefined();
+      return 0;
+    }
+
+    DArray val = be_control->partitionTableByHash(tab->toText(), key->toText(),
+                                                   slot->GetIntval(), false);
+    res->copyFrom(val);
+
   } catch (SecondoException &e) {
     BOOST_LOG_TRIVIAL(error)
         << "Got error while partitioning table " << e.what();
-    res->Set(true, false);
+    res->makeUndefined();
+    return 0;
   }
 
   return 0;
@@ -576,7 +590,7 @@ int be_partHashSFVM(Word *args, Word &result, int message, Word &local,
 
 */
 OperatorSpec be_partHashSpec(
-   "{string, text} x {string, text} x int--> bool",
+   "{string, text} x {string, text} x int --> DArray(SQLREL)",
    "be_part_hash(_,_,_)",
    "This operator distribute a relation by hash-value "
    "to the worker. You can specified a multi key by separating "
@@ -633,34 +647,39 @@ This operator gets a tablename and key-list (semikolon seperated)
 and a function name
 
 */
-ListExpr be_partFunTM(ListExpr args){
-string err = "\n {string, text} x {string, text} x {string, text} x int--> bool"
-       "(tab-name, key, function-name, number of slots) expected";
+ListExpr be_partFunTM(ListExpr args) {
+  string err = "\n {string, text} x {string, text} x {string, text} x int --> "
+               "DArray(SQLREL)"
+               "(tab-name, key, function-name, number of slots) expected";
 
-  if(!nl->HasLength(args,4)){
+  if (!nl->HasLength(args, 4)) {
     return listutils::typeError("Four arguments expected. " + err);
   }
-  if(!CcString::checkType(nl->First(args))
-      && !FText::checkType(nl->First(args))){
+  if (!CcString::checkType(nl->First(args)) &&
+      !FText::checkType(nl->First(args))) {
     return listutils::typeError("Value of first argument have "
-        "to be a string or a text." + err);
+                                "to be a string or a text." +
+                                err);
   }
-  if(!CcString::checkType(nl->Second(args))
-      && !FText::checkType(nl->Second(args))){
+  if (!CcString::checkType(nl->Second(args)) &&
+      !FText::checkType(nl->Second(args))) {
     return listutils::typeError("Value of second argument have "
-        "to be a string or a text." + err);
+                                "to be a string or a text." +
+                                err);
   }
-  if(!CcString::checkType(nl->Third(args))
-      && !FText::checkType(nl->Third(args))){
+  if (!CcString::checkType(nl->Third(args)) &&
+      !FText::checkType(nl->Third(args))) {
     return listutils::typeError("Value of third argument have "
-        "to be a string or a text." + err);
+                                "to be a string or a text." +
+                                err);
   }
-  if(!CcInt::checkType(nl->Fourth(args))){
+  if (!CcInt::checkType(nl->Fourth(args))) {
     return listutils::typeError("Value of fourth argument have "
-        "to be an integer." + err);
+                                "to be an integer." +
+                                err);
   }
 
-  return nl->SymbolAtom(CcBool::BasicType());
+  return nl->SymbolAtom(DArray::BasicType());
 }
 
 /*
@@ -677,28 +696,31 @@ int be_partFunSFVM(Word *args, Word &result, int message, Word &local,
   H *key = (H *)args[1].addr;
   H *fun = (H *)args[2].addr;
   CcInt *slot = (CcInt *)args[3].addr;
-
-  bool val = false;
-  CcBool *res = (CcBool *)result.addr;
+  DArray *res = (DArray *)result.addr;
 
   try {
-    if (be_control && be_control->isMaster()) {
-      if (slot->GetIntval() > 0) {
-        val = be_control->partitionTableByFun(tab->toText(), key->toText(),
-                                                 fun->toText(),
-                                                 slot->GetIntval(), false);
-      } else {
-        cout << negSlots << endl;
-      }
-    } else {
+
+    if (be_control == nullptr || !be_control->isMaster()) {
       cout << noWorker << endl;
+      res->makeUndefined();
+      return 0;
     }
 
-    res->Set(true, val);
+    if (slot->GetIntval() <= 0) {
+      cout << negSlots << endl;
+      res->makeUndefined();
+      return 0;
+    }
+
+    DArray val = be_control->partitionTableByFun(
+        tab->toText(), key->toText(), fun->toText(), slot->GetIntval(), false);
+    res->copyFrom(val);
+
   } catch (SecondoException &e) {
     BOOST_LOG_TRIVIAL(error)
         << "Got error while partitioning table " << e.what();
-    res->Set(true, false);
+    res->makeUndefined();
+    return 0;
   }
 
   return 0;
@@ -709,7 +731,7 @@ int be_partFunSFVM(Word *args, Word &result, int message, Word &local,
 
 */
 OperatorSpec be_partFunSpec(
-   "{string, text} x {string, text} x {string, text} x int--> bool",
+   "{string, text} x {string, text} x {string, text} x int --> DArray(SQLREL)",
    "be_part_fun(_,_,_,_)",
    "This operator distribute a relation by a special function "
    "to the worker. Special functions are RR, Hash and random. "
@@ -2026,7 +2048,7 @@ leftbottom coordinates number of slots per row and column
 */
 ListExpr be_partGridTM(ListExpr args){
 string err = "\n {string, text} x {string, text} x {string, text} "
-             "x {string, text} x int --> bool"
+             "x {string, text} x int --> DArray(SQLREL)"
              "(tab-name,geo_col,primary key, grid name, number of slots)"
              " expected";
 
@@ -2063,7 +2085,7 @@ string err = "\n {string, text} x {string, text} x {string, text} "
         "to be a int." + err);
   }
 
-  return nl->SymbolAtom(CcBool::BasicType());
+  return nl->SymbolAtom(DArray::BasicType());
 }
 
 /*
@@ -2081,27 +2103,31 @@ int be_partGridSFVM(Word *args, Word &result, int message, Word &local,
   I *geo_col = (I *)args[2].addr;
   K *gridname = (K *)args[3].addr;
   CcInt *slot = (CcInt *)args[4].addr;
-
-  bool val = false;
-  CcBool *res = (CcBool *)result.addr;
+  DArray *res = (DArray *)result.addr;
 
   try {
-    if (be_control && be_control->isMaster()) {
-      if (slot->GetIntval() > 0) {
-        val = be_control->partitionTableByGrid(
-            tab->toText(), key->toText(), slot->GetIntval(), geo_col->toText(),
-            gridname->toText(), false);
-      } else {
-        cout << negSlots << endl;
-      }
-    } else {
+    if (be_control == nullptr || !be_control->isMaster()) {
       cout << noWorker << endl;
+      res->makeUndefined();
+      return 0;
     }
-    res->Set(true, val);
+
+    if (slot->GetIntval() <= 0) {
+      cout << negSlots << endl;
+      res->makeUndefined();
+      return 0;
+    }
+
+    DArray val = be_control->partitionTableByGrid(
+        tab->toText(), key->toText(), slot->GetIntval(), geo_col->toText(),
+        gridname->toText(), false);
+    res->copyFrom(val);
+
   } catch (SecondoException &e) {
     BOOST_LOG_TRIVIAL(error)
         << "Got error while partitioning table " << e.what();
-    res->Set(true, false);
+    res->makeUndefined();
+    return 0;
   }
 
   return 0;
@@ -2113,7 +2139,7 @@ int be_partGridSFVM(Word *args, Word &result, int message, Word &local,
 */
 OperatorSpec be_partGridSpec(
    "{string, text} x {string, text} x {string, text} "
-   "x {string, text} x int --> bool",
+   "x {string, text} x int --> DArray(SQLREL)",
    "be_part_grid(_,_,_,_,_)",
    "This operator distribute a relation by specified grid "
    "to the worker. You can specified the name of the grid. "
@@ -2190,7 +2216,7 @@ int be_partGridSelect(ListExpr args){
 Operator be_partGridOp(
   "be_part_grid",
   be_partGridSpec.getStr(),
-  sizeof(be_partHashVM),
+  sizeof(be_partGridVM),
   be_partGridVM,
   be_partGridSelect,
   be_partGridTM
@@ -2375,28 +2401,31 @@ int be_repartRandomSFVM(Word *args, Word &result, int message, Word &local,
 
   T *tab = (T *)args[0].addr;
   CcInt *slot = (CcInt *)args[1].addr;
-
-  bool val = false;
-  CcBool *res = (CcBool *)result.addr;
+  DArray *res = (DArray *)result.addr;
 
   try {
+
     if (be_control == nullptr) {
       cerr << "Please init basic engine first" << endl;
-      val = false;
-    } else {
-      if (slot->GetIntval() > 0) {
-        val = be_control->partitionTableByRandom(tab->toText(),
-                                                    slot->GetIntval(), true);
-      } else {
-        cout << negSlots << endl;
-      }
+      res->makeUndefined();
+      return 0;
     }
 
-    res->Set(true, val);
+    if (slot->GetIntval() <= 0) {
+      cout << negSlots << endl;
+      res->makeUndefined();
+      return 0;
+    }
+
+    DArray val = be_control->partitionTableByRandom(tab->toText(),
+                                                    slot->GetIntval(), true);
+
+    res->copyFrom(val);
   } catch (SecondoException &e) {
     BOOST_LOG_TRIVIAL(error)
         << "Got error while repartitioning the table " << e.what();
-    res->Set(true, false);
+    res->makeUndefined();
+    return 0;
   }
 
   return 0;
@@ -2407,7 +2436,7 @@ int be_repartRandomSFVM(Word *args, Word &result, int message, Word &local,
 
 */
 OperatorSpec be_repartRandomSpec(
-   "{string, text} x int--> bool",
+   "{string, text} x int --> DArray(SQLREL)",
    "be_repart_random(_,_)",
    "This operator repartition a relation by random "
    "to the worker. The number of slots have to be positive "
@@ -2463,28 +2492,31 @@ int be_repartRRSFVM(Word *args, Word &result, int message, Word &local,
 
   T *tab = (T *)args[0].addr;
   CcInt *slot = (CcInt *)args[1].addr;
-
-  bool val = false;
-  CcBool *res = (CcBool *)result.addr;
+  DArray *res = (DArray *)result.addr;
 
   try {
+
     if (be_control == nullptr) {
       cerr << "Please init basic engine first" << endl;
-      val = false;
-    } else {
-      if (slot->GetIntval() > 0) {
-        val = be_control->partitionTableByRR(tab->toText(),
-                                                slot->GetIntval(), true);
-      } else {
-        cout << negSlots << endl;
-      }
+      res->makeUndefined();
+      return 0;
     }
 
-    res->Set(true, val);
+    if (slot->GetIntval() <= 0) {
+      cout << negSlots << endl;
+      res->makeUndefined();
+      return 0;
+    }
+
+    DArray val =
+        be_control->partitionTableByRR(tab->toText(), slot->GetIntval(), true);
+    res->copyFrom(val);
+
   } catch (SecondoException &e) {
     BOOST_LOG_TRIVIAL(error)
         << "Got error while repartitioning the table" << e.what();
-    res->Set(true, false);
+    res->makeUndefined();
+    return 0;
   }
 
   return 0;
@@ -2495,7 +2527,7 @@ int be_repartRRSFVM(Word *args, Word &result, int message, Word &local,
 
 */
 OperatorSpec be_repartRRSpec(
-   "{string, text} x int--> bool",
+   "{string, text} x int --> DArray(SQLREL)",
    "be_repart_rr(_,_)",
    "This operator repartition a relation by round-robin "
    "to the worker. The number of slots have to be positive "
@@ -2551,28 +2583,31 @@ int be_repartHashSFVM(Word *args, Word &result, int message, Word &local,
   T *tab = (T *)args[0].addr;
   H *key = (H *)args[1].addr;
   CcInt *slot = (CcInt *)args[2].addr;
-
-  bool val = false;
-  CcBool *res = (CcBool *)result.addr;
+  DArray *res = (DArray *)result.addr;
 
   try {
+
     if (be_control == nullptr) {
       cerr << "Please init basic engine first" << endl;
-      val = false;
-    } else {
-      if (slot->GetIntval() > 0) {
-        val = be_control->partitionTableByHash(tab->toText(), key->toText(),
-                                                  slot->GetIntval(), true);
-      } else {
-        cout << negSlots << endl;
-      }
+      res->makeUndefined();
+      return 0;
     }
 
-    res->Set(true, val);
+    if (slot->GetIntval() <= 0) {
+      cout << negSlots << endl;
+      res->makeUndefined();
+      return 0;
+    }
+
+    DArray val = be_control->partitionTableByHash(tab->toText(), key->toText(),
+                                                  slot->GetIntval(), true);
+    res->copyFrom(val);
+
   } catch (SecondoException &e) {
     BOOST_LOG_TRIVIAL(error)
         << "Got error while repartitioning the table " << e.what();
-    res->Set(true, false);
+    res->makeUndefined();
+    return 0;
   }
 
   return 0;
@@ -2583,7 +2618,7 @@ int be_repartHashSFVM(Word *args, Word &result, int message, Word &local,
 
 */
 OperatorSpec be_repartHashSpec(
-   "{string, text} x {string, text} x int--> bool",
+   "{string, text} x {string, text} x int --> DArray(SQLREL)",
    "be_repart_hash(_,_,_)",
    "This operator repartition a relation by hash-value "
    "to the worker. You can specified a multi key by separating "
@@ -2644,29 +2679,33 @@ int be_repartGridSFVM(Word *args, Word &result, int message, Word &local,
   I *geo_col = (I *)args[2].addr;
   K *gridname = (K *)args[3].addr;
   CcInt *slot = (CcInt *)args[4].addr;
-
-  bool val = false;
-  CcBool *res = (CcBool *)result.addr;
+  DArray *res = (DArray *)result.addr;
 
   try {
+
     if (be_control == nullptr) {
       cerr << "Please init basic engine first" << endl;
-      val = false;
-    } else {
-      if (slot->GetIntval() > 0) {
-        val = be_control->partitionTableByGrid(
-            tab->toText(), key->toText(), slot->GetIntval(), geo_col->toText(),
-            gridname->toText(), true);
-      } else {
-        cout << negSlots << endl;
-      }
+      res->makeUndefined();
+      return 0;
     }
 
-    res->Set(true, val);
+    if (slot->GetIntval() <= 0) {
+      cout << negSlots << endl;
+      res->makeUndefined();
+      return 0;
+    }
+
+    DArray val = be_control->partitionTableByGrid(
+            tab->toText(), key->toText(), slot->GetIntval(), geo_col->toText(),
+            gridname->toText(), true);
+
+    res->copyFrom(val);
+
   } catch (SecondoException &e) {
     BOOST_LOG_TRIVIAL(error)
         << "Got error while repartitioning the table " << e.what();
-    res->Set(true, false);
+    res->makeUndefined();
+    return 0;
   }
 
   return 0;
@@ -2678,7 +2717,7 @@ int be_repartGridSFVM(Word *args, Word &result, int message, Word &local,
 */
 OperatorSpec be_repartGridSpec(
    "{string, text} x {string, text} x {string, text} "
-   "x {string, text} x int --> bool",
+   "x {string, text} x int --> DArray(SQLREL)",
    "be_repart_grid(_,_,_,_,_)",
    "This operator re-distribute a relation by specified grid "
    "to the worker. You can specified the name of the grid. "
@@ -2754,12 +2793,11 @@ int be_repartGridSelect(ListExpr args){
 Operator be_repartGridOp(
   "be_repart_grid",
   be_repartGridSpec.getStr(),
-  sizeof(be_repartHashVM),
+  sizeof(be_repartGridVM),
   be_repartGridVM,
   be_repartGridSelect,
   be_partGridTM
 );
-
 
 /*
 1.4.2 Value Mapping for the operator ~be\_repart\_fun~
@@ -2775,29 +2813,31 @@ int be_repartFunSFVM(Word *args, Word &result, int message, Word &local,
   H *key = (H *)args[1].addr;
   H *fun = (H *)args[2].addr;
   CcInt *slot = (CcInt *)args[3].addr;
-
-  bool val = false;
-  CcBool *res = (CcBool *)result.addr;
+  DArray *res = (DArray *)result.addr;
 
   try {
     if (be_control == nullptr) {
       cerr << "Please init basic engine first" << endl;
-      val = false;
-    } else {
-      if (slot->GetIntval() > 0) {
-        val = be_control->partitionTableByFun(tab->toText(), key->toText(),
-                                                 fun->toText(),
-                                                 slot->GetIntval(), true);
-      } else {
-        cout << negSlots << endl;
-      }
+      res->makeUndefined();
+      return 0;
     }
 
-    res->Set(true, val);
+    if (slot->GetIntval() <= 0) {
+      cout << negSlots << endl;
+      res->makeUndefined();
+      return 0;
+    }
+
+    DArray val = be_control->partitionTableByFun(
+        tab->toText(), key->toText(), fun->toText(), slot->GetIntval(), true);
+
+    res->copyFrom(val);
+
   } catch (SecondoException &e) {
     BOOST_LOG_TRIVIAL(error)
         << "Got error during the repartitioning of the table " << e.what();
-    res->Set(true, false);
+    res->makeUndefined();
+    return 0;
   }
 
   return 0;
@@ -2808,7 +2848,7 @@ int be_repartFunSFVM(Word *args, Word &result, int message, Word &local,
 
 */
 OperatorSpec be_repartFunSpec(
-   "{string, text} x {string, text} x {string, text} x int--> bool",
+   "{string, text} x {string, text} x {string, text} x int --> DArray(SQLREL)",
    "be_repart_fun(_,_,_,_)",
    "This operator redistribute a relation by a special function "
    "to the worker. Special functions are RR, Hash and random. "

@@ -44,6 +44,7 @@ Version 1.0 - Created - C.Behrndt - 2020
 #include <boost/algorithm/string.hpp>
 #include "Algebras/Relation-C++/RelationAlgebra.h"
 #include "Algebras/Distributed2/ConnectionInfo.h"
+#include "Algebras/Distributed2/DArray.h"
 #include "ConnectionGeneric.h"
 #include "ResultIteratorGeneric.h"
 #include "StandardTypes.h"
@@ -119,32 +120,33 @@ public:
 
   bool checkAllConnections();
 
-  bool repartitionTable(PartitionData &partitionData, 
+  distributed2::DArray repartitionTable(PartitionData &partitionData, 
     const PartitionMode &repartitionMode);
 
-  bool partitionTable(PartitionData &partitionData, 
+  distributed2::DArray partitionTable(PartitionData &partitionData, 
     const PartitionMode &repartitionMode, const bool repartition);
 
-  bool repartitionTableMaster(const PartitionData &partitionData, 
-    const PartitionMode &repartitionMode);
+  distributed2::DArray
+  repartitionTableMaster(const PartitionData &partitionData,
+                         const PartitionMode &repartitionMode);
 
-  bool partitionTableByHash(const std::string &tab, 
+  distributed2::DArray partitionTableByHash(const std::string &tab, 
     const std::string &key, const size_t slotnum,
     const bool repartition);
 
-  bool partitionTableByRR(const std::string &tab, 
+  distributed2::DArray partitionTableByRR(const std::string &tab, 
     const size_t slotnum, const bool repartition);
 
-  bool partitionTableByFun(const std::string &tab, 
+  distributed2::DArray partitionTableByFun(const std::string &tab, 
     const std::string &key, const std::string &fun, 
     const size_t slotnum, const bool repartition);
 
-  bool partitionTableByGrid(const std::string &table, 
+  distributed2::DArray partitionTableByGrid(const std::string &table, 
     const std::string &key, const size_t slotnum, 
     const std::string &attribute, const std::string &gridname, 
     const bool repartition);
 
-  bool partitionTableByRandom(const std::string &tab, 
+  distributed2::DArray partitionTableByRandom(const std::string &tab, 
     const size_t slotnum, const bool repartition);
 
   void exportTableCreateStatementSQL(const std::string &table, 
