@@ -1,0 +1,44 @@
+name: Commit check
+
+on: [push, pull_request]
+
+jobs:
+   build:
+      runs-on: ubuntu-latest
+      steps:
+
+      - name: checkout repo
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      - name: Install package
+        run: |
+           sudo apt-get -y install flex libfl-dev
+
+      - name: build checkpd
+        working-directory: Tools/pd
+        run: make
+
+      - name: build checkusing
+        working-directory: Tools/usingcheck
+        run: make
+
+      - name: Get changed C/C++ files
+        id: changed-files-specific
+        uses: tj-actions/changed-files@v11.9
+        with:
+           files:
+              .(c|cpp|cxx|h|hpp|hxx)$
+
+      - name: List all modified files
+        run: |
+          export PATH=$PATH:$GITHUB_WORKSPACE/Tools/usingcheck
+          export PATH=$PATH:$GITHUB_WORKSPACE/Tools/pd
+          for file in ${{ steps.changed-files-specific.outputs.all_modified_files }}; do
+            echo "$file was modified"
+            ./Tools/usingcheck/usingcheck $file
+            ./Tools/pd/checkpd $file
+          done
+
+
