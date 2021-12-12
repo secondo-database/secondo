@@ -31,7 +31,7 @@ jobs:
            files:
               .(c|cpp|cxx|h|hpp|hxx)$
 
-      - name: List all modified files
+      - name: Process all modified source files
         run: |
           export PATH=$PATH:$GITHUB_WORKSPACE/Tools/usingcheck
           export PATH=$PATH:$GITHUB_WORKSPACE/Tools/pd
