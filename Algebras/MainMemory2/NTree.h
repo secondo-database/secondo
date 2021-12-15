@@ -399,7 +399,7 @@ class NTreeInnerNode : public NTreeNode<T, DistComp, variant> {
         delete[] maxDist;
       }
     }
-    if (variant == 2 || variant == 6) {
+    if (variant == 2 || variant >= 6) {
       node_t::deleteAuxStructures(degree);
     }
   }
@@ -446,7 +446,7 @@ class NTreeInnerNode : public NTreeNode<T, DistComp, variant> {
   }
   
   int getNearestCenterPos(const T& o, DistComp& dc, double& minDist) {
-    if (variant == 2 || variant == 6) { // N-tree2
+    if (variant == 2 || variant >= 6) { // N-tree2
       std::tuple<double, double, double> odist3d;
       if (candOrder == PIVOT2) {
         odist3d = std::make_tuple(dc(o, *(centers[std::get<0>(refDistPos)])),
@@ -542,7 +542,7 @@ class NTreeInnerNode : public NTreeNode<T, DistComp, variant> {
       res->centers[i] = new T(*(centers[i]));
       res->children[i] = children[i]->clone();
     }
-    if (variant == 2) {
+    if (variant == 2 || variant >= 6) {
       res->initAuxStructures(node_t::degree);
       res->distMatrix = this->distMatrix;
       res->refDistPos = this->refDistPos;
@@ -641,6 +641,12 @@ class NTreeInnerNode : public NTreeNode<T, DistComp, variant> {
         // TODO
         break;
       }
+      case 3: { // fixed
+        for (int i = 0; i < node_t::degree; i++) {
+          centers[i] = new T(contents[i]);
+        }
+        break;
+      }
       default: {
         assert(false);
       }
@@ -653,7 +659,7 @@ class NTreeInnerNode : public NTreeNode<T, DistComp, variant> {
     partitions.resize(node_t::degree);
     double dist(-1.0), centerDist(-1.0);
     int partitionPos = -1;
-    if (variant == 2 || variant == 6) { // NTree2
+    if (variant == 2 || variant >= 6) { // NTree2
       for (unsigned int i = 0; i < contents.size(); i++) {
         for (int j = 0; j < degree; j++) {
           if (contents[i].getTid() == centers[j]->getTid()) {
@@ -730,7 +736,7 @@ class NTreeInnerNode : public NTreeNode<T, DistComp, variant> {
     int noDistFunCallsBefore = dc.getNoDistFunCalls();
     depth++;
     computeCenters(contents, partitionStrategy);
-    if (variant == 2 || variant == 6) {
+    if (variant == 2 || variant >= 6) {
       node_t::initAuxStructures(degree);
       node_t::precomputeDistances(dc, false);
     }
@@ -797,7 +803,7 @@ class NTreeLeafNode : public NTreeNode<T, DistComp, variant> {
                                                          NTreeLeafNode(d, mls) {
     insert(contents, centerTid);
     int noDistFunCallsBefore = dc.getNoDistFunCalls();
-    if (variant == 2) {
+    if (variant == 2 || variant >= 6) {
       node_t::initAuxStructures(getNoEntries());
       node_t::precomputeDistances(dc, true);
     }
@@ -812,7 +818,7 @@ class NTreeLeafNode : public NTreeNode<T, DistComp, variant> {
       }
     }
     delete[] entries;
-    if (variant == 2) {
+    if (variant == 2 || variant >= 6) {
       node_t::deleteAuxStructures(getNoEntries());
     }
   }
@@ -888,7 +894,7 @@ class NTreeLeafNode : public NTreeNode<T, DistComp, variant> {
   }
   
   int getNearestCenterPos(const T& o, DistComp& dc, double& minDist) {
-    if (variant == 2) {
+    if (variant == 2 || variant >= 6) {
       std::tuple<double, double, double> odist3d;
       if (node_t::candOrder == PIVOT2) {
         odist3d = std::make_tuple(dc(o, *(entries[std::get<0>(refDistPos)])),
@@ -1208,13 +1214,18 @@ class RangeIteratorN {
   }
   
   void prune2(node_t* node, bool cand[], int noCands, int c_i, double u) {
+    cout << "Prune2, cand at start: ";
+    for (int j = 0; j < noCands; j++) {
+      cout << cand[j] << " ";
+    }
+    cout << endl;
     double d_ij, maxDist_j;
     if (node->isLeaf()) {
       for (int j = 0; j < noCands; j++) {
         if (cand[j]) {
           d_ij = node->getPrecomputedDist(c_i, j, true);
           if (range > u + d_ij) {
-            results.push_back(node->getObject(j)->getTid());
+            results.push_back(((leafnode_t*)node)->getObject(j)->getTid());
             cand[j] = false;
           }
           else if (range < abs(u - d_ij)) {
@@ -1226,7 +1237,7 @@ class RangeIteratorN {
     else { // inner node
       for (int j = 0; j < noCands; j++) {
         if (cand[j]) {
-          d_ij = node->getPrecomputedDist(c_i, j, true);
+          d_ij = node->getPrecomputedDist(c_i, j, false);
           maxDist_j = ((innernode_t*)node)->getMaxDist(j);
           if (range > u + d_ij + maxDist_j) {
             reportEntireSubtree(node->getChild(j));
@@ -1238,89 +1249,138 @@ class RangeIteratorN {
         }
       }
     }
+    cout << "  ===> cand at end: ";
+    for (int j = 0; j < noCands; j++) {
+      cout << cand[j];
+    }
+    cout << endl;
   }
   
   void rangeSearch2(node_t* node) { // used by collectResultsNtree7
     int noCands = (node->isLeaf() ? node->getNoEntries() : node->getDegree());
-//     int nn_q;
+    cout << "START rangeSearch2,  " << (node->isLeaf() ? "LEAF" : "INNER NODE")
+         << ",  size " << noCands << endl;
     bool cand[noCands], cand2[noCands]; // cand <=> C, cand2 <=> C'
     std::fill_n(cand, noCands, true);
     std::fill_n(cand2, noCands, false);
     double us[noCands];
     std::fill_n(us, noCands, DBL_MAX);
-    double u, maxDist_i;
+    double maxDist_i;
     double d_min = DBL_MAX;
     for (int i = 0; i < noCands; i++) {
-      if (node->isLeaf()) {
-        u = dc(queryObject, *((leafnode_t*)node)->getObject(i));
-      }
-      else { // inner node
-        u = dc(queryObject, *((innernode_t*)node)->getCenter(i));
-      }
-      if (u < d_min) {
-//         nn_q = i;
-        d_min = u;
-      }
-      prune2(node, cand, noCands, i, u);
-      if (node->isLeaf()) {
-        if (range > u) {
-          results.push_back(node->getObject(i)->getTid());
+      if (cand[i]) {
+        if (node->isLeaf()) {
+          us[i] = dc(queryObject, *((leafnode_t*)node)->getObject(i));
         }
-      }
-      else { // inner node
-        maxDist_i = ((innernode_t*)node)->getMaxDist(i);
-        if (range > u + maxDist_i) {
-          reportEntireSubtree(node);
+        else { // inner node
+          us[i] = dc(queryObject, *((innernode_t*)node)->getCenter(i));
         }
-        else if (range > u - maxDist_i) {
-          cand2[i] = true;
+        if (us[i] < d_min) {
+  //         nn_q = i;
+          d_min = us[i];
         }
+        prune2(node, cand, noCands, i, us[i]);
+        if (node->isLeaf()) {
+          cout << "RS2, LEAF, i = " << i << ", u = " << us[i] << endl;
+          if (range > us[i]) {
+            results.push_back(((leafnode_t*)node)->getObject(i)->getTid());
+            cand[i] = false;
+          }
+        }
+        else { // inner node
+          maxDist_i = ((innernode_t*)node)->getMaxDist(i);
+          if (range > us[i] + maxDist_i) {
+            reportEntireSubtree(node);
+            return;
+          }
+          else if (range > us[i] - maxDist_i) {
+            cand2[i] = true;
+          }
+          cout << "RS2, INNER NODE: u = " << us[i] << ", maxDist_i = " 
+              << maxDist_i << endl;
+        }
+        cand[i] = false;
       }
     }
-    for (int i = 0; i < noCands; i++) {
-      if (cand2[i] && us[i] <= d_min + 2 * range) {
-        rangeSearch2(node->getChild(i));
+    if (!node->isLeaf()) {
+      for (int i = 0; i < noCands; i++) {
+        cout << "RS2: cand2[" << i << "] = " << cand2[i] << ", us[" << i
+             << "] = " << us[i] << endl;
+        if (cand2[i] && us[i] <= d_min + 2 * range) {
+          rangeSearch2(node->getChild(i));
+        }
       }
     }
     
   }
   
-  // combines rangeCenters2(C, q, r) and rangeSearch(q, r, p)
-  void collectResultsNtree7(node_t* node) { 
+  // rangeCenters2(C, q, r)
+  int rangeCenters2(node_t* node, bool cand[], bool search[]) { 
     double d_min, d_iq, maxDist_i;
     int c_q;
     if (node->isLeaf()) {
       c_q = ((leafnode_t*)node)->getNearestCenterPos(queryObject, dc, d_min);
       for (int i = 0; i < node->getCount(); i++) {
         d_iq = node->getPrecomputedDist(c_q, i, true);
+        cout << "LEAF: d_iq = " << d_iq << ", d_min = " << d_min << ", dc = "
+             << dc(((leafnode_t*)node)->getObject(i), queryObject) << endl;
         if (d_iq + d_min <= range) {
-          results.push_back(node->getObject(i)->getTid());
+          results.push_back(((leafnode_t*)node)->getObject(i)->getTid());
         }
         else if (d_iq - d_min <= range) {
-          if (dc(((leafnode_t*)node)->getObject(i), queryObject) <= range) {
-            results.push_back(node->getObject(i)->getTid());
+          auto object_i = ((leafnode_t*)node)->getObject(i);
+          if (dc(object_i, queryObject) <= range) {
+            results.push_back(object_i->getTid());
           }
         }
+        cand[i] = false;
       }
     }
-    else {
+    else { // inner node
       c_q = ((innernode_t*)node)->getNearestCenterPos(queryObject, dc, d_min);
-      for (int i = 0; i < node->getCount(); i++) {
+      for (int i = 0; i < node->getDegree(); i++) {
         if (i != c_q) {
+//           cout << "getPrecomputedDist(" << c_q << ", " << i << ")";
           d_iq = node->getPrecomputedDist(c_q, i, false);
+//           cout << "  ..... ok, it's " << d_iq << endl;
           maxDist_i = ((innernode_t*)node)->getMaxDist(i);
+          cout << "INNER NODE: d_iq = " << d_iq << ", d_min = " << d_min 
+               << ", maxDist_i = " << maxDist_i << ",  dc = " 
+               << dc(*((innernode_t*)node)->getCenter(i), queryObject) << endl;
           if (d_iq + d_min + maxDist_i <= range) {
             reportEntireSubtree(node->getChild(i));
           }
           else if (d_iq - d_min - maxDist_i <= range &&
                    d_iq <= 2 * d_min + 2 * range) {
             if (d_iq <= 2 * range) {
-              rangeSearch2(node->getChild(i));
+              search[i] = true;
+//               rangeSearch2(node->getChild(i));
             }
-            else if (dc(queryObject, node->getChild(i)) <= d_min + 2 * range) {
-              rangeSearch2(node->getChild(i));
+            else if (dc(*((innernode_t*)node)->getCenter(i), queryObject) <= 
+                     d_min + 2 * range) {
+              search[i] = true;
+//               rangeSearch2(node->getChild(i));
             }
           }
+        }
+        cand[i] = false;
+      }
+    }
+    return c_q;
+  }
+  
+  // rangeSearch(q, r, p)
+  void collectResultsNtree7(node_t* node) {
+    int noCands = (node->isLeaf() ? node->getNoEntries() : node->getDegree());
+    bool cand[noCands], search[noCands]; // cand <=> C
+    std::fill_n(cand, noCands, true);
+    std::fill_n(search, noCands, false);
+    int nn_q = rangeCenters2(node, cand, search);
+    if (!node->isLeaf()) {
+      collectResultsNtree7(node->getChild(nn_q));
+      for (int i = 0; i < noCands; i++) {
+        if (search[i]) {
+          rangeSearch2(node->getChild(i));
         }
       }
     }
@@ -1332,6 +1392,7 @@ class RangeIteratorN {
       return -1;
     }
     pos++;
+    cout << "[" << results[pos - 1] << "] ";
     return results[pos - 1];
   }
 
@@ -1375,6 +1436,9 @@ class NTree {
     if (variant > 2) {
       candOrder = PIVOT2;
       pMethod = MINDIST;
+    }
+    if (variant == 7) {
+      partitionStrategy = 3;
     }
   }
       
