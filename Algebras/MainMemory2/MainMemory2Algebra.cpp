@@ -22178,7 +22178,7 @@ int mcreatentreeVMT(Word* args, Word& result, int message, Word& local,
     res->setPointer(0);
     return 0;
   }
-  int partitionStrategy = 0; // TODO: currently fixed; add parameter
+  int partitionStrategy = 0; // TODO: currently random; add parameter
   vector<Tuple*>* v = mrel->getmmrel();
   vector<MTreeEntry<T> > contents;
   bool flobused = false;
@@ -22326,7 +22326,7 @@ int mcreatentree2VMT(Word* args, Word& result, int message, Word& local,
     return 0;
   }
   PruningMethod pMethod = static_cast<PruningMethod>(ccPMethod->GetValue());
-  int partitionStrategy = 3; // TODO: currently fixed; add parameter
+  int partitionStrategy = 0; // TODO: currently fixed; add parameter
   vector<Tuple*>* v = mrel->getmmrel();
   vector<MTreeEntry<T> > contents;
   bool flobused = false;
