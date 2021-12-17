@@ -22178,7 +22178,7 @@ int mcreatentreeVMT(Word* args, Word& result, int message, Word& local,
     res->setPointer(0);
     return 0;
   }
-  int partitionStrategy = 0; // TODO: currently random; add parameter
+  int partitionStrategy = 3; // TODO: currently random; add parameter
   vector<Tuple*>* v = mrel->getmmrel();
   vector<MTreeEntry<T> > contents;
   bool flobused = false;
@@ -22191,8 +22191,9 @@ int mcreatentreeVMT(Word* args, Word& result, int message, Word& local,
   }
   StdDistComp<T> dc(geoid);
   NTree<MTreeEntry<T>, StdDistComp<T>, variant>* tree =
-     new NTree<MTreeEntry<T>, StdDistComp<T>, variant>(degree, maxLeafSize, dc);
-  tree->build(contents, partitionStrategy);
+     new NTree<MTreeEntry<T>, StdDistComp<T>, variant>(degree, maxLeafSize, dc,
+                                                       partitionStrategy);
+  tree->build(contents);
 //   cout << "entries: " << tree->getNoEntries() << ", nodes: " 
 //        << tree->getNoNodes() << ", leaves: " << tree->getNoLeaves() << endl;
   size_t usedMem = tree->memSize();
@@ -22340,8 +22341,8 @@ int mcreatentree2VMT(Word* args, Word& result, int message, Word& local,
   StdDistComp<T> dc(geoid);
   NTree<MTreeEntry<T>, StdDistComp<T>, 2>* tree =
       new NTree<MTreeEntry<T>, StdDistComp<T>, 2>(degree, maxLeafSize, 
-                                                  candOrder, pMethod, dc);
-  tree->build(contents, partitionStrategy);
+                                     candOrder, pMethod, dc, partitionStrategy);
+  tree->build(contents);
 //   cout << "entries: " << tree->getNoEntries() << ", nodes: " 
 //        << tree->getNoNodes() << ", leaves: " << tree->getNoLeaves() << endl;
   size_t usedMem = tree->memSize();
