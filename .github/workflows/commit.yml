@@ -35,7 +35,7 @@ jobs:
         run: |
           export PATH=$PATH:$GITHUB_WORKSPACE/Tools/usingcheck
           export PATH=$PATH:$GITHUB_WORKSPACE/Tools/pd
-	  export PD_HEADER=$GITHUB_WORKSPACE/Tools/pd/pd.header
+          export PD_HEADER=$GITHUB_WORKSPACE/Tools/pd/pd.header
           for file in ${{ steps.changed-files-specific.outputs.all_modified_files }}; do
             echo "$file was modified"
             ./Tools/usingcheck/usingcheck $file
