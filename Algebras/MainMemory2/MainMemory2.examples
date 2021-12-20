@@ -351,8 +351,8 @@ Result    : 17
 Operator  : mdistRangeN7
 Number    : 1918
 Signature : NTREE7(T) x MREL(X) x T (x U) x real -> stream(tuple(X))
-Example   : query mKinos_GeoData_ntree7 mKinos mdistRangeN7[alexanderplatz, 2000.0] sort rdup count
-Result    : 22
+Example   : query mKinos_GeoData_ntree7 mKinos mdistRangeN7[alexanderplatz, 2000.0] count
+Result    : 17
 
 Operator  : mcreateAVLtree
 Number    : 56

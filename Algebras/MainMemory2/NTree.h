@@ -1042,7 +1042,8 @@ class RangeIteratorN {
   
   void addResult(const T* o) {
     results.push_back(o->getTid());
-    cout << "[" << o->getTid() << ": " << *(o->getKey()) << "] ";
+//     cout << "[" << o->getTid() << "] ";
+//          << ": " << *(o->getKey()) << "] ";
   }
   
   void reportEntireSubtree(node_t* node) {
@@ -1219,12 +1220,22 @@ class RangeIteratorN {
     }
   }
   
-  void prune2(node_t* node, bool cand[], int noCands, int c_i, double u) {
-    cout << "  Prune2, cand at start: ";
-    for (int j = 0; j < noCands; j++) {
-      cout << cand[j] << " ";
-    }
-    cout << endl;
+  /*
+  function ~prune2~, used for mdistScanN7.
+  
+  */
+  void prune2(node_t* node, bool cand[], bool cand2[], int noCands, int c_i, 
+              double u, bool reported[]) {
+//     cout << "  Prune2, " << (node->isLeaf() ? "LEAF" : "INNER NODE") 
+//          << ", cand at start: ";
+//     for (int j = 0; j < noCands; j++) {
+//       cout << cand[j] << " ";
+//     }
+//     cout << ", cand2 at start: ";
+//     for (int j = 0; j < noCands; j++) {
+//       cout << cand2[j] << " ";
+//     }
+//     cout << endl;
     double d_ij, maxDist_j;
     if (node->isLeaf()) {
       for (int j = 0; j < noCands; j++) {
@@ -1247,6 +1258,9 @@ class RangeIteratorN {
           maxDist_j = ((innernode_t*)node)->getMaxDist(j);
           if (range > u + d_ij + maxDist_j) {
             reportEntireSubtree(node->getChild(j));
+            reported[j] = true;
+//             cout << "    report ENTIRE child because " << range << " > "
+//                  << u << " + " << d_ij << endl;
             cand[j] = false;
           }
           else if (range < abs(u - d_ij) - maxDist_j) {
@@ -1255,20 +1269,26 @@ class RangeIteratorN {
         }
       }
     }
-    cout << "    ===> cand at end: ";
-    for (int j = 0; j < noCands; j++) {
-      cout << cand[j];
-    }
-    cout << endl;
+//     cout << "    ===> cand at end: ";
+//     for (int j = 0; j < noCands; j++) {
+//       cout << cand[j];
+//     }
+//     cout << ", cand2 at end: ";
+//     for (int j = 0; j < noCands; j++) {
+//       cout << cand2[j] << " ";
+//     }
+//     cout << endl;
   }
   
   void rangeSearch2(node_t* node) { // used by collectResultsNtree7
     int noCands = (node->isLeaf() ? node->getNoEntries() : node->getDegree());
-    cout << "  START rangeSearch2, " << (node->isLeaf() ? "LEAF" : "INNER NODE")
-         << ",  size " << noCands << endl;
-    bool cand[noCands], cand2[noCands]; // cand <=> C, cand2 <=> C'
+//     cout << "START rangeSearch2, " << (node->isLeaf() ? "LEAF": "INNER NODE")
+//          << ",  size " << noCands << endl;
+    bool cand[noCands], cand2[noCands], fullyReported[noCands]; 
+    // cand <=> C, cand2 <=> C'
     std::fill_n(cand, noCands, true);
     std::fill_n(cand2, noCands, false);
+    std::fill_n(fullyReported, noCands, false);
     double us[noCands];
     std::fill_n(us, noCands, DBL_MAX);
     double maxDist_i;
@@ -1285,30 +1305,27 @@ class RangeIteratorN {
   //         nn_q = i;
           d_min = us[i];
         }
-        prune2(node, cand, noCands, i, us[i]);
+        prune2(node, cand, cand2, noCands, i, us[i], fullyReported);
         if (node->isLeaf()) {
-          cout << "  RS2, LEAF, i = " << i << ", u = " << us[i] << endl;
-          if (range > us[i]) {
+//           cout << "  RS2, LEAF, i = " << i << ", u = " << us[i] << ", cand ="
+//                << (cand[i] ? " TRUE" : " FALSE") << endl;
+          if (cand[i] && range > us[i]) {
             addResult(((leafnode_t*)node)->getObject(i));
             cand[i] = false;
           }
         }
         else { // inner node
           maxDist_i = ((innernode_t*)node)->getMaxDist(i);
-          if (range > us[i] + maxDist_i) {
-            cout << "  report ENTIRE current NODE!" << endl;
-            for (int j = 0; j < noCands; j++) {
-              if (cand[j]) {
-                reportEntireSubtree(node->getChild(j));
-              }
-            }
-            return;
+          if (cand[i] && range > us[i] + maxDist_i) {
+//             cout << "  report ENTIRE child because " << range << " > "
+//                  << us[i] << " + " << maxDist_i << endl;
+            reportEntireSubtree(node->getChild(i));
           }
-          else if (range > us[i] - maxDist_i) {
+          else if (!fullyReported[i] && range > us[i] - maxDist_i) {
             cand2[i] = true;
           }
-          cout << "  RS2, INNER NODE: u = " << us[i] << ", maxDist_i = " 
-              << maxDist_i << endl;
+//           cout << "  RS2, INNER NODE: i = " << i << ", u = " << us[i] 
+//                << ", maxDist_i = " << maxDist_i << endl;
         }
         cand[i] = false;
       }
@@ -1316,15 +1333,15 @@ class RangeIteratorN {
     if (!node->isLeaf()) {
       for (int i = 0; i < noCands; i++) {
         if (cand2[i]) {
-          cout << "  RS2: cand2[" << i << "] = " << cand2[i] << ", us[" << i
-               << "] = " << us[i] << endl;
+//           cout << "  RS2: cand2[" << i << "] = " << cand2[i] << ", us[" << i
+//                << "] = " << us[i] << endl;
         }
         if (cand2[i] && us[i] <= d_min + 2 * range) {
           rangeSearch2(node->getChild(i));
         }
       }
     }
-    
+//     cout << "END of RangeSearch2" << endl;
   }
   
   // rangeCenters2(C, q, r)
@@ -1335,8 +1352,9 @@ class RangeIteratorN {
       c_q = ((leafnode_t*)node)->getNearestCenterPos(queryObject, dc, d_min);
       for (int i = 0; i < node->getCount(); i++) {
         d_iq = node->getPrecomputedDist(c_q, i, true);
-        cout << "  LEAF: d_iq = " << d_iq << ", d_min = " << d_min << ", dc = "
-             << dc(((leafnode_t*)node)->getObject(i), queryObject) << endl;
+//         cout << "  LEAF: d_iq = " << d_iq << ", d_min = " << d_min 
+//              << ", dc = "
+//              << dc(((leafnode_t*)node)->getObject(i), queryObject) << endl;
         if (d_iq + d_min <= range) {
           addResult(((leafnode_t*)node)->getObject(i));
         }
@@ -1357,9 +1375,10 @@ class RangeIteratorN {
           d_iq = node->getPrecomputedDist(c_q, i, false);
 //           cout << "  ..... ok, it's " << d_iq << endl;
           maxDist_i = ((innernode_t*)node)->getMaxDist(i);
-          cout << "  INNER NODE: d_iq = " << d_iq << ", d_min = " << d_min 
-               << ", maxDist_i = " << maxDist_i << ",  dc = " 
-               << dc(*((innernode_t*)node)->getCenter(i), queryObject) << endl;
+//           cout << "  INNER NODE: d_iq = " << d_iq << ", d_min = " << d_min 
+//                << ", maxDist_i = " << maxDist_i << ",  dc = " 
+//                << dc(*((innernode_t*)node)->getCenter(i), queryObject)
+//                << endl;
           if (d_iq + d_min + maxDist_i <= range) {
             reportEntireSubtree(node->getChild(i));
           }
