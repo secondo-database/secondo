@@ -87,6 +87,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 
 using namespace std;
+using namespace temporalalgebra;
 
 extern NestedList* nl;
 extern QueryProcessor *qp;
@@ -6681,6 +6682,323 @@ Operator mdistRangeN7Op(
    mdistRangeNSelect,
    mdistRangeNTM<7>
 );
+
+/*
+Operator ~mnearestNeighborN7~
+
+*/
+ListExpr mnearestNeighborN7TM(ListExpr args) {
+  string err = "NTREE(T) x MREL x T (x U) expected";
+  if (!nl->HasLength(args, 3) && !nl->HasLength(args, 4)) {
+    return listutils::typeError(err + " (wrong number of args)");
+  }
+  ListExpr a1 = nl->First(args);
+  ListExpr a2 = nl->Second(args);
+  if (MPointer::checkType(a1)) { 
+    a1 = nl->Second(a1);
+  }
+  if (!Mem::checkType(a1)) {
+    return listutils::typeError("first arg is not a memory object");
+  }
+  if (MPointer::checkType(a2)) {
+    a2 = nl->Second(a2);
+  }
+  if (!Mem::checkType(a2)) {
+    return listutils::typeError("2nd arg is not a memory object");
+  }
+  a1 = nl->Second(a1);
+  a2 = nl->Second(a2);
+  if (!Relation::checkType(a2)) {
+    return listutils::typeError("second arg is not a relation");
+  }
+  ListExpr a3 = nl->Third(args);
+  if (nl->HasLength(args, 3)) {
+    if (!mtreehelper::checkTypeN(a1, a3, 7)) {
+      return listutils::typeError("first arg is not an ntree7 over " +
+                                  nl->ToString(a3));
+    }
+  }
+  else {
+    ListExpr a4 = nl->Fourth(args);
+    if (!mtreehelper::checkTypeN(a1, nl->SymbolAtom(Tuple::BasicType()), 7)) {
+      return listutils::typeError("first arg is not an ntree7 over tuples");
+    }
+    if (!temporalalgebra::MPoint::checkType(a3) &&
+        !temporalalgebra::CUPoint::checkType(a3) &&
+        !temporalalgebra::CMPoint::checkType(a3)) {
+      return listutils::typeError("third arg is not a (m|cu|cm)point");
+    }
+    if (!stj::isSymbolicType(a4)) {
+      return listutils::typeError("fourth arg is not an mlabel(s) / mplace(s)");
+    }
+  }
+  return nl->TwoElemList(listutils::basicSymbol<Stream<Tuple> >(),
+                         nl->Second(a2)); 
+}
+
+template<class T, class DistComp>
+class mnearestNeighborN7Info {
+ public:
+  mnearestNeighborN7Info(MemoryNtreeObject<T, DistComp, 7>* ntreeX,
+                         MemoryRelObject* mrel, T* ref) {
+    rel = mrel->getmmrel();
+    MTreeEntry<T> p(*ref, 0);
+//     it = ntreeX->getNtreeX()->nearestNeighbor(p); TODO!
+  }
+
+  ~mnearestNeighborN7Info() {
+//     delete it; TODO!
+  }
+
+  Tuple* next() {
+//     while (true) { TODO!
+//       const TupleId tid = it->next();
+//       if ((int)tid == -1) {
+//         return 0;
+//       }
+//       if (tid <= rel->size()) {
+//         Tuple* res = (*rel)[tid - 1];
+//         if (res) { // ignore deleted tuples
+//           res->IncReference();
+//           return res;
+//         }
+//       }
+//     }
+    return 0;
+  }
+  
+  int getNoDistFunCalls() {
+    return 0; //it->getNoDistFunCalls(); // TODO!
+  }
+
+
+ private:
+  vector<Tuple*>* rel;
+//   NNIteratorN<MTreeEntry<T>, DistComp, 7>* it; TODO!
+};
+
+template<class K, class T, class R>
+int mnearestNeighborN7VMT(Word* args, Word& result, int message, Word& local,
+                          Supplier s) {
+  mnearestNeighborN7Info<K, StdDistComp<K> >* li = 
+                        (mnearestNeighborN7Info<K, StdDistComp<K> >*)local.addr;
+  switch (message) {
+    case OPEN : {
+      if (li) {
+        delete li;
+        local.addr = 0;
+      }
+      R* relN = (R*)args[1].addr;
+      MemoryRelObject* rel = getMemRel(relN, nl->Second(qp->GetType(s)));
+      if (!rel) {
+        return 0;
+      }
+      T* treeN = (T*)args[0].addr;
+      MemoryNtreeObject<K, StdDistComp<K>, 7>* n = getNtreeX<T, K, 7>(treeN);
+      if (!n) {
+        return 0;
+      }
+      K* key = (K*)args[2].addr;
+      local.addr = new mnearestNeighborN7Info<K, StdDistComp<K> >(n, rel, key);
+      return 0;
+    }
+    case REQUEST: {
+      result.addr = li ? li->next() : 0;
+      return result.addr ? YIELD : CANCEL;
+    }
+    case CLOSE : {
+      if (li) {
+        string counterName = "counterMNearestNeighborN7";
+        mtreehelper::increaseCounter(counterName, li->getNoDistFunCalls());
+        delete li;
+        local.addr = 0;
+      }
+      return 0;
+    }
+   }
+   return -1;   
+}
+
+// TODO: adapt this function
+// template<class K, class L, class T, class R>
+// int mdistScanVMT2(Word* args, Word& result, int message, Word& local,
+//                   Supplier s) {
+//   distScanInfo<pair<K, L>, StdDistCompExt<K ,L> >* li = 
+//               (distScanInfo<pair<K, L>, StdDistCompExt<K, L> >*) local.addr;
+//   switch (message) {
+//     case OPEN : {
+//       if (li) {
+//         delete li;
+//         local.addr = 0;
+//       }
+//       R* relN = (R*) args[1].addr;
+//       MemoryRelObject* mro;
+//       if (R::requiresTypeCheckInVM()) {
+//         mro = getMemRel(relN, nl->Second(qp->GetType(s)));
+//       } else {
+//         mro = getMemRel(relN);
+//       }
+//       if (!mro) {
+//         return 0;
+//       }
+//       K* key1 = (K*)args[2].addr;
+//       L* key2 = (L*)args[3].addr;
+//       T* tree = (T*)args[0].addr;
+//       pair<K, L> key(*key1, *key2);
+//       MemoryMtreeObject<pair<K, L>, StdDistCompExt<K, L> >* m = 
+//                                                     getMtree<T, K, L>(tree);
+//       if (m) {
+//         local.addr = new distScanInfo<pair<K, L>, StdDistCompExt<K, L> >(m,
+//                                                                 mro, &key);
+//       }
+//       return 0;
+//     }
+//     case REQUEST : {
+//       result.addr = li ? li->next() : 0;
+//       return result.addr ? YIELD : CANCEL;
+//     }
+//     case CLOSE : {
+//       if (li) {
+//         mtreehelper::increaseCounter("counterMDistScan", 
+//                                      li->getNoDistFunCalls());
+//         delete li;
+//         local.addr = 0;
+//       }
+//       return 0;
+//     }
+//   }
+//   return -1;
+// }
+
+ // note: if adding attributes with flobs, the value mapping must be changed
+
+ValueMapping mnearestNeighborN7VM[] = {
+  mnearestNeighborN7VMT<mtreehelper::t1, Mem, Mem>,
+  mnearestNeighborN7VMT<mtreehelper::t2, Mem, Mem>,
+  mnearestNeighborN7VMT<mtreehelper::t3, Mem, Mem>,
+  mnearestNeighborN7VMT<mtreehelper::t4, Mem, Mem>,
+  mnearestNeighborN7VMT<mtreehelper::t5, Mem, Mem>,
+  mnearestNeighborN7VMT<mtreehelper::t6, Mem, Mem>,
+  mnearestNeighborN7VMT<mtreehelper::t7, Mem, Mem>,
+  mnearestNeighborN7VMT<mtreehelper::t8, Mem, Mem>,
+  mnearestNeighborN7VMT<mtreehelper::t9, Mem, Mem>,
+  mnearestNeighborN7VMT<mtreehelper::t10, Mem, Mem>,
+  mnearestNeighborN7VMT<mtreehelper::t11, Mem, Mem>,
+  mnearestNeighborN7VMT<mtreehelper::t12, Mem, Mem>,
+  
+  mnearestNeighborN7VMT<mtreehelper::t1, Mem, MPointer>,
+  mnearestNeighborN7VMT<mtreehelper::t2, Mem, MPointer>,
+  mnearestNeighborN7VMT<mtreehelper::t3, Mem, MPointer>,
+  mnearestNeighborN7VMT<mtreehelper::t4, Mem, MPointer>,
+  mnearestNeighborN7VMT<mtreehelper::t5, Mem, MPointer>,
+  mnearestNeighborN7VMT<mtreehelper::t6, Mem, MPointer>,
+  mnearestNeighborN7VMT<mtreehelper::t7, Mem, MPointer>,
+  mnearestNeighborN7VMT<mtreehelper::t8, Mem, MPointer>,
+  mnearestNeighborN7VMT<mtreehelper::t9, Mem, MPointer>,
+  mnearestNeighborN7VMT<mtreehelper::t10, Mem, MPointer>,
+  mnearestNeighborN7VMT<mtreehelper::t11, Mem, MPointer>,
+  mnearestNeighborN7VMT<mtreehelper::t12, Mem, MPointer>,
+
+  mnearestNeighborN7VMT<mtreehelper::t1, MPointer, Mem>,
+  mnearestNeighborN7VMT<mtreehelper::t2, MPointer, Mem>,
+  mnearestNeighborN7VMT<mtreehelper::t3, MPointer, Mem>,
+  mnearestNeighborN7VMT<mtreehelper::t4, MPointer, Mem>,
+  mnearestNeighborN7VMT<mtreehelper::t5, MPointer, Mem>,
+  mnearestNeighborN7VMT<mtreehelper::t6, MPointer, Mem>,
+  mnearestNeighborN7VMT<mtreehelper::t7, MPointer, Mem>,
+  mnearestNeighborN7VMT<mtreehelper::t8, MPointer, Mem>,
+  mnearestNeighborN7VMT<mtreehelper::t9, MPointer, Mem>,
+  mnearestNeighborN7VMT<mtreehelper::t10, MPointer, Mem>,
+  mnearestNeighborN7VMT<mtreehelper::t11, MPointer, Mem>,
+  mnearestNeighborN7VMT<mtreehelper::t12, MPointer, Mem>,
+  
+  mnearestNeighborN7VMT<mtreehelper::t1, MPointer, MPointer>,
+  mnearestNeighborN7VMT<mtreehelper::t2, MPointer, MPointer>,
+  mnearestNeighborN7VMT<mtreehelper::t3, MPointer, MPointer>,
+  mnearestNeighborN7VMT<mtreehelper::t4, MPointer, MPointer>,
+  mnearestNeighborN7VMT<mtreehelper::t5, MPointer, MPointer>,
+  mnearestNeighborN7VMT<mtreehelper::t6, MPointer, MPointer>,
+  mnearestNeighborN7VMT<mtreehelper::t7, MPointer, MPointer>,
+  mnearestNeighborN7VMT<mtreehelper::t8, MPointer, MPointer>,
+  mnearestNeighborN7VMT<mtreehelper::t9, MPointer, MPointer>,
+  mnearestNeighborN7VMT<mtreehelper::t10, MPointer, MPointer>,
+  mnearestNeighborN7VMT<mtreehelper::t11, MPointer, MPointer>,
+  mnearestNeighborN7VMT<mtreehelper::t12, MPointer, MPointer>/*,
+  
+  mnearestNeighborN7VMT2<MPoint, stj::MLabel, Mem, Mem>,
+  mnearestNeighborN7VMT2<CUPoint, stj::MLabel, Mem, Mem>,
+  mnearestNeighborN7VMT2<CMPoint, stj::MLabel, Mem, Mem>,
+  mnearestNeighborN7VMT2<MPoint, stj::MLabels, Mem, Mem>,
+  mnearestNeighborN7VMT2<CUPoint, stj::MLabels, Mem, Mem>,
+  mnearestNeighborN7VMT2<CMPoint, stj::MLabels, Mem, Mem>,
+  mnearestNeighborN7VMT2<MPoint, stj::MPlace, Mem, Mem>,
+  mnearestNeighborN7VMT2<CUPoint, stj::MPlace, Mem, Mem>,
+  mnearestNeighborN7VMT2<CMPoint, stj::MPlace, Mem, Mem>,
+  mnearestNeighborN7VMT2<MPoint, stj::MPlaces, Mem, Mem>,
+  mnearestNeighborN7VMT2<CUPoint, stj::MPlaces, Mem, Mem>,
+  mnearestNeighborN7VMT2<CMPoint, stj::MPlaces, Mem, Mem>,
+  
+  mnearestNeighborN7VMT2<MPoint, stj::MLabel, Mem, MPointer>,
+  mnearestNeighborN7VMT2<CUPoint, stj::MLabel, Mem, MPointer>,
+  mnearestNeighborN7VMT2<CMPoint, stj::MLabel, Mem, MPointer>,
+  mnearestNeighborN7VMT2<MPoint, stj::MLabels, Mem, MPointer>,
+  mnearestNeighborN7VMT2<CUPoint, stj::MLabels, Mem, MPointer>,
+  mnearestNeighborN7VMT2<CMPoint, stj::MLabels, Mem, MPointer>,
+  mnearestNeighborN7VMT2<MPoint, stj::MPlace, Mem, MPointer>,
+  mnearestNeighborN7VMT2<CUPoint, stj::MPlace, Mem, MPointer>,
+  mnearestNeighborN7VMT2<CMPoint, stj::MPlace, Mem, MPointer>,
+  mnearestNeighborN7VMT2<MPoint, stj::MPlaces, Mem, MPointer>,
+  mnearestNeighborN7VMT2<CUPoint, stj::MPlaces, Mem, MPointer>,
+  mnearestNeighborN7VMT2<CMPoint, stj::MPlaces, Mem, MPointer>,
+  
+  mnearestNeighborN7VMT2<MPoint, stj::MLabel, MPointer, Mem>,
+  mnearestNeighborN7VMT2<CUPoint, stj::MLabel, MPointer, Mem>,
+  mnearestNeighborN7VMT2<CMPoint, stj::MLabel, MPointer, Mem>,
+  mnearestNeighborN7VMT2<MPoint, stj::MLabels, MPointer, Mem>,
+  mnearestNeighborN7VMT2<CUPoint, stj::MLabels, MPointer, Mem>,
+  mnearestNeighborN7VMT2<CMPoint, stj::MLabels, MPointer, Mem>,
+  mnearestNeighborN7VMT2<MPoint, stj::MPlace, MPointer, Mem>,
+  mnearestNeighborN7VMT2<CUPoint, stj::MPlace, MPointer, Mem>,
+  mnearestNeighborN7VMT2<CMPoint, stj::MPlace, MPointer, Mem>,
+  mnearestNeighborN7VMT2<MPoint, stj::MPlaces, MPointer, Mem>,
+  mnearestNeighborN7VMT2<CUPoint, stj::MPlaces, MPointer, Mem>,
+  mnearestNeighborN7VMT2<CMPoint, stj::MPlaces, MPointer, Mem>,
+  
+  mnearestNeighborN7VMT2<MPoint, stj::MLabel, MPointer, MPointer>,
+  mnearestNeighborN7VMT2<CUPoint, stj::MLabel, MPointer, MPointer>,
+  mnearestNeighborN7VMT2<CMPoint, stj::MLabel, MPointer, MPointer>,
+  mnearestNeighborN7VMT2<MPoint, stj::MLabels, MPointer, MPointer>,
+  mnearestNeighborN7VMT2<CUPoint, stj::MLabels, MPointer, MPointer>,
+  mnearestNeighborN7VMT2<CMPoint, stj::MLabels, MPointer, MPointer>,
+  mnearestNeighborN7VMT2<MPoint, stj::MPlace, MPointer, MPointer>,
+  mnearestNeighborN7VMT2<CUPoint, stj::MPlace, MPointer, MPointer>,
+  mnearestNeighborN7VMT2<CMPoint, stj::MPlace, MPointer, MPointer>,
+  mnearestNeighborN7VMT2<MPoint, stj::MPlaces, MPointer, MPointer>,
+  mnearestNeighborN7VMT2<CUPoint, stj::MPlaces, MPointer, MPointer>,
+  mnearestNeighborN7VMT2<CMPoint, stj::MPlaces, MPointer, MPointer>*/
+};
+
+OperatorSpec mnearestNeighborN7Spec(
+  "MTREE x MREL x T (x U) -> stream(tuple) , "
+  "MTREE, MREL represented as string, mem, or mpointer",
+  "mem_mtree mem_rel mnearestNeighborN7[keyAttr] ",
+  "Retrieves tuples from an memory relation in increasing "
+  "distance to a reference object (or pair of reference objects) aided by an "
+  "N-tree7.",
+  "query mkinos_mtree mKinos mnearestNeighborN7[alexanderplatz] consume"
+);
+
+Operator mnearestNeighborN7Op(
+   "mnearestNeighborN7",
+   mnearestNeighborN7Spec.getStr(),
+   96,
+   mnearestNeighborN7VM,
+   mdistRangeScanSelect<3>,
+   mnearestNeighborN7TM
+);
+
+
+
 
 /*
 Operator ~mdistScan~
@@ -22665,6 +22983,7 @@ class MainMemory2Algebra : public Algebra {
           AddOperator(&mdistRangeN5Op);
           AddOperator(&mdistRangeN6Op);
           AddOperator(&mdistRangeN7Op);
+          AddOperator(&mnearestNeighborN7Op);
 
           AddOperator(&mdistScanOp);
 
