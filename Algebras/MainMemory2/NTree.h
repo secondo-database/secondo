@@ -1217,6 +1217,7 @@ class RangeIteratorN {
           }
         }
       }
+      stat.noInnerNodes++;
     }
   }
   
@@ -1238,6 +1239,7 @@ class RangeIteratorN {
 //     cout << endl;
     double d_ij, maxDist_j;
     if (node->isLeaf()) {
+      int noDistFunCallsBefore = dc.getNoDistFunCalls();
       for (int j = 0; j < noCands; j++) {
         if (cand[j]) {
           d_ij = node->getPrecomputedDist(c_i, j, true);
@@ -1250,6 +1252,9 @@ class RangeIteratorN {
           }
         }
       }
+      int noDistFunCallsAfter = dc.getNoDistFunCalls();
+      stat.noDCLeaves+= noDistFunCallsAfter - noDistFunCallsBefore;
+      stat.noLeaves++;
     }
     else { // inner node
       for (int j = 0; j < noCands; j++) {
@@ -1268,6 +1273,7 @@ class RangeIteratorN {
           }
         }
       }
+      stat.noInnerNodes++;
     }
 //     cout << "    ===> cand at end: ";
 //     for (int j = 0; j < noCands; j++) {
@@ -1424,7 +1430,7 @@ class RangeIteratorN {
       return -1;
     }
     pos++;
-    cout << "[" << results[pos - 1] << "] ";
+//     cout << "[" << results[pos - 1] << "] ";
     return results[pos - 1];
   }
 
