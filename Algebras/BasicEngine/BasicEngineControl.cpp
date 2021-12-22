@@ -537,13 +537,6 @@ Repartition the given table - worker version
       return false;
     }
 
-    // Export all partitions of the relation into the filesystem and 
-    // generate a mapping between the paritions and the worker
-    map<size_t, ConnectionInfo*> partitionWorkerMapping = exportAllPartitions(
-        resultTable, partitionData.slotnum, remoteConnectionInfos.size());
-
-    // TODO: Handle created mapping properly and return a DArray
-
     string destinationTable;
     bool transferSchemaFile;
 
@@ -556,9 +549,15 @@ Repartition the given table - worker version
       transferSchemaFile = true;
     }
 
+    // Export all partitions of the relation into the filesystem and
+    // generate a mapping between the paritions and the worker
+    std::list<ExportedSlotData> partitionWorkerMapping = exportAllPartitions(
+        resultTable, destinationTable, partitionData.slotnum,
+        remoteConnectionInfos.size());
+
     // Call transfer and import data
-    bool importResult = exportToWorker(partitionData.table, destinationTable,
-                                       transferSchemaFile);
+    bool importResult = exportToWorker(partitionData.table, transferSchemaFile,
+                                       partitionWorkerMapping);
 
     if (!importResult) {
       BOOST_LOG_TRIVIAL(error) << "Unable to transfer and import table data";
@@ -568,8 +567,8 @@ Repartition the given table - worker version
     // Delete the temporary repartition table
     BOOST_LOG_TRIVIAL(debug) << "Deleting temporary table" << resultTable;
     dbms_connection->dropTable(resultTable);
-   
-    //TODO: Replace by actual DArray
+
+    // TODO: Replace by actual DArray
     std::vector<uint32_t> m;
     DArray result(m,"");
 
@@ -819,8 +818,7 @@ Returns true if everything is OK and there are no failure.
 
 */
 bool BasicEngineControl::exportToWorker(const string &sourceTable, 
-  const string &destinationTable, const bool exportSchema) {
-
+  const bool exportSchema, std::list<ExportedSlotData> slots) {
 
   if(connections.size() != remoteConnectionInfos.size()) {
     BOOST_LOG_TRIVIAL(error) << "Not all connections are available";
@@ -830,34 +828,36 @@ bool BasicEngineControl::exportToWorker(const string &sourceTable,
   string remoteCreateName = getSchemaFile(sourceTable);
   string localCreateName = getBasePath() + "/" + remoteCreateName;
 
-  for(size_t index = 0; index < connections.size(); index++){
-    
-    SecondoInterfaceCS* si = connections[index]->getInterface();
+  for (ExportedSlotData exportSlot : slots) {
 
-    //sending data
-    string remoteName 
-      = dbms_connection -> getFilenameForPartition(sourceTable, index);
-    string localName = getBasePath() + "/" + remoteName;
+    SecondoInterfaceCS *si = exportSlot.workerConnection->getInterface();
+
+    // sending data
+    string remoteName =
+        dbms_connection->getFilenameForPartition(sourceTable, exportSlot.slot);
+    string localName = exportSlot.filename;
 
     int sendFileRes = si->sendFile(localName, remoteName, true);
 
     if (sendFileRes != 0) {
-      BOOST_LOG_TRIVIAL(error) << "Couldn't send the data to the worker: "
-        << " Localfile: " << localName << " Remotefile: "  << remoteName
-        << " Return code: " << sendFileRes;
+      BOOST_LOG_TRIVIAL(error)
+          << "Couldn't send the data to the worker: "
+          << " Localfile: " << localName << " Remotefile: " << remoteName
+          << " Return code: " << sendFileRes;
       return false;
     }
 
     bool removeFileRes = (remove(localName.c_str()) == 0);
 
     if (!removeFileRes) {
-      BOOST_LOG_TRIVIAL(error) << "Couldn't remove the local file:" 
-        << localName;
+      BOOST_LOG_TRIVIAL(error)
+          << "Couldn't remove the local file:" << localName;
       return false;
     }
 
-    //sending create Table
-    if(exportSchema) {
+    // Copy schema to remote system
+    if (exportSchema) {
+
       int sendFileRes = si->sendFile(localCreateName, remoteCreateName, true);
 
       if (sendFileRes != 0) {
@@ -876,10 +876,20 @@ bool BasicEngineControl::exportToWorker(const string &sourceTable,
   //doing the import with one thread for each worker
   vector<std::future<bool>> futures;
 
-  for(size_t index = 0; index < connections.size(); index++){
-    distributed2::ConnectionInfo* ci = connections[index];
+  for(ExportedSlotData exportSlot : slots) { 
+
+    distributed2::ConnectionInfo* ci = exportSlot.workerConnection;
+
     string remoteName = dbms_connection 
-      -> getFilenameForPartition(sourceTable, index);
+      -> getFilenameForPartition(sourceTable, exportSlot.slot);
+
+    string destinationTable = exportSlot.destinationTable;
+
+    // Append _slot to destination table
+    if(exportSlot.partitionedTable) {
+      destinationTable.append("_");
+      destinationTable.append(to_string(exportSlot.slot));
+    }
 
     std::future<bool> asyncResult = std::async(
       &BasicEngineControl::performImport, 
@@ -990,26 +1000,36 @@ Exports all paritions of the given table into files into the filesystem
 The mapping between the partitions and the worker will be returned
 
 */
-std::map<size_t, ConnectionInfo*> BasicEngineControl::exportAllPartitions(
-    const string &table, size_t noOfPartitions, size_t noOfWorker) {
+std::list<ExportedSlotData> BasicEngineControl::exportAllPartitions(
+    const string &sourceTable, const string &destinationTable,
+    size_t noOfPartitions, size_t noOfWorker) {
 
   // Create the mapping between the partitions and the worker
-  std::map<size_t, ConnectionInfo*> partitionWorkerMapping;
+  std::list<ExportedSlotData> partitionWorkerMapping;
+
   for (size_t partition = 0; partition < noOfPartitions; partition++) {
     size_t workerId = partition % noOfWorker;
     ConnectionInfo* worker = connections[workerId];
-    partitionWorkerMapping[partition] = worker;
+
+    string exportFile = getBasePath() + "/" +
+        dbms_connection->getFilenameForPartition(sourceTable, partition);
+
+    ExportedSlotData exportData = {.slot = partition,
+                                   .partitionedTable = true,
+                                   .destinationTable = destinationTable,
+                                   .filename = exportFile,
+                                   .workerConnection = worker};
+
+    partitionWorkerMapping.push_back(exportData);
+
     BOOST_LOG_TRIVIAL(debug)
         << "Mapped partition " << partition << " to worker " << worker;
   }
 
   // Export the partitions
-  for (auto iter = partitionWorkerMapping.cbegin();
-       iter != partitionWorkerMapping.cend(); iter++) {
-    size_t partition = iter->first;
-    string exportFile =
-        dbms_connection->getFilenameForPartition(table, partition);
-    dbms_connection->exportDataForPartition(table, exportFile, partition);
+  for (ExportedSlotData exportData : partitionWorkerMapping) {
+    dbms_connection->exportDataForPartition(sourceTable, exportData.filename,
+                                            exportData.slot);
   }
 
   return partitionWorkerMapping;
@@ -1712,6 +1732,20 @@ bool BasicEngineControl::shareTable(
     return false;
   }
 
+  // Create the mapping between the partitions and the worker
+  std::list<ExportedSlotData> partitionWorkerMapping;
+
+  // Add Partiton 0 
+  ExportedSlotData exportData = {
+    .slot = 0, 
+    .partitionedTable = false,
+    .destinationTable = table,
+    .filename = partZeroFullPath, 
+    .workerConnection = connections[0]
+  };
+
+  partitionWorkerMapping.push_back(exportData);
+
   // Copy parition 0 to partitions [1-n]
   for(size_t i = 1; i<remoteConnectionInfos.size(); i++) {
     string partitionFile = 
@@ -1724,10 +1758,22 @@ bool BasicEngineControl::shareTable(
     ifstream src(partZeroFullPath, std::ios::binary);
     ofstream dst(partitionFileFullPath, std::ios::binary);
     dst << src.rdbuf();
+
+    ConnectionInfo* worker = connections[i];
+
+    ExportedSlotData exportData = {
+      .slot = 0, 
+      .partitionedTable = false,
+      .destinationTable = table,
+      .filename = partitionFileFullPath, 
+      .workerConnection = worker
+    };
+
+    partitionWorkerMapping.push_back(exportData);
   }
 
   // Transfer the data to the worker
-  bool transferRes = exportToWorker(table, table, true);
+  bool transferRes = exportToWorker(table, true, partitionWorkerMapping);
 
   if(! transferRes) {
     BOOST_LOG_TRIVIAL(error) << "Couldn't export the data to the worker";

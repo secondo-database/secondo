@@ -45,7 +45,7 @@ public:
                                         const std::string &exportFile, 
                                         size_t partition) {
 
-    return "SELECT * FROM " + table + " WHERE (" + be_partition_slot 
+    return "SELECT * FROM " + table + " WHERE " + be_partition_slot 
           + " = " + std::to_string(partition) + " INTO OUTFILE '" 
           + exportFile + "' CHARACTER SET utf8;";
   }
