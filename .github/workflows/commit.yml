@@ -12,9 +12,9 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Install package
+      - name: Install packages
         run: |
-           sudo apt-get -y install flex libfl-dev texlive-latex-base
+           sudo apt-get -y install flex libfl-dev texlive-latex-base texlive-fonts-recommended
 
       - name: Build checkpd
         working-directory: Tools/pd
