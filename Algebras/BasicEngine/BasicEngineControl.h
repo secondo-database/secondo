@@ -224,13 +224,14 @@ public:
 
   bool validateQuery(const std::string &query);
 
-  bool performImport(distributed2::ConnectionInfo* ci,
+  bool performPartitionImport(distributed2::ConnectionInfo* ci,
         const std::string &table,
-        const std::string &remoteCreateName,
-        const std::string &remoteName,
-        const bool importSchema);
+        const std::string &remoteFileName);
 
-  bool performExport(distributed2::ConnectionInfo* ci,
+  bool performSchemaImport(distributed2::ConnectionInfo* ci,
+        const std::string &remoteSchemaFileName);
+
+  bool performPartitionExport(distributed2::ConnectionInfo* ci,
         size_t workerId,
         const std::string &table, 
         const std::string &path, 
@@ -324,11 +325,17 @@ distributed2::ConnectionInfo* createConnection(
 
   bool importData(const std::string &table);
 
-  bool exportToWorker(const std::string &sourceTable, 
-    const bool exportSchema, std::list<ExportedSlotData>);
+  bool exportPartitionsToWorker(std::list<ExportedSlotData>);
+
+  void exportSchemaToWorker(const std::string &table, 
+    std::list<ExportedSlotData>);
 
   std::string getSchemaFile(const std::string &table) {
     return "schema_" + table + ".sql";
+  }
+
+  std::string getSchemaFile(const std::string &table, size_t partition) {
+    return "schema_" + table + "_" + std::to_string(partition) + ".sql";
   }
 
   std::string getBasePath() {

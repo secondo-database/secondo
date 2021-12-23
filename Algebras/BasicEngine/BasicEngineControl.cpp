@@ -538,15 +538,11 @@ Repartition the given table - worker version
     }
 
     string destinationTable;
-    bool transferSchemaFile;
 
     if (repartition) {
       destinationTable = getRepartitionTableName(partitionData.table);
-      transferSchemaFile = false;
     } else {
       destinationTable = partitionData.table;
-      exportTableCreateStatementSQL(partitionData.table);
-      transferSchemaFile = true;
     }
 
     // Export all partitions of the relation into the filesystem and
@@ -555,9 +551,13 @@ Repartition the given table - worker version
         resultTable, destinationTable, partitionData.slotnum,
         remoteConnectionInfos.size());
 
+    // Create table on the remote systems 
+    if(! repartition) {
+      exportSchemaToWorker(partitionData.table, partitionWorkerMapping);
+    }
+
     // Call transfer and import data
-    bool importResult = exportToWorker(partitionData.table, transferSchemaFile,
-                                       partitionWorkerMapping);
+    bool importResult = exportPartitionsToWorker(partitionWorkerMapping);
 
     if (!importResult) {
       BOOST_LOG_TRIVIAL(error) << "Unable to transfer and import table data";
@@ -810,23 +810,83 @@ DArray BasicEngineControl::partitionTableByGrid(const std::string &table,
 }
 
 /*
-3.9 ~exportToWorker~
+3.9 ~exportSchemaToWorker~
+
+Export the SQL schema of the relation into the given partitons
+
+*/
+void BasicEngineControl::exportSchemaToWorker(
+    const string &table, std::list<ExportedSlotData> slots) {
+
+  string localCreateName = getBasePath() + "/" + getSchemaFile(table);
+
+  try {
+    // Export schema
+    exportTableCreateStatementSQL(table);
+
+    // doing the import with one thread for each worker
+    vector<std::future<bool>> futures;
+
+    for (ExportedSlotData exportSlot : slots) {
+
+      ConnectionInfo *ci = exportSlot.workerConnection;
+      SecondoInterfaceCS *si = ci->getInterface();
+
+      string remoteSchemaName = getSchemaFile(table, exportSlot.slot);
+
+      int sendFileRes = si->sendFile(localCreateName, remoteSchemaName, true);
+
+      if (sendFileRes != 0) {
+        BOOST_LOG_TRIVIAL(error)
+            << "Couldn't send the structure-file to the worker: "
+            << " Localfile: " << localCreateName
+            << " Remotefile: " << remoteSchemaName;
+        throw SecondoException("Unable to transfer file " + localCreateName);
+      }
+
+      std::future<bool> asyncResult =
+          std::async(&BasicEngineControl::performSchemaImport, this, ci, 
+            remoteSchemaName);
+
+      futures.push_back(std::move(asyncResult));
+    }
+
+    // Are all worker reporting true?
+    bool exportRes =
+        std::all_of(futures.begin(), futures.end(),
+                    [](std::future<bool> &future) { return future.get(); });
+
+    if (!exportRes) {
+      throw SecondoException(
+          "Something goes wrong with the import at the worker.");
+    }
+
+    // Remove local schema file
+    remove(localCreateName.c_str());
+
+  } catch (...) {
+    // Remove local schema file
+    remove(localCreateName.c_str());
+
+    throw;
+  }
+}
+
+/*
+3.9 ~exportPartitionsToWorker~
 
 The data of a partitions table were sended to the worker
 and after that imported by the worker.
 Returns true if everything is OK and there are no failure.
 
 */
-bool BasicEngineControl::exportToWorker(const string &sourceTable, 
-  const bool exportSchema, std::list<ExportedSlotData> slots) {
+bool BasicEngineControl::exportPartitionsToWorker(
+    std::list<ExportedSlotData> slots) {
 
-  if(connections.size() != remoteConnectionInfos.size()) {
+  if (connections.size() != remoteConnectionInfos.size()) {
     BOOST_LOG_TRIVIAL(error) << "Not all connections are available";
     return false;
   }
-
-  string remoteCreateName = getSchemaFile(sourceTable);
-  string localCreateName = getBasePath() + "/" + remoteCreateName;
 
   for (ExportedSlotData exportSlot : slots) {
 
@@ -834,7 +894,7 @@ bool BasicEngineControl::exportToWorker(const string &sourceTable,
 
     // sending data
     string remoteName =
-        dbms_connection->getFilenameForPartition(sourceTable, exportSlot.slot);
+        exportSlot.destinationTable + "_" + to_string(exportSlot.slot);
     string localName = exportSlot.filename;
 
     int sendFileRes = si->sendFile(localName, remoteName, true);
@@ -854,59 +914,42 @@ bool BasicEngineControl::exportToWorker(const string &sourceTable,
           << "Couldn't remove the local file:" << localName;
       return false;
     }
-
-    // Copy schema to remote system
-    if (exportSchema) {
-
-      int sendFileRes = si->sendFile(localCreateName, remoteCreateName, true);
-
-      if (sendFileRes != 0) {
-        BOOST_LOG_TRIVIAL(error) 
-          << "Couldn't send the structure-file to the worker: " 
-          << " Localfile: " << localCreateName 
-          << " Remotefile: "  << remoteCreateName;
-        return false;
-      }
-    }
   }
 
-  // Remove schema file
-  remove(localCreateName.c_str());
-
-  //doing the import with one thread for each worker
+  // doing the import with one thread for each worker
   vector<std::future<bool>> futures;
 
-  for(ExportedSlotData exportSlot : slots) { 
+  for (ExportedSlotData exportSlot : slots) {
 
-    distributed2::ConnectionInfo* ci = exportSlot.workerConnection;
+    distributed2::ConnectionInfo *ci = exportSlot.workerConnection;
 
-    string remoteName = dbms_connection 
-      -> getFilenameForPartition(sourceTable, exportSlot.slot);
+    string remoteName =
+        exportSlot.destinationTable + "_" + to_string(exportSlot.slot);
 
     string destinationTable = exportSlot.destinationTable;
 
     // Append _slot to destination table
-    if(exportSlot.partitionedTable) {
+    if (exportSlot.partitionedTable) {
       destinationTable.append("_");
       destinationTable.append(to_string(exportSlot.slot));
     }
 
-    std::future<bool> asyncResult = std::async(
-      &BasicEngineControl::performImport, 
-      this, ci, destinationTable, remoteCreateName, 
-      remoteName, exportSchema);
+    std::future<bool> asyncResult =
+        std::async(&BasicEngineControl::performPartitionImport, this, ci,
+                   destinationTable, remoteName);
 
     futures.push_back(std::move(asyncResult));
   }
 
   // Are all worker reporting true?
-  bool exportRes = std::all_of(futures.begin(), futures.end(), 
-    [] (std::future<bool> &future) { return future.get(); });
+  bool exportRes =
+      std::all_of(futures.begin(), futures.end(),
+                  [](std::future<bool> &future) { return future.get(); });
 
-  if(! exportRes) {
-    BOOST_LOG_TRIVIAL(error) 
-      << "Something goes wrong with the import at the worker.";
-      return false;
+  if (!exportRes) {
+    BOOST_LOG_TRIVIAL(error)
+        << "Something goes wrong with the import at the worker.";
+    return false;
   }
 
   return true;
@@ -1102,7 +1145,7 @@ bool BasicEngineControl::munion(const string &table) {
     string exportFile = basePath + "/" + partitionFile;
 
     std::future<bool> asyncResult = std::async(
-      &BasicEngineControl::performExport, 
+      &BasicEngineControl::performPartitionExport, 
       this, ci, workerId, table, exportFile, partitionFile);
         
     futures.push_back(std::move(asyncResult));
@@ -1445,35 +1488,45 @@ string BasicEngineControl::exportWorkerRelation(
 
 
 /*
-3.24 ~performImport~
+3.24 ~performSchemaImport~
+
+Starting the schema import operation.
+
+*/
+bool BasicEngineControl::performSchemaImport(
+      distributed2::ConnectionInfo* ci,
+      const std::string &remoteFileName) {
+
+  bool result = true;
+
+  // Import the schema file on the remote system
+  std::string importPath = ci->getSendPath() + "/"+ remoteFileName;
+  std::string importCommand = "query be_runsql('"+ importPath + "');";
+  result = performSimpleSecondoCommand(ci, importCommand);
+
+  // Delete the schema file on the remote system
+  std::string removeCommand = "query removeFile('"+ importPath + "')";
+  result = performSimpleSecondoCommand(ci, removeCommand) && result;
+
+  return result;
+}
+
+/*
+3.24 ~performPartitionImport~
 
 Starting the data import operation.
 
 */
-bool BasicEngineControl::performImport(
+bool BasicEngineControl::performPartitionImport(
       distributed2::ConnectionInfo* ci,
       const std::string &table,
-      const std::string &remoteCreateName,
-      const std::string &remoteName,
-      const bool importSchema) {
+      const std::string &remoteName) {
 
   std::string importPath;
   std::string cmd;
   bool result = true;
 
-  if(importSchema) {
-    importPath =ci->getSendPath() + "/"+ remoteCreateName;
-    cmd = "query be_runsql('"+ importPath + "');";
-    result = performSimpleSecondoCommand(ci, cmd);
-
-    //delete create-file on system
-    cmd = "query removeFile('"+ importPath + "')";
-    if (result) {
-      result = performSimpleSecondoCommand(ci, cmd);
-    }
-  }
-
-  //import data in pg-worker
+  // Import data on the worker
   if(result) {
     importPath = ci->getSendPath() + "/"+ remoteName;
     cmd = "query be_copy('"+ importPath + "','" + table + "')";
@@ -1545,12 +1598,12 @@ string BasicEngineControl::requestRemoteTableSchema(
 }
 
 /*
-3.25 ~performExport~
+3.25 ~performPartitionExport~
 
 Perform the data export operation.
 
 */
-bool BasicEngineControl::performExport(
+bool BasicEngineControl::performPartitionExport(
       distributed2::ConnectionInfo* ci,
       size_t workerId,
       const std::string &table, 
@@ -1772,8 +1825,11 @@ bool BasicEngineControl::shareTable(
     partitionWorkerMapping.push_back(exportData);
   }
 
+  // Transfer the schema to the worker
+  exportSchemaToWorker(table, partitionWorkerMapping);
+
   // Transfer the data to the worker
-  bool transferRes = exportToWorker(table, true, partitionWorkerMapping);
+  bool transferRes = exportPartitionsToWorker(partitionWorkerMapping);
 
   if(! transferRes) {
     BOOST_LOG_TRIVIAL(error) << "Couldn't export the data to the worker";
