@@ -407,13 +407,30 @@ void BasicEngineControl::exportTableCreateStatementSQL(
 
   // Rename the table to create if needed
   if (!renameExportTable.empty()) {
-    size_t start_pos = statement.find(table);
-    if (start_pos == std::string::npos) {
-      throw SecondoException("Unable to replace table " + table);
-    }
 
-    statement.replace(start_pos, table.length(), renameExportTable);
+    BOOST_LOG_TRIVIAL(debug) << "Renaming table " 
+      << table << " to " << renameExportTable;
+
+    // Rename table at two positions
+    // (1) In drop table statement
+    // (2) In create table statement
+    size_t start_pos = 0;
+    for(size_t run = 0; run < 2; run++) {
+      start_pos = statement.find(table, start_pos);
+
+      if (start_pos == std::string::npos) {
+        throw SecondoException("Unable to replace table " + table);
+      }
+
+      statement = statement.replace(
+          start_pos, table.length(), renameExportTable);
+
+      start_pos += renameExportTable.length();
+    }
   }
+
+  BOOST_LOG_TRIVIAL(debug) 
+    << "Create table statement is: " << statement;
 
   // Write the SQL statement into the given output file
   ofstream write;

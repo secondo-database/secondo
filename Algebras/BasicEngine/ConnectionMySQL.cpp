@@ -191,9 +191,6 @@ std::string ConnectionMySQL::getCreateTableSQL(const std::string &table) {
         res = nullptr;
     }
 
-    BOOST_LOG_TRIVIAL(debug) 
-      << "Create table statement is: " << createTableSQL;
-
     return createTableSQL;
 }
 
