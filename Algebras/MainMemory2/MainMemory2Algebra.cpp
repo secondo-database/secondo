@@ -6743,38 +6743,38 @@ class mnearestNeighborN7Info {
                          MemoryRelObject* mrel, T* ref) {
     rel = mrel->getmmrel();
     MTreeEntry<T> p(*ref, 0);
-//     it = ntreeX->getNtreeX()->nearestNeighbor(p); TODO!
+    it = ntreeX->getNtreeX()->nnSearch(p);
   }
 
   ~mnearestNeighborN7Info() {
-//     delete it; TODO!
+    delete it;
   }
 
   Tuple* next() {
-//     while (true) { TODO!
-//       const TupleId tid = it->next();
-//       if ((int)tid == -1) {
-//         return 0;
-//       }
-//       if (tid <= rel->size()) {
-//         Tuple* res = (*rel)[tid - 1];
-//         if (res) { // ignore deleted tuples
-//           res->IncReference();
-//           return res;
-//         }
-//       }
-//     }
+    while (true) {
+      const TupleId tid = it->next();
+      if ((int)tid == -1) {
+        return 0;
+      }
+      if (tid <= rel->size()) {
+        Tuple* res = (*rel)[tid - 1];
+        if (res) { // ignore deleted tuples
+          res->IncReference();
+          return res;
+        }
+      }
+    }
     return 0;
   }
   
   int getNoDistFunCalls() {
-    return 0; //it->getNoDistFunCalls(); // TODO!
+    return it->getNoDistFunCalls();
   }
 
 
  private:
   vector<Tuple*>* rel;
-//   NNIteratorN<MTreeEntry<T>, DistComp, 7>* it; TODO!
+  NNIteratorN<MTreeEntry<T>, DistComp, 7>* it;
 };
 
 template<class K, class T, class R>
