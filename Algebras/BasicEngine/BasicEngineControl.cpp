@@ -392,9 +392,8 @@ Returns true if everything is OK and there are no failure.
 
 */
 void BasicEngineControl::exportTableCreateStatementSQL(
-    const string &table, const string &renameExportTable) {
-
-  string filename = getBasePath() + "/" + getSchemaFile(table);
+    const string &table, const std::string &outputFile,
+    const string &renameExportTable) {
 
   // Build the create table staement in SQL
   string statement = dbms_connection->getCreateTableSQL(table);
@@ -418,12 +417,12 @@ void BasicEngineControl::exportTableCreateStatementSQL(
 
   // Write the SQL statement into the given output file
   ofstream write;
-  write.open(filename);
+  write.open(outputFile);
 
   if (!write.is_open()) {
-    BOOST_LOG_TRIVIAL(error) << "Couldn't write file into " << filename
+    BOOST_LOG_TRIVIAL(error) << "Couldn't write file into " << outputFile
                              << ". Please check the folder and permissions.";
-    throw SecondoException("Could not open file for writing: " + filename);
+    throw SecondoException("Could not open file for writing: " + outputFile);
   }
 
   write << statement;
@@ -431,8 +430,8 @@ void BasicEngineControl::exportTableCreateStatementSQL(
   bool writeResult = write.good();
 
   if (!writeResult) {
-    BOOST_LOG_TRIVIAL(error) << "Writing file " << filename << " failed.";
-    throw SecondoException("Unable to write file: " + filename);
+    BOOST_LOG_TRIVIAL(error) << "Writing file " << outputFile << " failed.";
+    throw SecondoException("Unable to write file: " + outputFile);
   }
 }
 
@@ -818,58 +817,65 @@ Export the SQL schema of the relation into the given partitons
 void BasicEngineControl::exportSchemaToWorker(
     const string &table, std::list<ExportedSlotData> slots) {
 
-  string localCreateName = getBasePath() + "/" + getSchemaFile(table);
+  // doing the import with one thread for each worker
+  vector<std::future<bool>> futures;
 
-  try {
+  for (ExportedSlotData exportSlot : slots) {
+
     // Export schema
-    exportTableCreateStatementSQL(table);
+    string localCreateName;
 
-    // doing the import with one thread for each worker
-    vector<std::future<bool>> futures;
+    if (exportSlot.partitionedTable) {
+      localCreateName =
+          getBasePath() + "/" + getSchemaFile(table, exportSlot.slot);
 
-    for (ExportedSlotData exportSlot : slots) {
+      string partitionTable = getTablenameForPartition(
+          exportSlot.destinationTable, exportSlot.slot);
 
-      ConnectionInfo *ci = exportSlot.workerConnection;
-      SecondoInterfaceCS *si = ci->getInterface();
-
-      string remoteSchemaName = getSchemaFile(table, exportSlot.slot);
-
-      int sendFileRes = si->sendFile(localCreateName, remoteSchemaName, true);
-
-      if (sendFileRes != 0) {
-        BOOST_LOG_TRIVIAL(error)
-            << "Couldn't send the structure-file to the worker: "
-            << " Localfile: " << localCreateName
-            << " Remotefile: " << remoteSchemaName;
-        throw SecondoException("Unable to transfer file " + localCreateName);
-      }
-
-      std::future<bool> asyncResult =
-          std::async(&BasicEngineControl::performSchemaImport, this, ci, 
-            remoteSchemaName);
-
-      futures.push_back(std::move(asyncResult));
+      // Change SQL create table statement to the name of the partition
+      exportTableCreateStatementSQL(table, localCreateName, partitionTable);
+    } else {
+      localCreateName = getBasePath() + "/" + getSchemaFile(table);
+      exportTableCreateStatementSQL(table, localCreateName);
     }
 
-    // Are all worker reporting true?
-    bool exportRes =
-        std::all_of(futures.begin(), futures.end(),
-                    [](std::future<bool> &future) { return future.get(); });
+    ConnectionInfo *ci = exportSlot.workerConnection;
+    SecondoInterfaceCS *si = ci->getInterface();
 
-    if (!exportRes) {
-      throw SecondoException(
-          "Something goes wrong with the import at the worker.");
-    }
+    string remoteSchemaName = getSchemaFile(table, exportSlot.slot);
+
+    BOOST_LOG_TRIVIAL(debug) << "Transfer schema file " << localCreateName
+      << " to " << remoteSchemaName;
+
+    int sendFileRes = si->sendFile(localCreateName, remoteSchemaName, true);
 
     // Remove local schema file
     remove(localCreateName.c_str());
 
-  } catch (...) {
-    // Remove local schema file
-    remove(localCreateName.c_str());
+    if (sendFileRes != 0) {
+      BOOST_LOG_TRIVIAL(error)
+          << "Couldn't send the structure-file to the worker: "
+          << " Localfile: " << localCreateName
+          << " Remotefile: " << remoteSchemaName;
+      throw SecondoException("Unable to transfer file " + localCreateName);
+    }
 
-    throw;
+    std::future<bool> asyncResult =
+        std::async(&BasicEngineControl::performSchemaImport, this, ci, 
+          remoteSchemaName);
+
+    futures.push_back(std::move(asyncResult));
   }
+
+  // Are all worker reporting true?
+  bool exportRes =
+      std::all_of(futures.begin(), futures.end(),
+                  [](std::future<bool> &future) { return future.get(); });
+
+  if (!exportRes) {
+    throw SecondoException(
+        "Something goes wrong with the import at the worker.");
+  } 
 }
 
 /*
@@ -893,8 +899,8 @@ bool BasicEngineControl::exportPartitionsToWorker(
     SecondoInterfaceCS *si = exportSlot.workerConnection->getInterface();
 
     // sending data
-    string remoteName =
-        exportSlot.destinationTable + "_" + to_string(exportSlot.slot);
+    string remoteName = getTablenameForPartition(
+        exportSlot.destinationTable, exportSlot.slot);
     string localName = exportSlot.filename;
 
     int sendFileRes = si->sendFile(localName, remoteName, true);
@@ -1765,13 +1771,15 @@ bool BasicEngineControl::shareTable(
       const std::string &table) {
 
   // Create trlation schema file
-  exportTableCreateStatementSQL(table);
+  string localCreateName = getBasePath() + "/" + getSchemaFile(table);
+  exportTableCreateStatementSQL(table, localCreateName);
 
   // Export complete relation and duplicate as slots for the worker
   string path = getBasePath();
   size_t workerIdZero = 0;
   string partZeroFile = dbms_connection 
     -> getFilenameForPartition(table, workerIdZero);
+
   string partZeroFullPath = path + "/" + partZeroFile;
   string exportDataSQL = dbms_connection->getExportTableSQL(
     table, partZeroFullPath);

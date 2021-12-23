@@ -142,14 +142,14 @@ public:
   repartitionTableMaster(const PartitionData &partitionData,
                          const PartitionMode &repartitionMode);
 
-  distributed2::DArray partitionTableByHash(const std::string &tab, 
+  distributed2::DArray partitionTableByHash(const std::string &table, 
     const std::string &key, const size_t slotnum,
     const bool repartition);
 
-  distributed2::DArray partitionTableByRR(const std::string &tab, 
+  distributed2::DArray partitionTableByRR(const std::string &table, 
     const size_t slotnum, const bool repartition);
 
-  distributed2::DArray partitionTableByFun(const std::string &tab, 
+  distributed2::DArray partitionTableByFun(const std::string &table, 
     const std::string &key, const std::string &fun, 
     const size_t slotnum, const bool repartition);
 
@@ -158,30 +158,35 @@ public:
     const std::string &attribute, const std::string &gridname, 
     const bool repartition);
 
-  distributed2::DArray partitionTableByRandom(const std::string &tab, 
+  distributed2::DArray partitionTableByRandom(const std::string &table, 
     const size_t slotnum, const bool repartition);
 
   void exportTableCreateStatementSQL(const std::string &table, 
+    const std::string &outputFile,
     const std::string &renameExportTable = "");
 
   std::string requestRemoteTableSchema(
     const std::string &table, distributed2::ConnectionInfo *ci);
 
-  bool importTable(const std::string &tab, const std::string &full_path) {
-    std::string sqlQuery = dbms_connection->getImportTableSQL(tab, full_path);
+  bool importTable(const std::string &table, const std::string &full_path) {
+    std::string sqlQuery = dbms_connection->getImportTableSQL(table, full_path);
     return dbms_connection->sendCommand(sqlQuery);
   }
 
-  bool exportTable(const std::string &tab, const std::string &full_path) {
-    std::string sqlQuery = dbms_connection->getExportTableSQL(tab, full_path);
+  bool exportTable(const std::string &table, const std::string &full_path) {
+    std::string sqlQuery = dbms_connection->getExportTableSQL(table, full_path);
     return dbms_connection->sendCommand(sqlQuery);
   }
 
-  bool createTable(const std::string &tab, const std::string &query) {
+  bool createTable(const std::string &table, const std::string &query) {
     std::string sqlQuery =
         dbms_connection->getSQLDialect()
-        ->getCreateTableFromPredicateSQL(tab, query);
+        ->getCreateTableFromPredicateSQL(table, query);
     return dbms_connection->sendCommand(sqlQuery);
+  }
+
+  std::string getTablenameForPartition(const std::string &table, size_t slot) {
+    return table + "_" + std::to_string(slot);
   }
 
   bool shareTable(const std::string &table);
@@ -247,10 +252,21 @@ public:
   bool performSimpleSecondoCommand(distributed2::ConnectionInfo* ci,
         const std::string &command);
 
+  std::string getSchemaFile(const std::string &table) {
+    return "schema_" + table + ".sql";
+  }
+  std::string getSchemaFile(const std::string &table, size_t partition) {
+    return "schema_" + table + "_" + std::to_string(partition) + ".sql";
+  }
+
+  std::string getBasePath() {
+    return std::string("/home/") + getenv("USER") + "/filetransfer";
+  }
+
   static const size_t defaultTimeout = 0;
 
   static const int defaultHeartbeat = 0;
-
+  
 private:
 
 /*
@@ -329,18 +345,6 @@ distributed2::ConnectionInfo* createConnection(
 
   void exportSchemaToWorker(const std::string &table, 
     std::list<ExportedSlotData>);
-
-  std::string getSchemaFile(const std::string &table) {
-    return "schema_" + table + ".sql";
-  }
-
-  std::string getSchemaFile(const std::string &table, size_t partition) {
-    return "schema_" + table + "_" + std::to_string(partition) + ".sql";
-  }
-
-  std::string getBasePath() {
-    return std::string("/home/") + getenv("USER") + "/filetransfer";
-  }
 
   std::string getTableNameForPartitioning(const std::string &tab, 
     const std::string &key);

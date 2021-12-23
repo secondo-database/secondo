@@ -1508,7 +1508,10 @@ int be_structSFVM(Word *args, Word &result, int message, Word &local,
   try {
 
     if (be_control) {
-      be_control->exportTableCreateStatementSQL(tab->GetValue());
+      string table = tab->GetValue();
+      string localCreateName =  be_control->getBasePath()
+          + "/" +  be_control->getSchemaFile(table);
+      be_control->exportTableCreateStatementSQL(table, localCreateName);
       ((CcBool *)result.addr)->Set(true, true);
     } else {
       cout << noMaster << endl;
