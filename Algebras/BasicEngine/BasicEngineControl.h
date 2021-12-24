@@ -26,12 +26,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 @author
 c. Behrndt
 
-@note
-Checked - 2020
-
-@history
-Version 1.0 - Created - C.Behrndt - 2020
-
 */
 #ifndef _BasicEngineControl_H_
 #define _BasicEngineControl_H_
@@ -46,6 +40,7 @@ Version 1.0 - Created - C.Behrndt - 2020
 #include "Algebras/Distributed2/ConnectionInfo.h"
 #include "Algebras/Distributed2/DArray.h"
 #include "ConnectionGeneric.h"
+#include "WorkerConnection.h"
 #include "ResultIteratorGeneric.h"
 #include "StandardTypes.h"
 
@@ -74,22 +69,9 @@ typedef struct {
   std::string gridname;
 } PartitionData;
 
-/*
-1.2 Struct ~RemoteConnectionInfo~
-
-*/
-struct RemoteConnectionInfo {
-  std::string host;
-  std::string port;
-  std::string config;
-  std::string dbUser;
-  std::string dbPass;
-  std::string dbPort;
-  std::string dbName;
-};
 
 /*
-1.2 Struct ~ExportedSlotData~
+1.3 Struct ~ExportedSlotData~
 
 */
 typedef struct {
@@ -97,11 +79,11 @@ typedef struct {
   bool partitionedTable;
   std::string destinationTable;
   std::string filename;
-  distributed2::ConnectionInfo* workerConnection;
+  WorkerConnection* workerConnection;
 } ExportedSlotData;
 
 /*
-1.3 identifyer for distributed tables
+1.5 identifyer for distributed tables
 
 */
 #define DISTRIBUTED_TABLE_MARKER "_D"
@@ -166,7 +148,7 @@ public:
     const std::string &renameExportTable = "");
 
   std::string requestRemoteTableSchema(
-    const std::string &table, distributed2::ConnectionInfo *ci);
+    const std::string &table, WorkerConnection* connection);
 
   bool importTable(const std::string &table, const std::string &full_path) {
     std::string sqlQuery = dbms_connection->getImportTableSQL(table, full_path);
@@ -201,8 +183,7 @@ public:
 
   bool runsql(const std::string &filepath);
 
-  bool initBasicEngineOnWorker(distributed2::ConnectionInfo* ci, 
-    const RemoteConnectionInfo* remoteConnectionInfo);
+  bool initBasicEngineOnWorker(WorkerConnection* connection);
 
   bool shutdownWorker();
 
@@ -212,7 +193,7 @@ public:
 
   std::string exportWorkerRelation(const std::string &relationName);
 
-  bool exportWorkerRelationToWorker(distributed2::ConnectionInfo* ci, 
+  bool exportWorkerRelationToWorker(WorkerConnection* connection,
     const std::optional<std::string> &workerRelationFileName);
 
   bool isMaster() {
@@ -229,27 +210,24 @@ public:
 
   bool validateQuery(const std::string &query);
 
-  bool performPartitionImport(distributed2::ConnectionInfo* ci,
+  bool performPartitionImport(WorkerConnection* connection,
         const std::string &table,
         const std::string &remoteFileName);
 
-  bool performSchemaImport(distributed2::ConnectionInfo* ci,
+  bool performSchemaImport(WorkerConnection* connection,
         const std::string &remoteSchemaFileName);
 
-  bool performPartitionExport(distributed2::ConnectionInfo* ci,
+  bool performPartitionExport(WorkerConnection* connection,
         size_t workerId,
         const std::string &table, 
         const std::string &path, 
         const std::string &partitionFile);
 
-  bool performBEQuery(distributed2::ConnectionInfo* ci,
+  bool performBEQuery(WorkerConnection* connection,
         const std::string &table, 
         const std::string &query);
 
-  bool performBECommand(distributed2::ConnectionInfo* ci,
-        const std::string &command);
-
-  bool performSimpleSecondoCommand(distributed2::ConnectionInfo* ci,
+  bool performBECommand(WorkerConnection* connection,
         const std::string &command);
 
   std::string getSchemaFile(const std::string &table) {
@@ -263,9 +241,6 @@ public:
     return std::string("/home/") + getenv("USER") + "/filetransfer";
   }
 
-  static const size_t defaultTimeout = 0;
-
-  static const int defaultHeartbeat = 0;
   
 private:
 
@@ -287,21 +262,12 @@ ConnectionGeneric* dbms_connection;
 std::string workerRelationName = "";
 
 /*
-2.2.3 ~remoteConnectionInfos~
-
-The remoteConnectionInfos is a vector with all informations about the
-worker connection like port, connection-file, ip
-
-*/
-std::vector<RemoteConnectionInfo*> remoteConnectionInfos;
-
-/*
-2.2.4 ~connections~
+2.2.3 ~connections~
 
 In this vector all connection to the worker are stored.
 
 */
-std::vector<distributed2::ConnectionInfo*> connections;
+std::vector<WorkerConnection*> connections;
 
 /*
 2.2.5 master is a variable which shows, if this system is a master (true)
@@ -315,12 +281,9 @@ bool master = false;
 2.3 Private Methods
 
 */
-distributed2::ConnectionInfo* createAndInitConnection(
-  const RemoteConnectionInfo* remoteConnectionInfo,
+bool createAndInitConnection(
+  WorkerConnection* connection,
   const std::optional<std::string> &workerRelationFileName);
-
-distributed2::ConnectionInfo* createConnection(
-  const RemoteConnectionInfo* remoteConnection);
 
   std::string partRoundRobin(const std::string &tab, size_t slotnum);
 
@@ -352,9 +315,6 @@ distributed2::ConnectionInfo* createConnection(
   std::string getRepartitionTableName(const std::string &table) {
     return table + "_repartition";
   }
-
-  bool executeSecondoCommand(distributed2::ConnectionInfo* ci, 
-    const std::string &command, const bool checkResult);
 
   std::string getFirstAttributeNameFromTable(const std::string &table);
 

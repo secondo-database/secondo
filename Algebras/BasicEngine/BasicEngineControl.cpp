@@ -92,52 +92,12 @@ BasicEngineControl::BasicEngineControl(ConnectionGeneric* _dbms_connection,
         tuple->DeleteIfAllowed();
       }
 
-      remoteConnectionInfos.push_back(info);
+      WorkerConnection* workerConnection = new WorkerConnection(info);
+      connections.push_back(workerConnection);
     }
 }
 
-/*
-3.1 ~createConnection~
 
-Creating a specified and saves it in the connections vector. 
-Additionally add an entry to the importer vector.
-
-*/
-ConnectionInfo* BasicEngineControl::createConnection(
-    const RemoteConnectionInfo* remoteConnection) {
-
-  string config = string(remoteConnection->config);
-
-  ConnectionInfo* ci = ConnectionInfo::createConnection(
-      remoteConnection->host, stoi(remoteConnection->port), 
-      config, 
-      BasicEngineControl::defaultTimeout, 
-      BasicEngineControl::defaultHeartbeat);
-
-  if (ci == nullptr) {  
-    BOOST_LOG_TRIVIAL(error) 
-        << "Couldn't connect to secondo-Worker on host "
-        << remoteConnection->host  
-        << " with port " << remoteConnection->port << "!";
-
-    return nullptr;
-  } 
-  
-  bool switchResult = ci->switchDatabase(remoteConnection->dbName, 
-    true, false, true, BasicEngineControl::defaultTimeout);
-
-  if(! switchResult) { 
-    BOOST_LOG_TRIVIAL(error) 
-        << "Unable to switch to database " << remoteConnection->dbName
-        << " on host " << remoteConnection->host 
-        << " with port " << remoteConnection->port << "!";
-
-    ci->deleteIfAllowed();
-    return nullptr;
-  }
-
-  return ci;
-}
 
 /*
 3.2 Destructor
@@ -150,11 +110,6 @@ BasicEngineControl::~BasicEngineControl() {
     }
 
     shutdownAllConnections();
-
-    // Shutdown remote connections
-    for(const RemoteConnectionInfo* remoteConnection: remoteConnectionInfos) {
-      delete remoteConnection;
-    }
 }
 
 /*
@@ -166,12 +121,10 @@ Shutdown all connections
 void BasicEngineControl::shutdownAllConnections() {
 
   // Delete connections
-  for(distributed2::ConnectionInfo* ci: connections) {
-    BOOST_LOG_TRIVIAL(debug) 
-        << "Closing connection to " << ci->getHost() << " / " << ci->getPort();
-
-    ci->deleteIfAllowed();
+  for(WorkerConnection* connection: connections) {
+    delete connection;
   }
+
   connections.clear();
 }
 
@@ -181,10 +134,12 @@ void BasicEngineControl::shutdownAllConnections() {
 Init the basic engine on the given worker
 
 */
-bool BasicEngineControl::initBasicEngineOnWorker(ConnectionInfo* ci, 
-  const RemoteConnectionInfo* remoteConnectionInfo) {
+bool BasicEngineControl::initBasicEngineOnWorker(WorkerConnection* connection) {
 
     string dbType = dbms_connection->getDbType();
+
+    RemoteConnectionInfo* remoteConnectionInfo 
+      = connection -> getRemoteConnectionInfo();
 
     // Call be worker init on remote nodes
     string initCommand = "query be_init('" + dbType + "','"
@@ -194,47 +149,7 @@ bool BasicEngineControl::initBasicEngineOnWorker(ConnectionInfo* ci,
       + remoteConnectionInfo->dbName + "'," 
       + workerRelationName + ");";
   
-    return executeSecondoCommand(ci, initCommand, true);
-}
-
-/*
-3.2 ~initBasicEngineOnWorker~
-
-Init the basic engine on the given worker
-
-*/
-bool BasicEngineControl::executeSecondoCommand(ConnectionInfo* ci, 
-  const string &command, const bool checkResult) {
-
-    string errMsg;
-    int err = 0;
-    double rt;
-    string res;
-    CommandLog commandLog;
-
-    ci->simpleCommand(command,err,res,false,
-      rt,false,commandLog,true, BasicEngineControl::defaultTimeout);
-
-    if(err != 0) {
-      BOOST_LOG_TRIVIAL(error) 
-        << "Got ErrCode:" << err <<  " / command was: " << command;
-
-      return false;
-    } 
-    
-    if(! checkResult) {
-      return true;
-    }
-
-    if (res != "(bool TRUE)") {
-      BOOST_LOG_TRIVIAL(error) 
-        << "Error: Got invalid result from remote node " 
-        << res << " / command was: " << command;
-    
-      return false;
-    }
-    
-    return true;
+    return connection->executeSecondoCommand(initCommand, true);
 }
 
 /*
@@ -243,7 +158,8 @@ bool BasicEngineControl::executeSecondoCommand(ConnectionInfo* ci,
 Init the basic engine on the given worker
 
 */
-bool BasicEngineControl::exportWorkerRelationToWorker(ConnectionInfo* ci, 
+bool BasicEngineControl::exportWorkerRelationToWorker(
+  WorkerConnection* connection,
   const optional<string> &workerRelationFileName) {
 
       if(! workerRelationFileName.has_value()) {
@@ -252,11 +168,13 @@ bool BasicEngineControl::exportWorkerRelationToWorker(ConnectionInfo* ci,
           return false;
         }
 
+      ConnectionInfo* ci = connection -> getConnection();
+
       CommandLog commandLog;
 
       return ci->createOrUpdateRelationFromBinFile(
         workerRelationName, workerRelationFileName.value(), false, 
-        commandLog, true, false, BasicEngineControl::defaultTimeout);
+        commandLog, true, false, WorkerConnection::defaultTimeout);
 }
 
 /*
@@ -269,12 +187,7 @@ bool BasicEngineControl::createAllConnections() {
 
   optional<string> workerRelationFileName = nullopt;
 
-  // Are the connections already present?
-  if(! connections.empty()) {
-    return true;
-  }
-
-  if(remoteConnectionInfos.empty()) {
+  if(connections.empty()) {
     BOOST_LOG_TRIVIAL(warning) << "No known remote nodes known"; 
     return false;
   }
@@ -285,28 +198,26 @@ bool BasicEngineControl::createAllConnections() {
     workerRelationFileName.emplace(exportedFile); 
   }
 
-  vector<std::future<ConnectionInfo*>> connectionFutures;
+  vector<std::future<bool>> connectionFutures;
   
   // Establish the connections async in futures
-  for(const RemoteConnectionInfo* remoteConnectionInfo: 
-    remoteConnectionInfos) {
+  for(WorkerConnection* connection : connections) {
 
-    std::future<ConnectionInfo*> asyncResult = std::async(
+    std::future<bool> asyncResult = std::async(
         &BasicEngineControl::createAndInitConnection, 
         this, 
-        remoteConnectionInfo, 
+        connection, 
         workerRelationFileName);
         
     connectionFutures.push_back(std::move(asyncResult));
   }
 
   // Get future results
-  for(future<ConnectionInfo*> &connectionFuture : connectionFutures) {
+  bool errorInConnection = false;
+  for(std::future<bool> &result : connectionFutures) {
 
-    ConnectionInfo* ci = connectionFuture.get();
-
-    if (ci != nullptr) {
-      connections.push_back(ci);
+    if(! result.get()) {
+      errorInConnection = true;
     }
   }
 
@@ -316,53 +227,55 @@ bool BasicEngineControl::createAllConnections() {
       workerRelationFileName.reset();
   }
 
-  if(remoteConnectionInfos.size() != connections.size()) {
+  if(errorInConnection) {
     BOOST_LOG_TRIVIAL(error)
-         << "Error: Number of worker connections does not match relation size";
+         << "Error: Unable to create all needed worker connections";
     return false;
   }
 
   return true;
 }
 
-ConnectionInfo* BasicEngineControl::createAndInitConnection(
-  const RemoteConnectionInfo* remoteConnectionInfo, 
+bool BasicEngineControl::createAndInitConnection(
+  WorkerConnection* connection,
   const optional<string> &workerRelationFileName) {
 
-  ConnectionInfo* ci = createConnection(remoteConnectionInfo);
+  connection -> createConnection();
+  ConnectionInfo* ci = connection -> getConnection();
 
   if(ci == nullptr) {
     BOOST_LOG_TRIVIAL(error)  
           << "Error: Unable to establish connection to worker: "
-          << remoteConnectionInfo->host << " / " << remoteConnectionInfo->port;
+          << connection;
 
-    return nullptr;
+    return false;
   }
   
   // Share the worker relation
   if(master) {
     bool exportResult 
-      = exportWorkerRelationToWorker(ci, workerRelationFileName);
+      = exportWorkerRelationToWorker(connection, workerRelationFileName);
 
     if(! exportResult) {
       BOOST_LOG_TRIVIAL(error) 
-        << "Error while distributing worker relation to" 
-        << ci -> getHost() << " / " << ci -> getPort();
-      return nullptr;
+        << "Error while distributing worker relation to" << connection;
+
+      return false;
     }
   }
 
   // Init basic engine connection on worker
   bool initResult 
-    = initBasicEngineOnWorker(ci, remoteConnectionInfo);
+    = initBasicEngineOnWorker(connection);
 
   if(! initResult) {
     BOOST_LOG_TRIVIAL(error) << "Error while init basic engine on" 
-      << ci -> getHost() << " / " << ci -> getPort();
-    return nullptr;
+      << connection;
+
+    return false;
   }
 
-  return ci;
+  return true;
 }
 
 /*
@@ -565,7 +478,7 @@ Repartition the given table - worker version
     // generate a mapping between the paritions and the worker
     std::list<ExportedSlotData> partitionWorkerMapping = exportAllPartitions(
         resultTable, destinationTable, partitionData.slotnum,
-        remoteConnectionInfos.size());
+        connections.size());
 
     // Create table on the remote systems 
     if(! repartition) {
@@ -606,7 +519,7 @@ Repartition the given table - master version
     // On the worker: Drop old re-partition table if exists
     string dropTableSQL = dbms_connection -> getSQLDialect()
       ->getDropTableSQL(repartTableName);
-    BOOST_LOG_TRIVIAL(debug) << "Delete old re-parition table: "
+    BOOST_LOG_TRIVIAL(debug) << "Delete old re-partion table: "
       << dropTableSQL;
 
     bool dropTableResult = mcommand(dropTableSQL);
@@ -856,7 +769,8 @@ void BasicEngineControl::exportSchemaToWorker(
       exportTableCreateStatementSQL(table, localCreateName);
     }
 
-    ConnectionInfo *ci = exportSlot.workerConnection;
+    WorkerConnection *connection = exportSlot.workerConnection;
+    ConnectionInfo *ci = connection->getConnection();
     SecondoInterfaceCS *si = ci->getInterface();
 
     string remoteSchemaName = getSchemaFile(table, exportSlot.slot);
@@ -878,7 +792,7 @@ void BasicEngineControl::exportSchemaToWorker(
     }
 
     std::future<bool> asyncResult =
-        std::async(&BasicEngineControl::performSchemaImport, this, ci, 
+        std::async(&BasicEngineControl::performSchemaImport, this, connection, 
           remoteSchemaName);
 
     futures.push_back(std::move(asyncResult));
@@ -906,14 +820,10 @@ Returns true if everything is OK and there are no failure.
 bool BasicEngineControl::exportPartitionsToWorker(
     std::list<ExportedSlotData> slots) {
 
-  if (connections.size() != remoteConnectionInfos.size()) {
-    BOOST_LOG_TRIVIAL(error) << "Not all connections are available";
-    return false;
-  }
-
   for (ExportedSlotData exportSlot : slots) {
 
-    SecondoInterfaceCS *si = exportSlot.workerConnection->getInterface();
+    WorkerConnection *connection = exportSlot.workerConnection;
+    SecondoInterfaceCS *si = connection->getConnection()->getInterface();
 
     // sending data
     string remoteName = getTablenameForPartition(
@@ -944,7 +854,7 @@ bool BasicEngineControl::exportPartitionsToWorker(
 
   for (ExportedSlotData exportSlot : slots) {
 
-    distributed2::ConnectionInfo *ci = exportSlot.workerConnection;
+    WorkerConnection *connection = exportSlot.workerConnection;
 
     string remoteName =
         exportSlot.destinationTable + "_" + to_string(exportSlot.slot);
@@ -958,8 +868,8 @@ bool BasicEngineControl::exportPartitionsToWorker(
     }
 
     std::future<bool> asyncResult =
-        std::async(&BasicEngineControl::performPartitionImport, this, ci,
-                   destinationTable, remoteName);
+        std::async(&BasicEngineControl::performPartitionImport, 
+          this, connection, destinationTable, remoteName);
 
     futures.push_back(std::move(asyncResult));
   }
@@ -1075,7 +985,7 @@ std::list<ExportedSlotData> BasicEngineControl::exportAllPartitions(
 
   for (size_t partition = 0; partition < noOfPartitions; partition++) {
     size_t workerId = partition % noOfWorker;
-    ConnectionInfo* worker = connections[workerId];
+    WorkerConnection* worker = connections[workerId];
 
     string exportFile = getBasePath() + "/" +
         dbms_connection->getFilenameForPartition(sourceTable, partition);
@@ -1134,7 +1044,7 @@ bool BasicEngineControl::importData(const string &table) {
   string basePath = getBasePath();
 
   //import data (local files from worker)
-  for(size_t i=0; i<remoteConnectionInfos.size(); i++){
+  for(size_t i=0; i < connections.size(); i++) {
    string partitionFile = basePath + "/" +
       dbms_connection -> getFilenameForPartition(table, i);
 
@@ -1161,7 +1071,7 @@ bool BasicEngineControl::munion(const string &table) {
   string basePath = getBasePath();
 
   //doing the export with one thread for each worker
-  for(distributed2::ConnectionInfo* ci : connections) {
+  for(WorkerConnection* connection : connections) {
 
     string partitionFile 
       = dbms_connection -> getFilenameForPartition(table, workerId);
@@ -1169,7 +1079,7 @@ bool BasicEngineControl::munion(const string &table) {
 
     std::future<bool> asyncResult = std::async(
       &BasicEngineControl::performPartitionExport, 
-      this, ci, workerId, table, exportFile, partitionFile);
+      this, connection, workerId, table, exportFile, partitionFile);
         
     futures.push_back(std::move(asyncResult));
 
@@ -1219,8 +1129,7 @@ bool BasicEngineControl::mquery(const string &query,
   //    that the query is ok and start them on the remaining
   //    workers.
 
-  distributed2::ConnectionInfo* validateConnection 
-    = connections[0];
+  WorkerConnection* validateConnection = connections[0];
 
   vector<std::future<bool>> futures;
 
@@ -1285,10 +1194,10 @@ bool BasicEngineControl::mcommand(const string &query) {
   vector<std::future<bool>> futures;
 
   // Executing the command in a parallel manner
-  for(distributed2::ConnectionInfo* ci : connections) {
+  for(WorkerConnection* connection : connections) {
     std::future<bool> asyncResult = std::async(
     &BasicEngineControl::performBECommand, 
-    this, ci, query);
+    this, connection, query);
         
     futures.push_back(std::move(asyncResult));
   }
@@ -1315,10 +1224,10 @@ bool BasicEngineControl::msecondocommand(const string &query) {
   vector<std::future<bool>> futures;
  
   //doing the command with one thread for each worker
-  for(distributed2::ConnectionInfo* ci : connections) {
+  for(WorkerConnection* connection : connections) {
     std::future<bool> asyncResult = std::async(
-    &BasicEngineControl::performSimpleSecondoCommand, 
-    this, ci, query);
+    &WorkerConnection::performSimpleSecondoCommand, 
+    connection, query);
         
     futures.push_back(std::move(asyncResult));
   }
@@ -1342,8 +1251,9 @@ bool BasicEngineControl::shutdownWorker() {
    bool result = true;
    string shutdownCommand("query be_shutdown()");
 
-   for(distributed2::ConnectionInfo* ci : connections) {
-     result = result && performSimpleSecondoCommand(ci, shutdownCommand);
+  for(WorkerConnection* connection : connections) {
+     result = result 
+      && connection -> performSimpleSecondoCommand(shutdownCommand);
    }
 
    return result;
@@ -1359,18 +1269,12 @@ Returns true if everything is OK and there are no failure.
 */
 bool BasicEngineControl::checkAllConnections() {
 
-  const int defaultTimeout = 0;
-
   //checking connection to the worker
-  if (connections.size() != remoteConnectionInfos.size()) {
-    return false;
-  }
-
-  for(size_t i = 0; i < remoteConnectionInfos.size(); i++) {
+  for(WorkerConnection* connection : connections) {
     CommandLog commandLog;
     
-    bool connectionState = connections[i]->check(
-      false, commandLog, defaultTimeout);
+    bool connectionState = connection->getConnection()
+      ->check(false, commandLog, WorkerConnection::defaultTimeout);
     
     if(!connectionState) {
       return false;
@@ -1517,19 +1421,19 @@ Starting the schema import operation.
 
 */
 bool BasicEngineControl::performSchemaImport(
-      distributed2::ConnectionInfo* ci,
+      WorkerConnection* connection,
       const std::string &remoteFileName) {
 
   bool result = true;
 
   // Import the schema file on the remote system
-  std::string importPath = ci->getSendPath() + "/"+ remoteFileName;
+  std::string importPath = connection->getSendPath() + "/"+ remoteFileName;
   std::string importCommand = "query be_runsql('"+ importPath + "');";
-  result = performSimpleSecondoCommand(ci, importCommand);
+  result = connection -> performSimpleSecondoCommand(importCommand);
 
   // Delete the schema file on the remote system
   std::string removeCommand = "query removeFile('"+ importPath + "')";
-  result = performSimpleSecondoCommand(ci, removeCommand) && result;
+  result = connection -> performSimpleSecondoCommand(removeCommand) && result;
 
   return result;
 }
@@ -1541,7 +1445,7 @@ Starting the data import operation.
 
 */
 bool BasicEngineControl::performPartitionImport(
-      distributed2::ConnectionInfo* ci,
+      WorkerConnection* connection,
       const std::string &table,
       const std::string &remoteName) {
 
@@ -1551,15 +1455,15 @@ bool BasicEngineControl::performPartitionImport(
 
   // Import data on the worker
   if(result) {
-    importPath = ci->getSendPath() + "/"+ remoteName;
+    importPath = connection->getSendPath() + "/"+ remoteName;
     cmd = "query be_copy('"+ importPath + "','" + table + "')";
-    result = performSimpleSecondoCommand(ci, cmd);
+    result = connection->performSimpleSecondoCommand(cmd);
   }
 
   //delete data file on system
   if(result) {
     cmd = "query removeFile('"+ importPath + "')";
-    result = performSimpleSecondoCommand(ci, cmd);
+    result = connection->performSimpleSecondoCommand(cmd);
   }
 
   return result;
@@ -1572,14 +1476,14 @@ Request the remote schema for a table
 
 */
 string BasicEngineControl::requestRemoteTableSchema(
-    const std::string &table, distributed2::ConnectionInfo *ci) {
+    const std::string &table, WorkerConnection* connection) {
 
   string basePath = getBasePath();
   string schemaFile = getSchemaFile(table);
 
   // export tab structure
   string cmd = "query be_struct('" + table + "');";
-  bool result = performSimpleSecondoCommand(ci, cmd);
+  bool result = connection -> performSimpleSecondoCommand(cmd);
 
   if (!result) {
     BOOST_LOG_TRIVIAL(error) << "Unable to execute SECONDO command" << cmd;
@@ -1587,16 +1491,17 @@ string BasicEngineControl::requestRemoteTableSchema(
 
   // move the structure-file into the request-folder
   string from = basePath + "/" + schemaFile;
-  string to = ci->getRequestPath() + "/" + schemaFile;
+  string to = connection->getRequestPath() + "/" + schemaFile;
   cmd = "query moveFile('" + from + "','" + to + "')";
-  result = performSimpleSecondoCommand(ci, cmd);
+  result = connection -> performSimpleSecondoCommand(cmd);
 
   if (!result) {
     BOOST_LOG_TRIVIAL(error) << "Unable to execute SECONDO command" << cmd;
   }
 
   // Requesting file from worker
-  result = (ci->requestFile(schemaFile, from, true) == 0);
+  result =
+      (connection->getConnection()->requestFile(schemaFile, from, true) == 0);
 
   if (!result) {
     BOOST_LOG_TRIVIAL(error)
@@ -1605,7 +1510,7 @@ string BasicEngineControl::requestRemoteTableSchema(
 
   // delete create file on system
   cmd = "query removeFile('" + to + "')";
-  result = performSimpleSecondoCommand(ci, cmd);
+  result = connection -> performSimpleSecondoCommand(cmd);
 
   if (!result) {
     BOOST_LOG_TRIVIAL(error)
@@ -1627,7 +1532,7 @@ Perform the data export operation.
 
 */
 bool BasicEngineControl::performPartitionExport(
-      distributed2::ConnectionInfo* ci,
+      WorkerConnection* connection,
       size_t workerId,
       const std::string &table, 
       const std::string &exportFile, 
@@ -1642,7 +1547,7 @@ bool BasicEngineControl::performPartitionExport(
   //export the table structure file
   if(workerId == 0) {
     try {
-      requestRemoteTableSchema(table, ci);
+      requestRemoteTableSchema(table, connection);
     } catch(SecondoException &e) {
       BOOST_LOG_TRIVIAL(error) 
         << "Unable to request remote schema" << e.what();
@@ -1652,7 +1557,7 @@ bool BasicEngineControl::performPartitionExport(
 
   //export the date to a file
   cmd = "query be_copy('"+ table + "','"+ exportFile + "');";
-  result = performSimpleSecondoCommand(ci, cmd);
+  result = connection->performSimpleSecondoCommand(cmd);
   if(! result) {
     BOOST_LOG_TRIVIAL(error) 
         << "Unable to execute SECONDO command" << cmd;
@@ -1660,9 +1565,9 @@ bool BasicEngineControl::performPartitionExport(
   }
 
   //move the data-file to the request-folder
-  to = ci->getRequestPath() + "/" + partitionFile;
+  to = connection->getConnection()->getRequestPath() + "/" + partitionFile;
   cmd = "query moveFile('"+ exportFile + "','" + to +"')";
-  result = performSimpleSecondoCommand(ci, cmd);
+  result = connection->performSimpleSecondoCommand(cmd);
 
   if(! result) {
     BOOST_LOG_TRIVIAL(error) 
@@ -1671,7 +1576,7 @@ bool BasicEngineControl::performPartitionExport(
   }
 
   //sendig the File to the master
-  result =(ci->requestFile(partitionFile,
+  result =(connection->getConnection()->requestFile(partitionFile,
                         basePath + "/" + partitionFile ,true)==0);
 
   if(! result) {
@@ -1683,7 +1588,7 @@ bool BasicEngineControl::performPartitionExport(
   
   //delete data file on system
   cmd = "query removeFile('"+ to + "')";
-  result = performSimpleSecondoCommand(ci, cmd);
+  result = connection->performSimpleSecondoCommand(cmd);
   if(! result) {
     BOOST_LOG_TRIVIAL(error) 
         << "Unable to execute SECONDO command" << cmd;
@@ -1700,7 +1605,7 @@ Starting a query at the worker.
 
 */
 bool BasicEngineControl::performBEQuery(
-      distributed2::ConnectionInfo* ci,
+      WorkerConnection* connection,
       const std::string &table, 
       const std::string &query) {
   
@@ -1713,7 +1618,7 @@ bool BasicEngineControl::performBEQuery(
          "" + escapedQuery + "','"
          "" + table + "');";
 
-  return performSimpleSecondoCommand(ci, cmd);
+  return connection->performSimpleSecondoCommand(cmd);
 }
 
 /*
@@ -1723,7 +1628,7 @@ Starting a command at the worker.
 
 */
 bool BasicEngineControl::performBECommand(
-      distributed2::ConnectionInfo* ci,
+      WorkerConnection* connection,
       const std::string &command) {
 
   std::string escapedCommand(command);
@@ -1732,51 +1637,8 @@ bool BasicEngineControl::performBECommand(
   boost::replace_all(escapedCommand, "'", "\\'");
   std::string cmd = "query be_command('" + escapedCommand + "');";
 
-  return performSimpleSecondoCommand(ci, cmd);
+  return connection->performSimpleSecondoCommand(cmd);
 }
-
-/*
-3.28 ~simpleCommand~
-
-Execute a command or query on the worker.
-
-Returns true if everything is OK and there are no failure.
-Displays an error massage if something goes wrong.
-
-*/
-bool BasicEngineControl::performSimpleSecondoCommand(
-      distributed2::ConnectionInfo* ci, const std::string &command) {
-  
-  int err = 0;
-  double rt;
-  const int defaultTimeout = 0;
-  distributed2::CommandLog CommandLog;
-  std::string res;
-
-  ci->simpleCommand(command, err, res, false, rt, false,
-                    CommandLog, true, defaultTimeout);
-  
-  if(err != 0){
-    BOOST_LOG_TRIVIAL(error)
-        << "Got error from server: " 
-        << ci->getHost() << ":" << ci->getPort() << " "
-        << err << res << " command was: " << command;
-    return false;
-  }
-
-  bool resultOk = (res == "(bool TRUE)");
-
-  if(! resultOk) {
-    BOOST_LOG_TRIVIAL(error)
-        << "Got unexpected result from server: " 
-        << ci->getHost() << ":" << ci->getPort() << " "
-        << res << " command was: " << command;
-    return false;
-  }
-
-  return true;
-}
-
 
 /*
 3.27 ~shareTable~
@@ -1825,7 +1687,7 @@ bool BasicEngineControl::shareTable(
   partitionWorkerMapping.push_back(exportData);
 
   // Copy parition 0 to partitions [1-n]
-  for(size_t i = 1; i<remoteConnectionInfos.size(); i++) {
+  for(size_t i = 1; i < connections.size(); i++) {
     string partitionFile = 
       dbms_connection -> getFilenameForPartition(table, i);
     string partitionFileFullPath = path + "/" + partitionFile;
@@ -1837,7 +1699,7 @@ bool BasicEngineControl::shareTable(
     ofstream dst(partitionFileFullPath, std::ios::binary);
     dst << src.rdbuf();
 
-    ConnectionInfo* worker = connections[i];
+    WorkerConnection* worker = connections[i];
 
     ExportedSlotData exportData = {
       .slot = 0, 
