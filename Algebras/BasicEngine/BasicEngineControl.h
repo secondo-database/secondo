@@ -214,8 +214,8 @@ public:
         const std::string &table,
         const std::string &remoteFileName);
 
-  bool performSchemaImport(WorkerConnection* connection,
-        const std::string &remoteSchemaFileName);
+  bool performSchemaTransfer(const std::string &table, 
+        const ExportedSlotData &exportSlot);
 
   bool performPartitionExport(WorkerConnection* connection,
         size_t workerId,

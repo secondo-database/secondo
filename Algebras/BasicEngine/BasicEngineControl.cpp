@@ -26,12 +26,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 @author
 c. Behrndt
 
-@note
-Checked - 2020
-
-@history
-Version 1.0 - Created - C.Behrndt - 2020
-
 */
 #include "BasicEngineControl.h"
 #include "FileSystem.h"
@@ -39,6 +33,7 @@ Version 1.0 - Created - C.Behrndt - 2020
 #include <future>
 #include <utility>
 #include <iostream>
+#include <mutex>
 
 using namespace distributed2;
 using namespace std;
@@ -751,49 +746,9 @@ void BasicEngineControl::exportSchemaToWorker(
   vector<std::future<bool>> futures;
 
   for (ExportedSlotData exportSlot : slots) {
-
-    // Export schema
-    string localCreateName;
-
-    if (exportSlot.partitionedTable) {
-      localCreateName =
-          getBasePath() + "/" + getSchemaFile(table, exportSlot.slot);
-
-      string partitionTable = getTablenameForPartition(
-          exportSlot.destinationTable, exportSlot.slot);
-
-      // Change SQL create table statement to the name of the partition
-      exportTableCreateStatementSQL(table, localCreateName, partitionTable);
-    } else {
-      localCreateName = getBasePath() + "/" + getSchemaFile(table);
-      exportTableCreateStatementSQL(table, localCreateName);
-    }
-
-    WorkerConnection *connection = exportSlot.workerConnection;
-    ConnectionInfo *ci = connection->getConnection();
-    SecondoInterfaceCS *si = ci->getInterface();
-
-    string remoteSchemaName = getSchemaFile(table, exportSlot.slot);
-
-    BOOST_LOG_TRIVIAL(debug) << "Transfer schema file " << localCreateName
-      << " to " << remoteSchemaName;
-
-    int sendFileRes = si->sendFile(localCreateName, remoteSchemaName, true);
-
-    // Remove local schema file
-    remove(localCreateName.c_str());
-
-    if (sendFileRes != 0) {
-      BOOST_LOG_TRIVIAL(error)
-          << "Couldn't send the structure-file to the worker: "
-          << " Localfile: " << localCreateName
-          << " Remotefile: " << remoteSchemaName;
-      throw SecondoException("Unable to transfer file " + localCreateName);
-    }
-
     std::future<bool> asyncResult =
-        std::async(&BasicEngineControl::performSchemaImport, this, connection, 
-          remoteSchemaName);
+        std::async(&BasicEngineControl::performSchemaTransfer, 
+          this, table, exportSlot);
 
     futures.push_back(std::move(asyncResult));
   }
@@ -1420,22 +1375,71 @@ string BasicEngineControl::exportWorkerRelation(
 Starting the schema import operation.
 
 */
-bool BasicEngineControl::performSchemaImport(
-      WorkerConnection* connection,
-      const std::string &remoteFileName) {
+bool BasicEngineControl::performSchemaTransfer(const string &table, 
+  const ExportedSlotData &exportSlot) {
 
-  bool result = true;
+  // Export schema
+  string localCreateName;
+
+  if (exportSlot.partitionedTable) {
+    localCreateName =
+        getBasePath() + "/" + getSchemaFile(table, exportSlot.slot);
+
+    string partitionTable = getTablenameForPartition(
+        exportSlot.destinationTable, exportSlot.slot);
+
+    // Change SQL create table statement to the name of the partition
+    exportTableCreateStatementSQL(table, localCreateName, partitionTable);
+  } else {
+    localCreateName = getBasePath() + "/" + getSchemaFile(table);
+    exportTableCreateStatementSQL(table, localCreateName);
+  }
+
+  WorkerConnection *connection = exportSlot.workerConnection;
+  const std::lock_guard<std::mutex> lock(connection -> connectionMutex);
+
+  ConnectionInfo *ci = connection->getConnection();
+  SecondoInterfaceCS *si = ci->getInterface();
+
+  string remoteSchemaName = getSchemaFile(table, exportSlot.slot);
+
+  BOOST_LOG_TRIVIAL(debug) << "Transfer schema file " << localCreateName
+                           << " to " << remoteSchemaName;
+
+  int sendFileRes = si->sendFile(localCreateName, remoteSchemaName, true);
+
+  // Remove local schema file
+  remove(localCreateName.c_str());
+
+  if (sendFileRes != 0) {
+    BOOST_LOG_TRIVIAL(error)
+        << "Couldn't send the structure-file to the worker: "
+        << " Localfile: " << localCreateName
+        << " Remotefile: " << remoteSchemaName;
+    return false;
+  }
 
   // Import the schema file on the remote system
-  std::string importPath = connection->getSendPath() + "/"+ remoteFileName;
-  std::string importCommand = "query be_runsql('"+ importPath + "');";
-  result = connection -> performSimpleSecondoCommand(importCommand);
+  std::string importPath = connection->getSendPath() + "/" + remoteSchemaName;
+  std::string importCommand = "query be_runsql('" + importPath + "');";
+  bool runSqlResult = connection->performSimpleSecondoCommand(importCommand);
+
+  if(runSqlResult) {
+    BOOST_LOG_TRIVIAL(error) << "Unable to execute" << importCommand;
+    return false;
+  }
 
   // Delete the schema file on the remote system
-  std::string removeCommand = "query removeFile('"+ importPath + "')";
-  result = connection -> performSimpleSecondoCommand(removeCommand) && result;
+  std::string removeCommand = "query removeFile('" + importPath + "')";
+  bool importCommandResult = connection
+    ->performSimpleSecondoCommand(removeCommand);
 
-  return result;
+  if(importCommandResult) {
+    BOOST_LOG_TRIVIAL(error) << "Unable to execute" << removeCommand;
+    return false;
+  }
+
+  return true;
 }
 
 /*

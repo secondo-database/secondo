@@ -81,7 +81,7 @@ class WorkerConnection {
 
     friend std::ostream& operator<<(std::ostream &os,
                                     const WorkerConnection &connection) {
-                                        
+
       return os << "(WorkerConnection" << connection.connectionInfo->host << ","
                 << connection.connectionInfo->port << ")"
                 << "," << connection.connectionInfo->config;
@@ -134,6 +134,12 @@ std::string getRequestPath() {
 */
   static const int defaultHeartbeat = 0;
 
+/**
+ 1.5 The connection mutex
+
+*/
+    std::mutex connectionMutex;
+
     private:
 
 /**
@@ -148,11 +154,7 @@ std::string getRequestPath() {
 */
     distributed2::ConnectionInfo* connection = nullptr;
 
-/**
- 2.3 The connection mutex
 
-*/
-    std::mutex connectionMutex;
 
 };
 
