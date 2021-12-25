@@ -105,36 +105,38 @@ bool ConnectionMySQL::createConnection() {
 6.3 ~sendCommand~
 
 */
-bool ConnectionMySQL::sendCommand(const std::string &command, 
-    bool printErrors) {
+bool ConnectionMySQL::sendCommand(const std::string &command,
+                                  bool printErrors) {
 
-    int mysqlExecRes = mysql_query(conn, command.c_str());
+  const std::lock_guard<std::recursive_mutex> lock(connection_mutex);
 
-    if(mysqlExecRes != 0) {
-        if(printErrors) {
-            BOOST_LOG_TRIVIAL(error) 
-                << "Unable to perform command: " << command
-                << " / " << mysql_error(conn);
-        }
+  int mysqlExecRes = mysql_query(conn, command.c_str());
 
-        return false;
+  if (mysqlExecRes != 0) {
+    if (printErrors) {
+      BOOST_LOG_TRIVIAL(error) << "Unable to perform command: " << command
+                               << " / " << mysql_error(conn);
     }
 
-    return true;
+    return false;
+  }
+
+  return true;
 }
 
 /*
 6.4 ~sendQuery~
 
 */
-MYSQL_RES* ConnectionMySQL::sendQuery(const std::string &query) {
+MYSQL_RES *ConnectionMySQL::sendQuery(const std::string &query) {
 
- int mysqlExecRes = mysql_query(conn, query.c_str());
+  const std::lock_guard<std::recursive_mutex> lock(connection_mutex);
 
-  if(mysqlExecRes != 0) {
-    BOOST_LOG_TRIVIAL(error) 
-      << "Unable to perform query " << query
-      << " / " << mysql_error(conn);
+  int mysqlExecRes = mysql_query(conn, query.c_str());
+
+  if (mysqlExecRes != 0) {
+    BOOST_LOG_TRIVIAL(error)
+        << "Unable to perform query " << query << " / " << mysql_error(conn);
     return nullptr;
   }
 
@@ -143,26 +145,27 @@ MYSQL_RES* ConnectionMySQL::sendQuery(const std::string &query) {
   return res;
 }
 
-
 /*
 6.5 ~checkConnection~
 
 */
 bool ConnectionMySQL::checkConnection() {
 
-    if(conn == nullptr) {
-        return false;
-    }
+  const std::lock_guard<std::recursive_mutex> lock(connection_mutex);
 
-    int pingResult = mysql_ping(conn);
+  if (conn == nullptr) {
+    return false;
+  }
 
-    if(pingResult != 0) {
-        BOOST_LOG_TRIVIAL(error) << "MySQL ping failed"
-          << " / " << mysql_error(conn);
-        return false;
-    }
+  int pingResult = mysql_ping(conn);
 
-    return true;
+  if (pingResult != 0) {
+    BOOST_LOG_TRIVIAL(error) << "MySQL ping failed"
+                             << " / " << mysql_error(conn);
+    return false;
+  }
+
+  return true;
 }
 
 /*
@@ -171,7 +174,7 @@ bool ConnectionMySQL::checkConnection() {
 */
 std::string ConnectionMySQL::getCreateTableSQL(const std::string &table) {
 
-    const std::lock_guard<std::mutex> lock(connection_mutex);
+    const std::lock_guard<std::recursive_mutex> lock(connection_mutex);
 
     string createTableSQL = "DROP TABLE IF EXISTS " + table +";\n";
 
@@ -204,6 +207,8 @@ void ConnectionMySQL::partitionRoundRobin(const std::string &table,
                                           const size_t slots,
                                           const std::string &targetTab) {
 
+  const std::lock_guard<std::recursive_mutex> lock(connection_mutex);
+
   // Apply sequence counter to the relation
   string selectSQL = "SELECT @n := ((@n + 1) % " + to_string(slots) + ") " +
                      be_partition_slot + ", t.* " +
@@ -229,6 +234,8 @@ void ConnectionMySQL::partitionHash(const std::string &table,
                                     const std::string &key,
                                     const size_t anzSlots,
                                     const std::string &targetTab) {
+
+  const std::lock_guard<std::recursive_mutex> lock(connection_mutex);
 
   string usedKey(key);
   boost::replace_all(usedKey, ",", ",'%_%',");
@@ -259,6 +266,8 @@ void ConnectionMySQL::partitionFunc(const std::string &table,
                                     const size_t anzSlots,
                                     const std::string &fun,
                                     const std::string &targetTab) {
+
+  const std::lock_guard<std::recursive_mutex> lock(connection_mutex);
 
   string selectSQL = "";
 
@@ -300,6 +309,8 @@ in queries like SELECT thisResult FROM table INTO OUTFILE.
 
 std::string ConnectionMySQL::getFieldNamesForExport(
     const std::string &table, const std::string &fieldPrefix) {
+
+  const std::lock_guard<std::recursive_mutex> lock(connection_mutex);
 
   string sqlQuery = "SELECT * FROM " + table + " LIMIT 1";
 
@@ -354,6 +365,8 @@ needs to be handled in a special way.
 std::string ConnectionMySQL::getImportTableSQL(const std::string &table, 
     const std::string &full_path) {
  
+  const std::lock_guard<std::recursive_mutex> lock(connection_mutex);
+
   string sqlQuery = "SELECT * FROM " + table + " LIMIT 1";
 
   MYSQL_RES *res = sendQuery(sqlQuery.c_str());
@@ -443,6 +456,8 @@ std::string ConnectionMySQL::getExportTableSQL(const std::string &table,
 std::vector<std::tuple<string, string>> 
     ConnectionMySQL::getTypeFromSQLQuery(const std::string &sqlQuery) {
 
+  const std::lock_guard<std::recursive_mutex> lock(connection_mutex);
+
   string usedSQLQuery = limitSQLQuery(sqlQuery);
   vector<tuple<string, string>> result;
 
@@ -477,6 +492,8 @@ std::vector<std::tuple<string, string>>
 */
 vector<tuple<string, string>> ConnectionMySQL::getTypeFromQuery(
     MYSQL_RES* res) {
+
+  const std::lock_guard<std::recursive_mutex> lock(connection_mutex);
 
   vector<tuple<string, string>> result;
   int columns = mysql_num_fields(res);
@@ -539,31 +556,33 @@ vector<tuple<string, string>> ConnectionMySQL::getTypeFromQuery(
 6.15 ~performSQLSelectQuery~
 
 */
-ResultIteratorGeneric* ConnectionMySQL::performSQLSelectQuery(
-    const std::string &sqlQuery) {
+ResultIteratorGeneric *
+ConnectionMySQL::performSQLSelectQuery(const std::string &sqlQuery) {
 
-    if( ! checkConnection()) {
-        BOOST_LOG_TRIVIAL(error) 
-             << "Connection check failed in performSQLSelectQuery()";
-        return nullptr;
-    }
+  const std::lock_guard<std::recursive_mutex> lock(connection_mutex);
 
-    MYSQL_RES *res = sendQuery(sqlQuery.c_str());
+  if (!checkConnection()) {
+    BOOST_LOG_TRIVIAL(error)
+        << "Connection check failed in performSQLSelectQuery()";
+    return nullptr;
+  }
 
-    if(res == nullptr) {
-        return nullptr;
-    }    
+  MYSQL_RES *res = sendQuery(sqlQuery.c_str());
 
-    vector<std::tuple<std::string, std::string>> types = getTypeFromQuery(res);
-    ListExpr resultList = convertTypeVectorIntoSecondoNL(types);
+  if (res == nullptr) {
+    return nullptr;
+  }
 
-    if(nl->IsEmpty(resultList)) {
-        BOOST_LOG_TRIVIAL(error) 
-            << "Unable to get tuple type form query: " << sqlQuery;
-            return nullptr;
-    }
+  vector<std::tuple<std::string, std::string>> types = getTypeFromQuery(res);
+  ListExpr resultList = convertTypeVectorIntoSecondoNL(types);
 
-    return new ResultIteratorMySQL(res, resultList);
+  if (nl->IsEmpty(resultList)) {
+    BOOST_LOG_TRIVIAL(error)
+        << "Unable to get tuple type form query: " << sqlQuery;
+    return nullptr;
+  }
+
+  return new ResultIteratorMySQL(res, resultList);
 }
 
 /*
@@ -572,26 +591,26 @@ ResultIteratorGeneric* ConnectionMySQL::performSQLSelectQuery(
 */
 bool ConnectionMySQL::validateQuery(const std::string &query) {
 
-    if( ! checkConnection()) {
-        BOOST_LOG_TRIVIAL(error) 
-             << "Connection check failed in validateQuery()";
-        return false;
-    }
+  const std::lock_guard<std::recursive_mutex> lock(connection_mutex);
 
-    string restrictedQuery = limitSQLQuery(query);
+  if (!checkConnection()) {
+    BOOST_LOG_TRIVIAL(error) << "Connection check failed in validateQuery()";
+    return false;
+  }
 
-    MYSQL_RES *res = sendQuery(restrictedQuery.c_str());
+  string restrictedQuery = limitSQLQuery(query);
 
-    if(res == nullptr) {
-        return false;
-    }
+  MYSQL_RES *res = sendQuery(restrictedQuery.c_str());
 
-    mysql_free_result(res);
-    res = nullptr;
+  if (res == nullptr) {
+    return false;
+  }
 
-    return true;
+  mysql_free_result(res);
+  res = nullptr;
+
+  return true;
 }
-
 
 /*
 6.17 Create the table for the grid
@@ -599,33 +618,32 @@ bool ConnectionMySQL::validateQuery(const std::string &query) {
 */
 bool ConnectionMySQL::createGridTable(const std::string &table) {
 
-    string createTable = "CREATE TABLE " + table + " (id " 
-        + " BIGINT NOT NULL AUTO_INCREMENT, "
-        + " cell POLYGON NOT NULL, "
-        + " PRIMARY KEY(id));";
+  const std::lock_guard<std::recursive_mutex> lock(connection_mutex);
 
-    bool res = sendCommand(createTable.c_str());
+  string createTable = "CREATE TABLE " + table + " (id " +
+                       " BIGINT NOT NULL AUTO_INCREMENT, " +
+                       " cell POLYGON NOT NULL, " + " PRIMARY KEY(id));";
 
-    if(res == false) {
-        BOOST_LOG_TRIVIAL(error) 
-            << "Unable to execute: " << createTable
-            << mysql_error(conn);
-        return false;
-    }
+  bool res = sendCommand(createTable.c_str());
 
-    // Create index
-    string createIndex = "ALTER TABLE " + table + " ADD SPATIAL INDEX(cell);";
+  if (res == false) {
+    BOOST_LOG_TRIVIAL(error)
+        << "Unable to execute: " << createTable << mysql_error(conn);
+    return false;
+  }
 
-    res = sendCommand(createIndex.c_str());
+  // Create index
+  string createIndex = "ALTER TABLE " + table + " ADD SPATIAL INDEX(cell);";
 
-    if(res == false) {
-        BOOST_LOG_TRIVIAL(error) 
-            << "Unable to execute: " << createIndex
-            << mysql_error(conn);
-        return false;
-    }
+  res = sendCommand(createIndex.c_str());
 
-    return true;
+  if (res == false) {
+    BOOST_LOG_TRIVIAL(error)
+        << "Unable to execute: " << createIndex << mysql_error(conn);
+    return false;
+  }
+
+  return true;
 }
 
 /*
@@ -635,55 +653,56 @@ bool ConnectionMySQL::createGridTable(const std::string &table) {
 bool ConnectionMySQL::insertRectangle(const std::string &table, 
         double x, double y, double sizeX, double sizeY) {
 
-    string polygon = "POLYGON((" + to_string(x) + " " + to_string(y) + 
-        "," + to_string(x+sizeX) + " " + to_string(y) + 
-        "," + to_string(x+sizeX) + " " + to_string(y+sizeY) + 
-        "," + to_string(x) + " " + to_string(y+sizeY) + 
-        "," + to_string(x) + " " + to_string(y) + "))";
+  const std::lock_guard<std::recursive_mutex> lock(connection_mutex);
 
+  string polygon = "POLYGON((" + to_string(x) + " " + to_string(y) + "," +
+                   to_string(x + sizeX) + " " + to_string(y) + "," +
+                   to_string(x + sizeX) + " " + to_string(y + sizeY) + "," +
+                   to_string(x) + " " + to_string(y + sizeY) + "," +
+                   to_string(x) + " " + to_string(y) + "))";
 
-    string insertSQL = "INSERT INTO " + table 
-        + "(cell) values(ST_PolyFromText('" + polygon + "', 4326))";
+  string insertSQL = "INSERT INTO " + table +
+                     "(cell) values(ST_PolyFromText('" + polygon + "', 4326))";
 
-    bool res = sendCommand(insertSQL.c_str());
+  bool res = sendCommand(insertSQL.c_str());
 
-    if(res == false) {
-        BOOST_LOG_TRIVIAL(error) 
-            << "Unable to execute: " << insertSQL
-            << mysql_error(conn);
-        return false;
-    }
+  if (res == false) {
+    BOOST_LOG_TRIVIAL(error)
+        << "Unable to execute: " << insertSQL << mysql_error(conn);
+    return false;
+  }
 
-    return true;
+  return true;
 }
 
 /*
 6.18 Add a new column to the table
 
 */
-void ConnectionMySQL::addColumnToTable(const std::string &table, 
-    const std::string &name, SQLAttribute type) {
+void ConnectionMySQL::addColumnToTable(const std::string &table,
+                                       const std::string &name,
+                                       SQLAttribute type) {
 
-    string sql = "ALTER TABLE " + table + " ADD COLUMN " + name;
+  const std::lock_guard<std::recursive_mutex> lock(connection_mutex);
 
-    switch(type) {
-        case SQLAttribute::sqlinteger:
-            sql.append(" INTEGER");
-        break;
+  string sql = "ALTER TABLE " + table + " ADD COLUMN " + name;
 
-        default:
-            throw SecondoException("Unsupported datatyepe: " + type);
-    }
+  switch (type) {
+  case SQLAttribute::sqlinteger:
+    sql.append(" INTEGER");
+    break;
 
+  default:
+    throw SecondoException("Unsupported datatyepe: " + type);
+  }
 
-   bool res = sendCommand(sql.c_str());
+  bool res = sendCommand(sql.c_str());
 
-   if(res == false) {
-        BOOST_LOG_TRIVIAL(error) 
-            << "Unable to execute: " << sql
-            << mysql_error(conn);
-        throw SecondoException("Unable to add column to table");
-   }
+  if (res == false) {
+    BOOST_LOG_TRIVIAL(error)
+        << "Unable to execute: " << sql << mysql_error(conn);
+    throw SecondoException("Unable to add column to table");
+  }
 }
 
 } // namespace BasicEngine

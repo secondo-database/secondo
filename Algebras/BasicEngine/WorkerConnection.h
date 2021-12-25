@@ -83,8 +83,8 @@ class WorkerConnection {
                                     const WorkerConnection &connection) {
 
       return os << "(WorkerConnection" << connection.connectionInfo->host << ","
-                << connection.connectionInfo->port << ")"
-                << "," << connection.connectionInfo->config;
+                << connection.connectionInfo->port
+                << "," << connection.connectionInfo->config << ")";
     }
 
 /**

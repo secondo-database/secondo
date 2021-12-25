@@ -239,7 +239,7 @@ protected:
   5.2.6 The connection mutex
 
   */
-  std::mutex connection_mutex;
+  std::recursive_mutex connection_mutex;
 };
 } // namespace BasicEngine
 

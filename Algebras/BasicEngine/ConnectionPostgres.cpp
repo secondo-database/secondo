@@ -106,6 +106,8 @@ Returns TRUE if the connection is ok.
 */
 bool ConnectionPostgres::checkConnection() {
 
+  const std::lock_guard<std::recursive_mutex> lock(connection_mutex);
+
   if(conn == nullptr) {
     return false;
   }
@@ -128,6 +130,8 @@ Returns TRUE if the execution was ok.
 */
 bool ConnectionPostgres::sendCommand(const string &command, bool printErrors) {
   
+  const std::lock_guard<std::recursive_mutex> lock(connection_mutex);
+
   const char *query_exec = command.c_str();
 
   if (! checkConnection()) {
@@ -174,6 +178,8 @@ Returns the Result of the query.
 */
 PGresult* ConnectionPostgres::sendQuery(const string &query) {
    
+  const std::lock_guard<std::recursive_mutex> lock(connection_mutex);
+
   const char *query_exec = query.c_str();
 
   if (! checkConnection()) {
@@ -209,7 +215,7 @@ return this string.
 */
 string ConnectionPostgres::getCreateTableSQL(const string &tab){
 
-  const std::lock_guard<std::mutex> lock(connection_mutex);
+  const std::lock_guard<std::recursive_mutex> lock(connection_mutex);
   
   string query_exec;
   PGresult* res;
@@ -258,6 +264,8 @@ Creates a table in postgreSQL with the partitioned data by round robin.
 void ConnectionPostgres::partitionRoundRobin(const string &tab, 
   const size_t anzSlots, const string &targetTab) {
 
+  const std::lock_guard<std::recursive_mutex> lock(connection_mutex);
+
   // Sequence counter
   string createSequenceSQL = "CREATE TEMP SEQUENCE IF NOT EXISTS temp_seq;";
 
@@ -296,6 +304,8 @@ void ConnectionPostgres::partitionHash(const string &tab, const string &key,
                                  const size_t anzSlots,
                                  const string &targetTab) {
 
+  const std::lock_guard<std::recursive_mutex> lock(connection_mutex);
+
   string usedKey(key);
   boost::replace_all(usedKey, ",", ",'%_%',");
 
@@ -324,6 +334,8 @@ This function is for organizing the special partitioning functions.
 void ConnectionPostgres::partitionFunc(const string &table, const string &key,
                                  const size_t anzSlots, const string &fun,
                                  const string &targetTab) {
+
+  const std::lock_guard<std::recursive_mutex> lock(connection_mutex);
 
   string selectSQL = "";
 
@@ -381,6 +393,8 @@ Get the SECONDO type of the given SQL query
 std::vector<std::tuple<string, string>> 
     ConnectionPostgres::getTypeFromSQLQuery(const std::string &sqlQuery) {
 
+  const std::lock_guard<std::recursive_mutex> lock(connection_mutex);
+
   string usedSQLQuery = limitSQLQuery(sqlQuery);
   vector<tuple<string, string>> result;
 
@@ -411,6 +425,8 @@ std::vector<std::tuple<string, string>>
 */
 vector<std::tuple<std::string, std::string>> 
   ConnectionPostgres::getTypeFromQuery(PGresult* res) {
+
+  const std::lock_guard<std::recursive_mutex> lock(connection_mutex);
 
   vector<tuple<string, string>> result;
   int columns = PQnfields(res);
@@ -472,6 +488,8 @@ Perform the given query and return a result iterator
 ResultIteratorGeneric* ConnectionPostgres::performSQLSelectQuery(
   const std::string &sqlQuery) {
 
+  const std::lock_guard<std::recursive_mutex> lock(connection_mutex);
+
   if( ! checkConnection()) {
     BOOST_LOG_TRIVIAL(error) 
       << "Connection check failed in performSQLSelectQuery()";
@@ -503,6 +521,8 @@ ResultIteratorGeneric* ConnectionPostgres::performSQLSelectQuery(
 */
 bool ConnectionPostgres::validateQuery(const std::string &query) {
 
+  const std::lock_guard<std::recursive_mutex> lock(connection_mutex);
+
     if( ! checkConnection()) {
         BOOST_LOG_TRIVIAL(error) 
              << "Connection check failed in validateQuery()";
@@ -523,13 +543,13 @@ bool ConnectionPostgres::validateQuery(const std::string &query) {
     return true;
 }
 
-
-
 /*
 6.17 Create the table for the grid
 
 */
 bool ConnectionPostgres::createGridTable(const std::string &table) {
+
+  const std::lock_guard<std::recursive_mutex> lock(connection_mutex);
 
     string createTable = "CREATE TABLE " + table + " (id " 
         + " SERIAL PRIMARY KEY, "
@@ -568,6 +588,8 @@ bool ConnectionPostgres::createGridTable(const std::string &table) {
 bool ConnectionPostgres::insertRectangle(const std::string &table, 
         double x, double y, double sizeX, double sizeY) {
 
+  const std::lock_guard<std::recursive_mutex> lock(connection_mutex);
+
     string polygon = "POLYGON((" + to_string(x) + " " + to_string(y) + 
         "," + to_string(x+sizeX) + " " + to_string(y) + 
         "," + to_string(x+sizeX) + " " + to_string(y+sizeY) + 
@@ -598,6 +620,8 @@ bool ConnectionPostgres::insertRectangle(const std::string &table,
 */
 void ConnectionPostgres::addColumnToTable(const std::string &table, 
     const std::string &name, SQLAttribute type) {
+
+  const std::lock_guard<std::recursive_mutex> lock(connection_mutex);
 
     string sql = "ALTER TABLE " + table + " ADD COLUMN " + name;
 
