@@ -415,13 +415,6 @@ Repartition the given table - worker version
                                             const PartitionMode &partitionMode,
                                             const bool repartition) {
 
-    // Open connections
-    bool connectionCreateResult = createAllConnections();
-    if (!connectionCreateResult) {
-      BOOST_LOG_TRIVIAL(error) << "Unable to open connections";
-      return false;
-    }
-
     // Remove old cellnumber and slotnumber attributes 
     // (e.g., needed for repartition the table)
     dropAttributeIfExists(partitionData.table, be_partition_cellnumber);

@@ -209,6 +209,8 @@ return this string.
 */
 string ConnectionPostgres::getCreateTableSQL(const string &tab){
 
+  const std::lock_guard<std::mutex> lock(connection_mutex);
+  
   string query_exec;
   PGresult* res;
   string write="";

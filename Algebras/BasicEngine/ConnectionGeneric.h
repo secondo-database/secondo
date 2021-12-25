@@ -29,6 +29,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include <string>
 #include <vector>
+#include <mutex>
 
 #include "Algebra.h"
 #include "Attribute.h"
@@ -228,10 +229,17 @@ protected:
   std::string dbName;
 
   /*
-  5.2.5
+  5.2.5 The referenece to the SQL dialect
 
   */
   SQLDialect* sqlDialect = nullptr;
+
+
+  /*
+  5.2.6 The connection mutex
+
+  */
+  std::mutex connection_mutex;
 };
 } // namespace BasicEngine
 

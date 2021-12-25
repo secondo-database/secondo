@@ -171,6 +171,8 @@ bool ConnectionMySQL::checkConnection() {
 */
 std::string ConnectionMySQL::getCreateTableSQL(const std::string &table) {
 
+    const std::lock_guard<std::mutex> lock(connection_mutex);
+
     string createTableSQL = "DROP TABLE IF EXISTS " + table +";\n";
 
     string getTableStructure = "SHOW CREATE TABLE " + table;
