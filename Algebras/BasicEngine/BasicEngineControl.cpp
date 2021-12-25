@@ -337,7 +337,7 @@ void BasicEngineControl::exportTableCreateStatementSQL(
     }
   }
 
-  BOOST_LOG_TRIVIAL(debug) 
+   BOOST_LOG_TRIVIAL(debug) 
     << "Create table statement is: " << statement;
 
   // Write the SQL statement into the given output file
@@ -470,7 +470,7 @@ Repartition the given table - worker version
 
     // Create table on the remote systems 
     if(! repartition) {
-      exportSchemaToWorker(partitionData.table, partitionWorkerMapping);
+      exportSchemaToWorker(resultTable, partitionWorkerMapping);
     }
 
     // Call transfer and import data
@@ -1388,6 +1388,9 @@ bool BasicEngineControl::performSchemaTransfer(const string &table,
     exportTableCreateStatementSQL(table, localCreateName);
   }
 
+  BOOST_LOG_TRIVIAL(debug) << "Dump schema for " << table
+                           << " to " << localCreateName;
+
   WorkerConnection *connection = exportSlot.workerConnection;
   const std::lock_guard<std::mutex> lock(connection -> connectionMutex);
 
@@ -1417,8 +1420,8 @@ bool BasicEngineControl::performSchemaTransfer(const string &table,
   std::string importCommand = "query be_runsql('" + importPath + "');";
   bool runSqlResult = connection->performSimpleSecondoCommand(importCommand);
 
-  if(runSqlResult) {
-    BOOST_LOG_TRIVIAL(error) << "Unable to execute" << importCommand;
+  if(! runSqlResult) {
+    BOOST_LOG_TRIVIAL(error) << "Unable to execute: " << importCommand;
     return false;
   }
 
@@ -1427,8 +1430,8 @@ bool BasicEngineControl::performSchemaTransfer(const string &table,
   bool importCommandResult = connection
     ->performSimpleSecondoCommand(removeCommand);
 
-  if(importCommandResult) {
-    BOOST_LOG_TRIVIAL(error) << "Unable to execute" << removeCommand;
+  if(! importCommandResult) {
+    BOOST_LOG_TRIVIAL(error) << "Unable to execute: " << removeCommand;
     return false;
   }
 
