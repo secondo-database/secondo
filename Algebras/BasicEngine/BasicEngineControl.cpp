@@ -485,11 +485,10 @@ Repartition the given table - worker version
     BOOST_LOG_TRIVIAL(debug) << "Deleting temporary table" << resultTable;
     dbms_connection->dropTable(resultTable);
 
-    // TODO: Replace by actual DArray
-    std::vector<uint32_t> m;
-    DArray result(m,"");
+    DArray darray = convertSlotMappingToDArray(partitionData.table, 
+      partitionWorkerMapping);
 
-    return result;
+    return darray;
   }
 
 /*
@@ -604,11 +603,13 @@ Repartition the given table - master version
         return false;
     }
 
-    // TODO: replace by actual DARray
-    std::vector<uint32_t> m;
-    DArray result(m,"");
+    // TODO: generate mapping on master
+    std::list<ExportedSlotData> partitionWorkerMapping;
 
-    return result;
+    DArray darray = convertSlotMappingToDArray(partitionData.table, 
+        partitionWorkerMapping);
+
+    return darray;
 }
 
 /*
@@ -1767,6 +1768,33 @@ std::string BasicEngineControl::getFirstAttributeNameFromTable(
   BOOST_LOG_TRIVIAL(debug) << "Using key " + key + " for rr join";
 
   return key;
+}
+
+/**
+3.30 Convert the given slot mapping into a DArray
+
+*/
+distributed2::DArray BasicEngineControl::convertSlotMappingToDArray(
+    const std::string &name,
+    const std::list<ExportedSlotData> partitionWorkerMapping) {
+
+  std::vector<uint32_t> m;
+  DArray result(m, "");
+
+  std::vector<DArrayElement> worker;
+
+  for (ExportedSlotData slot : partitionWorkerMapping) {
+    RemoteConnectionInfo *remote =
+        (slot.workerConnection)->getRemoteConnectionInfo();
+
+    DArrayElement element(remote->host, stoi(remote->port), slot.slot,
+                          remote->config);
+    worker.push_back(element);
+  }
+
+  result.set(name, worker);
+
+  return result;
 }
 
 } /* namespace BasicEngine */

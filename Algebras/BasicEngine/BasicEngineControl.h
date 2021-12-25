@@ -325,7 +325,11 @@ bool createAndInitConnection(
     return dbms_connection;
   }
 
+  distributed2::DArray convertSlotMappingToDArray(
+    const std::string &name, 
+    const std::list<ExportedSlotData> partitionWorkerMapping);
 };
+
 };  /* namespace BasicEngine */
 
 #endif //_BasicEngineControl_H_
