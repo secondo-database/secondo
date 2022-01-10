@@ -650,7 +650,7 @@ class NTreeInnerNode : public NTreeNode<T, DistComp, variant> {
         // TODO
         break;
       }
-      case 3: { // fixed
+      case 3: { // first at hand
         for (int i = 0; i < node_t::degree; i++) {
           centers[i] = new T(contents[i]);
         }
@@ -668,7 +668,7 @@ class NTreeInnerNode : public NTreeNode<T, DistComp, variant> {
     partitions.resize(node_t::degree);
     double dist(-1.0), centerDist(-1.0);
     int partitionPos = -1;
-    if (variant == 2 || variant >= 6) { // NTree2
+    if (variant == 2 || variant >= 6) { // NTree2 etc.
       for (unsigned int i = 0; i < contents.size(); i++) {
         for (int j = 0; j < degree; j++) {
           if (contents[i].getTid() == centers[j]->getTid()) {
@@ -681,6 +681,10 @@ class NTreeInnerNode : public NTreeNode<T, DistComp, variant> {
           partitionPos = getNearestCenterPos(contents[i], dc, centerDist);
         }
         partitions[partitionPos].push_back(contents[i]);
+        if (contents[i].getTid() == 17094 || contents[i].getTid() == 12630) {
+          cout << "TID " << contents[i].getTid() << " --> partition of TID "
+               << centers[partitionPos]->getTid() << endl;
+        }
         if (centerDist > maxDist[partitionPos]) {
           maxDist[partitionPos] = centerDist;
         }
@@ -1060,7 +1064,7 @@ class RangeIteratorN {
   
   void addResult(T* o) {
     results.push_back(o);
-//     cout << "[" << o->getTid() << "] ";
+    cout << "[" << o->getTid() << "] ";
 //          << ": " << *(o->getKey()) << "] ";
   }
   
@@ -1316,6 +1320,10 @@ class RangeIteratorN {
     double maxDist_i;
     double d_min = DBL_MAX;
     for (int i = 0; i < noCands; i++) {
+      cout << "i = " << i << ", cand[tuple "
+           << (node->isLeaf() ? ((leafnode_t*)node)->getObject(i)->getTid()
+                              : ((innernode_t*)node)->getCenter(i)->getTid())
+           << "] is " << (cand[i] ? "TRUE" : "FALSE") << endl;
       if (cand[i]) {
         cand[i] = false;
         if (node->isLeaf()) {
@@ -1353,10 +1361,10 @@ class RangeIteratorN {
     }
     if (!node->isLeaf()) {
       for (int i = 0; i < noCands; i++) {
-        if (cand2[i]) {
+//         if (cand2[i]) {
 //           cout << "  RS2: cand2[" << i << "] = " << cand2[i] << ", us[" << i
 //                << "] = " << us[i] << endl;
-        }
+//         }
         if (cand2[i] && us[i] <= d_min + 2 * range) {
           rangeSearch2(node->getChild(i));
         }
