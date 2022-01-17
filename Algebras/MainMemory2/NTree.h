@@ -681,9 +681,14 @@ class NTreeInnerNode : public NTreeNode<T, DistComp, variant> {
           partitionPos = getNearestCenterPos(contents[i], dc, centerDist);
         }
         partitions[partitionPos].push_back(contents[i]);
-        if (contents[i].getTid() == 15053) {
-          cout << "TID " << contents[i].getTid() << " --> partition of TID "
-               << centers[partitionPos]->getTid() << endl;
+        if (contents[i].getTid() == 7274 || contents[i].getTid() == 8283 ||
+            contents[i].getTid() == 380 || contents[i].getTid() == 3857 ||
+            contents[i].getTid() == 7251 || contents[i].getTid() == 8615 ||
+            contents[i].getTid() == 1579 || contents[i].getTid() == 3100 ||
+            contents[i].getTid() == 12964) {
+          cout << "TID " << contents[i].getTid() << " --> partition pos "
+               << partitionPos << ", TID " << centers[partitionPos]->getTid() 
+               << ", centerDist = " << centerDist << endl;
         }
         if (centerDist > maxDist[partitionPos]) {
           maxDist[partitionPos] = centerDist;
@@ -1412,10 +1417,14 @@ class RangeIteratorN {
           d_iq = node->getPrecomputedDist(c_q, i, false);
 //           cout << "  ..... ok, it's " << d_iq << endl;
           maxDist_i = ((innernode_t*)node)->getMaxDist(i);
-//           cout << "  INNER NODE: d_iq = " << d_iq << ", d_min = " << d_min 
-//                << ", maxDist_i = " << maxDist_i << ",  dc = " 
-//                << dc(*((innernode_t*)node)->getCenter(i), queryObject)
-//                << endl;
+          if (i == node->getDegree() - 1) {
+            cout << "c_q = " << c_q << ", tid = " 
+                 << ((innernode_t*)node)->getCenter(i)->getTid()
+                 << ", d_iq = " << d_iq << ", d_min = "
+                 << d_min << ", maxDist_i = " << maxDist_i << ",  dc = " 
+                 << dc(*((innernode_t*)node)->getCenter(i), queryObject) 
+                 << endl;
+          }
           if (d_iq + d_min + maxDist_i <= range) {
             cout << "rES ";
             reportEntireSubtree(node->getChild(i));
@@ -1423,6 +1432,7 @@ class RangeIteratorN {
           else if (d_iq - d_min - maxDist_i <= range &&
                    d_iq <= 2 * d_min + 2 * range) {
             if (d_iq <= 2 * range) {
+              cout << "SEARCH[" << i << "] = TRUE" << endl;
               search[i] = true;
 //               rangeSearch2(node->getChild(i));
             }
@@ -1458,6 +1468,8 @@ class RangeIteratorN {
     }
     cout << ")" << endl;
     if (!node->isLeaf()) {
+      cout << "call cRN7 for child " << nn_q << ", tid " 
+           << ((innernode_t*)node)->getCenter(nn_q)->getTid() << endl;
       collectResultsNtree7(node->getChild(nn_q));
       for (int i = 0; i < noCands; i++) {
         if (search[i]) {
