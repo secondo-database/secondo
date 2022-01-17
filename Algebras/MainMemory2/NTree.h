@@ -209,28 +209,38 @@ class NTreeNode {
       W[i] = pdp;
     }
     // sort W by dist to odist2d
-//       for (int i = 0; i < size; i++) {
-//         cout << "(" << W[i].pos << ", " << W[i].distObj2d << "),  ";
-//       }
-//       cout << endl;
+    
     if (candOrder == PIVOT2 || candOrder == PIVOT3) {
       std::sort(W, W + size);
     }
-//       for (int i = 0; i < degree; i++) {
-//         cout << "(" << W[i].pos << ", " << W[i].distObj2d << "),  ";
-//       }
-//       cout << endl << endl;
+    if (o.getTid() == 380) {
+      for (int i = 0; i < size; i++) {
+        cout << "(" << W[i].pos << ", " << W[i].distEuclid << "),  ";
+      }
+      cout << endl;
+    }
     double Dq[size];
     std::fill_n(Dq, size, DBL_MAX);
-    for (int i = 0; i < size; i++) { // TODO: use ordering of W!
-      if (cand[i]) {
+    for (int i = 0; i < size; i++) {
+      if (o.getTid() == 380) {
+        cout << "i = " << i << ", cand[1] = " << (cand[1] ? "TRUE" : "FALSE")
+             << endl;
+      }
+      if (cand[W[i].pos]) {
         tempDist = isLeaf ? ((leafnode_t*)this)->evaluateDist(W[i].pos, o, dc) :
                             ((innernode_t*)this)->evaluateDist(W[i].pos, o, dc);
 //         evaluateDist(W[i].pos, o, dc);
         Dq[W[i].pos] = tempDist;
+        if (o.getTid() == 380) {
+          cout << "D[" << W[i].pos << "] = " << Dq[W[i].pos] 
+               << " compare to mindist = " << minDist << endl;
+        }
         if (tempDist < minDist) {
           minDist = tempDist;
           result = W[i].pos;
+          if (o.getTid() == 380) {
+            cout << " .. result changed to " << result << endl;
+          }
         }
         for (int j = 0; j < size; j++) {//prune according to pMethod
 //           cout << "i = " << i << "; entry (" << j << ", " << W[i].pos;
@@ -243,6 +253,10 @@ class NTreeNode {
             }
           }
           else if (pMethod == MINDIST) {
+            if (o.getTid() == 380 && j == 1) {
+              cout << " *** " << d_ij << " " << tempDist << " " << minDist 
+                   << endl;
+            }
             if (d_ij < tempDist - minDist || d_ij > tempDist + minDist) {
               cand[j] = false;
             }
