@@ -213,34 +213,20 @@ class NTreeNode {
     if (candOrder == PIVOT2 || candOrder == PIVOT3) {
       std::sort(W, W + size);
     }
-    if (o.getTid() == 380) {
-      for (int i = 0; i < size; i++) {
-        cout << "(" << W[i].pos << ", " << W[i].distEuclid << "),  ";
-      }
-      cout << endl;
-    }
+//     for (int i = 0; i < size; i++) {
+//       cout << "(" << W[i].pos << ", " << W[i].distEuclid << "),  ";
+//     }
+//     cout << endl;
     double Dq[size];
     std::fill_n(Dq, size, DBL_MAX);
     for (int i = 0; i < size; i++) {
-      if (o.getTid() == 380) {
-        cout << "i = " << i << ", cand[1] = " << (cand[1] ? "TRUE" : "FALSE")
-             << endl;
-      }
       if (cand[W[i].pos]) {
         tempDist = isLeaf ? ((leafnode_t*)this)->evaluateDist(W[i].pos, o, dc) :
                             ((innernode_t*)this)->evaluateDist(W[i].pos, o, dc);
-//         evaluateDist(W[i].pos, o, dc);
         Dq[W[i].pos] = tempDist;
-        if (o.getTid() == 380) {
-          cout << "D[" << W[i].pos << "] = " << Dq[W[i].pos] 
-               << " compare to mindist = " << minDist << endl;
-        }
         if (tempDist < minDist) {
           minDist = tempDist;
           result = W[i].pos;
-          if (o.getTid() == 380) {
-            cout << " .. result changed to " << result << endl;
-          }
         }
         for (int j = 0; j < size; j++) {//prune according to pMethod
 //           cout << "i = " << i << "; entry (" << j << ", " << W[i].pos;
@@ -253,10 +239,6 @@ class NTreeNode {
             }
           }
           else if (pMethod == MINDIST) {
-            if (o.getTid() == 380 && j == 1) {
-              cout << " *** " << d_ij << " " << tempDist << " " << minDist 
-                   << endl;
-            }
             if (d_ij < tempDist - minDist || d_ij > tempDist + minDist) {
               cand[j] = false;
             }
@@ -695,15 +677,6 @@ class NTreeInnerNode : public NTreeNode<T, DistComp, variant> {
           partitionPos = getNearestCenterPos(contents[i], dc, centerDist);
         }
         partitions[partitionPos].push_back(contents[i]);
-        if (contents[i].getTid() == 7274 || contents[i].getTid() == 8283 ||
-            contents[i].getTid() == 380 || contents[i].getTid() == 3857 ||
-            contents[i].getTid() == 7251 || contents[i].getTid() == 8615 ||
-            contents[i].getTid() == 1579 || contents[i].getTid() == 3100 ||
-            contents[i].getTid() == 12964) {
-          cout << "TID " << contents[i].getTid() << " --> partition pos "
-               << partitionPos << ", TID " << centers[partitionPos]->getTid() 
-               << ", centerDist = " << centerDist << endl;
-        }
         if (centerDist > maxDist[partitionPos]) {
           maxDist[partitionPos] = centerDist;
         }
@@ -1083,7 +1056,7 @@ class RangeIteratorN {
   
   void addResult(T* o) {
     results.push_back(o);
-    cout << "[" << o->getTid() << "] ";
+//     cout << "[" << o->getTid() << "] ";
 //          << ": " << *(o->getKey()) << "] ";
   }
   
@@ -1187,7 +1160,7 @@ class RangeIteratorN {
       }
       int noDistFunCallsAfter = dc.getNoDistFunCalls();
       stat.noLeaves++;
-      stat.noDCLeaves+= noDistFunCallsAfter - noDistFunCallsBefore;
+      stat.noDCLeaves += noDistFunCallsAfter - noDistFunCallsBefore;
     }
     else { // inner node
       for (int i = 0; i < node->getDegree(); i++) {
@@ -1209,6 +1182,7 @@ class RangeIteratorN {
     std::fill_n(cand, noCands, true);
     double u, d_ij;
     if (node->isLeaf()) {
+      int noDistFunCallsBefore = dc.getNoDistFunCalls();
       for (int i = 0; i < noCands; i++) {
         if (cand[i]) {
           u = dc(queryObject, *((leafnode_t*)node)->getObject(i));
@@ -1230,8 +1204,12 @@ class RangeIteratorN {
           }
         }
       }
+      int noDistFunCallsAfter = dc.getNoDistFunCalls();
+      stat.noLeaves++;
+      stat.noDCLeaves += noDistFunCallsAfter - noDistFunCallsBefore;
     }
     else { // inner node
+      int noDistFunCallsBefore = dc.getNoDistFunCalls();
       for (int i = 0; i < noCands; i++) {
         if (cand[i]) {
           u = dc(queryObject, *((innernode_t*)node)->getCenter(i));
@@ -1258,6 +1236,8 @@ class RangeIteratorN {
           }
         }
       }
+      int noDistFunCallsAfter = dc.getNoDistFunCalls();
+      stat.noDCInnerNodes += noDistFunCallsAfter - noDistFunCallsBefore;
       stat.noInnerNodes++;
     }
   }
@@ -1278,10 +1258,8 @@ class RangeIteratorN {
 //       cout << cand2[j] << " ";
 //     }
 //     cout << endl;
-    cout << "PRUNE2 : ";
     double d_ij, maxDist_j;
     if (node->isLeaf()) {
-      int noDistFunCallsBefore = dc.getNoDistFunCalls();
       for (int j = 0; j < noCands; j++) {
         if (cand[j] && j != c_i) {
           d_ij = node->getPrecomputedDist(c_i, j, true);
@@ -1294,9 +1272,6 @@ class RangeIteratorN {
           }
         }
       }
-      int noDistFunCallsAfter = dc.getNoDistFunCalls();
-      stat.noDCLeaves+= noDistFunCallsAfter - noDistFunCallsBefore;
-      stat.noLeaves++;
     }
     else { // inner node
       for (int j = 0; j < noCands; j++) {
@@ -1304,7 +1279,6 @@ class RangeIteratorN {
           d_ij = node->getPrecomputedDist(c_i, j, false);
           maxDist_j = ((innernode_t*)node)->getMaxDist(j);
           if (range > u + d_ij + maxDist_j) {
-            cout << "report subtree: ";
             reportEntireSubtree(node->getChild(j));
 //             cout << "    report ENTIRE child because " << range << " > "
 //                  << u << " + " << d_ij << endl;
@@ -1315,23 +1289,12 @@ class RangeIteratorN {
           }
         }
       }
-      stat.noInnerNodes++;
     }
-//     cout << "    ===> cand at end: ";
-//     for (int j = 0; j < noCands; j++) {
-//       cout << cand[j];
-//     }
-//     cout << ", cand2 at end: ";
-//     for (int j = 0; j < noCands; j++) {
-//       cout << cand2[j] << " ";
-//     }
-//     cout << endl;
   }
   
   void rangeSearch2(node_t* node) { // used by collectResultsNtree7
+    int noDistFunCallsBefore = dc.getNoDistFunCalls();
     int noCands = (node->isLeaf() ? node->getNoEntries() : node->getDegree());
-    cout << "START rangeSearch2, " << (node->isLeaf() ? "LEAF": "INNER NODE")
-         << ",  size " << noCands << endl;
     bool cand[noCands], cand2[noCands]; 
     // cand <=> C, cand2 <=> C'
     std::fill_n(cand, noCands, true);
@@ -1341,11 +1304,11 @@ class RangeIteratorN {
     double maxDist_i;
     double d_min = DBL_MAX;
     for (int i = 0; i < noCands; i++) {
-      T* obj = (node->isLeaf() ? ((leafnode_t*)node)->getObject(i)
-                               : ((innernode_t*)node)->getCenter(i));
-      cout << "i = " << i << ", cand[tuple " << obj->getTid() << "] (" 
-           << (node->isLeaf()? "leaf node" : "inner node") << ") is " 
-           << (cand[i] ? "TRUE" : "FALSE") << endl;
+//       T* obj = (node->isLeaf() ? ((leafnode_t*)node)->getObject(i)
+//                                : ((innernode_t*)node)->getCenter(i));
+//       cout << "i = " << i << ", cand[tuple " << obj->getTid() << "] (" 
+//            << (node->isLeaf()? "leaf node" : "inner node") << ") is " 
+//            << (cand[i] ? "TRUE" : "FALSE") << endl;
       if (cand[i]) {
         cand[i] = false;
         if (node->isLeaf()) {
@@ -1393,13 +1356,22 @@ class RangeIteratorN {
       }
     }
 //     cout << "END of RangeSearch2" << endl;
+    int noDistFunCallsAfter = dc.getNoDistFunCalls();
+    if (node->isLeaf()) {
+      stat.noDCLeaves += noDistFunCallsAfter - noDistFunCallsBefore;
+      stat.noLeaves++;
+    }
+    else {
+      stat.noDCInnerNodes += noDistFunCallsAfter - noDistFunCallsBefore;
+      stat.noInnerNodes++;
+    }
   }
   
   // rangeCenters2(C, q, r)
   int rangeCenters2(node_t* node, bool cand[], bool search[]) {
+    int noDistFunCallsBefore = dc.getNoDistFunCalls();
     int noCands = (node->isLeaf() ? node->getNoEntries() : node->getDegree());
     std::fill_n(search, noCands, false);
-    cout << "RANGE CENTERS2 : ";
     double d_min, d_iq, maxDist_i;
     int c_q;
     if (node->isLeaf()) {
@@ -1410,18 +1382,16 @@ class RangeIteratorN {
 //              << ", dc = "
 //              << dc(((leafnode_t*)node)->getObject(i), queryObject) << endl;
         if (d_iq + d_min <= range) {
-          cout << "aR1 ";
           addResult(((leafnode_t*)node)->getObject(i));
         }
         else if (d_iq - d_min <= range) {
           T* object_i = ((leafnode_t*)node)->getObject(i);
           if (dc(*object_i, queryObject) <= range) {
-            cout << "aR2 ";
             addResult(object_i);
           }
         }
         cand[i] = false;
-      }
+      }      
     }
     else { // inner node
       c_q = ((innernode_t*)node)->getNearestCenterPos(queryObject, dc, d_min);
@@ -1431,22 +1401,12 @@ class RangeIteratorN {
           d_iq = node->getPrecomputedDist(c_q, i, false);
 //           cout << "  ..... ok, it's " << d_iq << endl;
           maxDist_i = ((innernode_t*)node)->getMaxDist(i);
-          if (i == node->getDegree() - 1) {
-            cout << "c_q = " << c_q << ", tid = " 
-                 << ((innernode_t*)node)->getCenter(i)->getTid()
-                 << ", d_iq = " << d_iq << ", d_min = "
-                 << d_min << ", maxDist_i = " << maxDist_i << ",  dc = " 
-                 << dc(*((innernode_t*)node)->getCenter(i), queryObject) 
-                 << endl;
-          }
           if (d_iq + d_min + maxDist_i <= range) {
-            cout << "rES ";
             reportEntireSubtree(node->getChild(i));
           }
           else if (d_iq - d_min - maxDist_i <= range &&
                    d_iq <= 2 * d_min + 2 * range) {
             if (d_iq <= 2 * range) {
-              cout << "SEARCH[" << i << "] = TRUE" << endl;
               search[i] = true;
 //               rangeSearch2(node->getChild(i));
             }
@@ -1460,6 +1420,15 @@ class RangeIteratorN {
         cand[i] = false;
       }
     }
+    int noDistFunCallsAfter = dc.getNoDistFunCalls();
+    if (node->isLeaf()) {
+      stat.noDCLeaves += noDistFunCallsAfter - noDistFunCallsBefore;
+      stat.noLeaves++;
+    }
+    else {
+      stat.noDCInnerNodes += noDistFunCallsAfter - noDistFunCallsBefore;
+      stat.noInnerNodes++;
+    }
     return c_q;
   }
   
@@ -1469,21 +1438,10 @@ class RangeIteratorN {
     bool cand[noCands], search[noCands]; // cand <=> C
     std::fill_n(cand, noCands, true);
     std::fill_n(search, noCands, false);
-    cout << (node->isLeaf() ? "LEAF" : "INNER node") << ", size is " << noCands
-         << ", Search BEFORE rC2:(";
-    for (int i = 0; i < noCands; i++) {
-      cout << search[i] << " ";
-    }
-    cout << ") " << endl;
     int nn_q = rangeCenters2(node, cand, search);
-    cout << " Search AFTER rC2: (";
-    for (int i = 0; i < noCands; i++) {
-      cout << search[i] << " ";
-    }
-    cout << ")" << endl;
     if (!node->isLeaf()) {
-      cout << "call cRN7 for child " << nn_q << ", tid " 
-           << ((innernode_t*)node)->getCenter(nn_q)->getTid() << endl;
+//       cout << "call cRN7 for child " << nn_q << ", tid " 
+//            << ((innernode_t*)node)->getCenter(nn_q)->getTid() << endl;
       collectResultsNtree7(node->getChild(nn_q));
       for (int i = 0; i < noCands; i++) {
         if (search[i]) {
