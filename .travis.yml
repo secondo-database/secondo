@@ -4,6 +4,7 @@ language: cpp
 
 script:
 - make -j 16
+- cd CM-Scripts/; ./run-tests.sh -tty /tmp/secondotest 1800 
 
 addons:
   apt:
