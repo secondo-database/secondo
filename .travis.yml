@@ -1,0 +1,59 @@
+dist: focal
+compiler: gcc
+language: cpp
+
+script:
+- make -j 16
+
+addons:
+  apt:
+    packages:
+    - flex 
+    - bison 
+    - gcc 
+    - g++ 
+    - libdb5.3 
+    - libdb5.3-dev 
+    - libdb5.3++ 
+    - libdb5.3++-dev 
+    - db5.3-util 
+    - libjpeg62 
+    - libjpeg62-dev 
+    - libgsl0-dev 
+    - libreadline-dev 
+    - librecode-dev 
+    - libgmp-dev 
+    - libncurses-dev 
+    - libxml2-dev 
+    - libboost-all-dev 
+    - build-essential 
+    - openjdk-8-jdk 
+    - libxml2 
+    - libxml2-dev 
+    - wget 
+    - swi-prolog-nox 
+    - swi-prolog-java 
+    - swi-prolog 
+    - libquadmath0 
+    - libgmp-dev 
+    - libgmp10 
+    - original-awk 
+    - libboost-all-dev 
+    - libbison-dev
+    - libfl-dev
+
+env:
+  global:
+  - SECONDO_PLATFORM=linux64
+  - SECONDO_BUILD_DIR=$TRAVIS_BUILD_DIR
+  - BERKELEY_DB_LIB="db_cxx"
+  - BERKELEY_DB_DIR=/usr
+  - J2SDK_ROOT=/usr/lib/jvm/java-8-openjdk-amd64
+  - SWI_HOME_DIR=/usr/lib/swi-prolog/
+  - PL_LIB_DIR=/usr/lib/swi-prolog/lib/i686-linux/
+  - PL_INCLUDE_DIR=/usr/lib/swi-prolog/include
+  - PL_VERSION=70203
+  - JPL_DLL=/usr/lib/swi-prolog/lib/i686-linux/libjpl.so
+  - JPL_JAR=/usr/lib/swi-prolog/lib/jpl.jar
+  - PL_LIB=swipl
+ 
