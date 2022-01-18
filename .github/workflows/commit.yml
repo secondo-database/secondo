@@ -12,6 +12,10 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Update packages
+        run: |
+           sudo apt-get update 
+
       - name: Install packages
         run: |
            sudo apt-get -y install flex libfl-dev texlive-latex-base texlive-fonts-recommended
