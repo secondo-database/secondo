@@ -50,10 +50,10 @@ env:
   - BERKELEY_DB_DIR=/usr
   - J2SDK_ROOT=/usr/lib/jvm/java-8-openjdk-amd64
   - SWI_HOME_DIR=/usr/lib/swi-prolog/
-  - PL_LIB_DIR=/usr/lib/swi-prolog/lib/i686-linux/
+  - PL_LIB_DIR=/usr/lib/swi-prolog/lib/amd64/
   - PL_INCLUDE_DIR=/usr/lib/swi-prolog/include
   - PL_VERSION=70203
-  - JPL_DLL=/usr/lib/swi-prolog/lib/i686-linux/libjpl.so
+  - JPL_DLL=/usr/lib/swi-prolog/lib/amd64/libjpl.so
   - JPL_JAR=/usr/lib/swi-prolog/lib/jpl.jar
   - PL_LIB=swipl
  
