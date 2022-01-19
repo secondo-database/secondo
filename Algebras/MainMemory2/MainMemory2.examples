@@ -360,6 +360,12 @@ Signature : NTREE7(T) x MREL(X) x T -> stream(tuple(X))
 Example   : query mKinos_GeoData_ntree7 mKinos mnearestNeighborN7[alexanderplatz] head[1] extract[Strasse] contains "Rosa"
 Result    : TRUE
 
+Operator  : m1nearestNeighborN7
+Number    : 1920
+Signature : NTREE7(T) x MREL(X) x T -> stream(tuple(X))
+Example   : query mKinos_GeoData_ntree7 mKinos m1nearestNeighborN7[alexanderplatz] extract[Strasse] contains "Rosa"
+Result    : TRUE
+
 Operator  : mcreateAVLtree
 Number    : 56
 Signature : stream(tuple) x IDENT x IDENT -> mpointer(mem(avltree ))

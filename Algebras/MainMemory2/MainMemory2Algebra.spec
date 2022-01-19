@@ -59,6 +59,7 @@ operator mdistRangeN5 alias MDISTRANGEN5 pattern _ _ op [_,_]
 operator mdistRangeN6 alias MDISTRANGEN6 pattern _ _ op [_,_]
 operator mdistRangeN7 alias MDISTRANGEN6 pattern _ _ op [_,_]
 operator mnearestNeighborN7 alias MNEARESTNEIGHBORN7 pattern _ _ op [ _ ]
+operator m1nearestNeighborN7 alias M1NEARESTNEIGHBORN7 pattern _ _ op [ _ ]
 
 operator mexactmatchS alias MEXACTMATCHS pattern _ op [_]
 operator mrangeS alias MRANGES pattern _ op[_,_]

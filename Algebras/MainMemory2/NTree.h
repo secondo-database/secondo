@@ -1518,10 +1518,13 @@ class NNIteratorN {
   typedef NTreeInnerNode<T, DistComp, variant> innernode_t;
   
   NNIteratorN(node_t* root, const T& r, const DistComp& di,
-              const unsigned int m = 10) : ref(r), dc(di), minNum(m) {
+              const int _k = 10) : ref(r), dc(di), k(_k) {
     results.clear();
+    if (k == 0) {
+      k = INT_MAX;
+    }
     collectNN(root);
-    stat.print(cout, dc.getNoDistFunCalls(), true);
+//     stat.print(cout, dc.getNoDistFunCalls(), true);
   }
   
   void addResult(T* o, double d) {
@@ -1540,11 +1543,11 @@ class NNIteratorN {
     }
 //     c_q = ((leafnode_t*)node_temp)->getNearestCenterPos(ref, dc, d_min);
     c_q = ((leafnode_t*)node_temp)->getNearestCenterPos(ref, dc, d_min);
-    cout << "no Entries = " << ((leafnode_t*)node_temp)->getNoEntries()
-         << ", maxDistLeaf = " << ((leafnode_t*)node_temp)->getMaxDist() 
-         << ", distInLeaf = " << d_min << endl;
+//     cout << "no Entries = " << ((leafnode_t*)node_temp)->getNoEntries()
+//          << ", maxDistLeaf = " << ((leafnode_t*)node_temp)->getMaxDist() 
+//          << ", distInLeaf = " << d_min << endl;
     radius = ((leafnode_t*)node_temp)->getMaxDist() + d_min;
-    return new rangeiterator_t(node, ref, radius, dc);
+    return new rangeiterator_t(node, ref, d_min, dc);
   }
   
   void collectNN(node_t* node) {
@@ -1554,7 +1557,15 @@ class NNIteratorN {
     assert(obj != 0);
     double dist = dc(ref, *obj);
     addResult(obj, dist);
-    if (minNum == 1) {
+    obj = rit->nextObj();
+    while (obj != 0) {
+      dist = dc(ref, *obj);
+      addResult(obj, dist);
+      obj = rit->nextObj();
+    }
+    it = results.begin();
+    if (k == 1) {
+      pruneResults(node);
       delete rit;
       return;
     }
@@ -1571,7 +1582,7 @@ class NNIteratorN {
       obj = rit->nextObj();
     }
 //     cout << "NN = " << *(nn->getKey()) << ", dist = " << nnDist << endl;
-    while (results.size() < minNum &&
+    while ((int)results.size() < k &&
            (int)results.size() != node->getNoEntries()) { // continue search
       delete rit;
       radius = 2.0 * radius;
@@ -1589,13 +1600,16 @@ class NNIteratorN {
         obj = rit->nextObj();
       }
     }
-    it = results.begin();
-    if (minNum < (unsigned int)node->getNoEntries()) {
-      advance(it, minNum);
+    pruneResults(node);
+    delete rit;
+  }
+  
+  void pruneResults(node_t* node) {
+    if ((int)results.size() > k) {
+      advance(it, k);
       results.erase(it, results.end());
       it = results.begin();
     }
-    delete rit;
   }
   
   const TupleId next() {
@@ -1620,7 +1634,7 @@ class NNIteratorN {
   std::set<nncontent_t> results;
   typename std::set<nncontent_t>::iterator it;
   DistComp dc;
-  unsigned int minNum; // minimum number of computed nearest neighbors
+  int k; // number of computed nearest neighbors
   NTreeStat stat; // statistics
 };
 
@@ -1748,8 +1762,8 @@ class NTree {
     return new rangeiterator_t(root, q, range, dc);
   }
   
-  nniterator_t* nnSearch(const T& q) const {
-    return new nniterator_t(root, q, dc);
+  nniterator_t* nnSearch(const T& q, const int k) const {
+    return new nniterator_t(root, q, dc, k);
   }
   
   void computeStatistics(node_t* ptr) {
