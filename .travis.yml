@@ -3,8 +3,12 @@ compiler: gcc
 language: cpp
 
 script:
-- make -j 16
-- cd CM-Scripts/; ./run-tests.sh -tty /tmp/secondotest 1800 
+#- make -j 16
+#- cd CM-Scripts/; ./run-tests.sh -tty /tmp/secondotest 1800
+- mkdir -p $HOME/build_cache/
+- rsync -zarv $HOME/build_cache/ .
+- cd Tools/pd; make
+- rsync -zarv --include="*/" --include="*.o" --include="*.dep" --include="*.class" --exclude="*" . $HOME/build_cache
 
 addons:
   apt:
@@ -42,6 +46,7 @@ addons:
     - libboost-all-dev 
     - libbison-dev
     - libfl-dev
+    - rsync
 
 env:
   global:
@@ -57,4 +62,7 @@ env:
   - JPL_DLL=/usr/lib/swi-prolog/lib/amd64/libjpl.so
   - JPL_JAR=/usr/lib/swi-prolog/lib/jpl.jar
   - PL_LIB=swipl
- 
+
+cache:
+  directories:
+  - $HOME/build_cache
