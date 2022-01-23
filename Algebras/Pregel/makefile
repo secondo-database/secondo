@@ -36,7 +36,10 @@ CCFLAGS += -D GATHER_PREGEL_METRICS
 # create objects and algebra library. The values for the variables
 # OBJECTS and LIBOBJ are computed automatically by makefile.env 
 .PHONY: all
-all: check_dependencies $(OBJECTS) $(LIBOBJ)
+all: check_dependencies $(OBJECTS) subdirs $(LIBOBJ)
+
+.PHONY: subdirs
+subdirs:
 	$(MAKE) -C Operators
 	$(MAKE) -C Operators/Messaging
 	$(MAKE) -C Operators/OnMaster
@@ -57,7 +60,7 @@ deps: $(DEP_FILES)
 
 # generic rule for creating a library
 ALL_OBJECTS = $(wildcard *.o */*.o */*/*.o)
-$(LIBOBJ): $(ALL_OBJECTS)
+$(LIBOBJ): $(ALL_OBJECTS) | subdirs
 	$(create-lib)
 
 # generic rule for cleaning all generated files
