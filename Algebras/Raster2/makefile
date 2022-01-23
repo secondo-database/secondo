@@ -51,7 +51,8 @@ endif
 deps: $(DEP_FILES)
 
 # generic rule for creating a library
-$(LIBOBJ): $(OBJECTS)
+ALL_OBJECTS = $(wildcard *.o */*.o)
+$(LIBOBJ): $(ALL_OBJECTS)
 	$(create-lib)
 
 # generic rule for cleaning all generated files
