@@ -4,12 +4,11 @@ compiler: gcc
 language: cpp
 
 script:
-#- make -j 16
-#- cd CM-Scripts/; ./run-tests.sh -tty /tmp/secondotest 1800
 - mkdir -p $HOME/build_cache/
-- rsync -zarv $HOME/build_cache/ .
-- cd Tools/pd; make
+- rsync -zarvu $HOME/build_cache/ .
+- make -j 16
 - rsync -zarv --include="*/" --include="*.o" --include="*.dep" --include="*.class" --exclude="*" . $HOME/build_cache
+#- cd CM-Scripts/; ./run-tests.sh -tty /tmp/secondotest 1800
 
 addons:
   apt:
