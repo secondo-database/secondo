@@ -55,7 +55,7 @@ deps: $(DEP_FILES)
 
 # generic rule for creating a library
 ALL_OBJECTS = $(wildcard *.o */*.o)
-$(LIBOBJ): $(ALL_OBJECTS) | subdirs
+$(LIBOBJ): $(ALL_OBJECTS) | subdirs $(OBJECTS)
 	$(create-lib)
 
 # generic rule for cleaning all generated files
