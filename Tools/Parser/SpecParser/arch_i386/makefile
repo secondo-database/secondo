@@ -31,7 +31,7 @@ lex.yy.o: lex.yy.cpp
 lex2.yy.o: lex2.yy.cpp
 
 
-lex.yy.cpp lex2.yy.cpp: ../SpecLex.l
+lex.yy.cpp lex2.yy.cpp: ../SpecLex.l SpecParser.tab.cpp NestedText.cpp
 	$(LEX) -o $@ $<
 	$(LEX) -d -o../lex2.yy.cpp $<
 
