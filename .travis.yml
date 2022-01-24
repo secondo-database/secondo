@@ -4,6 +4,7 @@ compiler: gcc
 language: cpp
 
 script:
+- git restore-mtime
 - mkdir -p $HOME/build_cache/
 - rsync -zarvu $HOME/build_cache/ .
 #- make -j 16
@@ -49,6 +50,7 @@ addons:
     - libbison-dev
     - libfl-dev
     - rsync
+    - git-restore-mtime
 
 env:
   global:
