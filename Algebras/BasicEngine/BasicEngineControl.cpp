@@ -1781,6 +1781,10 @@ distributed2::DArray BasicEngineControl::convertSlotMappingToDArray(
   std::vector<uint32_t> m;
   DArray result(m, "");
 
+  // Automatic result removal is not supported by this
+  // type of DArray
+  result.setKeepRemoteObjects(true);
+
   std::vector<DArrayElement> worker;
 
   for (ExportedSlotData slot : partitionWorkerMapping) {
