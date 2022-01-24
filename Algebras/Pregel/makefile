@@ -60,6 +60,7 @@ deps: $(DEP_FILES)
 
 # generic rule for creating a library
 ALL_OBJECTS = $(wildcard *.o */*.o */*/*.o)
+ALL_OBJECTS = $(patsubst %.cpp,%.o,$(wildcard *.cpp */*.cpp */*/*.cpp))
 $(LIBOBJ): $(ALL_OBJECTS) | subdirs $(OBJECTS)
 	$(create-lib)
 

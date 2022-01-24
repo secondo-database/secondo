@@ -53,8 +53,8 @@ endif
 .PHONY: deps
 deps: $(DEP_FILES)
 
-# generic rule for creating a library
-ALL_OBJECTS = $(wildcard *.o */*.o)
+# rule for creating a library
+ALL_OBJECTS = $(patsubst %.cpp,%.o,$(wildcard *.cpp Operators/*.cpp util/*.cpp))
 $(LIBOBJ): $(ALL_OBJECTS) | subdirs $(OBJECTS)
 	$(create-lib)
 
