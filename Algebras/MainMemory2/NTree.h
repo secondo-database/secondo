@@ -42,6 +42,7 @@ neighbor searches.
 */
 enum CandOrder {RANDOM, PIVOT2, PIVOT3};
 enum PruningMethod {SIMPLE, MINDIST};
+enum PartitionMethod {FIRSTD, RANDOMONLY, RANDOMOPT};
 
 template<class T, class DistComp, int variant>
 class NTreeInnerNode;
@@ -139,7 +140,7 @@ class NTreeNode {
   virtual node_t* clone() = 0;
   
   virtual void build(std::vector<T>& contents, DistComp& dc, int depth,
-                     const int partitionStrategy) = 0;
+                     const PartitionMethod partMethod) = 0;
   
   virtual void clear(const bool deleteContent) = 0;
   
@@ -339,6 +340,38 @@ class NTreeNode {
 
 template<class T, class DistComp, int variant>
 class NTreeLeafNode;
+
+template<class T>
+struct PartitionStatus {
+  PartitionStatus(std::vector<std::vector<T> >& partitions, const int degree,
+                  const int noElems) {
+    min = INT_MAX;
+    max = -1;
+    meanSquaredError = 0.0;
+    double optimalSize = (double)(noElems) / partitions.size();
+    cout << "optimal size is " << optimalSize << endl;
+    for (int i = 0; i < degree; i++) {
+      if ((int)partitions[i].size() < min) {
+        minPos = i;
+        min = partitions[i].size();
+      }
+      if ((int)partitions[i].size() > max) {
+        maxPos = i;
+        max = partitions[i].size();
+      }
+      meanSquaredError += std::pow(optimalSize - partitions[i].size(), 2);
+    }
+    meanSquaredError /= partitions.size();
+  }
+  
+  void print() {
+    cout << "min: (" << minPos << ", " << min << "), max: (" << maxPos << ", "
+         << max << "), MSE = " << meanSquaredError << endl;
+  }
+  
+  int min, max, minPos, maxPos;
+  double meanSquaredError;
+};
 
 /*
 2 class NTreeInnerNode
@@ -623,35 +656,95 @@ class NTreeInnerNode : public NTreeNode<T, DistComp, variant> {
     addLeaf(contents);
   }
   
-  void computeCenters(std::vector<T>& contents, const int strategy = 0) {
+  void computeRandomCenters(std::vector<T>& contents) {
+    std::vector<int> positions(contents.size());
+    for (unsigned int i = 0; i < contents.size(); i++) {
+      positions[i] = i;
+    }
+    std::shuffle(positions.begin(), positions.end(), 
+                 std::mt19937(std::random_device()()));
+    for (int i = 0; i < node_t::degree; i++) {
+      centers[i] = new T(contents[positions[i]]);
+    } // node_t::degree random positions between 0 and contents.size() - 1
+  }
+  
+  std::pair<int, int> get2NewCenters(std::vector<T>& partition, DistComp& dc,
+                                     const int pos) {
+    std::pair<int, int> newCenters(pos, -1);
+    double maxDist = 0.0;
+    for (int i = 0; i < (int)partition.size(); i++) {
+      double dist = dc(partition[i], partition[pos]);
+      if (dist > maxDist) {
+        maxDist = dist;
+        newCenters.second = i;
+      }
+    }
+    return newCenters;
+  }
+  
+  void computeCenters(std::vector<T>& contents, DistComp& dc,
+                      const PartitionMethod partMethod) {
     assert(contents.size() >= (unsigned int)node_t::degree);
-    switch (strategy) {
-      case 0: { // random
-        std::vector<int> positions(contents.size());
-        for (unsigned int i = 0; i < contents.size(); i++) {
-          positions[i] = i;
-        }
-        std::shuffle(positions.begin(), positions.end(), 
-                     std::mt19937(std::random_device()()));
-        for (int i = 0; i < node_t::degree; i++) {
-          centers[i] = new T(contents[positions[i]]);
-        } // node_t::degree random positions between 0 and contents.size() - 1
-        break;
-      }
-      case 1: { // spatially balanced
-        // TODO
-        break;
-      }
-      case 2: { // distance-constrained
-        // TODO
-        break;
-      }
-      case 3: { // first at hand
+    switch (partMethod) {
+      case FIRSTD : { // first d objects at hand
         for (int i = 0; i < node_t::degree; i++) {
           centers[i] = new T(contents[i]);
         }
         break;
       }
+      case RANDOMONLY : { // random
+        computeRandomCenters(contents);
+        break;
+      }
+      case RANDOMOPT : { // random centers with optimization
+//         computeRandomCenters(contents); TODO: use this line
+        
+        // start with deterministic setting for testing
+        for (int i = 0; i < node_t::degree; i++) { 
+          centers[i] = new T(contents[i]);
+        }
+        
+        // create partitions to check partition sizes
+        node_t::initAuxStructures(degree);
+        node_t::precomputeDistances(dc, false);
+        std::vector<std::vector<T> > partitions;
+        partitions.resize(node_t::degree);
+        partition(contents, dc, partitions);
+        cout << contents.size() << " objects for " << node_t::degree 
+             << " partitions, optimal size is " 
+             << (double)(contents.size()) / node_t::degree << endl;
+        
+        cout << "current sizes:";
+        for (int i = 0; i < node_t::degree; i++) {
+          cout << " (" << i << ", " << partitions[i].size() << ")";
+        }
+        cout << endl;
+        PartitionStatus<T> status(partitions, node_t::degree, contents.size());
+        status.print();
+        if (status.meanSquaredError > 100.0) {
+          // replace center with minimal partition size
+          std::pair<int, int> newCenters = get2NewCenters(
+                                  partitions[status.maxPos], dc, status.maxPos);
+          // TODO: choose two centers with maximum distance; too expensive!?
+          delete centers[status.minPos];
+          centers[status.minPos] = new T(contents[newCenters.second]);
+          partitions.clear();
+          partitions.resize(node_t::degree);
+          partition(contents, dc, partitions);
+          cout << "current sizes:";
+          for (int i = 0; i < node_t::degree; i++) {
+            cout << " (" << i << ", " << partitions[i].size() << ")";
+          }
+          cout << endl;
+          PartitionStatus<T> status(partitions, node_t::degree,contents.size());
+          status.print();
+        }
+        
+        
+        cout << endl;
+        break;
+      }
+      // TODO: add spatially balanced method
       default: {
         assert(false);
       }
@@ -735,13 +828,13 @@ class NTreeInnerNode : public NTreeNode<T, DistComp, variant> {
   }
   
   void build(std::vector<T>& contents, DistComp& dc, int depth,
-             const int partitionStrategy) { 
+             const PartitionMethod partMethod) { 
     // precondition: contents.size > maxLeafSize
 //     cout << "start BUILD, " << "depth " << depth << ", " << contents.size()
 //          << " elems, counter = " << dc.getNoDistFunCalls() << endl;
     int noDistFunCallsBefore = dc.getNoDistFunCalls();
     depth++;
-    computeCenters(contents, partitionStrategy);
+    computeCenters(contents, dc, partMethod);
     if (variant == 2 || variant >= 6) {
       node_t::initAuxStructures(degree);
       node_t::precomputeDistances(dc, false);
@@ -759,7 +852,7 @@ class NTreeInnerNode : public NTreeNode<T, DistComp, variant> {
       else {
         children[i] = (variant == 2 ? new innernode_t(degree, maxLeafSize, 
                 candOrder, pMethod) : new innernode_t(degree, maxLeafSize));
-        children[i]->build(partitions[i], dc, depth, partitionStrategy);
+        children[i]->build(partitions[i], dc, depth, partMethod);
       }
     }
     node_t::count = degree;
@@ -936,7 +1029,7 @@ class NTreeLeafNode : public NTreeNode<T, DistComp, variant> {
   }
   
   void build(std::vector<T>& contents, DistComp& dc, int depth,
-             const int partitionStrategy) {
+             const PartitionMethod partMethod) {
     assert(false);
   }
   
@@ -1655,8 +1748,8 @@ class NTree {
   typedef NTree<T, DistComp, variant> ntree_t;
   typedef NTreeInnerNode<T, DistComp, variant> innernode_t;
   
-  NTree(const int d, const int mls, DistComp& di, int ps) :
-      degree(d), maxLeafSize(mls), root(0), dc(di), partitionStrategy(ps),
+  NTree(const int d, const int mls, DistComp& di, PartitionMethod pm) :
+      degree(d), maxLeafSize(mls), root(0), dc(di), partMethod(pm),
       candOrder(RANDOM), pMethod(SIMPLE) {
     if (variant > 2) {
       candOrder = PIVOT2;
@@ -1665,8 +1758,8 @@ class NTree {
   }
       
   NTree(const int d, const int mls, const CandOrder c, const PruningMethod pm,
-        DistComp& di, int ps) :
-      degree(d), maxLeafSize(mls), root(0), dc(di), partitionStrategy(ps),
+        DistComp& di, const PartitionMethod partm) :
+      degree(d), maxLeafSize(mls), root(0), dc(di), partMethod(partm),
       candOrder(c), pMethod(pm) {
   }
   
@@ -1722,7 +1815,7 @@ class NTree {
     }
     else {
       root = new innernode_t(degree, maxLeafSize, candOrder, pMethod);
-      root->build(contents, dc, -1, partitionStrategy);
+      root->build(contents, dc, -1, partMethod);
     }
 //     print(cout);
     computeStatistics(root);
@@ -1751,7 +1844,7 @@ class NTree {
   }
   
   ntree_t* clone() {
-    ntree_t* res = new ntree_t(degree, maxLeafSize, dc, partitionStrategy);
+    ntree_t* res = new ntree_t(degree, maxLeafSize, dc, partMethod);
     if (root) {
       res->root = root->clone();
     }
@@ -1786,14 +1879,14 @@ class NTree {
   int maxLeafSize;
   node_t* root;
   DistComp dc;
-  int partitionStrategy;
+  PartitionMethod partMethod;
   CandOrder candOrder; // random, two ref points, three ref points
   PruningMethod pMethod; // simple, minDist-based
   NTreeStat stat; // statistics
   
   static node_t* insert(node_t* root, const T& o, DistComp& dc,
-                        const int partitionStrategy = 0) {
-    root->insert(o, dc, partitionStrategy);
+                        const PartitionMethod partMethod) {
+    root->insert(o, dc, partMethod);
     return root;
   }
 };
