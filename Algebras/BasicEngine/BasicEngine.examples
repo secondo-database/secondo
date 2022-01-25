@@ -106,37 +106,37 @@ Result    : FALSE
 Operator  : be_part_grid
 Number    : 1
 Signature : {string, text} x {string, text} x {string, text} x {string, text} x int --> darray(SQLREL)
-Example   : query be_part_grid('roads', 'gid', 'geod', 20)
+Example   : query be_part_grid('water', 'gid', 'geog', 'mygrid', 20);
 Result    : FALSE
 
 Operator  : be_repart_random
 Number    : 1
-Signature : {string, text} x int --> darray(SQLREL)
-Example   : query be_repart_random("cars", 60)
+Signature : {string, text} x darray(SQLREL) --> bool
+Example   : query be_repart_random("cars", darray)
 Result    : FALSE
 
 Operator  : be_repart_rr
 Number    : 1
-Signature : {string, text} x int --> darray(SQLREL)
-Example   : query be_repart_rr("cars", 60)
+Signature : {string, text} x int --> bool
+Example   : query be_repart_rr("cars", darray)
 Result    : FALSE
 
 Operator  : be_repart_hash
 Number    : 1
-Signature : {string, text} x {string, text} x int --> darray(SQLREL)
-Example   : query be_repart_hash("cars", "moid", 60)
+Signature : {string, text} x {string, text} x darray(SQLREL) --> bool
+Example   : query be_repart_hash("cars", "moid", darray)
 Result    : FALSE
 
 Operator  : be_repart_fun
 Number    : 1
-Signature : {string, text} x {string, text} x int --> darray(SQLREL)
-Example   : query be_repart_fun("cars", "moid", "random", 60)
+Signature : {string, text} x {string, text} x darray(SQLREL) --> bool
+Example   : query be_repart_fun("cars", "moid", "random", darray)
 Result    : FALSE
 
 Operator  : be_repart_grid
 Number    : 1
-Signature : {string, text} x {string, text} x {string, text} x {string, text} x int --> darray(SQLREL)
-Example   : query be_repart_grid('roads', 'gid', 'geod', 'mygrid', 20)
+Signature : {string, text} x {string, text} x {string, text} x {string, text} x darray(SQLREL) --> bool
+Example   : query be_repart_grid('roads', 'gid', 'geod', 'mygrid', darray)
 Result    : FALSE
 
 Operator  : be_share

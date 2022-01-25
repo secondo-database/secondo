@@ -26,12 +26,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 @author
 c. Behrndt
 
-@description
-see OperatorSpec
-
-@note
-Checked - 2020
-
 @history
 Version 1.0 - Created - C.Behrndt - 2020
 
@@ -288,7 +282,7 @@ to the worker and import the data
 1.2.2 Type Mapping
 
 */
-ListExpr be_partRRTM(ListExpr args){
+ListExpr be_partRandomTM(ListExpr args){
 string err = "{string, text} x int --> DArray(SQLREL)"
        "(tab-name, key, number of slots) expected";
 
@@ -389,7 +383,7 @@ Operator be_partRandomOp(
   sizeof(be_partRandomVM),
   be_partRandomVM,
   be_partRandomSelect,
-  be_partRRTM
+  be_partRandomTM
 );
 
 
@@ -404,6 +398,26 @@ to the worker and import the data
 This operator gets a tablename
 
 */
+ListExpr be_partRRTM(ListExpr args){
+string err = "{string, text} x int --> DArray(SQLREL)"
+       "(tab-name, key, number of slots) expected";
+
+  if(!nl->HasLength(args,2)){
+    return listutils::typeError("Three arguments expected.\n " + err);
+  }
+  if(!CcString::checkType(nl->First(args))
+        && !FText::checkType(nl->First(args))){
+    return listutils::typeError("Value of first argument have "
+                  "to be a string or a text.\n" + err);
+  }
+
+  if(!CcInt::checkType(nl->Second(args))){
+    return listutils::typeError("Value of second argument have "
+                    "to be an integer.\n" + err);
+  }
+
+  return nl->SymbolAtom(DArray::BasicType());
+}
 
 /*
 1.2.2 Value Mapping
@@ -2128,7 +2142,7 @@ OperatorSpec be_partGridSpec(
    "to the worker. You can specified the name of the grid. "
    "The number of slots and size have to be "
    "positive. The column should be a spatial attribute",
-   "query be_part_grid('roads','gid','geog','mygrid',20)"
+   "query be_part_grid('water','gid', 'geog', 'mygrid', 20)"
 );
 
 /*
@@ -2373,6 +2387,31 @@ Operator be_collect_op (
 Repartition a relation by random, sends the data
 to the worker and import the data
 
+1.2.2 Type Mapping
+
+*/
+ListExpr be_repartRandomTM(ListExpr args){
+string err = "{string, text} x DArray(SQLREL) --> bool"
+       "(tab-name, key, number of slots) expected";
+
+  if(!nl->HasLength(args,2)){
+    return listutils::typeError("Three arguments expected.\n " + err);
+  }
+  if(!CcString::checkType(nl->First(args))
+        && !FText::checkType(nl->First(args))){
+    return listutils::typeError("Value of first argument have "
+                  "to be a string or a text.\n" + err);
+  }
+
+  if(!DArray::checkType(nl->Second(args))){
+    return listutils::typeError("Value of second argument have "
+                    "to be a darry.\n" + err);
+  }
+
+  return nl->SymbolAtom(CcBool::BasicType());
+}
+
+/*
 1.2.2 Value Mapping
 
 */
@@ -2419,12 +2458,11 @@ int be_repartRandomSFVM(Word *args, Word &result, int message, Word &local,
 
 */
 OperatorSpec be_repartRandomSpec(
-   "{string, text} x int --> DArray(SQLREL)",
+   "{string, text} x DArray(SQLREL) --> bool",
    "be_repart_random(_,_)",
    "This operator repartition a relation by random "
-   "to the worker. The number of slots have to be positive "
-   "and should be a multiple of your number of workers.",
-   "query be_repart_random('cars', 60)"
+   "to the worker of the darray.",
+   "query be_repart_random('cars', darray)"
 );
 
 /*
@@ -2454,7 +2492,7 @@ Operator be_repartRandomOp(
   sizeof(be_repartRandomVM),
   be_repartRandomVM,
   be_repartRandomSelect,
-  be_partRRTM
+  be_repartRandomTM
 );
 
 
@@ -2464,6 +2502,31 @@ Operator be_repartRandomOp(
 Repartition a relation by rr, sends the data
 to the worker and import the data
 
+1.2.2 Type Mapping
+
+*/
+ListExpr be_repartRRTM(ListExpr args){
+string err = "{string, text} x DArray(SQLREL) --> bool"
+       "(tab-name, key, darray) expected";
+
+  if(!nl->HasLength(args,2)){
+    return listutils::typeError("Three arguments expected.\n " + err);
+  }
+  if(!CcString::checkType(nl->First(args))
+        && !FText::checkType(nl->First(args))){
+    return listutils::typeError("Value of first argument have "
+                  "to be a string or a text.\n" + err);
+  }
+
+  if(!DArray::checkType(nl->Second(args))){
+    return listutils::typeError("Value of second argument have "
+                    "to be a darray.\n" + err);
+  }
+
+  return nl->SymbolAtom(CcBool::BasicType());
+}
+
+/*
 1.2.2 Value Mapping
 
 */
@@ -2510,12 +2573,11 @@ int be_repartRRSFVM(Word *args, Word &result, int message, Word &local,
 
 */
 OperatorSpec be_repartRRSpec(
-   "{string, text} x int --> DArray(SQLREL)",
+   "{string, text} x DArray(SQLREL) --> bool",
    "be_repart_rr(_,_)",
    "This operator repartition a relation by round-robin "
-   "to the worker. The number of slots have to be positive "
-   "and should be a multiple of your number of workers.",
-   "query be_repart_rr('cars', 60)"
+   "to the worker of the darray.",
+   "query be_repart_rr('cars', darray)"
 );
 
 /*
@@ -2545,7 +2607,7 @@ Operator be_repartRROp(
   sizeof(be_repartRRVM),
   be_repartRRVM,
   be_repartRRSelect,
-  be_partRRTM
+  be_repartRRTM
 );
 
 /*
@@ -2554,6 +2616,41 @@ Operator be_repartRROp(
 Repartition a relation by Hash, sends the data
 to the worker and import the data
 
+1.3.1 Type Mapping
+
+This operator gets a tablename and key-list (semikolon seperated)
+
+*/
+ListExpr be_repartHashTM(ListExpr args){
+
+  string err = "\n {string, text} x {string, text} x DArray(SQLREL) --> bool"
+       "(tab-name, key, number of slots) expected";
+
+  if(!nl->HasLength(args,3)){
+    return listutils::typeError("Three arguments expected. " + err);
+  }
+  
+  if(!CcString::checkType(nl->First(args))
+      && !FText::checkType(nl->First(args))){
+    return listutils::typeError("Value of first argument have "
+        "to be a string or a text." + err);
+  }
+  
+  if(!CcString::checkType(nl->Second(args))
+      && !FText::checkType(nl->Second(args))){
+    return listutils::typeError("Value of second argument have "
+        "to be a string or a text." + err);
+  }
+
+  if(!DArray::checkType(nl->Third(args))){
+    return listutils::typeError("Value of third argument have "
+        "to be a darray." + err);
+  }
+
+  return nl->SymbolAtom(CcBool::BasicType());
+}
+
+/*
 1.3.2 Value Mapping
 
 */
@@ -2601,13 +2698,12 @@ int be_repartHashSFVM(Word *args, Word &result, int message, Word &local,
 
 */
 OperatorSpec be_repartHashSpec(
-   "{string, text} x {string, text} x int --> DArray(SQLREL)",
+   "{string, text} x {string, text} x DArray(SQLREL) --> bool",
    "be_repart_hash(_,_,_)",
    "This operator repartition a relation by hash-value "
-   "to the worker. You can specified a multi key by separating "
-   "the fields with a comma. The number of slots have to be positiv "
-   "and should be a multiple of your number of workers.",
-   "query be_repart_hash('cars','moid',60)"
+   "to the worker of the daaray. You can specify a multi "
+   "key by separating the fields with a comma.",
+   "query be_repart_hash('cars', 'moid', darray)"
 );
 
 /*
@@ -2643,9 +2739,104 @@ Operator be_repartHashOp(
   sizeof(be_repartHashVM),
   be_repartHashVM,
   be_repartHashSelect,
-  be_partHashTM
+  be_repartHashTM
 );
 
+/*
+1.4.1 Type Mapping
+
+This operator gets a tablename and key-list (semikolon seperated)
+and a function name
+
+*/
+ListExpr be_repartFunTM(ListExpr args) {
+  string err = "\n {string, text} x {string, text} x {string, text} "
+               " x DArray(SQLREL) --> bool"
+               "(tab-name, key, function-name, darray) expected";
+
+  if (!nl->HasLength(args, 4)) {
+    return listutils::typeError("Four arguments expected. " + err);
+  }
+
+  if (!CcString::checkType(nl->First(args)) &&
+      !FText::checkType(nl->First(args))) {
+    return listutils::typeError("Value of first argument have "
+                                "to be a string or a text." +
+                                err);
+  }
+
+  if (!CcString::checkType(nl->Second(args)) &&
+      !FText::checkType(nl->Second(args))) {
+    return listutils::typeError("Value of second argument have "
+                                "to be a string or a text." +
+                                err);
+  }
+
+  if (!CcString::checkType(nl->Third(args)) &&
+      !FText::checkType(nl->Third(args))) {
+    return listutils::typeError("Value of third argument have "
+                                "to be a string or a text." +
+                                err);
+  }
+
+  if (!DArray::checkType(nl->Fourth(args))) {
+    return listutils::typeError("Value of fourth argument have "
+                                "to be a darray." +
+                                err);
+  }
+
+  return nl->SymbolAtom(CcInt::BasicType());
+}
+
+/*
+1.14.1 Type Mapping
+
+This operator gets a tablename, key-column, a geo\_column, (x,y)
+leftbottom coordinates number of slots per row and column
+ and the slot size of each square
+
+*/
+ListExpr be_repartGridTM(ListExpr args){
+string err = "\n {string, text} x {string, text} x {string, text} "
+             "x {string, text} x DArray(SQLREL) --> bool"
+             "(tab-name,geo_col,primary key, grid name, darray)"
+             " expected";
+
+  if(!nl->HasLength(args,5)){
+    return listutils::typeError("Five arguments expected. " + err);
+  }
+
+  if(!CcString::checkType(nl->First(args))
+      && !FText::checkType(nl->First(args))){
+    return listutils::typeError("Value of first argument have "
+        "to be a string or a text." + err);
+  }
+
+  if(!CcString::checkType(nl->Second(args))
+      && !FText::checkType(nl->Second(args))){
+    return listutils::typeError("Value of second argument have "
+        "to be a string or a text." + err);
+  }
+
+  if(!CcString::checkType(nl->Third(args))
+      && !FText::checkType(nl->Third(args))){
+    return listutils::typeError("Value of third argument have "
+        "to be a string or a text." + err);
+  }
+
+  if(!CcString::checkType(nl->Fourth(args))
+      && !FText::checkType(nl->Fourth(args))){
+    return listutils::typeError("Value of fourth argument have "
+        "to be a string or a text." + err);
+  }
+
+  if(!DArray::checkType(nl->Fifth(args))){
+    return listutils::typeError("Value of fifth argument have "
+        "to be a darray." + err);
+  }
+
+  return nl->SymbolAtom(CcBool::BasicType());
+}
 
 /*
 1.14.2 Value Mapping for the operator ~be\_repart\_grid~
@@ -2700,13 +2891,13 @@ int be_repartGridSFVM(Word *args, Word &result, int message, Word &local,
 */
 OperatorSpec be_repartGridSpec(
    "{string, text} x {string, text} x {string, text} "
-   "x {string, text} x int --> DArray(SQLREL)",
+   "x {string, text} x DArray(SQLREL) --> bool",
    "be_repart_grid(_,_,_,_,_)",
    "This operator re-distribute a relation by specified grid "
    "to the worker. You can specified the name of the grid. "
    "The number of slots and size have to be "
    "positive. The column should be a spatial attribute",
-   "query be_repart_grid('roads','gid','geog','mygrid',20)"
+   "query be_repart_grid('water', 'gid', 'geog', 'mygrid', darray)"
 );
 
 /*
@@ -2779,7 +2970,7 @@ Operator be_repartGridOp(
   sizeof(be_repartGridVM),
   be_repartGridVM,
   be_repartGridSelect,
-  be_partGridTM
+  be_repartGridTM
 );
 
 /*
@@ -2831,14 +3022,13 @@ int be_repartFunSFVM(Word *args, Word &result, int message, Word &local,
 
 */
 OperatorSpec be_repartFunSpec(
-   "{string, text} x {string, text} x {string, text} x int --> DArray(SQLREL)",
+   "{string, text} x {string, text} x {string, text} x DArray(SQLREL) --> bool",
    "be_repart_fun(_,_,_,_)",
    "This operator redistribute a relation by a special function "
    "to the worker. Special functions are RR, Hash and random. "
    "You can specified a multi key by separating "
-   "the fields with a comma. The number of slots have to be positiv "
-   "and should be a multiple of your number of workers.",
-   "query be_repart_fun('cars','moid','random',60)"
+   "the fields with a comma.",
+   "query be_repart_fun('cars', 'moid', 'random', darray)"
 );
 
 /*
@@ -2886,7 +3076,7 @@ Operator be_repartFunOp(
   sizeof(be_repartFunVM),
   be_repartFunVM,
   be_repartFunSelect,
-  be_partFunTM
+  be_repartFunTM
 );
 
 
@@ -3216,7 +3406,7 @@ OperatorSpec be_gridCreateSpec(
    "This operator creates a new grid with the given name and specification."
    "(1) Name of the grid, (2) start x, (3) start y, (4) cell size x/y, "
    "(5) cells x, (6) cells y",
-   "query be_repart_grid('mygrid', 5.8, 50.3, 0.2, 20, 20)"
+   "query be_repart_grid('mygrid', 'gid', 'geod', 'mygrid', darray)"
 );
 
 /*
