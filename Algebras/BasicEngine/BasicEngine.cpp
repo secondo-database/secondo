@@ -46,6 +46,7 @@ Version 1.0 - Created - C.Behrndt - 2020
 #include "Algebras/FText/FTextAlgebra.h"
 #include "Algebras/Distributed2/DArray.h"
 #include "StandardTypes.h"
+#include "BasicEngine.h"
 #include "BasicEngineControl.h"
 #include "GridManager.h"
 #include "ConnectionPostgres.h"
@@ -63,27 +64,6 @@ dbs\_con is a pointer to a connection, for example to postgres
 
 */
 BasicEngineControl* be_control = nullptr;
-
-/*
-noMaster is just a default string for an error massage.
-
-*/
-string const noMaster ="\nPlease use at first an init-Operator "
-       "before using this operator!\n" ;
-
-/*
-noWorker is just a default string for an error massage.
-
-*/
-string const noWorker ="\nPlease use at first an init-Worker-Operator "
-       "before using this operator!\n" ;
-
-/*
-negSlots is just a default string for an error massage.
-
-*/
-string const negSlots ="\nThe number of slots have to be greater than 0."
-       "The number should be a multiple of your number of workers.\n" ;
 
 /*
 1 Operators
