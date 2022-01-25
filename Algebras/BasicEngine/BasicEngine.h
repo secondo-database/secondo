@@ -25,7 +25,21 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 
+#ifndef BASIC_ENGINE_H
+#define BASIC_ENGINE_H
+
+#include "BasicEngineControl.h"
+
 namespace BasicEngine {
+
+/*
+0 Declaring variables
+
+dbs\_con is a pointer to a connection, for example to postgres
+
+*/
+extern BasicEngineControl* be_control;
+
 /*
 noMaster is just a default string for an error massage.
 
@@ -46,4 +60,15 @@ negSlots is just a default string for an error massage.
 */
 std::string const negSlots ="\nThe number of slots have to be greater than 0."
        "The number should be a multiple of your number of workers.\n" ;
+
+
+/*
+1.1.2 Generic database connection factory
+
+*/
+ConnectionGeneric* getAndInitDatabaseConnection(const std::string &dbType, 
+     const std::string &dbUser, const std::string &dbPass, 
+     const int dbPort, const std::string &dbName);
 }
+
+#endif

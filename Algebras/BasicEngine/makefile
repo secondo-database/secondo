@@ -1,6 +1,6 @@
 #This file is part of SECONDO.
 
-#Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+#Copyright (C) 2022, University in Hagen, Department of Computer Science, 
 #Database Systems for New Applications.
 
 #SECONDO is free software; you can redistribute it and/or modify
@@ -34,11 +34,11 @@ CCFLAGS += -Werror -DBOOST_LOG_DYN_LINK
 # create objects and algebra library. The values for the variables
 # OBJECTS and LIBOBJ are computed automatically by makefile.env 
 .PHONY: all
-all: check_dependencies $(OBJECTS) $(LIBOBJ)
+all: $(OBJECTS) subdirs $(LIBOBJ)
 
-check_dependencies:
-	$(check-algebra-dependencies)
-
+.PHONY: subdirs
+subdirs:	
+	$(MAKE) -C operators
 
 # include pre-computed dependencies
 ifneq ($(MAKECMDGOALS),clean)
@@ -48,12 +48,13 @@ endif
 .PHONY: deps
 deps: $(DEP_FILES)
 
-
-# generic rule for creating a library
-$(LIBOBJ): $(OBJECTS)
+# rule for creating the static library
+ALL_OBJECTS = $(patsubst %.cpp,%.o,$(wildcard *.cpp */*.cpp))
+$(LIBOBJ): $(ALL_OBJECTS) | subdirs $(OBJECTS)
 	$(create-lib)
 
 # generic rule for cleaning all generated files
 .PHONY: clean
 clean:
+	$(MAKE) -C operators clean
 	$(clean-algebra)
