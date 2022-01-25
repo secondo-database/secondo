@@ -23,7 +23,7 @@
 all: sj_lang
 
 sj_lang:
-	$(MAKE) -C lang all
+	$(MAKE) -j 1 -C lang all
 
 
 #////////////////// clean
