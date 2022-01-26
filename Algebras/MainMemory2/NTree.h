@@ -347,6 +347,7 @@ struct PartitionStatus {
                   const int noElems) {
     min = INT_MAX;
     max = -1;
+    meanError = 0.0;
     meanSquaredError = 0.0;
     double optimalSize = (double)(noElems) / partitions.size();
     cout << "optimal size is " << optimalSize << endl;
@@ -359,18 +360,22 @@ struct PartitionStatus {
         maxPos = i;
         max = partitions[i].size();
       }
+      meanError += optimalSize - partitions[i].size();
       meanSquaredError += std::pow(optimalSize - partitions[i].size(), 2);
     }
+    minMaxFactor = (double)max / min;
+    meanError /= partitions.size();
     meanSquaredError /= partitions.size();
   }
   
   void print() {
     cout << "min: (" << minPos << ", " << min << "), max: (" << maxPos << ", "
-         << max << "), MSE = " << meanSquaredError << endl;
+         << max << "), Factor = " << minMaxFactor << ", ME = " << meanError 
+         << ", MSE = " << meanSquaredError << endl;
   }
   
   int min, max, minPos, maxPos;
-  double meanSquaredError;
+  double minMaxFactor, meanError, meanSquaredError;
 };
 
 /*
@@ -668,6 +673,23 @@ class NTreeInnerNode : public NTreeNode<T, DistComp, variant> {
     } // node_t::degree random positions between 0 and contents.size() - 1
   }
   
+  T** computeTempRandomCenters(std::vector<T>& contents, const int noCenters) {
+    T** result = new T*[noCenters];
+    for (int i = 0; i < noCenters; i++) {
+      result[i] = 0;
+    }
+    std::vector<int> positions(contents.size());
+    for (unsigned int i = 0; i < contents.size(); i++) {
+      positions[i] = i;
+    }
+    std::shuffle(positions.begin(), positions.end(), 
+                 std::mt19937(std::random_device()()));
+    for (int i = 0; i < noCenters; i++) {
+      result[i] = new T(contents[positions[i]]);
+    }
+    return result;
+  }
+  
   std::pair<int, int> get2NewCenters(std::vector<T>& partition, DistComp& dc,
                                      const int pos) {
     std::pair<int, int> newCenters(pos, -1);
@@ -696,54 +718,49 @@ class NTreeInnerNode : public NTreeNode<T, DistComp, variant> {
         computeRandomCenters(contents);
         break;
       }
-      case RANDOMOPT : { // random centers with optimization
-//         computeRandomCenters(contents); TODO: use this line
+      case RANDOMOPT : { // random centers with optimization ("Strategy 2")
         
-        // start with deterministic setting for testing
-        for (int i = 0; i < node_t::degree; i++) { 
-          centers[i] = new T(contents[i]);
-        }
-        
-        // create partitions to check partition sizes
-        node_t::initAuxStructures(degree);
-        node_t::precomputeDistances(dc, false);
-        std::vector<std::vector<T> > partitions;
-        partitions.resize(node_t::degree);
-        partition(contents, dc, partitions);
-        cout << contents.size() << " objects for " << node_t::degree 
-             << " partitions, optimal size is " 
-             << (double)(contents.size()) / node_t::degree << endl;
-        
-        cout << "current sizes:";
-        for (int i = 0; i < node_t::degree; i++) {
-          cout << " (" << i << ", " << partitions[i].size() << ")";
-        }
-        cout << endl;
-        PartitionStatus<T> status(partitions, node_t::degree, contents.size());
-        status.print();
-        if (status.meanSquaredError > 100.0) {
-          // replace center with minimal partition size
-          std::pair<int, int> newCenters = get2NewCenters(
-                                  partitions[status.maxPos], dc, status.maxPos);
-          // TODO: choose two centers with maximum distance; too expensive!?
-          delete centers[status.minPos];
-          centers[status.minPos] = new T(contents[newCenters.second]);
-          partitions.clear();
-          partitions.resize(node_t::degree);
-          partition(contents, dc, partitions);
-          cout << "current sizes:";
-          for (int i = 0; i < node_t::degree; i++) {
-            cout << " (" << i << ", " << partitions[i].size() << ")";
-          }
-          cout << endl;
-          PartitionStatus<T> status(partitions, node_t::degree,contents.size());
-          status.print();
-        }
+        // TODO: DELETE THIS
+        computeRandomCenters(contents);
         
         
-        cout << endl;
+        
+//         delete centers;
+//         int m = std::min((int)floor(2.5 * node_t::degree), 
+//             (int)contents.size());
+//         cout << "m = " << m << endl;
+//         centers = computeTempRandomCenters(contents, m);
+//         cout << "centers computed" << endl;
+//         // create partitions to check partition sizes
+//         node_t::initAuxStructures(m);
+//         cout << "structures initialized" << endl;
+//         node_t::precomputeDistances(dc, false);
+//         cout << "distances precomputed" << endl;
+//         std::vector<std::vector<T> > partitions;
+//         partitions.resize(m);
+//         cout << "partitions resized" << endl;
+//         partition(contents, centers, m, dc, partitions);
+//         cout << contents.size() << " objects for " << node_t::degree 
+//              << " partitions, optimal size is " 
+//              << (double)(contents.size()) / node_t::degree << endl;
+//         
+//         cout << "current sizes:";
+//         for (int i = 0; i < node_t::degree; i++) {
+//           cout << " (" << i << ", " << partitions[i].size() << ")";
+//         }
+//         cout << endl;
+//         PartitionStatus<T> status(partitions,node_t::degree,contents.size());
+//         status.print();
+// 
+//         
+//         
+//         cout << endl;
         break;
       }
+//       TODO:
+//       case PIVOTDISTORDER : {
+//         break;
+//       }
       // TODO: add spatially balanced method
       default: {
         assert(false);
@@ -751,16 +768,16 @@ class NTreeInnerNode : public NTreeNode<T, DistComp, variant> {
     }
   }
   
-  void partition(std::vector<T>& contents, DistComp& dc,
-                 std::vector<std::vector<T> >& partitions) {
+  void partition(std::vector<T>& contents, T** centersTemp, const int noCenters,
+                 DistComp& dc, std::vector<std::vector<T> >& partitions) {
     partitions.clear();
     partitions.resize(node_t::degree);
     double dist(-1.0), centerDist(-1.0);
     int partitionPos = -1;
     if (variant == 2 || variant >= 6) { // NTree2 etc.
       for (unsigned int i = 0; i < contents.size(); i++) {
-        for (int j = 0; j < degree; j++) {
-          if (contents[i].getTid() == centers[j]->getTid()) {
+        for (int j = 0; j < noCenters; j++) {
+          if (contents[i].getTid() == centersTemp[j]->getTid()) {
             partitionPos = j;
             j = degree;
           }
@@ -779,13 +796,13 @@ class NTreeInnerNode : public NTreeNode<T, DistComp, variant> {
     else { // NTree or NTree5
       for (unsigned int i = 0; i < contents.size(); i++) {
         centerDist = std::numeric_limits<double>::max();
-        for (int j = 0; j < node_t::degree; j++) {
-          if (contents[i].getTid() == centers[j]->getTid()) {
+        for (int j = 0; j < noCenters; j++) {
+          if (contents[i].getTid() == centersTemp[j]->getTid()) {
             partitionPos = j;
             j = degree;
           }
           else {
-            dist = dc(contents[i], *centers[j]);
+            dist = dc(contents[i], *centersTemp[j]);
             if (dist < centerDist) {
               centerDist = dist;
               partitionPos = j;
@@ -840,7 +857,7 @@ class NTreeInnerNode : public NTreeNode<T, DistComp, variant> {
       node_t::precomputeDistances(dc, false);
     }
     std::vector<std::vector<T> > partitions;
-    partition(contents, dc, partitions);
+    partition(contents, centers, node_t::degree, dc, partitions);
 //     printPartitions(contents, partitions, depth, dc, false, cout);
     int noDistFunCallsAfter = dc.getNoDistFunCalls();
     noDistComp = noDistFunCallsAfter - noDistFunCallsBefore;
