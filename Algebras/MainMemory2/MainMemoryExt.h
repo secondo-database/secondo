@@ -700,6 +700,10 @@ class MTreeEntry {
     return tid;
   }
   
+  void setTid(const TupleId id) {
+    tid = id;
+  }
+  
   void Destroy() {
     destroy(&key);
   }

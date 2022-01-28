@@ -22522,7 +22522,7 @@ int mcreatentreeVMT(Word* args, Word& result, int message, Word& local,
     res->setPointer(0);
     return 0;
   }
-  PartitionMethod partMethod = RANDOMOPT; //TODO: currently fixed; add parameter
+  PartitionMethod partMethod = RANDOMONLY; //TODO: currently fixed
   vector<Tuple*>* v = mrel->getmmrel();
   vector<MTreeEntry<T> > contents;
   bool flobused = false;
@@ -22671,7 +22671,7 @@ int mcreatentree2VMT(Word* args, Word& result, int message, Word& local,
     return 0;
   }
   PruningMethod pMethod = static_cast<PruningMethod>(ccPMethod->GetValue());
-  PartitionMethod partMethod = RANDOMONLY; //TODO: currently fixed; add param
+  PartitionMethod partMethod = RANDOMONLY; //TODO: currently fixed
   vector<Tuple*>* v = mrel->getmmrel();
   vector<MTreeEntry<T> > contents;
   bool flobused = false;
