@@ -53,7 +53,7 @@ This operator gets a query and target table name
 ListExpr be_mqueryTM(ListExpr args) {
   string err = "{string,text} x {string,text} [x darray(SQLREL) [x "
                "darray(SQLREL)]] -> bool"
-               "(sql-query, target-tab) expected";
+               "(sql-query, target-tab, [darray, darray]) expected";
 
   if (nl->ListLength(args) >= 5) {
     return listutils::typeError("Up to four arguments expected.\n " + err);

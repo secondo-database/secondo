@@ -51,10 +51,10 @@ This operator gets a query and a config relation
 */
 ListExpr be_mcommandTM(ListExpr args) {
   string err = "{string,text} [x darray(SQLREL) [x darray(SQLREL)]] -> bool"
-               "(sql-command) expected";
+               "(sql-command, [darray, darray] expected";
 
   if (nl->ListLength(args) >= 4) {
-    return listutils::typeError("Up to three arguments expected. " + err);
+    return listutils::typeError("Up to three arguments expected.\n " + err);
   }
 
   if (!CcString::checkType(nl->First(args)) &&
@@ -71,8 +71,8 @@ ListExpr be_mcommandTM(ListExpr args) {
     ListExpr defaults;
 
     if (!nl->HasLength(args, 1)) {
-      defaults = nl->TwoElemList(listutils::getUndefined(), 
-          listutils::getUndefined());
+      defaults =
+          nl->TwoElemList(listutils::getUndefined(), listutils::getUndefined());
     }
 
     if (!nl->HasLength(args, 2)) {
