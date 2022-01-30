@@ -32,8 +32,8 @@ jobs:
         id: changed-files-specific
         uses: tj-actions/changed-files@v11.9
         with:
-           files:
-             *.c *.cpp *.cxx *.h *.hpp *.hxx
+           files: |
+            *.c *.cpp *.cxx *.h *.hpp *.hxx
 
       - name: Process all modified source files
         run: |
