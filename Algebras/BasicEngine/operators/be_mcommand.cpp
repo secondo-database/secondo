@@ -29,17 +29,15 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <boost/log/expressions.hpp>
 #include <boost/log/trivial.hpp>
 
+#include "../BasicEngine.h"
 #include "Algebras/Distributed2/DArray.h"
 #include "Algebras/FText/FTextAlgebra.h"
 #include "StandardTypes.h"
-#include "../BasicEngine.h"
 
 using namespace distributed2;
 using namespace std;
 
 namespace BasicEngine {
-
-
 
 /*
 1.9 Operator  ~be\_mcommand~
@@ -52,18 +50,40 @@ This operator gets a query and a config relation
 
 */
 ListExpr be_mcommandTM(ListExpr args) {
-string err = "\n {string,text} -> bool"
-       "(sql-command) expected";
+  string err = "{string,text} [x darray(SQLREL) [x darray(SQLREL)]] -> bool"
+               "(sql-command) expected";
 
-  if(!nl->HasLength(args,1)){
-    return listutils::typeError("One arguments expected. " + err);
+  if (nl->ListLength(args) >= 4) {
+    return listutils::typeError("Up to three arguments expected. " + err);
   }
-  if(!CcString::checkType(nl->First(args))
-      && !FText::checkType(nl->First(args))){
+
+  if (!CcString::checkType(nl->First(args)) &&
+      !FText::checkType(nl->First(args))) {
+
     return listutils::typeError("Value of first argument have "
-                  "to be a string or a text." + err);
+                                "to be a string or a text.\n" +
+                                err);
   }
 
+  // Append default values
+  if (nl->ListLength(args) < 3) {
+
+    ListExpr defaults;
+
+    if (!nl->HasLength(args, 1)) {
+      defaults = nl->TwoElemList(listutils::getUndefined(), 
+          listutils::getUndefined());
+    }
+
+    if (!nl->HasLength(args, 2)) {
+      defaults = nl->OneElemList(listutils::getUndefined());
+    }
+
+    return nl->ThreeElemList(nl->SymbolAtom(Symbols::APPEND()), defaults,
+                             nl->SymbolAtom(CcBool::BasicType()));
+  }
+
+  // All parameter are present
   return nl->SymbolAtom(CcBool::BasicType());
 }
 

@@ -29,10 +29,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <boost/log/expressions.hpp>
 #include <boost/log/trivial.hpp>
 
+#include "../BasicEngine.h"
 #include "Algebras/Distributed2/DArray.h"
 #include "Algebras/FText/FTextAlgebra.h"
 #include "StandardTypes.h"
-#include "../BasicEngine.h"
 
 using namespace distributed2;
 using namespace std;
@@ -51,23 +51,49 @@ This operator gets a query and target table name
 
 */
 ListExpr be_mqueryTM(ListExpr args) {
-string err = "\n {string,text} x {string,text} -> bool"
-       "(sql-query, target-tab) expected";
+  string err = "{string,text} x {string,text} [x darray(SQLREL) [x "
+               "darray(SQLREL)]] -> bool"
+               "(sql-query, target-tab) expected";
 
-  if(!nl->HasLength(args,2)){
-    return listutils::typeError("Two arguments expected. " + err);
+  if (nl->ListLength(args) >= 5) {
+    return listutils::typeError("Up to four arguments expected.\n " + err);
   }
-  if(!CcString::checkType(nl->First(args))
-      && !FText::checkType(nl->First(args))){
+
+  if (!CcString::checkType(nl->First(args)) &&
+      !FText::checkType(nl->First(args))) {
+
     return listutils::typeError("Value of first argument have "
-                  "to be a string or a text." + err);
-  }
-  if(!CcString::checkType(nl->Second(args))
-      && !FText::checkType(nl->Second(args))){
-    return listutils::typeError("Value of second argument have "
-                  "to be a string or a text." + err);
+                                "to be a string or a text." +
+                                err);
   }
 
+  if (!CcString::checkType(nl->Second(args)) &&
+      !FText::checkType(nl->Second(args))) {
+
+    return listutils::typeError("Value of second argument have "
+                                "to be a string or a text." +
+                                err);
+  }
+
+  // Append default values
+  if (nl->ListLength(args) < 4) {
+
+    ListExpr defaults;
+
+    if (!nl->HasLength(args, 2)) {
+      defaults =
+          nl->TwoElemList(listutils::getUndefined(), listutils::getUndefined());
+    }
+
+    if (!nl->HasLength(args, 3)) {
+      defaults = nl->OneElemList(listutils::getUndefined());
+    }
+
+    return nl->ThreeElemList(nl->SymbolAtom(Symbols::APPEND()), defaults,
+                             nl->SymbolAtom(CcBool::BasicType()));
+  }
+
+  // All parameter are present
   return nl->SymbolAtom(CcBool::BasicType());
 }
 

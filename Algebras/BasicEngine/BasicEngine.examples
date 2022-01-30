@@ -51,13 +51,13 @@ Result    : FALSE
 
 Operator  : be_mquery
 Number    : 1
-Signature : {string, text} x {string, text} --> bool
+Signature : {string, text} x {string, text} [x darray(SQLREL) [x darray(SQLREL)]] --> bool
 Example   : query be_mquery('select * from cars where Speed = 30', 'cars_short')
 Result    : FALSE
 
 Operator  : be_mcommand
 Number    : 1
-Signature : {string, text} --> bool
+Signature : {string, text} [x darray(SQLREL) [x darray(SQLREL)]] --> bool
 Example   : query be_mcommand('Drop table cars')
 Result    : FALSE
 
