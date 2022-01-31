@@ -1620,6 +1620,10 @@ class RangeIteratorN {
   int getNoDistFunCalls() const {
     return dc.getNoDistFunCalls();
   }
+  
+  NTreeStat getStat() const {
+    return stat;
+  }
 
  private:
   std::vector<T*> results;
@@ -1786,6 +1790,18 @@ class NNIteratorN {
     return dc.getNoDistFunCalls();
   }
   
+  int getNoDistFunCallsInnerNodes() const {
+    return stat.noDCInnerNodes;
+  }
+  
+  int getNoDistFunCallsLeaves() const {
+    return stat.noDCLeaves;
+  }
+  
+  NTreeStat getStat() const {
+    return stat;
+  }
+  
  private:
   T ref;
   std::set<nncontent_t> results;
@@ -1935,6 +1951,10 @@ class NTree {
         computeStatistics(ptr->getChild(i));
       }
     }
+  }
+  
+  NTreeStat getStat() const {
+    return stat;
   }
   
   

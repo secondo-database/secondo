@@ -6404,6 +6404,10 @@ class distRangeNInfo {
   size_t getNoDistFunCalls() {
     return it->getNoDistFunCalls();
   }
+  
+  NTreeStat getStat() const {
+    return it->getStat();
+  }
      
  private:
   vector<Tuple*>* rel;
@@ -6450,9 +6454,15 @@ int mdistRangeNVMT(Word* args, Word& result, int message, Word& local,
     }
     case CLOSE : {
       if (li) {
-        string counterName = "counterMDistRangeN" + 
-                             (variant > 1 ? to_string(variant) : "");
-        mtreehelper::increaseCounter(counterName, li->getNoDistFunCalls());
+        string prefix = "counterMDistRangeN" + 
+                        (variant > 1 ? to_string(variant) : "");        
+        NTreeStat stat = li->getStat();
+        mtreehelper::increaseCounter(prefix,
+                                     stat.noDCInnerNodes + stat.noDCLeaves);
+        string counterINName = prefix + "InnerNodes";
+        mtreehelper::increaseCounter(counterINName, stat.noDCInnerNodes);
+        string counterLName = prefix + "Leaves";
+        mtreehelper::increaseCounter(counterLName, stat.noDCLeaves);
         delete li;
         local.addr = 0;
       }
@@ -6770,6 +6780,14 @@ class mnearestNeighborN7Info {
   int getNoDistFunCalls() {
     return it->getNoDistFunCalls();
   }
+  
+  int getNoDistFunCallsInnerNodes() {
+    return it->getNoDistFunCallsInnerNodes();
+  }
+  
+  int getNoDistFunCallsLeaves() {
+    return it->getNoDistFunCallsLeaves();
+  }
 
 
  private:
@@ -6814,9 +6832,15 @@ int mnearestNeighborN7VMT(Word* args, Word& result, int message, Word& local,
     }
     case CLOSE : {
       if (li) {
-        string counterName = "counterM" + (k == 0 ? "" : to_string(k)) + 
-                             "NearestNeighborN7";
-        mtreehelper::increaseCounter(counterName, li->getNoDistFunCalls());
+        string prefix = "counterM" + (k == 0 ? "" : to_string(k)) + 
+                        "NearestNeighborN7";
+        mtreehelper::increaseCounter(prefix, li->getNoDistFunCalls());
+        string counterINName = prefix + "InnerNodes";
+        mtreehelper::increaseCounter(counterINName, 
+                                     li->getNoDistFunCallsInnerNodes());
+        string counterLName = prefix + "Leaves";
+        mtreehelper::increaseCounter(counterLName, 
+                                     li->getNoDistFunCallsLeaves());
         delete li;
         local.addr = 0;
       }
@@ -22545,10 +22569,15 @@ int mcreatentreeVMT(Word* args, Word& result, int message, Word& local,
   MemoryNtreeObject<T, StdDistComp<T>, variant>* ntree = 
       new MemoryNtreeObject<T, StdDistComp<T>, variant>(tree, usedMem, 
                                 nl->ToString(typeList), !flobused, getDBname());
-  string objName = "counterMCreateNTree" +
-                   (variant > 1 ? to_string(variant) : "");
-  mtreehelper::increaseCounter(objName,
-                         ntree->getNtreeX()->getDistComp().getNoDistFunCalls());
+  NTreeStat stat = ntree->getNtreeX()->getStat();
+  string counterName = "counterMCreateNTree" + 
+                       (variant > 1 ? to_string(variant) : "");
+  mtreehelper::increaseCounter(counterName,
+                               stat.noDCInnerNodes + stat.noDCLeaves);
+  string counterINName = counterName + "InnerNodes";
+  mtreehelper::increaseCounter(counterINName, stat.noDCInnerNodes);
+  string counterLName = counterName + "Leaves";
+  mtreehelper::increaseCounter(counterLName, stat.noDCLeaves);
   res->setPointer(ntree);
   ntree->deleteIfAllowed();
   return 0;
