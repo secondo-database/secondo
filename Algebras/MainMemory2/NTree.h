@@ -191,12 +191,15 @@ class NTreeNode {
     else if (candOrder == PIVOT3) {
       delete[] distances3d;
     }
+    distMatrix = 0;
+    distances2d = 0;
+    distances3d = 0;
   }
   
-  int getNearestCenterPos(const T& o, DistComp& dc, 
+  int getNearestCenterPos(const T& o, DistComp& dc, const int size,
                           std::tuple<double, double, double>& odist3d, 
                           const bool isLeaf, double& minDist) {
-    int size = isLeaf ? ((leafnode_t*)this)->getNoEntries() : degree;
+//     int size = isLeaf ? ((leafnode_t*)this)->getNoEntries() : degree;
     bool cand[size];
     std::fill_n(cand, size, true);
     minDist = DBL_MAX;
@@ -257,10 +260,10 @@ class NTreeNode {
     return result;
   }
     
-  void precomputeDistances(DistComp& dc, const bool isLeaf) {
+  void precomputeDistances(DistComp& dc, const int size, const bool isLeaf) {
     double maxDist = 0.0;
     refDistPos = std::make_tuple(0, 0, 0);
-    int size = isLeaf ? ((leafnode_t*)this)->getNoEntries() : degree;
+//     int size = isLeaf ? ((leafnode_t*)this)->getNoEntries() : degree;
     for (int i = 0; i < size; i++) {
       distMatrix[i][i] = 0.0;
       for (int j = 0; j < i; j++) {
@@ -354,7 +357,6 @@ struct PartitionStatus {
     meanError = 0.0;
     meanSquaredError = 0.0;
     double optimalSize = (double)(noElems) / partitions.size();
-    cout << "optimal size is " << optimalSize << endl;
     for (int i = 0; i < degree; i++) {
       if ((int)partitions[i].size() < min) {
         minPos = i;
@@ -364,7 +366,7 @@ struct PartitionStatus {
         maxPos = i;
         max = partitions[i].size();
       }
-      meanError += optimalSize - partitions[i].size();
+      meanError += std::abs(optimalSize - partitions[i].size());
       meanSquaredError += std::pow(optimalSize - partitions[i].size(), 2);
     }
     minMaxFactor = (double)max / min;
@@ -380,15 +382,11 @@ struct PartitionStatus {
       std::pair<int, int> partSize((int)partitions[i].size(), (int)i);
       partSizes.insert(partSize);
     }
-    for (auto it = partSizes.begin(); it != partSizes.end(); it++) {
-      cout << "<" << it->first << ":" << it->second << "> ";
-    }
-    cout << endl;
-    auto it = partSizes.begin();
+    auto it = partSizes.end();
     for (int i = 0; i < degree; i++) {
-      it++;
+      it--;
     }
-    partSizes.erase(it, partSizes.end());
+    partSizes.erase(partSizes.begin(), it);
     it = partSizes.begin();
     for (int i = 0; i < degree; i++) {
       result.insert(it->second);
@@ -520,8 +518,9 @@ class NTreeInnerNode : public NTreeNode<T, DistComp, variant> {
     return centers[childPos];
   }
   
-  int getNearestCenterPos(const T& o, DistComp& dc, double& minDist) {
-    if (variant == 2 || variant >= 6) { // N-tree2
+  int getNearestCenterPos(const T& o, DistComp& dc, const int size,
+                          double& minDist) {
+    if (variant == 2 || variant >= 6) {
       std::tuple<double, double, double> odist3d;
       if (candOrder == PIVOT2) {
         odist3d = std::make_tuple(dc(o, *(centers[std::get<0>(refDistPos)])),
@@ -531,12 +530,12 @@ class NTreeInnerNode : public NTreeNode<T, DistComp, variant> {
       if (candOrder == PIVOT3) {
         std::get<2>(odist3d) = dc(o, *(centers[std::get<2>(refDistPos)]));
       }
-      return node_t::getNearestCenterPos(o, dc, odist3d, false, minDist);
+      return node_t::getNearestCenterPos(o, dc, size, odist3d, false, minDist);
     }
     else { // N-tree or N-tree5
       double currentDist = std::numeric_limits<double>::max();
       int result = -1;
-      for (int i = 0; i < node_t::degree; i++) {
+      for (int i = 0; i < size; i++) {
         const T* c = getCenter(i);
         double dist = dc(*c, o);
         if (dist < currentDist) {
@@ -588,12 +587,12 @@ class NTreeInnerNode : public NTreeNode<T, DistComp, variant> {
   }
   
   double evaluateDist(const int i, const T& o, DistComp& dc) const {
-    assert(i >= 0 && i < degree);
+    assert(i >= 0);
     return dc(*(centers[i]), o);
   }
   
   double evaluateDist(const int i, const int j, DistComp& dc) const {
-    assert(i >= 0 && i < node_t::degree && j >= 0 && j < node_t::degree);
+    assert(i >= 0 && j >= 0);
     return dc(*(centers[i]), *(centers[j]));
   }
   
@@ -723,7 +722,9 @@ class NTreeInnerNode : public NTreeNode<T, DistComp, variant> {
   }
   
   void computeCenters(std::vector<T>& contents, DistComp& dc,
-                      const PartitionMethod partMethod) {
+                      const PartitionMethod partMethod, 
+                      std::vector<std::vector<T> >& partitions,
+                      std::vector<T>& contentsToRepart) {
     assert(contents.size() >= (unsigned int)node_t::degree);
     switch (partMethod) {
       case FIRSTD : { // first d objects at hand
@@ -737,51 +738,46 @@ class NTreeInnerNode : public NTreeNode<T, DistComp, variant> {
         break;
       }
       case RANDOMOPT : { // random centers with optimization ("Strategy 2")
-        
-//         computeRandomCenters(contents);
-        
-
         delete[] centers;
         int m = std::min((int)floor(2.5 * node_t::degree),(int)contents.size());
         cout << "m = " << m << endl;
         centers = computeTempRandomCenters(contents, m);
-        cout << "centers computed" << endl;
         // create partitions to check partition sizes
         node_t::initAuxStructures(m);
         delete[] maxDist;
         maxDist = new double[m];
         std::fill_n(maxDist, m, 0.0);
-        cout << "structures initialized" << endl;
-        
-        // TODO: add parameter m
-        node_t::precomputeDistances(dc, false);
-        
-        cout << "distances precomputed" << endl;
-        std::vector<std::vector<T> > partitions;
-        partitions.resize(m);
-        cout << "partitions resized" << endl;
-        partition(contents, m, dc, partitions);
+        node_t::precomputeDistances(dc, m, false);
+        std::vector<std::vector<T> > partitionsTemp;
+        partitionsTemp.resize(m);
+        partition(contents, m, dc, partitionsTemp);
         cout << contents.size() << " objects for " << node_t::degree 
              << " partitions, optimal size is " 
              << (double)(contents.size()) / node_t::degree << endl;
-        
-        cout << "current sizes:";
-        for (int i = 0; i < m; i++) {
-          cout << " (" << i << ", " << partitions[i].size() << ")";
-        }
-        cout << endl;
-        PartitionStatus<T> status(partitions, m, contents.size());
-        status.print();
-        std::set<int> maxCenters = status.getMaxCenters(partitions, 
+        PartitionStatus<T> status(partitionsTemp, m, contents.size());
+        std::set<int> maxCenters = status.getMaxCenters(partitionsTemp, 
                                                            node_t::degree);
-        cout << "maxCenters: ";
-        for (auto it = maxCenters.begin(); it != maxCenters.end(); it++) {
-          cout << *it << " ";
+        auto it = maxCenters.begin();
+        T** newCenters = new T*[node_t::degree];
+        for (int i = 0; i < node_t::degree; i++) {
+          newCenters[i] = centers[*it];
+          it++;
         }
-        cout << endl;
-//         for
-        
-        
+        delete[] centers;
+        centers = newCenters;
+        for (int i = 0; i < m; i++) {
+          if (maxCenters.find(i) != maxCenters.end()) { // one of maxCenters
+            partitions.push_back(partitionsTemp[i]); // keep partition
+          }
+          else { // not in maxCenters ==> elements must be repartitioned
+            for (unsigned int j = 0; j < partitionsTemp[i].size(); j++) {
+              contentsToRepart.push_back(partitionsTemp[i][j]);
+            }
+          }
+        }
+        cout << "after computeCenters, " << contentsToRepart.size() 
+             << " objects must be repartitioned" << endl;
+        node_t::deleteAuxStructures(m);
         break;
       }
 //       TODO:
@@ -797,11 +793,14 @@ class NTreeInnerNode : public NTreeNode<T, DistComp, variant> {
   
   void partition(std::vector<T>& contents, const int noCenters,
                  DistComp& dc, std::vector<std::vector<T> >& partitions) {
-    partitions.clear();
-    partitions.resize(noCenters);
     double dist(-1.0), centerDist(-1.0);
     int partitionPos = -1;
     if (variant == 2 || variant >= 6) { // NTree2 etc.
+      cout << "sizes BEFORE partition:";
+      for (int i = 0; i < noCenters; i++) {
+        cout << " (" << i << ", " << partitions[i].size() << ")";
+      }
+      cout << endl;
       for (unsigned int i = 0; i < contents.size(); i++) {
         for (int j = 0; j < noCenters; j++) {
           if (contents[i].getTid() == centers[j]->getTid()) {
@@ -811,7 +810,8 @@ class NTreeInnerNode : public NTreeNode<T, DistComp, variant> {
         }
         if (partitionPos == -1) {
 //           cout << "call gNCP for contents # " << i << endl;
-          partitionPos = getNearestCenterPos(contents[i], dc, centerDist);
+          partitionPos = getNearestCenterPos(contents[i], dc, noCenters,
+                                             centerDist);
         }
         partitions[partitionPos].push_back(contents[i]);
         if (centerDist > maxDist[partitionPos]) {
@@ -819,6 +819,13 @@ class NTreeInnerNode : public NTreeNode<T, DistComp, variant> {
         }
         partitionPos = -1;
       }
+      PartitionStatus<T> status(partitions, noCenters, contents.size());
+      status.print();
+      cout << "sizes AFTER partition:";
+      for (int i = 0; i < noCenters; i++) {
+        cout << " (" << i << ", " << partitions[i].size() << ")";
+      }
+      cout << endl;
     }
     else { // NTree or NTree5
       for (unsigned int i = 0; i < contents.size(); i++) {
@@ -878,13 +885,22 @@ class NTreeInnerNode : public NTreeNode<T, DistComp, variant> {
 //          << " elems, counter = " << dc.getNoDistFunCalls() << endl;
     int noDistFunCallsBefore = dc.getNoDistFunCalls();
     depth++;
-    computeCenters(contents, dc, partMethod);
-    if ((variant == 2 || variant >= 6) && partMethod != RANDOMOPT) {
-      node_t::initAuxStructures(degree);
-      node_t::precomputeDistances(dc, false);
-    }
     std::vector<std::vector<T> > partitions;
-    partition(contents, node_t::degree, dc, partitions);
+    std::vector<T> contentsToRepart; // used for NTree8 efficiency
+    computeCenters(contents, dc, partMethod, partitions, contentsToRepart);
+    if (variant == 2 || variant >= 6) {
+      node_t::initAuxStructures(degree);
+      node_t::precomputeDistances(dc, degree, false);
+    }
+    if (partMethod == RANDOMOPT) {
+//       partition(contents, node_t::degree, dc, partitions);
+      partition(contentsToRepart, node_t::degree, dc, partitions);
+    }
+    else {
+      partitions.clear();
+      partitions.resize(node_t::degree);
+      partition(contents, node_t::degree, dc, partitions);
+    }
 //     printPartitions(contents, partitions, depth, dc, false, cout);
     int noDistFunCallsAfter = dc.getNoDistFunCalls();
     noDistComp = noDistFunCallsAfter - noDistFunCallsBefore;
@@ -948,7 +964,7 @@ class NTreeLeafNode : public NTreeNode<T, DistComp, variant> {
     int noDistFunCallsBefore = dc.getNoDistFunCalls();
     if (variant == 2 || variant >= 6) {
       node_t::initAuxStructures(getNoEntries());
-      node_t::precomputeDistances(dc, true);
+      node_t::precomputeDistances(dc, getNoEntries(), true);
     }
     int noDistFunCallsAfter = dc.getNoDistFunCalls();
     noDistComp = noDistFunCallsAfter - noDistFunCallsBefore;
@@ -1044,7 +1060,8 @@ class NTreeLeafNode : public NTreeNode<T, DistComp, variant> {
     node_t::count += contents.size();
   }
   
-  int getNearestCenterPos(const T& o, DistComp& dc, double& minDist) {
+  int getNearestCenterPos(const T& o, DistComp& dc, const int size,
+                          double& minDist) {
     if (variant == 2 || variant >= 6) {
       std::tuple<double, double, double> odist3d;
       if (node_t::candOrder == PIVOT2) {
@@ -1055,7 +1072,7 @@ class NTreeLeafNode : public NTreeNode<T, DistComp, variant> {
       if (node_t::candOrder == PIVOT3) {
         std::get<2>(odist3d) = dc(o, *(entries[std::get<2>(refDistPos)]));
       }
-      return node_t::getNearestCenterPos(o, dc, odist3d, true, minDist);
+      return node_t::getNearestCenterPos(o, dc, size, odist3d, true, minDist);
     }
     else { // N-tree or N-tree5
       double currentDist = std::numeric_limits<double>::max();
@@ -1245,11 +1262,13 @@ class RangeIteratorN {
   }
   
   void collectResultsNtree2(node_t* node) {
+    int size = (node->isLeaf() ? ((leafnode_t*)node)->getNoEntries() :
+                                 ((innernode_t*)node)->getDegree());
     if (node->isLeaf()) {
       int noDistFunCallsBefore = dc.getNoDistFunCalls();
       double distQnnq, distPnnq;
-      int nnq = ((leafnode_t*)node)->getNearestCenterPos(queryObject, dc,
-                                                          distQnnq);
+      int nnq = ((leafnode_t*)node)->getNearestCenterPos(queryObject, dc, size,
+                                                         distQnnq);
       for (int i = 0; i < node->getCount(); i++) {
         distPnnq = node->getPrecomputedDist(nnq, i, true);
         if (distPnnq <= range - distQnnq) { // report
@@ -1269,7 +1288,7 @@ class RangeIteratorN {
     }
     else { // inner node
       double distQnnq, distPnnq, maxDist;
-      int nnq = ((innernode_t*)node)->getNearestCenterPos(queryObject, dc,
+      int nnq = ((innernode_t*)node)->getNearestCenterPos(queryObject, dc, size,
                                                           distQnnq);
       for (int i = 0; i < node->getCount(); i++) {
         distPnnq = node->getPrecomputedDist(i, nnq, false);
@@ -1517,7 +1536,8 @@ class RangeIteratorN {
     double d_min, d_iq, maxDist_i;
     int c_q;
     if (node->isLeaf()) {
-      c_q = ((leafnode_t*)node)->getNearestCenterPos(queryObject, dc, d_min);
+      c_q = ((leafnode_t*)node)->getNearestCenterPos(queryObject, dc, noCands,
+                                                     d_min);
       for (int i = 0; i < node->getNoEntries(); i++) {
         d_iq = node->getPrecomputedDist(c_q, i, true);
 //         cout << "  LEAF: d_iq = " << d_iq << ", d_min = " << d_min 
@@ -1536,7 +1556,8 @@ class RangeIteratorN {
       }      
     }
     else { // inner node
-      c_q = ((innernode_t*)node)->getNearestCenterPos(queryObject, dc, d_min);
+      c_q = ((innernode_t*)node)->getNearestCenterPos(queryObject, dc, noCands,
+                                                      d_min);
       for (int i = 0; i < node->getDegree(); i++) {
         if (i != c_q) {
 //           cout << "getPrecomputedDist(" << c_q << ", " << i << ")";
@@ -1685,7 +1706,8 @@ class NNIteratorN {
     node_t* node_temp = node;
     while (!node_temp->isLeaf()) {
       noDistFunCallsBefore = dc.getNoDistFunCalls();
-      c_q = ((innernode_t*)node_temp)->getNearestCenterPos(ref, dc, d_min);
+      c_q = ((innernode_t*)node_temp)->getNearestCenterPos(ref, dc, 
+                                 ((innernode_t*)node_temp)->getDegree(), d_min);
 //       maxDist = ((innernode_t*)node_temp)->getMaxDist(c_q);
       node_temp = node_temp->getChild(c_q);
       noDistFunCallsAfter = dc.getNoDistFunCalls();
@@ -1693,7 +1715,8 @@ class NNIteratorN {
       stat.noDCInnerNodes += noDistFunCallsAfter - noDistFunCallsBefore;
     }
     noDistFunCallsBefore = dc.getNoDistFunCalls();
-    c_q = ((leafnode_t*)node_temp)->getNearestCenterPos(ref, dc, d_min);
+    c_q = ((leafnode_t*)node_temp)->getNearestCenterPos(ref, dc,
+                               ((leafnode_t*)node_temp)->getNoEntries(), d_min);
     noDistFunCallsAfter = dc.getNoDistFunCalls();
     stat.noLeaves++;
     stat.noDCLeaves += noDistFunCallsAfter - noDistFunCallsBefore;
