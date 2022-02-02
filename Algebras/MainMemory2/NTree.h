@@ -27,6 +27,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include <limits>
 #include <random>
+#include "../Spatial/Point.h"
 
 /*
 Implementation of the N-tree
@@ -740,9 +741,16 @@ class NTreeInnerNode : public NTreeNode<T, DistComp, variant> {
       case RANDOMOPT : { // random centers with optimization ("Strategy 2")
         delete[] centers;
         int m = std::min((int)floor(2.5 * node_t::degree),(int)contents.size());
-        cout << "m = " << m << endl;
-        centers = computeTempRandomCenters(contents, m);
-        // create partitions to check partition sizes
+        cout << "m = " << m << " | " << contents.size() << " objects for "
+             << node_t::degree << " partitions, optimal size is " 
+             << (double)(contents.size()) / node_t::degree << endl;
+        
+//         centers = computeTempRandomCenters(contents, m);
+        centers = new T*[m];
+        for (int i = 0; i < m; i++) { // deterministic start
+          centers[i] = new T(contents[i]);
+        }
+        
         node_t::initAuxStructures(m);
         delete[] maxDist;
         maxDist = new double[m];
@@ -751,9 +759,6 @@ class NTreeInnerNode : public NTreeNode<T, DistComp, variant> {
         std::vector<std::vector<T> > partitionsTemp;
         partitionsTemp.resize(m);
         partition(contents, m, dc, partitionsTemp);
-        cout << contents.size() << " objects for " << node_t::degree 
-             << " partitions, optimal size is " 
-             << (double)(contents.size()) / node_t::degree << endl;
         PartitionStatus<T> status(partitionsTemp, m, contents.size());
         std::set<int> maxCenters = status.getMaxCenters(partitionsTemp, 
                                                            node_t::degree);
@@ -796,11 +801,11 @@ class NTreeInnerNode : public NTreeNode<T, DistComp, variant> {
     double dist(-1.0), centerDist(-1.0);
     int partitionPos = -1;
     if (variant == 2 || variant >= 6) { // NTree2 etc.
-      cout << "sizes BEFORE partition:";
-      for (int i = 0; i < noCenters; i++) {
-        cout << " (" << i << ", " << partitions[i].size() << ")";
-      }
-      cout << endl;
+//       cout << "sizes BEFORE partition:";
+//       for (int i = 0; i < noCenters; i++) {
+//         cout << " (" << i << ", " << partitions[i].size() << ")";
+//       }
+//       cout << endl;
       for (unsigned int i = 0; i < contents.size(); i++) {
         for (int j = 0; j < noCenters; j++) {
           if (contents[i].getTid() == centers[j]->getTid()) {
@@ -817,15 +822,27 @@ class NTreeInnerNode : public NTreeNode<T, DistComp, variant> {
         if (centerDist > maxDist[partitionPos]) {
           maxDist[partitionPos] = centerDist;
         }
+        if (contents[i].getTid() == 7) {
+          Point *p = (Point*)(contents[i].getKey());
+          Point *q = (Point*)(centers[partitionPos]->getKey());
+          cout << "  obj " << *(contents[i].getKey()) << " goes to partition #"
+               << partitionPos << ", dist is " << p->Distance(*q)
+//                << evaluateDist(partitionPos, contents[i].getKey(), dc)
+               << endl << "  other distances: ";
+          for (int j = 0; j < noCenters; j++) {
+            q = (Point*)(centers[j]->getKey());
+            cout << "#" << j << " : " << p->Distance(*q) << " | ";
+          }
+        }
         partitionPos = -1;
       }
       PartitionStatus<T> status(partitions, noCenters, contents.size());
       status.print();
-      cout << "sizes AFTER partition:";
-      for (int i = 0; i < noCenters; i++) {
-        cout << " (" << i << ", " << partitions[i].size() << ")";
-      }
-      cout << endl;
+//       cout << "sizes AFTER partition:";
+//       for (int i = 0; i < noCenters; i++) {
+//         cout << " (" << i << ", " << partitions[i].size() << ")";
+//       }
+//       cout << endl;
     }
     else { // NTree or NTree5
       for (unsigned int i = 0; i < contents.size(); i++) {
@@ -1215,7 +1232,7 @@ class RangeIteratorN {
   
   void addResult(T* o) {
     results.push_back(o);
-//     cout << "[" << o->getTid() << "] ";
+    cout << "[" << o->getTid() << ", obj=" << *(o->getKey()) << "] ";
 //          << ": " << *(o->getKey()) << "] ";
   }
   
