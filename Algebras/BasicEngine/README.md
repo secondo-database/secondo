@@ -1,5 +1,7 @@
 ## Postgres specific setup
 
+This is the documentation for the BasicEngine algebra.
+
 ```bash
 # Create a master postgres and 5 worker on different disks and ports
 sudo pg_createcluster 10 user_master -p 50506 
