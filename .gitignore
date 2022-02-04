@@ -38,6 +38,13 @@ makefile.algebras
 /Algebras/TopRel/TreeParser.y.c
 /Algebras/TopRel/TreeParser.y.h
 /Algebras/XTree/xtree_docu
+/Algebras/SymbolicTrajectory/PatternParser.output
+/Algebras/SymbolicTrajectory/PatternParser.tab.c
+/Algebras/SymbolicTrajectory/PatternParser.tab.h
+/Algebras/SymbolicTrajectory/PatternRegExParser.y.c
+/Algebras/SymbolicTrajectory/PatternRegExParser.y.h
+/Algebras/SymbolicTrajectory/PatternRegExScanner.c
+/Algebras/SymbolicTrajectory/lex.pattern.c
 
 # Javagui
 /Javagui/GBS.cfg
@@ -55,9 +62,11 @@ makefile.algebras
 /OptParser/parser.h
 /OptParser/scanner.c
 /Optimizer/libregSecondo.so
+/Optimizer/libregSecondo.jnilib
 /Optimizer/opsyntaxg.pl
 /Optimizer/tmp/
 /OptimizerBasic/libregSecondo.so
+/OptimizerBasic/libregSecondo.jnilib
 
 
 /bin/*.jpg
