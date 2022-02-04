@@ -9,5 +9,5 @@ makefile.algebras
 .project
 .cproject
 .settings
-
+.vscode
 
