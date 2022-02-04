@@ -725,6 +725,7 @@ bool Distributed2Algebra::serverExists(int s){
         if(dfsport>0){
           enableDFS(pr.second);
         }
+
         workerconnections[info] = pr;
         it = workerconnections.find(info);
      } else {
@@ -784,6 +785,7 @@ bool Distributed2Algebra::serverExists(int s){
        count++;
     }
     workerconnections.clear();
+
     return count;
  } 
 
@@ -19852,20 +19854,25 @@ TypeMapping : stream(real)  x int x bool  -> stream(int)
 slotsizes, number of workers , simple
 
 */
-ListExpr loadBalanceTM(ListExpr args){
-  if(!nl->HasLength(args,3)){
-     return listutils::typeError("3 args expected");
+ListExpr loadBalanceTM(ListExpr args) {
+  if (!nl->HasLength(args, 3)) {
+    return listutils::typeError("3 args expected");
   }
-  if(!Stream<CcReal>::checkType(nl->First(args))){
-     return listutils::typeError("first argument must be stream of real");
+
+  if (!Stream<CcReal>::checkType(nl->First(args))) {
+    return listutils::typeError("first argument must be stream of real");
   }
-  if(!CcInt::checkType(nl->Second(args))){
-     return listutils::typeError("second arg is not an int");
+
+  if (!CcInt::checkType(nl->Second(args))) {
+    return listutils::typeError("second arg is not an int");
   }
-  if(!CcBool::checkType(nl->Third(args))){
+
+  if (!CcBool::checkType(nl->Third(args))) {
     return listutils::typeError("third arg is not a bool");
   }
-  return nl->First(args);
+
+  return nl->TwoElemList(listutils::basicSymbol<Stream<CcInt>>(),
+                         listutils::basicSymbol<CcInt>());
 }
 
 class loadBalanceInfo{
@@ -19913,28 +19920,36 @@ private:
     Stream<CcReal> stream;
     vector<uint32_t> result; 
     size_t pos ;
-
 };
 
+int loadBalanceVM(Word *args, Word &result, int message, Word &local,
+                  Supplier s) {
 
-int loadBalanceVM(Word* args, Word& result, int message,
-                  Word& local, Supplier s ){
+  loadBalanceInfo *li = (loadBalanceInfo *)local.addr;
 
-   loadBalanceInfo* li = (loadBalanceInfo*) local.addr;
-   switch(message){
-       case OPEN : if(li) delete li;
-                   local.addr = new loadBalanceInfo(args);
-                   return 0;
-       case REQUEST : result.addr = li?li->next():0;
-                      return result.addr?YIELD:CANCEL;
-       case CLOSE : if(li){
-                       delete li;
-                       local.addr = 0;
-                    }
-                    return 0;
-   }
-   return -1;
-};
+  switch (message) {
+  case OPEN:
+    if (li) {
+      delete li;
+    }
+    local.addr = new loadBalanceInfo(args);
+    return 0;
+
+  case REQUEST:
+    result.addr = li ? li->next() : 0;
+    return result.addr ? YIELD : CANCEL;
+
+  case CLOSE:
+    if (li) {
+      delete li;
+      local.addr = nullptr;
+    }
+
+    return 0;
+  }
+
+  return -1;
+}
 
 OperatorSpec loadBalanceSpec(
    "stream(real) x int x bool -> stream(int) ",
@@ -19944,7 +19959,7 @@ OperatorSpec loadBalanceSpec(
    "the 5 % reserve method should be used. It returns the "
    " mapping from the slots to the workers.",
    " query realstream(1.0,10.0,1.0) "
-   "loacBalance[3,FALSE] transformstream consume"
+   "loadBalance[3,FALSE] transformstream consume"
 );
 
 Operator loadBalanceOp(
@@ -24876,6 +24891,7 @@ Distributed2Algebra::Distributed2Algebra(){
 
 
 Distributed2Algebra::~Distributed2Algebra(){
+
    map<int,staticFileTransferator*>::iterator it;
    for(it=staticFileTransferators.begin();
        it!=staticFileTransferators.end();it++){
