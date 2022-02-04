@@ -1,9 +1,0 @@
-*.o
-*.a
-*.dep
-*.fm
-*.class
-.idea
-cmake-build-debug
-/experimenting/readfromkafka/.idea/
-/experimenting/readfromkafka/cmake-build-debug/

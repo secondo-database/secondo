@@ -1,8 +1,0 @@
-*.o
-*.a
-*.dep
-*.fm
-*.class
-proglogt.csv
-*.test.log
-tmp

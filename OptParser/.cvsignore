@@ -1,8 +1,0 @@
-*.o
-*.a
-*.dep
-*.fm
-*.class
-parser.c
-parser.h
-scanner.c

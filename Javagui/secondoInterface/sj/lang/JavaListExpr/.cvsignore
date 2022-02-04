@@ -1,8 +1,0 @@
-*.o
-*.a
-*.dep
-*.fm
-*.class
-NLJLex.l.java
-NLParser.java
-NLSymbol.java
