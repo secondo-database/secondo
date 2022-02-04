@@ -227,3 +227,8 @@ makefile.algebras
 /Tools/DFS/indexnode/indexnode
 /Tools/DFS/qunitrunner/qunitrunner
 
+# WebGUI2
+/WebGui2/bin
+/WebGui2/gwt-unitCache
+/WebGui2/.gwt
+
