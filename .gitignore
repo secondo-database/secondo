@@ -231,4 +231,5 @@ makefile.algebras
 /WebGui2/bin
 /WebGui2/gwt-unitCache
 /WebGui2/.gwt
+/WebGui2/war/secondoweb
 
