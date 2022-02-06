@@ -3467,7 +3467,7 @@ If the four points can construct a zebra, returns true, otherwise return false
                   ComputeRegion(outer_ps1, result1);
 
 //              if(result1[0].GetCycleDirection() &&
-              if(result1.size() > 0 && result1[0].GetCycleDirection() &&
+              if(result1.size() > 0 && !result1[0].GetCycleDirection() &&
                  result1[0].Intersects(*last_zc) == false){
                   *crossregion = result1[0];
                   *pave1 = *pave;
