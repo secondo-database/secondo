@@ -750,7 +750,7 @@ class NTreeInnerNode : public NTreeNode<T, DistComp, variant> {
         for (int i = 0; i < m; i++) { // deterministic start
           centers[i] = new T(contents[i]);
         }
-        
+        cout << "&&&&&&&&&&&&&&&&&&&&&" << endl;
         node_t::initAuxStructures(m);
         delete[] maxDist;
         maxDist = new double[m];
@@ -769,10 +769,16 @@ class NTreeInnerNode : public NTreeNode<T, DistComp, variant> {
           it++;
         }
         delete[] centers;
+        std::vector<double> maxDistTemp;
+        delete[] maxDist;
+        node_t::deleteAuxStructures(m);
+        maxDist = new double[node_t::degree];
+        std::fill_n(maxDist, node_t::degree, 0.0);
         centers = newCenters;
         for (int i = 0; i < m; i++) {
           if (maxCenters.find(i) != maxCenters.end()) { // one of maxCenters
             partitions.push_back(partitionsTemp[i]); // keep partition
+//             maxDist[maxDist.size()]
           }
           else { // not in maxCenters ==> elements must be repartitioned
             for (unsigned int j = 0; j < partitionsTemp[i].size(); j++) {
@@ -780,9 +786,12 @@ class NTreeInnerNode : public NTreeNode<T, DistComp, variant> {
             }
           }
         }
+        cout << "####################" << endl;
+        node_t::initAuxStructures(node_t::degree);
+        node_t::precomputeDistances(dc, node_t::degree, false);
         cout << "after computeCenters, " << contentsToRepart.size() 
              << " objects must be repartitioned" << endl;
-        node_t::deleteAuxStructures(m);
+        
         break;
       }
 //       TODO:
@@ -822,6 +831,7 @@ class NTreeInnerNode : public NTreeNode<T, DistComp, variant> {
         partitions[partitionPos].push_back(contents[i]);
         if (centerDist > maxDist[partitionPos]) {
           maxDist[partitionPos] = centerDist;
+          cout << "maxDist[" << partitionPos << "] set to " << centerDist << endl;
         }
         if (contents[i].getTid() == 81) {
           Point *p = (Point*)(contents[i].getKey());
