@@ -2,13 +2,16 @@ SUITE=STABLE
 #SUITE=EXPERIMENTAL
 export SUITE
 
-all:
+all: build
 ifeq ($(SUITE),EXPERIMENTAL)
 	$(MAKE) -C devel
 else
 	$(MAKE) -C lib
 endif
 	$(MAKE) -C example
+
+build:
+	mkdir -p build
 
 install:
 	cp build/librip.so /usr/local/lib
@@ -18,4 +21,4 @@ clean:
 	$(MAKE) -C lib clean
 	$(MAKE) -C devel clean
 	$(MAKE) -C example clean
-	rm -f build/*.*
+	rm -rf build

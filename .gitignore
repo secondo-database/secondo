@@ -15,6 +15,9 @@ makefile.algebras
 .vscode
 .idea
 
+# Bin
+bin/*.lua
+
 # Algebras
 /Algebras/specs
 /Algebras/specs.test
@@ -45,6 +48,9 @@ makefile.algebras
 /Algebras/SymbolicTrajectory/PatternRegExParser.y.h
 /Algebras/SymbolicTrajectory/PatternRegExScanner.c
 /Algebras/SymbolicTrajectory/lex.pattern.c
+/Algebras/RegionInterpolation2/librip/build/
+/Algebras/RegionInterpolation2/librip/example/rip
+/Algebras/RegionInterpolation2/librip/lib/librip.so
 
 # Javagui
 /Javagui/GBS.cfg
