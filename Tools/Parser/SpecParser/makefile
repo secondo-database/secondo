@@ -33,25 +33,29 @@ DEP_FILES += SpecParser.tab.dep
 
 
 OBJECTS := NestedText.o lex.yy.o lex2.yy.o 
-GENFILES := lex.yy.cpp lex2.yy.cpp SpecParser.tab.cpp SpecParser.tab.hpp
+GENFILES := lex.yy.cpp lex2.yy.cpp SpecParser.tab.cpp 
 
-all: $(GENFILES) $(OBJECTS) Parser$(EXEEXT)
+all: $(GENFILES) $(OBJECTS) Parser$(EXEEXT) Parser2$(EXEEXT)
 
-lex.yy.cpp lex2.yy.cpp: SpecLex.l
+lex.yy.cpp: SpecLex.l
 	$(LEX) -o$@ $<
+
+lex2.yy.cpp: SpecLex.l
 	$(LEX) -d -olex2.yy.cpp $<
 
-SpecParser.tab.cpp SpecParser.tab.hpp: SpecParser.y
+SpecParser.tab.cpp: SpecParser.y
 	$(YACC) -d -o $@ $<
 
-Parser$(EXEEXT): 
-	$(MAKE) -C arch_i386
+Parser$(EXEEXT): SpecParser.tab.o lex.yy.o NestedText.o
+	$(CXX) -o Parser$(EXEEXT) $^ $(DEFAULTCCFLAGS) $(COMMON_LD_FLAGS)
+
+Parser2$(EXEEXT): SpecParser.tab.o lex2.yy.o NestedText.o
+	$(CXX) -o Parser2$(EXEEXT) $^ $(DEFAULTCCFLAGS) $(COMMON_LD_FLAGS) 
 
 ifneq ($(MAKECMDGOALS),clean)
 -include $(DEP_FILES)
 endif
 
 clean:
-	$(RM) $(GENFILES) $(DEP_FILES) $(OBJECTS) SpecParser.tab.o
-	$(MAKE) -C arch_i386 clean
+	$(RM) $(GENFILES) $(DEP_FILES) $(OBJECTS) SpecParser.tab.o SpecParser.tab.hpp Parser$(EXEEXT) Parser2$(EXEEXT)
 
