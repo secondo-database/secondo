@@ -569,11 +569,11 @@ LOAD DATA INFILE "/tmp/water" into table water_import CHARACTER SET utf8 (@col1,
 
 ## Partition
 
-Input: Relation, Attribute, Number of Slots, Mapping Function
+Input: Tablename, Attribute, Number of Slots, Mapping Function
 
 * Create darray mapping (slot -> worker)
 * Create mapping table
-* Join relation with mapping table
+* Join table with mapping table
 * Export schema of joined table
 * Export joined table based on workers of the darray (one file per slot)
 * Load schema on workers
@@ -582,7 +582,20 @@ Input: Relation, Attribute, Number of Slots, Mapping Function
 
 ## Repartition
 
-Input: Relation, Attribute, DArray, Mapping Function
+Input: Table, Attribute, DArray, Mapping Function
+
+* Create name for temp table1
+* Copy darray to all worker
+* Create mapping table on each worker
+* Join table on each worker with mapping table store result in temp table1
+* Create name for temp table2
+* Copy schema from temp table1 to temp table 2
+* Copy local partitions from temp table1 to temp table2
+* Copy all foreign partitions to temp table2 on the other worker
+* Delete temp table1
+* Delete table
+* Rename temp table2 to table
+
 
 ## Execute Distributed Query
 
