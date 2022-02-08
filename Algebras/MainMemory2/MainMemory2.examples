@@ -324,6 +324,12 @@ Signature : MREL x IDENT x int x int [x geoid] -> (mpointer(mem(ntree ...) )
 Example   : let mKinos_GeoData_ntree7 = mKinos mcreatentree7[GeoData, 4, 8]
 Result    : ()
 
+Operator  : mcreatentree8
+Number    : 1921
+Signature : MREL x IDENT x int x int [x geoid] -> (mpointer(mem(ntree ...) )
+Example   : let mKinos_GeoData_ntree8 = mKinos mcreatentree8[GeoData, 4, 8]
+Result    : ()
+
 Operator  : mdistRangeN
 Number    : 1910
 Signature : NTREE(T) x MREL(X) x T (x U) x real -> stream(tuple(X))
@@ -352,6 +358,12 @@ Operator  : mdistRangeN7
 Number    : 1918
 Signature : NTREE7(T) x MREL(X) x T (x U) x real -> stream(tuple(X))
 Example   : query mKinos_GeoData_ntree7 mKinos mdistRangeN7[alexanderplatz, 2000.0] count
+Result    : 17
+
+Operator  : mdistRangeN8
+Number    : 1922
+Signature : NTREE8(T) x MREL(X) x T (x U) x real -> stream(tuple(X))
+Example   : query mKinos_GeoData_ntree8 mKinos mdistRangeN8[alexanderplatz, 2000.0] count
 Result    : 17
 
 Operator  : mnearestNeighborN7

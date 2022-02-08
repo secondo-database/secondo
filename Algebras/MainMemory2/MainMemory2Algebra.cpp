@@ -6311,7 +6311,7 @@ Operator mdistRangeOp(
 Operator ~mdistRangeNx~
 
 Type Mapping, used for mdistRangeN, mdistRangeN2, mdistRangeN5, mdistRangeN6,
-and mdistRange7
+mdistRange7, and mdistRangeN8
 
 */
 template<int variant>
@@ -6674,7 +6674,7 @@ Operator ~mdistRangeN7~
 
 */
 OperatorSpec mdistRangeN7Spec(
-  "NTREE6 x MREL  x T (x U) x real -> stream(tuple) , NTREE6, "
+  "NTREE7 x MREL  x T (x U) x real -> stream(tuple) , NTREE7, "
   "MREL represented as string, mem, or mpointer",
   "mem_ntree7 mem_rel mdistRangeN7[keyAttr, maxDist] ",
   "Retrieves those tuples from a memory relation "
@@ -6691,6 +6691,30 @@ Operator mdistRangeN7Op(
    mdistRangeNVM<7>,
    mdistRangeNSelect,
    mdistRangeNTM<7>
+);
+
+/*
+Operator ~mdistRangeN8~
+
+*/
+OperatorSpec mdistRangeN8Spec(
+  "NTREE8 x MREL  x T (x U) x real -> stream(tuple) , NTREE8, "
+  "MREL represented as string, mem, or mpointer",
+  "mem_ntree8 mem_rel mdistRangeN8[keyAttr, maxDist] ",
+  "Retrieves those tuples from a memory relation "
+  "having a distance smaller or equal to a given distance "
+  "to a key value (or pair of key values). This operation is aided by a memory "
+  "based ntree8.",
+  "query mkinos_ntree8 mKinos mdistRangeN8[alexanderplatz, 2000.0] count"
+);
+
+Operator mdistRangeN8Op(
+   "mdistRangeN8",
+   mdistRangeN8Spec.getStr(),
+   48,
+   mdistRangeNVM<8>,
+   mdistRangeNSelect,
+   mdistRangeNTM<8>
 );
 
 /*
@@ -22546,7 +22570,7 @@ int mcreatentreeVMT(Word* args, Word& result, int message, Word& local,
     res->setPointer(0);
     return 0;
   }
-  PartitionMethod partMethod = RANDOMONLY; //TODO: currently fixed
+  PartitionMethod partMethod = (variant == 8 ? RANDOMOPT : RANDOMONLY);
   vector<Tuple*>* v = mrel->getmmrel();
   vector<MTreeEntry<T> > contents;
   bool flobused = false;
@@ -22599,24 +22623,25 @@ int mcreatentreeSelect(ListExpr args) {
 
  // note: if adding attributes with flobs, the value mapping must be changed
 
+ template<int variant>
 ValueMapping mcreatentreeVM[] = {
-  mcreatentreeVMT<mtreehelper::t1, 1>,
-  mcreatentreeVMT<mtreehelper::t2, 1>,
-  mcreatentreeVMT<mtreehelper::t3, 1>,
-  mcreatentreeVMT<mtreehelper::t4, 1>,
-  mcreatentreeVMT<mtreehelper::t5, 1>,
-  mcreatentreeVMT<mtreehelper::t6, 1>,
-  mcreatentreeVMT<mtreehelper::t7, 1>,
-  mcreatentreeVMT<mtreehelper::t8, 1>,
-  mcreatentreeVMT<mtreehelper::t9, 1>,
-  mcreatentreeVMT<mtreehelper::t10, 1>,
-  mcreatentreeVMT<mtreehelper::t11, 1>,
-  mcreatentreeVMT<mtreehelper::t12, 1>
+  mcreatentreeVMT<mtreehelper::t1, variant>,
+  mcreatentreeVMT<mtreehelper::t2, variant>,
+  mcreatentreeVMT<mtreehelper::t3, variant>,
+  mcreatentreeVMT<mtreehelper::t4, variant>,
+  mcreatentreeVMT<mtreehelper::t5, variant>,
+  mcreatentreeVMT<mtreehelper::t6, variant>,
+  mcreatentreeVMT<mtreehelper::t7, variant>,
+  mcreatentreeVMT<mtreehelper::t8, variant>,
+  mcreatentreeVMT<mtreehelper::t9, variant>,
+  mcreatentreeVMT<mtreehelper::t10, variant>,
+  mcreatentreeVMT<mtreehelper::t11, variant>,
+  mcreatentreeVMT<mtreehelper::t12, variant>
 };
 
 OperatorSpec mcreatentreeSpec(
   "MREL(tuple) x attrname x int x int [x geoid] -> , mpointer(mem(mtree X))\n",
-  "mrel mcreatemtree[indexAttr, degree, maxLeafSize, [, geoid] ]\n",
+  "mrel mcreatentree[indexAttr, degree, maxLeafSize, [, geoid] ]\n",
   "This operator creates an N-tree in main memory. "
   "The first argument is a main memory relation containing the "
   "tuples to be indexed. The second argument refers to the attribute "
@@ -22642,7 +22667,7 @@ Operator mcreatentreeOp(
    "mcreatentree",
    mcreatentreeSpec.getStr(),
    12,
-   mcreatentreeVM,
+   mcreatentreeVM<1>,
    mcreatentreeSelect,
    mcreatentreeTM<1>
 );
@@ -22764,7 +22789,7 @@ ValueMapping mcreatentree2VM[] = {
 OperatorSpec mcreatentree2Spec(
   "MREL(tuple) x attrname x int x int x int x int [x geoid] -> "
   "mpointer(mem(mtree X))\n",
-  "mrel mcreatemtree[indexAttr, degree, maxLeafSize, candOrder, pruningMethod "
+  "mrel mcreatentree[indexAttr, degree, maxLeafSize, candOrder, pruningMethod "
   "[, geoid]]\n",
   "This operator creates an N-tree2 in main memory. "
   "The first argument is a main memory relation containing the "
@@ -22804,24 +22829,9 @@ Operator mcreatentree2Op(
 Operator ~mcreatentree5~
 
 */
-ValueMapping mcreatentree5VM[] = {
-  mcreatentreeVMT<mtreehelper::t1, 5>,
-  mcreatentreeVMT<mtreehelper::t2, 5>,
-  mcreatentreeVMT<mtreehelper::t3, 5>,
-  mcreatentreeVMT<mtreehelper::t4, 5>,
-  mcreatentreeVMT<mtreehelper::t5, 5>,
-  mcreatentreeVMT<mtreehelper::t6, 5>,
-  mcreatentreeVMT<mtreehelper::t7, 5>,
-  mcreatentreeVMT<mtreehelper::t8, 5>,
-  mcreatentreeVMT<mtreehelper::t9, 5>,
-  mcreatentreeVMT<mtreehelper::t10, 5>,
-  mcreatentreeVMT<mtreehelper::t11, 5>,
-  mcreatentreeVMT<mtreehelper::t12, 5>
-};
-
 OperatorSpec mcreatentree5Spec(
   "MREL(tuple) x attrname x int x int [x geoid] -> , mpointer(mem(mtree X))\n",
-  "mrel mcreatemtree5[indexAttr, degree, maxLeafSize, [, geoid] ]\n",
+  "mrel mcreatentree5[indexAttr, degree, maxLeafSize, [, geoid] ]\n",
   "This operator creates an N-tree5 in main memory. "
   "The first argument is a main memory relation containing the "
   "tuples to be indexed. The second argument refers to the attribute "
@@ -22847,7 +22857,7 @@ Operator mcreatentree5Op(
    "mcreatentree5",
    mcreatentree5Spec.getStr(),
    12,
-   mcreatentree5VM,
+   mcreatentreeVM<5>,
    mcreatentreeSelect,
    mcreatentreeTM<5>
 );
@@ -22856,24 +22866,9 @@ Operator mcreatentree5Op(
 Operator ~mcreatentree6~
 
 */
-ValueMapping mcreatentree6VM[] = {
-  mcreatentreeVMT<mtreehelper::t1, 6>,
-  mcreatentreeVMT<mtreehelper::t2, 6>,
-  mcreatentreeVMT<mtreehelper::t3, 6>,
-  mcreatentreeVMT<mtreehelper::t4, 6>,
-  mcreatentreeVMT<mtreehelper::t5, 6>,
-  mcreatentreeVMT<mtreehelper::t6, 6>,
-  mcreatentreeVMT<mtreehelper::t7, 6>,
-  mcreatentreeVMT<mtreehelper::t8, 6>,
-  mcreatentreeVMT<mtreehelper::t9, 6>,
-  mcreatentreeVMT<mtreehelper::t10, 6>,
-  mcreatentreeVMT<mtreehelper::t11, 6>,
-  mcreatentreeVMT<mtreehelper::t12, 6>
-};
-
 OperatorSpec mcreatentree6Spec(
   "MREL(tuple) x attrname x int x int [x geoid] -> , mpointer(mem(mtree X))\n",
-  "mrel mcreatemtree6[indexAttr, degree, maxLeafSize, [, geoid] ]\n",
+  "mrel mcreatentree6[indexAttr, degree, maxLeafSize, [, geoid] ]\n",
   "This operator creates an N-tree6 in main memory. "
   "The first argument is a main memory relation containing the "
   "tuples to be indexed. The second argument refers to the attribute "
@@ -22892,14 +22887,14 @@ OperatorSpec mcreatentree6Spec(
   "  * mpoint:  mp1->DistanceAvg(*mp2, geoid)\n"
   "  * cupoint: cup1->DistanceAvg(*cup2, true, geoid)\n"
   "  * cmpoint: cmp1->DistanceAvg(*cmp2, true, geoid)\n",
-  "let kinosM_ntree_GeoData =  kinosM mcreatentree5[GeoData, 5, 8]"
+  "let kinosM_ntree_GeoData =  kinosM mcreatentree6[GeoData, 5, 8]"
 );
 
 Operator mcreatentree6Op(
    "mcreatentree6",
    mcreatentree6Spec.getStr(),
    12,
-   mcreatentree6VM,
+   mcreatentreeVM<6>,
    mcreatentreeSelect,
    mcreatentreeTM<6>
 );
@@ -22908,24 +22903,9 @@ Operator mcreatentree6Op(
 Operator ~mcreatentree7~
 
 */
-ValueMapping mcreatentree7VM[] = {
-  mcreatentreeVMT<mtreehelper::t1, 7>,
-  mcreatentreeVMT<mtreehelper::t2, 7>,
-  mcreatentreeVMT<mtreehelper::t3, 7>,
-  mcreatentreeVMT<mtreehelper::t4, 7>,
-  mcreatentreeVMT<mtreehelper::t5, 7>,
-  mcreatentreeVMT<mtreehelper::t6, 7>,
-  mcreatentreeVMT<mtreehelper::t7, 7>,
-  mcreatentreeVMT<mtreehelper::t8, 7>,
-  mcreatentreeVMT<mtreehelper::t9, 7>,
-  mcreatentreeVMT<mtreehelper::t10, 7>,
-  mcreatentreeVMT<mtreehelper::t11, 7>,
-  mcreatentreeVMT<mtreehelper::t12, 7>
-};
-
 OperatorSpec mcreatentree7Spec(
   "MREL(tuple) x attrname x int x int [x geoid] -> , mpointer(mem(mtree X))\n",
-  "mrel mcreatemtree7[indexAttr, degree, maxLeafSize, [, geoid] ]\n",
+  "mrel mcreatentree7[indexAttr, degree, maxLeafSize, [, geoid] ]\n",
   "This operator creates an N-tree7 in main memory. "
   "The first argument is a main memory relation containing the "
   "tuples to be indexed. The second argument refers to the attribute "
@@ -22944,16 +22924,53 @@ OperatorSpec mcreatentree7Spec(
   "  * mpoint:  mp1->DistanceAvg(*mp2, geoid)\n"
   "  * cupoint: cup1->DistanceAvg(*cup2, true, geoid)\n"
   "  * cmpoint: cmp1->DistanceAvg(*cmp2, true, geoid)\n",
-  "let kinosM_ntree_GeoData =  kinosM mcreatentree5[GeoData, 5, 8]"
+  "let kinosM_ntree_GeoData =  kinosM mcreatentree7[GeoData, 5, 8]"
 );
 
 Operator mcreatentree7Op(
    "mcreatentree7",
    mcreatentree7Spec.getStr(),
    12,
-   mcreatentree7VM,
+   mcreatentreeVM<7>,
    mcreatentreeSelect,
    mcreatentreeTM<7>
+);
+
+/*
+Operator ~mcreatentree8~
+
+*/
+OperatorSpec mcreatentree8Spec(
+  "MREL(tuple) x attrname x int x int [x geoid] -> , mpointer(mem(mtree X))\n",
+  "mrel mcreatentree8[indexAttr, degree, maxLeafSize, [, geoid] ]\n",
+  "This operator creates an N-tree8 in main memory. "
+  "The first argument is a main memory relation containing the "
+  "tuples to be indexed. The second argument refers to the attribute "
+  "over that the index is built. The next two arguments represent the degree of"
+  " the tree and and maximum number of entries in a leaf.\n"
+  "The last argument is optional. It must be of type geoid and "
+  "can only be used if the index-attribute is of type point, mpoint, cupoint, "
+  "or cmpoint. If this argument is present, the distance between two objects "
+  "is computed as geographic distance on this geoid instead of using the "
+  "Euclidean distance.\n In detail, the following types are supported:\n\n"
+  "  * point:   p1->Distance(*p2, geoid)\n"
+  "  * string:  stringutils::ld->(s1->GetValue(), s2->GetValue())\n"
+  "  * int:     abs(i1->GetValue() - i2->GetValue())\n"
+  "  * real:    abs(r1->GetValue() - r2->GetValue())\n"
+  "  * rect<d>: r1->Distance(*r2)\n"
+  "  * mpoint:  mp1->DistanceAvg(*mp2, geoid)\n"
+  "  * cupoint: cup1->DistanceAvg(*cup2, true, geoid)\n"
+  "  * cmpoint: cmp1->DistanceAvg(*cmp2, true, geoid)\n",
+  "let kinosM_ntree_GeoData = kinosM mcreatentree8[GeoData, 5, 8]"
+);
+
+Operator mcreatentree8Op(
+   "mcreatentree8",
+   mcreatentree8Spec.getStr(),
+   12,
+   mcreatentreeVM<8>,
+   mcreatentreeSelect,
+   mcreatentreeTM<8>
 );
 
 /*
@@ -23038,6 +23055,7 @@ class MainMemory2Algebra : public Algebra {
           AddOperator(&mdistRangeN5Op);
           AddOperator(&mdistRangeN6Op);
           AddOperator(&mdistRangeN7Op);
+          AddOperator(&mdistRangeN8Op);
           AddOperator(&mnearestNeighborN7Op);
           AddOperator(&m1nearestNeighborN7Op);
 
@@ -23056,6 +23074,7 @@ class MainMemory2Algebra : public Algebra {
           AddOperator(&mcreatentree5Op);
           AddOperator(&mcreatentree6Op);
           AddOperator(&mcreatentree7Op);
+          AddOperator(&mcreatentree8Op);
           
   ////////////////////// MainMemory2Algebra////////////////////////////
           
