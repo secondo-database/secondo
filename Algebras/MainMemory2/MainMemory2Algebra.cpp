@@ -6750,7 +6750,7 @@ ListExpr mnearestNeighborNTM(ListExpr args) {
   string treeType = "ntree" + to_string(variant);
   if (nl->HasLength(args, 3)) {
     if (!mtreehelper::checkTypeN(a1, a3, variant)) {
-      return listutils::typeError("first arg is not an " + treeType + " over " +                
+      return listutils::typeError("first arg is not an " + treeType + " over " +
                                   nl->ToString(a3));
     }
   }
