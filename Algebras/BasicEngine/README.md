@@ -565,15 +565,46 @@ CREATE TABLE water_import  SELECT * FROM water limit 0;
 LOAD DATA INFILE "/tmp/water" into table water_import CHARACTER SET utf8 (@col1, @col2, @col3, @col4, @col5, @col6, @col7) SET `OGR_FID` = @col1, SHAPE = ST_PolygonFromText(@col2, @col3), osm_id = @col4, code = @col5, fclass = @col6, name = @col7;
 ```
 
+# Algorithms
+
+## Partition
+
+Input: Relation, Attribute, Number of Slots, Mapping Function
+
+* Create darray mapping (slot -> worker)
+* Create mapping table
+* Join relation with mapping table
+* Export schema of joined table
+* Export joined table based on workers of the darray (one file per slot)
+* Load schema on workers
+* Load slots on workers
+* Rename joined table to original table name
+
+## Repartition
+
+Input: Relation, Attribute, DArray, Mapping Function
+
+## Execute Distributed Query
+
+_Note:_ D1 and D2 are placeholder that are replaced by the slots of the darray.
+
+```sql
+SELECT * FROM table_D1, table_D2 where table table_D1.attr = table_D2.attr;
+```
+
+Input: Darray, SQL Query with placeholder
+
+* For every slot in darray
+  * Replace placeholder with slot numer
+  * Execute query on worker of slot
+
 # Todo
 
-[ ] Return `DArray` in partition functions
-[ ] Test partitioning based on slots
-[ ] Return `DArray` in repartition functions
+[x] Return `DArray` in partition functions
+[x] Test partitioning based on slots
+[x] Return `DArray` in repartition functions
 [ ] Test repartitioning based on slots
 [ ] Change mcommand to work on `DArray`s
 [ ] Change mquery to work on `DArray`s
-[ ] Implement mcommand2 operator for two `DArray`s
-[ ] Implement mquery2 operator for two `DArray`s
 [ ] Implement `gridintersects` SQL predicate
 
