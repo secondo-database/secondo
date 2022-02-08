@@ -57,9 +57,11 @@ operator mdistRangeN alias MDISTRANGEN pattern _ _ op [_,_]
 operator mdistRangeN2 alias MDISTRANGEN2 pattern _ _ op [_,_]
 operator mdistRangeN5 alias MDISTRANGEN5 pattern _ _ op [_,_]
 operator mdistRangeN6 alias MDISTRANGEN6 pattern _ _ op [_,_]
-operator mdistRangeN7 alias MDISTRANGEN6 pattern _ _ op [_,_]
+operator mdistRangeN7 alias MDISTRANGEN7 pattern _ _ op [_,_]
+operator mdistRangeN8 alias MDISTRANGEN8 pattern _ _ op [_,_]
 operator mnearestNeighborN7 alias MNEARESTNEIGHBORN7 pattern _ _ op [ _ ]
 operator m1nearestNeighborN7 alias M1NEARESTNEIGHBORN7 pattern _ _ op [ _ ]
+operator m1nearestNeighborN8 alias M1NEARESTNEIGHBORN8 pattern _ _ op [ _ ]
 
 operator mexactmatchS alias MEXACTMATCHS pattern _ op [_]
 operator mrangeS alias MRANGES pattern _ op[_,_]
@@ -72,6 +74,7 @@ operator mcreatentree2 alias MCREATENTREE2 pattern _ op [_,_,_,_,_,_]
 operator mcreatentree5 alias MCREATENTREE5 pattern _ op [_,_,_,_]
 operator mcreatentree6 alias MCREATENTREE6 pattern _ op [_,_,_,_]
 operator mcreatentree7 alias MCREATENTREE7 pattern _ op [_,_,_,_]
+operator mcreatentree8 alias MCREATENTREE8 pattern _ op [_,_,_,_]
 
 operator mwrap alias MWRAP pattern op(_)
 operator mwrap2 alias MWRAP2 pattern op(_,_)
