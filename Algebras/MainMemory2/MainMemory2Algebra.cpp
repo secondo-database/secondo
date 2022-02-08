@@ -6459,10 +6459,12 @@ int mdistRangeNVMT(Word* args, Word& result, int message, Word& local,
         NTreeStat stat = li->getStat();
         mtreehelper::increaseCounter(prefix,
                                      stat.noDCInnerNodes + stat.noDCLeaves);
-        string counterINName = prefix + "InnerNodes";
-        mtreehelper::increaseCounter(counterINName, stat.noDCInnerNodes);
-        string counterLName = prefix + "Leaves";
-        mtreehelper::increaseCounter(counterLName, stat.noDCLeaves);
+//         string counterINName = prefix + "InnerNodes";
+//         mtreehelper::increaseCounter(counterINName, stat.noDCInnerNodes);
+//         string counterLName = prefix + "Leaves";
+//         mtreehelper::increaseCounter(counterLName, stat.noDCLeaves);
+        mtreehelper::increaseCounter("noVisitedInnerNodes", stat.noInnerNodes);
+        mtreehelper::increaseCounter("noVisitedLeaves", stat.noLeaves);
         delete li;
         local.addr = 0;
       }
@@ -6805,6 +6807,10 @@ class mnearestNeighborNInfo {
     return 0;
   }
   
+  NTreeStat getStat() {
+    return it->getStat();
+  }
+  
   int getNoDistFunCalls() {
     return it->getNoDistFunCalls();
   }
@@ -6866,12 +6872,15 @@ int mnearestNeighborNVMT(Word* args, Word& result, int message, Word& local,
         string prefix = "counterM" + (k == 0 ? "" : to_string(k)) + 
                         "NearestNeighborN" + to_string(variant);
         mtreehelper::increaseCounter(prefix, li->getNoDistFunCalls());
-        string counterINName = prefix + "InnerNodes";
-        mtreehelper::increaseCounter(counterINName, 
-                                     li->getNoDistFunCallsInnerNodes());
-        string counterLName = prefix + "Leaves";
-        mtreehelper::increaseCounter(counterLName, 
-                                     li->getNoDistFunCallsLeaves());
+//         string counterINName = prefix + "InnerNodes";
+//         mtreehelper::increaseCounter(counterINName, 
+//                                      li->getNoDistFunCallsInnerNodes());
+//         string counterLName = prefix + "Leaves";
+//         mtreehelper::increaseCounter(counterLName, 
+//                                      li->getNoDistFunCallsLeaves());
+        NTreeStat stat = li->getStat();
+        mtreehelper::increaseCounter("noVisitedInnerNodes", stat.noInnerNodes);
+        mtreehelper::increaseCounter("noVisitedLeaves", stat.noLeaves);
         delete li;
         local.addr = 0;
       }
@@ -22622,10 +22631,12 @@ int mcreatentreeVMT(Word* args, Word& result, int message, Word& local,
                        (variant > 1 ? to_string(variant) : "");
   mtreehelper::increaseCounter(counterName,
                                stat.noDCInnerNodes + stat.noDCLeaves);
-  string counterINName = counterName + "InnerNodes";
-  mtreehelper::increaseCounter(counterINName, stat.noDCInnerNodes);
-  string counterLName = counterName + "Leaves";
-  mtreehelper::increaseCounter(counterLName, stat.noDCLeaves);
+//   string counterINName = counterName + "InnerNodes";
+//   mtreehelper::increaseCounter(counterINName, stat.noDCInnerNodes);
+//   string counterLName = counterName + "Leaves";
+//   mtreehelper::increaseCounter(counterLName, stat.noDCLeaves);
+  mtreehelper::increaseCounter("noVisitedInnerNodes", stat.noInnerNodes);
+  mtreehelper::increaseCounter("noVisitedLeaves", stat.noLeaves);
   res->setPointer(ntree);
   ntree->deleteIfAllowed();
   return 0;
