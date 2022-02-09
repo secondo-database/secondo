@@ -1571,50 +1571,50 @@ Command\_<name>.
 
     else if ( nl->IsEqual( first, "pquery" ) && (length == 2) )
     {
-       #ifdef NO_OPTIMIZER
-          cmsg.info() << endl << "### TEST Parallel Query Command ###" << endl;
-          cmsg.info() << endl << "### Optimizer not available" << endl;  
-       #else
-	cmsg.info() << endl << "### TEST Parallel Query Command ###" << endl;
-	cmsg.send();
-	cmsg.info() << endl << "The Nested List: " << endl;
-	nl->WriteListExpr(list, cmsg.info());
-     	cmsg.info() << endl;
-	cmsg.send();
+     #ifdef NO_OPTIMIZER
+       cmsg.info() << endl << "### TEST Parallel Query Command ###" << endl;
+       cmsg.info() << endl << "### Optimizer not available" << endl;  
+     #else
+     cmsg.info() << endl << "### TEST Parallel Query Command ###" << endl;
+     cmsg.send();
+     cmsg.info() << endl << "The Nested List: " << endl;
+     nl->WriteListExpr(list, cmsg.info());
+     cmsg.info() << endl;
+     cmsg.send();
 
-	prologInterface.startPrologEnginge();
+     prologInterface.startPrologEnginge();
 
-	ListExpr result = prologInterface.callPrologQueryTransform(list, nl);
-	cmsg.info() << endl << "The Result List: " << endl;
-	nl->WriteListExpr(result, cmsg.info());
-     	cmsg.info() << endl;
-	cmsg.send();
-	
-      	errorCode = 
+     ListExpr result = prologInterface.callPrologQueryTransform(list, nl);
+     cmsg.info() << endl << "The Result List: " << endl;
+     nl->WriteListExpr(result, cmsg.info());
+     cmsg.info() << endl;
+     cmsg.send();
+     
+     errorCode = 
           Command_Query(result, resultList, errorMessage, true);
       #endif
     }
     else if ( nl->IsEqual( first, "pcompile" ) && (length == 2) )
     {
-       #ifdef NO_OPTIMIZER
-          cmsg.info() << endl << "### TEST Parallel Compile Command ###" 
+     #ifdef NO_OPTIMIZER
+     cmsg.info() << endl << "### TEST Parallel Compile Command ###" 
                       << endl;  
-	  cmsg.info() << endl << "### Optimizer not available" << endl;  
-       #else
-	cmsg.info() << endl << "### TEST Parallel Compile Command ###" << endl;
-	cmsg.send();
-	cmsg.info() << endl << "The Nested List: " << endl;
-	nl->WriteListExpr(list, cmsg.info());
-     	cmsg.info() << endl;
-	cmsg.send();
+     cmsg.info() << endl << "### Optimizer not available" << endl;  
+     #else
+     cmsg.info() << endl << "### TEST Parallel Compile Command ###" << endl;
+     cmsg.send();
+     cmsg.info() << endl << "The Nested List: " << endl;
+     nl->WriteListExpr(list, cmsg.info());
+     cmsg.info() << endl;
+     cmsg.send();
 
-	prologInterface.startPrologEnginge();
+     prologInterface.startPrologEnginge();
 
-	ListExpr result = prologInterface.callPrologQueryTransform(list, nl);
-	cmsg.info() << endl << "The Result List: " << endl;
-	nl->WriteListExpr(result, cmsg.info());
-     	cmsg.info() << endl;
-	cmsg.send();
+     ListExpr result = prologInterface.callPrologQueryTransform(list, nl);
+     cmsg.info() << endl << "The Result List: " << endl;
+     nl->WriteListExpr(result, cmsg.info());
+     cmsg.info() << endl;
+     cmsg.send();
         #endif
     }
 
@@ -2037,7 +2037,7 @@ SecondoInterfaceTTY::Command_Derive( const ListExpr list, string& errorMessage )
 SI_Error
 SecondoInterfaceTTY::Command_Let( const ListExpr list, string& errorMessage,
                                   bool autotransaction, 
-				  bool replaceExistingValue)
+                                  bool replaceExistingValue)
 {
   QueryProcessor& qp = *SecondoSystem::GetQueryProcessor();
   SecondoCatalog& ctlg = *SecondoSystem::GetCatalog();
