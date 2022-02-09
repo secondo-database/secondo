@@ -32,6 +32,7 @@ jobs:
         id: changed-files-specific
         uses: tj-actions/changed-files@v11.9
         with:
+           since_last_remote_commit: "true"
            files:
             \.(c|cpp|cxx|h|hpp|hxx)$
 
