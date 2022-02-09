@@ -201,7 +201,9 @@ protected:
 
      virtual SI_Error Command_Let( const ListExpr list, 
                                    std::string& errorMessage, 
-                                   bool autoTransaction );
+                                   bool autoTransaction, 
+                                   bool replaceExistingValue);
+
      virtual SI_Error Command_Set( const ListExpr list );
      virtual SI_Error Command_Derive( const ListExpr list, 
                                       std::string& errorMessage );
