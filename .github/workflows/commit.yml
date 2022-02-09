@@ -33,13 +33,6 @@ jobs:
         uses: tj-actions/changed-files@v14.4
         with:
            since_last_remote_commit: "true"
-           files: |
-             *.c
-             *.cpp
-             *.cxx
-             *.h
-             *.hpp
-             *.hxx
 
       - name: Process all modified source files
         run: |
@@ -48,8 +41,10 @@ jobs:
           export PD_HEADER=$GITHUB_WORKSPACE/Tools/pd/pd.header
           for file in ${{ steps.changed-files-specific.outputs.all_modified_files }}; do
             echo "$file was modified"
-            ./Tools/usingcheck/usingcheck $file
-            ./Tools/pd/checkpd --verystrong $file
+	    if [[ $filename == *.h ]] || [[ $filename == *.hpp ]] || [[ $filename == *.c ]] || [[ $filename == *.cpp ]]; then
+              ./Tools/usingcheck/usingcheck $file
+              ./Tools/pd/checkpd --verystrong $file
+	    fi
           done
 
 
