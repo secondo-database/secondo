@@ -1528,14 +1528,21 @@ Command\_<name>.
              (nl->AtomType( nl->Second( list ) ) == SymbolType) &&
               nl->IsEqual( nl->Third( list ), "=" ) )
     {
-      errorCode = Command_Let( list, errorMessage, true );
+      errorCode = Command_Let( list, errorMessage, true, false );
+    } 
+    else if ( nl->IsEqual( first, "let_" ) && (length == 4) &&
+              nl->IsAtom( nl->Second( list )) &&
+             (nl->AtomType( nl->Second( list ) ) == SymbolType) &&
+              nl->IsEqual( nl->Third( list ), "=" ) )
+    {
+      errorCode = Command_Let( list, errorMessage, true, true );
     }
     else if ( nl->IsEqual( first, "letnt" ) && (length == 4) &&
               nl->IsAtom( nl->Second( list )) &&
              (nl->AtomType( nl->Second( list ) ) == SymbolType) &&
               nl->IsEqual( nl->Third( list ), "=" ) )
     {
-      errorCode = Command_Let( list, errorMessage, false );
+      errorCode = Command_Let( list, errorMessage, false, false );
     }
 
     // --- derive command
@@ -2029,7 +2036,7 @@ SecondoInterfaceTTY::Command_Derive( const ListExpr list, string& errorMessage )
 
 SI_Error
 SecondoInterfaceTTY::Command_Let( const ListExpr list, string& errorMessage,
-                                  bool autotransaction  )
+                                  bool autotransaction, bool replaceExistingValue)
 {
   QueryProcessor& qp = *SecondoSystem::GetQueryProcessor();
   SecondoCatalog& ctlg = *SecondoSystem::GetCatalog();
@@ -2049,9 +2056,12 @@ SecondoInterfaceTTY::Command_Let( const ListExpr list, string& errorMessage,
 
 
   if ( sys.IsDatabaseOpen() )
-  {   if(autotransaction){
+  {   
+    
+      if(autotransaction){
          StartCommand();
       }
+
       string objName = nl.SymbolValue( nl.Second( list ) );
       ListExpr valueExpr = nl.Fourth( list );
 
@@ -2060,11 +2070,27 @@ SecondoInterfaceTTY::Command_Let( const ListExpr list, string& errorMessage,
            ctlg.IsOperatorName(objName) ) {
         errorCode = ERR_IDENT_RESERVED;
       }
-      else if ( ctlg.IsObjectName(objName) ) // identifier is already used
+      else if ( ctlg.IsObjectName(objName) && ! replaceExistingValue ) 
       {
+        // identifier is already used and should not be replaced
         errorCode = ERR_IDENT_USED;
       }
-      else
+      else if ( ctlg.IsObjectName(objName) && replaceExistingValue ) 
+      {
+           // identifier is already used and should be replaced
+           if( !ctlg.DeleteObject( objName ) )
+           {
+             // identifier not a known object name
+             errorCode = ERR_IDENT_UNKNOWN_OBJ;
+           }
+           else
+           {
+             // delete from derived objects table if necessary
+             derivedObjPtr->deleteObj( objName );
+           }
+      }
+
+      if(errorCode == ERR_NO_ERROR)
       {
         try {
 

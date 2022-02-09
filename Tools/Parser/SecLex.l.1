@@ -138,6 +138,7 @@ pquery		{yylval = NestedText::Atom( yytext, yyleng ); return ZZPQUERY;}
 pcompile	{yylval = NestedText::Atom( yytext, yyleng ); return ZZPCOMPILE;}
 changename	{yylval = NestedText::Atom( yytext, yyleng ); return ZZCHANGENAME;}
 let		{yylval = NestedText::Atom( yytext, yyleng ); return ZZLET;}
+let_		{yylval = NestedText::Atom( yytext, yyleng ); return ZZLET_;}
 derive		{yylval = NestedText::Atom( yytext, yyleng ); return ZZDERIVE;}
 persistent	{yylval = NestedText::Atom( yytext, yyleng ); return ZZPERSISTENT;}
 begin		{yylval = NestedText::Atom( yytext, yyleng ); return ZZBEGIN1;}

@@ -613,11 +613,11 @@ Input: Darray, SQL Query with placeholder
 
 # Todo
 
-[x] Return `DArray` in partition functions
-[x] Test partitioning based on slots
-[x] Return `DArray` in repartition functions
-[ ] Test repartitioning based on slots
-[ ] Change mcommand to work on `DArray`s
-[ ] Change mquery to work on `DArray`s
-[ ] Implement `gridintersects` SQL predicate
+- [x] Return `DArray` in partition functions
+- [x] Test partitioning based on slots
+- [x] Return `DArray` in repartition functions
+- [ ] Test repartitioning based on slots
+- [ ] Change mcommand to work on `DArray`s
+- [ ] Change mquery to work on `DArray`s
+- [ ] Implement `gridintersects` SQL predicate
 
