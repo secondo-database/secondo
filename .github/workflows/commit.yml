@@ -30,7 +30,7 @@ jobs:
 
       - name: Get changed C/C++ files
         id: changed-files-specific
-        uses: tj-actions/changed-files@v11.9
+        uses: tj-actions/changed-files@v14.4
         with:
            since_last_remote_commit: "true"
            files:
