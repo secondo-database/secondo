@@ -1,0 +1,430 @@
+/*
+//paragraph [10] Title: [{\Large \bf ]  [}]
+//[@] [\verb+@+]
+//[%] [\%]
+//[&] [\&]
+//[ue] [\"{u}]
+
+[10] Parallel Similarity Join Using N-Tree
+
+Ralf Hartmut G[ue]ting, February 4, 2022
+
+Run this script with ~SecondoTTYBDB~ and prefix [@][%] or [@][&]. 
+
+
+
+1 The Database
+
+Database newyorkm80c on newton1.
+
+Workers relation seems to correspond to ClusterRalfNewton80.
+
+----	remoteMonitors ClusterRalfNewton80 start
+----
+
+There is a distributed array TripsCM200D with 320 fields and 553470 tuples. So we have a correct distributed version of TripsCM200
+
+2 Balanced Partitioning as for N-tree Root Node
+
+2.1 Preliminary Set of Centers of Size 320
+
+We determine a set of centers by sampling the fields.
+
+*/
+let Centers1 = TripsCM200D dmap["", . feed some[1]] dsummarize 
+  addcounter[N, 0] consume
+
+# 5.0 seconds
+# 320 elements, as expected.
+
+query share("Centers1", TRUE, Workers)
+
+# success : 80, failed 0
+
+/*
+So every worker has the set of centers. We need to create a main memory relation and an N-tree for it at each worker.
+
+We have 16 workers on each newton computer, so we assign 1800 MB to each of them (total memory is 32 GB)
+
+*/
+query TripsCM200D dcommand['query memclear()'] filter[.Ok] count;
+query TripsCM200D dcommand['query meminit(1800)'] filter[.Ok] count;
+
+query TripsCM200D dlet["Centers1M", 'Centers1 feed mconsume'] 
+  filter[.Ok] count
+
+# result 81 (1 on master)
+
+/*
+We build N-trees with a single leaf.
+
+*/
+query TripsCM200D dlet["Centers1M_ntree", 'Centers1M 
+  mcreatentree7[Trip, 350, 1000]'] filter[.Ok] count
+
+/*
+TREE STATISTICS:
+
+created: 0 inner nodes, 1 leaves
+number of distance computations: 0 at inner nodes (avg. = -nan), 51040 at leaves (avg. = 51040).
+Total runtime ...   Times (elapsed / cpu): 58.2544sec / 53.86sec = 1.08159
+
+81
+
+We see the statistics of building the tree on the master. 58 seconds are needed for all 81 trees in parallel.
+
+We first perform a sample assignment using 50 tuples per center (it was 40 in previous experiments with a sample of size 1000 on 25 centers). We have 320 centers, one per slot.
+
+
+
+*/
+let Assignment1 = TripsCM200D dmap["Assignment1", . feed some[50]
+  loopjoin[Centers1M_ntree Centers1M m1nearestNeighborN7[.Trip] project[N]]   
+  consume]
+
+# 23.19 seconds
+
+let Partition1a = Assignment1 partition["", .N, 0]
+
+# 2.3 seconds
+
+let Partition1 = Partition1a collect2["Partition1a", myPort]
+
+# 1:29 min = 89 seconds
+
+let Sizes1 =  Partition1 dmap["", . feed count] dsummarize 
+  namedtransformstream[Size] addcounter[Field, 0] consume
+
+/*
+Assignment1 has 320 * 50 = 16000 elements. So the average partition size for 80 partitions is 16000 / 80 = 200.
+
+*/
+query Sizes1 feed extend[Factor: .Size / 200] sortby[Factor] consume
+
+/*
+The two smallest and largest partitions are:
+
+----
+  Size : 1
+ Field : 97
+Factor : 0.005
+
+  Size : 2
+ Field : 123
+Factor : 0.01
+
+...
+
+  Size : 214
+ Field : 78
+Factor : 1.07
+
+  Size : 240
+ Field : 135
+Factor : 1.2
+----
+
+
+
+2.2 Final Set of Centers
+
+We use the centers of the 2/5 largest partitions as final centers for partitioning.
+
+*/
+let Centers1Final = Centers1 feed 
+  Sizes1 feed sortby[Size] tail[128]
+  itHashJoin[N, Field]
+  remove[N, Field, Size]
+  addcounter[N, 0]
+  consume
+  
+query share("Centers1Final", TRUE, Workers)
+
+# success : 80, failed 0
+
+/*
+2.3 Partitioning the Data Set
+
+We distribute again from scratch by these centers.
+
+*/
+
+query memclear();
+query TripsCM200D dcommand['query memclear()'] filter[.Ok] count;
+query TripsCM200D dcommand['query meminit(1800)'] filter[.Ok] count;
+
+query TripsCM200D dlet["Centers1M", 'Centers1Final feed mconsume'] 
+  filter[.Ok] count
+
+# 81
+
+query TripsCM200D dlet["Centers1M_ntree", 'Centers1M 
+  mcreatentree7[Trip, 128, 1000]'] filter[.Ok] count
+  
+# 8.2 seconds
+
+/*
+TREE STATISTICS:
+
+created: 0 inner nodes, 1 leaves
+number of distance computations: 0 at inner nodes (avg. = -nan), 8128 at leaves (avg. = 8128).
+Total runtime ...   Times (elapsed / cpu): 8.2083sec / 6.89sec = 1.19134
+
+81
+
+*/
+let Assignment1Final = TripsCM200D dmap["Assignment1Final", . feed 
+  loopjoin[Centers1M_ntree Centers1M m1nearestNeighborN7[.Trip] project[N]]   
+  consume]
+
+# 5:59 min
+
+let Partition1FinalA = Assignment1Final partition["", .N, 128]
+
+# 6.6 seconds
+
+/*
+We need to determine a balanced mapping to workers which can be used in several separate partitionings, namely, the original data and later the join partner. This can be determined as follows:
+
+*/
+let Sizes = Partition1FinalA slotSizes consume;
+
+let Vector =  Sizes feed sortby[Size desc] head[80] addcounter[NewSlot, 0]
+  Sizes feed sortby[Size] head[48] addcounter[NewSlot, 80 - 48]
+  concat
+  sortby[Slot] project[NewSlot] transformstream 
+  collect_vector
+
+let Partition1Final = Partition1FinalA 
+  collectC["Partition1Final", myPort, Vector]
+
+# 1:48 min
+
+query Partition1Final dmap["", . feed count] getValue tie[. + ..]
+
+# 553470
+
+let Sizes1Final =  Partition1Final dmap["", . feed count] dsummarize 
+  namedtransformstream[Size] addcounter[Field, 0] 
+  extend[Factor: .Size / (553470 / 128)] 
+  sortby[Size] consume
+
+query Sizes1Final feed min[Factor];
+query Sizes1Final feed max[Factor]
+
+# 0.44
+# 2.019
+
+query Sizes1Final feed filter[.Factor < 0.5] count;
+query Sizes1Final feed filter[.Factor between[0.5, 1.5]] count;
+query Sizes1Final feed filter[.Factor > 1.5] count;
+
+# 2
+# 112
+# 14
+
+
+/*
+3 Building N-Trees for Partitions
+
+We now build N-trees for all slots.
+
+The first two commands can be used to check memory structures on workers.
+
+*/
+# let ControlWorkers = createintdarray("ControlWorkers", Workers)
+
+# query ControlWorkers dmap["", memgetcatalog() extend[Worker: ..]] 
+# dsummarize consume
+
+let TripsCM200m = Partition1Final dmap["TripsCM200m", . feed mconsumeflob];
+
+# 0.79 seconds, 1.3 seconds
+
+
+
+let TripsCM200m_ntree = TripsCM200m dmap["TripsCM200m_ntree", . 
+  mcreatentree7[Trip, 60, 120]];
+
+# 7:23 min = 443 seconds, 8:01 min = 481 seconds
+
+/*
+4 Distributing the Second Argument for Join
+
+We distribute the data set again. We must now consider the query range and insert tuples into each relevant partition.
+
+4.1 Distribution for Join with Radius 50.0 m
+
+*/
+let TripsCM200_range50 = TripsCM200D dmap["TripsCM200_range50", . feed 
+  loopjoin[fun (t: TUPLE)
+    Centers1M_ntree Centers1M m1nearestNeighborN7[attr(t, Trip)] 
+      projectextend[; Dist: distanceAvg(attr(t, Trip), .Trip)]]
+  loopjoin[
+    Centers1M_ntree Centers1M mdistRangeN7[.Trip, .Dist + 2 * 50.0]
+      project[N]]
+  consume] 
+  
+# 9:15 min = 555 seconds 
+
+/*
+Check for the number of duplicates.
+
+*/
+query TripsCM200_range50 dmap["", . count] getValue tie[. + ..]
+
+# 708609, 708609 / 553470 = 1.28
+
+let TripsCM200_range50b = TripsCM200_range50 partition["", .N, 128]
+
+# 6.7 seconds
+
+let TripsCM200_range50c = TripsCM200_range50b 
+  collectC["TripsCM200_range50c", myPort, Vector]
+  
+# 2:02 min
+
+query TripsCM200_range50c dmap["", . feed count] getValue tie[. + ..]
+
+# 708609, correct
+
+/*
+
+4.2 Distribution for Join with Radius 300.0 m
+
+*/
+let TripsCM200_range300 = TripsCM200D dmap["TripsCM200_range300", . feed 
+  loopjoin[fun (t: TUPLE)
+    Centers1M_ntree Centers1M m1nearestNeighborN7[attr(t, Trip)] 
+      projectextend[; Dist: distanceAvg(attr(t, Trip), .Trip)]]
+  loopjoin[
+    Centers1M_ntree Centers1M mdistRangeN7[.Trip, .Dist + 2 * 300.0]
+      project[N]]
+  consume] 
+  
+# 
+
+/*
+Check for the number of duplicates.
+
+*/
+query TripsCM200_range300 dmap["", . count] getValue tie[. + ..]
+
+# 
+
+let TripsCM200_range300b = TripsCM200_range300 partition["", .N, 128]
+
+# 
+
+let TripsCM200_range300c = TripsCM200_range300b 
+  collectC["TripsCM200_range300c", myPort, Vector]
+  
+# 
+
+query TripsCM200_range300c dmap["", . feed count] getValue tie[. + ..]
+
+# 
+
+
+
+/*
+5 Computing the Join
+
+5.1 Join with Radius 50 m
+
+The first two queries do no yet used balanced worker loads achieved with collectC; these used the standard mapping with collect2.
+
+----
+let TripsCM200_join50 = TripsCM200m_ntree TripsCM200m TripsCM200_range50c
+  dmap3["TripsCM200_join50", 
+    $3 feed {t1} loopjoin[fun(t: TUPLE) 
+      $1 $2 mdistRangeN7[attr(t, Trip_t1), 50.0] 
+      project[Trip_id, Trip] {t2}]
+    project[Trip_id_t1, Trip_t1, Trip_id_t2, Trip_t2]
+    consume
+    , myPort]
+    
+# 12:04 min = 723.6 seconds
+
+query TripsCM200_join50 dmap["", . count] getValue tie[. + ..]
+    
+# 10361928
+
+let TripsCM200_join50b = TripsCM200m_ntree TripsCM200m TripsCM200_range50c
+  dmap3["TripsCM200_join50b", 
+    $3 feed {t1} 
+    loopjoin[fun(t: TUPLE) 
+      $1 $2 mdistRangeN7[attr(t, Trip_t1), 50.0]
+      project[Trip_id, Trip] {t2}]
+    filter[.Trip_id_t1 < .Trip_id_t2]
+    project[Trip_id_t1, Trip_id_t2]
+    consume
+    , myPort]
+    
+# 11:52 min = 692.1 seconds
+
+query TripsCM200_join50b dmap["", . count] getValue tie[. + ..]
+
+# 4904229 = (10361928 - 553470) /2
+----
+
+Balanced worker loads with collectC. Run time is reduced as expected because the largest slots are assigned alone to workers; workers get only two small slots.
+
+In addition, we measure the actual utilization of workers (as described in Section 8 of Tutorial "Distributed Query Processing in Secondo").
+
+*/
+
+# @%Scripts/DistCost.sec
+
+update LastCommand := distCostReset(ControlWorkers)
+
+let TripsCM200_join50 = TripsCM200m_ntree TripsCM200m TripsCM200_range50c
+  dmap3["TripsCM200_join50", 
+    $3 feed {t1} 
+    loopjoin[fun(t: TUPLE) 
+      $1 $2 mdistRangeN7[attr(t, Trip_t1), 50.0]
+      project[Trip_id, Trip] {t2}]
+    filter[.Trip_id_t1 < .Trip_id_t2]
+    project[Trip_id_t1, Trip_t1, Trip_id_t2, Trip_t2]
+    consume
+    , myPort]
+    
+# 7:49 min
+
+let Cost1 = distCostSave(ControlWorkers)
+
+query TripsCM200_join50 dmap["", . count] getValue tie[. + ..]
+
+# 4904229
+
+let Commands = SEC2COMMANDS feed consume
+
+/*
+5.2 Join with Radius 300 m
+
+*/
+update LastCommand := distCostReset(ControlWorkers)
+
+let TripsCM200_join300 = TripsCM200m_ntree TripsCM200m TripsCM200_range300c
+  dmap3["TripsCM200_join300", 
+    $3 feed {t1} 
+    loopjoin[fun(t: TUPLE) 
+      $1 $2 mdistRangeN7[attr(t, Trip_t1), 300.0]
+      project[Trip_id, Trip] {t2}]
+    filter[.Trip_id_t1 < .Trip_id_t2]
+    project[Trip_id_t1, Trip_t1, Trip_id_t2, Trip_t2]
+    consume
+    , myPort]
+    
+# 82:54 min = 4974 seconds
+
+let Cost2 = distCostSave(ControlWorkers)
+
+query TripsCM200_join300 dmap["", . count] getValue tie[. + ..]
+
+# 45240330
+
+update Commands := SEC2COMMANDS feed consume
+
+
+
