@@ -762,8 +762,11 @@ class NTreeInnerNode : public NTreeNode<T, DistComp, variant> {
         auto it = maxCenters.begin();
         T** newCenters = new T*[node_t::degree];
         for (int i = 0; i < node_t::degree; i++) {
-          newCenters[i] = centers[*it];
+          newCenters[i] = new T(*(centers[*it]));
           it++;
+        }
+        for (int i = 0; i < m; i++) {
+          delete centers[i];
         }
         delete[] centers;
         std::vector<double> maxDistTemp(maxDist, maxDist + m);
