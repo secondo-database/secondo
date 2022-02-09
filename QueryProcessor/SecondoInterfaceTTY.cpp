@@ -2036,7 +2036,8 @@ SecondoInterfaceTTY::Command_Derive( const ListExpr list, string& errorMessage )
 
 SI_Error
 SecondoInterfaceTTY::Command_Let( const ListExpr list, string& errorMessage,
-                                  bool autotransaction, bool replaceExistingValue)
+                                  bool autotransaction, 
+				  bool replaceExistingValue)
 {
   QueryProcessor& qp = *SecondoSystem::GetQueryProcessor();
   SecondoCatalog& ctlg = *SecondoSystem::GetCatalog();
