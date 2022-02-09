@@ -112,6 +112,9 @@ bin/*.lua
 /bin/kinos.shp
 /bin/secname.txt
 /bin/plz.bincsv
+/bin/NativeFlobFile
+/bin/cachedFileIDTable
+/bin/*.ddsg
 
 # API
 /apis/api_cpp/cs/example/

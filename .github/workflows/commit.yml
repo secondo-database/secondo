@@ -30,10 +30,9 @@ jobs:
 
       - name: Get changed C/C++ files
         id: changed-files-specific
-        uses: tj-actions/changed-files@v11.9
+        uses: tj-actions/changed-files@v14.4
         with:
-           files:
-            \.(c|cpp|cxx|h|hpp|hxx)$
+           since_last_remote_commit: "true"
 
       - name: Process all modified source files
         run: |
@@ -42,8 +41,10 @@ jobs:
           export PD_HEADER=$GITHUB_WORKSPACE/Tools/pd/pd.header
           for file in ${{ steps.changed-files-specific.outputs.all_modified_files }}; do
             echo "$file was modified"
-            ./Tools/usingcheck/usingcheck $file
-            ./Tools/pd/checkpd --verystrong $file
+            if [[ $file == *.h ]] || [[ $file == *.hpp ]] || [[ $file == *.c ]] || [[ $file == *.cpp ]]; then
+              ./Tools/usingcheck/usingcheck $file
+              ./Tools/pd/checkpd --verystrong $file
+            fi
           done
 
 
