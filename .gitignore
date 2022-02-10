@@ -16,7 +16,8 @@ makefile.algebras
 .idea
 
 # Bin
-bin/*.lua
+/bin/*.lua
+/bin/temp_nested_list*
 
 # Algebras
 /Algebras/specs
@@ -254,6 +255,8 @@ bin/*.lua
 /Tools/DFS/datanode/datanode
 /Tools/DFS/indexnode/indexnode
 /Tools/DFS/qunitrunner/qunitrunner
+/Tools/usingcheck/usingcheck
+/Tools/usingcheck/usingcheck.c
 
 # WebGUI2
 /WebGui2/bin
