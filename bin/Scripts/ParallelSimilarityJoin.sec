@@ -302,7 +302,7 @@ let_ TripsCM200_range300 = TripsCM200D dmap["TripsCM200_range300", . feed
       project[N]]
   consume] 
   
-# 
+# 9:34 min
 
 /*
 Check for the number of duplicates.
@@ -310,20 +310,20 @@ Check for the number of duplicates.
 */
 query TripsCM200_range300 dmap["", . count] getValue tie[. + ..]
 
-# 
+# 1841963
 
 let_ TripsCM200_range300b = TripsCM200_range300 partition["", .N, 128]
 
-# 
+# 19.3 seconds
 
 let_ TripsCM200_range300c = TripsCM200_range300b 
   collectC["TripsCM200_range300c", myPort, Vector]
   
-# 
+# 2:31 min = 150.57 seconds
 
 query TripsCM200_range300c dmap["", . feed count] getValue tie[. + ..]
 
-# 
+# 1841963
 
 
 
@@ -389,7 +389,7 @@ let_ TripsCM200_join50 = TripsCM200m_ntree TripsCM200m TripsCM200_range50c
     consume
     , myPort]
     
-# 7:49 min
+# 7:49 min, 11:14 min
 
 let_ Cost1 = distCostSave(ControlWorkers)
 
@@ -416,15 +416,17 @@ let_ TripsCM200_join300 = TripsCM200m_ntree TripsCM200m TripsCM200_range300c
     consume
     , myPort]
     
-# 82:54 min = 4974 seconds
+# 82:54 min = 4974 seconds, 76:34 min = 4594 seconds
 
 let_ Cost2 = distCostSave(ControlWorkers)
 
 query TripsCM200_join300 dmap["", . count] getValue tie[. + ..]
 
-# 45240330
+# 45240330, ok
 
 update Commands := SEC2COMMANDS feed consume
 
 
+# Runtime for Scripts/ParallelSimilarityJoin.sec: Times (elapsed / cpu): 135:43min (8142.69sec) /145.43sec = 55.9904
+File Scripts/ParallelSimilarityJoin.sec successfully processed.
 
