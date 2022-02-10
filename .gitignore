@@ -51,10 +51,20 @@ bin/*.lua
 /Algebras/RegionInterpolation2/librip/build/
 /Algebras/RegionInterpolation2/librip/example/rip
 /Algebras/RegionInterpolation2/librip/lib/librip.so
+/Algebras/FixedMRegion/fmr/libfmr.so
+/Algebras/PropertyGraph2/CypherParser.cpp
+/Algebras/PropertyGraph2/CypherParser.h
+/Algebras/PropertyGraph2/CypherScanner.cpp
+/Algebras/PropertyGraph2/CypherScanner.h
+/Algebras/PropertyGraph2/location.hh
+/Algebras/PropertyGraph2/position.hh
+/Algebras/PropertyGraph2/stack.hh
 
 # Javagui
 /Javagui/GBS.cfg
 /Javagui/gui.cfg
+/Javagui/.gui_history
+/Javagui/.gui_queries
 /Javagui/secondoInterface/SecondoInterface.jar
 /Javagui/secondoInterface/lib/java_cup_v10k.jar
 /Javagui/secondoInterface/sj/lang/JavaListExpr/NLJLex.l.java
