@@ -2057,8 +2057,7 @@ SecondoInterfaceTTY::Command_Let( const ListExpr list, string& errorMessage,
 
 
   if ( sys.IsDatabaseOpen() )
-  {   
-    
+  {
       if(autotransaction){
          StartCommand();
       }
@@ -2089,6 +2088,10 @@ SecondoInterfaceTTY::Command_Let( const ListExpr list, string& errorMessage,
              // delete from derived objects table if necessary
              derivedObjPtr->deleteObj( objName );
            }
+
+          // Ensure DArrays are closed and cleaned on the remote systems
+          Flob::dropFiles();
+          ctlg.CleanUp( false, true );
       }
 
       if(errorCode == ERR_NO_ERROR)
