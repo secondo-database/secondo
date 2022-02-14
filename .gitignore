@@ -172,6 +172,12 @@ makefile.algebras
 /Tests/libtdynlib1.so
 /Tests/libtdynlib2.so
 /Tests/testRawBDB
+/Tests/*/proglogt.csv
+/Tests/Testspecs/*/proglogt.csv
+/Tests/Testspecs/tmp
+/Tests/Testspecs/*/tmp
+/Tests/Testspecs/temp_nested_list
+/Tests/Testspecs/*/temp_nested_list
 
 # Tools
 /Tools/pd/PDLex.c
