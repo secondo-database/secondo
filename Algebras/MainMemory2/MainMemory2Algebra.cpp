@@ -23009,6 +23009,93 @@ Operator mcreatentree8Op(
 );
 
 /*
+operator ~makeNtreePersistent~
+
+*/
+ListExpr makeNtreePersistentTM(ListExpr args) {
+  if (!nl->HasLength(args, 3)) {
+    return listutils::typeError("three arguments expected");
+  }  
+  ListExpr a1 = nl->First(args);
+  if (MPointer::checkType(a1)) { 
+    a1 = nl->Second(a1);
+  }
+  if (!Mem::checkType(a1)) {
+    return listutils::typeError("first arg is not a memory object");
+  }
+  if (nl->ToString(nl->First(nl->Second(a1))) != "ntree8") {
+    return listutils::typeError("first arg must be an ntree8");
+  }
+  if (!CcString::checkType(nl->Second(args)) || 
+      !CcString::checkType(nl->Third(args))) {
+    return listutils::typeError("2nd and 3rd argument must be strings");  
+  }
+  return nl->SymbolAtom(CcBool::BasicType());
+}
+
+template<class T, int variant>
+int makeNtreePersistentVMT(Word* args, Word& result, int message, Word& local,
+                           Supplier s) {
+  result = qp->ResultStorage(s);
+  CcBool* res = (CcBool*)result.addr;
+
+  CcString *nodeInfoName = (CcString*)args[1].addr;
+  CcString *nodeDistName = (CcString*)args[2].addr;
+  if (!nodeInfoName->IsDefined() || !nodeDistName->IsDefined()) {
+    res->Set(true, false);
+    return 0;
+  }
+  MPointer* treeMem = (MPointer*)args[0].addr;
+  MemoryNtreeObject<T, StdDistComp<T>, variant>* treeObj = 
+                                       getNtreeX<MPointer, T, variant>(treeMem);
+  NTree<MTreeEntry<T>, StdDistComp<T>, variant> *ntree = treeObj->getNtreeX();  
+  PersistentNTree<MTreeEntry<T>, StdDistComp<T>, variant> pntree(ntree);
+  res->Set(true, pntree.getStatus());  
+  return 0;
+}
+
+ValueMapping makeNtreePersistentVM[] = {
+  makeNtreePersistentVMT<mtreehelper::t1, 8>,
+  makeNtreePersistentVMT<mtreehelper::t2, 8>,
+  makeNtreePersistentVMT<mtreehelper::t3, 8>,
+  makeNtreePersistentVMT<mtreehelper::t4, 8>,
+  makeNtreePersistentVMT<mtreehelper::t5, 8>,
+  makeNtreePersistentVMT<mtreehelper::t6, 8>,
+  makeNtreePersistentVMT<mtreehelper::t7, 8>,
+  makeNtreePersistentVMT<mtreehelper::t8, 8>,
+  makeNtreePersistentVMT<mtreehelper::t9, 8>,
+  makeNtreePersistentVMT<mtreehelper::t10, 8>,
+  makeNtreePersistentVMT<mtreehelper::t11, 8>,
+  makeNtreePersistentVMT<mtreehelper::t12, 8>
+};
+
+int makeNtreePersistentSelect(ListExpr args) {
+  ListExpr a1 = nl->Second(nl->Second(nl->Second(nl->First(args))));
+  return mtreehelper::getTypeNo(a1, 12);
+}
+
+OperatorSpec makeNtreePersistentSpec(
+  "NTREEx(T) x string x string -> bool",
+  "ntree makeNtreePersistent[relName1, relName2]",
+  "Creates a persistent structure from an existing main memory N-tree. Two "
+  "database relations representing the tree structure and distance information "
+  "are computed. From these, the tree can be fully reconstructed.",
+  "query mKinos mcreatentree8[GeoData, 4, 8] makeNtreePersistent[\"nodeInfo\"",
+  "nodeDistances\"]"
+);
+
+
+Operator makeNtreePersistentOp(
+   "makeNtreePersistent",
+   makeNtreePersistentSpec.getStr(),
+   12,
+   makeNtreePersistentVM,
+   makeNtreePersistentSelect,
+   makeNtreePersistentTM
+);
+
+
+/*
 23 Algebra Definition
 
 */
@@ -23111,6 +23198,8 @@ class MainMemory2Algebra : public Algebra {
           AddOperator(&mcreatentree6Op);
           AddOperator(&mcreatentree7Op);
           AddOperator(&mcreatentree8Op);
+          
+          AddOperator(&makeNtreePersistentOp);
           
   ////////////////////// MainMemory2Algebra////////////////////////////
           

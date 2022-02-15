@@ -2010,4 +2010,24 @@ class NTree {
   }
 };
 
+template<class T, class DistComp, int variant>
+class PersistentNTree {
+ public:
+  typedef NTreeLeafNode<T, DistComp, variant> leafnode_t;
+  typedef NTreeNode<T, DistComp, variant> node_t;
+  typedef NTree<T, DistComp, variant> ntree_t;
+  typedef NTreeInnerNode<T, DistComp, variant> innernode_t;
+
+  PersistentNTree(ntree_t* ntree) : status(false) {
+    
+  }
+  
+  bool getStatus() const {
+    return status;
+  }
+  
+ private:
+  bool status;
+};
+
 #endif
