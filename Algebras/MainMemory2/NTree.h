@@ -27,7 +27,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include <limits>
 #include <random>
-#include "../Spatial/Point.h"
+#include "../Collection/CollectionAlgebra.h"
 
 /*
 Implementation of the N-tree
@@ -2018,8 +2018,82 @@ class PersistentNTree {
   typedef NTree<T, DistComp, variant> ntree_t;
   typedef NTreeInnerNode<T, DistComp, variant> innernode_t;
 
-  PersistentNTree(ntree_t* ntree) : status(false) {
+  PersistentNTree(ntree_t* ntree, std::string& nodeInfoName,
+                  std::string& nodeDistName) : status(false) {
+    sc = SecondoSystem::GetCatalog();
+    if (!initRelations(nodeInfoName, nodeDistName)) {
+      status = false;
+      return;
+    }
+    if (!processNTree(ntree)) {
+      status = false;
+      return;
+    }
+    if (!storeRelations(nodeInfoName, nodeDistName)) {
+      status = false;
+      return;
+    }
+    status = true;
+  }
+  
+  bool initRelations(std::string& nodeInfoName, std::string& nodeDistName) {
+    std::vector<std::string> relNames{nodeInfoName, nodeDistName};
+    for (unsigned int i = 0; i < 2; i++) {
+      if (sc->IsObjectName(relNames[i])) {
+        cout << "relation " << relNames[i] << " is already defined" << endl;
+        return false;
+      }
+      std::string errMsg = "error";
+      if (!sc->IsValidIdentifier(relNames[i], errMsg, true)) {
+        cout << errMsg << endl;
+        return false;
+      }
+      if (sc->IsSystemObject(relNames[i])) {
+        cout << relNames[i] << " is a reserved name" << endl;
+        return false;
+      }
+    }
+    nodeInfoTypeList = nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()),
+      nl->ThreeElemList(nl->TwoElemList(nl->SymbolAtom("NodeId"), 
+                                        nl->SymbolAtom(CcInt::BasicType())),
+                        nl->TwoElemList(nl->SymbolAtom("Ancestor"),
+                                        nl->SymbolAtom(CcInt::BasicType())),
+                        nl->TwoElemList(nl->SymbolAtom("Contents"),
+                                        nl->SymbolAtom(Vector::BasicType()))));
+    ListExpr numNodeInfoTypeList = sc->NumericType(nodeInfoTypeList);
+    TupleType *nodeInfoType = new TupleType(numNodeInfoTypeList);
+    nodeInfoRel = new Relation(nodeInfoType, false);
+    nodeDistTypeList = nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()),
+      nl->FourElemList(nl->TwoElemList(nl->SymbolAtom("NodeId"), 
+                                       nl->SymbolAtom(CcInt::BasicType())),
+                       nl->TwoElemList(nl->SymbolAtom("Object1"),
+                                       nl->SymbolAtom(CcInt::BasicType())),
+                       nl->TwoElemList(nl->SymbolAtom("Object2"),
+                                       nl->SymbolAtom(CcInt::BasicType())),
+                       nl->TwoElemList(nl->SymbolAtom("Distance"),
+                                       nl->SymbolAtom(CcReal::BasicType()))));
+    ListExpr numNodeDistTypeList = sc->NumericType(nodeDistTypeList);
+    TupleType *nodeDistType = new TupleType(numNodeDistTypeList);
+    nodeDistRel = new Relation(nodeDistType, false);
+    return true;
+  }
+  
+  bool processNTree(ntree_t* ntree) {
     
+    return true;
+  }
+  
+  bool storeRelations(std::string& nodeInfoName, std::string& nodeDistName) {
+    ListExpr nodeInfoRelType = nl->TwoElemList(nl->SymbolAtom(
+                                      Relation::BasicType()), nodeInfoTypeList);
+    Word relWord;
+    relWord.setAddr(nodeInfoRel);
+    sc->InsertObject(nodeInfoName, "", nodeInfoRelType, relWord, true);
+    ListExpr nodeDistRelType = nl->TwoElemList(nl->SymbolAtom(
+                                      Relation::BasicType()), nodeDistTypeList);
+    relWord.setAddr(nodeDistRel);
+    sc->InsertObject(nodeDistName, "", nodeDistRelType, relWord, true);
+    return true;
   }
   
   bool getStatus() const {
@@ -2028,6 +2102,9 @@ class PersistentNTree {
   
  private:
   bool status;
+  SecondoCatalog* sc;
+  ListExpr nodeInfoTypeList, nodeDistTypeList;
+  Relation *nodeInfoRel, *nodeDistRel;
 };
 
 #endif

@@ -23039,17 +23039,20 @@ int makeNtreePersistentVMT(Word* args, Word& result, int message, Word& local,
   result = qp->ResultStorage(s);
   CcBool* res = (CcBool*)result.addr;
 
-  CcString *nodeInfoName = (CcString*)args[1].addr;
-  CcString *nodeDistName = (CcString*)args[2].addr;
-  if (!nodeInfoName->IsDefined() || !nodeDistName->IsDefined()) {
+  CcString *ccNodeInfoName = (CcString*)args[1].addr;
+  CcString *ccNodeDistName = (CcString*)args[2].addr;
+  if (!ccNodeInfoName->IsDefined() || !ccNodeDistName->IsDefined()) {
     res->Set(true, false);
     return 0;
   }
+  string nodeInfoName = ccNodeInfoName->GetValue();
+  string nodeDistName = ccNodeDistName->GetValue();
   MPointer* treeMem = (MPointer*)args[0].addr;
   MemoryNtreeObject<T, StdDistComp<T>, variant>* treeObj = 
                                        getNtreeX<MPointer, T, variant>(treeMem);
   NTree<MTreeEntry<T>, StdDistComp<T>, variant> *ntree = treeObj->getNtreeX();  
-  PersistentNTree<MTreeEntry<T>, StdDistComp<T>, variant> pntree(ntree);
+  PersistentNTree<MTreeEntry<T>, StdDistComp<T>, variant> pntree(ntree,
+                                                    nodeInfoName, nodeDistName);
   res->Set(true, pntree.getStatus());  
   return 0;
 }
