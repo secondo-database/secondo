@@ -93,7 +93,9 @@ function runTest() {
     
     # Show output
     echo "=============================="
-    cat ${logFile#$buildDir/}
+    echo "File: ${logFile}"
+    echo "=============================="
+    cat ${logFile}
     echo "=============================="
   fi
 
