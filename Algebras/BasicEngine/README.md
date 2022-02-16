@@ -620,4 +620,4 @@ Input: Darray, SQL Query with placeholder
 - [ ] Change mcommand to work on `DArray`s
 - [ ] Change mquery to work on `DArray`s
 - [ ] Implement `gridintersects` SQL predicate
-
+- [ ] Sampling for optimizer
