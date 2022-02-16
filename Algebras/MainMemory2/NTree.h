@@ -1888,6 +1888,18 @@ class NTree {
     return "ntree" + (variant > 1 ? std::to_string(variant) : "");
   }
   
+  int getVariant() const {
+    return variant;
+  }
+  
+  int getDegree() const {
+    return degree;
+  }
+  
+  int getMaxLeafSize() const {
+    return maxLeafSize;
+  }
+  
   int getNoLeaves() const {
     if (!root) {
       return 0;
@@ -2018,32 +2030,55 @@ class PersistentNTree {
   typedef NTree<T, DistComp, variant> ntree_t;
   typedef NTreeInnerNode<T, DistComp, variant> innernode_t;
 
-  PersistentNTree(ntree_t* ntree, std::string& nodeInfoName,
-                  std::string& nodeDistName) : status(false) {
+  PersistentNTree(ntree_t* ntree, std::string& treeInfoName, 
+                  std::string& nodeInfoName, std::string& nodeDistName) : 
+          status(false), treeInfoType(0), nodeInfoType(0), nodeDistType(0), 
+          currentId(0) {
     sc = SecondoSystem::GetCatalog();
-    if (!initRelations(nodeInfoName, nodeDistName)) {
-      status = false;
+    if (!initRelations(treeInfoName, nodeInfoName, nodeDistName)) {
       return;
     }
     if (!processNTree(ntree)) {
-      status = false;
       return;
     }
-    if (!storeRelations(nodeInfoName, nodeDistName)) {
-      status = false;
+    if (!storeRelation(treeInfoTypeList, treeInfoRel, treeInfoName)) {
+      return;
+    }
+    if (!storeRelation(nodeInfoTypeList, nodeInfoRel, nodeInfoName)) {
+      return;
+    }
+    if (!storeRelation(nodeDistTypeList, nodeDistRel, nodeDistName)) {
       return;
     }
     status = true;
   }
   
-  bool initRelations(std::string& nodeInfoName, std::string& nodeDistName) {
-    std::vector<std::string> relNames{nodeInfoName, nodeDistName};
-    for (unsigned int i = 0; i < 2; i++) {
+  ~PersistentNTree() {
+    if (treeInfoType != 0) {
+      treeInfoType->DeleteIfAllowed();
+    }
+    if (nodeInfoType != 0) {
+      nodeInfoType->DeleteIfAllowed();
+    }
+    if (nodeDistType != 0) {
+      nodeDistType->DeleteIfAllowed();
+    }
+  }
+  
+  int getId() {
+    currentId++;
+    return currentId - 1;
+  }
+  
+  bool initRelations(std::string& treeInfoName, std::string& nodeInfoName,
+                     std::string& nodeDistName) {
+    std::vector<std::string> relNames{treeInfoName, nodeInfoName, nodeDistName};
+    for (unsigned int i = 0; i < 3; i++) {
       if (sc->IsObjectName(relNames[i])) {
-        cout << "relation " << relNames[i] << " is already defined" << endl;
+        cout << "relation " << relNames[i] << " already exists" << endl;
         return false;
       }
-      std::string errMsg = "error";
+      std::string errMsg;
       if (!sc->IsValidIdentifier(relNames[i], errMsg, true)) {
         cout << errMsg << endl;
         return false;
@@ -2053,15 +2088,31 @@ class PersistentNTree {
         return false;
       }
     }
+    treeInfoTypeList = nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()),
+      nl->ThreeElemList(nl->TwoElemList(nl->SymbolAtom("Variant"),
+                                        nl->SymbolAtom(CcInt::BasicType())),
+                        nl->TwoElemList(nl->SymbolAtom("Degree"), 
+                                        nl->SymbolAtom(CcInt::BasicType())),
+                        nl->TwoElemList(nl->SymbolAtom("MaxLeafSize"),
+                                        nl->SymbolAtom(CcInt::BasicType()))));
+    ListExpr numTreeInfoTypeList = sc->NumericType(treeInfoTypeList);
+    treeInfoType = new TupleType(numTreeInfoTypeList);
+    treeInfoRel = new Relation(treeInfoType, false);
     nodeInfoTypeList = nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()),
-      nl->ThreeElemList(nl->TwoElemList(nl->SymbolAtom("NodeId"), 
-                                        nl->SymbolAtom(CcInt::BasicType())),
-                        nl->TwoElemList(nl->SymbolAtom("Ancestor"),
-                                        nl->SymbolAtom(CcInt::BasicType())),
-                        nl->TwoElemList(nl->SymbolAtom("Contents"),
-                                        nl->SymbolAtom(Vector::BasicType()))));
+      nl->SixElemList(nl->TwoElemList(nl->SymbolAtom("NodeId"), 
+                                      nl->SymbolAtom(CcInt::BasicType())),
+                      nl->TwoElemList(nl->SymbolAtom("Ancestor"),
+                                      nl->SymbolAtom(CcInt::BasicType())),
+                      nl->TwoElemList(nl->SymbolAtom("Centers"),
+                                      nl->SymbolAtom(Vector::BasicType())),
+                      nl->TwoElemList(nl->SymbolAtom("MaxDist"),
+                                      nl->SymbolAtom(Vector::BasicType())),
+                      nl->TwoElemList(nl->SymbolAtom("RefDistPos"),
+                                      nl->SymbolAtom(Vector::BasicType())),
+                      nl->TwoElemList(nl->SymbolAtom("Distances3d"),
+                                      nl->SymbolAtom(Vector::BasicType()))));
     ListExpr numNodeInfoTypeList = sc->NumericType(nodeInfoTypeList);
-    TupleType *nodeInfoType = new TupleType(numNodeInfoTypeList);
+    nodeInfoType = new TupleType(numNodeInfoTypeList);
     nodeInfoRel = new Relation(nodeInfoType, false);
     nodeDistTypeList = nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()),
       nl->FourElemList(nl->TwoElemList(nl->SymbolAtom("NodeId"), 
@@ -2073,26 +2124,57 @@ class PersistentNTree {
                        nl->TwoElemList(nl->SymbolAtom("Distance"),
                                        nl->SymbolAtom(CcReal::BasicType()))));
     ListExpr numNodeDistTypeList = sc->NumericType(nodeDistTypeList);
-    TupleType *nodeDistType = new TupleType(numNodeDistTypeList);
+    nodeDistType = new TupleType(numNodeDistTypeList);
     nodeDistRel = new Relation(nodeDistType, false);
     return true;
   }
   
   bool processNTree(ntree_t* ntree) {
-    
+    Tuple *treeInfoTuple = new Tuple(treeInfoType);
+    treeInfoTuple->PutAttribute(0, new CcInt(true, ntree->getVariant()));
+    treeInfoTuple->PutAttribute(1, new CcInt(true, ntree->getDegree()));
+    treeInfoTuple->PutAttribute(2, new CcInt(true, ntree->getMaxLeafSize()));
+    treeInfoRel->AppendTuple(treeInfoTuple);
+    processNode(ntree->getRoot(), -1);
     return true;
   }
   
-  bool storeRelations(std::string& nodeInfoName, std::string& nodeDistName) {
-    ListExpr nodeInfoRelType = nl->TwoElemList(nl->SymbolAtom(
-                                      Relation::BasicType()), nodeInfoTypeList);
+  void processNode(node_t* node, int ancestorId) {
+    Tuple *nodeInfoTuple = new Tuple(nodeInfoType);
+    nodeInfoTuple->PutAttribute(0, new CcInt(true, getId()));
+    nodeInfoTuple->PutAttribute(1, new CcInt(true, ancestorId));
+//     collection::Collection *entries = 
+//           new collection::Collection(collection::vector, 
+//                       nl->SymbolAtom(CcInt::BasicType()), node->getCount());
+//     int maxDistSize = (node->isLeaf() ? 1 : node->getCount());
+//     collection::Collection *maxDist = 
+//           new collection::Collection(collection::vector, 
+//                          nl->SymbolAtom(CcReal::BasicType()), maxDistSize);
+    if (node->isLeaf()) {
+      for (int i = 0; i < node->getCount(); i++) {
+//         entries->Insert(new CcInt(true, 
+//                       (int)((leafnode_t*)node)->getObject(i)->getTid()), 1);
+      }
+//       maxDist->Insert(new CcReal(true, ((leafnode_t*)node)->getMaxDist()),1);
+      
+    }
+    else { // inner node
+      for (int i = 0; i < node->getCount(); i++) {
+//         maxDist->Insert(new CcReal(true, 
+//                                    ((innernode_t*)node)->getMaxDist(i)), 1);
+        
+      }
+    }
+//     nodeInfoTuple->PutAttribute(2, entries);
+//     nodeInfoTuple->PutAttribute(3, maxDist);
+  }
+  
+  bool storeRelation(ListExpr typeList, Relation *rel, std::string& relName) {
+    ListExpr relType = nl->TwoElemList(nl->SymbolAtom(Relation::BasicType()), 
+                                       typeList);
     Word relWord;
-    relWord.setAddr(nodeInfoRel);
-    sc->InsertObject(nodeInfoName, "", nodeInfoRelType, relWord, true);
-    ListExpr nodeDistRelType = nl->TwoElemList(nl->SymbolAtom(
-                                      Relation::BasicType()), nodeDistTypeList);
-    relWord.setAddr(nodeDistRel);
-    sc->InsertObject(nodeDistName, "", nodeDistRelType, relWord, true);
+    relWord.setAddr(rel);
+    sc->InsertObject(relName, "", relType, relWord, true);
     return true;
   }
   
@@ -2103,8 +2185,10 @@ class PersistentNTree {
  private:
   bool status;
   SecondoCatalog* sc;
-  ListExpr nodeInfoTypeList, nodeDistTypeList;
-  Relation *nodeInfoRel, *nodeDistRel;
+  ListExpr treeInfoTypeList, nodeInfoTypeList, nodeDistTypeList;
+  TupleType *treeInfoType, *nodeInfoType, *nodeDistType;
+  Relation *treeInfoRel, *nodeInfoRel, *nodeDistRel;
+  int currentId;
 };
 
 #endif

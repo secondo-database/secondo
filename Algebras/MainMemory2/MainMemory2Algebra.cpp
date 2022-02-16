@@ -23013,8 +23013,8 @@ operator ~makeNtreePersistent~
 
 */
 ListExpr makeNtreePersistentTM(ListExpr args) {
-  if (!nl->HasLength(args, 3)) {
-    return listutils::typeError("three arguments expected");
+  if (!nl->HasLength(args, 4)) {
+    return listutils::typeError("four arguments expected");
   }  
   ListExpr a1 = nl->First(args);
   if (MPointer::checkType(a1)) { 
@@ -23027,8 +23027,9 @@ ListExpr makeNtreePersistentTM(ListExpr args) {
     return listutils::typeError("first arg must be an ntree8");
   }
   if (!CcString::checkType(nl->Second(args)) || 
-      !CcString::checkType(nl->Third(args))) {
-    return listutils::typeError("2nd and 3rd argument must be strings");  
+      !CcString::checkType(nl->Third(args)) ||
+      !CcString::checkType(nl->Fourth(args))) {
+    return listutils::typeError("2nd, 3rd, and 4th argument must be strings");  
   }
   return nl->SymbolAtom(CcBool::BasicType());
 }
@@ -23039,12 +23040,15 @@ int makeNtreePersistentVMT(Word* args, Word& result, int message, Word& local,
   result = qp->ResultStorage(s);
   CcBool* res = (CcBool*)result.addr;
 
-  CcString *ccNodeInfoName = (CcString*)args[1].addr;
-  CcString *ccNodeDistName = (CcString*)args[2].addr;
-  if (!ccNodeInfoName->IsDefined() || !ccNodeDistName->IsDefined()) {
+  CcString *ccTreeInfoName = (CcString*)args[1].addr;
+  CcString *ccNodeInfoName = (CcString*)args[2].addr;
+  CcString *ccNodeDistName = (CcString*)args[3].addr;
+  if (!ccTreeInfoName->IsDefined() || !ccNodeInfoName->IsDefined() || 
+      !ccNodeDistName->IsDefined()) {
     res->Set(true, false);
     return 0;
   }
+  string treeInfoName = ccTreeInfoName->GetValue();
   string nodeInfoName = ccNodeInfoName->GetValue();
   string nodeDistName = ccNodeDistName->GetValue();
   MPointer* treeMem = (MPointer*)args[0].addr;
@@ -23052,7 +23056,7 @@ int makeNtreePersistentVMT(Word* args, Word& result, int message, Word& local,
                                        getNtreeX<MPointer, T, variant>(treeMem);
   NTree<MTreeEntry<T>, StdDistComp<T>, variant> *ntree = treeObj->getNtreeX();  
   PersistentNTree<MTreeEntry<T>, StdDistComp<T>, variant> pntree(ntree,
-                                                    nodeInfoName, nodeDistName);
+                                      treeInfoName, nodeInfoName, nodeDistName);
   res->Set(true, pntree.getStatus());  
   return 0;
 }
@@ -23078,11 +23082,12 @@ int makeNtreePersistentSelect(ListExpr args) {
 }
 
 OperatorSpec makeNtreePersistentSpec(
-  "NTREEx(T) x string x string -> bool",
-  "ntree makeNtreePersistent[relName1, relName2]",
-  "Creates a persistent structure from an existing main memory N-tree. Two "
-  "database relations representing the tree structure and distance information "
-  "are computed. From these, the tree can be fully reconstructed.",
+  "NTREEx(T) x string x string x string -> bool",
+  "ntree makeNtreePersistent[relName1, relName2, relName3]",
+  "Creates a persistent structure from an existing main memory N-tree. Three "
+  "database relations representing tree information, the tree structure and "
+  "distance information are computed. From these, the tree can be fully "
+  "reconstructed.",
   "query mKinos mcreatentree8[GeoData, 4, 8] makeNtreePersistent[\"nodeInfo\"",
   "nodeDistances\"]"
 );

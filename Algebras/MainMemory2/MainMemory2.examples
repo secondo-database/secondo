@@ -333,7 +333,7 @@ Result    : ()
 Operator  : makeNtreePersistent
 Number    : 1924
 Signature : NTREEx(T) x string x string -> bool
-Example   : query mKinos mcreatentree8[GeoData, 4, 8] makeNtreePersistent["nodeInfo", "nodeDistances"]
+Example   : query mKinos mcreatentree8[GeoData, 4, 8] makeNtreePersistent["treeInfo", "nodeInfo", "nodeDistances"]
 Result    : TRUE
 
 Operator  : mdistRangeN
