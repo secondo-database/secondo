@@ -90,7 +90,13 @@ function runTest() {
     failedTests="$failedTests ${logFile#$buildDir/}"
     let error++
     local testFailed="true"
-
+    
+    # Show output
+    echo "=============================="
+    echo "File: ${logFile}"
+    echo "=============================="
+    cat ${logFile}
+    echo "=============================="
   fi
 
   # keep the first date of failure in a file. When the test succeed afterwards
