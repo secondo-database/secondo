@@ -134,6 +134,14 @@ class NTreeNode {
     return count;
   }
   
+  CandOrder getCandOrder() const {
+    return candOrder;
+  }
+  
+  std::tuple<int, int, int> getRefDistPos() const {
+    return refDistPos;
+  }
+  
   virtual T* getObject(const int pos) = 0;
   
   virtual double getMinDist(const T& q, DistComp& dc) const = 0;
@@ -319,6 +327,30 @@ class NTreeNode {
       }
       ((leafnode_t*)this)->setMaxDist(leafMaxDist);
     }
+  }
+  
+  std::vector<double> getPivotDistances(const int pos) const {
+    std::vector<double> result;
+    switch (candOrder) {
+      case PIVOT2: {
+        result.push_back(distances2d[pos].first);
+        result.push_back(distances2d[pos].second);
+        break;
+      }
+      case PIVOT3: {
+        result.push_back(std::get<0>(distances3d[pos]));
+        result.push_back(std::get<1>(distances3d[pos]));
+        result.push_back(std::get<2>(distances3d[pos]));
+        break;
+      }
+      case RANDOM: {
+        break;
+      }
+      default: {
+        assert(false);
+      }
+    }
+    return result;
   }
   
   double getPrecomputedDist(const int pos1, const int pos2, const bool isLeaf)
@@ -2143,30 +2175,71 @@ class PersistentNTree {
     Tuple *nodeInfoTuple = new Tuple(nodeInfoType);
     nodeInfoTuple->PutAttribute(0, new CcInt(true, getId()));
     nodeInfoTuple->PutAttribute(1, new CcInt(true, ancestorId));
-//     collection::Collection *entries = 
-//           new collection::Collection(collection::vector, 
-//                       nl->SymbolAtom(CcInt::BasicType()), node->getCount());
-//     int maxDistSize = (node->isLeaf() ? 1 : node->getCount());
-//     collection::Collection *maxDist = 
-//           new collection::Collection(collection::vector, 
-//                          nl->SymbolAtom(CcReal::BasicType()), maxDistSize);
+    int collAlgId, vectorTypeId, standardAlgId, intTypeId, realTypeId;
+    if (!sc->GetTypeId(Vector::BasicType(), collAlgId, vectorTypeId)) {
+      cout << "invalid type " << Vector::BasicType();
+      return;
+    }
+    if (!sc->GetTypeId(CcInt::BasicType(), standardAlgId, intTypeId)) {
+      cout << "invalid type " << CcInt::BasicType() << endl;
+      return;
+    }
+    if (!sc->GetTypeId(CcReal::BasicType(), standardAlgId, realTypeId)) {
+      cout << "invalid type " << CcReal::BasicType() << endl;
+      return;
+    }
+    ListExpr intVectorTypeList = nl->TwoElemList(
+      nl->TwoElemList(nl->IntAtom(collAlgId), nl->IntAtom(vectorTypeId)),
+      nl->TwoElemList(nl->IntAtom(standardAlgId), nl->IntAtom(intTypeId)));
+    ListExpr realVectorTypeList = nl->TwoElemList(
+      nl->TwoElemList(nl->IntAtom(collAlgId), nl->IntAtom(vectorTypeId)),
+      nl->TwoElemList(nl->IntAtom(standardAlgId), nl->IntAtom(realTypeId)));
+    collection::Collection *entries = 
+          new collection::Collection(collection::vector, intVectorTypeList,
+                                     node->getCount());
+    int maxDistSize = (node->isLeaf() ? 1 : node->getCount());
+    collection::Collection *maxDist = 
+          new collection::Collection(collection::vector, realVectorTypeList,
+                                     maxDistSize);
+    collection::Collection *refDistPos = 
+          new collection::Collection(collection::vector, intVectorTypeList, 3);
+    collection::Collection *distances3d = 
+          new collection::Collection(collection::vector, realVectorTypeList,
+                                     node->getCount());
+    std::vector<double> pivotDistances;
+    for (int i = 0; i < node->getCount(); i++) {
+      if (node->isLeaf()) {
+        entries->Insert(new CcInt(true, 
+                        (int)((leafnode_t*)node)->getObject(i)->getTid()), 1);
+      }
+      else { // inner node
+        entries->Insert(new CcInt(true, 
+                        (int)((innernode_t*)node)->getCenter(i)->getTid()), 1);
+        maxDist->Insert(new CcReal(true, 
+                                   ((innernode_t*)node)->getMaxDist(i)), 1);
+      }
+      if (node->getCandOrder() != RANDOM) {
+        pivotDistances = node->getPivotDistances(i);
+        distances3d->Insert(new CcReal(true, pivotDistances[0]), 1);
+        distances3d->Insert(new CcReal(true, pivotDistances[1]), 1);
+        if (node->getCandOrder() == PIVOT3) {
+          distances3d->Insert(new CcReal(true, pivotDistances[2]), 1);
+        }
+      }
+    }
     if (node->isLeaf()) {
-      for (int i = 0; i < node->getCount(); i++) {
-//         entries->Insert(new CcInt(true, 
-//                       (int)((leafnode_t*)node)->getObject(i)->getTid()), 1);
-      }
-//       maxDist->Insert(new CcReal(true, ((leafnode_t*)node)->getMaxDist()),1);
-      
+      maxDist->Insert(new CcReal(true, ((leafnode_t*)node)->getMaxDist()),1);
     }
-    else { // inner node
-      for (int i = 0; i < node->getCount(); i++) {
-//         maxDist->Insert(new CcReal(true, 
-//                                    ((innernode_t*)node)->getMaxDist(i)), 1);
-        
-      }
-    }
-//     nodeInfoTuple->PutAttribute(2, entries);
-//     nodeInfoTuple->PutAttribute(3, maxDist);
+    std::tuple<int, int, int> refDistPosTuple = node->getRefDistPos();
+    refDistPos->Insert(new CcInt(true, std::get<0>(refDistPosTuple)), 1);
+    refDistPos->Insert(new CcInt(true, std::get<1>(refDistPosTuple)), 1);
+    refDistPos->Insert(new CcInt(true, std::get<2>(refDistPosTuple)), 1);
+    entries->SetDefined(true);
+    nodeInfoTuple->PutAttribute(2, entries);
+    nodeInfoTuple->PutAttribute(3, maxDist);
+    nodeInfoTuple->PutAttribute(4, refDistPos);
+    nodeInfoTuple->PutAttribute(5, distances3d);
+    nodeInfoRel->AppendTuple(nodeInfoTuple);
   }
   
   bool storeRelation(ListExpr typeList, Relation *rel, std::string& relName) {
