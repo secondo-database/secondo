@@ -82,9 +82,24 @@ makefile.algebras
 /Optimizer/libregSecondo.jnilib
 /Optimizer/opsyntaxg.pl
 /Optimizer/tmp/
+/Optimizer/.secondopltty_history
+/Optimizer/config_optimizer.pl
+/Optimizer/storedAttrSizes.pl
+/Optimizer/storedCards.pl
+/Optimizer/storedIndexes.pl
+/Optimizer/storedOrderings.pl
+/Optimizer/storedPETs.pl
+/Optimizer/storedRels.pl
+/Optimizer/storedSels.pl
+/Optimizer/storedSpells.pl
+/Optimizer/storedTupleSizes.pl
+/Optimizer/sysDependentCostFactors.pl
+/Optimizer/sysDependentOperatorTF.pl
+/Optimizer/opsyntaxg.pl
+/Optimizer/proglogt.csv
+/Optimizer/TestOptimizer.log
 /OptimizerBasic/libregSecondo.so
 /OptimizerBasic/libregSecondo.jnilib
-
 
 /bin/*.jpg
 /bin/*.dbf
