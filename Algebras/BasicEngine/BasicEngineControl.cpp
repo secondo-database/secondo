@@ -1801,4 +1801,22 @@ distributed2::DArray BasicEngineControl::convertSlotMappingToDArray(
   return result;
 }
 
+/**
+3.31 Get the SECONDO connection for the given slot data
+
+*/
+WorkerConnection *BasicEngineControl::getConnectionForSlot(std::string host,
+                                                           std::string port) {
+
+  for (WorkerConnection *connection : connections) {
+    RemoteConnectionInfo *info = connection->getRemoteConnectionInfo();
+
+    if (info->host == host && info->port == port) {
+      return connection;
+    }
+  }
+
+  return nullptr;
+}
+
 } /* namespace BasicEngine */

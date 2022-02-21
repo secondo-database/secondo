@@ -71,11 +71,11 @@ class WorkerConnection {
         }
     }
 
-    RemoteConnectionInfo* getRemoteConnectionInfo() {
+    RemoteConnectionInfo* getRemoteConnectionInfo() const {
         return connectionInfo;
     }
 
-    distributed2::ConnectionInfo* getConnection() {
+    distributed2::ConnectionInfo* getConnection() const {
         return connection;
     }
 

@@ -328,6 +328,9 @@ bool createAndInitConnection(
   distributed2::DArray convertSlotMappingToDArray(
     const std::string &name, 
     const std::list<ExportedSlotData> partitionWorkerMapping);
+
+  WorkerConnection* getConnectionForSlot(std::string host, std::string port);
+
 };
 
 };  /* namespace BasicEngine */
