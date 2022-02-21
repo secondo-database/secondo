@@ -2062,24 +2062,28 @@ class PersistentNTree {
   typedef NTree<T, DistComp, variant> ntree_t;
   typedef NTreeInnerNode<T, DistComp, variant> innernode_t;
 
-  PersistentNTree(ntree_t* ntree, std::string& treeInfoName, 
-                  std::string& nodeInfoName, std::string& nodeDistName) : 
+  PersistentNTree(ntree_t* ntree, std::string& prefix, const int firstNodeId) : 
           status(false), treeInfoType(0), nodeInfoType(0), nodeDistType(0), 
-          currentId(0) {
+          pivotInfoType(0), currentId(firstNodeId) {
     sc = SecondoSystem::GetCatalog();
-    if (!initRelations(treeInfoName, nodeInfoName, nodeDistName)) {
+    std::vector<std::string> relNames{prefix + "TreeInfo", prefix + "NodeInfo",
+                                     prefix + "NodeDist", prefix + "PivotInfo"};
+    if (!initRelations(relNames)) {
       return;
     }
     if (!processNTree(ntree)) {
       return;
     }
-    if (!storeRelation(treeInfoTypeList, treeInfoRel, treeInfoName)) {
+    if (!storeRelation(treeInfoTypeList, treeInfoRel, relNames[0])) {
       return;
     }
-    if (!storeRelation(nodeInfoTypeList, nodeInfoRel, nodeInfoName)) {
+    if (!storeRelation(nodeInfoTypeList, nodeInfoRel, relNames[1])) {
       return;
     }
-    if (!storeRelation(nodeDistTypeList, nodeDistRel, nodeDistName)) {
+    if (!storeRelation(nodeDistTypeList, nodeDistRel, relNames[2])) {
+      return;
+    }
+    if (!storeRelation(pivotInfoTypeList, pivotInfoRel, relNames[3])) {
       return;
     }
     status = true;
@@ -2095,6 +2099,9 @@ class PersistentNTree {
     if (nodeDistType != 0) {
       nodeDistType->DeleteIfAllowed();
     }
+    if (pivotInfoType != 0) {
+      pivotInfoType->DeleteIfAllowed();
+    }
   }
   
   int getId() {
@@ -2102,14 +2109,8 @@ class PersistentNTree {
     return currentId - 1;
   }
   
-  bool initRelations(std::string& treeInfoName, std::string& nodeInfoName,
-                     std::string& nodeDistName) {
-    std::vector<std::string> relNames{treeInfoName, nodeInfoName, nodeDistName};
-    for (unsigned int i = 0; i < 3; i++) {
-      if (sc->IsObjectName(relNames[i])) {
-        cout << "relation " << relNames[i] << " already exists" << endl;
-        return false;
-      }
+  bool initRelations(std::vector<std::string>& relNames) {
+    for (unsigned int i = 0; i < relNames.size(); i++) {
       std::string errMsg;
       if (!sc->IsValidIdentifier(relNames[i], errMsg, true)) {
         cout << errMsg << endl;
@@ -2118,6 +2119,12 @@ class PersistentNTree {
       if (sc->IsSystemObject(relNames[i])) {
         cout << relNames[i] << " is a reserved name" << endl;
         return false;
+      }
+      if (sc->IsObjectName(relNames[i])) {
+        if (!sc->DeleteObject(relNames[i])) {
+          cout << "object " << relNames[i] << " could not be deleted" << endl;
+          return false;
+        }
       }
     }
     treeInfoTypeList = nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()),
@@ -2149,15 +2156,29 @@ class PersistentNTree {
     nodeDistTypeList = nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()),
       nl->FourElemList(nl->TwoElemList(nl->SymbolAtom("NodeId"), 
                                        nl->SymbolAtom(CcInt::BasicType())),
-                       nl->TwoElemList(nl->SymbolAtom("Object1"),
+                       nl->TwoElemList(nl->SymbolAtom("Entry1"),
                                        nl->SymbolAtom(CcInt::BasicType())),
-                       nl->TwoElemList(nl->SymbolAtom("Object2"),
+                       nl->TwoElemList(nl->SymbolAtom("Entry2"),
                                        nl->SymbolAtom(CcInt::BasicType())),
                        nl->TwoElemList(nl->SymbolAtom("Distance"),
                                        nl->SymbolAtom(CcReal::BasicType()))));
     ListExpr numNodeDistTypeList = sc->NumericType(nodeDistTypeList);
     nodeDistType = new TupleType(numNodeDistTypeList);
     nodeDistRel = new Relation(nodeDistType, false);
+    pivotInfoTypeList = nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()),
+      nl->FourElemList(nl->TwoElemList(nl->SymbolAtom("NodeId"),
+                                        nl->SymbolAtom(CcInt::BasicType())),
+                        nl->TwoElemList(nl->SymbolAtom("Entry"), 
+                                        nl->SymbolAtom(CcInt::BasicType())),
+                        nl->TwoElemList(nl->SymbolAtom("PivotDist1"),
+                                        nl->SymbolAtom(CcReal::BasicType())),
+                        nl->TwoElemList(nl->SymbolAtom("PivotDist2"),
+                                        nl->SymbolAtom(CcReal::BasicType())),
+                        nl->TwoElemList(nl->SymbolAtom("IsPivot"),
+                                        nl->SymbolAtom(CcBool::BasicType()))));
+    ListExpr numPivotInfoTypeList = sc->NumericType(pivotInfoTypeList);
+    pivotInfoType = new TupleType(numPivotInfoTypeList);
+    pivotInfoRel = new Relation(pivotInfoType, false);
     return true;
   }
   
@@ -2258,9 +2279,10 @@ class PersistentNTree {
  private:
   bool status;
   SecondoCatalog* sc;
-  ListExpr treeInfoTypeList, nodeInfoTypeList, nodeDistTypeList;
-  TupleType *treeInfoType, *nodeInfoType, *nodeDistType;
-  Relation *treeInfoRel, *nodeInfoRel, *nodeDistRel;
+  ListExpr treeInfoTypeList, nodeInfoTypeList, nodeDistTypeList, 
+           pivotInfoTypeList;
+  TupleType *treeInfoType, *nodeInfoType, *nodeDistType, *pivotInfoType;
+  Relation *treeInfoRel, *nodeInfoRel, *nodeDistRel, *pivotInfoRel;
   int currentId;
 };
 

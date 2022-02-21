@@ -330,10 +330,10 @@ Signature : MREL x IDENT x int x int [x geoid] -> (mpointer(mem(ntree ...) )
 Example   : let mKinos_GeoData_ntree8 = mKinos mcreatentree8[GeoData, 4, 8]
 Result    : ()
 
-Operator  : makeNtreePersistent
+Operator  : exportntree
 Number    : 1924
-Signature : NTREEx(T) x string x string -> bool
-Example   : query mKinos mcreatentree8[GeoData, 4, 8] makeNtreePersistent["treeInfo", "nodeInfo", "nodeDistances"]
+Signature : NTREEx(T) x string x int -> bool
+Example   : query mKinos mcreatentree8[GeoData, 4, 8] exportntree["kinos", 1]
 Result    : TRUE
 
 Operator  : mdistRangeN
