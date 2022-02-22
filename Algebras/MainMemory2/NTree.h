@@ -2130,9 +2130,7 @@ class PersistentNTree {
           return false;
         }
       }
-      cout << relNames[i] << " initialized" << endl;
     }
-    cout << "2" << endl;
     treeInfoTypeList = nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()),
       nl->ThreeElemList(nl->TwoElemList(nl->SymbolAtom("Variant"),
                                         nl->SymbolAtom(CcInt::BasicType())),
