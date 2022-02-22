@@ -23013,8 +23013,8 @@ operator ~makeNtreePersistent~
 
 */
 ListExpr exportntreeTM(ListExpr args) {
-  if (!nl->HasLength(args, 3)) {
-    return listutils::typeError("three arguments expected");
+  if (!nl->HasLength(args, 5)) {
+    return listutils::typeError("five arguments expected");
   }  
   ListExpr a1 = nl->First(args);
   if (MPointer::checkType(a1)) { 
@@ -23026,10 +23026,30 @@ ListExpr exportntreeTM(ListExpr args) {
   if (nl->ToString(nl->First(nl->Second(a1))) != "ntree8") {
     return listutils::typeError("first arg must be an ntree8");
   }
-  if (!CcString::checkType(nl->Second(args))) {
+  if (!MPointer::checkType(nl->Second(args))) {
+    return listutils::typeError("second arg is not an mpointer");
+  }
+  // extract tuple type from first argument
+  ListExpr tupletype;
+  ListExpr mpt = nl->Second(nl->Second(nl->Second(args)));
+  if (!Relation::checkType(mpt)) {
+    return listutils::typeError("mpointer to a non-relation");
+  }
+  tupletype = nl->Second(mpt);
+  ListExpr attrList = nl->Second(tupletype);
+  if (nl->AtomType(nl->Third(args)) != SymbolType) {
+    return listutils::typeError("third arg is not a valid attribute name");
+  }
+  ListExpr type;
+  string name = nl->SymbolValue(nl->Third(args));
+  int index1 = listutils::findAttribute(attrList, name, type);
+  if (!index1) {
+    return listutils::typeError("attribute " + name + " not part of the tuple");
+  }
+  if (!CcString::checkType(nl->Fourth(args))) {
     return listutils::typeError("second arg must be a string");  
   }
-  if (!CcInt::checkType(nl->Third(args))) {
+  if (!CcInt::checkType(nl->Fifth(args))) {
     return listutils::typeError("third arg must be an int");
   }
   return nl->SymbolAtom(CcBool::BasicType());
@@ -23041,24 +23061,33 @@ int exportntreeVMT(Word* args, Word& result, int message, Word& local,
   result = qp->ResultStorage(s);
   CcBool* res = (CcBool*)result.addr;
   MPointer* treeMem = (MPointer*)args[0].addr;
-  CcString *ccPrefix = (CcString*)args[1].addr;
+  MPointer* relMem = (MPointer*)args[1].addr;
+  if (treeMem->isNull() || relMem->isNull()) {
+    res->Set(true, false);
+    return 0;
+  }
+  MemoryRelObject* mrel = (MemoryRelObject*)relMem->GetValue();
+  vector<Tuple*>* relVector = mrel->getmmrel();
+  CcString *ccPrefix = (CcString*)args[3].addr;
   if (!ccPrefix->IsDefined()) {
     cout << "undefined prefix" << endl;
     res->Set(true, false);
     return 0;
   }
   string prefix = ccPrefix->GetValue();
-  CcInt *ccFirstNodeId = (CcInt*)args[2].addr;
+  CcInt *ccFirstNodeId = (CcInt*)args[4].addr;
   if (!ccFirstNodeId->IsDefined()) {
     cout << "undefined first node id" << endl;
     res->Set(true, false);
     return 0;
   }
+  Supplier s0 = qp->GetSon(s, 1);
+  ListExpr attrTypeList = nl->Second(qp->GetType(s0));
   MemoryNtreeObject<T, StdDistComp<T>, variant>* treeObj = 
                                        getNtreeX<MPointer, T, variant>(treeMem);
   NTree<MTreeEntry<T>, StdDistComp<T>, variant> *ntree = treeObj->getNtreeX();  
-  PersistentNTree<MTreeEntry<T>, StdDistComp<T>, variant> pntree(ntree, prefix,
-                                                     ccFirstNodeId->GetValue());
+  PersistentNTree<MTreeEntry<T>, StdDistComp<T>, variant> pntree(ntree,
+                    relVector, attrTypeList, prefix, ccFirstNodeId->GetValue());
   res->Set(true, pntree.getStatus());  
   return 0;
 }
@@ -23084,13 +23113,14 @@ int exportntreeSelect(ListExpr args) {
 }
 
 OperatorSpec exportntreeSpec(
-  "NTREEx(T) x string x int -> bool",
-  "ntree exportntree[relNamePrefix, firstNodeId]",
+  "NTREEx(T) x MREL x ATTRNAME x string x int -> bool",
+  "ntree mrel exportntree[attrName, relNamePrefix, firstNodeId]",
   "Creates a persistent structure from an existing main memory N-tree. Four "
   "database relations representing tree information, the tree structure, "
   "distance information, and pivot information are computed. From these, the "
   "tree can be fully reconstructed.",
-  "query mKinos mcreatentree8[GeoData, 4, 8] exportntree[\"kinos\", 1]"
+  "query mKinos mcreatentree8[GeoData, 4, 8] mKinos exportntree[GeoData, "
+  "\"kinos\", 1]"
 );
 
 
