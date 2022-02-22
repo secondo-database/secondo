@@ -121,53 +121,44 @@ SmiEnvironment::GetLastErrorCode()
   return lastError;
 }
 
-SmiError
-SmiEnvironment::GetLastErrorCode( string& errorMessage )
-{
+SmiError SmiEnvironment::GetLastErrorCode(string &errorMessage) {
   stringstream msg;
-  msg << "\n" 
+  msg << "\n"
       << "--------------------------- \n"
       << "  Secondo-SMI Error Stack   \n"
-      << "--------------------------- \n" << lastMessage << "\n\n";
-  errorMessage = msg.str();     
-      		 
+      << "--------------------------- \n"
+      << lastMessage << "\n\n";
+  errorMessage = msg.str();
+
   lastMessage = "";
   return lastError;
 }
 
-
-void 
-SmiEnvironment::SetSmiError( const SmiError smiErr, 
-		             const string& file, int pos,
-                const string& desc )
-{ 
+void SmiEnvironment::SetSmiError(const SmiError smiErr, const string &file,
+                                 int pos, const string &desc) {
   if (smiErr != E_SMI_OK)
     SetSmiError(smiErr, Err2Msg(smiErr), file, pos, desc);
 }
-                        
-void 
-SmiEnvironment::SetSmiError( const SmiError smiErr, 
-		             const string& errMsg, const string& file, int pos,
-                 const string& desc )
-{ 
+
+void SmiEnvironment::SetSmiError(const SmiError smiErr, const string &errMsg,
+                                 const string &file, int pos,
+                                 const string &desc) {
   static bool abortOnError = RTFlag::isActive("SMI:abortOnError");
   lastError = smiErr;
-  if (smiErr != E_SMI_OK)
-  { 
-    if ( numOfErrors > 0 )
+  if (smiErr != E_SMI_OK) {
+    if (numOfErrors > 0)
       lastMessage += "\n";
     stringstream msg;
-    msg << errMsg << " -> [" << file << ":" << pos << "]" << desc;   
+    msg << errMsg << " -> [" << file << ":" << pos << "]" << desc;
     lastMessage += msg.str();
-    numOfErrors++;	
+    numOfErrors++;
 
     if (abortOnError) {
-      cerr << msg.str() << endl; 	    
-      abort();	    
-    }	    
-  }  
-}                      
-
+      cerr << msg.str() << endl;
+      abort();
+    }
+  }
+}
 
 bool
 SmiEnvironment::SetDatabaseName( const string& dbname )
@@ -179,7 +170,7 @@ SmiEnvironment::SetDatabaseName( const string& dbname )
   if ( database.length() > 0 )
   {
     transform( database.begin(), database.end(), 
-               database.begin(), ToUpperProperFunction );
+               database.begin(), ::toupper );
     string::size_type pos = database.find_first_not_of( alnum );
     ok = (pos == string::npos) &&
          (dbname[0] != '_') &&
@@ -195,25 +186,21 @@ SmiEnvironment::SetUser( const string& userId )
   static string alnum( alpha + "0123456789_" );
 
   uid = userId;
-  transform( uid.begin(), uid.end(), uid.begin(), ToLowerProperFunction );
+  transform( uid.begin(), uid.end(), uid.begin(), ::tolower );
   string::size_type pos = uid.find_first_not_of( alnum );
 
   return (pos == string::npos);
 }
 
-bool
-SmiEnvironment::CallRegistrar( const string& dbname, 
-		               const string& cmd,
-	                       string& answer	       )
-{
+bool SmiEnvironment::CallRegistrar(const string &dbname, const string &cmd,
+                                   string &answer) {
   bool ok = true;
-  if ( !singleUserMode )
-  {
-    
+  if (!singleUserMode) {
+
     string blank(" ");
     string user("-UNKNOWN-");
-    if ( uid != "" ) { 
-      user = uid;	    
+    if (uid != "") {
+      user = uid;
     }
 
     Messenger messenger( registrar );
@@ -233,44 +220,35 @@ SmiEnvironment::CallRegistrar( const string& dbname,
   return (ok);
 }
 
-bool
-SmiEnvironment::RegisterDatabase( const string& dbname )
-{
-  string answer("");	
+bool SmiEnvironment::RegisterDatabase(const string &dbname) {
+  string answer("");
   bool ok = CallRegistrar(dbname, "REGISTER", answer);
   if (!ok)
-    SetError2( E_SMI_DB_REGISTER, answer );
+    SetError2(E_SMI_DB_REGISTER, answer);
   return ok;
-}  
+}
 
-
-bool
-SmiEnvironment::UnregisterDatabase( const string& dbname )
-{
-  string answer("");	
+bool SmiEnvironment::UnregisterDatabase(const string &dbname) {
+  string answer("");
   bool ok = CallRegistrar(dbname, "UNREGISTER", answer);
   if (!ok)
-    SetError2( E_SMI_DB_UNREGISTER, answer );
+    SetError2(E_SMI_DB_UNREGISTER, answer);
   return ok;
-}  
+}
 
-bool
-SmiEnvironment::LockDatabase( const string& dbname )
-{
-  string answer("");	
+bool SmiEnvironment::LockDatabase(const string &dbname) {
+  string answer("");
   bool ok = CallRegistrar(dbname, "LOCK", answer);
   if (!ok)
-    SetError2( E_SMI_DB_LOCK, answer );
+    SetError2(E_SMI_DB_LOCK, answer);
   return ok;
-}  
+}
 
-bool
-SmiEnvironment::UnlockDatabase( const string& dbname )
-{
-  string answer("");	
+bool SmiEnvironment::UnlockDatabase(const string &dbname) {
+  string answer("");
   bool ok = CallRegistrar(dbname, "UNLOCK", answer);
   if (!ok)
-    SetError2( E_SMI_DB_UNLOCK, answer );
+    SetError2(E_SMI_DB_UNLOCK, answer);
   return ok;
 }
 

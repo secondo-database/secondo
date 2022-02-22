@@ -90,7 +90,7 @@ SecondoListener::Execute()
                                                 "ALLOW", parmFile );
   
   transform( rulePolicy.begin(), rulePolicy.end(), rulePolicy.begin(), 
-             ToUpperProperFunction );
+             ::toupper );
   
   SocketRule::Policy policy = (rulePolicy == "ALLOW") ? SocketRule::ALLOW 
                                                       : SocketRule::DENY;

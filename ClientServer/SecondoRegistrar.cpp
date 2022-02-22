@@ -331,7 +331,7 @@ SecondoRegistrar::ProcessCommands()
       string cmd;
       ss >> cmd;
       trace.out(cmd);      
-      transform( cmd.begin(), cmd.end(), cmd.begin(), ToUpperProperFunction );
+      transform( cmd.begin(), cmd.end(), cmd.begin(), ::toupper );
       cmdPos = commandTable.find( cmd );
       if ( cmdPos != commandTable.end() )
       {

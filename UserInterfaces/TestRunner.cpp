@@ -513,7 +513,7 @@ TestRunner::ProcessCommand()
   } 
   
   transform( cmdWord.begin(), cmdWord.end(), cmdWord.begin(), 
-             ToUpperProperFunction );
+             ::toupper );
 
   if ( cmdWord == "Q" || cmdWord == "QUIT" )
   {
@@ -544,7 +544,7 @@ TestRunner::IsInternalCommand( const string& line ) const
   istringstream is( line );
   is >> cmdWord;
   transform( cmdWord.begin(), cmdWord.end(), cmdWord.begin(), 
-             ToUpperProperFunction );
+             ::toupper );
 
   return ( cmdWord == "?" || cmdWord == "HELP"        ||
            cmdWord == "Q" || cmdWord == "QUIT"        ||

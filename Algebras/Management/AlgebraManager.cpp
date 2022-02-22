@@ -182,7 +182,7 @@ AlgebraManager::LoadAlgebras()
         string initFuncName = string( "Initialize" ) + algNameStr;
         (*getAlgebraEntry)( j ).dynlib = new DynamicLibrary();
         transform( libraryName.begin(), libraryName.end(),
-                   libraryName.begin(), ToLowerProperFunction );
+                   libraryName.begin(), ::tolower );
         if ( (*getAlgebraEntry)( j ).dynlib->Load( libraryName ) )
         {
           AlgebraInitFunction initFunc =

@@ -64,7 +64,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 //#include <string> // std::string
 #include <algorithm> // std::transform
-#include <cctype> // std::tolower
+#include <cctype> // ::tolower
 
 #include <sstream>
 

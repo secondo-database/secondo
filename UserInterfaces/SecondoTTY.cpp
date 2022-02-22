@@ -283,7 +283,7 @@ SecondoTTY::ReadCommand(istringstream& is) const
 {
   string cmdWord = parse<string>(is);
   transform( cmdWord.begin(), cmdWord.end(), cmdWord.begin(),
-             ToUpperProperFunction );
+             ::toupper );
   return cmdWord;
 }
 
@@ -450,7 +450,7 @@ SecondoTTY::IsInternalCommand( const string& line )
   istringstream is( line );
   is >> cmdWord;
   transform( cmdWord.begin(), cmdWord.end(), cmdWord.begin(),
-             ToUpperProperFunction );
+             ::toupper );
 
   return ( cmdWord == "?" || cmdWord == "HELP"        ||
            cmdWord == "Q" || cmdWord == "QUIT"        ||

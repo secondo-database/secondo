@@ -245,7 +245,7 @@ SmiFile::CheckName( const string& name )
 
   if ( temp.length() > 0 )
   {
-    transform( temp.begin(), temp.end(), temp.begin(), ToLowerProperFunction );
+    transform( temp.begin(), temp.end(), temp.begin(), ::tolower );
     string::size_type pos = temp.find_first_not_of( alnum );
     ok = pos == string::npos &&
          name[0] != '_' &&
@@ -255,33 +255,24 @@ SmiFile::CheckName( const string& name )
   return (ok);
 }
 
-
-
-
-bool
-SmiFile::Create( const string& name,
-		 const string& context /* = "Default" */,
-		 const uint16_t ps /* = 0 */,
-     const bool keepId /*=false*/ )
-{
-  static long& ctrCreate = Counter::getRef("SmiFile::Create");
-  static long& ctrOpen = Counter::getRef("SmiFile::Open");
+bool SmiFile::Create(const string &name,
+                     const string &context /* = "Default" */,
+                     const uint16_t ps /* = 0 */,
+                     const bool keepId /*=false*/) {
+  static long &ctrCreate = Counter::getRef("SmiFile::Create");
+  static long &ctrOpen = Counter::getRef("SmiFile::Open");
   int rc = 0;
   impl->CheckDbHandles();
 
-  if ( CheckName( context ) )
-  {
-    if(!keepId){
-      fileId = SmiEnvironment::Implementation::GetFileId(
-                                                    impl->isTemporaryFile );
+  if (CheckName(context)) {
+    if (!keepId) {
+      fileId = SmiEnvironment::Implementation::GetFileId(impl->isTemporaryFile);
     }
-    if ( fileId != 0 )
-    {
+    if (fileId != 0) {
       string bdbName = name;
-      if (name=="") {
-        bdbName = SmiEnvironment::
-	             Implementation::ConstructFileName( fileId,
-                                                        impl->isTemporaryFile );
+      if (name == "") {
+        bdbName = SmiEnvironment::Implementation::ConstructFileName(
+            fileId, impl->isTemporaryFile);
       }
 
       impl->bdbName = bdbName;
@@ -385,15 +376,11 @@ SmiFile::Create( const string& name,
       {
         SmiEnvironment::SetBDBError( rc );
       }
-    }
-    else
-    {
+    } else {
       rc = E_SMI_FILE_NOFILEID;
       SmiEnvironment::SetError( E_SMI_FILE_NOFILEID );
     }
-  }
-  else
-  {
+  } else {
     rc = E_SMI_FILE_INVALIDNAME;
     SmiEnvironment::SetError( E_SMI_FILE_INVALIDNAME );
   }
@@ -401,11 +388,8 @@ SmiFile::Create( const string& name,
   return (rc == 0);
 }
 
-
-bool
-SmiFile::Create( const string& context /* = "Default" */,
-		 const uint16_t ps /* = 0 */ )
-{
+bool SmiFile::Create(const string &context /* = "Default" */,
+                     const uint16_t ps /* = 0 */) {
   return Create("", context, ps);
 }
 
@@ -702,29 +686,28 @@ SmiFile::Open( const SmiFileId fileid, const string& context /* = "Default" */ )
       if(tid){
         commitFlag=0;
       }
-      u_int32_t flags = (!impl->isTemporaryFile) ?
-                            dirtyFlag | commitFlag : 0;
+      u_int32_t flags = (!impl->isTemporaryFile) ? dirtyFlag | commitFlag : 0;
 
       int alreadyExist =
-          SmiEnvironment::Implementation::FindOpen(bdbName,flags);
-      if(alreadyExist>=0){
+          SmiEnvironment::Implementation::FindOpen(bdbName, flags);
+      if (alreadyExist >= 0) {
 
-         if (trace) {
-           cerr << "File id =" << fileid << "already exists." << endl;
-          }
+        if (trace) {
+          cerr << "File id =" << fileid << "already exists." << endl;
+        }
 
-	 DbHandleIndex old = impl->bdbHandle;
-         if(!impl->noHandle){
-             SmiEnvironment::Implementation::SetUnUsed(old);
-         }
-         impl->bdbHandle = alreadyExist;
-         impl->bdbFile =
-               SmiEnvironment::Implementation::GetDbHandle(impl->bdbHandle);
-         SmiEnvironment::Implementation::SetUsed(impl->bdbHandle);
-         opened = true;
-         impl->isSystemCatalogFile = (fileContext == "SecondoCatalog");
-	 fileId = fileid;
-         return true;
+        DbHandleIndex old = impl->bdbHandle;
+        if (!impl->noHandle) {
+          SmiEnvironment::Implementation::SetUnUsed(old);
+        }
+        impl->bdbHandle = alreadyExist;
+        impl->bdbFile =
+            SmiEnvironment::Implementation::GetDbHandle(impl->bdbHandle);
+        SmiEnvironment::Implementation::SetUsed(impl->bdbHandle);
+        opened = true;
+        impl->isSystemCatalogFile = (fileContext == "SecondoCatalog");
+        fileId = fileid;
+        return true;
       }
       impl->CheckDbHandles();
       // --- Find out the appropriate Berkeley DB file type
@@ -944,7 +927,7 @@ SmiFile::Remove()
        impl->bdbFile = 0;
     }
   }
-  	
+
   if (trace)
      cerr << endl << "End removing " << impl->bdbName << endl;
   

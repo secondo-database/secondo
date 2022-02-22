@@ -30,6 +30,7 @@ Oct 2009, M. Spiekermann. Input, command processsing and termination revised
 #include <map>
 #include <iostream>
 #include <sstream>
+#include <string>
 
 #include "Application.h"
 #include "Processes.h"
@@ -76,7 +77,7 @@ class SecondoMonitor : public Application
   bool running;
   bool quit;
 
-  typedef enum {xUsage, xStartUp, xShutDown, xShow, xQuit} cmdTok;	
+  typedef enum {xUsage, xStartUp, xShutDown, xShow, xQuit} cmdTok;
 };
 
 
@@ -111,33 +112,30 @@ SecondoMonitor::SecondoMonitor( const int argc, const char** argv )
 void SecondoMonitor::HandleShutDown(int sig) {
 
 #ifndef SECONDO_WIN32
-  if (sig == SIGTERM || sig == SIGINT || sig == SIGKILL) 
-  {
-    cerr << endl << "SIGTERM, SIGINT or SIGKILL received, "
-	 << "terminating child processes." << endl;
+  if (sig == SIGTERM || sig == SIGINT || sig == SIGKILL) {
+    cerr << endl
+         << "SIGTERM, SIGINT or SIGKILL received, "
+         << "terminating child processes." << endl;
 
     if (p) {
       p->ExecShutDown();
       p->Terminate();
       p = 0;
     }  
-  }	    
+  }
   signal(sig, SIG_DFL);
-  raise(sig);	    
+  raise(sig);
 #endif
-
-}	  
+}
 
 SecondoMonitor* SecondoMonitor::p = 0;
 
-bool
-SecondoMonitor::AbortOnSignal( int sig ) const
+bool SecondoMonitor::AbortOnSignal( int sig ) const
 {
   return (false);
 }
 
-void
-SecondoMonitor::Usage()
+void SecondoMonitor::Usage()
 {
   cout 
   << "The following commands are available:" << endl << endl
@@ -205,14 +203,14 @@ SecondoMonitor::ExecShow()
   in >> cmdword; // eat up show
   in >> cmdword;
   transform( cmdword.begin(), cmdword.end(), 
-             cmdword.begin(), ToUpperProperFunction );
+             cmdword.begin(), ::toupper );
 
   if ( cmdword != "USERS"     && cmdword != "LOCKS" &&
        cmdword != "DATABASES" && cmdword != "LOG" )
   {
     cout << "show [option]: Invalid option '" << cmdword << "'" << endl
          << "Valid options are: 'log', 'users', "
-	 << "'databases' and 'locks'." << endl;
+         << "'databases' and 'locks'." << endl;
     return;
   }
 
@@ -268,15 +266,14 @@ SecondoMonitor::ExecShow()
   }
 }
 
-void
-SecondoMonitor::ExecQuit()
+void SecondoMonitor::ExecQuit()
 {
   if ( running )
   {
     cout << "Really shutdown the system and quit "
          << "(confirm with 'y' or 'yes')? " << endl
-	 << prompt;
-          
+         << prompt;
+
     string answer("");
     getline( cin, answer );
     if ( answer == "y" || answer == "yes" )
@@ -295,77 +292,74 @@ SecondoMonitor::ExecQuit()
   }
 }
 
-void
-SecondoMonitor::ProcessCommands()
-{
-  map<string,cmdTok> commandTable;
-  map<string,cmdTok>::iterator cmdPos;
-  commandTable["?"]        = xUsage;
-  commandTable["HELP"]     = xUsage;
-  commandTable["STARTUP"]  = xStartUp;
+void SecondoMonitor::ProcessCommands() {
+  map<string, cmdTok> commandTable;
+  map<string, cmdTok>::iterator cmdPos;
+  commandTable["?"] = xUsage;
+  commandTable["HELP"] = xUsage;
+  commandTable["STARTUP"] = xStartUp;
   commandTable["SHUTDOWN"] = xShutDown;
-  commandTable["SHOW"]     = xShow;
-  commandTable["QUIT"]     = xQuit;
+  commandTable["SHOW"] = xShow;
+  commandTable["QUIT"] = xQuit;
 
   string cmd("");
-  do
-  {
-    if (!cin.eof()) 
-    {	  
+  do {
+    if (!cin.eof()) {
       line = "";
       cmd = "";
       cout << prompt;
-      getline( cin, line );
-      //cout << "line = '" << line << "'" << endl;
+      getline(cin, line);
+      // cout << "line = '" << line << "'" << endl;
       istringstream in(line);
       in >> cmd;
-      //cout << "input = '" << cmd << "'" << endl;
+      // cout << "input = '" << cmd << "'" << endl;
 
-      if (cmd != "") 
-      {
-        transform( cmd.begin(), cmd.end(), cmd.begin(), ToUpperProperFunction );
-        cmdPos = commandTable.find( cmd );
-	if ( cmdPos != commandTable.end() )
-	{
+      if (cmd != "") {
+        transform(cmd.begin(), cmd.end(), cmd.begin(), ::toupper);
+        cmdPos = commandTable.find(cmd);
+        if (cmdPos != commandTable.end()) {
 
           switch (cmdPos->second) {
 
-          case xUsage:   Usage(); break;  
+          case xUsage:
+            Usage();
+            break;
 
-          case xStartUp: ExecStartUp(); break;
+          case xStartUp:
+            ExecStartUp();
+            break;
 
-	  case xShutDown: ExecShutDown(); break;
+          case xShutDown:
+            ExecShutDown();
+            break;
 
-	  case xShow:     ExecShow(); break;
+          case xShow:
+            ExecShow();
+            break;
 
-	  case xQuit:     ExecQuit(); break;
+          case xQuit:
+            ExecQuit();
+            break;
 
           default:
             cout << "Unkown Command '" << cmd << "'." << endl;
-	  }	
-	}
-	else
-	{
-	  cout << "Unknown Command '" << cmd << "'." << endl
-	       << "Enter 'HELP' or '?' to get a list of "
-	       << "valid commands." << endl;
-	}
-      } 
-
-      if ( Application::Instance()->ShouldAbort() )
-      {
-	cout << "*** Termination signal received, initiating shutdown!" 
-	     << endl;
-	ExecQuit();
+          }
+        } else {
+          cout << "Unknown Command '" << cmd << "'." << endl
+               << "Enter 'HELP' or '?' to get a list of "
+               << "valid commands." << endl;
+        }
       }
-    }
-    else
-    {
-      // since input is eof avoid consuming cpu time	    
+
+      if (Application::Instance()->ShouldAbort()) {
+        cout << "*** Termination signal received, initiating shutdown!" << endl;
+        ExecQuit();
+      }
+    } else {
+      // since input is eof avoid consuming cpu time
       WinUnix::sleep(60);
-    }	    
-  }
-  while (!quit);
+    }
+  } while (!quit);
 }
 
 bool
@@ -563,8 +557,7 @@ SecondoMonitor::Initialize()
   return (ok);
 }
 
-void
-SecondoMonitor::Terminate()
+void SecondoMonitor::Terminate()
 {
   cout << "Terminating Secondo Monitor ..." << endl;
   if ( pidRegistrar != 0 )
@@ -604,8 +597,7 @@ SecondoMonitor::Terminate()
   cout << "SecondoMonitor terminated." << endl;
 }
 
-int
-SecondoMonitor::Execute(bool autostartup)
+int SecondoMonitor::Execute(bool autostartup)
 {
   cout << endl
        << "*** Secondo Monitor ***"
@@ -640,33 +632,28 @@ int main( const int argc, const char* argv[] )
         execute = true;
         autostartup = true;
         pos++;
-     } 
-     else if (arg == "--help") {
-        // list allowed arguments
-        cout << "Usage: " << argv[0] << " [option]. Combinations are not "
-                "supported!" << endl;
-        cout << "Options:" << endl;
-        cout << "   --help          Display this information and exit"
-             << endl;
-        cout << "   -s or -startup  Run Startup command automatically" 
-	     << endl;
-        cout << "   -V or -version  Display version information and exit"
-             << endl << endl;
-        cout << "The following parameters may be combined with \"-s\":" << endl;
-        cout << "   -c    Specify a configuration file" << endl;
-        cout << "   -d    Specify a database directory (override setting from "
-                "configuration file)" << endl;
-        cout << "   -p    Specify port (override setting from configuration "
-                "file)" << endl;
-        done = true;
-        execute = false;
-     }
-     else if ((arg == "-V") || (arg == "-version")) {
+     } else if (arg == "--help") {
+       // list allowed arguments
+       cout << "Usage: " << argv[0]
+            << " [option]. Combinations are not supported!" << endl;
+       cout << "Options:" << endl;
+       cout << "   --help          Display this information and exit" << endl;
+       cout << "   -s or -startup  Run Startup command automatically" << endl;
+       cout << "   -V or -version  Display version information and exit" << endl
+            << endl;
+       cout << "The following parameters may be combined with \"-s\":" << endl;
+       cout << "   -c    Specify a configuration file" << endl;
+       cout << "   -d    Specify a database directory (override setting from "
+               "configuration file)" << endl;
+       cout << "   -p    Specify port (override setting from configuration "
+               "file)" << endl;
+       done = true;
+       execute = false;
+     } else if ((arg == "-V") || (arg == "-version")) {
        cout << argv[0] << " version " << VersionInfo << endl;
        execute = false;
        done = true;
-     }
-     else if ((arg == "-c") || (arg == "-d") || (arg == "-p")) {
+     } else if ((arg == "-c") || (arg == "-d") || (arg == "-p")) {
        pos++;
        if(pos>=argc){
           cout << "missing argument to option " << arg << endl;
@@ -675,13 +662,12 @@ int main( const int argc, const char* argv[] )
           return -1;
        }
        pos++; // jump over argument
-    }
-     else { // unknown command
-        cout << "unknown command line argument '" << arg << "'" << endl;
-        cout << "try " << argv[0] << " --help" << endl;
-        execute = false;
-        done = true;
-        return -1;
+     } else { // unknown command
+       cout << "unknown command line argument '" << arg << "'" << endl;
+       cout << "try " << argv[0] << " --help" << endl;
+       execute = false;
+       done = true;
+       return -1;
      }
   }
 

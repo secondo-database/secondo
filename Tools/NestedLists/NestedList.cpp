@@ -839,9 +839,9 @@ returns TRUE if ~atom~ is a symbol atom and has the same value as ~str~.
       string aStr = SymbolValue( atom );
       string bStr = str;
       transform( aStr.begin(), aStr.end(),
-                 aStr.begin(), ToUpperProperFunction );
+                 aStr.begin(), ::toupper );
       transform( bStr.begin(), bStr.end(),
-                 bStr.begin(), ToUpperProperFunction );
+                 bStr.begin(), ::toupper );
       return (aStr == bStr);
     }
   }
