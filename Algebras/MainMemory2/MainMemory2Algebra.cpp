@@ -23082,12 +23082,12 @@ int exportntreeVMT(Word* args, Word& result, int message, Word& local,
     return 0;
   }
   Supplier s0 = qp->GetSon(s, 1);
-  ListExpr attrTypeList = nl->Second(qp->GetType(s0));
+  ListExpr relTypeList = nl->Second(qp->GetType(s0));
   MemoryNtreeObject<T, StdDistComp<T>, variant>* treeObj = 
                                        getNtreeX<MPointer, T, variant>(treeMem);
   NTree<MTreeEntry<T>, StdDistComp<T>, variant> *ntree = treeObj->getNtreeX();  
   PersistentNTree<MTreeEntry<T>, StdDistComp<T>, variant> pntree(ntree,
-                    relVector, attrTypeList, prefix, ccFirstNodeId->GetValue());
+                     relVector, relTypeList, prefix, ccFirstNodeId->GetValue());
   res->Set(true, pntree.getStatus());  
   return 0;
 }

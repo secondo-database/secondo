@@ -2063,7 +2063,7 @@ class PersistentNTree {
   typedef NTreeInnerNode<T, DistComp, variant> innernode_t;
 
   PersistentNTree(ntree_t* ntree, std::vector<Tuple*>* tuples,
-                ListExpr attrList, std::string& prefix, const int firstNodeId) :
+             ListExpr relTypeList, std::string& prefix, const int firstNodeId) :
           status(false), treeInfoType(0), nodeInfoType(0), nodeDistType(0), 
           pivotInfoType(0), currentId(firstNodeId) {
     sc = SecondoSystem::GetCatalog();
@@ -2072,7 +2072,7 @@ class PersistentNTree {
     if (tuples->empty()) {
       return;
     }
-    if (!initRelations(relNames, attrList)) {
+    if (!initRelations(relNames, relTypeList)) {
       return;
     }
     if (!processNTree(ntree, tuples)) {
@@ -2113,22 +2113,21 @@ class PersistentNTree {
     return currentId - 1;
   }
   
-  bool initRelations(std::vector<std::string>& relNames, ListExpr attrList) {
+  bool initRelations(std::vector<std::string>& relNames, ListExpr relTypeList) {
     for (unsigned int i = 0; i < relNames.size(); i++) {
       std::string errMsg;
       if (!sc->IsValidIdentifier(relNames[i], errMsg, true)) {
-        cout << errMsg << endl;
-        return false;
+        if (sc->IsObjectName(relNames[i])) {
+          if (!sc->DeleteObject(relNames[i])) {
+            cout << "object " << relNames[i] << " could not be deleted" << endl;
+            return false;
+          }
+          cout << "previous object \"" << relNames[i] << "\" deleted" << endl;
+        }
       }
       if (sc->IsSystemObject(relNames[i])) {
         cout << relNames[i] << " is a reserved name" << endl;
         return false;
-      }
-      if (sc->IsObjectName(relNames[i])) {
-        if (!sc->DeleteObject(relNames[i])) {
-          cout << "object " << relNames[i] << " could not be deleted" << endl;
-          return false;
-        }
       }
     }
     treeInfoTypeList = nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()),
@@ -2141,50 +2140,27 @@ class PersistentNTree {
     ListExpr numTreeInfoTypeList = sc->NumericType(treeInfoTypeList);
     treeInfoType = new TupleType(numTreeInfoTypeList);
     treeInfoRel = new Relation(treeInfoType, false);
-    
-    
-//     AttributeType attrType = sourceType->GetAttributeType(0);
-//     ListExpr extendedSourceAttrList = nl->OneElemList(nl->TwoElemList(
-//                  nl->IntAtom(attrType.algId), nl->IntAtom(attrType.typeId)));
-//     ListExpr tempAttrList = extendedSourceAttrList;
-//     for (int i = 1; i < sourceType->GetNoAttributes(); i++) {
-//       attrType = sourceType->GetAttributeType(i);
-//       tempAttrList = nl->Append(tempAttrList, nl->TwoElemList(
-//                  nl->IntAtom(attrType.algId), nl->IntAtom(attrType.typeId)));
-//     }
-//     cout << nl->ToString(extendedSourceAttrList) << endl;
-    
-    cout << nl->ToString(attrList) << endl;
-//     ListExpr attrExtList = nl->FourElemList(
-//                       nl->TwoElemList(nl->SymbolAtom("NodeId"), 
-//                                       nl->SymbolAtom(CcInt::BasicType())),
-//                       nl->TwoElemList(nl->SymbolAtom("Entry"),
-//                                       nl->SymbolAtom(CcInt::BasicType())),
-//                       nl->TwoElemList(nl->SymbolAtom("Subtree"),
-//                                       nl->SymbolAtom(CcInt::BasicType())),
-//                       nl->TwoElemList(nl->SymbolAtom("MaxDist"),
-//                                       nl->SymbolAtom(CcReal::BasicType())));
-    
-//     ListExpr numAttrExtList = sc->NumericType(attrExtList);
-//     tempAttrList = nl->Append(tempAttrList, numAttrExtList);
-//     cout << nl->ToString(extendedSourceAttrList);
-    
-    
-    
-    
+    ListExpr curList = nl->OneElemList(nl->First(nl->Second(nl->Second(
+                                                    nl->Second(relTypeList)))));
+    ListExpr restAttrList = nl->Rest(nl->Second(nl->Second(nl->Second(
+                                                                relTypeList))));
+    ListExpr oneAttrList = nl->First(restAttrList);
+    ListExpr curList2 = curList;
+    while (!nl->IsEmpty(restAttrList)) {
+      oneAttrList = nl->First(restAttrList);
+      restAttrList = nl->Rest(restAttrList);
+      curList2 = nl->Append(curList2, oneAttrList);
+    }
+    curList2 = nl->Append(curList2, nl->TwoElemList(nl->SymbolAtom("NodeId"),
+                                           nl->SymbolAtom(CcInt::BasicType())));
+    curList2 = nl->Append(curList2, nl->TwoElemList(nl->SymbolAtom("Entry"),
+                                           nl->SymbolAtom(CcInt::BasicType())));
+    curList2 = nl->Append(curList2, nl->TwoElemList(nl->SymbolAtom("Subtree"),
+                                           nl->SymbolAtom(CcInt::BasicType())));
+    curList2 = nl->Append(curList2, nl->TwoElemList(nl->SymbolAtom("MaxDist"),
+                                          nl->SymbolAtom(CcReal::BasicType())));
     nodeInfoTypeList = nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()),
-      nl->SixElemList(nl->TwoElemList(nl->SymbolAtom("NodeId"), 
-                                      nl->SymbolAtom(CcInt::BasicType())),
-                      nl->TwoElemList(nl->SymbolAtom("Ancestor"),
-                                      nl->SymbolAtom(CcInt::BasicType())),
-                      nl->TwoElemList(nl->SymbolAtom("Centers"),
-                                      nl->SymbolAtom(Vector::BasicType())),
-                      nl->TwoElemList(nl->SymbolAtom("MaxDist"),
-                                      nl->SymbolAtom(Vector::BasicType())),
-                      nl->TwoElemList(nl->SymbolAtom("RefDistPos"),
-                                      nl->SymbolAtom(Vector::BasicType())),
-                      nl->TwoElemList(nl->SymbolAtom("Distances3d"),
-                                      nl->SymbolAtom(Vector::BasicType()))));
+                                       curList);
     ListExpr numNodeInfoTypeList = sc->NumericType(nodeInfoTypeList);
     nodeInfoType = new TupleType(numNodeInfoTypeList);
     nodeInfoRel = new Relation(nodeInfoType, false);
