@@ -2063,7 +2063,7 @@ class PersistentNTree {
   typedef NTreeInnerNode<T, DistComp, variant> innernode_t;
 
   PersistentNTree(ntree_t* ntree, std::vector<Tuple*>* tuples,
-                ListExpr attrList, std::string& prefix, const int firstNodeId) : 
+                ListExpr attrList, std::string& prefix, const int firstNodeId) :
           status(false), treeInfoType(0), nodeInfoType(0), nodeDistType(0), 
           pivotInfoType(0), currentId(firstNodeId) {
     sc = SecondoSystem::GetCatalog();
@@ -2145,12 +2145,12 @@ class PersistentNTree {
     
 //     AttributeType attrType = sourceType->GetAttributeType(0);
 //     ListExpr extendedSourceAttrList = nl->OneElemList(nl->TwoElemList(
-//                     nl->IntAtom(attrType.algId), nl->IntAtom(attrType.typeId)));
+//                  nl->IntAtom(attrType.algId), nl->IntAtom(attrType.typeId)));
 //     ListExpr tempAttrList = extendedSourceAttrList;
 //     for (int i = 1; i < sourceType->GetNoAttributes(); i++) {
 //       attrType = sourceType->GetAttributeType(i);
 //       tempAttrList = nl->Append(tempAttrList, nl->TwoElemList(
-//                     nl->IntAtom(attrType.algId), nl->IntAtom(attrType.typeId)));
+//                  nl->IntAtom(attrType.algId), nl->IntAtom(attrType.typeId)));
 //     }
 //     cout << nl->ToString(extendedSourceAttrList) << endl;
     
@@ -2258,7 +2258,7 @@ class PersistentNTree {
 //           new collection::Collection(collection::vector, realVectorTypeList,
 //                                      maxDistSize);
 //     collection::Collection *refDistPos = 
-//           new collection::Collection(collection::vector, intVectorTypeList, 3);
+//         new collection::Collection(collection::vector, intVectorTypeList, 3);
 //     collection::Collection *distances3d = 
 //           new collection::Collection(collection::vector, realVectorTypeList,
 //                                      node->getCount());
@@ -2266,11 +2266,11 @@ class PersistentNTree {
 //     for (int i = 0; i < node->getCount(); i++) {
 //       if (node->isLeaf()) {
 //         entries->Insert(new CcInt(true, 
-//                         (int)((leafnode_t*)node)->getObject(i)->getTid()), 1);
+//                       (int)((leafnode_t*)node)->getObject(i)->getTid()), 1);
 //       }
 //       else { // inner node
 //         entries->Insert(new CcInt(true, 
-//                         (int)((innernode_t*)node)->getCenter(i)->getTid()), 1);
+//                       (int)((innernode_t*)node)->getCenter(i)->getTid()), 1);
 //         maxDist->Insert(new CcReal(true, 
 //                                    ((innernode_t*)node)->getMaxDist(i)), 1);
 //       }
