@@ -947,11 +947,11 @@ class NTreeInnerNode : public NTreeNode<T, DistComp, variant> {
     noDistComp = noDistFunCallsAfter - noDistFunCallsBefore;
     for (int i = 0; i < degree; i++) {
       if ((int)partitions[i].size() <= maxLeafSize) {
-        children[i] = new leafnode_t(degree, maxLeafSize, dc, 
-                                     centers[i]->getTid(), partitions[i]);
+        children[i] = new leafnode_t(degree, maxLeafSize, candOrder, pMethod,
+                                     dc, centers[i]->getTid(), partitions[i]);
       }
       else {
-        children[i] = ((variant == 2) || (variant > 6) ?
+        children[i] = ((variant == 2) || (variant >= 6) ?
              new innernode_t(degree, maxLeafSize, candOrder, pMethod) :
              new innernode_t(degree, maxLeafSize));
         children[i]->build(partitions[i], dc, depth, partMethod);
@@ -999,9 +999,12 @@ class NTreeLeafNode : public NTreeNode<T, DistComp, variant> {
     }
   }
   
-  NTreeLeafNode(const int d, const int mls, DistComp& dc, 
-                const TupleId centerTid, std::vector<T>& contents) : 
-                                                         NTreeLeafNode(d, mls) {
+  NTreeLeafNode(const int d, const int mls, const CandOrder co, 
+                const PruningMethod pm, DistComp& dc, const TupleId centerTid,
+                std::vector<T>& contents) :
+          NTreeLeafNode(d, mls) {
+    candOrder = co;
+    pMethod = pm;
     insert(contents, centerTid);
     int noDistFunCallsBefore = dc.getNoDistFunCalls();
     if (variant == 2 || variant >= 6) {
@@ -1971,7 +1974,8 @@ class NTree {
       delete root;
     }
     if (contents.size() <= (unsigned int)maxLeafSize) {
-      root = new leafnode_t(degree, maxLeafSize, dc, 0, contents);
+      root = new leafnode_t(degree, maxLeafSize, candOrder, pMethod, dc, 0,
+                            contents);
     }
     else {
       root = new innernode_t(degree, maxLeafSize, candOrder, pMethod);
