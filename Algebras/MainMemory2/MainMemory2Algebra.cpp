@@ -23149,6 +23149,112 @@ Operator exportntreeOp(
    exportntreeTM
 );
 
+/*
+operator ~importntree~
+
+*/
+ListExpr importntreeTM(ListExpr args) {
+  if (!nl->HasLength(args, 2)) {
+    return listutils::typeError("two arguments expected");
+  }
+  if (!CcString::checkType(nl->First(args))) {
+    return listutils::typeError("first arg must be a string");  
+  }
+  return MPointer::wrapType(Mem::wrapType(nl->TwoElemList(
+     listutils::basicSymbol<MemoryNtreeObject<Point, StdDistComp<Point>, 8> >(),
+     nl->Second(args))));
+}
+
+
+/*
+6.2 Value Mapping template
+
+*/
+template<class T, int variant>
+int importntreeVMT(Word* args, Word& result, int message, Word& local, 
+                   Supplier s) {
+  result = qp->ResultStorage(s);
+  MPointer* res = (MPointer*)result.addr;
+  CcString* ccprefix = (CcString*)args[0].addr;
+  if (!ccprefix->IsDefined()) {
+    res->setPointer(0);
+    return 0;
+  }
+  string prefix = ccprefix->GetValue();
+  PersistentNTree<MTreeEntry<T>, StdDistComp<T>, variant> persNTree(prefix);
+  NTree<MTreeEntry<T>, StdDistComp<T>, variant>* tree = persNTree.getNTree();
+  if (tree == 0) {
+    res->setPointer(0);
+    return 0;
+  }
+  cout << "entries: " << tree->getNoEntries() << ", nodes: " 
+       << tree->getNoNodes() << ", leaves: " << tree->getNoLeaves() << endl;
+  size_t usedMem = tree->memSize();
+  ListExpr typeList = nl->Second(qp->GetType(s));
+  bool flobused = (nl->ToString(typeList) == "mpoint" || 
+    nl->ToString(typeList) == "cupoint" || nl->ToString(typeList) == "cmpoint");
+  MemoryNtreeObject<T, StdDistComp<T>, variant>* ntree = 
+      new MemoryNtreeObject<T, StdDistComp<T>, variant>(tree, usedMem, 
+                                nl->ToString(typeList), !flobused, getDBname());
+  NTreeStat stat = ntree->getNtreeX()->getStat();
+  string counterName = "counterMCreateNTree" + 
+                       (variant > 1 ? to_string(variant) : "");
+  mtreehelper::increaseCounter(counterName,
+                               stat.noDCInnerNodes + stat.noDCLeaves);
+  mtreehelper::increaseCounter("noVisitedInnerNodes", stat.noInnerNodes);
+  mtreehelper::increaseCounter("noVisitedLeaves", stat.noLeaves);
+  res->setPointer(ntree);
+  ntree->deleteIfAllowed();
+
+
+
+//   StdDistComp<T> dc(geoid);
+//   NTree<MTreeEntry<T>, StdDistComp<T>, variant>* tree =
+//      new NTree<MTreeEntry<T>, StdDistComp<T>, variant>(degree, maxLeafSize, dc,
+//                                                        partMethod);
+
+
+  return 0;
+}
+
+template<int variant>
+ValueMapping importntreeVM[] = {
+  importntreeVMT<mtreehelper::t1, variant>,
+  importntreeVMT<mtreehelper::t2, variant>,
+  importntreeVMT<mtreehelper::t3, variant>,
+  importntreeVMT<mtreehelper::t4, variant>,
+  importntreeVMT<mtreehelper::t5, variant>,
+  importntreeVMT<mtreehelper::t6, variant>,
+  importntreeVMT<mtreehelper::t7, variant>,
+  importntreeVMT<mtreehelper::t8, variant>,
+  importntreeVMT<mtreehelper::t9, variant>,
+  importntreeVMT<mtreehelper::t10, variant>,
+  importntreeVMT<mtreehelper::t11, variant>,
+  importntreeVMT<mtreehelper::t12, variant>
+};
+
+int importntreeSelect(ListExpr args) {
+  return mtreehelper::getTypeNo(nl->Second(args), 12);
+}
+
+OperatorSpec importntree8Spec(
+  "string x T -> NTREE8(T)",
+  "importntree8(prefix, object)",
+  "Reconstructs an Ntree8 from previously exported DB relations with the given "
+  " prefix. The second argument must be an object of the same type as the tree "
+  " objects, whose value is irrelevant.",
+  "query importntree8(\"kinos\", [const point value undef])"
+);
+
+Operator importntree8Op (
+    "importntree8",
+    importntree8Spec.getStr(),
+    12,
+    importntreeVM<8>,
+    importntreeSelect,
+    importntreeTM
+);
+
 
 /*
 23 Algebra Definition
@@ -23255,6 +23361,7 @@ class MainMemory2Algebra : public Algebra {
           AddOperator(&mcreatentree8Op);
           
           AddOperator(&exportntreeOp);
+          AddOperator(&importntree8Op);
           
   ////////////////////// MainMemory2Algebra////////////////////////////
           

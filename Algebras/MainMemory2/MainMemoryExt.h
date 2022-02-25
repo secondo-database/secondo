@@ -708,6 +708,10 @@ class MTreeEntry {
     destroy(&key);
   }
   
+  static std::string getBasicType() {
+    return T::BasicType();
+  }
+  
  private:
   T key;
   TupleId tid;

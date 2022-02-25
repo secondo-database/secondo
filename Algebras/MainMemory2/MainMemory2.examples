@@ -336,6 +336,12 @@ Signature : NTREEx(T) x string x int -> bool
 Example   : query mKinos_GeoData_ntree8 mKinos exportntree[GeoData, "kinos", 1]
 Result    : TRUE
 
+Operator  : importntree8
+Number    : 1925
+Signature : string x T -> NTREEx(T)
+Example   : let mKinos_GeoData_ntree8_restored = importntree8("kinos", [const point value undef])
+Result    : ()
+
 Operator  : mdistRangeN
 Number    : 1910
 Signature : NTREE(T) x MREL(X) x T (x U) x real -> stream(tuple(X))
