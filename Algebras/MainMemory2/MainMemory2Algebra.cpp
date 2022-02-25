@@ -23208,10 +23208,7 @@ int importntreeVMT(Word* args, Word& result, int message, Word& local,
 
 
 
-//   StdDistComp<T> dc(geoid);
-//   NTree<MTreeEntry<T>, StdDistComp<T>, variant>* tree =
-//      new NTree<MTreeEntry<T>, StdDistComp<T>, variant>(degree, maxLeafSize, dc,
-//                                                        partMethod);
+//  TODO: retrieve Geoid from nodeInfo relation
 
 
   return 0;
