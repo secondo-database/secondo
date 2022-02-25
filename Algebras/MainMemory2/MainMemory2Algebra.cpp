@@ -23023,8 +23023,9 @@ ListExpr exportntreeTM(ListExpr args) {
   if (!Mem::checkType(a1)) {
     return listutils::typeError("first arg is not a memory object");
   }
-  if (nl->ToString(nl->First(nl->Second(a1))) != "ntree8") {
-    return listutils::typeError("first arg must be an ntree8");
+  if (nl->ToString(nl->First(nl->Second(a1))) != "ntree7" &&
+      nl->ToString(nl->First(nl->Second(a1))) != "ntree8") {
+    return listutils::typeError("first arg must be an ntree7 or an ntree8");
   }
   if (!MPointer::checkType(nl->Second(args))) {
     return listutils::typeError("second arg is not an mpointer");
@@ -23093,6 +23094,18 @@ int exportntreeVMT(Word* args, Word& result, int message, Word& local,
 }
 
 ValueMapping exportntreeVM[] = {
+  exportntreeVMT<mtreehelper::t1, 7>,
+  exportntreeVMT<mtreehelper::t2, 7>,
+  exportntreeVMT<mtreehelper::t3, 7>,
+  exportntreeVMT<mtreehelper::t4, 7>,
+  exportntreeVMT<mtreehelper::t5, 7>,
+  exportntreeVMT<mtreehelper::t6, 7>,
+  exportntreeVMT<mtreehelper::t7, 7>,
+  exportntreeVMT<mtreehelper::t8, 7>,
+  exportntreeVMT<mtreehelper::t9, 7>,
+  exportntreeVMT<mtreehelper::t10, 7>,
+  exportntreeVMT<mtreehelper::t11, 7>,
+  exportntreeVMT<mtreehelper::t12, 7>,
   exportntreeVMT<mtreehelper::t1, 8>,
   exportntreeVMT<mtreehelper::t2, 8>,
   exportntreeVMT<mtreehelper::t3, 8>,
@@ -23108,8 +23121,11 @@ ValueMapping exportntreeVM[] = {
 };
 
 int exportntreeSelect(ListExpr args) {
+  string treeType = nl->SymbolValue(nl->First(nl->Second(nl->Second(nl->First(
+                                                                      args)))));
+  int offset = (treeType == "ntree7" ? 0 : 12);
   ListExpr a1 = nl->Second(nl->Second(nl->Second(nl->First(args))));
-  return mtreehelper::getTypeNo(a1, 12);
+  return mtreehelper::getTypeNo(a1, 12) + offset;
 }
 
 OperatorSpec exportntreeSpec(
@@ -23127,7 +23143,7 @@ OperatorSpec exportntreeSpec(
 Operator exportntreeOp(
    "exportntree",
    exportntreeSpec.getStr(),
-   12,
+   24,
    exportntreeVM,
    exportntreeSelect,
    exportntreeTM
