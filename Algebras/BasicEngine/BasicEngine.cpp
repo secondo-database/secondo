@@ -158,22 +158,31 @@ class BasicEngineAlgebra : public Algebra
     AddOperator(&be_runsqlOp);
     AddOperator(&be_collect_op);
     be_collect_op.SetUsesArgsInTypeMapping();
+    AddOperator(&be_shareOp);
+    AddOperator(&be_validateQueryOp);
 
+    // Grid handling
+    AddOperator(&be_gridCreateOp);
+    AddOperator(&be_gridDeleteOp);
+
+    // Partitioning
     AddOperator(&be_partRandomOp);
     AddOperator(&be_partRROp);
     AddOperator(&be_partHashOp);
     AddOperator(&be_partGridOp);
     AddOperator(&be_partFunOp);
-    AddOperator(&be_repartRandomOp);
-    AddOperator(&be_repartRROp);
-    AddOperator(&be_repartHashOp);
-    AddOperator(&be_repartGridOp);
-    AddOperator(&be_repartFunOp);
 
-    AddOperator(&be_shareOp);
-    AddOperator(&be_validateQueryOp);
-    AddOperator(&be_gridCreateOp);
-    AddOperator(&be_gridDeleteOp);
+    // Repartitioning
+    AddOperator(&be_repartRandomOp);
+    be_repartRandomOp.SetUsesArgsInTypeMapping();
+    AddOperator(&be_repartRROp);
+    be_repartRROp.SetUsesArgsInTypeMapping();
+    AddOperator(&be_repartHashOp);
+    be_repartHashOp.SetUsesArgsInTypeMapping();
+    AddOperator(&be_repartGridOp);
+    be_repartGridOp.SetUsesArgsInTypeMapping();
+    AddOperator(&be_repartFunOp);
+    be_repartFunOp.SetUsesArgsInTypeMapping();
 
     // configure boost logger
     // TODO: Move to SECONDO core

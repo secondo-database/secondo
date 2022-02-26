@@ -56,20 +56,29 @@ string err = "{string, text} x DArray(SQLREL) --> bool"
   if(!nl->HasLength(args,2)){
     return listutils::typeError("Three arguments expected.\n " + err);
   }
-  if(!CcString::checkType(nl->First(args))
-        && !FText::checkType(nl->First(args))){
+
+  ListExpr table = nl->First(nl->First(args));
+  ListExpr darray = nl->First(nl->Second(args));
+  string darrayName = nl->ToString(nl->Second(nl->Second(args)));
+
+  if(!CcString::checkType(table) && !FText::checkType(table)){
     return listutils::typeError("Value of first argument have "
                   "to be a string or a text.\n" + err);
   }
 
-  if(!DArray::checkType(nl->Second(args))){
+  if(!DArray::checkType(darray)){
     return listutils::typeError("Value of second argument have "
                     "to be a darry.\n" + err);
   }
 
-  return nl->SymbolAtom(CcBool::BasicType());
+  // Append the used darray name to the result
+  // The darray is distributed in the VM to the worker
+  ListExpr res =
+      nl->ThreeElemList(nl->SymbolAtom(Symbol::APPEND()),
+                        nl->OneElemList(nl->StringAtom(darrayName)),
+                        nl->SymbolAtom(CcBool::BasicType()));
+
+  return res;
 }
-
-
 
 } // namespace BasicEngine
