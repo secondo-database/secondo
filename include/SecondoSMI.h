@@ -981,15 +981,10 @@ The behaviour of the storage management system in single user mode is
 implementation dependent.
 
 */
-  static std::map<SmiError, std::string> errorMap;
+  static const std::map<SmiError, std::string> errorMap;
 /*
 A table containing the error map strings indexed by error numbers (~SmiError~).
 The function ~Err2Msg~ retrieves the strings from this table.
-
-*/
-  static bool errorMapInitialized;
-/*
-A flag that indicates whether the error map table is already initialized.
 
 */
   static SmiType GetImplementationType();
