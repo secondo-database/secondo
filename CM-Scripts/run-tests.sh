@@ -180,11 +180,6 @@ if [ "$1" == "-tty" ]; then
   runTest ${buildDir}/Optimizer "TestOptimizer" "time TestOptimizer" $timeOutMax
 fi
 
-if [ "$failedTests" != "" ]; then
-  cd $buildDir
-  tar -cvzf failedTests.tar.gz $failedTests
-fi
-
 #clean up
 printf "\n%s\n\n" "Cleaning up ..."
 rm -rf $dbDir
