@@ -124,24 +124,9 @@ public:
   repartitionTableMaster(const PartitionData &partitionData,
                          const PartitionMode &repartitionMode);
 
-  distributed2::DArray partitionTableByHash(const std::string &table, 
-    const std::string &key, const size_t slotnum,
-    const bool repartition);
-
-  distributed2::DArray partitionTableByRR(const std::string &table, 
-    const size_t slotnum, const bool repartition);
-
-  distributed2::DArray partitionTableByFun(const std::string &table, 
-    const std::string &key, const std::string &fun, 
-    const size_t slotnum, const bool repartition);
-
-  distributed2::DArray partitionTableByGrid(const std::string &table, 
-    const std::string &key, const size_t slotnum, 
-    const std::string &attribute, const std::string &gridname, 
-    const bool repartition);
-
-  distributed2::DArray partitionTableByRandom(const std::string &table, 
-    const size_t slotnum, const bool repartition);
+  bool repartitionTable(const PartitionData &partitionData,
+    const PartitionMode &repartitionMode,
+    distributed2::DArray* darray);
 
   void exportTableCreateStatementSQL(const std::string &table, 
     const std::string &outputFile,

@@ -25,8 +25,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 
-#ifndef BE_PART_RR_H
-#define BE_PART_RR_H
+#pragma once
 
 #include "StandardTypes.h"
 #include "Algebras/FText/FTextAlgebra.h"
@@ -64,8 +63,13 @@ int be_partRRSFVM(Word *args, Word &result, int message, Word &local,
       return 0;
     }
 
+    PartitionData partitionData = {};
+    partitionData.table = tab->toText();
+    partitionData.slotnum = slot->GetIntval();
+
     distributed2::DArray val =
-        be_control->partitionTableByRR(tab->toText(), slot->GetIntval(), false);
+        be_control->partitionTable(partitionData, rr, false);
+
     res->copyFrom(val);
 
   } catch (SecondoException &e) {
@@ -121,5 +125,3 @@ Operator be_partRROp(
 );
 
 } // namespace BasicEngine
-
-#endif

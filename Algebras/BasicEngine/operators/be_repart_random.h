@@ -25,8 +25,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 
-#ifndef BE_REPART_RANDOM_H
-#define BE_REPART_RANDOM_H
+#pragma once
 
 #include "StandardTypes.h"
 #include "Algebras/FText/FTextAlgebra.h"
@@ -49,30 +48,36 @@ int be_repartRandomSFVM(Word *args, Word &result, int message, Word &local,
 
   T *tab = (T *)args[0].addr;
   CcInt *slot = (CcInt *)args[1].addr;
-  distributed2::DArray *res = (distributed2::DArray *)result.addr;
+  distributed2::DArray *darray = (distributed2::DArray *)args[2].addr;
+
+  CcBool *res = (CcBool *) result.addr;
 
   try {
 
     if (be_control == nullptr) {
       std::cerr << "Please init basic engine first" << std::endl;
-      res->makeUndefined();
+      res->SetDefined(false);
       return 0;
     }
 
     if (slot->GetIntval() <= 0) {
       cout << negSlots << std::endl;
-      res->makeUndefined();
+      res->SetDefined(false);
       return 0;
     }
 
-    distributed2::DArray val = be_control->partitionTableByRandom(tab->toText(),
-                                                    slot->GetIntval(), true);
 
-    res->copyFrom(val);
+    PartitionData partitionData = {};
+    partitionData.table = tab->toText();
+    partitionData.slotnum = slot->GetIntval();
+
+    bool val = be_control -> repartitionTable(partitionData, random, darray);
+    
+    res->Set(true, val);
   } catch (SecondoException &e) {
     BOOST_LOG_TRIVIAL(error)
         << "Got error while repartitioning the table " << e.what();
-    res->makeUndefined();
+    res->SetDefined(false);
     return 0;
   }
 
@@ -123,4 +128,3 @@ Operator be_repartRandomOp(
 
 } // namespace BasicEngine
 
-#endif

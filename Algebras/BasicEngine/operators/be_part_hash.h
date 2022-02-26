@@ -25,8 +25,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 
-#ifndef BE_PART_HASH_H
-#define BE_PART_HASH_H
+#pragma once
 
 #include "Algebras/Distributed2/DArray.h"
 #include "Algebras/FText/FTextAlgebra.h"
@@ -64,10 +63,15 @@ int be_partHashSFVM(Word *args, Word &result, int message, Word &local,
       return 0;
     }
 
-    distributed2::DArray val = be_control->partitionTableByHash(
-        tab->toText(), key->toText(), slot->GetIntval(), false);
-    res->copyFrom(val);
+    PartitionData partitionData = {};
+    partitionData.table = tab->toText();
+    partitionData.key = key->toText();
+    partitionData.slotnum = slot->GetIntval();
 
+    distributed2::DArray val 
+      = be_control->partitionTable(partitionData, hash, false);
+      
+    res->copyFrom(val);
   } catch (SecondoException &e) {
     BOOST_LOG_TRIVIAL(error)
         << "Got error while partitioning table " << e.what();
@@ -120,5 +124,3 @@ Operator be_partHashOp("be_part_hash", be_partHashSpec.getStr(),
                        be_partHashTM);
 
 } // namespace BasicEngine
-
-#endif

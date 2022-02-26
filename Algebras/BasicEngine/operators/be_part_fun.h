@@ -25,8 +25,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 
-#ifndef BE_PART_FUN_H
-#define BE_PART_FUN_H
+#pragma once
 
 #include "Algebras/Distributed2/DArray.h"
 #include "Algebras/FText/FTextAlgebra.h"
@@ -48,7 +47,7 @@ int be_partFunSFVM(Word *args, Word &result, int message, Word &local,
 
   T *tab = (T *)args[0].addr;
   H *key = (H *)args[1].addr;
-  H *fun = (H *)args[2].addr;
+  H *partitionfun = (H *)args[2].addr;
   CcInt *slot = (CcInt *)args[3].addr;
   distributed2::DArray *res = (distributed2::DArray *)result.addr;
 
@@ -66,8 +65,15 @@ int be_partFunSFVM(Word *args, Word &result, int message, Word &local,
       return 0;
     }
 
-    distributed2::DArray val = be_control->partitionTableByFun(
-        tab->toText(), key->toText(), fun->toText(), slot->GetIntval(), false);
+    PartitionData partitionData = {};
+    partitionData.table =  tab->toText();
+    partitionData.key = key->toText();
+    partitionData.partitionfun = partitionfun->toText();
+    partitionData.slotnum = slot->GetIntval();
+
+    distributed2::DArray val =
+        be_control->partitionTable(partitionData, fun, false);
+
     res->copyFrom(val);
 
   } catch (SecondoException &e) {
@@ -137,4 +143,3 @@ Operator be_partFunOp("be_part_fun", be_partFunSpec.getStr(),
 
 } // namespace BasicEngine
 
-#endif

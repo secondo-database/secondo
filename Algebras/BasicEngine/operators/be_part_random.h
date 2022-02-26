@@ -25,8 +25,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 
-#ifndef BE_PART_RANDOM_H
-#define BE_PART_RANDOM_H
+#pragma once
 
 #include "StandardTypes.h"
 #include "Algebras/FText/FTextAlgebra.h"
@@ -62,9 +61,14 @@ int be_partRandomSFVM(Word *args, Word &result, int message, Word &local,
       res->makeUndefined();
       return 0;
     }
+    
+    PartitionData partitionData = {};
+    partitionData.table = tab->toText();
+    partitionData.slotnum = slot->GetIntval();
 
-    distributed2::DArray val = be_control->partitionTableByRandom(tab->toText(),
-                                                      slot->GetIntval(), false);
+    distributed2::DArray val =  be_control -> 
+      partitionTable(partitionData, random, false);
+
     res->copyFrom(val);
 
   } catch (SecondoException &e) {
@@ -124,4 +128,3 @@ Operator be_partRandomOp(
 
 } // namespace BasicEngine
 
-#endif

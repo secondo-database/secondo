@@ -25,17 +25,15 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 
-#ifndef BE_REPART_RR_H
-#define BE_REPART_RR_H
+#pragma once
 
-#include "StandardTypes.h"
-#include "Algebras/FText/FTextAlgebra.h"
 #include "Algebras/Distributed2/DArray.h"
+#include "Algebras/FText/FTextAlgebra.h"
+#include "StandardTypes.h"
 
 namespace BasicEngine {
 
 ListExpr be_repartRRTM(ListExpr args);
-
 
 /*
 1.2.2 Value Mapping
@@ -49,30 +47,36 @@ int be_repartRRSFVM(Word *args, Word &result, int message, Word &local,
 
   T *tab = (T *)args[0].addr;
   CcInt *slot = (CcInt *)args[1].addr;
-  distributed2::DArray *res = (distributed2::DArray *)result.addr;
+  distributed2::DArray *darray = (distributed2::DArray *)args[2].addr;
+
+  CcBool *res = (CcBool *) result.addr;
 
   try {
 
     if (be_control == nullptr) {
       std::cerr << "Please init basic engine first" << std::endl;
-      res->makeUndefined();
+      res->SetDefined(false);
       return 0;
     }
 
     if (slot->GetIntval() <= 0) {
       cout << negSlots << std::endl;
-      res->makeUndefined();
+      res->SetDefined(false);
       return 0;
     }
 
-    distributed2::DArray val =
-        be_control->partitionTableByRR(tab->toText(), slot->GetIntval(), true);
-    res->copyFrom(val);
+    PartitionData partitionData = {};
+    partitionData.table = tab->toText();
+    partitionData.slotnum = slot->GetIntval();
+
+    bool val = be_control -> repartitionTable(partitionData, rr, darray);
+        
+    res->Set(true, val);
 
   } catch (SecondoException &e) {
     BOOST_LOG_TRIVIAL(error)
         << "Got error while repartitioning the table" << e.what();
-    res->makeUndefined();
+    res->SetDefined(false);
     return 0;
   }
 
@@ -83,28 +87,25 @@ int be_repartRRSFVM(Word *args, Word &result, int message, Word &local,
 1.2.3 Specification
 
 */
-OperatorSpec be_repartRRSpec(
-   "{string, text} x distributed2::DArray(SQLREL) --> bool",
-   "be_repart_rr(_,_)",
-   "This operator repartition a relation by round-robin "
-   "to the worker of the darray.",
-   "query be_repart_rr('cars', darray)"
-);
+OperatorSpec
+    be_repartRRSpec("{string, text} x distributed2::DArray(SQLREL) --> bool",
+                    "be_repart_rr(_,_)",
+                    "This operator repartition a relation by round-robin "
+                    "to the worker of the darray.",
+                    "query be_repart_rr('cars', darray)");
 
 /*
 1.2.4 ValueMapping Array
 
 */
-ValueMapping be_repartRRVM[] = {
-  be_repartRRSFVM<CcString>,
-  be_repartRRSFVM<FText>
-};
+ValueMapping be_repartRRVM[] = {be_repartRRSFVM<CcString>,
+                                be_repartRRSFVM<FText>};
 
 /*
 1.2.5 Selection Function
 
 */
-int be_repartRRSelect(ListExpr args){
+int be_repartRRSelect(ListExpr args) {
   return CcString::checkType(nl->First(args)) ? 0 : 1;
 };
 
@@ -112,15 +113,8 @@ int be_repartRRSelect(ListExpr args){
 1.2.6 Operator instance
 
 */
-Operator be_repartRROp(
-  "be_repart_rr",
-  be_repartRRSpec.getStr(),
-  sizeof(be_repartRRVM),
-  be_repartRRVM,
-  be_repartRRSelect,
-  be_repartRRTM
-);
+Operator be_repartRROp("be_repart_rr", be_repartRRSpec.getStr(),
+                       sizeof(be_repartRRVM), be_repartRRVM, be_repartRRSelect,
+                       be_repartRRTM);
 
 } // namespace BasicEngine
-
-#endif

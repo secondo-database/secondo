@@ -48,32 +48,39 @@ int be_repartFunSFVM(Word *args, Word &result, int message, Word &local,
 
   T *tab = (T *)args[0].addr;
   H *key = (H *)args[1].addr;
-  H *fun = (H *)args[2].addr;
+  H *partitionfun = (H *)args[2].addr;
   CcInt *slot = (CcInt *)args[3].addr;
-  distributed2::DArray *res = (distributed2::DArray *)result.addr;
+  distributed2::DArray *darray = (distributed2::DArray *)args[4].addr;
+
+  CcBool *res = (CcBool *) result.addr;
 
   try {
     if (be_control == nullptr) {
       std::cerr << "Please init basic engine first" << std::endl;
-      res->makeUndefined();
+      res->SetDefined(false);
       return 0;
     }
 
     if (slot->GetIntval() <= 0) {
       cout << negSlots << std::endl;
-      res->makeUndefined();
+      res->SetDefined(false);
       return 0;
     }
 
-    distributed2::DArray val = be_control->partitionTableByFun(
-        tab->toText(), key->toText(), fun->toText(), slot->GetIntval(), true);
+    PartitionData partitionData = {};
+    partitionData.table =  tab->toText();
+    partitionData.key = key->toText();
+    partitionData.partitionfun = partitionfun->toText();
+    partitionData.slotnum = slot->GetIntval();
 
-    res->copyFrom(val);
+    bool val = be_control -> repartitionTable(partitionData, fun, darray);
+    
+    res->Set(true, val);
 
   } catch (SecondoException &e) {
     BOOST_LOG_TRIVIAL(error)
         << "Got error during the repartitioning of the table " << e.what();
-    res->makeUndefined();
+    res->SetDefined(false);
     return 0;
   }
 

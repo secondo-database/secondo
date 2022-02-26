@@ -25,8 +25,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 
-#ifndef BE_PART_GRID_H
-#define BE_PART_GRID_H
+#pragma once
 
 #include "StandardTypes.h"
 
@@ -64,9 +63,16 @@ int be_partGridSFVM(Word *args, Word &result, int message, Word &local,
       return 0;
     }
 
-    distributed2::DArray val = be_control->partitionTableByGrid(
-        tab->toText(), key->toText(), slot->GetIntval(), geo_col->toText(),
-        gridname->toText(), false);
+    PartitionData partitionData = {};
+    partitionData.table = tab->toText();
+    partitionData.key = key->toText();
+    partitionData.attribute = geo_col->toText();
+    partitionData.gridname = gridname->toText();
+    partitionData.slotnum = slot->GetIntval();
+
+    distributed2::DArray val = be_control -> 
+      partitionTable(partitionData, grid, false);
+
     res->copyFrom(val);
 
   } catch (SecondoException &e) {
@@ -161,5 +167,3 @@ Operator be_partGridOp("be_part_grid", be_partGridSpec.getStr(),
                        be_partGridTM);
 
 } // namespace BasicEngine
-
-#endif

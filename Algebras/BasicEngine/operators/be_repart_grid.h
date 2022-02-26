@@ -25,8 +25,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 
-#ifndef BE_REPART_GRID_H
-#define BE_REPART_GRID_H
+#pragma once
 
 #include "Algebras/Distributed2/DArray.h"
 #include "Algebras/FText/FTextAlgebra.h"
@@ -51,32 +50,39 @@ int be_repartGridSFVM(Word *args, Word &result, int message, Word &local,
   I *geo_col = (I *)args[2].addr;
   K *gridname = (K *)args[3].addr;
   CcInt *slot = (CcInt *)args[4].addr;
-  distributed2::DArray *res = (distributed2::DArray *)result.addr;
+  distributed2::DArray *darray = (distributed2::DArray *)args[5].addr;
+
+  CcBool *res = (CcBool *) result.addr;
 
   try {
 
     if (be_control == nullptr) {
       std::cerr << "Please init basic engine first" << std::endl;
-      res->makeUndefined();
+      res->SetDefined(false);
       return 0;
     }
 
     if (slot->GetIntval() <= 0) {
       cout << negSlots << std::endl;
-      res->makeUndefined();
+      res->SetDefined(false);
       return 0;
     }
 
-    distributed2::DArray val = be_control->partitionTableByGrid(
-        tab->toText(), key->toText(), slot->GetIntval(), geo_col->toText(),
-        gridname->toText(), true);
+    PartitionData partitionData = {};
+    partitionData.table = tab->toText();
+    partitionData.key = key->toText();
+    partitionData.attribute = geo_col->toText();
+    partitionData.gridname = gridname->toText();
+    partitionData.slotnum = slot->GetIntval();
 
-    res->copyFrom(val);
+    bool val = be_control -> repartitionTable(partitionData, grid, darray);
+
+    res->Set(true, val);
 
   } catch (SecondoException &e) {
     BOOST_LOG_TRIVIAL(error)
         << "Got error while repartitioning the table " << e.what();
-    res->makeUndefined();
+    res->SetDefined(false);
     return 0;
   }
 
@@ -165,4 +171,3 @@ Operator be_repartGridOp("be_repart_grid", be_repartGridSpec.getStr(),
 
 } // namespace BasicEngine
 
-#endif

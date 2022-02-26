@@ -613,121 +613,6 @@ Repartition the given table - master version
 }
 
 /*
-3.8 ~partition\_table\_by\_hash~
-
-Repartition the given table by round hash
-
-*/
- DArray BasicEngineControl::partitionTableByHash(const std::string &table, 
-  const std::string &key, const size_t slotnum, const bool repartition) {
-
-    BOOST_LOG_TRIVIAL(debug) << "Partiton by hash called on " << table;
-
-    PartitionData partitionData = {};
-    partitionData.table = table;
-    partitionData.key = key;
-    partitionData.slotnum = slotnum;
-
-    if(repartition) {
-      return repartitionTable(partitionData, hash);
-    } else {
-      return partitionTable(partitionData, hash, false);
-    }
-}
-
-/*
-3.8 ~partition\_table\_by\_rr~
-
-Repartition the given table by round robin
-
-*/
-DArray BasicEngineControl::partitionTableByRR(const std::string &table, 
-  const size_t slotnum, const bool repartition) {
-    
-    BOOST_LOG_TRIVIAL(debug) << "Partiton by rr called on " << table;
-
-    PartitionData partitionData = {};
-    partitionData.table = table;
-    partitionData.slotnum = slotnum;
-
-    if(repartition) {
-      return repartitionTable(partitionData, rr);
-    } else {
-      return partitionTable(partitionData, rr, false);
-    }
-}
-
-/*
-3.8 ~partition\_table\_by\_random~
-
-Repartition the given table by random
-
-*/
-DArray BasicEngineControl::partitionTableByRandom(const std::string &table, 
-  const size_t slotnum, const bool repartition) {
-    
-    BOOST_LOG_TRIVIAL(debug) << "Partiton by random called on " << table;
-
-    PartitionData partitionData = {};
-    partitionData.table = table;
-    partitionData.slotnum = slotnum;
-
-    if(repartition) {
-      return repartitionTable(partitionData, random);
-    } else {
-      return partitionTable(partitionData, random, false);
-    }
-}
-
-/*
-3.8 ~partition\_table\_by\_random~
-
-Repartition the given table by random
-
-*/
-DArray BasicEngineControl::partitionTableByFun(const std::string &table, 
-    const std::string &key, const std::string &partitionfun, 
-    const size_t slotnum, const bool repartition) {
-
-    PartitionData partitionData = {};
-    partitionData.table = table;
-    partitionData.key = key;
-    partitionData.partitionfun = fun;
-    partitionData.slotnum = slotnum;
-    
-    if(repartition) {
-      return repartitionTable(partitionData, fun);
-    } else {
-      return partitionTable(partitionData, fun, false);
-    }
-}
-
-/*
-3.8 ~partition\_table\_by\_grid~
-
-Repartition the given table by grid
-
-*/    
-DArray BasicEngineControl::partitionTableByGrid(const std::string &table, 
-    const std::string &key, const size_t slotnum, 
-    const std::string &attribute, const std::string &gridname, 
-    const bool repartition) {
-    
-    PartitionData partitionData = {};
-    partitionData.table = table;
-    partitionData.key = key;
-    partitionData.attribute = attribute;
-    partitionData.gridname = gridname;
-    partitionData.slotnum = slotnum;
-
-    if(repartition) {
-      return repartitionTable(partitionData, grid);
-    } else {
-      return partitionTable(partitionData, grid, false);
-    }
-}
-
-/*
 3.9 ~exportSchemaToWorker~
 
 Export the SQL schema of the relation into the given partitons
@@ -1817,6 +1702,20 @@ WorkerConnection *BasicEngineControl::getConnectionForSlot(std::string host,
   }
 
   return nullptr;
+}
+
+
+/**
+3.31 Repartiton the given table
+
+*/
+bool BasicEngineControl::repartitionTable(const PartitionData &partitionData,
+    const PartitionMode &repartitionMode,
+    distributed2::DArray* darray) {
+
+// TODO: Implement
+
+return false;
 }
 
 } /* namespace BasicEngine */
