@@ -1,0 +1,26 @@
+#!/bin/bash
+#
+# This is a git pre-commit check that 
+# invokes checkpd
+#
+# Install this script by executing
+# cp -av CM-Scripts/pre-commit .git/hooks/pre-commit
+#
+##########################################
+
+set -e
+
+# Try to execute checkpd locally
+checkpd="$SECONDO_BUILD_DIR/Tools/pd/checkpd"
+if [ -x $checkpd ]; then
+   changed=$(git diff --cached --name-only --diff-filter=ACM)
+
+   for filename in $changed; do
+     if [[ $filename == *.h ]] || [[ $filename == *.hpp ]] || [[ $filename == *.c ]] || [[ $filename == *.cpp ]] || [[ $filename == *.java ]] || [[ $filename == *.pl ]]; then
+        echo Running checkpd for $filename
+        $checkpd --verystrong $filename
+     fi
+   done
+
+fi
+
