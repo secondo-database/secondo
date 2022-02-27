@@ -189,7 +189,7 @@ bool BasicEngineControl::createAllConnections() {
 
   // Export the worker relation with the clients
   if(master) {
-    string exportedFile = exportWorkerRelation(workerRelationName);
+    string exportedFile = exportSecondoRelation(workerRelationName);
     workerRelationFileName.emplace(exportedFile); 
   }
 
@@ -1186,13 +1186,12 @@ Get the SECONDO type for the given SQL query.
 
 
 /*
-3.23 ~exportWorkerRelation~
+3.23 ~exportSecondoRelation~
 
-Export the worker relation into a file.
+Export the given SECONDO relation into a file.
 
 */
-string BasicEngineControl::exportWorkerRelation(
-  const string &relationName) {
+string BasicEngineControl::exportSecondoRelation(const string &relationName) {
 
   // Output file
   string filename = relationName + "_" 
@@ -1708,10 +1707,36 @@ WorkerConnection *BasicEngineControl::getConnectionForSlot(std::string host,
 /**
 3.31 Repartiton the given table
 
+Input: Table, Attribute, DArray, Mapping Function
+
+- Copy darray to all worker
+- Create name for temp table1
+- Create mapping table on each worker
+- Join table on each worker with mapping table store result in temp table1
+- Create name for temp table2
+- Copy schema from temp table1 to temp table 2
+- Copy local partitions from temp table1 to temp table2
+- Copy all foreign partitions to temp table2 on the other worker
+- Delete temp table1
+- Delete table
+- Rename temp table2 to table
+
 */
 bool BasicEngineControl::repartitionTable(const PartitionData &partitionData,
-    const PartitionMode &repartitionMode,
-    distributed2::DArray* darray) {
+    const PartitionMode &repartitionMode, distributed2::DArray* darray,
+    const string &darrayName) {
+
+      // Step 1 - Export Darray to all workers
+      string darrayrelation = exportSecondoRelation(darrayName);
+      CommandLog commandLog;
+
+      for(WorkerConnection* connection : connections) {
+        ConnectionInfo* ci = connection -> getConnection();
+        ci->createOrUpdateRelationFromBinFile(
+          workerRelationName, darrayrelation, false, 
+          commandLog, true, false, WorkerConnection::defaultTimeout);
+      }
+
 
 // TODO: Implement
 

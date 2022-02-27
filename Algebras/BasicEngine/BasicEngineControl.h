@@ -125,8 +125,8 @@ public:
                          const PartitionMode &repartitionMode);
 
   bool repartitionTable(const PartitionData &partitionData,
-    const PartitionMode &repartitionMode,
-    distributed2::DArray* darray);
+    const PartitionMode &repartitionMode, distributed2::DArray* darray, 
+    const std::string &darrayName);
 
   void exportTableCreateStatementSQL(const std::string &table, 
     const std::string &outputFile,
@@ -176,7 +176,7 @@ public:
 
   ResultIteratorGeneric* performSQLSelectQuery(const std::string &sqlQuery);
 
-  std::string exportWorkerRelation(const std::string &relationName);
+  std::string exportSecondoRelation(const std::string &relationName);
 
   bool exportWorkerRelationToWorker(WorkerConnection* connection,
     const std::optional<std::string> &workerRelationFileName);
@@ -232,7 +232,7 @@ private:
 /*
 2.2 Members
 
-2.2.1 ~dbs\_conn~
+2.2.1 ~dbms\_connection~
 
 In this template variable were stores the connection,
 to a secondary dbms (for example postgresql)

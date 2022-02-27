@@ -51,8 +51,16 @@ int be_repartFunSFVM(Word *args, Word &result, int message, Word &local,
   H *partitionfun = (H *)args[2].addr;
   CcInt *slot = (CcInt *)args[3].addr;
   distributed2::DArray *darray = (distributed2::DArray *)args[4].addr;
-
+  FText *darrayName = (FText *)args[5].addr;
   CcBool *res = (CcBool *) result.addr;
+
+  if (!darrayName->IsDefined()) {
+    std::cerr << "Error: DArray name is undefined" << std::endl;
+    res->Set(true, false);
+    return 0;
+  }  
+  
+  std::string darrayNameValue = darrayName->toText();
 
   try {
     if (be_control == nullptr) {
@@ -73,7 +81,8 @@ int be_repartFunSFVM(Word *args, Word &result, int message, Word &local,
     partitionData.partitionfun = partitionfun->toText();
     partitionData.slotnum = slot->GetIntval();
 
-    bool val = be_control -> repartitionTable(partitionData, fun, darray);
+    bool val = be_control -> repartitionTable(partitionData, fun, 
+      darray, darrayNameValue);
     
     res->Set(true, val);
 
