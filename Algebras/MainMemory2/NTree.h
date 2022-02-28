@@ -130,6 +130,14 @@ class NTreeNode {
   
   virtual bool isOverflow() const = 0;
   
+  int getNodeId() const {
+    return nodeId;
+  }
+  
+  void setNodeId(const int id) {
+    nodeId = id;
+  }
+  
   int getCount() const {
     return count;
   }
@@ -366,7 +374,7 @@ class NTreeNode {
     degree(d), maxLeafSize(mls), count(0), noDistComp(0), distMatrix(0),
     distances2d(0), distances3d(0), candOrder(RANDOM), pMethod(SIMPLE) {}
    
-  int degree, maxLeafSize, count, noDistComp; 
+  int nodeId, degree, maxLeafSize, count, noDistComp; 
   
   // only used for N-tree2, i.e., variant == 2
   double** distMatrix; // matrix of pairwise center distances
@@ -1985,6 +1993,7 @@ class NTree {
       root = new innernode_t(degree, maxLeafSize, candOrder, pMethod);
       root->build(contents, dc, -1, partMethod);
     }
+    assignNodeIds(0);
 //     print(cout);
     computeStatistics(root);
     cout << endl;
@@ -2043,6 +2052,25 @@ class NTree {
   
   NTreeStat getStat() const {
     return stat;
+  }
+  
+  void assignNodeIds(const int firstId = 0) {
+    int currentId = firstId;
+    std::queue<node_t*> nodes;
+    nodes.push(root);
+    node_t* node = 0;
+    while (!nodes.empty()) {
+      node = nodes.front();
+      nodes.pop();
+      node->setNodeId(currentId);
+      currentId++;
+      if (!node->isLeaf()) { // nothing to do for leaves
+        innernode_t* inode = (innernode_t*)node;
+        for (int i = 0; i < inode->getCount(); i++) {
+          nodes.push(inode->getChild(i));
+        }
+      }
+    }
   }
   
   
@@ -2263,13 +2291,13 @@ class PersistentNTree {
   
   void processNode(node_t* node) {
     TupleId tid;
-    int nodeId = assignedId + 1;
-    if (reservedId <= nodeId) {
-      reservedId = nodeId + 1;
-    }
-    int firstSubNodeId = reservedId;
-    assignedId++;
-    reservedId += (node->isLeaf() ? 0 : node->getCount());
+//     int nodeId = assignedId + 1;
+//     if (reservedId <= nodeId) {
+//       reservedId = nodeId + 1;
+//     }
+//     int firstSubNodeId = reservedId;
+//     assignedId++;
+//     reservedId += (node->isLeaf() ? 0 : node->getCount());
     std::tuple<int, int, int> refDistPos = node->getRefDistPos();
     for (int i = 0; i < node->getCount(); i++) {
       if (node->isLeaf()) {
@@ -2278,17 +2306,17 @@ class PersistentNTree {
       else { // inner node
         tid = ((innernode_t*)node)->getCenter(i)->getTid();
       }
-      nodeInfo.push_back(std::make_tuple(nodeId, i, 
-                                    (node->isLeaf() ? 0 : firstSubNodeId + i),
+      nodeInfo.push_back(std::make_tuple(node->getNodeId(), i, 
+          (node->isLeaf() ? 0 : ((innernode_t*)node)->getChild(i)->getNodeId()),
        (node->isLeaf() ? -1.0 : ((innernode_t*)node)->getMaxDist(i)), tid - 1));
       for (int j = 0; j < i; j++) {
-        nodeDist.push_back(std::make_tuple(nodeId, i, j, 
+        nodeDist.push_back(std::make_tuple(node->getNodeId(), i, j, 
                                node->getPrecomputedDist(i, j, node->isLeaf())));
       }
       std::vector<double> pivotDists = node->getPivotDistances(i);
       bool isPivot = (i == std::get<0>(refDistPos) || 
                       i == std::get<1>(refDistPos));
-      pivotInfo.push_back(std::make_tuple(nodeId, i, pivotDists[0],
+      pivotInfo.push_back(std::make_tuple(node->getNodeId(), i, pivotDists[0],
                                           pivotDists[1], isPivot));
       if (!node->isLeaf()) {
         processNode(((innernode_t*)node)->getChild(i));
@@ -2297,9 +2325,9 @@ class PersistentNTree {
   }
   
   bool fillRelations() {
-    std::sort(nodeInfo.begin(), nodeInfo.end());
-    std::sort(nodeDist.begin(), nodeDist.end());
-    std::sort(pivotInfo.begin(), pivotInfo.end());
+//     std::sort(nodeInfo.begin(), nodeInfo.end());
+//     std::sort(nodeDist.begin(), nodeDist.end());
+//     std::sort(pivotInfo.begin(), pivotInfo.end());
     int nodeId, entry, subtree, entry1, entry2;
     bool isPivot;
     double maxDist, dist, pivotDist1, pivotDist2;
