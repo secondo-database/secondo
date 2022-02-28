@@ -67,7 +67,7 @@ int be_partRandomSFVM(Word *args, Word &result, int message, Word &local,
     partitionData.slotnum = slot->GetIntval();
 
     distributed2::DArray val =  be_control -> 
-      partitionTable(partitionData, random, false);
+      partitionTableFromMaster(partitionData, random);
 
     res->copyFrom(val);
 
