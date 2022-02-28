@@ -114,17 +114,18 @@ public:
 
   bool checkAllConnections();
 
-  distributed2::DArray repartitionTable(PartitionData &partitionData, 
-    const PartitionMode &repartitionMode);
+  std::string partitionTable(PartitionData &partitionData,
+                             const PartitionMode &repartitionMode);
 
-  distributed2::DArray partitionTable(PartitionData &partitionData, 
-    const PartitionMode &repartitionMode, const bool repartition);
+  distributed2::DArray partitionTableFromMaster(
+      PartitionData &partitionData, const PartitionMode &repartitionMode);
 
-  distributed2::DArray
-  repartitionTableMaster(const PartitionData &partitionData,
-                         const PartitionMode &repartitionMode);
+  bool repartitionTableMaster(PartitionData &partitionData,
+                              const PartitionMode &repartitionMode,
+                              distributed2::DArray *darray,
+                              const std::string &darrayName);
 
-  bool repartitionTable(const PartitionData &partitionData,
+  bool repartitionTable(PartitionData &partitionData,
     const PartitionMode &repartitionMode, distributed2::DArray* darray, 
     const std::string &darrayName);
 

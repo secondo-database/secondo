@@ -45,7 +45,7 @@ int be_unionSFVM(Word *args, Word &result, int message, Word &local,
 
   result = qp->ResultStorage(s);
   T *tab = (T *)args[0].addr;
-  bool val;
+  bool val = false;
 
   try {
     if (be_control && be_control->isMaster()) {

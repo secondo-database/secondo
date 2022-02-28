@@ -45,7 +45,7 @@ int be_runsqlSFVM(Word *args, Word &result, int message, Word &local,
                   Supplier s) {
 
   T *path = (T *)args[0].addr;
-  bool val;
+  bool val = false;
 
   try {
     result = qp->ResultStorage(s);

@@ -68,7 +68,7 @@ int be_partRRSFVM(Word *args, Word &result, int message, Word &local,
     partitionData.slotnum = slot->GetIntval();
 
     distributed2::DArray val =
-        be_control->partitionTable(partitionData, rr, false);
+        be_control->partitionTableFromMaster(partitionData, rr);
 
     res->copyFrom(val);
 

@@ -360,26 +360,6 @@ void BasicEngineControl::exportTableCreateStatementSQL(
   }
 }
 
-/*
-3.8 ~repartition\_table~
-
-Repartition the given table
-
-*/
-DArray BasicEngineControl::repartitionTable(PartitionData &partitionData,
-  const PartitionMode &repartitionMode) {
-
-   BOOST_LOG_TRIVIAL(debug) << "Repartiton on "
-    << partitionData.table << " with mode " << repartitionMode
-    << " master: " << master;
-
-    if(! master) {
-      return partitionTable(partitionData, repartitionMode, true);
-    }
-
-    return repartitionTableMaster(partitionData, repartitionMode);
-  }
-
 /**
 3.8 Drop the attribute from the given table
 
@@ -405,15 +385,14 @@ DArray BasicEngineControl::repartitionTable(PartitionData &partitionData,
     }
   }
 
-/*
-3.8 ~repartition\_table\_worker~
+  /*
+  3.8 ~repartition\_table\_worker~
 
-Repartition the given table - worker version
+  Repartition the given table - worker version
 
-*/
-  DArray BasicEngineControl::partitionTable(PartitionData &partitionData,
-                                            const PartitionMode &partitionMode,
-                                            const bool repartition) {
+  */
+  string BasicEngineControl::partitionTable(PartitionData &partitionData,
+                                     const PartitionMode &partitionMode) {
 
     // Remove old cellnumber and slotnumber attributes 
     // (e.g., needed for repartition the table)
@@ -451,44 +430,10 @@ Repartition the given table - worker version
 
     default:
       BOOST_LOG_TRIVIAL(error) << "Unknown partition mode: " << partitionMode;
-      return false;
+      throw SecondoException("Unknown partition mode: " + partitionMode);
     }
 
-    string destinationTable;
-
-    if (repartition) {
-      destinationTable = getRepartitionTableName(partitionData.table);
-    } else {
-      destinationTable = partitionData.table;
-    }
-
-    // Export all partitions of the relation into the filesystem and
-    // generate a mapping between the paritions and the worker
-    std::list<ExportedSlotData> partitionWorkerMapping = exportAllPartitions(
-        resultTable, destinationTable, partitionData.slotnum,
-        connections.size());
-
-    // Create table on the remote systems 
-    if(! repartition) {
-      exportSchemaToWorker(resultTable, partitionWorkerMapping);
-    }
-
-    // Call transfer and import data
-    bool importResult = exportPartitionsToWorker(partitionWorkerMapping);
-
-    if (!importResult) {
-      BOOST_LOG_TRIVIAL(error) << "Unable to transfer and import table data";
-      return false;
-    }
-
-    // Delete the temporary repartition table
-    BOOST_LOG_TRIVIAL(debug) << "Deleting temporary table" << resultTable;
-    dbms_connection->dropTable(resultTable);
-
-    DArray darray = convertSlotMappingToDArray(partitionData.table, 
-      partitionWorkerMapping);
-
-    return darray;
+    return resultTable;
   }
 
 /*
@@ -497,9 +442,20 @@ Repartition the given table - worker version
 Repartition the given table - master version
 
 */
-  DArray BasicEngineControl::repartitionTableMaster(
-    const PartitionData &partitionData,
-    const PartitionMode &repartitionMode) {
+  bool BasicEngineControl::repartitionTableMaster(
+    PartitionData &partitionData, const PartitionMode &repartitionMode, 
+    distributed2::DArray* darray, const std::string &darrayName) {
+
+    // Step 1 - Export Darray to all workers
+    string darrayrelation = exportSecondoRelation(darrayName);
+    CommandLog commandLog;
+
+    for(WorkerConnection* connection : connections) {
+      ConnectionInfo* ci = connection -> getConnection();
+      ci->createOrUpdateRelationFromBinFile(
+        workerRelationName, darrayrelation, false, 
+        commandLog, true, false, WorkerConnection::defaultTimeout);
+    }
 
     string repartTableName = getRepartitionTableName(partitionData.table);
 
@@ -603,13 +559,7 @@ Repartition the given table - master version
         return false;
     }
 
-    // TODO: generate mapping on master
-    std::list<ExportedSlotData> partitionWorkerMapping;
-
-    DArray darray = convertSlotMappingToDArray(partitionData.table, 
-        partitionWorkerMapping);
-
-    return darray;
+    return true;
 }
 
 /*
@@ -1709,7 +1659,7 @@ WorkerConnection *BasicEngineControl::getConnectionForSlot(std::string host,
 
 Input: Table, Attribute, DArray, Mapping Function
 
-- Copy darray to all worker
+- On master: copy darray to all worker
 - Create name for temp table1
 - Create mapping table on each worker
 - Join table on each worker with mapping table store result in temp table1
@@ -1722,25 +1672,96 @@ Input: Table, Attribute, DArray, Mapping Function
 - Rename temp table2 to table
 
 */
-bool BasicEngineControl::repartitionTable(const PartitionData &partitionData,
-    const PartitionMode &repartitionMode, distributed2::DArray* darray,
-    const string &darrayName) {
+bool BasicEngineControl::repartitionTable(PartitionData &partitionData,
+                                          const PartitionMode &repartitionMode,
+                                          distributed2::DArray *darray,
+                                          const string &darrayName) {
 
-      // Step 1 - Export Darray to all workers
-      string darrayrelation = exportSecondoRelation(darrayName);
-      CommandLog commandLog;
+  BOOST_LOG_TRIVIAL(debug) << "Repartiton on " << partitionData.table
+                           << " with mode " << repartitionMode
+                           << " master: " << master;
 
-      for(WorkerConnection* connection : connections) {
-        ConnectionInfo* ci = connection -> getConnection();
-        ci->createOrUpdateRelationFromBinFile(
-          workerRelationName, darrayrelation, false, 
-          commandLog, true, false, WorkerConnection::defaultTimeout);
+  try {
+    if (!master) {
+      string resultTable = partitionTable(partitionData, repartitionMode);
+
+      string destinationTable = getRepartitionTableName(partitionData.table);
+
+      // Export all partitions of the relation into the filesystem and
+      // generate a mapping between the paritions and the worker
+      std::list<ExportedSlotData> partitionWorkerMapping = exportAllPartitions(
+          resultTable, destinationTable, partitionData.slotnum,
+          connections.size());
+
+      // Call transfer and import data
+      bool importResult = exportPartitionsToWorker(partitionWorkerMapping);
+
+      if (!importResult) {
+        BOOST_LOG_TRIVIAL(error) << "Unable to transfer and import table data";
+        return false;
       }
 
+      // Delete the temporary repartition table
+      BOOST_LOG_TRIVIAL(debug) << "Deleting temporary table" << resultTable;
+      dbms_connection->dropTable(resultTable);
 
-// TODO: Implement
+      return true;
+    } else {
+      return repartitionTableMaster(partitionData, repartitionMode, darray,
+                                    darrayName);
+    }
+  } catch (std::exception &e) {
+    return false;
+  }
+}
 
-return false;
+/**
+3.31 Partiton the table on the master and spread the content
+to the worker.
+
+Input: Tablename, Attribute, Number of Slots, Mapping Function
+
+- Create darray mapping (slot -> worker)
+- Create mapping table
+- Join table with mapping table
+- Export schema of joined table
+- Export joined table based on workers of the darray (one file per slot)
+- Load schema on workers
+- Load slots on workers
+- Rename joined table to original table name
+
+*/
+distributed2::DArray BasicEngineControl::partitionTableFromMaster(
+    PartitionData &partitionData, const PartitionMode &repartitionMode) {
+
+  string resultTable = partitionTable(partitionData, repartitionMode);
+
+  string destinationTable = partitionData.table;
+
+  // Export all partitions of the relation into the filesystem and
+  // generate a mapping between the paritions and the worker
+  std::list<ExportedSlotData> partitionWorkerMapping = exportAllPartitions(
+      resultTable, destinationTable, partitionData.slotnum, connections.size());
+
+  // Create table on the remote systems
+  exportSchemaToWorker(resultTable, partitionWorkerMapping);
+
+  // Call transfer and import data
+  bool importResult = exportPartitionsToWorker(partitionWorkerMapping);
+
+  if (!importResult) {
+    BOOST_LOG_TRIVIAL(error) << "Unable to transfer and import table data";
+    return false;
+  }
+
+  // Delete the temporary repartition table
+  BOOST_LOG_TRIVIAL(debug) << "Deleting temporary table" << resultTable;
+  dbms_connection->dropTable(resultTable);
+
+  DArray darray =
+      convertSlotMappingToDArray(partitionData.table, partitionWorkerMapping);
+
+  return darray;
 }
 
 } /* namespace BasicEngine */
