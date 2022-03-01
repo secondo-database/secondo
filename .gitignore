@@ -18,6 +18,7 @@ makefile.algebras
 # Bin
 /bin/*.lua
 /bin/temp_nested_list*
+/bin/vgcore.*
 
 # Algebras
 /Algebras/specs
@@ -30,6 +31,7 @@ makefile.algebras
 /Algebras/FText/RegExParser.y.c
 /Algebras/FText/RegExParser.y.h
 /Algebras/FText/RegExScanner.c
+/Algebras/Guide/GuideAlgebra.cpp.*
 /Algebras/MTree/mtree_docu
 /Algebras/PropertyGraph/CypherParser.cpp
 /Algebras/PropertyGraph/CypherParser.h
