@@ -2143,11 +2143,23 @@ class PersistentNTree {
         ntree(0) {
     sc = SecondoSystem::GetCatalog();
     std::vector<std::string> relNames = getRelNames(prefix);
-    for (unsigned int i = 0; i < relNames.size(); i++) {
-      if (!checkRelations(relNames)) {
-        return;
-      }
+    std::string nodeInfoRelName = prefix + "NodeInfo";
+    ListExpr relTypeList = getNodeInfoRelTypeList(nodeInfoRelName);
+    cout << "rel type is " << nl->ToString(relTypeList) << endl;
+    if (!createTypeLists(relTypeList)) {
+      return;
     }
+    if (!checkRelation(relNames[0], relTypeList)) {
+      return;
+    }
+    if (!checkRelation(relNames[1], relTypeList)) {
+      return;
+    }
+    
+    
+    
+    // TODO: retrieve Geoid from TreeInfo relation
+    
     
     status = true;
   }
@@ -2167,13 +2179,29 @@ class PersistentNTree {
     }
   }
   
+  ListExpr getNodeInfoRelTypeList(std::string& relName) const {
+    
+    Word relWord;
+    bool defined;
+    if (!sc->IsObjectName(relName)) {
+      return false;
+    }
+    if (!sc->GetObject(relName, relWord, defined)) {
+      return false;
+    }
+    if (!defined) {
+      return false;
+    }
+    return sc->GetObjectTypeExpr(relName);
+  }
+  
   std::vector<std::string> getRelNames(std::string& prefix) {
     std::vector<std::string> result{prefix + "TreeInfo", prefix + "NodeInfo",
                                     prefix + "NodeDist", prefix + "PivotInfo"};
     return result;
   }
   
-  bool checkRelations(std::string& relName) {
+  bool checkRelation(std::string& relName, ListExpr relType) {
     Word relWord;
     bool defined;
     if (relName.find("TreeInfo", relName.size() - 8) != std::string::npos) {
@@ -2192,14 +2220,16 @@ class PersistentNTree {
   
   bool createTypeLists(ListExpr relTypeList) {
     treeInfoTypeList = nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()),
-      nl->FourElemList(nl->TwoElemList(nl->SymbolAtom("Variant"),
+      nl->FiveElemList(nl->TwoElemList(nl->SymbolAtom("Variant"),
                                        nl->SymbolAtom(CcInt::BasicType())),
                        nl->TwoElemList(nl->SymbolAtom("EntryType"), 
                                        nl->SymbolAtom(CcString::BasicType())),
                        nl->TwoElemList(nl->SymbolAtom("Degree"), 
                                        nl->SymbolAtom(CcInt::BasicType())),
                        nl->TwoElemList(nl->SymbolAtom("MaxLeafSize"),
-                                       nl->SymbolAtom(CcInt::BasicType()))));
+                                       nl->SymbolAtom(CcInt::BasicType())),
+                       nl->TwoElemList(nl->SymbolAtom("Geoid"),
+                                       nl->SymbolAtom(Geoid::BasicType()))));
     ListExpr numTreeInfoTypeList = sc->NumericType(treeInfoTypeList);
     treeInfoType = new TupleType(numTreeInfoTypeList);
     firstAttrNo = nl->ListLength(nl->Second(nl->Second(nl->Second(
@@ -2284,6 +2314,20 @@ class PersistentNTree {
     treeInfoTuple->PutAttribute(1, new CcString(true, ntree->getEntryType()));
     treeInfoTuple->PutAttribute(2, new CcInt(true, ntree->getDegree()));
     treeInfoTuple->PutAttribute(3, new CcInt(true, ntree->getMaxLeafSize()));
+    auto distComp = ntree->getDistComp();
+    Geoid *geoid = distComp.getGeoid();
+    Geoid *newGeoid = 0;
+    if (geoid == 0) {
+      newGeoid = new Geoid(false);
+    }
+    else if (geoid->IsDefined()) {
+      newGeoid = new Geoid(*geoid);
+    }
+    else {
+      newGeoid = new Geoid(false);
+    }
+//     newGeoid->Print(cout);
+    treeInfoTuple->PutAttribute(4, newGeoid);
     treeInfoRel->AppendTuple(treeInfoTuple);
     processNode(ntree->getRoot());
     return true;
@@ -2318,7 +2362,9 @@ class PersistentNTree {
                       i == std::get<1>(refDistPos));
       pivotInfo.push_back(std::make_tuple(node->getNodeId(), i, pivotDists[0],
                                           pivotDists[1], isPivot));
-      if (!node->isLeaf()) {
+    }
+    if (!node->isLeaf()) {
+      for (int i = 0; i < node->getCount(); i++) {
         processNode(((innernode_t*)node)->getChild(i));
       }
     }
@@ -2391,11 +2437,6 @@ class PersistentNTree {
   
   ntree_t* getNTree() {
     return ntree;
-  }
-  
-  bool checkRelations(std::vector<std::string>& relNames) {
-    
-    return true;
   }
   
  private:

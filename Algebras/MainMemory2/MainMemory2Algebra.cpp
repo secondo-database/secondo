@@ -23208,7 +23208,6 @@ int importntreeVMT(Word* args, Word& result, int message, Word& local,
 
 
 
-//  TODO: retrieve Geoid from nodeInfo relation
 
 
   return 0;
