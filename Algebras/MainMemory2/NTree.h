@@ -27,9 +27,223 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include <limits>
 #include <random>
-#include "../Collection/CollectionAlgebra.h"
 #include "../FText/FTextAlgebra.h"
 #include "Mem.h"
+#include "MainMemoryExt.h"
+
+namespace mtreehelper{
+
+  double distance(const Point* p1, const Point* p2, Geoid* geoid) {
+     if(!p1->IsDefined() && !p2->IsDefined()){
+       return 0;
+     }
+     if(!p1->IsDefined() || !p2->IsDefined()){
+         return std::numeric_limits<double>::max();
+     } 
+     return p1->Distance(*p2, geoid);
+  }
+
+  double distance(const CcString* s1, const CcString* s2, Geoid* geoid) {
+     if(!s1->IsDefined() && !s2->IsDefined()){
+        return 0;
+     }
+     if(!s1->IsDefined() || !s2->IsDefined()){
+        return std::numeric_limits<double>::max();
+     }
+     return stringutils::ld(s1->GetValue() ,s2->GetValue());
+  }
+
+  double distance(const CcInt* i1, const CcInt* i2, Geoid* geoid) {
+     if(!i1->IsDefined() && !i2->IsDefined()){
+        return 0;
+     }
+     if(!i1->IsDefined() || !i2->IsDefined()){
+        return std::numeric_limits<double>::max();
+     }
+     return abs(i1->GetValue() - i2->GetValue());
+  }
+  
+  double distance(const CcReal* r1, const CcReal* r2, Geoid* geoid) {
+     if(!r1->IsDefined() && !r2->IsDefined()){
+        return 0;
+     }
+     if(!r1->IsDefined() || !r2->IsDefined()){
+        return std::numeric_limits<double>::max();
+     }
+     return abs(r1->GetValue() - r2->GetValue());
+  }
+
+  template<unsigned int dim>
+  double distance(const Rectangle<dim>* r1, 
+                  const Rectangle<dim>* r2, Geoid* geoid) {
+     if(!r1->IsDefined() && !r2->IsDefined()){
+        return 0;
+     }
+     if(!r1->IsDefined() || !r2->IsDefined()){
+        return std::numeric_limits<double>::max();
+     }
+     return r1->Distance(*r2);
+  }
+
+  double distance(const temporalalgebra::MPoint* mp1,
+                  const temporalalgebra::MPoint* mp2, Geoid* geoid) {
+    if (!mp1->IsDefined() && !mp2->IsDefined()) {
+      return 0;
+    }
+    if (!mp1->IsDefined() || !mp2->IsDefined()) {
+      return std::numeric_limits<double>::max();
+    }
+    datetime::DateTime duration(0, 3600000, datetime::durationtype);
+    return temporalalgebra::DistanceComputation<temporalalgebra::MPoint, 
+       temporalalgebra::UPoint>::DistanceAvg(*mp1, *mp2, duration, true, geoid);
+  }
+  
+  double distance(const temporalalgebra::CUPoint* cup1,
+                  const temporalalgebra::CUPoint* cup2, Geoid* geoid) {
+    if (!cup1->IsDefined() && !cup2->IsDefined()) {
+      return 0;
+    }
+    if (!cup1->IsDefined() || !cup2->IsDefined()) {
+      return std::numeric_limits<double>::max();
+    }
+    datetime::DateTime duration(0, 3600000, datetime::durationtype);
+    return cup1->DistanceAvg(*cup2, duration, true, geoid); // upper bound dist
+  }
+
+  double distance(const temporalalgebra::CMPoint* cmp1,
+                  const temporalalgebra::CMPoint* cmp2, Geoid* geoid) {
+    if (!cmp1->IsDefined() && !cmp2->IsDefined()) {
+      return 0;
+    }
+    if (!cmp1->IsDefined() || !cmp2->IsDefined()) {
+      return std::numeric_limits<double>::max();
+    }
+    datetime::DateTime duration(0, 3600000, datetime::durationtype);
+    return temporalalgebra::DistanceComputation<temporalalgebra::CMPoint, 
+                                         temporalalgebra::CUPoint>::DistanceAvg(
+                                           *cmp1, *cmp2, duration, true, geoid);
+  }
+  
+  template<class T>
+  double distance(const T* o1, const T* o2, double alpha, Geoid* geoid) {
+//     cout << "  CALL dist for " << o1->first << " and " << o2->first << endl;
+//     auto t1 = chrono::high_resolution_clock::now();
+//     double spaDist = o1->first.DistanceAvg(o2->first, geoid);
+    double spaDist = distance(&(o1->first), &(o2->first), geoid);
+//     auto t2 = chrono::high_resolution_clock::now();
+//     auto duration = 
+//           chrono::duration_cast<chrono::microseconds>(t2 - t1).count();
+//     cout << "  spatial distance: " << spaDist << " after "
+//          << (double)duration / 1000.0 << " ms" << endl;
+//     cout << "  num of spatial units: (" << o1->first.GetNoComponents()
+//          << ", " << o2->first.GetNoComponents() 
+//          << "), num of symbolic units: ("
+//          << o2->second.GetNoComponents() << ", " 
+//          << o2->second.GetNoComponents() << ")" << endl;
+    std::set<std::string> allLabels1, allLabels2;
+    o1->second.InsertLabels(allLabels1);
+    o2->second.InsertLabels(allLabels2);
+    double symDist = 1.0 - stj::jaccardSimilarity(allLabels1, allLabels2);
+//     auto t3 = chrono::high_resolution_clock::now();
+//     duration = chrono::duration_cast<chrono::microseconds>(t3 - t2).count();
+//     cout << "  symbolic jaccard sim:   " << symSim << " after "
+//          << (double)duration / 1000.0 << " ms" << endl;
+//     double symDist = o1->second.Distance_ALL(o2->second, stj::TRIVIAL);
+//     auto t4 = chrono::high_resolution_clock::now();
+//     duration = chrono::duration_cast<chrono::microseconds>(t4 - t3).count();
+//     cout << "  symbolic edit distance: " << symDist << " after " 
+//          << (double)duration / 1000.0 << " ms" << endl;
+    return spaDist * alpha + symDist * (1.0 - alpha);
+  }
+
+/*
+   6.4 ~getTypeNo~
+
+   Returns a number for supported types, -1 if not supported.
+
+*/
+  typedef Point t1;
+  typedef CcString t2;
+  typedef CcInt t3;
+  typedef CcReal t4;
+  typedef Rectangle<1> t5;
+  typedef Rectangle<2> t6;
+  typedef Rectangle<3> t7;
+  typedef Rectangle<4> t8;
+  typedef Rectangle<8> t9;
+  typedef temporalalgebra::MPoint t10;
+  typedef temporalalgebra::CUPoint t11;
+  typedef temporalalgebra::CMPoint t12;
+
+  int getTypeNo(ListExpr type, int expectedNumbers){
+     assert(expectedNumbers==12);
+     if(nl->ToString(type) == Tuple::BasicType()){return 12;}
+     if( t1::checkType(type)){ return 0;}
+     if( t2::checkType(type)){ return 1;}
+     if( t3::checkType(type) ){ return 2;}
+     if( t4::checkType(type)){ return 3; }
+     if( t5::checkType(type)){ return 4;}
+     if( t6::checkType(type)){ return 5;}
+     if( t7::checkType(type)){ return 6;}
+     if( t8::checkType(type)){ return 7;}
+     if( t9::checkType(type)){ return 8;}
+     if(t10::checkType(type)){ return 9;}
+     if(t11::checkType(type)){ return 10;}
+     if(t12::checkType(type)){ return 11;}
+     return -1;
+  }
+
+  std::string BasicType(){
+    return "mtree";
+  }
+
+  bool checkType(ListExpr type, ListExpr subtype, std::string basicType) {
+    if (!nl->HasLength(type,2)) {
+      return false;
+    }
+    if (!listutils::isSymbol(nl->First(type), basicType)) {
+      return false;
+    }
+    if(getTypeNo(subtype, 12) < 0) {
+      return false;
+    }
+    return nl->Equal(nl->Second(type), subtype);
+  }
+  
+  bool checkType(ListExpr type, ListExpr subtype) {
+    return checkType(type, subtype, BasicType());
+  }
+  
+  bool checkTypeN(ListExpr type, ListExpr subtype, int variant) {
+    std::string ntreetype = "ntree" +
+                                   (variant > 1 ? std::to_string(variant) : "");
+    return checkType(type, subtype, ntreetype);
+  }
+
+  void increaseCounter(const std::string& objName, const int numberToBeAdded) {
+    SecondoCatalog* sc = SecondoSystem::GetCatalog();
+    Word counterW;
+    bool defined = false;
+    bool exists = sc->GetObject(objName, counterW, defined);
+    ListExpr currentType = sc->GetObjectTypeExpr(objName);
+    if (!CcInt::checkType(currentType) || !defined) {
+      sc->DeleteObject(objName);
+    }
+    if (!exists || !CcInt::checkType(currentType) || !defined) {
+      counterW.addr = new CcInt(true, numberToBeAdded);
+      sc->InsertObject(objName, CcInt::BasicType(),
+                       nl->SymbolAtom(CcInt::BasicType()), counterW, true);
+    }
+    else {
+      int counter = ((CcInt*)counterW.addr)->GetValue() + numberToBeAdded;
+      ((CcInt*)counterW.addr)->Set(true, counter);
+      sc->ModifyObject(objName, counterW);
+    }
+  }
+
+}
+
+namespace mm2algebra {
 
 /*
 Implementation of the N-tree
@@ -52,6 +266,211 @@ class NTreeInnerNode;
 
 template<class T, class DistComp, int variant>
 class NTreeLeafNode;
+
+/*
+7 Auxiliary Class ~hash_pair~
+
+*/
+struct hash_pair { 
+  template <class T1, class T2> 
+  size_t operator()(const std::pair<T1, T2>& p) const { 
+    auto hash1 = std::hash<T1>{}(p.first); 
+    auto hash2 = std::hash<T2>{}(p.second); 
+    return hash1 ^ hash2; 
+  } 
+};
+
+/*
+7 Class ~DistStorage~
+
+*/
+class DistStorage {
+ public: 
+  DistStorage() : noDistFunCalls(0) {}
+  
+  ~DistStorage() {
+    clear();
+  }
+    
+  double retrieveDist(const TupleId& tid1, const TupleId& tid2) const {
+    assert(tid1 <= tid2);
+    auto it = storedDists.find(std::make_pair(tid1, tid2));
+    if (it == storedDists.end()) { // not found
+//       cout << "NOT FOUND dist(" << tid1 << ", " << tid2 << ")" << endl;
+      return -1.0;
+    }
+//     cout << "FOUND dist(" << tid1 << ", " << tid2 << ") = " << it->second 
+//          << endl;
+    return it->second;
+  }
+  
+  void storeDist(const TupleId& tid1, const TupleId& tid2, const double dist) {
+    storedDists[std::make_pair(tid1, tid2)] = dist;
+//     cout << "  COMPUTED and STORED dist(" << tid1 << ", " << tid2 << ") = " 
+//          << dist << "  ... # " << storedDists.size() << endl;
+  }
+  
+  size_t size() const {
+    return storedDists.size();
+  }
+  
+  void clear() {
+    storedDists.clear();
+    noDistFunCalls = 0;
+  }
+  
+  void increment() {
+    noDistFunCalls++;
+  }
+  
+  int getNoDistFunCalls() const {
+    return noDistFunCalls;
+  }
+  
+ private:
+  int noDistFunCalls;
+  std::unordered_map<std::pair<TupleId,TupleId>, double, hash_pair> storedDists;
+};
+
+/*
+8 Class ~StdDistComp~
+
+*/
+template<class T>
+class StdDistComp{
+  public:
+    StdDistComp(Geoid* _geoid){
+      geoid = _geoid?(Geoid*)_geoid->Clone():0; 
+    }
+
+    StdDistComp(const StdDistComp& src){
+       geoid = src.geoid?(Geoid*)src.geoid->Copy():0;
+    }
+
+    StdDistComp& operator=(const StdDistComp&src){
+       if(geoid) geoid->DeleteIfAllowed();
+       geoid = src.geoid?(Geoid*)src.geoid->Copy():0;
+    }
+
+    ~StdDistComp(){
+       if(geoid){
+         geoid->DeleteIfAllowed();
+       }
+    }
+
+
+    double operator()(const MTreeEntry<T>& o1, const MTreeEntry<T>& o2) {
+      TupleId tid1 = std::min(o1.getTid(), o2.getTid());
+      TupleId tid2 = std::max(o1.getTid(), o2.getTid());
+      double dist = distStorage.retrieveDist(tid1, tid2);
+      if (dist < 0.0) {
+        const T* t1 = o1.getKey();
+        const T* t2 = o2.getKey();
+        dist = mtreehelper::distance(t1, t2, geoid);
+        distStorage.increment();
+        if (getNoDistFunCalls() % 10000 == 0) {
+          cout << "|";
+          std::cout.flush();
+        }
+        else if (getNoDistFunCalls() % 1000 == 0) {
+          std::cerr << ".";
+          std::cout.flush();
+        }
+        distStorage.storeDist(tid1, tid2, dist);
+      }
+      return dist;
+    }
+//     double  operator()(const pair<T,TupleId>& o1, 
+//                        const pair<T,TupleId>& o2){
+//        return mtreehelper::distance(&o1.first,&o2.first, geoid);
+//     }
+
+    std::ostream& print( const MTreeEntry<T>& e, std::ostream& o){
+       o << "<("; e.getKey()->Print(o); o << ", " << e.getTid() << ")>";
+       return o;
+    }
+    
+    std::ostream& print(const MTreeEntry<T>& e, const bool printContents,
+                        std::ostream& o) {
+      if (printContents) {
+        return print(e, o);
+      }
+      o << e.getTid();
+      return o;
+    }
+    
+    Geoid* getGeoid() const {
+      return geoid;
+    }
+  
+    void reset(){} // not sureA
+    
+    size_t distStorageSize() const {
+      return distStorage.size();
+    }
+    
+    int getNoDistFunCalls() const {
+      return distStorage.getNoDistFunCalls();
+    }
+
+  protected:
+    Geoid* geoid;
+    DistStorage distStorage;
+};
+
+/*
+Class ~StdDistCompExt~
+
+*/
+template<class T, class U>
+class StdDistCompExt : public StdDistComp<std::pair<T, U> > {
+ public:
+  StdDistCompExt(Geoid* _geoid, double _alpha) :
+    StdDistComp<std::pair<T, U> >(_geoid), alpha(_alpha) {}
+  
+  StdDistCompExt(const StdDistCompExt& src) :
+    StdDistComp<std::pair<T, U> >(src), alpha(src.alpha) {}
+  
+  StdDistCompExt& operator=(const StdDistCompExt& src) {
+    if (this->geoid) {
+      this->geoid->DeleteIfAllowed();
+    }
+    ((StdDistComp<std::pair<T, U> >*)this)->geoid = src.geoid ? 
+                                                  (Geoid*)src.geoid->Copy() : 0;
+    alpha = src.alpha;
+  }
+  
+  ~StdDistCompExt() {}
+    
+  
+  std::ostream& print(const MTreeEntry<std::pair<T, U> >& p, std::ostream& o) {
+       o << "< <";
+       p.getKey()->first.Print(o);
+       o << ", ";
+       p.getKey()->second.Print(o);
+       o << ">, " << p.getTid() << ">";
+       return o;
+    }
+    
+  double operator()(const MTreeEntry<std::pair<T, U> >& o1,
+                    const MTreeEntry<std::pair<T, U> >& o2) {
+    TupleId tid1 = std::min(o1.getTid(), o2.getTid());
+    TupleId tid2 = std::max(o1.getTid(), o2.getTid());
+    double dist = this->distStorage.retrieveDist(tid1, tid2);
+    if (dist < 0.0) {
+      const std::pair<T, U>* p1 = o1.getKey();
+      const std::pair<T, U>* p2 = o2.getKey();
+      dist = mtreehelper::distance(p1, p2, alpha,
+                            ((StdDistComp<std::pair<T, U> >*)this)->getGeoid());
+      StdDistComp<std::pair<T, U> >::distStorage.increment();
+      this->distStorage.storeDist(tid1, tid2, dist);
+    }
+    return dist;
+  }
+  
+ private:
+  double alpha; 
+};
 
 /*
 2 struct PosDistPair
@@ -2151,7 +2570,6 @@ class PersistentNTree {
     std::vector<std::string> relNames = getRelNames(prefix);
     std::string nodeInfoRelName = prefix + "NodeInfo";
     ListExpr srcRelTypeList = getNodeInfoRelTypeList(nodeInfoRelName);
-    cout << "import: rel type is " << nl->ToString(srcRelTypeList) << endl;
     if (!createTypeLists(srcRelTypeList)) {
       return;
     }
@@ -2165,6 +2583,9 @@ class PersistentNTree {
       return;
     }
     if (!checkRelationType(relNames[3], pivotInfoTypeList)) {
+      return;
+    }
+    if (!initNTree()) {
       return;
     }
     
@@ -2209,35 +2630,60 @@ class PersistentNTree {
     Word relWord;
     bool defined;
     if (!sc->IsObjectName(relName)) {
-        return false;
+      cout << "relation " << relName << " does not exist" << endl;
+      return false;
     }
     if (!sc->GetObject(relName, relWord, defined)) {
+      cout << "relation " << relName << " could not be read" << endl;
       return false;
     }
     if (!defined) {
+      cout << "relation " << relName << " undefined" << endl;
       return false;
     }
     if (relName.find("TreeInfo", relName.size() - 8) != std::string::npos) {
       if (!nl->Equal(relType, treeInfoTypeList)) {
+        cout << "relation " << relName << " has wrong type" << endl;
         return false;
       }
+      treeInfoRel = (Relation*)(relWord.addr);
     }
     if (relName.find("NodeInfo", relName.size() - 8) != std::string::npos) {
-//       ListExpr tupleTypeList1 = nl->Second(nl->Second(relType));
-      
-      cout << nl->ToString(relType) << endl << nl->ToString(nodeInfoTypeList)
-           << endl;
+      ListExpr attrList1 = nl->Second(nl->Second(nl->Second(relType)));
+      ListExpr attrList2 = nl->Second(nodeInfoTypeList);
+      int listLength = nl->ListLength(attrList1);
+      for (int i = 1; i <= listLength; i++) {
+        if (!nl->Equal(nl->Nth(i, attrList1), nl->Nth(i, attrList2))) {
+          cout << "relation " << relName << " has wrong type" << endl;
+          return false;
+        }
+      }
+      nodeInfoRel = (Relation*)(relWord.addr);
     }
     if (relName.find("NodeDist", relName.size() - 8) != std::string::npos) {
       if (!nl->Equal(relType, nodeDistTypeList)) {
+        cout << "relation " << relName << " has wrong type" << endl;
         return false;
       }
+      nodeDistRel = (Relation*)(relWord.addr);
     }
-    if (relName.find("PivotInfo", relName.size() - 8) != std::string::npos) {
+    if (relName.find("PivotInfo", relName.size() - 9) != std::string::npos) {
       if (!nl->Equal(relType, pivotInfoTypeList)) {
+        cout << "relation " << relName << " has wrong type" << endl;
         return false;
       }
+      pivotInfoRel = (Relation*)(relWord.addr);
     }
+    return true;
+  }
+  
+  bool initNTree() {
+//     Tuple *treeInfoTuple = treeInfoRel->GetTuple(1, false);
+//     int degree = ((CcInt*)(treeInfoTuple->GetAttribute(1)))->GetValue();
+//     int maxLeafSize = ((CcInt*)(treeInfoTuple->GetAttribute(2)))->GetValue();
+//     Geoid *geoid = (Geoid*)(treeInfoTuple->GetAttribute(5));
+//     StdDistComp<T> dc(geoid);
+//     ntree = new ntree_t();
     return true;
   }
   
@@ -2280,7 +2726,6 @@ class PersistentNTree {
                                           nl->SymbolAtom(CcReal::BasicType())));
     nodeInfoTypeList = nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()),
                                        curList);
-    cout << "appended list: " << nl->ToString(nodeInfoTypeList) << endl;
     ListExpr numNodeInfoTypeList = sc->NumericType(nodeInfoTypeList);
     nodeInfoType = new TupleType(numNodeInfoTypeList);
     nodeDistTypeList = nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()),
@@ -2479,5 +2924,60 @@ class PersistentNTree {
   std::vector<std::tuple<int, int, double, double, bool> > pivotInfo;
   ntree_t* ntree;
 };
+
+template <class T, class DistComp, int variant>
+class MemoryNtreeObject : public MemoryObject {
+
+ public:
+  typedef std::pair<T, TupleId> treeentry_t;
+  typedef NTree<MTreeEntry<T>, DistComp, variant> tree_t;
+
+  MemoryNtreeObject(tree_t* _ntreeX, size_t _memSize, 
+                    const std::string& _objectTypeExpr, bool _flob, 
+                    const std::string& _database) {
+    ntreeX = _ntreeX;
+    memSize = _memSize;
+    objectTypeExpr =_objectTypeExpr;
+    flob = _flob;
+    database = _database;
+  };
+
+  tree_t* getNtreeX() {
+    return ntreeX;
+  };
+
+  static std::string BasicType() {
+    return "ntree" + (variant > 1 ? std::to_string(variant) : "");
+  }
+
+  static bool checkType(ListExpr list) {
+    if (!nl->HasLength(list, 2)) {
+      return false;
+    }
+    if (!listutils::isSymbol(nl->First(list), BasicType())) {
+      return false;
+    }
+    return T::checkType(nl->Second(list));
+  }
+    
+  MemoryObject* clone() {
+    return new MemoryNtreeObject<T, DistComp, variant>(ntreeX->clone(), 
+                                       memSize, objectTypeExpr, flob, database);
+  }
+
+
+ private:
+  tree_t* ntreeX;
+  MemoryNtreeObject();
+  
+ protected:
+  ~MemoryNtreeObject() {
+    if (ntreeX) {
+      delete ntreeX;
+    }
+  };
+};
+
+}
 
 #endif

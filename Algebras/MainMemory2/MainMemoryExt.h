@@ -54,11 +54,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "graph.h"
 #include "PointerWrapper.h"
 #include "MPointer.h"
-#include "NTree.h"
 
 #include "MemoryObject.h"
 #include "Algebras/Temporal/TemporalAlgebra.h"
-#include "Algebras/SymbolicTrajectoryBasic/SymbolicTrajectoryBasicAlgebra.h"
+#include "../SymbolicTrajectoryBasic/SymbolicTrajectoryBasicAlgebra.h"
 
 
 namespace mm2algebra{
@@ -779,59 +778,6 @@ class MemoryMtreeObject : public MemoryObject {
                 delete mtree;
             }
         };
-};
-
-template <class T, class DistComp, int variant>
-class MemoryNtreeObject : public MemoryObject {
-
- public:
-  typedef std::pair<T, TupleId> treeentry_t;
-  typedef NTree<MTreeEntry<T>, DistComp, variant> tree_t;
-
-  MemoryNtreeObject(tree_t* _ntreeX, size_t _memSize, 
-                    const std::string& _objectTypeExpr, bool _flob, 
-                    const std::string& _database) {
-    ntreeX = _ntreeX;
-    memSize = _memSize;
-    objectTypeExpr =_objectTypeExpr;
-    flob = _flob;
-    database = _database;
-  };
-
-  tree_t* getNtreeX() {
-    return ntreeX;
-  };
-
-  static std::string BasicType() {
-    return "ntree" + (variant > 1 ? std::to_string(variant) : "");
-  }
-
-  static bool checkType(ListExpr list) {
-    if (!nl->HasLength(list, 2)) {
-      return false;
-    }
-    if (!listutils::isSymbol(nl->First(list), BasicType())) {
-      return false;
-    }
-    return T::checkType(nl->Second(list));
-  }
-    
-  MemoryObject* clone() {
-    return new MemoryNtreeObject<T, DistComp, variant>(ntreeX->clone(), 
-                                       memSize, objectTypeExpr, flob, database);
-  }
-
-
- private:
-  tree_t* ntreeX;
-  MemoryNtreeObject();
-  
- protected:
-  ~MemoryNtreeObject() {
-    if (ntreeX) {
-      delete ntreeX;
-    }
-  };
 };
 
 class AttrComp{
