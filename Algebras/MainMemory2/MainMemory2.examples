@@ -333,7 +333,7 @@ Result    : ()
 Operator  : exportntree
 Number    : 1924
 Signature : NTREEx(T) x string x int -> bool
-Example   : query mKinos_GeoData_ntree8 mKinos exportntree[GeoData, "kinos", 1]
+Example   : query mKinos_GeoData_ntree8 mKinos exportntree["kinos", 1]
 Result    : TRUE
 
 Operator  : importntree8

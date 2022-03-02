@@ -22617,7 +22617,7 @@ int mcreatentreeVMT(Word* args, Word& result, int message, Word& local,
   StdDistComp<T> dc(geoid);
   NTree<MTreeEntry<T>, StdDistComp<T>, variant>* tree =
      new NTree<MTreeEntry<T>, StdDistComp<T>, variant>(degree, maxLeafSize, dc,
-                                                       partMethod);
+                                                       partMethod, index);
   tree->build(contents);
 //   cout << "entries: " << tree->getNoEntries() << ", nodes: " 
 //        << tree->getNoNodes() << ", leaves: " << tree->getNoLeaves() << endl;
@@ -22774,7 +22774,7 @@ int mcreatentree2VMT(Word* args, Word& result, int message, Word& local,
   StdDistComp<T> dc(geoid);
   NTree<MTreeEntry<T>, StdDistComp<T>, 2>* tree =
       new NTree<MTreeEntry<T>, StdDistComp<T>, 2>(degree, maxLeafSize, 
-                                     candOrder, pMethod, dc, partMethod);
+                                     candOrder, pMethod, dc, partMethod, index);
   tree->build(contents);
 //   cout << "entries: " << tree->getNoEntries() << ", nodes: " 
 //        << tree->getNoNodes() << ", leaves: " << tree->getNoLeaves() << endl;
@@ -23013,8 +23013,8 @@ operator ~makeNtreePersistent~
 
 */
 ListExpr exportntreeTM(ListExpr args) {
-  if (!nl->HasLength(args, 5)) {
-    return listutils::typeError("five arguments expected");
+  if (!nl->HasLength(args, 4)) {
+    return listutils::typeError("four arguments expected");
   }  
   ListExpr a1 = nl->First(args);
   if (MPointer::checkType(a1)) { 
@@ -23031,27 +23031,15 @@ ListExpr exportntreeTM(ListExpr args) {
     return listutils::typeError("second arg is not an mpointer");
   }
   // extract tuple type from first argument
-  ListExpr tupletype;
   ListExpr mpt = nl->Second(nl->Second(nl->Second(args)));
   if (!Relation::checkType(mpt)) {
     return listutils::typeError("mpointer to a non-relation");
   }
-  tupletype = nl->Second(mpt);
-  ListExpr attrList = nl->Second(tupletype);
-  if (nl->AtomType(nl->Third(args)) != SymbolType) {
-    return listutils::typeError("third arg is not a valid attribute name");
+  if (!CcString::checkType(nl->Third(args))) {
+    return listutils::typeError("third arg must be a string");  
   }
-  ListExpr type;
-  string name = nl->SymbolValue(nl->Third(args));
-  int index1 = listutils::findAttribute(attrList, name, type);
-  if (!index1) {
-    return listutils::typeError("attribute " + name + " not part of the tuple");
-  }
-  if (!CcString::checkType(nl->Fourth(args))) {
-    return listutils::typeError("second arg must be a string");  
-  }
-  if (!CcInt::checkType(nl->Fifth(args))) {
-    return listutils::typeError("third arg must be an int");
+  if (!CcInt::checkType(nl->Fourth(args))) {
+    return listutils::typeError("fourth arg must be an int");
   }
   return nl->SymbolAtom(CcBool::BasicType());
 }
@@ -23069,14 +23057,14 @@ int exportntreeVMT(Word* args, Word& result, int message, Word& local,
   }
   MemoryRelObject* mrel = (MemoryRelObject*)relMem->GetValue();
   vector<Tuple*>* relVector = mrel->getmmrel();
-  CcString *ccPrefix = (CcString*)args[3].addr;
+  CcString *ccPrefix = (CcString*)args[2].addr;
   if (!ccPrefix->IsDefined()) {
     cout << "undefined prefix" << endl;
     res->Set(true, false);
     return 0;
   }
   string prefix = ccPrefix->GetValue();
-  CcInt *ccFirstNodeId = (CcInt*)args[4].addr;
+  CcInt *ccFirstNodeId = (CcInt*)args[3].addr;
   if (!ccFirstNodeId->IsDefined()) {
     cout << "undefined first node id" << endl;
     res->Set(true, false);

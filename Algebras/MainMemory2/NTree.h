@@ -28,6 +28,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <limits>
 #include <random>
 #include "../Collection/CollectionAlgebra.h"
+#include "../FText/FTextAlgebra.h"
+#include "Mem.h"
 
 /*
 Implementation of the N-tree
@@ -1907,9 +1909,10 @@ class NTree {
   typedef NTree<T, DistComp, variant> ntree_t;
   typedef NTreeInnerNode<T, DistComp, variant> innernode_t;
   
-  NTree(const int d, const int mls, DistComp& di, PartitionMethod pm) :
-      degree(d), maxLeafSize(mls), root(0), dc(di), partMethod(pm),
-      candOrder(RANDOM), pMethod(SIMPLE) {
+  NTree(const int d, const int mls, DistComp& di, PartitionMethod pm,
+        const int attr) : 
+                degree(d), maxLeafSize(mls), attrNo(attr), root(0), dc(di), 
+                partMethod(pm), candOrder(RANDOM), pMethod(SIMPLE) {
     if (variant > 2) {
       candOrder = PIVOT2;
       pMethod = MINDIST;
@@ -1917,9 +1920,9 @@ class NTree {
   }
       
   NTree(const int d, const int mls, const CandOrder c, const PruningMethod pm,
-        DistComp& di, const PartitionMethod partm) :
-      degree(d), maxLeafSize(mls), root(0), dc(di), partMethod(partm),
-      candOrder(c), pMethod(pm) {
+        DistComp& di, const PartitionMethod partm, const int attr) :
+      degree(d), maxLeafSize(mls), attrNo(attr), root(0), dc(di),
+      partMethod(partm), candOrder(c), pMethod(pm) {
   }
   
   ~NTree() {
@@ -1946,6 +1949,10 @@ class NTree {
   
   int getMaxLeafSize() const {
     return maxLeafSize;
+  }
+  
+  int getAttrNo() const {
+    return attrNo;
   }
   
   int getNoLeaves() const {
@@ -2021,7 +2028,7 @@ class NTree {
   }
   
   ntree_t* clone() {
-    ntree_t* res = new ntree_t(degree, maxLeafSize, dc, partMethod);
+    ntree_t* res = new ntree_t(degree, maxLeafSize, dc, partMethod, attrNo);
     if (root) {
       res->root = root->clone();
     }
@@ -2075,8 +2082,7 @@ class NTree {
   
   
  protected:
-  int degree;
-  int maxLeafSize;
+  int degree, maxLeafSize, attrNo;
   node_t* root;
   DistComp dc;
   PartitionMethod partMethod;
@@ -2116,7 +2122,7 @@ class PersistentNTree {
     if (!initRelations(relNames)) {
       return;
     }
-    if (!processNTree(ntree)) {
+    if (!processNTree(ntree, relTypeList)) {
       return;
     }
     if (!fillRelations()) {
@@ -2144,15 +2150,21 @@ class PersistentNTree {
     sc = SecondoSystem::GetCatalog();
     std::vector<std::string> relNames = getRelNames(prefix);
     std::string nodeInfoRelName = prefix + "NodeInfo";
-    ListExpr relTypeList = getNodeInfoRelTypeList(nodeInfoRelName);
-    cout << "rel type is " << nl->ToString(relTypeList) << endl;
-    if (!createTypeLists(relTypeList)) {
+    ListExpr srcRelTypeList = getNodeInfoRelTypeList(nodeInfoRelName);
+    cout << "import: rel type is " << nl->ToString(srcRelTypeList) << endl << endl;
+    if (!createTypeLists(srcRelTypeList)) {
       return;
     }
-    if (!checkRelation(relNames[0], relTypeList)) {
+    if (!checkRelationType(relNames[0], treeInfoTypeList)) {
       return;
     }
-    if (!checkRelation(relNames[1], relTypeList)) {
+    if (!checkRelationType(relNames[1], srcRelTypeList)) {
+      return;
+    }
+    if (!checkRelationType(relNames[2], nodeDistTypeList)) {
+      return;
+    }
+    if (!checkRelationType(relNames[3], pivotInfoTypeList)) {
       return;
     }
     
@@ -2180,19 +2192,11 @@ class PersistentNTree {
   }
   
   ListExpr getNodeInfoRelTypeList(std::string& relName) const {
-    
-    Word relWord;
-    bool defined;
     if (!sc->IsObjectName(relName)) {
       return false;
     }
-    if (!sc->GetObject(relName, relWord, defined)) {
-      return false;
-    }
-    if (!defined) {
-      return false;
-    }
-    return sc->GetObjectTypeExpr(relName);
+    return nl->TwoElemList(nl->SymbolAtom(mm2algebra::Mem::BasicType()),
+                           sc->GetObjectTypeExpr(relName));
   }
   
   std::vector<std::string> getRelNames(std::string& prefix) {
@@ -2201,17 +2205,35 @@ class PersistentNTree {
     return result;
   }
   
-  bool checkRelation(std::string& relName, ListExpr relType) {
+  bool checkRelationType(std::string& relName, ListExpr relType) {
     Word relWord;
     bool defined;
+    if (!sc->IsObjectName(relName)) {
+        return false;
+    }
+    if (!sc->GetObject(relName, relWord, defined)) {
+      return false;
+    }
+    if (!defined) {
+      return false;
+    }
     if (relName.find("TreeInfo", relName.size() - 8) != std::string::npos) {
-      if (!sc->IsObjectName(relName)) {
+      if (!nl->Equal(relType, treeInfoTypeList)) {
         return false;
       }
-      if (!sc->GetObject(relName, relWord, defined)) {
+    }
+    if (relName.find("NodeInfo", relName.size() - 8) != std::string::npos) {
+//       ListExpr tupleTypeList1 = nl->Second(nl->Second(relType));
+      
+      cout << nl->ToString(relType) << endl << nl->ToString(nodeInfoTypeList) << endl;
+    }
+    if (relName.find("NodeDist", relName.size() - 8) != std::string::npos) {
+      if (!nl->Equal(relType, nodeDistTypeList)) {
         return false;
       }
-      if (!defined) {
+    }
+    if (relName.find("PivotInfo", relName.size() - 8) != std::string::npos) {
+      if (!nl->Equal(relType, pivotInfoTypeList)) {
         return false;
       }
     }
@@ -2220,16 +2242,18 @@ class PersistentNTree {
   
   bool createTypeLists(ListExpr relTypeList) {
     treeInfoTypeList = nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()),
-      nl->FiveElemList(nl->TwoElemList(nl->SymbolAtom("Variant"),
-                                       nl->SymbolAtom(CcInt::BasicType())),
-                       nl->TwoElemList(nl->SymbolAtom("EntryType"), 
-                                       nl->SymbolAtom(CcString::BasicType())),
-                       nl->TwoElemList(nl->SymbolAtom("Degree"), 
-                                       nl->SymbolAtom(CcInt::BasicType())),
-                       nl->TwoElemList(nl->SymbolAtom("MaxLeafSize"),
-                                       nl->SymbolAtom(CcInt::BasicType())),
-                       nl->TwoElemList(nl->SymbolAtom("Geoid"),
-                                       nl->SymbolAtom(Geoid::BasicType()))));
+      nl->SixElemList(nl->TwoElemList(nl->SymbolAtom("Variant"),
+                                      nl->SymbolAtom(CcInt::BasicType())),
+                      nl->TwoElemList(nl->SymbolAtom("Degree"), 
+                                      nl->SymbolAtom(CcInt::BasicType())),
+                      nl->TwoElemList(nl->SymbolAtom("MaxLeafSize"),
+                                      nl->SymbolAtom(CcInt::BasicType())),
+                      nl->TwoElemList(nl->SymbolAtom("RelType"), 
+                                      nl->SymbolAtom(FText::BasicType())),
+                      nl->TwoElemList(nl->SymbolAtom("AttrNo"), 
+                                      nl->SymbolAtom(CcInt::BasicType())),
+                      nl->TwoElemList(nl->SymbolAtom("Geoid"),
+                                      nl->SymbolAtom(Geoid::BasicType()))));
     ListExpr numTreeInfoTypeList = sc->NumericType(treeInfoTypeList);
     treeInfoType = new TupleType(numTreeInfoTypeList);
     firstAttrNo = nl->ListLength(nl->Second(nl->Second(nl->Second(
@@ -2255,6 +2279,7 @@ class PersistentNTree {
                                           nl->SymbolAtom(CcReal::BasicType())));
     nodeInfoTypeList = nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()),
                                        curList);
+    cout << "appended list: " << nl->ToString(nodeInfoTypeList) << endl;
     ListExpr numNodeInfoTypeList = sc->NumericType(nodeInfoTypeList);
     nodeInfoType = new TupleType(numNodeInfoTypeList);
     nodeDistTypeList = nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()),
@@ -2308,12 +2333,13 @@ class PersistentNTree {
     return true;
   }
   
-  bool processNTree(ntree_t* ntree) {
+  bool processNTree(ntree_t* ntree, ListExpr relTypeList) {
     Tuple *treeInfoTuple = new Tuple(treeInfoType);
     treeInfoTuple->PutAttribute(0, new CcInt(true, ntree->getVariant()));
-    treeInfoTuple->PutAttribute(1, new CcString(true, ntree->getEntryType()));
-    treeInfoTuple->PutAttribute(2, new CcInt(true, ntree->getDegree()));
-    treeInfoTuple->PutAttribute(3, new CcInt(true, ntree->getMaxLeafSize()));
+    treeInfoTuple->PutAttribute(1, new CcInt(true, ntree->getDegree()));
+    treeInfoTuple->PutAttribute(2, new CcInt(true, ntree->getMaxLeafSize()));
+    treeInfoTuple->PutAttribute(3, new FText(true, nl->ToString(relTypeList)));
+    treeInfoTuple->PutAttribute(4, new CcInt(true, ntree->getAttrNo()));
     auto distComp = ntree->getDistComp();
     Geoid *geoid = distComp.getGeoid();
     Geoid *newGeoid = 0;
@@ -2326,8 +2352,7 @@ class PersistentNTree {
     else {
       newGeoid = new Geoid(false);
     }
-//     newGeoid->Print(cout);
-    treeInfoTuple->PutAttribute(4, newGeoid);
+    treeInfoTuple->PutAttribute(5, newGeoid);
     treeInfoRel->AppendTuple(treeInfoTuple);
     processNode(ntree->getRoot());
     return true;
