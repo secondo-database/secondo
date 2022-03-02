@@ -268,7 +268,7 @@ template<class T, class DistComp, int variant>
 class NTreeLeafNode;
 
 /*
-7 Auxiliary Class ~hash_pair~
+7 Auxiliary Class ~hash\_pair~
 
 */
 struct hash_pair { 
