@@ -2151,7 +2151,7 @@ class PersistentNTree {
     std::vector<std::string> relNames = getRelNames(prefix);
     std::string nodeInfoRelName = prefix + "NodeInfo";
     ListExpr srcRelTypeList = getNodeInfoRelTypeList(nodeInfoRelName);
-    cout << "import: rel type is " << nl->ToString(srcRelTypeList) << endl << endl;
+    cout << "import: rel type is " << nl->ToString(srcRelTypeList) << endl;
     if (!createTypeLists(srcRelTypeList)) {
       return;
     }
@@ -2225,7 +2225,8 @@ class PersistentNTree {
     if (relName.find("NodeInfo", relName.size() - 8) != std::string::npos) {
 //       ListExpr tupleTypeList1 = nl->Second(nl->Second(relType));
       
-      cout << nl->ToString(relType) << endl << nl->ToString(nodeInfoTypeList) << endl;
+      cout << nl->ToString(relType) << endl << nl->ToString(nodeInfoTypeList)
+           << endl;
     }
     if (relName.find("NodeDist", relName.size() - 8) != std::string::npos) {
       if (!nl->Equal(relType, nodeDistTypeList)) {
