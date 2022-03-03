@@ -2526,10 +2526,9 @@ class PersistentNTree {
 
   // This constructor is applied for ~exportntree~
   PersistentNTree(ntree_t* n, std::vector<Tuple*>* tuples,
-             ListExpr relTypeList, std::string& prefix, const int firstNodeId) :
+             ListExpr relTypeList, std::string& prefix, const int firstId) :
           status(false), treeInfoType(0), nodeInfoType(0), nodeDistType(0), 
-          pivotInfoType(0), assignedId(firstNodeId - 1),
-          reservedId(firstNodeId), srcTuples(tuples), ntree(n) {
+          pivotInfoType(0), firstNodeId(firstId), srcTuples(tuples), ntree(n) {
     sc = SecondoSystem::GetCatalog();
     std::vector<std::string> relNames = getRelNames(prefix);
     if (tuples->empty()) {
@@ -2821,18 +2820,21 @@ class PersistentNTree {
       else { // inner node
         tid = ((innernode_t*)node)->getCenter(i)->getTid();
       }
-      nodeInfo.push_back(std::make_tuple(node->getNodeId(), i, 
-          (node->isLeaf() ? 0 : ((innernode_t*)node)->getChild(i)->getNodeId()),
-       (node->isLeaf() ? -1.0 : ((innernode_t*)node)->getMaxDist(i)), tid - 1));
+      int subtreeNodeId = (node->isLeaf() ? 0 :
+                  ((innernode_t*)node)->getChild(i)->getNodeId() + firstNodeId);
+      double maxDist = (node->isLeaf() ? -1.0 : 
+                                           ((innernode_t*)node)->getMaxDist(i));
+      nodeInfo.push_back(std::make_tuple(node->getNodeId() + firstNodeId, i, 
+                                         subtreeNodeId, maxDist, tid - 1));
       for (int j = 0; j < i; j++) {
-        nodeDist.push_back(std::make_tuple(node->getNodeId(), i, j, 
-                               node->getPrecomputedDist(i, j, node->isLeaf())));
+        nodeDist.push_back(std::make_tuple(node->getNodeId() + firstNodeId, i, 
+                            j, node->getPrecomputedDist(i, j, node->isLeaf())));
       }
       std::vector<double> pivotDists = node->getPivotDistances(i);
       bool isPivot = (i == std::get<0>(refDistPos) || 
                       i == std::get<1>(refDistPos));
-      pivotInfo.push_back(std::make_tuple(node->getNodeId(), i, pivotDists[0],
-                                          pivotDists[1], isPivot));
+      pivotInfo.push_back(std::make_tuple(node->getNodeId() + firstNodeId, i, 
+                                        pivotDists[0], pivotDists[1], isPivot));
     }
     if (!node->isLeaf()) {
       for (int i = 0; i < node->getCount(); i++) {
@@ -2917,7 +2919,7 @@ class PersistentNTree {
            pivotInfoTypeList;
   TupleType *treeInfoType, *nodeInfoType, *nodeDistType, *pivotInfoType;
   Relation *treeInfoRel, *nodeInfoRel, *nodeDistRel, *pivotInfoRel;
-  int firstAttrNo, assignedId, reservedId;
+  int firstAttrNo, firstNodeId;
   std::vector<Tuple*>* srcTuples;
   std::vector<std::tuple<int, int, int, double, TupleId> > nodeInfo;
   std::vector<std::tuple<int, int, int, double> > nodeDist;
