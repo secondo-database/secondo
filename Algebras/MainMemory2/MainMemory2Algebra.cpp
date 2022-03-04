@@ -22710,14 +22710,13 @@ int exportntreeSelect(ListExpr args) {
 }
 
 OperatorSpec exportntreeSpec(
-  "NTREEx(T) x MREL x ATTRNAME x string x int -> bool",
-  "ntree mrel exportntree[attrName, relNamePrefix, firstNodeId]",
+  "NTREEx(T) x MREL x string x int -> bool",
+  "ntree mrel exportntree[relNamePrefix, firstNodeId]",
   "Creates a persistent structure from an existing main memory N-tree. Four "
   "database relations representing tree information, the tree structure, "
   "distance information, and pivot information are computed. From these, the "
   "tree can be fully reconstructed.",
-  "query mKinos mcreatentree8[GeoData, 4, 8] mKinos exportntree[GeoData, "
-  "\"kinos\", 1]"
+  "query mKinos mcreatentree8[GeoData, 4, 8] mKinos exportntree[\"kinos\", 1]"
 );
 
 
