@@ -2805,7 +2805,7 @@ class PersistentNTree {
   
   void processNode(node_t* node) {
     int nodeId = node->getNodeId() + firstNodeId;
-    Tuple *nodeInfoTuple(0), *nodeDistTuple(0), *pivotInfoTuple(0), *srcTuple(0);
+    Tuple *nodeInfoTuple(0), *nodeDistTuple(0), *pivotInfoTuple(0),*srcTuple(0);
     TupleId tid;
     std::tuple<int, int, int> refDistPos = node->getRefDistPos();
     for (int i = 0; i < node->getCount(); i++) {
@@ -2833,8 +2833,8 @@ class PersistentNTree {
       nodeInfoTuple->PutAttribute(firstAttrNo + 3, new CcReal(true, maxDist));
       nodeInfoRel->AppendTuple(nodeInfoTuple);      
       for (int j = 0; j < i; j++) {
-//         nodeDist.push_back(std::make_tuple(node->getNodeId() + firstNodeId, i, 
-//                             j, node->getPrecomputedDist(i, j, node->isLeaf())));
+//         nodeDist.push_back(std::make_tuple(node->getNodeId() + firstNodeId, 
+//                       i, j, node->getPrecomputedDist(i, j, node->isLeaf())));
         nodeDistTuple = new Tuple(nodeDistType);
         nodeDistTuple->PutAttribute(0, new CcInt(true, nodeId));
         nodeDistTuple->PutAttribute(1, new CcInt(true, i));
@@ -2846,8 +2846,8 @@ class PersistentNTree {
       std::vector<double> pivotDists = node->getPivotDistances(i);
       bool isPivot = (i == std::get<0>(refDistPos) || 
                       i == std::get<1>(refDistPos));
-//       pivotInfo.push_back(std::make_tuple(node->getNodeId() + firstNodeId, i, 
-//                                         pivotDists[0], pivotDists[1], isPivot));
+//       pivotInfo.push_back(std::make_tuple(node->getNodeId() + firstNodeId, i,
+//                                      pivotDists[0], pivotDists[1], isPivot));
       pivotInfoTuple = new Tuple(pivotInfoType);
       pivotInfoTuple->PutAttribute(0, new CcInt(true, nodeId));
       pivotInfoTuple->PutAttribute(1, new CcInt(true, i));
@@ -2880,7 +2880,8 @@ class PersistentNTree {
 //       nodeInfoTuple->PutAttribute(firstAttrNo, new CcInt(true, nodeId));
 //       nodeInfoTuple->PutAttribute(firstAttrNo + 1, new CcInt(true, entry));
 //       nodeInfoTuple->PutAttribute(firstAttrNo + 2, new CcInt(true, subtree));
-//       nodeInfoTuple->PutAttribute(firstAttrNo + 3, new CcReal(true, maxDist));
+//       nodeInfoTuple->PutAttribute(firstAttrNo + 3, new CcReal(true,
+//                                               maxDist));
 //       nodeInfoRel->AppendTuple(nodeInfoTuple);
 //     }
 //     for (unsigned int i = 0; i < nodeDist.size(); i++) {
