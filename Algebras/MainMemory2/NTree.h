@@ -2682,7 +2682,7 @@ class PersistentNTree {
     int maxLeafSize = ((CcInt*)(treeInfoTuple->GetAttribute(2)))->GetValue();
     Geoid *geoid = (Geoid*)(treeInfoTuple->GetAttribute(5));
     DistComp dc(geoid);
-    int attrNo = ((CcInt*)(treeInfoTuple->GetAttribute(4)))->GetValue();
+    attrNo = ((CcInt*)(treeInfoTuple->GetAttribute(4)))->GetValue();
     PartitionMethod pMethod = (variant == 8 ? RANDOMOPT : RANDOMONLY);
     ntree = new ntree_t(degree, maxLeafSize, dc, pMethod, attrNo);
     return true;
@@ -2691,12 +2691,14 @@ class PersistentNTree {
   node_t* buildNextNode() {
     bool sameNode = true;
     bool isFirst = true;
-    int nodeId, lastNodeId(-1), subtreeNodeId;
+    int nodeId, lastNodeId(-1), subnodeId, entry(-1), attr0(firstAttrNo);
+    double maxDist(-1.0);
     Tuple *nodeInfoTuple(0);
     node_t *result = 0;
+    std::queue<int> subnodeIds;
     while (sameNode) {
       nodeInfoTuple = nodeInfoRel->GetTuple(nodeInfoPos, false);
-      nodeId = ((CcInt*)(nodeInfoTuple->GetAttribute(firstAttrNo)))->GetValue();
+      nodeId = ((CcInt*)(nodeInfoTuple->GetAttribute(attr0)))->GetValue();
       if (!isFirst) {
         if (nodeId != lastNodeId) {
           sameNode = false;
@@ -2706,14 +2708,20 @@ class PersistentNTree {
         isFirst = false;
       }
       if (sameNode) {
-        subtreeNodeId = 
-             ((CcInt*)nodeInfoTuple->GetAttribute(firstAttrNo + 2))->GetValue();
-        if (subtreeNodeId == 0) { // leaf node
+        entry = ((CcInt*)nodeInfoTuple->GetAttribute(attr0 + 1))->GetValue();
+        subnodeId =
+                   ((CcInt*)nodeInfoTuple->GetAttribute(attr0 + 2))->GetValue();
+        if (subnodeId == 0) { // leaf node
           result = new leafnode_t(ntree->getDegree(), ntree->getMaxLeafSize());
         }
         else { // inner node
           result = new innernode_t(ntree->getDegree(), ntree->getMaxLeafSize());
+          subnodeIds.push(subnodeId);
+          maxDist = 
+                  ((CcReal*)nodeInfoTuple->GetAttribute(attr0 + 3))->GetValue();
         }
+        T* obj = new T((T*)(nodeInfoTuple->GetAttribute(attrNo)));
+//      TODO:    result->setObject(entry, obj);
       }
       lastNodeId = nodeId;
       nodeInfoPos++;
@@ -2933,7 +2941,7 @@ class PersistentNTree {
            pivotInfoTypeList;
   TupleType *treeInfoType, *nodeInfoType, *nodeDistType, *pivotInfoType;
   Relation *treeInfoRel, *nodeInfoRel, *nodeDistRel, *pivotInfoRel;
-  int firstAttrNo, firstNodeId, nodeInfoPos, nodeDistPos, pivotInfoPos;
+  int attrNo, firstAttrNo, firstNodeId, nodeInfoPos, nodeDistPos, pivotInfoPos;
   std::vector<Tuple*>* srcTuples;
   ntree_t* ntree;
 };
