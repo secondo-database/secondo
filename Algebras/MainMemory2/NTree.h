@@ -2407,6 +2407,10 @@ class NTree {
     return res;
   }
   
+  void setRoot(innernode_t* newRoot) {
+    root = newRoot;
+  }
+  
   void build(std::vector<T>& contents) {
     if (root) {
       delete root;
@@ -2528,7 +2532,8 @@ class PersistentNTree {
   PersistentNTree(ntree_t* n, std::vector<Tuple*>* tuples,
              ListExpr relTypeList, std::string& prefix, const int firstId) :
           status(false), treeInfoType(0), nodeInfoType(0), nodeDistType(0), 
-          pivotInfoType(0), firstNodeId(firstId), srcTuples(tuples), ntree(n) {
+          pivotInfoType(0), firstNodeId(firstId), nodeInfoPos(1),
+          nodeDistPos(0), pivotInfoPos(0), srcTuples(tuples), ntree(n) {
     sc = SecondoSystem::GetCatalog();
     std::vector<std::string> relNames = getRelNames(prefix);
     if (tuples->empty()) {
@@ -2541,9 +2546,6 @@ class PersistentNTree {
       return;
     }
     if (!processNTree(ntree, relTypeList)) {
-      return;
-    }
-    if (!fillRelations()) {
       return;
     }
     if (!storeRelation(treeInfoTypeList, treeInfoRel, relNames[0])) {
@@ -2563,8 +2565,8 @@ class PersistentNTree {
   
   // This constructor is applied for ~importntree~
   PersistentNTree(std::string& prefix) : status(false), treeInfoType(0), 
-        nodeInfoType(0), nodeDistType(0), pivotInfoType(0), srcTuples(0), 
-        ntree(0) {
+        nodeInfoType(0), nodeDistType(0), pivotInfoType(0), nodeInfoPos(1),
+        nodeDistPos(0), pivotInfoPos(0), srcTuples(0), ntree(0) {
     sc = SecondoSystem::GetCatalog();
     std::vector<std::string> relNames = getRelNames(prefix);
     std::string nodeInfoRelName = prefix + "NodeInfo";
@@ -2587,12 +2589,9 @@ class PersistentNTree {
     if (!initNTree()) {
       return;
     }
-    
-    
-    
-    // TODO: retrieve Geoid from TreeInfo relation
-    
-    
+    if (!buildNTree()) {
+      return;
+    }
     status = true;
   }
   
@@ -2657,6 +2656,7 @@ class PersistentNTree {
           return false;
         }
       }
+      firstAttrNo -= 4;
       nodeInfoRel = (Relation*)(relWord.addr);
     }
     if (relName.find("NodeDist", relName.size() - 8) != std::string::npos) {
@@ -2677,12 +2677,58 @@ class PersistentNTree {
   }
   
   bool initNTree() {
-//     Tuple *treeInfoTuple = treeInfoRel->GetTuple(1, false);
-//     int degree = ((CcInt*)(treeInfoTuple->GetAttribute(1)))->GetValue();
-//     int maxLeafSize = ((CcInt*)(treeInfoTuple->GetAttribute(2)))->GetValue();
-//     Geoid *geoid = (Geoid*)(treeInfoTuple->GetAttribute(5));
-//     StdDistComp<T> dc(geoid);
-//     ntree = new ntree_t();
+    Tuple *treeInfoTuple = treeInfoRel->GetTuple(1, false);
+    int degree = ((CcInt*)(treeInfoTuple->GetAttribute(1)))->GetValue();
+    int maxLeafSize = ((CcInt*)(treeInfoTuple->GetAttribute(2)))->GetValue();
+    Geoid *geoid = (Geoid*)(treeInfoTuple->GetAttribute(5));
+    DistComp dc(geoid);
+    int attrNo = ((CcInt*)(treeInfoTuple->GetAttribute(4)))->GetValue();
+    PartitionMethod pMethod = (variant == 8 ? RANDOMOPT : RANDOMONLY);
+    ntree = new ntree_t(degree, maxLeafSize, dc, pMethod, attrNo);
+    return true;
+  }
+  
+  node_t* buildNextNode() {
+    bool sameNode = true;
+    bool isFirst = true;
+    int nodeId, lastNodeId(-1), subtreeNodeId;
+    Tuple *nodeInfoTuple(0);
+    node_t *result = 0;
+    while (sameNode) {
+      nodeInfoTuple = nodeInfoRel->GetTuple(nodeInfoPos, false);
+      nodeId = ((CcInt*)(nodeInfoTuple->GetAttribute(firstAttrNo)))->GetValue();
+      if (!isFirst) {
+        if (nodeId != lastNodeId) {
+          sameNode = false;
+        }
+      }
+      else {
+        isFirst = false;
+      }
+      if (sameNode) {
+        subtreeNodeId = 
+             ((CcInt*)nodeInfoTuple->GetAttribute(firstAttrNo + 2))->GetValue();
+        if (subtreeNodeId == 0) { // leaf node
+          result = new leafnode_t(ntree->getDegree(), ntree->getMaxLeafSize());
+        }
+        else { // inner node
+          result = new innernode_t(ntree->getDegree(), ntree->getMaxLeafSize());
+        }
+      }
+      lastNodeId = nodeId;
+      nodeInfoPos++;
+    }
+    return result;
+  }
+  
+  bool buildNTree() {
+    if (nodeInfoRel->GetNoTuples() == 0) {
+      return false;
+    }
+//     node_t* root = buildNextNode();
+//     ntree->setRoot((innernode_t*)root);
+    
+    
     return true;
   }
   
@@ -2863,56 +2909,6 @@ class PersistentNTree {
     }
   }
   
-  bool fillRelations() {
-//     int nodeId, entry, subtree, entry1, entry2;
-//     bool isPivot;
-//     double maxDist, dist, pivotDist1, pivotDist2;
-//     for (unsigned int i = 0; i < nodeInfo.size(); i++) {
-//       Tuple *nodeInfoTuple = new Tuple(nodeInfoType);
-//       Tuple *srcTuple = (*srcTuples)[std::get<4>(nodeInfo[i])];
-//       for (int j = 0; j < srcTuple->GetNoAttributes(); j++) {
-//         nodeInfoTuple->CopyAttribute(j, srcTuple, j);
-//       }
-//       nodeId = std::get<0>(nodeInfo[i]);
-//       entry = std::get<1>(nodeInfo[i]);
-//       subtree = std::get<2>(nodeInfo[i]);
-//       maxDist = std::get<3>(nodeInfo[i]);
-//       nodeInfoTuple->PutAttribute(firstAttrNo, new CcInt(true, nodeId));
-//       nodeInfoTuple->PutAttribute(firstAttrNo + 1, new CcInt(true, entry));
-//       nodeInfoTuple->PutAttribute(firstAttrNo + 2, new CcInt(true, subtree));
-//       nodeInfoTuple->PutAttribute(firstAttrNo + 3, new CcReal(true,
-//                                               maxDist));
-//       nodeInfoRel->AppendTuple(nodeInfoTuple);
-//     }
-//     for (unsigned int i = 0; i < nodeDist.size(); i++) {
-//       nodeId = std::get<0>(nodeDist[i]);
-//       entry1 = std::get<1>(nodeDist[i]);
-//       entry2 = std::get<2>(nodeDist[i]);
-//       dist = std::get<3>(nodeDist[i]);
-//       Tuple *nodeDistTuple = new Tuple(nodeDistType);
-//       nodeDistTuple->PutAttribute(0, new CcInt(true, nodeId));
-//       nodeDistTuple->PutAttribute(1, new CcInt(true, entry1));
-//       nodeDistTuple->PutAttribute(2, new CcInt(true, entry2));
-//       nodeDistTuple->PutAttribute(3, new CcReal(true, dist));
-//       nodeDistRel->AppendTuple(nodeDistTuple);
-//     }
-//     for (unsigned int i = 0; i < pivotInfo.size(); i++) {
-//       nodeId = std::get<0>(pivotInfo[i]);
-//       entry = std::get<1>(pivotInfo[i]);
-//       pivotDist1 = std::get<2>(pivotInfo[i]);
-//       pivotDist2 = std::get<3>(pivotInfo[i]);
-//       isPivot = std::get<4>(pivotInfo[i]);
-//       Tuple* pivotInfoTuple = new Tuple(pivotInfoType);
-//       pivotInfoTuple->PutAttribute(0, new CcInt(true, nodeId));
-//       pivotInfoTuple->PutAttribute(1, new CcInt(true, entry));
-//       pivotInfoTuple->PutAttribute(2, new CcReal(true, pivotDist1));
-//       pivotInfoTuple->PutAttribute(3, new CcReal(true, pivotDist2));
-//       pivotInfoTuple->PutAttribute(4, new CcBool(true, isPivot));
-//       pivotInfoRel->AppendTuple(pivotInfoTuple);
-//     }
-    return true;
-  }
-  
   bool storeRelation(ListExpr typeList, Relation *rel, std::string& relName) {
     ListExpr relType = nl->TwoElemList(nl->SymbolAtom(Relation::BasicType()), 
                                        typeList);
@@ -2937,11 +2933,8 @@ class PersistentNTree {
            pivotInfoTypeList;
   TupleType *treeInfoType, *nodeInfoType, *nodeDistType, *pivotInfoType;
   Relation *treeInfoRel, *nodeInfoRel, *nodeDistRel, *pivotInfoRel;
-  int firstAttrNo, firstNodeId;
+  int firstAttrNo, firstNodeId, nodeInfoPos, nodeDistPos, pivotInfoPos;
   std::vector<Tuple*>* srcTuples;
-  std::vector<std::tuple<int, int, int, double, TupleId> > nodeInfo;
-  std::vector<std::tuple<int, int, int, double> > nodeDist;
-  std::vector<std::tuple<int, int, double, double, bool> > pivotInfo;
   ntree_t* ntree;
 };
 
