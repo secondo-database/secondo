@@ -2530,12 +2530,13 @@ class PersistentNTree {
 
   // This constructor is applied for ~exportntree~
   PersistentNTree(ntree_t* n, std::vector<Tuple*>* tuples,
-             ListExpr relTypeList, std::string& prefix, const int firstId) :
+             ListExpr relTypeList, std::string& prefix, const int firstId,
+             const int suffix) :
           status(false), treeInfoType(0), nodeInfoType(0), nodeDistType(0), 
           pivotInfoType(0), firstNodeId(firstId), nodeInfoPos(1),
           nodeDistPos(0), pivotInfoPos(0), srcTuples(tuples), ntree(n) {
     sc = SecondoSystem::GetCatalog();
-    std::vector<std::string> relNames = getRelNames(prefix);
+    std::vector<std::string> relNames = getRelNames(prefix, suffix);
     if (tuples->empty()) {
       return;
     }
@@ -2618,9 +2619,12 @@ class PersistentNTree {
                            sc->GetObjectTypeExpr(relName));
   }
   
-  std::vector<std::string> getRelNames(std::string& prefix) {
-    std::vector<std::string> result{prefix + "TreeInfo", prefix + "NodeInfo",
-                                    prefix + "NodeDist", prefix + "PivotInfo"};
+  std::vector<std::string> getRelNames(std::string& prefix, 
+                                       const int suffix = -1) {
+    std::string suffixstr = (suffix == -1 ? "" : "_" + std::to_string(suffix));
+    std::vector<std::string> result{prefix + "TreeInfo" + suffixstr,
+               prefix + "NodeInfo" + suffixstr, prefix + "NodeDist" + suffixstr,
+               prefix + "PivotInfo" + suffixstr};
     return result;
   }
   

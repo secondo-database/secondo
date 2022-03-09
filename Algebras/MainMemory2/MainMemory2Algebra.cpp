@@ -22606,8 +22606,8 @@ operator ~makeNtreePersistent~
 
 */
 ListExpr exportntreeTM(ListExpr args) {
-  if (!nl->HasLength(args, 4)) {
-    return listutils::typeError("four arguments expected");
+  if (!nl->HasLength(args, 4) && !nl->HasLength(args, 5)) {
+    return listutils::typeError("four or five arguments expected");
   }  
   ListExpr a1 = nl->First(args);
   if (MPointer::checkType(a1)) { 
@@ -22633,6 +22633,11 @@ ListExpr exportntreeTM(ListExpr args) {
   }
   if (!CcInt::checkType(nl->Fourth(args))) {
     return listutils::typeError("fourth arg must be an int");
+  }
+  if (nl->HasLength(args, 5)) {
+    if (!CcInt::checkType(nl->Fifth(args))) {
+      return listutils::typeError("fifth arg must be an int");
+    }
   }
   return nl->SymbolAtom(CcBool::BasicType());
 }
@@ -22663,13 +22668,28 @@ int exportntreeVMT(Word* args, Word& result, int message, Word& local,
     res->Set(true, false);
     return 0;
   }
+  int suffix = -1;
+  if (qp->GetNoSons(s) == 5) {
+    CcInt *ccSuffix = (CcInt*)args[4].addr;
+    if (!ccSuffix->IsDefined()) {
+      cout << "undefined suffix" << endl;
+      res->Set(true, false);
+      return 0;
+    }
+    suffix = ccSuffix->GetValue();
+    if (suffix < 0) {
+      cout << "negative suffix invalid" << endl;
+      res->Set(true, false);
+      return 0;
+    }
+  }
   Supplier s0 = qp->GetSon(s, 1);
   ListExpr relTypeList = nl->Second(qp->GetType(s0));
   MemoryNtreeObject<T, StdDistComp<T>, variant>* treeObj = 
                                        getNtreeX<MPointer, T, variant>(treeMem);
   NTree<MTreeEntry<T>, StdDistComp<T>, variant> *ntree = treeObj->getNtreeX();  
   PersistentNTree<MTreeEntry<T>, StdDistComp<T>, variant> pntree(ntree,
-                     relVector, relTypeList, prefix, ccFirstNodeId->GetValue());
+             relVector, relTypeList, prefix, ccFirstNodeId->GetValue(), suffix);
   res->Set(true, pntree.getStatus());  
   return 0;
 }
@@ -22710,12 +22730,14 @@ int exportntreeSelect(ListExpr args) {
 }
 
 OperatorSpec exportntreeSpec(
-  "NTREEx(T) x MREL x string x int -> bool",
+  "NTREEx(T) x MREL x string x int [x int] -> bool",
   "ntree mrel exportntree[relNamePrefix, firstNodeId]",
   "Creates a persistent structure from an existing main memory N-tree. Four "
   "database relations representing tree information, the tree structure, "
   "distance information, and pivot information are computed. From these, the "
-  "tree can be fully reconstructed.",
+  "tree can be fully reconstructed. The desired id of the first node has to be "
+  "specified (3rd argument). The last argument representing a suffix that is "
+  "appended to the relation names (e.g., \"kinosNodeInfo_73\") is optional.",
   "query mKinos mcreatentree8[GeoData, 4, 8] mKinos exportntree[\"kinos\", 1]"
 );
 
