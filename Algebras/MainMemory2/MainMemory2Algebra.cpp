@@ -6313,7 +6313,7 @@ Operator mdistRangeN8Op(
 );
 
 /*
-Operator ~mnearestNeighborN7~
+Operator ~mnearestNeighborN7~, ~mnearestNeighborN8~
 
 */
 template<int variant>
@@ -6365,18 +6365,43 @@ ListExpr mnearestNeighborNTM(ListExpr args) {
       return listutils::typeError("fourth arg is not an mlabel(s) / mplace(s)");
     }
   }
+  // copy attribute list and append distance attribute
+  set<string> attrNames;
+  ListExpr attrList = nl->Second(nl->Second(a2));
+  ListExpr newAttrList = nl->OneElemList(nl->First(attrList));
+  attrNames.insert(nl->SymbolValue(nl->First(nl->First(attrList))));
+  ListExpr lastList = newAttrList;
+  attrList = nl->Rest(attrList);
+  while (!nl->IsEmpty(attrList)) {
+    attrNames.insert(nl->SymbolValue(nl->First(nl->First(attrList))));
+    lastList = nl->Append(lastList, nl->First(attrList));
+    attrList = nl->Rest(attrList);
+  }
+  string distAttrName = "QueryObjectDistance";
+  bool isPresent = (attrNames.find(distAttrName) != attrNames.end());
+  int suffix = 0;
+  while (isPresent) {
+    suffix++;
+    distAttrName += to_string(suffix);
+    isPresent = (attrNames.find(distAttrName) != attrNames.end());
+  }
+  lastList = nl->Append(lastList, nl->TwoElemList(nl->SymbolAtom(distAttrName),
+                                        nl->SymbolAtom(CcReal::BasicType())));
   return nl->TwoElemList(listutils::basicSymbol<Stream<Tuple> >(),
-                         nl->Second(a2)); 
+              nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()), newAttrList)); 
 }
 
 template<class T, class DistComp, int variant>
 class mnearestNeighborNInfo {
  public:
   mnearestNeighborNInfo(MemoryNtreeObject<T, DistComp, variant>* ntreeX,
-                      MemoryRelObject* mrel, T* ref, const int _k = 0) : k(_k) {
+                        MemoryRelObject* mrel, T* ref, ListExpr typeList, 
+                        const int _k = 0) : tupleTypeList(typeList), k(_k) {
     rel = mrel->getmmrel();
     MTreeEntry<T> p(*ref, 0);
     it = ntreeX->getNtreeX()->nnSearch(p, k);
+    sc = SecondoSystem::GetCatalog();
+    numTupleTypeList = sc->NumericType(tupleTypeList);
   }
 
   ~mnearestNeighborNInfo() {
@@ -6384,15 +6409,24 @@ class mnearestNeighborNInfo {
   }
 
   Tuple* next() {
+    TidDist td(0, -1.0);
     while (true) {
-      const TupleId tid = it->next();
-      if ((int)tid == -1) {
+      td = it->next();
+      if (((int)td.tid) == -1) {
         return 0;
       }
-      if (tid <= rel->size()) {
-        Tuple* res = (*rel)[tid - 1];
-        if (res) { // ignore deleted tuples
-          res->IncReference();
+      if (td.dist < 0.0) {
+        return 0;
+      }
+      if (td.tid <= rel->size()) {
+        Tuple* src = (*rel)[td.tid - 1];
+        if (src) { // ignore deleted tuples
+          Tuple* res = new Tuple(numTupleTypeList);
+          for (int i = 0; i < src->GetNoAttributes(); i++) {
+            res->CopyAttribute(i, src, i);
+          }
+          res->PutAttribute(res->GetNoAttributes() - 1,
+                            new CcReal(true, td.dist));
           return res;
         }
       }
@@ -6420,7 +6454,9 @@ class mnearestNeighborNInfo {
  private:
   vector<Tuple*>* rel;
   NNIteratorN<MTreeEntry<T>, DistComp, variant>* it;
+  ListExpr tupleTypeList, numTupleTypeList;
   int k;
+  SecondoCatalog *sc;
 };
 
 template<class K, class T, class R, int variant, int k>
@@ -6446,14 +6482,8 @@ int mnearestNeighborNVMT(Word* args, Word& result, int message, Word& local,
         return 0;
       }
       K* key = (K*)args[2].addr;
-      if (k == 0) {
-        local.addr = new mnearestNeighborNInfo<K,StdDistComp<K>, variant>(n, 
-                                                                      rel, key);
-      }
-      else {
-        local.addr = new mnearestNeighborNInfo<K, StdDistComp<K>, variant>(n,
-                                                                   rel, key, k);
-      }
+      local.addr = new mnearestNeighborNInfo<K, StdDistComp<K>, variant>(n,
+                           rel, key, nl->Second(qp->GetSupplierTypeExpr(s)), k);
       return 0;
     }
     case REQUEST: {
@@ -6669,7 +6699,8 @@ OperatorSpec m1nearestNeighborN7Spec(
   "NTREE7, MREL represented as string, mem, or mpointer",
   "mem_ntree7 mem_rel m1nearestNeighborN7[keyAttr] ",
   "Retrieves the nearest neighbor to a reference object (or pair of reference "
-  "objects) aided by an N-tree7.",
+  "objects) aided by an N-tree7. The original tuple is extended by an attribute"
+  " containing the distance to the reference object.",
   "query mkinos_ntree7 mKinos m1nearestNeighborN7[alexanderplatz] consume"
 );
 
@@ -6687,7 +6718,8 @@ OperatorSpec m1nearestNeighborN8Spec(
   "NTREE8, MREL represented as string, mem, or mpointer",
   "mem_ntree8 mem_rel m1nearestNeighborN8[keyAttr] ",
   "Retrieves the nearest neighbor to a reference object (or pair of reference "
-  "objects) aided by an N-tree8.",
+  "objects) aided by an N-tree8. The original tuple is extended by an attribute"
+  " containing the distance to the reference object.",
   "query mkinos_ntree8 mKinos m1nearestNeighborN8[alexanderplatz] consume"
 );
 

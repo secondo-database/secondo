@@ -1691,7 +1691,6 @@ class RangeIteratorN {
   void addResult(T* o) {
     results.push_back(o);
 //     cout << "[" << o->getTid() << ", obj=" << *(o->getKey()) << "] ";
-//          << ": " << *(o->getKey()) << "] ";
   }
   
   void reportEntireSubtree(node_t* node) {
@@ -2132,18 +2131,17 @@ class RangeIteratorN {
   NTreeStat stat; // statistics
 };
 
-template<class T, class DistComp>
-struct NNContentN {
-  NNContentN(T* o, double d) : obj(o), dist(d) {}
+struct TidDist {
+  TidDist(const TupleId id, const double d) : tid(id), dist(d) {}
   
-  bool operator<(const NNContentN& c) const {
-    if (dist != c.dist) {
-      return dist < c.dist;
+  bool operator<(const TidDist& td) const {
+    if (dist != td.dist) {
+      return dist < td.dist;
     }
-    return obj < c.obj;
+    return tid < td.tid;
   }
   
-  T* obj;
+  TupleId tid;
   double dist;
 };
 
@@ -2156,7 +2154,6 @@ class NNIteratorN {
  public:
   typedef NNIteratorN<T, DistComp, variant> nniterator_t;
   typedef RangeIteratorN<T, DistComp, variant> rangeiterator_t;
-  typedef NNContentN<T, DistComp> nncontent_t;
   typedef NTreeNode<T, DistComp, variant> node_t;
   typedef NTreeLeafNode<T, DistComp, variant> leafnode_t;
   typedef NTreeInnerNode<T, DistComp, variant> innernode_t;
@@ -2171,9 +2168,9 @@ class NNIteratorN {
     stat.print(cout, dc.getNoDistFunCalls(), true);
   }
   
-  void addResult(T* o, double d) {
-    nncontent_t c(o, d);
-    results.insert(c);
+  void addResult(const TupleId id, const double d) {
+    TidDist td(id, d);
+    results.insert(td);
   }
   
   rangeiterator_t* find1NN(node_t* node, double& radius) {
@@ -2217,11 +2214,11 @@ class NNIteratorN {
     T* obj = rit->nextObj();
     assert(obj != 0);
     double dist = dc(ref, *obj);
-    addResult(obj, dist);
+    addResult(obj->getTid(), dist);
     obj = rit->nextObj();
     while (obj != 0) {
       dist = dc(ref, *obj);
-      addResult(obj, dist);
+      addResult(obj->getTid(), dist);
       obj = rit->nextObj();
     }
     it = results.begin();
@@ -2239,7 +2236,7 @@ class NNIteratorN {
 //         nnDist = dist;
 //         nn = obj;
 //       }
-      addResult(obj, dist);
+      addResult(obj->getTid(), dist);
       obj = rit->nextObj();
     }
 //     cout << "NN = " << *(nn->getKey()) << ", dist = " << nnDist << endl;
@@ -2257,7 +2254,7 @@ class NNIteratorN {
   //         nnDist = dist;
   //         nn = obj;
   //       }
-        addResult(obj, dist);
+        addResult(obj->getTid(), dist);
         obj = rit->nextObj();
       }
     }
@@ -2273,11 +2270,12 @@ class NNIteratorN {
     }
   }
   
-  const TupleId next() {
+  const TidDist next() {
+    TidDist result(0, -1.0);
     if (it == results.end()) {
-      return -1;
+      return result;
     }
-    TupleId result = it->obj->getTid();
+    result = *it;
     it++;
     return result;
   }
@@ -2304,8 +2302,8 @@ class NNIteratorN {
   
  private:
   T ref;
-  std::set<nncontent_t> results;
-  typename std::set<nncontent_t>::iterator it;
+  std::set<TidDist> results;
+  typename std::set<TidDist>::iterator it;
   DistComp dc;
   int k; // number of computed nearest neighbors
   NTreeStat stat; // statistics
