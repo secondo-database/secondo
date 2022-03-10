@@ -645,12 +645,12 @@ Construction of bigger lists
     }
   }
 
-  /*
-  Iteration over lists
+/*
+Iteration over lists
 
-  The function ~rest~ removes the first element of a list.
+The function ~rest~ removes the first element of a list.
 
-  */
+*/
 
   inline void rest() { 
        l = nl->Rest(l); 
