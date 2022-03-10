@@ -2484,18 +2484,18 @@ class NTree {
   
   void assignNodeIds(const int firstId = 0) {
     int currentId = firstId;
-    std::queue<node_t*> nodes;
-    nodes.push(root);
+    std::stack<node_t*> nodeStack;
+    nodeStack.push(root);
     node_t* node = 0;
-    while (!nodes.empty()) {
-      node = nodes.front();
-      nodes.pop();
+    while (!nodeStack.empty()) {
+      node = nodeStack.top();
+      nodeStack.pop();
       node->setNodeId(currentId);
       currentId++;
       if (!node->isLeaf()) { // nothing to do for leaves
         innernode_t* inode = (innernode_t*)node;
-        for (int i = 0; i < inode->getCount(); i++) {
-          nodes.push(inode->getChild(i));
+        for (int i = inode->getCount() - 1; i >= 0; i--) {
+          nodeStack.push(inode->getChild(i));
         }
       }
     }

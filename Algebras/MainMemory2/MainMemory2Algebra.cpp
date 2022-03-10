@@ -6677,9 +6677,9 @@ OperatorSpec mnearestNeighborN7Spec(
   "MTREE x MREL x T (x U) -> stream(tuple) , "
   "MTREE, MREL represented as string, mem, or mpointer",
   "mem_mtree mem_rel mnearestNeighborN7[keyAttr] ",
-  "Retrieves tuples from an memory relation in increasing "
-  "distance to a reference object (or pair of reference objects) aided by an "
-  "N-tree7.",
+  "Sorts the relation by its distance to the reference object aided by an "
+  "N-tree7. The original tuples are extended by an attribute containing the "
+  "distance to the reference object.",
   "query mkinos_mtree mKinos mnearestNeighborN7[alexanderplatz] consume"
 );
 
@@ -6698,9 +6698,9 @@ OperatorSpec m1nearestNeighborN7Spec(
   "NTREE7 x MREL x T (x U) -> stream(tuple) , "
   "NTREE7, MREL represented as string, mem, or mpointer",
   "mem_ntree7 mem_rel m1nearestNeighborN7[keyAttr] ",
-  "Retrieves the nearest neighbor to a reference object (or pair of reference "
-  "objects) aided by an N-tree7. The original tuple is extended by an attribute"
-  " containing the distance to the reference object.",
+  "Retrieves the nearest neighbor to a reference object aided by an N-tree7. "
+  "The original tuple is extended by an attribute containing the distance to "
+  "the reference object.",
   "query mkinos_ntree7 mKinos m1nearestNeighborN7[alexanderplatz] consume"
 );
 
@@ -6717,9 +6717,9 @@ OperatorSpec m1nearestNeighborN8Spec(
   "NTREE8 x MREL x T (x U) -> stream(tuple) , "
   "NTREE8, MREL represented as string, mem, or mpointer",
   "mem_ntree8 mem_rel m1nearestNeighborN8[keyAttr] ",
-  "Retrieves the nearest neighbor to a reference object (or pair of reference "
-  "objects) aided by an N-tree8. The original tuple is extended by an attribute"
-  " containing the distance to the reference object.",
+  "Retrieves the nearest neighbor to a reference object aided by an N-tree8. "
+  "The original tuple is extended by an attribute containing the distance to "
+  "the reference object.",
   "query mkinos_ntree8 mKinos m1nearestNeighborN8[alexanderplatz] consume"
 );
 

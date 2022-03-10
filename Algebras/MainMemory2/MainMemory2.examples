@@ -387,7 +387,7 @@ Result    : TRUE
 Operator  : m1nearestNeighborN7
 Number    : 1920
 Signature : NTREE7(T) x MREL(X) x T -> stream(tuple(X))
-Example   : query mKinos_GeoData_ntree7 mKinos m1nearestNeighborN7[alexanderplatz] extract[Strasse] contains "Rosa"
+Example   : query mKinos_GeoData_ntree7 mKinos m1nearestNeighborN7[alexanderplatz] extract[QueryObjectDistance] < 500.0
 Result    : TRUE
 
 Operator  : m1nearestNeighborN8
