@@ -6388,7 +6388,7 @@ ListExpr mnearestNeighborNTM(ListExpr args) {
   lastList = nl->Append(lastList, nl->TwoElemList(nl->SymbolAtom(distAttrName),
                                         nl->SymbolAtom(CcReal::BasicType())));
   return nl->TwoElemList(listutils::basicSymbol<Stream<Tuple> >(),
-              nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()), newAttrList)); 
+              nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()), newAttrList));
 }
 
 template<class T, class DistComp, int variant>
