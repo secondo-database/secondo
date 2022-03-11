@@ -60,7 +60,7 @@ void MultiObjectTriangleContainer::test()
 {
   printStats();
   
-  auto_ptr<mmrtree::RtreeT<3, size_t>::iterator> it(triangles_tree.entries());
+  unique_ptr<mmrtree::RtreeT<3, size_t>::iterator> it(triangles_tree.entries());
   
   size_t const * triangleIndex;
   while( (triangleIndex = it->next()) != 0)
@@ -159,7 +159,7 @@ void MultiObjectTriangleContainer::removeObject(int object)
   }
   else
   {
-   auto_ptr<mmrtree::RtreeT<3, size_t>::iterator> it(triangles_tree.entries());
+   unique_ptr<mmrtree::RtreeT<3, size_t>::iterator> it(triangles_tree.entries());
   
     size_t const * triangleIndex;
     while( (triangleIndex = it->next()) != 0)
@@ -187,7 +187,7 @@ void MultiObjectTriangleContainer::exportObject(int object,
 
   object_t object_bits = getObjectBitmask(object);
   
-  auto_ptr<mmrtree::RtreeT<3, size_t>::iterator> it(triangles_tree.entries());
+  unique_ptr<mmrtree::RtreeT<3, size_t>::iterator> it(triangles_tree.entries());
   
   size_t const * triangleIndex;
   while( (triangleIndex = it->next()) != 0)
@@ -246,7 +246,7 @@ bool MultiObjectTriangleContainer::orientateAndCleanup (int object) {
   if (debug_volume) cerr << "entering orientateAndCleanup\n";
   std::vector<TriangleStatus> tri_state (triangles.size(), OTHER);
    
-  auto_ptr<mmrtree::RtreeT<3, size_t>::iterator> it(triangles_tree.entries());
+  unique_ptr<mmrtree::RtreeT<3, size_t>::iterator> it(triangles_tree.entries());
   size_t const * triangleIndex;
   while( (triangleIndex = it->next()) != 0)
   {
@@ -387,7 +387,7 @@ size_t MultiObjectTriangleContainer::GetIndexOfHighestNotUsedTriangle(
   double z3;  
   size_t maxIndex = 0;
 
-  auto_ptr<mmrtree::RtreeT<3, size_t>::iterator> it(triangles_tree.entries());
+  unique_ptr<mmrtree::RtreeT<3, size_t>::iterator> it(triangles_tree.entries());
   size_t const * triangleIndex;
   while( (triangleIndex = it->next()) != 0)
   {
@@ -449,7 +449,7 @@ bool MultiObjectTriangleContainer::IsOutside(Triangle& triangle,
       + (runNr - 1.0/runNr) * triangle.getB().getZ()) 
       + (1.0/runNr) * triangle.getC().getZ());
 
-    auto_ptr<mmrtree::RtreeT<3, size_t>::iterator> it(triangles_tree.entries());
+    unique_ptr<mmrtree::RtreeT<3, size_t>::iterator> it(triangles_tree.entries());
     bool nextNr = false;
     while( (triangleIndex = *(it->next())) != 0 && !nextNr)
     {
@@ -1049,7 +1049,7 @@ void MultiObjectTriangleContainer::getLonelyEdges (
   std::vector<Edge3d>& edges, 
   std::multimap<size_t,size_t>& edgeIndex) {
   
-  auto_ptr<mmrtree::RtreeT<3, size_t>::iterator> it(triangles_tree.entries());
+  unique_ptr<mmrtree::RtreeT<3, size_t>::iterator> it(triangles_tree.entries());
   size_t const * triangleIndex;
   while( (triangleIndex = it->next()) != 0)
   {
@@ -1186,7 +1186,7 @@ bool MultiObjectTriangleContainer::checkVolume_closed(int object,
   assert(object > 0);
   assert(object <= noExternalObjects);
 
-  auto_ptr<mmrtree::RtreeT<3, size_t>::iterator> it(triangles_tree.entries());
+  unique_ptr<mmrtree::RtreeT<3, size_t>::iterator> it(triangles_tree.entries());
 
   size_t const * triangleIndex;
   while( (triangleIndex = it->next()) != 0)
@@ -1422,7 +1422,7 @@ MultiObjectTriangleContainer::getAnIncompatibleTriangle(size_t triangle,
 {
   Rectangle<3> bbox = getTriangleBoundingBox(triangle);
   bbox.Extend(0.0001);
-  auto_ptr<mmrtree::RtreeT<3, size_t>::iterator> it(triangles_tree.find(bbox));
+  unique_ptr<mmrtree::RtreeT<3, size_t>::iterator> it(triangles_tree.find(bbox));
   size_t const * existingTriangleIndex;
   while( (existingTriangleIndex = it->next()) != 0)
   {
@@ -1478,7 +1478,7 @@ size_t MultiObjectTriangleContainer::addPoint(const SimplePoint3d& point)
 
   Rectangle<3> bbox = point.BoundingBox();
   bbox.Extend(0.0001);
-  auto_ptr<mmrtree::RtreeT<3, size_t>::iterator> it(points_tree.find(bbox));
+  unique_ptr<mmrtree::RtreeT<3, size_t>::iterator> it(points_tree.find(bbox));
   size_t const * index;
   while( (index = it->next()) != 0)
   {
@@ -1615,7 +1615,7 @@ MultiObjectTriangleContainer::getEdgesForPoint(size_t point) const
 
   Rectangle<3> bbox = points[point].BoundingBox();
   bbox.Extend(0.0001);
-  auto_ptr<mmrtree::RtreeT<3, size_t>::iterator> it(triangles_tree.find(bbox));
+  unique_ptr<mmrtree::RtreeT<3, size_t>::iterator> it(triangles_tree.find(bbox));
   size_t const * existingTriangleIndex;
   while( (existingTriangleIndex = it->next()) != 0)
   {
@@ -1646,7 +1646,7 @@ MultiObjectTriangleContainer::getTrianglesForPoint(size_t point) const
 
   Rectangle<3> bbox = points[point].BoundingBox();
   bbox.Extend(0.0001);
-  auto_ptr<mmrtree::RtreeT<3, size_t>::iterator> it(triangles_tree.find(bbox));
+  unique_ptr<mmrtree::RtreeT<3, size_t>::iterator> it(triangles_tree.find(bbox));
   size_t const * existingTriangleIndex;
   while( (existingTriangleIndex = it->next()) != 0)
   {
@@ -1673,7 +1673,7 @@ MultiObjectTriangleContainer::getTrianglesForEdge(size_t point1,
 
   Rectangle<3> bbox = getSegmentBoundingBox(point1, point2);
   bbox.Extend(0.0001);
-  auto_ptr<mmrtree::RtreeT<3, size_t>::iterator> it(triangles_tree.find(bbox));
+  unique_ptr<mmrtree::RtreeT<3, size_t>::iterator> it(triangles_tree.find(bbox));
   size_t const * existingTriangleIndex;
   while( (existingTriangleIndex = it->next()) != 0)
   {
@@ -2274,7 +2274,7 @@ void MultiObjectTriangleContainer::prepareSetOperationSurface(int in_object1,
   object_t out1 = getObjectBitmask(out_object_only1);
   object_t out2 = getObjectBitmask(out_object_only2);
   
-  auto_ptr<mmrtree::RtreeT<3, size_t>::iterator> it(triangles_tree.entries());
+  unique_ptr<mmrtree::RtreeT<3, size_t>::iterator> it(triangles_tree.entries());
   
   size_t const * triangleIndex;
   while( (triangleIndex = it->next()) != 0)
@@ -2343,7 +2343,7 @@ void MultiObjectTriangleContainer::prepareSetOperationVolume(int in_object1,
   vector<bool> visited(triangles.size(), false);
 
   // Iterator over all triangles of object 1
-  auto_ptr<mmrtree::RtreeT<3, size_t>::iterator> it(triangles_tree.entries());
+  unique_ptr<mmrtree::RtreeT<3, size_t>::iterator> it(triangles_tree.entries());
   
   size_t const * triangleIndex;
   while( (triangleIndex = it->next()) != 0)
@@ -2585,7 +2585,7 @@ void MultiObjectTriangleContainer::prepareSetOperationVolume(int in_object1,
   
   // Now, there are triangles left that are not visited.
 
-  auto_ptr<mmrtree::RtreeT<3, size_t>::iterator> it2(triangles_tree.entries());
+  unique_ptr<mmrtree::RtreeT<3, size_t>::iterator> it2(triangles_tree.entries());
   
   while( (triangleIndex = it2->next()) != 0)
   {
