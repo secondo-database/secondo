@@ -75,8 +75,8 @@ operator mcreatentree5 alias MCREATENTREE5 pattern _ op [_,_,_,_]
 operator mcreatentree6 alias MCREATENTREE6 pattern _ op [_,_,_,_]
 operator mcreatentree7 alias MCREATENTREE7 pattern _ op [_,_,_,_]
 operator mcreatentree8 alias MCREATENTREE8 pattern _ op [_,_,_,_]
-operator exportntree alias EXPORTNTREE pattern _ _ op [_,_,_]
-operator importntree8 alias IMPORTNTREE8 pattern op(_,_)
+operator exportntree alias EXPORTNTREE pattern _ _ op [_,_]
+operator importntree alias IMPORTNTREE pattern op(_,_)
 
 operator mwrap alias MWRAP pattern op(_)
 operator mwrap2 alias MWRAP2 pattern op(_,_)

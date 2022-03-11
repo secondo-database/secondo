@@ -2563,26 +2563,26 @@ class PersistentNTree {
   }
   
   // This constructor is applied for ~importntree~
-  PersistentNTree(std::string& prefix) : status(false), treeInfoType(0), 
-        nodeInfoType(0), nodeDistType(0), pivotInfoType(0), nodeInfoPos(1),
-        nodeDistPos(0), pivotInfoPos(0), srcTuples(0), ntree(0) {
+  PersistentNTree(std::string& prefix, const int suffix) : status(false), 
+       treeInfoType(0), nodeInfoType(0), nodeDistType(0), pivotInfoType(0), 
+       nodeInfoPos(1), nodeDistPos(0), pivotInfoPos(0), srcTuples(0), ntree(0) {
     sc = SecondoSystem::GetCatalog();
-    std::vector<std::string> relNames = getRelNames(prefix);
+    std::vector<std::string> relNames = getRelNames(prefix, suffix);
     std::string nodeInfoRelName = prefix + "NodeInfo";
     ListExpr srcRelTypeList = getNodeInfoRelTypeList(nodeInfoRelName);
     if (!createTypeLists(srcRelTypeList)) {
       return;
     }
-    if (!checkRelationType(relNames[0], treeInfoTypeList)) {
+    if (!checkRelationType(relNames[0], prefix, treeInfoTypeList)) {
       return;
     }
-    if (!checkRelationType(relNames[1], srcRelTypeList)) {
+    if (!checkRelationType(relNames[1], prefix, srcRelTypeList)) {
       return;
     }
-    if (!checkRelationType(relNames[2], nodeDistTypeList)) {
+    if (!checkRelationType(relNames[2], prefix, nodeDistTypeList)) {
       return;
     }
-    if (!checkRelationType(relNames[3], pivotInfoTypeList)) {
+    if (!checkRelationType(relNames[3], prefix, pivotInfoTypeList)) {
       return;
     }
     if (!initNTree()) {
@@ -2626,7 +2626,8 @@ class PersistentNTree {
     return result;
   }
   
-  bool checkRelationType(std::string& relName, ListExpr relType) {
+  bool checkRelationType(std::string& relName, std::string& prefix,
+                         ListExpr relType) {
     Word relWord;
     bool defined;
     if (!sc->IsObjectName(relName)) {
@@ -2641,14 +2642,14 @@ class PersistentNTree {
       cout << "relation " << relName << " undefined" << endl;
       return false;
     }
-    if (relName.find("TreeInfo", relName.size() - 8) != std::string::npos) {
+    if (relName.find("TreeInfo", prefix.size()) != std::string::npos) {
       if (!nl->Equal(relType, treeInfoTypeList)) {
         cout << "relation " << relName << " has wrong type" << endl;
         return false;
       }
       treeInfoRel = (Relation*)(relWord.addr);
     }
-    if (relName.find("NodeInfo", relName.size() - 8) != std::string::npos) {
+    if (relName.find("NodeInfo", prefix.size()) != std::string::npos) {
       ListExpr attrList1 = nl->Second(nl->Second(nl->Second(relType)));
       ListExpr attrList2 = nl->Second(nodeInfoTypeList);
       int listLength = nl->ListLength(attrList1);
@@ -2661,14 +2662,14 @@ class PersistentNTree {
       firstAttrNo -= 4;
       nodeInfoRel = (Relation*)(relWord.addr);
     }
-    if (relName.find("NodeDist", relName.size() - 8) != std::string::npos) {
+    if (relName.find("NodeDist", prefix.size()) != std::string::npos) {
       if (!nl->Equal(relType, nodeDistTypeList)) {
         cout << "relation " << relName << " has wrong type" << endl;
         return false;
       }
       nodeDistRel = (Relation*)(relWord.addr);
     }
-    if (relName.find("PivotInfo", relName.size() - 9) != std::string::npos) {
+    if (relName.find("PivotInfo", prefix.size()) != std::string::npos) {
       if (!nl->Equal(relType, pivotInfoTypeList)) {
         cout << "relation " << relName << " has wrong type" << endl;
         return false;

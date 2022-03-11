@@ -22787,16 +22787,22 @@ Operator exportntreeOp(
 operator ~importntree~
 
 */
+template<int variant>
 ListExpr importntreeTM(ListExpr args) {
-  if (!nl->HasLength(args, 2)) {
-    return listutils::typeError("two arguments expected");
+  if (!nl->HasLength(args, 2) && !nl->HasLength(args, 3)) {
+    return listutils::typeError("two or three arguments expected");
   }
   if (!CcString::checkType(nl->First(args))) {
     return listutils::typeError("first arg must be a string");  
   }
+  if (nl->HasLength(args, 3)) {
+    if (!CcInt::checkType(nl->Third(args))) {
+      return listutils::typeError("third arg must be an int");
+    }
+  }
   return MPointer::wrapType(Mem::wrapType(nl->TwoElemList(
-     listutils::basicSymbol<MemoryNtreeObject<Point, StdDistComp<Point>, 8> >(),
-     nl->Second(args))));
+     listutils::basicSymbol<MemoryNtreeObject<Point, StdDistComp<Point>, 
+                                              variant> >(), nl->Second(args))));
 }
 
 
@@ -22815,7 +22821,17 @@ int importntreeVMT(Word* args, Word& result, int message, Word& local,
     return 0;
   }
   string prefix = ccprefix->GetValue();
-  PersistentNTree<MTreeEntry<T>, StdDistComp<T>, variant> persNTree(prefix);
+  int suffix = -1;
+  if (qp->GetNoSons(s) == 3) {
+    CcInt* ccsuffix = (CcInt*)args[2].addr;
+    if (!ccsuffix->IsDefined()) {
+      res->setPointer(0);
+      return 0;
+    }
+    suffix = ccsuffix->GetValue();
+  }
+  PersistentNTree<MTreeEntry<T>, StdDistComp<T>, variant> persNTree(prefix, 
+                                                                    suffix);
   NTree<MTreeEntry<T>, StdDistComp<T>, variant>* tree = persNTree.getNTree();
   if (tree == 0) {
     res->setPointer(0);
@@ -22867,6 +22883,24 @@ int importntreeSelect(ListExpr args) {
   return mtreehelper::getTypeNo(nl->Second(args), 12);
 }
 
+OperatorSpec importntree7Spec(
+  "string x T [x int] -> NTREE7(T)",
+  "importntree8(prefix, object [, suffix])",
+  "Reconstructs an Ntree8 from previously exported DB relations with the given "
+  " prefix and optional suffix. The second argument must be an object of the "
+  "same type as the tree objects, whose value is irrelevant.",
+  "query importntree7(\"kinos\", [const point value undef])"
+);
+
+Operator importntree7Op (
+    "importntree7",
+    importntree7Spec.getStr(),
+    12,
+    importntreeVM<7>,
+    importntreeSelect,
+    importntreeTM<7>
+);
+
 OperatorSpec importntree8Spec(
   "string x T -> NTREE8(T)",
   "importntree8(prefix, object)",
@@ -22882,7 +22916,7 @@ Operator importntree8Op (
     12,
     importntreeVM<8>,
     importntreeSelect,
-    importntreeTM
+    importntreeTM<8>
 );
 
 
@@ -22991,6 +23025,7 @@ class MainMemory2Algebra : public Algebra {
           AddOperator(&mcreatentree8Op);
           
           AddOperator(&exportntreeOp);
+          AddOperator(&importntree7Op);
           AddOperator(&importntree8Op);
           
   ////////////////////// MainMemory2Algebra////////////////////////////
