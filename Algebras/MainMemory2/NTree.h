@@ -1143,7 +1143,9 @@ class NTreeInnerNode : public NTreeNode<T, DistComp, variant> {
   int getNoLeaves() const {
     int sum = 0;
     for (int i = 0; i < node_t::count; i++) {
-      sum += children[i]->getNoLeaves();
+      if (children[i] != 0) {
+        sum += children[i]->getNoLeaves();
+      }
     }
     return sum;
   }
@@ -1151,7 +1153,9 @@ class NTreeInnerNode : public NTreeNode<T, DistComp, variant> {
   int getNoEntries() const {
     int sum = 0;
     for (int i = 0; i < node_t::count; i++) {
-      sum += children[i]->getNoEntries();
+      if (children[i] != 0) {
+        sum += children[i]->getNoEntries();
+      }
     }
     return sum;
   }
@@ -1159,7 +1163,9 @@ class NTreeInnerNode : public NTreeNode<T, DistComp, variant> {
   int getNoNodes() const {
     int sum = 1;
     for (int i = 0; i < node_t::count; i++) {
-      sum += children[i]->getNoNodes();
+      if (children[i] != 0) {
+        sum += children[i]->getNoNodes();
+      }
     }
     return sum;
   }

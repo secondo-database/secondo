@@ -22836,8 +22836,8 @@ int importntreeVMT(Word* args, Word& result, int message, Word& local,
     res->setPointer(0);
     return 0;
   }
-//   cout << "entries: " << tree->getNoEntries() << ", nodes: " 
-//        << tree->getNoNodes() << ", leaves: " << tree->getNoLeaves() << endl;
+  cout << "entries: " << tree->getNoEntries() << ", nodes: " 
+       << tree->getNoNodes() << ", leaves: " << tree->getNoLeaves() << endl;
   size_t usedMem = tree->memSize();
   ListExpr typeList = nl->Second(qp->GetType(s));
   bool flobused = (nl->ToString(typeList) == "mpoint" || 
