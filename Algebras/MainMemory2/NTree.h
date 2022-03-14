@@ -567,6 +567,10 @@ class NTreeNode {
     return candOrder;
   }
   
+  PruningMethod getPruningMethod() const {
+    return pMethod;
+  }
+  
   std::tuple<int, int, int> getRefDistPos() const {
     return refDistPos;
   }
@@ -588,7 +592,10 @@ class NTreeNode {
                               DistComp& di) const = 0;
   
   virtual double evaluateDist(const int i, const T& o, DistComp& dc) const = 0;
-                              
+  
+  virtual void setCenters(const int nodeId, const std::vector<int>& pos, 
+        const std::vector<T*>& objects, const std::vector<double>& maxDist) = 0;                              
+        
   void initAuxStructures(const int size) {
     if (distMatrix != 0 || distances2d != 0 || distances3d != 0) {
       return;
@@ -791,9 +798,12 @@ class NTreeNode {
   
   
  protected:
-  NTreeNode(const int d, const int mls) :
-    degree(d), maxLeafSize(mls), count(0), noDistComp(0), distMatrix(0),
-    distances2d(0), distances3d(0), candOrder(RANDOM), pMethod(SIMPLE) {}
+  NTreeNode(const int d, const int mls) : node_t(d, mls, RANDOM, SIMPLE) {}
+    
+  NTreeNode(const int d, const int mls, const CandOrder co, 
+            const PruningMethod pm) : degree(d), maxLeafSize(mls), count(0), 
+         noDistComp(0), distMatrix(0), distances2d(0), distances3d(0), 
+         candOrder(co), pMethod(pm) {}
    
   int nodeId, degree, maxLeafSize, count, noDistComp; 
   
@@ -945,7 +955,9 @@ class NTreeInnerNode : public NTreeNode<T, DistComp, variant> {
   size_t memSize() const {
     size_t res = sizeof(*this) + sizeof(void*) * node_t::degree;
     for (int i = 0; i < node_t::count; i++) {
-      res += children[i]->memSize();
+      if (children[i] != 0) {
+        res += children[i]->memSize();
+      }
     }
     if (variant == 2) {
       res += node_t::degree * node_t::degree * sizeof(double); // distMatrix
@@ -1005,6 +1017,17 @@ class NTreeInnerNode : public NTreeNode<T, DistComp, variant> {
         }
       }
       return result;
+    }
+  }
+  
+  void setCenters(const int nodeId, const std::vector<int>& pos, 
+           const std::vector<T*>& objects, const std::vector<double>& maxDist) {
+    node_t::setNodeId(nodeId);
+    assert(pos.size() == objects.size() && maxDist.size() == pos.size());
+    for (unsigned int i = 0; i < pos.size(); i++) {
+      centers[pos[i]] = objects[i];
+      this->maxDist[pos[i]] = maxDist[i];
+      node_t::count++;
     }
   }
   
@@ -1104,7 +1127,12 @@ class NTreeInnerNode : public NTreeNode<T, DistComp, variant> {
         out << "center #" << i << " = ";
         centers[i]->getKey()->Print(out);
         out << ", child #" << i << " = ";
-        children[i]->print(out, dc);
+        if (children[i] == 0) {
+          out << "NULL";
+        }
+        else {
+          children[i]->print(out, dc);
+        }
       }
       out << " )" << endl;
     }
@@ -1421,12 +1449,16 @@ class NTreeLeafNode : public NTreeNode<T, DistComp, variant> {
   using node_t::candOrder;
   using node_t::pMethod;
   
-  NTreeLeafNode(const int d, const int mls) : node_t(d, mls) {
+  NTreeLeafNode(const int d, const int mls, const CandOrder co,
+                const PruningMethod pm) : node_t(d, mls, co, pm) {
     entries = new T*[node_t::maxLeafSize];
     for (int i = 0; i < node_t::maxLeafSize; i++) {
       entries[i] = 0;
     }
   }
+  
+  NTreeLeafNode(const int d, const int mls) : leafnode_t(d, mls, RANDOM, SIMPLE)
+    {}
   
   NTreeLeafNode(const int d, const int mls, const CandOrder co, 
                 const PruningMethod pm, DistComp& dc, const TupleId centerTid,
@@ -1518,6 +1550,16 @@ class NTreeLeafNode : public NTreeNode<T, DistComp, variant> {
   
   double getMaxDist() const {
     return maxDist;
+  }
+  
+  void setCenters(const int nodeId, const std::vector<int>& pos, 
+           const std::vector<T*>& objects, const std::vector<double>& maxDist) {
+    node_t::setNodeId(nodeId);
+    assert(pos.size() == objects.size() && maxDist.size() == 1);
+    for (unsigned int i = 0; i < pos.size(); i++) {
+      entries[pos[i]] = objects[i];
+    }
+    this->maxDist = maxDist[0];
   }
   
   void insert(std::vector<T>& contents, const TupleId centerTid) {
@@ -2372,6 +2414,14 @@ class NTree {
     return attrNo;
   }
   
+  CandOrder getCandOrder() const {
+    return candOrder;
+  }
+  
+  PruningMethod getPruningMethod() const {
+    return pMethod;
+  }
+  
   int getNoLeaves() const {
     if (!root) {
       return 0;
@@ -2521,10 +2571,10 @@ class NTree {
 template<class T, class DistComp, int variant>
 class PersistentNTree {
  public:
-  typedef NTreeLeafNode<T, DistComp, variant> leafnode_t;
-  typedef NTreeNode<T, DistComp, variant> node_t;
-  typedef NTree<T, DistComp, variant> ntree_t;
-  typedef NTreeInnerNode<T, DistComp, variant> innernode_t;
+  typedef NTreeLeafNode<MTreeEntry<T>, DistComp, variant> leafnode_t;
+  typedef NTreeNode<MTreeEntry<T>, DistComp, variant> node_t;
+  typedef NTree<MTreeEntry<T>, DistComp, variant> ntree_t;
+  typedef NTreeInnerNode<MTreeEntry<T>, DistComp, variant> innernode_t;
 
   // This constructor is applied for ~exportntree~
   PersistentNTree(ntree_t* n, std::vector<Tuple*>* tuples,
@@ -2532,7 +2582,8 @@ class PersistentNTree {
              const int suffix) :
           status(false), treeInfoType(0), nodeInfoType(0), nodeDistType(0), 
           pivotInfoType(0), firstNodeId(firstId), nodeInfoPos(1),
-          nodeDistPos(0), pivotInfoPos(0), srcTuples(tuples), ntree(n) {
+          nodeDistPos(0), pivotInfoPos(0), srcTuples(tuples), nodeInfoTuples(0),
+          nodeDistTuples(0), pivotInfoTuples(0), ntree(n) {
     sc = SecondoSystem::GetCatalog();
     std::vector<std::string> relNames = getRelNames(prefix, suffix);
     if (tuples->empty()) {
@@ -2565,7 +2616,7 @@ class PersistentNTree {
   // This constructor is applied for ~importntree~
   PersistentNTree(std::string& prefix, const int suffix) : status(false), 
        treeInfoType(0), nodeInfoType(0), nodeDistType(0), pivotInfoType(0), 
-       nodeInfoPos(1), nodeDistPos(0), pivotInfoPos(0), srcTuples(0), ntree(0) {
+       nodeInfoPos(0), nodeDistPos(0), pivotInfoPos(0), srcTuples(0), ntree(0) {
     sc = SecondoSystem::GetCatalog();
     std::vector<std::string> relNames = getRelNames(prefix, suffix);
     std::string nodeInfoRelName = prefix + "NodeInfo";
@@ -2661,6 +2712,11 @@ class PersistentNTree {
       }
       firstAttrNo -= 4;
       nodeInfoRel = (Relation*)(relWord.addr);
+      int nodeInfoRelSize = nodeInfoRel->GetNoTuples();
+      nodeInfoTuples = new std::vector<Tuple*>(nodeInfoRelSize);
+      for (int i = 1; i <= nodeInfoRelSize; i++) {
+        (*nodeInfoTuples)[i - 1] = nodeInfoRel->GetTuple(i, false);
+      }
     }
     if (relName.find("NodeDist", prefix.size()) != std::string::npos) {
       if (!nl->Equal(relType, nodeDistTypeList)) {
@@ -2688,47 +2744,58 @@ class PersistentNTree {
     attrNo = ((CcInt*)(treeInfoTuple->GetAttribute(4)))->GetValue();
     PartitionMethod pMethod = (variant == 8 ? RANDOMOPT : RANDOMONLY);
     ntree = new ntree_t(degree, maxLeafSize, dc, pMethod, attrNo);
+    delete treeInfoTuple;
     return true;
   }
   
   node_t* buildNextNode() {
-    bool sameNode = true;
-    bool isFirst = true;
-    int nodeId, lastNodeId(-1), subnodeId, entry(-1), attr0(firstAttrNo);
-    double maxDist(-1.0);
-    Tuple *nodeInfoTuple(0);
-    node_t *result = 0;
-    std::queue<int> subnodeIds;
-    while (sameNode) {
-      nodeInfoTuple = nodeInfoRel->GetTuple(nodeInfoPos, false);
-      nodeId = ((CcInt*)(nodeInfoTuple->GetAttribute(attr0)))->GetValue();
-      if (!isFirst) {
-        if (nodeId != lastNodeId) {
-          sameNode = false;
+    Tuple *nodeInfoTuple = (*nodeInfoTuples)[nodeInfoPos];
+    int nodeId = 
+               ((CcInt*)(nodeInfoTuple->GetAttribute(firstAttrNo)))->GetValue();
+    int entry(-1), attr0(firstAttrNo), currentNodeId(nodeId);
+    std::vector<double> maxDist;
+    std::vector<int> subnodeIds, entries;
+    std::vector<MTreeEntry<T>* > objects;
+    int subnodeId =
+                   ((CcInt*)nodeInfoTuple->GetAttribute(attr0 + 2))->GetValue();
+    bool isLeaf = (subnodeId == 0);
+    node_t *result;
+    if (isLeaf) {
+      result = new leafnode_t(ntree->getDegree(), ntree->getMaxLeafSize(),
+                              ntree->getCandOrder(), ntree->getPruningMethod());
+    }
+    else {
+      result = new innernode_t(ntree->getDegree(), ntree->getMaxLeafSize(),
+                              ntree->getCandOrder(), ntree->getPruningMethod());
+    }
+    cout << "process " << (isLeaf ? "LEAF node #" : "INNER node #") << nodeId 
+         << endl;
+//     std::queue<int> subnodeIds;
+    while (currentNodeId == nodeId) {
+      entry = ((CcInt*)nodeInfoTuple->GetAttribute(attr0 + 1))->GetValue();
+      cout << "begin iteration, entry = " << entry << endl;
+      entries.push_back(entry);
+      if (isLeaf) {
+        if (entry == 0) {
+          maxDist.push_back( 
+                 ((CcReal*)nodeInfoTuple->GetAttribute(attr0 + 3))->GetValue());
         }
       }
-      else {
-        isFirst = false;
-      }
-      if (sameNode) {
-        entry = ((CcInt*)nodeInfoTuple->GetAttribute(attr0 + 1))->GetValue();
+      else { // inner node
         subnodeId =
                    ((CcInt*)nodeInfoTuple->GetAttribute(attr0 + 2))->GetValue();
-        if (subnodeId == 0) { // leaf node
-          result = new leafnode_t(ntree->getDegree(), ntree->getMaxLeafSize());
-        }
-        else { // inner node
-          result = new innernode_t(ntree->getDegree(), ntree->getMaxLeafSize());
-          subnodeIds.push(subnodeId);
-          maxDist = 
-                  ((CcReal*)nodeInfoTuple->GetAttribute(attr0 + 3))->GetValue();
-        }
-        T* obj = new T((T*)(nodeInfoTuple->GetAttribute(attrNo)));
-//      TODO:    result->setObject(entry, obj);
+        subnodeIds.push_back(subnodeId);
+        maxDist.push_back( 
+                 ((CcReal*)nodeInfoTuple->GetAttribute(attr0 + 3))->GetValue());
       }
-      lastNodeId = nodeId;
+      T *obj = (T*)((T*)(nodeInfoTuple->GetAttribute(attrNo))->Clone());
+      objects.push_back(new MTreeEntry<T>(*obj, nodeInfoTuple->GetTupleId()));
       nodeInfoPos++;
+      nodeInfoTuple = (*nodeInfoTuples)[nodeInfoPos];
+      currentNodeId= ((CcInt*)(nodeInfoTuple->GetAttribute(attr0)))->GetValue();
     }
+    result->initAuxStructures(objects.size());
+    result->setCenters(nodeId, entries, objects, maxDist);    
     return result;
   }
   
@@ -2736,10 +2803,10 @@ class PersistentNTree {
     if (nodeInfoRel->GetNoTuples() == 0) {
       return false;
     }
-//     node_t* root = buildNextNode();
-//     ntree->setRoot((innernode_t*)root);
-    
-    
+    node_t* root = buildNextNode();
+    ntree->setRoot((innernode_t*)root);
+    ntree->getRoot()->print(cout, true, ntree->getDistComp());
+    cout << *((ntree->getRoot()->getCenter(0))->getKey()) << endl;
     return true;
   }
   
@@ -2856,6 +2923,7 @@ class PersistentNTree {
     }
     treeInfoTuple->PutAttribute(5, newGeoid);
     treeInfoRel->AppendTuple(treeInfoTuple);
+    treeInfoTuple->DeleteIfAllowed();
     processNode(ntree->getRoot());
     return true;
   }
@@ -2874,8 +2942,8 @@ class PersistentNTree {
       }
       int subtreeNodeId = (node->isLeaf() ? 0 :
                   ((innernode_t*)node)->getChild(i)->getNodeId() + firstNodeId);
-      double maxDist = (node->isLeaf() ? -1.0 : 
-                                           ((innernode_t*)node)->getMaxDist(i));
+      double maxDist = (node->isLeaf() ? ((leafnode_t*)node)->getMaxDist() : 
+                                         ((innernode_t*)node)->getMaxDist(i));
 //       nodeInfo.push_back(std::make_tuple(node->getNodeId() + firstNodeId, i, 
 //                                          subtreeNodeId, maxDist, tid - 1));
       nodeInfoTuple = new Tuple(nodeInfoType);
@@ -2888,7 +2956,8 @@ class PersistentNTree {
       nodeInfoTuple->PutAttribute(firstAttrNo + 2, new CcInt(true, 
                                                              subtreeNodeId));
       nodeInfoTuple->PutAttribute(firstAttrNo + 3, new CcReal(true, maxDist));
-      nodeInfoRel->AppendTuple(nodeInfoTuple);      
+      nodeInfoRel->AppendTuple(nodeInfoTuple); 
+      delete nodeInfoTuple;
       for (int j = 0; j < i; j++) {
 //         nodeDist.push_back(std::make_tuple(node->getNodeId() + firstNodeId, 
 //                       i, j, node->getPrecomputedDist(i, j, node->isLeaf())));
@@ -2899,6 +2968,7 @@ class PersistentNTree {
         nodeDistTuple->PutAttribute(3, new CcReal(true, 
                                node->getPrecomputedDist(i, j, node->isLeaf())));
         nodeDistRel->AppendTuple(nodeDistTuple);
+        nodeDistTuple->DeleteIfAllowed();
       }
       std::vector<double> pivotDists = node->getPivotDistances(i);
       bool isPivot = (i == std::get<0>(refDistPos) || 
@@ -2912,6 +2982,7 @@ class PersistentNTree {
       pivotInfoTuple->PutAttribute(3, new CcReal(true, pivotDists[1]));
       pivotInfoTuple->PutAttribute(4, new CcBool(true, isPivot));
       pivotInfoRel->AppendTuple(pivotInfoTuple);
+      pivotInfoTuple->DeleteIfAllowed();
     }
     if (!node->isLeaf()) {
       for (int i = 0; i < node->getCount(); i++) {
@@ -2945,7 +3016,8 @@ class PersistentNTree {
   TupleType *treeInfoType, *nodeInfoType, *nodeDistType, *pivotInfoType;
   Relation *treeInfoRel, *nodeInfoRel, *nodeDistRel, *pivotInfoRel;
   int attrNo, firstAttrNo, firstNodeId, nodeInfoPos, nodeDistPos, pivotInfoPos;
-  std::vector<Tuple*>* srcTuples;
+  std::vector<Tuple*> *srcTuples, *nodeInfoTuples, *nodeDistTuples, 
+                      *pivotInfoTuples;
   ntree_t* ntree;
 };
 

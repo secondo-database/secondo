@@ -22720,8 +22720,8 @@ int exportntreeVMT(Word* args, Word& result, int message, Word& local,
   MemoryNtreeObject<T, StdDistComp<T>, variant>* treeObj = 
                                        getNtreeX<MPointer, T, variant>(treeMem);
   NTree<MTreeEntry<T>, StdDistComp<T>, variant> *ntree = treeObj->getNtreeX();  
-  PersistentNTree<MTreeEntry<T>, StdDistComp<T>, variant> pntree(ntree,
-             relVector, relTypeList, prefix, ccFirstNodeId->GetValue(), suffix);
+  PersistentNTree<T, StdDistComp<T>, variant> pntree(ntree, relVector, 
+                        relTypeList, prefix, ccFirstNodeId->GetValue(), suffix);
   res->Set(true, pntree.getStatus());  
   return 0;
 }
@@ -22830,15 +22830,14 @@ int importntreeVMT(Word* args, Word& result, int message, Word& local,
     }
     suffix = ccsuffix->GetValue();
   }
-  PersistentNTree<MTreeEntry<T>, StdDistComp<T>, variant> persNTree(prefix, 
-                                                                    suffix);
+  PersistentNTree<T, StdDistComp<T>, variant> persNTree(prefix, suffix);
   NTree<MTreeEntry<T>, StdDistComp<T>, variant>* tree = persNTree.getNTree();
   if (tree == 0) {
     res->setPointer(0);
     return 0;
   }
-  cout << "entries: " << tree->getNoEntries() << ", nodes: " 
-       << tree->getNoNodes() << ", leaves: " << tree->getNoLeaves() << endl;
+//   cout << "entries: " << tree->getNoEntries() << ", nodes: " 
+//        << tree->getNoNodes() << ", leaves: " << tree->getNoLeaves() << endl;
   size_t usedMem = tree->memSize();
   ListExpr typeList = nl->Second(qp->GetType(s));
   bool flobused = (nl->ToString(typeList) == "mpoint" || 
