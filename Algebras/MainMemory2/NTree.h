@@ -594,7 +594,7 @@ class NTreeNode {
   virtual double evaluateDist(const int i, const T& o, DistComp& dc) const = 0;
   
   virtual void setCenters(const int nodeId, const std::vector<int>& pos, 
-        const std::vector<T*>& objects, const std::vector<double>& maxDist) = 0;                              
+        const std::vector<T*>& objects, const std::vector<double>& maxDist) = 0;
         
   void initAuxStructures(const int size) {
     if (distMatrix != 0 || distances2d != 0 || distances3d != 0) {
