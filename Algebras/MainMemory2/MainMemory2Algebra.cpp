@@ -56,6 +56,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "AvlTree.h"
 #include "StopWatch.h"
 
+#include "PersistentNTree.h"
 #include "NTree.h"
 #include "ttree.h"
 
