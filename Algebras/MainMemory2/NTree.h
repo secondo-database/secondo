@@ -595,6 +595,18 @@ class NTreeNode {
   
   virtual void setCenters(const int nodeId, const std::vector<int>& pos, 
         const std::vector<T*>& objects, const std::vector<double>& maxDist) = 0;
+  
+  void setDistMatrix(double **dm) {
+    distMatrix = dm;
+  }
+  
+  void setPivotInfo(std::vector<int>& rdp, std::pair<double, double>* d2d) {
+    assert(rdp.size() == 2);
+    std::get<0>(refDistPos) = rdp[0];
+    std::get<1>(refDistPos) = rdp[1];
+    std::get<2>(refDistPos) = -1;
+    distances2d = d2d;
+  }
         
   void initAuxStructures(const int size) {
     if (distMatrix != 0 || distances2d != 0 || distances3d != 0) {
@@ -1128,7 +1140,7 @@ class NTreeInnerNode : public NTreeNode<T, DistComp, variant> {
         centers[i]->getKey()->Print(out);
         out << ", child #" << i << " = ";
         if (children[i] == 0) {
-          out << "NULL";
+          out << "NULL ";
         }
         else {
           children[i]->print(out, dc);

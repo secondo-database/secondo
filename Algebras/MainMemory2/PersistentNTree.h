@@ -43,7 +43,7 @@ class PersistentNTree {
              ListExpr relTypeList, std::string& prefix, const int firstId,
              const int suffix) :
           status(false), treeInfoType(0), nodeInfoType(0), nodeDistType(0), 
-          pivotInfoType(0), firstNodeId(firstId), nodeInfoPos(1),
+          pivotInfoType(0), firstNodeId(firstId), nodeInfoPos(0),
           nodeDistPos(0), pivotInfoPos(0), srcTuples(tuples), nodeInfoTuples(0),
           nodeDistTuples(0), pivotInfoTuples(0), ntree(n) {
     sc = SecondoSystem::GetCatalog();
@@ -186,6 +186,11 @@ class PersistentNTree {
         return false;
       }
       nodeDistRel = (Relation*)(relWord.addr);
+      int nodeDistRelSize = nodeDistRel->GetNoTuples();
+      nodeDistTuples = new std::vector<Tuple*>(nodeDistRelSize);
+      for (int i = 1; i <= nodeDistRelSize; i++) {
+        (*nodeDistTuples)[i - 1] = nodeDistRel->GetTuple(i, false);
+      }
     }
     if (relName.find("PivotInfo", prefix.size()) != std::string::npos) {
       if (!nl->Equal(relType, pivotInfoTypeList)) {
@@ -193,6 +198,11 @@ class PersistentNTree {
         return false;
       }
       pivotInfoRel = (Relation*)(relWord.addr);
+      int pivotInfoRelSize = pivotInfoRel->GetNoTuples();
+      pivotInfoTuples = new std::vector<Tuple*>(pivotInfoRelSize);
+      for (int i = 1; i <= pivotInfoRelSize; i++) {
+        (*pivotInfoTuples)[i - 1] = pivotInfoRel->GetTuple(i, false);
+      }
     }
     return true;
   }
@@ -256,8 +266,63 @@ class PersistentNTree {
       nodeInfoTuple = (*nodeInfoTuples)[nodeInfoPos];
       currentNodeId= ((CcInt*)(nodeInfoTuple->GetAttribute(attr0)))->GetValue();
     }
-    result->initAuxStructures(objects.size());
-    result->setCenters(nodeId, entries, objects, maxDist);    
+    result->setCenters(nodeId, entries, objects, maxDist);
+    Tuple *nodeDistTuple = (*nodeDistTuples)[nodeDistPos];
+    currentNodeId = ((CcInt*)(nodeDistTuple->GetAttribute(0)))->GetValue();
+    int entry1, entry2, distMatrixSize(0);
+    double dist;
+    std::vector<std::tuple<int, int, double> > distEntries;
+    while (currentNodeId == nodeId) {
+      entry1 = ((CcInt*)nodeDistTuple->GetAttribute(1))->GetValue();
+      if (entry1 + 1 >= distMatrixSize) {
+        distMatrixSize = entry1 + 1;
+      }
+      entry2 = ((CcInt*)nodeDistTuple->GetAttribute(2))->GetValue();
+      dist = ((CcReal*)nodeDistTuple->GetAttribute(3))->GetValue();
+      distEntries.push_back(std::make_tuple(entry1, entry2, dist));
+      nodeDistPos++;
+      nodeDistTuple = (*nodeDistTuples)[nodeDistPos];
+      currentNodeId = ((CcInt*)(nodeDistTuple->GetAttribute(0)))->GetValue();
+    }
+    double** distMatrix = new double*[distMatrixSize];
+    for (int i = 0; i < distMatrixSize; i++) {
+      distMatrix[i] = new double[distMatrixSize];
+      std::fill_n(distMatrix[i], distMatrixSize, -1.0);
+      distMatrix[i][i] = 0.0;
+    }
+    for (unsigned int i = 0; i < distEntries.size(); i++) {
+      auto distEntry = distEntries[i];
+      distMatrix[std::get<0>(distEntry)][std::get<1>(distEntry)] = 
+                                                         std::get<2>(distEntry);
+    }
+    result->setDistMatrix(distMatrix);
+    Tuple *pivotInfoTuple = (*pivotInfoTuples)[pivotInfoPos];
+    currentNodeId = ((CcInt*)(pivotInfoTuple->GetAttribute(0)))->GetValue();
+    std::vector<std::tuple<int, double, double> > pivotEntries;
+    double dist1, dist2;
+    bool isPivot;
+    std::vector<int> refDistPos;
+    while (currentNodeId == nodeId) {
+      entry = ((CcInt*)pivotInfoTuple->GetAttribute(1))->GetValue();
+      dist1 = ((CcReal*)pivotInfoTuple->GetAttribute(2))->GetValue();
+      dist2 = ((CcReal*)pivotInfoTuple->GetAttribute(3))->GetValue();
+      isPivot = ((CcBool*)pivotInfoTuple->GetAttribute(4))->GetValue();
+      if (isPivot) {
+        refDistPos.push_back(entry);
+      }
+      pivotEntries.push_back(std::make_tuple(entry, dist1, dist2));
+      pivotInfoPos++;
+      pivotInfoTuple = (*pivotInfoTuples)[pivotInfoPos];
+      currentNodeId = ((CcInt*)(pivotInfoTuple->GetAttribute(0)))->GetValue();
+    }
+    std::pair<double, double>* distances2d =
+                             new std::pair<double, double>[pivotEntries.size()];
+    for (unsigned int i = 0; i < pivotEntries.size(); i++) {
+      auto pivotEntry = pivotEntries[i];
+      distances2d[std::get<0>(pivotEntry)] = 
+               std::make_pair(std::get<1>(pivotEntry), std::get<2>(pivotEntry));
+    }
+    result->setPivotInfo(refDistPos, distances2d);
     return result;
   }
   
