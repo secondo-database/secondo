@@ -42,10 +42,10 @@ class PersistentNTree {
   PersistentNTree(ntree_t* n, std::vector<Tuple*>* tuples,
              ListExpr relTypeList, std::string& prefix, const int firstId,
              const int suffix) :
-          status(false), treeInfoType(0), nodeInfoType(0), nodeDistType(0), 
-          pivotInfoType(0), firstNodeId(firstId), nodeInfoPos(0),
-          nodeDistPos(0), pivotInfoPos(0), srcTuples(tuples), nodeInfoTuples(0),
-          nodeDistTuples(0), pivotInfoTuples(0), ntree(n) {
+          status(false), isExport(true), treeInfoType(0), nodeInfoType(0),
+          nodeDistType(0), pivotInfoType(0), firstNodeId(firstId), 
+          nodeInfoPos(0), nodeDistPos(0), pivotInfoPos(0), srcTuples(tuples),
+          nodeInfoTuples(0), nodeDistTuples(0), pivotInfoTuples(0), ntree(n) {
     sc = SecondoSystem::GetCatalog();
     std::vector<std::string> relNames = getRelNames(prefix, suffix);
     if (tuples->empty()) {
@@ -77,8 +77,9 @@ class PersistentNTree {
   
   // This constructor is applied for ~importntree~
   PersistentNTree(std::string& prefix, const int suffix) : status(false), 
-       treeInfoType(0), nodeInfoType(0), nodeDistType(0), pivotInfoType(0), 
-       nodeInfoPos(0), nodeDistPos(0), pivotInfoPos(0), srcTuples(0), ntree(0) {
+       isExport(false), treeInfoType(0), nodeInfoType(0), nodeDistType(0), 
+       pivotInfoType(0), nodeInfoPos(0), nodeDistPos(0), pivotInfoPos(0), 
+       srcTuples(0), ntree(0) {
     sc = SecondoSystem::GetCatalog();
     std::vector<std::string> relNames = getRelNames(prefix, suffix);
     std::string nodeInfoRelName = prefix + "NodeInfo";
@@ -119,6 +120,38 @@ class PersistentNTree {
     }
     if (pivotInfoType != 0) {
       pivotInfoType->DeleteIfAllowed();
+    }
+    if (nodeInfoTuples != 0) {
+      for (int i = 0; i < nodeInfoRel->GetNoTuples(); i++) {
+        (*nodeInfoTuples)[i]->DeleteIfAllowed();
+      }
+      delete nodeInfoTuples;
+    }
+    if (nodeDistTuples != 0) {
+      for (int i = 0; i < nodeDistRel->GetNoTuples(); i++) {
+        (*nodeDistTuples)[i]->DeleteIfAllowed();
+      }
+      delete nodeDistTuples;
+    }
+    if (pivotInfoTuples != 0) {
+      for (int i = 0; i < pivotInfoRel->GetNoTuples(); i++) {
+        (*pivotInfoTuples)[i]->DeleteIfAllowed();
+      }
+      delete pivotInfoTuples;
+    }
+    if (!isExport) {
+      if (treeInfoRel != 0) {
+        delete treeInfoRel;
+      }
+      if (nodeInfoRel != 0) {
+        delete nodeInfoRel;
+      }
+      if (nodeDistRel != 0) {
+        delete nodeDistRel;
+      }
+      if (pivotInfoRel != 0) {
+        delete pivotInfoRel;
+      }
     }
   }
   
@@ -220,13 +253,13 @@ class PersistentNTree {
     return true;
   }
   
-  node_t* buildNextNode() {
+  node_t* buildNextNode(std::queue<int>& subnodeIds) {
     Tuple *nodeInfoTuple = (*nodeInfoTuples)[nodeInfoPos];
     int nodeId = 
                ((CcInt*)(nodeInfoTuple->GetAttribute(firstAttrNo)))->GetValue();
     int entry(-1), attr0(firstAttrNo), currentNodeId(nodeId);
     std::vector<double> maxDist;
-    std::vector<int> subnodeIds, entries;
+    std::vector<int> entries;
     std::vector<MTreeEntry<T>* > objects;
     int subnodeId =
                    ((CcInt*)nodeInfoTuple->GetAttribute(attr0 + 2))->GetValue();
@@ -242,10 +275,9 @@ class PersistentNTree {
     }
     cout << "process " << (isLeaf ? "LEAF node #" : "INNER node #") << nodeId 
          << endl;
-//     std::queue<int> subnodeIds;
     while (currentNodeId == nodeId) {
       entry = ((CcInt*)nodeInfoTuple->GetAttribute(attr0 + 1))->GetValue();
-      cout << "begin iteration, entry = " << entry << endl;
+      cout << "begin iteration, entry = " << entry;
       entries.push_back(entry);
       if (isLeaf) {
         if (entry == 0) {
@@ -256,12 +288,15 @@ class PersistentNTree {
       else { // inner node
         subnodeId =
                    ((CcInt*)nodeInfoTuple->GetAttribute(attr0 + 2))->GetValue();
-        subnodeIds.push_back(subnodeId);
+        cout << ", subnodeId = " << subnodeId;
+        subnodeIds.push(subnodeId);
         maxDist.push_back( 
                  ((CcReal*)nodeInfoTuple->GetAttribute(attr0 + 3))->GetValue());
       }
+      cout << endl;
       T *obj = (T*)((T*)(nodeInfoTuple->GetAttribute(attrNo))->Clone());
       objects.push_back(new MTreeEntry<T>(*obj, nodeInfoTuple->GetTupleId()));
+      obj->DeleteIfAllowed();
       nodeInfoPos++;
       nodeInfoTuple = (*nodeInfoTuples)[nodeInfoPos];
       currentNodeId= ((CcInt*)(nodeInfoTuple->GetAttribute(attr0)))->GetValue();
@@ -330,10 +365,18 @@ class PersistentNTree {
     if (nodeInfoRel->GetNoTuples() == 0) {
       return false;
     }
-    node_t* root = buildNextNode();
+    std::queue<int> subnodeIds;
+    node_t* root = buildNextNode(subnodeIds);
     ntree->setRoot((innernode_t*)root);
-    ntree->getRoot()->print(cout, true, ntree->getDistComp());
-    cout << *((ntree->getRoot()->getCenter(0))->getKey()) << endl;
+    ntree->getRoot()->print(cout, ntree->getDistComp(), true, true, true);
+    node_t *otherNode = buildNextNode(subnodeIds);
+    otherNode->print(cout, ntree->getDistComp(), true, true, true);
+    otherNode = buildNextNode(subnodeIds);
+    otherNode->print(cout, ntree->getDistComp(), true, true, true);
+    while (!subnodeIds.empty()) {
+      cout << subnodeIds.front() << " ";
+      subnodeIds.pop();
+    }
     return true;
   }
   
@@ -536,7 +579,7 @@ class PersistentNTree {
   }
   
  private:
-  bool status;
+  bool status, isExport;
   SecondoCatalog* sc;
   ListExpr treeInfoTypeList, nodeInfoTypeList, nodeDistTypeList, 
            pivotInfoTypeList;

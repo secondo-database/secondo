@@ -588,8 +588,9 @@ class NTreeNode {
   
   virtual std::ostream& print(std::ostream& out, DistComp& dc) const = 0;
   
-  virtual std::ostream& print(std::ostream& out, const bool printSubtrees,
-                              DistComp& di) const = 0;
+  virtual std::ostream& print(std::ostream& out, DistComp& di, 
+                           const bool printSubtrees, const bool printDistMatrix,
+                           const bool printPivotInfo) const = 0;
   
   virtual double evaluateDist(const int i, const T& o, DistComp& dc) const = 0;
   
@@ -1127,17 +1128,17 @@ class NTreeInnerNode : public NTreeNode<T, DistComp, variant> {
   }
   
   std::ostream& print(std::ostream& out, DistComp& dc) const {
-    return print(out, true, dc);
+    return print(out, dc, true, false, false);
   }
    
-  std::ostream& print(std::ostream& out, const bool printSubtrees,
-                      DistComp& dc) const {
+  std::ostream& print(std::ostream& out, DistComp& dc, const bool printSubtrees,
+                  const bool printDistMatrix, const bool printPivotInfo) const {
     out << "( \"inner node: ";
-    if (printSubtrees) {
-      out << " (";
-      for (int i = 0; i < node_t::count; i++) {
-        out << "center #" << i << " = ";
-        centers[i]->getKey()->Print(out);
+    out << " (";
+    for (int i = 0; i < node_t::count; i++) {
+      out << "center #" << i << " = ";
+      centers[i]->getKey()->Print(out);
+      if (printSubtrees) {
         out << ", child #" << i << " = ";
         if (children[i] == 0) {
           out << "NULL ";
@@ -1146,7 +1147,37 @@ class NTreeInnerNode : public NTreeNode<T, DistComp, variant> {
           children[i]->print(out, dc);
         }
       }
-      out << " )" << endl;
+    }
+    out << " )" << endl;
+    if (printDistMatrix && distMatrix != 0) {
+      out << "distMatrix:" << endl;
+      for (int i = 0; i < node_t::count; i++) {
+        for (int j = 0; j <= i; j++) {
+          out << distMatrix[i][j] << " ";
+        }
+        out << endl;
+      }
+    }
+    if (printPivotInfo && (distances2d != 0 || distances3d != 0)) {
+      out << "pivot elements: " << std::get<0>(refDistPos) << ", "
+          << std::get<1>(refDistPos);
+      if (candOrder == PIVOT3) {
+        out << ", " << std::get<2>(refDistPos);
+      }
+      out << endl;
+      out << "pivot distances: ";
+      for (int i = 0; i < node_t::count; i++) {
+        if (candOrder == PIVOT3) {
+          out << "(" << std::get<0>(distances3d[i]) << ", "
+              << std::get<1>(distances3d[i]) << ", " 
+              << std::get<2>(distances3d[i]) << "), ";
+        }
+        else if (candOrder == PIVOT2) {
+          out << "(" << distances2d[i].first << ", " << distances2d[i].second
+              << "), ";
+        }
+      }
+      out << endl;
     }
     out << ")";
     return out;
@@ -1650,8 +1681,8 @@ class NTreeLeafNode : public NTreeNode<T, DistComp, variant> {
     return out;
   }
   
-  std::ostream& print(std::ostream& out, const bool printSubtrees,
-                      DistComp &dc) const {
+  std::ostream& print(std::ostream& out, DistComp &dc, const bool printSubtrees,
+                  const bool printDistMatrix, const bool printPivotInfo) const {
     return print(out, dc);
   }
   
