@@ -25,7 +25,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #ifndef PERSISTENTNTREE_H
 #define PERSISTENTNTREE_H
 
-// #include "MainMemoryExt.h"
 #include "NTree.h"
 
 namespace mm2algebra {
