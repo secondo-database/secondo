@@ -252,7 +252,7 @@ class PersistentNTree {
     return true;
   }
   
-  node_t* buildNextNode(std::queue<int>& subnodeIds) {
+  node_t* buildNextNode(std::queue<std::pair<int, int> >& subnodeIds) {
     Tuple *nodeInfoTuple = (*nodeInfoTuples)[nodeInfoPos];
     int nodeId = 
                ((CcInt*)(nodeInfoTuple->GetAttribute(firstAttrNo)))->GetValue();
@@ -288,7 +288,7 @@ class PersistentNTree {
         subnodeId =
                    ((CcInt*)nodeInfoTuple->GetAttribute(attr0 + 2))->GetValue();
         cout << ", subnodeId = " << subnodeId;
-        subnodeIds.push(subnodeId);
+        subnodeIds.push(std::make_pair(entry, subnodeId));
         maxDist.push_back( 
                  ((CcReal*)nodeInfoTuple->GetAttribute(attr0 + 3))->GetValue());
       }
@@ -297,8 +297,15 @@ class PersistentNTree {
       objects.push_back(new MTreeEntry<T>(*obj, nodeInfoTuple->GetTupleId()));
       obj->DeleteIfAllowed();
       nodeInfoPos++;
-      nodeInfoTuple = (*nodeInfoTuples)[nodeInfoPos];
-      currentNodeId= ((CcInt*)(nodeInfoTuple->GetAttribute(attr0)))->GetValue();
+      if (nodeInfoPos < (int)(nodeInfoTuples->size())) {
+        nodeInfoTuple = (*nodeInfoTuples)[nodeInfoPos];
+        currentNodeId =
+                     ((CcInt*)(nodeInfoTuple->GetAttribute(attr0)))->GetValue();
+      }
+      else {
+        cout << "end of nodeInfo" << endl;
+        currentNodeId = -1;
+      }
     }
     result->setCenters(nodeId, entries, objects, maxDist);
     Tuple *nodeDistTuple = (*nodeDistTuples)[nodeDistPos];
@@ -315,8 +322,14 @@ class PersistentNTree {
       dist = ((CcReal*)nodeDistTuple->GetAttribute(3))->GetValue();
       distEntries.push_back(std::make_tuple(entry1, entry2, dist));
       nodeDistPos++;
-      nodeDistTuple = (*nodeDistTuples)[nodeDistPos];
-      currentNodeId = ((CcInt*)(nodeDistTuple->GetAttribute(0)))->GetValue();
+      if (nodeDistPos < (int)(nodeDistTuples->size())) {
+        nodeDistTuple = (*nodeDistTuples)[nodeDistPos];
+        currentNodeId = ((CcInt*)(nodeDistTuple->GetAttribute(0)))->GetValue();
+      }
+      else {
+        cout << "end of nodeDist" << endl;
+        currentNodeId = -1;
+      }
     }
     double** distMatrix = new double*[distMatrixSize];
     for (int i = 0; i < distMatrixSize; i++) {
@@ -346,8 +359,14 @@ class PersistentNTree {
       }
       pivotEntries.push_back(std::make_tuple(entry, dist1, dist2));
       pivotInfoPos++;
-      pivotInfoTuple = (*pivotInfoTuples)[pivotInfoPos];
-      currentNodeId = ((CcInt*)(pivotInfoTuple->GetAttribute(0)))->GetValue();
+      if (pivotInfoPos < (int)(pivotInfoTuples->size())) {
+        pivotInfoTuple = (*pivotInfoTuples)[pivotInfoPos];
+        currentNodeId = ((CcInt*)(pivotInfoTuple->GetAttribute(0)))->GetValue();
+      }
+      else {
+        cout << "end of pivotInfo" << endl;
+        currentNodeId = -1;
+      }
     }
     std::pair<double, double>* distances2d =
                              new std::pair<double, double>[pivotEntries.size()];
@@ -360,22 +379,39 @@ class PersistentNTree {
     return result;
   }
   
+  void growSubtree(innernode_t* root, 
+                   std::queue<std::pair<int, int> >& subnodes) {
+    while (!subnodes.empty() && nodeInfoPos < (int)(nodeInfoTuples->size())) {
+      std::pair<int, int> nextSubnode = subnodes.front();
+      subnodes.pop();
+      std::queue<std::pair<int, int> > nextSubnodes;
+      node_t *subnode = buildNextNode(nextSubnodes);
+      if (nextSubnode.second != subnode->getNodeId()) {
+        cout << nextSubnode.second << " != " << subnode->getNodeId() << endl;
+      }
+      assert(nextSubnode.second == subnode->getNodeId());
+      root->setChild(nextSubnode.first, subnode, false);
+      cout << "node " << subnode->getNodeId() << " inserted as child of "
+           << root->getNodeId() << endl;
+      if (!subnode->isLeaf()) {
+        growSubtree(((innernode_t*)subnode), nextSubnodes);
+      }
+      
+      
+    }
+  }
+  
   bool buildNTree() {
     if (nodeInfoRel->GetNoTuples() == 0) {
       return false;
     }
-    std::queue<int> subnodeIds;
-    node_t* root = buildNextNode(subnodeIds);
+    std::queue<std::pair<int, int> > subnodes;
+    node_t* root = buildNextNode(subnodes);
     ntree->setRoot((innernode_t*)root);
     ntree->getRoot()->print(cout, ntree->getDistComp(), true, true, true);
-    node_t *otherNode = buildNextNode(subnodeIds);
-    otherNode->print(cout, ntree->getDistComp(), true, true, true);
-    otherNode = buildNextNode(subnodeIds);
-    otherNode->print(cout, ntree->getDistComp(), true, true, true);
-    while (!subnodeIds.empty()) {
-      cout << subnodeIds.front() << " ";
-      subnodeIds.pop();
-    }
+    if (!root->isLeaf()) {
+      growSubtree(((innernode_t*)root), subnodes);
+    }    
     return true;
   }
   

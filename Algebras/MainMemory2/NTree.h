@@ -602,9 +602,14 @@ class NTreeNode {
   }
   
   void setPivotInfo(std::vector<int>& rdp, std::pair<double, double>* d2d) {
-    assert(rdp.size() == 2);
+    if (rdp.size() == 1) {
+      std::get<1>(refDistPos) = rdp[0];
+    }
+    else {
+      assert(rdp.size() == 2);
+      std::get<1>(refDistPos) = rdp[1];
+    }
     std::get<0>(refDistPos) = rdp[0];
-    std::get<1>(refDistPos) = rdp[1];
     std::get<2>(refDistPos) = -1;
     distances2d = d2d;
   }
@@ -1195,6 +1200,7 @@ class NTreeInnerNode : public NTreeNode<T, DistComp, variant> {
   
   int getNoEntries() const {
     int sum = 0;
+    cout << "inner node; node count is " << node_t::count << endl;
     for (int i = 0; i < node_t::count; i++) {
       if (children[i] != 0) {
         sum += children[i]->getNoEntries();
@@ -1556,6 +1562,7 @@ class NTreeLeafNode : public NTreeNode<T, DistComp, variant> {
   }
   
   int getNoEntries() const {
+    cout << "leaf node; node count is " << node_t::count << endl;
     return node_t::count;
   }
   
@@ -1606,6 +1613,9 @@ class NTreeLeafNode : public NTreeNode<T, DistComp, variant> {
     node_t::setNodeId(nodeId);
     assert(pos.size() == objects.size() && maxDist.size() == 1);
     for (unsigned int i = 0; i < pos.size(); i++) {
+//       if (entries[pos[i]] == 0) { // TODO: !
+//         node_t::count++;
+//       }
       entries[pos[i]] = objects[i];
     }
     this->maxDist = maxDist[0];
