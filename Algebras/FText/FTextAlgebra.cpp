@@ -8243,7 +8243,7 @@ Specification
       "<text> _ recode [_ , _]  </text--->"
       "<text>Recodes a string/text from one charset to another one "
       " </text--->"
-      "<text>query 'Häßlich' recode [\"utf8\", \"latin1\"] </text--->"
+      "<text>query 'Teststring' recode [\"utf8\", \"latin1\"] </text--->"
       ") )";
 
   /*
