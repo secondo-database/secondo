@@ -948,7 +948,7 @@ bool
 SecondoSystem::CommitTransaction(const  bool closeObjects)
 {
   TRACE_ENTER
-  instance->catalog->CleanUp( false, closeObjects );
+  instance->catalog->CleanUp(closeObjects);
   TRACE_LEAVE
   return (SmiEnvironment::CommitTransaction());
 }
@@ -957,7 +957,7 @@ bool
 SecondoSystem::AbortTransaction(const bool closeObjects)
 {
   TRACE_ENTER
-  instance->catalog->CleanUp( true, closeObjects);
+  instance->catalog->ClearPendingChanges(closeObjects);
   TRACE_LEAVE
   return (SmiEnvironment::AbortTransaction());
 }

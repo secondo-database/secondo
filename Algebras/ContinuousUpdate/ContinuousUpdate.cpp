@@ -954,7 +954,7 @@ private:
 
         //Needed to update the relation record
         catalog->ModifyObject(relationName, relationWord);
-        catalog->CleanUp(false, false);
+        catalog->CleanUp(false);
 
         tupleCounter = 0;
 

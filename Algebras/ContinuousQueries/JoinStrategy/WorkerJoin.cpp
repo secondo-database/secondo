@@ -222,7 +222,7 @@ if (!recover)
     _noqueries = countnos->GetValue();
 }
 
-    _sc->CleanUp(false, true);
+    _sc->CleanUp(true);
     
     _tuplerel = (Relation*) executeQueryString("query tpl;").addr;
     
@@ -422,7 +422,7 @@ Executes a query string. This doesn't work as expected.
 
 Word WorkerJoin::executeQueryString(std::string querystring)
 {
-    _sc->CleanUp(false, true);
+    _sc->CleanUp(true);
     
     Word resultword;
     SecParser parser;

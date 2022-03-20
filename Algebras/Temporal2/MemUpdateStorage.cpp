@@ -364,7 +364,7 @@ int MemUpdateStorage::memPushToFlobs(
 
     catalog->ModifyObject(backref_it->relationName,
             relationWord);
-    catalog->CleanUp(false, false);
+    catalog->CleanUp(false);
 
     relation->Close();
     relation = 0;

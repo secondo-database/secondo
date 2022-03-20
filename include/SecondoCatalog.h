@@ -180,12 +180,17 @@ closed successfully, otherwise "false"[4].
 
 /*
 Cleans up the memory representation when a transaction is completed.
-The switch ~revert~ has to be set to "true"[4] if the enclosing transaction
-is aborted.
 
 */
 
-  bool CleanUp( const bool revert , const bool closeObjects );
+  bool CleanUp( const bool closeObjects );
+
+/*
+Clears all pending catalog changes from memory
+
+*/
+
+  void ClearPendingChanges(bool closeObjects);
 
 /*
 3.2.2 Database Types

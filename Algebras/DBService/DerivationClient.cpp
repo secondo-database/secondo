@@ -125,7 +125,7 @@ void DerivationClient::start() {
          derivationFailed("could not insert target object");
          return;
      }
-     ctlg->CleanUp(false,true);
+     ctlg->CleanUp(true);
      SecondoSystem::CommitTransaction(true);
      // report success of operation
      derivationSuccessful();

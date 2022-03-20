@@ -158,7 +158,7 @@ int ReplicationClient::receiveReplica()
               SecondoSystem::AbortTransaction(true);
               return 1;
             }
-            ok = ctlg->CleanUp(false,true);
+            ok = ctlg->CleanUp(true);
             if(!ok){
                traceWriter->write("catalog->CleanUp failed");
                SecondoSystem::AbortTransaction(true);
