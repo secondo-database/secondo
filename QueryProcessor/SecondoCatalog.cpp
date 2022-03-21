@@ -3575,6 +3575,10 @@ void SecondoCatalog::ClearPendingChanges(bool closeObjects) {
          oPos != objects.end();
          oPos++) {
 
+      if (!oPos->second.valueDefined) {
+        continue;
+      }
+
       if (oPos->second.state == EntryInsert ||
           oPos->second.state == EntryUpdate) {
 
