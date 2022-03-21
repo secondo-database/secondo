@@ -3479,8 +3479,6 @@ preserved and the objects are created with undefined values.
               typeInfo = NumericType( nl->First( typeExpr ) );
               am->SaveObj( oPos->second.algebraId, oPos->second.typeId,
                             vRec, offset, typeInfo, oPos->second.value );
-              (am->CloseObj( oPos->second.algebraId, oPos->second.typeId ))
-                ( typeInfo, oPos->second.value );
               nl->Destroy( typeInfo );
               nl->Destroy( typeExpr );
             }
@@ -3577,7 +3575,9 @@ void SecondoCatalog::ClearPendingChanges(bool closeObjects) {
          oPos != objects.end();
          oPos++) {
 
-      if(oPos->second.state == EntryUpdate) {
+      if (oPos->second.state == EntryInsert ||
+          oPos->second.state == EntryUpdate) {
+
         ListExpr typeExpr;
         ListExpr typeInfo;
 
