@@ -95,6 +95,7 @@ function runTest() {
     echo "=============================="
     echo "File: ${logFile}"
     echo "=============================="
+    tail -20 ${logFile}
     cat ${logFile}
     echo "=============================="
   fi
