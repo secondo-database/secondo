@@ -145,9 +145,7 @@ fi
   
 # The first test create databases
 dbTest="createdb.test"
-exTest="example.test"
 dbFile="$buildDir/bin/$dbTest" 
-exFile="$buildDir/bin/$exTest"
 
 declare -i error=0
 
@@ -158,7 +156,7 @@ echo -e "$testSuites"
 #echo "ldd: "$(ldd $SECONDO_BUILD_DIR/bin/SecondoBDB)
 
 timeOut=136000
-for testName in $exTest $dbFile $testSuites; do
+for testName in $dbFile $testSuites; do
   runDir=${testName%/*}
   testFile=${testName##*/}
   if [ "$SECONDO_PLATFORM" != "win32" ]; then
