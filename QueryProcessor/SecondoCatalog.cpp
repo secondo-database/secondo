@@ -3425,11 +3425,12 @@ In this first iteration:
         {
           ok = false;
         }
+        CloseCatalogEntry(oPos->second);
         break;
       }
       case Undefined:
       default:
-      {  assert(false); }
+        assert(false);
     }
   }
 
@@ -3468,19 +3469,12 @@ preserved and the objects are created with undefined values.
                         sizeof( bool ), CE_OBJS_VALUE_DEF );
             SmiRecord vRec;
             size_t offset = 0;
-            ok = objValueFile.AppendRecord( oPos->second.valueRecordId,
-                                            vRec                        );
+            ok = objValueFile.AppendRecord(oPos->second.valueRecordId, vRec);
             if ( ok )
             {
               oRec.Write( &oPos->second.valueRecordId,
                           sizeof( SmiRecordId ), CE_OBJS_VALUE_RECID );
-              ListExpr typeExpr, typeInfo;
-              nl->ReadFromString( oPos->second.typeExpr, typeExpr );
-              typeInfo = NumericType( nl->First( typeExpr ) );
-              am->SaveObj( oPos->second.algebraId, oPos->second.typeId,
-                            vRec, offset, typeInfo, oPos->second.value );
-              nl->Destroy( typeInfo );
-              nl->Destroy( typeExpr );
+              SaveCatalogEntry(oPos->second, vRec, offset);
             }
             oRec.Finish();
           }
@@ -3518,13 +3512,7 @@ preserved and the objects are created with undefined values.
             }
             if ( ok2 )
             {
-              ListExpr typeExpr, typeInfo;
-              nl->ReadFromString( oPos->second.typeExpr, typeExpr );
-              typeInfo = NumericType( nl->First( typeExpr ) );
-              am->SaveObj( oPos->second.algebraId, oPos->second.typeId,
-                            vRec, offset, typeInfo, oPos->second.value );
-              nl->Destroy( typeInfo );
-              nl->Destroy( typeExpr );
+              SaveCatalogEntry(oPos->second, vRec, offset);
             }
             oRec.Finish();
           }
@@ -3537,26 +3525,15 @@ preserved and the objects are created with undefined values.
         break;
       }
       case EntryDelete:
-      {
-        if ( oPos->second.valueDefined )
-        {
-          ListExpr typeExpr, typeInfo;
-          nl->ReadFromString( oPos->second.typeExpr, typeExpr );
-          typeInfo = NumericType( nl->First( typeExpr ) );
-          (am->DeleteObj( oPos->second.algebraId, oPos->second.typeId ))
-            ( typeInfo, oPos->second.value );
-          nl->Destroy( typeInfo );
-          nl->Destroy( typeExpr );
-        }
+        // Nothing to do, object is already closed
         break;
-      }
       case Undefined:
       default:
-      { assert(false); }
+        assert(false);
     }
   }
 
-  ClearPendingChanges(closeObjects);
+  ClearInMemoryObjects(closeObjects);
 
   #ifdef SM_FILE_ID 
   mutex->unlock();
@@ -3566,7 +3543,42 @@ preserved and the objects are created with undefined values.
   return (ok);
 }
 
-void SecondoCatalog::ClearPendingChanges(bool closeObjects) {
+void SecondoCatalog::SaveCatalogEntry(ObjectsCatalogEntry catalogEntry, 
+      SmiRecord &vRec, size_t offset)
+{
+      if (! catalogEntry.valueDefined) {
+        return;
+      }
+
+      ListExpr typeExpr;
+      ListExpr typeInfo;
+      
+      nl->ReadFromString( catalogEntry.typeExpr, typeExpr );
+      typeInfo = NumericType( nl->First( typeExpr ) );
+      am->SaveObj( catalogEntry.algebraId, catalogEntry.typeId,
+                    vRec, offset, typeInfo, catalogEntry.value );
+      nl->Destroy( typeInfo );
+      nl->Destroy( typeExpr );
+}
+
+void SecondoCatalog::CloseCatalogEntry(ObjectsCatalogEntry catalogEntry)
+{
+      if (! catalogEntry.valueDefined) {
+        return;
+      }
+
+      ListExpr typeExpr;
+      ListExpr typeInfo;
+
+      nl->ReadFromString(catalogEntry.typeExpr, typeExpr);
+      typeInfo = NumericType(nl->First(typeExpr));
+      am->CloseObj(catalogEntry.algebraId,
+                    catalogEntry.typeId)(typeInfo, catalogEntry.value);
+      nl->Destroy(typeInfo);
+      nl->Destroy(typeExpr);
+}
+
+void SecondoCatalog::ClearInMemoryObjects(bool closeObjects) {
 
   // Close open objects
   if (closeObjects) {
@@ -3575,22 +3587,10 @@ void SecondoCatalog::ClearPendingChanges(bool closeObjects) {
          oPos != objects.end();
          oPos++) {
 
-      if (!oPos->second.valueDefined) {
-        continue;
-      }
-
       if (oPos->second.state == EntryInsert ||
           oPos->second.state == EntryUpdate) {
-
-        ListExpr typeExpr;
-        ListExpr typeInfo;
-
-        nl->ReadFromString(oPos->second.typeExpr, typeExpr);
-        typeInfo = NumericType(nl->First(typeExpr));
-        am->CloseObj(oPos->second.algebraId,
-                     oPos->second.typeId)(typeInfo, oPos->second.value);
-        nl->Destroy(typeInfo);
-        nl->Destroy(typeExpr);
+      
+          CloseCatalogEntry(oPos->second);
       }
     }
   }

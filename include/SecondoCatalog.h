@@ -190,7 +190,7 @@ Clears all pending catalog changes from memory
 
 */
 
-  void ClearPendingChanges(bool closeObjects);
+  void ClearInMemoryObjects(bool closeObjects);
 
 /*
 3.2.2 Database Types
@@ -739,6 +739,7 @@ The function below test if a name is reserved for system use.
 
  protected:
   bool TypeUsedByObject( const std::string& typeName );
+
  private:
   NestedList*      nl;
   AlgebraManager*  am;
@@ -833,7 +834,20 @@ an error it should always be reported to the client.
   // create a ~trel~ object representing a system table.
   Word CreateRelation(const std::string& name);
 
-  #ifdef SM_FILE_ID 
+/*
+Close an catalog entry
+
+*/
+  void CloseCatalogEntry(ObjectsCatalogEntry catalogEntry);
+
+/*
+Save an catalog entry
+
+*/
+  void SaveCatalogEntry(ObjectsCatalogEntry catalogEntry, SmiRecord &vRec,
+                        size_t offset);
+
+#ifdef SM_FILE_ID 
   boost::interprocess::named_recursive_mutex* mutex;
   #endif
 
