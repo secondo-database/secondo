@@ -25,7 +25,8 @@ Operator : startMessageClient
 Number   : 1
 Signature: int x string x int -> bool
 Example  : query startMessageClient(1, "localhost", 1445);
-Result   : FALSE
+Result   : crashes
+Remark   : Lack of query termination
 
 Operator : startMessageServer
 Number   : 1
