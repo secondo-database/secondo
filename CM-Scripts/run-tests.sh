@@ -87,30 +87,11 @@ function runTest() {
 
   if [ $rc -ne 0 ]; then
     echo -e "\nTest failed with returncode $LU_RC \n"
-    failedTests="$failedTests ${logFile#$buildDir/}"
-    let error++
-    local testFailed="true"
-    
-    # Show output
     echo "=============================="
     echo "File: ${logFile}"
     echo "=============================="
-    tail -20 ${logFile}
     cat ${logFile}
     echo "=============================="
-  fi
-
-  # keep the first date of failure in a file. When the test succeed afterwards
-  # the file will be deleted.
-  if [ "$failedFileInfoDir" != "" ]; then
-    local failedFileInfo=$failedFileInfoDir/"_failed_"$testName
-    if [ "$testFailed" == "true" ]; then
-      if [ ! -e $failedFileInfo ]; then
-         date +"$testName failed since %Y-%m-%d %H:%M / rc=$rc" >> $failedFileInfo
-      fi
-    else
-      rm -f $failedFileInfo
-    fi
   fi
 
   return $?
@@ -125,59 +106,55 @@ export SECONDO_PARAM_SecondoHome="$dbDir"
 export SECONDO_PARAM_RTFlags="SI:NoQueryAnalysis,DEBUG:DemangleStackTrace" 
 
 if [ -d $dbDir ]; then
-
   printf "%s\n" "Warning database directory ${dbDir} exists! Please remove it."
   exit 1
-
 else
-
   printf "%s\n" "Creating new database directory ${dbDir}."
   mkdir -p $dbDir
-
 fi
 
 
+declare -i error=0
 
 #
 # Tests executed by the TestRunner
 #
-
-  
 # The first test create databases
 dbTest="createdb.test"
 dbFile="$buildDir/bin/$dbTest" 
 
-declare -i error=0
-
 testSuites=$(find $buildDir/Tests -wholename "*.test")
 
-echo -e "$testSuites"
-
+#echo -e "$testSuites"
 #echo "ldd: "$(ldd $SECONDO_BUILD_DIR/bin/SecondoBDB)
 
 timeOut=136000
+echo "*** Executing test suites ***"
 for testName in $dbFile $testSuites; do
   runDir=${testName%/*}
   testFile=${testName##*/}
-  if [ "$SECONDO_PLATFORM" != "win32" ]; then
-    if isCmdPresent "nice"; then
-      niceOpt="nice -n 19"
-    fi
-  fi
-  runTest $runDir $testFile "$niceOpt time $runnerCmd -i  ${testFile}" $timeOut
-  wait $! 
+  runTest $runDir $testFile "time $runnerCmd -i  ${testFile}" $timeOut
   timeout=$timeOutMax
 done
 
 
 #
-# Other tests not executed by the TestRunner application
+# Algebra tests
 #
+echo "*** Executing algebra tests ***"
+exampleFiles=$(find $buildDir/bin/tmp -wholename "*.examples")
+for testName in $exampleFiles; do
+  runDir=${testName%/*}
+  testFile=${testName##*/}
+  runTest $runDir $testFile "cd $buildDir/bin/; time Selftest tmp/${testFile}" $timeOutMax
+done
 
-if [ "$1" == "-tty" ]; then
-  runTest ${buildDir}/bin "Selftest" "time Selftest" $timeOutMax
-  runTest ${buildDir}/Optimizer "TestOptimizer" "time TestOptimizer" $timeOutMax
-fi
+
+#
+# Optimizer tests
+#
+echo "*** Executing optimizer tests ***"
+runTest ${buildDir}/Optimizer "TestOptimizer" "time TestOptimizer" $timeOutMax
 
 #clean up
 printf "\n%s\n\n" "Cleaning up ..."
