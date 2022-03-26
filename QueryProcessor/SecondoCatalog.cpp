@@ -1980,7 +1980,15 @@ Precondition: ~IsObjectName(objectName)~ delivers TRUE.
       typeName    = oPos->second.typeName;
       nl->ReadFromString( oPos->second.typeExpr, typeExpr );
       typeExpr = nl->First( typeExpr );
-      value       = oPos->second.value;
+      ListExpr typeInfo = NumericType( typeExpr );
+    
+      // Object is cloned, because it destoryed when the 
+      // operator tree is removed
+      value = (am->CloneObj(oPos->second.algebraId, oPos->second.typeId))(
+          typeInfo, oPos->second.value);
+
+      nl->Destroy( typeInfo );
+
       defined     = oPos->second.valueDefined;
       hasTypeName = (typeName != "");
       ok = true;

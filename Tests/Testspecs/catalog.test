@@ -1,0 +1,46 @@
+
+#########################################################################
+# Testing the SECONDO catalog
+#
+# run with : TestRunner -c SecondoConfig.ini < catalog.test
+#########################################################################
+
+
+
+# clean up what may be left over from e.g. a segfault
+delete database catalogtest;
+
+#setup
+create database catalogtest;
+open database catalogtest;
+
+# reread object in transaction
+begin transaction;
+let x = 5;
+query x;
+query x;
+abort transaction;
+
+# Object has to be removed in transaction abort
+let x = 5;
+delete x;
+
+# Create and read object in transaction
+begin transaction;
+let x = 5;
+query x;
+commit transaction;
+
+# Read and delete object with auto transaction
+delete x;
+
+# Create and delete onject within one transaction
+begin transaction;
+let x = 5;
+query x;
+delete x;
+commit transaction;
+
+#teardown
+close database;
+delete database catalogtest;
