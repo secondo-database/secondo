@@ -1,0 +1,36 @@
+#########################################################################
+# Testing the SECONDO catalog
+#
+# run with : TestRunner -c SecondoConfig.ini < let_.test
+#########################################################################
+
+
+# clean up what may be left over from e.g. a segfault
+delete database lettest;
+
+#setup
+create database lettest;
+open database lettest;
+
+# Create and update
+let_ x = 5;
+query x;
+
+let_ x = 6;
+query x;
+
+delete x;
+let_ x = 6;
+query x;
+delete x;
+
+# Create using 'let' and update by 'let_'
+let x = 5;
+query x;
+
+let_ x = 6;
+query x;
+
+#teardown
+close database;
+delete database lettest;
