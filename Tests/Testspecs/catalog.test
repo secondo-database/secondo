@@ -14,15 +14,21 @@ delete database catalogtest;
 create database catalogtest;
 open database catalogtest;
 
-# reread object in transaction
+# Reread object in transaction and abort
 begin transaction;
 let x = 5;
 query x;
 query x;
 abort transaction;
 
-# Object has to be removed in transaction abort
+# Reread object in transaction and commit
+begin transaction;
 let x = 5;
+query x;
+query x;
+commit transaction;
+
+# Delete object
 delete x;
 
 # Create and read object in transaction
