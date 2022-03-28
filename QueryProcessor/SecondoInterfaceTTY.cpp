@@ -2118,6 +2118,8 @@ SecondoInterfaceTTY::Command_Let( const ListExpr list, string& errorMessage,
           else
           {
             ctlg.UpdateObject( objName, result );
+            // Ensure pending opjects are written before qp is destroyed
+            ctlg.CleanUp(false); 
             qp.Destroy( tree, false );
           }
         }

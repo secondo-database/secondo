@@ -46,7 +46,6 @@ let f13 = fun(x : int) f11(x) consume;
 let f14 = fun(x : int) f11(x) f11(x) {a} product count;
 
 
-
 #testcase list algebras 
 #yields success 
 list algebra FunctionAlgebra;
@@ -432,18 +431,11 @@ query 1 within[. feed namedtransformstream[A] extendstream[B: .A f6(.A) within2[
 #yields (int 100)
 query 10 within[ f3(.) namedtransformstream[A] extendstream[B: .A f6(.A) within2[ . whiledo[(. + ..) < 22; f1(.); TRUE ] ]] ] printstream count;
 
-
-
-
-
-
-
-
-
-
-
-
-
+# testcase store result from function in catalog
+let x = 1 2 within2[fun(I1: ANY, I2: ANY2) I1 + I2];
+#yields (int 3)
+query x;
+delete x;
 
 
 # the TEARDOWN directive is followed by commands which
