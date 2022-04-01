@@ -470,11 +470,9 @@ void BTree2::ReadHeader() {
   int RecordSelected = file->SelectRecord( headerId, record,
                                               SmiFile::ReadOnly);
   assert( RecordSelected );
-  int offset = 0;
   int written = record.Read(&header, sizeof(headerS), 0);
   assert(written == sizeof(headerS));
   assert(sizeof(headerS) <= (unsigned) recordSize);
-  offset += sizeof(headerS);
 }
 
 void BTree2::WriteHeader() {
@@ -483,11 +481,8 @@ void BTree2::WriteHeader() {
                                               SmiFile::Update );
   assert( RecordSelected );
   assert(sizeof(headerS) <= (unsigned) recordSize);
-  int offset = 0;
   int written = record.Write(&header, sizeof(headerS), 0);
   assert(written == sizeof(headerS));
-
-  offset += sizeof(headerS);
 }
 
 /*

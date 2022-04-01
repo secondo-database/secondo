@@ -177,13 +177,13 @@ bool Path::Adjacent(const Attribute*) const
 
 size_t Path::HashValue() const
 {
-    size_t nRet = 0;
+//    size_t nRet = 0;
     if (IsDefined()) {
-      nRet += GetNoPathStructs();
+      //nRet += GetNoPathStructs();
       int nCount = GetNoPathStructs();
       for (int i = 0; (i < nCount) && (i <= 5); ++i){
         pathStruct p = GetPathStruct(i);
-        nRet += p.key;
+//        nRet += p.key;
       }
     }
     return 0;
