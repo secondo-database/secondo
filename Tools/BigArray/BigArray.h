@@ -238,7 +238,7 @@ the variable 't' is initialized at this point.
 
 */
 
-#if defined(__clang__) || defined(__GNUC__) || defined(__GNUG__)
+#if defined(__GNUC__) && !defined(__clang__) 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
 #endif
@@ -246,7 +246,7 @@ the variable 't' is initialized at this point.
       T t;
       return  append(t);
    }
-#if defined(__clang__) || defined(__GNUC__) || defined(__GNUG__)
+#if defined(__GNUC__) && !defined(__clang__) 
 #pragma GCC diagnostic pop
 #endif
 
