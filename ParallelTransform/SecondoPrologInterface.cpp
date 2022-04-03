@@ -101,11 +101,15 @@ SecondoPrologInterface::callPrologQueryTransform(ListExpr expr, NestedList* nl)
       { predicate_t pred = PL_predicate("query_to_parallel", 2, "user");
         term_t t0 = PL_new_term_refs(2);
         
-        PL_put_term(t0+0, prologList);
+        if(! PL_put_term(t0+0, prologList)) {
+          std::cerr << "Unable to put term: " << prologList << endl;
+        }
         //int rval;
 
         if(PL_call_predicate(NULL, PL_Q_NORMAL, pred, t0)) {
-        PL_put_term(result, t0+1);
+          if(!PL_put_term(result, t0+1)) {
+            std::cerr << "Unable to put term: " << result << endl;
+          }
         }
 
         //PL_halt(rval ? 0 : 1);

@@ -221,7 +221,11 @@ string term2string(term_t t){
    predicate_t pl_convert = PL_predicate("term_to_atom",2,"");
    term_t args = PL_new_term_refs(2);
    term_t r = args+1;
-   PL_put_term(args, t);
+   
+   if(!PL_put_term(args, t)) {
+      std::cerr << "Unable to put term: " << t << endl;
+   }
+   
    qid_t qid = PL_open_query(NULL, PL_Q_CATCH_EXCEPTION, pl_convert, args);
    if(!PL_next_solution(qid)){
      PL_close_query(qid);
