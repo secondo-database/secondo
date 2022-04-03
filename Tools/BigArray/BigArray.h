@@ -123,7 +123,7 @@ template<class T>
 class BigArray{
 
 static_assert(!std::is_pointer<T>::value, 
-   "Template parameter can not be a pointer type");
+   "Template parameter cannot be a pointer type");
 
   public:
 
@@ -233,7 +233,7 @@ Replaces an existing element.
 /*
 ~EmptySlot~
 
-A static assert in the class ensures T is a non-pointer. So, 
+A static assert in the class ensures that T is a non-pointer. So, 
 the variable 't' is initialized at this point.
 
 */
