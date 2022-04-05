@@ -56,6 +56,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "AvlTree.h"
 #include "StopWatch.h"
 
+#include "PersistentNTree.h"
 #include "NTree.h"
 #include "ttree.h"
 
@@ -6313,7 +6314,7 @@ Operator mdistRangeN8Op(
 );
 
 /*
-Operator ~mnearestNeighborN7~
+Operator ~mnearestNeighborN7~, ~mnearestNeighborN8~
 
 */
 template<int variant>
@@ -6365,18 +6366,43 @@ ListExpr mnearestNeighborNTM(ListExpr args) {
       return listutils::typeError("fourth arg is not an mlabel(s) / mplace(s)");
     }
   }
+  // copy attribute list and append distance attribute
+  set<string> attrNames;
+  ListExpr attrList = nl->Second(nl->Second(a2));
+  ListExpr newAttrList = nl->OneElemList(nl->First(attrList));
+  attrNames.insert(nl->SymbolValue(nl->First(nl->First(attrList))));
+  ListExpr lastList = newAttrList;
+  attrList = nl->Rest(attrList);
+  while (!nl->IsEmpty(attrList)) {
+    attrNames.insert(nl->SymbolValue(nl->First(nl->First(attrList))));
+    lastList = nl->Append(lastList, nl->First(attrList));
+    attrList = nl->Rest(attrList);
+  }
+  string distAttrName = "QueryObjectDistance";
+  bool isPresent = (attrNames.find(distAttrName) != attrNames.end());
+  int suffix = 0;
+  while (isPresent) {
+    suffix++;
+    distAttrName += to_string(suffix);
+    isPresent = (attrNames.find(distAttrName) != attrNames.end());
+  }
+  lastList = nl->Append(lastList, nl->TwoElemList(nl->SymbolAtom(distAttrName),
+                                        nl->SymbolAtom(CcReal::BasicType())));
   return nl->TwoElemList(listutils::basicSymbol<Stream<Tuple> >(),
-                         nl->Second(a2)); 
+              nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()), newAttrList));
 }
 
 template<class T, class DistComp, int variant>
 class mnearestNeighborNInfo {
  public:
   mnearestNeighborNInfo(MemoryNtreeObject<T, DistComp, variant>* ntreeX,
-                      MemoryRelObject* mrel, T* ref, const int _k = 0) : k(_k) {
+                        MemoryRelObject* mrel, T* ref, ListExpr typeList, 
+                        const int _k = 0) : tupleTypeList(typeList), k(_k) {
     rel = mrel->getmmrel();
     MTreeEntry<T> p(*ref, 0);
     it = ntreeX->getNtreeX()->nnSearch(p, k);
+    sc = SecondoSystem::GetCatalog();
+    numTupleTypeList = sc->NumericType(tupleTypeList);
   }
 
   ~mnearestNeighborNInfo() {
@@ -6384,15 +6410,24 @@ class mnearestNeighborNInfo {
   }
 
   Tuple* next() {
+    TidDist td(0, -1.0);
     while (true) {
-      const TupleId tid = it->next();
-      if ((int)tid == -1) {
+      td = it->next();
+      if (((int)td.tid) == -1) {
         return 0;
       }
-      if (tid <= rel->size()) {
-        Tuple* res = (*rel)[tid - 1];
-        if (res) { // ignore deleted tuples
-          res->IncReference();
+      if (td.dist < 0.0) {
+        return 0;
+      }
+      if (td.tid <= rel->size()) {
+        Tuple* src = (*rel)[td.tid - 1];
+        if (src) { // ignore deleted tuples
+          Tuple* res = new Tuple(numTupleTypeList);
+          for (int i = 0; i < src->GetNoAttributes(); i++) {
+            res->CopyAttribute(i, src, i);
+          }
+          res->PutAttribute(res->GetNoAttributes() - 1,
+                            new CcReal(true, td.dist));
           return res;
         }
       }
@@ -6420,7 +6455,9 @@ class mnearestNeighborNInfo {
  private:
   vector<Tuple*>* rel;
   NNIteratorN<MTreeEntry<T>, DistComp, variant>* it;
+  ListExpr tupleTypeList, numTupleTypeList;
   int k;
+  SecondoCatalog *sc;
 };
 
 template<class K, class T, class R, int variant, int k>
@@ -6446,14 +6483,8 @@ int mnearestNeighborNVMT(Word* args, Word& result, int message, Word& local,
         return 0;
       }
       K* key = (K*)args[2].addr;
-      if (k == 0) {
-        local.addr = new mnearestNeighborNInfo<K,StdDistComp<K>, variant>(n, 
-                                                                      rel, key);
-      }
-      else {
-        local.addr = new mnearestNeighborNInfo<K, StdDistComp<K>, variant>(n,
-                                                                   rel, key, k);
-      }
+      local.addr = new mnearestNeighborNInfo<K, StdDistComp<K>, variant>(n,
+                           rel, key, nl->Second(qp->GetSupplierTypeExpr(s)), k);
       return 0;
     }
     case REQUEST: {
@@ -6647,9 +6678,9 @@ OperatorSpec mnearestNeighborN7Spec(
   "MTREE x MREL x T (x U) -> stream(tuple) , "
   "MTREE, MREL represented as string, mem, or mpointer",
   "mem_mtree mem_rel mnearestNeighborN7[keyAttr] ",
-  "Retrieves tuples from an memory relation in increasing "
-  "distance to a reference object (or pair of reference objects) aided by an "
-  "N-tree7.",
+  "Sorts the relation by its distance to the reference object aided by an "
+  "N-tree7. The original tuples are extended by an attribute containing the "
+  "distance to the reference object.",
   "query mkinos_mtree mKinos mnearestNeighborN7[alexanderplatz] consume"
 );
 
@@ -6668,8 +6699,9 @@ OperatorSpec m1nearestNeighborN7Spec(
   "NTREE7 x MREL x T (x U) -> stream(tuple) , "
   "NTREE7, MREL represented as string, mem, or mpointer",
   "mem_ntree7 mem_rel m1nearestNeighborN7[keyAttr] ",
-  "Retrieves the nearest neighbor to a reference object (or pair of reference "
-  "objects) aided by an N-tree7.",
+  "Retrieves the nearest neighbor to a reference object aided by an N-tree7. "
+  "The original tuple is extended by an attribute containing the distance to "
+  "the reference object.",
   "query mkinos_ntree7 mKinos m1nearestNeighborN7[alexanderplatz] consume"
 );
 
@@ -6686,8 +6718,9 @@ OperatorSpec m1nearestNeighborN8Spec(
   "NTREE8 x MREL x T (x U) -> stream(tuple) , "
   "NTREE8, MREL represented as string, mem, or mpointer",
   "mem_ntree8 mem_rel m1nearestNeighborN8[keyAttr] ",
-  "Retrieves the nearest neighbor to a reference object (or pair of reference "
-  "objects) aided by an N-tree8.",
+  "Retrieves the nearest neighbor to a reference object aided by an N-tree8. "
+  "The original tuple is extended by an attribute containing the distance to "
+  "the reference object.",
   "query mkinos_ntree8 mKinos m1nearestNeighborN8[alexanderplatz] consume"
 );
 
@@ -22606,8 +22639,8 @@ operator ~makeNtreePersistent~
 
 */
 ListExpr exportntreeTM(ListExpr args) {
-  if (!nl->HasLength(args, 4)) {
-    return listutils::typeError("four arguments expected");
+  if (!nl->HasLength(args, 4) && !nl->HasLength(args, 5)) {
+    return listutils::typeError("four or five arguments expected");
   }  
   ListExpr a1 = nl->First(args);
   if (MPointer::checkType(a1)) { 
@@ -22633,6 +22666,11 @@ ListExpr exportntreeTM(ListExpr args) {
   }
   if (!CcInt::checkType(nl->Fourth(args))) {
     return listutils::typeError("fourth arg must be an int");
+  }
+  if (nl->HasLength(args, 5)) {
+    if (!CcInt::checkType(nl->Fifth(args))) {
+      return listutils::typeError("fifth arg must be an int");
+    }
   }
   return nl->SymbolAtom(CcBool::BasicType());
 }
@@ -22663,13 +22701,28 @@ int exportntreeVMT(Word* args, Word& result, int message, Word& local,
     res->Set(true, false);
     return 0;
   }
+  int suffix = -1;
+  if (qp->GetNoSons(s) == 5) {
+    CcInt *ccSuffix = (CcInt*)args[4].addr;
+    if (!ccSuffix->IsDefined()) {
+      cout << "undefined suffix" << endl;
+      res->Set(true, false);
+      return 0;
+    }
+    suffix = ccSuffix->GetValue();
+    if (suffix < 0) {
+      cout << "negative suffix invalid" << endl;
+      res->Set(true, false);
+      return 0;
+    }
+  }
   Supplier s0 = qp->GetSon(s, 1);
   ListExpr relTypeList = nl->Second(qp->GetType(s0));
   MemoryNtreeObject<T, StdDistComp<T>, variant>* treeObj = 
                                        getNtreeX<MPointer, T, variant>(treeMem);
   NTree<MTreeEntry<T>, StdDistComp<T>, variant> *ntree = treeObj->getNtreeX();  
-  PersistentNTree<MTreeEntry<T>, StdDistComp<T>, variant> pntree(ntree,
-                     relVector, relTypeList, prefix, ccFirstNodeId->GetValue());
+  PersistentNTree<T, StdDistComp<T>, variant> pntree(ntree, relVector, 
+                        relTypeList, prefix, ccFirstNodeId->GetValue(), suffix);
   res->Set(true, pntree.getStatus());  
   return 0;
 }
@@ -22710,12 +22763,14 @@ int exportntreeSelect(ListExpr args) {
 }
 
 OperatorSpec exportntreeSpec(
-  "NTREEx(T) x MREL x string x int -> bool",
+  "NTREEx(T) x MREL x string x int [x int] -> bool",
   "ntree mrel exportntree[relNamePrefix, firstNodeId]",
   "Creates a persistent structure from an existing main memory N-tree. Four "
   "database relations representing tree information, the tree structure, "
   "distance information, and pivot information are computed. From these, the "
-  "tree can be fully reconstructed.",
+  "tree can be fully reconstructed. The desired id of the first node has to be "
+  "specified (3rd argument). The last argument representing a suffix that is "
+  "appended to the relation names (e.g., \"kinosNodeInfo_73\") is optional.",
   "query mKinos mcreatentree8[GeoData, 4, 8] mKinos exportntree[\"kinos\", 1]"
 );
 
@@ -22733,16 +22788,22 @@ Operator exportntreeOp(
 operator ~importntree~
 
 */
+template<int variant>
 ListExpr importntreeTM(ListExpr args) {
-  if (!nl->HasLength(args, 2)) {
-    return listutils::typeError("two arguments expected");
+  if (!nl->HasLength(args, 2) && !nl->HasLength(args, 3)) {
+    return listutils::typeError("two or three arguments expected");
   }
   if (!CcString::checkType(nl->First(args))) {
     return listutils::typeError("first arg must be a string");  
   }
+  if (nl->HasLength(args, 3)) {
+    if (!CcInt::checkType(nl->Third(args))) {
+      return listutils::typeError("third arg must be an int");
+    }
+  }
   return MPointer::wrapType(Mem::wrapType(nl->TwoElemList(
-     listutils::basicSymbol<MemoryNtreeObject<Point, StdDistComp<Point>, 8> >(),
-     nl->Second(args))));
+     listutils::basicSymbol<MemoryNtreeObject<Point, StdDistComp<Point>, 
+                                              variant> >(), nl->Second(args))));
 }
 
 
@@ -22761,7 +22822,16 @@ int importntreeVMT(Word* args, Word& result, int message, Word& local,
     return 0;
   }
   string prefix = ccprefix->GetValue();
-  PersistentNTree<MTreeEntry<T>, StdDistComp<T>, variant> persNTree(prefix);
+  int suffix = -1;
+  if (qp->GetNoSons(s) == 3) {
+    CcInt* ccsuffix = (CcInt*)args[2].addr;
+    if (!ccsuffix->IsDefined()) {
+      res->setPointer(0);
+      return 0;
+    }
+    suffix = ccsuffix->GetValue();
+  }
+  PersistentNTree<T, StdDistComp<T>, variant> persNTree(prefix, suffix);
   NTree<MTreeEntry<T>, StdDistComp<T>, variant>* tree = persNTree.getNTree();
   if (tree == 0) {
     res->setPointer(0);
@@ -22813,6 +22883,24 @@ int importntreeSelect(ListExpr args) {
   return mtreehelper::getTypeNo(nl->Second(args), 12);
 }
 
+OperatorSpec importntree7Spec(
+  "string x T [x int] -> NTREE7(T)",
+  "importntree8(prefix, object [, suffix])",
+  "Reconstructs an Ntree8 from previously exported DB relations with the given "
+  " prefix and optional suffix. The second argument must be an object of the "
+  "same type as the tree objects, whose value is irrelevant.",
+  "query importntree7(\"kinos\", [const point value undef])"
+);
+
+Operator importntree7Op (
+    "importntree7",
+    importntree7Spec.getStr(),
+    12,
+    importntreeVM<7>,
+    importntreeSelect,
+    importntreeTM<7>
+);
+
 OperatorSpec importntree8Spec(
   "string x T -> NTREE8(T)",
   "importntree8(prefix, object)",
@@ -22828,7 +22916,7 @@ Operator importntree8Op (
     12,
     importntreeVM<8>,
     importntreeSelect,
-    importntreeTM
+    importntreeTM<8>
 );
 
 
@@ -22937,6 +23025,7 @@ class MainMemory2Algebra : public Algebra {
           AddOperator(&mcreatentree8Op);
           
           AddOperator(&exportntreeOp);
+          AddOperator(&importntree7Op);
           AddOperator(&importntree8Op);
           
   ////////////////////// MainMemory2Algebra////////////////////////////

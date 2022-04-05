@@ -188,7 +188,7 @@ namespace DBService{
             return;
         }
 
-        ctlg->CleanUp(false,true);
+        ctlg->CleanUp(true);
         SecondoSystem::CommitTransaction(true);
 
         LOG_F(INFO, "%s", "Derivative has been created. "

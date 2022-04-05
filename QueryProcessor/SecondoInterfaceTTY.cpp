@@ -2091,7 +2091,7 @@ SecondoInterfaceTTY::Command_Let( const ListExpr list, string& errorMessage,
 
           // Ensure DArrays are closed and cleaned on the remote systems
           Flob::dropFiles();
-          ctlg.CleanUp( false, true );
+          ctlg.CleanUp( true );
       }
 
       if(errorCode == ERR_NO_ERROR)

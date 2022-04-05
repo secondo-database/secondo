@@ -19,6 +19,7 @@ makefile.algebras
 /bin/*.lua
 /bin/temp_nested_list*
 /bin/vgcore.*
+/bin/temp/
 
 # Algebras
 /Algebras/specs

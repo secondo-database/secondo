@@ -567,6 +567,10 @@ class NTreeNode {
     return candOrder;
   }
   
+  PruningMethod getPruningMethod() const {
+    return pMethod;
+  }
+  
   std::tuple<int, int, int> getRefDistPos() const {
     return refDistPos;
   }
@@ -584,11 +588,32 @@ class NTreeNode {
   
   virtual std::ostream& print(std::ostream& out, DistComp& dc) const = 0;
   
-  virtual std::ostream& print(std::ostream& out, const bool printSubtrees,
-                              DistComp& di) const = 0;
+  virtual std::ostream& print(std::ostream& out, DistComp& di, 
+                           const bool printSubtrees, const bool printDistMatrix,
+                           const bool printPivotInfo) const = 0;
   
   virtual double evaluateDist(const int i, const T& o, DistComp& dc) const = 0;
-                              
+  
+  virtual void setCenters(const int nodeId, const std::vector<int>& pos, 
+        const std::vector<T*>& objects, const std::vector<double>& maxDist) = 0;
+  
+  void setDistMatrix(double **dm) {
+    distMatrix = dm;
+  }
+  
+  void setPivotInfo(std::vector<int>& rdp, std::pair<double, double>* d2d) {
+    if (rdp.size() == 1) {
+      std::get<1>(refDistPos) = rdp[0];
+    }
+    else {
+      assert(rdp.size() == 2);
+      std::get<1>(refDistPos) = rdp[1];
+    }
+    std::get<0>(refDistPos) = rdp[0];
+    std::get<2>(refDistPos) = -1;
+    distances2d = d2d;
+  }
+        
   void initAuxStructures(const int size) {
     if (distMatrix != 0 || distances2d != 0 || distances3d != 0) {
       return;
@@ -791,9 +816,12 @@ class NTreeNode {
   
   
  protected:
-  NTreeNode(const int d, const int mls) :
-    degree(d), maxLeafSize(mls), count(0), noDistComp(0), distMatrix(0),
-    distances2d(0), distances3d(0), candOrder(RANDOM), pMethod(SIMPLE) {}
+  NTreeNode(const int d, const int mls) : node_t(d, mls, RANDOM, SIMPLE) {}
+    
+  NTreeNode(const int d, const int mls, const CandOrder co, 
+            const PruningMethod pm) : degree(d), maxLeafSize(mls), count(0), 
+         noDistComp(0), distMatrix(0), distances2d(0), distances3d(0), 
+         candOrder(co), pMethod(pm) {}
    
   int nodeId, degree, maxLeafSize, count, noDistComp; 
   
@@ -945,7 +973,9 @@ class NTreeInnerNode : public NTreeNode<T, DistComp, variant> {
   size_t memSize() const {
     size_t res = sizeof(*this) + sizeof(void*) * node_t::degree;
     for (int i = 0; i < node_t::count; i++) {
-      res += children[i]->memSize();
+      if (children[i] != 0) {
+        res += children[i]->memSize();
+      }
     }
     if (variant == 2) {
       res += node_t::degree * node_t::degree * sizeof(double); // distMatrix
@@ -1005,6 +1035,17 @@ class NTreeInnerNode : public NTreeNode<T, DistComp, variant> {
         }
       }
       return result;
+    }
+  }
+  
+  void setCenters(const int nodeId, const std::vector<int>& pos, 
+           const std::vector<T*>& objects, const std::vector<double>& maxDist) {
+    node_t::setNodeId(nodeId);
+    assert(pos.size() == objects.size() && maxDist.size() == pos.size());
+    for (unsigned int i = 0; i < pos.size(); i++) {
+      centers[pos[i]] = objects[i];
+      this->maxDist[pos[i]] = maxDist[i];
+      node_t::count++;
     }
   }
   
@@ -1092,21 +1133,56 @@ class NTreeInnerNode : public NTreeNode<T, DistComp, variant> {
   }
   
   std::ostream& print(std::ostream& out, DistComp& dc) const {
-    return print(out, true, dc);
+    return print(out, dc, true, false, false);
   }
    
-  std::ostream& print(std::ostream& out, const bool printSubtrees,
-                      DistComp& dc) const {
+  std::ostream& print(std::ostream& out, DistComp& dc, const bool printSubtrees,
+                  const bool printDistMatrix, const bool printPivotInfo) const {
     out << "( \"inner node: ";
-    if (printSubtrees) {
-      out << " (";
-      for (int i = 0; i < node_t::count; i++) {
-        out << "center #" << i << " = ";
-        centers[i]->getKey()->Print(out);
+    out << " (";
+    for (int i = 0; i < node_t::count; i++) {
+      out << "center #" << i << " = ";
+      centers[i]->getKey()->Print(out);
+      if (printSubtrees) {
         out << ", child #" << i << " = ";
-        children[i]->print(out, dc);
+        if (children[i] == 0) {
+          out << "NULL ";
+        }
+        else {
+          children[i]->print(out, dc);
+        }
       }
-      out << " )" << endl;
+    }
+    out << " )" << endl;
+    if (printDistMatrix && distMatrix != 0) {
+      out << "distMatrix:" << endl;
+      for (int i = 0; i < node_t::count; i++) {
+        for (int j = 0; j <= i; j++) {
+          out << distMatrix[i][j] << " ";
+        }
+        out << endl;
+      }
+    }
+    if (printPivotInfo && (distances2d != 0 || distances3d != 0)) {
+      out << "pivot elements: " << std::get<0>(refDistPos) << ", "
+          << std::get<1>(refDistPos);
+      if (candOrder == PIVOT3) {
+        out << ", " << std::get<2>(refDistPos);
+      }
+      out << endl;
+      out << "pivot distances: ";
+      for (int i = 0; i < node_t::count; i++) {
+        if (candOrder == PIVOT3) {
+          out << "(" << std::get<0>(distances3d[i]) << ", "
+              << std::get<1>(distances3d[i]) << ", " 
+              << std::get<2>(distances3d[i]) << "), ";
+        }
+        else if (candOrder == PIVOT2) {
+          out << "(" << distances2d[i].first << ", " << distances2d[i].second
+              << "), ";
+        }
+      }
+      out << endl;
     }
     out << ")";
     return out;
@@ -1115,15 +1191,20 @@ class NTreeInnerNode : public NTreeNode<T, DistComp, variant> {
   int getNoLeaves() const {
     int sum = 0;
     for (int i = 0; i < node_t::count; i++) {
-      sum += children[i]->getNoLeaves();
+      if (children[i] != 0) {
+        sum += children[i]->getNoLeaves();
+      }
     }
     return sum;
   }
   
   int getNoEntries() const {
     int sum = 0;
+    cout << "inner node; node count is " << node_t::count << endl;
     for (int i = 0; i < node_t::count; i++) {
-      sum += children[i]->getNoEntries();
+      if (children[i] != 0) {
+        sum += children[i]->getNoEntries();
+      }
     }
     return sum;
   }
@@ -1131,7 +1212,9 @@ class NTreeInnerNode : public NTreeNode<T, DistComp, variant> {
   int getNoNodes() const {
     int sum = 1;
     for (int i = 0; i < node_t::count; i++) {
-      sum += children[i]->getNoNodes();
+      if (children[i] != 0) {
+        sum += children[i]->getNoNodes();
+      }
     }
     return sum;
   }
@@ -1421,12 +1504,16 @@ class NTreeLeafNode : public NTreeNode<T, DistComp, variant> {
   using node_t::candOrder;
   using node_t::pMethod;
   
-  NTreeLeafNode(const int d, const int mls) : node_t(d, mls) {
+  NTreeLeafNode(const int d, const int mls, const CandOrder co,
+                const PruningMethod pm) : node_t(d, mls, co, pm) {
     entries = new T*[node_t::maxLeafSize];
     for (int i = 0; i < node_t::maxLeafSize; i++) {
       entries[i] = 0;
     }
   }
+  
+  NTreeLeafNode(const int d, const int mls) : leafnode_t(d, mls, RANDOM, SIMPLE)
+    {}
   
   NTreeLeafNode(const int d, const int mls, const CandOrder co, 
                 const PruningMethod pm, DistComp& dc, const TupleId centerTid,
@@ -1475,6 +1562,7 @@ class NTreeLeafNode : public NTreeNode<T, DistComp, variant> {
   }
   
   int getNoEntries() const {
+    cout << "leaf node; node count is " << node_t::count << endl;
     return node_t::count;
   }
   
@@ -1518,6 +1606,19 @@ class NTreeLeafNode : public NTreeNode<T, DistComp, variant> {
   
   double getMaxDist() const {
     return maxDist;
+  }
+  
+  void setCenters(const int nodeId, const std::vector<int>& pos, 
+           const std::vector<T*>& objects, const std::vector<double>& maxDist) {
+    node_t::setNodeId(nodeId);
+    assert(pos.size() == objects.size() && maxDist.size() == 1);
+    for (unsigned int i = 0; i < pos.size(); i++) {
+//       if (entries[pos[i]] == 0) { // TODO: !
+//         node_t::count++;
+//       }
+      entries[pos[i]] = objects[i];
+    }
+    this->maxDist = maxDist[0];
   }
   
   void insert(std::vector<T>& contents, const TupleId centerTid) {
@@ -1590,8 +1691,8 @@ class NTreeLeafNode : public NTreeNode<T, DistComp, variant> {
     return out;
   }
   
-  std::ostream& print(std::ostream& out, const bool printSubtrees,
-                      DistComp &dc) const {
+  std::ostream& print(std::ostream& out, DistComp &dc, const bool printSubtrees,
+                  const bool printDistMatrix, const bool printPivotInfo) const {
     return print(out, dc);
   }
   
@@ -1691,7 +1792,6 @@ class RangeIteratorN {
   void addResult(T* o) {
     results.push_back(o);
 //     cout << "[" << o->getTid() << ", obj=" << *(o->getKey()) << "] ";
-//          << ": " << *(o->getKey()) << "] ";
   }
   
   void reportEntireSubtree(node_t* node) {
@@ -2132,18 +2232,17 @@ class RangeIteratorN {
   NTreeStat stat; // statistics
 };
 
-template<class T, class DistComp>
-struct NNContentN {
-  NNContentN(T* o, double d) : obj(o), dist(d) {}
+struct TidDist {
+  TidDist(const TupleId id, const double d) : tid(id), dist(d) {}
   
-  bool operator<(const NNContentN& c) const {
-    if (dist != c.dist) {
-      return dist < c.dist;
+  bool operator<(const TidDist& td) const {
+    if (dist != td.dist) {
+      return dist < td.dist;
     }
-    return obj < c.obj;
+    return tid < td.tid;
   }
   
-  T* obj;
+  TupleId tid;
   double dist;
 };
 
@@ -2156,7 +2255,6 @@ class NNIteratorN {
  public:
   typedef NNIteratorN<T, DistComp, variant> nniterator_t;
   typedef RangeIteratorN<T, DistComp, variant> rangeiterator_t;
-  typedef NNContentN<T, DistComp> nncontent_t;
   typedef NTreeNode<T, DistComp, variant> node_t;
   typedef NTreeLeafNode<T, DistComp, variant> leafnode_t;
   typedef NTreeInnerNode<T, DistComp, variant> innernode_t;
@@ -2171,9 +2269,9 @@ class NNIteratorN {
     stat.print(cout, dc.getNoDistFunCalls(), true);
   }
   
-  void addResult(T* o, double d) {
-    nncontent_t c(o, d);
-    results.insert(c);
+  void addResult(const TupleId id, const double d) {
+    TidDist td(id, d);
+    results.insert(td);
   }
   
   rangeiterator_t* find1NN(node_t* node, double& radius) {
@@ -2217,11 +2315,11 @@ class NNIteratorN {
     T* obj = rit->nextObj();
     assert(obj != 0);
     double dist = dc(ref, *obj);
-    addResult(obj, dist);
+    addResult(obj->getTid(), dist);
     obj = rit->nextObj();
     while (obj != 0) {
       dist = dc(ref, *obj);
-      addResult(obj, dist);
+      addResult(obj->getTid(), dist);
       obj = rit->nextObj();
     }
     it = results.begin();
@@ -2239,7 +2337,7 @@ class NNIteratorN {
 //         nnDist = dist;
 //         nn = obj;
 //       }
-      addResult(obj, dist);
+      addResult(obj->getTid(), dist);
       obj = rit->nextObj();
     }
 //     cout << "NN = " << *(nn->getKey()) << ", dist = " << nnDist << endl;
@@ -2257,7 +2355,7 @@ class NNIteratorN {
   //         nnDist = dist;
   //         nn = obj;
   //       }
-        addResult(obj, dist);
+        addResult(obj->getTid(), dist);
         obj = rit->nextObj();
       }
     }
@@ -2273,11 +2371,12 @@ class NNIteratorN {
     }
   }
   
-  const TupleId next() {
+  const TidDist next() {
+    TidDist result(0, -1.0);
     if (it == results.end()) {
-      return -1;
+      return result;
     }
-    TupleId result = it->obj->getTid();
+    result = *it;
     it++;
     return result;
   }
@@ -2304,8 +2403,8 @@ class NNIteratorN {
   
  private:
   T ref;
-  std::set<nncontent_t> results;
-  typename std::set<nncontent_t>::iterator it;
+  std::set<TidDist> results;
+  typename std::set<TidDist>::iterator it;
   DistComp dc;
   int k; // number of computed nearest neighbors
   NTreeStat stat; // statistics
@@ -2374,6 +2473,14 @@ class NTree {
     return attrNo;
   }
   
+  CandOrder getCandOrder() const {
+    return candOrder;
+  }
+  
+  PruningMethod getPruningMethod() const {
+    return pMethod;
+  }
+  
   int getNoLeaves() const {
     if (!root) {
       return 0;
@@ -2405,6 +2512,10 @@ class NTree {
       res += root->memSize();
     }
     return res;
+  }
+  
+  void setRoot(innernode_t* newRoot) {
+    root = newRoot;
   }
   
   void build(std::vector<T>& contents) {
@@ -2482,18 +2593,18 @@ class NTree {
   
   void assignNodeIds(const int firstId = 0) {
     int currentId = firstId;
-    std::queue<node_t*> nodes;
-    nodes.push(root);
+    std::stack<node_t*> nodeStack;
+    nodeStack.push(root);
     node_t* node = 0;
-    while (!nodes.empty()) {
-      node = nodes.front();
-      nodes.pop();
+    while (!nodeStack.empty()) {
+      node = nodeStack.top();
+      nodeStack.pop();
       node->setNodeId(currentId);
       currentId++;
       if (!node->isLeaf()) { // nothing to do for leaves
         innernode_t* inode = (innernode_t*)node;
-        for (int i = 0; i < inode->getCount(); i++) {
-          nodes.push(inode->getChild(i));
+        for (int i = inode->getCount() - 1; i >= 0; i--) {
+          nodeStack.push(inode->getChild(i));
         }
       }
     }
@@ -2514,488 +2625,6 @@ class NTree {
     root->insert(o, dc, partMethod);
     return root;
   }
-};
-
-template<class T, class DistComp, int variant>
-class PersistentNTree {
- public:
-  typedef NTreeLeafNode<T, DistComp, variant> leafnode_t;
-  typedef NTreeNode<T, DistComp, variant> node_t;
-  typedef NTree<T, DistComp, variant> ntree_t;
-  typedef NTreeInnerNode<T, DistComp, variant> innernode_t;
-
-  // This constructor is applied for ~exportntree~
-  PersistentNTree(ntree_t* n, std::vector<Tuple*>* tuples,
-             ListExpr relTypeList, std::string& prefix, const int firstId) :
-          status(false), treeInfoType(0), nodeInfoType(0), nodeDistType(0), 
-          pivotInfoType(0), firstNodeId(firstId), srcTuples(tuples), ntree(n) {
-    sc = SecondoSystem::GetCatalog();
-    std::vector<std::string> relNames = getRelNames(prefix);
-    if (tuples->empty()) {
-      return;
-    }
-    if (!createTypeLists(relTypeList)) {
-      return;
-    }
-    if (!initRelations(relNames)) {
-      return;
-    }
-    if (!processNTree(ntree, relTypeList)) {
-      return;
-    }
-    if (!fillRelations()) {
-      return;
-    }
-    if (!storeRelation(treeInfoTypeList, treeInfoRel, relNames[0])) {
-      return;
-    }
-    if (!storeRelation(nodeInfoTypeList, nodeInfoRel, relNames[1])) {
-      return;
-    }
-    if (!storeRelation(nodeDistTypeList, nodeDistRel, relNames[2])) {
-      return;
-    }
-    if (!storeRelation(pivotInfoTypeList, pivotInfoRel, relNames[3])) {
-      return;
-    }
-    status = true;
-  }
-  
-  // This constructor is applied for ~importntree~
-  PersistentNTree(std::string& prefix) : status(false), treeInfoType(0), 
-        nodeInfoType(0), nodeDistType(0), pivotInfoType(0), srcTuples(0), 
-        ntree(0) {
-    sc = SecondoSystem::GetCatalog();
-    std::vector<std::string> relNames = getRelNames(prefix);
-    std::string nodeInfoRelName = prefix + "NodeInfo";
-    ListExpr srcRelTypeList = getNodeInfoRelTypeList(nodeInfoRelName);
-    if (!createTypeLists(srcRelTypeList)) {
-      return;
-    }
-    if (!checkRelationType(relNames[0], treeInfoTypeList)) {
-      return;
-    }
-    if (!checkRelationType(relNames[1], srcRelTypeList)) {
-      return;
-    }
-    if (!checkRelationType(relNames[2], nodeDistTypeList)) {
-      return;
-    }
-    if (!checkRelationType(relNames[3], pivotInfoTypeList)) {
-      return;
-    }
-    if (!initNTree()) {
-      return;
-    }
-    
-    
-    
-    // TODO: retrieve Geoid from TreeInfo relation
-    
-    
-    status = true;
-  }
-  
-  ~PersistentNTree() {
-    if (treeInfoType != 0) {
-      treeInfoType->DeleteIfAllowed();
-    }
-    if (nodeInfoType != 0) {
-      nodeInfoType->DeleteIfAllowed();
-    }
-    if (nodeDistType != 0) {
-      nodeDistType->DeleteIfAllowed();
-    }
-    if (pivotInfoType != 0) {
-      pivotInfoType->DeleteIfAllowed();
-    }
-  }
-  
-  ListExpr getNodeInfoRelTypeList(std::string& relName) const {
-    if (!sc->IsObjectName(relName)) {
-      return false;
-    }
-    return nl->TwoElemList(nl->SymbolAtom(mm2algebra::Mem::BasicType()),
-                           sc->GetObjectTypeExpr(relName));
-  }
-  
-  std::vector<std::string> getRelNames(std::string& prefix) {
-    std::vector<std::string> result{prefix + "TreeInfo", prefix + "NodeInfo",
-                                    prefix + "NodeDist", prefix + "PivotInfo"};
-    return result;
-  }
-  
-  bool checkRelationType(std::string& relName, ListExpr relType) {
-    Word relWord;
-    bool defined;
-    if (!sc->IsObjectName(relName)) {
-      cout << "relation " << relName << " does not exist" << endl;
-      return false;
-    }
-    if (!sc->GetObject(relName, relWord, defined)) {
-      cout << "relation " << relName << " could not be read" << endl;
-      return false;
-    }
-    if (!defined) {
-      cout << "relation " << relName << " undefined" << endl;
-      return false;
-    }
-    if (relName.find("TreeInfo", relName.size() - 8) != std::string::npos) {
-      if (!nl->Equal(relType, treeInfoTypeList)) {
-        cout << "relation " << relName << " has wrong type" << endl;
-        return false;
-      }
-      treeInfoRel = (Relation*)(relWord.addr);
-    }
-    if (relName.find("NodeInfo", relName.size() - 8) != std::string::npos) {
-      ListExpr attrList1 = nl->Second(nl->Second(nl->Second(relType)));
-      ListExpr attrList2 = nl->Second(nodeInfoTypeList);
-      int listLength = nl->ListLength(attrList1);
-      for (int i = 1; i <= listLength; i++) {
-        if (!nl->Equal(nl->Nth(i, attrList1), nl->Nth(i, attrList2))) {
-          cout << "relation " << relName << " has wrong type" << endl;
-          return false;
-        }
-      }
-      nodeInfoRel = (Relation*)(relWord.addr);
-    }
-    if (relName.find("NodeDist", relName.size() - 8) != std::string::npos) {
-      if (!nl->Equal(relType, nodeDistTypeList)) {
-        cout << "relation " << relName << " has wrong type" << endl;
-        return false;
-      }
-      nodeDistRel = (Relation*)(relWord.addr);
-    }
-    if (relName.find("PivotInfo", relName.size() - 9) != std::string::npos) {
-      if (!nl->Equal(relType, pivotInfoTypeList)) {
-        cout << "relation " << relName << " has wrong type" << endl;
-        return false;
-      }
-      pivotInfoRel = (Relation*)(relWord.addr);
-    }
-    return true;
-  }
-  
-  bool initNTree() {
-//     Tuple *treeInfoTuple = treeInfoRel->GetTuple(1, false);
-//     int degree = ((CcInt*)(treeInfoTuple->GetAttribute(1)))->GetValue();
-//     int maxLeafSize = ((CcInt*)(treeInfoTuple->GetAttribute(2)))->GetValue();
-//     Geoid *geoid = (Geoid*)(treeInfoTuple->GetAttribute(5));
-//     StdDistComp<T> dc(geoid);
-//     ntree = new ntree_t();
-    return true;
-  }
-  
-  bool createTypeLists(ListExpr relTypeList) {
-    treeInfoTypeList = nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()),
-      nl->SixElemList(nl->TwoElemList(nl->SymbolAtom("Variant"),
-                                      nl->SymbolAtom(CcInt::BasicType())),
-                      nl->TwoElemList(nl->SymbolAtom("Degree"), 
-                                      nl->SymbolAtom(CcInt::BasicType())),
-                      nl->TwoElemList(nl->SymbolAtom("MaxLeafSize"),
-                                      nl->SymbolAtom(CcInt::BasicType())),
-                      nl->TwoElemList(nl->SymbolAtom("RelType"), 
-                                      nl->SymbolAtom(FText::BasicType())),
-                      nl->TwoElemList(nl->SymbolAtom("AttrNo"), 
-                                      nl->SymbolAtom(CcInt::BasicType())),
-                      nl->TwoElemList(nl->SymbolAtom("Geoid"),
-                                      nl->SymbolAtom(Geoid::BasicType()))));
-    ListExpr numTreeInfoTypeList = sc->NumericType(treeInfoTypeList);
-    treeInfoType = new TupleType(numTreeInfoTypeList);
-    firstAttrNo = nl->ListLength(nl->Second(nl->Second(nl->Second(
-                                                                relTypeList))));
-    ListExpr curList = nl->OneElemList(nl->First(nl->Second(nl->Second(
-                                                    nl->Second(relTypeList)))));
-    ListExpr restAttrList = nl->Rest(nl->Second(nl->Second(nl->Second(
-                                                                relTypeList))));
-    ListExpr oneAttrList = nl->First(restAttrList);
-    ListExpr curList2 = curList;
-    while (!nl->IsEmpty(restAttrList)) {
-      oneAttrList = nl->First(restAttrList);
-      restAttrList = nl->Rest(restAttrList);
-      curList2 = nl->Append(curList2, oneAttrList);
-    }
-    curList2 = nl->Append(curList2, nl->TwoElemList(nl->SymbolAtom("NodeId"),
-                                           nl->SymbolAtom(CcInt::BasicType())));
-    curList2 = nl->Append(curList2, nl->TwoElemList(nl->SymbolAtom("Entry"),
-                                           nl->SymbolAtom(CcInt::BasicType())));
-    curList2 = nl->Append(curList2, nl->TwoElemList(nl->SymbolAtom("Subtree"),
-                                           nl->SymbolAtom(CcInt::BasicType())));
-    curList2 = nl->Append(curList2, nl->TwoElemList(nl->SymbolAtom("MaxDist"),
-                                          nl->SymbolAtom(CcReal::BasicType())));
-    nodeInfoTypeList = nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()),
-                                       curList);
-    ListExpr numNodeInfoTypeList = sc->NumericType(nodeInfoTypeList);
-    nodeInfoType = new TupleType(numNodeInfoTypeList);
-    nodeDistTypeList = nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()),
-      nl->FourElemList(nl->TwoElemList(nl->SymbolAtom("NodeId"), 
-                                       nl->SymbolAtom(CcInt::BasicType())),
-                       nl->TwoElemList(nl->SymbolAtom("Entry1"),
-                                       nl->SymbolAtom(CcInt::BasicType())),
-                       nl->TwoElemList(nl->SymbolAtom("Entry2"),
-                                       nl->SymbolAtom(CcInt::BasicType())),
-                       nl->TwoElemList(nl->SymbolAtom("Distance"),
-                                       nl->SymbolAtom(CcReal::BasicType()))));
-    ListExpr numNodeDistTypeList = sc->NumericType(nodeDistTypeList);
-    nodeDistType = new TupleType(numNodeDistTypeList);
-    pivotInfoTypeList = nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()),
-       nl->FiveElemList(nl->TwoElemList(nl->SymbolAtom("NodeId"),
-                                        nl->SymbolAtom(CcInt::BasicType())),
-                        nl->TwoElemList(nl->SymbolAtom("Entry"), 
-                                        nl->SymbolAtom(CcInt::BasicType())),
-                        nl->TwoElemList(nl->SymbolAtom("PivotDist1"),
-                                        nl->SymbolAtom(CcReal::BasicType())),
-                        nl->TwoElemList(nl->SymbolAtom("PivotDist2"),
-                                        nl->SymbolAtom(CcReal::BasicType())),
-                        nl->TwoElemList(nl->SymbolAtom("IsPivot"),
-                                        nl->SymbolAtom(CcBool::BasicType()))));
-    ListExpr numPivotInfoTypeList = sc->NumericType(pivotInfoTypeList);
-    pivotInfoType = new TupleType(numPivotInfoTypeList);
-    return true;
-  }
-  
-  bool initRelations(std::vector<std::string>& relNames) {
-    for (unsigned int i = 0; i < relNames.size(); i++) {
-      std::string errMsg;
-      if (!sc->IsValidIdentifier(relNames[i], errMsg, true)) {
-        if (sc->IsObjectName(relNames[i])) {
-          if (!sc->DeleteObject(relNames[i])) {
-            cout << "object " << relNames[i] << " could not be deleted" << endl;
-            return false;
-          }
-          cout << "previous object \"" << relNames[i] << "\" deleted" << endl;
-        }
-      }
-      if (sc->IsSystemObject(relNames[i])) {
-        cout << relNames[i] << " is a reserved name" << endl;
-        return false;
-      }
-    }
-    treeInfoRel = new Relation(treeInfoType, false);
-    nodeInfoRel = new Relation(nodeInfoType, false);
-    nodeDistRel = new Relation(nodeDistType, false);
-    pivotInfoRel = new Relation(pivotInfoType, false);
-    return true;
-  }
-  
-  bool processNTree(ntree_t* ntree, ListExpr relTypeList) {
-    Tuple *treeInfoTuple = new Tuple(treeInfoType);
-    treeInfoTuple->PutAttribute(0, new CcInt(true, ntree->getVariant()));
-    treeInfoTuple->PutAttribute(1, new CcInt(true, ntree->getDegree()));
-    treeInfoTuple->PutAttribute(2, new CcInt(true, ntree->getMaxLeafSize()));
-    treeInfoTuple->PutAttribute(3, new FText(true, nl->ToString(relTypeList)));
-    treeInfoTuple->PutAttribute(4, new CcInt(true, ntree->getAttrNo()));
-    auto distComp = ntree->getDistComp();
-    Geoid *geoid = distComp.getGeoid();
-    Geoid *newGeoid = 0;
-    if (geoid == 0) {
-      newGeoid = new Geoid(false);
-    }
-    else if (geoid->IsDefined()) {
-      newGeoid = new Geoid(*geoid);
-    }
-    else {
-      newGeoid = new Geoid(false);
-    }
-    treeInfoTuple->PutAttribute(5, newGeoid);
-    treeInfoRel->AppendTuple(treeInfoTuple);
-    processNode(ntree->getRoot());
-    return true;
-  }
-  
-  void processNode(node_t* node) {
-    int nodeId = node->getNodeId() + firstNodeId;
-    Tuple *nodeInfoTuple(0), *nodeDistTuple(0), *pivotInfoTuple(0),*srcTuple(0);
-    TupleId tid;
-    std::tuple<int, int, int> refDistPos = node->getRefDistPos();
-    for (int i = 0; i < node->getCount(); i++) {
-      if (node->isLeaf()) {
-        tid = ((leafnode_t*)node)->getObject(i)->getTid();
-      }
-      else { // inner node
-        tid = ((innernode_t*)node)->getCenter(i)->getTid();
-      }
-      int subtreeNodeId = (node->isLeaf() ? 0 :
-                  ((innernode_t*)node)->getChild(i)->getNodeId() + firstNodeId);
-      double maxDist = (node->isLeaf() ? -1.0 : 
-                                           ((innernode_t*)node)->getMaxDist(i));
-//       nodeInfo.push_back(std::make_tuple(node->getNodeId() + firstNodeId, i, 
-//                                          subtreeNodeId, maxDist, tid - 1));
-      nodeInfoTuple = new Tuple(nodeInfoType);
-      srcTuple = (*srcTuples)[tid - 1];
-      for (int j = 0; j < srcTuple->GetNoAttributes(); j++) {
-        nodeInfoTuple->CopyAttribute(j, srcTuple, j);
-      }
-      nodeInfoTuple->PutAttribute(firstAttrNo, new CcInt(true, nodeId));
-      nodeInfoTuple->PutAttribute(firstAttrNo + 1, new CcInt(true, i));
-      nodeInfoTuple->PutAttribute(firstAttrNo + 2, new CcInt(true, 
-                                                             subtreeNodeId));
-      nodeInfoTuple->PutAttribute(firstAttrNo + 3, new CcReal(true, maxDist));
-      nodeInfoRel->AppendTuple(nodeInfoTuple);      
-      for (int j = 0; j < i; j++) {
-//         nodeDist.push_back(std::make_tuple(node->getNodeId() + firstNodeId, 
-//                       i, j, node->getPrecomputedDist(i, j, node->isLeaf())));
-        nodeDistTuple = new Tuple(nodeDistType);
-        nodeDistTuple->PutAttribute(0, new CcInt(true, nodeId));
-        nodeDistTuple->PutAttribute(1, new CcInt(true, i));
-        nodeDistTuple->PutAttribute(2, new CcInt(true, j));
-        nodeDistTuple->PutAttribute(3, new CcReal(true, 
-                               node->getPrecomputedDist(i, j, node->isLeaf())));
-        nodeDistRel->AppendTuple(nodeDistTuple);
-      }
-      std::vector<double> pivotDists = node->getPivotDistances(i);
-      bool isPivot = (i == std::get<0>(refDistPos) || 
-                      i == std::get<1>(refDistPos));
-//       pivotInfo.push_back(std::make_tuple(node->getNodeId() + firstNodeId, i,
-//                                      pivotDists[0], pivotDists[1], isPivot));
-      pivotInfoTuple = new Tuple(pivotInfoType);
-      pivotInfoTuple->PutAttribute(0, new CcInt(true, nodeId));
-      pivotInfoTuple->PutAttribute(1, new CcInt(true, i));
-      pivotInfoTuple->PutAttribute(2, new CcReal(true, pivotDists[0]));
-      pivotInfoTuple->PutAttribute(3, new CcReal(true, pivotDists[1]));
-      pivotInfoTuple->PutAttribute(4, new CcBool(true, isPivot));
-      pivotInfoRel->AppendTuple(pivotInfoTuple);
-    }
-    if (!node->isLeaf()) {
-      for (int i = 0; i < node->getCount(); i++) {
-        processNode(((innernode_t*)node)->getChild(i));
-      }
-    }
-  }
-  
-  bool fillRelations() {
-//     int nodeId, entry, subtree, entry1, entry2;
-//     bool isPivot;
-//     double maxDist, dist, pivotDist1, pivotDist2;
-//     for (unsigned int i = 0; i < nodeInfo.size(); i++) {
-//       Tuple *nodeInfoTuple = new Tuple(nodeInfoType);
-//       Tuple *srcTuple = (*srcTuples)[std::get<4>(nodeInfo[i])];
-//       for (int j = 0; j < srcTuple->GetNoAttributes(); j++) {
-//         nodeInfoTuple->CopyAttribute(j, srcTuple, j);
-//       }
-//       nodeId = std::get<0>(nodeInfo[i]);
-//       entry = std::get<1>(nodeInfo[i]);
-//       subtree = std::get<2>(nodeInfo[i]);
-//       maxDist = std::get<3>(nodeInfo[i]);
-//       nodeInfoTuple->PutAttribute(firstAttrNo, new CcInt(true, nodeId));
-//       nodeInfoTuple->PutAttribute(firstAttrNo + 1, new CcInt(true, entry));
-//       nodeInfoTuple->PutAttribute(firstAttrNo + 2, new CcInt(true, subtree));
-//       nodeInfoTuple->PutAttribute(firstAttrNo + 3, new CcReal(true,
-//                                               maxDist));
-//       nodeInfoRel->AppendTuple(nodeInfoTuple);
-//     }
-//     for (unsigned int i = 0; i < nodeDist.size(); i++) {
-//       nodeId = std::get<0>(nodeDist[i]);
-//       entry1 = std::get<1>(nodeDist[i]);
-//       entry2 = std::get<2>(nodeDist[i]);
-//       dist = std::get<3>(nodeDist[i]);
-//       Tuple *nodeDistTuple = new Tuple(nodeDistType);
-//       nodeDistTuple->PutAttribute(0, new CcInt(true, nodeId));
-//       nodeDistTuple->PutAttribute(1, new CcInt(true, entry1));
-//       nodeDistTuple->PutAttribute(2, new CcInt(true, entry2));
-//       nodeDistTuple->PutAttribute(3, new CcReal(true, dist));
-//       nodeDistRel->AppendTuple(nodeDistTuple);
-//     }
-//     for (unsigned int i = 0; i < pivotInfo.size(); i++) {
-//       nodeId = std::get<0>(pivotInfo[i]);
-//       entry = std::get<1>(pivotInfo[i]);
-//       pivotDist1 = std::get<2>(pivotInfo[i]);
-//       pivotDist2 = std::get<3>(pivotInfo[i]);
-//       isPivot = std::get<4>(pivotInfo[i]);
-//       Tuple* pivotInfoTuple = new Tuple(pivotInfoType);
-//       pivotInfoTuple->PutAttribute(0, new CcInt(true, nodeId));
-//       pivotInfoTuple->PutAttribute(1, new CcInt(true, entry));
-//       pivotInfoTuple->PutAttribute(2, new CcReal(true, pivotDist1));
-//       pivotInfoTuple->PutAttribute(3, new CcReal(true, pivotDist2));
-//       pivotInfoTuple->PutAttribute(4, new CcBool(true, isPivot));
-//       pivotInfoRel->AppendTuple(pivotInfoTuple);
-//     }
-    return true;
-  }
-  
-  bool storeRelation(ListExpr typeList, Relation *rel, std::string& relName) {
-    ListExpr relType = nl->TwoElemList(nl->SymbolAtom(Relation::BasicType()), 
-                                       typeList);
-    Word relWord;
-    relWord.setAddr(rel);
-    sc->InsertObject(relName, "", relType, relWord, true);
-    return true;
-  }
-  
-  bool getStatus() const {
-    return status;
-  }
-  
-  ntree_t* getNTree() {
-    return ntree;
-  }
-  
- private:
-  bool status;
-  SecondoCatalog* sc;
-  ListExpr treeInfoTypeList, nodeInfoTypeList, nodeDistTypeList, 
-           pivotInfoTypeList;
-  TupleType *treeInfoType, *nodeInfoType, *nodeDistType, *pivotInfoType;
-  Relation *treeInfoRel, *nodeInfoRel, *nodeDistRel, *pivotInfoRel;
-  int firstAttrNo, firstNodeId;
-  std::vector<Tuple*>* srcTuples;
-  std::vector<std::tuple<int, int, int, double, TupleId> > nodeInfo;
-  std::vector<std::tuple<int, int, int, double> > nodeDist;
-  std::vector<std::tuple<int, int, double, double, bool> > pivotInfo;
-  ntree_t* ntree;
-};
-
-template <class T, class DistComp, int variant>
-class MemoryNtreeObject : public MemoryObject {
-
- public:
-  typedef std::pair<T, TupleId> treeentry_t;
-  typedef NTree<MTreeEntry<T>, DistComp, variant> tree_t;
-
-  MemoryNtreeObject(tree_t* _ntreeX, size_t _memSize, 
-                    const std::string& _objectTypeExpr, bool _flob, 
-                    const std::string& _database) {
-    ntreeX = _ntreeX;
-    memSize = _memSize;
-    objectTypeExpr =_objectTypeExpr;
-    flob = _flob;
-    database = _database;
-  };
-
-  tree_t* getNtreeX() {
-    return ntreeX;
-  };
-
-  static std::string BasicType() {
-    return "ntree" + (variant > 1 ? std::to_string(variant) : "");
-  }
-
-  static bool checkType(ListExpr list) {
-    if (!nl->HasLength(list, 2)) {
-      return false;
-    }
-    if (!listutils::isSymbol(nl->First(list), BasicType())) {
-      return false;
-    }
-    return T::checkType(nl->Second(list));
-  }
-    
-  MemoryObject* clone() {
-    return new MemoryNtreeObject<T, DistComp, variant>(ntreeX->clone(), 
-                                       memSize, objectTypeExpr, flob, database);
-  }
-
-
- private:
-  tree_t* ntreeX;
-  MemoryNtreeObject();
-  
- protected:
-  ~MemoryNtreeObject() {
-    if (ntreeX) {
-      delete ntreeX;
-    }
-  };
 };
 
 }

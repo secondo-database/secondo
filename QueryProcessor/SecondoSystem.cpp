@@ -447,29 +447,22 @@ Precondition: dbState = dbOpen.
       return 2; // Error reading file
     }
 
-    if(!nl->HasLength(list,2) && !nl->HasMinLength(list,5))
-    {
-      return 3; // invalid list structure 
+    if (!nl->HasLength(list, 2) && !nl->HasMinLength(list, 5)) {
+      return 3; // invalid list structure
     }
-    if(nl->HasLength(list,2))
-    {
-       list = nl->FiveElemList(nl->SymbolAtom("OBJECT"),
-		               nl->SymbolAtom(objectname),
-			       nl->TheEmptyList(),
-			       nl->First(list),
-			       nl->Second(list));
-    } 
-    else  if ( !nl->IsEqual( nl->Second( list ), objectname ) )
-    {
-      if(nl->AtomType(nl->Second(list))!=SymbolType){
-          return 3; // error in list structure
+    if (nl->HasLength(list, 2)) {
+      list = nl->FiveElemList(nl->SymbolAtom("OBJECT"),
+                              nl->SymbolAtom(objectname), nl->TheEmptyList(),
+                              nl->First(list), nl->Second(list));
+    } else if (!nl->IsEqual(nl->Second(list), objectname)) {
+      if (nl->AtomType(nl->Second(list)) != SymbolType) {
+        return 3; // error in list structure
       }
       string name = nl->SymbolValue(nl->Second(list));
-      cmsg.warning() << "Object name of the file '"
-                     << name <<  "' changed to '"
+      cmsg.warning() << "Object name of the file '" << name << "' changed to '"
                      << objectname << "'!" << endl;
       cmsg.send();
-      nl->Replace( nl->Second(list), nl->SymbolAtom(objectname) );
+      nl->Replace(nl->Second(list), nl->SymbolAtom(objectname));
     }
 
     if ( RestoreObjects(
@@ -948,7 +941,7 @@ bool
 SecondoSystem::CommitTransaction(const  bool closeObjects)
 {
   TRACE_ENTER
-  instance->catalog->CleanUp( false, closeObjects );
+  instance->catalog->CleanUp(closeObjects);
   TRACE_LEAVE
   return (SmiEnvironment::CommitTransaction());
 }
@@ -957,7 +950,7 @@ bool
 SecondoSystem::AbortTransaction(const bool closeObjects)
 {
   TRACE_ENTER
-  instance->catalog->CleanUp( true, closeObjects);
+  instance->catalog->ClearInMemoryObjects(closeObjects);
   TRACE_LEAVE
   return (SmiEnvironment::AbortTransaction());
 }

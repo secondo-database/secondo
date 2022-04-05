@@ -3156,7 +3156,7 @@ Relation* ImportairportsLI::createRelation(std::string& name,
       return 0;
     }
   }
-  if (!sc->CleanUp(false, false)) {
+  if (!sc->CleanUp(false)) {
     cout << "ERROR: CleanUp failed" << endl;
     return 0;
   }

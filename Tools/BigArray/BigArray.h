@@ -121,6 +121,10 @@ template class used virtual functions.
 
 template<class T>
 class BigArray{
+
+static_assert(!std::is_pointer<T>::value, 
+   "Template parameter cannot be a pointer type");
+
   public:
 
 /*
@@ -229,13 +233,22 @@ Replaces an existing element.
 /*
 ~EmptySlot~
 
+A static assert in the class ensures that T is a non-pointer. So, 
+the variable 't' is initialized at this point.
+
 */
 
+#if defined(__GNUC__) && !defined(__clang__) 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
+#endif
    size_t EmptySlot(){
       T t;
       return  append(t);
    }
-
+#if defined(__GNUC__) && !defined(__clang__) 
+#pragma GCC diagnostic pop
+#endif
 
 /*
 ~append~

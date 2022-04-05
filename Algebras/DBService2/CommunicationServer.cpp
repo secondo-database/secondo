@@ -729,7 +729,7 @@ bool CommunicationServer::handleTriggerReplicaDeletion(
     SecondoCatalog* ctlg = SecondoSystem::GetCatalog();
     SecondoSystem::BeginTransaction();
     ctlg->DeleteObject(victim);    
-    ctlg->CleanUp(false,true);
+    ctlg->CleanUp(true);
     SecondoSystem::CommitTransaction(false);
 
     traceWriter->write("Deleted object (victim).");

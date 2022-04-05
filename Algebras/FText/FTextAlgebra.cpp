@@ -5131,7 +5131,7 @@ int ftextletObjectVM( Word* args, Word& result, int message,
         tree = 0;
       }
     }
-    ctlg->CleanUp(false,true);
+    ctlg->CleanUp(true);
   } catch(SI_Error err) {
     if(tree) {
       qpp->Destroy( tree, true );
@@ -8243,7 +8243,7 @@ Specification
       "<text> _ recode [_ , _]  </text--->"
       "<text>Recodes a string/text from one charset to another one "
       " </text--->"
-      "<text>query 'Häßlich' recode [\"utf8\", \"latin1\"] </text--->"
+      "<text>query 'Teststring' recode [\"utf8\", \"latin1\"] </text--->"
       ") )";
 
   /*
@@ -12604,7 +12604,7 @@ class CommandExecuter{
            }
            SecondoCatalog* ctlg = SecondoSystem::GetCatalog();
            bool ok = ctlg->DeleteObject(nl->SymbolValue(nl->Second(cmd)));
-           ctlg->CleanUp(false,true);
+           ctlg->CleanUp(true);
            return ok?0:ERR_IDENT_UNKNOWN_OBJ;
         } 
 
@@ -12666,7 +12666,7 @@ class CommandExecuter{
           qp.Destroy(tree,false);
           // put result into catalog
           ctlg->UpdateObject(objName, result);
-          ctlg->CleanUp(false,true);
+          ctlg->CleanUp(true);
           return 0;
         } 
 
@@ -12723,7 +12723,7 @@ class CommandExecuter{
               tree = 0;
             }
           }
-          ctlg->CleanUp(false,false);
+          ctlg->CleanUp(false);
           return ok?0:ERR_NO_OBJ_CREATED;
         } 
 
@@ -12738,7 +12738,7 @@ class CommandExecuter{
             }
             SecondoCatalog* ctlg = SecondoSystem::GetCatalog();
             if(ctlg->KillObject(nl->SymbolValue(nl->Second(cmd)))){
-              ctlg->CleanUp(false,true);
+              ctlg->CleanUp(true);
               return 0;
             } else {
               return ERR_IDENT_UNKNOWN_OBJ;

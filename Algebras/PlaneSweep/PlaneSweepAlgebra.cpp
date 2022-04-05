@@ -49,6 +49,8 @@ using namespace std;
 const double M_PI = acos( -1.0 );
 #endif
 
+//#define PS_DEBUG
+
 extern NestedList* nl;
 extern QueryProcessor* qp;
 
@@ -3741,7 +3743,12 @@ void MakeRealm::PerformPlaneSweep(PQueue& pq, Segment segs[],
    StatusLine sl;
    XEvent event;
    bool insertedCurrentSegment=false;
-   int i=0, j=0;
+   
+#ifdef PS_DEBUG
+   int i=0;
+   int j=0;
+#endif
+
    if ( pq.isEmpty())  return;
    Coord sweepline=0, oldsweep=0;
    // work out the ~PQueue~-object
@@ -3752,12 +3759,16 @@ void MakeRealm::PerformPlaneSweep(PQueue& pq, Segment segs[],
         event = pq.getFirstAndDelete();
         insertedCurrentSegment = false;
       }
+
+#ifdef PS_DEBUG
       i += 1;
-      //cout << "Loop1: " << i << endl;
-      //cout << "Size: " << vlist.Size();
-      //if (pq.isEmpty()) cout << " PQEmpty ";
-      //else cout << " PQNOTEmpty ";
-      //else cout <<  "insertedCurrentSegment is false " << endl;
+      cout << "Loop1: " << i << endl;
+      cout << "Size: " << vlist.Size();
+      if (pq.isEmpty()) cout << " PQEmpty ";
+      else cout << " PQNOTEmpty ";
+      else cout <<  "insertedCurrentSegment is false " << endl;
+#endif
+
       if ( ((sweepline != event.GetX()) || (vlist.Size() > 1)) ||
                      ( ( (pq.isEmpty()) && (vlist.Size() == 1) )
                           && insertedCurrentSegment ) )  { // new sweepline
@@ -3792,13 +3803,17 @@ void MakeRealm::PerformPlaneSweep(PQueue& pq, Segment segs[],
          sl.Delete(event.GetX(), oldsweep, entry, segs, pq);
          if ( vs.IsDefined())   vs.Insert(event.GetY());
          segs[event.GetFirst()].CHSInsert(list1,list2);
-         /*list<HalfSegment>::iterator it;
+         
+#ifdef PS_DEBUG
+         list<HalfSegment>::iterator it;
          it = list1.begin();
          while(it != list1.end()) cout << *it++ << endl;
          cout << endl;
          it = list2.begin();
          while(it != list2.end()) cout << *it++ << endl;
-         cout << endl;*/
+         cout << endl;
+#endif
+
          insertedCurrentSegment = true;
       }
       // XEvent for split one HalfSegment
@@ -3877,8 +3892,10 @@ void MakeRealm::PerformPlaneSweep(PQueue& pq, Segment segs[],
       }
       // XEvent - bottom of a vertical Segment
       else if (event.GetKind() == verticalSegment)  {
+#ifdef PS_DEBUG
         j += 1;
-        //cout << "Loop2: " << j << endl;
+        cout << "Loop2: " << j << endl;
+#endif
         vs.SetDefined(true);      // build up VStructure
         vlist.Insert(segs[event.GetFirst()]);
         insertedCurrentSegment = true;

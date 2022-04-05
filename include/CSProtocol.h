@@ -663,12 +663,12 @@ struct CSProtocol {
       // cout << "SendFile: file size: " << length <<  " bytes." << std::endl;
       
       // send file data
-      uint64_t read2 = 0;
+      //uint64_t read2 = 0;
       while (!restoreFile.eof() && !iosock.fail())
       {
         restoreFile.read(buf, bufSize);
         unsigned int read = restoreFile.gcount();
-        read2 += read;
+        //read2 += read;
         iosock.write(buf, read);
       }
       //cout << "SendFile: transmitted " 

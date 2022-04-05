@@ -332,13 +332,19 @@ Result    : ()
 
 Operator  : exportntree
 Number    : 1924
-Signature : NTREEx(T) x string x int -> bool
+Signature : NTREEx(T) x string x int [x int] -> bool
 Example   : query mKinos_GeoData_ntree8 mKinos exportntree["kinos", 1]
 Result    : TRUE
 
-Operator  : importntree8
+Operator  : importntree7
 Number    : 1925
-Signature : string x T -> NTREEx(T)
+Signature : string x T [x int] -> NTREE7(T)
+Example   : let mKinos_GeoData_ntree7_restored = importntree7("kinos", [const point value undef])
+Result    : ()
+
+Operator  : importntree8
+Number    : 1926
+Signature : string x T [x int] -> NTREE8(T)
 Example   : let mKinos_GeoData_ntree8_restored = importntree8("kinos", [const point value undef])
 Result    : ()
 
@@ -387,13 +393,13 @@ Result    : TRUE
 Operator  : m1nearestNeighborN7
 Number    : 1920
 Signature : NTREE7(T) x MREL(X) x T -> stream(tuple(X))
-Example   : query mKinos_GeoData_ntree7 mKinos m1nearestNeighborN7[alexanderplatz] extract[Strasse] contains "Rosa"
+Example   : query mKinos_GeoData_ntree7 mKinos m1nearestNeighborN7[alexanderplatz] extract[QueryObjectDistance] < 500.0
 Result    : TRUE
 
 Operator  : m1nearestNeighborN8
 Number    : 1923
 Signature : NTREE8(T) x MREL(X) x T -> stream(tuple(X))
-Example   : query mKinos_GeoData_ntree8 mKinos m1nearestNeighborN8[alexanderplatz] extract[Strasse] contains "Rosa"
+Example   : query mKinos_GeoData_ntree8 mKinos m1nearestNeighborN8[alexanderplatz] extract[QueryObjectDistance] < 500.0
 Result    : TRUE
 
 Operator  : mcreateAVLtree

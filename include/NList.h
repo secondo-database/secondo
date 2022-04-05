@@ -170,7 +170,7 @@ class NListErr : public SecondoException {
 };
 
 
-#define CHECK(n) {if (n>0 && length()<n) { \
+#define CHECK(n) {if ((n)>0 && length()<(n)) { \
         throw NListErr("Element "#n" not in list!"); } }
 
 /*
@@ -479,17 +479,15 @@ list stucture and to extract subexpressions or atom values.
     return nlGlobal->TypeError();
   }
 
-  inline static ListExpr typeError( int argNumber,
-		                    const std::string& expectedListStruct )
-  {
+  inline static ListExpr typeError(int argNumber,
+                                   const std::string &expectedListStruct) {
     std::stringstream msg;
     msg << "Expecting list structure " << expectedListStruct
-	<< " for argument number "<< argNumber << ".";
+        << " for argument number " << argNumber << ".";
 
-    ErrorReporter::ReportError( msg.str() );
+    ErrorReporter::ReportError(msg.str());
     return nlGlobal->TypeError();
   }
-
 
   // interchange with type ~ListExpr~
   inline ListExpr listExpr() const { return l; }
@@ -625,30 +623,27 @@ Construction of bigger lists
      len++;
   }
 
-  inline void concat(const NList& tail){
-     if(this->isEmpty()){
-       (*this)  = tail;
-       return;
-     }
-     if(tail.isEmpty()){
-       return;
-     }
-     if(tail.isAtom()){
-       append(tail);
-       return;
-     }
-     if(isAtom()){
-       makeHead(*this);
-     }
-     NList rest(tail);
-     while(!rest.isEmpty()){
-        append(rest.first());
-					rest.rest();
-     }
+  inline void concat(const NList &tail) {
+    if (this->isEmpty()) {
+      (*this) = tail;
+      return;
+    }
+    if (tail.isEmpty()) {
+      return;
+    }
+    if (tail.isAtom()) {
+      append(tail);
+      return;
+    }
+    if (isAtom()) {
+      makeHead(*this);
+    }
+    NList rest(tail);
+    while (!rest.isEmpty()) {
+      append(rest.first());
+      rest.rest();
+    }
   }
-
-
-
 
 /*
 Iteration over lists
@@ -715,8 +710,9 @@ functions.
 
   inline bool checkStream(NList& type)
   {
-    return ( hasLength(2) && first().isSymbol(sym.STREAM())
-		          && second() == type );
+    return (hasLength(2) 
+        && first().isSymbol(sym.STREAM()) 
+        && second() == type);
   }
 
   inline NList& streamOf(NList& type)

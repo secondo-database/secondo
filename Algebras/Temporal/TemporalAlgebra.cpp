@@ -14860,7 +14860,7 @@ int ApproximateMvalue(Word* args, Word& result,
  
    bool split1 = false;
    bool split2 = breakAttrIndex>=0;
-   bool makeContinious = isContinious;
+   //bool makeContinious = isContinious;
 
    if(boolIndex>=0){
        CcBool* MC = static_cast<CcBool*>(args[boolIndex].addr);
@@ -14868,7 +14868,7 @@ int ApproximateMvalue(Word* args, Word& result,
          res->SetDefined(false);
          return 0;
        }
-       makeContinious += MC->GetValue();
+       //makeContinious += MC->GetValue();
    }
    if(durindex>=0){
      dur.CopyFrom(static_cast<Attribute*>(args[durindex].addr));

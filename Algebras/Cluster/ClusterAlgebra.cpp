@@ -72,6 +72,7 @@ namespace clusteralg{
 
 #define MINIMUMPTS_DEF 4        // default min points   - MinPts
 #define EPS_DEF 400             // default max distance - Eps
+//#define CORRECT_CENTER
 
 class DBscan;
 
@@ -1498,17 +1499,22 @@ void insertPoint(vector<cCluster>& clusters, int pos){
   }
 
   // remove 'bad' points from the cluster
+#ifdef CORRECT_CENTER 
   double sx = 0.0;
   double sy = 0.0;
+#endif
+
   for(it = removed.begin(); it!=removed.end();it++){
      Point p3;
      pts->Get(*it,p3);
+#ifdef CORRECT_CENTER 
      sx += p3.GetX();
      sy += p3.GetY();
+#endif
      clusters[index].erase(*it);
   }
 
-  /*
+#ifdef CORRECT_CENTER 
   // we avoid to correct the center again because of this correction
   // further points may go out from the cluster
   // thiy may lead to long running times
@@ -1520,8 +1526,7 @@ void insertPoint(vector<cCluster>& clusters, int pos){
   clusters[index].cy = ((clusters[index].cy *
                         (clusters[index].member.size() + removed.size())) -
                        sy) / clusters[index].member.size();
-
-  */
+#endif
 
 
   // inserts the points again
@@ -2069,31 +2074,31 @@ const string cluster_bSpec =
 
 */
 const string cluster_cSpec =
-		"( ( \"Signature\" \"Syntax\" \"Meaning\" "
-		"\"Example\" ) "
-		"( <text>points x int x real -> stream(points)</text--->"
-		"<text> _ cluster_c [ minpts, epsilon ] </text--->"
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>points x int x real -> stream(points)</text--->"
+    "<text> _ cluster_c [ minpts, epsilon ] </text--->"
     "<text>For a point set given as a points value, compute the clusters using "
     "the DBSCAN algorithm with parameters minPts (minimum number of points "
     "forming a cluster core) and epsilon (maximum distance between points in "
     "a cluster core). "
     "Returns a stream of points values (point sets) representing the clusters. "
-		"</text--->"
-		"<text>query Kneipen cluster_c[5,200.0] count</text--->"
-		") )";
+    "</text--->"
+    "<text>query Kneipen cluster_c[5,200.0] count</text--->"
+    ") )";
 
 const string cluster_gSpec =
-		"( ( \"Signature\" \"Syntax\" \"Meaning\" "
-		"\"Example\" ) "
-		"( <text>points x int x real -> stream(points)</text--->"
-		"<text> _ cluster_g [ minpts, epsilon] </text--->"
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>points x int x real -> stream(points)</text--->"
+    "<text> _ cluster_g [ minpts, epsilon] </text--->"
     "<text>For a point set given as a points value, compute the clusters using "
     "the DBSCAN algorithm with parameters minPts (minimum number of points "
     "forming a cluster core) and epsilon (maximum distance between points in "
     "a cluster core). [Alternative implementation?]."
     "Returns a stream of points values (point sets) representing the clusters. "
-		"<text>query Kneipen cluster_g[5,200.0] count</text--->"
-		") )";
+    "<text>query Kneipen cluster_g[5,200.0] count</text--->"
+    ") )";
 /*
 6.4 Specification string for Operator cluster\_d
 
