@@ -392,7 +392,18 @@ Within2_o(Word* args, Word& result, int message, Word& local, Supplier s)
   ArgVectorPointer funArgs = qp->Argument( args[2].addr );
   (*funArgs)[0] = args[0];
   (*funArgs)[1] = args[1];
-  qp->Request( args[2].addr, result );
+
+  Word funresult;
+  qp->Request( args[2].addr, funresult );
+
+  // Use custom result storage to ensure the result is not automatically
+  // destroyed in let queries.
+  // Example: let x = 1 2 within2[fun(I1: ANY, I2: ANY2) I1 + I2];
+  int noArgs = qp->GetNoSons(s);
+  qp->DeleteResultStorage(s);
+  qp->ChangeResultStorage(s, funresult);
+  result = qp->ResultStorage(s);
+  qp->ReInitResultStorage(qp->GetSon(s, noArgs-1));
 
   return 0;
 }
