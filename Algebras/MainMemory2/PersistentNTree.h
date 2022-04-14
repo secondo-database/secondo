@@ -204,7 +204,7 @@ class PersistentNTree {
           return false;
         }
       }
-      firstAttrNo -= 4;
+      firstAttrNo -= 5;
       nodeInfoRel = (Relation*)(relWord.addr);
       int nodeInfoRelSize = nodeInfoRel->GetNoTuples();
       nodeInfoTuples = new std::vector<Tuple*>(nodeInfoRelSize);
@@ -244,6 +244,9 @@ class PersistentNTree {
     int degree = ((CcInt*)(treeInfoTuple->GetAttribute(1)))->GetValue();
     int maxLeafSize = ((CcInt*)(treeInfoTuple->GetAttribute(2)))->GetValue();
     Geoid *geoid = (Geoid*)(treeInfoTuple->GetAttribute(5));
+    if (!geoid->IsDefined()) {
+      geoid = 0;
+    }
     DistComp dc(geoid);
     attrNo = ((CcInt*)(treeInfoTuple->GetAttribute(4)))->GetValue();
     PartitionMethod pMethod = (variant == 8 ? RANDOMOPT : RANDOMONLY);
@@ -255,13 +258,13 @@ class PersistentNTree {
   node_t* buildNextNode(std::queue<std::pair<int, int> >& subnodeIds) {
     Tuple *nodeInfoTuple = (*nodeInfoTuples)[nodeInfoPos];
     int nodeId = 
-               ((CcInt*)(nodeInfoTuple->GetAttribute(firstAttrNo)))->GetValue();
-    int entry(-1), attr0(firstAttrNo), currentNodeId(nodeId);
+           ((CcInt*)(nodeInfoTuple->GetAttribute(firstAttrNo + 1)))->GetValue();
+    int tid(-1), entry(-1), attr0(firstAttrNo), currentNodeId(nodeId);
     std::vector<double> maxDist;
     std::vector<int> entries;
     std::vector<MTreeEntry<T>* > objects;
     int subnodeId =
-                   ((CcInt*)nodeInfoTuple->GetAttribute(attr0 + 2))->GetValue();
+                   ((CcInt*)nodeInfoTuple->GetAttribute(attr0 + 3))->GetValue();
     bool isLeaf = (subnodeId == 0);
     node_t *result;
     if (isLeaf) {
@@ -275,32 +278,33 @@ class PersistentNTree {
     cout << "process " << (isLeaf ? "LEAF node #" : "INNER node #") << nodeId 
          << endl;
     while (currentNodeId == nodeId) {
-      entry = ((CcInt*)nodeInfoTuple->GetAttribute(attr0 + 1))->GetValue();
+      tid = ((CcInt*)nodeInfoTuple->GetAttribute(attr0))->GetValue();
+      entry = ((CcInt*)nodeInfoTuple->GetAttribute(attr0 + 2))->GetValue();
       cout << "begin iteration, entry = " << entry;
       entries.push_back(entry);
       if (isLeaf) {
         if (entry == 0) {
           maxDist.push_back( 
-                 ((CcReal*)nodeInfoTuple->GetAttribute(attr0 + 3))->GetValue());
+                 ((CcReal*)nodeInfoTuple->GetAttribute(attr0 + 4))->GetValue());
         }
       }
       else { // inner node
         subnodeId =
-                   ((CcInt*)nodeInfoTuple->GetAttribute(attr0 + 2))->GetValue();
+                   ((CcInt*)nodeInfoTuple->GetAttribute(attr0 + 3))->GetValue();
         cout << ", subnodeId = " << subnodeId;
         subnodeIds.push(std::make_pair(entry, subnodeId));
         maxDist.push_back( 
-                 ((CcReal*)nodeInfoTuple->GetAttribute(attr0 + 3))->GetValue());
+                 ((CcReal*)nodeInfoTuple->GetAttribute(attr0 + 4))->GetValue());
       }
-      cout << endl;
       T *obj = (T*)((T*)(nodeInfoTuple->GetAttribute(attrNo))->Clone());
-      objects.push_back(new MTreeEntry<T>(*obj, nodeInfoTuple->GetTupleId()));
+      cout << ", tid = " << tid << endl;
+      objects.push_back(new MTreeEntry<T>(*obj, tid));
       obj->DeleteIfAllowed();
       nodeInfoPos++;
       if (nodeInfoPos < (int)(nodeInfoTuples->size())) {
         nodeInfoTuple = (*nodeInfoTuples)[nodeInfoPos];
         currentNodeId =
-                     ((CcInt*)(nodeInfoTuple->GetAttribute(attr0)))->GetValue();
+                 ((CcInt*)(nodeInfoTuple->GetAttribute(attr0 + 1)))->GetValue();
       }
       else {
         cout << "end of nodeInfo" << endl;
@@ -313,6 +317,11 @@ class PersistentNTree {
     int entry1, entry2, distMatrixSize(0);
     double dist;
     std::vector<std::tuple<int, int, double> > distEntries;
+    cout << "PROCESS NODE ID " << currentNodeId << endl; 
+    if (currentNodeId != nodeId) {
+      cout << "ALERT: " << currentNodeId << " != " << nodeId << endl;
+      distMatrixSize = 1;
+    }
     while (currentNodeId == nodeId) {
       entry1 = ((CcInt*)nodeDistTuple->GetAttribute(1))->GetValue();
       if (entry1 + 1 >= distMatrixSize) {
@@ -332,6 +341,7 @@ class PersistentNTree {
       }
     }
     double** distMatrix = new double*[distMatrixSize];
+    cout << "distMatrix created, size is " << distMatrixSize << endl;
     for (int i = 0; i < distMatrixSize; i++) {
       distMatrix[i] = new double[distMatrixSize];
       std::fill_n(distMatrix[i], distMatrixSize, -1.0);
@@ -444,6 +454,8 @@ class PersistentNTree {
       restAttrList = nl->Rest(restAttrList);
       curList2 = nl->Append(curList2, oneAttrList);
     }
+    curList2 = nl->Append(curList2, nl->TwoElemList(nl->SymbolAtom("TupleId"),
+                                          nl->SymbolAtom(CcInt::BasicType())));
     curList2 = nl->Append(curList2, nl->TwoElemList(nl->SymbolAtom("NodeId"),
                                            nl->SymbolAtom(CcInt::BasicType())));
     curList2 = nl->Append(curList2, nl->TwoElemList(nl->SymbolAtom("Entry"),
@@ -556,11 +568,12 @@ class PersistentNTree {
       for (int j = 0; j < srcTuple->GetNoAttributes(); j++) {
         nodeInfoTuple->CopyAttribute(j, srcTuple, j);
       }
-      nodeInfoTuple->PutAttribute(firstAttrNo, new CcInt(true, nodeId));
-      nodeInfoTuple->PutAttribute(firstAttrNo + 1, new CcInt(true, i));
-      nodeInfoTuple->PutAttribute(firstAttrNo + 2, new CcInt(true, 
+      nodeInfoTuple->PutAttribute(firstAttrNo, new CcInt(true, tid));
+      nodeInfoTuple->PutAttribute(firstAttrNo + 1, new CcInt(true, nodeId));
+      nodeInfoTuple->PutAttribute(firstAttrNo + 2, new CcInt(true, i));
+      nodeInfoTuple->PutAttribute(firstAttrNo + 3, new CcInt(true, 
                                                              subtreeNodeId));
-      nodeInfoTuple->PutAttribute(firstAttrNo + 3, new CcReal(true, maxDist));
+      nodeInfoTuple->PutAttribute(firstAttrNo + 4, new CcReal(true, maxDist));
       nodeInfoRel->AppendTuple(nodeInfoTuple); 
       delete nodeInfoTuple;
       for (int j = 0; j < i; j++) {

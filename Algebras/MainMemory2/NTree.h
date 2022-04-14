@@ -386,7 +386,7 @@ class StdDistComp{
 //     }
 
     std::ostream& print( const MTreeEntry<T>& e, std::ostream& o){
-       o << "<("; e.getKey()->Print(o); o << ", " << e.getTid() << ")>";
+       o << "("; e.getKey()->Print(o); o << ", " << e.getTid() << ")";
        return o;
     }
     
@@ -1133,7 +1133,7 @@ class NTreeInnerNode : public NTreeNode<T, DistComp, variant> {
   }
   
   std::ostream& print(std::ostream& out, DistComp& dc) const {
-    return print(out, dc, true, false, false);
+    return print(out, dc, true, true, true);
   }
    
   std::ostream& print(std::ostream& out, DistComp& dc, const bool printSubtrees,
@@ -1154,6 +1154,13 @@ class NTreeInnerNode : public NTreeNode<T, DistComp, variant> {
       }
     }
     out << " )" << endl;
+    if (maxDist != 0) {
+      out << "maxDist: <";
+      for (int i = 0; i < node_t::count; i++) {
+        out << maxDist[i] << (i == node_t::count - 1 ? "" : ", ");
+      }
+      out << ">" << endl;
+    }
     if (printDistMatrix && distMatrix != 0) {
       out << "distMatrix:" << endl;
       for (int i = 0; i < node_t::count; i++) {
@@ -1200,7 +1207,8 @@ class NTreeInnerNode : public NTreeNode<T, DistComp, variant> {
   
   int getNoEntries() const {
     int sum = 0;
-    cout << "inner node; node count is " << node_t::count << endl;
+    cout << "inner node " << node_t::nodeId << "; node count is "
+         << node_t::count << endl;
     for (int i = 0; i < node_t::count; i++) {
       if (children[i] != 0) {
         sum += children[i]->getNoEntries();
@@ -1562,7 +1570,6 @@ class NTreeLeafNode : public NTreeNode<T, DistComp, variant> {
   }
   
   int getNoEntries() const {
-    cout << "leaf node; node count is " << node_t::count << endl;
     return node_t::count;
   }
   
@@ -1618,6 +1625,7 @@ class NTreeLeafNode : public NTreeNode<T, DistComp, variant> {
 //       }
       entries[pos[i]] = objects[i];
     }
+    node_t::count = pos.size();
     this->maxDist = maxDist[0];
   }
   
@@ -1688,6 +1696,16 @@ class NTreeLeafNode : public NTreeNode<T, DistComp, variant> {
       dc.print(*entries[i], out);
     }
     out << "\"]" << endl;
+    out << "maxDist = " << maxDist << endl;
+    if (distMatrix != 0) {
+      out << "distMatrix:" << endl;
+      for (int i = 0; i < node_t::count; i++) {
+        for (int j = 0; j <= i; j++) {
+          out << distMatrix[i][j] << " ";
+        }
+        out << endl;
+      }
+    }
     return out;
   }
   
@@ -2531,7 +2549,6 @@ class NTree {
       root->build(contents, dc, -1, partMethod);
     }
     assignNodeIds(0);
-//     print(cout);
     computeStatistics(root);
     cout << endl;
     stat.print(cout);

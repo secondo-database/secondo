@@ -22229,7 +22229,8 @@ int mcreatentreeVMT(Word* args, Word& result, int message, Word& local,
     res->setPointer(0);
     return 0;
   }
-  PartitionMethod partMethod = (variant == 8 ? RANDOMOPT : RANDOMONLY);
+//   PartitionMethod partMethod = (variant == 8 ? RANDOMOPT : RANDOMONLY);
+  PartitionMethod partMethod = FIRSTD;
   vector<Tuple*>* v = mrel->getmmrel();
   vector<MTreeEntry<T> > contents;
   bool flobused = false;
@@ -22245,8 +22246,7 @@ int mcreatentreeVMT(Word* args, Word& result, int message, Word& local,
      new NTree<MTreeEntry<T>, StdDistComp<T>, variant>(degree, maxLeafSize, dc,
                                                        partMethod, index);
   tree->build(contents);
-//   cout << "entries: " << tree->getNoEntries() << ", nodes: " 
-//        << tree->getNoNodes() << ", leaves: " << tree->getNoLeaves() << endl;
+  tree->print(cout);
   size_t usedMem = tree->memSize();
   ListExpr typeList = nl->Second(qp->GetType(s));
   MemoryNtreeObject<T, StdDistComp<T>, variant>* ntree = 
@@ -22837,8 +22837,7 @@ int importntreeVMT(Word* args, Word& result, int message, Word& local,
     res->setPointer(0);
     return 0;
   }
-  cout << "entries: " << tree->getNoEntries() << ", nodes: " 
-       << tree->getNoNodes() << ", leaves: " << tree->getNoLeaves() << endl;
+  tree->print(cout);
   size_t usedMem = tree->memSize();
   ListExpr typeList = nl->Second(qp->GetType(s));
   bool flobused = (nl->ToString(typeList) == "mpoint" || 
@@ -22859,7 +22858,6 @@ int importntreeVMT(Word* args, Word& result, int message, Word& local,
   else {
     res->setPointer(0);
   }
-  ntree->deleteIfAllowed();
   return 0;
 }
 
