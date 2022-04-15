@@ -720,8 +720,8 @@ ALGEBRAS     += JNetAlgebra
 # Needed deb packages: libmysqlclient-dev libpq-dev postgresql-server-dev-10
 #ALGEBRA_DIRS += BasicEngine
 #ALGEBRAS     += BasicEngineAlgebra
-#ALGEBRA_INCLUDE_DIRS += /usr/include/postgresql 
-#ALGEBRA_INCLUDE_DIRS += /usr/include/postgresql/10/server 
+#ALGEBRA_INCLUDE_DIRS += $(shell pg_config --includedir)
+#ALGEBRA_INCLUDE_DIRS += $(shell pg_config --includedir-server)
 #ALGEBRA_INCLUDE_DIRS += /usr/include/mysql
 #COMMON_LD_FLAGS += -lpq
 #COMMON_LD_FLAGS += -lmysqlclient
