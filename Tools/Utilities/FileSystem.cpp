@@ -70,7 +70,6 @@ June 2009 Sven Jungnickel new function MakeTemp() added.
 #include <boost/thread/lock_guard.hpp>
 #endif
 
-
 using namespace std;
 
 /*
@@ -81,7 +80,9 @@ class FileErr : public SecondoException {
 
   public:
 
-  FileErr(const string& Msg, const int rc) : SecondoException(Msg), rc(rc) {}
+  FileErr(const string& Msg, const int rc) : SecondoException(Msg), rc(rc) {
+  }
+
   const string msg() {
     /*
     stringstream tmp;
@@ -90,9 +91,12 @@ class FileErr : public SecondoException {
     return msgStr;
   }
 
+  int getRc() {
+     return rc;
+  }
+
   private:
   int rc;
-
 };
 
 
@@ -626,7 +630,7 @@ FileSystem::SearchPath( const string& fileName, string& foundFile )
 string
 FileSystem::MakeTemp(const string& templ)
 {
-  static int ctr = 0;	
+  static int ctr = 0;
   #ifdef THREAD_SAFE
      static boost::mutex mtx;
      boost::lock_guard<boost::mutex> guard(mtx);  
