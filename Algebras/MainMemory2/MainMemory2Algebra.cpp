@@ -22229,7 +22229,7 @@ int mcreatentreeVMT(Word* args, Word& result, int message, Word& local,
     res->setPointer(0);
     return 0;
   }
-//   PartitionMethod partMethod = (variant == 8 ? RANDOMOPT : RANDOMONLY);
+//  TODO: PartitionMethod partMethod = (variant == 8 ? RANDOMOPT : RANDOMONLY);
   PartitionMethod partMethod = FIRSTD;
   vector<Tuple*>* v = mrel->getmmrel();
   vector<MTreeEntry<T> > contents;

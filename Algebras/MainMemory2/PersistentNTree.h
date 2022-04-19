@@ -378,6 +378,7 @@ class PersistentNTree {
         currentNodeId = -1;
       }
     }
+    std::reverse(refDistPos.begin(), refDistPos.end());
     std::pair<double, double>* distances2d =
                              new std::pair<double, double>[pivotEntries.size()];
     for (unsigned int i = 0; i < pivotEntries.size(); i++) {

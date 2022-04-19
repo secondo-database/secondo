@@ -1141,10 +1141,11 @@ class NTreeInnerNode : public NTreeNode<T, DistComp, variant> {
     out << "( \"inner node: ";
     out << " (";
     for (int i = 0; i < node_t::count; i++) {
-      out << "center #" << i << " = ";
+      out << "center #" << i << " = (";
       centers[i]->getKey()->Print(out);
+      out << ", TID " << centers[i]->getTid() << ")";
       if (printSubtrees) {
-        out << ", child #" << i << " = ";
+        out << ", child #" << i << " with node id " << node_t::nodeId << " = ";
         if (children[i] == 0) {
           out << "NULL ";
         }
@@ -1688,12 +1689,14 @@ class NTreeLeafNode : public NTreeNode<T, DistComp, variant> {
   }
   
   std::ostream& print(std::ostream& out, DistComp& dc) const {
-    out << "[ leaf node: \"";
+    out << "[ leaf node, id " << node_t::nodeId << ": \"";
     for (int i = 0; i < node_t::count; i++) {
       if (i > 0) {
         out << ", ";
       }
+      out << "(";
       dc.print(*entries[i], out);
+      out << ", TID " << entries[i]->getTid() << ")";
     }
     out << "\"]" << endl;
     out << "maxDist = " << maxDist << endl;
