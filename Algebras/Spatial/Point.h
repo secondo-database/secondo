@@ -341,7 +341,7 @@ If ~geoid~ is NULL, euclidean geometry is used, otherwise spherical geometry.
 
 
 /*
-4.1 Importz/Export to CSV files
+4.1 Import/Export CSV files
 
 */
 
