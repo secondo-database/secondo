@@ -151,7 +151,7 @@ using namespace std;
 
 */
 
-bool cvsexportableAttrList(ListExpr attrList, ListExpr errorInfo){
+bool csvexportableAttrList(ListExpr attrList, ListExpr errorInfo){
     while(!nl->IsEmpty(attrList)){
       ListExpr attr = nl->First(attrList);
       attrList = nl->Rest(attrList);
@@ -188,7 +188,7 @@ ListExpr csvexportTM(ListExpr args){
     if(!am->CheckKind(Kind::CSVEXPORTABLE(),nl->Second(stream),errorInfo)){
        if(listutils::isTupleStream(stream)){
           ListExpr attrList = nl->Second(nl->Second(stream));
-          if(!cvsexportableAttrList(attrList,errorInfo)){
+          if(!csvexportableAttrList(attrList,errorInfo)){
             return listutils::typeError("at least on attribute in tuple "
                                         "is not csvexportable");
           }
@@ -219,7 +219,7 @@ ListExpr csvexportTM(ListExpr args){
     }
     ListExpr attrList = nl->Second(nl->Second(stream));
     // check attrList
-    if(!cvsexportableAttrList(attrList, errorInfo)){
+    if(!csvexportableAttrList(attrList, errorInfo)){
       return listutils::typeError("at least one attribute is not "
                                   "in kind CSVEXPORTABLE");
     }
@@ -10686,7 +10686,7 @@ This operator receives a tuple stream, a string or text,
 and some attribute names. The second argument is the 
 filename of the file to be created.
 The mentioned attribute names 
-must be in kind CVSEXPORTABLE. This operator creates
+must be in kind CSVEXPORTABLE. This operator creates
 a csv file in format  Nr , <ATTR>, <TUPLE>
 Where Nr is just a running number, <ATTR> are the
 attributes given in the query and <TUPLE> is the 

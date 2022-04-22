@@ -4,7 +4,7 @@ Restore : No
 
 Operator : csvexport
 Number   : 1
-Signature: stream(CVSEXPORTABLE) x text x bool -> stream[t]
+Signature: stream(CSVEXPORTABLE) x text x bool -> stream[t]
 Example  : query intstream(1,10) csvexport['ten.csv', FALSE] count
 Result   : 10
 
