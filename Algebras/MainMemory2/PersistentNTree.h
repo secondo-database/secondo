@@ -351,6 +351,8 @@ class PersistentNTree {
       auto distEntry = distEntries[i];
       distMatrix[std::get<0>(distEntry)][std::get<1>(distEntry)] = 
                                                          std::get<2>(distEntry);
+      distMatrix[std::get<1>(distEntry)][std::get<0>(distEntry)] = 
+                                                         std::get<2>(distEntry);                                                         
     }
     result->setDistMatrix(distMatrix);
     Tuple *pivotInfoTuple = (*pivotInfoTuples)[pivotInfoPos];

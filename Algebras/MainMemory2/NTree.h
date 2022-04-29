@@ -1812,6 +1812,9 @@ class RangeIteratorN {
   
   void addResult(T* o) {
     results.push_back(o);
+    if (o->getTid() == 21 || o->getTid() == 52) {
+      cout << "add tid " << o->getTid() << endl;
+    }
 //     cout << "[" << o->getTid() << ", obj=" << *(o->getKey()) << "] ";
   }
   
@@ -2140,11 +2143,15 @@ class RangeIteratorN {
 //              << ", dc = "
 //              << dc(((leafnode_t*)node)->getObject(i), queryObject) << endl;
         if (d_iq + d_min <= range) {
+//           cout << "*add tid " << ((leafnode_t*)node)->getObject(i)->getTid()
+//                << " from rc2" << endl;
           addResult(((leafnode_t*)node)->getObject(i));
         }
         else if (d_iq - d_min <= range) {
           T* object_i = ((leafnode_t*)node)->getObject(i);
           if (dc(*object_i, queryObject) <= range) {
+//            cout << "#add tid " << ((leafnode_t*)node)->getObject(i)->getTid()
+//                << " from rc2" << endl;
             addResult(object_i);
           }
         }
