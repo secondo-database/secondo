@@ -358,9 +358,9 @@ ALGEBRAS      += AuxiliaryAlgebra
 
 #ALGEBRA_DIRS += Distributed2
 #ALGEBRAS += Distributed2Algebra
-#DEFAULTCCFLAGS += -pthread -DTHREAD_SAFE
-#CCFLAGS += -pthread -DTHREAD_SAFE
-#COMMON_LD_FLAGS += -lboost_thread -lboost_system
+DEFAULTCCFLAGS += -pthread -DTHREAD_SAFE
+CCFLAGS += -pthread -DTHREAD_SAFE
+COMMON_LD_FLAGS += -lboost_thread -lboost_system
 # On systems that have boost::chrono compiled without header-only
 # option, the following line is required
 #COMMON_LD_FLAGS += -lboost_chrono
