@@ -33,7 +33,7 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ~/build_cache
-          key: ${{ runner.os }}-build-${{ hashFiles('makefile.algebras.sample') }}
+          key: ${{ runner.os }}-build-${{ hashFiles('makefile.algebras.cibuild') }}
 
       - name: Update packages
         run: |
@@ -53,6 +53,7 @@ jobs:
       
       - name: Build SECONDO
         run: |
+	   cp -av makefile.algebras.cibuild makefile.algebras
            make -j 16
       
       - name: Update build cache
