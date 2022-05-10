@@ -4,7 +4,7 @@ on: [push, pull_request]
 
 env:
   SECONDO_PLATFORM: linux64
-  SECONDO_BUILD_DIR: $GITHUB_WORKSPACE
+  SECONDO_BUILD_DIR: ${{ env.GITHUB_WORKSPACE }}
   BERKELEY_DB_LIB: db_cxx
   BERKELEY_DB_DIR: /usr
   J2SDK_ROOT: /usr/lib/jvm/java-8-openjdk-amd64
