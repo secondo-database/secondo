@@ -1,4 +1,4 @@
-name: Commit check
+name: Source code formating check
 
 on: [push, pull_request]
 
