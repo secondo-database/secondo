@@ -33,7 +33,7 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ~/build_cache
-          key: ${{ runner.os }}-build-${{ hashFiles('/etc/os-release') }}
+          key: ${{ runner.os }}-build-${{ hashFiles('makefile.algebras.sample') }}
 
       - name: Update packages
         run: |
