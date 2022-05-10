@@ -24,20 +24,22 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v3
 
-      - name: Cache node modules
-        id: cache-npm
+      - name: Create build cache dir
+        run: |
+           mkdir -p ~/build_cache
+
+      - name: Cache SECONDO object files 
+        id: cache-secondo-objects
         uses: actions/cache@v3
-        env:
-          cache-name: cache-node-modules
         with:
           path: ~/build_cache
-          key: ${{ runner.os }}-build-${{ hashFiles('makefile') }}
+          key: ${{ runner.os }}-build-${{ hashFiles('/etc/os-release') }}
 
       - name: Update packages
         run: |
            sudo apt-get update 
 
-      - name: Install packages 
+      - name: Install packages
         run: |
            sudo apt-get -y install flex bison gcc g++ libdb5.3 libdb5.3-dev libdb5.3++ libdb5.3++-dev db5.3-util libjpeg62 libjpeg62-dev libgsl0-dev libreadline-dev librecode-dev libgmp-dev libncurses-dev libxml2-dev libboost-all-dev build-essential openjdk-8-jdk libxml2 libxml2-dev wget swi-prolog-nox swi-prolog-java swi-prolog libquadmath0 libgmp-dev libgmp10 original-awk libboost-all-dev libbison-dev libfl-dev rsync git-restore-mtime
 
