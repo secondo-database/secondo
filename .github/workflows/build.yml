@@ -53,7 +53,7 @@ jobs:
       
       - name: Build SECONDO
         run: |
-	   cp -av makefile.algebras.cibuild makefile.algebras
+           cp -av makefile.algebras.cibuild makefile.algebras
            make -j 16
       
       - name: Update build cache
