@@ -172,7 +172,7 @@ public:
      return res;
    }
 
-   void distance(const hist_hsv<dim, lab>& h, bool& def, double& res){
+   void distance(const hist_hsv<dim, lab>& h, bool& def, double& res) const {
       if(!IsDefined() || !h.IsDefined()){
           def = false;
           res = 0;

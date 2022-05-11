@@ -30,6 +30,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "../FText/FTextAlgebra.h"
 #include "Mem.h"
 #include "MainMemoryExt.h"
+#include "../Picture/hist_hsv.h"
 
 namespace mtreehelper{
 
@@ -124,6 +125,21 @@ namespace mtreehelper{
                                            *cmp1, *cmp2, duration, true, geoid);
   }
   
+  template<unsigned int dim, bool lab>
+  double distance(const hist_hsv<dim, lab>* h1, const hist_hsv<dim, lab>* h2,
+                  Geoid* geoid) {
+    if (!h1->IsDefined() && !h2->IsDefined()) {
+      return 0;
+    }
+    if (!h1->IsDefined() || !h2->IsDefined()) {
+      return std::numeric_limits<double>::max();
+    }
+    bool def;
+    double result;
+    h1->distance(*h2, def, result);
+    return result;
+  }
+  
   template<class T>
   double distance(const T* o1, const T* o2, double alpha, Geoid* geoid) {
 //     cout << "  CALL dist for " << o1->first << " and " << o2->first << endl;
@@ -174,10 +190,14 @@ namespace mtreehelper{
   typedef temporalalgebra::MPoint t10;
   typedef temporalalgebra::CUPoint t11;
   typedef temporalalgebra::CMPoint t12;
+  typedef hist_hsv<64, false> t13;
+  typedef hist_hsv<128, false> t14;
+  typedef hist_hsv<256, false> t15;
+  typedef hist_hsv<256, true> t16;
 
   int getTypeNo(ListExpr type, int expectedNumbers){
-     assert(expectedNumbers==12);
-     if(nl->ToString(type) == Tuple::BasicType()){return 12;}
+     assert(expectedNumbers==16);
+     if(nl->ToString(type) == Tuple::BasicType()){return 16;}
      if( t1::checkType(type)){ return 0;}
      if( t2::checkType(type)){ return 1;}
      if( t3::checkType(type) ){ return 2;}
@@ -190,6 +210,10 @@ namespace mtreehelper{
      if(t10::checkType(type)){ return 9;}
      if(t11::checkType(type)){ return 10;}
      if(t12::checkType(type)){ return 11;}
+     if(t13::checkType(type)){ return 12;}
+     if(t14::checkType(type)){ return 13;}
+     if(t15::checkType(type)){ return 14;}
+     if(t16::checkType(type)){ return 15;}
      return -1;
   }
 
@@ -204,7 +228,7 @@ namespace mtreehelper{
     if (!listutils::isSymbol(nl->First(type), basicType)) {
       return false;
     }
-    if(getTypeNo(subtype, 12) < 0) {
+    if(getTypeNo(subtype, 16) < 0) {
       return false;
     }
     return nl->Equal(nl->Second(type), subtype);
