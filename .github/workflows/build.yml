@@ -61,7 +61,7 @@ jobs:
           ls -l Javagui/gui
           ls -l Algebras/Relation-C++/
           cp -av makefile.algebras.cibuild makefile.algebras
-          make -j 16
+          make -j 8
       
       - name: Update build cache
         run: |
