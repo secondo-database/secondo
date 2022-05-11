@@ -4,9 +4,11 @@ on: [push, pull_request]
 
 jobs:
    build:
-      runs-on: ubuntu-20.04
+    strategy:
+      matrix:
+        os: ['ubuntu-18.04', 'ubuntu-20.04', 'ubuntu-22.04']
+      runs-on: ${{ matrix.os }}
       steps:
-
       - name: Set env vars
         run: |
           echo "SECONDO_PLATFORM=linux64" >> $GITHUB_ENV
@@ -36,7 +38,7 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ~/build_cache
-          key: ${{ runner.os }}-build-${{ hashFiles('makefile.algebras.cibuild') }}
+          key: ${{ matrix.os }}-build-${{ hashFiles('makefile.algebras.cibuild') }}
 
       - name: Update packages
         run: |
