@@ -62,7 +62,7 @@ endef
 
 
 # Configuration files which will be created as a copy of example files
-# The corresponding .example files are stored in the CVS
+# The corresponding .example files are stored in the source repository
 
 CONFIG_FILES = bin/SecondoConfig.ini \
 	bin/JNI.ini \
@@ -281,18 +281,13 @@ ttytest:
 cstest:
 	cd CM-Scripts; ./run-tests.sh -cs
 
-.PHONY: cvstest
-cvstest:
-	cd CM-Scripts; cvs-make.sh -r$(HOME)
-
-
 include ./makefile.cm
 
 ######################################################
 #
 # Automatic creation of configuration files.
-# This mechanism avoids that someone checks in his
-# local configuration files into CVS
+# This mechanism avoids that someone commits in his
+# local configuration files.
 #
 ######################################################
 
