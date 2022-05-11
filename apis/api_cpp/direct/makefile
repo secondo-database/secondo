@@ -73,7 +73,7 @@ lib:
 
 
 
-lib/libsecondo.$(LIBEXT): $(SECLIBS)
+lib/libsecondo.$(LIBEXT): $(SECLIBS) lib
 	$(AR) -rs  lib/libsecondo.$(LIBEXT) $(SECOBJ) 
 	@./arlib $(AR) $(CURDIR)/lib/libsecondo.$(LIBEXT) $(SECOBJ)  $(SECLIBS)
 
@@ -81,7 +81,7 @@ lib/libsecondo.$(LIBEXT): $(SECLIBS)
 .PHONY:clean
 clean:
 	rm -rf include/*.h
-	rm -rf lib/*.a
+	rm -rf lib
 	$(MAKE) -C example clean
 	rm -rf temp
 

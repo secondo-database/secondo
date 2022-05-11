@@ -74,14 +74,14 @@ buildlib: lib lib/libsecondo.$(LIBEXT)
 lib:
 	mkdir lib
 
-lib/libsecondo.$(LIBEXT): $(CSLIBS)
+lib/libsecondo.$(LIBEXT): $(CSLIBS) lib
 	ar -rs  lib/libsecondo.$(LIBEXT) $(CSLIBS) 
 
 
 .PHONY:clean
 clean:
 	rm -rf include/*.h
-	rm -rf lib/*.a
+	rm -rf lib
 	$(MAKE) -C example clean
 
 
