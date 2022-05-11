@@ -9,65 +9,65 @@ jobs:
         os: ['ubuntu-18.04', 'ubuntu-20.04', 'ubuntu-22.04']
       runs-on: ${{ matrix.os }}
       steps:
-      - name: Set env vars
-        run: |
-          echo "SECONDO_PLATFORM=linux64" >> $GITHUB_ENV
-          echo "SECONDO_BUILD_DIR=${GITHUB_WORKSPACE}" >> $GITHUB_ENV
-          echo "BERKELEY_DB_LIB=db_cxx" >> $GITHUB_ENV
-          echo "BERKELEY_DB_DIR=/usr" >> $GITHUB_ENV
-          echo "J2SDK_ROOT=/usr/lib/jvm/java-8-openjdk-amd64" >> $GITHUB_ENV
-          echo "SWI_HOME_DIR=/usr/lib/swi-prolog/" >> $GITHUB_ENV
-          echo "PL_LIB_DIR=/usr/lib/swi-prolog/lib/amd64/" >> $GITHUB_ENV
-          echo "PL_INCLUDE_DIR=/usr/lib/swi-prolog/include" >> $GITHUB_ENV
-          echo "PL_VERSION=70203" >> $GITHUB_ENV
-          echo "JPL_DLL=/usr/lib/swi-prolog/lib/amd64/libjpl.so" >> $GITHUB_ENV
-          echo "JPL_JAR=/usr/lib/swi-prolog/lib/jpl.jar" >> $GITHUB_ENV
-          echo "PL_LIB=swipl" >> $GITHUB_ENV
+        - name: Set env vars
+          run: |
+            echo "SECONDO_PLATFORM=linux64" >> $GITHUB_ENV
+            echo "SECONDO_BUILD_DIR=${GITHUB_WORKSPACE}" >> $GITHUB_ENV
+            echo "BERKELEY_DB_LIB=db_cxx" >> $GITHUB_ENV
+            echo "BERKELEY_DB_DIR=/usr" >> $GITHUB_ENV
+            echo "J2SDK_ROOT=/usr/lib/jvm/java-8-openjdk-amd64" >> $GITHUB_ENV
+            echo "SWI_HOME_DIR=/usr/lib/swi-prolog/" >> $GITHUB_ENV
+            echo "PL_LIB_DIR=/usr/lib/swi-prolog/lib/amd64/" >> $GITHUB_ENV
+            echo "PL_INCLUDE_DIR=/usr/lib/swi-prolog/include" >> $GITHUB_ENV
+            echo "PL_VERSION=70203" >> $GITHUB_ENV
+            echo "JPL_DLL=/usr/lib/swi-prolog/lib/amd64/libjpl.so" >> $GITHUB_ENV
+            echo "JPL_JAR=/usr/lib/swi-prolog/lib/jpl.jar" >> $GITHUB_ENV
+            echo "PL_LIB=swipl" >> $GITHUB_ENV
 
-      - name: Checkout repo
-        uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
+        - name: Checkout repo
+          uses: actions/checkout@v3
+          with:
+            fetch-depth: 0
 
-      - name: Create build cache dir
-        run: |
-           mkdir -p ~/build_cache
+        - name: Create build cache dir
+          run: |
+            mkdir -p ~/build_cache
 
-      - name: Cache SECONDO object files 
-        id: cache-secondo-objects
-        uses: actions/cache@v3
-        with:
-          path: ~/build_cache
-          key: ${{ matrix.os }}-build-${{ hashFiles('makefile.algebras.cibuild') }}
+        - name: Cache SECONDO object files 
+          id: cache-secondo-objects
+          uses: actions/cache@v3
+          with:
+            path: ~/build_cache
+            key: ${{ matrix.os }}-build-${{ hashFiles('makefile.algebras.cibuild') }}
 
-      - name: Update packages
-        run: |
-           sudo apt-get update 
+        - name: Update packages
+          run: |
+            sudo apt-get update 
 
-      - name: Install packages
-        run: |
-           sudo apt-get -y install flex bison gcc g++ libdb5.3 libdb5.3-dev libdb5.3++ libdb5.3++-dev db5.3-util libjpeg62 libjpeg62-dev libgsl0-dev libreadline-dev librecode-dev libgmp-dev libncurses-dev libxml2-dev libboost-all-dev build-essential openjdk-8-jdk libxml2 libxml2-dev wget swi-prolog-nox swi-prolog-java swi-prolog libquadmath0 libgmp-dev libgmp10 original-awk libboost-all-dev libbison-dev libfl-dev rsync git-restore-mtime
+        - name: Install packages
+          run: |
+            sudo apt-get -y install flex bison gcc g++ libdb5.3 libdb5.3-dev libdb5.3++ libdb5.3++-dev db5.3-util libjpeg62 libjpeg62-dev libgsl0-dev libreadline-dev librecode-dev libgmp-dev libncurses-dev libxml2-dev libboost-all-dev build-essential openjdk-8-jdk libxml2 libxml2-dev wget swi-prolog-nox swi-prolog-java swi-prolog libquadmath0 libgmp-dev libgmp10 original-awk libboost-all-dev libbison-dev libfl-dev rsync git-restore-mtime
 
-      - name: Restore mtime
-        run: |
-           git restore-mtime 
-          
-      - name: Restore from build cache
-        run: |
-           rsync -zaru ~/build_cache/ .
-      
-      - name: Build SECONDO
-        run: |
-           ls -l Javagui/gui
-           ls -l Algebras/Relation-C++/
-           cp -av makefile.algebras.cibuild makefile.algebras
-           make -j 16
-      
-      - name: Update build cache
-        run: |
-           rsync -zar --include="*/" --include="*.o" --include="*.dep" --include="*.class" --exclude="*" . ~/build_cache
-      
-      - name: Test SECONDO
-        run: |
-           cd CM-Scripts/; ./run-tests.sh -tty /tmp/secondotest 1800
-  
+        - name: Restore mtime
+          run: |
+            git restore-mtime 
+            
+        - name: Restore from build cache
+          run: |
+            rsync -zaru ~/build_cache/ .
+        
+        - name: Build SECONDO
+          run: |
+            ls -l Javagui/gui
+            ls -l Algebras/Relation-C++/
+            cp -av makefile.algebras.cibuild makefile.algebras
+            make -j 16
+        
+        - name: Update build cache
+          run: |
+            rsync -zar --include="*/" --include="*.o" --include="*.dep" --include="*.class" --exclude="*" . ~/build_cache
+        
+        - name: Test SECONDO
+          run: |
+            cd CM-Scripts/; ./run-tests.sh -tty /tmp/secondotest 1800
+    
