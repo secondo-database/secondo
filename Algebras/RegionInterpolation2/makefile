@@ -32,12 +32,11 @@ include ../../makefile.env
 # create objects and algebra library. The values for the variables
 # OBJECTS and LIBOBJ are computed automatically by makefile.env 
 .PHONY: all
-all: refresh $(OBJECTS) $(LIBOBJ)
+all: $(OBJECTS) $(LIBOBJ)
 	cp -n librip/example/matchFaces.lua ../../bin || true
 	cp -n librip/example/matchStrategies.lua ../../bin || true
 
-.PHONY: refresh
-refresh:
+librip/lib/librip.a:
 	$(MAKE) -C librip
 
 # include pre-computed dependencies
