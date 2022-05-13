@@ -33,19 +33,13 @@ ALGEBRA_DEPENDENCIES += Distributed2Algebra
 CCFLAGS += -D BOOST_LOG_DYN_LINK
 CCFLAGS += -D GATHER_PREGEL_METRICS 
 
+OBJECTS = $(patsubst %.cpp,%.o,$(wildcard *.cpp */*.cpp */*/*.cpp))
+DEP_FILES = $(patsubst %.cpp,%.dep,$(wildcard *.cpp */*.cpp */*/*.cpp))
+
 # create objects and algebra library. The values for the variables
 # OBJECTS and LIBOBJ are computed automatically by makefile.env 
 .PHONY: all
-all: check_dependencies $(OBJECTS) subdirs $(LIBOBJ)
-
-.PHONY: subdirs
-subdirs:
-	$(MAKE) -C Operators
-	$(MAKE) -C Operators/Messaging
-	$(MAKE) -C Operators/OnMaster
-	$(MAKE) -C Operators/OnWorker
-	$(MAKE) -C MessageBroker
-	$(MAKE) -C Helpers
+all: check_dependencies $(OBJECTS) $(LIBOBJ)
 
 check_dependencies:
 	$(check-algebra-dependencies)
@@ -58,19 +52,10 @@ endif
 .PHONY: deps
 deps: $(DEP_FILES)
 
-# generic rule for creating a library
-ALL_OBJECTS = $(wildcard *.o */*.o */*/*.o)
-ALL_OBJECTS = $(patsubst %.cpp,%.o,$(wildcard *.cpp */*.cpp */*/*.cpp))
-$(LIBOBJ): $(ALL_OBJECTS) | subdirs $(OBJECTS)
+$(LIBOBJ): $(OBJECTS) 
 	$(create-lib)
 
 # generic rule for cleaning all generated files
 .PHONY: clean
 clean:
 	$(clean-algebra)
-	$(MAKE) -C Operators clean
-	$(MAKE) -C Operators/Messaging clean
-	$(MAKE) -C MessageBroker clean
-	$(MAKE) -C Operators/OnMaster clean
-	$(MAKE) -C Operators/OnWorker clean
-	$(MAKE) -C Helpers clean

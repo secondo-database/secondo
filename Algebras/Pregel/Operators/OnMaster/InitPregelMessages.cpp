@@ -39,17 +39,17 @@ This header file contains definitions of type mapping, vallue mapping and the op
 */
 
 #include <ListUtils.h>
-#include <../../../Relation-C++/RelationAlgebra.h>
+#include "../Relation-C++/RelationAlgebra.h"
 #include <StandardTypes.h>
 #include "Stream.h"
 #include "InitPregelMessages.h"
-#include "../../MessageBroker/MessageWrapper.h"
-#include "../../PregelContext.h"
-#include "../../Helpers/WorkerConfig.h"
-#include "../Messaging/MessageDistribute.h"
-#include "../../Helpers/Commander.h"
-#include "../../typedefs.h"
-#include "../../PregelAlgebra.h"
+#include "MessageBroker/MessageWrapper.h"
+#include "PregelContext.h"
+#include "Helpers/WorkerConfig.h"
+#include "Operators/Messaging/MessageDistribute.h"
+#include "Helpers/Commander.h"
+#include "typedefs.h"
+#include "PregelAlgebra.h"
 
 namespace pregel {
 

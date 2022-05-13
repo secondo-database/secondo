@@ -37,9 +37,9 @@ This file contains definitions of the members of classes MessageDistribute
 */
 
 #include <ListUtils.h>
-#include <../../../Relation-C++/RelationAlgebra.h>
+#include "../Relation-C++/RelationAlgebra.h"
 #include "MessageDistribute.h"
-#include "../../PregelContext.h"
+#include "PregelContext.h"
 
 namespace pregel {
  ListExpr pregel::MessageDistribute::typeMapping(ListExpr args) {

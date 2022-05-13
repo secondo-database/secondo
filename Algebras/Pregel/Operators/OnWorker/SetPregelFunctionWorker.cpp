@@ -38,11 +38,11 @@ This file contains definitions of the members of class SetPregelFunctionWorker
 
 #include <ListUtils.h>
 #include <StandardTypes.h>
-#include <../../../FText/FTextAlgebra.h>
+#include "../FText/FTextAlgebra.h"
 #include "SetPregelFunctionWorker.h"
 #include <boost/log/trivial.hpp>
-#include "../../PregelContext.h"
-#include "../../MessageBroker/MessageBroker.h"
+#include "PregelContext.h"
+#include "MessageBroker/MessageBroker.h"
 
 namespace pregel {
 

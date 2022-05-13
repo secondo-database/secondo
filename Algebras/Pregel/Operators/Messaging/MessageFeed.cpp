@@ -37,11 +37,11 @@ This file contains definitions of the members of class MessageFeed
 */
 
 #include <ListUtils.h>
-#include <../../../Relation-C++/RelationAlgebra.h>
+#include "../Relation-C++/RelationAlgebra.h"
 #include <Stream.h>
 #include "MessageFeed.h"
-#include "../../MessageBroker/MessageBroker.h"
-#include "../../PregelContext.h"
+#include "MessageBroker/MessageBroker.h"
+#include "PregelContext.h"
 
 namespace pregel {
 

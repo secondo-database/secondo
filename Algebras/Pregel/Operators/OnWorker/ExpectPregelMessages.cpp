@@ -37,11 +37,11 @@ This file contains definitions of the members of class ExpectPregelMessages
 */
 
 #include <ListUtils.h>
-#include <../../../Relation-C++/RelationAlgebra.h>
-#include <../../../FText/FTextAlgebra.h>
+#include "../Relation-C++/RelationAlgebra.h"
+#include "../FText/FTextAlgebra.h"
 #include <StandardTypes.h>
 #include "ExpectPregelMessages.h"
-#include "../../MessageBroker/MessageBroker.h"
+#include "MessageBroker/MessageBroker.h"
 #include "Stream.h"
 
 namespace pregel {
