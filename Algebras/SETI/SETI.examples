@@ -1,5 +1,5 @@
 Database: testData/UploadDB
-Restore : YES
+Restore : NO
 
 Operator : createSETI
 Number   : 1
