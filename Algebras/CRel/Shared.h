@@ -292,11 +292,6 @@ namespace CRelAlgebra
       return m_instance[index];
     }
 
-    operator SharedArray<const T>()
-    {
-      return SharedArray<const T>(*this);
-    }
-
   private:
     template <class F>
     friend class SharedArray;
