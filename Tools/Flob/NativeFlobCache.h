@@ -282,7 +282,7 @@ destroys the cache.
 removes all entries from the cache.
 
 */
-void clear(){
+size_t clear(){
   // first, kill entries from hashtable without deleting them from lru
   //assert(check());
   for(unsigned int i=0;i<tableSize;i++){
@@ -304,6 +304,7 @@ void clear(){
   usedSize = 0;
   //assert(check());
 
+  return killed;
 }
 
 

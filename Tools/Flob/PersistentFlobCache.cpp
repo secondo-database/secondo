@@ -197,7 +197,7 @@ PersistentFlobCache::~PersistentFlobCache(){
 removes all entries from the cache.
 
 */
-void PersistentFlobCache::clear(){
+size_t PersistentFlobCache::clear(){
   // first, kill entries from hashtable without deleting them from lru
 
   for(unsigned int i=0;i<tableSize;i++){
@@ -217,6 +217,8 @@ void PersistentFlobCache::clear(){
   first = 0;
   last = 0;
   usedSize = 0;
+
+  return killed;
 }
 
 

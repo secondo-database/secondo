@@ -90,7 +90,7 @@ Destroys the Cache.
 Removes all entries from the cache.
 
 */
-    void clear();
+    size_t clear();
 
 /*
 1.4 getData
