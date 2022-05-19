@@ -5,34 +5,44 @@ Operator : createSSPHandler
 Number   : 1
 Signature: string x int -> int
 Example  : query createSSPHandler("127.0.0.1", 54000)
-Result   : 0
+Result   : crashes 
+Remark   : requires a remote server
+
 
 Operator : createSSPCoordinator
 Number   : 1
 Signature: int x string x text -> int
 Example  : query createSSPHandler(54000, "loop", '((No int))')
-Result   : 54000
+Result   : bug
+Remark   : requires a remote server
+
 
 Operator : createSSPStreamSupplier
 Number   : 1
 Signature: stream(tuple) x string x number -> stream(tuple)
 Example  : query ten feed createSSPStreamSupplier["127.0.0.1", 54000] consume
-Result   : stream(tuple)
+Result   : crashes 
+Remark   : requires a remote server
+
 
 Operator : foreverStream
 Number   : 1
 Signature: int x int x int -> stream(tuple)
 Example  : query foreverStream(100, 0, 0) count
-Result   : 100
+Result   : bug
+Remark   : requires a remote server
+
 
 Operator : foreverQueries
 Number   : 1
 Signature: text x int x text x int x int -> test
 Example  : query foreverQueries('127.0.0.1', 12300, 'test@mailinator.com', 1, 1) feed count
-Result   : 1
+Result   : bug
+Remark   : requires a remote server
+
 
 Operator : relFromTupleBinStr
 Number   : 1
 Signature: text x text -> rel(tuple)
 Example  : query relFromTupleBinStr('((No int))', 'CwAAAAUAAQAAADE=')
-Result   : "No : 1"
+Result   : ((trel (tuple ((No int)))) ((1))) 
