@@ -5,7 +5,8 @@ Operator : ARRAYORTASKSFUNARG1
 Number   : 1
 Signature: darray(X) x ... -> X | stream(task(darray(X))) x ... -> X
 Example  : query Kinos feed ddistribute3["Kino3", 8, TRUE, Workers4] dmapS["", .] dmapS["", . count] schedule[1238] getValue tie[. + ..]
-Result   : 83
+Result   : bug
+Remark   : requires a remote server
 
 Operator : ARRAYORTASKSFUNARG2
 Number   : 1
@@ -23,58 +24,69 @@ Operator : dmapS
 Number   : 1
 Signature: darray(X)/stream(task(darray(X))) x string x fun -> stream(task(darray(Y)))
 Example  : query Kinos feed ddistribute3["Kino3", 8, TRUE, Workers4] dmapS["", .] dmapS["", . count] schedule[1238] getValue tie[. + ..]
-Result   : 83
+Result   : bug
+Remark   : requires a remote server
 
 Operator : dmapS2
 Number   : 1
 Signature: darray(X)/stream(task(darray(X))) x darray(X)/stream(task(darray(X))) x string x fun -> stream(task(darray(Y)))
 Example  : query Kinos feed ddistribute3["Kino3", 8, TRUE, Workers4] Kinos feed ddistribute3["Kino3", 8, TRUE, Workers4] dmapS2["", . count + .. count] schedule[1238] getValue tie[. + ..]
-Result   : 166
+Result   : bug
+Remark   : requires a remote server
 
 Operator : dmapS3
 Number   : 1
 Signature: darray(X)/stream(task(darray(X))) x darray(X)/stream(task(darray(X))) x darray(X)/stream(task(darray(X))) x string x fun -> stream(task(darray(Y)))
 Example  : query Kinos feed ddistribute3["Kino3", 8, TRUE, Workers4] Kinos feed ddistribute3["Kino3", 8, TRUE, Workers4] Kinos feed ddistribute3["Kino3", 8, TRUE, Workers4] dmapS3["", . count + .. count + $3 count] schedule[1238] getValue tie[. + ..]
-Result   : 249
+Result   : bug
+Remark   : requires a remote server
 
 Operator : dmapS4
 Number   : 1
 Signature: darray(X)/stream(task(darray(X))) x darray(X)/stream(task(darray(X))) x darray(X)/stream(task(darray(X))) x darray(X)/stream(task(darray(X))) x string x fun -> stream(task(darray(Y)))
 Example  : query Kinos feed ddistribute3["Kino3", 8, TRUE, Workers4] Kinos feed ddistribute3["Kino3", 8, TRUE, Workers4] Kinos feed ddistribute3["Kino3", 8, TRUE, Workers4] Kinos feed ddistribute3["Kino3", 8, TRUE, Workers4] dmapS4["", . count + .. count + $3 count + $4 count] schedule[1238] getValue tie[. + ..]
-Result   : 332
+Result   : bug
+Remark   : requires a remote server
 
 Operator : dmapS5
 Number   : 1
 Signature: darray(X)/stream(task(darray(X))) x darray(X)/stream(task(darray(X))) x darray(X)/stream(task(darray(X))) x darray(X)/stream(task(darray(X))) x darray(X)/stream(task(darray(X))) x string x fun -> stream(task(darray(Y)))
 Example  : query Kinos feed ddistribute3["Kino3", 8, TRUE, Workers4] Kinos feed ddistribute3["Kino3", 8, TRUE, Workers4] Kinos feed ddistribute3["Kino3", 8, TRUE, Workers4] Kinos feed ddistribute3["Kino3", 8, TRUE, Workers4] Kinos feed ddistribute3["Kino3", 8, TRUE, Workers4] dmapS5["", . count + .. count + $3 count + $4 count+ $5 count] schedule[1238] getValue tie[. + ..]
-Result   : 415
+Result   : bug
+Remark   : requires a remote server
 
 Operator : dproductS
 Number   : 1
 Signature: d[f]array(rel(X))/tasks(d[f]array(rel(X))) x d[f]array(rel(Y))/tasks(d[f]array(rel(Y))) x string x (frel(X) x fsrel(Y) -> Z) -> tasks(d[f]array(Z))
 Example  : query KinosB KinosB dproductS["", . feed {a} loopjoin[.. feed {b}] ] schedule[1238] getValue
-Result   : 123
+Result   : bug
+Remark   : requires a remote server
 
 Operator : partitionFS
 Number   : 1
 Signature: d[f]array(rel(X))/tasks(d[f]array(rel(X))) x string x ([f]rel(X) -> stream(Y)) x (Y -> int) x int -> tasks(dfmatrix(Y))
 Example  : query Landstrassen feed ddistribute3["Landstrassen3", 8, TRUE, Workers4] partitionFS["", . feed, hash(.Typ), 8] collectS[""] schedule[1238] getValue
-Result   : 123
+Result   : bug
+Remark   : requires a remote server
 
 Operator : collectS
 Number   : 1
 Signature: dfmatrix(X)/tasks(dfmatrix(X)) x string -> tasks(dfarray(X))
 Example  : query Landstrassen feed ddistribute3["Landstrassen3", 8, TRUE, Workers4] partitionFS["", . feed, hash(.Typ), 8] collectS[""] schedule[1238] getValue
-Result   : 123
+Result   : bug
+Remark   : requires a remote server
 
 Operator : schedule
 Number   : 1
 Signature: stream(task(darray(X))) -> darray(X)
 Example  : query Kinos feed ddistribute3["Kino3", 8, TRUE, Workers4] dmapS["", .] dmapS["", . count] schedule[1238] getValue tie[. + ..]
-Result   : 83
+Result   : bug
+Remark   : requires a remote server
 
 Operator : tasks2tuples
 Number   : 1
 Signature: stream(task(X)) -> stream(tuples(X))
 Example  : query CabsId dmapS["", . feed filter[.Id = 1039] project[Id] consume] tasks2tuples consume
-Result   : 83
+Result   : bug
+Remark   : requires a remote server
+
