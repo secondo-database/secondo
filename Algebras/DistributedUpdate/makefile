@@ -27,6 +27,7 @@ CURRENT_ALGEBRA := DistributedUpdateAlgebra
 
 ALGEBRA_DEPENDENCIES := Distributed2Algebra
 ALGEBRA_DEPENDENCIES += UpdateRelationAlgebra
+ALGEBRA_DEPENDENCIES += DRelAlgebra
 
 
 # inlcude global definitions
