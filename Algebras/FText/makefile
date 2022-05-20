@@ -40,6 +40,7 @@ include ../../makefile.env
 
 # expand compile flags if necessary
 CCFLAGS += -Werror
+CCFLAGS += -Wno-unused-function
 
 # create objects and algebra library. The values for the variables
 # OBJECTS and LIBOBJ are computed automatically by makefile.env 
@@ -62,13 +63,13 @@ deps: $(DEP_FILES)
 
 
 RegExScanner.o: RegExScanner.c
-	$(CC) -fPIC -c  -I../../include -o RegExScanner.o RegExScanner.c
+	$(CC) $(CCFLAGS) -fPIC -c  -I../../include -o RegExScanner.o RegExScanner.c
 
 RegExScanner.c: RegExScanner.l RegExParser.y.c
 	$(LEX) -o RegExScanner.c RegExScanner.l
 
 RegExParser.o:  RegExParser.y.c
-	$(CC) -fPIC -x c++ -c -o RegExParser.o   -I../../include RegExParser.y.c
+	$(CC) $(CCFLAGS) -fPIC -x c++ -c -o RegExParser.o   -I../../include RegExParser.y.c
 
 RegExParser.y.c: RegExParser.y 
 	$(YACC) -d -o RegExParser.y.c RegExParser.y

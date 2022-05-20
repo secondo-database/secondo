@@ -1531,8 +1531,8 @@ Nfa<sigma>::Nfa(const sigma& c): states(),finalStates(){
 
 template<typename sigma>
 Nfa<sigma>::Nfa(const Nfa<sigma>& src): startState(src.startState),
-                                        finalStates(src.finalStates),
-                                        states(src.states) {}
+                                        states(src.states),
+                                        finalStates(src.finalStates) {}
 
 
 
