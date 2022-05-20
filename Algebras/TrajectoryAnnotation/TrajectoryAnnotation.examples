@@ -5,7 +5,7 @@ Operator : geocode
 Number   : 1
 Signature: (string, int, int, string) -> point
 Example  : query geocode ("Universitätsstraße", 11, 58097, "Hagen")
-Result   : (point (7.494446 51.3768536))
-
+Result    : bug
+Remark    : requires a remote server
 
 
