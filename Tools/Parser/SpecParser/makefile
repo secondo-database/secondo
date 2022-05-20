@@ -31,6 +31,7 @@ include ../../../makefile.env
 
 DEP_FILES += SpecParser.tab.dep
 
+CCFLAGS += $(DEFAULTCCFLAGS)
 
 OBJECTS := NestedText.o lex.yy.o lex2.yy.o 
 GENFILES := lex.yy.cpp lex2.yy.cpp SpecParser.tab.cpp 
@@ -47,10 +48,10 @@ SpecParser.tab.cpp: SpecParser.y
 	$(YACC) -d -o $@ $<
 
 Parser$(EXEEXT): SpecParser.tab.o lex.yy.o NestedText.o
-	$(CXX) -o Parser$(EXEEXT) $^ $(DEFAULTCCFLAGS) $(COMMON_LD_FLAGS)
+	$(CXX) -o Parser$(EXEEXT) $^ $(CCFLAGS) $(COMMON_LD_FLAGS)
 
 Parser2$(EXEEXT): SpecParser.tab.o lex2.yy.o NestedText.o
-	$(CXX) -o Parser2$(EXEEXT) $^ $(DEFAULTCCFLAGS) $(COMMON_LD_FLAGS) 
+	$(CXX) -o Parser2$(EXEEXT) $^ $(CCFLAGS) $(COMMON_LD_FLAGS) 
 
 ifneq ($(MAKECMDGOALS),clean)
 -include $(DEP_FILES)

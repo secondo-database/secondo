@@ -35,7 +35,7 @@
 
 include ../../makefile.env
 
-CCFLAGS = $(DEFAULTCCFLAGS)
+CCFLAGS += $(DEFAULTCCFLAGS)
 CCFLAGS += -DYY_FLEX_MAJOR_VERSION=$(shell ../../bin/getversion.sh major flex -V)
 CCFLAGS += -DYY_FLEX_MINOR_VERSION=$(shell ../../bin/getversion.sh minor flex -V)
 CCFLAGS += -DYY_FLEX_SUBMINOR_VERSION=$(shell ../../bin/getversion.sh subminor flex -V)
