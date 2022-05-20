@@ -686,7 +686,7 @@ vector<TaskDataItem *> FunctionTask::store(
         // first : create dir, always true
         // second : put result to dfs
         string aa = "";
-        if (filesystem)
+        if (distributed2::filesystem)
         {
             aa = " TRUE";
         }
