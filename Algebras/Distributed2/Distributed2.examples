@@ -578,7 +578,14 @@ Result    : TRUE
 Operator  : loadAttr
 Number    : 1 
 Signature : {string, text} -> DATA
-Example   : query  loadAttr("six.bin")
+Example   : query 6 saveAttr["six.bin"]
+Result    : TRUE
+Remark    : Store attribute in first test
+
+Operator  : loadAttr
+Number    : 2
+Signature : {string, text} -> DATA
+Example   : query loadAttr("six.bin")
 Result    : 6
 
 
