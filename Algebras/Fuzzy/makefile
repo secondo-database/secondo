@@ -28,7 +28,7 @@
 include ../../makefile.env
 
 MODNAME = FuzzyAlgebra
-CCFLAGS = $(DEFAULTCCFLAGS) $(JNIINCLUDE) $(LDFLAGS)
+CCFLAGS += $(DEFAULTCCFLAGS) $(JNIINCLUDE) $(LDFLAGS)
 
 JAVA_FILES_TMP=$(shell find fuzzyobjects -name "*.java")
 JAVA_FILES1=$(subst fuzzyobjects/,,$(JAVA_FILES_TMP))

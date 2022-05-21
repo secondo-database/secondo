@@ -25,7 +25,7 @@
 
 include ../../makefile.env
 
-CCFLAGS = $(DEFAULTCCFLAGS) -Werror
+CCFLAGS += $(DEFAULTCCFLAGS) -Werror
 ALL_OBJS = AlgebraList.i $(DEP_FILES) \
 	   $(LIBDIR)/AlgebraList.$(OBJEXT) Algebra.$(OBJEXT) AlgebraManager.$(OBJEXT)
 

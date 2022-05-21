@@ -28,7 +28,7 @@
 include ../../makefile.env
 
 MODNAME = RoseAlgebra
-CCFLAGS = $(DEFAULTCCFLAGS) $(JNIINCLUDE) $(LDFLAGS) -Werror
+CCFLAGS += $(DEFAULTCCFLAGS) $(JNIINCLUDE) $(LDFLAGS) -Werror
 
 .PHONY: all
 all: alljava allcpp

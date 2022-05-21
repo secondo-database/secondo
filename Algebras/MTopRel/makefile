@@ -29,7 +29,7 @@ MODNAME = TopRelAlgebra
 
 # Use the mace CCFLAGS to add special compiler flags if needed.
 # In this case the defaults are sufficient
-CCFLAGS = $(DEFAULTCCFLAGS) 
+CCFLAGS += $(DEFAULTCCFLAGS) 
 
 CCFLAGS +=  -Werror
 
