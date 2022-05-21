@@ -85,7 +85,7 @@ removedoc:
 .PHONY: makedirs
 makedirs:
 	rm -rf sj
-	$(MAKE) -C secondoInterface SecondoInterface.jar
+	$(MAKE) -j 1 -C secondoInterface SecondoInterface.jar
 	$(MAKE) -j 1 -C communication all
 	$(MAKE) -j 1 -C extern all
 	$(MAKE) -j 1 -C components all
