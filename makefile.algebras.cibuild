@@ -343,10 +343,8 @@ ALGEBRAS      += FileIndexAlgebra
 ALGEBRA_DIRS  += NestedRelation
 ALGEBRAS      += NestedRelationAlgebra
 
-# Missing database in selftest
 ALGEBRA_DIRS  += NestedRelation2
 ALGEBRAS      += NestedRelation2Algebra
-
 
 ALGEBRA_DIRS  += Auxiliary
 ALGEBRAS      += AuxiliaryAlgebra
