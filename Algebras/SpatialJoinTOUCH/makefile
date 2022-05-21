@@ -33,6 +33,9 @@ ALGEBRA_DEPENDENCIES :=  StandardAlgebra
 # include global definitions
 include ../../makefile.env
 
+OBJECTS = $(patsubst %.cpp,%.o,$(wildcard *.cpp */*.cpp */*/*.cpp))
+DEP_FILES = $(patsubst %.cpp,%.dep,$(wildcard *.cpp */*.cpp */*/*.cpp))
+
 # expand compile flags if necessary
 CCFLAGS += $(ALG_INC_DIRS) -Werror
 
@@ -48,9 +51,6 @@ check_dependencies:
 # OBJECTS and LIBOBJ are computed automatically by makefile.env
 .PHONY: all
 all: $(OBJECTS) $(LIBOBJ)
-	$(MAKE) -C Column
-	$(MAKE) -C Row
-	$(MAKE) -C Memory
 
 # include pre-computed dependencies
 ifneq ($(MAKECMDGOALS),clean)
@@ -69,6 +69,3 @@ $(LIBOBJ): $(OBJECTS)
 .PHONY: clean
 clean:
 	$(clean-algebra)
-	$(MAKE) -C Column clean
-	$(MAKE) -C Row clean
-	$(MAKE) -C Memory clean
