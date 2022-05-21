@@ -231,6 +231,13 @@ both loops the built attributes and the built tuples are appended respectively.
     ((collection::Collection*)res)->SetDefined(true);
   }
 
+  // Prevent arithmetic exceptions
+  if(dataParam2 < 1) {
+    cerr << "Error: Second data parameter has to be > 0, " 
+         << "forcing value = 1" << endl;
+    dataParam2 = 1;
+  }
+
   for (int tupleIndex = 0; tupleIndex < tupleCount; tupleIndex++)
   {
     void *tuple = NULL;
