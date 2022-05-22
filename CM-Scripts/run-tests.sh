@@ -86,6 +86,7 @@ function runTest() {
   rc=$LU_RC
 
   if [ $rc -ne 0 ]; then
+    #let error++
     echo -e "\nTest failed with returncode $LU_RC \n"
     echo "=============================="
     echo "File: ${logFile}"
@@ -128,13 +129,11 @@ testSuites=$(find $buildDir/Tests -wholename "*.test")
 #echo -e "$testSuites"
 #echo "ldd: "$(ldd $SECONDO_BUILD_DIR/bin/SecondoBDB)
 
-timeOut=136000
 echo "*** Executing test suites ***"
 for testName in $dbFile $testSuites; do
   runDir=${testName%/*}
   testFile=${testName##*/}
-  runTest $runDir $testFile "time $runnerCmd -i  ${testFile}" $timeOut
-  timeout=$timeOutMax
+  runTest $runDir $testFile "time $runnerCmd -i  ${testFile}" $timeOutMax
 done
 
 

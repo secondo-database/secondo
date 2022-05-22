@@ -85,5 +85,5 @@ jobs:
       
       - name: Test SECONDO
         run: |
-          cd CM-Scripts/; ./run-tests.sh -tty /tmp/secondotest 1800
+          cd CM-Scripts/; ./run-tests.sh -tty /tmp/secondotest 3600
   
