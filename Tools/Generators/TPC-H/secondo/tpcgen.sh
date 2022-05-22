@@ -63,7 +63,7 @@ fi
 printf "\n%s\n" "Creating database ${dbName} with a scale factor ${scaleFactor}!"
 
 tpcDir=${buildDir}/Tools/Generators/TPC-H
-tempDir=/tmp/$USER/TPC/tmp_tpcgen_${date_ymd}_${date_HMS}
+tempDir=$(mktemp -d)
 
 PATH="$PATH:."
 
@@ -83,6 +83,9 @@ else
   assert mv *_tbl $tempDir
 fi
 
+# Remove unneeded separator to prevent 'Warning: Line with more columns detected than requested by tuple' messages
+# 1|1552|93|1|17|24710.35|0.04|0.02|N|O|1996-03-13|1996-02-12|1996-03-22|DELIVER IN PERSON|TRUCK|blithely regular ideas caj|
+sed -i -e 's/|$//g' $tempDir/*_tbl
 
 # restore TPC-H Benchmark tables created by dbgen
 printSep "Restore database $dbName"
