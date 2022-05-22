@@ -31,7 +31,7 @@ fi
 
 # define some directories and variables
 
-tempDir="/tmp/$USER/TestOptimizer/${date_ymd}_${date_HMS}"
+tempDir=$(mktemp -d)
 mkdir -p $tempDir
 export SECONDO_PARAM_SecondoHome=$tempDir
 
