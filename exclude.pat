@@ -18,7 +18,6 @@ TTYCS.bnl
 gmon.out
 
 tmp/*
-CVS/*
 
 bin/SecondoBDB
 bin/SecondoCS
