@@ -43,7 +43,7 @@ jobs:
             echo "$file was modified"
             if [[ $file == *.h ]] || [[ $file == *.hpp ]] || [[ $file == *.c ]] || [[ $file == *.cpp ]] || [[ $file == *.pl ]] || [[ $file == *.java ]]; then
               ./Tools/usingcheck/usingcheck $file
-              ./Tools/pd/checkpd --verystrong $file
+              ./Tools/pd/checkpd --strong $file
             fi
           done
 
