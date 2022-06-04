@@ -2817,7 +2817,7 @@ If the argument is of the form ~res(N)~, then it is a stream already and can be
 used unchanged. 
 
 */
-
+:- redefine_system_predicate('[|]'/2).
 [res(N), P] => [res(N), P].
 
 % The following rule is needed for listing all plan edges or cost edges, 
