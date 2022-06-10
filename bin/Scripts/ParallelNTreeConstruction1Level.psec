@@ -11,37 +11,61 @@ Ralf Hartmut G[ue]ting, February 24, 2022
 
 Run this script with ~SecondoTTYBDB~ and prefix [@][%] or [@][&]. 
 
+The following objects must be defined:
 
+  * TripsCM200
+  
+  * Workers
+  
+  * myPort
+  
+  * ControlWorkers
+
+The script Scripts/DistCost.sec must have been executed.
 
 1 The Database
 
-Database newyorkm80c on newton1. 
+Database newyork1 on moma. 
 
-Workers relation seems to correspond to ClusterRalfNewton80.
+Workers relation is Workers32 on moma.
 
-----	remoteMonitors ClusterRalfNewton80 start
+----	remoteMonitors Cluster32 start
 ----
 
-There is a distributed array TripsCM200D with 320 fields and 553470 tuples. So we have a correct distributed version of TripsCM200.
-
-We have 80 workers and build an N-tree of degree 80.
+We start with relation TripsCM200 with 553470 tuples
 
 */
-# @%Scripts/DistCost.sec
+query meminit(10000)
+
+let TripsCM200m = TripsCM200 feed addid mconsumeflob
+
+# 53 seconds
+# 3.4 GB used
+
+let TripsCM200D = TripsCM200m mfeed ddistribute3["TripsCM200D", 128, TRUE, Workers]
+
+# 48.9 seconds
+
+/*
+We have 32 workers and build an N-tree of degree 32. Memory per worker is 1800 MB. The computer has 64 GB.
+
+*/
+# let ControlWorkers = createintdarray("ControlWorkers", Workers)
+# @&Scripts/DistCost.sec
 
 /*
 
 2 Select Centers for the Root Node
 
 */
-# query TripsCM200D dmap["", . count] getValue tie[. + ..]
+query TripsCM200D dmap["", . count] getValue tie[. + ..]
 
-let_ Centers80 = TripsCM200D dmap["", . feed some[1]] dsummarize some[80] 
+let_ Centers32 = TripsCM200D dmap["", . feed some[1]] dsummarize some[32] 
   addcounter[N1, 0] consume
 
 # [5.9 seconds] 3.67 seconds
 
-query share("Centers80", TRUE, Workers)
+query share("Centers32", TRUE, Workers)
 
 # [1.75 seconds] 1.26 seconds
 
@@ -53,56 +77,64 @@ query share("Centers80", TRUE, Workers)
 query TripsCM200D dcommand['query memclear()'] filter[.Ok] count;
 query TripsCM200D dcommand['query meminit(1800)'] filter[.Ok] count;
 
-query TripsCM200D dlet["Centers80m", 'Centers80 feed mconsume'] 
+query TripsCM200D dlet["Centers32m", 'Centers32 feed mconsume'] 
   filter[.Ok] count
 
 # 0.18 seconds
-# result 81 (1 on master)
+# result 33 (1 on master)
 
 /*
 We build N-trees with a single leaf.
 
 */
-query TripsCM200D dlet["Centers80m_ntree", 'Centers80m 
+query TripsCM200D dlet["Centers32m_ntree", 'Centers32m 
   mcreatentree7[Trip, 350, 1000]'] filter[.Ok] count
   
-# 4.28 seconds, 3160 distance computations = 40 * 79 for 80 centers
+# 4.28 seconds, 3160 distance computations = 40 * 79 for 32 centers
 
-let_ Trips8001a = TripsCM200D dmap["Trips8001", 
+let_ Trips3201a = TripsCM200D dmap["Trips3201", 
   . feed 
-  loopjoin[Centers80m_ntree Centers80m m1nearestNeighborN7[.Trip] 
+  loopjoin[Centers32m_ntree Centers32m m1nearestNeighborN7[.Trip] 
     project[N1, QueryObjectDistance]]  
   consume]
-  partition["", .N1, 80]
+  partition["", .N1, 32]
   
-# 3:30 min = 210 seconds
+# 3:30 min = 210 seconds, 3:11
 
-let_ Trips8001 = Trips8001a areduce["", . feed consume, myPort]
+let_ Trips3201 = Trips3201a areduce["", . feed consume, myPort]
 
-# let_ Trips8001 = Trips8001a collect2["",  myPort]
+# 8.65 seconds
+# result size 551628
+
+# let_ Trips3201 = Trips3201a collect2["",  myPort]
 
 # 21.73 seconds
+
 
 /*
 4 Creating N-trees at Level 1
 
 */
-let_ Trips8001m = Trips8001 dmap["", . feed mconsumeflob]
+let_ Trips3201m = Trips3201 dmap["", . feed mconsumeflob]
 
-# [2.4 seconds] 1.74 seconds, 3.98 seconds
+# [2.4 seconds] 1.74 seconds, 3.98 seconds, 1.55
 
 update LastCommand := distCostReset(ControlWorkers)
 
-let_ Trips8001m_ntree = Trips8001m dmap["", . mcreatentree7[Trip, 80, 160]]
+let_ Trips3201m_ntree = Trips3201m dmap["", . mcreatentree7[Trip, 32, 64]]
 
-# [7:31 min = 451 seconds] 14:04 min = 843 seconds, 14:30 min
+# [7:31 min = 451 seconds] 14:04 min = 843 seconds, 14:30 min, 12:42 min
 
 let_ Cost3 = distCostSave(ControlWorkers)
 
-query Trips8001m dmap["", . count] dsummarize transformstream max[Elem]
+query Trips3201m dmap["", . count] dsummarize transformstream max[Elem]
 
 # [6.2 seconds] 0.47 seconds
-# [result 6775] result 24789
+# [result 6775] [result 24789] 53946
+
+let maxSize = 100000
+
+query share("maxSize", TRUE, Workers)
 
 /*
 Node numbering for export must keep the node numbers for all trees disjoint and must leave out 0, the node number for the root node, therefore start at 1.
@@ -111,50 +143,48 @@ In repeated use, we first need to remove previously created tree relations.
 
 */
 query TripsCM200D dcommand['query getcatalog() 
-  filter[.ObjectName starts "Trips8001Z"] project[ObjectName] 
+  filter[.ObjectName starts "Trips3201Z"] project[ObjectName] 
   extend[Deleted: deleteObject(.ObjectName)] count'] filter[.Ok] count;
 
-query Trips8001m_ntree Trips8001m 
-  dmap2["", . .. exportntree["Trips8001Z", 1 + ($3 * 30000), $3], myPort]
+query Trips3201m_ntree Trips3201m 
+  dmap2["", . .. exportntree["Trips3201Z", 1 + ($3 * maxSize), $3], myPort]
 
-# [1:14 min] 9.6 seconds, 9.08 seconds
+# [1:14 min] 9.6 seconds, 9.08 seconds, 19.88
 
 /*
 5 Computing Tree Relations for the Root Node
 
 */
-query Centers80 getTypeNL
+query Centers32 getTypeNL
 
 # (rel (tuple ((Trip_id int) (PickupTime instant) (DropoffTime instant) 
-# (TotalDistance real) (TotalDuration duration) (SpeedKmh real) 
-# (Trip mpoint) 
-# (CM cmpoint) (N1 int))))
+# (TotalDistance real) (TotalDuration duration) (SpeedKmh real) (Trip mpoint) 
+# (CM cmpoint) (TID tid) (N1 int))))
 
-query Trips8001NodeInfo getTypeNL
+# query Trips3201ZNodeInfo_28 getTypeNL (on some worker)
 
-#  (rel (tuple ((Trip_id int) (PickupTime instant) (DropoffTime instant) 
-# (TotalDistance real) (TotalDuration duration) (SpeedKmh real) 
-# (Trip mpoint) 
-# (CM cmpoint) (N1 int) (QueryObjectDistance real) (NodeId int) 
-# (Entry int) 
-# (Subtree int) (MaxDist real))))
+# (rel (tuple ((Trip_id int) (PickupTime instant) (DropoffTime instant) (TotalDistance real) (TotalDuration duration) (SpeedKmh real) (Trip mpoint) (CM cmpoint) (TID tid) (N1 int) (QueryObjectDistance real) (TupleId int) (NodeId int) (Entry int) (Subtree int) (MaxDist real))))
 
-let_ RootNodeDist = Centers80 feed Centers80 feed {c2} product 
-  filter[.N1 < .N1_c2]
+# query Trips3201ZNodeDist_28 getTypeNL
+# (rel (tuple ((NodeId int) (Entry1 int) (Entry2 int) (Distance real))))
+
+let_ RootNodeDist = Centers32 feed Centers32 feed {c2} product 
+  filter[.N1 > .N1_c2]
   projectextend[; NodeId: 0, Entry1: .N1, Entry2: .N1_c2, 
     Distance: distanceAvg(.Trip, .Trip_c2)]
+  sort
   consume
  
 # 2.28 seconds
 
-let_ MaxDistances = Trips8001 dmap["", . feed 
+let_ MaxDistances = Trips3201 dmap["", . feed 
   groupby[N1; MaxDist: group feed max[QueryObjectDistance]]] 
   dsummarize consume
   
 # 4.4 seconds
 
-let_ RootNodeInfo = Centers80 feed extend[QueryObjectDistance: 0.0, 
-  NodeId: 0, Entry: .N1, Subtree: 1 + (.N1 * 30000)]
+let_ RootNodeInfo = Centers32 feed extend[QueryObjectDistance: 0.0, 
+  TupleId: tid2int(.TID), NodeId: 0, Entry: .N1, Subtree: 1 + (.N1 * maxSize)]
   MaxDistances feed {m}
   itHashJoin[N1, N1_m]
   extend[MaxDist: .MaxDist_m]
@@ -164,11 +194,11 @@ let_ RootNodeInfo = Centers80 feed extend[QueryObjectDistance: 0.0,
 # 0.42 seconds
 
 let_ RootPivotInfo = 
-  Centers80 feed extract[Trip] funseq2[
+  Centers32 feed extract[Trip] funseq2[
     fun(elem1: ARGEF1, elem2: ARGEF2)
-      Centers80 feed head[2] tail[1] extract[Trip],
+      Centers32 feed head[2] tail[1] extract[Trip],
     fun(pivot1: ARGEF1, pivot2: ARGEF2)  
-    Centers80 feed projectextend[; NodeId: 0, Entry: .N1, 
+    Centers32 feed projectextend[; NodeId: 0, Entry: .N1, 
       PivotDist1: distanceAvg(.Trip, pivot1),
       PivotDist2: distanceAvg(.Trip, pivot2),
       IsPivot: .N1 < 2]
@@ -184,19 +214,15 @@ let_ RootPivotInfo =
 Defining relation types:
 
 */
-(let_ Trips8001ZNodeDist_type = (
+(let_ Trips3201ZNodeDist_type = (
   (rel (tuple ((NodeId int) (Entry1 int) (Entry2 int) (Distance real))))
 ()))
 
-(let_ Trips8001ZNodeInfo_type = (
-  (rel (tuple ((Trip_id int) (PickupTime instant) (DropoffTime instant) 
-(TotalDistance real) (TotalDuration duration) (SpeedKmh real) 
-(Trip mpoint) 
-(CM cmpoint) (N1 int) (QueryObjectDistance real) (NodeId int) (Entry int) 
-(Subtree int) (MaxDist real))))
+(let_ Trips3201ZNodeInfo_type = (
+(rel (tuple ((Trip_id int) (PickupTime instant) (DropoffTime instant) (TotalDistance real) (TotalDuration duration) (SpeedKmh real) (Trip mpoint) (CM cmpoint) (TID tid) (N1 int) (QueryObjectDistance real) (TupleId int) (NodeId int) (Entry int) (Subtree int) (MaxDist real))))
 ()))
 
-(let_ Trips8001ZPivotInfo_type = (
+(let_ Trips3201ZPivotInfo_type = (
   (rel (tuple ((NodeId int) (Entry int) (PivotDist1 real) 
   (PivotDist2 real) (IsPivot bool))))
 ()))
@@ -205,32 +231,41 @@ Defining relation types:
 Creating darrays over relations on workers:
 
 */
-let_ NSlots = 80;
+let_ NSlots = 32;
 
-let_ Trips8001ZNodeDist = Workers feed 
-  createDArray["Trips8001ZNodeDist", NSlots, 
-  Trips8001ZNodeDist_type, TRUE]
+let_ Trips3201ZNodeDist = Workers feed 
+  createDArray["Trips3201ZNodeDist", NSlots, 
+  Trips3201ZNodeDist_type, TRUE]
   
-# ~ 11.5 seconds
+# ~ 11.5 seconds, 5.4
   
-let_ Trips8001ZNodeInfo = Workers feed 
-  createDArray["Trips8001ZNodeInfo", NSlots, 
-  Trips8001ZNodeInfo_type, TRUE]
+let_ Trips3201ZNodeInfo = Workers feed 
+  createDArray["Trips3201ZNodeInfo", NSlots, 
+  Trips3201ZNodeInfo_type, TRUE]
+  dmap["", . feed replaceAttr[TupleId: tid2int(.TID)] consume]
   
-# 11.67 seconds
+# 22.5 seconds
 
-let_ Trips8001ZPivotInfo = Workers feed 
-  createDArray["Trips8001ZPivotInfo", NSlots, 
-  Trips8001ZPivotInfo_type, TRUE]
+
+
+
+
+
+
+
+
+let_ Trips3201ZPivotInfo = Workers feed 
+  createDArray["Trips3201ZPivotInfo", NSlots, 
+  Trips3201ZPivotInfo_type, TRUE]
   
 # 11.47 seconds
 
-query Trips8001ZNodeDist dmap["", . count] getValue tie[. + ..]
+query Trips3201ZNodeDist dmap["", . count] getValue tie[. + ..]
 
 # 17234502
 
-query Trips8001ZNodeInfo dmap["", . count] getValue tie[. + ..];
-query Trips8001ZPivotInfo dmap["", . count] getValue tie[. + ..]
+query Trips3201ZNodeInfo dmap["", . count] getValue tie[. + ..];
+query Trips3201ZPivotInfo dmap["", . count] getValue tie[. + ..]
 
 # 634510
 # 634510
@@ -241,25 +276,39 @@ Building the Complete Tree Relations
 */
 
 
-let_ Trips8001NodeDist = RootNodeDist feed
-  Trips8001ZNodeDist dsummarize concat
+let_ Trips3201NodeDist = RootNodeDist feed
+  Trips3201ZNodeDist dsummarize concat
   consume
 
 # 4:26 min = 265 seconds, 4:40 min
 
-let_ Trips8001NodeInfo = RootNodeInfo feed
-  Trips8001ZNodeInfo dsummarize concat
+let_ Trips3201NodeInfo = RootNodeInfo feed
+  Trips3201ZNodeInfo dsummarize concat
   consume;
 
-# 6:02 min = 362 seconds, 5.54 min
+# 6:02 min = 362 seconds, 3:11
 
-let_ Trips8001PivotInfo = RootPivotInfo feed
-  Trips8001ZPivotInfo dsummarize concat
+let_ Trips3201PivotInfo = RootPivotInfo feed
+  Trips3201ZPivotInfo dsummarize concat
   consume;
 
 # 14.75 seconds, 11.79
 
+(let Trips3201TreeInfo = 
+  (
+    (rel (tuple ((Variant int) (Degree int) (MaxLeafSize int) (RelType text) 
+(AttrNo int) (Geoid geoid))))
+    ((7 32 64 '(mem (rel (tuple ((Trip_id int) (PickupTime instant) (DropoffTime instant) (TotalDistance real) (TotalDuration duration) (SpeedKmh real) (Trip mpoint) (CM cmpoint) (TID tid) (N1 int) (QueryObjectDistance real)))))' 6 UNDEF)
+    )
+  )
+)
 
 
+/*
+7 Building the N-tree
 
+*/
+let_ trip1 = Trips2000 feed extract[Trip]
+
+let_ TripsCM200m_Trip_ntree = importntree7("Trips3201", trip1)
 
