@@ -275,7 +275,7 @@ class PersistentNTree {
       result = new innernode_t(ntree->getDegree(), ntree->getMaxLeafSize(),
                               ntree->getCandOrder(), ntree->getPruningMethod());
     }
-//     cout << "process " << (isLeaf ? "LEAF node #" : "INNER node #") << nodeId 
+//     cout << "process " << (isLeaf ? "LEAF node #" : "INNER node #") << nodeId
 //          << endl;
     while (currentNodeId == nodeId) {
       tid = ((CcInt*)nodeInfoTuple->GetAttribute(attr0))->GetValue();
